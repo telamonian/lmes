@@ -1,0 +1,88 @@
+% Setup the document.
+\documentclass[11pt]{report}
+
+% Import package used in the document.
+\usepackage{er-ug}
+\usepackage{er-abbrev}
+\usepackage{er-math}
+\usepackage{er-outline}
+
+\usepackage{upquote}
+
+% Setup the outline package.
+\setboolean{showOutline}{false}
+
+% Load any abbreviations.
+\input{abbreviations}
+
+% Start the document.
+\begin{document}
+
+% Set the page numbering to be lowercase roman numerals for the front matter.
+\newpage
+\singlespacing
+\normalsize
+\setcounter{page}{1}
+\renewcommand{\thepage}{\roman{page}}
+
+% Title page.
+\thispagestyle{empty}
+\begin{center}{
+\vspace*{0.85in}
+{\huge Lattice Microbes User's Guide}\\
+\vspace*{0.5in}
+{\large Version 2.0}\\
+{\large \today}\\
+\vspace*{0.9in}
+{\large Authors:}\\
+{\large Elijah Roberts}\\
+{\large Zan Luthey-Schulten}\\
+~\\
+{\large Luthey-Schulten Group}\\
+{\large University of Illinois at Urbana-Champaign}\\
+{\large http://www.scs.illinois.edu/schulten/}\\
+{\large http://latticemicrobes.sourceforge.net/}\\
+\vspace*{1.45in}
+{\Large Description}\\
+}\end{center}
+
+The Lattice Microbes User's Guide describes how to use the software to perform and analyze stochastic simulations of spatially modeled microbial cells. Lattice Microbes development is supported by the Department of Energy Office of Science (BER) under grant DE-FG02-10ER6510. 
+
+% Table of contents
+\newpage
+\tableofcontents
+
+% List of tables
+\newpage
+\addcontentsline{toc}{chapter}{List of Tables}
+\listoftables
+
+% List of figures
+\newpage
+\addcontentsline{toc}{chapter}{List of Figures}
+\listoffigures
+
+% List of abbreviations
+%\newpage
+%\addcontentsline{toc}{chapter}{List of Abbreviations}
+%\listofabbreviations
+
+% Set the page numbering to be arabic numerals for the text.
+\newpage
+\setcounter{page}{1}
+\renewcommand{\thepage}{\arabic{page}}
+
+% Main text.
+\input{Introduction/main}
+\input{Installation/main}
+\input{Tutorials/main}
+
+% References
+\newpage
+\addcontentsline{toc}{chapter}{Bibliography}
+\bibliographystyle{inorder}
+\bibliography{references,zlsgroup-2011}
+
+\end{document}
+
+

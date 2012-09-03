@@ -1,0 +1,58 @@
+
+BUILD_DIR := Build-linux-x86_64_openmpi_cuda-2.x_vmd-1.9_static
+RM := rm -rf
+CC := gcc
+CCFLAGS := -m64 -O3 -fPIC -Wall -c -fmessage-length=0 -pthread -DLINUX -DCUDA_DOUBLE_PRECISION 
+CCDEPENDFLAGS := 
+CXX := g++
+CXXFLAGS := -m64 -O3 -fPIC -Wall -c -fmessage-length=0 -pthread -DLINUX -DCUDA_DOUBLE_PRECISION 
+CXXDEPENDFLAGS := 
+LD := g++
+LDFLAGS := -pthread -lpthread -lrt
+SHLD := g++
+SHLDFLAGS := -shared -fPIC
+SHLDOPTO := -o
+USE_VERBOSITY_LEVEL := 4
+PROTOBUF_PROTOC := /home/erobert3/share/bin/protoc
+PROTOBUF_INCLUDE_DIR := -I/home/erobert3/share/include
+PROTOBUF_LIB_DIR := 
+PROTOBUF_LIB := /home/erobert3/share/lib/libprotobuf.a
+HDF5_INCLUDE_DIR := -I/home/erobert3/share/include
+HDF5_LIB_DIR := 
+HDF5_LIB := /home/erobert3/share/lib/libhdf5_hl.a /home/erobert3/share/lib/libhdf5.a
+USE_MPI := 1
+MPI_COMPILE_FLAGS = -DOMPI_SKIP_MPICXX=1 $(shell mpicc --showme:compile)
+MPI_LINK_FLAGS = $(shell mpicc --showme:link)
+USE_PYTHON := 1
+PYTHON_SWIG := /usr/bin/swig
+PYTHON_INCLUDE_DIR := -I/usr/include/python2.4
+PYTHON_LIB_DIR := -L/usr/lib64
+PYTHON_LIB := -lpython2.4
+USE_CUDA := 1
+CUDA_NVCC := /usr/local/cuda/bin/nvcc
+CUDA_FLAGS := -m64 --ptxas-options=-v --gpu-architecture compute_20 --gpu-code sm_20 -DLINUX -DCUDA_3D_GRID_LAUNCH -DCUDA_DOUBLE_PRECISION -DTUNE_MPD_Y_BLOCK_Y_SIZE=8 -DTUNE_MPD_Z_BLOCK_Z_SIZE=8 -DTUNE_MPD_REACTION_BLOCK_Y_SIZE=8
+CUDA_INCLUDE_DIR := -I/usr/local/cuda/include
+CUDA_LIB_DIR := -L/usr/local/cuda/lib64
+CUDA_LIB := -lcuda -lcudart
+CUDA_GENERATE_PTX_CODE := 1
+CUDA_GENERATE_BIN_CODE := 0
+CUDA_GENERATE_ASM_CODE := 0
+USE_SBML := 1
+SBML_INCLUDE_DIR := -I/home/erobert3/share/include
+SBML_LIB_DIR := 
+SBML_LIB := /home/erobert3/share/lib/libsbml.a /home/erobert3/share/lib/libxml2.a /usr/lib64/libbz2.a /usr/lib64/libz.a
+USE_PROF := 0
+PROF_CUDA_ENABLE := 0
+PROF_MAX_THREADS := 
+PROF_MAX_EVENTS := 
+PROF_OUT_FILE := 
+USE_BOOST := 0
+BOOST_TEST_CXXFLAGS := -
+BOOST_TEST_INCLUDE_DIR := 
+BOOST_TEST_LIB_DIR := 
+BOOST_TEST_LIB := 
+USE_VMD := 1
+VMD_INCLUDE_DIR := -I"/home/erobert3/share/include"
+VMD_INSTALL_DIR := 
+INSTALL_PREFIX := 
+

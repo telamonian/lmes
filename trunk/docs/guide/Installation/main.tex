@@ -1,0 +1,204 @@
+\chapter{Installation}
+
+\section{System requirements}
+
+The Lattice Microbes software has been tested on Linux and Mac OS X, but should be compatible with any recent Unix-like operating system.\\
+
+Lattice Microbes is not a GUI program, it must be used from the command line. This enables it to efficiently run on \abr{HPC} clusters with minimal overhead. Consequently, all user interaction with the software, including installation, must be performed through the command line interface. In this chapter, commands to be executed from the command line are written as:\\
+``\command{$\sim$/usr}{ls}'', which means to run the command ``\file{ls}'' from the directory ``\file{$\sim$/usr}''.
+
+\section{Obtaining source and binary distributions}
+
+Source and binary distributions may be obtained from the project download page:\\
+\url{http://www.scs.illinois.edu/schulten/lm}
+
+\section{Installing a precompiled binary}
+
+For the purposes of these instructions, it is assumed that the Lattice Microbes software will be installed into the directory \file{/home/<user>/usr}, also referred to as \file{$\sim$/usr}. If you wish to install the software elsewhere, please adjust the instructions accordingly.\\
+
+Download the binary distribution from the URL above to a temporary directory \file{/tmp}.\\
+
+Open a terminal and then change to this directory: \command{$\sim$}{cd /tmp}\\
+
+Unpack the binary distribution: \command{/tmp}{tar zxvf lm-2.0\_<platform>.tgz}\\
+
+Copy the binaries to the installation directory: \command{/tmp}{cp lm-2.0/bin/* $\sim$/usr/bin}\\
+
+Make the library installation directory: \command{/tmp}{mkdir -p $\sim$/usr/lib/lm}\\
+
+Copy the libraries: \command{/tmp}{cp lm-2.0/lib/lm.py $\sim$/usr/lib/lm}\\
+
+{\it (OS X)} Copy the VMD plugin:
+{\small\begin{verbatim}
+[user@host /tmp]$ cp lm-2.0/lib/lmplugin.so
+             /Applications/VMD.app/Contents/vmd/plugins/MACOSXX86_64/molfile
+\end{verbatim}}
+
+{\it (LINUX)} Copy the VMD plugin:
+{\small\begin{verbatim}
+[user@host /tmp]$ cp lm-2.0/lib/lmplugin.so
+             /usr/local/lib/vmd/plugins/LINUXAMD64/molfile
+\end{verbatim}}
+
+Note: if you have installed the software into a non-global location, such as installing to \file{$\sim$/usr}, you will need to add the installation directory to you path. For example, you might add the following line to your \file{$\sim$/.bashrc} file:
+{\small\begin{verbatim}
+export PATH="${PATH}":$HOME/usr/bin
+\end{verbatim}}
+
+Additionally, if you wish to use the standalone python scripting environment, you must add the following line to your \file{$\sim$/.bashrc} file:
+{\small\begin{verbatim}
+export LMLIBDIR=$HOME/usr/lib/lm
+\end{verbatim}}
+
+Finally, test the software installation: \command{/tmp}{lm --help}
+
+\section{Installing from source code}
+
+\subsection{Satisfying external dependencies}
+
+The Lattice Microbes software uses several external software packages for implementing various features. There are two {\it required} libraries, which must to be installed prior to building from source:
+
+\begin{itemize}
+\item {\bf HDF5}. The HDF5 library is used for reading models from and writing simulation data to HDF5 formatted files. The HDF5 library is available from:\\ \url{http://www.hdfgroup.org/HDF5/release/obtain5.html}
+\item {\bf Protocol Buffers}. The protobuf library is used for serialization of message across the transport layer. The protobuf library is available from:\\ \url{http://code.google.com/p/protobuf/downloads/list}
+\end{itemize}
+
+Additionally, there are several {\it optional} packages that enable extra features in the Lattice Microbes software if they are available:
+
+\begin{itemize}
+\item {\bf MPI}. MPI can be used for running the software in parallel on a cluster.
+\item {\bf Python}. Python can be used to build a stand-alone scripting environment for programmatic setup of models and analysis of data.
+\item {\bf CUDA}. CUDA can be used to run \abr{GPU} accelerated simulation methods using NVIDIA GPUS. CUDA is available from:\\ \url{http://developer.nvidia.com/cuda-downloads}
+\item {\bf libSBML}. The libSBML library can be used to import Systems Biology Markup Language files for reaction models. The libSBML library is available from:\\ \url{http://sbml.org/Software/libSBML}
+\item {\bf VMD}. VMD can be used to visualize spatial models and trajectories. VMD is available from:\\ \url{http://www.ks.uiuc.edu/Research/vmd/}
+\end{itemize}
+
+If one of the above packages is needed and is not already installed on your system, download a binary or source installation package and follow the installation instructions that accompany it. If you have problems, please contact your system administrator for assistance.\\
+
+Note: if you install any of the external libraries into a non-global location, such as installing to \file{$\sim$/usr}, you will need to set an environment variable for the loader to find these libraries.
+For example, you might add the following line to your \file{$\sim$/.bashrc} file:\\
+
+{\it (OS X)}
+{\small\begin{verbatim}
+export DYLD_LIBRARY_PATH=$HOME/usr/lib:"${DYLD_LIBRARY_PATH}"
+\end{verbatim}}
+
+{\it (LINUX)} 
+{\small\begin{verbatim}
+export LD_LIBRARY_PATH=$HOME/usr/lib:"${LD_LIBRARY_PATH}"
+\end{verbatim}}
+
+\subsection{Unpack the source distribution}
+
+For the purposes of these instructions, it is assumed that the Lattice Microbes software will be installed into the directory \file{/home/<user>/usr}, also referred to as \file{$\sim$/usr}. If you wish to install the software elsewhere, please adjust the instructions accordingly.\\
+
+Download the source distribution from the URL above to the directory \file{$\sim$/usr/src}.\\
+
+Open a terminal and then change to this directory: \command{$\sim$}{cd $\sim$/usr/src}\\
+
+Unpack the source distribution: \command{$\sim$/usr/src}{tar zxvf lm-2.0.tgz}\\
+
+Change to the source directory: \command{$\sim$/usr/src}{cd lm-2.0}
+
+\subsection{Configuring the build for your local environment}
+
+The Lattice Microbes source distribution ships with two default configuration file, one for Linux and one for Mac OS X. These files are located at \file{docs/config/local.mk.linux} and\\\file{docs/config/local.mk.osx}. To begin, copy the file corresponding to your system to \file{local.mk}:\\
+\command{$\sim$/usr/src/lm-2.0}{cp docs/config/local.mk.<platform> local.mk}\\
+
+Edit the \file{local.mk} file to contain the correct options and file locations for your local environment. For example, if you installed the HDF5 and protobuf libraries into the \file{/home/<user>/usr} directory, you should set the PROTOBUF and HDF5 options as follows:
+
+{\small\begin{verbatim}
+PROTOBUF_PROTOC := /home/<user>/usr/bin/protoc
+PROTOBUF_INCLUDE_DIR := -I/home/<user>/usr/include
+PROTOBUF_LIB_DIR := -L/home/<user>/usr/lib
+PROTOBUF_LIB := -lprotobuf
+HDF5_INCLUDE_DIR := -I/home/<user>/usr/include
+HDF5_LIB_DIR := -L/home/<user>/usr/lib
+HDF5_LIB := -lhdf5 -lhdf5_hl
+\end{verbatim}}
+
+Each optional package has a section in the \file{local.mk} file that is initially disabled and begins with a line like:
+{\small\begin{verbatim}
+USE_XXXX := 0
+\end{verbatim}}
+
+To enable a specific package, set the flag corresponding to the package to 1 and set the options and locations appropriately. For example, if you are using Open MPI you might set the MPI options as follows:
+{\small\begin{verbatim}
+USE_MPI := 1
+MPI_COMPILE_FLAGS = -DOMPI_SKIP_MPICXX=1 $(shell mpicc --showme:compile)
+MPI_LINK_FLAGS = $(shell mpicc --showme:link)
+\end{verbatim}}
+
+For alternate MPI implementations you may need to experiment with the \file{mpicc} command to discover the correct settings or look at the example configuration files included with the Lattice Microbes source distribution.\\
+
+If you are using Python 2.6 you might set the Python options as follows:
+{\small\begin{verbatim}
+USE_PYTHON := 1
+PYTHON_SWIG := /usr/bin/swig
+PYTHON_INCLUDE_DIR := -I/usr/include/python2.6
+PYTHON_LIB_DIR := -L/usr/lib
+PYTHON_LIB := -lpython2.6
+\end{verbatim}}
+
+If you are using CUDA with a ``Fermi'' capable device you might set the CUDA options as follows:
+{\small\begin{verbatim}
+USE_CUDA := 1
+CUDA_NVCC := /usr/local/cuda/bin/nvcc
+CUDA_FLAGS := -m64 --ptxas-options=-v --gpu-architecture compute_20 \
+              --gpu-code sm_20 -DMACOSX -DCUDA_3D_GRID_LAUNCH \
+              -DCUDA_DOUBLE_PRECISION -DTUNE_MPD_Y_BLOCK_Y_SIZE=16 \
+              -DTUNE_MPD_Z_BLOCK_Z_SIZE=8
+CUDA_INCLUDE_DIR := -I/usr/local/cuda/include
+CUDA_LIB_DIR := -L/usr/local/cuda/lib
+CUDA_LIB := -lcuda -lcudart
+CUDA_GENERATE_PTX_CODE := 0
+CUDA_GENERATE_BIN_CODE := 0
+CUDA_GENERATE_ASM_CODE := 0
+\end{verbatim}}
+
+If you want to build Lattice Microbes with support for importing SBML files (and have libSBML installed to \file{/home/<user>/usr}) you might set the SBML options as follows:
+{\small\begin{verbatim}
+USE_SBML := 1
+SBML_INCLUDE_DIR := -I/home/<user>/usr/include
+SBML_LIB_DIR := -L/home/<user>/usr/lib
+SBML_LIB := -lsbml
+\end{verbatim}}
+
+{\it (OS X)} If you want to build the VMD plugin and have VMD installed to the Applications folder you might set the VMD options to:
+{\small\begin{verbatim}
+USE_VMD := 1
+VMD_INCLUDE_DIR := -I/Applications/VMD.app/Contents/vmd/plugins/include
+VMD_INSTALL_DIR := /Applications/VMD.app/Contents/vmd/plugins/MACOSXX86_64/molfile/
+\end{verbatim}}
+
+{\it (LINUX)} If you want to build the VMD plugin and have VMD installed to \file{/usr/local} you might set the VMD options to:
+{\small\begin{verbatim}
+USE_VMD := 1
+VMD_INCLUDE_DIR := -I/usr/local/lib/vmd/plugins/include
+VMD_INSTALL_DIR := /usr/local/lib/vmd/plugins/LINUXAMD64/molfile
+\end{verbatim}}
+
+Finally, you should set the installation location for the Lattice Microbes software:
+{\small\begin{verbatim}
+INSTALL_PREFIX := /home/<user>/usr
+\end{verbatim}}
+
+\subsection{Build and install the software}
+
+Now that the build is configured, build the source code:\\
+\command{$\sim$/usr/src/lm-2.0}{make}\\
+
+Once the build successfully completes, install the software:\\
+\command{$\sim$/usr/src/lm-2.0}{make install}\\
+
+Note: if you have installed the software into a non-global location, such as installing to \file{$\sim$/usr}, you will need to add the installation directory to you path. For example, you might add the following line to your \file{$\sim$/.bashrc} file:
+{\small\begin{verbatim}
+export PATH="${PATH}":$HOME/usr/bin
+\end{verbatim}}
+
+Finally, test the software installation: \command{$\sim$/usr/src/lm-2.0}{lm --help}\\
+
+\section{In case of difficulty}
+If you experience problems when building the software, please visit the {\bf Help} forum at:\\ \url{http://sourceforge.net/projects/latticemicrobes/forums}.
+
+
