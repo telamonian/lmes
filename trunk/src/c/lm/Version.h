@@ -38,9 +38,13 @@
  */
 
 #ifndef VERSION_NUM
-#define VERSION_NUM 2
+#define VERSION_NUM "2012.9-JHU"
 #endif
 
 #ifndef COPYRIGHT_DATE
-#define COPYRIGHT_DATE "2008-2011"
+#define COPYRIGHT_DATE "2008-2012"
+#endif
+
+#ifndef COPYRIGHT_DATE_JHU
+#define COPYRIGHT_DATE_JHU "2012"
 #endif

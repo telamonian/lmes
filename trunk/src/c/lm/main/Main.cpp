@@ -144,8 +144,8 @@ void printCopyright(int argc, char** argv)
     std::cout << " MPI";
 #endif
     std::cout << "." << std::endl;
-    std::cout << "Copyright (C) " << COPYRIGHT_DATE << " Luthey-Schulten Group," << std::endl;
-	std::cout << "University of Illinois at Urbana-Champaign." << std::endl << std::endl;
+    std::cout << "Copyright (C) " << COPYRIGHT_DATE << " Luthey-Schulten Group, University of Illinois at Urbana-Champaign." << std::endl;
+    std::cout << "Copyright (C) " << COPYRIGHT_DATE_JHU << " Roberts Group, Johns Hopkins University." << std::endl << std::endl;
 }
 
 /**

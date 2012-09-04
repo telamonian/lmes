@@ -43,6 +43,9 @@
 #include <cstdio>
 #include <cstring>
 #include <ctime>
+#if defined(MACOSX)
+#include <sys/time.h>
+#endif
 #include <csignal>
 #include <cerrno>
 #include <unistd.h>
@@ -61,6 +64,7 @@
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SimulationParameters.h"
+#include "lm/main/CheckpointSignaler.h"
 #include "lm/main/DataOutputQueue.h"
 #include "lm/main/LocalDataOutputWorker.h"
 #include "lm/main/Main.h"
@@ -178,19 +182,29 @@ void executeSimulation()
     #ifdef OPT_CUDA
     Print::printf(Print::INFO, "Using %d processor(s) and %d CUDA device(s) per process.", numberCpuCores, (int)cudaDevices.size());
     Print::printf(Print::INFO, "Assigning %0.2f processor(s) and %0.2f CUDA device(s) per replicate.", cpuCoresPerReplicate, cudaDevicesPerReplicate);
-    ResourceAllocator resourceAllocator(numberCpuCores-1, cpuCoresPerReplicate, cudaDevices, cudaDevicesPerReplicate);
+    ResourceAllocator resourceAllocator(0, numberCpuCores, cpuCoresPerReplicate, cudaDevices, cudaDevicesPerReplicate);
     #else
     Print::printf(Print::INFO, "Using %d processor(s) per process.", numberCpuCores);
     Print::printf(Print::INFO, "Assigning %0.2f processor(s) per replicate.", cpuCoresPerReplicate);
-    ResourceAllocator resourceAllocator(numberCpuCores-1, cpuCoresPerReplicate);
+    ResourceAllocator resourceAllocator(0, numberCpuCores, cpuCoresPerReplicate);
     #endif
+
+    // Reserve a core for the data output thread, unless we have a flag telling us not to.
+    int reservedCpuCore = 0;
+    if (shouldReserveOutputCore)
+    {
+        reservedCpuCore=resourceAllocator.reserveCpuCore();
+        Print::printf(Print::INFO, "Reserved CPU core %d for data output.", reservedCpuCore);
+    }
 
     // Create a worker to handle any signals.
     lm::main::SignalHandler * signalHandler = new lm::main::SignalHandler();
+    signalHandler->setAffinity(reservedCpuCore);
     signalHandler->start();
 
     // Create the checkpoint signaler.
     lm::main::CheckpointSignaler * checkpointSignaler = new lm::main::CheckpointSignaler();
+    checkpointSignaler->setAffinity(reservedCpuCore);
     checkpointSignaler->start();
     checkpointSignaler->startCheckpointing(checkpointInterval);
 
@@ -199,6 +213,7 @@ void executeSimulation()
 
     // Start the data output thread.
     lm::main::LocalDataOutputWorker * dataOutputWorker = new lm::main::LocalDataOutputWorker(file);
+    dataOutputWorker->setAffinity(reservedCpuCore);
     dataOutputWorker->start();
 
     // Set the data output handler to be the worker.
@@ -214,11 +229,12 @@ void executeSimulation()
 
     // Create a table for the simulation status.
     map<int,int> simulationStatusTable;
-    map<int,time_t> simulationStartTimeTable;
+    map<int,struct timespec> simulationStartTimeTable;
     for (vector<int>::iterator it=replicates.begin(); it<replicates.end(); it++)
     {
         simulationStatusTable[*it] = 0;
-        simulationStartTimeTable[*it] = 0;
+        simulationStartTimeTable[*it].tv_sec = 0;
+        simulationStartTimeTable[*it].tv_nsec = 0;
     }
 
     // Get the simulation parameters.
@@ -259,7 +275,18 @@ void executeSimulation()
         while ((finishedReplicate=popNextFinishedReplicate(runningReplicates, resourceAllocator)) != NULL)
         {
             PROF_BEGIN(PROF_MASTER_FINISHED_THREAD);
-            Print::printf(Print::INFO, "Replicate %d completed with exit code %d in %d seconds.", finishedReplicate->getReplicate(), finishedReplicate->getReplicateExitCode(), time(NULL)-simulationStartTimeTable[finishedReplicate->getReplicate()]);
+
+            struct timespec now;
+            #if defined(LINUX)
+            clock_gettime(CLOCK_REALTIME, &now);
+            #elif defined(MACOSX)
+            struct timeval now2;
+            gettimeofday(&now2, NULL);
+            now.tv_sec = now2.tv_sec;
+            now.tv_nsec = now2.tv_usec*1000;
+            #endif
+
+            Print::printf(Print::INFO, "Replicate %d completed with exit code %d in %0.2f seconds.", finishedReplicate->getReplicate(), finishedReplicate->getReplicateExitCode(), ((double)(now.tv_sec-simulationStartTimeTable[finishedReplicate->getReplicate()].tv_sec))+1e-9*((double)now.tv_nsec-simulationStartTimeTable[finishedReplicate->getReplicate()].tv_nsec));
             assignedSimulations--;
             simulationStatusTable[finishedReplicate->getReplicate()] = 2;
             noopLoopCycles = 0;
@@ -296,7 +323,17 @@ void executeSimulation()
 
 				assignedSimulations++;
 				simulationStatusTable[replicate] = 1;
-				simulationStartTimeTable[replicate] = time(NULL);
+                struct timespec now;
+                #if defined(LINUX)
+                clock_gettime(CLOCK_REALTIME, &now);
+                #elif defined(MACOSX)
+                struct timeval now2;
+                gettimeofday(&now2, NULL);
+                now.tv_sec = now2.tv_sec;
+                now.tv_nsec = now2.tv_usec*1000;
+                #endif
+                simulationStartTimeTable[replicate].tv_sec = now.tv_sec;
+                simulationStartTimeTable[replicate].tv_nsec = now.tv_nsec;
 				continue;
             }
 
