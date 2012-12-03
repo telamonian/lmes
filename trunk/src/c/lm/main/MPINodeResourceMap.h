@@ -1,12 +1,7 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2011 Luthey-Schulten Group,
  * Copyright 2012 Roberts Group,
  * All rights reserved.
- * 
- * Developed by: Luthey-Schulten Group
- * 			     University of Illinois at Urbana-Champaign
- * 			     http://www.scs.uiuc.edu/~schulten
  * 
  * Developed by: Roberts Group
  * 			     Johns Hopkins University
@@ -26,10 +21,9 @@
  * this list of conditions and the following disclaimers in the documentation 
  * and/or other materials provided with the distribution.
  * 
- * - Neither the names of the Luthey-Schulten Group, University of Illinois at
- * Urbana-Champaign, the Roberts Group, Johns Hopkins University, nor the names
- * of its contributors may be used to endorse or promote products derived from
- * this Software without specific prior written permission.
+ * - Neither the names of the Roberts Group, Johns Hopkins University
+ * nor the names of its contributors may be used to endorse or promote products
+ * derived from this Software without specific prior written permission.
  * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
@@ -42,58 +36,47 @@
  * Author(s): Elijah Roberts
  */
 
-#ifndef LM_MAIN_RESOURCEALLOCATOR_H_
-#define LM_MAIN_RESOURCEALLOCATOR_H_
+#ifndef LM_MAIN_MPINODERESOURCEMAP_H_
+#define LM_MAIN_MPINODERESOURCEMAP_H_
 
+#include <list>
+#include <map>
 #include <string>
 #include <vector>
-#include "lm/thread/Thread.h"
 
+using std::list;
+using std::map;
 using std::string;
 using std::vector;
-using lm::thread::PthreadException;
 
 namespace lm {
 namespace main {
 
-class ResourceAllocator
+class MPINodeResourceMap
 {
 public:
     class ComputeResources
     {
     public:
-    	int processNumber;
+    	string hostname;
         vector<int> cpuCores;
         vector<int> cudaDevices;
-        string toString();
     };
 
+
 public:
-    ResourceAllocator(int processNumber, int numberCpuCores, float cpuCoresPerReplicate) throw(Exception,PthreadException);
-    ResourceAllocator(int processNumber, int numberCpuCores, float cpuCoresPerReplicate, vector<int> cudaDevices, float cudaDevicesPerReplicate) throw(Exception,PthreadException);
-    virtual ~ResourceAllocator() throw(PthreadException);
-
-    virtual int getMaxSimultaneousReplicates();
-    virtual ComputeResources assignReplicate(int replicate) throw(Exception,PthreadException);
-    virtual void removeReplicate(int replicate) throw(Exception,PthreadException);
-    virtual int reserveCpuCore() throw(Exception,PthreadException);
-
-private:
-    void initialize(float cpuCoresPerReplicate, float cudaDevicesPerReplicate) throw(Exception,PthreadException);
+    MPINodeResourceMap(list<string> hostnames, int defaultNumberCpuCores);
+    virtual ~MPINodeResourceMap();
+    int* getCpuCoresTable() {return cpuCoresTable;}
 
 protected:
-    pthread_mutex_t mutex;
-    int processNumber;
-    int numberCpuCores;
-    int reservedCpuCores;
-    vector<int> cudaDevices;
-    int cpuSlotsPerCore;
-    int cpuSlotsPerReplicate;
-    int cudaSlotsPerDevice;
-    int cudaSlotsPerReplicate;
+    list<string> parsePBSNodeFile(string filename);
 
-    int ** cpuSlots;
-    int ** cudaSlots;
+protected:
+    int numberNodes;
+    map<int,ComputeResources> resourceMap;
+    map<string,int> hostnameMap;
+    int* cpuCoresTable;
 };
 
 }

@@ -7,6 +7,7 @@ ifeq ($(USE_MPI),0)
 MAIN_OBJS := ./$(BUILD_DIR)/src/c/lm/main/MainSA.o
 else
 MAIN_OBJS := ./$(BUILD_DIR)/src/c/lm/main/MainMPI.o \
+./$(BUILD_DIR)/src/c/lm/main/MPINodeResourceMap.o \
 ./$(BUILD_DIR)/src/c/lm/main/MPIRemoteDataOutputQueue.o
 endif
 
@@ -92,6 +93,7 @@ CPP_DEPS += \
 ./$(BUILD_DIR)/src/c/lm/main/DataOutputQueue.d \
 ./$(BUILD_DIR)/src/c/lm/main/LocalDataOutputWorker.d \
 ./$(BUILD_DIR)/src/c/lm/main/SignalHandler.d \
+./$(BUILD_DIR)/src/c/lm/main/MPINodeResourceMap.d \
 ./$(BUILD_DIR)/src/c/lm/main/MPIRemoteDataOutputQueue.d \
 ./$(BUILD_DIR)/src/c/lm/main/ReplicateRunner.d \
 ./$(BUILD_DIR)/src/c/lm/main/ResourceAllocator.d \

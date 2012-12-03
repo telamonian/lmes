@@ -69,6 +69,7 @@
 #include "lm/main/CheckpointSignaler.h"
 #include "lm/main/DataOutputQueue.h"
 #include "lm/main/LocalDataOutputWorker.h"
+#include "lm/main/MPINodeResourceMap.h"
 #include "lm/main/MPIRemoteDataOutputQueue.h"
 #include "lm/main/Main.h"
 #include "lm/main/SignalHandler.h"
@@ -86,6 +87,7 @@ using lm::Print;
 using lm::Exception;
 using lm::main::ReplicateRunner;
 using lm::main::ResourceAllocator;
+using lm::main::MPINodeResourceMap;
 using lm::me::MESolverFactory;
 using lm::thread::PthreadException;
 
@@ -117,7 +119,7 @@ int main(int argc, char** argv)
         lm::MPI::init(argc, argv);
 
         // If this is the master process, catch any problems with the command line arguments.
-        int validCommandLine=0;
+        int startAllProcesses=0;
         if (lm::MPI::worldRank == lm::MPI::MASTER)
         {
             //Print the startup messages.
@@ -138,13 +140,10 @@ int main(int argc, char** argv)
                 {
                     // Handle version on the master process.
                 }
-                else if (functionOption == "devices")
+                else if (functionOption == "devices" || functionOption == "simulation")
                 {
-                    validCommandLine = 1;
-                }
-                else if (functionOption == "simulation")
-                {
-                    validCommandLine = 1;
+                	// Mark that we need to start all of the processes.
+                	startAllProcesses = 1;
                 }
                 else
                 {
@@ -158,14 +157,46 @@ int main(int argc, char** argv)
             }
         }
 
-        // Broadcast whether the command line was valid.
-        MPI_EXCEPTION_CHECK(MPI_Bcast(&validCommandLine,1,MPI_INT,lm::MPI::MASTER,MPI_COMM_WORLD));
+        // Broadcast some startup info.
+        MPI_EXCEPTION_CHECK(MPI_Bcast(&startAllProcesses,1,MPI_INT,lm::MPI::MASTER,MPI_COMM_WORLD));
 
-        // If we are sure the arguments are good.
-        if (validCommandLine)
+        // See if we should start all of the processes.
+        if (startAllProcesses)
         {
-            // Parse them again on all processes.
+            // Parse the arguments again on all processes.
             parseArguments(argc, argv);
+
+			// Get the hostname.
+			char hostname[MPI_MAX_PROCESSOR_NAME+1];
+			int hostnameLength;
+			memset(hostname,0,sizeof(hostname));
+			MPI_EXCEPTION_CHECK(MPI_Get_processor_name(hostname, &hostnameLength));
+
+			// Create the resource list on the master.
+			if (lm::MPI::worldRank == lm::MPI::MASTER)
+			{
+				// Receive all of the host names.
+				char* hostnameTable = new char[sizeof(hostname)*lm::MPI::worldSize];
+				MPI_EXCEPTION_CHECK(MPI_Gather(hostname,sizeof(hostname),MPI_CHAR,hostnameTable,sizeof(hostname),MPI_CHAR,lm::MPI::MASTER,MPI_COMM_WORLD));
+
+				// Extract the hostnames.
+				list<string> hostnames;
+				for (int i=0; i<lm::MPI::worldSize; i++)
+					hostnames.push_back(string(&hostnameTable[i*sizeof(hostname)]));
+
+				MPINodeResourceMap resourceList(hostnames, numberCpuCores);
+
+				// Send the resource map.
+				MPI_EXCEPTION_CHECK(MPI_Scatter(resourceList.getCpuCoresTable(),1,MPI_INT,&numberCpuCores,1,MPI_INT,lm::MPI::MASTER,MPI_COMM_WORLD));
+			}
+			else
+			{
+				// Send all of the host names.
+				MPI_EXCEPTION_CHECK(MPI_Gather(hostname,sizeof(hostname),MPI_CHAR,NULL,sizeof(hostname),MPI_CHAR,lm::MPI::MASTER,MPI_COMM_WORLD));
+
+				// Receive the resource map.
+				MPI_EXCEPTION_CHECK(MPI_Scatter(NULL,1,MPI_INT,&numberCpuCores,1,MPI_INT,lm::MPI::MASTER,MPI_COMM_WORLD));
+			}
 
             // Perform the requested function.
             if (functionOption == "devices")
@@ -227,7 +258,6 @@ void listDevicesMPI()
 
     // Print the capabilities message.
     printf("Process %d running on host %s with %d/%d processor(s)", lm::MPI::worldRank, hostname, numberCpuCores, getPhysicalCpuCores());
-
     #ifdef OPT_CUDA
     printf(" and %d/%d CUDA device(s)", (int)cudaDevices.size(), lm::CUDA::getNumberDevices());
     #endif
@@ -263,12 +293,12 @@ void executeSimulationMPISingleMaster()
 
     // Create the resource allocator, subtract one core for the data output thread on the master.
     #ifdef OPT_CUDA
-    Print::printf(Print::INFO, "Using %d processor(s) and %d CUDA device(s) per process.", numberCpuCores, (int)cudaDevices.size());
-    Print::printf(Print::INFO, "Assigning %0.2f processor(s) and %0.2f CUDA device(s) per replicate.", cpuCoresPerReplicate, cudaDevicesPerReplicate);
+    Print::printf(Print::INFO, "MPI process %d using %d core(s) and %d CUDA device(s).", lm::MPI::worldRank, numberCpuCores, (int)cudaDevices.size());
+    Print::printf(Print::INFO, "Assigning %0.2f core(s) and %0.2f CUDA device(s) per replicate.", cpuCoresPerReplicate, cudaDevicesPerReplicate);
     ResourceAllocator resourceAllocator(lm::MPI::worldRank, numberCpuCores, cpuCoresPerReplicate, cudaDevices, cudaDevicesPerReplicate);
     #else
-    Print::printf(Print::INFO, "Using %d processor(s) per process.", numberCpuCores);
-    Print::printf(Print::INFO, "Assigning %0.2f processor(s) per replicate.", cpuCoresPerReplicate);
+    Print::printf(Print::INFO, "MPI process %d using %d core(s).", lm::MPI::worldRank, numberCpuCores);
+    Print::printf(Print::INFO, "Assigning %0.2f core(s) per replicate.", cpuCoresPerReplicate);
     ResourceAllocator resourceAllocator(lm::MPI::worldRank, numberCpuCores, cpuCoresPerReplicate);
     #endif
 
@@ -587,8 +617,10 @@ void executeSimulationMPISingleSlave()
 
     // Create the resource allocator.
     #ifdef OPT_CUDA
+	Print::printf(Print::INFO, "MPI process %d using %d processor(s) and %d CUDA device(s).", lm::MPI::worldRank, numberCpuCores, (int)cudaDevices.size());
     ResourceAllocator resourceAllocator(lm::MPI::worldRank, numberCpuCores, cpuCoresPerReplicate, cudaDevices, cudaDevicesPerReplicate);
     #else
+	Print::printf(Print::INFO, "MPI process %d using %d processor(s).", lm::MPI::worldRank, numberCpuCores);
     ResourceAllocator resourceAllocator(lm::MPI::worldRank, numberCpuCores, cpuCoresPerReplicate);
     #endif
 
