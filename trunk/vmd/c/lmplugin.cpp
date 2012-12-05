@@ -719,15 +719,15 @@ static void lm_close_read(void *mydata) {
 static molfile_plugin_t plugin;
 
 VMDPLUGIN_API int VMDPLUGIN_init() {
-	printf("LMplugin Info) version %d build %s\n", VERSION_NUM, BUILD_INFO);
+	printf("LMplugin Info) version %s build %s\n", VERSION_NUM, BUILD_INFO);
 	memset(&plugin, 0, sizeof(molfile_plugin_t));
 	plugin.abiversion = vmdplugin_ABIVERSION;
 	plugin.type = MOLFILE_PLUGIN_TYPE;
 	plugin.name = "lm";
 	plugin.prettyname = "Lattice Microbes";
 	plugin.author = "Elijah Roberts";
-	plugin.majorv = VERSION_NUM;
-	plugin.minorv = 0;
+	plugin.majorv = VERSION_NUM_MAJOR;
+	plugin.minorv = VERSION_NUM_MINOR;
 	plugin.is_reentrant = VMDPLUGIN_THREADSAFE;
 	plugin.filename_extension = "lm,lm5";
 	plugin.open_file_read = lm_open_read;

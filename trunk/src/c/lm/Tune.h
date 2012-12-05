@@ -129,4 +129,8 @@
 #define TUNE_MPD_MAX_PARTICLE_OVERFLOWS         512
 #endif
 
+#if !defined TUNE_MPD_MAX_OVERFLOW_REPLACEMENT_DIST
+#define TUNE_MPD_MAX_OVERFLOW_REPLACEMENT_DIST         4
+#endif
+
 #endif

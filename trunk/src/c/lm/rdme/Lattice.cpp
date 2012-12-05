@@ -90,28 +90,26 @@ si_dist_t Lattice::getSpacing() const
 	return spacing;
 }
 
-std::vector<lattice_coord_t> Lattice::getNearbySites(lattice_size_t xc, lattice_size_t yc, lattice_size_t zc, si_dist_t minDistance, si_dist_t maxDistance)
+std::vector<lattice_coord_t> Lattice::getNearbySites(lattice_size_t xc, lattice_size_t yc, lattice_size_t zc, uint minDistance, uint maxDistance)
 {
 	std::vector<lattice_coord_t> sites;
+	double minDistanceSquared=(double)(minDistance*minDistance);
+	double maxDistanceSquared=(double)(maxDistance*maxDistance);
 	
-	/*si_dist_t xc = x*spacing;
-	si_dist_t yc = y*spacing;
-	si_dist_t zc = z*spacing;
-
 	for (lattice_size_t x = (xc>=maxDistance)?(xc-maxDistance):0; x <= ((xc<=size.x-1-maxDistance)?(xc+maxDistance):(size.x-1)); x++)
 	{
 		for (lattice_size_t y = (yc>=maxDistance)?(yc-maxDistance):0; y <= ((yc<=size.y-1-maxDistance)?(yc+maxDistance):(size.y-1)); y++)
 		{
 			for (lattice_size_t z = (zc>=maxDistance)?(zc-maxDistance):0; z <= ((zc<=size.z-1-maxDistance)?(zc+maxDistance):(size.z-1)); z++)
 			{
-				double r = sqrt(pow((double)x-(double)xc,2.0)+pow((double)y-(double)yc,2.0)+pow((double)z-(double)zc,2.0));
-				if (r > (double)minDistance && r <= ((double)maxDistance))
+				double rSquared = pow((double)x-(double)xc,2.0)+pow((double)y-(double)yc,2.0)+pow((double)z-(double)zc,2.0);
+				if (rSquared <= ((double)maxDistanceSquared) && (rSquared > minDistanceSquared || minDistance == maxDistance))
 				{
 					sites.push_back(lattice_coord_t(x,y,z));
 				}
 			}
 		}
-	}*/
+	}
 	
 	return sites;
 }

@@ -80,7 +80,7 @@ namespace lm {
 namespace rdme {
 
 MpdRdmeSolver::MpdRdmeSolver()
-:RDMESolver(lm::rng::RandomGenerator::NONE),seed(0),cudaOverflowList(NULL),cudaStream(0),tau(0.0)
+:RDMESolver(lm::rng::RandomGenerator::NONE),seed(0),cudaOverflowList(NULL),cudaStream(0),tau(0.0),overflowTimesteps(0),overflowListUses(0)
 {
 }
 
@@ -104,6 +104,7 @@ void MpdRdmeSolver::initialize(unsigned int replicate, map<string,string> * para
 
     // Allocate memory on the device for the exception list.
     CUDA_EXCEPTION_CHECK(cudaMalloc(&cudaOverflowList, MPD_OVERFLOW_LIST_SIZE)); //TODO: track memory usage.
+    CUDA_EXCEPTION_CHECK(cudaMemset(cudaOverflowList, 0, MPD_OVERFLOW_LIST_SIZE));
 
     // Create a stream for synchronizing the events.
     CUDA_EXCEPTION_CHECK(cudaStreamCreate(&cudaStream));
@@ -411,7 +412,7 @@ uint64_t MpdRdmeSolver::getTimestepSeed(uint32_t timestep, uint32_t substep)
 }
 
 void MpdRdmeSolver::runTimestep(CudaByteLattice * lattice, uint32_t timestep)
-throw(lm::CUDAException)
+throw(lm::CUDAException,Exception)
 {
     PROF_BEGIN(PROF_MPD_TIMESTEP);
 
@@ -480,6 +481,85 @@ throw(lm::CUDAException)
     PROF_BEGIN(PROF_MPD_SYNCHRONIZE);
     CUDA_EXCEPTION_CHECK(cudaStreamSynchronize(cudaStream));
     PROF_END(PROF_MPD_SYNCHRONIZE);
+
+    // Handle any particle overflows.
+    PROF_BEGIN(PROF_MPD_OVERFLOW);
+    
+    overflowTimesteps++;
+    uint32_t overflowList[1+2*TUNE_MPD_MAX_PARTICLE_OVERFLOWS];
+    CUDA_EXCEPTION_CHECK(cudaMemcpy(overflowList, cudaOverflowList, MPD_OVERFLOW_LIST_SIZE, cudaMemcpyDeviceToHost));
+    uint numberExceptions = overflowList[0];
+    if (numberExceptions > 0)
+    {
+        Print::printf(Print::DEBUG, "%d overflows", numberExceptions);
+        
+        // Make sure we did not exceed the overflow buffer.
+        if (numberExceptions > TUNE_MPD_MAX_PARTICLE_OVERFLOWS)
+            throw Exception("Too many particle overflows for the available buffer", numberExceptions);
+            
+        // Synchronize the lattice.
+        lattice->copyFromGPU();
+        
+        // Go through each exception.
+        for (uint i=0; i<numberExceptions; i++)
+        {
+            // Extract the index and particle type.
+            lattice_size_t latticeIndex = overflowList[(i*2)+1];
+            particle_t particle = overflowList[(i*2)+2];
+            
+            // Get the x, y, and z coordiantes.
+            lattice_size_t x = latticeIndex%lattice->getXSize();
+            lattice_size_t y = (latticeIndex/lattice->getXSize())%lattice->getYSize();
+            lattice_size_t z = latticeIndex/(lattice->getXSize()*lattice->getYSize());
+            
+            // Put the particles back into a nearby lattice site.
+            bool replacedParticle = false;
+            for (uint searchRadius=0; !replacedParticle && searchRadius <= TUNE_MPD_MAX_OVERFLOW_REPLACEMENT_DIST; searchRadius++)
+            {
+                // Get the nearby sites.
+                std::vector<lattice_coord_t> sites = lattice->getNearbySites(x,y,z,(searchRadius>0)?searchRadius-1:0,searchRadius);
+                
+                // TODO: Shuffle the sites.
+                
+                // Try to find one that in not fully occupied and of the same type.
+                for (std::vector<lattice_coord_t>::iterator it=sites.begin(); it<sites.end(); it++)
+                {
+                    lattice_coord_t site = *it;
+                    if (lattice->getOccupancy(site.x,site.y,site.z) < lattice->getMaxOccupancy() && lattice->getSiteType(site.x,site.y,site.z) == lattice->getSiteType(x,y,z))
+                    {
+                        lattice->addParticle(site.x, site.y, site.z, particle);
+                        replacedParticle = true;
+                        Print::printf(Print::VERBOSE_DEBUG, "Handled overflow of particle %d at site %d,%d,%d type=%d occ=%d by placing at site %d,%d,%d type=%d newocc=%d dist=%0.2f", particle, x, y, z, lattice->getSiteType(x,y,z), lattice->getOccupancy(x,y,z), site.x, site.y, site.z, lattice->getSiteType(site.x,site.y,site.z), lattice->getOccupancy(site.x,site.y,site.z), sqrt(pow((double)x-(double)site.x,2.0)+pow((double)y-(double)site.y,2.0)+pow((double)z-(double)site.z,2.0)));
+                        break;
+                    }
+                }
+            }
+            
+            // If we were not able to fix the exception, throw an error.
+            if (!replacedParticle)
+                throw Exception("Unable to find an available site to handle a particle overflow.");
+        }
+        
+            
+        // Copy the changes back to the GPU.
+        lattice->copyToGPU();
+            
+        // Reset the overflow list.
+        CUDA_EXCEPTION_CHECK(cudaMemset(cudaOverflowList, 0, MPD_OVERFLOW_LIST_SIZE));
+        
+        // Track that we used the overflow list.
+        overflowListUses++;
+    }
+    
+    // If the overflow lsit is being used too often, print a warning.
+    if (overflowTimesteps >= 1000)
+    {
+        if (overflowListUses > 10)
+            Print::printf(Print::WARNING, "%d uses of the particle overflow list in the last 1000 timesteps, performance may be degraded.", overflowListUses);
+        overflowTimesteps = 0;
+        overflowListUses = 0;
+    }
+    PROF_END(PROF_MPD_OVERFLOW);
 
     PROF_CUDA_FINISH(cudaStream);
     PROF_END(PROF_MPD_TIMESTEP);

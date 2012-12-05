@@ -87,6 +87,7 @@
 #define PROF_MPD_Z_DIFFUSION                        503
 #define PROF_MPD_REACTION                           504
 #define PROF_MPD_SYNCHRONIZE                        505
+#define PROF_MPD_OVERFLOW                           506
 
 #define PROF_NSM_INIT_QUEUE                         600
 #define PROF_NSM_BUILD_QUEUE                        601

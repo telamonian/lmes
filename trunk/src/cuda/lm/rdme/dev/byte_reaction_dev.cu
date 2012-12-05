@@ -178,7 +178,6 @@ __device__ void evaluateReaction(const unsigned int latticeIndex, const uint8_t 
 			}
 
 			// Otherwise add it to the exception list.
-			/** DEBUG RETURN OVERFLOW
 			else
 			{
 				int exceptionIndex = atomicAdd(siteOverflowList, 1);
@@ -188,7 +187,6 @@ __device__ void evaluateReaction(const unsigned int latticeIndex, const uint8_t 
 					siteOverflowList[(exceptionIndex*2)+2]=i+1;
 				}
 			}
-			*/
 
 		}
     }

@@ -72,7 +72,7 @@ protected:
     virtual void writeLatticeData(double time, CudaByteLattice * lattice, lm::io::Lattice * latticeDataSet);
     virtual void recordSpeciesCounts(double time, CudaByteLattice * lattice, lm::io::SpeciesCounts * speciesCountsDataSet);
     virtual void writeSpeciesCounts(lm::io::SpeciesCounts * speciesCountsDataSet);
-    virtual void runTimestep(CudaByteLattice * lattice, uint32_t timestep) throw(CUDAException);
+    virtual void runTimestep(CudaByteLattice * lattice, uint32_t timestep) throw(CUDAException,Exception);
     virtual uint64_t getTimestepSeed(uint32_t timestep, uint32_t substep);
 
     #ifdef CUDA_3D_GRID_LAUNCH
@@ -92,6 +92,8 @@ protected:
     void * cudaOverflowList;
     cudaStream_t cudaStream;
     double tau;
+    uint32_t overflowTimesteps;
+    uint32_t overflowListUses;
 };
 
 #ifdef CUDA_3D_GRID_LAUNCH

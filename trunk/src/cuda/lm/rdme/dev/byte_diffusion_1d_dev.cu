@@ -298,7 +298,6 @@ inline __device__ void performPropagation(unsigned int * __restrict__ lattice, c
     #endif
 
     // Move any leftover particles to the overflow list.
-    /** DEBUG RETURN OVERFLOW
     for (int i=MPD_PARTICLES_PER_SITE; i<nextParticle; i++)
     {
         int exceptionIndex = atomicAdd(siteOverflowList, 1);
@@ -308,5 +307,4 @@ inline __device__ void performPropagation(unsigned int * __restrict__ lattice, c
             siteOverflowList[(exceptionIndex*2)+2]=newParticles[i];
         }
     }
-    */
 }

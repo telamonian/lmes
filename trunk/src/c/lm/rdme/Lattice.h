@@ -123,7 +123,7 @@ public:
 	virtual site_t getSiteType(lattice_size_t index) const throw(InvalidSiteException)=0;
 	virtual void setSiteType(lattice_size_t x, lattice_size_t y, lattice_size_t z, site_t site) throw(InvalidSiteException)=0;
 	virtual void setSiteType(lattice_size_t index, site_t site) throw(InvalidSiteException)=0;
-	std::vector<lattice_coord_t> getNearbySites(lattice_size_t xc, lattice_size_t yc, lattice_size_t zc, si_dist_t minDistance, si_dist_t maxDistance);
+	std::vector<lattice_coord_t> getNearbySites(lattice_size_t xc, lattice_size_t yc, lattice_size_t zc, uint minDistance, uint maxDistance);
 
 	// Particle methods.
 	virtual site_size_t getOccupancy(lattice_size_t x, lattice_size_t y, lattice_size_t z) const throw(InvalidSiteException)=0;

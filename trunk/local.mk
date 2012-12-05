@@ -1,5 +1,5 @@
 
-BUILD_DIR := Build-jannaschii
+BUILD_DIR := Build-barkeri
 RM := rm -rf
 CC := gcc
 CCFLAGS := -m64 -g -fPIC -Wall -c -fmessage-length=0 -pthread -DMACOSX
@@ -12,7 +12,7 @@ LDFLAGS := -pthread -lpthread
 SHLD := g++
 SHLDFLAGS := -bundle -fPIC
 SHLDOPTO := -o
-USE_VERBOSITY_LEVEL := 10
+USE_VERBOSITY_LEVEL := 9
 PROTOBUF_PROTOC := /Users/eroberts/usr/Darwin-i386/bin/protoc
 PROTOBUF_INCLUDE_DIR := -I/Users/eroberts/usr/Darwin-i386/include
 PROTOBUF_LIB_DIR := -L/Users/eroberts/usr/Darwin-i386/lib
@@ -20,10 +20,10 @@ PROTOBUF_LIB := -lprotobuf
 HDF5_INCLUDE_DIR := -I/Users/eroberts/usr/Darwin-i386/include
 HDF5_LIB_DIR := -L/Users/eroberts/usr/Darwin-i386/lib
 HDF5_LIB := -lhdf5 -lhdf5_hl
-USE_MPI := 0
-MPI_COMPILE_FLAGS = 
-MPI_LINK_FLAGS = 
-USE_PYTHON := 0
+USE_MPI := 1
+MPI_COMPILE_FLAGS = -DOMPI_SKIP_MPICXX=1 $(shell mpicc --showme:compile)
+MPI_LINK_FLAGS = $(shell mpicc --showme:link)
+USE_PYTHON := 1
 PYTHON_SWIG := /Users/eroberts/usr/Darwin-i386/bin/swig
 PYTHON_INCLUDE_DIR := -I/usr/include/python2.7
 PYTHON_LIB_DIR := -L/usr/lib
@@ -51,7 +51,7 @@ BOOST_TEST_CXXFLAGS := -DBOOST_TEST_DYN_LINK
 BOOST_TEST_INCLUDE_DIR := -I/Network/Servers/sol.scs.uiuc.edu/Volumes/HomeRAID2/Homes/erobert3/usr/Darwin-i386/include
 BOOST_TEST_LIB_DIR := -L/Network/Servers/sol.scs.uiuc.edu/Volumes/HomeRAID2/Homes/erobert3/usr/Darwin-i386/lib
 BOOST_TEST_LIB := -lboost_unit_test_framework
-USE_VMD := 0
+USE_VMD := 1
 VMD_INCLUDE_DIR := -I/Applications/VMD.app/Contents/vmd/plugins/include
 VMD_INSTALL_DIR := /Users/eroberts/usr/Darwin-i386/lib/vmd/molfile
 INSTALL_PREFIX := /Users/eroberts/usr/Darwin-i386
