@@ -1,0 +1,10 @@
+2012-12-JHU
+
+    General
+    * Increased time resolution for simulation length output in the standalone version (ported from MPI version).
+    * First JHU branch pulled from latest UI branch: 2012-09-03.
+    
+    MPI
+    * Added support for using a different number of cores on each node.
+    * Added support for reading the list of assigned nodes from the PBS queue system using the PBS_NODEFILE environment
+      variable. In this case the -c flag is ignored.
