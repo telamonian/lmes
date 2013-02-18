@@ -515,6 +515,28 @@ void CMESolver::buildModel(const uint numberSpeciesA, const uint numberReactions
 			propensityFunctionArgs[i] =  (void *)new ZerothOrderHeavisidePropensityArgs(xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2]);
 			propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
         }
+        else if (reactionTypes[i] == ZerothOrderKHillPropensityArgs::REACTION_TYPE)
+        {
+            // Find the dependency.
+            int xi=-1;
+            for (uint j=0; j<numberSpecies; j++)
+            {
+                if (D[j*numberReactions+i] == 1)
+                {
+                	if (xi != -1) throw InvalidArgException("D", "zeroth order KHill reaction can only have one dependency");
+                	xi = j;
+                }
+            }
+
+            // Make sure we found the right dependencies.
+			if (xi == -1) throw InvalidArgException("D", "zeroth order KHill reaction must have one dependency");
+
+			// Set the table entry.
+			propensityFunctions[i] = (void *)&zerothOrderKHillPropensity;
+			propensityFunctionArgs[i] =  (void *)new ZerothOrderKHillPropensityArgs(xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2], K[i*kCols+3]);
+			propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
+        }
+
     }
 
     // Create the species dependency tables from the S matrix.
@@ -627,6 +649,16 @@ double CMESolver::zerothOrderHeavisidePropensity(double time, uint * speciesCoun
 
 	return ((speciesCounts[args->xi]<args->x0)?(args->k0):(args->k1));
 }
+
+double CMESolver::zerothOrderKHillPropensity(double time, uint * speciesCounts, void * pargs)
+{
+	ZerothOrderKHillPropensityArgs * args = (ZerothOrderKHillPropensityArgs *)pargs;
+	uint x = speciesCounts[args->xi];
+	double xh = pow(x,args->h);
+
+	return args->k0+((args->dk*xh)/(xh+args->x0h));
+}
+
 
 void CMESolver::setModelPropensityFunction(uint reaction, double (*propensityFunction)(double time, uint * speciesCounts, void * args), void * propensityFunctionArg)
 {

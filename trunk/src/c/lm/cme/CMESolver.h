@@ -129,6 +129,16 @@ protected:
         double k0;
         double k1;
     };
+    struct ZerothOrderKHillPropensityArgs : public PropensityArgs
+    {
+        static const uint REACTION_TYPE = 8007;
+        ZerothOrderKHillPropensityArgs(uint xi, uint x0, double k0, double k1, double h) :xi(xi),x0h(pow(x0,h)),k0(k0),dk(k1-k0),h(h) {}
+        uint xi;
+        double x0h;
+        double k0;
+        double dk;
+        double h;
+    };
     struct SpeciesLimit
     {
         int type;
@@ -171,6 +181,7 @@ protected:
     static double kHillPropensity(double time, uint * speciesCounts, void * pargs);
     static double kHillTransportPropensity(double time, uint * speciesCounts, void * pargs);
     static double zerothOrderHeavisidePropensity(double time, uint * speciesCounts, void * pargs);
+    static double zerothOrderKHillPropensity(double time, uint * speciesCounts, void * pargs);
     virtual void allocateModel(uint numberSpecies, uint numberReactions);
     virtual void destroyModel();
     virtual double recordParameters(double nextRecordTime, double recordInterval, double simulationTime);

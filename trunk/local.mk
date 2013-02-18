@@ -21,8 +21,8 @@ HDF5_INCLUDE_DIR := -I/Users/eroberts/usr/Darwin-i386/include
 HDF5_LIB_DIR := -L/Users/eroberts/usr/Darwin-i386/lib
 HDF5_LIB := -lhdf5 -lhdf5_hl
 USE_MPI := 1
-MPI_COMPILE_FLAGS = -DOMPI_SKIP_MPICXX=1 $(shell mpicc --showme:compile)
-MPI_LINK_FLAGS = $(shell mpicc --showme:link)
+MPI_COMPILE_FLAGS = -DOMPI_SKIP_MPICXX=1 $(shell /usr/local/bin/mpicc --showme:compile)
+MPI_LINK_FLAGS = $(shell /usr/local/bin/mpicc --showme:link)
 USE_PYTHON := 1
 PYTHON_SWIG := /Users/eroberts/usr/Darwin-i386/bin/swig
 PYTHON_INCLUDE_DIR := -I/usr/include/python2.7
