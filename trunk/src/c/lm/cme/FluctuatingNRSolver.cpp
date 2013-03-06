@@ -216,6 +216,17 @@ void FluctuatingNRSolver::buildModel(const uint numberSpeciesA, const uint numbe
 
         // Make these be secondary dependencies, such that they will not be used in propensity calculations.
         D[(numberSpeciesA+i)*numberReactions+reactionIndex] = 2;
+
+        // Hack to work around lack of global variables so that multiple reactions can use the same noisy k.
+        if (reactionType[reactionIndex] == PDFitnessPropensityArgs::COOPERATE_REACTION_TYPE || reactionType[reactionIndex] == PDFitnessPropensityArgs::DEFECT_REACTION_TYPE)
+        {
+        	// Make sure the next reaction is what we expect.
+        	if (reactionType[reactionIndex+1] == PDFitnessPropensityArgs::COOPERATE_REACTION_TYPE || reactionType[reactionIndex+1] == PDFitnessPropensityArgs::DEFECT_REACTION_TYPE)
+        	{
+        		// Add another secondary dependency.
+        		D[(numberSpeciesA+i)*numberReactions+reactionIndex+1] = 2;
+        	}
+        }
     }
 
     // Build the model with the expanded parameters.
@@ -239,6 +250,10 @@ void FluctuatingNRSolver::buildModel(const uint numberSpeciesA, const uint numbe
         else if (reactionType[reactionIndex] == ZerothOrderHeavisidePropensityArgs::REACTION_TYPE)
         {
         	noisyK = &(((ZerothOrderHeavisidePropensityArgs *)propensityFunctionArgs[reactionIndex])->k1);
+        }
+        else if (reactionType[reactionIndex] == PDFitnessPropensityArgs::COOPERATE_REACTION_TYPE || reactionType[reactionIndex] == PDFitnessPropensityArgs::DEFECT_REACTION_TYPE)
+        {
+        	noisyK = &(((PDFitnessPropensityArgs *)propensityFunctionArgs[reactionIndex])->s);
         }
         else
         {

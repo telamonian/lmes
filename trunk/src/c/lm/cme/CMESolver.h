@@ -139,6 +139,17 @@ protected:
         double dk;
         double h;
     };
+    struct PDFitnessPropensityArgs : public PropensityArgs
+    {
+        static const uint COOPERATE_REACTION_TYPE = 8008;
+        static const uint DEFECT_REACTION_TYPE = 8009;
+        PDFitnessPropensityArgs(uint ni, double N, double c, double b, double s) :ni(ni),N(N),c(c),b(b),s(s) {}
+        uint ni;
+        double N;
+        double c;
+        double b;
+        double s;
+    };
     struct SpeciesLimit
     {
         int type;
@@ -182,6 +193,10 @@ protected:
     static double kHillTransportPropensity(double time, uint * speciesCounts, void * pargs);
     static double zerothOrderHeavisidePropensity(double time, uint * speciesCounts, void * pargs);
     static double zerothOrderKHillPropensity(double time, uint * speciesCounts, void * pargs);
+    static double pdCooperateFitnessPropensity(double time, uint * speciesCounts, void * pargs);
+    static double pdDefectFitnessPropensity(double time, uint * speciesCounts, void * pargs);
+
+
     virtual void allocateModel(uint numberSpecies, uint numberReactions);
     virtual void destroyModel();
     virtual double recordParameters(double nextRecordTime, double recordInterval, double simulationTime);

@@ -324,6 +324,8 @@ void CMESolver::buildModel(const uint numberSpeciesA, const uint numberReactions
         D[i] = DA[i];
     }
 
+    PDFitnessPropensityArgs* globalPDFitnessPropensityArgs=NULL;
+
     // Create the propensity functions table.
     for (uint i=0; i<numberReactions; i++)
     {
@@ -536,6 +538,58 @@ void CMESolver::buildModel(const uint numberSpeciesA, const uint numberReactions
 			propensityFunctionArgs[i] =  (void *)new ZerothOrderKHillPropensityArgs(xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2], K[i*kCols+3]);
 			propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
         }
+        else if (reactionTypes[i] == PDFitnessPropensityArgs::COOPERATE_REACTION_TYPE)
+        {
+            // Find the dependency.
+            int xi=-1;
+            for (uint j=0; j<numberSpecies; j++)
+            {
+                if (D[j*numberReactions+i] == 1)
+                {
+                	if (xi != -1) throw InvalidArgException("D", "PD cooperate fitness reaction can only have one dependency");
+                	xi = j;
+                }
+            }
+
+            // Make sure we found the right dependencies.
+			if (xi == -1) throw InvalidArgException("D", "PD cooperate fitness reaction must have one dependency");
+
+			// Set the table entry.
+			propensityFunctions[i] = (void *)&pdCooperateFitnessPropensity;
+			if (globalPDFitnessPropensityArgs == NULL)
+			{
+				globalPDFitnessPropensityArgs = new PDFitnessPropensityArgs(xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2], K[i*kCols+3]);
+				propensityArgs.push_back(globalPDFitnessPropensityArgs);
+			}
+			propensityFunctionArgs[i] = (void *)globalPDFitnessPropensityArgs;
+
+        }
+        else if (reactionTypes[i] == PDFitnessPropensityArgs::DEFECT_REACTION_TYPE)
+        {
+            // Find the dependency.
+            int xi=-1;
+            for (uint j=0; j<numberSpecies; j++)
+            {
+                if (D[j*numberReactions+i] == 1)
+                {
+                	if (xi != -1) throw InvalidArgException("D", "PD defect fitness reaction can only have one dependency");
+                	xi = j;
+                }
+            }
+
+            // Make sure we found the right dependencies.
+			if (xi == -1) throw InvalidArgException("D", "PD defect fitness reaction must have one dependency");
+
+			// Set the table entry.
+			propensityFunctions[i] = (void *)&pdDefectFitnessPropensity;
+			if (globalPDFitnessPropensityArgs == NULL)
+			{
+				globalPDFitnessPropensityArgs = new PDFitnessPropensityArgs(xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2], K[i*kCols+3]);
+				propensityArgs.push_back(globalPDFitnessPropensityArgs);
+			}
+			propensityFunctionArgs[i] = (void *)globalPDFitnessPropensityArgs;
+        }
+
 
     }
 
@@ -659,6 +713,33 @@ double CMESolver::zerothOrderKHillPropensity(double time, uint * speciesCounts, 
 	return args->k0+((args->dk*xh)/(xh+args->x0h));
 }
 
+double CMESolver::pdCooperateFitnessPropensity(double time, uint * speciesCounts, void * pargs)
+{
+	PDFitnessPropensityArgs * args = (PDFitnessPropensityArgs *)pargs;
+	double n = (double)speciesCounts[args->ni];
+	double N = args->N;
+	double c = args->c;
+	double b = args->b;
+	double s = args->s;
+	double prop=-(n*(n-N)*(N+b*n*s-c*N*s))/(N*N*(N+(b-c)*n*s));
+    Print::printf(Print::DEBUG, "Recalculating pd cooperate propensity for %d with %e,%e,%e,%e,%e = %e", args->ni, n,N,c,b,s,prop);
+	return prop;
+}
+
+double CMESolver::pdDefectFitnessPropensity(double time, uint * speciesCounts, void * pargs)
+{
+	PDFitnessPropensityArgs * args = (PDFitnessPropensityArgs *)pargs;
+	double n = (double)speciesCounts[args->ni];
+	double N = args->N;
+	double c = args->c;
+	double b = args->b;
+	double s = args->s;
+	double prop=-(n*(n-N)*(N+b*n*s))/(N*N*(N+(b-c)*n*s));
+    Print::printf(Print::DEBUG, "Recalculating pd defect propensity for %d with %e,%e,%e,%e,%e = %e", args->ni, n,N,c,b,s,prop);
+	return prop;
+}
+
+
 
 void CMESolver::setModelPropensityFunction(uint reaction, double (*propensityFunction)(double time, uint * speciesCounts, void * args), void * propensityFunctionArg)
 {
@@ -670,7 +751,7 @@ void CMESolver::setModelPropensityFunction(uint reaction, double (*propensityFun
 void CMESolver::setSpeciesUpperLimit(uint species, uint limit)
 {
     // Allocate a larger list for the limits.
-    SpeciesLimit * newSpeciesLimits = new SpeciesLimit[numberSpeciesLimits++];
+    SpeciesLimit * newSpeciesLimits = new SpeciesLimit[++numberSpeciesLimits];
     if (numberSpeciesLimits > 1)
     {
         for (uint i=0; i<numberSpeciesLimits-1; i++)
@@ -686,7 +767,7 @@ void CMESolver::setSpeciesUpperLimit(uint species, uint limit)
 void CMESolver::setSpeciesLowerLimit(uint species, uint limit)
 {
     // Allocate a larger list for the limits.
-    SpeciesLimit * newSpeciesLimits = new SpeciesLimit[numberSpeciesLimits++];
+    SpeciesLimit * newSpeciesLimits = new SpeciesLimit[++numberSpeciesLimits];
     if (numberSpeciesLimits > 1)
     {
         for (uint i=0; i<numberSpeciesLimits-1; i++)
