@@ -218,10 +218,10 @@ void FluctuatingNRSolver::buildModel(const uint numberSpeciesA, const uint numbe
         D[(numberSpeciesA+i)*numberReactions+reactionIndex] = 2;
 
         // Hack to work around lack of global variables so that multiple reactions can use the same noisy k.
-        if (reactionType[reactionIndex] == PDFitnessPropensityArgs::COOPERATE_REACTION_TYPE || reactionType[reactionIndex] == PDFitnessPropensityArgs::DEFECT_REACTION_TYPE)
+        if (reactionType[reactionIndex] == PDFitnessPropensityArgs::COOPERATE_REACTION_TYPE || reactionType[reactionIndex] == PDFitnessPropensityArgs::DEFECT_REACTION_TYPE || reactionType[reactionIndex] == PDFitnessPropensityArgs::REFLECTING_COOPERATE_REACTION_TYPE || reactionType[reactionIndex] == PDFitnessPropensityArgs::REFLECTING_DEFECT_REACTION_TYPE)
         {
         	// Make sure the next reaction is what we expect.
-        	if (reactionType[reactionIndex+1] == PDFitnessPropensityArgs::COOPERATE_REACTION_TYPE || reactionType[reactionIndex+1] == PDFitnessPropensityArgs::DEFECT_REACTION_TYPE)
+        	if (reactionType[reactionIndex+1] == PDFitnessPropensityArgs::COOPERATE_REACTION_TYPE || reactionType[reactionIndex+1] == PDFitnessPropensityArgs::DEFECT_REACTION_TYPE || reactionType[reactionIndex] == PDFitnessPropensityArgs::REFLECTING_COOPERATE_REACTION_TYPE || reactionType[reactionIndex] == PDFitnessPropensityArgs::REFLECTING_DEFECT_REACTION_TYPE)
         	{
         		// Add another secondary dependency.
         		D[(numberSpeciesA+i)*numberReactions+reactionIndex+1] = 2;
@@ -251,7 +251,7 @@ void FluctuatingNRSolver::buildModel(const uint numberSpeciesA, const uint numbe
         {
         	noisyK = &(((ZerothOrderHeavisidePropensityArgs *)propensityFunctionArgs[reactionIndex])->k1);
         }
-        else if (reactionType[reactionIndex] == PDFitnessPropensityArgs::COOPERATE_REACTION_TYPE || reactionType[reactionIndex] == PDFitnessPropensityArgs::DEFECT_REACTION_TYPE)
+        else if (reactionType[reactionIndex] == PDFitnessPropensityArgs::COOPERATE_REACTION_TYPE || reactionType[reactionIndex] == PDFitnessPropensityArgs::DEFECT_REACTION_TYPE || reactionType[reactionIndex] == PDFitnessPropensityArgs::REFLECTING_COOPERATE_REACTION_TYPE || reactionType[reactionIndex] == PDFitnessPropensityArgs::REFLECTING_DEFECT_REACTION_TYPE)
         {
         	noisyK = &(((PDFitnessPropensityArgs *)propensityFunctionArgs[reactionIndex])->s);
         }
@@ -335,7 +335,7 @@ double FluctuatingNRSolver::ouPropensity(double time, uint * speciesCounts, void
             // Update the noisy k with its new value.
             *(args->noisyK) = args->noisyKInitialValue + args->noise;
             if (*(args->noisyK) < 0.0) *(args->noisyK) = 0.0;
-            Print::printf(Print::DEBUG, "Recalculated OU 1st order noise at %0.4e (JN %d): k=%0.4e (%0.4e+%0.4e)", time, ouJumpNumber, *(args->noisyK), args->noisyKInitialValue, args->noise);
+            //Print::printf(Print::DEBUG, "Recalculated OU 1st order noise at %0.4e (JN %d): k=%0.4e (%0.4e+%0.4e)", time, ouJumpNumber, *(args->noisyK), args->noisyKInitialValue, args->noise);
         }
     }
 

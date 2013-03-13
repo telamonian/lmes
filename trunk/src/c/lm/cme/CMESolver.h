@@ -143,12 +143,16 @@ protected:
     {
         static const uint COOPERATE_REACTION_TYPE = 8008;
         static const uint DEFECT_REACTION_TYPE = 8009;
-        PDFitnessPropensityArgs(uint ni, double N, double c, double b, double s) :ni(ni),N(N),c(c),b(b),s(s) {}
+        static const uint REFLECTING_COOPERATE_REACTION_TYPE = 8010;
+        static const uint REFLECTING_DEFECT_REACTION_TYPE = 8011;
+        PDFitnessPropensityArgs(uint ni, double N, double c, double b, double s, double lowBoundary=0.0, double highBoundary=0.0) :ni(ni),N(N),c(c),b(b),s(s),lowBoundary((uint)round(lowBoundary)),highBoundary((uint)round(highBoundary)) {}
         uint ni;
         double N;
         double c;
         double b;
         double s;
+        uint lowBoundary;
+        uint highBoundary;
     };
     struct SpeciesLimit
     {
@@ -195,6 +199,8 @@ protected:
     static double zerothOrderKHillPropensity(double time, uint * speciesCounts, void * pargs);
     static double pdCooperateFitnessPropensity(double time, uint * speciesCounts, void * pargs);
     static double pdDefectFitnessPropensity(double time, uint * speciesCounts, void * pargs);
+    static double pdReflectingCooperateFitnessPropensity(double time, uint * speciesCounts, void * pargs);
+    static double pdReflectingDefectFitnessPropensity(double time, uint * speciesCounts, void * pargs);
 
 
     virtual void allocateModel(uint numberSpecies, uint numberReactions);

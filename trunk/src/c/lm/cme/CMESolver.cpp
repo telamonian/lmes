@@ -124,7 +124,11 @@ void CMESolver::initialize(unsigned int replicate, map<string,string> * paramete
     {
         end = listString.find(',', start);
         string trackedSpecies = listString.substr(start, (end == string::npos) ? string::npos : end - start);
-        fptList.push_back(atoi(trackedSpecies.c_str()));
+        if (trackedSpecies.length() > 0)
+        {
+			fptList.push_back(atoi(trackedSpecies.c_str()));
+			Print::printf(Print::DEBUG, "Parsed fpt tracking %s to: %d", trackedSpecies.c_str(), atoi(trackedSpecies.c_str()));
+        }
         start = end+1;
     }
     setFptTrackingList(fptList);
@@ -589,6 +593,61 @@ void CMESolver::buildModel(const uint numberSpeciesA, const uint numberReactions
 			}
 			propensityFunctionArgs[i] = (void *)globalPDFitnessPropensityArgs;
         }
+        else if (reactionTypes[i] == PDFitnessPropensityArgs::REFLECTING_COOPERATE_REACTION_TYPE)
+        {
+            // Find the dependency.
+            int xi=-1;
+            for (uint j=0; j<numberSpecies; j++)
+            {
+                if (D[j*numberReactions+i] == 1)
+                {
+                	if (xi != -1) throw InvalidArgException("D", "PD reflecting cooperate fitness reaction can only have one dependency");
+                	xi = j;
+                }
+            }
+
+            // Make sure we found the right dependencies.
+			if (xi == -1) throw InvalidArgException("D", "PD reflecting cooperate fitness reaction must have one dependency");
+
+			// Set the table entry.
+			propensityFunctions[i] = (void *)&pdReflectingCooperateFitnessPropensity;
+			if (globalPDFitnessPropensityArgs == NULL)
+			{
+				globalPDFitnessPropensityArgs = new PDFitnessPropensityArgs(xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2], K[i*kCols+3], K[i*kCols+4], K[i*kCols+5]);
+				propensityArgs.push_back(globalPDFitnessPropensityArgs);
+			}
+			globalPDFitnessPropensityArgs->lowBoundary = (uint)round(K[i*kCols+4]);
+			globalPDFitnessPropensityArgs->highBoundary = (uint)round(K[i*kCols+5]);
+			propensityFunctionArgs[i] = (void *)globalPDFitnessPropensityArgs;
+
+        }
+        else if (reactionTypes[i] == PDFitnessPropensityArgs::REFLECTING_DEFECT_REACTION_TYPE)
+        {
+            // Find the dependency.
+            int xi=-1;
+            for (uint j=0; j<numberSpecies; j++)
+            {
+                if (D[j*numberReactions+i] == 1)
+                {
+                	if (xi != -1) throw InvalidArgException("D", "PD reflecting defect fitness reaction can only have one dependency");
+                	xi = j;
+                }
+            }
+
+            // Make sure we found the right dependencies.
+			if (xi == -1) throw InvalidArgException("D", "PD reflecting defect fitness reaction must have one dependency");
+
+			// Set the table entry.
+			propensityFunctions[i] = (void *)&pdReflectingDefectFitnessPropensity;
+			if (globalPDFitnessPropensityArgs == NULL)
+			{
+				globalPDFitnessPropensityArgs = new PDFitnessPropensityArgs(xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2], K[i*kCols+3], K[i*kCols+4], K[i*kCols+5]);
+				propensityArgs.push_back(globalPDFitnessPropensityArgs);
+			}
+			globalPDFitnessPropensityArgs->lowBoundary = (uint)round(K[i*kCols+4]);
+			globalPDFitnessPropensityArgs->highBoundary = (uint)round(K[i*kCols+5]);
+			propensityFunctionArgs[i] = (void *)globalPDFitnessPropensityArgs;
+        }
 
 
     }
@@ -689,8 +748,8 @@ double CMESolver::kHillTransportPropensity(double time, uint * speciesCounts, vo
     double xh = pow(1+(args->ITp*x),args->h);
     double p = args->k0+((args->dk*xh)/(args->IRh+xh));
 
-    if (time == 0.0)
-        Print::printf(Print::DEBUG, "Recalculating hill transport propensity for %d,%d with %e,%e,%e,%e,%e = %e", args->si, args->xi, args->k0, args->dk, args->IRh, args->ITp, args->h, p);
+    //if (time == 0.0)
+      //  Print::printf(Print::DEBUG, "Recalculating hill transport propensity for %d,%d with %e,%e,%e,%e,%e = %e", args->si, args->xi, args->k0, args->dk, args->IRh, args->ITp, args->h, p);
 
     return p;
 }
@@ -721,8 +780,8 @@ double CMESolver::pdCooperateFitnessPropensity(double time, uint * speciesCounts
 	double c = args->c;
 	double b = args->b;
 	double s = args->s;
-	double prop=-(n*(n-N)*(N+b*n*s-c*N*s))/(N*N*(N+(b-c)*n*s));
-    Print::printf(Print::DEBUG, "Recalculating pd cooperate propensity for %d with %e,%e,%e,%e,%e = %e", args->ni, n,N,c,b,s,prop);
+	double prop=-(n*(n-N)*(N+b*n*s-c*N*s))/(N*(N+(b-c)*n*s));
+    //Print::printf(Print::DEBUG, "Recalculating pd cooperate propensity for %d with %e,%e,%e,%e,%e = %e", args->ni, n,N,c,b,s,prop);
 	return prop;
 }
 
@@ -734,11 +793,38 @@ double CMESolver::pdDefectFitnessPropensity(double time, uint * speciesCounts, v
 	double c = args->c;
 	double b = args->b;
 	double s = args->s;
-	double prop=-(n*(n-N)*(N+b*n*s))/(N*N*(N+(b-c)*n*s));
-    Print::printf(Print::DEBUG, "Recalculating pd defect propensity for %d with %e,%e,%e,%e,%e = %e", args->ni, n,N,c,b,s,prop);
+	double prop=-(n*(n-N)*(N+b*n*s))/(N*(N+(b-c)*n*s));
+    //Print::printf(Print::DEBUG, "Recalculating pd defect propensity for %d with %e,%e,%e,%e,%e = %e", args->ni, n,N,c,b,s,prop);
 	return prop;
 }
 
+double CMESolver::pdReflectingCooperateFitnessPropensity(double time, uint * speciesCounts, void * pargs)
+{
+	PDFitnessPropensityArgs * args = (PDFitnessPropensityArgs *)pargs;
+	double n = (double)speciesCounts[args->ni];
+	double N = args->N;
+	double c = args->c;
+	double b = args->b;
+	double s = args->s;
+	double prop=(n<args->highBoundary)?(-(n*(n-N)*(N+b*n*s-c*N*s))/(N*(N+(b-c)*n*s))):(0.0);
+	//if (n >= args->highBoundary-2)
+	//	Print::printf(Print::DEBUG, "Recalculating reflecting pd cooperate propensity for %d (boundary=%d) with %e,%e,%e,%e,%e = %e", args->ni,args->highBoundary,n,N,c,b,s,prop);
+	return prop;
+}
+
+double CMESolver::pdReflectingDefectFitnessPropensity(double time, uint * speciesCounts, void * pargs)
+{
+	PDFitnessPropensityArgs * args = (PDFitnessPropensityArgs *)pargs;
+	double n = (double)speciesCounts[args->ni];
+	double N = args->N;
+	double c = args->c;
+	double b = args->b;
+	double s = args->s;
+	double prop=(n>args->lowBoundary)?(-(n*(n-N)*(N+b*n*s))/(N*(N+(b-c)*n*s))):(0.0);
+	//if (n <= args->lowBoundary+2)
+	//	Print::printf(Print::DEBUG, "Recalculating reflecting pd defect propensity for %d (boundary=%d) with %e,%e,%e,%e,%e = %e", args->ni,args->lowBoundary,n,N,c,b,s,prop);
+	return prop;
+}
 
 
 void CMESolver::setModelPropensityFunction(uint reaction, double (*propensityFunction)(double time, uint * speciesCounts, void * args), void * propensityFunctionArg)
