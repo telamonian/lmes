@@ -12,7 +12,7 @@ PROTOBUF_GEN_SRC :=
 # Global build settings.
 INCLUDE_DIRS := -I./src/c $(HDF5_INCLUDE_DIR) $(PROTOBUF_INCLUDE_DIR) -I./profile
 LIB_DIRS := $(HDF5_LIB_DIR) $(PROTOBUF_LIB_DIR)
-LIBS := $(HDF5_LIB) $(PROTOBUF_LIB)
+LIBS += $(HDF5_LIB) $(PROTOBUF_LIB)
 INSTALL_TARGETS := installlm
 
 # Add definitions for utils.
@@ -45,6 +45,8 @@ ifeq ($(USE_MPI),1)
 CCFLAGS += -DOPT_MPI $(MPI_COMPILE_FLAGS)
 CXXFLAGS += -DOPT_MPI $(MPI_COMPILE_FLAGS)
 LDFLAGS += $(MPI_LINK_FLAGS)
+LIB_DIRS += $(MPI_LIB_DIR)
+LIBS += $(MPI_LIB)
 endif
 
 # Add definitions for SBML.
@@ -136,7 +138,7 @@ local.mk: ./configure
 # All target.
 all: $(MAIN) util vmdplugin
 
-# Build main LK program.
+# Build main lm program.
 $(MAIN): $(MAIN_OBJS) $(OBJS)
 	mkdir -p $(BUILD_DIR)
 	@echo 'Building target: $@'

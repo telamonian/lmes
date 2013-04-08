@@ -214,12 +214,17 @@ void CMESolver::allocateModel(uint numberSpeciesA, uint numberReactionsA)
 
 		// Allocate the species dependency tables.
 		numberDependentSpecies = new uint[numberReactions];
+		memset(numberDependentSpecies, 0, numberReactions*sizeof(*numberDependentSpecies));
 		dependentSpecies = new uint*[numberReactions];
+		memset(dependentSpecies, 0, numberReactions*sizeof(*dependentSpecies));
 		dependentSpeciesChange = new int*[numberReactions];
+		memset(dependentSpeciesChange, 0, numberReactions*sizeof(*dependentSpeciesChange));
 
 		// Allocate the reaction dependency tables.
 		numberDependentReactions = new uint[numberReactions];
+		memset(numberDependentReactions, 0, numberReactions*sizeof(*numberDependentReactions));
 		dependentReactions = new uint*[numberReactions];
+		memset(dependentReactions, 0, numberReactions*sizeof(*dependentReactions));
     }
 }
 
@@ -242,14 +247,20 @@ void CMESolver::destroyModel()
     if (dependentSpecies != NULL)
     {
         for (uint i=0; i<numberReactions; i++)
-            delete[] dependentSpecies[i];
+        {
+        	if (dependentSpecies[i] != NULL)
+        		delete[] dependentSpecies[i];
+        }
         delete[] dependentSpecies;
         dependentSpecies = NULL;
     }
     if (dependentSpeciesChange != NULL)
     {
         for (uint i=0; i<numberReactions; i++)
-            delete[] dependentSpeciesChange[i];
+        {
+        	if (dependentSpeciesChange[i] != NULL)
+        		delete[] dependentSpeciesChange[i];
+        }
         delete[] dependentSpeciesChange;
         dependentSpeciesChange = NULL;
     }
@@ -259,7 +270,10 @@ void CMESolver::destroyModel()
     if (dependentReactions != NULL)
     {
         for (uint i=0; i<numberReactions; i++)
-            delete[] dependentReactions[i];
+        {
+        	if (dependentReactions[i] != NULL)
+        		delete[] dependentReactions[i];
+        }
         delete[] dependentReactions;
         dependentReactions = NULL;
     }
@@ -382,8 +396,9 @@ void CMESolver::buildModel(const uint numberSpeciesA, const uint numberReactions
         else if (reactionTypes[i] == SecondOrderPropensityArgs::REACTION_TYPE)
         {
             // Find the dependencies.
-            uint firstDependency;
             uint numberDependencies = 0;
+            uint firstDependency;
+            uint secondDependency;
             for (uint j=0; j<numberSpecies; j++)
             {
                 if (D[j*numberReactions+i] == 1)
@@ -392,26 +407,28 @@ void CMESolver::buildModel(const uint numberSpeciesA, const uint numberReactions
 
                     // Set the table entry to the first two non-zero dependencies.
                     if (numberDependencies == 1)
-                    {
                         firstDependency = j;
-                    }
                     else if (numberDependencies == 2)
-                    {
-                        propensityFunctions[i] = (void *)&secondOrderPropensity;
-                        propensityFunctionArgs[i] =  (void *)new SecondOrderPropensityArgs(firstDependency, j, K[i*kCols]);
-                        propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
-                    }
-                    else
-                    {
-                        throw InvalidArgException("D", "second order reaction had invalid number of dependencies",numberDependencies);
-                    }
+                    	secondDependency = j;
                 }
             }
+			if (numberDependencies == 2)
+			{
+				propensityFunctions[i] = (void *)&secondOrderPropensity;
+				propensityFunctionArgs[i] =  (void *)new SecondOrderPropensityArgs(firstDependency, secondDependency, K[i*kCols]);
+				propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
+			}
+			else
+			{
+				printf("%d\n",numberDependencies);
+				throw InvalidArgException("D", "second order reaction had invalid number of dependencies",numberDependencies);
+			}
         }
         else if (reactionTypes[i] == SecondOrderSelfPropensityArgs::REACTION_TYPE)
         {
             // Find the dependencies.
             uint numberDependencies = 0;
+            uint firstDependency;
             for (uint j=0; j<numberSpecies; j++)
             {
                 if (D[j*numberReactions+i] == 1)
@@ -420,17 +437,19 @@ void CMESolver::buildModel(const uint numberSpeciesA, const uint numberReactions
 
                     // Set the table entry to the first non-zero dependency.
                     if (numberDependencies == 1)
-                    {
-                        propensityFunctions[i] = (void *)&secondOrderSelfPropensity;
-                        propensityFunctionArgs[i] =  (void *)new SecondOrderSelfPropensityArgs(j, K[i*kCols]);
-                        propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
-                    }
-                    else
-                    {
-                        throw InvalidArgException("D", "second order self reaction had invalid number of dependencies",numberDependencies);
-                    }
+                    	firstDependency = j;
                 }
             }
+			if (numberDependencies == 1)
+			{
+				propensityFunctions[i] = (void *)&secondOrderSelfPropensity;
+				propensityFunctionArgs[i] =  (void *)new SecondOrderSelfPropensityArgs(firstDependency, K[i*kCols]);
+				propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
+			}
+			else
+			{
+				throw InvalidArgException("D", "second order self reaction had invalid number of dependencies",numberDependencies);
+			}
         }
         else if (reactionTypes[i] == KHillPropensityArgs::REACTION_TYPE)
         {

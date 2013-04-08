@@ -334,7 +334,7 @@ double FluctuatingNRSolver::ouPropensity(double time, uint * speciesCounts, void
 
             // Update the noisy k with its new value.
             *(args->noisyK) = args->noisyKInitialValue + args->noise;
-            if (*(args->noisyK) < 0.0) *(args->noisyK) = 0.0;
+            //DEBUG RENABLE TO PREVENT NEGATIVE PROPSENISTIES if (*(args->noisyK) < 0.0) *(args->noisyK) = 0.0;
             //Print::printf(Print::DEBUG, "Recalculated OU 1st order noise at %0.4e (JN %d): k=%0.4e (%0.4e+%0.4e)", time, ouJumpNumber, *(args->noisyK), args->noisyKInitialValue, args->noise);
         }
     }

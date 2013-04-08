@@ -23,6 +23,8 @@ HDF5_LIB := -lhdf5 -lhdf5_hl
 USE_MPI := 1
 MPI_COMPILE_FLAGS = -DOMPI_SKIP_MPICXX=1 $(shell /usr/local/bin/mpicc --showme:compile)
 MPI_LINK_FLAGS = $(shell /usr/local/bin/mpicc --showme:link)
+MPI_LIB_DIR :=
+MPI_LIB :=
 USE_PYTHON := 1
 PYTHON_SWIG := /Users/eroberts/usr/Darwin-i386/bin/swig
 PYTHON_INCLUDE_DIR := -I/usr/include/python2.7

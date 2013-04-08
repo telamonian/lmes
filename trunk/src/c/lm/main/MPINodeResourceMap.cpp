@@ -37,6 +37,7 @@
  */
 
 #include <cstdlib>
+#include <cstring>
 #include <fstream>
 #include <list>
 #include <string>

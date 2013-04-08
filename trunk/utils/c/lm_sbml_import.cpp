@@ -89,11 +89,13 @@ map<string, double> userParameterValues;
 void importSBMLModel(SimulationFile * lmFile, string sbmlFilename) throw(Exception);
 void importSBMLModelL3V1(ReactionModel * lmModel, Model * sbmlModel) throw(Exception);
 void importSBMLModelL3V1Kinetics(uint reactionIndex, KineticLaw * kinetics, ReactionModel * lmModel, uint * D, map<string,uint> & speciesIndices, uint numberReactions, vector<string> & globalParameters, map<string,double> & globalParameterValues) throw(Exception);
-bool isFirstOrderReaction(const ASTNode * root, vector<string> & parameters);
+bool isZerothOrderReaction(const ASTNode * root, vector<string> & parameters, map<string,uint> & speciesIndices);
+void importZerothOrderReaction(const ASTNode * root, vector<string> & parameters, map<string,double> & parameterValues, uint reactionIndex, uint numberReactions, ReactionModel * lmModel, uint * D, map<string,uint> & speciesIndices);
+bool isFirstOrderReaction(const ASTNode * root, vector<string> & parameters, map<string,uint> & speciesIndices);
 void importFirstOrderReaction(const ASTNode * root, vector<string> & parameters, map<string,double> & parameterValues, uint reactionIndex, uint numberReactions, ReactionModel * lmModel, uint * D, map<string,uint> & speciesIndices);
-bool isSecondOrderReaction(const ASTNode * root, vector<string> & parameters);
+bool isSecondOrderReaction(const ASTNode * root, vector<string> & parameters, map<string,uint> & speciesIndices);
 void importSecondOrderReaction(const ASTNode * root, vector<string> & parameters, map<string,double> & parameterValues, uint reactionIndex, uint numberReactions, ReactionModel * lmModel, uint * D, map<string,uint> & speciesIndices);
-bool isSecondOrderSelfReaction(const ASTNode * root, vector<string> & parameters);
+bool isSecondOrderSelfReaction(const ASTNode * root, vector<string> & parameters, map<string,uint> & speciesIndices);
 void importSecondOrderSelfReaction(const ASTNode * root, vector<string> & parameters, map<string,double> & parameterValues, uint reactionIndex, uint numberReactions, ReactionModel * lmModel, uint * D, map<string,uint> & speciesIndices);
 
 // Allocate the profile space.
@@ -337,17 +339,19 @@ void importSBMLModelL3V1Kinetics(uint reactionIndex, KineticLaw * kinetics, Reac
 
     // Figure out the reaction type.
     const ASTNode * math = kinetics->getMath();
-    if (isFirstOrderReaction(math, localParameters))
+    if (isZerothOrderReaction(math, localParameters, speciesIndices))
+        importZerothOrderReaction(math, localParameters, localParameterValues, reactionIndex, numberReactions, lmModel, D, speciesIndices);
+    else if (isFirstOrderReaction(math, localParameters, speciesIndices))
         importFirstOrderReaction(math, localParameters, localParameterValues, reactionIndex, numberReactions, lmModel, D, speciesIndices);
-    else if (isSecondOrderReaction(math, localParameters))
+    else if (isSecondOrderReaction(math, localParameters, speciesIndices))
         importSecondOrderReaction(math, localParameters, localParameterValues, reactionIndex, numberReactions, lmModel, D, speciesIndices);
-    else if (isSecondOrderSelfReaction(math, localParameters))
+    else if (isSecondOrderSelfReaction(math, localParameters, speciesIndices))
         importSecondOrderSelfReaction(math, localParameters, localParameterValues, reactionIndex, numberReactions, lmModel, D, speciesIndices);
     else
         throw Exception("Unsupported kinetic law", kinetics->getFormula().c_str());
 }
 
-void getSpeciesUsedInExpression(vector<string> & speciesUsed, const ASTNode * node, vector<string> & parameters)
+void getSpeciesUsedInExpression(vector<string> & speciesUsed, const ASTNode * node, vector<string> & parameters, map<string,uint> & speciesIndices)
 {
     if (node->getType() == AST_NAME)
     {
@@ -363,12 +367,15 @@ void getSpeciesUsedInExpression(vector<string> & speciesUsed, const ASTNode * no
         }
         if (!isParameter)
         {
-            speciesUsed.push_back(name);
+        	if (speciesIndices.find(name) != speciesIndices.end())
+        		speciesUsed.push_back(name);
+        	else
+        		throw Exception("Unknown identifier in expression", name.c_str());
         }
     }
     for (uint i=0; i<node->getNumChildren(); i++)
     {
-        getSpeciesUsedInExpression(speciesUsed, node->getChild(i), parameters);
+        getSpeciesUsedInExpression(speciesUsed, node->getChild(i), parameters, speciesIndices);
     }
 }
 
@@ -406,20 +413,20 @@ const ASTNode * getFirstExpressionOfType(const ASTNode * node, ASTNodeType_t typ
 }
 
 
-double calculateMultiplierInExpression(const ASTNode * node, map<string,double> & parameterValues, bool ignoreSpeciesMinusOne=false)
+double calculateMultiplierInExpression(const ASTNode * node, map<string,double> & parameterValues, map<string,uint> & speciesIndices, bool ignoreSpeciesMinusOne=false)
 {
     if (node->getType() == AST_TIMES)
     {
         double value=1.0;
         for (uint i=0; i<node->getNumChildren(); i++)
         {
-            value *= calculateMultiplierInExpression(node->getChild(i), parameterValues, ignoreSpeciesMinusOne);
+            value *= calculateMultiplierInExpression(node->getChild(i), parameterValues, speciesIndices, ignoreSpeciesMinusOne);
         }
         return value;
     }
     else if (node->getType() == AST_DIVIDE && node->getNumChildren() == 2)
     {
-        return calculateMultiplierInExpression(node->getChild(0), parameterValues, ignoreSpeciesMinusOne)/calculateMultiplierInExpression(node->getChild(1), parameterValues, ignoreSpeciesMinusOne);
+        return calculateMultiplierInExpression(node->getChild(0), parameterValues, speciesIndices, ignoreSpeciesMinusOne)/calculateMultiplierInExpression(node->getChild(1), parameterValues, speciesIndices, ignoreSpeciesMinusOne);
     }
     else if (ignoreSpeciesMinusOne && node->getType() == AST_MINUS)
     {
@@ -443,8 +450,10 @@ double calculateMultiplierInExpression(const ASTNode * node, map<string,double> 
     {
         if (parameterValues.count(node->getName()) == 1)
             return parameterValues[node->getName()];
-        else
+        else if (speciesIndices.find(string(node->getName())) != speciesIndices.end())
             return 1.0;
+        else
+    		throw Exception("Unknown identifier in expression", node->getName());
     }
     else if (node->getType() == AST_NAME_AVOGADRO)
     {
@@ -454,11 +463,40 @@ double calculateMultiplierInExpression(const ASTNode * node, map<string,double> 
         throw Exception("Unsupported ast type", node->getType());
 }
 
-bool isFirstOrderReaction(const ASTNode * root, vector<string> & parameters)
+bool isZerothOrderReaction(const ASTNode * root, vector<string> & parameters, map<string,uint> & speciesIndices)
 {
     // Make sure the rate only depends on only one species.
     vector<string> speciesUsed;
-    getSpeciesUsedInExpression(speciesUsed, root, parameters);
+    getSpeciesUsedInExpression(speciesUsed, root, parameters, speciesIndices);
+
+    if (speciesUsed.size() != 0) return false;
+
+    // Make sure the expression only involves multiplication and division.
+    vector<string> operatorsUsed;
+    getOperatorsUsedInExpression(operatorsUsed, root);
+    for (vector<string>::iterator it = operatorsUsed.begin(); it != operatorsUsed.end(); it++)
+    {
+        if (*it != "*" && *it != "/") return false;
+    }
+
+    return true;
+}
+
+void importZerothOrderReaction(const ASTNode * root, vector<string> & parameters, map<string,double> & parameterValues, uint reactionIndex, uint numberReactions, ReactionModel * lmModel, uint * D, map<string,uint> & speciesIndices)
+{
+    // Set the reaction type.
+    lmModel->mutable_reaction(reactionIndex)->set_type(0);
+
+    // Get the rate constant.
+    double k=calculateMultiplierInExpression(root, parameterValues, speciesIndices);
+    lmModel->mutable_reaction(reactionIndex)->add_rate_constant(k);
+}
+
+bool isFirstOrderReaction(const ASTNode * root, vector<string> & parameters, map<string,uint> & speciesIndices)
+{
+    // Make sure the rate only depends on only one species.
+    vector<string> speciesUsed;
+    getSpeciesUsedInExpression(speciesUsed, root, parameters, speciesIndices);
     if (speciesUsed.size() != 1) return false;
 
     // Make sure the expression only involves multiplication and division.
@@ -476,7 +514,7 @@ void importFirstOrderReaction(const ASTNode * root, vector<string> & parameters,
 {
     // Get the index of the species.
     vector<string> speciesUsed;
-    getSpeciesUsedInExpression(speciesUsed, root, parameters);
+    getSpeciesUsedInExpression(speciesUsed, root, parameters, speciesIndices);
     uint speciesIndex = speciesIndices[speciesUsed[0]];
 
     // Set the reaction type.
@@ -486,15 +524,15 @@ void importFirstOrderReaction(const ASTNode * root, vector<string> & parameters,
     D[speciesIndex*numberReactions+reactionIndex] = 1;
 
     // Get the rate constant.
-    double k=calculateMultiplierInExpression(root, parameterValues);
+    double k=calculateMultiplierInExpression(root, parameterValues, speciesIndices);
     lmModel->mutable_reaction(reactionIndex)->add_rate_constant(k);
 }
 
-bool isSecondOrderReaction(const ASTNode * root, vector<string> & parameters)
+bool isSecondOrderReaction(const ASTNode * root, vector<string> & parameters, map<string,uint> & speciesIndices)
 {
     // Make sure the rate only depends on only two species.
     vector<string> speciesUsed;
-    getSpeciesUsedInExpression(speciesUsed, root, parameters);
+    getSpeciesUsedInExpression(speciesUsed, root, parameters, speciesIndices);
 
     if (speciesUsed.size() != 2) return false;
     if (speciesUsed[0] == speciesUsed[1]) return false;
@@ -514,7 +552,7 @@ void importSecondOrderReaction(const ASTNode * root, vector<string> & parameters
 {
     // Get the species used.
     vector<string> speciesUsed;
-    getSpeciesUsedInExpression(speciesUsed, root, parameters);
+    getSpeciesUsedInExpression(speciesUsed, root, parameters, speciesIndices);
 
     // Set the reaction type.
     lmModel->mutable_reaction(reactionIndex)->set_type(2);
@@ -524,15 +562,15 @@ void importSecondOrderReaction(const ASTNode * root, vector<string> & parameters
     D[speciesIndices[speciesUsed[1]]*numberReactions+reactionIndex] = 1;
 
     // Get the rate constant.
-    double k=calculateMultiplierInExpression(root, parameterValues);
+    double k=calculateMultiplierInExpression(root, parameterValues, speciesIndices);
     lmModel->mutable_reaction(reactionIndex)->add_rate_constant(k);
 }
 
-bool isSecondOrderSelfReaction(const ASTNode * root, vector<string> & parameters)
+bool isSecondOrderSelfReaction(const ASTNode * root, vector<string> & parameters, map<string,uint> & speciesIndices)
 {
     // Make sure the rate only depends on only two species.
     vector<string> speciesUsed;
-    getSpeciesUsedInExpression(speciesUsed, root, parameters);
+    getSpeciesUsedInExpression(speciesUsed, root, parameters, speciesIndices);
     if (speciesUsed.size() != 2) return false;
     if (speciesUsed[0] != speciesUsed[1]) return false;
 
@@ -595,7 +633,7 @@ void importSecondOrderSelfReaction(const ASTNode * root, vector<string> & parame
 {
     // Get the species used.
     vector<string> speciesUsed;
-    getSpeciesUsedInExpression(speciesUsed, root, parameters);
+    getSpeciesUsedInExpression(speciesUsed, root, parameters, speciesIndices);
 
     // Set the reaction type.
     lmModel->mutable_reaction(reactionIndex)->set_type(3);
@@ -604,7 +642,7 @@ void importSecondOrderSelfReaction(const ASTNode * root, vector<string> & parame
     D[speciesIndices[speciesUsed[0]]*numberReactions+reactionIndex] = 1;
 
     // Get the rate constant.
-    double k=calculateMultiplierInExpression(root, parameterValues, true);
+    double k=calculateMultiplierInExpression(root, parameterValues, speciesIndices, true);
     lmModel->mutable_reaction(reactionIndex)->add_rate_constant(k);
 }
 
@@ -612,11 +650,11 @@ void importSecondOrderSelfReaction(const ASTNode * root, vector<string> & parame
 /**
  * This function prints the copyright notice.
  */
-void printCopyright(int argc, char** argv) {
-
+void printCopyright(int argc, char** argv)
+{
 	std::cout << argv[0] << " v" << VERSION_NUM << " build " << BUILD_INFO << std::endl;
-    std::cout << "Copyright (C) " << COPYRIGHT_DATE << " Luthey-Schulten Group," << std::endl;
-	std::cout << "University of Illinois at Urbana-Champaign." << std::endl;
+	std::cout << "Copyright (C) " << COPYRIGHT_DATE << " Luthey-Schulten Group, University of Illinois at Urbana-Champaign." << std::endl;
+	std::cout << "Copyright (C) " << COPYRIGHT_DATE_JHU << " Roberts Group, Johns Hopkins University." << std::endl << std::endl;
 	std::cout << std::endl;
 }
 
