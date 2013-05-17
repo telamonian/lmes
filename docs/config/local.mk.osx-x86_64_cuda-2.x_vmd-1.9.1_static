@@ -1,0 +1,56 @@
+
+BUILD_DIR := Build-osx-x86_64_cuda-2.x_vmd-1.9.1_static
+RM := rm -rf
+CC := gcc
+CCFLAGS := -arch x86_64  -O3 -fPIC -Wall -c -fmessage-length=0 -pthread -DMACOSX
+CXX := g++
+CXXFLAGS := -arch x86_64  -O3 -fPIC -Wall -c -fmessage-length=0 -pthread -DMACOSX
+LD := g++
+LDFLAGS := -arch x86_64 -pthread -lpthread
+SHLD := g++
+SHLDFLAGS := -arch x86_64 -bundle -fPIC
+SHLDOPTO := -o
+USE_VERBOSITY_LEVEL := 4
+PROTOBUF_PROTOC := /Network/Servers/sol.scs.uiuc.edu/Volumes/HomeRAID2/Homes/erobert3/usr/Darwin-i386/bin/protoc
+PROTOBUF_INCLUDE_DIR := -I/Network/Servers/sol.scs.uiuc.edu/Volumes/HomeRAID2/Homes/erobert3/usr/Darwin-i386/include
+PROTOBUF_LIB_DIR := 
+PROTOBUF_LIB := -lz /Network/Servers/sol.scs.uiuc.edu/Volumes/HomeRAID2/Homes/erobert3/usr/Darwin-i386/lib/libprotobuf.a
+HDF5_INCLUDE_DIR := -I/Network/Servers/sol.scs.uiuc.edu/Volumes/HomeRAID2/Homes/erobert3/usr/Darwin-i386/include
+HDF5_LIB_DIR := 
+HDF5_LIB := -lz /Network/Servers/sol.scs.uiuc.edu/Volumes/HomeRAID2/Homes/erobert3/usr/Darwin-i386/lib/libhdf5.a /Network/Servers/sol.scs.uiuc.edu/Volumes/HomeRAID2/Homes/erobert3/usr/Darwin-i386/lib/libhdf5_hl.a
+USE_MPI := 0
+MPI_COMPILE_FLAGS = 
+MPI_LINK_FLAGS = 
+USE_PYTHON := 1
+PYTHON_SWIG := /usr/bin/swig
+PYTHON_INCLUDE_DIR := -I/usr/include/python2.6
+PYTHON_LIB_DIR := -L/usr/lib
+PYTHON_LIB := -lpython2.6
+USE_CUDA := 1
+CUDA_NVCC := /usr/local/cuda/bin/nvcc
+CUDA_FLAGS := -m64 --ptxas-options=-v --gpu-architecture compute_20 --gpu-code sm_20 -DMACOSX -DCUDA_3D_GRID_LAUNCH -DCUDA_DOUBLE_PRECISION -DTUNE_MPD_Y_BLOCK_Y_SIZE=8 -DTUNE_MPD_Z_BLOCK_Z_SIZE=8 -DTUNE_MPD_REACTION_BLOCK_Y_SIZE=8
+CUDA_INCLUDE_DIR := -I/usr/local/cuda/include
+CUDA_LIB_DIR := -L/usr/local/cuda/lib
+CUDA_LIB := -lcuda -lcudart
+CUDA_GENERATE_PTX_CODE := 1
+CUDA_GENERATE_BIN_CODE := 0
+CUDA_GENERATE_ASM_CODE := 0
+USE_SBML := 1
+SBML_INCLUDE_DIR := -I/Network/Servers/sol.scs.uiuc.edu/Volumes/HomeRAID2/Homes/erobert3/usr/Darwin-i386/include
+SBML_LIB_DIR := 
+SBML_LIB := -lxml2 -lz -lbz2 /Network/Servers/sol.scs.uiuc.edu/Volumes/HomeRAID2/Homes/erobert3/usr/Darwin-i386/lib/libsbml.a
+USE_PROF := 0
+PROF_CUDA_ENABLE := 0
+PROF_MAX_THREADS := 
+PROF_MAX_EVENTS := 
+PROF_OUT_FILE := 
+USE_BOOST := 0
+BOOST_TEST_CXXFLAGS := -
+BOOST_TEST_INCLUDE_DIR := 
+BOOST_TEST_LIB_DIR := 
+BOOST_TEST_LIB := 
+USE_VMD := 1
+VMD_INCLUDE_DIR := -I"/Applications/VMD 1.9.app/Contents/vmd/plugins/include"
+VMD_INSTALL_DIR := 
+INSTALL_PREFIX := 
+

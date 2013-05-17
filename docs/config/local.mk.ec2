@@ -1,0 +1,56 @@
+
+BUILD_DIR := Build-ec2
+RM := rm -rf
+CC := gcc
+CCFLAGS := -m64 -O3 -fPIC -Wall -c -fmessage-length=0 -pthread -DLINUX
+CXX := g++
+CXXFLAGS := -m64 -O3 -fPIC -Wall -c -fmessage-length=0 -pthread -DLINUX
+LD := g++
+LDFLAGS := -pthread -lpthread -lrt
+SHLD :=
+SHLDFLAGS :=
+SHLDOPTO :=
+USE_VERBOSITY_LEVEL := 4
+PROTOBUF_PROTOC := /usr/local/bin/protoc
+PROTOBUF_INCLUDE_DIR := -I/usr/local/include
+PROTOBUF_LIB_DIR := -L/usr/local/lib
+PROTOBUF_LIB := -lprotobuf
+HDF5_INCLUDE_DIR := -I/usr/local/include
+HDF5_LIB_DIR := -L/usr/local/lib
+HDF5_LIB := -lhdf5 -lhdf5_hl
+USE_MPI := 0
+MPI_COMPILE_FLAGS = 
+MPI_LINK_FLAGS = 
+USE_PYTHON := 1
+PYTHON_SWIG := /usr/bin/swig
+PYTHON_INCLUDE_DIR := -I/usr/include/python2.6
+PYTHON_LIB_DIR := -L/usr/lib64
+PYTHON_LIB := -lpython2.6
+USE_CUDA := 0
+CUDA_NVCC :=
+CUDA_FLAGS := 
+CUDA_INCLUDE_DIR :=
+CUDA_LIB_DIR :=
+CUDA_LIB :=
+CUDA_GENERATE_PTX_CODE :=
+CUDA_GENERATE_BIN_CODE :=
+CUDA_GENERATE_ASM_CODE :=
+USE_SBML := 1
+SBML_INCLUDE_DIR := -I/usr/local/include
+SBML_LIB_DIR := -L/usr/local/lib
+SBML_LIB := -lsbml
+USE_PROF := 0
+PROF_CUDA_ENABLE := 0
+PROF_MAX_THREADS := 15
+PROF_MAX_EVENTS := 1000000
+PROF_OUT_FILE := timing.prof
+USE_BOOST := 0
+BOOST_TEST_CXXFLAGS := 
+BOOST_TEST_INCLUDE_DIR := 
+BOOST_TEST_LIB_DIR := 
+BOOST_TEST_LIB := 
+USE_VMD := 0
+VMD_INCLUDE_DIR :=
+VMD_INSTALL_DIR :=
+INSTALL_PREFIX := /usr/local
+

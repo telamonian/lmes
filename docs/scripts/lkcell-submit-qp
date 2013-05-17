@@ -1,0 +1,74 @@
+#!/bin/bash
+# This script runs lkcell using the PBS queue submission engine.
+#
+
+if [ -z "$4" ]; then
+  echo "Usage: $0 arguments* first_replicate number_replicates log_file email_address"
+  exit
+fi
+
+# Parse the arguments.
+ARGS=
+for ((i=1; i<=`expr $# - 4`; i++))
+do
+  eval ARG=\${$i}
+  ARGS="$ARGS $ARG"
+done
+eval START_REPLICATE=\${`expr $# - 3`}
+eval NUMBER_REPLICATES=\${`expr $# - 2`}
+eval LOGFILE=\${`expr $# - 1`}
+eval QUEUE=cuda1.1
+eval PROCESSORS=1
+eval EMAIL=\${`expr $#`}
+
+# Make sure we do not have too many replicates for the number of GPUs.
+if [[ $NUMBER_REPLICATES > "4" ]]; then
+  echo "Usage: the maximum number of replicate allowed is 4."
+  exit
+fi 
+
+# Create the job file.
+BINDIR=/home/erobert3/share/apps/lkcell/bin
+BINCOMMAND=$BINDIR/lkcell
+JOBFILE=/tmp/lkcell.$USER.`date "+%s"`.pbs
+cat >$JOBFILE <<EOF
+#PBS -N lkcell/$NUMBER_REPLICATES
+#PBS -o $LOGFILE.log
+#PBS -e $LOGFILE.err
+#PBS -V
+#PBS -l walltime=24:00:00
+
+# Print out the machines allocated to the job.
+cat \$PBS_NODEFILE
+
+# Change to the working directory.
+cd \$PBS_O_WORKDIR
+
+# Run the replicates.
+for ((i=0; i<$NUMBER_REPLICATES; i+=1)); do
+  CUDA_DEVICE=\$i
+  REPLICATE=0\$[i+$START_REPLICATE]
+  echo "Starting replicate \$REPLICATE on cuda device \$CUDA_DEVICE:"
+  $BINCOMMAND $ARGS \$CUDA_DEVICE \$REPLICATE &> $LOGFILE.\$REPLICATE.log &
+done
+
+# Get the list of processes.
+jobs
+JOBS=\`echo \\\`jobs -p\\\`\`
+
+# Set up the interrupt handler.
+echo "Setting interrupt handlers for processes: \$JOBS"
+trap "{ echo \"Killing jobs: \$JOBS\"; kill -SIGTERM \$JOBS; exit; }" SIGTERM
+
+# Wait for the replicates to complete.
+wait
+echo "All replicates finished."
+
+EOF
+
+echo "Submitting job to queue: $PROCESSORS:$QUEUE"
+qsub -l nodes=$PROCESSORS:$QUEUE $JOBFILE
+sleep 5
+rm -f $JOBFILE
+
+
