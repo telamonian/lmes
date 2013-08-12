@@ -3,6 +3,7 @@ import h5py, sys
 import numpy as np
 from os import path
 import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from matplotlib.colors import LogNorm
