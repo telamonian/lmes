@@ -100,46 +100,54 @@ class Sims(object):
             self.sims[i].Pdf()
         fig = plt.figure(1)
         axes = plt.axes()
+        print 'graphing now...'
         axes.plot(self.sims[i].times[::100], self.sims[i].oparam[::100])
         fig.set_size_inches(72,6)
         axes.set_yticks(range(-100,101,10))
         axes.set_xlabel('time (k)')
         axes.set_ylabel('$\Delta$ (copy num(b) - copy num(a))')
         self.Savefig(fig, '_tcourse')
+        print 'done'
     
     def Hist(self):
         if self.oparam==None:
             self.Pdf()
         fig = plt.figure(1)
         axes = plt.axes()
+        print 'graphing now...'
         n, bins, patches = axes.hist(self.oparam, bins=200, range=(-100,100), normed=True)
         axes.plot(bins[1:] - .5, n, 'r--')
         fig.set_size_inches(36,24)
         axes.set_xticks(range(-100,101,5))
         axes.set_xlabel('$\Delta$ (copy num(b) - copy num(a))')
         axes.set_ylabel('count')
-        self.Savefig('_hist')
+        self.Savefig(fig, '_hist')
+        print 'done'
     
     def Hist2D(self):
         if self.rcoords==None:
             self.Rcoords()
         fig = plt.figure(1)
         axes = plt.axes()
+        print 'graphing now...'
         axes.hist2d(self.rcoords[0,:], self.rcoords[1,:], range=[[0,100],[0,100]], bins=(100, 100))
         fig.set_size_inches(36,24)
         matplotlib.rcParams.update({'font.size': 42})
         axes.set_xlabel('copy num(A)')
         axes.set_ylabel('copy num(B)')
         self.Savefig(fig, '_hist2d')
+        print 'done'
         
         fig = plt.figure(2)
         axes = plt.axes()
+        print 'graphing logarithmic version now...'
         axes.hist2d(self.rcoords[0,:], self.rcoords[1,:], range=[[0,100],[0,100]], bins=(100, 100), norm=LogNorm())
         fig.set_size_inches(36,24)
         matplotlib.rcParams.update({'font.size': 42})
         axes.set_xlabel('copy num(A)')
         axes.set_ylabel('copy num(B)')
         self.Savefig(fig, '_hist2d_log')
+        print 'done'
     
     def Passage(self):
         self.dwells = np.array([])
@@ -151,8 +159,10 @@ class Sims(object):
         xdata = np.array(sorted(self.dwells.tolist()))
         ydata = np.array(range(1, len(self.dwells) + 1))/float(len(self.dwells))
         fit = Fit(func, init, xdata=xdata, ydata=ydata)
+        print 'graphing now...'
         fit.ScatterPlot(self.Figname('passage_cdf', ext=False), clear=True)
-        fit.SmoothPlot(self.Figname('passage_cdf', ext=False), lim=('auto','auto'), labels=('time (k)','cdf'))
+        fit.SmoothPlot(self.Figname('passage_cdf', ext=False), lim=('auto','auto'), labels=('time (k)','cdf'), annotate='k: %10e' % fit.params['k'].value)
+        print 'done'
         print fit
     
     def Progress(self):
