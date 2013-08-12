@@ -102,9 +102,9 @@ class Sims(object):
         axes = plt.axes()
         axes.plot(self.sims[i].times[::100], self.sims[i].oparam[::100])
         fig.set_size_inches(72,6)
-        axes.yticks(range(-100,101,10))
-        axes.xlabel('time (k)')
-        axes.ylabel('$\Delta$ (copy num(b) - copy num(a))')
+        axes.set_yticks(range(-100,101,10))
+        axes.set_xlabel('time (k)')
+        axes.set_ylabel('$\Delta$ (copy num(b) - copy num(a))')
         self.Savefig(fig, '_tcourse')
     
     def Hist(self):
@@ -115,9 +115,9 @@ class Sims(object):
         n, bins, patches = axes.hist(self.oparam, bins=200, range=(-100,100), normed=True)
         axes.plot(bins[1:] - .5, n, 'r--')
         fig.set_size_inches(36,24)
-        axes.xticks(range(-100,101,5))
-        axes.xlabel('$\Delta$ (copy num(b) - copy num(a))')
-        axes.ylabel('count')
+        axes.set_xticks(range(-100,101,5))
+        axes.set_xlabel('$\Delta$ (copy num(b) - copy num(a))')
+        axes.set_ylabel('count')
         self.Savefig('_hist')
     
     def Hist2D(self):
