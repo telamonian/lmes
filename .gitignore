@@ -1,0 +1,16 @@
+.DS_Store
+.cproject
+.pydevproject
+.project
+
+/local.mk
+/Build-*
+/*.app
+/.settings
+
+*.pb.h
+*.pb.cc
+*.pyc
+*.ptx
+*.o
+*.d

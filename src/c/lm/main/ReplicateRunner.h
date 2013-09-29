@@ -64,7 +64,7 @@ public:
     ReplicateRunner(int replicate, MESolverFactory solverFactory, map<string,string> * parameters, lm::io::ReactionModel * reactionModel, lm::io::DiffusionModel * diffusionModel, uint8_t * lattice, size_t latticeSize, uint8_t * latticeSites, size_t latticeSitesSize, ResourceAllocator::ComputeResources resources) throw(PthreadException);
     virtual ~ReplicateRunner() throw(PthreadException);
     virtual void wake() throw(PthreadException);
-    virtual int run();
+    virtual int run() = 0;
 
     virtual int getReplicate() {return replicate;}
     virtual bool hasReplicateFinished();

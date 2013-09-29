@@ -53,6 +53,7 @@
 #endif
 #include "lm/main/Main.h"
 #include "lm/main/ReplicateRunner.h"
+#include "lm/main/ForwardFluxRunner.h"
 #include "lm/me/MESolverFactory.h"
 #include "lm/rdme/RDMESolver.h"
 #include "lm/thread/Thread.h"
@@ -67,47 +68,84 @@ using lm::me::MESolverFactory;
 namespace lm {
 namespace main {
 
-ReplicateRunner::ReplicateRunner(int replicate, MESolverFactory solverFactory, map<string,string> * parameters, lm::io::ReactionModel * reactionModel, lm::io::DiffusionModel * diffusionModel, uint8_t * lattice, size_t latticeSize, uint8_t * latticeSites, size_t latticeSitesSize, ResourceAllocator::ComputeResources resources) throw(PthreadException)
-:replicate(replicate),solverFactory(solverFactory),parameters(parameters),reactionModel(reactionModel),diffusionModel(diffusionModel),lattice(lattice),latticeSize(latticeSize),latticeSites(latticeSites),latticeSitesSize(latticeSitesSize),resources(resources),replicateFinished(false),replicateExitCode(-1)
+ForwardFluxRunner::ForwardFluxRunner(int replicate, MESolverFactory solverFactory, map<string,string> * parameters, lm::io::ReactionModel * reactionModel, lm::io::DiffusionModel * diffusionModel, uint8_t * lattice, size_t latticeSize, uint8_t * latticeSites, size_t latticeSitesSize, ResourceAllocator::ComputeResources resources) throw(PthreadException)
+:ReplicateRunner(replicate, solverFactory, parameters, reactionModel, diffusionModel, lattice, latticeSize, latticeSites, latticeSitesSize, resources)
 {
 }
 
-ReplicateRunner::~ReplicateRunner() throw(PthreadException)
+ForwardFluxRunner::~ForwardFluxRunner() throw(PthreadException)
 {
 }
 
-void ReplicateRunner::wake() throw(PthreadException)
-{
-}
 
-bool ReplicateRunner::hasReplicateFinished()
+int ForwardFluxRunner::run()
 {
-    bool ret;
+	// Set the processor affinity.
+	setAffinity(resources.cpuCores[0]);
+
+	#if defined(OPT_CUDA)
+	// Set the GPU affinity.
+	if (resources.cudaDevices.size() > 0)
+		lm::CUDA::setCurrentDevice(resources.cudaDevices[0]);
+	#endif
+
+	// Print a message detailing where this replciate is running.
+	if (resources.cudaDevices.size() > 0)
+		Print::printf(Print::INFO, "Running replicate %d in process %d on CPU core %d and GPU %d", replicate, resources.processNumber, resources.cpuCores[0], resources.cudaDevices[0]);
+	else
+		Print::printf(Print::INFO, "Running replicate %d in process %d on CPU core %d", replicate, resources.processNumber, resources.cpuCores[0]);
+
+
+    PROF_SET_THREAD(resources.cpuCores[0]+PROF_THREAD_VARIABLE_START);
+    PROF_BEGIN(PROF_REPLICATE_EXECUTE);
+
+    MESolver * solver = NULL;
+    int status = -1;
+    try
+    {
+        // Run the simulation using the specified solver.
+        solver = solverFactory.instantiate();
+        solver->initialize(replicate, parameters, &resources);
+        if (solver->needsReactionModel())
+        {
+            ((lm::cme::CMESolver *)solver)->setReactionModel(reactionModel);
+        }
+        if (solver->needsDiffusionModel())
+        {
+            ((lm::rdme::RDMESolver *)solver)->setDiffusionModel(diffusionModel, lattice, latticeSize, latticeSites, latticeSitesSize);
+        }
+        solver->generateTrajectory();
+        status = 0;
+    }
+    catch (lm::Exception e)
+    {
+        Print::printf(Print::ERROR, "Exception during execution of replicate: %s.", e.what());
+    }
+    catch (std::exception& e)
+    {
+        Print::printf(Print::ERROR, "Std exception during execution of replicate: %s.", e.what());
+    }
+    catch (...)
+    {
+        Print::printf(Print::ERROR, "Unknown exception during execution of replicate.");
+    }
+
+    // Free any resources.
+    if (solver != NULL) delete solver; solver = NULL;
 
     //// BEGIN CRITICAL SECTION: controlMutex
     PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&controlMutex));
 
-    ret = replicateFinished;
+    // Mark the replicate status as finished.
+    replicateFinished = true;
+    replicateExitCode = status;
 
     PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&controlMutex));
     //// END CRITICAL SECTION: controlMutex
 
-    return ret;
-}
+    PROF_END(PROF_REPLICATE_EXECUTE);
 
-int ReplicateRunner::getReplicateExitCode()
-{
-    int ret;
-
-    //// BEGIN CRITICAL SECTION: controlMutex
-    PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&controlMutex));
-
-    ret = replicateExitCode;
-
-    PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&controlMutex));
-    //// END CRITICAL SECTION: controlMutex
-
-    return ret;
+    return 0;
 }
 
 

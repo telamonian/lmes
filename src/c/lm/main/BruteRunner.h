@@ -37,79 +37,36 @@
  * Author(s): Elijah Roberts
  */
 
-#include <string>
+#ifndef LM_MAIN_BRUTERUNNER_H_
+#define LM_MAIN_BRUTERUNNER_H_
+
 #include <map>
-#include "lm/Print.h"
-#include "lm/cme/CMESolver.h"
-#include "lm/cme/GillespieDSolver.h"
-#include "lm/cme/HillSwitch.h"
-#include "lm/cme/SelfRegulatingGeneSwitch.h"
-#include "lm/cme/TwoStateExpression.h"
-#include "lm/cme/TwoStateHillSwitch.h"
-#include "lm/cme/TwoStateHillLoopSwitch.h"
-#include "lm/cme/GillespieDSolver.h"
-#if defined(OPT_CUDA)
-#include "lm/Cuda.h"
-#endif
-#include "lm/main/Main.h"
+#include <string>
+#include "lm/main/ResourceAllocator.h"
 #include "lm/main/ReplicateRunner.h"
 #include "lm/me/MESolverFactory.h"
-#include "lm/rdme/RDMESolver.h"
+#include "lm/io/ReactionModel.pb.h"
+#include "lm/io/DiffusionModel.pb.h"
 #include "lm/thread/Thread.h"
-#include "lm/thread/Worker.h"
-#include "lptf/Profile.h"
-#include "lptf/ProfileCodes.h"
 
-using std::string;
 using std::map;
+using std::string;
+using lm::thread::PthreadException;
 using lm::me::MESolverFactory;
 
 namespace lm {
 namespace main {
 
-ReplicateRunner::ReplicateRunner(int replicate, MESolverFactory solverFactory, map<string,string> * parameters, lm::io::ReactionModel * reactionModel, lm::io::DiffusionModel * diffusionModel, uint8_t * lattice, size_t latticeSize, uint8_t * latticeSites, size_t latticeSitesSize, ResourceAllocator::ComputeResources resources) throw(PthreadException)
-:replicate(replicate),solverFactory(solverFactory),parameters(parameters),reactionModel(reactionModel),diffusionModel(diffusionModel),lattice(lattice),latticeSize(latticeSize),latticeSites(latticeSites),latticeSitesSize(latticeSitesSize),resources(resources),replicateFinished(false),replicateExitCode(-1)
+class BruteRunner : public ReplicateRunner
 {
-}
+public:
+    BruteRunner(int replicate, MESolverFactory solverFactory, map<string,string> * parameters, lm::io::ReactionModel * reactionModel, lm::io::DiffusionModel * diffusionModel, uint8_t * lattice, size_t latticeSize, uint8_t * latticeSites, size_t latticeSitesSize, ResourceAllocator::ComputeResources resources) throw(PthreadException);
+    virtual ~BruteRunner() throw(PthreadException);
+    virtual int run();
 
-ReplicateRunner::~ReplicateRunner() throw(PthreadException)
-{
-}
-
-void ReplicateRunner::wake() throw(PthreadException)
-{
-}
-
-bool ReplicateRunner::hasReplicateFinished()
-{
-    bool ret;
-
-    //// BEGIN CRITICAL SECTION: controlMutex
-    PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&controlMutex));
-
-    ret = replicateFinished;
-
-    PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&controlMutex));
-    //// END CRITICAL SECTION: controlMutex
-
-    return ret;
-}
-
-int ReplicateRunner::getReplicateExitCode()
-{
-    int ret;
-
-    //// BEGIN CRITICAL SECTION: controlMutex
-    PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&controlMutex));
-
-    ret = replicateExitCode;
-
-    PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&controlMutex));
-    //// END CRITICAL SECTION: controlMutex
-
-    return ret;
-}
-
+};
 
 }
 }
+
+#endif

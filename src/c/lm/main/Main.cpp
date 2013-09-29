@@ -128,7 +128,10 @@ bool shouldPrintCudaCapabilities;
  */
 bool shouldReserveOutputCore;
 
-
+/**
+ * Whether the forward flux runner should be used.
+ */
+bool useForwardFluxRunner;
 
 /**
  * Prints the copyright notice.
@@ -188,6 +191,7 @@ void parseArguments(int argc, char** argv)
     shouldPrintCudaCapabilities = true;
     #endif
     shouldReserveOutputCore = true;
+    useForwardFluxRunner = false;
 
     // Parse any arguments.
     for (int i=1; i<argc; i++)
@@ -329,6 +333,12 @@ void parseArguments(int argc, char** argv)
          {
         	 shouldReserveOutputCore = false;
          }
+
+        //See if the user is trying to turn off cuda capability printing.
+        else if ((strcmp(option, "-ff") == 0 || strcmp(option, "--use-forward-flux-runner") == 0))
+		{
+        	 useForwardFluxRunner = true;
+		}
 
         //This must be an invalid option.
         else {

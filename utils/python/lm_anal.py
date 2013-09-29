@@ -160,8 +160,8 @@ class Sims(object):
         ydata = np.array(range(1, len(self.dwells) + 1))/float(len(self.dwells))
         fit = Fit(func, init, xdata=xdata, ydata=ydata)
         print 'graphing now...'
-        fit.ScatterPlot(self.Figname('passage_cdf', ext=False), clear=True)
-        fit.SmoothPlot(self.Figname('passage_cdf', ext=False), lim=('auto','auto'), labels=('time (k)','cdf'), annotate='k: %10e' % fit.params['k'].value)
+        fit.ScatterPlot(self.Figname('_passage_cdf', ext=False), clear=True)
+        fit.SmoothPlot(self.Figname('_passage_cdf', ext=False), lim=('auto','auto'), labels=('time (k)','cdf'), annotate='k: %10e' % fit.params['k'].value)
         print 'done'
         print fit
     

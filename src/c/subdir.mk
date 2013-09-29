@@ -16,6 +16,8 @@ MAIN_OBJS += \
 ./$(BUILD_DIR)/src/c/lm/main/LocalDataOutputWorker.o \
 ./$(BUILD_DIR)/src/c/lm/main/Main.o \
 ./$(BUILD_DIR)/src/c/lm/main/ReplicateRunner.o \
+./$(BUILD_DIR)/src/c/lm/main/BruteRunner.o \
+./$(BUILD_DIR)/src/c/lm/main/ForwardFluxRunner.o \
 ./$(BUILD_DIR)/src/c/lm/main/SignalHandler.o
 
 OBJS += \
@@ -96,6 +98,8 @@ CPP_DEPS += \
 ./$(BUILD_DIR)/src/c/lm/main/MPINodeResourceMap.d \
 ./$(BUILD_DIR)/src/c/lm/main/MPIRemoteDataOutputQueue.d \
 ./$(BUILD_DIR)/src/c/lm/main/ReplicateRunner.d \
+./$(BUILD_DIR)/src/c/lm/main/BruteRunner.d \
+./$(BUILD_DIR)/src/c/lm/main/ForwardFluxRunner.d \
 ./$(BUILD_DIR)/src/c/lm/main/ResourceAllocator.d \
 ./$(BUILD_DIR)/src/c/lm/me/MESolver.d \
 ./$(BUILD_DIR)/src/c/lm/me/MESolverFactory.d \

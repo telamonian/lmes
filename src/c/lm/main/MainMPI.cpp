@@ -71,8 +71,10 @@
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SimulationParameters.h"
+#include "lm/main/BruteRunner.h"
 #include "lm/main/CheckpointSignaler.h"
 #include "lm/main/DataOutputQueue.h"
+#include "lm/main/ForwardFluxRunner.h"
 #include "lm/main/LocalDataOutputWorker.h"
 #include "lm/main/MPINodeResourceMap.h"
 #include "lm/main/MPIRemoteDataOutputQueue.h"
@@ -91,6 +93,8 @@ using std::list;
 using lm::Print;
 using lm::Exception;
 using lm::main::ReplicateRunner;
+using lm::main::BruteRunner;
+using lm::main::ForwardFluxRunner;
 using lm::main::ResourceAllocator;
 using lm::main::MPINodeResourceMap;
 using lm::me::MESolverFactory;
@@ -823,10 +827,17 @@ ReplicateRunner * startReplicate(int replicate, MESolverFactory solverFactory, s
 {
     // Allocate resources for the replicate.
     ResourceAllocator::ComputeResources resources = resourceAllocator.assignReplicate(replicate);
-
+    ReplicateRunner * runner = NULL;
     // Start a new thread for the replicate.
     Print::printf(Print::DEBUG, "Starting replicate %d in process %d (%s).", replicate, lm::MPI::worldRank, resources.toString().c_str());
-    ReplicateRunner * runner = new ReplicateRunner(replicate, solverFactory, &simulationParameters, reactionModel, diffusionModel, lattice, latticeSize, latticeSites, latticeSitesSize, resources);
+    if (useForwardFluxRunner)
+    {
+    	runner = new ForwardFluxRunner(replicate, solverFactory, &simulationParameters, reactionModel, diffusionModel, lattice, latticeSize, latticeSites, latticeSitesSize, resources);
+    }
+    else
+    {
+    	runner = new BruteRunner(replicate, solverFactory, &simulationParameters, reactionModel, diffusionModel, lattice, latticeSize, latticeSites, latticeSitesSize, resources);
+    }
     runner->start();
     return runner;
 }

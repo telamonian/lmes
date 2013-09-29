@@ -113,6 +113,11 @@ extern bool shouldPrintCudaCapabilities;
  */
 extern bool shouldReserveOutputCore;
 
+/**
+ * Whether the forward flux runner should be used.
+ */
+extern bool useForwardFluxRunner;
+
 #ifdef OPT_PYTHON
 /**
  * The directory containing the supporting files.
