@@ -40,6 +40,8 @@
 #include <queue>
 #include <google/protobuf/stubs/common.h>
 #include "lm/Exceptions.h"
+#include "lm/MPI.h"
+#include "lm/Print.h"
 #include "lm/Types.h"
 #include "lm/main/DataOutputQueue.h"
 
@@ -115,11 +117,33 @@ void DataOutputQueue::pushDataSet(void * data, size_t dataSize) throw(PthreadExc
 
 void DataOutputQueue::pushDataSet(DataSet * dataSet) throw(PthreadException)
 {
-    //// BEGIN CRITICAL SECTION: dataMutex
-    PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&dataMutex));
-    if (dataSet != NULL) dataQueue.push(dataSet);
-    PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&dataMutex));
-    //// END CRITICAL SECTION: dataMutex
+//    //// BEGIN CRITICAL SECTION: dataMutex
+//    PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&dataMutex));
+//    if (dataSet != NULL) dataQueue.push(dataSet);
+//    PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&dataMutex));
+//    //// END CRITICAL SECTION: dataMutex
+    if (dataSet != NULL)
+    {
+        void * staticDataBuffer = NULL;
+        MPI_EXCEPTION_CHECK(MPI_Alloc_mem(lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE, MPI_INFO_NULL, &staticDataBuffer));
+        Print::printf(Print::VERBOSE_DEBUG, "Sending output data set from process %d.", lm::MPI::worldRank);
+
+        if (dataSet->size <= lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE)
+        {
+            memcpy(staticDataBuffer, dataSet->data, dataSet->size);
+        }
+        else
+        {
+            throw Exception("MPI remote message exceeds buffer size.");
+        }
+
+
+
+        MPI_EXCEPTION_CHECK(MPI_Send(staticDataBuffer, dataSet->size, MPI_BYTE, lm::MPI::MASTER, lm::MPI::MSG_OUTPUT_DATA_STATIC, MPI_COMM_WORLD));
+        MPI_EXCEPTION_CHECK(MPI_Free_mem(staticDataBuffer));
+        // We are responsible for freeing the data set.
+        delete dataSet;
+    }
 }
 
 }

@@ -116,7 +116,7 @@ void Thread::start() throw(PthreadException)
 void * Thread::start_thread(void * obj)
 {
     int ret = (reinterpret_cast<Thread *>(obj))->run();
-    pthread_exit((void *)ret);
+    pthread_exit((void *)ret); //why is this not wrapped with PTHREAD_EXCEPTION_CHECK?
 }
 
 void Thread::stop() throw(PthreadException)

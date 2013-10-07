@@ -358,6 +358,7 @@ void executeSimulationMPISingleMaster()
     if (simultaneousReplicates == 0) throw Exception("Invalid configuration, no replicates can be processed.");
 
     // Create a table for the simulation status.
+    // key is replicate number, val is status: 0=waiting to run, 2=finished, other values=(?)(indicate at least not finished)
     map<int,int> simulationStatusTable;
     map<int,struct timespec> simulationStartTimeTable;
     for (vector<int>::iterator it=replicates.begin(); it<replicates.end(); it++)
@@ -415,25 +416,25 @@ void executeSimulationMPISingleMaster()
         MPI_EXCEPTION_CHECK(MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &messageWaiting, &messageStatus));
 
         // We have an output data message waiting.
-        if (messageWaiting && messageStatus.MPI_TAG == lm::MPI::MSG_OUTPUT_DATA_STATIC)
-        {
-            PROF_BEGIN(PROF_MASTER_READ_STATIC_MSG);
-            // Read the message into the buffer.
-            MPI_EXCEPTION_CHECK(MPI_Recv(staticDataBuffer, lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE, MPI_BYTE, MPI_ANY_SOURCE, lm::MPI::MSG_OUTPUT_DATA_STATIC, MPI_COMM_WORLD, &messageStatus));
-
-            // Get the size of the message.
-            int messageSize;
-            MPI_EXCEPTION_CHECK(MPI_Get_count(&messageStatus, MPI_BYTE, &messageSize));
-            Print::printf(Print::VERBOSE_DEBUG, "Received output data set of size %d from process %d.", messageSize, messageStatus.MPI_SOURCE);
-
-            // Add the message to the data set queue.
-            ((lm::main::DataOutputQueue *)dataOutputWorker)->pushDataSet(staticDataBuffer, (size_t)messageSize);
-            noopLoopCycles = 0;
-            PROF_END(PROF_MASTER_READ_STATIC_MSG);
-        }
+//        if (messageWaiting && messageStatus.MPI_TAG == lm::MPI::MSG_OUTPUT_DATA_STATIC)
+//        {
+//            PROF_BEGIN(PROF_MASTER_READ_STATIC_MSG);
+//            // Read the message into the buffer.
+//            MPI_EXCEPTION_CHECK(MPI_Recv(staticDataBuffer, lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE, MPI_BYTE, MPI_ANY_SOURCE, lm::MPI::MSG_OUTPUT_DATA_STATIC, MPI_COMM_WORLD, &messageStatus));
+//
+//            // Get the size of the message.
+//            int messageSize;
+//            MPI_EXCEPTION_CHECK(MPI_Get_count(&messageStatus, MPI_BYTE, &messageSize));
+//            Print::printf(Print::VERBOSE_DEBUG, "Received output data set of size %d from process %d.", messageSize, messageStatus.MPI_SOURCE);
+//
+//            // Add the message to the data set queue.
+//            ((lm::main::DataOutputQueue *)dataOutputWorker)->pushDataSet(staticDataBuffer, (size_t)messageSize);
+//            noopLoopCycles = 0;
+//            PROF_END(PROF_MASTER_READ_STATIC_MSG);
+//        }
 
         // We have a finished simulations message waiting.
-        else if (messageWaiting && messageStatus.MPI_TAG == lm::MPI::MSG_SIMULATION_FINISHED)
+        if (messageWaiting && messageStatus.MPI_TAG == lm::MPI::MSG_SIMULATION_FINISHED)
         {
             PROF_BEGIN(PROF_MASTER_READ_FINISHED_MSG);
             MPI_EXCEPTION_CHECK(MPI_Recv(&finishedMessage, 2, MPI_INT, MPI_ANY_SOURCE, lm::MPI::MSG_SIMULATION_FINISHED, MPI_COMM_WORLD, &messageStatus));
@@ -672,18 +673,18 @@ void executeSimulationMPISingleSlave()
         noopLoopCycles++;
 
         // See if there are any data sets to write.
-        if (!dataOutputQueue->isEmpty())
-        {
-            Print::printf(Print::VERBOSE_DEBUG, "Sending output data set from process %d.", lm::MPI::worldRank);
-
-            // Put the next data set into the send buffer.
-            size_t messageSize=dataOutputQueue->popDataSetIntoBuffer(staticDataBuffer, lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE);
-
-            // Send the message.
-            MPI_EXCEPTION_CHECK(MPI_Send(staticDataBuffer, messageSize, MPI_BYTE, lm::MPI::MASTER, lm::MPI::MSG_OUTPUT_DATA_STATIC, MPI_COMM_WORLD));
-            noopLoopCycles = 0;
-            continue;
-        }
+//        if (!dataOutputQueue->isEmpty())
+//        {
+//            Print::printf(Print::VERBOSE_DEBUG, "Sending output data set from process %d.", lm::MPI::worldRank);
+//
+//            // Put the next data set into the send buffer.
+//            size_t messageSize=dataOutputQueue->popDataSetIntoBuffer(staticDataBuffer, lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE);
+//
+//            // Send the message.
+//            MPI_EXCEPTION_CHECK(MPI_Send(staticDataBuffer, messageSize, MPI_BYTE, lm::MPI::MASTER, lm::MPI::MSG_OUTPUT_DATA_STATIC, MPI_COMM_WORLD));
+//            noopLoopCycles = 0;
+//            continue;
+//        }
 
         // See if there are any finished simulations.
         ReplicateRunner * finishedReplicate;

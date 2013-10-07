@@ -74,6 +74,8 @@ public:
     static const int MSG_RUN_SIMULATION         = 1;
     static const int MSG_SIMULATION_FINISHED    = 2;
     static const int MSG_OUTPUT_DATA_STATIC     = 10;
+    static const int MSG_WAKE_REPLICATE_MANAGER = 97;
+    static const int MSG_WAKE_DATA_OUTPUT_WORKER    = 98;
     static const int MSG_EXIT                   = 99;
 
     static const int OUTPUT_DATA_STATIC_MAX_SIZE    = 10*1024*1024;

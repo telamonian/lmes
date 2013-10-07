@@ -1,0 +1,32 @@
+# - Try to find Imagelibsbml
+# Once done, this will define
+#
+#  libsbml_FOUND - system has libsbml
+#  libsbml_INCLUDE_DIRS - the libsbml include directories
+#  libsbml_LIBRARIES - link these to use libsbml
+
+include(LibFindMacros)
+
+# Dependencies
+libfind_package(libsbml Magick)
+
+# Use pkg-config to get hints about paths
+libfind_pkg_check_modules(libsbml_PKGCONF libsbml)
+
+# Include dir
+find_path(libsbml_INCLUDE_DIR
+  NAMES libsbml.h
+  PATHS ${libsbml_PKGCONF_INCLUDE_DIRS}
+)
+
+# Finally the library itself
+find_library(libsbml_LIBRARY
+  NAMES libsbml
+  PATHS ${libsbml_PKGCONF_LIBRARY_DIRS}
+)
+
+# Set the include dir variables and the libraries and let libfind_process do the rest.
+# NOTE: Singular variables for this library, plural for libraries this this lib depends on.
+set(libsbml_PROCESS_INCLUDES libsbml_INCLUDE_DIR libsbml_INCLUDE_DIRS)
+set(libsbml_PROCESS_LIBS libsbml_LIBRARY libsbml_LIBRARIES)
+libfind_process(libsbml)

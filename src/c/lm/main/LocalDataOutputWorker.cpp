@@ -57,6 +57,7 @@ typedef unsigned long long          timing_time_t;
 
 
 #include <lm/Print.h>
+#include "lm/MPI.h"
 #include "lm/main/DataOutputQueue.h"
 #include "lm/main/LocalDataOutputWorker.h"
 #include "lm/main/Main.h"
@@ -91,38 +92,56 @@ LocalDataOutputWorker::~LocalDataOutputWorker() throw(PthreadException)
     PTHREAD_EXCEPTION_CHECK(pthread_cond_destroy(&dataAvailable));
 }
 
-void LocalDataOutputWorker::pushDataSet(DataSet * dataSet) throw(PthreadException)
+//void LocalDataOutputWorker::pushDataSet(DataSet * dataSet) throw(PthreadException)
+//{
+//    bool success=false;
+//    void * staticDataBuffer = NULL;
+//    MPI_EXCEPTION_CHECK(MPI_Alloc_mem(lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE, MPI_INFO_NULL, &staticDataBuffer));
+////    //// BEGIN CRITICAL SECTION: dataMutex
+////    PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&dataMutex));
+////    if (running)
+////    {
+////        if (dataSet != NULL)
+////        {
+////            dataQueue.push(dataSet);
+////            PTHREAD_EXCEPTION_CHECK(pthread_cond_signal(&dataAvailable));
+////        }
+////        success = true;
+////    }
+////    else
+////    {
+////        delete dataSet;
+////    }
+////    PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&dataMutex));
+////    //// END CRITICAL SECTION: dataMutex
+//    if (running)
+//    {
+//        if (dataSet !=NULL)
+//        {
+//            Print::printf(Print::VERBOSE_DEBUG, "Sending output data set from process %d.", lm::MPI::worldRank);
+//
+//            // Put the next data set into the send buffer.
+//            size_t messageSize=dataOutputQueue->popDataSetIntoBuffer(staticDataBuffer, lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE);
+//
+//            MPI_EXCEPTION_CHECK(MPI_Send(staticDataBuffer, messageSize, MPI_BYTE, lm::MPI::MASTER, lm::MPI::MSG_OUTPUT_DATA_STATIC, MPI_COMM_WORLD));
+//        }
+//        else
+//        {
+//            delete dataSet;
+//        }
+//    }
+//    MPI_EXCEPTION_CHECK(MPI_Free_mem(staticDataBuffer));
+//    if (!success) throw lm::Exception("LocalDataOutputWorker is not running.");
+//}
+
+void LocalDataOutputWorker::wake() throw(PthreadException) //TODO: if wake/abort/checkpoint are called at roughly the same time, a deadlock may occur as a result of blocking send/filling up the send buffer.
 {
-    bool success=false;
-
-    //// BEGIN CRITICAL SECTION: dataMutex
-    PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&dataMutex));
-    if (running)
-    {
-        if (dataSet != NULL)
-        {
-            dataQueue.push(dataSet);
-            PTHREAD_EXCEPTION_CHECK(pthread_cond_signal(&dataAvailable));
-        }
-        success = true;
-    }
-    else
-    {
-        delete dataSet;
-    }
-    PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&dataMutex));
-    //// END CRITICAL SECTION: dataMutex
-
-    if (!success) throw lm::Exception("LocalDataOutputWorker is not running.");
-}
-
-void LocalDataOutputWorker::wake() throw(PthreadException)
-{
-    //// BEGIN CRITICAL SECTION: dataMutex
-    PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&dataMutex));
-    PTHREAD_EXCEPTION_CHECK(pthread_cond_signal(&dataAvailable));
-    PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&dataMutex));
-    //// END CRITICAL SECTION: dataMutex
+//    //// BEGIN CRITICAL SECTION: dataMutex
+//    PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&dataMutex));
+//    PTHREAD_EXCEPTION_CHECK(pthread_cond_signal(&dataAvailable));
+//    PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&dataMutex));
+//    //// END CRITICAL SECTION: dataMutex
+    MPI_EXCEPTION_CHECK(MPI_Send(NULL, 0, MPI_INT, lm::MPI::MASTER, lm::MPI::MSG_WAKE_DATA_OUTPUT_WORKER  , MPI_COMM_WORLD));
 }
 
 void LocalDataOutputWorker::abort() throw(PthreadException)
@@ -133,7 +152,8 @@ void LocalDataOutputWorker::abort() throw(PthreadException)
     if (running)
     {
         aborted = true;
-        PTHREAD_EXCEPTION_CHECK(pthread_cond_signal(&dataAvailable));
+        MPI_EXCEPTION_CHECK(MPI_Send(NULL, 0, MPI_INT, lm::MPI::MASTER, lm::MPI::MSG_WAKE_DATA_OUTPUT_WORKER  , MPI_COMM_WORLD));
+        //PTHREAD_EXCEPTION_CHECK(pthread_cond_signal(&dataAvailable));
     }
     PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&dataMutex));
     PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&controlMutex));
@@ -150,7 +170,8 @@ void LocalDataOutputWorker::checkpoint() throw(PthreadException)
     if (running)
     {
         shouldCheckpoint = true;
-        PTHREAD_EXCEPTION_CHECK(pthread_cond_signal(&dataAvailable));
+        MPI_EXCEPTION_CHECK(MPI_Send(NULL, 0, MPI_INT, lm::MPI::MASTER, lm::MPI::MSG_WAKE_DATA_OUTPUT_WORKER  , MPI_COMM_WORLD));
+        //PTHREAD_EXCEPTION_CHECK(pthread_cond_signal(&dataAvailable));
         success = true;
     }
     PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&dataMutex));
@@ -164,6 +185,10 @@ int LocalDataOutputWorker::run()
 {
     PROF_SET_THREAD(1);
     PROF_BEGIN(PROF_DATAOUTPUT_RUN);
+    MPI_Status messageStatus;
+    void * staticDataBuffer = NULL;
+    MPI_EXCEPTION_CHECK(MPI_Alloc_mem(lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE, MPI_INFO_NULL, &staticDataBuffer));
+
     try
     {
         Print::printf(Print::INFO, "Data output thread running.");
@@ -190,10 +215,6 @@ int LocalDataOutputWorker::run()
             bool finished = false;
             bool doCheckpoint = false;
             DataSet * dataSet = NULL;
-
-            //// BEGIN CRITICAL SECTION: controlMutex,dataMutex
-            PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&controlMutex));
-            PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&dataMutex));
 
             Print::printf(Print::VERBOSE_DEBUG, "Data output thread looping: %d data sets to write.", dataQueue.size());
 
@@ -224,17 +245,35 @@ int LocalDataOutputWorker::run()
                 datasetsRemaining = dataQueue.size();
             }
 
-            // Otherwise, wait for a signal that more data is available.
+            // Otherwise, wait for a data message or a wake message
             else
             {
-                PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&controlMutex));
-                PTHREAD_EXCEPTION_CHECK(pthread_cond_wait(&dataAvailable, &dataMutex));
-                PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&controlMutex)); //TODO: This is not quite deadlock-safe, refactor.
-            }
+                //this loop keeps the thread in this part of the loop in the case of an irrelevant message
+                while (true)
+                {
+                    MPI_EXCEPTION_CHECK(MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &messageStatus));
+                    if ((messageStatus.MPI_TAG == lm::MPI::MSG_OUTPUT_DATA_STATIC) || (messageStatus.MPI_SOURCE == lm::MPI::MASTER && messageStatus.MPI_TAG == lm::MPI::MSG_WAKE_DATA_OUTPUT_WORKER)) break;
+                }
+                if (messageStatus.MPI_TAG == lm::MPI::MSG_OUTPUT_DATA_STATIC)
+                {
+                    PROF_BEGIN(PROF_MASTER_READ_STATIC_MSG);
+                    // Read the message into the buffer.
+                    MPI_EXCEPTION_CHECK(MPI_Recv(staticDataBuffer, lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE, MPI_BYTE, MPI_ANY_SOURCE, lm::MPI::MSG_OUTPUT_DATA_STATIC, MPI_COMM_WORLD, &messageStatus));
 
-            PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&dataMutex));
-            PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&controlMutex));
-            //// END CRITICAL SECTION: controlMutex,dataMutex
+                    // Get the size of the message.
+                    int messageSize;
+                    MPI_EXCEPTION_CHECK(MPI_Get_count(&messageStatus, MPI_BYTE, &messageSize));
+                    Print::printf(Print::VERBOSE_DEBUG, "Received output data set of size %d from process %d.", messageSize, messageStatus.MPI_SOURCE);
+
+                    // Transcribe message from bytes back to DataSet object.
+                    dataSet = new DataOutputQueue::DataSet(staticDataBuffer, (size_t)messageSize);
+                    PROF_END(PROF_MASTER_READ_STATIC_MSG);
+                }
+                else if (messageStatus.MPI_SOURCE == lm::MPI::MASTER && messageStatus.MPI_TAG == lm::MPI::MSG_WAKE_DATA_OUTPUT_WORKER)
+                {
+                    MPI_EXCEPTION_CHECK(MPI_Recv(NULL, 0, MPI_INT, lm::MPI::MASTER, lm::MPI::MSG_WAKE_DATA_OUTPUT_WORKER, MPI_COMM_WORLD, &messageStatus));
+                }
+            }
 
             // If we need to abort, close the file and then exit.
             if (doAbort)
@@ -269,7 +308,7 @@ int LocalDataOutputWorker::run()
                 size_t payloadSize = *(size_t *)&dataSet->data[sizeof(uint)+sizeof(uint)+sizeof(size_t)+messageSize];
                 if (payloadSize > dataSet->size-(sizeof(uint)+sizeof(uint)+sizeof(size_t)+messageSize+sizeof(size_t))) throw Exception("Invalid data set, payload size overflows the total size", payloadSize);
                 byte * payloadData = &dataSet->data[sizeof(uint)+sizeof(uint)+sizeof(size_t)+messageSize+sizeof(size_t)];
-                if (dataSet->size != sizeof(uint)+sizeof(uint)+sizeof(size_t)+messageSize+sizeof(size_t)+payloadSize) throw Exception("Invalid data set, sum of sizes was not equal to the total size", sizeof(uint)+sizeof(uint)+sizeof(size_t)+messageSize+sizeof(size_t)+payloadSize);
+                if (dataSet->size != sizeof(uint)+sizeof(uint)+sizeof(size_t)+messageSize+sizeof(size_t)+payloadSize) throw Exception("Invalid data set, sum of sizes was not equal to the total size", sizeof(uint)+sizeof(uint)+sizeof(size_t)+messageSize+sizeof(size_t)+payloadSize, dataSet->size);
 
                 Print::printf(Print::VERBOSE_DEBUG, "Saving data set from replicate %d of type %d (total %d, message %d, payload %d)", replicate, type, dataSet->size, messageSize, payloadSize);
                 datasetsWritten++;
@@ -363,6 +402,7 @@ int LocalDataOutputWorker::run()
                 bytesWritten = 0;
             }
         }
+        MPI_EXCEPTION_CHECK(MPI_Free_mem(staticDataBuffer)); //TODO: fix with RAII
         Print::printf(Print::INFO, "Data output thread finished.");
         PROF_END(PROF_DATAOUTPUT_RUN);
         return 0;
@@ -387,7 +427,7 @@ int LocalDataOutputWorker::run()
     {
         Print::printf(Print::FATAL, "Unknown Exception during execution (%s:%d)", __FILE__, __LINE__);
     }
-
+    MPI_EXCEPTION_CHECK(MPI_Free_mem(staticDataBuffer)); //TODO: fix with RAII
     PROF_END(PROF_DATAOUTPUT_RUN);
     return -1;
 }

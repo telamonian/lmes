@@ -68,7 +68,7 @@ throw(MPIException)
     MPI_EXCEPTION_CHECK(MPI_Get_version(&version, &subversion));
 
     // Initialize the library.
-    MPI_EXCEPTION_CHECK(MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &threadSupport));
+    MPI_EXCEPTION_CHECK(MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &threadSupport));
 
     // Set the error handler to return errors for the world.
     MPI_EXCEPTION_CHECK(MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN));

@@ -63,7 +63,7 @@ public:
     LocalDataOutputWorker(SimulationFile * file) throw(PthreadException);
     virtual ~LocalDataOutputWorker() throw(PthreadException);
 
-    virtual void pushDataSet(DataSet * dataSet) throw(PthreadException);
+//    virtual void pushDataSet(DataSet * dataSet) throw(PthreadException);
 
     virtual void wake() throw(PthreadException);
     virtual void abort() throw(PthreadException);
