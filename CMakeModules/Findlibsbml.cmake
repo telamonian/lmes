@@ -1,4 +1,4 @@
-# - Try to find Imagelibsbml
+# - Try to find libsbml
 # Once done, this will define
 #
 #  libsbml_FOUND - system has libsbml
@@ -7,22 +7,27 @@
 
 include(LibFindMacros)
 
-# Dependencies
-libfind_package(libsbml Magick)
-
-# Use pkg-config to get hints about paths
-libfind_pkg_check_modules(libsbml_PKGCONF libsbml)
+set(_sbml_hints
+    $ENV{SBML_ROOT}
+    $ENV{HOME}/usr/include
+    $ENV{HOME}/usr/lib
+    /usr/local/include
+    /usr/local/lib
+    /usr/include
+    /usr/lib
+)
 
 # Include dir
 find_path(libsbml_INCLUDE_DIR
-  NAMES libsbml.h
-  PATHS ${libsbml_PKGCONF_INCLUDE_DIRS}
+  NAMES SBMLNamespaces.h
+  PATH_SUFFIXES sbml
+  HINTS ${_sbml_hints}
 )
 
 # Finally the library itself
 find_library(libsbml_LIBRARY
-  NAMES libsbml
-  PATHS ${libsbml_PKGCONF_LIBRARY_DIRS}
+  NAMES sbml
+  HINTS ${_sbml_hints}
 )
 
 # Set the include dir variables and the libraries and let libfind_process do the rest.

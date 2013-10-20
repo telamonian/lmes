@@ -845,6 +845,11 @@ double CMESolver::pdReflectingDefectFitnessPropensity(double time, uint * specie
 	return prop;
 }
 
+double CMESolver::MichaelisMentenPropensity(double time, uint * speciesCounts, void * pargs)
+{
+    MichaelisMentenPropensityArgs * args = (MichaelisMentenPropensityArgs *)pargs;
+    return args->v*((double)speciesCounts[args->si]/(args->k + (double)speciesCounts[args->si]));
+}
 
 void CMESolver::setModelPropensityFunction(uint reaction, double (*propensityFunction)(double time, uint * speciesCounts, void * args), void * propensityFunctionArg)
 {

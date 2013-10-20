@@ -69,7 +69,9 @@ public:
     virtual int getReplicate() {return replicate;}
     virtual bool hasReplicateFinished();
     virtual int getReplicateExitCode();
-	
+
+    virtual void signalFinished();
+
 protected:
     int replicate;
     MESolverFactory solverFactory;
@@ -83,6 +85,7 @@ protected:
     ResourceAllocator::ComputeResources resources;
     volatile bool replicateFinished;
     volatile int replicateExitCode;
+
 };
 
 }

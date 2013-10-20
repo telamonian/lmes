@@ -1,59 +1,64 @@
-cmake_minimum_required(VERSION 2.8.10)
+cmake_minimum_REQUIRED(VERSION 2.8.7)
 SET(CMAKE_C_COMPILER gcc)
 SET(CMAKE_CXX_COMPILER g++)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -m64 -fPIC -Wall -fmessage-length=0")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -m64 -fPIC -Wall -fmessage-length=0")
+#SET(CUDA_NVCC_FLAGS --ptxas-options=-v;--gpu-architecture;compute_30;--gpu-code;sm_30;-DMACOSX;-DCUDA_3D_GRID_LAUNCH;-DCUDA_DOUBLE_PRECISION;-DTUNE_MPD_Y_BLOCK_Y_SIZE=16;-DTUNE_MPD_Z_BLOCK_Z_SIZE=8)
+#SET(CMAKE_C_FLAGS -m64 -g -fPIC -Wall -c -fmessage-length=0 CACHE STRING "cmake c flags")
+#SET(CMAKE_CXX_FLAGS -m64 -g -fPIC -Wall -c -fmessage-length=0 CACHE STRING "cmake cpp flags")
+#SET(CUDA_NVCC_FLAGS -m64)
+#;--ptxas-options=-v;--gpu-architecture;compute_30;--gpu-code;sm_30;-DMACOSX;-DCUDA_3D_GRID_LAUNCH;-DCUDA_DOUBLE_PRECISION;-DTUNE_MPD_Y_BLOCK_Y_SIZE=16;-DTUNE_MPD_Z_BLOCK_Z_SIZE=8)
 
+project(lm)
+add_definitions(-DBUILD_INFO -DVERBOSITY_LEVEL=10 -DOPT_CUDA)
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    SET(BOOST_ROOT ~/usr)
+    add_definitions(-DLINUX)
 ELSE(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    SET(PYTHON_INCLUDE_DIR /usr/local/Cellar/python/2.7.5/Frameworks/Python.framework/Headers)
+    add_definitions(-DMACOSX)
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-
-#ADD_DEFINITIONS(-DPROF_ENABLE)
-
-project(lm C CXX)
 SET(CMAKE_MODULE_PATH  ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/CMakeModules )
 
-find_package (Threads)
-#target_link_libraries (myapp ${CMAKE_THREAD_LIBS_INIT})
-find_package(Protobuf required)
-#include_directories(${PROTOBUF_INCLUDE_DIRS})
-#include_directories(${CMAKE_CURRENT_BINARY_DIR})
-#PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS foo.proto)
-#add_executable(bar bar.cc ${PROTO_SRCS} ${PROTO_HDRS})
-#target_link_libraries(bar ${PROTOBUF_LIBRARIES})
-find_package(libsbml required) #will this work?
-find_package(hdf5 required)
-find_package(MPI required)
-find_package(cuda required)
+find_package(Threads REQUIRED)
+find_package(libsbml REQUIRED)
+find_package(Protobuf REQUIRED)
+find_package(HDF5 COMPONENTS C HL REQUIRED)
+find_package(MPI REQUIRED)
+find_package(cuda REQUIRED)
 find_package(SWIG)
 find_package(PythonInterp)
 find_package(PythonLibs)
 find_package(Boost)
-
-# project options
-#OPTION(INCLUDE_CUDA "Set to OFF to no search for CUDA" ON)
-
-#find cuda
-#IF(INCLUDE_CUDA)
-#    FIND_PACKAGE(CUDA)
-#
-#    IF(CUDA_FOUND)
-#        MESSAGE("CUDA has been found")
-#    ELSE(CUDA_FOUND)
-#        MESSAGE(FATAL_ERROR "CUDA could not be found")
-#    ENDIF(CUDA_FOUND)
-#    
-#ENDIF(INCLUDE_CUDA)
-
-#set(Boost_USE_STATIC_LIBS OFF)
-#set(Boost_USE_MULTITHREAD ON)
-
-#include_directories(/Library/Python/2.7/site-packages/numpy-1.8.0.dev_5c944b9_20120828-py2.7-macosx-10.8-x86_64.egg/numpy/core/include/)
-#INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS} ${PYTHON_INCLUDE_DIRS} ${NUMPY_INCLUDE_DIRS})
-#link_directories(${PYTHON_LIBRARY_DIRS} ${Boost_LIBRARY_DIRS})
+  
+include_directories(profile
+                    src/c/
+                    src/cuda/
+                    src/protobuf/
+                    src/swig/
+                    ${libsbml_INCLUDE_DIRS} 
+                    ${PROTOBUF_INCLUDE_DIRS}
+                    ${HDF5_INCLUDE_DIRS}
+                    ${MPI_C_INCLUDE_PATH}
+                    ${CUDA_INCLUDE_DIRS}
+                    ${PYTHON_INCLUDE_DIRS})
 
 #add subdirectories
-ADD_SUBDIRECTORY(src/c)
-ADD_SUBDIRECTORY(src/protobuf)
+add_subdirectory(src/cuda)
+get_directory_property(lm_cuda_source DIRECTORY src/cuda DEFINITION lm_cuda_source)
+add_subdirectory(src/c)
+get_directory_property(lm_c_source DIRECTORY src/c DEFINITION lm_c_source)
+add_subdirectory(src/protobuf)
+get_directory_property(proto_vars DIRECTORY src/protobuf DEFINITION proto_srcs)
+SET(CUDA_NVCC_FLAGS --ptxas-options=-v;--gpu-architecture;compute_30;--gpu-code;sm_30;-DCUDA_3D_GRID_LAUNCH;-DCUDA_DOUBLE_PRECISION;-DTUNE_MPD_Y_BLOCK_Y_SIZE=16;-DTUNE_MPD_Z_BLOCK_Z_SIZE=8)
 
-PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${lm_protobuf_source})
+CUDA_ADD_EXECUTABLE(lm ${lm_c_source} ${lm_cuda_source})
+
+target_link_libraries(lm ${lm_cuda} 
+                         ${lm_cuda_stuff}
+                         ${CMAKE_THREAD_LIBS_INIT}
+                         ${libsbml_LIBRARIES}
+                         ${PROTOBUF_LIBRARIES}
+                         ${HDF5_LIBRARIES}
+                         ${HDF5_HL_LIBRARIES}
+                         ${MPI_C_LIBRARIES}
+                         ${CUDA_LIBRARIES}
+                         ${PYTHON_LIBRARY_DIRS})

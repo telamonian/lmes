@@ -49,23 +49,82 @@ using std::map;
 namespace lm {
 namespace io {
 
-map<string,string> SimulationParameters::fromMessage(lm::message::SimulationParameters & message)
+SimulationParameters::SimulationParameters():
+parameters(),
+msg(),
+serialized(false)
 {
-    map<string,string> parameters;
-    for (int i=0; i<message.key_size() && i<message.value_size(); i++)
+}
+
+SimulationParameters::SimulationParameters(const map<string,string> & parameters):
+parameters(parameters),
+msg(),
+serialized(false)
+{
+}
+
+SimulationParameters::SimulationParameters(const lm::message::SimulationParameters & msg):
+parameters(),
+msg(msg),
+serialized(false)
+{
+}
+
+SimulationParameters::~SimulationParameters()
+{
+}
+
+string & SimulationParameters::operator[] (string s)
+{
+    return parameters[s];
+}
+
+int SimulationParameters::ByteSize()
+{
+    if (!serialized)
     {
-        parameters[message.key(i)] = message.value(i);
+        intoMessage();
+        serialized = true;
     }
+    return msg.ByteSize();
+}
+
+bool SimulationParameters::SerializeToArray(void * data, int size)
+{
+    if (!serialized)
+        {
+            intoMessage();
+            serialized = true;
+        }
+    return msg.SerializeToArray(data, size);
+}
+
+bool SimulationParameters::ParseFromArray(const void* data, int size)
+{
+    msg.ParseFromArray(data, size);
+    fromMessage();
+}
+
+map<string,string> SimulationParameters::getParameters()
+{
     return parameters;
 }
 
-void SimulationParameters::intoMessage(lm::message::SimulationParameters & message, map<string,string> & parameters)
+void SimulationParameters::fromMessage()
 {
-    message.Clear();
+    for (int i=0; i<msg.key_size() && i<msg.value_size(); i++)
+    {
+        parameters[msg.key(i)] = msg.value(i);
+    }
+}
+
+void SimulationParameters::intoMessage()
+{
+    msg.Clear();
     for (map<string,string>::iterator it=parameters.begin(); it != parameters.end(); it++)
     {
-        message.add_key(it->first);
-        message.add_value(it->second);
+        msg.add_key(it->first);
+        msg.add_value(it->second);
     }
 }
 

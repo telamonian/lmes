@@ -154,6 +154,14 @@ protected:
         uint lowBoundary;
         uint highBoundary;
     };
+    struct MichaelisMentenPropensityArgs : public PropensityArgs
+    {
+        static const uint REACTION_TYPE = 4;
+        MichaelisMentenPropensityArgs(uint si, double k0, double v0, double O) :si(si),k(k0*O),v(v0*O) {}
+        uint si;
+        double k;
+        double v;
+    };
     struct SpeciesLimit
     {
         int type;
@@ -201,7 +209,7 @@ protected:
     static double pdDefectFitnessPropensity(double time, uint * speciesCounts, void * pargs);
     static double pdReflectingCooperateFitnessPropensity(double time, uint * speciesCounts, void * pargs);
     static double pdReflectingDefectFitnessPropensity(double time, uint * speciesCounts, void * pargs);
-
+    static double MichaelisMentenPropensity(double time, uint * speciesCounts, void * pargs)
 
     virtual void allocateModel(uint numberSpecies, uint numberReactions);
     virtual void destroyModel();

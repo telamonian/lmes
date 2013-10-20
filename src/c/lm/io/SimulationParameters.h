@@ -42,16 +42,16 @@
 
 #include <map>
 #include <string>
-
+#include "lm/message/SimulationParameters.pb.h"
 
 using std::map;
 using std::string;
 
-namespace lm {
-namespace message {
-class SimulationParameters;
-}
-}
+//namespace lm {
+//namespace message {
+//class SimulationParameters;
+//}
+//}
 
 namespace lm {
 namespace io {
@@ -59,8 +59,27 @@ namespace io {
 class SimulationParameters
 {
 public:
-    static map<string,string> fromMessage(lm::message::SimulationParameters & message);
-    static void intoMessage(lm::message::SimulationParameters & message, map<string,string> & parameters);
+    SimulationParameters();
+    SimulationParameters(const map<string,string> & parameters);
+    SimulationParameters(const lm::message::SimulationParameters & msg);
+    ~SimulationParameters();
+
+    // object emulates a map<string,string>
+    string & operator[] (string);
+
+    // object emulates a protobuf object
+    int ByteSize();
+    bool SerializeToArray(void * data, int size);
+    bool ParseFromArray(const void* data, int size);
+
+    map<string,string> getParameters();
+
+private:
+    void fromMessage();
+    void intoMessage();
+    map<string,string> parameters;
+    lm::message::SimulationParameters msg;
+    bool serialized;
 };
 
 }

@@ -65,9 +65,7 @@ public:
     virtual void wake() throw(PthreadException)=0;
     virtual pthread_t getId() {return threadId;}
     virtual void setAffinity(int cpuNumber) throw(PthreadException);
-
-protected:
-    virtual int run()=0;
+    virtual int run()=0; //TODO: this was protected before I started messing around with start_thread. does it need to be?
 
 private:
     static void * start_thread(void * obj);

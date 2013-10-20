@@ -132,18 +132,20 @@ int BruteRunner::run()
     // Free any resources.
     if (solver != NULL) delete solver; solver = NULL;
 
-    //// BEGIN CRITICAL SECTION: controlMutex
-    PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&controlMutex));
-
+//    //// BEGIN CRITICAL SECTION: controlMutex
+//    PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&controlMutex));
+//
     // Mark the replicate status as finished.
     replicateFinished = true;
     replicateExitCode = status;
-
-    PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&controlMutex));
-    //// END CRITICAL SECTION: controlMutex
+//
+//    PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&controlMutex));
+//    //// END CRITICAL SECTION: controlMutex
 
     PROF_END(PROF_REPLICATE_EXECUTE);
 
+    Print::printf(Print::DEBUG, "replicate %d finished.", replicate);
+    signalFinished();
     return 0;
 }
 

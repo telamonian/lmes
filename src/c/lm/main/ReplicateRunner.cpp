@@ -39,6 +39,8 @@
 
 #include <string>
 #include <map>
+#include <mpi.h>
+#include <pthread.h>
 #include "lm/Print.h"
 #include "lm/cme/CMESolver.h"
 #include "lm/cme/GillespieDSolver.h"
@@ -54,6 +56,7 @@
 #include "lm/main/Main.h"
 #include "lm/main/ReplicateRunner.h"
 #include "lm/me/MESolverFactory.h"
+#include "lm/MPI.h"
 #include "lm/rdme/RDMESolver.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
@@ -110,6 +113,53 @@ int ReplicateRunner::getReplicateExitCode()
     return ret;
 }
 
+//void ReplicateRunner::start() throw(PthreadException)
+//{
+//    //// BEGIN CRITICAL SECTION: controlMutex
+//    PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&controlMutex));
+//    if (!running)
+//    {
+//        void * (*foo)(void *) = &lm::main::ReplicateRunner::start_thread;
+//        running=true;
+//        pthread_attr_t attr;
+//        PTHREAD_EXCEPTION_CHECK(pthread_attr_init(&attr));
+//        PTHREAD_EXCEPTION_CHECK(pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE));
+//        PTHREAD_EXCEPTION_CHECK(pthread_create(&threadId, &attr, foo, this));
+//        PTHREAD_EXCEPTION_CHECK(pthread_attr_destroy(&attr));
+//
+//        // Set the processor affinity, if we have a cpu assigned.
+//        if (cpuNumber >= 0)
+//        {
+//            #if defined(LINUX)
+//            cpu_set_t cpuset;
+//            CPU_ZERO(&cpuset);
+//            CPU_SET(cpuNumber, &cpuset);
+//            if (pthread_setaffinity_np(threadId, sizeof(cpu_set_t), &cpuset) != 0)
+//                Print::printf(Print::WARNING, "Could not bind thread %u to CPU core %d", threadId, cpuNumber);
+//            #endif
+//        }
+//        Print::printf(Print::DEBUG, "Started thread %u.", threadId);
+//    }
+//    PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&controlMutex));
+//    //// END CRITICAL SECTION: controlMutex
+//}
+//
+//void * ReplicateRunner::start_thread(void * obj)
+//{
+//    Print::printf(Print::DEBUG, "in start_thread method for replicate %d", this->getReplicateExitCode());
+//    int ret = (reinterpret_cast<Thread *>(obj))->run();
+//    signalFinshed
+//    pthread_exit((void *)ret); //why is this not wrapped with PTHREAD_EXCEPTION_CHECK?
+//}
+
+void ReplicateRunner::signalFinished()
+{
+    // inform the master process that this replicate is finished
+    int finishedMessage[] = {this->getReplicate(), this->getReplicateExitCode()};
+    Print::printf(Print::DEBUG, "sending finished message for replicate %d", finishedMessage[0]);
+    MPI_EXCEPTION_CHECK(MPI_Send(&finishedMessage, 2, MPI_INT, lm::MPI::MASTER, lm::MPI::MSG_SIMULATION_FINISHED, MPI_COMM_WORLD));
+    delete this;
+}
 
 }
 }

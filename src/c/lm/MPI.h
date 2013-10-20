@@ -71,11 +71,25 @@ public:
     static const int MASTER=0;
 
     // MPI messages.
+    // replicate running messages
     static const int MSG_RUN_SIMULATION         = 1;
     static const int MSG_SIMULATION_FINISHED    = 2;
     static const int MSG_OUTPUT_DATA_STATIC     = 10;
+
+    // replicate initialization messages
+    static const int MSG_SIMULTANEOUS_REPLICATES = 26;
+    static const int MSG_MSG_SIZE = 27;
+    static const int MSG_SIMULATION_PARAMETERS = 28;
+    static const int MSG_REACTION_MODEL = 29;
+    static const int MSG_DIFFUSION_MODEL = 30;
+    static const int MSG_LATTICE = 31;
+    static const int MSG_LATTICE_SITES = 32;
+
+    // thread waking messages
+    static const int MSG_WAKE_LOCAL_REPLICATE_WORKER    = 96;
     static const int MSG_WAKE_REPLICATE_MANAGER = 97;
     static const int MSG_WAKE_DATA_OUTPUT_WORKER    = 98;
+
     static const int MSG_EXIT                   = 99;
 
     static const int OUTPUT_DATA_STATIC_MAX_SIZE    = 10*1024*1024;
