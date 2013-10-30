@@ -434,8 +434,8 @@ double calculateMultiplierInExpression(const ASTNode * node, map<string,double> 
         if (node->getNumChildren() != 2) throw Exception("Unsupported expression 1");
         if (!node->getChild(0)->isName()) throw Exception("Unsupported expression 2");
         if (parameterValues.count(node->getChild(0)->getName()) == 1) throw Exception("Unsupported expression 3");
-        if (!node->getChild(1)->isInteger()) throw Exception("Unsupported expression 4");
-        if (node->getChild(1)->getInteger() != 1) throw Exception("Unsupported expression 5");
+        if (!(node->getChild(1)->isInteger() || node->getChild(1)->isReal())) throw Exception("Unsupported expression 4");
+        if (node->getChild(1)->getInteger() != 1 && node->getChild(1)->getReal() != 1) throw Exception("Unsupported expression 5");
         return 1.0;
     }
     else if (node->getType() == AST_INTEGER)
@@ -615,14 +615,14 @@ bool isSecondOrderSelfReaction(const ASTNode * root, vector<string> & parameters
     	Print::printf(Print::VERBOSE_DEBUG, "Reaction was not second order self due to the first child being an invalid symbol: %s.", minusNode->getChild(0)->getName());
     	return false;
     }
-    if (!minusNode->getChild(1)->isInteger())
+    if (!(minusNode->getChild(1)->isInteger() || minusNode->getChild(1)->isReal()))
     {
-    	Print::printf(Print::VERBOSE_DEBUG, "Reaction was not second order self due to the second child not being an integer.");
+    	Print::printf(Print::VERBOSE_DEBUG, "Reaction was not second order self due to the second child being neither an integer nor a real.");
     	return false;
     }
-    if (minusNode->getChild(1)->getInteger() != 1)
+    if (minusNode->getChild(1)->getInteger() != 1 && minusNode->getChild(1)->getReal() != 1)
     {
-    	Print::printf(Print::VERBOSE_DEBUG, "Reaction was not second order self due to the second child being an invalid integer: %d.", minusNode->getChild(1)->getInteger());
+    	Print::printf(Print::VERBOSE_DEBUG, "Reaction was not second order self due to the second child being unequal to 1 - integer: %d real: %f.", minusNode->getChild(1)->getInteger(), minusNode->getChild(1)->getReal());
     	return false;
     }
 
