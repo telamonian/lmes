@@ -582,8 +582,8 @@ bool isSecondOrderSelfReaction(const ASTNode * root, vector<string> & parameters
     {
         if (*it != "*" && *it != "/" && *it != "-")
         {
-        	return false;
         	Print::printf(Print::VERBOSE_DEBUG, "Reaction was not second order self due to presence of a %s operator.", *it->c_str());
+        	return false;
         }
         if (*it == "-") numMinuses++;
     }

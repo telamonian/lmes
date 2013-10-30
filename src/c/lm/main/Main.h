@@ -79,6 +79,13 @@ extern volatile bool globalAbort;
  */
 extern lm::me::MESolverFactory solverFactory;
 
+#ifdef OPT_MPI
+/**
+ * The filename for the node list.
+ */
+extern string nodelistFilename;
+#endif
+
 /**
  * The number of cpu cores assigned to each process.
  */

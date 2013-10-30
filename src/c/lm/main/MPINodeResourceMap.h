@@ -65,12 +65,12 @@ public:
 
 
 public:
-    MPINodeResourceMap(list<string> hostnames, int defaultNumberCpuCores);
+    MPINodeResourceMap(list<string> hostnames, string nodelistFilename, int defaultNumberCpuCores);
     virtual ~MPINodeResourceMap();
     int* getCpuCoresTable() {return cpuCoresTable;}
 
 protected:
-    list<string> parsePBSNodeFile(string filename);
+    list<string> parseNodeFile(string filename);
 
 protected:
     int numberNodes;

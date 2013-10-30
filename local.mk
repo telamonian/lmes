@@ -8,7 +8,8 @@ CXX := g++
 CXXFLAGS := -m64 -g -fPIC -Wall -c -fmessage-length=0 -pthread -DMACOSX
 CXXDEPENDFLAGS := -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)"
 LD := g++
-LDFLAGS := -pthread -lpthread
+LDFLAGS := -pthread
+LIBS := -lpthread
 SHLD := g++
 SHLDFLAGS := -bundle -fPIC
 SHLDOPTO := -o

@@ -83,7 +83,7 @@ void ReplicateRunner::wake() throw(PthreadException)
 int ReplicateRunner::run()
 {
 	// Set the processor affinity.
-	setAffinity(resources.cpuCores[0]);
+	//setAffinity(resources.cpuCores[0]);
 
 	#if defined(OPT_CUDA)
 	// Set the GPU affinity.

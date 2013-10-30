@@ -162,6 +162,10 @@ util: $(UTIL_BINS)
 	@echo ' '
 
 # Build protcol buffers source files.
+clean_protobuf:
+	rm `find . -name *.pb.*`
+
+# Build protcol buffers source files.
 protobuf: $(PROTOBUF_GEN_SRC)
 
 

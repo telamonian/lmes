@@ -189,7 +189,7 @@ int main(int argc, char** argv)
 				for (int i=0; i<lm::MPI::worldSize; i++)
 					hostnames.push_back(string(&hostnameTable[i*sizeof(hostname)]));
 
-				MPINodeResourceMap resourceList(hostnames, numberCpuCores);
+				MPINodeResourceMap resourceList(hostnames, nodelistFilename, numberCpuCores);
 
 				// Send the resource map.
 				MPI_EXCEPTION_CHECK(MPI_Scatter(resourceList.getCpuCoresTable(),1,MPI_INT,&numberCpuCores,1,MPI_INT,lm::MPI::MASTER,MPI_COMM_WORLD));

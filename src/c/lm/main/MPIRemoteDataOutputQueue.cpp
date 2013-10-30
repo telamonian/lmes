@@ -79,7 +79,7 @@ size_t MPIRemoteDataOutputQueue::popDataSetIntoBuffer(void * buffer, size_t buff
     }
     else
     {
-        throw Exception("MPI remote message exceeds buffer size.");
+        throw Exception("MPI remote message exceeds buffer size.",messageSize,bufferSize);
     }
 
     // We are responsible for freeing the data set.

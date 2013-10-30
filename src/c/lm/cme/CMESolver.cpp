@@ -667,6 +667,38 @@ void CMESolver::buildModel(const uint numberSpeciesA, const uint numberReactions
 			globalPDFitnessPropensityArgs->highBoundary = (uint)round(K[i*kCols+5]);
 			propensityFunctionArgs[i] = (void *)globalPDFitnessPropensityArgs;
         }
+        else if (reactionTypes[i] == MichaelisMentenPropensityArgs::REACTION_TYPE)
+        {
+            // Find the dependencies.
+            uint numberEnzymeDependencies = 0;
+            uint numberSubstrateDependencies = 0;
+            uint enzymeDependency;
+            uint substrateDependency;
+            for (uint j=0; j<numberSpecies; j++)
+            {
+                if (D[j*numberReactions+i] == 1)
+                {
+                	numberEnzymeDependencies++;
+                    enzymeDependency = j;
+                }
+                else if (D[j*numberReactions+i] == 2)
+                {
+                	numberSubstrateDependencies++;
+                    substrateDependency = j;
+                }
+            }
+			if (numberEnzymeDependencies == 1 && numberSubstrateDependencies == 1)
+			{
+				printf("Setting indices %d %d\n",enzymeDependency,substrateDependency);
+				propensityFunctions[i] = (void *)&michaelisMentenPropensity;
+				propensityFunctionArgs[i] =  (void *)new MichaelisMentenPropensityArgs(enzymeDependency, substrateDependency, K[i*kCols], K[i*kCols+1], K[i*kCols+2]);
+				propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
+			}
+			else
+			{
+				throw InvalidArgException("D", "Michaelis-Menten reaction had invalid dependencies",numberEnzymeDependencies,numberEnzymeDependencies);
+			}
+        }
 
 
     }
@@ -845,6 +877,13 @@ double CMESolver::pdReflectingDefectFitnessPropensity(double time, uint * specie
 	return prop;
 }
 
+double CMESolver::michaelisMentenPropensity(double time, uint * speciesCounts, void * pargs)
+{
+	MichaelisMentenPropensityArgs * args = (MichaelisMentenPropensityArgs *)pargs;
+	double ret=(args->kV*args->kcat*((double)speciesCounts[args->enzymeIndex])*((double)speciesCounts[args->substrateIndex]))/(args->kM+((double)speciesCounts[args->substrateIndex]));
+	Print::printf(Print::DEBUG, "Recalculating michaelisMentenPropensity for E=%d,%d S=%d,%d with %e,%e,%e = %e", args->enzymeIndex, speciesCounts[args->enzymeIndex], args->substrateIndex, speciesCounts[args->substrateIndex], args->kV, args->kcat, args->kM, ret);
+    return ret;
+}
 
 void CMESolver::setModelPropensityFunction(uint reaction, double (*propensityFunction)(double time, uint * speciesCounts, void * args), void * propensityFunctionArg)
 {

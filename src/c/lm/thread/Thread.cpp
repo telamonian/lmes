@@ -115,8 +115,9 @@ void Thread::start() throw(PthreadException)
 
 void * Thread::start_thread(void * obj)
 {
-    int ret = (reinterpret_cast<Thread *>(obj))->run();
-    pthread_exit((void *)ret);
+	Thread* t = (reinterpret_cast<Thread *>(obj));
+	t->returnValue = t->run();
+    pthread_exit((void *)&(t->returnValue));
 }
 
 void Thread::stop() throw(PthreadException)

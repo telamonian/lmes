@@ -94,6 +94,13 @@ volatile bool globalAbort = false;
  */
 lm::me::MESolverFactory solverFactory;
 
+#ifdef OPT_MPI
+/**
+ * The filename for the node list.
+ */
+string nodelistFilename;
+#endif
+
 /**
  * The number of cpu cores assigned to each process.
  */
@@ -287,6 +294,18 @@ void parseArguments(int argc, char** argv)
             numberCpuCores=atoi(option+strlen("--cpu="));
         }
 
+		#ifdef OPT_MPI
+        //See if the user is trying to set the number of cpus.
+        else if ((strcmp(option, "-n") == 0 || strcmp(option, "--nodelist") == 0) && i < (argc-1))
+        {
+            nodelistFilename=argv[++i];
+        }
+        else if (strncmp(option, "--nodelist=", strlen("--nodelist=")) == 0)
+        {
+        	nodelistFilename=option+strlen("--nodelist=");
+        }
+		#endif
+
         //See if the user is trying to set the number of cuda devices per replicate.
          else if ((strcmp(option, "-cr") == 0 || strcmp(option, "--cpus-per-replicate") == 0) && i < (argc-1))
          {
@@ -297,7 +316,7 @@ void parseArguments(int argc, char** argv)
              cpuCoresPerReplicate=parseIntReciprocalArg(option+strlen("--cpus-per-replicate="));
          }
 
-#ifdef OPT_CUDA
+		#ifdef OPT_CUDA
         //See if the user is trying to set the cuda devices.
          else if ((strcmp(option, "-g") == 0 || strcmp(option, "--gpu") == 0) && i < (argc-1))
          {
@@ -323,7 +342,7 @@ void parseArguments(int argc, char** argv)
          {
              shouldPrintCudaCapabilities = false;
          }
-#endif
+		#endif
         //See if the user is trying to turn off cuda capability printing.
          else if ((strcmp(option, "-nr") == 0 || strcmp(option, "--no-reserve-core") == 0))
          {
@@ -431,6 +450,9 @@ void printUsage(int argc, char** argv)
 #endif
     std::cout << std::endl;
     std::cout << "OPTIONS" << std::endl;
+#ifdef OPT_MPI
+    std::cout << "  -n node_file      --nodelist=node_file         A file containing the list of nodes on which to run, one line per available CPU core." << std::endl;
+#endif
     std::cout << "  -c num_cpus       --cpu=num_cpus               The number of CPUs on which to execute (default all)." << std::endl;
     std::cout << "  -cr num           --cpus-per-replicate=num     The number of CPUs (possibly fractional) to assign per replicate, e.g. \"2\", \"1/4\" (default 1)." << std::endl;
 #ifdef OPT_CUDA
