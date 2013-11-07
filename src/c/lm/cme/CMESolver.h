@@ -164,6 +164,17 @@ protected:
         double kcat;
         double kM;
     };
+    struct GlobalENFirstOrderPropensityArgs : public PropensityArgs
+    {
+        static const uint REACTION_TYPE_1 = 8013;
+        static const uint REACTION_TYPE_2 = 8014;
+        static const uint REACTION_TYPE_3 = 8015;
+        static const uint REACTION_TYPE_4 = 8016;
+        GlobalENFirstOrderPropensityArgs() :s1(0),s2(0),s3(0),s4(0),k1(0.0),k2(0.0),k3(0.0),k4(0.0),EN(1.0) {}
+        uint s1, s2, s3, s4;
+        double k1, k2, k3, k4;
+        double EN;
+    };
     struct SpeciesLimit
     {
         int type;
@@ -212,6 +223,10 @@ protected:
     static double pdReflectingCooperateFitnessPropensity(double time, uint * speciesCounts, void * pargs);
     static double pdReflectingDefectFitnessPropensity(double time, uint * speciesCounts, void * pargs);
     static double michaelisMentenPropensity(double time, uint * speciesCounts, void * pargs);
+    static double globalENFirstOrderPropensity_1(double time, uint * speciesCounts, void * pargs);
+    static double globalENFirstOrderPropensity_2(double time, uint * speciesCounts, void * pargs);
+    static double globalENFirstOrderPropensity_3(double time, uint * speciesCounts, void * pargs);
+    static double globalENFirstOrderPropensity_4(double time, uint * speciesCounts, void * pargs);
 
     virtual void allocateModel(uint numberSpecies, uint numberReactions);
     virtual void destroyModel();

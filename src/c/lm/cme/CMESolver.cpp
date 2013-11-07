@@ -343,6 +343,7 @@ void CMESolver::buildModel(const uint numberSpeciesA, const uint numberReactions
     }
 
     PDFitnessPropensityArgs* globalPDFitnessPropensityArgs=NULL;
+    GlobalENFirstOrderPropensityArgs* globalENFirstOrderPropensityArgs=NULL;
 
     // Create the propensity functions table.
     for (uint i=0; i<numberReactions; i++)
@@ -699,8 +700,56 @@ void CMESolver::buildModel(const uint numberSpeciesA, const uint numberReactions
 				throw InvalidArgException("D", "Michaelis-Menten reaction had invalid dependencies",numberEnzymeDependencies,numberEnzymeDependencies);
 			}
         }
+        else if (reactionTypes[i] == GlobalENFirstOrderPropensityArgs::REACTION_TYPE_1 || reactionTypes[i] == GlobalENFirstOrderPropensityArgs::REACTION_TYPE_2 || reactionTypes[i] == GlobalENFirstOrderPropensityArgs::REACTION_TYPE_3 || reactionTypes[i] == GlobalENFirstOrderPropensityArgs::REACTION_TYPE_4)
+        {
+            // Find the dependency.
+            int xi=-1;
+            for (uint j=0; j<numberSpecies; j++)
+            {
+                if (D[j*numberReactions+i] == 1)
+                {
+                	if (xi != -1) throw InvalidArgException("D", "first order reaction can only have one dependency");
+                	xi = j;
+                }
+            }
 
+            // Make sure we found the right dependencies.
+			if (xi == -1) throw InvalidArgException("D", "first order reaction must have one dependency");
 
+			// Create the global argument, if it doesn't already exist.
+			if (globalENFirstOrderPropensityArgs == NULL)
+			{
+				globalENFirstOrderPropensityArgs = new GlobalENFirstOrderPropensityArgs();
+				propensityArgs.push_back(globalENFirstOrderPropensityArgs);
+			}
+
+			// Set the table entries.
+			if (reactionTypes[i] == GlobalENFirstOrderPropensityArgs::REACTION_TYPE_1)
+			{
+				globalENFirstOrderPropensityArgs->s1 = xi;
+				globalENFirstOrderPropensityArgs->k1 = K[i*kCols];
+				propensityFunctions[i] = (void *)&globalENFirstOrderPropensity_1;
+			}
+			else if (reactionTypes[i] == GlobalENFirstOrderPropensityArgs::REACTION_TYPE_2)
+			{
+				globalENFirstOrderPropensityArgs->s2 = xi;
+				globalENFirstOrderPropensityArgs->k2 = K[i*kCols];
+				propensityFunctions[i] = (void *)&globalENFirstOrderPropensity_2;
+			}
+			else if (reactionTypes[i] == GlobalENFirstOrderPropensityArgs::REACTION_TYPE_3)
+			{
+				globalENFirstOrderPropensityArgs->s3 = xi;
+				globalENFirstOrderPropensityArgs->k3 = K[i*kCols];
+				propensityFunctions[i] = (void *)&globalENFirstOrderPropensity_3;
+			}
+			else if (reactionTypes[i] == GlobalENFirstOrderPropensityArgs::REACTION_TYPE_4)
+			{
+				globalENFirstOrderPropensityArgs->s4 = xi;
+				globalENFirstOrderPropensityArgs->k4 = K[i*kCols];
+				propensityFunctions[i] = (void *)&globalENFirstOrderPropensity_4;
+			}
+			propensityFunctionArgs[i] = (void *)globalENFirstOrderPropensityArgs;
+        }
     }
 
     // Create the species dependency tables from the S matrix.
@@ -881,9 +930,42 @@ double CMESolver::michaelisMentenPropensity(double time, uint * speciesCounts, v
 {
 	MichaelisMentenPropensityArgs * args = (MichaelisMentenPropensityArgs *)pargs;
 	double ret=(args->kV*args->kcat*((double)speciesCounts[args->enzymeIndex])*((double)speciesCounts[args->substrateIndex]))/(args->kM+((double)speciesCounts[args->substrateIndex]));
-	Print::printf(Print::DEBUG, "Recalculating michaelisMentenPropensity for E=%d,%d S=%d,%d with %e,%e,%e = %e", args->enzymeIndex, speciesCounts[args->enzymeIndex], args->substrateIndex, speciesCounts[args->substrateIndex], args->kV, args->kcat, args->kM, ret);
+	//Print::printf(Print::DEBUG, "Recalculating michaelisMentenPropensity for E=%d,%d S=%d,%d with %e,%e,%e = %e", args->enzymeIndex, speciesCounts[args->enzymeIndex], args->substrateIndex, speciesCounts[args->substrateIndex], args->kV, args->kcat, args->kM, ret);
     return ret;
 }
+
+double CMESolver::globalENFirstOrderPropensity_1(double time, uint * speciesCounts, void * pargs)
+{
+	GlobalENFirstOrderPropensityArgs * args = (GlobalENFirstOrderPropensityArgs *)pargs;
+    double ret = args->k1 * (double)speciesCounts[args->s1] * args->EN;
+	//Print::printf(Print::VERBOSE_DEBUG, "Recalculating global EN 1st order reaction 1 for k=%e, x=%d (%d), EN=%e: %e",args->k1,speciesCounts[args->s1],args->s1,args->EN,ret);
+	return ret;
+}
+
+double CMESolver::globalENFirstOrderPropensity_2(double time, uint * speciesCounts, void * pargs)
+{
+	GlobalENFirstOrderPropensityArgs * args = (GlobalENFirstOrderPropensityArgs *)pargs;
+	double ret =  args->k2 * (double)speciesCounts[args->s2] * args->EN;
+	//Print::printf(Print::VERBOSE_DEBUG, "Recalculating global EN 1st order reaction 2 for k=%e, x=%d (%d), EN=%e: %e",args->k2,speciesCounts[args->s2],args->s2,args->EN,ret);
+	return ret;
+}
+
+double CMESolver::globalENFirstOrderPropensity_3(double time, uint * speciesCounts, void * pargs)
+{
+	GlobalENFirstOrderPropensityArgs * args = (GlobalENFirstOrderPropensityArgs *)pargs;
+	double ret =  args->k3 * (double)speciesCounts[args->s3] * args->EN;
+	//Print::printf(Print::VERBOSE_DEBUG, "Recalculating global EN 1st order reaction 3 for k=%e, x=%d (%d), EN=%e: %e",args->k3,speciesCounts[args->s3],args->s3,args->EN,ret);
+	return ret;
+}
+
+double CMESolver::globalENFirstOrderPropensity_4(double time, uint * speciesCounts, void * pargs)
+{
+	GlobalENFirstOrderPropensityArgs * args = (GlobalENFirstOrderPropensityArgs *)pargs;
+	double ret =  args->k4 * (double)speciesCounts[args->s4] * args->EN;
+	//Print::printf(Print::VERBOSE_DEBUG, "Recalculating global EN 1st order reaction 4 for k=%e, x=%d (%d), EN=%e: %e",args->k4,speciesCounts[args->s4],args->s4,args->EN,ret);
+	return ret;
+}
+
 
 void CMESolver::setModelPropensityFunction(uint reaction, double (*propensityFunction)(double time, uint * speciesCounts, void * args), void * propensityFunctionArg)
 {
