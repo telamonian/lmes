@@ -300,7 +300,7 @@ static int lm_read_structure(void *mydata, int *optflags, molfile_atom_t *atoms)
 			{
 				strcpy(atoms[atomIndex].name, "particle");
 				snprintf(atoms[atomIndex].type, 16, "%d", type);
-				snprintf(atoms[atomIndex].resname, 16, "%d", type);
+				snprintf(atoms[atomIndex].resname, 8, "%d", type);
 				atoms[atomIndex].resid = type;
 				strcpy(atoms[atomIndex].segid, "");
 				strcpy(atoms[atomIndex].chain, "");
@@ -322,7 +322,7 @@ static int lm_read_structure(void *mydata, int *optflags, molfile_atom_t *atoms)
 				{
 					strcpy(atoms[atomIndex].name, "obstacle");
 					snprintf(atoms[atomIndex].type, 16, "%d", objects->spatialModel.obstacle(i).site_type());
-					snprintf(atoms[atomIndex].resname, 16, "%d", objects->spatialModel.obstacle(i).site_type());
+					snprintf(atoms[atomIndex].resname, 8, "%d", objects->spatialModel.obstacle(i).site_type());
 					atoms[atomIndex].resid = i;
 					strcpy(atoms[atomIndex].segid, "");
 					strcpy(atoms[atomIndex].chain, "");
@@ -349,7 +349,7 @@ static int lm_read_structure(void *mydata, int *optflags, molfile_atom_t *atoms)
 					{
 						strcpy(atoms[atomIndex].name, "site");
 						snprintf(atoms[atomIndex].type, 16, "%d", siteTypes[index]);
-						snprintf(atoms[atomIndex].resname, 16, "%d", siteTypes[index]);
+						snprintf(atoms[atomIndex].resname, 8, "%d", siteTypes[index]);
 						atoms[atomIndex].resid = siteTypes[index];
 						strcpy(atoms[atomIndex].segid, "");
 						strcpy(atoms[atomIndex].chain, "");
