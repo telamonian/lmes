@@ -43,19 +43,18 @@ include_directories(profile
 
 #add subdirectories
 add_subdirectory(src/cuda)
-get_directory_property(lm_cuda_source DIRECTORY src/cuda DEFINITION lm_cuda_source)
+#get_directory_property(lm_cuda_source DIRECTORY src/cuda DEFINITION lm_cuda_source)
 add_subdirectory(src/c)
-get_directory_property(lm_c_source DIRECTORY src/c DEFINITION lm_c_source)
+#get_directory_property(lm_c_source DIRECTORY src/c DEFINITION lm_c_source)
 add_subdirectory(src/protobuf)
 get_directory_property(proto_vars DIRECTORY src/protobuf DEFINITION proto_srcs)
 
+set(lm_main_src src/c/lm/main/MainMPI.cpp)
+add_executable(lm ${lm_main_src})
+#CUDA_ADD_EXECUTABLE(lm ${lm_c_source} ${lm_cuda_source})
 
-SET(CUDA_NVCC_FLAGS --ptxas-options=-v;--gpu-architecture;compute_30;--gpu-code;sm_30;-DCUDA_3D_GRID_LAUNCH;-DCUDA_DOUBLE_PRECISION;-DTUNE_MPD_Y_BLOCK_Y_SIZE=16;-DTUNE_MPD_Z_BLOCK_Z_SIZE=8)
-
-CUDA_ADD_EXECUTABLE(lm ${lm_c_source} ${lm_cuda_source})
-
-target_link_libraries(lm ${lm_cuda} 
-                         ${lm_cuda_stuff}
+target_link_libraries(lm lm_c_lib 
+                         lm_cuda_lib 
                          ${CMAKE_THREAD_LIBS_INIT}
                          ${libsbml_LIBRARIES}
                          ${PROTOBUF_LIBRARIES}
@@ -71,16 +70,14 @@ add_subdirectory(testing/c/gmock-1.7.0)
 include_directories(${gmock_SOURCE_DIR}/include ${gmock_SOURCE_DIR}
                     ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
-set(testsrc testing/c/lm/main/LocalReplicateSupervisor.cpp)
-file(GLOB to_remove_main src/c/lm/main/mainMPI.cpp)
-list(REMOVE_ITEM lm_c_source ${to_remove_main})
+set(lm_test_src testing/c/lm/main/LocalReplicateSupervisor.cpp)
+#file(GLOB to_remove_main src/c/lm/main/mainMPI.cpp)
+#list(REMOVE_ITEM lm_c_source ${to_remove_main})
 
-CUDA_ADD_EXECUTABLE(lm_test
-               ${testsrc})
-target_link_libraries(lm_test
-                      lm 
-                      ${lm_cuda}
-                        ${lm_cuda_stuff}
+add_executable(lm_test ${lm_test_src})
+target_link_libraries(lm_test 
+                        lm_c_lib 
+                        lm_cuda_lib 
                         ${CMAKE_THREAD_LIBS_INIT}
                         ${libsbml_LIBRARIES}
                         ${PROTOBUF_LIBRARIES}
