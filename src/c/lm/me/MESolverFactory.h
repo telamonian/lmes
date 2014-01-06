@@ -40,7 +40,10 @@
 #ifndef LM_ME_MESOLVERFACTORY_H_
 #define LM_ME_MESOLVERFACTORY_H_
 
+
+#include "lm/Exceptions.h"
 #include <string>
+
 
 using std::string;
 

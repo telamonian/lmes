@@ -214,7 +214,7 @@ void executeSimulation()
     checkpointSignaler->startCheckpointing(checkpointInterval);
 
     // Open the file.
-    lm::io::hdf5::SimulationFile * file = new lm::io::hdf5::SimulationFile(simulationFilename);
+    lm::io::hdf5::Hdf5File * file = new lm::io::hdf5::Hdf5File(simulationFilename);
 
     // Start the data output thread.
     lm::main::LocalDataOutputWorker * dataOutputWorker = new lm::main::LocalDataOutputWorker(file);

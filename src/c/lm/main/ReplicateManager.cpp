@@ -182,46 +182,6 @@ void ReplicateManager::receiveLatticeModel(uint8_t ** lattice, size_t * latticeS
     Print::printf(Print::DEBUG, "Process %d received diffusion model lattice: %d and %d bytes", lm::MPI::worldRank, *latticeSize, *latticeSitesSize);
 }
 
-//map<string,string> ReplicateManager::receiveSimulationParameters(void * staticDataBuffer)
-//{
-//    int msgSize;
-//    MPI_EXCEPTION_CHECK(MPI_Bcast(&msgSize, 1, MPI_INT, lm::MPI::MASTER, MPI_COMM_WORLD));
-//    MPI_EXCEPTION_CHECK(MPI_Bcast(staticDataBuffer, msgSize, MPI_BYTE, lm::MPI::MASTER, MPI_COMM_WORLD));
-//    lm::message::SimulationParameters msg;
-//    msg.ParseFromArray(staticDataBuffer, msgSize);
-//    std::map<std::string,string> simulationParameters = lm::io::SimulationParameters::fromMessage(msg);
-//    Print::printf(Print::DEBUG, "Process %d received simulation parameters: %d parameters", lm::MPI::worldRank, simulationParameters.size());
-//    return simulationParameters;
-//}
-//
-//void ReplicateManager::receiveReactionModel(void * staticDataBuffer, lm::io::ReactionModel * reactionModel)
-//{
-//    int msgSize;
-//    MPI_EXCEPTION_CHECK(MPI_Bcast(&msgSize, 1, MPI_INT, lm::MPI::MASTER, MPI_COMM_WORLD));
-//    MPI_EXCEPTION_CHECK(MPI_Bcast(staticDataBuffer, msgSize, MPI_BYTE, lm::MPI::MASTER, MPI_COMM_WORLD));
-//    Print::printf(Print::DEBUG, "before reaction parse.");
-//    reactionModel->ParseFromArray(staticDataBuffer, msgSize);
-//    Print::printf(Print::DEBUG, "after reaction parse.");
-//    Print::printf(Print::DEBUG, "Process %d received reaction model: %d bytes", lm::MPI::worldRank, msgSize);
-//}
-//
-//void ReplicateManager::receiveDiffusionModel(void * staticDataBuffer, lm::io::DiffusionModel * diffusionModel, uint8_t ** lattice, size_t * latticeSize, uint8_t ** latticeSites, size_t * latticeSitesSize)
-//{
-//    int msgSize;
-//    MPI_EXCEPTION_CHECK(MPI_Bcast(&msgSize, 1, MPI_INT, lm::MPI::MASTER, MPI_COMM_WORLD));
-//    MPI_EXCEPTION_CHECK(MPI_Bcast(staticDataBuffer, msgSize, MPI_BYTE, lm::MPI::MASTER, MPI_COMM_WORLD));
-//    diffusionModel->ParseFromArray(staticDataBuffer, msgSize);
-//    Print::printf(Print::DEBUG, "Process %d received diffusion model: %d bytes", lm::MPI::worldRank, msgSize);
-//
-//    MPI_EXCEPTION_CHECK(MPI_Bcast(latticeSize, 1, MPI_INT, lm::MPI::MASTER, MPI_COMM_WORLD));
-//    *lattice = new uint8_t[*latticeSize];
-//    MPI_EXCEPTION_CHECK(MPI_Bcast(*lattice, *latticeSize, MPI_BYTE, lm::MPI::MASTER, MPI_COMM_WORLD));
-//    MPI_EXCEPTION_CHECK(MPI_Bcast(latticeSitesSize, 1, MPI_INT, lm::MPI::MASTER, MPI_COMM_WORLD));
-//    *latticeSites = new uint8_t[*latticeSitesSize];
-//    MPI_EXCEPTION_CHECK(MPI_Bcast(*latticeSites, *latticeSitesSize, MPI_BYTE, lm::MPI::MASTER, MPI_COMM_WORLD));
-//    Print::printf(Print::DEBUG, "Process %d received diffusion model lattice: %d and %d bytes", lm::MPI::worldRank, *latticeSize, *latticeSitesSize);
-//}
-
 void ReplicateManager::startReplicate(int replicate, MESolverFactory solverFactory, std::map<std::string,string> & simulationParameters, lm::io::ReactionModel * reactionModel, lm::io::DiffusionModel * diffusionModel, uint8_t * lattice, size_t latticeSize, uint8_t * latticeSites, size_t latticeSitesSize, ResourceAllocator & resourceAllocator) throw(Exception,PthreadException)
 {
     // Allocate resources for the replicate.

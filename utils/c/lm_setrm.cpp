@@ -63,7 +63,7 @@ using std::pair;
 using std::string;
 using std::vector;
 using lm::io::ReactionModel;
-using lm::io::hdf5::SimulationFile;
+using lm::io::hdf5::Hdf5File;
 
 /**
  * The function being performed.
@@ -105,12 +105,12 @@ int main(int argc, char** argv)
 		    struct stat fileStats;
 		    if (stat(filename.c_str(), &fileStats) != 0)
 		    {
-                SimulationFile::create(filename);
+                Hdf5File::create(filename);
                 newFile = true;
 		    }
 
 			// Open the file.
-		    SimulationFile file(filename);
+		    Hdf5File file(filename);
 
 		    // Read the reaction model.
             ReactionModel model;

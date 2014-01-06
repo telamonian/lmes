@@ -74,14 +74,14 @@ typedef unsigned long long          timing_time_t;
 #include "lptf/ProfileCodes.h"
 
 using lm::Print;
-using lm::io::hdf5::SimulationFile;
+using lm::io::hdf5::Hdf5File;
 using lm::thread::PthreadException;
 
 namespace lm {
 namespace main {
 
 
-LocalDataOutputWorker::LocalDataOutputWorker(SimulationFile * file) throw(PthreadException)
+LocalDataOutputWorker::LocalDataOutputWorker(Hdf5File * file) throw(PthreadException)
 :file(file),shouldCheckpoint(false)
 {
     PTHREAD_EXCEPTION_CHECK(pthread_cond_init(&dataAvailable, NULL));

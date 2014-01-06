@@ -75,6 +75,46 @@ class IOException;
 class SimulationFile
 {
 public:
+    SimulationFile() {}
+    virtual ~SimulationFile () {}
+//    virtual void close() throw(IOException,HDF5Exception) = 0;
+//    virtual void flush() throw(HDF5Exception) = 0;
+//    virtual string checkpoint() throw(IOException,HDF5Exception) = 0;
+//
+//    // Methods for working with parameters.
+//    virtual map<string,string> getParameters() = 0;
+//    virtual string getParameter(string key, string defaultValue="") = 0;
+//    virtual void setParameter(string key, string value) throw(HDF5Exception) = 0;
+//
+//    // Methods for working with the model.
+//    virtual void getReactionModel(lm::io::ReactionModel * reactionModel) throw(Exception,InvalidArgException,HDF5Exception) = 0;
+//    virtual void setReactionModel(lm::io::ReactionModel * reactionModel) throw(Exception,InvalidArgException,HDF5Exception) = 0;
+//    virtual void getDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception) = 0;
+//    virtual void getDiffusionModelLattice(lm::io::DiffusionModel * diffusionModel, byte * lattice, size_t latticeMaxSize, byte * latticeSites, size_t latticeSitesMaxSize) throw(Exception,InvalidArgException,HDF5Exception) = 0;
+//    virtual void getDiffusionModelLattice(lm::io::DiffusionModel * diffusionModel, lm::rdme::Lattice * lattice) throw(Exception,InvalidArgException,HDF5Exception) = 0;
+//    virtual void setDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception) = 0;
+//    virtual void setDiffusionModelLattice(lm::io::DiffusionModel * m, uint8_t * lattice, uint8_t * latticeSites) throw(Exception,InvalidArgException,HDF5Exception) = 0;
+//    virtual void setDiffusionModelLattice(lm::io::DiffusionModel * m, lm::rdme::Lattice * lattice) throw(Exception,InvalidArgException,HDF5Exception) = 0;
+//    virtual void setSpatialModel(lm::io::SpatialModel * model) throw(Exception,InvalidArgException,HDF5Exception) = 0;
+//    virtual void getSpatialModel(lm::io::SpatialModel * model) throw(Exception,InvalidArgException,HDF5Exception) = 0;
+//
+//
+//    // Methods for working with a replicate.
+//    virtual bool replicateExists(unsigned int replicate) throw(HDF5Exception) = 0;
+//    virtual void openReplicate(unsigned int replicate) throw(HDF5Exception) = 0;
+//    virtual void appendSpeciesCounts(unsigned int replicate, lm::io::SpeciesCounts * speciesCounts) throw(HDF5Exception) = 0;
+//    virtual void appendLattice(unsigned int replicate, lm::io::Lattice * lattice, byte * latticeData, size_t latticeDataSize) throw(InvalidArgException,HDF5Exception) = 0;
+//    virtual void appendParameterValues(unsigned int replicate, lm::io::ParameterValues * parameterValues) throw(HDF5Exception,InvalidArgException) = 0;
+//    virtual void setFirstPassageTimes(unsigned int replicate, lm::io::FirstPassageTimes * speciesCounts) throw(HDF5Exception,InvalidArgException) = 0;
+//    virtual vector<double> getLatticeTimes(unsigned int replicate) throw(HDF5Exception,InvalidArgException) = 0;
+//    virtual void getLattice(unsigned int replicate, unsigned int latticeIndex, lm::rdme::Lattice * lattice) throw(HDF5Exception,InvalidArgException) = 0;
+//    virtual void closeReplicate(unsigned int replicate) throw(HDF5Exception) = 0;
+//    virtual void closeAllReplicates() throw(HDF5Exception) = 0;
+};
+
+class Hdf5File : public SimulationFile
+{
+public:
     static const uint MIN_VERSION;
     static const uint CURRENT_VERSION;
     static const uint MAX_REACTION_RATE_CONSTANTS;
@@ -93,9 +133,9 @@ protected:
     static herr_t parseParameter(hid_t location_id, const char *attr_name, const H5A_info_t *ainfo, void *op_data);
 
 public:
-    SimulationFile(const string filename) throw(IOException,HDF5Exception,Exception);
-    SimulationFile(const char* filename) throw(IOException,HDF5Exception,Exception);
-	virtual ~SimulationFile() throw(IOException,HDF5Exception);
+    Hdf5File(const string filename) throw(IOException,HDF5Exception,Exception);
+    Hdf5File(const char* filename) throw(IOException,HDF5Exception,Exception);
+	virtual ~Hdf5File() throw(IOException,HDF5Exception);
     virtual void close() throw(IOException,HDF5Exception);
     virtual void flush() throw(HDF5Exception);
     virtual string checkpoint() throw(IOException,HDF5Exception);

@@ -70,25 +70,25 @@ namespace lm {
 namespace io {
 namespace hdf5 {
 
-const uint SimulationFile::MIN_VERSION                   = 2;
-const uint SimulationFile::CURRENT_VERSION               = 4;
-const uint SimulationFile::MAX_REACTION_RATE_CONSTANTS   = 10;
-const uint SimulationFile::MAX_SHAPE_PARAMETERS		     = 10;
+const uint Hdf5File::MIN_VERSION                   = 2;
+const uint Hdf5File::CURRENT_VERSION               = 4;
+const uint Hdf5File::MAX_REACTION_RATE_CONSTANTS   = 10;
+const uint Hdf5File::MAX_SHAPE_PARAMETERS		     = 10;
 
 
-SimulationFile::SimulationFile(const string filename) throw(IOException,HDF5Exception,Exception)
+Hdf5File::Hdf5File(const string filename) throw(IOException,HDF5Exception,Exception)
 :filename(filename),file(H5I_INVALID_HID),version(0),parametersGroup(H5I_INVALID_HID),modelGroup(H5I_INVALID_HID),simulationsGroup(H5I_INVALID_HID),modelLoaded(false),numberSpecies(0)
 {
 	open();
 }
 
-SimulationFile::SimulationFile(const char* filename) throw(IOException,HDF5Exception,Exception)
+Hdf5File::Hdf5File(const char* filename) throw(IOException,HDF5Exception,Exception)
 :filename(filename),file(H5I_INVALID_HID),version(0),parametersGroup(H5I_INVALID_HID),modelGroup(H5I_INVALID_HID),simulationsGroup(H5I_INVALID_HID),modelLoaded(false),numberSpecies(0)
 {
 	open();
 }
 
-void SimulationFile::open() throw(IOException,HDF5Exception,Exception)
+void Hdf5File::open() throw(IOException,HDF5Exception,Exception)
 {
     // Make sure gzip is supported.
     unsigned int filter_info;
@@ -130,20 +130,20 @@ void SimulationFile::open() throw(IOException,HDF5Exception,Exception)
     loadParameters();
 }
 
-void SimulationFile::openGroups() throw(HDF5Exception)
+void Hdf5File::openGroups() throw(HDF5Exception)
 {
     HDF5_EXCEPTION_CALL(parametersGroup,H5Gopen2(file, "/Parameters", H5P_DEFAULT));
     HDF5_EXCEPTION_CALL(modelGroup,H5Gopen2(file, "/Model", H5P_DEFAULT));
     HDF5_EXCEPTION_CALL(simulationsGroup,H5Gopen2(file, "/Simulations", H5P_DEFAULT));
 }
 
-SimulationFile::~SimulationFile() throw(IOException,HDF5Exception)
+Hdf5File::~Hdf5File() throw(IOException,HDF5Exception)
 {
 	//Close the file, if it is still open.
 	close();
 }
 
-void SimulationFile::flush() throw(HDF5Exception)
+void Hdf5File::flush() throw(HDF5Exception)
 {
     if (file != H5I_INVALID_HID)
     {
@@ -152,7 +152,7 @@ void SimulationFile::flush() throw(HDF5Exception)
     }
 }
 
-string SimulationFile::checkpoint() throw(IOException,HDF5Exception)
+string Hdf5File::checkpoint() throw(IOException,HDF5Exception)
 {
     // Close the file.
     close();
@@ -183,7 +183,7 @@ string SimulationFile::checkpoint() throw(IOException,HDF5Exception)
     return checkpointFilename;
 }
 
-void SimulationFile::close() throw(IOException,HDF5Exception)
+void Hdf5File::close() throw(IOException,HDF5Exception)
 {
     // Close any open replicate groups.
     closeAllReplicates();
@@ -214,12 +214,12 @@ void SimulationFile::close() throw(IOException,HDF5Exception)
     }
 }
 
-bool SimulationFile::isValidFile(const char * filename) throw(IOException,HDF5Exception)
+bool Hdf5File::isValidFile(const char * filename) throw(IOException,HDF5Exception)
 {
     return isValidFile(string(filename));
 }
 
-bool SimulationFile::isValidFile(const string filename) throw(IOException,HDF5Exception)
+bool Hdf5File::isValidFile(const string filename) throw(IOException,HDF5Exception)
 {
     // Make sure the file has the right magic.
     FILE * fp = NULL;
@@ -248,15 +248,15 @@ bool SimulationFile::isValidFile(const string filename) throw(IOException,HDF5Ex
 
 }
 
-void SimulationFile::loadParameters() throw(HDF5Exception)
+void Hdf5File::loadParameters() throw(HDF5Exception)
 {
     hsize_t n=0;
-    HDF5_EXCEPTION_CHECK(H5Aiterate2(parametersGroup, H5_INDEX_CRT_ORDER, H5_ITER_NATIVE, &n, &SimulationFile::parseParameter, this));
+    HDF5_EXCEPTION_CHECK(H5Aiterate2(parametersGroup, H5_INDEX_CRT_ORDER, H5_ITER_NATIVE, &n, &Hdf5File::parseParameter, this));
 }
 
-herr_t SimulationFile::parseParameter(hid_t location_id, const char *attr_name, const H5A_info_t *ainfo, void *op_data)
+herr_t Hdf5File::parseParameter(hid_t location_id, const char *attr_name, const H5A_info_t *ainfo, void *op_data)
 {
-    SimulationFile * file = reinterpret_cast<SimulationFile *>(op_data);
+    Hdf5File * file = reinterpret_cast<Hdf5File *>(op_data);
 
     // Open the attribute.
     hid_t attr, type;
@@ -302,12 +302,12 @@ herr_t SimulationFile::parseParameter(hid_t location_id, const char *attr_name, 
     return 0;
 }
 
-map<string,string> SimulationFile::getParameters()
+map<string,string> Hdf5File::getParameters()
 {
     return parameterMap;
 }
 
-string SimulationFile::getParameter(string key, string defaultValue)
+string Hdf5File::getParameter(string key, string defaultValue)
 {
     // If we didn't find the key, return the default value.
     map<string,string>::iterator it = parameterMap.find(key);
@@ -316,7 +316,7 @@ string SimulationFile::getParameter(string key, string defaultValue)
     return it->second;
 }
 
-void SimulationFile::setParameter(string key, string value) throw(HDF5Exception)
+void Hdf5File::setParameter(string key, string value) throw(HDF5Exception)
 {
     // Set the parameter in the map.
     parameterMap[key] = value;
@@ -333,7 +333,7 @@ void SimulationFile::setParameter(string key, string value) throw(HDF5Exception)
     }
 }
 
-void SimulationFile::loadModel() throw(Exception,HDF5Exception)
+void Hdf5File::loadModel() throw(Exception,HDF5Exception)
 {
     if (!modelLoaded)
     {
@@ -357,7 +357,7 @@ void SimulationFile::loadModel() throw(Exception,HDF5Exception)
     }
 }
 
-void SimulationFile::getReactionModel(lm::io::ReactionModel * reactionModel) throw(Exception,InvalidArgException,HDF5Exception)
+void Hdf5File::getReactionModel(lm::io::ReactionModel * reactionModel) throw(Exception,InvalidArgException,HDF5Exception)
 {
     // Make sure the model is not null and then clear it.
     if (reactionModel == NULL) throw InvalidArgException("reactionModel", "cannot be null");
@@ -464,7 +464,7 @@ void SimulationFile::getReactionModel(lm::io::ReactionModel * reactionModel) thr
     }
 }
 
-void SimulationFile::setReactionModel(lm::io::ReactionModel * reactionModel) throw(Exception,InvalidArgException,HDF5Exception)
+void Hdf5File::setReactionModel(lm::io::ReactionModel * reactionModel) throw(Exception,InvalidArgException,HDF5Exception)
 {
     // Validate that the model is consistent.
     if (reactionModel == NULL) throw InvalidArgException("reactionModel", "cannot be NULL");
@@ -549,7 +549,7 @@ void SimulationFile::setReactionModel(lm::io::ReactionModel * reactionModel) thr
     }
 }
 
-void SimulationFile::getDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception)
+void Hdf5File::getDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception)
 {
     // Make sure the model is not null and then clear it.
     if (diffusionModel == NULL) throw InvalidArgException("diffusionModel", "cannot be null");
@@ -604,7 +604,7 @@ void SimulationFile::getDiffusionModel(lm::io::DiffusionModel * diffusionModel) 
     }
 }
 
-void SimulationFile::getDiffusionModelLattice(lm::io::DiffusionModel * m, uint8_t * lattice, size_t latticeSize, uint8_t * latticeSites, size_t latticeSitesSize) throw(Exception,InvalidArgException,HDF5Exception)
+void Hdf5File::getDiffusionModelLattice(lm::io::DiffusionModel * m, uint8_t * lattice, size_t latticeSize, uint8_t * latticeSites, size_t latticeSitesSize) throw(Exception,InvalidArgException,HDF5Exception)
 {
     int ndims;
     hsize_t dims[4];
@@ -634,7 +634,7 @@ void SimulationFile::getDiffusionModelLattice(lm::io::DiffusionModel * m, uint8_
     }
 }
 
-void SimulationFile::getDiffusionModelLattice(lm::io::DiffusionModel * m, lm::rdme::Lattice * lattice) throw(Exception,InvalidArgException,HDF5Exception)
+void Hdf5File::getDiffusionModelLattice(lm::io::DiffusionModel * m, lm::rdme::Lattice * lattice) throw(Exception,InvalidArgException,HDF5Exception)
 {
 	if (lattice->getXSize() != m->lattice_x_size() || lattice->getYSize() != m->lattice_y_size() || lattice->getZSize() != m->lattice_z_size() || lattice->getMaxOccupancy() != m->particles_per_site()) throw InvalidArgException("lattice", "lattice size not consistent with the diffusion model");
 
@@ -669,7 +669,7 @@ void SimulationFile::getDiffusionModelLattice(lm::io::DiffusionModel * m, lm::rd
     }
 }
 
-void SimulationFile::setDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception)
+void Hdf5File::setDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception)
 {
     // Validate that the model is consistent.
     if (diffusionModel == NULL) throw InvalidArgException("diffusionModel", "cannot be NULL");
@@ -733,7 +733,7 @@ void SimulationFile::setDiffusionModel(lm::io::DiffusionModel * diffusionModel) 
     }
 }
 
-void SimulationFile::setDiffusionModelLattice(lm::io::DiffusionModel * m, uint8_t * lattice, uint8_t * latticeSites) throw(Exception,InvalidArgException,HDF5Exception)
+void Hdf5File::setDiffusionModelLattice(lm::io::DiffusionModel * m, uint8_t * lattice, uint8_t * latticeSites) throw(Exception,InvalidArgException,HDF5Exception)
 {
     // Create the lattice data set.
     {
@@ -782,7 +782,7 @@ void SimulationFile::setDiffusionModelLattice(lm::io::DiffusionModel * m, uint8_
     }
 }
 
-void SimulationFile::setDiffusionModelLattice(lm::io::DiffusionModel * m, lm::rdme::Lattice * lattice) throw(Exception,InvalidArgException,HDF5Exception)
+void Hdf5File::setDiffusionModelLattice(lm::io::DiffusionModel * m, lm::rdme::Lattice * lattice) throw(Exception,InvalidArgException,HDF5Exception)
 {
     // Create the lattice data set.
     {
@@ -839,7 +839,7 @@ void SimulationFile::setDiffusionModelLattice(lm::io::DiffusionModel * m, lm::rd
     }
 }
 
-void SimulationFile::getSpatialModel(lm::io::SpatialModel * spatialModel) throw(Exception,InvalidArgException,HDF5Exception)
+void Hdf5File::getSpatialModel(lm::io::SpatialModel * spatialModel) throw(Exception,InvalidArgException,HDF5Exception)
 {
     // Make sure the model is not null and then clear it.
     if (spatialModel == NULL) throw InvalidArgException("spatialModel", "cannot be null");
@@ -934,7 +934,7 @@ void SimulationFile::getSpatialModel(lm::io::SpatialModel * spatialModel) throw(
     }
 }
 
-void SimulationFile::setSpatialModel(lm::io::SpatialModel * spatialModel) throw(Exception,InvalidArgException,HDF5Exception)
+void Hdf5File::setSpatialModel(lm::io::SpatialModel * spatialModel) throw(Exception,InvalidArgException,HDF5Exception)
 {
     // Validate that the model is consistent.
     if (spatialModel == NULL) throw InvalidArgException("spatialModel", "cannot be NULL");
@@ -1041,7 +1041,7 @@ void SimulationFile::setSpatialModel(lm::io::SpatialModel * spatialModel) throw(
     }
 }
 
-bool SimulationFile::replicateExists(unsigned int replicate) throw(HDF5Exception)
+bool Hdf5File::replicateExists(unsigned int replicate) throw(HDF5Exception)
 {
     char replicateName[8];
     snprintf(replicateName, sizeof(replicateName), "%07d", replicate);
@@ -1049,12 +1049,12 @@ bool SimulationFile::replicateExists(unsigned int replicate) throw(HDF5Exception
     return false;
 }
 
-void SimulationFile::openReplicate(unsigned int replicate) throw(HDF5Exception)
+void Hdf5File::openReplicate(unsigned int replicate) throw(HDF5Exception)
 {
     openReplicateHandles(replicate);
 }
 
-void SimulationFile::appendSpeciesCounts(unsigned int replicate, lm::io::SpeciesCounts * speciesCounts) throw(HDF5Exception)
+void Hdf5File::appendSpeciesCounts(unsigned int replicate, lm::io::SpeciesCounts * speciesCounts) throw(HDF5Exception)
 {
     ReplicateHandles * handles = openReplicateHandles(replicate);
 
@@ -1130,7 +1130,7 @@ void SimulationFile::appendSpeciesCounts(unsigned int replicate, lm::io::Species
     }
 }
 
-void SimulationFile::appendLattice(unsigned int replicate, lm::io::Lattice * lattice, uint8_t * latticeData, size_t latticeDataSize) throw(InvalidArgException,HDF5Exception)
+void Hdf5File::appendLattice(unsigned int replicate, lm::io::Lattice * lattice, uint8_t * latticeData, size_t latticeDataSize) throw(InvalidArgException,HDF5Exception)
 {
     if (lattice->lattice_x_size()*lattice->lattice_y_size()*lattice->lattice_z_size()*lattice->particles_per_site()*sizeof(uint8_t) != latticeDataSize) throw InvalidArgException("lattice", "incorrect lattice size");
 
@@ -1231,7 +1231,7 @@ void SimulationFile::appendLattice(unsigned int replicate, lm::io::Lattice * lat
 
 }
 
-void SimulationFile::appendParameterValues(unsigned int replicate, lm::io::ParameterValues * parameterValues) throw(HDF5Exception,InvalidArgException)
+void Hdf5File::appendParameterValues(unsigned int replicate, lm::io::ParameterValues * parameterValues) throw(HDF5Exception,InvalidArgException)
 {
     if (parameterValues->value_size() != parameterValues->time_size()) throw InvalidArgException("parameterValues", "inconsistent number of entries");
 
@@ -1308,7 +1308,7 @@ void SimulationFile::appendParameterValues(unsigned int replicate, lm::io::Param
 }
 
 
-void SimulationFile::setFirstPassageTimes(unsigned int replicate, lm::io::FirstPassageTimes * firstPassageTimes) throw(HDF5Exception,InvalidArgException)
+void Hdf5File::setFirstPassageTimes(unsigned int replicate, lm::io::FirstPassageTimes * firstPassageTimes) throw(HDF5Exception,InvalidArgException)
 {
     // Make sure the data is consistent.
     if (firstPassageTimes->species_count_size() == 0) throw InvalidArgException("firstPassageTimes", "no entries to save");
@@ -1714,7 +1714,7 @@ void SimulationFile::getSpatialModelObjects(unsigned int replicate, lm::io::Spat
 }*/
 
 
-vector<double> SimulationFile::getLatticeTimes(unsigned int replicate) throw(HDF5Exception,InvalidArgException)
+vector<double> Hdf5File::getLatticeTimes(unsigned int replicate) throw(HDF5Exception,InvalidArgException)
 {
     ReplicateHandles * replicateHandles = openReplicateHandles(replicate);
 
@@ -1736,7 +1736,7 @@ vector<double> SimulationFile::getLatticeTimes(unsigned int replicate) throw(HDF
     return times;
 }
 
-void SimulationFile::getLattice(unsigned int replicate, unsigned int latticeIndex, lm::rdme::Lattice * lattice) throw(HDF5Exception,InvalidArgException)
+void Hdf5File::getLattice(unsigned int replicate, unsigned int latticeIndex, lm::rdme::Lattice * lattice) throw(HDF5Exception,InvalidArgException)
 {
     ReplicateHandles * replicateHandles = openReplicateHandles(replicate);
 
@@ -1763,7 +1763,7 @@ void SimulationFile::getLattice(unsigned int replicate, unsigned int latticeInde
     delete [] particlesBuffer;
 }
 
-void SimulationFile::closeReplicate(unsigned int replicate) throw(HDF5Exception)
+void Hdf5File::closeReplicate(unsigned int replicate) throw(HDF5Exception)
 {
     map<unsigned int,ReplicateHandles *>::iterator it = openReplicates.find(replicate);
     if (it != openReplicates.end())
@@ -1775,7 +1775,7 @@ void SimulationFile::closeReplicate(unsigned int replicate) throw(HDF5Exception)
     }
 }
 
-void SimulationFile::closeAllReplicates() throw(HDF5Exception)
+void Hdf5File::closeAllReplicates() throw(HDF5Exception)
 {
     for (map<unsigned int,ReplicateHandles *>::iterator it=openReplicates.begin(); it != openReplicates.end(); it++)
     {
@@ -1787,7 +1787,7 @@ void SimulationFile::closeAllReplicates() throw(HDF5Exception)
 }
 
 
-SimulationFile::ReplicateHandles * SimulationFile::openReplicateHandles(unsigned int replicate) throw(HDF5Exception)
+Hdf5File::ReplicateHandles * Hdf5File::openReplicateHandles(unsigned int replicate) throw(HDF5Exception)
 {
     // See if the replicate is already open.
     map<unsigned int,ReplicateHandles *>::iterator it = openReplicates.find(replicate);
@@ -1833,7 +1833,7 @@ SimulationFile::ReplicateHandles * SimulationFile::openReplicateHandles(unsigned
 
 }
 
-SimulationFile::ReplicateHandles * SimulationFile::createReplicateHandles(string replicateString) throw(Exception,HDF5Exception)
+Hdf5File::ReplicateHandles * Hdf5File::createReplicateHandles(string replicateString) throw(Exception,HDF5Exception)
 {
     // Make sure the model is loaded, since need the number of species.
     loadModel();
@@ -1881,7 +1881,7 @@ SimulationFile::ReplicateHandles * SimulationFile::createReplicateHandles(string
     return handles;
 }
 
-void SimulationFile::closeReplicateHandles(ReplicateHandles * handles) throw(HDF5Exception)
+void Hdf5File::closeReplicateHandles(ReplicateHandles * handles) throw(HDF5Exception)
 {
     HDF5_EXCEPTION_CHECK(H5Gclose(handles->group));
     HDF5_EXCEPTION_CHECK(H5Dclose(handles->speciesCountsDataset));

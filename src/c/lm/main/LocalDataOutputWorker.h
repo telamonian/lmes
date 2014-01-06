@@ -52,7 +52,7 @@ using std::queue;
 using lm::thread::PthreadException;
 using lm::thread::Worker;
 
-using lm::io::hdf5::SimulationFile;
+using lm::io::hdf5::Hdf5File;
 
 namespace lm {
 namespace main {
@@ -60,7 +60,7 @@ namespace main {
 class LocalDataOutputWorker : public Worker, public DataOutputQueue
 {
 public:
-    LocalDataOutputWorker(SimulationFile * file) throw(PthreadException);
+    LocalDataOutputWorker(Hdf5File * file) throw(PthreadException);
     virtual ~LocalDataOutputWorker() throw(PthreadException);
 
 //    virtual void pushDataSet(DataSet * dataSet) throw(PthreadException);
@@ -74,7 +74,7 @@ protected:
 
 private:
 
-    SimulationFile * file;
+    Hdf5File * file;
     pthread_cond_t dataAvailable;
     bool shouldCheckpoint;
     bool shouldAbort;

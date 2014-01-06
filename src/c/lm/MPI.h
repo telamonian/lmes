@@ -86,7 +86,7 @@ public:
     static const int MSG_LATTICE_SITES = 32;
 
     // thread waking messages
-    static const int MSG_WAKE_LOCAL_REPLICATE_WORKER    = 96;
+    static const int MSG_WAKE_LOCAL_REPLICATE_SUPERVISOR    = 96;
     static const int MSG_WAKE_REPLICATE_MANAGER = 97;
     static const int MSG_WAKE_DATA_OUTPUT_WORKER    = 98;
 

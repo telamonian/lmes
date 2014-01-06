@@ -52,27 +52,27 @@ namespace lm {
 namespace io {
 namespace hdf5 {
 
-void SimulationFile::create(const string filename) throw(IOException,HDF5Exception)
+void Hdf5File::create(const string filename) throw(IOException,HDF5Exception)
 {
     create(filename.c_str(), false);
 }
 
-void SimulationFile::create(const char * filename) throw(IOException,HDF5Exception)
+void Hdf5File::create(const char * filename) throw(IOException,HDF5Exception)
 {
     create(filename, false);
 }
 
-void SimulationFile::create(const string filename, unsigned int numberSpecies) throw(IOException,HDF5Exception)
+void Hdf5File::create(const string filename, unsigned int numberSpecies) throw(IOException,HDF5Exception)
 {
     create(filename.c_str(), true, numberSpecies);
 }
 
-void SimulationFile::create(const char * filename, unsigned int numberSpecies) throw(IOException,HDF5Exception)
+void Hdf5File::create(const char * filename, unsigned int numberSpecies) throw(IOException,HDF5Exception)
 {
     create(filename, true, numberSpecies);
 }
 
-void SimulationFile::create(const char * filename, bool initializeModel, unsigned int numberSpecies) throw(IOException,HDF5Exception)
+void Hdf5File::create(const char * filename, bool initializeModel, unsigned int numberSpecies) throw(IOException,HDF5Exception)
 {
     // If the file exists, open it.
     struct stat fileStats;

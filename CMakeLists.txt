@@ -1,6 +1,6 @@
 cmake_minimum_REQUIRED(VERSION 2.8.7)
-SET(CMAKE_C_COMPILER gcc)
-SET(CMAKE_CXX_COMPILER g++)
+SET(CMAKE_C_COMPILER gcc-4.2)
+SET(CMAKE_CXX_COMPILER g++-4.2)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -m64 -fPIC -Wall -fmessage-length=0")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -m64 -fPIC -Wall -fmessage-length=0")
 #SET(CUDA_NVCC_FLAGS --ptxas-options=-v;--gpu-architecture;compute_30;--gpu-code;sm_30;-DMACOSX;-DCUDA_3D_GRID_LAUNCH;-DCUDA_DOUBLE_PRECISION;-DTUNE_MPD_Y_BLOCK_Y_SIZE=16;-DTUNE_MPD_Z_BLOCK_Z_SIZE=8)
@@ -48,6 +48,8 @@ add_subdirectory(src/c)
 get_directory_property(lm_c_source DIRECTORY src/c DEFINITION lm_c_source)
 add_subdirectory(src/protobuf)
 get_directory_property(proto_vars DIRECTORY src/protobuf DEFINITION proto_srcs)
+
+
 SET(CUDA_NVCC_FLAGS --ptxas-options=-v;--gpu-architecture;compute_30;--gpu-code;sm_30;-DCUDA_3D_GRID_LAUNCH;-DCUDA_DOUBLE_PRECISION;-DTUNE_MPD_Y_BLOCK_Y_SIZE=16;-DTUNE_MPD_Z_BLOCK_Z_SIZE=8)
 
 CUDA_ADD_EXECUTABLE(lm ${lm_c_source} ${lm_cuda_source})
@@ -62,3 +64,37 @@ target_link_libraries(lm ${lm_cuda}
                          ${MPI_C_LIBRARIES}
                          ${CUDA_LIBRARIES}
                          ${PYTHON_LIBRARY_DIRS})
+#set_target_properties(lm PROPERTIES ENABLE_EXPORTS TRUE)
+
+enable_testing()
+add_subdirectory(testing/c/gmock-1.7.0)
+include_directories(${gmock_SOURCE_DIR}/include ${gmock_SOURCE_DIR}
+                    ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+
+set(testsrc testing/c/lm/main/LocalReplicateSupervisor.cpp)
+file(GLOB to_remove_main src/c/lm/main/mainMPI.cpp)
+list(REMOVE_ITEM lm_c_source ${to_remove_main})
+
+CUDA_ADD_EXECUTABLE(lm_test
+               ${testsrc})
+target_link_libraries(lm_test
+                      lm 
+                      ${lm_cuda}
+                        ${lm_cuda_stuff}
+                        ${CMAKE_THREAD_LIBS_INIT}
+                        ${libsbml_LIBRARIES}
+                        ${PROTOBUF_LIBRARIES}
+                        ${HDF5_LIBRARIES}
+                        ${HDF5_HL_LIBRARIES}
+                        ${MPI_C_LIBRARIES}
+                        ${CUDA_LIBRARIES}
+                        ${PYTHON_LIBRARY_DIRS}
+                        gmock
+                        gmock_main
+                        gtest
+                        gtest_main)
+
+add_test(
+    NAME lm_test
+    COMMAND lm_test
+)

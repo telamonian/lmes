@@ -13,6 +13,7 @@
 #include <string>
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/ReactionModel.pb.h"
+#include "lm/io/hdf5/SimulationFile.h"
 #include "lm/main/ResourceAllocator.h"
 #include "lm/main/ReplicateRunner.h"
 #include "lm/me/MESolverFactory.h"
@@ -29,54 +30,32 @@ using std::list;
 using std::map;
 using std::string;
 
-class LocalReplicateWorker : public lm::thread::Worker
+class LocalReplicateSupervisor : public lm::thread::Worker
 {
 
 
 public:
-    LocalReplicateWorker(lm::io::hdf5::SimulationFile * file) throw(PthreadException);
-    virtual ~LocalReplicateWorker() throw(PthreadException);
+    LocalReplicateSupervisor(lm::io::hdf5::Hdf5File * file) throw(PthreadException);
+    virtual ~LocalReplicateSupervisor() throw(PthreadException);
 
     virtual void wake() throw(PthreadException);
     virtual void abort() throw(PthreadException);
     virtual void checkpoint() throw(PthreadException);
-    void broadcastSimulationParameters(void * staticDataBuffer, map<string,string> & simulationParameters);
-    void broadcastReactionModel(void * staticDataBuffer, lm::io::ReactionModel * reactionModel);
-    void broadcastDiffusionModel(void * staticDataBuffer, lm::io::DiffusionModel * diffusionModel, uint8_t * lattice, size_t latticeSize, uint8_t * latticeSites, size_t latticeSitesSize);
-    int FindRunRep(int destProc);
-    void MPI_MastBcastOut(void *buf, int count, MPI_Datatype datatype, int tag, MPI_Comm comm);
+    virtual int FindRep(int destProc);
+    virtual int RunRep(int destProc, int replicate);
+    virtual void MPI_MastBcastOut(void *buf, int count, MPI_Datatype datatype, int tag, MPI_Comm comm);
 
     //receive from all nodes, one by one, including master. nodes should use MPI_Send plus the relevant tag to send
     template <typename t>
-    void MPI_MastBcastIn(t * recvtable, int recvcount, MPI_Datatype recvtype, int recvtag, MPI_Comm comm)
-    {
-        MPI_Status messageStatus;
-        for(int sendProc; sendProc < lm::MPI::worldSize; ++sendProc)
-        {
-            MPI_EXCEPTION_CHECK(MPI_Recv(recvtable + sendProc, recvcount, recvtype, sendProc, recvtag, comm, &messageStatus));
-        }
-    }
+    void MPI_MastBcastIn(t * recvtable, int recvcount, MPI_Datatype recvtype, int recvtag, MPI_Comm comm);
 
     template <typename t, int tag>
-    void bcastThing(void * staticDataBuffer, t * thing)
-    {
-        int msgSize = thing->ByteSize();
-        if (msgSize > lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE) throw Exception("Message exceeded buffer size. Message tag:", tag);
-        thing->SerializeToArray(staticDataBuffer, msgSize);
-        bcastSizeThenBuffer<tag>(staticDataBuffer, msgSize);
-    }
+    void bcastThing(void * staticDataBuffer, t * thing);
 
     template <int tag>
-    void bcastSizeThenBuffer(void * staticDataBuffer, int msgSize)
-    {
-        Print::printf(Print::DEBUG, "sending msg with tag %d.", tag);
-        MPI_MastBcastOut(&msgSize, 1, MPI_INT, lm::MPI::MSG_MSG_SIZE, MPI_COMM_WORLD);
+    void bcastSizeThenBuffer(void * staticDataBuffer, int msgSize);
 
-        MPI_MastBcastOut(staticDataBuffer, msgSize, MPI_BYTE, tag, MPI_COMM_WORLD);
-        Print::printf(Print::DEBUG, "messge with tag %d sent.", tag);
-//        while(true);
-    }
-
+    map<int,int> simulationStatusTable;
 protected:
     virtual int run();
 
@@ -87,8 +66,8 @@ private:
 
     // Create a table for the simulation status.
     // key is replicate number, val is status: 0=waiting to run, 2=finished, other values=(?)(indicate at least not finished)
-    lm::io::hdf5::SimulationFile * file;
-    map<int,int> simulationStatusTable;
+    lm::io::hdf5::Hdf5File * file;
+
     map<int,struct timespec> simulationStartTimeTable; //TODO: figure out what header timespec is in and put it in this header
 
 };

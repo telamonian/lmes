@@ -209,7 +209,7 @@ protected:
     static double pdDefectFitnessPropensity(double time, uint * speciesCounts, void * pargs);
     static double pdReflectingCooperateFitnessPropensity(double time, uint * speciesCounts, void * pargs);
     static double pdReflectingDefectFitnessPropensity(double time, uint * speciesCounts, void * pargs);
-    static double MichaelisMentenPropensity(double time, uint * speciesCounts, void * pargs)
+    static double MichaelisMentenPropensity(double time, uint * speciesCounts, void * pargs);
 
     virtual void allocateModel(uint numberSpecies, uint numberReactions);
     virtual void destroyModel();

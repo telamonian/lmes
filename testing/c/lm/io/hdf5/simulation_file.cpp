@@ -62,16 +62,16 @@ using lm::io::ParameterValues;
 using lm::io::ReactionModel;
 using lm::io::SpatialModel;
 using lm::io::hdf5::HDF5Exception;
-using lm::io::hdf5::SimulationFile;
+using lm::io::hdf5::Hdf5File;
 
 
-class SimulationFileTester : public lm::io::hdf5::SimulationFile
+class SimulationFileTester : public lm::io::hdf5::Hdf5File
 {
 public:
-    SimulationFileTester(string s):SimulationFile(s),openReplicatesP(&openReplicates),versionP(&version),numberSpeciesP(&numberSpecies){}
-    virtual ReplicateHandles * openReplicateHandles(unsigned int replicate) throw(HDF5Exception) {return SimulationFile::openReplicateHandles(replicate);}
-    virtual ReplicateHandles * createReplicateHandles(string replicateString) throw(HDF5Exception) {return SimulationFile::createReplicateHandles(replicateString);}
-    virtual void closeReplicateHandles(ReplicateHandles * handles) throw(HDF5Exception) {SimulationFile::closeReplicateHandles(handles);}
+    SimulationFileTester(string s):Hdf5File(s),openReplicatesP(&openReplicates),versionP(&version),numberSpeciesP(&numberSpecies){}
+    virtual ReplicateHandles * openReplicateHandles(unsigned int replicate) throw(HDF5Exception) {return Hdf5File::openReplicateHandles(replicate);}
+    virtual ReplicateHandles * createReplicateHandles(string replicateString) throw(HDF5Exception) {return Hdf5File::createReplicateHandles(replicateString);}
+    virtual void closeReplicateHandles(ReplicateHandles * handles) throw(HDF5Exception) {Hdf5File::closeReplicateHandles(handles);}
     map<unsigned int,ReplicateHandles *> * openReplicatesP;
     unsigned int * versionP;
     unsigned int * numberSpeciesP;
@@ -81,10 +81,10 @@ BOOST_AUTO_TEST_SUITE(SimulationFileTest)
 
 BOOST_AUTO_TEST_CASE(OpenNonHDF5File)
 {
-    SimulationFile * f = NULL;
-    BOOST_CHECK_THROW(f=new SimulationFile(DATA_DIR+"/lm/io/hdf5/SimulationFile_1.h5"), IOException);
+    Hdf5File * f = NULL;
+    BOOST_CHECK_THROW(f=new Hdf5File(DATA_DIR+"/lm/io/hdf5/SimulationFile_1.h5"), IOException);
     if (f != NULL) delete f; f = NULL;
-    BOOST_CHECK_THROW(f=new SimulationFile(DATA_DIR+"/lm/io/hdf5/"), IOException);
+    BOOST_CHECK_THROW(f=new Hdf5File(DATA_DIR+"/lm/io/hdf5/"), IOException);
     if (f != NULL) delete f; f = NULL;
 }
 
@@ -105,7 +105,7 @@ BOOST_AUTO_TEST_CASE(CreateFile)
     remove(filename.c_str());
 
     // Create a new file.
-    SimulationFile::create(filename);
+    Hdf5File::create(filename);
 
     // Make sure we can open the file.
     SimulationFileTester * f = NULL;
@@ -145,7 +145,7 @@ BOOST_AUTO_TEST_CASE(SetParameter)
     // Create a new file with some parameters.
     string filename = TMP_DIR+"/lmtest_SimulationFile_SetParameter.h5";
     remove(filename.c_str());
-    SimulationFile::create(filename);
+    Hdf5File::create(filename);
     SimulationFileTester * f = NULL;
     BOOST_REQUIRE_NO_THROW(f=new SimulationFileTester(filename));
     BOOST_CHECK_NO_THROW(f->setParameter("test1", "23.0"));
@@ -185,7 +185,7 @@ BOOST_AUTO_TEST_CASE(Checkpoint)
     // Create a new file with some parameters.
     string filename = TMP_DIR+"/lmtest_SimulationFile_Checkpoint.h5";
     remove(filename.c_str());
-    SimulationFile::create(filename);
+    Hdf5File::create(filename);
     SimulationFileTester * f = NULL;
     BOOST_REQUIRE_NO_THROW(f=new SimulationFileTester(filename));
     BOOST_CHECK_NO_THROW(f->setParameter("test1", "23.0"));
@@ -229,10 +229,10 @@ BOOST_AUTO_TEST_CASE(CreateReplicateHandles)
     SimulationFileTester * f = NULL;
 
     // Create a new file.
-    SimulationFile::create(filename, 10);
+    Hdf5File::create(filename, 10);
 
     // Create some new replicates.
-    SimulationFile::ReplicateHandles * result;
+    Hdf5File::ReplicateHandles * result;
     f=new SimulationFileTester(filename);
     result = f->createReplicateHandles("00");
     BOOST_CHECK_GE(result->group, 0);
@@ -281,10 +281,10 @@ BOOST_AUTO_TEST_CASE(OpenReplicateHandles)
     SimulationFileTester * f = NULL;
 
     // Create a new file.
-    SimulationFile::create(filename, 10);
+    Hdf5File::create(filename, 10);
 
     // Open some new replicates, making sure they are created and added to the open list.
-    SimulationFile::ReplicateHandles * result, * result1;
+    Hdf5File::ReplicateHandles * result, * result1;
     f=new SimulationFileTester(filename);
     BOOST_CHECK_EQUAL(f->openReplicatesP->size(), 0U);
     result = f->openReplicateHandles(0);
@@ -357,7 +357,7 @@ BOOST_AUTO_TEST_CASE(AppendParameterValues)
     ParameterValues * v = NULL;
 
     // Create a new file.
-    SimulationFile::create(filename, 10);
+    Hdf5File::create(filename, 10);
 
     // Create replicate and add some species counts.
     BOOST_CHECK_NO_THROW(v=new ParameterValues);
@@ -402,7 +402,7 @@ BOOST_AUTO_TEST_CASE(SetFirstPassageTimes)
     FirstPassageTimes * v = NULL;
 
     // Create a new file.
-    SimulationFile::create(filename, 10);
+    Hdf5File::create(filename, 10);
 
     // Create replicate and add some species counts.
     BOOST_CHECK_NO_THROW(v=new FirstPassageTimes);
@@ -677,7 +677,7 @@ BOOST_AUTO_TEST_CASE(SetReactionModel)
     m = new ReactionModel();
     string filename = TMP_DIR+"/lmtest_SimulationFile_SetReactionModel.h5";
     remove(filename.c_str());
-    SimulationFile::create(filename);
+    Hdf5File::create(filename);
     BOOST_CHECK_NO_THROW(t=new SimulationFileTester(filename));
     m->set_number_species(11U);
     m->set_number_reactions(3U);
@@ -927,7 +927,7 @@ BOOST_AUTO_TEST_CASE(SetReactionModel)
     m = new ReactionModel();
     string filename = TMP_DIR+"/lmtest_SimulationFile_SetReactionModel_Noise.h5";
     remove(filename.c_str());
-    SimulationFile::create(filename);
+    Hdf5File::create(filename);
     BOOST_CHECK_NO_THROW(t=new SimulationFileTester(filename));
     m->set_number_species(11U);
     m->set_number_reactions(3U);
