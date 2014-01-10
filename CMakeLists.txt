@@ -27,7 +27,7 @@ find_package(cuda REQUIRED)
 find_package(SWIG)
 find_package(PythonInterp)
 find_package(PythonLibs)
-find_package(Boost)
+#find_package(Boost)
   
 include_directories(profile
                     src/c/
