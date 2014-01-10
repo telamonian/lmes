@@ -70,7 +70,7 @@ using std::map;
 using std::vector;
 using lm::IOException;
 
-class IOException;
+//class IOException;
 
 class SimulationFile
 {
