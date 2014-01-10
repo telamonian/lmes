@@ -136,14 +136,24 @@ endfunction()
 #    if the debug one is specified also include debug/optimized keywords
 #    in *_LIBRARIES variable
 function(_protobuf_find_libraries name filename)
-   find_library(${name}_LIBRARY
+    set(_protobuf_hints
+        ${PROTOBUF_ROOT}/include
+        ${PROTOBUF_ROOT}/lib
+    )
+
+    find_library(${name}_LIBRARY
        NAMES ${filename}
-       PATHS ${PROTOBUF_SRC_ROOT_FOLDER}/vsprojects/Release)
+       PATHS ${PROTOBUF_SRC_ROOT_FOLDER}/vsprojects/Release
+       HINTS ${_protobuf_hints}
+       )
    mark_as_advanced(${name}_LIBRARY)
 
+   
    find_library(${name}_LIBRARY_DEBUG
        NAMES ${filename}
-       PATHS ${PROTOBUF_SRC_ROOT_FOLDER}/vsprojects/Debug)
+       PATHS ${PROTOBUF_SRC_ROOT_FOLDER}/vsprojects/Debug
+       HINTS ${_protobuf_hints}
+       )
    mark_as_advanced(${name}_LIBRARY_DEBUG)
 
    if(NOT ${name}_LIBRARY_DEBUG)

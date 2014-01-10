@@ -8,6 +8,8 @@
 include(LibFindMacros)
 
 set(_sbml_hints
+    ${SBML_ROOT}/include
+    ${SBML_ROOT}/lib
     $ENV{SBML_ROOT}
     $ENV{HOME}/usr/include
     $ENV{HOME}/usr/lib
