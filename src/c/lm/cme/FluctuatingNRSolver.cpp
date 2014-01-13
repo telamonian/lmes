@@ -49,7 +49,7 @@
 #include "lm/Math.h"
 #include "lm/Print.h"
 #include "lm/cme/FluctuatingNRSolver.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "ReactionModel.pb.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"

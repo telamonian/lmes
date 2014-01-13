@@ -50,7 +50,7 @@
 #include "lm/builder/LatticeBuilder.h"
 #include "lm/builder/Shape.h"
 #include "lm/builder/Sphere.h"
-//#include "lm/io/SpatialModel.pb.h"
+//#include "SpatialModel.pb.h"
 #include "SpatialModel.pb.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/rdme/Lattice.h"

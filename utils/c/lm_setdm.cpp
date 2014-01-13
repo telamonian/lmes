@@ -49,8 +49,8 @@
 #include <sys/stat.h>
 #include "lm/Exceptions.h"
 #include "lm/Version.h"
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "DiffusionModel.pb.h"
+#include "ReactionModel.pb.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/rng/XORShift.h"
 #include "lptf/Profile.h"

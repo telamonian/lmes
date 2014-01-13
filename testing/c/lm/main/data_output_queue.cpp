@@ -41,7 +41,7 @@
 #include "TestingHelper.h"
 #include "lm/Exceptions.h"
 #include "lm/Types.h"
-#include "lm/io/SpeciesCounts.pb.h"
+#include "SpeciesCounts.pb.h"
 #include "lm/main/DataOutputQueue.h"
 #define BOOST_TEST_MODULE LatticeMicrobe
 #include <boost/test/unit_test.hpp>

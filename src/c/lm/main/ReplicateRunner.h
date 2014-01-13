@@ -44,8 +44,8 @@
 #include <string>
 #include "lm/main/ResourceAllocator.h"
 #include "lm/me/MESolverFactory.h"
-#include "lm/io/ReactionModel.pb.h"
-#include "lm/io/DiffusionModel.pb.h"
+#include "ReactionModel.pb.h"
+#include "DiffusionModel.pb.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 

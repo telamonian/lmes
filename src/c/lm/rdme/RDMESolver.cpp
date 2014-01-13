@@ -41,7 +41,7 @@
 #include "lm/Tune.h"
 #include "lm/Print.h"
 #include "lm/cme/CMESolver.h"
-#include "lm/io/DiffusionModel.pb.h"
+#include "DiffusionModel.pb.h"
 #include "lm/rdme/Lattice.h"
 #include "lm/rdme/ByteLattice.h"
 #include "lm/rdme/RDMESolver.h"

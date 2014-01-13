@@ -45,7 +45,7 @@
 #include <string>
 #include "lm/Tune.h"
 #include "lm/cme/NextReactionSolver.h"
-#include "lm/io/ParameterValues.pb.h"
+#include "ParameterValues.pb.h"
 
 using std::string;
 using std::map;

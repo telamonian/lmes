@@ -49,7 +49,7 @@
 #include <sbml/SBMLTypes.h>
 #include "lm/Exceptions.h"
 #include "lm/Version.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "ReactionModel.pb.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/Print.h"
 #include "lptf/Profile.h"

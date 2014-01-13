@@ -11,7 +11,7 @@ cmake_minimum_REQUIRED(VERSION 2.8.7)
 ################
 project(lm)
 ################
-#if certain packages cannot be found, change the variables in CMakeConfig.txt
+#if certain packages cannot be found, the end-user (you) can change the variables in CMakeConfig.txt
 include(CMakeConfig.txt)
 
 add_definitions(-DBUILD_INFO -DVERBOSITY_LEVEL=10 -DOPT_CUDA)
@@ -36,9 +36,10 @@ find_package(SWIG)
 find_package(PythonInterp)
 find_package(PythonLibs)
 find_package(Boost)
-  
+
 include_directories(profile
                     src/c/
+                    ${CMAKE_CURRENT_BINARY_DIR}/src/c/
                     src/cuda/
                     src/protobuf/
                     src/swig/
@@ -54,6 +55,7 @@ include_directories(profile
 add_subdirectory(src/cuda)
 add_subdirectory(src/c)
 #add_subdirectory(src/protobuf)
+add_dependencies(lm_cuda_lib lm_c_lib)
 
 #set_source_files_properties(${proto_srcs} ${proto_hdrs} PROPERTIES GENERATED TRUE)
 #get_directory_property(proto_vars DIRECTORY src/protobuf DEFINITION proto_srcs)

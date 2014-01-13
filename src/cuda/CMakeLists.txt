@@ -7,6 +7,8 @@ ELSE(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     SET(CUDA_NVCC_FLAGS "-ccbin /usr/bin/clang;${CUDA_NVCC_FLAGS}")
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/../c)
+
 #get the source files
 file(GLOB lm_cuda_source lm/*.cu)
 message(${lm_cuda_source}_bar)
