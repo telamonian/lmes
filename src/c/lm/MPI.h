@@ -58,7 +58,7 @@ public:
 };
 
 /**
- * Class for accessing CUDA functions.
+ * Class for accessing basic MPI functions and constants.
  */
 class MPI
 {

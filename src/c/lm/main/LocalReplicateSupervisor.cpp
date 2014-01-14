@@ -215,6 +215,35 @@ void LocalReplicateSupervisor::MPI_MastBcastOut(void * buf, int count, MPI_Datat
     }
 }
 
+template <typename t>
+void LocalReplicateSupervisor::MPI_MastBcastIn(t * recvtable, int recvcount, MPI_Datatype recvtype, int recvtag, MPI_Comm comm)
+{
+    MPI_Status messageStatus;
+    for(int sendProc; sendProc < lm::MPI::worldSize; ++sendProc)
+    {
+        MPI_EXCEPTION_CHECK(MPI_Recv(recvtable + sendProc, recvcount, recvtype, sendProc, recvtag, comm, &messageStatus));
+    }
+}
+
+template <typename t, int tag>
+void LocalReplicateSupervisor::bcastThing(void * staticDataBuffer, t * thing)
+{
+    int msgSize = thing->ByteSize();
+    if (msgSize > lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE) throw Exception("Message exceeded buffer size. Message tag:", tag);
+    thing->SerializeToArray(staticDataBuffer, msgSize);
+    bcastSizeThenBuffer<tag>(staticDataBuffer, msgSize);
+}
+
+template <int tag>
+void LocalReplicateSupervisor::bcastSizeThenBuffer(void * staticDataBuffer, int msgSize)
+{
+    Print::printf(Print::DEBUG, "sending msg with tag %d.", tag);
+    MPI_MastBcastOut(&msgSize, 1, MPI_INT, lm::MPI::MSG_MSG_SIZE, MPI_COMM_WORLD);
+
+    MPI_MastBcastOut(staticDataBuffer, msgSize, MPI_BYTE, tag, MPI_COMM_WORLD);
+    Print::printf(Print::DEBUG, "messge with tag %d sent.", tag);
+}
+
 int LocalReplicateSupervisor::FindRep(int destProc)
 {
     int replicate = -1;
@@ -243,35 +272,6 @@ int LocalReplicateSupervisor::RunRep(int destProc, int replicate)
     Print::printf(Print::DEBUG, "signal to start replicate %d sent", replicate);
     simulationStatusTable[replicate] = 1;
     return replicate;
-}
-
-template <typename t>
-void LocalReplicateSupervisor::MPI_MastBcastIn(t * recvtable, int recvcount, MPI_Datatype recvtype, int recvtag, MPI_Comm comm)
-{
-    MPI_Status messageStatus;
-    for(int sendProc; sendProc < lm::MPI::worldSize; ++sendProc)
-    {
-        MPI_EXCEPTION_CHECK(MPI_Recv(recvtable + sendProc, recvcount, recvtype, sendProc, recvtag, comm, &messageStatus));
-    }
-}
-
-template <typename t, int tag>
-void LocalReplicateSupervisor::bcastThing(void * staticDataBuffer, t * thing)
-{
-    int msgSize = thing->ByteSize();
-    if (msgSize > lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE) throw Exception("Message exceeded buffer size. Message tag:", tag);
-    thing->SerializeToArray(staticDataBuffer, msgSize);
-    bcastSizeThenBuffer<tag>(staticDataBuffer, msgSize);
-}
-
-template <int tag>
-void LocalReplicateSupervisor::bcastSizeThenBuffer(void * staticDataBuffer, int msgSize)
-{
-    Print::printf(Print::DEBUG, "sending msg with tag %d.", tag);
-    MPI_MastBcastOut(&msgSize, 1, MPI_INT, lm::MPI::MSG_MSG_SIZE, MPI_COMM_WORLD);
-
-    MPI_MastBcastOut(staticDataBuffer, msgSize, MPI_BYTE, tag, MPI_COMM_WORLD);
-    Print::printf(Print::DEBUG, "messge with tag %d sent.", tag);
 }
 
 }
