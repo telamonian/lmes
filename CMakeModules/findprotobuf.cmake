@@ -136,10 +136,6 @@ endfunction()
 #    if the debug one is specified also include debug/optimized keywords
 #    in *_LIBRARIES variable
 function(_protobuf_find_libraries name filename)
-    set(_protobuf_hints
-        ${PROTOBUF_ROOT}/include
-        ${PROTOBUF_ROOT}/lib
-    )
 
     find_library(${name}_LIBRARY
        NAMES ${filename}
@@ -181,6 +177,12 @@ if(NOT DEFINED PROTOBUF_GENERATE_CPP_APPEND_PATH)
 endif()
 
 
+set(_protobuf_hints
+    ${PROTOBUF_ROOT}/include
+    ${PROTOBUF_ROOT}/lib
+)
+
+
 # Google's provided vcproj files generate libraries with a "lib"
 # prefix on Windows
 if(MSVC)
@@ -209,6 +211,7 @@ endif()
 find_path(PROTOBUF_INCLUDE_DIR
     google/protobuf/service.h
     PATHS ${PROTOBUF_SRC_ROOT_FOLDER}/src
+       HINTS ${_protobuf_hints}
 )
 mark_as_advanced(PROTOBUF_INCLUDE_DIR)
 
