@@ -11,12 +11,12 @@
 #include <sys/time.h>
 #endif
 #include "lm/io/hdf5/SimulationFile.h"
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "DiffusionModel.pb.h"
+#include "ReactionModel.pb.h"
 #include "lm/io/SimulationParameters.h"
 #include "lm/main/Main.h"
 #include "lm/main/LocalReplicateSupervisor.h"
-#include "lm/message/SimulationParameters.pb.h"
+#include "SimulationParameters.pb.h"
 #include "lm/MPI.h"
 #include "lm/Print.h"
 

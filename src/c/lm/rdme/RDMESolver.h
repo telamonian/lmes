@@ -41,7 +41,7 @@
 #define LM_RDME_RDMESOLVER_H_
 
 #include "lm/cme/CMESolver.h"
-#include "lm/io/DiffusionModel.pb.h"
+#include "DiffusionModel.pb.h"
 #include "lm/rdme/Lattice.h"
 
 using lm::cme::CMESolver;

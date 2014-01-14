@@ -11,8 +11,8 @@
 #include <list>
 #include <map>
 #include <string>
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "DiffusionModel.pb.h"
+#include "ReactionModel.pb.h"
 #include "lm/main/Main.h"
 #include "lm/main/ResourceAllocator.h"
 #include "lm/main/ReplicateRunner.h"

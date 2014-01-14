@@ -40,7 +40,7 @@
 #include <string>
 #include <map>
 #include "lm/Print.h"
-#include "lm/message/SimulationParameters.pb.h"
+#include "SimulationParameters.pb.h"
 #include "lm/io/SimulationParameters.h"
 
 using std::string;

@@ -6,13 +6,13 @@
  */
 
 #include "lm/io/hdf5/SimulationFile.h"
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "DiffusionModel.pb.h"
+#include "ReactionModel.pb.h"
 #include "lm/io/SimulationParameters.h"
 #include "lm/main/BruteRunner.h"
 #include "lm/main/ForwardFluxRunner.h"
 #include "lm/main/ReplicateManager.h"
-#include "lm/message/SimulationParameters.pb.h"
+#include "SimulationParameters.pb.h"
 #include "lm/MPI.h"
 
 namespace lm {

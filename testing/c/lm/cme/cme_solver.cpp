@@ -44,7 +44,7 @@
 #include "lm/Exceptions.h"
 #include "lm/Types.h"
 #include "lm/cme/CMESolver.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "ReactionModel.pb.h"
 #include "lm/main/ResourceAllocator.h"
 #include "lm/rng/RandomGenerator.h"
 #define BOOST_TEST_MODULE LatticeMicrobe

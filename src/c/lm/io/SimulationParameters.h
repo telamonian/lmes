@@ -42,7 +42,7 @@
 
 #include <map>
 #include <string>
-#include "lm/message/SimulationParameters.pb.h"
+#include "SimulationParameters.pb.h"
 
 using std::map;
 using std::string;
