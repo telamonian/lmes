@@ -4,9 +4,9 @@ SET(CUDA_NVCC_FLAGS --ptxas-options=-v;--gpu-architecture;compute_30;--gpu-code;
 
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    IF(&{OSX_VERSION GREATER 8)
+    IF(OSX_VERSION GREATER 8)
         SET(CUDA_NVCC_FLAGS "-ccbin /usr/bin/clang;${CUDA_NVCC_FLAGS}")
-    ENDIF(&{OSX_VERSION GREATER 8)
+    ENDIF(OSX_VERSION GREATER 8)
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/../c)
