@@ -1,5 +1,5 @@
 #uncomment and change the last part of the next line if some of your libraries/header files are on a nonstandard path
-SET(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH} /usr/local/arch/linux")
+#SET(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH} /usr/local/arch/linux")
 
 ############################
 #library specific options
@@ -21,9 +21,7 @@ SET(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH} /usr/local/arch/linux")
 
 #SET(SWIG_EXECUTABLE "/usr/local/bin/swig")
 
-#SET(PYTHON_EXECUTABLE "/usr/local/bin/python")
 #SET(PYTHON_LIBRARY "/usr/local/Cellar/python/2.7.6/Frameworks/Python.framework/Versions/2.7/lib/python2.7")
 #SET(PYTHON_INCLUDE_DIR "/usr/local/Cellar/python/2.7.6/Frameworks/Python.framework/Versions/2.7/include/python2.7/")
-
 
 #SET(BOOST_ROOT "/usr/local/Cellar/boost/1.55.0")
