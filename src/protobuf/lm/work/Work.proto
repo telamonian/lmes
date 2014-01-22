@@ -1,0 +1,11 @@
+#include "lm/work/ReadOnly.proto"
+#include "lm/work/ReadWrite.proto"
+package lm.work;
+
+message Work {
+	optional uint32 tid 				= 1;
+	optional unit32 pid					= 2;
+	optional uint32 sid					= 3;
+	optional lm.io.ReadOnly readOnly 	= 4;
+	optional lm.io.ReadWrite readWrite	= 5;
+}

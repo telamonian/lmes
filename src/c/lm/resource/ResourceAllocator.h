@@ -1,12 +1,17 @@
 /*
  * University of Illinois Open Source License
  * Copyright 2011 Luthey-Schulten Group,
+ * Copyright 2012 Roberts Group,
  * All rights reserved.
  * 
  * Developed by: Luthey-Schulten Group
  * 			     University of Illinois at Urbana-Champaign
  * 			     http://www.scs.uiuc.edu/~schulten
  * 
+ * Developed by: Roberts Group
+ * 			     Johns Hopkins University
+ * 			     http://biophysics.jhu.edu/roberts/
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with 
  * the Software without restriction, including without limitation the rights to 
@@ -22,9 +27,9 @@
  * and/or other materials provided with the distribution.
  * 
  * - Neither the names of the Luthey-Schulten Group, University of Illinois at
- * Urbana-Champaign, nor the names of its contributors may be used to endorse or
- * promote products derived from this Software without specific prior written
- * permission.
+ * Urbana-Champaign, the Roberts Group, Johns Hopkins University, nor the names
+ * of its contributors may be used to endorse or promote products derived from
+ * this Software without specific prior written permission.
  * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
@@ -35,57 +40,35 @@
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
  * Author(s): Elijah Roberts
+ * 			  Max Klein
  */
 
-#ifndef LM_MAIN_REPLICATERUNNER_H_
-#define LM_MAIN_REPLICATERUNNER_H_
+#ifndef LM_MAIN_RESOURCEALLOCATOR_H_
+#define LM_MAIN_RESOURCEALLOCATOR_H_
 
-#include <map>
 #include <string>
-#include "lm/resource/ResourceAllocator.h"
-#include "lm/me/MESolverFactory.h"
-#include "ReactionModel.pb.h"
-#include "DiffusionModel.pb.h"
+#include <vector>
 #include "lm/thread/Thread.h"
-#include "lm/thread/Worker.h"
+#include "lm/work/Result.pb.h"
+#include "lm/work/Work.pb.h"
 
-using std::map;
 using std::string;
+using std::vector;
 using lm::thread::PthreadException;
-using lm::thread::Worker;
-using lm::me::MESolverFactory;
 
 namespace lm {
-namespace main {
+namespace resource {
 
-class ReplicateRunner : public Worker
+class ResourceAllocator
 {
+
 public:
-    ReplicateRunner(int replicate, MESolverFactory solverFactory, map<string,string> * parameters, lm::io::ReactionModel * reactionModel, lm::io::DiffusionModel * diffusionModel, uint8_t * lattice, size_t latticeSize, uint8_t * latticeSites, size_t latticeSitesSize, ResourceAllocator::ComputeResources resources) throw(PthreadException);
-    virtual ~ReplicateRunner() throw(PthreadException);
-    virtual void wake() throw(PthreadException);
-    virtual int run() = 0;
+    ResourceAllocator() throw(Exception,PthreadException);
+    virtual ~ResourceAllocator() throw(PthreadException) = 0;
 
-    virtual int getReplicate() {return replicate;}
-    virtual bool hasReplicateFinished();
-    virtual int getReplicateExitCode();
-
-    virtual void signalFinished();
-
-protected:
-    int replicate;
-    MESolverFactory solverFactory;
-    map<string,string> * parameters;
-    lm::io::ReactionModel * reactionModel;
-    lm::io::DiffusionModel * diffusionModel;
-    uint8_t * lattice;
-    size_t latticeSize;
-    uint8_t * latticeSites;
-    size_t latticeSitesSize;
-    ResourceAllocator::ComputeResources resources;
-    volatile bool replicateFinished;
-    volatile int replicateExitCode;
-
+    virtual int getMaxSimultaneousSlots() = 0;
+    virtual void assignWorkUnit(lm::work::Work & workUnit) throw(Exception,PthreadException) = 0;
+    virtual void freeWorkUnit(lm::work::Result & resultUnit) throw(Exception,PthreadException) = 0;
 };
 
 }

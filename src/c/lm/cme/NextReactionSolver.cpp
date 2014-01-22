@@ -53,7 +53,7 @@
 #include "FirstPassageTimes.pb.h"
 #include "SpeciesCounts.pb.h"
 #include "lm/main/DataOutputQueue.h"
-#include "lm/main/ResourceAllocator.h"
+#include "lm/resource/ResourceAllocator.h"
 #include "lm/reaction/ReactionQueue.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/rng/XORShift.h"

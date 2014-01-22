@@ -47,7 +47,7 @@
 #include "lm/Math.h"
 #include "FirstPassageTimes.pb.h"
 #include "ParameterValues.pb.h"
-#include "lm/main/ResourceAllocator.h"
+#include "lm/resource/ResourceAllocator.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/me/MESolver.h"
 
@@ -55,7 +55,7 @@ using std::map;
 using std::pair;
 using std::list;
 using std::string;
-using lm::main::ResourceAllocator;
+using lm::resource::ResourceAllocator;
 using lm::me::MESolver;
 using lm::rng::RandomGenerator;
 

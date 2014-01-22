@@ -75,7 +75,7 @@
 #include "lm/main/Main.h"
 #include "lm/main/SignalHandler.h"
 #include "lm/main/ReplicateRunner.h"
-#include "lm/main/ResourceAllocator.h"
+#include "lm/resource/ResourceAllocator.h"
 #include "SimulationParameters.pb.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/WorkerManager.h"
@@ -87,7 +87,7 @@ using std::list;
 using lm::Print;
 using lm::Exception;
 using lm::main::ReplicateRunner;
-using lm::main::ResourceAllocator;
+using lm::resource::ResourceAllocator;
 using lm::me::MESolverFactory;
 using lm::thread::PthreadException;
 

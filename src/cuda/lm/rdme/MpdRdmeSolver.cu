@@ -59,7 +59,7 @@
 #include "Lattice.pb.h"
 #include "SpeciesCounts.pb.h"
 #include "lm/main/DataOutputQueue.h"
-#include "lm/main/ResourceAllocator.h"
+#include "lm/resource/ResourceAllocator.h"
 #include "lm/rdme/ByteLattice.h"
 #include "lm/rdme/CudaByteLattice.h"
 #include "lm/rdme/MpdRdmeSolver.h"

@@ -75,13 +75,13 @@
 #include "lm/main/DataOutputQueue.h"
 #include "lm/main/ForwardFluxRunner.h"
 #include "lm/main/LocalDataOutputWorker.h"
-#include "lm/main/LocalReplicateSupervisor.h"
-#include "lm/main/MPINodeResourceMap.h"
+#include "lm/main/ReplicateSupervisor.h"
+#include "lm/resource/MPINodeResourceMap.h"
 #include "lm/main/MPIRemoteDataOutputQueue.h"
 #include "lm/main/Main.h"
-#include "lm/main/ReplicateManager.h"
+#include "lm/main/ReplicateDistributor.h"
 #include "lm/main/ReplicateRunner.h"
-#include "lm/main/ResourceAllocator.h"
+#include "lm/resource/ResourceAllocator.h"
 #include "lm/main/SignalHandler.h"
 #include "SimulationParameters.pb.h"
 #include "lm/thread/Thread.h"
@@ -96,8 +96,8 @@ using lm::Exception;
 using lm::main::ReplicateRunner;
 using lm::main::BruteRunner;
 using lm::main::ForwardFluxRunner;
-using lm::main::ResourceAllocator;
-using lm::main::MPINodeResourceMap;
+using lm::resource::ResourceAllocator;
+using lm::resource::MPINodeResourceMap;
 using lm::me::MESolverFactory;
 using lm::thread::PthreadException;
 
@@ -342,15 +342,15 @@ void executeSimulationMPISingleMaster()
     // Set the data output handler to be the worker.
     lm::main::DataOutputQueue::setInstance(dataOutputWorker);
 
-    //start the replicate manager thread on the master
-    lm::main::ReplicateManager * replicateManager = new lm::main::ReplicateManager(resourceAllocator, solverFactory);
-    replicateManager->setAffinity(reservedCpuCore);
-    replicateManager->start();
+    //start the replicate distributor thread on the master
+    lm::main::ReplicateDistributor * replicateDistributor = new lm::main::ReplicateDistributor(resourceAllocator, solverFactory);
+    replicateDistributor->setAffinity(reservedCpuCore);
+    replicateDistributor->start();
 
-    //start the local replicate worker thread
-    lm::main::LocalReplicateSupervisor * localReplicateWorker = new lm::main::LocalReplicateSupervisor(file);
-    localReplicateWorker->setAffinity(reservedCpuCore);
-    localReplicateWorker->start();
+    //start the replicate supervisor thread
+    lm::main::ReplicateSupervisor * replicateSupervisor = new lm::main::ReplicateSupervisor(file);
+    replicateSupervisor->setAffinity(reservedCpuCore);
+    replicateSupervisor->start();
 
     void * ret;
     PTHREAD_EXCEPTION_CHECK(pthread_join(localReplicateWorker->getId(), &ret));
@@ -419,7 +419,7 @@ void executeSimulationMPISingleSlave()
     #endif
 
     //start the replicate manager thread on the master
-    lm::main::ReplicateManager * replicateManager = new lm::main::ReplicateManager(resourceAllocator, solverFactory);
+    lm::main::ReplicateDistributor * replicateManager = new lm::main::ReplicateDistributor(resourceAllocator, solverFactory);
     replicateManager->start();
 
     MPI_Status messageStatus;

@@ -37,58 +37,73 @@
  * Author(s): Elijah Roberts
  */
 
-#ifndef LM_MAIN_REPLICATERUNNER_H_
-#define LM_MAIN_REPLICATERUNNER_H_
-
-#include <map>
-#include <string>
+#include <iostream>
+#include <pthread.h>
+#include <sstream>
+#include "lm/Exceptions.h"
+#include "lm/Math.h"
+#include "lm/MPI.h"
 #include "lm/resource/ResourceAllocator.h"
-#include "lm/me/MESolverFactory.h"
-#include "ReactionModel.pb.h"
-#include "DiffusionModel.pb.h"
+#include "lm/resource/ResourceAllocatorSupervisor.h"
 #include "lm/thread/Thread.h"
-#include "lm/thread/Worker.h"
+#include "lm/Types.h"
+#include "lm/work/Result.pb.h"
+#include "lm/work/Work.pb.h"
 
-using std::map;
-using std::string;
 using lm::thread::PthreadException;
-using lm::thread::Worker;
-using lm::me::MESolverFactory;
 
 namespace lm {
-namespace main {
+namespace resource {
 
-class ReplicateRunner : public Worker
+ResourceAllocatorSupervisor::ResourceAllocatorSupervisor(int * maxSlotsTable) throw(Exception,PthreadException)
 {
-public:
-    ReplicateRunner(int replicate, MESolverFactory solverFactory, map<string,string> * parameters, lm::io::ReactionModel * reactionModel, lm::io::DiffusionModel * diffusionModel, uint8_t * lattice, size_t latticeSize, uint8_t * latticeSites, size_t latticeSitesSize, ResourceAllocator::ComputeResources resources) throw(PthreadException);
-    virtual ~ReplicateRunner() throw(PthreadException);
-    virtual void wake() throw(PthreadException);
-    virtual int run() = 0;
+    initialize(maxSlotsTable);
+}
 
-    virtual int getReplicate() {return replicate;}
-    virtual bool hasReplicateFinished();
-    virtual int getReplicateExitCode();
+void ResourceAllocatorSupervisor::initialize(int * maxSlotsTable) throw(Exception,PthreadException)
+{
+	int maxSlotsCounter = 0;
+	for (int i=0; i<lm::MPI::worldSize; ++i)
+	{
+		for (int j=0; j<maxSlotsTable[i]; ++j)
+		{
+		vector<int> slotId(2);
+		slotId.push_back(i);
+		slotId.push_back(j);
+		slots[slotId] = Slot();
+		++maxSlotsCounter;
+		}
+	}
+	maxSlots = maxSlotsCounter;
+}
 
-    virtual void signalFinished();
+int ResourceAllocatorSupervisor::getMaxSimultaneousSlots()
+{
+	return maxSlots;
+}
 
-protected:
-    int replicate;
-    MESolverFactory solverFactory;
-    map<string,string> * parameters;
-    lm::io::ReactionModel * reactionModel;
-    lm::io::DiffusionModel * diffusionModel;
-    uint8_t * lattice;
-    size_t latticeSize;
-    uint8_t * latticeSites;
-    size_t latticeSitesSize;
-    ResourceAllocator::ComputeResources resources;
-    volatile bool replicateFinished;
-    volatile int replicateExitCode;
+void ResourceAllocatorSuperivsor::assignWorkUnit(lm::work::Work & workUnit) throw(Exception,PthreadException)
+{
+    for(map<vector<int>, Slot>::iterator it = slots.begin(); it!=slots.end(); ++it)
+    {
+    	if (it->second.status==FREE)
+    	{
+    		workUnit.set_pid(it->first[0]);
+    		workUnit.set_sid(it->first[1]);
+    		it->second.status = BUSY;
+    		break;
+    	}
+    }
+}
 
-};
+void ResourceAllocatorSupervisor::freeWorkUnit(lm::work::Result & resultUnit) throw(Exception,PthreadException)
+{
+	vector<int> slotId(2);
+	slotId.push_back(resultUnit.get_pid());
+	slotId.push_back(resultUnit.get_sid());
+    slots[slotId] = FREE;
+}
+
 
 }
 }
-
-#endif

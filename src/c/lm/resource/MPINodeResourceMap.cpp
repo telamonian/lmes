@@ -44,12 +44,12 @@
 #include <sys/stat.h>
 #include "lm/Exceptions.h"
 #include "lm/Print.h"
-#include "lm/main/MPINodeResourceMap.h"
+#include "lm/resource/MPINodeResourceMap.h"
 
 using std::ifstream;
 
 namespace lm {
-namespace main {
+namespace resource {
 
 MPINodeResourceMap::MPINodeResourceMap(list<string>hostnames, int defaultNumberCpuCores)
 :numberNodes(hostnames.size()),cpuCoresTable(NULL)

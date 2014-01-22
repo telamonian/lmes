@@ -1,12 +1,12 @@
 /*
- * ReplicateManager.h
+ * ReplicateDistributor
  *
  *  Created on: Oct 4, 2013
  *      Author: tel
  */
 
-#ifndef REPLICATEMANAGER_H_
-#define REPLICATEMANAGER_H_
+#ifndef ReplicateDistributor_
+#define ReplicateDistributor_
 
 #include <list>
 #include <map>
@@ -14,7 +14,7 @@
 #include "DiffusionModel.pb.h"
 #include "ReactionModel.pb.h"
 #include "lm/main/Main.h"
-#include "lm/main/ResourceAllocator.h"
+#include "lm/resource/ResourceAllocator.h"
 #include "lm/main/ReplicateRunner.h"
 #include "lm/me/MESolverFactory.h"
 #include "lm/Print.h"
@@ -30,12 +30,12 @@ using std::list;
 using std::map;
 using std::string;
 
-class ReplicateManager : public lm::thread::Worker
+class ReplicateDistributor : public lm::thread::Worker
 {
 
 public:
-    ReplicateManager(ResourceAllocator & resourceAllocator, MESolverFactory & solverFactory) throw(PthreadException);
-    virtual ~ReplicateManager() throw(PthreadException);
+    ReplicateDistributor(ResourceAllocator & resourceAllocator, MESolverFactory & solverFactory) throw(PthreadException);
+    virtual ~ReplicateDistributor() throw(PthreadException);
 
     virtual void wake() throw(PthreadException);
     virtual void abort() throw(PthreadException);
@@ -71,4 +71,4 @@ private:
 }
 }
 
-#endif /* REPLICATEMANAGER_H_ */
+#endif /* ReplicateDistributor_ */

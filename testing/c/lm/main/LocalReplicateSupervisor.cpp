@@ -10,14 +10,14 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "lm/main/Main.h"
-#include "lm/main/LocalReplicateSupervisor.h"
+#include "lm/main/ReplicateSupervisor.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/Print.h"
 #include <vector>
 
 #define MPI_EXCEPTION_CHECK(x) {}
 
-using lm::main::LocalReplicateSupervisor;
+using lm::main::ReplicateSupervisor;
 using lm::io::hdf5::SimulationFile;
 using lm::io::hdf5::Hdf5File;
 
@@ -47,7 +47,7 @@ public:
     }
 
     MockSimulationFile file;
-    LocalReplicateSupervisor supervisor;
+    ReplicateSupervisor supervisor;
 };
 
 //class FooFixture : public ::testing::Test {

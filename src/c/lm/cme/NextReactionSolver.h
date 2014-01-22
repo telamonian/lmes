@@ -45,14 +45,14 @@
 #include <string>
 #include "lm/cme/CMESolver.h"
 #include "FirstPassageTimes.pb.h"
-#include "lm/main/ResourceAllocator.h"
+#include "lm/resource/ResourceAllocator.h"
 #include "lm/reaction/ReactionQueue.h"
 #include "lm/rng/RandomGenerator.h"
 
 using std::map;
 using std::list;
 using std::string;
-using lm::main::ResourceAllocator;
+using lm::resource::ResourceAllocator;
 using lm::reaction::ReactionQueue;
 using lm::rng::RandomGenerator;
 

@@ -50,7 +50,7 @@
 using std::map;
 using std::list;
 using std::string;
-using lm::main::ResourceAllocator;
+using lm::resource::ResourceAllocator;
 using lm::reaction::ReactionQueue;
 using lm::rng::RandomGenerator;
 

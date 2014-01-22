@@ -42,7 +42,7 @@
 
 #include <map>
 #include <string>
-#include "lm/main/ResourceAllocator.h"
+#include "lm/resource/ResourceAllocator.h"
 #include "lm/main/ReplicateRunner.h"
 #include "lm/me/MESolverFactory.h"
 #include "ReactionModel.pb.h"

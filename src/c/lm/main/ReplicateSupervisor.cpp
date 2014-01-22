@@ -15,7 +15,7 @@
 #include "ReactionModel.pb.h"
 #include "lm/io/SimulationParameters.h"
 #include "lm/main/Main.h"
-#include "lm/main/LocalReplicateSupervisor.h"
+#include "lm/main/ReplicateSupervisor.h"
 #include "SimulationParameters.pb.h"
 #include "lm/MPI.h"
 #include "lm/Print.h"
@@ -23,22 +23,22 @@
 namespace lm {
 namespace main {
 
-LocalReplicateSupervisor::LocalReplicateSupervisor(lm::io::hdf5::Hdf5File * file) throw(PthreadException):
+ReplicateSupervisor::ReplicateSupervisor(lm::io::hdf5::Hdf5File * file) throw(PthreadException):
 file(file),
 shouldCheckpoint(false),
 shouldAbort(false)
 {}
 
-LocalReplicateSupervisor::~LocalReplicateSupervisor() throw(PthreadException)
+ReplicateSupervisor::~ReplicateSupervisor() throw(PthreadException)
 {
 }
 
-void LocalReplicateSupervisor::wake() throw(PthreadException)
+void ReplicateSupervisor::wake() throw(PthreadException)
 {
     MPI_EXCEPTION_CHECK(MPI_Send(NULL, 0, MPI_INT, lm::MPI::worldRank, lm::MPI::MSG_WAKE_LOCAL_REPLICATE_SUPERVISOR, MPI_COMM_WORLD));
 }
 
-void LocalReplicateSupervisor::abort() throw(PthreadException)
+void ReplicateSupervisor::abort() throw(PthreadException)
 {
     if (running)
     {
@@ -47,7 +47,7 @@ void LocalReplicateSupervisor::abort() throw(PthreadException)
     }
 }
 
-void LocalReplicateSupervisor::checkpoint() throw(PthreadException)
+void ReplicateSupervisor::checkpoint() throw(PthreadException)
 {
     bool success=false;
 
@@ -59,7 +59,7 @@ void LocalReplicateSupervisor::checkpoint() throw(PthreadException)
     }
 }
 
-int LocalReplicateSupervisor::run()
+int ReplicateSupervisor::run()
 {
     // MPI message variables.
     int messageWaiting;
@@ -69,14 +69,24 @@ int LocalReplicateSupervisor::run()
     int finishedMessage[2];
 
     // Get the maximum number of simulations that can be started on each process.
-    int * maxSimulationsTable = new int[lm::MPI::worldSize];
-    MPI_MastBcastIn<int>(maxSimulationsTable, 1, MPI_INT, lm::MPI::MSG_SIMULTANEOUS_REPLICATES, MPI_COMM_WORLD);
+    int * maxSlotsTable = new int[lm::MPI::worldSize];
+    MPI_MastBcastIn<int>(maxSlotsTable, 1, MPI_INT, lm::MPI::MSG_SIMULTANEOUS_REPLICATES, MPI_COMM_WORLD);
 
     //calculate the total number of replicates that can be run simultaneously
-    int simultaneousReplicates=0;
-    for (int i=0; i<lm::MPI::worldSize; i++) simultaneousReplicates += maxSimulationsTable[i];
-    Print::printf(Print::INFO, "Number of simultaneous replicates is %d", simultaneousReplicates);
-    if (simultaneousReplicates == 0) throw Exception("Invalid configuration, no replicates can be processed.");
+    int maxSlotsTotal=0;
+    for (int i=0; i<lm::MPI::worldSize; ++i) maxSlotsTotal += maxSlotsTable[i];
+    Print::printf(Print::INFO, "Number of simultaneous replicates is %d", maxSlotsTotal);
+    if (maxSlotsTotal == 0) throw Exception("Invalid configuration, no replicates can be processed.");
+
+//    for (int i=0; i<lm::MPI::worldSize; ++i) {
+//    	for (int j=0; j<maxSimulationsTable[i]; ++j) {
+//        	vector<int> threadId;
+//        	threadId.push_back(i);
+//        	threadId.push_back(j);
+//        	availableThreads.push_back(threadId);
+//    	}
+//    }
+
 
     // Initialize simulation status and simulation timing table.
     for (vector<int>::iterator it=replicates.begin(); it<replicates.end(); it++)
@@ -100,43 +110,43 @@ int LocalReplicateSupervisor::run()
         bcastThing<lm::io::ReactionModel, lm::MPI::MSG_REACTION_MODEL>(staticDataBuffer, &reactionModel);
     }
 
-    // Get the diffusion model and distribute it to the slaves.
-    lm::io::DiffusionModel diffusionModel;
-    uint8_t * lattice=NULL, * latticeSites=NULL;
-    size_t latticeSize=0, latticeSitesSize=0;
-    if (solverFactory.needsDiffusionModel())
-    {
-        file->getDiffusionModel(&diffusionModel);
-        latticeSize = diffusionModel.lattice_x_size()*diffusionModel.lattice_y_size()*diffusionModel.lattice_z_size()*diffusionModel.particles_per_site();
-        lattice = new uint8_t[latticeSize];
-        latticeSitesSize = diffusionModel.lattice_x_size()*diffusionModel.lattice_y_size()*diffusionModel.lattice_z_size();
-        latticeSites = new uint8_t[latticeSitesSize];
-        file->getDiffusionModelLattice(&diffusionModel, lattice, latticeSize, latticeSites, latticeSitesSize);
-        bcastThing<lm::io::DiffusionModel, lm::MPI::MSG_DIFFUSION_MODEL>(staticDataBuffer, &diffusionModel);
-        bcastSizeThenBuffer<lm::MPI::MSG_LATTICE>(lattice, latticeSize);
-        bcastSizeThenBuffer<lm::MPI::MSG_LATTICE_SITES>(latticeSites, latticeSitesSize);
-        //broadcastDiffusionModel(staticDataBuffer, &diffusionModel, lattice, latticeSize, latticeSites, latticeSitesSize);
-    }
-
-    Print::printf(Print::DEBUG, "setup done.");
-    //initialize replicate runners on all nodes via messages
-    int replicate;
-    for (int i=0; i<lm::MPI::worldSize; ++i)
-    {
-        for (int j=0; j<maxSimulationsTable[i]; ++j)
-        {
-            Print::printf(Print::DEBUG, "finding space for replicate %d out of node max %d", j, maxSimulationsTable[i]);
-            // find a replicate to run and send the message to a replicate manager to run it
-            replicate = FindRep(i);
-            // If all of the simulations have been assigned, stop
-            if (replicate==-1)
-            {
-                j=maxSimulationsTable[i];
-                i=lm::MPI::worldSize;
-            }
-            else RunRep(replicate, i);
-        }
-    }
+//    // Get the diffusion model and distribute it to the slaves.
+//    lm::io::DiffusionModel diffusionModel;
+//    uint8_t * lattice=NULL, * latticeSites=NULL;
+//    size_t latticeSize=0, latticeSitesSize=0;
+//    if (solverFactory.needsDiffusionModel())
+//    {
+//        file->getDiffusionModel(&diffusionModel);
+//        latticeSize = diffusionModel.lattice_x_size()*diffusionModel.lattice_y_size()*diffusionModel.lattice_z_size()*diffusionModel.particles_per_site();
+//        lattice = new uint8_t[latticeSize];
+//        latticeSitesSize = diffusionModel.lattice_x_size()*diffusionModel.lattice_y_size()*diffusionModel.lattice_z_size();
+//        latticeSites = new uint8_t[latticeSitesSize];
+//        file->getDiffusionModelLattice(&diffusionModel, lattice, latticeSize, latticeSites, latticeSitesSize);
+//        bcastThing<lm::io::DiffusionModel, lm::MPI::MSG_DIFFUSION_MODEL>(staticDataBuffer, &diffusionModel);
+//        bcastSizeThenBuffer<lm::MPI::MSG_LATTICE>(lattice, latticeSize);
+//        bcastSizeThenBuffer<lm::MPI::MSG_LATTICE_SITES>(latticeSites, latticeSitesSize);
+//        //broadcastDiffusionModel(staticDataBuffer, &diffusionModel, lattice, latticeSize, latticeSites, latticeSitesSize);
+//    }
+//
+//    Print::printf(Print::DEBUG, "setup done.");
+//    //initialize replicate runners on all nodes via messages
+//    int replicate;
+//    for (int i=0; i<lm::MPI::worldSize; ++i)
+//    {
+//        for (int j=0; j<maxSimulationsTable[i]; ++j)
+//        {
+//            Print::printf(Print::DEBUG, "finding space for replicate %d out of node max %d", j, maxSimulationsTable[i]);
+//            // find a replicate to run and send the message to a replicate manager to run it
+//            replicate = FindRep(i);
+//            // If all of the simulations have been assigned, stop
+//            if (replicate==-1)
+//            {
+//                j=maxSimulationsTable[i];
+//                i=lm::MPI::worldSize;
+//            }
+//            else RunRep(replicate, i);
+//        }
+//    }
 
     // simulation control loop
     while (true)
@@ -206,7 +216,7 @@ int LocalReplicateSupervisor::run()
 }
 
 //send message, one by one, to all nodes including master. nodes should use MPI_Recv plus the relevant tag to receive
-void LocalReplicateSupervisor::MPI_MastBcastOut(void * buf, int count, MPI_Datatype datatype, int tag, MPI_Comm comm)
+void ReplicateSupervisor::MPI_MastBcastOut(void * buf, int count, MPI_Datatype datatype, int tag, MPI_Comm comm)
 {
     Print::printf(Print::DEBUG, "in mastbcastout, lm::MPI::worldSize is %d and lm::MPI::MASTER is %d.", lm::MPI::worldSize, lm::MPI::MASTER);
     for(int destProc=0; destProc < lm::MPI::worldSize; ++destProc)
@@ -216,7 +226,7 @@ void LocalReplicateSupervisor::MPI_MastBcastOut(void * buf, int count, MPI_Datat
 }
 
 template <typename t>
-void LocalReplicateSupervisor::MPI_MastBcastIn(t * recvtable, int recvcount, MPI_Datatype recvtype, int recvtag, MPI_Comm comm)
+void ReplicateSupervisor::MPI_MastBcastIn(t * recvtable, int recvcount, MPI_Datatype recvtype, int recvtag, MPI_Comm comm)
 {
     MPI_Status messageStatus;
     for(int sendProc; sendProc < lm::MPI::worldSize; ++sendProc)
@@ -226,7 +236,7 @@ void LocalReplicateSupervisor::MPI_MastBcastIn(t * recvtable, int recvcount, MPI
 }
 
 template <typename t, int tag>
-void LocalReplicateSupervisor::bcastThing(void * staticDataBuffer, t * thing)
+void ReplicateSupervisor::bcastThing(void * staticDataBuffer, t * thing)
 {
     int msgSize = thing->ByteSize();
     if (msgSize > lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE) throw Exception("Message exceeded buffer size. Message tag:", tag);
@@ -235,7 +245,7 @@ void LocalReplicateSupervisor::bcastThing(void * staticDataBuffer, t * thing)
 }
 
 template <int tag>
-void LocalReplicateSupervisor::bcastSizeThenBuffer(void * staticDataBuffer, int msgSize)
+void ReplicateSupervisor::bcastSizeThenBuffer(void * staticDataBuffer, int msgSize)
 {
     Print::printf(Print::DEBUG, "sending msg with tag %d.", tag);
     MPI_MastBcastOut(&msgSize, 1, MPI_INT, lm::MPI::MSG_MSG_SIZE, MPI_COMM_WORLD);
@@ -244,7 +254,7 @@ void LocalReplicateSupervisor::bcastSizeThenBuffer(void * staticDataBuffer, int 
     Print::printf(Print::DEBUG, "messge with tag %d sent.", tag);
 }
 
-int LocalReplicateSupervisor::FindRep(int destProc)
+int ReplicateSupervisor::FindRep(int destProc)
 {
     int replicate = -1;
     bool allFinished=true;
@@ -265,7 +275,7 @@ int LocalReplicateSupervisor::FindRep(int destProc)
     return replicate;
 }
 
-int LocalReplicateSupervisor::RunRep(int destProc, int replicate)
+int ReplicateSupervisor::RunRep(int destProc, int replicate)
 {
     //send the message to start replicate to node with rank of destProc
     MPI_EXCEPTION_CHECK(MPI_Send(&replicate, 1, MPI_INT, destProc, lm::MPI::MSG_RUN_SIMULATION, MPI_COMM_WORLD));

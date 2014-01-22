@@ -43,13 +43,15 @@
 #include "lm/Exceptions.h"
 #include "lm/Math.h"
 #include "lm/Types.h"
-#include "lm/main/ResourceAllocator.h"
+#include "lm/resource/ResourceAllocator.h"
 #include "lm/thread/Thread.h"
+#include "lm/work/Result.pb.h"
+#include "lm/work/Work.pb.h"
 
 using lm::thread::PthreadException;
 
 namespace lm {
-namespace main {
+namespace resource {
 
 ResourceAllocator::ResourceAllocator(int processNumber, int numberCpuCores, float cpuCoresPerReplicate) throw(Exception,PthreadException)
 :processNumber(processNumber),numberCpuCores(numberCpuCores),reservedCpuCores(0),cpuSlots(NULL),cudaSlots(NULL)
@@ -197,7 +199,7 @@ ResourceAllocator::ComputeResources ResourceAllocator::assignReplicate(int repli
     if ((int)allocatedResources.cpuCores.size() != cpuSlotsPerReplicate || (int)allocatedResources.cudaDevices.size() != cudaSlotsPerReplicate)
     {
         PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&mutex));
-        removeReplicate(replicate);
+        AssignWorkUnit(replicate);
         throw lm::Exception("Could not find enough resources to assign the replicate.");
     }
 
@@ -247,7 +249,7 @@ int ResourceAllocator::reserveCpuCore() throw(Exception,PthreadException)
     	throw lm::Exception("No free cpu cores available to reserve.");
 }
 
-void ResourceAllocator::removeReplicate(int replicate) throw(Exception,PthreadException)
+void ResourceAllocator::AssignWorkUnit(int replicate) throw(Exception,PthreadException)
 {
     //// BEGIN CRITICAL SECTION: mutex
     PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&mutex));

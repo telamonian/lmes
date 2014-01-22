@@ -41,10 +41,10 @@
 #define LM_ME_MESOLVER_H
 
 #include <map>
-#include "lm/main/ResourceAllocator.h"
+#include "lm/resource/ResourceAllocator.h"
 
 using std::map;
-using lm::main::ResourceAllocator;
+using lm::resource::ResourceAllocator;
 
 namespace lm {
 

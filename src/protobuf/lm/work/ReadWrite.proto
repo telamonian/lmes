@@ -1,0 +1,8 @@
+package lm.work;
+
+message SpeciesCounts {
+	optional uint32 number_species		= 1;
+	optional number_entries        		= 2;
+	optional double time       			= 3;
+	repeated uint32 species_count      	= 4 [packed=true];
+}

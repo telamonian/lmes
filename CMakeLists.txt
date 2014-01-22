@@ -11,7 +11,7 @@ SET(CMAKE_CXX_COMPILER g++)
 ################
 project(lm)
 ################
-#if certain packages cannot be found, the end-user (you) can change the variables in CMakeConfig.txt
+#if certain packages cannot be found, the end-user (you) can change the variables in CMakeConfig.txt to point to package paths
 include(CMakeConfig.txt)
 
 #automagic setup for linux, os X 10.7-8 (and lower?), and os X 10.9

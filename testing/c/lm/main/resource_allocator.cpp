@@ -42,12 +42,12 @@
 #include "lm/Exceptions.h"
 #include "lm/Types.h"
 #include "SpeciesCounts.pb.h"
-#include "lm/main/ResourceAllocator.h"
+#include "lm/resource/ResourceAllocator.h"
 #define BOOST_TEST_MODULE LatticeMicrobe
 #include <boost/test/unit_test.hpp>
 
 using std::vector;
-using lm::main::ResourceAllocator;
+using lm::resource::ResourceAllocator;
 
 class ResourceAllocatorTester : public ResourceAllocator
 {

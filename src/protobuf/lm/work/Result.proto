@@ -1,0 +1,9 @@
+#include "lm/work/ReadWrite.proto"
+package lm.work;
+
+message Result {
+	optional uint32 traj_id 			= 1;
+	optional unit32 pid					= 2;
+	optional unit32 sid					= 3;
+	repeated lm.io.ReadWrite readWrite	= 4;
+}

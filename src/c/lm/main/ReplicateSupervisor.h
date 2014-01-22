@@ -10,11 +10,13 @@
 
 #include <list>
 #include <map>
+#include <deque>
 #include <string>
+#include <vector>
 #include "DiffusionModel.pb.h"
 #include "ReactionModel.pb.h"
 #include "lm/io/hdf5/SimulationFile.h"
-#include "lm/main/ResourceAllocator.h"
+#include "lm/resource/ResourceAllocator.h"
 #include "lm/main/ReplicateRunner.h"
 #include "lm/me/MESolverFactory.h"
 #include "lm/MPI.h"
@@ -26,17 +28,19 @@ namespace main {
 
 using lm::me::MESolverFactory;
 using lm::main::ReplicateRunner;
+using std::deque;
 using std::list;
 using std::map;
 using std::string;
+using std::vector;
 
-class LocalReplicateSupervisor : public lm::thread::Worker
+class ReplicateSupervisor : public lm::thread::Worker
 {
 
 
 public:
-    LocalReplicateSupervisor(lm::io::hdf5::Hdf5File * file) throw(PthreadException);
-    virtual ~LocalReplicateSupervisor() throw(PthreadException);
+    ReplicateSupervisor(lm::io::hdf5::Hdf5File * file) throw(PthreadException);
+    virtual ~ReplicateSupervisor() throw(PthreadException);
 
     virtual void wake() throw(PthreadException);
     virtual void abort() throw(PthreadException);
@@ -55,6 +59,8 @@ public:
     template <int tag>
     void bcastSizeThenBuffer(void * staticDataBuffer, int msgSize);
 
+    deque<vector<int> > availableThreads;
+    deque<vector<int> > busyThreads;
     map<int,int> simulationStatusTable;
 protected:
     virtual int run();

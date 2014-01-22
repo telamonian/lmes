@@ -1,0 +1,9 @@
+#include "lm/message/SimulationParameters.proto"
+#include "lm/io/ReactionModel.proto"
+
+package lm.work;
+
+message ReadOnly {
+	optional lm.message.SimulationParameters simulationParameters 	= 1;
+	optional lm.io.ReactionModel reactionModel 						= 2;
+}

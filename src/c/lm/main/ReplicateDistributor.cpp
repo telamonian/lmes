@@ -11,30 +11,30 @@
 #include "lm/io/SimulationParameters.h"
 #include "lm/main/BruteRunner.h"
 #include "lm/main/ForwardFluxRunner.h"
-#include "lm/main/ReplicateManager.h"
+#include "lm/main/ReplicateDistributor.h"
 #include "SimulationParameters.pb.h"
 #include "lm/MPI.h"
 
 namespace lm {
 namespace main {
 
-ReplicateManager::ReplicateManager(ResourceAllocator & resourceAllocator, MESolverFactory & solverFactory) throw(PthreadException):
+ReplicateDistributor::ReplicateDistributor(ResourceAllocator & resourceAllocator, MESolverFactory & solverFactory) throw(PthreadException):
 resourceAllocator(resourceAllocator),
 solverFactory(solverFactory),
 shouldCheckpoint(false),
 shouldAbort(false)
 {}
 
-ReplicateManager::~ReplicateManager() throw(PthreadException)
+ReplicateDistributor::~ReplicateDistributor() throw(PthreadException)
 {
 }
 
-void ReplicateManager::wake() throw(PthreadException)
+void ReplicateDistributor::wake() throw(PthreadException)
 {
     MPI_EXCEPTION_CHECK(MPI_Send(NULL, 0, MPI_INT, lm::MPI::worldRank, lm::MPI::MSG_WAKE_REPLICATE_MANAGER, MPI_COMM_WORLD));
 }
 
-void ReplicateManager::abort() throw(PthreadException)
+void ReplicateDistributor::abort() throw(PthreadException)
 {
     if (running)
     {
@@ -43,7 +43,7 @@ void ReplicateManager::abort() throw(PthreadException)
     }
 }
 
-void ReplicateManager::checkpoint() throw(PthreadException)
+void ReplicateDistributor::checkpoint() throw(PthreadException)
 {
     bool success=false;
 
@@ -55,7 +55,7 @@ void ReplicateManager::checkpoint() throw(PthreadException)
     }
 }
 
-int ReplicateManager::run()
+int ReplicateDistributor::run()
 {
     Print::printf(Print::DEBUG, "zero.");
     // MPI message variables.
@@ -146,7 +146,7 @@ int ReplicateManager::run()
 }
 
 template <int tag>
-void ReplicateManager::receiveSizeThenBuffer(void * staticDataBuffer, int & msgSize)
+void ReplicateDistributor::receiveSizeThenBuffer(void * staticDataBuffer, int & msgSize)
 {
     MPI_Status msgStat;
     Print::printf(Print::DEBUG, "receiving msg with tag %d.", tag);
@@ -162,14 +162,14 @@ void ReplicateManager::receiveSizeThenBuffer(void * staticDataBuffer, int & msgS
 }
 
 template <typename t, int tag>
-void ReplicateManager::receiveThing(void * staticDataBuffer, t * thing)
+void ReplicateDistributor::receiveThing(void * staticDataBuffer, t * thing)
 {
     int msgSize;
     receiveSizeThenBuffer<tag>(staticDataBuffer, msgSize);
     thing->ParseFromArray(staticDataBuffer, msgSize);
 }
 
-void ReplicateManager::receiveLatticeModel(uint8_t ** lattice, size_t * latticeSize, uint8_t ** latticeSites, size_t * latticeSitesSize)
+void ReplicateDistributor::receiveLatticeModel(uint8_t ** lattice, size_t * latticeSize, uint8_t ** latticeSites, size_t * latticeSitesSize)
 {
     MPI_Status messageStatus;
     MPI_EXCEPTION_CHECK(MPI_Recv(latticeSize, 1, MPI_INT, lm::MPI::MASTER, lm::MPI::MSG_MSG_SIZE, MPI_COMM_WORLD, &messageStatus));
@@ -182,7 +182,7 @@ void ReplicateManager::receiveLatticeModel(uint8_t ** lattice, size_t * latticeS
     Print::printf(Print::DEBUG, "Process %d received diffusion model lattice: %d and %d bytes", lm::MPI::worldRank, *latticeSize, *latticeSitesSize);
 }
 
-void ReplicateManager::startReplicate(int replicate, MESolverFactory solverFactory, std::map<std::string,string> & simulationParameters, lm::io::ReactionModel * reactionModel, lm::io::DiffusionModel * diffusionModel, uint8_t * lattice, size_t latticeSize, uint8_t * latticeSites, size_t latticeSitesSize, ResourceAllocator & resourceAllocator) throw(Exception,PthreadException)
+void ReplicateDistributor::startReplicate(int replicate, MESolverFactory solverFactory, std::map<std::string,string> & simulationParameters, lm::io::ReactionModel * reactionModel, lm::io::DiffusionModel * diffusionModel, uint8_t * lattice, size_t latticeSize, uint8_t * latticeSites, size_t latticeSitesSize, ResourceAllocator & resourceAllocator) throw(Exception,PthreadException)
 {
     // Allocate resources for the replicate.
     ResourceAllocator::ComputeResources resources = resourceAllocator.assignReplicate(replicate);
@@ -201,7 +201,7 @@ void ReplicateManager::startReplicate(int replicate, MESolverFactory solverFacto
     runningReplicates.push_back(runner);
 }
 
-ReplicateRunner * ReplicateManager::popNextFinishedReplicate(list<ReplicateRunner *> & runningReplicates, ResourceAllocator & resourceAllocator)
+ReplicateRunner * ReplicateDistributor::popNextFinishedReplicate(list<ReplicateRunner *> & runningReplicates, ResourceAllocator & resourceAllocator)
 {
     for (list<ReplicateRunner *>::iterator it=runningReplicates.begin(); it != runningReplicates.end(); it++)
     {

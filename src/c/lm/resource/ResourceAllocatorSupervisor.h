@@ -1,7 +1,12 @@
 /*
  * University of Illinois Open Source License
+ * Copyright 2011 Luthey-Schulten Group,
  * Copyright 2012 Roberts Group,
  * All rights reserved.
+ * 
+ * Developed by: Luthey-Schulten Group
+ * 			     University of Illinois at Urbana-Champaign
+ * 			     http://www.scs.uiuc.edu/~schulten
  * 
  * Developed by: Roberts Group
  * 			     Johns Hopkins University
@@ -21,9 +26,10 @@
  * this list of conditions and the following disclaimers in the documentation 
  * and/or other materials provided with the distribution.
  * 
- * - Neither the names of the Roberts Group, Johns Hopkins University
- * nor the names of its contributors may be used to endorse or promote products
- * derived from this Software without specific prior written permission.
+ * - Neither the names of the Luthey-Schulten Group, University of Illinois at
+ * Urbana-Champaign, the Roberts Group, Johns Hopkins University, nor the names
+ * of its contributors may be used to endorse or promote products derived from
+ * this Software without specific prior written permission.
  * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
@@ -34,49 +40,52 @@
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
  * Author(s): Elijah Roberts
+ * 			  Max Klein
  */
 
-#ifndef LM_MAIN_MPINODERESOURCEMAP_H_
-#define LM_MAIN_MPINODERESOURCEMAP_H_
+#ifndef LM_MAIN_RESOURCEALLOCATORSUPERVISOR_H_
+#define LM_MAIN_RESOURCEALLOCATORSUPERVISOR_H_
 
-#include <list>
 #include <map>
 #include <string>
 #include <vector>
+#include "lm/thread/Thread.h"
+#include "lm/work/Result.pb.h"
+#include "lm/work/Work.pb.h"
 
-using std::list;
 using std::map;
 using std::string;
 using std::vector;
+using lm::thread::PthreadException;
 
 namespace lm {
-namespace main {
+namespace resource {
 
-class MPINodeResourceMap
+class ResourceAllocatorSupervisor : public ResourceAllocator
 {
 public:
-    class ComputeResources
-    {
-    public:
-    	string hostname;
-        vector<int> cpuCores;
-        vector<int> cudaDevices;
-    };
-
+	static enum slotStatus {FREE, BUSY, DEAD};
+	class Slot
+	{
+	public:
+		Slot(): status(FREE) {}
+		~Slot();
+		slotStatus status;
+	};
 
 public:
-    MPINodeResourceMap(list<string> hostnames, int defaultNumberCpuCores);
-    virtual ~MPINodeResourceMap();
-    int* getCpuCoresTable() {return cpuCoresTable;}
+    ResourceAllocatorSupervisor(int * maxSlotsTable) throw(Exception,PthreadException);
+    virtual ~ResourceAllocatorSupervisor() throw(PthreadException);
 
-protected:
-    list<string> parsePBSNodeFile(string filename);
+    virtual int getMaxSimultaneousSlots();
+    virtual void assignWorkUnit(lm::work::Work & workUnit) throw(Exception,PthreadException);
+    virtual void freeWorkUnit(lm::work::Result & resultUnit) throw(Exception,PthreadException);
 
-protected:
-    int numberNodes;
-    map<int,ComputeResources> resourceMap;
-    map<string,int> hostnameMap;
-    int* cpuCoresTable;
+    map<vector<int>, Slot> slots;
+    int maxSlots;
+
+private:
+    void initialize(int * maxSlotsTable);
 };
 
 }
