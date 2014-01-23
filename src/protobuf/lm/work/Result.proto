@@ -2,8 +2,21 @@
 package lm.work;
 
 message Result {
-	optional uint32 traj_id 			= 1;
+	optional uint32 tid		 			= 1;
 	optional unit32 pid					= 2;
 	optional unit32 sid					= 3;
-	repeated lm.io.ReadWrite readWrite	= 4;
+		
+	enum JobType {
+		REPLICATE_CME = 0;
+		REPLICATE_RDME = 1;
+		FFS1_CME = 2;
+		FFS2_CME = 3;
+		FFS1_RDME = 4;
+		FFS2_RDME = 5;
+	}
+	
+	optional JobType jobtype			= 4;
+	optinal uint32 ffs2Interface		= 5;
+	repeated lm.io.ReadWrite readWrite	= 6;
+	repeated uint32 writeIndexes		= 7 [packed=true];	//the indexes (if any) of this message's readWrite array that should be written out to disk
 }

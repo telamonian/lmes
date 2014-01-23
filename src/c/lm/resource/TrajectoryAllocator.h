@@ -10,6 +10,7 @@
 
 #include <string>
 #include <vector>
+#include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/SimulationParameters.h"
 #include "lm/thread/Thread.h"
 #include "lm/work/ReadOnly"
@@ -56,16 +57,25 @@ public:
 	};
 
 public:
-    TrajectoryAllocator(bool needsReactionModel, bool needsDiffusionModel);
+    TrajectoryAllocator(lm::io::hdf5::Hdf5File * file, bool needsReactionModel, bool needsDiffusionModel):
+    	tidCounter(0), file(file), needsReactionModel(needsReactionModel), needsDiffusionModel(needsDiffusionModel) {initialize();}
     virtual ~TrajectoryAllocator();
 
+    virtual void initialize();
     virtual int createTid();
     virtual void initTrajectory();
-    virtual void createTrajectory();
+    virtual Trajectory createTrajectory(int tid);
     virtual void destoryTrajectory();
-    virtual void update(int tid, lm::work::Result Result) {trajectories[tid].update()}
+    virtual void update(int tid, lm::work::Result & Result) {trajectories[tid].update()}
 
-    int tidCounter;		//equal to next trajectory ID to be created
+    int tidCounter;			//equal to next trajectory ID to be created
+    bool reusableInitDone;	//true if the reusable portion of the trajectory initialization procedure has been assembled at least once
+    lm::io::hdf5::Hdf5File * file;
+    lm::io::SimulationParameters simulationParameters;
+    lm::io::ReactionModel reactionModel;
+    lm::work::ReadWrite readWrite;
+    bool needsReactionModel;
+    bool needsDiffusionModel;
     map<int, Trajectory> trajectories;
 };
 
