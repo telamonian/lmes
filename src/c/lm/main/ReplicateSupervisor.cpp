@@ -83,67 +83,6 @@ int ReplicateSupervisor::run()
     void * staticDataBuffer = NULL;
     lm::work::Result result;
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE, MPI_INFO_NULL, &staticDataBuffer));
-//    int finishedMessage[2];
-//
-//    // Initialize simulation status and simulation timing table.
-//    for (vector<int>::iterator it=replicates.begin(); it<replicates.end(); it++)
-//    {
-//        simulationStatusTable[*it] = 0;
-//        simulationStartTimeTable[*it].tv_sec = 0;
-//        simulationStartTimeTable[*it].tv_nsec = 0;
-//    }
-//
-//    // Get the simulation parameters and distribute them to the slaves.
-//    //std::map<std::string,string> simulationParameters = file->getParameters();
-//    lm::io::SimulationParameters simulationParameters(file->getParameters());
-//    bcastThing<lm::io::SimulationParameters, lm::MPI::MSG_SIMULATION_PARAMETERS>(staticDataBuffer, &simulationParameters);
-//
-//    // Get the reaction model and distribute it to the slaves.
-//    lm::io::ReactionModel reactionModel;
-//
-//    if (solverFactory.needsReactionModel())
-//    {
-//        file->getReactionModel(&reactionModel);
-//        bcastThing<lm::io::ReactionModel, lm::MPI::MSG_REACTION_MODEL>(staticDataBuffer, &reactionModel);
-//    }
-
-//    // Get the diffusion model and distribute it to the slaves.
-//    lm::io::DiffusionModel diffusionModel;
-//    uint8_t * lattice=NULL, * latticeSites=NULL;
-//    size_t latticeSize=0, latticeSitesSize=0;
-//    if (solverFactory.needsDiffusionModel())
-//    {
-//        file->getDiffusionModel(&diffusionModel);
-//        latticeSize = diffusionModel.lattice_x_size()*diffusionModel.lattice_y_size()*diffusionModel.lattice_z_size()*diffusionModel.particles_per_site();
-//        lattice = new uint8_t[latticeSize];
-//        latticeSitesSize = diffusionModel.lattice_x_size()*diffusionModel.lattice_y_size()*diffusionModel.lattice_z_size();
-//        latticeSites = new uint8_t[latticeSitesSize];
-//        file->getDiffusionModelLattice(&diffusionModel, lattice, latticeSize, latticeSites, latticeSitesSize);
-//        bcastThing<lm::io::DiffusionModel, lm::MPI::MSG_DIFFUSION_MODEL>(staticDataBuffer, &diffusionModel);
-//        bcastSizeThenBuffer<lm::MPI::MSG_LATTICE>(lattice, latticeSize);
-//        bcastSizeThenBuffer<lm::MPI::MSG_LATTICE_SITES>(latticeSites, latticeSitesSize);
-//        //broadcastDiffusionModel(staticDataBuffer, &diffusionModel, lattice, latticeSize, latticeSites, latticeSitesSize);
-//    }
-//
-//    Print::printf(Print::DEBUG, "setup done.");
-//    //initialize replicate runners on all nodes via messages
-//    int replicate;
-//    for (int i=0; i<lm::MPI::worldSize; ++i)
-//    {
-//        for (int j=0; j<maxSimulationsTable[i]; ++j)
-//        {
-//            Print::printf(Print::DEBUG, "finding space for replicate %d out of node max %d", j, maxSimulationsTable[i]);
-//            // find a replicate to run and send the message to a replicate manager to run it
-//            replicate = FindRep(i);
-//            // If all of the simulations have been assigned, stop
-//            if (replicate==-1)
-//            {
-//                j=maxSimulationsTable[i];
-//                i=lm::MPI::worldSize;
-//            }
-//            else RunRep(replicate, i);
-//        }
-//    }
 
     // distribute first round of work units to slave distributors. In theory, # work units = # trajectories = # slots
     distributeTrajectories();
@@ -192,13 +131,9 @@ int ReplicateSupervisor::run()
 //                now.tv_sec = now2.tv_sec;
 //                now.tv_nsec = now2.tv_usec*1000;
 //                #endif
-//
-//                MPI_EXCEPTION_CHECK(MPI_Recv(&finishedMessage, 2, MPI_INT, MPI_ANY_SOURCE, lm::MPI::MSG_SIMULATION_FINISHED, MPI_COMM_WORLD, &messageStatus));
+
 //                Print::printf(Print::INFO, "Replicate %d completed by process %d with exit code %d in %0.2f seconds.", finishedMessage[0], messageStatus.MPI_SOURCE, finishedMessage[1], ((double)(now.tv_sec-simulationStartTimeTable[finishedMessage[0]].tv_sec))+1e-9*((double)now.tv_nsec-simulationStartTimeTable[finishedMessage[0]].tv_nsec));
-//                simulationStatusTable[finishedMessage[0]] = 2;
-//                replicate = FindRep(messageStatus.MPI_SOURCE);
-//                if (replicate==-2) break;
-//                else RunRep(messageStatus.MPI_SOURCE, replicate);
+
 //            	PROF_BEGIN(PROF_MASTER_READ_STATIC_MSG);
 				// Read the message into the buffer.
 				MPI_EXCEPTION_CHECK(MPI_Recv(staticDataBuffer, lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE, MPI_BYTE, messageStatus.MPI_SOURCE, lm::MPI::MSG_RESULT_UNIT, MPI_COMM_WORLD, &messageStatus));
@@ -234,28 +169,13 @@ void update(lm::work::Result & result)
 	trajectoryAllocator.update(result);
 }
 
-//function that can be run at any time to determine free slots in the comm
-deque<map<vector<int>, SlotAllocatorSupervisor::Slot>::iterator> ReplicateSupervisor::findSlots()
-{
-	deque<map<vector<int>, SlotAllocatorSupervisor::Slot>::iterator> slots;
-	for (map<vector<int>, SlotAllocatorSupervisor::Slot>::iterator slot_it = SlotAllocatorSupervisor.getBegin(); slot_it<SlotAllocatorSupervisor.getEnd(); ++slot_it)
-	{
-		if (slot_it->second.status==SlotAllocatorSupervisor::FREE)
-		{
-			slots.push_back(slot_it);
-		}
-	}
-	return slots;
-}
-
 //does the following:
 //marks slot as BUSY
 //sets slot related properties (pid, sid) of trajectory
 //sends work unit to appropriate process using an MPI message
 void ReplicateSupervisor::distributeTrajectory(map<vector<int>, SlotAllocatorSupervisor::Slot>::iterator slot_it, map<int, TrajectoryAllocator::Trajectory>::iterator traj_it)
 {
-	vector<int> slotIds(slot_it->aloc());
-	traj_it->distribute(slotIds);
+	traj_it->second.distribute(slot_it->second.alloc());	//slot_it->second.alloc() allocates the slot the iterator points to and return a vector of [pid, sid]
 }
 
 //function that can be run at any time to distribute unfinished trajectories to free slots
@@ -274,13 +194,13 @@ void ReplicateSupervisor::distributeTrajectories()
 			{
 				return;
 			}
-			if (traj_it->status==TrajectoryAllocator::CONTINUE && traj_it->getPid()==-1 && traj_it->getSid()==-1)
+			if (traj_it->second.status==TrajectoryAllocator::CONTINUE && traj_it->second.getPid()==-1 && traj_it->second.getSid()==-1)
 			{
 				distributeTrajectory(slots.back(), traj_it);
 				slots.pop_back();
 				++traj_it;
 			}
-			else if (traj_it->status==TrajectoryAllocator::FINISHED)
+			else if (traj_it->second.status==TrajectoryAllocator::FINISHED)
 			{
 				trajectoryAllocator.eraseTrajectory(traj_it++);
 				trajectoryAllocator.initTrajectory();
@@ -290,74 +210,74 @@ void ReplicateSupervisor::distributeTrajectories()
 	} while (modifiedTrajectories==true);
 }
 
-//send message, one by one, to all nodes including master. nodes should use MPI_Recv plus the relevant tag to receive
-void ReplicateSupervisor::MPI_MastBcastOut(void * buf, int count, MPI_Datatype datatype, int tag, MPI_Comm comm)
-{
-    Print::printf(Print::DEBUG, "in mastbcastout, lm::MPI::worldSize is %d and lm::MPI::MASTER is %d.", lm::MPI::worldSize, lm::MPI::MASTER);
-    for(int destProc=0; destProc < lm::MPI::worldSize; ++destProc)
-    {
-        MPI_EXCEPTION_CHECK(MPI_Send(buf, count, datatype, destProc, tag, comm));
-    }
-}
-
-template <typename t>
-void ReplicateSupervisor::MPI_MastBcastIn(t * recvtable, int recvcount, MPI_Datatype recvtype, int recvtag, MPI_Comm comm)
-{
-    MPI_Status messageStatus;
-    for(int sendProc; sendProc < lm::MPI::worldSize; ++sendProc)
-    {
-        MPI_EXCEPTION_CHECK(MPI_Recv(recvtable + sendProc, recvcount, recvtype, sendProc, recvtag, comm, &messageStatus));
-    }
-}
-
-template <typename t, int tag>
-void ReplicateSupervisor::bcastThing(void * staticDataBuffer, t * thing)
-{
-    int msgSize = thing->ByteSize();
-    if (msgSize > lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE) throw Exception("Message exceeded buffer size. Message tag:", tag);
-    thing->SerializeToArray(staticDataBuffer, msgSize);
-    bcastSizeThenBuffer<tag>(staticDataBuffer, msgSize);
-}
-
-template <int tag>
-void ReplicateSupervisor::bcastSizeThenBuffer(void * staticDataBuffer, int msgSize)
-{
-    Print::printf(Print::DEBUG, "sending msg with tag %d.", tag);
-    MPI_MastBcastOut(&msgSize, 1, MPI_INT, lm::MPI::MSG_MSG_SIZE, MPI_COMM_WORLD);
-
-    MPI_MastBcastOut(staticDataBuffer, msgSize, MPI_BYTE, tag, MPI_COMM_WORLD);
-    Print::printf(Print::DEBUG, "messge with tag %d sent.", tag);
-}
-
-int ReplicateSupervisor::FindRep(int destProc)
-{
-    int replicate = -1;
-    bool allFinished=true;
-    for (vector<int>::iterator it=replicates.begin(); it<replicates.end(); it++)
-    {
-        if (simulationStatusTable[*it] == 0)
-        {
-            replicate = *it;
-            allFinished = false;
-            break;
-        }
-        if (simulationStatusTable[*it] != 2) allFinished = false;
-    }
-    // if all replicates have finished, signal that the whole program is done
-    if (allFinished) return -2;
-    // If we are out of new simulations to run, signal that all replicates have been assigned
-    if (replicate==-1) return replicate;
-    return replicate;
-}
-
-int ReplicateSupervisor::RunRep(int destProc, int replicate)
-{
-    //send the message to start replicate to node with rank of destProc
-    MPI_EXCEPTION_CHECK(MPI_Send(&replicate, 1, MPI_INT, destProc, lm::MPI::MSG_RUN_SIMULATION, MPI_COMM_WORLD));
-    Print::printf(Print::DEBUG, "signal to start replicate %d sent", replicate);
-    simulationStatusTable[replicate] = 1;
-    return replicate;
-}
+////send message, one by one, to all nodes including master. nodes should use MPI_Recv plus the relevant tag to receive
+//void ReplicateSupervisor::MPI_MastBcastOut(void * buf, int count, MPI_Datatype datatype, int tag, MPI_Comm comm)
+//{
+//    Print::printf(Print::DEBUG, "in mastbcastout, lm::MPI::worldSize is %d and lm::MPI::MASTER is %d.", lm::MPI::worldSize, lm::MPI::MASTER);
+//    for(int destProc=0; destProc < lm::MPI::worldSize; ++destProc)
+//    {
+//        MPI_EXCEPTION_CHECK(MPI_Send(buf, count, datatype, destProc, tag, comm));
+//    }
+//}
+//
+//template <typename t>
+//void ReplicateSupervisor::MPI_MastBcastIn(t * recvtable, int recvcount, MPI_Datatype recvtype, int recvtag, MPI_Comm comm)
+//{
+//    MPI_Status messageStatus;
+//    for(int sendProc; sendProc < lm::MPI::worldSize; ++sendProc)
+//    {
+//        MPI_EXCEPTION_CHECK(MPI_Recv(recvtable + sendProc, recvcount, recvtype, sendProc, recvtag, comm, &messageStatus));
+//    }
+//}
+//
+//template <typename t, int tag>
+//void ReplicateSupervisor::bcastThing(void * staticDataBuffer, t * thing)
+//{
+//    int msgSize = thing->ByteSize();
+//    if (msgSize > lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE) throw Exception("Message exceeded buffer size. Message tag:", tag);
+//    thing->SerializeToArray(staticDataBuffer, msgSize);
+//    bcastSizeThenBuffer<tag>(staticDataBuffer, msgSize);
+//}
+//
+//template <int tag>
+//void ReplicateSupervisor::bcastSizeThenBuffer(void * staticDataBuffer, int msgSize)
+//{
+//    Print::printf(Print::DEBUG, "sending msg with tag %d.", tag);
+//    MPI_MastBcastOut(&msgSize, 1, MPI_INT, lm::MPI::MSG_MSG_SIZE, MPI_COMM_WORLD);
+//
+//    MPI_MastBcastOut(staticDataBuffer, msgSize, MPI_BYTE, tag, MPI_COMM_WORLD);
+//    Print::printf(Print::DEBUG, "messge with tag %d sent.", tag);
+//}
+//
+//int ReplicateSupervisor::FindRep(int destProc)
+//{
+//    int replicate = -1;
+//    bool allFinished=true;
+//    for (vector<int>::iterator it=replicates.begin(); it<replicates.end(); it++)
+//    {
+//        if (simulationStatusTable[*it] == 0)
+//        {
+//            replicate = *it;
+//            allFinished = false;
+//            break;
+//        }
+//        if (simulationStatusTable[*it] != 2) allFinished = false;
+//    }
+//    // if all replicates have finished, signal that the whole program is done
+//    if (allFinished) return -2;
+//    // If we are out of new simulations to run, signal that all replicates have been assigned
+//    if (replicate==-1) return replicate;
+//    return replicate;
+//}
+//
+//int ReplicateSupervisor::RunRep(int destProc, int replicate)
+//{
+//    //send the message to start replicate to node with rank of destProc
+//    MPI_EXCEPTION_CHECK(MPI_Send(&replicate, 1, MPI_INT, destProc, lm::MPI::MSG_RUN_SIMULATION, MPI_COMM_WORLD));
+//    Print::printf(Print::DEBUG, "signal to start replicate %d sent", replicate);
+//    simulationStatusTable[replicate] = 1;
+//    return replicate;
+//}
 
 }
 }

@@ -64,9 +64,20 @@ void TrajectoryAllocator::eraseTrajectory(map<int, Trajectory>::iterator traj_it
 	trajectories.erase(traj_it);
 }
 
+void TrajectoryAllocator::Trajectory::distribute(vector<int> slotIds)
+{
+	work.set_pid(slotIds[0]);
+	work.set_sid(slotIds[1]);
+	/////////
+	// MPI STUFF GOES HERE
+	/////////
+}
+
 void TrajectoryAllocator::Trajectory::update(lm::work::Result & result)
 {
 	work.set_readWrite(result.readWrite(result.readWrite_size - 1));
+	work.set_pid(-1);
+	work.set_sid(-1);
 	status = check();
 }
 
