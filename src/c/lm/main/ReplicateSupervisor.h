@@ -1,12 +1,12 @@
 /*
- * LocalReplicateWorker.h
+ * ReplicateSupervisor.h
  *
  *  Created on: Oct 4, 2013
  *      Author: tel
  */
 
-#ifndef LOCALREPLICATEWORKER_H_
-#define LOCALREPLICATEWORKER_H_
+#ifndef REPLICATESUPERVISOR_H_
+#define REPLICATESUPERVISOR_H_
 
 #include <list>
 #include <map>
@@ -16,7 +16,8 @@
 #include "DiffusionModel.pb.h"
 #include "ReactionModel.pb.h"
 #include "lm/io/hdf5/SimulationFile.h"
-#include "lm/resource/ResourceAllocator.h"
+#include "lm/resource/SlotAllocatorSupervisor.h"
+#include "lm/resource/TrajectoryAllocator.h"
 #include "lm/main/ReplicateRunner.h"
 #include "lm/me/MESolverFactory.h"
 #include "lm/MPI.h"
@@ -28,6 +29,8 @@ namespace main {
 
 using lm::me::MESolverFactory;
 using lm::main::ReplicateRunner;
+using lm::resource::TrajectoryAllocator;
+using lm::resource::SlotAllocatorSupervisor;
 using std::deque;
 using std::list;
 using std::map;
@@ -37,9 +40,8 @@ using std::vector;
 class ReplicateSupervisor : public lm::thread::Worker
 {
 
-
 public:
-    ReplicateSupervisor(lm::io::hdf5::Hdf5File * file) throw(PthreadException);
+    ReplicateSupervisor(int * maxSlotsTable, lm::io::hdf5::Hdf5File * file) throw(PthreadException);
     virtual ~ReplicateSupervisor() throw(PthreadException);
 
     virtual void wake() throw(PthreadException);
@@ -47,6 +49,12 @@ public:
     virtual void checkpoint() throw(PthreadException);
     virtual int FindRep(int destProc);
     virtual int RunRep(int destProc, int replicate);
+
+    virtual void distributeTrajectories();
+    virtual void distributeTrajectory(map<vector<int>, SlotAllocatorSupervisor::Slot>::iterator slot_it, map<int, TrajectoryAllocator::Trajectory>::iterator traj_it);
+    virtual deque<map<vector<int>, SlotAllocatorSupervisor::Slot>::iterator> findSlots();
+    virtual void update(lm::work::Result & result);
+
     virtual void MPI_MastBcastOut(void *buf, int count, MPI_Datatype datatype, int tag, MPI_Comm comm);
 
     //receive from all nodes, one by one, including master. nodes should use MPI_Send plus the relevant tag to send
@@ -59,8 +67,6 @@ public:
     template <int tag>
     void bcastSizeThenBuffer(void * staticDataBuffer, int msgSize);
 
-    deque<vector<int> > availableThreads;
-    deque<vector<int> > busyThreads;
     map<int,int> simulationStatusTable;
 protected:
     virtual int run();
@@ -74,6 +80,10 @@ private:
     // key is replicate number, val is status: 0=waiting to run, 2=finished, other values=(?)(indicate at least not finished)
     lm::io::hdf5::Hdf5File * file;
 
+    //the objects that manage the slots and the trajectories
+    TrajectoryAllocator trajectoryAllocator;
+    SlotAllocatorSupervisor slotAllocatorSupervisor;
+
     map<int,struct timespec> simulationStartTimeTable; //TODO: figure out what header timespec is in and put it in this header
 
 };
@@ -81,4 +91,4 @@ private:
 }
 }
 
-#endif /* LOCALREPLICATEWORKER_H_ */
+#endif /* REPLICATESUPERVISOR_H_ */

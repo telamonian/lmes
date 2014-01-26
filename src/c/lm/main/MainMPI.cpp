@@ -299,6 +299,9 @@ void executeSimulationMPI()
 
 void executeSimulationMPISingleMaster()
 {
+    int messageWaiting;
+    MPI_Status messageStatus;
+    void * staticDataBuffer = NULL;
     Print::printf(Print::DEBUG, "MPI master process %d started.", lm::MPI::worldRank);
 
     // Create the resource allocator, subtract one core for the data output thread on the master.
@@ -319,6 +322,16 @@ void executeSimulationMPISingleMaster()
     	reservedCpuCore=resourceAllocator.reserveCpuCore();
     	Print::printf(Print::INFO, "Reserved CPU core %d on process %d for data output.", reservedCpuCore, lm::MPI::worldRank);
     }
+
+    // Get the maximum number of simulations that can be started on each process.
+    int * maxSlotsTable = new int[lm::MPI::worldSize];
+    lm::MPI::MastBcastIn<int>(maxSlotsTable, 1, MPI_INT, lm::MPI::MSG_SIMULTANEOUS_REPLICATES, MPI_COMM_WORLD);
+
+    //calculate the total number of slots that can be simultaneously used for running work units across the comm
+    int maxSlotsTotal=0;
+    for (int i=0; i<lm::MPI::worldSize; ++i) maxSlotsTotal += maxSlotsTable[i];
+    Print::printf(Print::INFO, "Number of work unit slots is %d", maxSlotsTotal);
+    if (maxSlotsTotal == 0) throw Exception("Invalid configuration, no work units can be processed.");
 
     // Create a worker to handle any signals.
     lm::main::SignalHandler * signalHandler = new lm::main::SignalHandler();
@@ -389,9 +402,7 @@ void executeSimulationMPISingleMaster()
     Print::printf(Print::INFO, "Simulation file closed.");
 
     // Cleanup any resources.
-//    MPI_EXCEPTION_CHECK(MPI_Free_mem(staticDataBuffer));
-//    delete[] assignedSimulationsTable;
-//    delete[] maxSimulationsTable;
+    delete[] maxSlotsTable;
     delete checkpointSignaler;
     delete signalHandler;
     delete dataOutputWorker;
@@ -418,9 +429,13 @@ void executeSimulationMPISingleSlave()
     ResourceAllocator resourceAllocator(lm::MPI::worldRank, numberCpuCores, cpuCoresPerReplicate);
     #endif
 
-    //start the replicate manager thread on the master
-    lm::main::ReplicateDistributor * replicateManager = new lm::main::ReplicateDistributor(resourceAllocator, solverFactory);
-    replicateManager->start();
+    // Report the max simultaneous simulations to the master
+    int maxSimulations = resourceAllocator.getMaxSimultaneousReplicates();
+    MPI_EXCEPTION_CHECK(MPI_Send(&maxSimulations, 1, MPI_INT, lm::MPI::MASTER, lm::MPI::MSG_SIMULTANEOUS_REPLICATES, MPI_COMM_WORLD));
+
+    //start the replicate distributor thread on the slave
+    lm::main::ReplicateDistributor * replicateDistributor = new lm::main::ReplicateDistributor(resourceAllocator, solverFactory);
+    replicateDistributor->start();
 
     MPI_Status messageStatus;
     MPI_EXCEPTION_CHECK(MPI_Recv(NULL, 0, MPI_INT, lm::MPI::MASTER, lm::MPI::MSG_EXIT, MPI_COMM_WORLD, &messageStatus));

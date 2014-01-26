@@ -69,8 +69,8 @@ include_directories(profile
                     ${PYTHON_INCLUDE_DIRS})
 
 #add subdirectories
-add_subdirectory(src/cuda)
 add_subdirectory(src/c)
+add_subdirectory(src/cuda)
 add_dependencies(lm_cuda_lib lm_c_lib)
 
 #set_source_files_properties(${proto_srcs} ${proto_hdrs} PROPERTIES GENERATED TRUE)

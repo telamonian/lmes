@@ -43,9 +43,10 @@
  * 			  Max Klein
  */
 
-#ifndef LM_MAIN_RESOURCEALLOCATORSUPERVISOR_H_
-#define LM_MAIN_RESOURCEALLOCATORSUPERVISOR_H_
+#ifndef LM_MAIN_SLOTALLOCATORSUPERVISOR_H_
+#define LM_MAIN_SLOTALLOCATORSUPERVISOR_H_
 
+#include <deque>
 #include <map>
 #include <string>
 #include <vector>
@@ -53,6 +54,7 @@
 #include "lm/work/Result.pb.h"
 #include "lm/work/Work.pb.h"
 
+using std::deque;
 using std::map;
 using std::string;
 using std::vector;
@@ -61,27 +63,40 @@ using lm::thread::PthreadException;
 namespace lm {
 namespace resource {
 
-class ResourceAllocatorSupervisor : public ResourceAllocator
+class SlotAllocatorSupervisor: public ResourceAllocator
 {
 public:
 	static enum slotStatus {FREE, BUSY, DEAD};
 	class Slot
 	{
 	public:
-		Slot(): status(FREE) {}
+		Slot(vector<int> ids): pid(ids[0]), sid(ids[1]), status(FREE) {}
 		~Slot();
+		void setStatus(slotStatus newStatus) {status = newStatus;}
+		vector<int> alloc() {status = BUSY; return getSlotIds();}
+		void free() {status = FREE;}
+		vector<int> getSlotIds() {vector<int> slotIds; slotIds.push_back(pid); slotIds.push_back(sid); return slotIds;}
+		const int pid;
+		const int sid;
 		slotStatus status;
 	};
 
 public:
-    ResourceAllocatorSupervisor(int * maxSlotsTable) throw(Exception,PthreadException);
-    virtual ~ResourceAllocatorSupervisor() throw(PthreadException);
+    SlotAllocatorSupervisor(int * maxSlotsTable) throw(Exception,PthreadException);
+    virtual ~SlotAllocatorSupervisor() throw(PthreadException);
 
-    virtual int getMaxSimultaneousSlots();
-    virtual void assignWorkUnit(lm::work::Work & workUnit) throw(Exception,PthreadException);
-    virtual void freeWorkUnit(lm::work::Result & resultUnit) throw(Exception,PthreadException);
+    virtual int getMaxSlots();
+    virtual deque<map<vector<int>, Slot>::iterator> getFreeSlots();
+    virtual int getMaxSlots();
+    virtual int getFreeSlotsSize();
+    virtual vector<int> alloc(vector<int>);
+    virtual void free(vector<int> slotIds);
+    virtual void update(lm::work::Result result);
+    virtual map<vector<int>, Slot>::iterator getBegin() {return slots.begin();}
+    virtual map<vector<int>, Slot>::iterator getEnd() {return slots.end();}
 
     map<vector<int>, Slot> slots;
+    deque<Slot *> freeSlots;
     int maxSlots;
 
 private:

@@ -106,5 +106,24 @@ throw(MPIException)
     MPI_EXCEPTION_CHECK(MPI_Finalize());
 }
 
+//send message, one by one, to all nodes including master. nodes should use MPI_Recv plus the relevant tag to receive
+void MPI::MastBcastOut(void * buf, int count, MPI_Datatype datatype, int tag, MPI_Comm comm)
+{
+    Print::printf(Print::DEBUG, "in mastbcastout, lm::MPI::worldSize is %d and lm::MPI::MASTER is %d.", lm::MPI::worldSize, lm::MPI::MASTER);
+    for(int destProc=0; destProc < lm::MPI::worldSize; ++destProc)
+    {
+        MPI_EXCEPTION_CHECK(MPI_Send(buf, count, datatype, destProc, tag, comm));
+    }
 }
 
+template <typename t>
+void MPI::MastBcastIn(t * recvtable, int recvcount, MPI_Datatype recvtype, int recvtag, MPI_Comm comm)
+{
+    MPI_Status messageStatus;
+    for(int sendProc=0; sendProc < lm::MPI::worldSize; ++sendProc)
+    {
+        MPI_EXCEPTION_CHECK(MPI_Recv(recvtable + sendProc, recvcount, recvtype, sendProc, recvtag, comm, &messageStatus));
+    }
+}
+
+}

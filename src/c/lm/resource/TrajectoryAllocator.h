@@ -1,12 +1,12 @@
 /*
- * ThreadAllocator.h
+ * TrajectoryAllocator.h
  *
  *  Created on: Jan 19, 2014
  *      Author: tel
  */
 
-#ifndef THREADALLOCATOR_H_
-#define THREADALLOCATOR_H_
+#ifndef TRAJECTORYALLOCATOR_H_
+#define TRAJECTORYALLOCATOR_H_
 
 #include <string>
 #include <vector>
@@ -27,30 +27,22 @@ namespace resource {
 
 class TrajectoryAllocator
 {
-//public:
-//	class Trajectory
-//	{
-//	public:
-//		Trajectory(): pid(-1), sid(-1) {}
-//		virtual ~Trajectory();
-//		virtual void assignSlot(int currentPid, int currentSid) {pid=currentPid; sid=currentSid}
-//
-//		int pid;		//process ID. Assigned for duration of work unit
-//		int sid;		//slot ID. Assigned for duration of work unit
-//		lm::io::SimulationParameters simParams;
-//		lm::io::ReactionModel reactionModel;
-//	};
 
 public:
+	static enum trajectoryStatus {CONTINUE, FINISHED};
 	class Trajectory
 	{
 	public:
-		static enum trajectoryStatus {CONTINUE, CHECK, KILL};
 		Trajectory(lm::work::Work work): work(work), status(CONTINUE) {}
 		virtual ~Trajectory();
 
 		virtual void assignSlot();
-		virtual void update(lm::work::Result result);
+		virtual void update(lm::work::Result & result);
+		virtual void distribute(vector<int> slotIds);
+		virtual trajectoryStatus check();
+		virtual int getTid() {return work.get_tid();}
+		virtual int getPid() {return work.get_pid();}
+		virtual int getSid() {return work.get_sid();}
 
 		lm::work::Work work;
 		trajectoryStatus status;
@@ -64,15 +56,20 @@ public:
     virtual void initialize();
     virtual int createTid();
     virtual void initTrajectory();
+    virtual void initTrajectories(int n);
     virtual Trajectory createTrajectory(int tid);
-    virtual void destoryTrajectory();
-    virtual void update(int tid, lm::work::Result & Result) {trajectories[tid].update()}
+    virtual void eraseTrajectory(map<int, Trajectory>::iterator traj_it);
+    virtual void update(lm::work::Result & result) {trajectories[result.get_tid()].update(result)}
+    virtual map<int, Trajectory>::iterator getBegin() {return trajectories.begin();}
+    virtual map<int, Trajectory>::iterator getEnd() {return trajectories.end();}
 
+    double maxTime;
+    long long maxSteps;
     int tidCounter;			//equal to next trajectory ID to be created
-    bool reusableInitDone;	//true if the reusable portion of the trajectory initialization procedure has been assembled at least once
     lm::io::hdf5::Hdf5File * file;
     lm::io::SimulationParameters simulationParameters;
     lm::io::ReactionModel reactionModel;
+    lm::work::ReadOnly readOnly;
     lm::work::ReadWrite readWrite;
     bool needsReactionModel;
     bool needsDiffusionModel;
@@ -82,4 +79,4 @@ public:
 }
 }
 
-#endif /* THREADALLOCATOR_H_ */
+#endif /* TRAJECTORYALLOCATOR_H_ */

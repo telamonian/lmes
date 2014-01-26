@@ -40,70 +40,80 @@
 #include <iostream>
 #include <pthread.h>
 #include <sstream>
+#include <vector>
 #include "lm/Exceptions.h"
 #include "lm/Math.h"
 #include "lm/MPI.h"
 #include "lm/resource/ResourceAllocator.h"
-#include "lm/resource/ResourceAllocatorSupervisor.h"
+#include "lm/resource/SlotAllocatorSupervisor.h"
 #include "lm/thread/Thread.h"
 #include "lm/Types.h"
 #include "lm/work/Result.pb.h"
 #include "lm/work/Work.pb.h"
 
 using lm::thread::PthreadException;
+using std::vector;
 
 namespace lm {
 namespace resource {
 
-ResourceAllocatorSupervisor::ResourceAllocatorSupervisor(int * maxSlotsTable) throw(Exception,PthreadException)
+SlotAllocatorSupervisor::SlotAllocatorSupervisor(int * maxSlotsTable)
 {
     initialize(maxSlotsTable);
 }
 
-void ResourceAllocatorSupervisor::initialize(int * maxSlotsTable) throw(Exception,PthreadException)
+void SlotAllocatorSupervisor::initialize(int * maxSlotsTable)
 {
 	int maxSlotsCounter = 0;
 	for (int i=0; i<lm::MPI::worldSize; ++i)
 	{
 		for (int j=0; j<maxSlotsTable[i]; ++j)
 		{
-		vector<int> slotId(2);
-		slotId.push_back(i);
-		slotId.push_back(j);
-		slots[slotId] = Slot();
+		vector<int> slotIds(2);
+		slotIds.push_back(i);
+		slotIds.push_back(j);
+		slots[slotIds] = Slot();
 		++maxSlotsCounter;
 		}
 	}
 	maxSlots = maxSlotsCounter;
+	for(map<vector<int>, Slot>::iterator slot_it = slots.begin(); slot_it!=slots.end(); ++slot_it)
+	{
+		freeSlots.push_back(slot_it->second);
+	}
 }
 
-int ResourceAllocatorSupervisor::getMaxSimultaneousSlots()
+int SlotAllocatorSupervisor::getMaxSlots()
 {
 	return maxSlots;
 }
 
-void ResourceAllocatorSuperivsor::assignWorkUnit(lm::work::Work & workUnit) throw(Exception,PthreadException)
+int SlotAllocatorSupervisor::getFreeSlotsSize()
 {
-    for(map<vector<int>, Slot>::iterator it = slots.begin(); it!=slots.end(); ++it)
-    {
-    	if (it->second.status==FREE)
-    	{
-    		workUnit.set_pid(it->first[0]);
-    		workUnit.set_sid(it->first[1]);
-    		it->second.status = BUSY;
-    		break;
-    	}
-    }
+	return freeSlots.size();
 }
 
-void ResourceAllocatorSupervisor::freeWorkUnit(lm::work::Result & resultUnit) throw(Exception,PthreadException)
+vector<int> SlotAllocatorSupervisor::alloc(vector<int>)
 {
-	vector<int> slotId(2);
-	slotId.push_back(resultUnit.get_pid());
-	slotId.push_back(resultUnit.get_sid());
-    slots[slotId] = FREE;
+	Slot * slot(freeSlots.back());
+	freeSlots.pop_back();
+	return slot->alloc();
 }
 
+void SlotAllocatorSupervisor::free(vector<int> slotIds)
+{
+	Slot * slot = &(slots[slotIds]);
+	slot->free();
+	freeSlots.push_back(slot);
+}
+
+void SlotAllocatorSupervisor::update(lm::work::Result result)
+{
+	vector<int> slotIds(2);
+	slotIds.push_back(result.get_pid());
+	slotIds.push_back(result.get_sid());
+	free(slotIds);
+}
 
 }
 }

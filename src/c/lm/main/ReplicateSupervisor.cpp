@@ -1,12 +1,14 @@
 /*
- * LocalReplicateWorker.cpp
+ * ReplicateSupervisor.cpp
  *
  *  Created on: Oct 4, 2013
  *      Author: tel
  */
 
 #include <ctime>
+#include <deque>
 #include <mpi.h>
+#include <vector>
 #if defined(MACOSX)
 #include <sys/time.h>
 #endif
@@ -16,6 +18,8 @@
 #include "lm/io/SimulationParameters.h"
 #include "lm/main/Main.h"
 #include "lm/main/ReplicateSupervisor.h"
+#include "lm/resource/SlotAllocatorSupervisor.h"
+#include "lm/resource/TrajectoryAllocator.h"
 #include "SimulationParameters.pb.h"
 #include "lm/MPI.h"
 #include "lm/Print.h"
@@ -23,11 +27,22 @@
 namespace lm {
 namespace main {
 
-ReplicateSupervisor::ReplicateSupervisor(lm::io::hdf5::Hdf5File * file) throw(PthreadException):
+using lm::resource::TrajectoryAllocator;
+using lm::resource::SlotAllocatorSupervisor;
+using std::deque;
+using std::vector;
+
+ReplicateSupervisor::ReplicateSupervisor(int * maxSlotsTable, lm::io::hdf5::Hdf5File * file) throw(PthreadException):
+slotAllocatorSupervisor(maxSlotsTable),
+trajectoryAllocator(file, true, true),
 file(file),
 shouldCheckpoint(false),
 shouldAbort(false)
-{}
+{
+int maxSlotsTotal=0;
+for (int i=0; i<lm::MPI::worldSize; ++i) maxSlotsTotal += maxSlotsTable[i];
+trajectoryAllocator.initTrajectories(maxSlotsTotal);
+}
 
 ReplicateSupervisor::~ReplicateSupervisor() throw(PthreadException)
 {
@@ -62,53 +77,35 @@ void ReplicateSupervisor::checkpoint() throw(PthreadException)
 int ReplicateSupervisor::run()
 {
     // MPI message variables.
+	int messageSize;
     int messageWaiting;
     MPI_Status messageStatus;
     void * staticDataBuffer = NULL;
+    lm::work::Result result;
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE, MPI_INFO_NULL, &staticDataBuffer));
-    int finishedMessage[2];
-
-    // Get the maximum number of simulations that can be started on each process.
-    int * maxSlotsTable = new int[lm::MPI::worldSize];
-    MPI_MastBcastIn<int>(maxSlotsTable, 1, MPI_INT, lm::MPI::MSG_SIMULTANEOUS_REPLICATES, MPI_COMM_WORLD);
-
-    //calculate the total number of replicates that can be run simultaneously
-    int maxSlotsTotal=0;
-    for (int i=0; i<lm::MPI::worldSize; ++i) maxSlotsTotal += maxSlotsTable[i];
-    Print::printf(Print::INFO, "Number of simultaneous replicates is %d", maxSlotsTotal);
-    if (maxSlotsTotal == 0) throw Exception("Invalid configuration, no replicates can be processed.");
-
-//    for (int i=0; i<lm::MPI::worldSize; ++i) {
-//    	for (int j=0; j<maxSimulationsTable[i]; ++j) {
-//        	vector<int> threadId;
-//        	threadId.push_back(i);
-//        	threadId.push_back(j);
-//        	availableThreads.push_back(threadId);
-//    	}
+//    int finishedMessage[2];
+//
+//    // Initialize simulation status and simulation timing table.
+//    for (vector<int>::iterator it=replicates.begin(); it<replicates.end(); it++)
+//    {
+//        simulationStatusTable[*it] = 0;
+//        simulationStartTimeTable[*it].tv_sec = 0;
+//        simulationStartTimeTable[*it].tv_nsec = 0;
 //    }
-
-
-    // Initialize simulation status and simulation timing table.
-    for (vector<int>::iterator it=replicates.begin(); it<replicates.end(); it++)
-    {
-        simulationStatusTable[*it] = 0;
-        simulationStartTimeTable[*it].tv_sec = 0;
-        simulationStartTimeTable[*it].tv_nsec = 0;
-    }
-
-    // Get the simulation parameters and distribute them to the slaves.
-    //std::map<std::string,string> simulationParameters = file->getParameters();
-    lm::io::SimulationParameters simulationParameters(file->getParameters());
-    bcastThing<lm::io::SimulationParameters, lm::MPI::MSG_SIMULATION_PARAMETERS>(staticDataBuffer, &simulationParameters);
-
-    // Get the reaction model and distribute it to the slaves.
-    lm::io::ReactionModel reactionModel;
-
-    if (solverFactory.needsReactionModel())
-    {
-        file->getReactionModel(&reactionModel);
-        bcastThing<lm::io::ReactionModel, lm::MPI::MSG_REACTION_MODEL>(staticDataBuffer, &reactionModel);
-    }
+//
+//    // Get the simulation parameters and distribute them to the slaves.
+//    //std::map<std::string,string> simulationParameters = file->getParameters();
+//    lm::io::SimulationParameters simulationParameters(file->getParameters());
+//    bcastThing<lm::io::SimulationParameters, lm::MPI::MSG_SIMULATION_PARAMETERS>(staticDataBuffer, &simulationParameters);
+//
+//    // Get the reaction model and distribute it to the slaves.
+//    lm::io::ReactionModel reactionModel;
+//
+//    if (solverFactory.needsReactionModel())
+//    {
+//        file->getReactionModel(&reactionModel);
+//        bcastThing<lm::io::ReactionModel, lm::MPI::MSG_REACTION_MODEL>(staticDataBuffer, &reactionModel);
+//    }
 
 //    // Get the diffusion model and distribute it to the slaves.
 //    lm::io::DiffusionModel diffusionModel;
@@ -148,6 +145,9 @@ int ReplicateSupervisor::run()
 //        }
 //    }
 
+    // distribute first round of work units to slave distributors. In theory, # work units = # trajectories = # slots
+    distributeTrajectories();
+
     // simulation control loop
     while (true)
     {
@@ -179,26 +179,39 @@ int ReplicateSupervisor::run()
             while (true)
             {
                 MPI_EXCEPTION_CHECK(MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &messageStatus));
-                if ((messageStatus.MPI_TAG == lm::MPI::MSG_SIMULATION_FINISHED) || (messageStatus.MPI_SOURCE == lm::MPI::MASTER && messageStatus.MPI_TAG == lm::MPI::MSG_WAKE_LOCAL_REPLICATE_SUPERVISOR)) break;
+                if ((messageStatus.MPI_TAG == lm::MPI::MSG_RESULT_UNIT) || (messageStatus.MPI_SOURCE == lm::MPI::MASTER && messageStatus.MPI_TAG == lm::MPI::MSG_WAKE_LOCAL_REPLICATE_SUPERVISOR)) break;
             }
-            if (messageStatus.MPI_TAG == lm::MPI::MSG_SIMULATION_FINISHED)
+            if (messageStatus.MPI_TAG == lm::MPI::MSG_RESULT_UNIT)
             {
-                struct timespec now;
-                #if defined(LINUX)
-                clock_gettime(CLOCK_REALTIME, &now);
-                #elif defined(MACOSX)
-                struct timeval now2;
-                gettimeofday(&now2, NULL);
-                now.tv_sec = now2.tv_sec;
-                now.tv_nsec = now2.tv_usec*1000;
-                #endif
+//                struct timespec now;
+//                #if defined(LINUX)
+//                clock_gettime(CLOCK_REALTIME, &now);
+//                #elif defined(MACOSX)
+//                struct timeval now2;
+//                gettimeofday(&now2, NULL);
+//                now.tv_sec = now2.tv_sec;
+//                now.tv_nsec = now2.tv_usec*1000;
+//                #endif
+//
+//                MPI_EXCEPTION_CHECK(MPI_Recv(&finishedMessage, 2, MPI_INT, MPI_ANY_SOURCE, lm::MPI::MSG_SIMULATION_FINISHED, MPI_COMM_WORLD, &messageStatus));
+//                Print::printf(Print::INFO, "Replicate %d completed by process %d with exit code %d in %0.2f seconds.", finishedMessage[0], messageStatus.MPI_SOURCE, finishedMessage[1], ((double)(now.tv_sec-simulationStartTimeTable[finishedMessage[0]].tv_sec))+1e-9*((double)now.tv_nsec-simulationStartTimeTable[finishedMessage[0]].tv_nsec));
+//                simulationStatusTable[finishedMessage[0]] = 2;
+//                replicate = FindRep(messageStatus.MPI_SOURCE);
+//                if (replicate==-2) break;
+//                else RunRep(messageStatus.MPI_SOURCE, replicate);
+//            	PROF_BEGIN(PROF_MASTER_READ_STATIC_MSG);
+				// Read the message into the buffer.
+				MPI_EXCEPTION_CHECK(MPI_Recv(staticDataBuffer, lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE, MPI_BYTE, messageStatus.MPI_SOURCE, lm::MPI::MSG_RESULT_UNIT, MPI_COMM_WORLD, &messageStatus));
 
-                MPI_EXCEPTION_CHECK(MPI_Recv(&finishedMessage, 2, MPI_INT, MPI_ANY_SOURCE, lm::MPI::MSG_SIMULATION_FINISHED, MPI_COMM_WORLD, &messageStatus));
-                Print::printf(Print::INFO, "Replicate %d completed by process %d with exit code %d in %0.2f seconds.", finishedMessage[0], messageStatus.MPI_SOURCE, finishedMessage[1], ((double)(now.tv_sec-simulationStartTimeTable[finishedMessage[0]].tv_sec))+1e-9*((double)now.tv_nsec-simulationStartTimeTable[finishedMessage[0]].tv_nsec));
-                simulationStatusTable[finishedMessage[0]] = 2;
-                replicate = FindRep(messageStatus.MPI_SOURCE);
-                if (replicate==-2) break;
-                else RunRep(messageStatus.MPI_SOURCE, replicate);
+				// Get the size of the message.
+				MPI_EXCEPTION_CHECK(MPI_Get_count(&messageStatus, MPI_BYTE, &messageSize));
+				Print::printf(Print::VERBOSE_DEBUG, "Received output data set of size %d from process %d.", messageSize, messageStatus.MPI_SOURCE);
+				//parse the received byte array into a result message
+				result.ParseFromArray(staticDataBuffer, messageSize);
+//				PROF_END(PROF_MASTER_READ_STATIC_MSG);
+				lm::main::DataOutputQueue::getInstance()->writeResult(result);	//TODO: make this work. the eventual writeResult signature should be written sans reference, so as to eliminate races with this current loop over rewriting result
+            	update(result);
+            	distributeTrajectories();
             }
             else if (messageStatus.MPI_SOURCE == lm::MPI::MASTER && messageStatus.MPI_TAG == lm::MPI::MSG_WAKE_LOCAL_REPLICATE_SUPERVISOR)
             {
@@ -207,12 +220,74 @@ int ReplicateSupervisor::run()
         }
     }
     MPI_EXCEPTION_CHECK(MPI_Free_mem(staticDataBuffer));
-    delete[] maxSimulationsTable;
-    if (lattice != NULL) delete [] lattice; lattice = NULL;
-    if (latticeSites != NULL) delete [] latticeSites; latticeSites = NULL;
+//    if (lattice != NULL) delete [] lattice; lattice = NULL;
+//    if (latticeSites != NULL) delete [] latticeSites; latticeSites = NULL;
     running = false;
     Print::printf(Print::INFO, "Local replicate supervisor thread finished.");
     return 0;
+}
+
+//update the state of the slotAllocator and the trajectoryAllocator based on a result that has just been received
+void update(lm::work::Result & result)
+{
+	slotAllocator.update(result);
+	trajectoryAllocator.update(result);
+}
+
+//function that can be run at any time to determine free slots in the comm
+deque<map<vector<int>, SlotAllocatorSupervisor::Slot>::iterator> ReplicateSupervisor::findSlots()
+{
+	deque<map<vector<int>, SlotAllocatorSupervisor::Slot>::iterator> slots;
+	for (map<vector<int>, SlotAllocatorSupervisor::Slot>::iterator slot_it = SlotAllocatorSupervisor.getBegin(); slot_it<SlotAllocatorSupervisor.getEnd(); ++slot_it)
+	{
+		if (slot_it->second.status==SlotAllocatorSupervisor::FREE)
+		{
+			slots.push_back(slot_it);
+		}
+	}
+	return slots;
+}
+
+//does the following:
+//marks slot as BUSY
+//sets slot related properties (pid, sid) of trajectory
+//sends work unit to appropriate process using an MPI message
+void ReplicateSupervisor::distributeTrajectory(map<vector<int>, SlotAllocatorSupervisor::Slot>::iterator slot_it, map<int, TrajectoryAllocator::Trajectory>::iterator traj_it)
+{
+	vector<int> slotIds(slot_it->aloc());
+	traj_it->distribute(slotIds);
+}
+
+//function that can be run at any time to distribute unfinished trajectories to free slots
+void ReplicateSupervisor::distributeTrajectories()
+{
+	deque<map<vector<int>, SlotAllocatorSupervisor::Slot>::iterator> slots(findSlots());
+	bool modifiedTrajectories = false;
+	do
+	{
+		map<int, TrajectoryAllocator::Trajectory>::iterator traj_it(trajectoryAllocator.getBegin());
+		map<int, TrajectoryAllocator::Trajectory>::iterator end(trajectoryAllocator.getEnd());
+		while (traj_it!=end)
+		{
+			modifiedTrajectories = false;
+			if (slots.size()==0)
+			{
+				return;
+			}
+			if (traj_it->status==TrajectoryAllocator::CONTINUE && traj_it->getPid()==-1 && traj_it->getSid()==-1)
+			{
+				distributeTrajectory(slots.back(), traj_it);
+				slots.pop_back();
+				++traj_it;
+			}
+			else if (traj_it->status==TrajectoryAllocator::FINISHED)
+			{
+				trajectoryAllocator.eraseTrajectory(traj_it++);
+				trajectoryAllocator.initTrajectory();
+				modifiedTrajectories=true;
+			}
+		}
+	} while (modifiedTrajectories==true);
 }
 
 //send message, one by one, to all nodes including master. nodes should use MPI_Recv plus the relevant tag to receive

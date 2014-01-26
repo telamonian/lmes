@@ -85,6 +85,10 @@ public:
     static const int MSG_LATTICE = 31;
     static const int MSG_LATTICE_SITES = 32;
 
+    // work unit related messages
+    static const int MSG_WORK_UNIT = 50;
+    static const int MSG_RESULT_UNIT = 51;
+
     // thread waking messages
     static const int MSG_WAKE_LOCAL_REPLICATE_SUPERVISOR    = 96;
     static const int MSG_WAKE_REPLICATE_MANAGER = 97;
@@ -97,6 +101,11 @@ public:
     static void init(int argc, char** argv) throw(MPIException);
     static void printCapabilities() throw(MPIException);
     static void finalize() throw(MPIException);
+    //send from master node to all nodes, one by one, including master. nodes should MPI_Recv plus the relevant tag to receive
+    static void MastBcastOut(void *buf, int count, MPI_Datatype datatype, int tag, MPI_Comm comm);
+    //receive from all nodes, one by one, including master. nodes should use MPI_Send plus the relevant tag to send
+    template <typename t>
+    static void MastBcastIn(t * recvtable, int recvcount, MPI_Datatype recvtype, int recvtag, MPI_Comm comm);
 };
 
 }

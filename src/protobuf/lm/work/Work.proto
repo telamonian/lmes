@@ -6,6 +6,18 @@ message Work {
 	optional uint32 tid 				= 1;
 	optional unit32 pid					= 2;
 	optional uint32 sid					= 3;
-	optional lm.io.ReadOnly readOnly 	= 4;
-	optional lm.io.ReadWrite readWrite	= 5;
+	
+	enum JobType {
+		REPLICATE_CME = 0;
+		REPLICATE_RDME = 1;
+		FFS1_CME = 2;
+		FFS2_CME = 3;
+		FFS1_RDME = 4;
+		FFS2_RDME = 5;
+	}
+	
+	optional JobType jobtype			= 4;
+	optinal uint32 ffs2Interface		= 5;
+	optional lm.io.ReadOnly readOnly 	= 6;
+	optional lm.io.ReadWrite readWrite	= 7;
 }
