@@ -21,9 +21,12 @@ namespace main {
 ReplicateDistributor::ReplicateDistributor(ResourceAllocator & resourceAllocator, MESolverFactory & solverFactory) throw(PthreadException):
 resourceAllocator(resourceAllocator),
 solverFactory(solverFactory),
+staticDataBuffer(NULL),
 shouldCheckpoint(false),
 shouldAbort(false)
-{}
+{
+	MPI_EXCEPTION_CHECK(MPI_Alloc_mem(lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE, MPI_INFO_NULL, &staticDataBuffer));
+}
 
 ReplicateDistributor::~ReplicateDistributor() throw(PthreadException)
 {
@@ -61,38 +64,35 @@ int ReplicateDistributor::run()
     // MPI message variables.
     int messageWaiting;
     MPI_Status messageStatus;
-    void * staticDataBuffer = NULL;
-    MPI_EXCEPTION_CHECK(MPI_Alloc_mem(lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE, MPI_INFO_NULL, &staticDataBuffer));
-    int finishedMessage[2];
 
     // Report the max simultaneous simulations to the master
-    int maxSimulations = resourceAllocator.getMaxSimultaneousReplicates();
+    int maxSimulations = resourceAllocator.getMaxSlots();
     MPI_EXCEPTION_CHECK(MPI_Send(&maxSimulations, 1, MPI_INT, lm::MPI::MASTER, lm::MPI::MSG_SIMULTANEOUS_REPLICATES, MPI_COMM_WORLD));
 
-    //Read the simulation parameters
-    lm::io::SimulationParameters parameters;
-    receiveThing<lm::io::SimulationParameters, lm::MPI::MSG_SIMULATION_PARAMETERS>(staticDataBuffer, &parameters);
-    map<string,string> simulationParameters(parameters.getParameters());
-    Print::printf(Print::DEBUG, "Process %d received simulation parameters: %d parameters", lm::MPI::worldRank, simulationParameters.size());
-
-    // Read the reaction model.
-    lm::io::ReactionModel reactionModel;
-    if (solverFactory.needsReactionModel())
-    {
-        receiveThing<lm::io::ReactionModel, lm::MPI::MSG_REACTION_MODEL>(staticDataBuffer, &reactionModel);
-        Print::printf(Print::DEBUG, "Process %d received reaction model: %d bytes", lm::MPI::worldRank, reactionModel.ByteSize());
-    }
-
-    // Read the diffusion model.
-    lm::io::DiffusionModel diffusionModel;
-    uint8_t * lattice=NULL, * latticeSites=NULL;
-    size_t latticeSize=0, latticeSitesSize=0;
-    if (solverFactory.needsDiffusionModel())
-    {
-        receiveThing<lm::io::DiffusionModel, lm::MPI::MSG_DIFFUSION_MODEL>(staticDataBuffer, &diffusionModel);
-        Print::printf(Print::DEBUG, "Process %d received diffusion model: %d bytes", lm::MPI::worldRank, diffusionModel.ByteSize());
-        receiveLatticeModel(&lattice, &latticeSize, &latticeSites, &latticeSitesSize);
-    }
+//    //Read the simulation parameters
+//    lm::io::SimulationParameters parameters;
+//    receiveThing<lm::io::SimulationParameters, lm::MPI::MSG_SIMULATION_PARAMETERS>(staticDataBuffer, &parameters);
+//    map<string,string> simulationParameters(parameters.getParameters());
+//    Print::printf(Print::DEBUG, "Process %d received simulation parameters: %d parameters", lm::MPI::worldRank, simulationParameters.size());
+//
+//    // Read the reaction model.
+//    lm::io::ReactionModel reactionModel;
+//    if (solverFactory.needsReactionModel())
+//    {
+//        receiveThing<lm::io::ReactionModel, lm::MPI::MSG_REACTION_MODEL>(staticDataBuffer, &reactionModel);
+//        Print::printf(Print::DEBUG, "Process %d received reaction model: %d bytes", lm::MPI::worldRank, reactionModel.ByteSize());
+//    }
+//
+//    // Read the diffusion model.
+//    lm::io::DiffusionModel diffusionModel;
+//    uint8_t * lattice=NULL, * latticeSites=NULL;
+//    size_t latticeSize=0, latticeSitesSize=0;
+//    if (solverFactory.needsDiffusionModel())
+//    {
+//        receiveThing<lm::io::DiffusionModel, lm::MPI::MSG_DIFFUSION_MODEL>(staticDataBuffer, &diffusionModel);
+//        Print::printf(Print::DEBUG, "Process %d received diffusion model: %d bytes", lm::MPI::worldRank, diffusionModel.ByteSize());
+//        receiveLatticeModel(&lattice, &latticeSize, &latticeSites, &latticeSitesSize);
+//    }
 
     // simulation execution loop
     while (true)
@@ -130,8 +130,19 @@ int ReplicateDistributor::run()
             }
             if (messageStatus.MPI_SOURCE == lm::MPI::MASTER && messageStatus.MPI_TAG == lm::MPI::MSG_RUN_SIMULATION)
             {
-                int replicate;
-                MPI_EXCEPTION_CHECK(MPI_Recv(&replicate, 1, MPI_INT, lm::MPI::MASTER, lm::MPI::MSG_RUN_SIMULATION, MPI_COMM_WORLD, &messageStatus));
+//            	PROF_BEGIN(PROF_MASTER_READ_STATIC_MSG);
+				// Read the message into the buffer.
+				MPI_EXCEPTION_CHECK(MPI_Recv(staticDataBuffer, lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE, MPI_BYTE, lm::MPI::MASTER, lm::MPI::MSG_RESULT_UNIT, MPI_COMM_WORLD, &messageStatus));
+
+				// Get the size of the message.
+				MPI_EXCEPTION_CHECK(MPI_Get_count(&messageStatus, MPI_BYTE, &messageSize));
+				Print::printf(Print::VERBOSE_DEBUG, "Received output data set of size %d from process %d.", messageSize, messageStatus.MPI_SOURCE);
+				//parse the received byte array into a result message
+				result.ParseFromArray(staticDataBuffer, messageSize);
+//				PROF_END(PROF_MASTER_READ_STATIC_MSG);
+				lm::main::DataOutputQueue::getInstance()->writeResult(result);	//TODO: make this work. the eventual writeResult signature should be written sans reference, so as to eliminate races with this current loop over rewriting result
+				update(result);
+				distributeTrajectories();
                 startReplicate(replicate, solverFactory, simulationParameters, &reactionModel, &diffusionModel, lattice, latticeSize, latticeSites, latticeSitesSize, resourceAllocator);
             }
             else if (messageStatus.MPI_SOURCE == lm::MPI::worldRank && messageStatus.MPI_TAG == lm::MPI::MSG_WAKE_REPLICATE_MANAGER)
@@ -140,9 +151,13 @@ int ReplicateDistributor::run()
             }
         }
     }
-    MPI_EXCEPTION_CHECK(MPI_Free_mem(staticDataBuffer));
     Print::printf(Print::INFO, "Replicate manager thread finished.");
     return 0;
+}
+
+void ReplicateDistributor::distributeWorkUnit(lm::work::Work work)
+{
+
 }
 
 template <int tag>

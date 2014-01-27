@@ -43,11 +43,12 @@
  *            Max Klein
  */
 
-#ifndef LM_MAIN_RESOURCEALLOCATORDISTRIBUTOR_H_
-#define LM_MAIN_RESOURCEALLOCATORDISTRIBUTOR_H_
+#ifndef LM_RESOURCE_DISTRIBUTORSLOTALLOCATOR_H_
+#define LM_RESOURCE_DISTRIBUTORSLOTALLOCATOR_H_
 
 #include <string>
 #include <vector>
+#include "lm/resource/SupervisorSlotAllocator.h"
 #include "lm/thread/Thread.h"
 #include "lm/work/Result.pb.h"
 #include "lm/work/Work.pb.h"
@@ -59,44 +60,11 @@ using lm::thread::PthreadException;
 namespace lm {
 namespace resource {
 
-class ResourceAllocator
+class DistributorSlotAllocator: public SupervisorSlotAllocator
 {
 public:
-    class ComputeResources
-    {
-    public:
-    	int processNumber;
-        vector<int> cpuCores;
-        vector<int> cudaDevices;
-        string toString();
-    };
-
-public:
-    ResourceAllocator(int processNumber, int numberCpuCores, float cpuCoresPerReplicate) throw(Exception,PthreadException);
-    ResourceAllocator(int processNumber, int numberCpuCores, float cpuCoresPerReplicate, vector<int> cudaDevices, float cudaDevicesPerReplicate) throw(Exception,PthreadException);
-    virtual ~ResourceAllocator() throw(PthreadException);
-
-    virtual int getMaxSimultaneousReplicates();
-    virtual ComputeResources assignReplicate(int replicate) throw(Exception,PthreadException);
-    virtual void AssignWorkUnit(int replicate) throw(Exception,PthreadException);
-    virtual int reserveCpuCore() throw(Exception,PthreadException);
-
-private:
-    void initialize(float cpuCoresPerReplicate, float cudaDevicesPerReplicate) throw(Exception,PthreadException);
-
-protected:
-    pthread_mutex_t mutex;
-    int processNumber;
-    int numberCpuCores;
-    int reservedCpuCores;
-    vector<int> cudaDevices;
-    int cpuSlotsPerCore;
-    int cpuSlotsPerReplicate;
-    int cudaSlotsPerDevice;
-    int cudaSlotsPerReplicate;
-
-    int ** cpuSlots;
-    int ** cudaSlots;
+	DistributorSlotAllocator(int maxSlots);
+    virtual ~DistributorSlotAllocator();
 };
 
 }

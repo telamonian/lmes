@@ -50,7 +50,7 @@ public:
 
 public:
     TrajectoryAllocator(lm::io::hdf5::Hdf5File * file, bool needsReactionModel, bool needsDiffusionModel):
-    	tidCounter(0), file(file), needsReactionModel(needsReactionModel), needsDiffusionModel(needsDiffusionModel) {initialize();}
+    	staticDataBuffer(NULL), tidCounter(0), file(file), needsReactionModel(needsReactionModel), needsDiffusionModel(needsDiffusionModel) {initialize();}
     virtual ~TrajectoryAllocator();
 
     virtual void initialize();
@@ -63,6 +63,7 @@ public:
     virtual map<int, Trajectory>::iterator getBegin() {return trajectories.begin();}
     virtual map<int, Trajectory>::iterator getEnd() {return trajectories.end();}
 
+    void * staticDataBuffer;
     double maxTime;
     long long maxSteps;
     int tidCounter;			//equal to next trajectory ID to be created

@@ -38,82 +38,50 @@
  */
 
 #include <iostream>
+#include <map>
 #include <pthread.h>
 #include <sstream>
-#include <vector>
 #include "lm/Exceptions.h"
 #include "lm/Math.h"
-#include "lm/MPI.h"
-#include "lm/resource/ResourceAllocator.h"
-#include "lm/resource/SlotAllocatorSupervisor.h"
-#include "lm/thread/Thread.h"
 #include "lm/Types.h"
+#include "lm/main/Runner.h"
+#include "lm/resource/ResourceAllocator.h"
+#include "lm/thread/Thread.h"
 #include "lm/work/Result.pb.h"
 #include "lm/work/Work.pb.h"
 
+
+using std::map;
+using lm::main::Runner;
 using lm::thread::PthreadException;
-using std::vector;
 
 namespace lm {
 namespace resource {
 
-SlotAllocatorSupervisor::SlotAllocatorSupervisor(int * maxSlotsTable)
+DistributorSlotAllocator::DistributorSlotAllocator(ResourceAllocator & resourceAllocator): resourceAllocator(resourceAllocator), maxSlots()
 {
-    initialize(maxSlotsTable);
+	maxSlots = resourceAllocator.getMaxSlots()
+    initialize();
 }
 
-void SlotAllocatorSupervisor::initialize(int * maxSlotsTable)
+void DistributorSlotAllocator::initialize(int maxSlots)
 {
 	int maxSlotsCounter = 0;
-	for (int i=0; i<lm::MPI::worldSize; ++i)
+	for (int i=0; i < maxSlots; ++i)
 	{
-		for (int j=0; j<maxSlotsTable[i]; ++j)
-		{
 		vector<int> slotIds(2);
 		slotIds.push_back(i);
 		slotIds.push_back(j);
-		slots[slotIds] = Slot();
+		slots[slotIds] = Slot(slotIds, resourceAllocator, Runner());
 		++maxSlotsCounter;
-		}
 	}
 	maxSlots = maxSlotsCounter;
-	for(map<vector<int>, Slot>::iterator slot_it = slots.begin(); slot_it!=slots.end(); ++slot_it)
+	for (map<vector<int>, Slot>::iterator slot_it = slots.begin(); slot_it!=slots.end(); ++slot_it)
 	{
 		freeSlots.push_back(slot_it->second);
 	}
-}
 
-int SlotAllocatorSupervisor::getMaxSlots()
-{
-	return maxSlots;
-}
-
-int SlotAllocatorSupervisor::getFreeSlotsSize()
-{
-	return freeSlots.size();
-}
-
-vector<int> SlotAllocatorSupervisor::alloc(vector<int>)
-{
-	Slot * slot(freeSlots.back());
-	freeSlots.pop_back();
-	return slot->alloc();
-}
-
-void SlotAllocatorSupervisor::free(vector<int> slotIds)
-{
-	Slot * slot = &(slots[slotIds]);
-	slot->free();
-	freeSlots.push_back(slot);
-}
-
-void SlotAllocatorSupervisor::update(lm::work::Result result)
-{
-	vector<int> slotIds(2);
-	slotIds.push_back(result.get_pid());
-	slotIds.push_back(result.get_sid());
-	free(slotIds);
-}
+};
 
 }
 }

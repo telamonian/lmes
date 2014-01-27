@@ -18,6 +18,7 @@ message Work {
 	
 	optional JobType jobtype			= 4;
 	optinal uint32 ffs2Interface		= 5;
-	optional lm.io.ReadOnly readOnly 	= 6;
-	optional lm.io.ReadWrite readWrite	= 7;
+	optional double wallClockTime		= 6;
+	optional lm.io.ReadOnly readOnly 	= 7;
+	optional lm.io.ReadWrite readWrite	= 8;
 }

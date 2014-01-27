@@ -430,8 +430,8 @@ void executeSimulationMPISingleSlave()
     #endif
 
     // Report the max simultaneous simulations to the master
-    int maxSimulations = resourceAllocator.getMaxSimultaneousReplicates();
-    MPI_EXCEPTION_CHECK(MPI_Send(&maxSimulations, 1, MPI_INT, lm::MPI::MASTER, lm::MPI::MSG_SIMULTANEOUS_REPLICATES, MPI_COMM_WORLD));
+    int maxSlots = resourceAllocator.getMaxSlots();
+    MPI_EXCEPTION_CHECK(MPI_Send(&maxSlots, 1, MPI_INT, lm::MPI::MASTER, lm::MPI::MSG_SIMULTANEOUS_REPLICATES, MPI_COMM_WORLD));
 
     //start the replicate distributor thread on the slave
     lm::main::ReplicateDistributor * replicateDistributor = new lm::main::ReplicateDistributor(resourceAllocator, solverFactory);

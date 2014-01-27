@@ -59,6 +59,7 @@ protected:
 
 private:
     //variables relating to Worker behavior
+    void * staticDataBuffer;
     bool shouldCheckpoint;
     bool shouldAbort;
 

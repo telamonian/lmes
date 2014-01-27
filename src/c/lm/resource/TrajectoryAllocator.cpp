@@ -8,6 +8,7 @@
 #include <cmath>
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/SimulationParameters.h"
+#include "lm/MPI.h"
 #include "lm/work/ReadOnly"
 #include "lm/work/Result.pb.h"
 #include "lm/work/Work.pb.h"
@@ -16,8 +17,15 @@
 namespace lm {
 namespace resource {
 
+
+TrajectoryAllocator::~TrajectoryAllocator()
+{
+	MPI_EXCEPTION_CHECK(MPI_Free_mem(staticDataBuffer));
+}
+
 void TrajectoryAllocator::initialize()
 {
+	MPI_EXCEPTION_CHECK(MPI_Alloc_mem(lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE, MPI_INFO_NULL, &staticDataBuffer));
 	simulationParameters = file->getSimulationParameters();
 	reactionModel = file->getReactionModel();
 	readOnly = file->getReadOnly();
@@ -52,6 +60,7 @@ TrajectoryAllocator::Trajectory TrajectoryAllocator::createTrajectory(int tid)
 	work.set_tid(tid);
 	work.set_pid(-1);
 	work.set_sid(-1);
+	work.set_wallClockTime(3.0);
 	work.set_simulationParameters(simulationParameters);
 	work.set_reactionModel(reactionModel);
 	work.set_readOnly(readOnly);
@@ -68,9 +77,10 @@ void TrajectoryAllocator::Trajectory::distribute(vector<int> slotIds)
 {
 	work.set_pid(slotIds[0]);
 	work.set_sid(slotIds[1]);
-	/////////
-	// MPI STUFF GOES HERE
-	/////////
+	int msgSize = work->ByteSize();
+	if (msgSize > lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE) throw Exception("Message exceeded buffer size. Message tag:", tag);
+	work->SerializeToArray(staticDataBuffer, msgSize);
+	MPI_EXCEPTION_CHECK(MPI_Send(staticDataBuffer, msgSize, MPI_BYTE, work.get_pid(), lm::MPI::MSG_WORK_UNIT, MPI_COMM_WORLD));
 }
 
 void TrajectoryAllocator::Trajectory::update(lm::work::Result & result)

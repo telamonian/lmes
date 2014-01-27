@@ -28,7 +28,7 @@ namespace lm {
 namespace main {
 
 using lm::resource::TrajectoryAllocator;
-using lm::resource::SlotAllocatorSupervisor;
+using lm::resource::SupervisorSlotAllocator;
 using std::deque;
 using std::vector;
 
@@ -36,9 +36,11 @@ ReplicateSupervisor::ReplicateSupervisor(int * maxSlotsTable, lm::io::hdf5::Hdf5
 slotAllocatorSupervisor(maxSlotsTable),
 trajectoryAllocator(file, true, true),
 file(file),
+staticDataBuffer(NULL),
 shouldCheckpoint(false),
 shouldAbort(false)
 {
+MPI_EXCEPTION_CHECK(MPI_Alloc_mem(lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE, MPI_INFO_NULL, &staticDataBuffer));
 int maxSlotsTotal=0;
 for (int i=0; i<lm::MPI::worldSize; ++i) maxSlotsTotal += maxSlotsTable[i];
 trajectoryAllocator.initTrajectories(maxSlotsTotal);
@@ -80,9 +82,7 @@ int ReplicateSupervisor::run()
 	int messageSize;
     int messageWaiting;
     MPI_Status messageStatus;
-    void * staticDataBuffer = NULL;
     lm::work::Result result;
-    MPI_EXCEPTION_CHECK(MPI_Alloc_mem(lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE, MPI_INFO_NULL, &staticDataBuffer));
 
     // distribute first round of work units to slave distributors. In theory, # work units = # trajectories = # slots
     distributeTrajectories();
@@ -154,7 +154,6 @@ int ReplicateSupervisor::run()
             }
         }
     }
-    MPI_EXCEPTION_CHECK(MPI_Free_mem(staticDataBuffer));
 //    if (lattice != NULL) delete [] lattice; lattice = NULL;
 //    if (latticeSites != NULL) delete [] latticeSites; latticeSites = NULL;
     running = false;
@@ -173,15 +172,15 @@ void update(lm::work::Result & result)
 //marks slot as BUSY
 //sets slot related properties (pid, sid) of trajectory
 //sends work unit to appropriate process using an MPI message
-void ReplicateSupervisor::distributeTrajectory(map<vector<int>, SlotAllocatorSupervisor::Slot>::iterator slot_it, map<int, TrajectoryAllocator::Trajectory>::iterator traj_it)
+void ReplicateSupervisor::distributeWorkUnit(map<vector<int>, SupervisorSlotAllocator::Slot>::iterator slot_it, map<int, TrajectoryAllocator::Trajectory>::iterator traj_it)
 {
 	traj_it->second.distribute(slot_it->second.alloc());	//slot_it->second.alloc() allocates the slot the iterator points to and return a vector of [pid, sid]
 }
 
 //function that can be run at any time to distribute unfinished trajectories to free slots
-void ReplicateSupervisor::distributeTrajectories()
+void ReplicateSupervisor::distributeWorkUnits()
 {
-	deque<map<vector<int>, SlotAllocatorSupervisor::Slot>::iterator> slots(findSlots());
+	deque<map<vector<int>, SupervisorSlotAllocator::Slot>::iterator> slots(findSlots());
 	bool modifiedTrajectories = false;
 	do
 	{
@@ -196,7 +195,7 @@ void ReplicateSupervisor::distributeTrajectories()
 			}
 			if (traj_it->second.status==TrajectoryAllocator::CONTINUE && traj_it->second.getPid()==-1 && traj_it->second.getSid()==-1)
 			{
-				distributeTrajectory(slots.back(), traj_it);
+				distributeWorkUnit(slots.back(), traj_it);
 				slots.pop_back();
 				++traj_it;
 			}

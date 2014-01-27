@@ -30,7 +30,7 @@ namespace main {
 using lm::me::MESolverFactory;
 using lm::main::ReplicateRunner;
 using lm::resource::TrajectoryAllocator;
-using lm::resource::SlotAllocatorSupervisor;
+using lm::resource::SupervisorSlotAllocator;
 using std::deque;
 using std::list;
 using std::map;
@@ -50,9 +50,9 @@ public:
     virtual int FindRep(int destProc);
     virtual int RunRep(int destProc, int replicate);
 
-    virtual void distributeTrajectories();
-    virtual void distributeTrajectory(map<vector<int>, SlotAllocatorSupervisor::Slot>::iterator slot_it, map<int, TrajectoryAllocator::Trajectory>::iterator traj_it);
-    virtual deque<map<vector<int>, SlotAllocatorSupervisor::Slot>::iterator> findSlots();
+    virtual void distributeWorkUnits();
+    virtual void distributeWorkUnit(map<vector<int>, SupervisorSlotAllocator::Slot>::iterator slot_it, map<int, TrajectoryAllocator::Trajectory>::iterator traj_it);
+    virtual deque<map<vector<int>, SupervisorSlotAllocator::Slot>::iterator> findSlots();
     virtual void update(lm::work::Result & result);
 
     virtual void MPI_MastBcastOut(void *buf, int count, MPI_Datatype datatype, int tag, MPI_Comm comm);
@@ -72,6 +72,7 @@ protected:
     virtual int run();
 
 private:
+    void * staticDataBuffer;
     //variables relating to Worker behavior
     bool shouldCheckpoint;
     bool shouldAbort;
@@ -82,7 +83,7 @@ private:
 
     //the objects that manage the slots and the trajectories
     TrajectoryAllocator trajectoryAllocator;
-    SlotAllocatorSupervisor slotAllocatorSupervisor;
+    SupervisorSlotAllocator slotAllocatorSupervisor;
 
     map<int,struct timespec> simulationStartTimeTable; //TODO: figure out what header timespec is in and put it in this header
 
