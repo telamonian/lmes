@@ -48,23 +48,32 @@
 
 #include <string>
 #include <vector>
+#include "lm/resource/ResourceAllocator.h"
 #include "lm/resource/SupervisorSlotAllocator.h"
 #include "lm/thread/Thread.h"
 #include "lm/work/Result.pb.h"
 #include "lm/work/Work.pb.h"
 
+
 using std::string;
 using std::vector;
+using lm::resource::ResourceAllocator;
 using lm::thread::PthreadException;
 
 namespace lm {
 namespace resource {
 
-class DistributorSlotAllocator: public SupervisorSlotAllocator
+class DistributorSlotAllocator: public SlotAllocator
 {
 public:
-	DistributorSlotAllocator(int maxSlots);
+	DistributorSlotAllocator(ResourceAllocator & resourceAllocator);
     virtual ~DistributorSlotAllocator();
+
+    ResourceAllocator & resourceAllocator;
+
+private:
+    void initialize();
+    void update(lm::work::Work & work);
 };
 
 }

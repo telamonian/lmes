@@ -91,7 +91,7 @@ public:
 
     // thread waking messages
     static const int MSG_WAKE_LOCAL_REPLICATE_SUPERVISOR    = 96;
-    static const int MSG_WAKE_REPLICATE_MANAGER = 97;
+    static const int MSG_WAKE_REPLICATE_DISTRIBUTOR = 97;
     static const int MSG_WAKE_DATA_OUTPUT_WORKER    = 98;
 
     static const int MSG_EXIT                   = 99;

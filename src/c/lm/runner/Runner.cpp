@@ -37,56 +37,80 @@
  * Author(s): Elijah Roberts
  */
 
-#include <iostream>
+#include <string>
 #include <map>
+#include <mpi.h>
 #include <pthread.h>
-#include <sstream>
-#include "lm/Exceptions.h"
-#include "lm/Math.h"
+#include "lm/Print.h"
+#include "lm/cme/CMESolver.h"
+#include "lm/cme/GillespieDSolver.h"
+#include "lm/cme/HillSwitch.h"
+#include "lm/cme/SelfRegulatingGeneSwitch.h"
+#include "lm/cme/TwoStateExpression.h"
+#include "lm/cme/TwoStateHillSwitch.h"
+#include "lm/cme/TwoStateHillLoopSwitch.h"
+#include "lm/cme/GillespieDSolver.h"
+#if defined(OPT_CUDA)
+#include "lm/Cuda.h"
+#endif
+#include "lm/main/Main.h"
+#include "lm/main/ReplicateRunner.h"
+#include "lm/me/MESolverFactory.h"
 #include "lm/MPI.h"
-#include "lm/Types.h"
-#include "lm/main/Runner.h"
-#include "lm/resource/DistributorSlot.h"
-#include "lm/resource/ResourceAllocator.h"
+#include "lm/rdme/RDMESolver.h"
+#include "lm/runner/Runner.h"
 #include "lm/thread/Thread.h"
-#include "lm/work/Result.pb.h"
-#include "lm/work/Work.pb.h"
+#include "lm/thread/Worker.h"
+#include "lm/work/Work.h"
+#include "lptf/Profile.h"
+#include "lptf/ProfileCodes.h"
 
-
+using std::string;
 using std::map;
-using lm::resource::ResourceAllocator;
-using lm::main::Runner;
-using lm::thread::PthreadException;
+using lm::me::MESolverFactory;
 
 namespace lm {
-namespace resource {
+namespace runner {
 
-DistributorSlotAllocator::DistributorSlotAllocator(ResourceAllocator & resourceAllocator): resourceAllocator(resourceAllocator), maxSlots()
+Runner::Runner(MESolverFactory solverFactory, ResourceAllocator::ComputeResources resources) throw(PthreadException):
+solverFactory(solverFactory),
+resources(resources)
 {
-	maxSlots = resourceAllocator.getMaxSlots();
-    initialize();
+	pthread_cond_init(&runnerCv, NULL);
 }
 
-void DistributorSlotAllocator::initialize()
+Runner::~Runner() throw(PthreadException)
 {
-	int maxSlotsCounter = 0;
-	for (int i=0; i < maxSlots; ++i)
-	{
-		vector<int> slotIds(2);
-		slotIds.push_back(lm::MPI::worldRank);
-		slotIds.push_back(i);
-		slots[slotIds] = DistributorSlot(slotIds, resourceAllocator.alloc(i), Runner());
-		++maxSlotsCounter;
-	}
-	maxSlots = maxSlotsCounter;
 }
 
-void DistributorSlotAllocator::update(lm::work::Work & work)
+void Runner::lock_mutex()
 {
-	vector<int> slotIds(2);
-	slotIds.push_back(work.get_pid());
-	slotIds.push_back(work.get_sid());
-	slots[slotIds].update(work);
+	//// BEGIN CRITICAL SECTION: controlMutex
+	PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&controlMutex));
+	//// END CRITICAL SECTION: controlMutex
 }
 
+void Runner::unlock_mutex()
+{
+	//// BEGIN CRITICAL SECTION: controlMutex
+	PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&controlMutex));
+	//// END CRITICAL SECTION: controlMutex
+}
+
+void Runner::cond_signal()
+{
+	PTHREAD_EXCEPTION_CHECK(pthread_cond_signal(&runnerCv));
+}
+
+void Runner::update(lm::work::Work & work)
+{
+
+}
+
+void Runner::go()
+{
+
+}
+
+}
 }

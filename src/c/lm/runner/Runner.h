@@ -37,56 +37,57 @@
  * Author(s): Elijah Roberts
  */
 
-#include <iostream>
+#ifndef LM_RUNNER_RUNNER_H_
+#define LM_RUNNER_RUNNER_H_
+
 #include <map>
-#include <pthread.h>
-#include <sstream>
-#include "lm/Exceptions.h"
-#include "lm/Math.h"
-#include "lm/MPI.h"
-#include "lm/Types.h"
-#include "lm/main/Runner.h"
-#include "lm/resource/DistributorSlot.h"
+#include <string>
 #include "lm/resource/ResourceAllocator.h"
+#include "lm/me/MESolverFactory.h"
+#include "ReactionModel.pb.h"
+#include "DiffusionModel.pb.h"
+#include "lm/runner/Runner.h"
 #include "lm/thread/Thread.h"
-#include "lm/work/Result.pb.h"
-#include "lm/work/Work.pb.h"
+#include "lm/thread/Worker.h"
+#include "lm/work/Work.h"
 
-
-using std::map;
+using lm::me::MESolverFactory;
 using lm::resource::ResourceAllocator;
-using lm::main::Runner;
 using lm::thread::PthreadException;
+using lm::thread::Worker;
+using std::map;
+using std::string;
 
 namespace lm {
-namespace resource {
+namespace runner {
 
-DistributorSlotAllocator::DistributorSlotAllocator(ResourceAllocator & resourceAllocator): resourceAllocator(resourceAllocator), maxSlots()
+class Runner : public Worker
 {
-	maxSlots = resourceAllocator.getMaxSlots();
-    initialize();
-}
+public:
+    Runner(MESolverFactory solverFactory, ResourceAllocator::ComputeResources resources) throw(PthreadException);
+    virtual ~Runner() throw(PthreadException);
+    virtual void wake() throw(PthreadException);
+    virtual int run() = 0;
 
-void DistributorSlotAllocator::initialize()
-{
-	int maxSlotsCounter = 0;
-	for (int i=0; i < maxSlots; ++i)
-	{
-		vector<int> slotIds(2);
-		slotIds.push_back(lm::MPI::worldRank);
-		slotIds.push_back(i);
-		slots[slotIds] = DistributorSlot(slotIds, resourceAllocator.alloc(i), Runner());
-		++maxSlotsCounter;
-	}
-	maxSlots = maxSlotsCounter;
-}
+    pthread_cond_t runnerCv;
 
-void DistributorSlotAllocator::update(lm::work::Work & work)
-{
-	vector<int> slotIds(2);
-	slotIds.push_back(work.get_pid());
-	slotIds.push_back(work.get_sid());
-	slots[slotIds].update(work);
-}
+    virtual void update(lm::work::Work & work);
+    virtual void go() = 0;
+    virtual void emit_result();
+
+    virtual void lock_mutex();
+    virtual void unlock_mutex();
+
+    virtual void cond_signal();
+
+protected:
+    MESolverFactory solverFactory;
+    ResourceAllocator::ComputeResources resources;
+    volatile bool replicateFinished;
+    volatile int replicateExitCode;
+};
 
 }
+}
+
+#endif

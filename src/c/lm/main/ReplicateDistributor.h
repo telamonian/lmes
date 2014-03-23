@@ -8,12 +8,14 @@
 #ifndef ReplicateDistributor_
 #define ReplicateDistributor_
 
+#include <pthread.h>
 #include <list>
 #include <map>
 #include <string>
 #include "DiffusionModel.pb.h"
 #include "ReactionModel.pb.h"
 #include "lm/main/Main.h"
+#include "lm/resource/DistributorSlotAllocator.h"
 #include "lm/resource/ResourceAllocator.h"
 #include "lm/main/ReplicateRunner.h"
 #include "lm/me/MESolverFactory.h"
@@ -26,9 +28,12 @@ namespace main {
 
 using lm::me::MESolverFactory;
 using lm::main::ReplicateRunner;
+using lm::resource::ResourceAllocator;
+using lm::resource::DistributorSlotAllocator;
 using std::list;
 using std::map;
 using std::string;
+using std::vector;
 
 class ReplicateDistributor : public lm::thread::Worker
 {
@@ -56,6 +61,8 @@ protected:
     void receiveLatticeModel(uint8_t ** lattice, size_t * latticeSize, uint8_t ** latticeSites, size_t * latticeSitesSize); //TODO: finish refactoring this out of existence
     virtual void startReplicate(int replicate, MESolverFactory solverFactory, std::map<std::string,string> & simulationParameters, lm::io::ReactionModel * reactionModel, lm::io::DiffusionModel * diffusionModel, uint8_t * lattice, size_t latticeSize, uint8_t * latticeSites, size_t latticeSitesSize, ResourceAllocator & resourceAllocator) throw(Exception,PthreadException);
     virtual ReplicateRunner * popNextFinishedReplicate(list<ReplicateRunner *> & runningReplicates, ResourceAllocator & resourceAllocator);
+
+    DistributorSlotAllocator distributorSlotAllocator;
 
 private:
     //variables relating to Worker behavior

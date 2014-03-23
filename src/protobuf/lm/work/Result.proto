@@ -7,16 +7,19 @@ message Result {
 	optional unit32 sid					= 3;
 		
 	enum JobType {
-		REPLICATE_CME = 0;
-		REPLICATE_RDME = 1;
-		FFS1_CME = 2;
-		FFS2_CME = 3;
-		FFS1_RDME = 4;
-		FFS2_RDME = 5;
+		REPLICATE = 0;
+		FFS1 = 1;
+		FFS2 = 2;
 	}
 	
-	optional JobType jobtype			= 4;
-	optinal uint32 ffs2Interface		= 5;
-	repeated lm.io.ReadWrite readWrite	= 6;
-	repeated uint32 writeIndexes		= 7 [packed=true];	//the indexes (if any) of this message's readWrite array that should be written out to disk
+	enum SolverType {
+		CME = 0;
+		RDME = 1;
+	}
+	
+	optional JobType jobType			= 4;
+	optional SolverType solverType		= 5;
+	optinal uint32 ffs2Interface		= 6;
+	repeated lm.io.ReadWrite readWrite	= 7;
+	repeated uint32 writeIndexes		= 8 [packed=true];	//the indexes (if any) of this message's readWrite array that should be written out to disk
 }

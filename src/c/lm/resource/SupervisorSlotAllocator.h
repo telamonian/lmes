@@ -71,6 +71,12 @@ public:
     SupervisorSlotAllocator(int * maxSlotsTable);
     virtual ~SupervisorSlotAllocator();
 
+    virtual int getFreeSlotsSize();
+    virtual vector<int> alloc();
+    virtual void free(vector<int> slotIds);
+
+    deque<Slot *> freeSlots;
+
 private:
     int * maxSlotsTable;
     void initialize();

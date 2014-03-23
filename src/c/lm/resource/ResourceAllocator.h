@@ -54,7 +54,7 @@ using std::vector;
 using lm::thread::PthreadException;
 
 namespace lm {
-namespace main {
+namespace resource {
 
 class ResourceAllocator
 {

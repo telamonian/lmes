@@ -45,7 +45,8 @@
 #include "lm/Math.h"
 #include "lm/MPI.h"
 #include "lm/resource/ResourceAllocator.h"
-#include "lm/resource/SlotAllocatorSupervisor.h"
+#include "lm/resource/SupervisorSlot.h"
+#include "lm/resource/SupervisorSlotAllocator.h"
 #include "lm/thread/Thread.h"
 #include "lm/Types.h"
 #include "lm/work/Result.pb.h"
@@ -72,7 +73,7 @@ void SupervisorSlotAllocator::initialize()
 		vector<int> slotIds(2);
 		slotIds.push_back(i);
 		slotIds.push_back(j);
-		slots[slotIds] = Slot(slotIds);
+		slots[slotIds] = SupervisorSlot(slotIds);
 		++maxSlotsCounter;
 		}
 	}
@@ -83,17 +84,12 @@ void SupervisorSlotAllocator::initialize()
 	}
 }
 
-int SupervisorSlotAllocator::getMaxSlots()
-{
-	return maxSlots;
-}
-
 int SupervisorSlotAllocator::getFreeSlotsSize()
 {
 	return freeSlots.size();
 }
 
-vector<int> SupervisorSlotAllocator::alloc()
+vector<int> SuperviosrSlotAllocator::alloc()
 {
 	Slot * slot(freeSlots.back());
 	freeSlots.pop_back();
@@ -105,14 +101,6 @@ void SupervisorSlotAllocator::free(vector<int> slotIds)
 	Slot * slot = &(slots[slotIds]);
 	slot->free();
 	freeSlots.push_back(slot);
-}
-
-void SupervisorSlotAllocator::update(lm::work::Result result)
-{
-	vector<int> slotIds(2);
-	slotIds.push_back(result.get_pid());
-	slotIds.push_back(result.get_sid());
-	free(slotIds);
 }
 
 }

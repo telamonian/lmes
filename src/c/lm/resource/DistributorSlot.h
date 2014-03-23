@@ -11,9 +11,10 @@
 #include <vector>
 #include "lm/main/Runner.h"
 #include "lm/resource/Slot.h"
+#include "lm/runner/Runner.h"
 
 using std::vector;
-using lm::main::Runner;
+using lm::runner::Runner;
 
 namespace lm {
 namespace resource {
@@ -28,6 +29,7 @@ public:
 
 	ResourceAllocator::ComputeResources resource;
 	Runner runner;
+	void update(lm::work::Work & work);
 };
 
 }

@@ -49,7 +49,7 @@
 using lm::thread::PthreadException;
 
 namespace lm {
-namespace main {
+namespace resource {
 
 ResourceAllocator::ResourceAllocator(int processNumber, int numberCpuCores, float cpuCoresPerReplicate) throw(Exception,PthreadException)
 :processNumber(processNumber),numberCpuCores(numberCpuCores),reservedCpuCores(0),cpuSlots(NULL),cudaSlots(NULL)

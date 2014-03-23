@@ -1,10 +1,14 @@
+~$*
 .DS_Store
 .cproject
 .pydevproject
 .project
 
 /local.mk
+/build-*
+/build_*
 /Build-*
+/Build_*
 /*.app
 /.settings
 

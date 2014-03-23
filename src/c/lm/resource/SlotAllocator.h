@@ -72,15 +72,11 @@ public:
     virtual ~SlotAllocator();
 
     virtual int getMaxSlots();
-    virtual int getFreeSlotsSize();
-    virtual vector<int> alloc();
-    virtual void free(vector<int> slotIds);
     virtual void update(lm::work::Result result);
     virtual map<vector<int>, Slot *>::iterator getBegin() {return slots.begin();}
     virtual map<vector<int>, Slot *>::iterator getEnd() {return slots.end();}
 
     map<vector<int>, Slot *> slots;
-    deque<Slot *> freeSlots;
     int maxSlots;
 
 private:

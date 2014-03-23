@@ -64,25 +64,6 @@ int SlotAllocator::getMaxSlots()
 	return maxSlots;
 }
 
-int SlotAllocator::getFreeSlotsSize()
-{
-	return freeSlots.size();
-}
-
-vector<int> SlotAllocator::alloc()
-{
-	Slot * slot(freeSlots.back());
-	freeSlots.pop_back();
-	return slot->alloc();
-}
-
-void SlotAllocator::free(vector<int> slotIds)
-{
-	Slot * slot = &(slots[slotIds]);
-	slot->free();
-	freeSlots.push_back(slot);
-}
-
 void SlotAllocator::update(lm::work::Result result)
 {
 	vector<int> slotIds(2);

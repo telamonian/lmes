@@ -8,17 +8,20 @@ message Work {
 	optional uint32 sid					= 3;
 	
 	enum JobType {
-		REPLICATE_CME = 0;
-		REPLICATE_RDME = 1;
-		FFS1_CME = 2;
-		FFS2_CME = 3;
-		FFS1_RDME = 4;
-		FFS2_RDME = 5;
+		REPLICATE = 0;
+		FFS1 = 1;
+		FFS2 = 2;
 	}
 	
-	optional JobType jobtype			= 4;
-	optinal uint32 ffs2Interface		= 5;
-	optional double wallClockTime		= 6;
-	optional lm.io.ReadOnly readOnly 	= 7;
-	optional lm.io.ReadWrite readWrite	= 8;
+	enum SolverType {
+		CME = 0;
+		RDME = 1;
+	}
+	
+	optional JobType jobType			= 4;
+	optional SolverType solverType		= 5;
+	optional uint32 ffs2Interface		= 6;
+	optional double wallClockTime		= 7;
+	optional lm.io.ReadOnly readOnly 	= 8;
+	optional lm.io.ReadWrite readWrite	= 9;
 }

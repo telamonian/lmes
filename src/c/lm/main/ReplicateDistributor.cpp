@@ -4,7 +4,7 @@
  *  Created on: Oct 4, 2013
  *      Author: tel
  */
-
+#include <pthread.h>
 #include "lm/io/hdf5/SimulationFile.h"
 #include "DiffusionModel.pb.h"
 #include "ReactionModel.pb.h"
@@ -21,6 +21,7 @@ namespace main {
 ReplicateDistributor::ReplicateDistributor(ResourceAllocator & resourceAllocator, MESolverFactory & solverFactory) throw(PthreadException):
 resourceAllocator(resourceAllocator),
 solverFactory(solverFactory),
+distributorSlotAllocator(resourceAllocator),
 staticDataBuffer(NULL),
 shouldCheckpoint(false),
 shouldAbort(false)
@@ -60,8 +61,8 @@ void ReplicateDistributor::checkpoint() throw(PthreadException)
 
 int ReplicateDistributor::run()
 {
-    Print::printf(Print::DEBUG, "zero.");
     // MPI message variables.
+	int messageSize;
     int messageWaiting;
     MPI_Status messageStatus;
 
@@ -111,7 +112,7 @@ int ReplicateDistributor::run()
             break;
         }
 
-        // If we need to write a checkpoint, do so. TODO: make checkpointing actually do something for ReplicateManager
+        // If we need to write a checkpoint, do so. TODO: make checkpointing actually do something for Replicate
         else if (shouldCheckpoint)
         {
             shouldCheckpoint = false;
@@ -126,7 +127,7 @@ int ReplicateDistributor::run()
             {
                 //Print::printf(Print::DEBUG, "two.");
                 MPI_EXCEPTION_CHECK(MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &messageStatus));
-                if ((messageStatus.MPI_SOURCE == lm::MPI::MASTER && messageStatus.MPI_TAG == lm::MPI::MSG_RUN_SIMULATION) || (messageStatus.MPI_SOURCE == lm::MPI::worldRank && messageStatus.MPI_TAG == lm::MPI::MSG_WAKE_REPLICATE_MANAGER)) break;
+                if ((messageStatus.MPI_SOURCE == lm::MPI::MASTER && messageStatus.MPI_TAG == lm::MPI::MSG_RUN_SIMULATION) || (messageStatus.MPI_SOURCE == lm::MPI::worldRank && messageStatus.MPI_TAG == lm::MPI::MSG_WAKE_REPLICATE_DISTRIBUTOR)) break;
             }
             if (messageStatus.MPI_SOURCE == lm::MPI::MASTER && messageStatus.MPI_TAG == lm::MPI::MSG_RUN_SIMULATION)
             {
@@ -137,13 +138,10 @@ int ReplicateDistributor::run()
 				// Get the size of the message.
 				MPI_EXCEPTION_CHECK(MPI_Get_count(&messageStatus, MPI_BYTE, &messageSize));
 				Print::printf(Print::VERBOSE_DEBUG, "Received output data set of size %d from process %d.", messageSize, messageStatus.MPI_SOURCE);
-				//parse the received byte array into a result message
-				result.ParseFromArray(staticDataBuffer, messageSize);
-//				PROF_END(PROF_MASTER_READ_STATIC_MSG);
-				lm::main::DataOutputQueue::getInstance()->writeResult(result);	//TODO: make this work. the eventual writeResult signature should be written sans reference, so as to eliminate races with this current loop over rewriting result
-				update(result);
-				distributeTrajectories();
-                startReplicate(replicate, solverFactory, simulationParameters, &reactionModel, &diffusionModel, lattice, latticeSize, latticeSites, latticeSitesSize, resourceAllocator);
+				//parse the received byte array into a work message
+				work.ParseFromArray(staticDataBuffer, messageSize);
+				distributorSlotAllocator.update(work);
+//				PROF_END(PROF_MASTER_READ_STATIC_MSG);update(result);
             }
             else if (messageStatus.MPI_SOURCE == lm::MPI::worldRank && messageStatus.MPI_TAG == lm::MPI::MSG_WAKE_REPLICATE_MANAGER)
             {
@@ -155,7 +153,7 @@ int ReplicateDistributor::run()
     return 0;
 }
 
-void ReplicateDistributor::distributeWorkUnit(lm::work::Work work)
+void ReplicateDistributor::distributeWorkUnit(lm::work::Work & work)
 {
 
 }
