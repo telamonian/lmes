@@ -73,7 +73,7 @@ public:
 
 private:
     void initialize();
-    void update(lm::work::Work & work);
+    void alloc(lm::work::Work & work);
 };
 
 }

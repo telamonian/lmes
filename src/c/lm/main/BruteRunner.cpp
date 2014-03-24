@@ -90,9 +90,9 @@ int BruteRunner::run()
 
 	// Print a message detailing where this replciate is running.
 	if (resources.cudaDevices.size() > 0)
-		Print::printf(Print::INFO, "Running replicate %d in process %d on CPU core %d and GPU %d", replicate, resources.processNumber, resources.cpuCores[0], resources.cudaDevices[0]);
+		Print::printf(Print::INFO, "Running replicate %d in process %d on CPU core %d and GPU %d", replicate, resources.pid, resources.cpuCores[0], resources.cudaDevices[0]);
 	else
-		Print::printf(Print::INFO, "Running replicate %d in process %d on CPU core %d", replicate, resources.processNumber, resources.cpuCores[0]);
+		Print::printf(Print::INFO, "Running replicate %d in process %d on CPU core %d", replicate, resources.pid, resources.cpuCores[0]);
 
 
     PROF_SET_THREAD(resources.cpuCores[0]+PROF_THREAD_VARIABLE_START);

@@ -9,7 +9,6 @@
 #define DISTRIBUTORSLOT_H_
 
 #include <vector>
-#include "lm/main/Runner.h"
 #include "lm/resource/Slot.h"
 #include "lm/runner/Runner.h"
 
@@ -29,7 +28,7 @@ public:
 
 	ResourceAllocator::ComputeResources resource;
 	Runner runner;
-	void update(lm::work::Work & work);
+	void alloc(lm::work::Work & work);
 };
 
 }

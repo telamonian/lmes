@@ -12,7 +12,7 @@
 #include "lm/work/ReadOnly"
 #include "lm/work/Result.pb.h"
 #include "lm/work/Work.pb.h"
-#include "ReactionModel.pb.h"
+#include "lm/io/ReactionModel.pb.h"
 
 namespace lm {
 namespace resource {

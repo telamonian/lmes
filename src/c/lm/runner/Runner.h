@@ -44,12 +44,13 @@
 #include <string>
 #include "lm/resource/ResourceAllocator.h"
 #include "lm/me/MESolverFactory.h"
-#include "ReactionModel.pb.h"
-#include "DiffusionModel.pb.h"
+#include "lm/io/ReactionModel.pb.h"
+#include "lm/io/DiffusionModel.pb.h"
 #include "lm/runner/Runner.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
-#include "lm/work/Work.h"
+#include "lm/work/Result.pb.h"
+#include "lm/work/Work.pb.h"
 
 using lm::me::MESolverFactory;
 using lm::resource::ResourceAllocator;
@@ -71,7 +72,7 @@ public:
 
     pthread_cond_t runnerCv;
 
-    virtual void update(lm::work::Work & work);
+    virtual void alloc(lm::work::Work & work);
     virtual void go() = 0;
     virtual void emit_result();
 
@@ -81,10 +82,14 @@ public:
     virtual void cond_signal();
 
 protected:
+    lm::work::Result result;
     MESolverFactory solverFactory;
     ResourceAllocator::ComputeResources resources;
     volatile bool replicateFinished;
     volatile int replicateExitCode;
+
+private:
+    void * staticDataBuffer;
 };
 
 }

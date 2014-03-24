@@ -45,8 +45,8 @@
 #include <string>
 #include <utility>
 #include "lm/Math.h"
-#include "FirstPassageTimes.pb.h"
-#include "ParameterValues.pb.h"
+#include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/io/ParameterValues.pb.h"
 #include "lm/resource/ResourceAllocator.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/me/MESolver.h"

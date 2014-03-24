@@ -1,10 +1,11 @@
-#include "lm/work/ReadOnly.proto"
-#include "lm/work/ReadWrite.proto"
+import "ReadOnly.proto";
+import "ReadWrite.proto";
+
 package lm.work;
 
 message Work {
 	optional uint32 tid 				= 1;
-	optional unit32 pid					= 2;
+	optional uint32 pid					= 2;
 	optional uint32 sid					= 3;
 	
 	enum JobType {
@@ -22,6 +23,6 @@ message Work {
 	optional SolverType solverType		= 5;
 	optional uint32 ffs2Interface		= 6;
 	optional double wallClockTime		= 7;
-	optional lm.io.ReadOnly readOnly 	= 8;
-	optional lm.io.ReadWrite readWrite	= 9;
+	optional lm.work.ReadOnly readOnly 	= 8;
+	optional lm.work.ReadWrite readWrite	= 9;
 }

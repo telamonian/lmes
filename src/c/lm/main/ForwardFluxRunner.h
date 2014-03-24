@@ -45,8 +45,8 @@
 #include "lm/resource/ResourceAllocator.h"
 #include "lm/main/ReplicateRunner.h"
 #include "lm/me/MESolverFactory.h"
-#include "ReactionModel.pb.h"
-#include "DiffusionModel.pb.h"
+#include "lm/io/ReactionModel.pb.h"
+#include "lm/io/DiffusionModel.pb.h"
 #include "lm/thread/Thread.h"
 
 using std::map;

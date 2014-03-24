@@ -13,14 +13,14 @@
 #include <sys/time.h>
 #endif
 #include "lm/io/hdf5/SimulationFile.h"
-#include "DiffusionModel.pb.h"
-#include "ReactionModel.pb.h"
+#include "lm/io/DiffusionModel.pb.h"
+#include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SimulationParameters.h"
 #include "lm/main/Main.h"
 #include "lm/main/ReplicateSupervisor.h"
-#include "lm/resource/SlotAllocatorSupervisor.h"
+#include "lm/resource/SupervisorSlotAllocator.h"
 #include "lm/resource/TrajectoryAllocator.h"
-#include "SimulationParameters.pb.h"
+#include "lm/message/SimulationParameters.pb.h"
 #include "lm/MPI.h"
 #include "lm/Print.h"
 
@@ -85,7 +85,7 @@ int ReplicateSupervisor::run()
     lm::work::Result result;
 
     // distribute first round of work units to slave distributors. In theory, # work units = # trajectories = # slots
-    distributeTrajectories();
+    distributeWorkUnits();
 
     // simulation control loop
     while (true)
@@ -144,9 +144,10 @@ int ReplicateSupervisor::run()
 				//parse the received byte array into a result message
 				result.ParseFromArray(staticDataBuffer, messageSize);
 //				PROF_END(PROF_MASTER_READ_STATIC_MSG);
-				lm::main::DataOutputQueue::getInstance()->writeResult(result);	//TODO: make this work. the eventual writeResult signature should be written sans reference, so as to eliminate races with this current loop over rewriting result
-            	update(result);
-            	distributeTrajectories();
+
+//				lm::main::DataOutputQueue::getInstance()->writeResult(result);	//TODO: make this work. the eventual writeResult signature should be written sans reference, so as to eliminate races with this current loop over rewriting result
+//            	update(result);
+//            	distributeWorkUnits();
             }
             else if (messageStatus.MPI_SOURCE == lm::MPI::MASTER && messageStatus.MPI_TAG == lm::MPI::MSG_WAKE_LOCAL_REPLICATE_SUPERVISOR)
             {
@@ -162,7 +163,7 @@ int ReplicateSupervisor::run()
 }
 
 //update the state of the slotAllocator and the trajectoryAllocator based on a result that has just been received
-void update(lm::work::Result & result)
+void ReplicateSupervisor::update(lm::work::Result & result)
 {
 	slotAllocator.update(result);
 	trajectoryAllocator.update(result);
@@ -172,7 +173,7 @@ void update(lm::work::Result & result)
 //marks slot as BUSY
 //sets slot related properties (pid, sid) of trajectory
 //sends work unit to appropriate process using an MPI message
-void ReplicateSupervisor::distributeWorkUnit(map<vector<int>, SupervisorSlotAllocator::Slot>::iterator slot_it, map<int, TrajectoryAllocator::Trajectory>::iterator traj_it)
+void ReplicateSupervisor::distributeWorkUnit(map<vector<int>, SupervisorSlot>::iterator slot_it, map<int, TrajectoryAllocator::Trajectory>::iterator traj_it)
 {
 	traj_it->second.distribute(slot_it->second.alloc());	//slot_it->second.alloc() allocates the slot the iterator points to and return a vector of [pid, sid]
 }
@@ -180,7 +181,7 @@ void ReplicateSupervisor::distributeWorkUnit(map<vector<int>, SupervisorSlotAllo
 //function that can be run at any time to distribute unfinished trajectories to free slots
 void ReplicateSupervisor::distributeWorkUnits()
 {
-	deque<map<vector<int>, SupervisorSlotAllocator::Slot>::iterator> slots(findSlots());
+	deque<map<vector<int>, SupervisorSlot>::iterator> slots(findSlots());
 	bool modifiedTrajectories = false;
 	do
 	{

@@ -45,9 +45,9 @@
 #include "lm/Math.h"
 #include "lm/MPI.h"
 #include "lm/Types.h"
-#include "lm/main/Runner.h"
 #include "lm/resource/DistributorSlot.h"
 #include "lm/resource/ResourceAllocator.h"
+#include "lm/runner/Runner.h"
 #include "lm/thread/Thread.h"
 #include "lm/work/Result.pb.h"
 #include "lm/work/Work.pb.h"
@@ -81,7 +81,7 @@ void DistributorSlotAllocator::initialize()
 	maxSlots = maxSlotsCounter;
 }
 
-void DistributorSlotAllocator::update(lm::work::Work & work)
+void DistributorSlotAllocator::alloc(lm::work::Work & work)
 {
 	vector<int> slotIds(2);
 	slotIds.push_back(work.get_pid());

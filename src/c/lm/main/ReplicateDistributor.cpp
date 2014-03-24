@@ -6,13 +6,13 @@
  */
 #include <pthread.h>
 #include "lm/io/hdf5/SimulationFile.h"
-#include "DiffusionModel.pb.h"
-#include "ReactionModel.pb.h"
+#include "lm/io/DiffusionModel.pb.h"
+#include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SimulationParameters.h"
 #include "lm/main/BruteRunner.h"
 #include "lm/main/ForwardFluxRunner.h"
 #include "lm/main/ReplicateDistributor.h"
-#include "SimulationParameters.pb.h"
+#include "lm/message/SimulationParameters.pb.h"
 #include "lm/MPI.h"
 
 namespace lm {
@@ -140,7 +140,7 @@ int ReplicateDistributor::run()
 				Print::printf(Print::VERBOSE_DEBUG, "Received output data set of size %d from process %d.", messageSize, messageStatus.MPI_SOURCE);
 				//parse the received byte array into a work message
 				work.ParseFromArray(staticDataBuffer, messageSize);
-				distributorSlotAllocator.update(work);
+				distributorSlotAllocator.alloc(work);
 //				PROF_END(PROF_MASTER_READ_STATIC_MSG);update(result);
             }
             else if (messageStatus.MPI_SOURCE == lm::MPI::worldRank && messageStatus.MPI_TAG == lm::MPI::MSG_WAKE_REPLICATE_MANAGER)
@@ -153,10 +153,6 @@ int ReplicateDistributor::run()
     return 0;
 }
 
-void ReplicateDistributor::distributeWorkUnit(lm::work::Work & work)
-{
-
-}
 
 template <int tag>
 void ReplicateDistributor::receiveSizeThenBuffer(void * staticDataBuffer, int & msgSize)

@@ -42,11 +42,11 @@
 #include <vector>
 #include "TestingHelper.h"
 #include "lm/Exceptions.h"
-#include "DiffusionModel.pb.h"
-#include "FirstPassageTimes.pb.h"
-#include "ParameterValues.pb.h"
-#include "ReactionModel.pb.h"
-#include "SpatialModel.pb.h"
+#include "lm/io/DiffusionModel.pb.h"
+#include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/io/ParameterValues.pb.h"
+#include "lm/io/ReactionModel.pb.h"
+#include "lm/io/SpatialModel.pb.h"
 #include "lm/io/hdf5/HDF5.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #define BOOST_TEST_MODULE LatticeMicrobe

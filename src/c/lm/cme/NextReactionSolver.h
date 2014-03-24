@@ -44,7 +44,7 @@
 #include <list>
 #include <string>
 #include "lm/cme/CMESolver.h"
-#include "FirstPassageTimes.pb.h"
+#include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/resource/ResourceAllocator.h"
 #include "lm/reaction/ReactionQueue.h"
 #include "lm/rng/RandomGenerator.h"

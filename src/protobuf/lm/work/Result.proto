@@ -1,10 +1,11 @@
-#include "lm/work/ReadWrite.proto"
+import "ReadWrite.proto";
+
 package lm.work;
 
 message Result {
 	optional uint32 tid		 			= 1;
-	optional unit32 pid					= 2;
-	optional unit32 sid					= 3;
+	optional uint32 pid					= 2;
+	optional uint32 sid					= 3;
 		
 	enum JobType {
 		REPLICATE = 0;
@@ -19,7 +20,7 @@ message Result {
 	
 	optional JobType jobType			= 4;
 	optional SolverType solverType		= 5;
-	optinal uint32 ffs2Interface		= 6;
-	repeated lm.io.ReadWrite readWrite	= 7;
+	optional uint32 ffs2Interface		= 6;
+	repeated lm.work.ReadWrite readWrite	= 7;
 	repeated uint32 writeIndexes		= 8 [packed=true];	//the indexes (if any) of this message's readWrite array that should be written out to disk
 }

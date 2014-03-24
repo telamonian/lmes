@@ -1,5 +1,5 @@
-#include "lm/message/SimulationParameters.proto"
-#include "lm/io/ReactionModel.proto"
+import "SimulationParameters.proto";
+import "ReactionModel.proto";
 
 package lm.work;
 

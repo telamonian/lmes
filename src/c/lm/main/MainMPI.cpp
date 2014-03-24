@@ -67,8 +67,8 @@
 #endif
 #include "lm/io/hdf5/HDF5.h"
 #include "lm/io/hdf5/SimulationFile.h"
-#include "DiffusionModel.pb.h"
-#include "ReactionModel.pb.h"
+#include "lm/io/DiffusionModel.pb.h"
+#include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SimulationParameters.h"
 #include "lm/main/BruteRunner.h"
 #include "lm/main/CheckpointSignaler.h"
@@ -83,7 +83,7 @@
 #include "lm/main/ReplicateRunner.h"
 #include "lm/resource/ResourceAllocator.h"
 #include "lm/main/SignalHandler.h"
-#include "SimulationParameters.pb.h"
+#include "lm/message/SimulationParameters.pb.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/WorkerManager.h"
 #include "lptf/Profile.h"
@@ -356,9 +356,9 @@ void executeSimulationMPISingleMaster()
     lm::main::DataOutputQueue::setInstance(dataOutputWorker);
 
     //start the replicate distributor thread on the master
-    lm::main::ReplicateDistributor * replicateDistributor = new lm::main::ReplicateDistributor(resourceAllocator, solverFactory);
-    replicateDistributor->setAffinity(reservedCpuCore);
-    replicateDistributor->start();
+//    lm::main::ReplicateDistributor * replicateDistributor = new lm::main::ReplicateDistributor(resourceAllocator, solverFactory);
+//    replicateDistributor->setAffinity(reservedCpuCore);
+//    replicateDistributor->start();
 
     //start the replicate supervisor thread
     lm::main::ReplicateSupervisor * replicateSupervisor = new lm::main::ReplicateSupervisor(file);
@@ -366,7 +366,7 @@ void executeSimulationMPISingleMaster()
     replicateSupervisor->start();
 
     void * ret;
-    PTHREAD_EXCEPTION_CHECK(pthread_join(localReplicateWorker->getId(), &ret));
+    PTHREAD_EXCEPTION_CHECK(pthread_join(replicateSupervisor->getId(), &ret));
     Print::printf(Print::INFO, "Master shutting down.");
 
     // Stop checkpointing.

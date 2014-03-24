@@ -40,7 +40,7 @@
 #include <string>
 #include <map>
 #include "lm/Print.h"
-#include "SimulationParameters.pb.h"
+#include "lm/message/SimulationParameters.pb.h"
 #include "lm/io/SimulationParameters.h"
 
 using std::string;
@@ -101,8 +101,10 @@ bool SimulationParameters::SerializeToArray(void * data, int size)
 
 bool SimulationParameters::ParseFromArray(const void* data, int size)
 {
-    msg.ParseFromArray(data, size);
+    bool ret;
+	ret = msg.ParseFromArray(data, size);
     fromMessage();
+    return ret;
 }
 
 map<string,string> SimulationParameters::getParameters()
