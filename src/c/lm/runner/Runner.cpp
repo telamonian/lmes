@@ -73,7 +73,7 @@ using lm::me::MESolverFactory;
 namespace lm {
 namespace runner {
 
-Runner::Runner(MESolverFactory solverFactory, ResourceAllocator::ComputeResources resources) throw(PthreadException):
+Runner::Runner(ResourceAllocator::ComputeResources resources) throw(PthreadException):
 solverFactory(solverFactory),
 resources(resources),
 result(),
@@ -81,7 +81,7 @@ staticDataBuffer(NULL)
 {
 	MPI_EXCEPTION_CHECK(MPI_Alloc_mem(lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE, MPI_INFO_NULL, &staticDataBuffer));
 	pthread_cond_init(&runnerCv, NULL);
-	go();
+	run();
 }
 
 Runner::~Runner() throw(PthreadException)
@@ -114,24 +114,24 @@ void Runner::alloc(lm::work::Work work)
 	///updates the internal state of the runner according to what's in the work unit
 	///preps the runner to execute .go() and complete the next work unit
 	///for now, a dummy function that preps a dummy result
-	result.set_tid(work.get_tid());
+	result.set_tid(work.tid());
 }
 
 void Runner::update()
 {
 	int msgSize = result->ByteSize();
-	if (msgSize > lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE) throw Exception("Message exceeded buffer size. Message tag:", tag);
+	if (msgSize > lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE) throw Exception("Message exceeded buffer size. Message tag:", lm::MPI::MSG_RESULT_UNIT);
 	result->SerializeToArray(staticDataBuffer, msgSize);
 	MPI_EXCEPTION_CHECK(MPI_Send(staticDataBuffer, msgSize, MPI_BYTE, lm::MPI::MASTER, lm::MPI::MSG_RESULT_UNIT, MPI_COMM_WORLD));
 }
 
-void Runner::go()
+void Runner::run()
 {
 	while (true)
 	{
 		PTHREAD_EXCEPTION_CHECK(pthread_cond_wait(&runnerCv, &controlMutex));
 		//do something
-		emit_result();
+		update();
 	}
 }
 

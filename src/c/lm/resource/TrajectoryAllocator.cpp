@@ -4,12 +4,14 @@
  *  Created on: Jan 19, 2014
  *      Author: tel
  */
-#include <string>
 #include <cmath>
+#include <string>
+#include <utility>
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/SimulationParameters.h"
 #include "lm/MPI.h"
-#include "lm/work/ReadOnly"
+#include "lm/resource/TrajectoryAllocator.h"
+#include "lm/work/ReadOnly.pb.h"
 #include "lm/work/Result.pb.h"
 #include "lm/work/Work.pb.h"
 #include "lm/io/ReactionModel.pb.h"
@@ -17,15 +19,8 @@
 namespace lm {
 namespace resource {
 
-
-TrajectoryAllocator::~TrajectoryAllocator()
-{
-	MPI_EXCEPTION_CHECK(MPI_Free_mem(staticDataBuffer));
-}
-
 void TrajectoryAllocator::initialize()
 {
-	MPI_EXCEPTION_CHECK(MPI_Alloc_mem(lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE, MPI_INFO_NULL, &staticDataBuffer));
 	simulationParameters = file->getSimulationParameters();
 	reactionModel = file->getReactionModel();
 	readOnly = file->getReadOnly();
@@ -43,7 +38,7 @@ int TrajectoryAllocator::createTid()
 void TrajectoryAllocator::initTrajectory()
 {
 	int tid = createTid();
-	trajectories[tid] = createTrajectory(tid);
+	trajectories.insert(std::make_pair(tid, createTrajectory(tid)));
 }
 
 void TrajectoryAllocator::initTrajectories(int n)
@@ -60,11 +55,9 @@ TrajectoryAllocator::Trajectory TrajectoryAllocator::createTrajectory(int tid)
 	work.set_tid(tid);
 	work.set_pid(-1);
 	work.set_sid(-1);
-	work.set_wallClockTime(3.0);
-	work.set_simulationParameters(simulationParameters);
-	work.set_reactionModel(reactionModel);
-	work.set_readOnly(readOnly);
-	work.set_readWrite(readWrite);
+	work.set_wallclocktime(3.0);
+	work.set_allocated_readonly(&readOnly);
+	work.set_allocated_readwrite(&readWrite);
 	return Trajectory(work);
 }
 
@@ -73,19 +66,16 @@ void TrajectoryAllocator::eraseTrajectory(map<int, Trajectory>::iterator traj_it
 	trajectories.erase(traj_it);
 }
 
-void TrajectoryAllocator::Trajectory::distribute(vector<int> slotIds)
+lm::work::Work & TrajectoryAllocator::Trajectory::getWork(vector<int> slotIds)
 {
 	work.set_pid(slotIds[0]);
 	work.set_sid(slotIds[1]);
-	int msgSize = work->ByteSize();
-	if (msgSize > lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE) throw Exception("Message exceeded buffer size. Message tag:", tag);
-	work->SerializeToArray(staticDataBuffer, msgSize);
-	MPI_EXCEPTION_CHECK(MPI_Send(staticDataBuffer, msgSize, MPI_BYTE, work.get_pid(), lm::MPI::MSG_WORK_UNIT, MPI_COMM_WORLD));
+	return work;
 }
 
 void TrajectoryAllocator::Trajectory::update(lm::work::Result & result)
 {
-	work.set_readWrite(result.readWrite(result.readWrite_size - 1));
+	work.set_allocated_readWrite(result.readWrite(result.readWrite_size - 1));
 	work.set_pid(-1);
 	work.set_sid(-1);
 	status = check();
@@ -93,8 +83,8 @@ void TrajectoryAllocator::Trajectory::update(lm::work::Result & result)
 
 TrajectoryAllocator::Trajectory::trajectoryStatus TrajectoryAllocator::Trajectory::check()
 {
-	const lm::work::ReadWrite& readWrite = work.get_readWrite();
-	if (readWrite.get_step > maxStep && readWrite.get_time > maxTime)
+	const lm::work::ReadWrite& readWrite = work.readWrite();
+	if (readWrite.step() > maxStep && readWrite.time() > maxTime)
 	{
 		return FINISHED;
 	}

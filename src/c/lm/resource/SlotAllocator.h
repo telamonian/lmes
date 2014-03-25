@@ -73,10 +73,10 @@ public:
 
     virtual int getMaxSlots();
     virtual void update(lm::work::Result result);
-    virtual map<vector<int>, Slot *>::iterator getBegin() {return slots.begin();}
-    virtual map<vector<int>, Slot *>::iterator getEnd() {return slots.end();}
+    virtual map<vector<int>, Slot>::iterator getBegin() {return slots.begin();}
+    virtual map<vector<int>, Slot>::iterator getEnd() {return slots.end();}
 
-    map<vector<int>, Slot *> slots;
+    map<vector<int>, Slot> slots;
     int maxSlots;
 
 private:

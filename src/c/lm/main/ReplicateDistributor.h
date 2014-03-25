@@ -22,6 +22,7 @@
 #include "lm/Print.h"
 #include "lm/thread/Worker.h"
 #include "lm/thread/Thread.h"
+#include "lm/work/Work.pb.h"
 
 namespace lm {
 namespace main {
@@ -39,7 +40,7 @@ class ReplicateDistributor : public lm::thread::Worker
 {
 
 public:
-    ReplicateDistributor(ResourceAllocator & resourceAllocator, MESolverFactory & solverFactory) throw(PthreadException);
+    ReplicateDistributor(ResourceAllocator & resourceAllocator) throw(PthreadException);
     virtual ~ReplicateDistributor() throw(PthreadException);
 
     virtual void wake() throw(PthreadException);
@@ -59,14 +60,15 @@ protected:
 //    virtual void receiveReactionModel(void * staticDataBuffer, lm::io::ReactionModel * reactionModel);
 //    virtual void receiveDiffusionModel(void * staticDataBuffer, lm::io::DiffusionModel * diffusionModel, uint8_t ** lattice, size_t * latticeSize, uint8_t ** latticeSites, size_t * latticeSitesSize);
     void receiveLatticeModel(uint8_t ** lattice, size_t * latticeSize, uint8_t ** latticeSites, size_t * latticeSitesSize); //TODO: finish refactoring this out of existence
-    virtual void startReplicate(int replicate, MESolverFactory solverFactory, std::map<std::string,string> & simulationParameters, lm::io::ReactionModel * reactionModel, lm::io::DiffusionModel * diffusionModel, uint8_t * lattice, size_t latticeSize, uint8_t * latticeSites, size_t latticeSitesSize, ResourceAllocator & resourceAllocator) throw(Exception,PthreadException);
-    virtual ReplicateRunner * popNextFinishedReplicate(list<ReplicateRunner *> & runningReplicates, ResourceAllocator & resourceAllocator);
+//    virtual void startReplicate(int replicate, MESolverFactory solverFactory, std::map<std::string,string> & simulationParameters, lm::io::ReactionModel * reactionModel, lm::io::DiffusionModel * diffusionModel, uint8_t * lattice, size_t latticeSize, uint8_t * latticeSites, size_t latticeSitesSize, ResourceAllocator & resourceAllocator) throw(Exception,PthreadException);
+//    virtual ReplicateRunner * popNextFinishedReplicate(list<ReplicateRunner *> & runningReplicates, ResourceAllocator & resourceAllocator);
 
     DistributorSlotAllocator distributorSlotAllocator;
 
 private:
     //variables relating to Worker behavior
     void * staticDataBuffer;
+    lm::work::Work work;
     bool shouldCheckpoint;
     bool shouldAbort;
 

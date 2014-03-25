@@ -41,6 +41,7 @@
 #include <iostream>
 #include <mpi.h>
 #include "lm/Exceptions.h"
+#include "lm/Print.h"
 #include "lm/MPI.h"
 
 namespace lm {

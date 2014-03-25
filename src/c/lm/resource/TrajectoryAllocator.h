@@ -9,15 +9,17 @@
 #define TRAJECTORYALLOCATOR_H_
 
 #include <string>
+#include <map>
 #include <vector>
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/SimulationParameters.h"
 #include "lm/thread/Thread.h"
-#include "lm/work/ReadOnly"
+#include "lm/work/ReadOnly.pb.h"
 #include "lm/work/Result.pb.h"
 #include "lm/work/Work.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 
+using std::map;
 using std::string;
 using std::vector;
 using lm::thread::PthreadException;
@@ -38,11 +40,11 @@ public:
 
 		virtual void assignSlot();
 		virtual void update(lm::work::Result & result);
-		virtual void distribute(vector<int> slotIds);
+		virtual lm::work::Work & getWork(vector<int> slotIds);
 		virtual trajectoryStatus check();
-		virtual int getTid() {return work.get_tid();}
-		virtual int getPid() {return work.get_pid();}
-		virtual int getSid() {return work.get_sid();}
+		virtual int getTid() {return work.tid();}
+		virtual int getPid() {return work.pid();}
+		virtual int getSid() {return work.sid();}
 
 		lm::work::Work work;
 		trajectoryStatus status;
@@ -50,7 +52,7 @@ public:
 
 public:
     TrajectoryAllocator(lm::io::hdf5::Hdf5File * file, bool needsReactionModel, bool needsDiffusionModel):
-    	staticDataBuffer(NULL), tidCounter(0), file(file), needsReactionModel(needsReactionModel), needsDiffusionModel(needsDiffusionModel) {initialize();}
+    	tidCounter(0), file(file), needsReactionModel(needsReactionModel), needsDiffusionModel(needsDiffusionModel) {initialize();}
     virtual ~TrajectoryAllocator();
 
     virtual void initialize();
@@ -59,13 +61,12 @@ public:
     virtual void initTrajectories(int n);
     virtual Trajectory createTrajectory(int tid);
     virtual void eraseTrajectory(map<int, Trajectory>::iterator traj_it);
-    virtual void update(lm::work::Result & result) {trajectories[result.get_tid()].update(result)}
+    virtual void update(lm::work::Result & result) {trajectories.find(result.tid())->second.update(result);}
     virtual map<int, Trajectory>::iterator getBegin() {return trajectories.begin();}
     virtual map<int, Trajectory>::iterator getEnd() {return trajectories.end();}
 
-    void * staticDataBuffer;
     double maxTime;
-    long long maxSteps;
+    long long maxStep;
     int tidCounter;			//equal to next trajectory ID to be created
     lm::io::hdf5::Hdf5File * file;
     lm::io::SimulationParameters simulationParameters;

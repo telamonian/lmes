@@ -1,5 +1,5 @@
-import "ReadOnly.proto";
-import "ReadWrite.proto";
+import "lm/work/ReadOnly.proto";
+import "lm/work/ReadWrite.proto";
 
 package lm.work;
 

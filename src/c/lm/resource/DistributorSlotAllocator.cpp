@@ -41,12 +41,15 @@
 #include <map>
 #include <pthread.h>
 #include <sstream>
+#include <utility>
 #include "lm/Exceptions.h"
 #include "lm/Math.h"
 #include "lm/MPI.h"
 #include "lm/Types.h"
 #include "lm/resource/DistributorSlot.h"
+#include "lm/resource/DistributorSlotAllocator.h"
 #include "lm/resource/ResourceAllocator.h"
+#include "lm/resource/SlotAllocator.h"
 #include "lm/runner/Runner.h"
 #include "lm/thread/Thread.h"
 #include "lm/work/Result.pb.h"
@@ -54,14 +57,14 @@
 
 
 using std::map;
-using lm::resource::ResourceAllocator;
-using lm::main::Runner;
+//using lm::resource::ResourceAllocator;
+using lm::runner::Runner;
 using lm::thread::PthreadException;
 
 namespace lm {
 namespace resource {
 
-DistributorSlotAllocator::DistributorSlotAllocator(ResourceAllocator & resourceAllocator): resourceAllocator(resourceAllocator), maxSlots()
+DistributorSlotAllocator::DistributorSlotAllocator(ResourceAllocator & resourceAllocator): SlotAllocator(), resourceAllocator(resourceAllocator)
 {
 	maxSlots = resourceAllocator.getMaxSlots();
     initialize();
@@ -75,7 +78,8 @@ void DistributorSlotAllocator::initialize()
 		vector<int> slotIds(2);
 		slotIds.push_back(lm::MPI::worldRank);
 		slotIds.push_back(i);
-		slots[slotIds] = DistributorSlot(slotIds, resourceAllocator.alloc(i), Runner());
+		lm::resource::ResourceAllocator::ComputeResources computeResources(resourceAllocator.alloc(i));
+		slots.insert(std::make_pair(slotIds, DistributorSlot(slotIds, computeResources, Runner(computeResources))));
 		++maxSlotsCounter;
 	}
 	maxSlots = maxSlotsCounter;
@@ -84,9 +88,10 @@ void DistributorSlotAllocator::initialize()
 void DistributorSlotAllocator::alloc(lm::work::Work & work)
 {
 	vector<int> slotIds(2);
-	slotIds.push_back(work.get_pid());
-	slotIds.push_back(work.get_sid());
-	slots[slotIds].update(work);
+	slotIds.push_back(work.pid());
+	slotIds.push_back(work.sid());
+	slots.find(slotIds)->second.alloc(work);
 }
 
+}
 }

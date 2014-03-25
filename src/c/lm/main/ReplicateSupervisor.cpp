@@ -33,7 +33,7 @@ using std::deque;
 using std::vector;
 
 ReplicateSupervisor::ReplicateSupervisor(int * maxSlotsTable, lm::io::hdf5::Hdf5File * file) throw(PthreadException):
-slotAllocatorSupervisor(maxSlotsTable),
+slotAllocator(maxSlotsTable),
 trajectoryAllocator(file, true, true),
 file(file),
 staticDataBuffer(NULL),
@@ -52,7 +52,7 @@ ReplicateSupervisor::~ReplicateSupervisor() throw(PthreadException)
 
 void ReplicateSupervisor::wake() throw(PthreadException)
 {
-    MPI_EXCEPTION_CHECK(MPI_Send(NULL, 0, MPI_INT, lm::MPI::worldRank, lm::MPI::MSG_WAKE_LOCAL_REPLICATE_SUPERVISOR, MPI_COMM_WORLD));
+    MPI_EXCEPTION_CHECK(MPI_Send(NULL, 0, MPI_INT, lm::MPI::worldRank, lm::MPI::MSG_WAKE_REPLICATE_SUPERVISOR, MPI_COMM_WORLD));
 }
 
 void ReplicateSupervisor::abort() throw(PthreadException)
@@ -118,7 +118,7 @@ int ReplicateSupervisor::run()
             while (true)
             {
                 MPI_EXCEPTION_CHECK(MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &messageStatus));
-                if ((messageStatus.MPI_TAG == lm::MPI::MSG_RESULT_UNIT) || (messageStatus.MPI_SOURCE == lm::MPI::MASTER && messageStatus.MPI_TAG == lm::MPI::MSG_WAKE_LOCAL_REPLICATE_SUPERVISOR)) break;
+                if ((messageStatus.MPI_TAG == lm::MPI::MSG_RESULT_UNIT) || (messageStatus.MPI_SOURCE == lm::MPI::MASTER && messageStatus.MPI_TAG == lm::MPI::MSG_WAKE_REPLICATE_SUPERVISOR)) break;
             }
             if (messageStatus.MPI_TAG == lm::MPI::MSG_RESULT_UNIT)
             {
@@ -149,9 +149,9 @@ int ReplicateSupervisor::run()
 //            	update(result);
 //            	distributeWorkUnits();
             }
-            else if (messageStatus.MPI_SOURCE == lm::MPI::MASTER && messageStatus.MPI_TAG == lm::MPI::MSG_WAKE_LOCAL_REPLICATE_SUPERVISOR)
+            else if (messageStatus.MPI_SOURCE == lm::MPI::MASTER && messageStatus.MPI_TAG == lm::MPI::MSG_WAKE_REPLICATE_SUPERVISOR)
             {
-                MPI_EXCEPTION_CHECK(MPI_Recv(NULL, 0, MPI_INT, lm::MPI::MASTER, lm::MPI::MSG_WAKE_LOCAL_REPLICATE_SUPERVISOR, MPI_COMM_WORLD, &messageStatus));
+                MPI_EXCEPTION_CHECK(MPI_Recv(NULL, 0, MPI_INT, lm::MPI::MASTER, lm::MPI::MSG_WAKE_REPLICATE_SUPERVISOR, MPI_COMM_WORLD, &messageStatus));
             }
         }
     }
@@ -173,15 +173,19 @@ void ReplicateSupervisor::update(lm::work::Result & result)
 //marks slot as BUSY
 //sets slot related properties (pid, sid) of trajectory
 //sends work unit to appropriate process using an MPI message
-void ReplicateSupervisor::distributeWorkUnit(map<vector<int>, SupervisorSlot>::iterator slot_it, map<int, TrajectoryAllocator::Trajectory>::iterator traj_it)
+void ReplicateSupervisor::distributeWorkUnit(deque<Slot *>::iterator slot_it, map<int, TrajectoryAllocator::Trajectory>::iterator traj_it)
 {
-	traj_it->second.distribute(slot_it->second.alloc());	//slot_it->second.alloc() allocates the slot the iterator points to and return a vector of [pid, sid]
+	vector<int> slotIds(2);
+	slotIds.push_back((*slot_it)->pid);
+	slotIds.push_back((*slot_it)->sid);
+	(*slot_it)->alloc(traj_it->second.getWork(slotIds));	//slot_it->second.alloc() allocates the slot the iterator points to and return a vector of [pid, sid]
 }
 
 //function that can be run at any time to distribute unfinished trajectories to free slots
 void ReplicateSupervisor::distributeWorkUnits()
 {
-	deque<map<vector<int>, SupervisorSlot>::iterator> slots(findSlots());
+	//deque<map<vector<int>, SupervisorSlot>::iterator> slots(slotAllocator.freeSlots);
+	//deque<SupervisorSlot *>::iterator> slots(slotAllocator.freeSlots);
 	bool modifiedTrajectories = false;
 	do
 	{
@@ -190,14 +194,14 @@ void ReplicateSupervisor::distributeWorkUnits()
 		while (traj_it!=end)
 		{
 			modifiedTrajectories = false;
-			if (slots.size()==0)
+			if (slotAllocator.freeSlots.size()==0)
 			{
 				return;
 			}
 			if (traj_it->second.status==TrajectoryAllocator::CONTINUE && traj_it->second.getPid()==-1 && traj_it->second.getSid()==-1)
 			{
-				distributeWorkUnit(slots.back(), traj_it);
-				slots.pop_back();
+				distributeWorkUnit(slotAllocator.freeSlots.end(), traj_it);
+				slotAllocator.freeSlots.pop_back();
 				++traj_it;
 			}
 			else if (traj_it->second.status==TrajectoryAllocator::FINISHED)

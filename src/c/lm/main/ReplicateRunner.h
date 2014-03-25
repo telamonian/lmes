@@ -42,15 +42,16 @@
 
 #include <map>
 #include <string>
-#include "lm/resource/ResourceAllocator.h"
-#include "lm/me/MESolverFactory.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/DiffusionModel.pb.h"
+#include "lm/me/MESolverFactory.h"
+#include "lm/resource/ResourceAllocator.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 
 using std::map;
 using std::string;
+using lm::resource::ResourceAllocator;
 using lm::thread::PthreadException;
 using lm::thread::Worker;
 using lm::me::MESolverFactory;

@@ -54,7 +54,7 @@ public:
     virtual int RunRep(int destProc, int replicate);
 
     virtual void distributeWorkUnits();
-    virtual void distributeWorkUnit(map<vector<int>, SupervisorSlot>::iterator slot_it, map<int, TrajectoryAllocator::Trajectory>::iterator traj_it);
+    virtual void distributeWorkUnit(deque<Slot *>::iterator slot_it, map<int, TrajectoryAllocator::Trajectory>::iterator traj_it);
     virtual void update(lm::work::Result & result);
 
     virtual void MPI_MastBcastOut(void *buf, int count, MPI_Datatype datatype, int tag, MPI_Comm comm);

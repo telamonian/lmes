@@ -57,7 +57,7 @@ using std::vector;
 namespace lm {
 namespace resource {
 
-SlotAllocator::SlotAllocator(): slots(), freeSlots(), maxSlots(-1) {}
+SlotAllocator::SlotAllocator(): slots(), maxSlots(-1) {}
 
 int SlotAllocator::getMaxSlots()
 {
@@ -67,9 +67,9 @@ int SlotAllocator::getMaxSlots()
 void SlotAllocator::update(lm::work::Result result)
 {
 	vector<int> slotIds(2);
-	slotIds.push_back(result.get_pid());
-	slotIds.push_back(result.get_sid());
-	free(slotIds);
+	slotIds.push_back(result.pid());
+	slotIds.push_back(result.sid());
+	//free(slotIds);
 }
 
 }

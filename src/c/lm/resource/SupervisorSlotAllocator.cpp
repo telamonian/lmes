@@ -38,8 +38,10 @@
  */
 
 #include <iostream>
+#include <map>
 #include <pthread.h>
 #include <sstream>
+#include <utility>
 #include <vector>
 #include "lm/Exceptions.h"
 #include "lm/Math.h"
@@ -53,12 +55,13 @@
 #include "lm/work/Work.pb.h"
 
 using lm::thread::PthreadException;
+using std::map;
 using std::vector;
 
 namespace lm {
 namespace resource {
 
-SupervisorSlotAllocator::SupervisorSlotAllocator(int * maxSlotsTable): maxSlotsTable(maxSlotsTable)
+SupervisorSlotAllocator::SupervisorSlotAllocator(int * maxSlotsTable): SlotAllocator(), maxSlotsTable(maxSlotsTable), freeSlots()
 {
     initialize();
 }
@@ -73,14 +76,14 @@ void SupervisorSlotAllocator::initialize()
 		vector<int> slotIds(2);
 		slotIds.push_back(i);
 		slotIds.push_back(j);
-		slots[slotIds] = SupervisorSlot(slotIds);
+		slots.insert(std::make_pair(slotIds,SupervisorSlot(slotIds)));
 		++maxSlotsCounter;
 		}
 	}
 	maxSlots = maxSlotsCounter;
 	for(map<vector<int>, Slot>::iterator slot_it = slots.begin(); slot_it!=slots.end(); ++slot_it)
 	{
-		freeSlots.push_back(slot_it->second);
+		freeSlots.push_back(&(slot_it->second));
 	}
 }
 
@@ -89,16 +92,16 @@ int SupervisorSlotAllocator::getFreeSlotsSize()
 	return freeSlots.size();
 }
 
-vector<int> SuperviosrSlotAllocator::alloc()
+vector<int> SupervisorSlotAllocator::alloc(lm::work::Work work)
 {
 	Slot * slot(freeSlots.back());
 	freeSlots.pop_back();
-	return slot->alloc();
+	return slot->alloc(work);
 }
 
 void SupervisorSlotAllocator::free(vector<int> slotIds)
 {
-	Slot * slot = &(slots[slotIds]);
+	Slot * slot = &(slots.find(slotIds)->second);
 	slot->free();
 	freeSlots.push_back(slot);
 }

@@ -11,6 +11,7 @@
 #include "lm/io/SimulationParameters.h"
 #include "lm/main/BruteRunner.h"
 #include "lm/main/ForwardFluxRunner.h"
+#include "lm/main/Main.h"
 #include "lm/main/ReplicateDistributor.h"
 #include "lm/message/SimulationParameters.pb.h"
 #include "lm/MPI.h"
@@ -18,7 +19,7 @@
 namespace lm {
 namespace main {
 
-ReplicateDistributor::ReplicateDistributor(ResourceAllocator & resourceAllocator, MESolverFactory & solverFactory) throw(PthreadException):
+ReplicateDistributor::ReplicateDistributor(ResourceAllocator & resourceAllocator) throw(PthreadException):
 resourceAllocator(resourceAllocator),
 solverFactory(solverFactory),
 distributorSlotAllocator(resourceAllocator),
@@ -35,7 +36,7 @@ ReplicateDistributor::~ReplicateDistributor() throw(PthreadException)
 
 void ReplicateDistributor::wake() throw(PthreadException)
 {
-    MPI_EXCEPTION_CHECK(MPI_Send(NULL, 0, MPI_INT, lm::MPI::worldRank, lm::MPI::MSG_WAKE_REPLICATE_MANAGER, MPI_COMM_WORLD));
+    MPI_EXCEPTION_CHECK(MPI_Send(NULL, 0, MPI_INT, lm::MPI::worldRank, lm::MPI::MSG_WAKE_REPLICATE_DISTRIBUTOR, MPI_COMM_WORLD));
 }
 
 void ReplicateDistributor::abort() throw(PthreadException)
@@ -143,9 +144,9 @@ int ReplicateDistributor::run()
 				distributorSlotAllocator.alloc(work);
 //				PROF_END(PROF_MASTER_READ_STATIC_MSG);update(result);
             }
-            else if (messageStatus.MPI_SOURCE == lm::MPI::worldRank && messageStatus.MPI_TAG == lm::MPI::MSG_WAKE_REPLICATE_MANAGER)
+            else if (messageStatus.MPI_SOURCE == lm::MPI::worldRank && messageStatus.MPI_TAG == lm::MPI::MSG_WAKE_REPLICATE_DISTRIBUTOR)
             {
-                MPI_EXCEPTION_CHECK(MPI_Recv(NULL, 0, MPI_INT, lm::MPI::worldRank, lm::MPI::MSG_WAKE_REPLICATE_MANAGER, MPI_COMM_WORLD, &messageStatus));
+                MPI_EXCEPTION_CHECK(MPI_Recv(NULL, 0, MPI_INT, lm::MPI::worldRank, lm::MPI::MSG_WAKE_REPLICATE_DISTRIBUTOR, MPI_COMM_WORLD, &messageStatus));
             }
         }
     }
@@ -191,39 +192,39 @@ void ReplicateDistributor::receiveLatticeModel(uint8_t ** lattice, size_t * latt
     Print::printf(Print::DEBUG, "Process %d received diffusion model lattice: %d and %d bytes", lm::MPI::worldRank, *latticeSize, *latticeSitesSize);
 }
 
-void ReplicateDistributor::startReplicate(int replicate, MESolverFactory solverFactory, std::map<std::string,string> & simulationParameters, lm::io::ReactionModel * reactionModel, lm::io::DiffusionModel * diffusionModel, uint8_t * lattice, size_t latticeSize, uint8_t * latticeSites, size_t latticeSitesSize, ResourceAllocator & resourceAllocator) throw(Exception,PthreadException)
-{
-    // Allocate resources for the replicate.
-    ResourceAllocator::ComputeResources resources = resourceAllocator.assignReplicate(replicate);
-    ReplicateRunner * runner = NULL;
-    // Start a new thread for the replicate.
-    Print::printf(Print::DEBUG, "Starting replicate %d in process %d (%s).", replicate, lm::MPI::worldRank, resources.toString().c_str());
-    if (useForwardFluxRunner)
-    {
-        runner = new ForwardFluxRunner(replicate, solverFactory, &simulationParameters, reactionModel, diffusionModel, lattice, latticeSize, latticeSites, latticeSitesSize, resources);
-    }
-    else
-    {
-        runner = new BruteRunner(replicate, solverFactory, &simulationParameters, reactionModel, diffusionModel, lattice, latticeSize, latticeSites, latticeSitesSize, resources);
-    }
-    runner->start();
-    runningReplicates.push_back(runner);
-}
-
-ReplicateRunner * ReplicateDistributor::popNextFinishedReplicate(list<ReplicateRunner *> & runningReplicates, ResourceAllocator & resourceAllocator)
-{
-    for (list<ReplicateRunner *>::iterator it=runningReplicates.begin(); it != runningReplicates.end(); it++)
-    {
-        ReplicateRunner * runner = *it;
-        if (runner->hasReplicateFinished())
-        {
-            runningReplicates.erase(it);
-            resourceAllocator.removeReplicate(runner->getReplicate());
-            return runner;
-        }
-    }
-    return NULL;
-}
+//void ReplicateDistributor::startReplicate(int replicate, MESolverFactory solverFactory, std::map<std::string,string> & simulationParameters, lm::io::ReactionModel * reactionModel, lm::io::DiffusionModel * diffusionModel, uint8_t * lattice, size_t latticeSize, uint8_t * latticeSites, size_t latticeSitesSize, ResourceAllocator & resourceAllocator) throw(Exception,PthreadException)
+//{
+//    // Allocate resources for the replicate.
+//    ResourceAllocator::ComputeResources resources = resourceAllocator.assignReplicate(replicate);
+//    ReplicateRunner * runner = NULL;
+//    // Start a new thread for the replicate.
+//    Print::printf(Print::DEBUG, "Starting replicate %d in process %d (%s).", replicate, lm::MPI::worldRank, resources.toString().c_str());
+//    if (useForwardFluxRunner)
+//    {
+//        runner = new ForwardFluxRunner(replicate, solverFactory, &simulationParameters, reactionModel, diffusionModel, lattice, latticeSize, latticeSites, latticeSitesSize, resources);
+//    }
+//    else
+//    {
+//        runner = new BruteRunner(replicate, solverFactory, &simulationParameters, reactionModel, diffusionModel, lattice, latticeSize, latticeSites, latticeSitesSize, resources);
+//    }
+//    runner->start();
+//    runningReplicates.push_back(runner);
+//}
+//
+//ReplicateRunner * ReplicateDistributor::popNextFinishedReplicate(list<ReplicateRunner *> & runningReplicates, ResourceAllocator & resourceAllocator)
+//{
+//    for (list<ReplicateRunner *>::iterator it=runningReplicates.begin(); it != runningReplicates.end(); it++)
+//    {
+//        ReplicateRunner * runner = *it;
+//        if (runner->hasReplicateFinished())
+//        {
+//            runningReplicates.erase(it);
+//            resourceAllocator.removeReplicate(runner->getReplicate());
+//            return runner;
+//        }
+//    }
+//    return NULL;
+//}
 
 }
 }

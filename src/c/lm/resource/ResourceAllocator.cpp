@@ -43,7 +43,7 @@
 #include "lm/Exceptions.h"
 #include "lm/Math.h"
 #include "lm/Types.h"
-#include "lm/main/ResourceAllocator.h"
+#include "lm/resource/ResourceAllocator.h"
 #include "lm/thread/Thread.h"
 
 using lm::thread::PthreadException;
@@ -161,7 +161,7 @@ int ResourceAllocator::getMaxSlots()
 
 ResourceAllocator::ComputeResources ResourceAllocator::alloc(int sid) throw(Exception,PthreadException)
 {
-    ComputeResources allocatedResources(this);
+    ComputeResources allocatedResources(*this);
     allocatedResources.pid = processNumber;
     allocatedResources.sid = sid;
 

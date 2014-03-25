@@ -49,7 +49,7 @@
 #include <string>
 #include <vector>
 #include "lm/resource/ResourceAllocator.h"
-#include "lm/resource/SupervisorSlotAllocator.h"
+#include "lm/resource/SlotAllocator.h"
 #include "lm/thread/Thread.h"
 #include "lm/work/Result.pb.h"
 #include "lm/work/Work.pb.h"
@@ -69,11 +69,12 @@ public:
 	DistributorSlotAllocator(ResourceAllocator & resourceAllocator);
     virtual ~DistributorSlotAllocator();
 
+    void alloc(lm::work::Work & work);
+
     ResourceAllocator & resourceAllocator;
 
 private:
     void initialize();
-    void alloc(lm::work::Work & work);
 };
 
 }

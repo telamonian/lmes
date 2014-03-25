@@ -1,4 +1,4 @@
-import "ReadWrite.proto";
+import "lm/work/ReadWrite.proto";
 
 package lm.work;
 

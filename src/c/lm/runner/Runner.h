@@ -65,16 +65,15 @@ namespace runner {
 class Runner : public Worker
 {
 public:
-    Runner(MESolverFactory solverFactory, ResourceAllocator::ComputeResources resources) throw(PthreadException);
+    Runner(ResourceAllocator::ComputeResources resources) throw(PthreadException);
     virtual ~Runner() throw(PthreadException);
     virtual void wake() throw(PthreadException);
-    virtual int run() = 0;
+    virtual int run();
 
     pthread_cond_t runnerCv;
 
     virtual void alloc(lm::work::Work & work);
-    virtual void go() = 0;
-    virtual void emit_result();
+    virtual void update();
 
     virtual void lock_mutex();
     virtual void unlock_mutex();

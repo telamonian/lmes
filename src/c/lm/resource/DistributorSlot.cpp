@@ -10,7 +10,7 @@
 namespace lm {
 namespace resource {
 
-void DistributorSlot::update(lm::work::Work & work)
+void DistributorSlot::alloc(lm::work::Work & work)
 {
 	runner.lock_mutex();
 	runner.alloc(work);

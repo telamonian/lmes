@@ -51,6 +51,7 @@
 #include <string>
 #include <vector>
 #include "lm/resource/Slot.h"
+#include "lm/resource/SlotAllocator.h"
 #include "lm/thread/Thread.h"
 #include "lm/work/Result.pb.h"
 #include "lm/work/Work.pb.h"
@@ -60,6 +61,7 @@ using std::map;
 using std::string;
 using std::vector;
 using lm::resource::Slot;
+using lm::resource::SlotAllocator;
 using lm::thread::PthreadException;
 
 namespace lm {
@@ -72,7 +74,7 @@ public:
     virtual ~SupervisorSlotAllocator();
 
     virtual int getFreeSlotsSize();
-    virtual vector<int> alloc();
+    virtual vector<int> alloc(lm::work::Work work);
     virtual void free(vector<int> slotIds);
 
     deque<Slot *> freeSlots;
