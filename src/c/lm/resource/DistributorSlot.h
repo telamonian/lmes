@@ -23,12 +23,12 @@ class DistributorSlot: public Slot
 public:
 	DistributorSlot(vector<int> ids, ResourceAllocator::ComputeResources resource, Runner runner):
 		Slot(ids), resource(resource), runner(runner) {}
-	virtual ~DistributorSlot();
+	virtual ~DistributorSlot() {}
 	virtual int getCore() {return resource.cpuCores[0];}
+	virtual void alloc(lm::work::Work & work);
 
 	ResourceAllocator::ComputeResources resource;
 	Runner runner;
-	void alloc(lm::work::Work & work);
 };
 
 }

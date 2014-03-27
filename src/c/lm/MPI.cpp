@@ -117,14 +117,15 @@ void MPI::MastBcastOut(void * buf, int count, MPI_Datatype datatype, int tag, MP
     }
 }
 
-template <typename t>
-void MPI::MastBcastIn(t * recvtable, int recvcount, MPI_Datatype recvtype, int recvtag, MPI_Comm comm)
-{
-    MPI_Status messageStatus;
-    for(int sendProc=0; sendProc < lm::MPI::worldSize; ++sendProc)
-    {
-        MPI_EXCEPTION_CHECK(MPI_Recv(recvtable + sendProc, recvcount, recvtype, sendProc, recvtag, comm, &messageStatus));
-    }
-}
+//
+//template <typename t>
+//void MPI::MastBcastIn(t * recvtable, int recvcount, MPI_Datatype recvtype, int recvtag, MPI_Comm comm)
+//{
+//    MPI_Status messageStatus;
+//    for(int sendProc=0; sendProc < lm::MPI::worldSize; ++sendProc)
+//    {
+//        MPI_EXCEPTION_CHECK(MPI_Recv(recvtable + sendProc, recvcount, recvtype, sendProc, recvtag, comm, &messageStatus));
+//    }
+//}
 
 }

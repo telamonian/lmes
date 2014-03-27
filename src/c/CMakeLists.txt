@@ -9,7 +9,7 @@ list(REMOVE_ITEM lm_c_source ${to_remove_mainsa} ${to_remove_mainmpi} ${to_remov
 
 file(GLOB lm_proto_src ../protobuf/*/*/*.proto)
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
-PROTOBUF_GENERATE_CPP(proto_srcs proto_hdrs ${lm_proto_src})
+#include_directories(${CMAKE_CURRENT_BINARY_DIR})
+#PROTOBUF_GENERATE_CPP(proto_srcs proto_hdrs ${lm_proto_src})
 
-add_library(lm_c_lib STATIC ${lm_c_source} ${proto_srcs} ${proto_hdrs})
+add_library(lm_c_lib STATIC ${lm_c_source}) #${proto_srcs} ${proto_hdrs})

@@ -43,6 +43,8 @@
 #include <mpi.h>
 #include "lm/Exceptions.h"
 
+#define MPI_EXCEPTION_CHECK(mpi_call) {int _mpi_ret_=mpi_call; if (_mpi_ret_ != MPI_SUCCESS) throw lm::MPIException(_mpi_ret_);}
+
 void MPIErrorHandler(MPI_Comm *, int *rc, ...);
 
 namespace lm {
@@ -103,14 +105,20 @@ public:
     static void finalize() throw(MPIException);
     //send from master node to all nodes, one by one, including master. nodes should MPI_Recv plus the relevant tag to receive
     static void MastBcastOut(void *buf, int count, MPI_Datatype datatype, int tag, MPI_Comm comm);
+
     //receive from all nodes, one by one, including master. nodes should use MPI_Send plus the relevant tag to send
     template <typename t>
-    static void MastBcastIn(t * recvtable, int recvcount, MPI_Datatype recvtype, int recvtag, MPI_Comm comm);
+    static void MastBcastIn(t * recvtable, int recvcount, MPI_Datatype recvtype, int recvtag, MPI_Comm comm)
+    {
+        MPI_Status messageStatus;
+        for(int sendProc=0; sendProc < lm::MPI::worldSize; ++sendProc)
+        {
+            MPI_EXCEPTION_CHECK(MPI_Recv(recvtable + sendProc, recvcount, recvtype, sendProc, recvtag, comm, &messageStatus));
+        }
+    }
+
 };
 
 }
-
-#define MPI_EXCEPTION_CHECK(mpi_call) {int _mpi_ret_=mpi_call; if (_mpi_ret_ != MPI_SUCCESS) throw lm::MPIException(_mpi_ret_);}
-
 
 #endif /*LM_MPI_H_*/

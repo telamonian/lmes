@@ -88,6 +88,13 @@ Runner::~Runner() throw(PthreadException)
 {
 }
 
+void Runner::wake() throw(PthreadException)
+{
+	lock_mutex();
+	cond_signal();
+	unlock_mutex();
+}
+
 void Runner::lock_mutex()
 {
 	//// BEGIN CRITICAL SECTION: controlMutex
@@ -109,7 +116,7 @@ void Runner::cond_signal()
 	//// BEGIN CRITICAL SECTION: runnerCv
 }
 
-void Runner::alloc(lm::work::Work work)
+void Runner::alloc(lm::work::Work & work)
 {
 	///updates the internal state of the runner according to what's in the work unit
 	///preps the runner to execute .go() and complete the next work unit
@@ -119,20 +126,22 @@ void Runner::alloc(lm::work::Work work)
 
 void Runner::update()
 {
-	int msgSize = result->ByteSize();
+	int msgSize = result.ByteSize();
 	if (msgSize > lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE) throw Exception("Message exceeded buffer size. Message tag:", lm::MPI::MSG_RESULT_UNIT);
-	result->SerializeToArray(staticDataBuffer, msgSize);
+	result.SerializeToArray(staticDataBuffer, msgSize);
 	MPI_EXCEPTION_CHECK(MPI_Send(staticDataBuffer, msgSize, MPI_BYTE, lm::MPI::MASTER, lm::MPI::MSG_RESULT_UNIT, MPI_COMM_WORLD));
 }
 
-void Runner::run()
+int Runner::run()
 {
 	while (true)
 	{
+		//in order to "kick" the Runner while it's running, call lock_mutex(), cond_signal(), and then unlock_mutex()
 		PTHREAD_EXCEPTION_CHECK(pthread_cond_wait(&runnerCv, &controlMutex));
 		//do something
 		update();
 	}
+	return 0;
 }
 
 }

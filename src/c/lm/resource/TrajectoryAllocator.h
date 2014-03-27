@@ -35,10 +35,10 @@ public:
 	class Trajectory
 	{
 	public:
-		Trajectory(lm::work::Work work): work(work), status(CONTINUE) {}
-		virtual ~Trajectory();
+		Trajectory(lm::work::Work work, double maxTime, long long maxStep): work(work), maxTime(maxTime), maxStep(maxStep), status(CONTINUE) {}
+		virtual ~Trajectory() {}
 
-		virtual void assignSlot();
+		//virtual void assignSlot();
 		virtual void update(lm::work::Result & result);
 		virtual lm::work::Work & getWork(vector<int> slotIds);
 		virtual trajectoryStatus check();
@@ -48,12 +48,14 @@ public:
 
 		lm::work::Work work;
 		trajectoryStatus status;
+		double maxTime;
+		long long maxStep;
 	};
 
 public:
     TrajectoryAllocator(lm::io::hdf5::Hdf5File * file, bool needsReactionModel, bool needsDiffusionModel):
     	tidCounter(0), file(file), needsReactionModel(needsReactionModel), needsDiffusionModel(needsDiffusionModel) {initialize();}
-    virtual ~TrajectoryAllocator();
+    virtual ~TrajectoryAllocator() {}
 
     virtual void initialize();
     virtual int createTid();
@@ -61,6 +63,7 @@ public:
     virtual void initTrajectories(int n);
     virtual Trajectory createTrajectory(int tid);
     virtual void eraseTrajectory(map<int, Trajectory>::iterator traj_it);
+
     virtual void update(lm::work::Result & result) {trajectories.find(result.tid())->second.update(result);}
     virtual map<int, Trajectory>::iterator getBegin() {return trajectories.begin();}
     virtual map<int, Trajectory>::iterator getEnd() {return trajectories.end();}
@@ -69,7 +72,7 @@ public:
     long long maxStep;
     int tidCounter;			//equal to next trajectory ID to be created
     lm::io::hdf5::Hdf5File * file;
-    lm::io::SimulationParameters simulationParameters;
+    lm::message::SimulationParameters simulationParameters;
     lm::io::ReactionModel reactionModel;
     lm::work::ReadOnly readOnly;
     lm::work::ReadWrite readWrite;

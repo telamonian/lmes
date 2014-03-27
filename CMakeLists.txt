@@ -93,33 +93,33 @@ target_link_libraries(lm lm_c_lib
                          ${CUDA_LIBRARIES}
                          ${PYTHON_LIBRARY_DIRS})
 
-enable_testing()
-add_subdirectory(testing/c/gmock-1.7.0)
-include_directories(${gmock_SOURCE_DIR}/include ${gmock_SOURCE_DIR}
-                    ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+#enable_testing()
+#add_subdirectory(testing/c/gmock-1.7.0)
+#include_directories(${gmock_SOURCE_DIR}/include ${gmock_SOURCE_DIR}
+#                    ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
 ################
 #TARGET: lm_test
 ################
-set(lm_test_src testing/c/lm/main/LocalReplicateSupervisor.cpp)
-
-add_executable(lm_test ${lm_test_src})
-target_link_libraries(lm_test lm_c_lib 
-                              lm_cuda_lib 
-                              ${CMAKE_THREAD_LIBS_INIT}
-                              ${libsbml_LIBRARIES}
-                              ${PROTOBUF_LIBRARIES}
-                              ${HDF5_LIBRARIES}
-                              ${HDF5_HL_LIBRARIES}
-                              ${MPI_C_LIBRARIES}
-                              ${CUDA_LIBRARIES}
-                              ${PYTHON_LIBRARY_DIRS}
-                              gmock
-                              gmock_main
-                              gtest
-                              gtest_main)
-
-add_test(
-    NAME lm_test
-    COMMAND lm_test
-)
+#set(lm_test_src testing/c/lm/main/ReplicateSupervisor.cpp)
+#
+#add_executable(lm_test ${lm_test_src})
+#target_link_libraries(lm_test lm_c_lib 
+#                              lm_cuda_lib 
+#                              ${CMAKE_THREAD_LIBS_INIT}
+#                              ${libsbml_LIBRARIES}
+#                              ${PROTOBUF_LIBRARIES}
+#                              ${HDF5_LIBRARIES}
+#                              ${HDF5_HL_LIBRARIES}
+#                              ${MPI_C_LIBRARIES}
+#                              ${CUDA_LIBRARIES}
+#                              ${PYTHON_LIBRARY_DIRS}
+#                              gmock
+#                              gmock_main
+#                              gtest
+#                              gtest_main)
+#
+#add_test(
+#    NAME lm_test
+#    COMMAND lm_test
+#)

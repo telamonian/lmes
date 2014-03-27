@@ -34,7 +34,7 @@ class SupervisorFixture : public ::testing::Test
 public:
     SupervisorFixture():
     file(),
-    supervisor(fi)
+    supervisor(NULL, fi)
     {
         for (int i=0;i<4;++i)
         {

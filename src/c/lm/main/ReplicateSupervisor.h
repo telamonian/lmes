@@ -50,24 +50,24 @@ public:
     virtual void wake() throw(PthreadException);
     virtual void abort() throw(PthreadException);
     virtual void checkpoint() throw(PthreadException);
-    virtual int FindRep(int destProc);
-    virtual int RunRep(int destProc, int replicate);
+//    virtual int FindRep(int destProc);
+//    virtual int RunRep(int destProc, int replicate);
 
     virtual void distributeWorkUnits();
     virtual void distributeWorkUnit(deque<Slot *>::iterator slot_it, map<int, TrajectoryAllocator::Trajectory>::iterator traj_it);
     virtual void update(lm::work::Result & result);
 
-    virtual void MPI_MastBcastOut(void *buf, int count, MPI_Datatype datatype, int tag, MPI_Comm comm);
-
-    //receive from all nodes, one by one, including master. nodes should use MPI_Send plus the relevant tag to send
-    template <typename t>
-    void MPI_MastBcastIn(t * recvtable, int recvcount, MPI_Datatype recvtype, int recvtag, MPI_Comm comm);
-
-    template <typename t, int tag>
-    void bcastThing(void * staticDataBuffer, t * thing);
-
-    template <int tag>
-    void bcastSizeThenBuffer(void * staticDataBuffer, int msgSize);
+//    virtual void MPI_MastBcastOut(void *buf, int count, MPI_Datatype datatype, int tag, MPI_Comm comm);
+//
+//    //receive from all nodes, one by one, including master. nodes should use MPI_Send plus the relevant tag to send
+//    template <typename t>
+//    void MPI_MastBcastIn(t * recvtable, int recvcount, MPI_Datatype recvtype, int recvtag, MPI_Comm comm);
+//
+//    template <typename t, int tag>
+//    void bcastThing(void * staticDataBuffer, t * thing);
+//
+//    template <int tag>
+//    void bcastSizeThenBuffer(void * staticDataBuffer, int msgSize);
 
     map<int,int> simulationStatusTable;
 protected:

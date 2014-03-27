@@ -361,7 +361,7 @@ void executeSimulationMPISingleMaster()
 //    replicateDistributor->start();
 
     //start the replicate supervisor thread
-    lm::main::ReplicateSupervisor * replicateSupervisor = new lm::main::ReplicateSupervisor(file);
+    lm::main::ReplicateSupervisor * replicateSupervisor = new lm::main::ReplicateSupervisor(maxSlotsTable, file);
     replicateSupervisor->setAffinity(reservedCpuCore);
     replicateSupervisor->start();
 
@@ -434,7 +434,7 @@ void executeSimulationMPISingleSlave()
     MPI_EXCEPTION_CHECK(MPI_Send(&maxSlots, 1, MPI_INT, lm::MPI::MASTER, lm::MPI::MSG_SIMULTANEOUS_REPLICATES, MPI_COMM_WORLD));
 
     //start the replicate distributor thread on the slave
-    lm::main::ReplicateDistributor * replicateDistributor = new lm::main::ReplicateDistributor(resourceAllocator, solverFactory);
+    lm::main::ReplicateDistributor * replicateDistributor = new lm::main::ReplicateDistributor(resourceAllocator);
     replicateDistributor->start();
 
     MPI_Status messageStatus;

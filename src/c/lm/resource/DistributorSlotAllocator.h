@@ -67,14 +67,14 @@ class DistributorSlotAllocator: public SlotAllocator
 {
 public:
 	DistributorSlotAllocator(ResourceAllocator & resourceAllocator);
-    virtual ~DistributorSlotAllocator();
+    virtual ~DistributorSlotAllocator() {};
 
-    void alloc(lm::work::Work & work);
+    virtual void alloc(lm::work::Work & work);
 
     ResourceAllocator & resourceAllocator;
 
 private:
-    void initialize();
+    virtual void initialize();
 };
 
 }

@@ -69,7 +69,7 @@ class SlotAllocator
 {
 public:
     SlotAllocator();
-    virtual ~SlotAllocator();
+    virtual ~SlotAllocator() {}
 
     virtual int getMaxSlots();
     virtual void update(lm::work::Result result);

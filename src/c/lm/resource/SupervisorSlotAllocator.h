@@ -71,7 +71,7 @@ class SupervisorSlotAllocator: public SlotAllocator
 {
 public:
     SupervisorSlotAllocator(int * maxSlotsTable);
-    virtual ~SupervisorSlotAllocator();
+    virtual ~SupervisorSlotAllocator() {}
 
     virtual int getFreeSlotsSize();
     virtual vector<int> alloc(lm::work::Work work);
