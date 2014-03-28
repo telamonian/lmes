@@ -81,15 +81,16 @@ function(PROTOBUF_GENERATE_CPP SRCS HDRS)
   endif()
 
   if(PROTOBUF_GENERATE_CPP_APPEND_PATH)
-    # Create an include path for each file specified
-    foreach(FIL ${ARGN})
-      get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
-      get_filename_component(ABS_PATH ${ABS_FIL} PATH)
-      list(FIND _protobuf_include_path ${ABS_PATH} _contains_already)
-      if(${_contains_already} EQUAL -1)
-          list(APPEND _protobuf_include_path -I ${ABS_PATH})
-      endif()
-    endforeach()
+    #the following loop is commented out so that protoc doesn't become confused with different relative paths to the same .proto files in order to allow for complex paths for generated .pb.cc and .pb.h files
+#    #Create an include path for each file specified
+#    foreach(FIL ${ARGN})
+#      get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
+#      get_filename_component(ABS_PATH ${ABS_FIL} PATH)
+#      list(FIND _protobuf_include_path ${ABS_PATH} _contains_already)
+#      if(${_contains_already} EQUAL -1)
+#          list(APPEND _protobuf_include_path -I ${ABS_PATH})
+#      endif()
+#    endforeach()
     #these eight lines are custom changes to allow for complex paths for generated .pb.cc and .pb.h files
     list(GET ARGN 0 FIL)
     get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
@@ -97,7 +98,7 @@ function(PROTOBUF_GENERATE_CPP SRCS HDRS)
     string(REGEX REPLACE "(.*/protobuf/).*" "\\1" PROTOBUF_ROOT_DIR ${ABS_PATH})
     list(FIND _protobuf_include_path ${PROTOBUF_ROOT_DIR} _contains_already)
     if(${_contains_already} EQUAL -1)
-        list(APPEND _protobuf_include_path -I ${PROTOBUF_ROOT_DIR})
+        list(APPEND _protobuf_include_path  -I${PROTOBUF_ROOT_DIR})
     endif()
   else()
     set(_protobuf_include_path -I ${CMAKE_CURRENT_SOURCE_DIR})
@@ -115,28 +116,26 @@ function(PROTOBUF_GENERATE_CPP SRCS HDRS)
 
   set(${SRCS})
   set(${HDRS})
+  #the following loop has extensive custom changes to allow for complex paths for generated .pb.cc and .pb.h files
   foreach(FIL ${ARGN})
     get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
     get_filename_component(ABS_DIR ${FIL} DIRECTORY)
     get_filename_component(FIL_WE ${FIL} NAME_WE)
 
-    list(APPEND ${SRCS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.cc")
-    list(APPEND ${HDRS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.h")
-    
-    #these two lines are custom changes to allow for complex paths for generated .pb.cc and .pb.h files
     string(REGEX REPLACE ".*/protobuf(.*)" "\\1" REL_PATH "${ABS_DIR}")
     file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}${REL_PATH}")
-    message(${ABS_FIL})
-    
-    add_custom_command(
-      OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.cc"
-             "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.h"
-      COMMAND  ${PROTOBUF_PROTOC_EXECUTABLE}
-      ARGS --cpp_out  "${CMAKE_CURRENT_BINARY_DIR}${REL_PATH}" ${_protobuf_include_path} ${ABS_FIL}
-      DEPENDS ${ABS_FIL}
-      COMMENT "Running C++ protocol buffer compiler on ${FIL}"
-      VERBATIM )
+    list(APPEND ${SRCS} "${CMAKE_CURRENT_BINARY_DIR}${REL_PATH}/${FIL_WE}.pb.cc")
+    list(APPEND ${HDRS} "${CMAKE_CURRENT_BINARY_DIR}${REL_PATH}/${FIL_WE}.pb.h")
+    list(APPEND ABS_FILS  ${ABS_FIL})
   endforeach()
+  add_custom_command(
+  OUTPUT ${${SRCS}}#"${CMAKE_CURRENT_BINARY_DIR}${REL_PATH}/${FIL_WE}.pb.cc"
+         ${${HDRS}}#"${CMAKE_CURRENT_BINARY_DIR}${REL_PATH}/${FIL_WE}.pb.h"
+  COMMAND  ${PROTOBUF_PROTOC_EXECUTABLE}
+  ARGS --cpp_out ${CMAKE_CURRENT_BINARY_DIR} ${_protobuf_include_path} ${ABS_FILS}
+  DEPENDS ${${ABS_FILS}}
+  COMMENT "Running C++ protocol buffer compiler on ${ABS_FILS}"
+  VERBATIM )
 
   set_source_files_properties(${${SRCS}} ${${HDRS}} PROPERTIES GENERATED TRUE)
   set(${SRCS} ${${SRCS}} PARENT_SCOPE)

@@ -73,16 +73,16 @@ add_subdirectory(src/c)
 add_subdirectory(src/cuda)
 add_dependencies(lm_cuda_lib lm_c_lib)
 
-#set_source_files_properties(${proto_srcs} ${proto_hdrs} PROPERTIES GENERATED TRUE)
+#set_source_files_properties(${proto_hdrs} PROPERTIES GENERATED TRUE)
 #get_directory_property(proto_vars DIRECTORY src/protobuf DEFINITION proto_srcs)
 
 ################
 #TARGET: lm
 ################
 set(lm_main_src src/c/lm/main/MainMPI.cpp)
-add_executable(lm ${lm_main_src})
+add_executable(lm ${lm_main_src}) #${proto_hdrs})
 
-target_link_libraries(lm lm_c_lib 
+target_link_libraries(lm lm_c_lib
                          lm_cuda_lib 
                          ${CMAKE_THREAD_LIBS_INIT}
                          ${libsbml_LIBRARIES}
