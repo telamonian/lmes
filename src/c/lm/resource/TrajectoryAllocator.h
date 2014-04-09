@@ -31,7 +31,7 @@ class TrajectoryAllocator
 {
 
 public:
-	static enum trajectoryStatus {CONTINUE, FINISHED};
+	enum trajectoryStatus {CONTINUE, FINISHED};
 	class Trajectory
 	{
 	public:

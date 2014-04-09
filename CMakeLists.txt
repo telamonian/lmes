@@ -47,7 +47,7 @@ ENDIF(LMPICH MATCHES "-lmpich")
 
 find_package(Threads REQUIRED)
 find_package(libsbml REQUIRED)
-find_package(Protobuf REQUIRED)
+find_package(protobuf REQUIRED)
 find_package(HDF5 COMPONENTS C HL REQUIRED)
 find_package(cuda REQUIRED)
 find_package(SWIG)

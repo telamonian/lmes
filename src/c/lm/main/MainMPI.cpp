@@ -324,8 +324,9 @@ void executeSimulationMPISingleMaster()
     }
 
     // Get the maximum number of simulations that can be started on each process.
+    int maxSlots = 0;	//need maxSlots here due to the fact that MPI_Gather complains if send_buf is NULL even on the root process
     int * maxSlotsTable = new int[lm::MPI::worldSize];
-    lm::MPI::MastBcastIn<int>(maxSlotsTable, 1, MPI_INT, lm::MPI::MSG_SIMULTANEOUS_REPLICATES, MPI_COMM_WORLD);
+    MPI_EXCEPTION_CHECK(MPI_Gather(&maxSlots, 1, MPI_INT, maxSlotsTable, 1, MPI_INT, lm::MPI::MASTER, MPI_COMM_WORLD));
 
     //calculate the total number of slots that can be simultaneously used for running work units across the comm
     int maxSlotsTotal=0;
@@ -431,8 +432,7 @@ void executeSimulationMPISingleSlave()
 
     // Report the max simultaneous simulations to the master
     int maxSlots = resourceAllocator.getMaxSlots();
-    MPI_EXCEPTION_CHECK(MPI_Send(&maxSlots, 1, MPI_INT, lm::MPI::MASTER, lm::MPI::MSG_SIMULTANEOUS_REPLICATES, MPI_COMM_WORLD));
-
+    MPI_EXCEPTION_CHECK(MPI_Gather(&maxSlots, 1, MPI_INT, NULL, 1, MPI_INT, lm::MPI::MASTER, MPI_COMM_WORLD));
     //start the replicate distributor thread on the slave
     lm::main::ReplicateDistributor * replicateDistributor = new lm::main::ReplicateDistributor(resourceAllocator);
     replicateDistributor->start();

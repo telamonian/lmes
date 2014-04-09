@@ -18,3 +18,4 @@
 *.ptx
 *.o
 *.d
+/Debug

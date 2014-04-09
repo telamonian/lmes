@@ -19,7 +19,7 @@ namespace resource {
 class Slot
 {
 public:
-	static enum slotStatus {FREE, BUSY, DEAD};
+	enum slotStatus {FREE, BUSY, DEAD};
 
 	Slot(vector<int> ids): pid(ids[0]), sid(ids[1]), status(FREE) {}
 	~Slot() {}

@@ -4,7 +4,7 @@
  *  Created on: Jan 26, 2014
  *      Author: tel
  */
-#include "lm/MPI.H"
+#include "lm/MPI.h"
 #include "lm/resource/SupervisorSlot.h"
 #include "lm/work/Work.pb.h"
 
