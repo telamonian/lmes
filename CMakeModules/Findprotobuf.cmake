@@ -148,12 +148,12 @@ endfunction()
 function(_protobuf_find_libraries name filename)
    find_library(${name}_LIBRARY
        NAMES ${filename}
-       PATHS ${PROTOBUF_SRC_ROOT_FOLDER}/vsprojects/Release)
+       PATHS ${PROTOBUF_ROOT}/lib ${PROTOBUF_SRC_ROOT_FOLDER}/vsprojects/Release)
    mark_as_advanced(${name}_LIBRARY)
 
    find_library(${name}_LIBRARY_DEBUG
        NAMES ${filename}
-       PATHS ${PROTOBUF_SRC_ROOT_FOLDER}/vsprojects/Debug)
+       PATHS ${PROTOBUF_ROOT}/lib ${PROTOBUF_SRC_ROOT_FOLDER}/vsprojects/Debug)
    mark_as_advanced(${name}_LIBRARY_DEBUG)
 
    if(NOT ${name}_LIBRARY_DEBUG)
@@ -221,7 +221,7 @@ endif()
 # Find the include directory
 find_path(PROTOBUF_INCLUDE_DIR
     google/protobuf/service.h
-    PATHS ${PROTOBUF_SRC_ROOT_FOLDER}/src
+    PATHS ${PROTOBUF_ROOT}/include ${PROTOBUF_SRC_ROOT_FOLDER}/src
 )
 mark_as_advanced(PROTOBUF_INCLUDE_DIR)
 

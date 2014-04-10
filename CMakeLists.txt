@@ -13,6 +13,7 @@ project(lm)
 ################
 #if certain packages cannot be found, the end-user (you) can change the variables in CMakeConfig.txt to point to package paths
 include(CMakeConfig.txt)
+set(ENV{HDF5_ROOT} ${HDF5_ROOT})
 
 #automagic setup for linux, os X 10.7-8 (and lower?), and os X 10.9
 add_definitions(-DBUILD_INFO -DVERBOSITY_LEVEL=10 -DOPT_CUDA)
