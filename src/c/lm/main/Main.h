@@ -49,6 +49,7 @@
 using std::string;
 using std::vector;
 
+
 /**
  * The function being performed.
  */
@@ -73,6 +74,11 @@ extern time_t checkpointInterval;
  * If a global abort signal has been received.
  */
 extern volatile bool globalAbort;
+
+/**
+ * The supervisor to use for the simulations.
+ */
+extern string supervisorClassName;
 
 /**
  * The solver to use for the simulations.

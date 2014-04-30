@@ -85,8 +85,20 @@ set(lm_main_src src/c/lm/main/MainMPI.cpp)
 
 add_executable(lm ${lm_main_src})
 
-target_link_libraries(lm lm_c_lib
-                         lm_cuda_lib 
+# The following code is need to ensue that all objects from the custom static libraries are
+# linked in to the executable, even if they are not referenced from the main program.
+# Without this, static initialization of the ClassFactory does not work.
+SET(LM_C_LIB lm_c_lib)
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    target_link_libraries(lm -Wl,--whole-archive)
+    target_link_libraries(lm ${LM_C_LIB})
+    target_link_libraries(lm -Wl,--no-whole-archive)
+ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    target_link_libraries(lm -Wl,-force_load)
+    target_link_libraries(lm ${LM_C_LIB})
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+
+target_link_libraries(lm lm_cuda_lib
                          ${CMAKE_THREAD_LIBS_INIT}
                          ${libsbml_LIBRARIES}
                          ${PROTOBUF_LIBRARIES}

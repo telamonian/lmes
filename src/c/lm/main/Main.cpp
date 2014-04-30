@@ -90,6 +90,11 @@ time_t checkpointInterval = 0;
 volatile bool globalAbort = false;
 
 /**
+ * The supervisor to use for the simulations.
+ */
+string supervisorClassName;
+
+/**
  * The solver to use for the simulations.
  */
 lm::me::MESolverFactory solverFactory;
@@ -181,6 +186,7 @@ void parseArguments(int argc, char** argv)
     numberCpuCores = getPhysicalCpuCores();
     cpuCoresPerReplicate = 1.0;
 
+    supervisorClassName = "lm::replicates::ReplicateSupervisor";
     solverFactory.setSolver("lm::rdme::MpdRdmeSolver");
 
     #ifdef OPT_CUDA

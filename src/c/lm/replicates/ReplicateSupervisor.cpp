@@ -1,8 +1,40 @@
 /*
- * ReplicateSupervisor.cpp
+ * University of Illinois Open Source License
+ * Copyright 2012-2014 Roberts Group,
+ * All rights reserved.
  *
- *  Created on: Oct 4, 2013
- *      Author: tel
+ * Developed by: Roberts Group
+ * 			     Johns Hopkins University
+ * 			     http://biophysics.jhu.edu/roberts/
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the Software), to deal with
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to
+ * do so, subject to the following conditions:
+ *
+ * - Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimers.
+ *
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimers in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * - Neither the names of the Roberts Group, Johns Hopkins University,
+ * nor the names of its contributors may be used to endorse or
+ * promote products derived from this Software without specific prior written
+ * permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS WITH THE SOFTWARE.
+ *
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #include <ctime>
@@ -12,27 +44,47 @@
 #if defined(MACOSX)
 #include <sys/time.h>
 #endif
+#include "lm/MPI.h"
+#include "lm/Print.h"
+#include "lm/ClassFactory.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SimulationParameters.h"
 #include "lm/main/Main.h"
-#include "lm/main/ReplicateSupervisor.h"
+#include "lm/main/Supervisor.h"
+#include "lm/replicates/ReplicateSupervisor.h"
 #include "lm/resource/SupervisorSlotAllocator.h"
 #include "lm/resource/TrajectoryAllocator.h"
 #include "lm/message/SimulationParameters.pb.h"
-#include "lm/MPI.h"
-#include "lm/Print.h"
 
 namespace lm {
-namespace main {
+namespace replicates {
+
+bool ReplicateSupervisor::registered=ReplicateSupervisor::registerClass();
+
+bool ReplicateSupervisor::registerClass()
+{
+    lm::ClassFactory::getInstance().registerClass("lm::main::Supervisor","lm::replicates::ReplicateSupervisor",&ReplicateSupervisor::allocateObject);
+    return true;
+}
+
+void* ReplicateSupervisor::allocateObject()
+{
+    return new ReplicateSupervisor();
+}
 
 using lm::resource::TrajectoryAllocator;
 using lm::resource::SupervisorSlotAllocator;
 using std::deque;
 using std::vector;
 
-ReplicateSupervisor::ReplicateSupervisor(int * maxSlotsTable, lm::io::hdf5::Hdf5File * file) throw(PthreadException):
+ReplicateSupervisor::ReplicateSupervisor()
+{
+
+}
+
+/*ReplicateSupervisor::ReplicateSupervisor(int * maxSlotsTable, lm::io::hdf5::Hdf5File * file) throw(PthreadException):
 slotAllocator(maxSlotsTable),
 trajectoryAllocator(file, true, true),
 file(file),
@@ -45,11 +97,12 @@ int maxSlotsTotal=0;
 for (int i=0; i<lm::MPI::worldSize; ++i) maxSlotsTotal += maxSlotsTable[i];
 trajectoryAllocator.initTrajectories(maxSlotsTotal);
 }
-
-ReplicateSupervisor::~ReplicateSupervisor() throw(PthreadException)
+*/
+ReplicateSupervisor::~ReplicateSupervisor()
 {
 }
 
+/*
 void ReplicateSupervisor::wake() throw(PthreadException)
 {
     MPI_EXCEPTION_CHECK(MPI_Send(NULL, 0, MPI_INT, lm::MPI::worldRank, lm::MPI::MSG_WAKE_REPLICATE_SUPERVISOR, MPI_COMM_WORLD));
@@ -75,9 +128,11 @@ void ReplicateSupervisor::checkpoint() throw(PthreadException)
         success = true;
     }
 }
-
-int ReplicateSupervisor::run()
+*/
+void ReplicateSupervisor::runSimulation()
 {
+    Print::printf(Print::INFO, "Replicate supervisor started.");
+    /*
     // MPI message variables.
 	int messageSize;
     int messageWaiting;
@@ -158,12 +213,13 @@ int ReplicateSupervisor::run()
 //    if (lattice != NULL) delete [] lattice; lattice = NULL;
 //    if (latticeSites != NULL) delete [] latticeSites; latticeSites = NULL;
     running = false;
-    Print::printf(Print::INFO, "Local replicate supervisor thread finished.");
-    return 0;
+    */
+    Print::printf(Print::INFO, "Replicate supervisor finished.");
 }
 
 //update the state of the slotAllocator and the trajectoryAllocator based on a result that has just been received
-void ReplicateSupervisor::update(lm::work::Result & result)
+/*
+ *void ReplicateSupervisor::update(lm::work::Result & result)
 {
 	slotAllocator.update(result);
 	trajectoryAllocator.update(result);
@@ -213,6 +269,7 @@ void ReplicateSupervisor::distributeWorkUnits()
 		}
 	} while (modifiedTrajectories==true);
 }
+*/
 
 ////send message, one by one, to all nodes including master. nodes should use MPI_Recv plus the relevant tag to receive
 //void ReplicateSupervisor::MPI_MastBcastOut(void * buf, int count, MPI_Datatype datatype, int tag, MPI_Comm comm)

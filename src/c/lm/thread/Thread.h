@@ -58,14 +58,17 @@ public:
 class Thread
 {
 public:
-    Thread() throw(PthreadException);
-    virtual ~Thread() throw(PthreadException);
+    Thread();
+    virtual ~Thread();
     virtual void start() throw(PthreadException);
     virtual void stop() throw(PthreadException);
+    virtual void wait() throw(PthreadException);
     virtual void wake() throw(PthreadException)=0;
     virtual pthread_t getId() {return threadId;}
     virtual void setAffinity(int cpuNumber) throw(PthreadException);
-    virtual int run()=0; //TODO: this was protected before I started messing around with start_thread. does it need to be?
+
+protected:
+    virtual int run()=0;
 
 private:
     static void * start_thread(void * obj);

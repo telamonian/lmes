@@ -44,7 +44,7 @@
 namespace lm {
 namespace thread {
 
-Thread::Thread() throw(PthreadException)
+Thread::Thread()
 :threadId(0),running(false),cpuNumber(-1)
 {
     // Create the control mutex.
@@ -55,7 +55,7 @@ Thread::Thread() throw(PthreadException)
     PTHREAD_EXCEPTION_CHECK(pthread_mutexattr_destroy(&attr));
 }
 
-Thread::~Thread() throw(PthreadException)
+Thread::~Thread()
 {
     PTHREAD_EXCEPTION_CHECK(pthread_mutex_destroy(&controlMutex));
 }
@@ -116,7 +116,7 @@ void Thread::start() throw(PthreadException)
 void * Thread::start_thread(void * obj)
 {
     int ret = (reinterpret_cast<Thread *>(obj))->run();
-    pthread_exit((void *)ret); //why is this not wrapped with PTHREAD_EXCEPTION_CHECK?
+    pthread_exit((void *)ret);
 }
 
 void Thread::stop() throw(PthreadException)
@@ -145,6 +145,13 @@ void Thread::stop() throw(PthreadException)
         PTHREAD_EXCEPTION_CHECK(pthread_join(threadId, &ret));
         Print::printf(Print::DEBUG, "Thread %u stopped.", threadId);
     }
+}
+
+void Thread::wait() throw(PthreadException)
+{
+    // Join with the thread.
+    void * ret;
+    PTHREAD_EXCEPTION_CHECK(pthread_join(threadId, &ret));
 }
 
 }

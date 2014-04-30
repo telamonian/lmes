@@ -44,13 +44,13 @@
 namespace lm {
 namespace thread {
 
-Worker::Worker() throw(PthreadException)
+Worker::Worker()
 :aborted(false)
 {
     WorkerManager::getInstance()->addWorker(this);
 }
 
-Worker::~Worker() throw(PthreadException)
+Worker::~Worker()
 {
     WorkerManager::getInstance()->removeWorker(this);
 }

@@ -57,11 +57,12 @@
 #include <sys/wait.h>
 #include <pthread.h>
 #include <google/protobuf/stubs/common.h>
-#include "lm/Print.h"
+#include "lm/ClassFactory.h"
 #include "lm/Exceptions.h"
-#include "lm/Types.h"
 #include "lm/Math.h"
 #include "lm/MPI.h"
+#include "lm/Print.h"
+#include "lm/Types.h"
 #ifdef OPT_CUDA
 #include "lm/Cuda.h"
 #endif
@@ -75,7 +76,7 @@
 #include "lm/main/DataOutputQueue.h"
 #include "lm/main/ForwardFluxRunner.h"
 #include "lm/main/LocalDataOutputWorker.h"
-#include "lm/main/ReplicateSupervisor.h"
+#include "lm/main/Supervisor.h"
 #include "lm/resource/MPINodeResourceMap.h"
 #include "lm/main/MPIRemoteDataOutputQueue.h"
 #include "lm/main/Main.h"
@@ -88,6 +89,8 @@
 #include "lm/thread/WorkerManager.h"
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
+
+#include "lm/replicates/ReplicateSupervisor.h"
 
 using std::map;
 using std::list;
@@ -304,6 +307,16 @@ void executeSimulationMPISingleMaster()
     void * staticDataBuffer = NULL;
     Print::printf(Print::DEBUG, "MPI master process %d started.", lm::MPI::worldRank);
 
+    //printf("%d\n", lm::replicates::ReplicateSupervisor::registered);
+
+    // Print a list of the registered classes.
+    lm::ClassFactory::getInstance().printRegisteredClasses();
+
+    // Start the supervisor.
+    lm::main::Supervisor* supervisor = static_cast<lm::main::Supervisor*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::main::Supervisor",supervisorClassName));
+    supervisor->start();
+
+    /*
     // Create the resource allocator, subtract one core for the data output thread on the master.
     #ifdef OPT_CUDA
     Print::printf(Print::INFO, "MPI process %d using %d core(s) and %d CUDA device(s).", lm::MPI::worldRank, numberCpuCores, (int)cudaDevices.size());
@@ -365,11 +378,13 @@ void executeSimulationMPISingleMaster()
     lm::main::ReplicateSupervisor * replicateSupervisor = new lm::main::ReplicateSupervisor(maxSlotsTable, file);
     replicateSupervisor->setAffinity(reservedCpuCore);
     replicateSupervisor->start();
+*/
 
-    void * ret;
-    PTHREAD_EXCEPTION_CHECK(pthread_join(replicateSupervisor->getId(), &ret));
+    // Wait for the supervisor to stop.
+    supervisor->wait();
     Print::printf(Print::INFO, "Master shutting down.");
 
+    /*
     // Stop checkpointing.
     checkpointSignaler->stopCheckpointing();
 
@@ -381,11 +396,13 @@ void executeSimulationMPISingleMaster()
         MPI_EXCEPTION_CHECK(MPI_Send(NULL, 0, MPI_INT, destProc, lm::MPI::MSG_EXIT, MPI_COMM_WORLD));
     }
 
+*/
+
     // Wait for all of the processes to exit.
     MPI_EXCEPTION_CHECK(MPI_Barrier(MPI_COMM_WORLD));
 
     // If this was a global abort, stop the workers quickly.
-    if (globalAbort)
+    /*if (globalAbort)
     {
         Print::printf(Print::WARNING, "Aborting worker threads.");
         lm::thread::WorkerManager::getInstance()->abortWorkers();
@@ -410,6 +427,8 @@ void executeSimulationMPISingleMaster()
 //    if (lattice != NULL) delete [] lattice; lattice = NULL;
 //    if (latticeSites != NULL) delete [] latticeSites; latticeSites = NULL;
 
+*/
+
     Print::printf(Print::DEBUG, "MPI master process %d finished.", lm::MPI::worldRank);
 }
 
@@ -417,6 +436,7 @@ void executeSimulationMPISingleSlave()
 {
     Print::printf(Print::DEBUG, "MPI slave process %d started.", lm::MPI::worldRank);
 
+    /*
     // Create the queue to handle data output.
     lm::main::MPIRemoteDataOutputQueue * dataOutputQueue = new lm::main::MPIRemoteDataOutputQueue();
     lm::main::DataOutputQueue::setInstance(dataOutputQueue);
@@ -462,6 +482,7 @@ void executeSimulationMPISingleSlave()
 //    MPI_EXCEPTION_CHECK(MPI_Free_mem(staticDataBuffer));
 //    if (lattice != NULL) delete [] lattice; lattice = NULL;
 //    if (latticeSites != NULL) delete [] latticeSites; latticeSites = NULL;
+*/
 
     Print::printf(Print::DEBUG, "MPI slave process %d finished.", lm::MPI::worldRank);
 
