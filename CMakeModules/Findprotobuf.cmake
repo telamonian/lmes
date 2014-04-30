@@ -153,7 +153,8 @@ function(_protobuf_find_libraries name filename)
 
    find_library(${name}_LIBRARY_DEBUG
        NAMES ${filename}
-       PATHS ${PROTOBUF_ROOT}/lib ${PROTOBUF_SRC_ROOT_FOLDER}/vsprojects/Debug)
+       HINTS ${PROTOBUF_ROOT}/lib
+       PATHS ${PROTOBUF_SRC_ROOT_FOLDER}/vsprojects/Debug)
    mark_as_advanced(${name}_LIBRARY_DEBUG)
 
    if(NOT ${name}_LIBRARY_DEBUG)
@@ -221,7 +222,8 @@ endif()
 # Find the include directory
 find_path(PROTOBUF_INCLUDE_DIR
     google/protobuf/service.h
-    PATHS ${PROTOBUF_ROOT}/include ${PROTOBUF_SRC_ROOT_FOLDER}/src
+    HINTS ${PROTOBUF_ROOT}/include
+    PATHS ${PROTOBUF_SRC_ROOT_FOLDER}/src
 )
 mark_as_advanced(PROTOBUF_INCLUDE_DIR)
 
@@ -229,6 +231,7 @@ mark_as_advanced(PROTOBUF_INCLUDE_DIR)
 find_program(PROTOBUF_PROTOC_EXECUTABLE
     NAMES protoc
     DOC "The Google Protocol Buffers Compiler"
+    HINTS ${PROTOBUF_ROOT}/bin
     PATHS
     ${PROTOBUF_SRC_ROOT_FOLDER}/vsprojects/Release
     ${PROTOBUF_SRC_ROOT_FOLDER}/vsprojects/Debug

@@ -51,7 +51,7 @@ find_package(libsbml REQUIRED)
 find_package(protobuf REQUIRED)
 find_package(HDF5 COMPONENTS C HL REQUIRED)
 find_package(cuda REQUIRED)
-find_package(SWIG)
+#find_package(SWIG)
 find_package(PythonInterp)
 find_package(PythonLibs)
 #find_package(Boost)
@@ -70,6 +70,7 @@ include_directories(profile
                     ${PYTHON_INCLUDE_DIRS})
 
 #add subdirectories
+add_subdirectory(src/protobuf)
 add_subdirectory(src/c)
 add_subdirectory(src/cuda)
 add_dependencies(lm_cuda_lib lm_c_lib)
@@ -81,7 +82,8 @@ add_dependencies(lm_cuda_lib lm_c_lib)
 #TARGET: lm
 ################
 set(lm_main_src src/c/lm/main/MainMPI.cpp)
-add_executable(lm ${lm_main_src}) #${proto_hdrs})
+
+add_executable(lm ${lm_main_src})
 
 target_link_libraries(lm lm_c_lib
                          lm_cuda_lib 
