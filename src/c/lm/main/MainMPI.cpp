@@ -382,7 +382,8 @@ void executeSimulationMPISingleMaster()
 
     // Wait for the supervisor to stop.
     supervisor->wait();
-    Print::printf(Print::INFO, "Master shutting down.");
+    delete supervisor;
+    supervisor = NULL;
 
     /*
     // Stop checkpointing.
