@@ -41,6 +41,7 @@
 #ifndef COMMUNICATOR_H
 #define COMMUNICATOR_H
 
+#include <string>
 #include <google/protobuf/message.h>
 
 #include "lm/MPI.h"
@@ -57,6 +58,8 @@ public:
 
     void sendMessage(int process, int thread, lm::message::Message* message);
     void receiveMessage(lm::message::Message* message);
+
+    std::string getHostname();
 
 private:
     int process;

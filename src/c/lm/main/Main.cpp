@@ -157,24 +157,6 @@ void printCopyright(int argc, char** argv)
 }
 
 /**
- * Gets the number of physical cpu cores on the system.
- */
-int getPhysicalCpuCores()
-{
-    // Get the number of processors.
-    #if defined(MACOSX)
-    uint physicalCpuCores;
-    size_t  physicalCpuCoresSize=sizeof(physicalCpuCores);
-    sysctlbyname("hw.activecpu",&physicalCpuCores,&physicalCpuCoresSize,NULL,0);
-    return physicalCpuCores;
-    #elif defined(LINUX)
-    return get_nprocs();
-    #else
-    #error "Unsupported architecture."
-    #endif
-}
-
-/**
  * Parses the command line arguments.
  */
 void parseArguments(int argc, char** argv)
@@ -183,7 +165,7 @@ void parseArguments(int argc, char** argv)
     replicates.clear();
     replicates.push_back(1);
 
-    numberCpuCores = getPhysicalCpuCores();
+    numberCpuCores = -1;
     cpuCoresPerReplicate = 1.0;
 
     supervisorClassName = "lm::replicates::ReplicateSupervisor";

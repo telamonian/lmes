@@ -37,7 +37,7 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-
+#include <string>
 #include <google/protobuf/message.h>
 
 #include "lm/MPI.h"
@@ -61,6 +61,16 @@ Communicator::~Communicator()
         dataBuffer = NULL;
     }
 }
+
+std::string Communicator::getHostname()
+{
+    char hostname[MPI_MAX_PROCESSOR_NAME+1];
+    memset(hostname,0,sizeof(hostname));
+    int hostnameLength;
+    MPI_EXCEPTION_CHECK(MPI_Get_processor_name(hostname, &hostnameLength));
+    return std::string(hostname);
+}
+
 
 void Communicator::sendMessage(int destProcess, int destThread, lm::message::Message* message)
 {

@@ -37,7 +37,16 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
+#if defined(MACOSX)
+#include <sys/sysctl.h>
+#elif defined(LINUX)
+#include <sys/sysinfo.h>
+#endif
+
 #include "lm/Exceptions.h"
+#ifdef OPT_CUDA
+#include "lm/Cuda.h"
+#endif
 #include "lm/MPI.h"
 #include "lm/main/ResourceController.h"
 #include "lm/main/SimulationSupervisor.h"
@@ -62,20 +71,84 @@ void ResourceController::wake() throw(PthreadException)
 //    MPI_EXCEPTION_CHECK(MPI_Send(NULL, 0, MPI_INT, lm::MPI::worldRank, lm::MPI::MSG_WAKE_REPLICATE_DISTRIBUTOR, MPI_COMM_WORLD));
 }
 
+/**
+ * Gets the number of physical cpu cores on the system.
+ */
+std::vector<int> ResourceController::getPhysicalCPUCores()
+{
+    std::vector<int> cpus;
+
+    // Get the number of processors.
+    int numberCPUs=0;
+    #if defined(MACOSX)
+    uint physicalCpuCores;
+    size_t  physicalCpuCoresSize=sizeof(physicalCpuCores);
+    sysctlbyname("hw.activecpu",&physicalCpuCores,&physicalCpuCoresSize,NULL,0);
+    numberCPUs=(int)physicalCpuCores;
+    #elif defined(LINUX)
+    numberCPUs=get_nprocs();
+    #else
+    #error "Unsupported architecture."
+    #endif
+
+    // Create a pid entry for each cpu.
+    for (int i=0; i<numberCPUs; i++)
+        cpus.push_back(i);
+
+    return cpus;
+}
+
+std::vector<int> ResourceController::getPhysicalGPUs()
+{
+    std::vector<int> gpus;
+
+    #ifdef OPT_CUDA
+    for (int i=0; i<lm::CUDA::getNumberDevices(); i++)
+        gpus.push_back(i);
+    #endif
+
+    return gpus;
+}
+
+
 int ResourceController::run()
 {
     try
     {
         Print::printf(Print::INFO, "Resource controller on process %d started.", lm::MPI::worldRank);
 
+        // Register our info with the supervisor.
         lm::message::Message msg;
-        msg.mutable_resources_available()->set_hostname("elijah test");
+        msg.mutable_resources_available()->set_hostname(communicator.getHostname());
         msg.mutable_resources_available()->set_controller_process(lm::MPI::worldRank);
         msg.mutable_resources_available()->set_controller_thread(threadNumber);
-        msg.mutable_resources_available()->set_number_cpus(2);
-        msg.mutable_resources_available()->set_number_gpus(3);
+        std::vector<int> cpus=getPhysicalCPUCores();
+        for (std::vector<int>::iterator it = cpus.begin() ; it != cpus.end(); ++it)
+            msg.mutable_resources_available()->add_cpu(*it);
+        std::vector<int> gpus=getPhysicalGPUs();
+        for (std::vector<int>::iterator it = gpus.begin() ; it != gpus.end(); ++it)
+            msg.mutable_resources_available()->add_gpu(*it);
         communicator.sendMessage(lm::MPI::MASTER, lm::main::SimulationSupervisor::THREAD_ID, &msg);
 
+        // Loop reading messages.
+        lm::message::Message message;
+        while (true)
+        {
+            // Read the next message.
+            communicator.receiveMessage(&message);
+
+            // Do something with the message.
+            if (false)
+            {
+            }
+            else
+            {
+                Print::printf(Print::ERROR, "Resource controller received an unknown message: {\n%s}",message.DebugString().c_str());
+            }
+
+            // Clear the message object so it can be used again.
+            message.Clear();
+        }
 
         /*
         // MPI message variables.

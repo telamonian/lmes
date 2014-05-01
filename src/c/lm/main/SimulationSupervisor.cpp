@@ -64,12 +64,26 @@ int SimulationSupervisor::run()
 {
     try
     {
-        // Read in the messages from the resource controllers.
-        int messageType;
+        // Loop reading messages.
         lm::message::Message message;
-        communicator.receiveMessage(&message);
-        printf("Message has resource_available %d\n",message.has_resources_available());
-        message.PrintDebugString();
+        while (true)
+        {
+            // Read the next message.
+            communicator.receiveMessage(&message);
+
+            // Do something with the message.
+            if (message.has_resources_available())
+            {
+                Print::printf(Print::VERBOSE_DEBUG, "Supervisor received a resource controller registration message: {\n%s}",message.DebugString().c_str());
+            }
+            else
+            {
+                Print::printf(Print::ERROR, "Supervisor received an unknown message: {\n%s}",message.DebugString().c_str());
+            }
+
+            // Clear the message object so it can be used again.
+            message.Clear();
+        }
 
          //   runSimulation();
         return 0;

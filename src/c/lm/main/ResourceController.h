@@ -44,6 +44,7 @@
 #include <list>
 #include <map>
 #include <string>
+#include <vector>
 #include "lm/Print.h"
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/ReactionModel.pb.h"
@@ -71,11 +72,13 @@ using std::vector;
 
 class ResourceController : public lm::thread::Worker
 {
+public:
+    static std::vector<int> getPhysicalCPUCores();
+    static std::vector<int> getPhysicalGPUs();
 
 public:
     ResourceController();
     virtual ~ResourceController();
-
     virtual void wake() throw(PthreadException);
 
 protected:

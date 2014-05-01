@@ -76,12 +76,12 @@
 #include "lm/main/DataOutputQueue.h"
 #include "lm/main/ForwardFluxRunner.h"
 #include "lm/main/LocalDataOutputWorker.h"
+#include "lm/main/Main.h"
+#include "lm/main/MPIRemoteDataOutputQueue.h"
+#include "lm/main/ReplicateRunner.h"
+#include "lm/main/ResourceController.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/resource/MPINodeResourceMap.h"
-#include "lm/main/MPIRemoteDataOutputQueue.h"
-#include "lm/main/Main.h"
-#include "lm/main/ResourceController.h"
-#include "lm/main/ReplicateRunner.h"
 #include "lm/resource/ResourceAllocator.h"
 #include "lm/main/SignalHandler.h"
 #include "lm/message/SimulationParameters.pb.h"
@@ -270,9 +270,9 @@ void listDevicesMPI()
     MPI_EXCEPTION_CHECK(MPI_Get_processor_name(hostname, &hostnameLength));
 
     // Print the capabilities message.
-    printf("Process %d running on host %s with %d/%d processor(s)", lm::MPI::worldRank, hostname, numberCpuCores, getPhysicalCpuCores());
+    printf("Process %d running on host %s with %d/%d processor(s)", lm::MPI::worldRank, hostname, numberCpuCores, lm::main::ResourceController::getPhysicalCPUCores().size());
     #ifdef OPT_CUDA
-    printf(" and %d/%d CUDA device(s)", (int)cudaDevices.size(), lm::CUDA::getNumberDevices());
+    printf(" and %d/%d CUDA device(s)", (int)cudaDevices.size(), lm::main::ResourceController::getPhysicalGPUs().size());
     #endif
     printf(".\n");
 
