@@ -37,56 +37,12 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
+package lm.message;
 
-#include "lm/Exceptions.h"
-#include "lm/MPI.h"
-#include "lm/Print.h"
-#include "lm/main/SimulationSupervisor.h"
-#include "lm/message/Communicator.h"
-
-namespace lm {
-namespace main {
-
-SimulationSupervisor::SimulationSupervisor()
-    :communicator(lm::MPI::worldRank,THREAD_ID)
-{
-}
-
-SimulationSupervisor::~SimulationSupervisor()
-{
-}
-
-void SimulationSupervisor::wake() throw(lm::thread::PthreadException)
-{
-}
-
-int SimulationSupervisor::run()
-{
-    try
-    {
-        // Read in the messages from the resource controllers.
-        int messageType;
-        lm::message::Message message;
-        communicator.receiveMessage(&message);
-        printf("Message has resource_available %d\n",message.has_resources_available());
-        message.PrintDebugString();
-
-         //   runSimulation();
-        return 0;
-    }
-    catch (lm::Exception e)
-    {
-        Print::printf(Print::FATAL, "Exception during execution: %s (%s:%d)", e.what(), __FILE__, __LINE__);
-    }
-    catch (std::exception& e)
-    {
-        Print::printf(Print::FATAL, "Exception during execution: %s (%s:%d)", e.what(), __FILE__, __LINE__);
-    }
-    catch (...)
-    {
-        Print::printf(Print::FATAL, "Unknown Exception during execution (%s:%d)", __FILE__, __LINE__);
-    }
-    return -1;
-}
-}
+message ResourcesAvailable {
+    required string hostname            = 1;
+    required uint32 controller_process  = 2;
+    required uint32 controller_thread   = 3;
+    required uint32 number_cpus         = 4;
+    required uint32 number_gpus         = 5;
 }

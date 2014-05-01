@@ -52,7 +52,7 @@
 #include "lm/resource/SupervisorSlotAllocator.h"
 #include "lm/resource/TrajectoryAllocator.h"
 #include "lm/main/ReplicateRunner.h"
-#include "lm/main/Supervisor.h"
+#include "lm/main/SimulationSupervisor.h"
 #include "lm/me/MESolverFactory.h"
 #include "lm/MPI.h"
 #include "lm/Print.h"
@@ -73,7 +73,7 @@ using std::map;
 using std::string;
 using std::vector;
 
-class ReplicateSupervisor : public lm::main::Supervisor
+class ReplicateSupervisor : public lm::main::SimulationSupervisor
 {
 public:
     static bool registered;

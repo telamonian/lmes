@@ -58,6 +58,9 @@ public:
 class Thread
 {
 public:
+    static int nextThreadNumber;
+
+public:
     Thread();
     virtual ~Thread();
     virtual void start() throw(PthreadException);
@@ -75,6 +78,7 @@ private:
 
 protected:
     pthread_mutex_t controlMutex;
+    int threadNumber;
     pthread_t threadId;
     volatile bool running;
     int cpuNumber;

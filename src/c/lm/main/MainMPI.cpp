@@ -76,11 +76,11 @@
 #include "lm/main/DataOutputQueue.h"
 #include "lm/main/ForwardFluxRunner.h"
 #include "lm/main/LocalDataOutputWorker.h"
-#include "lm/main/Supervisor.h"
+#include "lm/main/SimulationSupervisor.h"
 #include "lm/resource/MPINodeResourceMap.h"
 #include "lm/main/MPIRemoteDataOutputQueue.h"
 #include "lm/main/Main.h"
-#include "lm/main/ReplicateDistributor.h"
+#include "lm/main/ResourceController.h"
 #include "lm/main/ReplicateRunner.h"
 #include "lm/resource/ResourceAllocator.h"
 #include "lm/main/SignalHandler.h"
@@ -312,8 +312,12 @@ void executeSimulationMPISingleMaster()
     // Print a list of the registered classes.
     lm::ClassFactory::getInstance().printRegisteredClasses();
 
+    // Start the resource controller for this process.
+    lm::main::ResourceController resourceController;
+    resourceController.start();
+
     // Start the supervisor.
-    lm::main::Supervisor* supervisor = static_cast<lm::main::Supervisor*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::main::Supervisor",supervisorClassName));
+    lm::main::SimulationSupervisor* supervisor = static_cast<lm::main::SimulationSupervisor*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::main::SimulationSupervisor",supervisorClassName));
     supervisor->start();
 
     /*
@@ -380,6 +384,9 @@ void executeSimulationMPISingleMaster()
     replicateSupervisor->start();
 */
 
+    // Wait for the resource controller to stop.
+    resourceController.wait();
+
     // Wait for the supervisor to stop.
     supervisor->wait();
     delete supervisor;
@@ -437,6 +444,10 @@ void executeSimulationMPISingleSlave()
 {
     Print::printf(Print::DEBUG, "MPI slave process %d started.", lm::MPI::worldRank);
 
+    // Start the resource controller for this process.
+    lm::main::ResourceController resourceController;
+    resourceController.start();
+
     /*
     // Create the queue to handle data output.
     lm::main::MPIRemoteDataOutputQueue * dataOutputQueue = new lm::main::MPIRemoteDataOutputQueue();
@@ -485,8 +496,11 @@ void executeSimulationMPISingleSlave()
 //    if (latticeSites != NULL) delete [] latticeSites; latticeSites = NULL;
 */
 
-    Print::printf(Print::DEBUG, "MPI slave process %d finished.", lm::MPI::worldRank);
+    // Wait for the resource controller to stop.
+    resourceController.wait();
 
     // Wait for all of the processes to exit.
     MPI_EXCEPTION_CHECK(MPI_Barrier(MPI_COMM_WORLD));
+
+    Print::printf(Print::DEBUG, "MPI slave process %d finished.", lm::MPI::worldRank);
 }

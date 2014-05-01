@@ -103,6 +103,7 @@ public:
     static void init(int argc, char** argv) throw(MPIException);
     static void printCapabilities() throw(MPIException);
     static void finalize() throw(MPIException);
+
     //send from master node to all nodes, one by one, including master. nodes should MPI_Recv plus the relevant tag to receive
     static void MastBcastOut(void *buf, int count, MPI_Datatype datatype, int tag, MPI_Comm comm);
 
@@ -120,5 +121,4 @@ public:
 };
 
 }
-
 #endif /*LM_MPI_H_*/

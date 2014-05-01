@@ -51,8 +51,7 @@
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SimulationParameters.h"
-#include "lm/main/Main.h"
-#include "lm/main/Supervisor.h"
+#include "lm/main/SimulationSupervisor.h"
 #include "lm/replicates/ReplicateSupervisor.h"
 #include "lm/resource/SupervisorSlotAllocator.h"
 #include "lm/resource/TrajectoryAllocator.h"
@@ -65,7 +64,7 @@ bool ReplicateSupervisor::registered=ReplicateSupervisor::registerClass();
 
 bool ReplicateSupervisor::registerClass()
 {
-    lm::ClassFactory::getInstance().registerClass("lm::main::Supervisor","lm::replicates::ReplicateSupervisor",&ReplicateSupervisor::allocateObject);
+    lm::ClassFactory::getInstance().registerClass("lm::main::SimulationSupervisor","lm::replicates::ReplicateSupervisor",&ReplicateSupervisor::allocateObject);
     return true;
 }
 

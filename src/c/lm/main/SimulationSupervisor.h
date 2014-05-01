@@ -41,23 +41,32 @@
 #ifndef LM_MAIN_SUPERVISOR_H
 #define LM_MAIN_SUPERVISOR_H
 
+#include <google/protobuf/message.h>
+
 #include "lm/Exceptions.h"
+#include "lm/message/Communicator.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 
 namespace lm {
 namespace main {
 
-class Supervisor : public lm::thread::Worker
+class SimulationSupervisor : public lm::thread::Worker
 {
 public:
-    Supervisor();
-    virtual ~Supervisor();
+    static const int THREAD_ID = 0;
+
+public:
+    SimulationSupervisor();
+    virtual ~SimulationSupervisor();
     void wake() throw(lm::thread::PthreadException);
 
 protected:
     virtual void runSimulation()=0;
     virtual int run();
+
+protected:
+    lm::message::Communicator communicator;
 };
 
 }

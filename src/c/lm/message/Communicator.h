@@ -38,55 +38,34 @@
  */
 
 
-#include "lm/Exceptions.h"
+#ifndef COMMUNICATOR_H
+#define COMMUNICATOR_H
+
+#include <google/protobuf/message.h>
+
 #include "lm/MPI.h"
-#include "lm/Print.h"
-#include "lm/main/SimulationSupervisor.h"
-#include "lm/message/Communicator.h"
+#include "lm/message/Message.pb.h"
 
 namespace lm {
-namespace main {
+namespace message {
 
-SimulationSupervisor::SimulationSupervisor()
-    :communicator(lm::MPI::worldRank,THREAD_ID)
+class Communicator
 {
-}
+public:
+    Communicator(int process, int thread);
+    virtual ~Communicator();
 
-SimulationSupervisor::~SimulationSupervisor()
-{
-}
+    void sendMessage(int process, int thread, lm::message::Message* message);
+    void receiveMessage(lm::message::Message* message);
 
-void SimulationSupervisor::wake() throw(lm::thread::PthreadException)
-{
-}
+private:
+    int process;
+    int thread;
+    int dataBufferSize;
+    char* dataBuffer;
+    MPI_Status messageStatus;
+};
 
-int SimulationSupervisor::run()
-{
-    try
-    {
-        // Read in the messages from the resource controllers.
-        int messageType;
-        lm::message::Message message;
-        communicator.receiveMessage(&message);
-        printf("Message has resource_available %d\n",message.has_resources_available());
-        message.PrintDebugString();
-
-         //   runSimulation();
-        return 0;
-    }
-    catch (lm::Exception e)
-    {
-        Print::printf(Print::FATAL, "Exception during execution: %s (%s:%d)", e.what(), __FILE__, __LINE__);
-    }
-    catch (std::exception& e)
-    {
-        Print::printf(Print::FATAL, "Exception during execution: %s (%s:%d)", e.what(), __FILE__, __LINE__);
-    }
-    catch (...)
-    {
-        Print::printf(Print::FATAL, "Unknown Exception during execution (%s:%d)", __FILE__, __LINE__);
-    }
-    return -1;
 }
 }
-}
+#endif // COMMUNICATOR_H
