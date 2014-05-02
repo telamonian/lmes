@@ -86,33 +86,34 @@ extern string supervisorClassName;
 extern lm::me::MESolverFactory solverFactory;
 
 /**
+ * The filename for the resource list.
+ */
+extern string resourceFilename;
+
+/**
  * The number of cpu cores assigned to each process.
  */
-extern int numberCpuCores;
+extern int cpuCores;
 
 /**
  * The number of cpu cores to assign per replicate (can be a fraction, e.g., 1/2, 1/4, etc).
  */
 extern float cpuCoresPerReplicate;
 
-#ifdef OPT_CUDA
+/**
+ * The number gpu devices assigned to each process.
+ */
+extern int gpuDevices;
 
 /**
- * The cuda devices assigned to each process.
+ * The number of gpu devices to assign per replicate (can be a fraction, e.g., 1/2, 1/4, etc).
  */
-extern vector<int> cudaDevices;
-
-/**
- * The number of cuda devices to assign per replicate (can be a fraction, e.g., 1/2, 1/4, etc).
- */
-extern float cudaDevicesPerReplicate;
+extern float gpuDevicesPerReplicate;
 
 /**
  * Whether we should print the cuda device capabilities on startup.
  */
-extern bool shouldPrintCudaCapabilities;
-
-#endif
+extern bool shouldPrintGPUCapabilities;
 
 /**
  * Whether we should reserve a core for the output thread.

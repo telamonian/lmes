@@ -44,91 +44,180 @@
 #include <sys/stat.h>
 #include "lm/Exceptions.h"
 #include "lm/Print.h"
-#include "lm/resource/MPINodeResourceMap.h"
+#include "lm/message/ResourcesAvailable.pb.h"
+#include "lm/resource/ResourceMap.h"
 
 using std::ifstream;
 
 namespace lm {
 namespace resource {
 
-MPINodeResourceMap::MPINodeResourceMap(list<string>hostnames, int defaultNumberCpuCores)
-:numberNodes(hostnames.size()),cpuCoresTable(NULL)
+ResourceMap::ResourceMap(list<string>hostnames, int defaultCPUCores, int defaultGPUDevices, string resourceFilename)
+    :defaultCPUCores(defaultCPUCores),defaultGPUDevices(defaultGPUDevices)
 {
-	// Create the initial maps.
-	int i=0;
-	for (list<string>::iterator it=hostnames.begin(); it != hostnames.end(); it++,i++)
-	{
-		resourceMap[i] = ComputeResources();
-		resourceMap[i].hostname = *it;
-		hostnameMap[*it] = i;
-	}
+    // Create the initial allocation map fro the hostnames.
+    int i=0;
+    for (list<string>::iterator it=hostnames.begin(); it != hostnames.end(); it++, i++)
+    {
+        // Add the hostname and process to the map.
+        if (!hostnameProcessMap.count(*it)) hostnameProcessMap[*it] = i;
 
-	// Create the accessory tables.
-	cpuCoresTable = new int[numberNodes];
-	memset(cpuCoresTable, 0, sizeof(int)*numberNodes);
+        // Create an entry in the allocation map.
+        ComputeResources resources;
+        resources.hostname = *it;
+        resources.controller_process = i;
+        allocatedResources[i] = resources;
+    }
 
-
-	// Check to see if we can find a hosts file.
-	struct stat fileStats;
+    // If we can find the resource file, parse it.
+    map<string,ComputeResources> fileResources;
+    struct stat fileStats;
 	char * pbsNodeFile = getenv("PBS_NODEFILE");
-	if (pbsNodeFile != NULL && stat(pbsNodeFile, &fileStats) == 0 && S_ISREG(fileStats.st_mode))
+    if (resourceFilename != "" && stat(resourceFilename.c_str(), &fileStats) == 0 && S_ISREG(fileStats.st_mode))
+    {
+        // Parse the resource file.
+        fileResources = parseResourceFile(resourceFilename);
+        Print::printf(Print::INFO, "Read resource allocations from file %s: %d hosts.", resourceFilename.c_str(), fileResources.size());
+
+    }
+
+    // If we didn't get a resource file, try to find a PBS nodefile.
+    else if (pbsNodeFile != NULL && stat(pbsNodeFile, &fileStats) == 0 && S_ISREG(fileStats.st_mode))
 	{
 		// Parse the pbs node file.
-		list<string> nodes = parsePBSNodeFile(string(pbsNodeFile));
-		Print::printf(Print::INFO, "Read resource allocations from PBS node file %s: %d entries.", pbsNodeFile, nodes.size());
+        fileResources = parsePBSNodeFile(pbsNodeFile);
+        Print::printf(Print::INFO, "Read resource allocations from PBS node file %s: %d hosts.", pbsNodeFile, fileResources.size());
+    }
 
-		// Extract the resources to be assigned from the node file.
-		int i=0;
-		for (list<string>::iterator it=nodes.begin(); it != nodes.end(); it++,i++)
-		{
-			string node=*it;
-			if (!hostnameMap.count(node)) throw lm::Exception("Invalid node in PBS_NODEFILE", node.c_str());
-			resourceMap[hostnameMap[node]].cpuCores.push_back(resourceMap[hostnameMap[node]].cpuCores.size());
-		}
+    // If we found a resource list, parse it into the allocation map.
+    if (fileResources.size() > 0)
+    {
+        // Match the resources from the file with the hostname map.
+        for (map<string,ComputeResources>::iterator it=fileResources.begin(); it != fileResources.end(); it++)
+        {
+            ComputeResources resources=it->second;
+            if (!hostnameProcessMap.count(resources.hostname) || !allocatedResources.count(hostnameProcessMap[resources.hostname]))
+            {
+                Print::printf(Print::WARNING, "Host %s in resource file was not a valid host.", resources.hostname.c_str());
+            }
+            else
+            {
+                allocatedResources[hostnameProcessMap[resources.hostname]].cpuCores = resources.cpuCores;
+                allocatedResources[hostnameProcessMap[resources.hostname]].gpusDevices = resources.gpusDevices;
+            }
+        }
 
-		// See if there are any hosts without a resource allocation.
-		for (int i=0; i<numberNodes; i++)
-			if (resourceMap[i].cpuCores.size() == 0)
-				Print::printf(Print::WARNING, "Host %s had NO resources allocated in PBS_NODEFILE.", resourceMap[i].hostname.c_str(), nodes.size());
-
-	}
-	else
-	{
-		// Fill in the defaults.
-		for (int i=0; i<numberNodes; i++)
-		{
-			for (int j=0; j<defaultNumberCpuCores; j++)
-				resourceMap[i].cpuCores.push_back(j);
-		}
-	}
-
-	// Fill in the accessory tables.
-	for (int i=0; i<numberNodes; i++)
-	{
-		cpuCoresTable[i] = resourceMap[i].cpuCores.size();
-	}
-
-
+        // See if there are any hosts without a resource allocation in the file.
+        for (map<int,ComputeResources>::iterator it=allocatedResources.begin(); it != allocatedResources.end(); it++)
+        {
+            ComputeResources resources=it->second;
+            if (resources.cpuCores.size() == 0)
+                Print::printf(Print::WARNING, "Host %d (%s) had NO resources allocated in nodefile.", resources.controller_process, resources.hostname.c_str());
+        }
+    }
 }
 
-MPINodeResourceMap::~MPINodeResourceMap()
+ResourceMap::~ResourceMap()
 {
-	if (cpuCoresTable != NULL) delete[] cpuCoresTable; cpuCoresTable = NULL;
 }
 
-list<string> MPINodeResourceMap::parsePBSNodeFile(string filename)
+map<string,ResourceMap::ComputeResources> ResourceMap::parseResourceFile(string filename)
 {
-	  list<string> nodes;
+    return parsePBSNodeFile(filename);
+}
+
+/**
+ * @brief ResourceMap::parsePBSNodeFile
+ * @param filename
+ * @return
+ *
+ * PBS node files have a single field per line with the name of a host allocated. Hosts can
+ * be listed multiple times in which case one core for each entry should be assigned.
+ */
+map<string,ResourceMap::ComputeResources> ResourceMap::parsePBSNodeFile(string filename)
+{
+      map<string,ComputeResources> fileResources;
 
 	  ifstream file(filename.c_str());
-	  string node;
+      string hostname;
 
-	  while (getline(file, node))
+      while (getline(file, hostname))
 	  {
-		  nodes.push_back(node);
+          if (hostname != "")
+          {
+              // See if this is the first entry for the host.
+              if (!fileResources.count(hostname))
+              {
+                  ComputeResources resources;
+                  resources.hostname = hostname;
+                  resources.cpuCores.push_back(resources.cpuCores.size());
+                  fileResources[hostname] = resources;
+              }
+              else
+              {
+                  // Add the next cpu core to the list.
+                  fileResources[hostname].cpuCores.push_back(fileResources[hostname].cpuCores.size());
+              }
+          }
 	  }
 
-	  return nodes;
+      return fileResources;
+}
+
+/**
+ * @brief ResourceMap::registerResources
+ * @param msg
+ * @return True if all allocated resource have been registered, otherwise false.
+ */
+bool ResourceMap::registerResources(const lm::message::ResourcesAvailable& msg)
+{
+    // See if we can find the process in the map of allocated resources.
+    if (allocatedResources.count(msg.controller_process()))
+    {
+        // Make sure the hostname matches.
+        ComputeResources resources = allocatedResources[msg.controller_process()];
+        if (resources.hostname != msg.hostname())
+            throw Exception("Host reporting resources available had a mismatched hostname.", msg.hostname().c_str(), msg.controller_process());
+
+        // Set the controller thread.
+        resources.controller_thread = (int)msg.controller_thread();
+
+        // Copy the cpu cores, if necessary.
+        if (resources.cpuCores.size() == 0)
+        {
+            int num=msg.cpu_size();
+            if (defaultCPUCores >= 0 && defaultCPUCores < num) num = defaultCPUCores;
+            for (int i=0; i<num; i++)
+            {
+                resources.cpuCores.push_back(msg.cpu(i));
+            }
+        }
+
+        // Copy the gpu devices, if necessary.
+        if (resources.gpusDevices.size() == 0)
+        {
+            int num=msg.gpu_size();
+            if (defaultGPUDevices >= 0 && defaultGPUDevices < num) num = defaultGPUDevices;
+            for (int i=0; i<num; i++)
+            {
+                resources.gpusDevices.push_back(msg.gpu(i));
+            }
+        }
+
+        // Move the resources from the allocated list to the registered list.
+        registeredResources[resources.controller_process] = resources;
+        allocatedResources.erase(resources.controller_process);
+    }
+    else
+    {
+        throw Exception("Host reporting resources available was not in the allocation list.", msg.hostname().c_str());
+    }
+    return (allocatedResources.size() == 0);
+}
+
+map<int,ResourceMap::ComputeResources> ResourceMap::getRegisteredResources()
+{
+    return registeredResources;
 }
 
 }

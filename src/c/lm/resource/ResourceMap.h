@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012 Roberts Group,
+ * Copyright 2012-2014 Roberts Group,
  * All rights reserved.
  * 
  * Developed by: Roberts Group
@@ -36,13 +36,15 @@
  * Author(s): Elijah Roberts
  */
 
-#ifndef LM_MAIN_MPINODERESOURCEMAP_H_
-#define LM_MAIN_MPINODERESOURCEMAP_H_
+#ifndef LM_RESOURCE_RESOURCEMAP_H_
+#define LM_RESOURCE_RESOURCEMAP_H_
 
 #include <list>
 #include <map>
 #include <string>
 #include <vector>
+
+#include "lm/message/ResourcesAvailable.pb.h"
 
 using std::list;
 using std::map;
@@ -52,31 +54,36 @@ using std::vector;
 namespace lm {
 namespace resource {
 
-class MPINodeResourceMap
+class ResourceMap
 {
 public:
     class ComputeResources
     {
     public:
+        ComputeResources():hostname(""),controller_process(-1),controller_thread(-1) {}
     	string hostname;
+        int controller_process;
+        int controller_thread;
         vector<int> cpuCores;
-        vector<int> cudaDevices;
+        vector<int> gpusDevices;
     };
 
-
 public:
-    MPINodeResourceMap(list<string> hostnames, int defaultNumberCpuCores);
-    virtual ~MPINodeResourceMap();
-    int* getCpuCoresTable() {return cpuCoresTable;}
+    ResourceMap(list<string>hostnames, int defaultCPUCores, int defaultGPUDevices, string resourceFilename);
+    virtual ~ResourceMap();
+    bool registerResources(const lm::message::ResourcesAvailable& msg);
+    map<int,ComputeResources> getRegisteredResources();
 
 protected:
-    list<string> parsePBSNodeFile(string filename);
+    map<string,ComputeResources> parseResourceFile(string filename);
+    map<string,ComputeResources> parsePBSNodeFile(string filename);
 
 protected:
-    int numberNodes;
-    map<int,ComputeResources> resourceMap;
-    map<string,int> hostnameMap;
-    int* cpuCoresTable;
+    int defaultCPUCores;
+    int defaultGPUDevices;
+    map<string,int> hostnameProcessMap;
+    map<int,ComputeResources> allocatedResources;
+    map<int,ComputeResources> registeredResources;
 };
 
 }

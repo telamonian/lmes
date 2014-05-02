@@ -43,12 +43,16 @@
 #include "lm/Print.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Communicator.h"
+#include "lm/message/ResourcesAvailable.pb.h"
+#include "lm/resource/ResourceMap.h"
+
+using lm::resource::ResourceMap;
 
 namespace lm {
 namespace main {
 
 SimulationSupervisor::SimulationSupervisor()
-    :communicator(lm::MPI::worldRank,THREAD_ID)
+    :communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL)
 {
 }
 
@@ -74,7 +78,7 @@ int SimulationSupervisor::run()
             // Do something with the message.
             if (message.has_resources_available())
             {
-                Print::printf(Print::VERBOSE_DEBUG, "Supervisor received a resource controller registration message: {\n%s}",message.DebugString().c_str());
+                resourceAvailable(message.resources_available());
             }
             else
             {
@@ -102,5 +106,30 @@ int SimulationSupervisor::run()
     }
     return -1;
 }
+
+void SimulationSupervisor::resourceAvailable(const lm::message::ResourcesAvailable& msg)
+{
+    Print::printf(Print::INFO, "Host %s registered with supervisor.", msg.hostname().c_str());
+    if (resourceMap->registerResources(msg))
+    {
+        allResourcesRegistered();
+    }
+}
+
+void SimulationSupervisor::allResourcesRegistered()
+{
+    // Display a status message for the registered resoruces.
+    map<int,ResourceMap::ComputeResources> allResources = resourceMap->getRegisteredResources();
+    for (map<int,ResourceMap::ComputeResources>::iterator it=allResources.begin(); it != allResources.end(); it++)
+    {
+        ResourceMap::ComputeResources r = it->second;
+        Print::printf(Print::INFO, "Resource controller %d:%d registered with %d cpu core(s) and %d gpu device(s).", r.controller_process, r.controller_thread, r.cpuCores.size(), r.gpusDevices.size());
+    }
+
+    Print::printf(Print::INFO, "All resources registered with supervisor, starting simulation.");
+    startSimulation();
+}
+
+
 }
 }

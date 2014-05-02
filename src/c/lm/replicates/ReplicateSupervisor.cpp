@@ -128,9 +128,9 @@ void ReplicateSupervisor::checkpoint() throw(PthreadException)
     }
 }
 */
-void ReplicateSupervisor::runSimulation()
+void ReplicateSupervisor::startSimulation()
 {
-    Print::printf(Print::INFO, "Replicate supervisor started.");
+    Print::printf(Print::INFO, "Replicate supervisor starting simulation.");
     /*
     // MPI message variables.
 	int messageSize;
@@ -213,7 +213,6 @@ void ReplicateSupervisor::runSimulation()
 //    if (latticeSites != NULL) delete [] latticeSites; latticeSites = NULL;
     running = false;
     */
-    Print::printf(Print::INFO, "Replicate supervisor finished.");
 }
 
 //update the state of the slotAllocator and the trajectoryAllocator based on a result that has just been received

@@ -45,6 +45,7 @@
 
 #include "lm/Exceptions.h"
 #include "lm/message/Communicator.h"
+#include "lm/resource/ResourceMap.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 
@@ -59,14 +60,18 @@ public:
 public:
     SimulationSupervisor();
     virtual ~SimulationSupervisor();
+    void setResourceMap(lm::resource::ResourceMap* resourceMap) { this->resourceMap = resourceMap;}
     void wake() throw(lm::thread::PthreadException);
 
 protected:
-    virtual void runSimulation()=0;
+    virtual void startSimulation()=0;
     virtual int run();
+    void resourceAvailable(const lm::message::ResourcesAvailable& msg);
+    void allResourcesRegistered();
 
 protected:
     lm::message::Communicator communicator;
+    lm::resource::ResourceMap* resourceMap;
 };
 
 }

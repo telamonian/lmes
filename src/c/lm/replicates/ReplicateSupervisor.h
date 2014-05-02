@@ -109,7 +109,7 @@ public:
 
     //map<int,int> simulationStatusTable;
 protected:
-    virtual void runSimulation();
+    virtual void startSimulation();
 
 private:
     /*

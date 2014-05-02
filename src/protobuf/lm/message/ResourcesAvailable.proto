@@ -41,8 +41,8 @@ package lm.message;
 
 message ResourcesAvailable {
     required string hostname            = 1;
-    required uint32 controller_process  = 2;
-    required uint32 controller_thread   = 3;
-    repeated uint32 cpu                 = 4;
-    repeated uint32 gpu                 = 5;
+    required int32 controller_process   = 2;
+    required int32 controller_thread    = 3;
+    repeated int32 cpu                  = 4;
+    repeated int32 gpu                  = 5;
 }

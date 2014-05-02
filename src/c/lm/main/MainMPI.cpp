@@ -81,8 +81,8 @@
 #include "lm/main/ReplicateRunner.h"
 #include "lm/main/ResourceController.h"
 #include "lm/main/SimulationSupervisor.h"
-#include "lm/resource/MPINodeResourceMap.h"
 #include "lm/resource/ResourceAllocator.h"
+#include "lm/resource/ResourceMap.h"
 #include "lm/main/SignalHandler.h"
 #include "lm/message/SimulationParameters.pb.h"
 #include "lm/thread/Thread.h"
@@ -100,13 +100,13 @@ using lm::main::ReplicateRunner;
 using lm::main::BruteRunner;
 using lm::main::ForwardFluxRunner;
 using lm::resource::ResourceAllocator;
-using lm::resource::MPINodeResourceMap;
+using lm::resource::ResourceMap;
 using lm::me::MESolverFactory;
 using lm::thread::PthreadException;
 
 void listDevicesMPI();
 void executeSimulationMPI();
-void executeSimulationMPISingleMaster();
+void executeSimulationMPISingleMaster(ResourceMap* resourceMap);
 void executeSimulationMPISingleSlave();
 //void broadcastSimulationParameters(void * staticDataBuffer, map<string,string> & simulationParameters);
 //void broadcastReactionModel(void * staticDataBuffer, lm::io::ReactionModel * reactionModel);
@@ -179,38 +179,6 @@ int main(int argc, char** argv)
             // Parse the arguments again on all processes.
             parseArguments(argc, argv);
 
-			// Get the hostname.
-			char hostname[MPI_MAX_PROCESSOR_NAME+1];
-			int hostnameLength;
-			memset(hostname,0,sizeof(hostname));
-			MPI_EXCEPTION_CHECK(MPI_Get_processor_name(hostname, &hostnameLength));
-
-			// Create the resource list on the master.
-			if (lm::MPI::worldRank == lm::MPI::MASTER)
-			{
-				// Receive all of the host names.
-				char* hostnameTable = new char[sizeof(hostname)*lm::MPI::worldSize];
-				MPI_EXCEPTION_CHECK(MPI_Gather(hostname,sizeof(hostname),MPI_CHAR,hostnameTable,sizeof(hostname),MPI_CHAR,lm::MPI::MASTER,MPI_COMM_WORLD));
-
-				// Extract the hostnames.
-				list<string> hostnames;
-				for (int i=0; i<lm::MPI::worldSize; i++)
-					hostnames.push_back(string(&hostnameTable[i*sizeof(hostname)]));
-
-				MPINodeResourceMap resourceList(hostnames, numberCpuCores);
-
-				// Send the resource map.
-				MPI_EXCEPTION_CHECK(MPI_Scatter(resourceList.getCpuCoresTable(),1,MPI_INT,&numberCpuCores,1,MPI_INT,lm::MPI::MASTER,MPI_COMM_WORLD));
-			}
-			else
-			{
-				// Send all of the host names.
-				MPI_EXCEPTION_CHECK(MPI_Gather(hostname,sizeof(hostname),MPI_CHAR,NULL,sizeof(hostname),MPI_CHAR,lm::MPI::MASTER,MPI_COMM_WORLD));
-
-				// Receive the resource map.
-				MPI_EXCEPTION_CHECK(MPI_Scatter(NULL,1,MPI_INT,&numberCpuCores,1,MPI_INT,lm::MPI::MASTER,MPI_COMM_WORLD));
-			}
-
             // Perform the requested function.
             if (functionOption == "devices")
             {
@@ -270,18 +238,18 @@ void listDevicesMPI()
     MPI_EXCEPTION_CHECK(MPI_Get_processor_name(hostname, &hostnameLength));
 
     // Print the capabilities message.
-    printf("Process %d running on host %s with %d/%d processor(s)", lm::MPI::worldRank, hostname, numberCpuCores, lm::main::ResourceController::getPhysicalCPUCores().size());
+    printf("Process %d running on host %s with %d processor(s)", lm::MPI::worldRank, hostname, (int)lm::main::ResourceController::getPhysicalCPUCores().size());
     #ifdef OPT_CUDA
-    printf(" and %d/%d CUDA device(s)", (int)cudaDevices.size(), lm::main::ResourceController::getPhysicalGPUs().size());
+    printf(" and %d CUDA device(s)", (int)lm::main::ResourceController::getPhysicalGPUs().size());
     #endif
     printf(".\n");
 
     #ifdef OPT_CUDA
-    if (shouldPrintCudaCapabilities)
+    if (shouldPrintGPUCapabilities)
     {
-        for (int i=0; i<(int)cudaDevices.size(); i++)
+        for (int i=0; i<lm::CUDA::getNumberDevices(); i++)
         {
-            printf("  %d-%s\n", lm::MPI::worldRank, lm::CUDA::getCapabilitiesString(cudaDevices[i]).c_str());
+            printf("  %d-%s\n", lm::MPI::worldRank, lm::CUDA::getCapabilitiesString(i).c_str());
         }
     }
     #endif
@@ -292,19 +260,40 @@ void executeSimulationMPI()
     PROF_SET_THREAD(0);
     PROF_BEGIN(PROF_SIM_RUN);
 
+    // Get the hostname.
+    char hostname[MPI_MAX_PROCESSOR_NAME+1];
+    int hostnameLength;
+    memset(hostname,0,sizeof(hostname));
+    MPI_EXCEPTION_CHECK(MPI_Get_processor_name(hostname, &hostnameLength));
+
+    // Create the resource list on the master.
     if (lm::MPI::worldRank == lm::MPI::MASTER)
-        executeSimulationMPISingleMaster();
+    {
+        // Receive all of the host names.
+        char* hostnameTable = new char[sizeof(hostname)*lm::MPI::worldSize];
+        MPI_EXCEPTION_CHECK(MPI_Gather(hostname,sizeof(hostname),MPI_CHAR,hostnameTable,sizeof(hostname),MPI_CHAR,lm::MPI::MASTER,MPI_COMM_WORLD));
+
+        // Extract the hostnames.
+        list<string> hostnames;
+        for (int i=0; i<lm::MPI::worldSize; i++)
+            hostnames.push_back(string(&hostnameTable[i*sizeof(hostname)]));
+
+        // Create the resource map.
+        ResourceMap resourceMap(hostnames, cpuCores, gpuDevices, resourceFilename);
+        executeSimulationMPISingleMaster(&resourceMap);
+    }
     else
+    {
+        // Send all of the host names.
+        MPI_EXCEPTION_CHECK(MPI_Gather(hostname,sizeof(hostname),MPI_CHAR,NULL,sizeof(hostname),MPI_CHAR,lm::MPI::MASTER,MPI_COMM_WORLD));
         executeSimulationMPISingleSlave();
+    }
 
     PROF_END(PROF_SIM_RUN);
 }
 
-void executeSimulationMPISingleMaster()
+void executeSimulationMPISingleMaster(ResourceMap* resourceMap)
 {
-    int messageWaiting;
-    MPI_Status messageStatus;
-    void * staticDataBuffer = NULL;
     Print::printf(Print::DEBUG, "MPI master process %d started.", lm::MPI::worldRank);
 
     //printf("%d\n", lm::replicates::ReplicateSupervisor::registered);
@@ -318,6 +307,7 @@ void executeSimulationMPISingleMaster()
 
     // Start the supervisor.
     lm::main::SimulationSupervisor* supervisor = static_cast<lm::main::SimulationSupervisor*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::main::SimulationSupervisor",supervisorClassName));
+    supervisor->setResourceMap(resourceMap);
     supervisor->start();
 
     /*

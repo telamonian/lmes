@@ -100,33 +100,34 @@ string supervisorClassName;
 lm::me::MESolverFactory solverFactory;
 
 /**
+ * The filename for the resource list.
+ */
+string resourceFilename;
+
+/**
  * The number of cpu cores assigned to each process.
  */
-int numberCpuCores;
+int cpuCores;
 
 /**
  * The number of cpu cores to assign per replicate (can be a fraction, e.g., 1/2, 1/4, etc).
  */
 float cpuCoresPerReplicate;
 
-#ifdef OPT_CUDA
+/**
+ * The number gpu devices assigned to each process.
+ */
+int gpuDevices;
 
 /**
- * The cuda devices assigned to each process.
+ * The number of gpu devices to assign per replicate (can be a fraction, e.g., 1/2, 1/4, etc).
  */
-vector<int> cudaDevices;
-
-/**
- * The number of cuda devices to assign per replicate (can be a fraction, e.g., 1/2, 1/4, etc).
- */
-float cudaDevicesPerReplicate;
+float gpuDevicesPerReplicate;
 
 /**
  * Whether we should print the cuda device capabilities on startup.
  */
-bool shouldPrintCudaCapabilities;
-
-#endif
+bool shouldPrintGPUCapabilities;
 
 /**
  * Whether we should reserve a core for the output thread.
@@ -148,9 +149,7 @@ void printCopyright(int argc, char** argv)
 #ifdef OPT_CUDA
     std::cout << " CUDA";
 #endif
-#ifdef OPT_MPI
     std::cout << " MPI";
-#endif
     std::cout << "." << std::endl;
     std::cout << "Copyright (C) " << COPYRIGHT_DATE << " Luthey-Schulten Group, University of Illinois at Urbana-Champaign." << std::endl;
     std::cout << "Copyright (C) " << COPYRIGHT_DATE_JHU << " Roberts Group, Johns Hopkins University." << std::endl << std::endl;
@@ -165,19 +164,15 @@ void parseArguments(int argc, char** argv)
     replicates.clear();
     replicates.push_back(1);
 
-    numberCpuCores = -1;
+    cpuCores = -1;
     cpuCoresPerReplicate = 1.0;
+    gpuDevices = -1;
+    gpuDevicesPerReplicate = 1.0;
+    shouldPrintGPUCapabilities = true;
 
     supervisorClassName = "lm::replicates::ReplicateSupervisor";
     solverFactory.setSolver("lm::rdme::MpdRdmeSolver");
 
-    #ifdef OPT_CUDA
-    cudaDevices.clear();
-    for (int i=0; i<lm::CUDA::getNumberDevices(); i++)
-        cudaDevices.push_back(i);
-    cudaDevicesPerReplicate = 1.0;
-    shouldPrintCudaCapabilities = true;
-    #endif
     shouldReserveOutputCore = true;
     useForwardFluxRunner = false;
 
@@ -269,17 +264,37 @@ void parseArguments(int argc, char** argv)
             solverFactory.setSolver(option+strlen("--solver="));
         }
 
+        //See if the user is trying to set the node list.
+        else if ((strcmp(option, "-n") == 0 || strcmp(option, "--nodelist") == 0) && i < (argc-1))
+        {
+            resourceFilename=argv[++i];
+        }
+        else if (strncmp(option, "--nodelist=", strlen("--nodelist=")) == 0)
+        {
+            resourceFilename=option+strlen("--nodelist=");
+        }
+
+        //See if the user is trying to set the resource map.
+        else if ((strcmp(option, "-m") == 0 || strcmp(option, "--resource-map") == 0) && i < (argc-1))
+        {
+            resourceFilename=argv[++i];
+        }
+        else if (strncmp(option, "--resource-map=", strlen("--resource-map=")) == 0)
+        {
+            resourceFilename=option+strlen("--resource-map=");
+        }
+
         //See if the user is trying to set the number of cpus.
         else if ((strcmp(option, "-c") == 0 || strcmp(option, "--cpu") == 0) && i < (argc-1))
         {
-            numberCpuCores=atoi(argv[++i]);
+            cpuCores=atoi(argv[++i]);
         }
         else if (strncmp(option, "--cpu=", strlen("--cpu=")) == 0)
         {
-            numberCpuCores=atoi(option+strlen("--cpu="));
+            cpuCores=atoi(option+strlen("--cpu="));
         }
 
-        //See if the user is trying to set the number of cuda devices per replicate.
+         //See if the user is trying to set the number of gpu devices per replicate.
          else if ((strcmp(option, "-cr") == 0 || strcmp(option, "--cpus-per-replicate") == 0) && i < (argc-1))
          {
              cpuCoresPerReplicate=parseIntReciprocalArg(argv[++i]);
@@ -289,33 +304,32 @@ void parseArguments(int argc, char** argv)
              cpuCoresPerReplicate=parseIntReciprocalArg(option+strlen("--cpus-per-replicate="));
          }
 
-#ifdef OPT_CUDA
-        //See if the user is trying to set the cuda devices.
+         //See if the user is trying to set the gpu devices.
          else if ((strcmp(option, "-g") == 0 || strcmp(option, "--gpu") == 0) && i < (argc-1))
          {
-             parseIntListArg(cudaDevices, argv[++i]);
+             gpuDevices=atoi(argv[++i]);
          }
          else if (strncmp(option, "--gpu=", strlen("--gpu=")) == 0)
          {
-             parseIntListArg(cudaDevices, option+strlen("--gpu="));
+             gpuDevices=atoi(option+strlen("--gpu="));
          }
 
-        //See if the user is trying to set the number of cuda devices per replicate.
+         //See if the user is trying to set the number of gpu devices per replicate.
          else if ((strcmp(option, "-gr") == 0 || strcmp(option, "--gpus-per-replicate") == 0) && i < (argc-1))
          {
-             cudaDevicesPerReplicate=parseIntReciprocalArg(argv[++i]);
+             gpuDevicesPerReplicate=parseIntReciprocalArg(argv[++i]);
          }
          else if (strncmp(option, "--gpus-per-replicate=", strlen("--gpus-per-replicate=")) == 0)
          {
-             cudaDevicesPerReplicate=parseIntReciprocalArg(option+strlen("--gpus-per-replicate="));
+             gpuDevicesPerReplicate=parseIntReciprocalArg(option+strlen("--gpus-per-replicate="));
          }
              
         //See if the user is trying to turn off cuda capability printing.
          else if ((strcmp(option, "-nc") == 0 || strcmp(option, "--no-capabilities") == 0))
          {
-             shouldPrintCudaCapabilities = false;
+             shouldPrintGPUCapabilities = false;
          }
-#endif
+
         //See if the user is trying to turn off cuda capability printing.
          else if ((strcmp(option, "-nr") == 0 || strcmp(option, "--no-reserve-core") == 0))
          {
@@ -414,28 +428,19 @@ float parseIntReciprocalArg(char * arg)
  */
 void printUsage(int argc, char** argv)
 {
-#ifndef OPT_MPI
-	std::cout << "Usage: lm (-h|--help)" << std::endl;
-	std::cout << "Usage: lm (-v|--version)" << std::endl;
-	std::cout << "Usage: lm [OPTIONS] (-l|--list-devices)" << std::endl;
-	std::cout << "Usage: lm [OPTIONS]" << std::endl;
-	std::cout << "Usage: lm [OPTIONS] (-s|--script) script_filename [(-sa|--script-args) script_arguments+]" << std::endl;
-    std::cout << "Usage: lm [OPTIONS] [SIM_OPTIONS] (-f|--file) simulation_filename " << std::endl;
-#else
     std::cout << "Usage: mpirun lm (-h|--help)" << std::endl;
     std::cout << "Usage: mpirun lm (-v|--version)" << std::endl;
     std::cout << "Usage: mpirun lm (-l|--list-devices)" << std::endl;
     std::cout << "Usage: mpirun lm [OPTIONS] [SIM_OPTIONS] (-f|--file) simulation_filename" << std::endl;
-#endif
     std::cout << std::endl;
     std::cout << "OPTIONS" << std::endl;
+    std::cout << "  -n node_file      --nodelist=node_file         A file containing the list of nodes on which to run, one line per available CPU core." << std::endl;
+    std::cout << "  -m map_file       --resource-map=map_file      A file containing the map of resources to use: hostname processor_id_list gpu_id_list." << std::endl;
     std::cout << "  -c num_cpus       --cpu=num_cpus               The number of CPUs on which to execute (default all)." << std::endl;
     std::cout << "  -cr num           --cpus-per-replicate=num     The number of CPUs (possibly fractional) to assign per replicate, e.g. \"2\", \"1/4\" (default 1)." << std::endl;
-#ifdef OPT_CUDA
-    std::cout << "  -g cuda_devices   --gpu=cuda_devices           A list of cuda devices on which to execute, e.g. \"0-3\", \"0,2\" (default 0)." << std::endl;
-    std::cout << "  -gr num           --gpus-per-replicate=num     The number of cuda devices (possibly fractional) to assign per replicate, e.g. \"2\", \"1/4\" (default 1)." << std::endl;
-    std::cout << "  -nc               --no-capabilities            Don't print the capabilities of the CUDA devices." << std::endl;
-#endif
+    std::cout << "  -g num_gpus       --gpu=num_gpus               The number of GPUs on which to execute (default all)." << std::endl;
+    std::cout << "  -gr num           --gpus-per-replicate=num     The number of GPUs (possibly fractional) to assign per replicate, e.g. \"2\", \"1/4\" (default 1)." << std::endl;
+    std::cout << "  -nc               --no-capabilities            Don't print the capabilities of the GPU devices." << std::endl;
     std::cout << "  -nr               --no-reserve-core            Don't reserve a CPU core for the output thread." << std::endl;
     std::cout << std::endl;
     std::cout << "SIM_OPTIONS" << std::endl;
