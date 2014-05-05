@@ -59,7 +59,6 @@
 #include "lm/Types.h"
 #include "lm/Exceptions.h"
 #include "lm/main/Main.h"
-#include "lm/me/MESolverFactory.h"
 
 using std::string;
 using std::vector;
@@ -97,7 +96,7 @@ string supervisorClassName;
 /**
  * The solver to use for the simulations.
  */
-lm::me::MESolverFactory solverFactory;
+string solverClassName;
 
 /**
  * The filename for the resource list.
@@ -171,7 +170,7 @@ void parseArguments(int argc, char** argv)
     shouldPrintGPUCapabilities = true;
 
     supervisorClassName = "lm::replicates::ReplicateSupervisor";
-    solverFactory.setSolver("lm::rdme::MpdRdmeSolver");
+    solverClassName = "lm::rdme::MpdRdmeSolver";
 
     shouldReserveOutputCore = true;
     useForwardFluxRunner = false;
@@ -235,33 +234,33 @@ void parseArguments(int argc, char** argv)
 		#ifdef OPT_CUDA
         else if ((strcmp(option, "-sp") == 0 || strcmp(option, "--spatially-resolved") == 0))
         {
-            solverFactory.setSolver("lm::rdme::MpdRdmeSolver");
+            solverClassName = "lm::rdme::MpdRdmeSolver";
         }
 		#else
         else if ((strcmp(option, "-sp") == 0 || strcmp(option, "--spatially-resolved") == 0))
         {
-            solverFactory.setSolver("lm::rdme::NextSubvolumeSolver");
+            solverClassName = "lm::rdme::NextSubvolumeSolver";
         }
 		#endif
         else if ((strcmp(option, "-ws") == 0 || strcmp(option, "--well-stirred") == 0))
         {
-            solverFactory.setSolver("lm::cme::GillespieDSolver");
+            solverClassName = "lm::cme::GillespieDSolver";
         }
         else if ((strcmp(option, "-m") == 0 || strcmp(option, "--model") == 0) && i < (argc-1))
         {
-            solverFactory.setSolver(argv[++i]);
+            solverClassName = argv[++i];
         }
         else if (strncmp(option, "--model=", strlen("--model=")) == 0)
         {
-            solverFactory.setSolver(option+strlen("--model="));
+            solverClassName = option+strlen("--model=");
         }
         else if ((strcmp(option, "-sl") == 0 || strcmp(option, "--solver") == 0) && i < (argc-1))
         {
-            solverFactory.setSolver(argv[++i]);
+            solverClassName = argv[++i];
         }
         else if (strncmp(option, "--solver=", strlen("--solver=")) == 0)
         {
-            solverFactory.setSolver(option+strlen("--solver="));
+            solverClassName = option+strlen("--solver=");
         }
 
         //See if the user is trying to set the node list.

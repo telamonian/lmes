@@ -51,7 +51,6 @@
 #include "lm/resource/SupervisorSlot.h"
 #include "lm/resource/SupervisorSlotAllocator.h"
 #include "lm/resource/TrajectoryAllocator.h"
-#include "lm/main/ReplicateRunner.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/me/MESolverFactory.h"
 #include "lm/MPI.h"
@@ -63,7 +62,6 @@ namespace lm {
 namespace replicates {
 
 using lm::me::MESolverFactory;
-using lm::main::ReplicateRunner;
 using lm::resource::TrajectoryAllocator;
 using lm::resource::SupervisorSlot;
 using lm::resource::SupervisorSlotAllocator;

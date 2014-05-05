@@ -71,14 +71,11 @@
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SimulationParameters.h"
-#include "lm/main/BruteRunner.h"
 #include "lm/main/CheckpointSignaler.h"
 #include "lm/main/DataOutputQueue.h"
-#include "lm/main/ForwardFluxRunner.h"
 #include "lm/main/LocalDataOutputWorker.h"
 #include "lm/main/Main.h"
 #include "lm/main/MPIRemoteDataOutputQueue.h"
-#include "lm/main/ReplicateRunner.h"
 #include "lm/main/ResourceController.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/resource/ResourceAllocator.h"
@@ -96,9 +93,6 @@ using std::map;
 using std::list;
 using lm::Print;
 using lm::Exception;
-using lm::main::ReplicateRunner;
-using lm::main::BruteRunner;
-using lm::main::ForwardFluxRunner;
 using lm::resource::ResourceAllocator;
 using lm::resource::ResourceMap;
 using lm::me::MESolverFactory;
@@ -307,6 +301,7 @@ void executeSimulationMPISingleMaster(ResourceMap* resourceMap)
 
     // Start the supervisor.
     lm::main::SimulationSupervisor* supervisor = static_cast<lm::main::SimulationSupervisor*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::main::SimulationSupervisor",supervisorClassName));
+    supervisor->setSolverClassName(solverClassName);
     supervisor->setResourceMap(resourceMap);
     supervisor->start();
 

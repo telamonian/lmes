@@ -60,17 +60,20 @@ public:
 public:
     SimulationSupervisor();
     virtual ~SimulationSupervisor();
-    void setResourceMap(lm::resource::ResourceMap* resourceMap) { this->resourceMap = resourceMap;}
+    void setSolverClassName(string solverClassName) {this->solverClassName = solverClassName;}
+    void setResourceMap(lm::resource::ResourceMap* resourceMap) {this->resourceMap = resourceMap;}
     void wake() throw(lm::thread::PthreadException);
 
 protected:
     virtual void startSimulation()=0;
     virtual int run();
-    void resourceAvailable(const lm::message::ResourcesAvailable& msg);
-    void allResourcesRegistered();
+    virtual void resourceAvailable(const lm::message::ResourcesAvailable& msg);
+    virtual void allResourcesRegistered();
+    virtual void workUnitRunnerStarted(const lm::message::StartedWorkUnitRunner& msg);
 
 protected:
     lm::message::Communicator communicator;
+    string solverClassName;
     lm::resource::ResourceMap* resourceMap;
 };
 

@@ -54,7 +54,8 @@
 #include "lm/Cuda.h"
 #endif
 #include "lm/main/Main.h"
-#include "lm/main/ReplicateRunner.h"
+#include "lm/main/SimulationSupervisor.h"
+#include "lm/main/WorkUnitRunner.h"
 #include "lm/me/MESolverFactory.h"
 #include "lm/MPI.h"
 #include "lm/rdme/RDMESolver.h"
@@ -70,96 +71,76 @@ using lm::me::MESolverFactory;
 namespace lm {
 namespace main {
 
-ReplicateRunner::ReplicateRunner(int replicate, MESolverFactory solverFactory, map<string,string> * parameters, lm::io::ReactionModel * reactionModel, lm::io::DiffusionModel * diffusionModel, uint8_t * lattice, size_t latticeSize, uint8_t * latticeSites, size_t latticeSitesSize, ResourceAllocator::ComputeResources resources) throw(PthreadException)
-:replicate(replicate),solverFactory(solverFactory),parameters(parameters),reactionModel(reactionModel),diffusionModel(diffusionModel),lattice(lattice),latticeSize(latticeSize),latticeSites(latticeSites),latticeSitesSize(latticeSitesSize),resources(resources),replicateFinished(false),replicateExitCode(-1)
+WorkUnitRunner::WorkUnitRunner(const lm::message::StartWorkUnitRunner& properties)
+    :communicator(lm::MPI::worldRank, threadNumber)
+{
+    slot = properties.slot();
+    for (int i=0; i<properties.cpu_size(); i++)
+        cpus.push_back(properties.cpu(i));
+    for (int i=0; i<properties.gpu_size(); i++)
+        gpus.push_back(properties.gpu(i));
+    solverClassName = properties.solver();
+}
+
+WorkUnitRunner::~WorkUnitRunner()
 {
 }
 
-ReplicateRunner::~ReplicateRunner() throw(PthreadException)
+void WorkUnitRunner::wake() throw(PthreadException)
 {
 }
 
-void ReplicateRunner::wake() throw(PthreadException)
+int WorkUnitRunner::run()
 {
+    try
+    {
+        Print::printf(Print::INFO, "Work Unit runner %d:%d started.", lm::MPI::worldRank, threadNumber);
+
+        // Tell the supervisor the runner was started.
+        lm::message::Message msgp;
+        lm::message::StartedWorkUnitRunner* msg = msgp.mutable_started_work_unit_runner();
+        msg->set_slot(slot);
+        msg->set_process(lm::MPI::worldRank);
+        msg->set_thread(getThreadNumber());
+        communicator.sendMessage(lm::MPI::MASTER, lm::main::SimulationSupervisor::THREAD_ID, &msgp);
+
+        // Loop reading messages.
+        lm::message::Message message;
+        while (true)
+        {
+            // Read the next message.
+            communicator.receiveMessage(&message);
+
+            // Do something with the message.
+            if (false)//message.has_start_work_unit_runner())
+            {
+                //startWorkUnitRunner(message.start_work_unit_runner());
+            }
+            else
+            {
+                Print::printf(Print::ERROR, "Work unit runner received an unknown message: {\n%s}",message.DebugString().c_str());
+            }
+
+            // Clear the message object so it can be used again.
+            message.Clear();
+        }
+
+        Print::printf(Print::INFO, "Work unit runner %d:%d finished.", lm::MPI::worldRank, threadNumber);
+        return 0;
+    }
+    catch (lm::Exception e)
+    {
+        Print::printf(Print::FATAL, "Exception during execution: %s (%s:%d)", e.what(), __FILE__, __LINE__);
+    }
+    catch (std::exception& e)
+    {
+        Print::printf(Print::FATAL, "Exception during execution: %s (%s:%d)", e.what(), __FILE__, __LINE__);
+    }
+    catch (...)
+    {
+        Print::printf(Print::FATAL, "Unknown Exception during execution (%s:%d)", __FILE__, __LINE__);
+    }
+    return -1;
 }
-
-bool ReplicateRunner::hasReplicateFinished()
-{
-    bool ret;
-
-    //// BEGIN CRITICAL SECTION: controlMutex
-    PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&controlMutex));
-
-    ret = replicateFinished;
-
-    PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&controlMutex));
-    //// END CRITICAL SECTION: controlMutex
-
-    return ret;
-}
-
-int ReplicateRunner::getReplicateExitCode()
-{
-    int ret;
-
-    //// BEGIN CRITICAL SECTION: controlMutex
-    PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&controlMutex));
-
-    ret = replicateExitCode;
-
-    PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&controlMutex));
-    //// END CRITICAL SECTION: controlMutex
-
-    return ret;
-}
-
-//void ReplicateRunner::start() throw(PthreadException)
-//{
-//    //// BEGIN CRITICAL SECTION: controlMutex
-//    PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&controlMutex));
-//    if (!running)
-//    {
-//        void * (*foo)(void *) = &lm::main::ReplicateRunner::start_thread;
-//        running=true;
-//        pthread_attr_t attr;
-//        PTHREAD_EXCEPTION_CHECK(pthread_attr_init(&attr));
-//        PTHREAD_EXCEPTION_CHECK(pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE));
-//        PTHREAD_EXCEPTION_CHECK(pthread_create(&threadId, &attr, foo, this));
-//        PTHREAD_EXCEPTION_CHECK(pthread_attr_destroy(&attr));
-//
-//        // Set the processor affinity, if we have a cpu assigned.
-//        if (cpuNumber >= 0)
-//        {
-//            #if defined(LINUX)
-//            cpu_set_t cpuset;
-//            CPU_ZERO(&cpuset);
-//            CPU_SET(cpuNumber, &cpuset);
-//            if (pthread_setaffinity_np(threadId, sizeof(cpu_set_t), &cpuset) != 0)
-//                Print::printf(Print::WARNING, "Could not bind thread %u to CPU core %d", threadId, cpuNumber);
-//            #endif
-//        }
-//        Print::printf(Print::DEBUG, "Started thread %u.", threadId);
-//    }
-//    PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&controlMutex));
-//    //// END CRITICAL SECTION: controlMutex
-//}
-//
-//void * ReplicateRunner::start_thread(void * obj)
-//{
-//    Print::printf(Print::DEBUG, "in start_thread method for replicate %d", this->getReplicateExitCode());
-//    int ret = (reinterpret_cast<Thread *>(obj))->run();
-//    signalFinshed
-//    pthread_exit((void *)ret); //why is this not wrapped with PTHREAD_EXCEPTION_CHECK?
-//}
-
-void ReplicateRunner::signalFinished()
-{
-    // inform the master process that this replicate is finished
-    int finishedMessage[] = {this->getReplicate(), this->getReplicateExitCode()};
-    Print::printf(Print::DEBUG, "sending finished message for replicate %d", finishedMessage[0]);
-    MPI_EXCEPTION_CHECK(MPI_Send(&finishedMessage, 2, MPI_INT, lm::MPI::MASTER, lm::MPI::MSG_SIMULATION_FINISHED, MPI_COMM_WORLD));
-    delete this;
-}
-
 }
 }

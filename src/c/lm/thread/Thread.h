@@ -68,6 +68,7 @@ public:
     virtual void wait() throw(PthreadException);
     virtual void wake() throw(PthreadException)=0;
     virtual pthread_t getId() {return threadId;}
+    virtual int getThreadNumber() {return threadNumber;}
     virtual void setAffinity(int cpuNumber) throw(PthreadException);
 
 protected:

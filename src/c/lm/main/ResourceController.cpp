@@ -53,6 +53,8 @@
 #include "lm/message/Communicator.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/ResourcesAvailable.pb.h"
+#include "lm/message/StartWorkUnitRunner.pb.h"
+#include "lm/message/StartedWorkUnitRunner.pb.h"
 
 namespace lm {
 namespace main {
@@ -115,7 +117,7 @@ int ResourceController::run()
 {
     try
     {
-        Print::printf(Print::INFO, "Resource controller on process %d started.", lm::MPI::worldRank);
+        Print::printf(Print::INFO, "Resource controller %d:%d started.", lm::MPI::worldRank, threadNumber);
 
         // Register our info with the supervisor.
         lm::message::Message msg;
@@ -138,8 +140,10 @@ int ResourceController::run()
             communicator.receiveMessage(&message);
 
             // Do something with the message.
-            if (false)
+            if (message.start_work_unit_runner_size() > 0)
             {
+                for (int i=0; i<message.start_work_unit_runner_size(); i++)
+                    startWorkUnitRunner(message.start_work_unit_runner(i));
             }
             else
             {
@@ -241,7 +245,7 @@ int ResourceController::run()
         }
         */
 
-        Print::printf(Print::INFO, "Resource controller on process %d finished.", lm::MPI::worldRank);
+        Print::printf(Print::INFO, "Resource controller %d:%d finished.", lm::MPI::worldRank, threadNumber);
         return 0;
     }
     catch (lm::Exception e)
@@ -257,6 +261,15 @@ int ResourceController::run()
         Print::printf(Print::FATAL, "Unknown Exception during execution (%s:%d)", __FILE__, __LINE__);
     }
     return -1;
+}
+
+void ResourceController::startWorkUnitRunner(const lm::message::StartWorkUnitRunner& properties)
+{
+    Print::printf(Print::INFO, "Starting work unit runner");
+    // Start the work unit runner.
+    WorkUnitRunner* runner = new WorkUnitRunner(properties);
+    runners.push_back(runner);
+    runner->start();
 }
 
 /*

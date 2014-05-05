@@ -43,7 +43,10 @@
 #include "lm/Print.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Communicator.h"
+#include "lm/message/Message.pb.h"
 #include "lm/message/ResourcesAvailable.pb.h"
+#include "lm/message/StartWorkUnitRunner.pb.h"
+#include "lm/message/StartedWorkUnitRunner.pb.h"
 #include "lm/resource/ResourceMap.h"
 
 using lm::resource::ResourceMap;
@@ -68,6 +71,8 @@ int SimulationSupervisor::run()
 {
     try
     {
+        Print::printf(Print::INFO, "Supervisor %d:%d started.", lm::MPI::worldRank, threadNumber);
+
         // Loop reading messages.
         lm::message::Message message;
         while (true)
@@ -79,6 +84,10 @@ int SimulationSupervisor::run()
             if (message.has_resources_available())
             {
                 resourceAvailable(message.resources_available());
+            }
+            else if (message.has_started_work_unit_runner())
+            {
+                workUnitRunnerStarted(message.started_work_unit_runner());
             }
             else
             {
@@ -126,8 +135,35 @@ void SimulationSupervisor::allResourcesRegistered()
         Print::printf(Print::INFO, "Resource controller %d:%d registered with %d cpu core(s) and %d gpu device(s).", r.controller_process, r.controller_thread, r.cpuCores.size(), r.gpusDevices.size());
     }
 
-    Print::printf(Print::INFO, "All resources registered with supervisor, starting simulation.");
-    startSimulation();
+    // Start the work unit runners.
+    Print::printf(Print::INFO, "All resources registered with supervisor, starting work unit runners.");
+
+    //TODO change to use slot allocator code.
+    int slotIndex=0;
+    for (map<int,ResourceMap::ComputeResources>::iterator it=allResources.begin(); it != allResources.end(); it++)
+    {
+        ResourceMap::ComputeResources resources = it->second;
+        lm::message::Message msg;
+        for (int i=0; i<(int)resources.cpuCores.size(); i++, slotIndex++)
+        {
+            // Send a message to the controller to start a work unit runner.
+            lm::message::StartWorkUnitRunner* s = msg.add_start_work_unit_runner();
+            s->set_slot(slotIndex);
+            s->add_cpu(resources.cpuCores[i]);
+            if (resources.gpusDevices.size() > 0)
+                s->add_gpu(resources.gpusDevices[0]);
+            s->set_solver(solverClassName);
+        }
+        Print::printf(Print::INFO, "Start work unit runner(s) %d:%d start msg sent.", resources.controller_process, resources.controller_thread);
+        communicator.sendMessage(resources.controller_process, resources.controller_thread, &msg);
+    }
+}
+
+void SimulationSupervisor::workUnitRunnerStarted(const lm::message::StartedWorkUnitRunner& msg)
+{
+    Print::printf(Print::INFO, "Slot %d work unit runner %d:%d started.", msg.slot(), msg.process(), msg.thread());
+    //Print::printf(Print::INFO, "All work unit runners started, beginning simulation.");
+    //startSimulation();
 }
 
 

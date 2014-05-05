@@ -44,7 +44,6 @@
 #include <list>
 #include <vector>
 #include <ctime>
-#include "lm/me/MESolverFactory.h"
 
 using std::string;
 using std::vector;
@@ -83,7 +82,7 @@ extern string supervisorClassName;
 /**
  * The solver to use for the simulations.
  */
-extern lm::me::MESolverFactory solverFactory;
+extern string solverClassName;
 
 /**
  * The filename for the resource list.
