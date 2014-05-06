@@ -50,7 +50,6 @@
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/resource/SupervisorSlot.h"
 #include "lm/resource/SupervisorSlotAllocator.h"
-#include "lm/resource/TrajectoryAllocator.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/me/MESolverFactory.h"
 #include "lm/MPI.h"
@@ -61,7 +60,6 @@ namespace lm {
 namespace replicates {
 
 using lm::me::MESolverFactory;
-using lm::resource::TrajectoryAllocator;
 using lm::resource::SupervisorSlot;
 using lm::resource::SupervisorSlotAllocator;
 using std::deque;

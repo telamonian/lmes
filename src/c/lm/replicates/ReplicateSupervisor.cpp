@@ -54,7 +54,6 @@
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/replicates/ReplicateSupervisor.h"
 #include "lm/resource/SupervisorSlotAllocator.h"
-#include "lm/resource/TrajectoryAllocator.h"
 #include "lm/message/SimulationParameters.pb.h"
 
 namespace lm {
@@ -73,7 +72,6 @@ void* ReplicateSupervisor::allocateObject()
     return new ReplicateSupervisor();
 }
 
-using lm::resource::TrajectoryAllocator;
 using lm::resource::SupervisorSlotAllocator;
 using std::deque;
 using std::vector;
