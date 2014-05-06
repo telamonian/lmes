@@ -48,8 +48,6 @@
 #include "lm/resource/SlotAllocator.h"
 #include "lm/thread/Thread.h"
 #include "lm/Types.h"
-#include "lm/work/Result.pb.h"
-#include "lm/work/Work.pb.h"
 
 using lm::thread::PthreadException;
 using std::vector;
@@ -64,13 +62,13 @@ int SlotAllocator::getMaxSlots()
 	return maxSlots;
 }
 
-void SlotAllocator::update(lm::work::Result result)
+/*void SlotAllocator::update(lm::work::Result result)
 {
 	vector<int> slotIds(2);
 	slotIds.push_back(result.pid());
 	slotIds.push_back(result.sid());
 	//free(slotIds);
-}
+}*/
 
 }
 }

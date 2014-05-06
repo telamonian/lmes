@@ -51,8 +51,6 @@
 #include "lm/resource/SupervisorSlotAllocator.h"
 #include "lm/thread/Thread.h"
 #include "lm/Types.h"
-#include "lm/work/Result.pb.h"
-#include "lm/work/Work.pb.h"
 
 using lm::thread::PthreadException;
 using std::map;
@@ -92,12 +90,14 @@ int SupervisorSlotAllocator::getFreeSlotsSize()
 	return freeSlots.size();
 }
 
+/*
 vector<int> SupervisorSlotAllocator::alloc(lm::work::Work work)
 {
 	Slot * slot(freeSlots.back());
 	freeSlots.pop_back();
 	return slot->alloc(work);
 }
+*/
 
 void SupervisorSlotAllocator::free(vector<int> slotIds)
 {

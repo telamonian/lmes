@@ -56,7 +56,6 @@
 #include "lm/MPI.h"
 #include "lm/Print.h"
 #include "lm/thread/Worker.h"
-#include "lm/work/Result.pb.h"
 
 namespace lm {
 namespace replicates {

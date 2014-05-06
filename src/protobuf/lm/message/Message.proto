@@ -42,6 +42,9 @@ package lm.message;
 import "lm/message/ResourcesAvailable.proto";
 import "lm/message/StartWorkUnitRunner.proto";
 import "lm/message/StartedWorkUnitRunner.proto";
+import "lm/message/RunWorkUnit.proto";
+import "lm/message/StartedWorkUnit.proto";
+import "lm/message/FinishedWorkUnit.proto";
 
 message Message {
     required uint32 source_process                                          = 1;
@@ -51,4 +54,7 @@ message Message {
     optional lm.message.ResourcesAvailable resources_available              = 10;
     repeated lm.message.StartWorkUnitRunner start_work_unit_runner          = 11;
     optional lm.message.StartedWorkUnitRunner started_work_unit_runner      = 12;
+    optional lm.message.RunWorkUnit run_work_unit                           = 13;
+    optional lm.message.StartedWorkUnit started_work_unit                   = 14;
+    optional lm.message.FinishedWorkUnit finished_work_unit                 = 15;
 }

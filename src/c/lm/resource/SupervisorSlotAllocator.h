@@ -53,8 +53,6 @@
 #include "lm/resource/Slot.h"
 #include "lm/resource/SlotAllocator.h"
 #include "lm/thread/Thread.h"
-#include "lm/work/Result.pb.h"
-#include "lm/work/Work.pb.h"
 
 using std::deque;
 using std::map;
@@ -74,7 +72,7 @@ public:
     virtual ~SupervisorSlotAllocator() {}
 
     virtual int getFreeSlotsSize();
-    virtual vector<int> alloc(lm::work::Work work);
+    //virtual vector<int> alloc(lm::work::Work work);
     virtual void free(vector<int> slotIds);
 
     deque<Slot *> freeSlots;

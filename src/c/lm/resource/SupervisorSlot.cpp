@@ -6,7 +6,6 @@
  */
 #include "lm/MPI.h"
 #include "lm/resource/SupervisorSlot.h"
-#include "lm/work/Work.pb.h"
 
 namespace lm {
 namespace resource {
@@ -21,7 +20,7 @@ SupervisorSlot::~SupervisorSlot()
 	MPI_EXCEPTION_CHECK(MPI_Free_mem(staticDataBuffer));
 }
 
-vector<int> SupervisorSlot::alloc(lm::work::Work & work)
+/*vector<int> SupervisorSlot::alloc(lm::work::Work & work)
 {
 	int msgSize = work.ByteSize();
 	if (msgSize > lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE) throw Exception("Message exceeded buffer size. Message tag:", lm::MPI::MSG_WORK_UNIT);
@@ -33,6 +32,7 @@ vector<int> SupervisorSlot::alloc(lm::work::Work & work)
 	slotIds.push_back(work.sid());
 	return slotIds;
 }
+*/
 
 }
 }

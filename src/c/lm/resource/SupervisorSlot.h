@@ -9,7 +9,6 @@
 #define SUPERVISORSLOT_H_
 
 #include "lm/resource/Slot.h"
-#include "lm/work/Work.pb.h"
 
 using std::vector;
 
@@ -21,7 +20,7 @@ class SupervisorSlot: public Slot
 public:
 	SupervisorSlot(vector<int> ids);
 	virtual ~SupervisorSlot();
-	virtual vector<int> alloc(lm::work::Work & work);
+    //virtual vector<int> alloc(lm::work::Work & work);
 
 private:
 	void * staticDataBuffer;

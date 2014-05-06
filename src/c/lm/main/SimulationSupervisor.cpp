@@ -138,7 +138,7 @@ void SimulationSupervisor::allResourcesRegistered()
     // Start the work unit runners.
     Print::printf(Print::INFO, "All resources registered with supervisor, starting work unit runners.");
 
-    //TODO change to use slot allocator code.
+    // TODO change to use slot allocator code.
     int slotIndex=0;
     for (map<int,ResourceMap::ComputeResources>::iterator it=allResources.begin(); it != allResources.end(); it++)
     {
@@ -162,6 +162,8 @@ void SimulationSupervisor::allResourcesRegistered()
 void SimulationSupervisor::workUnitRunnerStarted(const lm::message::StartedWorkUnitRunner& msg)
 {
     Print::printf(Print::INFO, "Slot %d work unit runner %d:%d started.", msg.slot(), msg.process(), msg.thread());
+
+    // TODO update slot allocator with slot available and start simulation if all slots are ready.
     //Print::printf(Print::INFO, "All work unit runners started, beginning simulation.");
     //startSimulation();
 }
