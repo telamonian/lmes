@@ -41,6 +41,8 @@
 #include "lm/Exceptions.h"
 #include "lm/MPI.h"
 #include "lm/Print.h"
+#include "lm/io/hdf5/HDF5.h"
+#include "lm/io/hdf5/SimulationFile.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Communicator.h"
 #include "lm/message/Message.pb.h"
@@ -55,7 +57,7 @@ namespace lm {
 namespace main {
 
 SimulationSupervisor::SimulationSupervisor()
-    :communicator(lm::MPI::worldRank,THREAD_ID),useCPUAffinity(false),resourceMap(NULL),slotsStarted(0),slotsRegistered(0)
+    :communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationFilename(""),solverClassName(""),useCPUAffinity(false),hasReactionModel(false),hasDiffusionModel(false),slotsStarted(0),slotsRegistered(0)
 {
 }
 
@@ -65,6 +67,32 @@ SimulationSupervisor::~SimulationSupervisor()
 
 void SimulationSupervisor::wake() throw(lm::thread::PthreadException)
 {
+}
+
+void SimulationSupervisor::initialize()
+{
+    // Open the simulation file.
+    lm::io::hdf5::Hdf5File * file = new lm::io::hdf5::Hdf5File(simulationFilename);
+
+    // Get the simulation parameters.
+    file->getParameters(&simulationParameters);
+
+    // Get the reaction model.
+    if (file->hasReactionModel())
+    {
+        hasReactionModel = true;
+        file->getReactionModel(&reactionModel);
+    }
+
+    // Get the diffusion model.
+    if (file->hasDiffusionModel())
+    {
+        hasDiffusionModel = true;
+        file->getDiffusionModel(&diffusionModel);
+    }
+
+    // Close the file.
+    delete file;
 }
 
 int SimulationSupervisor::run()
@@ -154,6 +182,9 @@ void SimulationSupervisor::allResourcesRegistered()
             if (resources.gpusDevices.size() > 0)
                 s->add_gpu(resources.gpusDevices[0]);
             s->set_solver(solverClassName);
+            *s->mutable_simulation_parameters() = simulationParameters;
+            if (hasReactionModel) *s->mutable_reaction_model() = reactionModel;
+            if (hasDiffusionModel) *s->mutable_diffusion_model() = diffusionModel;
         }
         slotsStarted+=slotIndex;
         Print::printf(Print::INFO, "Start work unit runner(s) %d:%d start msg sent.", resources.controller_process, resources.controller_thread);

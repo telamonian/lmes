@@ -50,11 +50,10 @@
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/ReactionModel.pb.h"
-#include "lm/io/SimulationParameters.h"
+#include "lm/io/SimulationParameters.pb.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/replicates/ReplicateSupervisor.h"
 #include "lm/resource/SupervisorSlotAllocator.h"
-#include "lm/message/SimulationParameters.pb.h"
 
 namespace lm {
 namespace replicates {

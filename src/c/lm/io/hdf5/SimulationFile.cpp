@@ -54,6 +54,7 @@
 #include "lm/io/Lattice.pb.h"
 #include "lm/io/ParameterValues.pb.h"
 #include "lm/io/ReactionModel.pb.h"
+#include "lm/io/SimulationParameters.pb.h"
 #include "lm/io/SpatialModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/hdf5/HDF5.h"
@@ -302,6 +303,16 @@ herr_t Hdf5File::parseParameter(hid_t location_id, const char *attr_name, const 
     return 0;
 }
 
+void Hdf5File::getParameters(lm::io::SimulationParameters* parameters)
+{
+    parameters->Clear();
+    for (map<string,string>::iterator it=parameterMap.begin(); it != parameterMap.end(); it++)
+    {
+        parameters->add_key(it->first);
+        parameters->add_value(it->second);
+    }
+}
+
 map<string,string> Hdf5File::getParameters()
 {
     return parameterMap;
@@ -355,6 +366,11 @@ void Hdf5File::loadModel() throw(Exception,HDF5Exception)
             }
         }
     }
+}
+
+bool Hdf5File::hasReactionModel()
+{
+    return (H5Lexists(file, "/Model/Reaction", H5P_DEFAULT) != 0);
 }
 
 void Hdf5File::getReactionModel(lm::io::ReactionModel * reactionModel) throw(Exception,InvalidArgException,HDF5Exception)
@@ -547,6 +563,11 @@ void Hdf5File::setReactionModel(lm::io::ReactionModel * reactionModel) throw(Exc
         HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Reaction/StoichiometricMatrix", 2, dims, H5T_STD_I32LE, reactionModel->stoichiometric_matrix().data()));
         HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Reaction/DependencyMatrix", 2, dims, H5T_STD_U32LE, reactionModel->dependency_matrix().data()));
     }
+}
+
+bool Hdf5File::hasDiffusionModel()
+{
+    return (H5Lexists(file, "/Model/Diffusion", H5P_DEFAULT) != 0);
 }
 
 void Hdf5File::getDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception)

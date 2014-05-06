@@ -45,6 +45,7 @@
 #include "lm/me/MESolver.h"
 #include "lm/message/Communicator.h"
 #include "lm/message/RunWorkUnit.pb.h"
+#include "lm/message/StartWorkUnitRunner.pb.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 
@@ -67,11 +68,7 @@ public:
 
 protected:
     lm::message::Communicator communicator;
-    int slot;
-    bool useCPUAffinity;
-    vector<int> cpus;
-    vector<int> gpus;
-    string solverClassName;
+    lm::message::StartWorkUnitRunner properties;
     lm::me::MESolver* solver;
 };
 

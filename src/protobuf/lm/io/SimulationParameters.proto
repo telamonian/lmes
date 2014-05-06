@@ -37,7 +37,7 @@
  * Author(s): Elijah Roberts
  */
 
-package lm.message;
+package lm.io;
 
 message SimulationParameters {
   repeated string key                   = 1;

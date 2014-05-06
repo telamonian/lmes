@@ -69,16 +69,9 @@ using std::map;
 namespace lm {
 namespace main {
 
-WorkUnitRunner::WorkUnitRunner(const lm::message::StartWorkUnitRunner& properties)
-    :communicator(lm::MPI::worldRank, threadNumber),solver(NULL)
+WorkUnitRunner::WorkUnitRunner(const lm::message::StartWorkUnitRunner& msg)
+    :communicator(lm::MPI::worldRank,threadNumber),properties(msg),solver(NULL)
 {
-    slot = properties.slot();
-    useCPUAffinity = properties.use_cpu_affinity();
-    for (int i=0; i<properties.cpu_size(); i++)
-        cpus.push_back(properties.cpu(i));
-    for (int i=0; i<properties.gpu_size(); i++)
-        gpus.push_back(properties.gpu(i));
-    solverClassName = properties.solver();
 }
 
 WorkUnitRunner::~WorkUnitRunner()
@@ -97,41 +90,45 @@ int WorkUnitRunner::run()
         Print::printf(Print::INFO, "Work Unit runner %d:%d started.", lm::MPI::worldRank, threadNumber);
 
         // Set the processor affinity.
-        if (useCPUAffinity && cpus.size() >0)
+        if (properties.use_cpu_affinity() && properties.cpu_size() >0)
         {
-            Print::printf(Print::INFO, "Work Unit runner %d:%d using cpu core %d.", lm::MPI::worldRank, threadNumber, cpus[0]);
-            setAffinity(cpus[0]);
+            Print::printf(Print::INFO, "Work Unit runner %d:%d using cpu core %d.", lm::MPI::worldRank, threadNumber, properties.cpu(0));
+            setAffinity(properties.cpu(0));
         }
 
         // Set the GPU affinity.
         #if defined(OPT_CUDA)
-        if (gpus.size() > 0)
+        if (properties.gpu_size() > 0)
         {
-            Print::printf(Print::INFO, "Work Unit runner %d:%d using gpu device %d.", lm::MPI::worldRank, threadNumber, gpus[0]);
-            lm::CUDA::setCurrentDevice(gpus[0]);
+            Print::printf(Print::INFO, "Work Unit runner %d:%d using gpu device %d.", lm::MPI::worldRank, threadNumber, properties.gpu(0));
+            lm::CUDA::setCurrentDevice(properties.gpu(0));
         }
         #endif
 
         // Instantiate the solver.
-        solver = static_cast<lm::me::MESolver*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::me::MESolver",solverClassName));
+        solver = static_cast<lm::me::MESolver*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::me::MESolver",properties.solver()));
 
         // Set the model for the solver.
-        /*
-        solver->initialize(replicate, parameters, &resources);
+        //solver->initialize(replicate, parameters, &resources);
         if (solver->needsReactionModel())
         {
-            ((lm::cme::CMESolver *)solver)->setReactionModel(reactionModel);
+            if (properties.has_reaction_model())
+                ((lm::cme::CMESolver *)solver)->setReactionModel(properties.mutable_reaction_model());
+            else
+                throw Exception("Work Unit runner terminating, solver requires a reaction model but none was specified", properties.solver().c_str());
         }
         if (solver->needsDiffusionModel())
         {
-            ((lm::rdme::RDMESolver *)solver)->setDiffusionModel(diffusionModel, lattice, latticeSize, latticeSites, latticeSitesSize);
+            if (properties.has_diffusion_model())
+                ((lm::rdme::RDMESolver *)solver)->setDiffusionModel(properties.mutable_diffusion_model());
+            else
+                throw Exception("Work Unit runner terminating, solver requires a diffusion model but none was specified", properties.solver().c_str());
         }
-        */
 
         // Tell the supervisor the runner was started.
         lm::message::Message msgp;
         lm::message::StartedWorkUnitRunner* msg = msgp.mutable_started_work_unit_runner();
-        msg->set_slot(slot);
+        msg->set_slot(properties.slot());
         msg->set_process(lm::MPI::worldRank);
         msg->set_thread(getThreadNumber());
         communicator.sendMessage(lm::MPI::MASTER, lm::main::SimulationSupervisor::THREAD_ID, &msgp);

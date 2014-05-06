@@ -56,7 +56,7 @@ class RDMESolver : public CMESolver
 public:
     RDMESolver(RandomGenerator::Distributions neededDists);
     virtual ~RDMESolver();
-    virtual void setDiffusionModel(DiffusionModel * dm, const uint8_t * lattice, size_t latticeSize, const uint8_t * latticeSites, size_t latticeSitesSize) throw(InvalidArgException);
+    virtual void setDiffusionModel(DiffusionModel * dm) throw(InvalidArgException);
     virtual void buildDiffusionModel(const uint numberSiteTypesA, const double * DFA, const uint * RLA, lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing, const uint8_t * latticeData, const uint8_t * latticeSitesData, bool rowMajorData=true) throw(InvalidArgException);
 
 protected:

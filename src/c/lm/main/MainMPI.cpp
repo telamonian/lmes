@@ -66,11 +66,6 @@
 #ifdef OPT_CUDA
 #include "lm/Cuda.h"
 #endif
-#include "lm/io/hdf5/HDF5.h"
-#include "lm/io/hdf5/SimulationFile.h"
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/ReactionModel.pb.h"
-#include "lm/io/SimulationParameters.h"
 #include "lm/main/CheckpointSignaler.h"
 #include "lm/main/DataOutputQueue.h"
 #include "lm/main/LocalDataOutputWorker.h"
@@ -81,7 +76,6 @@
 #include "lm/resource/ResourceAllocator.h"
 #include "lm/resource/ResourceMap.h"
 #include "lm/main/SignalHandler.h"
-#include "lm/message/SimulationParameters.pb.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/WorkerManager.h"
 #include "lptf/Profile.h"
@@ -298,11 +292,15 @@ void executeSimulationMPISingleMaster(ResourceMap* resourceMap)
     lm::main::ResourceController resourceController;
     resourceController.start();
 
-    // Start the supervisor.
+    // Create the supervisor.
     lm::main::SimulationSupervisor* supervisor = static_cast<lm::main::SimulationSupervisor*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::main::SimulationSupervisor",supervisorClassName));
     supervisor->setUseCPUAffinity(useCPUAffinity);
+    supervisor->setSimulationFilename(simulationFilename);
     supervisor->setSolverClassName(solverClassName);
     supervisor->setResourceMap(resourceMap);
+    supervisor->initialize();
+
+    // Start the supervisor.
     supervisor->start();
 
     /*
@@ -347,9 +345,9 @@ void executeSimulationMPISingleMaster(ResourceMap* resourceMap)
     checkpointSignaler->start();
     checkpointSignaler->startCheckpointing(checkpointInterval);
 
-    // Open the file.
-    lm::io::hdf5::Hdf5File * file = new lm::io::hdf5::Hdf5File(simulationFilename);
+    */
 
+    /*
     // Start the data output thread.
     lm::main::LocalDataOutputWorker * dataOutputWorker = new lm::main::LocalDataOutputWorker(file);
     dataOutputWorker->setAffinity(reservedCpuCore);

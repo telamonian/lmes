@@ -7,13 +7,9 @@
 #include <cmath>
 #include <string>
 #include <utility>
-#include "lm/io/hdf5/SimulationFile.h"
-#include "lm/io/SimulationParameters.h"
+
 #include "lm/MPI.h"
 #include "lm/replicates/TrajectoryList.h"
-#include "lm/io/ReactionModel.pb.h"
-#include "lm/work/ReadOnly.pb.h"
-#include "lm/work/Result.pb.h"
 
 namespace lm {
 namespace resource {

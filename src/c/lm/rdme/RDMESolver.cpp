@@ -94,9 +94,11 @@ void RDMESolver::destroyDiffusionModel()
     numberSiteTypes = 0;
 }
 
-void RDMESolver::setDiffusionModel(DiffusionModel * dm, const uint8_t * lattice, size_t latticeSize, const uint8_t * latticeSites, size_t latticeSitesSize) throw(InvalidArgException)
+void RDMESolver::setDiffusionModel(DiffusionModel * dm) throw(InvalidArgException)
 {
-	printf("Got diffudsion model %d\n", dm);
+    throw InvalidArgException("Unimplemented");
+
+    /*
     // Validate the model.
     if (dm->number_species() != numberSpecies) throw InvalidArgException("dm.number_species", "number of species in the diffusion model does not agree with the number in the reaction model");
     if (dm->number_reactions() != numberReactions) throw InvalidArgException("dm.number_reactions", "number of reactions in the diffusion model does not agree with the number in the reaction model");
@@ -111,6 +113,7 @@ void RDMESolver::setDiffusionModel(DiffusionModel * dm, const uint8_t * lattice,
     if (dm->number_species() != numberSpecies) throw InvalidArgException("dm.number_species", "number of species in the diffusion model does not agree with the number in the reaction model");
     if (dm->number_reactions() != numberReactions) throw InvalidArgException("dm.number_reactions", "number of reactions in the diffusion model does not agree with the number in the reaction model");
     printf("done2\n");
+    */
 }
 
 void RDMESolver::buildDiffusionModel(const uint numberSiteTypesA, const double * DFA, const uint * RLA, lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing, const uint8_t * latticeData, const uint8_t * latticeSitesData, bool rowMajorData) throw(InvalidArgException)

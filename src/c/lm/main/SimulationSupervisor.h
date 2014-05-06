@@ -41,9 +41,15 @@
 #ifndef LM_MAIN_SUPERVISOR_H
 #define LM_MAIN_SUPERVISOR_H
 
+#include <map>
+#include <string>
+
 #include <google/protobuf/message.h>
 
 #include "lm/Exceptions.h"
+#include "lm/io/DiffusionModel.pb.h"
+#include "lm/io/ReactionModel.pb.h"
+#include "lm/io/SimulationParameters.pb.h"
 #include "lm/message/Communicator.h"
 #include "lm/resource/ResourceMap.h"
 #include "lm/thread/Thread.h"
@@ -60,9 +66,11 @@ public:
 public:
     SimulationSupervisor();
     virtual ~SimulationSupervisor();
+    void setResourceMap(lm::resource::ResourceMap* resourceMap) {this->resourceMap = resourceMap;}
+    void setSimulationFilename(string simulationFilename) {this->simulationFilename = simulationFilename;}
     void setSolverClassName(string solverClassName) {this->solverClassName = solverClassName;}
     void setUseCPUAffinity(bool useCPUAffinity) {this->useCPUAffinity = useCPUAffinity;}
-    void setResourceMap(lm::resource::ResourceMap* resourceMap) {this->resourceMap = resourceMap;}
+    virtual void initialize();
     void wake() throw(lm::thread::PthreadException);
 
 protected:
@@ -74,9 +82,15 @@ protected:
 
 protected:
     lm::message::Communicator communicator;
-    string solverClassName;
-    bool useCPUAffinity;
     lm::resource::ResourceMap* resourceMap;
+    std::string simulationFilename;
+    std::string solverClassName;
+    bool useCPUAffinity;
+    lm::io::SimulationParameters simulationParameters;
+    bool hasReactionModel;
+    lm::io::ReactionModel reactionModel;
+    bool hasDiffusionModel;
+    lm::io::DiffusionModel diffusionModel;
     int slotsStarted;
     int slotsRegistered;
 };
