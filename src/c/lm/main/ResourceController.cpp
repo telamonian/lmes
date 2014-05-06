@@ -265,7 +265,6 @@ int ResourceController::run()
 
 void ResourceController::startWorkUnitRunner(const lm::message::StartWorkUnitRunner& properties)
 {
-    Print::printf(Print::INFO, "Starting work unit runner");
     // Start the work unit runner.
     WorkUnitRunner* runner = new WorkUnitRunner(properties);
     runners.push_back(runner);

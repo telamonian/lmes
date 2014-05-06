@@ -85,9 +85,9 @@ void Communicator::sendMessage(int destProcess, int destThread, lm::message::Mes
     if (!message->SerializeToArray(dataBuffer,messageLength)) throw lm::Exception("Unable to serialize message");
 
     // Send the buffer.
-    lm::Print::printf(lm::Print::DEBUG, "Sending message %d:%d->%d:%d = %d",process,thread,destProcess,destThread,messageLength);
+    //lm::Print::printf(lm::Print::DEBUG, "Sending message %d:%d->%d:%d = %d",process,thread,destProcess,destThread,messageLength);
     MPI_EXCEPTION_CHECK(MPI_Send(dataBuffer, messageLength, MPI_BYTE, destProcess, destThread, MPI_COMM_WORLD));
-    lm::Print::printf(lm::Print::DEBUG, "Sent message %d:%d->%d:%d = %d",process,thread,destProcess,destThread,messageLength);
+    //lm::Print::printf(lm::Print::DEBUG, "Sent message %d:%d->%d:%d = %d",process,thread,destProcess,destThread,messageLength);
 }
 
 void Communicator::receiveMessage(lm::message::Message* message)

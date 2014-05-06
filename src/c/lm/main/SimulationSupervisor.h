@@ -75,6 +75,8 @@ protected:
     lm::message::Communicator communicator;
     string solverClassName;
     lm::resource::ResourceMap* resourceMap;
+    int slotsStarted;
+    int slotsRegistered;
 };
 
 }

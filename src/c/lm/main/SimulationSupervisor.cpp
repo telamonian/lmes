@@ -55,7 +55,7 @@ namespace lm {
 namespace main {
 
 SimulationSupervisor::SimulationSupervisor()
-    :communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL)
+    :communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),slotsStarted(0),slotsRegistered(0)
 {
 }
 
@@ -154,6 +154,7 @@ void SimulationSupervisor::allResourcesRegistered()
                 s->add_gpu(resources.gpusDevices[0]);
             s->set_solver(solverClassName);
         }
+        slotsStarted+=slotIndex-1;
         Print::printf(Print::INFO, "Start work unit runner(s) %d:%d start msg sent.", resources.controller_process, resources.controller_thread);
         communicator.sendMessage(resources.controller_process, resources.controller_thread, &msg);
     }
@@ -164,8 +165,11 @@ void SimulationSupervisor::workUnitRunnerStarted(const lm::message::StartedWorkU
     Print::printf(Print::INFO, "Slot %d work unit runner %d:%d started.", msg.slot(), msg.process(), msg.thread());
 
     // TODO update slot allocator with slot available and start simulation if all slots are ready.
-    //Print::printf(Print::INFO, "All work unit runners started, beginning simulation.");
-    //startSimulation();
+    if (++slotsRegistered == slotsStarted)
+    {
+        Print::printf(Print::INFO, "All work unit runners started, beginning simulation.");
+        startSimulation();
+    }
 }
 
 
