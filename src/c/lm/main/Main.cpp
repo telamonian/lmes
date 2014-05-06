@@ -114,6 +114,11 @@ int cpuCores;
 float cpuCoresPerReplicate;
 
 /**
+ * Whether we should use CPU affinity.
+ */
+bool useCPUAffinity;
+
+/**
  * The number gpu devices assigned to each process.
  */
 int gpuDevices;
@@ -165,12 +170,13 @@ void parseArguments(int argc, char** argv)
 
     cpuCores = -1;
     cpuCoresPerReplicate = 1.0;
+    useCPUAffinity = false;
     gpuDevices = -1;
     gpuDevicesPerReplicate = 1.0;
     shouldPrintGPUCapabilities = true;
 
     supervisorClassName = "lm::replicates::ReplicateSupervisor";
-    solverClassName = "lm::rdme::MpdRdmeSolver";
+    solverClassName = "lm::cme::GillespieDSolver";
 
     shouldReserveOutputCore = true;
     useForwardFluxRunner = false;
@@ -301,6 +307,13 @@ void parseArguments(int argc, char** argv)
          else if (strncmp(option, "--cpus-per-replicate=", strlen("--cpus-per-replicate=")) == 0)
          {
              cpuCoresPerReplicate=parseIntReciprocalArg(option+strlen("--cpus-per-replicate="));
+         }
+
+
+        //See if the user is trying to turn on cpu affinity.
+         else if ((strcmp(option, "-ca") == 0 || strcmp(option, "--cpu-affinity") == 0))
+         {
+             useCPUAffinity = true;
          }
 
          //See if the user is trying to set the gpu devices.
@@ -437,6 +450,7 @@ void printUsage(int argc, char** argv)
     std::cout << "  -m map_file       --resource-map=map_file      A file containing the map of resources to use: hostname processor_id_list gpu_id_list." << std::endl;
     std::cout << "  -c num_cpus       --cpu=num_cpus               The number of CPUs on which to execute (default all)." << std::endl;
     std::cout << "  -cr num           --cpus-per-replicate=num     The number of CPUs (possibly fractional) to assign per replicate, e.g. \"2\", \"1/4\" (default 1)." << std::endl;
+    std::cout << "  -ca               --cpu-affinity               Turn on CPU affinity." << std::endl;
     std::cout << "  -g num_gpus       --gpu=num_gpus               The number of GPUs on which to execute (default all)." << std::endl;
     std::cout << "  -gr num           --gpus-per-replicate=num     The number of GPUs (possibly fractional) to assign per replicate, e.g. \"2\", \"1/4\" (default 1)." << std::endl;
     std::cout << "  -nc               --no-capabilities            Don't print the capabilities of the GPU devices." << std::endl;

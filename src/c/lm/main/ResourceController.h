@@ -48,7 +48,6 @@
 #include "lm/Print.h"
 #include "lm/main/WorkUnitRunner.h"
 #include "lm/resource/ResourceAllocator.h"
-#include "lm/me/MESolverFactory.h"
 #include "lm/message/Communicator.h"
 #include "lm/message/StartWorkUnitRunner.pb.h"
 #include "lm/message/StartedWorkUnitRunner.pb.h"

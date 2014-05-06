@@ -95,7 +95,6 @@ using lm::Print;
 using lm::Exception;
 using lm::resource::ResourceAllocator;
 using lm::resource::ResourceMap;
-using lm::me::MESolverFactory;
 using lm::thread::PthreadException;
 
 void listDevicesMPI();
@@ -301,6 +300,7 @@ void executeSimulationMPISingleMaster(ResourceMap* resourceMap)
 
     // Start the supervisor.
     lm::main::SimulationSupervisor* supervisor = static_cast<lm::main::SimulationSupervisor*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::main::SimulationSupervisor",supervisorClassName));
+    supervisor->setUseCPUAffinity(useCPUAffinity);
     supervisor->setSolverClassName(solverClassName);
     supervisor->setResourceMap(resourceMap);
     supervisor->start();

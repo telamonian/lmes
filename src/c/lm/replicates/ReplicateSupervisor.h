@@ -51,7 +51,6 @@
 #include "lm/resource/SupervisorSlot.h"
 #include "lm/resource/SupervisorSlotAllocator.h"
 #include "lm/main/SimulationSupervisor.h"
-#include "lm/me/MESolverFactory.h"
 #include "lm/MPI.h"
 #include "lm/Print.h"
 #include "lm/thread/Worker.h"
@@ -59,7 +58,6 @@
 namespace lm {
 namespace replicates {
 
-using lm::me::MESolverFactory;
 using lm::resource::SupervisorSlot;
 using lm::resource::SupervisorSlotAllocator;
 using std::deque;

@@ -55,7 +55,7 @@ namespace lm {
 namespace main {
 
 SimulationSupervisor::SimulationSupervisor()
-    :communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),slotsStarted(0),slotsRegistered(0)
+    :communicator(lm::MPI::worldRank,THREAD_ID),useCPUAffinity(false),resourceMap(NULL),slotsStarted(0),slotsRegistered(0)
 {
 }
 
@@ -149,12 +149,13 @@ void SimulationSupervisor::allResourcesRegistered()
             // Send a message to the controller to start a work unit runner.
             lm::message::StartWorkUnitRunner* s = msg.add_start_work_unit_runner();
             s->set_slot(slotIndex);
+            s->set_use_cpu_affinity(useCPUAffinity);
             s->add_cpu(resources.cpuCores[i]);
             if (resources.gpusDevices.size() > 0)
                 s->add_gpu(resources.gpusDevices[0]);
             s->set_solver(solverClassName);
         }
-        slotsStarted+=slotIndex-1;
+        slotsStarted+=slotIndex;
         Print::printf(Print::INFO, "Start work unit runner(s) %d:%d start msg sent.", resources.controller_process, resources.controller_thread);
         communicator.sendMessage(resources.controller_process, resources.controller_thread, &msg);
     }

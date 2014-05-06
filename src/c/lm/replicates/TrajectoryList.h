@@ -1,84 +1,84 @@
 /*
- * TrajectoryAllocator.h
+ * University of Illinois Open Source License
+ * Copyright 2012-2014 Roberts Group,
+ * All rights reserved.
  *
- *  Created on: Jan 19, 2014
- *      Author: tel
+ * Developed by: Roberts Group
+ * 			     Johns Hopkins University
+ * 			     http://biophysics.jhu.edu/roberts/
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the Software), to deal with
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to
+ * do so, subject to the following conditions:
+ *
+ * - Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimers.
+ *
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimers in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * - Neither the names of the Roberts Group, Johns Hopkins University,
+ * nor the names of its contributors may be used to endorse or
+ * promote products derived from this Software without specific prior written
+ * permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS WITH THE SOFTWARE.
+ *
+ * Author(s): Elijah Roberts, Max Klein
  */
 
-#ifndef TRAJECTORYALLOCATOR_H_
-#define TRAJECTORYALLOCATOR_H_
+#ifndef LM_REPLICATES_TRAJECTORYLIST_H_
+#define LM_REPLICATES_TRAJECTORYLIST_H_
 
-#include <string>
 #include <map>
+#include <string>
 #include <vector>
-#include "lm/io/hdf5/SimulationFile.h"
-#include "lm/io/SimulationParameters.h"
-#include "lm/thread/Thread.h"
 
 using std::map;
 using std::string;
 using std::vector;
-using lm::thread::PthreadException;
 
 namespace lm {
 namespace resource {
 
-class TrajectoryAllocator
+class TrajectoryList
 {
 
-//public:
-//	enum trajectoryStatus {CONTINUE, FINISHED};
-//	class Trajectory
-//	{
-//	public:
-//        //Trajectory(lm::work::Work work, double maxTime, long long maxStep): work(work), maxTime(maxTime), maxStep(maxStep), status(CONTINUE) {}
-//		virtual ~Trajectory() {}
+public:
+    enum status_t {NOT_STARTED, RUNNING, FINISHED};
+    class Trajectory
+    {
+    public:
+        Trajectory(int trajectoryNumber, double time, long long steps) : trajectoryNumber(trajectoryNumber),time(time), steps(steps),status(NOT_STARTED),state(NULL) {}
+        int trajectoryNumber;
+        double time;
+        long long steps;
+        status_t status;
+        void* state;
+    };
 
-//		//virtual void assignSlot();
-//		//virtual void update(lm::work::Result & result);
-//        //virtual lm::work::Work & getWork(vector<int> slotIds);
-//		virtual trajectoryStatus check();
-//        /*virtual int getTid() {return work.tid();}
-//		virtual int getPid() {return work.pid();}
-//		virtual int getSid() {return work.sid();}
-//        */
+public:
+    TrajectoryList(int numberTrajectories, double maxTime, long long maxStep);
+    virtual ~TrajectoryList() {}
 
-//        //lm::work::Work work;
-//		trajectoryStatus status;
-//		double maxTime;
-//		long long maxStep;
-//	};
-
-//public:
-//    TrajectoryAllocator(lm::io::hdf5::Hdf5File * file, bool needsReactionModel, bool needsDiffusionModel):
-//    	tidCounter(0), file(file), needsReactionModel(needsReactionModel), needsDiffusionModel(needsDiffusionModel) {initialize();}
-//    virtual ~TrajectoryAllocator() {}
-
-//    virtual void initialize();
-//    virtual int createTid();
-//    virtual void initTrajectory();
-//    virtual void initTrajectories(int n);
-//    virtual Trajectory createTrajectory(int tid);
-//    virtual void eraseTrajectory(map<int, Trajectory>::iterator traj_it);
-
-//    virtual void update(lm::work::Result & result) {trajectories.find(result.tid())->second.update(result);}
-//    virtual map<int, Trajectory>::iterator getBegin() {return trajectories.begin();}
-//    virtual map<int, Trajectory>::iterator getEnd() {return trajectories.end();}
-
-//    double maxTime;
-//    long long maxStep;
-//    int tidCounter;			//equal to next trajectory ID to be created
-//    lm::io::hdf5::Hdf5File * file;
-//    lm::message::SimulationParameters simulationParameters;
-//    lm::io::ReactionModel reactionModel;
-//    lm::work::ReadOnly readOnly;
-//    lm::work::ReadWrite readWrite;
-//    bool needsReactionModel;
-//    bool needsDiffusionModel;
-//    map<int, Trajectory> trajectories;
+protected:
+    int numberTrajectories;
+    double maxTime;
+    long long maxStep;
+    vector<Trajectory> trajectories;
 };
 
 }
 }
 
-#endif /* TRAJECTORYALLOCATOR_H_ */
+#endif

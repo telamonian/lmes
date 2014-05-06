@@ -45,6 +45,7 @@
 #elif defined(LINUX)
 #include <time.h>
 #endif
+#include "lm/ClassFactory.h"
 #include "lm/Tune.h"
 #include "lm/Math.h"
 #include "lm/Print.h"
@@ -64,9 +65,6 @@
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
 
-
-
-
 using std::string;
 using std::list;
 using std::map;
@@ -74,6 +72,19 @@ using lm::rng::RandomGenerator;
 
 namespace lm {
 namespace cme {
+
+bool GillespieDSolver::registered=GillespieDSolver::registerClass();
+
+bool GillespieDSolver::registerClass()
+{
+    lm::ClassFactory::getInstance().registerClass("lm::me::MESolver","lm::cme::GillespieDSolver",&GillespieDSolver::allocateObject);
+    return true;
+}
+
+void* GillespieDSolver::allocateObject()
+{
+    return new GillespieDSolver();
+}
 
 GillespieDSolver::GillespieDSolver():CMESolver((RandomGenerator::Distributions)(RandomGenerator::EXPONENTIAL|RandomGenerator::UNIFORM)),propensities(NULL)
 {

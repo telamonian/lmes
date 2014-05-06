@@ -100,6 +100,11 @@ extern int cpuCores;
 extern float cpuCoresPerReplicate;
 
 /**
+ * Whether we should use CPU affinity.
+ */
+extern bool useCPUAffinity;
+
+/**
  * The number gpu devices assigned to each process.
  */
 extern int gpuDevices;

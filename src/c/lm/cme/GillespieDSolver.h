@@ -43,6 +43,7 @@
 #include <map>
 #include <list>
 #include <string>
+#include "lm/ClassFactory.h"
 #include "lm/cme/CMESolver.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/resource/ResourceAllocator.h"
@@ -59,6 +60,11 @@ namespace cme {
 
 class GillespieDSolver : public CMESolver
 {
+public:
+    static bool registered;
+    static bool registerClass();
+    static void* allocateObject();
+
 public:
     GillespieDSolver();
     virtual ~GillespieDSolver();

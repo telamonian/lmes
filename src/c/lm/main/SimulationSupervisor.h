@@ -61,6 +61,7 @@ public:
     SimulationSupervisor();
     virtual ~SimulationSupervisor();
     void setSolverClassName(string solverClassName) {this->solverClassName = solverClassName;}
+    void setUseCPUAffinity(bool useCPUAffinity) {this->useCPUAffinity = useCPUAffinity;}
     void setResourceMap(lm::resource::ResourceMap* resourceMap) {this->resourceMap = resourceMap;}
     void wake() throw(lm::thread::PthreadException);
 
@@ -74,6 +75,7 @@ protected:
 protected:
     lm::message::Communicator communicator;
     string solverClassName;
+    bool useCPUAffinity;
     lm::resource::ResourceMap* resourceMap;
     int slotsStarted;
     int slotsRegistered;

@@ -40,14 +40,15 @@
 #ifndef LM_MAIN_WORKUNITRUNNER_H_
 #define LM_MAIN_WORKUNITRUNNER_H_
 
-#include <list>
 #include <string>
+#include <vector>
+#include "lm/me/MESolver.h"
 #include "lm/message/Communicator.h"
-#include "lm/message/StartWorkUnitRunner.pb.h"
+#include "lm/message/RunWorkUnit.pb.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 
-using std::list;
+using std::vector;
 using std::string;
 using lm::thread::PthreadException;
 using lm::thread::Worker;
@@ -62,13 +63,16 @@ public:
     virtual ~WorkUnitRunner();
     virtual void wake() throw(PthreadException);
     virtual int run();
+    virtual void runWorkUnit(const lm::message::RunWorkUnit& msg);
 
 protected:
     lm::message::Communicator communicator;
     int slot;
-    list<int> cpus;
-    list<int> gpus;
+    bool useCPUAffinity;
+    vector<int> cpus;
+    vector<int> gpus;
     string solverClassName;
+    lm::me::MESolver* solver;
 };
 
 }

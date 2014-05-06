@@ -18,6 +18,13 @@
 namespace lm {
 namespace resource {
 
+TrajectoryList::TrajectoryList(int numberTrajectories, double maxTime, long long maxStep)
+    : numberTrajectories(numberTrajectories),maxTime(maxTime),maxStep(maxStep)
+{
+
+}
+
+
 //void TrajectoryAllocator::initialize()
 //{
 //	//stub for creation of work unit for testing purposes
