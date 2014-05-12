@@ -37,11 +37,9 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-package lm.message;
+package lm.io;
 
-message StartedWorkUnitRunner {
-    required int32 slot                     = 1;
-    required int32 process                  = 2;
-    required int32 thread                   = 3;
-    required int32 simultaneous_work_units  = 4;
+
+message CMEState {
+  repeated int32 species_count              = 1 [packed=true];
 }

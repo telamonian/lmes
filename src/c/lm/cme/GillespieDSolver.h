@@ -68,13 +68,12 @@ public:
 public:
     GillespieDSolver();
     virtual ~GillespieDSolver();
-    virtual bool needsReactionModel() {return true;}
-    virtual bool needsDiffusionModel()  {return false;}
-    virtual void buildModel(const uint numberSpecies, const uint numberReactions, const uint * initialSpeciesCounts, const uint * reactionType, const double * k, const int * S, const uint * D, const uint kCols=1);
-    virtual void generateTrajectory();
+    virtual void resetState();
+    virtual void getState(lm::io::TrajectoryState& state);
+    virtual void setState(const lm::io::TrajectoryState& state);
+    virtual bool generateTrajectory(int trajectoryId, long long maxSteps);
 
 protected:
-    virtual void destroyModel();
     inline void updateAllPropensities(double time);
     inline void updatePropensities(double time, uint r);
 

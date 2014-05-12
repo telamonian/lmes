@@ -60,58 +60,58 @@ class SpeciesCounts;
 }
 namespace rdme {
 
-class MpdRdmeSolver : public RDMESolver
-{
-public:
-    MpdRdmeSolver();
-    virtual ~MpdRdmeSolver();
-    virtual void initialize(unsigned int replicate, map<string,string> * parameters, ResourceAllocator::ComputeResources * resources);
-    virtual bool needsReactionModel() {return true;}
-    virtual bool needsDiffusionModel()  {return true;}
-    virtual void buildModel(const uint numberSpeciesA, const uint numberReactionsA, const uint * initialSpeciesCountsA, const uint * reactionTypeA, const double * kA, const int * SA, const uint * DA, const uint kCols=1);
-    virtual void buildDiffusionModel(const uint numberSiteTypesA, const double * DFA, const uint * RLA, lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing, const uint8_t * latticeData, const uint8_t * latticeSitesData, bool rowMajorData=true) throw(InvalidArgException);
-    virtual void generateTrajectory();
+//class MpdRdmeSolver : public RDMESolver
+//{
+//public:
+//    MpdRdmeSolver();
+//    virtual ~MpdRdmeSolver();
+//    virtual void initialize(unsigned int replicate, map<string,string> * parameters, ResourceAllocator::ComputeResources * resources);
+//    virtual bool needsReactionModel() {return true;}
+//    virtual bool needsDiffusionModel()  {return true;}
+//    virtual void buildModel(const uint numberSpeciesA, const uint numberReactionsA, const uint * initialSpeciesCountsA, const uint * reactionTypeA, const double * kA, const int * SA, const uint * DA, const uint kCols=1);
+//    virtual void buildDiffusionModel(const uint numberSiteTypesA, const double * DFA, const uint * RLA, lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing, const uint8_t * latticeData, const uint8_t * latticeSitesData, bool rowMajorData=true) throw(InvalidArgException);
+//    virtual void generateTrajectory();
 
-protected:
-    virtual void allocateLattice(lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing);
-    virtual void writeLatticeData(double time, CudaByteLattice * lattice, lm::io::Lattice * latticeDataSet);
-    virtual void recordSpeciesCounts(double time, CudaByteLattice * lattice, lm::io::SpeciesCounts * speciesCountsDataSet);
-    virtual void writeSpeciesCounts(lm::io::SpeciesCounts * speciesCountsDataSet);
-    virtual void runTimestep(CudaByteLattice * lattice, uint32_t timestep) throw(CUDAException,Exception);
-    virtual uint64_t getTimestepSeed(uint32_t timestep, uint32_t substep);
+//protected:
+//    virtual void allocateLattice(lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing);
+//    virtual void writeLatticeData(double time, CudaByteLattice * lattice, lm::io::Lattice * latticeDataSet);
+//    virtual void recordSpeciesCounts(double time, CudaByteLattice * lattice, lm::io::SpeciesCounts * speciesCountsDataSet);
+//    virtual void writeSpeciesCounts(lm::io::SpeciesCounts * speciesCountsDataSet);
+//    virtual void runTimestep(CudaByteLattice * lattice, uint32_t timestep) throw(CUDAException,Exception);
+//    virtual uint64_t getTimestepSeed(uint32_t timestep, uint32_t substep);
 
-    #ifdef CUDA_3D_GRID_LAUNCH
-    virtual void calculateXLaunchParameters(dim3 * gridSize, dim3 * threadBlockSize, const unsigned int maxXBlockSize, const unsigned int latticeXSize, const unsigned int latticeYSize, const unsigned int latticeZSize);
-    virtual void calculateYLaunchParameters(dim3 * gridSize, dim3 * threadBlockSize, const unsigned int blockXSize, const unsigned int blockYSize, const unsigned int latticeXSize, const unsigned int latticeYSize, const unsigned int latticeZSize);
-    virtual void calculateZLaunchParameters(dim3 * gridSize, dim3 * threadBlockSize, const unsigned int blockXSize, const unsigned int blockZSize, const unsigned int latticeXSize, const unsigned int latticeYSize, const unsigned int latticeZSize);
-    virtual void calculateReactionLaunchParameters(dim3 * gridSize, dim3 * threadBlockSize, const unsigned int blockXSize, const unsigned int blockYSize, const unsigned int latticeXSize, const unsigned int latticeYSize, const unsigned int latticeZSize);
-    #else
-    virtual void calculateXLaunchParameters(unsigned int * gridXSize, dim3 * gridSize, dim3 * threadBlockSize, const unsigned int maxXBlockSize, const unsigned int latticeXSize, const unsigned int latticeYSize, const unsigned int latticeZSize);
-    virtual void calculateYLaunchParameters(unsigned int * gridXSize, dim3 * gridSize, dim3 * threadBlockSize, const unsigned int blockXSize, const unsigned int blockYSize, const unsigned int latticeXSize, const unsigned int latticeYSize, const unsigned int latticeZSize);
-    virtual void calculateZLaunchParameters(unsigned int * gridXSize, dim3 * gridSize, dim3 * threadBlockSize, const unsigned int blockXSize, const unsigned int blockZSize, const unsigned int latticeXSize, const unsigned int latticeYSize, const unsigned int latticeZSize);
-    virtual void calculateReactionLaunchParameters(unsigned int * gridXSize, dim3 * gridSize, dim3 * threadBlockSize, const unsigned int blockXSize, const unsigned int blockYSize, const unsigned int latticeXSize, const unsigned int latticeYSize, const unsigned int latticeZSize);
-    #endif
+//    #ifdef CUDA_3D_GRID_LAUNCH
+//    virtual void calculateXLaunchParameters(dim3 * gridSize, dim3 * threadBlockSize, const unsigned int maxXBlockSize, const unsigned int latticeXSize, const unsigned int latticeYSize, const unsigned int latticeZSize);
+//    virtual void calculateYLaunchParameters(dim3 * gridSize, dim3 * threadBlockSize, const unsigned int blockXSize, const unsigned int blockYSize, const unsigned int latticeXSize, const unsigned int latticeYSize, const unsigned int latticeZSize);
+//    virtual void calculateZLaunchParameters(dim3 * gridSize, dim3 * threadBlockSize, const unsigned int blockXSize, const unsigned int blockZSize, const unsigned int latticeXSize, const unsigned int latticeYSize, const unsigned int latticeZSize);
+//    virtual void calculateReactionLaunchParameters(dim3 * gridSize, dim3 * threadBlockSize, const unsigned int blockXSize, const unsigned int blockYSize, const unsigned int latticeXSize, const unsigned int latticeYSize, const unsigned int latticeZSize);
+//    #else
+//    virtual void calculateXLaunchParameters(unsigned int * gridXSize, dim3 * gridSize, dim3 * threadBlockSize, const unsigned int maxXBlockSize, const unsigned int latticeXSize, const unsigned int latticeYSize, const unsigned int latticeZSize);
+//    virtual void calculateYLaunchParameters(unsigned int * gridXSize, dim3 * gridSize, dim3 * threadBlockSize, const unsigned int blockXSize, const unsigned int blockYSize, const unsigned int latticeXSize, const unsigned int latticeYSize, const unsigned int latticeZSize);
+//    virtual void calculateZLaunchParameters(unsigned int * gridXSize, dim3 * gridSize, dim3 * threadBlockSize, const unsigned int blockXSize, const unsigned int blockZSize, const unsigned int latticeXSize, const unsigned int latticeYSize, const unsigned int latticeZSize);
+//    virtual void calculateReactionLaunchParameters(unsigned int * gridXSize, dim3 * gridSize, dim3 * threadBlockSize, const unsigned int blockXSize, const unsigned int blockYSize, const unsigned int latticeXSize, const unsigned int latticeYSize, const unsigned int latticeZSize);
+//    #endif
 
-protected:
-    uint32_t seed;
-    void * cudaOverflowList;
-    cudaStream_t cudaStream;
-    double tau;
-    uint32_t overflowTimesteps;
-    uint32_t overflowListUses;
-};
+//protected:
+//    uint32_t seed;
+//    void * cudaOverflowList;
+//    cudaStream_t cudaStream;
+//    double tau;
+//    uint32_t overflowTimesteps;
+//    uint32_t overflowListUses;
+//};
 
-#ifdef CUDA_3D_GRID_LAUNCH
-__global__ void MpdRdmeSolver_x_kernel(const unsigned int* inLattice, const uint8_t * inSites, unsigned int* outLattice, const unsigned long long timestepHash, unsigned int* siteOverflowList);
-__global__ void MpdRdmeSolver_y_kernel(const unsigned int* inLattice, const uint8_t * inSites, unsigned int* outLattice, const unsigned long long timestepHash, unsigned int* siteOverflowList);
-__global__ void MpdRdmeSolver_z_kernel(const unsigned int* inLattice, const uint8_t * inSites, unsigned int* outLattice, const unsigned long long timestepHash, unsigned int* siteOverflowList);
-__global__ void MpdRdmeSolver_reaction_kernel(const unsigned int* inLattice, const uint8_t * inSites, unsigned int* outLattice, const unsigned long long timestepHash, unsigned int* siteOverflowList);
-#else
-__global__ void MpdRdmeSolver_x_kernel(const unsigned int* inLattice, const uint8_t * inSites, unsigned int* outLattice, const unsigned int gridXSize, const unsigned long long timestepHash, unsigned int* siteOverflowList);
-__global__ void MpdRdmeSolver_y_kernel(const unsigned int* inLattice, const uint8_t * inSites, unsigned int* outLattice, const unsigned int gridXSize, const unsigned long long timestepHash, unsigned int* siteOverflowList);
-__global__ void MpdRdmeSolver_z_kernel(const unsigned int* inLattice, const uint8_t * inSites, unsigned int* outLattice, const unsigned int gridXSize, const unsigned long long timestepHash, unsigned int* siteOverflowList);
-__global__ void MpdRdmeSolver_reaction_kernel(const unsigned int* inLattice, const uint8_t * inSites, unsigned int* outLattice, const unsigned int gridXSize, const unsigned long long timestepHash, unsigned int* siteOverflowList);
-#endif
+//#ifdef CUDA_3D_GRID_LAUNCH
+//__global__ void MpdRdmeSolver_x_kernel(const unsigned int* inLattice, const uint8_t * inSites, unsigned int* outLattice, const unsigned long long timestepHash, unsigned int* siteOverflowList);
+//__global__ void MpdRdmeSolver_y_kernel(const unsigned int* inLattice, const uint8_t * inSites, unsigned int* outLattice, const unsigned long long timestepHash, unsigned int* siteOverflowList);
+//__global__ void MpdRdmeSolver_z_kernel(const unsigned int* inLattice, const uint8_t * inSites, unsigned int* outLattice, const unsigned long long timestepHash, unsigned int* siteOverflowList);
+//__global__ void MpdRdmeSolver_reaction_kernel(const unsigned int* inLattice, const uint8_t * inSites, unsigned int* outLattice, const unsigned long long timestepHash, unsigned int* siteOverflowList);
+//#else
+//__global__ void MpdRdmeSolver_x_kernel(const unsigned int* inLattice, const uint8_t * inSites, unsigned int* outLattice, const unsigned int gridXSize, const unsigned long long timestepHash, unsigned int* siteOverflowList);
+//__global__ void MpdRdmeSolver_y_kernel(const unsigned int* inLattice, const uint8_t * inSites, unsigned int* outLattice, const unsigned int gridXSize, const unsigned long long timestepHash, unsigned int* siteOverflowList);
+//__global__ void MpdRdmeSolver_z_kernel(const unsigned int* inLattice, const uint8_t * inSites, unsigned int* outLattice, const unsigned int gridXSize, const unsigned long long timestepHash, unsigned int* siteOverflowList);
+//__global__ void MpdRdmeSolver_reaction_kernel(const unsigned int* inLattice, const uint8_t * inSites, unsigned int* outLattice, const unsigned int gridXSize, const unsigned long long timestepHash, unsigned int* siteOverflowList);
+//#endif
 
 
 }

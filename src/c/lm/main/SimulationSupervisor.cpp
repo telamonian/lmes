@@ -194,7 +194,7 @@ void SimulationSupervisor::allResourcesRegistered()
 
 void SimulationSupervisor::workUnitRunnerStarted(const lm::message::StartedWorkUnitRunner& msg)
 {
-    Print::printf(Print::INFO, "Slot %d work unit runner %d:%d started.", msg.slot(), msg.process(), msg.thread());
+    Print::printf(Print::INFO, "Slot %d work unit runner %d:%d started, %d simultaneous work units.", msg.slot(), msg.process(), msg.thread(), msg.simultaneous_work_units());
 
     // TODO update slot allocator with slot available and start simulation if all slots are ready.
     if (++slotsRegistered == slotsStarted)

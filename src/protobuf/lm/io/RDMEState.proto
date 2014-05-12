@@ -37,11 +37,12 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-package lm.message;
+package lm.io;
 
-message StartedWorkUnitRunner {
-    required int32 slot                     = 1;
-    required int32 process                  = 2;
-    required int32 thread                   = 3;
-    required int32 simultaneous_work_units  = 4;
+
+message RDMEState {
+  required uint32 lattice_x_size                = 1;
+  required uint32 lattice_y_size                = 2;
+  required uint32 lattice_z_size                = 3;
+  required uint32 particles_per_site            = 4;
 }

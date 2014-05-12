@@ -58,6 +58,7 @@ namespace rdme {
 
 class ByteLattice;
 
+/*
 class NextSubvolumeSolver : public RDMESolver
 {
 public:
@@ -95,7 +96,7 @@ protected:
     ReactionQueue * reactionQueue;
     uint * currentSubvolumeSpeciesCounts;                           // numberSpecies
 };
-
+*/
 }
 }
 

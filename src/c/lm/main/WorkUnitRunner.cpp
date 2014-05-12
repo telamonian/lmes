@@ -41,30 +41,27 @@
 #include <map>
 #include <mpi.h>
 #include <pthread.h>
+#include <vector>
+
+#include "lm/ClassFactory.h"
+#include "lm/MPI.h"
 #include "lm/Print.h"
-#include "lm/cme/CMESolver.h"
-#include "lm/cme/GillespieDSolver.h"
-#include "lm/cme/HillSwitch.h"
-#include "lm/cme/SelfRegulatingGeneSwitch.h"
-#include "lm/cme/TwoStateExpression.h"
-#include "lm/cme/TwoStateHillSwitch.h"
-#include "lm/cme/TwoStateHillLoopSwitch.h"
-#include "lm/cme/GillespieDSolver.h"
 #if defined(OPT_CUDA)
 #include "lm/Cuda.h"
 #endif
 #include "lm/main/Main.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/main/WorkUnitRunner.h"
-#include "lm/MPI.h"
-#include "lm/rdme/RDMESolver.h"
+#include "lm/me/MESolver.h"
+#include "lm/message/StartWorkUnitRunner.pb.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
 
-using std::string;
 using std::map;
+using std::string;
+using std::vector;
 
 namespace lm {
 namespace main {
@@ -90,7 +87,7 @@ int WorkUnitRunner::run()
         Print::printf(Print::INFO, "Work Unit runner %d:%d started.", lm::MPI::worldRank, threadNumber);
 
         // Set the processor affinity.
-        if (properties.use_cpu_affinity() && properties.cpu_size() >0)
+        if (properties.use_cpu_affinity() && properties.cpu_size() > 0)
         {
             Print::printf(Print::INFO, "Work Unit runner %d:%d using cpu core %d.", lm::MPI::worldRank, threadNumber, properties.cpu(0));
             setAffinity(properties.cpu(0));
@@ -108,19 +105,28 @@ int WorkUnitRunner::run()
         // Instantiate the solver.
         solver = static_cast<lm::me::MESolver*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::me::MESolver",properties.solver()));
 
+        // Set the solver resources.
+        vector<int> cpus;
+        vector<int> gpus;
+        for (int i=0; i<properties.cpu_size(); i++) cpus.push_back(properties.cpu(0));
+        for (int i=0; i<properties.gpu_size(); i++) gpus.push_back(properties.gpu(0));
+        solver->setComputeResources(cpus, gpus);
+
+        // Set the simulation parameters.
+        solver->setSimulationParameters(properties.simulation_parameters());
+
         // Set the model for the solver.
-        //solver->initialize(replicate, parameters, &resources);
         if (solver->needsReactionModel())
         {
             if (properties.has_reaction_model())
-                ((lm::cme::CMESolver *)solver)->setReactionModel(properties.mutable_reaction_model());
+                solver->setReactionModel(properties.reaction_model());
             else
                 throw Exception("Work Unit runner terminating, solver requires a reaction model but none was specified", properties.solver().c_str());
         }
         if (solver->needsDiffusionModel())
         {
             if (properties.has_diffusion_model())
-                ((lm::rdme::RDMESolver *)solver)->setDiffusionModel(properties.mutable_diffusion_model());
+                solver->setDiffusionModel(properties.diffusion_model());
             else
                 throw Exception("Work Unit runner terminating, solver requires a diffusion model but none was specified", properties.solver().c_str());
         }
@@ -131,6 +137,7 @@ int WorkUnitRunner::run()
         msg->set_slot(properties.slot());
         msg->set_process(lm::MPI::worldRank);
         msg->set_thread(getThreadNumber());
+        msg->set_simultaneous_work_units(solver->getSimultaneousTrajectories());
         communicator.sendMessage(lm::MPI::MASTER, lm::main::SimulationSupervisor::THREAD_ID, &msgp);
 
         // Loop reading messages.
@@ -177,7 +184,7 @@ int WorkUnitRunner::run()
 
 void WorkUnitRunner::runWorkUnit(const lm::message::RunWorkUnit& msg)
 {
-
+    solver->resetState();
 }
 
 }

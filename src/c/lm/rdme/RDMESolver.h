@@ -45,7 +45,6 @@
 #include "lm/rdme/Lattice.h"
 
 using lm::cme::CMESolver;
-using lm::io::DiffusionModel;
 using lm::rdme::Lattice;
 
 namespace lm {
@@ -56,13 +55,18 @@ class RDMESolver : public CMESolver
 public:
     RDMESolver(RandomGenerator::Distributions neededDists);
     virtual ~RDMESolver();
-    virtual void setDiffusionModel(DiffusionModel * dm) throw(InvalidArgException);
-    virtual void buildDiffusionModel(const uint numberSiteTypesA, const double * DFA, const uint * RLA, lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing, const uint8_t * latticeData, const uint8_t * latticeSitesData, bool rowMajorData=true) throw(InvalidArgException);
+    virtual bool needsDiffusionModel() {return true;}
+    virtual void setDiffusionModel(const lm::io::DiffusionModel& dm);
+    //virtual void buildDiffusionModel(const uint numberSiteTypesA, const double * DFA, const uint * RLA, lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing, const uint8_t * latticeData, const uint8_t * latticeSitesData, bool rowMajorData=true) throw(InvalidArgException);
+    virtual void resetState();
+    virtual void getState(lm::io::TrajectoryState& state);
+    virtual void setState(const lm::io::TrajectoryState& state);
+    virtual bool generateTrajectory(int trajectoryId, long long maxSteps)=0;
 
 protected:
-    virtual void allocateDiffusionModel(uint numberSiteTypesA, lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing);
-    virtual void allocateLattice(lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing);
-    virtual void destroyDiffusionModel();
+//    virtual void allocateDiffusionModel(uint numberSiteTypesA, lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing);
+//    virtual void allocateLattice(lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing);
+//    virtual void destroyDiffusionModel();
 
 protected:
     uint numberSiteTypes;

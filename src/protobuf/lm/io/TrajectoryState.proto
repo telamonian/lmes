@@ -37,11 +37,15 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-package lm.message;
+package lm.io;
 
-message StartedWorkUnitRunner {
-    required int32 slot                     = 1;
-    required int32 process                  = 2;
-    required int32 thread                   = 3;
-    required int32 simultaneous_work_units  = 4;
+import "lm/io/CMEState.proto";
+import "lm/io/RDMEState.proto";
+
+message TrajectoryState {
+    required int32 trajectory_id                        = 1;
+    required double time                                = 2;
+    optional lm.io.CMEState cme_state                   = 3;
+    optional lm.io.RDMEState rdme_state                 = 4;
+    optional bytes solver_state                         = 100;
 }
