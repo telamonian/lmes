@@ -50,6 +50,7 @@
 #include "lm/io/ParameterValues.pb.h"
 #include "lm/resource/ResourceAllocator.h"
 #include "lm/rng/RandomGenerator.h"
+#include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/me/MESolver.h"
 
 using std::list;
@@ -164,11 +165,13 @@ protected:
         double k;
         double v;
     };
-    struct SpeciesLimit
+    class SpeciesLimit
     {
-        int type;
-        uint species;
-        uint limit;
+    public:
+        enum limit_type_t {MIN, MAX};
+        limit_type_t type;
+        int species;
+        int limit;
     };
     struct FPTTracking
     {
@@ -196,10 +199,11 @@ public:
     virtual void resetState();
     virtual void getState(lm::io::TrajectoryState* state);
     virtual void setState(const lm::io::TrajectoryState& state);
+    virtual void setLimits(const lm::io::TrajectoryLimits& limits);
 
 protected:
-    virtual void setSpeciesUpperLimit(uint species, uint limit);
-    virtual void setSpeciesLowerLimit(uint species, uint limit);
+    virtual void setSpeciesUpperLimit(int species, int limit);
+    virtual void setSpeciesLowerLimit(int species, int limit);
     virtual void setFptTrackingList(list<uint> speciesList);
     virtual void addToParameterTrackingList(pair<string,double*>parameter);
 
@@ -235,11 +239,11 @@ protected:
             SpeciesLimit l = speciesLimits[i];
             switch (l.type)
             {
-            case -1:
-                if (speciesCounts[l.species] <= l.limit) return true;
+            case SpeciesLimit::MIN:
+                if (int(speciesCounts[l.species]) <= l.limit) return true;
                 break;
-            case 1:
-                if (speciesCounts[l.species] >= l.limit) return true;
+            case SpeciesLimit::MAX:
+                if (int(speciesCounts[l.species]) >= l.limit) return true;
                 break;
             }
         }
@@ -280,8 +284,11 @@ protected:
     ReactionModel* reactionModel;
 
     // The current limits.
+    double maxTime;
     uint numberSpeciesLimits;
     SpeciesLimit* speciesLimits;
+
+
     uint numberFptTrackedSpecies;
     FPTTracking* fptTrackedSpecies;
     list<TrackedParameter> trackedParameters;

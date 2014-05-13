@@ -41,5 +41,5 @@ package lm.io;
 
 
 message CMEState {
-  repeated int32 species_count              = 1 [packed=true];
+    repeated int32 species_count              = 1 [packed=true];
 }

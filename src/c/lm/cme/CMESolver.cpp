@@ -38,6 +38,7 @@
  */
 
 #include <string>
+#include <limits>
 #include <list>
 #include <map>
 #include <cmath>
@@ -52,6 +53,8 @@
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
+#include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/io/TrajectoryState.pb.h"
 #include "lm/main/DataOutputQueue.h"
 #include "lm/resource/ResourceAllocator.h"
 #include "lm/rng/RandomGenerator.h"
@@ -75,7 +78,7 @@ namespace lm {
 namespace cme {
 
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
-:neededDists(neededDists),rng(NULL),reactionModel(NULL),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),speciesCounts(NULL),time(0.0)
+:neededDists(neededDists),rng(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),speciesCounts(NULL),time(0.0)
 {
 }
 
@@ -623,45 +626,6 @@ void CMESolver::ReactionModel::setPropensityFunction(uint reaction, double (*pro
     }
     setFptTrackingList(fptList);
 
-    // Set the species lower limits from the parameters.
-    listString = (*parameters)["speciesLowerLimitList"];
-    start=0, end=0;
-    while (end != string::npos)
-    {
-        end = listString.find(',', start);
-        string speciesLowerLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
-
-        size_t equalsPos=0;
-        equalsPos = speciesLowerLimit.find(':', 0);
-        if (equalsPos > 0 && equalsPos < speciesLowerLimit.length()-1)
-        {
-        	uint parsedSpecies = atoi(speciesLowerLimit.substr(0, equalsPos).c_str());
-        	uint parsedLimit = atoi(speciesLowerLimit.substr(equalsPos+1, string::npos).c_str());
-        	setSpeciesLowerLimit(parsedSpecies, parsedLimit);
-        	Print::printf(Print::DEBUG, "Parsed lower limit %s to: %d => %d", speciesLowerLimit.c_str(), parsedSpecies, parsedLimit);
-        }
-        start = end+1;
-    }
-
-    // Set the species upper limits from the parameters.
-    listString = (*parameters)["speciesUpperLimitList"];
-    start=0, end=0;
-    while (end != string::npos)
-    {
-        end = listString.find(',', start);
-        string speciesUpperLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
-
-        size_t equalsPos=0;
-        equalsPos = speciesUpperLimit.find(':', 0);
-        if (equalsPos > 0 && equalsPos < speciesUpperLimit.length()-1)
-        {
-        	uint parsedSpecies = atoi(speciesUpperLimit.substr(0, equalsPos).c_str());
-        	uint parsedLimit = atoi(speciesUpperLimit.substr(equalsPos+1, string::npos).c_str());
-        	setSpeciesUpperLimit(parsedSpecies, parsedLimit);
-        	Print::printf(Print::DEBUG, "Parsed upper limit %s to: %d <= %d", speciesUpperLimit.c_str(), parsedSpecies, parsedLimit);
-        }
-        start = end+1;
-    }
 }
 */
 
@@ -864,9 +828,14 @@ void CMESolver::resetState()
         speciesCounts[i] = reactionModel->initialSpeciesCounts[i];
     time = 0.0;
 
+    // Reset the max time;
+    maxTime = std::numeric_limits<double>::infinity();
+
     // Reset the species limits.
     numberSpeciesLimits = 0;
     if (speciesLimits != NULL) delete[] speciesLimits; speciesLimits = NULL;
+
+
 
     // Reset the fpt tracking list.
     numberFptTrackedSpecies = 0;
@@ -904,8 +873,22 @@ void CMESolver::setState(const lm::io::TrajectoryState& state)
     }
 }
 
+void CMESolver::setLimits(const lm::io::TrajectoryLimits& limits)
+{
+    // Set the max time.
+    if (limits.has_max_time())
+        maxTime = limits.max_time();
 
-void CMESolver::setSpeciesUpperLimit(uint species, uint limit)
+    // Set any upper or lower bounds.
+    for (int i=0; i<limits.min_species_count_size(); i++)
+        if (limits.min_species_count(i) != -1)
+            setSpeciesLowerLimit(i, limits.min_species_count(i));
+    for (int i=0; i<limits.max_species_count_size(); i++)
+        if (limits.max_species_count(i) != -1)
+            setSpeciesUpperLimit(i, limits.max_species_count(i));
+}
+
+void CMESolver::setSpeciesLowerLimit(int species, int limit)
 {
     // Allocate a larger list for the limits.
     SpeciesLimit * newSpeciesLimits = new SpeciesLimit[++numberSpeciesLimits];
@@ -916,12 +899,12 @@ void CMESolver::setSpeciesUpperLimit(uint species, uint limit)
         delete[] speciesLimits;
     }
     speciesLimits = newSpeciesLimits;
-    speciesLimits[numberSpeciesLimits-1].type = 1;
+    speciesLimits[numberSpeciesLimits-1].type = SpeciesLimit::MIN;
     speciesLimits[numberSpeciesLimits-1].species = species;
     speciesLimits[numberSpeciesLimits-1].limit = limit;
 }
 
-void CMESolver::setSpeciesLowerLimit(uint species, uint limit)
+void CMESolver::setSpeciesUpperLimit(int species, int limit)
 {
     // Allocate a larger list for the limits.
     SpeciesLimit * newSpeciesLimits = new SpeciesLimit[++numberSpeciesLimits];
@@ -932,7 +915,7 @@ void CMESolver::setSpeciesLowerLimit(uint species, uint limit)
         delete[] speciesLimits;
     }
     speciesLimits = newSpeciesLimits;
-    speciesLimits[numberSpeciesLimits-1].type = -1;
+    speciesLimits[numberSpeciesLimits-1].type = SpeciesLimit::MAX;
     speciesLimits[numberSpeciesLimits-1].species = species;
     speciesLimits[numberSpeciesLimits-1].limit = limit;
 }

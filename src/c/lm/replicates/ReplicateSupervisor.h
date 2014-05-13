@@ -47,6 +47,7 @@
 #include <vector>
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/ReactionModel.pb.h"
+#include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/resource/SupervisorSlot.h"
 #include "lm/resource/SupervisorSlotAllocator.h"
@@ -110,7 +111,7 @@ protected:
     virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg);
 
 protected:
-    double maxTime;
+    lm::io::TrajectoryLimits limits;
     TrajectoryList* trajectories;
 
     /*

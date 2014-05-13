@@ -171,9 +171,6 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
 //    if (trackedParameters.size() > 0 && parameterWriteInterval > 0.0)
 //        nextParameterWriteTime = recordParameters(0.0, parameterWriteInterval, 0.0);
 
-    // Get the simulation time limit.
-    double maxTime=std::numeric_limits<double>::infinity();
-
     // Local cache of random numbers.
     double rngValues[TUNE_LOCAL_RNG_CACHE_SIZE];
     double expRngValues[TUNE_LOCAL_RNG_CACHE_SIZE];

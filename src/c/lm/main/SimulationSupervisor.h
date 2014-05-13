@@ -61,6 +61,9 @@
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 
+using std::map;
+using std::string;
+
 namespace lm {
 namespace main {
 
@@ -96,6 +99,7 @@ protected:
     std::string solverClassName;
     bool useCPUAffinity;
     lm::io::SimulationParameters simulationParameters;
+    map<string,string> simulationParameterMap;
     bool hasReactionModel;
     lm::io::ReactionModel reactionModel;
     bool hasDiffusionModel;

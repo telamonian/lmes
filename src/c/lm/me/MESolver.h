@@ -47,6 +47,7 @@
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SimulationParameters.pb.h"
+#include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/RunWorkUnit.pb.h"
 
@@ -73,6 +74,7 @@ public:
     virtual void resetState()=0;
     virtual void getState(lm::io::TrajectoryState* state)=0;
     virtual void setState(const lm::io::TrajectoryState& state)=0;
+    virtual void setLimits(const lm::io::TrajectoryLimits& limits)=0;
     virtual bool generateTrajectory(long long maxSteps)=0;
 
 protected:

@@ -37,18 +37,10 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-package lm.message;
+package lm.io;
 
-import "lm/io/TrajectoryLimits.proto";
-import "lm/io/TrajectoryState.proto";
-
-message RunWorkUnit {
-	required int64 work_unit_id		                = 1;
-	required int32 supervisor_process              = 2;
-	required int32 supervisor_thread               = 3;
-	required int32 output_process 		            = 4;
-	required int32 output_thread		            = 5;
-	required int64 max_steps                       = 6;
-	required lm.io.TrajectoryState initial_state   = 7;
-	optional lm.io.TrajectoryLimits limits         = 8;
+message TrajectoryLimits {
+    optional double max_time                            = 1;
+    repeated int32 min_species_count                    = 2 [packed=true];
+    repeated int32 max_species_count                    = 3 [packed=true];
 }

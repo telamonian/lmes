@@ -37,6 +37,9 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
+#include <map>
+#include <string>
+
 #include "lm/ClassFactory.h"
 #include "lm/Print.h"
 #include "lm/main/SimulationSupervisor.h"
@@ -47,6 +50,9 @@
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/replicates/ReplicateSupervisor.h"
 #include "lm/replicates/TrajectoryList.h"
+
+using std::map;
+using std::string;
 
 namespace lm {
 namespace replicates {
@@ -65,7 +71,7 @@ void* ReplicateSupervisor::allocateObject()
 }
 
 ReplicateSupervisor::ReplicateSupervisor()
-:maxTime(0.0),trajectories(NULL)
+:trajectories(NULL)
 {
 
 }
@@ -108,7 +114,62 @@ void ReplicateSupervisor::startSimulation()
 
     // Create the new trajectory list.
     trajectories = new TrajectoryList(0, 1);
-    maxTime = 100.0;
+
+    // See if we have a max time limit.
+    if (simulationParameterMap.count("maxTime"))
+        limits.set_max_time(atof(simulationParameterMap["maxTime"].c_str()));
+
+    // Set the species lower limits from the parameters.
+    if (simulationParameterMap.count("speciesLowerLimitList"))
+    {
+        for (int i=0; i<(int)reactionModel.number_species(); i++)
+            limits.add_min_species_count(-1);
+
+        string listString = simulationParameterMap["speciesLowerLimitList"];
+        size_t start=0, end=0;
+        while (end != string::npos)
+        {
+            end = listString.find(',', start);
+            string speciesLowerLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
+
+            size_t equalsPos=0;
+            equalsPos = speciesLowerLimit.find(':', 0);
+            if (equalsPos > 0 && equalsPos < speciesLowerLimit.length()-1)
+            {
+                int parsedSpecies = atoi(speciesLowerLimit.substr(0, equalsPos).c_str());
+                int parsedLimit = atoi(speciesLowerLimit.substr(equalsPos+1, string::npos).c_str());
+                limits.set_min_species_count(parsedSpecies, parsedLimit);
+                Print::printf(Print::DEBUG, "Parsed lower limit %s to: %d => %d", speciesLowerLimit.c_str(), parsedSpecies, parsedLimit);
+            }
+            start = end+1;
+        }
+    }
+
+    // Set the species upper limits from the parameters.
+    if (simulationParameterMap.count("speciesUpperLimitList"))
+    {
+        for (int i=0; i<(int)reactionModel.number_species(); i++)
+            limits.add_max_species_count(-1);
+
+        string listString = simulationParameterMap["speciesUpperLimitList"];
+        size_t start=0, end=0;
+        while (end != string::npos)
+        {
+            end = listString.find(',', start);
+            string speciesUpperLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
+
+            size_t equalsPos=0;
+            equalsPos = speciesUpperLimit.find(':', 0);
+            if (equalsPos > 0 && equalsPos < speciesUpperLimit.length()-1)
+            {
+                uint parsedSpecies = atoi(speciesUpperLimit.substr(0, equalsPos).c_str());
+                uint parsedLimit = atoi(speciesUpperLimit.substr(equalsPos+1, string::npos).c_str());
+                limits.set_max_species_count(parsedSpecies, parsedLimit);
+                Print::printf(Print::DEBUG, "Parsed upper limit %s to: %d <= %d", speciesUpperLimit.c_str(), parsedSpecies, parsedLimit);
+            }
+            start = end+1;
+        }
+    }
 
     // Go through the replicates to run and start the initial work units. TODO loop over available slots.
     int slot_process=0;
@@ -130,6 +191,7 @@ void ReplicateSupervisor::startSimulation()
         run.set_output_thread(communicator.getSourceThread()); // TODO change to output thread
         run.set_max_steps(100);
         *run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
+        *run.mutable_limits() = limits;
         communicator.sendMessage(slot_process, slot_thread, &msg);
         trajectories->updateTrajectoryStatus(nextTrajectory, TrajectoryList::RUNNING);
         break;
@@ -144,6 +206,8 @@ void ReplicateSupervisor::workUnitStarted(const lm::message::StartedWorkUnit& ms
 void ReplicateSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
 {
     Print::printf(Print::INFO, "Work unit %d finished in %0.3f s.",msg.work_unit_id(),msg.run_time());
+    Print::printf(Print::VERBOSE_DEBUG, "Message: {\n%s}",msg.DebugString().c_str());
+
     if (msg.status() == lm::message::FinishedWorkUnit::LIMIT_REACHED)
     {
         trajectories->updateTrajectoryStatus(msg.final_state().trajectory_id(), TrajectoryList::FINISHED);
@@ -173,6 +237,7 @@ void ReplicateSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit& 
         run.set_output_thread(communicator.getSourceThread()); // TODO change to output thread
         run.set_max_steps(100);
         *run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
+        *run.mutable_limits() = limits;
         communicator.sendMessage(slot_process, slot_thread, &msg);
         trajectories->updateTrajectoryStatus(nextTrajectory, TrajectoryList::RUNNING);
     }

@@ -79,6 +79,10 @@ void SimulationSupervisor::initialize()
     // Get the simulation parameters.
     file->getParameters(&simulationParameters);
 
+    // Map the simulation parameters.
+    for (int i=0; i<simulationParameters.key_size() && i<simulationParameters.value_size(); i++)
+        this->simulationParameterMap[simulationParameters.key(i)] = simulationParameters.value(i);
+
     // Get the reaction model.
     if (file->hasReactionModel())
     {

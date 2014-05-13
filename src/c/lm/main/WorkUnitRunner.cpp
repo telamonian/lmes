@@ -195,9 +195,14 @@ void WorkUnitRunner::runWorkUnit(const lm::message::RunWorkUnit& wu)
     msg1->set_work_unit_id(wu.work_unit_id());
     communicator.sendMessage(wu.supervisor_process(), wu.supervisor_thread(), &msgp1);
 
-    // Set the initial state.
+    // Reset the solver.
     solver->resetState();
+
+    // Set the initial state.
     solver->setState(wu.initial_state());
+
+    // Set the limits.
+    if (wu.has_limits()) solver->setLimits(wu.limits());
 
     // Run the work unit.
     hrtime t1=getHrTime();
