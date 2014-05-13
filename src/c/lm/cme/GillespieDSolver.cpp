@@ -38,6 +38,7 @@
  */
 
 #include <string>
+#include <limits>
 #include <list>
 #include <map>
 #include <cmath>
@@ -110,17 +111,20 @@ void GillespieDSolver::resetState()
     updateAllPropensities(0.0);
 }
 
-void GillespieDSolver::getState(lm::io::TrajectoryState& state)
+void GillespieDSolver::getState(lm::io::TrajectoryState* state)
 {
-
+    CMESolver::getState(state);
 }
 
 void GillespieDSolver::setState(const lm::io::TrajectoryState& state)
 {
+    CMESolver::setState(state);
 
+    // Set the propensities to their initial values.
+    updateAllPropensities(time);
 }
 
-bool GillespieDSolver::generateTrajectory(int trajectoryId, long long maxSteps)
+bool GillespieDSolver::generateTrajectory(long long maxSteps)
 {
     if (reactionModel == NULL) throw Exception("GillespieDSolver did not have a reaction model.");
     if (propensities == NULL) throw Exception("GillespieDSolver state was not initialized.");
@@ -133,8 +137,6 @@ bool GillespieDSolver::generateTrajectory(int trajectoryId, long long maxSteps)
     // Create local copies of the data for efficiency.
     uint numberSpecies = reactionModel->numberSpecies;
     uint numberReactions = reactionModel->numberReactions;
-    uint * speciesCounts = this->speciesCounts;
-    double * propensities = this->propensities;
 
     // Initialize the total propensity.
     double totalPropensity = 0.0;
@@ -170,7 +172,7 @@ bool GillespieDSolver::generateTrajectory(int trajectoryId, long long maxSteps)
 //        nextParameterWriteTime = recordParameters(0.0, parameterWriteInterval, 0.0);
 
     // Get the simulation time limit.
-    double maxTime=atof(simulationParameters["maxTime"].c_str());
+    double maxTime=std::numeric_limits<double>::infinity();
 
     // Local cache of random numbers.
     double rngValues[TUNE_LOCAL_RNG_CACHE_SIZE];
@@ -180,12 +182,11 @@ bool GillespieDSolver::generateTrajectory(int trajectoryId, long long maxSteps)
     int rngNext=0;
 
     // Run the direct method.
-    Print::printf(Print::DEBUG, "Running Gillespie direct simulation with %d species, %d reactions, %d species limits", reactionModel->numberSpecies, reactionModel->numberReactions, numberSpeciesLimits);
+    Print::printf(Print::DEBUG, "Running Gillespie direct simulation for %d steps with %d species, %d reactions, %d species limits", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberSpeciesLimits);
     PROF_BEGIN(PROF_SIM_EXECUTE);
     bool addedSpeciesCounts;
     bool addedFpt;
     bool addedParameterValues;
-    double time = 0.0;
     unsigned long long steps=0;
     while (totalPropensity > 0 && steps < maxSteps && !reachedSpeciesLimit())
     {
@@ -209,7 +210,6 @@ bool GillespieDSolver::generateTrajectory(int trajectoryId, long long maxSteps)
          // If the new time is past the end time, we are done.
         if (time >= maxTime)
         {
-            time = maxTime;
             break;
         }
 
@@ -253,6 +253,8 @@ bool GillespieDSolver::generateTrajectory(int trajectoryId, long long maxSteps)
         // Recalculate the total propensity.
         totalPropensity = 0.0;
         for (uint i=0; i<numberReactions; i++) totalPropensity += propensities[i];
+
+        Print::printf(Print::VERBOSE_DEBUG, "Step %d: time=%e, count=%d, prop=%e, totprop=%e",steps,time,speciesCounts[0],propensities[0],totalPropensity);
 
         // If we are recording every event, add it.
 //        if (!writeTimeSteps)
@@ -311,12 +313,12 @@ bool GillespieDSolver::generateTrajectory(int trajectoryId, long long maxSteps)
         rngNext++;
     }
     PROF_END(PROF_SIM_EXECUTE);
-    Print::printf(Print::DEBUG, "Generated trajectory for replicate %d with %llu steps.", trajectoryId, steps);
 
     // If we finished the total time or ran out of reactions, write out the remaining time steps.
     if (time >= maxTime || totalPropensity <= 0)
     {
-//        Print::printf(Print::DEBUG, "Finished with time %e (%e)", time, maxTime);
+        time = maxTime;
+        Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);
 //        while (nextSpeciesCountsWriteTime <= (maxTime+1e-9))
 //        {
 //            Print::printf(Print::VERBOSE_DEBUG, "Recording event at time %e (%e)", nextSpeciesCountsWriteTime, maxTime);
@@ -333,15 +335,24 @@ bool GillespieDSolver::generateTrajectory(int trajectoryId, long long maxSteps)
 //        {
 ////            recordParameters(nextParameterWriteTime, parameterWriteInterval, maxTime);
 //        }
+        return true;
     }
 
-    // Otherwise we must have finished because of a species limit or step, so just write out the last time.
+    // See if we finished all of the steps.
+    else if (steps >= maxSteps)
+    {
+        Print::printf(Print::DEBUG, "Generated trajectory with %llu steps.", steps);
+        return false;
+    }
+
+    // Otherwise we must have finished because of a species limit, so just write out the last time.
     else
     {
 //        // Record the species counts.
 //        speciesCountsDataSet.set_number_entries(speciesCountsDataSet.number_entries()+1);
 //        speciesCountsDataSet.add_time(time);
 //        for (uint i=0; i<numberSpeciesToTrack; i++) speciesCountsDataSet.add_species_count(speciesCounts[i]);
+        return true;
     }
 
     // Send any remaining species counts to the queue.
@@ -366,7 +377,6 @@ bool GillespieDSolver::generateTrajectory(int trajectoryId, long long maxSteps)
 
     // Send any remaining parameter values to the queue.
 //    queueRecordedParameters(true);
-    return true;
 }
 
 void GillespieDSolver::updateAllPropensities(double time)

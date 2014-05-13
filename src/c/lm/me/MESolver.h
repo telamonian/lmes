@@ -71,9 +71,9 @@ public:
     virtual bool needsDiffusionModel()=0;
     virtual void setDiffusionModel(const lm::io::DiffusionModel& dm)=0;
     virtual void resetState()=0;
-    virtual void getState(lm::io::TrajectoryState& state)=0;
+    virtual void getState(lm::io::TrajectoryState* state)=0;
     virtual void setState(const lm::io::TrajectoryState& state)=0;
-    virtual bool generateTrajectory(int trajectoryId, long long maxSteps)=0;
+    virtual bool generateTrajectory(long long maxSteps)=0;
 
 protected:
     vector<int> cpus;

@@ -56,6 +56,9 @@ public:
     Communicator(int process, int thread);
     virtual ~Communicator();
 
+    int getSourceProcess() {return process;}
+    int getSourceThread() {return thread;}
+
     void sendMessage(int process, int thread, lm::message::Message* message);
     void receiveMessage(lm::message::Message* message);
 

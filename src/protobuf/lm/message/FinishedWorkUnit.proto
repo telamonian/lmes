@@ -39,8 +39,15 @@
 
 package lm.message;
 
+import "lm/io/TrajectoryState.proto";
+
 message FinishedWorkUnit {
-	required int64 work_unit_id		    = 1;
-	required int32 status              = 2;
-	required double run_time           = 3;
+	required int64 work_unit_id		                = 1;
+    enum Status {
+        STEPS_FINISHED  = 0;
+        LIMIT_REACHED   = 1;
+    }
+	required Status status                         = 2;
+	required double run_time                       = 3;
+	required lm.io.TrajectoryState final_state     = 4;
 }

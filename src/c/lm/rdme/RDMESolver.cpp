@@ -190,7 +190,7 @@ void RDMESolver::resetState()
 {
 }
 
-void RDMESolver::getState(lm::io::TrajectoryState& state)
+void RDMESolver::getState(lm::io::TrajectoryState* state)
 {
 
 }

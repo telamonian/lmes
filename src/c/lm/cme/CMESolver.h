@@ -40,10 +40,11 @@
 #ifndef LM_CME_CMESOLVER_H_
 #define LM_CME_CMESOLVER_H_
 
-#include <map>
 #include <list>
+#include <map>
 #include <string>
 #include <utility>
+#include <vector>
 #include "lm/Math.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/ParameterValues.pb.h"
@@ -51,10 +52,11 @@
 #include "lm/rng/RandomGenerator.h"
 #include "lm/me/MESolver.h"
 
+using std::list;
 using std::map;
 using std::pair;
-using std::list;
 using std::string;
+using std::vector;
 using lm::resource::ResourceAllocator;
 using lm::me::MESolver;
 using lm::rng::RandomGenerator;
@@ -186,14 +188,14 @@ protected:
 public:
     CMESolver(RandomGenerator::Distributions neededDists);
     virtual ~CMESolver();
+    virtual void setComputeResources(vector<int> cpus, vector<int> gpus);
     virtual bool needsReactionModel() {return true;}
     virtual void setReactionModel(const lm::io::ReactionModel& rm);
     virtual bool needsDiffusionModel() {return false;}
     virtual void setDiffusionModel(const lm::io::DiffusionModel& dm) {}
     virtual void resetState();
-    virtual void getState(lm::io::TrajectoryState& state);
+    virtual void getState(lm::io::TrajectoryState* state);
     virtual void setState(const lm::io::TrajectoryState& state);
-    virtual bool generateTrajectory(int trajectoryId, long long maxSteps)=0;
 
 protected:
     virtual void setSpeciesUpperLimit(uint species, uint limit);
@@ -286,6 +288,7 @@ protected:
 
     // The current state.
     uint* speciesCounts;
+    double time;
 };
 
 }

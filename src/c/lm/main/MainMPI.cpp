@@ -47,10 +47,6 @@
 #include <map>
 #include <cstdio>
 #include <cstring>
-#include <ctime>
-#if defined(MACOSX)
-#include <sys/time.h>
-#endif
 #include <csignal>
 #include <cerrno>
 #include <unistd.h>

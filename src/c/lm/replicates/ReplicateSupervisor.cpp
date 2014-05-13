@@ -37,23 +37,13 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-#include <ctime>
-#include <deque>
-#include <mpi.h>
-#include <vector>
-#if defined(MACOSX)
-#include <sys/time.h>
-#endif
-#include "lm/MPI.h"
-#include "lm/Print.h"
 #include "lm/ClassFactory.h"
-#include "lm/io/hdf5/SimulationFile.h"
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/ReactionModel.pb.h"
-#include "lm/io/SimulationParameters.pb.h"
+#include "lm/Print.h"
 #include "lm/main/SimulationSupervisor.h"
+#include "lm/message/Message.pb.h"
+#include "lm/message/RunWorkUnit.pb.h"
+#include "lm/io/TrajectoryState.pb.h"
 #include "lm/replicates/ReplicateSupervisor.h"
-#include "lm/resource/SupervisorSlotAllocator.h"
 
 namespace lm {
 namespace replicates {
@@ -70,10 +60,6 @@ void* ReplicateSupervisor::allocateObject()
 {
     return new ReplicateSupervisor();
 }
-
-using lm::resource::SupervisorSlotAllocator;
-using std::deque;
-using std::vector;
 
 ReplicateSupervisor::ReplicateSupervisor()
 {
@@ -128,6 +114,23 @@ void ReplicateSupervisor::checkpoint() throw(PthreadException)
 void ReplicateSupervisor::startSimulation()
 {
     Print::printf(Print::INFO, "Replicate supervisor starting simulation.");
+
+    // Go through the replicates to run and start the initial work units. TODO loop over available slots.
+    lm::message::Message msg;
+    lm::message::RunWorkUnit& run = *msg.mutable_run_work_unit();
+    run.set_work_unit_id(1);
+    run.set_supervisor_process(communicator.getSourceProcess());
+    run.set_supervisor_thread(communicator.getSourceThread());
+    run.set_output_process(communicator.getSourceProcess()); // TODO change to output process
+    run.set_output_thread(communicator.getSourceThread()); // TODO change to output thread
+    run.set_max_steps(100);
+    lm::io::TrajectoryState& state = *run.mutable_initial_state();
+    state.set_trajectory_id(1);
+    state.set_time(0.0);
+    communicator.sendMessage(0, 3, &msg);
+
+
+
     /*
     // MPI message variables.
 	int messageSize;

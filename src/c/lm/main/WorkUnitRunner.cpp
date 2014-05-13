@@ -43,6 +43,7 @@
 #include <pthread.h>
 #include <vector>
 
+#include "hrtime.h"
 #include "lm/ClassFactory.h"
 #include "lm/MPI.h"
 #include "lm/Print.h"
@@ -53,6 +54,10 @@
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/main/WorkUnitRunner.h"
 #include "lm/me/MESolver.h"
+#include "lm/message/FinishedWorkUnit.pb.h"
+#include "lm/message/Message.pb.h"
+#include "lm/message/RunWorkUnit.pb.h"
+#include "lm/message/StartedWorkUnit.pb.h"
 #include "lm/message/StartWorkUnitRunner.pb.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
@@ -182,9 +187,37 @@ int WorkUnitRunner::run()
     return -1;
 }
 
-void WorkUnitRunner::runWorkUnit(const lm::message::RunWorkUnit& msg)
+void WorkUnitRunner::runWorkUnit(const lm::message::RunWorkUnit& wu)
 {
+    // Tell the supervisor the work unit is started.
+    lm::message::Message msgp1;
+    lm::message::StartedWorkUnit* msg1 = msgp1.mutable_started_work_unit();
+    msg1->set_work_unit_id(wu.work_unit_id());
+    communicator.sendMessage(wu.supervisor_process(), wu.supervisor_thread(), &msgp1);
+
+    // Set the initial state.
     solver->resetState();
+    solver->setState(wu.initial_state());
+
+    // Run the work unit.
+    hrtime t1=getHrTime();
+    bool limitReached=solver->generateTrajectory(wu.max_steps());
+    hrtime t2=getHrTime();
+
+    // Tell the supervisor the work unit has finished.
+    lm::message::Message msgp2;
+    lm::message::FinishedWorkUnit* msg2 = msgp2.mutable_finished_work_unit();
+    msg2->set_work_unit_id(wu.work_unit_id());
+    if (limitReached)
+        msg2->set_status(lm::message::FinishedWorkUnit::LIMIT_REACHED);
+    else
+        msg2->set_status(lm::message::FinishedWorkUnit::STEPS_FINISHED);
+    msg2->set_run_time(convertHrToSeconds(t2-t1));
+    msg2->mutable_final_state()->set_trajectory_id(wu.initial_state().trajectory_id());
+    solver->getState(msg2->mutable_final_state());
+
+    communicator.sendMessage(wu.supervisor_process(), wu.supervisor_thread(), &msgp2);
+
 }
 
 }

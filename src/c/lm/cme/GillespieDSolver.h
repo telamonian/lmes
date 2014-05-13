@@ -69,9 +69,9 @@ public:
     GillespieDSolver();
     virtual ~GillespieDSolver();
     virtual void resetState();
-    virtual void getState(lm::io::TrajectoryState& state);
+    virtual void getState(lm::io::TrajectoryState* state);
     virtual void setState(const lm::io::TrajectoryState& state);
-    virtual bool generateTrajectory(int trajectoryId, long long maxSteps);
+    virtual bool generateTrajectory(long long maxSteps);
 
 protected:
     inline void updateAllPropensities(double time);

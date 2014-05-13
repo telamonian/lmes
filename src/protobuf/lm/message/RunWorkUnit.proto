@@ -37,15 +37,16 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-
 package lm.message;
 
+import "lm/io/TrajectoryState.proto";
+
 message RunWorkUnit {
-	required int64 work_unit_id		    = 1;
-	required int32 supervisor_process  = 2;
-	required int32 supervisor_thread   = 3;
-	required int32 output_process 		= 4;
-	required int32 output_thread		= 5;
-	//optional cme_work_unit             = 6;
-	//optional rdme_work_unit            = 7;
+	required int64 work_unit_id		                = 1;
+	required int32 supervisor_process              = 2;
+	required int32 supervisor_thread               = 3;
+	required int32 output_process 		            = 4;
+	required int32 output_thread		            = 5;
+	required int64 max_steps                       = 6;
+	required lm.io.TrajectoryState initial_state   = 7;
 }

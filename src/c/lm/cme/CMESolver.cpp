@@ -75,7 +75,7 @@ namespace lm {
 namespace cme {
 
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
-:neededDists(neededDists),rng(NULL),reactionModel(NULL),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),speciesCounts(NULL)
+:neededDists(neededDists),rng(NULL),reactionModel(NULL),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),speciesCounts(NULL),time(0.0)
 {
 }
 
@@ -599,31 +599,12 @@ void CMESolver::ReactionModel::setPropensityFunction(uint reaction, double (*pro
     propensityFunctionArgs[reaction] = propensityFunctionArg;
 }
 
-
-
 /*void CMESolver::initialize(unsigned int replicate, map<string,string> * parameters, ResourceAllocator::ComputeResources * resources)
 {
     this->replicate = replicate;
     this->parameters = parameters;
     this->resources = resources;
 
-    if (neededDists != RandomGenerator::NONE)
-    {
-        #ifdef OPT_CUDA
-        // Create the cuda based rng, if we are using cuda and we have a cuda device assigned.
-        if (resources->cudaDevices.size() > 0)
-        {
-            rng = new lm::rng::XORWow(resources->cudaDevices[0], replicate, atoi((*parameters)["seed"].c_str()), neededDists);
-            Print::printf(Print::DEBUG, "Seeding xorwow rng with top word %u and bottom word %u", (unsigned int)(rng->getSeed()>>32), (unsigned int)(rng->getSeed()&0xFFFFFFFFLL));
-        }
-        #endif
-
-        if (rng == NULL)
-        {
-            rng = new lm::rng::XORShift(replicate, atoi((*parameters)["seed"].c_str()));
-            Print::printf(Print::DEBUG, "Seeding xorshift rng with top word %u and bottom word %u", (unsigned int)(rng->getSeed()>>32), (unsigned int)(rng->getSeed()&0xFFFFFFFFLL));
-        }
-    }
 
     // Set the fpt tracked species from the parameters.
     string listString = (*parameters)["fptTrackingList"];
@@ -683,6 +664,28 @@ void CMESolver::ReactionModel::setPropensityFunction(uint reaction, double (*pro
     }
 }
 */
+
+void CMESolver::setComputeResources(vector<int> cpus, vector<int> gpus)
+{
+    MESolver::setComputeResources(cpus, gpus);
+
+    // Create the appropriate RNG.
+    if (neededDists != RandomGenerator::NONE)
+    {
+        if (gpus.size() > 0)
+        {
+            #ifdef OPT_CUDA
+            // Create the cuda based rng.
+            rng = new lm::rng::XORWow(gpus[0], 0, 0, neededDists);
+            #endif
+        }
+
+        if (rng == NULL)
+        {
+            rng = new lm::rng::XORShift(0, 0);
+        }
+    }
+}
 
 void CMESolver::setReactionModel(const lm::io::ReactionModel& rm)
 {
@@ -851,7 +854,7 @@ void CMESolver::resetState()
     if (speciesCounts != NULL) delete[] speciesCounts; speciesCounts = NULL;
 
     // Make sure we have a reaction model.
-    if (reactionModel != NULL) throw Exception("Tried to reset state of CMESolver with no reaction model.");
+    if (reactionModel == NULL) throw Exception("Tried to reset state of CMESolver with no reaction model.");
 
     // Allocate space for the new state.
     speciesCounts = new uint[reactionModel->numberSpecies];
@@ -859,6 +862,7 @@ void CMESolver::resetState()
     // Reset the species counts to their initial value from the model.
     for (uint i=0; i<reactionModel->numberSpecies; i++)
         speciesCounts[i] = reactionModel->initialSpeciesCounts[i];
+    time = 0.0;
 
     // Reset the species limits.
     numberSpeciesLimits = 0;
@@ -872,14 +876,32 @@ void CMESolver::resetState()
     trackedParameters.clear();
 }
 
-void CMESolver::getState(lm::io::TrajectoryState& state)
+void CMESolver::getState(lm::io::TrajectoryState* state)
 {
+    // Get the time.
+    state->set_time(time);
 
+    // Get the species counts.
+    for (int i=0; i<(int)reactionModel->numberSpecies; i++)
+    {
+        state->mutable_cme_state()->add_species_count(speciesCounts[i]);
+    }
 }
 
 void CMESolver::setState(const lm::io::TrajectoryState& state)
 {
+    // Set the time.
+    time = state.time();
 
+    // Set the species counts.
+    if (state.has_cme_state())
+    {
+        if (state.cme_state().species_count_size() != (int)reactionModel->numberSpecies) throw Exception("State and model had a different species count",state.cme_state().species_count_size(),reactionModel->numberSpecies);
+        for (int i=0; i<state.cme_state().species_count_size(); i++)
+        {
+            speciesCounts[i] = state.cme_state().species_count(i);
+        }
+    }
 }
 
 
