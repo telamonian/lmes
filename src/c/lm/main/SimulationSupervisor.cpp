@@ -45,9 +45,11 @@
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Communicator.h"
+#include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/ResourcesAvailable.pb.h"
 #include "lm/message/StartWorkUnitRunner.pb.h"
+#include "lm/message/StartedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnitRunner.pb.h"
 #include "lm/resource/ResourceMap.h"
 
@@ -116,6 +118,14 @@ int SimulationSupervisor::run()
             else if (message.has_started_work_unit_runner())
             {
                 workUnitRunnerStarted(message.started_work_unit_runner());
+            }
+            else if (message.has_started_work_unit())
+            {
+                workUnitStarted(message.started_work_unit());
+            }
+            else if (message.has_finished_work_unit())
+            {
+                workUnitFinished(message.finished_work_unit());
             }
             else
             {

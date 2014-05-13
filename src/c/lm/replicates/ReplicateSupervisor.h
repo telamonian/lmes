@@ -51,6 +51,9 @@
 #include "lm/resource/SupervisorSlot.h"
 #include "lm/resource/SupervisorSlotAllocator.h"
 #include "lm/main/SimulationSupervisor.h"
+#include "lm/message/FinishedWorkUnit.pb.h"
+#include "lm/message/StartedWorkUnit.pb.h"
+#include "lm/replicates/TrajectoryList.h"
 #include "lm/MPI.h"
 #include "lm/Print.h"
 #include "lm/thread/Worker.h"
@@ -103,8 +106,13 @@ public:
     //map<int,int> simulationStatusTable;
 protected:
     virtual void startSimulation();
+    virtual void workUnitStarted(const lm::message::StartedWorkUnit& msg);
+    virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg);
 
-private:
+protected:
+    double maxTime;
+    TrajectoryList* trajectories;
+
     /*
     void * staticDataBuffer;
     //variables relating to Worker behavior

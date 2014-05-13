@@ -41,9 +41,12 @@
 #include "lm/Print.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Message.pb.h"
+#include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/RunWorkUnit.pb.h"
+#include "lm/message/StartedWorkUnit.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/replicates/ReplicateSupervisor.h"
+#include "lm/replicates/TrajectoryList.h"
 
 namespace lm {
 namespace replicates {
@@ -62,26 +65,14 @@ void* ReplicateSupervisor::allocateObject()
 }
 
 ReplicateSupervisor::ReplicateSupervisor()
+:maxTime(0.0),trajectories(NULL)
 {
 
 }
 
-/*ReplicateSupervisor::ReplicateSupervisor(int * maxSlotsTable, lm::io::hdf5::Hdf5File * file) throw(PthreadException):
-slotAllocator(maxSlotsTable),
-trajectoryAllocator(file, true, true),
-file(file),
-staticDataBuffer(NULL),
-shouldCheckpoint(false),
-shouldAbort(false)
-{
-MPI_EXCEPTION_CHECK(MPI_Alloc_mem(lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE, MPI_INFO_NULL, &staticDataBuffer));
-int maxSlotsTotal=0;
-for (int i=0; i<lm::MPI::worldSize; ++i) maxSlotsTotal += maxSlotsTable[i];
-trajectoryAllocator.initTrajectories(maxSlotsTotal);
-}
-*/
 ReplicateSupervisor::~ReplicateSupervisor()
 {
+    if (trajectories != NULL) delete trajectories; trajectories = NULL;
 }
 
 /*
@@ -115,19 +106,78 @@ void ReplicateSupervisor::startSimulation()
 {
     Print::printf(Print::INFO, "Replicate supervisor starting simulation.");
 
+    // Create the new trajectory list.
+    trajectories = new TrajectoryList(0, 1);
+    maxTime = 100.0;
+
     // Go through the replicates to run and start the initial work units. TODO loop over available slots.
-    lm::message::Message msg;
-    lm::message::RunWorkUnit& run = *msg.mutable_run_work_unit();
-    run.set_work_unit_id(1);
-    run.set_supervisor_process(communicator.getSourceProcess());
-    run.set_supervisor_thread(communicator.getSourceThread());
-    run.set_output_process(communicator.getSourceProcess()); // TODO change to output process
-    run.set_output_thread(communicator.getSourceThread()); // TODO change to output thread
-    run.set_max_steps(100);
-    lm::io::TrajectoryState& state = *run.mutable_initial_state();
-    state.set_trajectory_id(1);
-    state.set_time(0.0);
-    communicator.sendMessage(0, 3, &msg);
+    int slot_process=0;
+    int slot_thread=3;
+
+    while (true)
+    {
+        // Get the next trajectory to run, if there is one.
+        int nextTrajectory = trajectories->nextTrajectoryToRun();
+        if (nextTrajectory < 0) break;
+
+        // Send the start work unit message.
+        lm::message::Message msg;
+        lm::message::RunWorkUnit& run = *msg.mutable_run_work_unit();
+        run.set_work_unit_id(1);
+        run.set_supervisor_process(communicator.getSourceProcess());
+        run.set_supervisor_thread(communicator.getSourceThread());
+        run.set_output_process(communicator.getSourceProcess()); // TODO change to output process
+        run.set_output_thread(communicator.getSourceThread()); // TODO change to output thread
+        run.set_max_steps(100);
+        *run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
+        communicator.sendMessage(slot_process, slot_thread, &msg);
+        trajectories->updateTrajectoryStatus(nextTrajectory, TrajectoryList::RUNNING);
+        break;
+    }
+}
+
+void ReplicateSupervisor::workUnitStarted(const lm::message::StartedWorkUnit& msg)
+{
+    Print::printf(Print::INFO, "Work unit %d started.",msg.work_unit_id());
+}
+
+void ReplicateSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
+{
+    Print::printf(Print::INFO, "Work unit %d finished in %0.3f s.",msg.work_unit_id(),msg.run_time());
+    if (msg.status() == lm::message::FinishedWorkUnit::LIMIT_REACHED)
+    {
+        trajectories->updateTrajectoryStatus(msg.final_state().trajectory_id(), TrajectoryList::FINISHED);
+        trajectories->updateTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
+    }
+    else
+    {
+        trajectories->updateTrajectoryStatus(msg.final_state().trajectory_id(), TrajectoryList::WAITING);
+        trajectories->updateTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
+    }
+
+    // TODO find available slot.
+    int slot_process=0;
+    int slot_thread=3;
+
+    // Get the next trajectory to run, if there is one.
+    int nextTrajectory = trajectories->nextTrajectoryToRun();
+    if (nextTrajectory >= 0)
+    {
+        // Send the start work unit message.
+        lm::message::Message msg;
+        lm::message::RunWorkUnit& run = *msg.mutable_run_work_unit();
+        run.set_work_unit_id(1);
+        run.set_supervisor_process(communicator.getSourceProcess());
+        run.set_supervisor_thread(communicator.getSourceThread());
+        run.set_output_process(communicator.getSourceProcess()); // TODO change to output process
+        run.set_output_thread(communicator.getSourceThread()); // TODO change to output thread
+        run.set_max_steps(100);
+        *run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
+        communicator.sendMessage(slot_process, slot_thread, &msg);
+        trajectories->updateTrajectoryStatus(nextTrajectory, TrajectoryList::RUNNING);
+    }
+
+}
 
 
 
@@ -213,7 +263,6 @@ void ReplicateSupervisor::startSimulation()
 //    if (latticeSites != NULL) delete [] latticeSites; latticeSites = NULL;
     running = false;
     */
-}
 
 //update the state of the slotAllocator and the trajectoryAllocator based on a result that has just been received
 /*

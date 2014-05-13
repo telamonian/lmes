@@ -41,41 +41,44 @@
 #define LM_REPLICATES_TRAJECTORYLIST_H_
 
 #include <map>
-#include <string>
-#include <vector>
+
+#include "lm/io/TrajectoryState.pb.h"
 
 using std::map;
-using std::string;
-using std::vector;
 
 namespace lm {
-namespace resource {
+namespace replicates {
 
 class TrajectoryList
 {
-
 public:
-    enum status_t {NOT_STARTED, RUNNING, FINISHED};
-    class Trajectory
+    enum status_t {NOT_STARTED, RUNNING, WAITING, FINISHED};
+
+protected:
+    class TrajectoryStatus
     {
     public:
-        Trajectory(int trajectoryNumber, double time, long long steps) : trajectoryNumber(trajectoryNumber),time(time), steps(steps),status(NOT_STARTED),state(NULL) {}
+        TrajectoryStatus(int trajectoryNumber) : trajectoryNumber(trajectoryNumber),status(NOT_STARTED)
+        {
+            state.set_trajectory_id(trajectoryNumber);
+            state.set_time(0.0);
+        }
         int trajectoryNumber;
-        double time;
-        long long steps;
         status_t status;
-        void* state;
+        lm::io::TrajectoryState state;
     };
 
 public:
-    TrajectoryList(int numberTrajectories, double maxTime, long long maxStep);
-    virtual ~TrajectoryList() {}
+    TrajectoryList(int firstTrajectory, int numberTrajectories);
+    virtual ~TrajectoryList();
+    virtual int nextTrajectoryToRun();
+    virtual status_t getTrajectoryStatus(int trajectory);
+    virtual void updateTrajectoryStatus(int trajectory, status_t status);
+    virtual const lm::io::TrajectoryState& getTrajectoryState(int trajectory);
+    virtual void updateTrajectoryState(int trajectory, const lm::io::TrajectoryState& state);
 
 protected:
-    int numberTrajectories;
-    double maxTime;
-    long long maxStep;
-    vector<Trajectory> trajectories;
+    map<int,TrajectoryStatus*> trajectories;
 };
 
 }
