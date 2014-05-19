@@ -62,6 +62,8 @@ using std::vector;
 using lm::resource::Slot;
 using lm::thread::PthreadException;
 
+typedef map<vector<int>, Slot> SlotMap;
+
 namespace lm {
 namespace resource {
 
@@ -76,7 +78,7 @@ public:
     virtual map<vector<int>, Slot>::iterator getBegin() {return slots.begin();}
     virtual map<vector<int>, Slot>::iterator getEnd() {return slots.end();}
 
-    map<vector<int>, Slot> slots;
+    SlotMap slots;
     int maxSlots;
 
 private:

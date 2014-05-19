@@ -52,7 +52,8 @@ namespace lm {
 namespace main {
 
 
-SignalHandler::SignalHandler() throw(PthreadException)
+SignalHandler::SignalHandler() throw(PthreadException):
+	mainWorker(NULL)
 {
     // Block signals from interrupting the calling thread.
     sigemptyset(&signalMask);
@@ -106,6 +107,11 @@ int SignalHandler::run()
                 // Set the global abort flag.
                 Print::printf(Print::WARNING, "Global abort signaled.");
                 globalAbort = true;
+                // Kick the main worker if it's not currently set to NULL
+                if (this->getMainWorker()!=NULL)
+                {
+                	this->getMainWorker()->abort();
+                }
             }
         }
         Print::printf(Print::DEBUG, "Signal handler thread finished.");
@@ -129,6 +135,16 @@ int SignalHandler::run()
     }
 
     return -1;
+}
+
+void SignalHandler::setMainWorker(Worker * mw) throw(PthreadException)
+{
+	mainWorker = mw;
+}
+
+Worker * SignalHandler::getMainWorker() throw(PthreadException)
+{
+	return mainWorker;
 }
 
 }

@@ -74,14 +74,13 @@ namespace lm {
 namespace runner {
 
 Runner::Runner(ResourceAllocator::ComputeResources resources) throw(PthreadException):
-solverFactory(solverFactory),
+solverFactory(::solverFactory),
 resources(resources),
 result(),
 staticDataBuffer(NULL)
 {
 	MPI_EXCEPTION_CHECK(MPI_Alloc_mem(lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE, MPI_INFO_NULL, &staticDataBuffer));
 	pthread_cond_init(&runnerCv, NULL);
-	run();
 }
 
 Runner::~Runner() throw(PthreadException)

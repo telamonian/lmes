@@ -128,7 +128,9 @@ int ReplicateDistributor::run()
             {
                 //Print::printf(Print::DEBUG, "two.");
                 MPI_EXCEPTION_CHECK(MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &messageStatus));
-                if ((messageStatus.MPI_SOURCE == lm::MPI::MASTER && messageStatus.MPI_TAG == lm::MPI::MSG_RUN_SIMULATION) || (messageStatus.MPI_SOURCE == lm::MPI::worldRank && messageStatus.MPI_TAG == lm::MPI::MSG_WAKE_REPLICATE_DISTRIBUTOR)) break;
+                if ((messageStatus.MPI_SOURCE == lm::MPI::MASTER && messageStatus.MPI_TAG == lm::MPI::MSG_RUN_SIMULATION)
+                 || (messageStatus.MPI_SOURCE == lm::MPI::worldRank && messageStatus.MPI_TAG == lm::MPI::MSG_WAKE_REPLICATE_DISTRIBUTOR)
+                 || (messageStatus.MPI_SOURCE == lm::MPI::MASTER && messageStatus.MPI_TAG == lm::MPI::MSG_EXIT))   break;
             }
             if (messageStatus.MPI_SOURCE == lm::MPI::MASTER && messageStatus.MPI_TAG == lm::MPI::MSG_RUN_SIMULATION)
             {
@@ -147,6 +149,11 @@ int ReplicateDistributor::run()
             else if (messageStatus.MPI_SOURCE == lm::MPI::worldRank && messageStatus.MPI_TAG == lm::MPI::MSG_WAKE_REPLICATE_DISTRIBUTOR)
             {
                 MPI_EXCEPTION_CHECK(MPI_Recv(NULL, 0, MPI_INT, lm::MPI::worldRank, lm::MPI::MSG_WAKE_REPLICATE_DISTRIBUTOR, MPI_COMM_WORLD, &messageStatus));
+            }
+            else if (messageStatus.MPI_SOURCE == lm::MPI::MASTER && messageStatus.MPI_TAG == lm::MPI::MSG_EXIT)
+            {
+                globalAbort = true;
+                this->abort();
             }
         }
     }

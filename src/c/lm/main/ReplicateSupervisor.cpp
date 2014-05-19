@@ -175,7 +175,7 @@ void ReplicateSupervisor::update(lm::work::Result & result)
 //sends work unit to appropriate process using an MPI message
 void ReplicateSupervisor::distributeWorkUnit(deque<Slot *>::iterator slot_it, map<int, TrajectoryAllocator::Trajectory>::iterator traj_it)
 {
-	vector<int> slotIds(2);
+	vector<int> slotIds;
 	slotIds.push_back((*slot_it)->pid);
 	slotIds.push_back((*slot_it)->sid);
 	(*slot_it)->alloc(traj_it->second.getWork(slotIds));	//slot_it->second.alloc() allocates the slot the iterator points to and return a vector of [pid, sid]
@@ -200,7 +200,7 @@ void ReplicateSupervisor::distributeWorkUnits()
 			}
 			if (traj_it->second.status==TrajectoryAllocator::CONTINUE && traj_it->second.getPid()==-1 && traj_it->second.getSid()==-1)
 			{
-				distributeWorkUnit(slotAllocator.freeSlots.end(), traj_it);
+				distributeWorkUnit(slotAllocator.freeSlots.end() - 1, traj_it);
 				slotAllocator.freeSlots.pop_back();
 				++traj_it;
 			}

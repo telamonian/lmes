@@ -366,6 +366,8 @@ void executeSimulationMPISingleMaster()
     replicateSupervisor->setAffinity(reservedCpuCore);
     replicateSupervisor->start();
 
+    // join the replicate supervisor thread. the termination of this thread should be promptly followed by the termination of this process and all subprocesses
+    signalHandler->setMainWorker(replicateSupervisor);
     void * ret;
     PTHREAD_EXCEPTION_CHECK(pthread_join(replicateSupervisor->getId(), &ret));
     Print::printf(Print::INFO, "Master shutting down.");
@@ -374,11 +376,11 @@ void executeSimulationMPISingleMaster()
     checkpointSignaler->stopCheckpointing();
 
     // Tell all of the slave processes to stop.
+    int exitCode = globalAbort ? 1 : 0;
     for (int destProc=1; destProc<lm::MPI::worldSize; destProc++)
     {
-        //int exitCode=0;
-       //if (destProc != lm::MPI::MASTER)
-        MPI_EXCEPTION_CHECK(MPI_Send(NULL, 0, MPI_INT, destProc, lm::MPI::MSG_EXIT, MPI_COMM_WORLD));
+        //if (destProc != lm::MPI::MASTER)
+        MPI_EXCEPTION_CHECK(MPI_Send(&exitCode, 1, MPI_INT, destProc, lm::MPI::MSG_EXIT, MPI_COMM_WORLD));
     }
 
     // Wait for all of the processes to exit.
@@ -404,9 +406,9 @@ void executeSimulationMPISingleMaster()
 
     // Cleanup any resources.
     delete[] maxSlotsTable;
-    delete checkpointSignaler;
-    delete signalHandler;
-    delete dataOutputWorker;
+//    delete checkpointSignaler;
+//    delete signalHandler;
+//    delete dataOutputWorker;
 //    if (lattice != NULL) delete [] lattice; lattice = NULL;
 //    if (latticeSites != NULL) delete [] latticeSites; latticeSites = NULL;
 
@@ -433,12 +435,20 @@ void executeSimulationMPISingleSlave()
     // Report the max simultaneous simulations to the master
     int maxSlots = resourceAllocator.getMaxSlots();
     MPI_EXCEPTION_CHECK(MPI_Gather(&maxSlots, 1, MPI_INT, NULL, 1, MPI_INT, lm::MPI::MASTER, MPI_COMM_WORLD));
+
+    //start the signal handler thread on the slave
+    lm::main::SignalHandler * signalHandler = new lm::main::SignalHandler();
+	signalHandler->start();
+
     //start the replicate distributor thread on the slave
     lm::main::ReplicateDistributor * replicateDistributor = new lm::main::ReplicateDistributor(resourceAllocator);
     replicateDistributor->start();
 
-    MPI_Status messageStatus;
-    MPI_EXCEPTION_CHECK(MPI_Recv(NULL, 0, MPI_INT, lm::MPI::MASTER, lm::MPI::MSG_EXIT, MPI_COMM_WORLD, &messageStatus));
+    // join the replicate distributor thread. the termination of this thread should be promptly followed by the termination of this process
+    signalHandler->setMainWorker(replicateDistributor);
+    void * ret;
+    PTHREAD_EXCEPTION_CHECK(pthread_join(replicateDistributor->getId(), &ret));
+    Print::printf(Print::INFO, "MPI slave process %d shutting down.", lm::MPI::worldRank);
 
     // If this was a global abort, stop the workers quickly.
     if (globalAbort)

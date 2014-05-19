@@ -1,3 +1,7 @@
+############################
+#global library options
+############################
+
 #uncomment and change the last part of the next line if some of your libraries/header files are on a nonstandard path
 #SET(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH} /usr/local/arch/linux")
 

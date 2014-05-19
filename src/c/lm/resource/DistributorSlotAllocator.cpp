@@ -79,7 +79,7 @@ void DistributorSlotAllocator::initialize()
 		slotIds.push_back(lm::MPI::worldRank);
 		slotIds.push_back(i);
 		lm::resource::ResourceAllocator::ComputeResources computeResources(resourceAllocator.alloc(i));
-		slots.insert(std::make_pair(slotIds, DistributorSlot(slotIds, computeResources, Runner(computeResources))));
+		slots.insert(SlotMap::value_type(slotIds, DistributorSlot(slotIds, computeResources, new Runner(computeResources))));
 		++maxSlotsCounter;
 	}
 	maxSlots = maxSlotsCounter;

@@ -12,10 +12,10 @@ namespace resource {
 
 void DistributorSlot::alloc(lm::work::Work & work)
 {
-	runner.lock_mutex();
-	runner.alloc(work);
-	runner.cond_signal();
-	runner.unlock_mutex();
+	runner->lock_mutex();
+	runner->alloc(work);
+	runner->cond_signal();
+	runner->unlock_mutex();
 }
 
 }

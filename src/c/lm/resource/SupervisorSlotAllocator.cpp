@@ -73,10 +73,10 @@ void SupervisorSlotAllocator::initialize()
 	{
 		for (int j=0; j<maxSlotsTable[i]; ++j)
 		{
-		vector<int> slotIds(2);
+		vector<int> slotIds;
 		slotIds.push_back(i);
 		slotIds.push_back(j);
-		slots.insert(std::make_pair(slotIds,SupervisorSlot(slotIds)));
+		slots.insert(SlotMap::value_type(slotIds,SupervisorSlot(slotIds)));
 		++maxSlotsCounter;
 		}
 	}

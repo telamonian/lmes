@@ -64,6 +64,21 @@ WorkerManager::~WorkerManager() throw(PthreadException)
     PTHREAD_EXCEPTION_CHECK(pthread_mutex_destroy(&mutex));
 }
 
+void WorkerManager::checkpointWorkers() throw(PthreadException)
+{
+    //// BEGIN CRITICAL SECTION: mutex
+    PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&mutex));
+
+    // Tell the worker threads to checkpoint.
+    for (list<Worker *>::iterator it=workers.begin(); it != workers.end(); it++)
+    {
+        (*it)->checkpoint();
+    }
+
+    PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&mutex));
+    //// END CRITICAL SECTION: mutex
+}
+
 void WorkerManager::addWorker(Worker * worker) throw(PthreadException)
 {
     //// BEGIN CRITICAL SECTION: mutex
@@ -77,9 +92,42 @@ void WorkerManager::removeWorker(Worker * worker) throw(PthreadException)
 {
     //// BEGIN CRITICAL SECTION: mutex
     PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&mutex));
+    delete worker;
     workers.remove(worker);
     PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&mutex));
     //// END CRITICAL SECTION: mutex
+}
+
+void WorkerManager::deleteWorkers() throw(PthreadException)
+{
+	//// BEGIN CRITICAL SECTION: mutex
+	PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&mutex));
+	for (list<Worker *>::iterator it=workers.begin(); it != workers.end(); it++)
+	{
+		Print::printf(Print::DEBUG, "Deleting worker thread: %u", (*it)->getId());
+		delete *it;
+		Print::printf(Print::DEBUG, "Deleted worker thread: %u", (*it)->getId());
+	}
+	PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&mutex));
+	//// END CRITICAL SECTION: mutex
+}
+
+void WorkerManager::stopWorkers() throw(PthreadException)
+{
+    //// BEGIN CRITICAL SECTION: mutex
+    PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&mutex));
+
+    // Wait for the worker threads to stop.
+    for (list<Worker *>::iterator it=workers.begin(); it != workers.end(); it++)
+    {
+        Print::printf(Print::DEBUG, "Stopping worker thread: %u", (*it)->getId());
+        (*it)->stop();
+        Print::printf(Print::DEBUG, "Stopped worker thread: %u", (*it)->getId());
+    }
+
+    PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&mutex));
+    //// END CRITICAL SECTION: mutex
+    deleteWorkers();
 }
 
 void WorkerManager::abortWorkers() throw(PthreadException)
@@ -101,38 +149,7 @@ void WorkerManager::abortWorkers() throw(PthreadException)
 
     PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&mutex));
     //// END CRITICAL SECTION: mutex
-}
-
-void WorkerManager::checkpointWorkers() throw(PthreadException)
-{
-    //// BEGIN CRITICAL SECTION: mutex
-    PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&mutex));
-
-    // Tell the worker threads to checkpoint.
-    for (list<Worker *>::iterator it=workers.begin(); it != workers.end(); it++)
-    {
-        (*it)->checkpoint();
-    }
-
-    PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&mutex));
-    //// END CRITICAL SECTION: mutex
-}
-
-void WorkerManager::stopWorkers() throw(PthreadException)
-{
-    //// BEGIN CRITICAL SECTION: mutex
-    PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&mutex));
-
-    // Wait for the worker threads to stop.
-    for (list<Worker *>::iterator it=workers.begin(); it != workers.end(); it++)
-    {
-        Print::printf(Print::DEBUG, "Stopping worker thread: %u", (*it)->getId());
-        (*it)->stop();
-        Print::printf(Print::DEBUG, "Stopped worker thread: %u", (*it)->getId());
-    }
-
-    PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&mutex));
-    //// END CRITICAL SECTION: mutex
+    deleteWorkers();
 }
 
 }

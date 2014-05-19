@@ -62,12 +62,15 @@ public:
     SignalHandler() throw(PthreadException);
     virtual ~SignalHandler() throw(PthreadException);
     virtual void wake() throw(PthreadException);
+    virtual void setMainWorker(Worker * mw) throw(PthreadException);
+    virtual Worker * getMainWorker() throw(PthreadException);
 
 private:
     sigset_t signalMask;
 
 protected:
     virtual int run();
+    Worker * mainWorker;
 };
 
 }

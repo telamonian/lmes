@@ -24,7 +24,7 @@ public:
 	Slot(vector<int> ids): pid(ids[0]), sid(ids[1]), status(FREE) {}
 	~Slot() {}
 	void setStatus(slotStatus newStatus) {status = newStatus;}
-	vector<int> alloc(lm::work::Work work) {setStatus(BUSY); return getSlotIds();}
+	vector<int> alloc(lm::work::Work & work) {setStatus(BUSY); return getSlotIds();}
 	void free() {setStatus(FREE);}
 	vector<int> getSlotIds() {vector<int> slotIds; slotIds.push_back(pid); slotIds.push_back(sid); return slotIds;}
 

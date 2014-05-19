@@ -19,3 +19,6 @@
 *.o
 *.d
 /Debug
+/.ptp-sync
+.ptp-sync-folder
+/.gdbinit
