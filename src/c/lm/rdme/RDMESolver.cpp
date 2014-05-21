@@ -64,39 +64,41 @@ RDMESolver::RDMESolver(RandomGenerator::Distributions neededDists)
 RDMESolver::~RDMESolver()
 {
     // Free any model memory.
-    destroyDiffusionModel();
+//    destroyDiffusionModel();
 }
 
-void RDMESolver::allocateDiffusionModel(uint numberSiteTypesA, lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing)
+//void RDMESolver::allocateDiffusionModel(uint numberSiteTypesA, lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing)
+//{
+//    // Set the number of site types.
+//    numberSiteTypes = numberSiteTypesA;
+
+//    // Allocate the resources.
+//    DF = new double[numberSpecies*numberSiteTypes*numberSiteTypes];
+//    RL = new uint[numberReactions*numberSiteTypes];
+//    allocateLattice(latticeXSize, latticeYSize, latticeZSize, particlesPerSite, latticeSpacing);
+//}
+
+//void RDMESolver::allocateLattice(lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing)
+//{
+//    lattice = new ByteLattice(latticeXSize, latticeYSize, latticeZSize, latticeSpacing, particlesPerSite);
+//}
+
+//void RDMESolver::destroyDiffusionModel()
+//{
+//    // Free any resources.
+//    if (DF != NULL) delete[] DF; DF = NULL;
+//    if (RL != NULL) delete[] RL; RL = NULL;
+//    if (lattice != NULL) delete lattice; lattice = NULL;
+
+//    // Reset the number of sites types.
+//    numberSiteTypes = 0;
+//}
+
+void RDMESolver::setDiffusionModel(const lm::io::DiffusionModel& dm)
 {
-    // Set the number of site types.
-    numberSiteTypes = numberSiteTypesA;
+    throw InvalidArgException("Unimplemented");
 
-    // Allocate the resources.
-    DF = new double[numberSpecies*numberSiteTypes*numberSiteTypes];
-    RL = new uint[numberReactions*numberSiteTypes];
-    allocateLattice(latticeXSize, latticeYSize, latticeZSize, particlesPerSite, latticeSpacing);
-}
-
-void RDMESolver::allocateLattice(lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing)
-{
-    lattice = new ByteLattice(latticeXSize, latticeYSize, latticeZSize, latticeSpacing, particlesPerSite);
-}
-
-void RDMESolver::destroyDiffusionModel()
-{
-    // Free any resources.
-    if (DF != NULL) delete[] DF; DF = NULL;
-    if (RL != NULL) delete[] RL; RL = NULL;
-    if (lattice != NULL) delete lattice; lattice = NULL;
-
-    // Reset the number of sites types.
-    numberSiteTypes = 0;
-}
-
-void RDMESolver::setDiffusionModel(DiffusionModel * dm, const uint8_t * lattice, size_t latticeSize, const uint8_t * latticeSites, size_t latticeSitesSize) throw(InvalidArgException)
-{
-	printf("Got diffudsion model %d\n", dm);
+    /*
     // Validate the model.
     if (dm->number_species() != numberSpecies) throw InvalidArgException("dm.number_species", "number of species in the diffusion model does not agree with the number in the reaction model");
     if (dm->number_reactions() != numberReactions) throw InvalidArgException("dm.number_reactions", "number of reactions in the diffusion model does not agree with the number in the reaction model");
@@ -111,76 +113,91 @@ void RDMESolver::setDiffusionModel(DiffusionModel * dm, const uint8_t * lattice,
     if (dm->number_species() != numberSpecies) throw InvalidArgException("dm.number_species", "number of species in the diffusion model does not agree with the number in the reaction model");
     if (dm->number_reactions() != numberReactions) throw InvalidArgException("dm.number_reactions", "number of reactions in the diffusion model does not agree with the number in the reaction model");
     printf("done2\n");
+    */
 }
 
-void RDMESolver::buildDiffusionModel(const uint numberSiteTypesA, const double * DFA, const uint * RLA, lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing, const uint8_t * latticeData, const uint8_t * latticeSitesData, bool rowMajorData) throw(InvalidArgException)
+//void RDMESolver::buildDiffusionModel(const uint numberSiteTypesA, const double * DFA, const uint * RLA, lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing, const uint8_t * latticeData, const uint8_t * latticeSitesData, bool rowMajorData) throw(InvalidArgException)
+//{
+//    // Destroy the previous model, if we have one.
+//    destroyDiffusionModel();
+
+//    // Allocate space for the new model.
+//    allocateDiffusionModel(numberSiteTypesA, latticeXSize, latticeYSize, latticeZSize, particlesPerSite, latticeSpacing);
+
+//    // Set the diffusion matrix.
+//    for (uint i=0; i<numberSpecies*numberSiteTypes*numberSiteTypes; i++)
+//    {
+//        DF[i] = DFA[i];
+//    }
+
+//    // Set the reaction location matrix.
+//    for (uint i=0; i<numberReactions*numberSiteTypes; i++)
+//    {
+//        RL[i] = RLA[i];
+//    }
+
+//    // Set the lattice.
+//    if (rowMajorData)
+//    {
+//        lattice_coord_t s = lattice->getSize();
+//        site_size_t p = lattice->getMaxOccupancy();
+
+//        // Set the lattice data.
+//        for (uint i=0, index=0; i<s.x; i++)
+//        {
+//            for (uint j=0; j<s.y; j++)
+//            {
+//                for (uint k=0; k<s.z; k++)
+//                {
+//                    for (uint l=0; l<p; l++, index++)
+//                    {
+//                        if (latticeData[index] != 0)
+//                        {
+//                            if (latticeData[index] > numberSpecies) throw InvalidArgException("latticeData", "an invalid species was found",latticeData[index]);
+//                            lattice->addParticle(i,j,k,latticeData[index]);
+//                        }
+//                    }
+//                }
+//            }
+//        }
+
+//        // Set the lattice sites.
+//        for (uint i=0, index=0; i<s.x; i++)
+//        {
+//            for (uint j=0; j<s.y; j++)
+//            {
+//                for (uint k=0; k<s.z; k++, index++)
+//                {
+//                    if (latticeSitesData[index] != 0)
+//                    {
+//                        if (latticeSitesData[index] >= numberSiteTypes) throw InvalidArgException("latticeSitesData", "an invalid species was found",latticeSitesData[index]);
+//                        lattice->setSiteType(i,j,k,latticeSitesData[index]);
+//                    }
+//                }
+//            }
+//        }
+//    }
+//    else
+//    {
+//        throw lm::InvalidArgException("rowMajorData","columns major lattice data is not currently supported");
+//    }
+
+//    Print::printf(Print::DEBUG, "Set diffusion model.");
+//    printf("almost done\n");
+//}
+
+void RDMESolver::resetState()
 {
-    // Destroy the previous model, if we have one.
-    destroyDiffusionModel();
+}
 
-    // Allocate space for the new model.
-    allocateDiffusionModel(numberSiteTypesA, latticeXSize, latticeYSize, latticeZSize, particlesPerSite, latticeSpacing);
+void RDMESolver::getState(lm::io::TrajectoryState* state)
+{
 
-    // Set the diffusion matrix.
-    for (uint i=0; i<numberSpecies*numberSiteTypes*numberSiteTypes; i++)
-    {
-        DF[i] = DFA[i];
-    }
+}
 
-    // Set the reaction location matrix.
-    for (uint i=0; i<numberReactions*numberSiteTypes; i++)
-    {
-        RL[i] = RLA[i];
-    }
+void RDMESolver::setState(const lm::io::TrajectoryState& state)
+{
 
-    // Set the lattice.
-    if (rowMajorData)
-    {
-        lattice_coord_t s = lattice->getSize();
-        site_size_t p = lattice->getMaxOccupancy();
-
-        // Set the lattice data.
-        for (uint i=0, index=0; i<s.x; i++)
-        {
-            for (uint j=0; j<s.y; j++)
-            {
-                for (uint k=0; k<s.z; k++)
-                {
-                    for (uint l=0; l<p; l++, index++)
-                    {
-                        if (latticeData[index] != 0)
-                        {
-                            if (latticeData[index] > numberSpecies) throw InvalidArgException("latticeData", "an invalid species was found",latticeData[index]);
-                            lattice->addParticle(i,j,k,latticeData[index]);
-                        }
-                    }
-                }
-            }
-        }
-
-        // Set the lattice sites.
-        for (uint i=0, index=0; i<s.x; i++)
-        {
-            for (uint j=0; j<s.y; j++)
-            {
-                for (uint k=0; k<s.z; k++, index++)
-                {
-                    if (latticeSitesData[index] != 0)
-                    {
-                        if (latticeSitesData[index] >= numberSiteTypes) throw InvalidArgException("latticeSitesData", "an invalid species was found",latticeSitesData[index]);
-                        lattice->setSiteType(i,j,k,latticeSitesData[index]);
-                    }
-                }
-            }
-        }
-    }
-    else
-    {
-        throw lm::InvalidArgException("rowMajorData","columns major lattice data is not currently supported");
-    }
-
-    Print::printf(Print::DEBUG, "Set diffusion model.");
-    printf("almost done\n");
 }
 
 }

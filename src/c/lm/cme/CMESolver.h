@@ -40,21 +40,24 @@
 #ifndef LM_CME_CMESOLVER_H_
 #define LM_CME_CMESOLVER_H_
 
-#include <map>
 #include <list>
+#include <map>
 #include <string>
 #include <utility>
+#include <vector>
 #include "lm/Math.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/ParameterValues.pb.h"
 #include "lm/resource/ResourceAllocator.h"
 #include "lm/rng/RandomGenerator.h"
+#include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/me/MESolver.h"
 
+using std::list;
 using std::map;
 using std::pair;
-using std::list;
 using std::string;
+using std::vector;
 using lm::resource::ResourceAllocator;
 using lm::me::MESolver;
 using lm::rng::RandomGenerator;
@@ -162,11 +165,13 @@ protected:
         double k;
         double v;
     };
-    struct SpeciesLimit
+    class SpeciesLimit
     {
-        int type;
-        uint species;
-        uint limit;
+    public:
+        enum limit_type_t {MIN, MAX};
+        limit_type_t type;
+        int species;
+        int limit;
     };
     struct FPTTracking
     {
@@ -186,17 +191,22 @@ protected:
 public:
     CMESolver(RandomGenerator::Distributions neededDists);
     virtual ~CMESolver();
-    virtual void initialize(unsigned int replicate, map<string,string> * parameters, ResourceAllocator::ComputeResources * resources);
-    virtual void setReactionModel(lm::io::ReactionModel * reactionModel);
-    virtual void buildModel(const uint numberSpecies, const uint numberReactions, const uint * initialSpeciesCounts, const uint * reactionTypesA, const double * k, const int * S, const uint * D, const uint kCols=1);
-    virtual void setModelPropensityFunction(uint reaction, double (*propensityFunction)(double time, uint * speciesCounts, void * args), void * propensityFunctionArg);
-    virtual void setSpeciesUpperLimit(uint species, uint limit);
-    virtual void setSpeciesLowerLimit(uint species, uint limit);
-    virtual void setFptTrackingList(list<uint> speciesList);
-    virtual void addToParameterTrackingList(pair<string,double*>parameter);
-    virtual void generateTrajectory()=0;
+    virtual void setComputeResources(vector<int> cpus, vector<int> gpus);
+    virtual bool needsReactionModel() {return true;}
+    virtual void setReactionModel(const lm::io::ReactionModel& rm);
+    virtual bool needsDiffusionModel() {return false;}
+    virtual void setDiffusionModel(const lm::io::DiffusionModel& dm) {}
+    virtual void resetState();
+    virtual void getState(lm::io::TrajectoryState* state);
+    virtual void setState(const lm::io::TrajectoryState& state);
+    virtual void setLimits(const lm::io::TrajectoryLimits& limits);
 
 protected:
+    virtual void setSpeciesUpperLimit(int species, int limit);
+    virtual void setSpeciesLowerLimit(int species, int limit);
+    virtual void setFptTrackingList(list<uint> speciesList);
+    virtual void addToParameterTrackingList(pair<string,double*>parameter);
+
     static double zerothOrderPropensity(double time, uint * speciesCounts, void * pargs);
     static double firstOrderPropensity(double time, uint * speciesCounts, void * pargs);
     static double secondOrderPropensity(double time, uint * speciesCounts, void * pargs);
@@ -211,16 +221,14 @@ protected:
     static double pdReflectingDefectFitnessPropensity(double time, uint * speciesCounts, void * pargs);
     static double MichaelisMentenPropensity(double time, uint * speciesCounts, void * pargs);
 
-    virtual void allocateModel(uint numberSpecies, uint numberReactions);
-    virtual void destroyModel();
-    virtual double recordParameters(double nextRecordTime, double recordInterval, double simulationTime);
-    virtual void queueRecordedParameters(bool flush=false);
+    //virtual double recordParameters(double nextRecordTime, double recordInterval, double simulationTime);
+    //virtual void queueRecordedParameters(bool flush=false);
 
     inline void updateSpeciesCounts(uint r)
     {
-        for (uint i=0; i<numberDependentSpecies[r]; i++)
+        for (uint i=0; i<reactionModel->numberDependentSpecies[r]; i++)
         {
-            speciesCounts[dependentSpecies[r][i]] += dependentSpeciesChange[r][i];
+            speciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
         }
     }
 
@@ -231,50 +239,63 @@ protected:
             SpeciesLimit l = speciesLimits[i];
             switch (l.type)
             {
-            case -1:
-                if (speciesCounts[l.species] <= l.limit) return true;
+            case SpeciesLimit::MIN:
+                if (int(speciesCounts[l.species]) <= l.limit) return true;
                 break;
-            case 1:
-                if (speciesCounts[l.species] >= l.limit) return true;
+            case SpeciesLimit::MAX:
+                if (int(speciesCounts[l.species]) >= l.limit) return true;
                 break;
             }
         }
         return false;
     }
 
-
-
 protected:
     RandomGenerator::Distributions neededDists;
-    unsigned int replicate;
-    map<string,string> * parameters;
-    ResourceAllocator::ComputeResources * resources;
     RandomGenerator * rng;
 
     // The reaction model.
-    uint numberSpecies;
-    uint numberSpeciesToTrack;
-    uint numberReactions;
-    uint * initialSpeciesCounts;                    // numberSpecies
-    uint * speciesCounts;                           // numberSpecies
-    uint * reactionTypes;							// numberReactions
-    int * S;                                        // numberSpecies x numberReactions
-    uint * D;                                       // numberSpecies x numberReactions
-    void ** propensityFunctions;
-    void ** propensityFunctionArgs;
-    list<PropensityArgs *> propensityArgs;
+    class ReactionModel
+    {
+    public:
+        ReactionModel(uint numberSpecies, uint numberReactions);
+        virtual ~ReactionModel();
+        virtual void build(const uint numberSpecies, const uint numberReactions, const uint * initialSpeciesCounts, const uint * reactionTypesA, const double * k, const int * S, const uint * D, const uint kCols=1);
+        virtual void setPropensityFunction(uint reaction, double (*propensityFunction)(double time, uint * speciesCounts, void * args), void * propensityFunctionArg);
+
+        uint numberSpecies;
+        uint numberSpeciesToTrack;
+        uint numberReactions;
+        uint* initialSpeciesCounts;                    // numberSpecies
+        uint* reactionTypes;                            // numberReactions
+        int* S;                                        // numberSpecies x numberReactions
+        uint* D;                                       // numberSpecies x numberReactions
+        void** propensityFunctions;
+        void** propensityFunctionArgs;
+        list<PropensityArgs*> propensityArgs;
+
+        // Dependency tables.
+        uint* numberDependentSpecies;
+        uint** dependentSpecies;
+        int** dependentSpeciesChange;
+        uint* numberDependentReactions;
+        uint** dependentReactions;
+    };
+    ReactionModel* reactionModel;
+
+    // The current limits.
+    double maxTime;
     uint numberSpeciesLimits;
-    SpeciesLimit * speciesLimits;
+    SpeciesLimit* speciesLimits;
+
+
     uint numberFptTrackedSpecies;
-    FPTTracking * fptTrackedSpecies;
+    FPTTracking* fptTrackedSpecies;
     list<TrackedParameter> trackedParameters;
 
-    // Dependency tables.
-    uint *numberDependentSpecies;
-    uint ** dependentSpecies;
-    int ** dependentSpeciesChange;
-    uint *numberDependentReactions;
-    uint ** dependentReactions;
+    // The current state.
+    uint* speciesCounts;
+    double time;
 };
 
 }

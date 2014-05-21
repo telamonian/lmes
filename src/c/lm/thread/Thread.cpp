@@ -44,9 +44,14 @@
 namespace lm {
 namespace thread {
 
-Thread::Thread() throw(PthreadException)
-:threadId(0),running(false),cpuNumber(-1)
+int Thread::nextThreadNumber=1;
+
+Thread::Thread()
+:threadNumber(0),threadId(0),running(false),cpuNumber(-1)
 {
+    // Assign the thread number.
+    threadNumber = nextThreadNumber++; //TODO: add a global mutex lock.
+
     // Create the control mutex.
 	pthread_mutexattr_t attr;
 	PTHREAD_EXCEPTION_CHECK(pthread_mutexattr_init(&attr));
@@ -55,7 +60,7 @@ Thread::Thread() throw(PthreadException)
     PTHREAD_EXCEPTION_CHECK(pthread_mutexattr_destroy(&attr));
 }
 
-Thread::~Thread() throw(PthreadException)
+Thread::~Thread()
 {
     PTHREAD_EXCEPTION_CHECK(pthread_mutex_destroy(&controlMutex));
 }
@@ -76,7 +81,7 @@ void Thread::setAffinity(int cpuNumber) throw(PthreadException)
 		CPU_ZERO(&cpuset);
 		CPU_SET(cpuNumber, &cpuset);
 		if (pthread_setaffinity_np(threadId, sizeof(cpu_set_t), &cpuset) != 0)
-			Print::printf(Print::WARNING, "Could not bind thread %u to CPU core %d", threadId, cpuNumber);
+            Print::printf(Print::WARNING, "Could not bind thread %d to CPU core %d", threadNumber, cpuNumber);
 		#endif
     }
     PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&controlMutex));
@@ -104,10 +109,10 @@ void Thread::start() throw(PthreadException)
 			CPU_ZERO(&cpuset);
 			CPU_SET(cpuNumber, &cpuset);
 			if (pthread_setaffinity_np(threadId, sizeof(cpu_set_t), &cpuset) != 0)
-				Print::printf(Print::WARNING, "Could not bind thread %u to CPU core %d", threadId, cpuNumber);
+                Print::printf(Print::WARNING, "Could not bind thread %d to CPU core %d", threadNumber, cpuNumber);
 			#endif
         }
-        Print::printf(Print::DEBUG, "Started thread %u.", threadId);
+        Print::printf(Print::DEBUG, "Started thread %d.", threadNumber);
     }
     PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&controlMutex));
     //// END CRITICAL SECTION: controlMutex
@@ -116,7 +121,7 @@ void Thread::start() throw(PthreadException)
 void * Thread::start_thread(void * obj)
 {
     int ret = (reinterpret_cast<Thread *>(obj))->run();
-    pthread_exit((void *)ret); //why is this not wrapped with PTHREAD_EXCEPTION_CHECK?
+    pthread_exit((void *)ret);
 }
 
 void Thread::stop() throw(PthreadException)
@@ -127,7 +132,7 @@ void Thread::stop() throw(PthreadException)
     PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&controlMutex));
     if (running)
     {
-        Print::printf(Print::DEBUG, "Stopping thread %u.", threadId);
+        Print::printf(Print::DEBUG, "Stopping thread %d.", threadNumber);
         running = false;
         waitForThread = true;
     }
@@ -143,8 +148,15 @@ void Thread::stop() throw(PthreadException)
         // Join with the thread.
         void * ret;
         PTHREAD_EXCEPTION_CHECK(pthread_join(threadId, &ret));
-        Print::printf(Print::DEBUG, "Thread %u stopped.", threadId);
+        Print::printf(Print::DEBUG, "Thread %d stopped.", threadNumber);
     }
+}
+
+void Thread::wait() throw(PthreadException)
+{
+    // Join with the thread.
+    void * ret;
+    PTHREAD_EXCEPTION_CHECK(pthread_join(threadId, &ret));
 }
 
 }

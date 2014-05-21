@@ -59,6 +59,7 @@ class DiffusionModel;
 class ReactionModel;
 class Lattice;
 class ParameterValues;
+class SimulationParameters;
 class SpeciesCounts;
 class SpatialModel;
 class FirstPassageTimes;
@@ -108,13 +109,16 @@ public:
     virtual string checkpoint() throw(IOException,HDF5Exception);
 
     // Methods for working with parameters.
+    virtual void getParameters(lm::io::SimulationParameters* parameters);
     virtual map<string,string> getParameters();
     virtual string getParameter(string key, string defaultValue="");
     virtual void setParameter(string key, string value) throw(HDF5Exception);
 
     // Methods for working with the model.
+    virtual bool hasReactionModel();
     virtual void getReactionModel(lm::io::ReactionModel * reactionModel) throw(Exception,InvalidArgException,HDF5Exception);
     virtual void setReactionModel(lm::io::ReactionModel * reactionModel) throw(Exception,InvalidArgException,HDF5Exception);
+    virtual bool hasDiffusionModel();
     virtual void getDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception);
     virtual void getDiffusionModelLattice(lm::io::DiffusionModel * diffusionModel, byte * lattice, size_t latticeMaxSize, byte * latticeSites, size_t latticeSitesMaxSize) throw(Exception,InvalidArgException,HDF5Exception);
     virtual void getDiffusionModelLattice(lm::io::DiffusionModel * diffusionModel, lm::rdme::Lattice * lattice) throw(Exception,InvalidArgException,HDF5Exception);

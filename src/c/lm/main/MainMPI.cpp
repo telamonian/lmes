@@ -47,63 +47,49 @@
 #include <map>
 #include <cstdio>
 #include <cstring>
-#include <ctime>
-#if defined(MACOSX)
-#include <sys/time.h>
-#endif
 #include <csignal>
 #include <cerrno>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <pthread.h>
 #include <google/protobuf/stubs/common.h>
-#include "lm/Print.h"
+#include "lm/ClassFactory.h"
 #include "lm/Exceptions.h"
-#include "lm/Types.h"
 #include "lm/Math.h"
 #include "lm/MPI.h"
+#include "lm/Print.h"
+#include "lm/Types.h"
 #ifdef OPT_CUDA
 #include "lm/Cuda.h"
 #endif
-#include "lm/io/hdf5/HDF5.h"
-#include "lm/io/hdf5/SimulationFile.h"
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/ReactionModel.pb.h"
-#include "lm/io/SimulationParameters.h"
-#include "lm/main/BruteRunner.h"
 #include "lm/main/CheckpointSignaler.h"
 #include "lm/main/DataOutputQueue.h"
-#include "lm/main/ForwardFluxRunner.h"
 #include "lm/main/LocalDataOutputWorker.h"
-#include "lm/main/ReplicateSupervisor.h"
-#include "lm/resource/MPINodeResourceMap.h"
-#include "lm/main/MPIRemoteDataOutputQueue.h"
 #include "lm/main/Main.h"
-#include "lm/main/ReplicateDistributor.h"
-#include "lm/main/ReplicateRunner.h"
+#include "lm/main/MPIRemoteDataOutputQueue.h"
+#include "lm/main/ResourceController.h"
+#include "lm/main/SimulationSupervisor.h"
 #include "lm/resource/ResourceAllocator.h"
+#include "lm/resource/ResourceMap.h"
 #include "lm/main/SignalHandler.h"
-#include "lm/message/SimulationParameters.pb.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/WorkerManager.h"
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
 
+#include "lm/replicates/ReplicateSupervisor.h"
+
 using std::map;
 using std::list;
 using lm::Print;
 using lm::Exception;
-using lm::main::ReplicateRunner;
-using lm::main::BruteRunner;
-using lm::main::ForwardFluxRunner;
 using lm::resource::ResourceAllocator;
-using lm::resource::MPINodeResourceMap;
-using lm::me::MESolverFactory;
+using lm::resource::ResourceMap;
 using lm::thread::PthreadException;
 
 void listDevicesMPI();
 void executeSimulationMPI();
-void executeSimulationMPISingleMaster();
+void executeSimulationMPISingleMaster(ResourceMap* resourceMap);
 void executeSimulationMPISingleSlave();
 //void broadcastSimulationParameters(void * staticDataBuffer, map<string,string> & simulationParameters);
 //void broadcastReactionModel(void * staticDataBuffer, lm::io::ReactionModel * reactionModel);
@@ -176,38 +162,6 @@ int main(int argc, char** argv)
             // Parse the arguments again on all processes.
             parseArguments(argc, argv);
 
-			// Get the hostname.
-			char hostname[MPI_MAX_PROCESSOR_NAME+1];
-			int hostnameLength;
-			memset(hostname,0,sizeof(hostname));
-			MPI_EXCEPTION_CHECK(MPI_Get_processor_name(hostname, &hostnameLength));
-
-			// Create the resource list on the master.
-			if (lm::MPI::worldRank == lm::MPI::MASTER)
-			{
-				// Receive all of the host names.
-				char* hostnameTable = new char[sizeof(hostname)*lm::MPI::worldSize];
-				MPI_EXCEPTION_CHECK(MPI_Gather(hostname,sizeof(hostname),MPI_CHAR,hostnameTable,sizeof(hostname),MPI_CHAR,lm::MPI::MASTER,MPI_COMM_WORLD));
-
-				// Extract the hostnames.
-				list<string> hostnames;
-				for (int i=0; i<lm::MPI::worldSize; i++)
-					hostnames.push_back(string(&hostnameTable[i*sizeof(hostname)]));
-
-				MPINodeResourceMap resourceList(hostnames, numberCpuCores);
-
-				// Send the resource map.
-				MPI_EXCEPTION_CHECK(MPI_Scatter(resourceList.getCpuCoresTable(),1,MPI_INT,&numberCpuCores,1,MPI_INT,lm::MPI::MASTER,MPI_COMM_WORLD));
-			}
-			else
-			{
-				// Send all of the host names.
-				MPI_EXCEPTION_CHECK(MPI_Gather(hostname,sizeof(hostname),MPI_CHAR,NULL,sizeof(hostname),MPI_CHAR,lm::MPI::MASTER,MPI_COMM_WORLD));
-
-				// Receive the resource map.
-				MPI_EXCEPTION_CHECK(MPI_Scatter(NULL,1,MPI_INT,&numberCpuCores,1,MPI_INT,lm::MPI::MASTER,MPI_COMM_WORLD));
-			}
-
             // Perform the requested function.
             if (functionOption == "devices")
             {
@@ -267,18 +221,18 @@ void listDevicesMPI()
     MPI_EXCEPTION_CHECK(MPI_Get_processor_name(hostname, &hostnameLength));
 
     // Print the capabilities message.
-    printf("Process %d running on host %s with %d/%d processor(s)", lm::MPI::worldRank, hostname, numberCpuCores, getPhysicalCpuCores());
+    printf("Process %d running on host %s with %d processor(s)", lm::MPI::worldRank, hostname, (int)lm::main::ResourceController::getPhysicalCPUCores().size());
     #ifdef OPT_CUDA
-    printf(" and %d/%d CUDA device(s)", (int)cudaDevices.size(), lm::CUDA::getNumberDevices());
+    printf(" and %d CUDA device(s)", (int)lm::main::ResourceController::getPhysicalGPUs().size());
     #endif
     printf(".\n");
 
     #ifdef OPT_CUDA
-    if (shouldPrintCudaCapabilities)
+    if (shouldPrintGPUCapabilities)
     {
-        for (int i=0; i<(int)cudaDevices.size(); i++)
+        for (int i=0; i<lm::CUDA::getNumberDevices(); i++)
         {
-            printf("  %d-%s\n", lm::MPI::worldRank, lm::CUDA::getCapabilitiesString(cudaDevices[i]).c_str());
+            printf("  %d-%s\n", lm::MPI::worldRank, lm::CUDA::getCapabilitiesString(i).c_str());
         }
     }
     #endif
@@ -289,21 +243,63 @@ void executeSimulationMPI()
     PROF_SET_THREAD(0);
     PROF_BEGIN(PROF_SIM_RUN);
 
+    // Get the hostname.
+    char hostname[MPI_MAX_PROCESSOR_NAME+1];
+    int hostnameLength;
+    memset(hostname,0,sizeof(hostname));
+    MPI_EXCEPTION_CHECK(MPI_Get_processor_name(hostname, &hostnameLength));
+
+    // Create the resource list on the master.
     if (lm::MPI::worldRank == lm::MPI::MASTER)
-        executeSimulationMPISingleMaster();
+    {
+        // Receive all of the host names.
+        char* hostnameTable = new char[sizeof(hostname)*lm::MPI::worldSize];
+        MPI_EXCEPTION_CHECK(MPI_Gather(hostname,sizeof(hostname),MPI_CHAR,hostnameTable,sizeof(hostname),MPI_CHAR,lm::MPI::MASTER,MPI_COMM_WORLD));
+
+        // Extract the hostnames.
+        list<string> hostnames;
+        for (int i=0; i<lm::MPI::worldSize; i++)
+            hostnames.push_back(string(&hostnameTable[i*sizeof(hostname)]));
+
+        // Create the resource map.
+        ResourceMap resourceMap(hostnames, cpuCores, gpuDevices, resourceFilename);
+        executeSimulationMPISingleMaster(&resourceMap);
+    }
     else
+    {
+        // Send all of the host names.
+        MPI_EXCEPTION_CHECK(MPI_Gather(hostname,sizeof(hostname),MPI_CHAR,NULL,sizeof(hostname),MPI_CHAR,lm::MPI::MASTER,MPI_COMM_WORLD));
         executeSimulationMPISingleSlave();
+    }
 
     PROF_END(PROF_SIM_RUN);
 }
 
-void executeSimulationMPISingleMaster()
+void executeSimulationMPISingleMaster(ResourceMap* resourceMap)
 {
-    int messageWaiting;
-    MPI_Status messageStatus;
-    void * staticDataBuffer = NULL;
     Print::printf(Print::DEBUG, "MPI master process %d started.", lm::MPI::worldRank);
 
+    //printf("%d\n", lm::replicates::ReplicateSupervisor::registered);
+
+    // Print a list of the registered classes.
+    lm::ClassFactory::getInstance().printRegisteredClasses();
+
+    // Start the resource controller for this process.
+    lm::main::ResourceController resourceController;
+    resourceController.start();
+
+    // Create the supervisor.
+    lm::main::SimulationSupervisor* supervisor = static_cast<lm::main::SimulationSupervisor*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::main::SimulationSupervisor",supervisorClassName));
+    supervisor->setUseCPUAffinity(useCPUAffinity);
+    supervisor->setSimulationFilename(simulationFilename);
+    supervisor->setSolverClassName(solverClassName);
+    supervisor->setResourceMap(resourceMap);
+    supervisor->initialize();
+
+    // Start the supervisor.
+    supervisor->start();
+
+    /*
     // Create the resource allocator, subtract one core for the data output thread on the master.
     #ifdef OPT_CUDA
     Print::printf(Print::INFO, "MPI process %d using %d core(s) and %d CUDA device(s).", lm::MPI::worldRank, numberCpuCores, (int)cudaDevices.size());
@@ -345,9 +341,9 @@ void executeSimulationMPISingleMaster()
     checkpointSignaler->start();
     checkpointSignaler->startCheckpointing(checkpointInterval);
 
-    // Open the file.
-    lm::io::hdf5::Hdf5File * file = new lm::io::hdf5::Hdf5File(simulationFilename);
+    */
 
+    /*
     // Start the data output thread.
     lm::main::LocalDataOutputWorker * dataOutputWorker = new lm::main::LocalDataOutputWorker(file);
     dataOutputWorker->setAffinity(reservedCpuCore);
@@ -365,13 +361,18 @@ void executeSimulationMPISingleMaster()
     lm::main::ReplicateSupervisor * replicateSupervisor = new lm::main::ReplicateSupervisor(maxSlotsTable, file);
     replicateSupervisor->setAffinity(reservedCpuCore);
     replicateSupervisor->start();
+*/
 
-    // join the replicate supervisor thread. the termination of this thread should be promptly followed by the termination of this process and all subprocesses
-    signalHandler->setMainWorker(replicateSupervisor);
-    void * ret;
-    PTHREAD_EXCEPTION_CHECK(pthread_join(replicateSupervisor->getId(), &ret));
+    // Wait for the resource controller to stop.
+    resourceController.wait();
+
+    // Wait for the supervisor to stop.
+    supervisor->wait();
+    delete supervisor;
+    supervisor = NULL;
     Print::printf(Print::INFO, "Master shutting down.");
 
+    /*
     // Stop checkpointing.
     checkpointSignaler->stopCheckpointing();
 
@@ -383,11 +384,13 @@ void executeSimulationMPISingleMaster()
         MPI_EXCEPTION_CHECK(MPI_Send(&exitCode, 1, MPI_INT, destProc, lm::MPI::MSG_EXIT, MPI_COMM_WORLD));
     }
 
+*/
+
     // Wait for all of the processes to exit.
     MPI_EXCEPTION_CHECK(MPI_Barrier(MPI_COMM_WORLD));
 
     // If this was a global abort, stop the workers quickly.
-    if (globalAbort)
+    /*if (globalAbort)
     {
         Print::printf(Print::WARNING, "Aborting worker threads.");
         lm::thread::WorkerManager::getInstance()->abortWorkers();
@@ -412,6 +415,8 @@ void executeSimulationMPISingleMaster()
 //    if (lattice != NULL) delete [] lattice; lattice = NULL;
 //    if (latticeSites != NULL) delete [] latticeSites; latticeSites = NULL;
 
+*/
+
     Print::printf(Print::DEBUG, "MPI master process %d finished.", lm::MPI::worldRank);
 }
 
@@ -419,6 +424,11 @@ void executeSimulationMPISingleSlave()
 {
     Print::printf(Print::DEBUG, "MPI slave process %d started.", lm::MPI::worldRank);
 
+    // Start the resource controller for this process.
+    lm::main::ResourceController resourceController;
+    resourceController.start();
+
+    /*
     // Create the queue to handle data output.
     lm::main::MPIRemoteDataOutputQueue * dataOutputQueue = new lm::main::MPIRemoteDataOutputQueue();
     lm::main::DataOutputQueue::setInstance(dataOutputQueue);
@@ -435,20 +445,12 @@ void executeSimulationMPISingleSlave()
     // Report the max simultaneous simulations to the master
     int maxSlots = resourceAllocator.getMaxSlots();
     MPI_EXCEPTION_CHECK(MPI_Gather(&maxSlots, 1, MPI_INT, NULL, 1, MPI_INT, lm::MPI::MASTER, MPI_COMM_WORLD));
-
-    //start the signal handler thread on the slave
-    lm::main::SignalHandler * signalHandler = new lm::main::SignalHandler();
-	signalHandler->start();
-
     //start the replicate distributor thread on the slave
     lm::main::ReplicateDistributor * replicateDistributor = new lm::main::ReplicateDistributor(resourceAllocator);
     replicateDistributor->start();
 
     // join the replicate distributor thread. the termination of this thread should be promptly followed by the termination of this process
-    signalHandler->setMainWorker(replicateDistributor);
-    void * ret;
-    PTHREAD_EXCEPTION_CHECK(pthread_join(replicateDistributor->getId(), &ret));
-    Print::printf(Print::INFO, "MPI slave process %d shutting down.", lm::MPI::worldRank);
+    MPI_EXCEPTION_CHECK(MPI_Recv(NULL, 0, MPI_INT, lm::MPI::MASTER, lm::MPI::MSG_EXIT, MPI_COMM_WORLD, &messageStatus));
 
     // If this was a global abort, stop the workers quickly.
     if (globalAbort)
@@ -472,9 +474,13 @@ void executeSimulationMPISingleSlave()
 //    MPI_EXCEPTION_CHECK(MPI_Free_mem(staticDataBuffer));
 //    if (lattice != NULL) delete [] lattice; lattice = NULL;
 //    if (latticeSites != NULL) delete [] latticeSites; latticeSites = NULL;
+*/
 
-    Print::printf(Print::DEBUG, "MPI slave process %d finished.", lm::MPI::worldRank);
+    // Wait for the resource controller to stop.
+    resourceController.wait();
 
     // Wait for all of the processes to exit.
     MPI_EXCEPTION_CHECK(MPI_Barrier(MPI_COMM_WORLD));
+
+    Print::printf(Print::DEBUG, "MPI slave process %d finished.", lm::MPI::worldRank);
 }

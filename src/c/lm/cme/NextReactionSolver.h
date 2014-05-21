@@ -59,6 +59,7 @@ using lm::rng::RandomGenerator;
 namespace lm {
 namespace cme {
 
+/*
 class NextReactionSolver : public CMESolver
 {
 public:
@@ -78,7 +79,7 @@ protected:
 protected:
     ReactionQueue * reactionQueue;
 };
-
+*/
 }
 }
 

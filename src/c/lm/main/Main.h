@@ -44,10 +44,10 @@
 #include <list>
 #include <vector>
 #include <ctime>
-#include "lm/me/MESolverFactory.h"
 
 using std::string;
 using std::vector;
+
 
 /**
  * The function being performed.
@@ -75,38 +75,49 @@ extern time_t checkpointInterval;
 extern volatile bool globalAbort;
 
 /**
+ * The supervisor to use for the simulations.
+ */
+extern string supervisorClassName;
+
+/**
  * The solver to use for the simulations.
  */
-extern lm::me::MESolverFactory solverFactory;
+extern string solverClassName;
+
+/**
+ * The filename for the resource list.
+ */
+extern string resourceFilename;
 
 /**
  * The number of cpu cores assigned to each process.
  */
-extern int numberCpuCores;
+extern int cpuCores;
 
 /**
  * The number of cpu cores to assign per replicate (can be a fraction, e.g., 1/2, 1/4, etc).
  */
 extern float cpuCoresPerReplicate;
 
-#ifdef OPT_CUDA
+/**
+ * Whether we should use CPU affinity.
+ */
+extern bool useCPUAffinity;
 
 /**
- * The cuda devices assigned to each process.
+ * The number gpu devices assigned to each process.
  */
-extern vector<int> cudaDevices;
+extern int gpuDevices;
 
 /**
- * The number of cuda devices to assign per replicate (can be a fraction, e.g., 1/2, 1/4, etc).
+ * The number of gpu devices to assign per replicate (can be a fraction, e.g., 1/2, 1/4, etc).
  */
-extern float cudaDevicesPerReplicate;
+extern float gpuDevicesPerReplicate;
 
 /**
  * Whether we should print the cuda device capabilities on startup.
  */
-extern bool shouldPrintCudaCapabilities;
-
-#endif
+extern bool shouldPrintGPUCapabilities;
 
 /**
  * Whether we should reserve a core for the output thread.

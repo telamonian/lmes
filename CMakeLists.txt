@@ -13,6 +13,7 @@ project(lm)
 ################
 #if certain packages cannot be found, the end-user (you) can change the variables in CMakeConfig.txt to point to package paths
 include(CMakeConfig.txt)
+set(ENV{HDF5_ROOT} ${HDF5_ROOT})
 
 #automagic setup for linux, os X 10.7-8 (and lower?), and os X 10.9
 add_definitions(-DBUILD_INFO -DVERBOSITY_LEVEL=10 -DOPT_CUDA)
@@ -50,7 +51,7 @@ find_package(libsbml REQUIRED)
 find_package(protobuf REQUIRED)
 find_package(HDF5 COMPONENTS C HL REQUIRED)
 find_package(cuda REQUIRED)
-find_package(SWIG)
+#find_package(SWIG)
 find_package(PythonInterp)
 find_package(PythonLibs)
 #find_package(Boost)
@@ -69,6 +70,7 @@ include_directories(profile
                     ${PYTHON_INCLUDE_DIRS})
 
 #add subdirectories
+add_subdirectory(src/protobuf)
 add_subdirectory(src/c)
 add_subdirectory(src/cuda)
 add_dependencies(lm_cuda_lib lm_c_lib)
@@ -80,10 +82,23 @@ add_dependencies(lm_cuda_lib lm_c_lib)
 #TARGET: lm
 ################
 set(lm_main_src src/c/lm/main/MainMPI.cpp)
-add_executable(lm ${lm_main_src}) #${proto_hdrs})
 
-target_link_libraries(lm lm_c_lib
-                         lm_cuda_lib 
+add_executable(lm ${lm_main_src})
+
+# The following code is need to ensue that all objects from the custom static libraries are
+# linked in to the executable, even if they are not referenced from the main program.
+# Without this, static initialization of the ClassFactory does not work.
+SET(LM_C_LIB lm_c_lib)
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    target_link_libraries(lm -Wl,--whole-archive)
+    target_link_libraries(lm ${LM_C_LIB})
+    target_link_libraries(lm -Wl,--no-whole-archive)
+ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    target_link_libraries(lm -Wl,-force_load)
+    target_link_libraries(lm ${LM_C_LIB})
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+
+target_link_libraries(lm lm_cuda_lib
                          ${CMAKE_THREAD_LIBS_INIT}
                          ${libsbml_LIBRARIES}
                          ${PROTOBUF_LIBRARIES}

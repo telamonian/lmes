@@ -59,6 +59,7 @@ using lm::rng::RandomGenerator;
 namespace lm {
 namespace rdme {
 
+/*
 NextSubvolumeSolver::NextSubvolumeSolver():RDMESolver((RandomGenerator::Distributions)(RandomGenerator::EXPONENTIAL|RandomGenerator::UNIFORM)),numberSubvolumes(0),reactionPropensities(NULL),latticeSpacingSquared(0.0),reactionQueue(NULL),currentSubvolumeSpeciesCounts(NULL)
 {
 }
@@ -587,6 +588,6 @@ void NextSubvolumeSolver::addParticles(lattice_size_t subvolume, particle_t part
 		}
 	}
 }
-
+*/
 }
 }

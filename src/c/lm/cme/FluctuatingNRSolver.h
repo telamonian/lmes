@@ -57,6 +57,7 @@ using lm::rng::RandomGenerator;
 namespace lm {
 namespace cme {
 
+/*
 class FluctuatingNRSolver : public NextReactionSolver
 {
 protected:
@@ -89,7 +90,7 @@ protected:
     virtual void destroyModel();
     static double ouPropensity(double time, uint * speciesCounts, void * pargs);
 };
-
+*/
 }
 }
 

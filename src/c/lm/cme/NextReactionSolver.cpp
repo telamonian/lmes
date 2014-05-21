@@ -77,6 +77,7 @@ using lm::rng::RandomGenerator;
 namespace lm {
 namespace cme {
 
+/*
 NextReactionSolver::NextReactionSolver():CMESolver((RandomGenerator::Distributions)(RandomGenerator::EXPONENTIAL)),reactionQueue(NULL)
 {
 }
@@ -425,6 +426,6 @@ int NextReactionSolver::updateReactionEvents(uint sourceReaction, double time, i
 
     return rngNext;
 }
-
+*/
 }
 }

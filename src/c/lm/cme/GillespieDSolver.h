@@ -43,6 +43,7 @@
 #include <map>
 #include <list>
 #include <string>
+#include "lm/ClassFactory.h"
 #include "lm/cme/CMESolver.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/resource/ResourceAllocator.h"
@@ -60,15 +61,19 @@ namespace cme {
 class GillespieDSolver : public CMESolver
 {
 public:
+    static bool registered;
+    static bool registerClass();
+    static void* allocateObject();
+
+public:
     GillespieDSolver();
     virtual ~GillespieDSolver();
-    virtual bool needsReactionModel() {return true;}
-    virtual bool needsDiffusionModel()  {return false;}
-    virtual void buildModel(const uint numberSpecies, const uint numberReactions, const uint * initialSpeciesCounts, const uint * reactionType, const double * k, const int * S, const uint * D, const uint kCols=1);
-    virtual void generateTrajectory();
+    virtual void resetState();
+    virtual void getState(lm::io::TrajectoryState* state);
+    virtual void setState(const lm::io::TrajectoryState& state);
+    virtual bool generateTrajectory(long long maxSteps);
 
 protected:
-    virtual void destroyModel();
     inline void updateAllPropensities(double time);
     inline void updatePropensities(double time, uint r);
 

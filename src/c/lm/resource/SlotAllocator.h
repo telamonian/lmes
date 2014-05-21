@@ -52,8 +52,6 @@
 #include <vector>
 #include "lm/resource/Slot.h"
 #include "lm/thread/Thread.h"
-#include "lm/work/Result.pb.h"
-#include "lm/work/Work.pb.h"
 
 using std::deque;
 using std::map;
@@ -74,7 +72,7 @@ public:
     virtual ~SlotAllocator() {}
 
     virtual int getMaxSlots();
-    virtual void update(lm::work::Result result);
+    //virtual void update(lm::work::Result result);
     virtual map<vector<int>, Slot>::iterator getBegin() {return slots.begin();}
     virtual map<vector<int>, Slot>::iterator getEnd() {return slots.end();}
 

@@ -41,28 +41,46 @@
 #define LM_ME_MESOLVER_H
 
 #include <map>
-#include "lm/resource/ResourceAllocator.h"
+#include <string>
+#include <vector>
+
+#include "lm/io/DiffusionModel.pb.h"
+#include "lm/io/ReactionModel.pb.h"
+#include "lm/io/SimulationParameters.pb.h"
+#include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/io/TrajectoryState.pb.h"
+#include "lm/message/RunWorkUnit.pb.h"
 
 using std::map;
-using lm::resource::ResourceAllocator;
+using std::string;
+using std::vector;
 
 namespace lm {
 
-namespace io {
-class ReactionModel;
-}
 namespace me {
 
 class MESolver
 {
-
 public:
     MESolver();
     virtual ~MESolver();
-    virtual void initialize(unsigned int replicate, map<string,string> * parameters, ResourceAllocator::ComputeResources * resources)=0;
+    virtual void setComputeResources(vector<int> cpus, vector<int> gpus);
+    virtual int getSimultaneousTrajectories();
+    virtual void setSimulationParameters(const lm::io::SimulationParameters& simulationParameters);
     virtual bool needsReactionModel()=0;
+    virtual void setReactionModel(const lm::io::ReactionModel& rm)=0;
     virtual bool needsDiffusionModel()=0;
-    virtual void generateTrajectory()=0;
+    virtual void setDiffusionModel(const lm::io::DiffusionModel& dm)=0;
+    virtual void resetState()=0;
+    virtual void getState(lm::io::TrajectoryState* state)=0;
+    virtual void setState(const lm::io::TrajectoryState& state)=0;
+    virtual void setLimits(const lm::io::TrajectoryLimits& limits)=0;
+    virtual bool generateTrajectory(long long maxSteps)=0;
+
+protected:
+    vector<int> cpus;
+    vector<int> gpus;
+    map<string,string> simulationParameters;
 };
 
 }
