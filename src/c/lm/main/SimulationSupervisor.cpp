@@ -181,16 +181,16 @@ void SimulationSupervisor::allResourcesRegistered()
     Print::printf(Print::INFO, "All resources registered with supervisor, starting work unit runners.");
 
     // TODO change to use slot allocator code.
-    int slotIndex=0;
+    slotsStarted=0;
     for (map<int,ResourceMap::ComputeResources>::iterator it=allResources.begin(); it != allResources.end(); it++)
     {
         ResourceMap::ComputeResources resources = it->second;
         lm::message::Message msg;
-        for (int i=0; i<(int)resources.cpuCores.size(); i++, slotIndex++)
+        for (int i=0; i<(int)resources.cpuCores.size(); i++, slotsStarted++)
         {
             // Send a message to the controller to start a work unit runner.
             lm::message::StartWorkUnitRunner* s = msg.add_start_work_unit_runner();
-            s->set_slot(slotIndex);
+            s->set_slot(slotsStarted);
             s->set_use_cpu_affinity(useCPUAffinity);
             s->add_cpu(resources.cpuCores[i]);
             if (resources.gpusDevices.size() > 0)
@@ -200,7 +200,6 @@ void SimulationSupervisor::allResourcesRegistered()
             if (hasReactionModel) *s->mutable_reaction_model() = reactionModel;
             if (hasDiffusionModel) *s->mutable_diffusion_model() = diffusionModel;
         }
-        slotsStarted+=slotIndex;
         Print::printf(Print::INFO, "Start work unit runner(s) %d:%d start msg sent.", resources.controller_process, resources.controller_thread);
         communicator.sendMessage(resources.controller_process, resources.controller_thread, &msg);
     }

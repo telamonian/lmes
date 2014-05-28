@@ -70,7 +70,7 @@ include_directories(profile
                     ${PYTHON_INCLUDE_DIRS})
 
 #add subdirectories
-add_subdirectory(src/protobuf)
+#add_subdirectory(src/protobuf)
 add_subdirectory(src/c)
 add_subdirectory(src/cuda)
 add_dependencies(lm_cuda_lib lm_c_lib)
