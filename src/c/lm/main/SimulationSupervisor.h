@@ -104,8 +104,7 @@ protected:
     lm::io::ReactionModel reactionModel;
     bool hasDiffusionModel;
     lm::io::DiffusionModel diffusionModel;
-    int slotsStarted;
-    int slotsRegistered;
+    lm::resource::SlotList slotList;
 };
 
 }

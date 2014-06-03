@@ -1,0 +1,215 @@
+/*
+ * University of Illinois Open Source License
+ * Copyright 2011 Luthey-Schulten Group,
+ * All rights reserved.
+ * 
+ * Developed by: Luthey-Schulten Group
+ * 			     University of Illinois at Urbana-Champaign
+ * 			     http://www.scs.uiuc.edu/~schulten
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the Software), to deal with 
+ * the Software without restriction, including without limitation the rights to 
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
+ * of the Software, and to permit persons to whom the Software is furnished to 
+ * do so, subject to the following conditions:
+ * 
+ * - Redistributions of source code must retain the above copyright notice, 
+ * this list of conditions and the following disclaimers.
+ * 
+ * - Redistributions in binary form must reproduce the above copyright notice, 
+ * this list of conditions and the following disclaimers in the documentation 
+ * and/or other materials provided with the distribution.
+ * 
+ * - Neither the names of the Luthey-Schulten Group, University of Illinois at
+ * Urbana-Champaign, nor the names of its contributors may be used to endorse or
+ * promote products derived from this Software without specific prior written
+ * permission.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL 
+ * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR 
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+ * OTHER DEALINGS WITH THE SOFTWARE.
+ *
+ * Author(s): Elijah Roberts
+ */
+
+#include <iostream>
+#include <pthread.h>
+#include <sstream>
+#include <vector>
+#include "lm/Exceptions.h"
+#include "lm/Math.h"
+#include "lm/message/Communicator.h"
+#include "lm/MPI.h"
+#include "lm/Print.h"
+#include "lm/resource/Slot.h"
+#include "lm/resource/SlotList.h"
+#include "lm/thread/Thread.h"
+#include "lm/Types.h"
+
+using lm::thread::PthreadException;
+using lm::resource::Slot;
+using std::vector;
+
+namespace lm {
+namespace resource {
+
+SlotList::SlotList(lm::message::Communicator * supervisorComm): busySlots(), freeSlots(), supervisorComm(supervisorComm)
+{
+}
+
+SlotList::~SlotList()
+{
+    for (SlotMap::iterator m_it=busySlots.begin(); m_it!=busySlots.end(); ++m_it) delete **m_it;
+    for (SlotDeque::iterator d_it=freeSlots.begin(); d_it!=freeSlots.end(); ++d_it) delete **d_it;
+}
+
+void SlotList::addSlots(map<int,ResourceMap::ComputeResources> & allResources,
+			  lm::io::SimulationParameters & simulationParameters,
+			  bool hasReactionModel,
+			  lm::io::ReactionModel & reactionModel,
+			  bool hasDiffusionModel,
+			  lm::io::DiffusionModel & diffusionModel)
+{
+	for (map<int,ResourceMap::ComputeResources>::iterator it=allResources.begin(); it != allResources.end(); it++) {
+		addSlots(it->second,
+				 simulationParameters,
+				 hasReactionModel,
+				 reactionModel,
+				 hasDiffusionModel,
+				 diffusionModel);
+	}
+}
+
+void SlotList::addSlots(ResourceMap::ComputeResources & resources,
+					   lm::io::SimulationParameters & simulationParameters,
+					   bool hasReactionModel,
+					   lm::io::ReactionModel & reactionModel,
+					   bool hasDiffusionModel,
+					   lm::io::DiffusionModel & diffusionModel,
+					   float cpusPerSlot,
+					   float gpusPerSlot)
+{
+	int cpuSlots = resources.cpuCores.size()/cpusPerSlot;
+	int gpuSlots = resources.gpusDevices.size()/gpusPerSlot;
+	int slotsToStart = cpuSlots > gpuSlots ? gpuSlots : cpuSlots;
+	for (int i=0; i<slotsToStart; i++)
+	{
+		addSlot(resources.controller_process,
+				resources.controller_thread,
+				simulationParameters,
+				hasReactionModel,
+				reactionModel,
+				hasDiffusionModel,
+				diffusionModel);
+	}
+	Print::printf(Print::INFO, "Start work unit runner(s) %d:%d start msg sent.", resources.controller_process, resources.controller_thread);
+}
+
+void SlotList::addSlot(int controller_process,
+					   int controller_thread,
+					   lm::io::SimulationParameters & simulationParameters,
+					   bool hasReactionModel,
+					   lm::io::ReactionModel & reactionModel,
+					   bool hasDiffusionModel,
+					   lm::io::DiffusionModel & diffusionModel)
+{
+    Slot * addedSlot = new Slot(controller_process,
+								controller_thread,
+								supervisorComm,
+								simulationParameters,
+								hasReactionModel,
+								reactionModel,
+								hasDiffusionModel,
+								diffusionModel);;
+    freeSlots.push_back(addedSlot)
+}
+
+void SlotList::delSlot(int process, int thread)
+{
+    SlotMap::iterator m_it(getBusySlotIt(process, thread));
+    if (m_it!=busySlots.end()) {  //the slot we're trying to delete is currently busy
+        //TODO: implement behavior for what is presumably the error state of trying to delete a currently busy slot. For now, pretend like it's fine and just delete the slot
+        delete **m_it;
+        busySlots.erase(m_it);
+    }
+    else {
+        SlotDeque::iterator d_it(getFreeSlotIt(process, thread));
+        if (d_it!=freeSlots.end()) {    //the slot we're trying to delete is currently free
+            delete **d_it;
+            freeSlots.erase(d_it);
+        }
+        else {  //error state: we have tried to delete a slot that doesn't exist
+            Print::printf(Print::ERROR, "Tried to delete slot %d:%d, but was not found in either container of free or busy slots.", process, thread);
+        }
+    }
+}
+
+Slot * SlotList::getSlot(int process, int thread)
+{
+    SlotMap::iterator m_it(getBusySlotIt(process, thread));
+    if (m_it!=busySlots.end()) {  //the slot we're trying to get is currently busy
+        return *m_it;
+    }
+    else {
+        SlotDeque::iterator d_it(getFreeSlotIt(process, thread));
+        if (d_it!=freeSlots.end()) {    //the slot we're trying to get is currently free
+            return *d_it;
+        }
+        else {  //possilbe error state: the slot that we're trying to get doesn't exist
+            Print::printf(Print::ERROR, "Tried to get slot %d:%d, but was not found in either container of free or busy slots.", process, thread);
+        }
+    }
+    return NULL;
+}
+
+Slot * SlotList::alloc()
+{
+    Slot * freeSlot(*(freeSlots.front()));
+    freeSlots.pop_front();
+    return freeSlot;
+}
+
+void SlotList::free(int process, int thread)
+{
+    SlotMap::iterator m_it(getBusySlotIt(process, thread));
+    if (m_it!=busySlots.end()) {
+        Slot * freedSlot(*m_it);
+        busySlots.erase(m_it);
+        freeSlots.push_back(freedSlot);
+    }
+    else {  //it is an error state if this branch is reached
+        if (getFreeSlotIt(process, thread)!=freeSlots.end()) {
+            Print::printf(Print::ERROR, "Tried to double free slot %d:%d.", process, thread);
+        }
+        else {
+        Print::printf(Print::ERROR, "Tried to free non-existent slot %d:%d.", process, thread);
+        }
+    }
+}
+
+//for getBusySlotIt and getFreeSlotIt, it is the responsibility of the calling function to check whether the returned iterator is equal to container.end()
+SlotMap::iterator SlotList::getBusySlotIt(int process, int thread)
+{
+    vector<int> slotKey={process, thread};
+    return busySlots.find(slotKey);
+}
+
+SlotDeque::iterator SlotList::getFreeSlotIt(int process, int thread)
+{
+    vector<int> slotKey={process, thread};
+    SlotDeque::iterator d_it=freeSlots.begin()
+    for (; d_it!=freeSlots.end(); ++d_it) {
+        if (slotKey==((*d_it)->getSlotKey())) {
+            return d_it;
+        }
+    }
+    return d_it;
+}
+
+}
+}

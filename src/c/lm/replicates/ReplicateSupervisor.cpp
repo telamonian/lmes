@@ -171,15 +171,17 @@ void ReplicateSupervisor::startSimulation()
         }
     }
 
-    // Go through the replicates to run and start the initial work units. TODO loop over available slots.
-    int slot_process=0;
-    int slot_thread=3;
-
+    // Go through the replicates to run and start the initial work units.
+    // TODO move RunWorkUnit message creation and sending to a slot method
     while (true)
     {
         // Get the next trajectory to run, if there is one.
         int nextTrajectory = trajectories->nextTrajectoryToRun();
         if (nextTrajectory < 0) break;
+
+        // Allocate the next free slot, if there is one.
+        lm::resource::Slot * workSlot = slotList.alloc();
+        if (workSlot==NULL) break;
 
         // Send the start work unit message.
         lm::message::Message msg;
@@ -192,7 +194,7 @@ void ReplicateSupervisor::startSimulation()
         run.set_max_steps(100);
         *run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
         *run.mutable_limits() = limits;
-        communicator.sendMessage(slot_process, slot_thread, &msg);
+        communicator.sendMessage(workSlot->getSlotKey()[0], workSlot->getSlotKey()[1], &msg);
         trajectories->updateTrajectoryStatus(nextTrajectory, TrajectoryList::RUNNING);
         break;
     }
@@ -218,10 +220,12 @@ void ReplicateSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit& 
         trajectories->updateTrajectoryStatus(msg.final_state().trajectory_id(), TrajectoryList::WAITING);
         trajectories->updateTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
     }
+    // Free the slot that the returning work unit just ran on
+    slotList.free(msg.process(), msg.thread());
 
-    // TODO find available slot.
-    int slot_process=0;
-    int slot_thread=3;
+    // Get next available slot. If there are more trajectories than slots, this is guaranteed to be the slot we just freed. Otherwise it will be the "coldest" (longest unoccupied) slot
+    lm::resource::Slot * workSlot = slotList.alloc();
+    if (workSlot==NULL) Print::printf(Print::ERROR, "Slot allocation error (there was no free slot even though a slot should have been freed immediately prior)");
 
     // Get the next trajectory to run, if there is one.
     int nextTrajectory = trajectories->nextTrajectoryToRun();
@@ -238,7 +242,7 @@ void ReplicateSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit& 
         run.set_max_steps(100);
         *run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
         *run.mutable_limits() = limits;
-        communicator.sendMessage(slot_process, slot_thread, &msg);
+        communicator.sendMessage(workSlot->getSlotKey()[0], workSlot->getSlotKey()[1], &msg);
         trajectories->updateTrajectoryStatus(nextTrajectory, TrajectoryList::RUNNING);
     }
 

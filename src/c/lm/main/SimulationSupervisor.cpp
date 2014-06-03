@@ -52,6 +52,7 @@
 #include "lm/message/StartedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnitRunner.pb.h"
 #include "lm/resource/ResourceMap.h"
+#include "lm/resource/SlotList.h"
 
 using lm::resource::ResourceMap;
 
@@ -59,7 +60,7 @@ namespace lm {
 namespace main {
 
 SimulationSupervisor::SimulationSupervisor()
-    :communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationFilename(""),solverClassName(""),useCPUAffinity(false),hasReactionModel(false),hasDiffusionModel(false),slotsStarted(0),slotsRegistered(0)
+    :communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationFilename(""),solverClassName(""),useCPUAffinity(false),hasReactionModel(false),hasDiffusionModel(false),slotList(&communicator)
 {
 }
 
@@ -119,10 +120,10 @@ int SimulationSupervisor::run()
             {
                 resourceAvailable(message.resources_available());
             }
-            else if (message.has_started_work_unit_runner())
-            {
-                workUnitRunnerStarted(message.started_work_unit_runner());
-            }
+//            else if (message.has_started_work_unit_runner())
+//            {
+//                workUnitRunnerStarted(message.started_work_unit_runner());
+//            }
             else if (message.has_started_work_unit())
             {
                 workUnitStarted(message.started_work_unit());
@@ -180,42 +181,28 @@ void SimulationSupervisor::allResourcesRegistered()
     // Start the work unit runners.
     Print::printf(Print::INFO, "All resources registered with supervisor, starting work unit runners.");
 
-    // TODO change to use slot allocator code.
-    slotsStarted=0;
-    for (map<int,ResourceMap::ComputeResources>::iterator it=allResources.begin(); it != allResources.end(); it++)
-    {
-        ResourceMap::ComputeResources resources = it->second;
-        lm::message::Message msg;
-        for (int i=0; i<(int)resources.cpuCores.size(); i++, slotsStarted++)
-        {
-            // Send a message to the controller to start a work unit runner.
-            lm::message::StartWorkUnitRunner* s = msg.add_start_work_unit_runner();
-            s->set_slot(slotsStarted);
-            s->set_use_cpu_affinity(useCPUAffinity);
-            s->add_cpu(resources.cpuCores[i]);
-            if (resources.gpusDevices.size() > 0)
-                s->add_gpu(resources.gpusDevices[0]);
-            s->set_solver(solverClassName);
-            *s->mutable_simulation_parameters() = simulationParameters;
-            if (hasReactionModel) *s->mutable_reaction_model() = reactionModel;
-            if (hasDiffusionModel) *s->mutable_diffusion_model() = diffusionModel;
-        }
-        Print::printf(Print::INFO, "Start work unit runner(s) %d:%d start msg sent.", resources.controller_process, resources.controller_thread);
-        communicator.sendMessage(resources.controller_process, resources.controller_thread, &msg);
-    }
+    slotList.addSlots(allResources,
+    				  simulationParameters,
+    				  hasReactionModel,
+    				  reactionModel,
+    				  hasDiffusionModel,
+    				  diffusionModel);
+
+    Print::printf(Print::INFO, "All work unit runners started, beginning simulation.");
+    startSimulation();
 }
 
-void SimulationSupervisor::workUnitRunnerStarted(const lm::message::StartedWorkUnitRunner& msg)
-{
-    Print::printf(Print::INFO, "Slot %d work unit runner %d:%d started, %d simultaneous work units.", msg.slot(), msg.process(), msg.thread(), msg.simultaneous_work_units());
-
-    // TODO update slot allocator with slot available and start simulation if all slots are ready.
-    if (++slotsRegistered == slotsStarted)
-    {
-        Print::printf(Print::INFO, "All work unit runners started, beginning simulation.");
-        startSimulation();
-    }
-}
+//void SimulationSupervisor::workUnitRunnerStarted(const lm::message::StartedWorkUnitRunner& msg)
+//{
+//    Print::printf(Print::INFO, "Slot %d work unit runner %d:%d started, %d simultaneous work units.", msg.slot(), msg.process(), msg.thread(), msg.simultaneous_work_units());
+//
+//    // TODO update slot allocator with slot available and start simulation if all slots are ready.
+//    if (++slotsRegistered == slotsStarted)
+//    {
+//        Print::printf(Print::INFO, "All work unit runners started, beginning simulation.");
+//        startSimulation();
+//    }
+//}
 
 
 }

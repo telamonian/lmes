@@ -213,6 +213,8 @@ void WorkUnitRunner::runWorkUnit(const lm::message::RunWorkUnit& wu)
     lm::message::Message msgp2;
     lm::message::FinishedWorkUnit* msg2 = msgp2.mutable_finished_work_unit();
     msg2->set_work_unit_id(wu.work_unit_id());
+    msg2->set_process(lm::MPI::worldRank);
+    msg2->set_thread(threadNumber);
     if (limitReached)
         msg2->set_status(lm::message::FinishedWorkUnit::LIMIT_REACHED);
     else
