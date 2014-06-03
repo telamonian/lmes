@@ -43,6 +43,7 @@
 #include <string>
 #include <vector>
 #include "lm/Exceptions.h"
+#include "lm/main/Main.h"
 #include "lm/Math.h"
 #include "lm/message/Communicator.h"
 #include "lm/MPI.h"
@@ -86,7 +87,9 @@ void SlotList::addSlots(map<int,ResourceMap::ComputeResources> & allResources,
 				 hasReactionModel,
 				 reactionModel,
 				 hasDiffusionModel,
-				 diffusionModel);
+				 diffusionModel,
+				 cpuCoresPerReplicate,	 // for now we'll just use the command line arguments for the cpu/gpu per slot arguments
+				 gpuDevicesPerReplicate);
 	}
 }
 
@@ -103,6 +106,7 @@ void SlotList::addSlots(ResourceMap::ComputeResources & resources,
 	int cpuSlots = resources.cpuCores.size()/cpusPerSlot;
 	int gpuSlots = resources.gpusDevices.size()/gpusPerSlot;
 	int slotsToStart = cpuSlots > gpuSlots ? gpuSlots : cpuSlots;
+	Print::printf(Print::INFO, "Attempting to start %d slots with %.3f cpus and %.3f gpus each on process %d.", slotsToStart, cpusPerSlot, gpusPerSlot, resources.controller_process);
 	for (int i=0; i<slotsToStart; i++)
 	{
 		addSlot(resources.controller_process,
@@ -178,9 +182,17 @@ Slot * SlotList::getSlot(int process, int thread)
 
 Slot * SlotList::alloc()
 {
-    Slot * freeSlot(freeSlots.front());
-    freeSlots.pop_front();
-    return freeSlot;
+	if (freeSlots.size() > 0)
+	{
+		Slot * freeSlot(freeSlots.front());
+		freeSlots.pop_front();
+		busySlots[freeSlot->getSlotKey()] = freeSlot;
+		return freeSlot;
+	}
+	else
+	{
+		return NULL;
+	}
 }
 
 void SlotList::free(int process, int thread)

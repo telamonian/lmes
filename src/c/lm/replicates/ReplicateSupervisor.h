@@ -109,6 +109,7 @@ protected:
 protected:
     lm::io::TrajectoryLimits limits;
     TrajectoryList* trajectories;
+    long long workUnitCount;
 
     /*
     void * staticDataBuffer;

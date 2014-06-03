@@ -42,6 +42,7 @@
 
 #include "lm/ClassFactory.h"
 #include "lm/Print.h"
+#include "lm/main/Main.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
@@ -71,7 +72,7 @@ void* ReplicateSupervisor::allocateObject()
 }
 
 ReplicateSupervisor::ReplicateSupervisor()
-:trajectories(NULL)
+:trajectories(NULL), workUnitCount(0)
 {
 
 }
@@ -113,7 +114,7 @@ void ReplicateSupervisor::startSimulation()
     Print::printf(Print::INFO, "Replicate supervisor starting simulation.");
 
     // Create the new trajectory list.
-    trajectories = new TrajectoryList(0, 1);
+    trajectories = new TrajectoryList(::replicates.front(), ::replicates.back());
 
     // See if we have a max time limit.
     if (simulationParameterMap.count("maxTime"))
@@ -186,7 +187,7 @@ void ReplicateSupervisor::startSimulation()
         // Send the start work unit message.
         lm::message::Message msg;
         lm::message::RunWorkUnit& run = *msg.mutable_run_work_unit();
-        run.set_work_unit_id(1);
+        run.set_work_unit_id(workUnitCount++);
         run.set_supervisor_process(communicator.getSourceProcess());
         run.set_supervisor_thread(communicator.getSourceThread());
         run.set_output_process(communicator.getSourceProcess()); // TODO change to output process
@@ -194,9 +195,10 @@ void ReplicateSupervisor::startSimulation()
         run.set_max_steps(100);
         *run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
         *run.mutable_limits() = limits;
+        Print::printf(Print::INFO, "Sending message to start work unit %d with trajectory %d on slot %d:%d.", run.work_unit_id(), nextTrajectory, workSlot->getSlotKey()[0], workSlot->getSlotKey()[1]);
         communicator.sendMessage(workSlot->getSlotKey()[0], workSlot->getSlotKey()[1], &msg);
         trajectories->updateTrajectoryStatus(nextTrajectory, TrajectoryList::RUNNING);
-        break;
+        //break;
     }
 }
 
@@ -234,7 +236,7 @@ void ReplicateSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit& 
         // Send the start work unit message.
         lm::message::Message msg;
         lm::message::RunWorkUnit& run = *msg.mutable_run_work_unit();
-        run.set_work_unit_id(1);
+        run.set_work_unit_id(workUnitCount++);
         run.set_supervisor_process(communicator.getSourceProcess());
         run.set_supervisor_thread(communicator.getSourceThread());
         run.set_output_process(communicator.getSourceProcess()); // TODO change to output process
@@ -242,6 +244,7 @@ void ReplicateSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit& 
         run.set_max_steps(100);
         *run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
         *run.mutable_limits() = limits;
+        Print::printf(Print::INFO, "Sending message to start work unit %d with trajectory %d on slot %d:%d.", run.work_unit_id(), nextTrajectory, workSlot->getSlotKey()[0], workSlot->getSlotKey()[1]);
         communicator.sendMessage(workSlot->getSlotKey()[0], workSlot->getSlotKey()[1], &msg);
         trajectories->updateTrajectoryStatus(nextTrajectory, TrajectoryList::RUNNING);
     }
