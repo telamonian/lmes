@@ -120,10 +120,6 @@ int SimulationSupervisor::run()
             {
                 resourceAvailable(message.resources_available());
             }
-//            else if (message.has_started_work_unit_runner())
-//            {
-//                workUnitRunnerStarted(message.started_work_unit_runner());
-//            }
             else if (message.has_started_work_unit())
             {
                 workUnitStarted(message.started_work_unit());
@@ -182,6 +178,7 @@ void SimulationSupervisor::allResourcesRegistered()
     Print::printf(Print::INFO, "All resources registered with supervisor, starting work unit runners.");
 
     slotList.addSlots(allResources,
+    				  solverClassName,
     				  simulationParameters,
     				  hasReactionModel,
     				  reactionModel,
@@ -191,19 +188,6 @@ void SimulationSupervisor::allResourcesRegistered()
     Print::printf(Print::INFO, "All work unit runners started, beginning simulation.");
     startSimulation();
 }
-
-//void SimulationSupervisor::workUnitRunnerStarted(const lm::message::StartedWorkUnitRunner& msg)
-//{
-//    Print::printf(Print::INFO, "Slot %d work unit runner %d:%d started, %d simultaneous work units.", msg.slot(), msg.process(), msg.thread(), msg.simultaneous_work_units());
-//
-//    // TODO update slot allocator with slot available and start simulation if all slots are ready.
-//    if (++slotsRegistered == slotsStarted)
-//    {
-//        Print::printf(Print::INFO, "All work unit runners started, beginning simulation.");
-//        startSimulation();
-//    }
-//}
-
 
 }
 }

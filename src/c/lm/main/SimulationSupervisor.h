@@ -58,6 +58,7 @@
 #include "lm/message/StartedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnitRunner.pb.h"
 #include "lm/resource/ResourceMap.h"
+#include "lm/resource/SlotList.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 
@@ -90,7 +91,6 @@ protected:
     virtual int run();
     virtual void resourceAvailable(const lm::message::ResourcesAvailable& msg);
     virtual void allResourcesRegistered();
-    virtual void workUnitRunnerStarted(const lm::message::StartedWorkUnitRunner& msg);
 
 protected:
     lm::message::Communicator communicator;

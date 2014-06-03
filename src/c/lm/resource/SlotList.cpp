@@ -40,6 +40,7 @@
 #include <iostream>
 #include <pthread.h>
 #include <sstream>
+#include <string>
 #include <vector>
 #include "lm/Exceptions.h"
 #include "lm/Math.h"
@@ -53,6 +54,7 @@
 
 using lm::thread::PthreadException;
 using lm::resource::Slot;
+using std::string;
 using std::vector;
 
 namespace lm {
@@ -64,19 +66,22 @@ SlotList::SlotList(lm::message::Communicator * supervisorComm): busySlots(), fre
 
 SlotList::~SlotList()
 {
-    for (SlotMap::iterator m_it=busySlots.begin(); m_it!=busySlots.end(); ++m_it) delete **m_it;
-    for (SlotDeque::iterator d_it=freeSlots.begin(); d_it!=freeSlots.end(); ++d_it) delete **d_it;
+    for (SlotMap::iterator m_it=busySlots.begin(); m_it!=busySlots.end(); ++m_it) delete m_it->second;
+    for (SlotDeque::iterator d_it=freeSlots.begin(); d_it!=freeSlots.end(); ++d_it) delete *d_it;
 }
 
 void SlotList::addSlots(map<int,ResourceMap::ComputeResources> & allResources,
-			  lm::io::SimulationParameters & simulationParameters,
-			  bool hasReactionModel,
-			  lm::io::ReactionModel & reactionModel,
-			  bool hasDiffusionModel,
-			  lm::io::DiffusionModel & diffusionModel)
+					  	string solverClassName,
+					  	lm::io::SimulationParameters & simulationParameters,
+					  	bool hasReactionModel,
+					  	lm::io::ReactionModel & reactionModel,
+					  	bool hasDiffusionModel,
+					  	lm::io::DiffusionModel & diffusionModel)
 {
-	for (map<int,ResourceMap::ComputeResources>::iterator it=allResources.begin(); it != allResources.end(); it++) {
+	for (map<int,ResourceMap::ComputeResources>::iterator it=allResources.begin(); it != allResources.end(); it++)
+	{
 		addSlots(it->second,
+				 solverClassName,
 				 simulationParameters,
 				 hasReactionModel,
 				 reactionModel,
@@ -86,13 +91,14 @@ void SlotList::addSlots(map<int,ResourceMap::ComputeResources> & allResources,
 }
 
 void SlotList::addSlots(ResourceMap::ComputeResources & resources,
-					   lm::io::SimulationParameters & simulationParameters,
-					   bool hasReactionModel,
-					   lm::io::ReactionModel & reactionModel,
-					   bool hasDiffusionModel,
-					   lm::io::DiffusionModel & diffusionModel,
-					   float cpusPerSlot,
-					   float gpusPerSlot)
+						string solverClassName,
+						lm::io::SimulationParameters & simulationParameters,
+						bool hasReactionModel,
+						lm::io::ReactionModel & reactionModel,
+						bool hasDiffusionModel,
+						lm::io::DiffusionModel & diffusionModel,
+						float cpusPerSlot,
+						float gpusPerSlot)
 {
 	int cpuSlots = resources.cpuCores.size()/cpusPerSlot;
 	int gpuSlots = resources.gpusDevices.size()/gpusPerSlot;
@@ -101,6 +107,7 @@ void SlotList::addSlots(ResourceMap::ComputeResources & resources,
 	{
 		addSlot(resources.controller_process,
 				resources.controller_thread,
+				solverClassName,
 				simulationParameters,
 				hasReactionModel,
 				reactionModel,
@@ -112,6 +119,7 @@ void SlotList::addSlots(ResourceMap::ComputeResources & resources,
 
 void SlotList::addSlot(int controller_process,
 					   int controller_thread,
+					   string solverClassName,
 					   lm::io::SimulationParameters & simulationParameters,
 					   bool hasReactionModel,
 					   lm::io::ReactionModel & reactionModel,
@@ -121,12 +129,13 @@ void SlotList::addSlot(int controller_process,
     Slot * addedSlot = new Slot(controller_process,
 								controller_thread,
 								supervisorComm,
+								solverClassName,
 								simulationParameters,
 								hasReactionModel,
 								reactionModel,
 								hasDiffusionModel,
-								diffusionModel);;
-    freeSlots.push_back(addedSlot)
+								diffusionModel);
+    freeSlots.push_back(addedSlot);
 }
 
 void SlotList::delSlot(int process, int thread)
@@ -134,13 +143,13 @@ void SlotList::delSlot(int process, int thread)
     SlotMap::iterator m_it(getBusySlotIt(process, thread));
     if (m_it!=busySlots.end()) {  //the slot we're trying to delete is currently busy
         //TODO: implement behavior for what is presumably the error state of trying to delete a currently busy slot. For now, pretend like it's fine and just delete the slot
-        delete **m_it;
+        delete m_it->second;
         busySlots.erase(m_it);
     }
     else {
         SlotDeque::iterator d_it(getFreeSlotIt(process, thread));
         if (d_it!=freeSlots.end()) {    //the slot we're trying to delete is currently free
-            delete **d_it;
+            delete *d_it;
             freeSlots.erase(d_it);
         }
         else {  //error state: we have tried to delete a slot that doesn't exist
@@ -153,7 +162,7 @@ Slot * SlotList::getSlot(int process, int thread)
 {
     SlotMap::iterator m_it(getBusySlotIt(process, thread));
     if (m_it!=busySlots.end()) {  //the slot we're trying to get is currently busy
-        return *m_it;
+        return m_it->second;
     }
     else {
         SlotDeque::iterator d_it(getFreeSlotIt(process, thread));
@@ -169,7 +178,7 @@ Slot * SlotList::getSlot(int process, int thread)
 
 Slot * SlotList::alloc()
 {
-    Slot * freeSlot(*(freeSlots.front()));
+    Slot * freeSlot(freeSlots.front());
     freeSlots.pop_front();
     return freeSlot;
 }
@@ -178,7 +187,7 @@ void SlotList::free(int process, int thread)
 {
     SlotMap::iterator m_it(getBusySlotIt(process, thread));
     if (m_it!=busySlots.end()) {
-        Slot * freedSlot(*m_it);
+        Slot * freedSlot(m_it->second);
         busySlots.erase(m_it);
         freeSlots.push_back(freedSlot);
     }
@@ -195,14 +204,16 @@ void SlotList::free(int process, int thread)
 //for getBusySlotIt and getFreeSlotIt, it is the responsibility of the calling function to check whether the returned iterator is equal to container.end()
 SlotMap::iterator SlotList::getBusySlotIt(int process, int thread)
 {
-    vector<int> slotKey={process, thread};
+	int keys[] = {process, thread};
+    vector<int> slotKey(keys, keys+2);
     return busySlots.find(slotKey);
 }
 
 SlotDeque::iterator SlotList::getFreeSlotIt(int process, int thread)
 {
-    vector<int> slotKey={process, thread};
-    SlotDeque::iterator d_it=freeSlots.begin()
+	int keys[] = {process, thread};
+	vector<int> slotKey(keys, keys+2);
+    SlotDeque::iterator d_it=freeSlots.begin();
     for (; d_it!=freeSlots.end(); ++d_it) {
         if (slotKey==((*d_it)->getSlotKey())) {
             return d_it;

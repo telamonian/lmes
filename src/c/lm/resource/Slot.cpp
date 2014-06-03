@@ -5,10 +5,14 @@
  *      Author: tel
  */
 
-#include "lm/message/Communicator.h"
-#include "lm/message/Message.h"
-#include "lm/resource/Slot.h"
+#include <string>
 #include <vector>
+#include "lm/message/Communicator.h"
+#include "lm/message/Message.pb.h"
+#include "lm/Print.h"
+#include "lm/resource/Slot.h"
+
+using std::string;
 
 namespace lm {
 namespace resource {
@@ -16,6 +20,7 @@ namespace resource {
 Slot::Slot(int controller_process,
 		   int controller_thread,
 		   lm::message::Communicator * supervisorComm,
+		   string solverClassName,
 		   lm::io::SimulationParameters & simulationParameters,
 		   bool hasReactionModel,
 		   lm::io::ReactionModel & reactionModel,
@@ -36,7 +41,7 @@ Slot::Slot(int controller_process,
 	supervisorComm->sendMessage(controller_process, controller_thread, &msg);
 
 	// receive the handshake from the slave node signalling that the runner associated with this slot has been started
-	lm::message::Message msg;
+	msg.Clear();
 	supervisorComm->receiveMessage(&msg);
 	if (msg.has_started_work_unit_runner())
 	{

@@ -8,9 +8,11 @@
 #ifndef SLOT_H_
 #define SLOT_H_
 
-#include "lm/message/Communicator.h"
+#include <string>
 #include <vector>
+#include "lm/message/Communicator.h"
 
+using std::string;
 using std::vector;
 
 namespace lm {
@@ -32,6 +34,7 @@ public:
 	Slot(int controller_process,
 		 int controller_thread,
 	     lm::message::Communicator * supervisorComm,
+	     string solverClassName,
 	     lm::io::SimulationParameters & simulationParameters,
 	     bool hasReactionModel,
 	     lm::io::ReactionModel & reactionModel,
@@ -42,13 +45,13 @@ public:
 	virtual vector<int> alloc();
 	virtual void free();
 
-	virtual bool startRemote();
-	virtual bool registerRemote();
-	virtual bool stopRemote();
+//	virtual bool startRemote();
+//	virtual bool registerRemote();
+//	virtual bool stopRemote();
 
 	virtual void setStatus(slotStatus newStatus) {status = newStatus;}
 	virtual slotStatus getStatus() {return status;}
-	virtual vector<int> getSlotKey() {vector<int> slotKey; slotKey.push_back(process); slotKey.push_back(thread); return slotKey;}
+	virtual vector<int> getSlotKey() {int keys[] = {process, thread}; vector<int> slotKey(keys, keys+2); return slotKey;}
 
 	int process;
 	int thread;

@@ -139,7 +139,6 @@ int WorkUnitRunner::run()
         // Tell the supervisor the runner was started.
         lm::message::Message msgp;
         lm::message::StartedWorkUnitRunner* msg = msgp.mutable_started_work_unit_runner();
-        msg->set_slot(properties.slot());
         msg->set_process(lm::MPI::worldRank);
         msg->set_thread(getThreadNumber());
         msg->set_simultaneous_work_units(solver->getSimultaneousTrajectories());

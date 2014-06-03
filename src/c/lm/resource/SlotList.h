@@ -53,7 +53,7 @@
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SimulationParameters.pb.h"
-#include 'lm/message/Communicator.h'
+#include "lm/message/Communicator.h"
 #include "lm/resource/ResourceMap.h"
 #include "lm/resource/Slot.h"
 #include "lm/thread/Thread.h"
@@ -86,12 +86,14 @@ public:
 
     //create slot methods
     virtual void addSlots(map<int,ResourceMap::ComputeResources> & allResources,
+    					  string solverClassName,
     					  lm::io::SimulationParameters & simulationParameters,
     					  bool hasReactionModel,
     					  lm::io::ReactionModel & reactionModel,
     					  bool hasDiffusionModel,
     					  lm::io::DiffusionModel & diffusionModel);
     virtual void addSlots(ResourceMap::ComputeResources & resources,
+    					  string solverClassName,
 						  lm::io::SimulationParameters & simulationParameters,
 						  bool hasReactionModel,
 						  lm::io::ReactionModel & reactionModel,
@@ -101,6 +103,7 @@ public:
 						  float gpusPerSlot=1.0);
     virtual void addSlot(int controller_process,
     					 int controller_thread,
+    					 string solverClassName,
 						 lm::io::SimulationParameters & simulationParameters,
 						 bool hasReactionModel,
 						 lm::io::ReactionModel & reactionModel,

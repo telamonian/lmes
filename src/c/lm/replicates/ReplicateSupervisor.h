@@ -49,8 +49,6 @@
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/hdf5/SimulationFile.h"
-#include "lm/resource/SupervisorSlot.h"
-#include "lm/resource/SupervisorSlotAllocator.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
@@ -62,8 +60,6 @@
 namespace lm {
 namespace replicates {
 
-using lm::resource::SupervisorSlot;
-using lm::resource::SupervisorSlotAllocator;
 using std::deque;
 using std::list;
 using std::map;
