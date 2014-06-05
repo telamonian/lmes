@@ -41,9 +41,7 @@
 #define LM_MAIN_RESOURCECONTROLLER
 
 #include <pthread.h>
-#include <list>
 #include <map>
-#include <string>
 #include <vector>
 #include "lm/Print.h"
 #include "lm/main/WorkUnitRunner.h"
@@ -70,11 +68,12 @@ public:
 
 protected:
     virtual int run();
-    virtual void startWorkUnitRunner(const lm::message::StartWorkUnitRunner& msg);
+    virtual void startWorkUnitRunner(const lm::message::StartWorkUnitRunner & msg);
+    virtual void stopWorkUnitRunner(const lm::message::StopWorkUnitRunner & msg);
 
 protected:
     lm::message::Communicator communicator;
-    std::list<lm::main::WorkUnitRunner*> runners;
+    std::map<int, lm::main::WorkUnitRunner*> runners;
 };
 
 }

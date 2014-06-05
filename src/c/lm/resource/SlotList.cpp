@@ -61,7 +61,7 @@ using std::vector;
 namespace lm {
 namespace resource {
 
-SlotList::SlotList(lm::message::Communicator * supervisorComm): busySlots(), freeSlots(), supervisorComm(supervisorComm)
+SlotList::SlotList(lm::message::Communicator * supervisorComm): busySlots(), freeSlots(), xorShift(0,0), supervisorComm(supervisorComm)	// the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
 }
 
@@ -132,6 +132,7 @@ void SlotList::addSlot(int controller_process,
 {
     Slot * addedSlot = new Slot(controller_process,
 								controller_thread,
+								xorShift.getRandom(),
 								supervisorComm,
 								solverClassName,
 								simulationParameters,
@@ -157,7 +158,7 @@ void SlotList::delSlot(int process, int thread)
             freeSlots.erase(d_it);
         }
         else {  //error state: we have tried to delete a slot that doesn't exist
-            Print::printf(Print::ERROR, "Tried to delete slot %d:%d, but was not found in either container of free or busy slots.", process, thread);
+            Print::printf(Print::ERROR, "Tried to delete slot %d:%d, but was not found in container of free or busy slots.", process, thread);
         }
     }
 }

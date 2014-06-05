@@ -25,9 +25,34 @@ Slot::Slot(int controller_process,
 		   bool hasReactionModel,
 		   lm::io::ReactionModel & reactionModel,
 		   bool hasDiffusionModel,
-		   lm::io::DiffusionModel & diffusionModel): process(), thread(), supervisorComm(supervisorComm), status(FREE)
+		   lm::io::DiffusionModel & diffusionModel): process(), thread(), controller_process(controller_process), controller_thread(controller_thread), supervisorComm(supervisorComm), status(FREE)
 {
 	// Send a message to the controller to start a work unit runner.
+	startRemote(controller_process,
+				controller_thread,
+				solverClassName,
+				simulationParameters,
+				hasReactionModel,
+				reactionModel,
+				hasDiffusionModel,
+				diffusionModel)
+	// receive the handshake from the slave node signalling that the runner associated with this slot has been started
+	startedRemote();
+}
+
+Slot::~Slot()
+{
+}
+
+void Slot::startRemote(int controller_process,
+		   	   	   	   int controller_thread,
+					   string solverClassName,
+					   lm::io::SimulationParameters & simulationParameters,
+					   bool hasReactionModel,
+					   lm::io::ReactionModel & reactionModel,
+					   bool hasDiffusionModel,
+					   lm::io::DiffusionModel & diffusionModel)
+{
 	lm::message::Message msg;
 	lm::message::StartWorkUnitRunner* s = msg.add_start_work_unit_runner();
 //	s->set_use_cpu_affinity(useCPUAffinity);
@@ -39,9 +64,11 @@ Slot::Slot(int controller_process,
 	if (hasReactionModel) *s->mutable_reaction_model() = reactionModel;
 	if (hasDiffusionModel) *s->mutable_diffusion_model() = diffusionModel;
 	supervisorComm->sendMessage(controller_process, controller_thread, &msg);
+}
 
-	// receive the handshake from the slave node signalling that the runner associated with this slot has been started
-	msg.Clear();
+void Slot::startedRemote()
+{
+	lm::message::Message msg;
 	supervisorComm->receiveMessage(&msg);
 	if (msg.has_started_work_unit_runner())
 	{
@@ -55,8 +82,28 @@ Slot::Slot(int controller_process,
 	Print::printf(Print::INFO, "Work unit runner for slot %d:%d started, %d simultaneous work unit runners.", msg.started_work_unit_runner().process(), msg.started_work_unit_runner().thread(), msg.started_work_unit_runner().simultaneous_work_units());
 }
 
-Slot::~Slot()
+void Slot::stop()
 {
+	// send message to associated resource controller to stop the associated runner
+	stopRemote();
+	// receive message from associated resource controller confirming that it has stopped the associated runner
+	stoppedRemote();
+}
+
+void Slot::stopRemote()
+{
+	lm::message::Message msg;
+	lm::message::StartWorkUnitRunner* s = msg.add_stop_work_unit_runner();
+	*s->set_process(process);
+	*s->set_thread(thread);
+	supervisorComm->sendMessage(controller_process, controller_thread, &msg);
+}
+
+void Slot::stoppedRemote()
+{
+	lm::message::Message msg;
+	supervisorComm->receiveMessage(&msg);
+	Print::printf(Print::INFO, "Work unit runner for slot %d:%d stopped", msg.stopped_work_unit_runner().process(), msg.stopped_work_unit_runner().thread());
 }
 
 vector<int> Slot::alloc()
@@ -68,6 +115,7 @@ void Slot::free()
 {
     setStatus(FREE);
 }
+
 
 }
 }

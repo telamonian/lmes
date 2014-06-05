@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 #include "lm/message/Communicator.h"
+#include "Types.h"
 
 using std::string;
 using std::vector;
@@ -45,9 +46,18 @@ public:
 	virtual vector<int> alloc();
 	virtual void free();
 
-//	virtual bool startRemote();
-//	virtual bool registerRemote();
-//	virtual bool stopRemote();
+	virtual void startRemote(int controller_process,
+			   	   	   	     int controller_thread,
+							 string solverClassName,
+						     lm::io::SimulationParameters & simulationParameters,
+						     bool hasReactionModel,
+						     lm::io::ReactionModel & reactionModel,
+						     bool hasDiffusionModel,
+						     lm::io::DiffusionModel & diffusionModel);
+	virtual void startedRemote();
+	virtual void stop();
+	virtual void stopRemote();
+	virtual void stoppedRemote();
 
 	virtual void setStatus(slotStatus newStatus) {status = newStatus;}
 	virtual slotStatus getStatus() {return status;}
@@ -55,9 +65,12 @@ public:
 
 	int process;
 	int thread;
+	int controller_process;	// in theory this should always be the same as process
+	int controller_thread;
 
 protected:
 	lm::message::Communicator * supervisorComm;
+	uint32_t uuid;
 	slotStatus status;
 };
 

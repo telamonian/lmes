@@ -56,6 +56,7 @@
 #include "lm/message/Communicator.h"
 #include "lm/resource/ResourceMap.h"
 #include "lm/resource/Slot.h"
+#include "lm/rng/XORShift.h"
 #include "lm/thread/Thread.h"
 
 using std::deque;
@@ -130,6 +131,7 @@ private:
 	lm::message::Communicator * supervisorComm;
     SlotMap busySlots;
     SlotDeque freeSlots;
+    lm::rng::XORShift xorShift;
 };
 
 }
