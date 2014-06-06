@@ -118,10 +118,6 @@ int OutputWriter::run()
     PROF_SET_THREAD(threadNumber);
     PROF_BEGIN(PROF_DATAOUTPUT_RUN);
 
-    MPI_Status messageStatus;
-    void * staticDataBuffer = NULL;
-    MPI_EXCEPTION_CHECK(MPI_Alloc_mem(lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE, MPI_INFO_NULL, &staticDataBuffer));
-
     try
     {
         Print::printf(Print::INFO, "OutputWriter %d:%d started.", communicator.getSourceProcess(), communicator.getSourceThread());

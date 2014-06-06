@@ -119,9 +119,14 @@ void ReplicateSupervisor::allResourcesRegistered()
 {
     // Reserve a core for the output writer.
     ResourceMap::ComputeResources resources = resourceMap->reserveCPUCores(communicator.getSourceProcess(),1);
+    Print::printf(Print::INFO, "Reserved core %d on %d:%d for the output writer.", resources.cpuCores[0], resources.controller_process, resources.controller_thread);
 
     // Start the output writer.
-    Print::printf(Print::INFO, "Reserved core %d on %d:%d for the output writer.", resources.cpuCores[0], resources.controller_process, resources.controller_thread);
+    lm::message::Message msg;
+    msg.mutable_start_output_writer()->set_use_cpu_affinity(useCPUAffinity);
+    msg.mutable_start_output_writer()->set_cpu(resources.cpuCores[0]);
+    msg.mutable_start_output_writer()->set_output_writer_class("");
+    communicator.sendMessage(resources.controller_process, resources.controller_thread, &msg);
 
     // Call the base class method.
     SimulationSupervisor::allResourcesRegistered();
