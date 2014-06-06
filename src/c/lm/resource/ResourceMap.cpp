@@ -55,7 +55,7 @@ namespace resource {
 ResourceMap::ResourceMap(list<string>hostnames, int defaultCPUCores, int defaultGPUDevices, string resourceFilename)
     :defaultCPUCores(defaultCPUCores),defaultGPUDevices(defaultGPUDevices)
 {
-    // Create the initial allocation map fro the hostnames.
+    // Create the initial allocation map from the hostnames.
     int i=0;
     for (list<string>::iterator it=hostnames.begin(); it != hostnames.end(); it++, i++)
     {
@@ -215,7 +215,27 @@ bool ResourceMap::registerResources(const lm::message::ResourcesAvailable& msg)
     return (allocatedResources.size() == 0);
 }
 
-map<int,ResourceMap::ComputeResources> ResourceMap::getRegisteredResources()
+ResourceMap::ComputeResources ResourceMap::reserveCPUCores(int process, int numberCPUCores)
+{
+    ComputeResources resources = registeredResources[process];
+    if (resources.cpuCores.size() >= numberCPUCores)
+    {
+        ComputeResources reservedResources;
+        reservedResources.hostname = resources.hostname;
+        reservedResources.controller_process = resources.controller_process;
+        reservedResources.controller_thread = resources.controller_thread;
+        for (int i=0; i<numberCPUCores; i++)
+        {
+            reservedResources.cpuCores.push_back(resources.cpuCores[0]);
+            resources.cpuCores.erase(resources.cpuCores.begin());
+        }
+        registeredResources[process] = resources;
+        return reservedResources;
+    }
+    throw Exception("Insufficient resource on the specified process to reserve a CPU core", process, resources.cpuCores.size(), numberCPUCores);
+}
+
+map<int,ResourceMap::ComputeResources> ResourceMap::getAvailableResources()
 {
     return registeredResources;
 }

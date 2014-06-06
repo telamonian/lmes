@@ -42,6 +42,7 @@
 
 #include "lm/ClassFactory.h"
 #include "lm/Print.h"
+#include "lm/io/OutputWriter.h"
 #include "lm/main/Main.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Message.pb.h"
@@ -51,9 +52,11 @@
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/replicates/ReplicateSupervisor.h"
 #include "lm/replicates/TrajectoryList.h"
+#include "lm/resource/ResourceMap.h"
 
 using std::map;
 using std::string;
+using lm::resource::ResourceMap;
 
 namespace lm {
 namespace replicates {
@@ -82,6 +85,8 @@ ReplicateSupervisor::~ReplicateSupervisor()
     if (trajectories != NULL) delete trajectories; trajectories = NULL;
 }
 
+
+
 /*
 void ReplicateSupervisor::wake() throw(PthreadException)
 {
@@ -109,6 +114,19 @@ void ReplicateSupervisor::checkpoint() throw(PthreadException)
     }
 }
 */
+
+void ReplicateSupervisor::allResourcesRegistered()
+{
+    // Reserve a core for the output writer.
+    ResourceMap::ComputeResources resources = resourceMap->reserveCPUCores(communicator.getSourceProcess(),1);
+
+    // Start the output writer.
+    Print::printf(Print::INFO, "Reserved core %d on %d:%d for the output writer.", resources.cpuCores[0], resources.controller_process, resources.controller_thread);
+
+    // Call the base class method.
+    SimulationSupervisor::allResourcesRegistered();
+}
+
 void ReplicateSupervisor::startSimulation()
 {
     Print::printf(Print::INFO, "Replicate supervisor starting simulation.");

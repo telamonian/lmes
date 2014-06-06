@@ -64,26 +64,22 @@
 #endif
 #include "lm/main/CheckpointSignaler.h"
 #include "lm/main/DataOutputQueue.h"
-#include "lm/main/LocalDataOutputWorker.h"
 #include "lm/main/Main.h"
 #include "lm/main/MPIRemoteDataOutputQueue.h"
 #include "lm/main/ResourceController.h"
-#include "lm/main/SimulationSupervisor.h"
-#include "lm/resource/ResourceAllocator.h"
-#include "lm/resource/ResourceMap.h"
 #include "lm/main/SignalHandler.h"
+#include "lm/main/SimulationSupervisor.h"
+#include "lm/resource/ResourceMap.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/WorkerManager.h"
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
 
-#include "lm/replicates/ReplicateSupervisor.h"
 
 using std::map;
 using std::list;
 using lm::Print;
 using lm::Exception;
-using lm::resource::ResourceAllocator;
 using lm::resource::ResourceMap;
 using lm::thread::PthreadException;
 
@@ -182,10 +178,6 @@ int main(int argc, char** argv)
         google::protobuf::ShutdownProtobufLibrary();
         return 0;
     }
-    catch (lm::io::hdf5::HDF5Exception & e)
-    {
-        std::cerr << "HDF5 exception during execution: " << e.what() << std::endl;
-    }
     catch (lm::MPIException & e)
     {
         std::cerr << "MPI exception during execution: " << e.what() << std::endl;
@@ -278,8 +270,6 @@ void executeSimulationMPI()
 void executeSimulationMPISingleMaster(ResourceMap* resourceMap)
 {
     Print::printf(Print::DEBUG, "MPI master process %d started.", lm::MPI::worldRank);
-
-    //printf("%d\n", lm::replicates::ReplicateSupervisor::registered);
 
     // Print a list of the registered classes.
     lm::ClassFactory::getInstance().printRegisteredClasses();

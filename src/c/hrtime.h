@@ -24,9 +24,9 @@ inline hrtime getHrTime()
     return mach_absolute_time();
 #elif defined(LINUX)
     struct timespec now;
-    clock_gettime(CLOCK_REALTIME, &now);
+    clock_gettime(CLOCK_MONOTONIC, &now);
     uint64_t ret=now.tv_sec;
-    ret *= 1000000000;
+    ret *= 1000000000ULL;
     ret += now.tv_nsec;
     return ret;
 #endif

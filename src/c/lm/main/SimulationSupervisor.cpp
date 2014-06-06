@@ -157,7 +157,7 @@ int SimulationSupervisor::run()
 
 void SimulationSupervisor::resourceAvailable(const lm::message::ResourcesAvailable& msg)
 {
-    Print::printf(Print::INFO, "Host %s registered with supervisor.", msg.hostname().c_str());
+    Print::printf(Print::INFO, "Resource controller %d:%d on %s registered with %d cpu core(s) and %d gpu device(s).", msg.controller_process(), msg.controller_thread(), msg.hostname().c_str(), msg.cpu_size(), msg.gpu_size());
     if (resourceMap->registerResources(msg))
     {
         allResourcesRegistered();
@@ -166,17 +166,10 @@ void SimulationSupervisor::resourceAvailable(const lm::message::ResourcesAvailab
 
 void SimulationSupervisor::allResourcesRegistered()
 {
-    // Display a status message for the registered resoruces.
-    map<int,ResourceMap::ComputeResources> allResources = resourceMap->getRegisteredResources();
-    for (map<int,ResourceMap::ComputeResources>::iterator it=allResources.begin(); it != allResources.end(); it++)
-    {
-        ResourceMap::ComputeResources r = it->second;
-        Print::printf(Print::INFO, "Resource controller %d:%d registered with %d cpu core(s) and %d gpu device(s).", r.controller_process, r.controller_thread, r.cpuCores.size(), r.gpusDevices.size());
-    }
-
     // Start the work unit runners.
     Print::printf(Print::INFO, "All resources registered with supervisor, starting work unit runners.");
 
+    map<int,ResourceMap::ComputeResources> allResources = resourceMap->getAvailableResources();
     slotList.addSlots(allResources,
     				  solverClassName,
     				  simulationParameters,

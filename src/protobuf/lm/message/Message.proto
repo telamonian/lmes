@@ -4,8 +4,8 @@
  * All rights reserved.
  *
  * Developed by: Roberts Group
- * 			     Johns Hopkins University
- * 			     http://biophysics.jhu.edu/roberts/
+ * 			  Johns Hopkins University
+ * 			  http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -45,6 +45,7 @@ import "lm/message/StartedWorkUnitRunner.proto";
 import "lm/message/RunWorkUnit.proto";
 import "lm/message/StartedWorkUnit.proto";
 import "lm/message/FinishedWorkUnit.proto";
+import "lm/message/ProcessWorkUnitOutput.proto";
 
 message Message {
     required uint32 source_process                                          = 1;
@@ -57,4 +58,6 @@ message Message {
     optional lm.message.RunWorkUnit run_work_unit                           = 13;
     optional lm.message.StartedWorkUnit started_work_unit                   = 14;
     optional lm.message.FinishedWorkUnit finished_work_unit                 = 15;
+    
+    repeated lm.message.ProcessWorkUnitOutput process_work_unit_output      = 100;
 }

@@ -60,7 +60,7 @@ namespace lm {
 namespace main {
 
 ResourceController::ResourceController()
-    :communicator(lm::MPI::worldRank, threadNumber)
+:communicator(lm::MPI::worldRank, threadNumber)
 {
 }
 

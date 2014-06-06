@@ -102,6 +102,7 @@ public:
 
     //map<int,int> simulationStatusTable;
 protected:
+    virtual void allResourcesRegistered();
     virtual void startSimulation();
     virtual void workUnitStarted(const lm::message::StartedWorkUnit& msg);
     virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg);
