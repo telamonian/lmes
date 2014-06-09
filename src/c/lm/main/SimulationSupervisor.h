@@ -55,6 +55,7 @@
 #include "lm/message/Message.pb.h"
 #include "lm/message/ResourcesAvailable.pb.h"
 #include "lm/message/StartWorkUnitRunner.pb.h"
+#include "lm/message/StartedOutputWriter.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnitRunner.pb.h"
 #include "lm/resource/ResourceMap.h"
@@ -87,6 +88,7 @@ protected:
     virtual void startSimulation()=0;
     virtual void workUnitStarted(const lm::message::StartedWorkUnit& msg)=0;
     virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg)=0;
+    virtual void outputWriterStarted(const lm::message::StartedOutputWriter& msg) {}
 
     virtual int run();
     virtual void resourceAvailable(const lm::message::ResourcesAvailable& msg);

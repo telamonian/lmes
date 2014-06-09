@@ -43,7 +43,9 @@
 #include <queue>
 #include <cstring>
 
+#include "lm/io/SpeciesCounts.pb.h"
 #include "lm/message/Communicator.h"
+#include "lm/message/ProcessWorkUnitOutput.pb.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 
@@ -60,6 +62,8 @@ public:
     virtual void wake() throw(lm::thread::PthreadException);
 
 protected:
+    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data)=0;
+
     virtual int run();
 
 private:

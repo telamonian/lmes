@@ -195,7 +195,10 @@ void WorkUnitRunner::runWorkUnit(const lm::message::RunWorkUnit& wu)
     communicator.sendMessage(wu.supervisor_process(), wu.supervisor_thread(), &msgp1);
 
     // Reset the solver.
-    solver->resetState();
+    solver->reset();
+
+    // Set the communicator.
+    solver->setCommunicator(&communicator, wu.output_process(), wu.output_thread());
 
     // Set the initial state.
     solver->setState(wu.initial_state());

@@ -73,5 +73,10 @@ void ConsoleOutputWriter::initialize()
     OutputWriter::initialize();
 }
 
+void ConsoleOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
+{
+    Print::printf(Print::INFO, "ConsoleOutputWriter received a data message: {\n%s}",data.DebugString().c_str());
+}
+
 }
 }

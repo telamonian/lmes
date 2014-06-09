@@ -40,7 +40,9 @@
 package lm.message;
 
 //import "lm/io/TrajectoryState.proto";
+import "lm/io/SpeciesCounts.proto";
 
 message ProcessWorkUnitOutput {
-	required int64 work_unit_id                    = 1;
+	required int64 work_unit_id                          = 1;
+	optional lm.io.SpeciesCounts species_counts          = 2;
 }

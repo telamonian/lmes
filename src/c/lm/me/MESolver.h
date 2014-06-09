@@ -49,6 +49,7 @@
 #include "lm/io/SimulationParameters.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
+#include "lm/message/Communicator.h"
 #include "lm/message/RunWorkUnit.pb.h"
 
 using std::map;
@@ -71,7 +72,8 @@ public:
     virtual void setReactionModel(const lm::io::ReactionModel& rm)=0;
     virtual bool needsDiffusionModel()=0;
     virtual void setDiffusionModel(const lm::io::DiffusionModel& dm)=0;
-    virtual void resetState()=0;
+    virtual void reset();
+    virtual void setCommunicator(lm::message::Communicator* communicator, int outputProcess, int outputThread);
     virtual void getState(lm::io::TrajectoryState* state)=0;
     virtual void setState(const lm::io::TrajectoryState& state)=0;
     virtual void setLimits(const lm::io::TrajectoryLimits& limits)=0;
@@ -81,6 +83,9 @@ protected:
     vector<int> cpus;
     vector<int> gpus;
     map<string,string> simulationParameters;
+    lm::message::Communicator* communicator;
+    int outputProcess;
+    int outputThread;
 };
 
 }

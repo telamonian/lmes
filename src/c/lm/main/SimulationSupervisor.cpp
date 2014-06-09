@@ -128,6 +128,10 @@ int SimulationSupervisor::run()
             {
                 workUnitFinished(message.finished_work_unit());
             }
+            else if (message.has_started_output_writer())
+            {
+                outputWriterStarted(message.started_output_writer());
+            }
             else
             {
                 Print::printf(Print::ERROR, "Supervisor received an unknown message: {\n%s}",message.DebugString().c_str());

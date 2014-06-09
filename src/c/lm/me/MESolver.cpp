@@ -69,5 +69,19 @@ void MESolver::setSimulationParameters(const lm::io::SimulationParameters& simul
         this->simulationParameters[simulationParameters.key(i)] = simulationParameters.value(i);
 }
 
+void MESolver::reset()
+{
+    communicator = NULL;
+    outputProcess = -1;
+    outputThread = -1;
+}
+
+void MESolver::setCommunicator(lm::message::Communicator* communicator, int outputProcess, int outputThread)
+{
+    this->communicator = communicator;
+    this->outputProcess = outputProcess;
+    this->outputThread = outputThread;
+}
+
 }
 }

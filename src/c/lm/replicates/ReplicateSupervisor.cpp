@@ -75,7 +75,7 @@ void* ReplicateSupervisor::allocateObject()
 }
 
 ReplicateSupervisor::ReplicateSupervisor()
-:trajectories(NULL), workUnitCount(0)
+:trajectories(NULL),workUnitCount(0),outputWriterProcess(0),outputWriterThread(3) //TODO: fix to -1,-1 once the slot code has been fixed
 {
 
 }
@@ -132,8 +132,18 @@ void ReplicateSupervisor::allResourcesRegistered()
     SimulationSupervisor::allResourcesRegistered();
 }
 
+void ReplicateSupervisor::outputWriterStarted(const lm::message::StartedOutputWriter& msg)
+{
+    outputWriterProcess = msg.process();
+    outputWriterThread = msg.thread();
+}
+
 void ReplicateSupervisor::startSimulation()
 {
+    // Check for some error conditions.
+    if (outputWriterProcess == -1 || outputWriterThread == -1)
+        throw new Exception("ReplicateSupervisor could not start the simulation, no output writer available.");
+
     Print::printf(Print::INFO, "Replicate supervisor starting simulation.");
 
     // Create the new trajectory list.
@@ -196,7 +206,6 @@ void ReplicateSupervisor::startSimulation()
     }
 
     // Go through the replicates to run and start the initial work units.
-    // TODO move RunWorkUnit message creation and sending to a slot method
     while (true)
     {
         // Get the next trajectory to run, if there is one.
@@ -213,8 +222,8 @@ void ReplicateSupervisor::startSimulation()
         run.set_work_unit_id(workUnitCount++);
         run.set_supervisor_process(communicator.getSourceProcess());
         run.set_supervisor_thread(communicator.getSourceThread());
-        run.set_output_process(communicator.getSourceProcess()); // TODO change to output process
-        run.set_output_thread(communicator.getSourceThread()); // TODO change to output thread
+        run.set_output_process(outputWriterProcess);
+        run.set_output_thread(outputWriterThread);
         run.set_max_steps(100);
         *run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
         *run.mutable_limits() = limits;

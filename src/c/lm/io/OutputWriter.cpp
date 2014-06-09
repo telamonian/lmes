@@ -42,9 +42,11 @@
 #include <lm/Print.h>
 #include "lm/MPI.h"
 #include "lm/io/OutputWriter.h"
+#include "lm/io/SpeciesCounts.pb.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Communicator.h"
 #include "lm/message/Message.pb.h"
+#include "lm/message/ProcessWorkUnitOutput.pb.h"
 #include "lm/message/StartedOutputWriter.pb.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
@@ -124,12 +126,13 @@ int OutputWriter::run()
     {
         Print::printf(Print::INFO, "OutputWriter %d:%d started.", communicator.getSourceProcess(), communicator.getSourceThread());
 
+        // TODO comment back in once slot is fixed.
         // Register our info with the supervisor.
-        lm::message::Message msgp;
-        lm::message::StartedOutputWriter* msg = msgp.mutable_started_output_writer();
-        msg->set_process(communicator.getSourceProcess());
-        msg->set_thread(communicator.getSourceThread());
-        communicator.sendMessage(lm::MPI::MASTER, lm::main::SimulationSupervisor::THREAD_ID, &msgp);
+//        lm::message::Message msgp;
+//        lm::message::StartedOutputWriter* msg = msgp.mutable_started_output_writer();
+//        msg->set_process(communicator.getSourceProcess());
+//        msg->set_thread(communicator.getSourceThread());
+//        communicator.sendMessage(lm::MPI::MASTER, lm::main::SimulationSupervisor::THREAD_ID, &msgp);
 
         // Loop reading messages.
         while (true)
@@ -141,7 +144,18 @@ int OutputWriter::run()
             // Do something with the message.
             if (message->process_work_unit_output_size())
             {
-                Print::printf(Print::ERROR, "OutputWriter received a data message: {\n%s}",message->DebugString().c_str());
+
+                for (int i=0; i<message->process_work_unit_output_size(); i++)
+                {
+                    if (message->process_work_unit_output(i).has_species_counts())
+                    {
+                        processSpeciesCounts(message->process_work_unit_output(i).species_counts());
+                    }
+                    else
+                    {
+                        Print::printf(Print::ERROR, "OutputWriter received an unknown data message: {\n%s}",message->DebugString().c_str());
+                    }
+                }
                 delete message;
                 message = NULL;
             }

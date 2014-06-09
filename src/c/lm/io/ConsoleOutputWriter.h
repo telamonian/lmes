@@ -44,6 +44,7 @@
 #include <cstring>
 
 #include "lm/io/OutputWriter.h"
+#include "lm/io/SpeciesCounts.pb.h"
 
 namespace lm {
 namespace io {
@@ -59,6 +60,9 @@ public:
     ConsoleOutputWriter();
     virtual ~ConsoleOutputWriter();
     virtual void initialize();
+
+protected:
+    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
 };
 
 }
