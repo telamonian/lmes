@@ -42,8 +42,10 @@
 #include <lm/Print.h>
 #include "lm/MPI.h"
 #include "lm/io/OutputWriter.h"
+#include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Communicator.h"
 #include "lm/message/Message.pb.h"
+#include "lm/message/StartedOutputWriter.pb.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 
@@ -121,6 +123,13 @@ int OutputWriter::run()
     try
     {
         Print::printf(Print::INFO, "OutputWriter %d:%d started.", communicator.getSourceProcess(), communicator.getSourceThread());
+
+        // Register our info with the supervisor.
+        lm::message::Message msgp;
+        lm::message::StartedOutputWriter* msg = msgp.mutable_started_output_writer();
+        msg->set_process(communicator.getSourceProcess());
+        msg->set_thread(communicator.getSourceThread());
+        communicator.sendMessage(lm::MPI::MASTER, lm::main::SimulationSupervisor::THREAD_ID, &msgp);
 
         // Loop reading messages.
         while (true)

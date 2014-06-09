@@ -46,6 +46,7 @@ import "lm/message/RunWorkUnit.proto";
 import "lm/message/StartedWorkUnit.proto";
 import "lm/message/FinishedWorkUnit.proto";
 import "lm/message/StartOutputWriter.proto";
+import "lm/message/StartedOutputWriter.proto";
 import "lm/message/ProcessWorkUnitOutput.proto";
 
 message Message {
@@ -61,6 +62,7 @@ message Message {
     optional lm.message.FinishedWorkUnit finished_work_unit                 = 15;
     
     optional lm.message.StartOutputWriter start_output_writer               = 20;
+    optional lm.message.StartedOutputWriter started_output_writer           = 21;
     
     repeated lm.message.ProcessWorkUnitOutput process_work_unit_output      = 100;
 }

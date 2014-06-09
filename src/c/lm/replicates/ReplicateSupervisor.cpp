@@ -125,7 +125,7 @@ void ReplicateSupervisor::allResourcesRegistered()
     lm::message::Message msg;
     msg.mutable_start_output_writer()->set_use_cpu_affinity(useCPUAffinity);
     msg.mutable_start_output_writer()->set_cpu(resources.cpuCores[0]);
-    msg.mutable_start_output_writer()->set_output_writer_class("");
+    msg.mutable_start_output_writer()->set_output_writer_class("lm::io::ConsoleOutputWriter");
     communicator.sendMessage(resources.controller_process, resources.controller_thread, &msg);
 
     // Call the base class method.

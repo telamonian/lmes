@@ -44,15 +44,18 @@
 #endif
 
 #include "lm/Exceptions.h"
+#include "lm/ClassFactory.h"
 #ifdef OPT_CUDA
 #include "lm/Cuda.h"
 #endif
 #include "lm/MPI.h"
+#include "lm/io/OutputWriter.h"
 #include "lm/main/ResourceController.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Communicator.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/ResourcesAvailable.pb.h"
+#include "lm/message/StartOutputWriter.pb.h"
 #include "lm/message/StartWorkUnitRunner.pb.h"
 #include "lm/message/StartedWorkUnitRunner.pb.h"
 
@@ -144,6 +147,10 @@ int ResourceController::run()
             {
                 for (int i=0; i<message.start_work_unit_runner_size(); i++)
                     startWorkUnitRunner(message.start_work_unit_runner(i));
+            }
+            else if (message.has_start_output_writer())
+            {
+                startOutputWriter(message.start_output_writer());
             }
             else
             {
@@ -263,12 +270,19 @@ int ResourceController::run()
     return -1;
 }
 
-void ResourceController::startWorkUnitRunner(const lm::message::StartWorkUnitRunner& properties)
+void ResourceController::startWorkUnitRunner(const lm::message::StartWorkUnitRunner& msg)
 {
     // Start the work unit runner.
-    WorkUnitRunner* runner = new WorkUnitRunner(properties);
+    WorkUnitRunner* runner = new WorkUnitRunner(msg);
     runners.push_back(runner);
     runner->start();
+}
+
+void ResourceController::startOutputWriter(const lm::message::StartOutputWriter& msg)
+{
+    lm::io::OutputWriter* writer = static_cast<lm::io::OutputWriter*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::io::OutputWriter",msg.output_writer_class()));
+    if (msg.use_cpu_affinity()) writer->setAffinity(msg.cpu());
+    writer->start();
 }
 
 /*
