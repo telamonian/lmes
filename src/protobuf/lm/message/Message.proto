@@ -4,8 +4,8 @@
  * All rights reserved.
  *
  * Developed by: Roberts Group
- * 			     Johns Hopkins University
- * 			     http://biophysics.jhu.edu/roberts/
+ * 			  Johns Hopkins University
+ * 			  http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -47,18 +47,30 @@ import "lm/message/StoppedWorkUnitRunner.proto";
 import "lm/message/RunWorkUnit.proto";
 import "lm/message/StartedWorkUnit.proto";
 import "lm/message/FinishedWorkUnit.proto";
+import "lm/message/StartOutputWriter.proto";
+import "lm/message/StartedOutputWriter.proto";
+import "lm/message/ProcessWorkUnitOutput.proto";
 
 message Message {
     required uint32 source_process                                          = 1;
     required uint32 source_thread                                           = 2;
     required uint32 dest_process                                            = 3;
     required uint32 dest_thread                                             = 4;
+
     optional lm.message.ResourcesAvailable resources_available              = 10;
+
     repeated lm.message.StartWorkUnitRunner start_work_unit_runner          = 11;
     optional lm.message.StartedWorkUnitRunner started_work_unit_runner      = 12;
+
     optional lm.message.StopWorkUnitRunner stop_work_unit_runner			= 13;
     optional lm.message.StoppedWorkUnitRunner stopped_work_unit_runner		= 14;
+
     optional lm.message.RunWorkUnit run_work_unit                           = 15;
     optional lm.message.StartedWorkUnit started_work_unit                   = 16;
     optional lm.message.FinishedWorkUnit finished_work_unit                 = 17;
+    
+    optional lm.message.StartOutputWriter start_output_writer               = 20;
+    optional lm.message.StartedOutputWriter started_output_writer           = 21;
+    
+    repeated lm.message.ProcessWorkUnitOutput process_work_unit_output      = 100;
 }

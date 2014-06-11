@@ -72,7 +72,8 @@ public:
     ResourceMap(list<string>hostnames, int defaultCPUCores, int defaultGPUDevices, string resourceFilename);
     virtual ~ResourceMap();
     bool registerResources(const lm::message::ResourcesAvailable& msg);
-    map<int,ComputeResources> getRegisteredResources();
+    ComputeResources reserveCPUCores(int process, int numberCPUCores);
+    map<int,ComputeResources> getAvailableResources();
 
 protected:
     map<string,ComputeResources> parseResourceFile(string filename);

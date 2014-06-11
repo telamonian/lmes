@@ -56,7 +56,6 @@
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/main/DataOutputQueue.h"
-#include "lm/resource/ResourceAllocator.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/rng/XORShift.h"
 #ifdef OPT_CUDA
@@ -812,8 +811,10 @@ double CMESolver::MichaelisMentenPropensity(double time, uint * speciesCounts, v
     return args->v*((double)speciesCounts[args->si]/(args->k + (double)speciesCounts[args->si]));
 }
 
-void CMESolver::resetState()
+void CMESolver::reset()
 {
+    MESolver::reset();
+
     // Free any previous state.
     if (speciesCounts != NULL) delete[] speciesCounts; speciesCounts = NULL;
 

@@ -102,14 +102,18 @@ public:
 
     //map<int,int> simulationStatusTable;
 protected:
+    virtual void allResourcesRegistered();
     virtual void startSimulation();
     virtual void workUnitStarted(const lm::message::StartedWorkUnit& msg);
     virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg);
+    virtual void outputWriterStarted(const lm::message::StartedOutputWriter& msg);
 
 protected:
     lm::io::TrajectoryLimits limits;
     TrajectoryList* trajectories;
     long long workUnitCount;
+    int outputWriterProcess;
+    int outputWriterThread;
 
     /*
     void * staticDataBuffer;

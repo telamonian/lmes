@@ -55,7 +55,8 @@
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/main/DataOutputQueue.h"
-#include "lm/resource/ResourceAllocator.h"
+#include "lm/message/Message.pb.h"
+#include "lm/message/ProcessWorkUnitOutput.pb.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/rng/XORShift.h"
 #ifdef OPT_CUDA
@@ -97,9 +98,9 @@ GillespieDSolver::~GillespieDSolver()
     if (propensities != NULL) delete[] propensities; propensities = NULL;
 }
 
-void GillespieDSolver::resetState()
+void GillespieDSolver::reset()
 {
-    CMESolver::resetState();
+    CMESolver::reset();
 
     // Free any previous state.
     if (propensities != NULL) delete[] propensities; propensities = NULL;
@@ -142,12 +143,17 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
     double totalPropensity = 0.0;
     for (uint i=0; i<numberReactions; i++) totalPropensity += propensities[i];
 
+    // Create the output message.
+    lm::message::Message msgp;
+    lm::message::ProcessWorkUnitOutput* msg = msgp.add_process_work_unit_output();
+    msg->set_work_unit_id(0);
+
     // Create the species counts data set to track during the simulation.
-//    lm::io::SpeciesCounts speciesCountsDataSet;
-//    speciesCountsDataSet.set_number_species(numberSpeciesToTrack);
-//    speciesCountsDataSet.set_number_entries(1);
-//    speciesCountsDataSet.add_time(0.0);
-//    for (uint i=0; i<numberSpeciesToTrack; i++) speciesCountsDataSet.add_species_count(speciesCounts[i]);
+    lm::io::SpeciesCounts* speciesCountsDataSet = msg->mutable_species_counts();
+    speciesCountsDataSet->set_number_species(reactionModel->numberSpeciesToTrack);
+    speciesCountsDataSet->set_number_entries(1);
+    speciesCountsDataSet->add_time(0.0);
+    for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
 
     // Initialize tracking of the first passage times.
 //    for (uint i=0; i<numberFptTrackedSpecies; i++)
@@ -311,6 +317,8 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
     }
     PROF_END(PROF_SIM_EXECUTE);
 
+    bool reachedLimit = false;
+
     // If we finished the total time or ran out of reactions, write out the remaining time steps.
     if (time >= maxTime || totalPropensity <= 0)
     {
@@ -327,19 +335,18 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
 //        }
 //        Print::printf(Print::VERBOSE_DEBUG, "Done recording events at time %e (%e)", nextSpeciesCountsWriteTime, maxTime);
 
-//        // If we are recording parameter values, write out the remaining value intervals.
+        // If we are recording parameter values, write out the remaining value intervals.
 //        if (nextParameterWriteTime <= (maxTime+1e-9))
 //        {
 ////            recordParameters(nextParameterWriteTime, parameterWriteInterval, maxTime);
 //        }
-        return true;
+        reachedLimit = true;
     }
 
     // See if we finished all of the steps.
     else if (steps >= maxSteps)
     {
         Print::printf(Print::DEBUG, "Generated trajectory with %llu steps.", steps);
-        return false;
     }
 
     // Otherwise we must have finished because of a species limit, so just write out the last time.
@@ -349,8 +356,13 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
 //        speciesCountsDataSet.set_number_entries(speciesCountsDataSet.number_entries()+1);
 //        speciesCountsDataSet.add_time(time);
 //        for (uint i=0; i<numberSpeciesToTrack; i++) speciesCountsDataSet.add_species_count(speciesCounts[i]);
-        return true;
+        reachedLimit = true;
     }
+
+    // Send the species counts.
+    communicator->sendMessage(outputProcess, outputThread, &msgp);
+
+    return reachedLimit;
 
     // Send any remaining species counts to the queue.
 //    if (speciesCountsDataSet.number_entries() > 0)

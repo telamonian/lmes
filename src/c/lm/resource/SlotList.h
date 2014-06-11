@@ -109,7 +109,7 @@ private:
     virtual SlotDeque::iterator getFreeSlotIt(int process, int thread);
 
 	lm::message::Communicator * supervisorComm;
-	lm::message::Message * startSlotMsg;
+	lm::message::Message startSlotMsg;
     SlotMap busySlots;
     SlotDeque freeSlots;
     lm::rng::XORShift xorShift;

@@ -104,16 +104,7 @@ void SlotList::addSlots(ResourceMap::ComputeResources & resources, float cpusPer
 
 void SlotList::addSlot(int controller_process, int controller_thread)
 {
-    Slot * addedSlot = new Slot(controller_process,
-								controller_thread,
-								xorShift.getRandom(),
-								supervisorComm,
-								startSlotMsg.solverClassName(),
-								startSlotMsg.simulationParameters(),
-								startSlotMsg.hasReactionModel(),
-								startSlotMsg.reactionModel(),
-								startSlotMsg.hasDiffusionModel(),
-								startSlotMsg.diffusionModel());
+    Slot * addedSlot = new Slot(controller_process, controller_thread, xorShift.getRandom(), supervisorComm, startSlotMsg);
     freeSlots.push_back(addedSlot);
 }
 

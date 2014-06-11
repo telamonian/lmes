@@ -128,6 +128,10 @@ int SimulationSupervisor::run()
             {
                 workUnitFinished(message.finished_work_unit());
             }
+            else if (message.has_started_output_writer())
+            {
+                outputWriterStarted(message.started_output_writer());
+            }
             else
             {
                 Print::printf(Print::ERROR, "Supervisor received an unknown message: {\n%s}",message.DebugString().c_str());
@@ -157,7 +161,7 @@ int SimulationSupervisor::run()
 
 void SimulationSupervisor::resourceAvailable(const lm::message::ResourcesAvailable& msg)
 {
-    Print::printf(Print::INFO, "Host %s registered with supervisor.", msg.hostname().c_str());
+    Print::printf(Print::INFO, "Resource controller %d:%d on %s registered with %d cpu core(s) and %d gpu device(s).", msg.controller_process(), msg.controller_thread(), msg.hostname().c_str(), msg.cpu_size(), msg.gpu_size());
     if (resourceMap->registerResources(msg))
     {
         allResourcesRegistered();
@@ -166,19 +170,10 @@ void SimulationSupervisor::resourceAvailable(const lm::message::ResourcesAvailab
 
 void SimulationSupervisor::allResourcesRegistered()
 {
-    // Display a status message for the registered resoruces.
-    map<int,ResourceMap::ComputeResources> allResources = resourceMap->getRegisteredResources();
-    for (map<int,ResourceMap::ComputeResources>::iterator it=allResources.begin(); it != allResources.end(); it++)
-    {
-        ResourceMap::ComputeResources r = it->second;
-        Print::printf(Print::INFO, "Resource controller %d:%d registered with %d cpu core(s) and %d gpu device(s).", r.controller_process, r.controller_thread, r.cpuCores.size(), r.gpusDevices.size());
-    }
-
     // Start the work unit runners.
     Print::printf(Print::INFO, "All resources registered with supervisor, starting work unit runners.");
 
-    lm::message::Message msg;
-    lm::message::StartWorkUnitRunner * s = msg.mutable_start_work_unit_runner();
+    lm::message::StartWorkUnitRunner * s = slotList.startSlotMsg.mutable_start_work_unit_runner();
     //	s->set_use_cpu_affinity(useCPUAffinity);
     //	s->add_cpu(resources.cpuCores[i]);
     //	if (resources.gpusDevices.size() > 0)
@@ -188,7 +183,7 @@ void SimulationSupervisor::allResourcesRegistered()
 	if (hasReactionModel) *s->mutable_reaction_model() = reactionModel;
 	if (hasDiffusionModel) *s->mutable_diffusion_model() = diffusionModel;
 
-	slotList.setStartRunnerMsg(msg);
+	map<int,ResourceMap::ComputeResources> allResources = resourceMap->getAvailableResources();
     slotList.addSlots(allResources);
 
     Print::printf(Print::INFO, "All work unit runners started, beginning simulation.");

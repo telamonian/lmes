@@ -1,4 +1,4 @@
-/*/*
+/*
  * University of Illinois Open Source License
  * Copyright 2012-2014 Roberts Group,
  * All rights reserved.
@@ -37,48 +37,36 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-#ifndef LM_MAIN_RESOURCECONTROLLER
-#define LM_MAIN_RESOURCECONTROLLER
+#ifndef LM_IO_CONSOLEOUTPUTWRITER
+#define LM_IO_CONSOLEOUTPUTWRITER
 
-#include <pthread.h>
-#include <map>
-#include <vector>
-#include "lm/Print.h"
-#include "lm/main/WorkUnitRunner.h"
-#include "lm/message/Communicator.h"
-#include "lm/message/StartOutputWriter.pb.h"
-#include "lm/message/StartWorkUnitRunner.pb.h"
-#include "lm/message/StartedWorkUnitRunner.pb.h"
-#include "lm/thread/Worker.h"
-#include "lm/thread/Thread.h"
+#include <queue>
+#include <cstring>
+
+#include "lm/io/OutputWriter.h"
+#include "lm/io/SpeciesCounts.pb.h"
 
 namespace lm {
-namespace main {
+namespace io {
 
-class ResourceController : public lm::thread::Worker
+class ConsoleOutputWriter : public OutputWriter
 {
 public:
-    static std::vector<int> getPhysicalCPUCores();
-    static std::vector<int> getPhysicalGPUs();
+    static bool registered;
+    static bool registerClass();
+    static void* allocateObject();
 
 public:
-    ResourceController();
-    virtual ~ResourceController();
-    virtual void wake() throw(PthreadException);
+    ConsoleOutputWriter();
+    virtual ~ConsoleOutputWriter();
+    virtual void initialize();
 
 protected:
-    virtual int run();
-
-    virtual void startWorkUnitRunner(const lm::message::StartWorkUnitRunner & msg);
-    virtual void stopWorkUnitRunner(const lm::message::StopWorkUnitRunner & msg);
-    virtual void startOutputWriter(const lm::message::StartOutputWriter& msg);
-
-protected:
-    lm::message::Communicator communicator;
-    std::map<int, lm::main::WorkUnitRunner*> runners;
+    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
 };
 
 }
 }
+
 
 #endif

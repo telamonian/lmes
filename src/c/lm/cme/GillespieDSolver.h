@@ -46,13 +46,11 @@
 #include "lm/ClassFactory.h"
 #include "lm/cme/CMESolver.h"
 #include "lm/io/FirstPassageTimes.pb.h"
-#include "lm/resource/ResourceAllocator.h"
 #include "lm/rng/RandomGenerator.h"
 
 using std::map;
 using std::list;
 using std::string;
-using lm::resource::ResourceAllocator;
 using lm::rng::RandomGenerator;
 
 namespace lm {
@@ -68,7 +66,7 @@ public:
 public:
     GillespieDSolver();
     virtual ~GillespieDSolver();
-    virtual void resetState();
+    virtual void reset();
     virtual void getState(lm::io::TrajectoryState* state);
     virtual void setState(const lm::io::TrajectoryState& state);
     virtual bool generateTrajectory(long long maxSteps);

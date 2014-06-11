@@ -1,4 +1,4 @@
-/*/*
+/*
  * University of Illinois Open Source License
  * Copyright 2012-2014 Roberts Group,
  * All rights reserved.
@@ -37,48 +37,46 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-#ifndef LM_MAIN_RESOURCECONTROLLER
-#define LM_MAIN_RESOURCECONTROLLER
+#include <lm/ClassFactory.h>
+#include <lm/Print.h>
+#include "lm/io/ConsoleOutputWriter.h"
+#include "lm/io/OutputWriter.h"
 
-#include <pthread.h>
-#include <map>
-#include <vector>
-#include "lm/Print.h"
-#include "lm/main/WorkUnitRunner.h"
-#include "lm/message/Communicator.h"
-#include "lm/message/StartOutputWriter.pb.h"
-#include "lm/message/StartWorkUnitRunner.pb.h"
-#include "lm/message/StartedWorkUnitRunner.pb.h"
-#include "lm/thread/Worker.h"
-#include "lm/thread/Thread.h"
 
 namespace lm {
-namespace main {
+namespace io {
 
-class ResourceController : public lm::thread::Worker
+
+bool ConsoleOutputWriter::registered=ConsoleOutputWriter::registerClass();
+
+bool ConsoleOutputWriter::registerClass()
 {
-public:
-    static std::vector<int> getPhysicalCPUCores();
-    static std::vector<int> getPhysicalGPUs();
+    lm::ClassFactory::getInstance().registerClass("lm::io::OutputWriter","lm::io::ConsoleOutputWriter",&ConsoleOutputWriter::allocateObject);
+    return true;
+}
 
-public:
-    ResourceController();
-    virtual ~ResourceController();
-    virtual void wake() throw(PthreadException);
+void* ConsoleOutputWriter::allocateObject()
+{
+    return new ConsoleOutputWriter();
+}
 
-protected:
-    virtual int run();
+ConsoleOutputWriter::ConsoleOutputWriter()
+{
+}
 
-    virtual void startWorkUnitRunner(const lm::message::StartWorkUnitRunner & msg);
-    virtual void stopWorkUnitRunner(const lm::message::StopWorkUnitRunner & msg);
-    virtual void startOutputWriter(const lm::message::StartOutputWriter& msg);
+ConsoleOutputWriter::~ConsoleOutputWriter()
+{
+}
 
-protected:
-    lm::message::Communicator communicator;
-    std::map<int, lm::main::WorkUnitRunner*> runners;
-};
+void ConsoleOutputWriter::initialize()
+{
+    OutputWriter::initialize();
+}
+
+void ConsoleOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
+{
+    Print::printf(Print::INFO, "ConsoleOutputWriter received a data message: {\n%s}",data.DebugString().c_str());
+}
 
 }
 }
-
-#endif

@@ -39,7 +39,6 @@
 
 #include <csignal>
 #include "lm/Print.h"
-#include "lm/main/LocalDataOutputWorker.h"
 #include "lm/main/Main.h"
 #include "lm/main/SignalHandler.h"
 #include "lm/thread/Thread.h"
