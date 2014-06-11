@@ -37,6 +37,7 @@
  * Author(s): Elijah Roberts
  */
 
+#include <climits>
 #include <iostream>
 #include <pthread.h>
 #include <sstream>
@@ -61,7 +62,7 @@ using std::vector;
 namespace lm {
 namespace resource {
 
-SlotList::SlotList(lm::message::Communicator * supervisorComm): busySlots(), freeSlots(), xorShift(0,0), supervisorComm(supervisorComm)	// the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
+SlotList::SlotList(lm::message::Communicator * supervisorComm): busySlots(), freeSlots(), xorShift(0,0), supervisorComm(supervisorComm), startSlotMsg()// the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
 }
 
@@ -71,75 +72,48 @@ SlotList::~SlotList()
     for (SlotDeque::iterator d_it=freeSlots.begin(); d_it!=freeSlots.end(); ++d_it) delete *d_it;
 }
 
-void SlotList::addSlots(map<int,ResourceMap::ComputeResources> & allResources,
-					  	string solverClassName,
-					  	lm::io::SimulationParameters & simulationParameters,
-					  	bool hasReactionModel,
-					  	lm::io::ReactionModel & reactionModel,
-					  	bool hasDiffusionModel,
-					  	lm::io::DiffusionModel & diffusionModel)
+void SlotList::addSlots(map<int,ResourceMap::ComputeResources> & allResources)
 {
 	for (map<int,ResourceMap::ComputeResources>::iterator it=allResources.begin(); it != allResources.end(); it++)
 	{
-		addSlots(it->second,
-				 solverClassName,
-				 simulationParameters,
-				 hasReactionModel,
-				 reactionModel,
-				 hasDiffusionModel,
-				 diffusionModel,
-				 cpuCoresPerReplicate,	 // for now we'll just use the command line arguments for the cpu/gpu per slot arguments
-				 gpuDevicesPerReplicate);
+		addSlots(it->second, cpuCoresPerReplicate, gpuDevicesPerReplicate);	// for now we'll just use the command line arguments for the cpu/gpu per slot arguments
 	}
 }
 
-void SlotList::addSlots(ResourceMap::ComputeResources & resources,
-						string solverClassName,
-						lm::io::SimulationParameters & simulationParameters,
-						bool hasReactionModel,
-						lm::io::ReactionModel & reactionModel,
-						bool hasDiffusionModel,
-						lm::io::DiffusionModel & diffusionModel,
-						float cpusPerSlot,
-						float gpusPerSlot)
+void SlotList::addSlots(ResourceMap::ComputeResources & resources, float cpusPerSlot, float gpusPerSlot)
 {
-	int cpuSlots = resources.cpuCores.size()/cpusPerSlot;
-	int gpuSlots = resources.gpusDevices.size()/gpusPerSlot;
-	int slotsToStart = cpuSlots > gpuSlots ? gpuSlots : cpuSlots;
+	int slotsToStart;
+	if (cpusPerSlot==0 && gpusPerSlot==0)
+	{
+		slotsToStart = 0;
+		Print::printf(Print::INFO, "0 cpus and 0 gpus requested per trajectory. No compute resources were requested, so no slots will be started.");
+	}
+	else
+	{
+		int cpuSlots = cpusPerSlot > 0 ? resources.cpuCores.size()/cpusPerSlot: INT_MAX;
+		int gpuSlots = gpusPerSlot > 0 ? resources.gpusDevices.size()/gpusPerSlot: INT_MAX;
+		slotsToStart = cpuSlots > gpuSlots ? gpuSlots : cpuSlots;
+	}
 	Print::printf(Print::INFO, "Attempting to start %d slots with %.3f cpus and %.3f gpus each on process %d.", slotsToStart, cpusPerSlot, gpusPerSlot, resources.controller_process);
 	for (int i=0; i<slotsToStart; i++)
 	{
-		addSlot(resources.controller_process,
-				resources.controller_thread,
-				solverClassName,
-				simulationParameters,
-				hasReactionModel,
-				reactionModel,
-				hasDiffusionModel,
-				diffusionModel);
+		addSlot(resources.controller_process, resources.controller_thread);
 	}
 	Print::printf(Print::INFO, "Start work unit runner(s) %d:%d start msg sent.", resources.controller_process, resources.controller_thread);
 }
 
-void SlotList::addSlot(int controller_process,
-					   int controller_thread,
-					   string solverClassName,
-					   lm::io::SimulationParameters & simulationParameters,
-					   bool hasReactionModel,
-					   lm::io::ReactionModel & reactionModel,
-					   bool hasDiffusionModel,
-					   lm::io::DiffusionModel & diffusionModel)
+void SlotList::addSlot(int controller_process, int controller_thread)
 {
     Slot * addedSlot = new Slot(controller_process,
 								controller_thread,
 								xorShift.getRandom(),
 								supervisorComm,
-								solverClassName,
-								simulationParameters,
-								hasReactionModel,
-								reactionModel,
-								hasDiffusionModel,
-								diffusionModel);
+								startSlotMsg.solverClassName(),
+								startSlotMsg.simulationParameters(),
+								startSlotMsg.hasReactionModel(),
+								startSlotMsg.reactionModel(),
+								startSlotMsg.hasDiffusionModel(),
+								startSlotMsg.diffusionModel());
     freeSlots.push_back(addedSlot);
 }
 

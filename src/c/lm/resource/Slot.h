@@ -32,28 +32,13 @@ class Slot
 public:
 	enum slotStatus {FREE, BUSY, DEAD};
 
-	Slot(int controller_process,
-		 int controller_thread,
-	     lm::message::Communicator * supervisorComm,
-	     string solverClassName,
-	     lm::io::SimulationParameters & simulationParameters,
-	     bool hasReactionModel,
-	     lm::io::ReactionModel & reactionModel,
-	     bool hasDiffusionModel,
-	     lm::io::DiffusionModel & diffusionModel);
+	Slot(int controller_process, int controller_thread, uint32_t uuid, lm::message::Communicator * supervisorComm, lm::message::Message & msg);
 	virtual ~Slot();
 
 	virtual vector<int> alloc();
 	virtual void free();
 
-	virtual void startRemote(int controller_process,
-			   	   	   	     int controller_thread,
-							 string solverClassName,
-						     lm::io::SimulationParameters & simulationParameters,
-						     bool hasReactionModel,
-						     lm::io::ReactionModel & reactionModel,
-						     bool hasDiffusionModel,
-						     lm::io::DiffusionModel & diffusionModel);
+	virtual void startRemote(int controller_process, int controller_thread, lm::message::Message & msg);
 	virtual void startedRemote();
 	virtual void stop();
 	virtual void stopRemote();
@@ -62,6 +47,7 @@ public:
 	virtual void setStatus(slotStatus newStatus) {status = newStatus;}
 	virtual slotStatus getStatus() {return status;}
 	virtual vector<int> getSlotKey() {int keys[] = {process, thread}; vector<int> slotKey(keys, keys+2); return slotKey;}
+	virtual uint32_t getUUID() {return uuid;}
 
 	int process;
 	int thread;
