@@ -37,65 +37,43 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-#ifndef LM_IO_OUTPUTWRITER
-#define LM_IO_OUTPUTWRITER
+#include <lm/ClassFactory.h>
+#include <lm/Print.h>
+#include "lm/io/NullOutputWriter.h"
+#include "lm/io/OutputWriter.h"
 
-#include <queue>
-#include <cstring>
-
-#include <pthread.h>
-
-#include "lm/io/SpeciesCounts.pb.h"
-#include "lm/message/Communicator.h"
-#include "lm/message/Message.pb.h"
-#include "lm/message/ProcessWorkUnitOutput.pb.h"
-#include "lm/thread/Thread.h"
-#include "lm/thread/Worker.h"
 
 namespace lm {
 namespace io {
 
-class OutputWriter : public lm::thread::Worker
+
+bool NullOutputWriter::registered=NullOutputWriter::registerClass();
+
+bool NullOutputWriter::registerClass()
 {
-public:
-    OutputWriter();
-    virtual ~OutputWriter();
-    virtual void initialize();
+    lm::ClassFactory::getInstance().registerClass("lm::io::OutputWriter","lm::io::NullOutputWriter",&NullOutputWriter::allocateObject);
+    return true;
+}
 
-    virtual void wake() throw(lm::thread::PthreadException);
+void* NullOutputWriter::allocateObject()
+{
+    return new NullOutputWriter();
+}
 
-protected:
-    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data)=0;
-    virtual void flush();
+NullOutputWriter::NullOutputWriter()
+:secondsToDelay(0)
+{
+}
 
-    virtual int run();
+NullOutputWriter::~NullOutputWriter()
+{
+}
 
-private:
-    static const int MESSAGE_QUEUE_MAX_SIZE=50*1024*1024;
-
-private:
-    lm::message::Communicator communicator;
-    std::queue<lm::message::Message*> messageQueue;
-    volatile int messageQueueSize;
-    pthread_mutex_t messageQueueMutex;
-    pthread_cond_t messageQueueSignal;
-
-private:
-    class HelperThread : public lm::thread::Thread
-    {
-    public:
-        HelperThread(OutputWriter* p);
-        virtual ~HelperThread();
-        virtual void wake() throw(lm::thread::PthreadException);
-    protected:
-        virtual int run();
-    private:
-        OutputWriter* p;
-    };
-};
+void NullOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
+{
+    if (secondsToDelay > 0)
+        sleep(secondsToDelay);
+}
 
 }
 }
-
-
-#endif

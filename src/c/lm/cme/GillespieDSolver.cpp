@@ -54,7 +54,6 @@
 #include "lm/cme/GillespieDSolver.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
-#include "lm/main/DataOutputQueue.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/ProcessWorkUnitOutput.pb.h"
 #include "lm/rng/RandomGenerator.h"
@@ -321,22 +320,25 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
     {
         time = maxTime;
         Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);
-        while (nextSpeciesCountsWriteTime <= (maxTime+1e-9))
+        if (writeTimeSteps)
         {
-            Print::printf(Print::VERBOSE_DEBUG, "Recording event at time %e (%e)", nextSpeciesCountsWriteTime, maxTime);
-            // Record the species counts.
-            speciesCountsDataSet->set_number_entries(speciesCountsDataSet->number_entries()+1);
-            speciesCountsDataSet->add_time(nextSpeciesCountsWriteTime);
-            for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
-            nextSpeciesCountsWriteTime += writeInterval;
-        }
-        Print::printf(Print::VERBOSE_DEBUG, "Done recording events at time %e (%e)", nextSpeciesCountsWriteTime, maxTime);
+            while (nextSpeciesCountsWriteTime <= (maxTime+1e-9))
+            {
+                Print::printf(Print::VERBOSE_DEBUG, "Recording event at time %e (%e)", nextSpeciesCountsWriteTime, maxTime);
+                // Record the species counts.
+                speciesCountsDataSet->set_number_entries(speciesCountsDataSet->number_entries()+1);
+                speciesCountsDataSet->add_time(nextSpeciesCountsWriteTime);
+                for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
+                nextSpeciesCountsWriteTime += writeInterval;
+            }
+            Print::printf(Print::VERBOSE_DEBUG, "Done recording events at time %e (%e)", nextSpeciesCountsWriteTime, maxTime);
 
-        // If we are recording parameter values, write out the remaining value intervals.
-//        if (nextParameterWriteTime <= (maxTime+1e-9))
-//        {
-////            recordParameters(nextParameterWriteTime, parameterWriteInterval, maxTime);
-//        }
+            // If we are recording parameter values, write out the remaining value intervals.
+    //        if (nextParameterWriteTime <= (maxTime+1e-9))
+    //        {
+    ////            recordParameters(nextParameterWriteTime, parameterWriteInterval, maxTime);
+    //        }
+        }
         reachedLimit = true;
     }
 
@@ -349,15 +351,21 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
     // Otherwise we must have finished because of a species limit, so just write out the last time.
     else
     {
-        // Record the species counts.
-        speciesCountsDataSet->set_number_entries(speciesCountsDataSet->number_entries()+1);
-        speciesCountsDataSet->add_time(time);
-        for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
-        reachedLimit = true;
+        if (writeTimeSteps)
+        {
+            // Record the species counts.
+            speciesCountsDataSet->set_number_entries(speciesCountsDataSet->number_entries()+1);
+            speciesCountsDataSet->add_time(time);
+            for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
+            reachedLimit = true;
+        }
     }
 
     // Send the species counts.
-    communicator->sendMessage(outputProcess, outputThread, &msgp);
+    if (writeTimeSteps)
+    {
+        communicator->sendMessage(outputProcess, outputThread, &msgp);
+    }
 
     return reachedLimit;
 }

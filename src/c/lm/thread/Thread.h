@@ -40,6 +40,7 @@
 #ifndef LM_THREAD_THREAD_H_
 #define LM_THREAD_THREAD_H_
 
+#include <errno.h>
 #include <pthread.h>
 #include "lm/Exceptions.h"
 
@@ -92,6 +93,7 @@ protected:
  * Exception wrapping for pthreads api.
  */
 #define PTHREAD_EXCEPTION_CHECK(pthread_call) {int _pthread_ret_=pthread_call; if (_pthread_ret_ != 0) throw lm::thread::PthreadException(_pthread_ret_,__FILE__,__LINE__);}
+#define PTHREAD_TIMEOUT_EXCEPTION_CHECK(pthread_call) {int _pthread_ret_=pthread_call; if (_pthread_ret_ != 0 && _pthread_ret_ != ETIMEDOUT) throw lm::thread::PthreadException(_pthread_ret_,__FILE__,__LINE__);}
 
 
 #endif

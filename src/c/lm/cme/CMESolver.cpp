@@ -55,7 +55,6 @@
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
-#include "lm/main/DataOutputQueue.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/rng/XORShift.h"
 #ifdef OPT_CUDA

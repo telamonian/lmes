@@ -77,7 +77,7 @@ void ConsoleOutputWriter::initialize()
 
 void ConsoleOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
 {
-    // Print the output into the buffer.
+/*    // Print the output into the buffer.
     memset(buffer, 0, BUFFER_SIZE+1);
     int offset=snprintf(buffer,BUFFER_SIZE,"--------------------------------------------------------------------------------\n");
     for (int i=0, index=0; i<data.number_entries(); i++)
@@ -91,6 +91,8 @@ void ConsoleOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data
 
     // Print the output to stdout.
     Print::printf(Print::INFO, "ConsoleOutputWriter received species counts for trajectory %d:\n%s",data.trajectory_id(),buffer);
+    */
+    sleep(1);
 }
 
 }

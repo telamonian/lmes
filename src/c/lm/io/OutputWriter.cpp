@@ -40,8 +40,11 @@
 #include <queue>
 
 #include <pthread.h>
+#include <sys/time.h>
+#include <time.h>
 
-#include <lm/Print.h>
+#include "hrtime.h"
+#include "lm/Print.h"
 #include "lm/MPI.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/io/SpeciesCounts.pb.h"
@@ -84,49 +87,11 @@ void OutputWriter::initialize()
 {
 }
 
-//void OutputWriter::pushDataSet(DataSet * dataSet) throw(PthreadException)
-//{
-//    bool success=false;
-//    void * staticDataBuffer = NULL;
-//    MPI_EXCEPTION_CHECK(MPI_Alloc_mem(lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE, MPI_INFO_NULL, &staticDataBuffer));
-////    //// BEGIN CRITICAL SECTION: dataMutex
-////    PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&dataMutex));
-////    if (running)
-////    {
-////        if (dataSet != NULL)
-////        {
-////            dataQueue.push(dataSet);
-////            PTHREAD_EXCEPTION_CHECK(pthread_cond_signal(&dataAvailable));
-////        }
-////        success = true;
-////    }
-////    else
-////    {
-////        delete dataSet;
-////    }
-////    PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&dataMutex));
-////    //// END CRITICAL SECTION: dataMutex
-//    if (running)
-//    {
-//        if (dataSet !=NULL)
-//        {
-//            Print::printf(Print::VERBOSE_DEBUG, "Sending output data set from process %d.", lm::MPI::worldRank);
-//
-//            // Put the next data set into the send buffer.
-//            size_t messageSize=dataOutputQueue->popDataSetIntoBuffer(staticDataBuffer, lm::MPI::OUTPUT_DATA_STATIC_MAX_SIZE);
-//
-//            MPI_EXCEPTION_CHECK(MPI_Send(staticDataBuffer, messageSize, MPI_BYTE, lm::MPI::MASTER, lm::MPI::MSG_OUTPUT_DATA_STATIC, MPI_COMM_WORLD));
-//        }
-//        else
-//        {
-//            delete dataSet;
-//        }
-//    }
-//    MPI_EXCEPTION_CHECK(MPI_Free_mem(staticDataBuffer));
-//    if (!success) throw lm::Exception("OutputWriter is not running.");
-//}
-
 void OutputWriter::wake() throw(lm::thread::PthreadException)
+{
+}
+
+void OutputWriter::flush()
 {
 }
 
@@ -163,34 +128,40 @@ int OutputWriter::run()
 
             if (message->process_work_unit_output_size() > 0)
             {
+                //// BEGIN CRITICAL SECTION: messageQueueMutex
+                PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&messageQueueMutex));
+
                 // Add the message to the queue.
                 messageQueue.push(message);
 
+                // Track the size of the queue.
+                messageQueueSize += message->ByteSize();
+                int tmpMessageQueueSize = messageQueueSize;
+
                 // Signal that data is aavailable.
-                //// BEGIN CRITICAL SECTION: messageQueueMutex
-                PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&messageQueueMutex));
                 PTHREAD_EXCEPTION_CHECK(pthread_cond_signal(&messageQueueSignal));
+
                 PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&messageQueueMutex));
                 //// END CRITICAL SECTION: messageQueueMutex
+
+                // If the queue is too full, wait until it empties before reading any more messages.
+                while (tmpMessageQueueSize > MESSAGE_QUEUE_MAX_SIZE)
+                {
+                    //// BEGIN CRITICAL SECTION: messageQueueMutex
+                    PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&messageQueueMutex));
+                    tmpMessageQueueSize = messageQueueSize;
+                    PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&messageQueueMutex));
+                    //// END CRITICAL SECTION: messageQueueMutex
+
+                    Print::printf(Print::WARNING, "OutputWriter is receiving too much data, performance may be degraded. If this this message appear frequently, increase write intervals to increase performance. (%d bytes queued)",tmpMessageQueueSize);
+                    sleep(5);
+                }
             }
             else
             {
                 Print::printf(Print::ERROR, "OutputWriter received an unknown message: {\n%s}",message->DebugString().c_str());
             }
         }
-
-//            // See if we should display some stats.
-//            timing_time_t currentTime = TIMING_GET_TIME;
-//            if (currentTime-lastUpdateTime > 60*1000000000ULL)
-//            {
-//                Print::printf(Print::INFO, "Wrote %u data sets (%u bytes) in the last %0.2f seconds (%0.2f seconds writing). %u datasets queued. Flushing.",datasetsWritten,bytesWritten,((double)(currentTime-lastUpdateTime))/1000000000.0, ((double)writingTime)/1000000000.0, datasetsRemaining);
-//                file->flush();
-//                lastUpdateTime = currentTime;
-//                writingTime = 0;
-//                datasetsWritten = 0;
-//                bytesWritten = 0;
-//            }
-//        }
 
         // Stop the helper thread.
         helperThread.stop();
@@ -243,9 +214,19 @@ int OutputWriter::HelperThread::run()
     {
         Print::printf(Print::INFO, "OutputWriter::HelperThread %d:%d started.", p->communicator.getSourceProcess(), threadNumber);
 
-        while (running)
+        // Performance stats.
+        hrtime lastUpdateTime = getHrTime();
+        hrtime writingTime = 0;
+        int bytesWritten = 0;
+        int messagesWritten = 0;
+        int messagesQueued;
+        int bytesQueued;
+
+        bool finished = false;
+        while (!finished)
         {
             lm::message::Message* message=NULL;
+            int messageSize=0;
 
             //// BEGIN CRITICAL SECTION: messageQueueMutex
             PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&p->messageQueueMutex));
@@ -258,11 +239,29 @@ int OutputWriter::HelperThread::run()
                 p->messageQueue.pop();
 
                 // Update the total message size in the queue.
-                p->messageQueueSize -= message->ByteSize();
+                messageSize = message->ByteSize();
+                p->messageQueueSize -= messageSize;
+
+                // Get some queue stats.
+                messagesQueued = p->messageQueue.size();
+                bytesQueued = p->messageQueueSize;
             }
+
+            // If we are not running and the queue is empty, stop after this iteration of the loop.
+            else if (!running)
+            {
+                finished = true;
+            }
+
+            // Otherwise, wait for more data.
             else
             {
-                PTHREAD_EXCEPTION_CHECK(pthread_cond_wait(&p->messageQueueSignal, &p->messageQueueMutex));
+                struct timeval tv;
+                gettimeofday(&tv, NULL);
+                struct timespec waitTime;
+                waitTime.tv_sec = tv.tv_sec;
+                waitTime.tv_sec += 6;
+                PTHREAD_TIMEOUT_EXCEPTION_CHECK(pthread_cond_timedwait(&p->messageQueueSignal, &p->messageQueueMutex, &waitTime));
             }
 
             PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&p->messageQueueMutex));
@@ -274,6 +273,7 @@ int OutputWriter::HelperThread::run()
                 // Loop over every output in the message.
                 for (int i=0; i<message->process_work_unit_output_size(); i++)
                 {
+                    hrtime startWriting = getHrTime();
                     if (message->process_work_unit_output(i).has_species_counts())
                     {
                         p->processSpeciesCounts(message->process_work_unit_output(i).species_counts());
@@ -282,25 +282,27 @@ int OutputWriter::HelperThread::run()
                     {
                         Print::printf(Print::ERROR, "OutputWriter received an unsupported data message: {\n%s}",message->DebugString().c_str());
                     }
+                    writingTime += getHrTime()-startWriting;
                 }
+                bytesWritten += messageSize;
+                messagesWritten++;
 
                 // Delete the message.
                 delete message;
                 message = NULL;
             }
 
-            //            // See if we should display some stats.
-            //            timing_time_t currentTime = TIMING_GET_TIME;
-            //            if (currentTime-lastUpdateTime > 60*1000000000ULL)
-            //            {
-            //                Print::printf(Print::INFO, "Wrote %u data sets (%u bytes) in the last %0.2f seconds (%0.2f seconds writing). %u datasets queued. Flushing.",datasetsWritten,bytesWritten,((double)(currentTime-lastUpdateTime))/1000000000.0, ((double)writingTime)/1000000000.0, datasetsRemaining);
-            //                file->flush();
-            //                lastUpdateTime = currentTime;
-            //                writingTime = 0;
-            //                datasetsWritten = 0;
-            //                bytesWritten = 0;
-            //            }
-            //        }
+            // See if we should display some stats.
+            hrtime currentTime = getHrTime();
+            if (convertHrToSeconds(currentTime-lastUpdateTime) > 6.0 && bytesWritten > 0 || finished)
+            {
+                Print::printf(Print::INFO, "Wrote %u messages (%u bytes) in the last %0.1f seconds (%0.6f seconds writing). %u messages (%d bytes) queued. Flushing.",messagesWritten,bytesWritten,convertHrToSeconds(currentTime-lastUpdateTime), convertHrToSeconds(writingTime), messagesQueued, bytesQueued);
+                p->flush();
+                lastUpdateTime = currentTime;
+                writingTime = 0;
+                messagesWritten = 0;
+                bytesWritten = 0;
+            }
         }
     }
     catch (lm::Exception e)
@@ -315,6 +317,8 @@ int OutputWriter::HelperThread::run()
     {
         Print::printf(Print::FATAL, "Unknown Exception during execution (%s:%d)", __FILE__, __LINE__);
     }
+
+    Print::printf(Print::INFO, "OutputWriter::HelperThread finished.");
     return 0;
 }
 

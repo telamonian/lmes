@@ -125,7 +125,7 @@ void ReplicateSupervisor::allResourcesRegistered()
     lm::message::Message msg;
     msg.mutable_start_output_writer()->set_use_cpu_affinity(useCPUAffinity);
     msg.mutable_start_output_writer()->set_cpu(resources.cpuCores[0]);
-    msg.mutable_start_output_writer()->set_output_writer_class("lm::io::ConsoleOutputWriter");
+    msg.mutable_start_output_writer()->set_output_writer_class("lm::io::NullOutputWriter");
     communicator.sendMessage(resources.controller_process, resources.controller_thread, &msg);
 
     // Call the base class method.
@@ -224,7 +224,7 @@ void ReplicateSupervisor::startSimulation()
         run.set_supervisor_thread(communicator.getSourceThread());
         run.set_output_process(outputWriterProcess);
         run.set_output_thread(outputWriterThread);
-        run.set_max_steps(1000);
+        run.set_max_steps(1000000);
         *run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
         *run.mutable_limits() = limits;
         Print::printf(Print::INFO, "Sending message to start work unit %d with trajectory %d on slot %d:%d.", run.work_unit_id(), nextTrajectory, workSlot->getSlotKey()[0], workSlot->getSlotKey()[1]);
@@ -276,7 +276,7 @@ void ReplicateSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit& 
         run.set_supervisor_thread(communicator.getSourceThread());
         run.set_output_process(outputWriterProcess);
         run.set_output_thread(outputWriterThread);
-        run.set_max_steps(1000);
+        run.set_max_steps(1000000);
         *run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
         *run.mutable_limits() = limits;
         Print::printf(Print::INFO, "Sending message to start work unit %d with trajectory %d on slot %d:%d.", run.work_unit_id(), nextTrajectory, workSlot->getSlotKey()[0], workSlot->getSlotKey()[1]);

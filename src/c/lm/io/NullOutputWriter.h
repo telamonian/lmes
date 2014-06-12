@@ -37,61 +37,34 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-#ifndef LM_IO_OUTPUTWRITER
-#define LM_IO_OUTPUTWRITER
+#ifndef LM_IO_NullOutputWriter
+#define LM_IO_NullOutputWriter
 
 #include <queue>
 #include <cstring>
 
-#include <pthread.h>
-
+#include "lm/io/OutputWriter.h"
 #include "lm/io/SpeciesCounts.pb.h"
-#include "lm/message/Communicator.h"
-#include "lm/message/Message.pb.h"
-#include "lm/message/ProcessWorkUnitOutput.pb.h"
-#include "lm/thread/Thread.h"
-#include "lm/thread/Worker.h"
 
 namespace lm {
 namespace io {
 
-class OutputWriter : public lm::thread::Worker
+class NullOutputWriter : public OutputWriter
 {
 public:
-    OutputWriter();
-    virtual ~OutputWriter();
-    virtual void initialize();
+    static bool registered;
+    static bool registerClass();
+    static void* allocateObject();
 
-    virtual void wake() throw(lm::thread::PthreadException);
+public:
+    NullOutputWriter();
+    virtual ~NullOutputWriter();
 
 protected:
-    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data)=0;
-    virtual void flush();
-
-    virtual int run();
+    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
 
 private:
-    static const int MESSAGE_QUEUE_MAX_SIZE=50*1024*1024;
-
-private:
-    lm::message::Communicator communicator;
-    std::queue<lm::message::Message*> messageQueue;
-    volatile int messageQueueSize;
-    pthread_mutex_t messageQueueMutex;
-    pthread_cond_t messageQueueSignal;
-
-private:
-    class HelperThread : public lm::thread::Thread
-    {
-    public:
-        HelperThread(OutputWriter* p);
-        virtual ~HelperThread();
-        virtual void wake() throw(lm::thread::PthreadException);
-    protected:
-        virtual int run();
-    private:
-        OutputWriter* p;
-    };
+    int secondsToDelay;
 };
 
 }

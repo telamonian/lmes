@@ -63,9 +63,7 @@
 #include "lm/Cuda.h"
 #endif
 #include "lm/main/CheckpointSignaler.h"
-#include "lm/main/DataOutputQueue.h"
 #include "lm/main/Main.h"
-#include "lm/main/MPIRemoteDataOutputQueue.h"
 #include "lm/main/ResourceController.h"
 #include "lm/main/SignalHandler.h"
 #include "lm/main/SimulationSupervisor.h"

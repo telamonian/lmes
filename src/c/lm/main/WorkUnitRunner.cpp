@@ -89,7 +89,7 @@ int WorkUnitRunner::run()
 {
     try
     {
-        Print::printf(Print::INFO, "Work Unit runner %d:%d started.", lm::MPI::worldRank, threadNumber);
+        Print::printf(Print::INFO, "Work Unit runner %d:%d started with %d cpu cores (affinity=%d) and %d gpus.", lm::MPI::worldRank, threadNumber, properties.cpu_size(), properties.use_cpu_affinity(), properties.gpu_size());
 
         // Set the processor affinity.
         if (properties.use_cpu_affinity() && properties.cpu_size() > 0)
@@ -113,8 +113,8 @@ int WorkUnitRunner::run()
         // Set the solver resources.
         vector<int> cpus;
         vector<int> gpus;
-        for (int i=0; i<properties.cpu_size(); i++) cpus.push_back(properties.cpu(0));
-        for (int i=0; i<properties.gpu_size(); i++) gpus.push_back(properties.gpu(0));
+        for (int i=0; i<properties.cpu_size(); i++) cpus.push_back(properties.cpu(i));
+        for (int i=0; i<properties.gpu_size(); i++) gpus.push_back(properties.gpu(i));
         solver->setComputeResources(cpus, gpus);
 
         // Set the simulation parameters.
