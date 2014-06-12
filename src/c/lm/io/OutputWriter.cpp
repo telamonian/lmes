@@ -39,6 +39,8 @@
 
 #include <queue>
 
+#include <pthread.h>
+
 #include <lm/Print.h>
 #include "lm/MPI.h"
 #include "lm/io/OutputWriter.h"
@@ -59,12 +61,23 @@ namespace io {
 
 
 OutputWriter::OutputWriter()
-:communicator(lm::MPI::worldRank, threadNumber)
+    :communicator(lm::MPI::worldRank, threadNumber),messageQueueSize(0)
 {
+    // Create the queue mutex.
+    pthread_mutexattr_t attr;
+    PTHREAD_EXCEPTION_CHECK(pthread_mutexattr_init(&attr));
+    PTHREAD_EXCEPTION_CHECK(pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL));
+    PTHREAD_EXCEPTION_CHECK(pthread_mutex_init(&messageQueueMutex, &attr));
+    PTHREAD_EXCEPTION_CHECK(pthread_mutexattr_destroy(&attr));
+
+    // Create the queue signal.
+    PTHREAD_EXCEPTION_CHECK(pthread_cond_init(&messageQueueSignal, NULL));
 }
 
 OutputWriter::~OutputWriter()
 {
+    PTHREAD_EXCEPTION_CHECK(pthread_mutex_destroy(&messageQueueMutex));
+    PTHREAD_EXCEPTION_CHECK(pthread_cond_destroy(&messageQueueSignal));
 }
 
 void OutputWriter::initialize()
@@ -122,9 +135,16 @@ int OutputWriter::run()
     PROF_SET_THREAD(threadNumber);
     PROF_BEGIN(PROF_DATAOUTPUT_RUN);
 
+    // Create a helper thread.
+    HelperThread helperThread(this);
+
     try
     {
         Print::printf(Print::INFO, "OutputWriter %d:%d started.", communicator.getSourceProcess(), communicator.getSourceThread());
+
+        // Start the helper thread.
+        if (cpuNumber >= 0) helperThread.setAffinity(cpuNumber);
+        helperThread.start();
 
         // TODO comment back in once slot is fixed.
         // Register our info with the supervisor.
@@ -141,29 +161,21 @@ int OutputWriter::run()
             lm::message::Message* message = new lm::message::Message();
             communicator.receiveMessage(message);
 
-            // Do something with the message.
-            if (message->process_work_unit_output_size())
+            if (message->process_work_unit_output_size() > 0)
             {
+                // Add the message to the queue.
+                messageQueue.push(message);
 
-                for (int i=0; i<message->process_work_unit_output_size(); i++)
-                {
-                    if (message->process_work_unit_output(i).has_species_counts())
-                    {
-                        processSpeciesCounts(message->process_work_unit_output(i).species_counts());
-                    }
-                    else
-                    {
-                        Print::printf(Print::ERROR, "OutputWriter received an unknown data message: {\n%s}",message->DebugString().c_str());
-                    }
-                }
-                delete message;
-                message = NULL;
+                // Signal that data is aavailable.
+                //// BEGIN CRITICAL SECTION: messageQueueMutex
+                PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&messageQueueMutex));
+                PTHREAD_EXCEPTION_CHECK(pthread_cond_signal(&messageQueueSignal));
+                PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&messageQueueMutex));
+                //// END CRITICAL SECTION: messageQueueMutex
             }
             else
             {
                 Print::printf(Print::ERROR, "OutputWriter received an unknown message: {\n%s}",message->DebugString().c_str());
-                delete message;
-                message = NULL;
             }
         }
 
@@ -179,6 +191,9 @@ int OutputWriter::run()
 //                bytesWritten = 0;
 //            }
 //        }
+
+        // Stop the helper thread.
+        helperThread.stop();
 
         Print::printf(Print::INFO, "OutputWriter finished.");
         PROF_END(PROF_DATAOUTPUT_RUN);
@@ -197,7 +212,110 @@ int OutputWriter::run()
         Print::printf(Print::FATAL, "Unknown Exception during execution (%s:%d)", __FILE__, __LINE__);
     }
     PROF_END(PROF_DATAOUTPUT_RUN);
+
+    // Stop the helper thread.
+    helperThread.stop();
+
     return -1;
+}
+
+OutputWriter::HelperThread::HelperThread(OutputWriter* p)
+:p(p)
+{
+}
+
+OutputWriter::HelperThread::~HelperThread()
+{
+}
+
+void OutputWriter::HelperThread::wake() throw(lm::thread::PthreadException)
+{
+    //// BEGIN CRITICAL SECTION: messageQueueMutex
+    PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&p->messageQueueMutex));
+    PTHREAD_EXCEPTION_CHECK(pthread_cond_signal(&p->messageQueueSignal));
+    PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&p->messageQueueMutex));
+    //// END CRITICAL SECTION: messageQueueMutex
+}
+
+int OutputWriter::HelperThread::run()
+{
+    try
+    {
+        Print::printf(Print::INFO, "OutputWriter::HelperThread %d:%d started.", p->communicator.getSourceProcess(), threadNumber);
+
+        while (running)
+        {
+            lm::message::Message* message=NULL;
+
+            //// BEGIN CRITICAL SECTION: messageQueueMutex
+            PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&p->messageQueueMutex));
+
+            // See if there are any messages.
+            if (!p->messageQueue.empty())
+            {
+                // Get the next message.
+                message = p->messageQueue.front();
+                p->messageQueue.pop();
+
+                // Update the total message size in the queue.
+                p->messageQueueSize -= message->ByteSize();
+            }
+            else
+            {
+                PTHREAD_EXCEPTION_CHECK(pthread_cond_wait(&p->messageQueueSignal, &p->messageQueueMutex));
+            }
+
+            PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&p->messageQueueMutex));
+            //// END CRITICAL SECTION: messageQueueMutex
+
+            // If we got a message off of the queue, process it.
+            if (message != NULL)
+            {
+                // Loop over every output in the message.
+                for (int i=0; i<message->process_work_unit_output_size(); i++)
+                {
+                    if (message->process_work_unit_output(i).has_species_counts())
+                    {
+                        p->processSpeciesCounts(message->process_work_unit_output(i).species_counts());
+                    }
+                    else
+                    {
+                        Print::printf(Print::ERROR, "OutputWriter received an unsupported data message: {\n%s}",message->DebugString().c_str());
+                    }
+                }
+
+                // Delete the message.
+                delete message;
+                message = NULL;
+            }
+
+            //            // See if we should display some stats.
+            //            timing_time_t currentTime = TIMING_GET_TIME;
+            //            if (currentTime-lastUpdateTime > 60*1000000000ULL)
+            //            {
+            //                Print::printf(Print::INFO, "Wrote %u data sets (%u bytes) in the last %0.2f seconds (%0.2f seconds writing). %u datasets queued. Flushing.",datasetsWritten,bytesWritten,((double)(currentTime-lastUpdateTime))/1000000000.0, ((double)writingTime)/1000000000.0, datasetsRemaining);
+            //                file->flush();
+            //                lastUpdateTime = currentTime;
+            //                writingTime = 0;
+            //                datasetsWritten = 0;
+            //                bytesWritten = 0;
+            //            }
+            //        }
+        }
+    }
+    catch (lm::Exception e)
+    {
+        Print::printf(Print::FATAL, "Exception during execution: %s (%s:%d)", e.what(), __FILE__, __LINE__);
+    }
+    catch (std::exception& e)
+    {
+        Print::printf(Print::FATAL, "Exception during execution: %s (%s:%d)", e.what(), __FILE__, __LINE__);
+    }
+    catch (...)
+    {
+        Print::printf(Print::FATAL, "Unknown Exception during execution (%s:%d)", __FILE__, __LINE__);
+    }
+    return 0;
 }
 
 }

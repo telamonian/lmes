@@ -52,6 +52,9 @@ namespace io {
 class ConsoleOutputWriter : public OutputWriter
 {
 public:
+    static const int BUFFER_SIZE=1024*1024;
+
+public:
     static bool registered;
     static bool registerClass();
     static void* allocateObject();
@@ -63,6 +66,9 @@ public:
 
 protected:
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
+
+private:
+    char* buffer;
 };
 
 }

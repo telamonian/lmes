@@ -292,6 +292,7 @@ protected:
     list<TrackedParameter> trackedParameters;
 
     // The current state.
+    int trajectoryId;
     uint* speciesCounts;
     double time;
 };

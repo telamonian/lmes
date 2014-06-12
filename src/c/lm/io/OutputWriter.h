@@ -43,8 +43,11 @@
 #include <queue>
 #include <cstring>
 
+#include <pthread.h>
+
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/message/Communicator.h"
+#include "lm/message/Message.pb.h"
 #include "lm/message/ProcessWorkUnitOutput.pb.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
@@ -67,7 +70,27 @@ protected:
     virtual int run();
 
 private:
+    static const int MESSAGE_QUEUE_MAX_SIZE=50*1024*1024;
+
+private:
     lm::message::Communicator communicator;
+    std::queue<lm::message::Message*> messageQueue;
+    int messageQueueSize;
+    pthread_mutex_t messageQueueMutex;
+    pthread_cond_t messageQueueSignal;
+
+private:
+    class HelperThread : public lm::thread::Thread
+    {
+    public:
+        HelperThread(OutputWriter* p);
+        virtual ~HelperThread();
+        virtual void wake() throw(lm::thread::PthreadException);
+    protected:
+        virtual int run();
+    private:
+        OutputWriter* p;
+    };
 };
 
 }

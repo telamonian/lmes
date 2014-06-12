@@ -198,7 +198,7 @@ void WorkUnitRunner::runWorkUnit(const lm::message::RunWorkUnit& wu)
     solver->reset();
 
     // Set the communicator.
-    solver->setCommunicator(&communicator, wu.output_process(), wu.output_thread());
+    solver->setCommunicator(&communicator, wu.output_process(), wu.output_thread(), wu.work_unit_id());
 
     // Set the initial state.
     solver->setState(wu.initial_state());

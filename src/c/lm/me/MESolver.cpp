@@ -76,11 +76,12 @@ void MESolver::reset()
     outputThread = -1;
 }
 
-void MESolver::setCommunicator(lm::message::Communicator* communicator, int outputProcess, int outputThread)
+void MESolver::setCommunicator(lm::message::Communicator* communicator, int outputProcess, int outputThread, int64_t workUnitId)
 {
     this->communicator = communicator;
     this->outputProcess = outputProcess;
     this->outputThread = outputThread;
+    this->workUnitId = workUnitId;
 }
 
 }

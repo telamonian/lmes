@@ -848,6 +848,9 @@ void CMESolver::reset()
 
 void CMESolver::getState(lm::io::TrajectoryState* state)
 {
+    // Get the trajectory id.
+    state->set_trajectory_id(trajectoryId);
+
     // Get the time.
     state->set_time(time);
 
@@ -860,6 +863,9 @@ void CMESolver::getState(lm::io::TrajectoryState* state)
 
 void CMESolver::setState(const lm::io::TrajectoryState& state)
 {
+    // Set the trajectory id.
+    trajectoryId = state.trajectory_id();
+
     // Set the time.
     time = state.time();
 

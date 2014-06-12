@@ -73,7 +73,7 @@ public:
     virtual bool needsDiffusionModel()=0;
     virtual void setDiffusionModel(const lm::io::DiffusionModel& dm)=0;
     virtual void reset();
-    virtual void setCommunicator(lm::message::Communicator* communicator, int outputProcess, int outputThread);
+    virtual void setCommunicator(lm::message::Communicator* communicator, int outputProcess, int outputThread, int64_t workUnitId);
     virtual void getState(lm::io::TrajectoryState* state)=0;
     virtual void setState(const lm::io::TrajectoryState& state)=0;
     virtual void setLimits(const lm::io::TrajectoryLimits& limits)=0;
@@ -86,6 +86,7 @@ protected:
     lm::message::Communicator* communicator;
     int outputProcess;
     int outputThread;
+    int64_t workUnitId;
 };
 
 }
