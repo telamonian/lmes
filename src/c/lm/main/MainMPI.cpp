@@ -1,7 +1,7 @@
 /*
  * University of Illinois Open Source License
  * Copyright 2008-2011 Luthey-Schulten Group,
- * Copyright 2012 Roberts Group,
+ * Copyright 2012-2014 Roberts Group,
  * All rights reserved.
  * 
  * Developed by: Luthey-Schulten Group
@@ -279,7 +279,8 @@ void executeSimulationMPISingleMaster(ResourceMap* resourceMap)
     // Create the supervisor.
     lm::main::SimulationSupervisor* supervisor = static_cast<lm::main::SimulationSupervisor*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::main::SimulationSupervisor",supervisorClassName));
     supervisor->setUseCPUAffinity(useCPUAffinity);
-    supervisor->setSimulationFilename(simulationFilename);
+    supervisor->setSimulationFilename(simulationInputFilename, simulationOutputFilename);
+    supervisor->setOutputWriterClassName(outputWriterClassName);
     supervisor->setSolverClassName(solverClassName);
     supervisor->setResourceMap(resourceMap);
     supervisor->initialize();

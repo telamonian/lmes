@@ -1,37 +1,42 @@
 /*
  * University of Illinois Open Source License
  * Copyright 2008-2011 Luthey-Schulten Group,
+ * Copyright 2012-2014 Roberts Group,
  * All rights reserved.
- * 
+ *
  * Developed by: Luthey-Schulten Group
  * 			     University of Illinois at Urbana-Champaign
  * 			     http://www.scs.uiuc.edu/~schulten
- * 
+ *
+ * Developed by: Roberts Group
+ * 			     Johns Hopkins University
+ * 			     http://biophysics.jhu.edu/roberts/
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the Software), to deal with 
- * the Software without restriction, including without limitation the rights to 
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
- * of the Software, and to permit persons to whom the Software is furnished to 
+ * this software and associated documentation files (the Software), to deal with
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to
  * do so, subject to the following conditions:
- * 
- * - Redistributions of source code must retain the above copyright notice, 
+ *
+ * - Redistributions of source code must retain the above copyright notice,
  * this list of conditions and the following disclaimers.
- * 
- * - Redistributions in binary form must reproduce the above copyright notice, 
- * this list of conditions and the following disclaimers in the documentation 
+ *
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimers in the documentation
  * and/or other materials provided with the distribution.
- * 
+ *
  * - Neither the names of the Luthey-Schulten Group, University of Illinois at
- * Urbana-Champaign, nor the names of its contributors may be used to endorse or
- * promote products derived from this Software without specific prior written
- * permission.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL 
- * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR 
- * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+ * Urbana-Champaign, the Roberts Group, Johns Hopkins University, nor the names
+ * of its contributors may be used to endorse or promote products derived from
+ * this Software without specific prior written permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
  * Author(s): Elijah Roberts
@@ -69,9 +74,19 @@ using std::vector;
 string functionOption = "interpreter";
 
 /**
- * The name of the file containing the simulation.
+ * The name of the file containing the simulation input.
  */
-string simulationFilename;
+string simulationInputFilename;
+
+/**
+ * The name of the file containing the simulation output.
+ */
+string simulationOutputFilename;
+
+/**
+ * The output writer to use for the simulations.
+ */
+string outputWriterClassName;
 
 /**
  * The number of replicates of the simulation that should be performed.
@@ -175,6 +190,9 @@ void parseArguments(int argc, char** argv)
     gpuDevicesPerReplicate = 1.0;
     shouldPrintGPUCapabilities = true;
 
+    simulationInputFilename = "";
+    simulationOutputFilename = "";
+    outputWriterClassName = "lm::io::hdf5::Hdf5OutputWriter";
     supervisorClassName = "lm::replicates::ReplicateSupervisor";
     solverClassName = "lm::cme::GillespieDSolver";
 
@@ -211,9 +229,29 @@ void parseArguments(int argc, char** argv)
 
             // Get the filename.
             if (i < argc-1)
-                simulationFilename = argv[++i];
+                simulationInputFilename = argv[++i];
             else
-                throw lm::CommandLineArgumentException("missing simulation filename.");
+                throw lm::CommandLineArgumentException("missing simulation input file.");
+        }
+
+        //See if the user is trying to set the output filename.
+        else if ((strcmp(option, "-fo") == 0 || strcmp(option, "--output-file") == 0) && i < (argc-1))
+        {
+            simulationOutputFilename=argv[++i];
+        }
+        else if (strncmp(option, "--output-file=", strlen("--output-file=")) == 0)
+        {
+            simulationOutputFilename=option+strlen("--output-file=");
+        }
+
+        //See if the user is trying to set the output format.
+        else if ((strcmp(option, "-ff") == 0 || strcmp(option, "--output-format") == 0) && i < (argc-1))
+        {
+            outputWriterClassName=parseOutputFormatArg(argv[++i]);
+        }
+        else if (strncmp(option, "--output-format=", strlen("--output-format=")) == 0)
+        {
+            outputWriterClassName=parseOutputFormatArg(option+strlen("--output-format="));
         }
 
         //See if the user is trying to set the replicates.
@@ -349,7 +387,7 @@ void parseArguments(int argc, char** argv)
          }
 
         //See if the user is trying to turn off cuda capability printing.
-        else if ((strcmp(option, "-ff") == 0 || strcmp(option, "--use-forward-flux-runner") == 0))
+        else if ((strcmp(option, "-esff") == 0 || strcmp(option, "--use-forward-flux-runner") == 0))
 		{
         	 useForwardFluxRunner = true;
 		}
@@ -359,9 +397,28 @@ void parseArguments(int argc, char** argv)
             throw lm::CommandLineArgumentException(option);
         }
     }
+
+    // Perform some validation.
+    if (outputWriterClassName == "lm::io::hdf5::Hdf5OutputWriter" && simulationOutputFilename == "")
+        simulationOutputFilename = simulationInputFilename;
+    if (outputWriterClassName == "lm::io::sfile::SFileOutputWriter" && simulationOutputFilename == "")
+        throw lm::CommandLineArgumentException("missing simulation output file.");
 }
 
-void parseIntListArg(vector<int> & list, char * arg)
+string parseOutputFormatArg(char* option)
+{
+    if (strcmp(option, "hdf5") == 0)
+        return "lm::io::hdf5::Hdf5OutputWriter";
+    else if (strcmp(option, "sfile") == 0)
+        return "lm::io::sfile::SFileOutputWriter";
+    else if (strcmp(option, "log") == 0)
+        return "lm::io::ConsoleOutputWriter";
+    else if (strcmp(option, "null") == 0)
+        return "lm::io::NullOutputWriter";
+    throw lm::CommandLineArgumentException(option);
+}
+
+void parseIntListArg(vector<int> & list, char* arg)
 {
     list.clear();
     char * argbuf = new char[strlen(arg)+1];
@@ -443,24 +500,26 @@ void printUsage(int argc, char** argv)
     std::cout << "Usage: mpirun lm (-h|--help)" << std::endl;
     std::cout << "Usage: mpirun lm (-v|--version)" << std::endl;
     std::cout << "Usage: mpirun lm (-l|--list-devices)" << std::endl;
-    std::cout << "Usage: mpirun lm [OPTIONS] [SIM_OPTIONS] (-f|--file) simulation_filename" << std::endl;
+    std::cout << "Usage: mpirun lm [OPTIONS] [SIM_OPTIONS] (-f|--file) input_filename" << std::endl;
     std::cout << std::endl;
     std::cout << "OPTIONS" << std::endl;
-    std::cout << "  -n node_file      --nodelist=node_file         A file containing the list of nodes on which to run, one line per available CPU core." << std::endl;
-    std::cout << "  -m map_file       --resource-map=map_file      A file containing the map of resources to use: hostname processor_id_list gpu_id_list." << std::endl;
-    std::cout << "  -c num_cpus       --cpu=num_cpus               The number of CPUs on which to execute (default all)." << std::endl;
-    std::cout << "  -cr num           --cpus-per-replicate=num     The number of CPUs (possibly fractional) to assign per replicate, e.g. \"2\", \"1/4\" (default 1)." << std::endl;
-    std::cout << "  -ca               --cpu-affinity               Turn on CPU affinity." << std::endl;
-    std::cout << "  -g num_gpus       --gpu=num_gpus               The number of GPUs on which to execute (default all)." << std::endl;
-    std::cout << "  -gr num           --gpus-per-replicate=num     The number of GPUs (possibly fractional) to assign per replicate, e.g. \"2\", \"1/4\" (default 1)." << std::endl;
-    std::cout << "  -nc               --no-capabilities            Don't print the capabilities of the GPU devices." << std::endl;
-    std::cout << "  -nr               --no-reserve-core            Don't reserve a CPU core for the output thread." << std::endl;
+    std::cout << "  -fo output_file   --output-file=output_filename The file for the simulation output, if different than the input file. Required for sfile output format." << std::endl;
+    std::cout << "  -ff format        --output-format=format        The file format for the simulation output. Valid values are \"hdf5\" (default)|\"sfile\"|\"log\"|\"null\"." << std::endl;
+    std::cout << "  -n node_file      --nodelist=node_file          A file containing the list of nodes on which to run, one line per available CPU core." << std::endl;
+    std::cout << "  -m map_file       --resource-map=map_file       A file containing the map of resources to use: hostname processor_id_list gpu_id_list." << std::endl;
+    std::cout << "  -c num_cpus       --cpu=num_cpus                The number of CPUs on which to execute (default all)." << std::endl;
+    std::cout << "  -cr num           --cpus-per-replicate=num      The number of CPUs (possibly fractional) to assign per replicate, e.g. \"2\", \"1/4\" (default 1)." << std::endl;
+    std::cout << "  -ca               --cpu-affinity                Turn on CPU affinity." << std::endl;
+    std::cout << "  -g num_gpus       --gpu=num_gpus                The number of GPUs on which to execute (default all)." << std::endl;
+    std::cout << "  -gr num           --gpus-per-replicate=num      The number of GPUs (possibly fractional) to assign per replicate, e.g. \"2\", \"1/4\" (default 1)." << std::endl;
+    std::cout << "  -nc               --no-capabilities             Don't print the capabilities of the GPU devices." << std::endl;
+    std::cout << "  -nr               --no-reserve-core             Don't reserve a CPU core for the output thread." << std::endl;
     std::cout << std::endl;
     std::cout << "SIM_OPTIONS" << std::endl;
-    std::cout << "  -r replicates     --replicates=replicates      A list of replicates to run, e.g. \"0-9\", \"0,11,21\" (default 0)." << std::endl;
-    std::cout << "  -sp               --spatially-resolved         The simulations should use the spatially resolved reaction model (default)." << std::endl;
-    std::cout << "  -ws               --well-stirred               The simulations should use the well-stirred reaction model." << std::endl;
-    std::cout << "  -sl solver        --solver=solver              The specific solver class to use for the simulations." << std::endl;
-    std::cout << "  -ck               --checkpoint=interval        Enable checkpointing with the given interval as hh:mm:ss (default 00:00:00 -- disabled)." << std::endl;
+    std::cout << "  -r replicates     --replicates=replicates       A list of replicates to run, e.g. \"0-9\", \"0,11,21\" (default 0)." << std::endl;
+    std::cout << "  -sp               --spatially-resolved          The simulations should use the spatially resolved reaction model (default)." << std::endl;
+    std::cout << "  -ws               --well-stirred                The simulations should use the well-stirred reaction model." << std::endl;
+    std::cout << "  -sl solver        --solver=solver               The specific solver class to use for the simulations." << std::endl;
+    std::cout << "  -ck               --checkpoint=interval         Enable checkpointing with the given interval as hh:mm:ss (default 00:00:00 -- disabled)." << std::endl;
 }
 

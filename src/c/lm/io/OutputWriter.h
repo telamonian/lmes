@@ -41,7 +41,7 @@
 #define LM_IO_OUTPUTWRITER
 
 #include <queue>
-#include <cstring>
+#include <string>
 
 #include <pthread.h>
 
@@ -52,6 +52,8 @@
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 
+using std::string;
+
 namespace lm {
 namespace io {
 
@@ -60,6 +62,7 @@ class OutputWriter : public lm::thread::Worker
 public:
     OutputWriter();
     virtual ~OutputWriter();
+    void setOutputFilename(string outputFilename) {this->outputFilename = outputFilename;}
     virtual void initialize();
 
     virtual void wake() throw(lm::thread::PthreadException);
@@ -72,6 +75,9 @@ protected:
 
 private:
     static const int MESSAGE_QUEUE_MAX_SIZE=50*1024*1024;
+
+protected:
+    string outputFilename;
 
 private:
     lm::message::Communicator communicator;

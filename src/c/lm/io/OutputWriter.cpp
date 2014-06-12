@@ -64,7 +64,7 @@ namespace io {
 
 
 OutputWriter::OutputWriter()
-    :communicator(lm::MPI::worldRank, threadNumber),messageQueueSize(0)
+    :outputFilename(""),communicator(lm::MPI::worldRank, threadNumber),messageQueueSize(0)
 {
     // Create the queue mutex.
     pthread_mutexattr_t attr;
@@ -260,7 +260,7 @@ int OutputWriter::HelperThread::run()
                 gettimeofday(&tv, NULL);
                 struct timespec waitTime;
                 waitTime.tv_sec = tv.tv_sec;
-                waitTime.tv_sec += 6;
+                waitTime.tv_sec += 60;
                 PTHREAD_TIMEOUT_EXCEPTION_CHECK(pthread_cond_timedwait(&p->messageQueueSignal, &p->messageQueueMutex, &waitTime));
             }
 
@@ -294,7 +294,7 @@ int OutputWriter::HelperThread::run()
 
             // See if we should display some stats.
             hrtime currentTime = getHrTime();
-            if (convertHrToSeconds(currentTime-lastUpdateTime) > 6.0 && bytesWritten > 0 || finished)
+            if (convertHrToSeconds(currentTime-lastUpdateTime) > 60.0 && bytesWritten > 0 || finished)
             {
                 Print::printf(Print::INFO, "Wrote %u messages (%u bytes) in the last %0.1f seconds (%0.6f seconds writing). %u messages (%d bytes) queued. Flushing.",messagesWritten,bytesWritten,convertHrToSeconds(currentTime-lastUpdateTime), convertHrToSeconds(writingTime), messagesQueued, bytesQueued);
                 p->flush();
