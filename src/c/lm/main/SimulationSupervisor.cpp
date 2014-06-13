@@ -113,7 +113,7 @@ int SimulationSupervisor::run()
 
         // Loop reading messages.
         lm::message::Message message;
-        while (running)
+        while (true)
         {
             // Read the next message.
             communicator.receiveMessage(&message);
@@ -134,6 +134,11 @@ int SimulationSupervisor::run()
             else if (message.has_started_output_writer())
             {
                 outputWriterStarted(message.started_output_writer());
+            }
+            else if (message.has_ping_target())
+            {
+                // If we are done running, stop the loop.
+                if (!running) break;
             }
             else
             {

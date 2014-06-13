@@ -123,7 +123,7 @@ int OutputWriter::run()
 //        communicator.sendMessage(lm::MPI::MASTER, lm::main::SimulationSupervisor::THREAD_ID, &msgp);
 
         // Loop reading messages.
-        while (running)
+        while (true)
         {
             // Read the next message.
             lm::message::Message* message = new lm::message::Message();
@@ -162,6 +162,8 @@ int OutputWriter::run()
             }
             else if (message->has_ping_target())
             {
+                // If we are done running, stop the loop.
+                if (!running) break;
             }
             else
             {

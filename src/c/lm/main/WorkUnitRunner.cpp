@@ -149,7 +149,7 @@ int WorkUnitRunner::run()
 
         // Loop reading messages.
         lm::message::Message message;
-        while (running)
+        while (true)
         {
             // Read the next message.
             communicator.receiveMessage(&message);
@@ -161,6 +161,8 @@ int WorkUnitRunner::run()
             }
             else if (message.has_ping_target())
             {
+                // If we are done running, stop the loop.
+                if (!running) break;
             }
             else
             {
