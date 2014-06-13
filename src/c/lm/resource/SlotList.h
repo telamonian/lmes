@@ -104,12 +104,15 @@ public:
     virtual Slot * alloc();
     virtual void free(int process, int thread);
 
+    //dealing with the internal Message methods
+    virtual lm::message::StartWorkUnitRunner * addStartSlotMsg() {return msg.add_start_work_unit_runner();}
+
 private:
     virtual SlotMap::iterator getBusySlotIt(int process, int thread);
     virtual SlotDeque::iterator getFreeSlotIt(int process, int thread);
 
 	lm::message::Communicator * supervisorComm;
-	lm::message::Message startSlotMsg;
+	lm::message::Message msg;
     SlotMap busySlots;
     SlotDeque freeSlots;
     lm::rng::XORShift xorShift;

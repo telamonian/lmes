@@ -21,9 +21,7 @@ Slot::Slot(int controller_process, int controller_thread, uint32_t uuid, lm::mes
 		   :process(), thread(), controller_process(controller_process), controller_thread(controller_thread), uuid(uuid), supervisorComm(supervisorComm), status(FREE)
 {
 	// Send a message to the controller to start a work unit runner.
-	startRemote(controller_process,
-				controller_thread,
-				msg)
+	startRemote(controller_process, controller_thread, msg);
 	// receive the handshake from the slave node signalling that the runner associated with this slot has been started
 	startedRemote();
 }
@@ -32,11 +30,9 @@ Slot::~Slot()
 {
 }
 
-void Slot::startRemote(int controller_process,
-		   	   	   	   int controller_thread,
-					   lm::message::Message & msg)
+void Slot::startRemote(int controller_process, int controller_thread, lm::message::Message & msg)
 {
-	lm::message::StartWorkUnitRunner* s = msg.mutable_start_work_unit_runner();
+	lm::message::StartWorkUnitRunner* s = msg.mutable_start_work_unit_runner(0);
 	s->set_uuid(uuid);
 	supervisorComm->sendMessage(controller_process, controller_thread, &msg);
 }
@@ -68,9 +64,9 @@ void Slot::stop()
 void Slot::stopRemote()
 {
 	lm::message::Message msg;
-	lm::message::StartWorkUnitRunner* s = msg.add_stop_work_unit_runner();
-	*s->set_process(process);
-	*s->set_thread(thread);
+	lm::message::StopWorkUnitRunner* s = msg.add_stop_work_unit_runner();
+	s->set_process(process);
+	s->set_thread(thread);
 	supervisorComm->sendMessage(controller_process, controller_thread, &msg);
 }
 

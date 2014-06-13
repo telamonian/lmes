@@ -188,8 +188,8 @@ void ResourceController::startWorkUnitRunner(const lm::message::StartWorkUnitRun
 
 void ResourceController::stopWorkUnitRunner(const lm::message::StopWorkUnitRunner & msg)
 {
-	runners[msg.thread()].stop();
-	runners.remove(msg.thread());
+	runners[msg.thread()]->stop();
+	runners.erase(msg.thread());
 }
 
 void ResourceController::startOutputWriter(const lm::message::StartOutputWriter& msg)

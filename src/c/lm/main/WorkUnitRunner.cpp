@@ -64,7 +64,7 @@
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
 
-using std::map
+using std::map;
 using std::string;
 using std::vector;
 

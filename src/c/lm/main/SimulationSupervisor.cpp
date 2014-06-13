@@ -173,7 +173,7 @@ void SimulationSupervisor::allResourcesRegistered()
     // Start the work unit runners.
     Print::printf(Print::INFO, "All resources registered with supervisor, starting work unit runners.");
 
-    lm::message::StartWorkUnitRunner * s = slotList.startSlotMsg.mutable_start_work_unit_runner();
+    lm::message::StartWorkUnitRunner * s = slotList.addStartSlotMsg();
     //	s->set_use_cpu_affinity(useCPUAffinity);
     //	s->add_cpu(resources.cpuCores[i]);
     //	if (resources.gpusDevices.size() > 0)
