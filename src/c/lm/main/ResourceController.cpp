@@ -282,6 +282,8 @@ void ResourceController::startOutputWriter(const lm::message::StartOutputWriter&
 {
     lm::io::OutputWriter* writer = static_cast<lm::io::OutputWriter*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::io::OutputWriter",msg.output_writer_class()));
     if (msg.use_cpu_affinity()) writer->setAffinity(msg.cpu());
+    writer->setOutputFilename(msg.output_filename());
+    writer->initialize();
     writer->start();
 }
 
