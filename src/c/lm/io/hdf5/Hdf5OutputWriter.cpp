@@ -101,6 +101,15 @@ void Hdf5OutputWriter::flush()
     file->flush();
 }
 
+void Hdf5OutputWriter::finalize()
+{
+    OutputWriter::finalize();
+
+    file->close();
+    delete file;
+    file = NULL;
+}
+
 }
 }
 }

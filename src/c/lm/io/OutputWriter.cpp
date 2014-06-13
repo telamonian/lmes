@@ -87,12 +87,15 @@ void OutputWriter::initialize()
 {
 }
 
-void OutputWriter::wake() throw(lm::thread::PthreadException)
+void OutputWriter::finalize()
 {
 }
 
-void OutputWriter::flush()
+void OutputWriter::wake() throw(lm::thread::PthreadException)
 {
+    lm::message::Message msg;
+    msg.mutable_ping_target()->set_id(0);
+    communicator.sendMessage(communicator.getSourceProcess(), communicator.getSourceThread(), &msg);
 }
 
 int OutputWriter::run()
@@ -120,7 +123,7 @@ int OutputWriter::run()
 //        communicator.sendMessage(lm::MPI::MASTER, lm::main::SimulationSupervisor::THREAD_ID, &msgp);
 
         // Loop reading messages.
-        while (true)
+        while (running)
         {
             // Read the next message.
             lm::message::Message* message = new lm::message::Message();
@@ -157,6 +160,9 @@ int OutputWriter::run()
                     sleep(5);
                 }
             }
+            else if (message->has_ping_target())
+            {
+            }
             else
             {
                 Print::printf(Print::ERROR, "OutputWriter received an unknown message: {\n%s}",message->DebugString().c_str());
@@ -166,7 +172,10 @@ int OutputWriter::run()
         // Stop the helper thread.
         helperThread.stop();
 
-        Print::printf(Print::INFO, "OutputWriter finished.");
+        // Let the output writer close any resources.
+        finalize();
+
+        Print::printf(Print::INFO, "OutputWriter %d:%d finished.", communicator.getSourceProcess(), communicator.getSourceThread());
         PROF_END(PROF_DATAOUTPUT_RUN);
         return 0;
     }
@@ -318,7 +327,7 @@ int OutputWriter::HelperThread::run()
         Print::printf(Print::FATAL, "Unknown Exception during execution (%s:%d)", __FILE__, __LINE__);
     }
 
-    Print::printf(Print::INFO, "OutputWriter::HelperThread finished.");
+    Print::printf(Print::INFO, "OutputWriter::HelperThread %d:%d finished.", p->communicator.getSourceProcess(), threadNumber);
     return 0;
 }
 

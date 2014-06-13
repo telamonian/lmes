@@ -284,6 +284,10 @@ void ReplicateSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit& 
         communicator.sendMessage(workSlot->getSlotKey()[0], workSlot->getSlotKey()[1], &msg);
         trajectories->updateTrajectoryStatus(nextTrajectory, TrajectoryList::RUNNING);
     }
+    else
+    {
+        finishSimulation();
+    }
 
 }
 

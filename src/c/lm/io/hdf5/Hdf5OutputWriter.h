@@ -59,6 +59,7 @@ public:
     Hdf5OutputWriter();
     virtual ~Hdf5OutputWriter();
     virtual void initialize();
+    virtual void finalize();
 
 protected:
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);

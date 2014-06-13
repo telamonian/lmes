@@ -72,10 +72,11 @@ protected:
     virtual int run();
     virtual void startWorkUnitRunner(const lm::message::StartWorkUnitRunner& msg);
     virtual void startOutputWriter(const lm::message::StartOutputWriter& msg);
+    virtual void stopWorkers(bool abort);
 
 protected:
     lm::message::Communicator communicator;
-    std::list<lm::main::WorkUnitRunner*> runners;
+    std::list<lm::thread::Worker*> workers;
 };
 
 }

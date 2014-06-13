@@ -62,6 +62,7 @@ public:
 
 protected:
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
+    virtual void flush();
 
 private:
     int secondsToDelay;

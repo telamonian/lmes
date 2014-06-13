@@ -93,5 +93,10 @@ void ConsoleOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data
     Print::printf(Print::INFO, "ConsoleOutputWriter received species counts for trajectory %d:\n%s",data.trajectory_id(),buffer);
 }
 
+void ConsoleOutputWriter::flush()
+{
+
+}
+
 }
 }

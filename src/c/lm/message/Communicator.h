@@ -67,8 +67,10 @@ public:
 private:
     int process;
     int thread;
-    int dataBufferSize;
-    char* dataBuffer;
+    int inputBufferSize;
+    char* inputBuffer;
+    int outputBufferSize;
+    char* outputBuffer;
     MPI_Status messageStatus;
 };
 
