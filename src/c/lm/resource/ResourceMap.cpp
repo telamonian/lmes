@@ -218,7 +218,7 @@ bool ResourceMap::registerResources(const lm::message::ResourcesAvailable& msg)
 ResourceMap::ComputeResources ResourceMap::reserveCPUCores(int process, int numberCPUCores)
 {
     ComputeResources resources = registeredResources[process];
-    if (resources.cpuCores.size() >= numberCPUCores)
+    if ((int)resources.cpuCores.size() >= numberCPUCores)
     {
         ComputeResources reservedResources;
         reservedResources.hostname = resources.hostname;

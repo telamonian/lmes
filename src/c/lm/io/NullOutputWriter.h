@@ -37,11 +37,38 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-package lm.message;
+#ifndef LM_IO_NullOutputWriter
+#define LM_IO_NullOutputWriter
 
-message StartOutputWriter {
-    optional bool use_cpu_affinity                              = 1;
-    required int32 cpu                                          = 2;
-    required string output_filename                             = 3;
-    required string output_writer_class                         = 4;
+#include <queue>
+#include <cstring>
+
+#include "lm/io/OutputWriter.h"
+#include "lm/io/SpeciesCounts.pb.h"
+
+namespace lm {
+namespace io {
+
+class NullOutputWriter : public OutputWriter
+{
+public:
+    static bool registered;
+    static bool registerClass();
+    static void* allocateObject();
+
+public:
+    NullOutputWriter();
+    virtual ~NullOutputWriter();
+
+protected:
+    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
+
+private:
+    int secondsToDelay;
+};
+
 }
+}
+
+
+#endif

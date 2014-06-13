@@ -58,7 +58,6 @@
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/Lattice.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
-#include "lm/main/DataOutputQueue.h"
 #include "lm/rdme/ByteLattice.h"
 #include "lm/rdme/CudaByteLattice.h"
 #include "lm/rdme/MpdRdmeSolver.h"

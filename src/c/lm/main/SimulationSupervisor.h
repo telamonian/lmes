@@ -78,7 +78,8 @@ public:
     SimulationSupervisor();
     virtual ~SimulationSupervisor();
     void setResourceMap(lm::resource::ResourceMap* resourceMap) {this->resourceMap = resourceMap;}
-    void setSimulationFilename(string simulationFilename) {this->simulationFilename = simulationFilename;}
+    void setSimulationFilename(string simulationInputFilename, string simulationOutputFilename) {this->simulationInputFilename = simulationInputFilename; this->simulationOutputFilename = simulationOutputFilename;}
+    void setOutputWriterClassName(string outputWriterClassName) {this->outputWriterClassName = outputWriterClassName;}
     void setSolverClassName(string solverClassName) {this->solverClassName = solverClassName;}
     void setUseCPUAffinity(bool useCPUAffinity) {this->useCPUAffinity = useCPUAffinity;}
     virtual void initialize();
@@ -97,7 +98,9 @@ protected:
 protected:
     lm::message::Communicator communicator;
     lm::resource::ResourceMap* resourceMap;
-    std::string simulationFilename;
+    std::string simulationInputFilename;
+    std::string simulationOutputFilename;
+    std::string outputWriterClassName;
     std::string solverClassName;
     bool useCPUAffinity;
     lm::io::SimulationParameters simulationParameters;

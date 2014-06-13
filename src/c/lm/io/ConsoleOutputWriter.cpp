@@ -61,11 +61,13 @@ void* ConsoleOutputWriter::allocateObject()
 }
 
 ConsoleOutputWriter::ConsoleOutputWriter()
+:buffer(new char[BUFFER_SIZE+1])
 {
 }
 
 ConsoleOutputWriter::~ConsoleOutputWriter()
 {
+    if (buffer != NULL) delete[] buffer; buffer = NULL;
 }
 
 void ConsoleOutputWriter::initialize()
@@ -75,7 +77,20 @@ void ConsoleOutputWriter::initialize()
 
 void ConsoleOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
 {
-    Print::printf(Print::INFO, "ConsoleOutputWriter received a data message: {\n%s}",data.DebugString().c_str());
+    // Print the output into the buffer.
+    memset(buffer, 0, BUFFER_SIZE+1);
+    int offset=snprintf(buffer,BUFFER_SIZE,"--------------------------------------------------------------------------------\n");
+    for (int i=0, index=0; i<data.number_entries(); i++)
+    {
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%10.3f:",data.time(i));
+        for (int j=0; j<data.number_species(); j++, index++)
+            offset+=snprintf(buffer+offset,BUFFER_SIZE-offset," %5d",data.species_count(index));
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"\n");
+    }
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"--------------------------------------------------------------------------------");
+
+    // Print the output to stdout.
+    Print::printf(Print::INFO, "ConsoleOutputWriter received species counts for trajectory %d:\n%s",data.trajectory_id(),buffer);
 }
 
 }

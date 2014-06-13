@@ -37,11 +37,43 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-package lm.message;
+#include <lm/ClassFactory.h>
+#include <lm/Print.h>
+#include "lm/io/NullOutputWriter.h"
+#include "lm/io/OutputWriter.h"
 
-message StartOutputWriter {
-    optional bool use_cpu_affinity                              = 1;
-    required int32 cpu                                          = 2;
-    required string output_filename                             = 3;
-    required string output_writer_class                         = 4;
+
+namespace lm {
+namespace io {
+
+
+bool NullOutputWriter::registered=NullOutputWriter::registerClass();
+
+bool NullOutputWriter::registerClass()
+{
+    lm::ClassFactory::getInstance().registerClass("lm::io::OutputWriter","lm::io::NullOutputWriter",&NullOutputWriter::allocateObject);
+    return true;
+}
+
+void* NullOutputWriter::allocateObject()
+{
+    return new NullOutputWriter();
+}
+
+NullOutputWriter::NullOutputWriter()
+:secondsToDelay(0)
+{
+}
+
+NullOutputWriter::~NullOutputWriter()
+{
+}
+
+void NullOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
+{
+    if (secondsToDelay > 0)
+        sleep(secondsToDelay);
+}
+
+}
 }

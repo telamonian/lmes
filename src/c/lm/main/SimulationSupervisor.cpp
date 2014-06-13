@@ -60,7 +60,7 @@ namespace lm {
 namespace main {
 
 SimulationSupervisor::SimulationSupervisor()
-    :communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationFilename(""),solverClassName(""),useCPUAffinity(false),hasReactionModel(false),hasDiffusionModel(false),slotList(&communicator)
+    :communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),solverClassName(""),useCPUAffinity(false),hasReactionModel(false),hasDiffusionModel(false),slotList(&communicator)
 {
 }
 
@@ -75,7 +75,7 @@ void SimulationSupervisor::wake() throw(lm::thread::PthreadException)
 void SimulationSupervisor::initialize()
 {
     // Open the simulation file.
-    lm::io::hdf5::Hdf5File * file = new lm::io::hdf5::Hdf5File(simulationFilename);
+    lm::io::hdf5::Hdf5File * file = new lm::io::hdf5::Hdf5File(simulationInputFilename);
 
     // Get the simulation parameters.
     file->getParameters(&simulationParameters);

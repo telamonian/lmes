@@ -40,8 +40,9 @@
 package lm.io;
 
 message SpeciesCounts {
-  required int32 number_species         = 1;
-  required int32 number_entries         = 2;
-  repeated int32 species_count          = 3 [packed=true];
-  repeated double time                  = 4 [packed=true];
+    required int32 trajectory_id                        = 1;
+    required int32 number_species                       = 2;
+    required int32 number_entries                       = 3;
+    repeated int32 species_count                        = 4 [packed=true];
+    repeated double time                                = 5 [packed=true];
 }
