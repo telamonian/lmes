@@ -151,6 +151,7 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
     lm::io::SpeciesCounts* speciesCountsDataSet = msg->mutable_species_counts();
     speciesCountsDataSet->set_trajectory_id(trajectoryId);
     speciesCountsDataSet->set_number_species(reactionModel->numberSpeciesToTrack);
+    speciesCountsDataSet->set_number_entries(0);
 
 
     // Initialize tracking of the first passage times.
@@ -362,7 +363,7 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
     }
 
     // Send the species counts.
-    if (writeTimeSteps)
+    if (writeTimeSteps && speciesCountsDataSet->number_entries() > 0)
     {
         communicator->sendMessage(outputProcess, outputThread, &msgp);
     }
