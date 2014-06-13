@@ -181,15 +181,15 @@ int ResourceController::run()
 void ResourceController::startWorkUnitRunner(const lm::message::StartWorkUnitRunner& msg)
 {
     // Start the work unit runner.
-    WorkUnitRunner* runner = new WorkUnitRunner(properties);
+    WorkUnitRunner* runner = new WorkUnitRunner(msg);
     runners[runner->getThreadNumber()] = runner;
     runner->start();
 }
 
-void ResourceController::stopWorkUnitRunner(const lm::message::StopWorkUnitRunner & properties)
+void ResourceController::stopWorkUnitRunner(const lm::message::StopWorkUnitRunner & msg)
 {
-	runners[properties.thread()].stop();
-	runners.remove(properties.thread());
+	runners[msg.thread()].stop();
+	runners.remove(msg.thread());
 }
 
 void ResourceController::startOutputWriter(const lm::message::StartOutputWriter& msg)

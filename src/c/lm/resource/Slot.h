@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 #include "lm/message/Communicator.h"
-#include "Types.h"
+#include "lm/Types.h"
 
 using std::string;
 using std::vector;

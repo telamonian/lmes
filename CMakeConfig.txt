@@ -1,20 +1,20 @@
 #uncomment and change the last part of the next line if some of your libraries/header files are on a nonstandard path
-SET(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH} /Users/eroberts/usr/local")
+#SET(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH} /Users/eroberts/usr/local")
 
 ############################
 #library specific options
 ############################
 
-SET(SBML_ROOT "/Users/eroberts/usr/local")
+#SET(SBML_ROOT "/Users/eroberts/usr/local")
 
-SET(PROTOBUF_ROOT "/Users/eroberts/usr/local")
+#SET(PROTOBUF_ROOT "/Users/eroberts/usr/local")
 
-SET(HDF5_ROOT "/Users/eroberts/usr/local")
+#SET(HDF5_ROOT "/Users/eroberts/usr/local")
 
-SET(MPI_C_COMPILER "/Users/eroberts/usr/local/bin/mpicc")
-SET(MPI_C_EXEC "/Users/eroberts/usr/local/bin/mpirun")
-SET(MPI_CXX_COMPILER "/Users/eroberts/usr/local/bin/mpicxx")
-SET(MPI_CXX_EXEC "/Users/eroberts/usr/local/bin/mpirun")
+#SET(MPI_C_COMPILER "/Users/eroberts/usr/local/bin/mpicc")
+#SET(MPI_C_EXEC "/Users/eroberts/usr/local/bin/mpirun")
+#SET(MPI_CXX_COMPILER "/Users/eroberts/usr/local/bin/mpicxx")
+#SET(MPI_CXX_EXEC "/Users/eroberts/usr/local/bin/mpirun")
 
 #SET(CUDA_TOOLKIT_ROOT_DIR "/usr/local/cuda")
 #SET(CUDA_SDK_ROOT_DIR "/usr/local/cuda")
