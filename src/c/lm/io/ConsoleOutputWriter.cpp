@@ -75,6 +75,21 @@ void ConsoleOutputWriter::initialize()
     OutputWriter::initialize();
 }
 
+void ConsoleOutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
+{
+    // Print the output into the buffer.
+    memset(buffer, 0, BUFFER_SIZE+1);
+    int offset=snprintf(buffer,BUFFER_SIZE,"--------------------------------------------------------------------------------\n");
+    for (int i=0, index=0; i<data.number_entries(); i++)
+    {
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%5d: %10.3f:",data.species_count(i),data.first_passage_time(i));
+    }
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"--------------------------------------------------------------------------------");
+
+    // Print the output to stdout.
+    Print::printf(Print::INFO, "ConsoleOutputWriter received first passage times for trajectory %d and species %d:\n%s",data.trajectory_id(),data.species(),buffer);
+}
+
 void ConsoleOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
 {
     // Print the output into the buffer.
@@ -91,6 +106,11 @@ void ConsoleOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data
 
     // Print the output to stdout.
     Print::printf(Print::INFO, "ConsoleOutputWriter received species counts for trajectory %d:\n%s",data.trajectory_id(),buffer);
+}
+
+void ConsoleOutputWriter::flush()
+{
+
 }
 
 }

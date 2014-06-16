@@ -70,6 +70,9 @@ SimulationSupervisor::~SimulationSupervisor()
 
 void SimulationSupervisor::wake() throw(lm::thread::PthreadException)
 {
+    lm::message::Message msg;
+    msg.mutable_ping_target()->set_id(0);
+    communicator.sendMessage(communicator.getSourceProcess(), communicator.getSourceThread(), &msg);
 }
 
 void SimulationSupervisor::initialize()
@@ -132,6 +135,11 @@ int SimulationSupervisor::run()
             {
                 outputWriterStarted(message.started_output_writer());
             }
+            else if (message.has_ping_target())
+            {
+                // If we are done running, stop the loop.
+                if (!running) break;
+            }
             else
             {
                 Print::printf(Print::ERROR, "Supervisor received an unknown message: {\n%s}",message.DebugString().c_str());
@@ -141,7 +149,8 @@ int SimulationSupervisor::run()
             message.Clear();
         }
 
-         //   runSimulation();
+        Print::printf(Print::INFO, "Supervisor %d:%d finished.", lm::MPI::worldRank, threadNumber);
+
         return 0;
     }
     catch (lm::Exception e)
@@ -188,6 +197,19 @@ void SimulationSupervisor::allResourcesRegistered()
 
     Print::printf(Print::INFO, "All work unit runners started, beginning simulation.");
     startSimulation();
+}
+
+void SimulationSupervisor::finishSimulation()
+{
+    map<int,ResourceMap::ComputeResources> resources = resourceMap->getAvailableResources();
+    for (map<int,ResourceMap::ComputeResources>::iterator it=resources.begin(); it != resources.end(); it++)
+    {
+        // Send a message for the resource controller to stop.
+        lm::message::Message msg;
+        msg.mutable_stop_resource_controller()->set_abort(false);
+        communicator.sendMessage(it->second.controller_process, it->second.controller_thread, &msg);
+    }
+    running = false;
 }
 
 }

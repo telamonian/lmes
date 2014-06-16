@@ -1333,7 +1333,7 @@ void Hdf5File::setFirstPassageTimes(unsigned int replicate, lm::io::FirstPassage
 {
     // Make sure the data is consistent.
     if (firstPassageTimes->species_count_size() == 0) throw InvalidArgException("firstPassageTimes", "no entries to save");
-    if (firstPassageTimes->species_count_size() != firstPassageTimes->first_passage_time_size()) throw InvalidArgException("firstPassageTimes", "inconsistent number of first passage time entries");
+    if (firstPassageTimes->species_count_size() != firstPassageTimes->number_entries() || firstPassageTimes->first_passage_time_size() != firstPassageTimes->number_entries()) throw InvalidArgException("firstPassageTimes", "inconsistent number of first passage time entries");
 
     ReplicateHandles * replicateHandles = openReplicateHandles(replicate);
 
@@ -1417,9 +1417,9 @@ void Hdf5File::setFirstPassageTimes(unsigned int replicate, lm::io::FirstPassage
     uint32_t minNewCount=firstPassageTimes->species_count(0), maxNewCount=firstPassageTimes->species_count(0);
     for (int i=1; i<firstPassageTimes->species_count_size(); i++)
     {
-        if (firstPassageTimes->species_count(i) < minNewCount)
+        if (firstPassageTimes->species_count(i) < (int)minNewCount)
             minNewCount = firstPassageTimes->species_count(i);
-        else if (firstPassageTimes->species_count(i) > maxNewCount)
+        else if (firstPassageTimes->species_count(i) > (int)maxNewCount)
             maxNewCount = firstPassageTimes->species_count(i);
     }
 

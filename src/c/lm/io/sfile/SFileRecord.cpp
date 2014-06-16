@@ -34,15 +34,28 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts, Max Klein
+ * Author(s): Elijah Roberts
  */
 
-package lm.io;
+#include "sfilerecord.h"
 
-import "lm/io/FirstPassageTimes.proto";
-import "lm/io/SpeciesCounts.proto";
+namespace lm {
+namespace io {
+namespace sfile {
 
-message CMEState {
-    required SpeciesCounts species_counts               = 1;
-    repeated FirstPassageTimes first_passage_times      = 2;
+const char SFileRecord::RECORD_SEPARATOR[] = {'S','F','R','X',1,65,243,72,36,217,55,18,134,11,234,83};
+
+SFileRecord::SFileRecord()
+    :name(""),type(""),dataSize(0)
+{
+}
+
+SFileRecord::SFileRecord(string name, string type, int64_t dataSize)
+    :name(name),type(type),dataSize(dataSize)
+{
+
+}
+
+}
+}
 }

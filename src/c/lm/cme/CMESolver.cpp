@@ -600,33 +600,6 @@ void CMESolver::ReactionModel::setPropensityFunction(uint reaction, double (*pro
     propensityFunctionArgs[reaction] = propensityFunctionArg;
 }
 
-/*void CMESolver::initialize(unsigned int replicate, map<string,string> * parameters, ResourceAllocator::ComputeResources * resources)
-{
-    this->replicate = replicate;
-    this->parameters = parameters;
-    this->resources = resources;
-
-
-    // Set the fpt tracked species from the parameters.
-    string listString = (*parameters)["fptTrackingList"];
-    list<uint> fptList;
-    size_t start=0, end=0;
-    while (end != string::npos)
-    {
-        end = listString.find(',', start);
-        string trackedSpecies = listString.substr(start, (end == string::npos) ? string::npos : end - start);
-        if (trackedSpecies.length() > 0)
-        {
-			fptList.push_back(atoi(trackedSpecies.c_str()));
-			Print::printf(Print::DEBUG, "Parsed fpt tracking %s to: %d", trackedSpecies.c_str(), atoi(trackedSpecies.c_str()));
-        }
-        start = end+1;
-    }
-    setFptTrackingList(fptList);
-
-}
-*/
-
 void CMESolver::setComputeResources(vector<int> cpus, vector<int> gpus)
 {
     MESolver::setComputeResources(cpus, gpus);
@@ -823,9 +796,11 @@ void CMESolver::reset()
     // Allocate space for the new state.
     speciesCounts = new uint[reactionModel->numberSpecies];
 
-    // Reset the species counts to their initial value from the model.
+    // Reset the species counts.
     for (uint i=0; i<reactionModel->numberSpecies; i++)
-        speciesCounts[i] = reactionModel->initialSpeciesCounts[i];
+        speciesCounts[i] = 0;
+
+    // Reset the time.
     time = 0.0;
 
     // Reset the max time;
@@ -834,8 +809,6 @@ void CMESolver::reset()
     // Reset the species limits.
     numberSpeciesLimits = 0;
     if (speciesLimits != NULL) delete[] speciesLimits; speciesLimits = NULL;
-
-
 
     // Reset the fpt tracking list.
     numberFptTrackedSpecies = 0;
@@ -850,31 +823,50 @@ void CMESolver::getState(lm::io::TrajectoryState* state)
     // Get the trajectory id.
     state->set_trajectory_id(trajectoryId);
 
-    // Get the time.
-    state->set_time(time);
-
     // Get the species counts.
+    state->mutable_cme_state()->mutable_species_counts()->set_trajectory_id(trajectoryId);
+    state->mutable_cme_state()->mutable_species_counts()->set_number_species((int)reactionModel->numberSpecies);
+    state->mutable_cme_state()->mutable_species_counts()->set_number_entries(1);
     for (int i=0; i<(int)reactionModel->numberSpecies; i++)
+        state->mutable_cme_state()->mutable_species_counts()->add_species_count(speciesCounts[i]);
+    state->mutable_cme_state()->mutable_species_counts()->add_time(time);
+
+    // Get the first passage times.
+    for (int i=0; i<numberFptTrackedSpecies; i++)
     {
-        state->mutable_cme_state()->add_species_count(speciesCounts[i]);
+        fptTrackedSpecies[i].serializeTo(trajectoryId, state->mutable_cme_state()->add_first_passage_times());
     }
 }
 
 void CMESolver::setState(const lm::io::TrajectoryState& state)
 {
+    // Validate the state.
+    if (!state.has_cme_state()) throw Exception("State object does not contain the necessary data to initialize the solver.");
+    if (state.cme_state().species_counts().number_species() != (int)reactionModel->numberSpecies) throw Exception("State object and reaction model have differing species count",state.cme_state().species_counts().number_species(),reactionModel->numberSpecies);
+    if (state.cme_state().species_counts().number_entries() != 1 || state.cme_state().species_counts().species_count_size() != (int)reactionModel->numberSpecies || state.cme_state().species_counts().time_size() != 1) throw Exception("State object has too many entries",state.cme_state().species_counts().number_entries());
+
     // Set the trajectory id.
     trajectoryId = state.trajectory_id();
 
-    // Set the time.
-    time = state.time();
-
     // Set the species counts.
-    if (state.has_cme_state())
+    for (int i=0; i<state.cme_state().species_counts().species_count_size(); i++)
+        speciesCounts[i] = state.cme_state().species_counts().species_count(i);
+    time = state.cme_state().species_counts().time(0);
+
+    // Set the first passage times.
+    numberFptTrackedSpecies = state.cme_state().first_passage_times_size();
+    if (numberFptTrackedSpecies > 0)
     {
-        if (state.cme_state().species_count_size() != (int)reactionModel->numberSpecies) throw Exception("State and model had a different species count",state.cme_state().species_count_size(),reactionModel->numberSpecies);
-        for (int i=0; i<state.cme_state().species_count_size(); i++)
+        fptTrackedSpecies = new FPTTracking[numberFptTrackedSpecies];
+        for (int i=0; i<numberFptTrackedSpecies; i++)
         {
-            speciesCounts[i] = state.cme_state().species_count(i);
+            fptTrackedSpecies[i].species = state.cme_state().first_passage_times(i).species();
+            fptTrackedSpecies[i].minValueAchieved = state.cme_state().first_passage_times(i).species_count(0);
+            fptTrackedSpecies[i].maxValueAchieved = state.cme_state().first_passage_times(i).species_count(state.cme_state().first_passage_times(i).number_entries()-1);
+            for (int j=0; j<state.cme_state().first_passage_times(i).number_entries(); j++)
+            {
+                fptTrackedSpecies[i].fptValues.push_back(std::pair<int,double>(state.cme_state().first_passage_times(i).species_count(j),state.cme_state().first_passage_times(i).first_passage_time(j)));
+            }
         }
     }
 }
@@ -924,26 +916,6 @@ void CMESolver::setSpeciesUpperLimit(int species, int limit)
     speciesLimits[numberSpeciesLimits-1].type = SpeciesLimit::MAX;
     speciesLimits[numberSpeciesLimits-1].species = species;
     speciesLimits[numberSpeciesLimits-1].limit = limit;
-}
-
-void CMESolver::setFptTrackingList(list<uint> speciesList)
-{
-    // If we already had a list, free it.
-    if (fptTrackedSpecies != NULL) delete[] fptTrackedSpecies; fptTrackedSpecies = NULL;
-
-    // Allocate a new list.
-    numberFptTrackedSpecies = speciesList.size();
-    fptTrackedSpecies = new FPTTracking[numberFptTrackedSpecies];
-
-    // Initialize the list.
-    int i=0;
-    for (list<uint>::iterator it = speciesList.begin(); it != speciesList.end(); it++, i++)
-    {
-        fptTrackedSpecies[i].species = *it;
-        fptTrackedSpecies[i].minValueAchieved = 0;
-        fptTrackedSpecies[i].maxValueAchieved = 0;
-        fptTrackedSpecies[i].dataSet.set_species(fptTrackedSpecies[i].species);
-    }
 }
 
 void CMESolver::addToParameterTrackingList(pair<string,double*> parameter)

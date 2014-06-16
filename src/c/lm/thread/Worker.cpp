@@ -37,6 +37,7 @@
  * Author(s): Elijah Roberts
  */
 
+#include "lm/Print.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 #include "lm/thread/WorkerManager.h"

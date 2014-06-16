@@ -49,7 +49,9 @@ import "lm/message/StartedWorkUnit.proto";
 import "lm/message/FinishedWorkUnit.proto";
 import "lm/message/StartOutputWriter.proto";
 import "lm/message/StartedOutputWriter.proto";
+import "lm/message/StopResourceController.proto";
 import "lm/message/ProcessWorkUnitOutput.proto";
+import "lm/message/PingTarget.proto";
 
 message Message {
     required uint32 source_process                                          = 1;
@@ -71,6 +73,10 @@ message Message {
     
     optional lm.message.StartOutputWriter start_output_writer               = 20;
     optional lm.message.StartedOutputWriter started_output_writer           = 21;
+
+    optional lm.message.StopResourceController stop_resource_controller     = 50;
     
     repeated lm.message.ProcessWorkUnitOutput process_work_unit_output      = 100;
+
+    optional lm.message.PingTarget ping_target                              = 1000;
 }

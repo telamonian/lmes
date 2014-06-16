@@ -40,6 +40,7 @@
 #ifndef LM_CME_CMESOLVER_H_
 #define LM_CME_CMESOLVER_H_
 
+#include <deque>
 #include <list>
 #include <map>
 #include <string>
@@ -171,12 +172,24 @@ protected:
         int species;
         int limit;
     };
-    struct FPTTracking
+    class FPTTracking
     {
-        uint species;
-        uint minValueAchieved;
-        uint maxValueAchieved;
-        lm::io::FirstPassageTimes dataSet;
+    public:
+        int species;
+        int minValueAchieved;
+        int maxValueAchieved;
+        std::deque<std::pair<int,double> > fptValues;
+        void serializeTo(int trajectoryId, lm::io::FirstPassageTimes* fpt)
+        {
+            fpt->set_trajectory_id(trajectoryId);
+            fpt->set_species(species);
+            fpt->set_number_entries(fptValues.size());
+            for (std::deque<std::pair<int,double> >::iterator it=fptValues.begin(); it != fptValues.end(); it++)
+            {
+                fpt->add_species_count(it->first);
+                fpt->add_first_passage_time(it->second);
+            }
+        }
     };
     struct TrackedParameter
     {
@@ -202,7 +215,6 @@ public:
 protected:
     virtual void setSpeciesUpperLimit(int species, int limit);
     virtual void setSpeciesLowerLimit(int species, int limit);
-    virtual void setFptTrackingList(list<uint> speciesList);
     virtual void addToParameterTrackingList(pair<string,double*>parameter);
 
     static double zerothOrderPropensity(double time, uint * speciesCounts, void * pargs);
@@ -224,9 +236,24 @@ protected:
 
     inline void updateSpeciesCounts(uint r)
     {
-        for (uint i=0; i<reactionModel->numberDependentSpecies[r]; i++)
+        // Update the counts according to the dependency tables.
+        for (int i=0; i<(int)reactionModel->numberDependentSpecies[r]; i++)
         {
             speciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
+        }
+
+        // Update the first passage time tables.
+        for (int i=0; i<numberFptTrackedSpecies; i++)
+        {
+            int speciesCount = speciesCounts[fptTrackedSpecies[i].species];
+            while (speciesCount < fptTrackedSpecies[i].minValueAchieved)
+            {
+                fptTrackedSpecies[i].fptValues.push_front(std::pair<int,double>(--fptTrackedSpecies[i].minValueAchieved,time));
+            }
+            while (speciesCount > fptTrackedSpecies[i].maxValueAchieved)
+            {
+                fptTrackedSpecies[i].fptValues.push_back(std::pair<int,double>(++fptTrackedSpecies[i].maxValueAchieved,time));
+            }
         }
     }
 
@@ -287,7 +314,7 @@ protected:
     SpeciesLimit* speciesLimits;
 
 
-    uint numberFptTrackedSpecies;
+    int numberFptTrackedSpecies;
     FPTTracking* fptTrackedSpecies;
     list<TrackedParameter> trackedParameters;
 

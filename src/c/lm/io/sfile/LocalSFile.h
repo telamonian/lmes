@@ -34,15 +34,55 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts, Max Klein
+ * Author(s): Elijah Roberts
  */
 
-package lm.io;
+#ifndef LM_IO_SFILE_LOCALSFFILE_H
+#define LM_IO_SFILE_LOCALSFFILE_H
 
-import "lm/io/FirstPassageTimes.proto";
-import "lm/io/SpeciesCounts.proto";
+#include <cstdio>
+#include <string>
+#include <google/protobuf/message.h>
+#include <sys/stat.h>
 
-message CMEState {
-    required SpeciesCounts species_counts               = 1;
-    repeated FirstPassageTimes first_passage_times      = 2;
+#include "lm/io/sfile/SFile.h"
+
+using std::string;
+
+namespace lm {
+namespace io {
+namespace sfile {
+
+class LocalSFile : public SFile
+{
+public:
+    LocalSFile(string filename);
+    virtual ~LocalSFile();
+    virtual bool isFile();
+    virtual bool isDir();
+    virtual bool exists();
+    virtual string getFilename();
+    virtual int64_t getSize();
+    virtual void openTruncate();
+    virtual void openAppend();
+    virtual void openRead();
+    virtual size_t read(void* buffer, size_t length);
+    virtual void skip(uint64_t length);
+    virtual bool isEof();
+    virtual size_t write(void* buffer, size_t length);
+    virtual void writeMessage(const google::protobuf::Message& message);
+    virtual void flush();
+    virtual void close();
+
+protected:
+    string filename;
+    struct stat filestats;
+    int filestatsRet;
+    FILE* fp;
+};
+
 }
+}
+}
+
+#endif

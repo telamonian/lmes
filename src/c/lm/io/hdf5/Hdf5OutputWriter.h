@@ -37,12 +37,43 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-package lm.io;
+#ifndef LM_IO_Hdf5OutputWriter
+#define LM_IO_Hdf5OutputWriter
 
-import "lm/io/FirstPassageTimes.proto";
-import "lm/io/SpeciesCounts.proto";
+#include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/io/OutputWriter.h"
+#include "lm/io/SpeciesCounts.pb.h"
+#include "lm/io/hdf5/SimulationFile.h"
 
-message CMEState {
-    required SpeciesCounts species_counts               = 1;
-    repeated FirstPassageTimes first_passage_times      = 2;
+namespace lm {
+namespace io {
+namespace hdf5 {
+
+class Hdf5OutputWriter : public OutputWriter
+{
+public:
+    static bool registered;
+    static bool registerClass();
+    static void* allocateObject();
+
+public:
+    Hdf5OutputWriter();
+    virtual ~Hdf5OutputWriter();
+    virtual void initialize();
+    virtual void finalize();
+
+protected:
+    virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
+    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
+    virtual void flush();
+
+private:
+    Hdf5File* file;
+};
+
 }
+}
+}
+
+
+#endif
