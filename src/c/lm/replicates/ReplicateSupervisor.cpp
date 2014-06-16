@@ -148,7 +148,7 @@ void ReplicateSupervisor::startSimulation()
     Print::printf(Print::INFO, "Replicate supervisor starting simulation.");
 
     // Create the new trajectory list.
-    trajectories = new TrajectoryList(::replicates.front(), ::replicates.back(), reactionModel);
+    trajectories = new TrajectoryList(::replicates.front(), ::replicates.back(), simulationParameterMap, reactionModel);
 
     // See if we have a max time limit.
     if (simulationParameterMap.count("maxTime"))

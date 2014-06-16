@@ -43,6 +43,7 @@
 #include <queue>
 #include <cstring>
 
+#include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/io/SpeciesCounts.pb.h"
 
@@ -65,6 +66,7 @@ public:
     virtual void initialize();
 
 protected:
+    virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
     virtual void flush();
 

@@ -42,6 +42,7 @@
 
 #include <lm/ClassFactory.h>
 #include <lm/Print.h>
+#include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/io/sfile/LocalSFile.h"
 #include "lm/io/sfile/SFileOutputWriter.h"
@@ -89,9 +90,20 @@ void SFileOutputWriter::initialize()
     file->openAppend();
 }
 
+void SFileOutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
+{
+    const int MAX_BUFFER_SIZE=128;
+    char buffer[MAX_BUFFER_SIZE+1];
+    memset(buffer, 0, MAX_BUFFER_SIZE+1);
+    snprintf(buffer,MAX_BUFFER_SIZE,"/Simulations/%07d/FirstPassageTimes/%02d",data.trajectory_id(), data.species());
+    SFileRecord record(string(buffer), string("protobuf:lm.io.FirstPassageTimes"), data.ByteSize());
+    file->writeSFileRecord(record);
+    file->writeMessage(data);
+}
+
 void SFileOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
 {
-    const int MAX_BUFFER_SIZE=40;
+    const int MAX_BUFFER_SIZE=128;
     char buffer[MAX_BUFFER_SIZE+1];
     memset(buffer, 0, MAX_BUFFER_SIZE+1);
     snprintf(buffer,MAX_BUFFER_SIZE,"/Simulations/%07d/SpeciesCounts",data.trajectory_id());

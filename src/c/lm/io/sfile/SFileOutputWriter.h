@@ -40,6 +40,7 @@
 #ifndef LM_IO_SFILEOutputWriter
 #define LM_IO_SFILEOutputWriter
 
+#include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/sfile/SFile.h"
@@ -62,6 +63,7 @@ public:
     virtual void finalize();
 
 protected:
+    virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
     virtual void flush();
 

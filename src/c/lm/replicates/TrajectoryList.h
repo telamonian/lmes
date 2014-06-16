@@ -41,6 +41,7 @@
 #define LM_REPLICATES_TRAJECTORYLIST_H_
 
 #include <map>
+#include <string>
 
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
@@ -66,7 +67,7 @@ protected:
     };
 
 public:
-    TrajectoryList(int firstTrajectory, int lastTrajectory, const lm::io::ReactionModel& reactionModel);
+    TrajectoryList(int firstTrajectory, int lastTrajectory, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel);
     virtual ~TrajectoryList();
     virtual int nextTrajectoryToRun();
     virtual status_t getTrajectoryStatus(int trajectory);

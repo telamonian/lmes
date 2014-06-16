@@ -147,41 +147,37 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
     lm::message::ProcessWorkUnitOutput* msg = msgp.add_process_work_unit_output();
     msg->set_work_unit_id(workUnitId);
 
-    // Create the species counts data set to track during the simulation.
-    lm::io::SpeciesCounts* speciesCountsDataSet = msg->mutable_species_counts();
-    speciesCountsDataSet->set_trajectory_id(trajectoryId);
-    speciesCountsDataSet->set_number_species(reactionModel->numberSpeciesToTrack);
-    speciesCountsDataSet->set_number_entries(0);
-
-
-    // Initialize tracking of the first passage times.
-//    for (uint i=0; i<numberFptTrackedSpecies; i++)
-//    {
-//        fptTrackedSpecies[i].minValueAchieved = speciesCounts[fptTrackedSpecies[i].species];
-//        fptTrackedSpecies[i].maxValueAchieved = speciesCounts[fptTrackedSpecies[i].species];
-//        fptTrackedSpecies[i].dataSet.Clear();
-//        fptTrackedSpecies[i].dataSet.set_species(fptTrackedSpecies[i].species);
-//        fptTrackedSpecies[i].dataSet.add_species_count(speciesCounts[fptTrackedSpecies[i].species]);
-//        fptTrackedSpecies[i].dataSet.add_first_passage_time(0.0);
-//    }
-
     // Get the interval for writing species counts.
     double writeInterval=atof(simulationParameters["writeInterval"].c_str());
     bool writeTimeSteps = (writeInterval > 0.0);
     double nextSpeciesCountsWriteTime;
+    lm::io::SpeciesCounts* speciesCountsDataSet = NULL;
 
-    // If this is the start of the trajectory, add the initial counts.
-    if (time == 0.0)
+    // If we are writing time steps, create the data set.
+    if (writeTimeSteps)
     {
-        nextSpeciesCountsWriteTime=writeInterval;
-        speciesCountsDataSet->set_number_entries(1);
-        speciesCountsDataSet->add_time(0.0);
-        for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
+        // Initialize the data set.
+        speciesCountsDataSet = msg->mutable_species_counts();
+        speciesCountsDataSet->set_trajectory_id(trajectoryId);
+        speciesCountsDataSet->set_number_species(reactionModel->numberSpeciesToTrack);
+        speciesCountsDataSet->set_number_entries(0);
+
+        // If this is the start of the trajectory, add the initial counts.
+        if (time == 0.0)
+        {
+            nextSpeciesCountsWriteTime=writeInterval;
+            speciesCountsDataSet->set_number_entries(1);
+            speciesCountsDataSet->add_time(0.0);
+            for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
+        }
+        else
+        {
+            nextSpeciesCountsWriteTime = ceil(time/writeInterval)*writeInterval;
+        }
     }
-    else
-    {
-        nextSpeciesCountsWriteTime = ceil(time/writeInterval)*writeInterval;
-    }
+
+
+
 
     // Get the interval for writing parameters.
 //    double nextParameterWriteTime = INFINITY;
@@ -200,13 +196,11 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
     Print::printf(Print::DEBUG, "Running Gillespie direct simulation for %d steps with %d species, %d reactions, %d species limits", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberSpeciesLimits);
     PROF_BEGIN(PROF_SIM_EXECUTE);
     bool addedSpeciesCounts;
-    bool addedFpt;
     bool addedParameterValues;
     long long steps=0;
     while (totalPropensity > 0 && steps < maxSteps && !reachedSpeciesLimit())
     {
         addedSpeciesCounts = false;
-        addedFpt = false;
         addedParameterValues = false;
         steps++;
 
@@ -268,7 +262,7 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
         totalPropensity = 0.0;
         for (uint i=0; i<numberReactions; i++) totalPropensity += propensities[i];
 
-        Print::printf(Print::VERBOSE_DEBUG, "Step %d: time=%e, count=%d, prop=%e, totprop=%e",steps,time,speciesCounts[0],propensities[0],totalPropensity);
+        //Print::printf(Print::VERBOSE_DEBUG, "Step %d: time=%e, count=%d, prop=%e, totprop=%e",steps,time,speciesCounts[0],propensities[0],totalPropensity);
 
         // If we are recording every event, add it.
 //        if (!writeTimeSteps)
@@ -278,36 +272,6 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
 //            for (uint i=0; i<numberSpeciesToTrack; i++) speciesCountsDataSet.add_species_count(speciesCounts[i]);
 //        }
 
-        // Update the first passage time tables.
-        for (uint i=0; i<numberFptTrackedSpecies; i++)
-        {
-//            uint speciesCount = speciesCounts[fptTrackedSpecies[i].species];
-//            while (fptTrackedSpecies[i].minValueAchieved > speciesCount)
-//            {
-//                fptTrackedSpecies[i].dataSet.add_species_count(--fptTrackedSpecies[i].minValueAchieved);
-//                fptTrackedSpecies[i].dataSet.add_first_passage_time(time);
-//                addedFpt = true;
-//            }
-//            while (fptTrackedSpecies[i].maxValueAchieved < speciesCount)
-//            {
-//                fptTrackedSpecies[i].dataSet.add_species_count(++fptTrackedSpecies[i].maxValueAchieved);
-//                fptTrackedSpecies[i].dataSet.add_first_passage_time(time);
-//                addedFpt = true;
-//            }
-
-//            // See if we have accumulated enough fpt data to send.
-//            if (addedFpt && fptTrackedSpecies[i].dataSet.first_passage_time_size() >= TUNE_FIRST_PASSAGE_TIME_BUFFER_SIZE)
-//            {
-//                // Push it to the output queue.
-//                PROF_BEGIN(PROF_SERIALIZE_FPT);
-//                lm::main::DataOutputQueue::getInstance()->pushDataSet(lm::main::DataOutputQueue::FIRST_PASSAGE_TIMES, replicate, &fptTrackedSpecies[i].dataSet);
-//                PROF_END(PROF_SERIALIZE_FPT);
-
-//                // Reset the data set.
-//                fptTrackedSpecies[i].dataSet.Clear();
-//                fptTrackedSpecies[i].dataSet.set_species(fptTrackedSpecies[i].species);
-//            }
-        }
 
          // Go to the next rng pair.
         rngNext++;
@@ -362,8 +326,17 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
         }
     }
 
-    // Send the species counts.
-    if (writeTimeSteps && speciesCountsDataSet->number_entries() > 0)
+    // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
+    if (reachedLimit && numberFptTrackedSpecies > 0)
+    {
+        for (int i=0; i<numberFptTrackedSpecies; i++)
+        {
+            fptTrackedSpecies[i].serializeTo(trajectoryId, msg->add_first_passage_times());
+        }
+    }
+
+    // If the output message has any data, send it.
+    if (msg->has_species_counts() || msg->first_passage_times_size() > 0)
     {
         communicator->sendMessage(outputProcess, outputThread, &msgp);
     }

@@ -600,33 +600,6 @@ void CMESolver::ReactionModel::setPropensityFunction(uint reaction, double (*pro
     propensityFunctionArgs[reaction] = propensityFunctionArg;
 }
 
-/*void CMESolver::initialize(unsigned int replicate, map<string,string> * parameters, ResourceAllocator::ComputeResources * resources)
-{
-    this->replicate = replicate;
-    this->parameters = parameters;
-    this->resources = resources;
-
-
-    // Set the fpt tracked species from the parameters.
-    string listString = (*parameters)["fptTrackingList"];
-    list<uint> fptList;
-    size_t start=0, end=0;
-    while (end != string::npos)
-    {
-        end = listString.find(',', start);
-        string trackedSpecies = listString.substr(start, (end == string::npos) ? string::npos : end - start);
-        if (trackedSpecies.length() > 0)
-        {
-			fptList.push_back(atoi(trackedSpecies.c_str()));
-			Print::printf(Print::DEBUG, "Parsed fpt tracking %s to: %d", trackedSpecies.c_str(), atoi(trackedSpecies.c_str()));
-        }
-        start = end+1;
-    }
-    setFptTrackingList(fptList);
-
-}
-*/
-
 void CMESolver::setComputeResources(vector<int> cpus, vector<int> gpus)
 {
     MESolver::setComputeResources(cpus, gpus);
@@ -861,15 +834,7 @@ void CMESolver::getState(lm::io::TrajectoryState* state)
     // Get the first passage times.
     for (int i=0; i<numberFptTrackedSpecies; i++)
     {
-        lm::io::FirstPassageTimes* fpt = state->mutable_cme_state()->add_first_passage_times();
-        fpt->set_trajectory_id(trajectoryId);
-        fpt->set_species(fptTrackedSpecies[i].species);
-        fpt->set_number_entries(fptTrackedSpecies[i].fptValues.size());
-        for (std::deque<std::pair<int,double> >::iterator it=fptTrackedSpecies[i].fptValues.begin(); it != fptTrackedSpecies[i].fptValues.end(); it++)
-        {
-            fpt->add_species_count(it->first);
-            fpt->add_first_passage_time(it->second);
-        }
+        fptTrackedSpecies[i].serializeTo(trajectoryId, state->mutable_cme_state()->add_first_passage_times());
     }
 }
 

@@ -45,6 +45,7 @@
 
 #include <pthread.h>
 
+#include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/message/Communicator.h"
 #include "lm/message/Message.pb.h"
@@ -69,6 +70,7 @@ public:
     virtual void wake() throw(lm::thread::PthreadException);
 
 protected:
+    virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data)=0;
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data)=0;
     virtual void flush()=0;
 
