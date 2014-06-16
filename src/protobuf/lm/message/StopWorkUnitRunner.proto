@@ -39,17 +39,7 @@
 
 package lm.message;
 
-import "lm/io/DiffusionModel.proto";
-import "lm/io/ReactionModel.proto";
-import "lm/io/SimulationParameters.proto";
-
-message StartWorkUnitRunner {
-	required int32 uuid											= 1;
-    optional bool use_cpu_affinity                              = 2;
-    repeated int32 cpu                                          = 3;
-    repeated int32 gpu                                          = 4;
-    required string solver                                      = 5;
-    required lm.io.SimulationParameters simulation_parameters   = 6;
-    optional lm.io.ReactionModel reaction_model                 = 7;
-    optional lm.io.DiffusionModel diffusion_model               = 8;
+message StopWorkUnitRunner {
+    required int32 process                                          = 1;
+    required int32 thread											= 2;
 }

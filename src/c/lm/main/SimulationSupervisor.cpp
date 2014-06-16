@@ -173,14 +173,18 @@ void SimulationSupervisor::allResourcesRegistered()
     // Start the work unit runners.
     Print::printf(Print::INFO, "All resources registered with supervisor, starting work unit runners.");
 
-    map<int,ResourceMap::ComputeResources> allResources = resourceMap->getAvailableResources();
-    slotList.addSlots(allResources,
-    				  solverClassName,
-    				  simulationParameters,
-    				  hasReactionModel,
-    				  reactionModel,
-    				  hasDiffusionModel,
-    				  diffusionModel);
+    lm::message::StartWorkUnitRunner * s = slotList.addStartSlotMsg();
+    //	s->set_use_cpu_affinity(useCPUAffinity);
+    //	s->add_cpu(resources.cpuCores[i]);
+    //	if (resources.gpusDevices.size() > 0)
+    //		s->add_gpu(resources.gpusDevices[0]);
+	s->set_solver(solverClassName);
+	*s->mutable_simulation_parameters() = simulationParameters;
+	if (hasReactionModel) *s->mutable_reaction_model() = reactionModel;
+	if (hasDiffusionModel) *s->mutable_diffusion_model() = diffusionModel;
+
+	map<int,ResourceMap::ComputeResources> allResources = resourceMap->getAvailableResources();
+    slotList.addSlots(allResources);
 
     Print::printf(Print::INFO, "All work unit runners started, beginning simulation.");
     startSimulation();

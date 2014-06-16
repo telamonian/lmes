@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 #include "lm/message/Communicator.h"
+#include "lm/Types.h"
 
 using std::string;
 using std::vector;
@@ -31,33 +32,31 @@ class Slot
 public:
 	enum slotStatus {FREE, BUSY, DEAD};
 
-	Slot(int controller_process,
-		 int controller_thread,
-	     lm::message::Communicator * supervisorComm,
-	     string solverClassName,
-	     lm::io::SimulationParameters & simulationParameters,
-	     bool hasReactionModel,
-	     lm::io::ReactionModel & reactionModel,
-	     bool hasDiffusionModel,
-	     lm::io::DiffusionModel & diffusionModel);
+	Slot(int controller_process, int controller_thread, uint32_t uuid, lm::message::Communicator * supervisorComm, lm::message::Message & msg);
 	virtual ~Slot();
 
 	virtual vector<int> alloc();
 	virtual void free();
 
-//	virtual bool startRemote();
-//	virtual bool registerRemote();
-//	virtual bool stopRemote();
+	virtual void startRemote(int controller_process, int controller_thread, lm::message::Message & msg);
+	virtual void startedRemote();
+	virtual void stop();
+	virtual void stopRemote();
+	virtual void stoppedRemote();
 
 	virtual void setStatus(slotStatus newStatus) {status = newStatus;}
 	virtual slotStatus getStatus() {return status;}
 	virtual vector<int> getSlotKey() {int keys[] = {process, thread}; vector<int> slotKey(keys, keys+2); return slotKey;}
+	virtual uint32_t getUUID() {return uuid;}
 
 	int process;
 	int thread;
+	int controller_process;	// in theory this should always be the same as process
+	int controller_thread;
 
 protected:
 	lm::message::Communicator * supervisorComm;
+	uint32_t uuid;
 	slotStatus status;
 };
 

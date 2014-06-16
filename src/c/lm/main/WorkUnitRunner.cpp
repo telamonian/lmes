@@ -216,7 +216,7 @@ void WorkUnitRunner::runWorkUnit(const lm::message::RunWorkUnit& wu)
     lm::message::FinishedWorkUnit* msg2 = msgp2.mutable_finished_work_unit();
     msg2->set_work_unit_id(wu.work_unit_id());
     msg2->set_process(lm::MPI::worldRank);
-    msg2->set_thread(threadNumber);
+    msg2->set_thread(getThreadNumber());
     if (limitReached)
         msg2->set_status(lm::message::FinishedWorkUnit::LIMIT_REACHED);
     else
@@ -226,7 +226,6 @@ void WorkUnitRunner::runWorkUnit(const lm::message::RunWorkUnit& wu)
     solver->getState(msg2->mutable_final_state());
 
     communicator.sendMessage(wu.supervisor_process(), wu.supervisor_thread(), &msgp2);
-
 }
 
 }

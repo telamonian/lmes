@@ -54,8 +54,10 @@
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SimulationParameters.pb.h"
 #include "lm/message/Communicator.h"
+#include "lm/message/Message.pb.h"
 #include "lm/resource/ResourceMap.h"
 #include "lm/resource/Slot.h"
+#include "lm/rng/XORShift.h"
 #include "lm/thread/Thread.h"
 
 using std::deque;
@@ -85,30 +87,9 @@ public:
     virtual ~SlotList();
 
     //create slot methods
-    virtual void addSlots(map<int,ResourceMap::ComputeResources> & allResources,
-    					  string solverClassName,
-    					  lm::io::SimulationParameters & simulationParameters,
-    					  bool hasReactionModel,
-    					  lm::io::ReactionModel & reactionModel,
-    					  bool hasDiffusionModel,
-    					  lm::io::DiffusionModel & diffusionModel);
-    virtual void addSlots(ResourceMap::ComputeResources & resources,
-    					  string solverClassName,
-						  lm::io::SimulationParameters & simulationParameters,
-						  bool hasReactionModel,
-						  lm::io::ReactionModel & reactionModel,
-						  bool hasDiffusionModel,
-						  lm::io::DiffusionModel & diffusionModel,
-						  float cpusPerSlot=1.0,
-						  float gpusPerSlot=1.0);
-    virtual void addSlot(int controller_process,
-    					 int controller_thread,
-    					 string solverClassName,
-						 lm::io::SimulationParameters & simulationParameters,
-						 bool hasReactionModel,
-						 lm::io::ReactionModel & reactionModel,
-						 bool hasDiffusionModel,
-						 lm::io::DiffusionModel & diffusionModel);
+    virtual void addSlots(map<int,ResourceMap::ComputeResources> & allResources);
+    virtual void addSlots(ResourceMap::ComputeResources & resources, float cpusPerSlot=1.0, float gpusPerSlot=1.0);
+    virtual void addSlot(int controller_process, int controller_thread);
 
     //delete slot methods
     virtual void delSlot(int process, int thread);
@@ -123,13 +104,18 @@ public:
     virtual Slot * alloc();
     virtual void free(int process, int thread);
 
+    //dealing with the internal Message methods
+    virtual lm::message::StartWorkUnitRunner * addStartSlotMsg() {return msg.add_start_work_unit_runner();}
+
 private:
     virtual SlotMap::iterator getBusySlotIt(int process, int thread);
     virtual SlotDeque::iterator getFreeSlotIt(int process, int thread);
 
 	lm::message::Communicator * supervisorComm;
+	lm::message::Message msg;
     SlotMap busySlots;
     SlotDeque freeSlots;
+    lm::rng::XORShift xorShift;
 };
 
 }
