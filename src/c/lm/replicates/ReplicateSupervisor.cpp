@@ -148,7 +148,7 @@ void ReplicateSupervisor::startSimulation()
     Print::printf(Print::INFO, "Replicate supervisor starting simulation.");
 
     // Create the new trajectory list.
-    trajectories = new TrajectoryList(::replicates.front(), ::replicates.back());
+    trajectories = new TrajectoryList(::replicates.front(), ::replicates.back(), reactionModel);
 
     // See if we have a max time limit.
     if (simulationParameterMap.count("maxTime"))
@@ -225,7 +225,7 @@ void ReplicateSupervisor::startSimulation()
         run.set_supervisor_thread(communicator.getSourceThread());
         run.set_output_process(outputWriterProcess);
         run.set_output_thread(outputWriterThread);
-        run.set_max_steps(1000000);
+        run.set_max_steps(100);
         *run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
         *run.mutable_limits() = limits;
         Print::printf(Print::INFO, "Sending message to start work unit %d with trajectory %d on slot %d:%d.", run.work_unit_id(), nextTrajectory, workSlot->getSlotKey()[0], workSlot->getSlotKey()[1]);
@@ -242,7 +242,6 @@ void ReplicateSupervisor::workUnitStarted(const lm::message::StartedWorkUnit& ms
 void ReplicateSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
 {
     Print::printf(Print::INFO, "Work unit %d finished in %0.3f s.",msg.work_unit_id(),msg.run_time());
-    Print::printf(Print::VERBOSE_DEBUG, "Message: {\n%s}",msg.DebugString().c_str());
 
     if (msg.status() == lm::message::FinishedWorkUnit::LIMIT_REACHED)
     {
@@ -277,7 +276,7 @@ void ReplicateSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit& 
         run.set_supervisor_thread(communicator.getSourceThread());
         run.set_output_process(outputWriterProcess);
         run.set_output_thread(outputWriterThread);
-        run.set_max_steps(1000000);
+        run.set_max_steps(100);
         *run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
         *run.mutable_limits() = limits;
         Print::printf(Print::INFO, "Sending message to start work unit %d with trajectory %d on slot %d:%d.", run.work_unit_id(), nextTrajectory, workSlot->getSlotKey()[0], workSlot->getSlotKey()[1]);

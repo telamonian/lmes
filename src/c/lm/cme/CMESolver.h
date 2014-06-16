@@ -40,6 +40,7 @@
 #ifndef LM_CME_CMESOLVER_H_
 #define LM_CME_CMESOLVER_H_
 
+#include <deque>
 #include <list>
 #include <map>
 #include <string>
@@ -173,10 +174,10 @@ protected:
     };
     struct FPTTracking
     {
-        uint species;
-        uint minValueAchieved;
-        uint maxValueAchieved;
-        lm::io::FirstPassageTimes dataSet;
+        int species;
+        int minValueAchieved;
+        int maxValueAchieved;
+        std::deque<std::pair<int,double> > fptValues;
     };
     struct TrackedParameter
     {
@@ -202,7 +203,6 @@ public:
 protected:
     virtual void setSpeciesUpperLimit(int species, int limit);
     virtual void setSpeciesLowerLimit(int species, int limit);
-    virtual void setFptTrackingList(list<uint> speciesList);
     virtual void addToParameterTrackingList(pair<string,double*>parameter);
 
     static double zerothOrderPropensity(double time, uint * speciesCounts, void * pargs);
@@ -287,7 +287,7 @@ protected:
     SpeciesLimit* speciesLimits;
 
 
-    uint numberFptTrackedSpecies;
+    int numberFptTrackedSpecies;
     FPTTracking* fptTrackedSpecies;
     list<TrackedParameter> trackedParameters;
 

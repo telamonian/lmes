@@ -268,7 +268,7 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
         totalPropensity = 0.0;
         for (uint i=0; i<numberReactions; i++) totalPropensity += propensities[i];
 
-        //Print::printf(Print::VERBOSE_DEBUG, "Step %d: time=%e, count=%d, prop=%e, totprop=%e",steps,time,speciesCounts[0],propensities[0],totalPropensity);
+        Print::printf(Print::VERBOSE_DEBUG, "Step %d: time=%e, count=%d, prop=%e, totprop=%e",steps,time,speciesCounts[0],propensities[0],totalPropensity);
 
         // If we are recording every event, add it.
 //        if (!writeTimeSteps)

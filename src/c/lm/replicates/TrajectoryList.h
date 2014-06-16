@@ -42,6 +42,7 @@
 
 #include <map>
 
+#include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 
 using std::map;
@@ -58,18 +59,14 @@ protected:
     class TrajectoryStatus
     {
     public:
-        TrajectoryStatus(int trajectoryNumber) : trajectoryNumber(trajectoryNumber),status(NOT_STARTED)
-        {
-            state.set_trajectory_id(trajectoryNumber);
-            state.set_time(0.0);
-        }
+        TrajectoryStatus(int trajectoryNumber) : trajectoryNumber(trajectoryNumber),status(NOT_STARTED) {}
         int trajectoryNumber;
         status_t status;
         lm::io::TrajectoryState state;
     };
 
 public:
-    TrajectoryList(int firstTrajectory, int numberTrajectories);
+    TrajectoryList(int firstTrajectory, int lastTrajectory, const lm::io::ReactionModel& reactionModel);
     virtual ~TrajectoryList();
     virtual int nextTrajectoryToRun();
     virtual status_t getTrajectoryStatus(int trajectory);

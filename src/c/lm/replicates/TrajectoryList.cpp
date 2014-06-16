@@ -38,16 +38,26 @@
  */
 #include <map>
 
+#include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/replicates/TrajectoryList.h"
 
 namespace lm {
 namespace replicates {
 
-TrajectoryList::TrajectoryList(int firstTrajectory, int numberTrajectories)
+TrajectoryList::TrajectoryList(int firstTrajectory, int lastTrajectory, const lm::io::ReactionModel& reactionModel)
 {
-    for (int i=firstTrajectory; i<firstTrajectory+numberTrajectories; i++)
+    for (int i=firstTrajectory; i<=lastTrajectory; i++)
+    {
         trajectories[i] = new TrajectoryStatus(i);
+        trajectories[i]->state.set_trajectory_id(i);
+        trajectories[i]->state.mutable_cme_state()->mutable_species_counts()->set_trajectory_id(i);
+        trajectories[i]->state.mutable_cme_state()->mutable_species_counts()->set_number_species(reactionModel.number_species());
+        trajectories[i]->state.mutable_cme_state()->mutable_species_counts()->set_number_entries(1);
+        for (int j=0; j<reactionModel.number_species(); j++)
+            trajectories[i]->state.mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.initial_species_count(j));
+        trajectories[i]->state.mutable_cme_state()->mutable_species_counts()->add_time(0.0);
+    }
 }
 
 TrajectoryList::~TrajectoryList()
