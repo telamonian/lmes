@@ -22,8 +22,6 @@ Slot::Slot(int controller_process, int controller_thread, uint32_t uuid, lm::mes
 {
 	// Send a message to the controller to start a work unit runner.
 	startRemote(controller_process, controller_thread, msg);
-	// receive the handshake from the slave node signalling that the runner associated with this slot has been started
-	startedRemote();
 }
 
 Slot::~Slot()
@@ -37,20 +35,11 @@ void Slot::startRemote(int controller_process, int controller_thread, lm::messag
 	supervisorComm->sendMessage(controller_process, controller_thread, &msg);
 }
 
-void Slot::startedRemote()
+void Slot::startedRemote(const lm::message::StartedWorkUnitRunner & msg)
 {
-	lm::message::Message msg;
-	supervisorComm->receiveMessage(&msg);
-	if (msg.has_started_work_unit_runner())
-	{
-		process = msg.started_work_unit_runner().process();
-		thread = msg.started_work_unit_runner().thread();
-	}
-	else
-	{
-		Print::printf(Print::ERROR, "Supervisor received an unknown message during slot startup handshake: {\n%s}",msg.DebugString().c_str());
-	}
-	Print::printf(Print::INFO, "Work unit runner for slot %d:%d started, %d simultaneous work unit runners.", msg.started_work_unit_runner().process(), msg.started_work_unit_runner().thread(), msg.started_work_unit_runner().simultaneous_work_units());
+	process = msg.process();
+	thread = msg.thread();
+	Print::printf(Print::INFO, "Work unit runner for slot %d:%d started, %d simultaneous work unit runners.", msg.process(), msg.thread(), msg.simultaneous_work_units());
 }
 
 void Slot::stop()

@@ -59,6 +59,7 @@
 #include "lm/resource/Slot.h"
 #include "lm/rng/XORShift.h"
 #include "lm/thread/Thread.h"
+#include "lm/Types.h"
 
 using std::deque;
 using std::map;
@@ -96,6 +97,7 @@ public:
 
     //getter methods
     virtual Slot * getSlot(int process, int thread);
+    virtual Slot * getSlotByUUID(uint32_t uuid);
     virtual int getSlotsSize() {return getBusySlotsSize() + getFreeSlotsSize();}
     virtual int getBusySlotsSize() {return busySlots.size();}
     virtual int getFreeSlotsSize() {return freeSlots.size();}
@@ -106,10 +108,13 @@ public:
 
     //dealing with the internal Message methods
     virtual lm::message::StartWorkUnitRunner * addStartSlotMsg() {return msg.add_start_work_unit_runner();}
+    virtual bool workUnitRunnerStarted(const lm::message::StartedWorkUnitRunner & msg);
 
 private:
     virtual SlotMap::iterator getBusySlotIt(int process, int thread);
     virtual SlotDeque::iterator getFreeSlotIt(int process, int thread);
+    virtual SlotMap::iterator getBusySlotItByUUID(uint32_t uuid);
+    virtual SlotDeque::iterator getFreeSlotItByUUID(uint32_t uuid);
 
 	lm::message::Communicator * supervisorComm;
 	lm::message::Message msg;

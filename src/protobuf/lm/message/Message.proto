@@ -57,20 +57,20 @@ message Message {
     required uint32 dest_process                                            = 3;
     required uint32 dest_thread                                             = 4;
 
-    optional lm.message.ResourcesAvailable resources_available              = 10;
+    optional lm.message.ResourcesAvailable resources_available              = 5;
 
-    repeated lm.message.StartWorkUnitRunner start_work_unit_runner          = 11;
-    optional lm.message.StartedWorkUnitRunner started_work_unit_runner      = 12;
+    repeated lm.message.StartWorkUnitRunner start_work_unit_runner          = 6;
+    optional lm.message.StartedWorkUnitRunner started_work_unit_runner      = 7;
 
-    repeated lm.message.StopWorkUnitRunner stop_work_unit_runner			= 13;
-    optional lm.message.StoppedWorkUnitRunner stopped_work_unit_runner		= 14;
+    repeated lm.message.StopWorkUnitRunner stop_work_unit_runner			= 8;
+    optional lm.message.StoppedWorkUnitRunner stopped_work_unit_runner		= 9;
 
-    optional lm.message.RunWorkUnit run_work_unit                           = 15;
-    optional lm.message.StartedWorkUnit started_work_unit                   = 16;
-    optional lm.message.FinishedWorkUnit finished_work_unit                 = 17;
+    optional lm.message.RunWorkUnit run_work_unit                           = 10;
+    optional lm.message.StartedWorkUnit started_work_unit                   = 11;
+    optional lm.message.FinishedWorkUnit finished_work_unit                 = 12;
     
-    optional lm.message.StartOutputWriter start_output_writer               = 20;
-    optional lm.message.StartedOutputWriter started_output_writer           = 21;
+    optional lm.message.StartOutputWriter start_output_writer               = 13;
+    optional lm.message.StartedOutputWriter started_output_writer           = 14;
     
-    repeated lm.message.ProcessWorkUnitOutput process_work_unit_output      = 100;
+    repeated lm.message.ProcessWorkUnitOutput process_work_unit_output      = 15;
 }

@@ -104,8 +104,29 @@ void SlotList::addSlots(ResourceMap::ComputeResources & resources, float cpusPer
 
 void SlotList::addSlot(int controller_process, int controller_thread)
 {
-    Slot * addedSlot = new Slot(controller_process, controller_thread, xorShift.getRandom(), supervisorComm, msg);
-    freeSlots.push_back(addedSlot);
+	uint32_t uuid(xorShift.getRandom());
+    Slot * addedSlot = new Slot(controller_process, controller_thread, uuid, supervisorComm, msg);
+    int keys[] = {-1, uuid};
+    vector<int> slotKey(keys, keys+2);
+    busySlots[slotKey] = addedSlot;
+}
+
+bool SlotList::workUnitRunnerStarted(const lm::message::StartedWorkUnitRunner & msg)
+{
+	int keys[] = {-1, msg.uuid()};
+	vector<int> slotKey(keys, keys+2);
+	SlotMap::iterator m_it(busySlots.find(slotKey));
+	if (m_it!=busySlots.end())
+	{
+		m_it->second->startedRemote(msg);
+		freeSlots.push_front(m_it->second);
+		busySlots.erase(m_it);
+	}
+	else
+	{
+		Print::printf(Print::ERROR, "Tried to register started slot %d:%d with uuid %d, but this slot does not exist on the master", msg.process(), msg.thread(), msg.uuid());
+	}
+	return busySlots.empty();
 }
 
 void SlotList::delSlot(int process, int thread)
@@ -139,11 +160,29 @@ Slot * SlotList::getSlot(int process, int thread)
         if (d_it!=freeSlots.end()) {    //the slot we're trying to get is currently free
             return *d_it;
         }
-        else {  //possilbe error state: the slot that we're trying to get doesn't exist
+        else {  //possible error state: the slot that we're trying to get doesn't exist
             Print::printf(Print::ERROR, "Tried to get slot %d:%d, but was not found in either container of free or busy slots.", process, thread);
         }
     }
     return NULL;
+}
+
+Slot * SlotList::getSlotByUUID(uint32_t uuid)
+{
+	SlotMap::iterator m_it(getBusySlotItByUUID(uuid));
+	if (m_it!=busySlots.end()) {  //the slot we're trying to get is currently busy
+		return m_it->second;
+	}
+	else {
+		SlotDeque::iterator d_it(getFreeSlotItByUUID(uuid));
+		if (d_it!=freeSlots.end()) {    //the slot we're trying to get is currently free
+			return *d_it;
+		}
+		else {  //possible error state: the slot that we're trying to get doesn't exist
+			Print::printf(Print::ERROR, "Tried to get slot uuid: %d, but was not found in either container of free or busy slots.", uuid);
+		}
+	}
+	return NULL;
 }
 
 Slot * SlotList::alloc()
@@ -194,6 +233,29 @@ SlotDeque::iterator SlotList::getFreeSlotIt(int process, int thread)
     SlotDeque::iterator d_it=freeSlots.begin();
     for (; d_it!=freeSlots.end(); ++d_it) {
         if (slotKey==((*d_it)->getSlotKey())) {
+            return d_it;
+        }
+    }
+    return d_it;
+}
+
+//for getBusySlotItByUUID and getFreeSlotItByUUID, it is the responsibility of the calling function to check whether the returned iterator is equal to container.end()
+SlotMap::iterator SlotList::getBusySlotItByUUID(uint32_t uuid)
+{
+	SlotMap::iterator m_it=busySlots.begin();
+	for (; m_it!=busySlots.end(); ++m_it) {
+		if (uuid==(m_it->second->getUUID())) {
+			return m_it;
+		}
+	}
+	return m_it;
+}
+
+SlotDeque::iterator SlotList::getFreeSlotItByUUID(uint32_t uuid)
+{
+    SlotDeque::iterator d_it=freeSlots.begin();
+    for (; d_it!=freeSlots.end(); ++d_it) {
+        if (uuid==((*d_it)->getUUID())) {
             return d_it;
         }
     }

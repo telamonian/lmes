@@ -48,6 +48,7 @@
 #include "lm/message/StartWorkUnitRunner.pb.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
+#include "lm/Types.h"
 
 using std::vector;
 using std::string;
@@ -66,7 +67,13 @@ public:
     virtual int run();
     virtual void runWorkUnit(const lm::message::RunWorkUnit& msg);
 
+    //id getter methods
+    virtual int	getProcess() {return communicator.getSourceProcess();}
+    virtual int getThread() {return communicator.getSourceThread();}
+    virtual uint32_t getUUID() {return uuid;}
+
 protected:
+    uint32_t uuid;
     lm::message::Communicator communicator;
     lm::message::StartWorkUnitRunner properties;
     lm::me::MESolver* solver;

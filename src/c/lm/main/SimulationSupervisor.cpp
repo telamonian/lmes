@@ -120,6 +120,10 @@ int SimulationSupervisor::run()
             {
                 resourceAvailable(message.resources_available());
             }
+            else if (message.has_started_work_unit_runner())
+			{
+            	slotList.workUnitRunnerStarted(message.started_work_unit_runner());
+			}
             else if (message.has_started_work_unit())
             {
                 workUnitStarted(message.started_work_unit());
@@ -168,6 +172,14 @@ void SimulationSupervisor::resourceAvailable(const lm::message::ResourcesAvailab
     }
 }
 
+void SimulationSupervisor::workUnitRunnerStarted(lm::message::StartedWorkUnitRunner & msg)
+{
+	if (slotList.workUnitRunnerStarted(msg))
+	{
+		allWorkUnitRunnersStarted();
+	}
+}
+
 void SimulationSupervisor::allResourcesRegistered()
 {
     // Start the work unit runners.
@@ -185,7 +197,10 @@ void SimulationSupervisor::allResourcesRegistered()
 
 	map<int,ResourceMap::ComputeResources> allResources = resourceMap->getAvailableResources();
     slotList.addSlots(allResources);
+}
 
+void SimulationSupervisor::allWorkUnitRunnersStarted()
+{
     Print::printf(Print::INFO, "All work unit runners started, beginning simulation.");
     startSimulation();
 }
