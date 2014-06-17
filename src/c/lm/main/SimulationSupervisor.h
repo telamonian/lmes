@@ -94,7 +94,7 @@ protected:
 
     virtual int run();
     virtual void resourceAvailable(const lm::message::ResourcesAvailable& msg);
-    virtual void workUnitRunnerStarted(lm::message::StartedWorkUnitRunner & msg);
+    virtual void workUnitRunnerStarted(const lm::message::StartedWorkUnitRunner & msg);
     virtual void allResourcesRegistered();
     virtual void allWorkUnitRunnersStarted();
 

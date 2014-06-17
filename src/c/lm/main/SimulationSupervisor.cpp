@@ -125,7 +125,7 @@ int SimulationSupervisor::run()
             }
             else if (message.has_started_work_unit_runner())
 			{
-            	slotList.workUnitRunnerStarted(message.started_work_unit_runner());
+            	workUnitRunnerStarted(message.started_work_unit_runner());
 			}
             else if (message.has_started_work_unit())
             {
@@ -181,7 +181,7 @@ void SimulationSupervisor::resourceAvailable(const lm::message::ResourcesAvailab
     }
 }
 
-void SimulationSupervisor::workUnitRunnerStarted(lm::message::StartedWorkUnitRunner & msg)
+void SimulationSupervisor::workUnitRunnerStarted(const lm::message::StartedWorkUnitRunner & msg)
 {
 	if (slotList.workUnitRunnerStarted(msg))
 	{
