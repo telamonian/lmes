@@ -34,15 +34,51 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts, Max Klein
+ * Author(s): Elijah Roberts
  */
 
-package lm.io;
+#ifndef LM_IO_SFILE_SFILE_H
+#define LM_IO_SFILE_SFILE_H
 
-import "lm/io/FirstPassageTimes.proto";
-import "lm/io/SpeciesCounts.proto";
+#include <string>
+#include <google/protobuf/message.h>
 
-message CMEState {
-    required SpeciesCounts species_counts               = 1;
-    repeated FirstPassageTimes first_passage_times      = 2;
+#include "lm/io/sfile/SFileRecord.h"
+
+using std::string;
+
+namespace lm {
+namespace io {
+namespace sfile {
+
+class SFile
+{
+public:
+    SFile();
+    virtual ~SFile();
+    virtual bool isFile()=0;
+    virtual bool isSFile();
+    virtual bool isDir()=0;
+    virtual bool exists()=0;
+    virtual string getFilename()=0;
+    virtual int64_t getSize()=0;
+    virtual void openTruncate()=0;
+    virtual void openAppend()=0;
+    virtual void openRead()=0;
+    virtual size_t read(void* buffer, size_t length)=0;
+    virtual void readFully(void* buffer, size_t length);
+    virtual void skip(uint64_t length)=0;
+    virtual size_t write(void* buffer, size_t length)=0;
+    virtual bool isEof()=0;
+    virtual void flush()=0;
+    virtual void close()=0;
+    virtual SFileRecord readNextSFileRecord();
+    virtual void writeSFileRecord(SFileRecord record);
+    virtual void writeMessage(const google::protobuf::Message& message)=0;
+};
+
 }
+}
+}
+
+#endif

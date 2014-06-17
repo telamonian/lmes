@@ -36,18 +36,65 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#include <map>
 
+#include <list>
+#include <map>
+#include <string>
+
+#include "lm/Print.h"
+#include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/io/ReactionModel.pb.h"
+#include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/replicates/TrajectoryList.h"
+
+using std::string;
 
 namespace lm {
 namespace replicates {
 
-TrajectoryList::TrajectoryList(int firstTrajectory, int numberTrajectories)
+TrajectoryList::TrajectoryList(int firstTrajectory, int lastTrajectory, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel)
 {
-    for (int i=firstTrajectory; i<firstTrajectory+numberTrajectories; i++)
+    for (int i=firstTrajectory; i<=lastTrajectory; i++)
+    {
         trajectories[i] = new TrajectoryStatus(i);
+
+        // Initialize the trajectory id.
+        trajectories[i]->state.set_trajectory_id(i);
+
+        // Initialize the species counts in the cme state.
+        trajectories[i]->state.mutable_cme_state()->mutable_species_counts()->set_trajectory_id(i);
+        trajectories[i]->state.mutable_cme_state()->mutable_species_counts()->set_number_species(reactionModel.number_species());
+        trajectories[i]->state.mutable_cme_state()->mutable_species_counts()->set_number_entries(1);
+        for (int j=0; j<(int)reactionModel.number_species(); j++)
+            trajectories[i]->state.mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.initial_species_count(j));
+        trajectories[i]->state.mutable_cme_state()->mutable_species_counts()->add_time(0.0);
+
+        // Initialize the first passage times in the cme state.
+        const string listString = simulationParameters["fptTrackingList"];
+        std::list<int> fptList;
+        size_t start=0, end=0;
+        while (end != string::npos)
+        {
+            end = listString.find(',', start);
+            string trackedSpecies = listString.substr(start, (end == string::npos) ? string::npos : end - start);
+            if (trackedSpecies.length() > 0)
+            {
+                fptList.push_back(atoi(trackedSpecies.c_str()));
+            }
+            start = end+1;
+        }
+        for (std::list<int>::iterator it=fptList.begin(); it != fptList.end(); it++)
+        {
+            lm::io::FirstPassageTimes* fpt= trajectories[i]->state.mutable_cme_state()->add_first_passage_times();
+            fpt->set_trajectory_id(i);
+            fpt->set_species(*it);
+            fpt->set_number_entries(1);
+            fpt->add_species_count(reactionModel.initial_species_count(*it));
+            fpt->add_first_passage_time(0.0);
+            Print::printf(Print::DEBUG, "Added fpt tracking for species %d", *it);
+        }
+    }
 }
 
 TrajectoryList::~TrajectoryList()

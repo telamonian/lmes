@@ -37,12 +37,84 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-package lm.io;
+#include <sys/stat.h>
 
-import "lm/io/FirstPassageTimes.proto";
-import "lm/io/SpeciesCounts.proto";
+#include <lm/ClassFactory.h>
+#include <lm/Print.h>
+#include "lm/io/OutputWriter.h"
+#include "lm/io/hdf5/Hdf5OutputWriter.h"
 
-message CMEState {
-    required SpeciesCounts species_counts               = 1;
-    repeated FirstPassageTimes first_passage_times      = 2;
+
+namespace lm {
+namespace io {
+namespace hdf5 {
+
+
+bool Hdf5OutputWriter::registered=Hdf5OutputWriter::registerClass();
+
+bool Hdf5OutputWriter::registerClass()
+{
+    lm::ClassFactory::getInstance().registerClass("lm::io::OutputWriter","lm::io::hdf5::Hdf5OutputWriter",&Hdf5OutputWriter::allocateObject);
+    return true;
+}
+
+void* Hdf5OutputWriter::allocateObject()
+{
+    return new Hdf5OutputWriter();
+}
+
+Hdf5OutputWriter::Hdf5OutputWriter()
+:file(NULL)
+{
+}
+
+Hdf5OutputWriter::~Hdf5OutputWriter()
+{
+    if (file != NULL) delete file; file = NULL;
+}
+
+void Hdf5OutputWriter::initialize()
+{
+    OutputWriter::initialize();
+
+    // Make sure we have an output filename.
+    if (outputFilename == "") throw Exception("Invalid output filename",outputFilename.c_str());
+
+    // If the file doesn't exists, create it.
+    struct stat fileStats;
+    if (stat(outputFilename.c_str(), &fileStats) != 0)
+    {
+        Hdf5File::create(outputFilename);
+    }
+
+    // Open the file.
+    file = new Hdf5File(outputFilename);
+}
+
+void Hdf5OutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
+{
+    file->setFirstPassageTimes(data.trajectory_id(), (lm::io::FirstPassageTimes*)&data);
+}
+
+void Hdf5OutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
+{
+    file->appendSpeciesCounts(data.trajectory_id(), (lm::io::SpeciesCounts*)&data);
+}
+
+void Hdf5OutputWriter::flush()
+{
+    file->flush();
+}
+
+void Hdf5OutputWriter::finalize()
+{
+    OutputWriter::finalize();
+
+    file->close();
+    delete file;
+    file = NULL;
+}
+
+}
+}
 }

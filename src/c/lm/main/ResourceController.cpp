@@ -37,6 +37,8 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
+#include <list>
+
 #if defined(MACOSX)
 #include <sys/sysctl.h>
 #elif defined(LINUX)
@@ -58,6 +60,7 @@
 #include "lm/message/StartOutputWriter.pb.h"
 #include "lm/message/StartWorkUnitRunner.pb.h"
 #include "lm/message/StartedWorkUnitRunner.pb.h"
+#include "lm/thread/WorkerManager.h"
 
 namespace lm {
 namespace main {
@@ -69,11 +72,18 @@ ResourceController::ResourceController()
 
 ResourceController::~ResourceController()
 {
+    for (std::list<lm::thread::Worker*>::iterator it=workers.begin(); it != workers.end(); it++)
+    {
+        delete *it;
+    }
+    workers.clear();
 }
 
 void ResourceController::wake() throw(PthreadException)
 {
-//    MPI_EXCEPTION_CHECK(MPI_Send(NULL, 0, MPI_INT, lm::MPI::worldRank, lm::MPI::MSG_WAKE_REPLICATE_DISTRIBUTOR, MPI_COMM_WORLD));
+    lm::message::Message msg;
+    msg.mutable_ping_target()->set_id(0);
+    communicator.sendMessage(communicator.getSourceProcess(), communicator.getSourceThread(), &msg);
 }
 
 /**
@@ -151,6 +161,11 @@ int ResourceController::run()
             {
                 startOutputWriter(message.start_output_writer());
             }
+            else if (message.has_stop_resource_controller())
+            {
+                stopWorkers(message.stop_resource_controller().abort());
+                break;
+            }
             else
             {
                 Print::printf(Print::ERROR, "Resource controller received an unknown message: {\n%s}",message.DebugString().c_str());
@@ -182,21 +197,30 @@ void ResourceController::startWorkUnitRunner(const lm::message::StartWorkUnitRun
 {
     // Start the work unit runner.
     WorkUnitRunner* runner = new WorkUnitRunner(msg);
-    runners[runner->getThreadNumber()] = runner;
     runner->start();
-}
-
-void ResourceController::stopWorkUnitRunner(const lm::message::StopWorkUnitRunner & msg)
-{
-	runners[msg.thread()]->stop();
-	runners.erase(msg.thread());
+    workers.push_back(runner);
 }
 
 void ResourceController::startOutputWriter(const lm::message::StartOutputWriter& msg)
 {
     lm::io::OutputWriter* writer = static_cast<lm::io::OutputWriter*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::io::OutputWriter",msg.output_writer_class()));
     if (msg.use_cpu_affinity()) writer->setAffinity(msg.cpu());
+    writer->setOutputFilename(msg.output_filename());
+    writer->initialize();
     writer->start();
+    workers.push_back(writer);
+}
+
+void ResourceController::stopWorkers(bool abort)
+{
+    for (std::list<lm::thread::Worker*>::iterator it=workers.begin(); it != workers.end(); it++)
+    {
+        lm::thread::Worker* worker = *it;
+        if (abort)
+            worker->abort();
+        else
+            worker->stop();
+    }
 }
 
 }

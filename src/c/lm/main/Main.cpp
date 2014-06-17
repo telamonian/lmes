@@ -401,6 +401,8 @@ void parseArguments(int argc, char** argv)
     // Perform some validation.
     if (outputWriterClassName == "lm::io::hdf5::Hdf5OutputWriter" && simulationOutputFilename == "")
         simulationOutputFilename = simulationInputFilename;
+    else if (outputWriterClassName == "lm::io::hdf5::Hdf5OutputWriter" && simulationOutputFilename != simulationInputFilename)
+        throw lm::CommandLineArgumentException("cannot specify separate input and output files with the hdf5 format.");
     if (outputWriterClassName == "lm::io::sfile::SFileOutputWriter" && simulationOutputFilename == "")
         throw lm::CommandLineArgumentException("missing simulation output file.");
 }
@@ -503,7 +505,7 @@ void printUsage(int argc, char** argv)
     std::cout << "Usage: mpirun lm [OPTIONS] [SIM_OPTIONS] (-f|--file) input_filename" << std::endl;
     std::cout << std::endl;
     std::cout << "OPTIONS" << std::endl;
-    std::cout << "  -fo output_file   --output-file=output_filename The file for the simulation output, if different than the input file. Required for sfile output format." << std::endl;
+    std::cout << "  -fo output_file   --output-file=output_filename The file for the simulation output, if different than the input file. Required for sfile, invalid for hdf5." << std::endl;
     std::cout << "  -ff format        --output-format=format        The file format for the simulation output. Valid values are \"hdf5\" (default)|\"sfile\"|\"log\"|\"null\"." << std::endl;
     std::cout << "  -n node_file      --nodelist=node_file          A file containing the list of nodes on which to run, one line per available CPU core." << std::endl;
     std::cout << "  -m map_file       --resource-map=map_file       A file containing the map of resources to use: hostname processor_id_list gpu_id_list." << std::endl;

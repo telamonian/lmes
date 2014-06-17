@@ -42,6 +42,7 @@
 
 #include <cstdio>
 #include <exception>
+#include <string>
 
 namespace lm
 {
@@ -88,6 +89,7 @@ public:
 class IOException : public Exception
 {
 public:
+    IOException(const std::string message) : Exception("IO exception", message.c_str()) {}
     IOException(const char* message, const char* arg) : Exception("IO exception", message, arg) {}
     IOException(const char* message, const int arg) : Exception("IO exception", message, arg) {}
 };

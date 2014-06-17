@@ -355,11 +355,10 @@ void executeSimulationMPISingleMaster(ResourceMap* resourceMap)
     // Wait for the resource controller to stop.
     resourceController.wait();
 
-    // Wait for the supervisor to stop.
-    supervisor->wait();
+    // Stop the supervisor.
+    supervisor->stop();
     delete supervisor;
     supervisor = NULL;
-    Print::printf(Print::INFO, "Master shutting down.");
 
     /*
     // Stop checkpointing.

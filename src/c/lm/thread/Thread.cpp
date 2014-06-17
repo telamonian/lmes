@@ -132,7 +132,7 @@ void Thread::stop() throw(PthreadException)
     PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&controlMutex));
     if (running)
     {
-        Print::printf(Print::DEBUG, "Stopping thread %d.", threadNumber);
+        Print::printf(Print::DEBUG, "Stopping thread %d (%d).", threadNumber,threadId);
         running = false;
         waitForThread = true;
     }

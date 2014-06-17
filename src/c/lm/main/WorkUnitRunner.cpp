@@ -83,6 +83,9 @@ WorkUnitRunner::~WorkUnitRunner()
 
 void WorkUnitRunner::wake() throw(PthreadException)
 {
+    lm::message::Message msg;
+    msg.mutable_ping_target()->set_id(0);
+    communicator.sendMessage(communicator.getSourceProcess(), communicator.getSourceThread(), &msg);
 }
 
 int WorkUnitRunner::run()
@@ -156,6 +159,11 @@ int WorkUnitRunner::run()
             if (message.has_run_work_unit())
             {
                 runWorkUnit(message.run_work_unit());
+            }
+            else if (message.has_ping_target())
+            {
+                // If we are done running, stop the loop.
+                if (!running) break;
             }
             else
             {

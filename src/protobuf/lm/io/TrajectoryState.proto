@@ -44,8 +44,7 @@ import "lm/io/RDMEState.proto";
 
 message TrajectoryState {
     required int32 trajectory_id                        = 1;
-    required double time                                = 2;
-    optional lm.io.CMEState cme_state                   = 3;
-    optional lm.io.RDMEState rdme_state                 = 4;
+    optional lm.io.CMEState cme_state                   = 2;
+    optional lm.io.RDMEState rdme_state                 = 3;
     optional bytes solver_state                         = 100;
 }

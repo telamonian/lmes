@@ -34,15 +34,46 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts, Max Klein
+ * Author(s): Elijah Roberts
  */
 
-package lm.io;
+#ifndef LM_IO_SFILEOutputWriter
+#define LM_IO_SFILEOutputWriter
 
-import "lm/io/FirstPassageTimes.proto";
-import "lm/io/SpeciesCounts.proto";
+#include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/io/OutputWriter.h"
+#include "lm/io/SpeciesCounts.pb.h"
+#include "lm/io/sfile/SFile.h"
 
-message CMEState {
-    required SpeciesCounts species_counts               = 1;
-    repeated FirstPassageTimes first_passage_times      = 2;
+namespace lm {
+namespace io {
+namespace sfile {
+
+class SFileOutputWriter : public OutputWriter
+{
+public:
+    static bool registered;
+    static bool registerClass();
+    static void* allocateObject();
+
+public:
+    SFileOutputWriter();
+    virtual ~SFileOutputWriter();
+    virtual void initialize();
+    virtual void finalize();
+
+protected:
+    virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
+    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
+    virtual void flush();
+
+private:
+    SFile* file;
+};
+
 }
+}
+}
+
+
+#endif

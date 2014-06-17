@@ -69,10 +69,21 @@ NullOutputWriter::~NullOutputWriter()
 {
 }
 
+void NullOutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
+{
+    if (secondsToDelay > 0)
+        sleep(secondsToDelay);
+}
+
 void NullOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
 {
     if (secondsToDelay > 0)
         sleep(secondsToDelay);
+}
+
+void NullOutputWriter::flush()
+{
+
 }
 
 }

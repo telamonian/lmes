@@ -90,6 +90,7 @@ protected:
     virtual void workUnitStarted(const lm::message::StartedWorkUnit& msg)=0;
     virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg)=0;
     virtual void outputWriterStarted(const lm::message::StartedOutputWriter& msg) {}
+    virtual void finishSimulation();
 
     virtual int run();
     virtual void resourceAvailable(const lm::message::ResourcesAvailable& msg);

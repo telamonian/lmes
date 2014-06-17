@@ -45,7 +45,6 @@
 #include <string>
 #include "lm/ClassFactory.h"
 #include "lm/cme/CMESolver.h"
-#include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/rng/RandomGenerator.h"
 
 using std::map;
