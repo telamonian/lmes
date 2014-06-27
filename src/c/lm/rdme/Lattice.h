@@ -101,8 +101,7 @@ public:
 class Lattice
 {
 public:
-    static void rowMajorByteSerialize(void * destBuffer, void * lattice, size_t bufferSize);
-    static void rowMajorByteSerializeSites(void * destBuffer, void * lattice, size_t bufferSize);
+    enum SerializationDataOrder {ROW_MAJOR=0, COLUMN_MAJOR=1, NATIVE=2};
 
 public:
     // Lattice limits.
@@ -161,9 +160,10 @@ public:
 
 	virtual void print() const;
 
-	// Methods to set the data directly.
-	virtual void setFromRowMajorByteData(void * buffer, size_t bufferSize)=0;
-	virtual void setSitesFromRowMajorByteData(void * buffer, size_t bufferSize)=0;
+    // Methods to serialize the data.
+    virtual size_t serializeParticlesSize()=0;
+    virtual void serializeParticlesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering)=0;
+    virtual void deserializeParticlesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering)=0;
 
 protected:
 	lattice_coord_t size;

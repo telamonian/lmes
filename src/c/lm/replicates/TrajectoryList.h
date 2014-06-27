@@ -43,6 +43,7 @@
 #include <map>
 #include <string>
 
+#include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 
@@ -67,7 +68,7 @@ protected:
     };
 
 public:
-    TrajectoryList(int firstTrajectory, int lastTrajectory, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel);
+    TrajectoryList(int firstTrajectory, int lastTrajectory, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel, const lm::io::DiffusionModel& diffusionModel);
     virtual ~TrajectoryList();
     virtual int nextTrajectoryToRun();
     virtual status_t getTrajectoryStatus(int trajectory);

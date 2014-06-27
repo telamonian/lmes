@@ -43,6 +43,8 @@
 
 #include "lm/Print.h"
 #include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/io/Lattice.pb.h"
+#include "lm/io/RDMEState.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
@@ -53,7 +55,7 @@ using std::string;
 namespace lm {
 namespace replicates {
 
-TrajectoryList::TrajectoryList(int firstTrajectory, int lastTrajectory, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel)
+TrajectoryList::TrajectoryList(int firstTrajectory, int lastTrajectory, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel, const lm::io::DiffusionModel& diffusionModel)
 {
     for (int i=firstTrajectory; i<=lastTrajectory; i++)
     {
@@ -86,7 +88,7 @@ TrajectoryList::TrajectoryList(int firstTrajectory, int lastTrajectory, map<stri
         }
         for (std::list<int>::iterator it=fptList.begin(); it != fptList.end(); it++)
         {
-            lm::io::FirstPassageTimes* fpt= trajectories[i]->state.mutable_cme_state()->add_first_passage_times();
+            lm::io::FirstPassageTimes* fpt = trajectories[i]->state.mutable_cme_state()->add_first_passage_times();
             fpt->set_trajectory_id(i);
             fpt->set_species(*it);
             fpt->set_number_entries(1);
@@ -94,6 +96,34 @@ TrajectoryList::TrajectoryList(int firstTrajectory, int lastTrajectory, map<stri
             fpt->add_first_passage_time(0.0);
             Print::printf(Print::DEBUG, "Added fpt tracking for species %d", *it);
         }
+
+        // Initialize the rdme state from the diffusion model.
+        lm::io::RDMEState* rdmeState = trajectories[i]->state.mutable_rdme_state();
+        lm::io::Lattice* initialLattice = rdmeState->mutable_species_positions();
+        initialLattice->set_data_order(diffusionModel.initial_lattice().data_order());
+        initialLattice->set_lattice_x_size(diffusionModel.initial_lattice().lattice_x_size());
+        initialLattice->set_lattice_y_size(diffusionModel.initial_lattice().lattice_y_size());
+        initialLattice->set_lattice_z_size(diffusionModel.initial_lattice().lattice_z_size());
+        initialLattice->set_particles_per_site(diffusionModel.initial_lattice().particles_per_site());
+        initialLattice->set_particles(diffusionModel.initial_lattice().particles());
+//        int aadded=0;
+//        int badded=0;
+//        string* particles=new string();
+//        particles->resize(initialLattice->lattice_x_size()*initialLattice->lattice_y_size()*initialLattice->lattice_z_size()*initialLattice->particles_per_site());
+//        char* buffer=&((*particles)[0]);
+//        for (int x=0,index=0; x<initialLattice->lattice_x_size(); x++)
+//            for (int y=0; y<initialLattice->lattice_y_size(); y++)
+//                for (int z=0; z<initialLattice->lattice_z_size(); z++)
+//                    for (int p=0; p<initialLattice->particles_per_site(); p++,index++)
+//                    {
+//                        if (p == 0 && z == 0 && aadded++ < 10)
+//                            buffer[index]=1;
+//                        else if (p == 0 && z == 4 && badded++ < 10)
+//                            buffer[index]=2;
+//                        else
+//                            buffer[index]=0;
+//                    }
+//        initialLattice->set_allocated_particles(particles);
     }
 }
 

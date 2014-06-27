@@ -120,11 +120,7 @@ public:
     virtual void setReactionModel(lm::io::ReactionModel * reactionModel) throw(Exception,InvalidArgException,HDF5Exception);
     virtual bool hasDiffusionModel();
     virtual void getDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception);
-    virtual void getDiffusionModelLattice(lm::io::DiffusionModel * diffusionModel, byte * lattice, size_t latticeMaxSize, byte * latticeSites, size_t latticeSitesMaxSize) throw(Exception,InvalidArgException,HDF5Exception);
-    virtual void getDiffusionModelLattice(lm::io::DiffusionModel * diffusionModel, lm::rdme::Lattice * lattice) throw(Exception,InvalidArgException,HDF5Exception);
     virtual void setDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception);
-    virtual void setDiffusionModelLattice(lm::io::DiffusionModel * m, uint8_t * lattice, uint8_t * latticeSites) throw(Exception,InvalidArgException,HDF5Exception);
-    virtual void setDiffusionModelLattice(lm::io::DiffusionModel * m, lm::rdme::Lattice * lattice) throw(Exception,InvalidArgException,HDF5Exception);
     virtual void setSpatialModel(lm::io::SpatialModel * model) throw(Exception,InvalidArgException,HDF5Exception);
     virtual void getSpatialModel(lm::io::SpatialModel * model) throw(Exception,InvalidArgException,HDF5Exception);
 

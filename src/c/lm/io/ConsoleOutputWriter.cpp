@@ -80,7 +80,7 @@ void ConsoleOutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTim
     // Print the output into the buffer.
     memset(buffer, 0, BUFFER_SIZE+1);
     int offset=snprintf(buffer,BUFFER_SIZE,"--------------------------------------------------------------------------------\n");
-    for (int i=0, index=0; i<data.number_entries(); i++)
+    for (int i=0; i<data.number_entries(); i++)
     {
         offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%5d: %10.3f:",data.species_count(i),data.first_passage_time(i));
     }

@@ -347,109 +347,93 @@ void ByteLattice::removeAllParticles()
     memset(particles, 0, numberSites*wordsPerSite*sizeof(uint32_t));
 }
 
-void ByteLattice::nativeSerialize(void * destBuffer, void * latticePtr, size_t bufferSize)
+size_t ByteLattice::serializeParticlesSize()
 {
-    ByteLattice * lattice = (ByteLattice *)latticePtr;
-    if (bufferSize != lattice->size.x*lattice->size.y*lattice->size.z*lattice->getMaxOccupancy()) throw lm::InvalidArgException("bufferSize", "the buffer size was not equal to the lattice data size");
-    memcpy(destBuffer, lattice->particles, bufferSize);
+    return size.x*size.y*size.z*getMaxOccupancy();
 }
 
-void ByteLattice::copyNativeToRowMajorByte(void * destBuffer, void * sourceBuffer, lattice_size_t xSize, lattice_size_t ySize, lattice_size_t zSize, uint particlesPerSite, size_t bufferSize)
+void ByteLattice::serializeParticlesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering)
 {
-    if (bufferSize != xSize*ySize*zSize*particlesPerSite) throw lm::InvalidArgException("bufferSize", "the buffer size was not equal to the lattice data size");
-    uint wordsPerSite = particlesPerSite/PARTICLES_PER_WORD;
-    if (wordsPerSite*PARTICLES_PER_WORD != particlesPerSite) throw InvalidArgException("particlesPerSite", "must be evenly divisible by the number of particles per word");
+    if (bufferSize != size.x*size.y*size.z*getMaxOccupancy()) throw lm::InvalidArgException("bufferSize", "the buffer size was not equal to the lattice data size");
+    int particlesPerSite = wordsPerSite*PARTICLES_PER_WORD;
 
-    // Cast the buffers as appropriate.
-    uint32_t * sourceParticles = (uint32_t *)sourceBuffer;
-    uint8_t * destParticles = (uint8_t *)destBuffer;
-
-
-    // Walk through the source buffer and copy the first word of particles.
-    uint latticeIndex=0;
-    for (uint w=0; w<wordsPerSite; w++)
+    if (dataOrdering == ROW_MAJOR || dataOrdering == COLUMN_MAJOR)
     {
-        for (uint z=0; z<zSize; z++)
+        // Cast the buffers as appropriate.
+        uint32_t * sourceParticles = (uint32_t *)particles;
+        uint8_t * destParticles = (uint8_t *)destBuffer;
+
+        // Walk through the source buffer and copy the particles.
+        int latticeIndex=0;
+        for (int w=0; w<(int)wordsPerSite; w++)
         {
-            for (uint y=0; y<ySize; y++)
+            for (int z=0; z<(int)size.z; z++)
             {
-                for (uint x=0; x<xSize; x++, latticeIndex++)
+                for (int y=0; y<(int)size.y; y++)
                 {
-                    uint8_t * byteParticles = (uint8_t *)(&sourceParticles[latticeIndex]);
-                    uint destIndex = x*ySize*zSize*particlesPerSite + y*zSize*particlesPerSite + z*particlesPerSite;
-                    destParticles[destIndex+w*PARTICLES_PER_WORD] = byteParticles[0];
-                    destParticles[destIndex+w*PARTICLES_PER_WORD+1] = byteParticles[1];
-                    destParticles[destIndex+w*PARTICLES_PER_WORD+2] = byteParticles[2];
-                    destParticles[destIndex+w*PARTICLES_PER_WORD+3] = byteParticles[3];
+                    for (int x=0; x<(int)size.x; x++,latticeIndex++)
+                    {
+                        uint8_t * byteParticles = (uint8_t *)(&sourceParticles[latticeIndex]);
+                        for (int pi=0,p=(int)w*PARTICLES_PER_WORD; pi<(int)PARTICLES_PER_WORD; pi++,p++)
+                        {
+                            uint destIndex;
+                            if (dataOrdering == ROW_MAJOR)
+                                destIndex = x*size.y*size.z*particlesPerSite + y*size.z*particlesPerSite + z*particlesPerSite + p;
+                            else
+                                destIndex = p*size.x*size.y*size.z + z*size.x*size.y + y*size.x + x;
+                            destParticles[destIndex] = byteParticles[pi];
+                        }
+                    }
                 }
             }
         }
     }
+    else if (dataOrdering == NATIVE)
+    {
+        memcpy(destBuffer, particles, bufferSize);
+    }
 }
 
-void ByteLattice::copyRowMajorByteToNative(void * destBuffer, void * sourceBuffer, lattice_size_t xSize, lattice_size_t ySize, lattice_size_t zSize, uint particlesPerSite, size_t bufferSize)
+void ByteLattice::deserializeParticlesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering)
 {
-    if (bufferSize != xSize*ySize*zSize*particlesPerSite) throw lm::InvalidArgException("bufferSize", "the buffer size was not equal to the lattice data size");
-    uint wordsPerSite = particlesPerSite/PARTICLES_PER_WORD;
-    if (wordsPerSite*PARTICLES_PER_WORD != particlesPerSite) throw InvalidArgException("particlesPerSite", "must be evenly divisible by the number of particles per word");
+    if (bufferSize != size.x*size.y*size.z*getMaxOccupancy()) throw lm::InvalidArgException("bufferSize", "the buffer size was not equal to the lattice data size");
+    int particlesPerSite = wordsPerSite*PARTICLES_PER_WORD;
 
-    // Cast the buffers as appropriate.
-    uint32_t * destParticles = (uint32_t *)destBuffer;
-    uint8_t * sourceParticles = (uint8_t *)sourceBuffer;
-
-    // Walk through the dest buffer and copy into it the particles one word at a time.
-    uint destIndex=0;
-    for (uint w=0; w<wordsPerSite; w++)
+    if (dataOrdering == ROW_MAJOR || dataOrdering == COLUMN_MAJOR)
     {
-        for (uint z=0; z<zSize; z++)
+        // Cast the buffers as appropriate.
+        uint32_t * destParticles = (uint32_t *)particles;
+        uint8_t * sourceParticles = (uint8_t *)srcBuffer;
+
+        // Walk through the source buffer and copy the particles.
+        int latticeIndex=0;
+        for (int w=0; w<(int)wordsPerSite; w++)
         {
-            for (uint y=0; y<ySize; y++)
+            for (int z=0; z<(int)size.z; z++)
             {
-                for (uint x=0; x<xSize; x++, destIndex++)
+                for (int y=0; y<(int)size.y; y++)
                 {
-                    uint8_t * destByteParticles = (uint8_t *)(&destParticles[destIndex]);
-                    uint sourceIndex = x*ySize*zSize*particlesPerSite + y*zSize*particlesPerSite + z*particlesPerSite + w*PARTICLES_PER_WORD;
-                    destByteParticles[0] = sourceParticles[sourceIndex];
-                    destByteParticles[1] = sourceParticles[sourceIndex+1];
-                    destByteParticles[2] = sourceParticles[sourceIndex+2];
-                    destByteParticles[3] = sourceParticles[sourceIndex+3];
+                    for (int x=0; x<(int)size.x; x++,latticeIndex++)
+                    {
+                        uint8_t * byteParticles = (uint8_t *)(&destParticles[latticeIndex]);
+                        for (int pi=0,p=(int)w*PARTICLES_PER_WORD; pi<(int)PARTICLES_PER_WORD; pi++,p++)
+                        {
+                            uint destIndex;
+                            if (dataOrdering == ROW_MAJOR)
+                                destIndex = x*size.y*size.z*particlesPerSite + y*size.z*particlesPerSite + z*particlesPerSite + p;
+                            else
+                                destIndex = p*size.x*size.y*size.z + z*size.x*size.y + y*size.x + x;
+                            byteParticles[pi] = sourceParticles[destIndex];
+                        }
+                    }
                 }
             }
         }
     }
-}
-
-void ByteLattice::copySitesRowMajorByteToNative(void * destBuffer, void * sourceBuffer, lattice_size_t xSize, lattice_size_t ySize, lattice_size_t zSize, size_t bufferSize)
-{
-    if (bufferSize != xSize*ySize*zSize) throw lm::InvalidArgException("bufferSize", "the buffer size was not equal to the lattice data size");
-
-    // Cast the buffers as appropriate.
-    uint8_t * destSites = (uint8_t *)destBuffer;
-    uint8_t * sourceSites = (uint8_t *)sourceBuffer;
-
-    // Walk through the dest buffer and copy into it sites.
-    uint destIndex=0;
-	for (uint z=0; z<zSize; z++)
-	{
-		for (uint y=0; y<ySize; y++)
-		{
-			for (uint x=0; x<xSize; x++, destIndex++)
-			{
-				uint sourceIndex = x*ySize*zSize + y*zSize + z;
-				destSites[destIndex] = destSites[sourceIndex];
-			}
-		}
-	}
-}
-
-void ByteLattice::setFromRowMajorByteData(void * buffer, size_t bufferSize)
-{
-    copyRowMajorByteToNative(particles, buffer, size.x, size.y, size.z, wordsPerSite*PARTICLES_PER_WORD, bufferSize);
-}
-
-void ByteLattice::setSitesFromRowMajorByteData(void * buffer, size_t bufferSize)
-{
-    copySitesRowMajorByteToNative(siteTypes, buffer, size.x, size.y, size.z, bufferSize);
+    else if (dataOrdering == NATIVE)
+    {
+        memcpy(particles, srcBuffer, bufferSize);
+    }
 }
 
 std::map<particle_t,uint> ByteLattice::getParticleCounts()

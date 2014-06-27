@@ -72,10 +72,8 @@ public:
     virtual void removeParticles(lattice_size_t x,lattice_size_t y,lattice_size_t z) throw(InvalidSiteException);
     virtual void removeParticles(lattice_size_t index) throw(InvalidSiteException);
 	virtual void removeAllParticles();
+    virtual void deserializeParticlesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering)=0;
 
-    // Methods to set the data directly.
-    virtual void setFromRowMajorByteData(void * buffer, size_t bufferSize);
-	
 protected:
     virtual void allocateCudaMemory() throw(CUDAException);
     virtual void deallocateCudaMemory() throw(CUDAException);

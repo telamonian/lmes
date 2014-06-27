@@ -39,10 +39,8 @@
 
 package lm.io;
 
+import "lm/io/Lattice.proto";
 
 message RDMEState {
-  required uint32 lattice_x_size                = 1;
-  required uint32 lattice_y_size                = 2;
-  required uint32 lattice_z_size                = 3;
-  required uint32 particles_per_site            = 4;
+    required Lattice species_positions              = 1;
 }

@@ -85,36 +85,6 @@ ReplicateSupervisor::~ReplicateSupervisor()
     if (trajectories != NULL) delete trajectories; trajectories = NULL;
 }
 
-
-
-/*
-void ReplicateSupervisor::wake() throw(PthreadException)
-{
-    MPI_EXCEPTION_CHECK(MPI_Send(NULL, 0, MPI_INT, lm::MPI::worldRank, lm::MPI::MSG_WAKE_REPLICATE_SUPERVISOR, MPI_COMM_WORLD));
-}
-
-void ReplicateSupervisor::abort() throw(PthreadException)
-{
-    if (running)
-    {
-        aborted = true;
-        wake();
-    }
-}
-
-void ReplicateSupervisor::checkpoint() throw(PthreadException)
-{
-    bool success=false;
-
-    if (running)
-    {
-        shouldCheckpoint = true;
-        wake();
-        success = true;
-    }
-}
-*/
-
 void ReplicateSupervisor::allResourcesRegistered()
 {
     // Reserve a core for the output writer.
@@ -148,7 +118,7 @@ void ReplicateSupervisor::startSimulation()
     Print::printf(Print::INFO, "Replicate supervisor starting simulation.");
 
     // Create the new trajectory list.
-    trajectories = new TrajectoryList(::replicates.front(), ::replicates.back(), simulationParameterMap, reactionModel);
+    trajectories = new TrajectoryList(::replicates.front(), ::replicates.back(), simulationParameterMap, reactionModel, diffusionModel);
 
     // See if we have a max time limit.
     if (simulationParameterMap.count("maxTime"))

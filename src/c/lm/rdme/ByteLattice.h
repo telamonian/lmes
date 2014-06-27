@@ -50,12 +50,6 @@ namespace rdme {
 class ByteLattice : public Lattice
 {
 public:
-    static void nativeSerialize(void * destBuffer, void * lattice, size_t latticeSize);
-    static void copyNativeToRowMajorByte(void * destBuffer, void * sourceBuffer, lattice_size_t xSize, lattice_size_t ySize, lattice_size_t zSize, uint particlesPerSite, size_t bufferSize);
-    static void copyRowMajorByteToNative(void * destBuffer, void * sourceBuffer, lattice_size_t xSize, lattice_size_t ySize, lattice_size_t zSize, uint particlesPerSite, size_t bufferSize);
-    static void copySitesRowMajorByteToNative(void * destBuffer, void * sourceBuffer, lattice_size_t xSize, lattice_size_t ySize, lattice_size_t zSize, size_t bufferSize);
-
-public:
     // Lattice limits.
     virtual site_t getMaxSiteType() const;
     virtual particle_t getMaxParticle() const;
@@ -95,8 +89,9 @@ public:
     virtual std::vector<particle_loc_t> findParticles(particle_t minParticleType, particle_t maxParticleType);
 	
     // Methods to set the data directly.
-    virtual void setFromRowMajorByteData(void * buffer, size_t bufferSize);
-    virtual void setSitesFromRowMajorByteData(void * buffer, size_t bufferSize);
+    virtual size_t serializeParticlesSize();
+    virtual void serializeParticlesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering);
+    virtual void deserializeParticlesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering);
 
 protected:
 	virtual void allocateMemory() throw(std::bad_alloc);

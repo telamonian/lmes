@@ -1,37 +1,42 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2010-2011 Luthey-Schulten Group,
+ * Copyright 2008-2011 Luthey-Schulten Group,
+ * Copyright 2012-2014 Roberts Group,
  * All rights reserved.
- * 
+ *
  * Developed by: Luthey-Schulten Group
  * 			     University of Illinois at Urbana-Champaign
  * 			     http://www.scs.uiuc.edu/~schulten
- * 
+ *
+ * Developed by: Roberts Group
+ * 			     Johns Hopkins University
+ * 			     http://biophysics.jhu.edu/roberts/
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the Software), to deal with 
- * the Software without restriction, including without limitation the rights to 
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
- * of the Software, and to permit persons to whom the Software is furnished to 
+ * this software and associated documentation files (the Software), to deal with
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to
  * do so, subject to the following conditions:
- * 
- * - Redistributions of source code must retain the above copyright notice, 
+ *
+ * - Redistributions of source code must retain the above copyright notice,
  * this list of conditions and the following disclaimers.
- * 
- * - Redistributions in binary form must reproduce the above copyright notice, 
- * this list of conditions and the following disclaimers in the documentation 
+ *
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimers in the documentation
  * and/or other materials provided with the distribution.
- * 
+ *
  * - Neither the names of the Luthey-Schulten Group, University of Illinois at
- * Urbana-Champaign, nor the names of its contributors may be used to endorse or
- * promote products derived from this Software without specific prior written
- * permission.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL 
- * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR 
- * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+ * Urbana-Champaign, the Roberts Group, Johns Hopkins University, nor the names
+ * of its contributors may be used to endorse or promote products derived from
+ * this Software without specific prior written permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
  * Author(s): Elijah Roberts
@@ -42,6 +47,7 @@
 #include "lm/Print.h"
 #include "lm/cme/CMESolver.h"
 #include "lm/io/DiffusionModel.pb.h"
+#include "lm/io/Lattice.pb.h"
 #include "lm/rdme/Lattice.h"
 #include "lm/rdme/ByteLattice.h"
 #include "lm/rdme/RDMESolver.h"
@@ -57,85 +63,68 @@ namespace lm {
 namespace rdme {
 
 RDMESolver::RDMESolver(RandomGenerator::Distributions neededDists)
-:CMESolver(neededDists),numberSiteTypes(0),DF(NULL),RL(NULL),lattice(NULL)
+:CMESolver(neededDists),diffusionModel(NULL),lattice(NULL)
 {
 }
 
 RDMESolver::~RDMESolver()
 {
     // Free any model memory.
-//    destroyDiffusionModel();
+    if (diffusionModel != NULL) delete diffusionModel; diffusionModel = NULL;
+
+    // Free any memory associated with the state.
+    if (lattice != NULL) delete lattice; lattice = NULL;
 }
 
-//void RDMESolver::allocateDiffusionModel(uint numberSiteTypesA, lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing)
-//{
-//    // Set the number of site types.
-//    numberSiteTypes = numberSiteTypesA;
+RDMESolver::DiffusionModel::DiffusionModel(int numberSpecies, int numberReactions, int numberSiteTypes)
+:numberSpecies(numberSpecies),numberReactions(numberReactions),numberSiteTypes(numberSiteTypes),DF(NULL),RL(NULL),latticeSpacing(0.0),latticeXSize(0),latticeYSize(0),latticeZSize(0),particlesPerSite(0)
+{
+    DF = new double[numberSiteTypes*numberSiteTypes*numberSpecies];
+    RL = new bool[numberReactions*numberSiteTypes];
+}
 
-//    // Allocate the resources.
-//    DF = new double[numberSpecies*numberSiteTypes*numberSiteTypes];
-//    RL = new uint[numberReactions*numberSiteTypes];
-//    allocateLattice(latticeXSize, latticeYSize, latticeZSize, particlesPerSite, latticeSpacing);
-//}
-
-//void RDMESolver::allocateLattice(lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing)
-//{
-//    lattice = new ByteLattice(latticeXSize, latticeYSize, latticeZSize, latticeSpacing, particlesPerSite);
-//}
-
-//void RDMESolver::destroyDiffusionModel()
-//{
-//    // Free any resources.
-//    if (DF != NULL) delete[] DF; DF = NULL;
-//    if (RL != NULL) delete[] RL; RL = NULL;
-//    if (lattice != NULL) delete lattice; lattice = NULL;
-
-//    // Reset the number of sites types.
-//    numberSiteTypes = 0;
-//}
+RDMESolver::DiffusionModel::~DiffusionModel()
+{
+    if (DF != NULL) delete[] DF; DF = NULL;
+    if (RL != NULL) delete[] RL; RL = NULL;
+}
 
 void RDMESolver::setDiffusionModel(const lm::io::DiffusionModel& dm)
 {
-    throw InvalidArgException("Unimplemented");
+    CMESolver::setDiffusionModel(dm);
 
-    /*
     // Validate the model.
-    if (dm->number_species() != numberSpecies) throw InvalidArgException("dm.number_species", "number of species in the diffusion model does not agree with the number in the reaction model");
-    if (dm->number_reactions() != numberReactions) throw InvalidArgException("dm.number_reactions", "number of reactions in the diffusion model does not agree with the number in the reaction model");
-    if ((uint)dm->diffusion_matrix_size() != dm->number_species()*dm->number_site_types()*dm->number_site_types()) throw InvalidArgException("dm", "diffusion matrix size does not agree with the number of species and site types");
-    if (dm->lattice_x_size()*dm->lattice_y_size()*dm->lattice_z_size()*dm->particles_per_site() != latticeSize) throw InvalidArgException("latticeSize", "the lattice data size does not agree with the lattice dimensions", dm->lattice_x_size()*dm->lattice_y_size()*dm->lattice_z_size()*dm->particles_per_site(), latticeSize);
-    if (dm->lattice_x_size()*dm->lattice_y_size()*dm->lattice_z_size() != latticeSitesSize) throw InvalidArgException("latticeSitesSize", "the lattice data size does not agree with the lattice dimensions");
+    if (dm.number_species() != (int)reactionModel->numberSpecies) throw InvalidArgException("dm.number_species", "number of species in the diffusion model does not agree with the number in the reaction model");
+    if (dm.number_reactions() != (int)reactionModel->numberReactions) throw InvalidArgException("dm.number_reactions", "number of reactions in the diffusion model does not agree with the number in the reaction model");
+    if (dm.diffusion_matrix_size() != (dm.number_site_types()*dm.number_site_types()*dm.number_species())) throw InvalidArgException("dm", "diffusion matrix size does not agree with the number of species and site types");
+    if (dm.reaction_location_matrix_size() != (dm.number_reactions() *dm.number_site_types())) throw InvalidArgException("dm", "reaction location matrix size does not agree with the number of reactions and site types");
 
-    // Build the model.
-    printf("Starting\n");
-    buildDiffusionModel(dm->number_site_types(), dm->diffusion_matrix().data(), dm->reaction_location_matrix().data(), dm->lattice_x_size(), dm->lattice_y_size(), dm->lattice_z_size(), dm->particles_per_site(), dm->lattice_spacing(), lattice, latticeSites);
-    printf("done1\n");
-    if (dm->number_species() != numberSpecies) throw InvalidArgException("dm.number_species", "number of species in the diffusion model does not agree with the number in the reaction model");
-    if (dm->number_reactions() != numberReactions) throw InvalidArgException("dm.number_reactions", "number of reactions in the diffusion model does not agree with the number in the reaction model");
-    printf("done2\n");
-    */
+    // Create the new model.
+    if (diffusionModel != NULL) delete diffusionModel;
+    diffusionModel = new DiffusionModel(dm.number_species(), dm.number_reactions(), dm.number_site_types());
+
+    // Populate the model.
+    for (int i=0; i<diffusionModel->numberSiteTypes*diffusionModel->numberSiteTypes*diffusionModel->numberSpecies; i++)
+        diffusionModel->DF[i] = dm.diffusion_matrix(i);
+    for (int i=0; i<diffusionModel->numberReactions*diffusionModel->numberSiteTypes; i++)
+        diffusionModel->RL[i] = dm.reaction_location_matrix(i);
+    diffusionModel->latticeSpacing = dm.lattice_spacing();
+    diffusionModel->latticeXSize = dm.initial_lattice().lattice_x_size();
+    diffusionModel->latticeYSize = dm.initial_lattice().lattice_y_size();
+    diffusionModel->latticeZSize = dm.initial_lattice().lattice_z_size();
+    diffusionModel->particlesPerSite = dm.initial_lattice().particles_per_site();
+
+    // Create the lattice.
+    allocateLattice(diffusionModel->latticeXSize, diffusionModel->latticeYSize, diffusionModel->latticeZSize, diffusionModel->particlesPerSite, diffusionModel->latticeSpacing);
+}
+
+void RDMESolver::allocateLattice(lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing)
+{
+    lattice = new ByteLattice(latticeXSize, latticeYSize, latticeZSize, latticeSpacing, particlesPerSite);
 }
 
 //void RDMESolver::buildDiffusionModel(const uint numberSiteTypesA, const double * DFA, const uint * RLA, lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing, const uint8_t * latticeData, const uint8_t * latticeSitesData, bool rowMajorData) throw(InvalidArgException)
 //{
-//    // Destroy the previous model, if we have one.
-//    destroyDiffusionModel();
-
-//    // Allocate space for the new model.
-//    allocateDiffusionModel(numberSiteTypesA, latticeXSize, latticeYSize, latticeZSize, particlesPerSite, latticeSpacing);
-
-//    // Set the diffusion matrix.
-//    for (uint i=0; i<numberSpecies*numberSiteTypes*numberSiteTypes; i++)
-//    {
-//        DF[i] = DFA[i];
-//    }
-
-//    // Set the reaction location matrix.
-//    for (uint i=0; i<numberReactions*numberSiteTypes; i++)
-//    {
-//        RL[i] = RLA[i];
-//    }
-
 //    // Set the lattice.
 //    if (rowMajorData)
 //    {
@@ -186,18 +175,50 @@ void RDMESolver::setDiffusionModel(const lm::io::DiffusionModel& dm)
 //    printf("almost done\n");
 //}
 
-void RDMESolver::resetState()
+void RDMESolver::reset()
 {
+    if (diffusionModel == NULL || lattice == NULL) throw Exception("RDMESolver reset called before diffusion model was set.");
+
+    CMESolver::reset();
+
+    // Free any previous state.
+    lattice->removeAllParticles();
 }
 
 void RDMESolver::getState(lm::io::TrajectoryState* state)
 {
+    if (diffusionModel == NULL || lattice == NULL) throw Exception("RDMESolver get state called before diffusion model was set.");
 
+    CMESolver::getState(state);
+
+    // Get the lattice state.
+    lm::io::Lattice* l = state->mutable_rdme_state()->mutable_species_positions();
+    l->set_data_order(lm::io::Lattice::NATIVE);
+    l->set_lattice_x_size(diffusionModel->latticeXSize);
+    l->set_lattice_y_size(diffusionModel->latticeYSize);
+    l->set_lattice_z_size(diffusionModel->latticeZSize);
+    l->set_particles_per_site(diffusionModel->particlesPerSite);
+    string* particles=new string();
+    particles->resize(lattice->serializeParticlesSize());
+    lattice->serializeParticlesTo(&((*particles)[0]), particles->size(), Lattice::NATIVE);
+    l->set_allocated_particles(particles);
 }
 
 void RDMESolver::setState(const lm::io::TrajectoryState& state)
 {
+    // Valdiate the state.
+    if (diffusionModel == NULL || lattice == NULL) throw Exception("RDMESolver set state called before diffusion model was set.");
+    if (!state.has_rdme_state()) throw Exception("State object does not contain the necessary data to initialize the RDMESolver.");
+    if (state.rdme_state().species_positions().lattice_x_size() != diffusionModel->latticeXSize) throw Exception("State object and diffusion model have differing lattice x size",state.rdme_state().species_positions().lattice_x_size(),diffusionModel->latticeXSize);
+    if (state.rdme_state().species_positions().lattice_y_size() != diffusionModel->latticeYSize) throw Exception("State object and diffusion model have differing lattice y size",state.rdme_state().species_positions().lattice_y_size(),diffusionModel->latticeYSize);
+    if (state.rdme_state().species_positions().lattice_z_size() != diffusionModel->latticeZSize) throw Exception("State object and diffusion model have differing lattice z size",state.rdme_state().species_positions().lattice_z_size(),diffusionModel->latticeZSize);
+    if (state.rdme_state().species_positions().particles_per_site() != diffusionModel->particlesPerSite) throw Exception("State object and diffusion model have differing number of particles per site",state.rdme_state().species_positions().particles_per_site(),diffusionModel->particlesPerSite);
 
+    CMESolver::setState(state);
+
+    // Set the lattice state.
+    const string particles = state.rdme_state().species_positions().particles();
+    lattice->deserializeParticlesFrom(particles.data(), particles.size(), (Lattice::SerializationDataOrder)state.rdme_state().species_positions().data_order());
 }
 
 }
