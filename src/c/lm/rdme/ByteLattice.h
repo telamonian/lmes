@@ -92,6 +92,9 @@ public:
     virtual size_t serializeParticlesSize();
     virtual void serializeParticlesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering);
     virtual void deserializeParticlesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering);
+    virtual size_t serializeSitesSize();
+    virtual void serializeSitesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering);
+    virtual void deserializeSitesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering);
 
 protected:
 	virtual void allocateMemory() throw(std::bad_alloc);

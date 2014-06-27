@@ -436,6 +436,79 @@ void ByteLattice::deserializeParticlesFrom(const void* srcBuffer, size_t bufferS
     }
 }
 
+size_t ByteLattice::serializeSitesSize()
+{
+    return size.x*size.y*size.z;
+}
+
+void ByteLattice::serializeSitesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering)
+{
+    if (bufferSize != size.x*size.y*size.z) throw lm::InvalidArgException("bufferSize", "the buffer size was not equal to the lattice data size");
+
+    if (dataOrdering == ROW_MAJOR || dataOrdering == COLUMN_MAJOR)
+    {
+        // Cast the buffers as appropriate.
+        uint8_t * sourceSites = (uint8_t *)siteTypes;
+        uint8_t * destSites = (uint8_t *)destBuffer;
+
+        // Walk through the source buffer and copy the particles.
+        int sourceIndex=0;
+        for (int z=0; z<(int)size.z; z++)
+        {
+            for (int y=0; y<(int)size.y; y++)
+            {
+                for (int x=0; x<(int)size.x; x++,sourceIndex++)
+                {
+                    uint destIndex;
+                    if (dataOrdering == ROW_MAJOR)
+                        destIndex = x*size.y*size.z + y*size.z + z;
+                    else
+                        destIndex = z*size.x*size.y + y*size.x + x;
+                    destSites[destIndex] = sourceSites[sourceIndex];
+                }
+            }
+        }
+    }
+    else if (dataOrdering == NATIVE)
+    {
+        memcpy(destBuffer, siteTypes, bufferSize);
+    }
+}
+
+void ByteLattice::deserializeSitesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering)
+{
+    if (bufferSize != size.x*size.y*size.z) throw lm::InvalidArgException("bufferSize", "the buffer size was not equal to the lattice sites data size");
+
+    if (dataOrdering == ROW_MAJOR || dataOrdering == COLUMN_MAJOR)
+    {
+        // Cast the buffers as appropriate.
+        uint8_t* sourceSites = (uint8_t*)srcBuffer;
+        uint8_t* destSites = (uint8_t*)siteTypes;
+
+        // Walk through the source buffer and copy the sites.
+        int destIndex=0;
+        for (int z=0; z<(int)size.z; z++)
+        {
+            for (int y=0; y<(int)size.y; y++)
+            {
+                for (int x=0; x<(int)size.x; x++,destIndex++)
+                {
+                    int sourceIndex;
+                    if (dataOrdering == ROW_MAJOR)
+                        sourceIndex = x*size.y*size.z + y*size.z + z;
+                    else
+                        sourceIndex = z*size.x*size.y + y*size.x + x;
+                    destSites[destIndex] = sourceSites[sourceIndex];
+                }
+            }
+        }
+    }
+    else if (dataOrdering == NATIVE)
+    {
+        memcpy(siteTypes, srcBuffer, bufferSize);
+    }
+}
+
 std::map<particle_t,uint> ByteLattice::getParticleCounts()
 {
     std::map<particle_t,uint> particleCountMap;

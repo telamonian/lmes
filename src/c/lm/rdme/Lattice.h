@@ -164,6 +164,9 @@ public:
     virtual size_t serializeParticlesSize()=0;
     virtual void serializeParticlesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering)=0;
     virtual void deserializeParticlesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering)=0;
+    virtual size_t serializeSitesSize()=0;
+    virtual void serializeSitesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering)=0;
+    virtual void deserializeSitesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering)=0;
 
 protected:
 	lattice_coord_t size;

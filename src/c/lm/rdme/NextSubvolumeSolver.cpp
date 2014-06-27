@@ -278,7 +278,7 @@ bool NextSubvolumeSolver::generateTrajectory(long long maxSteps)
 //           writeSpeciesCounts(&speciesCountsDataSet);
 //       }
 
-       Print::printf(Print::VERBOSE_DEBUG, "Step %d: time=%e, count=%d,%d,%d",steps,time,speciesCounts[0],speciesCounts[1],speciesCounts[2]);
+       //Print::printf(Print::VERBOSE_DEBUG, "Step %d: time=%e, count=%d,%d,%d",steps,time,speciesCounts[0],speciesCounts[1],speciesCounts[2]);
     }
     PROF_END(PROF_SIM_EXECUTE);
 

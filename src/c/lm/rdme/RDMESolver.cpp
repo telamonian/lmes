@@ -116,6 +116,10 @@ void RDMESolver::setDiffusionModel(const lm::io::DiffusionModel& dm)
 
     // Create the lattice.
     allocateLattice(diffusionModel->latticeXSize, diffusionModel->latticeYSize, diffusionModel->latticeZSize, diffusionModel->particlesPerSite, diffusionModel->latticeSpacing);
+
+    // Fill in the site types.
+    const string sites = dm.initial_lattice().sites();
+    lattice->deserializeSitesFrom(sites.data(), sites.size(), (Lattice::SerializationDataOrder)dm.initial_lattice().data_order());
 }
 
 void RDMESolver::allocateLattice(lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing)
