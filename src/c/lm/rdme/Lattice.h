@@ -101,7 +101,7 @@ public:
 class Lattice
 {
 public:
-    enum SerializationDataOrder {ROW_MAJOR=0, COLUMN_MAJOR=1, NATIVE=2};
+    enum SerializationDataOrder {ROW_MAJOR=0, COLUMN_MAJOR=1, NATIVE_ORDER=2};
 
 public:
     // Lattice limits.

@@ -388,7 +388,7 @@ void ByteLattice::serializeParticlesTo(void* destBuffer, size_t bufferSize, Seri
             }
         }
     }
-    else if (dataOrdering == NATIVE)
+    else if (dataOrdering == NATIVE_ORDER)
     {
         memcpy(destBuffer, particles, bufferSize);
     }
@@ -430,7 +430,7 @@ void ByteLattice::deserializeParticlesFrom(const void* srcBuffer, size_t bufferS
             }
         }
     }
-    else if (dataOrdering == NATIVE)
+    else if (dataOrdering == NATIVE_ORDER)
     {
         memcpy(particles, srcBuffer, bufferSize);
     }
@@ -469,7 +469,7 @@ void ByteLattice::serializeSitesTo(void* destBuffer, size_t bufferSize, Serializ
             }
         }
     }
-    else if (dataOrdering == NATIVE)
+    else if (dataOrdering == NATIVE_ORDER)
     {
         memcpy(destBuffer, siteTypes, bufferSize);
     }
@@ -503,7 +503,7 @@ void ByteLattice::deserializeSitesFrom(const void* srcBuffer, size_t bufferSize,
             }
         }
     }
-    else if (dataOrdering == NATIVE)
+    else if (dataOrdering == NATIVE_ORDER)
     {
         memcpy(siteTypes, srcBuffer, bufferSize);
     }
