@@ -80,20 +80,32 @@ throw(std::bad_alloc)
     deallocateMemory();
 }
 
-void ByteLattice::getNeighboringSites(lattice_size_t index, lattice_size_t * neighboringIndices)
+void ByteLattice::getNeighboringSites(lattice_size_t index, lattice_size_t * neighboringIndices, bool periodic)
 {
 	lattice_size_t z = index/(size.x*size.y);
 	lattice_size_t xy = index-(z*size.x*size.y);
 	lattice_size_t y = xy/size.x;
 	lattice_size_t x = xy-(y*size.x);
 
-	lattice_size_t xySize = size.x*size.y;
-	neighboringIndices[0] = (x>0)?(index-1):(index-1+size.x);
-	neighboringIndices[1] = (x<(size.x-1))?(index+1):(index+1-size.x);
-	neighboringIndices[2] = (y>0)?(index-size.x):(index-size.x+xySize);
-	neighboringIndices[3] = (y<(size.y-1))?(index+size.x):(index+size.x-xySize);
-	neighboringIndices[4] = (z>0)?(index-xySize):(index-xySize+numberSites);
-	neighboringIndices[5] = (z<(size.z-1))?(index+xySize):(index+xySize-numberSites);
+    lattice_size_t xySize = size.x*size.y;
+    if (periodic)
+    {
+        neighboringIndices[0] = (x>0)?(index-1):(index-1+size.x);
+        neighboringIndices[1] = (x<(size.x-1))?(index+1):(index+1-size.x);
+        neighboringIndices[2] = (y>0)?(index-size.x):(index-size.x+xySize);
+        neighboringIndices[3] = (y<(size.y-1))?(index+size.x):(index+size.x-xySize);
+        neighboringIndices[4] = (z>0)?(index-xySize):(index-xySize+numberSites);
+        neighboringIndices[5] = (z<(size.z-1))?(index+xySize):(index+xySize-numberSites);
+    }
+    else
+    {
+        neighboringIndices[0] = (x>0)?(index-1):(LATTICE_SIZE_MAX);
+        neighboringIndices[1] = (x<(size.x-1))?(index+1):(LATTICE_SIZE_MAX);
+        neighboringIndices[2] = (y>0)?(index-size.x):(LATTICE_SIZE_MAX);
+        neighboringIndices[3] = (y<(size.y-1))?(index+size.x):(LATTICE_SIZE_MAX);
+        neighboringIndices[4] = (z>0)?(index-xySize):(LATTICE_SIZE_MAX);
+        neighboringIndices[5] = (z<(size.z-1))?(index+xySize):(LATTICE_SIZE_MAX);
+    }
 }
 
 void ByteLattice::allocateMemory()

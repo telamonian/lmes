@@ -60,7 +60,7 @@ public:
     ByteLattice(lattice_size_t xSize, lattice_size_t ySize, lattice_size_t zSize, si_dist_t spacing, uint particlesPerSite) throw(std::bad_alloc,InvalidArgException,Exception);
 	virtual ~ByteLattice() throw(std::bad_alloc);
 	
-	virtual void getNeighboringSites(lattice_size_t index, lattice_size_t * neighboringIndices);
+    virtual void getNeighboringSites(lattice_size_t index, lattice_size_t * neighboringIndices, bool periodic);
 
 	// Lattice site methods.
 	virtual site_t getSiteType(lattice_size_t x, lattice_size_t y, lattice_size_t z) const throw(InvalidSiteException);

@@ -70,6 +70,8 @@ protected:
     class DiffusionModel
     {
     public:
+        enum BoundaryConditions {PERIODIC=0,ABSORBING=1,REFLECTING=2,FIXED_CONCENTRATION=3,FIXED_INPUT_FLUX=4};
+    public:
         DiffusionModel(int numberSpecies, int numberReactions, int numberSiteTypes);
         virtual ~DiffusionModel();
         int numberSpecies;
@@ -82,6 +84,8 @@ protected:
         int latticeYSize;
         int latticeZSize;
         int particlesPerSite;
+        BoundaryConditions boundaryConditions;
+        bool periodicBoundary;
     };
 
 protected:

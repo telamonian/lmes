@@ -55,6 +55,8 @@
 // Type to store a lattice index.
 typedef uint32_t            lattice_size_t;
 
+const static int LATTICE_SIZE_MAX = 0xFFFFFFFF;
+
 // Type to store a lattice coordinate.
 struct lattice_coord_t {
     lattice_coord_t(lattice_size_t x=0, lattice_size_t y=0, lattice_size_t z=0):x(x),y(y),z(z){}
@@ -120,7 +122,7 @@ public:
 	virtual lattice_size_t getNumberSites() const;
 	virtual si_dist_t getSpacing() const;
 	
-	virtual void getNeighboringSites(lattice_size_t index, lattice_size_t * neighboringIndices)=0;
+    virtual void getNeighboringSites(lattice_size_t index, lattice_size_t * neighboringIndices, bool periodic)=0;
 
 	// Lattice site methods.
 	virtual site_t getSiteType(lattice_size_t x, lattice_size_t y, lattice_size_t z) const throw(InvalidSiteException)=0;

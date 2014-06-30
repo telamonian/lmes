@@ -46,6 +46,7 @@
 #include "lm/Tune.h"
 #include "lm/Print.h"
 #include "lm/cme/CMESolver.h"
+#include "lm/io/BoundaryConditions.pb.h"
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/Lattice.pb.h"
 #include "lm/rdme/Lattice.h"
@@ -77,7 +78,7 @@ RDMESolver::~RDMESolver()
 }
 
 RDMESolver::DiffusionModel::DiffusionModel(int numberSpecies, int numberReactions, int numberSiteTypes)
-:numberSpecies(numberSpecies),numberReactions(numberReactions),numberSiteTypes(numberSiteTypes),DF(NULL),RL(NULL),latticeSpacing(0.0),latticeXSize(0),latticeYSize(0),latticeZSize(0),particlesPerSite(0)
+:numberSpecies(numberSpecies),numberReactions(numberReactions),numberSiteTypes(numberSiteTypes),DF(NULL),RL(NULL),latticeSpacing(0.0),latticeXSize(0),latticeYSize(0),latticeZSize(0),particlesPerSite(0),boundaryConditions(PERIODIC),periodicBoundary(false)
 {
     DF = new double[numberSiteTypes*numberSiteTypes*numberSpecies];
     RL = new bool[numberReactions*numberSiteTypes];
@@ -113,6 +114,11 @@ void RDMESolver::setDiffusionModel(const lm::io::DiffusionModel& dm)
     diffusionModel->latticeYSize = dm.initial_lattice().lattice_y_size();
     diffusionModel->latticeZSize = dm.initial_lattice().lattice_z_size();
     diffusionModel->particlesPerSite = dm.initial_lattice().particles_per_site();
+    if (dm.has_boundary_conditions())
+    {
+        diffusionModel->boundaryConditions = (DiffusionModel::BoundaryConditions)dm.boundary_conditions().global();
+        diffusionModel->periodicBoundary = diffusionModel->boundaryConditions == DiffusionModel::PERIODIC;
+    }
 
     // Create the lattice.
     allocateLattice(diffusionModel->latticeXSize, diffusionModel->latticeYSize, diffusionModel->latticeZSize, diffusionModel->particlesPerSite, diffusionModel->latticeSpacing);

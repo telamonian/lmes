@@ -41,6 +41,7 @@
 #include "lm/Exceptions.h"
 #include "lm/MPI.h"
 #include "lm/Print.h"
+#include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/hdf5/HDF5.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/main/SimulationSupervisor.h"
@@ -99,6 +100,24 @@ void SimulationSupervisor::initialize()
     {
         hasDiffusionModel = true;
         file->getDiffusionModel(&diffusionModel);
+
+        // See if we need to fill in the boundary conditions from the simulation parameters.
+        if (simulationParameterMap.count("boundaryConditions") == 1 && !diffusionModel.has_boundary_conditions())
+        {
+            std::string boundaryConditions = simulationParameterMap["boundaryConditions"];
+            if (boundaryConditions == "PERIODIC" || boundaryConditions == "periodic" || boundaryConditions == "Periodic")
+            {
+                diffusionModel.mutable_boundary_conditions()->set_global(lm::io::BoundaryConditions::PERIODIC);
+            }
+            else if (boundaryConditions == "ABSORBING" || boundaryConditions == "absorbing" || boundaryConditions == "Absorbing")
+            {
+                diffusionModel.mutable_boundary_conditions()->set_global(lm::io::BoundaryConditions::ABSORBING);
+            }
+            else if (boundaryConditions == "REFLECTING" || boundaryConditions == "reflecting" || boundaryConditions == "Reflecting")
+            {
+                diffusionModel.mutable_boundary_conditions()->set_global(lm::io::BoundaryConditions::REFLECTING);
+            }
+        }
     }
 
     // Close the file.
