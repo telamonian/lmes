@@ -37,18 +37,12 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-#ifndef REPLICATESUPERVISOR_H_
-#define REPLICATESUPERVISOR_H_
+#ifndef FFLUXSUPERVISOR_H_
+#define FFLUXSUPERVISOR_H_
 
-#include <list>
-#include <map>
-#include <deque>
-#include <string>
-#include <vector>
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
-#include "lm/io/hdf5/SimulationFile.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
@@ -58,15 +52,9 @@
 #include "lm/thread/Worker.h"
 
 namespace lm {
-namespace replicates {
+namespace fflux {
 
-using std::deque;
-using std::list;
-using std::map;
-using std::string;
-using std::vector;
-
-class ReplicateSupervisor : public lm::main::SimulationSupervisor
+class FFluxSupervisor : public lm::main::SimulationSupervisor
 {
 public:
     static bool registered;
@@ -74,33 +62,8 @@ public:
     static void* allocateObject();
 
 public:
-    ReplicateSupervisor();
-    //ReplicateSupervisor(int * maxSlotsTable, lm::io::hdf5::Hdf5File * file) throw(PthreadException);
-    virtual ~ReplicateSupervisor();
-
-    //virtual void wake() throw(PthreadException);
-    //virtual void abort() throw(PthreadException);
-    //virtual void checkpoint() throw(PthreadException);
-//    virtual int FindRep(int destProc);
-//    virtual int RunRep(int destProc, int replicate);
-
-    //virtual void distributeWorkUnits();
-    //virtual void distributeWorkUnit(deque<Slot *>::iterator slot_it, map<int, TrajectoryAllocator::Trajectory>::iterator traj_it);
-    //virtual void update(lm::work::Result & result);
-
-//    virtual void MPI_MastBcastOut(void *buf, int count, MPI_Datatype datatype, int tag, MPI_Comm comm);
-//
-//    //receive from all nodes, one by one, including master. nodes should use MPI_Send plus the relevant tag to send
-//    template <typename t>
-//    void MPI_MastBcastIn(t * recvtable, int recvcount, MPI_Datatype recvtype, int recvtag, MPI_Comm comm);
-//
-//    template <typename t, int tag>
-//    void bcastThing(void * staticDataBuffer, t * thing);
-//
-//    template <int tag>
-//    void bcastSizeThenBuffer(void * staticDataBuffer, int msgSize);
-
-    //map<int,int> simulationStatusTable;
+    FFluxSupervisor();
+    virtual ~FFluxSupervisor();
 protected:
     virtual void allResourcesRegistered();
     virtual void startSimulation();
@@ -109,31 +72,12 @@ protected:
     virtual void outputWriterStarted(const lm::message::StartedOutputWriter& msg);
 
 protected:
-    lm::io::TrajectoryLimits limits;
-    TrajectoryList* trajectories;
     long long workUnitCount;
     int outputWriterProcess;
     int outputWriterThread;
-
-    /*
-    void * staticDataBuffer;
-    //variables relating to Worker behavior
-    bool shouldCheckpoint;
-    bool shouldAbort;
-
-    // Create a table for the simulation status.
-    // key is replicate number, val is status: 0=waiting to run, 2=finished, other values=(?)(indicate at least not finished)
-    lm::io::hdf5::Hdf5File * file;
-
-    //the objects that manage the slots and the trajectories
-    TrajectoryAllocator trajectoryAllocator;
-    SupervisorSlotAllocator slotAllocator;
-
-    map<int,struct timespec> simulationStartTimeTable; //TODO: figure out what header timespec is in and put it in this header
-*/
 };
 
 }
 }
 
-#endif /* REPLICATESUPERVISOR_H_ */
+#endif /* FFLUXSUPERVISOR_H_ */

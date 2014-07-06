@@ -48,16 +48,18 @@
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/replicates/TrajectoryList.h"
 
+using std::map;
 using std::string;
 
 namespace lm {
 namespace replicates {
 
-TrajectoryList::TrajectoryList(int firstTrajectory, int lastTrajectory, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel)
+ReplicateTrajectoryList::ReplicateTrajectoryList(int firstTrajectory, int lastTrajectory, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel):
+		TrajectoryList(simulationParameters, reactionModel)
 {
     for (int i=firstTrajectory; i<=lastTrajectory; i++)
     {
-        trajectories[i] = new TrajectoryStatus(i);
+        trajectories[i] = new Trajectory(i);
 
         // Initialize the trajectory id.
         trajectories[i]->state.set_trajectory_id(i);
@@ -97,45 +99,12 @@ TrajectoryList::TrajectoryList(int firstTrajectory, int lastTrajectory, map<stri
     }
 }
 
-TrajectoryList::~TrajectoryList()
+ReplicateTrajectoryList::~ReplicateTrajectoryList()
 {
-    for (map<int,TrajectoryStatus*>::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
-    {
-        delete it->second;
-    }
-}
-
-int TrajectoryList::nextTrajectoryToRun()
-{
-    for (map<int,TrajectoryStatus*>::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
-    {
-        TrajectoryStatus* t = it->second;
-        if (t->status == NOT_STARTED || t->status == WAITING)
-        {
-            return t->trajectoryNumber;
-        }
-    }
-    return -1;
-}
-
-TrajectoryList::status_t TrajectoryList::getTrajectoryStatus(int trajectory)
-{
-    return trajectories[trajectory]->status;
-}
-
-void TrajectoryList::updateTrajectoryStatus(int trajectory, status_t status)
-{
-    trajectories[trajectory]->status = status;
-}
-
-const lm::io::TrajectoryState& TrajectoryList::getTrajectoryState(int trajectory)
-{
-    return trajectories[trajectory]->state;
-}
-
-void TrajectoryList::updateTrajectoryState(int trajectory, const lm::io::TrajectoryState& state)
-{
-    trajectories[trajectory]->state = state;
+//    for (map<int,TrajectoryStatus*>::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+//    {
+//        delete it->second;
+//    }
 }
 
 }

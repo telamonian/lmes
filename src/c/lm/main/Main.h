@@ -140,9 +140,9 @@ extern bool shouldPrintGPUCapabilities;
 extern bool shouldReserveOutputCore;
 
 /**
- * Whether the forward flux runner should be used.
+ * Flag to indicate that forward flux simulation is in use.
  */
-extern bool useForwardFluxRunner;
+extern bool ffluxFlag;
 
 #ifdef OPT_PYTHON
 /**

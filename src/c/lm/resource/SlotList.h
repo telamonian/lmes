@@ -107,7 +107,7 @@ public:
     virtual void free(int process, int thread);
 
     //dealing with the internal Message methods
-    virtual lm::message::StartWorkUnitRunner * addStartSlotMsg() {return msg.add_start_work_unit_runner();}
+    virtual lm::message::StartWorkUnitRunner * addStartSlotMsg() {return startRemoteMsg.add_start_work_unit_runner();}
     virtual bool workUnitRunnerStarted(const lm::message::StartedWorkUnitRunner & msg);
 
 private:
@@ -117,7 +117,7 @@ private:
     virtual SlotDeque::iterator getFreeSlotItByUUID(uint32_t uuid);
 
 	lm::message::Communicator * supervisorComm;
-	lm::message::Message msg;
+	lm::message::Message startRemoteMsg;
     SlotMap busySlots;
     SlotDeque freeSlots;
     lm::rng::XORShift xorShift;

@@ -76,7 +76,7 @@ namespace lm {
 namespace cme {
 
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
-:neededDists(neededDists),rng(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),speciesCounts(NULL),time(0.0)
+:neededDists(neededDists),rng(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),speciesCounts(NULL),previousSpeciesCounts(NULL),time(0.0)
 {
 }
 
@@ -87,6 +87,7 @@ CMESolver::~CMESolver()
 
     // Free any memory associated with the state.
     if (speciesCounts != NULL) delete[] speciesCounts; speciesCounts = NULL;
+    if (previousSpeciesCounts != NULL) delete[] previousSpeciesCounts; previousSpeciesCounts = NULL;
 
     // Free any other memory.
     if (rng != NULL) delete rng; rng = NULL;
@@ -789,16 +790,24 @@ void CMESolver::reset()
 
     // Free any previous state.
     if (speciesCounts != NULL) delete[] speciesCounts; speciesCounts = NULL;
+    if (previousSpeciesCounts != NULL) delete[] previousSpeciesCounts; previousSpeciesCounts = NULL;
 
     // Make sure we have a reaction model.
     if (reactionModel == NULL) throw Exception("Tried to reset state of CMESolver with no reaction model.");
 
+    // Allocate space for the old state.
+    previousSpeciesCounts = new uint[reactionModel->numberSpecies];
+
     // Allocate space for the new state.
     speciesCounts = new uint[reactionModel->numberSpecies];
+    previousSpeciesCounts = new uint[reactionModel->numberSpecies];
 
     // Reset the species counts.
     for (uint i=0; i<reactionModel->numberSpecies; i++)
+    {
         speciesCounts[i] = 0;
+        previousSpeciesCounts[i] = 0;
+    }
 
     // Reset the time.
     time = 0.0;
@@ -828,7 +837,10 @@ void CMESolver::getState(lm::io::TrajectoryState* state)
     state->mutable_cme_state()->mutable_species_counts()->set_number_species((int)reactionModel->numberSpecies);
     state->mutable_cme_state()->mutable_species_counts()->set_number_entries(1);
     for (int i=0; i<(int)reactionModel->numberSpecies; i++)
+    {
         state->mutable_cme_state()->mutable_species_counts()->add_species_count(speciesCounts[i]);
+        state->mutable_cme_state()->mutable_species_counts()->add_species_count(previousSpeciesCounts[i]);
+    }
     state->mutable_cme_state()->mutable_species_counts()->add_time(time);
 
     // Get the first passage times.
@@ -850,7 +862,10 @@ void CMESolver::setState(const lm::io::TrajectoryState& state)
 
     // Set the species counts.
     for (int i=0; i<state.cme_state().species_counts().species_count_size(); i++)
+    {
         speciesCounts[i] = state.cme_state().species_counts().species_count(i);
+    	previousSpeciesCounts[i] = state.cme_state().species_counts().species_count(i);
+    }
     time = state.cme_state().species_counts().time(0);
 
     // Set the first passage times.
@@ -884,11 +899,19 @@ void CMESolver::setLimits(const lm::io::TrajectoryLimits& limits)
     for (int i=0; i<limits.max_species_count_size(); i++)
         if (limits.max_species_count(i) != -1)
             setSpeciesUpperLimit(i, limits.max_species_count(i));
+
+    // Set any increasing/decreasing bound crossing detections.
+    for (int i=0; i<limits.decreasing_species_count_size(); i++)
+    	if (limits.decreasing_species_count(i) != -1)
+    		setSpeciesDecreasingLimit(i, limits.decreasing_species_count(i));
+    for (int i=0; i<limits.increasing_species_count_size(); i++)
+    	if (limits.increasing_species_count(i) != -1)
+    		setSpeciesIncreasingLimit(i, limits.increasing_species_count(i));
 }
 
 void CMESolver::setSpeciesLowerLimit(int species, int limit)
 {
-    // Allocate a larger list for the limits.
+    // Allocate a larger list for the limits/limit crossings.
     SpeciesLimit * newSpeciesLimits = new SpeciesLimit[++numberSpeciesLimits];
     if (numberSpeciesLimits > 1)
     {
@@ -904,7 +927,7 @@ void CMESolver::setSpeciesLowerLimit(int species, int limit)
 
 void CMESolver::setSpeciesUpperLimit(int species, int limit)
 {
-    // Allocate a larger list for the limits.
+    // Allocate a larger list for the limits/limit crossings.
     SpeciesLimit * newSpeciesLimits = new SpeciesLimit[++numberSpeciesLimits];
     if (numberSpeciesLimits > 1)
     {
@@ -916,6 +939,36 @@ void CMESolver::setSpeciesUpperLimit(int species, int limit)
     speciesLimits[numberSpeciesLimits-1].type = SpeciesLimit::MAX;
     speciesLimits[numberSpeciesLimits-1].species = species;
     speciesLimits[numberSpeciesLimits-1].limit = limit;
+}
+
+void CMESolver::setSpeciesDecreasingLimit(int species, int limit)
+{
+	// Allocate a larger list for the limits/limit crossings.
+	SpeciesLimit* newSpeciesLimits = new SpeciesLimit[++numberSpeciesLimits];
+	if (numberSpeciesLimits > 1)
+	{
+		memcpy(newSpeciesLimits, speciesLimits, numberSpeciesLimits-1);
+		delete[] speciesLimits;
+	}
+	speciesLimits = newSpeciesLimits;
+	speciesLimits[numberSpeciesLimits-1].type = SpeciesLimit::DECREASING;
+	speciesLimits[numberSpeciesLimits-1].species = species;
+	speciesLimits[numberSpeciesLimits-1].limit = limit;
+}
+
+void CMESolver::setSpeciesIncreasingLimit(int species, int limit)
+{
+	// Allocate a larger list for the limits/limit crossings.
+	SpeciesLimit* newSpeciesLimits = new SpeciesLimit[++numberSpeciesLimits];
+	if (numberSpeciesLimits > 1)
+	{
+		memcpy(newSpeciesLimits, speciesLimits, numberSpeciesLimits-1);
+		delete[] speciesLimits;
+	}
+	speciesLimits = newSpeciesLimits;
+	speciesLimits[numberSpeciesLimits-1].type = SpeciesLimit::INCREASING;
+	speciesLimits[numberSpeciesLimits-1].species = species;
+	speciesLimits[numberSpeciesLimits-1].limit = limit;
 }
 
 void CMESolver::addToParameterTrackingList(pair<string,double*> parameter)

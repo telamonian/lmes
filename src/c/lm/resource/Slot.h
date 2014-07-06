@@ -40,6 +40,8 @@ public:
 
 	virtual void startRemote(int controller_process, int controller_thread, lm::message::Message & msg);
 	virtual void startedRemote(const lm::message::StartedWorkUnitRunner & msg);
+	virtual void startWorkUnitRemote(lm::message::Message * msg);
+	virtual void startedWorkUnitRemote(const lm::message::StartedWorkUnit & msg);
 	virtual void stop();
 	virtual void stopRemote();
 	virtual void stoppedRemote();

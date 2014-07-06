@@ -60,6 +60,7 @@
 #include "lm/message/StartedWorkUnitRunner.pb.h"
 #include "lm/resource/ResourceMap.h"
 #include "lm/resource/SlotList.h"
+#include "lm/resource/TrajectoryList.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 
@@ -86,9 +87,10 @@ public:
     void wake() throw(lm::thread::PthreadException);
 
 protected:
-    virtual void startSimulation()=0;
-    virtual void workUnitStarted(const lm::message::StartedWorkUnit& msg)=0;
-    virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg)=0;
+    virtual void startSimulation();
+    virtual bool assignWork();
+    virtual void workUnitStarted(const lm::message::StartedWorkUnit& msg);
+    virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg);
     virtual void outputWriterStarted(const lm::message::StartedOutputWriter& msg) {}
     virtual void finishSimulation();
 
@@ -100,6 +102,9 @@ protected:
 
 
 protected:
+    long long workUnitCount;
+    lm::io::TrajectoryLimits limits;
+    lm::resource::TrajectoryList* trajectories;
     lm::message::Communicator communicator;
     lm::resource::ResourceMap* resourceMap;
     std::string simulationInputFilename;

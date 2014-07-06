@@ -60,7 +60,7 @@ namespace lm {
 namespace main {
 
 SimulationSupervisor::SimulationSupervisor()
-    :communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),solverClassName(""),useCPUAffinity(false),hasReactionModel(false),hasDiffusionModel(false),slotList(&communicator)
+    :workUnitCount(0),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),solverClassName(""),useCPUAffinity(false),hasReactionModel(false),hasDiffusionModel(false),slotList(&communicator)
 {
 }
 
@@ -214,6 +214,66 @@ void SimulationSupervisor::allWorkUnitRunnersStarted()
     startSimulation();
 }
 
+void SimulationSupervisor::startSimulation()
+{
+	// See if we have a max time limit.
+	if (simulationParameterMap.count("maxTime"))
+		limits.set_max_time(atof(simulationParameterMap["maxTime"].c_str()));
+
+    // Set the species lower limits from the parameters.
+    if (simulationParameterMap.count("speciesLowerLimitList"))
+    {
+        for (int i=0; i<(int)reactionModel.number_species(); i++)
+            limits.add_min_species_count(-1);
+
+        string listString = simulationParameterMap["speciesLowerLimitList"];
+        size_t start=0, end=0;
+        while (end != string::npos)
+        {
+            end = listString.find(',', start);
+            string speciesLowerLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
+
+            size_t equalsPos=0;
+            equalsPos = speciesLowerLimit.find(':', 0);
+            if (equalsPos > 0 && equalsPos < speciesLowerLimit.length()-1)
+            {
+                int parsedSpecies = atoi(speciesLowerLimit.substr(0, equalsPos).c_str());
+                int parsedLimit = atoi(speciesLowerLimit.substr(equalsPos+1, string::npos).c_str());
+                limits.set_min_species_count(parsedSpecies, parsedLimit);
+                Print::printf(Print::DEBUG, "Parsed lower limit %s to: %d => %d", speciesLowerLimit.c_str(), parsedSpecies, parsedLimit);
+            }
+            start = end+1;
+        }
+    }
+
+    // Set the species upper limits from the parameters.
+    if (simulationParameterMap.count("speciesUpperLimitList"))
+    {
+        for (int i=0; i<(int)reactionModel.number_species(); i++)
+            limits.add_max_species_count(-1);
+
+        string listString = simulationParameterMap["speciesUpperLimitList"];
+        size_t start=0, end=0;
+        while (end != string::npos)
+        {
+            end = listString.find(',', start);
+            string speciesUpperLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
+
+            size_t equalsPos=0;
+            equalsPos = speciesUpperLimit.find(':', 0);
+            if (equalsPos > 0 && equalsPos < speciesUpperLimit.length()-1)
+            {
+                uint parsedSpecies = atoi(speciesUpperLimit.substr(0, equalsPos).c_str());
+                uint parsedLimit = atoi(speciesUpperLimit.substr(equalsPos+1, string::npos).c_str());
+                limits.set_max_species_count(parsedSpecies, parsedLimit);
+                Print::printf(Print::DEBUG, "Parsed upper limit %s to: %d <= %d", speciesUpperLimit.c_str(), parsedSpecies, parsedLimit);
+            }
+            start = end+1;
+        }
+    }
+    assignWork();
+}
+
 void SimulationSupervisor::finishSimulation()
 {
     map<int,ResourceMap::ComputeResources> resources = resourceMap->getAvailableResources();
@@ -225,6 +285,97 @@ void SimulationSupervisor::finishSimulation()
         communicator.sendMessage(it->second.controller_process, it->second.controller_thread, &msg);
     }
     running = false;
+}
+
+bool SimulationSupervisor::assignWork()
+{
+	// Go though the available slots and fill them with work units.
+	while (true)
+	{
+		// Allocate the next free slot, if there is one.
+		lm::resource::Slot * workSlot = slotList.alloc();
+		if (workSlot==NULL) return false;
+
+		// Get the next trajectory to run, if there is one.
+		lm::message::Message * nextWorkUnitMsg = trajectories->getNextWorkUnitMsg();
+		if (nextWorkUnitMsg==NULL) return true;
+
+		// If we got this far, put the next free slot together with the next trajectory
+		workSlot->startWorkUnitRemote(nextWorkUnitMsg);
+
+//		lm::message::RunWorkUnit& run = *msg.mutable_run_work_unit();
+//		run.set_work_unit_id(workUnitCount++);
+//		run.set_supervisor_process(communicator.getSourceProcess());
+//		run.set_supervisor_thread(communicator.getSourceThread());
+//		run.set_output_process(outputWriterProcess);
+//		run.set_output_thread(outputWriterThread);
+//		run.set_max_steps(100);
+//		*run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
+//		*run.mutable_limits() = limits;
+//		Print::printf(Print::INFO, "Sending message to start work unit %d with trajectory %d on slot %d:%d.", run.work_unit_id(), nextTrajectory, workSlot->getSlotKey()[0], workSlot->getSlotKey()[1]);
+//		communicator.sendMessage(workSlot->getSlotKey()[0], workSlot->getSlotKey()[1], &msg);
+//		trajectories->updateTrajectoryStatus(nextTrajectory, FFluxTrajectoryList::RUNNING);
+	}
+}
+
+void SimulationSupervisor::workUnitStarted(const lm::message::StartedWorkUnit& msg)
+{
+    Print::printf(Print::INFO, "Work unit %d started.",msg.work_unit_id());
+}
+
+void SimulationSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
+{
+    Print::printf(Print::INFO, "Work unit %d finished in %0.3f s.",msg.work_unit_id(),msg.run_time());
+    // Update the trajectory based on the results of the work unit
+    trajectories->updateTrajectory(msg);
+    //
+
+//    if (msg.status() == lm::message::FinishedWorkUnit::LIMIT_REACHED)
+//    {
+//        trajectories->updateTrajectoryStatus(msg.final_state().trajectory_id(), TrajectoryList::FINISHED);
+//        trajectories->updateTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
+//    }
+//    else
+//    {
+//        trajectories->updateTrajectoryStatus(msg.final_state().trajectory_id(), TrajectoryList::WAITING);
+//        trajectories->updateTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
+//    }
+    // Free the slot that the returning work unit just ran on
+    slotList.free(msg.process(), msg.thread());
+//
+//
+//    lm::resource::Slot * workSlot = slotList.alloc();
+//    if (workSlot==NULL) Print::printf(Print::ERROR, "Slot allocation error (there was no free slot even though a slot should have been freed immediately prior)");
+//
+//    // Get the next trajectory to run, if there is one.
+//    int nextTrajectory = trajectories->nextTrajectoryToRun();
+//    if (nextTrajectory >= 0)
+//    {
+//        // Check for some error conditions.
+//        if (outputWriterProcess == -1 || outputWriterThread == -1)
+//            throw new Exception("FFluxSupervisor could not start the simulation, no output writer available.");
+//
+//        // Send the start work unit message.
+//        lm::message::Message msg;
+//        lm::message::RunWorkUnit& run = *msg.mutable_run_work_unit();
+//        run.set_work_unit_id(workUnitCount++);
+//        run.set_supervisor_process(communicator.getSourceProcess());
+//        run.set_supervisor_thread(communicator.getSourceThread());
+//        run.set_output_process(outputWriterProcess);
+//        run.set_output_thread(outputWriterThread);
+//        run.set_max_steps(100);
+//        *run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
+//        *run.mutable_limits() = limits;
+//        Print::printf(Print::INFO, "Sending message to start work unit %d with trajectory %d on slot %d:%d.", run.work_unit_id(), nextTrajectory, workSlot->getSlotKey()[0], workSlot->getSlotKey()[1]);
+//        communicator.sendMessage(workSlot->getSlotKey()[0], workSlot->getSlotKey()[1], &msg);
+//        trajectories->updateTrajectoryStatus(nextTrajectory, FFluxTrajectoryList::RUNNING);
+//    }
+    // Fill the newly freed slot with a work unit. If there are more trajectories than slots, this is guaranteed to use the slot we just freed. Otherwise it will be the "coldest" (longest unoccupied) slot
+    if (assignWork())
+    {
+        finishSimulation();
+    }
+
 }
 
 }

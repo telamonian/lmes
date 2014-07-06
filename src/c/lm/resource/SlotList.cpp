@@ -62,7 +62,7 @@ using std::vector;
 namespace lm {
 namespace resource {
 
-SlotList::SlotList(lm::message::Communicator * supervisorComm): busySlots(), freeSlots(), xorShift(0,0), supervisorComm(supervisorComm), msg()// the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
+SlotList::SlotList(lm::message::Communicator * supervisorComm): busySlots(), freeSlots(), xorShift(0,0), supervisorComm(supervisorComm), startRemoteMsg()// the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
 }
 
@@ -105,7 +105,7 @@ void SlotList::addSlots(ResourceMap::ComputeResources & resources, float cpusPer
 void SlotList::addSlot(int controller_process, int controller_thread)
 {
 	uint32_t uuid(xorShift.getRandom());
-    Slot * addedSlot = new Slot(controller_process, controller_thread, uuid, supervisorComm, msg);
+    Slot * addedSlot = new Slot(controller_process, controller_thread, uuid, supervisorComm, startRemoteMsg);
     int keys[] = {-1, uuid};
     vector<int> slotKey(keys, keys+2);
     busySlots[slotKey] = addedSlot;

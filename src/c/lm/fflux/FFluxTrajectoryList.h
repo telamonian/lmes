@@ -37,8 +37,8 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-#ifndef LM_REPLICATES_TRAJECTORYLIST_H_
-#define LM_REPLICATES_TRAJECTORYLIST_H_
+#ifndef FFLUXTRAJECTORYLIST_H_
+#define FFLUXTRAJECTORYLIST_H_
 
 #include <map>
 #include <string>
@@ -46,37 +46,21 @@
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 
+#include "lm/resource/TrajectoryList.h"
+
 using std::map;
 
 namespace lm {
 namespace fflux {
 
-class FFluxTrajectoryList
+class FFluxTrajectoryList : lm::resource::TrajectoryList
 {
-public:
-    enum status_t {NOT_STARTED, RUNNING, WAITING, FINISHED};
-
-protected:
-    class FFluxTrajectoryStatus
-    {
-    public:
-        FFluxTrajectoryStatus(int trajectoryNumber) : trajectoryNumber(trajectoryNumber),status(NOT_STARTED) {}
-        int trajectoryNumber;
-        status_t status;
-        lm::io::TrajectoryState state;
-    };
-
 public:
     FFluxTrajectoryList(int trajectoryCount, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel);
     virtual ~FFluxTrajectoryList();
-    virtual int nextTrajectoryToRun();
-    virtual status_t getTrajectoryStatus(int trajectory);
-    virtual void updateTrajectoryStatus(int trajectory, status_t status);
-    virtual const lm::io::TrajectoryState& getTrajectoryState(int trajectory);
-    virtual void updateTrajectoryState(int trajectory, const lm::io::TrajectoryState& state);
-
-protected:
-    map<int,FFluxTrajectoryStatus*> trajectories;
+    virtual lm::message::Message * getNextWorkUnitMsg();
+    virtual void updateTrajectory(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg);
+//    virtual int nextTrajectoryToRun();
 };
 
 }

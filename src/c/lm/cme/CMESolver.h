@@ -51,6 +51,7 @@
 #include "lm/io/ParameterValues.pb.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/main/Main.h"
 #include "lm/me/MESolver.h"
 
 using std::list;
@@ -167,7 +168,7 @@ protected:
     class SpeciesLimit
     {
     public:
-        enum limit_type_t {MIN, MAX};
+        enum limit_type_t {MIN, MAX, DECREASING, INCREASING};
         limit_type_t type;
         int species;
         int limit;
@@ -215,6 +216,8 @@ public:
 protected:
     virtual void setSpeciesUpperLimit(int species, int limit);
     virtual void setSpeciesLowerLimit(int species, int limit);
+    virtual void setSpeciesDecreasingLimit(int species, int limit);
+    virtual void setSpeciesIncreasingLimit(int species, int limit);
     virtual void addToParameterTrackingList(pair<string,double*>parameter);
 
     static double zerothOrderPropensity(double time, uint * speciesCounts, void * pargs);
@@ -237,10 +240,20 @@ protected:
     inline void updateSpeciesCounts(uint r)
     {
         // Update the counts according to the dependency tables.
-        for (int i=0; i<(int)reactionModel->numberDependentSpecies[r]; i++)
-        {
-            speciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
-        }
+    	if (ffluxFlag!=true) {
+			for (int i=0; i<(int)reactionModel->numberDependentSpecies[r]; i++)
+			{
+				speciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
+			}
+    	}
+    	// Record the previous species counts for the benefit of the directed limit crossing checks in reachedSpeciesLimit
+    	else {
+    		for (int i=0; i<(int)reactionModel->numberDependentSpecies[r]; i++)
+			{
+				speciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
+				previousSpeciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
+			}
+    	}
 
         // Update the first passage time tables.
         for (int i=0; i<numberFptTrackedSpecies; i++)
@@ -270,6 +283,12 @@ protected:
             case SpeciesLimit::MAX:
                 if (int(speciesCounts[l.species]) >= l.limit) return true;
                 break;
+            case SpeciesLimit::DECREASING:
+            	if (int(speciesCounts[l.species]) < l.limit && int(previousSpeciesCounts[l.species]) >= l.limit) return true;
+            	break;
+            case SpeciesLimit::INCREASING:
+            	if (int(speciesCounts[l.species]) >= l.limit && int(previousSpeciesCounts[l.species]) < l.limit) return true;
+            	break;
             }
         }
         return false;
@@ -320,6 +339,7 @@ protected:
 
     // The current state.
     int trajectoryId;
+    uint* previousSpeciesCounts;
     uint* speciesCounts;
     double time;
 };

@@ -58,7 +58,7 @@ FFluxTrajectoryList::FFluxTrajectoryList(int trajectoryCount, map<string,string>
 {
     for (int i=0; i<=trajectoryCount; i++)
     {
-        trajectories[i] = new FFluxTrajectoryStatus(i);
+        trajectories[i] = new Trajectory(i);
 
         // Initialize the trajectory id.
         trajectories[i]->state.set_trajectory_id(i);
@@ -100,44 +100,45 @@ FFluxTrajectoryList::FFluxTrajectoryList(int trajectoryCount, map<string,string>
 
 FFluxTrajectoryList::~FFluxTrajectoryList()
 {
-    for (map<int,FFluxTrajectoryStatus*>::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+    for (map<int,Trajectory*>::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
     {
         delete it->second;
     }
 }
 
-int FFluxTrajectoryList::nextTrajectoryToRun()
+void FFluxTrajectoryList::updateTrajectory(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg)
 {
-    for (map<int,FFluxTrajectoryStatus*>::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
-    {
-        FFluxTrajectoryStatus* t = it->second;
-        if (t->status == NOT_STARTED || t->status == WAITING)
-        {
-            return t->trajectoryNumber;
-        }
-    }
-    return -1;
+	if (finishedWorkUnitMsg.status() == lm::message::FinishedWorkUnit::LIMIT_REACHED)
+	{
+		// TODO: add last state of trajectory to interceptList, remove old trajectory, start new trajectory
+	}
+	// Call the base class method
+	TrajectoryList::updateTrajectory(finishedWorkUnitMsg);
+		//		  run.set_supervisor_process(communicator.getSourceProcess());
+		//        run.set_supervisor_thread(communicator.getSourceThread());
+		//        run.set_output_process(outputWriterProcess);
+		//        run.set_output_thread(outputWriterThread);
+		//        run.set_max_steps(100);
+		//        *run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
+		//        *run.mutable_limits() = limits;
+		//        Print::printf(Print::INFO, "Sending message to start work unit %d with trajectory %d on slot %d:%d.", run.work_unit_id(), nextTrajectory, workSlot->getSlotKey()[0], workSlot->getSlotKey()[1]);
+		//        communicator.sendMessage(workSlot->getSlotKey()[0], workSlot->getSlotKey()[1], &msg);
+		//        trajectories->updateTrajectoryStatus(nextTrajectory, FFluxTrajectoryList::RUNNING);
+
 }
 
-FFluxTrajectoryList::status_t FFluxTrajectoryList::getTrajectoryStatus(int trajectory)
-{
-    return trajectories[trajectory]->status;
-}
-
-void FFluxTrajectoryList::updateTrajectoryStatus(int trajectory, status_t status)
-{
-    trajectories[trajectory]->status = status;
-}
-
-const lm::io::TrajectoryState& FFluxTrajectoryList::getTrajectoryState(int trajectory)
-{
-    return trajectories[trajectory]->state;
-}
-
-void FFluxTrajectoryList::updateTrajectoryState(int trajectory, const lm::io::TrajectoryState& state)
-{
-    trajectories[trajectory]->state = state;
-}
+//int FFluxTrajectoryList::nextTrajectoryToRun()
+//{
+//    for (map<int,Trajectory*>::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+//    {
+//        FFluxTrajectoryStatus* t = it->second;
+//        if (t->status == NOT_STARTED || t->status == WAITING)
+//        {
+//            return t->trajectoryNumber;
+//        }
+//    }
+//    return -1;
+//}
 
 }
 }

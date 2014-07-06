@@ -52,7 +52,6 @@
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
-#include "lm/replicates/TrajectoryList.h"
 #include "lm/MPI.h"
 #include "lm/Print.h"
 #include "lm/thread/Worker.h"
@@ -109,9 +108,6 @@ protected:
     virtual void outputWriterStarted(const lm::message::StartedOutputWriter& msg);
 
 protected:
-    lm::io::TrajectoryLimits limits;
-    TrajectoryList* trajectories;
-    long long workUnitCount;
     int outputWriterProcess;
     int outputWriterThread;
 

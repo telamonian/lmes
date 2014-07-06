@@ -154,9 +154,9 @@ bool shouldPrintGPUCapabilities;
 bool shouldReserveOutputCore;
 
 /**
- * Whether the forward flux runner should be used.
+ * Flag to indicate that forward flux simulation is in use.
  */
-bool useForwardFluxRunner;
+bool ffluxFlag;
 
 /**
  * Prints the copyright notice.
@@ -197,7 +197,7 @@ void parseArguments(int argc, char** argv)
     solverClassName = "lm::cme::GillespieDSolver";
 
     shouldReserveOutputCore = true;
-    useForwardFluxRunner = false;
+    ffluxFlag = false;
 
     // Parse any arguments.
     for (int i=1; i<argc; i++)
@@ -389,7 +389,7 @@ void parseArguments(int argc, char** argv)
         //See if the user is trying to turn off cuda capability printing.
         else if ((strcmp(option, "-esff") == 0 || strcmp(option, "--use-forward-flux-runner") == 0))
 		{
-        	 useForwardFluxRunner = true;
+        	 ffluxFlag = true;
 		}
 
         //This must be an invalid option.
