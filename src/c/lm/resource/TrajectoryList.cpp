@@ -37,33 +37,82 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-#ifndef FFLUXTRAJECTORYLIST_H_
-#define FFLUXTRAJECTORYLIST_H_
-
+#include <list>
 #include <map>
 #include <string>
 
+#include "lm/Print.h"
 #include "lm/io/ReactionModel.pb.h"
+#include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
-
+#include "lm/message/Message.pb.h"
 #include "lm/resource/TrajectoryList.h"
 
 using std::map;
+using std::string;
 
 namespace lm {
-namespace fflux {
+namespace resource {
 
-class FFluxTrajectoryList : lm::resource::TrajectoryList
+TrajectoryList::TrajectoryList(map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel): simulationParameters(simulationParameters), reactionModel(reactionModel), trajectoryCount(0),workUnitCount(0)
 {
-public:
-    FFluxTrajectoryList(int trajectoryCount, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel);
-    virtual ~FFluxTrajectoryList();
-    virtual lm::message::Message * getNextWorkUnitMsg();
-    virtual void workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg);
-//    virtual int nextTrajectoryToRun();
-};
+}
+
+TrajectoryList::~TrajectoryList()
+{
+    for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+    {
+        delete it->second;
+    }
+}
+
+void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit & msg)
+{
+	if (msg.status() == lm::message::FinishedWorkUnit::LIMIT_REACHED)
+	{
+		updateTrajectoryStatus(msg.final_state().trajectory_id(), TrajectoryList::FINISHED);
+		updateTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
+	}
+	else
+	{
+		updateTrajectoryStatus(msg.final_state().trajectory_id(), TrajectoryList::WAITING);
+		updateTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
+	}
+}
+
+lm::message::Message * TrajectoryList::getNextWorkUnitMsg()
+{
+	lm::message::Message * nextWorkUnitMsg;
+	for (TrajectoryMap::iterator it : trajectories)
+	{
+		if (it->second->status==NOT_STARTED || it->second->status==WAITING)
+		{
+			it->second->setWorkUnitId(workUnitCount++);
+			return it->second->msg;
+		}
+	}
+	return NULL;
+}
+
+Trajectory::status_t TrajectoryList::getTrajectoryStatus(int trajectory)
+{
+    return trajectories[trajectory]->status;
+}
+
+void TrajectoryList::updateTrajectoryStatus(int trajectory, Trajectory::status_t status)
+{
+    trajectories[trajectory]->status = status;
+}
+
+const lm::io::TrajectoryState& TrajectoryList::getTrajectoryState(int trajectory)
+{
+    return trajectories[trajectory]->state;
+}
+
+void TrajectoryList::updateTrajectoryState(int trajectory, const lm::io::TrajectoryState& state)
+{
+    trajectories[trajectory]->state = state;
+}
 
 }
 }
-
-#endif

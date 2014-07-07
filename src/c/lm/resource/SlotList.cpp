@@ -62,7 +62,7 @@ using std::vector;
 namespace lm {
 namespace resource {
 
-SlotList::SlotList(lm::message::Communicator * supervisorComm): busySlots(), freeSlots(), xorShift(0,0), supervisorComm(supervisorComm), startRemoteMsg()// the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
+SlotList::SlotList(lm::message::Communicator * supervisorComm): busySlots(), freeSlots(), xorShift(0,0), supervisorComm(supervisorComm), slotTemplateeMsg()// the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
 }
 
@@ -104,8 +104,9 @@ void SlotList::addSlots(ResourceMap::ComputeResources & resources, float cpusPer
 
 void SlotList::addSlot(int controller_process, int controller_thread)
 {
+	// Create temporary slot ID for use during slot registration process
 	uint32_t uuid(xorShift.getRandom());
-    Slot * addedSlot = new Slot(controller_process, controller_thread, uuid, supervisorComm, startRemoteMsg);
+    Slot * addedSlot = new Slot(controller_process, controller_thread, uuid, supervisorComm, slotTemplateeMsg);
     int keys[] = {-1, uuid};
     vector<int> slotKey(keys, keys+2);
     busySlots[slotKey] = addedSlot;
@@ -126,6 +127,7 @@ bool SlotList::workUnitRunnerStarted(const lm::message::StartedWorkUnitRunner & 
 	{
 		Print::printf(Print::ERROR, "Tried to register started slot %d:%d with uuid %d, but this slot does not exist on the master", msg.process(), msg.thread(), msg.uuid());
 	}
+	// If the StartedWorkUnitRunner messages have come back for all of the slots, notify the supervisor that the slots are ready to go
 	return busySlots.empty();
 }
 

@@ -60,7 +60,7 @@ namespace lm {
 namespace main {
 
 SimulationSupervisor::SimulationSupervisor()
-    :workUnitCount(0),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),solverClassName(""),useCPUAffinity(false),hasReactionModel(false),hasDiffusionModel(false),slotList(&communicator)
+    :workUnitCount(0),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),solverClassName(""),useCPUAffinity(false),hasReactionModel(false),hasDiffusionModel(false),slots(&communicator)
 {
 }
 
@@ -183,7 +183,7 @@ void SimulationSupervisor::resourceAvailable(const lm::message::ResourcesAvailab
 
 void SimulationSupervisor::workUnitRunnerStarted(const lm::message::StartedWorkUnitRunner & msg)
 {
-	if (slotList.workUnitRunnerStarted(msg))
+	if (slots.workUnitRunnerStarted(msg))
 	{
 		allWorkUnitRunnersStarted();
 	}
@@ -194,18 +194,27 @@ void SimulationSupervisor::allResourcesRegistered()
     // Start the work unit runners.
     Print::printf(Print::INFO, "All resources registered with supervisor, starting work unit runners.");
 
-    lm::message::StartWorkUnitRunner * s = slotList.addStartSlotMsg();
+    // Set up the template messages (which contain default values) for slots and trajectories
+    lm::message::StartWorkUnitRunner * startSlotMsg = slots.addStartSlotMsg();
     //	s->set_use_cpu_affinity(useCPUAffinity);
     //	s->add_cpu(resources.cpuCores[i]);
     //	if (resources.gpusDevices.size() > 0)
     //		s->add_gpu(resources.gpusDevices[0]);
-	s->set_solver(solverClassName);
-	*s->mutable_simulation_parameters() = simulationParameters;
-	if (hasReactionModel) *s->mutable_reaction_model() = reactionModel;
-	if (hasDiffusionModel) *s->mutable_diffusion_model() = diffusionModel;
+    startSlotMsg->set_solver(solverClassName);
+	*startSlotMsg->mutable_simulation_parameters() = simulationParameters;
+	if (hasReactionModel) *startSlotMsg->mutable_reaction_model() = reactionModel;
+	if (hasDiffusionModel) *startSlotMsg->mutable_diffusion_model() = diffusionModel;
+
+	lm::message::RunWorkUnit& runWorkUnitMsg = trajectories->getRunWorkUnitMsg();
+	runWorkUnitMsg.set_supervisor_process(communicator.getSourceProcess());
+	runWorkUnitMsg.set_supervisor_thread(communicator.getSourceThread());
+	runWorkUnitMsg.set_max_steps(100);
+	initLimits();
+	runWorkUnitMsg.mutable_limits() = limits;
+
 
 	map<int,ResourceMap::ComputeResources> allResources = resourceMap->getAvailableResources();
-    slotList.addSlots(allResources);
+    slots.addSlots(allResources);
 }
 
 void SimulationSupervisor::allWorkUnitRunnersStarted()
@@ -216,61 +225,6 @@ void SimulationSupervisor::allWorkUnitRunnersStarted()
 
 void SimulationSupervisor::startSimulation()
 {
-	// See if we have a max time limit.
-	if (simulationParameterMap.count("maxTime"))
-		limits.set_max_time(atof(simulationParameterMap["maxTime"].c_str()));
-
-    // Set the species lower limits from the parameters.
-    if (simulationParameterMap.count("speciesLowerLimitList"))
-    {
-        for (int i=0; i<(int)reactionModel.number_species(); i++)
-            limits.add_min_species_count(-1);
-
-        string listString = simulationParameterMap["speciesLowerLimitList"];
-        size_t start=0, end=0;
-        while (end != string::npos)
-        {
-            end = listString.find(',', start);
-            string speciesLowerLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
-
-            size_t equalsPos=0;
-            equalsPos = speciesLowerLimit.find(':', 0);
-            if (equalsPos > 0 && equalsPos < speciesLowerLimit.length()-1)
-            {
-                int parsedSpecies = atoi(speciesLowerLimit.substr(0, equalsPos).c_str());
-                int parsedLimit = atoi(speciesLowerLimit.substr(equalsPos+1, string::npos).c_str());
-                limits.set_min_species_count(parsedSpecies, parsedLimit);
-                Print::printf(Print::DEBUG, "Parsed lower limit %s to: %d => %d", speciesLowerLimit.c_str(), parsedSpecies, parsedLimit);
-            }
-            start = end+1;
-        }
-    }
-
-    // Set the species upper limits from the parameters.
-    if (simulationParameterMap.count("speciesUpperLimitList"))
-    {
-        for (int i=0; i<(int)reactionModel.number_species(); i++)
-            limits.add_max_species_count(-1);
-
-        string listString = simulationParameterMap["speciesUpperLimitList"];
-        size_t start=0, end=0;
-        while (end != string::npos)
-        {
-            end = listString.find(',', start);
-            string speciesUpperLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
-
-            size_t equalsPos=0;
-            equalsPos = speciesUpperLimit.find(':', 0);
-            if (equalsPos > 0 && equalsPos < speciesUpperLimit.length()-1)
-            {
-                uint parsedSpecies = atoi(speciesUpperLimit.substr(0, equalsPos).c_str());
-                uint parsedLimit = atoi(speciesUpperLimit.substr(equalsPos+1, string::npos).c_str());
-                limits.set_max_species_count(parsedSpecies, parsedLimit);
-                Print::printf(Print::DEBUG, "Parsed upper limit %s to: %d <= %d", speciesUpperLimit.c_str(), parsedSpecies, parsedLimit);
-            }
-            start = end+1;
-        }
-    }
     assignWork();
 }
 
@@ -293,7 +247,7 @@ bool SimulationSupervisor::assignWork()
 	while (true)
 	{
 		// Allocate the next free slot, if there is one.
-		lm::resource::Slot * workSlot = slotList.alloc();
+		lm::resource::Slot * workSlot = slots.alloc();
 		if (workSlot==NULL) return false;
 
 		// Get the next trajectory to run, if there is one.
@@ -304,14 +258,17 @@ bool SimulationSupervisor::assignWork()
 		workSlot->startWorkUnitRemote(nextWorkUnitMsg);
 
 //		lm::message::RunWorkUnit& run = *msg.mutable_run_work_unit();
-//		run.set_work_unit_id(workUnitCount++);
 //		run.set_supervisor_process(communicator.getSourceProcess());
 //		run.set_supervisor_thread(communicator.getSourceThread());
 //		run.set_output_process(outputWriterProcess);
 //		run.set_output_thread(outputWriterThread);
 //		run.set_max_steps(100);
-//		*run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
 //		*run.mutable_limits() = limits;
+
+//		*run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
+
+//		run.set_work_unit_id(workUnitCount++);
+
 //		Print::printf(Print::INFO, "Sending message to start work unit %d with trajectory %d on slot %d:%d.", run.work_unit_id(), nextTrajectory, workSlot->getSlotKey()[0], workSlot->getSlotKey()[1]);
 //		communicator.sendMessage(workSlot->getSlotKey()[0], workSlot->getSlotKey()[1], &msg);
 //		trajectories->updateTrajectoryStatus(nextTrajectory, FFluxTrajectoryList::RUNNING);
@@ -321,13 +278,14 @@ bool SimulationSupervisor::assignWork()
 void SimulationSupervisor::workUnitStarted(const lm::message::StartedWorkUnit& msg)
 {
     Print::printf(Print::INFO, "Work unit %d started.",msg.work_unit_id());
+    trajectories->workUnitStarted(msg);
 }
 
 void SimulationSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
 {
     Print::printf(Print::INFO, "Work unit %d finished in %0.3f s.",msg.work_unit_id(),msg.run_time());
     // Update the trajectory based on the results of the work unit
-    trajectories->updateTrajectory(msg);
+    trajectories->workUnitFinished(msg);
     //
 
 //    if (msg.status() == lm::message::FinishedWorkUnit::LIMIT_REACHED)
@@ -341,7 +299,7 @@ void SimulationSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit&
 //        trajectories->updateTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
 //    }
     // Free the slot that the returning work unit just ran on
-    slotList.free(msg.process(), msg.thread());
+    slots.free(msg.process(), msg.thread());
 //
 //
 //    lm::resource::Slot * workSlot = slotList.alloc();
@@ -376,6 +334,65 @@ void SimulationSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit&
         finishSimulation();
     }
 
+}
+
+void SimulationSupervisor::initLimits()
+{
+	// See if we have a max time limit.
+	if (simulationParameterMap.count("maxTime"))
+		limits.set_max_time(atof(simulationParameterMap["maxTime"].c_str()));
+
+	// Set the species lower limits from the parameters.
+	if (simulationParameterMap.count("speciesLowerLimitList"))
+	{
+		for (int i=0; i<(int)reactionModel.number_species(); i++)
+			limits.add_min_species_count(-1);
+
+		string listString = simulationParameterMap["speciesLowerLimitList"];
+		size_t start=0, end=0;
+		while (end != string::npos)
+		{
+			end = listString.find(',', start);
+			string speciesLowerLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
+
+			size_t equalsPos=0;
+			equalsPos = speciesLowerLimit.find(':', 0);
+			if (equalsPos > 0 && equalsPos < speciesLowerLimit.length()-1)
+			{
+				int parsedSpecies = atoi(speciesLowerLimit.substr(0, equalsPos).c_str());
+				int parsedLimit = atoi(speciesLowerLimit.substr(equalsPos+1, string::npos).c_str());
+				limits.set_min_species_count(parsedSpecies, parsedLimit);
+				Print::printf(Print::DEBUG, "Parsed lower limit %s to: %d => %d", speciesLowerLimit.c_str(), parsedSpecies, parsedLimit);
+			}
+			start = end+1;
+		}
+	}
+
+	// Set the species upper limits from the parameters.
+	if (simulationParameterMap.count("speciesUpperLimitList"))
+	{
+		for (int i=0; i<(int)reactionModel.number_species(); i++)
+			limits.add_max_species_count(-1);
+
+		string listString = simulationParameterMap["speciesUpperLimitList"];
+		size_t start=0, end=0;
+		while (end != string::npos)
+		{
+			end = listString.find(',', start);
+			string speciesUpperLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
+
+			size_t equalsPos=0;
+			equalsPos = speciesUpperLimit.find(':', 0);
+			if (equalsPos > 0 && equalsPos < speciesUpperLimit.length()-1)
+			{
+				uint parsedSpecies = atoi(speciesUpperLimit.substr(0, equalsPos).c_str());
+				uint parsedLimit = atoi(speciesUpperLimit.substr(equalsPos+1, string::npos).c_str());
+				limits.set_max_species_count(parsedSpecies, parsedLimit);
+				Print::printf(Print::DEBUG, "Parsed upper limit %s to: %d <= %d", speciesUpperLimit.c_str(), parsedSpecies, parsedLimit);
+			}
+			start = end+1;
+		}
+	}
 }
 
 }

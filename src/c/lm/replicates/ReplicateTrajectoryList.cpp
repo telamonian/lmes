@@ -59,7 +59,7 @@ ReplicateTrajectoryList::ReplicateTrajectoryList(int firstTrajectory, int lastTr
 {
     for (int i=firstTrajectory; i<=lastTrajectory; i++)
     {
-        trajectories[i] = new Trajectory(i);
+        trajectories[i] = new lm::resource::Trajectory(i);
 
         // Initialize the trajectory id.
         trajectories[i]->state.set_trajectory_id(i);

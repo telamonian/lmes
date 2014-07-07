@@ -37,30 +37,37 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-#ifndef FFLUXTRAJECTORYLIST_H_
-#define FFLUXTRAJECTORYLIST_H_
+#ifndef LM_RESOURCE_TRAJECTORY_H_
+#define LM_RESOURCE_TRAJECTORY_H_
 
 #include <map>
 #include <string>
-
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
-
+#include "lm/message/Message.pb.h"
 #include "lm/resource/TrajectoryList.h"
 
 using std::map;
+using std::string;
 
 namespace lm {
-namespace fflux {
+namespace resource {
 
-class FFluxTrajectoryList : lm::resource::TrajectoryList
+class Trajectory
 {
 public:
-    FFluxTrajectoryList(int trajectoryCount, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel);
-    virtual ~FFluxTrajectoryList();
-    virtual lm::message::Message * getNextWorkUnitMsg();
-    virtual void workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg);
-//    virtual int nextTrajectoryToRun();
+	enum status_t {NOT_STARTED, RUNNING, WAITING, FINISHED};
+
+	Trajectory(int trajectoryNumber);
+	lm::message::RunWorkUnit& getRunMsg();
+	void setWorkUnitId(long long id) {getRunMsg()->set_work_unit_id(id);}
+
+	int trajectoryNumber;
+	status_t status;
+	lm::io::TrajectoryState state;
+
+protected:
+	lm::message::Message msg;
 };
 
 }

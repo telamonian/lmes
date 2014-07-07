@@ -87,6 +87,7 @@ public:
     void wake() throw(lm::thread::PthreadException);
 
 protected:
+    virtual void initLimits();
     virtual void startSimulation();
     virtual bool assignWork();
     virtual void workUnitStarted(const lm::message::StartedWorkUnit& msg);
@@ -118,7 +119,7 @@ protected:
     lm::io::ReactionModel reactionModel;
     bool hasDiffusionModel;
     lm::io::DiffusionModel diffusionModel;
-    lm::resource::SlotList slotList;
+    lm::resource::SlotList slots;
 };
 
 }

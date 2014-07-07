@@ -118,7 +118,11 @@ void FFluxSupervisor::startSimulation()
     Print::printf(Print::INFO, "Forward flux supervisor starting simulation.");
 
     // Create the new trajectory list.
-    trajectories = new FFluxTrajectoryList(slotList.getSlotsSize(), simulationParameterMap, reactionModel);
+    trajectories = new FFluxTrajectoryList(slots.getSlotsSize(), simulationParameterMap, reactionModel);
+
+    lm::message::RunWorkUnit& runWorkUnitMsg = trajectories->getRunWorkUnitMsg();
+	runWorkUnitMsg.set_output_process(outputWriterProcess);
+	runWorkUnitMsg.set_output_thread(outputWriterThread);
 
     // Call the base class method.
     SimulationSupervisor::startSimulation();

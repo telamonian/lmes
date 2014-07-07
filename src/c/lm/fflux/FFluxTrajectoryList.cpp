@@ -47,6 +47,7 @@
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/replicates/FFluxTrajectoryList.h"
+#include "lm/resource/Trajectory.h"
 
 using std::map;
 using std::string;
@@ -58,7 +59,7 @@ FFluxTrajectoryList::FFluxTrajectoryList(int trajectoryCount, map<string,string>
 {
     for (int i=0; i<=trajectoryCount; i++)
     {
-        trajectories[i] = new Trajectory(i);
+        trajectories[i] = new lm::resource::Trajectory(i);
 
         // Initialize the trajectory id.
         trajectories[i]->state.set_trajectory_id(i);
@@ -100,20 +101,20 @@ FFluxTrajectoryList::FFluxTrajectoryList(int trajectoryCount, map<string,string>
 
 FFluxTrajectoryList::~FFluxTrajectoryList()
 {
-    for (map<int,Trajectory*>::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+    for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
     {
         delete it->second;
     }
 }
 
-void FFluxTrajectoryList::updateTrajectory(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg)
+void FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg)
 {
 	if (finishedWorkUnitMsg.status() == lm::message::FinishedWorkUnit::LIMIT_REACHED)
 	{
 		// TODO: add last state of trajectory to interceptList, remove old trajectory, start new trajectory
 	}
 	// Call the base class method
-	TrajectoryList::updateTrajectory(finishedWorkUnitMsg);
+	TrajectoryList::workUnitFinished(finishedWorkUnitMsg);
 		//		  run.set_supervisor_process(communicator.getSourceProcess());
 		//        run.set_supervisor_thread(communicator.getSourceThread());
 		//        run.set_output_process(outputWriterProcess);

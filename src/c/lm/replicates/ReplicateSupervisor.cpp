@@ -150,6 +150,11 @@ void ReplicateSupervisor::startSimulation()
     // Create the new trajectory list.
     trajectories = new ReplicateTrajectoryList(::replicates.front(), ::replicates.back(), simulationParameterMap, reactionModel);
 
+    // Set the default writer
+    lm::message::RunWorkUnit& runWorkUnitMsg = trajectories->getRunWorkUnitMsg();
+	runWorkUnitMsg.set_output_process(outputWriterProcess);
+	runWorkUnitMsg.set_output_thread(outputWriterThread);
+
 //    // See if we have a max time limit.
 //    if (simulationParameterMap.count("maxTime"))
 //        limits.set_max_time(atof(simulationParameterMap["maxTime"].c_str()));
@@ -256,10 +261,10 @@ void ReplicateSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit& 
         trajectories->updateTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
     }
     // Free the slot that the returning work unit just ran on
-    slotList.free(msg.process(), msg.thread());
+    slots.free(msg.process(), msg.thread());
 
     // Get next available slot. If there are more trajectories than slots, this is guaranteed to be the slot we just freed. Otherwise it will be the "coldest" (longest unoccupied) slot
-    lm::resource::Slot * workSlot = slotList.alloc();
+    lm::resource::Slot * workSlot = slots.alloc();
     if (workSlot==NULL) Print::printf(Print::ERROR, "Slot allocation error (there was no free slot even though a slot should have been freed immediately prior)");
 
     // Get the next trajectory to run, if there is one.
