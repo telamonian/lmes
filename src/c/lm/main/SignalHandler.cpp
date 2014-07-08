@@ -63,7 +63,7 @@ SignalHandler::SignalHandler() throw(PthreadException):
     PTHREAD_EXCEPTION_CHECK(pthread_sigmask(SIG_BLOCK, &signalMask, NULL));
 }
 
-SignalHandler::~SignalHandler() throw(PthreadException)
+SignalHandler::~SignalHandler() //throw(PthreadException)
 {
 }
 

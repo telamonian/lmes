@@ -54,7 +54,7 @@ using lm::resource::TrajectoryList;
 namespace lm {
 namespace replicates {
 
-class ReplicateTrajectoryList : lm::resource::TrajectoryList
+class ReplicateTrajectoryList : public lm::resource::TrajectoryList
 {
 
 public:

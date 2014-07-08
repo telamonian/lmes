@@ -42,27 +42,28 @@ void Slot::startedRemote(const lm::message::StartedWorkUnitRunner & msg)
 	Print::printf(Print::INFO, "Work unit runner for slot %d:%d started, %d simultaneous work unit runners.", msg.process(), msg.thread(), msg.simultaneous_work_units());
 }
 
-void Slot::startWorkUnit(lm::message::Message & msg)
+void Slot::startWorkUnitRemote(lm::message::Message* msg, long long workUnitID)
 {
 	// Send the start work unit message.
-	lm::message::Message msg;
-	lm::message::RunWorkUnit& run = *msg.mutable_run_work_unit();
-	run.set_work_unit_id(workUnitCount++);
-	run.set_supervisor_process(communicator.getSourceProcess());
-	run.set_supervisor_thread(communicator.getSourceThread());
-	run.set_output_process(outputWriterProcess);
-	run.set_output_thread(outputWriterThread);
-	run.set_max_steps(100);
-	*run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
-	*run.mutable_limits() = limits;
-	Print::printf(Print::INFO, "Sending message to start work unit %d with trajectory %d on slot %d:%d.", run.work_unit_id(), nextTrajectory, workSlot->getSlotKey()[0], workSlot->getSlotKey()[1]);
-	communicator.sendMessage(workSlot->getSlotKey()[0], workSlot->getSlotKey()[1], &msg);
-	trajectories->updateTrajectoryStatus(nextTrajectory, FFluxTrajectoryList::RUNNING);
+	lm::message::RunWorkUnit& run = *(msg->mutable_run_work_unit());
+	run.set_work_unit_id(workUnitID);
+
+	Print::printf(Print::INFO, "Sending message to start work unit %d with trajectory %d on slot %d:%d.", workUnitID, msg->run_work_unit().initial_state().trajectory_id(), getSlotKey()[0], getSlotKey()[1]);
+	supervisorComm->sendMessage(getSlotKey()[0], getSlotKey()[1], msg);
+
+	//	lm::message::Message msg;
+	//	run.set_supervisor_process(communicator.getSourceProcess());
+	//	run.set_supervisor_thread(communicator.getSourceThread());
+	//	run.set_output_process(outputWriterProcess);
+	//	run.set_output_thread(outputWriterThread);
+	//	run.set_max_steps(100);
+	//	*run.mutable_limits() = limits;
+	//	*run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
+//	trajectories->updateTrajectoryStatus(nextTrajectory, FFluxTrajectoryList::RUNNING);
 }
 
-void Slot::startedWorkUnit()
+void startedWorkUnitRemote(const lm::message::StartedWorkUnit & msg)
 {
-
 }
 
 void Slot::stop()

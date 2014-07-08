@@ -56,7 +56,7 @@ class CheckpointSignaler : public Worker
 {
 public:
 	CheckpointSignaler() throw(PthreadException);
-    virtual ~CheckpointSignaler() throw(PthreadException);
+    virtual ~CheckpointSignaler(); // TODO: the ~CheckpointSignaler throw spec doesn't work with c++11. Maybe reenable somehow? throw(PthreadException);
     virtual void startCheckpointing(time_t checkpointInterval);
     virtual void stopCheckpointing();
     virtual void wake() throw(PthreadException);

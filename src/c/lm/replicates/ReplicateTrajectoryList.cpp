@@ -46,7 +46,8 @@
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
-#include "lm/replicates/TrajectoryList.h"
+#include "lm/replicates/ReplicateTrajectoryList.h"
+#include "lm/resource/TrajectoryList.h"
 
 using std::map;
 using std::string;
@@ -54,8 +55,8 @@ using std::string;
 namespace lm {
 namespace replicates {
 
-ReplicateTrajectoryList::ReplicateTrajectoryList(int firstTrajectory, int lastTrajectory, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel):
-		TrajectoryList(simulationParameters, reactionModel)
+ReplicateTrajectoryList::ReplicateTrajectoryList(int firstTrajectory, int lastTrajectory, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel)
+	:TrajectoryList(simulationParameters, reactionModel)
 {
     for (int i=firstTrajectory; i<=lastTrajectory; i++)
     {
@@ -101,10 +102,10 @@ ReplicateTrajectoryList::ReplicateTrajectoryList(int firstTrajectory, int lastTr
 
 ReplicateTrajectoryList::~ReplicateTrajectoryList()
 {
-//    for (map<int,TrajectoryStatus*>::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
-//    {
-//        delete it->second;
-//    }
+    for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+    {
+        delete it->second;
+    }
 }
 
 }

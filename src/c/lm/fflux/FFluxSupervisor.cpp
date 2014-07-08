@@ -75,7 +75,7 @@ void* FFluxSupervisor::allocateObject()
 }
 
 FFluxSupervisor::FFluxSupervisor()
-:trajectories(NULL),workUnitCount(0),outputWriterProcess(0),outputWriterThread(3) //TODO: fix to -1,-1 once the slot code has been fixed
+:outputWriterProcess(-1),outputWriterThread(-1) //TODO: fix to -1,-1 once the slot code has been fixed
 {
 
 }
@@ -120,9 +120,20 @@ void FFluxSupervisor::startSimulation()
     // Create the new trajectory list.
     trajectories = new FFluxTrajectoryList(slots.getSlotsSize(), simulationParameterMap, reactionModel);
 
-    lm::message::RunWorkUnit& runWorkUnitMsg = trajectories->getRunWorkUnitMsg();
-	runWorkUnitMsg.set_output_process(outputWriterProcess);
-	runWorkUnitMsg.set_output_thread(outputWriterThread);
+    // Get the trajectories template msg so that we can set some default values in it
+    lm::message::RunWorkUnit* runWorkUnitMsg = trajectories->getRunWorkUnitMsg();
+	// Set the default source process/thread
+	runWorkUnitMsg->set_supervisor_process(communicator.getSourceProcess());
+	runWorkUnitMsg->set_supervisor_thread(communicator.getSourceThread());
+    // Set the default writer process/thread
+	runWorkUnitMsg->set_output_process(outputWriterProcess);
+	runWorkUnitMsg->set_output_thread(outputWriterThread);
+	// Set the default work unit-specific limits
+	runWorkUnitMsg->set_max_steps(100);
+	// Set the default trajectory limits
+	initLimits();
+	lm::io::TrajectoryLimits* trajectoryLimits = new lm::io::TrajectoryLimits(limits);
+	runWorkUnitMsg->set_allocated_limits(trajectoryLimits);
 
     // Call the base class method.
     SimulationSupervisor::startSimulation();

@@ -70,12 +70,12 @@ void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit & msg)
 {
 	if (msg.status() == lm::message::FinishedWorkUnit::LIMIT_REACHED)
 	{
-		updateTrajectoryStatus(msg.final_state().trajectory_id(), TrajectoryList::FINISHED);
+		updateTrajectoryStatus(msg.final_state().trajectory_id(), Trajectory::FINISHED);
 		updateTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
 	}
 	else
 	{
-		updateTrajectoryStatus(msg.final_state().trajectory_id(), TrajectoryList::WAITING);
+		updateTrajectoryStatus(msg.final_state().trajectory_id(), Trajectory::WAITING);
 		updateTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
 	}
 }
@@ -85,7 +85,7 @@ lm::message::Message * TrajectoryList::getNextWorkUnitMsg()
 	lm::message::Message * nextWorkUnitMsg;
 	for (TrajectoryMap::iterator it : trajectories)
 	{
-		if (it->second->status==NOT_STARTED || it->second->status==WAITING)
+		if (it->second->status==Trajectory::NOT_STARTED || it->second->status==Trajectory::WAITING)
 		{
 			it->second->setWorkUnitId(workUnitCount++);
 			return it->second->msg;

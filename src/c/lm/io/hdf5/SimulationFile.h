@@ -77,7 +77,7 @@ class SimulationFile
 {
 public:
     SimulationFile() {}
-    virtual ~SimulationFile () {}
+    virtual ~SimulationFile() {}
 };
 
 class Hdf5File : public SimulationFile
@@ -103,7 +103,7 @@ protected:
 public:
     Hdf5File(const string filename) throw(IOException,HDF5Exception,Exception);
     Hdf5File(const char* filename) throw(IOException,HDF5Exception,Exception);
-	virtual ~Hdf5File() throw(IOException,HDF5Exception);
+	virtual ~Hdf5File(); //throw(IOException,HDF5Exception);
     virtual void close() throw(IOException,HDF5Exception);
     virtual void flush() throw(HDF5Exception);
     virtual string checkpoint() throw(IOException,HDF5Exception);

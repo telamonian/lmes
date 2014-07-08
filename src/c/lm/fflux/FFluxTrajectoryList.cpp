@@ -41,12 +41,13 @@
 #include <map>
 #include <string>
 
-#include "lm/Print.h"
+#include "lm/fflux/FFluxTrajectoryList.h"
+#include "lm/io/CMEState.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
-#include "lm/replicates/FFluxTrajectoryList.h"
+#include "lm/Print.h"
 #include "lm/resource/Trajectory.h"
 
 using std::map;
@@ -55,48 +56,15 @@ using std::string;
 namespace lm {
 namespace fflux {
 
-FFluxTrajectoryList::FFluxTrajectoryList(int trajectoryCount, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel)
+FFluxTrajectoryList::FFluxTrajectoryList(long long simulataneousTrajectoryCount, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel):
+	TrajectoryList(simulationParameters, reactionModel)
 {
-    for (int i=0; i<=trajectoryCount; i++)
+	lm::io::CMEState* trajectoryCMEState = initTrajectoryCMEState();
+    for (long long i=0; i<=simulataneousTrajectoryCount; i++)
     {
-        trajectories[i] = new lm::resource::Trajectory(i);
-
-        // Initialize the trajectory id.
-        trajectories[i]->state.set_trajectory_id(i);
-
-        // Initialize the species counts in the cme state.
-        trajectories[i]->state.mutable_cme_state()->mutable_species_counts()->set_trajectory_id(i);
-        trajectories[i]->state.mutable_cme_state()->mutable_species_counts()->set_number_species(reactionModel.number_species());
-        trajectories[i]->state.mutable_cme_state()->mutable_species_counts()->set_number_entries(1);
-        for (int j=0; j<(int)reactionModel.number_species(); j++)
-            trajectories[i]->state.mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.initial_species_count(j));
-        trajectories[i]->state.mutable_cme_state()->mutable_species_counts()->add_time(0.0);
-
-        // Initialize the first passage times in the cme state.
-        const string listString = simulationParameters["fptTrackingList"];
-        std::list<int> fptList;
-        size_t start=0, end=0;
-        while (end != string::npos)
-        {
-            end = listString.find(',', start);
-            string trackedSpecies = listString.substr(start, (end == string::npos) ? string::npos : end - start);
-            if (trackedSpecies.length() > 0)
-            {
-                fptList.push_back(atoi(trackedSpecies.c_str()));
-            }
-            start = end+1;
-        }
-        for (std::list<int>::iterator it=fptList.begin(); it != fptList.end(); it++)
-        {
-            lm::io::FirstPassageTimes* fpt= trajectories[i]->state.mutable_cme_state()->add_first_passage_times();
-            fpt->set_trajectory_id(i);
-            fpt->set_species(*it);
-            fpt->set_number_entries(1);
-            fpt->add_species_count(reactionModel.initial_species_count(*it));
-            fpt->add_first_passage_time(0.0);
-            Print::printf(Print::DEBUG, "Added fpt tracking for species %d", *it);
-        }
+    	initTrajectory(trajectoryCount++, trajectoryCMEState);
     }
+    delete trajectoryCMEState;
 }
 
 FFluxTrajectoryList::~FFluxTrajectoryList()
@@ -107,6 +75,35 @@ FFluxTrajectoryList::~FFluxTrajectoryList()
     }
 }
 
+void FFluxTrajectoryList::initTrajectory(long long id, lm::io::CMEState* cmeState)
+{
+	// Construct new trajectory
+	trajectories[id] = new lm::resource::Trajectory(id);
+
+	// Copy the referenced CMEState to a new CMEState
+	lm::io::CMEState * newTrajectoryCMEState = new lm::io::CMEState(*cmeState);
+
+	// Assign ownership of the CMEState copy to the newly constructed trajectory
+	trajectories[id]->state.set_allocated_cme_state(newTrajectoryCMEState);
+
+	// Set the trajectory id in the trajectory state.
+	trajectories[id]->state.set_trajectory_id(id);
+
+	// Set the trajectory id in the CME state of the trajectory state.
+	trajectories[id]->state.mutable_cme_state()->mutable_species_counts()->set_trajectory_id(id);
+}
+
+lm::io::CMEState* FFluxTrajectoryList::initTrajectoryCMEState()
+{
+	lm::io::CMEState* trajectoryCMEState = new lm::io::CMEState();
+	trajectoryCMEState->mutable_species_counts()->set_number_species(reactionModel.number_species());
+	trajectoryCMEState->mutable_species_counts()->set_number_entries(1);
+	for (int j=0; j<(int)reactionModel.number_species(); j++)
+		trajectoryCMEState->mutable_species_counts()->add_species_count(reactionModel.initial_species_count(j));
+	trajectoryCMEState->mutable_species_counts()->add_time(0.0);
+	return trajectoryCMEState;
+}
+
 void FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg)
 {
 	if (finishedWorkUnitMsg.status() == lm::message::FinishedWorkUnit::LIMIT_REACHED)
@@ -115,31 +112,12 @@ void FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit &
 	}
 	// Call the base class method
 	TrajectoryList::workUnitFinished(finishedWorkUnitMsg);
-		//		  run.set_supervisor_process(communicator.getSourceProcess());
-		//        run.set_supervisor_thread(communicator.getSourceThread());
-		//        run.set_output_process(outputWriterProcess);
-		//        run.set_output_thread(outputWriterThread);
-		//        run.set_max_steps(100);
 		//        *run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
-		//        *run.mutable_limits() = limits;
 		//        Print::printf(Print::INFO, "Sending message to start work unit %d with trajectory %d on slot %d:%d.", run.work_unit_id(), nextTrajectory, workSlot->getSlotKey()[0], workSlot->getSlotKey()[1]);
 		//        communicator.sendMessage(workSlot->getSlotKey()[0], workSlot->getSlotKey()[1], &msg);
 		//        trajectories->updateTrajectoryStatus(nextTrajectory, FFluxTrajectoryList::RUNNING);
 
 }
-
-//int FFluxTrajectoryList::nextTrajectoryToRun()
-//{
-//    for (map<int,Trajectory*>::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
-//    {
-//        FFluxTrajectoryStatus* t = it->second;
-//        if (t->status == NOT_STARTED || t->status == WAITING)
-//        {
-//            return t->trajectoryNumber;
-//        }
-//    }
-//    return -1;
-//}
 
 }
 }

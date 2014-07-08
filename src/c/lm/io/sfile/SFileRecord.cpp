@@ -43,7 +43,8 @@ namespace lm {
 namespace io {
 namespace sfile {
 
-const char SFileRecord::RECORD_SEPARATOR[] = {'S','F','R','X',1,65,243,72,36,217,55,18,134,11,234,83};
+// Need to assign integer literals to an array of unsigned char before converting to an array of char due to c++11 disallowing 'narrowing' conversions (i.e. cannot convert 243 to signed char)
+const char SFileRecord::RECORD_SEPARATOR[] = {'S','F','R','X',1,65,static_cast<char>(243),72,36,static_cast<char>(217),55,18,static_cast<char>(134),11,static_cast<char>(234),83};
 
 SFileRecord::SFileRecord()
     :name(""),type(""),dataSize(0)

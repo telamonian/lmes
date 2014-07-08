@@ -74,59 +74,18 @@ public:
 
 public:
     ReplicateSupervisor();
-    //ReplicateSupervisor(int * maxSlotsTable, lm::io::hdf5::Hdf5File * file) throw(PthreadException);
     virtual ~ReplicateSupervisor();
 
-    //virtual void wake() throw(PthreadException);
-    //virtual void abort() throw(PthreadException);
-    //virtual void checkpoint() throw(PthreadException);
-//    virtual int FindRep(int destProc);
-//    virtual int RunRep(int destProc, int replicate);
-
-    //virtual void distributeWorkUnits();
-    //virtual void distributeWorkUnit(deque<Slot *>::iterator slot_it, map<int, TrajectoryAllocator::Trajectory>::iterator traj_it);
-    //virtual void update(lm::work::Result & result);
-
-//    virtual void MPI_MastBcastOut(void *buf, int count, MPI_Datatype datatype, int tag, MPI_Comm comm);
-//
-//    //receive from all nodes, one by one, including master. nodes should use MPI_Send plus the relevant tag to send
-//    template <typename t>
-//    void MPI_MastBcastIn(t * recvtable, int recvcount, MPI_Datatype recvtype, int recvtag, MPI_Comm comm);
-//
-//    template <typename t, int tag>
-//    void bcastThing(void * staticDataBuffer, t * thing);
-//
-//    template <int tag>
-//    void bcastSizeThenBuffer(void * staticDataBuffer, int msgSize);
-
-    //map<int,int> simulationStatusTable;
 protected:
     virtual void allResourcesRegistered();
     virtual void startSimulation();
     virtual void workUnitStarted(const lm::message::StartedWorkUnit& msg);
-    virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg);
+//    virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg);
     virtual void outputWriterStarted(const lm::message::StartedOutputWriter& msg);
 
 protected:
     int outputWriterProcess;
     int outputWriterThread;
-
-    /*
-    void * staticDataBuffer;
-    //variables relating to Worker behavior
-    bool shouldCheckpoint;
-    bool shouldAbort;
-
-    // Create a table for the simulation status.
-    // key is replicate number, val is status: 0=waiting to run, 2=finished, other values=(?)(indicate at least not finished)
-    lm::io::hdf5::Hdf5File * file;
-
-    //the objects that manage the slots and the trajectories
-    TrajectoryAllocator trajectoryAllocator;
-    SupervisorSlotAllocator slotAllocator;
-
-    map<int,struct timespec> simulationStartTimeTable; //TODO: figure out what header timespec is in and put it in this header
-*/
 };
 
 }

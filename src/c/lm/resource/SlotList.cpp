@@ -62,7 +62,7 @@ using std::vector;
 namespace lm {
 namespace resource {
 
-SlotList::SlotList(lm::message::Communicator * supervisorComm): busySlots(), freeSlots(), xorShift(0,0), supervisorComm(supervisorComm), slotTemplateeMsg()// the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
+SlotList::SlotList(lm::message::Communicator * supervisorComm): busySlots(), freeSlots(), xorShift(0,0), supervisorComm(supervisorComm), slotTemplateMsg()// the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
 }
 
@@ -106,15 +106,17 @@ void SlotList::addSlot(int controller_process, int controller_thread)
 {
 	// Create temporary slot ID for use during slot registration process
 	uint32_t uuid(xorShift.getRandom());
-    Slot * addedSlot = new Slot(controller_process, controller_thread, uuid, supervisorComm, slotTemplateeMsg);
-    int keys[] = {-1, uuid};
+    Slot * addedSlot = new Slot(controller_process, controller_thread, uuid, supervisorComm, slotTemplateMsg);
+    // the following static_cast<int> is used to get around the disallowment of 'narrowing' conversions in c++11
+    int keys[] = {-1, static_cast<int>(uuid)};
     vector<int> slotKey(keys, keys+2);
     busySlots[slotKey] = addedSlot;
 }
 
 bool SlotList::workUnitRunnerStarted(const lm::message::StartedWorkUnitRunner & msg)
 {
-	int keys[] = {-1, msg.uuid()};
+	// the following static_cast<int> is used to get around the disallowment of 'narrowing' conversions in c++11
+	int keys[] = {-1, static_cast<int>(msg.uuid())};
 	vector<int> slotKey(keys, keys+2);
 	SlotMap::iterator m_it(busySlots.find(slotKey));
 	if (m_it!=busySlots.end())

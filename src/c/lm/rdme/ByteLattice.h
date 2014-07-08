@@ -64,7 +64,7 @@ public:
 public:
     ByteLattice(lattice_coord_t size, si_dist_t spacing, uint particlesPerSite) throw(std::bad_alloc,InvalidArgException,Exception);
     ByteLattice(lattice_size_t xSize, lattice_size_t ySize, lattice_size_t zSize, si_dist_t spacing, uint particlesPerSite) throw(std::bad_alloc,InvalidArgException,Exception);
-	virtual ~ByteLattice() throw(std::bad_alloc);
+	virtual ~ByteLattice(); //TODO: the ~ByteLattice throw spec doesn't work with c++11. Maybe reenable somehow? throw(std::bad_alloc);
 	
 	virtual void getNeighboringSites(lattice_size_t index, lattice_size_t * neighboringIndices);
 

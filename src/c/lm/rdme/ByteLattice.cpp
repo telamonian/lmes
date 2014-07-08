@@ -74,8 +74,7 @@ throw(std::bad_alloc,InvalidArgException,Exception)
     allocateMemory();
 }
 
-ByteLattice::~ByteLattice()
-throw(std::bad_alloc)
+ByteLattice::~ByteLattice() //throw(std::bad_alloc)
 {
     deallocateMemory();
 }

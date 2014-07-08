@@ -63,7 +63,7 @@ CheckpointSignaler::CheckpointSignaler() throw(PthreadException)
 	PTHREAD_EXCEPTION_CHECK(pthread_cond_init(&controlChange, NULL));
 }
 
-CheckpointSignaler::~CheckpointSignaler() throw(PthreadException)
+CheckpointSignaler::~CheckpointSignaler() //throw(PthreadException)
 {
     PTHREAD_EXCEPTION_CHECK(pthread_cond_destroy(&controlChange));
 }

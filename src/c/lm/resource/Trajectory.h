@@ -60,7 +60,7 @@ public:
 
 	Trajectory(int trajectoryNumber);
 	lm::message::RunWorkUnit& getRunMsg();
-	void setWorkUnitId(long long id) {getRunMsg()->set_work_unit_id(id);}
+	void setWorkUnitId(long long id) {getRunMsg().set_work_unit_id(id);}
 
 	int trajectoryNumber;
 	status_t status;

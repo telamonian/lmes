@@ -60,7 +60,7 @@ class SignalHandler : public Worker
 {
 public:
     SignalHandler() throw(PthreadException);
-    virtual ~SignalHandler() throw(PthreadException);
+    virtual ~SignalHandler(); // TODO: the ~SignalHandler throw spec doesn't work with c++11. Maybe reenable somehow? throw(PthreadException);
     virtual void wake() throw(PthreadException);
     virtual void setMainWorker(Worker * mw) throw(PthreadException);
     virtual Worker * getMainWorker() throw(PthreadException);

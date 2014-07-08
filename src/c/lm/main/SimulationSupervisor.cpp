@@ -60,7 +60,7 @@ namespace lm {
 namespace main {
 
 SimulationSupervisor::SimulationSupervisor()
-    :workUnitCount(0),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),solverClassName(""),useCPUAffinity(false),hasReactionModel(false),hasDiffusionModel(false),slots(&communicator)
+    :workUnitCount(0),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),solverClassName(""),useCPUAffinity(false),hasReactionModel(false),hasDiffusionModel(false),trajectories(NULL),slots(&communicator)
 {
 }
 
@@ -205,14 +205,6 @@ void SimulationSupervisor::allResourcesRegistered()
 	if (hasReactionModel) *startSlotMsg->mutable_reaction_model() = reactionModel;
 	if (hasDiffusionModel) *startSlotMsg->mutable_diffusion_model() = diffusionModel;
 
-	lm::message::RunWorkUnit& runWorkUnitMsg = trajectories->getRunWorkUnitMsg();
-	runWorkUnitMsg.set_supervisor_process(communicator.getSourceProcess());
-	runWorkUnitMsg.set_supervisor_thread(communicator.getSourceThread());
-	runWorkUnitMsg.set_max_steps(100);
-	initLimits();
-	runWorkUnitMsg.mutable_limits() = limits;
-
-
 	map<int,ResourceMap::ComputeResources> allResources = resourceMap->getAvailableResources();
     slots.addSlots(allResources);
 }
@@ -255,7 +247,7 @@ bool SimulationSupervisor::assignWork()
 		if (nextWorkUnitMsg==NULL) return true;
 
 		// If we got this far, put the next free slot together with the next trajectory
-		workSlot->startWorkUnitRemote(nextWorkUnitMsg);
+		workSlot->startWorkUnitRemote(nextWorkUnitMsg, workUnitCount++);
 
 //		lm::message::RunWorkUnit& run = *msg.mutable_run_work_unit();
 //		run.set_supervisor_process(communicator.getSourceProcess());

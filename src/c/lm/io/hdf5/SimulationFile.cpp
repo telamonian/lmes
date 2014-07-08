@@ -89,6 +89,12 @@ Hdf5File::Hdf5File(const char* filename) throw(IOException,HDF5Exception,Excepti
 	open();
 }
 
+Hdf5File::~Hdf5File() // TODO: the ~HDF5File throw spec doesn't work with c++11. Maybe reenable somehow? throw(IOException,HDF5Exception)
+{
+	//Close the file, if it is still open.
+	close();
+}
+
 void Hdf5File::open() throw(IOException,HDF5Exception,Exception)
 {
     // Make sure gzip is supported.
@@ -136,12 +142,6 @@ void Hdf5File::openGroups() throw(HDF5Exception)
     HDF5_EXCEPTION_CALL(parametersGroup,H5Gopen2(file, "/Parameters", H5P_DEFAULT));
     HDF5_EXCEPTION_CALL(modelGroup,H5Gopen2(file, "/Model", H5P_DEFAULT));
     HDF5_EXCEPTION_CALL(simulationsGroup,H5Gopen2(file, "/Simulations", H5P_DEFAULT));
-}
-
-Hdf5File::~Hdf5File() throw(IOException,HDF5Exception)
-{
-	//Close the file, if it is still open.
-	close();
 }
 
 void Hdf5File::flush() throw(HDF5Exception)
