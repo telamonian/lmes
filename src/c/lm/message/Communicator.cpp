@@ -88,7 +88,7 @@ void Communicator::sendMessage(int destProcess, int destThread, lm::message::Mes
 
     // Serialize the message into the buffer.
     int messageLength=message->ByteSize();
-    if (messageLength > outputBufferSize) throw lm::Exception("Message to large to serialize into output buffer",messageLength,outputBufferSize);
+    if (messageLength > outputBufferSize) throw lm::Exception("Message too large to serialize into output buffer",messageLength,outputBufferSize);
     if (!message->SerializeToArray(outputBuffer,messageLength)) throw lm::Exception("Unable to serialize message");
 
     // Send the buffer.

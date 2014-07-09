@@ -45,10 +45,10 @@
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Message.pb.h"
-#include "lm/resource/TrajectoryList.h"
 
 using std::map;
 using std::string;
+
 
 namespace lm {
 namespace resource {
@@ -59,18 +59,33 @@ public:
 	enum status_t {NOT_STARTED, RUNNING, WAITING, FINISHED};
 
 	Trajectory(int trajectoryNumber);
-	lm::message::RunWorkUnit& getRunMsg();
-	void setWorkUnitId(long long id) {getRunMsg().set_work_unit_id(id);}
+
+	//getters
+	lm::message::Message* getMsg() {return &msg;}
+	lm::message::RunWorkUnit* getRunMsg();
+	status_t getStatus() {return status;}
+	lm::io::TrajectoryState& getState() {return state;}
+
+	//setters
+	void setMsg(const lm::message::Message& newMsg) {msg = newMsg;}
+	void setWorkUnitId(long long id) {getRunMsg()->set_work_unit_id(id);}
+	void setStatus(status_t newStatus) {status = newStatus;}
+	void setState(const lm::io::TrajectoryState& newState) {state = newState;}
+
+	//other?
+	void updateInitialRunState();
 
 	int trajectoryNumber;
-	status_t status;
-	lm::io::TrajectoryState state;
 
 protected:
+	status_t status;
+	lm::io::TrajectoryState state;
 	lm::message::Message msg;
 };
 
 }
 }
+
+typedef map<int, lm::resource::Trajectory*> TrajectoryMap;
 
 #endif

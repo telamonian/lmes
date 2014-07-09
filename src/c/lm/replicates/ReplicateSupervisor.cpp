@@ -75,7 +75,7 @@ void* ReplicateSupervisor::allocateObject()
 }
 
 ReplicateSupervisor::ReplicateSupervisor()
-:outputWriterProcess(-1),outputWriterThread(-1) //TODO: fix to -1,-1 once the slot code has been fixed
+:outputWriterProcess(0),outputWriterThread(3) //TODO: fix to -1,-1 once the slot code has been fixed
 {
 }
 
@@ -97,8 +97,7 @@ void ReplicateSupervisor::allResourcesRegistered()
     msg.mutable_start_output_writer()->set_output_filename(simulationOutputFilename);
     msg.mutable_start_output_writer()->set_output_writer_class(outputWriterClassName);
     communicator.sendMessage(resources.controller_process, resources.controller_thread, &msg);
-
-    // Call the base class method.
+    // Call the base allResourcesRegistered method.
     SimulationSupervisor::allResourcesRegistered();
 }
 
@@ -133,6 +132,9 @@ void ReplicateSupervisor::startSimulation()
 	initLimits();
 	lm::io::TrajectoryLimits* trajectoryLimits = new lm::io::TrajectoryLimits(limits);
 	runWorkUnitMsg->set_allocated_limits(trajectoryLimits);
+
+	// Now that the template msg has been set properly, initialize the trajectory list
+	trajectories->init();
 
     // Call the base class method
     SimulationSupervisor::startSimulation();

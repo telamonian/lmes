@@ -38,10 +38,9 @@ public:
 	virtual vector<int> alloc();
 	virtual void free();
 
-	virtual void startRemote(int controller_process, int controller_thread, lm::message::Message & msg);
-	virtual void startedRemote(const lm::message::StartedWorkUnitRunner & msg);
-	virtual void startWorkUnitRemote(lm::message::Message * msg, long long workUnitID);
-	virtual void startedWorkUnitRemote(const lm::message::StartedWorkUnit & msg);
+	virtual void workUnitRunnerRemoteStart(int controller_process, int controller_thread, lm::message::Message & msg);
+	virtual void workUnitRunnerRemoteStarted(const lm::message::StartedWorkUnitRunner & msg);
+	virtual void workUnitRemoteStart(lm::message::Message * msg, long long workUnitID);
 	virtual void stop();
 	virtual void stopRemote();
 	virtual void stoppedRemote();

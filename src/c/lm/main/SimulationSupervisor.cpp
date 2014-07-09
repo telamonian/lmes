@@ -161,6 +161,10 @@ int SimulationSupervisor::run()
     {
         Print::printf(Print::FATAL, "Exception during execution: %s (%s:%d)", e.what(), __FILE__, __LINE__);
     }
+    catch (lm::Exception* e)
+	{
+		Print::printf(Print::FATAL, "Exception during execution: %s (%s:%d)", e->what(), __FILE__, __LINE__);
+	}
     catch (std::exception& e)
     {
         Print::printf(Print::FATAL, "Exception during execution: %s (%s:%d)", e.what(), __FILE__, __LINE__);
@@ -247,7 +251,7 @@ bool SimulationSupervisor::assignWork()
 		if (nextWorkUnitMsg==NULL) return true;
 
 		// If we got this far, put the next free slot together with the next trajectory
-		workSlot->startWorkUnitRemote(nextWorkUnitMsg, workUnitCount++);
+		workSlot->workUnitRemoteStart(nextWorkUnitMsg, workUnitCount++);
 
 //		lm::message::RunWorkUnit& run = *msg.mutable_run_work_unit();
 //		run.set_supervisor_process(communicator.getSourceProcess());
@@ -270,7 +274,6 @@ bool SimulationSupervisor::assignWork()
 void SimulationSupervisor::workUnitStarted(const lm::message::StartedWorkUnit& msg)
 {
     Print::printf(Print::INFO, "Work unit %d started.",msg.work_unit_id());
-    trajectories->workUnitStarted(msg);
 }
 
 void SimulationSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
@@ -291,7 +294,7 @@ void SimulationSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit&
 //        trajectories->updateTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
 //    }
     // Free the slot that the returning work unit just ran on
-    slots.free(msg.process(), msg.thread());
+    slots.workUnitFinished(msg);
 //
 //
 //    lm::resource::Slot * workSlot = slotList.alloc();

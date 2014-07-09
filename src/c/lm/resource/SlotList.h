@@ -104,6 +104,7 @@ public:
 
     //allocate and free methods
     virtual Slot * alloc();
+    virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg) {free(msg.process(), msg.thread());}
     virtual void free(int process, int thread);
 
     //dealing with the internal Message methods

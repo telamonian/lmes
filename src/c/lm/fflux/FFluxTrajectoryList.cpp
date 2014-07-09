@@ -57,14 +57,8 @@ namespace lm {
 namespace fflux {
 
 FFluxTrajectoryList::FFluxTrajectoryList(long long simulataneousTrajectoryCount, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel):
-	TrajectoryList(simulationParameters, reactionModel)
+	TrajectoryList(simulationParameters, reactionModel), simulatenousTrajectoryCount(simulatenousTrajectoryCount)
 {
-	lm::io::CMEState* trajectoryCMEState = initTrajectoryCMEState();
-    for (long long i=0; i<=simulataneousTrajectoryCount; i++)
-    {
-    	initTrajectory(trajectoryCount++, trajectoryCMEState);
-    }
-    delete trajectoryCMEState;
 }
 
 FFluxTrajectoryList::~FFluxTrajectoryList()
@@ -75,22 +69,35 @@ FFluxTrajectoryList::~FFluxTrajectoryList()
     }
 }
 
+void FFluxTrajectoryList::init()
+{
+	lm::io::CMEState* trajectoryCMEState = initTrajectoryCMEState();
+    for (long long i=0; i<=simulatenousTrajectoryCount; i++)
+    {
+    	initTrajectory(trajectoryCount++, trajectoryCMEState);
+    }
+    delete trajectoryCMEState;
+}
+
 void FFluxTrajectoryList::initTrajectory(long long id, lm::io::CMEState* cmeState)
 {
 	// Construct new trajectory
 	trajectories[id] = new lm::resource::Trajectory(id);
 
+	// Initialize the trajectory's runWorkUnit message
+	trajectories[id]->setMsg(trajectoryTemplateMsg);
+
 	// Copy the referenced CMEState to a new CMEState
 	lm::io::CMEState * newTrajectoryCMEState = new lm::io::CMEState(*cmeState);
 
 	// Assign ownership of the CMEState copy to the newly constructed trajectory
-	trajectories[id]->state.set_allocated_cme_state(newTrajectoryCMEState);
+	trajectories[id]->getState().set_allocated_cme_state(newTrajectoryCMEState);
 
 	// Set the trajectory id in the trajectory state.
-	trajectories[id]->state.set_trajectory_id(id);
+	trajectories[id]->getState().set_trajectory_id(id);
 
 	// Set the trajectory id in the CME state of the trajectory state.
-	trajectories[id]->state.mutable_cme_state()->mutable_species_counts()->set_trajectory_id(id);
+	trajectories[id]->getState().mutable_cme_state()->mutable_species_counts()->set_trajectory_id(id);
 }
 
 lm::io::CMEState* FFluxTrajectoryList::initTrajectoryCMEState()

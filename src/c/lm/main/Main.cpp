@@ -387,7 +387,7 @@ void parseArguments(int argc, char** argv)
          }
 
         //See if the user is trying to turn off cuda capability printing.
-        else if ((strcmp(option, "-esff") == 0 || strcmp(option, "--use-forward-flux-runner") == 0))
+        else if ((strcmp(option, "-fflux") == 0 || strcmp(option, "--use-forward-flux") == 0))
 		{
         	 ffluxFlag = true;
 		}
@@ -523,5 +523,6 @@ void printUsage(int argc, char** argv)
     std::cout << "  -ws               --well-stirred                The simulations should use the well-stirred reaction model." << std::endl;
     std::cout << "  -sl solver        --solver=solver               The specific solver class to use for the simulations." << std::endl;
     std::cout << "  -ck               --checkpoint=interval         Enable checkpointing with the given interval as hh:mm:ss (default 00:00:00 -- disabled)." << std::endl;
+    std::cout << "  -fflux            --use-forward-flux			Enable forward flux sampling (default disabled)." << std::endl;
 }
 

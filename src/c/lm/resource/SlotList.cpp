@@ -121,7 +121,7 @@ bool SlotList::workUnitRunnerStarted(const lm::message::StartedWorkUnitRunner & 
 	SlotMap::iterator m_it(busySlots.find(slotKey));
 	if (m_it!=busySlots.end())
 	{
-		m_it->second->startedRemote(msg);
+		m_it->second->workUnitRunnerRemoteStarted(msg);
 		freeSlots.push_front(m_it->second);
 		busySlots.erase(m_it);
 	}

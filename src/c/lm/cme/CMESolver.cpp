@@ -839,7 +839,6 @@ void CMESolver::getState(lm::io::TrajectoryState* state)
     for (int i=0; i<(int)reactionModel->numberSpecies; i++)
     {
         state->mutable_cme_state()->mutable_species_counts()->add_species_count(speciesCounts[i]);
-        state->mutable_cme_state()->mutable_species_counts()->add_species_count(previousSpeciesCounts[i]);
     }
     state->mutable_cme_state()->mutable_species_counts()->add_time(time);
 

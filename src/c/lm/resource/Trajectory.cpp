@@ -56,10 +56,18 @@ namespace resource {
 
 Trajectory::Trajectory(int trajectoryNumber) : trajectoryNumber(trajectoryNumber),status(NOT_STARTED) {}
 
-lm::message::RunWorkUnit& Trajectory::getRunMsg()
+lm::message::RunWorkUnit* Trajectory::getRunMsg()
 {
 //	lm::message::RunWorkUnit& runMsg = msg.mutable_run_work_unit();
 	return msg.mutable_run_work_unit();
+}
+
+void Trajectory::updateInitialRunState()
+{
+//	lm::io::TrajectoryState* runState = new lm::io::TrajectoryState(state);
+//	getRunMsg()->set_allocated_initial_state(runState);
+	*(getRunMsg()->mutable_initial_state()) = state;
+
 }
 
 }

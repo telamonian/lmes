@@ -193,7 +193,7 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
     int rngNext=0;
 
     // Run the direct method.
-    Print::printf(Print::DEBUG, "Running Gillespie direct simulation for %d steps with %d species, %d reactions, %d species limits", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberSpeciesLimits);
+    Print::printf(Print::DEBUG, "Running Gillespie direct simulation for %d steps with %d species, %d reactions, %d species limits\n", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberSpeciesLimits);
     PROF_BEGIN(PROF_SIM_EXECUTE);
     bool addedSpeciesCounts;
     bool addedParameterValues;

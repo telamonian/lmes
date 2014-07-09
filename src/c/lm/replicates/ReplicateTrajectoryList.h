@@ -60,7 +60,11 @@ class ReplicateTrajectoryList : public lm::resource::TrajectoryList
 public:
     ReplicateTrajectoryList(int firstTrajectory, int lastTrajectory, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel);
     virtual ~ReplicateTrajectoryList();
-    virtual int nextTrajectoryToRun();
+    virtual void init();
+
+protected:
+    int firstTrajectory;
+    int lastTrajectory;
 };
 
 }

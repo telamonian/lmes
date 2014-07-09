@@ -49,8 +49,6 @@
 
 using std::map;
 using std::string;
-typedef map<int, lm::resource::Trajectory*> TrajectoryMap;
-
 
 namespace lm {
 namespace resource {
@@ -58,22 +56,25 @@ namespace resource {
 class TrajectoryList
 {
 public:
-//    virtual int nextTrajectoryToRun()=0;
     TrajectoryList(map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel);
     virtual ~TrajectoryList();
-    virtual Trajectory::status_t getTrajectoryStatus(int trajectory);
+    virtual void init()=0;
+
+    //getter
+    virtual lm::resource::Trajectory::status_t getTrajectoryStatus(int trajectory);
+    virtual const lm::io::TrajectoryState& getTrajectoryState(int trajectory);
+
+    //setter
+    virtual void setTrajectoryStatus(int trajectory, lm::resource::Trajectory::status_t status);
+    virtual void setTrajectoryState(int trajectory, const lm::io::TrajectoryState& state);
 
     virtual lm::message::Message* getNextWorkUnitMsg();
-    virtual bool workUnitStarted(const lm::message::StartedWorkUnit & msg);
     virtual void workUnitFinished(const lm::message::FinishedWorkUnit & msg);
-    virtual const lm::io::TrajectoryState& getTrajectoryState(int trajectory);
 
     // dealing with the internal template Message methods
 	virtual lm::message::RunWorkUnit* getRunWorkUnitMsg() {return trajectoryTemplateMsg.mutable_run_work_unit();}
 
 protected:
-    virtual void updateTrajectoryStatus(int trajectory, Trajectory::status_t status);
-    virtual void updateTrajectoryState(int trajectory, const lm::io::TrajectoryState& state);
     long long trajectoryCount;
     long long workUnitCount;
     map<string,string>& simulationParameters;

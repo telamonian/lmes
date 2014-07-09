@@ -22,3 +22,5 @@
 /.ptp-sync
 .ptp-sync-folder
 /.gdbinit
+
+/test_case

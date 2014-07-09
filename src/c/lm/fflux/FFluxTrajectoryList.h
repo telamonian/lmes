@@ -60,10 +60,13 @@ class FFluxTrajectoryList : public lm::resource::TrajectoryList
 public:
     FFluxTrajectoryList(long long trajectoryCount, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel);
     virtual ~FFluxTrajectoryList();
+    virtual void init();
     virtual void initTrajectory(long long trajectoryID, lm::io::CMEState* trajectoryCMEState);
     virtual lm::io::CMEState* initTrajectoryCMEState();
-    virtual lm::message::Message * getNextWorkUnitMsg();
     virtual void workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg);
+
+protected:
+    long long simulatenousTrajectoryCount;
 };
 
 }

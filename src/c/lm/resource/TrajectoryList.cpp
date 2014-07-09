@@ -46,6 +46,7 @@
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Message.pb.h"
+#include "lm/resource/Trajectory.h"
 #include "lm/resource/TrajectoryList.h"
 
 using std::map;
@@ -66,52 +67,53 @@ TrajectoryList::~TrajectoryList()
     }
 }
 
-void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit & msg)
+void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
 {
 	if (msg.status() == lm::message::FinishedWorkUnit::LIMIT_REACHED)
 	{
-		updateTrajectoryStatus(msg.final_state().trajectory_id(), Trajectory::FINISHED);
-		updateTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
+		setTrajectoryStatus(msg.final_state().trajectory_id(), Trajectory::FINISHED);
+		setTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
 	}
 	else
 	{
-		updateTrajectoryStatus(msg.final_state().trajectory_id(), Trajectory::WAITING);
-		updateTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
+		setTrajectoryStatus(msg.final_state().trajectory_id(), Trajectory::WAITING);
+		setTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
 	}
 }
 
 lm::message::Message * TrajectoryList::getNextWorkUnitMsg()
 {
-	lm::message::Message * nextWorkUnitMsg;
-	for (TrajectoryMap::iterator it : trajectories)
+	for (auto trajectory : trajectories)
 	{
-		if (it->second->status==Trajectory::NOT_STARTED || it->second->status==Trajectory::WAITING)
+		if (trajectory.second->getStatus()==Trajectory::NOT_STARTED || trajectory.second->getStatus()==Trajectory::WAITING)
 		{
-			it->second->setWorkUnitId(workUnitCount++);
-			return it->second->msg;
+			trajectory.second->setStatus(Trajectory::RUNNING);
+			trajectory.second->setWorkUnitId(workUnitCount++);
+			trajectory.second->updateInitialRunState();
+			return trajectory.second->getMsg();
 		}
 	}
 	return NULL;
 }
 
-Trajectory::status_t TrajectoryList::getTrajectoryStatus(int trajectory)
+Trajectory::status_t TrajectoryList::getTrajectoryStatus(int trajectoryID)
 {
-    return trajectories[trajectory]->status;
-}
-
-void TrajectoryList::updateTrajectoryStatus(int trajectory, Trajectory::status_t status)
-{
-    trajectories[trajectory]->status = status;
+    return trajectories[trajectoryID]->getStatus();
 }
 
 const lm::io::TrajectoryState& TrajectoryList::getTrajectoryState(int trajectory)
 {
-    return trajectories[trajectory]->state;
+    return trajectories[trajectory]->getState();
 }
 
-void TrajectoryList::updateTrajectoryState(int trajectory, const lm::io::TrajectoryState& state)
+void TrajectoryList::setTrajectoryStatus(int trajectoryID, Trajectory::status_t status)
 {
-    trajectories[trajectory]->state = state;
+    trajectories[trajectoryID]->setStatus(status);
+}
+
+void TrajectoryList::setTrajectoryState(int trajectoryID, const lm::io::TrajectoryState& state)
+{
+    trajectories[trajectoryID]->setState(state);
 }
 
 }
