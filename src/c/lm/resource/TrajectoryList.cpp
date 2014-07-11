@@ -48,6 +48,7 @@
 #include "lm/message/Message.pb.h"
 #include "lm/resource/Trajectory.h"
 #include "lm/resource/TrajectoryList.h"
+#include "lm/Types.h"
 
 using std::map;
 using std::string;
@@ -65,6 +66,21 @@ TrajectoryList::~TrajectoryList()
     {
         delete it->second;
     }
+}
+
+void TrajectoryList::deleteAllTrajectories()
+{
+	for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+	    {
+	        delete it->second;
+	        trajectories.erase(it);
+	    }
+}
+
+void TrajectoryList::deleteTrajectory(uint64_t trajectoryID)
+{
+	delete trajectories[trajectoryID];
+	trajectories.erase(trajectoryID);
 }
 
 void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
@@ -96,22 +112,22 @@ lm::message::Message * TrajectoryList::getNextWorkUnitMsg()
 	return NULL;
 }
 
-Trajectory::status_t TrajectoryList::getTrajectoryStatus(int trajectoryID)
+Trajectory::status_t TrajectoryList::getTrajectoryStatus(uint64_t trajectoryID)
 {
     return trajectories[trajectoryID]->getStatus();
 }
 
-const lm::io::TrajectoryState& TrajectoryList::getTrajectoryState(int trajectory)
+const lm::io::TrajectoryState& TrajectoryList::getTrajectoryState(uint64_t trajectoryID)
 {
-    return trajectories[trajectory]->getState();
+    return trajectories[trajectoryID]->getState();
 }
 
-void TrajectoryList::setTrajectoryStatus(int trajectoryID, Trajectory::status_t status)
+void TrajectoryList::setTrajectoryStatus(uint64_t trajectoryID, Trajectory::status_t status)
 {
     trajectories[trajectoryID]->setStatus(status);
 }
 
-void TrajectoryList::setTrajectoryState(int trajectoryID, const lm::io::TrajectoryState& state)
+void TrajectoryList::setTrajectoryState(uint64_t trajectoryID, const lm::io::TrajectoryState& state)
 {
     trajectories[trajectoryID]->setState(state);
 }

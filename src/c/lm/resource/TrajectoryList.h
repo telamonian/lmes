@@ -46,6 +46,7 @@
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/resource/Trajectory.h"
+#include "lm/Types.h"
 
 using std::map;
 using std::string;
@@ -61,12 +62,16 @@ public:
     virtual void init()=0;
 
     //getter
-    virtual lm::resource::Trajectory::status_t getTrajectoryStatus(int trajectory);
-    virtual const lm::io::TrajectoryState& getTrajectoryState(int trajectory);
+    virtual lm::resource::Trajectory::status_t getTrajectoryStatus(uint64_t trajectoryID);
+    virtual const lm::io::TrajectoryState& getTrajectoryState(uint64_t trajectoryID);
 
     //setter
-    virtual void setTrajectoryStatus(int trajectory, lm::resource::Trajectory::status_t status);
-    virtual void setTrajectoryState(int trajectory, const lm::io::TrajectoryState& state);
+    virtual void setTrajectoryStatus(uint64_t trajectoryID, lm::resource::Trajectory::status_t status);
+    virtual void setTrajectoryState(uint64_t trajectoryID, const lm::io::TrajectoryState& state);
+
+    //destroyer
+    virtual void deleteTrajectory(uint64_t trajectoryID);
+    virtual void deleteAllTrajectories();
 
     virtual lm::message::Message* getNextWorkUnitMsg();
     virtual void workUnitFinished(const lm::message::FinishedWorkUnit & msg);
@@ -75,8 +80,8 @@ public:
 	virtual lm::message::RunWorkUnit* getRunWorkUnitMsg() {return trajectoryTemplateMsg.mutable_run_work_unit();}
 
 protected:
-    long long trajectoryCount;
-    long long workUnitCount;
+    uint64_t trajectoryCount;
+    int64_t workUnitCount;
     map<string,string>& simulationParameters;
     const lm::io::ReactionModel& reactionModel;
     lm::message::Message trajectoryTemplateMsg;

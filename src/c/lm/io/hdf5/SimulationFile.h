@@ -130,19 +130,19 @@ public:
 
 
     // Methods for working with a replicate.
-    virtual bool replicateExists(unsigned int replicate) throw(HDF5Exception);
-    virtual void openReplicate(unsigned int replicate) throw(HDF5Exception);
-    virtual void appendSpeciesCounts(unsigned int replicate, lm::io::SpeciesCounts * speciesCounts) throw(HDF5Exception);
-    virtual void appendLattice(unsigned int replicate, lm::io::Lattice * lattice, byte * latticeData, size_t latticeDataSize) throw(InvalidArgException,HDF5Exception);
-    virtual void appendParameterValues(unsigned int replicate, lm::io::ParameterValues * parameterValues) throw(HDF5Exception,InvalidArgException);
-    virtual void setFirstPassageTimes(unsigned int replicate, lm::io::FirstPassageTimes * speciesCounts) throw(HDF5Exception,InvalidArgException);
-    virtual vector<double> getLatticeTimes(unsigned int replicate) throw(HDF5Exception,InvalidArgException);
-    virtual void getLattice(unsigned int replicate, unsigned int latticeIndex, lm::rdme::Lattice * lattice) throw(HDF5Exception,InvalidArgException);
-    virtual void closeReplicate(unsigned int replicate) throw(HDF5Exception);
+    virtual bool replicateExists(uint64_t replicate) throw(HDF5Exception);
+    virtual void openReplicate(uint64_t replicate) throw(HDF5Exception);
+    virtual void appendSpeciesCounts(uint64_t replicate, lm::io::SpeciesCounts * speciesCounts) throw(HDF5Exception);
+    virtual void appendLattice(uint64_t replicate, lm::io::Lattice * lattice, byte * latticeData, size_t latticeDataSize) throw(InvalidArgException,HDF5Exception);
+    virtual void appendParameterValues(uint64_t replicate, lm::io::ParameterValues * parameterValues) throw(HDF5Exception,InvalidArgException);
+    virtual void setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTimes * speciesCounts) throw(HDF5Exception,InvalidArgException);
+    virtual vector<double> getLatticeTimes(uint64_t replicate) throw(HDF5Exception,InvalidArgException);
+    virtual void getLattice(uint64_t replicate, unsigned int latticeIndex, lm::rdme::Lattice * lattice) throw(HDF5Exception,InvalidArgException);
+    virtual void closeReplicate(uint64_t replicate) throw(HDF5Exception);
     virtual void closeAllReplicates() throw(HDF5Exception);
 
-    //virtual void appendSpatialModelObjects(unsigned int replicate, lm::io::SpatialModel * model) throw(HDF5Exception,InvalidArgException);
-    //virtual void getSpatialModelObjects(unsigned int replicate, lm::io::SpatialModel * model) throw(HDF5Exception);
+    //virtual void appendSpatialModelObjects(uint64_t replicate, lm::io::SpatialModel * model) throw(HDF5Exception,InvalidArgException);
+    //virtual void getSpatialModelObjects(uint64_t replicate, lm::io::SpatialModel * model) throw(HDF5Exception);
 
 	/*virtual lattice_coord_t getLatticeSize() const;
 	virtual nmdist_t getLatticeSpacing() const;
@@ -175,7 +175,7 @@ protected:
     virtual void openGroups() throw(HDF5Exception);
     virtual void loadParameters() throw(HDF5Exception);
     virtual void loadModel() throw(Exception,HDF5Exception);
-    virtual ReplicateHandles * openReplicateHandles(unsigned int replicate) throw(HDF5Exception);
+    virtual ReplicateHandles * openReplicateHandles(uint64_t replicate) throw(HDF5Exception);
     virtual ReplicateHandles * createReplicateHandles(string replicateString) throw(Exception,HDF5Exception);
     virtual void closeReplicateHandles(ReplicateHandles * handles) throw(HDF5Exception);
 	
@@ -195,7 +195,7 @@ protected:
     unsigned int    numberSpecies;
 
     // Handles for each replicate that is open.
-    map<unsigned int,ReplicateHandles *> openReplicates;
+    map<uint64_t,ReplicateHandles *> openReplicates;
 
 };
 

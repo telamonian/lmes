@@ -56,8 +56,8 @@ using std::string;
 namespace lm {
 namespace fflux {
 
-FFluxTrajectoryList::FFluxTrajectoryList(long long simulataneousTrajectoryCount, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel):
-	TrajectoryList(simulationParameters, reactionModel), simulatenousTrajectoryCount(simulatenousTrajectoryCount)
+FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simulataneousTrajectoryCount, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel):
+	TrajectoryList(simulationParameters, reactionModel), ffluxPhase(0), simulatenousTrajectoryCount(simulatenousTrajectoryCount)
 {
 }
 
@@ -69,17 +69,18 @@ FFluxTrajectoryList::~FFluxTrajectoryList()
     }
 }
 
+
 void FFluxTrajectoryList::init()
 {
-	lm::io::CMEState* trajectoryCMEState = initTrajectoryCMEState();
+	lm::io::TrajectoryState* trajectoryState = initFirstTrajectoryState();
     for (long long i=0; i<=simulatenousTrajectoryCount; i++)
     {
-    	initTrajectory(trajectoryCount++, trajectoryCMEState);
+    	initTrajectory(trajectoryCount++, trajectoryState);
     }
-    delete trajectoryCMEState;
+    delete trajectoryState;
 }
 
-void FFluxTrajectoryList::initTrajectory(long long id, lm::io::CMEState* cmeState)
+void FFluxTrajectoryList::initTrajectory(uint64_t id, lm::io::TrajectoryState* state)
 {
 	// Construct new trajectory
 	trajectories[id] = new lm::resource::Trajectory(id);
@@ -87,38 +88,64 @@ void FFluxTrajectoryList::initTrajectory(long long id, lm::io::CMEState* cmeStat
 	// Initialize the trajectory's runWorkUnit message
 	trajectories[id]->setMsg(trajectoryTemplateMsg);
 
-	// Copy the referenced CMEState to a new CMEState
-	lm::io::CMEState * newTrajectoryCMEState = new lm::io::CMEState(*cmeState);
-
-	// Assign ownership of the CMEState copy to the newly constructed trajectory
-	trajectories[id]->getState().set_allocated_cme_state(newTrajectoryCMEState);
+	// Copy the TrajectoryState referenced in the function args to the TrajectoryState of the newly constructed trajectory
+	trajectories[id]->setState(*state);
 
 	// Set the trajectory id in the trajectory state.
 	trajectories[id]->getState().set_trajectory_id(id);
 
-	// Set the trajectory id in the CME state of the trajectory state.
-	trajectories[id]->getState().mutable_cme_state()->mutable_species_counts()->set_trajectory_id(id);
+	// Set the trajectory id in the CME state of the trajectory state (if applicable).
+	if (trajectories[id]->getState().has_cme_state())
+		trajectories[id]->getState().mutable_cme_state()->mutable_species_counts()->set_trajectory_id(id);
+
+	// Set the trajectory id in the RDME state of the trajectory state (if applicable).
+//	if (trajectories[id]->getState().has_rdme_state())
+//		trajectories[id]->getState().mutable_rdme_state()->mutable_species_counts()->set_trajectory_id(id);
 }
 
-lm::io::CMEState* FFluxTrajectoryList::initTrajectoryCMEState()
+lm::io::TrajectoryState* FFluxTrajectoryList::initFirstTrajectoryState()
 {
-	lm::io::CMEState* trajectoryCMEState = new lm::io::CMEState();
-	trajectoryCMEState->mutable_species_counts()->set_number_species(reactionModel.number_species());
-	trajectoryCMEState->mutable_species_counts()->set_number_entries(1);
+	lm::io::TrajectoryState* trajectoryState = new lm::io::TrajectoryState();
+	trajectoryState->mutable_cme_state()->mutable_species_counts()->set_number_species(reactionModel.number_species());
+	trajectoryState->mutable_cme_state()->mutable_species_counts()->set_number_entries(1);
 	for (int j=0; j<(int)reactionModel.number_species(); j++)
-		trajectoryCMEState->mutable_species_counts()->add_species_count(reactionModel.initial_species_count(j));
-	trajectoryCMEState->mutable_species_counts()->add_time(0.0);
-	return trajectoryCMEState;
+		trajectoryState->mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.initial_species_count(j));
+	trajectoryState->mutable_cme_state()->mutable_species_counts()->add_time(0.0);
+	return trajectoryState;
 }
 
 void FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg)
 {
-	if (finishedWorkUnitMsg.status() == lm::message::FinishedWorkUnit::LIMIT_REACHED)
-	{
-		// TODO: add last state of trajectory to interceptList, remove old trajectory, start new trajectory
-	}
 	// Call the base class method
 	TrajectoryList::workUnitFinished(finishedWorkUnitMsg);
+
+	// If the work unit stopped because it detected a crossing event...
+	if (finishedWorkUnitMsg.status()==lm::message::FinishedWorkUnit::LIMIT_REACHED)
+	{
+		// ...add the work unit's final state to the appropriate list of crossings and delete the finished trajectory
+		crossings[ffluxPhase].push_back(finishedWorkUnitMsg.final_state());
+		deleteTrajectory(finishedWorkUnitMsg.final_state().trajectory_id());
+		// Next, if enough crossing events have been detected for this phase of forward flux sampling...
+		if (crossings[ffluxPhase].size()>=100)
+		{
+			// ...delete the currently running set of trajectories, increment the fflux phase counter, and start up a new set of trajectories
+		}
+		// ...otherwise we still have to collect more crossing events related to this phase's interface...
+		else
+		{
+			// ...and if the forward flux sampling is still in its 0th (ie initial) phase...
+			if (ffluxPhase==0)
+			{
+
+			}
+			// ...otherwise if ffluxPhase > 0...
+			else
+			{
+
+			}
+		}
+
+	}
 		//        *run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
 		//        Print::printf(Print::INFO, "Sending message to start work unit %d with trajectory %d on slot %d:%d.", run.work_unit_id(), nextTrajectory, workSlot->getSlotKey()[0], workSlot->getSlotKey()[1]);
 		//        communicator.sendMessage(workSlot->getSlotKey()[0], workSlot->getSlotKey()[1], &msg);

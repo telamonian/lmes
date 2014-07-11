@@ -49,6 +49,7 @@
 #include "lm/replicates/ReplicateTrajectoryList.h"
 #include "lm/resource/Trajectory.h"
 #include "lm/resource/TrajectoryList.h"
+#include "lm/Types.h"
 
 using std::map;
 using std::string;
@@ -56,7 +57,7 @@ using std::string;
 namespace lm {
 namespace replicates {
 
-ReplicateTrajectoryList::ReplicateTrajectoryList(int firstTrajectory, int lastTrajectory, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel)
+ReplicateTrajectoryList::ReplicateTrajectoryList(uint64_t firstTrajectory, uint64_t lastTrajectory, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel)
 	:TrajectoryList(simulationParameters, reactionModel), firstTrajectory(firstTrajectory), lastTrajectory(lastTrajectory)
 {
 }
@@ -71,7 +72,7 @@ ReplicateTrajectoryList::~ReplicateTrajectoryList()
 
 void ReplicateTrajectoryList::init()
 {
-	for (int i=firstTrajectory; i<=lastTrajectory; i++)
+	for (uint64_t i=firstTrajectory; i<=lastTrajectory; i++)
 	{
 		trajectories[i] = new lm::resource::Trajectory(i);
 

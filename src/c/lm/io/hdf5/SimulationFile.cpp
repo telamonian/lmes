@@ -49,6 +49,7 @@
 #include "lm/Math.h"
 #include "lm/Print.h"
 #include "lm/Tune.h"
+#include "lm/Types.h"
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/Lattice.pb.h"
@@ -1062,20 +1063,20 @@ void Hdf5File::setSpatialModel(lm::io::SpatialModel * spatialModel) throw(Except
     }
 }
 
-bool Hdf5File::replicateExists(unsigned int replicate) throw(HDF5Exception)
+bool Hdf5File::replicateExists(uint64_t replicate) throw(HDF5Exception)
 {
-    char replicateName[8];
-    snprintf(replicateName, sizeof(replicateName), "%07d", replicate);
+    char replicateName[16];
+    snprintf(replicateName, sizeof(replicateName), "%015d", replicate);
     if (H5Lexists(simulationsGroup, replicateName, H5P_DEFAULT) > 0) return true;
     return false;
 }
 
-void Hdf5File::openReplicate(unsigned int replicate) throw(HDF5Exception)
+void Hdf5File::openReplicate(uint64_t replicate) throw(HDF5Exception)
 {
     openReplicateHandles(replicate);
 }
 
-void Hdf5File::appendSpeciesCounts(unsigned int replicate, lm::io::SpeciesCounts * speciesCounts) throw(HDF5Exception)
+void Hdf5File::appendSpeciesCounts(uint64_t replicate, lm::io::SpeciesCounts * speciesCounts) throw(HDF5Exception)
 {
     ReplicateHandles * handles = openReplicateHandles(replicate);
 
@@ -1151,7 +1152,7 @@ void Hdf5File::appendSpeciesCounts(unsigned int replicate, lm::io::SpeciesCounts
     }
 }
 
-void Hdf5File::appendLattice(unsigned int replicate, lm::io::Lattice * lattice, uint8_t * latticeData, size_t latticeDataSize) throw(InvalidArgException,HDF5Exception)
+void Hdf5File::appendLattice(uint64_t replicate, lm::io::Lattice * lattice, uint8_t * latticeData, size_t latticeDataSize) throw(InvalidArgException,HDF5Exception)
 {
     if (lattice->lattice_x_size()*lattice->lattice_y_size()*lattice->lattice_z_size()*lattice->particles_per_site()*sizeof(uint8_t) != latticeDataSize) throw InvalidArgException("lattice", "incorrect lattice size");
 
@@ -1252,7 +1253,7 @@ void Hdf5File::appendLattice(unsigned int replicate, lm::io::Lattice * lattice, 
 
 }
 
-void Hdf5File::appendParameterValues(unsigned int replicate, lm::io::ParameterValues * parameterValues) throw(HDF5Exception,InvalidArgException)
+void Hdf5File::appendParameterValues(uint64_t replicate, lm::io::ParameterValues * parameterValues) throw(HDF5Exception,InvalidArgException)
 {
     if (parameterValues->value_size() != parameterValues->time_size()) throw InvalidArgException("parameterValues", "inconsistent number of entries");
 
@@ -1329,7 +1330,7 @@ void Hdf5File::appendParameterValues(unsigned int replicate, lm::io::ParameterVa
 }
 
 
-void Hdf5File::setFirstPassageTimes(unsigned int replicate, lm::io::FirstPassageTimes * firstPassageTimes) throw(HDF5Exception,InvalidArgException)
+void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTimes * firstPassageTimes) throw(HDF5Exception,InvalidArgException)
 {
     // Make sure the data is consistent.
     if (firstPassageTimes->species_count_size() == 0) throw InvalidArgException("firstPassageTimes", "no entries to save");
@@ -1735,7 +1736,7 @@ void SimulationFile::getSpatialModelObjects(unsigned int replicate, lm::io::Spat
 }*/
 
 
-vector<double> Hdf5File::getLatticeTimes(unsigned int replicate) throw(HDF5Exception,InvalidArgException)
+vector<double> Hdf5File::getLatticeTimes(uint64_t replicate) throw(HDF5Exception,InvalidArgException)
 {
     ReplicateHandles * replicateHandles = openReplicateHandles(replicate);
 
@@ -1757,7 +1758,7 @@ vector<double> Hdf5File::getLatticeTimes(unsigned int replicate) throw(HDF5Excep
     return times;
 }
 
-void Hdf5File::getLattice(unsigned int replicate, unsigned int latticeIndex, lm::rdme::Lattice * lattice) throw(HDF5Exception,InvalidArgException)
+void Hdf5File::getLattice(uint64_t replicate, unsigned int latticeIndex, lm::rdme::Lattice * lattice) throw(HDF5Exception,InvalidArgException)
 {
     ReplicateHandles * replicateHandles = openReplicateHandles(replicate);
 
@@ -1784,9 +1785,9 @@ void Hdf5File::getLattice(unsigned int replicate, unsigned int latticeIndex, lm:
     delete [] particlesBuffer;
 }
 
-void Hdf5File::closeReplicate(unsigned int replicate) throw(HDF5Exception)
+void Hdf5File::closeReplicate(uint64_t replicate) throw(HDF5Exception)
 {
-    map<unsigned int,ReplicateHandles *>::iterator it = openReplicates.find(replicate);
+    map<uint64_t,ReplicateHandles *>::iterator it = openReplicates.find(replicate);
     if (it != openReplicates.end())
     {
         ReplicateHandles * handles = it->second;
@@ -1798,7 +1799,7 @@ void Hdf5File::closeReplicate(unsigned int replicate) throw(HDF5Exception)
 
 void Hdf5File::closeAllReplicates() throw(HDF5Exception)
 {
-    for (map<unsigned int,ReplicateHandles *>::iterator it=openReplicates.begin(); it != openReplicates.end(); it++)
+    for (map<uint64_t,ReplicateHandles *>::iterator it=openReplicates.begin(); it != openReplicates.end(); it++)
     {
         ReplicateHandles * handles = it->second;
         closeReplicateHandles(handles);
@@ -1808,10 +1809,10 @@ void Hdf5File::closeAllReplicates() throw(HDF5Exception)
 }
 
 
-Hdf5File::ReplicateHandles * Hdf5File::openReplicateHandles(unsigned int replicate) throw(HDF5Exception)
+Hdf5File::ReplicateHandles * Hdf5File::openReplicateHandles(uint64_t replicate) throw(HDF5Exception)
 {
     // See if the replicate is already open.
-    map<unsigned int,ReplicateHandles *>::iterator it = openReplicates.find(replicate);
+    map<uint64_t,ReplicateHandles *>::iterator it = openReplicates.find(replicate);
     if (it == openReplicates.end())
     {
         ReplicateHandles * handles;
@@ -1819,7 +1820,7 @@ Hdf5File::ReplicateHandles * Hdf5File::openReplicateHandles(unsigned int replica
         // Construct a string representation of the replicate name.
         std::stringstream ss;
         ss.fill('0');
-        ss.width(7);
+        ss.width(15);
         ss << replicate;
         string replicateString = ss.str();
 

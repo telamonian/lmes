@@ -47,6 +47,7 @@
 #include "lm/io/TrajectoryState.pb.h"
 
 #include "lm/resource/TrajectoryList.h"
+#include "lm/Types.h"
 
 using std::map;
 using lm::resource::TrajectoryList;
@@ -58,13 +59,13 @@ class ReplicateTrajectoryList : public lm::resource::TrajectoryList
 {
 
 public:
-    ReplicateTrajectoryList(int firstTrajectory, int lastTrajectory, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel);
+    ReplicateTrajectoryList(uint64_t firstTrajectory, uint64_t lastTrajectory, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel);
     virtual ~ReplicateTrajectoryList();
     virtual void init();
 
 protected:
-    int firstTrajectory;
-    int lastTrajectory;
+    uint64_t firstTrajectory;
+    uint64_t lastTrajectory;
 };
 
 }

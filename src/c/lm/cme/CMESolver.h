@@ -1,5 +1,6 @@
 /*
- * University of Illinois Open Source License
+ * University of Illinois
+ Open Source License
  * Copyright 2011 Luthey-Schulten Group,
  * All rights reserved.
  * 
@@ -46,13 +47,14 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "lm/Math.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/ParameterValues.pb.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/main/Main.h"
+#include "lm/Math.h"
 #include "lm/me/MESolver.h"
+#include "lm/Types.h"
 
 using std::list;
 using std::map;
@@ -180,7 +182,7 @@ protected:
         int minValueAchieved;
         int maxValueAchieved;
         std::deque<std::pair<int,double> > fptValues;
-        void serializeTo(int trajectoryId, lm::io::FirstPassageTimes* fpt)
+        void serializeTo(uint64_t trajectoryId, lm::io::FirstPassageTimes* fpt)
         {
             fpt->set_trajectory_id(trajectoryId);
             fpt->set_species(species);
@@ -338,7 +340,7 @@ protected:
     list<TrackedParameter> trackedParameters;
 
     // The current state.
-    int trajectoryId;
+    uint64_t trajectoryId;
     uint* previousSpeciesCounts;
     uint* speciesCounts;
     double time;

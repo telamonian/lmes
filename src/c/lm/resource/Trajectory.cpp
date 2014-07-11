@@ -47,6 +47,7 @@
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/resource/Trajectory.h"
+#include "lm/Types.h"
 
 using std::map;
 using std::string;
@@ -54,7 +55,7 @@ using std::string;
 namespace lm {
 namespace resource {
 
-Trajectory::Trajectory(int trajectoryNumber) : trajectoryNumber(trajectoryNumber),status(NOT_STARTED) {}
+Trajectory::Trajectory(uint64_t trajectoryID) : trajectoryID(trajectoryID),status(NOT_STARTED) {}
 
 lm::message::RunWorkUnit* Trajectory::getRunMsg()
 {

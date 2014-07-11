@@ -37,6 +37,7 @@ void Slot::workUnitRunnerRemoteStart(int controller_process, int controller_thre
 
 void Slot::workUnitRunnerRemoteStarted(const lm::message::StartedWorkUnitRunner & msg)
 {
+	// This is where the slot process and thread numbers are actually set
 	process = msg.process();
 	thread = msg.thread();
 	Print::printf(Print::INFO, "Work unit runner for slot %d:%d started, %d simultaneous work unit runners.", msg.process(), msg.thread(), msg.simultaneous_work_units());
@@ -50,16 +51,6 @@ void Slot::workUnitRemoteStart(lm::message::Message* msg, long long workUnitID)
 
 	Print::printf(Print::INFO, "Sending message to start work unit %d with trajectory %d on slot %d:%d.", workUnitID, msg->run_work_unit().initial_state().trajectory_id(), getSlotKey()[0], getSlotKey()[1]);
 	supervisorComm->sendMessage(getSlotKey()[0], getSlotKey()[1], msg);
-
-	//	lm::message::Message msg;
-	//	run.set_supervisor_process(communicator.getSourceProcess());
-	//	run.set_supervisor_thread(communicator.getSourceThread());
-	//	run.set_output_process(outputWriterProcess);
-	//	run.set_output_thread(outputWriterThread);
-	//	run.set_max_steps(100);
-	//	*run.mutable_limits() = limits;
-	//	*run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
-//	trajectories->updateTrajectoryStatus(nextTrajectory, FFluxTrajectoryList::RUNNING);
 }
 
 void startedWorkUnitRemote(const lm::message::StartedWorkUnit & msg)

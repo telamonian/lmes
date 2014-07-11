@@ -42,15 +42,17 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
-#include "lm/io/CMEState.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/resource/TrajectoryList.h"
+#include "lm/Types.h"
 
 using std::map;
+using std::vector;
 
 namespace lm {
 namespace fflux {
@@ -58,15 +60,17 @@ namespace fflux {
 class FFluxTrajectoryList : public lm::resource::TrajectoryList
 {
 public:
-    FFluxTrajectoryList(long long trajectoryCount, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel);
+    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel);
     virtual ~FFluxTrajectoryList();
     virtual void init();
-    virtual void initTrajectory(long long trajectoryID, lm::io::CMEState* trajectoryCMEState);
-    virtual lm::io::CMEState* initTrajectoryCMEState();
+    virtual void initTrajectory(uint64_t trajectoryID, lm::io::TrajectoryState* trajectoryCMEState);
+    virtual lm::io::TrajectoryState* initFirstTrajectoryState();
     virtual void workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg);
 
 protected:
-    long long simulatenousTrajectoryCount;
+    map<long long, vector<lm::io::TrajectoryState> > crossings;
+    long long ffluxPhase;
+    uint64_t simulatenousTrajectoryCount;
 };
 
 }

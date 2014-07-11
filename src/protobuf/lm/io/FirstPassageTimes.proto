@@ -40,7 +40,7 @@
 package lm.io;
 
 message FirstPassageTimes {
-    required int32 trajectory_id                        = 1;
+    required uint64 trajectory_id                       = 1;
     required int32 species                              = 2;
     required int32 number_entries                       = 3;
     repeated int32 species_count                        = 4 [packed=true];

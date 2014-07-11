@@ -91,7 +91,7 @@ string outputWriterClassName;
 /**
  * The number of replicates of the simulation that should be performed.
  */
-vector<int> replicates;
+vector<uint64_t> replicates;
 
 /**
  * The interval at which the results file should be checkpointed.
@@ -420,7 +420,7 @@ string parseOutputFormatArg(char* option)
     throw lm::CommandLineArgumentException(option);
 }
 
-void parseIntListArg(vector<int> & list, char* arg)
+void parseIntListArg(vector<uint64_t> & list, char* arg)
 {
     list.clear();
     char * argbuf = new char[strlen(arg)+1];

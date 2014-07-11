@@ -45,6 +45,7 @@
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Message.pb.h"
+#include "lm/Types.h"
 
 using std::map;
 using std::string;
@@ -58,7 +59,7 @@ class Trajectory
 public:
 	enum status_t {NOT_STARTED, RUNNING, WAITING, FINISHED};
 
-	Trajectory(int trajectoryNumber);
+	Trajectory(uint64_t trajectoryID);
 
 	//getters
 	lm::message::Message* getMsg() {return &msg;}
@@ -68,14 +69,14 @@ public:
 
 	//setters
 	void setMsg(const lm::message::Message& newMsg) {msg = newMsg;}
-	void setWorkUnitId(long long id) {getRunMsg()->set_work_unit_id(id);}
+	void setWorkUnitId(int64_t id) {getRunMsg()->set_work_unit_id(id);}
 	void setStatus(status_t newStatus) {status = newStatus;}
 	void setState(const lm::io::TrajectoryState& newState) {state = newState;}
 
 	//other?
 	void updateInitialRunState();
 
-	int trajectoryNumber;
+	uint64_t trajectoryID;
 
 protected:
 	status_t status;

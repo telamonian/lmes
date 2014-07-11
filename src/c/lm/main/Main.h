@@ -45,10 +45,11 @@
 #ifndef LKMAIN_H_
 #define LKMAIN_H_
 
-#include <string>
-#include <list>
-#include <vector>
 #include <ctime>
+#include <list>
+#include <string>
+#include <vector>
+#include "lm/Types.h"
 
 using std::string;
 using std::vector;
@@ -77,7 +78,7 @@ extern string outputWriterClassName;
 /**
  * The number of replicates of the simulation that should be performed.
  */
-extern vector<int> replicates;
+extern vector<uint64_t> replicates;
 
 /**
  * The interval at which the results file should be checkpointed.
@@ -176,7 +177,7 @@ void printCopyright(int argc, char** argv);
 int getPhysicalCpuCores();
 void parseArguments(int argc, char** argv);
 string parseOutputFormatArg(char* option);
-void parseIntListArg(vector<int> & list, char* option);
+void parseIntListArg(vector<uint64_t> & list, char* option);
 time_t parseTimeArg(char* option);
 float parseIntReciprocalArg(char* option);
 void printUsage(int argc, char** argv);
