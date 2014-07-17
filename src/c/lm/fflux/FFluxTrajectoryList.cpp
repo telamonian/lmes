@@ -210,14 +210,16 @@ lm::io::TrajectoryState * FFluxTrajectoryList::getRandomCrossing(long long fflux
 //// TEMP: replace
 double FFluxTrajectoryList::calcTestCaseOParam(const lm::io::TrajectoryState& finalState)
     {
-    	return specCnts[0] + 2*specCnts[1] + specCnts[2];
+    	return finalState.cme_state().species_counts().species_count(0) + \
+    		   2*finalState.cme_state().species_counts().species_count(1) + \
+    		   finalState.cme_state().species_counts().species_count(2);
     }
 
 void FFluxTrajectoryList::incrTestCaseLimits()
 {
 	lm::message::RunWorkUnit* runWorkUnitMsg = getRunWorkUnitMsg();
-	runWorkUnitMsg->limits().set_decreasing_species_count(0, runWorkUnitMsg->limits().increasing_species_count(0));
-	runWorkUnitMsg->limits().set_increasing_species_count(0, runWorkUnitMsg->limits().increasing_species_count(0) + 1);
+	runWorkUnitMsg->mutable_limits()->set_decreasing_species_count(0, runWorkUnitMsg->limits().increasing_species_count(0));
+	runWorkUnitMsg->mutable_limits()->set_increasing_species_count(0, runWorkUnitMsg->limits().increasing_species_count(0) + 1);
 }
 //// TEMP
 

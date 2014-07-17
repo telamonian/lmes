@@ -154,7 +154,7 @@ void FFluxSupervisor::startSimulation()
 void FFluxSupervisor::setTestCaseLimits(double* a_decr, double* a_incr)
 {
 	limits.set_decreasing_species_count(0, -9999);
-	limits.set_increasing_species_count(0, -9999)
+	limits.set_increasing_species_count(0, -9999);
 	if (a_decr!=NULL)
 	{
 		limits.set_decreasing_species_count(0, *a_decr);
