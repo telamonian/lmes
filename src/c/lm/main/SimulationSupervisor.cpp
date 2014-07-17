@@ -244,30 +244,14 @@ bool SimulationSupervisor::assignWork()
 	{
 		// Allocate the next free slot, if there is one.
 		lm::resource::Slot * workSlot = slots.alloc();
-		if (workSlot==NULL) return false;
+		if (workSlot==NULL) return false;	// Except for once (at the program's end), assignWork should return from here
 
 		// Get the next trajectory to run, if there is one.
 		lm::message::Message * nextWorkUnitMsg = trajectories->getNextWorkUnitMsg();
-		if (nextWorkUnitMsg==NULL) return true;
+		if (nextWorkUnitMsg==NULL) return true;	// When there's no more trajectories to run and it's time for the program to shut down, assignWork should return from here
 
 		// If we got this far, put the next free slot together with the next trajectory
 		workSlot->workUnitRemoteStart(nextWorkUnitMsg, workUnitCount++);
-
-//		lm::message::RunWorkUnit& run = *msg.mutable_run_work_unit();
-//		run.set_supervisor_process(communicator.getSourceProcess());
-//		run.set_supervisor_thread(communicator.getSourceThread());
-//		run.set_output_process(outputWriterProcess);
-//		run.set_output_thread(outputWriterThread);
-//		run.set_max_steps(100);
-//		*run.mutable_limits() = limits;
-
-//		*run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
-
-//		run.set_work_unit_id(workUnitCount++);
-
-//		Print::printf(Print::INFO, "Sending message to start work unit %d with trajectory %d on slot %d:%d.", run.work_unit_id(), nextTrajectory, workSlot->getSlotKey()[0], workSlot->getSlotKey()[1]);
-//		communicator.sendMessage(workSlot->getSlotKey()[0], workSlot->getSlotKey()[1], &msg);
-//		trajectories->updateTrajectoryStatus(nextTrajectory, FFluxTrajectoryList::RUNNING);
 	}
 }
 
@@ -279,50 +263,18 @@ void SimulationSupervisor::workUnitStarted(const lm::message::StartedWorkUnit& m
 void SimulationSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
 {
     Print::printf(Print::INFO, "Work unit %d finished in %0.3f s.",msg.work_unit_id(),msg.run_time());
-    // Update the trajectory based on the results of the work unit
-    trajectories->workUnitFinished(msg);
-    //
+    // If the trajectory associated with the finished work unit exists...
+    if (trajectories->exists(msg.final_state().trajectory_id()))
+    {
+		// ...update the trajectory based on the results of the work unit
+		trajectories->workUnitFinished(msg);
+    }
+    // Otherwise, assume that the associated trajectory has already been deleted and so skip reading in this result
+    // The exists() check ensures that hangover results from older fflux phases aren't recorded as belonging to a newer phase
 
-//    if (msg.status() == lm::message::FinishedWorkUnit::LIMIT_REACHED)
-//    {
-//        trajectories->updateTrajectoryStatus(msg.final_state().trajectory_id(), TrajectoryList::FINISHED);
-//        trajectories->updateTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
-//    }
-//    else
-//    {
-//        trajectories->updateTrajectoryStatus(msg.final_state().trajectory_id(), TrajectoryList::WAITING);
-//        trajectories->updateTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
-//    }
     // Free the slot that the returning work unit just ran on
     slots.workUnitFinished(msg);
-//
-//
-//    lm::resource::Slot * workSlot = slotList.alloc();
-//    if (workSlot==NULL) Print::printf(Print::ERROR, "Slot allocation error (there was no free slot even though a slot should have been freed immediately prior)");
-//
-//    // Get the next trajectory to run, if there is one.
-//    int nextTrajectory = trajectories->nextTrajectoryToRun();
-//    if (nextTrajectory >= 0)
-//    {
-//        // Check for some error conditions.
-//        if (outputWriterProcess == -1 || outputWriterThread == -1)
-//            throw new Exception("FFluxSupervisor could not start the simulation, no output writer available.");
-//
-//        // Send the start work unit message.
-//        lm::message::Message msg;
-//        lm::message::RunWorkUnit& run = *msg.mutable_run_work_unit();
-//        run.set_work_unit_id(workUnitCount++);
-//        run.set_supervisor_process(communicator.getSourceProcess());
-//        run.set_supervisor_thread(communicator.getSourceThread());
-//        run.set_output_process(outputWriterProcess);
-//        run.set_output_thread(outputWriterThread);
-//        run.set_max_steps(100);
-//        *run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
-//        *run.mutable_limits() = limits;
-//        Print::printf(Print::INFO, "Sending message to start work unit %d with trajectory %d on slot %d:%d.", run.work_unit_id(), nextTrajectory, workSlot->getSlotKey()[0], workSlot->getSlotKey()[1]);
-//        communicator.sendMessage(workSlot->getSlotKey()[0], workSlot->getSlotKey()[1], &msg);
-//        trajectories->updateTrajectoryStatus(nextTrajectory, FFluxTrajectoryList::RUNNING);
-//    }
+
     // Fill the newly freed slot with a work unit. If there are more trajectories than slots, this is guaranteed to use the slot we just freed. Otherwise it will be the "coldest" (longest unoccupied) slot
     if (assignWork())
     {

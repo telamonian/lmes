@@ -272,6 +272,13 @@ protected:
         }
     }
 
+    //// TEMP : remove
+    inline double calcTestCaseOParam(uint* specCnts)
+    {
+    	return specCnts[0] + 2*specCnts[1] + specCnts[2];
+    }
+    //// TEMP
+
     inline bool reachedSpeciesLimit()
     {
         for (uint i=0; i<numberSpeciesLimits; i++)
@@ -285,12 +292,14 @@ protected:
             case SpeciesLimit::MAX:
                 if (int(speciesCounts[l.species]) >= l.limit) return true;
                 break;
+            //// TEMP : replace
             case SpeciesLimit::DECREASING:
-            	if (int(speciesCounts[l.species]) < l.limit && int(previousSpeciesCounts[l.species]) >= l.limit) return true;
+            	if (calcTestCaseOParam(speciesCounts) < l.limit && calcTestCaseOParam(previousSpeciesCounts) >= l.limit) return true;
             	break;
             case SpeciesLimit::INCREASING:
-            	if (int(speciesCounts[l.species]) >= l.limit && int(previousSpeciesCounts[l.species]) < l.limit) return true;
+            	if (calcTestCaseOParam(speciesCounts) >= l.limit && calcTestCaseOParam(previousSpeciesCounts) < l.limit) return true;
             	break;
+            //// TEMP
             }
         }
         return false;

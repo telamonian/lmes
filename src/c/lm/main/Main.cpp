@@ -390,6 +390,7 @@ void parseArguments(int argc, char** argv)
         else if ((strcmp(option, "-fflux") == 0 || strcmp(option, "--use-forward-flux") == 0))
 		{
         	 ffluxFlag = true;
+        	 supervisorClassName = "lm::fflux::FFluxSupervisor";
 		}
 
         //This must be an invalid option.

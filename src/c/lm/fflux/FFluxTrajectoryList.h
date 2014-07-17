@@ -49,6 +49,7 @@
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/resource/TrajectoryList.h"
+#include "lm/rng/XORShift.h"
 #include "lm/Types.h"
 
 using std::map;
@@ -63,14 +64,26 @@ public:
     FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel);
     virtual ~FFluxTrajectoryList();
     virtual void init();
-    virtual void initTrajectory(uint64_t trajectoryID, lm::io::TrajectoryState* trajectoryCMEState);
+    virtual void initTrajectory(uint64_t trajectoryID, lm::io::TrajectoryState* trajectoryState);
+    virtual void initPhaseZeroTrajectory(lm::io::TrajectoryState* oldCrossing);
+    virtual void initPhaseNTrajectories(uint64_t trajectoriesToStart, long long lastFFluxPhase);
     virtual lm::io::TrajectoryState* initFirstTrajectoryState();
     virtual void workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg);
 
+    // Returns a randomly chosen crossing event (in the form of a TrajectoryState) collected durring forward flux phase ffluxPhase
+    virtual lm::io::TrajectoryState* getRandomCrossing(long long ffluxPhase);
 protected:
-    map<long long, vector<lm::io::TrajectoryState> > crossings;
+    //// TEMP
+    virtual double calcTestCaseOParam(const lm::io::TrajectoryState& finalState);
+    virtual void incrTestCaseLimits();
+    ////
+    map<long long, vector<lm::io::TrajectoryState *> > crossings;
+    vector<long long> finishedTrajectoriesCounts;
+    lm::rng::XORShift xorShift;	//RNG used for randomly choosing a crossing in a crossing vector
     long long ffluxPhase;
-    uint64_t simulatenousTrajectoryCount;
+    long long maxFFluxPhase;
+    uint64_t simultaneousTrajectoryCount;
+    unsigned crossingsPerPhase;	//the count of crossing events that should be collected for every fflux sampling phase
 };
 
 }

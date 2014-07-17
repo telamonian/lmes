@@ -62,7 +62,7 @@ using std::vector;
 namespace lm {
 namespace resource {
 
-SlotList::SlotList(lm::message::Communicator * supervisorComm): busySlots(), freeSlots(), xorShift(0,0), supervisorComm(supervisorComm), slotTemplateMsg()// the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
+SlotList::SlotList(lm::message::Communicator * supervisorComm): busySlots(), freeSlots(), xorShift(0,0), supervisorComm(supervisorComm), slotTemplateMsg() //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
 }
 
@@ -76,7 +76,7 @@ void SlotList::addSlots(map<int,ResourceMap::ComputeResources> & allResources)
 {
 	for (map<int,ResourceMap::ComputeResources>::iterator it=allResources.begin(); it != allResources.end(); it++)
 	{
-		addSlots(it->second, cpuCoresPerReplicate, gpuDevicesPerReplicate);	// for now we'll just use the command line arguments for the cpu/gpu per slot arguments
+		addSlots(it->second, cpuCoresPerReplicate, gpuDevicesPerReplicate);	//for now we'll just use the command line arguments for the cpu/gpu per slot arguments
 	}
 }
 

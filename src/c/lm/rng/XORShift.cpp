@@ -70,6 +70,16 @@ double XORShift::getRandomDouble()
 }
 
 /**
+ * Returns an unsigned int value in the range [low high). Very slightly biased towards low
+ */
+unsigned int XORShift::getRandomIntFromRange(unsigned int low, unsigned int high)
+{
+	uint32_t r = getRandom();
+	while ((r=(uint64_t)getRandom()) == 4294967296);
+	return floor(r*(high - low)*(2.328306436539e-10) + low); //1/((2^32))
+}
+
+/**
  * Returns an exponentially distributed value.
  */
 double XORShift::getExpRandomDouble()

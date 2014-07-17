@@ -131,7 +131,15 @@ void FFluxSupervisor::startSimulation()
 	// Set the default work unit-specific limits
 	runWorkUnitMsg->set_max_steps(100);
 	// Set the default trajectory limits
-	initLimits();
+	//initLimits();
+
+	//// TEMP : replace; hardcoded increasing/decreasing limits for the forward flux test case
+	limits.add_decreasing_species_count(0);
+	limits.add_increasing_species_count(0);
+	double a_incr = 1;
+	setTestCaseLimits(NULL, &a_incr);
+	//// TEMP
+
 	lm::io::TrajectoryLimits* trajectoryLimits = new lm::io::TrajectoryLimits(limits);
 	runWorkUnitMsg->set_allocated_limits(trajectoryLimits);
 
@@ -141,6 +149,22 @@ void FFluxSupervisor::startSimulation()
     // Call the base class method.
     SimulationSupervisor::startSimulation();
 }
+
+//// TEMP : remove
+void FFluxSupervisor::setTestCaseLimits(double* a_decr, double* a_incr)
+{
+	limits.set_decreasing_species_count(0, -9999);
+	limits.set_increasing_species_count(0, -9999)
+	if (a_decr!=NULL)
+	{
+		limits.set_decreasing_species_count(0, *a_decr);
+	}
+	if (a_incr!=NULL)
+	{
+		limits.set_increasing_species_count(0, *a_incr);
+	}
+}
+//// TEMP
 
 
 }

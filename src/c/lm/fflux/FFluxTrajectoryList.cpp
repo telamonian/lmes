@@ -56,28 +56,57 @@ using std::string;
 namespace lm {
 namespace fflux {
 
-FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simulataneousTrajectoryCount, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel):
-	TrajectoryList(simulationParameters, reactionModel), ffluxPhase(0), simulatenousTrajectoryCount(simulatenousTrajectoryCount)
+FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel):
+	TrajectoryList(simulationParameters, reactionModel), xorShift(0,0), ffluxPhase(0), maxFFluxPhase(39), finishedTrajectoriesCounts(0, maxFFluxPhase), simultaneousTrajectoryCount(simultaneousTrajectoryCount), crossingsPerPhase(100) // TODO: change maxFFluxPhase from fixed to varying with input //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
 }
 
 FFluxTrajectoryList::~FFluxTrajectoryList()
 {
-    for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+	for (auto trajectoryPair : trajectories)
+	{
+		delete trajectoryPair.second;
+	}
+//    for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+//    {
+//        delete it->second;
+//    }
+    for (auto crossingPair : crossings)
     {
-        delete it->second;
+    	for (auto crossing : crossingPair.second)
+    	{
+    		delete crossing;
+    	}
     }
 }
-
 
 void FFluxTrajectoryList::init()
 {
 	lm::io::TrajectoryState* trajectoryState = initFirstTrajectoryState();
-    for (long long i=0; i<=simulatenousTrajectoryCount; i++)
+    for (long long i=0; i<=simultaneousTrajectoryCount; i++)
     {
     	initTrajectory(trajectoryCount++, trajectoryState);
+    	// TODO: limit setting code
     }
     delete trajectoryState;
+}
+
+void FFluxTrajectoryList::initPhaseZeroTrajectory(lm::io::TrajectoryState* oldCrossing)
+{
+	// While still in the 0th phase of forward flux sampling, if a crossing event is detected and a trajectory stops, start a new trajectory from that same crossing event
+	initTrajectory(trajectoryCount++, oldCrossing);
+	// TODO: limit setting code
+}
+
+void FFluxTrajectoryList::initPhaseNTrajectories(uint64_t trajectoriesToStart, long long FFluxPhase)
+{
+	for (long long i=0; i<=trajectoriesToStart; i++)
+	{
+		// Randomly choose a crossing state collected in the last round of fflux sampling, and use as the starting state for a new trajectory
+		lm::io::TrajectoryState* randomCrossing = getRandomCrossing(FFluxPhase);
+		initTrajectory(trajectoryCount++, randomCrossing);
+		// TODO: limit setting code
+	}
 }
 
 void FFluxTrajectoryList::initTrajectory(uint64_t id, lm::io::TrajectoryState* state)
@@ -116,32 +145,52 @@ lm::io::TrajectoryState* FFluxTrajectoryList::initFirstTrajectoryState()
 
 void FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg)
 {
-	// Call the base class method
+	// Call the base class method.
 	TrajectoryList::workUnitFinished(finishedWorkUnitMsg);
 
 	// If the work unit stopped because it detected a crossing event...
 	if (finishedWorkUnitMsg.status()==lm::message::FinishedWorkUnit::LIMIT_REACHED)
 	{
-		// ...add the work unit's final state to the appropriate list of crossings and delete the finished trajectory
-		crossings[ffluxPhase].push_back(finishedWorkUnitMsg.final_state());
+		// ...and if the crossing event was a forward flux...
+		if (calcTestCaseOParam(finishedWorkUnitMsg.final_state())>=getLimitsMsg()->increasing_species_count(0))
+		{
+			// ...add the work unit's final state to the appropriate list of crossings
+			lm::io::TrajectoryState * newCrossing = new lm::io::TrajectoryState(finishedWorkUnitMsg.final_state());
+			crossings[ffluxPhase].push_back(newCrossing);
+		}
+		// Regardless of whether this crossing was a forward or backwards flux, increment this phase's finished trajectories counter and delete the finished trajectory
+		++finishedTrajectoriesCounts[ffluxPhase];
 		deleteTrajectory(finishedWorkUnitMsg.final_state().trajectory_id());
 		// Next, if enough crossing events have been detected for this phase of forward flux sampling...
-		if (crossings[ffluxPhase].size()>=100)
+		if (crossings[ffluxPhase].size()>=crossingsPerPhase)	// TODO: rearrange this conditional so that phase 0 has the appropriate unique stopping condition
 		{
-			// ...delete the currently running set of trajectories, increment the fflux phase counter, and start up a new set of trajectories
+			// ...delete the currently running set of trajectories
+			deleteAllTrajectories();
+			// Next, increment the fflux phase counter. If there are still more phases to run...
+			if (maxFFluxPhase < ffluxPhase++)
+			{
+				// ...increment the interface position (by altering the increasing/decreasing limits)...
+				//// TEMP : replace
+				incrTestCaseLimits();
+				//// TEMP
+				// ...and start up a new set of trajectories
+				initPhaseNTrajectories(simultaneousTrajectoryCount,ffluxPhase);
+			}
 		}
 		// ...otherwise we still have to collect more crossing events related to this phase's interface...
 		else
 		{
-			// ...and if the forward flux sampling is still in its 0th (ie initial) phase...
+			// ...so if the forward flux sampling is still in its 0th (ie initial) phase...
 			if (ffluxPhase==0)
 			{
-
+				// ...start one phase zero trajectory
+				initPhaseZeroTrajectory(crossings[ffluxPhase].back());
 			}
 			// ...otherwise if ffluxPhase > 0...
 			else
 			{
-
+				// ... start one phase N trajectory
+				initPhaseNTrajectories(1, ffluxPhase);
 			}
 		}
 
@@ -150,8 +199,27 @@ void FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit &
 		//        Print::printf(Print::INFO, "Sending message to start work unit %d with trajectory %d on slot %d:%d.", run.work_unit_id(), nextTrajectory, workSlot->getSlotKey()[0], workSlot->getSlotKey()[1]);
 		//        communicator.sendMessage(workSlot->getSlotKey()[0], workSlot->getSlotKey()[1], &msg);
 		//        trajectories->updateTrajectoryStatus(nextTrajectory, FFluxTrajectoryList::RUNNING);
-
 }
+
+lm::io::TrajectoryState * FFluxTrajectoryList::getRandomCrossing(long long ffluxPhase)
+{
+	unsigned i = xorShift.getRandomIntFromRange(0, crossingsPerPhase);
+	return crossings[ffluxPhase][i];
+}
+
+//// TEMP: replace
+double FFluxTrajectoryList::calcTestCaseOParam(const lm::io::TrajectoryState& finalState)
+    {
+    	return specCnts[0] + 2*specCnts[1] + specCnts[2];
+    }
+
+void FFluxTrajectoryList::incrTestCaseLimits()
+{
+	lm::message::RunWorkUnit* runWorkUnitMsg = getRunWorkUnitMsg();
+	runWorkUnitMsg->limits().set_decreasing_species_count(0, runWorkUnitMsg->limits().increasing_species_count(0));
+	runWorkUnitMsg->limits().set_increasing_species_count(0, runWorkUnitMsg->limits().increasing_species_count(0) + 1);
+}
+//// TEMP
 
 }
 }

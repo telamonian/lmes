@@ -43,6 +43,7 @@
 #include <map>
 #include <string>
 #include "lm/io/ReactionModel.pb.h"
+#include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/resource/Trajectory.h"
@@ -64,6 +65,7 @@ public:
     //getter
     virtual lm::resource::Trajectory::status_t getTrajectoryStatus(uint64_t trajectoryID);
     virtual const lm::io::TrajectoryState& getTrajectoryState(uint64_t trajectoryID);
+    virtual bool exists(uint64_t trajectoryID) {if (trajectories.find(trajectoryID)!=trajectories.end()) return true; else return false;}
 
     //setter
     virtual void setTrajectoryStatus(uint64_t trajectoryID, lm::resource::Trajectory::status_t status);
@@ -78,6 +80,7 @@ public:
 
     // dealing with the internal template Message methods
 	virtual lm::message::RunWorkUnit* getRunWorkUnitMsg() {return trajectoryTemplateMsg.mutable_run_work_unit();}
+	virtual lm::io::TrajectoryLimits* getLimitsMsg() {return getRunWorkUnitMsg()->mutable_limits();}
 
 protected:
     uint64_t trajectoryCount;
@@ -86,7 +89,6 @@ protected:
     const lm::io::ReactionModel& reactionModel;
     lm::message::Message trajectoryTemplateMsg;
     TrajectoryMap trajectories;
-
 };
 
 }

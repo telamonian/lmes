@@ -23,4 +23,5 @@
 .ptp-sync-folder
 /.gdbinit
 
-/test_case
+test_case/*
+!test_case/clean/biphasic_switch.lm

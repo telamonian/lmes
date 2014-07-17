@@ -87,6 +87,6 @@ protected:
 }
 }
 
-typedef map<int, lm::resource::Trajectory*> TrajectoryMap;
+typedef map<uint64_t, lm::resource::Trajectory*> TrajectoryMap;
 
 #endif
