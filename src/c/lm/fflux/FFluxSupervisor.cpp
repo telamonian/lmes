@@ -65,7 +65,7 @@ bool FFluxSupervisor::registered=FFluxSupervisor::registerClass();
 
 bool FFluxSupervisor::registerClass()
 {
-    lm::ClassFactory::getInstance().registerClass("lm::main::SimulationSupervisor","lm::replicates::FFluxSupervisor",&FFluxSupervisor::allocateObject);
+    lm::ClassFactory::getInstance().registerClass("lm::main::SimulationSupervisor","lm::fflux::FFluxSupervisor",&FFluxSupervisor::allocateObject);
     return true;
 }
 
@@ -75,7 +75,7 @@ void* FFluxSupervisor::allocateObject()
 }
 
 FFluxSupervisor::FFluxSupervisor()
-:outputWriterProcess(-1),outputWriterThread(-1) //TODO: fix to -1,-1 once the slot code has been fixed
+:outputWriterProcess(0),outputWriterThread(3) //TODO: fix to -1,-1 once the slot code has been fixed
 {
 
 }
@@ -98,6 +98,10 @@ void FFluxSupervisor::allResourcesRegistered()
     msg.mutable_start_output_writer()->set_output_filename(simulationOutputFilename);
     msg.mutable_start_output_writer()->set_output_writer_class(outputWriterClassName);
     communicator.sendMessage(resources.controller_process, resources.controller_thread, &msg);
+    Print::printf(Print::INFO, "HOWDY");
+    // TODO: the outputWriterStarted messaging stuff needs to get fixed
+    // Call the base allResourcesRegistered method.
+	SimulationSupervisor::allResourcesRegistered();
 }
 
 void FFluxSupervisor::outputWriterStarted(const lm::message::StartedOutputWriter& msg)
@@ -105,8 +109,8 @@ void FFluxSupervisor::outputWriterStarted(const lm::message::StartedOutputWriter
     outputWriterProcess = msg.process();
     outputWriterThread = msg.thread();
 
-    // Call the base class method.
-    SimulationSupervisor::allResourcesRegistered();
+//    // Call the base allResourcesRegistered method.
+//	SimulationSupervisor::allResourcesRegistered();
 }
 
 void FFluxSupervisor::startSimulation()

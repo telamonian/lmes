@@ -92,7 +92,7 @@ protected:
     virtual bool assignWork();
     virtual void workUnitStarted(const lm::message::StartedWorkUnit& msg);
     virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg);
-    virtual void outputWriterStarted(const lm::message::StartedOutputWriter& msg) {}
+    virtual void outputWriterStarted(const lm::message::StartedOutputWriter& msg)=0;
     virtual void finishSimulation();
 
     virtual int run();
