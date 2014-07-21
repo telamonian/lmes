@@ -98,7 +98,6 @@ void FFluxSupervisor::allResourcesRegistered()
     msg.mutable_start_output_writer()->set_output_filename(simulationOutputFilename);
     msg.mutable_start_output_writer()->set_output_writer_class(outputWriterClassName);
     communicator.sendMessage(resources.controller_process, resources.controller_thread, &msg);
-    Print::printf(Print::INFO, "HOWDY");
     // TODO: the outputWriterStarted messaging stuff needs to get fixed
     // Call the base allResourcesRegistered method.
 	SimulationSupervisor::allResourcesRegistered();

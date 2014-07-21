@@ -252,8 +252,8 @@ protected:
     	else {
     		for (int i=0; i<(int)reactionModel->numberDependentSpecies[r]; i++)
 			{
+    			previousSpeciesCounts[reactionModel->dependentSpecies[r][i]] = speciesCounts[reactionModel->dependentSpecies[r][i]];
 				speciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
-				previousSpeciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
 			}
     	}
 
@@ -294,9 +294,19 @@ protected:
                 break;
             //// TEMP : replace
             case SpeciesLimit::DECREASING:
+//            	if (calcTestCaseOParam(speciesCounts) > 10 || calcTestCaseOParam(previousSpeciesCounts) > 10)
+//				Print::printf(Print::DEBUG, "%d %d checkingdecreasingspecies limit species: %d limit: %d numberSpeciesLimits: %d oparam: %f prev oparam: %f",calcTestCaseOParam(speciesCounts), calcTestCaseOParam(previousSpeciesCounts), l.species, l.limit, numberSpeciesLimits);
+//            	if (calcTestCaseOParam(speciesCounts) < l.limit && calcTestCaseOParam(previousSpeciesCounts) >= l.limit) Print::printf(Print::DEBUG, "decr limit tripped %d %d", calcTestCaseOParam(speciesCounts), calcTestCaseOParam(previousSpeciesCounts));
+//				if (calcTestCaseOParam(speciesCounts) < l.limit && calcTestCaseOParam(previousSpeciesCounts) >= l.limit) Print::printf(Print::DEBUG, "decr limit passsed %d %d", calcTestCaseOParam(speciesCounts), calcTestCaseOParam(previousSpeciesCounts));
+//            	if (calcTestCaseOParam(speciesCounts) != calcTestCaseOParam(previousSpeciesCounts)) Print::printf(Print::DEBUG, "decr limit not equal %d %d", calcTestCaseOParam(speciesCounts), calcTestCaseOParam(previousSpeciesCounts));
             	if (calcTestCaseOParam(speciesCounts) < l.limit && calcTestCaseOParam(previousSpeciesCounts) >= l.limit) return true;
             	break;
             case SpeciesLimit::INCREASING:
+//            	if (calcTestCaseOParam(speciesCounts) > 10 || calcTestCaseOParam(previousSpeciesCounts) > 10)
+//				Print::printf(Print::DEBUG, "%d %d checkingincreasingspecies limit species: %d limit: %d numberSpeciesLimits:", calcTestCaseOParam(speciesCounts), calcTestCaseOParam(previousSpeciesCounts), l.species, l.limit, numberSpeciesLimits);
+//            	if (calcTestCaseOParam(speciesCounts) >= l.limit && calcTestCaseOParam(previousSpeciesCounts) < l.limit) Print::printf(Print::DEBUG, "incr limit tripped %d %d", calcTestCaseOParam(speciesCounts), calcTestCaseOParam(previousSpeciesCounts));
+//				if (calcTestCaseOParam(speciesCounts) >= l.limit && calcTestCaseOParam(previousSpeciesCounts) < l.limit) Print::printf(Print::DEBUG, "incr limit passsed %d %d", calcTestCaseOParam(speciesCounts), calcTestCaseOParam(previousSpeciesCounts));
+//            	if (calcTestCaseOParam(speciesCounts) != calcTestCaseOParam(previousSpeciesCounts)) Print::printf(Print::DEBUG, "incr limit not equal %d %d", calcTestCaseOParam(speciesCounts), calcTestCaseOParam(previousSpeciesCounts));
             	if (calcTestCaseOParam(speciesCounts) >= l.limit && calcTestCaseOParam(previousSpeciesCounts) < l.limit) return true;
             	break;
             //// TEMP

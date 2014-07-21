@@ -37,9 +37,11 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
+#include <cmath>
 #include <list>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "lm/fflux/FFluxTrajectoryList.h"
 #include "lm/io/CMEState.pb.h"
@@ -52,12 +54,13 @@
 
 using std::map;
 using std::string;
+using std::vector;
 
 namespace lm {
 namespace fflux {
 
 FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel):
-	TrajectoryList(simulationParameters, reactionModel), xorShift(0,0), ffluxPhase(0), maxFFluxPhase(39), finishedTrajectoriesCounts(0, maxFFluxPhase), simultaneousTrajectoryCount(simultaneousTrajectoryCount), crossingsPerPhase(100) // TODO: change maxFFluxPhase from fixed to varying with input //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
+	TrajectoryList(simulationParameters, reactionModel), xorShift(0,0), ffluxPhase(0), maxFFluxPhase(39), finishedTrajectoriesCounts(39, 0), simultaneousTrajectoryCount(simultaneousTrajectoryCount), crossingsPerPhase(100) // TODO: change maxFFluxPhase from fixed to varying with input //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
 }
 
@@ -103,7 +106,7 @@ void FFluxTrajectoryList::initPhaseNTrajectories(uint64_t trajectoriesToStart, l
 	for (long long i=0; i<=trajectoriesToStart; i++)
 	{
 		// Randomly choose a crossing state collected in the last round of fflux sampling, and use as the starting state for a new trajectory
-		lm::io::TrajectoryState* randomCrossing = getRandomCrossing(FFluxPhase);
+		lm::io::TrajectoryState* randomCrossing = getRandomCrossing(FFluxPhase - 1);
 		initTrajectory(trajectoryCount++, randomCrossing);
 		// TODO: limit setting code
 	}
@@ -147,8 +150,8 @@ void FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit &
 {
 	// Call the base class method.
 	TrajectoryList::workUnitFinished(finishedWorkUnitMsg);
-
-	// If the work unit stopped because it detected a crossing event...
+//	Print::printf(Print::DEBUG, "finishedTrajectoryCount is: %d",finishedTrajectoriesCounts[ffluxPhase]);
+	// If the work unit stopped because it detected a crossing event...]
 	if (finishedWorkUnitMsg.status()==lm::message::FinishedWorkUnit::LIMIT_REACHED)
 	{
 		// ...and if the crossing event was a forward flux...
@@ -162,12 +165,14 @@ void FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit &
 		++finishedTrajectoriesCounts[ffluxPhase];
 		deleteTrajectory(finishedWorkUnitMsg.final_state().trajectory_id());
 		// Next, if enough crossing events have been detected for this phase of forward flux sampling...
+		Print::printf(Print::DEBUG, "crossings[fflux].size() is: %d",crossings[ffluxPhase].size());
 		if (crossings[ffluxPhase].size()>=crossingsPerPhase)	// TODO: rearrange this conditional so that phase 0 has the appropriate unique stopping condition
 		{
 			// ...delete the currently running set of trajectories
 			deleteAllTrajectories();
 			// Next, increment the fflux phase counter. If there are still more phases to run...
-			if (maxFFluxPhase < ffluxPhase++)
+			++ffluxPhase;
+			if (maxFFluxPhase > ffluxPhase)
 			{
 				// ...increment the interface position (by altering the increasing/decreasing limits)...
 				//// TEMP : replace
@@ -175,6 +180,10 @@ void FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit &
 				//// TEMP
 				// ...and start up a new set of trajectories
 				initPhaseNTrajectories(simultaneousTrajectoryCount,ffluxPhase);
+			}
+			else
+			{
+				// if there are no more runs to be made, put some cleanup code here
 			}
 		}
 		// ...otherwise we still have to collect more crossing events related to this phase's interface...
@@ -203,7 +212,7 @@ void FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit &
 
 lm::io::TrajectoryState * FFluxTrajectoryList::getRandomCrossing(long long ffluxPhase)
 {
-	unsigned i = xorShift.getRandomIntFromRange(0, crossingsPerPhase);
+	unsigned i = floor(xorShift.getRandomDouble()*crossingsPerPhase);
 	return crossings[ffluxPhase][i];
 }
 
