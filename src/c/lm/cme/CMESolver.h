@@ -243,7 +243,7 @@ protected:
     inline void updateSpeciesCounts(uint r, long long steps)
     {
         // Update the counts according to the dependency tables.
-    	if (ffluxFlag==true) {
+    	if (true) {//if (ffluxFlag==true) {
     		// Store the previous step's order parameter
     		prevOParam = oParam;
 //    		memcpy(previousSpeciesCounts, speciesCounts, sizeof(uint)*7);

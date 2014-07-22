@@ -36,7 +36,6 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #include <list>
 
 #if defined(MACOSX)
@@ -52,6 +51,7 @@
 #endif
 #include "lm/MPI.h"
 #include "lm/io/OutputWriter.h"
+#include "lm/main/Main.h"
 #include "lm/main/ResourceController.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Communicator.h"
@@ -61,6 +61,7 @@
 #include "lm/message/StartWorkUnitRunner.pb.h"
 #include "lm/message/StartedWorkUnitRunner.pb.h"
 #include "lm/thread/WorkerManager.h"
+#include "hrtime.h"
 
 namespace lm {
 namespace main {
@@ -213,6 +214,7 @@ void ResourceController::startOutputWriter(const lm::message::StartOutputWriter&
 
 void ResourceController::stopWorkers(bool abort)
 {
+	Print::printf(Print::INFO, "total execution time was: %f", convertHrToSeconds(getHrTime() - globalTimer));
     for (std::list<lm::thread::Worker*>::iterator it=workers.begin(); it != workers.end(); it++)
     {
         lm::thread::Worker* worker = *it;

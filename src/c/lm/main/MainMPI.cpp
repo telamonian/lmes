@@ -42,16 +42,16 @@
  * Author(s): Elijah Roberts
  */
 
-#include <iostream>
-#include <string>
-#include <map>
+#include <cerrno>
+#include <csignal>
 #include <cstdio>
 #include <cstring>
-#include <csignal>
-#include <cerrno>
-#include <unistd.h>
-#include <sys/wait.h>
+#include <iostream>
 #include <pthread.h>
+#include <map>
+#include <string>
+#include <sys/wait.h>
+#include <unistd.h>
 #include <google/protobuf/stubs/common.h>
 #include "lm/ClassFactory.h"
 #include "lm/Exceptions.h"
@@ -72,7 +72,7 @@
 #include "lm/thread/WorkerManager.h"
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
-
+#include "hrtime.h"
 
 using std::map;
 using std::list;
@@ -99,6 +99,9 @@ PROF_ALLOC;
 
 int main(int argc, char** argv)
 {
+	// Start the global execution timer
+	globalTimer = getHrTime();
+
     // Make sure we are using the correct protocol buffers library.
     GOOGLE_PROTOBUF_VERIFY_VERSION;
 
