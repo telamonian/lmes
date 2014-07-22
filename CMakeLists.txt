@@ -16,7 +16,7 @@ include(CMakeConfig.txt)
 set(ENV{HDF5_ROOT} ${HDF5_ROOT})
 
 #automagic setup for linux, os X 10.7-8 (and lower?), and os X 10.9
-add_definitions(-DBUILD_INFO -DVERBOSITY_LEVEL=10 -DOPT_CUDA)
+add_definitions(-DBUILD_INFO -DVERBOSITY_LEVEL=4 -DOPT_CUDA)
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -m64 -fPIC -Wall -fmessage-length=0")
 SET(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS} -g -m64 -fPIC -Wall -fmessage-length=0")
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")

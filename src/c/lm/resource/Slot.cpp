@@ -49,7 +49,7 @@ void Slot::workUnitRemoteStart(lm::message::Message* msg, long long workUnitID)
 	lm::message::RunWorkUnit& run = *(msg->mutable_run_work_unit());
 	run.set_work_unit_id(workUnitID);
 
-	Print::printf(Print::INFO, "Sending message to start work unit %d with trajectory %d on slot %d:%d.", workUnitID, msg->run_work_unit().initial_state().trajectory_id(), getSlotKey()[0], getSlotKey()[1]);
+	Print::printf(Print::DEBUG, "Sending message to start work unit %d with trajectory %d on slot %d:%d.", workUnitID, msg->run_work_unit().initial_state().trajectory_id(), getSlotKey()[0], getSlotKey()[1]);
 	supervisorComm->sendMessage(getSlotKey()[0], getSlotKey()[1], msg);
 }
 

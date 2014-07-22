@@ -139,7 +139,7 @@ void FFluxSupervisor::startSimulation()
 	//// TEMP : replace; hardcoded increasing/decreasing limits for the forward flux test case
 	limits.add_decreasing_species_count(0);
 	limits.add_increasing_species_count(0);
-	double a_incr = 1;
+	double a_incr = 3;
 	setTestCaseLimits(NULL, &a_incr);
 	//// TEMP
 

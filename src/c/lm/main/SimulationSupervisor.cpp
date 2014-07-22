@@ -257,12 +257,12 @@ bool SimulationSupervisor::assignWork()
 
 void SimulationSupervisor::workUnitStarted(const lm::message::StartedWorkUnit& msg)
 {
-    Print::printf(Print::INFO, "Work unit %d started.",msg.work_unit_id());
+    Print::printf(Print::DEBUG, "Work unit %d started.",msg.work_unit_id());
 }
 
 void SimulationSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
 {
-    Print::printf(Print::INFO, "Work unit %d finished in %0.3f s.",msg.work_unit_id(),msg.run_time());
+    Print::printf(Print::DEBUG, "Work unit %d finished in %0.3f s.",msg.work_unit_id(),msg.run_time());
     // If the trajectory associated with the finished work unit exists...
     if (trajectories->exists(msg.final_state().trajectory_id()))
     {

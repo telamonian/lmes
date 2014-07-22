@@ -41,6 +41,7 @@
 #ifndef LM_CME_CMESOLVER_H_
 #define LM_CME_CMESOLVER_H_
 
+#include <cstdio>
 #include <deque>
 #include <list>
 #include <map>
@@ -239,20 +240,25 @@ protected:
     //virtual double recordParameters(double nextRecordTime, double recordInterval, double simulationTime);
     //virtual void queueRecordedParameters(bool flush=false);
 
-    inline void updateSpeciesCounts(uint r)
+    inline void updateSpeciesCounts(uint r, long long steps)
     {
         // Update the counts according to the dependency tables.
-    	if (ffluxFlag!=true) {
-			for (int i=0; i<(int)reactionModel->numberDependentSpecies[r]; i++)
+    	if (ffluxFlag==true) {
+    		// Store the previous step's order parameter
+    		prevOParam = oParam;
+//    		memcpy(previousSpeciesCounts, speciesCounts, sizeof(uint)*7);
+    		for (int i=0; i<(int)reactionModel->numberDependentSpecies[r]; i++)
 			{
+    			//previousSpeciesCounts[reactionModel->dependentSpecies[r][i]] = speciesCounts[reactionModel->dependentSpecies[r][i]];
+    			//previousSpeciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
 				speciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
+				oParam = calcTestCaseOParam(speciesCounts);
 			}
     	}
     	// Record the previous species counts for the benefit of the directed limit crossing checks in reachedSpeciesLimit
     	else {
     		for (int i=0; i<(int)reactionModel->numberDependentSpecies[r]; i++)
 			{
-    			previousSpeciesCounts[reactionModel->dependentSpecies[r][i]] = speciesCounts[reactionModel->dependentSpecies[r][i]];
 				speciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
 			}
     	}
@@ -295,19 +301,39 @@ protected:
             //// TEMP : replace
             case SpeciesLimit::DECREASING:
 //            	if (calcTestCaseOParam(speciesCounts) > 10 || calcTestCaseOParam(previousSpeciesCounts) > 10)
-//				Print::printf(Print::DEBUG, "%d %d checkingdecreasingspecies limit species: %d limit: %d numberSpeciesLimits: %d oparam: %f prev oparam: %f",calcTestCaseOParam(speciesCounts), calcTestCaseOParam(previousSpeciesCounts), l.species, l.limit, numberSpeciesLimits);
+//				Print::printf(Print::INFO, "%f %f checkingdecreasingspecies limit species: %d limit: %d numberSpeciesLimits: %d",calcTestCaseOParam(speciesCounts), calcTestCaseOParam(previousSpeciesCounts), l.species, l.limit, numberSpeciesLimits);
 //            	if (calcTestCaseOParam(speciesCounts) < l.limit && calcTestCaseOParam(previousSpeciesCounts) >= l.limit) Print::printf(Print::DEBUG, "decr limit tripped %d %d", calcTestCaseOParam(speciesCounts), calcTestCaseOParam(previousSpeciesCounts));
 //				if (calcTestCaseOParam(speciesCounts) < l.limit && calcTestCaseOParam(previousSpeciesCounts) >= l.limit) Print::printf(Print::DEBUG, "decr limit passsed %d %d", calcTestCaseOParam(speciesCounts), calcTestCaseOParam(previousSpeciesCounts));
 //            	if (calcTestCaseOParam(speciesCounts) != calcTestCaseOParam(previousSpeciesCounts)) Print::printf(Print::DEBUG, "decr limit not equal %d %d", calcTestCaseOParam(speciesCounts), calcTestCaseOParam(previousSpeciesCounts));
-            	if (calcTestCaseOParam(speciesCounts) < l.limit && calcTestCaseOParam(previousSpeciesCounts) >= l.limit) return true;
+//            	printf("%f %f checkingdecreasingspecies limit species: %d limit: %d numberSpeciesLimits: %d\n",prevOParam,oParam, l.species, l.limit, numberSpeciesLimits);
+//            	if (abs(calcTestCaseOParam(speciesCounts) - calcTestCaseOParam(previousSpeciesCounts))>2.0)
+//            	{
+//					Print::printf(Print::INFO, "oparam differs by more than 2: %f %f",calcTestCaseOParam(speciesCounts), calcTestCaseOParam(previousSpeciesCounts));
+//            	}
+            	if (oParam < l.limit && prevOParam >= l.limit)
+            	{
+            		Print::printf(Print::INFO, "%f %f checkingdecreasingspecies limit species: %d limit: %d numberSpeciesLimits: %d",prevOParam,oParam, l.species, l.limit, numberSpeciesLimits);
+            		return true;
+            	}
             	break;
             case SpeciesLimit::INCREASING:
 //            	if (calcTestCaseOParam(speciesCounts) > 10 || calcTestCaseOParam(previousSpeciesCounts) > 10)
-//				Print::printf(Print::DEBUG, "%d %d checkingincreasingspecies limit species: %d limit: %d numberSpeciesLimits:", calcTestCaseOParam(speciesCounts), calcTestCaseOParam(previousSpeciesCounts), l.species, l.limit, numberSpeciesLimits);
+//				Print::printf(Print::INFO, "%f %f checkingincreasingspecies limit species: %d limit: %d numberSpeciesLimits: %d", calcTestCaseOParam(speciesCounts), calcTestCaseOParam(previousSpeciesCounts), l.species, l.limit, numberSpeciesLimits);
 //            	if (calcTestCaseOParam(speciesCounts) >= l.limit && calcTestCaseOParam(previousSpeciesCounts) < l.limit) Print::printf(Print::DEBUG, "incr limit tripped %d %d", calcTestCaseOParam(speciesCounts), calcTestCaseOParam(previousSpeciesCounts));
 //				if (calcTestCaseOParam(speciesCounts) >= l.limit && calcTestCaseOParam(previousSpeciesCounts) < l.limit) Print::printf(Print::DEBUG, "incr limit passsed %d %d", calcTestCaseOParam(speciesCounts), calcTestCaseOParam(previousSpeciesCounts));
 //            	if (calcTestCaseOParam(speciesCounts) != calcTestCaseOParam(previousSpeciesCounts)) Print::printf(Print::DEBUG, "incr limit not equal %d %d", calcTestCaseOParam(speciesCounts), calcTestCaseOParam(previousSpeciesCounts));
-            	if (calcTestCaseOParam(speciesCounts) >= l.limit && calcTestCaseOParam(previousSpeciesCounts) < l.limit) return true;
+//            	printf("%f %f checkingincreasingspecies limit species: %d limit: %d numberSpeciesLimits: %d\n", prevOParam, oParam, l.species, l.limit, numberSpeciesLimits);
+            	if (abs(oParam-prevOParam)>2.0)
+            	{
+            		Print::printf(Print::INFO, "oparam differs by more than 2: %f %f",prevOParam, oParam);
+            		printf("prev: %d %d %d %d %d %d %d\n",previousSpeciesCounts[0],previousSpeciesCounts[1],previousSpeciesCounts[2],previousSpeciesCounts[3],previousSpeciesCounts[4],previousSpeciesCounts[5],previousSpeciesCounts[6]);
+            		printf("cur:  %d %d %d %d %d %d %d\n",speciesCounts[0],speciesCounts[1],speciesCounts[2],speciesCounts[3],speciesCounts[4],speciesCounts[5],speciesCounts[6]);
+            	}
+            	if (oParam >= l.limit && prevOParam < l.limit)
+            	{
+            		Print::printf(Print::INFO, "%f %f checkingincreasingspecies limit species: %d limit: %d numberSpeciesLimits: %d", prevOParam, oParam, l.species, l.limit, numberSpeciesLimits);
+            		return true;
+            	}
             	break;
             //// TEMP
             }
@@ -353,6 +379,9 @@ protected:
     uint numberSpeciesLimits;
     SpeciesLimit* speciesLimits;
 
+    // Storage for order parameters
+    double oParam;
+    double prevOParam;
 
     int numberFptTrackedSpecies;
     FPTTracking* fptTrackedSpecies;
@@ -360,8 +389,8 @@ protected:
 
     // The current state.
     uint64_t trajectoryId;
-    uint* previousSpeciesCounts;
     uint* speciesCounts;
+    uint* previousSpeciesCounts;
     double time;
 };
 

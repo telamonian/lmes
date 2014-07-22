@@ -76,7 +76,7 @@ namespace lm {
 namespace cme {
 
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
-:neededDists(neededDists),rng(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),speciesCounts(NULL),previousSpeciesCounts(NULL),time(0.0)
+:neededDists(neededDists),rng(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),speciesCounts(NULL),previousSpeciesCounts(NULL),oParam(0),prevOParam(0),time(0.0)
 {
 }
 
@@ -87,7 +87,7 @@ CMESolver::~CMESolver()
 
     // Free any memory associated with the state.
     if (speciesCounts != NULL) delete[] speciesCounts; speciesCounts = NULL;
-    if (previousSpeciesCounts != NULL) delete[] previousSpeciesCounts; previousSpeciesCounts = NULL;
+//    if (previousSpeciesCounts != NULL) delete[] previousSpeciesCounts; previousSpeciesCounts = NULL;
 
     // Free any other memory.
     if (rng != NULL) delete rng; rng = NULL;
@@ -790,23 +790,26 @@ void CMESolver::reset()
 
     // Free any previous state.
     if (speciesCounts != NULL) delete[] speciesCounts; speciesCounts = NULL;
-    if (previousSpeciesCounts != NULL) delete[] previousSpeciesCounts; previousSpeciesCounts = NULL;
+//    if (previousSpeciesCounts != NULL) delete[] previousSpeciesCounts; previousSpeciesCounts = NULL;
 
     // Make sure we have a reaction model.
     if (reactionModel == NULL) throw Exception("Tried to reset state of CMESolver with no reaction model.");
 
     // Allocate space for the old state.
-    previousSpeciesCounts = new uint[reactionModel->numberSpecies];
+//    previousSpeciesCounts = new uint[reactionModel->numberSpecies];
 
     // Allocate space for the new state.
     speciesCounts = new uint[reactionModel->numberSpecies];
-    previousSpeciesCounts = new uint[reactionModel->numberSpecies];
 
     // Reset the species counts.
     for (uint i=0; i<reactionModel->numberSpecies; i++)
     {
         speciesCounts[i] = 0;
-        previousSpeciesCounts[i] = 0;
+        //// TEMP : replace
+        oParam = calcTestCaseOParam(speciesCounts);
+        //// TEMP
+        prevOParam = oParam;
+//        previousSpeciesCounts[i] = 0;
     }
 
     // Reset the time.
@@ -863,8 +866,10 @@ void CMESolver::setState(const lm::io::TrajectoryState& state)
     for (int i=0; i<state.cme_state().species_counts().species_count_size(); i++)
     {
         speciesCounts[i] = state.cme_state().species_counts().species_count(i);
-    	previousSpeciesCounts[i] = state.cme_state().species_counts().species_count(i);
+//    	previousSpeciesCounts[i] = state.cme_state().species_counts().species_count(i);
     }
+    oParam = calcTestCaseOParam(speciesCounts);
+    prevOParam = oParam;
     time = state.cme_state().species_counts().time(0);
 
     // Set the first passage times.
@@ -946,7 +951,7 @@ void CMESolver::setSpeciesDecreasingLimit(int species, int limit)
 	SpeciesLimit* newSpeciesLimits = new SpeciesLimit[++numberSpeciesLimits];
 	if (numberSpeciesLimits > 1)
 	{
-		memcpy(newSpeciesLimits, speciesLimits, numberSpeciesLimits-1);
+		memcpy(newSpeciesLimits, speciesLimits, sizeof(SpeciesLimit)*(numberSpeciesLimits-1));
 		delete[] speciesLimits;
 	}
 	speciesLimits = newSpeciesLimits;
@@ -961,7 +966,7 @@ void CMESolver::setSpeciesIncreasingLimit(int species, int limit)
 	SpeciesLimit* newSpeciesLimits = new SpeciesLimit[++numberSpeciesLimits];
 	if (numberSpeciesLimits > 1)
 	{
-		memcpy(newSpeciesLimits, speciesLimits, numberSpeciesLimits-1);
+		memcpy(newSpeciesLimits, speciesLimits, sizeof(SpeciesLimit)*(numberSpeciesLimits-1));
 		delete[] speciesLimits;
 	}
 	speciesLimits = newSpeciesLimits;

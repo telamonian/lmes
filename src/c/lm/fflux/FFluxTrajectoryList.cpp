@@ -60,7 +60,7 @@ namespace lm {
 namespace fflux {
 
 FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel):
-	TrajectoryList(simulationParameters, reactionModel), xorShift(0,0), ffluxPhase(0), maxFFluxPhase(39), finishedTrajectoriesCounts(39, 0), simultaneousTrajectoryCount(simultaneousTrajectoryCount), crossingsPerPhase(100) // TODO: change maxFFluxPhase from fixed to varying with input //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
+	TrajectoryList(simulationParameters, reactionModel), xorShift(0,0), simultaneousTrajectoryCount(simultaneousTrajectoryCount), ffluxPhase(0), maxFFluxPhase(35), maxPhaseZeroTime(100000), finishedTrajectoriesCounts(maxFFluxPhase, 0), crossingsPerPhase(100) // TODO: change maxFFluxPhase from fixed to varying with input //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
 }
 
@@ -164,41 +164,75 @@ void FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit &
 		// Regardless of whether this crossing was a forward or backwards flux, increment this phase's finished trajectories counter and delete the finished trajectory
 		++finishedTrajectoriesCounts[ffluxPhase];
 		deleteTrajectory(finishedWorkUnitMsg.final_state().trajectory_id());
-		// Next, if enough crossing events have been detected for this phase of forward flux sampling...
-		Print::printf(Print::DEBUG, "crossings[fflux].size() is: %d",crossings[ffluxPhase].size());
-		if (crossings[ffluxPhase].size()>=crossingsPerPhase)	// TODO: rearrange this conditional so that phase 0 has the appropriate unique stopping condition
+		//Print::printf(Print::INFO, "ffluxPhase: %d, crossings[fflux].size(): %d, finishedTrajectoriesCount %d, time: %f, oparam: %f", ffluxPhase, crossings[ffluxPhase].size(), finishedTrajectoriesCounts[ffluxPhase], crossings[ffluxPhase].back()->cme_state().species_counts().time(crossings[ffluxPhase].back()->cme_state().species_counts().number_entries() - 1), calcTestCaseOParam(finishedWorkUnitMsg.final_state()));
+		// If the forward flux sampling is still in its 0th (ie initial) phase...
+		if 	(ffluxPhase==0)
 		{
-			// ...delete the currently running set of trajectories
-			deleteAllTrajectories();
-			// Next, increment the fflux phase counter. If there are still more phases to run...
-			++ffluxPhase;
-			if (maxFFluxPhase > ffluxPhase)
+			// ...and if enough time has passed for phase zero to be complete...
+			if (crossings[ffluxPhase].back()->cme_state().species_counts().time(crossings[ffluxPhase].back()->cme_state().species_counts().number_entries() - 1) > maxPhaseZeroTime)
 			{
-				// ...increment the interface position (by altering the increasing/decreasing limits)...
-				//// TEMP : replace
-				incrTestCaseLimits();
-				//// TEMP
-				// ...and start up a new set of trajectories
-				initPhaseNTrajectories(simultaneousTrajectoryCount,ffluxPhase);
+				if (crossings.find(ffluxPhase)==crossings.end()) Print::printf(Print::ERROR, "No crossings were recorded during forward flux phase zero. Try increasing maxPhaseZeroTime");
+				Print::printf(Print::INFO,"By the end of forward flux phase zero, %d forward crossings were recorded", crossings[ffluxPhase].size());
+				// ...delete the currently running set of trajectories.
+				deleteAllTrajectories();
+				// Next, increment the fflux phase counter. If there are still more phases to run...
+				++ffluxPhase;
+				if (maxFFluxPhase > ffluxPhase)
+				{
+					// ...increment the interface position (by altering the increasing/decreasing limits)...
+					//// TEMP : replace
+					incrTestCaseLimits();
+					//// TEMP
+					// ...and start up a new set of trajectories
+					initPhaseNTrajectories(simultaneousTrajectoryCount,ffluxPhase);
+				}
 			}
+			// ...otherwise we still have more time to go in phase zero...
 			else
 			{
-				// if there are no more runs to be made, put some cleanup code here
-			}
-		}
-		// ...otherwise we still have to collect more crossing events related to this phase's interface...
-		else
-		{
-			// ...so if the forward flux sampling is still in its 0th (ie initial) phase...
-			if (ffluxPhase==0)
-			{
-				// ...start one phase zero trajectory
+				// ...so start one phase zero trajectory.
 				initPhaseZeroTrajectory(crossings[ffluxPhase].back());
 			}
-			// ...otherwise if ffluxPhase > 0...
+		}
+		// ...otherwise if ffluxPhase > 0...
+		else
+		{
+			// ...and if enough crossing events have been detected for this phase of forward flux sampling...
+			if (crossings[ffluxPhase].size()>=crossingsPerPhase)
+			{
+				// ...delete the currently running set of trajectories
+				deleteAllTrajectories();
+				// Next, increment the fflux phase counter. If there are still more phases to run...
+				++ffluxPhase;
+				if (maxFFluxPhase > ffluxPhase)
+				{
+					// ...increment the interface position (by altering the increasing/decreasing limits)...
+					//// TEMP : replace
+					incrTestCaseLimits();
+					//// TEMP
+					// ...and start up a new set of trajectories
+					initPhaseNTrajectories(simultaneousTrajectoryCount,ffluxPhase);
+				}
+				// ...otherwise if the whole simulation is complete, output some data.
+				else
+				{
+					Print::printf(Print::INFO, "Phase 0 probability flux: %.10f", (double)crossings[0].size()/maxPhaseZeroTime);
+					for (int i=1;i<maxFFluxPhase;i++)
+					{
+						Print::printf(Print::INFO, "Phase %d barrier crossing probability: %.10f", i,(double)crossings[i].size()/finishedTrajectoriesCounts[i]);
+					}
+					double Kab = (double)crossings[0].size()/maxPhaseZeroTime;
+					for (int i=1;i<maxFFluxPhase;i++)
+					{
+						Kab *= (double)crossings[i].size()/finishedTrajectoriesCounts[i];
+					}
+					Print::printf(Print::INFO, "Pseudo first order rate constant: %.10f", Kab);
+				}
+			}
+			// ...otherwise we still need to collect more crossing events for this phase of forward flux sampling...
 			else
 			{
-				// ... start one phase N trajectory
+				// ...so start one phase N trajectory.
 				initPhaseNTrajectories(1, ffluxPhase);
 			}
 		}
@@ -212,7 +246,7 @@ void FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit &
 
 lm::io::TrajectoryState * FFluxTrajectoryList::getRandomCrossing(long long ffluxPhase)
 {
-	unsigned i = floor(xorShift.getRandomDouble()*crossingsPerPhase);
+	unsigned i = floor(xorShift.getRandomDouble()*crossings[ffluxPhase].size());
 	return crossings[ffluxPhase][i];
 }
 
@@ -227,8 +261,10 @@ double FFluxTrajectoryList::calcTestCaseOParam(const lm::io::TrajectoryState& fi
 void FFluxTrajectoryList::incrTestCaseLimits()
 {
 	lm::message::RunWorkUnit* runWorkUnitMsg = getRunWorkUnitMsg();
-	runWorkUnitMsg->mutable_limits()->set_decreasing_species_count(0, runWorkUnitMsg->limits().increasing_species_count(0));
+	//runWorkUnitMsg->mutable_limits()->set_decreasing_species_count(0, runWorkUnitMsg->limits().increasing_species_count(0));
+	runWorkUnitMsg->mutable_limits()->set_decreasing_species_count(0, 3);
 	runWorkUnitMsg->mutable_limits()->set_increasing_species_count(0, runWorkUnitMsg->limits().increasing_species_count(0) + 1);
+	Print::printf(Print::DEBUG, "decr_limit: %f, incr_limit %f", runWorkUnitMsg->mutable_limits()->decreasing_species_count(0), runWorkUnitMsg->mutable_limits()->increasing_species_count(0));
 }
 //// TEMP
 

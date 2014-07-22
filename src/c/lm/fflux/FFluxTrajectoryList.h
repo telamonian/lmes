@@ -77,13 +77,14 @@ protected:
     virtual double calcTestCaseOParam(const lm::io::TrajectoryState& finalState);
     virtual void incrTestCaseLimits();
     ////
-    map<long long, vector<lm::io::TrajectoryState *> > crossings;
-    vector<long long> finishedTrajectoriesCounts;
     lm::rng::XORShift xorShift;	//RNG used for randomly choosing a crossing in a crossing vector
-    long long ffluxPhase;
-    long long maxFFluxPhase;
     uint64_t simultaneousTrajectoryCount;
+    long long ffluxPhase;
+	long long maxFFluxPhase;
+	double maxPhaseZeroTime;
+    vector<long long> finishedTrajectoriesCounts;
     unsigned crossingsPerPhase;	//the count of crossing events that should be collected for every fflux sampling phase
+    map<long long, vector<lm::io::TrajectoryState *> > crossings;
 };
 
 }
