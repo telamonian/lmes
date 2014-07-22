@@ -61,7 +61,7 @@ namespace fflux {
 class FFluxTrajectoryList : public lm::resource::TrajectoryList
 {
 public:
-    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel);
+    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, double zerothInterface, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel);
     virtual ~FFluxTrajectoryList();
     virtual void init();
     virtual void initTrajectory(uint64_t trajectoryID, lm::io::TrajectoryState* trajectoryState);
@@ -80,11 +80,19 @@ protected:
     lm::rng::XORShift xorShift;	//RNG used for randomly choosing a crossing in a crossing vector
     uint64_t simultaneousTrajectoryCount;
     long long ffluxPhase;
-	long long maxFFluxPhase;
-	double maxPhaseZeroTime;
-    vector<long long> finishedTrajectoriesCounts;
     unsigned crossingsPerPhase;	//the count of crossing events that should be collected for every fflux sampling phase
-    map<long long, vector<lm::io::TrajectoryState *> > crossings;
+
+    // variables related to how the forward flux interfaces are set up
+    double zerothInterface;
+    double finalInterface;
+    long long interfaceCount;
+	double maxPhaseZeroTime;
+	vector<long long> finishedTrajectoriesCounts;
+
+	map<long long, vector<lm::io::TrajectoryState *> > crossings;
+
+	long long maxFFluxPhase;
+	double oParamStep;
 };
 
 }

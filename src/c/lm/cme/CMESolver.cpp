@@ -945,7 +945,7 @@ void CMESolver::setSpeciesUpperLimit(int species, int limit)
     speciesLimits[numberSpeciesLimits-1].limit = limit;
 }
 
-void CMESolver::setSpeciesDecreasingLimit(int species, int limit)
+void CMESolver::setSpeciesDecreasingLimit(int species, double limit)
 {
 	// Allocate a larger list for the limits/limit crossings.
 	SpeciesLimit* newSpeciesLimits = new SpeciesLimit[++numberSpeciesLimits];
@@ -960,7 +960,7 @@ void CMESolver::setSpeciesDecreasingLimit(int species, int limit)
 	speciesLimits[numberSpeciesLimits-1].limit = limit;
 }
 
-void CMESolver::setSpeciesIncreasingLimit(int species, int limit)
+void CMESolver::setSpeciesIncreasingLimit(int species, double limit)
 {
 	// Allocate a larger list for the limits/limit crossings.
 	SpeciesLimit* newSpeciesLimits = new SpeciesLimit[++numberSpeciesLimits];

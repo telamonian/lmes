@@ -59,9 +59,12 @@ using std::vector;
 namespace lm {
 namespace fflux {
 
-FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel):
-	TrajectoryList(simulationParameters, reactionModel), xorShift(0,0), simultaneousTrajectoryCount(simultaneousTrajectoryCount), ffluxPhase(0), maxFFluxPhase(35), maxPhaseZeroTime(100000), finishedTrajectoriesCounts(maxFFluxPhase, 0), crossingsPerPhase(100) // TODO: change maxFFluxPhase from fixed to varying with input //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
+FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, double zerothInterface, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel):
+	TrajectoryList(simulationParameters, reactionModel), xorShift(0,0),simultaneousTrajectoryCount(simultaneousTrajectoryCount),ffluxPhase(0),crossingsPerPhase(100),zerothInterface(zerothInterface),finalInterface(25.0),interfaceCount(30),maxPhaseZeroTime(10000),maxFFluxPhase(),oParamStep() // TODO: change maxFFluxPhase from fixed to varying with input //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
+	maxFFluxPhase = interfaceCount + 1;
+	finishedTrajectoriesCounts = vector<long long>(maxFFluxPhase, 0);
+	oParamStep = (double)(finalInterface - zerothInterface)/interfaceCount;
 }
 
 FFluxTrajectoryList::~FFluxTrajectoryList()
@@ -103,7 +106,7 @@ void FFluxTrajectoryList::initPhaseZeroTrajectory(lm::io::TrajectoryState* oldCr
 
 void FFluxTrajectoryList::initPhaseNTrajectories(uint64_t trajectoriesToStart, long long FFluxPhase)
 {
-	for (long long i=0; i<=trajectoriesToStart; i++)
+	for (long long i=0; i<trajectoriesToStart; i++)
 	{
 		// Randomly choose a crossing state collected in the last round of fflux sampling, and use as the starting state for a new trajectory
 		lm::io::TrajectoryState* randomCrossing = getRandomCrossing(FFluxPhase - 1);
@@ -158,6 +161,7 @@ void FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit &
 		if (calcTestCaseOParam(finishedWorkUnitMsg.final_state())>=getLimitsMsg()->increasing_species_count(0))
 		{
 			// ...add the work unit's final state to the appropriate list of crossings
+			Print::printf(Print::INFO,"Crossing %d added to phase %d list", crossings[ffluxPhase].size(), ffluxPhase);
 			lm::io::TrajectoryState * newCrossing = new lm::io::TrajectoryState(finishedWorkUnitMsg.final_state());
 			crossings[ffluxPhase].push_back(newCrossing);
 		}
@@ -216,12 +220,12 @@ void FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit &
 				// ...otherwise if the whole simulation is complete, output some data.
 				else
 				{
-					Print::printf(Print::INFO, "Phase 0 probability flux: %.10f", (double)crossings[0].size()/maxPhaseZeroTime);
+					Print::printf(Print::INFO, "Phase 0 probability flux: %.10f", (double)crossings[0].size()/(maxPhaseZeroTime*simultaneousTrajectoryCount));
 					for (int i=1;i<maxFFluxPhase;i++)
 					{
-						Print::printf(Print::INFO, "Phase %d barrier crossing probability: %.10f", i,(double)crossings[i].size()/finishedTrajectoriesCounts[i]);
+						Print::printf(Print::INFO, "Crossing probability for interface at %f: %.10f", zerothInterface+i*oParamStep,(double)crossings[i].size()/finishedTrajectoriesCounts[i]);
 					}
-					double Kab = (double)crossings[0].size()/maxPhaseZeroTime;
+					double Kab = (double)crossings[0].size()/(maxPhaseZeroTime*simultaneousTrajectoryCount);
 					for (int i=1;i<maxFFluxPhase;i++)
 					{
 						Kab *= (double)crossings[i].size()/finishedTrajectoriesCounts[i];
@@ -253,18 +257,20 @@ lm::io::TrajectoryState * FFluxTrajectoryList::getRandomCrossing(long long fflux
 //// TEMP: replace
 double FFluxTrajectoryList::calcTestCaseOParam(const lm::io::TrajectoryState& finalState)
     {
-    	return finalState.cme_state().species_counts().species_count(0) + \
+    	return (double)(finalState.cme_state().species_counts().species_count(0) + \
     		   2*finalState.cme_state().species_counts().species_count(1) + \
-    		   finalState.cme_state().species_counts().species_count(2);
+    		   finalState.cme_state().species_counts().species_count(2)) - \
+    		   (double)(finalState.cme_state().species_counts().species_count(3) + \
+			   2*finalState.cme_state().species_counts().species_count(4) + \
+			   finalState.cme_state().species_counts().species_count(5));
     }
 
 void FFluxTrajectoryList::incrTestCaseLimits()
 {
 	lm::message::RunWorkUnit* runWorkUnitMsg = getRunWorkUnitMsg();
-	//runWorkUnitMsg->mutable_limits()->set_decreasing_species_count(0, runWorkUnitMsg->limits().increasing_species_count(0));
-	runWorkUnitMsg->mutable_limits()->set_decreasing_species_count(0, 3);
-	runWorkUnitMsg->mutable_limits()->set_increasing_species_count(0, runWorkUnitMsg->limits().increasing_species_count(0) + 1);
-	Print::printf(Print::DEBUG, "decr_limit: %f, incr_limit %f", runWorkUnitMsg->mutable_limits()->decreasing_species_count(0), runWorkUnitMsg->mutable_limits()->increasing_species_count(0));
+	Print::printf(Print::INFO, "decr_limit: %f incr_limit: %f", zerothInterface, runWorkUnitMsg->limits().increasing_species_count(0) + oParamStep);
+	runWorkUnitMsg->mutable_limits()->set_decreasing_species_count(0, zerothInterface);
+	runWorkUnitMsg->mutable_limits()->set_increasing_species_count(0, runWorkUnitMsg->limits().increasing_species_count(0) + oParamStep);
 }
 //// TEMP
 

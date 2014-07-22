@@ -121,7 +121,7 @@ void FFluxSupervisor::startSimulation()
     Print::printf(Print::INFO, "Forward flux supervisor starting simulation.");
 
     // Create the new trajectory list.
-    trajectories = new FFluxTrajectoryList(slots.getSlotsSize(), simulationParameterMap, reactionModel);
+    trajectories = new FFluxTrajectoryList(slots.getSlotsSize(), -25.0, simulationParameterMap, reactionModel);
 
     // Get the trajectories template msg so that we can set some default values in it
     lm::message::RunWorkUnit* runWorkUnitMsg = trajectories->getRunWorkUnitMsg();
@@ -139,7 +139,7 @@ void FFluxSupervisor::startSimulation()
 	//// TEMP : replace; hardcoded increasing/decreasing limits for the forward flux test case
 	limits.add_decreasing_species_count(0);
 	limits.add_increasing_species_count(0);
-	double a_incr = 3;
+	double a_incr = -25.0;
 	setTestCaseLimits(NULL, &a_incr);
 	//// TEMP
 

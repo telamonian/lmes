@@ -174,7 +174,7 @@ protected:
         enum limit_type_t {MIN, MAX, DECREASING, INCREASING};
         limit_type_t type;
         int species;
-        int limit;
+        double limit;
     };
     class FPTTracking
     {
@@ -219,8 +219,8 @@ public:
 protected:
     virtual void setSpeciesUpperLimit(int species, int limit);
     virtual void setSpeciesLowerLimit(int species, int limit);
-    virtual void setSpeciesDecreasingLimit(int species, int limit);
-    virtual void setSpeciesIncreasingLimit(int species, int limit);
+    virtual void setSpeciesDecreasingLimit(int species, double limit);
+    virtual void setSpeciesIncreasingLimit(int species, double limit);
     virtual void addToParameterTrackingList(pair<string,double*>parameter);
 
     static double zerothOrderPropensity(double time, uint * speciesCounts, void * pargs);
@@ -281,7 +281,7 @@ protected:
     //// TEMP : remove
     inline double calcTestCaseOParam(uint* specCnts)
     {
-    	return specCnts[0] + 2*specCnts[1] + specCnts[2];
+    	return (double)(specCnts[0] + 2*specCnts[1] + specCnts[2]) - (double)(specCnts[3] + 2*specCnts[4] + specCnts[5]);
     }
     //// TEMP
 
@@ -312,7 +312,7 @@ protected:
 //            	}
             	if (oParam < l.limit && prevOParam >= l.limit)
             	{
-            		Print::printf(Print::INFO, "%f %f checkingdecreasingspecies limit species: %d limit: %d numberSpeciesLimits: %d",prevOParam,oParam, l.species, l.limit, numberSpeciesLimits);
+//            		Print::printf(Print::INFO, "%f %f checkingdecreasingspecies limit species: %d limit: %f numberSpeciesLimits: %d",prevOParam,oParam, l.species, l.limit, numberSpeciesLimits);
             		return true;
             	}
             	break;
@@ -331,7 +331,7 @@ protected:
             	}
             	if (oParam >= l.limit && prevOParam < l.limit)
             	{
-            		Print::printf(Print::INFO, "%f %f checkingincreasingspecies limit species: %d limit: %d numberSpeciesLimits: %d", prevOParam, oParam, l.species, l.limit, numberSpeciesLimits);
+//            		Print::printf(Print::INFO, "%f %f checkingincreasingspecies limit species: %d limit: %f numberSpeciesLimits: %d", prevOParam, oParam, l.species, l.limit, numberSpeciesLimits);
             		return true;
             	}
             	break;
