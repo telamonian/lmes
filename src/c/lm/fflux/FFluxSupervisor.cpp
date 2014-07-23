@@ -114,6 +114,7 @@ void FFluxSupervisor::outputWriterStarted(const lm::message::StartedOutputWriter
 
 void FFluxSupervisor::startSimulation()
 {
+	double zerothInterface = -25.0;
     // Check for some error conditions.
     if (outputWriterProcess == -1 || outputWriterThread == -1)
         throw new Exception("Forward flux supervisor could not start the simulation, no output writer available.");
@@ -121,7 +122,7 @@ void FFluxSupervisor::startSimulation()
     Print::printf(Print::INFO, "Forward flux supervisor starting simulation.");
 
     // Create the new trajectory list.
-    trajectories = new FFluxTrajectoryList(slots.getSlotsSize(), -25.0, simulationParameterMap, reactionModel);
+    trajectories = new FFluxTrajectoryList(slots.getSlotsSize(), zerothInterface, simulationParameterMap, reactionModel);
 
     // Get the trajectories template msg so that we can set some default values in it
     lm::message::RunWorkUnit* runWorkUnitMsg = trajectories->getRunWorkUnitMsg();
@@ -139,7 +140,7 @@ void FFluxSupervisor::startSimulation()
 	//// TEMP : replace; hardcoded increasing/decreasing limits for the forward flux test case
 	limits.add_decreasing_species_count(0);
 	limits.add_increasing_species_count(0);
-	double a_incr = -25.0;
+	double a_incr = zerothInterface;
 	setTestCaseLimits(NULL, &a_incr);
 	//// TEMP
 

@@ -55,6 +55,9 @@
 using std::map;
 using std::vector;
 
+typedef vector<lm::io::TrajectoryState *> CrossingVector;
+typedef map<long long, CrossingVector> CrossingsMap;
+
 namespace lm {
 namespace fflux {
 
@@ -89,7 +92,7 @@ protected:
 	double maxPhaseZeroTime;
 	vector<long long> finishedTrajectoriesCounts;
 
-	map<long long, vector<lm::io::TrajectoryState *> > crossings;
+	CrossingsMap crossings;
 
 	long long maxFFluxPhase;
 	double oParamStep;

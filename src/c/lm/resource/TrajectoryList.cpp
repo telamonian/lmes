@@ -102,14 +102,14 @@ void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
 
 lm::message::Message * TrajectoryList::getNextWorkUnitMsg()
 {
-	for (auto trajectory : trajectories)
+	for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
 	{
-		if (trajectory.second->getStatus()==Trajectory::NOT_STARTED || trajectory.second->getStatus()==Trajectory::WAITING)
+		if (it->second->getStatus()==Trajectory::NOT_STARTED || it->second->getStatus()==Trajectory::WAITING)
 		{
-			trajectory.second->setStatus(Trajectory::RUNNING);
-			trajectory.second->setWorkUnitId(workUnitCount++);
-			trajectory.second->updateInitialRunState();
-			return trajectory.second->getMsg();
+			it->second->setStatus(Trajectory::RUNNING);
+			it->second->setWorkUnitId(workUnitCount++);
+			it->second->updateInitialRunState();
+			return it->second->getMsg();
 		}
 	}
 	return NULL;
@@ -118,9 +118,9 @@ lm::message::Message * TrajectoryList::getNextWorkUnitMsg()
 // check if all of the trajectories are truly finished or if some of them are still running
 bool TrajectoryList::isFinished()
 {
-	for (auto trajectory : trajectories)
+	for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
 	{
-		if (trajectory.second->getStatus()==Trajectory::RUNNING)
+		if (it->second->getStatus()==Trajectory::RUNNING)
 		{
 			return false;
 		}

@@ -220,19 +220,19 @@ void ResourceController::startOutputWriter(const lm::message::StartOutputWriter&
 void ResourceController::stopWorkers(bool abort)
 {
 	Print::printf(Print::INFO, "total execution time was: %f", convertHrToSeconds(getHrTime() - globalTimer));
-	for (auto workUnitRunner : runnerWorkers)
+	for (WorkerList::iterator it=runnerWorkers.begin(); it!=runnerWorkers.end(); it++)
 	{
 	if (abort)
-		workUnitRunner->abort();
+		(*it)->abort();
 	else
-		workUnitRunner->stop();
+		(*it)->stop();
 	}
-	for (auto outputWriter : writerWorkers)
+	for (WorkerList::iterator it=writerWorkers.begin(); it!=writerWorkers.end(); it++)
 	{
 	if (abort)
-		outputWriter->abort();
+		(*it)->abort();
 	else
-		outputWriter->stop();
+		(*it)->stop();
 	}
 //    for (std::list<lm::thread::Worker*>::iterator it=workers.begin(); it != workers.end(); it++)
 //    {
