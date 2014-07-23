@@ -81,7 +81,11 @@ ReplicateSupervisor::ReplicateSupervisor()
 
 ReplicateSupervisor::~ReplicateSupervisor()
 {
-    if (trajectories != NULL) delete trajectories; trajectories = NULL;
+//    if (trajectories != NULL)
+//    {
+//    	delete trajectories;
+//    	trajectories = NULL;
+//    }
 }
 
 void ReplicateSupervisor::allResourcesRegistered()

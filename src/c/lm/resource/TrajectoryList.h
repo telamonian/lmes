@@ -76,6 +76,7 @@ public:
     virtual void deleteAllTrajectories();
 
     virtual lm::message::Message* getNextWorkUnitMsg();
+    virtual bool isFinished();
     virtual void workUnitFinished(const lm::message::FinishedWorkUnit & msg);
 
     // dealing with the internal template Message methods

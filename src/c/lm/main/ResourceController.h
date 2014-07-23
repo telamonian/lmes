@@ -76,7 +76,8 @@ protected:
 
 protected:
     lm::message::Communicator communicator;
-    std::list<lm::thread::Worker*> workers;
+    std::list<lm::thread::Worker*> runnerWorkers;
+    std::list<lm::thread::Worker*> writerWorkers;
 };
 
 }

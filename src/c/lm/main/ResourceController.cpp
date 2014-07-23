@@ -73,11 +73,16 @@ ResourceController::ResourceController()
 
 ResourceController::~ResourceController()
 {
-    for (std::list<lm::thread::Worker*>::iterator it=workers.begin(); it != workers.end(); it++)
+    for (std::list<lm::thread::Worker*>::iterator it=runnerWorkers.begin(); it != runnerWorkers.end(); it++)
     {
         delete *it;
     }
-    workers.clear();
+    for (std::list<lm::thread::Worker*>::iterator it=writerWorkers.begin(); it != writerWorkers.end(); it++)
+	{
+		delete *it;
+	}
+    runnerWorkers.clear();
+    writerWorkers.clear();
 }
 
 void ResourceController::wake() throw(PthreadException)
@@ -199,7 +204,7 @@ void ResourceController::startWorkUnitRunner(const lm::message::StartWorkUnitRun
     // Start the work unit runner.
     WorkUnitRunner* runner = new WorkUnitRunner(msg);
     runner->start();
-    workers.push_back(runner);
+    runnerWorkers.push_back(runner);
 }
 
 void ResourceController::startOutputWriter(const lm::message::StartOutputWriter& msg)
@@ -209,20 +214,34 @@ void ResourceController::startOutputWriter(const lm::message::StartOutputWriter&
     writer->setOutputFilename(msg.output_filename());
     writer->initialize();
     writer->start();
-    workers.push_back(writer);
+    writerWorkers.push_back(writer);
 }
 
 void ResourceController::stopWorkers(bool abort)
 {
 	Print::printf(Print::INFO, "total execution time was: %f", convertHrToSeconds(getHrTime() - globalTimer));
-    for (std::list<lm::thread::Worker*>::iterator it=workers.begin(); it != workers.end(); it++)
-    {
-        lm::thread::Worker* worker = *it;
-        if (abort)
-            worker->abort();
-        else
-            worker->stop();
-    }
+	for (auto workUnitRunner : runnerWorkers)
+	{
+	if (abort)
+		workUnitRunner->abort();
+	else
+		workUnitRunner->stop();
+	}
+	for (auto outputWriter : writerWorkers)
+	{
+	if (abort)
+		outputWriter->abort();
+	else
+		outputWriter->stop();
+	}
+//    for (std::list<lm::thread::Worker*>::iterator it=workers.begin(); it != workers.end(); it++)
+//    {
+//        lm::thread::Worker* worker = *it;
+//        if (abort)
+//            worker->abort();
+//        else
+//            worker->stop();
+//    }
 }
 
 }
