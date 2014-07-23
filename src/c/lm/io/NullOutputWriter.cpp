@@ -36,6 +36,27 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+#include <pthread.h>
+#include <sys/time.h>
+#include <time.h>
+
+#include "hrtime.h"
+#include "lm/Print.h"
+#include "lm/MPI.h"
+#include "lm/io/OutputWriter.h"
+#include "lm/io/SpeciesCounts.pb.h"
+#include "lm/main/SimulationSupervisor.h"
+#include "lm/message/Communicator.h"
+#include "lm/message/Message.pb.h"
+#include "lm/message/ProcessWorkUnitOutput.pb.h"
+#include "lm/message/StartedOutputWriter.pb.h"
+#include "lm/thread/Thread.h"
+#include "lm/thread/Worker.h"
+#include "lm/Types.h"
+
+#include "lptf/Profile.h"
+#include "lptf/ProfileCodes.h"
+
 
 #include <lm/ClassFactory.h>
 #include <lm/Print.h>

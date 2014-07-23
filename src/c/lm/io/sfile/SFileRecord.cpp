@@ -37,7 +37,7 @@
  * Author(s): Elijah Roberts
  */
 
-#include "sfilerecord.h"
+#include "SFileRecord.h"
 
 namespace lm {
 namespace io {

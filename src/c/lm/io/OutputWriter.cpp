@@ -55,6 +55,7 @@
 #include "lm/message/StartedOutputWriter.pb.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
+#include "lm/Types.h"
 
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"

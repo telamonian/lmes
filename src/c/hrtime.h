@@ -1,3 +1,5 @@
+#include "lm/Types.h"
+
 #ifndef HRTIME_H
 #define HRTIME_H
 
