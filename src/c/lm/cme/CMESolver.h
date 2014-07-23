@@ -243,7 +243,7 @@ protected:
     inline void updateSpeciesCounts(uint r, long long steps)
     {
         // Update the counts according to the dependency tables.
-    	if (ffluxFlag==true) {
+    	if (true) {//if (ffluxFlag==true) {
     		// Store the previous step's order parameter
     		prevOParam = oParam;
 //    		memcpy(previousSpeciesCounts, speciesCounts, sizeof(uint)*7);
@@ -323,12 +323,16 @@ protected:
 //				if (calcTestCaseOParam(speciesCounts) >= l.limit && calcTestCaseOParam(previousSpeciesCounts) < l.limit) Print::printf(Print::DEBUG, "incr limit passsed %d %d", calcTestCaseOParam(speciesCounts), calcTestCaseOParam(previousSpeciesCounts));
 //            	if (calcTestCaseOParam(speciesCounts) != calcTestCaseOParam(previousSpeciesCounts)) Print::printf(Print::DEBUG, "incr limit not equal %d %d", calcTestCaseOParam(speciesCounts), calcTestCaseOParam(previousSpeciesCounts));
 //            	printf("%f %f checkingincreasingspecies limit species: %d limit: %d numberSpeciesLimits: %d\n", prevOParam, oParam, l.species, l.limit, numberSpeciesLimits);
-            	if (abs(oParam-prevOParam)>2.0)
-            	{
-            		Print::printf(Print::INFO, "oparam differs by more than 2: %f %f",prevOParam, oParam);
-            		printf("prev: %d %d %d %d %d %d %d\n",previousSpeciesCounts[0],previousSpeciesCounts[1],previousSpeciesCounts[2],previousSpeciesCounts[3],previousSpeciesCounts[4],previousSpeciesCounts[5],previousSpeciesCounts[6]);
-            		printf("cur:  %d %d %d %d %d %d %d\n",speciesCounts[0],speciesCounts[1],speciesCounts[2],speciesCounts[3],speciesCounts[4],speciesCounts[5],speciesCounts[6]);
-            	}
+//            	if (abs(oParam-prevOParam)>2.0)
+//            	{
+//            		Print::printf(Print::INFO, "oparam differs by more than 2: %f %f",prevOParam, oParam);
+//            		printf("prev: %d %d %d %d %d %d %d\n",previousSpeciesCounts[0],previousSpeciesCounts[1],previousSpeciesCounts[2],previousSpeciesCounts[3],previousSpeciesCounts[4],previousSpeciesCounts[5],previousSpeciesCounts[6]);
+//            		printf("cur:  %d %d %d %d %d %d %d\n",speciesCounts[0],speciesCounts[1],speciesCounts[2],speciesCounts[3],speciesCounts[4],speciesCounts[5],speciesCounts[6]);
+//            	}
+//            	if (oParam > -10.0)
+//            	{
+//            		printf("%f %f prevOparm oParam", prevOParam, oParam);
+//            	}
             	if (oParam >= l.limit && prevOParam < l.limit)
             	{
 //            		Print::printf(Print::INFO, "%f %f checkingincreasingspecies limit species: %d limit: %f numberSpeciesLimits: %d", prevOParam, oParam, l.species, l.limit, numberSpeciesLimits);

@@ -103,6 +103,9 @@ throw(MPIException)
 void MPI::finalize()
 throw(MPIException)
 {
+//	MPI_Status messageStatus;
+//	MPI_EXCEPTION_CHECK(MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &messageStatus));
+//	Print::printf(Print::DEBUG, "%d", messageStatus.MPI_SOURCE);
     // Close own the MPI library.
     MPI_EXCEPTION_CHECK(MPI_Finalize());
 }

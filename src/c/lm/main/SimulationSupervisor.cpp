@@ -248,7 +248,17 @@ bool SimulationSupervisor::assignWork()
 
 		// Get the next trajectory to run, if there is one.
 		lm::message::Message * nextWorkUnitMsg = trajectories->getNextWorkUnitMsg();
-		if (nextWorkUnitMsg==NULL) return true;	// When there's no more trajectories to run and it's time for the program to shut down, assignWork should return from here
+		if (nextWorkUnitMsg==NULL)
+		{
+			if (trajectories->isFinished())
+			{
+				return true;	// When there's no more trajectories to run and it's time for the program to shut down, assignWork should return from here
+			}
+			else
+			{
+				return false;	// Some trajectories are still running, there may still be more work units to come
+			}
+		}
 
 		// If we got this far, put the next free slot together with the next trajectory
 		workSlot->workUnitRemoteStart(nextWorkUnitMsg, workUnitCount++);
@@ -278,7 +288,12 @@ void SimulationSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit&
     // Fill the newly freed slot with a work unit. If there are more trajectories than slots, this is guaranteed to use the slot we just freed. Otherwise it will be the "coldest" (longest unoccupied) slot
     if (assignWork())
     {
-        finishSimulation();
+    	if (running)
+    	{
+    		running = false;
+    		Print::printf(Print::INFO, "finish simulation hit");
+			finishSimulation();
+    	}
     }
 
 }

@@ -65,9 +65,9 @@ lm::message::RunWorkUnit* Trajectory::getRunMsg()
 
 void Trajectory::updateInitialRunState()
 {
-//	lm::io::TrajectoryState* runState = new lm::io::TrajectoryState(state);
-//	getRunMsg()->set_allocated_initial_state(runState);
-	*(getRunMsg()->mutable_initial_state()) = state;
+	lm::io::TrajectoryState* runState = new lm::io::TrajectoryState(state);
+	getRunMsg()->set_allocated_initial_state(runState);
+//	*(getRunMsg()->mutable_initial_state()) = state;
 
 }
 

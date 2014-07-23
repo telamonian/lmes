@@ -115,6 +115,19 @@ lm::message::Message * TrajectoryList::getNextWorkUnitMsg()
 	return NULL;
 }
 
+// check if all of the trajectories are truly finished or if some of them are still running
+bool TrajectoryList::isFinished()
+{
+	for (auto trajectory : trajectories)
+	{
+		if (trajectory.second->getStatus()==Trajectory::RUNNING)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 Trajectory::status_t TrajectoryList::getTrajectoryStatus(uint64_t trajectoryID)
 {
     return trajectories[trajectoryID]->getStatus();

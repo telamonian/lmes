@@ -60,6 +60,7 @@ public:
 	enum status_t {NOT_STARTED, RUNNING, WAITING, FINISHED};
 
 	Trajectory(uint64_t trajectoryID);
+	~Trajectory() {};
 
 	//getters
 	lm::message::Message* getMsg() {return &msg;}

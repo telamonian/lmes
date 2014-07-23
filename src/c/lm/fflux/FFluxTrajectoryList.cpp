@@ -69,10 +69,10 @@ FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, d
 
 FFluxTrajectoryList::~FFluxTrajectoryList()
 {
-	for (auto trajectoryPair : trajectories)
-	{
-		delete trajectoryPair.second;
-	}
+//	for (auto trajectoryPair : trajectories)
+//	{
+//		delete trajectoryPair.second;
+//	}
 //    for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
 //    {
 //        delete it->second;

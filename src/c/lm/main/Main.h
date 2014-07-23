@@ -50,6 +50,7 @@
 #include <string>
 #include <vector>
 #include "lm/Types.h"
+#include "hrtime.h"
 
 using std::string;
 using std::vector;
@@ -84,6 +85,11 @@ extern vector<uint64_t> replicates;
  * The interval at which the results file should be checkpointed.
  */
 extern time_t checkpointInterval;
+
+/**
+ * A global execution timer
+ */
+extern hrtime globalTimer;
 
 /**
  * If a global abort signal has been received.
