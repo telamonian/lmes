@@ -246,7 +246,11 @@ protected:
         {
             speciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
         }
+        updatedSpeciesCounts();
+    }
 
+    inline void updatedSpeciesCounts()
+    {
         // Update the first passage time tables.
         for (int i=0; i<numberFptTrackedSpecies; i++)
         {

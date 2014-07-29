@@ -231,7 +231,7 @@ bool NextSubvolumeSolver::generateTrajectory(long long maxSteps)
 
        // Update the system with the reaction.
        affectedNeighbor = false;
-       uniRngNext=performSubvolumeReaction(time, subvolume, uniRngNext, uniRngValues, &affectedNeighbor, &neighborSubvolume);
+       uniRngNext=performSubvolumeEvent(time, subvolume, uniRngNext, uniRngValues, affectedNeighbor, neighborSubvolume);
 
        // If the event didn't affect a neighbor, it must have been a reaction.
        if (!affectedNeighbor) reactionSteps++;
@@ -453,37 +453,68 @@ double NextSubvolumeSolver::calculateSubvolumePropensity(si_time_t time, lattice
         }
     }
 
+    // Add in the diffusion propensity.
+    subvolumePropensity+=calculateSubvolumeDiffusionPropensity(time, subvolume, sourceSite);
+
+    return subvolumePropensity;
+}
+
+double NextSubvolumeSolver::calculateSubvolumeDiffusionPropensity(si_time_t time, lattice_size_t subvolume, site_t sourceSite)
+{
+    double subvolumePropensity=0.0;
+    const int NUM_NEIGHBORS=6;
+
+    // Get the neighboring sites.
+    lattice_size_t neighboringSubvolumes[NUM_NEIGHBORS];
+    lattice->getNeighboringSites(subvolume, neighboringSubvolumes, false);
+
+    // Fill in the boundary conditions.
+    lm::io::BoundaryConditions::BoundaryConditionsType bc[NUM_NEIGHBORS];
+    if (diffusionModel->boundaryConditions.axis_specific_boundaries())
+    {
+        bc[0]=diffusionModel->boundaryConditions.x_minus();
+        bc[1]=diffusionModel->boundaryConditions.x_plus();
+        bc[2]=diffusionModel->boundaryConditions.y_minus();
+        bc[3]=diffusionModel->boundaryConditions.y_plus();
+        bc[4]=diffusionModel->boundaryConditions.z_minus();
+        bc[5]=diffusionModel->boundaryConditions.z_plus();
+    }
+    else
+    {
+        for (int j=0; j<NUM_NEIGHBORS; j++)
+            bc[j]=diffusionModel->boundaryConditions.global();
+    }
+
     // Calculate all of the diffusion propensities.
-    const uint NUM_DEST_SITES=6;
-    lattice_size_t neighboringSubvolumes[NUM_DEST_SITES];
-    lattice->getNeighboringSites(subvolume, neighboringSubvolumes, diffusionModel->periodicBoundary);
     for (uint i=0; i<reactionModel->numberSpecies; i++)
     {
-    	if (currentSubvolumeSpeciesCounts[i] > 0)
-    	{
-    		for (uint j=0; j<NUM_DEST_SITES; j++)
-    		{
-                int neighborIndex=neighboringSubvolumes[j];
-
+        if (currentSubvolumeSpeciesCounts[i] > 0)
+        {
+            for (int j=0; j<NUM_NEIGHBORS; j++)
+            {
                 // See if the neighbor is a boundary.
+                int neighborIndex=neighboringSubvolumes[j];
                 if (neighborIndex == LATTICE_SIZE_MAX)
                 {
-                    if (diffusionModel->boundaryConditions == DiffusionModel::ABSORBING ||
-                        diffusionModel->boundaryConditions == DiffusionModel::FIXED_CONCENTRATION ||
-                        diffusionModel->boundaryConditions == DiffusionModel::FIXED_INPUT_FLUX)
+                    if (bc[j] == lm::io::BoundaryConditions::ABSORBING || bc[j] == lm::io::BoundaryConditions::FIXED_CONCENTRATION || bc[j] == lm::io::BoundaryConditions::FIXED_INPUT_FLUX)
                     {
                         subvolumePropensity += ((double)currentSubvolumeSpeciesCounts[i]) * (diffusionModel->DF[sourceSite*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + sourceSite*reactionModel->numberSpecies + i]/latticeSpacingSquared);
+                    }
+                    else if (bc[j] == lm::io::BoundaryConditions::PERIODIC)
+                    {
+                        lattice_size_t neighboringSubvolumesPeriodic[NUM_NEIGHBORS];
+                        lattice->getNeighboringSites(subvolume, neighboringSubvolumesPeriodic, true);
+                        int neighborIndexPeriodic=neighboringSubvolumesPeriodic[j];
+                        subvolumePropensity += ((double)currentSubvolumeSpeciesCounts[i]) * (diffusionModel->DF[sourceSite*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + lattice->getSiteType(neighborIndexPeriodic)*reactionModel->numberSpecies + i]/latticeSpacingSquared);
                     }
                 }
                 else
                 {
                     subvolumePropensity += ((double)currentSubvolumeSpeciesCounts[i]) * (diffusionModel->DF[sourceSite*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + lattice->getSiteType(neighborIndex)*reactionModel->numberSpecies + i]/latticeSpacingSquared);
                 }
-    		}
-    	}
+            }
+        }
     }
-
-
     return subvolumePropensity;
 }
 
@@ -506,10 +537,10 @@ void NextSubvolumeSolver::updateSubvolumeWithSpeciesCounts(lattice_size_t subvol
 			addParticles(subvolume, i+1, currentSubvolumeSpeciesCounts[i]);
 }
 
-int NextSubvolumeSolver::performSubvolumeReaction(si_time_t time, lattice_size_t subvolume, int rngNext, double * uniRngValues, bool * affectedNeighbor, lattice_size_t * neighborSubvolume)
+int NextSubvolumeSolver::performSubvolumeEvent(si_time_t time, lattice_size_t subvolume, int rngNext, double * uniRngValues, bool& affectedNeighbor, lattice_size_t& neighborSubvolume)
 {
 	// Only set the affected neighbor if this was a diffusion event.
-    *affectedNeighbor = false;
+    affectedNeighbor = false;
 
 	// Update the species counts member for this subvolume.
 	updateSpeciesCountsForSubvolume(subvolume);
@@ -551,22 +582,49 @@ int NextSubvolumeSolver::performSubvolumeReaction(si_time_t time, lattice_size_t
     }
 
     // See if it was a diffusion event that occurred.
-    const uint NUM_DEST_SITES=6;
-    lattice_size_t neighboringSubvolumes[NUM_DEST_SITES];
-    lattice->getNeighboringSites(subvolume, neighboringSubvolumes, diffusionModel->periodicBoundary);
+    if (performSubvolumeDiffusionEvent(time, subvolume, sourceSite, rngValue, affectedNeighbor, neighborSubvolume))
+        return rngNext;
+
+    throw Exception("Unable to determine correct reaction or diffusion event in subvolume.");
+}
+
+bool NextSubvolumeSolver::performSubvolumeDiffusionEvent(si_time_t time, lattice_size_t subvolume, site_t sourceSite, double& rngValue, bool& affectedNeighbor, lattice_size_t& neighborSubvolume)
+{
+    const int NUM_NEIGHBORS=6;
+
+    // Get the neighboring sites.
+    lattice_size_t neighboringSubvolumes[NUM_NEIGHBORS];
+    lattice->getNeighboringSites(subvolume, neighboringSubvolumes, false);
+
+    // Fill in the boundary conditions.
+    lm::io::BoundaryConditions::BoundaryConditionsType bc[NUM_NEIGHBORS];
+    if (diffusionModel->boundaryConditions.axis_specific_boundaries())
+    {
+        bc[0]=diffusionModel->boundaryConditions.x_minus();
+        bc[1]=diffusionModel->boundaryConditions.x_plus();
+        bc[2]=diffusionModel->boundaryConditions.y_minus();
+        bc[3]=diffusionModel->boundaryConditions.y_plus();
+        bc[4]=diffusionModel->boundaryConditions.z_minus();
+        bc[5]=diffusionModel->boundaryConditions.z_plus();
+    }
+    else
+    {
+        for (int j=0; j<NUM_NEIGHBORS; j++)
+            bc[j]=diffusionModel->boundaryConditions.global();
+    }
+
+    // See if it was a diffusion event that occurred.
     for (uint i=0; i<reactionModel->numberSpecies; i++)
     {
-    	if (currentSubvolumeSpeciesCounts[i] > 0)
-    	{
-    		for (uint j=0; j<NUM_DEST_SITES; j++)
-    		{
+        if (currentSubvolumeSpeciesCounts[i] > 0)
+        {
+            for (int j=0; j<NUM_NEIGHBORS; j++)
+            {
                 // See if the neighbor is a boundary.
                 int neighborIndex=neighboringSubvolumes[j];
                 if (neighborIndex == LATTICE_SIZE_MAX)
                 {
-                    if (diffusionModel->boundaryConditions == DiffusionModel::ABSORBING ||
-                        diffusionModel->boundaryConditions == DiffusionModel::FIXED_CONCENTRATION ||
-                        diffusionModel->boundaryConditions == DiffusionModel::FIXED_INPUT_FLUX)
+                    if (bc[j] == lm::io::BoundaryConditions::ABSORBING ||bc[j] == lm::io::BoundaryConditions::FIXED_CONCENTRATION || bc[j] == lm::io::BoundaryConditions::FIXED_INPUT_FLUX)
                     {
                         double diffusionPropensity = ((double)currentSubvolumeSpeciesCounts[i]) * (diffusionModel->DF[sourceSite*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + sourceSite*reactionModel->numberSpecies + i]/latticeSpacingSquared);
 
@@ -574,10 +632,33 @@ int NextSubvolumeSolver::performSubvolumeReaction(si_time_t time, lattice_size_t
                         if (rngValue <= diffusionPropensity)
                         {
                             speciesCounts[i]--;
+                            updatedSpeciesCounts();
                             currentSubvolumeSpeciesCounts[i]--;
                             updateSubvolumeWithSpeciesCounts(subvolume);
-                            *affectedNeighbor = false;
-                            return rngNext;
+                            affectedNeighbor = false;
+                            return true;
+                        }
+                        else
+                        {
+                            rngValue -= diffusionPropensity;
+                        }
+                    }
+                    else if (bc[j] == lm::io::BoundaryConditions::PERIODIC)
+                    {
+                        lattice_size_t neighboringSubvolumesPeriodic[NUM_NEIGHBORS];
+                        lattice->getNeighboringSites(subvolume, neighboringSubvolumesPeriodic, true);
+                        int neighborIndexPeriodic=neighboringSubvolumesPeriodic[j];
+                        double diffusionPropensity = ((double)currentSubvolumeSpeciesCounts[i]) * (diffusionModel->DF[sourceSite*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + lattice->getSiteType(neighborIndexPeriodic)*reactionModel->numberSpecies + i]/latticeSpacingSquared);
+
+                        // See if this is the diffusion event that occurred.
+                        if (rngValue <= diffusionPropensity)
+                        {
+                            currentSubvolumeSpeciesCounts[i]--;
+                            updateSubvolumeWithSpeciesCounts(subvolume);
+                            affectedNeighbor = true;
+                            neighborSubvolume = neighborIndexPeriodic;
+                            addParticles(neighborSubvolume, i+1, 1);
+                            return true;
                         }
                         else
                         {
@@ -594,23 +675,22 @@ int NextSubvolumeSolver::performSubvolumeReaction(si_time_t time, lattice_size_t
                     {
                         currentSubvolumeSpeciesCounts[i]--;
                         updateSubvolumeWithSpeciesCounts(subvolume);
-                        addParticles(neighboringSubvolumes[j], i+1, 1);
-                        *affectedNeighbor = true;
-                        *neighborSubvolume = neighboringSubvolumes[j];
-                        return rngNext;
+                        affectedNeighbor = true;
+                        neighborSubvolume = neighboringSubvolumes[j];
+                        addParticles(neighborSubvolume, i+1, 1);
+                        return true;
                     }
                     else
                     {
                         rngValue -= diffusionPropensity;
                     }
                 }
-
-    		}
-    	}
+            }
+        }
     }
-
-    throw Exception("Unable to determine correct reaction or diffusion event in subvolume.");
+    return false;
 }
+
 
 void NextSubvolumeSolver::updateCurrentSubvolumeSpeciesCounts(uint r)
 {
@@ -633,7 +713,7 @@ void NextSubvolumeSolver::addParticles(lattice_size_t subvolume, particle_t part
 			// We need to perform some overflow processing.
 			const uint NUM_NEIGHBORS=6;
 			lattice_size_t neighboringSubvolumes[NUM_NEIGHBORS];
-            lattice->getNeighboringSites(subvolume, neighboringSubvolumes, diffusionModel->periodicBoundary);
+            lattice->getNeighboringSites(subvolume, neighboringSubvolumes, diffusionModel->boundaryConditions.global() == lm::io::BoundaryConditions::PERIODIC);
 			bool handled = false;
 			for (uint i=0; i<NUM_NEIGHBORS && !handled; i++)
 			{

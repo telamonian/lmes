@@ -105,17 +105,9 @@ void SimulationSupervisor::initialize()
         if (simulationParameterMap.count("boundaryConditions") == 1 && !diffusionModel.has_boundary_conditions())
         {
             std::string boundaryConditions = simulationParameterMap["boundaryConditions"];
-            if (boundaryConditions == "PERIODIC" || boundaryConditions == "periodic" || boundaryConditions == "Periodic")
+            if (!parseBoundaryConditions(diffusionModel.mutable_boundary_conditions(), boundaryConditions.c_str()))
             {
-                diffusionModel.mutable_boundary_conditions()->set_global(lm::io::BoundaryConditions::PERIODIC);
-            }
-            else if (boundaryConditions == "ABSORBING" || boundaryConditions == "absorbing" || boundaryConditions == "Absorbing")
-            {
-                diffusionModel.mutable_boundary_conditions()->set_global(lm::io::BoundaryConditions::ABSORBING);
-            }
-            else if (boundaryConditions == "REFLECTING" || boundaryConditions == "reflecting" || boundaryConditions == "Reflecting")
-            {
-                diffusionModel.mutable_boundary_conditions()->set_global(lm::io::BoundaryConditions::REFLECTING);
+                throw Exception("Could not parse boundaryConditions parameter",boundaryConditions.c_str());
             }
         }
     }
@@ -123,6 +115,120 @@ void SimulationSupervisor::initialize()
     // Close the file.
     delete file;
 }
+
+bool SimulationSupervisor::parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg)
+{
+    lm::io::BoundaryConditions_BoundaryConditionsType type;
+
+    // See if it is a global boundary condition.
+    if (lm::io::BoundaryConditions_BoundaryConditionsType_Parse(arg, &type))
+    {
+        bc->set_global(type);
+        return true;
+    }
+
+    // See if there are axis specific boundary conditions.
+    char * argbuf = new char[arg.size()+1];
+    memset(argbuf,0,arg.size()+1);
+    strcpy(argbuf,arg.c_str());
+    char * pch = strtok(argbuf,",");
+    while (pch != NULL)
+    {
+        if (strlen(pch) >= 3 && (pch[0] == 'x' || pch[0] == 'y' || pch[0] == 'z') && pch[1] == ':')
+        {
+            // Parse the axis-specific type.
+            if (!lm::io::BoundaryConditions_BoundaryConditionsType_Parse(std::string(pch+2), &type))
+            {
+                delete[] argbuf;
+                return false;
+            }
+
+            // Set the axis value.
+            pch[1] = '\0';
+            std::string axis=pch;
+            if (axis == "x")
+            {
+                bc->set_axis_specific_boundaries(true);
+                bc->set_x_plus(type);
+                bc->set_x_minus(type);
+            }
+            else if (axis == "y")
+            {
+                bc->set_axis_specific_boundaries(true);
+                bc->set_y_plus(type);
+                bc->set_y_minus(type);
+            }
+            else if (axis == "z")
+            {
+                bc->set_axis_specific_boundaries(true);
+                bc->set_z_plus(type);
+                bc->set_z_minus(type);
+            }
+            else
+            {
+                delete[] argbuf;
+                return false;
+            }
+        }
+        else if (strlen(pch) >= 4 && ((pch[0] == '+' || pch[0] == '-') && (pch[1] == 'x' || pch[1] == 'y' || pch[1] == 'z')) && pch[2] == ':')
+        {
+            // Parse the axis-specific type.
+            if (!lm::io::BoundaryConditions_BoundaryConditionsType_Parse(std::string(pch+3), &type))
+            {
+                delete[] argbuf;
+                return false;
+            }
+
+            // Set the axis value.
+            pch[2] = '\0';
+            std::string axis=pch;
+            if (axis == "+x" && type != lm::io::BoundaryConditions::PERIODIC)
+            {
+                bc->set_axis_specific_boundaries(true);
+                bc->set_x_plus(type);
+            }
+            else if (axis == "-x" && type != lm::io::BoundaryConditions::PERIODIC)
+            {
+                bc->set_axis_specific_boundaries(true);
+                bc->set_x_minus(type);
+            }
+            else if (axis == "+y" && type != lm::io::BoundaryConditions::PERIODIC)
+            {
+                bc->set_axis_specific_boundaries(true);
+                bc->set_y_plus(type);
+            }
+            else if (axis == "-y" && type != lm::io::BoundaryConditions::PERIODIC)
+            {
+                bc->set_axis_specific_boundaries(true);
+                bc->set_y_minus(type);
+            }
+            else if (axis == "+z" && type != lm::io::BoundaryConditions::PERIODIC)
+            {
+                bc->set_axis_specific_boundaries(true);
+                bc->set_z_plus(type);
+            }
+            else if (axis == "-z")
+            {
+                bc->set_axis_specific_boundaries(true);
+                bc->set_z_minus(type);
+            }
+            else
+            {
+                delete[] argbuf;
+                return false;
+            }
+        }
+        else
+        {
+            delete[] argbuf;
+            return false;
+        }
+        pch = strtok(NULL,",");
+    }
+    delete[] argbuf;
+    return bc->axis_specific_boundaries();
+}
+
 
 int SimulationSupervisor::run()
 {
