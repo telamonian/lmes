@@ -119,7 +119,7 @@ function(PROTOBUF_GENERATE_CPP SRCS HDRS)
   #the following loop has extensive custom changes to allow for complex paths for generated .pb.cc and .pb.h files
   foreach(FIL ${ARGN})
     get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
-    get_filename_component(ABS_DIR ${FIL} DIRECTORY)
+    get_filename_component(ABS_DIR ${FIL} PATH)
     get_filename_component(FIL_WE ${FIL} NAME_WE)
 
     string(REGEX REPLACE ".*/protobuf(.*)" "\\1" REL_PATH "${ABS_DIR}")

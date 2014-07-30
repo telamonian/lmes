@@ -41,6 +41,7 @@
 #define LM_IO_SFILE_SFILERECORD_H
 
 #include <string>
+#include "lm/Types.h"
 
 using std::string;
 
