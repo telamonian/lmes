@@ -60,7 +60,7 @@ namespace lm {
 namespace fflux {
 
 FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, double zerothInterface, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel):
-	TrajectoryList(simulationParameters, reactionModel), xorShift(0,0),simultaneousTrajectoryCount(simultaneousTrajectoryCount),ffluxPhase(0),crossingsPerPhase(100),zerothInterface(zerothInterface),finalInterface(25.0),interfaceCount(30),maxPhaseZeroTime(10000),maxFFluxPhase(),oParamStep() // TODO: change maxFFluxPhase from fixed to varying with input //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
+	TrajectoryList(simulationParameters, reactionModel), xorShift(0,0),simultaneousTrajectoryCount(simultaneousTrajectoryCount),ffluxPhase(0),crossingsPerPhase(1000),zerothInterface(zerothInterface),finalInterface(25.0),interfaceCount(12),maxPhaseZeroTime(10000),maxFFluxPhase(),oParamStep() // TODO: change maxFFluxPhase from fixed to varying with input //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
 	maxFFluxPhase = interfaceCount + 1;
 	finishedTrajectoriesCounts = vector<long long>(maxFFluxPhase, 0);
@@ -77,11 +77,11 @@ FFluxTrajectoryList::~FFluxTrajectoryList()
 //    {
 //        delete it->second;
 //    }
-    for (auto crossingPair : crossings)
+    for (CrossingsMap::iterator mit=crossings.begin(); mit!=crossings.end(); mit++)
     {
-    	for (auto crossing : crossingPair.second)
+    	for (CrossingVector::iterator vit=mit->second.begin(); vit!=mit->second.end(); vit++)
     	{
-    		delete crossing;
+    		delete *vit;
     	}
     }
 }

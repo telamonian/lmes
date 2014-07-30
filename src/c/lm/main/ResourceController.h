@@ -54,6 +54,8 @@
 #include "lm/thread/Worker.h"
 #include "lm/thread/Thread.h"
 
+typedef std::list<lm::thread::Worker*> WorkerList;
+
 namespace lm {
 namespace main {
 
@@ -76,8 +78,8 @@ protected:
 
 protected:
     lm::message::Communicator communicator;
-    std::list<lm::thread::Worker*> runnerWorkers;
-    std::list<lm::thread::Worker*> writerWorkers;
+    WorkerList runnerWorkers;
+    WorkerList writerWorkers;
 };
 
 }

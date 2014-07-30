@@ -19,7 +19,7 @@ class AlterData(object):
         
         self.f = h5py.File(os.path.join(path,self.fname))
         self.params = self.f['/Parameters'].attrs
-        self.params['writeInterval'] = '1e2'
+        self.params.modify('writeInterval', '1e2')
         
         self.initialSpeciesCounts = self.f['/Model/Reaction/InitialSpeciesCounts']
         self.bBasinOparam = self.k*37.0
@@ -35,5 +35,6 @@ class AlterData(object):
 if __name__=="__main__":
     path = sys.argv[1]
     sourceFname = sys.argv[2]
-    for i in range(1,11):
-        AlterData(path, sourceFname, i/10.0)
+    #for i in range(1,11):
+    for i in (1.0,2.0):
+        AlterData(path, sourceFname, i)
