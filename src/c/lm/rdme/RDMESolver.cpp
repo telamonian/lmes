@@ -78,7 +78,7 @@ RDMESolver::~RDMESolver()
 }
 
 RDMESolver::DiffusionModel::DiffusionModel(int numberSpecies, int numberReactions, int numberSiteTypes)
-:numberSpecies(numberSpecies),numberReactions(numberReactions),numberSiteTypes(numberSiteTypes),DF(NULL),RL(NULL),latticeSpacing(0.0),latticeXSize(0),latticeYSize(0),latticeZSize(0),particlesPerSite(0)
+    :numberSpecies(numberSpecies),numberReactions(numberReactions),numberSiteTypes(numberSiteTypes),DF(NULL),RL(NULL),latticeSpacing(0.0),latticeXSize(0),latticeYSize(0),latticeZSize(0),particlesPerSite(0),hasBoundaryInflux(false),boundaryInflux(NULL)
 {
     DF = new double[numberSiteTypes*numberSiteTypes*numberSpecies];
     RL = new bool[numberReactions*numberSiteTypes];
@@ -88,6 +88,7 @@ RDMESolver::DiffusionModel::~DiffusionModel()
 {
     if (DF != NULL) delete[] DF; DF = NULL;
     if (RL != NULL) delete[] RL; RL = NULL;
+    if (boundaryInflux != NULL) delete[] boundaryInflux; boundaryInflux = NULL;
 }
 
 void RDMESolver::setDiffusionModel(const lm::io::DiffusionModel& dm)
@@ -114,10 +115,6 @@ void RDMESolver::setDiffusionModel(const lm::io::DiffusionModel& dm)
     diffusionModel->latticeYSize = dm.initial_lattice().lattice_y_size();
     diffusionModel->latticeZSize = dm.initial_lattice().lattice_z_size();
     diffusionModel->particlesPerSite = dm.initial_lattice().particles_per_site();
-    if (dm.has_boundary_conditions())
-    {
-        diffusionModel->boundaryConditions = dm.boundary_conditions();
-    }
 
     // Create the lattice.
     allocateLattice(diffusionModel->latticeXSize, diffusionModel->latticeYSize, diffusionModel->latticeZSize, diffusionModel->particlesPerSite, diffusionModel->latticeSpacing);
@@ -125,6 +122,144 @@ void RDMESolver::setDiffusionModel(const lm::io::DiffusionModel& dm)
     // Fill in the site types.
     const string sites = dm.initial_lattice().sites();
     lattice->deserializeSitesFrom(sites.data(), sites.size(), (Lattice::SerializationDataOrder)dm.initial_lattice().sites_ordering());
+
+
+    if (dm.has_boundary_conditions())
+    {
+        diffusionModel->boundaryConditions = dm.boundary_conditions();
+
+        // See if we need to use the boundary influx array.
+        if (diffusionModel->boundaryConditions.axis_specific_boundaries())
+        {
+            if (diffusionModel->boundaryConditions.x_minus() == lm::io::BoundaryConditions::FIXED_CONCENTRATION || diffusionModel->boundaryConditions.x_plus() == lm::io::BoundaryConditions::FIXED_CONCENTRATION || diffusionModel->boundaryConditions.y_minus() == lm::io::BoundaryConditions::FIXED_CONCENTRATION || diffusionModel->boundaryConditions.y_plus() == lm::io::BoundaryConditions::FIXED_CONCENTRATION || diffusionModel->boundaryConditions.z_minus() == lm::io::BoundaryConditions::FIXED_CONCENTRATION || diffusionModel->boundaryConditions.z_plus() == lm::io::BoundaryConditions::FIXED_CONCENTRATION)
+            {
+                // Make sure we have the necessary parameters.
+                if (!diffusionModel->boundaryConditions.has_boundary_site()) throw Exception("No boundary site type specified for fixed concentration boundaries.");
+                if (!diffusionModel->boundaryConditions.has_boundary_species()) throw Exception("No boundary species specified for fixed concentration boundaries.");
+                if (!diffusionModel->boundaryConditions.has_boundary_concentration()) throw Exception("No boundary concentration specified for fixed concentration boundaries.");
+
+                site_t boundarySiteType = diffusionModel->boundaryConditions.boundary_site();
+                particle_t boundarySpecies = diffusionModel->boundaryConditions.boundary_species();
+                double boundarySpeciesCount = diffusionModel->boundaryConditions.boundary_concentration()*NA*diffusionModel->latticeSpacing*diffusionModel->latticeSpacing*diffusionModel->latticeSpacing*1000.0;
+                double latticeSpacingSquared = diffusionModel->latticeSpacing*diffusionModel->latticeSpacing;
+
+                Print::printf(Print::DEBUG, "Creating boundary fluxes for fixed concentration boundary on one or more axis: %d %d %0.2f",boundarySiteType,boundarySpecies,boundarySpeciesCount);
+                diffusionModel->hasBoundaryInflux = true;
+                diffusionModel->boundaryInflux = new double[diffusionModel->latticeXSize*diffusionModel->latticeYSize*diffusionModel->latticeZSize];
+                for (int i=0; i<diffusionModel->latticeXSize*diffusionModel->latticeYSize*diffusionModel->latticeZSize; i++)
+                    diffusionModel->boundaryInflux[i] = 0.0;
+
+                if (diffusionModel->boundaryConditions.x_minus() == lm::io::BoundaryConditions::FIXED_CONCENTRATION)
+                {
+                    int x=0;
+                    for (int z=0; z<diffusionModel->latticeZSize; z++)
+                        for (int y=0; y<diffusionModel->latticeYSize; y++)
+                            diffusionModel->boundaryInflux[z*diffusionModel->latticeXSize*diffusionModel->latticeYSize+y*diffusionModel->latticeXSize+x] += boundarySpeciesCount*(diffusionModel->DF[boundarySiteType*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + lattice->getSiteType(x,y,z)*reactionModel->numberSpecies + boundarySpecies]/latticeSpacingSquared);
+                }
+                if (diffusionModel->boundaryConditions.x_plus() == lm::io::BoundaryConditions::FIXED_CONCENTRATION)
+                {
+                    int x=diffusionModel->latticeXSize-1;
+                    for (int z=0; z<diffusionModel->latticeZSize; z++)
+                        for (int y=0; y<diffusionModel->latticeYSize; y++)
+                            diffusionModel->boundaryInflux[z*diffusionModel->latticeXSize*diffusionModel->latticeYSize+y*diffusionModel->latticeXSize+x] += boundarySpeciesCount*(diffusionModel->DF[boundarySiteType*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + lattice->getSiteType(x,y,z)*reactionModel->numberSpecies + boundarySpecies]/latticeSpacingSquared);
+                }
+                if (diffusionModel->boundaryConditions.y_minus() == lm::io::BoundaryConditions::FIXED_CONCENTRATION)
+                {
+                    int y=0;
+                    for (int z=0; z<diffusionModel->latticeZSize; z++)
+                        for (int x=0; x<diffusionModel->latticeXSize; x++)
+                            diffusionModel->boundaryInflux[z*diffusionModel->latticeXSize*diffusionModel->latticeYSize+y*diffusionModel->latticeXSize+x] += boundarySpeciesCount*(diffusionModel->DF[boundarySiteType*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + lattice->getSiteType(x,y,z)*reactionModel->numberSpecies + boundarySpecies]/latticeSpacingSquared);
+                }
+                if (diffusionModel->boundaryConditions.y_plus() == lm::io::BoundaryConditions::FIXED_CONCENTRATION)
+                {
+                    int y=diffusionModel->latticeYSize-1;
+                    for (int z=0; z<diffusionModel->latticeZSize; z++)
+                        for (int x=0; x<diffusionModel->latticeXSize; x++)
+                            diffusionModel->boundaryInflux[z*diffusionModel->latticeXSize*diffusionModel->latticeYSize+y*diffusionModel->latticeXSize+x] += boundarySpeciesCount*(diffusionModel->DF[boundarySiteType*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + lattice->getSiteType(x,y,z)*reactionModel->numberSpecies + boundarySpecies]/latticeSpacingSquared);
+                }
+                if (diffusionModel->boundaryConditions.z_minus() == lm::io::BoundaryConditions::FIXED_CONCENTRATION)
+                {
+                    int z=0;
+                    for (int y=0; y<diffusionModel->latticeYSize; y++)
+                        for (int x=0; x<diffusionModel->latticeXSize; x++)
+                            diffusionModel->boundaryInflux[z*diffusionModel->latticeXSize*diffusionModel->latticeYSize+y*diffusionModel->latticeXSize+x] += boundarySpeciesCount*(diffusionModel->DF[boundarySiteType*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + lattice->getSiteType(x,y,z)*reactionModel->numberSpecies + boundarySpecies]/latticeSpacingSquared);
+                }
+                if (diffusionModel->boundaryConditions.z_plus() == lm::io::BoundaryConditions::FIXED_CONCENTRATION)
+                {
+                    int z=diffusionModel->latticeZSize-1;
+                    for (int y=0; y<diffusionModel->latticeYSize; y++)
+                        for (int x=0; x<diffusionModel->latticeXSize; x++)
+                            diffusionModel->boundaryInflux[z*diffusionModel->latticeXSize*diffusionModel->latticeYSize+y*diffusionModel->latticeXSize+x] += boundarySpeciesCount*(diffusionModel->DF[boundarySiteType*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + lattice->getSiteType(x,y,z)*reactionModel->numberSpecies + boundarySpecies]/latticeSpacingSquared);
+                }
+            }
+        }
+        else
+        {
+            if (diffusionModel->boundaryConditions.global() == lm::io::BoundaryConditions::FIXED_CONCENTRATION)
+            {
+                // Make sure we have the necessary parameters.
+                if (!diffusionModel->boundaryConditions.has_boundary_site()) throw Exception("No boundary site type specified for fixed concentration boundaries.");
+                if (!diffusionModel->boundaryConditions.has_boundary_species()) throw Exception("No boundary species specified for fixed concentration boundaries.");
+                if (!diffusionModel->boundaryConditions.has_boundary_concentration()) throw Exception("No boundary concentration specified for fixed concentration boundaries.");
+
+                site_t boundarySiteType = diffusionModel->boundaryConditions.boundary_site();
+                particle_t boundarySpecies = diffusionModel->boundaryConditions.boundary_species();
+                double boundarySpeciesCount = diffusionModel->boundaryConditions.boundary_concentration()*NA*diffusionModel->latticeSpacing*diffusionModel->latticeSpacing*diffusionModel->latticeSpacing*1000.0;
+                double latticeSpacingSquared = diffusionModel->latticeSpacing*diffusionModel->latticeSpacing;
+
+                Print::printf(Print::DEBUG, "Creating boundary fluxes for fixed concentration boundary: %d %d %0.2f",boundarySiteType,boundarySpecies,boundarySpeciesCount);
+                diffusionModel->hasBoundaryInflux = true;
+                diffusionModel->boundaryInflux = new double[diffusionModel->latticeXSize*diffusionModel->latticeYSize*diffusionModel->latticeZSize];
+
+                // Walk through the lattice and create the influx matrix.
+                int latticeIndex=0;
+                for (int z=0; z<(int)diffusionModel->latticeZSize; z++)
+                {
+                    for (int y=0; y<diffusionModel->latticeYSize; y++)
+                    {
+                        for (int x=0; x<diffusionModel->latticeXSize; x++,latticeIndex++)
+                        {
+                            if (lattice->isBoundarySite(x,y,z))
+                            {
+                                diffusionModel->boundaryInflux[latticeIndex] = lattice->numberBoundaryNeighbors(x,y,z)*boundarySpeciesCount*(diffusionModel->DF[boundarySiteType*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + lattice->getSiteType(x,y,z)*reactionModel->numberSpecies + boundarySpecies]/latticeSpacingSquared);
+                            }
+                            else
+                            {
+                                diffusionModel->boundaryInflux[latticeIndex] = 0.0;
+                            }
+                        }
+                    }
+                }
+            }
+            /*else if (diffusionModel->boundaryConditions.global() == lm::io::BoundaryConditions::FIXED_INPUT_FLUX)
+            {
+                hasBoundaryInflux = true;
+                boundaryInflux = new double[diffusionModel->latticeXSize*diffusionModel->latticeYSize*diffusionModel->latticeZSize];
+
+                // Walk through the source buffer and copy the particles.
+                int latticeIndex=0;
+                for (int z=0; z<(int)size.z; z++)
+                {
+                    for (int y=0; y<(int)size.y; y++)
+                    {
+                        for (int x=0; x<(int)size.x; x++,latticeIndex++)
+                        {
+                            uint8_t * byteParticles = (uint8_t *)(&destParticles[latticeIndex]);
+                            for (int pi=0,p=(int)w*PARTICLES_PER_WORD; pi<(int)PARTICLES_PER_WORD; pi++,p++)
+                            {
+                                uint destIndex;
+                                if (dataOrdering == ROW_MAJOR)
+                                    destIndex = x*size.y*size.z*particlesPerSite + y*size.z*particlesPerSite + z*particlesPerSite + p;
+                                else
+                                    destIndex = p*size.x*size.y*size.z + z*size.x*size.y + y*size.x + x;
+                                byteParticles[pi] = sourceParticles[destIndex];
+                            }
+                        }
+                    }
+                }
+            }*/
+        }
+    }
 }
 
 void RDMESolver::allocateLattice(lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing)

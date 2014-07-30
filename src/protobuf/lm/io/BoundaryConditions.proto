@@ -44,9 +44,9 @@ import "lm/io/ArrayOrdering.proto";
 message BoundaryConditions {
 
     enum BoundaryConditionsType {
-        PERIODIC                = 0;
+        REFLECTING              = 0;
         ABSORBING               = 1;
-        REFLECTING              = 2;
+        PERIODIC                = 2;
         FIXED_CONCENTRATION     = 3;        // Fixed concentration at the boundary.
         FIXED_INPUT_FLUX        = 4;        // Fixed and unique input flux at each boundary.
     }    
@@ -61,15 +61,16 @@ message BoundaryConditions {
     optional BoundaryConditionsType z_minus             = 8;
     
     // Parameters for FIXED_CONCENTRATION and FIXED_INPUT_FLUX.
-    optional int32 boundary_species                     = 9;
+    optional int32 boundary_site                        = 11;
+    optional int32 boundary_species                     = 10;
     
     // Parameters for FIXED_CONCENTRATION.
-    optional double boundary_concentration              = 10;
+    optional double boundary_concentration              = 20;
     
     // Parameters for FIXED_INPUT_FLUX.
-    optional int32 lattice_x_size                       = 11;
-    optional int32 lattice_y_size                       = 12;
-    optional int32 lattice_z_size                       = 13;
-    optional ArrayOrdering boundary_input_flux_ordering = 14;
-    repeated double boundary_input_flux                 = 15 [packed=true];
+    optional int32 lattice_x_size                       = 30;
+    optional int32 lattice_y_size                       = 31;
+    optional int32 lattice_z_size                       = 32;
+    optional ArrayOrdering boundary_input_flux_ordering = 33;
+    repeated double boundary_input_flux                 = 34 [packed=true];
 }

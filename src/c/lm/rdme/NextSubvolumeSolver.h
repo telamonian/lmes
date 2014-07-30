@@ -81,9 +81,10 @@ protected:
     virtual int updateSubvolumePropensity(si_time_t time, lattice_size_t s, int rngNext, double * expRngValues);
     virtual double calculateSubvolumePropensity(si_time_t time, lattice_size_t s);
     inline double calculateSubvolumeDiffusionPropensity(si_time_t time, lattice_size_t subvolume, site_t sourceSite);
-    inline double calculateSubvolumeDiffusionPropensityAxisSpecific(si_time_t time, lattice_size_t subvolume, site_t sourceSite);
+    inline double calculateSubvolumeInfluxPropensity(si_time_t time, lattice_size_t subvolume);
     virtual int performSubvolumeEvent(si_time_t time, lattice_size_t s, int rngNext, double * uniRngValues, bool& affectedNeighbor, lattice_size_t& neighborSubvolume);
-    virtual bool performSubvolumeDiffusionEvent(si_time_t time, lattice_size_t subvolume, site_t sourceSite, double& rngValue, bool& affectedNeighbor, lattice_size_t& neighborSubvolume);
+    inline bool performSubvolumeDiffusionEvent(si_time_t time, lattice_size_t subvolume, site_t sourceSite, double& rngValue, bool& affectedNeighbor, lattice_size_t& neighborSubvolume);
+    inline bool performSubvolumeInfluxEvent(si_time_t time, lattice_size_t subvolume, double& rngValue);
     virtual void updateCurrentSubvolumeSpeciesCounts(uint r);
     virtual void  updateSpeciesCountsForSubvolume(lattice_size_t subvolume);
     void updateSubvolumeWithSpeciesCounts(lattice_size_t subvolume);

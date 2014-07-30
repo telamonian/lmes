@@ -121,11 +121,28 @@ public:
 	virtual lattice_size_t getZSize() const;
 	virtual lattice_size_t getNumberSites() const;
 	virtual si_dist_t getSpacing() const;
-	
+
     virtual void getNeighboringSites(lattice_size_t index, lattice_size_t * neighboringIndices, bool periodic)=0;
 
-	// Lattice site methods.
-	virtual site_t getSiteType(lattice_size_t x, lattice_size_t y, lattice_size_t z) const throw(InvalidSiteException)=0;
+    inline bool isBoundarySite(lattice_size_t x, lattice_size_t y, lattice_size_t z) const
+    {
+        return (x==0 || y==0 || z==0 || x == size.x-1 || y == size.y-1 || z == size.z-1);
+    }
+    inline bool isBoundarySite(lattice_size_t index) const
+    {
+        lattice_size_t z = index/(size.x*size.y);
+        lattice_size_t xy = index%(size.x*size.y);
+        lattice_size_t y = xy/size.x;
+        lattice_size_t x = xy%size.x;
+        return isBoundarySite(x,y,z);
+    }
+    inline int numberBoundaryNeighbors(lattice_size_t x, lattice_size_t y, lattice_size_t z) const
+    {
+        return ((x==0||x == size.x-1)?1:0)+((y==0||y == size.y-1)?1:0)+((z==0||z == size.z-1)?1:0);
+    }
+
+    // Lattice site methods.
+    virtual site_t getSiteType(lattice_size_t x, lattice_size_t y, lattice_size_t z) const throw(InvalidSiteException)=0;
 	virtual site_t getSiteType(lattice_size_t index) const throw(InvalidSiteException)=0;
 	virtual void setSiteType(lattice_size_t x, lattice_size_t y, lattice_size_t z, site_t site) throw(InvalidSiteException)=0;
 	virtual void setSiteType(lattice_size_t index, site_t site) throw(InvalidSiteException)=0;
@@ -141,8 +158,8 @@ public:
     virtual void removeParticles(lattice_size_t x,lattice_size_t y,lattice_size_t z) throw(InvalidSiteException)=0;
     virtual void removeParticles(lattice_size_t index) throw(InvalidSiteException)=0;
 	virtual void removeAllParticles();
-	
-	/**
+
+    /**
 	 * Particle searching methods.
 	 */
 

@@ -456,6 +456,9 @@ double NextSubvolumeSolver::calculateSubvolumePropensity(si_time_t time, lattice
     // Add in the diffusion propensity.
     subvolumePropensity+=calculateSubvolumeDiffusionPropensity(time, subvolume, sourceSite);
 
+    // Add in any propensity for particle influx from the boundaries.
+    subvolumePropensity+=calculateSubvolumeInfluxPropensity(time, subvolume);
+
     return subvolumePropensity;
 }
 
@@ -496,7 +499,10 @@ double NextSubvolumeSolver::calculateSubvolumeDiffusionPropensity(si_time_t time
                 int neighborIndex=neighboringSubvolumes[j];
                 if (neighborIndex == LATTICE_SIZE_MAX)
                 {
-                    if (bc[j] == lm::io::BoundaryConditions::ABSORBING || bc[j] == lm::io::BoundaryConditions::FIXED_CONCENTRATION || bc[j] == lm::io::BoundaryConditions::FIXED_INPUT_FLUX)
+                    if (bc[j] == lm::io::BoundaryConditions::REFLECTING)
+                    {
+                    }
+                    else if (bc[j] == lm::io::BoundaryConditions::ABSORBING || bc[j] == lm::io::BoundaryConditions::FIXED_CONCENTRATION || bc[j] == lm::io::BoundaryConditions::FIXED_INPUT_FLUX)
                     {
                         subvolumePropensity += ((double)currentSubvolumeSpeciesCounts[i]) * (diffusionModel->DF[sourceSite*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + sourceSite*reactionModel->numberSpecies + i]/latticeSpacingSquared);
                     }
@@ -516,6 +522,16 @@ double NextSubvolumeSolver::calculateSubvolumeDiffusionPropensity(si_time_t time
         }
     }
     return subvolumePropensity;
+}
+
+double NextSubvolumeSolver::calculateSubvolumeInfluxPropensity(si_time_t time, lattice_size_t subvolume)
+{
+    if (diffusionModel->hasBoundaryInflux && lattice->isBoundarySite(subvolume))
+    {
+        return diffusionModel->boundaryInflux[subvolume];
+    }
+
+    return 0.0;
 }
 
 void  NextSubvolumeSolver::updateSpeciesCountsForSubvolume(lattice_size_t subvolume)
@@ -585,6 +601,10 @@ int NextSubvolumeSolver::performSubvolumeEvent(si_time_t time, lattice_size_t su
     if (performSubvolumeDiffusionEvent(time, subvolume, sourceSite, rngValue, affectedNeighbor, neighborSubvolume))
         return rngNext;
 
+    // See if it was an influx event that occurred.
+    if (performSubvolumeInfluxEvent(time, subvolume, rngValue))
+        return rngNext;
+
     throw Exception("Unable to determine correct reaction or diffusion event in subvolume.");
 }
 
@@ -624,7 +644,10 @@ bool NextSubvolumeSolver::performSubvolumeDiffusionEvent(si_time_t time, lattice
                 int neighborIndex=neighboringSubvolumes[j];
                 if (neighborIndex == LATTICE_SIZE_MAX)
                 {
-                    if (bc[j] == lm::io::BoundaryConditions::ABSORBING ||bc[j] == lm::io::BoundaryConditions::FIXED_CONCENTRATION || bc[j] == lm::io::BoundaryConditions::FIXED_INPUT_FLUX)
+                    if (bc[j] == lm::io::BoundaryConditions::REFLECTING)
+                    {
+                    }
+                    else if (bc[j] == lm::io::BoundaryConditions::ABSORBING ||bc[j] == lm::io::BoundaryConditions::FIXED_CONCENTRATION || bc[j] == lm::io::BoundaryConditions::FIXED_INPUT_FLUX)
                     {
                         double diffusionPropensity = ((double)currentSubvolumeSpeciesCounts[i]) * (diffusionModel->DF[sourceSite*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + sourceSite*reactionModel->numberSpecies + i]/latticeSpacingSquared);
 
@@ -686,6 +709,27 @@ bool NextSubvolumeSolver::performSubvolumeDiffusionEvent(si_time_t time, lattice
                     }
                 }
             }
+        }
+    }
+    return false;
+}
+
+bool NextSubvolumeSolver::performSubvolumeInfluxEvent(si_time_t time, lattice_size_t subvolume, double& rngValue)
+{
+    if (diffusionModel->hasBoundaryInflux && lattice->isBoundarySite(subvolume))
+    {
+        double influxPropensity = diffusionModel->boundaryInflux[subvolume];
+        if (rngValue <= influxPropensity)
+        {
+            speciesCounts[diffusionModel->boundaryConditions.boundary_species()]++;
+            updatedSpeciesCounts();
+            currentSubvolumeSpeciesCounts[diffusionModel->boundaryConditions.boundary_species()]++;
+            updateSubvolumeWithSpeciesCounts(subvolume);
+            return true;
+        }
+        else
+        {
+            rngValue -= influxPropensity;
         }
     }
     return false;

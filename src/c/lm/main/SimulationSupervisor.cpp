@@ -104,10 +104,22 @@ void SimulationSupervisor::initialize()
         // See if we need to fill in the boundary conditions from the simulation parameters.
         if (simulationParameterMap.count("boundaryConditions") == 1 && !diffusionModel.has_boundary_conditions())
         {
-            std::string boundaryConditions = simulationParameterMap["boundaryConditions"];
-            if (!parseBoundaryConditions(diffusionModel.mutable_boundary_conditions(), boundaryConditions.c_str()))
+            lm::io::BoundaryConditions* bc=diffusionModel.mutable_boundary_conditions();
+            if (!parseBoundaryConditions(bc, simulationParameterMap["boundaryConditions"].c_str()))
             {
-                throw Exception("Could not parse boundaryConditions parameter",boundaryConditions.c_str());
+                throw Exception("Could not parse boundaryConditions parameter",simulationParameterMap["boundaryConditions"].c_str());
+            }
+            if (simulationParameterMap.count("boundarySite") == 1)
+            {
+                bc->set_boundary_site(atoi(simulationParameterMap["boundarySite"].c_str()));
+            }
+            if (simulationParameterMap.count("boundarySpecies") == 1)
+            {
+                bc->set_boundary_species(atoi(simulationParameterMap["boundarySpecies"].c_str()));
+            }
+            if (simulationParameterMap.count("boundaryConcentration") == 1)
+            {
+                bc->set_boundary_concentration(atof(simulationParameterMap["boundaryConcentration"].c_str()));
             }
         }
     }

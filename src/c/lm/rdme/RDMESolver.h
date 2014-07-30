@@ -84,6 +84,8 @@ protected:
         int latticeZSize;
         int particlesPerSite;
         lm::io::BoundaryConditions boundaryConditions;
+        bool hasBoundaryInflux;
+        double* boundaryInflux;
     };
 
 protected:
