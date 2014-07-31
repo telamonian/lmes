@@ -139,3 +139,5 @@ target_link_libraries(lm lm_cuda_lib
 #    NAME lm_test
 #    COMMAND lm_test
 #)
+
+install(TARGETS lm DESTINATION bin)
