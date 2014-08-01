@@ -48,7 +48,7 @@ message BoundaryConditions {
         ABSORBING               = 1;
         PERIODIC                = 2;
         FIXED_CONCENTRATION     = 3;        // Fixed concentration at the boundary.
-        FIXED_INPUT_FLUX        = 4;        // Fixed and unique input flux at each boundary.
+        FIXED_GRADIENT          = 4;        // Fixed and unique concentration at each boundary site.
     }    
     
     optional BoundaryConditionsType global              = 1;
@@ -60,17 +60,14 @@ message BoundaryConditions {
     optional BoundaryConditionsType z_plus              = 7;
     optional BoundaryConditionsType z_minus             = 8;
     
-    // Parameters for FIXED_CONCENTRATION and FIXED_INPUT_FLUX.
-    optional int32 boundary_site                        = 11;
+    // Parameters for FIXED_CONCENTRATION and FIXED_GRADIENT.
     optional int32 boundary_species                     = 10;
+    optional int32 boundary_site                        = 11;
     
     // Parameters for FIXED_CONCENTRATION.
-    optional double boundary_concentration              = 20;
+    optional double boundary_concentration              = 21;
     
-    // Parameters for FIXED_INPUT_FLUX.
-    optional int32 lattice_x_size                       = 30;
-    optional int32 lattice_y_size                       = 31;
-    optional int32 lattice_z_size                       = 32;
-    optional ArrayOrdering boundary_input_flux_ordering = 33;
-    repeated double boundary_input_flux                 = 34 [packed=true];
+    // Parameters for FIXED_GRADIENT.
+    optional ArrayOrdering boundary_gradient_ordering   = 30;
+    repeated double boundary_gradient                   = 31 [packed=true];
 }

@@ -55,6 +55,7 @@ class Lattice;
 
 namespace io {
 
+class BoundaryConditions;
 class DiffusionModel;
 class ReactionModel;
 class Lattice;
@@ -123,6 +124,8 @@ public:
     virtual void setDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception);
     virtual void setSpatialModel(lm::io::SpatialModel * model) throw(Exception,InvalidArgException,HDF5Exception);
     virtual void getSpatialModel(lm::io::SpatialModel * model) throw(Exception,InvalidArgException,HDF5Exception);
+    virtual bool hasBoundaryGradient();
+    virtual void getBoundaryGradient(lm::io::BoundaryConditions* bc);
 
 
     // Methods for working with a replicate.

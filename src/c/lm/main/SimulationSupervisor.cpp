@@ -121,6 +121,10 @@ void SimulationSupervisor::initialize()
             {
                 bc->set_boundary_concentration(atof(simulationParameterMap["boundaryConcentration"].c_str()));
             }
+            if (file->hasBoundaryGradient())
+            {
+                file->getBoundaryGradient(bc);
+            }
         }
     }
 

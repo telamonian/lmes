@@ -1062,6 +1062,46 @@ void Hdf5File::setSpatialModel(lm::io::SpatialModel * spatialModel) throw(Except
     }
 }
 
+bool Hdf5File::hasBoundaryGradient()
+{
+    return (H5Lexists(file, "/Model/Diffusion/Gradient", H5P_DEFAULT) != 0);
+}
+
+void Hdf5File::getBoundaryGradient(lm::io::BoundaryConditions* bc)
+{
+    // Make sure the model is not null and then clear it.
+    if (bc == NULL) throw InvalidArgException("bc", "cannot be null");
+    bc->clear_boundary_gradient_ordering();
+    bc->clear_boundary_gradient();
+
+    if (H5Lexists(file, "/Model/Diffusion/Gradient", H5P_DEFAULT))
+    {
+        int ndims;
+        hsize_t dims[3];
+        H5T_class_t type;
+        size_t size;
+
+        // Read the lattice size.
+        int latticeXSize,latticeYSize,latticeZSize;
+        HDF5_EXCEPTION_CHECK(H5LTget_attribute_int(file, "/Model/Diffusion", "latticeXSize", &latticeXSize));
+        HDF5_EXCEPTION_CHECK(H5LTget_attribute_int(file, "/Model/Diffusion", "latticeYSize", &latticeYSize));
+        HDF5_EXCEPTION_CHECK(H5LTget_attribute_int(file, "/Model/Diffusion", "latticeZSize", &latticeZSize));
+
+        // Read the initial lattice sites.
+        HDF5_EXCEPTION_CHECK(H5LTget_dataset_ndims(file, "/Model/Diffusion/Gradient", &ndims));
+        if (ndims != 3) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Diffusion/Gradient");
+        HDF5_EXCEPTION_CHECK(H5LTget_dataset_info(file, "/Model/Diffusion/Gradient",dims, &type, &size));
+        if (latticeXSize+2 != (int)dims[0] || latticeYSize+2 != (int)dims[1] || latticeZSize+2 != (int)dims[2] || size != sizeof(double)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Diffusion/Gradient");
+        int dataSize = dims[0]*dims[1]*dims[2];
+        double* data=new double[dataSize];
+        HDF5_EXCEPTION_CHECK(H5LTread_dataset(file, "/Model/Diffusion/Gradient", H5T_NATIVE_DOUBLE, data));
+        for (int i=0; i<dataSize; i++)
+            bc->add_boundary_gradient(data[i]);
+        bc->set_boundary_gradient_ordering(lm::io::ROW_MAJOR);
+        delete[] data;
+    }
+}
+
 bool Hdf5File::replicateExists(unsigned int replicate) throw(HDF5Exception)
 {
     char replicateName[8];
