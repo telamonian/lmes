@@ -289,14 +289,10 @@ int OutputWriter::HelperThread::run()
                     {
                         p->processSpeciesCounts(message->process_work_unit_output(i).species_counts());
                     }
-                    else if (message->process_work_unit_output(i).first_passage_times_size() > 0)
+                    if (message->process_work_unit_output(i).first_passage_times_size() > 0)
                     {
                         for (int j=0; j<message->process_work_unit_output(i).first_passage_times_size(); j++)
                             p->processFirstPassageTimes(message->process_work_unit_output(i).first_passage_times(j));
-                    }
-                    else
-                    {
-                        Print::printf(Print::ERROR, "OutputWriter received an unsupported data message: {\n%s}",message->DebugString().c_str());
                     }
                     writingTime += getHrTime()-startWriting;
                 }

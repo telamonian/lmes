@@ -362,58 +362,6 @@ void RDMESolver::allocateLattice(lattice_size_t latticeXSize, lattice_size_t lat
     lattice = new ByteLattice(latticeXSize, latticeYSize, latticeZSize, latticeSpacing, particlesPerSite);
 }
 
-//void RDMESolver::buildDiffusionModel(const uint numberSiteTypesA, const double * DFA, const uint * RLA, lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing, const uint8_t * latticeData, const uint8_t * latticeSitesData, bool rowMajorData) throw(InvalidArgException)
-//{
-//    // Set the lattice.
-//    if (rowMajorData)
-//    {
-//        lattice_coord_t s = lattice->getSize();
-//        site_size_t p = lattice->getMaxOccupancy();
-
-//        // Set the lattice data.
-//        for (uint i=0, index=0; i<s.x; i++)
-//        {
-//            for (uint j=0; j<s.y; j++)
-//            {
-//                for (uint k=0; k<s.z; k++)
-//                {
-//                    for (uint l=0; l<p; l++, index++)
-//                    {
-//                        if (latticeData[index] != 0)
-//                        {
-//                            if (latticeData[index] > numberSpecies) throw InvalidArgException("latticeData", "an invalid species was found",latticeData[index]);
-//                            lattice->addParticle(i,j,k,latticeData[index]);
-//                        }
-//                    }
-//                }
-//            }
-//        }
-
-//        // Set the lattice sites.
-//        for (uint i=0, index=0; i<s.x; i++)
-//        {
-//            for (uint j=0; j<s.y; j++)
-//            {
-//                for (uint k=0; k<s.z; k++, index++)
-//                {
-//                    if (latticeSitesData[index] != 0)
-//                    {
-//                        if (latticeSitesData[index] >= numberSiteTypes) throw InvalidArgException("latticeSitesData", "an invalid species was found",latticeSitesData[index]);
-//                        lattice->setSiteType(i,j,k,latticeSitesData[index]);
-//                    }
-//                }
-//            }
-//        }
-//    }
-//    else
-//    {
-//        throw lm::InvalidArgException("rowMajorData","columns major lattice data is not currently supported");
-//    }
-
-//    Print::printf(Print::DEBUG, "Set diffusion model.");
-//    printf("almost done\n");
-//}
-
 void RDMESolver::reset()
 {
     if (diffusionModel == NULL || lattice == NULL) throw Exception("RDMESolver reset called before diffusion model was set.");

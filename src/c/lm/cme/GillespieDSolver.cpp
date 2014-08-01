@@ -287,14 +287,12 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
         {
             while (nextSpeciesCountsWriteTime <= (maxTime+1e-9))
             {
-                Print::printf(Print::VERBOSE_DEBUG, "Recording event at time %e (%e)", nextSpeciesCountsWriteTime, maxTime);
                 // Record the species counts.
                 speciesCountsDataSet->set_number_entries(speciesCountsDataSet->number_entries()+1);
                 speciesCountsDataSet->add_time(nextSpeciesCountsWriteTime);
                 for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
                 nextSpeciesCountsWriteTime += writeInterval;
             }
-            Print::printf(Print::VERBOSE_DEBUG, "Done recording events at time %e (%e)", nextSpeciesCountsWriteTime, maxTime);
 
             // If we are recording parameter values, write out the remaining value intervals.
     //        if (nextParameterWriteTime <= (maxTime+1e-9))
@@ -314,6 +312,7 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
     // Otherwise we must have finished because of a species limit, so just write out the last time.
     else
     {
+        // Record the species counts.
         if (writeTimeSteps)
         {
             // Record the species counts.
