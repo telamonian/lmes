@@ -112,6 +112,17 @@ void SFileOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
     file->writeMessage(data);
 }
 
+void SFileOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)
+{
+    const int MAX_BUFFER_SIZE=128;
+    char buffer[MAX_BUFFER_SIZE+1];
+    memset(buffer, 0, MAX_BUFFER_SIZE+1);
+    snprintf(buffer,MAX_BUFFER_SIZE,"/Simulations/%07d/LatticeTimeSeries",data.trajectory_id());
+    SFileRecord record(string(buffer), string("protobuf:lm.io.LatticeTimeSeries"), data.ByteSize());
+    file->writeSFileRecord(record);
+    file->writeMessage(data);
+}
+
 void SFileOutputWriter::flush()
 {
     file->flush();

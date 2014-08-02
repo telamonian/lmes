@@ -58,6 +58,7 @@
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/Lattice.pb.h"
+#include "lm/io/LatticeTimeSeries.pb.h"
 #include "lm/io/ParameterValues.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SimulationParameters.pb.h"
@@ -1191,10 +1192,8 @@ void Hdf5File::appendSpeciesCounts(unsigned int replicate, lm::io::SpeciesCounts
     }
 }
 
-void Hdf5File::appendLattice(unsigned int replicate, lm::io::Lattice * lattice, uint8_t * latticeData, size_t latticeDataSize) throw(InvalidArgException,HDF5Exception)
+void Hdf5File::appendLatticeTimeSeries(unsigned int replicate, const lm::io::LatticeTimeSeries& data)
 {
-    if (lattice->lattice_x_size()*lattice->lattice_y_size()*lattice->lattice_z_size()*lattice->particles_per_site()*sizeof(uint8_t) != latticeDataSize) throw InvalidArgException("lattice", "incorrect lattice size");
-
     ReplicateHandles * replicateHandles = openReplicateHandles(replicate);
 
     // Open or create the lattice group.
@@ -1224,67 +1223,77 @@ void Hdf5File::appendLattice(unsigned int replicate, lm::io::Lattice * lattice, 
     }
 
     // Append the time to the times data set.
-    uint latticeIndex;
+    for (int i=0; i<data.number_entries(); i++)
     {
-        // Get the current size of the dataset.
-        unsigned int RANK=1;
-        hsize_t dims[RANK];
-        hid_t dataspaceHandle;
-        int result;
-        HDF5_EXCEPTION_CALL(dataspaceHandle,H5Dget_space(latticeTimesDatasetHandle));
-        HDF5_EXCEPTION_CALL(result,H5Sget_simple_extent_dims(dataspaceHandle, dims, NULL));
-        HDF5_EXCEPTION_CHECK(H5Sclose(dataspaceHandle));
+        uint latticeIndex;
+        {
+            // Get the current size of the dataset.
+            unsigned int RANK=1;
+            hsize_t dims[RANK];
+            hid_t dataspaceHandle;
+            int result;
+            HDF5_EXCEPTION_CALL(dataspaceHandle,H5Dget_space(latticeTimesDatasetHandle));
+            HDF5_EXCEPTION_CALL(result,H5Sget_simple_extent_dims(dataspaceHandle, dims, NULL));
+            HDF5_EXCEPTION_CHECK(H5Sclose(dataspaceHandle));
 
-        // Extend the dataset by the number of rows in the data set.
-        dims[0] += 1;
-        HDF5_EXCEPTION_CHECK(H5Dset_extent(latticeTimesDatasetHandle, dims));
+            // Extend the dataset by the number of rows in the data set.
+            dims[0] += 1;
+            HDF5_EXCEPTION_CHECK(H5Dset_extent(latticeTimesDatasetHandle, dims));
 
-        // Create the memory dataset.
-        hid_t memspaceHandle;
-        hsize_t memDims[RANK];
-        memDims[0] = 1;
-        HDF5_EXCEPTION_CALL(memspaceHandle,H5Screate_simple(RANK, memDims, NULL));
+            // Create the memory dataset.
+            hid_t memspaceHandle;
+            hsize_t memDims[RANK];
+            memDims[0] = 1;
+            HDF5_EXCEPTION_CALL(memspaceHandle,H5Screate_simple(RANK, memDims, NULL));
 
-        // Write the new data.
-        HDF5_EXCEPTION_CALL(dataspaceHandle,H5Dget_space(latticeTimesDatasetHandle));
-        hsize_t start[RANK], count[RANK];
-        start[0] = dims[0]-1;
-        latticeIndex=start[0];
-        count[0] = memDims[0];
-        HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(dataspaceHandle, H5S_SELECT_SET, start, NULL, count, NULL));
-        //double time = lattice->time(); //TODO fixme
-        double time=0.0;
-        HDF5_EXCEPTION_CHECK(H5Dwrite(latticeTimesDatasetHandle, H5T_NATIVE_DOUBLE, memspaceHandle, dataspaceHandle, H5P_DEFAULT, &time));
+            // Write the new data.
+            HDF5_EXCEPTION_CALL(dataspaceHandle,H5Dget_space(latticeTimesDatasetHandle));
+            hsize_t start[RANK], count[RANK];
+            start[0] = dims[0]-1;
+            latticeIndex=start[0];
+            count[0] = memDims[0];
+            HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(dataspaceHandle, H5S_SELECT_SET, start, NULL, count, NULL));
+            double time = data.time(i);
+            HDF5_EXCEPTION_CHECK(H5Dwrite(latticeTimesDatasetHandle, H5T_NATIVE_DOUBLE, memspaceHandle, dataspaceHandle, H5P_DEFAULT, &time));
 
-        // Cleanup some resources.
-        HDF5_EXCEPTION_CHECK(H5Sclose(dataspaceHandle));
-        HDF5_EXCEPTION_CHECK(H5Sclose(memspaceHandle));
-    }
+            // Cleanup some resources.
+            HDF5_EXCEPTION_CHECK(H5Sclose(dataspaceHandle));
+            HDF5_EXCEPTION_CHECK(H5Sclose(memspaceHandle));
+        }
 
-    // Create the lattice data set.
-    {
-        char latticeDatasetName[11];
-        snprintf(latticeDatasetName, sizeof(latticeDatasetName), "%010d", latticeIndex);
-        const unsigned int RANK=4;
-        hsize_t dims[RANK], chunk[RANK];
-        dims[0] = lattice->lattice_x_size();
-        dims[1] = lattice->lattice_y_size();
-        dims[2] = lattice->lattice_z_size();
-        dims[3] = lattice->particles_per_site();
-        chunk[0] = min(TUNE_LATTICE_GZIP_CHUNK_SIZE,lattice->lattice_x_size());
-        chunk[1] = min(TUNE_LATTICE_GZIP_CHUNK_SIZE,lattice->lattice_y_size());
-        chunk[2] = min(TUNE_LATTICE_GZIP_CHUNK_SIZE,lattice->lattice_z_size());
-        chunk[3] = lattice->particles_per_site();
-        hid_t dataspaceHandle, dcplHandle, datasetHandle;
-        HDF5_EXCEPTION_CALL(dataspaceHandle,H5Screate_simple(RANK, dims, NULL));
-        HDF5_EXCEPTION_CALL(dcplHandle,H5Pcreate(H5P_DATASET_CREATE));
-        HDF5_EXCEPTION_CHECK(H5Pset_deflate (dcplHandle, TUNE_LATTICE_GZIP_COMPRESSION_LEVEL));
-        HDF5_EXCEPTION_CHECK(H5Pset_chunk(dcplHandle, RANK, chunk));
-        HDF5_EXCEPTION_CALL(datasetHandle,H5Dcreate2(latticeGroupHandle, latticeDatasetName, H5T_STD_U8LE, dataspaceHandle, H5P_DEFAULT, dcplHandle, H5P_DEFAULT));
-        HDF5_EXCEPTION_CHECK(H5Dwrite(datasetHandle, H5T_NATIVE_UINT8, H5S_ALL, H5S_ALL, H5P_DEFAULT, latticeData));
-        HDF5_EXCEPTION_CHECK(H5Dclose(datasetHandle));
-        HDF5_EXCEPTION_CHECK(H5Pclose(dcplHandle));
-        HDF5_EXCEPTION_CHECK(H5Sclose(dataspaceHandle));
+        // Create the lattice data set.
+        {
+            const lm::io::Lattice& lattice = data.lattice(i);
+            if (!lattice.has_particles_per_site()) throw Exception("Invalid lattice, particles per site must be specified for HDF5 file output.");
+            if (!lattice.has_particles_ordering()) throw Exception("Invalid lattice, data ordering must be specified for HDF5 file output.");
+            if (lattice.particles_ordering() != lm::io::ROW_MAJOR) throw Exception("Invalid lattice, data ordering must be in ROW_MAJOR format for HDF5 file output.");
+            if (!lattice.has_particles()) throw Exception("Invalid lattice, data must be specified for HDF5 file output.");
+            if (lattice.lattice_x_size()*lattice.lattice_y_size()*lattice.lattice_z_size()*lattice.particles_per_site() != (int)lattice.particles().size()) throw Exception("Invalid lattice, lattice size and data size must agree for HDF5 file output.");
+
+            char latticeDatasetName[11];
+            snprintf(latticeDatasetName, sizeof(latticeDatasetName), "%010d", latticeIndex);
+            const unsigned int RANK=4;
+            hsize_t dims[RANK], chunk[RANK];
+            dims[0] = lattice.lattice_x_size();
+            dims[1] = lattice.lattice_y_size();
+            dims[2] = lattice.lattice_z_size();
+            dims[3] = lattice.particles_per_site();
+            chunk[0] = min(TUNE_LATTICE_GZIP_CHUNK_SIZE,lattice.lattice_x_size());
+            chunk[1] = min(TUNE_LATTICE_GZIP_CHUNK_SIZE,lattice.lattice_y_size());
+            chunk[2] = min(TUNE_LATTICE_GZIP_CHUNK_SIZE,lattice.lattice_z_size());
+            chunk[3] = lattice.particles_per_site();
+            hid_t dataspaceHandle, dcplHandle, datasetHandle;
+            HDF5_EXCEPTION_CALL(dataspaceHandle,H5Screate_simple(RANK, dims, NULL));
+            HDF5_EXCEPTION_CALL(dcplHandle,H5Pcreate(H5P_DATASET_CREATE));
+            HDF5_EXCEPTION_CHECK(H5Pset_deflate (dcplHandle, TUNE_LATTICE_GZIP_COMPRESSION_LEVEL));
+            HDF5_EXCEPTION_CHECK(H5Pset_chunk(dcplHandle, RANK, chunk));
+            HDF5_EXCEPTION_CALL(datasetHandle,H5Dcreate2(latticeGroupHandle, latticeDatasetName, H5T_STD_U8LE, dataspaceHandle, H5P_DEFAULT, dcplHandle, H5P_DEFAULT));
+            const std::string& particles = lattice.particles();
+            HDF5_EXCEPTION_CHECK(H5Dwrite(datasetHandle, H5T_NATIVE_UINT8, H5S_ALL, H5S_ALL, H5P_DEFAULT, &(particles[0])));
+            HDF5_EXCEPTION_CHECK(H5Dclose(datasetHandle));
+            HDF5_EXCEPTION_CHECK(H5Pclose(dcplHandle));
+            HDF5_EXCEPTION_CHECK(H5Sclose(dataspaceHandle));
+        }
     }
 
     // Cleanup some resources.

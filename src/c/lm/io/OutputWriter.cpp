@@ -294,6 +294,10 @@ int OutputWriter::HelperThread::run()
                         for (int j=0; j<message->process_work_unit_output(i).first_passage_times_size(); j++)
                             p->processFirstPassageTimes(message->process_work_unit_output(i).first_passage_times(j));
                     }
+                    if (message->process_work_unit_output(i).has_lattice_time_series())
+                    {
+                        p->processLatticeTimeSeries(message->process_work_unit_output(i).lattice_time_series());
+                    }
                     writingTime += getHrTime()-startWriting;
                 }
                 bytesWritten += messageSize;

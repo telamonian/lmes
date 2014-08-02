@@ -49,7 +49,9 @@
 #include "lm/cme/CMESolver.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/Lattice.pb.h"
+#include "lm/io/LatticeTimeSeries.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
+#include "lm/message/ProcessWorkUnitOutput.pb.h"
 #include "lm/rdme/Lattice.h"
 #include "lm/rdme/ByteLattice.h"
 #include "lm/rdme/NextSubvolumeSolver.h"
@@ -193,14 +195,42 @@ bool NextSubvolumeSolver::generateTrajectory(long long maxSteps)
         }
     }
 
-    // Get the interval for writing the full lattice.
-    /*double latticeWriteInterval=atof((*parameters)["latticeWriteInterval"].c_str());
-    bool writeLatticeTimeSteps = (writeInterval > 0.0);
-    double nextlatticeWriteTime;
-    lm::io::SpeciesCounts* speciesCountsDataSet = NULL;*/
+    // Get the interval for writing species counts.
+    double latticeWriteInterval=atof(simulationParameters["latticeWriteInterval"].c_str());
+    bool writingLattice = (speciesCountsWriteInterval > 0.0);
+    double nextLatticeWriteTime;
+    lm::io::LatticeTimeSeries* latticeDataSet = NULL;
 
-    // Create the lattice data set to use during the simulation.
-//    lm::io::Lattice latticeDataSet;
+    // If we are writing time steps, create the data set.
+    if (writingLattice)
+    {
+        // Initialize the data set.
+        latticeDataSet = msg->mutable_lattice_time_series();
+        latticeDataSet->set_trajectory_id(trajectoryId);
+        latticeDataSet->set_number_entries(0);
+
+        // If this is the start of the trajectory, add the initial counts.
+        if (time == 0.0)
+        {
+            nextLatticeWriteTime=latticeWriteInterval;
+            latticeDataSet->set_number_entries(1);
+            latticeDataSet->add_time(0.0);
+            lm::io::Lattice* l = latticeDataSet->add_lattice();
+            l->set_lattice_x_size(lattice->getXSize());
+            l->set_lattice_y_size(lattice->getYSize());
+            l->set_lattice_z_size(lattice->getZSize());
+            l->set_particles_per_site(lattice->getMaxOccupancy());
+            l->set_particles_ordering(lm::io::ROW_MAJOR);
+            size_t dataSize = lattice->serializeParticlesSize();
+            std::string* data = l->mutable_particles();
+            data->resize(dataSize);
+            lattice->serializeParticlesTo(&((*data)[0]), dataSize, Lattice::ROW_MAJOR);
+        }
+        else
+        {
+            nextLatticeWriteTime = ceil(time/latticeWriteInterval)*latticeWriteInterval;
+        }
+    }
 
     // Local cache of random numbers.
     double expRngValues[TUNE_LOCAL_RNG_CACHE_SIZE];
@@ -248,12 +278,29 @@ bool NextSubvolumeSolver::generateTrajectory(long long maxSteps)
            }
        }
 
-       // Write lattice frames until the next write time is past the current time.
-//       while (nextLatticeWriteTime > 0.0 && nextLatticeWriteTime <= (time+EPS))
-//       {
-//           writeLatticeData(nextLatticeWriteTime, lattice, &latticeDataSet);
-//           nextLatticeWriteTime += latticeWriteInterval;
-//       }
+       // If we are writing time steps, write out any time steps before this event occurred.
+       if (writingLattice)
+       {
+           // Write time steps until the next write time is past the current time.
+           while (nextLatticeWriteTime <= (time+EPS))
+           {
+               // Record the species counts.
+               latticeDataSet->set_number_entries(latticeDataSet->number_entries()+1);
+               latticeDataSet->add_time(nextLatticeWriteTime);
+               lm::io::Lattice* l = latticeDataSet->add_lattice();
+               l->set_lattice_x_size(lattice->getXSize());
+               l->set_lattice_y_size(lattice->getYSize());
+               l->set_lattice_z_size(lattice->getZSize());
+               l->set_particles_per_site(lattice->getMaxOccupancy());
+               l->set_particles_ordering(lm::io::ROW_MAJOR);
+               size_t dataSize = lattice->serializeParticlesSize();
+               std::string* data = l->mutable_particles();
+               data->resize(dataSize);
+               lattice->serializeParticlesTo(&((*data)[0]), dataSize, Lattice::ROW_MAJOR);
+               nextLatticeWriteTime += latticeWriteInterval;
+           }
+       }
+
 
        // Update the system with the reaction.
        affectedNeighbor = false;
@@ -287,13 +334,35 @@ bool NextSubvolumeSolver::generateTrajectory(long long maxSteps)
                 for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
                 nextSpeciesCountsWriteTime += speciesCountsWriteInterval;
             }
+        }
 
+        if (writingLattice)
+        {
+            // Write time steps until the next write time is past the current time.
+            while (nextLatticeWriteTime <= (maxTime+EPS))
+            {
+                // Record the species counts.
+                latticeDataSet->set_number_entries(latticeDataSet->number_entries()+1);
+                latticeDataSet->add_time(nextLatticeWriteTime);
+                lm::io::Lattice* l = latticeDataSet->add_lattice();
+                l->set_lattice_x_size(lattice->getXSize());
+                l->set_lattice_y_size(lattice->getYSize());
+                l->set_lattice_z_size(lattice->getZSize());
+                l->set_particles_per_site(lattice->getMaxOccupancy());
+                l->set_particles_ordering(lm::io::ROW_MAJOR);
+                size_t dataSize = lattice->serializeParticlesSize();
+                std::string* data = l->mutable_particles();
+                data->resize(dataSize);
+                lattice->serializeParticlesTo(&((*data)[0]), dataSize, Lattice::ROW_MAJOR);
+                nextLatticeWriteTime += latticeWriteInterval;
+            }
+        }
             // If we are recording parameter values, write out the remaining value intervals.
     //        if (nextParameterWriteTime <= (maxTime+1e-9))
     //        {
     ////            recordParameters(nextParameterWriteTime, parameterWriteInterval, maxTime);
     //        }
-        }
+
         reachedLimit = true;
     }
 
@@ -315,6 +384,22 @@ bool NextSubvolumeSolver::generateTrajectory(long long maxSteps)
             speciesCountsDataSet->add_time(time);
             for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
         }
+        if (writingLattice)
+        {
+            // Record the lattice.
+            latticeDataSet->set_number_entries(latticeDataSet->number_entries()+1);
+            latticeDataSet->add_time(time);
+            lm::io::Lattice* l = latticeDataSet->add_lattice();
+            l->set_lattice_x_size(lattice->getXSize());
+            l->set_lattice_y_size(lattice->getYSize());
+            l->set_lattice_z_size(lattice->getZSize());
+            l->set_particles_per_site(lattice->getMaxOccupancy());
+            l->set_particles_ordering(lm::io::ROW_MAJOR);
+            size_t dataSize = lattice->serializeParticlesSize();
+            std::string* data = l->mutable_particles();
+            data->resize(dataSize);
+            lattice->serializeParticlesTo(&((*data)[0]), dataSize, Lattice::ROW_MAJOR);
+        }
         reachedLimit = true;
     }
 
@@ -328,7 +413,7 @@ bool NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     }
 
     // If the output message has any data, send it.
-    if (msg->has_species_counts() || msg->first_passage_times_size() > 0)
+    if (msg->has_species_counts() || msg->first_passage_times_size() > 0 || msg->has_lattice_time_series())
     {
         communicator->sendMessage(outputProcess, outputThread, &msgp);
     }
@@ -345,46 +430,6 @@ void NextSubvolumeSolver::checkSpeciesCountsAgainstLattice()
 			throw lm::Exception("Consistency error between species counts and lattice data", i, speciesCounts[i], ((particleCounts.count(i+1)>0)?particleCounts[i+1]:0));
 	}
 }
-
-//void NextSubvolumeSolver::writeLatticeData(double time, ByteLattice * lattice, lm::io::Lattice * latticeDataSet)
-//{
-//    Print::printf(Print::DEBUG, "Writing lattice at %e s", time);
-
-//    // Record the lattice data.
-//    latticeDataSet->Clear();
-//    latticeDataSet->set_lattice_x_size(lattice->getSize().x);
-//    latticeDataSet->set_lattice_y_size(lattice->getSize().y);
-//    latticeDataSet->set_lattice_z_size(lattice->getSize().z);
-//    latticeDataSet->set_particles_per_site(lattice->getMaxOccupancy());
-//    latticeDataSet->set_time(time);
-
-//    // Push it to the output queue.
-//    size_t payloadSize = lattice->getSize().x*lattice->getSize().y*lattice->getSize().z*lattice->getMaxOccupancy()*sizeof(uint8_t);
-//    lm::main::DataOutputQueue::getInstance()->pushDataSet(lm::main::DataOutputQueue::BYTE_LATTICE, replicate, latticeDataSet, lattice, payloadSize, &lm::rdme::ByteLattice::nativeSerialize);
-//}
-
-//void NextSubvolumeSolver::recordSpeciesCounts(double time, lm::io::SpeciesCounts * speciesCountsDataSet)
-//{
-//    speciesCountsDataSet->set_number_entries(speciesCountsDataSet->number_entries()+1);
-//    speciesCountsDataSet->add_time(time);
-//    for (uint i=0; i<numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
-//}
-
-//void NextSubvolumeSolver::writeSpeciesCounts(lm::io::SpeciesCounts * speciesCountsDataSet)
-//{
-//    if (speciesCountsDataSet->number_entries() > 0)
-//    {
-//        PROF_BEGIN(PROF_SERIALIZE_COUNTS);
-//        // Push it to the output queue.
-//        lm::main::DataOutputQueue::getInstance()->pushDataSet(lm::main::DataOutputQueue::SPECIES_COUNTS, replicate, speciesCountsDataSet);
-
-//        // Reset the data set.
-//        speciesCountsDataSet->Clear();
-//        speciesCountsDataSet->set_number_species(numberSpeciesToTrack);
-//        speciesCountsDataSet->set_number_entries(0);
-//        PROF_END(PROF_SERIALIZE_COUNTS);
-//    }
-//}
 
 int NextSubvolumeSolver::updateAllSubvolumePropensities(si_time_t time, int rngNext, double * expRngValues)
 {
