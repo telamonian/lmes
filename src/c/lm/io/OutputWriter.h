@@ -46,6 +46,7 @@
 #include <pthread.h>
 
 #include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/io/LatticeTimeSeries.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/message/Communicator.h"
 #include "lm/message/Message.pb.h"
@@ -72,6 +73,7 @@ public:
 protected:
     virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data)=0;
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data)=0;
+    virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)=0;
     virtual void flush()=0;
 
     virtual int run();

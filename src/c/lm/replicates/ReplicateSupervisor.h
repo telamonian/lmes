@@ -94,4 +94,4 @@ protected:
 }
 }
 
-#endif /* REPLICATESUPERVISOR_H_ */
+#endif

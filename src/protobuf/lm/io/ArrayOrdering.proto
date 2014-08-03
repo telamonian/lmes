@@ -34,42 +34,13 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts, Max Klein
+ * Author(s): Elijah Roberts
  */
 
-#ifndef LM_REPLICATES_REPLICATETRAJECTORYLIST_H_
-#define LM_REPLICATES_REPLICATETRAJECTORYLIST_H_
+package lm.io;
 
-#include <map>
-#include <string>
-
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/ReactionModel.pb.h"
-#include "lm/io/TrajectoryState.pb.h"
-
-#include "lm/resource/TrajectoryList.h"
-#include "lm/Types.h"
-
-using std::map;
-using lm::resource::TrajectoryList;
-
-namespace lm {
-namespace replicates {
-
-class ReplicateTrajectoryList : public lm::resource::TrajectoryList
-{
-
-public:
-    ReplicateTrajectoryList(uint64_t firstTrajectory, uint64_t lastTrajectory, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel, const lm::io::DiffusionModel& diffusionModel);
-    virtual ~ReplicateTrajectoryList();
-    virtual void init();
-
-protected:
-    uint64_t firstTrajectory;
-    uint64_t lastTrajectory;
-};
-
+enum ArrayOrdering {
+    ROW_MAJOR       = 0;    // Last dimension contiguous.
+    COLUMN_MAJOR    = 1;    // First dimension contiguous
+    NATIVE_ORDER    = 2;    // Ordering specific to the implementation.
 }
-}
-
-#endif

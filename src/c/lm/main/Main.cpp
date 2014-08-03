@@ -284,7 +284,7 @@ void parseArguments(int argc, char** argv)
 		#ifdef OPT_CUDA
         else if ((strcmp(option, "-sp") == 0 || strcmp(option, "--spatially-resolved") == 0))
         {
-            solverClassName = "lm::rdme::MpdRdmeSolver";
+            solverClassName = "lm::rdme::NextSubvolumeSolver";
         }
 		#else
         else if ((strcmp(option, "-sp") == 0 || strcmp(option, "--spatially-resolved") == 0))

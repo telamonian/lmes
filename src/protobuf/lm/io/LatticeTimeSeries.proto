@@ -37,39 +37,13 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-#ifndef LM_REPLICATES_REPLICATETRAJECTORYLIST_H_
-#define LM_REPLICATES_REPLICATETRAJECTORYLIST_H_
+package lm.io;
 
-#include <map>
-#include <string>
+import "lm/io/Lattice.proto";
 
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/ReactionModel.pb.h"
-#include "lm/io/TrajectoryState.pb.h"
-
-#include "lm/resource/TrajectoryList.h"
-#include "lm/Types.h"
-
-using std::map;
-using lm::resource::TrajectoryList;
-
-namespace lm {
-namespace replicates {
-
-class ReplicateTrajectoryList : public lm::resource::TrajectoryList
-{
-
-public:
-    ReplicateTrajectoryList(uint64_t firstTrajectory, uint64_t lastTrajectory, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel, const lm::io::DiffusionModel& diffusionModel);
-    virtual ~ReplicateTrajectoryList();
-    virtual void init();
-
-protected:
-    uint64_t firstTrajectory;
-    uint64_t lastTrajectory;
-};
-
+message LatticeTimeSeries {
+    required int32 trajectory_id                        = 1;
+    required int32 number_entries                       = 2;
+    repeated Lattice lattice                            = 3;
+    repeated double time                                = 4 [packed=true];
 }
-}
-
-#endif

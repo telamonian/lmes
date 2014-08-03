@@ -50,12 +50,6 @@ namespace rdme {
 class ByteLattice : public Lattice
 {
 public:
-    static void nativeSerialize(void * destBuffer, void * lattice, size_t latticeSize);
-    static void copyNativeToRowMajorByte(void * destBuffer, void * sourceBuffer, lattice_size_t xSize, lattice_size_t ySize, lattice_size_t zSize, uint particlesPerSite, size_t bufferSize);
-    static void copyRowMajorByteToNative(void * destBuffer, void * sourceBuffer, lattice_size_t xSize, lattice_size_t ySize, lattice_size_t zSize, uint particlesPerSite, size_t bufferSize);
-    static void copySitesRowMajorByteToNative(void * destBuffer, void * sourceBuffer, lattice_size_t xSize, lattice_size_t ySize, lattice_size_t zSize, size_t bufferSize);
-
-public:
     // Lattice limits.
     virtual site_t getMaxSiteType() const;
     virtual particle_t getMaxParticle() const;
@@ -66,7 +60,7 @@ public:
     ByteLattice(lattice_size_t xSize, lattice_size_t ySize, lattice_size_t zSize, si_dist_t spacing, uint particlesPerSite) throw(std::bad_alloc,InvalidArgException,Exception);
 	virtual ~ByteLattice(); //TODO: the ~ByteLattice throw spec doesn't work with c++11. Maybe reenable somehow? throw(std::bad_alloc);
 	
-	virtual void getNeighboringSites(lattice_size_t index, lattice_size_t * neighboringIndices);
+    virtual void getNeighboringSites(lattice_size_t index, lattice_size_t * neighboringIndices, bool periodic);
 
 	// Lattice site methods.
 	virtual site_t getSiteType(lattice_size_t x, lattice_size_t y, lattice_size_t z) const throw(InvalidSiteException);
@@ -95,8 +89,12 @@ public:
     virtual std::vector<particle_loc_t> findParticles(particle_t minParticleType, particle_t maxParticleType);
 	
     // Methods to set the data directly.
-    virtual void setFromRowMajorByteData(void * buffer, size_t bufferSize);
-    virtual void setSitesFromRowMajorByteData(void * buffer, size_t bufferSize);
+    virtual size_t serializeParticlesSize();
+    virtual void serializeParticlesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering);
+    virtual void deserializeParticlesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering);
+    virtual size_t serializeSitesSize();
+    virtual void serializeSitesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering);
+    virtual void deserializeSitesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering);
 
 protected:
 	virtual void allocateMemory() throw(std::bad_alloc);

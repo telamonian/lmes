@@ -127,31 +127,6 @@ void Lattice::removeAllParticles()
                 removeParticles(x,y,z);
 }
 
-void Lattice::rowMajorByteSerialize(void * bufferPtr, void * latticePtr, size_t bufferSize)
-{
-    Lattice * lattice = (Lattice *)latticePtr;
-    byte * buffer = (byte *)bufferPtr;
-    lattice_coord_t size = lattice->size;
-    if (bufferSize != size.x*size.y*size.z*lattice->getMaxOccupancy()) throw lm::InvalidArgException("bufferSize", "the buffer size was not equal to the lattice data size", bufferSize, size.x*size.y*size.z*lattice->getMaxOccupancy());
-    for (lattice_size_t x=0, index=0; x<size.x; x++)
-        for (lattice_size_t y=0; y<size.y; y++)
-            for (lattice_size_t z=0; z<size.z; z++)
-                for (site_size_t p=0; p<lattice->getMaxOccupancy(); p++, index++)
-                    buffer[index] = lattice->getParticle(x,y,z,p);
-}
-
-void Lattice::rowMajorByteSerializeSites(void * bufferPtr, void * latticePtr, size_t bufferSize)
-{
-    Lattice * lattice = (Lattice *)latticePtr;
-    byte * buffer = (byte *)bufferPtr;
-    lattice_coord_t size = lattice->size;
-    if (bufferSize != size.x*size.y*size.z) throw lm::InvalidArgException("bufferSize", "the buffer size was not equal to the lattice site data size");
-    for (lattice_size_t x=0, index=0; x<size.x; x++)
-        for (lattice_size_t y=0; y<size.y; y++)
-            for (lattice_size_t z=0; z<size.z; z++, index++)
-				buffer[index] = (byte)lattice->getSiteType(x,y,z);
-}
-
 void Lattice::print() const
 {
     for (lattice_size_t z=0; z<size.z; z++)

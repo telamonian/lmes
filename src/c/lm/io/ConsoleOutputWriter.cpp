@@ -37,8 +37,9 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-#include <lm/ClassFactory.h>
-#include <lm/Print.h>
+#include "lm/ClassFactory.h"
+#include "lm/Print.h"
+#include "lm/io/LatticeTimeSeries.pb.h"
 #include "lm/io/ConsoleOutputWriter.h"
 #include "lm/io/OutputWriter.h"
 
@@ -80,9 +81,9 @@ void ConsoleOutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTim
     // Print the output into the buffer.
     memset(buffer, 0, BUFFER_SIZE+1);
     int offset=snprintf(buffer,BUFFER_SIZE,"--------------------------------------------------------------------------------\n");
-    for (int i=0, index=0; i<data.number_entries(); i++)
+    for (int i=0; i<data.number_entries(); i++)
     {
-        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%5d: %10.3f:",data.species_count(i),data.first_passage_time(i));
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%5d: %10.3f\n",data.species_count(i),data.first_passage_time(i));
     }
     offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"--------------------------------------------------------------------------------");
 
@@ -108,9 +109,46 @@ void ConsoleOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data
     Print::printf(Print::INFO, "ConsoleOutputWriter received species counts for trajectory %d:\n%s",data.trajectory_id(),buffer);
 }
 
+void ConsoleOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)
+{
+    // Print the output into the buffer.
+    memset(buffer, 0, BUFFER_SIZE+1);
+    int offset=snprintf(buffer,BUFFER_SIZE,"--------------------------------------------------------------------------------\n");
+    for (int i=0; i<data.number_entries(); i++)
+    {
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"Time: %10.3f\n",data.time(i));
+
+        const lm::io::Lattice& l = data.lattice(i);
+        const std::string& particles = l.particles();
+        for (int z=0; z<l.lattice_z_size(); z++)
+        {
+            for (int x=0; x<l.lattice_x_size(); x++)
+            {
+                for (int y=0; y<l.lattice_y_size(); y++)
+                {
+                    for (int p=0; p<l.particles_per_site(); p++)
+                    {
+                        int i;
+                        if (l.particles_ordering() == lm::io::ROW_MAJOR)
+                            i = x*l.lattice_y_size()*l.lattice_z_size()*l.particles_per_site() + y*l.lattice_z_size()*l.particles_per_site() + z*l.particles_per_site() + p;
+                        else if (l.particles_ordering() == lm::io::COLUMN_MAJOR)
+                            i = p*l.lattice_x_size()*l.lattice_y_size()*l.lattice_z_size() + z*l.lattice_x_size()*l.lattice_y_size() + y*l.lattice_x_size() + x;
+                        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%2d%c",particles[i],p<l.particles_per_site()-1?',':' ');
+                    }
+                }
+                offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"\n");
+            }
+            offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"---------------\n");
+        }
+    }
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"--------------------------------------------------------------------------------");
+
+    // Print the output to stdout.
+    Print::printf(Print::INFO, "ConsoleOutputWriter received lattice time series for trajectory %d:\n%s",data.trajectory_id(),buffer);
+}
+
 void ConsoleOutputWriter::flush()
 {
-
 }
 
 }

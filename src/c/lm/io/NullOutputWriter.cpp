@@ -102,6 +102,12 @@ void NullOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
         sleep(secondsToDelay);
 }
 
+void NullOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)
+{
+    if (secondsToDelay > 0)
+        sleep(secondsToDelay);
+}
+
 void NullOutputWriter::flush()
 {
 

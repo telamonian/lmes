@@ -1,49 +1,57 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2011 Luthey-Schulten Group,
+ * Copyright 2008-2011 Luthey-Schulten Group,
+ * Copyright 2012-2014 Roberts Group,
  * All rights reserved.
- * 
+ *
  * Developed by: Luthey-Schulten Group
  * 			     University of Illinois at Urbana-Champaign
  * 			     http://www.scs.uiuc.edu/~schulten
- * 
+ *
+ * Developed by: Roberts Group
+ * 			     Johns Hopkins University
+ * 			     http://biophysics.jhu.edu/roberts/
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the Software), to deal with 
- * the Software without restriction, including without limitation the rights to 
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
- * of the Software, and to permit persons to whom the Software is furnished to 
+ * this software and associated documentation files (the Software), to deal with
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to
  * do so, subject to the following conditions:
- * 
- * - Redistributions of source code must retain the above copyright notice, 
+ *
+ * - Redistributions of source code must retain the above copyright notice,
  * this list of conditions and the following disclaimers.
- * 
- * - Redistributions in binary form must reproduce the above copyright notice, 
- * this list of conditions and the following disclaimers in the documentation 
+ *
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimers in the documentation
  * and/or other materials provided with the distribution.
- * 
+ *
  * - Neither the names of the Luthey-Schulten Group, University of Illinois at
- * Urbana-Champaign, nor the names of its contributors may be used to endorse or
- * promote products derived from this Software without specific prior written
- * permission.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL 
- * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR 
- * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+ * Urbana-Champaign, the Roberts Group, Johns Hopkins University, nor the names
+ * of its contributors may be used to endorse or promote products derived from
+ * this Software without specific prior written permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
  * Author(s): Elijah Roberts
  */
 
+#include "lm/ClassFactory.h"
 #include "lm/Exceptions.h"
 #include "lm/Tune.h"
 #include "lm/Print.h"
 #include "lm/cme/CMESolver.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/Lattice.pb.h"
+#include "lm/io/LatticeTimeSeries.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
+#include "lm/message/ProcessWorkUnitOutput.pb.h"
 #include "lm/rdme/Lattice.h"
 #include "lm/rdme/ByteLattice.h"
 #include "lm/rdme/NextSubvolumeSolver.h"
@@ -52,118 +60,177 @@
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
 
-using lm::rdme::Lattice;
 using lm::rng::RandomGenerator;
 
 namespace lm {
 namespace rdme {
 
-/*
-NextSubvolumeSolver::NextSubvolumeSolver():RDMESolver((RandomGenerator::Distributions)(RandomGenerator::EXPONENTIAL|RandomGenerator::UNIFORM)),numberSubvolumes(0),reactionPropensities(NULL),latticeSpacingSquared(0.0),reactionQueue(NULL),currentSubvolumeSpeciesCounts(NULL)
+bool NextSubvolumeSolver::registered=NextSubvolumeSolver::registerClass();
+
+bool NextSubvolumeSolver::registerClass()
+{
+    lm::ClassFactory::getInstance().registerClass("lm::me::MESolver","lm::rdme::NextSubvolumeSolver",&NextSubvolumeSolver::allocateObject);
+    return true;
+}
+
+void* NextSubvolumeSolver::allocateObject()
+{
+    return new NextSubvolumeSolver();
+}
+
+
+NextSubvolumeSolver::NextSubvolumeSolver():RDMESolver((RandomGenerator::Distributions)(RandomGenerator::EXPONENTIAL|RandomGenerator::UNIFORM)),numberSubvolumes(0),latticeSpacingSquared(0.0),reactionQueue(NULL),currentSubvolumeSpeciesCounts(NULL)
 {
 }
 
-NextSubvolumeSolver::NextSubvolumeSolver(RandomGenerator::Distributions neededDists):RDMESolver((RandomGenerator::Distributions)(RandomGenerator::EXPONENTIAL|RandomGenerator::UNIFORM|neededDists)),numberSubvolumes(0),reactionPropensities(NULL),latticeSpacingSquared(0.0),reactionQueue(NULL)
+NextSubvolumeSolver::NextSubvolumeSolver(RandomGenerator::Distributions neededDists):RDMESolver((RandomGenerator::Distributions)(RandomGenerator::EXPONENTIAL|RandomGenerator::UNIFORM|neededDists)),numberSubvolumes(0),latticeSpacingSquared(0.0),reactionQueue(NULL),currentSubvolumeSpeciesCounts(NULL)
 {
 }
 
 
 NextSubvolumeSolver::~NextSubvolumeSolver()
 {
-}
-
-void NextSubvolumeSolver::allocateModel(uint numberSpeciesA, uint numberReactionsA)
-{
-	RDMESolver::allocateModel(numberSpeciesA, numberReactionsA);
-
-    // Allocate subvolume species counts.
-	currentSubvolumeSpeciesCounts = new uint[numberSpeciesA];
-}
-
-void NextSubvolumeSolver::destroyModel()
-{
-	RDMESolver::destroyModel();
     if (currentSubvolumeSpeciesCounts != NULL) delete[] currentSubvolumeSpeciesCounts; currentSubvolumeSpeciesCounts = NULL;
+    if (reactionQueue != NULL) delete reactionQueue; reactionQueue = NULL;
 }
 
-void NextSubvolumeSolver::buildDiffusionModel(const uint numberSiteTypesA, const double * DFA, const uint * RLA, lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing, const uint8_t * latticeData, const uint8_t * latticeSitesData, bool rowMajorData) throw(InvalidArgException)
+void NextSubvolumeSolver::reset()
 {
-    RDMESolver::buildDiffusionModel(numberSiteTypesA, DFA, RLA, latticeXSize, latticeYSize, latticeZSize, particlesPerSite, latticeSpacing, latticeData, latticeSitesData, rowMajorData);
+    RDMESolver::reset();
 
-    // Allocate reaction queue.
+    // Reset the subvolume species counts.
+    for (uint i=0; i<reactionModel->numberSpecies; i++)
+        currentSubvolumeSpeciesCounts[i] = 0;
+
+    // Create the reaction queue.
     PROF_BEGIN(PROF_NSM_INIT_QUEUE);
-    numberSubvolumes = lattice->getNumberSites();
+    if (reactionQueue != NULL) delete reactionQueue;
     reactionQueue = new ReactionQueue(numberSubvolumes);
     PROF_END(PROF_NSM_INIT_QUEUE);
 
+}
+
+void NextSubvolumeSolver::getState(lm::io::TrajectoryState* state)
+{
+    RDMESolver::getState(state);
+}
+
+void NextSubvolumeSolver::setState(const lm::io::TrajectoryState& state)
+{
+    RDMESolver::setState(state);
+}
+
+void NextSubvolumeSolver::setDiffusionModel(const lm::io::DiffusionModel& dm)
+{
+    RDMESolver::setDiffusionModel(dm);
+
+    // Allocate the subvolume species counts.
+    if (currentSubvolumeSpeciesCounts != NULL) delete[] currentSubvolumeSpeciesCounts;
+    currentSubvolumeSpeciesCounts = new int[reactionModel->numberSpecies];
+
+    // Fill in some parameter variables.
+    numberSubvolumes = lattice->getNumberSites();
+    latticeSpacingSquared = diffusionModel->latticeSpacing*diffusionModel->latticeSpacing;
+
     // Update the propensity functions with the subvolume size.
-    for (uint i=0; i<numberReactions; i++)
+    for (uint i=0; i<reactionModel->numberReactions; i++)
     {
-        if (reactionTypes[i] == SecondOrderPropensityArgs::REACTION_TYPE)
+        if (reactionModel->reactionTypes[i] == SecondOrderPropensityArgs::REACTION_TYPE)
         {
-            ((SecondOrderPropensityArgs *)propensityFunctionArgs[i])->k *= numberSubvolumes;
+            ((SecondOrderPropensityArgs *)reactionModel->propensityFunctionArgs[i])->k *= numberSubvolumes;
+            Print::printf(Print::VERBOSE_DEBUG, "Updated second order reaction %d rate constant to: %8.2e",i,((SecondOrderPropensityArgs *)reactionModel->propensityFunctionArgs[i])->k);
         }
-        else if (reactionTypes[i] == SecondOrderSelfPropensityArgs::REACTION_TYPE)
+        else if (reactionModel->reactionTypes[i] == SecondOrderSelfPropensityArgs::REACTION_TYPE)
         {
-            ((SecondOrderSelfPropensityArgs *)propensityFunctionArgs[i])->k *= numberSubvolumes;
+            ((SecondOrderSelfPropensityArgs *)reactionModel->propensityFunctionArgs[i])->k *= numberSubvolumes;
         }
     }
-    latticeSpacingSquared = latticeSpacing*latticeSpacing;
 }
 
-void NextSubvolumeSolver::destroyDiffusionModel()
+bool NextSubvolumeSolver::generateTrajectory(long long maxSteps)
 {
-    RDMESolver::destroyDiffusionModel();
+    if (reactionModel == NULL) throw Exception("NextSubvolumeSolver did not have a reaction model.");
+    if (diffusionModel == NULL) throw Exception("NextSubvolumeSolver did not have a diffusion model.");
+    if (reactionQueue == NULL) throw Exception("NextSubvolumeSolver state was not initialized.");
 
-    // Free the reaction queue.
-    if (reactionQueue != NULL) delete reactionQueue; reactionQueue = NULL;
-    numberSubvolumes = 0;
-    latticeSpacingSquared = 0.0;
-}
-
-void NextSubvolumeSolver::generateTrajectory()
-{
     // Make sure we have propensity functions for every reaction.
-    for (uint i=0; i<numberReactions; i++)
-        if (propensityFunctions[i] == NULL || propensityFunctionArgs[i] == NULL)
+    for (uint i=0; i<reactionModel->numberReactions; i++)
+        if (reactionModel->propensityFunctions[i] == NULL || reactionModel->propensityFunctionArgs[i] == NULL)
             throw Exception("A reaction did not have a valid propensity function",i);
-
-    // Initialize the species counts.
-    for (uint i=0; i<numberSpecies; i++) speciesCounts[i] = initialSpeciesCounts[i];
-
-    // Shadow the lattice member as a byte lattice.
-    ByteLattice * lattice = (ByteLattice *)this->lattice;
 
     // Make sure that the initial species counts agree with the actual number in the lattice.
     checkSpeciesCountsAgainstLattice();
 
-    // Get the interval for writing species counts and lattices.
-    double speciesCountsWriteInterval=atof((*parameters)["writeInterval"].c_str());
-    double nextSpeciesCountsWriteTime = speciesCountsWriteInterval;
-    double latticeWriteInterval=atof((*parameters)["latticeWriteInterval"].c_str());
-    double nextLatticeWriteTime = latticeWriteInterval;
+    // Create the output message.
+    lm::message::Message msgp;
+    lm::message::ProcessWorkUnitOutput* msg = msgp.add_process_work_unit_output();
+    msg->set_work_unit_id(workUnitId);
 
-    // Create the species counts data set to use during the simulation.
-    lm::io::SpeciesCounts speciesCountsDataSet;
-    speciesCountsDataSet.set_number_species(numberSpeciesToTrack);
-    speciesCountsDataSet.set_number_entries(0);
+    // Get the interval for writing species counts.
+    double speciesCountsWriteInterval=atof(simulationParameters["writeInterval"].c_str());
+    bool writingSpeciesCounts = (speciesCountsWriteInterval > 0.0);
+    double nextSpeciesCountsWriteTime;
+    lm::io::SpeciesCounts* speciesCountsDataSet = NULL;
 
-    // Create the lattice data set to use during the simulation.
-    lm::io::Lattice latticeDataSet;
-
-    // Create the first passage time data set to use during the simulation.
-    for (uint i=0; i<numberFptTrackedSpecies; i++)
+    // If we are writing time steps, create the data set.
+    if (writingSpeciesCounts)
     {
-        fptTrackedSpecies[i].minValueAchieved = speciesCounts[fptTrackedSpecies[i].species];
-        fptTrackedSpecies[i].maxValueAchieved = speciesCounts[fptTrackedSpecies[i].species];
-        fptTrackedSpecies[i].dataSet.Clear();
-        fptTrackedSpecies[i].dataSet.set_species(fptTrackedSpecies[i].species);
-        fptTrackedSpecies[i].dataSet.add_species_count(speciesCounts[fptTrackedSpecies[i].species]);
-        fptTrackedSpecies[i].dataSet.add_first_passage_time(0.0);
+        // Initialize the data set.
+        speciesCountsDataSet = msg->mutable_species_counts();
+        speciesCountsDataSet->set_trajectory_id(trajectoryId);
+        speciesCountsDataSet->set_number_species(reactionModel->numberSpeciesToTrack);
+        speciesCountsDataSet->set_number_entries(0);
+
+        // If this is the start of the trajectory, add the initial counts.
+        if (time == 0.0)
+        {
+            nextSpeciesCountsWriteTime=speciesCountsWriteInterval;
+            speciesCountsDataSet->set_number_entries(1);
+            speciesCountsDataSet->add_time(0.0);
+            for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
+        }
+        else
+        {
+            nextSpeciesCountsWriteTime = ceil(time/speciesCountsWriteInterval)*speciesCountsWriteInterval;
+        }
     }
 
-    // Get the simulation time limit.
-    si_time_t maxTime=atof((*parameters)["maxTime"].c_str());
+    // Get the interval for writing species counts.
+    double latticeWriteInterval=atof(simulationParameters["latticeWriteInterval"].c_str());
+    bool writingLattice = (speciesCountsWriteInterval > 0.0);
+    double nextLatticeWriteTime;
+    lm::io::LatticeTimeSeries* latticeDataSet = NULL;
+
+    // If we are writing time steps, create the data set.
+    if (writingLattice)
+    {
+        // Initialize the data set.
+        latticeDataSet = msg->mutable_lattice_time_series();
+        latticeDataSet->set_trajectory_id(trajectoryId);
+        latticeDataSet->set_number_entries(0);
+
+        // If this is the start of the trajectory, add the initial counts.
+        if (time == 0.0)
+        {
+            nextLatticeWriteTime=latticeWriteInterval;
+            latticeDataSet->set_number_entries(1);
+            latticeDataSet->add_time(0.0);
+            lm::io::Lattice* l = latticeDataSet->add_lattice();
+            l->set_lattice_x_size(lattice->getXSize());
+            l->set_lattice_y_size(lattice->getYSize());
+            l->set_lattice_z_size(lattice->getZSize());
+            l->set_particles_per_site(lattice->getMaxOccupancy());
+            l->set_particles_ordering(lm::io::ROW_MAJOR);
+            size_t dataSize = lattice->serializeParticlesSize();
+            std::string* data = l->mutable_particles();
+            data->resize(dataSize);
+            lattice->serializeParticlesTo(&((*data)[0]), dataSize, Lattice::ROW_MAJOR);
+        }
+        else
+        {
+            nextLatticeWriteTime = ceil(time/latticeWriteInterval)*latticeWriteInterval;
+        }
+    }
 
     // Local cache of random numbers.
     double expRngValues[TUNE_LOCAL_RNG_CACHE_SIZE];
@@ -174,33 +241,17 @@ void NextSubvolumeSolver::generateTrajectory()
     int uniRngNext=0;
 
     // Initialize the reaction queue.
-    double time = 0.0;
     expRngNext=updateAllSubvolumePropensities(time, expRngNext, expRngValues);
 
-    // Record the initial species counts.
-    recordSpeciesCounts(time, &speciesCountsDataSet);
-
-    // Write the initial lattice.
-    if (nextLatticeWriteTime > 0.0)
-    	writeLatticeData(time, lattice, &latticeDataSet);
-
     // Run the next subvolume method.
-    Print::printf(Print::DEBUG, "Running next subvolume simulation with %d species, %d reactions, %d subvolumes, %d site types for %e s. Writing species at %e and lattice at %e intervals", numberSpecies, numberReactions, numberSubvolumes, numberSiteTypes, maxTime, speciesCountsWriteInterval, latticeWriteInterval);
+    Print::printf(Print::DEBUG, "Running next subvolume simulation for %d steps with %d species, %d reactions, %d subvolumes, %d site types for %e s.", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberSubvolumes, diffusionModel->numberSiteTypes, maxTime);
     PROF_BEGIN(PROF_SIM_EXECUTE);
-    bool addedSpeciesCounts;
-    bool addedFpt;
-    unsigned long long steps=0;
-    unsigned long long reactionSteps=0;
-    unsigned long long maxSteps = atoll((*parameters)["maxSteps"].c_str());
-    if (maxSteps == 0) maxSteps = ULONG_LONG_MAX;
+    long long steps=0;
     bool affectedNeighbor;
     lattice_size_t subvolume;
     lattice_size_t neighborSubvolume;
-    while (reactionSteps < maxSteps)
+    while (steps < maxSteps && !reachedSpeciesLimit())
     {
-    	Print::printf(Print::VERBOSE_DEBUG, "Running step %d at time %f.", reactionSteps, time);
-        addedSpeciesCounts = false;
-        addedFpt = false;
         steps++;
 
         // Get the next subvolume with a reaction and the reaction time.
@@ -210,170 +261,174 @@ void NextSubvolumeSolver::generateTrajectory()
         // If the new time is past the end time, we are done.
        if (time >= maxTime)
        {
-           time = maxTime;
            break;
        }
 
-       // Write species counts until the next write time is past the current time.
-       while (nextSpeciesCountsWriteTime <= (time+EPS))
+       // If we are writing time steps, write out any time steps before this event occurred.
+       if (writingSpeciesCounts)
        {
-           recordSpeciesCounts(nextSpeciesCountsWriteTime, &speciesCountsDataSet);
-           nextSpeciesCountsWriteTime += speciesCountsWriteInterval;
-           addedSpeciesCounts = true;
+           // Write time steps until the next write time is past the current time.
+           while (nextSpeciesCountsWriteTime <= (time+EPS))
+           {
+               // Record the species counts.
+               speciesCountsDataSet->set_number_entries(speciesCountsDataSet->number_entries()+1);
+               speciesCountsDataSet->add_time(nextSpeciesCountsWriteTime);
+               for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
+               nextSpeciesCountsWriteTime += speciesCountsWriteInterval;
+           }
        }
 
-       // Write lattice frames until the next write time is past the current time.
-       while (nextLatticeWriteTime > 0.0 && nextLatticeWriteTime <= (time+EPS))
+       // If we are writing time steps, write out any time steps before this event occurred.
+       if (writingLattice)
        {
-           writeLatticeData(nextLatticeWriteTime, lattice, &latticeDataSet);
-           nextLatticeWriteTime += latticeWriteInterval;
+           // Write time steps until the next write time is past the current time.
+           while (nextLatticeWriteTime <= (time+EPS))
+           {
+               // Record the species counts.
+               latticeDataSet->set_number_entries(latticeDataSet->number_entries()+1);
+               latticeDataSet->add_time(nextLatticeWriteTime);
+               lm::io::Lattice* l = latticeDataSet->add_lattice();
+               l->set_lattice_x_size(lattice->getXSize());
+               l->set_lattice_y_size(lattice->getYSize());
+               l->set_lattice_z_size(lattice->getZSize());
+               l->set_particles_per_site(lattice->getMaxOccupancy());
+               l->set_particles_ordering(lm::io::ROW_MAJOR);
+               size_t dataSize = lattice->serializeParticlesSize();
+               std::string* data = l->mutable_particles();
+               data->resize(dataSize);
+               lattice->serializeParticlesTo(&((*data)[0]), dataSize, Lattice::ROW_MAJOR);
+               nextLatticeWriteTime += latticeWriteInterval;
+           }
        }
+
 
        // Update the system with the reaction.
        affectedNeighbor = false;
-       uniRngNext=performSubvolumeReaction(time, subvolume, uniRngNext, uniRngValues, &affectedNeighbor, &neighborSubvolume);
-
-       // If the event didn't affect a neighbor, it must have been a reaction.
-       if (!affectedNeighbor) reactionSteps++;
+       uniRngNext=performSubvolumeEvent(time, subvolume, uniRngNext, uniRngValues, affectedNeighbor, neighborSubvolume);
 
        // Update the propensity in the affected subvolumes.
        expRngNext=updateSubvolumePropensity(time, subvolume, expRngNext, expRngValues);
        if (affectedNeighbor) expRngNext=updateSubvolumePropensity(time, neighborSubvolume, expRngNext, expRngValues);
 
-       // Update the first passage time tables.
-       for (uint i=0; i<numberFptTrackedSpecies; i++)
-       {
-           uint speciesCount = speciesCounts[fptTrackedSpecies[i].species];
-           while (fptTrackedSpecies[i].minValueAchieved > speciesCount)
-           {
-               fptTrackedSpecies[i].dataSet.add_species_count(--fptTrackedSpecies[i].minValueAchieved);
-               fptTrackedSpecies[i].dataSet.add_first_passage_time(time);
-               addedFpt = true;
-           }
-           while (fptTrackedSpecies[i].maxValueAchieved < speciesCount)
-           {
-               fptTrackedSpecies[i].dataSet.add_species_count(++fptTrackedSpecies[i].maxValueAchieved);
-               fptTrackedSpecies[i].dataSet.add_first_passage_time(time);
-               addedFpt = true;
-           }
-
-           // See if we have accumulated enough fpt data to send.
-           if (addedFpt && fptTrackedSpecies[i].dataSet.first_passage_time_size() >= TUNE_FIRST_PASSAGE_TIME_BUFFER_SIZE)
-           {
-               // Push it to the output queue.
-               PROF_BEGIN(PROF_SERIALIZE_FPT);
-               lm::main::DataOutputQueue::getInstance()->pushDataSet(lm::main::DataOutputQueue::FIRST_PASSAGE_TIMES, replicate, &fptTrackedSpecies[i].dataSet);
-               PROF_END(PROF_SERIALIZE_FPT);
-
-               // Reset the data set.
-               fptTrackedSpecies[i].dataSet.Clear();
-               fptTrackedSpecies[i].dataSet.set_species(fptTrackedSpecies[i].species);
-           }
-       }
-
-       // See if we have accumulated enough species counts to send.
-       if (addedSpeciesCounts && speciesCountsDataSet.number_entries() >= TUNE_SPECIES_COUNTS_BUFFER_SIZE)
-       {
-           // Push it to the output queue.
-           writeSpeciesCounts(&speciesCountsDataSet);
-       }
+       //Print::printf(Print::VERBOSE_DEBUG, "Step %d: time=%e, count=%d,%d,%d",steps,time,speciesCounts[0],speciesCounts[1],speciesCounts[2]);
     }
-
     PROF_END(PROF_SIM_EXECUTE);
-    Print::printf(Print::DEBUG, "Generated trajectory for replicate %d in %llu steps (%llu reaction events).", replicate, steps, reactionSteps);
+
+    // Make sure that the final species counts agree with the actual number in the lattice.
+    checkSpeciesCountsAgainstLattice();
+
+    bool reachedLimit = false;
 
     // If we finished the total time, write out the remaining time steps.
     if (time >= maxTime)
     {
-        while (nextSpeciesCountsWriteTime <= (maxTime+EPS))
+        time = maxTime;
+        Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);
+        if (writingSpeciesCounts)
         {
-            // Record the species counts.
-            recordSpeciesCounts(nextSpeciesCountsWriteTime, &speciesCountsDataSet);
-            nextSpeciesCountsWriteTime += speciesCountsWriteInterval;
+            while (nextSpeciesCountsWriteTime <= (maxTime+EPS))
+            {
+                // Record the species counts.
+                speciesCountsDataSet->set_number_entries(speciesCountsDataSet->number_entries()+1);
+                speciesCountsDataSet->add_time(nextSpeciesCountsWriteTime);
+                for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
+                nextSpeciesCountsWriteTime += speciesCountsWriteInterval;
+            }
         }
-        while (nextLatticeWriteTime > 0.0 && nextLatticeWriteTime <= (maxTime+EPS))
+
+        if (writingLattice)
         {
-            writeLatticeData(nextLatticeWriteTime, lattice, &latticeDataSet);
-            nextLatticeWriteTime += latticeWriteInterval;
+            // Write time steps until the next write time is past the current time.
+            while (nextLatticeWriteTime <= (maxTime+EPS))
+            {
+                // Record the species counts.
+                latticeDataSet->set_number_entries(latticeDataSet->number_entries()+1);
+                latticeDataSet->add_time(nextLatticeWriteTime);
+                lm::io::Lattice* l = latticeDataSet->add_lattice();
+                l->set_lattice_x_size(lattice->getXSize());
+                l->set_lattice_y_size(lattice->getYSize());
+                l->set_lattice_z_size(lattice->getZSize());
+                l->set_particles_per_site(lattice->getMaxOccupancy());
+                l->set_particles_ordering(lm::io::ROW_MAJOR);
+                size_t dataSize = lattice->serializeParticlesSize();
+                std::string* data = l->mutable_particles();
+                data->resize(dataSize);
+                lattice->serializeParticlesTo(&((*data)[0]), dataSize, Lattice::ROW_MAJOR);
+                nextLatticeWriteTime += latticeWriteInterval;
+            }
         }
+            // If we are recording parameter values, write out the remaining value intervals.
+    //        if (nextParameterWriteTime <= (maxTime+1e-9))
+    //        {
+    ////            recordParameters(nextParameterWriteTime, parameterWriteInterval, maxTime);
+    //        }
+
+        reachedLimit = true;
     }
 
-    // Otherwise we must have finished because of a species limit or step, so just write out the last time.
+
+    // See if we finished all of the steps.
+    else if (steps >= maxSteps)
+    {
+        Print::printf(Print::DEBUG, "Generated trajectory with %llu steps.", steps);
+    }
+
+    // Otherwise we must have finished because of a species limit, so just write out the last time.
     else
     {
         // Record the species counts.
-        recordSpeciesCounts(time, &speciesCountsDataSet);
-        if (nextLatticeWriteTime > 0.0)
-        	writeLatticeData(time, lattice, &latticeDataSet);
+        if (writingSpeciesCounts)
+        {
+            // Record the species counts.
+            speciesCountsDataSet->set_number_entries(speciesCountsDataSet->number_entries()+1);
+            speciesCountsDataSet->add_time(time);
+            for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
+        }
+        if (writingLattice)
+        {
+            // Record the lattice.
+            latticeDataSet->set_number_entries(latticeDataSet->number_entries()+1);
+            latticeDataSet->add_time(time);
+            lm::io::Lattice* l = latticeDataSet->add_lattice();
+            l->set_lattice_x_size(lattice->getXSize());
+            l->set_lattice_y_size(lattice->getYSize());
+            l->set_lattice_z_size(lattice->getZSize());
+            l->set_particles_per_site(lattice->getMaxOccupancy());
+            l->set_particles_ordering(lm::io::ROW_MAJOR);
+            size_t dataSize = lattice->serializeParticlesSize();
+            std::string* data = l->mutable_particles();
+            data->resize(dataSize);
+            lattice->serializeParticlesTo(&((*data)[0]), dataSize, Lattice::ROW_MAJOR);
+        }
+        reachedLimit = true;
     }
 
-    // Send any remaining first passage times to the queue.
-    for (uint i=0; i<numberFptTrackedSpecies; i++)
+    // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
+    if (reachedLimit && numberFptTrackedSpecies > 0)
     {
-        if (fptTrackedSpecies[i].dataSet.first_passage_time_size() > 0)
+        for (int i=0; i<numberFptTrackedSpecies; i++)
         {
-            // Push it to the output queue.
-            PROF_BEGIN(PROF_SERIALIZE_FPT);
-            lm::main::DataOutputQueue::getInstance()->pushDataSet(lm::main::DataOutputQueue::FIRST_PASSAGE_TIMES, replicate, &fptTrackedSpecies[i].dataSet);
-            PROF_END(PROF_SERIALIZE_FPT);
+            fptTrackedSpecies[i].serializeTo(trajectoryId, msg->add_first_passage_times());
         }
     }
 
-    // Send any remaining species counts to the queue.
-    writeSpeciesCounts(&speciesCountsDataSet);
+    // If the output message has any data, send it.
+    if (msg->has_species_counts() || msg->first_passage_times_size() > 0 || msg->has_lattice_time_series())
+    {
+        communicator->sendMessage(outputProcess, outputThread, &msgp);
+    }
 
-    // Make sure that the final species counts agree with the actual number in the lattice.
-    checkSpeciesCountsAgainstLattice();
+    return reachedLimit;
 }
 
-void NextSubvolumeSolver::checkSpeciesCountsAgainstLattice() throw(Exception)
+void NextSubvolumeSolver::checkSpeciesCountsAgainstLattice()
 {
 	std::map<particle_t,uint> particleCounts = lattice->getParticleCounts();
-	for (uint i=0; i<numberSpecies; i++)
+    for (uint i=0; i<reactionModel->numberSpecies; i++)
 	{
 		if (speciesCounts[i] != ((particleCounts.count(i+1)>0)?particleCounts[i+1]:0))
 			throw lm::Exception("Consistency error between species counts and lattice data", i, speciesCounts[i], ((particleCounts.count(i+1)>0)?particleCounts[i+1]:0));
 	}
-}
-
-void NextSubvolumeSolver::writeLatticeData(double time, ByteLattice * lattice, lm::io::Lattice * latticeDataSet)
-{
-    Print::printf(Print::DEBUG, "Writing lattice at %e s", time);
-
-    // Record the lattice data.
-    latticeDataSet->Clear();
-    latticeDataSet->set_lattice_x_size(lattice->getSize().x);
-    latticeDataSet->set_lattice_y_size(lattice->getSize().y);
-    latticeDataSet->set_lattice_z_size(lattice->getSize().z);
-    latticeDataSet->set_particles_per_site(lattice->getMaxOccupancy());
-    latticeDataSet->set_time(time);
-
-    // Push it to the output queue.
-    size_t payloadSize = lattice->getSize().x*lattice->getSize().y*lattice->getSize().z*lattice->getMaxOccupancy()*sizeof(uint8_t);
-    lm::main::DataOutputQueue::getInstance()->pushDataSet(lm::main::DataOutputQueue::BYTE_LATTICE, replicate, latticeDataSet, lattice, payloadSize, &lm::rdme::ByteLattice::nativeSerialize);
-}
-
-void NextSubvolumeSolver::recordSpeciesCounts(double time, lm::io::SpeciesCounts * speciesCountsDataSet)
-{
-    speciesCountsDataSet->set_number_entries(speciesCountsDataSet->number_entries()+1);
-    speciesCountsDataSet->add_time(time);
-    for (uint i=0; i<numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
-}
-
-void NextSubvolumeSolver::writeSpeciesCounts(lm::io::SpeciesCounts * speciesCountsDataSet)
-{
-    if (speciesCountsDataSet->number_entries() > 0)
-    {
-        PROF_BEGIN(PROF_SERIALIZE_COUNTS);
-        // Push it to the output queue.
-        lm::main::DataOutputQueue::getInstance()->pushDataSet(lm::main::DataOutputQueue::SPECIES_COUNTS, replicate, speciesCountsDataSet);
-
-        // Reset the data set.
-        speciesCountsDataSet->Clear();
-        speciesCountsDataSet->set_number_species(numberSpeciesToTrack);
-        speciesCountsDataSet->set_number_entries(0);
-        PROF_END(PROF_SERIALIZE_COUNTS);
-    }
 }
 
 int NextSubvolumeSolver::updateAllSubvolumePropensities(si_time_t time, int rngNext, double * expRngValues)
@@ -429,38 +484,101 @@ double NextSubvolumeSolver::calculateSubvolumePropensity(si_time_t time, lattice
 
     // Calculate all of the reaction propensities.
 	double subvolumePropensity = 0.0;
-    for (uint i=0; i<numberReactions; i++)
+    for (uint i=0; i<reactionModel->numberReactions; i++)
     {
-    	// Make sure the reaction can occur in this subvolume.
-    	if (RL[i*numberSiteTypes+sourceSite])
+        // Make sure the reaction can occur in this subvolume.
+        if (diffusionModel->RL[i*diffusionModel->numberSiteTypes+sourceSite])
     	{
-			double (*propensityFunction)(double, uint *, void *) = (double (*)(double, uint*, void*))propensityFunctions[i];
-			subvolumePropensity += (*propensityFunction)(time, currentSubvolumeSpeciesCounts, propensityFunctionArgs[i]);
-    	}
+            double (*propensityFunction)(double, uint *, void *) = (double (*)(double, uint*, void*))reactionModel->propensityFunctions[i];
+            subvolumePropensity += (*propensityFunction)(time, (uint*)currentSubvolumeSpeciesCounts, reactionModel->propensityFunctionArgs[i]);
+        }
+    }
+
+    // Add in the diffusion propensity.
+    subvolumePropensity+=calculateSubvolumeDiffusionPropensity(time, subvolume, sourceSite);
+
+    // Add in any propensity for particle influx from the boundaries.
+    subvolumePropensity+=calculateSubvolumeInfluxPropensity(time, subvolume);
+
+    return subvolumePropensity;
+}
+
+double NextSubvolumeSolver::calculateSubvolumeDiffusionPropensity(si_time_t time, lattice_size_t subvolume, site_t sourceSite)
+{
+    double subvolumePropensity=0.0;
+    const int NUM_NEIGHBORS=6;
+
+    // Get the neighboring sites.
+    lattice_size_t neighboringSubvolumes[NUM_NEIGHBORS];
+    lattice->getNeighboringSites(subvolume, neighboringSubvolumes, false);
+
+    // Fill in the boundary conditions.
+    lm::io::BoundaryConditions::BoundaryConditionsType bc[NUM_NEIGHBORS];
+    if (diffusionModel->boundaryConditions.axis_specific_boundaries())
+    {
+        bc[0]=diffusionModel->boundaryConditions.x_minus();
+        bc[1]=diffusionModel->boundaryConditions.x_plus();
+        bc[2]=diffusionModel->boundaryConditions.y_minus();
+        bc[3]=diffusionModel->boundaryConditions.y_plus();
+        bc[4]=diffusionModel->boundaryConditions.z_minus();
+        bc[5]=diffusionModel->boundaryConditions.z_plus();
+    }
+    else
+    {
+        for (int j=0; j<NUM_NEIGHBORS; j++)
+            bc[j]=diffusionModel->boundaryConditions.global();
     }
 
     // Calculate all of the diffusion propensities.
-    const uint NUM_DEST_SITES=6;
-    lattice_size_t neighboringSubvolumes[NUM_DEST_SITES];
-    lattice->getNeighboringSites(subvolume, neighboringSubvolumes);
-    for (uint i=0; i<numberSpecies; i++)
+    for (uint i=0; i<reactionModel->numberSpecies; i++)
     {
-    	if (currentSubvolumeSpeciesCounts[i] > 0)
-    	{
-    		for (uint j=0; j<NUM_DEST_SITES; j++)
-    		{
-    			subvolumePropensity += currentSubvolumeSpeciesCounts[i] * (DF[sourceSite*numberSiteTypes*numberSpecies + lattice->getSiteType(neighboringSubvolumes[j])*numberSpecies + i]/latticeSpacingSquared);
-    		}
-    	}
+        if (currentSubvolumeSpeciesCounts[i] > 0)
+        {
+            for (int j=0; j<NUM_NEIGHBORS; j++)
+            {
+                // See if the neighbor is a boundary.
+                int neighborIndex=neighboringSubvolumes[j];
+                if (neighborIndex == LATTICE_SIZE_MAX)
+                {
+                    if (bc[j] == lm::io::BoundaryConditions::REFLECTING)
+                    {
+                    }
+                    else if (bc[j] == lm::io::BoundaryConditions::ABSORBING || bc[j] == lm::io::BoundaryConditions::FIXED_CONCENTRATION || bc[j] == lm::io::BoundaryConditions::FIXED_GRADIENT)
+                    {
+                        subvolumePropensity += ((double)currentSubvolumeSpeciesCounts[i]) * (diffusionModel->DF[sourceSite*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + sourceSite*reactionModel->numberSpecies + i]/latticeSpacingSquared);
+                    }
+                    else if (bc[j] == lm::io::BoundaryConditions::PERIODIC)
+                    {
+                        lattice_size_t neighboringSubvolumesPeriodic[NUM_NEIGHBORS];
+                        lattice->getNeighboringSites(subvolume, neighboringSubvolumesPeriodic, true);
+                        int neighborIndexPeriodic=neighboringSubvolumesPeriodic[j];
+                        subvolumePropensity += ((double)currentSubvolumeSpeciesCounts[i]) * (diffusionModel->DF[sourceSite*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + lattice->getSiteType(neighborIndexPeriodic)*reactionModel->numberSpecies + i]/latticeSpacingSquared);
+                    }
+                }
+                else
+                {
+                    subvolumePropensity += ((double)currentSubvolumeSpeciesCounts[i]) * (diffusionModel->DF[sourceSite*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + lattice->getSiteType(neighborIndex)*reactionModel->numberSpecies + i]/latticeSpacingSquared);
+                }
+            }
+        }
+    }
+    return subvolumePropensity;
+}
+
+double NextSubvolumeSolver::calculateSubvolumeInfluxPropensity(si_time_t time, lattice_size_t subvolume)
+{
+    if (diffusionModel->hasBoundaryInflux && lattice->isBoundarySite(subvolume))
+    {
+        return diffusionModel->boundaryInflux[subvolume];
     }
 
-    return subvolumePropensity;
+    return 0.0;
 }
 
 void  NextSubvolumeSolver::updateSpeciesCountsForSubvolume(lattice_size_t subvolume)
 {
 	// Reset the species counts.
-	for (uint i=0; i<numberSpecies; i++)
+    for (uint i=0; i<reactionModel->numberSpecies; i++)
 		currentSubvolumeSpeciesCounts[i] = 0;
 
 	// Count the species that are in this subvolume.
@@ -472,14 +590,14 @@ void  NextSubvolumeSolver::updateSpeciesCountsForSubvolume(lattice_size_t subvol
 void NextSubvolumeSolver::updateSubvolumeWithSpeciesCounts(lattice_size_t subvolume)
 {
 	lattice->removeParticles(subvolume);
-	for (uint i=0; i<numberSpecies; i++)
+    for (uint i=0; i<reactionModel->numberSpecies; i++)
 			addParticles(subvolume, i+1, currentSubvolumeSpeciesCounts[i]);
 }
 
-int NextSubvolumeSolver::performSubvolumeReaction(si_time_t time, lattice_size_t subvolume, int rngNext, double * uniRngValues, bool * affectedNeighbor, lattice_size_t * neighborSubvolume)
+int NextSubvolumeSolver::performSubvolumeEvent(si_time_t time, lattice_size_t subvolume, int rngNext, double * uniRngValues, bool& affectedNeighbor, lattice_size_t& neighborSubvolume)
 {
 	// Only set the affected neighbor if this was a diffusion event.
-    *affectedNeighbor = false;
+    affectedNeighbor = false;
 
 	// Update the species counts member for this subvolume.
 	updateSpeciesCountsForSubvolume(subvolume);
@@ -496,13 +614,13 @@ int NextSubvolumeSolver::performSubvolumeReaction(si_time_t time, lattice_size_t
     site_t sourceSite = lattice->getSiteType(subvolume);
 
     // See if it was a reaction that occurred.
-    for (uint r=0; r<numberReactions; r++)
+    for (uint r=0; r<reactionModel->numberReactions; r++)
     {
     	// Make sure the reaction can occur in this subvolume.
-    	if (RL[r*numberSiteTypes+sourceSite])
+        if (diffusionModel->RL[r*diffusionModel->numberSiteTypes+sourceSite])
     	{
-			double (*propensityFunction)(double, uint *, void *) = (double (*)(double, uint*, void*))propensityFunctions[r];
-			double reactionPropensity = (*propensityFunction)(time, currentSubvolumeSpeciesCounts, propensityFunctionArgs[r]);
+            double (*propensityFunction)(double, uint *, void *) = (double (*)(double, uint*, void*))reactionModel->propensityFunctions[r];
+            double reactionPropensity = (*propensityFunction)(time, (uint*)currentSubvolumeSpeciesCounts, reactionModel->propensityFunctionArgs[r]);
 			if (reactionPropensity > 0.0)
 			{
 				if (rngValue <= reactionPropensity)
@@ -521,41 +639,149 @@ int NextSubvolumeSolver::performSubvolumeReaction(si_time_t time, lattice_size_t
     }
 
     // See if it was a diffusion event that occurred.
-    const uint NUM_DEST_SITES=6;
-    lattice_size_t neighboringSubvolumes[NUM_DEST_SITES];
-    lattice->getNeighboringSites(subvolume, neighboringSubvolumes);
-    for (uint i=0; i<numberSpecies; i++)
-    {
-    	if (currentSubvolumeSpeciesCounts[i] > 0)
-    	{
-    		for (uint j=0; j<NUM_DEST_SITES; j++)
-    		{
-    			double diffusionPropensity = ((double)currentSubvolumeSpeciesCounts[i]) * (DF[sourceSite*numberSiteTypes*numberSpecies + lattice->getSiteType(neighboringSubvolumes[j])*numberSpecies + i]/latticeSpacingSquared);
-    			if (rngValue <= diffusionPropensity)
-    			{
-    				currentSubvolumeSpeciesCounts[i]--;
-    				updateSubvolumeWithSpeciesCounts(subvolume);
-    				addParticles(neighboringSubvolumes[j], i+1, 1);
-    				*affectedNeighbor = true;
-    				*neighborSubvolume = neighboringSubvolumes[j];
-    				return rngNext;
-    			}
-    			else
-    			{
-    	            rngValue -= diffusionPropensity;
-    			}
-    		}
-    	}
-    }
+    if (performSubvolumeDiffusionEvent(time, subvolume, sourceSite, rngValue, affectedNeighbor, neighborSubvolume))
+        return rngNext;
+
+    // See if it was an influx event that occurred.
+    if (performSubvolumeInfluxEvent(time, subvolume, rngValue))
+        return rngNext;
 
     throw Exception("Unable to determine correct reaction or diffusion event in subvolume.");
 }
 
+bool NextSubvolumeSolver::performSubvolumeDiffusionEvent(si_time_t time, lattice_size_t subvolume, site_t sourceSite, double& rngValue, bool& affectedNeighbor, lattice_size_t& neighborSubvolume)
+{
+    const int NUM_NEIGHBORS=6;
+
+    // Get the neighboring sites.
+    lattice_size_t neighboringSubvolumes[NUM_NEIGHBORS];
+    lattice->getNeighboringSites(subvolume, neighboringSubvolumes, false);
+
+    // Fill in the boundary conditions.
+    lm::io::BoundaryConditions::BoundaryConditionsType bc[NUM_NEIGHBORS];
+    if (diffusionModel->boundaryConditions.axis_specific_boundaries())
+    {
+        bc[0]=diffusionModel->boundaryConditions.x_minus();
+        bc[1]=diffusionModel->boundaryConditions.x_plus();
+        bc[2]=diffusionModel->boundaryConditions.y_minus();
+        bc[3]=diffusionModel->boundaryConditions.y_plus();
+        bc[4]=diffusionModel->boundaryConditions.z_minus();
+        bc[5]=diffusionModel->boundaryConditions.z_plus();
+    }
+    else
+    {
+        for (int j=0; j<NUM_NEIGHBORS; j++)
+            bc[j]=diffusionModel->boundaryConditions.global();
+    }
+
+    // See if it was a diffusion event that occurred.
+    for (uint i=0; i<reactionModel->numberSpecies; i++)
+    {
+        if (currentSubvolumeSpeciesCounts[i] > 0)
+        {
+            for (int j=0; j<NUM_NEIGHBORS; j++)
+            {
+                // See if the neighbor is a boundary.
+                int neighborIndex=neighboringSubvolumes[j];
+                if (neighborIndex == LATTICE_SIZE_MAX)
+                {
+                    if (bc[j] == lm::io::BoundaryConditions::REFLECTING)
+                    {
+                    }
+                    else if (bc[j] == lm::io::BoundaryConditions::ABSORBING ||bc[j] == lm::io::BoundaryConditions::FIXED_CONCENTRATION || bc[j] == lm::io::BoundaryConditions::FIXED_GRADIENT)
+                    {
+                        double diffusionPropensity = ((double)currentSubvolumeSpeciesCounts[i]) * (diffusionModel->DF[sourceSite*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + sourceSite*reactionModel->numberSpecies + i]/latticeSpacingSquared);
+
+                        // See if this is the diffusion event that occurred.
+                        if (rngValue <= diffusionPropensity)
+                        {
+                            speciesCounts[i]--;
+                            updatedSpeciesCounts();
+                            currentSubvolumeSpeciesCounts[i]--;
+                            updateSubvolumeWithSpeciesCounts(subvolume);
+                            affectedNeighbor = false;
+                            return true;
+                        }
+                        else
+                        {
+                            rngValue -= diffusionPropensity;
+                        }
+                    }
+                    else if (bc[j] == lm::io::BoundaryConditions::PERIODIC)
+                    {
+                        lattice_size_t neighboringSubvolumesPeriodic[NUM_NEIGHBORS];
+                        lattice->getNeighboringSites(subvolume, neighboringSubvolumesPeriodic, true);
+                        int neighborIndexPeriodic=neighboringSubvolumesPeriodic[j];
+                        double diffusionPropensity = ((double)currentSubvolumeSpeciesCounts[i]) * (diffusionModel->DF[sourceSite*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + lattice->getSiteType(neighborIndexPeriodic)*reactionModel->numberSpecies + i]/latticeSpacingSquared);
+
+                        // See if this is the diffusion event that occurred.
+                        if (rngValue <= diffusionPropensity)
+                        {
+                            currentSubvolumeSpeciesCounts[i]--;
+                            updateSubvolumeWithSpeciesCounts(subvolume);
+                            affectedNeighbor = true;
+                            neighborSubvolume = neighborIndexPeriodic;
+                            addParticles(neighborSubvolume, i+1, 1);
+                            return true;
+                        }
+                        else
+                        {
+                            rngValue -= diffusionPropensity;
+                        }
+                    }
+                }
+                else
+                {
+                    double diffusionPropensity = ((double)currentSubvolumeSpeciesCounts[i]) * (diffusionModel->DF[sourceSite*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + lattice->getSiteType(neighborIndex)*reactionModel->numberSpecies + i]/latticeSpacingSquared);
+
+                    // See if this is the diffusion event that occurred.
+                    if (rngValue <= diffusionPropensity)
+                    {
+                        currentSubvolumeSpeciesCounts[i]--;
+                        updateSubvolumeWithSpeciesCounts(subvolume);
+                        affectedNeighbor = true;
+                        neighborSubvolume = neighboringSubvolumes[j];
+                        addParticles(neighborSubvolume, i+1, 1);
+                        return true;
+                    }
+                    else
+                    {
+                        rngValue -= diffusionPropensity;
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
+
+bool NextSubvolumeSolver::performSubvolumeInfluxEvent(si_time_t time, lattice_size_t subvolume, double& rngValue)
+{
+    if (diffusionModel->hasBoundaryInflux && lattice->isBoundarySite(subvolume))
+    {
+        double influxPropensity = diffusionModel->boundaryInflux[subvolume];
+        if (rngValue <= influxPropensity)
+        {
+            speciesCounts[diffusionModel->boundaryConditions.boundary_species()]++;
+            updatedSpeciesCounts();
+            currentSubvolumeSpeciesCounts[diffusionModel->boundaryConditions.boundary_species()]++;
+            updateSubvolumeWithSpeciesCounts(subvolume);
+            return true;
+        }
+        else
+        {
+            rngValue -= influxPropensity;
+        }
+    }
+    return false;
+}
+
+
 void NextSubvolumeSolver::updateCurrentSubvolumeSpeciesCounts(uint r)
 {
-    for (uint i=0; i<numberDependentSpecies[r]; i++)
+    for (uint i=0; i<reactionModel->numberDependentSpecies[r]; i++)
     {
-    	currentSubvolumeSpeciesCounts[dependentSpecies[r][i]] += dependentSpeciesChange[r][i];
+        currentSubvolumeSpeciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
     }
 }
 
@@ -572,21 +798,25 @@ void NextSubvolumeSolver::addParticles(lattice_size_t subvolume, particle_t part
 			// We need to perform some overflow processing.
 			const uint NUM_NEIGHBORS=6;
 			lattice_size_t neighboringSubvolumes[NUM_NEIGHBORS];
-			lattice->getNeighboringSites(subvolume, neighboringSubvolumes);
+            lattice->getNeighboringSites(subvolume, neighboringSubvolumes, diffusionModel->boundaryConditions.global() == lm::io::BoundaryConditions::PERIODIC);
 			bool handled = false;
 			for (uint i=0; i<NUM_NEIGHBORS && !handled; i++)
 			{
-				if (lattice->getOccupancy(neighboringSubvolumes[i]) < lattice->getMaxOccupancy() && lattice->getSiteType(neighboringSubvolumes[i]) == lattice->getSiteType(subvolume))
-				{
-					lattice->addParticle(neighboringSubvolumes[i], particle);
-					handled = true;
-					Print::printf(Print::WARNING, "Handled overflow of particle type %d (%d total) from subvolume %d (type %d,occupancy %d) by moving to subvolume %d (type %d,occupancy %d).", particle, count, subvolume, lattice->getSiteType(subvolume), lattice->getOccupancy(subvolume), neighboringSubvolumes[i], lattice->getSiteType(neighboringSubvolumes[i]), lattice->getOccupancy(neighboringSubvolumes[i]));
-				}
+                int neighborIndex=neighboringSubvolumes[i];
+                if (neighborIndex != LATTICE_SIZE_MAX)
+                {
+                    if (lattice->getOccupancy(neighborIndex) < lattice->getMaxOccupancy() && lattice->getSiteType(neighborIndex) == lattice->getSiteType(subvolume))
+                    {
+                        lattice->addParticle(neighborIndex, particle);
+                        handled = true;
+                        Print::printf(Print::WARNING, "Handled overflow of particle type %d (%d total) from subvolume %d (type %d,occupancy %d) by moving to subvolume %d (type %d,occupancy %d).", particle, count, subvolume, lattice->getSiteType(subvolume), lattice->getOccupancy(subvolume), neighboringSubvolumes[i], lattice->getSiteType(neighboringSubvolumes[i]), lattice->getOccupancy(neighboringSubvolumes[i]));
+                    }
+                }
 			}
 			if (!handled) throw Exception("Unable to handle overflow at site", subvolume);
 		}
 	}
 }
-*/
+
 }
 }

@@ -120,7 +120,7 @@ void ReplicateSupervisor::startSimulation()
     Print::printf(Print::INFO, "Replicate supervisor starting simulation.");
 
     // Create the new trajectory list.
-    trajectories = new ReplicateTrajectoryList(::replicates.front(), ::replicates.back(), simulationParameterMap, reactionModel);
+    trajectories = new ReplicateTrajectoryList(::replicates.front(), ::replicates.back(), simulationParameterMap, reactionModel, diffusionModel);
 
     // Get the trajectories template msg so that we can set some default values in it
     lm::message::RunWorkUnit* runWorkUnitMsg = trajectories->getRunWorkUnitMsg();
