@@ -7,11 +7,14 @@
 #sets the prefix dir for installation of lm (ie running "make install")
 SET(CMAKE_INSTALL_PREFIX "/usr/local")
 
+#USE_CUDA can be set to yes, no, or optional, in which case CUDA will be used if cmake can find it on your system
+SET(USE_CUDA optional)
+
 #uncomment and change the last part of the next line if some of your libraries/header files are on a nonstandard path
 #SET(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}")
 
 ############################
-#library specific options
+#library specific path settings
 ############################
 
 #SET(SBML_ROOT "/Users/eroberts/usr")

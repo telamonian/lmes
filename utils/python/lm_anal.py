@@ -1,15 +1,30 @@
 #!/usr/local/bin/python
-import h5py, sys
-import numpy as np
+import h5py, os, sys
+from collections import OrderedDict
 from os import path
+import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from matplotlib.colors import LogNorm
+from scipy import interpolate
 
 from fit import Fit
 
+class MovieDir(object):
+    def __init__(self, dirName):
+        self.dirName = dirName
+    def __enter__(self):
+        self.oldDir = os.getcwd()
+        try:
+            os.mkdir(self.dirName, 0755)
+        except OSError:
+            pass
+        os.chdir(path.join(self.oldDir,self.dirName))
+    def __exit__(self, type, value, traceback):
+        os.chdir(self.oldDir)
+        
 class Sim(object):
 
     def __init__(self, simdata):
@@ -116,13 +131,111 @@ class Sims(object):
         axes = plt.axes()
         print 'graphing now...'
         n, bins, patches = axes.hist(self.oparam, bins=200, range=(-100,100), normed=True)
-        axes.plot(bins[1:] - .5, n, 'r--')
+        axes.plot(bins[1:] - .5, n, 'r--')  #bins is the x coord of each vertical line on the histogram. n is the height of each bin. Thus, len(bins) = len(n)+1, and so the bins[1:] weirdness
         fig.set_size_inches(36,24)
         axes.set_xticks(range(-100,101,5))
         axes.set_xlabel('$\Delta$ (copy num(b) - copy num(a))')
         axes.set_ylabel('count')
         self.Savefig(fig, '_hist')
         print 'done'
+        
+    def TrajMov(self, trajID=0):
+        if self.oparam==None:
+            self.Pdf()
+        fig = plt.figure(1)
+        axes = plt.axes()
+        print 'graphing now...'
+        xoparam = self.sims[trajID].oparam[0:2000]
+        nAll, binsAll, patchesAll = axes.hist(xoparam, bins=200, range=(-100,100))
+        axes.cla()
+        
+        # axes.plot(bins[1:] - .5, n, 'r--')
+        #axes.plot(xnewAll, ynewAll, 'r--')
+        fig.set_size_inches(9,6)
+        axes.set_xticks(range(-100,101,10))
+        axes.set_xlim((-80,80))
+        axes.set_ylim((0,1.05*np.max(nAll)))
+        axes.set_xlabel('$\Delta$ (copy num(b) - copy num(a))')
+        axes.set_ylabel('count')
+        axes.invert_yaxis()
+        
+        # yoparamAll = interpolate.splev(xoparam,tck,der=0)
+        with MovieDir(self.Figname('_trajMovDiscrete',ext=False)) as dirName:
+            for i,oparam in enumerate(xoparam):
+                nCum, binsCum, patchesCum = axes.hist(xoparam[:i+1], bins=200, range=(-100,100))
+                idx = np.argmin(np.abs(binsCum[1:] - .5 - oparam))
+                #yoparamNow = interpolate.splev([oparam], tckCum, der=0)
+                #dot = axes.scatter([oparam],[yoparamNow[0]],s=100,c='g')
+                dot = axes.scatter([oparam],[nCum[idx]],s=100,c='g')
+                fig.set_size_inches(9,6)
+                axes.set_xticks(range(-100,101,10))
+                axes.set_xlim((-80,80))
+                axes.set_ylim((0,1.05*np.max(nAll)))
+                axes.set_xlabel('$\Delta$ (copy num(b) - copy num(a))')
+                axes.set_ylabel('count')
+                axes.invert_yaxis()
+                self.Savefig(fig, '_%09d' % i)
+                print "saving frame _%09d" % i
+                dot.remove()
+                axes.cla()
+        
+        print 'done'
+        # to compile movie
+        # ffmpeg -r 30 -i biphasic_switch_direct_%09d.png -c:v libx264 -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -r 30 -pix_fmt yuv420p biphasic_switch_direct.mp4
+    
+    def TrajMovSmooth(self, trajID=0):
+        if self.oparam==None:
+            self.Pdf()
+        fig = plt.figure(1)
+        axes = plt.axes()
+        print 'graphing now...'
+        xoparam = self.sims[trajID].oparam[0:1000]
+        nAll, binsAll, patchesAll = axes.hist(xoparam, bins=200, range=(-100,100))#, normed=True)
+        axes.cla()
+        
+        
+        tckAll = interpolate.splrep(binsAll[1:] - .5,nAll,k=3,s=10)
+        xnewAll = np.arange(-100,100,.1)
+        ynewAll = interpolate.splev(xnewAll, tckAll, der=0)
+        #splineLine = map(np.array, zip(xnew,ynew))
+        #spline = axes.plot(xnew, ynew, 'b')
+        
+        # axes.plot(bins[1:] - .5, n, 'r--')
+        #axes.plot(xnewAll, ynewAll, 'r--')
+        fig.set_size_inches(9,6)
+        axes.set_xticks(range(-100,101,10))
+        axes.set_xlim((-80,80))
+        axes.set_ylim((-.05*np.max(nAll),np.max(nAll) + .05*np.max(nAll)))
+        axes.set_xlabel('$\Delta$ (copy num(b) - copy num(a))')
+        axes.set_ylabel('count')
+        
+        
+        # yoparamAll = interpolate.splev(xoparam,tck,der=0)
+        with MovieDir(self.Figname('_trajMov',ext=False)) as dirName:
+            for i,oparam in enumerate(xoparam):
+                nCum, binsCum, patchesCum = axes.hist(xoparam[:i+1], bins=200, range=(-100,100))#, normed=True)
+                axes.cla()
+                #idx = np.argmin(np.abs(binsCum[1:] - .5 - oparam))
+                tckCum = interpolate.splrep(binsCum[1:] - .5,nCum,k=3,s=10)
+                ynewCum = interpolate.splev(xnewAll, tckCum, der=0)
+                ynewCumZero = [(y if y>=0 else 0) for y in ynewCum]
+                axes.plot(xnewAll, ynewCumZero, 'b')
+                yoparamNow = interpolate.splev([oparam], tckCum, der=0)
+                yoparamNow[0] = yoparamNow[0] if yoparamNow[0] >=0 else 0
+                dot = axes.scatter([oparam],[yoparamNow[0]],s=100,c='g')
+                #dot = axes.scatter([oparam],[nCum[idx]],s=100,c='g')
+                axes.set_xticks(range(-100,101,10))
+                axes.set_xlim((-80,80))
+                axes.set_ylim((-.05*np.max(nAll),np.max(nAll) + .05*np.max(nAll)))
+                axes.invert_yaxis()
+                self.Savefig(fig, '_%09d' % i)
+                print "saving frame _%09d" % i
+                dot.remove()
+        print 'done'
+        # to compile movie
+        # ffmpeg -r 30 -i biphasic_switch_direct_%09d.png -c:v libx264 -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -r 30 -pix_fmt yuv420p biphasic_switch_direct.mp4
+    
+    
     
     def Hist2D(self):
         if self.rcoords==None:
@@ -193,14 +306,87 @@ class Biphasic(Sim):
 class Biphasics(Sims):
     child = Biphasic
 
+class FFluxBiphasic(Biphasic):
+    pass
+
+class FFluxBiphasics(Biphasics):
+    child = FFluxBiphasic
+    
+    def SortByInterface(self):
+        if self.oparam==None:
+            self.Pdf()
+        self.interfaces = {}
+        for sim in self.sims:
+            self.interfaces[sim.oparam[0]] = self.interfaces.get(sim.oparam[0], []) + [sim.oparam]
+        self.interfacesSorted = OrderedDict(sorted(self.interfaces.items(), key=lambda x: x[0]))
+        
+    
+    def TrajMovSmooth(self):
+        if self.oparam==None:
+            self.SortByInterface()
+        fig = plt.figure(1)
+        axes = plt.axes()
+        print 'graphing now...'
+        nAll, binsAll, patchesAll = axes.hist(xoparam, bins=200, range=(-100,100))#, normed=True)
+        axes.cla()
+        
+        
+        tckAll = interpolate.splrep(binsAll[1:] - .5,nAll,k=3,s=10)
+        xnewAll = np.arange(-100,100,.1)
+        ynewAll = interpolate.splev(xnewAll, tckAll, der=0)
+        #splineLine = map(np.array, zip(xnew,ynew))
+        #spline = axes.plot(xnew, ynew, 'b')
+        
+        # axes.plot(bins[1:] - .5, n, 'r--')
+        #axes.plot(xnewAll, ynewAll, 'r--')
+        fig.set_size_inches(9,6)
+        axes.set_xticks(range(-100,101,10))
+        axes.set_xlim((-80,80))
+        axes.set_ylim((-.05*np.max(nAll),np.max(nAll) + .05*np.max(nAll)))
+        axes.set_xlabel('$\Delta$ (copy num(b) - copy num(a))')
+        axes.set_ylabel('count')
+        
+        
+        # yoparamAll = interpolate.splev(xoparam,tck,der=0)
+        with MovieDir(self.Figname('_trajMov',ext=False)) as dirName:
+            for i,oparam in enumerate(xoparam):
+                nCum, binsCum, patchesCum = axes.hist(xoparam[:i+1], bins=200, range=(-100,100))#, normed=True)
+                axes.cla()
+                #idx = np.argmin(np.abs(binsCum[1:] - .5 - oparam))
+                tckCum = interpolate.splrep(binsCum[1:] - .5,nCum,k=3,s=10)
+                ynewCum = interpolate.splev(xnewAll, tckCum, der=0)
+                ynewCumZero = [(y if y>=0 else 0) for y in ynewCum]
+                axes.plot(xnewAll, ynewCumZero, 'b')
+                yoparamNow = interpolate.splev([oparam], tckCum, der=0)
+                yoparamNow[0] = yoparamNow[0] if yoparamNow[0] >=0 else 0
+                dot = axes.scatter([oparam],[yoparamNow[0]],s=100,c='g')
+                #dot = axes.scatter([oparam],[nCum[idx]],s=100,c='g')
+                axes.set_xticks(range(-100,101,10))
+                axes.set_xlim((-80,80))
+                axes.set_ylim((-.05*np.max(nAll),np.max(nAll) + .05*np.max(nAll)))
+                axes.invert_yaxis()
+                self.Savefig(fig, '_%09d' % i)
+                print "saving frame _%09d" % i
+                dot.remove()
+        print 'done'
+        # to compile movie
+        # ffmpeg -r 30 -i biphasic_switch_direct_%09d.png -c:v libx264 -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -r 30 -pix_fmt yuv420p biphasic_switch_direct.mp4    
+
 if __name__=="__main__":
     fname = sys.argv[1]
+#     ffluxbiphasics = FFluxBiphasics(fname)
+#     ffluxbiphasics.SortByInterface()
+#     ffluxbiphasics.TrajMovSmooth()
     biphasics = Biphasics(fname)
-    if sys.argv[2]=='tcourse':
-        biphasics.Tcourse()
+    if sys.argv[2]=='hist':
+        biphasics.Hist()
     elif sys.argv[2]=='hist2d':
         biphasics.Hist2D()
-    elif sys.argv[2]=='hist':
-        biphasics.Hist()
     elif sys.argv[2]=='passage':
         biphasics.Passage()
+    elif sys.argv[2]=='tcourse':
+        biphasics.Tcourse()
+    elif sys.argv[2]=='trajmov':
+        biphasics.TrajMov()
+    elif sys.argv[2]=='trajmovsmooth':
+        biphasics.TrajMovSmooth()

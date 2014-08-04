@@ -80,8 +80,6 @@ void TrajectoryList::deleteTrajectory(uint64_t trajectoryID)
 	TrajectoryMap::iterator it(trajectories.find(trajectoryID));
 	delete it->second;
 	trajectories.erase(it);
-//	delete trajectories[trajectoryID];
-//	trajectories.erase(trajectoryID);
 }
 
 void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
