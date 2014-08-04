@@ -320,7 +320,7 @@ protected:
 //            	}
             	if (oParam < l.limit && prevOParam >= l.limit)
             	{
-//            		Print::printf(Print::INFO, "%f %f checkingdecreasingspecies limit species: %d limit: %f numberSpeciesLimits: %d",prevOParam,oParam, l.species, l.limit, numberSpeciesLimits);
+                    Print::printf(Print::INFO, "%f %f checkingdecreasingspecies limit species: %d limit: %f numberSpeciesLimits: %d",prevOParam,oParam, l.species, l.limit, numberSpeciesLimits);
             		return true;
             	}
             	break;
@@ -343,7 +343,7 @@ protected:
 //            	}
             	if (oParam >= l.limit && prevOParam < l.limit)
             	{
-//            		Print::printf(Print::INFO, "%f %f checkingincreasingspecies limit species: %d limit: %f numberSpeciesLimits: %d", prevOParam, oParam, l.species, l.limit, numberSpeciesLimits);
+                    Print::printf(Print::INFO, "%f %f checkingincreasingspecies limit species: %d limit: %f numberSpeciesLimits: %d", prevOParam, oParam, l.species, l.limit, numberSpeciesLimits);
             		return true;
             	}
             	break;

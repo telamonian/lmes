@@ -131,16 +131,9 @@ void ReplicateSupervisor::startSimulation()
 	runWorkUnitMsg->set_output_process(outputWriterProcess);
 	runWorkUnitMsg->set_output_thread(outputWriterThread);
 	// Set the default work unit-specific limits
-	runWorkUnitMsg->set_max_steps(100);
+    runWorkUnitMsg->set_max_steps(1000000);
 	// Set the default trajectory limits
-//	initLimits();
-
-	//// TEMP : replace; hardcoded increasing/decreasing limits for timing comparisons with forward flux
-	limits.add_decreasing_species_count(0);
-	limits.add_increasing_species_count(0);
-	double a_incr = 0;
-	setTestCaseLimits(NULL, &a_incr);
-	//// TEMP
+    initLimits();
 
 	lm::io::TrajectoryLimits* trajectoryLimits = new lm::io::TrajectoryLimits(limits);
 	runWorkUnitMsg->set_allocated_limits(trajectoryLimits);
@@ -156,22 +149,6 @@ void ReplicateSupervisor::workUnitStarted(const lm::message::StartedWorkUnit& ms
 {
     Print::printf(Print::INFO, "Work unit %d started.",msg.work_unit_id());
 }
-
-//// TEMP : remove
-void ReplicateSupervisor::setTestCaseLimits(double* a_decr, double* a_incr)
-{
-	limits.set_decreasing_species_count(0, -9999);
-	limits.set_increasing_species_count(0, -9999);
-	if (a_decr!=NULL)
-	{
-		limits.set_decreasing_species_count(0, *a_decr);
-	}
-	if (a_incr!=NULL)
-	{
-		limits.set_increasing_species_count(0, *a_incr);
-	}
-}
-//// TEMP
 
 //void ReplicateSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
 //{
