@@ -57,17 +57,13 @@ using std::string;
 namespace lm {
 namespace replicates {
 
-ReplicateTrajectoryList::ReplicateTrajectoryList(uint64_t firstTrajectory, uint64_t lastTrajectory, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel)
-	:TrajectoryList(simulationParameters, reactionModel), firstTrajectory(firstTrajectory), lastTrajectory(lastTrajectory)
+ReplicateTrajectoryList::ReplicateTrajectoryList(uint64_t firstTrajectory, uint64_t lastTrajectory, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel, const lm::io::DiffusionModel& diffusionModel)
+:TrajectoryList(),firstTrajectory(firstTrajectory),lastTrajectory(lastTrajectory),simulationParameters(simulationParameters),reactionModel(reactionModel),diffusionModel(diffusionModel)
 {
 }
 
 ReplicateTrajectoryList::~ReplicateTrajectoryList()
 {
-    for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
-    {
-        delete it->second;
-    }
 }
 
 void ReplicateTrajectoryList::init()
@@ -114,7 +110,17 @@ void ReplicateTrajectoryList::init()
 			fpt->add_first_passage_time(0.0);
 			Print::printf(Print::DEBUG, "Added fpt tracking for species %d", *it);
 		}
-	}
+
+        // Initialize the rdme state from the diffusion model.
+        lm::io::RDMEState* rdmeState = trajectories[i]->getState().mutable_rdme_state();
+        lm::io::Lattice* initialLattice = rdmeState->mutable_species_positions();
+        initialLattice->set_lattice_x_size(diffusionModel.initial_lattice().lattice_x_size());
+        initialLattice->set_lattice_y_size(diffusionModel.initial_lattice().lattice_y_size());
+        initialLattice->set_lattice_z_size(diffusionModel.initial_lattice().lattice_z_size());
+        initialLattice->set_particles_per_site(diffusionModel.initial_lattice().particles_per_site());
+        initialLattice->set_particles_ordering(diffusionModel.initial_lattice().particles_ordering());
+        initialLattice->set_particles(diffusionModel.initial_lattice().particles());
+    }
 }
 
 }

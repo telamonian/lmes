@@ -625,7 +625,7 @@ int NextSubvolumeSolver::performSubvolumeEvent(si_time_t time, lattice_size_t su
 			{
 				if (rngValue <= reactionPropensity)
 				{
-					updateSpeciesCounts(r);
+                    performReactionEvent(r);
 					updateCurrentSubvolumeSpeciesCounts(r);
 					updateSubvolumeWithSpeciesCounts(subvolume);
 					return rngNext;

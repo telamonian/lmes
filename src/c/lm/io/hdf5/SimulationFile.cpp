@@ -966,7 +966,7 @@ void Hdf5File::getBoundaryGradient(lm::io::BoundaryConditions* bc)
 bool Hdf5File::replicateExists(uint64_t replicate) throw(HDF5Exception)
 {
     char replicateName[8];
-    snprintf(replicateName, sizeof(replicateName), "%07d", replicate);
+    snprintf(replicateName, sizeof(replicateName), "%07d", (int)replicate);
     if (H5Lexists(simulationsGroup, replicateName, H5P_DEFAULT) > 0) return true;
     return false;
 }

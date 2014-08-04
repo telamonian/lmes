@@ -58,7 +58,7 @@ namespace resource {
 class TrajectoryList
 {
 public:
-    TrajectoryList(map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel);
+    TrajectoryList();
     virtual ~TrajectoryList();
     virtual void init()=0;
 
@@ -86,8 +86,6 @@ public:
 protected:
     uint64_t trajectoryCount;
     int64_t workUnitCount;
-    map<string,string>& simulationParameters;
-    const lm::io::ReactionModel& reactionModel;
     lm::message::Message trajectoryTemplateMsg;
     TrajectoryMap trajectories;
 };

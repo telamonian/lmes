@@ -67,6 +67,9 @@ public:
 protected:
     uint64_t firstTrajectory;
     uint64_t lastTrajectory;
+    map<string,string>& simulationParameters;
+    const lm::io::ReactionModel& reactionModel;
+    const lm::io::DiffusionModel& diffusionModel;
 };
 
 }

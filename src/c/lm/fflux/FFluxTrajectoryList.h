@@ -80,6 +80,8 @@ protected:
     virtual double calcTestCaseOParam(const lm::io::TrajectoryState& finalState);
     virtual void incrTestCaseLimits();
     ////
+    map<std::string,std::string>& simulationParameters;
+    const lm::io::ReactionModel& reactionModel;
     lm::rng::XORShift xorShift;	//RNG used for randomly choosing a crossing in a crossing vector
     uint64_t simultaneousTrajectoryCount;
     long long ffluxPhase;

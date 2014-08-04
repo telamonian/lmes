@@ -42,7 +42,7 @@ package lm.io;
 import "lm/io/Lattice.proto";
 
 message LatticeTimeSeries {
-    required int32 trajectory_id                        = 1;
+    required uint64 trajectory_id                       = 1;
     required int32 number_entries                       = 2;
     repeated Lattice lattice                            = 3;
     repeated double time                                = 4 [packed=true];

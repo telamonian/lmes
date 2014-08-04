@@ -253,7 +253,7 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
         }
 
         // Update species counts and propensities given the reaction that occurred.
-        updateSpeciesCounts(r, steps);
+        performReactionEvent(r);
         updatePropensities(time, r);
 
         // Recalculate the total propensity.

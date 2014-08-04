@@ -243,7 +243,7 @@ protected:
     //virtual double recordParameters(double nextRecordTime, double recordInterval, double simulationTime);
     //virtual void queueRecordedParameters(bool flush=false);
 
-    inline void updateSpeciesCounts(uint r, long long steps)
+    inline void performReactionEvent(uint r)
     {
         // Update the counts according to the dependency tables.
     	if (true) {//if (ffluxFlag==true) {
@@ -267,6 +267,7 @@ protected:
 				updatedSpeciesCounts();
 			}
     	}
+    }
 
     inline void updatedSpeciesCounts()
     {

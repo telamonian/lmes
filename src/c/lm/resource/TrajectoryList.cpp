@@ -56,25 +56,23 @@ using std::string;
 namespace lm {
 namespace resource {
 
-TrajectoryList::TrajectoryList(map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel): simulationParameters(simulationParameters), reactionModel(reactionModel), trajectoryCount(0),workUnitCount(0)
+TrajectoryList::TrajectoryList()
+:trajectoryCount(0),workUnitCount(0)
 {
 }
 
 TrajectoryList::~TrajectoryList()
 {
-    for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
-    {
-        delete it->second;
-    }
+    deleteAllTrajectories();
 }
 
 void TrajectoryList::deleteAllTrajectories()
 {
 	for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
-	    {
-	        delete it->second;
-	        trajectories.erase(it);
-	    }
+    {
+        delete it->second;
+    }
+    trajectories.clear();
 }
 
 void TrajectoryList::deleteTrajectory(uint64_t trajectoryID)

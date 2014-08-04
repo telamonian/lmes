@@ -75,7 +75,6 @@ double XORShift::getRandomDouble()
 unsigned int XORShift::getRandomIntFromRange(unsigned int low, unsigned int high)
 {
 	uint32_t r = getRandom();
-	while ((r=(uint64_t)getRandom()) == 4294967296);
 	return floor(r*(high - low)*(2.328306436539e-10) + low); //1/((2^32))
 }
 

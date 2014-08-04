@@ -120,7 +120,7 @@ protected:
     lm::io::ReactionModel reactionModel;
     bool hasDiffusionModel;
     lm::io::DiffusionModel diffusionModel;
-    lm::resource::SlotList slotList;
+    lm::resource::SlotList slots;
 
 private:
     bool parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg);

@@ -60,7 +60,7 @@ namespace lm {
 namespace fflux {
 
 FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, double zerothInterface, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel):
-	TrajectoryList(simulationParameters, reactionModel), xorShift(0,0),simultaneousTrajectoryCount(simultaneousTrajectoryCount),ffluxPhase(0),crossingsPerPhase(1000),zerothInterface(zerothInterface),finalInterface(25.0),interfaceCount(12),maxPhaseZeroTime(10000),maxFFluxPhase(),oParamStep() // TODO: change maxFFluxPhase from fixed to varying with input //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
+    TrajectoryList(), simulationParameters(simulationParameters),reactionModel(reactionModel),xorShift(0,0),simultaneousTrajectoryCount(simultaneousTrajectoryCount),ffluxPhase(0),crossingsPerPhase(1000),zerothInterface(zerothInterface),finalInterface(25.0),interfaceCount(12),maxPhaseZeroTime(10000),maxFFluxPhase(),oParamStep() // TODO: change maxFFluxPhase from fixed to varying with input //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
 	maxFFluxPhase = interfaceCount + 1;
 	finishedTrajectoriesCounts = vector<long long>(maxFFluxPhase, 0);
