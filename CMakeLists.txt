@@ -15,8 +15,39 @@ project(lm)
 include(CMakeConfig.txt)
 set(ENV{HDF5_ROOT} ${HDF5_ROOT})
 
+
+SET(CMAKE_MODULE_PATH  ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/CMakeModules )
+
+find_package(MPI REQUIRED)
+message("testing if mpi is mpich...")
+execute_process(COMMAND ${MPI_C_COMPILER} -show OUTPUT_VARIABLE MPI_SHOW_DUMP)
+STRING(REGEX MATCH "-lmpich" LMPICH "${MPI_SHOW_DUMP}")
+IF(LMPICH MATCHES "-lmpich")
+    message("...mpi is mpich, proceeding")
+ELSE(LMPICH MATCHES "-lmpich")
+    message(FATAL_ERROR "...mpi implementation found is not mpich, stopping. Lattice Microbes only supports mpich2 >3.0 at this time. If multiple mpi implementations are installed, please specify path to mpich in CMakeConfig.txt.")
+ENDIF(LMPICH MATCHES "-lmpich")
+
+find_package(Threads REQUIRED)
+find_package(libsbml REQUIRED)
+find_package(protobuf REQUIRED)
+find_package(HDF5 COMPONENTS C HL REQUIRED)
+IF (USE_CUDA STREQUAL yes)
+    find_package(cuda REQUIRED)
+ENDIF(USE_CUDA STREQUAL yes)
+IF (USE_CUDA STREQUAL optional)
+    find_package(cuda)
+ENDIF(USE_CUDA STREQUAL optional)
+#find_package(SWIG)
+find_package(PythonInterp)
+find_package(PythonLibs)
+#find_package(Boost)
+
 #automagic setup for linux, os X 10.7-8 (and lower?), and os X 10.9
-add_definitions(-DBUILD_INFO -DVERBOSITY_LEVEL=4 -DOPT_CUDA)
+add_definitions(-DBUILD_INFO -DVERBOSITY_LEVEL=4)
+IF (CUDA_FOUND)
+    add_definitions(-DOPT_CUDA)
+ENDIF(CUDA_FOUND)    
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -m64 -fPIC -Wall -fmessage-length=0")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -m64 -fPIC -Wall -fmessage-length=0")
 #for now, no c++ support SET(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS} -g -m64 -fPIC -Wall -fmessage-length=0")
@@ -35,27 +66,6 @@ ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
         SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
     ENDIF (OSX_VERSION GREATER 8)
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-SET(CMAKE_MODULE_PATH  ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/CMakeModules )
-
-find_package(MPI REQUIRED)
-message("testing if mpi is mpich...")
-execute_process(COMMAND ${MPI_C_COMPILER} -show OUTPUT_VARIABLE MPI_SHOW_DUMP)
-STRING(REGEX MATCH "-lmpich" LMPICH "${MPI_SHOW_DUMP}")
-IF(LMPICH MATCHES "-lmpich")
-    message("...mpi is mpich, proceeding")
-ELSE(LMPICH MATCHES "-lmpich")
-    message(FATAL_ERROR "...mpi implementation found is not mpich, stopping. Lattice Microbes only supports mpich2 >3.0 at this time. If multiple mpi implementations are installed, please specify path to mpich in CMakeConfig.txt.")
-ENDIF(LMPICH MATCHES "-lmpich")
-
-find_package(Threads REQUIRED)
-find_package(libsbml REQUIRED)
-find_package(protobuf REQUIRED)
-find_package(HDF5 COMPONENTS C HL REQUIRED)
-find_package(cuda REQUIRED)
-#find_package(SWIG)
-find_package(PythonInterp)
-find_package(PythonLibs)
-#find_package(Boost)
 
 include_directories(profile
                     src/c/
@@ -73,8 +83,10 @@ include_directories(profile
 #add subdirectories
 #add_subdirectory(src/protobuf)
 add_subdirectory(src/c)
-add_subdirectory(src/cuda)
-add_dependencies(lm_cuda_lib lm_c_lib)
+IF (CUDA_FOUND)
+    add_subdirectory(src/cuda)
+    add_dependencies(lm_cuda_lib lm_c_lib)
+ENDIF(CUDA_FOUND) 
 
 #set_source_files_properties(${proto_hdrs} PROPERTIES GENERATED TRUE)
 #get_directory_property(proto_vars DIRECTORY src/protobuf DEFINITION proto_srcs)
@@ -99,8 +111,11 @@ ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(lm ${LM_C_LIB})
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
-target_link_libraries(lm lm_cuda_lib
-                         ${CMAKE_THREAD_LIBS_INIT}
+IF (CUDA_FOUND)
+    target_link_libraries(lm lm_cuda_lib)
+ENDIF(CUDA_FOUND) 
+
+target_link_libraries(lm ${CMAKE_THREAD_LIBS_INIT}
                          ${libsbml_LIBRARIES}
                          ${PROTOBUF_LIBRARIES}
                          ${HDF5_LIBRARIES}
@@ -120,8 +135,10 @@ target_link_libraries(lm lm_cuda_lib
 #set(lm_test_src testing/c/lm/main/ReplicateSupervisor.cpp)
 #
 #add_executable(lm_test ${lm_test_src})
+#IF (CUDA_FOUND)
+#    target_link_libraries(lm_test lm_cuda_lib)
+#ENDIF(CUDA_FOUND) 
 #target_link_libraries(lm_test lm_c_lib 
-#                              lm_cuda_lib 
 #                              ${CMAKE_THREAD_LIBS_INIT}
 #                              ${libsbml_LIBRARIES}
 #                              ${PROTOBUF_LIBRARIES}
