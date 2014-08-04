@@ -103,7 +103,7 @@ ResourceMap::ResourceMap(list<string>hostnames, int defaultCPUCores, int default
             else
             {
                 allocatedResources[hostnameProcessMap[resources.hostname]].cpuCores = resources.cpuCores;
-                allocatedResources[hostnameProcessMap[resources.hostname]].gpusDevices = resources.gpusDevices;
+                allocatedResources[hostnameProcessMap[resources.hostname]].gpuDevices = resources.gpuDevices;
             }
         }
 
@@ -121,9 +121,100 @@ ResourceMap::~ResourceMap()
 {
 }
 
+/**
+ * @brief ResourceMap::parsePBSNodeFile
+ * @param filename
+ * @return
+ */
 map<string,ResourceMap::ComputeResources> ResourceMap::parseResourceFile(string filename)
 {
-    return parsePBSNodeFile(filename);
+      map<string,ComputeResources> fileResources;
+
+      ifstream file(filename.c_str());
+      string line;
+
+      while (std::getline(file, line))
+      {
+          if (line.length() > 0)
+          {
+              string hostname = "";
+              string cpuCores = "";
+              string gpuDevices = "";
+              size_t i = line.find(' ');
+              if (i != string::npos)
+              {
+                  hostname = line.substr(0, i);
+                  line = line.substr(i+1, string::npos);
+                  i = line.find(' ');
+                  if (i != string::npos)
+                  {
+                      cpuCores = line.substr(0, i);
+                      gpuDevices = line.substr(i+1, string::npos);
+                  }
+                  else
+                  {
+                      cpuCores = line;
+                  }
+              }
+              else
+              {
+                  hostname = line;
+              }
+
+              // See if this is the first entry for the host.
+              if (!fileResources.count(hostname))
+              {
+                  ComputeResources resources;
+                  resources.hostname = hostname;
+                  if (cpuCores.length() > 0)
+                      parseIntList(resources.cpuCores, cpuCores);
+                  else
+                      resources.cpuCores.push_back(resources.cpuCores.size());
+
+                  if (gpuDevices.length() > 0)
+                      parseIntList(resources.gpuDevices, gpuDevices);
+
+                  fileResources[hostname] = resources;
+              }
+              else
+              {
+                  if (cpuCores.length() > 0)
+                      parseIntList(fileResources[hostname].cpuCores, cpuCores);
+                  else
+                      fileResources[hostname].cpuCores.push_back(fileResources[hostname].cpuCores.size());
+
+                  if (gpuDevices.length() > 0)
+                      parseIntList(fileResources[hostname].gpuDevices, gpuDevices);
+              }
+          }
+      }
+
+      return fileResources;
+}
+
+void ResourceMap::parseIntList(vector<int>& list, string s)
+{
+    char * argbuf = new char[s.length()+1];
+    strcpy(argbuf,s.c_str());
+    char * pch = strtok(argbuf,",;:");
+    while (pch != NULL)
+    {
+        char * rangeDelimiter;
+        if ((rangeDelimiter=strstr(pch,"-")) != NULL)
+        {
+            *rangeDelimiter='\0';
+            int begin=atoi(pch);
+            int end=atoi(rangeDelimiter+1);
+            for (int i=begin; i<=end; i++)
+                list.push_back(i);
+        }
+        else
+        {
+            if (strlen(pch) > 0) list.push_back(atoi(pch));
+        }
+        pch = strtok(NULL," ,;:");
+    }
+    delete[] argbuf;
 }
 
 /**
@@ -141,7 +232,7 @@ map<string,ResourceMap::ComputeResources> ResourceMap::parsePBSNodeFile(string f
 	  ifstream file(filename.c_str());
       string hostname;
 
-      while (getline(file, hostname))
+      while (std::getline(file, hostname))
 	  {
           if (hostname != "")
           {
@@ -182,7 +273,7 @@ bool ResourceMap::registerResources(const lm::message::ResourcesAvailable& msg)
         // Set the controller thread.
         resources.controller_thread = (int)msg.controller_thread();
 
-        // Copy the cpu cores, if necessary.
+        // If there were no cpus specified, use the default cpu cores and gpu devices.
         if (resources.cpuCores.size() == 0)
         {
             int num=msg.cpu_size();
@@ -191,22 +282,24 @@ bool ResourceMap::registerResources(const lm::message::ResourcesAvailable& msg)
             {
                 resources.cpuCores.push_back(msg.cpu(i));
             }
-        }
 
-        // Copy the gpu devices, if necessary.
-        if (resources.gpusDevices.size() == 0)
-        {
-            int num=msg.gpu_size();
-            if (defaultGPUDevices >= 0 && defaultGPUDevices < num) num = defaultGPUDevices;
-            for (int i=0; i<num; i++)
+            // If there were no gpu devices specified, also use the default gpu devices.
+            if (resources.gpuDevices.size() == 0)
             {
-                resources.gpusDevices.push_back(msg.gpu(i));
+                int num=msg.gpu_size();
+                if (defaultGPUDevices >= 0 && defaultGPUDevices < num) num = defaultGPUDevices;
+                for (int i=0; i<num; i++)
+                {
+                    resources.gpuDevices.push_back(msg.gpu(i));
+                }
             }
         }
 
         // Move the resources from the allocated list to the registered list.
         registeredResources[resources.controller_process] = resources;
         allocatedResources.erase(resources.controller_process);
+
+        Print::printf(Print::INFO, "Registered resources for host %s: %d cpu cores, %d gpu devices", resources.hostname.c_str(), resources.cpuCores.size(), resources.gpuDevices.size());
     }
     else
     {

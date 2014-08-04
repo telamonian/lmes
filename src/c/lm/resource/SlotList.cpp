@@ -91,7 +91,7 @@ void SlotList::addSlots(ResourceMap::ComputeResources & resources, float cpusPer
 	else
 	{
 		int cpuSlots = cpusPerSlot > 0 ? resources.cpuCores.size()/cpusPerSlot: INT_MAX;
-		int gpuSlots = gpusPerSlot > 0 ? resources.gpusDevices.size()/gpusPerSlot: INT_MAX;
+        int gpuSlots = gpusPerSlot > 0 ? resources.gpuDevices.size()/gpusPerSlot: INT_MAX;
 		slotsToStart = cpuSlots > gpuSlots ? gpuSlots : cpuSlots;
 	}
 	Print::printf(Print::INFO, "Attempting to start %d slots with %.3f cpus and %.3f gpus each on process %d.", slotsToStart, cpusPerSlot, gpusPerSlot, resources.controller_process);

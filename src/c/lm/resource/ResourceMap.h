@@ -65,7 +65,7 @@ public:
         int controller_process;
         int controller_thread;
         vector<int> cpuCores;
-        vector<int> gpusDevices;
+        vector<int> gpuDevices;
     };
 
 public:
@@ -85,6 +85,9 @@ protected:
     map<string,int> hostnameProcessMap;
     map<int,ComputeResources> allocatedResources;
     map<int,ComputeResources> registeredResources;
+
+private:
+    void parseIntList(vector<int>& list, string s);
 };
 
 }
