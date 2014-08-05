@@ -15,7 +15,7 @@ project(lm)
 include(CMakeConfig.txt)
 set(ENV{HDF5_ROOT} ${HDF5_ROOT})
 
-
+#package finding stuff
 SET(CMAKE_MODULE_PATH  ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/CMakeModules )
 
 find_package(MPI REQUIRED)
@@ -32,22 +32,28 @@ find_package(Threads REQUIRED)
 find_package(libsbml REQUIRED)
 find_package(protobuf REQUIRED)
 find_package(HDF5 COMPONENTS C HL REQUIRED)
+
+#Conditionals for dealing with CUDA
 IF (USE_CUDA STREQUAL yes)
     find_package(cuda REQUIRED)
 ENDIF(USE_CUDA STREQUAL yes)
 IF (USE_CUDA STREQUAL optional)
     find_package(cuda)
 ENDIF(USE_CUDA STREQUAL optional)
-#find_package(SWIG)
+IF(CUDA_FOUND AND NOT CUDA_CUDA_LIBRARY)
+    set(CUDA_FOUND false)
+ENDIF(CUDA_FOUND AND NOT CUDA_CUDA_LIBRARY)
+
 find_package(PythonInterp)
 find_package(PythonLibs)
+#find_package(SWIG)
 #find_package(Boost)
 
 #automagic setup for linux, os X 10.7-8 (and lower?), and os X 10.9
-add_definitions(-DBUILD_INFO -DVERBOSITY_LEVEL=4)
-IF (CUDA_FOUND)
+add_definitions(-DBUILD_INFO -DVERBOSITY_LEVEL=${VERBOSITY_LEVEL})
+IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
     add_definitions(-DOPT_CUDA)
-ENDIF(CUDA_FOUND)    
+ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))    
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -m64 -fPIC -Wall -fmessage-length=0")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -m64 -fPIC -Wall -fmessage-length=0")
 #for now, no c++ support SET(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS} -g -m64 -fPIC -Wall -fmessage-length=0")
@@ -61,10 +67,10 @@ ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     execute_process(COMMAND sw_vers OUTPUT_VARIABLE SW_VERS_DUMP)
     STRING(REGEX REPLACE ".+ProductVersion:\t10\\.([0-9]).+" "\\1" OSX_VERSION "${SW_VERS_DUMP}" )
     MESSAGE(STATUS "OSX_VERSION=10.${OSX_VERSION}")
-    IF (OSX_VERSION GREATER 8)
+    IF(OSX_VERSION GREATER 8)
         SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -stdlib=libstdc++")
         SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
-    ENDIF (OSX_VERSION GREATER 8)
+    ENDIF(OSX_VERSION GREATER 8)
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 include_directories(profile
@@ -83,10 +89,10 @@ include_directories(profile
 #add subdirectories
 #add_subdirectory(src/protobuf)
 add_subdirectory(src/c)
-IF (CUDA_FOUND)
+IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
     add_subdirectory(src/cuda)
     add_dependencies(lm_cuda_lib lm_c_lib)
-ENDIF(CUDA_FOUND) 
+ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional)) 
 
 #set_source_files_properties(${proto_hdrs} PROPERTIES GENERATED TRUE)
 #get_directory_property(proto_vars DIRECTORY src/protobuf DEFINITION proto_srcs)
@@ -111,9 +117,9 @@ ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(lm ${LM_C_LIB})
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
-IF (CUDA_FOUND)
+IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
     target_link_libraries(lm lm_cuda_lib)
-ENDIF(CUDA_FOUND) 
+ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional)) 
 
 target_link_libraries(lm ${CMAKE_THREAD_LIBS_INIT}
                          ${libsbml_LIBRARIES}
@@ -135,9 +141,9 @@ target_link_libraries(lm ${CMAKE_THREAD_LIBS_INIT}
 #set(lm_test_src testing/c/lm/main/ReplicateSupervisor.cpp)
 #
 #add_executable(lm_test ${lm_test_src})
-#IF (CUDA_FOUND)
+#IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
 #    target_link_libraries(lm_test lm_cuda_lib)
-#ENDIF(CUDA_FOUND) 
+#ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional)) 
 #target_link_libraries(lm_test lm_c_lib 
 #                              ${CMAKE_THREAD_LIBS_INIT}
 #                              ${libsbml_LIBRARIES}
