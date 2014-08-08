@@ -249,12 +249,18 @@ lm::io::TrajectoryState * FFluxTrajectoryList::getRandomCrossing(long long fflux
 //// TEMP: replace
 double FFluxTrajectoryList::calcTestCaseOParam(const lm::io::TrajectoryState& finalState)
     {
-    	return (double)(finalState.cme_state().species_counts().species_count(0) + \
-    		   2*finalState.cme_state().species_counts().species_count(1) + \
-    		   finalState.cme_state().species_counts().species_count(2)) - \
-    		   (double)(finalState.cme_state().species_counts().species_count(3) + \
+//    	return (double)(finalState.cme_state().species_counts().species_count(0) + \
+//    		   2*finalState.cme_state().species_counts().species_count(1) + \
+//    		   finalState.cme_state().species_counts().species_count(2)) - \
+//    		   2*(double)(finalState.cme_state().species_counts().species_count(3) + \
+//			   2*finalState.cme_state().species_counts().species_count(4) + \
+//			   2*finalState.cme_state().species_counts().species_count(5));
+		return (double)(finalState.cme_state().species_counts().species_count(3) + \
 			   2*finalState.cme_state().species_counts().species_count(4) + \
-			   finalState.cme_state().species_counts().species_count(5));
+			   2*finalState.cme_state().species_counts().species_count(5)) - \
+			   (double)(finalState.cme_state().species_counts().species_count(0) + \
+			   2*finalState.cme_state().species_counts().species_count(1) + \
+			   2*finalState.cme_state().species_counts().species_count(2));
     }
 
 void FFluxTrajectoryList::incrTestCaseLimits()

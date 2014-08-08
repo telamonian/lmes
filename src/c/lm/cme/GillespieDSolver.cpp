@@ -168,8 +168,9 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
         speciesCountsDataSet->set_number_entries(0);
 
         // If this is the start of the trajectory, add the initial counts.
-        if (time == 0.0)
+        if (time == 0.0 || trajectoryStarted==false)
         {
+//        	printf("traj_id %d has_started %d\n", trajectoryId, trajectoryStarted);
             nextSpeciesCountsWriteTime=writeInterval;
             speciesCountsDataSet->set_number_entries(1);
             speciesCountsDataSet->add_time(0.0);

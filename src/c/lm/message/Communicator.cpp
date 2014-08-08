@@ -110,7 +110,7 @@ void Communicator::receiveMessage(lm::message::Message* message)
     // Deserialize the message.
     if (!message->ParseFromArray(inputBuffer, messageLength)) throw lm::Exception("Unable to deserialize message");
 
-    lm::Print::printf(lm::Print::VERBOSE_DEBUG, "Received message %d:%d->%d:%d %d bytes: {\n%s}",message->source_process(),message->source_thread(),message->dest_process(),message->dest_thread(),message->ByteSize(), message->DebugString().c_str());
+    //lm::Print::printf(lm::Print::VERBOSE_DEBUG, "Received message %d:%d->%d:%d %d bytes: {\n%s}",message->source_process(),message->source_thread(),message->dest_process(),message->dest_thread(),message->ByteSize(), message->DebugString().c_str());
 }
 
 }

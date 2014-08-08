@@ -3,6 +3,7 @@ import h5py, os, sys
 from collections import OrderedDict
 from os import path
 import numpy as np
+import bisect as bi
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -145,24 +146,25 @@ class Sims(object):
         fig = plt.figure(1)
         axes = plt.axes()
         print 'graphing now...'
-        xoparam = self.sims[trajID].oparam[0:2000]
-        nAll, binsAll, patchesAll = axes.hist(xoparam, bins=200, range=(-100,100))
-        axes.cla()
+        xoparam = self.sims[trajID].oparam[2000:10000]
+#         nAll, binsAll, patchesAll = axes.hist(xoparam, bins=200, range=(-100,100))
+#         axes.cla()
         
         # axes.plot(bins[1:] - .5, n, 'r--')
         #axes.plot(xnewAll, ynewAll, 'r--')
-        fig.set_size_inches(9,6)
-        axes.set_xticks(range(-100,101,10))
-        axes.set_xlim((-80,80))
-        axes.set_ylim((0,1.05*np.max(nAll)))
-        axes.set_xlabel('$\Delta$ (copy num(b) - copy num(a))')
-        axes.set_ylabel('count')
-        axes.invert_yaxis()
+#         fig.set_size_inches(9,6)
+#         axes.set_xticks(range(-100,101,10))
+#         axes.set_xlim((-80,80))
+#         axes.set_ylim((0,1.05*np.max(nAll)))
+#         axes.set_xlabel('$\Delta$ (copy num(b) - copy num(a))')
+#         axes.set_ylabel('count')
+#         axes.invert_yaxis()
         
         # yoparamAll = interpolate.splev(xoparam,tck,der=0)
-        with MovieDir(self.Figname('_trajMovDiscrete',ext=False)) as dirName:
+        with MovieDir(self.Figname('_trajMovDiscreteNormed',ext=False)) as dirName:
             for i,oparam in enumerate(xoparam):
-                nCum, binsCum, patchesCum = axes.hist(xoparam[:i+1], bins=200, range=(-100,100))
+                i = i+2000
+                nCum, binsCum, patchesCum = axes.hist(xoparam[:i+1], bins=200, range=(-100,100), normed=True)
                 idx = np.argmin(np.abs(binsCum[1:] - .5 - oparam))
                 #yoparamNow = interpolate.splev([oparam], tckCum, der=0)
                 #dot = axes.scatter([oparam],[yoparamNow[0]],s=100,c='g')
@@ -170,7 +172,7 @@ class Sims(object):
                 fig.set_size_inches(9,6)
                 axes.set_xticks(range(-100,101,10))
                 axes.set_xlim((-80,80))
-                axes.set_ylim((0,1.05*np.max(nAll)))
+                axes.set_ylim((0,1.05*np.max(nCum)))
                 axes.set_xlabel('$\Delta$ (copy num(b) - copy num(a))')
                 axes.set_ylabel('count')
                 axes.invert_yaxis()
@@ -315,10 +317,11 @@ class FFluxBiphasics(Biphasics):
     def SortByInterface(self):
         if self.oparam==None:
             self.Pdf()
-        self.interfaces = {}
+        self.interfaces = np.linspace(-25,25,13)
+        self.interfaceDict = {}
         for sim in self.sims:
-            self.interfaces[sim.oparam[0]] = self.interfaces.get(sim.oparam[0], []) + [sim.oparam]
-        self.interfacesSorted = OrderedDict(sorted(self.interfaces.items(), key=lambda x: x[0]))
+            self.interfaceDict[bi.bisect(self.interfaces,sim.oparam[0])] = self.interfaceDict.get(bi.bisect(self.interfaces,sim.oparam[0]), []) + [sim]
+        self.interfaceDictSorted = OrderedDict(sorted(self.interfaceDict.items(), key=lambda x: x[0]))
         
     
     def TrajMovSmooth(self):
@@ -327,7 +330,9 @@ class FFluxBiphasics(Biphasics):
         fig = plt.figure(1)
         axes = plt.axes()
         print 'graphing now...'
-        nAll, binsAll, patchesAll = axes.hist(xoparam, bins=200, range=(-100,100))#, normed=True)
+        
+        for 
+        nAll, binsAll, patchesAll = axes.hist(xoparam, bins=len(self.interfaces)-1, range=(-100,100))#, normed=True)
         axes.cla()
         
         

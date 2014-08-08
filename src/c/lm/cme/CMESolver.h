@@ -289,7 +289,7 @@ protected:
     //// TEMP : remove
     inline double calcTestCaseOParam(uint* specCnts)
     {
-    	return (double)(specCnts[0] + 2*specCnts[1] + specCnts[2]) - (double)(specCnts[3] + 2*specCnts[4] + specCnts[5]);
+    	return (double)(specCnts[3] + 2*specCnts[4] + 2*specCnts[5]) - (double)(specCnts[0] + 2*specCnts[1] + 2*specCnts[2]);//(double)(specCnts[0] + 2*specCnts[1] + 2*specCnts[2]) - (double)(specCnts[3] + 2*specCnts[4] + *specCnts[5]);
     }
     //// TEMP
 
@@ -320,7 +320,7 @@ protected:
 //            	}
             	if (oParam < l.limit && prevOParam >= l.limit)
             	{
-                    Print::printf(Print::INFO, "%f %f checkingdecreasingspecies limit species: %d limit: %f numberSpeciesLimits: %d",prevOParam,oParam, l.species, l.limit, numberSpeciesLimits);
+//                    Print::printf(Print::INFO, "%f %f checkingdecreasingspecies limit species: %d limit: %f numberSpeciesLimits: %d",prevOParam,oParam, l.species, l.limit, numberSpeciesLimits);
             		return true;
             	}
             	break;
@@ -343,7 +343,7 @@ protected:
 //            	}
             	if (oParam >= l.limit && prevOParam < l.limit)
             	{
-                    Print::printf(Print::INFO, "%f %f checkingincreasingspecies limit species: %d limit: %f numberSpeciesLimits: %d", prevOParam, oParam, l.species, l.limit, numberSpeciesLimits);
+//                    Print::printf(Print::INFO, "%f %f checkingincreasingspecies limit species: %d limit: %f numberSpeciesLimits: %d", prevOParam, oParam, l.species, l.limit, numberSpeciesLimits);
             		return true;
             	}
             	break;
@@ -399,6 +399,7 @@ protected:
 
     // The current state.
     uint64_t trajectoryId;
+    bool trajectoryStarted;
     uint* speciesCounts;
     uint* previousSpeciesCounts;
     double time;

@@ -71,6 +71,7 @@ public:
 	//setters
 	void setMsg(const lm::message::Message& newMsg) {msg = newMsg;}
 	void setWorkUnitId(int64_t id) {getRunMsg()->set_work_unit_id(id);}
+	void setStarted(bool trajectoryStarted) {state.set_trajectory_started(trajectoryStarted);}
 	void setStatus(status_t newStatus) {status = newStatus;}
 	void setState(const lm::io::TrajectoryState& newState) {state = newState;}
 
