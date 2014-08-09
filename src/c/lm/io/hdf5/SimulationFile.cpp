@@ -39,7 +39,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #include <cstdio>
@@ -82,7 +82,7 @@ namespace hdf5 {
 const uint Hdf5File::MIN_VERSION                   = 2;
 const uint Hdf5File::CURRENT_VERSION               = 4;
 const uint Hdf5File::MAX_REACTION_RATE_CONSTANTS   = 10;
-const uint Hdf5File::MAX_SHAPE_PARAMETERS		     = 10;
+const uint Hdf5File::MAX_SHAPE_PARAMETERS		   = 10;
 
 
 Hdf5File::Hdf5File(const string filename) throw(IOException,HDF5Exception,Exception)
@@ -376,6 +376,351 @@ void Hdf5File::loadModel() throw(Exception,HDF5Exception)
     }
 }
 
+bool Hdf5File::hasDiffusionModel()
+{
+    return (H5Lexists(file, "/Model/Diffusion", H5P_DEFAULT) != 0);
+}
+
+void Hdf5File::getDiffusionModel(lm::io::DiffusionModel* diffusionModel) throw(Exception,InvalidArgException,HDF5Exception)
+{
+    // Make sure the model is not null and then clear it.
+    if (diffusionModel == NULL) throw InvalidArgException("diffusionModel", "cannot be null");
+    diffusionModel->Clear();
+
+    if (H5Lexists(file, "/Model/Diffusion", H5P_DEFAULT))
+    {
+        // Read the diffusion model attributes.
+        uint numberSpecies, numberReactions, numberSiteTypes, latticeXSize, latticeYSize, latticeZSize, particlesPerSite;
+        double latticeSpacing;
+        HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Model/Diffusion", "numberSpecies", &numberSpecies));
+        HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Model/Diffusion", "numberReactions", &numberReactions));
+        HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Model/Diffusion", "numberSiteTypes", &numberSiteTypes));
+        HDF5_EXCEPTION_CHECK(H5LTget_attribute_double(file, "/Model/Diffusion", "latticeSpacing", &latticeSpacing));
+        HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Model/Diffusion", "latticeXSize", &latticeXSize));
+        HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Model/Diffusion", "latticeYSize", &latticeYSize));
+        HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Model/Diffusion", "latticeZSize", &latticeZSize));
+        HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Model/Diffusion", "particlesPerSite", &particlesPerSite));
+
+        // Fill in the model.
+        diffusionModel->set_number_species(numberSpecies);
+        diffusionModel->set_number_reactions(numberReactions);
+        diffusionModel->set_number_site_types(numberSiteTypes);
+        diffusionModel->set_lattice_spacing(latticeSpacing);
+        lm::io::Lattice* lattice=diffusionModel->mutable_initial_lattice();
+        lattice->set_lattice_x_size(latticeXSize);
+        lattice->set_lattice_y_size(latticeYSize);
+        lattice->set_lattice_z_size(latticeZSize);
+        lattice->set_particles_per_site(particlesPerSite);
+
+        int ndims;
+        hsize_t dims[4];
+        H5T_class_t type;
+        size_t size;
+
+        // Read the diffusion matrix.
+        H5LTget_dataset_info(file, "/Model/Diffusion/DiffusionMatrix", dims, &type, &size);
+        if (dims[0] != numberSiteTypes || dims[1] != numberSiteTypes || dims[2] != numberSpecies || size != sizeof(double)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Diffusion/DiffusionMatrix");
+        double * D = new double[numberSiteTypes*numberSiteTypes*numberSpecies];
+        H5LTread_dataset_double(file, "/Model/Diffusion/DiffusionMatrix", D);
+        for (uint i=0; i<numberSiteTypes*numberSiteTypes*numberSpecies; i++) diffusionModel->add_diffusion_matrix(D[i]);
+        delete [] D;
+
+        // If we have reactions, read the reaction location matrix.
+        if (numberReactions > 0)
+        {
+            H5LTget_dataset_info(file, "/Model/Diffusion/ReactionLocationMatrix", dims, &type, &size);
+            if (dims[0] != numberReactions || dims[1] != numberSiteTypes || size != sizeof(uint)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Diffusion/ReactionLocationMatrix");
+            uint * RL = new uint[numberReactions*numberSiteTypes];
+			H5LTread_dataset(file, "/Model/Diffusion/ReactionLocationMatrix", H5T_STD_U32LE, RL);
+			for (uint i=0; i<numberReactions*numberSiteTypes; i++) diffusionModel->add_reaction_location_matrix(RL[i]);
+	        delete [] RL;
+        }
+
+        // Read the initial lattice.
+        HDF5_EXCEPTION_CHECK(H5LTget_dataset_ndims(file, "/Model/Diffusion/Lattice", &ndims));
+        if (ndims != 4) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Diffusion/Lattice");
+        HDF5_EXCEPTION_CHECK(H5LTget_dataset_info(file, "/Model/Diffusion/Lattice",dims, &type, &size));
+        if (lattice->lattice_x_size() != (int)dims[0] || lattice->lattice_y_size() != (int)dims[1] || lattice->lattice_z_size() != (int)dims[2] || lattice->particles_per_site() != (int)dims[3] || size != sizeof(uint8_t)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Diffusion/Lattice");
+        string* particles=new string();
+        particles->resize(dims[0]*dims[1]*dims[2]*dims[3]);
+        HDF5_EXCEPTION_CHECK(H5LTread_dataset(file, "/Model/Diffusion/Lattice", H5T_NATIVE_UINT8, &((*particles)[0])));
+        lattice->set_allocated_particles(particles);
+        lattice->set_particles_ordering(lm::io::ROW_MAJOR);
+
+        // Read the initial lattice sites.
+        HDF5_EXCEPTION_CHECK(H5LTget_dataset_ndims(file, "/Model/Diffusion/LatticeSites", &ndims));
+        if (ndims != 3) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Diffusion/LatticeSites");
+        HDF5_EXCEPTION_CHECK(H5LTget_dataset_info(file, "/Model/Diffusion/LatticeSites",dims, &type, &size));
+        if (lattice->lattice_x_size() != (int)dims[0] || lattice->lattice_y_size() != (int)dims[1] || lattice->lattice_z_size() != (int)dims[2] || size != sizeof(uint8_t)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Diffusion/LatticeSites");
+        string* sites=new string();
+        sites->resize(dims[0]*dims[1]*dims[2]);
+        HDF5_EXCEPTION_CHECK(H5LTread_dataset(file, "/Model/Diffusion/LatticeSites", H5T_NATIVE_UINT8, &((*sites)[0])));
+        lattice->set_allocated_sites(sites);
+        lattice->set_sites_ordering(lm::io::ROW_MAJOR);
+    }
+}
+
+void Hdf5File::setDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception)
+{
+    // Validate that the model is consistent.
+    if (diffusionModel == NULL) throw InvalidArgException("diffusionModel", "cannot be NULL");
+    if (diffusionModel->number_species() == 0) throw InvalidArgException("diffusionModel.number_species", "cannot be zero");
+    if (diffusionModel->number_site_types() == 0) throw InvalidArgException("diffusionModel.number_site_types", "cannot be zero");
+    if (diffusionModel->diffusion_matrix_size() != (int)(diffusionModel->number_site_types()*diffusionModel->number_site_types()*diffusionModel->number_species())) throw InvalidArgException("diffusion.diffusion_matrix", "inconsistent size");
+    if (diffusionModel->reaction_location_matrix_size() != (int)(diffusionModel->number_reactions()*diffusionModel->number_site_types())) throw InvalidArgException("diffusion.reaction_location_matrix", "inconsistent size");
+    if (diffusionModel->lattice_spacing() <= 0.0) throw InvalidArgException("diffusionModel.lattice_spacing", "must be greater than zero");
+    if (diffusionModel->initial_lattice().lattice_x_size() == 0) throw InvalidArgException("diffusionModel.lattice_x_size", "cannot be zero");
+    if (diffusionModel->initial_lattice().lattice_y_size() == 0) throw InvalidArgException("diffusionModel.lattice_y_size", "cannot be zero");
+    if (diffusionModel->initial_lattice().lattice_z_size() == 0) throw InvalidArgException("diffusionModel.lattice_z_size", "cannot be zero");
+    if (diffusionModel->initial_lattice().particles_per_site() == 0) throw InvalidArgException("diffusionModel.particles_per_site", "cannot be zero");
+
+    // If a diffusion model already exists, delete it.
+    if (H5Lexists(file, "/Model/Diffusion", H5P_DEFAULT))
+    {
+        HDF5_EXCEPTION_CHECK(H5Ldelete(file, "/Model/Diffusion", H5P_DEFAULT));
+    }
+
+    // Create the group for the reaction model.
+    hid_t group;
+    HDF5_EXCEPTION_CALL(group,H5Gcreate2(file, "/Model/Diffusion", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+    HDF5_EXCEPTION_CHECK(H5Gclose(group));
+
+    // Write the attributes.
+    numberSpecies = diffusionModel->number_species();
+    uint numberReactions = diffusionModel->number_reactions();
+    uint numberSiteTypes = diffusionModel->number_site_types();
+    double latticeSpacing = diffusionModel->lattice_spacing();
+    uint latticeXSize = diffusionModel->initial_lattice().lattice_x_size();
+    uint latticeYSize = diffusionModel->initial_lattice().lattice_y_size();
+    uint latticeZSize = diffusionModel->initial_lattice().lattice_z_size();
+    uint particlesPerSite = diffusionModel->initial_lattice().particles_per_site();
+    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(file, "/Model/Diffusion", "numberSpecies", &numberSpecies, 1));
+    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(file, "/Model/Diffusion", "numberReactions", &numberReactions, 1));
+    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(file, "/Model/Diffusion", "numberSiteTypes", &numberSiteTypes, 1));
+    HDF5_EXCEPTION_CHECK(H5LTset_attribute_double(file, "/Model/Diffusion", "latticeSpacing", &latticeSpacing, 1));
+    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(file, "/Model/Diffusion", "latticeXSize", &latticeXSize, 1));
+    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(file, "/Model/Diffusion", "latticeYSize", &latticeYSize, 1));
+    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(file, "/Model/Diffusion", "latticeZSize", &latticeZSize, 1));
+    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(file, "/Model/Diffusion", "particlesPerSite", &particlesPerSite, 1));
+
+    // Write the diffusion matrix.
+    {
+		const unsigned int RANK=3;
+		hsize_t dims[RANK];
+		dims[0] = numberSiteTypes;
+		dims[1] = numberSiteTypes;
+		dims[2] = numberSpecies;
+		HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Diffusion/DiffusionMatrix", RANK, dims, H5T_IEEE_F64LE, diffusionModel->diffusion_matrix().data()));
+	}
+
+    // Write the reaction location matrix.
+    if (numberReactions > 0)
+    {
+		const unsigned int RANK=2;
+		hsize_t dims[RANK];
+		dims[0] = numberReactions;
+		dims[1] = numberSiteTypes;
+		HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Diffusion/ReactionLocationMatrix", RANK, dims, H5T_STD_U32LE, diffusionModel->reaction_location_matrix().data()));
+    }
+}
+
+bool Hdf5File::hasFFluxModel()
+{
+    return (H5Lexists(file, "/Model/FFlux", H5P_DEFAULT) != 0);
+}
+
+void Hdf5File::getFFluxModel(lm::io::FFluxModel * ffluxModel)
+{
+//    // Make sure the model is not null and then clear it.
+//    if (reactionModel == NULL) throw InvalidArgException("reactionModel", "cannot be null");
+//    reactionModel->Clear();
+//
+//    if (H5Lexists(file, "/Model/Reaction", H5P_DEFAULT))
+//    {
+//        // Read at least the numbers of species.
+//        HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Model/Reaction", "numberSpecies", &numberSpecies));
+//        reactionModel->set_number_species(numberSpecies);
+//        reactionModel->set_number_reactions(0);
+//
+//        // If we have the number of reactions, we must have a full model so read it.
+//        if (H5Aexists_by_name(file, "/Model/Reaction", "numberReactions", H5P_DEFAULT) > 0)
+//        {
+//            hsize_t dims[2];
+//            H5T_class_t type;
+//            size_t size;
+//
+//            // Read the initial species counts.
+//            H5LTget_dataset_info(file, "/Model/Reaction/InitialSpeciesCounts", dims, &type, &size);
+//            if (dims[0] != numberSpecies || size != sizeof(uint)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/InitialSpeciesCounts");
+//
+//            // Read the number of reactions.
+//            uint numberReactions;
+//            HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Model/Reaction", "numberReactions", &numberReactions));
+//            reactionModel->set_number_reactions(numberReactions);
+//
+//            // Read the reaction tables.
+//            if (numberReactions > 0)
+//            {
+//                // Make sure all of the data sets are the correct size.
+//                H5LTget_dataset_info(file, "/Model/Reaction/ReactionTypes", dims, &type, &size);
+//                if (dims[0] != numberReactions || size != sizeof(uint)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/ReactionTypes");
+//                H5LTget_dataset_info(file, "/Model/Reaction/ReactionRateConstants", dims, &type, &size);
+//                if (dims[0] != numberReactions || dims[1] != MAX_REACTION_RATE_CONSTANTS || size != sizeof(double)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/ReactionRateConstants");
+//                H5LTget_dataset_info(file, "/Model/Reaction/StoichiometricMatrix", dims, &type, &size);
+//                if (dims[0] != numberSpecies || dims[1] != numberReactions || size != sizeof(int)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/StoichiometricMatrix");
+//                H5LTget_dataset_info(file, "/Model/Reaction/DependencyMatrix", dims, &type, &size);
+//                if (dims[0] != numberSpecies || dims[1] != numberReactions || size != sizeof(uint)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/DependencyMatrix");
+//
+//                // If we have rate noise terms, make sure they are the correct size.
+//                const uint NUMBER_NOISE_COLS = 2;
+//                bool hasNoiseTable = false;
+//                if (H5Lexists(file, "/Model/Reaction/ReactionRateNoise", H5P_DEFAULT))
+//                {
+//                    hasNoiseTable = true;
+//                    H5LTget_dataset_info(file, "/Model/Reaction/ReactionRateNoise", dims, &type, &size);
+//                    if (dims[0] != numberReactions || dims[1] != NUMBER_NOISE_COLS || size != sizeof(double)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/ReactionRateNoise");
+//                }
+//
+//                // Allocate some buffers for reading the data.
+//                int * intBuffer = new int[numberSpecies*numberReactions];
+//                double * doubleBuffer = new double[numberReactions*MAX_REACTION_RATE_CONSTANTS];
+//                double * noiseBuffer = new double[numberReactions*NUMBER_NOISE_COLS];
+//
+//                // Read the initial species counts.
+//                H5LTread_dataset_int(file, "/Model/Reaction/InitialSpeciesCounts", intBuffer);
+//                for (uint i=0; i<numberSpecies; i++) reactionModel->add_initial_species_count((uint)intBuffer[i]);
+//
+//                // Read the reaction info.
+//                H5LTread_dataset_int(file, "/Model/Reaction/ReactionTypes", intBuffer);
+//                H5LTread_dataset_double(file, "/Model/Reaction/ReactionRateConstants", doubleBuffer);
+//                if (hasNoiseTable) H5LTread_dataset_double(file, "/Model/Reaction/ReactionRateNoise", noiseBuffer);
+//                for (uint i=0; i<numberReactions; i++)
+//                {
+//                    reactionModel->add_reaction();
+//                    reactionModel->mutable_reaction(i)->set_type((uint)intBuffer[i]);
+//                    for (uint j=0; j<MAX_REACTION_RATE_CONSTANTS; j++)
+//                    {
+//                        double k = doubleBuffer[i*MAX_REACTION_RATE_CONSTANTS+j];
+//                        if (!std::isnan(k))
+//                            reactionModel->mutable_reaction(i)->add_rate_constant(k);
+//                        else
+//                            break;
+//                    }
+//
+//                    // If we have noise terms, set them.
+//                    if (hasNoiseTable)
+//                    {
+//                        double nvar = noiseBuffer[i*NUMBER_NOISE_COLS];
+//                        double ntau = noiseBuffer[i*NUMBER_NOISE_COLS+1];
+//                        if (nvar > 0.0 && ntau > 0.0 && !std::isnan(nvar) && !std::isnan(ntau))
+//                        {
+//                            reactionModel->mutable_reaction(i)->set_rate_has_noise(true);
+//                            reactionModel->mutable_reaction(i)->set_rate_noise_variance(nvar);
+//                            reactionModel->mutable_reaction(i)->set_rate_noise_tau(ntau);
+//                        }
+//                    }
+//                }
+//
+//                // Read the matrices.
+//                H5LTread_dataset_int(file, "/Model/Reaction/StoichiometricMatrix", intBuffer);
+//                for (uint i=0; i<numberSpecies*numberReactions; i++) reactionModel->add_stoichiometric_matrix(intBuffer[i]);
+//                H5LTread_dataset_int(file, "/Model/Reaction/DependencyMatrix", intBuffer);
+//                for (uint i=0; i<numberSpecies*numberReactions; i++) reactionModel->add_dependency_matrix((uint)intBuffer[i]);
+//
+//                // Free the buffers.
+//                delete [] noiseBuffer;
+//                delete [] doubleBuffer;
+//                delete [] intBuffer;
+//            }
+//        }
+//    }
+}
+
+void Hdf5File::setFFluxModel(lm::io::FFluxModel * ffluxModel)
+{
+//    // Validate that the model is consistent.
+//    if (reactionModel == NULL) throw InvalidArgException("reactionModel", "cannot be NULL");
+//    if (reactionModel->number_species() == 0) throw InvalidArgException("reactionModel.number_species", "cannot be zero");
+//    if (reactionModel->initial_species_count_size() != (int)reactionModel->number_species()) throw InvalidArgException("reactionModel.initial_species_count", "inconsistent size");
+//    if (reactionModel->reaction_size() != (int)reactionModel->number_reactions()) throw InvalidArgException("reactionModel.reaction", "inconsistent size");
+//    if (reactionModel->stoichiometric_matrix_size() != (int)(reactionModel->number_species()*reactionModel->number_reactions())) throw InvalidArgException("reactionModel.stoichiometric_matrix", "inconsistent size");
+//    if (reactionModel->dependency_matrix_size() != (int)(reactionModel->number_species()*reactionModel->number_reactions())) throw InvalidArgException("reactionModel.dependency_matrix", "inconsistent size");
+//
+//    // If a reaction model already exists, delete it.
+//    if (H5Lexists(file, "/Model/Reaction", H5P_DEFAULT))
+//    {
+//        HDF5_EXCEPTION_CHECK(H5Ldelete(file, "/Model/Reaction", H5P_DEFAULT));
+//    }
+//
+//    // Create the group for the reaction model.
+//    hid_t group;
+//    HDF5_EXCEPTION_CALL(group,H5Gcreate2(file, "/Model/Reaction", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+//    HDF5_EXCEPTION_CHECK(H5Gclose(group));
+//
+//    // Write the numbers of species and reactions.
+//    numberSpecies = reactionModel->number_species();
+//    uint numberReactions = reactionModel->number_reactions();
+//    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(file, "/Model/Reaction", "numberSpecies", &numberSpecies, 1));
+//    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(file, "/Model/Reaction", "numberReactions", &numberReactions, 1));
+//
+//    hsize_t dims[2];
+//
+//    // Write the initial species counts.
+//    dims[0] = numberSpecies;
+//    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Reaction/InitialSpeciesCounts", 1, dims, H5T_STD_U32LE, reactionModel->initial_species_count().data()));
+//
+//    // If we have any reactions, write out the reaction tables.
+//    if (reactionModel->number_reactions())
+//    {
+//        // Write the reaction tables.
+//        uint * types = new uint[numberReactions];
+//        double * constants = new double[numberReactions*MAX_REACTION_RATE_CONSTANTS];
+//        bool hasNoiseTable = false;
+//        const uint NUMBER_NOISE_COLS = 2;
+//        double * noiseTerms = new double[numberReactions*NUMBER_NOISE_COLS];
+//        for (uint i=0; i<numberReactions*NUMBER_NOISE_COLS; i++) noiseTerms[i] = 0.0;
+//        for (uint i=0; i<numberReactions; i++)
+//        {
+//            types[i] = reactionModel->reaction(i).type();
+//            uint j=0;
+//            for (; j<(uint)(reactionModel->reaction(i).rate_constant_size()) && j<MAX_REACTION_RATE_CONSTANTS; j++)
+//                constants[i*MAX_REACTION_RATE_CONSTANTS+j] = reactionModel->reaction(i).rate_constant(j);
+//            for (; j<MAX_REACTION_RATE_CONSTANTS; j++)
+//                constants[i*MAX_REACTION_RATE_CONSTANTS+j] = NAN;
+//
+//            // If we have noise terms, fill them in and mark that we need to create the noise table.
+//            if (reactionModel->reaction(i).rate_has_noise())
+//            {
+//                hasNoiseTable = true;
+//                noiseTerms[i*NUMBER_NOISE_COLS] = reactionModel->reaction(i).rate_noise_variance();
+//                noiseTerms[i*NUMBER_NOISE_COLS+1] = reactionModel->reaction(i).rate_noise_tau();
+//            }
+//        }
+//        dims[0] = numberReactions;
+//        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Reaction/ReactionTypes", 1, dims, H5T_STD_U32LE, types));
+//        dims[0] = numberReactions;
+//        dims[1] = MAX_REACTION_RATE_CONSTANTS;
+//        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Reaction/ReactionRateConstants", 2, dims, H5T_IEEE_F64LE, constants));
+//
+//        // If necessary, create the noise table.
+//        if (hasNoiseTable)
+//        {
+//            dims[0] = numberReactions;
+//            dims[1] = NUMBER_NOISE_COLS;
+//            HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Reaction/ReactionRateNoise", 2, dims, H5T_IEEE_F64LE, noiseTerms));
+//        }
+//        delete [] noiseTerms;
+//        delete [] constants;
+//        delete [] types;
+//
+//        // Write the matrices.
+//        dims[0] = numberSpecies;
+//        dims[1] = numberReactions;
+//        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Reaction/StoichiometricMatrix", 2, dims, H5T_STD_I32LE, reactionModel->stoichiometric_matrix().data()));
+//        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Reaction/DependencyMatrix", 2, dims, H5T_STD_U32LE, reactionModel->dependency_matrix().data()));
+//    }
+}
+
 bool Hdf5File::hasReactionModel()
 {
     return (H5Lexists(file, "/Model/Reaction", H5P_DEFAULT) != 0);
@@ -570,154 +915,6 @@ void Hdf5File::setReactionModel(lm::io::ReactionModel * reactionModel) throw(Exc
         dims[1] = numberReactions;
         HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Reaction/StoichiometricMatrix", 2, dims, H5T_STD_I32LE, reactionModel->stoichiometric_matrix().data()));
         HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Reaction/DependencyMatrix", 2, dims, H5T_STD_U32LE, reactionModel->dependency_matrix().data()));
-    }
-}
-
-bool Hdf5File::hasDiffusionModel()
-{
-    return (H5Lexists(file, "/Model/Diffusion", H5P_DEFAULT) != 0);
-}
-
-void Hdf5File::getDiffusionModel(lm::io::DiffusionModel* diffusionModel) throw(Exception,InvalidArgException,HDF5Exception)
-{
-    // Make sure the model is not null and then clear it.
-    if (diffusionModel == NULL) throw InvalidArgException("diffusionModel", "cannot be null");
-    diffusionModel->Clear();
-
-    if (H5Lexists(file, "/Model/Diffusion", H5P_DEFAULT))
-    {
-        // Read the diffusion model attributes.
-        uint numberSpecies, numberReactions, numberSiteTypes, latticeXSize, latticeYSize, latticeZSize, particlesPerSite;
-        double latticeSpacing;
-        HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Model/Diffusion", "numberSpecies", &numberSpecies));
-        HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Model/Diffusion", "numberReactions", &numberReactions));
-        HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Model/Diffusion", "numberSiteTypes", &numberSiteTypes));
-        HDF5_EXCEPTION_CHECK(H5LTget_attribute_double(file, "/Model/Diffusion", "latticeSpacing", &latticeSpacing));
-        HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Model/Diffusion", "latticeXSize", &latticeXSize));
-        HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Model/Diffusion", "latticeYSize", &latticeYSize));
-        HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Model/Diffusion", "latticeZSize", &latticeZSize));
-        HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Model/Diffusion", "particlesPerSite", &particlesPerSite));
-
-        // Fill in the model.
-        diffusionModel->set_number_species(numberSpecies);
-        diffusionModel->set_number_reactions(numberReactions);
-        diffusionModel->set_number_site_types(numberSiteTypes);
-        diffusionModel->set_lattice_spacing(latticeSpacing);
-        lm::io::Lattice* lattice=diffusionModel->mutable_initial_lattice();
-        lattice->set_lattice_x_size(latticeXSize);
-        lattice->set_lattice_y_size(latticeYSize);
-        lattice->set_lattice_z_size(latticeZSize);
-        lattice->set_particles_per_site(particlesPerSite);
-
-        int ndims;
-        hsize_t dims[4];
-        H5T_class_t type;
-        size_t size;
-
-        // Read the diffusion matrix.
-        H5LTget_dataset_info(file, "/Model/Diffusion/DiffusionMatrix", dims, &type, &size);
-        if (dims[0] != numberSiteTypes || dims[1] != numberSiteTypes || dims[2] != numberSpecies || size != sizeof(double)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Diffusion/DiffusionMatrix");
-        double * D = new double[numberSiteTypes*numberSiteTypes*numberSpecies];
-        H5LTread_dataset_double(file, "/Model/Diffusion/DiffusionMatrix", D);
-        for (uint i=0; i<numberSiteTypes*numberSiteTypes*numberSpecies; i++) diffusionModel->add_diffusion_matrix(D[i]);
-        delete [] D;
-
-        // If we have reactions, read the reaction location matrix.
-        if (numberReactions > 0)
-        {
-            H5LTget_dataset_info(file, "/Model/Diffusion/ReactionLocationMatrix", dims, &type, &size);
-            if (dims[0] != numberReactions || dims[1] != numberSiteTypes || size != sizeof(uint)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Diffusion/ReactionLocationMatrix");
-            uint * RL = new uint[numberReactions*numberSiteTypes];
-			H5LTread_dataset(file, "/Model/Diffusion/ReactionLocationMatrix", H5T_STD_U32LE, RL);
-			for (uint i=0; i<numberReactions*numberSiteTypes; i++) diffusionModel->add_reaction_location_matrix(RL[i]);
-	        delete [] RL;
-        }
-
-        // Read the initial lattice.
-        HDF5_EXCEPTION_CHECK(H5LTget_dataset_ndims(file, "/Model/Diffusion/Lattice", &ndims));
-        if (ndims != 4) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Diffusion/Lattice");
-        HDF5_EXCEPTION_CHECK(H5LTget_dataset_info(file, "/Model/Diffusion/Lattice",dims, &type, &size));
-        if (lattice->lattice_x_size() != (int)dims[0] || lattice->lattice_y_size() != (int)dims[1] || lattice->lattice_z_size() != (int)dims[2] || lattice->particles_per_site() != (int)dims[3] || size != sizeof(uint8_t)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Diffusion/Lattice");
-        string* particles=new string();
-        particles->resize(dims[0]*dims[1]*dims[2]*dims[3]);
-        HDF5_EXCEPTION_CHECK(H5LTread_dataset(file, "/Model/Diffusion/Lattice", H5T_NATIVE_UINT8, &((*particles)[0])));
-        lattice->set_allocated_particles(particles);
-        lattice->set_particles_ordering(lm::io::ROW_MAJOR);
-
-        // Read the initial lattice sites.
-        HDF5_EXCEPTION_CHECK(H5LTget_dataset_ndims(file, "/Model/Diffusion/LatticeSites", &ndims));
-        if (ndims != 3) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Diffusion/LatticeSites");
-        HDF5_EXCEPTION_CHECK(H5LTget_dataset_info(file, "/Model/Diffusion/LatticeSites",dims, &type, &size));
-        if (lattice->lattice_x_size() != (int)dims[0] || lattice->lattice_y_size() != (int)dims[1] || lattice->lattice_z_size() != (int)dims[2] || size != sizeof(uint8_t)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Diffusion/LatticeSites");
-        string* sites=new string();
-        sites->resize(dims[0]*dims[1]*dims[2]);
-        HDF5_EXCEPTION_CHECK(H5LTread_dataset(file, "/Model/Diffusion/LatticeSites", H5T_NATIVE_UINT8, &((*sites)[0])));
-        lattice->set_allocated_sites(sites);
-        lattice->set_sites_ordering(lm::io::ROW_MAJOR);
-    }
-}
-
-void Hdf5File::setDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception)
-{
-    // Validate that the model is consistent.
-    if (diffusionModel == NULL) throw InvalidArgException("diffusionModel", "cannot be NULL");
-    if (diffusionModel->number_species() == 0) throw InvalidArgException("diffusionModel.number_species", "cannot be zero");
-    if (diffusionModel->number_site_types() == 0) throw InvalidArgException("diffusionModel.number_site_types", "cannot be zero");
-    if (diffusionModel->diffusion_matrix_size() != (int)(diffusionModel->number_site_types()*diffusionModel->number_site_types()*diffusionModel->number_species())) throw InvalidArgException("diffusion.diffusion_matrix", "inconsistent size");
-    if (diffusionModel->reaction_location_matrix_size() != (int)(diffusionModel->number_reactions()*diffusionModel->number_site_types())) throw InvalidArgException("diffusion.reaction_location_matrix", "inconsistent size");
-    if (diffusionModel->lattice_spacing() <= 0.0) throw InvalidArgException("diffusionModel.lattice_spacing", "must be greater than zero");
-    if (diffusionModel->initial_lattice().lattice_x_size() == 0) throw InvalidArgException("diffusionModel.lattice_x_size", "cannot be zero");
-    if (diffusionModel->initial_lattice().lattice_y_size() == 0) throw InvalidArgException("diffusionModel.lattice_y_size", "cannot be zero");
-    if (diffusionModel->initial_lattice().lattice_z_size() == 0) throw InvalidArgException("diffusionModel.lattice_z_size", "cannot be zero");
-    if (diffusionModel->initial_lattice().particles_per_site() == 0) throw InvalidArgException("diffusionModel.particles_per_site", "cannot be zero");
-
-    // If a diffusion model already exists, delete it.
-    if (H5Lexists(file, "/Model/Diffusion", H5P_DEFAULT))
-    {
-        HDF5_EXCEPTION_CHECK(H5Ldelete(file, "/Model/Diffusion", H5P_DEFAULT));
-    }
-
-    // Create the group for the reaction model.
-    hid_t group;
-    HDF5_EXCEPTION_CALL(group,H5Gcreate2(file, "/Model/Diffusion", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
-    HDF5_EXCEPTION_CHECK(H5Gclose(group));
-
-    // Write the attributes.
-    numberSpecies = diffusionModel->number_species();
-    uint numberReactions = diffusionModel->number_reactions();
-    uint numberSiteTypes = diffusionModel->number_site_types();
-    double latticeSpacing = diffusionModel->lattice_spacing();
-    uint latticeXSize = diffusionModel->initial_lattice().lattice_x_size();
-    uint latticeYSize = diffusionModel->initial_lattice().lattice_y_size();
-    uint latticeZSize = diffusionModel->initial_lattice().lattice_z_size();
-    uint particlesPerSite = diffusionModel->initial_lattice().particles_per_site();
-    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(file, "/Model/Diffusion", "numberSpecies", &numberSpecies, 1));
-    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(file, "/Model/Diffusion", "numberReactions", &numberReactions, 1));
-    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(file, "/Model/Diffusion", "numberSiteTypes", &numberSiteTypes, 1));
-    HDF5_EXCEPTION_CHECK(H5LTset_attribute_double(file, "/Model/Diffusion", "latticeSpacing", &latticeSpacing, 1));
-    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(file, "/Model/Diffusion", "latticeXSize", &latticeXSize, 1));
-    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(file, "/Model/Diffusion", "latticeYSize", &latticeYSize, 1));
-    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(file, "/Model/Diffusion", "latticeZSize", &latticeZSize, 1));
-    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(file, "/Model/Diffusion", "particlesPerSite", &particlesPerSite, 1));
-
-    // Write the diffusion matrix.
-    {
-		const unsigned int RANK=3;
-		hsize_t dims[RANK];
-		dims[0] = numberSiteTypes;
-		dims[1] = numberSiteTypes;
-		dims[2] = numberSpecies;
-		HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Diffusion/DiffusionMatrix", RANK, dims, H5T_IEEE_F64LE, diffusionModel->diffusion_matrix().data()));
-	}
-
-    // Write the reaction location matrix.
-    if (numberReactions > 0)
-    {
-		const unsigned int RANK=2;
-		hsize_t dims[RANK];
-		dims[0] = numberReactions;
-		dims[1] = numberSiteTypes;
-		HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Diffusion/ReactionLocationMatrix", RANK, dims, H5T_STD_U32LE, diffusionModel->reaction_location_matrix().data()));
     }
 }
 

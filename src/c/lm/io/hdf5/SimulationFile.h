@@ -39,7 +39,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #ifndef LM_IO_HDF5_SIMULATIONFILE_H_
@@ -122,12 +122,15 @@ public:
     virtual void setParameter(string key, string value) throw(HDF5Exception);
 
     // Methods for working with the model.
-    virtual bool hasReactionModel();
-    virtual void getReactionModel(lm::io::ReactionModel * reactionModel) throw(Exception,InvalidArgException,HDF5Exception);
-    virtual void setReactionModel(lm::io::ReactionModel * reactionModel) throw(Exception,InvalidArgException,HDF5Exception);
     virtual bool hasDiffusionModel();
     virtual void getDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception);
     virtual void setDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception);
+    virtual bool hasFFluxModel();
+    virtual void getFFluxModel(lm::io::FFluxModel * ffluxModel);
+    virtual void setFFluxModel(lm::io::FFluxModel * ffluxModel);
+    virtual bool hasReactionModel();
+	virtual void getReactionModel(lm::io::ReactionModel * reactionModel) throw(Exception,InvalidArgException,HDF5Exception);
+	virtual void setReactionModel(lm::io::ReactionModel * reactionModel) throw(Exception,InvalidArgException,HDF5Exception);
     virtual void setSpatialModel(lm::io::SpatialModel * model) throw(Exception,InvalidArgException,HDF5Exception);
     virtual void getSpatialModel(lm::io::SpatialModel * model) throw(Exception,InvalidArgException,HDF5Exception);
     virtual bool hasBoundaryGradient();
