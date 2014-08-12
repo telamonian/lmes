@@ -125,9 +125,9 @@ public:
     virtual bool hasDiffusionModel();
     virtual void getDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception);
     virtual void setDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception);
-    virtual bool hasFFluxModel();
-    virtual void getFFluxModel(lm::io::FFluxModel * ffluxModel);
-    virtual void setFFluxModel(lm::io::FFluxModel * ffluxModel);
+    virtual bool hasFFluxParameters();
+    virtual void getFFluxParameters(lm::io::FFluxParameters * ffluxParameters);
+    virtual void setFFluxParameters(lm::io::FFluxParameters * ffluxParameters);
     virtual bool hasReactionModel();
 	virtual void getReactionModel(lm::io::ReactionModel * reactionModel) throw(Exception,InvalidArgException,HDF5Exception);
 	virtual void setReactionModel(lm::io::ReactionModel * reactionModel) throw(Exception,InvalidArgException,HDF5Exception);

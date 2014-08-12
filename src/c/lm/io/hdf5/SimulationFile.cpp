@@ -524,24 +524,24 @@ void Hdf5File::setDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(
     }
 }
 
-bool Hdf5File::hasFFluxModel()
+bool Hdf5File::hasFFluxParameters()
 {
-    return (H5Lexists(file, "/Model/FFlux", H5P_DEFAULT) != 0);
+    return (H5Lexists(file, "/Parameters/FFlux", H5P_DEFAULT) != 0);
 }
 
-void Hdf5File::getFFluxModel(lm::io::FFluxModel * ffluxModel)
+void Hdf5File::getFFluxParameters(lm::io::FFluxParameters * ffluxParameters)
 {
-//    // Make sure the model is not null and then clear it.
-//    if (reactionModel == NULL) throw InvalidArgException("reactionModel", "cannot be null");
-//    reactionModel->Clear();
-//
-//    if (H5Lexists(file, "/Model/Reaction", H5P_DEFAULT))
-//    {
-//        // Read at least the numbers of species.
-//        HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Model/Reaction", "numberSpecies", &numberSpecies));
-//        reactionModel->set_number_species(numberSpecies);
-//        reactionModel->set_number_reactions(0);
-//
+    // Make sure the model is not null and then clear it.
+    if (ffluxParameters == NULL) throw InvalidArgException("ffluxParameters", "cannot be null");
+    ffluxParameters->Clear();
+
+    if (H5Lexists(file, "/Parameters/FFlux", H5P_DEFAULT))
+    {
+        // Read at least the numbers of species.
+        HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Model/Reaction", "numberSpecies", &numberSpecies));
+        reactionModel->set_number_species(numberSpecies);
+        reactionModel->set_number_reactions(0);
+
 //        // If we have the number of reactions, we must have a full model so read it.
 //        if (H5Aexists_by_name(file, "/Model/Reaction", "numberReactions", H5P_DEFAULT) > 0)
 //        {
