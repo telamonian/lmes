@@ -40,21 +40,17 @@
 package lm.io;
 
 message FFluxParameters {
-
-    required uint32 number_order_parameters       = 1;
-    required uint32 number_interfaces             = 2;
-
     message OrderParameter {
-        required uint32 type                        = 1;
-        repeated uint32 number_species              = 2 [packed=true];
-        repeated double coefficient_species         = 3 [packed=true];
+        required uint32 type                     = 1;
+        repeated uint32 species_id               = 2 [packed=true];
+        repeated double species_coefficient      = 3 [packed=true];
     }
 
     message Interface {
         required uint32 order_parameter_id       = 1;
-        required double value                    = 2;
+        repeated double bin_border               = 2 [packed=true];
     }
 
-    repeated OrderParameter orderParameter       = 3;
-    repeated Interface interface                 = 4;
+    repeated OrderParameter orderParameter       = 1;
+    repeated Interface interface                 = 2;
 }

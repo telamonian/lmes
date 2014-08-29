@@ -126,6 +126,8 @@ public:
     virtual void getDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception);
     virtual void setDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception);
     virtual bool hasFFluxParameters();
+    virtual herr_t getFFluxParametersInterfaceCallback (hid_t loc_id, const char *name, const H5L_info_t *info, void *operator_data);
+    virtual herr_t getFFluxParametersOrderParameterCallback (hid_t loc_id, const char *name, const H5L_info_t *info, void *operator_data);
     virtual void getFFluxParameters(lm::io::FFluxParameters * ffluxParameters);
     virtual void setFFluxParameters(lm::io::FFluxParameters * ffluxParameters);
     virtual bool hasReactionModel();

@@ -119,7 +119,8 @@ ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
-    target_link_libraries(lm lm_cuda_lib)
+    target_link_libraries(lm lm_cuda_lib
+                             ${CUDA_LIBRARIES})
 ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional)) 
 
 target_link_libraries(lm ${CMAKE_THREAD_LIBS_INIT}
@@ -128,7 +129,6 @@ target_link_libraries(lm ${CMAKE_THREAD_LIBS_INIT}
                          ${HDF5_LIBRARIES}
                          ${HDF5_HL_LIBRARIES}
                          ${MPI_C_LIBRARIES}
-                         ${CUDA_LIBRARIES}
                          ${PYTHON_LIBRARY_DIRS})
 
 #enable_testing()
@@ -143,7 +143,8 @@ target_link_libraries(lm ${CMAKE_THREAD_LIBS_INIT}
 #
 #add_executable(lm_test ${lm_test_src})
 #IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
-#    target_link_libraries(lm_test lm_cuda_lib)
+#    target_link_libraries(lm_test lm_cuda_lib
+#                                  ${CUDA_LIBRARIES})
 #ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional)) 
 #target_link_libraries(lm_test lm_c_lib 
 #                              ${CMAKE_THREAD_LIBS_INIT}
@@ -152,7 +153,6 @@ target_link_libraries(lm ${CMAKE_THREAD_LIBS_INIT}
 #                              ${HDF5_LIBRARIES}
 #                              ${HDF5_HL_LIBRARIES}
 #                              ${MPI_C_LIBRARIES}
-#                              ${CUDA_LIBRARIES}
 #                              ${PYTHON_LIBRARY_DIRS}
 #                              gmock
 #                              gmock_main

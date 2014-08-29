@@ -5,12 +5,12 @@
  * All rights reserved.
  *
  * Developed by: Luthey-Schulten Group
- * 			     University of Illinois at Urbana-Champaign
- * 			     http://www.scs.uiuc.edu/~schulten
+ *                  University of Illinois at Urbana-Champaign
+ *                  http://www.scs.uiuc.edu/~schulten
  *
  * Developed by: Roberts Group
- * 			     Johns Hopkins University
- * 			     http://biophysics.jhu.edu/roberts/
+ *                  Johns Hopkins University
+ *                  http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -82,25 +82,25 @@ namespace hdf5 {
 const uint Hdf5File::MIN_VERSION                   = 2;
 const uint Hdf5File::CURRENT_VERSION               = 4;
 const uint Hdf5File::MAX_REACTION_RATE_CONSTANTS   = 10;
-const uint Hdf5File::MAX_SHAPE_PARAMETERS		   = 10;
+const uint Hdf5File::MAX_SHAPE_PARAMETERS           = 10;
 
 
 Hdf5File::Hdf5File(const string filename) throw(IOException,HDF5Exception,Exception)
 :filename(filename),file(H5I_INVALID_HID),version(0),parametersGroup(H5I_INVALID_HID),modelGroup(H5I_INVALID_HID),simulationsGroup(H5I_INVALID_HID),modelLoaded(false),numberSpecies(0)
 {
-	open();
+    open();
 }
 
 Hdf5File::Hdf5File(const char* filename) throw(IOException,HDF5Exception,Exception)
 :filename(filename),file(H5I_INVALID_HID),version(0),parametersGroup(H5I_INVALID_HID),modelGroup(H5I_INVALID_HID),simulationsGroup(H5I_INVALID_HID),modelLoaded(false),numberSpecies(0)
 {
-	open();
+    open();
 }
 
 Hdf5File::~Hdf5File()
 {
-	//Close the file, if it is still open.
-	close();
+    //Close the file, if it is still open.
+    close();
 }
 
 void Hdf5File::open() throw(IOException,HDF5Exception,Exception)
@@ -431,9 +431,9 @@ void Hdf5File::getDiffusionModel(lm::io::DiffusionModel* diffusionModel) throw(E
             H5LTget_dataset_info(file, "/Model/Diffusion/ReactionLocationMatrix", dims, &type, &size);
             if (dims[0] != numberReactions || dims[1] != numberSiteTypes || size != sizeof(uint)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Diffusion/ReactionLocationMatrix");
             uint * RL = new uint[numberReactions*numberSiteTypes];
-			H5LTread_dataset(file, "/Model/Diffusion/ReactionLocationMatrix", H5T_STD_U32LE, RL);
-			for (uint i=0; i<numberReactions*numberSiteTypes; i++) diffusionModel->add_reaction_location_matrix(RL[i]);
-	        delete [] RL;
+            H5LTread_dataset(file, "/Model/Diffusion/ReactionLocationMatrix", H5T_STD_U32LE, RL);
+            for (uint i=0; i<numberReactions*numberSiteTypes; i++) diffusionModel->add_reaction_location_matrix(RL[i]);
+            delete [] RL;
         }
 
         // Read the initial lattice.
@@ -505,28 +505,44 @@ void Hdf5File::setDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(
 
     // Write the diffusion matrix.
     {
-		const unsigned int RANK=3;
-		hsize_t dims[RANK];
-		dims[0] = numberSiteTypes;
-		dims[1] = numberSiteTypes;
-		dims[2] = numberSpecies;
-		HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Diffusion/DiffusionMatrix", RANK, dims, H5T_IEEE_F64LE, diffusionModel->diffusion_matrix().data()));
-	}
+        const unsigned int RANK=3;
+        hsize_t dims[RANK];
+        dims[0] = numberSiteTypes;
+        dims[1] = numberSiteTypes;
+        dims[2] = numberSpecies;
+        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Diffusion/DiffusionMatrix", RANK, dims, H5T_IEEE_F64LE, diffusionModel->diffusion_matrix().data()));
+    }
 
     // Write the reaction location matrix.
     if (numberReactions > 0)
     {
-		const unsigned int RANK=2;
-		hsize_t dims[RANK];
-		dims[0] = numberReactions;
-		dims[1] = numberSiteTypes;
-		HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Diffusion/ReactionLocationMatrix", RANK, dims, H5T_STD_U32LE, diffusionModel->reaction_location_matrix().data()));
+        const unsigned int RANK=2;
+        hsize_t dims[RANK];
+        dims[0] = numberReactions;
+        dims[1] = numberSiteTypes;
+        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Diffusion/ReactionLocationMatrix", RANK, dims, H5T_STD_U32LE, diffusionModel->reaction_location_matrix().data()));
     }
 }
 
 bool Hdf5File::hasFFluxParameters()
 {
     return (H5Lexists(file, "/Parameters/FFlux", H5P_DEFAULT) != 0);
+}
+
+herr_t Hdf5File::getFFluxParametersInterfaceCallback(hid_t loc_id, const char *name, const H5L_info_t *info, void *operator_data)
+{
+    hsize_t dims[1];
+    H5T_class_t type;
+    size_t size;
+    H5LTget_dataset_info(file, *name, dims, &type, &size);
+}
+
+herr_t Hdf5File::getFFluxParametersOrderParameterCallback(hid_t loc_id, const char *name, const H5L_info_t *info, void *operator_data)
+{
+    hsize_t dims[1];
+    H5T_class_t type;
+    size_t size;
+    H5LTget_dataset_info(file, *name, dims, &type, &size);
 }
 
 void Hdf5File::getFFluxParameters(lm::io::FFluxParameters * ffluxParameters)
@@ -537,103 +553,108 @@ void Hdf5File::getFFluxParameters(lm::io::FFluxParameters * ffluxParameters)
 
     if (H5Lexists(file, "/Parameters/FFlux", H5P_DEFAULT))
     {
-        // Read at least the numbers of species.
-        HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Model/Reaction", "numberSpecies", &numberSpecies));
-        reactionModel->set_number_species(numberSpecies);
-        reactionModel->set_number_reactions(0);
+        H5G_info_t interfaceInfo, orderParameterInfo;
+        if (H5Lexists(file, "/Parameters/FFlux/Interface", H5P_DEFAULT))
+        {
+            H5Literate_by_name(file, "/Parameters/FFlux/Interface", H5_INDEX_NAME, H5_ITER_INC,NULL,getFFluxParametersCallback, NULL, H5P_DEFAULT);
+            HDF5_EXCEPTION_CHECK(H5Gget_info_by_name(file, "/Parameters/FFlux/Interface", &interfaceInfo, H5P_DEFAULT));
 
-//        // If we have the number of reactions, we must have a full model so read it.
-//        if (H5Aexists_by_name(file, "/Model/Reaction", "numberReactions", H5P_DEFAULT) > 0)
-//        {
-//            hsize_t dims[2];
-//            H5T_class_t type;
-//            size_t size;
-//
-//            // Read the initial species counts.
-//            H5LTget_dataset_info(file, "/Model/Reaction/InitialSpeciesCounts", dims, &type, &size);
-//            if (dims[0] != numberSpecies || size != sizeof(uint)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/InitialSpeciesCounts");
-//
-//            // Read the number of reactions.
-//            uint numberReactions;
-//            HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Model/Reaction", "numberReactions", &numberReactions));
-//            reactionModel->set_number_reactions(numberReactions);
-//
-//            // Read the reaction tables.
-//            if (numberReactions > 0)
-//            {
-//                // Make sure all of the data sets are the correct size.
-//                H5LTget_dataset_info(file, "/Model/Reaction/ReactionTypes", dims, &type, &size);
-//                if (dims[0] != numberReactions || size != sizeof(uint)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/ReactionTypes");
-//                H5LTget_dataset_info(file, "/Model/Reaction/ReactionRateConstants", dims, &type, &size);
-//                if (dims[0] != numberReactions || dims[1] != MAX_REACTION_RATE_CONSTANTS || size != sizeof(double)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/ReactionRateConstants");
-//                H5LTget_dataset_info(file, "/Model/Reaction/StoichiometricMatrix", dims, &type, &size);
-//                if (dims[0] != numberSpecies || dims[1] != numberReactions || size != sizeof(int)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/StoichiometricMatrix");
-//                H5LTget_dataset_info(file, "/Model/Reaction/DependencyMatrix", dims, &type, &size);
-//                if (dims[0] != numberSpecies || dims[1] != numberReactions || size != sizeof(uint)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/DependencyMatrix");
-//
-//                // If we have rate noise terms, make sure they are the correct size.
-//                const uint NUMBER_NOISE_COLS = 2;
-//                bool hasNoiseTable = false;
-//                if (H5Lexists(file, "/Model/Reaction/ReactionRateNoise", H5P_DEFAULT))
-//                {
-//                    hasNoiseTable = true;
-//                    H5LTget_dataset_info(file, "/Model/Reaction/ReactionRateNoise", dims, &type, &size);
-//                    if (dims[0] != numberReactions || dims[1] != NUMBER_NOISE_COLS || size != sizeof(double)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/ReactionRateNoise");
-//                }
-//
-//                // Allocate some buffers for reading the data.
-//                int * intBuffer = new int[numberSpecies*numberReactions];
-//                double * doubleBuffer = new double[numberReactions*MAX_REACTION_RATE_CONSTANTS];
-//                double * noiseBuffer = new double[numberReactions*NUMBER_NOISE_COLS];
-//
-//                // Read the initial species counts.
-//                H5LTread_dataset_int(file, "/Model/Reaction/InitialSpeciesCounts", intBuffer);
-//                for (uint i=0; i<numberSpecies; i++) reactionModel->add_initial_species_count((uint)intBuffer[i]);
-//
-//                // Read the reaction info.
-//                H5LTread_dataset_int(file, "/Model/Reaction/ReactionTypes", intBuffer);
-//                H5LTread_dataset_double(file, "/Model/Reaction/ReactionRateConstants", doubleBuffer);
-//                if (hasNoiseTable) H5LTread_dataset_double(file, "/Model/Reaction/ReactionRateNoise", noiseBuffer);
-//                for (uint i=0; i<numberReactions; i++)
-//                {
-//                    reactionModel->add_reaction();
-//                    reactionModel->mutable_reaction(i)->set_type((uint)intBuffer[i]);
-//                    for (uint j=0; j<MAX_REACTION_RATE_CONSTANTS; j++)
-//                    {
-//                        double k = doubleBuffer[i*MAX_REACTION_RATE_CONSTANTS+j];
-//                        if (!std::isnan(k))
-//                            reactionModel->mutable_reaction(i)->add_rate_constant(k);
-//                        else
-//                            break;
-//                    }
-//
-//                    // If we have noise terms, set them.
-//                    if (hasNoiseTable)
-//                    {
-//                        double nvar = noiseBuffer[i*NUMBER_NOISE_COLS];
-//                        double ntau = noiseBuffer[i*NUMBER_NOISE_COLS+1];
-//                        if (nvar > 0.0 && ntau > 0.0 && !std::isnan(nvar) && !std::isnan(ntau))
-//                        {
-//                            reactionModel->mutable_reaction(i)->set_rate_has_noise(true);
-//                            reactionModel->mutable_reaction(i)->set_rate_noise_variance(nvar);
-//                            reactionModel->mutable_reaction(i)->set_rate_noise_tau(ntau);
-//                        }
-//                    }
-//                }
-//
-//                // Read the matrices.
-//                H5LTread_dataset_int(file, "/Model/Reaction/StoichiometricMatrix", intBuffer);
-//                for (uint i=0; i<numberSpecies*numberReactions; i++) reactionModel->add_stoichiometric_matrix(intBuffer[i]);
-//                H5LTread_dataset_int(file, "/Model/Reaction/DependencyMatrix", intBuffer);
-//                for (uint i=0; i<numberSpecies*numberReactions; i++) reactionModel->add_dependency_matrix((uint)intBuffer[i]);
-//
-//                // Free the buffers.
-//                delete [] noiseBuffer;
-//                delete [] doubleBuffer;
-//                delete [] intBuffer;
-//            }
-//        }
-//    }
+        }
+        uint numberOrderParameters, numberInterfaces;
+        HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Parameters/FFlux", "numberOrderParameters", &numberOrderParameters));
+
+        // If we have the number of interfaces, we must have a full model so read it.
+        if (H5Aexists_by_name(file, "/Parameters/FFlux", "numberInterfaces", H5P_DEFAULT) > 0)
+        {
+            hsize_t dims[1];
+            H5T_class_t type;
+            size_t size;
+
+            // Read the initial species counts.
+            H5LTget_dataset_info(file, "/Model/Reaction/InitialSpeciesCounts", dims, &type, &size);
+            if (dims[0] != numberSpecies || size != sizeof(uint)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/InitialSpeciesCounts");
+
+            // Read the number of reactions.
+            uint numberReactions;
+            HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Model/Reaction", "numberReactions", &numberReactions));
+            reactionModel->set_number_reactions(numberReactions);
+
+            // Read the reaction tables.
+            if (numberReactions > 0)
+            {
+                // Make sure all of the data sets are the correct size.
+                H5LTget_dataset_info(file, "/Model/Reaction/ReactionTypes", dims, &type, &size);
+                if (dims[0] != numberReactions || size != sizeof(uint)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/ReactionTypes");
+                H5LTget_dataset_info(file, "/Model/Reaction/ReactionRateConstants", dims, &type, &size);
+                if (dims[0] != numberReactions || dims[1] != MAX_REACTION_RATE_CONSTANTS || size != sizeof(double)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/ReactionRateConstants");
+                H5LTget_dataset_info(file, "/Model/Reaction/StoichiometricMatrix", dims, &type, &size);
+                if (dims[0] != numberSpecies || dims[1] != numberReactions || size != sizeof(int)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/StoichiometricMatrix");
+                H5LTget_dataset_info(file, "/Model/Reaction/DependencyMatrix", dims, &type, &size);
+                if (dims[0] != numberSpecies || dims[1] != numberReactions || size != sizeof(uint)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/DependencyMatrix");
+
+                // If we have rate noise terms, make sure they are the correct size.
+                const uint NUMBER_NOISE_COLS = 2;
+                bool hasNoiseTable = false;
+                if (H5Lexists(file, "/Model/Reaction/ReactionRateNoise", H5P_DEFAULT))
+                {
+                    hasNoiseTable = true;
+                    H5LTget_dataset_info(file, "/Model/Reaction/ReactionRateNoise", dims, &type, &size);
+                    if (dims[0] != numberReactions || dims[1] != NUMBER_NOISE_COLS || size != sizeof(double)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/ReactionRateNoise");
+                }
+
+                // Allocate some buffers for reading the data.
+                int * intBuffer = new int[numberSpecies*numberReactions];
+                double * doubleBuffer = new double[numberReactions*MAX_REACTION_RATE_CONSTANTS];
+                double * noiseBuffer = new double[numberReactions*NUMBER_NOISE_COLS];
+
+                // Read the initial species counts.
+                H5LTread_dataset_int(file, "/Model/Reaction/InitialSpeciesCounts", intBuffer);
+                for (uint i=0; i<numberSpecies; i++) reactionModel->add_initial_species_count((uint)intBuffer[i]);
+
+                // Read the reaction info.
+                H5LTread_dataset_int(file, "/Model/Reaction/ReactionTypes", intBuffer);
+                H5LTread_dataset_double(file, "/Model/Reaction/ReactionRateConstants", doubleBuffer);
+                if (hasNoiseTable) H5LTread_dataset_double(file, "/Model/Reaction/ReactionRateNoise", noiseBuffer);
+                for (uint i=0; i<numberReactions; i++)
+                {
+                    reactionModel->add_reaction();
+                    reactionModel->mutable_reaction(i)->set_type((uint)intBuffer[i]);
+                    for (uint j=0; j<MAX_REACTION_RATE_CONSTANTS; j++)
+                    {
+                        double k = doubleBuffer[i*MAX_REACTION_RATE_CONSTANTS+j];
+                        if (!std::isnan(k))
+                            reactionModel->mutable_reaction(i)->add_rate_constant(k);
+                        else
+                            break;
+                    }
+
+                    // If we have noise terms, set them.
+                    if (hasNoiseTable)
+                    {
+                        double nvar = noiseBuffer[i*NUMBER_NOISE_COLS];
+                        double ntau = noiseBuffer[i*NUMBER_NOISE_COLS+1];
+                        if (nvar > 0.0 && ntau > 0.0 && !std::isnan(nvar) && !std::isnan(ntau))
+                        {
+                            reactionModel->mutable_reaction(i)->set_rate_has_noise(true);
+                            reactionModel->mutable_reaction(i)->set_rate_noise_variance(nvar);
+                            reactionModel->mutable_reaction(i)->set_rate_noise_tau(ntau);
+                        }
+                    }
+                }
+
+                // Read the matrices.
+                H5LTread_dataset_int(file, "/Model/Reaction/StoichiometricMatrix", intBuffer);
+                for (uint i=0; i<numberSpecies*numberReactions; i++) reactionModel->add_stoichiometric_matrix(intBuffer[i]);
+                H5LTread_dataset_int(file, "/Model/Reaction/DependencyMatrix", intBuffer);
+                for (uint i=0; i<numberSpecies*numberReactions; i++) reactionModel->add_dependency_matrix((uint)intBuffer[i]);
+
+                // Free the buffers.
+                delete [] noiseBuffer;
+                delete [] doubleBuffer;
+                delete [] intBuffer;
+            }
+        }
+    }
 }
 
 void Hdf5File::setFFluxModel(lm::io::FFluxModel * ffluxModel)
