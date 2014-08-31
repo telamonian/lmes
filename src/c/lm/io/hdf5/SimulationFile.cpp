@@ -58,6 +58,7 @@
 #include "lm/io/ArrayOrdering.pb.h"
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/io/FFluxParameters.pb.h"
 #include "lm/io/Lattice.pb.h"
 #include "lm/io/LatticeTimeSeries.pb.h"
 #include "lm/io/ParameterValues.pb.h"
@@ -529,136 +530,151 @@ bool Hdf5File::hasFFluxParameters()
     return (H5Lexists(file, "/Parameters/FFlux", H5P_DEFAULT) != 0);
 }
 
-herr_t Hdf5File::getFFluxParametersInterfaceCallback(hid_t loc_id, const char *name, const H5L_info_t *info, void *operator_data)
+herr_t Hdf5File::getFFluxParametersInterfaceCallback(hid_t loc_id, const char * name, const H5L_info_t * info, void * callbackData)
 {
+    // recast the callbackData structure away from void *
+    CallbackData * cd = (CallbackData *)callbackData;
+
+    // create a new interface in the ffluxParameters protobuf
+    lm::io::FFluxParameters_Interface * newInterface = cd->ffluxParameters->add_interface();
+
+    // get the ID of the order parameter associated with this interface
+    uint opID;
+    HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(loc_id, name, "orderParameterID", &opID));
+    newInterface->set_order_parameter_id(opID);
+
+//    // read in some information about the interface group in the current iteration
+//    H5G_info_t interfaceInfo;
+//    HDF5_EXCEPTION_CHECK(H5Gget_info_by_name(file, name, &interfaceInfo, H5P_DEFAULT));
+
+    // read in the values of the interface's bin borders
     hsize_t dims[1];
     H5T_class_t type;
     size_t size;
-    H5LTget_dataset_info(file, *name, dims, &type, &size);
+
+    H5LTget_dataset_info(loc_id, "BinBorders", dims, &type, &size);
+    double * binBuffer = new double[dims[0]];
+    H5LTread_dataset_double(loc_id, "BinBorders", binBuffer);
+    for (int i=0;i<dims[0];i++)
+    {
+        newInterface->add_bin_border(binBuffer[i]);
+    }
+
+    // free the buffers
+    delete[] binBuffer;
+
+    return 0;
 }
 
-herr_t Hdf5File::getFFluxParametersOrderParameterCallback(hid_t loc_id, const char *name, const H5L_info_t *info, void *operator_data)
+herr_t Hdf5File::getFFluxParametersOrderParameterCallback(hid_t loc_id, const char * name, const H5L_info_t * info, void * callbackData)
 {
+    // recast the callbackData structure away from void *
+    CallbackData * cd = (CallbackData *)callbackData;
+
+    // create a new order parameter in the ffluxParameters protobuf
+    lm::io::FFluxParameters_OrderParameter * newOP = cd->ffluxParameters->add_order_parameter();
+
+    // get the order parameter type and ID
+    uint typeNum, id;
+    HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(loc_id, name, "type", &typeNum));
+    HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(loc_id, name, "id", &id));
+    newOP->set_type(typeNum);
+    newOP->set_id(id);
+
+    // read in the ids of the species that this order parameter uses, as well as their associated coefficients
     hsize_t dims[1];
     H5T_class_t type;
     size_t size;
-    H5LTget_dataset_info(file, *name, dims, &type, &size);
+
+    H5LTget_dataset_info(loc_id, "SpeciesIDs", dims, &type, &size);
+    int * speciesBuffer = new int[dims[0]];
+    H5LTread_dataset_int(loc_id, "SpeciesIDs", speciesBuffer);
+    for (int i=0;i<dims[0];i++)
+    {
+        newOP->add_species_id(speciesBuffer[i]);
+    }
+
+    H5LTget_dataset_info(loc_id, "SpeciesCoefficients", dims, &type, &size);
+    double * coefficientBuffer = new double[dims[0]];
+    H5LTread_dataset_double(loc_id, "SpeciesCoefficients", coefficientBuffer);
+    for (int i=0;i<dims[0];i++)
+    {
+        newOP->add_species_coefficient(coefficientBuffer[i]);
+    }
+
+    // free the buffers
+    delete[] speciesBuffer;
+    delete[] coefficientBuffer;
+
+    return 0;
 }
 
 void Hdf5File::getFFluxParameters(lm::io::FFluxParameters * ffluxParameters)
 {
-    // Make sure the model is not null and then clear it.
+    // Make sure the model is not null and then clear it
     if (ffluxParameters == NULL) throw InvalidArgException("ffluxParameters", "cannot be null");
     ffluxParameters->Clear();
 
+    // Declare and initialize the data structure for the callbacks in the iterators
+    CallbackData * callbackData = new CallbackData;
+    callbackData->ffluxParameters = ffluxParameters;
+
     if (H5Lexists(file, "/Parameters/FFlux", H5P_DEFAULT))
     {
-        H5G_info_t interfaceInfo, orderParameterInfo;
         if (H5Lexists(file, "/Parameters/FFlux/Interface", H5P_DEFAULT))
         {
-            H5Literate_by_name(file, "/Parameters/FFlux/Interface", H5_INDEX_NAME, H5_ITER_INC,NULL,getFFluxParametersCallback, NULL, H5P_DEFAULT);
-            HDF5_EXCEPTION_CHECK(H5Gget_info_by_name(file, "/Parameters/FFlux/Interface", &interfaceInfo, H5P_DEFAULT));
-
+            H5Literate_by_name(file, "/Parameters/FFlux/Interface", H5_INDEX_NAME, H5_ITER_INC, NULL, getFFluxParametersInterfaceCallback, (void *)callbackData, H5P_DEFAULT);
         }
-        uint numberOrderParameters, numberInterfaces;
-        HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Parameters/FFlux", "numberOrderParameters", &numberOrderParameters));
-
-        // If we have the number of interfaces, we must have a full model so read it.
-        if (H5Aexists_by_name(file, "/Parameters/FFlux", "numberInterfaces", H5P_DEFAULT) > 0)
+        if (H5Lexists(file, "/Parameters/FFlux/OrderParameter", H5P_DEFAULT))
         {
-            hsize_t dims[1];
-            H5T_class_t type;
-            size_t size;
-
-            // Read the initial species counts.
-            H5LTget_dataset_info(file, "/Model/Reaction/InitialSpeciesCounts", dims, &type, &size);
-            if (dims[0] != numberSpecies || size != sizeof(uint)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/InitialSpeciesCounts");
-
-            // Read the number of reactions.
-            uint numberReactions;
-            HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Model/Reaction", "numberReactions", &numberReactions));
-            reactionModel->set_number_reactions(numberReactions);
-
-            // Read the reaction tables.
-            if (numberReactions > 0)
-            {
-                // Make sure all of the data sets are the correct size.
-                H5LTget_dataset_info(file, "/Model/Reaction/ReactionTypes", dims, &type, &size);
-                if (dims[0] != numberReactions || size != sizeof(uint)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/ReactionTypes");
-                H5LTget_dataset_info(file, "/Model/Reaction/ReactionRateConstants", dims, &type, &size);
-                if (dims[0] != numberReactions || dims[1] != MAX_REACTION_RATE_CONSTANTS || size != sizeof(double)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/ReactionRateConstants");
-                H5LTget_dataset_info(file, "/Model/Reaction/StoichiometricMatrix", dims, &type, &size);
-                if (dims[0] != numberSpecies || dims[1] != numberReactions || size != sizeof(int)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/StoichiometricMatrix");
-                H5LTget_dataset_info(file, "/Model/Reaction/DependencyMatrix", dims, &type, &size);
-                if (dims[0] != numberSpecies || dims[1] != numberReactions || size != sizeof(uint)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/DependencyMatrix");
-
-                // If we have rate noise terms, make sure they are the correct size.
-                const uint NUMBER_NOISE_COLS = 2;
-                bool hasNoiseTable = false;
-                if (H5Lexists(file, "/Model/Reaction/ReactionRateNoise", H5P_DEFAULT))
-                {
-                    hasNoiseTable = true;
-                    H5LTget_dataset_info(file, "/Model/Reaction/ReactionRateNoise", dims, &type, &size);
-                    if (dims[0] != numberReactions || dims[1] != NUMBER_NOISE_COLS || size != sizeof(double)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/ReactionRateNoise");
-                }
-
-                // Allocate some buffers for reading the data.
-                int * intBuffer = new int[numberSpecies*numberReactions];
-                double * doubleBuffer = new double[numberReactions*MAX_REACTION_RATE_CONSTANTS];
-                double * noiseBuffer = new double[numberReactions*NUMBER_NOISE_COLS];
-
-                // Read the initial species counts.
-                H5LTread_dataset_int(file, "/Model/Reaction/InitialSpeciesCounts", intBuffer);
-                for (uint i=0; i<numberSpecies; i++) reactionModel->add_initial_species_count((uint)intBuffer[i]);
-
-                // Read the reaction info.
-                H5LTread_dataset_int(file, "/Model/Reaction/ReactionTypes", intBuffer);
-                H5LTread_dataset_double(file, "/Model/Reaction/ReactionRateConstants", doubleBuffer);
-                if (hasNoiseTable) H5LTread_dataset_double(file, "/Model/Reaction/ReactionRateNoise", noiseBuffer);
-                for (uint i=0; i<numberReactions; i++)
-                {
-                    reactionModel->add_reaction();
-                    reactionModel->mutable_reaction(i)->set_type((uint)intBuffer[i]);
-                    for (uint j=0; j<MAX_REACTION_RATE_CONSTANTS; j++)
-                    {
-                        double k = doubleBuffer[i*MAX_REACTION_RATE_CONSTANTS+j];
-                        if (!std::isnan(k))
-                            reactionModel->mutable_reaction(i)->add_rate_constant(k);
-                        else
-                            break;
-                    }
-
-                    // If we have noise terms, set them.
-                    if (hasNoiseTable)
-                    {
-                        double nvar = noiseBuffer[i*NUMBER_NOISE_COLS];
-                        double ntau = noiseBuffer[i*NUMBER_NOISE_COLS+1];
-                        if (nvar > 0.0 && ntau > 0.0 && !std::isnan(nvar) && !std::isnan(ntau))
-                        {
-                            reactionModel->mutable_reaction(i)->set_rate_has_noise(true);
-                            reactionModel->mutable_reaction(i)->set_rate_noise_variance(nvar);
-                            reactionModel->mutable_reaction(i)->set_rate_noise_tau(ntau);
-                        }
-                    }
-                }
-
-                // Read the matrices.
-                H5LTread_dataset_int(file, "/Model/Reaction/StoichiometricMatrix", intBuffer);
-                for (uint i=0; i<numberSpecies*numberReactions; i++) reactionModel->add_stoichiometric_matrix(intBuffer[i]);
-                H5LTread_dataset_int(file, "/Model/Reaction/DependencyMatrix", intBuffer);
-                for (uint i=0; i<numberSpecies*numberReactions; i++) reactionModel->add_dependency_matrix((uint)intBuffer[i]);
-
-                // Free the buffers.
-                delete [] noiseBuffer;
-                delete [] doubleBuffer;
-                delete [] intBuffer;
-            }
+            H5Literate_by_name(file, "/Parameters/FFlux/OrderParameter", H5_INDEX_NAME, H5_ITER_INC, NULL, getFFluxParametersOrderParameterCallback, (void *)callbackData, H5P_DEFAULT);
         }
     }
 }
 
-void Hdf5File::setFFluxModel(lm::io::FFluxModel * ffluxModel)
+void Hdf5File::setFFluxParameters(lm::io::FFluxParameters * ffluxParameters)
 {
+    // Validate that the set of forward flux parameters is consistent
+    if (ffluxParameters==NULL) throw InvalidArgException("ffluxParameters", "cannot be NULL");
+    if (ffluxParameters->interface_size()!=ffluxParameters->order_parameter_size()) throw InvalidArgException("ffluxParameters.interface, ffluxParameters.order_parameter", "inconsistent size");
+
+//    // If a set of fflux parameters exist, delete it
+//    if (H5Lexists(file, "/Parameters/FFlux", H5P_DEFAULT))
+//    {
+//        HDF5_EXCEPTION_CHECK(H5Ldelete(file, "/Parameters/FFlux", H5P_DEFAULT));
+//    }
+
+    // Create the group for the fflux parameters
+    hid_t ffluxGroup;
+    HDF5_EXCEPTION_CALL(ffluxGroup, H5Gcreate2(file, "/Parameters/FFlux", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+
+    hsize_t dims[1];
+
+    // If there are any sets of interfaces and order parameters, write out the relevant tables
+    if (ffluxParameters->interface_size() > 0)
+    {
+        hid_t interfaceContainingGroup, interfaceGroup;
+        HDF5_EXCEPTION_CALL(interfaceContainingGroup, H5Gcreate2(ffluxGroup, "Interfaces", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+
+        for (int i=0;i<ffluxParameters->interface_size();i++)
+        {
+            HDF5_EXCEPTION_CALL(interfaceContainingGroup, H5Gcreate2(ffluxGroup, "Interfaces", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+        }
+
+        HDF5_EXCEPTION_CHECK(H5Gclose(interfaceContainingGroup));
+    }
+    if (ffluxParameters->order_parameter_size() > 0)
+    {
+        hid_t opGroup;
+        HDF5_EXCEPTION_CALL(opGroup)
+    }
+    std::stringstream ss;
+    ss.fill('0');
+    ss.width(2);
+    ss << firstPassageTimes->species();
+    string speciesString = ss.str();
+
+    HDF5_EXCEPTION_CHECK(H5Gclose(ffluxGroup));
 //    // Validate that the model is consistent.
 //    if (reactionModel == NULL) throw InvalidArgException("reactionModel", "cannot be NULL");
 //    if (reactionModel->number_species() == 0) throw InvalidArgException("reactionModel.number_species", "cannot be zero");
