@@ -62,6 +62,10 @@
 #ifdef OPT_CUDA
 #include "lm/Cuda.h"
 #endif
+#include "lm/io/DiffusionModel.pb.h"
+#include "lm/io/FFluxParameters.pb.h"
+#include "lm/io/hdf5/SimulationFile.h"
+#include "lm/io/ReactionModel.pb.h"
 #include "lm/main/CheckpointSignaler.h"
 #include "lm/main/Main.h"
 #include "lm/main/ResourceController.h"
@@ -81,6 +85,7 @@ using lm::Exception;
 using lm::resource::ResourceMap;
 using lm::thread::PthreadException;
 
+void ioTest();
 void listDevicesMPI();
 void executeSimulationMPI();
 void executeSimulationMPISingleMaster(ResourceMap* resourceMap);
@@ -132,6 +137,10 @@ int main(int argc, char** argv)
                 else if (functionOption == "version")
                 {
                     // Handle version on the master process.
+                }
+                else if (functionOption == "iotest")
+                {
+                    ioTest();
                 }
                 else if (functionOption == "devices" || functionOption == "simulation")
                 {
@@ -204,6 +213,34 @@ int main(int argc, char** argv)
     PROF_WRITE;
     google::protobuf::ShutdownProtobufLibrary();
     return -1;
+}
+
+void ioTest()
+{
+    lm::io::FFluxParameters ffluxParameters;
+    lm::io::ReactionModel reactionModel;
+    lm::io::DiffusionModel diffusionModel;
+
+    // Open the simulation file.
+    lm::io::hdf5::Hdf5File * file = new lm::io::hdf5::Hdf5File(simulationInputFilename);
+
+    // Read in, and then write out, any extant sections of the simulation file
+    if (file->hasFFluxParameters())
+    {
+        file->getFFluxParameters(&ffluxParameters);
+        file->setFFluxParameters(&ffluxParameters);
+    }
+    if (file->hasReactionModel())
+    {
+        file->getReactionModel(&reactionModel);
+        file->setReactionModel(&reactionModel);
+    }
+    if (file->hasDiffusionModel())
+    {
+        file->getDiffusionModel(&diffusionModel);
+        file->setDiffusionModel(&diffusionModel);
+    }
+    file->close();
 }
 
 void listDevicesMPI()

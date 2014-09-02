@@ -151,6 +151,11 @@ extern bool shouldReserveOutputCore;
  */
 extern bool ffluxFlag;
 
+/*
+ * Flag to indicate that we're running a test of the program's input and output
+ */
+extern bool ioTestFlag;
+
 #ifdef OPT_PYTHON
 /**
  * The directory containing the supporting files.

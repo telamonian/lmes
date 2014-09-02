@@ -165,6 +165,11 @@ bool shouldReserveOutputCore;
 bool ffluxFlag;
 
 /**
+ * Flag to run input output testing
+ */
+bool ioTestFlag;
+
+/**
  * Prints the copyright notice.
  */
 
@@ -204,6 +209,7 @@ void parseArguments(int argc, char** argv)
 
     shouldReserveOutputCore = true;
     ffluxFlag = false;
+    ioTestFlag = false;
 
     // Parse any arguments.
     for (int i=1; i<argc; i++)
@@ -222,7 +228,19 @@ void parseArguments(int argc, char** argv)
         	functionOption = "version";
             break;
         }
-            
+
+        //See if the user is trying to execute an iotest.
+        else if (strcmp(option, "-iotest") == 0 || strcmp(option, "--input-ouput-test") == 0)
+        {
+            functionOption = "iotest";
+
+            // Get the filename.
+            if (i < argc-1)
+                simulationInputFilename = argv[++i];
+            else
+                throw lm::CommandLineArgumentException("missing simulation input file.");
+        }
+
         //See if the user is trying to get the device info.
         else if (strcmp(option, "-l") == 0 || strcmp(option, "--list-devices") == 0) {
             functionOption = "devices";
@@ -392,12 +410,18 @@ void parseArguments(int argc, char** argv)
         	 shouldReserveOutputCore = false;
          }
 
-        //See if the user is trying to turn off cuda capability printing.
+        //See if the user is trying to use forward flux sampling.
         else if ((strcmp(option, "-fflux") == 0 || strcmp(option, "--use-forward-flux") == 0))
 		{
         	 ffluxFlag = true;
         	 supervisorClassName = "lm::fflux::FFluxSupervisor";
 		}
+
+        //See if the user is trying to do an input output test.
+        else if ((strcmp(option, "-ioflag") == 0 || strcmp(option, "--do-io-test") == 0))
+        {
+             ioTestFlag = true;
+        }
 
         //This must be an invalid option.
         else {
