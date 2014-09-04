@@ -59,10 +59,10 @@ using std::vector;
 namespace lm {
 namespace fflux {
 
-FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, double zerothInterface, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel):
-    TrajectoryList(), simulationParameters(simulationParameters),reactionModel(reactionModel),xorShift(0,0),simultaneousTrajectoryCount(simultaneousTrajectoryCount),ffluxPhase(0),crossingsPerPhase(1000),zerothInterface(zerothInterface),finalInterface(25.0),interfaceCount(12),maxPhaseZeroTime(10000),maxFFluxPhase(),oParamStep() // TODO: change maxFFluxPhase from fixed to varying with input //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
+FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, double zerothInterface, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel, const lm::io::FFluxParameters& ffluxParams):
+    TrajectoryList(), simulationParameters(simulationParameters),reactionModel(reactionModel),ffluxParams(ffluxParams),xorShift(0,0),simultaneousTrajectoryCount(simultaneousTrajectoryCount),ffluxPhase(0),crossingsPerPhase(1000),zerothInterface(zerothInterface),finalInterface(25.0),interfaceCount(12),maxPhaseZeroTime(10000),maxFFluxPhase(),oParamStep() // TODO: change maxFFluxPhase from fixed to varying with input //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
-	maxFFluxPhase = interfaceCount + 1;
+	maxFFluxPhase = ffluxParams.interface(0).bin_border_size();
 	finishedTrajectoriesCounts = vector<long long>(maxFFluxPhase, 0);
 	oParamStep = (double)(finalInterface - zerothInterface)/interfaceCount;
 }
@@ -244,6 +244,33 @@ lm::io::TrajectoryState * FFluxTrajectoryList::getRandomCrossing(long long fflux
 {
 	unsigned i = floor(xorShift.getRandomDouble()*crossings[ffluxPhase].size());
 	return crossings[ffluxPhase][i];
+}
+
+void FFluxTrajectoryList::setFFluxLimits(bool hasLow, double lowLimit, bool hasHigh, double highLimit)
+{
+    lm::message::RunWorkUnit* runWorkUnitMsg = getRunWorkUnitMsg();
+    if (hasLow) runWorkUnitMsg->mutable_limits()->set_decreasing_species_count(0, lowLimit);
+    if (hasHigh) runWorkUnitMsg->mutable_limits()->set_increasing_species_count(0, highLimit);
+}
+
+double FFluxTrajectoryList::oparamLinear(const lm::io::TrajectoryState& finalState)
+{
+    double ret = 0;
+    for (int i=0;i<ffluxParams.order_parameter(0).species_id_size();++i)
+    {
+        ret += (double)(finalState.cme_state().species_counts().species_count(ffluxParams.order_parameter(0).species_id(i))
+                      * ffluxParams.order_parameter(0).species_coefficient(i));
+    }
+    return ret;
+}
+
+double FFluxTrajectoryList::oparam(const lm::io::TrajectoryState& finalState)
+{
+    switch (ffluxParams.order_parameter(0).type())
+    {
+    case 0:
+        return oparamLinear(finalState);
+    }
 }
 
 //// TEMP: replace

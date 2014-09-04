@@ -64,7 +64,7 @@ namespace fflux {
 class FFluxTrajectoryList : public lm::resource::TrajectoryList
 {
 public:
-    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, double zerothInterface, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel);
+    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, double zerothInterface, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel, const lm::io::FFluxParameters& ffluxParameters);
     virtual ~FFluxTrajectoryList();
     virtual void init();
     virtual void initTrajectory(uint64_t trajectoryID, lm::io::TrajectoryState* trajectoryState);
@@ -75,13 +75,16 @@ public:
 
     // Returns a randomly chosen crossing event (in the form of a TrajectoryState) collected durring forward flux phase ffluxPhase
     virtual lm::io::TrajectoryState* getRandomCrossing(long long ffluxPhase);
+    virtual double FFluxTrajectoryList::oparamLinear(const lm::io::TrajectoryState& finalState)
 protected:
     //// TEMP
     virtual double calcTestCaseOParam(const lm::io::TrajectoryState& finalState);
     virtual void incrTestCaseLimits();
     ////
+    virtual void setFFluxLimits(bool hasLow, double lowLimit, bool hasHigh, double highLimit);
     map<std::string,std::string>& simulationParameters;
     const lm::io::ReactionModel& reactionModel;
+    const lm::io::FFluxParameters& ffluxParams;
     lm::rng::XORShift xorShift;	//RNG used for randomly choosing a crossing in a crossing vector
     uint64_t simultaneousTrajectoryCount;
     long long ffluxPhase;

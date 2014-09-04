@@ -120,6 +120,8 @@ protected:
     lm::io::ReactionModel reactionModel;
     bool hasDiffusionModel;
     lm::io::DiffusionModel diffusionModel;
+    bool hasFFluxParameters;
+    lm::io::FFluxParameters ffluxParameters;
     lm::resource::SlotList slots;
 
 private:

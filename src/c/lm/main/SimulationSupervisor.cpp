@@ -128,6 +128,13 @@ void SimulationSupervisor::initialize()
         }
     }
 
+    // Get the forward flux parameters
+    if (file->hasFFluxParameters())
+    {
+        hasFFluxParameters = true;
+        file->getFFluxParameters(&ffluxParameters);
+    }
+
     // Close the file.
     delete file;
 }
