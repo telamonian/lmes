@@ -44,6 +44,7 @@
 #include <string>
 #include <vector>
 
+#include "lm/io/FFluxParameters.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
@@ -64,6 +65,8 @@ namespace fflux {
 class FFluxTrajectoryList : public lm::resource::TrajectoryList
 {
 public:
+    enum direction {DECREASING, INCREASING};
+
     FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, double zerothInterface, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel, const lm::io::FFluxParameters& ffluxParameters);
     virtual ~FFluxTrajectoryList();
     virtual void init();
@@ -75,18 +78,21 @@ public:
 
     // Returns a randomly chosen crossing event (in the form of a TrajectoryState) collected durring forward flux phase ffluxPhase
     virtual lm::io::TrajectoryState* getRandomCrossing(long long ffluxPhase);
-    virtual double FFluxTrajectoryList::oparamLinear(const lm::io::TrajectoryState& finalState)
+    virtual double oparam(const lm::io::TrajectoryState& finalState);
+    virtual double oparamLinear(const lm::io::TrajectoryState& finalState);
+    virtual void incrLimits();
 protected:
     //// TEMP
     virtual double calcTestCaseOParam(const lm::io::TrajectoryState& finalState);
     virtual void incrTestCaseLimits();
-    ////
+    //// TEMP
     virtual void setFFluxLimits(bool hasLow, double lowLimit, bool hasHigh, double highLimit);
     map<std::string,std::string>& simulationParameters;
     const lm::io::ReactionModel& reactionModel;
     const lm::io::FFluxParameters& ffluxParams;
     lm::rng::XORShift xorShift;	//RNG used for randomly choosing a crossing in a crossing vector
     uint64_t simultaneousTrajectoryCount;
+    direction direction;
     long long ffluxPhase;
     unsigned crossingsPerPhase;	//the count of crossing events that should be collected for every fflux sampling phase
 
@@ -96,9 +102,7 @@ protected:
     long long interfaceCount;
 	double maxPhaseZeroTime;
 	vector<long long> finishedTrajectoriesCounts;
-
 	CrossingsMap crossings;
-
 	long long maxFFluxPhase;
 	double oParamStep;
 };

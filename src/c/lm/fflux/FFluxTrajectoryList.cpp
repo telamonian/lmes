@@ -46,6 +46,7 @@
 #include "lm/fflux/FFluxTrajectoryList.h"
 #include "lm/io/CMEState.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/io/FFluxParameters.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
@@ -60,11 +61,14 @@ namespace lm {
 namespace fflux {
 
 FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, double zerothInterface, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel, const lm::io::FFluxParameters& ffluxParams):
-    TrajectoryList(), simulationParameters(simulationParameters),reactionModel(reactionModel),ffluxParams(ffluxParams),xorShift(0,0),simultaneousTrajectoryCount(simultaneousTrajectoryCount),ffluxPhase(0),crossingsPerPhase(1000),zerothInterface(zerothInterface),finalInterface(25.0),interfaceCount(12),maxPhaseZeroTime(10000),maxFFluxPhase(),oParamStep() // TODO: change maxFFluxPhase from fixed to varying with input //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
+    TrajectoryList(), simulationParameters(simulationParameters),reactionModel(reactionModel),ffluxParams(ffluxParams),xorShift(0,0),simultaneousTrajectoryCount(simultaneousTrajectoryCount),direction(),ffluxPhase(0),crossingsPerPhase(1000),zerothInterface(zerothInterface),finalInterface(25.0),interfaceCount(12),maxPhaseZeroTime(10000),maxFFluxPhase(),oParamStep() // TODO: change maxFFluxPhase from fixed to varying with input //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
 	maxFFluxPhase = ffluxParams.interface(0).bin_border_size();
 	finishedTrajectoriesCounts = vector<long long>(maxFFluxPhase, 0);
+	direction =
+	//// TEMP
 	oParamStep = (double)(finalInterface - zerothInterface)/interfaceCount;
+	//// TEMP
 }
 
 FFluxTrajectoryList::~FFluxTrajectoryList()
@@ -176,8 +180,9 @@ void FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit &
 				if (maxFFluxPhase > ffluxPhase)
 				{
 					// ...increment the interface position (by altering the increasing/decreasing limits)...
+				    incrLimits();
 					//// TEMP : replace
-					incrTestCaseLimits();
+					//incrTestCaseLimits();
 					//// TEMP
 					// ...and start up a new set of trajectories
 					initPhaseNTrajectories(simultaneousTrajectoryCount,ffluxPhase);
@@ -204,7 +209,7 @@ void FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit &
 				{
 					// ...increment the interface position (by altering the increasing/decreasing limits)...
 					//// TEMP : replace
-					incrTestCaseLimits();
+					//incrTestCaseLimits();
 					//// TEMP
 					// ...and start up a new set of trajectories
 					initPhaseNTrajectories(simultaneousTrajectoryCount,ffluxPhase);
@@ -253,6 +258,15 @@ void FFluxTrajectoryList::setFFluxLimits(bool hasLow, double lowLimit, bool hasH
     if (hasHigh) runWorkUnitMsg->mutable_limits()->set_increasing_species_count(0, highLimit);
 }
 
+double FFluxTrajectoryList::oparam(const lm::io::TrajectoryState& finalState)
+{
+    switch (ffluxParams.order_parameter(0).type())
+    {
+    case 0:
+        return oparamLinear(finalState);
+    }
+}
+
 double FFluxTrajectoryList::oparamLinear(const lm::io::TrajectoryState& finalState)
 {
     double ret = 0;
@@ -264,24 +278,29 @@ double FFluxTrajectoryList::oparamLinear(const lm::io::TrajectoryState& finalSta
     return ret;
 }
 
-double FFluxTrajectoryList::oparam(const lm::io::TrajectoryState& finalState)
+void FFluxTrajectoryList::incrLimits()
 {
-    switch (ffluxParams.order_parameter(0).type())
+    // If this is running, ffluxPhase has just been incremented by one, so now also increment
+    lm::message::RunWorkUnit* runWorkUnitMsg = getRunWorkUnitMsg();
+    double prevBorder, nextBorder;
+    prevBorder = ffluxParams.interface(0).bin_border(ffluxPhase-1);
+    nextBorder = ffluxParams.interface(0).bin_border(ffluxPhase);
+    if (nextBorder >= prevBorder)
     {
-    case 0:
-        return oparamLinear(finalState);
+        runWorkUnitMsg->mutable_limits()->set_decreasing_species_count(0, prevBorder);
+        runWorkUnitMsg->mutable_limits()->set_increasing_species_count(0, nextBorder);
     }
+    else
+    {
+        runWorkUnitMsg->mutable_limits()->set_increasing_species_count(0, prevBorder);
+        runWorkUnitMsg->mutable_limits()->set_decreasing_species_count(0, nextBorder);
+    }
+
 }
 
 //// TEMP: replace
 double FFluxTrajectoryList::calcTestCaseOParam(const lm::io::TrajectoryState& finalState)
     {
-//    	return (double)(finalState.cme_state().species_counts().species_count(0) + \
-//    		   2*finalState.cme_state().species_counts().species_count(1) + \
-//    		   finalState.cme_state().species_counts().species_count(2)) - \
-//    		   2*(double)(finalState.cme_state().species_counts().species_count(3) + \
-//			   2*finalState.cme_state().species_counts().species_count(4) + \
-//			   2*finalState.cme_state().species_counts().species_count(5));
 		return (double)(finalState.cme_state().species_counts().species_count(3) + \
 			   2*finalState.cme_state().species_counts().species_count(4) + \
 			   2*finalState.cme_state().species_counts().species_count(5)) - \

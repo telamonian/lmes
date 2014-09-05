@@ -42,6 +42,7 @@
 
 #include "lm/ClassFactory.h"
 #include "lm/Print.h"
+#include "lm/io/FFluxParameters.pb.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/main/Main.h"
 #include "lm/main/SimulationSupervisor.h"
@@ -124,6 +125,8 @@ void FFluxSupervisor::startSimulation()
     // Create the new trajectory list.
     trajectories = new FFluxTrajectoryList(slots.getSlotsSize(), zerothInterface, simulationParameterMap, reactionModel, ffluxParameters);
 
+
+
     // Get the trajectories template msg so that we can set some default values in it
     lm::message::RunWorkUnit* runWorkUnitMsg = trajectories->getRunWorkUnitMsg();
 	// Set the default source process/thread
@@ -135,7 +138,7 @@ void FFluxSupervisor::startSimulation()
 	// Set the default work unit-specific limits
 	runWorkUnitMsg->set_max_steps(100);
 	// Set the default trajectory limits
-	//initLimits();
+	initLimits();
 
 	//// TEMP : replace; hardcoded increasing/decreasing limits for the forward flux test case
 	limits.add_decreasing_species_count(0);
@@ -152,6 +155,14 @@ void FFluxSupervisor::startSimulation()
 
     // Call the base class method.
     SimulationSupervisor::startSimulation();
+}
+
+void FFluxSupervisor::initLimits()
+{
+    double firstBorder, lastBorder;
+    firstBorder = ffluxParameters.interface(0).bin_border(0);
+    lastBorder = ffluxParameters.interface(0).bin_border(ffluxParameters.interface(0).bin_border_size()-1);
+    lastBorder >= firstBorder ? limits.set_increasing_species_count(0, firstBorder) : limits.set_decreasing_species_count(0, firstBorder);
 }
 
 //// TEMP : remove

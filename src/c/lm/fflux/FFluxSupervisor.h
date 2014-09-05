@@ -41,6 +41,7 @@
 #define FFLUXSUPERVISOR_H_
 
 #include "lm/io/DiffusionModel.pb.h"
+#include "lm/io/FFluxParameters.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/main/SimulationSupervisor.h"
@@ -68,6 +69,7 @@ protected:
     virtual void allResourcesRegistered();
     virtual void startSimulation();
     virtual void outputWriterStarted(const lm::message::StartedOutputWriter& msg);
+    virtual void initLimits();
     //// TEMP : remove
     virtual void setTestCaseLimits(double* a_decr=NULL, double* a_incr=NULL);
     //// TEMP

@@ -49,6 +49,7 @@
 #include "lm/Exceptions.h"
 #include "lm/io/BoundaryConditions.pb.h"
 #include "lm/io/DiffusionModel.pb.h"
+#include "lm/io/FFluxParameters.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SimulationParameters.pb.h"
 #include "lm/message/Communicator.h"
