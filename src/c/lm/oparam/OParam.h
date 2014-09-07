@@ -40,6 +40,8 @@
 #ifndef LM_OPARAM_OPARAM
 #define LM_OPARAM_OPARAM
 
+#include "lm/CallFactory.h"
+#include "lm/io/FFluxParameters.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 
 namespace lm {
@@ -60,9 +62,20 @@ private:
 
 class OParamLinear : public OParam
 {
-    OParamLinear();
+public:
+    static bool registered;
+    static bool registerClass();
+    static void* allocateObject();
+
+    OParamLinear(lm::io::FFluxParameters::OrderParameter& oParam);
     virtual ~OParamLinear() {}
     virtual double calc(lm::io::TrajectoryState& state);
+private:
+    lm::io::FFluxParameters::OrderParameter& op;
+    uint size;
+    uint* speciesID;
+    double* speciesCoefficient;
+
 };
 
 }

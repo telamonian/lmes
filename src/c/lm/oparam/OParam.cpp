@@ -36,19 +36,41 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+#inlcude "lm/io/FFluxParameters.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/oparam/OParam.h"
+#include "lm/ClassFactory.h"
 
 namespace lm {
 namespace oparam {
 
+
+bool OParamLinear::registered=OParamLinear::registerClass();
+
+bool OParamLinear::registerClass()
+{
+    lm::ClassFactory::getInstance().registerClass("lm::oparam::OParam","lm::oparam::OParamLinear",&OParamLinear::allocateObject);
+    return true;
+}
+
+void* OParamLinear::allocateObject()
+{
+    return new OParamLinear();
+}
+
+
 OParam::OParam(): val() {}
 
-OParamLinear::OParamLinear(): OParam() {}
+OParamLinear::OParamLinear(lm::io::FFluxParameters::OrderParameter& op): OParam(), op(op), size(op.species_id_size()), speciesID(op.species_id().data()), speciesCoefficient(op.species_coefficient().data()) {}
 
 double OParamLinear::calc(lm::io::TrajectoryState& state)
 {
-
+    double ret = 0;
+    for (int i=0;i<size;++i)
+    {
+        ret += (double)(state.cme_state().species_counts().species_count(speciesID[i]) * speciesCoefficient[i]);
+    }
+    return ret;
 }
 
 }
