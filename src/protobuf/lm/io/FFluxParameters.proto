@@ -40,6 +40,14 @@
 package lm.io;
 
 message FFluxParameters {
+
+    // enumerated type that represent whether an interface is ordered ("arranged") highest-to-lowest or lowest-to-highest.
+    // the actual order that the interface is used in during a simulation also depends on the FFluxTrajectoryList object's direction attribute
+    enum arrangement {
+        DECREASING = 0;
+        INCREASING = 1;
+    }
+
     message OrderParameter {
         required uint32 type                     = 1;
         required uint32 id                       = 2;
@@ -50,6 +58,7 @@ message FFluxParameters {
     message Interface {
         required uint32 order_parameter_id       = 1;
         repeated double bin_border               = 2 [packed=true];
+        required arrangement arrangement         = 3;
     }
 
     repeated OrderParameter order_parameter      = 1;

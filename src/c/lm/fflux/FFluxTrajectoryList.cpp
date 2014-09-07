@@ -61,11 +61,10 @@ namespace lm {
 namespace fflux {
 
 FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, double zerothInterface, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel, const lm::io::FFluxParameters& ffluxParams):
-    TrajectoryList(), simulationParameters(simulationParameters),reactionModel(reactionModel),ffluxParams(ffluxParams),xorShift(0,0),simultaneousTrajectoryCount(simultaneousTrajectoryCount),direction(),ffluxPhase(0),crossingsPerPhase(1000),zerothInterface(zerothInterface),finalInterface(25.0),interfaceCount(12),maxPhaseZeroTime(10000),maxFFluxPhase(),oParamStep() // TODO: change maxFFluxPhase from fixed to varying with input //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
+    TrajectoryList(),simulationParameters(simulationParameters),reactionModel(reactionModel),ffluxParams(ffluxParams),xorShift(0,0),simultaneousTrajectoryCount(simultaneousTrajectoryCount),direction(FORWARD),ffluxPhase(0),crossingsPerPhase(1000),zerothInterface(zerothInterface),finalInterface(25.0),interfaceCount(12),maxPhaseZeroTime(10000),maxFFluxPhase(),oParamStep() // TODO: change maxFFluxPhase from fixed to varying with input //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
 	maxFFluxPhase = ffluxParams.interface(0).bin_border_size();
 	finishedTrajectoriesCounts = vector<long long>(maxFFluxPhase, 0);
-	direction =
 	//// TEMP
 	oParamStep = (double)(finalInterface - zerothInterface)/interfaceCount;
 	//// TEMP
@@ -143,6 +142,16 @@ lm::io::TrajectoryState* FFluxTrajectoryList::initFirstTrajectoryState()
 		trajectoryState->mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.initial_species_count(j));
 	trajectoryState->mutable_cme_state()->mutable_species_counts()->add_time(0.0);
 	return trajectoryState;
+}
+
+void FFluxTrajectoryList::reset()
+{
+
+}
+
+void FFluxTrajectoryList::reverse()
+{
+
 }
 
 void FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg)
@@ -228,6 +237,15 @@ void FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit &
 						Kab *= (double)crossings[i].size()/finishedTrajectoriesCounts[i];
 					}
 					Print::printf(Print::INFO, "Pseudo first order rate constant: %.10f", Kab);
+
+					// If we have to run fflux sampling in both directions, check if we're on the forward phase...
+					if (direction==FORWARD) // if (direction==FORWARD && bothDirections==TRUE)
+					{
+					    // ...and if we are, reverse the arrangement of the binBorders and restart the simulation
+					    direction=BACKWARD;
+					    ffluxParams.interface(0).set_arrangement(ffluxParams.interface(0).arrangement()==lm::io::FFluxParameters::INCREASING ? lm::io::FFluxParameters::DECREASING : lm::io::FFluxParameters::INCREASING);
+
+					}
 				}
 			}
 			// ...otherwise we still need to collect more crossing events for this phase of forward flux sampling...
@@ -285,17 +303,16 @@ void FFluxTrajectoryList::incrLimits()
     double prevBorder, nextBorder;
     prevBorder = ffluxParams.interface(0).bin_border(ffluxPhase-1);
     nextBorder = ffluxParams.interface(0).bin_border(ffluxPhase);
-    if (nextBorder >= prevBorder)
-    {
+    switch (ffluxParams.interface(0).arrangement()) {
+    case lm::io::FFluxParameters::INCREASING:
         runWorkUnitMsg->mutable_limits()->set_decreasing_species_count(0, prevBorder);
         runWorkUnitMsg->mutable_limits()->set_increasing_species_count(0, nextBorder);
-    }
-    else
-    {
+        break;
+    case lm::io::FFluxParameters::DECREASING:
         runWorkUnitMsg->mutable_limits()->set_increasing_species_count(0, prevBorder);
         runWorkUnitMsg->mutable_limits()->set_decreasing_species_count(0, nextBorder);
+        break;
     }
-
 }
 
 //// TEMP: replace

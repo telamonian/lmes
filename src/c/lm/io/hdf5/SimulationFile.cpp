@@ -560,6 +560,9 @@ herr_t Hdf5File::getFFluxParametersInterfaceCallback(hid_t loc_id, const char * 
         newInterface->add_bin_border(binBuffer[i]);
     }
 
+    // determine wether the value of the associated order parameter rises or falls across this set of interfaces
+    newInterface->set_direction(newInterface->bin_border(newInterface->bin_border_size()) >= newInterface->bin_border(0) ? lm::io::FFluxParameters::INCREASING : lm::io::FFluxParameters::DECREASING);
+
     // free the buffer
     delete[] binBuffer;
 
