@@ -123,7 +123,7 @@ void FFluxSupervisor::startSimulation()
     Print::printf(Print::INFO, "Forward flux supervisor starting simulation.");
 
     // Create the new trajectory list.
-    trajectories = new FFluxTrajectoryList(lm::io::FFluxParameters::INCREASING,slots.getSlotsSize(), zerothInterface, simulationParameterMap, reactionModel, ffluxParameters);
+    trajectories = new FFluxTrajectoryList(slots.getSlotsSize(), zerothInterface, simulationParameterMap, reactionModel, ffluxParameters);
 
     // Get the trajectories template msg so that we can set some default values in it
     lm::message::RunWorkUnit* runWorkUnitMsg = trajectories->getRunWorkUnitMsg();

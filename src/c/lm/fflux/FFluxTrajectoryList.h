@@ -82,13 +82,14 @@ public:
     virtual lm::io::TrajectoryState* getRandomCrossing(long long ffluxPhase);
     virtual double oparam(const lm::io::TrajectoryState& finalState);
     virtual double oparamLinear(const lm::io::TrajectoryState& finalState);
-    virtual void incrLimits();
+    virtual void incrLimits(uint ifaceIndex);
+    virtual void setFFluxLimits(uint ifaceIndex, double lowLimit, double highLimit);
 protected:
     //// TEMP
     virtual double calcTestCaseOParam(const lm::io::TrajectoryState& finalState);
     virtual void incrTestCaseLimits();
     //// TEMP
-    virtual void setFFluxLimits(bool hasLow, double lowLimit, bool hasHigh, double highLimit);
+
     map<std::string,std::string>& simulationParameters;
     const lm::io::ReactionModel& reactionModel;
     const lm::io::FFluxParameters& ffluxParams;

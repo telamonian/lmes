@@ -269,13 +269,6 @@ lm::io::TrajectoryState * FFluxTrajectoryList::getRandomCrossing(long long fflux
 	return crossings[ffluxPhase][i];
 }
 
-void FFluxTrajectoryList::setFFluxLimits(bool hasLow, double lowLimit, bool hasHigh, double highLimit)
-{
-    lm::message::RunWorkUnit* runWorkUnitMsg = getRunWorkUnitMsg();
-    if (hasLow) runWorkUnitMsg->mutable_limits()->set_decreasing_species_count(0, lowLimit);
-    if (hasHigh) runWorkUnitMsg->mutable_limits()->set_increasing_species_count(0, highLimit);
-}
-
 double FFluxTrajectoryList::oparam(const lm::io::TrajectoryState& finalState)
 {
     switch (ffluxParams.order_parameter(0).type())
@@ -296,24 +289,32 @@ double FFluxTrajectoryList::oparamLinear(const lm::io::TrajectoryState& finalSta
     return ret;
 }
 
-void FFluxTrajectoryList::incrLimits()
+
+
+void FFluxTrajectoryList::incrLimits(uint ifaceIndex)
 {
     // If this is running, ffluxPhase has just been incremented by one, so now also increment
-    lm::message::RunWorkUnit* runWorkUnitMsg = getRunWorkUnitMsg();
     double prevBorder, nextBorder;
-    prevBorder = ffluxParams.interface(0).bin_border(ffluxPhase-1);
-    nextBorder = ffluxParams.interface(0).bin_border(ffluxPhase);
+    prevBorder = ffluxParams.interface(ifaceIndex).bin_border(ffluxPhase-1);
+    nextBorder = ffluxParams.interface(ifaceIndex).bin_border(ffluxPhase);
+    setFFluxLimits(ifaceIndex, prevBorder, nextBorder);
+}
+
+void FFluxTrajectoryList::setFFluxLimits(uint ifaceIndex, double lowLimit, double highLimit)
+{
+    lm::message::RunWorkUnit* runWorkUnitMsg = getRunWorkUnitMsg();
     switch (ffluxParams.interface(0).arrangement()) {
     case lm::io::FFluxParameters::INCREASING:
-        runWorkUnitMsg->mutable_limits()->set_decreasing_species_count(0, prevBorder);
-        runWorkUnitMsg->mutable_limits()->set_increasing_species_count(0, nextBorder);
+        runWorkUnitMsg->mutable_limits()->set_decreasing_species_count(ifaceIndex, lowLimit);
+        runWorkUnitMsg->mutable_limits()->set_increasing_species_count(ifaceIndex, highLimit);
         break;
     case lm::io::FFluxParameters::DECREASING:
-        runWorkUnitMsg->mutable_limits()->set_increasing_species_count(0, prevBorder);
-        runWorkUnitMsg->mutable_limits()->set_decreasing_species_count(0, nextBorder);
+        runWorkUnitMsg->mutable_limits()->set_increasing_species_count(ifaceIndex, lowLimit);
+        runWorkUnitMsg->mutable_limits()->set_decreasing_species_count(ifaceIndex, highLimit);
         break;
     }
 }
+
 
 //// TEMP: replace
 double FFluxTrajectoryList::calcTestCaseOParam(const lm::io::TrajectoryState& finalState)
