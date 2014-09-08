@@ -37,19 +37,26 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
+#include <algorithm>
 #include "lm/oparam/OParamList.h"
 
 namespace lm {
 namespace oparam {
 
-OParamList::OParamList(lm::io::FFluxParameters& ffluxParams)
+OParams::OParams(lm::io::FFluxParameters& ffluxParams)
 {
-    for (uint )
+    for_each(ffluxParams.order_parameter().begin(), ffluxParams.order_parameter().end(), initOParam);
 }
 
-void initOParam(lm::io::FFluxParameters::OrderParameter& op)
+OParams::~OParams()
 {
+    for (OPMap::iterator m_it=opMap.begin();m_it!=opMap.end();++m_it) delete m_it->second;
+}
 
+void OParams::initOParam(lm::io::FFluxParameters::OrderParameter& op)
+{
+    opMap[op.id()] = (static_cast<lm::oparam::OParam*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::oparam::OParam",lm::oparam::OParams::opClassMap[op.type()])));
+    opMap[op.id()]->init(op);
 }
 
 }

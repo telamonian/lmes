@@ -269,27 +269,7 @@ lm::io::TrajectoryState * FFluxTrajectoryList::getRandomCrossing(long long fflux
 	return crossings[ffluxPhase][i];
 }
 
-double FFluxTrajectoryList::oparam(const lm::io::TrajectoryState& finalState)
-{
-    switch (ffluxParams.order_parameter(0).type())
-    {
-    case 0:
-        return oparamLinear(finalState);
-    }
-}
-
-double FFluxTrajectoryList::oparamLinear(const lm::io::TrajectoryState& finalState)
-{
-    double ret = 0;
-    for (int i=0;i<ffluxParams.order_parameter(0).species_id_size();++i)
-    {
-        ret += (double)(finalState.cme_state().species_counts().species_count(ffluxParams.order_parameter(0).species_id(i))
-                      * ffluxParams.order_parameter(0).species_coefficient(i));
-    }
-    return ret;
-}
-
-
+void FFlux
 
 void FFluxTrajectoryList::incrLimits(uint ifaceIndex)
 {
@@ -314,7 +294,6 @@ void FFluxTrajectoryList::setFFluxLimits(uint ifaceIndex, double lowLimit, doubl
         break;
     }
 }
-
 
 //// TEMP: replace
 double FFluxTrajectoryList::calcTestCaseOParam(const lm::io::TrajectoryState& finalState)

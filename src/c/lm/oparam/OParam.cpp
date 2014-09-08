@@ -57,7 +57,7 @@ void* OParamLinear::allocateObject()
     return new OParamLinear();
 }
 
-OParamLinear::OParamLinear(): OParam(), size(op.species_id_size()), speciesID(op.species_id().data()), speciesCoefficient(op.species_coefficient().data()) {}
+OParamLinear::OParamLinear(): OParam(), size(), speciesID(), speciesCoefficient() {}
 
 void OParamLinear::init(lm::io::FFluxParameters::OrderParameter& opRef)
 {

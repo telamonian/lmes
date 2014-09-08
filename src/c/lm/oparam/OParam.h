@@ -77,7 +77,6 @@ private:
     uint size;
     uint* speciesID;
     double* speciesCoefficient;
-
 };
 
 }

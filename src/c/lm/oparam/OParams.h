@@ -41,38 +41,41 @@
 #define LM_OPARAM_OPARAMLIST
 
 #include <iterator>
+#include <map>
+#include <string>
 #include <vector>
 #include "lm::oparam::OParam.h"
 
 namespace lm {
 namespace oparam {
 
-class OParamList
+typedef std::map<uint,std::string> OPClassMap;
+typedef std::map<uint,lm::oparam::OParam*> OPMap;
+
+class OParams
 {
 public:
-    OParamList(lm::io::FFluxParameters& ffluxParams);
-    ~OParamList() {}
+    OParams(lm::io::FFluxParameters& ffluxParams);
+    ~OParams();
 
-    // not used yet
-    class iterator : public std::iterator<std::output_iterator_tag, lm::oparam::OParam>
-    {
-    public:
-        iterator(lm::oparam::OParam* x) : opp(x) {}
-        iterator(const iterator& mit) : opp(mit.opp) {}
-        iterator& operator++() {++opp;return *this;}
-        iterator operator++(int) {iterator tmp(*this); operator++(); return tmp;}
-        bool operator==(const iterator& rhs) {return opp==rhs.opp;}
-        bool operator!=(const iterator& rhs) {return opp!=rhs.opp;}
-        lm::oparam::OParam& operator*() {return *opp;}
-    private:
-        lm::oparam::OParam* opp;
-    };
-    lm::oparam::OParam& operator[](uint i) {return opVec[i];}
+    lm::oparam::OParam& operator[](uint i) {return opMap[i];}
+
     void initOParam(lm::io::FFluxParameters::OrderParameter& op);
 
+    static OPClassMap makeOPClassMap()
+    {
+      std::map<uint,std::string> m;
+      m[0] = "lm::oparam::OParamLinear";
+      // m[9999...] = "lm::oparam::OParamTranscendental";
+      return m;
+    }
+    static const OPClassMap opClassMap;
+
 private:
-    std::vector<lm::oparam::OParam> opVec;
+    OPMap opMap;
 };
+
+const OPClassMap OParams::opClassMap = OParams::makeOPClassMap();
 
 }
 }

@@ -80,10 +80,11 @@ public:
 
     // Returns a randomly chosen crossing event (in the form of a TrajectoryState) collected durring forward flux phase ffluxPhase
     virtual lm::io::TrajectoryState* getRandomCrossing(long long ffluxPhase);
-    virtual double oparam(const lm::io::TrajectoryState& finalState);
-    virtual double oparamLinear(const lm::io::TrajectoryState& finalState);
+    virtual void initLimits(uint ifaceIndex);
     virtual void incrLimits(uint ifaceIndex);
-    virtual void setFFluxLimits(uint ifaceIndex, double lowLimit, double highLimit);
+    virtual void setLowLimit(uint ifaceIndex, double lowLimit);
+    virtual void setHighLimit(uint ifaceIndex, double highLimit);
+    virtual void setLimits(uint ifaceIndex, double lowLimit, double highLimit);
 protected:
     //// TEMP
     virtual double calcTestCaseOParam(const lm::io::TrajectoryState& finalState);
