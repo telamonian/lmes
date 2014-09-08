@@ -1,11 +1,11 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2014 Roberts Group,
+ * Copyright 2012-2014 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
- * 			     Johns Hopkins University
- * 			     http://biophysics.jhu.edu/roberts/
+ *               Johns Hopkins University
+ *               http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -34,40 +34,23 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
-#ifndef CLASSFACTORY_H
-#define CLASSFACTORY_H
-
-#include <map>
-#include <string>
-
-using std::map;
-using std::string;
+#include "lm/oparam/OParamList.h"
 
 namespace lm {
+namespace oparam {
 
-typedef void* (*ClassAllocator)(void);
-
-class ClassFactory
+OParamList::OParamList(lm::io::FFluxParameters& ffluxParams)
 {
-public:
-    static ClassFactory& getInstance();
+    for (uint )
+}
 
-public:
-    ClassFactory() {}
-    ~ClassFactory() {}
-
-    template<typename T = ClassAllocator>
-    void registerClass(string baseClassName, string className, T allocator) {knownClasses[baseClassName][className] = allocator;};
-
-    void* allocateObjectOfClass(string baseClassName, string className);
-    void printRegisteredClasses();
-
-private:
-    map<string,map<string,ClassAllocator> > knownClasses;
-};
+void initOParam(lm::io::FFluxParameters::OrderParameter& op)
+{
 
 }
-#endif // CLASSFACTORY_H
+
+}
+}

@@ -52,12 +52,14 @@ class OParam
 public:
     OParam();
     virtual ~OParam() {}
+    virtual void init(lm::io::FFluxParameters::OrderParameter& opRef) = 0;
     virtual double calc(lm::io::TrajectoryState& state) = 0;
     virtual double get() {return val};
     virtual void set(double newVal) {val = newVal};
 
 private:
     double val;
+    lm::io::FFluxParameters::OrderParameter& op;
 };
 
 class OParamLinear : public OParam
@@ -67,11 +69,11 @@ public:
     static bool registerClass();
     static void* allocateObject();
 
-    OParamLinear(lm::io::FFluxParameters::OrderParameter& oParam);
+    OParamLinear();
     virtual ~OParamLinear() {}
+    virtual void init(lm::io::FFluxParameters::OrderParameter& opRef);
     virtual double calc(lm::io::TrajectoryState& state);
 private:
-    lm::io::FFluxParameters::OrderParameter& op;
     uint size;
     uint* speciesID;
     double* speciesCoefficient;

@@ -136,13 +136,13 @@ void FFluxSupervisor::startSimulation()
 	// Set the default work unit-specific limits
 	runWorkUnitMsg->set_max_steps(100);
 	// Set the default trajectory limits
-	initLimits();
+	trajectories->initLimits();
 
 	//// TEMP : replace; hardcoded increasing/decreasing limits for the forward flux test case
-	limits.add_decreasing_species_count(0);
-	limits.add_increasing_species_count(0);
-	double a_incr = zerothInterface;
-	setTestCaseLimits(NULL, &a_incr);
+//	limits.add_decreasing_species_count(0);
+//	limits.add_increasing_species_count(0);
+//	double a_incr = zerothInterface;
+//	setTestCaseLimits(NULL, &a_incr);
 	//// TEMP
 
 	lm::io::TrajectoryLimits* trajectoryLimits = new lm::io::TrajectoryLimits(limits);
