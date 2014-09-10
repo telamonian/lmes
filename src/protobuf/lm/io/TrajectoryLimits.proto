@@ -43,6 +43,17 @@ message TrajectoryLimits {
     optional double max_time                            = 1;
     repeated int32 min_species_count                    = 2 [packed=true];
     repeated int32 max_species_count                    = 3 [packed=true];
-    repeated double decreasing_species_count			= 4 [packed=true];
-    repeated double increasing_species_count			= 5 [packed=true];
+
+    message DecreasingOrderParameterLimit {
+        required uint32 order_parameter_id              = 1;
+        repeated double value                           = 2 [packed=true];
+    }
+
+    message IncreasingOrderParameterLimit {
+        required uint32 order_parameter_id              = 1;
+        repeated double value                           = 2 [packed=true];
+    }
+
+    repeated DecreasingOrderParameterLimit decreasing_order_parameter_limit     = 4;
+    repeated IncreasingOrderParameterLimit increasing_order_parameter_limit     = 5;
 }

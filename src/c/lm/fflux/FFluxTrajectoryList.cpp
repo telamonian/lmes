@@ -43,6 +43,7 @@
 #include <string>
 #include <vector>
 
+#include "lm/Exceptions.h"
 #include "lm/fflux/FFluxTrajectoryList.h"
 #include "lm/io/CMEState.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
@@ -189,7 +190,7 @@ void FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit &
 				if (maxFFluxPhase > ffluxPhase)
 				{
 					// ...increment the interface position (by altering the increasing/decreasing limits)...
-				    incrLimits();
+				    ratchetInterfaces();
 					//// TEMP : replace
 					//incrTestCaseLimits();
 					//// TEMP
@@ -269,9 +270,26 @@ lm::io::TrajectoryState * FFluxTrajectoryList::getRandomCrossing(long long fflux
 	return crossings[ffluxPhase][i];
 }
 
-void FFlux
+void FFluxTrajectoryList::initInterfaces()
+{
+    clearInterfaces();
+    for (ifaceIterator iface_it=ffluxParams.interface().begin(); iface_it!=ffluxParams.interface().end(); ++iface_it)
+    {
+        for (uint i=0;i<iface_it->order_parameter_id_size();++i)
+        {
+            switch (iface_it->arrangement()) {
+            case lm::io::FFluxParameters::DECREASING:
+                setDecrInterface(iface_it->order_parameter_id(i), iface_it->bin_border(0));
+                break;
+            case lm::io::FFluxParameters::INCREASING:
+                setIncrInterface(iface_it->order_parameter_id(i), iface_it->bin_border(0));
+                break;
+            }
+        }
+    }
+}
 
-void FFluxTrajectoryList::incrLimits(uint ifaceIndex)
+void FFluxTrajectoryList::ratchetInterfaces()
 {
     // If this is running, ffluxPhase has just been incremented by one, so now also increment
     double prevBorder, nextBorder;
@@ -280,7 +298,53 @@ void FFluxTrajectoryList::incrLimits(uint ifaceIndex)
     setFFluxLimits(ifaceIndex, prevBorder, nextBorder);
 }
 
-void FFluxTrajectoryList::setFFluxLimits(uint ifaceIndex, double lowLimit, double highLimit)
+void FFluxTrajectoryList::clearInterfaces()
+{
+    lm::message::RunWorkUnit* runWorkUnitMsg = getRunWorkUnitMsg();
+    runWorkUnitMsg->mutable_limits()->clear_decreasing_order_parameter_limit();
+    runWorkUnitMsg->mutable_limits()->clear_increasing_order_parameter_limit();
+    for (opIterator it=ffluxParams.order_parameter().begin(); it!=ffluxParams.order_parameter().end(); ++it)
+    {
+        lm::io::TrajectoryLimits::DecreasingOrderParameterLimit* dopl = runWorkUnitMsg->mutable_limits()->add_decreasing_order_parameter_limit();
+        dopl->set_order_parameter_id(it->id());
+        lm::io::TrajectoryLimits::IncreasingOrderParameterLimit* iopl = runWorkUnitMsg->mutable_limits()->add_increasing_order_parameter_limit();
+        iopl->set_order_parameter_id(it->id());
+    }
+}
+
+void FFluxTrajectoryList::setDecrInterface(uint opID, double decrLimit)
+{
+    lm::message::RunWorkUnit* runWorkUnitMsg = getRunWorkUnitMsg();
+    for (decrLimitIterator it=runWorkUnitMsg->mutable_limits()->decreasing_order_parameter_limit().begin(); it!=runWorkUnitMsg->mutable_limits()->decreasing_order_parameter_limit().end(); ++it)
+    {
+        if (it->order_parameter_id()==opID)
+        {
+            it->add_value(decrLimit);
+            goto end;
+        }
+    }
+    throw InvalidArgException("opID", "does not correspond to order parameter IDs in initialized limits");
+    end: ;
+}
+
+void FFluxTrajectoryList::setIncrInterface(uint opID, double incrLimit)
+{
+    lm::message::RunWorkUnit* runWorkUnitMsg = getRunWorkUnitMsg();
+    for (incrLimitIterator it=runWorkUnitMsg->mutable_limits()->increasing_order_parameter_limit().begin(); it!=runWorkUnitMsg->mutable_limits()->increasing_order_parameter_limit().end(); ++it)
+    {
+        if (it->order_parameter_id()==opID)
+        {
+            it->add_value(incrLimit);
+            goto end;
+        }
+    }
+    throw InvalidArgException("opID", "does not correspond to order parameter IDs in initialized limits");
+    end: ;
+}
+
+
+
+void FFluxTrajectoryList::setInterface(uint opID, double lowLimit, double highLimit)
 {
     lm::message::RunWorkUnit* runWorkUnitMsg = getRunWorkUnitMsg();
     switch (ffluxParams.interface(0).arrangement()) {
@@ -294,6 +358,8 @@ void FFluxTrajectoryList::setFFluxLimits(uint ifaceIndex, double lowLimit, doubl
         break;
     }
 }
+
+
 
 //// TEMP: replace
 double FFluxTrajectoryList::calcTestCaseOParam(const lm::io::TrajectoryState& finalState)

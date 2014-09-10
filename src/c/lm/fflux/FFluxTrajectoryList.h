@@ -56,11 +56,15 @@
 using std::map;
 using std::vector;
 
-typedef vector<lm::io::TrajectoryState *> CrossingVector;
-typedef map<long long, CrossingVector> CrossingsMap;
-
 namespace lm {
 namespace fflux {
+
+typedef vector<lm::io::TrajectoryState *> CrossingVector;
+typedef map<long long, CrossingVector> CrossingsMap;
+typedef google::protobuf::RepeatedPtrField<lm::io::FFluxParameters::Interface>::iterator ifaceIterator;
+typedef google::protobuf::RepeatedPtrField<lm::io::FFluxParameters::OrderParameter>::iterator opIterator;
+typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::DecreasingOrderParameterLimit>::iterator decrLimitIterator;
+typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::IncreasingOrderParameterLimit>::iterator incrLimitIterator;
 
 class FFluxTrajectoryList : public lm::resource::TrajectoryList
 {
@@ -80,11 +84,16 @@ public:
 
     // Returns a randomly chosen crossing event (in the form of a TrajectoryState) collected durring forward flux phase ffluxPhase
     virtual lm::io::TrajectoryState* getRandomCrossing(long long ffluxPhase);
-    virtual void initLimits(uint ifaceIndex);
-    virtual void incrLimits(uint ifaceIndex);
-    virtual void setLowLimit(uint ifaceIndex, double lowLimit);
-    virtual void setHighLimit(uint ifaceIndex, double highLimit);
-    virtual void setLimits(uint ifaceIndex, double lowLimit, double highLimit);
+
+    // methods for dealing with interfaces, bin borders, etc.
+    virtual void initInterfaces();
+    virtual void ratchetInterfaces();
+    virtual void clearInterfaces();
+    //virtual opIterator findOrderParameter(uint opID);
+    virtual void setDecrInterface(uint opID, double decrLimit);
+    virtual void setIncrInterface(uint opID, double incrLimit);
+    virtual void setInterface(uint opID, double decrLimit, double incrLimit);
+
 protected:
     //// TEMP
     virtual double calcTestCaseOParam(const lm::io::TrajectoryState& finalState);
