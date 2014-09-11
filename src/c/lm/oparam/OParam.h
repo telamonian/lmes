@@ -57,9 +57,11 @@ public:
     virtual double get() {return val};
     virtual void set(double newVal) {val = newVal};
 
+protected:
+    lm::io::FFluxParameters::OrderParameter& op;
+
 private:
     double val;
-    lm::io::FFluxParameters::OrderParameter& op;
 };
 
 class OParamLinear : public OParam
@@ -73,7 +75,7 @@ public:
     virtual ~OParamLinear() {}
     virtual void init(lm::io::FFluxParameters::OrderParameter& opRef);
     virtual double calc(lm::io::TrajectoryState& state);
-private:
+protected:
     uint size;
     uint* speciesID;
     double* speciesCoefficient;

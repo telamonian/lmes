@@ -145,14 +145,26 @@ lm::io::TrajectoryState* FFluxTrajectoryList::initFirstTrajectoryState()
 	return trajectoryState;
 }
 
-void FFluxTrajectoryList::reset()
+void FFluxTrajectoryList::restart()
 {
+    deleteAllTrajectories();
+    // TODO: need to check on reseting crossings
 
 }
 
 void FFluxTrajectoryList::reverse()
 {
-
+    direction = direction==FORWARD ? BACKWARD : FORWARD;
+    for (ifaceIterator iface_it=ffluxParams.interface().begin(); iface_it!=ffluxParams.interface().end(); ++iface_it)
+    {
+        lm::io::FFluxParameters::arrangement newAr = iface_it->arrangement()==lm::io::FFluxParameters::INCREASING ? lm::io::FFluxParameters::DECREASING : lm::io::FFluxParameters::INCREASING;
+        iface_it->set_arrangement(newAr);
+        int revLoops = iface_it->bin_border_size()/2;
+        for (int i=0;i<revLoops;++i)
+        {
+            iface_it->bin_border().SwapElements(i, iface_it->bin_border_size()-(i+1));
+        }
+    }
 }
 
 void FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg)
@@ -243,9 +255,8 @@ void FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit &
 					if (direction==FORWARD) // if (direction==FORWARD && bothDirections==TRUE)
 					{
 					    // ...and if we are, reverse the arrangement of the binBorders and restart the simulation
-					    direction=BACKWARD;
-					    ffluxParams.interface(0).set_arrangement(ffluxParams.interface(0).arrangement()==lm::io::FFluxParameters::INCREASING ? lm::io::FFluxParameters::DECREASING : lm::io::FFluxParameters::INCREASING);
-
+					    reverse();
+					    restart();
 					}
 				}
 			}
@@ -292,10 +303,21 @@ void FFluxTrajectoryList::initInterfaces()
 void FFluxTrajectoryList::ratchetInterfaces()
 {
     // If this is running, ffluxPhase has just been incremented by one, so now also increment
-    double prevBorder, nextBorder;
-    prevBorder = ffluxParams.interface(ifaceIndex).bin_border(ffluxPhase-1);
-    nextBorder = ffluxParams.interface(ifaceIndex).bin_border(ffluxPhase);
-    setFFluxLimits(ifaceIndex, prevBorder, nextBorder);
+    clearInterfaces();
+    for (ifaceIterator iface_it=ffluxParams.interface().begin(); iface_it!=ffluxParams.interface().end(); ++iface_it)
+    {
+        for (uint i=0;i<iface_it->order_parameter_id_size();++i)
+        {
+            switch (iface_it->arrangement()) {
+            case lm::io::FFluxParameters::DECREASING:
+                setInterface(iface_it->order_parameter_id(i), iface_it->bin_border(ffluxPhase-1), iface_it->bin_border(ffluxPhase));
+                break;
+            case lm::io::FFluxParameters::INCREASING:
+                setInterface(iface_it->order_parameter_id(i), iface_it->bin_border(ffluxPhase), iface_it->bin_border(ffluxPhase-1));
+                break;
+            }
+        }
+    }
 }
 
 void FFluxTrajectoryList::clearInterfaces()
@@ -342,24 +364,11 @@ void FFluxTrajectoryList::setIncrInterface(uint opID, double incrLimit)
     end: ;
 }
 
-
-
-void FFluxTrajectoryList::setInterface(uint opID, double lowLimit, double highLimit)
+void FFluxTrajectoryList::setInterface(uint opID, double decrLimit, double incrLimit)
 {
-    lm::message::RunWorkUnit* runWorkUnitMsg = getRunWorkUnitMsg();
-    switch (ffluxParams.interface(0).arrangement()) {
-    case lm::io::FFluxParameters::INCREASING:
-        runWorkUnitMsg->mutable_limits()->set_decreasing_species_count(ifaceIndex, lowLimit);
-        runWorkUnitMsg->mutable_limits()->set_increasing_species_count(ifaceIndex, highLimit);
-        break;
-    case lm::io::FFluxParameters::DECREASING:
-        runWorkUnitMsg->mutable_limits()->set_increasing_species_count(ifaceIndex, lowLimit);
-        runWorkUnitMsg->mutable_limits()->set_decreasing_species_count(ifaceIndex, highLimit);
-        break;
-    }
+    setDecrInterface(opID, decrLimit);
+    setIncrInterface(opID, incrLimit);
 }
-
-
 
 //// TEMP: replace
 double FFluxTrajectoryList::calcTestCaseOParam(const lm::io::TrajectoryState& finalState)

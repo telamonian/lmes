@@ -78,7 +78,7 @@ public:
     virtual void initPhaseZeroTrajectory(lm::io::TrajectoryState* oldCrossing);
     virtual void initPhaseNTrajectories(uint64_t trajectoriesToStart, long long lastFFluxPhase);
     virtual lm::io::TrajectoryState* initFirstTrajectoryState();
-    virtual void reset();
+    virtual void restart();
     virtual void reverse();
     virtual void workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg);
 
