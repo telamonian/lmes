@@ -72,6 +72,8 @@ public:
     virtual void setReactionModel(const lm::io::ReactionModel& rm)=0;
     virtual bool needsDiffusionModel()=0;
     virtual void setDiffusionModel(const lm::io::DiffusionModel& dm)=0;
+    virtual bool needsESampleParameters()=0;
+    virtual void setESampleParameters(const lm::io::FFluxParameters& fp)=0;
     virtual void reset();
     virtual void setCommunicator(lm::message::Communicator* communicator, int outputProcess, int outputThread, int64_t workUnitId);
     virtual void getState(lm::io::TrajectoryState* state)=0;

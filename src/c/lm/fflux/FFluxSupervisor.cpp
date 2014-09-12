@@ -115,7 +115,6 @@ void FFluxSupervisor::outputWriterStarted(const lm::message::StartedOutputWriter
 
 void FFluxSupervisor::startSimulation()
 {
-	double zerothInterface = -25.0;
     // Check for some error conditions.
     if (outputWriterProcess == -1 || outputWriterThread == -1)
         throw new Exception("Forward flux supervisor could not start the simulation, no output writer available.");
@@ -164,19 +163,19 @@ void FFluxSupervisor::initLimits()
 }
 
 //// TEMP : remove
-void FFluxSupervisor::setTestCaseLimits(double* a_decr, double* a_incr)
-{
-	limits.set_decreasing_species_count(0, -9999);
-	limits.set_increasing_species_count(0, -9999);
-	if (a_decr!=NULL)
-	{
-		limits.set_decreasing_species_count(0, *a_decr);
-	}
-	if (a_incr!=NULL)
-	{
-		limits.set_increasing_species_count(0, *a_incr);
-	}
-}
+//void FFluxSupervisor::setTestCaseLimits(double* a_decr, double* a_incr)
+//{
+//	limits.set_decreasing_species_count(0, -9999);
+//	limits.set_increasing_species_count(0, -9999);
+//	if (a_decr!=NULL)
+//	{
+//		limits.set_decreasing_species_count(0, *a_decr);
+//	}
+//	if (a_incr!=NULL)
+//	{
+//		limits.set_increasing_species_count(0, *a_incr);
+//	}
+//}
 //// TEMP
 
 

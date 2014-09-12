@@ -139,6 +139,19 @@ int WorkUnitRunner::run()
                 throw Exception("Work Unit runner terminating, solver requires a diffusion model but none was specified", properties.solver().c_str());
         }
 
+        // Set the enhanced sampling parameters for solver
+        if (solver->needsESampleParameters())
+        {
+            if (properties.has_esample_parameters())
+            {
+                solver->setESampleParameters(properties.esample_parameters());
+            }
+            else
+            {
+                throw Exception("Work Unit runner terminating, solver requires a set of enhanced sampling parameters but none was specified", properties.solver().c_str());
+            }
+        }
+
         // Tell the supervisor the runner was started.
         lm::message::Message msgp;
         lm::message::StartedWorkUnitRunner* msg = msgp.mutable_started_work_unit_runner();
