@@ -140,11 +140,19 @@ int WorkUnitRunner::run()
         }
 
         // Set the enhanced sampling parameters for solver
-        if (solver->needsESampleParameters())
+        if (solver->needsOrderParameters())
         {
-            if (properties.has_esample_parameters())
+            if (properties.has_esample_type())
             {
-                solver->setESampleParameters(properties.esample_parameters());
+                switch (properties.esample_type)
+                {
+                case lm::message::StartWorkUnitRunner::FFLUX:
+                    solver->setOrderParameters(properties.fflux_parameters());
+                    break;
+                // TODO: implement NEUS stuff
+//                case lm::message::StartWorkUnitRunner::NEUS:
+//                    break;
+                }
             }
             else
             {

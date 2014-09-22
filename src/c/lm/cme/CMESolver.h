@@ -54,6 +54,7 @@
 #include <vector>
 #include "lm/Math.h"
 #include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/oparam/oparams.h"
 #include "lm/io/ParameterValues.pb.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/io/TrajectoryLimits.pb.h"
@@ -214,8 +215,8 @@ public:
     virtual void setReactionModel(const lm::io::ReactionModel& rm);
     virtual bool needsDiffusionModel() {return false;}
     virtual void setDiffusionModel(const lm::io::DiffusionModel& dm) {}
-    virtual bool needsESampleParameters();
-    virtual void setESampleParameters();
+    virtual bool needsOrderParameters() {return ffluxFlag;}
+    virtual void setOrderParameters(const lm::io::FFluxParameters& fp);
     virtual void reset();
     virtual void getState(lm::io::TrajectoryState* state);
     virtual void setState(const lm::io::TrajectoryState& state);
@@ -324,6 +325,19 @@ protected:
 protected:
     RandomGenerator::Distributions neededDists;
     RandomGenerator * rng;
+
+    // The enhanced sampling parameters.
+    class ESampleParameters
+    {
+    public:
+        ESampleParameters(const lm::io::FFluxParameters& fp);
+        virtual ~ESampleParameters();
+
+        uint interface_id;
+        uint bin_id;
+    };
+    ESampleParameters* esampleParams;
+    lm::oparam::OParams* oparams;
 
     // The reaction model.
     class ReactionModel

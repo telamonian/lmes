@@ -82,7 +82,7 @@ public:
 
 protected:
 	status_t status;
-	lm::io::TrajectoryState state;
+	lm::io::TrajectoryState state;  // state is supposed to be synced at all (or at least most) times with the msg.run_work_unit.initial_state field
 	lm::message::Message msg;
 };
 

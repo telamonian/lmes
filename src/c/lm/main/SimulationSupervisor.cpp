@@ -356,6 +356,10 @@ void SimulationSupervisor::allResourcesRegistered()
 	*startSlotMsg->mutable_simulation_parameters() = simulationParameters;
 	if (hasReactionModel) *startSlotMsg->mutable_reaction_model() = reactionModel;
 	if (hasDiffusionModel) *startSlotMsg->mutable_diffusion_model() = diffusionModel;
+	if (hasFFluxParameters) {
+	    *startSlotMsg->mutable_fflux_parameters() = ffluxParameters;
+	    startSlotMsg->set_esample_type(lm::message::StartWorkUnitRunner::FFLUX);
+	}
 
 	map<int,ResourceMap::ComputeResources> allResources = resourceMap->getAvailableResources();
     slots.addSlots(allResources);

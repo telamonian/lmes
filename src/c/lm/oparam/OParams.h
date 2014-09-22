@@ -44,7 +44,7 @@
 #include <map>
 #include <string>
 #include <vector>
-#include "lm::oparam::OParam.h"
+#include "lm/oparam/OParam.h"
 
 namespace lm {
 namespace oparam {
@@ -55,7 +55,7 @@ typedef std::map<uint,lm::oparam::OParam*> OPMap;
 class OParams
 {
 public:
-    OParams(lm::io::FFluxParameters& ffluxParams);
+    OParams(const lm::io::FFluxParameters& ffluxParams);
     ~OParams();
 
     lm::oparam::OParam& operator[](uint i) {return opMap[i];}

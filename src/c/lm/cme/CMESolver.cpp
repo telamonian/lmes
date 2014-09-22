@@ -65,9 +65,6 @@
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
 
-
-
-
 using std::string;
 using std::list;
 using std::map;
@@ -76,7 +73,7 @@ namespace lm {
 namespace cme {
 
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
-:neededDists(neededDists),rng(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),speciesCounts(NULL),previousSpeciesCounts(NULL),oParam(0),prevOParam(0),trajectoryStarted(false),time(0.0)
+:neededDists(neededDists),rng(NULL),oparams(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),speciesCounts(NULL),previousSpeciesCounts(NULL),oParam(0),prevOParam(0),trajectoryStarted(false),time(0.0)
 {
 }
 
@@ -87,6 +84,10 @@ CMESolver::~CMESolver()
 
     // Free any memory associated with the state.
     if (speciesCounts != NULL) delete[] speciesCounts; speciesCounts = NULL;
+
+    // Free any memory being used by the order parameters
+    if (oparams != NULL) delete oparams; oparams = NULL;
+
 //    if (previousSpeciesCounts != NULL) delete[] previousSpeciesCounts; previousSpeciesCounts = NULL;
 
     // Free any other memory.
@@ -95,6 +96,11 @@ CMESolver::~CMESolver()
     if (fptTrackedSpecies != NULL) delete[] fptTrackedSpecies; fptTrackedSpecies = NULL;
 }
 
+
+CMESolver::ESampleParameters::ESampleParameters(const lm::io::FFluxParameters& fp)
+:interface_id(),bin_id()
+{
+}
 
 CMESolver::ReactionModel::ReactionModel(uint numberSpecies, uint numberReactions)
 :numberSpecies(numberSpecies),numberSpeciesToTrack(numberSpecies),numberReactions(numberReactions),initialSpeciesCounts(NULL),reactionTypes(NULL),S(NULL),D(NULL),propensityFunctions(NULL),propensityFunctionArgs(NULL),numberDependentSpecies(NULL),dependentSpecies(NULL),dependentSpeciesChange(NULL),numberDependentReactions(NULL),dependentReactions(NULL)
@@ -655,6 +661,10 @@ void CMESolver::setReactionModel(const lm::io::ReactionModel& rm)
     if (K !=  NULL) delete [] K; K = NULL;
 }
 
+void CMESolver::setOrderParameters(const lm::io::FFluxParameters& esp)
+{
+    oparams = new lm::oparam::OParams(esp);
+}
 
 double CMESolver::zerothOrderPropensity(double time, uint * speciesCounts, void * pargs)
 {
@@ -868,6 +878,7 @@ void CMESolver::setState(const lm::io::TrajectoryState& state)
         speciesCounts[i] = state.cme_state().species_counts().species_count(i);
 //    	previousSpeciesCounts[i] = state.cme_state().species_counts().species_count(i);
     }
+    if ()
     oParam = calcTestCaseOParam(speciesCounts);
     prevOParam = oParam;
     time = state.cme_state().species_counts().time(0);

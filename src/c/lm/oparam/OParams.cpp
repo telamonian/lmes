@@ -43,7 +43,7 @@
 namespace lm {
 namespace oparam {
 
-OParams::OParams(lm::io::FFluxParameters& ffluxParams)
+OParams::OParams(const lm::io::FFluxParameters& ffluxParams)
 {
     for_each(ffluxParams.order_parameter().begin(), ffluxParams.order_parameter().end(), initOParam);
 }

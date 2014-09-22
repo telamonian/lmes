@@ -43,9 +43,19 @@ import "lm/io/CMEState.proto";
 import "lm/io/RDMEState.proto";
 
 message TrajectoryState {
+    enum ESampleType{FFLUX=1; NEUS=2;}
     required uint64 trajectory_id                       = 1;
     optional bool trajectory_started					= 2 [default = false];
     optional lm.io.CMEState cme_state                   = 3;
     optional lm.io.RDMEState rdme_state                 = 4;
     optional bytes solver_state                         = 100;
+
+    optional ESampleType esample_type                   = 200;
+
+    message FFluxState {
+        required uint64 interface_id                    = 1;
+        required uint64 bin_id                          = 2;
+    }
+
+    optional FFluxState fflux_state                     = 201;
 }

@@ -142,6 +142,9 @@ lm::io::TrajectoryState* FFluxTrajectoryList::initFirstTrajectoryState()
 	for (int j=0; j<(int)reactionModel.number_species(); j++)
 		trajectoryState->mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.initial_species_count(j));
 	trajectoryState->mutable_cme_state()->mutable_species_counts()->add_time(0.0);
+	trajectoryState->set_esample_type(lm::io::TrajectoryState::FFLUX);
+	trajectoryState->mutable_fflux_state()->set_bin_id(0);
+    trajectoryState->mutable_fflux_state()->set_interface_id(0);
 	return trajectoryState;
 }
 
