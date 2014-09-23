@@ -40,9 +40,10 @@
 #ifndef LM_OPARAM_OPARAM
 #define LM_OPARAM_OPARAM
 
-#include "lm/CallFactory.h"
+#include "lm/ClassFactory.h"
 #include "lm/io/FFluxParameters.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
+#include "lm/Types.h"
 
 namespace lm {
 namespace oparam {
@@ -52,13 +53,13 @@ class OParam
 public:
     OParam();
     virtual ~OParam() {}
-    virtual void init(lm::io::FFluxParameters::OrderParameter& opRef) = 0;
-    virtual double calc(lm::io::TrajectoryState& state) = 0;
-    virtual double get() {return val};
-    virtual void set(double newVal) {val = newVal};
+    virtual void init(const lm::io::FFluxParameters::OrderParameter& opRef);
+    virtual double calc(uint* speciesCounts) = 0;
+    double get() {return val;}
+    void set(double newVal) {val = newVal;}
 
 protected:
-    lm::io::FFluxParameters::OrderParameter& op;
+    lm::io::FFluxParameters::OrderParameter* op;
 
 private:
     double val;
@@ -73,8 +74,8 @@ public:
 
     OParamLinear();
     virtual ~OParamLinear() {}
-    virtual void init(lm::io::FFluxParameters::OrderParameter& opRef);
-    virtual double calc(lm::io::TrajectoryState& state);
+    virtual void init(const lm::io::FFluxParameters::OrderParameter& opRef);
+    virtual double calc(uint* speciesCounts);
 protected:
     uint size;
     uint* speciesID;

@@ -58,9 +58,10 @@ public:
     OParams(const lm::io::FFluxParameters& ffluxParams);
     ~OParams();
 
-    lm::oparam::OParam& operator[](uint i) {return opMap[i];}
+    lm::oparam::OParam& operator[](uint i) {return *opMap[i];}
 
     void initOParam(lm::io::FFluxParameters::OrderParameter& op);
+    void initValues(uint* speciesCounts);
 
     static OPClassMap makeOPClassMap()
     {

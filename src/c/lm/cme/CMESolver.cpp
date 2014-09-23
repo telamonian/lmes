@@ -96,10 +96,16 @@ CMESolver::~CMESolver()
     if (fptTrackedSpecies != NULL) delete[] fptTrackedSpecies; fptTrackedSpecies = NULL;
 }
 
-
-CMESolver::ESampleParameters::ESampleParameters(const lm::io::FFluxParameters& fp)
+CMESolver::ESampleParameters::ESampleParameters(const lm::io::TrajectoryState& state)
 :interface_id(),bin_id()
 {
+    switch(state.esample_type())
+    {
+    case lm::io::TrajectoryState::FFLUX:
+        interface_id = state.fflux_state().interface_id();
+        bin_id = state.fflux_state().bin_id();
+        break;
+    }
 }
 
 CMESolver::ReactionModel::ReactionModel(uint numberSpecies, uint numberReactions)
@@ -878,9 +884,15 @@ void CMESolver::setState(const lm::io::TrajectoryState& state)
         speciesCounts[i] = state.cme_state().species_counts().species_count(i);
 //    	previousSpeciesCounts[i] = state.cme_state().species_counts().species_count(i);
     }
-    if ()
-    oParam = calcTestCaseOParam(speciesCounts);
-    prevOParam = oParam;
+    if (state.has_esample_type())
+    {
+        esampleParams = new ESampleParameters(state);
+    }
+
+    oparams->initValues(speciesCounts);
+
+//    oParam = calcTestCaseOParam(speciesCounts);
+//    prevOParam = oParam;
     time = state.cme_state().species_counts().time(0);
     trajectoryStarted = state.trajectory_started();
 
@@ -916,13 +928,11 @@ void CMESolver::setLimits(const lm::io::TrajectoryLimits& limits)
         if (limits.max_species_count(i) != -1)
             setSpeciesUpperLimit(i, limits.max_species_count(i));
 
-    // Set any increasing/decreasing bound crossing detections.
-    for (int i=0; i<limits.decreasing_species_count_size(); i++)
-    	if (limits.decreasing_species_count(i) != -1)
-    		setSpeciesDecreasingLimit(i, limits.decreasing_species_count(i));
-    for (int i=0; i<limits.increasing_species_count_size(); i++)
-    	if (limits.increasing_species_count(i) != -1)
-    		setSpeciesIncreasingLimit(i, limits.increasing_species_count(i));
+    // Set any increasing/decreasing order parameter bound crossing detections.
+    for (int i=0; i<limits.decreasing_order_parameter_limit_size(); i++)
+        setSpeciesDecreasingLimit(limits.decreasing_order_parameter_limit(i).order_parameter_id(), limits.decreasing_order_parameter_limit(i).value());
+    for (int i=0; i<limits.increasing_order_parameter_limit_size(); i++)
+        setSpeciesIncreasingLimit(limits.increasing_order_parameter_limit(i).order_parameter_id(), limits.increasing_order_parameter_limit(i).value());
 }
 
 void CMESolver::setSpeciesLowerLimit(int species, int limit)
@@ -957,7 +967,7 @@ void CMESolver::setSpeciesUpperLimit(int species, int limit)
     speciesLimits[numberSpeciesLimits-1].limit = limit;
 }
 
-void CMESolver::setSpeciesDecreasingLimit(int species, double limit)
+void CMESolver::setSpeciesDecreasingLimit(int opID, double limit)
 {
 	// Allocate a larger list for the limits/limit crossings.
 	SpeciesLimit* newSpeciesLimits = new SpeciesLimit[++numberSpeciesLimits];
@@ -968,11 +978,11 @@ void CMESolver::setSpeciesDecreasingLimit(int species, double limit)
 	}
 	speciesLimits = newSpeciesLimits;
 	speciesLimits[numberSpeciesLimits-1].type = SpeciesLimit::DECREASING;
-	speciesLimits[numberSpeciesLimits-1].species = species;
+	speciesLimits[numberSpeciesLimits-1].species = opID;
 	speciesLimits[numberSpeciesLimits-1].limit = limit;
 }
 
-void CMESolver::setSpeciesIncreasingLimit(int species, double limit)
+void CMESolver::setSpeciesIncreasingLimit(int opID, double limit)
 {
 	// Allocate a larger list for the limits/limit crossings.
 	SpeciesLimit* newSpeciesLimits = new SpeciesLimit[++numberSpeciesLimits];
@@ -983,7 +993,7 @@ void CMESolver::setSpeciesIncreasingLimit(int species, double limit)
 	}
 	speciesLimits = newSpeciesLimits;
 	speciesLimits[numberSpeciesLimits-1].type = SpeciesLimit::INCREASING;
-	speciesLimits[numberSpeciesLimits-1].species = species;
+	speciesLimits[numberSpeciesLimits-1].species = opID;
 	speciesLimits[numberSpeciesLimits-1].limit = limit;
 }
 

@@ -225,8 +225,8 @@ public:
 protected:
     virtual void setSpeciesUpperLimit(int species, int limit);
     virtual void setSpeciesLowerLimit(int species, int limit);
-    virtual void setSpeciesDecreasingLimit(int species, double limit);
-    virtual void setSpeciesIncreasingLimit(int species, double limit);
+    virtual void setSpeciesDecreasingLimit(int opID, double limit);
+    virtual void setSpeciesIncreasingLimit(int opID, double limit);
     virtual void addToParameterTrackingList(pair<string,double*>parameter);
 
     static double zerothOrderPropensity(double time, uint * speciesCounts, void * pargs);
@@ -330,7 +330,7 @@ protected:
     class ESampleParameters
     {
     public:
-        ESampleParameters(const lm::io::FFluxParameters& fp);
+        ESampleParameters(const lm::io::TrajectoryState& state);
         virtual ~ESampleParameters();
 
         uint interface_id;

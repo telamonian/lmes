@@ -44,8 +44,22 @@
 namespace lm {
 namespace oparam {
 
-OParam::OParam(): val(), op() {}
+// base class OParam methods
+OParam::OParam(): val(), op(NULL)
+{
+}
 
+OParam::~OParam()
+{
+    if (op!=NULL) delete op; op = NULL;
+}
+
+OParam::init(const lm::io::FFluxParameters::OrderParameter& opRef)
+{
+    op = new lm::io::FFluxParameters::OrderParameter(opRef);
+}
+
+// derived class methods
 bool OParamLinear::registered=OParamLinear::registerClass();
 bool OParamLinear::registerClass()
 {
@@ -59,23 +73,34 @@ void* OParamLinear::allocateObject()
 
 OParamLinear::OParamLinear(): OParam(), size(), speciesID(), speciesCoefficient() {}
 
-void OParamLinear::init(lm::io::FFluxParameters::OrderParameter& opRef)
+void OParamLinear::init(const lm::io::FFluxParameters::OrderParameter& opRef)
 {
-    op = opRef;
-    size = op.species_id_size();
-    speciesID = op.species_id().data();
-    speciesCoefficient = op.species_coefficient().data();
+    // call parent method
+    OParam::init(opRef);
+    size = op->species_id_size();
+    speciesID = op->species_id().data();
+    speciesCoefficient = op->species_coefficient().data();
 }
 
-double OParamLinear::calc(lm::io::TrajectoryState& state)
+double OParamLinear::calc(uint* speciesCounts)
 {
-    double ret = 0;
+    val = 0;
     for (int i=0;i<size;++i)
     {
-        ret+=(double)(state.cme_state().species_counts().species_count(speciesID[i]) * speciesCoefficient[i]);
+        val+=speciesCounts[speciesID[i]]*speciesCoefficient[i];
     }
-    return ret;
+    return val;
 }
+
+//double OParamLinear::calc(lm::io::TrajectoryState& state)
+//{
+//    val = 0;
+//    for (int i=0;i<size;++i)
+//    {
+//        val+=state.cme_state().species_counts().species_count(speciesID[i]) * speciesCoefficient[i];
+//    }
+//    return val;
+//}
 
 }
 }

@@ -59,5 +59,13 @@ void OParams::initOParam(lm::io::FFluxParameters::OrderParameter& op)
     opMap[op.id()]->init(op);
 }
 
+void OParams::initValues(uint* speciesCounts)
+{
+    for (OPMap::iterator m_it=opMap.begin();m_it!=opMap.end();++m_it)
+    {
+        m_it->second->calc(speciesCounts);
+    }
+}
+
 }
 }
