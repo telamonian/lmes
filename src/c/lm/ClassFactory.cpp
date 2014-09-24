@@ -55,10 +55,10 @@ ClassFactory& ClassFactory::getInstance()
     return instance;
 }
 
-//void ClassFactory::registerClass(string baseClassName, string className, ClassAllocator allocator)
-//{
-//    knownClasses[baseClassName][className] = allocator;
-//}
+void ClassFactory::registerClass(string baseClassName, string className, ClassAllocator allocator)
+{
+    knownClasses[baseClassName][className] = allocator;
+}
 
 void* ClassFactory::allocateObjectOfClass(string baseClassName, string className)
 {

@@ -122,7 +122,7 @@ void FFluxSupervisor::startSimulation()
     Print::printf(Print::INFO, "Forward flux supervisor starting simulation.");
 
     // Create the new trajectory list.
-    trajectories = new FFluxTrajectoryList(slots.getSlotsSize(), zerothInterface, simulationParameterMap, reactionModel, ffluxParameters);
+    trajectories = new FFluxTrajectoryList(slots.getSlotsSize(), simulationParameterMap, reactionModel, ffluxParameters);
 
     // Get the trajectories template msg so that we can set some default values in it
     lm::message::RunWorkUnit* runWorkUnitMsg = trajectories->getRunWorkUnitMsg();
@@ -134,8 +134,6 @@ void FFluxSupervisor::startSimulation()
 	runWorkUnitMsg->set_output_thread(outputWriterThread);
 	// Set the default work unit-specific limits
 	runWorkUnitMsg->set_max_steps(100);
-	// Set the default trajectory limits
-	trajectories->initLimits();
 
 	//// TEMP : replace; hardcoded increasing/decreasing limits for the forward flux test case
 //	limits.add_decreasing_species_count(0);
@@ -154,15 +152,15 @@ void FFluxSupervisor::startSimulation()
     SimulationSupervisor::startSimulation();
 }
 
-void FFluxSupervisor::initLimits()
-{
-    double firstBorder, lastBorder;
-    firstBorder = ffluxParameters.interface(0).bin_border(0);
-    lastBorder = ffluxParameters.interface(0).bin_border(ffluxParameters.interface(0).bin_border_size()-1);
-    lastBorder >= firstBorder ? limits.set_increasing_species_count(0, firstBorder) : limits.set_decreasing_species_count(0, firstBorder);
-}
-
 //// TEMP : remove
+//void FFluxSupervisor::initLimits()
+//{
+//    double firstBorder, lastBorder;
+//    firstBorder = ffluxParameters.interface(0).bin_border(0);
+//    lastBorder = ffluxParameters.interface(0).bin_border(ffluxParameters.interface(0).bin_border_size()-1);
+//    lastBorder >= firstBorder ? limits.set_increasing_species_count(0, firstBorder) : limits.set_decreasing_species_count(0, firstBorder);
+//}
+
 //void FFluxSupervisor::setTestCaseLimits(double* a_decr, double* a_incr)
 //{
 //	limits.set_decreasing_species_count(0, -9999);

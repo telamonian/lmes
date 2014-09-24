@@ -71,7 +71,7 @@ class FFluxTrajectoryList : public lm::resource::TrajectoryList
 public:
     // enumerated type used for describing the direction of the current fflux simulation relative to the arrangements (low-to-high or high-to-low) of the individual interfaces
     enum direction {FORWARD, BACKWARD};
-    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, double zerothInterface, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel, const lm::io::FFluxParameters& ffluxParameters);
+    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel, const lm::io::FFluxParameters& ffluxParameters);
     virtual ~FFluxTrajectoryList();
     virtual void init();
     virtual void initTrajectory(uint64_t trajectoryID, lm::io::TrajectoryState* trajectoryState);

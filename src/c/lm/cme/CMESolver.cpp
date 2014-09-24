@@ -930,9 +930,19 @@ void CMESolver::setLimits(const lm::io::TrajectoryLimits& limits)
 
     // Set any increasing/decreasing order parameter bound crossing detections.
     for (int i=0; i<limits.decreasing_order_parameter_limit_size(); i++)
-        setSpeciesDecreasingLimit(limits.decreasing_order_parameter_limit(i).order_parameter_id(), limits.decreasing_order_parameter_limit(i).value());
+    {
+        for (int j=0; j<limits.decreasing_order_parameter_limit(i).value_size(); j++)
+        {
+            setSpeciesDecreasingLimit(limits.decreasing_order_parameter_limit(i).order_parameter_id(), limits.decreasing_order_parameter_limit(i).value(j));
+        }
+    }
     for (int i=0; i<limits.increasing_order_parameter_limit_size(); i++)
-        setSpeciesIncreasingLimit(limits.increasing_order_parameter_limit(i).order_parameter_id(), limits.increasing_order_parameter_limit(i).value());
+    {
+        for (int j=0; j<limits.decreasing_order_parameter_limit(i).value_size(); j++)
+        {
+            setSpeciesIncreasingLimit(limits.increasing_order_parameter_limit(i).order_parameter_id(), limits.increasing_order_parameter_limit(i).value(j));
+        }
+    }
 }
 
 void CMESolver::setSpeciesLowerLimit(int species, int limit)

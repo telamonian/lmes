@@ -58,10 +58,7 @@ public:
 public:
     ClassFactory() {}
     ~ClassFactory() {}
-
-    template<typename T = ClassAllocator>
-    void registerClass(string baseClassName, string className, T allocator) {knownClasses[baseClassName][className] = allocator;};
-
+    void registerClass(string baseClassName, string className, ClassAllocator allocator);
     void* allocateObjectOfClass(string baseClassName, string className);
     void printRegisteredClasses();
 

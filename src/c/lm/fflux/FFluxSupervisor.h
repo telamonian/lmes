@@ -69,8 +69,8 @@ protected:
     virtual void allResourcesRegistered();
     virtual void startSimulation();
     virtual void outputWriterStarted(const lm::message::StartedOutputWriter& msg);
-    virtual void initLimits();
     //// TEMP : remove
+//    virtual void initLimits();
     virtual void setTestCaseLimits(double* a_decr=NULL, double* a_incr=NULL);
     //// TEMP
 
