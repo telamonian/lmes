@@ -80,7 +80,7 @@ public:
     virtual lm::io::TrajectoryState* initFirstTrajectoryState();
     virtual void restart();
     virtual void reverse();
-    virtual void workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg);
+    virtual lm::fflux::FFluxTrajectory* workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg);
 
     // Returns a randomly chosen crossing event (in the form of a TrajectoryState) collected durring forward flux phase ffluxPhase
     virtual lm::io::TrajectoryState* getRandomCrossing(long long ffluxPhase);

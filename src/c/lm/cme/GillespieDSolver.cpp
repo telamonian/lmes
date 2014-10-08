@@ -310,7 +310,7 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
         Print::printf(Print::DEBUG, "Generated trajectory with %llu steps.", steps);
     }
 
-    // Otherwise we must have finished because of a species limit, so just write out the last time.
+    // Otherwise we must have finished because of a species/order parameter limit, so just write out the last time.
     else
     {
         // Record the species counts.

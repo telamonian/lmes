@@ -4,8 +4,8 @@
  * All rights reserved.
  *
  * Developed by: Roberts Group
- *                  Johns Hopkins University
- *                  http://biophysics.jhu.edu/roberts/
+ * 			     Johns Hopkins University
+ * 			     http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -37,58 +37,31 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-#ifndef LM_RESOURCE_TRAJECTORY_H_
-#define LM_RESOURCE_TRAJECTORY_H_
+#ifndef LM_FFLUX_FFLUXTRAJECTORY_H_
+#define LM_FFLUX_FFLUXTRAJECTORY_H_
 
-#include <map>
-#include <string>
-#include "lm/io/ReactionModel.pb.h"
-#include "lm/io/TrajectoryState.pb.h"
-#include "lm/message/Message.pb.h"
-#include "lm/Types.h"
-
-using std::map;
-using std::string;
-
+#include "lm/resource/Trajectory.h"
 
 namespace lm {
-namespace resource {
+namespace fflux {
 
-class Trajectory
+class FFluxTrajectory : public lm::resource::Trajectory
 {
 public:
-    enum status_t {NOT_STARTED, RUNNING, WAITING, FINISHED};
+	FFluxTrajectory(uint64_t id);
+	virtual ~FFluxTrajectory();
 
-    Trajectory(uint64_t trajectoryID);
-    virtual ~Trajectory();
+    // methods for detecting when a flux event has occured
+    virtual bool fluxed(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg);
+    virtual bool fluxedForward();
+    virtual bool fluxedBackward();
 
-    //getters
-    virtual lm::message::Message* getMsg();
-    virtual lm::message::RunWorkUnit* getRunMsg();
-    virtual status_t getStatus();
-    virtual lm::io::TrajectoryState& getState();
-
-    //setters
-    virtual void setMsg(const lm::message::Message& newMsg);
-    virtual void setWorkUnitId(int64_t id);
-    virtual void setStarted(bool trajectoryStarted);
-    virtual void setStatus(status_t newStatus);
-    virtual void setState(const lm::io::TrajectoryState& newState);
-
-    //other?
-    virtual void updateInitialRunState();
-
-    uint64_t trajectoryID;
-
-protected:
-    status_t status;
-    lm::io::TrajectoryState state;  // state is supposed to be synced at all (or at least most) times with the msg.run_work_unit.initial_state field
-    lm::message::Message msg;
+    // methods for encapsulating functions in the fflux main loop
+    virtual void addCrossing(const lm::io::TrajectoryState& state);
+    virtual void getSimTime();
 };
 
 }
 }
-
-typedef map<uint64_t, lm::resource::Trajectory*> TrajectoryMap;
 
 #endif

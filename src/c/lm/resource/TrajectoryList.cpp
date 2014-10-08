@@ -82,7 +82,7 @@ void TrajectoryList::deleteTrajectory(uint64_t trajectoryID)
 	trajectories.erase(it);
 }
 
-void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
+lm::resource::Trajectory* TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
 {
 	if (msg.status() == lm::message::FinishedWorkUnit::LIMIT_REACHED)
 	{
@@ -95,6 +95,7 @@ void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
 		setTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
 	}
 	setTrajectoryStarted(msg.final_state().trajectory_id(), true);
+	return getTrajectory(msg.final_state().trajectory_id());
 }
 
 lm::message::Message * TrajectoryList::getNextWorkUnitMsg()
@@ -125,6 +126,11 @@ bool TrajectoryList::isFinished()
 	return true;
 }
 
+lm::resource::Trajectory* TrajectoryList::getTrajectory(uint64_t trajectoryID)
+{
+    return trajectories[trajectoryID];
+}
+
 Trajectory::status_t TrajectoryList::getTrajectoryStatus(uint64_t trajectoryID)
 {
     return trajectories[trajectoryID]->getStatus();
@@ -139,6 +145,7 @@ void TrajectoryList::setTrajectoryStarted(uint64_t trajectoryID, bool trajectory
 {
 	trajectories[trajectoryID]->setStarted(trajectoryStarted);
 }
+
 void TrajectoryList::setTrajectoryStatus(uint64_t trajectoryID, Trajectory::status_t status)
 {
     trajectories[trajectoryID]->setStatus(status);

@@ -49,12 +49,14 @@ message TrajectoryState {
     optional lm.io.CMEState cme_state                   = 3;
     optional lm.io.RDMEState rdme_state                 = 4;
     optional bytes solver_state                         = 100;
+    optional lm.io.TrajectoryLimits.Type finalLimitType = 101;
 
     optional ESampleType esample_type                   = 200;
 
     message FFluxState {
         required uint64 interface_id                    = 1;
         required uint64 bin_id                          = 2;
+        required double order_parameter_value           = 3;
     }
 
     optional FFluxState fflux_state                     = 201;

@@ -63,6 +63,7 @@ public:
     virtual void init()=0;
 
     //getter
+    virtual lm::resource::Trajectory* getTrajectory(uint64_t trajectoryID);
     virtual lm::resource::Trajectory::status_t getTrajectoryStatus(uint64_t trajectoryID);
     virtual const lm::io::TrajectoryState& getTrajectoryState(uint64_t trajectoryID);
     virtual bool exists(uint64_t trajectoryID) {if (trajectories.find(trajectoryID)!=trajectories.end()) return true; else return false;}
@@ -78,7 +79,7 @@ public:
 
     virtual lm::message::Message* getNextWorkUnitMsg();
     virtual bool isFinished();
-    virtual void workUnitFinished(const lm::message::FinishedWorkUnit & msg);
+    virtual lm::resource::Trajectory* workUnitFinished(const lm::message::FinishedWorkUnit & msg);
 
     // dealing with the internal template Message methods
 	virtual lm::message::RunWorkUnit* getRunWorkUnitMsg() {return trajectoryTemplateMsg.mutable_run_work_unit();}
@@ -87,6 +88,7 @@ public:
 protected:
     uint64_t trajectoryCount;
     int64_t workUnitCount;
+    // this template message is used when initializing new Trajectory instances
     lm::message::Message trajectoryTemplateMsg;
     TrajectoryMap trajectories;
 };

@@ -41,79 +41,49 @@
 #include <map>
 #include <string>
 
-#include "lm/Print.h"
-#include "lm/io/ReactionModel.pb.h"
-#include "lm/io/SpeciesCounts.pb.h"
-#include "lm/io/TrajectoryState.pb.h"
-#include "lm/message/Message.pb.h"
-#include "lm/resource/Trajectory.h"
-#include "lm/Types.h"
-
-using std::map;
-using std::string;
+#include "lm/fflux/FFluxTrajectory.h"
 
 namespace lm {
-namespace resource {
+namespace fflux {
 
-Trajectory::Trajectory(uint64_t trajectoryID) : trajectoryID(trajectoryID),status(NOT_STARTED)
+FFluxTrajectory::FFluxTrajectory(uint64_t id, lm::io::TrajectoryState* state, ):
+Trajectory(id)
+{
+        // Construct new trajectory
+        trajectories[id] = new lm::resource::Trajectory(id);
+
+        // Initialize the trajectory's runWorkUnit message
+        trajectories[id]->setMsg(trajectoryTemplateMsg);
+
+        // Copy the TrajectoryState referenced in the function args to the TrajectoryState of the newly constructed trajectory
+        trajectories[id]->setState(*state);
+
+        // Set the trajectory id in the trajectory state.
+        trajectories[id]->getState().set_trajectory_id(id);
+
+        // Set the trajectory id in the CME state of the trajectory state (if applicable).
+        if (trajectories[id]->getState().has_cme_state())
+            trajectories[id]->getState().mutable_cme_state()->mutable_species_counts()->set_trajectory_id(id);
+
+        // Set the trajectory id in the RDME state of the trajectory state (if applicable).
+    //    if (trajectories[id]->getState().has_rdme_state())
+    //        trajectories[id]->getState().mutable_rdme_state()->mutable_species_counts()->set_trajectory_id(id);
+
+}
+
+FFluxTrajectory::~FFluxTrajectory()
 {
 }
 
-Trajectory::~Trajectory()
+void FFluxTrajectory::addCrossing(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg)
 {
+    lm::io::TrajectoryState * newCrossing = new lm::io::TrajectoryState(finishedWorkUnitMsg.final_state());
+    crossings[ffluxPhase].push_back(newCrossing);
 }
 
-// getter definitions
-lm::message::Message* Trajectory::getMsg()
+void FFluxTrajectory::getSimTime()
 {
-    return &msg;
-}
-
-lm::message::RunWorkUnit* Trajectory::getRunMsg()
-{
-	return msg.mutable_run_work_unit();
-}
-
-Trajectory::status_t Trajectory::getStatus()
-{
-    return status;
-}
-
-lm::io::TrajectoryState& Trajectory::getState()
-{
-    return state;
-}
-
-// setter definitions
-void Trajectory::setMsg(const lm::message::Message& newMsg)
-{
-    msg = newMsg;
-}
-
-void Trajectory::setWorkUnitId(int64_t id)
-{
-    getRunMsg()->set_work_unit_id(id);
-}
-
-void Trajectory::setStarted(bool trajectoryStarted)
-{
-    state.set_trajectory_started(trajectoryStarted);
-}
-
-void Trajectory::setStatus(status_t newStatus)
-{
-    status = newStatus;
-}
-
-void Trajectory::setState(const lm::io::TrajectoryState& newState)
-{
-    state = newState;
-}
-
-void Trajectory::updateInitialRunState()
-{
-	lm::io::TrajectoryState* runState = new lm::io::TrajectoryState(state);
-	getRunMsg()->set_allocated_initial_state(runState);
+    (crossings[ffluxPhase].back()->cme_state().species_counts().time(crossings[ffluxPhase].back()->cme_state().species_counts().number_entries() - 1) > maxPhaseZeroTime);
 }
 
 }
