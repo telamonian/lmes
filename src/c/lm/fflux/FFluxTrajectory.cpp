@@ -75,10 +75,28 @@ FFluxTrajectory::~FFluxTrajectory()
 {
 }
 
-void FFluxTrajectory::addCrossing(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg)
+bool FFluxTrajectory::hasFluxedBackward()
 {
-    lm::io::TrajectoryState * newCrossing = new lm::io::TrajectoryState(finishedWorkUnitMsg.final_state());
-    crossings[ffluxPhase].push_back(newCrossing);
+    if (order==ASCENDING)
+    {
+        return (state.final_limit_type()==DecreasingOrderParameter);
+    }
+    else
+    {
+        return (state.final_limit_type()==IncreasingOrderParameter);
+    }
+}
+
+bool FFluxTrajectory::hasFluxedForward()
+{
+    if (order==ASCENDING)
+    {
+        return (state.final_limit_type()==IncreasingOrderParameter);
+    }
+    else
+    {
+        return (state.final_limit_type()==DecreasingOrderParameter);
+    }
 }
 
 void FFluxTrajectory::getSimTime()

@@ -41,17 +41,17 @@ package lm.io;
 
 import "lm/io/CMEState.proto";
 import "lm/io/RDMEState.proto";
+import "lm/io/TrajectoryLimits.proto";
 
 message TrajectoryState {
-    enum ESampleType{FFLUX=1; NEUS=2;}
     required uint64 trajectory_id                       = 1;
     optional bool trajectory_started					= 2 [default = false];
     optional lm.io.CMEState cme_state                   = 3;
     optional lm.io.RDMEState rdme_state                 = 4;
     optional bytes solver_state                         = 100;
-    optional lm.io.TrajectoryLimits.Type finalLimitType = 101;
+    optional lm.io.TrajectoryLimits.Type final_limit_type   = 101;
 
-    optional ESampleType esample_type                   = 200;
+    optional lm.io.ESampleType esample_type                   = 200;
 
     message FFluxState {
         required uint64 interface_id                    = 1;

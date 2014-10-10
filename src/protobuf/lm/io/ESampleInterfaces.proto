@@ -43,14 +43,15 @@ message ESampleInterfaces {
 
     enum esampleType {
         FFLUX = 0;
-        NEUS = 0;
+        NEUSLATTICE = 1;
+        NEUSSTRING = 2;
     }
 
     // enumerated type that represent whether an interface is ordered ("arranged") highest-to-lowest or lowest-to-highest.
     // the actual order that the interface is used in during a simulation also depends on the FFluxTrajectoryList object's direction attribute
     enum arrangement {
-        DECREASING = 0;
-        INCREASING = 1;
+        ASCENDING = 0;
+        DESCENDING = 1;
     }
 
     message FFluxInterface {

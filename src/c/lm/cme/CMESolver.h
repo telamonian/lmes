@@ -55,6 +55,7 @@
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/ParameterValues.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/io/TrajectoryState.pb.h"
 #include "lm/main/Main.h"
 #include "lm/Math.h"
 #include "lm/me/MESolver.h"
@@ -305,17 +306,33 @@ protected:
             switch (l.type)
             {
             case SpeciesLimit::MIN:
-                if (int(speciesCounts[l.species]) <= l.limit) return true;
+                if (int(speciesCounts[l.species]) <= l.limit)
+                {
+                    finalLimitType = lm::io::TrajectoryLimits::MinSpeciesCount;
+                    return true;
+                }
                 break;
             case SpeciesLimit::MAX:
-                if (int(speciesCounts[l.species]) >= l.limit) return true;
+                if (int(speciesCounts[l.species]) >= l.limit)
+                {
+                    finalLimitType = lm::io::TrajectoryLimits::MaxSpeciesCount;
+                    return true;
+                }
                 break;
             //// TEMP : replace
             case SpeciesLimit::DECREASING:
-            	if (oParam < l.limit && prevOParam >= l.limit) return true;
+            	if (oParam < l.limit && prevOParam >= l.limit)
+                {
+                    finalLimitType = lm::io::TrajectoryLimits::DecreasingOrderParameter;
+                    return true;
+                }
             	break;
             case SpeciesLimit::INCREASING:
-            	if (oParam >= l.limit && prevOParam < l.limit) return true;
+            	if (oParam >= l.limit && prevOParam < l.limit)
+                {
+                    finalLimitType = lm::io::TrajectoryLimits::IncreasingOrderParameter;
+                    return true;
+                }
             	break;
             //// TEMP
             }
@@ -373,6 +390,7 @@ protected:
     double maxTime;
     uint numberSpeciesLimits;
     SpeciesLimit* speciesLimits;
+    lm::io::TrajectoryLimits::Type finalLimitType;
 
     // Storage for order parameters
     double oParam;

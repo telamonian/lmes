@@ -247,14 +247,18 @@ void WorkUnitRunner::runWorkUnit(const lm::message::RunWorkUnit& wu)
     msg2->set_work_unit_id(wu.work_unit_id());
     msg2->set_process(lm::MPI::worldRank);
     msg2->set_thread(getThreadNumber());
-    if (limitReached)
-        msg2->set_status(lm::message::FinishedWorkUnit::LIMIT_REACHED);
-    else
-        msg2->set_status(lm::message::FinishedWorkUnit::STEPS_FINISHED);
     msg2->set_run_time(convertHrToSeconds(t2-t1));
     msg2->mutable_final_state()->set_trajectory_id(wu.initial_state().trajectory_id());
     solver->getState(msg2->mutable_final_state());
-
+    if (limitReached)
+    {
+        msg2->set_status(lm::message::FinishedWorkUnit::LIMIT_REACHED);
+        msg2->mutable_final_state()->set_final_limit_type(solver->finalLimitType);
+    }
+    else
+    {
+        msg2->set_status(lm::message::FinishedWorkUnit::STEPS_FINISHED);
+    }
     communicator.sendMessage(wu.supervisor_process(), wu.supervisor_thread(), &msgp2);
 }
 

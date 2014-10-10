@@ -179,7 +179,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
     if (finishedWorkUnitMsg.status()==lm::message::FinishedWorkUnit::LIMIT_REACHED)
     {
         // ...and if the crossing event was a forward flux...
-        if (traj->fluxed())
+        if (traj->fluxedForward())
         {
             // ...add the work unit's final state to the appropriate list of crossings
             Print::printf(Print::INFO,"Crossing %d added to phase %d list", crossings[ffluxPhase].size(), ffluxPhase);
@@ -193,7 +193,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
         if (isZerothPhase())
         {
             // ...and if enough time has passed for phase zero to be complete...
-            if (isZerothPhaseDone())//(traj->getSimTime() > maxPhaseZeroTime)
+            if (traj->isZerothPhaseDone())
             {
                 if (crossings.find(0)==crossings.end()) Print::printf(Print::ERROR, "No crossings were recorded during forward flux phase zero. Try increasing maxPhaseZeroTime");
                 Print::printf(Print::INFO,"By the end of forward flux phase zero, %d forward crossings were recorded", crossings[ffluxPhase].size());
@@ -201,7 +201,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
                 deleteAllTrajectories();
                 // Next, increment the fflux phase counter. If there are still more phases to run...
                 ++ffluxPhase;
-                if (maxFFluxPhase > ffluxPhase)
+                if (!isFFluxDone())
                 {
                     // ...increment the interface position (by altering the increasing/decreasing limits)...
 //                    ratchetInterfaces();
@@ -220,13 +220,13 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
         else
         {
             // ...and if enough crossing events have been detected for this phase of forward flux sampling...
-            if (isPhaseDone())//(crossings[ffluxPhase].size()>=crossingsPerPhase)
+            if (isPhaseDone())
             {
                 // ...delete the currently running set of trajectories
                 deleteAllTrajectories();
                 // Next, increment the fflux phase counter. If there are still more phases to run...
                 ++ffluxPhase;
-                if (!(isSamplingDone()))//(ffluxPhase<=maxFFluxPhase)
+                if (!isFFluxDone())
                 {
                     // ...increment the interface position (by altering the increasing/decreasing limits)...
 //                    ratchetInterfaces();
@@ -277,6 +277,27 @@ lm::io::TrajectoryState * FFluxTrajectoryList::getRandomCrossing(long long fflux
 {
     unsigned i = floor(xorShift.getRandomDouble()*crossings[ffluxPhase].size());
     return crossings[ffluxPhase][i];
+}
+
+void FFluxTrajectoryList::addCrossing(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg)
+{
+    lm::io::TrajectoryState * newCrossing = new lm::io::TrajectoryState(finishedWorkUnitMsg.final_state());
+    crossings[ffluxPhase].push_back(newCrossing);
+}
+
+bool FFluxTrajectoryList::isZerothPhase()
+{
+    return (ffluxPhase==0);
+}
+
+bool FFluxTrajectoryList::isPhaseDone()
+{
+    return (crossings[ffluxPhase].size()>=crossingsPerPhase);
+}
+
+bool FFluxTrajectoryList::isFFluxDone()
+{
+    return (ffluxPhase < maxFFluxPhase);
 }
 
 void FFluxTrajectoryList::initInterfaces()

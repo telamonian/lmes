@@ -52,9 +52,9 @@ public:
 	virtual ~FFluxTrajectory();
 
     // methods for detecting when a flux event has occured
-    virtual bool fluxed(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg);
-    virtual bool fluxedForward();
-    virtual bool fluxedBackward();
+    virtual bool fluxed();//const lm::message::FinishedWorkUnit& finishedWorkUnitMsg
+    virtual bool hasFluxedForward();
+    virtual bool hasFluxedBackward();
 
     // methods for encapsulating functions in the fflux main loop
     virtual void addCrossing(const lm::io::TrajectoryState& state);

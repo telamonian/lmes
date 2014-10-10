@@ -85,6 +85,13 @@ public:
     // Returns a randomly chosen crossing event (in the form of a TrajectoryState) collected durring forward flux phase ffluxPhase
     virtual lm::io::TrajectoryState* getRandomCrossing(long long ffluxPhase);
 
+    // methods that encapsulate inner loop tasks
+    virtual void addCrossing(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg);
+    virtual bool isZerothPhase();
+    virtual bool isZerothPhaseDone();
+    virtual bool isPhaseDone();
+    virtual bool isFFluxDone();
+
     // methods for dealing with interfaces, bin borders, etc.
     virtual void initInterfaces();
     virtual void ratchetInterfaces();

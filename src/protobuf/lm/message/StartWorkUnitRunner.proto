@@ -40,7 +40,8 @@
 package lm.message;
 
 import "lm/io/DiffusionModel.proto";
-import "lm/io/FFluxParameters.proto";
+import "lm/io/ESampleInterfaces.proto";
+import "lm/io/OrderParameters.proto";
 import "lm/io/ReactionModel.proto";
 import "lm/io/SimulationParameters.proto";
 
@@ -55,7 +56,7 @@ message StartWorkUnitRunner {
     optional lm.io.ReactionModel reaction_model                 = 7;
     optional lm.io.DiffusionModel diffusion_model               = 8;
 
-    optional ESampleType esample_type                           = 100;
-    optional lm.io.FFluxParameters fflux_parameters             = 101;
+    optional lm.io.ESampleInterfaces esample_interfaces         = 101;
+    optional lm.io.OrderParameters order_parameters             = 102;
 
 }
