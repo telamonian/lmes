@@ -38,14 +38,16 @@
  */
 
 #include <algorithm>
-#include "lm/oparam/OParamList.h"
+#include "lm/io/OrderParameters.pb.h"
+#include "lm/oparam/OParam.h"
+#include "lm/oparam/OParams.h"
 
 namespace lm {
 namespace oparam {
 
-OParams::OParams(const lm::io::FFluxParameters& ffluxParams)
+OParams::OParams(const lm::io::OrderParameters& ops)
 {
-    for_each(ffluxParams.order_parameter().begin(), ffluxParams.order_parameter().end(), initOParam);
+    for_each(ops.order_parameters().begin(), ops.order_parameters().end(), initOParam);
 }
 
 OParams::~OParams()
@@ -53,7 +55,7 @@ OParams::~OParams()
     for (OPMap::iterator m_it=opMap.begin();m_it!=opMap.end();++m_it) delete m_it->second;
 }
 
-void OParams::initOParam(lm::io::FFluxParameters::OrderParameter& op)
+void OParams::initOParam(lm::io::OrderParameters::OrderParameter& op)
 {
     opMap[op.id()] = (static_cast<lm::oparam::OParam*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::oparam::OParam",lm::oparam::OParams::opClassMap[op.type()])));
     opMap[op.id()]->init(op);

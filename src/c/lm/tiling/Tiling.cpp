@@ -36,8 +36,7 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#include "lm/io/FFluxParameters.pb.h"
-#include "lm/io/TrajectoryState.pb.h"
+#include "lm/io/Tilings.pb.h"
 #include "lm/tiling/Tiling.h"
 #include "lm/ClassFactory.h"
 
@@ -45,62 +44,50 @@ namespace lm {
 namespace tiling {
 
 // base class OParam methods
-Tiling::Tiling(): val(), op(NULL)
+Tiling::Tiling(): tiling(NULL)
 {
 }
 
 Tiling::~Tiling()
 {
-    if (op!=NULL) delete op; op = NULL;
+    if (tiling!=NULL) delete tiling; tiling = NULL;
 }
 
-Tiling::init(const lm::io::FFluxParameters::OrderParameter& opRef)
+void Tiling::init(const lm::io::Tilings::Tiling& tilingRef)
 {
-    op = new lm::io::FFluxParameters::OrderParameter(opRef);
+    tiling = new lm::io::Tilings::Tiling(tilingRef);
+    setArrangement
+}
+
+Tiling::getArrangment()
+{
+
+}
+
+Tiling::setArrangement()
+{
+
 }
 
 // derived class methods
-bool OParamLinear::registered=OParamLinear::registerClass();
-bool OParamLinear::registerClass()
+bool TilingBin::registered=TilingBin::registerClass();
+bool TilingBin::registerClass()
 {
-    lm::ClassFactory::getInstance().registerClass("lm::oparam::OParam","lm::oparam::OParamLinear",&OParamLinear::allocateObject);
+    lm::ClassFactory::getInstance().registerClass("lm::tiling::Tiling","lm::tiling::TilingBin",&TilingBin::allocateObject);
     return true;
 }
-void* OParamLinear::allocateObject()
+void* TilingBin::allocateObject()
 {
-    return new OParamLinear();
+    return new TilingBin();
 }
 
-OParamLinear::OParamLinear(): OParam(), size(), speciesID(), speciesCoefficient() {}
+TilingBin::TilingBin(): Tiling() {}
 
-void OParamLinear::init(const lm::io::FFluxParameters::OrderParameter& opRef)
+void TilingBin::init(const lm::io::Tilings::Tiling& tilingRef)
 {
     // call parent method
-    OParam::init(opRef);
-    size = op->species_id_size();
-    speciesID = op->species_id().data();
-    speciesCoefficient = op->species_coefficient().data();
+    Tiling::init(tilingRef);
 }
-
-double OParamLinear::calc(uint* speciesCounts)
-{
-    val = 0;
-    for (int i=0;i<size;++i)
-    {
-        val+=speciesCounts[speciesID[i]]*speciesCoefficient[i];
-    }
-    return val;
-}
-
-//double OParamLinear::calc(lm::io::TrajectoryState& state)
-//{
-//    val = 0;
-//    for (int i=0;i<size;++i)
-//    {
-//        val+=state.cme_state().species_counts().species_count(speciesID[i]) * speciesCoefficient[i];
-//    }
-//    return val;
-//}
 
 }
 }

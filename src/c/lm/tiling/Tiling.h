@@ -40,9 +40,7 @@
 #ifndef LM_TILING_TILING
 #define LM_TILING_TILING
 
-#include "lm/ClassFactory.h"
-#include "lm/io/FFluxParameters.pb.h"
-#include "lm/io/TrajectoryState.pb.h"
+#include "lm/io/Tilings.pb.h"
 #include "lm/Types.h"
 
 namespace lm {
@@ -53,33 +51,31 @@ class Tiling
 public:
     Tiling();
     virtual ~Tiling() {}
-    virtual void init(const lm::io::FFluxParameters::OrderParameter& opRef);
-    virtual double calc(uint* speciesCounts) = 0;
-    double get() {return val;}
-    void set(double newVal) {val = newVal;}
+    virtual void init(const lm::io::Tilings::Tiling& tilingRef);
+    virtual lm::io::Tilings::Arrangement getArrangment();
+    virtual void setArrangement(lm::io::Tilings::Arrangement arrangement);
+    virtual double getLowerLimit(uint binID);
+    virtual double getUpperLimit(uint binID);
 
 protected:
-    lm::io::FFluxParameters::OrderParameter* op;
-
-private:
-    double val;
+    lm::io::Tilings::Tiling* tiling;
+    virtual lm::io::Tilings::Arrangement arrangement;
 };
 
-class OParamLinear : public OParam
+class TilingBin : public Tiling
 {
 public:
     static bool registered;
     static bool registerClass();
     static void* allocateObject();
 
-    OParamLinear();
-    virtual ~OParamLinear() {}
-    virtual void init(const lm::io::FFluxParameters::OrderParameter& opRef);
-    virtual double calc(uint* speciesCounts);
-protected:
-    uint size;
-    uint* speciesID;
-    double* speciesCoefficient;
+    TilingBin();
+    virtual ~TilingBin() {}
+    virtual void init(const lm::io::Tilings::Tiling& tilingRef);
+    virtual void
+
+private:
+
 };
 
 }

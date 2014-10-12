@@ -44,6 +44,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include "lm/io/OrderParameters.pb.h"
 #include "lm/oparam/OParam.h"
 
 namespace lm {
@@ -55,12 +56,12 @@ typedef std::map<uint,lm::oparam::OParam*> OPMap;
 class OParams
 {
 public:
-    OParams(const lm::io::FFluxParameters& ffluxParams);
+    OParams(const lm::io::OrderParameters& ops);
     ~OParams();
 
     lm::oparam::OParam& operator[](uint i) {return *opMap[i];}
 
-    void initOParam(lm::io::FFluxParameters::OrderParameter& op);
+    void initOParam(lm::io::OrderParameters::OrderParameter& op);
     void initValues(uint* speciesCounts);
 
     static OPClassMap makeOPClassMap()

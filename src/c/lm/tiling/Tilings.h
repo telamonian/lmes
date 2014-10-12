@@ -44,13 +44,14 @@
 #include <map>
 #include <string>
 #include <vector>
+#include "lm/io/Tilings.pb.h"
 #include "lm/tiling/Tiling.h"
 
 namespace lm {
 namespace tiling {
 
-typedef std::map<uint,std::string> OPClassMap;
-typedef std::map<uint,lm::oparam::OParam*> OPMap;
+typedef std::map<uint,std::string> TilingClassMap;
+typedef std::map<uint,lm::tiling::Tiling*> TilingMap;
 
 class Tilings
 {
@@ -58,25 +59,24 @@ public:
     Tilings(const lm::io::Tilings& tilings);
     ~Tilings();
 
-    lm::oparam::OParam& operator[](uint i) {return *opMap[i];}
+    lm::tiling::Tiling& operator[](uint i) {return *tilingMap[i];}
 
-    void initOParam(lm::io::FFluxParameters::OrderParameter& op);
-    void initValues(uint* speciesCounts);
+    void initTiling(lm::io::Tilings::Tiling& tiling);
 
-    static OPClassMap makeOPClassMap()
+    static TilingClassMap makeTilingClassMap()
     {
       std::map<uint,std::string> m;
-      m[0] = "lm::oparam::OParamLinear";
-      // m[9999...] = "lm::oparam::OParamTranscendental";
+//      m[0] = "lm::oparam::OParamLinear";
+//      // m[9999...] = "lm::oparam::OParamTranscendental";
       return m;
     }
-    static const OPClassMap opClassMap;
+    static const TilingClassMap tilingClassMap;
 
 private:
-    OPMap opMap;
+    TilingMap tilingMap;
 };
 
-const OPClassMap OParams::opClassMap = OParams::makeOPClassMap();
+const TilingClassMap Tilings::tilingClassMap = Tilings::makeTilingClassMap();
 
 }
 }

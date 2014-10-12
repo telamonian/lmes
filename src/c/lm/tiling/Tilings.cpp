@@ -38,33 +38,28 @@
  */
 
 #include <algorithm>
+#include "lm/ClassFactory.h"
+#include "lm/io/Tilings.pb.h"
+#include "lm/tilings/Tiling.h"
 #include "lm/tilings/Tilings.h"
 
 namespace lm {
 namespace tiling {
 
-Tilings::Tilings(const lm::io::FFluxParameters& ffluxParams)
+Tilings::Tilings(const lm::io::Tilings& tilings)
 {
-    for_each(ffluxParams.order_parameter().begin(), ffluxParams.order_parameter().end(), initOParam);
+    for_each(tilings.tilings().begin(), tilings.tilings().end(), initTiling);
 }
 
 Tilings::~Tilings()
 {
-    for (OPMap::iterator m_it=opMap.begin();m_it!=opMap.end();++m_it) delete m_it->second;
+    for (TilingMap::iterator m_it=tilingMap.begin();m_it!=tilingMap.end();++m_it) delete m_it->second;
 }
 
-void OParams::initOParam(lm::io::FFluxParameters::OrderParameter& op)
+void Tilings::initTiling(lm::io::Tilings::Tiling& tiling)
 {
-    opMap[op.id()] = (static_cast<lm::oparam::OParam*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::oparam::OParam",lm::oparam::OParams::opClassMap[op.type()])));
-    opMap[op.id()]->init(op);
-}
-
-void OParams::initValues(uint* speciesCounts)
-{
-    for (OPMap::iterator m_it=opMap.begin();m_it!=opMap.end();++m_it)
-    {
-        m_it->second->calc(speciesCounts);
-    }
+    tilingMap[tiling.id()] = (static_cast<lm::tiling::Tiling*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::tiling::Tiling",lm::tiling::Tilings::tilingClassMap[tiling.type()])));
+    tilingMap[tiling.id()]->init(tiling);
 }
 
 }

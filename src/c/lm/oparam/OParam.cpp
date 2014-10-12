@@ -36,10 +36,10 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#include "lm/io/FFluxParameters.pb.h"
-#include "lm/io/TrajectoryState.pb.h"
-#include "lm/oparam/OParam.h"
 #include "lm/ClassFactory.h"
+#include "lm/io/OrderParameters.pb.h"
+//#include "lm/io/TrajectoryState.pb.h"
+#include "lm/oparam/OParam.h"
 
 namespace lm {
 namespace oparam {
@@ -54,9 +54,9 @@ OParam::~OParam()
     if (op!=NULL) delete op; op = NULL;
 }
 
-OParam::init(const lm::io::FFluxParameters::OrderParameter& opRef)
+void OParam::init(const lm::io::OrderParameters::OrderParameter& opRef)
 {
-    op = new lm::io::FFluxParameters::OrderParameter(opRef);
+    op = new lm::io::OrderParameters::OrderParameter(opRef);
 }
 
 // derived class methods
@@ -73,7 +73,7 @@ void* OParamLinear::allocateObject()
 
 OParamLinear::OParamLinear(): OParam(), size(), speciesID(), speciesCoefficient() {}
 
-void OParamLinear::init(const lm::io::FFluxParameters::OrderParameter& opRef)
+void OParamLinear::init(const lm::io::OrderParameters::OrderParameter& opRef)
 {
     // call parent method
     OParam::init(opRef);
