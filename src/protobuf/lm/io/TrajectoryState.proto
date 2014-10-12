@@ -4,8 +4,8 @@
  * All rights reserved.
  *
  * Developed by: Roberts Group
- * 			     Johns Hopkins University
- * 			     http://biophysics.jhu.edu/roberts/
+ *                  Johns Hopkins University
+ *                  http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -40,24 +40,23 @@
 package lm.io;
 
 import "lm/io/CMEState.proto";
+//import "lm/io/ESampleInterfaces.proto";
 import "lm/io/RDMEState.proto";
 import "lm/io/TrajectoryLimits.proto";
 
 message TrajectoryState {
-    required uint64 trajectory_id                       = 1;
-    optional bool trajectory_started					= 2 [default = false];
-    optional lm.io.CMEState cme_state                   = 3;
-    optional lm.io.RDMEState rdme_state                 = 4;
-    optional bytes solver_state                         = 100;
-    optional lm.io.TrajectoryLimits.Type final_limit_type   = 101;
+    required uint64 trajectory_id                               = 1;
+    optional bool trajectory_started                            = 2 [default = false];
+    optional lm.io.CMEState cme_state                           = 3;
+    optional lm.io.RDMEState rdme_state                         = 4;
+    optional lm.io.TrajectoryLimits.LimitType final_limit_type  = 5;
+    optional bytes solver_state                                 = 100;
 
-    optional lm.io.ESampleType esample_type                   = 200;
-
-    message FFluxState {
-        required uint64 interface_id                    = 1;
-        required uint64 bin_id                          = 2;
-        required double order_parameter_value           = 3;
-    }
-
-    optional FFluxState fflux_state                     = 201;
+//    message FFluxState {
+//        required uint64 interface_id                            = 1;
+//        required uint64 bin_id                                  = 2;
+//        required double order_parameter_value                   = 3;
+//    }
+//
+//    optional FFluxState fflux_state                             = 201;
 }

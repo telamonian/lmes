@@ -390,7 +390,7 @@ protected:
     double maxTime;
     uint numberSpeciesLimits;
     SpeciesLimit* speciesLimits;
-    lm::io::TrajectoryLimits::Type finalLimitType;
+    lm::io::TrajectoryLimits::LimitType finalLimitType;
 
     // Storage for order parameters
     double oParam;

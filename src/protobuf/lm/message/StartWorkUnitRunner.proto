@@ -40,13 +40,12 @@
 package lm.message;
 
 import "lm/io/DiffusionModel.proto";
-import "lm/io/ESampleInterfaces.proto";
+//import "lm/io/ESampleInterfaces.proto";
 import "lm/io/OrderParameters.proto";
 import "lm/io/ReactionModel.proto";
 import "lm/io/SimulationParameters.proto";
 
 message StartWorkUnitRunner {
-    enum ESampleType{FFLUX=1; NEUS=2;}
 	required uint32 uuid										= 1;
     optional bool use_cpu_affinity                              = 2;
     repeated int32 cpu                                          = 3;
@@ -56,7 +55,7 @@ message StartWorkUnitRunner {
     optional lm.io.ReactionModel reaction_model                 = 7;
     optional lm.io.DiffusionModel diffusion_model               = 8;
 
-    optional lm.io.ESampleInterfaces esample_interfaces         = 101;
+//    optional lm.io.ESampleInterfaces esample_interfaces         = 101;
     optional lm.io.OrderParameters order_parameters             = 102;
 
 }

@@ -58,14 +58,15 @@
 #include "lm/io/ArrayOrdering.pb.h"
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
-#include "lm/io/FFluxParameters.pb.h"
 #include "lm/io/Lattice.pb.h"
 #include "lm/io/LatticeTimeSeries.pb.h"
+#include "lm/io/OrderParameters.pb.h"
 #include "lm/io/ParameterValues.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SimulationParameters.pb.h"
 #include "lm/io/SpatialModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
+#include "lm/io/Tilings.pb.h"
 #include "lm/io/hdf5/HDF5.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/rdme/Lattice.h"
@@ -525,86 +526,36 @@ void Hdf5File::setDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(
     }
 }
 
-bool Hdf5File::hasFFluxParameters()
+bool Hdf5File::hasOrderParameters()
 {
-    return (H5Lexists(file, "/Parameters/FFlux", H5P_DEFAULT) != 0);
+    return (H5Lexists(file, "/OrderParameters", H5P_DEFAULT)!=0);
 }
 
-herr_t Hdf5File::getFFluxParametersInterfaceCallback(hid_t loc_id, const char * name, const H5L_info_t * info, void * callbackData)
-{
-    // Declare and initialize handle for the interface group
-    hid_t ifaceGroup;
-    HDF5_EXCEPTION_CALL(ifaceGroup, H5Gopen(loc_id, name, H5P_DEFAULT));
-
-    // recast the callbackData structure away from void *
-    CallbackData* cd = (CallbackData *)callbackData;
-
-    // create a new interface in the ffluxParameters protobuf
-    lm::io::FFluxParameters_Interface* newInterface = cd->ffluxParameters->add_interface();
-
-    // get the ID of the order parameter associated with this interface
-//    uint opID;
-//    HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(loc_id, name, "OrderParameterID", &opID));
-//    newInterface->set_order_parameter_id(opID);
-
-    // read in the values of the interface's bin borders
-    hsize_t dims[1];
-    H5T_class_t type;
-    size_t size;
-
-    H5LTget_dataset_info(ifaceGroup, "BinBorders", dims, &type, &size);
-    double * binBuffer = new double[dims[0]];
-    H5LTread_dataset_double(ifaceGroup, "BinBorders", binBuffer);
-    for (int i=0;i<dims[0];i++)
-    {
-        newInterface->add_bin_border(binBuffer[i]);
-    }
-
-    H5LTget_dataset_info(ifaceGroup, "OrderParameterIDs", dims, &type, &size);
-    double * opIDBuffer = new double[dims[0]];
-    H5LTread_dataset_double(ifaceGroup, "OrderParameterIDs", opIDBuffer);
-    for (int i=0;i<dims[0];i++)
-    {
-        newInterface->add_order_parameter_id(opIDBuffer[i]);
-    }
-
-    // determine wether the value of the associated order parameter rises or falls across this set of interfaces
-    newInterface->set_arrangement(newInterface->bin_border(newInterface->bin_border_size())>=newInterface->bin_border(0) ? lm::io::FFluxParameters::INCREASING : lm::io::FFluxParameters::DECREASING);
-
-    // free the buffer
-    delete[] binBuffer;
-
-    // free the group handle
-    HDF5_EXCEPTION_CHECK(H5Gclose(ifaceGroup));
-
-    return 0;
-}
-
-herr_t Hdf5File::getFFluxParametersOrderParameterCallback(hid_t loc_id, const char * name, const H5L_info_t * info, void * callbackData)
+herr_t Hdf5File::getOrderParametersCallback(hid_t loc_id, const char * name, const H5L_info_t * info, void * callbackDataOrderParameters)
 {
     // Declare and initialize handle for the order parameter group
     hid_t opGroup;
     HDF5_EXCEPTION_CALL(opGroup, H5Gopen(loc_id, name, H5P_DEFAULT));
 
     // recast the callbackData structure away from void *
-    CallbackData* cd = (CallbackData*)callbackData;
+    CallbackDataOrderParameters* cdOP = (CallbackDataOrderParameters*)callbackDataOrderParameters;
 
     // create a new order parameter in the ffluxParameters protobuf
-    lm::io::FFluxParameters_OrderParameter* newOP = cd->ffluxParameters->add_order_parameter();
+    lm::io::OrderParameters::OrderParameter* newOP = cdOP->orderParameters->add_order_parameters();
 
     // get the order parameter type and ID
-    uint typeNum, id;
-    HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(loc_id, name, "Type", &typeNum));
+    uint type, id;
+    HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(loc_id, name, "Type", &type));
     HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(loc_id, name, "ID", &id));
-    newOP->set_type(typeNum);
+    newOP->set_type(type);
     newOP->set_id(id);
 
     // read in the ids of the species that this order parameter uses, as well as their associated coefficients
     hsize_t dims[1];
-    H5T_class_t type;
+    H5T_class_t hdf5Type;
     size_t size;
 
-    H5LTget_dataset_info(opGroup, "SpeciesIDs", dims, &type, &size);
+    H5LTget_dataset_info(opGroup, "SpeciesIDs", dims, &hdf5Type, &size);
     int * speciesBuffer = new int[dims[0]];
     H5LTread_dataset_int(opGroup, "SpeciesIDs", speciesBuffer);
     for (int i=0;i<dims[0];i++)
@@ -612,7 +563,7 @@ herr_t Hdf5File::getFFluxParametersOrderParameterCallback(hid_t loc_id, const ch
         newOP->add_species_id(speciesBuffer[i]);
     }
 
-    H5LTget_dataset_info(opGroup, "SpeciesCoefficients", dims, &type, &size);
+    H5LTget_dataset_info(opGroup, "SpeciesCoefficients", dims, &hdf5Type, &size);
     double* coefficientBuffer = new double[dims[0]];
     H5LTread_dataset_double(opGroup, "SpeciesCoefficients", coefficientBuffer);
     for (int i=0;i<dims[0];i++)
@@ -630,202 +581,70 @@ herr_t Hdf5File::getFFluxParametersOrderParameterCallback(hid_t loc_id, const ch
     return 0;
 }
 
-void Hdf5File::getFFluxParameters(lm::io::FFluxParameters* ffluxParameters)
+void Hdf5File::getOrderParameters(lm::io::OrderParameters* orderParameters)
 {
-    // Make sure the model is not null and then clear it
-    if (ffluxParameters == NULL) throw InvalidArgException("ffluxParameters", "cannot be null");
-    ffluxParameters->Clear();
+    // Make sure the orderParameters protobuf is not null and then clear it
+    if (orderParameters == NULL) throw InvalidArgException("orderParameters", "cannot be null");
+    orderParameters->Clear();
 
-    // Declare and initialize the data structure for the callbacks in the iterators
-    CallbackData* callbackData = new CallbackData;
-    callbackData->ffluxParameters = ffluxParameters;
+    // Declare and initialize the data structure for the callbacks in the order parameters iterator
+    CallbackDataOrderParameters* opCD = new CallbackDataOrderParameters;
+    opCD->orderParameters = orderParameters;
 
-    if (H5Lexists(file, "/Parameters/FFlux", H5P_DEFAULT))
+    if (H5Lexists(file, "/OrderParameters", H5P_DEFAULT))
     {
-        if (H5Lexists(file, "/Parameters/FFlux/Interface", H5P_DEFAULT))
-        {
-            H5Literate_by_name(file, "/Parameters/FFlux/Interface", H5_INDEX_NAME, H5_ITER_INC, NULL, getFFluxParametersInterfaceCallback, (void *)callbackData, H5P_DEFAULT);
-        }
-        if (H5Lexists(file, "/Parameters/FFlux/OrderParameter", H5P_DEFAULT))
-        {
-            H5Literate_by_name(file, "/Parameters/FFlux/OrderParameter", H5_INDEX_NAME, H5_ITER_INC, NULL, getFFluxParametersOrderParameterCallback, (void *)callbackData, H5P_DEFAULT);
-        }
+        H5Literate_by_name(file, "/OrderParameters", H5_INDEX_NAME, H5_ITER_INC, NULL, getOrderParametersCallback, (void *)opCD, H5P_DEFAULT);
     }
 }
 
-void Hdf5File::setFFluxParameters(lm::io::FFluxParameters * ffluxParameters)
+void Hdf5File::setOrderParameters(lm::io::OrderParameters * orderParameters)
 {
-    // Validate that the set of forward flux parameters is consistent
-    if (ffluxParameters==NULL) throw InvalidArgException("ffluxParameters", "cannot be NULL");
-    if (ffluxParameters->interface_size()!=ffluxParameters->order_parameter_size()) throw InvalidArgException("ffluxParameters.interface, ffluxParameters.order_parameter", "inconsistent size");
+    // Validate the set of order parameters
+    if (orderParameters==NULL) throw InvalidArgException("orderParameters", "cannot be NULL");
+    // TODO_LOW: add more checks
 
-    // If a set of fflux parameters exist, delete it
-    if (H5Lexists(file, "/Parameters/FFlux", H5P_DEFAULT))
+    // If a set of order parameters exist, delete it
+    if (H5Lexists(file, "/OrderParameters", H5P_DEFAULT))
     {
-        HDF5_EXCEPTION_CHECK(H5Ldelete(file, "/Parameters/FFlux", H5P_DEFAULT));
+        HDF5_EXCEPTION_CHECK(H5Ldelete(file, "/OrderParameters", H5P_DEFAULT));
     }
 
-    hid_t ffluxGroup;
+    hid_t opsGroup;
+    HDF5_EXCEPTION_CALL(opsGroup, H5Gcreate2(file, "/OrderParameters", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
 
-    HDF5_EXCEPTION_CALL(ffluxGroup, H5Gcreate2(file, "/Parameters/FFlux", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
-
-    // If there are any sets of interfaces and order parameters, write out the relevant tables
-    if (ffluxParameters->interface_size() > 0)
+    // If there are any order parameters, write out the relevant tables
+    uint id, type;
+    hid_t opGroup;
+    hsize_t opDims[1];
+    std::stringstream opSS; // declare a stringstream for the order parameter's group name
+    for (int i=0;i<orderParameters->order_parameters_size();i++)
     {
-//        uint opID;
-        hid_t interfaceContainingGroup, interfaceGroup;
-        hsize_t opIDDims[1], binDims[1];
-        HDF5_EXCEPTION_CALL(interfaceContainingGroup, H5Gcreate2(ffluxGroup, "Interface", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+        // get the order parameter's attribute data from the corresponding protobuf
+        id = orderParameters->order_parameters(i).id();
+        type = orderParameters->order_parameters(i).type();
 
-        // declare a stringstream for the interface's group name
-        std::stringstream interfaceSS;
-        for (int i=0;i<ffluxParameters->interface_size();i++)
-        {
-            // clear the stringstream with the interface's group name
-            interfaceSS.str(std::string());
-            interfaceSS.clear();
+        // clear the stringstream with the order parameter's group name
+        opSS.str(std::string());
+        opSS.clear();
 
-            // write the interface's group name to the stringstream
-            interfaceSS.fill('0');
-            interfaceSS.width(7);
-            interfaceSS << i;
+        // write the order parameter's group name to the stringstream
+        opSS.fill('0');
+        opSS.width(7);
+        opSS << id;
 
-            // write the interface's attributes
-//            HDF5_EXCEPTION_CALL(interfaceGroup, H5Gcreate2(interfaceContainingGroup, interfaceSS.str().c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
-//            opID = ffluxParameters->interface(i).order_parameter_id();
-//            HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(interfaceContainingGroup, interfaceSS.str().c_str(), "OrderParameterID", &opID, 1));
+        // write the order parameter's attributes
+        HDF5_EXCEPTION_CALL(opGroup, H5Gcreate2(opsGroup, opSS.str().c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+        HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(opsGroup, opSS.str().c_str(), "ID", &id, 1));
+        HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(opsGroup, opSS.str().c_str(), "Type", &type, 1));
 
-            // write the interface's datasets
-            opIDDims[0] = ffluxParameters->interface(i).order_parameter_id_size();
-            HDF5_EXCEPTION_CHECK(H5LTmake_dataset(interfaceGroup, "OrderParameterIDs", 1, opIDDims, H5T_STD_U32LE, ffluxParameters->interface(i).order_parameter_id().data()));
-            binDims[0] = ffluxParameters->interface(i).bin_border().size();
-            HDF5_EXCEPTION_CHECK(H5LTmake_dataset(interfaceGroup, "BinBorders", 1, binDims, H5T_IEEE_F64LE, ffluxParameters->interface(i).bin_border().data()));
-            HDF5_EXCEPTION_CHECK(H5Gclose(interfaceGroup));
-        }
-        HDF5_EXCEPTION_CHECK(H5Gclose(interfaceContainingGroup));
+        // write the order parameter's datasets
+        opDims[0] = orderParameters->order_parameters(i).species_id().size();
+        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(opGroup, "SpeciesIDs", 1, opDims, H5T_STD_U32LE, orderParameters->order_parameters(i).species_id().data()));
+        opDims[0] = orderParameters->order_parameters(i).species_coefficient().size();
+        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(opGroup, "SpeciesCoefficients", 1, opDims, H5T_IEEE_F64LE, orderParameters->order_parameters(i).species_coefficient().data()));
+        HDF5_EXCEPTION_CHECK(H5Gclose(opGroup));
     }
-    if (ffluxParameters->order_parameter_size() > 0)
-    {
-        uint type, id;
-        hid_t opContainingGroup, opGroup;
-        hsize_t opDims[1];
-        HDF5_EXCEPTION_CALL(opContainingGroup, H5Gcreate2(ffluxGroup, "OrderParameter", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
-
-        // declare a stringstream for the order parameter's group name
-        std::stringstream opSS;
-        for (int i=0;i<ffluxParameters->interface_size();i++)
-        {
-            // get the order parameter's attribute data from the corresponding protobuf
-            type = ffluxParameters->order_parameter(i).type();
-            id = ffluxParameters->order_parameter(i).id();
-
-            // clear the stringstream with the order parameter's group name
-            opSS.str(std::string());
-            opSS.clear();
-
-            // write the order parameter's group name to the stringstream
-            opSS.fill('0');
-            opSS.width(7);
-            opSS << id;
-
-            // write the order parameter's attributes
-            HDF5_EXCEPTION_CALL(opGroup, H5Gcreate2(opContainingGroup, opSS.str().c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
-            HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(opContainingGroup, opSS.str().c_str(), "Type", &type, 1));
-            HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(opContainingGroup, opSS.str().c_str(), "ID", &id, 1));
-
-            // write the order parameter's datasets
-            opDims[0] = ffluxParameters->order_parameter(i).species_id().size();
-            HDF5_EXCEPTION_CHECK(H5LTmake_dataset(opGroup, "SpeciesIDs", 1, opDims, H5T_STD_U32LE, ffluxParameters->order_parameter(i).species_id().data()));
-            opDims[0] = ffluxParameters->order_parameter(i).species_coefficient().size();
-            HDF5_EXCEPTION_CHECK(H5LTmake_dataset(opGroup, "SpeciesCoefficients", 1, opDims, H5T_IEEE_F64LE, ffluxParameters->order_parameter(i).species_coefficient().data()));
-            HDF5_EXCEPTION_CHECK(H5Gclose(opGroup));
-        }
-        HDF5_EXCEPTION_CHECK(H5Gclose(opContainingGroup));
-    }
-
-    HDF5_EXCEPTION_CHECK(H5Gclose(ffluxGroup));
-
-//    // Validate that the model is consistent.
-//    if (reactionModel == NULL) throw InvalidArgException("reactionModel", "cannot be NULL");
-//    if (reactionModel->number_species() == 0) throw InvalidArgException("reactionModel.number_species", "cannot be zero");
-//    if (reactionModel->initial_species_count_size() != (int)reactionModel->number_species()) throw InvalidArgException("reactionModel.initial_species_count", "inconsistent size");
-//    if (reactionModel->reaction_size() != (int)reactionModel->number_reactions()) throw InvalidArgException("reactionModel.reaction", "inconsistent size");
-//    if (reactionModel->stoichiometric_matrix_size() != (int)(reactionModel->number_species()*reactionModel->number_reactions())) throw InvalidArgException("reactionModel.stoichiometric_matrix", "inconsistent size");
-//    if (reactionModel->dependency_matrix_size() != (int)(reactionModel->number_species()*reactionModel->number_reactions())) throw InvalidArgException("reactionModel.dependency_matrix", "inconsistent size");
-//
-//    // If a reaction model already exists, delete it.
-//    if (H5Lexists(file, "/Model/Reaction", H5P_DEFAULT))
-//    {
-//        HDF5_EXCEPTION_CHECK(H5Ldelete(file, "/Model/Reaction", H5P_DEFAULT));
-//    }
-//
-//    // Create the group for the reaction model.
-//    hid_t group;
-//    HDF5_EXCEPTION_CALL(group,H5Gcreate2(file, "/Model/Reaction", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
-//    HDF5_EXCEPTION_CHECK(H5Gclose(group));
-//
-//    // Write the numbers of species and reactions.
-//    numberSpecies = reactionModel->number_species();
-//    uint numberReactions = reactionModel->number_reactions();
-//    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(file, "/Model/Reaction", "numberSpecies", &numberSpecies, 1));
-//    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(file, "/Model/Reaction", "numberReactions", &numberReactions, 1));
-//
-//    hsize_t dims[2];
-//
-//    // Write the initial species counts.
-//    dims[0] = numberSpecies;
-//    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Reaction/InitialSpeciesCounts", 1, dims, H5T_STD_U32LE, reactionModel->initial_species_count().data()));
-//
-//    // If we have any reactions, write out the reaction tables.
-//    if (reactionModel->number_reactions())
-//    {
-//        // Write the reaction tables.
-//        uint * types = new uint[numberReactions];
-//        double * constants = new double[numberReactions*MAX_REACTION_RATE_CONSTANTS];
-//        bool hasNoiseTable = false;
-//        const uint NUMBER_NOISE_COLS = 2;
-//        double * noiseTerms = new double[numberReactions*NUMBER_NOISE_COLS];
-//        for (uint i=0; i<numberReactions*NUMBER_NOISE_COLS; i++) noiseTerms[i] = 0.0;
-//        for (uint i=0; i<numberReactions; i++)
-//        {
-//            types[i] = reactionModel->reaction(i).type();
-//            uint j=0;
-//            for (; j<(uint)(reactionModel->reaction(i).rate_constant_size()) && j<MAX_REACTION_RATE_CONSTANTS; j++)
-//                constants[i*MAX_REACTION_RATE_CONSTANTS+j] = reactionModel->reaction(i).rate_constant(j);
-//            for (; j<MAX_REACTION_RATE_CONSTANTS; j++)
-//                constants[i*MAX_REACTION_RATE_CONSTANTS+j] = NAN;
-//
-//            // If we have noise terms, fill them in and mark that we need to create the noise table.
-//            if (reactionModel->reaction(i).rate_has_noise())
-//            {
-//                hasNoiseTable = true;
-//                noiseTerms[i*NUMBER_NOISE_COLS] = reactionModel->reaction(i).rate_noise_variance();
-//                noiseTerms[i*NUMBER_NOISE_COLS+1] = reactionModel->reaction(i).rate_noise_tau();
-//            }
-//        }
-//        dims[0] = numberReactions;
-//        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Reaction/ReactionTypes", 1, dims, H5T_STD_U32LE, types));
-//        dims[0] = numberReactions;
-//        dims[1] = MAX_REACTION_RATE_CONSTANTS;
-//        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Reaction/ReactionRateConstants", 2, dims, H5T_IEEE_F64LE, constants));
-//
-//        // If necessary, create the noise table.
-//        if (hasNoiseTable)
-//        {
-//            dims[0] = numberReactions;
-//            dims[1] = NUMBER_NOISE_COLS;
-//            HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Reaction/ReactionRateNoise", 2, dims, H5T_IEEE_F64LE, noiseTerms));
-//        }
-//        delete [] noiseTerms;
-//        delete [] constants;
-//        delete [] types;
-//
-//        // Write the matrices.
-//        dims[0] = numberSpecies;
-//        dims[1] = numberReactions;
-//        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Reaction/StoichiometricMatrix", 2, dims, H5T_STD_I32LE, reactionModel->stoichiometric_matrix().data()));
-//        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Reaction/DependencyMatrix", 2, dims, H5T_STD_U32LE, reactionModel->dependency_matrix().data()));
-//    }
+    HDF5_EXCEPTION_CHECK(H5Gclose(opsGroup));
 }
 
 bool Hdf5File::hasReactionModel()
@@ -1225,6 +1044,141 @@ void Hdf5File::setSpatialModel(lm::io::SpatialModel * spatialModel) throw(Except
             delete [] shapeParams;
         }
     }
+}
+
+bool Hdf5File::hasTilings()
+{
+    return (H5Lexists(file, "/Tilings", H5P_DEFAULT)!=0);
+}
+
+herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_info_t * info, void * callbackDataTilings)
+{
+    // Declare and initialize handle for the tiling group
+    hid_t tilingGroup;
+    HDF5_EXCEPTION_CALL(tilingGroup, H5Gopen(loc_id, name, H5P_DEFAULT));
+
+    // recast the callbackData structure away from void *
+    CallbackDataTilings* cdT = (CallbackDataTilings *)callbackDataTilings;
+
+    // create a new interface in the tilings protobuf
+    lm::io::Tilings::Tiling* newTiling = cdT->tilings->add_tilings();
+
+    // get the ID and Type of the tiling and the ID of the order parameter associated with this tiling
+    uint id, type, opID;
+    HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(loc_id, name, "id", &id));
+    HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(loc_id, name, "Type", &type));
+    HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(loc_id, name, "OrderParameterID", &opID));
+    newTiling->set_order_parameter_id(id);
+    newTiling->set_order_parameter_id(type);
+    newTiling->set_order_parameter_id(opID);
+
+    // read in the values of the tiling's bin borders
+    hsize_t dims[1];
+    H5T_class_t hdf5Type;
+    size_t size;
+
+    H5LTget_dataset_info(tilingGroup, "BinBorders", dims, &hdf5Type, &size);
+    double * binBuffer = new double[dims[0]];
+    H5LTread_dataset_double(tilingGroup, "BinBorders", binBuffer);
+    for (int i=0;i<dims[0];i++)
+    {
+        newTiling->add_bin_borders(binBuffer[i]);
+    }
+
+    // infer whether bin_borders is sorted ascending or descending
+    lm::io::Tilings::Arrangement sortArrangement = newTiling->bin_borders(newTiling->bin_borders_size())>=newTiling->bin_borders(0) ? lm::io::Tilings::ASCENDING : lm::io::Tilings::DESCENDING
+    newTiling->set_arrangement(sortArrangement);
+
+    // ensure that bin_borders is actually sorted the way we guessed
+    if (sortArrangement==lm::io::Tilings::ASCENDING)
+    {
+        for (int i=0;i<newTiling->bin_borders_size()-1;i++)
+        {
+            if (newTiling->bin_borders(i) > newTiling->bin_borders(i+1)) throw Exception("A set of BinBorders in one of your Tilings is improperly sorted (guessed ASCENDING)", filename.c_str(), "/Tilings/xxxxxxx/BinBorders");
+        }
+    }
+    else // (sortArrangement==lm::io::Tilings::DESCENDING)
+    {
+        for (int i=0;i<newTiling->bin_borders_size()-1;i++)
+        {
+            if (newTiling->bin_borders(i+1) > newTiling->bin_borders(i)) throw Exception("A set of BinBorders in one of your Tilings is improperly sorted (guessed DESCENDING)", filename.c_str(), "/Tilings/xxxxxxx/BinBorders");
+        }
+    }
+
+    // free the buffer
+    delete[] binBuffer;
+
+    // free the group handle
+    HDF5_EXCEPTION_CHECK(H5Gclose(tilingGroup));
+
+    return 0;
+}
+
+void Hdf5File::getTilings(lm::io::Tilings* tilings)
+{
+    // Make sure the tilings protobuf is not null and then clear it
+    if (tilings == NULL) throw InvalidArgException("tilings", "cannot be null");
+    tilings->Clear();
+
+    // Declare and initialize the data structure for the callbacks in the tilings iterator
+    CallbackDataTilings* cdT = new CallbackDataTilings;
+    cdT->tilings = tilings;
+
+    if (H5Lexists(file, "/Tilings", H5P_DEFAULT))
+    {
+        H5Literate_by_name(file, "/Tilings", H5_INDEX_NAME, H5_ITER_INC, NULL, getTilingsCallback, (void *)cdT, H5P_DEFAULT);
+    }
+}
+
+void Hdf5File::setTilings(lm::io::Tilings * tilings)
+{
+    // Validate the set of tililngs
+    if (tilings==NULL) throw InvalidArgException("tilings", "cannot be NULL");
+    // TODO_LOW: add more checks
+
+    // If a set of tilings exist, delete it
+    if (H5Lexists(file, "/Tilings", H5P_DEFAULT))
+    {
+        HDF5_EXCEPTION_CHECK(H5Ldelete(file, "/Tilings", H5P_DEFAULT));
+    }
+
+    hid_t tilingsGroup;
+
+    HDF5_EXCEPTION_CALL(tilingsGroup, H5Gcreate2(file, "/Tilings", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+
+    // If there are any sets of tilings, write out the relevant tables
+    uint id, opID, type;
+    hid_t tilingGroup;
+    hsize_t binDims[1];
+    std::stringstream tilingSS; // declare a stringstream for the tiling's group name
+    for (int i=0;i<tilings->tilings_size();i++)
+    {
+        // get the tiling's attribute data from the corresponding protobuf
+        id = tilings->tilings(i).id();
+        opID = tilings->tilings(i).order_parameter_id();
+        type = tilings->tilings(i).type();
+
+        // clear the stringstream with the tiling's group name
+        tilingSS.str(std::string());
+        tilingSS.clear();
+
+        // write the tiling's group name to the stringstream
+        tilingSS.fill('0');
+        tilingSS.width(7);
+        tilingSS << i;
+
+        // write the tiling's attributes
+        HDF5_EXCEPTION_CALL(tilingGroup, H5Gcreate2(tilingsGroup, tilingSS.str().c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+        HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(tilingsGroup, tilingSS.str().c_str(), "ID", &id, 1));
+        HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(tilingsGroup, tilingSS.str().c_str(), "OrderParameterID", &opID, 1));
+        HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(tilingsGroup, tilingSS.str().c_str(), "Type", &type, 1));
+
+        // write the tiling's datasets
+        binDims[0] = tilings->tilings(i).bin_borders_size();
+        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(tilingGroup, "BinBorders", 1, binDims, H5T_IEEE_F64LE, tilings->tilings(i).bin_borders().data()));
+        HDF5_EXCEPTION_CHECK(H5Gclose(tilingGroup));
+    }
+    HDF5_EXCEPTION_CHECK(H5Gclose(tilingsGroup));
 }
 
 bool Hdf5File::hasBoundaryGradient()

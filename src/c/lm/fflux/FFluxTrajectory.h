@@ -40,6 +40,7 @@
 #ifndef LM_FFLUX_FFLUXTRAJECTORY_H_
 #define LM_FFLUX_FFLUXTRAJECTORY_H_
 
+#include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/resource/Trajectory.h"
 
 namespace lm {
@@ -48,17 +49,23 @@ namespace fflux {
 class FFluxTrajectory : public lm::resource::Trajectory
 {
 public:
-	FFluxTrajectory(uint64_t id);
+	FFluxTrajectory(uint64_t id, lm::message::Message trajectoryTemplateMsg, lm::io::TrajectoryState* state);
 	virtual ~FFluxTrajectory();
 
     // methods for detecting when a flux event has occured
     virtual bool fluxed();//const lm::message::FinishedWorkUnit& finishedWorkUnitMsg
     virtual bool hasFluxedForward();
     virtual bool hasFluxedBackward();
+    virtual lm::io::TrajectoryLimits::LimitType getFinalLimitType();
 
     // methods for encapsulating functions in the fflux main loop
     virtual void addCrossing(const lm::io::TrajectoryState& state);
-    virtual void getSimTime();
+    virtual uint getSimSteps();
+    virtual double getSimTime();
+
+private:
+    // private copy of forward flux interfaces for setting limits and such
+    lm::io::ESampleInterfaces interfaces;
 };
 
 }

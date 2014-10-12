@@ -39,27 +39,27 @@
 
 package lm.io;
 
-message ESampleInterfaces {
-
-    enum esampleType {
-        FFLUX = 0;
-        NEUSLATTICE = 1;
-        NEUSSTRING = 2;
+message Tilings {
+    enum TilingType {
+        BIN = 0;
+        LATTICE = 1;
+        VORONOI = 2;
     }
 
     // enumerated type that represent whether an interface is ordered ("arranged") highest-to-lowest or lowest-to-highest.
     // the actual order that the interface is used in during a simulation also depends on the FFluxTrajectoryList object's direction attribute
-    enum arrangement {
+    enum Arrangement {
         ASCENDING = 0;
         DESCENDING = 1;
     }
 
-    message FFluxInterface {
-        repeated uint32 order_parameter_id       = 1 [packed=true];
-        repeated double bin_border               = 2 [packed=true];
-        required arrangement arrangement         = 3;
+    message Tiling {
+        required uint32 type                    = 1;
+        required uint32 id                      = 2;
+        required uint32 order_parameter_id      = 3;
+        repeated double bin_borders             = 4 [packed=true];
+        required Arrangement arrangement        = 5;
     }
 
-    required esampleType type                         = 1;
-    repeated FFluxInterface fflux_interfaces          = 2;
+    repeated Tiling tilings                 = 1;
 }

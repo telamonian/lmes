@@ -42,28 +42,27 @@
 #include <string>
 
 #include "lm/fflux/FFluxTrajectory.h"
+#include "lm/io/ESampleInterfaces.pb.h"
+#include "lm/io/TrajectoryLimits.pb.h"
 
 namespace lm {
 namespace fflux {
 
-FFluxTrajectory::FFluxTrajectory(uint64_t id, lm::io::TrajectoryState* state, ):
+FFluxTrajectory::FFluxTrajectory(uint64_t id, lm::message::Message trajectoryTemplateMsg, lm::io::TrajectoryState* state):
 Trajectory(id)
 {
-        // Construct new trajectory
-        trajectories[id] = new lm::resource::Trajectory(id);
-
         // Initialize the trajectory's runWorkUnit message
-        trajectories[id]->setMsg(trajectoryTemplateMsg);
+        setMsg(trajectoryTemplateMsg);
 
         // Copy the TrajectoryState referenced in the function args to the TrajectoryState of the newly constructed trajectory
-        trajectories[id]->setState(*state);
+        setState(*state);
 
         // Set the trajectory id in the trajectory state.
-        trajectories[id]->getState().set_trajectory_id(id);
+        getState().set_trajectory_id(id);
 
         // Set the trajectory id in the CME state of the trajectory state (if applicable).
-        if (trajectories[id]->getState().has_cme_state())
-            trajectories[id]->getState().mutable_cme_state()->mutable_species_counts()->set_trajectory_id(id);
+        if (getState().has_cme_state())
+            getState().mutable_cme_state()->mutable_species_counts()->set_trajectory_id(id);
 
         // Set the trajectory id in the RDME state of the trajectory state (if applicable).
     //    if (trajectories[id]->getState().has_rdme_state())
@@ -77,31 +76,42 @@ FFluxTrajectory::~FFluxTrajectory()
 
 bool FFluxTrajectory::hasFluxedBackward()
 {
-    if (order==ASCENDING)
+    if (interfaces.fflux_interfaces(0).arrangement()==lm::io::ESampleInterfaces::ASCENDING)
     {
-        return (state.final_limit_type()==DecreasingOrderParameter);
+        return (getFinalLimitType()==lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER);
     }
     else
     {
-        return (state.final_limit_type()==IncreasingOrderParameter);
+        return (getFinalLimitType()==lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER);
     }
 }
 
 bool FFluxTrajectory::hasFluxedForward()
 {
-    if (order==ASCENDING)
+    if (interfaces.fflux_interfaces(0).arrangement()==lm::io::ESampleInterfaces::ASCENDING)
     {
-        return (state.final_limit_type()==IncreasingOrderParameter);
+        return (getFinalLimitType()==lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER);
     }
     else
     {
-        return (state.final_limit_type()==DecreasingOrderParameter);
+        return (getFinalLimitType()==lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER);
     }
 }
 
-void FFluxTrajectory::getSimTime()
+lm::io::TrajectoryLimits::LimitType FFluxTrajectory::getFinalLimitType()
 {
-    (crossings[ffluxPhase].back()->cme_state().species_counts().time(crossings[ffluxPhase].back()->cme_state().species_counts().number_entries() - 1) > maxPhaseZeroTime);
+    return state.final_limit_type();
+}
+
+uint FFluxTrajectory::getSimSteps()
+{
+    return getState().cme_state().species_counts().number_entries();
+}
+
+double FFluxTrajectory::getSimTime()
+{
+    return getState().cme_state().species_counts().time(getState().cme_state().species_counts().time_size());
+    //(crossings[ffluxPhase].back()->cme_state().species_counts().time(crossings[ffluxPhase].back()->cme_state().species_counts().number_entries() - 1) > maxPhaseZeroTime);
 }
 
 }

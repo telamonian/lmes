@@ -63,14 +63,15 @@ namespace io {
 class BoundaryConditions;
 class DiffusionModel;
 class FirstPassageTimes;
-class FFluxParameters;
 class Lattice;
 class LatticeTimeSeries;
+class OrderParameters;
 class ReactionModel;
 class ParameterValues;
 class SimulationParameters;
 class SpeciesCounts;
 class SpatialModel;
+class Tilings;
 
 namespace hdf5 {
 
@@ -82,9 +83,12 @@ using lm::IOException;
 //class IOException;
 
 typedef struct {
-    lm::io::FFluxParameters * ffluxParameters;
-} CallbackData;
+    lm::io::OrderParameters * orderParameters;
+} CallbackDataOrderParameters;
 
+typedef struct {
+    lm::io::Tilings * tilings;
+} CallbackDataTilings;
 
 class SimulationFile
 {
@@ -112,8 +116,10 @@ public:
 
 protected:
     static herr_t parseParameter(hid_t location_id, const char *attr_name, const H5A_info_t *ainfo, void *op_data);
-    static herr_t getFFluxParametersInterfaceCallback (hid_t loc_id, const char *name, const H5L_info_t *info, void *operator_data);
-    static herr_t getFFluxParametersOrderParameterCallback (hid_t loc_id, const char *name, const H5L_info_t *info, void *operator_data);
+//    static herr_t getFFluxParametersInterfaceCallback (hid_t loc_id, const char *name, const H5L_info_t *info, void *operator_data);
+//    static herr_t getFFluxParametersOrderParameterCallback (hid_t loc_id, const char *name, const H5L_info_t *info, void *operator_data);
+    static herr_t getOrderParametersCallback (hid_t loc_id, const char *name, const H5L_info_t *info, void *callbackDataOrderParameters);
+    static herr_t getTilingsCallback (hid_t loc_id, const char *name, const H5L_info_t *info, void *callbackDataTilings);
 
 public:
     Hdf5File(const string filename) throw(IOException,HDF5Exception,Exception);
@@ -133,14 +139,20 @@ public:
     virtual bool hasDiffusionModel();
     virtual void getDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception);
     virtual void setDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception);
-    virtual bool hasFFluxParameters();
-    virtual void getFFluxParameters(lm::io::FFluxParameters * ffluxParameters);
-    virtual void setFFluxParameters(lm::io::FFluxParameters * ffluxParameters);
+//    virtual bool hasFFluxParameters();
+//    virtual void getFFluxParameters(lm::io::FFluxParameters * ffluxParameters);
+//    virtual void setFFluxParameters(lm::io::FFluxParameters * ffluxParameters);
+    virtual bool hasOrderParameters();
+    virtual void getOrderParameters(lm::io::OrderParameters * orderParameters);
+    virtual void setOrderParameters(lm::io::OrderParameters * orderParameters);
     virtual bool hasReactionModel();
 	virtual void getReactionModel(lm::io::ReactionModel * reactionModel) throw(Exception,InvalidArgException,HDF5Exception);
 	virtual void setReactionModel(lm::io::ReactionModel * reactionModel) throw(Exception,InvalidArgException,HDF5Exception);
     virtual void setSpatialModel(lm::io::SpatialModel * model) throw(Exception,InvalidArgException,HDF5Exception);
     virtual void getSpatialModel(lm::io::SpatialModel * model) throw(Exception,InvalidArgException,HDF5Exception);
+    virtual bool hasTilings();
+    virtual void getTilings(lm::io::Tilings * tilings);
+    virtual void setTilings(lm::io::Tilings * tilings);
     virtual bool hasBoundaryGradient();
     virtual void getBoundaryGradient(lm::io::BoundaryConditions* bc);
 
