@@ -58,20 +58,18 @@ class Tilings
 public:
     Tilings(const lm::io::Tilings& tilings);
     ~Tilings();
-
-    lm::tiling::Tiling& operator[](uint i) {return *tilingMap[i];}
-
     void initTiling(lm::io::Tilings::Tiling& tiling);
+    lm::tiling::Tiling& operator[](uint i) {return *tilingMap[i];}
+    TilingMap::iterator begin() {return tilingMap.begin();}
+    TilingMap::iterator end() {return tilingMap.end();}
+    void reverse();
 
     static TilingClassMap makeTilingClassMap()
     {
       std::map<uint,std::string> m;
-//      m[0] = "lm::oparam::OParamLinear";
-//      // m[9999...] = "lm::oparam::OParamTranscendental";
       return m;
     }
     static const TilingClassMap tilingClassMap;
-
 private:
     TilingMap tilingMap;
 };

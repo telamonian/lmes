@@ -58,11 +58,11 @@ class OParams
 public:
     OParams(const lm::io::OrderParameters& ops);
     ~OParams();
-
-    lm::oparam::OParam& operator[](uint i) {return *opMap[i];}
-
     void initOParam(lm::io::OrderParameters::OrderParameter& op);
     void initValues(uint* speciesCounts);
+    lm::oparam::OParam* operator[](uint i) {return opMap[i];}
+    OPMap::iterator begin() {return opMap.begin();}
+    OPMap::iterator end() {return opMap.end();}
 
     static OPClassMap makeOPClassMap()
     {

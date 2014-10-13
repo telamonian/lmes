@@ -36,8 +36,6 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
-
 #ifndef LM_MAIN_SUPERVISOR_H
 #define LM_MAIN_SUPERVISOR_H
 
@@ -65,6 +63,7 @@
 #include "lm/resource/TrajectoryList.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
+#include "lm/tiling/Tilings.h"
 
 using std::map;
 using std::string;
@@ -121,8 +120,13 @@ protected:
     lm::io::ReactionModel reactionModel;
     bool hasDiffusionModel;
     lm::io::DiffusionModel diffusionModel;
-    bool hasFFluxParameters;
-    lm::io::FFluxParameters ffluxParameters;
+//    bool hasFFluxParameters;
+//    lm::io::FFluxParameters ffluxParameters;
+    bool hasOrderParameters;
+    lm::io::OrderParameters orderParameters;
+    bool hasTilings;
+    lm::io::Tilings tilingsBuf;
+    lm::tiling::Tilings tilings;
     lm::resource::SlotList slots;
 
 private:

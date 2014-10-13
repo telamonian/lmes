@@ -139,24 +139,16 @@ int WorkUnitRunner::run()
                 throw Exception("Work Unit runner terminating, solver requires a diffusion model but none was specified", properties.solver().c_str());
         }
 
-        // Set the enhanced sampling parameters for solver
+        // Set the order parameters for the solver
         if (solver->needsOrderParameters())
         {
-            if (properties.has_esample_type())
+            if (properties.has_order_parameters())
             {
-                switch (properties.esample_type)
-                {
-                case lm::message::StartWorkUnitRunner::FFLUX:
-                    solver->setOrderParameters(properties.fflux_parameters());
-                    break;
-                // TODO: implement NEUS stuff
-//                case lm::message::StartWorkUnitRunner::NEUS:
-//                    break;
-                }
+                solver->setOrderParameters(properties.order_parameters());
             }
             else
             {
-                throw Exception("Work Unit runner terminating, solver requires a set of enhanced sampling parameters but none was specified", properties.solver().c_str());
+                throw Exception("Work Unit runner terminating, solver requires a set of order parameters but none was specified", properties.solver().c_str());
             }
         }
 

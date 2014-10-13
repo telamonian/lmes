@@ -128,11 +128,24 @@ void SimulationSupervisor::initialize()
         }
     }
 
-    // Get the forward flux parameters
-    if (file->hasFFluxParameters())
+//    // Get the forward flux parameters
+//    if (file->hasFFluxParameters())
+//    {
+//        hasFFluxParameters = true;
+//        file->getFFluxParameters(&ffluxParameters);
+//    }
+
+    if (file->hasOrderParameters())
     {
-        hasFFluxParameters = true;
-        file->getFFluxParameters(&ffluxParameters);
+        hasOrderParameters = true;
+        file->getOrderParameters(&orderParameters);
+    }
+
+    if (file->hasTilings())
+    {
+        hasTilings = true;
+        file->getTilings(&tilingsBuf);
+        tilings = new lm::tiling::Tilings(tilingsBuf);
     }
 
     // Close the file.
@@ -356,9 +369,9 @@ void SimulationSupervisor::allResourcesRegistered()
 	*startSlotMsg->mutable_simulation_parameters() = simulationParameters;
 	if (hasReactionModel) *startSlotMsg->mutable_reaction_model() = reactionModel;
 	if (hasDiffusionModel) *startSlotMsg->mutable_diffusion_model() = diffusionModel;
-	if (hasFFluxParameters) {
-	    *startSlotMsg->mutable_fflux_parameters() = ffluxParameters;
-	    startSlotMsg->set_esample_type(lm::message::StartWorkUnitRunner::FFLUX);
+	if (hasOrderParameters) {
+	    *startSlotMsg->mutable_order_parameters() = orderParameters;
+//	    startSlotMsg->set_esample_type(lm::message::StartWorkUnitRunner::FFLUX);
 	}
 
 	map<int,ResourceMap::ComputeResources> allResources = resourceMap->getAvailableResources();

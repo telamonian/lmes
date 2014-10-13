@@ -36,9 +36,11 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+#include "lm/ClassFactory.h"
 #include "lm/io/Tilings.pb.h"
 #include "lm/tiling/Tiling.h"
-#include "lm/ClassFactory.h"
+#include "lm/tiling/Tilings.h"
+#include "lm/Types.h"
 
 namespace lm {
 namespace tiling {
@@ -56,17 +58,40 @@ Tiling::~Tiling()
 void Tiling::init(const lm::io::Tilings::Tiling& tilingRef)
 {
     tiling = new lm::io::Tilings::Tiling(tilingRef);
-    setArrangement
+    setArrangement(tiling->arrangement());
 }
 
-Tiling::getArrangment()
+lm::io::Tilings::Arrangement Tiling::getArrangment()
 {
-
+    return tiling->arrangement();
 }
 
-Tiling::setArrangement()
+void Tiling::setArrangement(lm::io::Tilings::Arrangement newArr)
 {
+    if (tiling->arrangement()!=newArr)
+    {
+        reverse();
+    }
+}
 
+void Tiling::reverse()
+{
+    tiling->set_arrangement(tiling->arrangement()==lm::io::Tilings::ASCENDING ? lm::io::Tilings::DESCENDING : lm::io::Tilings::ASCENDING);
+    int revLoops = tiling->bin_borders_size()/2;
+    for (int i=0;i<revLoops;++i)
+    {
+        tiling->mutable_bin_borders()->SwapElements(i, tiling->bin_borders_size()-(i+1));
+    }
+}
+
+double Tiling::getLowerLimit(uint borderIndex)
+{
+    return tiling->bin_borders(borderIndex - 1);
+}
+
+double Tiling::getUpperLimit(uint borderIndex)
+{
+    return tiling->bin_borders(borderIndex);
 }
 
 // derived class methods
@@ -74,6 +99,7 @@ bool TilingBin::registered=TilingBin::registerClass();
 bool TilingBin::registerClass()
 {
     lm::ClassFactory::getInstance().registerClass("lm::tiling::Tiling","lm::tiling::TilingBin",&TilingBin::allocateObject);
+    lm::tiling::Tilings::tilingClassMap[0] = "lm::tiling::TilingBin";
     return true;
 }
 void* TilingBin::allocateObject()

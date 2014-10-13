@@ -40,7 +40,6 @@
 package lm.message;
 
 import "lm/io/DiffusionModel.proto";
-//import "lm/io/ESampleInterfaces.proto";
 import "lm/io/OrderParameters.proto";
 import "lm/io/ReactionModel.proto";
 import "lm/io/SimulationParameters.proto";
@@ -54,8 +53,5 @@ message StartWorkUnitRunner {
     required lm.io.SimulationParameters simulation_parameters   = 6;
     optional lm.io.ReactionModel reaction_model                 = 7;
     optional lm.io.DiffusionModel diffusion_model               = 8;
-
-//    optional lm.io.ESampleInterfaces esample_interfaces         = 101;
-    optional lm.io.OrderParameters order_parameters             = 102;
-
+    optional lm.io.OrderParameters order_parameters             = 9;
 }

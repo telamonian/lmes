@@ -36,10 +36,10 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #ifndef FFLUXTRAJECTORYLIST_H_
 #define FFLUXTRAJECTORYLIST_H_
 
+#include <google/protobuf/repeated_field.h>
 #include <map>
 #include <string>
 #include <vector>
@@ -51,6 +51,7 @@
 #include "lm/message/Message.pb.h"
 #include "lm/resource/TrajectoryList.h"
 #include "lm/rng/XORShift.h"
+#include "lm/tiling/Tilings.h"
 #include "lm/Types.h"
 
 using std::map;
@@ -61,8 +62,8 @@ namespace fflux {
 
 typedef vector<lm::io::TrajectoryState *> CrossingVector;
 typedef map<long long, CrossingVector> CrossingsMap;
-typedef google::protobuf::RepeatedPtrField<lm::io::FFluxParameters::Interface>::iterator ifaceIterator;
-typedef google::protobuf::RepeatedPtrField<lm::io::FFluxParameters::OrderParameter>::iterator opIterator;
+typedef google::protobuf::RepeatedPtrField<lm::io::Tilings::Tiling>::iterator tilingIterator;
+typedef google::protobuf::RepeatedPtrField<lm::io::OrderParameters::OrderParameter>::iterator opIterator;
 typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::DecreasingOrderParameterLimit>::iterator decrLimitIterator;
 typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::IncreasingOrderParameterLimit>::iterator incrLimitIterator;
 
@@ -71,7 +72,7 @@ class FFluxTrajectoryList : public lm::resource::TrajectoryList
 public:
     // enumerated type used for describing the direction of the current fflux simulation relative to the arrangements (low-to-high or high-to-low) of the individual interfaces
     enum direction {FORWARD, BACKWARD};
-    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel, const lm::io::FFluxParameters& ffluxParameters);
+    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel, const lm::io::Tilings& tilings);
     virtual ~FFluxTrajectoryList();
     virtual void init();
     virtual void initTrajectory(uint64_t trajectoryID, lm::io::TrajectoryState* trajectoryState);
@@ -109,7 +110,7 @@ protected:
 
     map<std::string,std::string>& simulationParameters;
     const lm::io::ReactionModel& reactionModel;
-    const lm::io::FFluxParameters& ffluxParams;
+    const lm::io::Tilings& tilings;
     lm::rng::XORShift xorShift;	//RNG used for randomly choosing a crossing in a crossing vector
     uint64_t simultaneousTrajectoryCount;
     direction direction;

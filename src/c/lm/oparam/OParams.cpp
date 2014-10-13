@@ -52,7 +52,10 @@ OParams::OParams(const lm::io::OrderParameters& ops)
 
 OParams::~OParams()
 {
-    for (OPMap::iterator m_it=opMap.begin();m_it!=opMap.end();++m_it) delete m_it->second;
+    for (OPMap::iterator m_it=begin();m_it!=end();++m_it)
+    {
+        if (m_it->second!=NULL) delete m_it->second; m_it->second = NULL;
+    }
 }
 
 void OParams::initOParam(lm::io::OrderParameters::OrderParameter& op)
@@ -63,7 +66,7 @@ void OParams::initOParam(lm::io::OrderParameters::OrderParameter& op)
 
 void OParams::initValues(uint* speciesCounts)
 {
-    for (OPMap::iterator m_it=opMap.begin();m_it!=opMap.end();++m_it)
+    for (OPMap::iterator m_it=begin();m_it!=end();++m_it)
     {
         m_it->second->calc(speciesCounts);
     }

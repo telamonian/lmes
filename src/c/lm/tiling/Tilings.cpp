@@ -36,7 +36,6 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #include <algorithm>
 #include "lm/ClassFactory.h"
 #include "lm/io/Tilings.pb.h"
@@ -53,13 +52,24 @@ Tilings::Tilings(const lm::io::Tilings& tilings)
 
 Tilings::~Tilings()
 {
-    for (TilingMap::iterator m_it=tilingMap.begin();m_it!=tilingMap.end();++m_it) delete m_it->second;
+    for (TilingMap::iterator m_it=begin();m_it!=end();++m_it)
+    {
+        if (m_it->second!=NULL) delete m_it->second; m_it->second = NULL;
+    }
 }
 
 void Tilings::initTiling(lm::io::Tilings::Tiling& tiling)
 {
     tilingMap[tiling.id()] = (static_cast<lm::tiling::Tiling*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::tiling::Tiling",lm::tiling::Tilings::tilingClassMap[tiling.type()])));
     tilingMap[tiling.id()]->init(tiling);
+}
+
+void Tilings::reverse()
+{
+    for (TilingMap::iterator m_it=begin();m_it!=end();++m_it)
+    {
+        m_it->second->reverse();
+    }
 }
 
 }

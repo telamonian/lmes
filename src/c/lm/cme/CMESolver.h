@@ -1,5 +1,5 @@
 /*
- * University of Illinois Open Source License
+  * University of Illinois Open Source License
  * Copyright 2008-2011 Luthey-Schulten Group,
  * Copyright 2012-2014 Roberts Group,
  * All rights reserved.
@@ -218,7 +218,7 @@ public:
     virtual bool needsDiffusionModel() {return false;}
     virtual void setDiffusionModel(const lm::io::DiffusionModel& dm) {}
     virtual bool needsOrderParameters() {return ffluxFlag;}
-    virtual void setOrderParameters(const lm::io::FFluxParameters& fp);
+    virtual void setOrderParameters(const lm::io::OrderParameters& ops);
     virtual void reset();
     virtual void getState(lm::io::TrajectoryState* state);
     virtual void setState(const lm::io::TrajectoryState& state);
@@ -250,28 +250,29 @@ protected:
 
     inline void performReactionEvent(uint r)
     {
-        // Update the counts according to the dependency tables.
-    	if (true) {//if (ffluxFlag==true) {
-    		// Store the previous step's order parameter
-    		prevOParam = oParam;
-//    		memcpy(previousSpeciesCounts, speciesCounts, sizeof(uint)*7);
+//        // Record the previous species counts for the benefit of the directed limit crossing checks in reachedSpeciesLimit
+//    	if (true) {//if (ffluxFlag==true) {
+//    		// Store the previous step's order parameter
+//    		prevOParam = oParam;
+////    		memcpy(previousSpeciesCounts, speciesCounts, sizeof(uint)*7);
+//    		for (int i=0; i<(int)reactionModel->numberDependentSpecies[r]; i++)
+//			{
+//    			//previousSpeciesCounts[reactionModel->dependentSpecies[r][i]] = speciesCounts[reactionModel->dependentSpecies[r][i]];
+//    			//previousSpeciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
+//				speciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
+//				oParam = calcTestCaseOParam(speciesCounts);
+//				updatedSpeciesCounts();
+//			}
+//    	}
+
+    	// Update the counts according to the dependency tables.
+//    	else {
     		for (int i=0; i<(int)reactionModel->numberDependentSpecies[r]; i++)
 			{
-    			//previousSpeciesCounts[reactionModel->dependentSpecies[r][i]] = speciesCounts[reactionModel->dependentSpecies[r][i]];
-    			//previousSpeciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
-				speciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
-				oParam = calcTestCaseOParam(speciesCounts);
-				updatedSpeciesCounts();
-			}
-    	}
-    	// Record the previous species counts for the benefit of the directed limit crossing checks in reachedSpeciesLimit
-    	else {
-    		for (int i=0; i<(int)reactionModel->numberDependentSpecies[r]; i++)
-			{
 				speciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
 				updatedSpeciesCounts();
 			}
-    	}
+//    	}
     }
 
     inline void updatedSpeciesCounts()
@@ -308,33 +309,31 @@ protected:
             case SpeciesLimit::MIN:
                 if (int(speciesCounts[l.species]) <= l.limit)
                 {
-                    finalLimitType = lm::io::TrajectoryLimits::MinSpeciesCount;
+                    finalLimitType = lm::io::TrajectoryLimits::MINSPECIESCOUNT;
                     return true;
                 }
                 break;
             case SpeciesLimit::MAX:
                 if (int(speciesCounts[l.species]) >= l.limit)
                 {
-                    finalLimitType = lm::io::TrajectoryLimits::MaxSpeciesCount;
+                    finalLimitType = lm::io::TrajectoryLimits::MAXSPECIESCOUNT;
                     return true;
                 }
                 break;
-            //// TEMP : replace
             case SpeciesLimit::DECREASING:
-            	if (oParam < l.limit && prevOParam >= l.limit)
+            	if ((*oparams)[l.species]->get() >= l.limit && (*oparams)[l.species]->calc(speciesCounts) < l.limit)
                 {
-                    finalLimitType = lm::io::TrajectoryLimits::DecreasingOrderParameter;
+                    finalLimitType = lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER;
                     return true;
                 }
             	break;
             case SpeciesLimit::INCREASING:
-            	if (oParam >= l.limit && prevOParam < l.limit)
+            	if ((*oparams)[l.species]->get() < l.limit && (*oparams)[l.species]->calc(speciesCounts) >= l.limit)
                 {
-                    finalLimitType = lm::io::TrajectoryLimits::IncreasingOrderParameter;
+                    finalLimitType = lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER;
                     return true;
                 }
             	break;
-            //// TEMP
             }
         }
         return false;
@@ -343,18 +342,6 @@ protected:
 protected:
     RandomGenerator::Distributions neededDists;
     RandomGenerator * rng;
-
-    // The enhanced sampling parameters.
-    class ESampleParameters
-    {
-    public:
-        ESampleParameters(const lm::io::TrajectoryState& state);
-        virtual ~ESampleParameters();
-
-        uint interface_id;
-        uint bin_id;
-    };
-    ESampleParameters* esampleParams;
     lm::oparam::OParams* oparams;
 
     // The reaction model.
@@ -393,8 +380,8 @@ protected:
     lm::io::TrajectoryLimits::LimitType finalLimitType;
 
     // Storage for order parameters
-    double oParam;
-    double prevOParam;
+//    double oParam;
+//    double prevOParam;
 
     list<TrackedParameter> trackedParameters;
 

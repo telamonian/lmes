@@ -36,7 +36,6 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #include <cmath>
 #include <list>
 #include <map>
@@ -61,14 +60,11 @@ using std::vector;
 namespace lm {
 namespace fflux {
 
-FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel, const lm::io::FFluxParameters& ffluxParams):
-    TrajectoryList(),simulationParameters(simulationParameters),reactionModel(reactionModel),ffluxParams(ffluxParams),xorShift(0,0),simultaneousTrajectoryCount(simultaneousTrajectoryCount),direction(FORWARD),ffluxPhase(0),crossingsPerPhase(1000),finalInterface(25.0),interfaceCount(12),maxPhaseZeroTime(10000),maxFFluxPhase(),oParamStep() // TODO: change maxFFluxPhase from fixed to varying with input //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
+FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel, const lm::io::Tilings& tilings):
+    TrajectoryList(),simulationParameters(simulationParameters),reactionModel(reactionModel),tilings(tilings),xorShift(0,0),simultaneousTrajectoryCount(simultaneousTrajectoryCount),direction(FORWARD),ffluxPhase(0),crossingsPerPhase(1000),finalInterface(25.0),interfaceCount(12),maxPhaseZeroTime(10000),maxFFluxPhase(),oParamStep() // TODO: change maxFFluxPhase from fixed to varying with input //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
-    maxFFluxPhase = ffluxParams.interface(0).bin_border_size();
+    maxFFluxPhase = tilings.tilings(0).bin_borders_size();
     finishedTrajectoriesCounts = vector<long long>(maxFFluxPhase, 0);
-    //// TEMP
-//    oParamStep = (double)(finalInterface - zerothInterface)/interfaceCount;
-    //// TEMP
 }
 
 FFluxTrajectoryList::~FFluxTrajectoryList()
@@ -142,7 +138,6 @@ lm::io::TrajectoryState* FFluxTrajectoryList::initFirstTrajectoryState()
     for (int j=0; j<(int)reactionModel.number_species(); j++)
         trajectoryState->mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.initial_species_count(j));
     trajectoryState->mutable_cme_state()->mutable_species_counts()->add_time(0.0);
-    trajectoryState->set_esample_type(lm::io::TrajectoryState::FFLUX);
     trajectoryState->mutable_fflux_state()->set_bin_id(0);
     trajectoryState->mutable_fflux_state()->set_interface_id(0);
     return trajectoryState;
@@ -158,16 +153,7 @@ void FFluxTrajectoryList::restart()
 void FFluxTrajectoryList::reverse()
 {
     direction = direction==FORWARD ? BACKWARD : FORWARD;
-    for (ifaceIterator iface_it=ffluxParams.interface().begin(); iface_it!=ffluxParams.interface().end(); ++iface_it)
-    {
-        lm::io::FFluxParameters::arrangement newAr = iface_it->arrangement()==lm::io::FFluxParameters::INCREASING ? lm::io::FFluxParameters::DECREASING : lm::io::FFluxParameters::INCREASING;
-        iface_it->set_arrangement(newAr);
-        int revLoops = iface_it->bin_border_size()/2;
-        for (int i=0;i<revLoops;++i)
-        {
-            iface_it->mutable_bin_border()->SwapElements(i, iface_it->bin_border_size()-(i+1));
-        }
-    }
+    tilings.reverse();
 }
 
 lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg)
@@ -303,7 +289,7 @@ bool FFluxTrajectoryList::isFFluxDone()
 void FFluxTrajectoryList::initInterfaces()
 {
     clearInterfaces();
-    for (ifaceIterator iface_it=ffluxParams.interface().begin(); iface_it!=ffluxParams.interface().end(); ++iface_it)
+    for (tilingIterator iface_it=ffluxParams.interface().begin(); iface_it!=ffluxParams.interface().end(); ++iface_it)
     {
         for (uint i=0;i<iface_it->order_parameter_id_size();++i)
         {
@@ -323,7 +309,7 @@ void FFluxTrajectoryList::ratchetInterfaces()
 {
     // If this is running, ffluxPhase has just been incremented by one, so now also increment
     clearInterfaces();
-    for (ifaceIterator iface_it=ffluxParams.interface().begin(); iface_it!=ffluxParams.interface().end(); ++iface_it)
+    for (tilingIterator iface_it=ffluxParams.interface().begin(); iface_it!=ffluxParams.interface().end(); ++iface_it)
     {
         for (uint i=0;i<iface_it->order_parameter_id_size();++i)
         {

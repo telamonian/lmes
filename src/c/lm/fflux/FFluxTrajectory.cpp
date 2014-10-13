@@ -36,7 +36,6 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #include <list>
 #include <map>
 #include <string>
@@ -48,13 +47,13 @@
 namespace lm {
 namespace fflux {
 
-FFluxTrajectory::FFluxTrajectory(uint64_t id, lm::message::Message trajectoryTemplateMsg, lm::io::TrajectoryState* state):
+FFluxTrajectory::FFluxTrajectory(uint64_t id, lm::message::Message trajectoryTemplateMsg, lm::io::TrajectoryState* state, const lm::io::Tilings& tilings):
 Trajectory(id)
 {
-        // Initialize the trajectory's runWorkUnit message
+        // Initialize the trajectory's Message msg, TrajectoryState state, and Tilings tilings fields
         setMsg(trajectoryTemplateMsg);
 
-        // Copy the TrajectoryState referenced in the function args to the TrajectoryState of the newly constructed trajectory
+        // Make instance local copies of the supervisor's
         setState(*state);
 
         // Set the trajectory id in the trajectory state.
@@ -76,7 +75,7 @@ FFluxTrajectory::~FFluxTrajectory()
 
 bool FFluxTrajectory::hasFluxedBackward()
 {
-    if (interfaces.fflux_interfaces(0).arrangement()==lm::io::ESampleInterfaces::ASCENDING)
+    if (tilings.tilings(0).arrangement()==lm::io::Tilings::ASCENDING)
     {
         return (getFinalLimitType()==lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER);
     }
@@ -88,7 +87,7 @@ bool FFluxTrajectory::hasFluxedBackward()
 
 bool FFluxTrajectory::hasFluxedForward()
 {
-    if (interfaces.fflux_interfaces(0).arrangement()==lm::io::ESampleInterfaces::ASCENDING)
+    if (tilings.tilings(0).arrangement()==lm::io::Tilings::ASCENDING)
     {
         return (getFinalLimitType()==lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER);
     }

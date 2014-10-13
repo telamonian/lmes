@@ -36,12 +36,12 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #ifndef LM_FFLUX_FFLUXTRAJECTORY_H_
 #define LM_FFLUX_FFLUXTRAJECTORY_H_
 
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/resource/Trajectory.h"
+#include "lm/tiling/Tilings.h"
 
 namespace lm {
 namespace fflux {
@@ -49,11 +49,10 @@ namespace fflux {
 class FFluxTrajectory : public lm::resource::Trajectory
 {
 public:
-	FFluxTrajectory(uint64_t id, lm::message::Message trajectoryTemplateMsg, lm::io::TrajectoryState* state);
+	FFluxTrajectory(uint64_t id, lm::message::Message trajectoryTemplateMsg, lm::io::TrajectoryState* state, const lm::io::Tilings& tilings);
 	virtual ~FFluxTrajectory();
 
     // methods for detecting when a flux event has occured
-    virtual bool fluxed();//const lm::message::FinishedWorkUnit& finishedWorkUnitMsg
     virtual bool hasFluxedForward();
     virtual bool hasFluxedBackward();
     virtual lm::io::TrajectoryLimits::LimitType getFinalLimitType();
@@ -63,9 +62,12 @@ public:
     virtual uint getSimSteps();
     virtual double getSimTime();
 
+    // methods for dealing with limits
+    virtual void setLimits();
+
 private:
-    // private copy of forward flux interfaces for setting limits and such
-    lm::io::ESampleInterfaces interfaces;
+    // reference to supervisor's Tilings object for setting limits and such
+    const lm::io::Tilings& tilings;
 };
 
 }

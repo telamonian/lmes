@@ -36,25 +36,26 @@
  *
  * Author(s): Elijah Roberts
  */
-
-#include <string>
+#include <cmath>
 #include <limits>
 #include <list>
 #include <map>
-#include <cmath>
+#include <string>
 #if defined(MACOSX)
 #elif defined(LINUX)
 #include <time.h>
 #endif
-#include "lm/Tune.h"
-#include "lm/Math.h"
-#include "lm/Print.h"
+
 #include "lm/cme/CMESolver.h"
 #include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/io/OrderParameters.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
+#include "lm/Math.h"
+#include "lm/oparam/OParams.h"
+#include "lm/Print.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/rng/XORShift.h"
 #ifdef OPT_CUDA
@@ -62,6 +63,7 @@
 #endif
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
+#include "lm/Tune.h"
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
 
@@ -73,7 +75,7 @@ namespace lm {
 namespace cme {
 
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
-:neededDists(neededDists),rng(NULL),oparams(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),speciesCounts(NULL),previousSpeciesCounts(NULL),oParam(0),prevOParam(0),trajectoryStarted(false),time(0.0)
+:neededDists(neededDists),rng(NULL),oparams(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),trajectoryStarted(false),time(0.0)
 {
 }
 
@@ -88,24 +90,10 @@ CMESolver::~CMESolver()
     // Free any memory being used by the order parameters
     if (oparams != NULL) delete oparams; oparams = NULL;
 
-//    if (previousSpeciesCounts != NULL) delete[] previousSpeciesCounts; previousSpeciesCounts = NULL;
-
     // Free any other memory.
     if (rng != NULL) delete rng; rng = NULL;
     if (speciesLimits != NULL) delete[] speciesLimits; speciesLimits = NULL;
     if (fptTrackedSpecies != NULL) delete[] fptTrackedSpecies; fptTrackedSpecies = NULL;
-}
-
-CMESolver::ESampleParameters::ESampleParameters(const lm::io::TrajectoryState& state)
-:interface_id(),bin_id()
-{
-    switch(state.esample_type())
-    {
-    case lm::io::TrajectoryState::FFLUX:
-        interface_id = state.fflux_state().interface_id();
-        bin_id = state.fflux_state().bin_id();
-        break;
-    }
 }
 
 CMESolver::ReactionModel::ReactionModel(uint numberSpecies, uint numberReactions)
@@ -667,9 +655,9 @@ void CMESolver::setReactionModel(const lm::io::ReactionModel& rm)
     if (K !=  NULL) delete [] K; K = NULL;
 }
 
-void CMESolver::setOrderParameters(const lm::io::FFluxParameters& esp)
+void CMESolver::setOrderParameters(const lm::io::OrderParameters& ops)
 {
-    oparams = new lm::oparam::OParams(esp);
+    oparams = new lm::oparam::OParams(ops);
 }
 
 double CMESolver::zerothOrderPropensity(double time, uint * speciesCounts, void * pargs)
@@ -821,11 +809,17 @@ void CMESolver::reset()
     for (uint i=0; i<reactionModel->numberSpecies; i++)
     {
         speciesCounts[i] = 0;
-        //// TEMP : replace
-        oParam = calcTestCaseOParam(speciesCounts);
-        //// TEMP
-        prevOParam = oParam;
+//        //// TEMP : replace
+//        oParam = calcTestCaseOParam(speciesCounts);
+//        //// TEMP
+//        prevOParam = oParam;
 //        previousSpeciesCounts[i] = 0;
+    }
+
+    // Reinitialize the order parameters, if required
+    if (needsOrderParameters())
+    {
+        oparams->initValues(speciesCounts);
     }
 
     // Reset the time.
@@ -882,17 +876,14 @@ void CMESolver::setState(const lm::io::TrajectoryState& state)
     for (int i=0; i<state.cme_state().species_counts().species_count_size(); i++)
     {
         speciesCounts[i] = state.cme_state().species_counts().species_count(i);
-//    	previousSpeciesCounts[i] = state.cme_state().species_counts().species_count(i);
     }
-    if (state.has_esample_type())
+
+    // Reinitialize the order parameters, if required
+    if (needsOrderParameters())
     {
-        esampleParams = new ESampleParameters(state);
+        oparams->initValues(speciesCounts);
     }
 
-    oparams->initValues(speciesCounts);
-
-//    oParam = calcTestCaseOParam(speciesCounts);
-//    prevOParam = oParam;
     time = state.cme_state().species_counts().time(0);
     trajectoryStarted = state.trajectory_started();
 

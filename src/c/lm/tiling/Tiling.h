@@ -36,7 +36,6 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #ifndef LM_TILING_TILING
 #define LM_TILING_TILING
 
@@ -54,12 +53,12 @@ public:
     virtual void init(const lm::io::Tilings::Tiling& tilingRef);
     virtual lm::io::Tilings::Arrangement getArrangment();
     virtual void setArrangement(lm::io::Tilings::Arrangement arrangement);
-    virtual double getLowerLimit(uint binID);
-    virtual double getUpperLimit(uint binID);
+    virtual void reverse();
+    virtual double getLowerLimit(uint borderIndex);
+    virtual double getUpperLimit(uint borderIndex);
 
 protected:
     lm::io::Tilings::Tiling* tiling;
-    virtual lm::io::Tilings::Arrangement arrangement;
 };
 
 class TilingBin : public Tiling
@@ -73,9 +72,6 @@ public:
     virtual ~TilingBin() {}
     virtual void init(const lm::io::Tilings::Tiling& tilingRef);
     virtual void
-
-private:
-
 };
 
 }
