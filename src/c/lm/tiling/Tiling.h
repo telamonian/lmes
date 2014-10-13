@@ -51,11 +51,13 @@ public:
     Tiling();
     virtual ~Tiling() {}
     virtual void init(const lm::io::Tilings::Tiling& tilingRef);
-    virtual lm::io::Tilings::Arrangement getArrangment();
-    virtual void setArrangement(lm::io::Tilings::Arrangement arrangement);
-    virtual void reverse();
-    virtual double getLowerLimit(uint borderIndex);
-    virtual double getUpperLimit(uint borderIndex);
+
+    lm::io::Tilings::Arrangement getArrangment();
+    uint getBorderCount() {return tiling->bin_borders_size();}
+    double getLowerLimit(uint binIndex);
+    double getUpperLimit(uint binIndex);
+    void reverse();
+    void setArrangement(lm::io::Tilings::Arrangement arrangement);
 
 protected:
     lm::io::Tilings::Tiling* tiling;
@@ -71,7 +73,6 @@ public:
     TilingBin();
     virtual ~TilingBin() {}
     virtual void init(const lm::io::Tilings::Tiling& tilingRef);
-    virtual void
 };
 
 }

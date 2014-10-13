@@ -47,8 +47,8 @@
 namespace lm {
 namespace fflux {
 
-FFluxTrajectory::FFluxTrajectory(uint64_t id, lm::message::Message trajectoryTemplateMsg, lm::io::TrajectoryState* state, const lm::io::Tilings& tilings):
-Trajectory(id)
+FFluxTrajectory::FFluxTrajectory(uint64_t id, lm::message::Message trajectoryTemplateMsg, lm::io::TrajectoryState* state, lm::tiling::Tilings& tilings): //TODO: make this signature less terrible
+Trajectory(id), tilings(tilings)
 {
         // Initialize the trajectory's Message msg, TrajectoryState state, and Tilings tilings fields
         setMsg(trajectoryTemplateMsg);
@@ -73,9 +73,9 @@ FFluxTrajectory::~FFluxTrajectory()
 {
 }
 
-bool FFluxTrajectory::hasFluxedBackward()
+bool FFluxTrajectory::fluxedBackward()
 {
-    if (tilings.tilings(0).arrangement()==lm::io::Tilings::ASCENDING)
+    if (tilings[0].getArrangment()==lm::io::Tilings::ASCENDING)
     {
         return (getFinalLimitType()==lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER);
     }
@@ -85,9 +85,9 @@ bool FFluxTrajectory::hasFluxedBackward()
     }
 }
 
-bool FFluxTrajectory::hasFluxedForward()
+bool FFluxTrajectory::fluxedForward()
 {
-    if (tilings.tilings(0).arrangement()==lm::io::Tilings::ASCENDING)
+    if (tilings[0].getArrangment()==lm::io::Tilings::ASCENDING)
     {
         return (getFinalLimitType()==lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER);
     }

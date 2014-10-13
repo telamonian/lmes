@@ -49,12 +49,12 @@ namespace fflux {
 class FFluxTrajectory : public lm::resource::Trajectory
 {
 public:
-	FFluxTrajectory(uint64_t id, lm::message::Message trajectoryTemplateMsg, lm::io::TrajectoryState* state, const lm::io::Tilings& tilings);
+	FFluxTrajectory(uint64_t id, lm::message::Message trajectoryTemplateMsg, lm::io::TrajectoryState* state, lm::tiling::Tilings& tilings);
 	virtual ~FFluxTrajectory();
 
     // methods for detecting when a flux event has occured
-    virtual bool hasFluxedForward();
-    virtual bool hasFluxedBackward();
+    virtual bool fluxedForward();
+    virtual bool fluxedBackward();
     virtual lm::io::TrajectoryLimits::LimitType getFinalLimitType();
 
     // methods for encapsulating functions in the fflux main loop
@@ -67,7 +67,7 @@ public:
 
 private:
     // reference to supervisor's Tilings object for setting limits and such
-    const lm::io::Tilings& tilings;
+    lm::tiling::Tilings& tilings;
 };
 
 }

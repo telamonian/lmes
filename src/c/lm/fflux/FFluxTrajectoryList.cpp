@@ -60,10 +60,10 @@ using std::vector;
 namespace lm {
 namespace fflux {
 
-FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel, const lm::io::Tilings& tilings):
-    TrajectoryList(),simulationParameters(simulationParameters),reactionModel(reactionModel),tilings(tilings),xorShift(0,0),simultaneousTrajectoryCount(simultaneousTrajectoryCount),direction(FORWARD),ffluxPhase(0),crossingsPerPhase(1000),finalInterface(25.0),interfaceCount(12),maxPhaseZeroTime(10000),maxFFluxPhase(),oParamStep() // TODO: change maxFFluxPhase from fixed to varying with input //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
+FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel, lm::tiling::Tilings& tilings):
+    TrajectoryList(),simulationParameters(simulationParameters),reactionModel(reactionModel),tilings(tilings),xorShift(0,0),simultaneousTrajectoryCount(simultaneousTrajectoryCount),direction(FORWARD),ffluxPhase(0),crossingsPerPhase(1000),maxPhaseZeroTime(10000),maxFFluxPhase() // TODO: change maxFFluxPhase from fixed to varying with input //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
-    maxFFluxPhase = tilings.tilings(0).bin_borders_size();
+    maxFFluxPhase = tilings[0].getBorderCount();
     finishedTrajectoriesCounts = vector<long long>(maxFFluxPhase, 0);
 }
 
@@ -110,20 +110,20 @@ void FFluxTrajectoryList::initPhaseNTrajectories(uint64_t trajectoriesToStart, l
 void FFluxTrajectoryList::initTrajectory(uint64_t id, lm::io::TrajectoryState* state)
 {
     // Construct new trajectory
-    trajectories[id] = new lm::resource::Trajectory(id);
+    trajectories[id] = new lm::fflux::FFluxTrajectory(id, trajectoryTemplateMsg, state, tilings);
 
-    // Initialize the trajectory's runWorkUnit message
-    trajectories[id]->setMsg(trajectoryTemplateMsg);
-
-    // Copy the TrajectoryState referenced in the function args to the TrajectoryState of the newly constructed trajectory
-    trajectories[id]->setState(*state);
-
-    // Set the trajectory id in the trajectory state.
-    trajectories[id]->getState().set_trajectory_id(id);
-
-    // Set the trajectory id in the CME state of the trajectory state (if applicable).
-    if (trajectories[id]->getState().has_cme_state())
-        trajectories[id]->getState().mutable_cme_state()->mutable_species_counts()->set_trajectory_id(id);
+//    // Initialize the trajectory's runWorkUnit message
+//    trajectories[id]->setMsg(trajectoryTemplateMsg);
+//
+//    // Copy the TrajectoryState referenced in the function args to the TrajectoryState of the newly constructed trajectory
+//    trajectories[id]->setState(*state);
+//
+//    // Set the trajectory id in the trajectory state.
+//    trajectories[id]->getState().set_trajectory_id(id);
+//
+//    // Set the trajectory id in the CME state of the trajectory state (if applicable).
+//    if (trajectories[id]->getState().has_cme_state())
+//        trajectories[id]->getState().mutable_cme_state()->mutable_species_counts()->set_trajectory_id(id);
 
     // Set the trajectory id in the RDME state of the trajectory state (if applicable).
 //    if (trajectories[id]->getState().has_rdme_state())
@@ -286,94 +286,94 @@ bool FFluxTrajectoryList::isFFluxDone()
     return (ffluxPhase < maxFFluxPhase);
 }
 
-void FFluxTrajectoryList::initInterfaces()
-{
-    clearInterfaces();
-    for (tilingIterator iface_it=ffluxParams.interface().begin(); iface_it!=ffluxParams.interface().end(); ++iface_it)
-    {
-        for (uint i=0;i<iface_it->order_parameter_id_size();++i)
-        {
-            switch (iface_it->arrangement()) {
-            case lm::io::FFluxParameters::DECREASING:
-                setDecrInterface(iface_it->order_parameter_id(i), iface_it->bin_border(0));
-                break;
-            case lm::io::FFluxParameters::INCREASING:
-                setIncrInterface(iface_it->order_parameter_id(i), iface_it->bin_border(0));
-                break;
-            }
-        }
-    }
-}
-
-void FFluxTrajectoryList::ratchetInterfaces()
-{
-    // If this is running, ffluxPhase has just been incremented by one, so now also increment
-    clearInterfaces();
-    for (tilingIterator iface_it=ffluxParams.interface().begin(); iface_it!=ffluxParams.interface().end(); ++iface_it)
-    {
-        for (uint i=0;i<iface_it->order_parameter_id_size();++i)
-        {
-            switch (iface_it->arrangement()) {
-            case lm::io::FFluxParameters::DECREASING:
-                setInterface(iface_it->order_parameter_id(i), iface_it->bin_border(ffluxPhase-1), iface_it->bin_border(ffluxPhase));
-                break;
-            case lm::io::FFluxParameters::INCREASING:
-                setInterface(iface_it->order_parameter_id(i), iface_it->bin_border(ffluxPhase), iface_it->bin_border(ffluxPhase-1));
-                break;
-            }
-        }
-    }
-}
-
-void FFluxTrajectoryList::clearInterfaces()
-{
-    lm::message::RunWorkUnit* runWorkUnitMsg = getRunWorkUnitMsg();
-    runWorkUnitMsg->mutable_limits()->clear_decreasing_order_parameter_limit();
-    runWorkUnitMsg->mutable_limits()->clear_increasing_order_parameter_limit();
-    for (opIterator it=ffluxParams.order_parameter().begin(); it!=ffluxParams.order_parameter().end(); ++it)
-    {
-        lm::io::TrajectoryLimits::DecreasingOrderParameterLimit* dopl = runWorkUnitMsg->mutable_limits()->add_decreasing_order_parameter_limit();
-        dopl->set_order_parameter_id(it->id());
-        lm::io::TrajectoryLimits::IncreasingOrderParameterLimit* iopl = runWorkUnitMsg->mutable_limits()->add_increasing_order_parameter_limit();
-        iopl->set_order_parameter_id(it->id());
-    }
-}
-
-void FFluxTrajectoryList::setDecrInterface(uint opID, double decrLimit)
-{
-    lm::message::RunWorkUnit* runWorkUnitMsg = getRunWorkUnitMsg();
-    for (decrLimitIterator it=runWorkUnitMsg->mutable_limits()->decreasing_order_parameter_limit().begin(); it!=runWorkUnitMsg->mutable_limits()->decreasing_order_parameter_limit().end(); ++it)
-    {
-        if (it->order_parameter_id()==opID)
-        {
-            it->add_value(decrLimit);
-            goto end;
-        }
-    }
-    throw InvalidArgException("opID", "does not correspond to order parameter IDs in initialized limits");
-    end: ;
-}
-
-void FFluxTrajectoryList::setIncrInterface(uint opID, double incrLimit)
-{
-    lm::message::RunWorkUnit* runWorkUnitMsg = getRunWorkUnitMsg();
-    for (incrLimitIterator it=runWorkUnitMsg->mutable_limits()->increasing_order_parameter_limit().begin(); it!=runWorkUnitMsg->mutable_limits()->increasing_order_parameter_limit().end(); ++it)
-    {
-        if (it->order_parameter_id()==opID)
-        {
-            it->add_value(incrLimit);
-            goto end;
-        }
-    }
-    throw InvalidArgException("opID", "does not correspond to order parameter IDs in initialized limits");
-    end: ;
-}
-
-void FFluxTrajectoryList::setInterface(uint opID, double decrLimit, double incrLimit)
-{
-    setDecrInterface(opID, decrLimit);
-    setIncrInterface(opID, incrLimit);
-}
+//void FFluxTrajectoryList::initInterfaces()
+//{
+//    clearInterfaces();
+//    for (tilingIterator iface_it=ffluxParams.interface().begin(); iface_it!=ffluxParams.interface().end(); ++iface_it)
+//    {
+//        for (uint i=0;i<iface_it->order_parameter_id_size();++i)
+//        {
+//            switch (iface_it->arrangement()) {
+//            case lm::io::FFluxParameters::DECREASING:
+//                setDecrInterface(iface_it->order_parameter_id(i), iface_it->bin_border(0));
+//                break;
+//            case lm::io::FFluxParameters::INCREASING:
+//                setIncrInterface(iface_it->order_parameter_id(i), iface_it->bin_border(0));
+//                break;
+//            }
+//        }
+//    }
+//}
+//
+//void FFluxTrajectoryList::ratchetInterfaces()
+//{
+//    // If this is running, ffluxPhase has just been incremented by one, so now also increment
+//    clearInterfaces();
+//    for (tilingIterator iface_it=ffluxParams.interface().begin(); iface_it!=ffluxParams.interface().end(); ++iface_it)
+//    {
+//        for (uint i=0;i<iface_it->order_parameter_id_size();++i)
+//        {
+//            switch (iface_it->arrangement()) {
+//            case lm::io::FFluxParameters::DECREASING:
+//                setInterface(iface_it->order_parameter_id(i), iface_it->bin_border(ffluxPhase-1), iface_it->bin_border(ffluxPhase));
+//                break;
+//            case lm::io::FFluxParameters::INCREASING:
+//                setInterface(iface_it->order_parameter_id(i), iface_it->bin_border(ffluxPhase), iface_it->bin_border(ffluxPhase-1));
+//                break;
+//            }
+//        }
+//    }
+//}
+//
+//void FFluxTrajectoryList::clearInterfaces()
+//{
+//    lm::message::RunWorkUnit* runWorkUnitMsg = getRunWorkUnitMsg();
+//    runWorkUnitMsg->mutable_limits()->clear_decreasing_order_parameter_limit();
+//    runWorkUnitMsg->mutable_limits()->clear_increasing_order_parameter_limit();
+//    for (opIterator it=ffluxParams.order_parameter().begin(); it!=ffluxParams.order_parameter().end(); ++it)
+//    {
+//        lm::io::TrajectoryLimits::DecreasingOrderParameterLimit* dopl = runWorkUnitMsg->mutable_limits()->add_decreasing_order_parameter_limit();
+//        dopl->set_order_parameter_id(it->id());
+//        lm::io::TrajectoryLimits::IncreasingOrderParameterLimit* iopl = runWorkUnitMsg->mutable_limits()->add_increasing_order_parameter_limit();
+//        iopl->set_order_parameter_id(it->id());
+//    }
+//}
+//
+//void FFluxTrajectoryList::setDecrInterface(uint opID, double decrLimit)
+//{
+//    lm::message::RunWorkUnit* runWorkUnitMsg = getRunWorkUnitMsg();
+//    for (decrLimitIterator it=runWorkUnitMsg->mutable_limits()->decreasing_order_parameter_limit().begin(); it!=runWorkUnitMsg->mutable_limits()->decreasing_order_parameter_limit().end(); ++it)
+//    {
+//        if (it->order_parameter_id()==opID)
+//        {
+//            it->add_value(decrLimit);
+//            goto end;
+//        }
+//    }
+//    throw InvalidArgException("opID", "does not correspond to order parameter IDs in initialized limits");
+//    end: ;
+//}
+//
+//void FFluxTrajectoryList::setIncrInterface(uint opID, double incrLimit)
+//{
+//    lm::message::RunWorkUnit* runWorkUnitMsg = getRunWorkUnitMsg();
+//    for (incrLimitIterator it=runWorkUnitMsg->mutable_limits()->increasing_order_parameter_limit().begin(); it!=runWorkUnitMsg->mutable_limits()->increasing_order_parameter_limit().end(); ++it)
+//    {
+//        if (it->order_parameter_id()==opID)
+//        {
+//            it->add_value(incrLimit);
+//            goto end;
+//        }
+//    }
+//    throw InvalidArgException("opID", "does not correspond to order parameter IDs in initialized limits");
+//    end: ;
+//}
+//
+//void FFluxTrajectoryList::setInterface(uint opID, double decrLimit, double incrLimit)
+//{
+//    setDecrInterface(opID, decrLimit);
+//    setIncrInterface(opID, incrLimit);
+//}
 
 //// TEMP: replace
 //double FFluxTrajectoryList::calcTestCaseOParam(const lm::io::TrajectoryState& finalState)

@@ -72,7 +72,7 @@ class FFluxTrajectoryList : public lm::resource::TrajectoryList
 public:
     // enumerated type used for describing the direction of the current fflux simulation relative to the arrangements (low-to-high or high-to-low) of the individual interfaces
     enum direction {FORWARD, BACKWARD};
-    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel, const lm::io::Tilings& tilings);
+    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel, lm::tiling::Tilings& tilings);
     virtual ~FFluxTrajectoryList();
     virtual void init();
     virtual void initTrajectory(uint64_t trajectoryID, lm::io::TrajectoryState* trajectoryState);
@@ -94,38 +94,34 @@ public:
     virtual bool isFFluxDone();
 
     // methods for dealing with interfaces, bin borders, etc.
-    virtual void initInterfaces();
-    virtual void ratchetInterfaces();
-    virtual void clearInterfaces();
-    //virtual opIterator findOrderParameter(uint opID);
-    virtual void setDecrInterface(uint opID, double decrLimit);
-    virtual void setIncrInterface(uint opID, double incrLimit);
-    virtual void setInterface(uint opID, double decrLimit, double incrLimit);
+//    virtual void initInterfaces();
+//    virtual void ratchetInterfaces();
+//    virtual void clearInterfaces();
+//    //virtual opIterator findOrderParameter(uint opID);
+//    virtual void setDecrInterface(uint opID, double decrLimit);
+//    virtual void setIncrInterface(uint opID, double incrLimit);
+//    virtual void setInterface(uint opID, double decrLimit, double incrLimit);
 
 protected:
     //// TEMP
-    virtual double calcTestCaseOParam(const lm::io::TrajectoryState& finalState);
-    virtual void incrTestCaseLimits();
+//    virtual double calcTestCaseOParam(const lm::io::TrajectoryState& finalState);
+//    virtual void incrTestCaseLimits();
     //// TEMP
 
     map<std::string,std::string>& simulationParameters;
     const lm::io::ReactionModel& reactionModel;
-    const lm::io::Tilings& tilings;
+    lm::tiling::Tilings& tilings;
     lm::rng::XORShift xorShift;	//RNG used for randomly choosing a crossing in a crossing vector
-    uint64_t simultaneousTrajectoryCount;
+    CrossingsMap crossings;
     direction direction;
     long long ffluxPhase;
-    unsigned crossingsPerPhase;	//the count of crossing events that should be collected for every fflux sampling phase
+    uint64_t simultaneousTrajectoryCount;
+    vector<long long> finishedTrajectoriesCounts;
+    long long maxFFluxPhase;
 
-    // variables related to how the forward flux interfaces are set up
-    double zerothInterface;
-    double finalInterface;
-    long long interfaceCount;
+    // user defined parameters that determine how the forward flux sampling is carried out
 	double maxPhaseZeroTime;
-	vector<long long> finishedTrajectoriesCounts;
-	CrossingsMap crossings;
-	long long maxFFluxPhase;
-	double oParamStep;
+    unsigned crossingsPerPhase; //the count of crossing events that should be collected for every fflux sampling phase
 };
 
 }
