@@ -48,7 +48,7 @@ namespace lm {
 namespace message {
 
 Communicator::Communicator(int process, int thread)
-    :process(process),thread(thread),inputBufferSize(10*1024*1024),inputBuffer(NULL),outputBufferSize(10*1024*1024),outputBuffer(NULL)
+    :process(process),thread(thread),inputBufferSize(50*1024*1024),inputBuffer(NULL),outputBufferSize(50*1024*1024),outputBuffer(NULL)
 {
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(inputBufferSize, MPI_INFO_NULL, &inputBuffer));
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(outputBufferSize, MPI_INFO_NULL, &outputBuffer));
