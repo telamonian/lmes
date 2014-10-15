@@ -39,6 +39,7 @@
 
 #include <algorithm>
 #include "lm/io/OrderParameters.pb.h"
+#include "lm/ClassFactory.h"
 #include "lm/oparam/OParam.h"
 #include "lm/oparam/OParams.h"
 

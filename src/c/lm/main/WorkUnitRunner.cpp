@@ -45,6 +45,7 @@
 
 #include "hrtime.h"
 #include "lm/ClassFactory.h"
+#include "lm/cme/CMESolver.h"
 #include "lm/MPI.h"
 #include "lm/Print.h"
 #if defined(OPT_CUDA)
@@ -245,7 +246,7 @@ void WorkUnitRunner::runWorkUnit(const lm::message::RunWorkUnit& wu)
     if (limitReached)
     {
         msg2->set_status(lm::message::FinishedWorkUnit::LIMIT_REACHED);
-        msg2->mutable_final_state()->set_final_limit_type(solver->finalLimitType);
+        msg2->mutable_final_state()->set_final_limit_type(static_cast<lm::cme::CMESolver*>(solver)->finalLimitType);
     }
     else
     {

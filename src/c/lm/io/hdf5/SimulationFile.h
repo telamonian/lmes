@@ -88,6 +88,7 @@ typedef struct {
 
 typedef struct {
     lm::io::Tilings * tilings;
+    string filename;
 } CallbackDataTilings;
 
 class SimulationFile

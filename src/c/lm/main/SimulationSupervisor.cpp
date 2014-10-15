@@ -61,7 +61,7 @@ namespace lm {
 namespace main {
 
 SimulationSupervisor::SimulationSupervisor()
-    :workUnitCount(0),trajectories(NULL),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),solverClassName(""),useCPUAffinity(false),hasReactionModel(false),hasDiffusionModel(false),slots(&communicator)
+    :workUnitCount(0),trajectories(NULL),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),solverClassName(""),useCPUAffinity(false),hasReactionModel(false),hasDiffusionModel(false),tilings(),slots(&communicator)
 {
 }
 
@@ -145,7 +145,7 @@ void SimulationSupervisor::initialize()
     {
         hasTilings = true;
         file->getTilings(&tilingsBuf);
-        tilings = new lm::tiling::Tilings(tilingsBuf);
+        tilings = *(new lm::tiling::Tilings(tilingsBuf));
     }
 
     // Close the file.

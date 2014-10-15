@@ -50,7 +50,7 @@ class OParam
 {
 public:
     OParam();
-    virtual ~OParam() {}
+    virtual ~OParam();
     virtual void init(const lm::io::OrderParameters::OrderParameter& opRef);
     virtual double calc(uint* speciesCounts) = 0;
     double get() {return val;}
@@ -58,8 +58,6 @@ public:
 
 protected:
     lm::io::OrderParameters::OrderParameter* op;
-
-private:
     double val;
 };
 
@@ -76,8 +74,8 @@ public:
     virtual double calc(uint* speciesCounts);
 protected:
     uint size;
-    uint* speciesID;
-    double* speciesCoefficient;
+    const uint* speciesID;
+    const double* speciesCoefficient;
 };
 
 }

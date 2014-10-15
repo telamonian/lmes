@@ -377,7 +377,6 @@ protected:
     double maxTime;
     uint numberSpeciesLimits;
     SpeciesLimit* speciesLimits;
-    lm::io::TrajectoryLimits::LimitType finalLimitType;
 
     // Storage for order parameters
 //    double oParam;
@@ -393,6 +392,8 @@ protected:
     double time;
     int numberFptTrackedSpecies;
     FPTTracking* fptTrackedSpecies;
+public:
+    lm::io::TrajectoryLimits::LimitType finalLimitType;
 };
 
 }

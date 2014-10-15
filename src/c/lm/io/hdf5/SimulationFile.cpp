@@ -41,15 +41,15 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #include <cstdio>
 #include <cstring>
-#include <string>
-#include <sstream>
-#include <map>
 #include <list>
-#include <vector>
+#include <map>
+#include <sstream>
+#include <string>
 #include <sys/stat.h>
+#include <vector>
+
 #include "lm/Exceptions.h"
 #include "lm/Math.h"
 #include "lm/Print.h"
@@ -1086,7 +1086,7 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
     }
 
     // infer whether edges is sorted ascending or descending
-    lm::io::Tilings::Arrangement sortArrangement = newTiling->edges(newTiling->edges_size())>=newTiling->edges(0) ? lm::io::Tilings::ASCENDING : lm::io::Tilings::DESCENDING
+    lm::io::Tilings::Arrangement sortArrangement = newTiling->edges(newTiling->edges_size())>=newTiling->edges(0) ? lm::io::Tilings::ASCENDING : lm::io::Tilings::DESCENDING;
     newTiling->set_arrangement(sortArrangement);
 
     // ensure that edges is actually sorted the way we guessed
@@ -1094,14 +1094,14 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
     {
         for (int i=0;i<newTiling->edges_size()-1;i++)
         {
-            if (newTiling->edges(i) > newTiling->edges(i+1)) throw Exception("A set of Edges in one of your Tilings is improperly sorted (guessed ASCENDING)", filename.c_str(), "/Tilings/xxxxxxx/Edges");
+            if (newTiling->edges(i) > newTiling->edges(i+1)) throw Exception("A set of Edges in one of your Tilings is improperly sorted (guessed ASCENDING)", cdT->filename.c_str(), "/Tilings/xxxxxxx/Edges");
         }
     }
     else // (sortArrangement==lm::io::Tilings::DESCENDING)
     {
         for (int i=0;i<newTiling->edges_size()-1;i++)
         {
-            if (newTiling->edges(i+1) > newTiling->edges(i)) throw Exception("A set of Edges in one of your Tilings is improperly sorted (guessed DESCENDING)", filename.c_str(), "/Tilings/xxxxxxx/Edges");
+            if (newTiling->edges(i+1) > newTiling->edges(i)) throw Exception("A set of Edges in one of your Tilings is improperly sorted (guessed DESCENDING)", cdT->filename.c_str(), "/Tilings/xxxxxxx/Edges");
         }
     }
 
@@ -1123,6 +1123,7 @@ void Hdf5File::getTilings(lm::io::Tilings* tilings)
     // Declare and initialize the data structure for the callbacks in the tilings iterator
     CallbackDataTilings* cdT = new CallbackDataTilings;
     cdT->tilings = tilings;
+    cdT->filename = filename;
 
     if (H5Lexists(file, "/Tilings", H5P_DEFAULT))
     {

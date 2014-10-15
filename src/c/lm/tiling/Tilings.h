@@ -56,6 +56,7 @@ typedef std::map<uint,lm::tiling::Tiling*> TilingMap;
 class Tilings
 {
 public:
+    Tilings();
     Tilings(const lm::io::Tilings& tilings);
     ~Tilings();
     void initTiling(lm::io::Tilings::Tiling& tiling);

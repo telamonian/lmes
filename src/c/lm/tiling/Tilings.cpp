@@ -45,6 +45,11 @@
 namespace lm {
 namespace tiling {
 
+Tilings::Tilings()
+{
+
+}
+
 Tilings::Tilings(const lm::io::Tilings& tilings)
 {
     for_each(tilings.tilings().begin(), tilings.tilings().end(), initTiling);
