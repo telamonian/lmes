@@ -76,7 +76,7 @@ namespace lm {
 namespace cme {
 
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
-:neededDists(neededDists),rng(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),speciesCounts(NULL),previousSpeciesCounts(NULL),oParam(0),prevOParam(0),time(0.0)
+:neededDists(neededDists),rng(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),speciesCounts(NULL),previousSpeciesCounts(NULL),oParam(0),prevOParam(0),trajectoryStarted(false),time(0.0)
 {
 }
 
@@ -871,6 +871,7 @@ void CMESolver::setState(const lm::io::TrajectoryState& state)
     oParam = calcTestCaseOParam(speciesCounts);
     prevOParam = oParam;
     time = state.cme_state().species_counts().time(0);
+    trajectoryStarted = state.trajectory_started();
 
     // Set the first passage times.
     numberFptTrackedSpecies = state.cme_state().first_passage_times_size();

@@ -68,6 +68,7 @@ public:
     virtual bool exists(uint64_t trajectoryID) {if (trajectories.find(trajectoryID)!=trajectories.end()) return true; else return false;}
 
     //setter
+    virtual void setTrajectoryStarted(uint64_t trajectoryID, bool trajectoryStarted);
     virtual void setTrajectoryStatus(uint64_t trajectoryID, lm::resource::Trajectory::status_t status);
     virtual void setTrajectoryState(uint64_t trajectoryID, const lm::io::TrajectoryState& state);
 

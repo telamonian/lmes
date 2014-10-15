@@ -94,6 +94,7 @@ void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
 		setTrajectoryStatus(msg.final_state().trajectory_id(), Trajectory::WAITING);
 		setTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
 	}
+	setTrajectoryStarted(msg.final_state().trajectory_id(), true);
 }
 
 lm::message::Message * TrajectoryList::getNextWorkUnitMsg()
@@ -134,6 +135,10 @@ const lm::io::TrajectoryState& TrajectoryList::getTrajectoryState(uint64_t traje
     return trajectories[trajectoryID]->getState();
 }
 
+void TrajectoryList::setTrajectoryStarted(uint64_t trajectoryID, bool trajectoryStarted)
+{
+	trajectories[trajectoryID]->setStarted(trajectoryStarted);
+}
 void TrajectoryList::setTrajectoryStatus(uint64_t trajectoryID, Trajectory::status_t status)
 {
     trajectories[trajectoryID]->setStatus(status);
