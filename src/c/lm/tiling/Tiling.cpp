@@ -61,7 +61,7 @@ void Tiling::init(const lm::io::Tilings::Tiling& tilingRef)
     setArrangement(tiling->arrangement());
 }
 
-lm::io::Tilings::Arrangement Tiling::getArrangment()
+lm::io::Tilings::Arrangement Tiling::getArrangement()
 {
     return tiling->arrangement();
 }
@@ -77,39 +77,58 @@ void Tiling::setArrangement(lm::io::Tilings::Arrangement newArr)
 void Tiling::reverse()
 {
     tiling->set_arrangement(tiling->arrangement()==lm::io::Tilings::ASCENDING ? lm::io::Tilings::DESCENDING : lm::io::Tilings::ASCENDING);
-    int revLoops = tiling->bin_borders_size()/2;
+    int revLoops = tiling->edges_size()/2;
     for (int i=0;i<revLoops;++i)
     {
-        tiling->mutable_bin_borders()->SwapElements(i, tiling->bin_borders_size()-(i+1));
+        tiling->mutable_edges()->SwapElements(i, tiling->edges_size()-(i+1));
     }
 }
 
-double Tiling::getLowerLimit(uint borderIndex)
+double Tiling::getEdge(uint edgeIndex)
 {
-    return tiling->bin_borders(borderIndex - 1);
+    return tiling->edges(edgeIndex);
 }
 
-double Tiling::getUpperLimit(uint borderIndex)
-{
-    return tiling->bin_borders(borderIndex);
-}
+//double Tiling::getAscendingLimit(uint edgeIndex)
+//{
+//    if (getArrangement()==lm::io::Tilings::ASCENDING)
+//    {
+//        return tiling->edges(edgeIndex);
+//    }
+//    else
+//    {
+//        return tiling->edges(edgeIndex - 1);
+//    }
+//}
+//
+//double Tiling::getDescendingLimit(uint edgeIndex)
+//{
+//    if (getArrangement()==lm::io::Tilings::ASCENDING)
+//    {
+//        return tiling->edges(edgeIndex - 1);
+//    }
+//    else
+//    {
+//        return tiling->edges(edgeIndex);
+//    }
+//}
 
 // derived class methods
-bool TilingBin::registered=TilingBin::registerClass();
-bool TilingBin::registerClass()
+bool TilingAxial::registered=TilingAxial::registerClass();
+bool TilingAxial::registerClass()
 {
-    lm::ClassFactory::getInstance().registerClass("lm::tiling::Tiling","lm::tiling::TilingBin",&TilingBin::allocateObject);
+    lm::ClassFactory::getInstance().registerClass("lm::tiling::Tiling","lm::tiling::TilingBin",&TilingAxial::allocateObject);
     lm::tiling::Tilings::tilingClassMap[0] = "lm::tiling::TilingBin";
     return true;
 }
-void* TilingBin::allocateObject()
+void* TilingAxial::allocateObject()
 {
-    return new TilingBin();
+    return new TilingAxial();
 }
 
-TilingBin::TilingBin(): Tiling() {}
+TilingAxial::TilingAxial(): Tiling() {}
 
-void TilingBin::init(const lm::io::Tilings::Tiling& tilingRef)
+void TilingAxial::init(const lm::io::Tilings::Tiling& tilingRef)
 {
     // call parent method
     Tiling::init(tilingRef);

@@ -42,7 +42,6 @@
 
 #include "lm/ClassFactory.h"
 #include "lm/Print.h"
-#include "lm/io/FFluxParameters.pb.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/main/Main.h"
 #include "lm/main/SimulationSupervisor.h"
@@ -122,7 +121,7 @@ void FFluxSupervisor::startSimulation()
     Print::printf(Print::INFO, "Forward flux supervisor starting simulation.");
 
     // Create the new trajectory list.
-    trajectories = new FFluxTrajectoryList(slots.getSlotsSize(), simulationParameterMap, reactionModel, ffluxParameters);
+    trajectories = new FFluxTrajectoryList(slots.getSlotsSize(), simulationParameterMap, reactionModel, tilings);
 
     // Get the trajectories template msg so that we can set some default values in it
     lm::message::RunWorkUnit* runWorkUnitMsg = trajectories->getRunWorkUnitMsg();
@@ -155,10 +154,10 @@ void FFluxSupervisor::startSimulation()
 //// TEMP : remove
 //void FFluxSupervisor::initLimits()
 //{
-//    double firstBorder, lastBorder;
-//    firstBorder = ffluxParameters.interface(0).bin_border(0);
-//    lastBorder = ffluxParameters.interface(0).bin_border(ffluxParameters.interface(0).bin_border_size()-1);
-//    lastBorder >= firstBorder ? limits.set_increasing_species_count(0, firstBorder) : limits.set_decreasing_species_count(0, firstBorder);
+//    double firstEdge, lastEdge;
+//    firstEdge = ffluxParameters.interface(0).edge(0);
+//    lastEdge = ffluxParameters.interface(0).edge(ffluxParameters.interface(0).edge_size()-1);
+//    lastEdge >= firstEdge ? limits.set_increasing_species_count(0, firstEdge) : limits.set_decreasing_species_count(0, firstEdge);
 //}
 
 //void FFluxSupervisor::setTestCaseLimits(double* a_decr, double* a_incr)

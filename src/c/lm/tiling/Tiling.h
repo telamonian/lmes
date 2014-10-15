@@ -52,26 +52,29 @@ public:
     virtual ~Tiling() {}
     virtual void init(const lm::io::Tilings::Tiling& tilingRef);
 
-    lm::io::Tilings::Arrangement getArrangment();
-    uint getBorderCount() {return tiling->bin_borders_size();}
-    double getLowerLimit(uint binIndex);
-    double getUpperLimit(uint binIndex);
+    lm::io::Tilings::Arrangement getArrangement();
+    double getEdge(uint edgeIndex);
+    uint getEdgesCount() {return tiling->edges_size();}
+//    double getAscendingLimit(uint edgeIndex);
+//    double getDescendingLimit(uint edgeIndex);
+    uint getOrderParameterID() {return tiling->order_parameter_id();}
     void reverse();
     void setArrangement(lm::io::Tilings::Arrangement arrangement);
+    void setOrderParameterID(uint opID) {tiling->set_order_parameter_id(opID);}
 
 protected:
     lm::io::Tilings::Tiling* tiling;
 };
 
-class TilingBin : public Tiling
+class TilingAxial : public Tiling
 {
 public:
     static bool registered;
     static bool registerClass();
     static void* allocateObject();
 
-    TilingBin();
-    virtual ~TilingBin() {}
+    TilingAxial();
+    virtual ~TilingAxial() {}
     virtual void init(const lm::io::Tilings::Tiling& tilingRef);
 };
 

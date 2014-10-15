@@ -42,6 +42,7 @@
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/resource/Trajectory.h"
 #include "lm/tiling/Tilings.h"
+#include "lm/Types.h"
 
 namespace lm {
 namespace fflux {
@@ -49,25 +50,31 @@ namespace fflux {
 class FFluxTrajectory : public lm::resource::Trajectory
 {
 public:
-	FFluxTrajectory(uint64_t id, lm::message::Message trajectoryTemplateMsg, lm::io::TrajectoryState* state, lm::tiling::Tilings& tilings);
+	FFluxTrajectory(uint64_t id, lm::message::Message trajectoryTemplateMsg, lm::io::TrajectoryState* state, lm::tiling::Tilings& tilings, uint ffluxPhase);
 	virtual ~FFluxTrajectory();
 
     // methods for detecting when a flux event has occured
+	virtual bool fluxedBackward();
     virtual bool fluxedForward();
-    virtual bool fluxedBackward();
     virtual lm::io::TrajectoryLimits::LimitType getFinalLimitType();
 
     // methods for encapsulating functions in the fflux main loop
-    virtual void addCrossing(const lm::io::TrajectoryState& state);
     virtual uint getSimSteps();
     virtual double getSimTime();
+    virtual bool hasElapsed(double time);
 
-    // methods for dealing with limits
+    // methods for dealing with limits and the underlying tiling
     virtual void setLimits();
 
-private:
+    //    uint getFFluxPhase() {return ffluxPhase;}
+    //    void setFFluxPhase(uint newPhase) {ffluxPhase = newPhase;}
+
+protected:
     // reference to supervisor's Tilings object for setting limits and such
     lm::tiling::Tilings& tilings;
+
+public:
+    uint ffluxPhase;
 };
 
 }

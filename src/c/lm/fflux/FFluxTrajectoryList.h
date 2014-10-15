@@ -44,7 +44,7 @@
 #include <string>
 #include <vector>
 
-#include "lm/io/FFluxParameters.pb.h"
+#include "lm/fflux/FFluxTrajectory.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
@@ -62,6 +62,7 @@ namespace fflux {
 
 typedef vector<lm::io::TrajectoryState *> CrossingVector;
 typedef map<long long, CrossingVector> CrossingsMap;
+typedef vector<CrossingsMap> CrossingsMapVector;
 typedef google::protobuf::RepeatedPtrField<lm::io::Tilings::Tiling>::iterator tilingIterator;
 typedef google::protobuf::RepeatedPtrField<lm::io::OrderParameters::OrderParameter>::iterator opIterator;
 typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::DecreasingOrderParameterLimit>::iterator decrLimitIterator;
@@ -88,12 +89,13 @@ public:
 
     // methods that encapsulate inner loop tasks
     virtual void addCrossing(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg);
+    virtual void saveCrossings();
     virtual bool isZerothPhase();
     virtual bool isZerothPhaseDone();
     virtual bool isPhaseDone();
     virtual bool isFFluxDone();
 
-    // methods for dealing with interfaces, bin borders, etc.
+    // methods for dealing with edges, etc.
 //    virtual void initInterfaces();
 //    virtual void ratchetInterfaces();
 //    virtual void clearInterfaces();
@@ -113,6 +115,7 @@ protected:
     lm::tiling::Tilings& tilings;
     lm::rng::XORShift xorShift;	//RNG used for randomly choosing a crossing in a crossing vector
     CrossingsMap crossings;
+    CrossingsMapVector savedCrossings;
     direction direction;
     long long ffluxPhase;
     uint64_t simultaneousTrajectoryCount;

@@ -40,9 +40,13 @@
 package lm.io;
 
 import "lm/io/FirstPassageTimes.proto";
+import "lm/io/OrderParametersValues.proto";
 import "lm/io/SpeciesCounts.proto";
+import "lm/io/TilingsState.proto";
 
 message CMEState {
-    required SpeciesCounts species_counts               = 1;
-    repeated FirstPassageTimes first_passage_times      = 2;
+    required SpeciesCounts species_counts                   = 1;
+    repeated FirstPassageTimes first_passage_times          = 2;
+    optional OrderParametersValues order_parameter_values   = 3;
+    optional TilingsState tilings_state                     = 4;
 }

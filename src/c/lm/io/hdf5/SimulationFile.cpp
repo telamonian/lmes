@@ -1072,36 +1072,36 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
     newTiling->set_order_parameter_id(type);
     newTiling->set_order_parameter_id(opID);
 
-    // read in the values of the tiling's bin borders
+    // read in the values of the tiling's edges
     hsize_t dims[1];
     H5T_class_t hdf5Type;
     size_t size;
 
-    H5LTget_dataset_info(tilingGroup, "BinBorders", dims, &hdf5Type, &size);
+    H5LTget_dataset_info(tilingGroup, "Edges", dims, &hdf5Type, &size);
     double * binBuffer = new double[dims[0]];
-    H5LTread_dataset_double(tilingGroup, "BinBorders", binBuffer);
+    H5LTread_dataset_double(tilingGroup, "Edges", binBuffer);
     for (int i=0;i<dims[0];i++)
     {
-        newTiling->add_bin_borders(binBuffer[i]);
+        newTiling->add_edges(binBuffer[i]);
     }
 
-    // infer whether bin_borders is sorted ascending or descending
-    lm::io::Tilings::Arrangement sortArrangement = newTiling->bin_borders(newTiling->bin_borders_size())>=newTiling->bin_borders(0) ? lm::io::Tilings::ASCENDING : lm::io::Tilings::DESCENDING
+    // infer whether edges is sorted ascending or descending
+    lm::io::Tilings::Arrangement sortArrangement = newTiling->edges(newTiling->edges_size())>=newTiling->edges(0) ? lm::io::Tilings::ASCENDING : lm::io::Tilings::DESCENDING
     newTiling->set_arrangement(sortArrangement);
 
-    // ensure that bin_borders is actually sorted the way we guessed
+    // ensure that edges is actually sorted the way we guessed
     if (sortArrangement==lm::io::Tilings::ASCENDING)
     {
-        for (int i=0;i<newTiling->bin_borders_size()-1;i++)
+        for (int i=0;i<newTiling->edges_size()-1;i++)
         {
-            if (newTiling->bin_borders(i) > newTiling->bin_borders(i+1)) throw Exception("A set of BinBorders in one of your Tilings is improperly sorted (guessed ASCENDING)", filename.c_str(), "/Tilings/xxxxxxx/BinBorders");
+            if (newTiling->edges(i) > newTiling->edges(i+1)) throw Exception("A set of Edges in one of your Tilings is improperly sorted (guessed ASCENDING)", filename.c_str(), "/Tilings/xxxxxxx/Edges");
         }
     }
     else // (sortArrangement==lm::io::Tilings::DESCENDING)
     {
-        for (int i=0;i<newTiling->bin_borders_size()-1;i++)
+        for (int i=0;i<newTiling->edges_size()-1;i++)
         {
-            if (newTiling->bin_borders(i+1) > newTiling->bin_borders(i)) throw Exception("A set of BinBorders in one of your Tilings is improperly sorted (guessed DESCENDING)", filename.c_str(), "/Tilings/xxxxxxx/BinBorders");
+            if (newTiling->edges(i+1) > newTiling->edges(i)) throw Exception("A set of Edges in one of your Tilings is improperly sorted (guessed DESCENDING)", filename.c_str(), "/Tilings/xxxxxxx/Edges");
         }
     }
 
@@ -1174,8 +1174,8 @@ void Hdf5File::setTilings(lm::io::Tilings * tilings)
         HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(tilingsGroup, tilingSS.str().c_str(), "Type", &type, 1));
 
         // write the tiling's datasets
-        binDims[0] = tilings->tilings(i).bin_borders_size();
-        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(tilingGroup, "BinBorders", 1, binDims, H5T_IEEE_F64LE, tilings->tilings(i).bin_borders().data()));
+        binDims[0] = tilings->tilings(i).edges_size();
+        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(tilingGroup, "Edges", 1, binDims, H5T_IEEE_F64LE, tilings->tilings(i).edges().data()));
         HDF5_EXCEPTION_CHECK(H5Gclose(tilingGroup));
     }
     HDF5_EXCEPTION_CHECK(H5Gclose(tilingsGroup));

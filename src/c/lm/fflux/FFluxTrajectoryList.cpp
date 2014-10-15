@@ -46,12 +46,12 @@
 #include "lm/fflux/FFluxTrajectoryList.h"
 #include "lm/io/CMEState.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
-#include "lm/io/FFluxParameters.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/Print.h"
 #include "lm/resource/Trajectory.h"
+#include "lm/tiling/Tilings.h"
 
 using std::map;
 using std::string;
@@ -63,7 +63,7 @@ namespace fflux {
 FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel, lm::tiling::Tilings& tilings):
     TrajectoryList(),simulationParameters(simulationParameters),reactionModel(reactionModel),tilings(tilings),xorShift(0,0),simultaneousTrajectoryCount(simultaneousTrajectoryCount),direction(FORWARD),ffluxPhase(0),crossingsPerPhase(1000),maxPhaseZeroTime(10000),maxFFluxPhase() // TODO: change maxFFluxPhase from fixed to varying with input //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
-    maxFFluxPhase = tilings[0].getBorderCount();
+    maxFFluxPhase = tilings[0]->getEdgesCount();
     finishedTrajectoriesCounts = vector<long long>(maxFFluxPhase, 0);
 }
 
@@ -84,7 +84,6 @@ void FFluxTrajectoryList::init()
     for (long long i=0; i<=simultaneousTrajectoryCount; i++)
     {
         initTrajectory(trajectoryCount++, trajectoryState);
-        // TODO: limit setting code
     }
     delete trajectoryState;
 }
@@ -110,7 +109,7 @@ void FFluxTrajectoryList::initPhaseNTrajectories(uint64_t trajectoriesToStart, l
 void FFluxTrajectoryList::initTrajectory(uint64_t id, lm::io::TrajectoryState* state)
 {
     // Construct new trajectory
-    trajectories[id] = new lm::fflux::FFluxTrajectory(id, trajectoryTemplateMsg, state, tilings);
+    trajectories[id] = new lm::fflux::FFluxTrajectory(id, trajectoryTemplateMsg, state, tilings, ffluxPhase);
 
 //    // Initialize the trajectory's runWorkUnit message
 //    trajectories[id]->setMsg(trajectoryTemplateMsg);
@@ -138,16 +137,14 @@ lm::io::TrajectoryState* FFluxTrajectoryList::initFirstTrajectoryState()
     for (int j=0; j<(int)reactionModel.number_species(); j++)
         trajectoryState->mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.initial_species_count(j));
     trajectoryState->mutable_cme_state()->mutable_species_counts()->add_time(0.0);
-    trajectoryState->mutable_fflux_state()->set_bin_id(0);
-    trajectoryState->mutable_fflux_state()->set_interface_id(0);
     return trajectoryState;
 }
 
 void FFluxTrajectoryList::restart()
 {
     deleteAllTrajectories();
-    // TODO: need to check on reseting crossings
-
+    crossings.clear();
+    ffluxPhase = 0;
 }
 
 void FFluxTrajectoryList::reverse()
@@ -159,7 +156,7 @@ void FFluxTrajectoryList::reverse()
 lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg)
 {
     // Call the base class method.
-    lm::fflux::FFluxTrajectory* traj = TrajectoryList::workUnitFinished(finishedWorkUnitMsg);
+    lm::fflux::FFluxTrajectory* traj = static_cast<lm::fflux::FFluxTrajectory*>(TrajectoryList::workUnitFinished(finishedWorkUnitMsg));
 //    Print::printf(Print::DEBUG, "finishedTrajectoryCount is: %d",finishedTrajectoriesCounts[ffluxPhase]);
     // If the work unit stopped because it detected a crossing event...]
     if (finishedWorkUnitMsg.status()==lm::message::FinishedWorkUnit::LIMIT_REACHED)
@@ -179,7 +176,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
         if (isZerothPhase())
         {
             // ...and if enough time has passed for phase zero to be complete...
-            if (traj->isZerothPhaseDone())
+            if (traj->hasElapsed(maxPhaseZeroTime))
             {
                 if (crossings.find(0)==crossings.end()) Print::printf(Print::ERROR, "No crossings were recorded during forward flux phase zero. Try increasing maxPhaseZeroTime");
                 Print::printf(Print::INFO,"By the end of forward flux phase zero, %d forward crossings were recorded", crossings[ffluxPhase].size());
@@ -225,7 +222,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
                     Print::printf(Print::INFO, "Phase 0 probability flux: %.10f", (double)crossings[0].size()/(maxPhaseZeroTime*simultaneousTrajectoryCount));
                     for (int i=1;i<maxFFluxPhase;i++)
                     {
-                        Print::printf(Print::INFO, "Crossing probability for interface at %f: %.10f", zerothInterface+i*oParamStep,(double)crossings[i].size()/finishedTrajectoriesCounts[i]);
+                        Print::printf(Print::INFO, "Crossing probability for interface at %f: %.10f", tilings[0]->getEdge(i), (double)crossings[i].size()/finishedTrajectoriesCounts[i]);
                     }
                     double Kab = (double)crossings[0].size()/(maxPhaseZeroTime*simultaneousTrajectoryCount);
                     for (int i=1;i<maxFFluxPhase;i++)
@@ -233,11 +230,11 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
                         Kab *= (double)crossings[i].size()/finishedTrajectoriesCounts[i];
                     }
                     Print::printf(Print::INFO, "Pseudo first order rate constant: %.10f", Kab);
-
+                    savedCrossings.push_back(crossings);
                     // If we have to run fflux sampling in both directions, check if we're on the forward phase...
                     if (direction==FORWARD) // if (direction==FORWARD && bothDirections==TRUE)
                     {
-                        // ...and if we are, reverse the arrangement of the binBorders and restart the simulation
+                        // ...and if we are, reverse the arrangement of the edges and restart the simulation
                         reverse();
                         restart();
                     }
@@ -295,10 +292,10 @@ bool FFluxTrajectoryList::isFFluxDone()
 //        {
 //            switch (iface_it->arrangement()) {
 //            case lm::io::FFluxParameters::DECREASING:
-//                setDecrInterface(iface_it->order_parameter_id(i), iface_it->bin_border(0));
+//                setDecrInterface(iface_it->order_parameter_id(i), iface_it->edge(0));
 //                break;
 //            case lm::io::FFluxParameters::INCREASING:
-//                setIncrInterface(iface_it->order_parameter_id(i), iface_it->bin_border(0));
+//                setIncrInterface(iface_it->order_parameter_id(i), iface_it->edge(0));
 //                break;
 //            }
 //        }
@@ -315,10 +312,10 @@ bool FFluxTrajectoryList::isFFluxDone()
 //        {
 //            switch (iface_it->arrangement()) {
 //            case lm::io::FFluxParameters::DECREASING:
-//                setInterface(iface_it->order_parameter_id(i), iface_it->bin_border(ffluxPhase-1), iface_it->bin_border(ffluxPhase));
+//                setInterface(iface_it->order_parameter_id(i), iface_it->edge(ffluxPhase-1), iface_it->edge(ffluxPhase));
 //                break;
 //            case lm::io::FFluxParameters::INCREASING:
-//                setInterface(iface_it->order_parameter_id(i), iface_it->bin_border(ffluxPhase), iface_it->bin_border(ffluxPhase-1));
+//                setInterface(iface_it->order_parameter_id(i), iface_it->edge(ffluxPhase), iface_it->edge(ffluxPhase-1));
 //                break;
 //            }
 //        }

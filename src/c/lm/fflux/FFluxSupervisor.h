@@ -41,7 +41,6 @@
 #define FFLUXSUPERVISOR_H_
 
 #include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/FFluxParameters.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/main/SimulationSupervisor.h"

@@ -59,7 +59,7 @@ public:
     Tilings(const lm::io::Tilings& tilings);
     ~Tilings();
     void initTiling(lm::io::Tilings::Tiling& tiling);
-    lm::tiling::Tiling& operator[](uint i) {return *tilingMap[i];}
+    lm::tiling::Tiling* operator[](uint i) {return tilingMap[i];}
     TilingMap::iterator begin() {return tilingMap.begin();}
     TilingMap::iterator end() {return tilingMap.end();}
     void reverse();

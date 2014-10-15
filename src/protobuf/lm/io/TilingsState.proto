@@ -39,27 +39,7 @@
 
 package lm.io;
 
-message Tilings {
-    enum TilingType {
-        BIN = 0;
-        LATTICE = 1;
-        VORONOI = 2;
-    }
-
-    // enumerated type that represent whether an interface is ordered ("arranged") highest-to-lowest or lowest-to-highest.
-    // the actual order that the interface is used in during a simulation also depends on the FFluxTrajectoryList object's direction attribute
-    enum Arrangement {
-        ASCENDING = 0;
-        DESCENDING = 1;
-    }
-
-    message Tiling {
-        required uint32 type                    = 1;
-        required uint32 id                      = 2;
-        required uint32 order_parameter_id      = 3;
-        repeated double edges                   = 4 [packed=true];
-        required Arrangement arrangement        = 5;
-    }
-
-    repeated Tiling tilings                 = 1;
+message TilingsState {
+    required uint32 tiling_id       = 1;
+    required uint32 tile_id         = 2;
 }

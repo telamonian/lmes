@@ -41,32 +41,36 @@
 #include <string>
 
 #include "lm/fflux/FFluxTrajectory.h"
-#include "lm/io/ESampleInterfaces.pb.h"
+#include "lm/io/Tilings.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/tiling/Tilings.h"
+#include "lm/Types.h"
 
 namespace lm {
 namespace fflux {
 
-FFluxTrajectory::FFluxTrajectory(uint64_t id, lm::message::Message trajectoryTemplateMsg, lm::io::TrajectoryState* state, lm::tiling::Tilings& tilings): //TODO: make this signature less terrible
-Trajectory(id), tilings(tilings)
+FFluxTrajectory::FFluxTrajectory(uint64_t id, lm::message::Message trajectoryTemplateMsg, lm::io::TrajectoryState* state, lm::tiling::Tilings& tilings, uint ffluxPhase): //TODO: make this signature less terrible
+Trajectory(id), tilings(tilings), ffluxPhase(ffluxPhase)
 {
-        // Initialize the trajectory's Message msg, TrajectoryState state, and Tilings tilings fields
-        setMsg(trajectoryTemplateMsg);
+    // Initialize the trajectory's Message msg, TrajectoryState state, and Tilings tilings fields
+    setMsg(trajectoryTemplateMsg);
 
-        // Make instance local copies of the supervisor's
-        setState(*state);
+    // Make instance local copies of the supervisor's
+    setState(*state);
 
-        // Set the trajectory id in the trajectory state.
-        getState().set_trajectory_id(id);
+    // Set the trajectory id in the trajectory state.
+    getState().set_trajectory_id(id);
 
-        // Set the trajectory id in the CME state of the trajectory state (if applicable).
-        if (getState().has_cme_state())
-            getState().mutable_cme_state()->mutable_species_counts()->set_trajectory_id(id);
+    // Set the trajectory id in the CME state of the trajectory state (if applicable).
+    if (getState().has_cme_state())
+        getState().mutable_cme_state()->mutable_species_counts()->set_trajectory_id(id);
 
-        // Set the trajectory id in the RDME state of the trajectory state (if applicable).
-    //    if (trajectories[id]->getState().has_rdme_state())
-    //        trajectories[id]->getState().mutable_rdme_state()->mutable_species_counts()->set_trajectory_id(id);
+    // Set the trajectory id in the RDME state of the trajectory state (if applicable).
+//        if (trajectories[id]->getState().has_rdme_state())
+//            trajectories[id]->getState().mutable_rdme_state()->mutable_species_counts()->set_trajectory_id(id);
 
+    // Limit setting code
+    setLimits();
 }
 
 FFluxTrajectory::~FFluxTrajectory()
@@ -75,7 +79,7 @@ FFluxTrajectory::~FFluxTrajectory()
 
 bool FFluxTrajectory::fluxedBackward()
 {
-    if (tilings[0].getArrangment()==lm::io::Tilings::ASCENDING)
+    if (tilings[0]->getArrangement()==lm::io::Tilings::ASCENDING)
     {
         return (getFinalLimitType()==lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER);
     }
@@ -87,7 +91,7 @@ bool FFluxTrajectory::fluxedBackward()
 
 bool FFluxTrajectory::fluxedForward()
 {
-    if (tilings[0].getArrangment()==lm::io::Tilings::ASCENDING)
+    if (tilings[0]->getArrangement()==lm::io::Tilings::ASCENDING)
     {
         return (getFinalLimitType()==lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER);
     }
@@ -111,6 +115,53 @@ double FFluxTrajectory::getSimTime()
 {
     return getState().cme_state().species_counts().time(getState().cme_state().species_counts().time_size());
     //(crossings[ffluxPhase].back()->cme_state().species_counts().time(crossings[ffluxPhase].back()->cme_state().species_counts().number_entries() - 1) > maxPhaseZeroTime);
+}
+
+bool FFluxTrajectory::hasElapsed(double time)
+{
+    return (time>getSimTime());
+}
+
+void FFluxTrajectory::setLimits()
+{
+    getRunMsg()->mutable_limits()->Clear();
+    switch ((ffluxPhase!=0)<<1|tilings[0]->getArrangement()!=lm::io::Tilings::ASCENDING) // each of the 4 sets of possible pairs of true/false values corresponds to one of the numbers 0-3
+    {
+    case 0: // ffluxphase==0 and tilings[0].getArrangement()==lm::io::Tilings::ASCENDING
+    {
+        lm::io::TrajectoryLimits::IncreasingOrderParameterLimit* iopl = getRunMsg()->mutable_limits()->add_increasing_order_parameter_limit();
+        iopl->set_order_parameter_id(tilings[0]->getOrderParameterID());
+        iopl->add_value(tilings[0]->getEdge(0));
+        break;
+    }
+    case 1: // ffluxphase==0 and tilings[0].getArrangement()==lm::io::Tilings::DESCENDING
+    {
+        lm::io::TrajectoryLimits::DecreasingOrderParameterLimit* dopl = getRunMsg()->mutable_limits()->add_decreasing_order_parameter_limit();
+        dopl->set_order_parameter_id(tilings[0]->getOrderParameterID());
+        dopl->add_value(tilings[0]->getEdge(0));
+        break;
+    }
+    case 2: // ffluxphase!=0 and tilings[0].getArrangement()==lm::io::Tilings::ASCENDING
+    {
+        lm::io::TrajectoryLimits::DecreasingOrderParameterLimit* dopl = getRunMsg()->mutable_limits()->add_decreasing_order_parameter_limit();
+        dopl->set_order_parameter_id(tilings[0]->getOrderParameterID());
+        dopl->add_value(tilings[0]->getEdge(0));
+        lm::io::TrajectoryLimits::IncreasingOrderParameterLimit* iopl = getRunMsg()->mutable_limits()->add_increasing_order_parameter_limit();
+        iopl->set_order_parameter_id(tilings[0]->getOrderParameterID());
+        iopl->add_value(tilings[0]->getEdge(ffluxPhase));
+        break;
+    }
+    case 3: // ffluxphase!=0 and tilings[0].getArrangement()==lm::io::Tilings::DESCENDING
+    {
+        lm::io::TrajectoryLimits::IncreasingOrderParameterLimit* iopl = getRunMsg()->mutable_limits()->add_increasing_order_parameter_limit();
+        iopl->set_order_parameter_id(tilings[0]->getOrderParameterID());
+        iopl->add_value(tilings[0]->getEdge(0));
+        lm::io::TrajectoryLimits::DecreasingOrderParameterLimit* dopl = getRunMsg()->mutable_limits()->add_decreasing_order_parameter_limit();
+        dopl->set_order_parameter_id(tilings[0]->getOrderParameterID());
+        dopl->add_value(tilings[0]->getEdge(ffluxPhase));
+        break;
+    }
+    }
 }
 
 }
