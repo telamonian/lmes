@@ -131,37 +131,38 @@ target_link_libraries(lm ${CMAKE_THREAD_LIBS_INIT}
                          ${MPI_C_LIBRARIES}
                          ${PYTHON_LIBRARY_DIRS})
 
-#enable_testing()
-#add_subdirectory(testing/c/gmock-1.7.0)
-#include_directories(${gmock_SOURCE_DIR}/include ${gmock_SOURCE_DIR}
-#                    ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+enable_testing()
+add_subdirectory(testing/c/gmock-1.7.0)
+include_directories(${gmock_SOURCE_DIR}/include ${gmock_SOURCE_DIR}
+                    ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
 ################
 #TARGET: lm_test
 ################
 #set(lm_test_src testing/c/lm/main/ReplicateSupervisor.cpp)
-#
-#add_executable(lm_test ${lm_test_src})
-#IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
-#    target_link_libraries(lm_test lm_cuda_lib
-#                                  ${CUDA_LIBRARIES})
-#ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional)) 
-#target_link_libraries(lm_test lm_c_lib 
-#                              ${CMAKE_THREAD_LIBS_INIT}
-#                              ${libsbml_LIBRARIES}
-#                              ${PROTOBUF_LIBRARIES}
-#                              ${HDF5_LIBRARIES}
-#                              ${HDF5_HL_LIBRARIES}
-#                              ${MPI_C_LIBRARIES}
-#                              ${PYTHON_LIBRARY_DIRS}
-#                              gmock
-#                              gmock_main
-#                              gtest
-#                              gtest_main)
-#
-#add_test(
-#    NAME lm_test
-#    COMMAND lm_test
-#)
+set(lm_test_src testing/c/lm/io/hdf5/simulation_file.cpp)
+
+add_executable(lm_test ${lm_test_src})
+IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
+    target_link_libraries(lm_test lm_cuda_lib
+                                  ${CUDA_LIBRARIES})
+ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional)) 
+target_link_libraries(lm_test lm_c_lib 
+                              ${CMAKE_THREAD_LIBS_INIT}
+                              ${libsbml_LIBRARIES}
+                              ${PROTOBUF_LIBRARIES}
+                              ${HDF5_LIBRARIES}
+                              ${HDF5_HL_LIBRARIES}
+                              ${MPI_C_LIBRARIES}
+                              ${PYTHON_LIBRARY_DIRS}
+                              gmock
+                              gmock_main
+                              gtest
+                              gtest_main)
+
+add_test(
+    NAME lm_test
+    COMMAND lm_test
+)
 
 install(TARGETS lm DESTINATION bin)
