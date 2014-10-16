@@ -40,6 +40,7 @@
 #ifndef LM_OPARAM_OPARAMLIST
 #define LM_OPARAM_OPARAMLIST
 
+#include <google/protobuf/repeated_field.h>
 #include <iterator>
 #include <map>
 #include <string>
@@ -51,6 +52,7 @@ namespace lm {
 namespace oparam {
 
 typedef std::map<uint,std::string> OPClassMap;
+typedef google::protobuf::RepeatedPtrField<lm::io::OrderParameters::OrderParameter>::const_iterator OPIterator;
 typedef std::map<uint,lm::oparam::OParam*> OPMap;
 
 class OParams
@@ -58,7 +60,7 @@ class OParams
 public:
     OParams(const lm::io::OrderParameters& ops);
     ~OParams();
-    void initOParam(lm::io::OrderParameters::OrderParameter& op);
+    void initOParam(const lm::io::OrderParameters::OrderParameter& op);
     void initValues(uint* speciesCounts);
     lm::oparam::OParam* operator[](uint i) {return opMap[i];}
     OPMap::iterator begin() {return opMap.begin();}
@@ -71,13 +73,11 @@ public:
       // m[9999...] = "lm::oparam::OParamTranscendental";
       return m;
     }
-    static const OPClassMap opClassMap;
+    static OPClassMap opClassMap;
 
 private:
     OPMap opMap;
 };
-
-const OPClassMap OParams::opClassMap = OParams::makeOPClassMap();
 
 }
 }

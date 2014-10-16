@@ -145,7 +145,7 @@ void SimulationSupervisor::initialize()
     {
         hasTilings = true;
         file->getTilings(&tilingsBuf);
-        tilings = *(new lm::tiling::Tilings(tilingsBuf));
+        tilings.init(tilingsBuf);
     }
 
     // Close the file.

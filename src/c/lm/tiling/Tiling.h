@@ -49,7 +49,7 @@ class Tiling
 {
 public:
     Tiling();
-    virtual ~Tiling() {}
+    virtual ~Tiling();
     virtual void init(const lm::io::Tilings::Tiling& tilingRef);
 
     lm::io::Tilings::Arrangement getArrangement();

@@ -36,23 +36,23 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#include <algorithm>
 #include "lm/ClassFactory.h"
 #include "lm/io/Tilings.pb.h"
-#include "lm/tilings/Tiling.h"
-#include "lm/tilings/Tilings.h"
+#include "lm/tiling/Tiling.h"
+#include "lm/tiling/Tilings.h"
 
 namespace lm {
 namespace tiling {
 
+TilingClassMap Tilings::tilingClassMap = Tilings::makeTilingClassMap();
+
 Tilings::Tilings()
 {
-
 }
 
 Tilings::Tilings(const lm::io::Tilings& tilings)
 {
-    for_each(tilings.tilings().begin(), tilings.tilings().end(), initTiling);
+    init(tilings);
 }
 
 Tilings::~Tilings()
@@ -63,7 +63,12 @@ Tilings::~Tilings()
     }
 }
 
-void Tilings::initTiling(lm::io::Tilings::Tiling& tiling)
+void Tilings::init(const lm::io::Tilings& tilings)
+{
+    for (TilingIterator t_it=tilings.tilings().begin();t_it!=tilings.tilings().end();++t_it) initTiling(*t_it);
+}
+
+void Tilings::initTiling(const lm::io::Tilings::Tiling& tiling)
 {
     tilingMap[tiling.id()] = (static_cast<lm::tiling::Tiling*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::tiling::Tiling",lm::tiling::Tilings::tilingClassMap[tiling.type()])));
     tilingMap[tiling.id()]->init(tiling);

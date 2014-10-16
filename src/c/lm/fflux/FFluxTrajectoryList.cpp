@@ -69,11 +69,14 @@ FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, m
 
 FFluxTrajectoryList::~FFluxTrajectoryList()
 {
-    for (CrossingsMap::iterator mit=crossings.begin(); mit!=crossings.end(); mit++)
+    for (CrossingsMapVector::iterator mvit=savedCrossings.begin();mvit!=savedCrossings.end();++mvit)
     {
-        for (CrossingVector::iterator vit=mit->second.begin(); vit!=mit->second.end(); vit++)
+        for (CrossingsMap::iterator mit=mvit->begin();mit!=mvit->end();++mit)
         {
-            delete *vit;
+            for (CrossingVector::iterator vit=mit->second.begin();vit!=mit->second.end();++vit)
+            {
+                delete *vit;
+            }
         }
     }
 }
@@ -176,7 +179,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
         if (isZerothPhase())
         {
             // ...and if enough time has passed for phase zero to be complete...
-            if (traj->hasElapsed(maxPhaseZeroTime))
+            if (isZerothPhaseDone(traj))
             {
                 if (crossings.find(0)==crossings.end()) Print::printf(Print::ERROR, "No crossings were recorded during forward flux phase zero. Try increasing maxPhaseZeroTime");
                 Print::printf(Print::INFO,"By the end of forward flux phase zero, %d forward crossings were recorded", crossings[ffluxPhase].size());
@@ -230,7 +233,6 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
                         Kab *= (double)crossings[i].size()/finishedTrajectoriesCounts[i];
                     }
                     Print::printf(Print::INFO, "Pseudo first order rate constant: %.10f", Kab);
-                    savedCrossings.push_back(crossings);
                     // If we have to run fflux sampling in both directions, check if we're on the forward phase...
                     if (direction==FORWARD) // if (direction==FORWARD && bothDirections==TRUE)
                     {
@@ -268,9 +270,19 @@ void FFluxTrajectoryList::addCrossing(const lm::message::FinishedWorkUnit& finis
     crossings[ffluxPhase].push_back(newCrossing);
 }
 
+void FFluxTrajectoryList::saveCrossings()
+{
+    savedCrossings.push_back(crossings);
+}
+
 bool FFluxTrajectoryList::isZerothPhase()
 {
     return (ffluxPhase==0);
+}
+
+bool FFluxTrajectoryList::isZerothPhaseDone(lm::fflux::FFluxTrajectory* traj)
+{
+    return traj->hasElapsed(maxPhaseZeroTime);
 }
 
 bool FFluxTrajectoryList::isPhaseDone()

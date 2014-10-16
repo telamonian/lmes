@@ -36,8 +36,7 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
-#include <algorithm>
+//#include <algorithm>
 #include "lm/io/OrderParameters.pb.h"
 #include "lm/ClassFactory.h"
 #include "lm/oparam/OParam.h"
@@ -46,9 +45,13 @@
 namespace lm {
 namespace oparam {
 
+OPClassMap OParams::opClassMap = OParams::makeOPClassMap();
+
 OParams::OParams(const lm::io::OrderParameters& ops)
 {
-    for_each(ops.order_parameters().begin(), ops.order_parameters().end(), initOParam);
+    // for_each doesn't work with member functions, and part of the fix for this (bind1st) doesn't work with functions that take const reference arguments. C++ everyone!
+    // std::for_each(ops.order_parameters().begin(), ops.order_parameters().end(), std::bind1st(std::mem_fun(&OParams::initOParam),this));
+    for (OPIterator op_it=ops.order_parameters().begin();op_it!=ops.order_parameters().end();++op_it) initOParam(*op_it);
 }
 
 OParams::~OParams()
@@ -59,7 +62,7 @@ OParams::~OParams()
     }
 }
 
-void OParams::initOParam(lm::io::OrderParameters::OrderParameter& op)
+void OParams::initOParam(const lm::io::OrderParameters::OrderParameter& op)
 {
     opMap[op.id()] = (static_cast<lm::oparam::OParam*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::oparam::OParam",lm::oparam::OParams::opClassMap[op.type()])));
     opMap[op.id()]->init(op);

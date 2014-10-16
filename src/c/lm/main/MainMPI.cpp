@@ -1,5 +1,5 @@
 /*
- * University of Illinois Open Source License
+  * University of Illinois Open Source License
  * Copyright 2008-2011 Luthey-Schulten Group,
  * Copyright 2012-2014 Roberts Group,
  * All rights reserved.
@@ -63,9 +63,10 @@
 #include "lm/Cuda.h"
 #endif
 #include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/FFluxParameters.pb.h"
 #include "lm/io/hdf5/SimulationFile.h"
+#include "lm/io/OrderParameters.pb.h"
 #include "lm/io/ReactionModel.pb.h"
+#include "lm/io/Tilings.pb.h"
 #include "lm/main/CheckpointSignaler.h"
 #include "lm/main/Main.h"
 #include "lm/main/ResourceController.h"
@@ -217,28 +218,34 @@ int main(int argc, char** argv)
 
 void ioTest()
 {
-    lm::io::FFluxParameters ffluxParameters;
-    lm::io::ReactionModel reactionModel;
     lm::io::DiffusionModel diffusionModel;
+    lm::io::OrderParameters orderParameters;
+    lm::io::ReactionModel reactionModel;
+    lm::io::Tilings tilings;
 
     // Open the simulation file.
     lm::io::hdf5::Hdf5File * file = new lm::io::hdf5::Hdf5File(simulationInputFilename);
 
     // Read in, and then write out, any extant sections of the simulation file
-    if (file->hasFFluxParameters())
+    if (file->hasDiffusionModel())
     {
-        file->getFFluxParameters(&ffluxParameters);
-        file->setFFluxParameters(&ffluxParameters);
+        file->getDiffusionModel(&diffusionModel);
+        file->setDiffusionModel(&diffusionModel);
+    }
+    if (file->hasOrderParameters())
+    {
+        file->getOrderParameters(&orderParameters);
+        file->setOrderParameters(&orderParameters);
     }
     if (file->hasReactionModel())
     {
         file->getReactionModel(&reactionModel);
         file->setReactionModel(&reactionModel);
     }
-    if (file->hasDiffusionModel())
+    if (file->hasTilings())
     {
-        file->getDiffusionModel(&diffusionModel);
-        file->setDiffusionModel(&diffusionModel);
+        file->getTilings(&tilings);
+        file->setTilings(&tilings);
     }
     file->close();
 }

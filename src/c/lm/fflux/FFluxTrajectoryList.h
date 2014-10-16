@@ -63,8 +63,6 @@ namespace fflux {
 typedef vector<lm::io::TrajectoryState *> CrossingVector;
 typedef map<long long, CrossingVector> CrossingsMap;
 typedef vector<CrossingsMap> CrossingsMapVector;
-typedef google::protobuf::RepeatedPtrField<lm::io::Tilings::Tiling>::iterator tilingIterator;
-typedef google::protobuf::RepeatedPtrField<lm::io::OrderParameters::OrderParameter>::iterator opIterator;
 typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::DecreasingOrderParameterLimit>::iterator decrLimitIterator;
 typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::IncreasingOrderParameterLimit>::iterator incrLimitIterator;
 
@@ -91,7 +89,7 @@ public:
     virtual void addCrossing(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg);
     virtual void saveCrossings();
     virtual bool isZerothPhase();
-    virtual bool isZerothPhaseDone();
+    virtual bool isZerothPhaseDone(lm::fflux::FFluxTrajectory* traj);
     virtual bool isPhaseDone();
     virtual bool isFFluxDone();
 

@@ -45,7 +45,7 @@
 namespace lm {
 namespace tiling {
 
-// base class OParam methods
+// base class Tiling methods
 Tiling::Tiling(): tiling(NULL)
 {
 }

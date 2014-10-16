@@ -70,7 +70,7 @@ protected:
     virtual void outputWriterStarted(const lm::message::StartedOutputWriter& msg);
     //// TEMP : remove
 //    virtual void initLimits();
-    virtual void setTestCaseLimits(double* a_decr=NULL, double* a_incr=NULL);
+//    virtual void setTestCaseLimits(double* a_decr=NULL, double* a_incr=NULL);
     //// TEMP
 
 protected:
