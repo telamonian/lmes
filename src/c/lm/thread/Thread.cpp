@@ -40,6 +40,7 @@
 #include <pthread.h>
 #include "lm/Print.h"
 #include "lm/thread/Thread.h"
+#include "lptf/Profile.h"
 
 namespace lm {
 namespace thread {
@@ -120,7 +121,16 @@ void Thread::start() throw(PthreadException)
 
 void * Thread::start_thread(void * obj)
 {
-    int ret = (reinterpret_cast<Thread *>(obj))->run();
+    // Get the thread object.
+    Thread* thread=(reinterpret_cast<Thread *>(obj));
+
+    // Set the thread number in the profiler.
+    PROF_SET_THREAD(thread->threadNumber);
+
+    // Enter the thread run method.
+    int ret = thread->run();
+
+    // The run method has finished, so the thread should exit.
     pthread_exit((void *)ret);
 }
 

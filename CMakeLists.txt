@@ -87,8 +87,7 @@ ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     ENDIF(OSX_VERSION GREATER 8)
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
-include_directories(profile
-                    src/c/
+include_directories(src/c/
                     ${CMAKE_CURRENT_BINARY_DIR}/src/c/
                     src/cuda/
                     src/protobuf/

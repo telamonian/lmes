@@ -80,6 +80,7 @@
 #define PROF_COPY_XORWOW_EXP_RNG                    329
 #define PROF_COPY_XORWOW_NORM_RNG                   330
 #define PROF_CACHE_EXP_RNG                          331
+#define PROF_CACHE_NORM_RNG                         332
 
 #define PROF_MPD_TIMESTEP                           500
 #define PROF_MPD_X_DIFFUSION                        501
@@ -92,6 +93,10 @@
 #define PROF_NSM_INIT_QUEUE                         600
 #define PROF_NSM_BUILD_QUEUE                        601
 #define PROF_NSM_LOOP		                        602
+#define PROF_NSM_PERFORM_SUBVOLUME_EVENT		    603
+#define PROF_NSM_UPDATE_SUBVOLUME_PROPENSITY		604
+#define PROF_NSM_CALCULATE_SUBVOLUME_PROPENSITY		605
+#define PROF_NSM_UPDATE_QUEUE               		606
 
 
 #endif /* TIMINGCONSTANTS_H_ */
