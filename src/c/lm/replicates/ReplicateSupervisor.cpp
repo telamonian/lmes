@@ -131,7 +131,7 @@ void ReplicateSupervisor::startSimulation()
 	runWorkUnitMsg->set_output_process(outputWriterProcess);
 	runWorkUnitMsg->set_output_thread(outputWriterThread);
 	// Set the default work unit-specific limits
-    runWorkUnitMsg->set_max_steps(1000000);
+    runWorkUnitMsg->set_max_steps(10000000);
 	// Set the default trajectory limits
     initLimits();
 
