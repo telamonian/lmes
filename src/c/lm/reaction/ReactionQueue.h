@@ -136,7 +136,7 @@ public:
             // While the new time is greater than one of its children, move it down.
             uint child1Position = currentPosition<<1;
             uint child2Position = child1Position+1;
-            int i=0;
+            //int i=0;
             //hrtime t1=getHrTime();
             while ((child1Position <= numberReactions && newTime > reactionQueue[child1Position].time) ||
                    (child2Position <= numberReactions && newTime > reactionQueue[child2Position].time))
@@ -158,7 +158,7 @@ public:
                 currentPosition = minChildPosition;
                 child1Position = currentPosition<<1;
                 child2Position = child1Position+1;
-                i++;
+                //i++;
             }
             //hrtime t2=getHrTime();
             //printf("Moved %d levels in %0.3f useconds\n",i, convertHrToSeconds(t2-t1)*1e6);
