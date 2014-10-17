@@ -140,7 +140,8 @@ include_directories(${gmock_SOURCE_DIR}/include ${gmock_SOURCE_DIR}
 #TARGET: lm_test
 ################
 #set(lm_test_src testing/c/lm/main/ReplicateSupervisor.cpp)
-set(lm_test_src testing/c/lm/io/hdf5/simulation_file.cpp)
+set(lm_test_src testing/c/lm/io/hdf5/simulation_file.cpp
+                testing/c/lm/oparam/oparam.cpp)
 
 add_executable(lm_test ${lm_test_src})
 IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))

@@ -1065,9 +1065,9 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
 
     // get the ID and Type of the tiling and the ID of the order parameter associated with this tiling
     uint id, type, opID;
-    HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(loc_id, name, "id", &id));
-    HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(loc_id, name, "Type", &type));
+    HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(loc_id, name, "ID", &id));
     HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(loc_id, name, "OrderParameterID", &opID));
+    HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(loc_id, name, "Type", &type));
     newTiling->set_order_parameter_id(id);
     newTiling->set_order_parameter_id(type);
     newTiling->set_order_parameter_id(opID);
