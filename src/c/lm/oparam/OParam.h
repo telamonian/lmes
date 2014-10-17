@@ -72,7 +72,7 @@ public:
     virtual ~OParamLinear() {}
     virtual void init(const lm::io::OrderParameters::OrderParameter& opRef);
     virtual double calc(uint* speciesCounts);
-protected:
+public:
     uint size;
     const uint* speciesID;
     const double* speciesCoefficient;

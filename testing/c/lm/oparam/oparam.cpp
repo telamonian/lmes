@@ -19,11 +19,23 @@ public:
         file.getOrderParameters(&opBuf);
         opL.init(opBuf.order_parameters(0));
     }
-    uint speciesCounts[7] = {4,16,1,0,0,0,0};
+    static uint speciesCounts[7];
     lm::io::hdf5::Hdf5File file;
     lm::io::OrderParameters opBuf;
     lm::oparam::OParamLinear opL;
 };
+
+uint OParamFixture::speciesCounts[7] = {4,16,1,0,0,0,0};
+
+TEST_F(OParamFixture, InitLinearOparam)
+{
+    ASSERT_EQ(opL.speciesID[0], 0);
+    ASSERT_EQ(opL.speciesID[1], 1);
+    ASSERT_EQ(opL.speciesID[2], 2);
+    ASSERT_DOUBLE_EQ(opL.speciesCoefficient[0], 1.0);
+    ASSERT_DOUBLE_EQ(opL.speciesCoefficient[1], 2.0);
+    ASSERT_DOUBLE_EQ(opL.speciesCoefficient[2], 2.0);
+}
 
 TEST_F(OParamFixture, CalcLinearOparam)
 {

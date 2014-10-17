@@ -1078,15 +1078,15 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
     size_t size;
 
     H5LTget_dataset_info(tilingGroup, "Edges", dims, &hdf5Type, &size);
-    double * binBuffer = new double[dims[0]];
-    H5LTread_dataset_double(tilingGroup, "Edges", binBuffer);
+    double * edgeBuffer = new double[dims[0]];
+    H5LTread_dataset_double(tilingGroup, "Edges", edgeBuffer);
     for (int i=0;i<dims[0];i++)
     {
-        newTiling->add_edges(binBuffer[i]);
+        newTiling->add_edges(edgeBuffer[i]);
     }
 
     // infer whether edges is sorted ascending or descending
-    lm::io::Tilings::Arrangement sortArrangement = newTiling->edges(newTiling->edges_size())>=newTiling->edges(0) ? lm::io::Tilings::ASCENDING : lm::io::Tilings::DESCENDING;
+    lm::io::Tilings::Arrangement sortArrangement = newTiling->edges(newTiling->edges_size()-1)>=newTiling->edges(0) ? lm::io::Tilings::ASCENDING : lm::io::Tilings::DESCENDING;
     newTiling->set_arrangement(sortArrangement);
 
     // ensure that edges is actually sorted the way we guessed
@@ -1106,7 +1106,7 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
     }
 
     // free the buffer
-    delete[] binBuffer;
+    delete[] edgeBuffer;
 
     // free the group handle
     HDF5_EXCEPTION_CHECK(H5Gclose(tilingGroup));
