@@ -70,6 +70,7 @@ public:
     static TilingClassMap makeTilingClassMap()
     {
       std::map<uint,std::string> m;
+      m[0] = "lm::tiling::TilingBin";
       return m;
     }
 private:

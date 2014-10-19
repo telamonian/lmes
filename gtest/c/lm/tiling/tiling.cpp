@@ -36,49 +36,38 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_TILING_TILING
-#define LM_TILING_TILING
-
+#include "gtest/gtest.h"
+#include "gmock/gmock.h"
+#include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/Tilings.pb.h"
-#include "lm/Types.h"
+#include "lm/tiling/Tiling.h"
 
-namespace lm {
-namespace tiling {
-
-class Tiling
+class TilingFixture : public ::testing::Test
 {
 public:
-    Tiling();
-    virtual ~Tiling();
-    virtual void init(const lm::io::Tilings::Tiling& tilingRef);
-
-    lm::io::Tilings::Arrangement getArrangement();
-    double getEdge(uint edgeIndex);
-    uint getEdgesCount() {return tilingBuf->edges_size();}
-//    double getAscendingLimit(uint edgeIndex);
-//    double getDescendingLimit(uint edgeIndex);
-    uint getOrderParameterID() {return tilingBuf->order_parameter_id();}
-    void reverse();
-    void setArrangement(lm::io::Tilings::Arrangement arrangement);
-    void setOrderParameterID(uint opID) {tilingBuf->set_order_parameter_id(opID);}
-
-protected:
-    lm::io::Tilings::Tiling* tilingBuf;
+    TilingFixture(): file("/Users/tel/git/lm/gtest/data/lm/fflux/biphasic_switch.lm")
+    {
+        file.getTilings(&tilingsBuf);
+        tAX.init(tilingsBuf.tilings(0));
+    }
+    lm::io::hdf5::Hdf5File file;
+    lm::io::Tilings tilingsBuf;
+    lm::tiling::TilingAxial tAX;
 };
 
-class TilingAxial : public Tiling
+TEST_F(TilingFixture, GetEdge)
 {
-public:
-    static bool registered;
-    static bool registerClass();
-    static void* allocateObject();
-
-    TilingAxial();
-    virtual ~TilingAxial() {}
-    virtual void init(const lm::io::Tilings::Tiling& tilingRef);
-};
-
-}
+    ASSERT_DOUBLE_EQ(tAX.getEdge(1), -20.833333969116211);
+    ASSERT_DOUBLE_EQ(tAX.getEdge(4), -8.3333330154418945);
+    ASSERT_DOUBLE_EQ(tAX.getEdge(10), 16.666666030883789);
 }
 
-#endif /* LM_TILING_TILING */
+TEST_F(TilingFixture, GetEdgesCount)
+{
+    ASSERT_EQ(tAX.getEdgesCount(), 13);
+}
+
+//int main(int argc, char **argv) {
+//  ::testing::InitGoogleTest(&argc, argv);
+//  return RUN_ALL_TESTS();
+//}

@@ -36,49 +36,56 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_TILING_TILING
-#define LM_TILING_TILING
+#include <map>
+#include <string>
 
+#include "gtest/gtest.h"
+#include "gmock/gmock.h"
+#include "lm/fflux/FFluxTrajectoryList.h"
+#include "lm/io/hdf5/SimulationFile.h"
+#include "lm/io/OrderParameters.pb.h"
+#include "lm/io/ReactionModel.pb.h"
+#include "lm/io/SimulationParameters.pb.h"
 #include "lm/io/Tilings.pb.h"
+#include "lm/oparam/OParams.h"
+#include "lm/tiling/Tilings.h"
 #include "lm/Types.h"
 
-namespace lm {
-namespace tiling {
-
-class Tiling
+class FFluxTrajectoryListFixture : public ::testing::Test
 {
 public:
-    Tiling();
-    virtual ~Tiling();
-    virtual void init(const lm::io::Tilings::Tiling& tilingRef);
-
-    lm::io::Tilings::Arrangement getArrangement();
-    double getEdge(uint edgeIndex);
-    uint getEdgesCount() {return tilingBuf->edges_size();}
-//    double getAscendingLimit(uint edgeIndex);
-//    double getDescendingLimit(uint edgeIndex);
-    uint getOrderParameterID() {return tilingBuf->order_parameter_id();}
-    void reverse();
-    void setArrangement(lm::io::Tilings::Arrangement arrangement);
-    void setOrderParameterID(uint opID) {tilingBuf->set_order_parameter_id(opID);}
-
-protected:
-    lm::io::Tilings::Tiling* tilingBuf;
+    FFluxTrajectoryListFixture(): simultaneousTrajectoryCount(8), ffTL(NULL), file("/Users/tel/git/lm/gtest/data/lm/fflux/biphasic_switch.lm")
+    {
+        file.getOrderParameters(&opBuf);
+        ops.init(opBuf);
+        file.getReactionModel(&reactBuf);
+        file.getParameters(&simulationParametersBuf);
+        for (int i=0; i<simulationParametersBuf.key_size() && i<simulationParametersBuf.value_size(); i++)
+        {
+            simulationParameterMap[simulationParametersBuf.key(i)] = simulationParametersBuf.value(i);
+        }
+        file.getTilings(&tilingBuf);
+        tilings.init(tilingBuf);
+        ffTL = new lm::fflux::FFluxTrajectoryList(8, simulationParameterMap, reactBuf, tilings);
+        ffTL->init();
+    }
+    static uint speciesCounts[7];
+    uint64_t simultaneousTrajectoryCount;
+    map<std::string,std::string> simulationParameterMap;
+    lm::fflux::FFluxTrajectoryList* ffTL;
+    lm::io::hdf5::Hdf5File file;
+    lm::io::OrderParameters opBuf;
+    lm::io::ReactionModel reactBuf;
+    lm::io::SimulationParameters simulationParametersBuf;
+    lm::io::Tilings tilingBuf;
+    lm::oparam::OParams ops;
+    lm::tiling::Tilings tilings;
 };
 
-class TilingAxial : public Tiling
+
+TEST_F(FFluxTrajectoryListFixture, IsZerothPhase)
 {
-public:
-    static bool registered;
-    static bool registerClass();
-    static void* allocateObject();
-
-    TilingAxial();
-    virtual ~TilingAxial() {}
-    virtual void init(const lm::io::Tilings::Tiling& tilingRef);
-};
-
+    ASSERT_EQ(ffTL->isZerothPhase(), true);
+    ffTL->ffluxPhaseIncr();
+    ASSERT_NE(ffTL->isZerothPhase(), false);
 }
-}
-
-#endif /* LM_TILING_TILING */

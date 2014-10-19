@@ -87,11 +87,12 @@ public:
 
     // methods that encapsulate inner loop tasks
     virtual void addCrossing(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg);
-    virtual void saveCrossings();
+    virtual uint ffluxPhaseIncr();
+    virtual bool isFFluxDone();
+    virtual bool isPhaseDone();
     virtual bool isZerothPhase();
     virtual bool isZerothPhaseDone(lm::fflux::FFluxTrajectory* traj);
-    virtual bool isPhaseDone();
-    virtual bool isFFluxDone();
+    virtual void saveCrossings();
 
     // methods for dealing with edges, etc.
 //    virtual void initInterfaces();

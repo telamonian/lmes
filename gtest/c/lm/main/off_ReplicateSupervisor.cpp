@@ -36,49 +36,82 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_TILING_TILING
-#define LM_TILING_TILING
+#undef MPI_EXCEPTION_CHECK
+#define MPI_EXCEPTION_CHECK(x) {}
 
-#include "lm/io/Tilings.pb.h"
-#include "lm/Types.h"
+#include "gtest/gtest.h"
+#include "gmock/gmock.h"
+#include "lm/main/Main.h"
+#include "lm/main/ReplicateSupervisor.h"
+#include "lm/io/hdf5/SimulationFile.h"
+#include "lm/Print.h"
+#include <vector>
 
-namespace lm {
-namespace tiling {
+#define MPI_EXCEPTION_CHECK(x) {}
 
-class Tiling
+using lm::main::ReplicateSupervisor;
+using lm::io::hdf5::SimulationFile;
+using lm::io::hdf5::Hdf5File;
+
+Hdf5File * fi = NULL;
+
+class MockSimulationFile : public SimulationFile
 {
-public:
-    Tiling();
-    virtual ~Tiling();
-    virtual void init(const lm::io::Tilings::Tiling& tilingRef);
-
-    lm::io::Tilings::Arrangement getArrangement();
-    double getEdge(uint edgeIndex);
-    uint getEdgesCount() {return tilingBuf->edges_size();}
-//    double getAscendingLimit(uint edgeIndex);
-//    double getDescendingLimit(uint edgeIndex);
-    uint getOrderParameterID() {return tilingBuf->order_parameter_id();}
-    void reverse();
-    void setArrangement(lm::io::Tilings::Arrangement arrangement);
-    void setOrderParameterID(uint opID) {tilingBuf->set_order_parameter_id(opID);}
-
-protected:
-    lm::io::Tilings::Tiling* tilingBuf;
 };
 
-class TilingAxial : public Tiling
+
+
+class SupervisorFixture : public ::testing::Test
 {
 public:
-    static bool registered;
-    static bool registerClass();
-    static void* allocateObject();
+    SupervisorFixture():
+    file(),
+    supervisor(NULL, fi)
+    {
+        for (int i=0;i<4;++i)
+        {
+            replicates.push_back(i);
+        }
+        for (vector<int>::iterator it=replicates.begin(); it<replicates.end(); it++)
+        {
+            supervisor.simulationStatusTable[*it] = 0;
+        }
+    }
 
-    TilingAxial();
-    virtual ~TilingAxial() {}
-    virtual void init(const lm::io::Tilings::Tiling& tilingRef);
+    MockSimulationFile file;
+    ReplicateSupervisor supervisor;
 };
 
-}
+//class FooFixture : public ::testing::Test {
+//    public:
+//
+//}
+
+TEST_F(SupervisorFixture, FindRep_StartsReplicateAtFirstZero)
+{
+    supervisor.simulationStatusTable[0] = 2;
+    supervisor.simulationStatusTable[1] = 2;
+    supervisor.simulationStatusTable[3] = 2;
+    ASSERT_EQ(supervisor.FindRep(0), 2);
 }
 
-#endif /* LM_TILING_TILING */
+//TEST(foo, bar)
+//{
+//    lm::Print::printf(0, "hey");
+//    int bob=19;
+//    int sam=18;
+//    EXPECT_EQ(sam,bob);
+//}
+//
+//TEST(foo, doh)
+//{
+//    lm::Print::printf(0, "hey");
+//    int bob=19;
+//    int sam=19;
+//    EXPECT_EQ(sam,bob);
+//}
+
+int main(int argc, char **argv) {
+  ::testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}

@@ -270,9 +270,19 @@ void FFluxTrajectoryList::addCrossing(const lm::message::FinishedWorkUnit& finis
     crossings[ffluxPhase].push_back(newCrossing);
 }
 
-void FFluxTrajectoryList::saveCrossings()
+uint FFluxTrajectoryList::ffluxPhaseIncr()
 {
-    savedCrossings.push_back(crossings);
+    return ++ffluxPhase;
+}
+
+bool FFluxTrajectoryList::isFFluxDone()
+{
+    return (ffluxPhase < maxFFluxPhase);
+}
+
+bool FFluxTrajectoryList::isPhaseDone()
+{
+    return (crossings[ffluxPhase].size()>=crossingsPerPhase);
 }
 
 bool FFluxTrajectoryList::isZerothPhase()
@@ -285,14 +295,9 @@ bool FFluxTrajectoryList::isZerothPhaseDone(lm::fflux::FFluxTrajectory* traj)
     return traj->hasElapsed(maxPhaseZeroTime);
 }
 
-bool FFluxTrajectoryList::isPhaseDone()
+void FFluxTrajectoryList::saveCrossings()
 {
-    return (crossings[ffluxPhase].size()>=crossingsPerPhase);
-}
-
-bool FFluxTrajectoryList::isFFluxDone()
-{
-    return (ffluxPhase < maxFFluxPhase);
+    savedCrossings.push_back(crossings);
 }
 
 //void FFluxTrajectoryList::initInterfaces()

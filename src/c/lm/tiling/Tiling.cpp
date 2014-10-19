@@ -46,29 +46,29 @@ namespace lm {
 namespace tiling {
 
 // base class Tiling methods
-Tiling::Tiling(): tiling(NULL)
+Tiling::Tiling(): tilingBuf(NULL)
 {
 }
 
 Tiling::~Tiling()
 {
-    if (tiling!=NULL) delete tiling; tiling = NULL;
+    if (tilingBuf!=NULL) delete tilingBuf; tilingBuf = NULL;
 }
 
 void Tiling::init(const lm::io::Tilings::Tiling& tilingRef)
 {
-    tiling = new lm::io::Tilings::Tiling(tilingRef);
-    setArrangement(tiling->arrangement());
+    tilingBuf = new lm::io::Tilings::Tiling(tilingRef);
+    setArrangement(tilingBuf->arrangement());
 }
 
 lm::io::Tilings::Arrangement Tiling::getArrangement()
 {
-    return tiling->arrangement();
+    return tilingBuf->arrangement();
 }
 
 void Tiling::setArrangement(lm::io::Tilings::Arrangement newArr)
 {
-    if (tiling->arrangement()!=newArr)
+    if (tilingBuf->arrangement()!=newArr)
     {
         reverse();
     }
@@ -76,17 +76,17 @@ void Tiling::setArrangement(lm::io::Tilings::Arrangement newArr)
 
 void Tiling::reverse()
 {
-    tiling->set_arrangement(tiling->arrangement()==lm::io::Tilings::ASCENDING ? lm::io::Tilings::DESCENDING : lm::io::Tilings::ASCENDING);
-    int revLoops = tiling->edges_size()/2;
+    tilingBuf->set_arrangement(tilingBuf->arrangement()==lm::io::Tilings::ASCENDING ? lm::io::Tilings::DESCENDING : lm::io::Tilings::ASCENDING);
+    int revLoops = tilingBuf->edges_size()/2;
     for (int i=0;i<revLoops;++i)
     {
-        tiling->mutable_edges()->SwapElements(i, tiling->edges_size()-(i+1));
+        tilingBuf->mutable_edges()->SwapElements(i, tilingBuf->edges_size()-(i+1));
     }
 }
 
 double Tiling::getEdge(uint edgeIndex)
 {
-    return tiling->edges(edgeIndex);
+    return tilingBuf->edges(edgeIndex);
 }
 
 //double Tiling::getAscendingLimit(uint edgeIndex)
@@ -118,7 +118,7 @@ bool TilingAxial::registered=TilingAxial::registerClass();
 bool TilingAxial::registerClass()
 {
     lm::ClassFactory::getInstance().registerClass("lm::tiling::Tiling","lm::tiling::TilingBin",&TilingAxial::allocateObject);
-    lm::tiling::Tilings::tilingClassMap[0] = "lm::tiling::TilingBin";
+//    lm::tiling::Tilings::tilingClassMap[0] = "lm::tiling::TilingBin";
     return true;
 }
 void* TilingAxial::allocateObject()

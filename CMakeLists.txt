@@ -2,12 +2,6 @@ cmake_minimum_REQUIRED(VERSION 2.8.7)
 SET(CMAKE_C_COMPILER gcc)
 SET(CMAKE_CXX_COMPILER g++)
 
-#SET(CUDA_NVCC_FLAGS --ptxas-options=-v;--gpu-architecture;compute_30;--gpu-code;sm_30;-DMACOSX;-DCUDA_3D_GRID_LAUNCH;-DCUDA_DOUBLE_PRECISION;-DTUNE_MPD_Y_BLOCK_Y_SIZE=16;-DTUNE_MPD_Z_BLOCK_Z_SIZE=8)
-#SET(CMAKE_C_FLAGS -m64 -g -fPIC -Wall -c -fmessage-length=0 CACHE STRING "cmake c flags")
-#SET(CMAKE_CXX_FLAGS -m64 -g -fPIC -Wall -c -fmessage-length=0 CACHE STRING "cmake cpp flags")
-#SET(CUDA_NVCC_FLAGS -m64)
-#;--ptxas-options=-v;--gpu-architecture;compute_30;--gpu-code;sm_30;-DMACOSX;-DCUDA_3D_GRID_LAUNCH;-DCUDA_DOUBLE_PRECISION;-DTUNE_MPD_Y_BLOCK_Y_SIZE=16;-DTUNE_MPD_Z_BLOCK_Z_SIZE=8)
-
 ################
 project(lm)
 ################
@@ -57,7 +51,8 @@ IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
 ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))    
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -m64 -fPIC -Wall -fmessage-length=0")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -m64 -fPIC -Wall -fmessage-length=0")
-#for now, no c++ support SET(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS} -g -m64 -fPIC -Wall -fmessage-length=0")
+#for now, no c++11 support
+#SET(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     add_definitions(-DLINUX)
 ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -94,6 +89,7 @@ IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
     add_subdirectory(src/cuda)
     add_dependencies(lm_cuda_lib lm_c_lib)
 ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional)) 
+#add_subdirectory(gtest/c)
 
 #set_source_files_properties(${proto_hdrs} PROPERTIES GENERATED TRUE)
 #get_directory_property(proto_vars DIRECTORY src/protobuf DEFINITION proto_srcs)
@@ -132,16 +128,19 @@ target_link_libraries(lm ${CMAKE_THREAD_LIBS_INIT}
                          ${PYTHON_LIBRARY_DIRS})
 
 enable_testing()
-add_subdirectory(testing/c/gmock-1.7.0)
+add_subdirectory(gtest/c/gmock-1.7.0)
 include_directories(${gmock_SOURCE_DIR}/include ${gmock_SOURCE_DIR}
                     ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
 ################
 #TARGET: lm_test
 ################
-#set(lm_test_src testing/c/lm/main/ReplicateSupervisor.cpp)
-set(lm_test_src testing/c/lm/io/hdf5/simulation_file.cpp
-                testing/c/lm/oparam/oparam.cpp)
+set(lm_test_src gtest/c/lm/main/ReplicateSupervisor.cpp)
+set(lm_test_src gtest/c/lm/io/hdf5/simulation_file.cpp
+                gtest/c/lm/oparam/oparam.cpp
+                gtest/c/lm/oparam/oparams.cpp
+                gtest/c/lm/tiling/tiling.cpp
+                gtest/c/lm/tiling/tilings.cpp)
 
 add_executable(lm_test ${lm_test_src})
 IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
@@ -165,5 +164,6 @@ add_test(
     NAME lm_test
     COMMAND lm_test
 )
+
 
 install(TARGETS lm DESTINATION bin)

@@ -36,7 +36,6 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #ifndef LM_OPARAM_OPARAMLIST
 #define LM_OPARAM_OPARAMLIST
 
@@ -58,8 +57,9 @@ typedef std::map<uint,lm::oparam::OParam*> OPMap;
 class OParams
 {
 public:
-    OParams(const lm::io::OrderParameters& ops);
+    OParams();
     ~OParams();
+    void init(const lm::io::OrderParameters& ops);
     void initOParam(const lm::io::OrderParameters::OrderParameter& op);
     void initValues(uint* speciesCounts);
     lm::oparam::OParam* operator[](uint i) {return opMap[i];}

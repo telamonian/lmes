@@ -3,7 +3,7 @@
 #get the source files
 file(GLOB_RECURSE lm_c_source *.cpp *.cc *.h)
 file(GLOB to_remove_mainmpi lm/main/MainMPI.cpp)
-list(REMOVE_ITEM lm_c_source ${to_remove_mainsa} ${to_remove_mainmpi} ${to_remove_lkd})
+list(REMOVE_ITEM lm_c_source ${to_remove_mainmpi})
 
 file(GLOB lm_proto_src ../protobuf/*/*/*.proto)
 

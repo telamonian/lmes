@@ -655,9 +655,10 @@ void CMESolver::setReactionModel(const lm::io::ReactionModel& rm)
     if (K !=  NULL) delete [] K; K = NULL;
 }
 
-void CMESolver::setOrderParameters(const lm::io::OrderParameters& ops)
+void CMESolver::setOrderParameters(const lm::io::OrderParameters& opBuf)
 {
-    oparams = new lm::oparam::OParams(ops);
+    oparams = new lm::oparam::OParams();
+    oparams->init(opBuf);
 }
 
 double CMESolver::zerothOrderPropensity(double time, uint * speciesCounts, void * pargs)

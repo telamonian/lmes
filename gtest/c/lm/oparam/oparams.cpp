@@ -36,49 +36,29 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_TILING_TILING
-#define LM_TILING_TILING
+#include "gtest/gtest.h"
+#include "gmock/gmock.h"
+#include "lm/io/hdf5/SimulationFile.h"
+#include "lm/io/OrderParameters.pb.h"
+#include "lm/oparam/OParams.h"
 
-#include "lm/io/Tilings.pb.h"
-#include "lm/Types.h"
-
-namespace lm {
-namespace tiling {
-
-class Tiling
+class OParamsFixture : public ::testing::Test
 {
 public:
-    Tiling();
-    virtual ~Tiling();
-    virtual void init(const lm::io::Tilings::Tiling& tilingRef);
-
-    lm::io::Tilings::Arrangement getArrangement();
-    double getEdge(uint edgeIndex);
-    uint getEdgesCount() {return tilingBuf->edges_size();}
-//    double getAscendingLimit(uint edgeIndex);
-//    double getDescendingLimit(uint edgeIndex);
-    uint getOrderParameterID() {return tilingBuf->order_parameter_id();}
-    void reverse();
-    void setArrangement(lm::io::Tilings::Arrangement arrangement);
-    void setOrderParameterID(uint opID) {tilingBuf->set_order_parameter_id(opID);}
-
-protected:
-    lm::io::Tilings::Tiling* tilingBuf;
+    OParamsFixture(): file("/Users/tel/git/lm/gtest/data/lm/fflux/biphasic_switch.lm")
+    {
+        file.getOrderParameters(&opBuf);
+        ops.init(opBuf);
+    }
+    static uint speciesCounts[7];
+    lm::io::hdf5::Hdf5File file;
+    lm::io::OrderParameters opBuf;
+    lm::oparam::OParams ops;
 };
 
-class TilingAxial : public Tiling
+uint OParamsFixture::speciesCounts[7] = {4,16,1,0,0,0,0};
+
+TEST_F(OParamsFixture, Init)
 {
-public:
-    static bool registered;
-    static bool registerClass();
-    static void* allocateObject();
-
-    TilingAxial();
-    virtual ~TilingAxial() {}
-    virtual void init(const lm::io::Tilings::Tiling& tilingRef);
-};
-
+    ASSERT_DOUBLE_EQ(ops[0]->calc(speciesCounts), 38);
 }
-}
-
-#endif /* LM_TILING_TILING */
