@@ -36,7 +36,6 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #ifndef LM_RESOURCE_TRAJECTORY_H_
 #define LM_RESOURCE_TRAJECTORY_H_
 
@@ -61,6 +60,10 @@ public:
 
     Trajectory(uint64_t trajectoryID);
     virtual ~Trajectory();
+    virtual void initMsg(int supervisorProcess, int supervisorThread, int outputProcess, int outputThread);
+    virtual void initMsg(const lm::message::Message& newMsg);
+    virtual void initState(const lm::io::ReactionModel& reactionModel);
+    virtual void initState(const lm::io::TrajectoryState& initState);
 
     //getters
     virtual lm::message::Message* getMsg();
@@ -78,7 +81,7 @@ public:
     //other?
     virtual void updateInitialRunState();
 
-    uint64_t trajectoryID;
+    uint64_t id;
 
 protected:
     status_t status;

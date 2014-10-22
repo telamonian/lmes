@@ -1,14 +1,13 @@
 # gtest c src directory
 add_subdirectory(gmock-1.7.0)
-
 include_directories(${gmock_SOURCE_DIR}/include ${gmock_SOURCE_DIR}
                     ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
-################
-#TARGET: lm_test
-################ 
+#################
+#TARGET: gtest_lm
+#################
 #get the source files
-file(GLOB_RECURSE gtest_lm_c_source *.cpp *.cc *.h)
+file(GLOB_RECURSE gtest_lm_c_source lm/*.cpp lm/*.cc lm/*.h)
 file(GLOB_RECURSE to_remove_off off_*)
 list(REMOVE_ITEM gtest_lm_c_source ${to_remove_off})
 

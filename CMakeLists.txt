@@ -5,6 +5,7 @@ SET(CMAKE_CXX_COMPILER g++)
 ################
 project(lm)
 ################
+enable_testing()
 #if certain packages cannot be found, the end-user (you) can change the variables in CMakeConfig.txt to point to package paths
 include(CMakeConfig.txt)
 set(ENV{HDF5_ROOT} ${HDF5_ROOT})
@@ -89,8 +90,7 @@ IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
     add_subdirectory(src/cuda)
     add_dependencies(lm_cuda_lib lm_c_lib)
 ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional)) 
-#add_subdirectory(gtest/c)
-
+add_subdirectory(gtest/c)
 #set_source_files_properties(${proto_hdrs} PROPERTIES GENERATED TRUE)
 #get_directory_property(proto_vars DIRECTORY src/protobuf DEFINITION proto_srcs)
 
@@ -126,44 +126,5 @@ target_link_libraries(lm ${CMAKE_THREAD_LIBS_INIT}
                          ${HDF5_HL_LIBRARIES}
                          ${MPI_C_LIBRARIES}
                          ${PYTHON_LIBRARY_DIRS})
-
-enable_testing()
-add_subdirectory(gtest/c/gmock-1.7.0)
-include_directories(${gmock_SOURCE_DIR}/include ${gmock_SOURCE_DIR}
-                    ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
-
-################
-#TARGET: lm_test
-################
-set(lm_test_src gtest/c/lm/main/ReplicateSupervisor.cpp)
-set(lm_test_src gtest/c/lm/io/hdf5/simulation_file.cpp
-                gtest/c/lm/oparam/oparam.cpp
-                gtest/c/lm/oparam/oparams.cpp
-                gtest/c/lm/tiling/tiling.cpp
-                gtest/c/lm/tiling/tilings.cpp)
-
-add_executable(lm_test ${lm_test_src})
-IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
-    target_link_libraries(lm_test lm_cuda_lib
-                                  ${CUDA_LIBRARIES})
-ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional)) 
-target_link_libraries(lm_test lm_c_lib 
-                              ${CMAKE_THREAD_LIBS_INIT}
-                              ${libsbml_LIBRARIES}
-                              ${PROTOBUF_LIBRARIES}
-                              ${HDF5_LIBRARIES}
-                              ${HDF5_HL_LIBRARIES}
-                              ${MPI_C_LIBRARIES}
-                              ${PYTHON_LIBRARY_DIRS}
-                              gmock
-                              gmock_main
-                              gtest
-                              gtest_main)
-
-add_test(
-    NAME lm_test
-    COMMAND lm_test
-)
-
 
 install(TARGETS lm DESTINATION bin)

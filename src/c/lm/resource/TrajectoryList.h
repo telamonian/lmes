@@ -61,19 +61,20 @@ public:
     TrajectoryList();
     virtual ~TrajectoryList();
     virtual void init()=0;
+    virtual void initMsg(int supervisorProcess, int supervisorThread, int outputProcess, int outputThread);
 
-    //getter
+    // getter
     virtual lm::resource::Trajectory* getTrajectory(uint64_t trajectoryID);
     virtual lm::resource::Trajectory::status_t getTrajectoryStatus(uint64_t trajectoryID);
     virtual const lm::io::TrajectoryState& getTrajectoryState(uint64_t trajectoryID);
     virtual bool exists(uint64_t trajectoryID) {if (trajectories.find(trajectoryID)!=trajectories.end()) return true; else return false;}
 
-    //setter
+    // setter
     virtual void setTrajectoryStarted(uint64_t trajectoryID, bool trajectoryStarted);
     virtual void setTrajectoryStatus(uint64_t trajectoryID, lm::resource::Trajectory::status_t status);
     virtual void setTrajectoryState(uint64_t trajectoryID, const lm::io::TrajectoryState& state);
 
-    //destroyer
+    // destroyer
     virtual void deleteTrajectory(uint64_t trajectoryID);
     virtual void deleteAllTrajectories();
 
@@ -82,8 +83,8 @@ public:
     virtual lm::resource::Trajectory* workUnitFinished(const lm::message::FinishedWorkUnit & msg);
 
     // dealing with the internal template Message methods
-	virtual lm::message::RunWorkUnit* getRunWorkUnitMsg() {return trajectoryTemplateMsg.mutable_run_work_unit();}
-	virtual lm::io::TrajectoryLimits* getLimitsMsg() {return getRunWorkUnitMsg()->mutable_limits();}
+	virtual lm::message::RunWorkUnit* getRunMsg() {return trajectoryTemplateMsg.mutable_run_work_unit();}
+	virtual lm::io::TrajectoryLimits* getLimitsMsg() {return getRunMsg()->mutable_limits();}
 
 protected:
     uint64_t trajectoryCount;

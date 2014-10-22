@@ -60,17 +60,16 @@ using std::vector;
 namespace lm {
 namespace fflux {
 
-typedef vector<lm::io::TrajectoryState *> CrossingVector;
+typedef vector<lm::io::TrajectoryState*> CrossingVector;
 typedef map<long long, CrossingVector> CrossingsMap;
-typedef vector<CrossingsMap> CrossingsMapVector;
 typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::DecreasingOrderParameterLimit>::iterator decrLimitIterator;
 typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::IncreasingOrderParameterLimit>::iterator incrLimitIterator;
 
 class FFluxTrajectoryList : public lm::resource::TrajectoryList
 {
 public:
+    enum Direction {FORWARD, BACKWARD};
     // enumerated type used for describing the direction of the current fflux simulation relative to the arrangements (low-to-high or high-to-low) of the individual interfaces
-    enum direction {FORWARD, BACKWARD};
     FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel, lm::tiling::Tilings& tilings);
     virtual ~FFluxTrajectoryList();
     virtual void init();
@@ -78,20 +77,27 @@ public:
     virtual void initPhaseZeroTrajectory(lm::io::TrajectoryState* oldCrossing);
     virtual void initPhaseNTrajectories(uint64_t trajectoriesToStart, long long lastFFluxPhase);
     virtual lm::io::TrajectoryState* initFirstTrajectoryState();
-    virtual void restart();
-    virtual void reverse();
+
     virtual lm::fflux::FFluxTrajectory* workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg);
 
+    // getters
+    virtual CrossingVector getCrossings(long long ffluxPhase);
+    virtual uint getCrossingsPerPhase();
+    virtual long long getFFluxPhase();
+    virtual double getMaxPhaseZeroTime();
     // Returns a randomly chosen crossing event (in the form of a TrajectoryState) collected durring forward flux phase ffluxPhase
     virtual lm::io::TrajectoryState* getRandomCrossing(long long ffluxPhase);
+    virtual CrossingsMap getSavedCrossings(lm::fflux::FFluxTrajectoryList::Direction dir);
 
-    // methods that encapsulate inner loop tasks
+    // methods that encapsulate workUnitFinished inner loop tasks
     virtual void addCrossing(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg);
-    virtual uint ffluxPhaseIncr();
+    virtual uint incrFFluxPhase();
     virtual bool isFFluxDone();
     virtual bool isPhaseDone();
     virtual bool isZerothPhase();
     virtual bool isZerothPhaseDone(lm::fflux::FFluxTrajectory* traj);
+    virtual void restart();
+    virtual void reverse();
     virtual void saveCrossings();
 
     // methods for dealing with edges, etc.
@@ -114,8 +120,8 @@ protected:
     lm::tiling::Tilings& tilings;
     lm::rng::XORShift xorShift;	//RNG used for randomly choosing a crossing in a crossing vector
     CrossingsMap crossings;
-    CrossingsMapVector savedCrossings;
-    direction direction;
+    map<lm::fflux::FFluxTrajectoryList::Direction, CrossingsMap> savedCrossings;
+    Direction direction;
     long long ffluxPhase;
     uint64_t simultaneousTrajectoryCount;
     vector<long long> finishedTrajectoriesCounts;

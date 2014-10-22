@@ -66,6 +66,17 @@ TrajectoryList::~TrajectoryList()
     deleteAllTrajectories();
 }
 
+void TrajectoryList::initMsg(int supervisorProcess, int supervisorThread, int outputProcess, int outputThread)
+{
+    getRunMsg()->set_supervisor_process(supervisorProcess);
+    getRunMsg()->set_supervisor_thread(supervisorThread);
+    // Set the default writer process/thread
+    getRunMsg()->set_output_process(outputProcess);
+    getRunMsg()->set_output_thread(outputThread);
+    // Set the default work unit-specific limits
+    getRunMsg()->set_max_steps(100);
+}
+
 void TrajectoryList::deleteAllTrajectories()
 {
 	for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)

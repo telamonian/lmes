@@ -61,12 +61,13 @@ namespace lm {
 namespace main {
 
 SimulationSupervisor::SimulationSupervisor()
-    :workUnitCount(0),trajectories(NULL),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),solverClassName(""),useCPUAffinity(false),hasReactionModel(false),hasDiffusionModel(false),tilings(),slots(&communicator)
+    :workUnitCount(0),trajectories(NULL),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),solverClassName(""),useCPUAffinity(false),hasReactionModel(false),hasDiffusionModel(false),hasOrderParameters(false),hasTilings(false),tilings(),slots(&communicator)
 {
 }
 
 SimulationSupervisor::~SimulationSupervisor()
 {
+    if (trajectories != NULL) delete trajectories; trajectories = NULL; // since Supervisors call new to allocate their TrajectoryLists, this needs to be here
 }
 
 void SimulationSupervisor::wake() throw(lm::thread::PthreadException)
@@ -86,7 +87,10 @@ void SimulationSupervisor::initialize()
 
     // Map the simulation parameters.
     for (int i=0; i<simulationParameters.key_size() && i<simulationParameters.value_size(); i++)
-        this->simulationParameterMap[simulationParameters.key(i)] = simulationParameters.value(i);
+    {
+        simulationParameterMap[simulationParameters.key(i)] = simulationParameters.value(i);
+//        this->simulationParameterMap[simulationParameters.key(i)] = simulationParameters.value(i);
+    }
 
     // Get the reaction model.
     if (file->hasReactionModel())
@@ -369,10 +373,7 @@ void SimulationSupervisor::allResourcesRegistered()
 	*startSlotMsg->mutable_simulation_parameters() = simulationParameters;
 	if (hasReactionModel) *startSlotMsg->mutable_reaction_model() = reactionModel;
 	if (hasDiffusionModel) *startSlotMsg->mutable_diffusion_model() = diffusionModel;
-	if (hasOrderParameters) {
-	    *startSlotMsg->mutable_order_parameters() = orderParameters;
-//	    startSlotMsg->set_esample_type(lm::message::StartWorkUnitRunner::FFLUX);
-	}
+	if (hasOrderParameters) *startSlotMsg->mutable_order_parameters() = orderParameters;
 
 	map<int,ResourceMap::ComputeResources> allResources = resourceMap->getAvailableResources();
     slots.addSlots(allResources);
@@ -460,7 +461,6 @@ void SimulationSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit&
 			finishSimulation();
     	}
     }
-
 }
 
 void SimulationSupervisor::initLimits()

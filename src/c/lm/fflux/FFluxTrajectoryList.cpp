@@ -37,6 +37,7 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 #include <cmath>
+#include <csignal>
 #include <list>
 #include <map>
 #include <string>
@@ -60,22 +61,46 @@ using std::vector;
 namespace lm {
 namespace fflux {
 
+// this has to be here because Direction is part of the FFluxTrajectoryList definition
+typedef map<lm::fflux::FFluxTrajectoryList::Direction, CrossingsMap> CrossingsMapMap;
+
 FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel, lm::tiling::Tilings& tilings):
-    TrajectoryList(),simulationParameters(simulationParameters),reactionModel(reactionModel),tilings(tilings),xorShift(0,0),simultaneousTrajectoryCount(simultaneousTrajectoryCount),direction(FORWARD),ffluxPhase(0),crossingsPerPhase(1000),maxPhaseZeroTime(10000),maxFFluxPhase() // TODO: change maxFFluxPhase from fixed to varying with input //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
+    TrajectoryList(),simulationParameters(simulationParameters),reactionModel(reactionModel),tilings(tilings),xorShift(0,0),simultaneousTrajectoryCount(simultaneousTrajectoryCount),direction(FORWARD),ffluxPhase(0),crossingsPerPhase(0),maxPhaseZeroTime(0),maxFFluxPhase() // TODO: change maxFFluxPhase from fixed to varying with input //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
-    maxFFluxPhase = tilings[0]->getEdgesCount();
+    crossingsPerPhase = atof(simulationParameters["crossingsPerPhase"].c_str());
     finishedTrajectoriesCounts = vector<long long>(maxFFluxPhase, 0);
+    maxFFluxPhase = tilings[0]->getEdgesCount();
+    maxPhaseZeroTime = atof(simulationParameters["maxPhaseZeroTime"].c_str());
 }
 
 FFluxTrajectoryList::~FFluxTrajectoryList()
 {
-    for (CrossingsMapVector::iterator mvit=savedCrossings.begin();mvit!=savedCrossings.end();++mvit)
+    // TODO: for the sake of this damn destructor, if for nothing else, I'm going to tear down the CrossingsMapMap stuff and replace it with something less obstinate
+    // free all of the memory used by the crossing member
+//    for (CrossingsMap::iterator mit=crossings.begin();mit!=crossings.end();++mit)
+//    {
+//        for (CrossingVector::iterator vit=mit->second.begin();vit!=mit->second.end();++vit)
+//        {
+//            if (*vit!=NULL)
+//            {
+//                //raise(SIGINT);
+//                delete *vit;
+//                *vit=NULL;
+//            }
+//        }
+//    }
+    // free all of the memory used by the savedCrossings member
+    for (CrossingsMapMap::iterator mvit=savedCrossings.begin();mvit!=savedCrossings.end();++mvit)
     {
-        for (CrossingsMap::iterator mit=mvit->begin();mit!=mvit->end();++mit)
+        for (CrossingsMap::iterator mit=mvit->second.begin();mit!=mvit->second.end();++mit)
         {
             for (CrossingVector::iterator vit=mit->second.begin();vit!=mit->second.end();++vit)
             {
-                delete *vit;
+                if (*vit!=NULL)
+                {
+                    delete *vit;
+                    *vit=NULL;
+                }
             }
         }
     }
@@ -141,19 +166,6 @@ lm::io::TrajectoryState* FFluxTrajectoryList::initFirstTrajectoryState()
         trajectoryState->mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.initial_species_count(j));
     trajectoryState->mutable_cme_state()->mutable_species_counts()->add_time(0.0);
     return trajectoryState;
-}
-
-void FFluxTrajectoryList::restart()
-{
-    deleteAllTrajectories();
-    crossings.clear();
-    ffluxPhase = 0;
-}
-
-void FFluxTrajectoryList::reverse()
-{
-    direction = direction==FORWARD ? BACKWARD : FORWARD;
-    tilings.reverse();
 }
 
 lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg)
@@ -233,6 +245,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
                         Kab *= (double)crossings[i].size()/finishedTrajectoriesCounts[i];
                     }
                     Print::printf(Print::INFO, "Pseudo first order rate constant: %.10f", Kab);
+                    saveCrossings();
                     // If we have to run fflux sampling in both directions, check if we're on the forward phase...
                     if (direction==FORWARD) // if (direction==FORWARD && bothDirections==TRUE)
                     {
@@ -249,7 +262,6 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
                 initPhaseNTrajectories(1, ffluxPhase);
             }
         }
-
     }
     return traj;
         //        *run.mutable_initial_state() = trajectories->getTrajectoryState(nextTrajectory);
@@ -258,26 +270,54 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
         //        trajectories->updateTrajectoryStatus(nextTrajectory, FFluxTrajectoryList::RUNNING);
 }
 
-lm::io::TrajectoryState * FFluxTrajectoryList::getRandomCrossing(long long ffluxPhase)
+// getters
+CrossingVector FFluxTrajectoryList::getCrossings(long long ffluxPhase)
+{
+    return crossings[ffluxPhase];
+}
+
+uint FFluxTrajectoryList::getCrossingsPerPhase()
+{
+    return crossingsPerPhase;
+}
+
+long long FFluxTrajectoryList::getFFluxPhase()
+{
+    return ffluxPhase;
+}
+
+double FFluxTrajectoryList::getMaxPhaseZeroTime()
+{
+    return maxPhaseZeroTime;
+}
+
+lm::io::TrajectoryState* FFluxTrajectoryList::getRandomCrossing(long long ffluxPhase)
 {
     unsigned i = floor(xorShift.getRandomDouble()*crossings[ffluxPhase].size());
     return crossings[ffluxPhase][i];
 }
 
+
+CrossingsMap FFluxTrajectoryList::getSavedCrossings(lm::fflux::FFluxTrajectoryList::Direction dir)
+{
+    return savedCrossings[dir];
+}
+
+// encapsulated inner loop functions
 void FFluxTrajectoryList::addCrossing(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg)
 {
-    lm::io::TrajectoryState * newCrossing = new lm::io::TrajectoryState(finishedWorkUnitMsg.final_state());
+    lm::io::TrajectoryState* newCrossing = new lm::io::TrajectoryState(finishedWorkUnitMsg.final_state());
     crossings[ffluxPhase].push_back(newCrossing);
 }
 
-uint FFluxTrajectoryList::ffluxPhaseIncr()
+uint FFluxTrajectoryList::incrFFluxPhase()
 {
     return ++ffluxPhase;
 }
 
 bool FFluxTrajectoryList::isFFluxDone()
 {
-    return (ffluxPhase < maxFFluxPhase);
+    return (ffluxPhase>=maxFFluxPhase);
 }
 
 bool FFluxTrajectoryList::isPhaseDone()
@@ -295,9 +335,24 @@ bool FFluxTrajectoryList::isZerothPhaseDone(lm::fflux::FFluxTrajectory* traj)
     return traj->hasElapsed(maxPhaseZeroTime);
 }
 
+void FFluxTrajectoryList::restart()
+{
+    deleteAllTrajectories();
+    crossings.clear();
+    ffluxPhase = 0;
+    this->init();
+}
+
+void FFluxTrajectoryList::reverse()
+{
+    direction = direction==FORWARD ? BACKWARD : FORWARD;
+    tilings.reverse();
+}
+
 void FFluxTrajectoryList::saveCrossings()
 {
-    savedCrossings.push_back(crossings);
+
+    savedCrossings.insert(CrossingsMapMap::value_type(direction, crossings));
 }
 
 //void FFluxTrajectoryList::initInterfaces()

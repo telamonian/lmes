@@ -52,13 +52,17 @@ public:
     virtual ~Tiling();
     virtual void init(const lm::io::Tilings::Tiling& tilingRef);
 
+    // getters
     lm::io::Tilings::Arrangement getArrangement();
     double getEdge(uint edgeIndex);
     uint getEdgesCount() {return tilingBuf->edges_size();}
+    uint getOrderParameterID() {return tilingBuf->order_parameter_id();}
 //    double getAscendingLimit(uint edgeIndex);
 //    double getDescendingLimit(uint edgeIndex);
-    uint getOrderParameterID() {return tilingBuf->order_parameter_id();}
+
     void reverse();
+
+    // setters
     void setArrangement(lm::io::Tilings::Arrangement arrangement);
     void setOrderParameterID(uint opID) {tilingBuf->set_order_parameter_id(opID);}
 

@@ -121,25 +121,16 @@ void FFluxSupervisor::startSimulation()
     Print::printf(Print::INFO, "Forward flux supervisor starting simulation.");
 
     // Create the new trajectory list.
-    trajectories = new FFluxTrajectoryList(slots.getSlotsSize(), simulationParameterMap, reactionModel, tilings);
+    trajectories = new FFluxTrajectoryList(communicator.getSourceProcess(), communicator.getSourceProcess(), outputWriterProcess, outputWriterThread, slots.getSlotsSize(), simulationParameterMap, reactionModel, tilings);
 
     // Get the trajectories template msg so that we can set some default values in it
-    lm::message::RunWorkUnit* runWorkUnitMsg = trajectories->getRunWorkUnitMsg();
+    lm::message::RunWorkUnit* runWorkUnitMsg = trajectories->getRunMsg();
 	// Set the default source process/thread
 	runWorkUnitMsg->set_supervisor_process(communicator.getSourceProcess());
 	runWorkUnitMsg->set_supervisor_thread(communicator.getSourceThread());
     // Set the default writer process/thread
 	runWorkUnitMsg->set_output_process(outputWriterProcess);
 	runWorkUnitMsg->set_output_thread(outputWriterThread);
-	// Set the default work unit-specific limits
-	runWorkUnitMsg->set_max_steps(100);
-
-	//// TEMP : replace; hardcoded increasing/decreasing limits for the forward flux test case
-//	limits.add_decreasing_species_count(0);
-//	limits.add_increasing_species_count(0);
-//	double a_incr = zerothInterface;
-//	setTestCaseLimits(NULL, &a_incr);
-	//// TEMP
 
 	lm::io::TrajectoryLimits* trajectoryLimits = new lm::io::TrajectoryLimits(limits);
 	runWorkUnitMsg->set_allocated_limits(trajectoryLimits);
@@ -150,30 +141,6 @@ void FFluxSupervisor::startSimulation()
     // Call the base class method.
     SimulationSupervisor::startSimulation();
 }
-
-//// TEMP : remove
-//void FFluxSupervisor::initLimits()
-//{
-//    double firstEdge, lastEdge;
-//    firstEdge = ffluxParameters.interface(0).edge(0);
-//    lastEdge = ffluxParameters.interface(0).edge(ffluxParameters.interface(0).edge_size()-1);
-//    lastEdge >= firstEdge ? limits.set_increasing_species_count(0, firstEdge) : limits.set_decreasing_species_count(0, firstEdge);
-//}
-
-//void FFluxSupervisor::setTestCaseLimits(double* a_decr, double* a_incr)
-//{
-//	limits.set_decreasing_species_count(0, -9999);
-//	limits.set_increasing_species_count(0, -9999);
-//	if (a_decr!=NULL)
-//	{
-//		limits.set_decreasing_species_count(0, *a_decr);
-//	}
-//	if (a_incr!=NULL)
-//	{
-//		limits.set_increasing_species_count(0, *a_incr);
-//	}
-//}
-//// TEMP
 
 
 }

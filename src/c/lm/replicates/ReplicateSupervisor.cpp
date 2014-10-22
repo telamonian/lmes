@@ -123,7 +123,7 @@ void ReplicateSupervisor::startSimulation()
     trajectories = new ReplicateTrajectoryList(::replicates.front(), ::replicates.back(), simulationParameterMap, reactionModel, diffusionModel);
 
     // Get the trajectories template msg so that we can set some default values in it
-    lm::message::RunWorkUnit* runWorkUnitMsg = trajectories->getRunWorkUnitMsg();
+    lm::message::RunWorkUnit* runWorkUnitMsg = trajectories->getRunMsg();
 	// Set the default source process/thread
 	runWorkUnitMsg->set_supervisor_process(communicator.getSourceProcess());
 	runWorkUnitMsg->set_supervisor_thread(communicator.getSourceThread());

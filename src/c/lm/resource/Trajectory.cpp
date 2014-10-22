@@ -36,7 +36,6 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #include <list>
 #include <map>
 #include <string>
@@ -55,13 +54,57 @@ using std::string;
 namespace lm {
 namespace resource {
 
-Trajectory::Trajectory(uint64_t trajectoryID) : trajectoryID(trajectoryID),status(NOT_STARTED)
+Trajectory::Trajectory(uint64_t trajectoryID) : id(trajectoryID),status(NOT_STARTED)
 {
 }
 
 Trajectory::~Trajectory()
 {
 }
+
+void Trajectory::initMsg(int supervisorProcess, int supervisorThread, int outputProcess, int outputThread)
+{
+    getRunMsg()->set_supervisor_process(supervisorProcess);
+    getRunMsg()->set_supervisor_thread(supervisorThread);
+    // Set the default writer process/thread
+    getRunMsg()->set_output_process(outputProcess);
+    getRunMsg()->set_output_thread(outputThread);
+    // Set the default work unit-specific limits
+    getRunMsg()->set_max_steps(100);
+}
+
+void Trajectory::initMsg(const lm::message::Message& newMsg)
+{
+    setMsg(newMsg);
+}
+
+void Trajectory::initState(const lm::io::ReactionModel& reactionModel) // this version of initState creates the zeroth state from scratch
+{
+    state.set_trajectory_id(id);
+    state.mutable_cme_state()->mutable_species_counts()->set_trajectory_id(id);
+    state.mutable_cme_state()->mutable_species_counts()->set_number_species(reactionModel.number_species());
+    state.mutable_cme_state()->mutable_species_counts()->set_number_entries(1);
+    for (int j=0; j<(int)reactionModel.number_species(); j++)
+        state.mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.initial_species_count(j));
+    state.mutable_cme_state()->mutable_species_counts()->add_time(0.0);
+}
+
+void Trajectory::initState(const lm::io::TrajectoryState& initState)
+{
+    // Make instance local copy of the passed state
+    setState(initState);
+
+    // Set the trajectory id in the trajectory state.
+    getState().set_trajectory_id(id);
+
+    // Set the trajectory id in the CME state of the trajectory state (if applicable).
+    if (getState().has_cme_state())
+    {
+        getState().mutable_cme_state()->mutable_species_counts()->set_trajectory_id(id);
+    }
+}
+
+
 
 // getter definitions
 lm::message::Message* Trajectory::getMsg()

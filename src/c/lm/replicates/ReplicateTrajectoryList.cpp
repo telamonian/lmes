@@ -64,6 +64,7 @@ ReplicateTrajectoryList::ReplicateTrajectoryList(uint64_t firstTrajectory, uint6
 
 ReplicateTrajectoryList::~ReplicateTrajectoryList()
 {
+
 }
 
 void ReplicateTrajectoryList::init()
