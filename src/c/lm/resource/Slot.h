@@ -1,10 +1,41 @@
 /*
- * Slot.h
+ * University of Illinois Open Source License
+ * Copyright 2012-2014 Roberts Group,
+ * All rights reserved.
  *
- *  Created on: Jan 26, 2014
- *      Author: tel
+ * Developed by: Roberts Group
+ *               Johns Hopkins University
+ *               http://biophysics.jhu.edu/roberts/
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the Software), to deal with
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to
+ * do so, subject to the following conditions:
+ *
+ * - Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimers.
+ *
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimers in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * - Neither the names of the Roberts Group, Johns Hopkins University,
+ * nor the names of its contributors may be used to endorse or
+ * promote products derived from this Software without specific prior written
+ * permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS WITH THE SOFTWARE.
+ *
+ * Author(s): Elijah Roberts, Max Klein
  */
-
 #ifndef SLOT_H_
 #define SLOT_H_
 
@@ -33,27 +64,29 @@ public:
 	enum slotStatus {FREE, BUSY, DEAD};
 
 	Slot(int controller_process, int controller_thread, uint32_t uuid, lm::message::Communicator * supervisorComm, lm::message::Message & msg);
-	virtual ~Slot();
+	~Slot();
 
-	virtual vector<int> alloc();
-	virtual void free();
+	vector<int> alloc();
+	void free();
 
-	virtual void workUnitRunnerRemoteStart(int controller_process, int controller_thread, lm::message::Message & msg);
-	virtual void workUnitRunnerRemoteStarted(const lm::message::StartedWorkUnitRunner & msg);
-	virtual void workUnitRemoteStart(lm::message::Message * msg, long long workUnitID);
-	virtual void stop();
-	virtual void stopRemote();
-	virtual void stoppedRemote();
+	void workUnitRunnerRemoteStart(int controller_process, int controller_thread, lm::message::Message & msg);
+	void markWorkUnitRunnerRemoteStarted(const lm::message::StartedWorkUnitRunner & msg);
+	void workUnitRemoteStart(lm::message::Message * msg, long long workUnitID);
+	void stop();
+	void stopRemote();
+	void stoppedRemote();
 
-	virtual void setStatus(slotStatus newStatus) {status = newStatus;}
-	virtual slotStatus getStatus() {return status;}
-	virtual vector<int> getSlotKey() {int keys[] = {process, thread}; vector<int> slotKey(keys, keys+2); return slotKey;}
-	virtual uint32_t getUUID() {return uuid;}
+	void setStatus(slotStatus newStatus) {status = newStatus;}
+	slotStatus getStatus() {return status;}
+	vector<int> getSlotKey() {int keys[] = {process, thread}; vector<int> slotKey(keys, keys+2); return slotKey;}
+	uint32_t getUUID() {return uuid;}
 
 	int process;
 	int thread;
 	int controller_process;	// in theory this should always be the same as process
 	int controller_thread;
+	int output_process;
+	int output_thread;
 
 protected:
 	lm::message::Communicator * supervisorComm;

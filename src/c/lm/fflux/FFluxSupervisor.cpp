@@ -36,7 +36,6 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #include <map>
 #include <string>
 
@@ -122,15 +121,6 @@ void FFluxSupervisor::startSimulation()
 
     // Create the new trajectory list.
     trajectories = new FFluxTrajectoryList(communicator.getSourceProcess(), communicator.getSourceProcess(), outputWriterProcess, outputWriterThread, slots.getSlotsSize(), simulationParameterMap, reactionModel, tilings);
-
-    // Get the trajectories template msg so that we can set some default values in it
-    lm::message::RunWorkUnit* runWorkUnitMsg = trajectories->getRunMsg();
-	// Set the default source process/thread
-	runWorkUnitMsg->set_supervisor_process(communicator.getSourceProcess());
-	runWorkUnitMsg->set_supervisor_thread(communicator.getSourceThread());
-    // Set the default writer process/thread
-	runWorkUnitMsg->set_output_process(outputWriterProcess);
-	runWorkUnitMsg->set_output_thread(outputWriterThread);
 
 	lm::io::TrajectoryLimits* trajectoryLimits = new lm::io::TrajectoryLimits(limits);
 	runWorkUnitMsg->set_allocated_limits(trajectoryLimits);

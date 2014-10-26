@@ -45,39 +45,16 @@
 #include "lm/Types.h"
 
 namespace lm {
-namespace fflux {
+namespace replicates {
 
-class FFluxTrajectory : public lm::resource::Trajectory
+class ReplicateTrajectory : public lm::resource::Trajectory
 {
 public:
-    FFluxTrajectory(uint64_t id, uint ffluxPhase, lm::tiling::Tilings& tilings);
-    virtual ~FFluxTrajectory();
+    ReplicateTrajectory(uint64_t id);
+    virtual ~ReplicateTrajectory();
 
-    virtual void initZerothTrajectory();
-
-    // methods for detecting when a flux event has occurred
-    virtual bool fluxedBackward();
-    virtual bool fluxedForward();
-
-    // accessors
-    virtual lm::io::TrajectoryLimits::LimitType getFinalLimitType();
-    virtual uint getSimSteps();
-    virtual double getSimTime();
-    virtual bool hasElapsed(double time);
-
-    // methods for dealing with limits and the underlying tiling
-    virtual void setLimits();
-
-    //    uint getFFluxPhase() {return ffluxPhase;}
-    //    void setFFluxPhase(uint newPhase) {ffluxPhase = newPhase;}
-
-protected:
-    // reference to supervisor's Tilings object for setting limits and such
-    lm::tiling::Tilings& tilings;
-
-public:
-    uint ffluxPhase;
-};
+    virtual void initLimits();
+}
 
 }
 }

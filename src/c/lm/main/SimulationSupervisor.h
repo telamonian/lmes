@@ -4,8 +4,8 @@
  * All rights reserved.
  *
  * Developed by: Roberts Group
- * 			     Johns Hopkins University
- * 			     http://biophysics.jhu.edu/roberts/
+ *              Johns Hopkins University
+ *              http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -80,9 +80,9 @@ public:
 public:
     SimulationSupervisor();
     virtual ~SimulationSupervisor();
+    void setOutputWriterClassName(string outputWriterClassName) {this->outputWriterClassName = outputWriterClassName;}
     void setResourceMap(lm::resource::ResourceMap* resourceMap) {this->resourceMap = resourceMap;}
     void setSimulationFilename(string simulationInputFilename, string simulationOutputFilename) {this->simulationInputFilename = simulationInputFilename; this->simulationOutputFilename = simulationOutputFilename;}
-    void setOutputWriterClassName(string outputWriterClassName) {this->outputWriterClassName = outputWriterClassName;}
     void setSolverClassName(string solverClassName) {this->solverClassName = solverClassName;}
     void setUseCPUAffinity(bool useCPUAffinity) {this->useCPUAffinity = useCPUAffinity;}
     virtual void initialize();
@@ -99,14 +99,13 @@ protected:
 
     virtual int run();
     virtual void resourceAvailable(const lm::message::ResourcesAvailable& msg);
-    virtual void workUnitRunnerStarted(const lm::message::StartedWorkUnitRunner & msg);
+    virtual void markWorkUnitRunnerStarted(const lm::message::StartedWorkUnitRunner & msg);
     virtual void allResourcesRegistered();
     virtual void allWorkUnitRunnersStarted();
 
 
 protected:
     long long workUnitCount;
-    lm::io::TrajectoryLimits limits;
     lm::resource::TrajectoryList* trajectories;
     lm::message::Communicator communicator;
     lm::resource::ResourceMap* resourceMap;

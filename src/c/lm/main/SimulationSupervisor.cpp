@@ -36,7 +36,7 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
+#include <string>
 
 #include "lm/Exceptions.h"
 #include "lm/MPI.h"
@@ -56,6 +56,7 @@
 #include "lm/resource/SlotList.h"
 
 using lm::resource::ResourceMap;
+using std::string;
 
 namespace lm {
 namespace main {
@@ -290,7 +291,7 @@ int SimulationSupervisor::run()
             }
             else if (message.has_started_work_unit_runner())
 			{
-            	workUnitRunnerStarted(message.started_work_unit_runner());
+            	markWorkUnitRunnerStarted(message.started_work_unit_runner());
 			}
             else if (message.has_started_work_unit())
             {
@@ -350,9 +351,9 @@ void SimulationSupervisor::resourceAvailable(const lm::message::ResourcesAvailab
     }
 }
 
-void SimulationSupervisor::workUnitRunnerStarted(const lm::message::StartedWorkUnitRunner & msg)
+void SimulationSupervisor::markWorkUnitRunnerStarted(const lm::message::StartedWorkUnitRunner & msg)
 {
-	if (slots.workUnitRunnerStarted(msg))
+	if (slots.markWorkUnitRunnerStarted(msg))
 	{
 		allWorkUnitRunnersStarted();
 	}
@@ -364,7 +365,7 @@ void SimulationSupervisor::allResourcesRegistered()
     Print::printf(Print::INFO, "All resources registered with supervisor, starting work unit runners.");
 
     // Set up the template messages (which contain default values) for slots and trajectories
-    lm::message::StartWorkUnitRunner * startSlotMsg = slots.addStartSlotMsg();
+    lm::message::StartWorkUnitRunner * startSlotMsg = slots.addStartSlotMsg();  //TODO: refactor into a Slots method
     //	s->set_use_cpu_affinity(useCPUAffinity);
     //	s->add_cpu(resources.cpuCores[i]);
     //	if (resources.gpusDevices.size() > 0)
@@ -425,7 +426,12 @@ bool SimulationSupervisor::assignWork()
 				return false;	// Some trajectories are still running, there may still be more work units to come
 			}
 		}
-
+		// Set the source process/thread
+        nextWorkUnitMsg->mutable_run_work_unit()->set_supervisor_process(communicator.getSourceProcess());
+        nextWorkUnitMsg->mutable_run_work_unit()->set_supervisor_thread(communicator.getSourceThread());
+        // Set the writer process/thread
+        nextWorkUnitMsg->mutable_run_work_unit()->set_output_process(0); // TODO: not have output process/thread be hardcoded
+        nextWorkUnitMsg->mutable_run_work_unit()->set_output_thread(3);
 		// If we got this far, put the next free slot together with the next trajectory
 		workSlot->workUnitRemoteStart(nextWorkUnitMsg, workUnitCount++);
 	}
@@ -461,65 +467,6 @@ void SimulationSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit&
 			finishSimulation();
     	}
     }
-}
-
-void SimulationSupervisor::initLimits()
-{
-	// See if we have a max time limit.
-	if (simulationParameterMap.count("maxTime"))
-		limits.set_max_time(atof(simulationParameterMap["maxTime"].c_str()));
-
-	// Set the species lower limits from the parameters.
-	if (simulationParameterMap.count("speciesLowerLimitList"))
-	{
-		for (int i=0; i<(int)reactionModel.number_species(); i++)
-			limits.add_min_species_count(-1);
-
-		string listString = simulationParameterMap["speciesLowerLimitList"];
-		size_t start=0, end=0;
-		while (end != string::npos)
-		{
-			end = listString.find(',', start);
-			string speciesLowerLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
-
-			size_t equalsPos=0;
-			equalsPos = speciesLowerLimit.find(':', 0);
-			if (equalsPos > 0 && equalsPos < speciesLowerLimit.length()-1)
-			{
-				int parsedSpecies = atoi(speciesLowerLimit.substr(0, equalsPos).c_str());
-				int parsedLimit = atoi(speciesLowerLimit.substr(equalsPos+1, string::npos).c_str());
-				limits.set_min_species_count(parsedSpecies, parsedLimit);
-				Print::printf(Print::DEBUG, "Parsed lower limit %s to: %d => %d", speciesLowerLimit.c_str(), parsedSpecies, parsedLimit);
-			}
-			start = end+1;
-		}
-	}
-
-	// Set the species upper limits from the parameters.
-	if (simulationParameterMap.count("speciesUpperLimitList"))
-	{
-		for (int i=0; i<(int)reactionModel.number_species(); i++)
-			limits.add_max_species_count(-1);
-
-		string listString = simulationParameterMap["speciesUpperLimitList"];
-		size_t start=0, end=0;
-		while (end != string::npos)
-		{
-			end = listString.find(',', start);
-			string speciesUpperLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
-
-			size_t equalsPos=0;
-			equalsPos = speciesUpperLimit.find(':', 0);
-			if (equalsPos > 0 && equalsPos < speciesUpperLimit.length()-1)
-			{
-				uint parsedSpecies = atoi(speciesUpperLimit.substr(0, equalsPos).c_str());
-				uint parsedLimit = atoi(speciesUpperLimit.substr(equalsPos+1, string::npos).c_str());
-				limits.set_max_species_count(parsedSpecies, parsedLimit);
-				Print::printf(Print::DEBUG, "Parsed upper limit %s to: %d <= %d", speciesUpperLimit.c_str(), parsedSpecies, parsedLimit);
-			}
-			start = end+1;
-		}
-	}
 }
 
 }

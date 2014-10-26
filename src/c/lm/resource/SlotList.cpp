@@ -113,15 +113,15 @@ void SlotList::addSlot(int controller_process, int controller_thread)
     busySlots[slotKey] = addedSlot;
 }
 
-bool SlotList::workUnitRunnerStarted(const lm::message::StartedWorkUnitRunner & msg)
+bool SlotList::markWorkUnitRunnerStarted(const lm::message::StartedWorkUnitRunner & msg)
 {
-	// the following static_cast<int> is used to get around the disallowment of 'narrowing' conversions in c++11
-	int keys[] = {-1, static_cast<int>(msg.uuid())};
+	// a process id of -1 in busySlots means that a workUnitRunner hasn't been assigned to the slot yet
+	int keys[] = {-1, static_cast<int>(msg.uuid())};    // the static_cast<int> is used to get around the disallowment of 'narrowing' conversions in c++11
 	vector<int> slotKey(keys, keys+2);
 	SlotMap::iterator m_it(busySlots.find(slotKey));
 	if (m_it!=busySlots.end())
 	{
-		m_it->second->workUnitRunnerRemoteStarted(msg);
+		m_it->second->markWorkUnitRunnerRemoteStarted(msg);
 		freeSlots.push_front(m_it->second);
 		busySlots.erase(m_it);
 	}

@@ -36,7 +36,6 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 package lm.message;
 
 import "lm/message/ResourcesAvailable.proto";

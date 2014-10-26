@@ -54,6 +54,8 @@
 #include "lm/resource/Trajectory.h"
 #include "lm/tiling/Tilings.h"
 
+using lm::io::DiffusionModel;
+using lm::io::ReactionModel;
 using std::map;
 using std::string;
 using std::vector;
@@ -64,13 +66,18 @@ namespace fflux {
 // this has to be here because Direction is part of the FFluxTrajectoryList definition
 typedef map<lm::fflux::FFluxTrajectoryList::Direction, CrossingsMap> CrossingsMapMap;
 
-FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel, lm::tiling::Tilings& tilings):
-    TrajectoryList(),simulationParameters(simulationParameters),reactionModel(reactionModel),tilings(tilings),xorShift(0,0),simultaneousTrajectoryCount(simultaneousTrajectoryCount),direction(FORWARD),ffluxPhase(0),crossingsPerPhase(0),maxPhaseZeroTime(0),maxFFluxPhase() // TODO: change maxFFluxPhase from fixed to varying with input //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
+FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel, map<string,string>& simulationParameters, lm::tiling::Tilings& tilings)
+:TrajectoryList(reactionModel, diffusionModel, simulationParameters),
+ tilings(tilings),
+ crossingsPerPhase(atof(simulationParameters["crossingsPerPhase"].c_str())),
+ direction(FORWARD),
+ ffluxPhase(0),
+ finishedTrajectoriesCounts(maxFFluxPhase, 0),
+ maxFFluxPhase(tilings[0]->getEdgesCount()),
+ maxPhaseZeroTime(atof(simulationParameters["maxPhaseZeroTime"].c_str())),
+ simultaneousTrajectoryCount(simultaneousTrajectoryCount),
+ xorShift(0,0)  //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
-    crossingsPerPhase = atof(simulationParameters["crossingsPerPhase"].c_str());
-    finishedTrajectoriesCounts = vector<long long>(maxFFluxPhase, 0);
-    maxFFluxPhase = tilings[0]->getEdgesCount();
-    maxPhaseZeroTime = atof(simulationParameters["maxPhaseZeroTime"].c_str());
 }
 
 FFluxTrajectoryList::~FFluxTrajectoryList()

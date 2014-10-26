@@ -50,7 +50,8 @@ namespace fflux {
 class FFluxTrajectory : public lm::resource::Trajectory
 {
 public:
-    FFluxTrajectory(uint64_t id, uint ffluxPhase, lm::tiling::Tilings& tilings);
+    FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings& tilings);
+    FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings& tilings,const lm::io::TrajectoryState& state);
     virtual ~FFluxTrajectory();
 
     virtual void initZerothTrajectory();

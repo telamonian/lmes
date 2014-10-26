@@ -46,52 +46,54 @@
 #include "lm/message/Message.pb.h"
 #include "lm/Types.h"
 
-using std::map;
-using std::string;
-
-
 namespace lm {
 namespace resource {
 
+// Trajectory is responsible for RunWorkUnit messages
 class Trajectory
 {
 public:
     enum status_t {NOT_STARTED, RUNNING, WAITING, FINISHED};
 
-    Trajectory(uint64_t trajectoryID);
+    Trajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters);
+    Trajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,const lm::io::TrajectoryState& zerothState);
     virtual ~Trajectory();
-    virtual void initMsg(int supervisorProcess, int supervisorThread, int outputProcess, int outputThread);
+    virtual void initMsg(std::map<std::string,std::string>& simulationParameters);
     virtual void initMsg(const lm::message::Message& newMsg);
     virtual void initState(const lm::io::ReactionModel& reactionModel);
-    virtual void initState(const lm::io::TrajectoryState& initState);
+    virtual void initState(const lm::io::TrajectoryState& zerothState);
+    virtual void initLimits() = 0;
 
-    //getters
+    // accessors
+    virtual uint64_t getID();
     virtual lm::message::Message* getMsg();
     virtual lm::message::RunWorkUnit* getRunMsg();
-    virtual status_t getStatus();
     virtual lm::io::TrajectoryState& getState();
+    virtual status_t getStatus();
 
-    //setters
+    // mutators
+    virtual void setID(uint64_t id);
     virtual void setMsg(const lm::message::Message& newMsg);
-    virtual void setWorkUnitId(int64_t id);
     virtual void setStarted(bool trajectoryStarted);
-    virtual void setStatus(status_t newStatus);
     virtual void setState(const lm::io::TrajectoryState& newState);
-
-    //other?
+    virtual void setStatus(status_t newStatus);
+    virtual void setWorkUnitId(int64_t id);
     virtual void updateInitialRunState();
 
-    uint64_t id;
-
 protected:
-    status_t status;
-    lm::io::TrajectoryState state;  // state is supposed to be synced at all (or at least most) times with the msg.run_work_unit.initial_state field
+    uint64_t id;
     lm::message::Message msg;
+//    lm::io::ReactionModel& reactionModel;
+//    lm::io::DiffusionModel& diffusionModel;
+//    map<string,string> simulationParameters;
+    lm::io::TrajectoryLimits limits;
+    lm::io::TrajectoryState state;  // state is supposed to be synced at all (or at least most) times with the msg.run_work_unit.initial_state field
+    status_t status;
 };
 
 }
 }
 
-typedef map<uint64_t, lm::resource::Trajectory*> TrajectoryMap;
+typedef std::map<uint64_t, lm::resource::Trajectory*> TrajectoryMap;
 
 #endif

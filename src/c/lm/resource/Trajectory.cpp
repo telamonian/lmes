@@ -48,29 +48,39 @@
 #include "lm/resource/Trajectory.h"
 #include "lm/Types.h"
 
+using lm::io::DiffusionModel;
+using lm::io::ReactionModel;
+using lm::io::TrajectoryState;
 using std::map;
 using std::string;
 
 namespace lm {
 namespace resource {
 
-Trajectory::Trajectory(uint64_t trajectoryID) : id(trajectoryID),status(NOT_STARTED)
+Trajectory::Trajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel&,map<string,string>& simulationParameters):
+id(-1),status(NOT_STARTED)
 {
+    initState(reactionModel);
+    setID(id);
+    initMsg(simulationParameters);
+}
+
+Trajectory::Trajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel&,map<string,string>& simulationParameters,const TrajectoryState& zerothState):
+id(id),status(NOT_STARTED)
+{
+    initState(zerothState);
+    setID(id);
+    initMsg(simulationParameters);
 }
 
 Trajectory::~Trajectory()
 {
 }
 
-void Trajectory::initMsg(int supervisorProcess, int supervisorThread, int outputProcess, int outputThread)
+void Trajectory::initMsg(map<string,string>& simulationParameters)
 {
-    getRunMsg()->set_supervisor_process(supervisorProcess);
-    getRunMsg()->set_supervisor_thread(supervisorThread);
-    // Set the default writer process/thread
-    getRunMsg()->set_output_process(outputProcess);
-    getRunMsg()->set_output_thread(outputThread);
     // Set the default work unit-specific limits
-    getRunMsg()->set_max_steps(100);
+    getRunMsg()->set_max_steps(atof(simulationParameters["maxWorkUnitSteps"].c_str()));
 }
 
 void Trajectory::initMsg(const lm::message::Message& newMsg)
@@ -80,8 +90,8 @@ void Trajectory::initMsg(const lm::message::Message& newMsg)
 
 void Trajectory::initState(const lm::io::ReactionModel& reactionModel) // this version of initState creates the zeroth state from scratch
 {
-    state.set_trajectory_id(id);
-    state.mutable_cme_state()->mutable_species_counts()->set_trajectory_id(id);
+    // if state has any info in it already, clear it
+    state.Clear();
     state.mutable_cme_state()->mutable_species_counts()->set_number_species(reactionModel.number_species());
     state.mutable_cme_state()->mutable_species_counts()->set_number_entries(1);
     for (int j=0; j<(int)reactionModel.number_species(); j++)
@@ -93,20 +103,14 @@ void Trajectory::initState(const lm::io::TrajectoryState& initState)
 {
     // Make instance local copy of the passed state
     setState(initState);
-
-    // Set the trajectory id in the trajectory state.
-    getState().set_trajectory_id(id);
-
-    // Set the trajectory id in the CME state of the trajectory state (if applicable).
-    if (getState().has_cme_state())
-    {
-        getState().mutable_cme_state()->mutable_species_counts()->set_trajectory_id(id);
-    }
 }
 
+// accessor definitions
+uint64_t Trajectory::getID()
+{
+    return id;
+}
 
-
-// getter definitions
 lm::message::Message* Trajectory::getMsg()
 {
     return &msg;
@@ -127,15 +131,17 @@ lm::io::TrajectoryState& Trajectory::getState()
     return state;
 }
 
-// setter definitions
+// mutator definitions
+void Trajectory::setID(uint64_t newID)
+{
+    id = newID;
+    getState().set_trajectory_id(newID);
+    getState().mutable_cme_state()->mutable_species_counts()->set_trajectory_id(newID);
+}
+
 void Trajectory::setMsg(const lm::message::Message& newMsg)
 {
     msg = newMsg;
-}
-
-void Trajectory::setWorkUnitId(int64_t id)
-{
-    getRunMsg()->set_work_unit_id(id);
 }
 
 void Trajectory::setStarted(bool trajectoryStarted)
@@ -143,14 +149,19 @@ void Trajectory::setStarted(bool trajectoryStarted)
     state.set_trajectory_started(trajectoryStarted);
 }
 
+void Trajectory::setState(const lm::io::TrajectoryState& newState)
+{
+    state = newState;
+}
+
 void Trajectory::setStatus(status_t newStatus)
 {
     status = newStatus;
 }
 
-void Trajectory::setState(const lm::io::TrajectoryState& newState)
+void Trajectory::setWorkUnitId(int64_t id)
 {
-    state = newState;
+    getRunMsg()->set_work_unit_id(id);
 }
 
 void Trajectory::updateInitialRunState()

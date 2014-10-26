@@ -42,17 +42,17 @@
 #include <cstdio>
 #include <string>
 
-#include "lm/fflux/FFluxTrajectory.h"
 #include "lm/io/Tilings.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/replicates/ReplicateTrajectory.h"
 #include "lm/tiling/Tilings.h"
 #include "lm/Types.h"
 
 namespace lm {
-namespace fflux {
+namespace replicates {
 
-FFluxTrajectory::FFluxTrajectory(uint64_t id, lm::message::Message trajectoryTemplateMsg, lm::io::TrajectoryState* state, lm::tiling::Tilings& tilings, uint ffluxPhase): //TODO: make this signature less terrible
-Trajectory(id), tilings(tilings), ffluxPhase(ffluxPhase)
+ReplicateTrajectory::ReplicateTrajectory(uint64_t id, lm::message::Message trajectoryTemplateMsg, lm::io::TrajectoryState* state, lm::tiling::Tilings& tilings, uint ffluxPhase): //TODO: make this signature less terrible
+Trajectory(id)
 {
     // Initialize the trajectory's Message msg, TrajectoryState state, and Tilings tilings fields
     setMsg(trajectoryTemplateMsg);
@@ -75,98 +75,66 @@ Trajectory(id), tilings(tilings), ffluxPhase(ffluxPhase)
     setLimits();
 }
 
-FFluxTrajectory::~FFluxTrajectory()
+ReplicateTrajectory::~ReplicateTrajectory()
 {
 }
 
-FFluxTrajectory::init(lm::message::Message& msg)
+void SimulationSupervisor::initLimits()
 {
-msg
-}
+    // See if we have a max time limit.
+    if (simulationParameterMap.count("maxTime"))
+        limits.set_max_time(atof(simulationParameterMap["maxTime"].c_str()));
 
-bool FFluxTrajectory::fluxedBackward()
-{
-    if (tilings[0]->getArrangement()==lm::io::Tilings::ASCENDING)
+    // Set the species lower limits from the parameters.
+    if (simulationParameterMap.count("speciesLowerLimitList"))
     {
-        return (getFinalLimitType()==lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER);
-    }
-    else
-    {
-        return (getFinalLimitType()==lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER);
-    }
-}
+        for (int i=0; i<(int)reactionModel.number_species(); i++)
+            limits.add_min_species_count(-1);
 
-bool FFluxTrajectory::fluxedForward()
-{
-    if (tilings[0]->getArrangement()==lm::io::Tilings::ASCENDING)
-    {
-        return (getFinalLimitType()==lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER);
-    }
-    else
-    {
-        return (getFinalLimitType()==lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER);
-    }
-}
+        string listString = simulationParameterMap["speciesLowerLimitList"];
+        size_t start=0, end=0;
+        while (end != string::npos)
+        {
+            end = listString.find(',', start);
+            string speciesLowerLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
 
-lm::io::TrajectoryLimits::LimitType FFluxTrajectory::getFinalLimitType()
-{
-    return state.final_limit_type();
-}
-
-uint FFluxTrajectory::getSimSteps()
-{
-    return getState().cme_state().species_counts().number_entries();
-}
-
-double FFluxTrajectory::getSimTime()
-{
-    return getState().cme_state().species_counts().time(getState().cme_state().species_counts().time_size() - 1);
-}
-
-bool FFluxTrajectory::hasElapsed(double time)
-{
-    return (getSimTime()>=time);
-}
-
-void FFluxTrajectory::setLimits()
-{
-    getRunMsg()->mutable_limits()->Clear();
-    switch ((ffluxPhase!=0)<<1|tilings[0]->getArrangement()!=lm::io::Tilings::ASCENDING) // each of the 4 sets of possible pairs of true/false values corresponds to one of the numbers 0-3
-    {
-    case 0: // ffluxphase==0 and tilings[0].getArrangement()==lm::io::Tilings::ASCENDING
-    {
-        lm::io::TrajectoryLimits::IncreasingOrderParameterLimit* iopl = getRunMsg()->mutable_limits()->add_increasing_order_parameter_limit();
-        iopl->set_order_parameter_id(tilings[0]->getOrderParameterID());
-        iopl->add_value(tilings[0]->getEdge(0));
-        break;
+            size_t equalsPos=0;
+            equalsPos = speciesLowerLimit.find(':', 0);
+            if (equalsPos > 0 && equalsPos < speciesLowerLimit.length()-1)
+            {
+                int parsedSpecies = atoi(speciesLowerLimit.substr(0, equalsPos).c_str());
+                int parsedLimit = atoi(speciesLowerLimit.substr(equalsPos+1, string::npos).c_str());
+                limits.set_min_species_count(parsedSpecies, parsedLimit);
+                Print::printf(Print::DEBUG, "Parsed lower limit %s to: %d => %d", speciesLowerLimit.c_str(), parsedSpecies, parsedLimit);
+            }
+            start = end+1;
+        }
     }
-    case 1: // ffluxphase==0 and tilings[0].getArrangement()==lm::io::Tilings::DESCENDING
+
+    // Set the species upper limits from the parameters.
+    if (simulationParameterMap.count("speciesUpperLimitList"))
     {
-        lm::io::TrajectoryLimits::DecreasingOrderParameterLimit* dopl = getRunMsg()->mutable_limits()->add_decreasing_order_parameter_limit();
-        dopl->set_order_parameter_id(tilings[0]->getOrderParameterID());
-        dopl->add_value(tilings[0]->getEdge(0));
-        break;
-    }
-    case 2: // ffluxphase!=0 and tilings[0].getArrangement()==lm::io::Tilings::ASCENDING
-    {
-        lm::io::TrajectoryLimits::DecreasingOrderParameterLimit* dopl = getRunMsg()->mutable_limits()->add_decreasing_order_parameter_limit();
-        dopl->set_order_parameter_id(tilings[0]->getOrderParameterID());
-        dopl->add_value(tilings[0]->getEdge(0));
-        lm::io::TrajectoryLimits::IncreasingOrderParameterLimit* iopl = getRunMsg()->mutable_limits()->add_increasing_order_parameter_limit();
-        iopl->set_order_parameter_id(tilings[0]->getOrderParameterID());
-        iopl->add_value(tilings[0]->getEdge(ffluxPhase));
-        break;
-    }
-    case 3: // ffluxphase!=0 and tilings[0].getArrangement()==lm::io::Tilings::DESCENDING
-    {
-        lm::io::TrajectoryLimits::IncreasingOrderParameterLimit* iopl = getRunMsg()->mutable_limits()->add_increasing_order_parameter_limit();
-        iopl->set_order_parameter_id(tilings[0]->getOrderParameterID());
-        iopl->add_value(tilings[0]->getEdge(0));
-        lm::io::TrajectoryLimits::DecreasingOrderParameterLimit* dopl = getRunMsg()->mutable_limits()->add_decreasing_order_parameter_limit();
-        dopl->set_order_parameter_id(tilings[0]->getOrderParameterID());
-        dopl->add_value(tilings[0]->getEdge(ffluxPhase));
-        break;
-    }
+        for (int i=0; i<(int)reactionModel.number_species(); i++)
+            limits.add_max_species_count(-1);
+
+        string listString = simulationParameterMap["speciesUpperLimitList"];
+        size_t start=0, end=0;
+        while (end != string::npos)
+        {
+            end = listString.find(',', start);
+            string speciesUpperLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
+
+            size_t equalsPos=0;
+            equalsPos = speciesUpperLimit.find(':', 0);
+            if (equalsPos > 0 && equalsPos < speciesUpperLimit.length()-1)
+            {
+                uint parsedSpecies = atoi(speciesUpperLimit.substr(0, equalsPos).c_str());
+                uint parsedLimit = atoi(speciesUpperLimit.substr(equalsPos+1, string::npos).c_str());
+                limits.set_max_species_count(parsedSpecies, parsedLimit);
+                Print::printf(Print::DEBUG, "Parsed upper limit %s to: %d <= %d", speciesUpperLimit.c_str(), parsedSpecies, parsedLimit);
+            }
+            start = end+1;
+        }
     }
 }
 

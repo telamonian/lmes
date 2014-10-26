@@ -85,37 +85,37 @@ class SlotList
 {
 public:
     SlotList(lm::message::Communicator * supervisorComm);
-    virtual ~SlotList();
+    ~SlotList();
 
     //create slot methods
-    virtual void addSlots(map<int,ResourceMap::ComputeResources> & allResources);
-    virtual void addSlots(ResourceMap::ComputeResources & resources, float cpusPerSlot=1.0, float gpusPerSlot=1.0);
-    virtual void addSlot(int controller_process, int controller_thread);
+    void addSlots(map<int,ResourceMap::ComputeResources> & allResources);
+    void addSlots(ResourceMap::ComputeResources & resources, float cpusPerSlot=1.0, float gpusPerSlot=1.0);
+    void addSlot(int controller_process, int controller_thread);
 
     //delete slot methods
-    virtual void delSlot(int process, int thread);
+    void delSlot(int process, int thread);
 
     //getter methods
-    virtual Slot * getSlot(int process, int thread);
-    virtual Slot * getSlotByUUID(uint32_t uuid);
-    virtual int getSlotsSize() {return getBusySlotsSize() + getFreeSlotsSize();}
-    virtual int getBusySlotsSize() {return busySlots.size();}
-    virtual int getFreeSlotsSize() {return freeSlots.size();}
+    Slot * getSlot(int process, int thread);
+    Slot * getSlotByUUID(uint32_t uuid);
+    int getSlotsSize() {return getBusySlotsSize() + getFreeSlotsSize();}
+    int getBusySlotsSize() {return busySlots.size();}
+    int getFreeSlotsSize() {return freeSlots.size();}
 
     //allocate and free methods
-    virtual Slot * alloc();
-    virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg) {free(msg.process(), msg.thread());}
-    virtual void free(int process, int thread);
+    Slot * alloc();
+    void workUnitFinished(const lm::message::FinishedWorkUnit& msg) {free(msg.process(), msg.thread());}
+    void free(int process, int thread);
 
     //dealing with the internal Message methods
-    virtual lm::message::StartWorkUnitRunner * addStartSlotMsg() {return slotTemplateMsg.add_start_work_unit_runner();}
-    virtual bool workUnitRunnerStarted(const lm::message::StartedWorkUnitRunner & msg);
+    lm::message::StartWorkUnitRunner * addStartSlotMsg() {return slotTemplateMsg.add_start_work_unit_runner();}
+    bool markWorkUnitRunnerStarted(const lm::message::StartedWorkUnitRunner & msg);
 
 private:
-    virtual SlotMap::iterator getBusySlotIt(int process, int thread);
-    virtual SlotDeque::iterator getFreeSlotIt(int process, int thread);
-    virtual SlotMap::iterator getBusySlotItByUUID(uint32_t uuid);
-    virtual SlotDeque::iterator getFreeSlotItByUUID(uint32_t uuid);
+    SlotMap::iterator getBusySlotIt(int process, int thread);
+    SlotDeque::iterator getFreeSlotIt(int process, int thread);
+    SlotMap::iterator getBusySlotItByUUID(uint32_t uuid);
+    SlotDeque::iterator getFreeSlotItByUUID(uint32_t uuid);
 
 	lm::message::Communicator * supervisorComm;
 	lm::message::Message slotTemplateMsg;

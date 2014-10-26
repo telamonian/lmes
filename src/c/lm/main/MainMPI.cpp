@@ -5,12 +5,12 @@
  * All rights reserved.
  * 
  * Developed by: Luthey-Schulten Group
- * 			     University of Illinois at Urbana-Champaign
- * 			     http://www.scs.uiuc.edu/~schulten
+ *               University of Illinois at Urbana-Champaign
+ *               http://www.scs.uiuc.edu/~schulten
  * 
  * Developed by: Roberts Group
- * 			     Johns Hopkins University
- * 			     http://biophysics.jhu.edu/roberts/
+ *               Johns Hopkins University
+ *               http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with 
@@ -39,9 +39,8 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
-
 #include <cerrno>
 #include <csignal>
 #include <cstdio>
@@ -105,8 +104,8 @@ PROF_ALLOC;
 
 int main(int argc, char** argv)
 {
-	// Start the global execution timer
-	globalTimer = getHrTime();
+    // Start the global execution timer
+    globalTimer = getHrTime();
 
     // Make sure we are using the correct protocol buffers library.
     GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -145,8 +144,8 @@ int main(int argc, char** argv)
                 }
                 else if (functionOption == "devices" || functionOption == "simulation")
                 {
-                	// Mark that we need to start all of the processes.
-                	startAllProcesses = 1;
+                    // Mark that we need to start all of the processes.
+                    startAllProcesses = 1;
                 }
                 else
                 {
@@ -351,12 +350,12 @@ void executeSimulationMPISingleMaster(ResourceMap* resourceMap)
     int reservedCpuCore = 0;
     if (shouldReserveOutputCore)
     {
-    	reservedCpuCore=resourceAllocator.reserveCpuCore();
-    	Print::printf(Print::INFO, "Reserved CPU core %d on process %d for data output.", reservedCpuCore, lm::MPI::worldRank);
+        reservedCpuCore=resourceAllocator.reserveCpuCore();
+        Print::printf(Print::INFO, "Reserved CPU core %d on process %d for data output.", reservedCpuCore, lm::MPI::worldRank);
     }
 
     // Get the maximum number of simulations that can be started on each process.
-    int maxSlots = 0;	//need maxSlots here due to the fact that MPI_Gather complains if send_buf is NULL even on the root process
+    int maxSlots = 0;    //need maxSlots here due to the fact that MPI_Gather complains if send_buf is NULL even on the root process
     int * maxSlotsTable = new int[lm::MPI::worldSize];
     MPI_EXCEPTION_CHECK(MPI_Gather(&maxSlots, 1, MPI_INT, maxSlotsTable, 1, MPI_INT, lm::MPI::MASTER, MPI_COMM_WORLD));
 
@@ -470,10 +469,10 @@ void executeSimulationMPISingleSlave()
 
     // Create the resource allocator.
     #ifdef OPT_CUDA
-	Print::printf(Print::INFO, "MPI process %d using %d processor(s) and %d CUDA device(s).", lm::MPI::worldRank, numberCpuCores, (int)cudaDevices.size());
+    Print::printf(Print::INFO, "MPI process %d using %d processor(s) and %d CUDA device(s).", lm::MPI::worldRank, numberCpuCores, (int)cudaDevices.size());
     ResourceAllocator resourceAllocator(lm::MPI::worldRank, numberCpuCores, cpuCoresPerReplicate, cudaDevices, cudaDevicesPerReplicate);
     #else
-	Print::printf(Print::INFO, "MPI process %d using %d processor(s).", lm::MPI::worldRank, numberCpuCores);
+    Print::printf(Print::INFO, "MPI process %d using %d processor(s).", lm::MPI::worldRank, numberCpuCores);
     ResourceAllocator resourceAllocator(lm::MPI::worldRank, numberCpuCores, cpuCoresPerReplicate);
     #endif
 

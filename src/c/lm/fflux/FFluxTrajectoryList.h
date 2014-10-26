@@ -4,8 +4,8 @@
  * All rights reserved.
  *
  * Developed by: Roberts Group
- * 			     Johns Hopkins University
- * 			     http://biophysics.jhu.edu/roberts/
+ *               Johns Hopkins University
+ *               http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -54,14 +54,11 @@
 #include "lm/tiling/Tilings.h"
 #include "lm/Types.h"
 
-using std::map;
-using std::vector;
-
 namespace lm {
 namespace fflux {
 
-typedef vector<lm::io::TrajectoryState*> CrossingVector;
-typedef map<long long, CrossingVector> CrossingsMap;
+typedef std::vector<lm::io::TrajectoryState*> CrossingVector;
+typedef std::map<long long, CrossingVector> CrossingsMap;
 typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::DecreasingOrderParameterLimit>::iterator decrLimitIterator;
 typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::IncreasingOrderParameterLimit>::iterator incrLimitIterator;
 
@@ -70,7 +67,7 @@ class FFluxTrajectoryList : public lm::resource::TrajectoryList
 public:
     enum Direction {FORWARD, BACKWARD};
     // enumerated type used for describing the direction of the current fflux simulation relative to the arrangements (low-to-high or high-to-low) of the individual interfaces
-    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount, map<std::string,std::string>& simulationParameters, const lm::io::ReactionModel& reactionModel, lm::tiling::Tilings& tilings);
+    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters, lm::tiling::Tilings& tilings);
     virtual ~FFluxTrajectoryList();
     virtual void init();
     virtual void initTrajectory(uint64_t trajectoryID, lm::io::TrajectoryState* trajectoryState);
@@ -115,21 +112,18 @@ protected:
 //    virtual void incrTestCaseLimits();
     //// TEMP
 
-    map<std::string,std::string>& simulationParameters;
-    const lm::io::ReactionModel& reactionModel;
-    lm::tiling::Tilings& tilings;
-    lm::rng::XORShift xorShift;	//RNG used for randomly choosing a crossing in a crossing vector
     CrossingsMap crossings;
-    map<lm::fflux::FFluxTrajectoryList::Direction, CrossingsMap> savedCrossings;
+    unsigned crossingsPerPhase; //the count of crossing events that should be collected for every fflux sampling phase
     Direction direction;
     long long ffluxPhase;
-    uint64_t simultaneousTrajectoryCount;
-    vector<long long> finishedTrajectoriesCounts;
+    std::vector<long long> finishedTrajectoriesCounts;
     long long maxFFluxPhase;
-
     // user defined parameters that determine how the forward flux sampling is carried out
-	double maxPhaseZeroTime;
-    unsigned crossingsPerPhase; //the count of crossing events that should be collected for every fflux sampling phase
+    double maxPhaseZeroTime;
+    std::map<lm::fflux::FFluxTrajectoryList::Direction, CrossingsMap> savedCrossings;
+    uint64_t simultaneousTrajectoryCount;
+    lm::tiling::Tilings& tilings;
+    lm::rng::XORShift xorShift; //RNG used for randomly choosing a crossing in a crossing vector
 };
 
 }

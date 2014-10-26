@@ -37,51 +37,44 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 #include <csignal>
+#include <cstdio>
 #include <list>
 #include <map>
-#include <cstdio>
 #include <string>
 
 #include "lm/fflux/FFluxTrajectory.h"
+#include "lm/io/DiffusionModel.pb.h"
+#include "lm/io/ReactionModel.pb.h"
 #include "lm/io/Tilings.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/io/TrajectoryState.pb.h"
 #include "lm/tiling/Tilings.h"
 #include "lm/Types.h"
+
+using lm::io::DiffusionModel;
+using lm::io::ReactionModel;
+using lm::io::TrajectoryState;
+using std::map;
+using std::string;
 
 namespace lm {
 namespace fflux {
 
-FFluxTrajectory::FFluxTrajectory(uint64_t id, lm::message::Message trajectoryTemplateMsg, lm::io::TrajectoryState* state, lm::tiling::Tilings& tilings, uint ffluxPhase): //TODO: make this signature less terrible
-Trajectory(id), tilings(tilings), ffluxPhase(ffluxPhase)
+FFluxTrajectory::FFluxTrajectory(uint64_t id,uint ffluxPhase,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,lm::tiling::Tilings& tilings):
+Trajectory(id,reactionModel,diffusionModel,simulationParameters),ffluxPhase(ffluxPhase),tilings(tilings)
 {
-    // Initialize the trajectory's Message msg, TrajectoryState state, and Tilings tilings fields
-    setMsg(trajectoryTemplateMsg);
+    setLimits();
+}
 
-    // Make instance local copies of the supervisor's state
-    setState(*state);
-
-    // Set the trajectory id in the trajectory state.
-    getState().set_trajectory_id(id);
-
-    // Set the trajectory id in the CME state of the trajectory state (if applicable).
-    if (getState().has_cme_state())
-        getState().mutable_cme_state()->mutable_species_counts()->set_trajectory_id(id);
-
-    // Set the trajectory id in the RDME state of the trajectory state (if applicable).
-//        if (trajectories[id]->getState().has_rdme_state())
-//            trajectories[id]->getState().mutable_rdme_state()->mutable_species_counts()->set_trajectory_id(id);
-
+FFluxTrajectory::FFluxTrajectory(uint64_t id,uint ffluxPhase,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,lm::tiling::Tilings& tilings,const lm::io::TrajectoryState& zerothState):
+Trajectory(id,reactionModel,diffusionModel,simulationParameters,zerothState),ffluxPhase(ffluxPhase),tilings(tilings)
+{
     // Limit setting code
     setLimits();
 }
 
 FFluxTrajectory::~FFluxTrajectory()
 {
-}
-
-FFluxTrajectory::init(lm::message::Message& msg)
-{
-msg
 }
 
 bool FFluxTrajectory::fluxedBackward()

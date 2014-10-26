@@ -4,8 +4,8 @@
  * All rights reserved.
  *
  * Developed by: Roberts Group
- * 			     Johns Hopkins University
- * 			     http://biophysics.jhu.edu/roberts/
+ *               Johns Hopkins University
+ *               http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -36,12 +36,12 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #ifndef LM_RESOURCE_TRAJECTORYLIST_H_
 #define LM_RESOURCE_TRAJECTORYLIST_H_
 
 #include <map>
 #include <string>
+
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
@@ -58,10 +58,9 @@ namespace resource {
 class TrajectoryList
 {
 public:
-    TrajectoryList();
+    TrajectoryList(const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel, map<string,string>& simulationParameters);
     virtual ~TrajectoryList();
     virtual void init()=0;
-    virtual void initMsg(int supervisorProcess, int supervisorThread, int outputProcess, int outputThread);
 
     // getter
     virtual lm::resource::Trajectory* getTrajectory(uint64_t trajectoryID);
@@ -83,14 +82,17 @@ public:
     virtual lm::resource::Trajectory* workUnitFinished(const lm::message::FinishedWorkUnit & msg);
 
     // dealing with the internal template Message methods
-	virtual lm::message::RunWorkUnit* getRunMsg() {return trajectoryTemplateMsg.mutable_run_work_unit();}
-	virtual lm::io::TrajectoryLimits* getLimitsMsg() {return getRunMsg()->mutable_limits();}
+//    virtual lm::message::RunWorkUnit* getRunMsg() {return trajectoryTemplateMsg.mutable_run_work_unit();}
+//    virtual lm::io::TrajectoryLimits* getLimitsMsg() {return getRunMsg()->mutable_limits();}
 
 protected:
+    const lm::io::ReactionModel& reactionModel;
+    const lm::io::DiffusionModel& diffusionModel;
+    map<string,string>& simulationParameters;
     uint64_t trajectoryCount;
     int64_t workUnitCount;
     // this template message is used when initializing new Trajectory instances
-    lm::message::Message trajectoryTemplateMsg;
+    //lm::message::Message trajectoryTemplateMsg;
     TrajectoryMap trajectories;
 };
 

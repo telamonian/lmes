@@ -36,7 +36,6 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #ifndef FFLUXSUPERVISOR_H_
 #define FFLUXSUPERVISOR_H_
 

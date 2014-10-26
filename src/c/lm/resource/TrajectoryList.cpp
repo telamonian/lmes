@@ -4,8 +4,8 @@
  * All rights reserved.
  *
  * Developed by: Roberts Group
- * 			     Johns Hopkins University
- * 			     http://biophysics.jhu.edu/roberts/
+ *               Johns Hopkins University
+ *               http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -36,7 +36,6 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #include <list>
 #include <map>
 #include <string>
@@ -50,14 +49,16 @@
 #include "lm/resource/TrajectoryList.h"
 #include "lm/Types.h"
 
+using lm::io::DiffusionModel;
+using lm::io::ReactionModel;
 using std::map;
 using std::string;
 
 namespace lm {
 namespace resource {
 
-TrajectoryList::TrajectoryList()
-:trajectoryCount(0),workUnitCount(0)
+TrajectoryList::TrajectoryList(const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters)
+:reactionModel(reactionModel),diffusionModel(diffusionModel),simulationParameters(simulationParameters),trajectoryCount(0),workUnitCount(0)
 {
 }
 
@@ -66,20 +67,9 @@ TrajectoryList::~TrajectoryList()
     deleteAllTrajectories();
 }
 
-void TrajectoryList::initMsg(int supervisorProcess, int supervisorThread, int outputProcess, int outputThread)
-{
-    getRunMsg()->set_supervisor_process(supervisorProcess);
-    getRunMsg()->set_supervisor_thread(supervisorThread);
-    // Set the default writer process/thread
-    getRunMsg()->set_output_process(outputProcess);
-    getRunMsg()->set_output_thread(outputThread);
-    // Set the default work unit-specific limits
-    getRunMsg()->set_max_steps(100);
-}
-
 void TrajectoryList::deleteAllTrajectories()
 {
-	for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+    for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
     {
         delete it->second;
     }
@@ -88,53 +78,53 @@ void TrajectoryList::deleteAllTrajectories()
 
 void TrajectoryList::deleteTrajectory(uint64_t trajectoryID)
 {
-	TrajectoryMap::iterator it(trajectories.find(trajectoryID));
-	delete it->second;
-	trajectories.erase(it);
+    TrajectoryMap::iterator it(trajectories.find(trajectoryID));
+    delete it->second;
+    trajectories.erase(it);
 }
 
-lm::resource::Trajectory* TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
+lm::resource::Trajectory* TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg) // TODO: refactor into a Trajectory mutator
 {
-	if (msg.status() == lm::message::FinishedWorkUnit::LIMIT_REACHED)
-	{
-		setTrajectoryStatus(msg.final_state().trajectory_id(), Trajectory::FINISHED);
-		setTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
-	}
-	else
-	{
-		setTrajectoryStatus(msg.final_state().trajectory_id(), Trajectory::WAITING);
-		setTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
-	}
-	setTrajectoryStarted(msg.final_state().trajectory_id(), true);
-	return getTrajectory(msg.final_state().trajectory_id());
+    if (msg.status() == lm::message::FinishedWorkUnit::LIMIT_REACHED)
+    {
+        setTrajectoryStatus(msg.final_state().trajectory_id(), Trajectory::FINISHED);
+        setTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
+    }
+    else
+    {
+        setTrajectoryStatus(msg.final_state().trajectory_id(), Trajectory::WAITING);
+        setTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
+    }
+    setTrajectoryStarted(msg.final_state().trajectory_id(), true);
+    return getTrajectory(msg.final_state().trajectory_id());
 }
 
-lm::message::Message * TrajectoryList::getNextWorkUnitMsg()
+lm::message::Message * TrajectoryList::getNextWorkUnitMsg() // TODO: refactor into a Trajectory accessor
 {
-	for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
-	{
-		if (it->second->getStatus()==Trajectory::NOT_STARTED || it->second->getStatus()==Trajectory::WAITING)
-		{
-			it->second->setStatus(Trajectory::RUNNING);
-			it->second->setWorkUnitId(workUnitCount++);
-			it->second->updateInitialRunState();
-			return it->second->getMsg();
-		}
-	}
-	return NULL;
+    for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+    {
+        if (it->second->getStatus()==Trajectory::NOT_STARTED || it->second->getStatus()==Trajectory::WAITING)
+        {
+            it->second->setStatus(Trajectory::RUNNING);
+            it->second->setWorkUnitId(workUnitCount++);
+            it->second->updateInitialRunState();
+            return it->second->getMsg();
+        }
+    }
+    return NULL;
 }
 
 // check if all of the trajectories are truly finished or if some of them are still running
 bool TrajectoryList::isFinished()
 {
-	for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
-	{
-		if (it->second->getStatus()==Trajectory::RUNNING)
-		{
-			return false;
-		}
-	}
-	return true;
+    for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+    {
+        if (it->second->getStatus()==Trajectory::RUNNING)
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 lm::resource::Trajectory* TrajectoryList::getTrajectory(uint64_t trajectoryID)
@@ -154,7 +144,7 @@ const lm::io::TrajectoryState& TrajectoryList::getTrajectoryState(uint64_t traje
 
 void TrajectoryList::setTrajectoryStarted(uint64_t trajectoryID, bool trajectoryStarted)
 {
-	trajectories[trajectoryID]->setStarted(trajectoryStarted);
+    trajectories[trajectoryID]->setStarted(trajectoryStarted);
 }
 
 void TrajectoryList::setTrajectoryStatus(uint64_t trajectoryID, Trajectory::status_t status)
