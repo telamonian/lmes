@@ -41,7 +41,7 @@
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
-#include "lm/fflux/FFluxTrajectoryList.h"
+#include "lm/fflux/FFluxTrajectory.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/OrderParameters.pb.h"
 #include "lm/io/ReactionModel.pb.h"
@@ -51,11 +51,12 @@
 #include "lm/tiling/Tilings.h"
 #include "lm/Types.h"
 
-class FFluxSupervisorFixture : public ::testing::Test
+class FFluxTrajectoryFixture : public ::testing::Test
 {
 public:
-    FFluxSupervisorFixture(): simultaneousTrajectoryCount(8), ffTL(NULL), file("/Users/tel/git/lm/gtest/data/lm/fflux/biphasic_switch.lm")
+    FFluxTrajectoryFixture(): simultaneousTrajectoryCount(8), ffT(NULL), file("/Users/tel/git/lm/gtest/data/lm/fflux/biphasic_switch.lm")
     {
+        file.getDiffusionModel(&diffBuf);
         file.getOrderParameters(&opBuf);
         ops.init(opBuf);
         file.getReactionModel(&reactBuf);
@@ -66,14 +67,15 @@ public:
         }
         file.getTilings(&tilingBuf);
         tilings.init(tilingBuf);
-        ffTL = new lm::fflux::FFluxTrajectoryList(8, simulationParameterMap, reactBuf, tilings);
+        ffTL = new lm::fflux::FFluxTrajectoryList(8,reactBuf,diffBuf,simulationParameterMap,tilings);
         ffTL->init();
     }
     static uint speciesCounts[7];
     uint64_t simultaneousTrajectoryCount;
-    map<std::string,std::string> simulationParameterMap;
-    lm::fflux::FFluxTrajectoryList* ffTL;
+    std::map<std::string,std::string> simulationParameterMap;
+    lm::fflux::FFluxTrajectory* ffT;
     lm::io::hdf5::Hdf5File file;
+    lm::io::DiffusionModel diffBuf;
     lm::io::OrderParameters opBuf;
     lm::io::ReactionModel reactBuf;
     lm::io::SimulationParameters simulationParametersBuf;
@@ -82,48 +84,50 @@ public:
     lm::tiling::Tilings tilings;
 };
 
-
-TEST_F(FFluxSupervisorFixture, IncrFFluxPhase)
+TEST_F(FFluxTrajectoryFixture, FluxedBackward)
 {
-    EXPECT_EQ(ffTL->getFFluxPhase(), 0);
-    for (int i=0;i<100;++i)
-    {
-        ffTL->incrFFluxPhase();
-    }
-    EXPECT_EQ(ffTL->getFFluxPhase(), 100);
+    ffT->getTrajectory(2)->getState().set_final_limit_type(lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER);
+    EXPECT_EQ(static_cast<lm::fflux::FFluxTrajectory*>(ffT->getTrajectory(2))->fluxedBackward(), true);
 }
 
-TEST_F(FFluxSupervisorFixture, IsZerothPhase)
+TEST_F(FFluxTrajectoryFixture, FluxedForward)
 {
-    EXPECT_EQ(ffTL->isZerothPhase(), true);
-    ffTL->incrFFluxPhase();
-    EXPECT_EQ(ffTL->isZerothPhase(), false);
+    EXPECT_EQ(ffT->isZerothPhase(), true);
+    ffT->incrFFluxPhase();
+    EXPECT_EQ(ffT->isZerothPhase(), false);
 }
 
-TEST_F(FFluxSupervisorFixture, IsZerothPhaseDone)
+TEST_F(FFluxTrajectoryFixture, GetFinalLimitType)
 {
-    EXPECT_EQ(ffTL->isZerothPhase(), true);
-    ffTL->incrFFluxPhase();
-    EXPECT_EQ(ffTL->isZerothPhase(), false);
+    EXPECT_EQ(ffT->isZerothPhase(), true);
+    ffT->incrFFluxPhase();
+    EXPECT_EQ(ffT->isZerothPhase(), false);
 }
 
-TEST_F(FFluxSupervisorFixture, Reset)
+TEST_F(FFluxTrajectoryFixture, GetSimSteps)
 {
-    EXPECT_EQ(ffTL->isZerothPhase(), true);
-    ffTL->incrFFluxPhase();
-    EXPECT_EQ(ffTL->isZerothPhase(), false);
+    EXPECT_EQ(ffT->isZerothPhase(), true);
+    ffT->incrFFluxPhase();
+    EXPECT_EQ(ffT->isZerothPhase(), false);
 }
 
-TEST_F(FFluxSupervisorFixture, Restart)
+TEST_F(FFluxTrajectoryFixture, GetSimTime)
 {
-    EXPECT_EQ(ffTL->isZerothPhase(), true);
-    ffTL->incrFFluxPhase();
-    EXPECT_EQ(ffTL->isZerothPhase(), false);
+    EXPECT_EQ(ffT->isZerothPhase(), true);
+    ffT->incrFFluxPhase();
+    EXPECT_EQ(ffT->isZerothPhase(), false);
 }
 
-TEST_F(FFluxSupervisorFixture, SaveCrossings)
+TEST_F(FFluxTrajectoryFixture, HasElapsed)
 {
-    EXPECT_EQ(ffTL->isZerothPhase(), true);
-    ffTL->incrFFluxPhase();
-    EXPECT_EQ(ffTL->isZerothPhase(), false);
+    EXPECT_EQ(ffT->isZerothPhase(), true);
+    ffT->incrFFluxPhase();
+    EXPECT_EQ(ffT->isZerothPhase(), false);
+}
+
+TEST_F(FFluxTrajectoryFixture, SetLimits)
+{
+    EXPECT_EQ(ffT->isZerothPhase(), true);
+    ffT->incrFFluxPhase();
+    EXPECT_EQ(ffT->isZerothPhase(), false);
 }

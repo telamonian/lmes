@@ -70,10 +70,9 @@ public:
     FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters, lm::tiling::Tilings& tilings);
     virtual ~FFluxTrajectoryList();
     virtual void init();
-    virtual void initTrajectory(uint64_t trajectoryID, lm::io::TrajectoryState* trajectoryState);
-    virtual void initPhaseZeroTrajectory(lm::io::TrajectoryState* oldCrossing);
-    virtual void initPhaseNTrajectories(uint64_t trajectoriesToStart, long long lastFFluxPhase);
-    virtual lm::io::TrajectoryState* initFirstTrajectoryState();
+    virtual void initTrajectories(uint64_t toStartCount);
+    virtual void initTrajectories(uint64_t toStartCount, lm::io::TrajectoryState* zerothTraj);
+    virtual void initPhaseNTrajectories(uint64_t trajectoriesToStart);
 
     virtual lm::fflux::FFluxTrajectory* workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg);
 

@@ -120,26 +120,26 @@ void ReplicateSupervisor::startSimulation()
     Print::printf(Print::INFO, "Replicate supervisor starting simulation.");
 
     // Create the new trajectory list.
-    trajectories = new ReplicateTrajectoryList(::replicates.front(), ::replicates.back(), simulationParameterMap, reactionModel, diffusionModel);
+    trajectories = new ReplicateTrajectoryList(reactionModel, diffusionModel, simulationParameterMap, ::replicates.front(), ::replicates.back());
 
     // Get the trajectories template msg so that we can set some default values in it
-    lm::message::RunWorkUnit* runWorkUnitMsg = trajectories->getRunMsg();
-	// Set the default source process/thread
-	runWorkUnitMsg->set_supervisor_process(communicator.getSourceProcess());
-	runWorkUnitMsg->set_supervisor_thread(communicator.getSourceThread());
-    // Set the default writer process/thread
-	runWorkUnitMsg->set_output_process(outputWriterProcess);
-	runWorkUnitMsg->set_output_thread(outputWriterThread);
-	// Set the default work unit-specific limits
-    runWorkUnitMsg->set_max_steps(1000000);
-	// Set the default trajectory limits
-    initLimits();
-
-	lm::io::TrajectoryLimits* trajectoryLimits = new lm::io::TrajectoryLimits(limits);
-	runWorkUnitMsg->set_allocated_limits(trajectoryLimits);
-
-	// Now that the template msg has been set properly, initialize the trajectory list
-	trajectories->init();
+//    lm::message::RunWorkUnit* runWorkUnitMsg = trajectories->getRunMsg();
+//	// Set the default source process/thread
+//	runWorkUnitMsg->set_supervisor_process(communicator.getSourceProcess());
+//	runWorkUnitMsg->set_supervisor_thread(communicator.getSourceThread());
+//    // Set the default writer process/thread
+//	runWorkUnitMsg->set_output_process(outputWriterProcess);
+//	runWorkUnitMsg->set_output_thread(outputWriterThread);
+//	// Set the default work unit-specific limits
+//    runWorkUnitMsg->set_max_steps(1000000);
+//	// Set the default trajectory limits
+//    initLimits();
+//
+//	lm::io::TrajectoryLimits* trajectoryLimits = new lm::io::TrajectoryLimits(limits);
+//	runWorkUnitMsg->set_allocated_limits(trajectoryLimits);
+//
+//	// Now that the template msg has been set properly, initialize the trajectory list
+//	trajectories->init();
 
     // Call the base class method
     SimulationSupervisor::startSimulation();

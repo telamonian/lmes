@@ -57,6 +57,7 @@ class FFluxTrajectoryListFixture : public ::testing::Test
 public:
     FFluxTrajectoryListFixture(): simultaneousTrajectoryCount(8), ffTL(NULL), file("/Users/tel/git/lm/gtest/data/lm/fflux/biphasic_switch.lm")
     {
+        file.getDiffusionModel(&diffBuf);
         file.getOrderParameters(&opBuf);
         ops.init(opBuf);
         file.getReactionModel(&reactBuf);
@@ -67,7 +68,7 @@ public:
         }
         file.getTilings(&tilingBuf);
         tilings.init(tilingBuf);
-        ffTL = new lm::fflux::FFluxTrajectoryList(8, simulationParameterMap, reactBuf, tilings);
+        ffTL = new lm::fflux::FFluxTrajectoryList(8,reactBuf,diffBuf,simulationParameterMap,tilings);
         ffTL->init();
     }
     ~FFluxTrajectoryListFixture()
@@ -79,6 +80,7 @@ public:
     map<std::string,std::string> simulationParameterMap;
     lm::fflux::FFluxTrajectoryList* ffTL;
     lm::io::hdf5::Hdf5File file;
+    lm::io::DiffusionModel diffBuf;
     lm::io::OrderParameters opBuf;
     lm::io::ReactionModel reactBuf;
     lm::io::SimulationParameters simulationParametersBuf;
@@ -91,7 +93,7 @@ TEST_F(FFluxTrajectoryListFixture, AddCrossing)
 {
     lm::message::FinishedWorkUnit fWUB;
     // get a random-ish TrajectoryState in order to initialize the FinishedWorkUnit
-    *fWUB.mutable_final_state() = ffTL->getTrajectoryState(2);
+    *fWUB.mutable_final_state() = *(ffTL->getTrajectoryState(2));
 
     ffTL->addCrossing(fWUB);
     raise(SIGINT);
@@ -125,7 +127,7 @@ TEST_F(FFluxTrajectoryListFixture, IsPhaseDone)
 {
     lm::message::FinishedWorkUnit fWUB;
     // get a random-ish TrajectoryState in order to initialize the FinishedWorkUnit
-    *fWUB.mutable_final_state() = ffTL->getTrajectoryState(2);
+    *fWUB.mutable_final_state() = *(ffTL->getTrajectoryState(2));
 
     ffTL->incrFFluxPhase();
     EXPECT_EQ(ffTL->isPhaseDone(), false);
@@ -150,7 +152,7 @@ TEST_F(FFluxTrajectoryListFixture, IsZerothPhase)
 TEST_F(FFluxTrajectoryListFixture, IsZerothPhaseDone)
 {
     // a live pointer to the SpeciesCounts that lives in the 3rd trajectory of FFluxTrajectoryList
-    lm::io::SpeciesCounts* sC = ffTL->getTrajectory(2)->getState().mutable_cme_state()->mutable_species_counts();
+    lm::io::SpeciesCounts* sC = ffTL->getTrajectory(2)->getState()->mutable_cme_state()->mutable_species_counts();
 
     EXPECT_EQ(ffTL->isZerothPhaseDone(static_cast<lm::fflux::FFluxTrajectory*>(ffTL->getTrajectory(2))), false);
     sC->add_time(ffTL->getMaxPhaseZeroTime()-.02);
@@ -179,7 +181,7 @@ TEST_F(FFluxTrajectoryListFixture, SaveCrossings)
 {
     lm::message::FinishedWorkUnit fWUB;
     // get a random-ish TrajectoryState in order to initialize the FinishedWorkUnit
-    *fWUB.mutable_final_state() = ffTL->getTrajectoryState(2);
+    *fWUB.mutable_final_state() = *(ffTL->getTrajectoryState(2));
 
     ffTL->addCrossing(fWUB);
     ffTL->saveCrossings();

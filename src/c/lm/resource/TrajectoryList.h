@@ -65,7 +65,7 @@ public:
     // getter
     virtual lm::resource::Trajectory* getTrajectory(uint64_t trajectoryID);
     virtual lm::resource::Trajectory::status_t getTrajectoryStatus(uint64_t trajectoryID);
-    virtual const lm::io::TrajectoryState& getTrajectoryState(uint64_t trajectoryID);
+    virtual lm::io::TrajectoryState* getTrajectoryState(uint64_t trajectoryID);
     virtual bool exists(uint64_t trajectoryID) {if (trajectories.find(trajectoryID)!=trajectories.end()) return true; else return false;}
 
     // setter
@@ -90,7 +90,7 @@ protected:
     const lm::io::DiffusionModel& diffusionModel;
     map<string,string>& simulationParameters;
     uint64_t trajectoryCount;
-    int64_t workUnitCount;
+    uint64_t workUnitCount;
     // this template message is used when initializing new Trajectory instances
     //lm::message::Message trajectoryTemplateMsg;
     TrajectoryMap trajectories;

@@ -78,6 +78,7 @@ FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,co
  simultaneousTrajectoryCount(simultaneousTrajectoryCount),
  xorShift(0,0)  //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
+    init();
 }
 
 FFluxTrajectoryList::~FFluxTrajectoryList()
@@ -115,64 +116,33 @@ FFluxTrajectoryList::~FFluxTrajectoryList()
 
 void FFluxTrajectoryList::init()
 {
-    lm::io::TrajectoryState* trajectoryState = initFirstTrajectoryState();
-    for (long long i=0; i<=simultaneousTrajectoryCount; i++)
-    {
-        initTrajectory(trajectoryCount++, trajectoryState);
-    }
-    delete trajectoryState;
+    initTrajectories(simultaneousTrajectoryCount);
 }
 
-void FFluxTrajectoryList::initPhaseZeroTrajectory(lm::io::TrajectoryState* oldCrossing)
+void FFluxTrajectoryList::initTrajectories(uint64_t trajectoriesToStart)
 {
-    // While still in the 0th phase of forward flux sampling, if a crossing event is detected and a trajectory stops, start a new trajectory from that same crossing event
-    initTrajectory(trajectoryCount++, oldCrossing);
-    // TODO: limit setting code
+    for (long long i=0; i<=trajectoriesToStart; i++)
+    {
+        trajectories[i] = new lm::fflux::FFluxTrajectory(trajectoryCount++,ffluxPhase,reactionModel,diffusionModel,simulationParameters,tilings);
+    }
 }
 
-void FFluxTrajectoryList::initPhaseNTrajectories(uint64_t trajectoriesToStart, long long FFluxPhase)
+void FFluxTrajectoryList::initTrajectories(uint64_t trajectoriesToStart, lm::io::TrajectoryState* zerothTraj)
+{
+    for (long long i=0; i<=trajectoriesToStart; i++)
+    {
+        trajectories[i] = new lm::fflux::FFluxTrajectory(trajectoryCount++,ffluxPhase,reactionModel,diffusionModel,simulationParameters,tilings,zerothTraj);
+    }
+}
+
+void FFluxTrajectoryList::initPhaseNTrajectories(uint64_t trajectoriesToStart)
 {
     for (long long i=0; i<trajectoriesToStart; i++)
     {
         // Randomly choose a crossing state collected in the last round of fflux sampling, and use as the starting state for a new trajectory
-        lm::io::TrajectoryState* randomCrossing = getRandomCrossing(FFluxPhase - 1);
-        initTrajectory(trajectoryCount++, randomCrossing);
-        // TODO: limit setting code
+        lm::io::TrajectoryState* randomCrossing = getRandomCrossing(ffluxPhase - 1);
+        initTrajectories(1, randomCrossing);
     }
-}
-
-void FFluxTrajectoryList::initTrajectory(uint64_t id, lm::io::TrajectoryState* state)
-{
-    // Construct new trajectory
-    trajectories[id] = new lm::fflux::FFluxTrajectory(id, trajectoryTemplateMsg, state, tilings, ffluxPhase);
-
-//    // Initialize the trajectory's runWorkUnit message
-//    trajectories[id]->setMsg(trajectoryTemplateMsg);
-//
-//    // Copy the TrajectoryState referenced in the function args to the TrajectoryState of the newly constructed trajectory
-//    trajectories[id]->setState(*state);
-//
-//    // Set the trajectory id in the trajectory state.
-//    trajectories[id]->getState().set_trajectory_id(id);
-//
-//    // Set the trajectory id in the CME state of the trajectory state (if applicable).
-//    if (trajectories[id]->getState().has_cme_state())
-//        trajectories[id]->getState().mutable_cme_state()->mutable_species_counts()->set_trajectory_id(id);
-
-    // Set the trajectory id in the RDME state of the trajectory state (if applicable).
-//    if (trajectories[id]->getState().has_rdme_state())
-//        trajectories[id]->getState().mutable_rdme_state()->mutable_species_counts()->set_trajectory_id(id);
-}
-
-lm::io::TrajectoryState* FFluxTrajectoryList::initFirstTrajectoryState()
-{
-    lm::io::TrajectoryState* trajectoryState = new lm::io::TrajectoryState();
-    trajectoryState->mutable_cme_state()->mutable_species_counts()->set_number_species(reactionModel.number_species());
-    trajectoryState->mutable_cme_state()->mutable_species_counts()->set_number_entries(1);
-    for (int j=0; j<(int)reactionModel.number_species(); j++)
-        trajectoryState->mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.initial_species_count(j));
-    trajectoryState->mutable_cme_state()->mutable_species_counts()->add_time(0.0);
-    return trajectoryState;
 }
 
 lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg)
@@ -211,14 +181,14 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
                     // ...increment the interface position (by altering the increasing/decreasing limits)...
 //                    ratchetInterfaces();
                     // ...and start up a new set of trajectories
-                    initPhaseNTrajectories(simultaneousTrajectoryCount,ffluxPhase);
+                    initPhaseNTrajectories(simultaneousTrajectoryCount);
                 }
             }
             // ...otherwise we still have more time to go in phase zero...
             else
             {
                 // ...so start one phase zero trajectory.
-                initPhaseZeroTrajectory(crossings[ffluxPhase].back());
+                initTrajectories(1, crossings[ffluxPhase].back());
             }
         }
         // ...otherwise if ffluxPhase > 0...
@@ -236,7 +206,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
                     // ...increment the interface position (by altering the increasing/decreasing limits)...
 //                    ratchetInterfaces();
                     // ...and start up a new set of trajectories
-                    initPhaseNTrajectories(simultaneousTrajectoryCount,ffluxPhase);
+                    initPhaseNTrajectories(simultaneousTrajectoryCount);
                 }
                 // ...otherwise if the whole simulation is complete, output some data.
                 else
@@ -266,7 +236,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
             else
             {
                 // ...so start one phase N trajectory.
-                initPhaseNTrajectories(1, ffluxPhase);
+                initPhaseNTrajectories(1);
             }
         }
     }

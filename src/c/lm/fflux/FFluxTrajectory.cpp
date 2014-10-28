@@ -63,14 +63,14 @@ namespace fflux {
 FFluxTrajectory::FFluxTrajectory(uint64_t id,uint ffluxPhase,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,lm::tiling::Tilings& tilings):
 Trajectory(id,reactionModel,diffusionModel,simulationParameters),ffluxPhase(ffluxPhase),tilings(tilings)
 {
-    setLimits();
+    initLimits();
 }
 
-FFluxTrajectory::FFluxTrajectory(uint64_t id,uint ffluxPhase,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,lm::tiling::Tilings& tilings,const lm::io::TrajectoryState& zerothState):
+FFluxTrajectory::FFluxTrajectory(uint64_t id,uint ffluxPhase,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,lm::tiling::Tilings& tilings,TrajectoryState* zerothState):
 Trajectory(id,reactionModel,diffusionModel,simulationParameters,zerothState),ffluxPhase(ffluxPhase),tilings(tilings)
 {
     // Limit setting code
-    setLimits();
+    initLimits();
 }
 
 FFluxTrajectory::~FFluxTrajectory()
@@ -103,17 +103,17 @@ bool FFluxTrajectory::fluxedForward()
 
 lm::io::TrajectoryLimits::LimitType FFluxTrajectory::getFinalLimitType()
 {
-    return state.final_limit_type();
+    return getState()->final_limit_type();
 }
 
 uint FFluxTrajectory::getSimSteps()
 {
-    return getState().cme_state().species_counts().number_entries();
+    return getState()->cme_state().species_counts().number_entries();
 }
 
 double FFluxTrajectory::getSimTime()
 {
-    return getState().cme_state().species_counts().time(getState().cme_state().species_counts().time_size() - 1);
+    return getState()->cme_state().species_counts().time(getState()->cme_state().species_counts().time_size() - 1);
 }
 
 bool FFluxTrajectory::hasElapsed(double time)
@@ -121,7 +121,7 @@ bool FFluxTrajectory::hasElapsed(double time)
     return (getSimTime()>=time);
 }
 
-void FFluxTrajectory::setLimits()
+void FFluxTrajectory::initLimits()
 {
     getRunMsg()->mutable_limits()->Clear();
     switch ((ffluxPhase!=0)<<1|tilings[0]->getArrangement()!=lm::io::Tilings::ASCENDING) // each of the 4 sets of possible pairs of true/false values corresponds to one of the numbers 0-3

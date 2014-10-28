@@ -44,54 +44,51 @@
 
 #include "lm/io/Tilings.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/Print.h"
 #include "lm/replicates/ReplicateTrajectory.h"
 #include "lm/tiling/Tilings.h"
 #include "lm/Types.h"
 
+using lm::io::DiffusionModel;
+using lm::io::ReactionModel;
+using lm::io::TrajectoryState;
+using std::map;
+using std::string;
+
 namespace lm {
 namespace replicates {
 
-ReplicateTrajectory::ReplicateTrajectory(uint64_t id, lm::message::Message trajectoryTemplateMsg, lm::io::TrajectoryState* state, lm::tiling::Tilings& tilings, uint ffluxPhase): //TODO: make this signature less terrible
-Trajectory(id)
+ReplicateTrajectory::ReplicateTrajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters):
+Trajectory(id,reactionModel,diffusionModel,simulationParameters)
 {
-    // Initialize the trajectory's Message msg, TrajectoryState state, and Tilings tilings fields
-    setMsg(trajectoryTemplateMsg);
-
-    // Make instance local copies of the supervisor's state
-    setState(*state);
-
-    // Set the trajectory id in the trajectory state.
-    getState().set_trajectory_id(id);
-
-    // Set the trajectory id in the CME state of the trajectory state (if applicable).
-    if (getState().has_cme_state())
-        getState().mutable_cme_state()->mutable_species_counts()->set_trajectory_id(id);
-
-    // Set the trajectory id in the RDME state of the trajectory state (if applicable).
-//        if (trajectories[id]->getState().has_rdme_state())
-//            trajectories[id]->getState().mutable_rdme_state()->mutable_species_counts()->set_trajectory_id(id);
-
     // Limit setting code
-    setLimits();
+    initLimits(reactionModel,simulationParameters);
+}
+
+ReplicateTrajectory::ReplicateTrajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,TrajectoryState* zerothState):
+Trajectory(id,reactionModel,diffusionModel,simulationParameters,zerothState)
+{
+    // Limit setting code
+    initLimits(reactionModel,simulationParameters);
 }
 
 ReplicateTrajectory::~ReplicateTrajectory()
 {
 }
 
-void SimulationSupervisor::initLimits()
+void ReplicateTrajectory::initLimits(const ReactionModel& reactionModel,map<string,string>& simulationParameters)
 {
     // See if we have a max time limit.
-    if (simulationParameterMap.count("maxTime"))
-        limits.set_max_time(atof(simulationParameterMap["maxTime"].c_str()));
+    if (simulationParameters.count("maxTime"))
+        getLimits()->set_max_time(atof(simulationParameters["maxTime"].c_str()));
 
     // Set the species lower limits from the parameters.
-    if (simulationParameterMap.count("speciesLowerLimitList"))
+    if (simulationParameters.count("speciesLowerLimitList"))
     {
         for (int i=0; i<(int)reactionModel.number_species(); i++)
-            limits.add_min_species_count(-1);
+            getLimits()->add_min_species_count(-1);
 
-        string listString = simulationParameterMap["speciesLowerLimitList"];
+        string listString = simulationParameters["speciesLowerLimitList"];
         size_t start=0, end=0;
         while (end != string::npos)
         {
@@ -104,7 +101,7 @@ void SimulationSupervisor::initLimits()
             {
                 int parsedSpecies = atoi(speciesLowerLimit.substr(0, equalsPos).c_str());
                 int parsedLimit = atoi(speciesLowerLimit.substr(equalsPos+1, string::npos).c_str());
-                limits.set_min_species_count(parsedSpecies, parsedLimit);
+                getLimits()->set_min_species_count(parsedSpecies, parsedLimit);
                 Print::printf(Print::DEBUG, "Parsed lower limit %s to: %d => %d", speciesLowerLimit.c_str(), parsedSpecies, parsedLimit);
             }
             start = end+1;
@@ -112,12 +109,12 @@ void SimulationSupervisor::initLimits()
     }
 
     // Set the species upper limits from the parameters.
-    if (simulationParameterMap.count("speciesUpperLimitList"))
+    if (simulationParameters.count("speciesUpperLimitList"))
     {
         for (int i=0; i<(int)reactionModel.number_species(); i++)
-            limits.add_max_species_count(-1);
+            getLimits()->add_max_species_count(-1);
 
-        string listString = simulationParameterMap["speciesUpperLimitList"];
+        string listString = simulationParameters["speciesUpperLimitList"];
         size_t start=0, end=0;
         while (end != string::npos)
         {
@@ -130,7 +127,7 @@ void SimulationSupervisor::initLimits()
             {
                 uint parsedSpecies = atoi(speciesUpperLimit.substr(0, equalsPos).c_str());
                 uint parsedLimit = atoi(speciesUpperLimit.substr(equalsPos+1, string::npos).c_str());
-                limits.set_max_species_count(parsedSpecies, parsedLimit);
+                getLimits()->set_max_species_count(parsedSpecies, parsedLimit);
                 Print::printf(Print::DEBUG, "Parsed upper limit %s to: %d <= %d", speciesUpperLimit.c_str(), parsedSpecies, parsedLimit);
             }
             start = end+1;

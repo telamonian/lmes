@@ -41,6 +41,8 @@
 
 #include <map>
 #include <string>
+
+#include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Message.pb.h"
@@ -56,29 +58,31 @@ public:
     enum status_t {NOT_STARTED, RUNNING, WAITING, FINISHED};
 
     Trajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters);
-    Trajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,const lm::io::TrajectoryState& zerothState);
+    Trajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::io::TrajectoryState* zerothState);
     virtual ~Trajectory();
     virtual void initMsg(std::map<std::string,std::string>& simulationParameters);
     virtual void initMsg(const lm::message::Message& newMsg);
     virtual void initState(const lm::io::ReactionModel& reactionModel);
-    virtual void initState(const lm::io::TrajectoryState& zerothState);
-    virtual void initLimits() = 0;
+    virtual void initState(lm::io::TrajectoryState* zerothState);
+//    virtual void initLimits() = 0;
 
     // accessors
     virtual uint64_t getID();
+    virtual lm::io::TrajectoryLimits* getLimits();
     virtual lm::message::Message* getMsg();
+    virtual lm::message::Message* getNextWorkUnitMsg(uint64_t nextWorkUnitID);
     virtual lm::message::RunWorkUnit* getRunMsg();
-    virtual lm::io::TrajectoryState& getState();
+    virtual lm::io::TrajectoryState* getState();
     virtual status_t getStatus();
 
     // mutators
     virtual void setID(uint64_t id);
+    virtual void setLimits(const lm::io::TrajectoryLimits* newLimits);
     virtual void setMsg(const lm::message::Message& newMsg);
     virtual void setStarted(bool trajectoryStarted);
-    virtual void setState(const lm::io::TrajectoryState& newState);
+    virtual void setState(const lm::io::TrajectoryState* newState);
     virtual void setStatus(status_t newStatus);
-    virtual void setWorkUnitId(int64_t id);
-    virtual void updateInitialRunState();
+    virtual void setWorkUnitId(uint64_t id);
 
 protected:
     uint64_t id;
@@ -86,8 +90,8 @@ protected:
 //    lm::io::ReactionModel& reactionModel;
 //    lm::io::DiffusionModel& diffusionModel;
 //    map<string,string> simulationParameters;
-    lm::io::TrajectoryLimits limits;
-    lm::io::TrajectoryState state;  // state is supposed to be synced at all (or at least most) times with the msg.run_work_unit.initial_state field
+//    lm::io::TrajectoryLimits limits;
+//    lm::io::TrajectoryState state;  // state is supposed to be synced at all (or at least most) times with the msg.run_work_unit.initial_state field
     status_t status;
 };
 

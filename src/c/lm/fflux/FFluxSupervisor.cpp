@@ -120,13 +120,7 @@ void FFluxSupervisor::startSimulation()
     Print::printf(Print::INFO, "Forward flux supervisor starting simulation.");
 
     // Create the new trajectory list.
-    trajectories = new FFluxTrajectoryList(communicator.getSourceProcess(), communicator.getSourceProcess(), outputWriterProcess, outputWriterThread, slots.getSlotsSize(), simulationParameterMap, reactionModel, tilings);
-
-	lm::io::TrajectoryLimits* trajectoryLimits = new lm::io::TrajectoryLimits(limits);
-	runWorkUnitMsg->set_allocated_limits(trajectoryLimits);
-
-	// Now that the template msg has been set properly, initialize the trajectory list
-	trajectories->init();
+    trajectories = new FFluxTrajectoryList(slots.getSlotsSize(),reactionModel,diffusionModel,simulationParameterMap,tilings);
 
     // Call the base class method.
     SimulationSupervisor::startSimulation();

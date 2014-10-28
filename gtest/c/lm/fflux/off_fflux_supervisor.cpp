@@ -41,7 +41,7 @@
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
-#include "lm/fflux/FFluxTrajectory.h"
+#include "lm/fflux/FFluxTrajectoryList.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/OrderParameters.pb.h"
 #include "lm/io/ReactionModel.pb.h"
@@ -51,11 +51,12 @@
 #include "lm/tiling/Tilings.h"
 #include "lm/Types.h"
 
-class FFluxTrajectoryFixture : public ::testing::Test
+class FFluxSupervisorFixture : public ::testing::Test
 {
 public:
-    FFluxTrajectoryFixture(): simultaneousTrajectoryCount(8), ffT(NULL), file("/Users/tel/git/lm/gtest/data/lm/fflux/biphasic_switch.lm")
+    FFluxSupervisorFixture(): simultaneousTrajectoryCount(8), ffTL(NULL), file("/Users/tel/git/lm/gtest/data/lm/fflux/biphasic_switch.lm")
     {
+        file.getDiffusionModel(&diffBuf);
         file.getOrderParameters(&opBuf);
         ops.init(opBuf);
         file.getReactionModel(&reactBuf);
@@ -66,14 +67,15 @@ public:
         }
         file.getTilings(&tilingBuf);
         tilings.init(tilingBuf);
-        ffT = new lm::fflux::FFluxTrajectory(8, simulationParameterMap, reactBuf, tilings);
-        ffT->init();
+        ffTL = new lm::fflux::FFluxTrajectoryList(8,reactBuf,diffBuf,simulationParameterMap,tilings);
+        ffTL->init();
     }
     static uint speciesCounts[7];
     uint64_t simultaneousTrajectoryCount;
     map<std::string,std::string> simulationParameterMap;
-    lm::fflux::FFluxTrajectory* ffT;
+    lm::fflux::FFluxTrajectoryList* ffTL;
     lm::io::hdf5::Hdf5File file;
+    lm::io::DiffusionModel diffBuf;
     lm::io::OrderParameters opBuf;
     lm::io::ReactionModel reactBuf;
     lm::io::SimulationParameters simulationParametersBuf;
@@ -82,50 +84,48 @@ public:
     lm::tiling::Tilings tilings;
 };
 
-TEST_F(FFluxTrajectoryFixture, FluxedBackward)
+
+TEST_F(FFluxSupervisorFixture, IncrFFluxPhase)
 {
-    ffT->getTrajectory(2)->getState().set_final_limit_type(lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER);
-    EXPECT_EQ(static_cast<lm::fflux::FFluxTrajectory*>(ffT->getTrajectory(2))->fluxedBackward(), true);
+    EXPECT_EQ(ffTL->getFFluxPhase(), 0);
+    for (int i=0;i<100;++i)
+    {
+        ffTL->incrFFluxPhase();
+    }
+    EXPECT_EQ(ffTL->getFFluxPhase(), 100);
 }
 
-TEST_F(FFluxTrajectoryFixture, FluxedForward)
+TEST_F(FFluxSupervisorFixture, IsZerothPhase)
 {
-    EXPECT_EQ(ffT->isZerothPhase(), true);
-    ffT->incrFFluxPhase();
-    EXPECT_EQ(ffT->isZerothPhase(), false);
+    EXPECT_EQ(ffTL->isZerothPhase(), true);
+    ffTL->incrFFluxPhase();
+    EXPECT_EQ(ffTL->isZerothPhase(), false);
 }
 
-TEST_F(FFluxTrajectoryFixture, GetFinalLimitType)
+TEST_F(FFluxSupervisorFixture, IsZerothPhaseDone)
 {
-    EXPECT_EQ(ffT->isZerothPhase(), true);
-    ffT->incrFFluxPhase();
-    EXPECT_EQ(ffT->isZerothPhase(), false);
+    EXPECT_EQ(ffTL->isZerothPhase(), true);
+    ffTL->incrFFluxPhase();
+    EXPECT_EQ(ffTL->isZerothPhase(), false);
 }
 
-TEST_F(FFluxTrajectoryFixture, GetSimSteps)
+TEST_F(FFluxSupervisorFixture, Reset)
 {
-    EXPECT_EQ(ffT->isZerothPhase(), true);
-    ffT->incrFFluxPhase();
-    EXPECT_EQ(ffT->isZerothPhase(), false);
+    EXPECT_EQ(ffTL->isZerothPhase(), true);
+    ffTL->incrFFluxPhase();
+    EXPECT_EQ(ffTL->isZerothPhase(), false);
 }
 
-TEST_F(FFluxTrajectoryFixture, GetSimTime)
+TEST_F(FFluxSupervisorFixture, Restart)
 {
-    EXPECT_EQ(ffT->isZerothPhase(), true);
-    ffT->incrFFluxPhase();
-    EXPECT_EQ(ffT->isZerothPhase(), false);
+    EXPECT_EQ(ffTL->isZerothPhase(), true);
+    ffTL->incrFFluxPhase();
+    EXPECT_EQ(ffTL->isZerothPhase(), false);
 }
 
-TEST_F(FFluxTrajectoryFixture, HasElapsed)
+TEST_F(FFluxSupervisorFixture, SaveCrossings)
 {
-    EXPECT_EQ(ffT->isZerothPhase(), true);
-    ffT->incrFFluxPhase();
-    EXPECT_EQ(ffT->isZerothPhase(), false);
-}
-
-TEST_F(FFluxTrajectoryFixture, SetLimits)
-{
-    EXPECT_EQ(ffT->isZerothPhase(), true);
-    ffT->incrFFluxPhase();
-    EXPECT_EQ(ffT->isZerothPhase(), false);
+    EXPECT_EQ(ffTL->isZerothPhase(), true);
+    ffTL->incrFFluxPhase();
+    EXPECT_EQ(ffTL->isZerothPhase(), false);
 }

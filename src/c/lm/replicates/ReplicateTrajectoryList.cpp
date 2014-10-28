@@ -46,6 +46,7 @@
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
+#include "lm/replicates/ReplicateTrajectory.h"
 #include "lm/replicates/ReplicateTrajectoryList.h"
 #include "lm/resource/Trajectory.h"
 #include "lm/resource/TrajectoryList.h"
@@ -57,8 +58,8 @@ using std::string;
 namespace lm {
 namespace replicates {
 
-ReplicateTrajectoryList::ReplicateTrajectoryList(uint64_t firstTrajectory, uint64_t lastTrajectory, map<string,string>& simulationParameters, const lm::io::ReactionModel& reactionModel, const lm::io::DiffusionModel& diffusionModel)
-:TrajectoryList(),firstTrajectory(firstTrajectory),lastTrajectory(lastTrajectory),simulationParameters(simulationParameters),reactionModel(reactionModel),diffusionModel(diffusionModel)
+ReplicateTrajectoryList::ReplicateTrajectoryList(const lm::io::ReactionModel& reactionModel, const lm::io::DiffusionModel& diffusionModel, map<std::string,std::string>& simulationParameters, uint64_t firstTrajectory, uint64_t lastTrajectory)
+:TrajectoryList(reactionModel,diffusionModel,simulationParameters),firstTrajectory(firstTrajectory),lastTrajectory(lastTrajectory)
 {
 }
 
@@ -71,21 +72,21 @@ void ReplicateTrajectoryList::init()
 {
 	for (uint64_t i=firstTrajectory; i<=lastTrajectory; i++)
 	{
-		trajectories[i] = new lm::resource::Trajectory(i);
+		trajectories[i] = new lm::replicates::ReplicateTrajectory(i,reactionModel,diffusionModel,simulationParameters);
 
-		// Initialize the trajectory's runWorkUnit message
-		trajectories[i]->setMsg(trajectoryTemplateMsg);
-
-		// Initialize the trajectory id.
-		trajectories[i]->getState().set_trajectory_id(i);
-
-		// Initialize the species counts in the cme state.
-		trajectories[i]->getState().mutable_cme_state()->mutable_species_counts()->set_trajectory_id(i);
-		trajectories[i]->getState().mutable_cme_state()->mutable_species_counts()->set_number_species(reactionModel.number_species());
-		trajectories[i]->getState().mutable_cme_state()->mutable_species_counts()->set_number_entries(1);
-		for (int j=0; j<(int)reactionModel.number_species(); j++)
-			trajectories[i]->getState().mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.initial_species_count(j));
-		trajectories[i]->getState().mutable_cme_state()->mutable_species_counts()->add_time(0.0);
+//		// Initialize the trajectory's runWorkUnit message
+//		trajectories[i]->setMsg(trajectoryTemplateMsg);
+//
+//		// Initialize the trajectory id.
+//		trajectories[i]->getState().set_trajectory_id(i);
+//
+//		// Initialize the species counts in the cme state.
+//		trajectories[i]->getState().mutable_cme_state()->mutable_species_counts()->set_trajectory_id(i);
+//		trajectories[i]->getState().mutable_cme_state()->mutable_species_counts()->set_number_species(reactionModel.number_species());
+//		trajectories[i]->getState().mutable_cme_state()->mutable_species_counts()->set_number_entries(1);
+//		for (int j=0; j<(int)reactionModel.number_species(); j++)
+//			trajectories[i]->getState().mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.initial_species_count(j));
+//		trajectories[i]->getState().mutable_cme_state()->mutable_species_counts()->add_time(0.0);
 
 		// Initialize the first passage times in the cme state.
 		const string listString = simulationParameters["fptTrackingList"];
@@ -103,7 +104,7 @@ void ReplicateTrajectoryList::init()
 		}
 		for (std::list<int>::iterator it=fptList.begin(); it != fptList.end(); it++)
 		{
-			lm::io::FirstPassageTimes* fpt= trajectories[i]->getState().mutable_cme_state()->add_first_passage_times();
+			lm::io::FirstPassageTimes* fpt= trajectories[i]->getState()->mutable_cme_state()->add_first_passage_times();
 			fpt->set_trajectory_id(i);
 			fpt->set_species(*it);
 			fpt->set_number_entries(1);
@@ -113,7 +114,7 @@ void ReplicateTrajectoryList::init()
 		}
 
         // Initialize the rdme state from the diffusion model.
-        lm::io::RDMEState* rdmeState = trajectories[i]->getState().mutable_rdme_state();
+        lm::io::RDMEState* rdmeState = trajectories[i]->getState()->mutable_rdme_state();
         lm::io::Lattice* initialLattice = rdmeState->mutable_species_positions();
         initialLattice->set_lattice_x_size(diffusionModel.initial_lattice().lattice_x_size());
         initialLattice->set_lattice_y_size(diffusionModel.initial_lattice().lattice_y_size());

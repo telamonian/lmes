@@ -43,7 +43,7 @@ import "lm/io/TrajectoryLimits.proto";
 import "lm/io/TrajectoryState.proto";
 
 message RunWorkUnit {
-    required int64 work_unit_id                    = 1;
+    required uint64 work_unit_id                   = 1;
     required int32 supervisor_process              = 2;
     required int32 supervisor_thread               = 3;
     required int32 output_process                  = 4;

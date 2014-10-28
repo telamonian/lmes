@@ -39,7 +39,8 @@
 #ifndef LM_FFLUX_FFLUXTRAJECTORY_H_
 #define LM_FFLUX_FFLUXTRAJECTORY_H_
 
-#include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/io/DiffusionModel.pb.h"
+#include "lm/io/ReactionModel.pb.h"
 #include "lm/resource/Trajectory.h"
 #include "lm/tiling/Tilings.h"
 #include "lm/Types.h"
@@ -50,11 +51,12 @@ namespace replicates {
 class ReplicateTrajectory : public lm::resource::Trajectory
 {
 public:
-    ReplicateTrajectory(uint64_t id);
+    ReplicateTrajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters);
+    ReplicateTrajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::io::TrajectoryState* zerothState);
     virtual ~ReplicateTrajectory();
 
-    virtual void initLimits();
-}
+    virtual void initLimits(const lm::io::ReactionModel& reactionModel,std::map<std::string,std::string>& simulationParameters);
+};
 
 }
 }

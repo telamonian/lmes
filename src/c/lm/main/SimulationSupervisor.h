@@ -89,7 +89,7 @@ public:
     void wake() throw(lm::thread::PthreadException);
 
 protected:
-    virtual void initLimits();
+//    virtual void initLimits();
     virtual void startSimulation();
     virtual bool assignWork();
     virtual void workUnitStarted(const lm::message::StartedWorkUnit& msg);

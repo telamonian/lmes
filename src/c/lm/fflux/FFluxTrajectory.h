@@ -51,10 +51,10 @@ class FFluxTrajectory : public lm::resource::Trajectory
 {
 public:
     FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings& tilings);
-    FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings& tilings,const lm::io::TrajectoryState& state);
+    FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings& tilings,lm::io::TrajectoryState* state);
     virtual ~FFluxTrajectory();
-
-    virtual void initZerothTrajectory();
+    //virtual void initZerothTrajectory();
+    virtual void initLimits();
 
     // methods for detecting when a flux event has occurred
     virtual bool fluxedBackward();
@@ -65,9 +65,6 @@ public:
     virtual uint getSimSteps();
     virtual double getSimTime();
     virtual bool hasElapsed(double time);
-
-    // methods for dealing with limits and the underlying tiling
-    virtual void setLimits();
 
     //    uint getFFluxPhase() {return ffluxPhase;}
     //    void setFFluxPhase(uint newPhase) {ffluxPhase = newPhase;}

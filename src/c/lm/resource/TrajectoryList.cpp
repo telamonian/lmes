@@ -99,16 +99,14 @@ lm::resource::Trajectory* TrajectoryList::workUnitFinished(const lm::message::Fi
     return getTrajectory(msg.final_state().trajectory_id());
 }
 
-lm::message::Message * TrajectoryList::getNextWorkUnitMsg() // TODO: refactor into a Trajectory accessor
+lm::message::Message* TrajectoryList::getNextWorkUnitMsg()
 {
     for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
     {
-        if (it->second->getStatus()==Trajectory::NOT_STARTED || it->second->getStatus()==Trajectory::WAITING)
+        lm::message::Message* retMsg = it->second->getNextWorkUnitMsg(workUnitCount++);
+        if (retMsg!=NULL)
         {
-            it->second->setStatus(Trajectory::RUNNING);
-            it->second->setWorkUnitId(workUnitCount++);
-            it->second->updateInitialRunState();
-            return it->second->getMsg();
+            return retMsg;
         }
     }
     return NULL;
@@ -137,7 +135,7 @@ Trajectory::status_t TrajectoryList::getTrajectoryStatus(uint64_t trajectoryID)
     return trajectories[trajectoryID]->getStatus();
 }
 
-const lm::io::TrajectoryState& TrajectoryList::getTrajectoryState(uint64_t trajectoryID)
+lm::io::TrajectoryState* TrajectoryList::getTrajectoryState(uint64_t trajectoryID)
 {
     return trajectories[trajectoryID]->getState();
 }
@@ -154,7 +152,7 @@ void TrajectoryList::setTrajectoryStatus(uint64_t trajectoryID, Trajectory::stat
 
 void TrajectoryList::setTrajectoryState(uint64_t trajectoryID, const lm::io::TrajectoryState& state)
 {
-    trajectories[trajectoryID]->setState(state);
+    trajectories[trajectoryID]->setState(&state);
 }
 
 }

@@ -57,7 +57,7 @@ using std::string;
 namespace lm {
 namespace resource {
 
-Trajectory::Trajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel&,map<string,string>& simulationParameters):
+Trajectory::Trajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters):
 id(-1),status(NOT_STARTED)
 {
     initState(reactionModel);
@@ -65,7 +65,7 @@ id(-1),status(NOT_STARTED)
     initMsg(simulationParameters);
 }
 
-Trajectory::Trajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel&,map<string,string>& simulationParameters,const TrajectoryState& zerothState):
+Trajectory::Trajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,TrajectoryState* zerothState):
 id(id),status(NOT_STARTED)
 {
     initState(zerothState);
@@ -91,15 +91,15 @@ void Trajectory::initMsg(const lm::message::Message& newMsg)
 void Trajectory::initState(const lm::io::ReactionModel& reactionModel) // this version of initState creates the zeroth state from scratch
 {
     // if state has any info in it already, clear it
-    state.Clear();
-    state.mutable_cme_state()->mutable_species_counts()->set_number_species(reactionModel.number_species());
-    state.mutable_cme_state()->mutable_species_counts()->set_number_entries(1);
+    getState()->Clear();
+    getState()->mutable_cme_state()->mutable_species_counts()->set_number_species(reactionModel.number_species());
+    getState()->mutable_cme_state()->mutable_species_counts()->set_number_entries(1);
     for (int j=0; j<(int)reactionModel.number_species(); j++)
-        state.mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.initial_species_count(j));
-    state.mutable_cme_state()->mutable_species_counts()->add_time(0.0);
+        getState()->mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.initial_species_count(j));
+    getState()->mutable_cme_state()->mutable_species_counts()->add_time(0.0);
 }
 
-void Trajectory::initState(const lm::io::TrajectoryState& initState)
+void Trajectory::initState(lm::io::TrajectoryState* initState)
 {
     // Make instance local copy of the passed state
     setState(initState);
@@ -111,9 +111,26 @@ uint64_t Trajectory::getID()
     return id;
 }
 
+lm::io::TrajectoryLimits* Trajectory::getLimits()
+{
+    return getRunMsg()->mutable_limits();
+}
+
 lm::message::Message* Trajectory::getMsg()
 {
     return &msg;
+}
+
+lm::message::Message* Trajectory::getNextWorkUnitMsg(uint64_t nextWorkUnitID)
+{
+    if (getStatus()==Trajectory::NOT_STARTED || getStatus()==Trajectory::WAITING)
+    {
+        setStatus(Trajectory::RUNNING);
+        setWorkUnitId(nextWorkUnitID);
+        return getMsg();
+    }
+    else
+        return NULL;
 }
 
 lm::message::RunWorkUnit* Trajectory::getRunMsg()
@@ -126,17 +143,22 @@ Trajectory::status_t Trajectory::getStatus()
     return status;
 }
 
-lm::io::TrajectoryState& Trajectory::getState()
+lm::io::TrajectoryState* Trajectory::getState()
 {
-    return state;
+    return getRunMsg()->mutable_initial_state();
 }
 
 // mutator definitions
 void Trajectory::setID(uint64_t newID)
 {
     id = newID;
-    getState().set_trajectory_id(newID);
-    getState().mutable_cme_state()->mutable_species_counts()->set_trajectory_id(newID);
+    getState()->set_trajectory_id(newID);
+    getState()->mutable_cme_state()->mutable_species_counts()->set_trajectory_id(newID);
+}
+
+void Trajectory::setLimits(const lm::io::TrajectoryLimits* newLimits)
+{
+    *(getRunMsg()->mutable_limits()) = *newLimits;
 }
 
 void Trajectory::setMsg(const lm::message::Message& newMsg)
@@ -146,12 +168,12 @@ void Trajectory::setMsg(const lm::message::Message& newMsg)
 
 void Trajectory::setStarted(bool trajectoryStarted)
 {
-    state.set_trajectory_started(trajectoryStarted);
+    getState()->set_trajectory_started(trajectoryStarted);
 }
 
-void Trajectory::setState(const lm::io::TrajectoryState& newState)
+void Trajectory::setState(const lm::io::TrajectoryState* newState)
 {
-    state = newState;
+    *getState() = *newState;
 }
 
 void Trajectory::setStatus(status_t newStatus)
@@ -159,15 +181,9 @@ void Trajectory::setStatus(status_t newStatus)
     status = newStatus;
 }
 
-void Trajectory::setWorkUnitId(int64_t id)
+void Trajectory::setWorkUnitId(uint64_t id)
 {
     getRunMsg()->set_work_unit_id(id);
-}
-
-void Trajectory::updateInitialRunState()
-{
-	lm::io::TrajectoryState* runState = new lm::io::TrajectoryState(state);
-	getRunMsg()->set_allocated_initial_state(runState);
 }
 
 }
