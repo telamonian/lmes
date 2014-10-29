@@ -72,7 +72,7 @@ FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,co
  crossingsPerPhase(atof(simulationParameters["crossingsPerPhase"].c_str())),
  direction(FORWARD),
  ffluxPhase(0),
- finishedTrajectoriesCounts(maxFFluxPhase, 0),
+ finishedTrajectoriesCounts(tilings[0]->getEdgesCount(), 0),
  maxFFluxPhase(tilings[0]->getEdgesCount()),
  maxPhaseZeroTime(atof(simulationParameters["maxPhaseZeroTime"].c_str())),
  simultaneousTrajectoryCount(simultaneousTrajectoryCount),
@@ -121,17 +121,19 @@ void FFluxTrajectoryList::init()
 
 void FFluxTrajectoryList::initTrajectories(uint64_t trajectoriesToStart)
 {
-    for (long long i=0; i<=trajectoriesToStart; i++)
+    for (long long i=0; i<trajectoriesToStart; i++)
     {
-        trajectories[i] = new lm::fflux::FFluxTrajectory(trajectoryCount++,ffluxPhase,reactionModel,diffusionModel,simulationParameters,tilings);
+        trajectories[trajectoryCount] = new lm::fflux::FFluxTrajectory(trajectoryCount,ffluxPhase,reactionModel,diffusionModel,simulationParameters,tilings);
+        trajectoryCount++;
     }
 }
 
 void FFluxTrajectoryList::initTrajectories(uint64_t trajectoriesToStart, lm::io::TrajectoryState* zerothTraj)
 {
-    for (long long i=0; i<=trajectoriesToStart; i++)
+    for (long long i=0; i<trajectoriesToStart; i++)
     {
-        trajectories[i] = new lm::fflux::FFluxTrajectory(trajectoryCount++,ffluxPhase,reactionModel,diffusionModel,simulationParameters,tilings,zerothTraj);
+        trajectories[trajectoryCount] = new lm::fflux::FFluxTrajectory(trajectoryCount,ffluxPhase,reactionModel,diffusionModel,simulationParameters,tilings,zerothTraj);
+        trajectoryCount++;
     }
 }
 

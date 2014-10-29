@@ -96,7 +96,6 @@ TEST_F(FFluxTrajectoryListFixture, AddCrossing)
     *fWUB.mutable_final_state() = *(ffTL->getTrajectoryState(2));
 
     ffTL->addCrossing(fWUB);
-    raise(SIGINT);
     EXPECT_EQ(ffTL->getCrossings(0)[0]->trajectory_id(), 2);
     EXPECT_EQ(ffTL->getCrossings(0)[0]->trajectory_started(), false);
 }

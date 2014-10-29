@@ -67,8 +67,7 @@ public:
         }
         file.getTilings(&tilingBuf);
         tilings.init(tilingBuf);
-        ffTL = new lm::fflux::FFluxTrajectoryList(8,reactBuf,diffBuf,simulationParameterMap,tilings);
-        ffTL->init();
+        ffT = new lm::fflux::FFluxTrajectory(0,0,reactBuf,diffBuf,simulationParameterMap,tilings);
     }
     static uint speciesCounts[7];
     uint64_t simultaneousTrajectoryCount;
@@ -86,48 +85,36 @@ public:
 
 TEST_F(FFluxTrajectoryFixture, FluxedBackward)
 {
-    ffT->getTrajectory(2)->getState().set_final_limit_type(lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER);
-    EXPECT_EQ(static_cast<lm::fflux::FFluxTrajectory*>(ffT->getTrajectory(2))->fluxedBackward(), true);
+    ffT->getState()->set_final_limit_type(lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER);
+    EXPECT_EQ(ffT->fluxedBackward(), true);
 }
 
 TEST_F(FFluxTrajectoryFixture, FluxedForward)
 {
-    EXPECT_EQ(ffT->isZerothPhase(), true);
-    ffT->incrFFluxPhase();
-    EXPECT_EQ(ffT->isZerothPhase(), false);
+    ffT->getState()->set_final_limit_type(lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER);
+    EXPECT_EQ(ffT->fluxedForward(), true);
 }
 
 TEST_F(FFluxTrajectoryFixture, GetFinalLimitType)
 {
-    EXPECT_EQ(ffT->isZerothPhase(), true);
-    ffT->incrFFluxPhase();
-    EXPECT_EQ(ffT->isZerothPhase(), false);
+    ffT->getState()->set_final_limit_type(lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER);
+    EXPECT_EQ(ffT->getFinalLimitType(), lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER);
+    ffT->getState()->set_final_limit_type(lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER);
+    EXPECT_EQ(ffT->getFinalLimitType(), lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER);
 }
 
 TEST_F(FFluxTrajectoryFixture, GetSimSteps)
 {
-    EXPECT_EQ(ffT->isZerothPhase(), true);
-    ffT->incrFFluxPhase();
-    EXPECT_EQ(ffT->isZerothPhase(), false);
+    EXPECT_EQ(ffT->getSimSteps(), 1);
 }
 
 TEST_F(FFluxTrajectoryFixture, GetSimTime)
 {
-    EXPECT_EQ(ffT->isZerothPhase(), true);
-    ffT->incrFFluxPhase();
-    EXPECT_EQ(ffT->isZerothPhase(), false);
+    EXPECT_EQ(ffT->getSimTime(), 0);
 }
 
 TEST_F(FFluxTrajectoryFixture, HasElapsed)
 {
-    EXPECT_EQ(ffT->isZerothPhase(), true);
-    ffT->incrFFluxPhase();
-    EXPECT_EQ(ffT->isZerothPhase(), false);
-}
-
-TEST_F(FFluxTrajectoryFixture, SetLimits)
-{
-    EXPECT_EQ(ffT->isZerothPhase(), true);
-    ffT->incrFFluxPhase();
-    EXPECT_EQ(ffT->isZerothPhase(), false);
+    EXPECT_EQ(ffT->hasElapsed(0), true);
+    EXPECT_EQ(ffT->hasElapsed(1.3), false);
 }

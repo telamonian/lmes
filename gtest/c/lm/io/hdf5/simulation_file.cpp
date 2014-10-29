@@ -41,6 +41,7 @@
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/OrderParameters.pb.h"
 #include "lm/io/Tilings.pb.h"
+#include "lm/MPI.h"
 
 class SimulationFileFixture : public ::testing::Test
 {
@@ -108,6 +109,7 @@ TEST_F(SimulationFileFixture, ReadWriteReadTilings)
 }
 
 int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+    lm::MPI::init(argc, argv);
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
