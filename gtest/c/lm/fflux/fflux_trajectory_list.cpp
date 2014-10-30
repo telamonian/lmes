@@ -42,6 +42,7 @@
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "lm/fflux/FFluxTrajectory.h"
 #include "lm/fflux/FFluxTrajectoryList.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/OrderParameters.pb.h"
@@ -153,13 +154,13 @@ TEST_F(FFluxTrajectoryListFixture, IsZerothPhaseDone)
     // a live pointer to the SpeciesCounts that lives in the 3rd trajectory of FFluxTrajectoryList
     lm::io::SpeciesCounts* sC = ffTL->getTrajectory(2)->getState()->mutable_cme_state()->mutable_species_counts();
 
-    EXPECT_EQ(ffTL->isZerothPhaseDone(static_cast<lm::fflux::FFluxTrajectory*>(ffTL->getTrajectory(2))), false);
+    EXPECT_EQ(ffTL->isZerothPhaseDone(static_cast<lm::fflux::FFluxTrajectory*>(ffTL->getTrajectory(2))->getSimTime()), false);
     sC->add_time(ffTL->getMaxPhaseZeroTime()-.02);
-    EXPECT_EQ(ffTL->isZerothPhaseDone(static_cast<lm::fflux::FFluxTrajectory*>(ffTL->getTrajectory(2))), false);
+    EXPECT_EQ(ffTL->isZerothPhaseDone(static_cast<lm::fflux::FFluxTrajectory*>(ffTL->getTrajectory(2))->getSimTime()), false);
     sC->add_time(ffTL->getMaxPhaseZeroTime()-.01);
-    EXPECT_EQ(ffTL->isZerothPhaseDone(static_cast<lm::fflux::FFluxTrajectory*>(ffTL->getTrajectory(2))), false);
+    EXPECT_EQ(ffTL->isZerothPhaseDone(static_cast<lm::fflux::FFluxTrajectory*>(ffTL->getTrajectory(2))->getSimTime()), false);
     sC->add_time(ffTL->getMaxPhaseZeroTime());
-    EXPECT_EQ(ffTL->isZerothPhaseDone(static_cast<lm::fflux::FFluxTrajectory*>(ffTL->getTrajectory(2))), true);
+    EXPECT_EQ(ffTL->isZerothPhaseDone(static_cast<lm::fflux::FFluxTrajectory*>(ffTL->getTrajectory(2))->getSimTime()), true);
 }
 
 TEST_F(FFluxTrajectoryListFixture, Reset)

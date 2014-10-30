@@ -119,11 +119,16 @@ void FFluxTrajectoryList::init()
     initTrajectories(simultaneousTrajectoryCount);
 }
 
-void FFluxTrajectoryList::initTrajectories(uint64_t trajectoriesToStart)
+void FFluxTrajectoryList::initReversed() // TODO: need to verify that reactionModel has a reversed_initial_species_count field before running this method
+{
+    initTrajectories(simultaneousTrajectoryCount, true);
+}
+
+void FFluxTrajectoryList::initTrajectories(uint64_t trajectoriesToStart,bool reversed)
 {
     for (long long i=0; i<trajectoriesToStart; i++)
     {
-        trajectories[trajectoryCount] = new lm::fflux::FFluxTrajectory(trajectoryCount,ffluxPhase,reactionModel,diffusionModel,simulationParameters,tilings);
+        trajectories[trajectoryCount] = new lm::fflux::FFluxTrajectory(trajectoryCount,ffluxPhase,reactionModel,diffusionModel,simulationParameters,tilings,reversed);
         trajectoryCount++;
     }
 }
@@ -149,6 +154,7 @@ void FFluxTrajectoryList::initPhaseNTrajectories(uint64_t trajectoriesToStart)
 
 lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg)
 {
+    double simTime;
     // Call the base class method.
     lm::fflux::FFluxTrajectory* traj = static_cast<lm::fflux::FFluxTrajectory*>(TrajectoryList::workUnitFinished(finishedWorkUnitMsg));
 //    Print::printf(Print::DEBUG, "finishedTrajectoryCount is: %d",finishedTrajectoriesCounts[ffluxPhase]);
@@ -164,13 +170,14 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
         }
         // Regardless of whether this crossing was a forward or backwards flux, increment this phase's finished trajectories counter and delete the finished trajectory
         ++finishedTrajectoriesCounts[ffluxPhase];
+        simTime = traj->getSimTime();
         deleteTrajectory(finishedWorkUnitMsg.final_state().trajectory_id());
         //Print::printf(Print::INFO, "ffluxPhase: %d, crossings[fflux].size(): %d, finishedTrajectoriesCount %d, time: %f, oparam: %f", ffluxPhase, crossings[ffluxPhase].size(), finishedTrajectoriesCounts[ffluxPhase], crossings[ffluxPhase].back()->cme_state().species_counts().time(crossings[ffluxPhase].back()->cme_state().species_counts().number_entries() - 1), calcTestCaseOParam(finishedWorkUnitMsg.final_state()));
         // If the forward flux sampling is still in its 0th (ie initial) phase...
         if (isZerothPhase())
         {
             // ...and if enough time has passed for phase zero to be complete...
-            if (isZerothPhaseDone(traj))
+            if (isZerothPhaseDone(simTime))
             {
                 if (crossings.find(0)==crossings.end()) Print::printf(Print::ERROR, "No crossings were recorded during forward flux phase zero. Try increasing maxPhaseZeroTime");
                 Print::printf(Print::INFO,"By the end of forward flux phase zero, %d forward crossings were recorded", crossings[ffluxPhase].size());
@@ -309,17 +316,18 @@ bool FFluxTrajectoryList::isZerothPhase()
     return (ffluxPhase==0);
 }
 
-bool FFluxTrajectoryList::isZerothPhaseDone(lm::fflux::FFluxTrajectory* traj)
+bool FFluxTrajectoryList::isZerothPhaseDone(double simTime)
 {
-    return traj->hasElapsed(maxPhaseZeroTime);
+    return simTime>=maxPhaseZeroTime;
 }
 
 void FFluxTrajectoryList::restart()
 {
     deleteAllTrajectories();
     crossings.clear();
+    std::fill(finishedTrajectoriesCounts.begin(), finishedTrajectoriesCounts.end(), 0);
     ffluxPhase = 0;
-    this->init();
+    this->initReversed();
 }
 
 void FFluxTrajectoryList::reverse()

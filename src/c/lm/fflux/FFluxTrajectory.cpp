@@ -60,8 +60,8 @@ using std::string;
 namespace lm {
 namespace fflux {
 
-FFluxTrajectory::FFluxTrajectory(uint64_t id,uint ffluxPhase,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,lm::tiling::Tilings& tilings):
-Trajectory(id,reactionModel,diffusionModel,simulationParameters),ffluxPhase(ffluxPhase),tilings(tilings)
+FFluxTrajectory::FFluxTrajectory(uint64_t id,uint ffluxPhase,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,lm::tiling::Tilings& tilings,bool reversed):
+Trajectory(id,reactionModel,diffusionModel,simulationParameters,reversed),ffluxPhase(ffluxPhase),tilings(tilings)
 {
     initLimits();
 }

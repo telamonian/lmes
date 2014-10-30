@@ -930,7 +930,7 @@ void CMESolver::setLimits(const lm::io::TrajectoryLimits& limits)
     }
     for (int i=0; i<limits.increasing_order_parameter_limit_size(); i++)
     {
-        for (int j=0; j<limits.decreasing_order_parameter_limit(i).value_size(); j++)
+        for (int j=0; j<limits.increasing_order_parameter_limit(i).value_size(); j++)
         {
             setSpeciesIncreasingLimit(limits.increasing_order_parameter_limit(i).order_parameter_id(), limits.increasing_order_parameter_limit(i).value(j));
         }

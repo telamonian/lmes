@@ -43,6 +43,7 @@ message ReactionModel {
   required uint32 number_species                = 1;
   required uint32 number_reactions              = 2;
   repeated uint32 initial_species_count         = 3 [packed=true];
+  repeated uint32 reversed_initial_species_count= 100 [packed=true];
 
   message Reaction {
     required uint32 type                        = 1;

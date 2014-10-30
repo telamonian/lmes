@@ -54,11 +54,13 @@ public:
     virtual void init(const lm::io::OrderParameters::OrderParameter& opRef);
     virtual double calc(uint* speciesCounts) = 0;
     double get() {return val;}
+    double getPrev() {return prevVal;}
     void set(double newVal) {val = newVal;}
 
 protected:
     lm::io::OrderParameters::OrderParameter* op;
     double val;
+    double prevVal;
 };
 
 class OParamLinear : public OParam

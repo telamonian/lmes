@@ -704,6 +704,15 @@ void Hdf5File::getReactionModel(lm::io::ReactionModel * reactionModel) throw(Exc
                     if (dims[0] != numberReactions || dims[1] != NUMBER_NOISE_COLS || size != sizeof(double)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/ReactionRateNoise");
                 }
 
+                // If we have an initial species counts for a reversed system, make sure it is the correct size
+                bool hasReversedInitialSpeciesCounts = false;
+                if (H5Lexists(file, "/Model/Reaction/ReversedInitialSpeciesCounts", H5P_DEFAULT))
+                {
+                    hasReversedInitialSpeciesCounts = true;
+                    H5LTget_dataset_info(file, "/Model/Reaction/ReversedInitialSpeciesCounts", dims, &type, &size);
+                    if (dims[0] != numberSpecies || size != sizeof(uint)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/ReversedInitialSpeciesCounts");
+                }
+
                 // Allocate some buffers for reading the data.
                 int * intBuffer = new int[numberSpecies*numberReactions];
                 double * doubleBuffer = new double[numberReactions*MAX_REACTION_RATE_CONSTANTS];
@@ -712,6 +721,11 @@ void Hdf5File::getReactionModel(lm::io::ReactionModel * reactionModel) throw(Exc
                 // Read the initial species counts.
                 H5LTread_dataset_int(file, "/Model/Reaction/InitialSpeciesCounts", intBuffer);
                 for (uint i=0; i<numberSpecies; i++) reactionModel->add_initial_species_count((uint)intBuffer[i]);
+                if (hasReversedInitialSpeciesCounts)
+                {
+                    H5LTread_dataset_int(file, "/Model/Reaction/ReversedInitialSpeciesCounts", intBuffer);
+                    for (uint i=0; i<numberSpecies; i++) reactionModel->add_reversed_initial_species_count((uint)intBuffer[i]);
+                }
 
                 // Read the reaction info.
                 H5LTread_dataset_int(file, "/Model/Reaction/ReactionTypes", intBuffer);
@@ -791,6 +805,12 @@ void Hdf5File::setReactionModel(lm::io::ReactionModel * reactionModel) throw(Exc
     // Write the initial species counts.
     dims[0] = numberSpecies;
     HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Reaction/InitialSpeciesCounts", 1, dims, H5T_STD_U32LE, reactionModel->initial_species_count().data()));
+    // If we have them, write out the initial species counts for the reversed system
+    if (reactionModel->reversed_initial_species_count_size()>0)
+    {
+        if (reactionModel->reversed_initial_species_count_size()!=reactionModel->initial_species_count_size()) throw InvalidArgException("reactionModel.reversed_initial_species_count", "inconsistent size");
+        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Reaction/ReversedInitialSpeciesCounts", 1, dims, H5T_STD_U32LE, reactionModel->reversed_initial_species_count().data()));
+    }
 
     // If we have any reactions, write out the reaction tables.
     if (reactionModel->number_reactions())

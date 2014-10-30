@@ -57,12 +57,12 @@ class Trajectory
 public:
     enum status_t {NOT_STARTED, RUNNING, WAITING, FINISHED};
 
-    Trajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters);
+    Trajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,bool reversed=false);
     Trajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::io::TrajectoryState* zerothState);
     virtual ~Trajectory();
     virtual void initMsg(std::map<std::string,std::string>& simulationParameters);
     virtual void initMsg(const lm::message::Message& newMsg);
-    virtual void initState(const lm::io::ReactionModel& reactionModel);
+    virtual void initState(const lm::io::ReactionModel& reactionModel,bool reversed);
     virtual void initState(lm::io::TrajectoryState* zerothState);
 //    virtual void initLimits() = 0;
 

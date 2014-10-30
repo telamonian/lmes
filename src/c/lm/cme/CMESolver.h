@@ -272,6 +272,14 @@ protected:
 				speciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
 				updatedSpeciesCounts();
 			}
+    		// Update the order parameters, if required
+    		if (ffluxFlag==true)
+    		{
+    		    for (int i=0; i<oparams->size(); i++)
+    		    {
+    		        (*oparams)[i]->calc(speciesCounts);
+    		    }
+    		}
 //    	}
     }
 
@@ -321,14 +329,23 @@ protected:
                 }
                 break;
             case SpeciesLimit::DECREASING:
-            	if ((*oparams)[l.species]->get() >= l.limit && (*oparams)[l.species]->calc(speciesCounts) < l.limit)
+//                prevVal = (*oparams)[l.species]->get(); val = (*oparams)[l.species]->calc(speciesCounts);
+                //printf("decr: %.3f %.3f",prevVal,val);
+            	if ((*oparams)[l.species]->getPrev() >= l.limit && (*oparams)[l.species]->get() < l.limit)
+//                if (prevVal>=l.limit && val<l.limit)
                 {
                     finalLimitType = lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER;
                     return true;
                 }
             	break;
             case SpeciesLimit::INCREASING:
-            	if ((*oparams)[l.species]->get() < l.limit && (*oparams)[l.species]->calc(speciesCounts) >= l.limit)
+//                prevVal = (*oparams)[l.species]->get(); val = (*oparams)[l.species]->calc(speciesCounts);
+//                if (numberSpeciesLimits > 1)
+//                {
+//                    printf("incr: %.3f %.3f\n",prevVal,val);
+//                }
+            	if ((*oparams)[l.species]->getPrev() < l.limit && (*oparams)[l.species]->get() >= l.limit)
+//                if (prevVal<l.limit && val>=l.limit)
                 {
                     finalLimitType = lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER;
                     return true;

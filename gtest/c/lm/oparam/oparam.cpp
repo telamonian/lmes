@@ -49,14 +49,13 @@ public:
     {
         file.getOrderParameters(&opBuf);
         opL.init(opBuf.order_parameters(0));
+        speciesCounts[0]=4;speciesCounts[1]=16;speciesCounts[2]=1;speciesCounts[3]=0;speciesCounts[4]=0;speciesCounts[5]=0;speciesCounts[6]=0;
     }
-    static uint speciesCounts[7];
+    uint speciesCounts[7];
     lm::io::hdf5::Hdf5File file;
     lm::io::OrderParameters opBuf;
     lm::oparam::OParamLinear opL;
 };
-
-uint OParamFixture::speciesCounts[7] = {4,16,1,0,0,0,0};
 
 TEST_F(OParamFixture, InitLinearOparam)
 {

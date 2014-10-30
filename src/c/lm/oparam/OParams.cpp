@@ -47,7 +47,7 @@ namespace oparam {
 
 OPClassMap OParams::opClassMap = OParams::makeOPClassMap();
 
-OParams::OParams()
+OParams::OParams(): size_(0)
 {
 }
 
@@ -63,7 +63,11 @@ void OParams::init(const lm::io::OrderParameters& ops)
 {
     // for_each doesn't work with member functions, and part of the fix for this (bind1st) doesn't work with functions that take const reference arguments. C++ everyone!
     // std::for_each(ops.order_parameters().begin(), ops.order_parameters().end(), std::bind1st(std::mem_fun(&OParams::initOParam),this));
-    for (OPIterator op_it=ops.order_parameters().begin();op_it!=ops.order_parameters().end();++op_it) initOParam(*op_it);
+    for (OPIterator op_it=ops.order_parameters().begin();op_it!=ops.order_parameters().end();++op_it)
+    {
+        initOParam(*op_it);
+        size_++;
+    }
 }
 
 void OParams::initOParam(const lm::io::OrderParameters::OrderParameter& op)

@@ -45,7 +45,7 @@ namespace lm {
 namespace oparam {
 
 // base class OParam methods
-OParam::OParam(): val(), op(NULL)
+OParam::OParam(): val(0), prevVal(0), op(NULL)
 {
 }
 
@@ -84,6 +84,7 @@ void OParamLinear::init(const lm::io::OrderParameters::OrderParameter& opRef)
 
 double OParamLinear::calc(uint* speciesCounts)
 {
+    prevVal = val;
     val = 0;
     for (int i=0;i<size;++i)
     {

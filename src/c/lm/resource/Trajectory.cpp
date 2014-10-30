@@ -57,10 +57,10 @@ using std::string;
 namespace lm {
 namespace resource {
 
-Trajectory::Trajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters):
+Trajectory::Trajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,bool reversed):
 id(-1),status(NOT_STARTED)
 {
-    initState(reactionModel);
+    initState(reactionModel, reversed);
     setID(id);
     initMsg(simulationParameters);
 }
@@ -88,14 +88,26 @@ void Trajectory::initMsg(const lm::message::Message& newMsg)
     setMsg(newMsg);
 }
 
-void Trajectory::initState(const lm::io::ReactionModel& reactionModel) // this version of initState creates the zeroth state from scratch
+void Trajectory::initState(const lm::io::ReactionModel& reactionModel,bool reversed) // this version of initState creates the zeroth state from scratch
 {
     // if state has any info in it already, clear it
     getState()->Clear();
     getState()->mutable_cme_state()->mutable_species_counts()->set_number_species(reactionModel.number_species());
     getState()->mutable_cme_state()->mutable_species_counts()->set_number_entries(1);
-    for (int j=0; j<(int)reactionModel.number_species(); j++)
-        getState()->mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.initial_species_count(j));
+    if (!reversed)
+    {
+        for (int j=0; j<(int)reactionModel.number_species(); j++)
+        {
+            getState()->mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.initial_species_count(j));
+        }
+    }
+    else
+    {
+        for (int j=0; j<(int)reactionModel.number_species(); j++)
+        {
+            getState()->mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.reversed_initial_species_count(j));
+        }
+    }
     getState()->mutable_cme_state()->mutable_species_counts()->add_time(0.0);
 }
 

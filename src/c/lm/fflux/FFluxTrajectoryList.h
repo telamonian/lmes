@@ -70,7 +70,8 @@ public:
     FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters, lm::tiling::Tilings& tilings);
     virtual ~FFluxTrajectoryList();
     virtual void init();
-    virtual void initTrajectories(uint64_t toStartCount);
+    virtual void initReversed();
+    virtual void initTrajectories(uint64_t toStartCount,bool reversed=false);
     virtual void initTrajectories(uint64_t toStartCount, lm::io::TrajectoryState* zerothTraj);
     virtual void initPhaseNTrajectories(uint64_t trajectoriesToStart);
 
@@ -91,7 +92,7 @@ public:
     virtual bool isFFluxDone();
     virtual bool isPhaseDone();
     virtual bool isZerothPhase();
-    virtual bool isZerothPhaseDone(lm::fflux::FFluxTrajectory* traj);
+    virtual bool isZerothPhaseDone(double);
     virtual void restart();
     virtual void reverse();
     virtual void saveCrossings();

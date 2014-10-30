@@ -66,6 +66,8 @@ public:
     OPMap::iterator begin() {return opMap.begin();}
     OPMap::iterator end() {return opMap.end();}
 
+    uint size() {return size_;}
+
     static OPClassMap makeOPClassMap()
     {
       std::map<uint,std::string> m;
@@ -77,6 +79,7 @@ public:
 
 private:
     OPMap opMap;
+    uint size_;
 };
 
 }
