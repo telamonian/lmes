@@ -143,7 +143,7 @@ void SimulationSupervisor::initialize()
     if (file->hasOrderParameters())
     {
         hasOrderParameters = true;
-        file->getOrderParameters(&orderParameters);
+        file->getOrderParameters(&orderParametersBuf);
     }
 
     if (file->hasTilings())
@@ -374,7 +374,8 @@ void SimulationSupervisor::allResourcesRegistered()
 	*startSlotMsg->mutable_simulation_parameters() = simulationParameters;
 	if (hasReactionModel) *startSlotMsg->mutable_reaction_model() = reactionModel;
 	if (hasDiffusionModel) *startSlotMsg->mutable_diffusion_model() = diffusionModel;
-	if (hasOrderParameters) *startSlotMsg->mutable_order_parameters() = orderParameters;
+	if (hasOrderParameters) *startSlotMsg->mutable_order_parameters() = orderParametersBuf;
+	if (hasTilings) *startSlotMsg->mutable_tilings() = tilingsBuf;
 
 	map<int,ResourceMap::ComputeResources> allResources = resourceMap->getAvailableResources();
     slots.addSlots(allResources);

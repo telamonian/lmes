@@ -40,6 +40,7 @@
 #define FFLUXSUPERVISOR_H_
 
 #include "lm/io/DiffusionModel.pb.h"
+#include "lm/io/FFluxOutput.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/main/SimulationSupervisor.h"
@@ -75,6 +76,7 @@ protected:
 protected:
     int outputWriterProcess;
     int outputWriterThread;
+    lm::io::FFluxOutput ffluxOutput;
 };
 
 }

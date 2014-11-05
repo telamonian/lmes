@@ -42,6 +42,7 @@ import "lm/io/DiffusionModel.proto";
 import "lm/io/OrderParameters.proto";
 import "lm/io/ReactionModel.proto";
 import "lm/io/SimulationParameters.proto";
+import "lm/io/Tilings.proto";
 
 message StartWorkUnitRunner {
 	required uint32 uuid										= 1;
@@ -53,4 +54,5 @@ message StartWorkUnitRunner {
     optional lm.io.ReactionModel reaction_model                 = 7;
     optional lm.io.DiffusionModel diffusion_model               = 8;
     optional lm.io.OrderParameters order_parameters             = 9;
+    optional lm.io.Tilings tilings                              = 10;
 }

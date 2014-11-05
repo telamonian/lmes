@@ -39,16 +39,17 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
-
 #ifndef LM_CME_CMESOLVER_H_
 #define LM_CME_CMESOLVER_H_
 
+#include <algorithm>
 #include <cstdio>
 #include <deque>
 #include <list>
 #include <map>
+#include <pthread.h>
 #include <string>
 #include <utility>
 #include <vector>
@@ -61,6 +62,8 @@
 #include "lm/me/MESolver.h"
 #include "lm/oparam/oparams.h"
 #include "lm/rng/RandomGenerator.h"
+#include "lm/thread/Thread.h"
+#include "lm/tiling/Tilings.h"
 #include "lm/Types.h"
 
 using std::list;
@@ -90,6 +93,12 @@ protected:
     {
         static const uint REACTION_TYPE = 0;
         ZerothOrderPropensityArgs(double k) :k(k) {}
+        double k;
+    };
+    struct ZerothOrderTimeDependentPropensityArgs : public PropensityArgs
+    {
+        static const uint REACTION_TYPE = 10;
+        ZerothOrderTimeDependentPropensityArgs(double k) :k(k) {}
         double k;
     };
     struct FirstOrderPropensityArgs : public PropensityArgs
@@ -218,7 +227,9 @@ public:
     virtual bool needsDiffusionModel() {return false;}
     virtual void setDiffusionModel(const lm::io::DiffusionModel& dm) {}
     virtual bool needsOrderParameters() {return ffluxFlag;}
-    virtual void setOrderParameters(const lm::io::OrderParameters& ops);
+    virtual void setOrderParameters(const lm::io::OrderParameters& opsBuf);
+    virtual bool needsTilings() {return ffluxFlag;}
+    virtual void setTilings(const lm::io::Tilings& tilingsBuf);
     virtual void reset();
     virtual void getState(lm::io::TrajectoryState* state);
     virtual void setState(const lm::io::TrajectoryState& state);
@@ -250,37 +261,20 @@ protected:
 
     inline void performReactionEvent(uint r)
     {
-//        // Record the previous species counts for the benefit of the directed limit crossing checks in reachedSpeciesLimit
-//    	if (true) {//if (ffluxFlag==true) {
-//    		// Store the previous step's order parameter
-//    		prevOParam = oParam;
-////    		memcpy(previousSpeciesCounts, speciesCounts, sizeof(uint)*7);
-//    		for (int i=0; i<(int)reactionModel->numberDependentSpecies[r]; i++)
-//			{
-//    			//previousSpeciesCounts[reactionModel->dependentSpecies[r][i]] = speciesCounts[reactionModel->dependentSpecies[r][i]];
-//    			//previousSpeciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
-//				speciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
-//				oParam = calcTestCaseOParam(speciesCounts);
-//				updatedSpeciesCounts();
-//			}
-//    	}
-
     	// Update the counts according to the dependency tables.
-//    	else {
-    		for (int i=0; i<(int)reactionModel->numberDependentSpecies[r]; i++)
-			{
-				speciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
-				updatedSpeciesCounts();
-			}
-    		// Update the order parameters, if required
-    		if (ffluxFlag==true)
-    		{
-    		    for (int i=0; i<oparams->size(); i++)
-    		    {
-    		        (*oparams)[i]->calc(speciesCounts);
-    		    }
-    		}
-//    	}
+        for (int i=0; i<(int)reactionModel->numberDependentSpecies[r]; i++)
+        {
+            speciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
+            updatedSpeciesCounts();
+        }
+        // Update the order parameters, if required
+        if (ffluxFlag==true)
+        {
+            for (int i=0; i<oparams->size(); i++)
+            {
+                (*oparams)[i]->calc(speciesCounts);
+            }
+        }
     }
 
     inline void updatedSpeciesCounts()
@@ -360,6 +354,7 @@ protected:
     RandomGenerator::Distributions neededDists;
     RandomGenerator * rng;
     lm::oparam::OParams* oparams;
+    lm::tiling::Tilings* tilings;
 
     // The reaction model.
     class ReactionModel
@@ -407,6 +402,7 @@ protected:
     uint* speciesCounts;
     uint* previousSpeciesCounts;
     double time;
+    double timeStep;
     int numberFptTrackedSpecies;
     FPTTracking* fptTrackedSpecies;
 public:

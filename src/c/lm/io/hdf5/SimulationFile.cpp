@@ -58,6 +58,7 @@
 #include "lm/io/ArrayOrdering.pb.h"
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/io/FFluxOutput.pb.h"
 #include "lm/io/Lattice.pb.h"
 #include "lm/io/LatticeTimeSeries.pb.h"
 #include "lm/io/OrderParameters.pb.h"
@@ -1253,6 +1254,46 @@ bool Hdf5File::replicateExists(uint64_t replicate) throw(HDF5Exception)
 void Hdf5File::openReplicate(uint64_t replicate) throw(HDF5Exception)
 {
     openReplicateHandles(replicate);
+}
+
+void Hdf5File::appendFFluxOutput(lm::io::FFluxOutput* ffluxOutput)
+{
+//    // Update the species counts dataset.
+//    {
+//        // Get the current size of the dataset.
+//        unsigned int RANK=2;
+//        hsize_t dims[RANK];
+//        hid_t dataspace_id;
+//        int result;
+//        HDF5_EXCEPTION_CALL(dataspace_id,H5Dget_space(handles->speciesCountsDataset));
+//        HDF5_EXCEPTION_CALL(result,H5Sget_simple_extent_dims(dataspace_id, dims, NULL));
+//        HDF5_EXCEPTION_CHECK(H5Sclose(dataspace_id));
+//
+//        // Extend the dataset by the number of rows in the data set.
+//        dims[0] += speciesCounts->number_entries();
+//        HDF5_EXCEPTION_CHECK(H5Dset_extent(handles->speciesCountsDataset, dims));
+//
+//        // Create the memory dataset.
+//        hid_t memspace_id;
+//        hsize_t memDims[RANK];
+//        memDims[0] = speciesCounts->number_entries();
+//        memDims[1] = speciesCounts->number_species();
+//        HDF5_EXCEPTION_CALL(memspace_id,H5Screate_simple(RANK, memDims, NULL));
+//
+//        // Write the new data.
+//        HDF5_EXCEPTION_CALL(dataspace_id,H5Dget_space(handles->speciesCountsDataset));
+//        hsize_t start[RANK], count[RANK];
+//        start[0] = dims[0]-speciesCounts->number_entries();
+//        start[1] = 0;
+//        count[0] = memDims[0];
+//        count[1] = memDims[1];
+//        HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, start, NULL, count, NULL));
+//        HDF5_EXCEPTION_CHECK(H5Dwrite(handles->speciesCountsDataset, H5T_NATIVE_INT32, memspace_id, dataspace_id, H5P_DEFAULT, speciesCounts->species_count().data()));
+//
+//        // Cleanup some resources.
+//        HDF5_EXCEPTION_CHECK(H5Sclose(dataspace_id));
+//        HDF5_EXCEPTION_CHECK(H5Sclose(memspace_id));
+//    }
 }
 
 void Hdf5File::appendSpeciesCounts(uint64_t replicate, lm::io::SpeciesCounts * speciesCounts) throw(HDF5Exception)

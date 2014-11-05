@@ -50,6 +50,7 @@
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
+#include "lm/main/Main.h"
 #include "lm/Print.h"
 #include "lm/resource/Trajectory.h"
 #include "lm/tiling/Tilings.h"

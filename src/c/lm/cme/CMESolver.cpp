@@ -655,10 +655,16 @@ void CMESolver::setReactionModel(const lm::io::ReactionModel& rm)
     if (K !=  NULL) delete [] K; K = NULL;
 }
 
-void CMESolver::setOrderParameters(const lm::io::OrderParameters& opBuf)
+void CMESolver::setOrderParameters(const lm::io::OrderParameters& opsBuf)
 {
     oparams = new lm::oparam::OParams();
-    oparams->init(opBuf);
+    oparams->init(opsBuf);
+}
+
+void CMESolver::setTilings(const lm::io::Tilings& tilingsBuf)
+{
+    tilings = new lm::tiling::Tilings();
+    tilings->init(tilingsBuf);
 }
 
 double CMESolver::zerothOrderPropensity(double time, uint * speciesCounts, void * pargs)

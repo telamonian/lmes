@@ -63,6 +63,7 @@ namespace io {
 class BoundaryConditions;
 class DiffusionModel;
 class FirstPassageTimes;
+class FFluxOutput;
 class Lattice;
 class LatticeTimeSeries;
 class OrderParameters;
@@ -161,6 +162,7 @@ public:
     // Methods for working with a replicate.
     virtual bool replicateExists(uint64_t replicate) throw(HDF5Exception);
     virtual void openReplicate(uint64_t replicate) throw(HDF5Exception);
+    virtual void appendFFluxOutput(lm::io::FFluxOutput* ffluxOutput);
     virtual void appendSpeciesCounts(uint64_t replicate, lm::io::SpeciesCounts * speciesCounts) throw(HDF5Exception);
     virtual void appendLatticeTimeSeries(uint64_t replicate, const lm::io::LatticeTimeSeries& data);
     virtual void appendParameterValues(uint64_t replicate, lm::io::ParameterValues * parameterValues) throw(HDF5Exception,InvalidArgException);

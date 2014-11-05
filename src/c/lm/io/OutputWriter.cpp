@@ -299,6 +299,10 @@ int OutputWriter::HelperThread::run()
                     {
                         p->processLatticeTimeSeries(message->process_work_unit_output(i).lattice_time_series());
                     }
+                    if (message->process_work_unit_output(i).has_fflux_output())
+                    {
+                        p->processFFluxOutput(message->process_work_unit_output(i).fflux_output());
+                    }
                     writingTime += getHrTime()-startWriting;
                 }
                 bytesWritten += messageSize;

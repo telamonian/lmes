@@ -39,6 +39,7 @@
 
 package lm.message;
 
+import "lm/io/FFluxOutput.proto";
 import "lm/io/SpeciesCounts.proto";
 import "lm/io/FirstPassageTimes.proto";
 import "lm/io/LatticeTimeSeries.proto";
@@ -48,4 +49,5 @@ message ProcessWorkUnitOutput {
 	optional lm.io.SpeciesCounts species_counts          = 2;
 	repeated lm.io.FirstPassageTimes first_passage_times = 3;
 	optional lm.io.LatticeTimeSeries lattice_time_series = 4;
+	optional lm.io.FFluxOutput fflux_output              = 5;
 }

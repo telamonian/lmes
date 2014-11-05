@@ -69,5 +69,5 @@ public:
 
 TEST_F(FFluxSupervisorFixture, HasOparam)
 {
-    EXPECT_EQ(ffS->orderParameters.order_parameters(0).id(), 0);
+    EXPECT_EQ(ffS->orderParametersBuf.order_parameters(0).id(), 0);
 }

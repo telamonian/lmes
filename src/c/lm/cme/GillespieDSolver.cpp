@@ -153,7 +153,7 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
     msg->set_work_unit_id(workUnitId);
 
     // Get the interval for writing species counts.
-    double writeInterval=atof(simulationParameters["writeInterval"].c_str());
+    double writeInterval = atof(simulationParameters["writeInterval"].c_str());
     bool writeTimeSteps = (writeInterval > 0.0);
     double nextSpeciesCountsWriteTime;
     lm::io::SpeciesCounts* speciesCountsDataSet = NULL;
@@ -213,6 +213,7 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
 
         // Calculate the time to the next reaction.
         double expR = expRngValues[rngNext];
+        timeStep = expR/totalPropensity;
         time += expR/totalPropensity;
 
          // If the new time is past the end time, we are done.

@@ -72,6 +72,7 @@ public:
 
 protected:
     virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data)=0;
+    virtual void processFFluxOutput(const lm::io::FFluxOutput& data) {}
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data)=0;
     virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)=0;
     virtual void flush()=0;

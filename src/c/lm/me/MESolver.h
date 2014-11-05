@@ -74,6 +74,8 @@ public:
     virtual void setDiffusionModel(const lm::io::DiffusionModel& dm)=0;
     virtual bool needsOrderParameters()=0;
     virtual void setOrderParameters(const lm::io::OrderParameters& ops)=0;
+    virtual bool needsTilings()=0;
+    virtual void setTilings(const lm::io::Tilings& tilings)=0;
     virtual void reset();
     virtual void setCommunicator(lm::message::Communicator* communicator, int outputProcess, int outputThread, int64_t workUnitId);
     virtual void getState(lm::io::TrajectoryState* state)=0;

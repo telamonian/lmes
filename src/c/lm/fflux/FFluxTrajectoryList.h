@@ -45,6 +45,7 @@
 #include <vector>
 
 #include "lm/fflux/FFluxTrajectory.h"
+#include "lm/io/FFluxOutput.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
@@ -115,6 +116,7 @@ protected:
     CrossingsMap crossings;
     unsigned crossingsPerPhase; //the count of crossing events that should be collected for every fflux sampling phase
     Direction direction;
+    lm::io::FFluxOutput ffluxOutput;
     long long ffluxPhase;
     std::vector<long long> finishedTrajectoriesCounts;
     long long maxFFluxPhase;

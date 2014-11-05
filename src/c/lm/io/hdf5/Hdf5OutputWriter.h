@@ -41,6 +41,7 @@
 #define LM_IO_Hdf5OutputWriter
 
 #include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/io/FFluxOutput.pb.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/hdf5/SimulationFile.h"
@@ -66,6 +67,7 @@ protected:
     virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
     virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data);
+    virtual void processFFluxOutput(const lm::io::FFluxOutput& data);
     virtual void flush();
 
 private:

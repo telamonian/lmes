@@ -123,7 +123,7 @@ protected:
 //    bool hasFFluxParameters;
 //    lm::io::FFluxParameters ffluxParameters;
     bool hasOrderParameters;
-    lm::io::OrderParameters orderParameters;
+    lm::io::OrderParameters orderParametersBuf;
     bool hasTilings;
     lm::io::Tilings tilingsBuf;
     lm::tiling::Tilings tilings;

@@ -153,6 +153,19 @@ int WorkUnitRunner::run()
             }
         }
 
+        // Set the tilings for the solver
+        if (solver->needsTilings())
+        {
+            if (properties.has_tilings())
+            {
+                solver->setTilings(properties.tilings());
+            }
+            else
+            {
+                throw Exception("Work Unit runner terminating, solver requires a set of tilings but none was specified", properties.solver().c_str());
+            }
+        }
+
         // Tell the supervisor the runner was started.
         lm::message::Message msgp;
         lm::message::StartedWorkUnitRunner* msg = msgp.mutable_started_work_unit_runner();
