@@ -60,7 +60,7 @@
 #include "lm/main/Main.h"
 #include "lm/Math.h"
 #include "lm/me/MESolver.h"
-#include "lm/oparam/oparams.h"
+#include "lm/oparam/OParams.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/thread/Thread.h"
 #include "lm/tiling/Tilings.h"
