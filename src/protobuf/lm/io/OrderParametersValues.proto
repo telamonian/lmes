@@ -40,6 +40,6 @@
 package lm.io;
 
 message OrderParametersValues {
-    required uint32 order_parameters_count          = 1;
+    required uint32 number_order_parameters         = 1;
     repeated double values                          = 2 [packed=true];
 }

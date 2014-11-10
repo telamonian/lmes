@@ -37,7 +37,6 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-
 #ifndef COMMUNICATOR_H
 #define COMMUNICATOR_H
 

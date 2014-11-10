@@ -46,10 +46,11 @@
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Message.pb.h"
+#include "lm/tiling/Tilings.h"
 #include "lm/Types.h"
 
 namespace lm {
-namespace resource {
+namespace trajectory {
 
 // Trajectory is responsible for RunWorkUnit messages
 class Trajectory
@@ -57,9 +58,10 @@ class Trajectory
 public:
     enum status_t {NOT_STARTED, RUNNING, WAITING, FINISHED};
 
-    Trajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,bool reversed=false);
-    Trajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::io::TrajectoryState* zerothState);
+    Trajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings* tilings,bool reversed=false);
+    Trajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings* tilings,lm::io::TrajectoryState* zerothState);
     virtual ~Trajectory();
+    virtual void initHists(lm::tiling::Tilings* tilings);
     virtual void initMsg(std::map<std::string,std::string>& simulationParameters);
     virtual void initMsg(const lm::message::Message& newMsg);
     virtual void initState(const lm::io::ReactionModel& reactionModel,bool reversed);
@@ -93,11 +95,12 @@ protected:
 //    lm::io::TrajectoryLimits limits;
 //    lm::io::TrajectoryState state;  // state is supposed to be synced at all (or at least most) times with the msg.run_work_unit.initial_state field
     status_t status;
+    lm::tiling::Tilings& tilings;
 };
 
 }
 }
 
-typedef std::map<uint64_t, lm::resource::Trajectory*> TrajectoryMap;
+typedef std::map<uint64_t, lm::trajectory::Trajectory*> TrajectoryMap;
 
 #endif

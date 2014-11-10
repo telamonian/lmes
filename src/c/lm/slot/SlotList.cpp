@@ -49,18 +49,19 @@
 #include "lm/message/Communicator.h"
 #include "lm/MPI.h"
 #include "lm/Print.h"
-#include "lm/resource/Slot.h"
-#include "lm/resource/SlotList.h"
+#include "lm/slot/Slot.h"
+#include "lm/slot/SlotList.h"
 #include "lm/thread/Thread.h"
 #include "lm/Types.h"
 
+using lm::resource::ResourceMap;
 using lm::thread::PthreadException;
-using lm::resource::Slot;
+using lm::slot::Slot;
 using std::string;
 using std::vector;
 
 namespace lm {
-namespace resource {
+namespace slot {
 
 SlotList::SlotList(lm::message::Communicator * supervisorComm): busySlots(), freeSlots(), xorShift(0,0), supervisorComm(supervisorComm), slotTemplateMsg() //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {

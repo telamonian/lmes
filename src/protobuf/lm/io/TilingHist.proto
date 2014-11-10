@@ -39,7 +39,7 @@
 
 package lm.io;
 
-message TilingsState {
+message TilingHist {
     required uint32 tiling_id       = 1;
-    required uint32 tile_id         = 2;
+    repeated double tile_vals       = 2 [packed=true];
 }

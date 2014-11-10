@@ -45,8 +45,8 @@
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Message.pb.h"
-#include "lm/resource/Trajectory.h"
-#include "lm/resource/TrajectoryList.h"
+#include "lm/trajectory/Trajectory.h"
+#include "lm/trajectory/TrajectoryList.h"
 #include "lm/Types.h"
 
 using lm::io::DiffusionModel;
@@ -55,7 +55,7 @@ using std::map;
 using std::string;
 
 namespace lm {
-namespace resource {
+namespace trajectory {
 
 TrajectoryList::TrajectoryList(const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters)
 :reactionModel(reactionModel),diffusionModel(diffusionModel),simulationParameters(simulationParameters),trajectoryCount(0),workUnitCount(0)
@@ -83,7 +83,7 @@ void TrajectoryList::deleteTrajectory(uint64_t trajectoryID)
     trajectories.erase(it);
 }
 
-lm::resource::Trajectory* TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg) // TODO: refactor into a Trajectory mutator
+lm::trajectory::Trajectory* TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg) // TODO: refactor into a Trajectory mutator
 {
     if (msg.status() == lm::message::FinishedWorkUnit::LIMIT_REACHED)
     {
@@ -125,7 +125,7 @@ bool TrajectoryList::isFinished()
     return true;
 }
 
-lm::resource::Trajectory* TrajectoryList::getTrajectory(uint64_t trajectoryID)
+lm::trajectory::Trajectory* TrajectoryList::getTrajectory(uint64_t trajectoryID)
 {
     return trajectories[trajectoryID];
 }

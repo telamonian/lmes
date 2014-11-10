@@ -329,7 +329,7 @@ void executeSimulationMPISingleMaster(ResourceMap* resourceMap)
     supervisor->setOutputWriterClassName(outputWriterClassName);
     supervisor->setSolverClassName(solverClassName);
     supervisor->setResourceMap(resourceMap);
-    supervisor->initialize();
+    supervisor->init();
 
     // Start the supervisor.
     supervisor->start();

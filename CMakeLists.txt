@@ -8,10 +8,16 @@ project(lm)
 enable_testing()
 #if certain packages cannot be found, the end-user (you) can change the variables in CMakeConfig.txt to point to package paths
 include(CMakeConfig.txt)
+
+add_custom_target( ReplicatePythonSourceTree ALL ${CMAKE_COMMAND} -P
+    ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/ReplicatePythonSourceTree.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} )
 set(ENV{HDF5_ROOT} ${HDF5_ROOT})
 
 #package finding stuff
 SET(CMAKE_MODULE_PATH  ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/CMakeModules )
+include(UseCython)  ###cython
 
 find_package(MPI REQUIRED)
 message("testing if mpi is mpich...")
@@ -74,6 +80,7 @@ include_directories(profile
                     src/c/
                     ${CMAKE_CURRENT_BINARY_DIR}/src/c/
                     src/cuda/
+                    src/cython/
                     src/protobuf/
                     src/swig/
                     ${libsbml_INCLUDE_DIRS} 
@@ -85,12 +92,23 @@ include_directories(profile
 
 #add subdirectories
 #add_subdirectory(src/protobuf)
+
+set(CYTHON_OTHER_LIBS ${CMAKE_THREAD_LIBS_INIT}
+                      ${libsbml_LIBRARIES}
+                      ${PROTOBUF_LIBRARIES}
+                      ${HDF5_LIBRARIES}
+                      ${HDF5_HL_LIBRARIES}
+                      ${MPI_C_LIBRARIES}
+                      ${PYTHON_LIBRARY_DIRS})
+
 add_subdirectory(src/c)
 IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
     add_subdirectory(src/cuda)
     add_dependencies(lm_cuda_lib lm_c_lib)
 ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional)) 
-add_subdirectory(gtest/c)
+#add_subdirectory(gtest/c)
+add_subdirectory(src/cython)
+
 #set_source_files_properties(${proto_hdrs} PROPERTIES GENERATED TRUE)
 #get_directory_property(proto_vars DIRECTORY src/protobuf DEFINITION proto_srcs)
 

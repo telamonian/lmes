@@ -61,7 +61,7 @@ public:
     {
         ffS = new lm::fflux::FFluxSupervisor();
         ffS->simulationInputFilename = "/Users/tel/git/lm/gtest/data/lm/fflux/biphasic_switch.lm";
-        ffS->initialize();
+        ffS->init();
     }
     lm::fflux::FFluxSupervisor* ffS;
 };

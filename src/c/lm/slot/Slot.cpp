@@ -10,12 +10,12 @@
 #include "lm/message/Communicator.h"
 #include "lm/message/Message.pb.h"
 #include "lm/Print.h"
-#include "lm/resource/Slot.h"
+#include "lm/slot/Slot.h"
 
 using std::string;
 
 namespace lm {
-namespace resource {
+namespace slot {
 
 // Slot is responsible for StartWorkUnitRunner messages
 Slot::Slot(int controller_process, int controller_thread, uint32_t uuid, lm::message::Communicator * supervisorComm, lm::message::Message & msg)

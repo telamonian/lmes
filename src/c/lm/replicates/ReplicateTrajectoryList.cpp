@@ -48,8 +48,8 @@
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/replicates/ReplicateTrajectory.h"
 #include "lm/replicates/ReplicateTrajectoryList.h"
-#include "lm/resource/Trajectory.h"
-#include "lm/resource/TrajectoryList.h"
+#include "lm/trajectory/Trajectory.h"
+#include "lm/trajectory/TrajectoryList.h"
 #include "lm/Types.h"
 
 using std::map;

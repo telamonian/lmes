@@ -50,7 +50,7 @@
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/Message.pb.h"
-#include "lm/resource/TrajectoryList.h"
+#include "lm/trajectory/TrajectoryList.h"
 #include "lm/rng/XORShift.h"
 #include "lm/tiling/Tilings.h"
 #include "lm/Types.h"
@@ -63,7 +63,7 @@ typedef std::map<long long, CrossingVector> CrossingsMap;
 typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::DecreasingOrderParameterLimit>::iterator decrLimitIterator;
 typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::IncreasingOrderParameterLimit>::iterator incrLimitIterator;
 
-class FFluxTrajectoryList : public lm::resource::TrajectoryList
+class FFluxTrajectoryList : public lm::trajectory::TrajectoryList
 {
 public:
     enum Direction {FORWARD, BACKWARD};
@@ -98,34 +98,23 @@ public:
     virtual void reverse();
     virtual void saveCrossings();
 
-    // methods for dealing with edges, etc.
-//    virtual void initInterfaces();
-//    virtual void ratchetInterfaces();
-//    virtual void clearInterfaces();
-//    //virtual opIterator findOrderParameter(uint opID);
-//    virtual void setDecrInterface(uint opID, double decrLimit);
-//    virtual void setIncrInterface(uint opID, double incrLimit);
-//    virtual void setInterface(uint opID, double decrLimit, double incrLimit);
-
 protected:
-    //// TEMP
-//    virtual double calcTestCaseOParam(const lm::io::TrajectoryState& finalState);
-//    virtual void incrTestCaseLimits();
-    //// TEMP
-
-    CrossingsMap crossings;
-    unsigned crossingsPerPhase; //the count of crossing events that should be collected for every fflux sampling phase
     Direction direction;
     lm::io::FFluxOutput ffluxOutput;
     long long ffluxPhase;
-    std::vector<long long> finishedTrajectoriesCounts;
     long long maxFFluxPhase;
-    // user defined parameters that determine how the forward flux sampling is carried out
-    double maxPhaseZeroTime;
-    std::map<lm::fflux::FFluxTrajectoryList::Direction, CrossingsMap> savedCrossings;
     uint64_t simultaneousTrajectoryCount;
-    lm::tiling::Tilings& tilings;
     lm::rng::XORShift xorShift; //RNG used for randomly choosing a crossing in a crossing vector
+
+    // members that hold the trajectory data used for the calculations at the end of fflux
+    CrossingsMap crossings;
+    std::vector<long long> finishedTrajectoriesCounts;
+    std::map<lm::fflux::FFluxTrajectoryList::Direction, CrossingsMap> savedCrossings;
+
+    // user defined parameters that determine how the forward flux sampling is carried out
+    unsigned crossingsPerPhase; //the count of crossing events that should be collected for every fflux sampling phase
+    double maxPhaseZeroTime;
+    lm::tiling::Tilings& tilings;
 };
 
 }

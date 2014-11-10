@@ -60,6 +60,7 @@ public:
     Tilings();
     Tilings(const lm::io::Tilings& tilings);
     ~Tilings();
+    void clearTilingMap();
     void init(const lm::io::Tilings& tilings);
     void initTiling(const lm::io::Tilings::Tiling& tiling);
     lm::tiling::Tiling* operator[](uint i) {return tilingMap[i];}

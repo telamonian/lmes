@@ -40,14 +40,14 @@
 #define LM_FFLUX_FFLUXTRAJECTORY_H_
 
 #include "lm/io/TrajectoryLimits.pb.h"
-#include "lm/resource/Trajectory.h"
+#include "lm/trajectory/Trajectory.h"
 #include "lm/tiling/Tilings.h"
 #include "lm/Types.h"
 
 namespace lm {
 namespace fflux {
 
-class FFluxTrajectory : public lm::resource::Trajectory
+class FFluxTrajectory : public lm::trajectory::Trajectory
 {
 public:
     FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings& tilings,bool reversed=false);

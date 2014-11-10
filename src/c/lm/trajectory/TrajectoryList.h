@@ -46,14 +46,14 @@
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Message.pb.h"
-#include "lm/resource/Trajectory.h"
+#include "lm/trajectory/Trajectory.h"
 #include "lm/Types.h"
 
 using std::map;
 using std::string;
 
 namespace lm {
-namespace resource {
+namespace trajectory {
 
 class TrajectoryList
 {
@@ -63,14 +63,14 @@ public:
     virtual void init()=0;
 
     // getter
-    virtual lm::resource::Trajectory* getTrajectory(uint64_t trajectoryID);
-    virtual lm::resource::Trajectory::status_t getTrajectoryStatus(uint64_t trajectoryID);
+    virtual lm::trajectory::Trajectory* getTrajectory(uint64_t trajectoryID);
+    virtual lm::trajectory::Trajectory::status_t getTrajectoryStatus(uint64_t trajectoryID);
     virtual lm::io::TrajectoryState* getTrajectoryState(uint64_t trajectoryID);
     virtual bool exists(uint64_t trajectoryID) {if (trajectories.find(trajectoryID)!=trajectories.end()) return true; else return false;}
 
     // setter
     virtual void setTrajectoryStarted(uint64_t trajectoryID, bool trajectoryStarted);
-    virtual void setTrajectoryStatus(uint64_t trajectoryID, lm::resource::Trajectory::status_t status);
+    virtual void setTrajectoryStatus(uint64_t trajectoryID, lm::trajectory::Trajectory::status_t status);
     virtual void setTrajectoryState(uint64_t trajectoryID, const lm::io::TrajectoryState& state);
 
     // destroyer
@@ -79,7 +79,7 @@ public:
 
     virtual lm::message::Message* getNextWorkUnitMsg();
     virtual bool isFinished();
-    virtual lm::resource::Trajectory* workUnitFinished(const lm::message::FinishedWorkUnit & msg);
+    virtual lm::trajectory::Trajectory* workUnitFinished(const lm::message::FinishedWorkUnit & msg);
 
     // dealing with the internal template Message methods
 //    virtual lm::message::RunWorkUnit* getRunMsg() {return trajectoryTemplateMsg.mutable_run_work_unit();}

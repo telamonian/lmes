@@ -41,14 +41,14 @@
 
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/ReactionModel.pb.h"
-#include "lm/resource/Trajectory.h"
+#include "lm/trajectory/Trajectory.h"
 #include "lm/tiling/Tilings.h"
 #include "lm/Types.h"
 
 namespace lm {
 namespace replicates {
 
-class ReplicateTrajectory : public lm::resource::Trajectory
+class ReplicateTrajectory : public lm::trajectory::Trajectory
 {
 public:
     ReplicateTrajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters);

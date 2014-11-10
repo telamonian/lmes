@@ -60,8 +60,8 @@
 #include "lm/message/StartedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnitRunner.pb.h"
 #include "lm/resource/ResourceMap.h"
-#include "lm/resource/SlotList.h"
-#include "lm/resource/TrajectoryList.h"
+#include "lm/slot/SlotList.h"
+#include "lm/trajectory/TrajectoryList.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 #include "lm/tiling/Tilings.h"
@@ -80,12 +80,12 @@ public:
 public:
     SimulationSupervisor();
     virtual ~SimulationSupervisor();
+    virtual void init();
     void setOutputWriterClassName(string outputWriterClassName) {this->outputWriterClassName = outputWriterClassName;}
     void setResourceMap(lm::resource::ResourceMap* resourceMap) {this->resourceMap = resourceMap;}
     void setSimulationFilename(string simulationInputFilename, string simulationOutputFilename) {this->simulationInputFilename = simulationInputFilename; this->simulationOutputFilename = simulationOutputFilename;}
     void setSolverClassName(string solverClassName) {this->solverClassName = solverClassName;}
     void setUseCPUAffinity(bool useCPUAffinity) {this->useCPUAffinity = useCPUAffinity;}
-    virtual void initialize();
     void wake() throw(lm::thread::PthreadException);
 
 protected:
@@ -106,7 +106,7 @@ protected:
 
 protected:
     long long workUnitCount;
-    lm::resource::TrajectoryList* trajectories;
+    lm::trajectory::TrajectoryList* trajectories;
     lm::message::Communicator communicator;
     lm::resource::ResourceMap* resourceMap;
     std::string simulationInputFilename;
@@ -127,7 +127,7 @@ protected:
     bool hasTilings;
     lm::io::Tilings tilingsBuf;
     lm::tiling::Tilings tilings;
-    lm::resource::SlotList slots;
+    lm::slot::SlotList slots;
 
 private:
     bool parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg);

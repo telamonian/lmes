@@ -45,19 +45,21 @@
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Message.pb.h"
-#include "lm/resource/Trajectory.h"
+#include "lm/tiling/Tilings.h"
+#include "lm/trajectory/Trajectory.h"
 #include "lm/Types.h"
 
 using lm::io::DiffusionModel;
 using lm::io::ReactionModel;
 using lm::io::TrajectoryState;
+using lm::tiling::Tilings;
 using std::map;
 using std::string;
 
 namespace lm {
-namespace resource {
+namespace trajectory {
 
-Trajectory::Trajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,bool reversed):
+Trajectory::Trajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,lm::tiling::Tilings* tilings,bool reversed):
 id(-1),status(NOT_STARTED)
 {
     initState(reactionModel, reversed);
@@ -65,7 +67,7 @@ id(-1),status(NOT_STARTED)
     initMsg(simulationParameters);
 }
 
-Trajectory::Trajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,TrajectoryState* zerothState):
+Trajectory::Trajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,lm::tiling::Tilings* tilings,TrajectoryState* zerothState):
 id(id),status(NOT_STARTED)
 {
     initState(zerothState);
@@ -75,6 +77,11 @@ id(id),status(NOT_STARTED)
 
 Trajectory::~Trajectory()
 {
+}
+
+void Trajectory::initHists(lm::tiling::Tilings* tilings)
+{
+    getState()->mutable_cme_state()->
 }
 
 void Trajectory::initMsg(map<string,string>& simulationParameters)
@@ -105,7 +112,7 @@ void Trajectory::initState(const lm::io::ReactionModel& reactionModel,bool rever
     {
         for (int j=0; j<(int)reactionModel.number_species(); j++)
         {
-            getState()->mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.reversed_initial_species_count(j));
+            getState()->mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.reversed_initial_species_count(j));  // reversed_initial_species_count is set in the input file
         }
     }
     getState()->mutable_cme_state()->mutable_species_counts()->add_time(0.0);

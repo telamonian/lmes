@@ -53,7 +53,7 @@
 #include "lm/message/StartedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnitRunner.pb.h"
 #include "lm/resource/ResourceMap.h"
-#include "lm/resource/SlotList.h"
+#include "lm/slot/SlotList.h"
 
 using lm::resource::ResourceMap;
 using std::string;
@@ -78,7 +78,7 @@ void SimulationSupervisor::wake() throw(lm::thread::PthreadException)
     communicator.sendMessage(communicator.getSourceProcess(), communicator.getSourceThread(), &msg);
 }
 
-void SimulationSupervisor::initialize()
+void SimulationSupervisor::init()
 {
     // Open the simulation file.
     lm::io::hdf5::Hdf5File * file = new lm::io::hdf5::Hdf5File(simulationInputFilename);
@@ -90,7 +90,6 @@ void SimulationSupervisor::initialize()
     for (int i=0; i<simulationParameters.key_size() && i<simulationParameters.value_size(); i++)
     {
         simulationParameterMap[simulationParameters.key(i)] = simulationParameters.value(i);
-//        this->simulationParameterMap[simulationParameters.key(i)] = simulationParameters.value(i);
     }
 
     // Get the reaction model.
@@ -132,13 +131,6 @@ void SimulationSupervisor::initialize()
             }
         }
     }
-
-//    // Get the forward flux parameters
-//    if (file->hasFFluxParameters())
-//    {
-//        hasFFluxParameters = true;
-//        file->getFFluxParameters(&ffluxParameters);
-//    }
 
     if (file->hasOrderParameters())
     {
@@ -411,7 +403,7 @@ bool SimulationSupervisor::assignWork()
 	while (true)
 	{
 		// Allocate the next free slot, if there is one.
-		lm::resource::Slot * workSlot = slots.alloc();
+		lm::slot::Slot * workSlot = slots.alloc();
 		if (workSlot==NULL) return false;	// Except for once (at the program's end), assignWork should return from here
 
 		// Get the next trajectory to run, if there is one.

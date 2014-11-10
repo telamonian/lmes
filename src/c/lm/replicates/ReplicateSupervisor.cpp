@@ -168,7 +168,7 @@ void ReplicateSupervisor::workUnitStarted(const lm::message::StartedWorkUnit& ms
 //    slots.free(msg.process(), msg.thread());
 //
 //    // Get next available slot. If there are more trajectories than slots, this is guaranteed to be the slot we just freed. Otherwise it will be the "coldest" (longest unoccupied) slot
-//    lm::resource::Slot * workSlot = slots.alloc();
+//    lm::slot::Slot * workSlot = slots.alloc();
 //    if (workSlot==NULL) Print::printf(Print::ERROR, "Slot allocation error (there was no free slot even though a slot should have been freed immediately prior)");
 //
 //    // Get the next trajectory to run, if there is one.

@@ -46,7 +46,7 @@
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
-#include "lm/resource/TrajectoryList.h"
+#include "lm/trajectory/TrajectoryList.h"
 #include "lm/MPI.h"
 #include "lm/Print.h"
 #include "lm/thread/Worker.h"
@@ -64,14 +64,12 @@ public:
 public:
     FFluxSupervisor();
     virtual ~FFluxSupervisor();
+//    virtual void init();
+
 protected:
     virtual void allResourcesRegistered();
     virtual void startSimulation();
     virtual void outputWriterStarted(const lm::message::StartedOutputWriter& msg);
-    //// TEMP : remove
-//    virtual void initLimits();
-//    virtual void setTestCaseLimits(double* a_decr=NULL, double* a_incr=NULL);
-    //// TEMP
 
 protected:
     int outputWriterProcess;

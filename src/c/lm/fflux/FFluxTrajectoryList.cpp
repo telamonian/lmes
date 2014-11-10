@@ -52,7 +52,7 @@
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/main/Main.h"
 #include "lm/Print.h"
-#include "lm/resource/Trajectory.h"
+#include "lm/trajectory/Trajectory.h"
 #include "lm/tiling/Tilings.h"
 
 using lm::io::DiffusionModel;
@@ -342,115 +342,6 @@ void FFluxTrajectoryList::saveCrossings()
 
     savedCrossings.insert(CrossingsMapMap::value_type(direction, crossings));
 }
-
-//void FFluxTrajectoryList::initInterfaces()
-//{
-//    clearInterfaces();
-//    for (tilingIterator iface_it=ffluxParams.interface().begin(); iface_it!=ffluxParams.interface().end(); ++iface_it)
-//    {
-//        for (uint i=0;i<iface_it->order_parameter_id_size();++i)
-//        {
-//            switch (iface_it->arrangement()) {
-//            case lm::io::FFluxParameters::DECREASING:
-//                setDecrInterface(iface_it->order_parameter_id(i), iface_it->edge(0));
-//                break;
-//            case lm::io::FFluxParameters::INCREASING:
-//                setIncrInterface(iface_it->order_parameter_id(i), iface_it->edge(0));
-//                break;
-//            }
-//        }
-//    }
-//}
-//
-//void FFluxTrajectoryList::ratchetInterfaces()
-//{
-//    // If this is running, ffluxPhase has just been incremented by one, so now also increment
-//    clearInterfaces();
-//    for (tilingIterator iface_it=ffluxParams.interface().begin(); iface_it!=ffluxParams.interface().end(); ++iface_it)
-//    {
-//        for (uint i=0;i<iface_it->order_parameter_id_size();++i)
-//        {
-//            switch (iface_it->arrangement()) {
-//            case lm::io::FFluxParameters::DECREASING:
-//                setInterface(iface_it->order_parameter_id(i), iface_it->edge(ffluxPhase-1), iface_it->edge(ffluxPhase));
-//                break;
-//            case lm::io::FFluxParameters::INCREASING:
-//                setInterface(iface_it->order_parameter_id(i), iface_it->edge(ffluxPhase), iface_it->edge(ffluxPhase-1));
-//                break;
-//            }
-//        }
-//    }
-//}
-//
-//void FFluxTrajectoryList::clearInterfaces()
-//{
-//    lm::message::RunWorkUnit* runWorkUnitMsg = getRunWorkUnitMsg();
-//    runWorkUnitMsg->mutable_limits()->clear_decreasing_order_parameter_limit();
-//    runWorkUnitMsg->mutable_limits()->clear_increasing_order_parameter_limit();
-//    for (opIterator it=ffluxParams.order_parameter().begin(); it!=ffluxParams.order_parameter().end(); ++it)
-//    {
-//        lm::io::TrajectoryLimits::DecreasingOrderParameterLimit* dopl = runWorkUnitMsg->mutable_limits()->add_decreasing_order_parameter_limit();
-//        dopl->set_order_parameter_id(it->id());
-//        lm::io::TrajectoryLimits::IncreasingOrderParameterLimit* iopl = runWorkUnitMsg->mutable_limits()->add_increasing_order_parameter_limit();
-//        iopl->set_order_parameter_id(it->id());
-//    }
-//}
-//
-//void FFluxTrajectoryList::setDecrInterface(uint opID, double decrLimit)
-//{
-//    lm::message::RunWorkUnit* runWorkUnitMsg = getRunWorkUnitMsg();
-//    for (decrLimitIterator it=runWorkUnitMsg->mutable_limits()->decreasing_order_parameter_limit().begin(); it!=runWorkUnitMsg->mutable_limits()->decreasing_order_parameter_limit().end(); ++it)
-//    {
-//        if (it->order_parameter_id()==opID)
-//        {
-//            it->add_value(decrLimit);
-//            goto end;
-//        }
-//    }
-//    throw InvalidArgException("opID", "does not correspond to order parameter IDs in initialized limits");
-//    end: ;
-//}
-//
-//void FFluxTrajectoryList::setIncrInterface(uint opID, double incrLimit)
-//{
-//    lm::message::RunWorkUnit* runWorkUnitMsg = getRunWorkUnitMsg();
-//    for (incrLimitIterator it=runWorkUnitMsg->mutable_limits()->increasing_order_parameter_limit().begin(); it!=runWorkUnitMsg->mutable_limits()->increasing_order_parameter_limit().end(); ++it)
-//    {
-//        if (it->order_parameter_id()==opID)
-//        {
-//            it->add_value(incrLimit);
-//            goto end;
-//        }
-//    }
-//    throw InvalidArgException("opID", "does not correspond to order parameter IDs in initialized limits");
-//    end: ;
-//}
-//
-//void FFluxTrajectoryList::setInterface(uint opID, double decrLimit, double incrLimit)
-//{
-//    setDecrInterface(opID, decrLimit);
-//    setIncrInterface(opID, incrLimit);
-//}
-
-//// TEMP: replace
-//double FFluxTrajectoryList::calcTestCaseOParam(const lm::io::TrajectoryState& finalState)
-//    {
-//        return (double)(finalState.cme_state().species_counts().species_count(3) + \
-//               2*finalState.cme_state().species_counts().species_count(4) + \
-//               2*finalState.cme_state().species_counts().species_count(5)) - \
-//               (double)(finalState.cme_state().species_counts().species_count(0) + \
-//               2*finalState.cme_state().species_counts().species_count(1) + \
-//               2*finalState.cme_state().species_counts().species_count(2));
-//    }
-//
-//void FFluxTrajectoryList::incrTestCaseLimits()
-//{
-//    lm::message::RunWorkUnit* runWorkUnitMsg = getRunWorkUnitMsg();
-//    Print::printf(Print::INFO, "decr_limit: %f incr_limit: %f", zerothInterface, runWorkUnitMsg->limits().increasing_species_count(0) + oParamStep);
-//    runWorkUnitMsg->mutable_limits()->set_decreasing_species_count(0, zerothInterface);
-//    runWorkUnitMsg->mutable_limits()->set_increasing_species_count(0, runWorkUnitMsg->limits().increasing_species_count(0) + oParamStep);
-//}
-//// TEMP
 
 }
 }

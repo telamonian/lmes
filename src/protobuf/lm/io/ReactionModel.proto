@@ -36,7 +36,6 @@
  *
  * Author(s): Elijah Roberts
  */
-
 package lm.io;
 
 message ReactionModel {
@@ -56,5 +55,4 @@ message ReactionModel {
   repeated Reaction reaction                    = 4;
   repeated int32  stoichiometric_matrix         = 5 [packed=true];
   repeated uint32 dependency_matrix             = 6 [packed=true];
-  
 }

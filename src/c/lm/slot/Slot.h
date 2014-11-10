@@ -48,7 +48,7 @@ using std::string;
 using std::vector;
 
 namespace lm {
-namespace resource {
+namespace slot {
 
 /*
  * The Slot class is the glue between a Trajectory object on the master node and a set of computational resources on a slave node

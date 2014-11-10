@@ -4,8 +4,8 @@
  * All rights reserved.
  *
  * Developed by: Roberts Group
- * 			     Johns Hopkins University
- * 			     http://biophysics.jhu.edu/roberts/
+ *               Johns Hopkins University
+ *               http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -36,40 +36,10 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+#ifndef LM_MESSAGE_MESSAGE_H
+#define LM_MESSAGE_MESSAGE_H
 
-#ifndef LM_REPLICATES_REPLICATETRAJECTORYLIST_H_
-#define LM_REPLICATES_REPLICATETRAJECTORYLIST_H_
 
-#include <map>
-#include <string>
 
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/ReactionModel.pb.h"
-#include "lm/io/TrajectoryState.pb.h"
 
-#include "lm/trajectory/TrajectoryList.h"
-#include "lm/Types.h"
-
-using std::map;
-using lm::trajectory::TrajectoryList;
-
-namespace lm {
-namespace replicates {
-
-class ReplicateTrajectoryList : public lm::trajectory::TrajectoryList
-{
-
-public:
-    ReplicateTrajectoryList(const lm::io::ReactionModel& reactionModel, const lm::io::DiffusionModel& diffusionModel, map<std::string,std::string>& simulationParameters, uint64_t firstTrajectory, uint64_t lastTrajectory);
-    virtual ~ReplicateTrajectoryList();
-    virtual void init();
-
-protected:
-    uint64_t firstTrajectory;
-    uint64_t lastTrajectory;
-};
-
-}
-}
-
-#endif
+#endif // LM_MESSAGE_MESSAGE_H

@@ -57,14 +57,21 @@ Tilings::Tilings(const lm::io::Tilings& tilings)
 
 Tilings::~Tilings()
 {
+    clearTilingMap();
+}
+
+void Tilings::clearTilingMap()
+{
     for (TilingMap::iterator m_it=begin();m_it!=end();++m_it)
     {
         if (m_it->second!=NULL) delete m_it->second; m_it->second = NULL;
+        tilingMap.erase(m_it);
     }
 }
 
 void Tilings::init(const lm::io::Tilings& tilings)
 {
+    clearTilingMap();
     for (TilingIterator t_it=tilings.tilings().begin();t_it!=tilings.tilings().end();++t_it) initTiling(*t_it);
 }
 

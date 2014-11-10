@@ -56,23 +56,24 @@
 #include "lm/message/Communicator.h"
 #include "lm/message/Message.pb.h"
 #include "lm/resource/ResourceMap.h"
-#include "lm/resource/Slot.h"
+#include "lm/slot/Slot.h"
 #include "lm/rng/XORShift.h"
 #include "lm/thread/Thread.h"
 #include "lm/Types.h"
 
+using lm::resource::ResourceMap;
+using lm::slot::Slot;
+using lm::thread::PthreadException;
 using std::deque;
 using std::map;
 using std::string;
 using std::vector;
-using lm::resource::Slot;
-using lm::thread::PthreadException;
 
 typedef map<vector<int>, Slot *> SlotMap;
 typedef deque<Slot *> SlotDeque;
 
 namespace lm {
-namespace resource {
+namespace slot {
 
 /*
  * follows similar reasoning to the Resource Manager design pattern (http://www.eventhelix.com/realtimemantra/PatternCatalog/resource_manager_pattern.htm) with fewer typos
