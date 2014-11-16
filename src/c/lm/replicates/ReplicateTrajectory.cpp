@@ -58,18 +58,31 @@ using std::string;
 namespace lm {
 namespace replicates {
 
-ReplicateTrajectory::ReplicateTrajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters):
-Trajectory(id,reactionModel,diffusionModel,simulationParameters)
+//ReplicateTrajectory::ReplicateTrajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters):
+//Trajectory(id,reactionModel,diffusionModel,simulationParameters)
+//{
+//    // Limit setting code
+//    initLimits(reactionModel,simulationParameters);
+//}
+//ReplicateTrajectory::ReplicateTrajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,TrajectoryState* zerothState):
+//Trajectory(id,reactionModel,diffusionModel,simulationParameters,zerothState)
+//{
+//    // Limit setting code
+//    initLimits(reactionModel,simulationParameters);
+//}
+
+ReplicateTrajectory::ReplicateTrajectory(uint64_t id,lm::input::Input& input):
+Trajectory(id,input)
 {
     // Limit setting code
-    initLimits(reactionModel,simulationParameters);
+    initLimits(input.reactionModelBuf,input.simulationParametersMap);
 }
 
-ReplicateTrajectory::ReplicateTrajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,TrajectoryState* zerothState):
-Trajectory(id,reactionModel,diffusionModel,simulationParameters,zerothState)
+ReplicateTrajectory::ReplicateTrajectory(uint64_t id,lm::input::Input& input,TrajectoryState* zerothState):
+Trajectory(id,input,zerothState)
 {
     // Limit setting code
-    initLimits(reactionModel,simulationParameters);
+    initLimits(input.reactionModelBuf,input.simulationParametersMap);
 }
 
 ReplicateTrajectory::~ReplicateTrajectory()

@@ -39,6 +39,7 @@
 #ifndef LM_FFLUX_FFLUXTRAJECTORY_H_
 #define LM_FFLUX_FFLUXTRAJECTORY_H_
 
+#include "lm/input/Input.h"
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/trajectory/Trajectory.h"
@@ -51,8 +52,10 @@ namespace replicates {
 class ReplicateTrajectory : public lm::trajectory::Trajectory
 {
 public:
-    ReplicateTrajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters);
-    ReplicateTrajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::io::TrajectoryState* zerothState);
+//    ReplicateTrajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters);
+//    ReplicateTrajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::io::TrajectoryState* zerothState);
+    ReplicateTrajectory(uint64_t id,lm::input::Input& input);
+    ReplicateTrajectory(uint64_t id,lm::input::Input& input,lm::io::TrajectoryState* zerothState);
     virtual ~ReplicateTrajectory();
 
     virtual void initLimits(const lm::io::ReactionModel& reactionModel,std::map<std::string,std::string>& simulationParameters);

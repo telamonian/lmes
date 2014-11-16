@@ -41,6 +41,7 @@
 #include <string>
 
 #include "lm/Print.h"
+#include "lm/input/Input.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
@@ -59,30 +60,46 @@ using std::string;
 namespace lm {
 namespace trajectory {
 
-Trajectory::Trajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,lm::tiling::Tilings* tilings,bool reversed):
-id(-1),status(NOT_STARTED)
+//Trajectory::Trajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,lm::tiling::Tilings* tilings,bool reversed):
+//id(-1),status(NOT_STARTED)
+//{
+//    initState(reactionModel, reversed);
+//    setID(id);
+//    initMsg(simulationParameters);
+//}
+//
+//Trajectory::Trajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,lm::tiling::Tilings* tilings,TrajectoryState* zerothState):
+//id(id),status(NOT_STARTED)
+//{
+//    initState(zerothState);
+//    setID(id);
+//    initMsg(simulationParameters);
+//}
+
+Trajectory::Trajectory(uint64_t id,lm::input::Input& input,bool reversed):
+id(-1),input(input),status(NOT_STARTED)
 {
-    initState(reactionModel, reversed);
+    initState(input.reactionModelBuf, reversed);
     setID(id);
-    initMsg(simulationParameters);
+    initMsg(input.simulationParametersMap);
 }
 
-Trajectory::Trajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,lm::tiling::Tilings* tilings,TrajectoryState* zerothState):
-id(id),status(NOT_STARTED)
+Trajectory::Trajectory(uint64_t id,lm::input::Input& input,TrajectoryState* zerothState):
+id(id),input(input),status(NOT_STARTED)
 {
     initState(zerothState);
     setID(id);
-    initMsg(simulationParameters);
+    initMsg(input.simulationParametersMap);
 }
 
 Trajectory::~Trajectory()
 {
 }
 
-void Trajectory::initHists(lm::tiling::Tilings* tilings)
-{
-    getState()->mutable_cme_state()->
-}
+//void Trajectory::initHists(lm::tiling::Tilings* tilings)
+//{
+//    getState()->mutable_cme_state()->
+//}
 
 void Trajectory::initMsg(map<string,string>& simulationParameters)
 {

@@ -62,12 +62,13 @@ namespace lm {
 namespace main {
 
 SimulationSupervisor::SimulationSupervisor()
-    :workUnitCount(0),trajectories(NULL),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),solverClassName(""),useCPUAffinity(false),hasReactionModel(false),hasDiffusionModel(false),hasOrderParameters(false),hasTilings(false),tilings(),slots(&communicator)
+    :workUnitCount(0),trajectories(NULL),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),solverClassName(""),useCPUAffinity(false),input(NULL),hasReactionModel(false),hasDiffusionModel(false),hasOrderParameters(false),hasTilings(false),tilings(),slots(&communicator)
 {
 }
 
 SimulationSupervisor::~SimulationSupervisor()
 {
+    if (input != NULL) delete input; input = NULL;
     if (trajectories != NULL) delete trajectories; trajectories = NULL; // since Supervisors call new to allocate their TrajectoryLists, this needs to be here
 }
 
@@ -83,47 +84,45 @@ void SimulationSupervisor::init()
     // Open the simulation file.
     lm::io::hdf5::Hdf5File * file = new lm::io::hdf5::Hdf5File(simulationInputFilename);
 
-    // Get the simulation parameters.
-    file->getParameters(&simulationParameters);
-
-    // Map the simulation parameters.
-    for (int i=0; i<simulationParameters.key_size() && i<simulationParameters.value_size(); i++)
+    // Get the simulation parameters and read them into a map.
+    file->getParameters(&simulationParametersBuf);
+    for (int i=0; i<simulationParametersBuf.key_size() && i<simulationParametersBuf.value_size(); i++)
     {
-        simulationParameterMap[simulationParameters.key(i)] = simulationParameters.value(i);
+        simulationParametersMap[simulationParametersBuf.key(i)] = simulationParametersBuf.value(i);
     }
 
     // Get the reaction model.
     if (file->hasReactionModel())
     {
         hasReactionModel = true;
-        file->getReactionModel(&reactionModel);
+        file->getReactionModel(&reactionModelBuf);
     }
 
     // Get the diffusion model.
     if (file->hasDiffusionModel())
     {
         hasDiffusionModel = true;
-        file->getDiffusionModel(&diffusionModel);
+        file->getDiffusionModel(&diffusionModelBuf);
 
         // See if we need to fill in the boundary conditions from the simulation parameters.
-        if (simulationParameterMap.count("boundaryConditions") == 1 && !diffusionModel.has_boundary_conditions())
+        if (simulationParametersMap.count("boundaryConditions") == 1 && !diffusionModelBuf.has_boundary_conditions())
         {
-            lm::io::BoundaryConditions* bc=diffusionModel.mutable_boundary_conditions();
-            if (!parseBoundaryConditions(bc, simulationParameterMap["boundaryConditions"].c_str()))
+            lm::io::BoundaryConditions* bc=diffusionModelBuf.mutable_boundary_conditions();
+            if (!parseBoundaryConditions(bc, simulationParametersMap["boundaryConditions"].c_str()))
             {
-                throw Exception("Could not parse boundaryConditions parameter",simulationParameterMap["boundaryConditions"].c_str());
+                throw Exception("Could not parse boundaryConditions parameter",simulationParametersMap["boundaryConditions"].c_str());
             }
-            if (simulationParameterMap.count("boundarySite") == 1)
+            if (simulationParametersMap.count("boundarySite") == 1)
             {
-                bc->set_boundary_site(atoi(simulationParameterMap["boundarySite"].c_str()));
+                bc->set_boundary_site(atoi(simulationParametersMap["boundarySite"].c_str()));
             }
-            if (simulationParameterMap.count("boundarySpecies") == 1)
+            if (simulationParametersMap.count("boundarySpecies") == 1)
             {
-                bc->set_boundary_species(atoi(simulationParameterMap["boundarySpecies"].c_str()));
+                bc->set_boundary_species(atoi(simulationParametersMap["boundarySpecies"].c_str()));
             }
-            if (simulationParameterMap.count("boundaryConcentration") == 1)
+            if (simulationParametersMap.count("boundaryConcentration") == 1)
             {
-                bc->set_boundary_concentration(atof(simulationParameterMap["boundaryConcentration"].c_str()));
+                bc->set_boundary_concentration(atof(simulationParametersMap["boundaryConcentration"].c_str()));
             }
             if (file->hasBoundaryGradient())
             {
@@ -136,6 +135,7 @@ void SimulationSupervisor::init()
     {
         hasOrderParameters = true;
         file->getOrderParameters(&orderParametersBuf);
+        ops.init(orderParametersBuf);
     }
 
     if (file->hasTilings())
@@ -145,13 +145,16 @@ void SimulationSupervisor::init()
         tilings.init(tilingsBuf);
     }
 
-    // Close the file.
+//    // initialize input struct (used for setting up trajectories)
+    input = new lm::input::Input(hasDiffusionModel,hasOrderParameters,hasReactionModel,hasTilings,diffusionModelBuf,ops,reactionModelBuf,simulationParametersMap,tilings);
+
+    // close the file
     delete file;
 }
 
 bool SimulationSupervisor::parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg)
 {
-    lm::io::BoundaryConditions_BoundaryConditionsType type;
+    lm::io::BoundaryConditions::BoundaryConditionsType type;
 
     // See if it is a global boundary condition.
     if (lm::io::BoundaryConditions_BoundaryConditionsType_Parse(arg, &type))
@@ -363,9 +366,9 @@ void SimulationSupervisor::allResourcesRegistered()
     //	if (resources.gpusDevices.size() > 0)
     //		s->add_gpu(resources.gpusDevices[0]);
     startSlotMsg->set_solver(solverClassName);
-	*startSlotMsg->mutable_simulation_parameters() = simulationParameters;
-	if (hasReactionModel) *startSlotMsg->mutable_reaction_model() = reactionModel;
-	if (hasDiffusionModel) *startSlotMsg->mutable_diffusion_model() = diffusionModel;
+	*startSlotMsg->mutable_simulation_parameters() = simulationParametersBuf;
+	if (hasReactionModel) *startSlotMsg->mutable_reaction_model() = reactionModelBuf;
+	if (hasDiffusionModel) *startSlotMsg->mutable_diffusion_model() = diffusionModelBuf;
 	if (hasOrderParameters) *startSlotMsg->mutable_order_parameters() = orderParametersBuf;
 	if (hasTilings) *startSlotMsg->mutable_tilings() = tilingsBuf;
 

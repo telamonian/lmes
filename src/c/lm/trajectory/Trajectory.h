@@ -36,12 +36,13 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_RESOURCE_TRAJECTORY_H_
-#define LM_RESOURCE_TRAJECTORY_H_
+#ifndef LM_TRAJECTORY_TRAJECTORY_H_
+#define LM_TRAJECTORY_TRAJECTORY_H_
 
 #include <map>
 #include <string>
 
+#include "lm/input/Input.h"
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
@@ -58,10 +59,12 @@ class Trajectory
 public:
     enum status_t {NOT_STARTED, RUNNING, WAITING, FINISHED};
 
-    Trajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings* tilings,bool reversed=false);
-    Trajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings* tilings,lm::io::TrajectoryState* zerothState);
+//    Trajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings* tilings,bool reversed=false);
+//    Trajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings* tilings,lm::io::TrajectoryState* zerothState);
+    Trajectory(uint64_t id,lm::input::Input& input,bool reversed=false);
+    Trajectory(uint64_t id,lm::input::Input& input,lm::io::TrajectoryState* zerothState);
     virtual ~Trajectory();
-    virtual void initHists(lm::tiling::Tilings* tilings);
+//    virtual void initHists(lm::tiling::Tilings* tilings);
     virtual void initMsg(std::map<std::string,std::string>& simulationParameters);
     virtual void initMsg(const lm::message::Message& newMsg);
     virtual void initState(const lm::io::ReactionModel& reactionModel,bool reversed);
@@ -88,6 +91,7 @@ public:
 
 protected:
     uint64_t id;
+    lm::input::Input& input;
     lm::message::Message msg;
 //    lm::io::ReactionModel& reactionModel;
 //    lm::io::DiffusionModel& diffusionModel;
@@ -95,7 +99,6 @@ protected:
 //    lm::io::TrajectoryLimits limits;
 //    lm::io::TrajectoryState state;  // state is supposed to be synced at all (or at least most) times with the msg.run_work_unit.initial_state field
     status_t status;
-    lm::tiling::Tilings& tilings;
 };
 
 }

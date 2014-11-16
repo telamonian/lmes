@@ -45,6 +45,7 @@
 #include <google/protobuf/message.h>
 
 #include "lm/Exceptions.h"
+#include "lm/input/Input.h"
 #include "lm/io/BoundaryConditions.pb.h"
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/OrderParameters.pb.h"
@@ -59,6 +60,7 @@
 #include "lm/message/StartedOutputWriter.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnitRunner.pb.h"
+#include "lm/oparam/OParams.h"
 #include "lm/resource/ResourceMap.h"
 #include "lm/slot/SlotList.h"
 #include "lm/trajectory/TrajectoryList.h"
@@ -71,6 +73,32 @@ using std::string;
 
 namespace lm {
 namespace main {
+
+//template <typename T>
+//struct Input
+//{
+//public:
+//    Input(T* sup):
+//        hasDiffusionModel(sup->hasDiffusionModel),
+//        diffusionModelBuf(sup->diffusionModelBuf),
+//        hasOrderParameters(sup->hasOrderParameters),
+//        ops(sup->ops),
+//        hasReactionModel(sup->hasReactionModel),
+//        reactionModelBuf(sup->reactionModelBuf),
+//        simulationParameterMap(sup->simulationParameterMap),
+//        hasTilings(sup->hasTilings),
+//        tilings(sup->tilings) {}
+//
+//    bool hasDiffusionModel;
+//    lm::io::DiffusionModel& diffusionModelBuf;
+//    bool hasOrderParameters;
+//    lm::oparam::OParams& ops;
+//    bool hasReactionModel;
+//    lm::io::ReactionModel& reactionModelBuf;
+//    map<string,string>& simulationParameterMap;
+//    bool hasTilings;
+//    lm::tiling::Tilings& tilings;
+//};
 
 class SimulationSupervisor : public lm::thread::Worker
 {
@@ -103,10 +131,7 @@ protected:
     virtual void allResourcesRegistered();
     virtual void allWorkUnitRunnersStarted();
 
-
 protected:
-    long long workUnitCount;
-    lm::trajectory::TrajectoryList* trajectories;
     lm::message::Communicator communicator;
     lm::resource::ResourceMap* resourceMap;
     std::string simulationInputFilename;
@@ -114,20 +139,22 @@ protected:
     std::string outputWriterClassName;
     std::string solverClassName;
     bool useCPUAffinity;
-    lm::io::SimulationParameters simulationParameters;
-    map<string,string> simulationParameterMap;
+    lm::input::Input* input;
+    lm::io::SimulationParameters simulationParametersBuf;
+    map<string,string> simulationParametersMap;
     bool hasReactionModel;
-    lm::io::ReactionModel reactionModel;
+    lm::io::ReactionModel reactionModelBuf;
     bool hasDiffusionModel;
-    lm::io::DiffusionModel diffusionModel;
-//    bool hasFFluxParameters;
-//    lm::io::FFluxParameters ffluxParameters;
+    lm::io::DiffusionModel diffusionModelBuf;
     bool hasOrderParameters;
     lm::io::OrderParameters orderParametersBuf;
+    lm::oparam::OParams ops;
     bool hasTilings;
     lm::io::Tilings tilingsBuf;
     lm::tiling::Tilings tilings;
+    lm::trajectory::TrajectoryList* trajectories;
     lm::slot::SlotList slots;
+    long long workUnitCount;
 
 private:
     bool parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg);

@@ -141,9 +141,6 @@ public:
     virtual bool hasDiffusionModel();
     virtual void getDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception);
     virtual void setDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception);
-//    virtual bool hasFFluxParameters();
-//    virtual void getFFluxParameters(lm::io::FFluxParameters * ffluxParameters);
-//    virtual void setFFluxParameters(lm::io::FFluxParameters * ffluxParameters);
     virtual bool hasOrderParameters();
     virtual void getOrderParameters(lm::io::OrderParameters * orderParameters);
     virtual void setOrderParameters(lm::io::OrderParameters * orderParameters);
@@ -157,7 +154,6 @@ public:
     virtual void setTilings(lm::io::Tilings * tilings);
     virtual bool hasBoundaryGradient();
     virtual void getBoundaryGradient(lm::io::BoundaryConditions* bc);
-
 
     // Methods for working with a replicate.
     virtual bool replicateExists(uint64_t replicate) throw(HDF5Exception);

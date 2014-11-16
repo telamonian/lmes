@@ -41,6 +41,7 @@
 #include <string>
 
 #include "lm/Print.h"
+#include "lm/input/Input.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
@@ -57,8 +58,13 @@ using std::string;
 namespace lm {
 namespace trajectory {
 
-TrajectoryList::TrajectoryList(const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters)
-:reactionModel(reactionModel),diffusionModel(diffusionModel),simulationParameters(simulationParameters),trajectoryCount(0),workUnitCount(0)
+//TrajectoryList::TrajectoryList(const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters)
+//:reactionModel(reactionModel),diffusionModel(diffusionModel),simulationParameters(simulationParameters),trajectoryCount(0),workUnitCount(0)
+//{
+//}
+
+TrajectoryList::TrajectoryList(lm::input::Input& input)
+:input(input),trajectoryCount(0),workUnitCount(0)
 {
 }
 

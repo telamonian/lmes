@@ -50,8 +50,10 @@ namespace fflux {
 class FFluxTrajectory : public lm::trajectory::Trajectory
 {
 public:
-    FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings& tilings,bool reversed=false);
-    FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings& tilings,lm::io::TrajectoryState* state);
+//    FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings& tilings,bool reversed=false);
+//    FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings& tilings,lm::io::TrajectoryState* state);
+    FFluxTrajectory(uint64_t id,uint ffluxPhase,lm::input::Input& input,bool reversed=false);
+    FFluxTrajectory(uint64_t id,uint ffluxPhase,lm::input::Input& input,lm::io::TrajectoryState* state);
     virtual ~FFluxTrajectory();
     //virtual void initZerothTrajectory();
     virtual void initLimits();
@@ -70,11 +72,6 @@ public:
     //    void setFFluxPhase(uint newPhase) {ffluxPhase = newPhase;}
 
     uint ffluxPhase;
-
-protected:
-    // reference to supervisor's Tilings object for setting limits and such
-    lm::tiling::Tilings& tilings;
-
 };
 
 }

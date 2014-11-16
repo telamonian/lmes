@@ -36,12 +36,13 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_RESOURCE_TRAJECTORYLIST_H_
-#define LM_RESOURCE_TRAJECTORYLIST_H_
+#ifndef LM_TRAJECTORY_TRAJECTORYLIST_H_
+#define LM_TRAJECTORY_TRAJECTORYLIST_H_
 
 #include <map>
 #include <string>
 
+#include "lm/input/Input.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
@@ -58,7 +59,8 @@ namespace trajectory {
 class TrajectoryList
 {
 public:
-    TrajectoryList(const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel, map<string,string>& simulationParameters);
+//    TrajectoryList(const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel, map<string,string>& simulationParameters);
+    TrajectoryList(lm::input::Input& input);
     virtual ~TrajectoryList();
     virtual void init()=0;
 
@@ -86,9 +88,10 @@ public:
 //    virtual lm::io::TrajectoryLimits* getLimitsMsg() {return getRunMsg()->mutable_limits();}
 
 protected:
-    const lm::io::ReactionModel& reactionModel;
-    const lm::io::DiffusionModel& diffusionModel;
-    map<string,string>& simulationParameters;
+//    const lm::io::ReactionModel& reactionModel;
+//    const lm::io::DiffusionModel& diffusionModel;
+//    map<string,string>& simulationParameters;
+    lm::input::Input& input;
     uint64_t trajectoryCount;
     uint64_t workUnitCount;
     // this template message is used when initializing new Trajectory instances

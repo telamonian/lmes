@@ -67,15 +67,14 @@ namespace fflux {
 // this has to be here because Direction is part of the FFluxTrajectoryList definition
 typedef map<lm::fflux::FFluxTrajectoryList::Direction, CrossingsMap> CrossingsMapMap;
 
-FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel, map<string,string>& simulationParameters, lm::tiling::Tilings& tilings)
-:TrajectoryList(reactionModel, diffusionModel, simulationParameters),
- tilings(tilings),
- crossingsPerPhase(atof(simulationParameters["crossingsPerPhase"].c_str())),
+FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,lm::input::Input& input)
+:TrajectoryList(input),
+ crossingsPerPhase(atof(input.simulationParametersMap["crossingsPerPhase"].c_str())),
  direction(FORWARD),
  ffluxPhase(0),
- finishedTrajectoriesCounts(tilings[0]->getEdgesCount(), 0),
- maxFFluxPhase(tilings[0]->getEdgesCount()),
- maxPhaseZeroTime(atof(simulationParameters["maxPhaseZeroTime"].c_str())),
+ finishedTrajectoriesCounts(input.tilings[0]->getEdgesCount(), 0),
+ maxFFluxPhase(input.tilings[0]->getEdgesCount()),
+ maxPhaseZeroTime(atof(input.simulationParametersMap["maxPhaseZeroTime"].c_str())),
  simultaneousTrajectoryCount(simultaneousTrajectoryCount),
  xorShift(0,0)  //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
@@ -129,7 +128,7 @@ void FFluxTrajectoryList::initTrajectories(uint64_t trajectoriesToStart,bool rev
 {
     for (long long i=0; i<trajectoriesToStart; i++)
     {
-        trajectories[trajectoryCount] = new lm::fflux::FFluxTrajectory(trajectoryCount,ffluxPhase,reactionModel,diffusionModel,simulationParameters,tilings,reversed);
+        trajectories[trajectoryCount] = new lm::fflux::FFluxTrajectory(trajectoryCount,ffluxPhase,input,reversed);
         trajectoryCount++;
     }
 }
@@ -138,7 +137,7 @@ void FFluxTrajectoryList::initTrajectories(uint64_t trajectoriesToStart, lm::io:
 {
     for (long long i=0; i<trajectoriesToStart; i++)
     {
-        trajectories[trajectoryCount] = new lm::fflux::FFluxTrajectory(trajectoryCount,ffluxPhase,reactionModel,diffusionModel,simulationParameters,tilings,zerothTraj);
+        trajectories[trajectoryCount] = new lm::fflux::FFluxTrajectory(trajectoryCount,ffluxPhase,input,zerothTraj);
         trajectoryCount++;
     }
 }
@@ -224,7 +223,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
                     Print::printf(Print::INFO, "Phase 0 probability flux: %.10f", (double)crossings[0].size()/(maxPhaseZeroTime*simultaneousTrajectoryCount));
                     for (int i=1;i<maxFFluxPhase;i++)
                     {
-                        Print::printf(Print::INFO, "Crossing probability for interface at %f: %.10f", tilings[0]->getEdge(i), (double)crossings[i].size()/finishedTrajectoriesCounts[i]);
+                        Print::printf(Print::INFO, "Crossing probability for interface at %f: %.10f", input.tilings[0]->getEdge(i), (double)crossings[i].size()/finishedTrajectoriesCounts[i]);
                     }
                     double Kab = (double)crossings[0].size()/(maxPhaseZeroTime*simultaneousTrajectoryCount);
                     for (int i=1;i<maxFFluxPhase;i++)
@@ -334,7 +333,7 @@ void FFluxTrajectoryList::restart()
 void FFluxTrajectoryList::reverse()
 {
     direction = direction==FORWARD ? BACKWARD : FORWARD;
-    tilings.reverse();
+    input.tilings.reverse();
 }
 
 void FFluxTrajectoryList::saveCrossings()

@@ -45,6 +45,7 @@
 #include <vector>
 
 #include "lm/fflux/FFluxTrajectory.h"
+#include "lm/input/Input.h"
 #include "lm/io/FFluxOutput.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
@@ -66,9 +67,11 @@ typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::IncreasingO
 class FFluxTrajectoryList : public lm::trajectory::TrajectoryList
 {
 public:
-    enum Direction {FORWARD, BACKWARD};
     // enumerated type used for describing the direction of the current fflux simulation relative to the arrangements (low-to-high or high-to-low) of the individual interfaces
-    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters, lm::tiling::Tilings& tilings);
+    enum Direction {FORWARD, BACKWARD};
+
+//    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters, lm::tiling::Tilings& tilings);
+    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,lm::input::Input& input);
     virtual ~FFluxTrajectoryList();
     virtual void init();
     virtual void initReversed();
@@ -114,7 +117,6 @@ protected:
     // user defined parameters that determine how the forward flux sampling is carried out
     unsigned crossingsPerPhase; //the count of crossing events that should be collected for every fflux sampling phase
     double maxPhaseZeroTime;
-    lm::tiling::Tilings& tilings;
 };
 
 }

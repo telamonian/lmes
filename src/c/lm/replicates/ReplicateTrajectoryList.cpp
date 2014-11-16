@@ -42,6 +42,7 @@
 #include <string>
 
 #include "lm/Print.h"
+#include "lm/input/Input.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
@@ -58,8 +59,8 @@ using std::string;
 namespace lm {
 namespace replicates {
 
-ReplicateTrajectoryList::ReplicateTrajectoryList(const lm::io::ReactionModel& reactionModel, const lm::io::DiffusionModel& diffusionModel, map<std::string,std::string>& simulationParameters, uint64_t firstTrajectory, uint64_t lastTrajectory)
-:TrajectoryList(reactionModel,diffusionModel,simulationParameters),firstTrajectory(firstTrajectory),lastTrajectory(lastTrajectory)
+ReplicateTrajectoryList::ReplicateTrajectoryList(lm::input::Input& input, uint64_t firstTrajectory, uint64_t lastTrajectory)
+:TrajectoryList(input),firstTrajectory(firstTrajectory),lastTrajectory(lastTrajectory)
 {
 }
 
@@ -72,7 +73,7 @@ void ReplicateTrajectoryList::init()
 {
 	for (uint64_t i=firstTrajectory; i<=lastTrajectory; i++)
 	{
-		trajectories[i] = new lm::replicates::ReplicateTrajectory(i,reactionModel,diffusionModel,simulationParameters);
+		trajectories[i] = new lm::replicates::ReplicateTrajectory(i,input);
 
 //		// Initialize the trajectory's runWorkUnit message
 //		trajectories[i]->setMsg(trajectoryTemplateMsg);
@@ -89,7 +90,7 @@ void ReplicateTrajectoryList::init()
 //		trajectories[i]->getState().mutable_cme_state()->mutable_species_counts()->add_time(0.0);
 
 		// Initialize the first passage times in the cme state.
-		const string listString = simulationParameters["fptTrackingList"];
+		const string listString = input.simulationParametersMap["fptTrackingList"];
 		std::list<int> fptList;
 		size_t start=0, end=0;
 		while (end != string::npos)
@@ -108,7 +109,7 @@ void ReplicateTrajectoryList::init()
 			fpt->set_trajectory_id(i);
 			fpt->set_species(*it);
 			fpt->set_number_entries(1);
-			fpt->add_species_count(reactionModel.initial_species_count(*it));
+			fpt->add_species_count(input.reactionModelBuf.initial_species_count(*it));
 			fpt->add_first_passage_time(0.0);
 			Print::printf(Print::DEBUG, "Added fpt tracking for species %d", *it);
 		}
@@ -116,12 +117,12 @@ void ReplicateTrajectoryList::init()
         // Initialize the rdme state from the diffusion model.
         lm::io::RDMEState* rdmeState = trajectories[i]->getState()->mutable_rdme_state();
         lm::io::Lattice* initialLattice = rdmeState->mutable_species_positions();
-        initialLattice->set_lattice_x_size(diffusionModel.initial_lattice().lattice_x_size());
-        initialLattice->set_lattice_y_size(diffusionModel.initial_lattice().lattice_y_size());
-        initialLattice->set_lattice_z_size(diffusionModel.initial_lattice().lattice_z_size());
-        initialLattice->set_particles_per_site(diffusionModel.initial_lattice().particles_per_site());
-        initialLattice->set_particles_ordering(diffusionModel.initial_lattice().particles_ordering());
-        initialLattice->set_particles(diffusionModel.initial_lattice().particles());
+        initialLattice->set_lattice_x_size(input.diffusionModelBuf.initial_lattice().lattice_x_size());
+        initialLattice->set_lattice_y_size(input.diffusionModelBuf.initial_lattice().lattice_y_size());
+        initialLattice->set_lattice_z_size(input.diffusionModelBuf.initial_lattice().lattice_z_size());
+        initialLattice->set_particles_per_site(input.diffusionModelBuf.initial_lattice().particles_per_site());
+        initialLattice->set_particles_ordering(input.diffusionModelBuf.initial_lattice().particles_ordering());
+        initialLattice->set_particles(input.diffusionModelBuf.initial_lattice().particles());
     }
 }
 
