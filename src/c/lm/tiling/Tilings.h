@@ -36,7 +36,6 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #ifndef LM_TILING_TILINGS
 #define LM_TILING_TILINGS
 
@@ -44,6 +43,8 @@
 #include <map>
 #include <string>
 #include <vector>
+
+#include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/Tilings.pb.h"
 #include "lm/tiling/Tiling.h"
 
@@ -57,25 +58,40 @@ typedef std::map<uint,lm::tiling::Tiling*> TilingMap;
 class Tilings
 {
 public:
+    // constructors/destructors/initializers
     Tilings();
     Tilings(const lm::io::Tilings& tilings);
     ~Tilings();
     void clearTilingMap();
+    bool init(lm::io::hdf5::Hdf5File* file);
     void init(const lm::io::Tilings& tilings);
+    void init();
     void initTiling(const lm::io::Tilings::Tiling& tiling);
+
+    // operators
     lm::tiling::Tiling* operator[](uint i) {return tilingMap[i];}
     TilingMap::iterator begin() {return tilingMap.begin();}
     TilingMap::iterator end() {return tilingMap.end();}
-    void reverse();
+
+    // accessors
+    lm::io::Tilings* getTilingsBuf() {return &tilingsBuf;}
+
+    // mutators
+    void reverse(); // reverse order of list of edges
+    bool rFFTilingsBuf(lm::io::hdf5::Hdf5File* file); // rFF = read From File
+    void setTilingsBuf(const lm::io::Tilings& newTilingsBuf) {*getTilingsBuf() = newTilingsBuf;}
+
+    // static methods
     static TilingClassMap tilingClassMap;
     static TilingClassMap makeTilingClassMap()
     {
-      std::map<uint,std::string> m;
-      m[0] = "lm::tiling::TilingBin";
-      return m;
+        std::map<uint,std::string> m;
+        m[0] = "lm::tiling::TilingBin";
+        return m;
     }
 private:
     TilingMap tilingMap;
+    lm::io::Tilings tilingsBuf;
 };
 
 }

@@ -106,7 +106,7 @@ IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
     add_subdirectory(src/cuda)
     add_dependencies(lm_cuda_lib lm_c_lib)
 ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional)) 
-#add_subdirectory(gtest/c)
+add_subdirectory(gtest/c)
 add_subdirectory(src/cython)
 
 #set_source_files_properties(${proto_hdrs} PROPERTIES GENERATED TRUE)

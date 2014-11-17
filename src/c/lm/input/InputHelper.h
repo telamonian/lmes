@@ -36,68 +36,49 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_OPARAM_OPARAMLIST
-#define LM_OPARAM_OPARAMLIST
+#ifndef LM_INPUT_INPUTHELPER_H
+#define LM_INPUT_INPUTHELPER_H
 
-#include <google/protobuf/repeated_field.h>
-#include <iterator>
 #include <map>
 #include <string>
-#include <vector>
 
+#include "lm/io/BoundaryConditions.pb.h"
+#include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/OrderParameters.pb.h"
-#include "lm/oparam/OParam.h"
+#include "lm/io/ReactionModel.pb.h"
+#include "lm/io/SimulationParameters.pb.h"
+#include "lm/io/SpatialModel.pb.h"
+#include "lm/main/SimulationSupervisor.h"
+#include "lm/message/Message.pb.h"
+#include "lm/oparam/OParams.h"
+#include "lm/tiling/Tilings.h"
+
+using std::map;
+using std::string;
 
 namespace lm {
-namespace oparam {
+namespace input {
 
-typedef std::map<uint,std::string> OPClassMap;
-typedef google::protobuf::RepeatedPtrField<lm::io::OrderParameters::OrderParameter>::const_iterator OPIterator;
-typedef std::map<uint,lm::oparam::OParam*> OPMap;
-
-class OParams
+class InputHelper
 {
 public:
-    // constructors/destructors/initializers
-    OParams();
-    ~OParams();
-    void clearOPMap();
-    bool init(lm::io::hdf5::Hdf5File* file);
-    void init(const lm::io::OrderParameters& oparams);
-    void init();
-    void initOParam(const lm::io::OrderParameters::OrderParameter& oparam);
-    void initValues(uint* speciesCounts);
+    // read From File (rFF) methods. Returns true if sucessful, false if fails.
+    static bool rFFBoundaryConditionsBuf(lm::io::hdf5::Hdf5File* file, lm::io::DiffusionModel* diffusionModelBuf, lm::main::SimulationParametersMap* simulationParametersMap);
+    static bool rFFDiffusionModelBuf(lm::io::hdf5::Hdf5File* file, lm::io::DiffusionModel* diffusionModelBuf);
+    static bool rFFOrderParameters(lm::io::hdf5::Hdf5File* file, lm::oparam::OParams* oparams);
+    static bool rFFOrderParametersBuf(lm::io::hdf5::Hdf5File* file, lm::io::OrderParameters* orderParametersBuf);
+    static bool rFFReactionModelBuf(lm::io::hdf5::Hdf5File* file, lm::io::ReactionModel* reactionModelBuf);
+    static bool rFFSimulationParametersBuf(lm::io::hdf5::Hdf5File* file, lm::io::SimulationParameters* simulationParametersBuf);
+    static bool rFFSimulationParametersMap(lm::io::hdf5::Hdf5File* file, lm::main::SimulationParametersMap* simualationParametersMap);
+    static bool rFFTilings(lm::io::hdf5::Hdf5File* file, lm::tiling::Tilings* tilings);
+    static bool rFFTilingsBuf(lm::io::hdf5::Hdf5File* file, lm::io::Tilings* tilingsBuf);
 
-    // operators
-    lm::oparam::OParam* operator[](uint i) {return opMap[i];}
-    OPMap::iterator begin() {return opMap.begin();}
-    OPMap::iterator end() {return opMap.end();}
-
-    // accessors
-    lm::io::OrderParameters* getOParamsBuf() {return &oparamsBuf;}
-    uint size() {return size_;}
-
-    // mutators
-    void setOParamsBuf(const lm::io::OrderParameters& newOParamsBuf) {*getOParamsBuf() = newOParamsBuf;}
-    bool rFFOParamsBuf(lm::io::hdf5::Hdf5File* file); // rFF = read From File
-
-    // static methods
-    static OPClassMap opClassMap;
-    static OPClassMap makeOPClassMap()
-    {
-        std::map<uint,std::string> m;
-        m[0] = "lm::oparam::OParamLinear";
-        // m[9999...] = "lm::oparam::OParamTranscendental";
-        return m;
-    }
-private:
-    lm::io::OrderParameters oparamsBuf;
-    OPMap opMap;
-    uint size_;
+    // helper methods
+    static lm::input::Input* rFFInput(lm::io::hdf5::Hdf5File* file, lm::io::DiffusionModel* dMB, lm::oparam::OParams* ops, lm::io::ReactionModel* rMB, lm::main::SimulationParametersMap* sPM, lm::tiling::Tilings* tngs);
+    static bool parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg);
 };
 
 }
 }
-
-#endif /* LM_OPARAM_OPARAMLIST */
+#endif // LM_INPUT_INPUT_H

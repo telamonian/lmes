@@ -74,31 +74,7 @@ using std::string;
 namespace lm {
 namespace main {
 
-//template <typename T>
-//struct Input
-//{
-//public:
-//    Input(T* sup):
-//        hasDiffusionModel(sup->hasDiffusionModel),
-//        diffusionModelBuf(sup->diffusionModelBuf),
-//        hasOrderParameters(sup->hasOrderParameters),
-//        ops(sup->ops),
-//        hasReactionModel(sup->hasReactionModel),
-//        reactionModelBuf(sup->reactionModelBuf),
-//        simulationParameterMap(sup->simulationParameterMap),
-//        hasTilings(sup->hasTilings),
-//        tilings(sup->tilings) {}
-//
-//    bool hasDiffusionModel;
-//    lm::io::DiffusionModel& diffusionModelBuf;
-//    bool hasOrderParameters;
-//    lm::oparam::OParams& ops;
-//    bool hasReactionModel;
-//    lm::io::ReactionModel& reactionModelBuf;
-//    map<string,string>& simulationParameterMap;
-//    bool hasTilings;
-//    lm::tiling::Tilings& tilings;
-//};
+typedef map<string,string> SimulationParametersMap;
 
 class SimulationSupervisor : public lm::thread::Worker
 {

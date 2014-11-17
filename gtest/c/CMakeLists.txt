@@ -1,7 +1,8 @@
 # gtest c src directory
 add_subdirectory(gmock-1.7.0)
 include_directories(${gmock_SOURCE_DIR}/include ${gmock_SOURCE_DIR}
-                    ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+                    ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR}
+                    ${CMAKE_CURRENT_SOURCE_DIR})
 
 #################
 #TARGET: gtest_lm

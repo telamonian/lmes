@@ -44,6 +44,7 @@
 #include "gmock/gmock.h"
 #include "lm/fflux/FFluxTrajectory.h"
 #include "lm/fflux/FFluxTrajectoryList.h"
+#include "lm/input/input_fixture.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/OrderParameters.pb.h"
 #include "lm/io/ReactionModel.pb.h"
@@ -53,23 +54,23 @@
 #include "lm/tiling/Tilings.h"
 #include "lm/Types.h"
 
-class FFluxTrajectoryListFixture : public ::testing::Test
+class FFluxTrajectoryListFixture : public InputFixture
 {
 public:
-    FFluxTrajectoryListFixture(): simultaneousTrajectoryCount(8), ffTL(NULL), file("/Users/tel/git/lm/gtest/data/lm/fflux/biphasic_switch.lm")
+    FFluxTrajectoryListFixture(): simultaneousTrajectoryCount(8), ffTL(NULL)
     {
-        file.getDiffusionModel(&diffBuf);
-        file.getOrderParameters(&opBuf);
-        ops.init(opBuf);
-        file.getReactionModel(&reactBuf);
-        file.getParameters(&simulationParametersBuf);
-        for (int i=0; i<simulationParametersBuf.key_size() && i<simulationParametersBuf.value_size(); i++)
-        {
-            simulationParameterMap[simulationParametersBuf.key(i)] = simulationParametersBuf.value(i);
-        }
-        file.getTilings(&tilingBuf);
-        tilings.init(tilingBuf);
-        ffTL = new lm::fflux::FFluxTrajectoryList(8,reactBuf,diffBuf,simulationParameterMap,tilings);
+//        file.getDiffusionModel(&diffBuf);
+//        file.getOrderParameters(&opBuf);
+//        ops.init(opBuf);
+//        file.getReactionModel(&reactBuf);
+//        file.getParameters(&simulationParametersBuf);
+//        for (int i=0; i<simulationParametersBuf.key_size() && i<simulationParametersBuf.value_size(); i++)
+//        {
+//            simulationParameterMap[simulationParametersBuf.key(i)] = simulationParametersBuf.value(i);
+//        }
+//        file.getTilings(&tilingBuf);
+//        tilings.init(tilingBuf);
+        ffTL = new lm::fflux::FFluxTrajectoryList(8,*input);
         ffTL->init();
     }
     ~FFluxTrajectoryListFixture()
@@ -78,16 +79,7 @@ public:
     }
 
     uint64_t simultaneousTrajectoryCount;
-    map<std::string,std::string> simulationParameterMap;
     lm::fflux::FFluxTrajectoryList* ffTL;
-    lm::io::hdf5::Hdf5File file;
-    lm::io::DiffusionModel diffBuf;
-    lm::io::OrderParameters opBuf;
-    lm::io::ReactionModel reactBuf;
-    lm::io::SimulationParameters simulationParametersBuf;
-    lm::io::Tilings tilingBuf;
-    lm::oparam::OParams ops;
-    lm::tiling::Tilings tilings;
 };
 
 TEST_F(FFluxTrajectoryListFixture, AddCrossing)

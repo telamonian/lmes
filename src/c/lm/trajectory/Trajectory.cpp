@@ -96,10 +96,18 @@ Trajectory::~Trajectory()
 {
 }
 
-//void Trajectory::initHists(lm::tiling::Tilings* tilings)
-//{
-//    getState()->mutable_cme_state()->
-//}
+void Trajectory::initHists()
+{
+    for (lm::tiling::TilingMap::iterator t_it=input.tilings.begin();t_it!=input.tilings.end();t_it++)
+    {
+        lm::io::TilingHist* tHist = getState()->mutable_cme_state()->add_tiling_hists();
+        for (lm::tiling::EdgeIterator e_it=t_it->second->begin();e_it!=t_it->second->end();e_it++)
+        {
+            tHist->add_tile_vals(0);
+        }
+    }
+
+}
 
 void Trajectory::initMsg(map<string,string>& simulationParameters)
 {
@@ -133,6 +141,8 @@ void Trajectory::initState(const lm::io::ReactionModel& reactionModel,bool rever
         }
     }
     getState()->mutable_cme_state()->mutable_species_counts()->add_time(0.0);
+//    if (input.hasOrderParameters) initOPs();
+    if (input.hasTilings) initHists();
 }
 
 void Trajectory::initState(lm::io::TrajectoryState* initState)

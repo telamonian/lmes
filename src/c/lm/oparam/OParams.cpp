@@ -53,27 +53,54 @@ OParams::OParams(): size_(0)
 
 OParams::~OParams()
 {
+    clearOPMap();
+}
+
+void OParams::clearOPMap()
+{
     for (OPMap::iterator m_it=begin();m_it!=end();++m_it)
     {
         if (m_it->second!=NULL) delete m_it->second; m_it->second = NULL;
+        opMap.erase(m_it);
     }
 }
 
-void OParams::init(const lm::io::OrderParameters& ops)
+bool OParams::init(lm::io::hdf5::Hdf5File* file)
 {
+    if(rFFOParamsBuf(file))
+    {
+        init();
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+void OParams::init(const lm::io::OrderParameters& newOParamsBuf)
+{
+    setOParamsBuf(newOParamsBuf);
+    init();
+}
+
+// will need to have somehow initialized oparamsBuf before calling this version of init()
+void OParams::init()
+{
+    clearOPMap();
     // for_each doesn't work with member functions, and part of the fix for this (bind1st) doesn't work with functions that take const reference arguments. C++ everyone!
     // std::for_each(ops.order_parameters().begin(), ops.order_parameters().end(), std::bind1st(std::mem_fun(&OParams::initOParam),this));
-    for (OPIterator op_it=ops.order_parameters().begin();op_it!=ops.order_parameters().end();++op_it)
+    for (OPIterator op_it=getOParamsBuf()->order_parameters().begin();op_it!=getOParamsBuf()->order_parameters().end();++op_it)
     {
         initOParam(*op_it);
         size_++;
     }
 }
 
-void OParams::initOParam(const lm::io::OrderParameters::OrderParameter& op)
+void OParams::initOParam(const lm::io::OrderParameters::OrderParameter& oparam)
 {
-    opMap[op.id()] = (static_cast<lm::oparam::OParam*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::oparam::OParam",lm::oparam::OParams::opClassMap[op.type()])));
-    opMap[op.id()]->init(op);
+    opMap[oparam.id()] = (static_cast<lm::oparam::OParam*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::oparam::OParam",lm::oparam::OParams::opClassMap[oparam.type()])));
+    opMap[oparam.id()]->init(oparam);
 }
 
 void OParams::initValues(uint* speciesCounts)
@@ -81,6 +108,19 @@ void OParams::initValues(uint* speciesCounts)
     for (OPMap::iterator m_it=begin();m_it!=end();++m_it)
     {
         m_it->second->calc(speciesCounts);
+    }
+}
+
+bool OParams::rFFOParamsBuf(lm::io::hdf5::Hdf5File* file)
+{
+    if (file->hasOrderParameters())
+    {
+        file->getOrderParameters(getOParamsBuf());
+        return true;
+    }
+    else
+    {
+        return false;
     }
 }
 

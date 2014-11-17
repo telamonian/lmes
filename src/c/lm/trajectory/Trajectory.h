@@ -64,7 +64,7 @@ public:
     Trajectory(uint64_t id,lm::input::Input& input,bool reversed=false);
     Trajectory(uint64_t id,lm::input::Input& input,lm::io::TrajectoryState* zerothState);
     virtual ~Trajectory();
-//    virtual void initHists(lm::tiling::Tilings* tilings);
+    virtual void initHists();
     virtual void initMsg(std::map<std::string,std::string>& simulationParameters);
     virtual void initMsg(const lm::message::Message& newMsg);
     virtual void initState(const lm::io::ReactionModel& reactionModel,bool reversed);

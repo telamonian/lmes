@@ -45,12 +45,18 @@
 namespace lm {
 namespace tiling {
 
+typedef google::protobuf::RepeatedField<double>::const_iterator EdgeIterator;
+
 class Tiling
 {
 public:
     Tiling();
     virtual ~Tiling();
     virtual void init(const lm::io::Tilings::Tiling& tilingRef);
+
+    // iterators (over the edges)
+    EdgeIterator begin() {return tilingBuf->edges().begin();}
+    EdgeIterator end() {return tilingBuf->edges().end();}
 
     // getters
     lm::io::Tilings::Arrangement getArrangement();

@@ -89,30 +89,6 @@ double Tiling::getEdge(uint edgeIndex)
     return tilingBuf->edges(edgeIndex);
 }
 
-//double Tiling::getAscendingLimit(uint edgeIndex)
-//{
-//    if (getArrangement()==lm::io::Tilings::ASCENDING)
-//    {
-//        return tiling->edges(edgeIndex);
-//    }
-//    else
-//    {
-//        return tiling->edges(edgeIndex - 1);
-//    }
-//}
-//
-//double Tiling::getDescendingLimit(uint edgeIndex)
-//{
-//    if (getArrangement()==lm::io::Tilings::ASCENDING)
-//    {
-//        return tiling->edges(edgeIndex - 1);
-//    }
-//    else
-//    {
-//        return tiling->edges(edgeIndex);
-//    }
-//}
-
 // derived class methods
 bool TilingAxial::registered=TilingAxial::registerClass();
 bool TilingAxial::registerClass()

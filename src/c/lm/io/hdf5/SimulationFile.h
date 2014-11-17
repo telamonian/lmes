@@ -139,19 +139,19 @@ public:
 
     // Methods for working with the model.
     virtual bool hasDiffusionModel();
-    virtual void getDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception);
-    virtual void setDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception);
+    virtual void getDiffusionModel(lm::io::DiffusionModel* diffusionModel) throw(Exception,InvalidArgException,HDF5Exception);
+    virtual void setDiffusionModel(lm::io::DiffusionModel* diffusionModel) throw(Exception,InvalidArgException,HDF5Exception);
     virtual bool hasOrderParameters();
-    virtual void getOrderParameters(lm::io::OrderParameters * orderParameters);
-    virtual void setOrderParameters(lm::io::OrderParameters * orderParameters);
+    virtual void getOrderParameters(lm::io::OrderParameters* orderParameters);
+    virtual void setOrderParameters(lm::io::OrderParameters* orderParameters);
     virtual bool hasReactionModel();
-	virtual void getReactionModel(lm::io::ReactionModel * reactionModel) throw(Exception,InvalidArgException,HDF5Exception);
-	virtual void setReactionModel(lm::io::ReactionModel * reactionModel) throw(Exception,InvalidArgException,HDF5Exception);
-    virtual void setSpatialModel(lm::io::SpatialModel * model) throw(Exception,InvalidArgException,HDF5Exception);
-    virtual void getSpatialModel(lm::io::SpatialModel * model) throw(Exception,InvalidArgException,HDF5Exception);
+	virtual void getReactionModel(lm::io::ReactionModel* reactionModel) throw(Exception,InvalidArgException,HDF5Exception);
+	virtual void setReactionModel(lm::io::ReactionModel* reactionModel) throw(Exception,InvalidArgException,HDF5Exception);
+    virtual void setSpatialModel(lm::io::SpatialModel* model) throw(Exception,InvalidArgException,HDF5Exception);
+    virtual void getSpatialModel(lm::io::SpatialModel* model) throw(Exception,InvalidArgException,HDF5Exception);
     virtual bool hasTilings();
-    virtual void getTilings(lm::io::Tilings * tilings);
-    virtual void setTilings(lm::io::Tilings * tilings);
+    virtual void getTilings(lm::io::Tilings* tilings);
+    virtual void setTilings(lm::io::Tilings* tilings);
     virtual bool hasBoundaryGradient();
     virtual void getBoundaryGradient(lm::io::BoundaryConditions* bc);
 

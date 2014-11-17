@@ -36,9 +36,6 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_INPUT_INPUT_H
-#define LM_INPUT_INPUT_H
-
 #include <map>
 #include <string>
 
@@ -49,41 +46,15 @@
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SimulationParameters.pb.h"
 #include "lm/io/SpatialModel.pb.h"
+#include "lm/input/Input.h"
 #include "lm/message/Message.pb.h"
-#include "lm/oparam/OParams.h"
-#include "lm/tiling/Tilings.h"
 
 using std::map;
 using std::string;
 
 namespace lm {
 namespace input {
-
-struct Input
-{
-public:
-    Input(bool hasDiffusionModel,bool hasOrderParameters,bool hasReactionModel,bool hasTilings,lm::io::DiffusionModel& diffusionModelBuf,lm::oparam::OParams& ops,lm::io::ReactionModel& reactionModelBuf,map<string,string>& simulationParametersMap,lm::tiling::Tilings& tilings):
-        hasDiffusionModel(hasDiffusionModel),
-        hasOrderParameters(hasOrderParameters),
-        hasReactionModel(hasReactionModel),
-        hasTilings(hasTilings),
-        diffusionModelBuf(diffusionModelBuf),
-        ops(ops),
-        reactionModelBuf(reactionModelBuf),
-        simulationParametersMap(simulationParametersMap),
-        tilings(tilings) {}
-
-    bool hasDiffusionModel;
-    bool hasOrderParameters;
-    bool hasReactionModel;
-    bool hasTilings;
-    lm::io::DiffusionModel& diffusionModelBuf;
-    lm::oparam::OParams& ops;
-    lm::io::ReactionModel& reactionModelBuf;
-    map<string,string>& simulationParametersMap;
-    lm::tiling::Tilings& tilings;
-};
-
+//
 //class Input
 //{
 //public:
@@ -108,31 +79,26 @@ public:
 //    virtual lm::io::Tilings* getTilingsBuf();
 //
 //    // get protobuf methods (load-into-pointer style)
-//    virtual void getBoundaryGradientBuf(lm::io::BoundaryConditions* bcBuf);
-//    virtual void getDiffusionModelBuf(lm::io::DiffusionModel* diffusionModelBuf);
-//    virtual void getParametersBuf(lm::io::SimulationParameters* parametersBuf);
-//    virtual void getOrderParametersBuf(lm::io::OrderParameters* orderParametersBuf);
-//    virtual void getReactionModelBuf(lm::io::ReactionModel* reactionModelBuf);
-//    virtual void getSpatialModelBuf(lm::io::SpatialModel* modelBuf);
-//    virtual void getTilingsBuf(lm::io::Tilings* tilingsBuf);
+//    virtual void getBoundaryGradientBuf(lm::io::BoundaryConditions* bc);
+//    virtual void getDiffusionModelBuf(lm::io::DiffusionModel* diffusionModel);
+//    virtual void getParametersBuf(lm::io::SimulationParameters* parameters);
+//    virtual void getOrderParametersBuf(lm::io::OrderParameters* orderParameters);
+//    virtual void getReactionModelBuf(lm::io::ReactionModel* reactionModel);
+//    virtual void getSpatialModelBuf(lm::io::SpatialModel* model);
+//    virtual void getTilingsBuf(lm::io::Tilings* tilings);
 //
 //    // get wrapper methods
 //    virtual map<string,string> getParameters();
 //    virtual string getParameter(string key, string defaultValue="");
-//    virtual lm::oparam::OParam* getOrderParameter(uint id);
-//    virtual lm::tiling::Tiling* getTiling(uint id)
+//    virtual lm::oparam::OParam* getOrderParameter();
 //
-//    // set protobuf methods
-//    virtual void getBoundaryGradientBuf(lm::io::BoundaryConditions* bcBuf);
-//    virtual void setDiffusionModelBuf(lm::io::DiffusionModel& diffusionModelBuf);
-//    virtual void setOrderParametersBuf(lm::io::OrderParameters& orderParametersBuf);
-//    virtual void setParametersBuf(lm::io::SimulationParameters& parametersBuf);
-//    virtual void setReactionModelBuf(lm::io::ReactionModel& reactionModelBuf);
-//    virtual void setSpatialModelBuf(lm::io::SpatialModel& modelBuf);
-//    virtual void setTilingsBuf(lm::io::Tilings& tilingsBuf);
-//
-//    // set wrapper methods
+//    // set methods
+//    virtual void setDiffusionModel(lm::io::DiffusionModel* diffusionModel);
+//    virtual void setOrderParameters(lm::io::OrderParameters* orderParameters);
 //    virtual void setParameter(string key, string value);
+//    virtual void setReactionModel(lm::io::ReactionModel* reactionModel);
+//    virtual void setSpatialModel(lm::io::SpatialModel* model);
+//    virtual void setTilings(lm::io::Tilings* tilings);
 //
 //protected:
 //    // load from file methods
@@ -151,4 +117,3 @@ public:
 
 }
 }
-#endif // LM_INPUT_INPUT_H

@@ -50,9 +50,9 @@ Tilings::Tilings()
 {
 }
 
-Tilings::Tilings(const lm::io::Tilings& tilings)
+Tilings::Tilings(const lm::io::Tilings& newTilingsBuf)
 {
-    init(tilings);
+    init(newTilingsBuf);
 }
 
 Tilings::~Tilings()
@@ -69,10 +69,30 @@ void Tilings::clearTilingMap()
     }
 }
 
-void Tilings::init(const lm::io::Tilings& tilings)
+bool Tilings::init(lm::io::hdf5::Hdf5File* file)
+{
+    if (rFFTilingsBuf(file))
+    {
+        init();
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+void Tilings::init(const lm::io::Tilings& newTilingsBuf)
+{
+    setTilingsBuf(newTilingsBuf);
+    init();
+}
+
+// will need to have somehow initialized tilingsBuf before calling this version of init()
+void Tilings::init()
 {
     clearTilingMap();
-    for (TilingIterator t_it=tilings.tilings().begin();t_it!=tilings.tilings().end();++t_it) initTiling(*t_it);
+    for (TilingIterator t_it=getTilingsBuf()->tilings().begin();t_it!=getTilingsBuf()->tilings().end();++t_it) initTiling(*t_it);
 }
 
 void Tilings::initTiling(const lm::io::Tilings::Tiling& tiling)
@@ -88,6 +108,20 @@ void Tilings::reverse()
         m_it->second->reverse();
     }
 }
+
+bool Tilings::rFFTilingsBuf(lm::io::hdf5::Hdf5File* file)
+{
+    if (file->hasTilings())
+    {
+        file->getTilings(getTilingsBuf());
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
 
 }
 }

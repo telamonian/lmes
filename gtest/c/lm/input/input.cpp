@@ -36,68 +36,20 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_OPARAM_OPARAMLIST
-#define LM_OPARAM_OPARAMLIST
-
-#include <google/protobuf/repeated_field.h>
-#include <iterator>
+#include <csignal>
 #include <map>
 #include <string>
-#include <vector>
 
-#include "lm/io/hdf5/SimulationFile.h"
-#include "lm/io/OrderParameters.pb.h"
-#include "lm/oparam/OParam.h"
+#include "gtest/gtest.h"
+#include "gmock/gmock.h"
+#include "lm/input/input_fixture.h"
 
-namespace lm {
-namespace oparam {
-
-typedef std::map<uint,std::string> OPClassMap;
-typedef google::protobuf::RepeatedPtrField<lm::io::OrderParameters::OrderParameter>::const_iterator OPIterator;
-typedef std::map<uint,lm::oparam::OParam*> OPMap;
-
-class OParams
+TEST_F(InputFixture, rFFDiffusionModel)
 {
-public:
-    // constructors/destructors/initializers
-    OParams();
-    ~OParams();
-    void clearOPMap();
-    bool init(lm::io::hdf5::Hdf5File* file);
-    void init(const lm::io::OrderParameters& oparams);
-    void init();
-    void initOParam(const lm::io::OrderParameters::OrderParameter& oparam);
-    void initValues(uint* speciesCounts);
-
-    // operators
-    lm::oparam::OParam* operator[](uint i) {return opMap[i];}
-    OPMap::iterator begin() {return opMap.begin();}
-    OPMap::iterator end() {return opMap.end();}
-
-    // accessors
-    lm::io::OrderParameters* getOParamsBuf() {return &oparamsBuf;}
-    uint size() {return size_;}
-
-    // mutators
-    void setOParamsBuf(const lm::io::OrderParameters& newOParamsBuf) {*getOParamsBuf() = newOParamsBuf;}
-    bool rFFOParamsBuf(lm::io::hdf5::Hdf5File* file); // rFF = read From File
-
-    // static methods
-    static OPClassMap opClassMap;
-    static OPClassMap makeOPClassMap()
-    {
-        std::map<uint,std::string> m;
-        m[0] = "lm::oparam::OParamLinear";
-        // m[9999...] = "lm::oparam::OParamTranscendental";
-        return m;
-    }
-private:
-    lm::io::OrderParameters oparamsBuf;
-    OPMap opMap;
-    uint size_;
-};
-
-}
+    EXPECT_EQ(input->hasDiffusionModel, false);
 }
 
-#endif /* LM_OPARAM_OPARAMLIST */
+TEST_F(InputFixture, rFFReactionModel)
+{
+    EXPECT_EQ(input->hasReactionModel, true);
+}

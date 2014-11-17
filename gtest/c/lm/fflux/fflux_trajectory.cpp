@@ -42,6 +42,7 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "lm/fflux/FFluxTrajectory.h"
+#include "lm/input/input_fixture.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/OrderParameters.pb.h"
 #include "lm/io/ReactionModel.pb.h"
@@ -51,36 +52,15 @@
 #include "lm/tiling/Tilings.h"
 #include "lm/Types.h"
 
-class FFluxTrajectoryFixture : public ::testing::Test
+class FFluxTrajectoryFixture : public InputFixture
 {
 public:
-    FFluxTrajectoryFixture(): simultaneousTrajectoryCount(8), ffT(NULL), file("/Users/tel/git/lm/gtest/data/lm/fflux/biphasic_switch.lm")
+    FFluxTrajectoryFixture(): ffT(NULL)
     {
-        file.getDiffusionModel(&diffBuf);
-        file.getOrderParameters(&opBuf);
-        ops.init(opBuf);
-        file.getReactionModel(&reactBuf);
-        file.getParameters(&simulationParametersBuf);
-        for (int i=0; i<simulationParametersBuf.key_size() && i<simulationParametersBuf.value_size(); i++)
-        {
-            simulationParameterMap[simulationParametersBuf.key(i)] = simulationParametersBuf.value(i);
-        }
-        file.getTilings(&tilingBuf);
-        tilings.init(tilingBuf);
-        ffT = new lm::fflux::FFluxTrajectory(0,0,reactBuf,diffBuf,simulationParameterMap,tilings);
+        ffT = new lm::fflux::FFluxTrajectory(0,0,*input);
     }
     static uint speciesCounts[7];
-    uint64_t simultaneousTrajectoryCount;
-    std::map<std::string,std::string> simulationParameterMap;
     lm::fflux::FFluxTrajectory* ffT;
-    lm::io::hdf5::Hdf5File file;
-    lm::io::DiffusionModel diffBuf;
-    lm::io::OrderParameters opBuf;
-    lm::io::ReactionModel reactBuf;
-    lm::io::SimulationParameters simulationParametersBuf;
-    lm::io::Tilings tilingBuf;
-    lm::oparam::OParams ops;
-    lm::tiling::Tilings tilings;
 };
 
 TEST_F(FFluxTrajectoryFixture, FluxedBackward)
