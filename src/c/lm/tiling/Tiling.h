@@ -60,9 +60,12 @@ public:
 
     // getters
     lm::io::Tilings::Arrangement getArrangement();
+
     double getEdge(uint edgeIndex);
     uint getEdgesCount() {return tilingBuf->edges_size();}
+    uint getID() {return tilingBuf->id();}
     uint getOrderParameterID() {return tilingBuf->order_parameter_id();}
+    uint getTileIndex(double opVal);    // get the index of the tile for making a histogram based on the tiling
 //    double getAscendingLimit(uint edgeIndex);
 //    double getDescendingLimit(uint edgeIndex);
 

@@ -78,18 +78,18 @@ std::string Communicator::getHostname()
 }
 
 
-void Communicator::sendMessage(int destProcess, int destThread, lm::message::Message* message)
+void Communicator::sendMessage(int destProcess, int destThread, lm::message::Message* msg)
 {
     // Set the message values.
-    message->set_source_process(process);
-    message->set_source_thread(thread);
-    message->set_dest_process(destProcess);
-    message->set_dest_thread(destThread);
+    msg->set_source_process(process);
+    msg->set_source_thread(thread);
+    msg->set_dest_process(destProcess);
+    msg->set_dest_thread(destThread);
 
     // Serialize the message into the buffer.
-    int messageLength=message->ByteSize();
+    int messageLength=msg->ByteSize();
     if (messageLength > outputBufferSize) throw lm::Exception("Message too large to serialize into output buffer",messageLength,outputBufferSize);
-    if (!message->SerializeToArray(outputBuffer,messageLength)) throw lm::Exception("Unable to serialize message");
+    if (!msg->SerializeToArray(outputBuffer,messageLength)) throw lm::Exception("Unable to serialize message");
 
     // Send the buffer.
     //lm::Print::printf(lm::Print::DEBUG, "Sending message %d:%d->%d:%d = %d",process,thread,destProcess,destThread,messageLength);
@@ -97,7 +97,7 @@ void Communicator::sendMessage(int destProcess, int destThread, lm::message::Mes
     //lm::Print::printf(lm::Print::DEBUG, "Sent message %d:%d->%d:%d = %d",process,thread,destProcess,destThread,messageLength);
 }
 
-void Communicator::receiveMessage(lm::message::Message* message)
+void Communicator::receiveMessage(lm::message::Message* msg)
 {
     // Receive the data.
     //lm::Print::printf(lm::Print::DEBUG, "Receiving message %d:%d",process,thread);
@@ -108,7 +108,7 @@ void Communicator::receiveMessage(lm::message::Message* message)
     MPI_EXCEPTION_CHECK(MPI_Get_count(&messageStatus, MPI_BYTE, &messageLength));
 
     // Deserialize the message.
-    if (!message->ParseFromArray(inputBuffer, messageLength)) throw lm::Exception("Unable to deserialize message");
+    if (!msg->ParseFromArray(inputBuffer, messageLength)) throw lm::Exception("Unable to deserialize message");
 
     //lm::Print::printf(lm::Print::VERBOSE_DEBUG, "Received message %d:%d->%d:%d %d bytes: {\n%s}",message->source_process(),message->source_thread(),message->dest_process(),message->dest_thread(),message->ByteSize(), message->DebugString().c_str());
 }

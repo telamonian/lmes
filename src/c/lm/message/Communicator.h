@@ -58,8 +58,8 @@ public:
     int getSourceProcess() {return process;}
     int getSourceThread() {return thread;}
 
-    void sendMessage(int process, int thread, lm::message::Message* message);
-    void receiveMessage(lm::message::Message* message);
+    void sendMessage(int process, int thread, lm::message::Message* msg);
+    void receiveMessage(lm::message::Message* msg);
 
     std::string getHostname();
 

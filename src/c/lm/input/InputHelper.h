@@ -65,14 +65,14 @@ class InputHelper
 public:
     // read From File (rFF) methods. Returns true if sucessful, false if fails.
     static bool rFFBoundaryConditionsBuf(lm::io::hdf5::Hdf5File* file, lm::io::DiffusionModel* diffusionModelBuf, lm::main::SimulationParametersMap* simulationParametersMap);
-    static bool rFFDiffusionModelBuf(lm::io::hdf5::Hdf5File* file, lm::io::DiffusionModel* diffusionModelBuf);
-    static bool rFFOrderParameters(lm::io::hdf5::Hdf5File* file, lm::oparam::OParams* oparams);
-    static bool rFFOrderParametersBuf(lm::io::hdf5::Hdf5File* file, lm::io::OrderParameters* orderParametersBuf);
-    static bool rFFReactionModelBuf(lm::io::hdf5::Hdf5File* file, lm::io::ReactionModel* reactionModelBuf);
+    static bool rFFDiffusionModelBuf(lm::io::hdf5::Hdf5File* file, lm::io::DiffusionModel* diffusionModelBuf, lm::main::SimulationParametersMap* simulationParametersMap);
+    static bool rFFOrderParameters(lm::io::hdf5::Hdf5File* file, lm::oparam::OParams* oparams, lm::main::SimulationParametersMap* simulationParametersMap);
+    static bool rFFOrderParametersBuf(lm::io::hdf5::Hdf5File* file, lm::io::OrderParameters* orderParametersBuf, lm::main::SimulationParametersMap* simulationParametersMap);
+    static bool rFFReactionModelBuf(lm::io::hdf5::Hdf5File* file, lm::io::ReactionModel* reactionModelBuf, lm::main::SimulationParametersMap* simulationParametersMap);
     static bool rFFSimulationParametersBuf(lm::io::hdf5::Hdf5File* file, lm::io::SimulationParameters* simulationParametersBuf);
     static bool rFFSimulationParametersMap(lm::io::hdf5::Hdf5File* file, lm::main::SimulationParametersMap* simualationParametersMap);
-    static bool rFFTilings(lm::io::hdf5::Hdf5File* file, lm::tiling::Tilings* tilings);
-    static bool rFFTilingsBuf(lm::io::hdf5::Hdf5File* file, lm::io::Tilings* tilingsBuf);
+    static bool rFFTilings(lm::io::hdf5::Hdf5File* file, lm::tiling::Tilings* tilings, lm::main::SimulationParametersMap* simulationParametersMap);
+    static bool rFFTilingsBuf(lm::io::hdf5::Hdf5File* file, lm::io::Tilings* tilingsBuf, lm::main::SimulationParametersMap* simulationParametersMap);
 
     // helper methods
     static lm::input::Input* rFFInput(lm::io::hdf5::Hdf5File* file, lm::io::DiffusionModel* dMB, lm::oparam::OParams* ops, lm::io::ReactionModel* rMB, lm::main::SimulationParametersMap* sPM, lm::tiling::Tilings* tngs);

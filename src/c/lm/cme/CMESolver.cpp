@@ -75,7 +75,7 @@ namespace lm {
 namespace cme {
 
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
-:neededDists(neededDists),rng(NULL),oparams(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),trajectoryStarted(false),time(0.0)
+:neededDists(neededDists),rng(NULL),oparams(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),trajectoryStarted(false),time(0.0),timeStep(0.0)
 {
 }
 
@@ -867,6 +867,13 @@ void CMESolver::getState(lm::io::TrajectoryState* state)
     {
         fptTrackedSpecies[i].serializeTo(trajectoryId, state->mutable_cme_state()->add_first_passage_times());
     }
+
+    // Get the tiling hists
+    state->mutable_cme_state()->clear_tiling_hists();
+    for (uint i=0;i<numberTilingHists;i++)
+    {
+        tilingHists[i].serializeTo(state->mutable_cme_state()->add_tiling_hists());
+    }
 }
 
 void CMESolver::setState(const lm::io::TrajectoryState& state)
@@ -910,6 +917,19 @@ void CMESolver::setState(const lm::io::TrajectoryState& state)
             }
         }
     }
+
+    // Set the histogram bin values
+    numberTilingHists = state.cme_state().tiling_hists_size();
+    if (state.cme_state().tiling_hists_size() > 0)
+    {
+        tilingHists = new TilingHist[numberTilingHists];
+        for (uint i=0;i<numberTilingHists;i++)
+        {
+            tilingHists[i] = TilingHist();
+            tilingHists[i].init(state.cme_state().tiling_hists(i));
+        }
+    }
+
 }
 
 void CMESolver::setLimits(const lm::io::TrajectoryLimits& limits)

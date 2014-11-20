@@ -36,6 +36,8 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+#include <algorithm>
+
 #include "lm/ClassFactory.h"
 #include "lm/io/Tilings.pb.h"
 #include "lm/tiling/Tiling.h"
@@ -87,6 +89,13 @@ void Tiling::reverse()
 double Tiling::getEdge(uint edgeIndex)
 {
     return tilingBuf->edges(edgeIndex);
+}
+
+uint Tiling::getTileIndex(double opVal)
+{
+    EdgeIterator up;
+    up = std::upper_bound(tilingBuf->edges().begin(), tilingBuf->edges().end(), opVal);
+    return up - tilingBuf->edges().begin();
 }
 
 // derived class methods

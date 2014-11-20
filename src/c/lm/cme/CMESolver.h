@@ -217,6 +217,44 @@ protected:
         double * valuePointer;
         lm::io::ParameterValues dataSet;
     };
+    class TilingHist
+    {
+    public:
+        // consructor reads in a TilingHistBuf object
+        TilingHist(): numberTileVals(0), tilingID(), tileVals(NULL)
+        {
+        }
+        ~TilingHist()
+        {
+            delete tileVals;
+        }
+        // consructor reads in a TilingHistBuf object
+        void init(const lm::io::TilingHist& tHistBuf)
+        {
+            numberTileVals = tHistBuf.tile_vals_size();
+            tilingID = tHistBuf.tiling_id();
+            tileVals = new double[numberTileVals];
+            for (uint i=0;i<numberTileVals;i++)
+            {
+                tileVals[i] = tHistBuf.tile_vals(i);
+            }
+        }
+
+        // this function writes out to a TilingHistBuf object
+        void serializeTo(lm::io::TilingHist* tHistBuf)
+        {
+            tHistBuf->set_tiling_id(tilingID);
+            tHistBuf->clear_tile_vals();
+            for (uint i=0;i<numberTileVals;i++)
+            {
+                tHistBuf->add_tile_vals(tileVals[i]);
+            }
+        }
+
+        uint numberTileVals;
+        uint tilingID;
+        double* tileVals;
+    };
 
 public:
     CMESolver(RandomGenerator::Distributions neededDists);
@@ -267,12 +305,17 @@ protected:
             speciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
             updatedSpeciesCounts();
         }
-        // Update the order parameters, if required
         if (ffluxFlag==true)
         {
+            // Update the order parameters, if required
             for (int i=0; i<oparams->size(); i++)
             {
                 (*oparams)[i]->calc(speciesCounts);
+            }
+            // Update the tilingHists, if required
+            for (int i=0;i<numberTilingHists;i++)
+            {
+                tilingHists[i].tileVals[(*tilings)[tilingHists[i].tilingID]->getTileIndex((*oparams)[(*tilings)[tilingHists[i].tilingID]->getOrderParameterID()]->get())] += timeStep;
             }
         }
     }
@@ -402,9 +445,12 @@ protected:
     uint* speciesCounts;
     uint* previousSpeciesCounts;
     double time;
-    double timeStep;
+    double timeStep;    // stores last time step calculated, used for building histogram
     int numberFptTrackedSpecies;
     FPTTracking* fptTrackedSpecies;
+    uint numberTilingHists;
+    TilingHist* tilingHists;
+
 public:
     lm::io::TrajectoryLimits::LimitType finalLimitType;
 };

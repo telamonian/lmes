@@ -214,7 +214,7 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
         // Calculate the time to the next reaction.
         double expR = expRngValues[rngNext];
         timeStep = expR/totalPropensity;
-        time += expR/totalPropensity;
+        time += timeStep;
 
          // If the new time is past the end time, we are done.
         if (time >= maxTime)

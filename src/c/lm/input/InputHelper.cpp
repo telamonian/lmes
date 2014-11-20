@@ -89,11 +89,12 @@ bool InputHelper::rFFBoundaryConditionsBuf(lm::io::hdf5::Hdf5File* file, lm::io:
     }
 }
 
-bool InputHelper::rFFDiffusionModelBuf(lm::io::hdf5::Hdf5File* file, lm::io::DiffusionModel* diffusionModelBuf)
+bool InputHelper::rFFDiffusionModelBuf(lm::io::hdf5::Hdf5File* file, lm::io::DiffusionModel* diffusionModelBuf, lm::main::SimulationParametersMap* simulationParametersMap)
 {
     if (file->hasDiffusionModel())
     {
         file->getDiffusionModel(diffusionModelBuf);
+        rFFBoundaryConditionsBuf(file,diffusionModelBuf,simulationParametersMap);
         return true;
     }
     else
@@ -102,7 +103,7 @@ bool InputHelper::rFFDiffusionModelBuf(lm::io::hdf5::Hdf5File* file, lm::io::Dif
     }
 }
 
-bool InputHelper::rFFOrderParameters(lm::io::hdf5::Hdf5File* file, lm::oparam::OParams* oparams)
+bool InputHelper::rFFOrderParameters(lm::io::hdf5::Hdf5File* file, lm::oparam::OParams* oparams, lm::main::SimulationParametersMap* simulationParametersMap)
 {
     if (file->hasOrderParameters())
     {
@@ -115,7 +116,7 @@ bool InputHelper::rFFOrderParameters(lm::io::hdf5::Hdf5File* file, lm::oparam::O
     }
 }
 
-bool InputHelper::rFFOrderParametersBuf(lm::io::hdf5::Hdf5File* file, lm::io::OrderParameters* orderParametersBuf)
+bool InputHelper::rFFOrderParametersBuf(lm::io::hdf5::Hdf5File* file, lm::io::OrderParameters* orderParametersBuf, lm::main::SimulationParametersMap* simulationParametersMap)
 {
     if (file->hasOrderParameters())
     {
@@ -128,7 +129,7 @@ bool InputHelper::rFFOrderParametersBuf(lm::io::hdf5::Hdf5File* file, lm::io::Or
     }
 }
 
-bool InputHelper::rFFReactionModelBuf(lm::io::hdf5::Hdf5File* file, lm::io::ReactionModel* reactionModelBuf)
+bool InputHelper::rFFReactionModelBuf(lm::io::hdf5::Hdf5File* file, lm::io::ReactionModel* reactionModelBuf, lm::main::SimulationParametersMap* simulationParametersMap)
 {
     if (file->hasReactionModel())
     {
@@ -158,7 +159,7 @@ bool InputHelper::rFFSimulationParametersMap(lm::io::hdf5::Hdf5File* file, lm::m
     return true;
 }
 
-bool InputHelper::rFFTilings(lm::io::hdf5::Hdf5File* file, lm::tiling::Tilings* tilings)
+bool InputHelper::rFFTilings(lm::io::hdf5::Hdf5File* file, lm::tiling::Tilings* tilings, lm::main::SimulationParametersMap* simulationParametersMap)
 {
     if (file->hasTilings())
     {
@@ -171,7 +172,7 @@ bool InputHelper::rFFTilings(lm::io::hdf5::Hdf5File* file, lm::tiling::Tilings* 
     }
 }
 
-bool InputHelper::rFFTilingsBuf(lm::io::hdf5::Hdf5File* file, lm::io::Tilings* tilingsBuf)
+bool InputHelper::rFFTilingsBuf(lm::io::hdf5::Hdf5File* file, lm::io::Tilings* tilingsBuf, lm::main::SimulationParametersMap* simulationParametersMap)
 {
     if (file->hasTilings())
     {
@@ -187,11 +188,11 @@ bool InputHelper::rFFTilingsBuf(lm::io::hdf5::Hdf5File* file, lm::io::Tilings* t
 lm::input::Input* InputHelper::rFFInput(lm::io::hdf5::Hdf5File* file, lm::io::DiffusionModel* dMB, lm::oparam::OParams* ops, lm::io::ReactionModel* rMB, lm::main::SimulationParametersMap* sPM, lm::tiling::Tilings* tngs)
 {
     bool hasDMB,hasOPs,hasRMB,hasTngs;
-    hasDMB = rFFDiffusionModelBuf(file, dMB);
-    hasOPs = rFFOrderParameters(file, ops);
-    hasRMB = rFFReactionModelBuf(file, rMB);
     rFFSimulationParametersMap(file, sPM);
-    hasTngs = rFFTilings(file, tngs);
+    hasDMB = rFFDiffusionModelBuf(file, dMB, sPM);
+    hasOPs = rFFOrderParameters(file, ops, sPM);
+    hasRMB = rFFReactionModelBuf(file, rMB, sPM);
+    hasTngs = rFFTilings(file, tngs, sPM);
     return new lm::input::Input(hasDMB,hasOPs,hasRMB,hasTngs,*dMB,*ops,*rMB,*sPM,*tngs);
 }
 
