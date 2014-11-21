@@ -224,7 +224,9 @@ bool NextSubvolumeSolver::generateTrajectory(long long maxSteps)
             size_t dataSize = lattice->serializeParticlesSize();
             std::string* data = l->mutable_particles();
             data->resize(dataSize);
+            PROF_BEGIN(PROF_NSM_SERIALIZE_LATTICE);
             lattice->serializeParticlesTo(&((*data)[0]), dataSize, Lattice::ROW_MAJOR);
+            PROF_END(PROF_NSM_SERIALIZE_LATTICE);
         }
         else
         {
@@ -296,7 +298,9 @@ bool NextSubvolumeSolver::generateTrajectory(long long maxSteps)
                size_t dataSize = lattice->serializeParticlesSize();
                std::string* data = l->mutable_particles();
                data->resize(dataSize);
+               PROF_BEGIN(PROF_NSM_SERIALIZE_LATTICE);
                lattice->serializeParticlesTo(&((*data)[0]), dataSize, Lattice::ROW_MAJOR);
+               PROF_END(PROF_NSM_SERIALIZE_LATTICE);
                nextLatticeWriteTime += latticeWriteInterval;
            }
        }
@@ -357,7 +361,9 @@ bool NextSubvolumeSolver::generateTrajectory(long long maxSteps)
                 size_t dataSize = lattice->serializeParticlesSize();
                 std::string* data = l->mutable_particles();
                 data->resize(dataSize);
+                PROF_BEGIN(PROF_NSM_SERIALIZE_LATTICE);
                 lattice->serializeParticlesTo(&((*data)[0]), dataSize, Lattice::ROW_MAJOR);
+                PROF_END(PROF_NSM_SERIALIZE_LATTICE);
                 nextLatticeWriteTime += latticeWriteInterval;
             }
         }
@@ -402,7 +408,9 @@ bool NextSubvolumeSolver::generateTrajectory(long long maxSteps)
             size_t dataSize = lattice->serializeParticlesSize();
             std::string* data = l->mutable_particles();
             data->resize(dataSize);
+            PROF_BEGIN(PROF_NSM_SERIALIZE_LATTICE);
             lattice->serializeParticlesTo(&((*data)[0]), dataSize, Lattice::ROW_MAJOR);
+            PROF_END(PROF_NSM_SERIALIZE_LATTICE);
         }
         reachedLimit = true;
     }

@@ -52,6 +52,12 @@
 #define PROF_REPLICATE_EXECUTE                      10
 #define PROF_REPLICATE_WRITE_DATASET                11
 
+#define PROF_MESSAGE_SEND                           50
+#define PROF_MESSAGE_SERIALIZE                      51
+#define PROF_MESSAGE_RECEIVE                        55
+#define PROF_MESSAGE_PARSE                          56
+
+
 #define PROF_DATAOUTPUT_RUN                         100
 #define PROF_DATAOUTPUT_WRITE_DATASET               101
 #define PROF_DATAOUTPUT_HDF_WRITE_COUNTS            110
@@ -97,6 +103,7 @@
 #define PROF_NSM_UPDATE_SUBVOLUME_PROPENSITY		604
 #define PROF_NSM_CALCULATE_SUBVOLUME_PROPENSITY		605
 #define PROF_NSM_UPDATE_QUEUE               		606
+#define PROF_NSM_SERIALIZE_LATTICE                  607
 
 
 #endif /* TIMINGCONSTANTS_H_ */
