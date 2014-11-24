@@ -75,7 +75,7 @@ namespace lm {
 namespace cme {
 
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
-:neededDists(neededDists),rng(NULL),oparams(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),trajectoryStarted(false),time(0.0),timeStep(0.0)
+:neededDists(neededDists),rng(NULL),oparams(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),trajectoryStarted(false),speciesCounts(NULL),time(0.0),timeStep(0.0)
 {
 }
 
@@ -800,7 +800,11 @@ void CMESolver::reset()
     MESolver::reset();
 
     // Free any previous state.
-    if (speciesCounts != NULL) delete[] speciesCounts; speciesCounts = NULL;
+    if (speciesCounts != NULL)
+    {
+        delete[] speciesCounts;
+    }
+    speciesCounts = NULL;
 //    if (previousSpeciesCounts != NULL) delete[] previousSpeciesCounts; previousSpeciesCounts = NULL;
 
     // Make sure we have a reaction model.

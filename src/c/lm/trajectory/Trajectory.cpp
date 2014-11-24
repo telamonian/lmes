@@ -137,7 +137,7 @@ void Trajectory::initState(const lm::io::ReactionModel& reactionModel,bool rever
     {
         for (int j=0; j<(int)reactionModel.number_species(); j++)
         {
-            getState()->mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.reversed_initial_species_count(j));  // reversed_initial_species_count is set in the input file
+            getState()->mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.initial_species_count_backward(j));  // reversed_initial_species_count is set in the input file
         }
     }
     getState()->mutable_cme_state()->mutable_species_counts()->add_time(0.0);

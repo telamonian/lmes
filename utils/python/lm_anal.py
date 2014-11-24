@@ -237,13 +237,40 @@ class Sims(object):
             self.Pdf()
         fig = plt.figure(1)
         axes = plt.axes()
+        matplotlib.rcParams.update({'font.size': 30})
+        print 'graphing now...'
+        n, bins, patches = axes.hist(self.oparam, bins=200, range=(-100,100), normed=True)
+        fig.clf()
+        axes = plt.axes()
+        matplotlib.rcParams.update({'font.size': 30})
+        axes.plot(bins[1:] - .5, n, 'k', linewidth=4.0)  # bins is the x coord of each vertical line on the histogram. n is the height of each bin. Thus, len(bins) = len(n)+1, and so the bins[1:] weirdness
+        fig.set_size_inches(12,8)
+        axes.set_xticks(range(-100,101,10))
+        axes.set_xlim((-30,30))
+        axes.set_xlabel('$\Delta$ (copy num(b) - copy num(a))')
+        axes.set_ylim(-.001,.05)
+        axes.invert_yaxis()
+        axes.set_ylabel('count')
+#         labels = axes.get_yticks().tolist()
+#         labels = ['']*len(labels)
+#         axes.set_yticklabels(labels)
+        self.Savefig(fig, '_hist')
+        print 'done'
+    
+    def HistClassic(self):
+        if self.oparam==None:
+            self.Pdf()
+        fig = plt.figure(1)
+        axes = plt.axes()
         print 'graphing now...'
         n, bins, patches = axes.hist(self.oparam, bins=200, range=(-100,100), normed=True)
         axes.plot(bins[1:] - .5, n, 'r--')  # bins is the x coord of each vertical line on the histogram. n is the height of each bin. Thus, len(bins) = len(n)+1, and so the bins[1:] weirdness
         fig.set_size_inches(36,24)
         axes.set_xticks(range(-100,101,5))
         axes.set_xlabel('$\Delta$ (copy num(b) - copy num(a))')
-        axes.set_ylabel('count')
+        labels = ax.get_yticks().tolist()
+        labels = ['']*len(labels)
+        ax.set_yticklabels(labels)
         self.Savefig(fig, '_hist')
         print 'done'
     
@@ -332,17 +359,14 @@ class Sims(object):
 #         axes.yaxis.set_ticks(np.arange(start, end, 20))
         self.Savefig(fig, '_hist2d_log_perceptual')
         
+        counts,xbins,ybins,image =plt.hist2d(self.rcoords[0,:], self.rcoords[1,:],range=((0,40),(0,40)), bins=(40,40), normed=True, cmap=pCMap['cube1'])
         fig.clf()
         axes = plt.axes()
         matplotlib.rcParams.update({'font.size': 30})
-        
-        print -np.array([counts[i,-i] for i in range(-25,26)])
-        print [counts[i,-i] for i in range(-25,26)]
-        
-        colorline(range(-25,26), -np.array([counts[i,-i] for i in range(-25,26)]), [counts[i,-i] for i in range(-25,26)],ax=axes)
+        colorline([a-b for a,b in zip(range(0,26),range(25,-1,-1))], [counts[x,y] for x,y in zip(range(0,26),range(25,-1,-1))],[counts[x,y] for x,y in zip(range(0,26),range(25,-1,-1))],ax=axes)
         
         axes.set_xlim(-25,25)
-        #axes.set_ylim(0,-1)
+        axes.set_ylim(.1,-1)
         axes.invert_yaxis()
         matplotlib.rcParams.update({'font.size': 30})
         axes.set_xlabel('$\Delta$ (copy num(b) - copy num(a))')

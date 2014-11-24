@@ -61,8 +61,11 @@ namespace fflux {
 
 typedef std::vector<lm::io::TrajectoryState*> CrossingVector;
 typedef std::map<long long, CrossingVector> CrossingsMap;
+typedef std::map<long long, double> DwellTimeMap;
+typedef std::map<long long, long long> FinishedTrajectoriesCountMap;
 typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::DecreasingOrderParameterLimit>::iterator decrLimitIterator;
 typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::IncreasingOrderParameterLimit>::iterator incrLimitIterator;
+typedef std::vector<lm::io::TilingHist*> TilingVector;
 
 class FFluxTrajectoryList : public lm::trajectory::TrajectoryList
 {
@@ -97,9 +100,12 @@ public:
     virtual bool isPhaseDone();
     virtual bool isZerothPhase();
     virtual bool isZerothPhaseDone(double);
+    virtual void reduceTilingHist(const lm::io::TilingHist& tHist);
     virtual void restart();
     virtual void reverse();
     virtual void saveCrossings();
+    virtual void saveDwellTimes();
+    virtual void saveFinishedTrajectoriesCounts();
 
 protected:
     Direction direction;
@@ -110,9 +116,14 @@ protected:
     lm::rng::XORShift xorShift; //RNG used for randomly choosing a crossing in a crossing vector
 
     // members that hold the trajectory data used for the calculations at the end of fflux
+    lm::io::TilingHist averageTilingHist;
     CrossingsMap crossings;
-    std::vector<long long> finishedTrajectoriesCounts;
+    DwellTimeMap dwellTimes;
+    FinishedTrajectoriesCountMap finishedTrajectoriesCounts;
     std::map<lm::fflux::FFluxTrajectoryList::Direction, CrossingsMap> savedCrossings;
+    std::map<lm::fflux::FFluxTrajectoryList::Direction, DwellTimeMap> savedDwellTimes;
+    std::map<lm::fflux::FFluxTrajectoryList::Direction, FinishedTrajectoriesCountMap> savedFinishedTrajectoriesCounts;
+    std::map<lm::fflux::FFluxTrajectoryList::Direction, lm::io::TilingHist*> savedHists;
 
     // user defined parameters that determine how the forward flux sampling is carried out
     unsigned crossingsPerPhase; //the count of crossing events that should be collected for every fflux sampling phase
