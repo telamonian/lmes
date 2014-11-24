@@ -5,6 +5,7 @@
 .project
 
 /local.mk
+/build
 /build-*
 /build_*
 /Build-*
@@ -22,6 +23,8 @@
 /.ptp-sync
 .ptp-sync-folder
 /.gdbinit
+
+/regression/biphasic_switch.lm
 
 /test_case/*
 !/test_case/clean

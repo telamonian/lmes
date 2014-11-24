@@ -381,7 +381,7 @@ protected:
 //                {
 //                    printf("incr: %.3f %.3f\n",prevVal,val);
 //                }
-            	if ((*oparams)[l.species]->getPrev() < l.limit && (*oparams)[l.species]->get() >= l.limit)
+            	if ((*oparams)[l.species]->getPrev() <= l.limit && (*oparams)[l.species]->get() > l.limit)
 //                if (prevVal<l.limit && val>=l.limit)
                 {
                     finalLimitType = lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER;

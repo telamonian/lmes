@@ -107,17 +107,17 @@ class FFluxParameters(object):
     
 if __name__=="__main__":
     
-    iSCs = InitialSpeciesCounts(speciesCounts=[4,16,0,0,0,0,1])
-    iSCBs = InitialSpeciesCountsBackward(speciesCounts=[0,0,0,4,16,0,1])
+    iSCs = InitialSpeciesCounts(speciesCounts=[4,16,1,0,0,0,0])
+    iSCBs = InitialSpeciesCountsBackward(speciesCounts=[0,0,0,4,16,1,0])
     op = OrderParameter(type=0,
                         id=0,
                         speciesIDs=[0,1,2,3,4,5],
                         speciesCoefficients=[-1,-2,-2,1,2,2])
-    simParams = [SimulationParameter(key='crossingsPerPhase',val='100'),
-                 SimulationParameter(key='maxPhaseZeroTime',val='10000'),
+    simParams = [SimulationParameter(key='crossingsPerPhase',val='100000'),
+                 SimulationParameter(key='maxPhaseZeroTime',val='1000000'),
                  SimulationParameter(key='maxSteps',val='100000000'),
                  SimulationParameter(key='maxTime',val='Inf'),
-                 SimulationParameter(key='maxWorkUnitSteps',val='1000'),
+                 SimulationParameter(key='maxWorkUnitSteps',val='10000'),
                  SimulationParameter(key='writeInterval',val='1e8')]
     tiling = Tiling(ID=0,
                     orderParameterID=0,

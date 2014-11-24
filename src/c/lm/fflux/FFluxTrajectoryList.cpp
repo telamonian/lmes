@@ -165,7 +165,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
         if (traj->fluxedForward())
         {
             // ...add the work unit's final state to the appropriate list of crossings
-            Print::printf(Print::INFO,"Crossing %d added to phase %d list", crossings[ffluxPhase].size(), ffluxPhase);
+            Print::printf(Print::DEBUG,"Crossing %d added to phase %d list", crossings[ffluxPhase].size(), ffluxPhase);
             addCrossing(finishedWorkUnitMsg);
         }
         // Regardless of whether this crossing was a forward or backwards flux, increment this phase's finished trajectories counter and dwell time, and delete the finished trajectory
@@ -216,6 +216,8 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
                     // ...increment the interface position (by altering the increasing/decreasing limits)...
 //                    ratchetInterfaces();
                     // ...and start up a new set of trajectories
+                    dwellTimes[ffluxPhase] = 0;
+                    finishedTrajectoriesCounts[ffluxPhase] = 0;
                     initPhaseNTrajectories(simultaneousTrajectoryCount);
                 }
                 // ...otherwise if the whole simulation is complete, output some data.
@@ -227,7 +229,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
                     Print::printf(Print::INFO, "Phase 0 probability flux: %.10f", (double)crossings[0].size()/(maxPhaseZeroTime*simultaneousTrajectoryCount));
                     for (int i=1;i<maxFFluxPhase;i++)
                     {
-                        Print::printf(Print::DEBUG, "Crossing probability for interface at %f: %.10f", input.tilings[0]->getEdge(i), (double)crossings[i].size()/finishedTrajectoriesCounts[i]);
+                        Print::printf(Print::INFO, "Crossing probability for interface at %f: %.10f", input.tilings[0]->getEdge(i), (double)crossings[i].size()/finishedTrajectoriesCounts[i]);
                     }
                     double Kab = (double)crossings[0].size()/(maxPhaseZeroTime*simultaneousTrajectoryCount);
                     for (int i=1;i<maxFFluxPhase;i++)
