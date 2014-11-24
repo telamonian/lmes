@@ -9,15 +9,8 @@ enable_testing()
 #if certain packages cannot be found, the end-user (you) can change the variables in CMakeConfig.txt to point to package paths
 include(CMakeConfig.txt)
 
-add_custom_target( ReplicatePythonSourceTree ALL ${CMAKE_COMMAND} -P
-    ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/ReplicatePythonSourceTree.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} )
-set(ENV{HDF5_ROOT} ${HDF5_ROOT})
-
 #package finding stuff
 SET(CMAKE_MODULE_PATH  ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/CMakeModules )
-include(UseCython)  ###cython
 
 find_package(MPI REQUIRED)
 message("testing if mpi is mpich...")
@@ -55,9 +48,22 @@ find_package(PythonLibs)
 add_definitions(-DBUILD_INFO -DVERBOSITY_LEVEL=${VERBOSITY_LEVEL})
 IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
     add_definitions(-DOPT_CUDA)
-ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))    
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -m64 -fPIC -Wall -fmessage-length=0")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -m64 -fPIC -Wall -fmessage-length=0")
+ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
+
+IF(DEFINED CUSTOM_C_FLAGS)
+    SET(CMAKE_C_FLAGS ${CUSTOM_C_FLAGS})
+    MESSAGE(STATUS "Using custom C flags: ${CMAKE_C_FLAGS}")
+ELSE(DEFINED CUSTOM_C_FLAGS)
+    SET(CMAKE_C_FLAGS "-g -m64 -fPIC -Wall -fmessage-length=0")
+ENDIF(DEFINED CUSTOM_C_FLAGS)
+
+IF(DEFINED CUSTOM_CXX_FLAGS)
+    SET(CMAKE_CXX_FLAGS ${CUSTOM_CXX_FLAGS})
+    MESSAGE(STATUS "Using custom C++ flags: ${CMAKE_CXX_FLAGS}")
+ELSE(DEFINED CUSTOM_CXX_FLAGS)
+    SET(CMAKE_CXX_FLAGS "-g -m64 -fPIC -Wall -fmessage-length=0")
+ENDIF(DEFINED CUSTOM_CXX_FLAGS)
+
 #for now, no c++11 support
 #SET(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -107,7 +113,6 @@ IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
     add_dependencies(lm_cuda_lib lm_c_lib)
 ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional)) 
 add_subdirectory(gtest/c)
-add_subdirectory(src/cython)
 
 #set_source_files_properties(${proto_hdrs} PROPERTIES GENERATED TRUE)
 #get_directory_property(proto_vars DIRECTORY src/protobuf DEFINITION proto_srcs)
@@ -146,3 +151,16 @@ target_link_libraries(lm ${CMAKE_THREAD_LIBS_INIT}
                          ${PYTHON_LIBRARY_DIRS})
 
 install(TARGETS lm DESTINATION bin)
+
+################
+#TARGET: cython
+################
+if (MAKE_CYTHON STREQUAL yes)
+    add_custom_target( ReplicatePythonSourceTree ALL ${CMAKE_COMMAND} -P
+        ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/ReplicatePythonSourceTree.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} )
+    set(ENV{HDF5_ROOT} ${HDF5_ROOT})
+    include(UseCython)  ###cython
+    add_subdirectory(src/cython)
+endif (MAKE_CYTHON STREQUAL yes)

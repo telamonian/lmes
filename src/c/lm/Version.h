@@ -48,5 +48,5 @@
 #endif
 
 #ifndef COPYRIGHT_DATE_JHU
-#define COPYRIGHT_DATE_JHU "2012"
+#define COPYRIGHT_DATE_JHU "2012-2014"
 #endif

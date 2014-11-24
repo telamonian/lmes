@@ -179,12 +179,13 @@ int main(int argc, char** argv)
             }
         }
 
+        PROF_WRITE;
+
         // Close the MPI library.
         Print::printf(Print::INFO, "Closing MPI library.");
         lm::MPI::finalize();
 
         Print::printf(Print::INFO, "Program execution finished.");
-        PROF_WRITE;
         google::protobuf::ShutdownProtobufLibrary();
         return 0;
     }
@@ -208,9 +209,9 @@ int main(int argc, char** argv)
     {
         std::cerr << "Unknown Exception during execution." << std::endl;
     }
+    PROF_WRITE;
     MPI_Abort(MPI_COMM_WORLD,-1);
     lm::MPI::finalize();
-    PROF_WRITE;
     google::protobuf::ShutdownProtobufLibrary();
     return -1;
 }

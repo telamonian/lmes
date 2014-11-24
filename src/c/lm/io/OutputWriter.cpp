@@ -101,7 +101,6 @@ void OutputWriter::wake() throw(lm::thread::PthreadException)
 
 int OutputWriter::run()
 {
-    PROF_SET_THREAD(threadNumber);
     PROF_BEGIN(PROF_DATAOUTPUT_RUN);
 
     // Create a helper thread.

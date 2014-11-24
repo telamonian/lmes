@@ -224,7 +224,9 @@ bool NextSubvolumeSolver::generateTrajectory(long long maxSteps)
             size_t dataSize = lattice->serializeParticlesSize();
             std::string* data = l->mutable_particles();
             data->resize(dataSize);
+            PROF_BEGIN(PROF_NSM_SERIALIZE_LATTICE);
             lattice->serializeParticlesTo(&((*data)[0]), dataSize, Lattice::ROW_MAJOR);
+            PROF_END(PROF_NSM_SERIALIZE_LATTICE);
         }
         else
         {
@@ -296,7 +298,9 @@ bool NextSubvolumeSolver::generateTrajectory(long long maxSteps)
                size_t dataSize = lattice->serializeParticlesSize();
                std::string* data = l->mutable_particles();
                data->resize(dataSize);
+               PROF_BEGIN(PROF_NSM_SERIALIZE_LATTICE);
                lattice->serializeParticlesTo(&((*data)[0]), dataSize, Lattice::ROW_MAJOR);
+               PROF_END(PROF_NSM_SERIALIZE_LATTICE);
                nextLatticeWriteTime += latticeWriteInterval;
            }
        }
@@ -304,11 +308,15 @@ bool NextSubvolumeSolver::generateTrajectory(long long maxSteps)
 
        // Update the system with the reaction.
        affectedNeighbor = false;
+       PROF_BEGIN(PROF_NSM_PERFORM_SUBVOLUME_EVENT);
        uniRngNext=performSubvolumeEvent(time, subvolume, uniRngNext, uniRngValues, affectedNeighbor, neighborSubvolume);
+       PROF_END(PROF_NSM_PERFORM_SUBVOLUME_EVENT);
 
        // Update the propensity in the affected subvolumes.
+       PROF_BEGIN(PROF_NSM_UPDATE_SUBVOLUME_PROPENSITY);
        expRngNext=updateSubvolumePropensity(time, subvolume, expRngNext, expRngValues);
        if (affectedNeighbor) expRngNext=updateSubvolumePropensity(time, neighborSubvolume, expRngNext, expRngValues);
+       PROF_END(PROF_NSM_UPDATE_SUBVOLUME_PROPENSITY);
 
        //Print::printf(Print::VERBOSE_DEBUG, "Step %d: time=%e, count=%d,%d,%d",steps,time,speciesCounts[0],speciesCounts[1],speciesCounts[2]);
     }
@@ -353,7 +361,9 @@ bool NextSubvolumeSolver::generateTrajectory(long long maxSteps)
                 size_t dataSize = lattice->serializeParticlesSize();
                 std::string* data = l->mutable_particles();
                 data->resize(dataSize);
+                PROF_BEGIN(PROF_NSM_SERIALIZE_LATTICE);
                 lattice->serializeParticlesTo(&((*data)[0]), dataSize, Lattice::ROW_MAJOR);
+                PROF_END(PROF_NSM_SERIALIZE_LATTICE);
                 nextLatticeWriteTime += latticeWriteInterval;
             }
         }
@@ -398,7 +408,9 @@ bool NextSubvolumeSolver::generateTrajectory(long long maxSteps)
             size_t dataSize = lattice->serializeParticlesSize();
             std::string* data = l->mutable_particles();
             data->resize(dataSize);
+            PROF_BEGIN(PROF_NSM_SERIALIZE_LATTICE);
             lattice->serializeParticlesTo(&((*data)[0]), dataSize, Lattice::ROW_MAJOR);
+            PROF_END(PROF_NSM_SERIALIZE_LATTICE);
         }
         reachedLimit = true;
     }
@@ -457,7 +469,9 @@ int NextSubvolumeSolver::updateAllSubvolumePropensities(si_time_t time, int rngN
 
 int NextSubvolumeSolver::updateSubvolumePropensity(si_time_t time, lattice_size_t subvolume, int rngNext, double * expRngValues)
 {
+    PROF_BEGIN(PROF_NSM_CALCULATE_SUBVOLUME_PROPENSITY);
     double propensity = calculateSubvolumePropensity(time, subvolume);
+    PROF_END(PROF_NSM_CALCULATE_SUBVOLUME_PROPENSITY);
 
     double newTime = INFINITY;
     if (propensity > 0.0)
@@ -469,7 +483,9 @@ int NextSubvolumeSolver::updateSubvolumePropensity(si_time_t time, lattice_size_
         }
         newTime = time+expRngValues[rngNext++]/propensity;
     }
+    PROF_BEGIN(PROF_NSM_UPDATE_QUEUE);
     reactionQueue->updateReactionEvent(subvolume, newTime, propensity);
+    PROF_END(PROF_NSM_UPDATE_QUEUE);
 
     return rngNext;
 }

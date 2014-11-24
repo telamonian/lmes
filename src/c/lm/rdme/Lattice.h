@@ -131,7 +131,7 @@ public:
     inline bool isBoundarySite(lattice_size_t index) const
     {
         lattice_size_t z = index/(size.x*size.y);
-        lattice_size_t xy = index%(size.x*size.y);
+        lattice_size_t xy   = index%(size.x*size.y);
         lattice_size_t y = xy/size.x;
         lattice_size_t x = xy%size.x;
         return isBoundarySite(x,y,z);

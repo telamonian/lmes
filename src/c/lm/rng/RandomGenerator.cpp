@@ -46,6 +46,8 @@
 #include "lm/Exceptions.h"
 #include "lm/Types.h"
 #include "lm/rng/RandomGenerator.h"
+#include "lptf/Profile.h"
+#include "lptf/ProfileCodes.h"
 
 namespace lm {
 namespace rng {
@@ -80,26 +82,32 @@ RandomGenerator::RandomGenerator(uint32_t seedTop, uint32_t seedBottom, Distribu
 
 void RandomGenerator::getRandomDoubles(double * rngs, int numberRNGs)
 {
+    PROF_BEGIN(PROF_CACHE_RNG);
     for (int i=0; i<numberRNGs; i++)
     {
         rngs[i] = getRandomDouble();
     }
+    PROF_END(PROF_CACHE_RNG);
 }
 
 void RandomGenerator::getExpRandomDoubles(double * rngs, int numberRNGs)
 {
+    PROF_BEGIN(PROF_CACHE_EXP_RNG);
     for (int i=0; i<numberRNGs; i++)
     {
         rngs[i] = getExpRandomDouble();
     }
+    PROF_END(PROF_CACHE_EXP_RNG);
 }
 
 void RandomGenerator::getNormRandomDoubles(double * rngs, int numberRNGs)
 {
+    PROF_BEGIN(PROF_CACHE_NORM_RNG);
     for (int i=0; i<numberRNGs; i++)
     {
         rngs[i] = getNormRandomDouble();
     }
+    PROF_END(PROF_CACHE_NORM_RNG);
 }
 
 }

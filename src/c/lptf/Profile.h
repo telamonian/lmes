@@ -217,15 +217,7 @@ extern void* _prof_cuda_ref_event[PROF_MAX_THREADS];
 #define PROF_SET_THREAD(thread) \
     {\
     if (_prof_thread_key!=0){\
-        void* _prof_thread_id=NULL;\
-        if ((_prof_thread_id=pthread_getspecific(_prof_thread_key)) == NULL){\
-            if((_prof_thread_id=malloc(sizeof(unsigned int)))!=NULL){\
-                pthread_setspecific(_prof_thread_key, _prof_thread_id);\
-            }\
-        }\
-        if(_prof_thread_id!=NULL){\
-            *((unsigned int *)_prof_thread_id)=thread;\
-        }\
+        pthread_setspecific(_prof_thread_key, (void *)thread);\
     }}
 #elif defined(LINUX)
 #define PROF_SET_THREAD(thread) _prof_thread_id=thread;
@@ -234,7 +226,7 @@ extern void* _prof_cuda_ref_event[PROF_MAX_THREADS];
 
 // Set the index of this thread.
 #if defined(MACOSX)
-#define PROF_GET_THREAD ((_prof_thread_key != 0 && pthread_getspecific(_prof_thread_key) != NULL)?(*((unsigned int *)pthread_getspecific(_prof_thread_key))):(0))
+#define PROF_GET_THREAD ((_prof_thread_key != 0)?((unsigned long)pthread_getspecific(_prof_thread_key)):(0))
 #elif defined(LINUX)
 #define PROF_GET_THREAD (_prof_thread_id)
 #endif

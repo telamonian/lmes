@@ -43,12 +43,14 @@
 #include "lm/MPI.h"
 #include "lm/Print.h"
 #include "lm/message/Communicator.h"
+#include "lptf/Profile.h"
+#include "lptf/ProfileCodes.h"
 
 namespace lm {
 namespace message {
 
 Communicator::Communicator(int process, int thread)
-    :process(process),thread(thread),inputBufferSize(10*1024*1024),inputBuffer(NULL),outputBufferSize(10*1024*1024),outputBuffer(NULL)
+:process(process),thread(thread),inputBufferSize(50*1024*1024),inputBuffer(NULL),outputBufferSize(50*1024*1024),outputBuffer(NULL)
 {
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(inputBufferSize, MPI_INFO_NULL, &inputBuffer));
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(outputBufferSize, MPI_INFO_NULL, &outputBuffer));
@@ -80,6 +82,8 @@ std::string Communicator::getHostname()
 
 void Communicator::sendMessage(int destProcess, int destThread, lm::message::Message* msg)
 {
+    PROF_BEGIN(PROF_MESSAGE_SEND);
+
     // Set the message values.
     msg->set_source_process(process);
     msg->set_source_thread(thread);
@@ -89,16 +93,23 @@ void Communicator::sendMessage(int destProcess, int destThread, lm::message::Mes
     // Serialize the message into the buffer.
     int messageLength=msg->ByteSize();
     if (messageLength > outputBufferSize) throw lm::Exception("Message too large to serialize into output buffer",messageLength,outputBufferSize);
+
+    PROF_BEGIN(PROF_MESSAGE_SERIALIZE);
     if (!msg->SerializeToArray(outputBuffer,messageLength)) throw lm::Exception("Unable to serialize message");
+    PROF_END(PROF_MESSAGE_SERIALIZE);
 
     // Send the buffer.
     //lm::Print::printf(lm::Print::DEBUG, "Sending message %d:%d->%d:%d = %d",process,thread,destProcess,destThread,messageLength);
     MPI_EXCEPTION_CHECK(MPI_Send(outputBuffer, messageLength, MPI_BYTE, destProcess, destThread, MPI_COMM_WORLD));
     //lm::Print::printf(lm::Print::DEBUG, "Sent message %d:%d->%d:%d = %d",process,thread,destProcess,destThread,messageLength);
+
+    PROF_END(PROF_MESSAGE_SEND);
 }
 
 void Communicator::receiveMessage(lm::message::Message* msg)
 {
+    PROF_BEGIN(PROF_MESSAGE_RECEIVE);
+
     // Receive the data.
     //lm::Print::printf(lm::Print::DEBUG, "Receiving message %d:%d",process,thread);
     MPI_EXCEPTION_CHECK(MPI_Recv(inputBuffer, inputBufferSize, MPI_BYTE, MPI_ANY_SOURCE, thread, MPI_COMM_WORLD, &messageStatus));
@@ -108,9 +119,13 @@ void Communicator::receiveMessage(lm::message::Message* msg)
     MPI_EXCEPTION_CHECK(MPI_Get_count(&messageStatus, MPI_BYTE, &messageLength));
 
     // Deserialize the message.
+    PROF_BEGIN(PROF_MESSAGE_PARSE);
     if (!msg->ParseFromArray(inputBuffer, messageLength)) throw lm::Exception("Unable to deserialize message");
+    PROF_END(PROF_MESSAGE_PARSE);
 
     //lm::Print::printf(lm::Print::VERBOSE_DEBUG, "Received message %d:%d->%d:%d %d bytes: {\n%s}",message->source_process(),message->source_thread(),message->dest_process(),message->dest_thread(),message->ByteSize(), message->DebugString().c_str());
+
+    PROF_END(PROF_MESSAGE_RECEIVE);
 }
 
 }
