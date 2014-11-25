@@ -59,6 +59,12 @@ void OParam::init(const lm::io::OrderParameters::OrderParameter& opRef)
     op = new lm::io::OrderParameters::OrderParameter(opRef);
 }
 
+void OParam::initValues(uint* speciesCounts)
+{
+    calc(speciesCounts);
+    prevVal = val;
+}
+
 // derived class methods
 bool OParamLinear::registered=OParamLinear::registerClass();
 bool OParamLinear::registerClass()

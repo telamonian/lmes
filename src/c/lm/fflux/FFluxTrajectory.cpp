@@ -142,6 +142,7 @@ void FFluxTrajectory::initLimits()
     case 0: // ffluxphase==0 and tilings[0].getArrangement()==lm::io::Tilings::ASCENDING
     {
         lm::io::TrajectoryLimits::IncreasingOrderParameterLimit* iopl = getRunMsg()->mutable_limits()->add_increasing_order_parameter_limit();
+        iopl->set_arrangement(lm::io::TrajectoryLimits::ASCENDING);
         iopl->set_order_parameter_id(input.tilings[0]->getOrderParameterID());
         iopl->add_value(input.tilings[0]->getEdge(0));
         break;
@@ -149,6 +150,7 @@ void FFluxTrajectory::initLimits()
     case 1: // ffluxphase==0 and tilings[0].getArrangement()==lm::io::Tilings::DESCENDING
     {
         lm::io::TrajectoryLimits::DecreasingOrderParameterLimit* dopl = getRunMsg()->mutable_limits()->add_decreasing_order_parameter_limit();
+        dopl->set_arrangement(lm::io::TrajectoryLimits::DESCENDING);
         dopl->set_order_parameter_id(input.tilings[0]->getOrderParameterID());
         dopl->add_value(input.tilings[0]->getEdge(0));
         break;
@@ -158,7 +160,9 @@ void FFluxTrajectory::initLimits()
         lm::io::TrajectoryLimits::DecreasingOrderParameterLimit* dopl = getRunMsg()->mutable_limits()->add_decreasing_order_parameter_limit();
         dopl->set_order_parameter_id(input.tilings[0]->getOrderParameterID());
         dopl->add_value(input.tilings[0]->getEdge(0));
+        dopl->set_arrangement(lm::io::TrajectoryLimits::ASCENDING);
         lm::io::TrajectoryLimits::IncreasingOrderParameterLimit* iopl = getRunMsg()->mutable_limits()->add_increasing_order_parameter_limit();
+        iopl->set_arrangement(lm::io::TrajectoryLimits::ASCENDING);
         iopl->set_order_parameter_id(input.tilings[0]->getOrderParameterID());
         iopl->add_value(input.tilings[0]->getEdge(ffluxPhase));
         break;
@@ -166,9 +170,11 @@ void FFluxTrajectory::initLimits()
     case 3: // ffluxphase!=0 and tilings[0].getArrangement()==lm::io::Tilings::DESCENDING
     {
         lm::io::TrajectoryLimits::IncreasingOrderParameterLimit* iopl = getRunMsg()->mutable_limits()->add_increasing_order_parameter_limit();
+        iopl->set_arrangement(lm::io::TrajectoryLimits::DESCENDING);
         iopl->set_order_parameter_id(input.tilings[0]->getOrderParameterID());
         iopl->add_value(input.tilings[0]->getEdge(0));
         lm::io::TrajectoryLimits::DecreasingOrderParameterLimit* dopl = getRunMsg()->mutable_limits()->add_decreasing_order_parameter_limit();
+        dopl->set_arrangement(lm::io::TrajectoryLimits::DESCENDING);
         dopl->set_order_parameter_id(input.tilings[0]->getOrderParameterID());
         dopl->add_value(input.tilings[0]->getEdge(ffluxPhase));
         break;

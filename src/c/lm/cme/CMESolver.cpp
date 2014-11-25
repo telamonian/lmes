@@ -955,14 +955,14 @@ void CMESolver::setLimits(const lm::io::TrajectoryLimits& limits)
     {
         for (int j=0; j<limits.decreasing_order_parameter_limit(i).value_size(); j++)
         {
-            setSpeciesDecreasingLimit(limits.decreasing_order_parameter_limit(i).order_parameter_id(), limits.decreasing_order_parameter_limit(i).value(j));
+            setSpeciesDecreasingLimit(limits.decreasing_order_parameter_limit(i).arrangement(), limits.decreasing_order_parameter_limit(i).order_parameter_id(), limits.decreasing_order_parameter_limit(i).value(j));
         }
     }
     for (int i=0; i<limits.increasing_order_parameter_limit_size(); i++)
     {
         for (int j=0; j<limits.increasing_order_parameter_limit(i).value_size(); j++)
         {
-            setSpeciesIncreasingLimit(limits.increasing_order_parameter_limit(i).order_parameter_id(), limits.increasing_order_parameter_limit(i).value(j));
+            setSpeciesIncreasingLimit(limits.increasing_order_parameter_limit(i).arrangement(), limits.increasing_order_parameter_limit(i).order_parameter_id(), limits.increasing_order_parameter_limit(i).value(j));
         }
     }
 }
@@ -999,7 +999,7 @@ void CMESolver::setSpeciesUpperLimit(int species, int limit)
     speciesLimits[numberSpeciesLimits-1].limit = limit;
 }
 
-void CMESolver::setSpeciesDecreasingLimit(int opID, double limit)
+void CMESolver::setSpeciesDecreasingLimit(lm::io::TrajectoryLimits::Arrangement arr, int opID, double limit)
 {
 	// Allocate a larger list for the limits/limit crossings.
 	SpeciesLimit* newSpeciesLimits = new SpeciesLimit[++numberSpeciesLimits];
@@ -1009,12 +1009,12 @@ void CMESolver::setSpeciesDecreasingLimit(int opID, double limit)
 		delete[] speciesLimits;
 	}
 	speciesLimits = newSpeciesLimits;
-	speciesLimits[numberSpeciesLimits-1].type = SpeciesLimit::DECREASING;
+	speciesLimits[numberSpeciesLimits-1].type = (arr==lm::io::TrajectoryLimits::ASCENDING) ? SpeciesLimit::DECREASING_ASCENDING : SpeciesLimit::DECREASING_DESCENDING;
 	speciesLimits[numberSpeciesLimits-1].species = opID;
 	speciesLimits[numberSpeciesLimits-1].limit = limit;
 }
 
-void CMESolver::setSpeciesIncreasingLimit(int opID, double limit)
+void CMESolver::setSpeciesIncreasingLimit(lm::io::TrajectoryLimits::Arrangement arr, int opID, double limit)
 {
 	// Allocate a larger list for the limits/limit crossings.
 	SpeciesLimit* newSpeciesLimits = new SpeciesLimit[++numberSpeciesLimits];
@@ -1024,7 +1024,7 @@ void CMESolver::setSpeciesIncreasingLimit(int opID, double limit)
 		delete[] speciesLimits;
 	}
 	speciesLimits = newSpeciesLimits;
-	speciesLimits[numberSpeciesLimits-1].type = SpeciesLimit::INCREASING;
+	speciesLimits[numberSpeciesLimits-1].type = (arr==lm::io::TrajectoryLimits::ASCENDING) ? SpeciesLimit::INCREASING_ASCENDING : SpeciesLimit::INCREASING_DESCENDING;
 	speciesLimits[numberSpeciesLimits-1].species = opID;
 	speciesLimits[numberSpeciesLimits-1].limit = limit;
 }

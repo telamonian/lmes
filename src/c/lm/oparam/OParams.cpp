@@ -107,7 +107,7 @@ void OParams::initValues(uint* speciesCounts)
 {
     for (OPMap::iterator m_it=begin();m_it!=end();++m_it)
     {
-        m_it->second->calc(speciesCounts);
+        m_it->second->initValues(speciesCounts);
     }
 }
 

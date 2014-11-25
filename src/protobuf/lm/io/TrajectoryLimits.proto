@@ -41,18 +41,21 @@ package lm.io;
 
 message TrajectoryLimits {
     enum LimitType {MINSPECIESCOUNT=1; MAXSPECIESCOUNT=2; DECREASINGORDERPARAMETER=3; INCREASINGORDERPARAMETER=4;}
+    enum Arrangement {ASCENDING=1;DESCENDING=2;}
     optional double max_time                            = 1;
     repeated int32 min_species_count                    = 2 [packed=true];
     repeated int32 max_species_count                    = 3 [packed=true];
 
     message DecreasingOrderParameterLimit {
-        required uint32 order_parameter_id              = 1;
-        repeated double value                           = 2 [packed=true];
+        optional Arrangement arrangement                = 1 [default=ASCENDING];
+        required uint32 order_parameter_id              = 2;
+        repeated double value                           = 3 [packed=true];
     }
 
     message IncreasingOrderParameterLimit {
-        required uint32 order_parameter_id              = 1;
-        repeated double value                           = 2 [packed=true];
+        optional Arrangement arrangement                = 1 [default=ASCENDING];
+        required uint32 order_parameter_id              = 2;
+        repeated double value                           = 3 [packed=true];
     }
 
     repeated DecreasingOrderParameterLimit decreasing_order_parameter_limit     = 4;

@@ -186,7 +186,7 @@ protected:
     class SpeciesLimit
     {
     public:
-        enum limit_type_t {MIN, MAX, DECREASING, INCREASING};
+        enum limit_type_t {MIN, MAX, DECREASING_ASCENDING, INCREASING_ASCENDING, DECREASING_DESCENDING, INCREASING_DESCENDING};
         limit_type_t type;
         int species;
         double limit;
@@ -276,8 +276,8 @@ public:
 protected:
     virtual void setSpeciesUpperLimit(int species, int limit);
     virtual void setSpeciesLowerLimit(int species, int limit);
-    virtual void setSpeciesDecreasingLimit(int opID, double limit);
-    virtual void setSpeciesIncreasingLimit(int opID, double limit);
+    virtual void setSpeciesDecreasingLimit(lm::io::TrajectoryLimits::Arrangement, int opID, double limit);
+    virtual void setSpeciesIncreasingLimit(lm::io::TrajectoryLimits::Arrangement, int opID, double limit);
     virtual void addToParameterTrackingList(pair<string,double*>parameter);
 
     static double zerothOrderPropensity(double time, uint * speciesCounts, void * pargs);
@@ -365,30 +365,51 @@ protected:
                     return true;
                 }
                 break;
-            case SpeciesLimit::DECREASING:
+            // use the ASCENDING limit checks when starting to the left of the limit
+            case SpeciesLimit::DECREASING_ASCENDING:
 //                prevVal = (*oparams)[l.species]->get(); val = (*oparams)[l.species]->calc(speciesCounts);
-                //printf("decr: %.3f %.3f",prevVal,val);
+//                if (numberSpeciesLimits > 1)
+//                {
+//                    printf("decr: %.3f %.3f\n",(*oparams)[l.species]->getPrev(),(*oparams)[l.species]->get());
+//                }
             	if ((*oparams)[l.species]->getPrev() >= l.limit && (*oparams)[l.species]->get() < l.limit)
 //                if (prevVal>=l.limit && val<l.limit)
                 {
+//            	    printf("decr: %.3f %.3f\n",(*oparams)[l.species]->getPrev(),(*oparams)[l.species]->get());
                     finalLimitType = lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER;
                     return true;
                 }
             	break;
-            case SpeciesLimit::INCREASING:
+            case SpeciesLimit::INCREASING_ASCENDING:
 //                prevVal = (*oparams)[l.species]->get(); val = (*oparams)[l.species]->calc(speciesCounts);
-//                if (numberSpeciesLimits > 1)
+//                if (numberSpeciesLimits > 1 && (*oparams)[l.species]->getPrev()!=(*oparams)[l.species]->get())
 //                {
-//                    printf("incr: %.3f %.3f\n",prevVal,val);
+//                    printf("incr: %d %.3f %.3f\n", trajectoryId,(*oparams)[l.species]->getPrev(),(*oparams)[l.species]->get());
 //                }
-            	if ((*oparams)[l.species]->getPrev() <= l.limit && (*oparams)[l.species]->get() > l.limit)
+            	if ((*oparams)[l.species]->getPrev() < l.limit && (*oparams)[l.species]->get() >= l.limit)
 //                if (prevVal<l.limit && val>=l.limit)
                 {
                     finalLimitType = lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER;
                     return true;
                 }
             	break;
+            // use the ASCENDING limit checks when starting to the left of the limit
+            case SpeciesLimit::DECREASING_DESCENDING:
+                if ((*oparams)[l.species]->getPrev() > l.limit && (*oparams)[l.species]->get() <= l.limit)
+                {
+                    finalLimitType = lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER;
+                    return true;
+                }
+                break;
+            case SpeciesLimit::INCREASING_DESCENDING:
+                if ((*oparams)[l.species]->getPrev() <= l.limit && (*oparams)[l.species]->get() > l.limit)
+                {
+                    finalLimitType = lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER;
+                    return true;
+                }
+                break;
             }
+
         }
         return false;
     }

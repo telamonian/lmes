@@ -113,7 +113,7 @@ if __name__=="__main__":
                         id=0,
                         speciesIDs=[0,1,2,3,4,5],
                         speciesCoefficients=[-1,-2,-2,1,2,2])
-    simParams = [SimulationParameter(key='crossingsPerPhase',val='100000'),
+    simParams = [SimulationParameter(key='crossingsPerPhase',val='10000'),
                  SimulationParameter(key='maxPhaseZeroTime',val='1000000'),
                  SimulationParameter(key='maxSteps',val='100000000'),
                  SimulationParameter(key='maxTime',val='Inf'),
