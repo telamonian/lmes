@@ -74,7 +74,6 @@ void* FFluxSupervisor::allocateObject()
 }
 
 FFluxSupervisor::FFluxSupervisor()
-:outputWriterProcess(0),outputWriterThread(3) //TODO: fix to -1,-1 once the slot code has been fixed
 {
 
 }
@@ -90,33 +89,6 @@ FFluxSupervisor::~FFluxSupervisor()
 //    SimulationSupervisor::init();
 //}
 
-void FFluxSupervisor::allResourcesRegistered()
-{
-    // Reserve a core for the output writer.
-    ResourceMap::ComputeResources resources = resourceMap->reserveCPUCores(communicator.getSourceProcess(),1);
-    Print::printf(Print::INFO, "Reserved core %d on %d:%d for the output writer.", resources.cpuCores[0], resources.controller_process, resources.controller_thread);
-
-    // Start the output writer.
-    lm::message::Message msg;
-    msg.mutable_start_output_writer()->set_use_cpu_affinity(useCPUAffinity);
-    msg.mutable_start_output_writer()->set_cpu(resources.cpuCores[0]);
-    msg.mutable_start_output_writer()->set_output_filename(simulationOutputFilename);
-    msg.mutable_start_output_writer()->set_output_writer_class(outputWriterClassName);
-    communicator.sendMessage(resources.controller_process, resources.controller_thread, &msg);
-    // TODO: the outputWriterStarted messaging stuff needs to get fixed
-    // Call the base allResourcesRegistered method.
-	SimulationSupervisor::allResourcesRegistered();
-}
-
-void FFluxSupervisor::outputWriterStarted(const lm::message::StartedOutputWriter& msg)
-{
-    outputWriterProcess = msg.process();
-    outputWriterThread = msg.thread();
-
-//    // Call the base allResourcesRegistered method.
-//	SimulationSupervisor::allResourcesRegistered();
-}
-
 void FFluxSupervisor::startSimulation()
 {
     // Check for some error conditions.
@@ -126,7 +98,7 @@ void FFluxSupervisor::startSimulation()
     Print::printf(Print::INFO, "Forward flux supervisor starting simulation.");
 
     // Create the new trajectory list.
-    trajectories = new FFluxTrajectoryList(slots.getSlotsSize(),*input);
+    trajectories = new FFluxTrajectoryList(slots.getNumberSlots(),*input);
 
     // Call the base class method.
     SimulationSupervisor::startSimulation();

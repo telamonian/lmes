@@ -17,35 +17,16 @@ using std::string;
 namespace lm {
 namespace slot {
 
-// Slot is responsible for StartWorkUnitRunner messages
-Slot::Slot(int controller_process, int controller_thread, uint32_t uuid, lm::message::Communicator * supervisorComm, lm::message::Message & msg)
-		   :process(), thread(), controller_process(controller_process), controller_thread(controller_thread), output_process(0), output_thread(3), uuid(uuid), supervisorComm(supervisorComm), status(FREE) // TODO: still ned to deshitify the whole output workers thing
+Slot::Slot(int32_t id, lm::resource::ComputeResources resources)
+:id(id), status(NOT_STARTED), resources(resources)
 {
-	// Send a message to the controller to start a work unit runner.
-	workUnitRunnerRemoteStart(controller_process, controller_thread, msg);
 }
 
 Slot::~Slot()
 {
 }
 
-void Slot::workUnitRunnerRemoteStart(int controller_process, int controller_thread, lm::message::Message & msg)
-{
-	lm::message::StartWorkUnitRunner* s = msg.mutable_start_work_unit_runner(0);
-	s->set_uuid(uuid);
-	supervisorComm->sendMessage(controller_process, controller_thread, &msg);
-}
-
-void Slot::workUnitRemoteStart(lm::message::Message* msg, long long workUnitID)
-{
-    // Send the start work unit message.
-    lm::message::RunWorkUnit& run = *(msg->mutable_run_work_unit());
-    run.set_work_unit_id(workUnitID);
-
-    Print::printf(Print::DEBUG, "Sending message to start work unit %d with trajectory %d on slot %d:%d.", workUnitID, msg->run_work_unit().initial_state().trajectory_id(), getSlotKey()[0], getSlotKey()[1]);
-    supervisorComm->sendMessage(getSlotKey()[0], getSlotKey()[1], msg);
-}
-
+/*
 void Slot::markWorkUnitRunnerRemoteStarted(const lm::message::StartedWorkUnitRunner & msg)
 {
 	// This is where the slot process and thread numbers are actually set
@@ -91,6 +72,7 @@ void Slot::free()
 {
     setStatus(FREE);
 }
+*/
 
 }
 }

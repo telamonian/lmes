@@ -51,7 +51,7 @@ class InputFixture : public ::testing::Test
 public:
     InputFixture(): file("/Users/tel/git/lm/gtest/data/lm/fflux/biphasic_switch.lm"), input(NULL)
     {
-        input = lm::input::InputHelper::rFFInput(&file,&diffBuf,&oparams,&reactBuf,&simParamMap,&tilings);
+        input = lm::input::InputHelper::rFFInput(&file,&diffBuf,&orderParametersBuf,&oparams,&reactBuf,&simParamBuf,&simParamMap,&tilingsBuf,&tilings);
     }
     ~InputFixture()
     {
@@ -61,8 +61,11 @@ public:
     lm::io::hdf5::Hdf5File file;
     lm::input::Input* input;
     lm::io::DiffusionModel diffBuf;
+    lm::io::OrderParameters orderParametersBuf;
     lm::oparam::OParams oparams;
     lm::io::ReactionModel reactBuf;
+    lm::io::SimulationParameters simParamBuf;
     lm::main::SimulationParametersMap simParamMap;
+    lm::io::Tilings tilingsBuf;
     lm::tiling::Tilings tilings;
 };

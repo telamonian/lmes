@@ -77,15 +77,11 @@ public:
     virtual ~ReplicateSupervisor();
 
 protected:
-    virtual void allResourcesRegistered();
     virtual void startSimulation();
     virtual void workUnitStarted(const lm::message::StartedWorkUnit& msg);
 //    virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg);
-    virtual void outputWriterStarted(const lm::message::StartedOutputWriter& msg);
 
 protected:
-    int outputWriterProcess;
-    int outputWriterThread;
 };
 
 }

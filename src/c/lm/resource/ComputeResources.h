@@ -1,12 +1,12 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2011 Luthey-Schulten Group,
+ * Copyright 2012-2014 Roberts Group,
  * All rights reserved.
  * 
- * Developed by: Luthey-Schulten Group
- * 			     University of Illinois at Urbana-Champaign
- * 			     http://www.scs.uiuc.edu/~schulten
- * 
+ * Developed by: Roberts Group
+ * 			     Johns Hopkins University
+ * 			     http://biophysics.jhu.edu/roberts/
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with 
  * the Software without restriction, including without limitation the rights to 
@@ -21,10 +21,9 @@
  * this list of conditions and the following disclaimers in the documentation 
  * and/or other materials provided with the distribution.
  * 
- * - Neither the names of the Luthey-Schulten Group, University of Illinois at
- * Urbana-Champaign, nor the names of its contributors may be used to endorse or
- * promote products derived from this Software without specific prior written
- * permission.
+ * - Neither the names of the Roberts Group, Johns Hopkins University
+ * nor the names of its contributors may be used to endorse or promote products
+ * derived from this Software without specific prior written permission.
  * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
@@ -37,46 +36,30 @@
  * Author(s): Elijah Roberts
  */
 
-#ifndef LM_MAIN_WORKUNITRUNNER_H_
-#define LM_MAIN_WORKUNITRUNNER_H_
+#ifndef LM_RESOURCE_COMPUTERESOURCES_H_
+#define LM_RESOURCE_COMPUTERESOURCES_H_
 
 #include <string>
 #include <vector>
-#include "lm/me/MESolver.h"
-#include "lm/message/Communicator.h"
-#include "lm/message/RunWorkUnit.pb.h"
-#include "lm/message/StartWorkUnitRunner.pb.h"
-#include "lm/thread/Thread.h"
-#include "lm/thread/Worker.h"
-#include "lm/Types.h"
 
-using std::vector;
 using std::string;
-using lm::thread::PthreadException;
-using lm::thread::Worker;
+using std::vector;
 
 namespace lm {
-namespace main {
+namespace resource {
 
-class WorkUnitRunner : public Worker
+class ComputeResources
 {
 public:
-    WorkUnitRunner(const lm::message::StartWorkUnitRunner& properties);
-    virtual ~WorkUnitRunner();
-    virtual void wake() throw(PthreadException);
-    virtual int run();
-    virtual void runWorkUnit(const lm::message::RunWorkUnit& msg);
+    ComputeResources():hostname(""),controller_process(-1),controller_thread(-1) {}
+    string toString();
 
-    //id getter methods
-    virtual int	getProcess() {return communicator.getSourceProcess();}
-    virtual int getThread() {return communicator.getSourceThread();}
-    virtual int getID() {return id;}
-
-protected:
-    int id;
-    lm::message::Communicator communicator;
-    lm::message::StartWorkUnitRunner properties;
-    lm::me::MESolver* solver;
+public:
+    string hostname;
+    int controller_process;
+    int controller_thread;
+    vector<int> cpuCores;
+    vector<int> gpuDevices;
 };
 
 }

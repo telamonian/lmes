@@ -44,6 +44,7 @@
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/hdf5/HDF5.h"
 #include "lm/io/hdf5/SimulationFile.h"
+#include "lm/main/Main.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Communicator.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
@@ -52,9 +53,11 @@
 #include "lm/message/StartWorkUnitRunner.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnitRunner.pb.h"
+#include "lm/resource/ComputeResources.h"
 #include "lm/resource/ResourceMap.h"
 #include "lm/slot/SlotList.h"
 
+using lm::resource::ComputeResources;
 using lm::resource::ResourceMap;
 using std::string;
 
@@ -62,7 +65,7 @@ namespace lm {
 namespace main {
 
 SimulationSupervisor::SimulationSupervisor()
-    :workUnitCount(0),trajectories(NULL),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),solverClassName(""),useCPUAffinity(false),input(NULL),hasReactionModel(false),hasDiffusionModel(false),hasOrderParameters(false),hasTilings(false),tilings(),slots(&communicator)
+    :communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),hasOutputWriterStarted(false),outputWriterProcess(-1),outputWriterThread(-1),solverClassName(""),useCPUAffinity(false),input(NULL),hasReactionModel(false),hasDiffusionModel(false),hasOrderParameters(false),hasTilings(false),tilings(),trajectories(NULL),slots(&communicator),haveAllWorkUnitRunnersStarted(false),workUnitCount(0)
 {
 }
 
@@ -146,7 +149,7 @@ void SimulationSupervisor::init()
     }
 
 //    // initialize input struct (used for setting up trajectories)
-    input = new lm::input::Input(hasDiffusionModel,hasOrderParameters,hasReactionModel,hasTilings,diffusionModelBuf,ops,reactionModelBuf,simulationParametersMap,tilings);
+    input = new lm::input::Input(hasDiffusionModel,hasOrderParameters,hasReactionModel,hasTilings,diffusionModelBuf,orderParametersBuf,ops,reactionModelBuf,simulationParametersBuf,simulationParametersMap,tilingsBuf,tilings);
 
     // close the file
     delete file;
@@ -286,7 +289,7 @@ int SimulationSupervisor::run()
             }
             else if (message.has_started_work_unit_runner())
 			{
-            	markWorkUnitRunnerStarted(message.started_work_unit_runner());
+                receivedStartedWorkUnitRunner(message.started_work_unit_runner());
 			}
             else if (message.has_started_work_unit())
             {
@@ -298,7 +301,7 @@ int SimulationSupervisor::run()
             }
             else if (message.has_started_output_writer())
             {
-                outputWriterStarted(message.started_output_writer());
+                receivedStartedOutputWriter(message.started_output_writer());
             }
             else if (message.has_ping_target())
             {
@@ -346,51 +349,81 @@ void SimulationSupervisor::resourceAvailable(const lm::message::ResourcesAvailab
     }
 }
 
-void SimulationSupervisor::markWorkUnitRunnerStarted(const lm::message::StartedWorkUnitRunner & msg)
-{
-	if (slots.markWorkUnitRunnerStarted(msg))
-	{
-		allWorkUnitRunnersStarted();
-	}
-}
-
 void SimulationSupervisor::allResourcesRegistered()
 {
     // Start the work unit runners.
-    Print::printf(Print::INFO, "All resources registered with supervisor, starting work unit runners.");
+    Print::printf(Print::INFO, "All resources registered with supervisor, starting workers.");
 
-    // Set up the template messages (which contain default values) for slots and trajectories
-    lm::message::StartWorkUnitRunner * startSlotMsg = slots.addStartSlotMsg();  //TODO: refactor into a Slots method
-    //	s->set_use_cpu_affinity(useCPUAffinity);
-    //	s->add_cpu(resources.cpuCores[i]);
-    //	if (resources.gpusDevices.size() > 0)
-    //		s->add_gpu(resources.gpusDevices[0]);
-    startSlotMsg->set_solver(solverClassName);
-	*startSlotMsg->mutable_simulation_parameters() = simulationParametersBuf;
-	if (hasReactionModel) *startSlotMsg->mutable_reaction_model() = reactionModelBuf;
-	if (hasDiffusionModel) *startSlotMsg->mutable_diffusion_model() = diffusionModelBuf;
-	if (hasOrderParameters) *startSlotMsg->mutable_order_parameters() = orderParametersBuf;
-	if (hasTilings) *startSlotMsg->mutable_tilings() = tilingsBuf;
-
-	map<int,ResourceMap::ComputeResources> allResources = resourceMap->getAvailableResources();
-    slots.addSlots(allResources);
+    startOutputWriter();
+    startWorkUnitRunners();
 }
 
-void SimulationSupervisor::allWorkUnitRunnersStarted()
+void SimulationSupervisor::startOutputWriter()
 {
-    Print::printf(Print::INFO, "All work unit runners started, beginning simulation.");
-    startSimulation();
+    // Reserve a core for the output writer.
+    ComputeResources resources = resourceMap->reserveCPUCores(communicator.getSourceProcess(),1);
+    Print::printf(Print::INFO, "Reserved core %d on %d:%d for the output writer.", resources.cpuCores[0], resources.controller_process, resources.controller_thread);
+
+    // Start the output writer.
+    lm::message::Message msg;
+    msg.mutable_start_output_writer()->set_use_cpu_affinity(useCPUAffinity);
+    msg.mutable_start_output_writer()->set_cpu(resources.cpuCores[0]);
+    msg.mutable_start_output_writer()->set_output_filename(simulationOutputFilename);
+    msg.mutable_start_output_writer()->set_output_writer_class(outputWriterClassName);
+    communicator.sendMessage(resources.controller_process, resources.controller_thread, &msg);
+}
+
+void SimulationSupervisor::receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg)
+{
+    Print::printf(Print::INFO, "Output writer started: %d:%d.",msg.process(),msg.thread());
+    hasOutputWriterStarted = true;
+    outputWriterProcess = msg.process();
+    outputWriterThread = msg.thread();
+    startSimulationIfAllWorkersStarted();
+}
+
+void SimulationSupervisor::startWorkUnitRunners()
+{
+    map<int,ComputeResources> allResources = resourceMap->getAvailableResources();
+    slots.createAllSlots(allResources, cpuCoresPerRunner, gpuDevicesPerRunner, useCPUAffinity, solverClassName, input);
+}
+
+void SimulationSupervisor::receivedStartedWorkUnitRunner(const lm::message::StartedWorkUnitRunner & msg)
+{
+    Print::printf(Print::INFO, "Work unit runner started: %d:%d.",msg.process(),msg.thread());
+
+    slots.markSlotStarted(msg);
+    if (!slots.hasUnstartedSlots())
+    {
+        haveAllWorkUnitRunnersStarted = true;
+        startSimulationIfAllWorkersStarted();
+    }
+}
+
+void SimulationSupervisor::startSimulationIfAllWorkersStarted()
+{
+    if (haveAllWorkUnitRunnersStarted && hasOutputWriterStarted)
+    {
+        Print::printf(Print::INFO, "All supervisor workers have started, beginning simulation.");
+        startSimulation();
+    }
 }
 
 void SimulationSupervisor::startSimulation()
 {
-    assignWork();
+    if (assignWork())
+    {
+        // If assign work returned true, there was nothing to be done.
+        running = false;
+        Print::printf(Print::INFO, "Simulation finished, no work to be performed.");
+        finishSimulation();
+    }
 }
 
 void SimulationSupervisor::finishSimulation()
 {
-    map<int,ResourceMap::ComputeResources> resources = resourceMap->getAvailableResources();
-    for (map<int,ResourceMap::ComputeResources>::iterator it=resources.begin(); it != resources.end(); it++)
+    map<int,ComputeResources> resources = resourceMap->getAvailableResources();
+    for (map<int,ComputeResources>::iterator it=resources.begin(); it != resources.end(); it++)
     {
         // Send a message for the resource controller to stop.
         lm::message::Message msg;
@@ -403,33 +436,48 @@ void SimulationSupervisor::finishSimulation()
 bool SimulationSupervisor::assignWork()
 {
 	// Go though the available slots and fill them with work units.
-	while (true)
+    while (true)
 	{
-		// Allocate the next free slot, if there is one.
-		lm::slot::Slot * workSlot = slots.alloc();
-		if (workSlot==NULL) return false;	// Except for once (at the program's end), assignWork should return from here
+        printf("1\n");
+        // Allocate the next free slot, if there is one. Except for once (at the program's end), assignWork should return from here.
+        if (!slots.hasFreeSlots()) return false;
+
+        printf("2\n");
 
 		// Get the next trajectory to run, if there is one.
 		lm::message::Message * nextWorkUnitMsg = trajectories->getNextWorkUnitMsg();
-		if (nextWorkUnitMsg==NULL)
+        if (nextWorkUnitMsg != NULL)
+        {
+            printf("3\n");
+
+            // Set the source process/thread
+            nextWorkUnitMsg->mutable_run_work_unit()->set_supervisor_process(communicator.getSourceProcess());
+            nextWorkUnitMsg->mutable_run_work_unit()->set_supervisor_thread(communicator.getSourceThread());
+
+            // Set the writer process/thread
+            nextWorkUnitMsg->mutable_run_work_unit()->set_output_process(outputWriterProcess);
+            nextWorkUnitMsg->mutable_run_work_unit()->set_output_thread(outputWriterThread);
+
+            // Run the work unit.
+            slots.runWorkUnit(nextWorkUnitMsg);
+
+            printf("4\n");
+            return false;
+        }
+        else
 		{
+            printf("2.5\n");
 			if (trajectories->isFinished())
 			{
-				return true;	// When there's no more trajectories to run and it's time for the program to shut down, assignWork should return from here
+                printf("2.6\n");
+                return true;	// When there's no more trajectories to run and it's time for the program to shut down, assignWork should return from here
 			}
 			else
 			{
-				return false;	// Some trajectories are still running, there may still be more work units to come
+                printf("2.7\n");
+                return false;	// Some trajectories are still running, there may still be more work units to come
 			}
 		}
-		// Set the source process/thread
-        nextWorkUnitMsg->mutable_run_work_unit()->set_supervisor_process(communicator.getSourceProcess());
-        nextWorkUnitMsg->mutable_run_work_unit()->set_supervisor_thread(communicator.getSourceThread());
-        // Set the writer process/thread
-        nextWorkUnitMsg->mutable_run_work_unit()->set_output_process(0); // TODO: not have output process/thread be hardcoded
-        nextWorkUnitMsg->mutable_run_work_unit()->set_output_thread(3);
-		// If we got this far, put the next free slot together with the next trajectory
-		workSlot->workUnitRemoteStart(nextWorkUnitMsg, workUnitCount++);
 	}
 }
 
@@ -442,7 +490,7 @@ void SimulationSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit&
 {
     Print::printf(Print::DEBUG, "Work unit %d finished in %0.3f s.",msg.work_unit_id(),msg.run_time());
     // If the trajectory associated with the finished work unit exists...
-    if (trajectories->exists(msg.final_state().trajectory_id()))
+    /*if (trajectories->exists(msg.final_state().trajectory_id()))
     {
 		// ...update the trajectory based on the results of the work unit
 		trajectories->workUnitFinished(msg);
@@ -462,7 +510,7 @@ void SimulationSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit&
     		Print::printf(Print::INFO, "finish simulation hit");
 			finishSimulation();
     	}
-    }
+    }*/
 }
 
 }

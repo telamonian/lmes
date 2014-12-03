@@ -75,6 +75,7 @@ namespace main {
 WorkUnitRunner::WorkUnitRunner(const lm::message::StartWorkUnitRunner& msg)
     :communicator(lm::MPI::worldRank,threadNumber),properties(msg),solver(NULL)
 {
+    id = msg.work_unit_runner_id();
 }
 
 WorkUnitRunner::~WorkUnitRunner()
@@ -169,7 +170,7 @@ int WorkUnitRunner::run()
         // Tell the supervisor the runner was started.
         lm::message::Message msgp;
         lm::message::StartedWorkUnitRunner* msg = msgp.mutable_started_work_unit_runner();
-        msg->set_uuid(properties.uuid());
+        msg->set_work_unit_runner_id(id);
         msg->set_process(lm::MPI::worldRank);
         msg->set_thread(getThreadNumber());
         msg->set_simultaneous_work_units(solver->getSimultaneousTrajectories());

@@ -98,14 +98,16 @@ protected:
     virtual bool assignWork();
     virtual void workUnitStarted(const lm::message::StartedWorkUnit& msg);
     virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg);
-    virtual void outputWriterStarted(const lm::message::StartedOutputWriter& msg)=0;
     virtual void finishSimulation();
 
     virtual int run();
     virtual void resourceAvailable(const lm::message::ResourcesAvailable& msg);
-    virtual void markWorkUnitRunnerStarted(const lm::message::StartedWorkUnitRunner & msg);
     virtual void allResourcesRegistered();
-    virtual void allWorkUnitRunnersStarted();
+    virtual void startOutputWriter();
+    virtual void receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg);
+    virtual void startWorkUnitRunners();
+    virtual void receivedStartedWorkUnitRunner(const lm::message::StartedWorkUnitRunner & msg);
+    virtual void startSimulationIfAllWorkersStarted();
 
 protected:
     lm::message::Communicator communicator;
@@ -113,6 +115,9 @@ protected:
     std::string simulationInputFilename;
     std::string simulationOutputFilename;
     std::string outputWriterClassName;
+    bool hasOutputWriterStarted;
+    int outputWriterProcess;
+    int outputWriterThread;
     std::string solverClassName;
     bool useCPUAffinity;
     lm::input::Input* input;
@@ -130,6 +135,7 @@ protected:
     lm::tiling::Tilings tilings;
     lm::trajectory::TrajectoryList* trajectories;
     lm::slot::SlotList slots;
+    bool haveAllWorkUnitRunnersStarted;
     long long workUnitCount;
 
 private:

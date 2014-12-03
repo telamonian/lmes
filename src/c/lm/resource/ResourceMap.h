@@ -45,6 +45,7 @@
 #include <vector>
 
 #include "lm/message/ResourcesAvailable.pb.h"
+#include "lm/resource/ComputeResources.h"
 
 using std::list;
 using std::map;
@@ -56,18 +57,6 @@ namespace resource {
 
 class ResourceMap
 {
-public:
-    class ComputeResources
-    {
-    public:
-        ComputeResources():hostname(""),controller_process(-1),controller_thread(-1) {}
-    	string hostname;
-        int controller_process;
-        int controller_thread;
-        vector<int> cpuCores;
-        vector<int> gpuDevices;
-    };
-
 public:
     ResourceMap(list<string>hostnames, int defaultCPUCores, int defaultGPUDevices, string resourceFilename);
     virtual ~ResourceMap();

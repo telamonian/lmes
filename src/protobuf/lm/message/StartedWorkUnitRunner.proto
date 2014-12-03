@@ -40,7 +40,7 @@
 package lm.message;
 
 message StartedWorkUnitRunner {
-	required uint32 uuid					= 1;
+	required int32 work_unit_runner_id      = 1;
     required int32 process                  = 2;
     required int32 thread                   = 3;
     required int32 simultaneous_work_units  = 4;

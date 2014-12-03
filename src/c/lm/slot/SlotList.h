@@ -1,76 +1,66 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2011 Luthey-Schulten Group,
- * Copyright 2012 Roberts Group,
+ * Copyright 2012-2014 Roberts Group,
  * All rights reserved.
- * 
- * Developed by: Luthey-Schulten Group
- * 			     University of Illinois at Urbana-Champaign
- * 			     http://www.scs.uiuc.edu/~schulten
- * 
+ *
  * Developed by: Roberts Group
  * 			     Johns Hopkins University
  * 			     http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the Software), to deal with 
- * the Software without restriction, including without limitation the rights to 
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
- * of the Software, and to permit persons to whom the Software is furnished to 
+ * this software and associated documentation files (the Software), to deal with
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to
  * do so, subject to the following conditions:
- * 
- * - Redistributions of source code must retain the above copyright notice, 
+ *
+ * - Redistributions of source code must retain the above copyright notice,
  * this list of conditions and the following disclaimers.
- * 
- * - Redistributions in binary form must reproduce the above copyright notice, 
- * this list of conditions and the following disclaimers in the documentation 
+ *
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimers in the documentation
  * and/or other materials provided with the distribution.
- * 
- * - Neither the names of the Luthey-Schulten Group, University of Illinois at
- * Urbana-Champaign, the Roberts Group, Johns Hopkins University, nor the names
- * of its contributors may be used to endorse or promote products derived from
- * this Software without specific prior written permission.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL 
- * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR 
- * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+ *
+ * - Neither the names of the Roberts Group, Johns Hopkins University,
+ * nor the names of its contributors may be used to endorse or
+ * promote products derived from this Software without specific prior written
+ * permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
- * 			  Max Klein
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #ifndef LM_RESOURCE_SLOTALLOCATOR_H_
 #define LM_RESOURCE_SLOTALLOCATOR_H_
 
-#include <deque>
 #include <map>
 #include <string>
 #include <vector>
+#include "lm/Types.h"
+#include "lm/input/Input.h"
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SimulationParameters.pb.h"
 #include "lm/message/Communicator.h"
 #include "lm/message/Message.pb.h"
-#include "lm/resource/ResourceMap.h"
-#include "lm/slot/Slot.h"
+#include "lm/resource/ComputeResources.h"
 #include "lm/rng/XORShift.h"
+#include "lm/slot/Slot.h"
 #include "lm/thread/Thread.h"
-#include "lm/Types.h"
 
-using lm::resource::ResourceMap;
+using lm::resource::ComputeResources;
 using lm::slot::Slot;
 using lm::thread::PthreadException;
-using std::deque;
 using std::map;
 using std::string;
 using std::vector;
-
-typedef map<vector<int>, Slot *> SlotMap;
-typedef deque<Slot *> SlotDeque;
 
 namespace lm {
 namespace slot {
@@ -85,44 +75,43 @@ namespace slot {
 class SlotList
 {
 public:
-    SlotList(lm::message::Communicator * supervisorComm);
+    SlotList(lm::message::Communicator * communicator);
     ~SlotList();
 
     //create slot methods
-    void addSlots(map<int,ResourceMap::ComputeResources> & allResources);
-    void addSlots(ResourceMap::ComputeResources & resources, float cpusPerSlot=1.0, float gpusPerSlot=1.0);
-    void addSlot(int controller_process, int controller_thread);
+    void createAllSlots(map<int,ComputeResources> & allResources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, lm::input::Input* input);
+    int createProcessSlots(int startingSlotId, int process, ComputeResources resources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, lm::input::Input* input);
+    void createSlot(int slotId, ComputeResources resources, bool useCPUAffinity, lm::message::Message* msg, string solver, lm::input::Input* input);
 
-    //delete slot methods
-    void delSlot(int process, int thread);
+    void markSlotStarted(const lm::message::StartedWorkUnitRunner & msg);
+    bool hasUnstartedSlots();
+    bool hasFreeSlots();
+    void runWorkUnit(lm::message::Message* runWorkUnitMsg);
+
+    int getNumberSlots() {return slots.size();}
 
     //getter methods
-    Slot * getSlot(int process, int thread);
+    /*Slot * getSlot(int process, int thread);
     Slot * getSlotByUUID(uint32_t uuid);
-    int getSlotsSize() {return getBusySlotsSize() + getFreeSlotsSize();}
     int getBusySlotsSize() {return busySlots.size();}
     int getFreeSlotsSize() {return freeSlots.size();}
 
     //allocate and free methods
-    Slot * alloc();
     void workUnitFinished(const lm::message::FinishedWorkUnit& msg) {free(msg.process(), msg.thread());}
     void free(int process, int thread);
 
     //dealing with the internal Message methods
     lm::message::StartWorkUnitRunner * addStartSlotMsg() {return slotTemplateMsg.add_start_work_unit_runner();}
-    bool markWorkUnitRunnerStarted(const lm::message::StartedWorkUnitRunner & msg);
+    */
 
 private:
-    SlotMap::iterator getBusySlotIt(int process, int thread);
-    SlotDeque::iterator getFreeSlotIt(int process, int thread);
-    SlotMap::iterator getBusySlotItByUUID(uint32_t uuid);
-    SlotDeque::iterator getFreeSlotItByUUID(uint32_t uuid);
-
-	lm::message::Communicator * supervisorComm;
-	lm::message::Message slotTemplateMsg;
-    SlotMap busySlots;
-    SlotDeque freeSlots;
-    lm::rng::XORShift xorShift;
+    vector<Slot> slots;
+    map<uint64_t,int> workUnitToSlotMap;
+    lm::message::Communicator* communicator;
+    /*lm::message::Message slotTemplateMsg;
+    map<vector<int>, Slot *> busySlots;
+    deque<Slot *> freeSlots;
+    lm::rng::XORShift xorShift;*/
 };
 
 }

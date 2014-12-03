@@ -37,44 +37,22 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-#ifndef COMMUNICATOR_H
-#define COMMUNICATOR_H
-
-#include <string>
-#include <google/protobuf/message.h>
-
-#include "lm/MPI.h"
-#include "lm/message/Endpoint.h"
-#include "lm/message/Message.pb.h"
+#ifndef ENDPOINT_H
+#define ENDPOINT_H
 
 namespace lm {
 namespace message {
 
-class Communicator
+class Endpoint
 {
 public:
-    Communicator(Endpoint source);
-    Communicator(int process, int thread);
-    virtual ~Communicator();
-
-    int getSourceProcess() {return source.process;}
-    int getSourceThread() {return source.thread;}
-
-    void sendMessage(int destProcess, int destThread, lm::message::Message* msg);
-    void sendMessage(Endpoint dest, lm::message::Message* msg);
-    void receiveMessage(lm::message::Message* msg);
-
-    std::string getHostname();
-
-private:
-    Endpoint source;
-    int inputBufferSize;
-    char* inputBuffer;
-    int outputBufferSize;
-    char* outputBuffer;
-    MPI_Status messageStatus;
+    Endpoint():process(-1),thread(-1) {}
+    Endpoint(int process, int thread):process(process),thread(thread) {}
+    virtual ~Endpoint() {}
+    int process;
+    int thread;
 };
 
 }
 }
-#endif // COMMUNICATOR_H
+#endif

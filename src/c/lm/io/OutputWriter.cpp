@@ -114,13 +114,12 @@ int OutputWriter::run()
         if (cpuNumber >= 0) helperThread.setAffinity(cpuNumber);
         helperThread.start();
 
-        // TODO comment back in once slot is fixed.
         // Register our info with the supervisor.
-//        lm::message::Message msgp;
-//        lm::message::StartedOutputWriter* msg = msgp.mutable_started_output_writer();
-//        msg->set_process(communicator.getSourceProcess());
-//        msg->set_thread(communicator.getSourceThread());
-//        communicator.sendMessage(lm::MPI::MASTER, lm::main::SimulationSupervisor::THREAD_ID, &msgp);
+        lm::message::Message msgp;
+        lm::message::StartedOutputWriter* msg = msgp.mutable_started_output_writer();
+        msg->set_process(communicator.getSourceProcess());
+        msg->set_thread(communicator.getSourceThread());
+        communicator.sendMessage(lm::MPI::MASTER, lm::main::SimulationSupervisor::THREAD_ID, &msgp);
 
         // Loop reading messages.
         while (true)

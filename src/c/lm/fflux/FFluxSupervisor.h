@@ -67,13 +67,9 @@ public:
 //    virtual void init();
 
 protected:
-    virtual void allResourcesRegistered();
     virtual void startSimulation();
-    virtual void outputWriterStarted(const lm::message::StartedOutputWriter& msg);
 
 protected:
-    int outputWriterProcess;
-    int outputWriterThread;
     lm::io::FFluxOutput ffluxOutput;
 };
 

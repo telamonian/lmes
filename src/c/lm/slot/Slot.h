@@ -39,10 +39,9 @@
 #ifndef SLOT_H_
 #define SLOT_H_
 
-#include <string>
-#include <vector>
-#include "lm/message/Communicator.h"
 #include "lm/Types.h"
+#include "lm/message/Endpoint.h"
+#include "lm/resource/ComputeResources.h"
 
 using std::string;
 using std::vector;
@@ -61,37 +60,17 @@ namespace slot {
 class Slot
 {
 public:
-	enum slotStatus {FREE, BUSY, DEAD};
+    enum Status {NOT_STARTED, FREE, BUSY, DEAD};
 
-	Slot(int controller_process, int controller_thread, uint32_t uuid, lm::message::Communicator * supervisorComm, lm::message::Message & msg);
+public:
+    Slot(int id, lm::resource::ComputeResources resources);
 	~Slot();
 
-	vector<int> alloc();
-	void free();
-
-	void workUnitRunnerRemoteStart(int controller_process, int controller_thread, lm::message::Message & msg);
-	void markWorkUnitRunnerRemoteStarted(const lm::message::StartedWorkUnitRunner & msg);
-	void workUnitRemoteStart(lm::message::Message * msg, long long workUnitID);
-	void stop();
-	void stopRemote();
-	void stoppedRemote();
-
-	void setStatus(slotStatus newStatus) {status = newStatus;}
-	slotStatus getStatus() {return status;}
-	vector<int> getSlotKey() {int keys[] = {process, thread}; vector<int> slotKey(keys, keys+2); return slotKey;}
-	uint32_t getUUID() {return uuid;}
-
-	int process;
-	int thread;
-	int controller_process;	// in theory this should always be the same as process
-	int controller_thread;
-	int output_process;
-	int output_thread;
-
-protected:
-	lm::message::Communicator * supervisorComm;
-	uint32_t uuid;
-	slotStatus status;
+public:
+    int id;
+    Status status;
+    lm::resource::ComputeResources resources;
+    lm::message::Endpoint workUnitRunnerEndpoint;
 };
 
 }
