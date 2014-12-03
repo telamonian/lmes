@@ -139,7 +139,7 @@ void ReplicateSupervisor::startSimulation()
 //	runWorkUnitMsg->set_allocated_limits(trajectoryLimits);
 //
 //	// Now that the template msg has been set properly, initialize the trajectory list
-//	trajectories->init();
+	trajectories->init();
 
     // Call the base class method
     SimulationSupervisor::startSimulation();
@@ -147,7 +147,10 @@ void ReplicateSupervisor::startSimulation()
 
 void ReplicateSupervisor::workUnitStarted(const lm::message::StartedWorkUnit& msg)
 {
-    Print::printf(Print::INFO, "Work unit %d started.",msg.work_unit_id());
+    if (msg.work_unit_id() % 10000==0)
+    {
+        Print::printf(Print::INFO, "Work unit %d started.",msg.work_unit_id());
+    }
 }
 
 //void ReplicateSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit& msg)

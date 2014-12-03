@@ -14,7 +14,10 @@ Tiling = namedtuple('Tiling', ['ID','orderParameterID','Type','edges'])
 class FFluxParameters(object):
     def __init__(self, fname):
         self.f = h5py.File('.'.join((fname,'lm')), 'a')
-        
+    
+    def Close(self):
+        self.f.close()
+    
     def AddTiling(self, tiling):
         '''
         initializes a tiling and then sets it. this method is prefixed with Add instead of Set since it sets the id of the new tiling based on the length of the existing tiling group
@@ -106,16 +109,15 @@ class FFluxParameters(object):
             self.SetSimulationParameter(simParam)
     
 if __name__=="__main__":
-    
     iSCs = InitialSpeciesCounts(speciesCounts=[4,16,1,0,0,0,0])
     iSCBs = InitialSpeciesCountsBackward(speciesCounts=[0,0,0,4,16,1,0])
     op = OrderParameter(type=0,
                         id=0,
                         speciesIDs=[0,1,2,3,4,5],
                         speciesCoefficients=[-1,-2,-2,1,2,2])
-    simParams = [SimulationParameter(key='crossingsPerPhase',val='10000'),
-                 SimulationParameter(key='maxPhaseZeroTime',val='1000000'),
-                 SimulationParameter(key='maxSteps',val='100000000'),
+    simParams = [SimulationParameter(key='crossingsPerPhase',val='100'),
+                 SimulationParameter(key='maxPhaseZeroTime',val='10000'),
+                 SimulationParameter(key='maxSteps',val='100000'),
                  SimulationParameter(key='maxTime',val='Inf'),
                  SimulationParameter(key='maxWorkUnitSteps',val='10000'),
                  SimulationParameter(key='writeInterval',val='1e8')]

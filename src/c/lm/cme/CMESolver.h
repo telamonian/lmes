@@ -272,6 +272,7 @@ public:
     virtual void getState(lm::io::TrajectoryState* state);
     virtual void setState(const lm::io::TrajectoryState& state);
     virtual void setLimits(const lm::io::TrajectoryLimits& limits);
+    virtual lm::io::TrajectoryLimits::LimitType getFinalLimitType();
 
 protected:
     virtual void setSpeciesUpperLimit(int species, int limit);
@@ -336,13 +337,6 @@ protected:
             }
         }
     }
-
-    //// TEMP : remove
-    inline double calcTestCaseOParam(uint* specCnts)
-    {
-    	return (double)(specCnts[3] + 2*specCnts[4] + 2*specCnts[5]) - (double)(specCnts[0] + 2*specCnts[1] + 2*specCnts[2]);//(double)(specCnts[0] + 2*specCnts[1] + 2*specCnts[2]) - (double)(specCnts[3] + 2*specCnts[4] + *specCnts[5]);
-    }
-    //// TEMP
 
     inline bool reachedSpeciesLimit()
     {
@@ -454,10 +448,6 @@ protected:
     uint numberSpeciesLimits;
     SpeciesLimit* speciesLimits;
 
-    // Storage for order parameters
-//    double oParam;
-//    double prevOParam;
-
     list<TrackedParameter> trackedParameters;
 
     // The current state.
@@ -472,7 +462,7 @@ protected:
     uint numberTilingHists;
     TilingHist* tilingHists;
 
-public:
+    // the type limit that stopped the trajectory. only has meaning after the trajectory's last step
     lm::io::TrajectoryLimits::LimitType finalLimitType;
 };
 
