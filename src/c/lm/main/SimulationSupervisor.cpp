@@ -438,18 +438,13 @@ bool SimulationSupervisor::assignWork()
 	// Go though the available slots and fill them with work units.
     while (true)
 	{
-        printf("1\n");
         // Allocate the next free slot, if there is one. Except for once (at the program's end), assignWork should return from here.
         if (!slots.hasFreeSlots()) return false;
-
-        printf("2\n");
 
 		// Get the next trajectory to run, if there is one.
 		lm::message::Message * nextWorkUnitMsg = trajectories->getNextWorkUnitMsg();
         if (nextWorkUnitMsg != NULL)
         {
-            printf("3\n");
-
             // Set the source process/thread
             nextWorkUnitMsg->mutable_run_work_unit()->set_supervisor_process(communicator.getSourceProcess());
             nextWorkUnitMsg->mutable_run_work_unit()->set_supervisor_thread(communicator.getSourceThread());
@@ -460,20 +455,15 @@ bool SimulationSupervisor::assignWork()
 
             // Run the work unit.
             slots.runWorkUnit(nextWorkUnitMsg);
-
-            printf("4\n");
         }
         else
 		{
-            printf("2.5\n");
 			if (trajectories->isFinished())
 			{
-                printf("2.6\n");
                 return true;	// When there's no more trajectories to run and it's time for the program to shut down, assignWork should return from here
 			}
 			else
 			{
-                printf("2.7\n");
                 return false;	// Some trajectories are still running, there may still be more work units to come
 			}
 		}
