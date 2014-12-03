@@ -4,8 +4,8 @@
  * All rights reserved.
  *
  * Developed by: Roberts Group
- *               Johns Hopkins University
- *               http://biophysics.jhu.edu/roberts/
+ * 			     Johns Hopkins University
+ * 			     http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -36,6 +36,7 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+
 #ifndef SLOT_H_
 #define SLOT_H_
 
@@ -49,14 +50,6 @@ using std::vector;
 namespace lm {
 namespace slot {
 
-/*
- * The Slot class is the glue between a Trajectory object on the master node and a set of computational resources on a slave node
- * There are four methods that a Slot on the master uses to communicate with the resource set on the slave
- * alloc - takes the data required to run a work unit from a Trajectory object, packages it into a RunWorkUnit message, and send it the appropriate WorkUnitRunner
- * free - takes the state and status information from a FinishedWorkUnit message and passes it on to the appropriate Trajectory
- * startRunner - tells the slave to start a WorkUnitRunner object
- * stopRunner - tells the slave to stop the appropriate WorkUnitRunner object
- */
 class Slot
 {
 public:

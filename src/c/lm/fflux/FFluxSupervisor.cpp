@@ -80,14 +80,7 @@ FFluxSupervisor::FFluxSupervisor()
 
 FFluxSupervisor::~FFluxSupervisor()
 {
-    if (trajectories != NULL) delete trajectories; trajectories = NULL;
 }
-
-//void FFluxSupervisor::init()
-//{
-//    // Call the base class init method
-//    SimulationSupervisor::init();
-//}
 
 void FFluxSupervisor::startSimulation()
 {

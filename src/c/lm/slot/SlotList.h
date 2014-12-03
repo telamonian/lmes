@@ -65,13 +65,6 @@ using std::vector;
 namespace lm {
 namespace slot {
 
-/*
- * follows similar reasoning to the Resource Manager design pattern (http://www.eventhelix.com/realtimemantra/PatternCatalog/resource_manager_pattern.htm) with fewer typos
- * slots are allocated using new, and their deallocation is the responsibility of SlotList's destructor
- * pointers to the free slots are kept in a member deque named freeSlots
- * pointers to the busy slots are kept in a member map named slots
- * creation, deletion, and getter methods are implemented such that no objects external to a SlotList need to care about SlotList's internal structure (maps, deques, etc.)
- */
 class SlotList
 {
 public:
@@ -83,35 +76,19 @@ public:
     int createProcessSlots(int startingSlotId, int process, ComputeResources resources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, lm::input::Input* input);
     void createSlot(int slotId, ComputeResources resources, bool useCPUAffinity, lm::message::Message* msg, string solver, lm::input::Input* input);
 
+    int getNumberSlots() {return slots.size();}
     void markSlotStarted(const lm::message::StartedWorkUnitRunner & msg);
     bool hasUnstartedSlots();
     bool hasFreeSlots();
     void runWorkUnit(lm::message::Message* runWorkUnitMsg);
+    void workUnitFinished(const lm::message::FinishedWorkUnit& msg);
 
-    int getNumberSlots() {return slots.size();}
 
-    //getter methods
-    /*Slot * getSlot(int process, int thread);
-    Slot * getSlotByUUID(uint32_t uuid);
-    int getBusySlotsSize() {return busySlots.size();}
-    int getFreeSlotsSize() {return freeSlots.size();}
-
-    //allocate and free methods
-    void workUnitFinished(const lm::message::FinishedWorkUnit& msg) {free(msg.process(), msg.thread());}
-    void free(int process, int thread);
-
-    //dealing with the internal Message methods
-    lm::message::StartWorkUnitRunner * addStartSlotMsg() {return slotTemplateMsg.add_start_work_unit_runner();}
-    */
 
 private:
     vector<Slot> slots;
-    map<uint64_t,int> workUnitToSlotMap;
+    map<int64_t,int> workUnitToSlotMap;
     lm::message::Communicator* communicator;
-    /*lm::message::Message slotTemplateMsg;
-    map<vector<int>, Slot *> busySlots;
-    deque<Slot *> freeSlots;
-    lm::rng::XORShift xorShift;*/
 };
 
 }

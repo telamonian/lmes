@@ -287,21 +287,21 @@ int SimulationSupervisor::run()
             {
                 resourceAvailable(message.resources_available());
             }
+            else if (message.has_started_output_writer())
+            {
+                receivedStartedOutputWriter(message.started_output_writer());
+            }
             else if (message.has_started_work_unit_runner())
 			{
                 receivedStartedWorkUnitRunner(message.started_work_unit_runner());
 			}
             else if (message.has_started_work_unit())
             {
-                workUnitStarted(message.started_work_unit());
+                receivedStartedWorkUnit(message.started_work_unit());
             }
             else if (message.has_finished_work_unit())
             {
-                workUnitFinished(message.finished_work_unit());
-            }
-            else if (message.has_started_output_writer())
-            {
-                receivedStartedOutputWriter(message.started_output_writer());
+                receivedFinishedWorkUnit(message.finished_work_unit());
             }
             else if (message.has_ping_target())
             {
@@ -462,7 +462,6 @@ bool SimulationSupervisor::assignWork()
             slots.runWorkUnit(nextWorkUnitMsg);
 
             printf("4\n");
-            return false;
         }
         else
 		{
@@ -481,16 +480,17 @@ bool SimulationSupervisor::assignWork()
 	}
 }
 
-void SimulationSupervisor::workUnitStarted(const lm::message::StartedWorkUnit& msg)
+void SimulationSupervisor::receivedStartedWorkUnit(const lm::message::StartedWorkUnit& msg)
 {
     Print::printf(Print::DEBUG, "Work unit %d started.",msg.work_unit_id());
 }
 
-void SimulationSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
+void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg)
 {
     Print::printf(Print::DEBUG, "Work unit %d finished in %0.3f s.",msg.work_unit_id(),msg.run_time());
+
     // If the trajectory associated with the finished work unit exists...
-    /*if (trajectories->exists(msg.final_state().trajectory_id()))
+    if (trajectories->exists(msg.final_state().trajectory_id()))
     {
 		// ...update the trajectory based on the results of the work unit
 		trajectories->workUnitFinished(msg);
@@ -507,10 +507,10 @@ void SimulationSupervisor::workUnitFinished(const lm::message::FinishedWorkUnit&
     	if (running)
     	{
     		running = false;
-    		Print::printf(Print::INFO, "finish simulation hit");
+            Print::printf(Print::INFO, "Simulation finished.");
 			finishSimulation();
     	}
-    }*/
+    }
 }
 
 }

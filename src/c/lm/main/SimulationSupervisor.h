@@ -96,8 +96,6 @@ protected:
 //    virtual void initLimits();
     virtual void startSimulation();
     virtual bool assignWork();
-    virtual void workUnitStarted(const lm::message::StartedWorkUnit& msg);
-    virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg);
     virtual void finishSimulation();
 
     virtual int run();
@@ -108,6 +106,8 @@ protected:
     virtual void startWorkUnitRunners();
     virtual void receivedStartedWorkUnitRunner(const lm::message::StartedWorkUnitRunner & msg);
     virtual void startSimulationIfAllWorkersStarted();
+    virtual void receivedStartedWorkUnit(const lm::message::StartedWorkUnit& msg);
+    virtual void receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg);
 
 protected:
     lm::message::Communicator communicator;

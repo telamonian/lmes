@@ -183,6 +183,8 @@ void SlotList::markSlotStarted(const lm::message::StartedWorkUnitRunner & msg)
     if (msg.work_unit_runner_id() < 0 || msg.work_unit_runner_id() >= (int)slots.size()) throw Exception("Invalid work unit runner id received in started work unit runner message",msg.work_unit_runner_id());
     if (slots[msg.work_unit_runner_id()].status != Slot::NOT_STARTED) throw Exception("Work unit runner was previosuly started",msg.work_unit_runner_id());
     slots[msg.work_unit_runner_id()].status = Slot::FREE;
+    slots[msg.work_unit_runner_id()].workUnitRunnerEndpoint.process = msg.process();
+    slots[msg.work_unit_runner_id()].workUnitRunnerEndpoint.thread = msg.thread();
 }
 
 bool SlotList::hasUnstartedSlots()
@@ -209,7 +211,7 @@ bool SlotList::hasFreeSlots()
 
 void SlotList::runWorkUnit(lm::message::Message* runWorkUnitMsg)
 {
-    uint64_t workUnitId = runWorkUnitMsg->run_work_unit().work_unit_id();
+    int64_t workUnitId = (int64_t)runWorkUnitMsg->run_work_unit().work_unit_id();
 
     // Make sure we are not processing this work unit.
     if (workUnitToSlotMap.count(workUnitId) > 0)
@@ -234,106 +236,28 @@ void SlotList::runWorkUnit(lm::message::Message* runWorkUnitMsg)
     throw Exception("Could not find a free slot to run the work unit",workUnitId);
 }
 
-/*
-Slot * SlotList::getSlot(int process, int thread)
+void SlotList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
 {
-    SlotMap::iterator m_it(getBusySlotIt(process, thread));
-    if (m_it!=busySlots.end()) {  //the slot we're trying to get is currently busy
-        return m_it->second;
-    }
-    else {
-        SlotDeque::iterator d_it(getFreeSlotIt(process, thread));
-        if (d_it!=freeSlots.end()) {    //the slot we're trying to get is currently free
-            return *d_it;
-        }
-        else {  //possible error state: the slot that we're trying to get doesn't exist
-            Print::printf(Print::ERROR, "Tried to get slot %d:%d, but was not found in either container of free or busy slots.", process, thread);
-        }
-    }
-    return NULL;
-}
+    int64_t workUnitId = msg.work_unit_id();
 
-Slot * SlotList::getSlotByUUID(uint32_t uuid)
-{
-	SlotMap::iterator m_it(getBusySlotItByUUID(uuid));
-	if (m_it!=busySlots.end()) {  //the slot we're trying to get is currently busy
-		return m_it->second;
-	}
-	else {
-		SlotDeque::iterator d_it(getFreeSlotItByUUID(uuid));
-		if (d_it!=freeSlots.end()) {    //the slot we're trying to get is currently free
-			return *d_it;
-		}
-		else {  //possible error state: the slot that we're trying to get doesn't exist
-			Print::printf(Print::ERROR, "Tried to get slot uuid: %d, but was not found in either container of free or busy slots.", uuid);
-		}
-	}
-	return NULL;
-}
+    // Make sure we were processing this work unit.
+    if (workUnitToSlotMap.count(workUnitId) == 0) throw new Exception("The completed work unit was not found",workUnitId);
 
+    // Get the slot that was running the work unit.
+    int slotId = workUnitToSlotMap[workUnitId];
 
-void SlotList::free(int process, int thread)
-{
-    SlotMap::iterator m_it(getBusySlotIt(process, thread));
-    if (m_it!=busySlots.end()) {
-        Slot * freedSlot(m_it->second);
-        busySlots.erase(m_it);
-        freeSlots.push_back(freedSlot);
-    }
-    else {  //it is an error state if this branch is reached
-        if (getFreeSlotIt(process, thread)!=freeSlots.end()) {
-            Print::printf(Print::ERROR, "Tried to double free slot %d:%d.", process, thread);
-        }
-        else {
-        Print::printf(Print::ERROR, "Tried to free non-existent slot %d:%d.", process, thread);
-        }
-    }
-}
+    // Make sure the slot process and thread match with that on the message.
+    if (slots[slotId].workUnitRunnerEndpoint.process != msg.process() || slots[slotId].workUnitRunnerEndpoint.thread != msg.thread()) throw Exception("Mismatch between slot endpoint and work unit runner endpoint");
 
-//for getBusySlotIt and getFreeSlotIt, it is the responsibility of the calling function to check whether the returned iterator is equal to container.end()
-SlotMap::iterator SlotList::getBusySlotIt(int process, int thread)
-{
-	int keys[] = {process, thread};
-    vector<int> slotKey(keys, keys+2);
-    return busySlots.find(slotKey);
-}
+    // Make sure the slot was correctly marked as busy.
+    if (slots[slotId].status != Slot::BUSY) throw Exception("Work unit runner was not marked as busy while running work unit",slotId,workUnitId);
 
-SlotDeque::iterator SlotList::getFreeSlotIt(int process, int thread)
-{
-	int keys[] = {process, thread};
-	vector<int> slotKey(keys, keys+2);
-    SlotDeque::iterator d_it=freeSlots.begin();
-    for (; d_it!=freeSlots.end(); ++d_it) {
-        if (slotKey==((*d_it)->getSlotKey())) {
-            return d_it;
-        }
-    }
-    return d_it;
-}
+    // Erase the work unit from our map.
+    workUnitToSlotMap.erase(workUnitId);
 
-//for getBusySlotItByUUID and getFreeSlotItByUUID, it is the responsibility of the calling function to check whether the returned iterator is equal to container.end()
-SlotMap::iterator SlotList::getBusySlotItByUUID(uint32_t uuid)
-{
-	SlotMap::iterator m_it=busySlots.begin();
-	for (; m_it!=busySlots.end(); ++m_it) {
-		if (uuid==(m_it->second->getUUID())) {
-			return m_it;
-		}
-	}
-	return m_it;
+    // Mark the slot as free.
+    slots[slotId].status = Slot::FREE;
 }
-
-SlotDeque::iterator SlotList::getFreeSlotItByUUID(uint32_t uuid)
-{
-    SlotDeque::iterator d_it=freeSlots.begin();
-    for (; d_it!=freeSlots.end(); ++d_it) {
-        if (uuid==((*d_it)->getUUID())) {
-            return d_it;
-        }
-    }
-    return d_it;
-}
-*/
 
 }
 }

@@ -75,7 +75,7 @@ namespace lm {
 namespace cme {
 
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
-:neededDists(neededDists),rng(NULL),oparams(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),trajectoryStarted(false),speciesCounts(NULL),time(0.0),timeStep(0.0)
+:neededDists(neededDists),rng(NULL),oparams(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),trajectoryStarted(false),speciesCounts(NULL),time(0.0),timeStep(0.0),finalLimitType(static_cast<lm::io::TrajectoryLimits::LimitType>(0))
 {
 }
 
@@ -1027,6 +1027,18 @@ void CMESolver::setSpeciesIncreasingLimit(lm::io::TrajectoryLimits::Arrangement 
 	speciesLimits[numberSpeciesLimits-1].type = (arr==lm::io::TrajectoryLimits::ASCENDING) ? SpeciesLimit::INCREASING_ASCENDING : SpeciesLimit::INCREASING_DESCENDING;
 	speciesLimits[numberSpeciesLimits-1].species = opID;
 	speciesLimits[numberSpeciesLimits-1].limit = limit;
+}
+
+lm::io::TrajectoryLimits::LimitType CMESolver::getFinalLimitType()
+{
+    if (finalLimitType!=0)
+    {
+        return finalLimitType;
+    }
+    else
+    {
+        return lm::io::TrajectoryLimits::MAXTIME;
+    }
 }
 
 void CMESolver::addToParameterTrackingList(pair<string,double*> parameter)

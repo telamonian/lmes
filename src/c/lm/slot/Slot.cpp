@@ -1,8 +1,40 @@
 /*
- * Slotl.cpp
+ * University of Illinois Open Source License
+ * Copyright 2012-2014 Roberts Group,
+ * All rights reserved.
  *
- *  Created on: Jan 26, 2014
- *      Author: tel
+ * Developed by: Roberts Group
+ * 			     Johns Hopkins University
+ * 			     http://biophysics.jhu.edu/roberts/
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the Software), to deal with
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to
+ * do so, subject to the following conditions:
+ *
+ * - Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimers.
+ *
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimers in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * - Neither the names of the Roberts Group, Johns Hopkins University,
+ * nor the names of its contributors may be used to endorse or
+ * promote products derived from this Software without specific prior written
+ * permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS WITH THE SOFTWARE.
+ *
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #include <string>
@@ -25,54 +57,6 @@ Slot::Slot(int32_t id, lm::resource::ComputeResources resources)
 Slot::~Slot()
 {
 }
-
-/*
-void Slot::markWorkUnitRunnerRemoteStarted(const lm::message::StartedWorkUnitRunner & msg)
-{
-	// This is where the slot process and thread numbers are actually set
-	process = msg.process();
-	thread = msg.thread();
-	Print::printf(Print::INFO, "Work unit runner for slot %d:%d started, %d simultaneous work unit runners.", msg.process(), msg.thread(), msg.simultaneous_work_units());
-}
-
-void startedWorkUnitRemote(const lm::message::StartedWorkUnit & msg)
-{
-}
-
-void Slot::stop()
-{
-	// send message to associated resource controller to stop the associated runner
-	stopRemote();
-	// receive message from associated resource controller confirming that it has stopped the associated runner
-	stoppedRemote();
-}
-
-void Slot::stopRemote()
-{
-	lm::message::Message msg;
-	lm::message::StopWorkUnitRunner* s = msg.add_stop_work_unit_runner();
-	s->set_process(process);
-	s->set_thread(thread);
-	supervisorComm->sendMessage(controller_process, controller_thread, &msg);
-}
-
-void Slot::stoppedRemote()
-{
-	lm::message::Message msg;
-	supervisorComm->receiveMessage(&msg);
-	Print::printf(Print::INFO, "Work unit runner for slot %d:%d stopped", msg.stopped_work_unit_runner().process(), msg.stopped_work_unit_runner().thread());
-}
-
-vector<int> Slot::alloc()
-{
-    setStatus(BUSY); return getSlotKey();
-}
-
-void Slot::free()
-{
-    setStatus(FREE);
-}
-*/
 
 }
 }

@@ -62,6 +62,7 @@ namespace replicates {
 ReplicateTrajectoryList::ReplicateTrajectoryList(lm::input::Input& input, uint64_t firstTrajectory, uint64_t lastTrajectory)
 :TrajectoryList(input),firstTrajectory(firstTrajectory),lastTrajectory(lastTrajectory)
 {
+    init();
 }
 
 ReplicateTrajectoryList::~ReplicateTrajectoryList()

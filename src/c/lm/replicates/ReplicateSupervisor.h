@@ -78,7 +78,6 @@ public:
 
 protected:
     virtual void startSimulation();
-    virtual void workUnitStarted(const lm::message::StartedWorkUnit& msg);
 //    virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg);
 
 protected:
