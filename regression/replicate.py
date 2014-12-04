@@ -16,9 +16,9 @@ replicateParameters = FFluxParameters('biphasic_switch')
 simParams = [SimulationParameter(key='crossingsPerPhase',val='100'),
              SimulationParameter(key='maxPhaseZeroTime',val='10000'),
              SimulationParameter(key='maxSteps',val='10000000000'),
-             SimulationParameter(key='maxTime',val='1e6'),
+             SimulationParameter(key='maxTime',val='1e4'),
              SimulationParameter(key='maxWorkUnitSteps',val='10000'),
-             SimulationParameter(key='writeInterval',val='1e4')]
+             SimulationParameter(key='writeInterval',val='1e3')]
 replicateParameters.SetSimulationParameters(simParams=simParams)
 replicateParameters.Close()
 raw_args = '-r 1-10 -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff hdf5 -f "biphasic_switch.lm"'
