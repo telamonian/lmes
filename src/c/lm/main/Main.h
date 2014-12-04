@@ -115,9 +115,9 @@ extern string resourceFilename;
 extern int cpuCores;
 
 /**
- * The number of cpu cores to assign per replicate (can be a fraction, e.g., 1/2, 1/4, etc).
+ * The number of cpu cores to assign per runner (can be a fraction, e.g., 1/2, 1/4, etc).
  */
-extern float cpuCoresPerReplicate;
+extern double cpuCoresPerRunner;
 
 /**
  * Whether we should use CPU affinity.
@@ -130,9 +130,9 @@ extern bool useCPUAffinity;
 extern int gpuDevices;
 
 /**
- * The number of gpu devices to assign per replicate (can be a fraction, e.g., 1/2, 1/4, etc).
+ * The number of gpu devices to assign per runner (can be a fraction, e.g., 1/2, 1/4, etc).
  */
-extern float gpuDevicesPerReplicate;
+extern double gpuDevicesPerRunner;
 
 /**
  * Whether we should print the cuda device capabilities on startup.
@@ -188,7 +188,7 @@ void parseArguments(int argc, char** argv);
 string parseOutputFormatArg(char* option);
 void parseIntListArg(vector<uint64_t> & list, char* option);
 time_t parseTimeArg(char* option);
-float parseIntReciprocalArg(char* option);
+double parseIntReciprocalArg(char* option);
 void printUsage(int argc, char** argv);
 void discoverEnvironment();
 void initPython();

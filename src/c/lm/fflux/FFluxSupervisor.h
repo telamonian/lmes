@@ -64,17 +64,15 @@ public:
 public:
     FFluxSupervisor();
     virtual ~FFluxSupervisor();
-//    virtual void init();
 
 protected:
-    virtual void allResourcesRegistered();
+    virtual void receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg);
     virtual void startSimulation();
-    virtual void outputWriterStarted(const lm::message::StartedOutputWriter& msg);
 
 protected:
-    int outputWriterProcess;
-    int outputWriterThread;
     lm::io::FFluxOutput ffluxOutput;
+    int realOutputWriterProcess;
+    int realOutputWriterThread;
 };
 
 }

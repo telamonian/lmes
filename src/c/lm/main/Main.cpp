@@ -129,9 +129,9 @@ string resourceFilename;
 int cpuCores;
 
 /**
- * The number of cpu cores to assign per replicate (can be a fraction, e.g., 1/2, 1/4, etc).
+ * The number of cpu cores to assign per runner (can be a fraction, e.g., 1/2, 1/4, etc).
  */
-float cpuCoresPerReplicate;
+double cpuCoresPerRunner;
 
 /**
  * Whether we should use CPU affinity.
@@ -144,9 +144,9 @@ bool useCPUAffinity;
 int gpuDevices;
 
 /**
- * The number of gpu devices to assign per replicate (can be a fraction, e.g., 1/2, 1/4, etc).
+ * The number of gpu devices to assign per runner (can be a fraction, e.g., 1/2, 1/4, etc).
  */
-float gpuDevicesPerReplicate;
+double gpuDevicesPerRunner;
 
 /**
  * Whether we should print the cuda device capabilities on startup.
@@ -194,10 +194,10 @@ void parseArguments(int argc, char** argv)
     replicates.push_back(1);
 
     cpuCores = -1;
-    cpuCoresPerReplicate = 1.0;
+    cpuCoresPerRunner = 1.0;
     useCPUAffinity = false;
     gpuDevices = -1;
-    gpuDevicesPerReplicate = 1.0;
+    gpuDevicesPerRunner = 1.0;
     shouldPrintGPUCapabilities = true;
 
     simulationInputFilename = "";
@@ -360,14 +360,18 @@ void parseArguments(int argc, char** argv)
             cpuCores=atoi(option+strlen("--cpu="));
         }
 
-         //See if the user is trying to set the number of gpu devices per replicate.
-         else if ((strcmp(option, "-cr") == 0 || strcmp(option, "--cpus-per-replicate") == 0) && i < (argc-1))
+         //See if the user is trying to set the number of gpu devices per runner.
+         else if ((strcmp(option, "-cr") == 0 || strcmp(option, "--cpus-per-runner") == 0 || strcmp(option, "--cpus-per-replicate") == 0) && i < (argc-1))
          {
-             cpuCoresPerReplicate=parseIntReciprocalArg(argv[++i]);
+             cpuCoresPerRunner=parseIntReciprocalArg(argv[++i]);
          }
+        else if (strncmp(option, "--cpus-per-runner=", strlen("--cpus-per-runner=")) == 0)
+        {
+            cpuCoresPerRunner=parseIntReciprocalArg(option+strlen("--cpus-per-runner="));
+        }
          else if (strncmp(option, "--cpus-per-replicate=", strlen("--cpus-per-replicate=")) == 0)
          {
-             cpuCoresPerReplicate=parseIntReciprocalArg(option+strlen("--cpus-per-replicate="));
+             cpuCoresPerRunner=parseIntReciprocalArg(option+strlen("--cpus-per-replicate="));
          }
 
 
@@ -387,16 +391,20 @@ void parseArguments(int argc, char** argv)
              gpuDevices=atoi(option+strlen("--gpu="));
          }
 
-         //See if the user is trying to set the number of gpu devices per replicate.
-         else if ((strcmp(option, "-gr") == 0 || strcmp(option, "--gpus-per-replicate") == 0) && i < (argc-1))
+         //See if the user is trying to set the number of gpu devices per runner.
+         else if ((strcmp(option, "-gr") == 0 || strcmp(option, "--gpus-per-runner") == 0 || strcmp(option, "--gpus-per-replicate") == 0) && i < (argc-1))
          {
-             gpuDevicesPerReplicate=parseIntReciprocalArg(argv[++i]);
+             gpuDevicesPerRunner=parseIntReciprocalArg(argv[++i]);
          }
-         else if (strncmp(option, "--gpus-per-replicate=", strlen("--gpus-per-replicate=")) == 0)
+         else if (strncmp(option, "--gpus-per-runner=", strlen("--gpus-per-runner=")) == 0)
          {
-             gpuDevicesPerReplicate=parseIntReciprocalArg(option+strlen("--gpus-per-replicate="));
+             gpuDevicesPerRunner=parseIntReciprocalArg(option+strlen("--gpus-per-runner="));
          }
-             
+        else if (strncmp(option, "--gpus-per-replicate=", strlen("--gpus-per-replicate=")) == 0)
+        {
+            gpuDevicesPerRunner=parseIntReciprocalArg(option+strlen("--gpus-per-replicate="));
+        }
+
         //See if the user is trying to turn off cuda capability printing.
          else if ((strcmp(option, "-nc") == 0 || strcmp(option, "--no-capabilities") == 0))
          {
@@ -512,15 +520,15 @@ time_t parseTimeArg(char * arg)
     return time;
 }
 
-float parseIntReciprocalArg(char * arg)
+double parseIntReciprocalArg(char * arg)
 {
     if (strlen(arg) >= 3 && arg[0] == '1' && arg[1] == '/')
     {
-        return 1.0f/(float)atoi(arg+2);
+        return 1.0/(double)atoi(arg+2);
     }
     else
     {
-        return (float)atoi(arg);
+        return (double)atoi(arg);
     }
 }
 
@@ -540,10 +548,10 @@ void printUsage(int argc, char** argv)
     std::cout << "  -n node_file      --nodelist=node_file          A file containing the list of nodes on which to run, one line per available CPU core." << std::endl;
     std::cout << "  -m map_file       --resource-map=map_file       A file containing the map of resources to use: hostname processor_id_list gpu_id_list." << std::endl;
     std::cout << "  -c num_cpus       --cpu=num_cpus                The number of CPUs on which to execute (default all)." << std::endl;
-    std::cout << "  -cr num           --cpus-per-replicate=num      The number of CPUs (possibly fractional) to assign per replicate, e.g. \"2\", \"1/4\" (default 1)." << std::endl;
+    std::cout << "  -cr num           --cpus-per-runner=num         The number of CPUs (possibly fractional) to assign per runner, e.g. \"2\", \"1/4\" (default 1)." << std::endl;
     std::cout << "  -ca               --cpu-affinity                Turn on CPU affinity." << std::endl;
     std::cout << "  -g num_gpus       --gpu=num_gpus                The number of GPUs on which to execute (default all)." << std::endl;
-    std::cout << "  -gr num           --gpus-per-replicate=num      The number of GPUs (possibly fractional) to assign per replicate, e.g. \"2\", \"1/4\" (default 1)." << std::endl;
+    std::cout << "  -gr num           --gpus-per-runner=num         The number of GPUs (possibly fractional) to assign per runner, e.g. \"2\", \"1/4\" (default 1)." << std::endl;
     std::cout << "  -nc               --no-capabilities             Don't print the capabilities of the GPU devices." << std::endl;
     std::cout << "  -nr               --no-reserve-core             Don't reserve a CPU core for the output thread." << std::endl;
     std::cout << std::endl;

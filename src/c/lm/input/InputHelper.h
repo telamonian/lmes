@@ -69,13 +69,12 @@ public:
     static bool rFFOrderParameters(lm::io::hdf5::Hdf5File* file, lm::oparam::OParams* oparams, lm::main::SimulationParametersMap* simulationParametersMap);
     static bool rFFOrderParametersBuf(lm::io::hdf5::Hdf5File* file, lm::io::OrderParameters* orderParametersBuf, lm::main::SimulationParametersMap* simulationParametersMap);
     static bool rFFReactionModelBuf(lm::io::hdf5::Hdf5File* file, lm::io::ReactionModel* reactionModelBuf, lm::main::SimulationParametersMap* simulationParametersMap);
-    static bool rFFSimulationParametersBuf(lm::io::hdf5::Hdf5File* file, lm::io::SimulationParameters* simulationParametersBuf);
-    static bool rFFSimulationParametersMap(lm::io::hdf5::Hdf5File* file, lm::main::SimulationParametersMap* simualationParametersMap);
+    static bool rFFSimulationParameters(lm::io::hdf5::Hdf5File* file, lm::io::SimulationParameters* simulationParametersBuf, lm::main::SimulationParametersMap* simualationParametersMap);
     static bool rFFTilings(lm::io::hdf5::Hdf5File* file, lm::tiling::Tilings* tilings, lm::main::SimulationParametersMap* simulationParametersMap);
     static bool rFFTilingsBuf(lm::io::hdf5::Hdf5File* file, lm::io::Tilings* tilingsBuf, lm::main::SimulationParametersMap* simulationParametersMap);
 
     // helper methods
-    static lm::input::Input* rFFInput(lm::io::hdf5::Hdf5File* file, lm::io::DiffusionModel* dMB, lm::oparam::OParams* ops, lm::io::ReactionModel* rMB, lm::main::SimulationParametersMap* sPM, lm::tiling::Tilings* tngs);
+    static lm::input::Input* rFFInput(lm::io::hdf5::Hdf5File* file, lm::io::DiffusionModel* dMB, lm::io::OrderParameters* orderParametersBuf, lm::oparam::OParams* ops, lm::io::ReactionModel* rMB, lm::io::SimulationParameters* sPB, lm::main::SimulationParametersMap* sPM, lm::io::Tilings* tilingsBuf, lm::tiling::Tilings* tngs);
     static bool parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg);
 };
 

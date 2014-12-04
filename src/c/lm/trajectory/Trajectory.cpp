@@ -112,7 +112,9 @@ void Trajectory::initHists()
 void Trajectory::initMsg(map<string,string>& simulationParameters)
 {
     // Set the default work unit-specific limits
-    getRunMsg()->set_max_steps(atof(simulationParameters["maxWorkUnitSteps"].c_str()));
+    int64_t maxWorkUnitSteps = atoll(simulationParameters["maxWorkUnitSteps"].c_str());
+    if (maxWorkUnitSteps <= 0) maxWorkUnitSteps = 10000000;
+    getRunMsg()->set_max_steps(maxWorkUnitSteps);
 }
 
 void Trajectory::initMsg(const lm::message::Message& newMsg)

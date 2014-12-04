@@ -126,7 +126,7 @@ ResourceMap::~ResourceMap()
  * @param filename
  * @return
  */
-map<string,ResourceMap::ComputeResources> ResourceMap::parseResourceFile(string filename)
+map<string,ComputeResources> ResourceMap::parseResourceFile(string filename)
 {
       map<string,ComputeResources> fileResources;
 
@@ -225,7 +225,7 @@ void ResourceMap::parseIntList(vector<int>& list, string s)
  * PBS node files have a single field per line with the name of a host allocated. Hosts can
  * be listed multiple times in which case one core for each entry should be assigned.
  */
-map<string,ResourceMap::ComputeResources> ResourceMap::parsePBSNodeFile(string filename)
+map<string,ComputeResources> ResourceMap::parsePBSNodeFile(string filename)
 {
       map<string,ComputeResources> fileResources;
 
@@ -308,7 +308,7 @@ bool ResourceMap::registerResources(const lm::message::ResourcesAvailable& msg)
     return (allocatedResources.size() == 0);
 }
 
-ResourceMap::ComputeResources ResourceMap::reserveCPUCores(int process, int numberCPUCores)
+ComputeResources ResourceMap::reserveCPUCores(int process, int numberCPUCores)
 {
     ComputeResources resources = registeredResources[process];
     if ((int)resources.cpuCores.size() >= numberCPUCores)
@@ -328,7 +328,7 @@ ResourceMap::ComputeResources ResourceMap::reserveCPUCores(int process, int numb
     throw Exception("Insufficient resource on the specified process to reserve a CPU core", process, resources.cpuCores.size(), numberCPUCores);
 }
 
-map<int,ResourceMap::ComputeResources> ResourceMap::getAvailableResources()
+map<int,ComputeResources> ResourceMap::getAvailableResources()
 {
     return registeredResources;
 }

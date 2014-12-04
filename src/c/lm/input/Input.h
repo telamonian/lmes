@@ -63,15 +63,18 @@ struct Input
 {
 public:
     Input();
-    Input(bool hasDiffusionModel,bool hasOrderParameters,bool hasReactionModel,bool hasTilings,lm::io::DiffusionModel& diffusionModelBuf,lm::oparam::OParams& oparams,lm::io::ReactionModel& reactionModelBuf,map<string,string>& simulationParametersMap,lm::tiling::Tilings& tilings):
+    Input(bool hasDiffusionModel,bool hasOrderParameters,bool hasReactionModel,bool hasTilings,lm::io::DiffusionModel& diffusionModelBuf,lm::io::OrderParameters& orderParametersBuf,lm::oparam::OParams& oparams,lm::io::ReactionModel& reactionModelBuf, lm::io::SimulationParameters& simulationParametersBuf, map<string,string>& simulationParametersMap,lm::io::Tilings& tilingsBuf,lm::tiling::Tilings& tilings):
         hasDiffusionModel(hasDiffusionModel),
         hasOrderParameters(hasOrderParameters),
         hasReactionModel(hasReactionModel),
         hasTilings(hasTilings),
         diffusionModelBuf(diffusionModelBuf),
+        orderParametersBuf(orderParametersBuf),
         oparams(oparams),
         reactionModelBuf(reactionModelBuf),
+        simulationParametersBuf(simulationParametersBuf),
         simulationParametersMap(simulationParametersMap),
+        tilingsBuf(tilingsBuf),
         tilings(tilings) {}
 
     bool hasDiffusionModel;
@@ -79,9 +82,12 @@ public:
     bool hasReactionModel;
     bool hasTilings;
     lm::io::DiffusionModel& diffusionModelBuf;
+    lm::io::OrderParameters& orderParametersBuf;
     lm::oparam::OParams& oparams;
     lm::io::ReactionModel& reactionModelBuf;
+    lm::io::SimulationParameters& simulationParametersBuf;
     map<string,string>& simulationParametersMap;
+    lm::io::Tilings& tilingsBuf;
     lm::tiling::Tilings& tilings;
 };
 
