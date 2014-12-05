@@ -40,6 +40,7 @@
 #include <list>
 #include <map>
 #include <string>
+#include <stdint.h>
 
 #include "hrtime.h"
 #include "lm/Print.h"
