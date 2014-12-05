@@ -147,7 +147,7 @@ void NextSubvolumeSolver::setDiffusionModel(const lm::io::DiffusionModel& dm)
     }
 }
 
-bool NextSubvolumeSolver::generateTrajectory(long long maxSteps)
+long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
 {
     if (reactionModel == NULL) throw Exception("NextSubvolumeSolver did not have a reaction model.");
     if (diffusionModel == NULL) throw Exception("NextSubvolumeSolver did not have a diffusion model.");
@@ -380,7 +380,7 @@ bool NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     // See if we finished all of the steps.
     else if (steps >= maxSteps)
     {
-        Print::printf(Print::DEBUG, "Generated trajectory with %llu steps.", steps);
+        Print::printf(Print::DEBUG, "Generated trajectory with %llu steps through time %e.", steps, time);
     }
 
     // Otherwise we must have finished because of a species limit, so just write out the last time.
@@ -430,7 +430,7 @@ bool NextSubvolumeSolver::generateTrajectory(long long maxSteps)
         communicator->sendMessage(outputProcess, outputThread, &msgp);
     }
 
-    return reachedLimit;
+    return steps;
 }
 
 void NextSubvolumeSolver::checkSpeciesCountsAgainstLattice()

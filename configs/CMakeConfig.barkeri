@@ -16,10 +16,13 @@ SET(VERBOSITY_LEVEL 9)
 #uncomment and change the last part of the next line if some of your libraries/header files are on a nonstandard path
 SET(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" /Users/eroberts/usr/local)
 
-SET(CUSTOM_C_FLAGS "-g -m64 -fPIC -Wall -fmessage-length=0")
-SET(CUSTOM_CXX_FLAGS "-g -m64 -fPIC -Wall -fmessage-length=0")
-#SET(CUSTOM_C_FLAGS "-m64 -march=core2 -O3 -fPIC -Wall -fmessage-length=0")
-#SET(CUSTOM_CXX_FLAGS "-m64 -march=core2 -O3 -fPIC -Wall -fmessage-length=0")
+#SET(CUSTOM_C_FLAGS "-g -m64 -fPIC -Wall -fmessage-length=0")
+#SET(CUSTOM_CXX_FLAGS "-g -m64 -fPIC -Wall -fmessage-length=0")
+SET(CUSTOM_C_FLAGS "-m64 -march=core2 -O3 -fPIC -Wall -fmessage-length=0")
+SET(CUSTOM_CXX_FLAGS "-m64 -march=core2 -O3 -fPIC -Wall -fmessage-length=0")
+
+SET(HDF5_LIBRARIES /Users/eroberts/usr/local/lib/libhdf5.8.dylib)
+SET(HDF5_HL_LIBRARIES /Users/eroberts/usr/local/lib/libhdf5_hl.8.dylib)
 
 #add_definitions(-DPROF_ENABLE -DPROF_CUDA_ENABLE=0 -DPROF_MAX_THREADS=15 -DPROF_MAX_EVENTS=1000000 -DPROF_OUT_FILE=timing.prof)
 

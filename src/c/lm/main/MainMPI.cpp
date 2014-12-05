@@ -402,8 +402,8 @@ void executeSimulationMPISingleMaster(ResourceMap* resourceMap)
     // Wait for the resource controller to stop.
     resourceController.wait();
 
-    // Stop the supervisor.
-    supervisor->stop();
+    // Wait for the supervisor to stop.
+    supervisor->wait();
     delete supervisor;
     supervisor = NULL;
 

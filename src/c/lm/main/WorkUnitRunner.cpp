@@ -245,7 +245,8 @@ void WorkUnitRunner::runWorkUnit(const lm::message::RunWorkUnit& wu)
 
     // Run the work unit.
     hrtime t1=getHrTime();
-    bool limitReached=solver->generateTrajectory(wu.max_steps());
+    long long steps = solver->generateTrajectory(wu.max_steps());
+    bool limitReached = (steps<wu.max_steps());
     hrtime t2=getHrTime();
 
     // Tell the supervisor the work unit has finished.
@@ -255,6 +256,7 @@ void WorkUnitRunner::runWorkUnit(const lm::message::RunWorkUnit& wu)
     msg2->set_process(lm::MPI::worldRank);
     msg2->set_thread(getThreadNumber());
     msg2->set_run_time(convertHrToSeconds(t2-t1));
+    msg2->set_steps(steps);
     msg2->mutable_final_state()->set_trajectory_id(wu.initial_state().trajectory_id());
     solver->getState(msg2->mutable_final_state());
     if (limitReached)

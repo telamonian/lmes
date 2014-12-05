@@ -129,7 +129,7 @@ void GillespieDSolver::setState(const lm::io::TrajectoryState& state)
     updateAllPropensities(time);
 }
 
-bool GillespieDSolver::generateTrajectory(long long maxSteps)
+long long GillespieDSolver::generateTrajectory(long long maxSteps)
 {
     if (reactionModel == NULL) throw Exception("GillespieDSolver did not have a reaction model.");
     if (propensities == NULL) throw Exception("GillespieDSolver state was not initialized.");
@@ -308,7 +308,7 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
     // See if we finished all of the steps.
     else if (steps >= maxSteps)
     {
-        Print::printf(Print::DEBUG, "Generated trajectory with %llu steps.", steps);
+        Print::printf(Print::DEBUG, "Generated trajectory with %llu steps through time %e.", steps, time);
     }
 
     // Otherwise we must have finished because of a species/order parameter limit, so just write out the last time.
@@ -340,7 +340,7 @@ bool GillespieDSolver::generateTrajectory(long long maxSteps)
         communicator->sendMessage(outputProcess, outputThread, &msgp);
     }
 
-    return reachedLimit;
+    return steps;
 }
 
 void GillespieDSolver::updateAllPropensities(double time)

@@ -36,8 +36,11 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+
+#include <algorithm>
 #include <string>
 
+#include "hrtime.h"
 #include "lm/Exceptions.h"
 #include "lm/MPI.h"
 #include "lm/Print.h"
@@ -65,8 +68,9 @@ namespace lm {
 namespace main {
 
 SimulationSupervisor::SimulationSupervisor()
-    :communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),hasOutputWriterStarted(false),outputWriterProcess(-1),outputWriterThread(-1),solverClassName(""),useCPUAffinity(false),input(NULL),hasReactionModel(false),hasDiffusionModel(false),hasOrderParameters(false),hasTilings(false),tilings(),trajectories(NULL),slots(&communicator),haveAllWorkUnitRunnersStarted(false),workUnitCount(0)
+    :simulationRunning(true),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),hasOutputWriterStarted(false),outputWriterProcess(-1),outputWriterThread(-1),solverClassName(""),useCPUAffinity(false),input(NULL),hasReactionModel(false),hasDiffusionModel(false),hasOrderParameters(false),hasTilings(false),tilings(),trajectories(NULL),slots(&communicator),haveAllWorkUnitRunnersStarted(false),workUnitCount(0)
 {
+    resetPerformanceStatistics();
 }
 
 SimulationSupervisor::~SimulationSupervisor()
@@ -277,7 +281,7 @@ int SimulationSupervisor::run()
 
         // Loop reading messages.
         lm::message::Message message;
-        while (true)
+        while (simulationRunning)
         {
             // Read the next message.
             communicator.receiveMessage(&message);
@@ -305,17 +309,21 @@ int SimulationSupervisor::run()
             }
             else if (message.has_ping_target())
             {
-                // If we are done running, stop the loop.
-                if (!running) break;
             }
             else
             {
                 Print::printf(Print::ERROR, "Supervisor received an unknown message: {\n%s}",message.DebugString().c_str());
             }
 
+            // Print any performance statistics.
+            printPerformanceStatistics();
+
             // Clear the message object so it can be used again.
             message.Clear();
         }
+
+        // Flush any performance statistics.
+        printPerformanceStatistics(true);
 
         Print::printf(Print::INFO, "Supervisor %d:%d finished.", lm::MPI::worldRank, threadNumber);
 
@@ -414,7 +422,6 @@ void SimulationSupervisor::startSimulation()
     if (assignWork())
     {
         // If assign work returned true, there was nothing to be done.
-        running = false;
         Print::printf(Print::INFO, "Simulation finished, no work to be performed.");
         finishSimulation();
     }
@@ -422,6 +429,10 @@ void SimulationSupervisor::startSimulation()
 
 void SimulationSupervisor::finishSimulation()
 {
+    // Mark that the simulation is finished so we exit our message loop.
+    simulationRunning = false;
+
+    // Stop all of the resource controllers.
     map<int,ComputeResources> resources = resourceMap->getAvailableResources();
     for (map<int,ComputeResources>::iterator it=resources.begin(); it != resources.end(); it++)
     {
@@ -430,7 +441,6 @@ void SimulationSupervisor::finishSimulation()
         msg.mutable_stop_resource_controller()->set_abort(false);
         communicator.sendMessage(it->second.controller_process, it->second.controller_thread, &msg);
     }
-    running = false;
 }
 
 bool SimulationSupervisor::assignWork()
@@ -472,12 +482,18 @@ bool SimulationSupervisor::assignWork()
 
 void SimulationSupervisor::receivedStartedWorkUnit(const lm::message::StartedWorkUnit& msg)
 {
-    Print::printf(Print::DEBUG, "Work unit %d started.",msg.work_unit_id());
+    Print::printf(Print::VERBOSE_DEBUG, "Work unit %d started.",msg.work_unit_id());
 }
 
 void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg)
 {
-    Print::printf(Print::DEBUG, "Work unit %d finished in %0.3f s.",msg.work_unit_id(),msg.run_time());
+    Print::printf(Print::VERBOSE_DEBUG, "Work unit %d finished in %0.3f s.",msg.work_unit_id(),msg.run_time());
+
+    stats_workUnits++;
+    stats_minWorkUnitId = std::min(stats_minWorkUnitId,msg.work_unit_id());
+    stats_maxWorkUnitId = std::max(stats_maxWorkUnitId,msg.work_unit_id());
+    stats_workUnitsSteps += msg.steps();
+    stats_workUnitTime += msg.run_time();
 
     // If the trajectory associated with the finished work unit exists...
     if (trajectories->exists(msg.final_state().trajectory_id()))
@@ -494,13 +510,35 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
     // Fill the newly freed slot with a work unit. If there are more trajectories than slots, this is guaranteed to use the slot we just freed. Otherwise it will be the "coldest" (longest unoccupied) slot
     if (assignWork())
     {
-    	if (running)
-    	{
-    		running = false;
-            Print::printf(Print::INFO, "Simulation finished.");
-			finishSimulation();
-    	}
+        Print::printf(Print::INFO, "Simulation finished.");
+        finishSimulation();
     }
+}
+
+void SimulationSupervisor::resetPerformanceStatistics()
+{
+    stats_lastPrintTime = getHrTime();
+    stats_workUnits = 0;
+    stats_minWorkUnitId = LLONG_MAX;
+    stats_maxWorkUnitId = 0;
+    stats_workUnitsSteps = 0;
+    stats_workUnitTime = 0.0;
+}
+
+void SimulationSupervisor::printPerformanceStatistics(bool flush)
+{
+    // See if we should display and reset the performance stats.
+    hrtime currentTime = getHrTime();
+    if (flush || convertHrToSeconds(currentTime-stats_lastPrintTime) > 60.0)
+    {
+        if (stats_workUnits > 0)
+        {
+            Print::printf(Print::INFO, "Finished %lld work units (ids in range %lld to %lld) in the last %0.1f seconds. %lld steps in %0.3e seconds (%0.3e steps/second).",stats_workUnits,stats_minWorkUnitId,stats_maxWorkUnitId,convertHrToSeconds(currentTime-stats_lastPrintTime), stats_workUnitsSteps, stats_workUnitTime, double(stats_workUnitsSteps)/stats_workUnitTime);
+        }
+        stats_lastPrintTime = currentTime;
+        resetPerformanceStatistics();
+    }
+
 }
 
 }
