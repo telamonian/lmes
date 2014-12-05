@@ -90,9 +90,6 @@ int SlotList::createProcessSlots(int startingSlotId, int process, ComputeResourc
     if (cpusPerSlot == 0.0 && gpusPerSlot == 0.0)
         throw Exception("No compute resources were requested for each work unit runner.");
 
-    // Create the message to start the workers.
-    lm::message::Message msg;
-
     // Figure out the constraints on the number of slots.
     int cpuSlotsConstraint = (cpusPerSlot > 0)?(int(floor(double(resources.cpuCores.size())/cpusPerSlot))):(INT_MAX);
     int gpuSlotsConstraint = (gpusPerSlot > 0)?(int(floor(double(resources.gpuDevices.size())/gpusPerSlot))):(INT_MAX);
@@ -139,12 +136,16 @@ int SlotList::createProcessSlots(int startingSlotId, int process, ComputeResourc
             slotResources.gpuDevices.push_back(resources.gpuDevices[i%resources.gpuDevices.size()]);
         }
 
+        // Create the message to start the workers.
+        lm::message::Message msg;
+
         // Create the slot.
         createSlot(startingSlotId+i, slotResources, useCPUAffinity, &msg, solver, input);
-    }
 
-    // Send the message to create all of the work units runners for this process.
-    communicator->sendMessage(resources.controller_process, resources.controller_thread, &msg);
+        // Send the message to create all of the work units runners for this process.
+        communicator->sendMessage(resources.controller_process, resources.controller_thread, &msg);
+
+    }
 
     // Return the number of slots that were created.
     return i;
