@@ -153,7 +153,7 @@ int SlotList::createProcessSlots(int startingSlotId, int process, ComputeResourc
 
 void SlotList::createSlot(int slotId, ComputeResources resources, bool useCPUAffinity, lm::message::Message* msg, string solver, lm::input::Input* input)
 {
-    Print::printf(Print::DEBUG, "Creating slot %d on process (%d:%d) using resources: %s.", slotId, resources.controller_process, resources.controller_thread, resources.toString().c_str());
+    Print::printf(Print::INFO, "Creating slot %d on process (%d:%d) using resources: %s.", slotId, resources.controller_process, resources.controller_thread, resources.toString().c_str());
 
     // Add the slots to our list.
     slots.push_back(Slot(slotId,resources));
