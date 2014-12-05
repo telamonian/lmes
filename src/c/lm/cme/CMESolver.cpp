@@ -75,7 +75,7 @@ namespace lm {
 namespace cme {
 
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
-:neededDists(neededDists),rng(NULL),oparams(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),trajectoryStarted(false),speciesCounts(NULL),time(0.0),timeStep(0.0),finalLimitType(static_cast<lm::io::TrajectoryLimits::LimitType>(0))
+:neededDists(neededDists),rng(NULL),oparams(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),tilingHists(NULL),trajectoryStarted(false),speciesCounts(NULL),time(0.0),timeStep(0.0),finalLimitType(static_cast<lm::io::TrajectoryLimits::LimitType>(0))
 {
 }
 
@@ -94,6 +94,7 @@ CMESolver::~CMESolver()
     if (rng != NULL) delete rng; rng = NULL;
     if (speciesLimits != NULL) delete[] speciesLimits; speciesLimits = NULL;
     if (fptTrackedSpecies != NULL) delete[] fptTrackedSpecies; fptTrackedSpecies = NULL;
+    if (tilingHists!=NULL) delete[] tilingHists; tilingHists = NULL;
 }
 
 CMESolver::ReactionModel::ReactionModel(uint numberSpecies, uint numberReactions)
@@ -805,13 +806,9 @@ void CMESolver::reset()
         delete[] speciesCounts;
     }
     speciesCounts = NULL;
-//    if (previousSpeciesCounts != NULL) delete[] previousSpeciesCounts; previousSpeciesCounts = NULL;
 
     // Make sure we have a reaction model.
     if (reactionModel == NULL) throw Exception("Tried to reset state of CMESolver with no reaction model.");
-
-    // Allocate space for the old state.
-//    previousSpeciesCounts = new uint[reactionModel->numberSpecies];
 
     // Allocate space for the new state.
     speciesCounts = new uint[reactionModel->numberSpecies];
@@ -820,11 +817,6 @@ void CMESolver::reset()
     for (uint i=0; i<reactionModel->numberSpecies; i++)
     {
         speciesCounts[i] = 0;
-//        //// TEMP : replace
-//        oParam = calcTestCaseOParam(speciesCounts);
-//        //// TEMP
-//        prevOParam = oParam;
-//        previousSpeciesCounts[i] = 0;
     }
 
     // Reinitialize the order parameters, if required
@@ -841,7 +833,11 @@ void CMESolver::reset()
 
     // Reset the species limits.
     numberSpeciesLimits = 0;
-    if (speciesLimits != NULL) delete[] speciesLimits; speciesLimits = NULL;
+    if (speciesLimits != NULL)
+    {
+        delete[] speciesLimits;
+    }
+    speciesLimits = NULL;
 
     // Reset the fpt tracking list.
     numberFptTrackedSpecies = 0;
@@ -849,6 +845,10 @@ void CMESolver::reset()
 
     // Reset the tracked parameters list.
     trackedParameters.clear();
+
+    // Reset the tiling histograms list.
+    numberTilingHists = 0;
+    if (tilingHists!=NULL) delete[] tilingHists; tilingHists = NULL;
 }
 
 void CMESolver::getState(lm::io::TrajectoryState* state)
@@ -873,11 +873,11 @@ void CMESolver::getState(lm::io::TrajectoryState* state)
     }
 
     // Get the tiling hists
-    state->mutable_cme_state()->clear_tiling_hists();
-    for (uint i=0;i<numberTilingHists;i++)
-    {
-        tilingHists[i].serializeTo(state->mutable_cme_state()->add_tiling_hists());
-    }
+//    state->mutable_cme_state()->clear_tiling_hists();
+//    for (uint i=0;i<numberTilingHists;i++)
+//    {
+//        tilingHists[i].serializeTo(state->mutable_cme_state()->add_tiling_hists());
+//    }
 }
 
 void CMESolver::setState(const lm::io::TrajectoryState& state)
@@ -923,17 +923,16 @@ void CMESolver::setState(const lm::io::TrajectoryState& state)
     }
 
     // Set the histogram bin values
-    numberTilingHists = state.cme_state().tiling_hists_size();
-    if (state.cme_state().tiling_hists_size() > 0)
-    {
-        tilingHists = new TilingHist[numberTilingHists];
-        for (uint i=0;i<numberTilingHists;i++)
-        {
-            tilingHists[i] = TilingHist();
-            tilingHists[i].init(state.cme_state().tiling_hists(i));
-        }
-    }
-
+//    numberTilingHists = state.cme_state().tiling_hists_size();
+//    if (state.cme_state().tiling_hists_size() > 0)
+//    {
+//        tilingHists = new TilingHist[numberTilingHists];
+//        for (uint i=0;i<numberTilingHists;i++)
+//        {
+//            tilingHists[i] = TilingHist();
+//            tilingHists[i].init(state.cme_state().tiling_hists(i));
+//        }
+//    }
 }
 
 void CMESolver::setLimits(const lm::io::TrajectoryLimits& limits)

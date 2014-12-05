@@ -244,7 +244,7 @@ protected:
         void serializeTo(lm::io::TilingHist* tHistBuf)
         {
             tHistBuf->set_tiling_id(tilingID);
-            tHistBuf->clear_tile_vals();
+            //tHistBuf->clear_tile_vals();
             for (uint i=0;i<numberTileVals;i++)
             {
                 tHistBuf->add_tile_vals(tileVals[i]);
