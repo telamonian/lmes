@@ -281,7 +281,7 @@ int SimulationSupervisor::run()
 
         // Loop reading messages.
         lm::message::Message message;
-        while (simulationRunning)
+        while (running && simulationRunning)
         {
             // Read the next message.
             communicator.receiveMessage(&message);

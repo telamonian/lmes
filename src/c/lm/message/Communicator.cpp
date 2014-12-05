@@ -51,14 +51,14 @@ namespace lm {
 namespace message {
 
 Communicator::Communicator(Endpoint source)
-:source(source),inputBufferSize(50*1024*1024),inputBuffer(NULL),outputBufferSize(50*1024*1024),outputBuffer(NULL)
+:source(source),inputBufferSize(250*1024*1024),inputBuffer(NULL),outputBufferSize(250*1024*1024),outputBuffer(NULL)
 {
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(inputBufferSize, MPI_INFO_NULL, &inputBuffer));
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(outputBufferSize, MPI_INFO_NULL, &outputBuffer));
 }
 
 Communicator::Communicator(int process, int thread)
-:source(process,thread),inputBufferSize(50*1024*1024),inputBuffer(NULL),outputBufferSize(50*1024*1024),outputBuffer(NULL)
+:source(process,thread),inputBufferSize(250*1024*1024),inputBuffer(NULL),outputBufferSize(250*1024*1024),outputBuffer(NULL)
 {
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(inputBufferSize, MPI_INFO_NULL, &inputBuffer));
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(outputBufferSize, MPI_INFO_NULL, &outputBuffer));
