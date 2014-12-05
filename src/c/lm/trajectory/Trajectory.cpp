@@ -76,16 +76,16 @@ namespace trajectory {
 //    initMsg(simulationParameters);
 //}
 
-Trajectory::Trajectory(uint64_t id,lm::input::Input& input,bool reversed):
-id(-1),input(input),status(NOT_STARTED)
+Trajectory::Trajectory(uint64_t id,lm::input::Input& input,bool reversed)
+:id(-1),input(input),status(NOT_STARTED),numberWorkUnitsPerformed(0)
 {
     initState(input.reactionModelBuf, reversed);
     setID(id);
     initMsg(input.simulationParametersMap);
 }
 
-Trajectory::Trajectory(uint64_t id,lm::input::Input& input,TrajectoryState* zerothState):
-id(id),input(input),status(NOT_STARTED)
+Trajectory::Trajectory(uint64_t id,lm::input::Input& input,TrajectoryState* zerothState)
+    :id(id),input(input),status(NOT_STARTED),numberWorkUnitsPerformed(0)
 {
     initState(zerothState);
     setID(id);
@@ -178,7 +178,9 @@ lm::message::Message* Trajectory::getNextWorkUnitMsg(uint64_t nextWorkUnitID)
         return getMsg();
     }
     else
+    {
         return NULL;
+    }
 }
 
 lm::message::RunWorkUnit* Trajectory::getRunMsg()
@@ -232,6 +234,16 @@ void Trajectory::setStatus(status_t newStatus)
 void Trajectory::setWorkUnitId(uint64_t id)
 {
     getRunMsg()->set_work_unit_id(id);
+}
+
+void Trajectory::incrementWorkUnitsPerformed()
+{
+    numberWorkUnitsPerformed++;
+}
+
+int64_t Trajectory::getWorkUnitsPerformed()
+{
+    return numberWorkUnitsPerformed;
 }
 
 }

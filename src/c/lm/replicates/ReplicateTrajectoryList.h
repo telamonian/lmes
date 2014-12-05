@@ -43,11 +43,12 @@
 #include <map>
 #include <string>
 
+#include "hrtime.h"
 #include "lm/input/Input.h"
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
-
+#include "lm/message/Message.pb.h"
 #include "lm/trajectory/TrajectoryList.h"
 #include "lm/Types.h"
 
@@ -65,10 +66,15 @@ public:
     ReplicateTrajectoryList(lm::input::Input& input, uint64_t firstTrajectory, uint64_t lastTrajectory);
     virtual ~ReplicateTrajectoryList();
     virtual void init();
+    virtual lm::message::Message* getNextWorkUnitMsg();
+    virtual void printTrajectoryStatistics();
 
 protected:
     uint64_t firstTrajectory;
     uint64_t lastTrajectory;
+
+private:
+    hrtime stats_lastPrintTime;
 };
 
 }

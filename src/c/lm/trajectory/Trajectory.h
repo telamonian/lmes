@@ -89,6 +89,9 @@ public:
     virtual void setStatus(status_t newStatus);
     virtual void setWorkUnitId(uint64_t id);
 
+    virtual void incrementWorkUnitsPerformed();
+    virtual int64_t getWorkUnitsPerformed();
+
 protected:
     uint64_t id;
     lm::input::Input& input;
@@ -99,6 +102,7 @@ protected:
 //    lm::io::TrajectoryLimits limits;
 //    lm::io::TrajectoryState state;  // state is supposed to be synced at all (or at least most) times with the msg.run_work_unit.initial_state field
     status_t status;
+    int64_t numberWorkUnitsPerformed;
 };
 
 }

@@ -91,6 +91,12 @@ void TrajectoryList::deleteTrajectory(uint64_t trajectoryID)
 
 lm::trajectory::Trajectory* TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg) // TODO: refactor into a Trajectory mutator
 {
+    Trajectory* t = trajectories[msg.final_state().trajectory_id()];
+    t->incrementWorkUnitsPerformed();
+
+    // Print some performance statistics, if it has been a while.
+    printTrajectoryStatistics();
+
     if (msg.status() == lm::message::FinishedWorkUnit::LIMIT_REACHED)
     {
         setTrajectoryStatus(msg.final_state().trajectory_id(), Trajectory::FINISHED);
@@ -102,6 +108,7 @@ lm::trajectory::Trajectory* TrajectoryList::workUnitFinished(const lm::message::
         setTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
     }
     setTrajectoryStarted(msg.final_state().trajectory_id(), true);
+
     return getTrajectory(msg.final_state().trajectory_id());
 }
 
@@ -159,6 +166,10 @@ void TrajectoryList::setTrajectoryStatus(uint64_t trajectoryID, Trajectory::stat
 void TrajectoryList::setTrajectoryState(uint64_t trajectoryID, const lm::io::TrajectoryState& state)
 {
     trajectories[trajectoryID]->setState(&state);
+}
+
+void TrajectoryList::printTrajectoryStatistics()
+{
 }
 
 }
