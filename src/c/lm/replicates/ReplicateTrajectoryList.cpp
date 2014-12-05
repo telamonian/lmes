@@ -37,9 +37,12 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
+#include <limits>
 #include <list>
 #include <map>
 #include <string>
+
+#define __STDC_LIMIT_MACROS
 #include <stdint.h>
 
 #include "hrtime.h"
