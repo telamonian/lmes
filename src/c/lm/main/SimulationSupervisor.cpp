@@ -490,8 +490,8 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
     Print::printf(Print::VERBOSE_DEBUG, "Work unit %d finished in %0.3f s.",msg.work_unit_id(),msg.run_time());
 
     stats_workUnits++;
-    stats_minWorkUnitId = std::min(stats_minWorkUnitId,msg.work_unit_id());
-    stats_maxWorkUnitId = std::max(stats_maxWorkUnitId,msg.work_unit_id());
+    stats_minWorkUnitId = std::min(stats_minWorkUnitId,(long long)msg.work_unit_id());
+    stats_maxWorkUnitId = std::max(stats_maxWorkUnitId,(long long)msg.work_unit_id());
     stats_workUnitsSteps += msg.steps();
     stats_workUnitTime += msg.run_time();
 
