@@ -1,5 +1,7 @@
 # utils c directory
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
 ################
 #TARGET: utils
 ################
@@ -19,7 +21,7 @@ target_link_libraries(lm_sbml_import lm_c_lib
                                      ${HDF5_LIBRARIES}
                                      ${HDF5_HL_LIBRARIES})
                                      
-file(GLOB lm_setdm_source lm_setdm.cpp)
+file(GLOB lm_setdm_source lm_setdm.cpp util.cpp)
 add_executable(lm_setdm EXCLUDE_FROM_ALL ${lm_setdm_source})
 target_link_libraries(lm_setdm lm_c_lib
                                ${libsbml_LIBRARIES}
@@ -35,7 +37,7 @@ target_link_libraries(lm_setp lm_c_lib
                               ${HDF5_LIBRARIES}
                               ${HDF5_HL_LIBRARIES})
                                
-file(GLOB lm_setrm_source lm_setrm.cpp)
+file(GLOB lm_setrm_source lm_setrm.cpp util.cpp)
 add_executable(lm_setrm EXCLUDE_FROM_ALL ${lm_setrm_source})
 target_link_libraries(lm_setrm lm_c_lib
                                ${libsbml_LIBRARIES}

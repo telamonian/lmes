@@ -10,7 +10,7 @@ enable_testing()
 include(CMakeConfig.txt)
 
 # package finding stuff
-SET(CMAKE_MODULE_PATH  ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/CMakeModules )
+SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/CMakeModules)
 
 find_package(MPI REQUIRED)
 message("testing if mpi is mpich...")
@@ -82,8 +82,7 @@ ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     ENDIF(OSX_VERSION GREATER 8)
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
-include_directories(profile
-                    src/c/
+include_directories(src/c/
                     ${CMAKE_CURRENT_BINARY_DIR}/src/c/
                     src/cuda/
                     src/cython/
@@ -155,10 +154,10 @@ if (MAKE_CYTHON STREQUAL yes)
                           ${MPI_C_LIBRARIES}
                           ${PYTHON_LIBRARY_DIRS})
 
-    add_custom_target( ReplicatePythonSourceTree ALL ${CMAKE_COMMAND} -P
+    add_custom_target(ReplicatePythonSourceTree ALL ${CMAKE_COMMAND} -P
         ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/ReplicatePythonSourceTree.cmake
         ${CMAKE_CURRENT_BINARY_DIR}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} )
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     set(ENV{HDF5_ROOT} ${HDF5_ROOT})
     include(UseCython)  ###cython
     add_subdirectory(src/cython)
