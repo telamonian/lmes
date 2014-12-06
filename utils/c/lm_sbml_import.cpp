@@ -171,11 +171,11 @@ void importSBMLModel(Hdf5File * lmFile, string sbmlFilename) throw(Exception)
 {
     // Read in the SBML document.
     std::auto_ptr<SBMLDocument> sbmlDocument(readSBML(sbmlFilename.c_str()));
-    if (sbmlDocument->getNumErrors() > 0)
-    {
-        sbmlDocument->printErrors();
-        throw Exception("Error reading SBML file");
-    }
+//    if (sbmlDocument->getNumErrors() > 0)
+//    {
+//        sbmlDocument->printErrors();
+//        throw Exception("Error reading SBML file");
+//    }
 
     // Make sure we know how to process the document.
     if (sbmlDocument->getLevel() == 3 && sbmlDocument->getVersion() == 1)

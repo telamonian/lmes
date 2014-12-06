@@ -6,10 +6,10 @@ SET(CMAKE_CXX_COMPILER g++)
 project(lm)
 ################
 enable_testing()
-#if certain packages cannot be found, the end-user (you) can change the variables in CMakeConfig.txt to point to package paths
+# if certain packages cannot be found, the end-user (you) can change the variables in CMakeConfig.txt to point to package paths
 include(CMakeConfig.txt)
 
-#package finding stuff
+# package finding stuff
 SET(CMAKE_MODULE_PATH  ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/CMakeModules )
 
 find_package(MPI REQUIRED)
@@ -23,14 +23,14 @@ ELSE(MPICH_LOWER MATCHES "mpich" OR MPICH_UPPER MATCHES "MPICH")
     message(FATAL_ERROR "...mpi implementation found is not mpich, stopping. Lattice Microbes only supports mpich2 >3.0 at this time. If multiple mpi implementations are installed, please specify path to mpich in CMakeConfig.txt.")
 ENDIF(MPICH_LOWER MATCHES "mpich" OR MPICH_UPPER MATCHES "MPICH")
 
-#conditionals for dealing with CUDA
+# conditionals for dealing with CUDA
 IF (USE_CUDA STREQUAL yes)
     find_package(cuda REQUIRED)
 ENDIF(USE_CUDA STREQUAL yes)
 IF (USE_CUDA STREQUAL optional)
     find_package(cuda)
 ENDIF(USE_CUDA STREQUAL optional)
-#protects against using CUDA when the headers are present without the libraries and USE_CUDA is set to optional
+# protects against using CUDA when the headers are present without the libraries and USE_CUDA is set to optional
 IF(CUDA_FOUND AND NOT CUDA_CUDA_LIBRARY)
     set(CUDA_FOUND false)
 ENDIF(CUDA_FOUND AND NOT CUDA_CUDA_LIBRARY)
@@ -44,7 +44,7 @@ find_package(PythonLibs)
 #find_package(SWIG)
 #find_package(Boost)
 
-#automagic setup for linux, os X 10.7-8 (and lower?), and os X 10.9
+# automagic setup for linux, os X 10.7-8 (and lower?), and os X 10.9
 add_definitions(-DBUILD_INFO -DVERBOSITY_LEVEL=${VERBOSITY_LEVEL})
 IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
     add_definitions(-DOPT_CUDA)
@@ -64,15 +64,15 @@ ELSE(DEFINED CUSTOM_CXX_FLAGS)
     SET(CMAKE_CXX_FLAGS "-g -m64 -fPIC -Wall -fmessage-length=0")
 ENDIF(DEFINED CUSTOM_CXX_FLAGS)
 
-#for now, no c++11 support
+# for now, no c++11 support
 #SET(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     add_definitions(-DLINUX)
 ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     add_definitions(-DMACOSX)
-    #lattice microbes supports gcc-llvm-4.2 as the complier on os X 10.8 and below, and clang 5.0 on os X 10.9
-    #in order to support clang, the -stdlib=libstdc++ flag needs to be passed to clang, and the -ccbin clang flag needs to be passed to nvcc during the CUDA compilation (see src/cuda/CMakeLists.txt)
-    #if you compiled the Lattice Microbes dependencies using clang in 10.9 (in particular google protobuf) and are getting strange linking errors to a particular dependency, you may need also need to recompile said dependency using the -stdlib=libstdc++ option 
+    # lattice microbes supports gcc-llvm-4.2 as the complier on os X 10.8 and below, and clang 5.0 on os X 10.9
+    # in order to support clang, the -stdlib=libstdc++ flag needs to be passed to clang, and the -ccbin clang flag needs to be passed to nvcc during the CUDA compilation (see src/cuda/CMakeLists.txt)
+    # if you compiled the Lattice Microbes dependencies using clang in 10.9 (in particular google protobuf) and are getting strange linking errors to a particular dependency, you may need also need to recompile said dependency using the -stdlib=libstdc++ option 
     execute_process(COMMAND sw_vers OUTPUT_VARIABLE SW_VERS_DUMP)
     STRING(REGEX REPLACE ".+ProductVersion:\t10\\.([0-9]).+" "\\1" OSX_VERSION "${SW_VERS_DUMP}" )
     MESSAGE(STATUS "OSX_VERSION=10.${OSX_VERSION}")
@@ -96,24 +96,15 @@ include_directories(profile
                     ${CUDA_INCLUDE_DIRS}
                     ${PYTHON_INCLUDE_DIRS})
 
-#add subdirectories
-#add_subdirectory(src/protobuf)
-
-set(CYTHON_OTHER_LIBS ${CMAKE_THREAD_LIBS_INIT}
-                      ${libsbml_LIBRARIES}
-                      ${PROTOBUF_LIBRARIES}
-                      ${HDF5_LIBRARIES}
-                      ${HDF5_HL_LIBRARIES}
-                      ${MPI_C_LIBRARIES}
-                      ${PYTHON_LIBRARY_DIRS})
-
+# add subdirectories
 add_subdirectory(src/c)
 IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
     add_subdirectory(src/cuda)
     add_dependencies(lm_cuda_lib lm_c_lib)
 ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional)) 
 add_subdirectory(gtest/c)
-
+add_subdirectory(utils/c)
+add_dependencies(lm_sbml_import lm_c_lib)
 #set_source_files_properties(${proto_hdrs} PROPERTIES GENERATED TRUE)
 #get_directory_property(proto_vars DIRECTORY src/protobuf DEFINITION proto_srcs)
 
@@ -156,6 +147,14 @@ install(TARGETS lm DESTINATION bin)
 #TARGET: cython
 ################
 if (MAKE_CYTHON STREQUAL yes)
+    set(CYTHON_OTHER_LIBS ${CMAKE_THREAD_LIBS_INIT}
+                          ${libsbml_LIBRARIES}
+                          ${PROTOBUF_LIBRARIES}
+                          ${HDF5_LIBRARIES}
+                          ${HDF5_HL_LIBRARIES}
+                          ${MPI_C_LIBRARIES}
+                          ${PYTHON_LIBRARY_DIRS})
+
     add_custom_target( ReplicatePythonSourceTree ALL ${CMAKE_COMMAND} -P
         ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/ReplicatePythonSourceTree.cmake
         ${CMAKE_CURRENT_BINARY_DIR}
@@ -164,3 +163,4 @@ if (MAKE_CYTHON STREQUAL yes)
     include(UseCython)  ###cython
     add_subdirectory(src/cython)
 endif (MAKE_CYTHON STREQUAL yes)
+                               

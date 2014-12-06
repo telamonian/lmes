@@ -1,5 +1,8 @@
 # cuda src directory
 
+####################
+#TARGET: lm_cuda_lib
+####################
 SET(CUDA_NVCC_FLAGS --ptxas-options=-v;--gpu-architecture;compute_30;--gpu-code;sm_30;-DCUDA_3D_GRID_LAUNCH;-DCUDA_DOUBLE_PRECISION;-DTUNE_MPD_Y_BLOCK_Y_SIZE=16;-DTUNE_MPD_Z_BLOCK_Z_SIZE=8)
 SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
 

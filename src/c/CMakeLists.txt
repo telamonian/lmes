@@ -1,5 +1,8 @@
 # c src directory
 
+#################
+#TARGET: lm_c_lib
+#################
 #get the source files
 file(GLOB_RECURSE lm_c_source *.cpp *.cc *.h)
 file(GLOB to_remove_mainmpi lm/main/MainMPI.cpp)
