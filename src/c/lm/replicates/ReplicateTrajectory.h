@@ -39,6 +39,9 @@
 #ifndef LM_FFLUX_FFLUXTRAJECTORY_H_
 #define LM_FFLUX_FFLUXTRAJECTORY_H_
 
+#include <map>
+#include <string>
+
 #include "lm/input/Input.h"
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/ReactionModel.pb.h"
