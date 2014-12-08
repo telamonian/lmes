@@ -41,12 +41,9 @@
 #include <list>
 #include <map>
 #include <string>
-
-#define __STDC_LIMIT_MACROS
-#include <stdint.h>
-
 #include "hrtime.h"
 #include "lm/Print.h"
+#include "lm/Types.h"
 #include "lm/input/Input.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/ReactionModel.pb.h"
@@ -57,7 +54,10 @@
 #include "lm/replicates/ReplicateTrajectoryList.h"
 #include "lm/trajectory/Trajectory.h"
 #include "lm/trajectory/TrajectoryList.h"
-#include "lm/Types.h"
+
+#ifndef UINT64_MAX
+#define UINT64_MAX        18446744073709551615ULL
+#endif
 
 using std::map;
 using std::string;
@@ -163,7 +163,7 @@ void ReplicateTrajectoryList::printTrajectoryStatistics()
 {
     // Print some performance statistics, if it has been a while.
     hrtime currentTime = getHrTime();
-    if (convertHrToSeconds(currentTime-stats_lastPrintTime) > 70.0)
+    if (convertHrToSeconds(currentTime-stats_lastPrintTime) > 700.0)
     {
         const std::string statusStrings[] = {"NOT_STARTED", "RUNNING", "WAITING", "FINISHED"};
         Print::printf(Print::INFO, "Trajectory status");
