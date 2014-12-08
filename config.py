@@ -13,7 +13,6 @@ class TplFile(object):
             self.lines = Template(f.read())
         self.subDict = {}
         
-        
     def getLibDir(self, libName, rootLibDir):
         rootTup = os.walk(rootLibDir).next()
         if libName in rootTup[1]:
@@ -51,6 +50,12 @@ class TplFile(object):
         libDirPath = self.getLibDir('libsbml', rootLibDir)
         self.subDict['SBML_ROOT'] = libDirPath
     
+    def setUseCuda(self, useCuda):
+        self.subDict['USE_CUDA'] = useCuda
+    
+    def setVerbosityLevel(self, verbosityLevel):
+        self.subDict['VERBOSITY_LEVEL'] = '%d' % verbosityLevel
+    
     def Sub(self):
         self.lines = self.lines.safe_substitute(self.subDict)
     
@@ -65,6 +70,8 @@ if __name__=='__main__':
     tplFile = TplFile()
     for libName in lmLibNames:
         tplFile.setLibDict(libName, rootLibDir)
+    tplFile.setVerbosityLevel(4)
+    tplFile.setUseCuda('no')
     tplFile.Sub()
     tplFile.UncommentSubbedLines()
     print tplFile.lines
