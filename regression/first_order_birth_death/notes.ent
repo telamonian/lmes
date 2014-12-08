@@ -1,0 +1,34 @@
+
+# Try with no limits.
+rm -f first_order_birth_death_1.lm && lm_sbml_import first_order_birth_death_1.lm first_order_birth_death.sbml
+lm_setp first_order_birth_death_1.lm writeInterval=1e1
+lmes -f first_order_birth_death_1.lm -c 2 -gr 1/8 -ca -ff log -ws |tee first_order_birth_death_1.log
+
+# Try with time limit.
+rm -f first_order_birth_death_2.lm && lm_sbml_import first_order_birth_death_2.lm first_order_birth_death.sbml
+lm_setp first_order_birth_death_2.lm maxTime=1e6 writeInterval=1e6 maxWorkUnitSteps=100000000
+lmes -f first_order_birth_death_2.lm -r 1-10 -c 4 -gr 1/8 -ca -ff null -ws |tee first_order_birth_death_2.log
+
+#### Timings ####
+xanthus                       
+xanthus-cp-2 (cpu-only)       
+xanthus-cp-2 (cpu+GPU)        
+barkeri (cpu-only)              16,700,000 rxns/s
+barkeri (cpu+GPU)               25,800,000 rxns/s
+
+
+# Try with upper species limit.
+rm -f first_order_birth_death_3.lm && lm_sbml_import first_order_birth_death_3.lm first_order_birth_death.sbml
+lm_setp first_order_birth_death_3.lm "speciesUpperLimitList=0:1100" writeInterval=1e-1
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f first_order_birth_death_3.lm -c 2 -gr 1/8 -ca -ff log -ws |tee first_order_birth_death_3.log
+
+# Try with lower species limit.
+rm -f first_order_birth_death_4.lm && lm_sbml_import first_order_birth_death_4.lm first_order_birth_death.sbml
+lm_setp first_order_birth_death_4.lm "speciesLowerLimitList=0:900" writeInterval=1e-2
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f first_order_birth_death_4.lm -c 2 -gr 1/8 -ca -ff log -ws |tee first_order_birth_death_4.log
+
+# Try with fpt tracking.
+rm -f first_order_birth_death_5.lm && lm_sbml_import first_order_birth_death_5.lm first_order_birth_death.sbml
+lm_setp first_order_birth_death_5.lm maxTime=1e5 writeInterval=1e1 fptTrackingList=0
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f first_order_birth_death_5.lm -c 2 -gr 1/8 -ca -ff log -ws |tee first_order_birth_death_5.log
+
