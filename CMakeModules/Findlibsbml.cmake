@@ -21,7 +21,7 @@ set(_sbml_hints
 
 # Include dir
 find_path(libsbml_INCLUDE_DIR
-  NAMES SBMLNamespaces.h
+  NAMES sbml/SBMLTypes.h
   PATH_SUFFIXES sbml
   HINTS ${_sbml_hints}
 )
