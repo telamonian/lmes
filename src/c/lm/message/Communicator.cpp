@@ -51,14 +51,14 @@ namespace lm {
 namespace message {
 
 Communicator::Communicator(Endpoint source)
-:source(source),inputBufferSize(50*1024*1024),inputBuffer(NULL),outputBufferSize(50*1024*1024),outputBuffer(NULL)
+:source(source),inputBufferSize(250*1024*1024),inputBuffer(NULL),outputBufferSize(250*1024*1024),outputBuffer(NULL)
 {
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(inputBufferSize, MPI_INFO_NULL, &inputBuffer));
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(outputBufferSize, MPI_INFO_NULL, &outputBuffer));
 }
 
 Communicator::Communicator(int process, int thread)
-:source(process,thread),inputBufferSize(50*1024*1024),inputBuffer(NULL),outputBufferSize(50*1024*1024),outputBuffer(NULL)
+:source(process,thread),inputBufferSize(250*1024*1024),inputBuffer(NULL),outputBufferSize(250*1024*1024),outputBuffer(NULL)
 {
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(inputBufferSize, MPI_INFO_NULL, &inputBuffer));
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(outputBufferSize, MPI_INFO_NULL, &outputBuffer));
@@ -136,7 +136,7 @@ void Communicator::receiveMessage(lm::message::Message* msg)
     if (!msg->ParseFromArray(inputBuffer, messageLength)) throw lm::Exception("Unable to deserialize message");
     PROF_END(PROF_MESSAGE_PARSE);
 
-    lm::Print::printf(lm::Print::DEBUG, "Received message %d:%d->%d:%d %d bytes: {\n%s}",msg->source_process(),msg->source_thread(),msg->dest_process(),msg->dest_thread(),msg->ByteSize(), msg->DebugString().c_str());
+    //lm::Print::printf(lm::Print::DEBUG, "Received message %d:%d->%d:%d %d bytes: {\n%s}",msg->source_process(),msg->source_thread(),msg->dest_process(),msg->dest_thread(),msg->ByteSize(), msg->DebugString().c_str());
 
     PROF_END(PROF_MESSAGE_RECEIVE);
 }

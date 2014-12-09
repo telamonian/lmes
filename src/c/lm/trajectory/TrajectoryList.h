@@ -87,6 +87,8 @@ public:
 //    virtual lm::message::RunWorkUnit* getRunMsg() {return trajectoryTemplateMsg.mutable_run_work_unit();}
 //    virtual lm::io::TrajectoryLimits* getLimitsMsg() {return getRunMsg()->mutable_limits();}
 
+    virtual void printTrajectoryStatistics();
+
 protected:
 //    const lm::io::ReactionModel& reactionModel;
 //    const lm::io::DiffusionModel& diffusionModel;

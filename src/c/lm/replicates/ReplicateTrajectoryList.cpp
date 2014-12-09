@@ -37,21 +37,27 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
+#include <limits>
 #include <list>
 #include <map>
 #include <string>
-
+#include "hrtime.h"
 #include "lm/Print.h"
+#include "lm/Types.h"
 #include "lm/input/Input.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
+#include "lm/message/Message.pb.h"
 #include "lm/replicates/ReplicateTrajectory.h"
 #include "lm/replicates/ReplicateTrajectoryList.h"
 #include "lm/trajectory/Trajectory.h"
 #include "lm/trajectory/TrajectoryList.h"
-#include "lm/Types.h"
+
+#ifndef UINT64_MAX
+#define UINT64_MAX        18446744073709551615ULL
+#endif
 
 using std::map;
 using std::string;
@@ -60,7 +66,7 @@ namespace lm {
 namespace replicates {
 
 ReplicateTrajectoryList::ReplicateTrajectoryList(lm::input::Input& input, uint64_t firstTrajectory, uint64_t lastTrajectory)
-:TrajectoryList(input),firstTrajectory(firstTrajectory),lastTrajectory(lastTrajectory)
+:TrajectoryList(input),firstTrajectory(firstTrajectory),lastTrajectory(lastTrajectory),stats_lastPrintTime(getHrTime())
 {
     init();
 }
@@ -124,6 +130,52 @@ void ReplicateTrajectoryList::init()
         initialLattice->set_particles_per_site(input.diffusionModelBuf.initial_lattice().particles_per_site());
         initialLattice->set_particles_ordering(input.diffusionModelBuf.initial_lattice().particles_ordering());
         initialLattice->set_particles(input.diffusionModelBuf.initial_lattice().particles());
+    }
+}
+
+lm::message::Message* ReplicateTrajectoryList::getNextWorkUnitMsg()
+{
+    uint64_t minId=UINT64_MAX;
+    double minTime=std::numeric_limits<double>::infinity();
+    for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+    {
+        lm::trajectory::Trajectory* t = it->second;
+        if (t->getStatus()==lm::trajectory::Trajectory::NOT_STARTED || t->getStatus()==lm::trajectory::Trajectory::WAITING)
+        {
+            double time = t->getState()->cme_state().species_counts().time(0);
+            if (time < minTime)
+            {
+                minTime = time;
+                minId = it->first;
+            }
+        }
+    }
+
+    // If we found an available trajectory, return the next work unit message.
+    if (minId != UINT64_MAX)
+    {
+        return trajectories[minId]->getNextWorkUnitMsg(workUnitCount++);
+    }
+    return NULL;
+}
+
+void ReplicateTrajectoryList::printTrajectoryStatistics()
+{
+    // Print some performance statistics, if it has been a while.
+    hrtime currentTime = getHrTime();
+    if (convertHrToSeconds(currentTime-stats_lastPrintTime) > 700.0)
+    {
+        const std::string statusStrings[] = {"NOT_STARTED", "RUNNING", "WAITING", "FINISHED"};
+        Print::printf(Print::INFO, "Trajectory status");
+        Print::printf(Print::INFO, "        ID State       Time     Work Units");
+        Print::printf(Print::INFO, "------------------------------------------");
+        for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+        {
+            uint64_t id = it->first;
+            lm::trajectory::Trajectory* t = it->second;
+            Print::printf(Print::INFO, "%10lld %-11s %8.2e %10d", id, statusStrings[(int)t->getStatus()].c_str(), t->getState()->cme_state().species_counts().time(0), t->getWorkUnitsPerformed());
+        }
+        stats_lastPrintTime = getHrTime();
     }
 }
 

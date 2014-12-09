@@ -73,7 +73,7 @@ public:
     virtual void reset();
     virtual void getState(lm::io::TrajectoryState* state);
     virtual void setState(const lm::io::TrajectoryState& state);
-    virtual bool generateTrajectory(long long maxSteps);
+    virtual long long generateTrajectory(long long maxSteps);
 
 protected:
     inline void updateAllPropensities(double time);

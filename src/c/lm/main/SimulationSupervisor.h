@@ -44,6 +44,7 @@
 
 #include <google/protobuf/message.h>
 
+#include "hrtime.h"
 #include "lm/Exceptions.h"
 #include "lm/input/Input.h"
 #include "lm/io/BoundaryConditions.pb.h"
@@ -109,7 +110,13 @@ protected:
     virtual void receivedStartedWorkUnit(const lm::message::StartedWorkUnit& msg);
     virtual void receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg);
 
+private:
+    bool parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg);
+    void resetPerformanceStatistics();
+    void printPerformanceStatistics(bool flush=false);
+
 protected:
+    bool simulationRunning;
     lm::message::Communicator communicator;
     lm::resource::ResourceMap* resourceMap;
     std::string simulationInputFilename;
@@ -139,7 +146,13 @@ protected:
     long long workUnitCount;
 
 private:
-    bool parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg);
+    hrtime stats_lastPrintTime;
+    long long stats_workUnits;
+    long long stats_minWorkUnitId;
+    long long stats_maxWorkUnitId;
+    long long stats_workUnitsSteps;
+    double stats_workUnitTime;
+
 };
 
 }
