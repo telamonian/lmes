@@ -148,6 +148,7 @@ endfunction()
 function(_protobuf_find_libraries name filename)
    find_library(${name}_LIBRARY
        NAMES ${filename}
+       HINTS ${PROTOBUF_ROOT}/lib
        PATHS ${PROTOBUF_ROOT}/lib ${PROTOBUF_SRC_ROOT_FOLDER}/vsprojects/Release)
    mark_as_advanced(${name}_LIBRARY)
 
