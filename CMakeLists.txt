@@ -74,7 +74,7 @@ ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     # in order to support clang, the -stdlib=libstdc++ flag needs to be passed to clang, and the -ccbin clang flag needs to be passed to nvcc during the CUDA compilation (see src/cuda/CMakeLists.txt)
     # if you compiled the Lattice Microbes dependencies using clang in 10.9 (in particular google protobuf) and are getting strange linking errors to a particular dependency, you may need also need to recompile said dependency using the -stdlib=libstdc++ option 
     execute_process(COMMAND sw_vers OUTPUT_VARIABLE SW_VERS_DUMP)
-    STRING(REGEX REPLACE ".+ProductVersion:\t10\\.([0-9]).+" "\\1" OSX_VERSION "${SW_VERS_DUMP}" )
+    STRING(REGEX REPLACE ".+ProductVersion:\t10\\.([0-9].+)" "\\1" OSX_VERSION "${SW_VERS_DUMP}" )
     MESSAGE(STATUS "OSX_VERSION=10.${OSX_VERSION}")
     IF(OSX_VERSION GREATER 8)
         SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -stdlib=libstdc++")
