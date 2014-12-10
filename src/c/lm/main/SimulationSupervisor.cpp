@@ -369,8 +369,11 @@ void SimulationSupervisor::allResourcesRegistered()
 void SimulationSupervisor::startOutputWriter()
 {
     // Reserve a core for the output writer.
-    ComputeResources resources = resourceMap->reserveCPUCores(communicator.getSourceProcess(),1);
-    Print::printf(Print::INFO, "Reserved core %d on %d:%d for the output writer.", resources.cpuCores[0], resources.controller_process, resources.controller_thread);
+    if (shouldReserveOutputCore)
+    {
+        ComputeResources resources = resourceMap->reserveCPUCores(communicator.getSourceProcess(),1);
+        Print::printf(Print::INFO, "Reserved core %d on %d:%d for the output writer.", resources.cpuCores[0], resources.controller_process, resources.controller_thread);
+    }
 
     // Start the output writer.
     lm::message::Message msg;

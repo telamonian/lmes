@@ -13,16 +13,21 @@
 /*.app
 /.settings
 
+*.d
+*.gif
+*.o
+*.orig
 *.pb.h
 *.pb.cc
+*.png
 *.pyc
 *.ptx
-*.o
-*.d
-/Debug
+
+bak_*
 /.ptp-sync
 .ptp-sync-folder
 /.gdbinit
+/Debug
 
 /regression/biphasic_switch.lm
 
