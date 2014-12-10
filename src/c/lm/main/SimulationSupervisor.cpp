@@ -368,26 +368,33 @@ void SimulationSupervisor::allResourcesRegistered()
 
 void SimulationSupervisor::startOutputWriter()
 {
-    ComputeResources resources;
-    // Reserve a core for the output writer.
+    // Reserve a core for the output writer if the option is set.
     if (shouldReserveOutputCore)
     {
         ComputeResources resources = resourceMap->reserveCPUCores(communicator.getSourceProcess(),1);
         Print::printf(Print::INFO, "Reserved core %d on %d:%d for the output writer.", resources.cpuCores[0], resources.controller_process, resources.controller_thread);
+
+        // Start the output writer.
+        lm::message::Message msg;
+        msg.mutable_start_output_writer()->set_use_cpu_affinity(useCPUAffinity);
+        msg.mutable_start_output_writer()->set_cpu(resources.cpuCores[0]);
+        msg.mutable_start_output_writer()->set_output_filename(simulationOutputFilename);
+        msg.mutable_start_output_writer()->set_output_writer_class(outputWriterClassName);
+        communicator.sendMessage(resources.controller_process, resources.controller_thread, &msg);
     }
+    // Otherwise, just use core 0 on the Supervisor process
     else
     {
-        ComputeResources resources = resourceMap->reserveCPUCores(communicator.getSourceProcess(),1,false);
-        Print::printf(Print::INFO, "Output writer is sharing core %d on %d:%d.", resources.cpuCores[0], resources.controller_process, resources.controller_thread);
+        Print::printf(Print::INFO, "Output writer is sharing core %d on process %d.", 0, communicator.getSourceProcess());
+        // Start the output writer.
+        lm::message::Message msg;
+        msg.mutable_start_output_writer()->set_use_cpu_affinity(useCPUAffinity);
+        msg.mutable_start_output_writer()->set_cpu(0);
+        msg.mutable_start_output_writer()->set_output_filename(simulationOutputFilename);
+        msg.mutable_start_output_writer()->set_output_writer_class(outputWriterClassName);
+        // thread 1 should be the resource controller
+        communicator.sendMessage(communicator.getSourceProcess(), 1, &msg);
     }
-
-    // Start the output writer.
-    lm::message::Message msg;
-    msg.mutable_start_output_writer()->set_use_cpu_affinity(useCPUAffinity);
-    msg.mutable_start_output_writer()->set_cpu(resources.cpuCores[0]);
-    msg.mutable_start_output_writer()->set_output_filename(simulationOutputFilename);
-    msg.mutable_start_output_writer()->set_output_writer_class(outputWriterClassName);
-    communicator.sendMessage(resources.controller_process, resources.controller_thread, &msg);
 }
 
 void SimulationSupervisor::receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg)
