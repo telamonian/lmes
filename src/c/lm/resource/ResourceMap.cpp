@@ -308,7 +308,7 @@ bool ResourceMap::registerResources(const lm::message::ResourcesAvailable& msg)
     return (allocatedResources.size() == 0);
 }
 
-ComputeResources ResourceMap::reserveCPUCores(int process, int numberCPUCores)
+ComputeResources ResourceMap::reserveCPUCores(int process, int numberCPUCores, bool Exclusive)
 {
     ComputeResources resources = registeredResources[process];
     if ((int)resources.cpuCores.size() >= numberCPUCores)
@@ -320,7 +320,10 @@ ComputeResources ResourceMap::reserveCPUCores(int process, int numberCPUCores)
         for (int i=0; i<numberCPUCores; i++)
         {
             reservedResources.cpuCores.push_back(resources.cpuCores[0]);
-            resources.cpuCores.erase(resources.cpuCores.begin());
+            if (Exclusive)
+            {
+                resources.cpuCores.erase(resources.cpuCores.begin());
+            }
         }
         registeredResources[process] = resources;
         return reservedResources;
