@@ -89,7 +89,7 @@ void TrajectoryList::deleteTrajectory(uint64_t trajectoryID)
     trajectories.erase(it);
 }
 
-lm::trajectory::Trajectory* TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg) // TODO: refactor into a Trajectory mutator
+lm::trajectory::Trajectory* TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
 {
     Trajectory* t = trajectories[msg.final_state().trajectory_id()];
     t->incrementWorkUnitsPerformed();

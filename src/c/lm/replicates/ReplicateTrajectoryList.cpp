@@ -133,6 +133,17 @@ void ReplicateTrajectoryList::init()
     }
 }
 
+lm::trajectory::Trajectory* ReplicateTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
+{
+    lm::trajectory::Trajectory* t = TrajectoryList::workUnitFinished(msg);
+    if (t->getStatus() == lm::trajectory::Trajectory::FINISHED)
+    {
+        Print::printf(Print::INFO, "Replicate %lld completed with %8.2e of simulation time using %d work units.", t->getID(), t->getState()->cme_state().species_counts().time(0), t->getWorkUnitsPerformed());
+    }
+
+    return t;
+}
+
 lm::message::Message* ReplicateTrajectoryList::getNextWorkUnitMsg()
 {
     uint64_t minId=UINT64_MAX;

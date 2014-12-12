@@ -45,6 +45,8 @@
 #include <deque>
 #include <string>
 #include <vector>
+
+#include "hrtime.h"
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
@@ -78,9 +80,11 @@ public:
 
 protected:
     virtual void startSimulation();
+    virtual void finishSimulation();
 //    virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg);
 
-protected:
+private:
+    hrtime simulationStartTime;
 };
 
 }

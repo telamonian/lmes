@@ -69,6 +69,7 @@ public:
     virtual lm::trajectory::Trajectory::status_t getTrajectoryStatus(uint64_t trajectoryID);
     virtual lm::io::TrajectoryState* getTrajectoryState(uint64_t trajectoryID);
     virtual bool exists(uint64_t trajectoryID) {if (trajectories.find(trajectoryID)!=trajectories.end()) return true; else return false;}
+    virtual size_t size() {return trajectories.size();}
 
     // setter
     virtual void setTrajectoryStarted(uint64_t trajectoryID, bool trajectoryStarted);

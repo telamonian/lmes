@@ -40,6 +40,7 @@
 #include <map>
 #include <string>
 
+#include "hrtime.h"
 #include "lm/ClassFactory.h"
 #include "lm/Print.h"
 #include "lm/io/OutputWriter.h"
@@ -75,6 +76,7 @@ void* ReplicateSupervisor::allocateObject()
 }
 
 ReplicateSupervisor::ReplicateSupervisor()
+:simulationStartTime(0)
 {
 }
 
@@ -84,6 +86,8 @@ ReplicateSupervisor::~ReplicateSupervisor()
 
 void ReplicateSupervisor::startSimulation()
 {
+    simulationStartTime=getHrTime();
+
     // Check for some error conditions.
     if (outputWriterProcess == -1 || outputWriterThread == -1)
         throw new Exception("ReplicateSupervisor could not start the simulation, no output writer available.");
@@ -95,6 +99,12 @@ void ReplicateSupervisor::startSimulation()
 
     // Call the base class method
     SimulationSupervisor::startSimulation();
+}
+
+void ReplicateSupervisor::finishSimulation()
+{
+    Print::printf(Print::INFO, "Replicate supervisor finished %d replicates in %0.2f seconds.", trajectories->size(), convertHrToSeconds(getHrTime()-simulationStartTime));
+    SimulationSupervisor::finishSimulation();
 }
 
 }

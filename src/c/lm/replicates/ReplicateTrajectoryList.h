@@ -66,6 +66,7 @@ public:
     ReplicateTrajectoryList(lm::input::Input& input, uint64_t firstTrajectory, uint64_t lastTrajectory);
     virtual ~ReplicateTrajectoryList();
     virtual void init();
+    virtual lm::trajectory::Trajectory* workUnitFinished(const lm::message::FinishedWorkUnit& msg);
     virtual lm::message::Message* getNextWorkUnitMsg();
     virtual void printTrajectoryStatistics();
 
