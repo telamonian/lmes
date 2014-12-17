@@ -24,7 +24,7 @@ SET(VERBOSITY_LEVEL 4)
 
 #SET(PROTOBUF_ROOT "/Users/eroberts/usr")
 
-#SET(ENV{HDF5_ROOT} "/Users/eroberts/usr")
+SET(ENV{HDF5_ROOT} "/Users/tel/git/installer_lm/Cellar/hdf5/1.8.14/")
 
 #SET(MPI_C_COMPILER "/Users/eroberts/usr/local/bin/mpicc")
 #SET(MPI_C_EXEC "/Users/eroberts/usr/local/bin/mpirun")

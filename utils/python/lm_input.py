@@ -11,7 +11,7 @@ OrderParameter = namedtuple('OrderParameter', ['id','type','speciesIDs','species
 SimulationParameter = namedtuple('SimulationParameter', ['key', 'val'])
 Tiling = namedtuple('Tiling', ['ID','orderParameterID','Type','edges'])
 
-class FFluxParameters(object):
+class Input(object):
     def __init__(self, fname):
         self.f = h5py.File('.'.join((fname,'lm')), 'a')
     
@@ -125,9 +125,9 @@ if __name__=="__main__":
                     orderParameterID=0,
                     Type=0,
                     edges=np.linspace(-25,25,13))
-    ffluxParameters = FFluxParameters('biphasic_switch')
-    ffluxParameters.AddTilings(tilings=[tiling])
-    ffluxParameters.SetInitialSpeciesCounts(iSCs=iSCs)
-    ffluxParameters.SetInitialSpeciesCountsBackward(iSCBs=iSCBs)
-    ffluxParameters.SetOrderParameters(ops=[op])
-    ffluxParameters.SetSimulationParameters(simParams=simParams)
+    input = Input('biphasic_switch')
+    input.AddTilings(tilings=[tiling])
+    input.SetInitialSpeciesCounts(iSCs=iSCs)
+    input.SetInitialSpeciesCountsBackward(iSCBs=iSCBs)
+    input.SetOrderParameters(ops=[op])
+    input.SetSimulationParameters(simParams=simParams)
