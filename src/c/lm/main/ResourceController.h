@@ -54,8 +54,6 @@
 #include "lm/thread/Worker.h"
 #include "lm/thread/Thread.h"
 
-typedef std::list<lm::thread::Worker*> WorkerList;
-
 namespace lm {
 namespace main {
 
@@ -74,12 +72,12 @@ protected:
     virtual int run();
     virtual void startWorkUnitRunner(const lm::message::StartWorkUnitRunner& msg);
     virtual void startOutputWriter(const lm::message::StartOutputWriter& msg);
+    virtual void startCheckpointSignaler(const lm::message::StartCheckpointSignaler& msg);
     virtual void stopWorkers(bool abort);
 
 protected:
     lm::message::Communicator communicator;
-    WorkerList runnerWorkers;
-    WorkerList writerWorkers;
+    std::list<lm::thread::Worker*> workers;
 };
 
 }

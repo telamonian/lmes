@@ -69,6 +69,7 @@ protected:
     virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data);
     virtual void processFFluxOutput(const lm::io::FFluxOutput& data);
     virtual void flush();
+    virtual void checkpoint();
 
 private:
     Hdf5File* file;

@@ -72,7 +72,5 @@ void Worker::abort() throw(PthreadException)
     wake();
 }
 
-void Worker::checkpoint() throw(PthreadException) {}
-
 }
 }

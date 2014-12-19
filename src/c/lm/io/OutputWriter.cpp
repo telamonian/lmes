@@ -38,7 +38,6 @@
  */
 
 #include <queue>
-
 #include <pthread.h>
 #include <sys/time.h>
 #include <time.h>
@@ -50,6 +49,7 @@
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Communicator.h"
+#include "lm/message/FinishedCheckpointing.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/ProcessWorkUnitOutput.pb.h"
 #include "lm/message/StartedOutputWriter.pb.h"
@@ -158,6 +158,33 @@ int OutputWriter::run()
                     Print::printf(Print::WARNING, "OutputWriter is receiving too much data, performance may be degraded. If this this message appear frequently, increase write intervals to increase performance. (%d bytes queued)",tmpMessageQueueSize);
                     sleep(5);
                 }
+            }
+            else if (message->has_perform_checkpointing())
+            {
+                // Wait for the queue to be empty.
+                while (true)
+                {
+                    int tmpMessageQueueLength;
+
+                    //// BEGIN CRITICAL SECTION: messageQueueMutex
+                    PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&messageQueueMutex));
+                    tmpMessageQueueLength = messageQueue.size();
+                    PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&messageQueueMutex));
+                    //// END CRITICAL SECTION: messageQueueMutex
+
+                    if (tmpMessageQueueLength > 0)
+                        sleep(1);
+                    else
+                        break;
+                }
+
+                // Perform the checkpointing.
+                checkpoint();
+
+                // Report back to the supervisor that the checkpoint is finished.
+                msgp.Clear();
+                lm::message::FinishedCheckpointing* msg = msgp.mutable_finished_checkpointing();
+                communicator.sendMessage(lm::MPI::MASTER, lm::main::SimulationSupervisor::THREAD_ID, &msgp);
             }
             else if (message->has_ping_target())
             {

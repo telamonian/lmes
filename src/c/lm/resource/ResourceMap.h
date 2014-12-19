@@ -62,6 +62,7 @@ public:
     virtual ~ResourceMap();
     bool registerResources(const lm::message::ResourcesAvailable& msg);
     ComputeResources reserveCPUCores(int process, int numberCPUCores);
+    ComputeResources getController(int process);
     map<int,ComputeResources> getAvailableResources();
 
 protected:

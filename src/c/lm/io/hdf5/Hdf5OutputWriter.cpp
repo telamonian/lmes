@@ -116,6 +116,11 @@ void Hdf5OutputWriter::flush()
     file->flush();
 }
 
+void Hdf5OutputWriter::checkpoint()
+{
+    file->checkpoint();
+}
+
 void Hdf5OutputWriter::finalize()
 {
     OutputWriter::finalize();

@@ -85,11 +85,6 @@ extern vector<uint64_t> replicates;
 extern time_t checkpointInterval;
 
 /**
- * A global execution timer
- */
-extern hrtime globalTimer;
-
-/**
  * If a global abort signal has been received.
  */
 extern volatile bool globalAbort;

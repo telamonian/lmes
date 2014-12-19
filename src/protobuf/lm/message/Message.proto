@@ -52,30 +52,40 @@ import "lm/message/StopResourceController.proto";
 import "lm/message/ProcessWorkUnitOutput.proto";
 import "lm/message/PingTarget.proto";
 
+import "lm/message/StartCheckpointSignaler.proto";
+import "lm/message/StartedCheckpointSignaler.proto";
+import "lm/message/PerformCheckpointing.proto";
+import "lm/message/FinishedCheckpointing.proto";
+
 message Message {
-    required uint32 source_process                                          = 1;
-    required uint32 source_thread                                           = 2;
-    required uint32 dest_process                                            = 3;
-    required uint32 dest_thread                                             = 4;
+    required uint32 source_process                                              = 1;
+    required uint32 source_thread                                               = 2;
+    required uint32 dest_process                                                = 3;
+    required uint32 dest_thread                                                 = 4;
 
-    optional lm.message.ResourcesAvailable resources_available              = 10;
+    optional lm.message.ResourcesAvailable resources_available                  = 10;
 
-    repeated lm.message.StartWorkUnitRunner start_work_unit_runner          = 11;
-    optional lm.message.StartedWorkUnitRunner started_work_unit_runner      = 12;
+    repeated lm.message.StartWorkUnitRunner start_work_unit_runner              = 11;
+    optional lm.message.StartedWorkUnitRunner started_work_unit_runner          = 12;
 
-    repeated lm.message.StopWorkUnitRunner stop_work_unit_runner			  = 13;
-    optional lm.message.StoppedWorkUnitRunner stopped_work_unit_runner      = 14;
+    repeated lm.message.StopWorkUnitRunner stop_work_unit_runner			     = 13;
+    optional lm.message.StoppedWorkUnitRunner stopped_work_unit_runner          = 14;
 
-    optional lm.message.RunWorkUnit run_work_unit                           = 15;
-    optional lm.message.StartedWorkUnit started_work_unit                   = 16;
-    optional lm.message.FinishedWorkUnit finished_work_unit                 = 17;
+    optional lm.message.RunWorkUnit run_work_unit                               = 15;
+    optional lm.message.StartedWorkUnit started_work_unit                       = 16;
+    optional lm.message.FinishedWorkUnit finished_work_unit                     = 17;
     
-    optional lm.message.StartOutputWriter start_output_writer               = 20;
-    optional lm.message.StartedOutputWriter started_output_writer           = 21;
+    optional lm.message.StartOutputWriter start_output_writer                   = 20;
+    optional lm.message.StartedOutputWriter started_output_writer               = 21;
 
-    optional lm.message.StopResourceController stop_resource_controller     = 50;
+    optional lm.message.StartCheckpointSignaler start_checkpoint_signaler       = 30;
+    optional lm.message.StartedCheckpointSignaler started_checkpoint_signaler   = 31;
+    optional lm.message.PerformCheckpointing perform_checkpointing              = 32;
+    optional lm.message.FinishedCheckpointing finished_checkpointing            = 33;
+
+    optional lm.message.StopResourceController stop_resource_controller         = 50;
     
-    repeated lm.message.ProcessWorkUnitOutput process_work_unit_output      = 100;
+    repeated lm.message.ProcessWorkUnitOutput process_work_unit_output          = 100;
 
-    optional lm.message.PingTarget ping_target                              = 1000;
+    optional lm.message.PingTarget ping_target                                  = 1000;
 }

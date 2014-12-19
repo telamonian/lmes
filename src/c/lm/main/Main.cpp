@@ -98,11 +98,6 @@ vector<uint64_t> replicates;
  */
 time_t checkpointInterval = 0;
 
-/*
- * A global execution timer.
- */
-hrtime globalTimer;
-
 /**
  * If a global abort signal has been received.
  */

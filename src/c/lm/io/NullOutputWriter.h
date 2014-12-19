@@ -67,6 +67,7 @@ protected:
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
     virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data);
     virtual void flush();
+    virtual void checkpoint();
 
 private:
     int secondsToDelay;

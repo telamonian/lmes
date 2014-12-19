@@ -65,7 +65,6 @@ public:
     void removeWorker(Worker * worker) throw(PthreadException);
     void abortWorkers() throw(PthreadException);
     void deleteWorkers() throw(PthreadException);
-    void checkpointWorkers() throw(PthreadException);
     void stopWorkers() throw(PthreadException);
 
 private:
