@@ -1,7 +1,7 @@
 /*
-  * University of Illinois Open Source License
+ * University of Illinois Open Source License
  * Copyright 2008-2011 Luthey-Schulten Group,
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2015 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Luthey-Schulten Group
@@ -183,6 +183,15 @@ protected:
         double k;
         double v;
     };
+    struct EffectiveBurstPropensityArgs : public PropensityArgs
+    {
+        static const uint REACTION_TYPE = 8100;
+        EffectiveBurstPropensityArgs(uint ni, int N, double b) :ni(ni),N(N),b(b) {}
+        uint ni;
+        int N;
+        double b;
+    };
+
     class SpeciesLimit
     {
     public:
@@ -294,6 +303,7 @@ protected:
     static double pdReflectingCooperateFitnessPropensity(double time, uint * speciesCounts, void * pargs);
     static double pdReflectingDefectFitnessPropensity(double time, uint * speciesCounts, void * pargs);
     static double MichaelisMentenPropensity(double time, uint * speciesCounts, void * pargs);
+    static double effectiveBurstPropensity(double time, uint * speciesCounts, void * pargs);
 
     //virtual double recordParameters(double nextRecordTime, double recordInterval, double simulationTime);
     //virtual void queueRecordedParameters(bool flush=false);
