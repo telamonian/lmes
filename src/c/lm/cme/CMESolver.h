@@ -97,9 +97,9 @@ protected:
     };
     struct ZerothOrderTimeDependentPropensityArgs : public PropensityArgs
     {
-        static const uint REACTION_TYPE = 10;
-        ZerothOrderTimeDependentPropensityArgs(double k) :k(k) {}
-        double k;
+        static const uint REACTION_TYPE = 1000;
+        ZerothOrderTimeDependentPropensityArgs(double ki, double kf, double tf) :ki(ki),kf(kf),tf(tf) {}
+        double ki, kf, tf;
     };
     struct FirstOrderPropensityArgs : public PropensityArgs
     {
@@ -107,6 +107,13 @@ protected:
         FirstOrderPropensityArgs(uint si, double k) :si(si),k(k) {}
         uint si;
         double k;
+    };
+    struct FirstOrderTimeDependentPropensityArgs : public PropensityArgs
+    {
+        static const uint REACTION_TYPE = 1001;
+        FirstOrderTimeDependentPropensityArgs(uint si, double ki, double kf, double tf) :si(si),ki(ki),kf(kf),tf(tf) {}
+        uint si;
+        double ki, kf, tf;
     };
     struct SecondOrderPropensityArgs : public PropensityArgs
     {
@@ -282,7 +289,9 @@ protected:
     virtual void addToParameterTrackingList(pair<string,double*>parameter);
 
     static double zerothOrderPropensity(double time, uint * speciesCounts, void * pargs);
+    static double zerothOrderTimeDependentPropensity(double time, uint * speciesCounts, void * pargs);
     static double firstOrderPropensity(double time, uint * speciesCounts, void * pargs);
+    static double firstOrderTimeDependentPropensity(double time, uint * speciesCounts, void * pargs);
     static double secondOrderPropensity(double time, uint * speciesCounts, void * pargs);
     static double secondOrderSelfPropensity(double time, uint * speciesCounts, void * pargs);
     static double kHillPropensity(double time, uint * speciesCounts, void * pargs);

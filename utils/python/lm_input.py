@@ -8,12 +8,13 @@ import numpy as np
 InitialSpeciesCounts = namedtuple('InitialSpeciesCounts',['speciesCounts'])
 InitialSpeciesCountsBackward = namedtuple('InitialSpeciesCountsBackward',['speciesCounts'])
 OrderParameter = namedtuple('OrderParameter', ['id','type','speciesIDs','speciesCoefficients'])
+ReactionRateConstant = namedtuple('ReactionRateConstant', ['reactionID','rateConstant'])
 SimulationParameter = namedtuple('SimulationParameter', ['key', 'val'])
 Tiling = namedtuple('Tiling', ['ID','orderParameterID','Type','edges'])
 
 class Input(object):
     def __init__(self, fname):
-        self.f = h5py.File('.'.join((fname,'lm')), 'a')
+        self.f = h5py.File(fname, 'a')      #h5py.File('.'.join((fname,'lm')), 'a')
     
     def Close(self):
         self.f.close()
@@ -93,6 +94,16 @@ class Input(object):
         for op in ops:
             self.SetOrderParameter(op)
     
+    def SetReactionRateConstant(self, rRate):
+        self.f['/Model/Reaction/ReactionRateConstants'][rRate.reactionID,0] = rRate.rateConstant
+    
+    def SetReactionRateConstants(self, rRates):
+        '''
+        sets at least some of the reaction rate constants in the associated table in the Reaction Model
+        '''
+        for rRate in rRates:
+            self.SetReactionRateConstant(rRate)
+    
     def SetSimulationParameter(self, simParam):
         '''
         sets a simulation parameter as an attribute on the Parameters group
@@ -125,7 +136,7 @@ if __name__=="__main__":
                     orderParameterID=0,
                     Type=0,
                     edges=np.linspace(-25,25,13))
-    input = Input('biphasic_switch')
+    input = Input('biphasic_switch.lm')
     input.AddTilings(tilings=[tiling])
     input.SetInitialSpeciesCounts(iSCs=iSCs)
     input.SetInitialSpeciesCountsBackward(iSCBs=iSCBs)
