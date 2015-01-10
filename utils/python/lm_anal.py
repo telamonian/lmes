@@ -1,4 +1,4 @@
-#!/usr/local/bin/python
+#!/usr/bin/env python
 import bisect as bi
 from collections import OrderedDict
 import h5py
@@ -229,7 +229,7 @@ class Sims(object):
             self.rcoords = np.hstack([self.rcoords, sim.rcoords])
     
     def Savefig(self, fig, suffix):
-        fname = self.Figname(suffix)
+        fname = os.path.join(os.getcwd(),self.Figname(suffix))
         fig.savefig(fname, bbox_inches='tight', transparent=True)
     
     def Hist(self):
@@ -340,6 +340,25 @@ class Sims(object):
         self.Savefig(fig, '_hist2d')
         print 'done'
         
+        
+    def Hist2DSepTraj(self):
+        '''
+        plots each individual trajectory as a separate Hist2D
+        '''
+        if self.rcoords==None:
+            self.Rcoords()
+        fig = plt.figure(1)
+        axes = plt.axes()
+        print 'graphing now...'
+        for i,sim in enumerate(self.sims):
+            axes.hist2d(sim.rcoords[0,:], sim.rcoords[1,:], range=[[0,100],[0,100]], bins=(100, 100))
+            fig.set_size_inches(36,24)
+            matplotlib.rcParams.update({'font.size': 42})
+            axes.set_xlabel('copy num(A)')
+            axes.set_ylabel('copy num(B)')
+            self.Savefig(fig, '_hist2d_replicate%03d' % i)
+            print 'done'
+        
     def Hist2DLog(self):
         if self.rcoords==None:
             self.Rcoords()
@@ -347,7 +366,7 @@ class Sims(object):
         fig.set_size_inches(12,8)
         axes = plt.axes()
         print 'graphing now...'
-        counts,xbins,ybins,image =plt.hist2d(self.rcoords[0,:], self.rcoords[1,:],range=((0,40),(0,40)), bins=(40,40), normed=True, norm=LogNorm(), cmap=pCMap['cube1']) #cmap=cm.hot, range=[[0,84],[0,84]], bins=(84, 84))
+        counts,xbins,ybins,image=plt.hist2d(self.rcoords[0,:], self.rcoords[1,:],range=((0,40),(0,40)), bins=(40,40), normed=True, norm=LogNorm(), cmap=pCMap['cube1']) #cmap=cm.hot, range=[[0,84],[0,84]], bins=(84, 84))
 #         plt.colorbar()
 
         matplotlib.rcParams.update({'font.size': 30})
@@ -675,6 +694,8 @@ if __name__=="__main__":
         biphasics.HistUmbrella()
     elif sys.argv[2]=='hist2d':
         biphasics.Hist2D()
+    elif sys.argv[2]=='hist2dseptraj':
+        biphasics.Hist2DSepTraj()
     elif sys.argv[2]=='hist2dlog':
         biphasics.Hist2DLog()
     elif sys.argv[2]=='hist2dlogbounce':

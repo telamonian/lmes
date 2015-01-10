@@ -46,6 +46,8 @@
 #include <time.h>
 #endif
 
+#include <cstdio>
+
 #include "lm/cme/CMESolver.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/OrderParameters.pb.h"
@@ -252,13 +254,13 @@ void CMESolver::ReactionModel::build(const uint numberSpeciesA, const uint numbe
                     numberDependencies++;
                 }
             }
-            if (numberDependencies > 0)
+            if (numberDependencies > 1000000)
             {
-                throw InvalidArgException("D", "zeroth order reaction cannot have any dependencies",numberDependencies);
+                throw InvalidArgException("D", "zeroth order time dependent reaction probably shouldn't have that many dependencies",numberDependencies);
             }
             else
             {
-                propensityFunctions[i] = (void *)&zerothOrderPropensity;
+                propensityFunctions[i] = (void *)&zerothOrderTimeDependentPropensity;
                 propensityFunctionArgs[i] =  (void *)new ZerothOrderTimeDependentPropensityArgs(K[i*kCols], K[i*kCols+1], K[i*kCols+2]);
                 propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
             }
@@ -298,15 +300,15 @@ void CMESolver::ReactionModel::build(const uint numberSpeciesA, const uint numbe
                     numberDependencies++;
 
                     // Set the table entry to the first non-zero dependency.
-                    if (numberDependencies == 1)
+                    if (numberDependencies < 1000000)
                     {
-                        propensityFunctions[i] = (void *)&firstOrderPropensity;
+                        propensityFunctions[i] = (void *)&firstOrderTimeDependentPropensity;
                         propensityFunctionArgs[i] =  (void *)new FirstOrderTimeDependentPropensityArgs(j, K[i*kCols], K[i*kCols+1], K[i*kCols+2]);
                         propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
                     }
                     else
                     {
-                        throw InvalidArgException("D", "first order reaction had invalid number of dependencies",numberDependencies);
+                        throw InvalidArgException("D", "first order time dependent reaction probably shouldn't have that many dependencies",numberDependencies);
                     }
                 }
             }
@@ -723,7 +725,15 @@ double CMESolver::zerothOrderPropensity(double time, uint * speciesCounts, void 
 double CMESolver::zerothOrderTimeDependentPropensity(double time, uint * speciesCounts, void * pargs)
 {
     ZerothOrderTimeDependentPropensityArgs * args = (ZerothOrderTimeDependentPropensityArgs *)pargs;
-    return args->ki + (args->kf - args->ki)*(time/args->tf);
+    //printf("zeroth order time is: %.3f\n", time);
+    //printf("zeroth order time dep prop: %.3f\n", args->ki + (args->kf - args->ki)*(time/args->tf));
+    if (args->tf > time) {
+        return args->ki + (args->kf - args->ki)*(time/args->tf);
+    }
+    else
+    {
+        return args->kf;
+    }
 }
 
 double CMESolver::firstOrderPropensity(double time, uint * speciesCounts, void * pargs)
@@ -735,7 +745,15 @@ double CMESolver::firstOrderPropensity(double time, uint * speciesCounts, void *
 double CMESolver::firstOrderTimeDependentPropensity(double time, uint * speciesCounts, void * pargs)
 {
     FirstOrderTimeDependentPropensityArgs * args = (FirstOrderTimeDependentPropensityArgs *)pargs;
-    return (args->ki + (args->kf - args->ki)*(time/args->tf)) * (double)speciesCounts[args->si];
+    //printf("first order time is: %.3f\n", time);
+    //printf("first order time dep prop: %.3f\n", args->ki + (args->kf - args->ki)*(time/args->tf) * (double)speciesCounts[args->si]);
+    if (args->tf > time) {
+        return (args->ki + (args->kf - args->ki)*(time/args->tf)) * (double)speciesCounts[args->si];
+    }
+    else
+    {
+        return args->kf * (double)speciesCounts[args->si];
+    }
 }
 
 double CMESolver::secondOrderPropensity(double time, uint * speciesCounts, void * pargs)
