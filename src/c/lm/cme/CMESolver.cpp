@@ -417,6 +417,27 @@ void CMESolver::ReactionModel::build(const uint numberSpeciesA, const uint numbe
             propensityFunctionArgs[i] =  (void *)new ZerothOrderHeavisidePropensityArgs(xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2]);
             propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
         }
+        else if (reactionTypes[i] == ZerothOrderNegativeFeedbackPropensityArgs::REACTION_TYPE)
+        {
+            // Find the dependency.
+            int xi=-1;
+            for (uint j=0; j<numberSpecies; j++)
+            {
+                if (D[j*numberReactions+i] == 1)
+                {
+                    if (xi != -1) throw InvalidArgException("D", "zeroth order negative feedback reaction can only have one dependency");
+                    xi = j;
+                }
+            }
+
+            // Make sure we found the right dependencies.
+            if (xi == -1) throw InvalidArgException("D", "zeroth order negative feedback reaction must have one dependency");
+
+            // Set the table entry.
+            propensityFunctions[i] = (void *)&zerothOrderNegativeFeedbackPropensity;
+            propensityFunctionArgs[i] =  (void *)new ZerothOrderNegativeFeedbackPropensityArgs(xi, K[i*kCols], K[i*kCols+1], K[i*kCols+2]);
+            propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
+        }
         else if (reactionTypes[i] == ZerothOrderKHillPropensityArgs::REACTION_TYPE)
         {
             // Find the dependency.
@@ -750,10 +771,18 @@ double CMESolver::kHillTransportPropensity(double time, uint * speciesCounts, vo
 double CMESolver::zerothOrderHeavisidePropensity(double time, uint * speciesCounts, void * pargs)
 {
 	ZerothOrderHeavisidePropensityArgs * args = (ZerothOrderHeavisidePropensityArgs *)pargs;
-
-	//Print::printf(Print::DEBUG, "Recalculating zerothOrderHeavisidePropensity for %d (count=%d) with %d,%e,%e = %e", args->xi, speciesCounts[args->xi], args->x0, args->k0, args->k1, ((speciesCounts[args->xi]<args->x0)?(args->k0):(args->k1)));
-
 	return ((speciesCounts[args->xi]<args->x0)?(args->k0):(args->k1));
+}
+
+double CMESolver::zerothOrderNegativeFeedbackPropensity(double time, uint * speciesCounts, void * pargs)
+{
+    ZerothOrderNegativeFeedbackPropensityArgs * args = (ZerothOrderNegativeFeedbackPropensityArgs *)pargs;
+    int x = (int)speciesCounts[args->xi];
+    double X=args->X;
+    double beta=args->beta;
+    double p=X*((1.0+beta)/(1.0+beta*(x>=0?pow(double(x)/X,args->h):0.0)));
+    //Print::printf(Print::DEBUG, "Recalculating zerothOrderNegativeFeedbackPropensity for %d (%d) with %e,%e,%e = %e", args->xi, x, args->X, args->beta, args->h, p);
+    return p;
 }
 
 double CMESolver::zerothOrderKHillPropensity(double time, uint * speciesCounts, void * pargs)
