@@ -145,21 +145,19 @@ install(TARGETS lm DESTINATION bin)
 ################
 #TARGET: cython
 ################
-if (MAKE_CYTHON STREQUAL yes)
-    set(CYTHON_OTHER_LIBS ${CMAKE_THREAD_LIBS_INIT}
-                          ${libsbml_LIBRARIES}
-                          ${PROTOBUF_LIBRARIES}
-                          ${HDF5_LIBRARIES}
-                          ${HDF5_HL_LIBRARIES}
-                          ${MPI_C_LIBRARIES}
-                          ${PYTHON_LIBRARY_DIRS})
+#set(CYTHON_OTHER_LIBS ${CMAKE_THREAD_LIBS_INIT}
+#                      ${libsbml_LIBRARIES}
+#                      ${PROTOBUF_LIBRARIES}
+#                      ${HDF5_LIBRARIES}
+#                      ${HDF5_HL_LIBRARIES}
+#                      ${MPI_C_LIBRARIES}
+#                      ${PYTHON_LIBRARY_DIRS})
 
-    add_custom_target(ReplicatePythonSourceTree ALL ${CMAKE_COMMAND} -P
-        ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/ReplicatePythonSourceTree.cmake
-        ${CMAKE_CURRENT_BINARY_DIR}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-    set(ENV{HDF5_ROOT} ${HDF5_ROOT})
-    include(UseCython)  ###cython
-    add_subdirectory(src/cython)
-endif (MAKE_CYTHON STREQUAL yes)
+add_custom_target(ReplicatePythonSourceTree ALL ${CMAKE_COMMAND} -P
+    ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/ReplicatePythonSourceTree.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+set(ENV{HDF5_ROOT} ${HDF5_ROOT})
+include(UseCython)  ###cython
+add_subdirectory(src/cython)
                                
