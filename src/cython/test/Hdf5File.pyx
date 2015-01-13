@@ -2,7 +2,7 @@ from libcpp.string cimport string
 from libc.stdint cimport uint32_t  #, int64_t
 
 cimport Hdf5File
-cimport ReactionModel
+from ReactionModel cimport ReactionModel
 
 cdef class Hdf5File:
     cdef CppHdf5File* thisptr      # hold a C++ instance which we're wrapping
@@ -12,9 +12,9 @@ cdef class Hdf5File:
         del self.thisptr
     def close(self):
         self.close()
-    def getReactionModel(self, ReactionModel reactionModel):
+    def getReactionModel(self, reactionModel):
         self.thisptr.getReactionModel(reactionModel.thisptr)
-    def setReactionModel(self, ReactionModel reactionModel):
+    def setReactionModel(self, reactionModel):
         self.thisptr.setReactionModel(reactionModel.thisptr)
         
 # test compiled module in python with this line (assuming that foo.lm is a valid lm input file in the same dir):
