@@ -1,23 +1,13 @@
 from libcpp.string cimport string
 from libc.stdint cimport uint32_t  #, int64_t
 
-cimport hdf5_lib
-
-cdef class ReactionModel:
-    cdef hdf5_lib.ReactionModel* thisptr
-    def __cinit__(self):
-        self.thisptr = new hdf5_lib.ReactionModel()
-    def __dealloc__(self):
-        del self.thisptr
-    def number_species(self):
-        return self.thisptr.number_species()
-    cpdef set_number_species(self, uint32_t numSpec):
-        self.thisptr.set_number_species(numSpec)
+cimport Hdf5File
+cimport ReactionModel
 
 cdef class Hdf5File:
-    cdef hdf5_lib.Hdf5File* thisptr      # hold a C++ instance which we're wrapping
+    cdef CppHdf5File* thisptr      # hold a C++ instance which we're wrapping
     def __cinit__(self, string fname):
-        self.thisptr = new hdf5_lib.Hdf5File(fname)
+        self.thisptr = new CppHdf5File(fname)
     def __dealloc__(self):
         del self.thisptr
     def close(self):
