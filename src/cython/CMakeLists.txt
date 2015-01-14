@@ -1,30 +1,62 @@
 ## Generate a single pair of .pyx and .pxd files from cython source tree
+set(pyx_fpath ${CMAKE_CURRENT_BINARY_DIR}/lm_cython.pyx)
+set(pyx_tmp_fpath ${CMAKE_CURRENT_BINARY_DIR}/lm_cython.pyx.tmp)
+set(pxd_fpath ${CMAKE_CURRENT_BINARY_DIR}/lm_cython.pxd)
+set(pxd_tmp_fpath ${CMAKE_CURRENT_BINARY_DIR}/lm_cython.pxd.tmp)
+
 # Cmake "cat" function definition
 function(cat IN_FILE OUT_FILE)
-  file(READ ${IN_FILE} CONTENTS)
-  file(APPEND ${OUT_FILE} "${CONTENTS}")
+    file(READ ${IN_FILE} CONTENTS)
+    file(APPEND ${OUT_FILE} "${CONTENTS}")
+    file(APPEND ${OUT_FILE} "\n")
 endfunction()
 
 # Prepare temporary .pyx and .pxd files to "cat" to:
-file(WRITE lm_cython.pyx.tmp "")
-file(WRITE lm_cython.pxd.tmp "")
+#file(REMOVE lm_cython.pyx.tmp "")
+#file(REMOVE lm_cython.pxd.tmp "")
+file(WRITE ${pyx_tmp_fpath} "")
+file(WRITE ${pxd_tmp_fpath} "")
 
-# Get a list of all the .pyx and .pxd files by recursively globbing down the cython source tree
+# Get two lists of all the .pyx and .pxd files by recursively globbing down the cython source tree
 file(GLOB_RECURSE lm_cython_pyxs *.pyx)
 file(GLOB_RECURSE lm_cython_pxds *.pxd)
 
+file(GLOB to_remove_lm_cython_pyx lm_cython.pyx)
+if(to_remove_lm_cython_pyx)
+    list(REMOVE_ITEM lm_cython_pyxs ${to_remove_lm_cython_pyx})
+endif(to_remove_lm_cython_pyx)
+
+file(GLOB to_remove_lm_cython_pxd lm_cython.pxd)
+if(to_remove_lm_cython_pxd)
+    list(REMOVE_ITEM lm_cython_pxds ${to_remove_lm_cython_pxd})
+endif(to_remove_lm_cython_pxd)
+
 # Call the "cat" function for each of the cython source files
 foreach(lm_cython_pyx ${lm_cython_pyxs})
-  cat(${lm_cython_pyx} lm_cython.pyx)
-endforeach()
-foreach(lm_cython_pxds ${lm_cython_pxds})
-  cat(${lm_cython_pxd} lm_cython.pxd)
-endforeach()
+    cat(${lm_cython_pyx} ${pyx_tmp_fpath})
+endforeach(lm_cython_pyx ${lm_cython_pyxs})
+
+foreach(lm_cython_pxd ${lm_cython_pxds})
+    cat(${lm_cython_pxd} ${pxd_tmp_fpath})
+endforeach(lm_cython_pxd ${lm_cython_pxds})
+
+message(${CMAKE_CURRENT_BINARY_DIR})
 
 # Copy the temporary .pyx and .pxd files to the final location
-configure_file(lm_cython.pyx.tmp lm_cython.pyx COPYONLY)
-configure_file(lm_cython.pxd.tmp lm_cython.pxd COPYONLY)
+configure_file(${pyx_tmp_fpath} ${pyx_fpath} COPYONLY)
+configure_file(${pxd_tmp_fpath} ${pxd_fpath} COPYONLY)
 
+# Specify that the .pyx and .pxd files are generated
+set_source_files_properties(${pyx_fpath}
+                            ${pxd_fpath}
+                            PROPERTIES GENERATED TRUE)
+
+# Specify that the .pyx file is a C++ file.
+set_source_files_properties(
+    ${pyx_fpath}
+    PROPERTIES CYTHON_IS_CXX TRUE)
+
+## Build the actual cython .so file
 set(lm_cython_libs lm_c_lib
                    ${CMAKE_THREAD_LIBS_INIT}
                    ${libsbml_LIBRARIES}
@@ -34,14 +66,8 @@ set(lm_cython_libs lm_c_lib
                    ${MPI_C_LIBRARIES}
                    ${PYTHON_LIBRARY_DIRS})
 
-# Specify that the .pyx file is a C++ file.
-set_source_files_properties(
-    lm_cython.pyx
-    PROPERTIES CYTHON_IS_CXX TRUE)
-
-## Build the actual cython .so file
 # Multi-file cython modules do not appear to be working at the moment.
-cython_add_module(lm_cython lm_cython.pyx)
+cython_add_module(lm_cython ${pyx_fpath})
 target_link_libraries(lm_cython ${lm_cython_libs})
 
 # If the pyx file is a C++ file, we should specify that here.
