@@ -1,8 +1,7 @@
 from libcpp.string cimport string
 from libc.stdint cimport uint32_t  #, int64_t
 
-cdef extern from "lm/io/ReactionModel.pb.h" namespace "lm::io":
-    cdef cppclass CppReactionModel "lm::io::ReactionModel":
-        CppReactionModel()
-        uint32_t number_species()
-        void set_number_species(uint32_t)
+cimport _ReactionModel
+
+cdef class ReactionModel:
+    cdef _ReactionModel.ReactionModel* thisptr
