@@ -13,8 +13,8 @@ SimulationParameter = namedtuple('SimulationParameter', ['key', 'val'])
 Tiling = namedtuple('Tiling', ['ID','orderParameterID','Type','edges'])
 
 class Input(object):
-    def __init__(self, fPath, mode='a'):
-        self.f = h5py.File(fPath, mode)      #h5py.File('.'.join((fname,'lm')), 'a')
+    def __init__(self, fname):
+        self.f = h5py.File(fname, 'a')      #h5py.File('.'.join((fname,'lm')), 'a')
     
     def Close(self):
         self.f.close()

@@ -1,10 +1,6 @@
-#!/usr/bin/env python
-
-from collections import namedtuple
 import h5py
-import numpy as np
 
-# namedtuples (which are similar to C structs) that hold raw data used to initialize the FFlux input
+# namedtuples (which are similar to C structs) that hold raw data used to initialize the hdf5 .lm file
 InitialSpeciesCounts = namedtuple('InitialSpeciesCounts',['speciesCounts'])
 InitialSpeciesCountsBackward = namedtuple('InitialSpeciesCountsBackward',['speciesCounts'])
 OrderParameter = namedtuple('OrderParameter', ['id','type','speciesIDs','speciesCoefficients'])
@@ -12,9 +8,9 @@ ReactionRateConstant = namedtuple('ReactionRateConstant', ['reactionID','rateCon
 SimulationParameter = namedtuple('SimulationParameter', ['key', 'val'])
 Tiling = namedtuple('Tiling', ['ID','orderParameterID','Type','edges'])
 
-class Input(object):
-    def __init__(self, fPath, mode='a'):
-        self.f = h5py.File(fPath, mode)      #h5py.File('.'.join((fname,'lm')), 'a')
+class Lm(object):
+    def __init__(self, fname):
+        self.f = h5py.File(fname, 'a')      #h5py.File('.'.join((fname,'lm')), 'a')
     
     def Close(self):
         self.f.close()
@@ -118,27 +114,3 @@ class Input(object):
         '''
         for simParam in simParams:
             self.SetSimulationParameter(simParam)
-    
-if __name__=="__main__":
-    iSCs = InitialSpeciesCounts(speciesCounts=[4,16,1,0,0,0,0])
-    iSCBs = InitialSpeciesCountsBackward(speciesCounts=[0,0,0,4,16,1,0])
-    op = OrderParameter(type=0,
-                        id=0,
-                        speciesIDs=[0,1,2,3,4,5],
-                        speciesCoefficients=[-1,-2,-2,1,2,2])
-    simParams = [SimulationParameter(key='crossingsPerPhase',val='100'),
-                 SimulationParameter(key='maxPhaseZeroTime',val='10000'),
-                 SimulationParameter(key='maxSteps',val='100000'),
-                 SimulationParameter(key='maxTime',val='Inf'),
-                 SimulationParameter(key='maxWorkUnitSteps',val='10000'),
-                 SimulationParameter(key='writeInterval',val='1e8')]
-    tiling = Tiling(ID=0,
-                    orderParameterID=0,
-                    Type=0,
-                    edges=np.linspace(-25,25,13))
-    input = Input('biphasic_switch.lm')
-    input.AddTilings(tilings=[tiling])
-    input.SetInitialSpeciesCounts(iSCs=iSCs)
-    input.SetInitialSpeciesCountsBackward(iSCBs=iSCBs)
-    input.SetOrderParameters(ops=[op])
-    input.SetSimulationParameters(simParams=simParams)

@@ -3,8 +3,11 @@
 from collections import namedtuple
 import h5py
 import numpy as np
+import sys
 
 # namedtuples (which are similar to C structs) that hold raw data used to initialize the FFlux input
+Dependency = namedtuple('Dependency', ['reactionID','dependencies'])
+DependencyMatrix = namedtuple('DependencyMatrix', ['matrix'])
 InitialSpeciesCounts = namedtuple('InitialSpeciesCounts',['speciesCounts'])
 InitialSpeciesCountsBackward = namedtuple('InitialSpeciesCountsBackward',['speciesCounts'])
 OrderParameter = namedtuple('OrderParameter', ['id','type','speciesIDs','speciesCoefficients'])
@@ -12,12 +15,23 @@ ReactionRateConstant = namedtuple('ReactionRateConstant', ['reactionID','rateCon
 SimulationParameter = namedtuple('SimulationParameter', ['key', 'val'])
 Tiling = namedtuple('Tiling', ['ID','orderParameterID','Type','edges'])
 
+# list of input tuple Types
+inputTypes = [Dependency,DependencyMatrix,InitialSpeciesCounts,InitialSpeciesCountsBackward,OrderParameter,ReactionRateConstant,SimulationParameter,Tiling]
+# function to import list of tuple Types
+def GetTypes(types, name):
+    thismodule = sys.modules[name]
+    for t in types:
+        setattr(thismodule, t.__name__, t)
+
 class Input(object):
     def __init__(self, fPath, mode='a'):
         self.f = h5py.File(fPath, mode)      #h5py.File('.'.join((fname,'lm')), 'a')
     
     def Close(self):
         self.f.close()
+        
+    def Flush(self):
+        self.f.flush()
     
     def AddTiling(self, tiling):
         '''
@@ -41,6 +55,31 @@ class Input(object):
         self.tilingsContainingGroup = self.f.create_group('Tilings')
         for tiling in tilings:
             self.AddTiling(tiling)
+
+    def FixZerothOrderDependency(self, reactionID):
+        self.f['/Model/Reaction/DependencyMatrix'][:,reactionID][...] = 1
+        
+    def FixZerothOrderDependencyAll(self):
+        it = np.nditer(self.f['/Model/Reaction/ReactionTypes'], flags=['multi_index'])
+        while not it.finished:
+            if it[0] in (0,1000):   # if the reaction type indicates that this is one of the zeroth-order reactions, then...
+                self.FixZerothOrderDependency(it.multi_index[0])
+            it.iternext()
+
+    def GetReplicates(self):
+        replicateIDs = []
+        shapes = np.zeros((len(self.f['/Simulations'].values()), 2), dtype=int)
+        for i,(replicateID,data) in enumerate(self.f['/Simulations'].iteritems()):
+            replicateIDs.append(replicateIDs)
+            shapes[i,:] = data['SpeciesCounts'].shape
+        colCount = shapes[0,1]
+        rowCount = np.sum(shapes,0)[0]
+        indices = zip(np.cumsum(shapes,0)[:-2,0], np.cumsum(shapes,0)[1:-1,0])
+        speciesCounts = np.zeros((rowCount, colCount))
+        speciesCountTimes = np.zeros((rowCount, 1))
+        for i,data in enumerate(self.f['/Simulations'].itervals()):
+            data['SpeciesCounts'].read_direct(speciesCounts, dest_sel=np.s_[indices[i][0]:indices[i][1], :colCount])
+            data['SpeciesCountTimes'].read_direct(speciesCountTimes, dest_sel=np.s_[indices[i][0]:indices[i][1], :1])
 
     def SetInitialSpeciesCounts(self, iSCs):
         '''

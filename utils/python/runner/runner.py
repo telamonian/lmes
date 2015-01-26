@@ -1,49 +1,42 @@
 import operator
 import os
+import re
 import saga
 
 class Runner(object):
-    def __init__(self, jobs):
-        self.host = jobs[0].host
-        self.jobs = jobs
+    def __init__(self, jobs=None):
+        if jobs==None:
+            self.jobs = []
+        else:
+            self.jobs = jobs 
         self.jobs_saga = []
-        self.user_id = jobs[0].user_id
-        
-        self.CreateContext()
-        self.CreateSession()
-        job_types = map(operator.methodcaller('__getattribute__','type'), jobs)
-        if 'sge' in job_types:
-            self.CreateJobServiceSGE()
-        if 'shell' in job_types:
-            self.CreateJobServiceShell()
-        for job in jobs:
-            if job.copy_to!=None:
-                self.CopyTo(job)
-            self.CreateJob(job)
+
+    def AddJob(self, job):
+        self.jobs.append(job)
     
         #self.CopyFrom(job)
 
-    def CopyTo(self, job):
-        '''
-        for every tuple in job.copy_to, copies local file at path in tuple[0] to remote directory path in tuple[1]
-        '''
-        for localSrc,remoteDir in job.copy_to:
-            remoteDirUrl = 'sftp://%s' % os.path.join(self.host, remoteDir)
-            remoteDirSaga = saga.filesystem.Directory(remoteDirUrl, saga.filesystem.CREATE, session=self.session)
-            localSrcUrl = 'file://%s' % os.path.join('localhost', localSrc)
-            localSrcSaga = saga.filesystem.File(localSrcUrl)
-            localSrcSaga.copy(remoteDirSaga.get_url())
-
-    def CopyFrom(self, job):
-        '''
-        for every tuple in job.copy_from, copies remote file at path in tuple[0] to local directory path in tuple[1]
-        '''
-        for remoteSrc,localDir in job.copy_to:
-            localDirUrl = 'file://%s' % os.path.join('localhost', localDir)
-            localDirSaga = saga.filesystem.Directory(localDirUrl, saga.filesystem.CREATE, session=self.session)
-            remoteSrcUrl = 'sftp://%s' % os.path.join(self.host, remoteSrc)
-            remoteSrcSaga = saga.filesystem.File(remoteSrcUrl)
-            remoteSrcSaga.copy(localDirSaga.get_url())
+#     def CopyTo(self, job):
+#         '''
+#         for every tuple in job.copy_to, copies local file at path in tuple[0] to remote directory path in tuple[1]
+#         '''
+#         for localSrc,remoteDir in job.copy_to:
+#             remoteDirUrl = 'sftp://%s' % os.path.join(job.host, remoteDir)
+#             remoteDirSaga = saga.filesystem.Directory(remoteDirUrl, saga.filesystem.CREATE, session=self.session)
+#             localSrcUrl = 'file://%s' % os.path.join('localhost', localSrc)
+#             localSrcSaga = saga.filesystem.File(localSrcUrl)
+#             localSrcSaga.copy(remoteDirSaga.get_url())
+# 
+#     def CopyFrom(self, job, relativeToWorkingDirectory=False):
+#         '''
+#         for every tuple in job.copy_from, copies remote file at path in tuple[0] to local directory path in tuple[1]
+#         '''
+#         for remoteSrc,localDir in job.copy_to:
+#             localDirUrl = 'file://%s' % os.path.join('localhost', localDir)
+#             localDirSaga = saga.filesystem.Directory(localDirUrl, saga.filesystem.CREATE, session=self.session)
+#             remoteSrcUrl = 'sftp://%s' % os.path.join(job.host, remoteSrc)
+#             remoteSrcSaga = saga.filesystem.File(remoteSrcUrl)
+#             remoteSrcSaga.copy(localDirSaga.get_url())
 
     def CreateContext(self):
         # Your ssh identity on the remote machine.
@@ -73,27 +66,33 @@ class Runner(object):
         # and '+ssh' enables SGE remote access via SSH.
         self.js_shell = saga.job.Service(self.url_shell,session=self.session)
     
-    def CreateJob(self, job):
+    def CreateJobSaga(self, job):
         if job.type=='sge':
-            self.CreateJobSGE(job.jd)
+            self.CreateJobSagaSGE(job.jd)
         elif job.type=='shell':
-            self.CreateJobShell(job.jd)
+            self.CreateJobSagaShell(job.jd)
     
-    def CreateJobSGE(self, job_description):
+    def CreateJobSagaSGE(self, job_description):
         # Create a new job from the job description. The initial state of 
         # the job is 'New'.
         self.jobs_saga.append(self.js_sge.create_job(job_description))
         
-    def CreateJobShell(self, job_description):
+    def CreateJobSagaShell(self, job_description):
         # Create a new job from the job description. The initial state of 
         # the job is 'New'.
         self.jobs_saga.append(self.js_shell.create_job(job_description))
     
     def Finish(self):
-        self.js_sge.close()
-        self.js_shell.close()
+        try:
+            self.js_sge.close()
+        except AttributeError:
+            pass
+        try:
+            self.js_shell.close()
+        except AttributeError:
+            pass
     
-    def Run(self, job, job_saga):
+    def _RunJob(self, job, job_saga):
         # Check our job_saga's id and state
         print "job ID    : %s" % (job_saga.id)
         print "job State : %s" % (job_saga.state)
@@ -125,13 +124,30 @@ class Runner(object):
             print "Create time : %s" % (job_saga.created)
             print "Start time  : %s" % (job_saga.started)
             print "End time    : %s" % (job_saga.finished)
- 
-        
         return 0
     
-    def RunAll(self):
+    def Run(self):
         for job,job_saga in zip(self.jobs, self.jobs_saga):
-            self.Run(job, job_saga)
+            self._RunJob(job, job_saga)
         self.Finish()
+        
+    def Setup(self):
+        self.host = self.jobs[0].host
+        self.user_id = self.jobs[0].user_id
+        
+        self.CreateContext()
+        self.CreateSession()
+        
+        job_types = map(operator.methodcaller('__getattribute__','type'), self.jobs)
+        if 'sge' in job_types:
+            self.CreateJobServiceSGE()
+        if 'shell' in job_types:
+            self.CreateJobServiceShell()
+            
+        for job in self.jobs:
+            if job.copy_to!=None:
+                job.CopyTo()
+            if job.lm_file_path!=None:
+                job.CopyToLm()
+            self.CreateJobSaga(job)
     
-    #def RunBase
