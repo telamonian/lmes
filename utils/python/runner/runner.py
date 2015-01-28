@@ -1,3 +1,4 @@
+from helper import InList
 import operator
 import os
 import re
@@ -67,10 +68,12 @@ class Runner(object):
         self.js_shell = saga.job.Service(self.url_shell,session=self.session)
     
     def CreateJobSaga(self, job):
-        if job.type=='sge':
+        if 'sge' in job.type:
             self.CreateJobSagaSGE(job.jd)
-        elif job.type=='shell':
+        elif 'shell' in job.type:
             self.CreateJobSagaShell(job.jd)
+        else:
+            raise
     
     def CreateJobSagaSGE(self, job_description):
         # Create a new job from the job description. The initial state of 
@@ -110,7 +113,7 @@ class Runner(object):
 #         for job_saga in self.js_shell.list():
 #             print " * %s" % job_saga
  
-        if job.type=='shell':
+        if 'shell' in job.type:
             print "this job's working dir is %s" % job.jd.working_directory
             print "this job's exec is %s" % job.jd.executable
             print "this job's args are %s" % job.jd.arguments
@@ -139,9 +142,9 @@ class Runner(object):
         self.CreateSession()
         
         job_types = map(operator.methodcaller('__getattribute__','type'), self.jobs)
-        if 'sge' in job_types:
+        if InList('sge', job_types):
             self.CreateJobServiceSGE()
-        if 'shell' in job_types:
+        if InList('shell', job_types):
             self.CreateJobServiceShell()
             
         for job in self.jobs:

@@ -17,15 +17,16 @@ EOF
 }
 
 # Initialize our own variables:
-queue=""
-number_cpus=0
 log_file=""
+queue=""
 
+job_manager=false
 lm_args=""
 lm_bin=""
+number_cpus=0
 sim_file=""
 
-while getopts "a:hl:n:q:s:x" opt; do
+while getopts "a:hl:n:q:s:x:" opt; do
     case "$opt" in
     a)  lm_args=$OPTARG
         ;;
@@ -49,48 +50,59 @@ shift $((OPTIND-1))
 
 [ "$1" = "--" ] && shift
 
-echo "lm_args=$lm_args, log_file=$log_file, number_cpus=$number_cpus, queue=$queue, sim_file=$sim_file, Leftovers: $@"
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+echo "lm_args=$lm_args, lm_bin=$lm_bin, log_file=$log_file, number_cpus=$number_cpus, queue=$queue, sim_file=$sim_file, Leftovers: $@"
+echo "lm_args=$lm_args, lm_bin=$lm_bin, log_file=$log_file, number_cpus=$number_cpus, queue=$queue, sim_file=$sim_file, Leftovers: $@" > "$DIR/bash.out"
 
 # Copy the simulation file to the scratch directory.
 SCRATCHDIR=/tmp
-SCRATCHFILE=`basename $`
+SCRATCHFILE=`basename $sim_file`
+JOB_UUID=`mktemp -u XXXXXXXXXXX`
 
-SCRATCHDIR=$SCRATCHDIR/\$JOB_ID
-SCRATCHFILE=\$SCRATCHDIR/$SCRATCHFILE
-mkdir -p \$SCRATCHDIR
-echo "Copying $sim_file to \$SCRATCHFILE"
-cp -v $sim_file \$SCRATCHFILE
+SCRATCHDIR=$SCRATCHDIR/$JOB_UUID
+SCRATCHFILE=$SCRATCHDIR/$SCRATCHFILE
+mkdir -p $SCRATCHDIR
+echo "Copying $sim_file to $SCRATCHFILE"
+cp -v $sim_file $SCRATCHFILE
 
-# Print out the machines allocated to the job.
-echo "Running in \$SGE_O_WORKDIR"
-echo "Job: \$JOB_ID"
-echo "Host: \$HOSTNAME"
-echo "Num Hosts: \$NHOSTS"
-echo "Num Slots: \$NSLOTS"
-echo "Nodes:"
-cat \$TMPDIR/machines
-echo "Resources:"
-cat \$TMPDIR/machine-resources
-
-# Create the MPICH node list.
-uniq < \$TMPDIR/machines > \$TMPDIR/mpich.hosts
-NUMNODES=\`cat \$TMPDIR/mpich.hosts|wc -l\`
-echo "MPICH Hosts:"
-cat \$TMPDIR/mpich.hosts
+if [ -n "$SGE_TASK_ID" ] ; then
+    # Print out the machines allocated to the job.
+	echo "Running in $SGE_O_WORKDIR"
+	echo "Job: $JOB_ID"
+	echo "Host: $HOSTNAME"
+	echo "Num Hosts: $NHOSTS"
+	echo "Num Slots: $NSLOTS"
+	echo "Nodes:"
+	cat $TMPDIR/machines
+	echo "Resources:"
+	cat $TMPDIR/machine-resources
+	
+    # Create the MPICH node list.
+	uniq < $TMPDIR/machines > $TMPDIR/mpich.hosts
+	NUMNODES=`cat $TMPDIR/mpich.hosts|wc -l`
+	echo "MPICH Hosts:"
+	cat $TMPDIR/mpich.hosts
+	
+    node_file_option="-f $TMPDIR/mpich.hosts"
+    resource_map_option="--resource-map=$TMPDIR/machine-resources"
+else # this job is running in a normal shell
+    NUMNODES=1
+    lm_args="$lm_args -c $number_cpus"
+fi
 
 # Add the cuda lib directory, if it exists.
 if [ -d /usr/local/cuda/lib64 ]; then
-    LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/usr/local/cuda/lib64
+    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64
 fi
 
 # Run the job.
-echo "Running mpirun -n \$NUMNODES -f \$TMPDIR/mpich.hosts $lm_bin --nodelist=\$TMPDIR/machines $lm_args -f \$SCRATCHFILE"
-mpirun -n \$NUMNODES -f \$TMPDIR/mpich.hosts $lm_bin --resource-map=\$TMPDIR/machine-resources $lm_args -f \$SCRATCHFILE
+echo "Running mpirun -n $NUMNODES $node_file_option $lm_bin $resource_map_option $lm_args -f $SCRATCHFILE"
+mpirun -n $NUMNODES $node_file_option $lm_bin $resource_map_option $lm_args -f $SCRATCHFILE
 
 # Copy the results back to the simulation directory.
 echo "Copying results back to $sim_file"
-cp -v \$SCRATCHFILE $sim_file && rm \$SCRATCHFILE
-if [ -f \$SCRATCHFILE.chk ]; then
-    cp -v \$SCRATCHFILE.chk $sim_file.chk && rm \$SCRATCHFILE.chk
+cp -v $SCRATCHFILE $sim_file && rm $SCRATCHFILE
+if [ -f $SCRATCHFILE.chk ]; then
+    cp -v $SCRATCHFILE.chk $sim_file.chk && rm $SCRATCHFILE.chk
 fi
-rmdir --ignore-fail-on-non-empty \$SCRATCHDIR
+rm -r $SCRATCHDIR

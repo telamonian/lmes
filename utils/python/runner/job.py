@@ -3,8 +3,10 @@ import os, sys
 # script_dir_one_up = os.path.split(script_dir)[0]
 # sys.path.append(script_dir_one_up)
 
+from helper import *
 import lmFile
 import getpass
+import re
 import saga
 from shutil import copy2 as cp
 import tempfile
@@ -15,10 +17,7 @@ class Job(object):
     copy_to: a list of tuples of the form ('file path on local to copy to remote', 'directory path of destination directory on remote')
     copy_from: a list of tuples of the form ('file path on remote to copy to local', 'directory path of destination directory on local')
     '''
-    keywords = ('arguments','copy_to','copy_from', 'cpu_count','environment', 'error','executable','host','lm_file_path','lm_input_tups','output','user_id','working_directory')
-    # subset of keywords used for creating the composed saga.job.Description object
-    keywords_description = ('arguments','environment','error','executable','output','working_directory')
-    type = 'base'
+    type = 'job'
     
     def __init__(self, **kwargs):
         for key in kwargs:
@@ -31,32 +30,35 @@ class Job(object):
                 self.__setattr__(key, None)
         self.Init()
         self.CreateJobDescription()
+      
+    def _Init(self, callingClassName):
+        if callingClassName=='Job':
+    #         if self.error==None:
+    #             self.error = 'lm.err'
+            if self.host==None:
+                self.host = 'localhost'
+    #         if self.output==None:
+    #             self.output = 'lm.log'
+            if self.cpu_count!=None:
+                self.total_cpu_count = self.cpu_count
+            else:
+                self.total_cpu_count = 1
+            if self.user_id==None:
+                self.user_id = getpass.getuser()
     
     def Init(self):
-#         if self.error==None:
-#             self.error = 'lm.err'
-        if self.host==None:
-            self.host = 'localhost'
-#         if self.output==None:
-#             self.output = 'lm.log'
-        if self.lm_file_path!=None:
-            self.MkTmpLm()
-        if self.cpu_count!=None:
-            self.total_cpu_count = self.cpu_count
-        else:
-            self.total_cpu_count = 1
-        if self.user_id==None:
-            self.user_id = getpass.getuser()
+        for cls in self.__class__.mro():
+            if '_Init' in cls.__dict__:
+                cls._Init(self, cls.__name__)
     
     def _CopyTo(self, localPath, remotePath):
         '''
         copy from localPath to remotePath
         '''
-        localFileUrl = 'file://%s' % os.path.join('localhost', localPath)
-        remoteFileUrl = 'sftp://%s' % os.path.join(self.host, remotePath)
+        localFileUrl = 'file://%s' % PathJoin('localhost', localPath)
+        remoteFileUrl = 'sftp://%s' % PathJoin(self.host, remotePath)
         remoteDirUrl = os.path.split(remoteFileUrl)[0]
         remoteSagaDir = saga.filesystem.Directory(remoteDirUrl, saga.filesystem.CREATE_PARENTS, session=self.runner.session)
-        print remoteFileUrl
         localSagaFile = saga.filesystem.File(localFileUrl, saga.filesystem.CREATE, session=self.runner.session)
         localSagaFile.copy(remoteFileUrl)
         localSagaFile.close()
@@ -74,9 +76,9 @@ class Job(object):
         for localPath,remotePath in self.copy_to:
             fileName = os.path.split(localPath)[-1]
             if not os.path.isabs(localPath):
-                remotePath = os.path.join(os.getcwd(), fileName)
+                remotePath = PathJoin(os.getcwd(), fileName)
             if remotePath=='':
-                remotePath = os.path.join(self.working_directory, fileName)
+                remotePath = PathJoin(self.working_directory, fileName)
             self._CopyTo(localPath, remotePath)
 
     def _CopyFrom(self, job, relativeToWorkingDirectory=False):
@@ -114,8 +116,42 @@ class Job(object):
     def SetRunner(self, runner):
         self.runner = runner
         runner.AddJob(self)
+        
+    @classmethod
+    def _InitKeywords(cls, mro):
+        return ('arguments','copy_to','copy_from', 'cpu_count','environment', 'error','executable','host','output','user_id','working_directory')
+    
+    @classmethod
+    def InitKeywords(cls):
+        cls.keywords = cls._InitKeywords(cls.mro())
+    
+    @classmethod
+    def InitKeywordsDescription(cls):
+        '''
+        subset of keywords used for creating the composed saga.job.Description object
+        '''
+        cls.keywords_description = ('arguments','environment','error','executable','output','working_directory')
 
-class JobLMMixin(object):
+Job.InitKeywords()
+Job.InitKeywordsDescription()
+
+class JobLM(Job):
+    type = 'lm'
+    
+    def _Init(self, callingClassName):
+        if callingClassName=='JobLM':
+            self.SetLMArgs()
+            self.SetReplicateRange()
+    
+#     def _Init(self, mro):
+#         print self.__class__.__name__
+#         mro[mro.index(self.__class__) + 1]._Init(self,mro)
+#         if self.__class__.__name__=='JobLM':
+#             self.SetLMArgs()
+#             self.SetReplicateRange()
+#             if self.lm_file_path!=None:
+#                 self.MkTmpLm()
+    
     def ApplyInputTup(self):
         '''
         too complex
@@ -123,14 +159,38 @@ class JobLMMixin(object):
         '''
         for inputTup in self.lm_input_tups:
             tupTypeName = type(inputTup).__name__
-            self.lmF.__getattribute__('Set%s' % tupTypeName)(inputTup)
+            if tupTypeName=='Tiling':
+                self.lmF.__getattribute__('Add%ss' % tupTypeName)([inputTup])
+            else:
+                self.lmF.__getattribute__('Set%s' % tupTypeName)(inputTup)
+        self.lmF.Flush()
+        
+    def AutosetSamplingRate(self):
+        '''
+        sets sampling rate on the basis of the slowest simple reaction rate
+        '''
+        reactionRateConstants = self.lmF.GetReactionRateConstants()
+        simParam = lmFile.SimulationParameter(key='writeInterval', val=2*float(1)/np.min(reactionRateConstants[:,0]))
+        self.lmF.SetSimulationParameter(simParam=simParam)
+        self.lmF.Flush()
+    
+    def AutosetSamplingTime(self):
+        '''
+        sets total sampling time based on a combination of sampling rate and known switching time for the system at hand
+        '''
+        simParam = lmFile.SimulationParameter(key='maxTime', val='1e5')
+        self.lmF.SetSimulationParameter(simParam=simParam)
         self.lmF.Flush()
         
     def CopyToLm(self):
         self.MkTmpLm()
         if self.lm_input_tups!=None:
             self.ApplyInputTup()
-        self.lmRemotePath = os.path.join(self.working_directory, self.lmName)
+        if self.lm_autoset_sampling_rate:
+            self.AutosetSamplingRate()
+        if self.lm_autoset_sampling_time:
+            self.AutosetSamplingTime()
+        self.lmRemotePath = PathJoin(self.working_directory, self.lmName)
         self._CopyTo(self.lmTmpPath, self.lmRemotePath)
         self.RmTmpLm()
     
@@ -140,7 +200,7 @@ class JobLMMixin(object):
         '''
         self.lmPath = self.lm_file_path
         self.lmName = os.path.split(self.lm_file_path)[-1]
-        self.lmTmpPath = os.path.join(tempfile.gettempdir(), str(uuid.uuid4())+self.lmName)
+        self.lmTmpPath = PathJoin(tempfile.gettempdir(), str(uuid.uuid4())+self.lmName)
         cp(self.lmPath, self.lmTmpPath)
         self.lmF = lmFile.Input(self.lmTmpPath)
     
@@ -150,30 +210,103 @@ class JobLMMixin(object):
         '''
         self.lmF.Close()
         os.remove(self.lmTmpPath)
+    
+    def SetLMArgs(self):
+        if self.lm_args!=None:
+            # check to make sure that the -a argument hasn't already been set
+            founda = False
+            for i,argument in enumerate(self.arguments):
+                try:
+                    if argument.strip()=='-a':
+                        founda = i
+                except AttributeError:
+                    pass
+            if founda:
+                raise
+            
+            self.arguments.append('-a')
+            self.arguments.append('"%s"' % self.lm_args)
+    
+    def SetReplicateRange(self):
+        if self.lm_replicate_range!=None:
+            lenrr = len(self.lm_replicate_range)
+            if lenrr==2:
+                replicateString = '%d-%d' % tuple(self.lm_replicate_range)
+            else:
+                replicateString = ('%d,'*(lenrr - 1) + '%d') % tuple(self.lm_replicate_range)
+            # replace the -r argument and the token immediately following it. the -r argument should be in a long string following the -a argument
+            founda = False
+            for i,argument in enumerate(self.arguments):
+                try:
+                    if argument.strip()=='-a':
+                        founda = i
+                except AttributeError:
+                    pass
+            if founda:
+                if '-r ' in self.arguments[founda+1]:
+                    self.arguments[founda+1] = re.sub('(-r)\s+(\d+[,-]?)+', '\1 %d-%d' % tuple(self.lm_replicate_range), self.arguments[founda+1])
+                else:
+                    self.arguments[founda+1] = ('"-r %s ' % replicateString) + self.arguments[founda+1].lstrip('"')
+            else:
+                self.arguments.append('-a')
+                self.arguments.append('"-r %s"' % replicateString)
+    
+    @classmethod
+    def _InitKeywords(cls, mro):
+        # avoid repepitive addition
+        if cls.__name__=='JobLM':
+            additionalKeywords = ('lm_args','lm_autoset_sampling_rate','lm_autoset_sampling_time','lm_file_path','lm_input_tups','lm_replicate_range')
+        else:
+            additionalKeywords = ()
+        return mro[mro.index(cls) + 1]._InitKeywords(mro) + additionalKeywords
+    
+JobLM.InitKeywords()
 
 class JobSGE(Job):
     type = 'sge'
     
-    def Init(self):
-        super(type(self), self).Init()
-        if 'xanthus' in self.host:
-            if self.queue=='gpu':
-                self.queue = 'gpu-1'
-                self.pe = self.spmd_variation = 'mpi-cuda'
+    def _Init(self, callingClassName):
+        if callingClassName=='JobSGE':
+            if 'xanthus' in self.host:
+                if self.queue=='gpu':
+                    self.queue = 'gpu-1'
+                    self.pe = self.spmd_variation = 'mpi-cuda'
+                else:
+                    self.queue = 'smp-1'
+                    self.pe = self.spmd_variation = 'mpi'
+            if 'kirin' in self.host:
+                self.queue = 'normal'
+                self.pe = self.spmd_variation = 'kirin-pe'
             else:
-                self.queue = 'smp-1'
-                self.pe = self.spmd_variation = 'mpi'
-        if 'kirin' in self.host:
-            self.queue = 'normal'
-            self.pe = self.spmd_variation = 'kirin-pe'
-        else:
-            self.spmd_variation = self.pe
-        if self.total_cpu_count==None:
-            self.total_cpu_count = 1
+                self.spmd_variation = self.pe
+            if self.total_cpu_count==None:
+                self.total_cpu_count = 1
+    
+#     def _Init(self, mro):
+#         super(type(self), self).Init()
+#         if 'xanthus' in self.host:
+#             if self.queue=='gpu':
+#                 self.queue = 'gpu-1'
+#                 self.pe = self.spmd_variation = 'mpi-cuda'
+#             else:
+#                 self.queue = 'smp-1'
+#                 self.pe = self.spmd_variation = 'mpi'
+#         if 'kirin' in self.host:
+#             self.queue = 'normal'
+#             self.pe = self.spmd_variation = 'kirin-pe'
+#         else:
+#             self.spmd_variation = self.pe
+#         if self.total_cpu_count==None:
+#             self.total_cpu_count = 1
     
     @classmethod
-    def InitKeywords(cls):
-        cls.keywords = super(cls,cls).keywords + ('pe', 'project', 'queue', 'total_cpu_count')
+    def _InitKeywords(cls, mro):
+        # avoid repepitive addition
+        if cls.__name__=='JobSGE':
+            additionalKeywords = ('pe', 'project', 'queue', 'total_cpu_count')
+        else:
+            additionalKeywords = ()
+        return mro[mro.index(cls) + 1]._InitKeywords(mro) + additionalKeywords
     
     @classmethod
     def InitKeywordsDescription(cls):
@@ -184,6 +317,17 @@ JobSGE.InitKeywordsDescription()
 
 class JobShell(Job):
     type = 'shell'
+
+class JobSGELM(JobLM, JobSGE):
+    type = 'sgelm'
     
-JobSGELM = type('JobSGELM', (JobLMMixin,JobSGE), {})
-JobShellLM = type('JobShellLM', (JobLMMixin,JobShell), {})
+    @classmethod
+    def GetMRO(cls):
+        print cls.mro()
+
+JobSGELM.InitKeywords()
+
+class JobShellLM(JobLM, JobShell):
+    type = 'shelllm'
+
+JobShellLM.InitKeywords()

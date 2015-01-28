@@ -65,7 +65,10 @@ class Input(object):
             if it[0] in (0,1000):   # if the reaction type indicates that this is one of the zeroth-order reactions, then...
                 self.FixZerothOrderDependency(it.multi_index[0])
             it.iternext()
-
+    
+    def GetReactionRateConstants(self):
+        return self.f['/Model/Reaction/ReactionRateConstants']
+    
     def GetReplicates(self):
         replicateIDs = []
         shapes = np.zeros((len(self.f['/Simulations'].values()), 2), dtype=int)
@@ -114,7 +117,10 @@ class Input(object):
         initializes an order parameter according to id and then sets it
         op: an OrderParameter namedtuple
         '''
-        opGroup = self.f.create_group("OrderParameters/%07d" % op.id)
+        if 'OrderParameters' in self.f.keys():
+            if ('%07d' % op.id) in self.f['OrderParameters']:
+                del self.f['OrderParameters/%07d' % op.id]
+        opGroup = self.f.create_group('OrderParameters/%07d' % op.id)
         opGroup.attrs['Type'] = op.type
         opGroup.attrs['ID'] = op.id
         speciesIDs = opGroup.create_dataset("SpeciesIDs", (len(op.speciesIDs),), dtype=np.dtype('uint32'))
@@ -148,6 +154,7 @@ class Input(object):
         sets a simulation parameter as an attribute on the Parameters group
         simParam: a SimulationParameter namedtuple
         '''
+        print simParam
         self.f['Parameters'].attrs[simParam.key] = np.string_(str(simParam.val)+' ') # np.string_ conversion in place so that attr is stored as fixed length string
         
     def SetSimulationParameters(self, simParams):
