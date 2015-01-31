@@ -45,16 +45,16 @@
 #include "lm/Types.h"
 
 namespace lm {
-namespace fflux {
+namespace neus {
 
-class FFluxTrajectory : public lm::trajectory::Trajectory
+class NeusTrajectory : public lm::trajectory::Trajectory
 {
 public:
 //    FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings& tilings,bool reversed=false);
 //    FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings& tilings,lm::io::TrajectoryState* state);
-    FFluxTrajectory(uint64_t id,uint ffluxPhase,lm::input::Input& input,bool reversed=false);
-    FFluxTrajectory(uint64_t id,uint ffluxPhase,lm::input::Input& input,lm::io::TrajectoryState* state);
-    virtual ~FFluxTrajectory();
+    NeusTrajectory(uint64_t id,uint ffluxPhase,lm::input::Input& input,bool reversed=false);
+    NeusTrajectory(uint64_t id,uint ffluxPhase,lm::input::Input& input,lm::io::TrajectoryState* state);
+    virtual ~NeusTrajectory();
     //virtual void initZerothTrajectory();
     virtual void initLimits();
 

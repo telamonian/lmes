@@ -4,8 +4,8 @@
  * All rights reserved.
  *
  * Developed by: Roberts Group
- *                  Johns Hopkins University
- *                  http://biophysics.jhu.edu/roberts/
+ * 			     Johns Hopkins University
+ * 			     http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -36,45 +36,46 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_NEUS_NEUSTRAJECTORY_H_
-#define LM_NEUS_NEUSTRAJECTORY_H_
+#ifndef LM_NEUS_NEUSSUPERVISOR_H_
+#define LM_NEUS_NEUSSUPERVISOR_H_
 
+#include "lm/io/DiffusionModel.pb.h"
+#include "lm/io/FFluxOutput.pb.h"
+#include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
-#include "lm/trajectory/Trajectory.h"
-#include "lm/tiling/Tilings.h"
-#include "lm/Types.h"
+#include "lm/main/SimulationSupervisor.h"
+#include "lm/message/FinishedWorkUnit.pb.h"
+#include "lm/message/StartedWorkUnit.pb.h"
+#include "lm/trajectory/TrajectoryList.h"
+#include "lm/MPI.h"
+#include "lm/Print.h"
+#include "lm/thread/Worker.h"
 
 namespace lm {
-namespace fflux {
+namespace neus {
 
-class FFluxTrajectory : public lm::trajectory::Trajectory
+class NeusSupervisor : public lm::main::SimulationSupervisor
 {
 public:
-//    FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings& tilings,bool reversed=false);
-//    FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings& tilings,lm::io::TrajectoryState* state);
-    FFluxTrajectory(uint64_t id,uint ffluxPhase,lm::input::Input& input,bool reversed=false);
-    FFluxTrajectory(uint64_t id,uint ffluxPhase,lm::input::Input& input,lm::io::TrajectoryState* state);
-    virtual ~FFluxTrajectory();
-    //virtual void initZerothTrajectory();
-    virtual void initLimits();
+    static bool registered;
+    static bool registerClass();
+    static void* allocateObject();
 
-    // methods for detecting when a flux event has occurred
-    virtual bool fluxedBackward();
-    virtual bool fluxedForward();
+public:
+    NeusSupervisor();
+    virtual ~NeusSupervisor();
 
-    // accessors
-    virtual lm::io::TrajectoryLimits::LimitType getFinalLimitType();
-    virtual uint getSimSteps();
-    virtual double getSimTime();
-    virtual bool hasElapsed(double time);
+protected:
+    virtual void receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg);
+    virtual void startSimulation();
 
-    //    uint getFFluxPhase() {return ffluxPhase;}
-    //    void setFFluxPhase(uint newPhase) {ffluxPhase = newPhase;}
-
-    uint ffluxPhase;
+protected:
+    lm::io::FFluxOutput ffluxOutput;
+    int realOutputWriterProcess;
+    int realOutputWriterThread;
 };
 
 }
 }
 
-#endif
+#endif /* LM_NEUS_NEUSSUPERVISOR_H_ */

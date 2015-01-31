@@ -44,7 +44,7 @@
 #include <string>
 #include <vector>
 
-#include "lm/fflux/FFluxTrajectory.h"
+#include "lm/neus/NeusTrajectory.h"
 #include "lm/input/Input.h"
 #include "lm/io/FFluxOutput.pb.h"
 #include "lm/io/ReactionModel.pb.h"
@@ -57,7 +57,7 @@
 #include "lm/Types.h"
 
 namespace lm {
-namespace fflux {
+namespace neus {
 
 typedef std::vector<lm::io::TrajectoryState*> CrossingVector;
 typedef std::map<long long, CrossingVector> CrossingsMap;
@@ -67,15 +67,15 @@ typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::DecreasingO
 typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::IncreasingOrderParameterLimit>::iterator incrLimitIterator;
 typedef std::vector<lm::io::TilingHist*> TilingVector;
 
-class FFluxTrajectoryList : public lm::trajectory::TrajectoryList
+class NeusTrajectoryList : public lm::trajectory::TrajectoryList
 {
 public:
     // enumerated type used for describing the direction of the current fflux simulation relative to the arrangements (low-to-high or high-to-low) of the individual interfaces
     enum Direction {FORWARD, BACKWARD};
 
 //    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters, lm::tiling::Tilings& tilings);
-    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,lm::input::Input& input);
-    virtual ~FFluxTrajectoryList();
+    NeusTrajectoryList(uint64_t simultaneousTrajectoryCount,lm::input::Input& input);
+    virtual ~NeusTrajectoryList();
     virtual void init();
     virtual void initReversed();
     virtual void initTrajectories(uint64_t toStartCount,bool reversed=false);

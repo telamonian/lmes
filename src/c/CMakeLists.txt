@@ -5,8 +5,9 @@
 #################
 #get the source files
 file(GLOB_RECURSE lm_c_source *.cpp *.cc *.h)
-file(GLOB to_remove_mainmpi lm/main/MainMPI.cpp)
-list(REMOVE_ITEM lm_c_source ${to_remove_mainmpi})
+file(GLOB to_remove_main_function lm/main/MainMPI.cpp)
+file(GLOB to_remove_neus lm/neus/*)
+list(REMOVE_ITEM lm_c_source ${to_remove_main_function} ${to_remove_neus})
 
 file(GLOB lm_proto_src ../protobuf/*/*/*.proto)
 

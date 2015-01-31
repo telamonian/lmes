@@ -949,11 +949,11 @@ void CMESolver::getState(lm::io::TrajectoryState* state)
     }
 
     // Get the tiling hists
-//    state->mutable_cme_state()->clear_tiling_hists();
-//    for (uint i=0;i<numberTilingHists;i++)
-//    {
-//        tilingHists[i].serializeTo(state->mutable_cme_state()->add_tiling_hists());
-//    }
+    state->mutable_cme_state()->clear_tiling_hists();
+    for (uint i=0;i<numberTilingHists;i++)
+    {
+        tilingHists[i].serializeTo(state->mutable_cme_state()->add_tiling_hists());
+    }
 }
 
 void CMESolver::setState(const lm::io::TrajectoryState& state)
@@ -999,16 +999,16 @@ void CMESolver::setState(const lm::io::TrajectoryState& state)
     }
 
     // Set the histogram bin values
-//    numberTilingHists = state.cme_state().tiling_hists_size();
-//    if (state.cme_state().tiling_hists_size() > 0)
-//    {
-//        tilingHists = new TilingHist[numberTilingHists];
-//        for (uint i=0;i<numberTilingHists;i++)
-//        {
-//            tilingHists[i] = TilingHist();
-//            tilingHists[i].init(state.cme_state().tiling_hists(i));
-//        }
-//    }
+    numberTilingHists = state.cme_state().tiling_hists_size();
+    if (state.cme_state().tiling_hists_size() > 0)
+    {
+        tilingHists = new TilingHist[numberTilingHists];
+        for (uint i=0;i<numberTilingHists;i++)
+        {
+            tilingHists[i] = TilingHist();
+            tilingHists[i].init(state.cme_state().tiling_hists(i));
+        }
+    }
 }
 
 void CMESolver::setLimits(const lm::io::TrajectoryLimits& limits)

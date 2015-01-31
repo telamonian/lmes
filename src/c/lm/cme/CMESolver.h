@@ -246,18 +246,16 @@ protected:
                 tileVals[i] = tHistBuf.tile_vals(i);
             }
         }
-
         // this function writes out to a TilingHistBuf object
         void serializeTo(lm::io::TilingHist* tHistBuf)
         {
             tHistBuf->set_tiling_id(tilingID);
-            //tHistBuf->clear_tile_vals();
+            tHistBuf->clear_tile_vals();
             for (uint i=0;i<numberTileVals;i++)
             {
                 tHistBuf->add_tile_vals(tileVals[i]);
             }
         }
-
         uint numberTileVals;
         uint tilingID;
         double* tileVals;
@@ -370,33 +368,20 @@ protected:
                 break;
             // use the ASCENDING limit checks when starting to the left of the limit
             case SpeciesLimit::DECREASING_ASCENDING:
-//                prevVal = (*oparams)[l.species]->get(); val = (*oparams)[l.species]->calc(speciesCounts);
-//                if (numberSpeciesLimits > 1)
-//                {
-//                    printf("decr: %.3f %.3f\n",(*oparams)[l.species]->getPrev(),(*oparams)[l.species]->get());
-//                }
             	if ((*oparams)[l.species]->getPrev() >= l.limit && (*oparams)[l.species]->get() < l.limit)
-//                if (prevVal>=l.limit && val<l.limit)
                 {
-//            	    printf("decr: %.3f %.3f\n",(*oparams)[l.species]->getPrev(),(*oparams)[l.species]->get());
                     finalLimitType = lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER;
                     return true;
                 }
             	break;
             case SpeciesLimit::INCREASING_ASCENDING:
-//                prevVal = (*oparams)[l.species]->get(); val = (*oparams)[l.species]->calc(speciesCounts);
-//                if (numberSpeciesLimits > 1 && (*oparams)[l.species]->getPrev()!=(*oparams)[l.species]->get())
-//                {
-//                    printf("incr: %d %.3f %.3f\n", trajectoryId,(*oparams)[l.species]->getPrev(),(*oparams)[l.species]->get());
-//                }
             	if ((*oparams)[l.species]->getPrev() < l.limit && (*oparams)[l.species]->get() >= l.limit)
-//                if (prevVal<l.limit && val>=l.limit)
                 {
                     finalLimitType = lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER;
                     return true;
                 }
             	break;
-            // use the ASCENDING limit checks when starting to the left of the limit
+            // use the DESCENDING limit checks when starting to the right of the limit
             case SpeciesLimit::DECREASING_DESCENDING:
                 if ((*oparams)[l.species]->getPrev() > l.limit && (*oparams)[l.species]->get() <= l.limit)
                 {
