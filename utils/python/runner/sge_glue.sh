@@ -52,7 +52,6 @@ shift $((OPTIND-1))
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 echo "lm_args=$lm_args, lm_bin=$lm_bin, log_file=$log_file, number_cpus=$number_cpus, queue=$queue, sim_file=$sim_file, Leftovers: $@"
-echo "lm_args=$lm_args, lm_bin=$lm_bin, log_file=$log_file, number_cpus=$number_cpus, queue=$queue, sim_file=$sim_file, Leftovers: $@" > "$DIR/bash.out"
 
 # Copy the simulation file to the scratch directory.
 SCRATCHDIR=/tmp
@@ -74,8 +73,8 @@ if [ -n "$SGE_TASK_ID" ] ; then
 	echo "Num Slots: $NSLOTS"
 	echo "Nodes:"
 	cat $TMPDIR/machines
-	echo "Resources:"
-	cat $TMPDIR/machine-resources
+#	echo "Resources:"
+#   cat $TMPDIR/machine-resources
 	
     # Create the MPICH node list.
 	uniq < $TMPDIR/machines > $TMPDIR/mpich.hosts
@@ -84,7 +83,16 @@ if [ -n "$SGE_TASK_ID" ] ; then
 	cat $TMPDIR/mpich.hosts
 	
     node_file_option="-f $TMPDIR/mpich.hosts"
-    resource_map_option="--resource-map=$TMPDIR/machine-resources"
+    
+    
+    if [[ $SAGA_HOSTNAME == "kirin" ]]; then
+        lm_nodelist_option="--nodelist=$TMPDIR/machines"
+        mpi_bin="mpiexec -launcher ssh"
+    else
+        lm_resource_map_option="--resource-map=$TMPDIR/machine-resources"
+        mpi_bin="mpirun"
+    fi    
+    
 else # this job is running in a normal shell
     NUMNODES=1
     lm_args="$lm_args -c $number_cpus"
@@ -96,8 +104,8 @@ if [ -d /usr/local/cuda/lib64 ]; then
 fi
 
 # Run the job.
-echo "Running mpirun -n $NUMNODES $node_file_option $lm_bin $resource_map_option $lm_args -f $SCRATCHFILE"
-mpirun -n $NUMNODES $node_file_option $lm_bin $resource_map_option $lm_args -f $SCRATCHFILE
+echo "Running $mpi_bin -n $NUMNODES $node_file_option $lm_bin $lm_resource_map_option $lm_nodelist_option $lm_args -f $SCRATCHFILE"
+$mpi_bin -n $NUMNODES $node_file_option $lm_bin $lm_resource_map_option $lm_nodelist_option $lm_args -f $SCRATCHFILE
 
 # Copy the results back to the simulation directory.
 echo "Copying results back to $sim_file"

@@ -127,6 +127,10 @@ class Runner(object):
             print "Create time : %s" % (job_saga.created)
             print "Start time  : %s" % (job_saga.started)
             print "End time    : %s" % (job_saga.finished)
+        else:
+            print "this job's working dir is %s" % job.jd.working_directory
+            print "this job's exec is %s" % job.jd.executable
+            print "this job's args are %s" % job.jd.arguments
         return 0
     
     def Run(self):
@@ -150,7 +154,7 @@ class Runner(object):
         for job in self.jobs:
             if job.copy_to!=None:
                 job.CopyTo()
-            if job.lm_file_path!=None:
+            if hasattr(job, 'lm_file_path') and job.lm_file_path!=None:
                 job.CopyToLm()
             self.CreateJobSaga(job)
     

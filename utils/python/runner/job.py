@@ -58,16 +58,12 @@ class Job(object):
         localFileUrl = 'file://%s' % PathJoin('localhost', localPath)
         remoteFileUrl = 'sftp://%s' % PathJoin(self.host, remotePath)
         remoteDirUrl = os.path.split(remoteFileUrl)[0]
+        print 'copying local file to remote: %s ---> %s' % (localFileUrl, remoteFileUrl)
         remoteSagaDir = saga.filesystem.Directory(remoteDirUrl, saga.filesystem.CREATE_PARENTS, session=self.runner.session)
         localSagaFile = saga.filesystem.File(localFileUrl, saga.filesystem.CREATE, session=self.runner.session)
         localSagaFile.copy(remoteFileUrl)
         localSagaFile.close()
         remoteSagaDir.close()
-#         remoteDirUrl = 'sftp://%s' % os.path.join(self.host, remoteDir)
-#         remoteSagaDir = saga.filesystem.Directory(remoteDirUrl, saga.filesystem.CREATE, session=self.session)
-#         localFileUrl = 'file://%s' % os.path.join('localhost', localPath)
-#         localSagaFile = saga.filesystem.File(localSrcUrl)
-#         localSrcSaga.copy(remoteDirSaga.get_url())
 
     def CopyTo(self):
         '''
@@ -143,15 +139,6 @@ class JobLM(Job):
             self.SetLMArgs()
             self.SetReplicateRange()
     
-#     def _Init(self, mro):
-#         print self.__class__.__name__
-#         mro[mro.index(self.__class__) + 1]._Init(self,mro)
-#         if self.__class__.__name__=='JobLM':
-#             self.SetLMArgs()
-#             self.SetReplicateRange()
-#             if self.lm_file_path!=None:
-#                 self.MkTmpLm()
-    
     def ApplyInputTup(self):
         '''
         too complex
@@ -178,7 +165,7 @@ class JobLM(Job):
         '''
         sets total sampling time based on a combination of sampling rate and known switching time for the system at hand
         '''
-        simParam = lmFile.SimulationParameter(key='maxTime', val='1e5')
+        simParam = lmFile.SimulationParameter(key='maxTime', val='1e6')
         self.lmF.SetSimulationParameter(simParam=simParam)
         self.lmF.Flush()
         
@@ -268,6 +255,7 @@ class JobSGE(Job):
     def _Init(self, callingClassName):
         if callingClassName=='JobSGE':
             if 'xanthus' in self.host:
+                self.environment = {'SAGA_HOSTNAME': 'xanthus'}
                 if self.queue=='gpu':
                     self.queue = 'gpu-1'
                     self.pe = self.spmd_variation = 'mpi-cuda'
@@ -275,6 +263,7 @@ class JobSGE(Job):
                     self.queue = 'smp-1'
                     self.pe = self.spmd_variation = 'mpi'
             if 'kirin' in self.host:
+                self.environment = {'SAGA_HOSTNAME': 'kirin'}
                 self.queue = 'normal'
                 self.pe = self.spmd_variation = 'kirin-pe'
             else:

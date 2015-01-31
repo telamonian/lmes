@@ -14,6 +14,7 @@ from ...job import JobShell
 from ...runner import Runner
 
 if __name__=='__main__':
+    runner = Runner()
     job_ls_dict = {'arguments': ['|', 'tee', 'ls.out'],
                    'executable': 'ls',
                    'host': host,
@@ -21,5 +22,6 @@ if __name__=='__main__':
                    'user_id': user_id,
                    'working_directory': os.path.join('$HOME','test')}
     job_ls = JobShell(**job_ls_dict)
-    runner = Runner([job_ls])
-    runner.RunAll()
+    job_ls.SetRunner(runner)
+    runner.Setup()
+    runner.Run()
