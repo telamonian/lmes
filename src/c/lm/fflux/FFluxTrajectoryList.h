@@ -77,10 +77,14 @@ public:
     FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,lm::input::Input& input);
     virtual ~FFluxTrajectoryList();
     virtual void init();
+    virtual void initFFluxOutput();
+    virtual void initFFluxOutputSingleTrajectory(lm::fflux::FFluxTrajectory* newTraj);
     virtual void initReversed();
     virtual void initTrajectories(uint64_t toStartCount,bool reversed=false);
     virtual void initTrajectories(uint64_t toStartCount, lm::io::TrajectoryState* zerothTraj);
     virtual void initPhaseNTrajectories(uint64_t trajectoriesToStart);
+
+    virtual void FinishFFluxOutputSingleTrajctory(lm::fflux::FFluxTrajectory* finishedTraj);
 
     virtual lm::fflux::FFluxTrajectory* workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg);
 

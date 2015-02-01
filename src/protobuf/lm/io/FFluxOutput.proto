@@ -39,12 +39,31 @@
 package lm.io;
 
 message FFluxOutput {
-    required int32 number_species       = 1;
-    required int32 number_entries       = 2;
 
-    repeated double initial_time        = 3 [packed=true];
-    repeated double final_time          = 4 [packed=true];
+	enum Direction {
+        FORWARD= 0;
+        BACKWARD = 1;
+    }
 
-    repeated double initial_op_vals     = 5 [packed=true];
-    repeated double final_op_vals       = 6 [packed=true];
+	message OrderParameterFFluxOutput {
+		// holds a number of pairs of long, single column tables
+		// one row per trajectory
+		// one member of each pair holds the value at the beginning of the trajectory, the other at the end
+
+
+		optional Direction direction	= 9000 [default=FORWARD];
+
+		repeated double initial_count	= 1 [packed=true];
+		repeated double initial_edge	= 2 [packed=true];
+		repeated double initial_time	= 3 [packed=true];
+
+		repeated double final_count		= 101 [packed=true];
+		repeated double final_edge		= 102 [packed=true];
+		repeated double final_time		= 103 [packed=true];
+	}
+
+    required uint32 order_parameter_id  								= 1;
+    required uint32 tiling_id      										= 2;
+
+    repeated OrderParameterFFluxOutput order_parameter_fflux_output 	= 3;
 }

@@ -49,6 +49,7 @@
 #include "lm/fflux/FFluxTrajectoryList.h"
 #include "lm/io/CMEState.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/io/FFluxOutput.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
@@ -108,6 +109,7 @@ FFluxTrajectoryList::~FFluxTrajectoryList()
 
 void FFluxTrajectoryList::init()
 {
+	initFFluxOutput();
     initTrajectories(simultaneousTrajectoryCount);
     averageTilingHist.set_tiling_id(input.tilings[0]->getID());
     for (lm::tiling::EdgeIterator e_it=input.tilings[0]->begin();e_it!=input.tilings[0]->end();e_it++)
@@ -116,7 +118,26 @@ void FFluxTrajectoryList::init()
     }
     dwellTimes[0] = 0;
     finishedTrajectoriesCounts[0] = 0;
+}
 
+void FFluxTrajectoryList::initFFluxOutput()
+	// initialize variables related to fflux output
+{
+	ffluxOutput.add_order_parameter_fflux_output();
+	ffluxOutput.mutable_order_parameter_fflux_output(0)->set_direction(lm::io::FFluxOutput::FORWARD);
+	ffluxOutput.add_order_parameter_fflux_output();
+	ffluxOutput.mutable_order_parameter_fflux_output(1)->set_direction(lm::io::FFluxOutput::BACKWARD);
+}
+
+void FFluxTrajectoryList::initFFluxOutputSingleTrajectory(lm::fflux::FFluxTrajectory* newTraj)
+{
+	ffluxOutput.mutable_order_parameter_fflux_output(direction)->add_initial_count(0.0);
+	ffluxOutput.mutable_order_parameter_fflux_output(direction)->add_initial_edge(0.0);
+	ffluxOutput.mutable_order_parameter_fflux_output(direction)->add_initial_time(newTraj->getSimTime());
+
+	ffluxOutput.mutable_order_parameter_fflux_output(direction)->add_final_count(0.0);
+	ffluxOutput.mutable_order_parameter_fflux_output(direction)->add_final_edge(0.0);
+	ffluxOutput.mutable_order_parameter_fflux_output(direction)->add_final_time(0.0);
 }
 
 void FFluxTrajectoryList::initReversed() // TODO: need to verify that reactionModel has a reversed_initial_species_count field before running this method
@@ -128,7 +149,9 @@ void FFluxTrajectoryList::initTrajectories(uint64_t trajectoriesToStart,bool rev
 {
     for (long long i=0; i<trajectoriesToStart; i++)
     {
-        trajectories[trajectoryCount] = new lm::fflux::FFluxTrajectory(trajectoryCount,ffluxPhase,input,reversed);
+    	lm::fflux::FFluxTrajectory* newTraj = new lm::fflux::FFluxTrajectory(trajectoryCount,ffluxPhase,input,reversed);
+    	initFFluxOutputSingleTrajectory(newTraj);
+    	trajectories[trajectoryCount] = newTraj;
         trajectoryCount++;
     }
 }
@@ -137,7 +160,9 @@ void FFluxTrajectoryList::initTrajectories(uint64_t trajectoriesToStart, lm::io:
 {
     for (long long i=0; i<trajectoriesToStart; i++)
     {
-        trajectories[trajectoryCount] = new lm::fflux::FFluxTrajectory(trajectoryCount,ffluxPhase,input,zerothTraj);
+    	lm::fflux::FFluxTrajectory* newTraj = new lm::fflux::FFluxTrajectory(trajectoryCount,ffluxPhase,input,zerothTraj);
+    	initFFluxOutputSingleTrajectory(newTraj);
+    	trajectories[trajectoryCount] = newTraj;
         trajectoryCount++;
     }
 }
@@ -151,6 +176,14 @@ void FFluxTrajectoryList::initPhaseNTrajectories(uint64_t trajectoriesToStart)
         initTrajectories(1, randomCrossing);
     }
 }
+
+void FFluxTrajectoryList::FinishFFluxOutputSingleTrajctory(lm::fflux::FFluxTrajectory* finishedTraj)
+{
+	ffluxOutput.mutable_order_parameter_fflux_output(direction)->set_final_count(finishedTraj->getID(), 1);
+	ffluxOutput.mutable_order_parameter_fflux_output(direction)->set_final_edge(finishedTraj->getID(), 99);
+	ffluxOutput.mutable_order_parameter_fflux_output(direction)->set_final_time(finishedTraj->getID(), finishedTraj->getSimTime());
+}
+
 
 lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg)
 {
@@ -172,6 +205,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
         simTime = traj->getSimTime();
         dwellTimes[ffluxPhase] += simTime;
         ++finishedTrajectoriesCounts[ffluxPhase];
+        FinishFFluxOutputSingleTrajctory(traj);
         deleteTrajectory(finishedWorkUnitMsg.final_state().trajectory_id());
         //Print::printf(Print::INFO, "ffluxPhase: %d, crossings[fflux].size(): %d, finishedTrajectoriesCount %d, time: %f, oparam: %f", ffluxPhase, crossings[ffluxPhase].size(), finishedTrajectoriesCounts[ffluxPhase], crossings[ffluxPhase].back()->cme_state().species_counts().time(crossings[ffluxPhase].back()->cme_state().species_counts().number_entries() - 1), calcTestCaseOParam(finishedWorkUnitMsg.final_state()));
         // If the forward flux sampling is still in its 0th (ie initial) phase...
@@ -338,7 +372,6 @@ lm::io::TrajectoryState* FFluxTrajectoryList::getRandomCrossing(long long ffluxP
     unsigned i = floor(xorShift.getRandomDouble()*crossings[ffluxPhase].size());
     return crossings[ffluxPhase][i];
 }
-
 
 CrossingsMap FFluxTrajectoryList::getSavedCrossings(lm::fflux::FFluxTrajectoryList::Direction dir)
 {
