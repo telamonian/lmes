@@ -328,6 +328,14 @@ ComputeResources ResourceMap::reserveCPUCores(int process, int numberCPUCores)
     throw Exception("Insufficient resource on the specified process to reserve a CPU core", process, resources.cpuCores.size(), numberCPUCores);
 }
 
+ComputeResources ResourceMap::getController(int process)
+{
+    ComputeResources resources = registeredResources[process];
+    resources.cpuCores.clear();
+    resources.gpuDevices.clear();
+    return resources;
+}
+
 map<int,ComputeResources> ResourceMap::getAvailableResources()
 {
     return registeredResources;

@@ -1,7 +1,7 @@
 /*
-  * University of Illinois Open Source License
+ * University of Illinois Open Source License
  * Copyright 2008-2011 Luthey-Schulten Group,
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2015 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Luthey-Schulten Group
@@ -157,6 +157,15 @@ protected:
         double k0;
         double k1;
     };
+    struct ZerothOrderNegativeFeedbackPropensityArgs : public PropensityArgs
+    {
+        static const uint REACTION_TYPE = 8006;
+        ZerothOrderNegativeFeedbackPropensityArgs(uint xi, double X, double beta, double h) :xi(xi),X(X),beta(beta),h(h) {}
+        uint xi;
+        double X;
+        double beta;
+        double h;
+    };
     struct ZerothOrderKHillPropensityArgs : public PropensityArgs
     {
         static const uint REACTION_TYPE = 8007;
@@ -184,12 +193,31 @@ protected:
     };
     struct MichaelisMentenPropensityArgs : public PropensityArgs
     {
-        static const uint REACTION_TYPE = 4;
+        static const uint REACTION_TYPE = 8012;
         MichaelisMentenPropensityArgs(uint si, double k0, double v0, double O) :si(si),k(k0*O),v(v0*O) {}
         uint si;
         double k;
         double v;
     };
+    struct ZerothOrderNegativeFeedbackExtrinsicPropensityArgs : public PropensityArgs
+    {
+        static const uint REACTION_TYPE = 8019;
+        ZerothOrderNegativeFeedbackExtrinsicPropensityArgs(uint xi, double k, double beta, int mi, double invM) :xi(xi),k(k),beta(beta),mi(mi),invM(invM) {}
+        uint xi;
+        double k;
+        double beta;
+        uint mi;
+        double invM;
+    };
+    struct EffectiveBurstPropensityArgs : public PropensityArgs
+    {
+        static const uint REACTION_TYPE = 8100;
+        EffectiveBurstPropensityArgs(uint ni, int N, double b) :ni(ni),N(N),b(b) {}
+        uint ni;
+        int N;
+        double b;
+    };
+
     class SpeciesLimit
     {
     public:
@@ -295,12 +323,14 @@ protected:
     static double kHillPropensity(double time, uint * speciesCounts, void * pargs);
     static double kHillTransportPropensity(double time, uint * speciesCounts, void * pargs);
     static double zerothOrderHeavisidePropensity(double time, uint * speciesCounts, void * pargs);
+    static double zerothOrderNegativeFeedbackPropensity(double time, uint * speciesCounts, void * pargs);
     static double zerothOrderKHillPropensity(double time, uint * speciesCounts, void * pargs);
     static double pdCooperateFitnessPropensity(double time, uint * speciesCounts, void * pargs);
     static double pdDefectFitnessPropensity(double time, uint * speciesCounts, void * pargs);
     static double pdReflectingCooperateFitnessPropensity(double time, uint * speciesCounts, void * pargs);
     static double pdReflectingDefectFitnessPropensity(double time, uint * speciesCounts, void * pargs);
     static double MichaelisMentenPropensity(double time, uint * speciesCounts, void * pargs);
+    static double effectiveBurstPropensity(double time, uint * speciesCounts, void * pargs);
 
     //virtual double recordParameters(double nextRecordTime, double recordInterval, double simulationTime);
     //virtual void queueRecordedParameters(bool flush=false);

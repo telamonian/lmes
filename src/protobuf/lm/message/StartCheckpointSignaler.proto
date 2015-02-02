@@ -36,86 +36,10 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#include <pthread.h>
-#include <sys/time.h>
-#include <time.h>
+package lm.message;
 
-#include "hrtime.h"
-#include "lm/Print.h"
-#include "lm/MPI.h"
-#include "lm/io/OutputWriter.h"
-#include "lm/io/SpeciesCounts.pb.h"
-#include "lm/main/SimulationSupervisor.h"
-#include "lm/message/Communicator.h"
-#include "lm/message/Message.pb.h"
-#include "lm/message/ProcessWorkUnitOutput.pb.h"
-#include "lm/message/StartedOutputWriter.pb.h"
-#include "lm/thread/Thread.h"
-#include "lm/thread/Worker.h"
-#include "lm/Types.h"
-
-#include "lptf/Profile.h"
-#include "lptf/ProfileCodes.h"
-
-
-#include <lm/ClassFactory.h>
-#include <lm/Print.h>
-#include "lm/io/NullOutputWriter.h"
-#include "lm/io/OutputWriter.h"
-
-
-namespace lm {
-namespace io {
-
-
-bool NullOutputWriter::registered=NullOutputWriter::registerClass();
-
-bool NullOutputWriter::registerClass()
-{
-    lm::ClassFactory::getInstance().registerClass("lm::io::OutputWriter","lm::io::NullOutputWriter",&NullOutputWriter::allocateObject);
-    return true;
-}
-
-void* NullOutputWriter::allocateObject()
-{
-    return new NullOutputWriter();
-}
-
-NullOutputWriter::NullOutputWriter()
-:secondsToDelay(0)
-{
-}
-
-NullOutputWriter::~NullOutputWriter()
-{
-}
-
-void NullOutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
-{
-    if (secondsToDelay > 0)
-        sleep(secondsToDelay);
-}
-
-void NullOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
-{
-    if (secondsToDelay > 0)
-        sleep(secondsToDelay);
-}
-
-void NullOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)
-{
-    if (secondsToDelay > 0)
-        sleep(secondsToDelay);
-}
-
-void NullOutputWriter::flush()
-{
-
-}
-
-void NullOutputWriter::checkpoint()
-{
-}
-
-}
+message StartCheckpointSignaler {
+    required int32 supervisor_process   = 1;
+    required int32 supervisor_thread    = 2;
+    required int32 checkpoint_interval  = 3;
 }

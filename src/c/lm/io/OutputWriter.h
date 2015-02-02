@@ -76,6 +76,7 @@ protected:
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data)=0;
     virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)=0;
     virtual void flush()=0;
+    virtual void checkpoint()=0;
 
     virtual int run();
 

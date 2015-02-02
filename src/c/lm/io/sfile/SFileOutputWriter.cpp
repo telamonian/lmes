@@ -128,6 +128,10 @@ void SFileOutputWriter::flush()
     file->flush();
 }
 
+void SFileOutputWriter::checkpoint()
+{
+}
+
 void SFileOutputWriter::finalize()
 {
     OutputWriter::finalize();

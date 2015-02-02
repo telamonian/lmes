@@ -210,6 +210,17 @@ bool SlotList::hasFreeSlots()
     return false;
 }
 
+bool SlotList::hasBusySlots()
+{
+    // Check all of the slots to see if anything is free.
+    for (size_t i=0; i<slots.size(); i++)
+    {
+        if (slots[i].status == Slot::BUSY)
+            return true;
+    }
+    return false;
+}
+
 void SlotList::runWorkUnit(lm::message::Message* runWorkUnitMsg)
 {
     int64_t workUnitId = (int64_t)runWorkUnitMsg->run_work_unit().work_unit_id();

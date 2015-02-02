@@ -1,40 +1,45 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2010-2011 Luthey-Schulten Group,
+ * Copyright 2008-2011 Luthey-Schulten Group,
+ * Copyright 2012-2015 Roberts Group,
  * All rights reserved.
- * 
+ *
  * Developed by: Luthey-Schulten Group
  * 			     University of Illinois at Urbana-Champaign
  * 			     http://www.scs.uiuc.edu/~schulten
- * 
+ *
+ * Developed by: Roberts Group
+ * 			     Johns Hopkins University
+ * 			     http://biophysics.jhu.edu/roberts/
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the Software), to deal with 
- * the Software without restriction, including without limitation the rights to 
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
- * of the Software, and to permit persons to whom the Software is furnished to 
+ * this software and associated documentation files (the Software), to deal with
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to
  * do so, subject to the following conditions:
- * 
- * - Redistributions of source code must retain the above copyright notice, 
+ *
+ * - Redistributions of source code must retain the above copyright notice,
  * this list of conditions and the following disclaimers.
- * 
- * - Redistributions in binary form must reproduce the above copyright notice, 
- * this list of conditions and the following disclaimers in the documentation 
+ *
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimers in the documentation
  * and/or other materials provided with the distribution.
- * 
+ *
  * - Neither the names of the Luthey-Schulten Group, University of Illinois at
- * Urbana-Champaign, nor the names of its contributors may be used to endorse or
- * promote products derived from this Software without specific prior written
- * permission.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL 
- * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR 
- * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+ * Urbana-Champaign, the Roberts Group, Johns Hopkins University, nor the names
+ * of its contributors may be used to endorse or promote products derived from
+ * this Software without specific prior written permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 #include <cmath>
 #include <limits>
@@ -460,6 +465,27 @@ void CMESolver::ReactionModel::build(const uint numberSpeciesA, const uint numbe
             propensityFunctionArgs[i] =  (void *)new ZerothOrderHeavisidePropensityArgs(xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2]);
             propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
         }
+        else if (reactionTypes[i] == ZerothOrderNegativeFeedbackPropensityArgs::REACTION_TYPE)
+        {
+            // Find the dependency.
+            int xi=-1;
+            for (uint j=0; j<numberSpecies; j++)
+            {
+                if (D[j*numberReactions+i] == 1)
+                {
+                    if (xi != -1) throw InvalidArgException("D", "zeroth order negative feedback reaction can only have one dependency");
+                    xi = j;
+                }
+            }
+
+            // Make sure we found the right dependencies.
+            if (xi == -1) throw InvalidArgException("D", "zeroth order negative feedback reaction must have one dependency");
+
+            // Set the table entry.
+            propensityFunctions[i] = (void *)&zerothOrderNegativeFeedbackPropensity;
+            propensityFunctionArgs[i] =  (void *)new ZerothOrderNegativeFeedbackPropensityArgs(xi, K[i*kCols], K[i*kCols+1], K[i*kCols+2]);
+            propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
+        }
         else if (reactionTypes[i] == ZerothOrderKHillPropensityArgs::REACTION_TYPE)
         {
             // Find the dependency.
@@ -586,6 +612,30 @@ void CMESolver::ReactionModel::build(const uint numberSpeciesA, const uint numbe
             globalPDFitnessPropensityArgs->lowBoundary = (uint)round(K[i*kCols+4]);
             globalPDFitnessPropensityArgs->highBoundary = (uint)round(K[i*kCols+5]);
             propensityFunctionArgs[i] = (void *)globalPDFitnessPropensityArgs;
+        }
+        else if (reactionTypes[i] == EffectiveBurstPropensityArgs::REACTION_TYPE)
+        {
+            // Find the dependencies.
+            uint numberDependencies = 0;
+            for (uint j=0; j<numberSpecies; j++)
+            {
+                if (D[j*numberReactions+i] == 1)
+                {
+                    numberDependencies++;
+
+                    // Set the table entry to the first non-zero dependency.
+                    if (numberDependencies == 1)
+                    {
+                        propensityFunctions[i] = (void *)&effectiveBurstPropensity;
+                        propensityFunctionArgs[i] =  (void *)new EffectiveBurstPropensityArgs(j, int(round(K[i*kCols])), K[i*kCols+1]);
+                        propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
+                    }
+                    else
+                    {
+                        throw InvalidArgException("D", "first order reaction had invalid number of dependencies",numberDependencies);
+                    }
+                }
+            }
         }
 
 
@@ -797,10 +847,18 @@ double CMESolver::kHillTransportPropensity(double time, uint * speciesCounts, vo
 double CMESolver::zerothOrderHeavisidePropensity(double time, uint * speciesCounts, void * pargs)
 {
 	ZerothOrderHeavisidePropensityArgs * args = (ZerothOrderHeavisidePropensityArgs *)pargs;
-
-	//Print::printf(Print::DEBUG, "Recalculating zerothOrderHeavisidePropensity for %d (count=%d) with %d,%e,%e = %e", args->xi, speciesCounts[args->xi], args->x0, args->k0, args->k1, ((speciesCounts[args->xi]<args->x0)?(args->k0):(args->k1)));
-
 	return ((speciesCounts[args->xi]<args->x0)?(args->k0):(args->k1));
+}
+
+double CMESolver::zerothOrderNegativeFeedbackPropensity(double time, uint * speciesCounts, void * pargs)
+{
+    ZerothOrderNegativeFeedbackPropensityArgs * args = (ZerothOrderNegativeFeedbackPropensityArgs *)pargs;
+    int x = (int)speciesCounts[args->xi];
+    double X=args->X;
+    double beta=args->beta;
+    double p=X*((1.0+beta)/(1.0+beta*(x>=0?pow(double(x)/X,args->h):0.0)));
+    //Print::printf(Print::DEBUG, "Recalculating zerothOrderNegativeFeedbackPropensity for %d (%d) with %e,%e,%e = %e", args->xi, x, args->X, args->beta, args->h, p);
+    return p;
 }
 
 double CMESolver::zerothOrderKHillPropensity(double time, uint * speciesCounts, void * pargs)
@@ -870,6 +928,16 @@ double CMESolver::MichaelisMentenPropensity(double time, uint * speciesCounts, v
 {
     MichaelisMentenPropensityArgs * args = (MichaelisMentenPropensityArgs *)pargs;
     return args->v*((double)speciesCounts[args->si]/(args->k + (double)speciesCounts[args->si]));
+}
+
+double CMESolver::effectiveBurstPropensity(double time, uint * speciesCounts, void * pargs)
+{
+    EffectiveBurstPropensityArgs * args = (EffectiveBurstPropensityArgs *)pargs;
+    int n = (int)speciesCounts[args->ni];
+    int N = args->N;
+    double x=double(n)/double(N);
+    double b = args->b;
+    return N*((1+(b*x))/(1+b));
 }
 
 void CMESolver::reset()

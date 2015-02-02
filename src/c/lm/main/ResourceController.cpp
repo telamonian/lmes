@@ -52,6 +52,7 @@
 #include "lm/MPI.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/main/Main.h"
+#include "lm/main/CheckpointSignaler.h"
 #include "lm/main/ResourceController.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Communicator.h"
@@ -73,16 +74,11 @@ ResourceController::ResourceController()
 
 ResourceController::~ResourceController()
 {
-    for (std::list<lm::thread::Worker*>::iterator it=runnerWorkers.begin(); it != runnerWorkers.end(); it++)
+    for (std::list<lm::thread::Worker*>::iterator it=workers.begin(); it != workers.end(); it++)
     {
         delete *it;
     }
-    for (std::list<lm::thread::Worker*>::iterator it=writerWorkers.begin(); it != writerWorkers.end(); it++)
-	{
-		delete *it;
-	}
-    runnerWorkers.clear();
-    writerWorkers.clear();
+    workers.clear();
 }
 
 void ResourceController::wake() throw(PthreadException)
@@ -167,6 +163,10 @@ int ResourceController::run()
             {
                 startOutputWriter(message.start_output_writer());
             }
+            else if (message.has_start_checkpoint_signaler())
+            {
+                startCheckpointSignaler(message.start_checkpoint_signaler());
+            }
             else if (message.has_stop_resource_controller())
             {
                 stopWorkers(message.stop_resource_controller().abort());
@@ -204,7 +204,7 @@ void ResourceController::startWorkUnitRunner(const lm::message::StartWorkUnitRun
     // Start the work unit runner.
     WorkUnitRunner* runner = new WorkUnitRunner(msg);
     runner->start();
-    runnerWorkers.push_back(runner);
+    workers.push_back(runner);
 }
 
 void ResourceController::startOutputWriter(const lm::message::StartOutputWriter& msg)
@@ -214,34 +214,26 @@ void ResourceController::startOutputWriter(const lm::message::StartOutputWriter&
     writer->setOutputFilename(msg.output_filename());
     writer->initialize();
     writer->start();
-    writerWorkers.push_back(writer);
+    workers.push_back(writer);
+}
+
+void ResourceController::startCheckpointSignaler(const lm::message::StartCheckpointSignaler& msg)
+{
+    lm::main::CheckpointSignaler* s = new CheckpointSignaler(msg.checkpoint_interval(), msg.supervisor_process(), msg.supervisor_thread());
+    s->start();
+    workers.push_back(s);
 }
 
 void ResourceController::stopWorkers(bool abort)
 {
-	Print::printf(Print::INFO, "total execution time was: %f", convertHrToSeconds(getHrTime() - globalTimer));
-	for (WorkerList::iterator it=runnerWorkers.begin(); it!=runnerWorkers.end(); it++)
+    Print::printf(Print::DEBUG, "Resource controller %d:%d stopping workers.", lm::MPI::worldRank, threadNumber);
+    for (std::list<lm::thread::Worker*>::iterator it=workers.begin(); it!=workers.end(); it++)
 	{
-	if (abort)
-		(*it)->abort();
-	else
-		(*it)->stop();
+        if (abort)
+            (*it)->abort();
+        else
+            (*it)->stop();
 	}
-	for (WorkerList::iterator it=writerWorkers.begin(); it!=writerWorkers.end(); it++)
-	{
-	if (abort)
-		(*it)->abort();
-	else
-		(*it)->stop();
-	}
-//    for (std::list<lm::thread::Worker*>::iterator it=workers.begin(); it != workers.end(); it++)
-//    {
-//        lm::thread::Worker* worker = *it;
-//        if (abort)
-//            worker->abort();
-//        else
-//            worker->stop();
-//    }
 }
 
 }

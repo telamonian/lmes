@@ -151,5 +151,9 @@ void ConsoleOutputWriter::flush()
 {
 }
 
+void ConsoleOutputWriter::checkpoint()
+{
+}
+
 }
 }

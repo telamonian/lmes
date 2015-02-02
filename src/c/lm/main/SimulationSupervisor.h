@@ -54,10 +54,12 @@
 #include "lm/io/SimulationParameters.pb.h"
 #include "lm/io/Tilings.pb.h"
 #include "lm/message/Communicator.h"
+#include "lm/message/FinishedCheckpointing.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/ResourcesAvailable.pb.h"
 #include "lm/message/StartWorkUnitRunner.pb.h"
+#include "lm/message/StartedCheckpointSignaler.pb.h"
 #include "lm/message/StartedOutputWriter.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnitRunner.pb.h"
@@ -104,11 +106,15 @@ protected:
     virtual void allResourcesRegistered();
     virtual void startOutputWriter();
     virtual void receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg);
+    virtual void startCheckpointSignaler();
+    virtual void receivedStartedCheckpointSignaler(const lm::message::StartedCheckpointSignaler& msg);
     virtual void startWorkUnitRunners();
     virtual void receivedStartedWorkUnitRunner(const lm::message::StartedWorkUnitRunner & msg);
     virtual void startSimulationIfAllWorkersStarted();
     virtual void receivedStartedWorkUnit(const lm::message::StartedWorkUnit& msg);
     virtual void receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg);
+    virtual void receivedPerformCheckpointing(const lm::message::PerformCheckpointing& msg);
+    virtual void receivedFinishedCheckpointing(const lm::message::FinishedCheckpointing& msg);
 
 private:
     bool parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg);
@@ -117,6 +123,7 @@ private:
 
 protected:
     bool simulationRunning;
+    bool performingCheckpoint;
     lm::message::Communicator communicator;
     lm::resource::ResourceMap* resourceMap;
     std::string simulationInputFilename;
@@ -125,6 +132,7 @@ protected:
     bool hasOutputWriterStarted;
     int outputWriterProcess;
     int outputWriterThread;
+    bool hasCheckpointSignalerStarted;
     std::string solverClassName;
     bool useCPUAffinity;
     lm::input::Input* input;

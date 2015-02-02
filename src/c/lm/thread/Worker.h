@@ -51,7 +51,6 @@ public:
     Worker();
     virtual ~Worker();
     virtual void abort() throw(PthreadException);
-    virtual void checkpoint() throw(PthreadException);
 
 protected:
     volatile bool aborted;

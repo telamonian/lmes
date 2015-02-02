@@ -104,9 +104,6 @@ PROF_ALLOC;
 
 int main(int argc, char** argv)
 {
-    // Start the global execution timer
-    globalTimer = getHrTime();
-
     // Make sure we are using the correct protocol buffers library.
     GOOGLE_PROTOBUF_VERIFY_VERSION;
 

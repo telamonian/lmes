@@ -64,21 +64,6 @@ WorkerManager::~WorkerManager() throw(PthreadException)
     PTHREAD_EXCEPTION_CHECK(pthread_mutex_destroy(&mutex));
 }
 
-void WorkerManager::checkpointWorkers() throw(PthreadException)
-{
-    //// BEGIN CRITICAL SECTION: mutex
-    PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&mutex));
-
-    // Tell the worker threads to checkpoint.
-    for (list<Worker *>::iterator it=workers.begin(); it != workers.end(); it++)
-    {
-        (*it)->checkpoint();
-    }
-
-    PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&mutex));
-    //// END CRITICAL SECTION: mutex
-}
-
 void WorkerManager::addWorker(Worker * worker) throw(PthreadException)
 {
     //// BEGIN CRITICAL SECTION: mutex

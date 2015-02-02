@@ -50,6 +50,7 @@
 #include "lm/main/Main.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Communicator.h"
+#include "lm/message/FinishedCheckpointing.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/ResourcesAvailable.pb.h"
@@ -68,7 +69,7 @@ namespace lm {
 namespace main {
 
 SimulationSupervisor::SimulationSupervisor()
-    :simulationRunning(true),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),hasOutputWriterStarted(false),outputWriterProcess(-1),outputWriterThread(-1),solverClassName(""),useCPUAffinity(false),input(NULL),hasReactionModel(false),hasDiffusionModel(false),hasOrderParameters(false),hasTilings(false),tilings(),trajectories(NULL),slots(&communicator),haveAllWorkUnitRunnersStarted(false),workUnitCount(0),slaveCount(0)
+    :simulationRunning(true),performingCheckpoint(false),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),hasOutputWriterStarted(false),outputWriterProcess(-1),outputWriterThread(-1),hasCheckpointSignalerStarted(false),solverClassName(""),useCPUAffinity(false),input(NULL),hasReactionModel(false),hasDiffusionModel(false),hasOrderParameters(false),hasTilings(false),tilings(),trajectories(NULL),slots(&communicator),haveAllWorkUnitRunnersStarted(false),workUnitCount(0)
 {
     resetPerformanceStatistics();
 }
@@ -294,6 +295,10 @@ int SimulationSupervisor::run()
             {
                 receivedStartedOutputWriter(message.started_output_writer());
             }
+            else if (message.has_started_checkpoint_signaler())
+            {
+                receivedStartedCheckpointSignaler(message.started_checkpoint_signaler());
+            }
             else if (message.has_started_work_unit_runner())
 			{
                 receivedStartedWorkUnitRunner(message.started_work_unit_runner());
@@ -306,12 +311,20 @@ int SimulationSupervisor::run()
             {
                 receivedFinishedWorkUnit(message.finished_work_unit());
             }
+            else if (message.has_perform_checkpointing())
+            {
+                receivedPerformCheckpointing(message.perform_checkpointing());
+            }
+            else if (message.has_finished_checkpointing())
+            {
+                receivedFinishedCheckpointing(message.finished_checkpointing());
+            }
             else if (message.has_ping_target())
             {
             }
             else
             {
-//                Print::printf(Print::ERROR, "Supervisor received an unknown message: {\n%s}",message.DebugString().c_str());
+                Print::printf(Print::ERROR, "Supervisor received an unknown message: {\n%s}",message.DebugString().c_str());
             }
 
             // Print any performance statistics.
@@ -362,6 +375,7 @@ void SimulationSupervisor::allResourcesRegistered()
     Print::printf(Print::INFO, "All resources registered with supervisor, starting workers.");
 
     startOutputWriter();
+    startCheckpointSignaler();
     startWorkUnitRunners();
 }
 
@@ -405,6 +419,34 @@ void SimulationSupervisor::receivedStartedOutputWriter(const lm::message::Starte
     startSimulationIfAllWorkersStarted();
 }
 
+void SimulationSupervisor::startCheckpointSignaler()
+{
+    //See if we need to start a checkpoint signaler.
+    if (checkpointInterval > 0)
+    {
+        // Get the resource controller for the eprocess.
+        ComputeResources resources = resourceMap->getController(communicator.getSourceProcess());
+
+        // Start the checkpoint signaler.
+        lm::message::Message msg;
+        msg.mutable_start_checkpoint_signaler()->set_supervisor_process(communicator.getSourceProcess());
+        msg.mutable_start_checkpoint_signaler()->set_supervisor_thread(communicator.getSourceThread());
+        msg.mutable_start_checkpoint_signaler()->set_checkpoint_interval(checkpointInterval);
+        communicator.sendMessage(resources.controller_process, resources.controller_thread, &msg);
+    }
+    else
+    {
+        hasCheckpointSignalerStarted = true;
+    }
+}
+
+void SimulationSupervisor::receivedStartedCheckpointSignaler(const lm::message::StartedCheckpointSignaler& msg)
+{
+    Print::printf(Print::INFO, "Checkpoint signaller started: %d:%d.",msg.process(),msg.thread());
+    hasCheckpointSignalerStarted = true;
+    startSimulationIfAllWorkersStarted();
+}
+
 void SimulationSupervisor::startWorkUnitRunners()
 {
     map<int,ComputeResources> allResources = resourceMap->getAvailableResources();
@@ -425,7 +467,7 @@ void SimulationSupervisor::receivedStartedWorkUnitRunner(const lm::message::Star
 
 void SimulationSupervisor::startSimulationIfAllWorkersStarted()
 {
-    if (haveAllWorkUnitRunnersStarted && hasOutputWriterStarted)
+    if (haveAllWorkUnitRunnersStarted && hasOutputWriterStarted && hasCheckpointSignalerStarted)
     {
         Print::printf(Print::INFO, "All supervisor workers have started, beginning simulation.");
         startSimulation();
@@ -522,8 +564,47 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
     // Free the slot that the returning work unit just ran on
     slots.workUnitFinished(msg);
 
-    // Fill the newly freed slot with a work unit. If there are more trajectories than slots, this is guaranteed to use the slot we just freed. Otherwise it will be the "coldest" (longest unoccupied) slot
-    if (assignWork() && (!ffluxFlag || trajectories->getSize()==0))	// The finishing condition for fflux simulations is a little different from normal
+    // If we are not performing a checkpoint, distribute more work.
+    if (!performingCheckpoint)
+    {
+        // Fill the newly freed slot with a work unit. If there are more trajectories than slots, this is guaranteed to use the slot we just freed. Otherwise it will be the "coldest" (longest unoccupied) slot
+        if (assignWork() && (!ffluxFlag || trajectories->getSize()==0))	// The finishing condition for fflux simulations is a little different from normal
+        {
+            Print::printf(Print::INFO, "Simulation finished.");
+            finishSimulation();
+        }
+    }
+
+    // Otherwise, see if all outstanding work units have finished.
+    else if (!slots.hasBusySlots())
+    {
+        Print::printf(Print::INFO, "Creating a checkpoint, pausing work.");
+
+        // Send a message to the output writer to save a checkpoint.
+        lm::message::Message msgp;
+        lm::message::PerformCheckpointing* msg = msgp.mutable_perform_checkpointing();
+        communicator.sendMessage(outputWriterProcess, outputWriterThread, &msgp);
+    }
+}
+
+void SimulationSupervisor::receivedPerformCheckpointing(const lm::message::PerformCheckpointing& msg)
+{
+    if (simulationRunning)
+    {
+        // Mark that we need to perform a checkpoint, so distribution of work units should pause until checkpointing is finished.
+        performingCheckpoint = true;
+    }
+}
+
+void SimulationSupervisor::receivedFinishedCheckpointing(const lm::message::FinishedCheckpointing& msg)
+{
+    Print::printf(Print::INFO, "Finished creating a checkpoint, resuming work.");
+
+    // Mark that we are done checkpointing.
+    performingCheckpoint = false;
+
+    // Resume distribution of work.
+    if (assignWork())
     {
         Print::printf(Print::INFO, "Simulation finished.");
         finishSimulation();
