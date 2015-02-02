@@ -324,8 +324,11 @@ int SimulationSupervisor::run()
             }
             else
             {
-                Print::printf(Print::ERROR, "Supervisor received an unknown message: {\n%s}",message.DebugString().c_str());
-            }
+            	if (!ffluxFlag)
+            	{
+            		Print::printf(Print::ERROR, "Supervisor received an unknown message: {\n%s}",message.DebugString().c_str());
+            	}
+			}
 
             // Print any performance statistics.
             printPerformanceStatistics();
