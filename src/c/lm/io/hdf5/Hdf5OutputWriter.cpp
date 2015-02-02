@@ -108,7 +108,7 @@ void Hdf5OutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries&
 
 void Hdf5OutputWriter::processFFluxOutput(const lm::io::FFluxOutput& data)
 {
-    file->appendFFluxOutput(const_cast<lm::io::FFluxOutput*>(&data));
+    file->setFFluxOutput(const_cast<lm::io::FFluxOutput*>(&data));
 }
 
 void Hdf5OutputWriter::flush()

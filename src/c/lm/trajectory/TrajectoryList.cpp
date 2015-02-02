@@ -84,6 +84,7 @@ void TrajectoryList::deleteAllTrajectories()
 
 void TrajectoryList::deleteTrajectory(uint64_t trajectoryID)
 {
+//	Print::printf(Print::INFO,"Deleting trajectory ID: %d", trajectoryID);
     TrajectoryMap::iterator it(trajectories.find(trajectoryID));
     delete it->second;
     trajectories.erase(it);
@@ -114,6 +115,7 @@ lm::trajectory::Trajectory* TrajectoryList::workUnitFinished(const lm::message::
 
 lm::message::Message* TrajectoryList::getNextWorkUnitMsg()
 {
+	Print::printf(Print::INFO, "As I get the next work unit, the trajectories size is: %d\n", trajectories.size());
     for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
     {
         lm::message::Message* retMsg = it->second->getNextWorkUnitMsg(workUnitCount++);
@@ -151,6 +153,14 @@ Trajectory::status_t TrajectoryList::getTrajectoryStatus(uint64_t trajectoryID)
 lm::io::TrajectoryState* TrajectoryList::getTrajectoryState(uint64_t trajectoryID)
 {
     return trajectories[trajectoryID]->getState();
+}
+
+void TrajectoryList::setAllFinished()
+{
+	for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+	{
+		it->second->setStatus(Trajectory::FINISHED);
+	}
 }
 
 void TrajectoryList::setTrajectoryStarted(uint64_t trajectoryID, bool trajectoryStarted)

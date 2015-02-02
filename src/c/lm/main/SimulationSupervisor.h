@@ -144,6 +144,7 @@ protected:
     lm::slot::SlotList slots;
     bool haveAllWorkUnitRunnersStarted;
     long long workUnitCount;
+    uint slaveCount;
 
 private:
     hrtime stats_lastPrintTime;
@@ -152,7 +153,6 @@ private:
     long long stats_maxWorkUnitId;
     long long stats_workUnitsSteps;
     double stats_workUnitTime;
-
 };
 
 }

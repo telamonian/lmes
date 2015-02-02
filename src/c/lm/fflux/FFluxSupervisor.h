@@ -67,10 +67,10 @@ public:
 
 protected:
     virtual void receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg);
+    virtual void finishSimulation();
     virtual void startSimulation();
 
 protected:
-    lm::io::FFluxOutput ffluxOutput;
     int realOutputWriterProcess;
     int realOutputWriterThread;
 };

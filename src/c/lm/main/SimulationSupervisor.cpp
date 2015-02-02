@@ -68,7 +68,7 @@ namespace lm {
 namespace main {
 
 SimulationSupervisor::SimulationSupervisor()
-    :simulationRunning(true),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),hasOutputWriterStarted(false),outputWriterProcess(-1),outputWriterThread(-1),solverClassName(""),useCPUAffinity(false),input(NULL),hasReactionModel(false),hasDiffusionModel(false),hasOrderParameters(false),hasTilings(false),tilings(),trajectories(NULL),slots(&communicator),haveAllWorkUnitRunnersStarted(false),workUnitCount(0)
+    :simulationRunning(true),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),hasOutputWriterStarted(false),outputWriterProcess(-1),outputWriterThread(-1),solverClassName(""),useCPUAffinity(false),input(NULL),hasReactionModel(false),hasDiffusionModel(false),hasOrderParameters(false),hasTilings(false),tilings(),trajectories(NULL),slots(&communicator),haveAllWorkUnitRunnersStarted(false),workUnitCount(0),slaveCount(0)
 {
     resetPerformanceStatistics();
 }
@@ -278,7 +278,6 @@ int SimulationSupervisor::run()
     try
     {
         Print::printf(Print::INFO, "Supervisor %d:%d started.", lm::MPI::worldRank, threadNumber);
-
         // Loop reading messages.
         lm::message::Message message;
         while (running && simulationRunning)
@@ -524,7 +523,7 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
     slots.workUnitFinished(msg);
 
     // Fill the newly freed slot with a work unit. If there are more trajectories than slots, this is guaranteed to use the slot we just freed. Otherwise it will be the "coldest" (longest unoccupied) slot
-    if (assignWork())
+    if (assignWork() && (!ffluxFlag || trajectories->getSize()==0))	// The finishing condition for fflux simulations is a little different from normal
     {
         Print::printf(Print::INFO, "Simulation finished.");
         finishSimulation();

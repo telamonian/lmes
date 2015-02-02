@@ -183,9 +183,27 @@ lm::message::Message* Trajectory::getNextWorkUnitMsg(uint64_t nextWorkUnitID)
     }
 }
 
+double Trajectory::getOPVal(uint opID)
+{
+	uint speciesCountSize = getSpeciesCounts()->species_count_size();
+	uint* lastSpeciesCount = new uint[getSpeciesCounts()->number_species()];
+	uint offset = (getSpeciesCounts()->number_entries() - 1)*(getSpeciesCounts()->number_species());
+	for (int i=0; i<getSpeciesCounts()->number_species(); i++)
+	{
+		lastSpeciesCount[i] = getSpeciesCounts()->species_count(i + offset);
+	}
+	return input.oparams[opID]->calc(lastSpeciesCount);
+	delete [] lastSpeciesCount;
+}
+
 lm::message::RunWorkUnit* Trajectory::getRunMsg()
 {
 	return msg.mutable_run_work_unit();
+}
+
+lm::io::SpeciesCounts* Trajectory::getSpeciesCounts()
+{
+	return getState()->mutable_cme_state()->mutable_species_counts();
 }
 
 Trajectory::status_t Trajectory::getStatus()

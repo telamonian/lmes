@@ -41,25 +41,26 @@ package lm.io;
 message FFluxOutput {
 
 	enum Direction {
-        FORWARD= 0;
-        BACKWARD = 1;
+        FORWARD		= 0;
+        BACKWARD 	= 1;
+    }
+    
+    enum Lifecycle {
+    	INITIAL		= 0;
+    	FINAL		= 1;
     }
 
 	message OrderParameterFFluxOutput {
 		// holds a number of pairs of long, single column tables
 		// one row per trajectory
-		// one member of each pair holds the value at the beginning of the trajectory, the other at the end
-
 
 		optional Direction direction	= 9000 [default=FORWARD];
+		optional Lifecycle lifecycle	= 9001 [default=INITIAL];
 
-		repeated double initial_count	= 1 [packed=true];
-		repeated double initial_edge	= 2 [packed=true];
-		repeated double initial_time	= 3 [packed=true];
-
-		repeated double final_count		= 101 [packed=true];
-		repeated double final_edge		= 102 [packed=true];
-		repeated double final_time		= 103 [packed=true];
+		repeated double count			= 1;
+		repeated double edge			= 2;
+		repeated double time			= 3;
+		repeated double trajectory_id	= 4;
 	}
 
     required uint32 order_parameter_id  								= 1;

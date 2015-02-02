@@ -70,10 +70,16 @@ public:
     virtual lm::io::TrajectoryState* getTrajectoryState(uint64_t trajectoryID);
     virtual bool exists(uint64_t trajectoryID) {if (trajectories.find(trajectoryID)!=trajectories.end()) return true; else return false;}
 
+    // getter on whole list
+    virtual uint64_t getSize() {return trajectories.size();}
+
     // setter
     virtual void setTrajectoryStarted(uint64_t trajectoryID, bool trajectoryStarted);
     virtual void setTrajectoryStatus(uint64_t trajectoryID, lm::trajectory::Trajectory::status_t status);
     virtual void setTrajectoryState(uint64_t trajectoryID, const lm::io::TrajectoryState& state);
+
+    // setter on whole list
+    virtual void setAllFinished();
 
     // destroyer
     virtual void deleteTrajectory(uint64_t trajectoryID);

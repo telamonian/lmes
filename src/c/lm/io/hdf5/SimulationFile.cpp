@@ -527,6 +527,50 @@ void Hdf5File::setDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(
     }
 }
 
+void Hdf5File::setFFluxOutput(lm::io::FFluxOutput* ffluxOutput)
+{
+	// Validate the forward flux output
+	//if (tilings==NULL) throw InvalidArgException("tilings", "cannot be NULL");
+	// TODO_LOW: add checks
+
+	// If a set of FFluxOutput exist, delete it
+	if (H5Lexists(file, "/FFluxOutput", H5P_DEFAULT))
+	{
+		HDF5_EXCEPTION_CHECK(H5Ldelete(file, "/FFluxOutput", H5P_DEFAULT));
+	}
+
+	hid_t ffluxOutputGroup;
+
+	HDF5_EXCEPTION_CALL(ffluxOutputGroup, H5Gcreate2(file, "/FFluxOutput", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+
+	// If there is FFluxOutput for forward or backwards runs, print out the relevant tables
+	hid_t directionGroup, lifecycleGroup;
+	hsize_t dims[1];
+	int outIndex;
+	vector<string> directionStrings; directionStrings.push_back("FORWARD"); directionStrings.push_back("BACKWARD");
+	vector<string> lifecycleStrings; lifecycleStrings.push_back("INITIAL"); lifecycleStrings.push_back("FINAL");
+	// loop through the FORWARD and BACKWARD enums
+	for (int i=0;i<2;i++)
+	{
+		// create a group corresponding to the direction (FORWARD or BACKWARD)
+		HDF5_EXCEPTION_CALL(directionGroup, H5Gcreate2(ffluxOutputGroup, directionStrings[i].c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+
+		// loop through the INITIAL and FINAL enums
+		for (int j=0;j<2;j++)
+		{
+			outIndex = i*2+j;
+			// create a group corresponding to the lifecycle (INITIAL or FINAL)
+			HDF5_EXCEPTION_CALL(lifecycleGroup, H5Gcreate2(directionGroup, lifecycleStrings[j].c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+			// write the datasets for this particular OrderParameterFFluxOutput
+			dims[0] = ffluxOutput->order_parameter_fflux_output(outIndex).count_size();
+			HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "Count", 1, dims, H5T_IEEE_F64LE, ffluxOutput->order_parameter_fflux_output(outIndex).count().data()));
+			HDF5_EXCEPTION_CHECK(H5Gclose(lifecycleGroup));
+		}
+		HDF5_EXCEPTION_CHECK(H5Gclose(directionGroup));
+	}
+	HDF5_EXCEPTION_CHECK(H5Gclose(ffluxOutputGroup));
+}
+
 bool Hdf5File::hasOrderParameters()
 {
     return (H5Lexists(file, "/OrderParameters", H5P_DEFAULT)!=0);
@@ -1256,46 +1300,6 @@ void Hdf5File::openReplicate(uint64_t replicate) throw(HDF5Exception)
     openReplicateHandles(replicate);
 }
 
-void Hdf5File::appendFFluxOutput(lm::io::FFluxOutput* ffluxOutput)
-{
-//    // Update the species counts dataset.
-//    {
-//        // Get the current size of the dataset.
-//        unsigned int RANK=2;
-//        hsize_t dims[RANK];
-//        hid_t dataspace_id;
-//        int result;
-//        HDF5_EXCEPTION_CALL(dataspace_id,H5Dget_space(handles->speciesCountsDataset));
-//        HDF5_EXCEPTION_CALL(result,H5Sget_simple_extent_dims(dataspace_id, dims, NULL));
-//        HDF5_EXCEPTION_CHECK(H5Sclose(dataspace_id));
-//
-//        // Extend the dataset by the number of rows in the data set.
-//        dims[0] += speciesCounts->number_entries();
-//        HDF5_EXCEPTION_CHECK(H5Dset_extent(handles->speciesCountsDataset, dims));
-//
-//        // Create the memory dataset.
-//        hid_t memspace_id;
-//        hsize_t memDims[RANK];
-//        memDims[0] = speciesCounts->number_entries();
-//        memDims[1] = speciesCounts->number_species();
-//        HDF5_EXCEPTION_CALL(memspace_id,H5Screate_simple(RANK, memDims, NULL));
-//
-//        // Write the new data.
-//        HDF5_EXCEPTION_CALL(dataspace_id,H5Dget_space(handles->speciesCountsDataset));
-//        hsize_t start[RANK], count[RANK];
-//        start[0] = dims[0]-speciesCounts->number_entries();
-//        start[1] = 0;
-//        count[0] = memDims[0];
-//        count[1] = memDims[1];
-//        HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, start, NULL, count, NULL));
-//        HDF5_EXCEPTION_CHECK(H5Dwrite(handles->speciesCountsDataset, H5T_NATIVE_INT32, memspace_id, dataspace_id, H5P_DEFAULT, speciesCounts->species_count().data()));
-//
-//        // Cleanup some resources.
-//        HDF5_EXCEPTION_CHECK(H5Sclose(dataspace_id));
-//        HDF5_EXCEPTION_CHECK(H5Sclose(memspace_id));
-//    }
-}
-
 void Hdf5File::appendSpeciesCounts(uint64_t replicate, lm::io::SpeciesCounts * speciesCounts) throw(HDF5Exception)
 {
     ReplicateHandles * handles = openReplicateHandles(replicate);
@@ -1557,7 +1561,6 @@ void Hdf5File::appendParameterValues(uint64_t replicate, lm::io::ParameterValues
     HDF5_EXCEPTION_CHECK(H5Dclose(pvDatasetHandle));
     HDF5_EXCEPTION_CHECK(H5Gclose(pvGroupHandle));
 }
-
 
 void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTimes * firstPassageTimes) throw(HDF5Exception,InvalidArgException)
 {

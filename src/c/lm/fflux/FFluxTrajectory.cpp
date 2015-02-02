@@ -137,7 +137,9 @@ bool FFluxTrajectory::hasElapsed(double time)
 void FFluxTrajectory::initLimits()
 {
     getRunMsg()->mutable_limits()->Clear();
-    switch ((ffluxPhase!=0)<<1|input.tilings[0]->getArrangement()!=lm::io::Tilings::ASCENDING) // each of the 4 sets of possible pairs of true/false values corresponds to one of the numbers 0-3
+    // we are dealing with a combinatoric case where both either ffluxPhase is zero or it isn't, and the tiling arrangment is ASCENDING or it isn't
+    // each of the 4 sets of possible pairs of true/false values corresponds to one of the numbers 0-3
+    switch ((ffluxPhase!=0)<<1|input.tilings[0]->getArrangement()!=lm::io::Tilings::ASCENDING)
     {
     case 0: // ffluxphase==0 and tilings[0].getArrangement()==lm::io::Tilings::ASCENDING
     {

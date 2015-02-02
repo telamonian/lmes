@@ -74,13 +74,32 @@ void* FFluxSupervisor::allocateObject()
     return new FFluxSupervisor();
 }
 
-FFluxSupervisor::FFluxSupervisor()
+FFluxSupervisor::FFluxSupervisor(): realOutputWriterProcess(-1), realOutputWriterThread(-1)
 {
-
 }
 
 FFluxSupervisor::~FFluxSupervisor()
 {
+}
+
+void FFluxSupervisor::finishSimulation()
+{
+	// Create the output message.
+	lm::message::Message msgp;
+	lm::message::ProcessWorkUnitOutput* msg = msgp.add_process_work_unit_output();
+	msg->set_work_unit_id(999999999999999);
+
+	// Initialize the fflux output data
+	lm::io::FFluxOutput* ffluxOutput = NULL;
+	ffluxOutput = msg->mutable_fflux_output();
+
+	// Assign the fflux output data
+	*ffluxOutput = static_cast<lm::fflux::FFluxTrajectoryList*>(trajectories)->ffluxOutput;
+
+	// Send the message
+	communicator.sendMessage(realOutputWriterProcess, realOutputWriterThread, &msgp);
+
+	SimulationSupervisor::finishSimulation();
 }
 
 void FFluxSupervisor::receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg)

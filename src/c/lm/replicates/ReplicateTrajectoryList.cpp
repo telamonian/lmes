@@ -82,20 +82,6 @@ void ReplicateTrajectoryList::init()
 	{
 		trajectories[i] = new lm::replicates::ReplicateTrajectory(i,input);
 
-//		// Initialize the trajectory's runWorkUnit message
-//		trajectories[i]->setMsg(trajectoryTemplateMsg);
-//
-//		// Initialize the trajectory id.
-//		trajectories[i]->getState().set_trajectory_id(i);
-//
-//		// Initialize the species counts in the cme state.
-//		trajectories[i]->getState().mutable_cme_state()->mutable_species_counts()->set_trajectory_id(i);
-//		trajectories[i]->getState().mutable_cme_state()->mutable_species_counts()->set_number_species(reactionModel.number_species());
-//		trajectories[i]->getState().mutable_cme_state()->mutable_species_counts()->set_number_entries(1);
-//		for (int j=0; j<(int)reactionModel.number_species(); j++)
-//			trajectories[i]->getState().mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.initial_species_count(j));
-//		trajectories[i]->getState().mutable_cme_state()->mutable_species_counts()->add_time(0.0);
-
 		// Initialize the first passage times in the cme state.
 		const string listString = input.simulationParametersMap["fptTrackingList"];
 		std::list<int> fptList;
