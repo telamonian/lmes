@@ -46,11 +46,11 @@ namespace tiling {
 
 TilingClassMap Tilings::tilingClassMap = Tilings::makeTilingClassMap();
 
-Tilings::Tilings()
+Tilings::Tilings(): currentTilingID(-1)
 {
 }
 
-Tilings::Tilings(const lm::io::Tilings& newTilingsBuf)
+Tilings::Tilings(const lm::io::Tilings& newTilingsBuf): currentTilingID(-1)
 {
     init(newTilingsBuf);
 }
@@ -99,6 +99,19 @@ void Tilings::initTiling(const lm::io::Tilings::Tiling& tiling)
 {
     tilingMap[tiling.id()] = (static_cast<lm::tiling::Tiling*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::tiling::Tiling",lm::tiling::Tilings::tilingClassMap[tiling.type()])));
     tilingMap[tiling.id()]->init(tiling);
+}
+
+// accessors
+lm::tiling::Tiling* Tilings::getCurrentTiling()
+{
+    if (hasCurrentTilingID())
+    {
+        return (*this)[getCurrentTilingID()];
+    }
+    else
+    {
+        return tilingMap.begin()->second;
+    }
 }
 
 void Tilings::reverse()

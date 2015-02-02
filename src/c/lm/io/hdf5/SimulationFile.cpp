@@ -1139,9 +1139,9 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
     HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(loc_id, name, "ID", &id));
     HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(loc_id, name, "OrderParameterID", &opID));
     HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(loc_id, name, "Type", &type));
-    newTiling->set_type(id);
-    newTiling->set_id(type);
+    newTiling->set_id(id);
     newTiling->set_order_parameter_id(opID);
+    newTiling->set_type(type);
 
     // read in the values of the tiling's edges
     hsize_t dims[1];
@@ -1196,8 +1196,11 @@ void Hdf5File::getTilings(lm::io::Tilings* tilings)
     cdT->tilings = tilings;
     cdT->filename = filename;
 
+    uint32_t currentTilingID;
     if (H5Lexists(file, "/Tilings", H5P_DEFAULT))
     {
+    	HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Tilings", "CurrentTilingID", &currentTilingID));
+    	tilings->set_current_tiling_id(currentTilingID);
         H5Literate_by_name(file, "/Tilings", H5_INDEX_NAME, H5_ITER_INC, NULL, getTilingsCallback, (void *)cdT, H5P_DEFAULT);
     }
 }
@@ -1217,6 +1220,11 @@ void Hdf5File::setTilings(lm::io::Tilings * tilings)
     hid_t tilingsGroup;
 
     HDF5_EXCEPTION_CALL(tilingsGroup, H5Gcreate2(file, "/Tilings", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+    if (tilings->has_current_tiling_id())
+    {
+		uint CurrentTilingID = tilings->current_tiling_id();
+		HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(file, "/Tilings", "CurrentTilingID", &CurrentTilingID, 1));
+    }
 
     // If there are any sets of tilings, write out the relevant tables
     uint id, opID, type;

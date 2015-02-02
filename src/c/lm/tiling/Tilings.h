@@ -74,11 +74,15 @@ public:
     TilingMap::iterator end() {return tilingMap.end();}
 
     // accessors
+    bool hasCurrentTilingID() {return getTilingsBuf()->has_current_tiling_id();}
+    lm::tiling::Tiling* getCurrentTiling();
+    uint getCurrentTilingID() {return getTilingsBuf()->current_tiling_id();}
     lm::io::Tilings* getTilingsBuf() {return &tilingsBuf;}
 
     // mutators
     void reverse(); // reverse order of list of edges
     bool rFFTilingsBuf(lm::io::hdf5::Hdf5File* file); // rFF = read From File
+    void setCurrentTilingID(uint newCurrentTilingID) {currentTilingID = newCurrentTilingID;}
     void setTilingsBuf(const lm::io::Tilings& newTilingsBuf) {*getTilingsBuf() = newTilingsBuf;}
 
     // static methods
@@ -89,6 +93,9 @@ public:
         m[0] = "lm::tiling::TilingBin";
         return m;
     }
+protected:
+    uint currentTilingID;
+
 private:
     TilingMap tilingMap;
     lm::io::Tilings tilingsBuf;
