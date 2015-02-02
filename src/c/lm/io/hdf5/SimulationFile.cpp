@@ -564,6 +564,12 @@ void Hdf5File::setFFluxOutput(lm::io::FFluxOutput* ffluxOutput)
 			// write the datasets for this particular OrderParameterFFluxOutput
 			dims[0] = ffluxOutput->order_parameter_fflux_output(outIndex).count_size();
 			HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "Count", 1, dims, H5T_IEEE_F64LE, ffluxOutput->order_parameter_fflux_output(outIndex).count().data()));
+			dims[0] = ffluxOutput->order_parameter_fflux_output(outIndex).edge_id_size();
+			HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "EdgeID", 1, dims, H5T_STD_U64LE, ffluxOutput->order_parameter_fflux_output(outIndex).edge_id().data()));
+			dims[0] = ffluxOutput->order_parameter_fflux_output(outIndex).time_size();
+			HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "Time", 1, dims, H5T_IEEE_F64LE, ffluxOutput->order_parameter_fflux_output(outIndex).time().data()));
+			dims[0] = ffluxOutput->order_parameter_fflux_output(outIndex).trajectory_id_size();
+			HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "TrajectoryID", 1, dims, H5T_STD_U64LE, ffluxOutput->order_parameter_fflux_output(outIndex).trajectory_id().data()));
 			HDF5_EXCEPTION_CHECK(H5Gclose(lifecycleGroup));
 		}
 		HDF5_EXCEPTION_CHECK(H5Gclose(directionGroup));

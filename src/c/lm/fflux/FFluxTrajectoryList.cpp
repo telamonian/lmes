@@ -451,7 +451,7 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(lm::fflux::FFluxTrajectory* t
 	uint outIndex = (direction!=FORWARD)<<1 | lifecycle!=lm::io::FFluxOutput::INITIAL;
 
 	ffluxOutput.mutable_order_parameter_fflux_output(outIndex)->add_count(traj->getOPVal());
-	ffluxOutput.mutable_order_parameter_fflux_output(outIndex)->add_edge(ffluxPhase);
+	ffluxOutput.mutable_order_parameter_fflux_output(outIndex)->add_edge_id(ffluxPhase);
 	ffluxOutput.mutable_order_parameter_fflux_output(outIndex)->add_time(traj->getSimTime());
 	ffluxOutput.mutable_order_parameter_fflux_output(outIndex)->add_trajectory_id(traj->getID());
 }

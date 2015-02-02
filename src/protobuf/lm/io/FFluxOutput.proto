@@ -58,9 +58,9 @@ message FFluxOutput {
 		optional Lifecycle lifecycle	= 9001 [default=INITIAL];
 
 		repeated double count			= 1;
-		repeated double edge			= 2;
+		repeated uint64 edge_id			= 2;
 		repeated double time			= 3;
-		repeated double trajectory_id	= 4;
+		repeated uint64 trajectory_id	= 4;
 	}
 
     required uint32 order_parameter_id  								= 1;

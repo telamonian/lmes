@@ -115,7 +115,7 @@ lm::trajectory::Trajectory* TrajectoryList::workUnitFinished(const lm::message::
 
 lm::message::Message* TrajectoryList::getNextWorkUnitMsg()
 {
-	Print::printf(Print::INFO, "As I get the next work unit, the trajectories size is: %d\n", trajectories.size());
+//	Print::printf(Print::INFO, "As I get the next work unit, the trajectories size is: %d\n", trajectories.size());
     for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
     {
         lm::message::Message* retMsg = it->second->getNextWorkUnitMsg(workUnitCount++);
