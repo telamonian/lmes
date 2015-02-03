@@ -64,6 +64,7 @@ public:
 
     // accessors
     virtual lm::io::TrajectoryLimits::LimitType getFinalLimitType();
+    virtual void getLastSpeciesCounts(lm::io::FFluxOutput::TrajectoryOutput* trajectoryOutputBuf);
     virtual uint getSimSteps();
     virtual double getSimTime();
     virtual bool hasElapsed(double time);

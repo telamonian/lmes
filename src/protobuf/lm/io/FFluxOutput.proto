@@ -50,21 +50,22 @@ message FFluxOutput {
     	FINAL		= 1;
     }
 
-	message OrderParameterFFluxOutput {
+	message TrajectoryOutput {
 		// holds a number of pairs of long, single column tables
 		// one row per trajectory
 
 		optional Direction direction	= 9000 [default=FORWARD];
 		optional Lifecycle lifecycle	= 9001 [default=INITIAL];
+		optional int32 number_species	= 9002;
 
 		repeated double count			= 1;
 		repeated uint64 edge_id			= 2;
-		repeated double time			= 3;
-		repeated uint64 trajectory_id	= 4;
+		repeated double species_count	= 3 [packed=true];
+		repeated double time			= 4;
+		repeated uint64 trajectory_id	= 5;
 	}
 
-    required uint32 order_parameter_id  								= 1;
-    required uint32 tiling_id      										= 2;
-
-    repeated OrderParameterFFluxOutput order_parameter_fflux_output 	= 3;
+    required uint32 tiling_id      					= 1;
+    
+    repeated TrajectoryOutput trajectory_outputs 	= 2;
 }

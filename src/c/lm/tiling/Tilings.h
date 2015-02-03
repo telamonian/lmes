@@ -75,8 +75,8 @@ public:
 
     // accessors
     bool hasCurrentTilingID() {return getTilingsBuf()->has_current_tiling_id();}
-    lm::tiling::Tiling* getCurrentTiling();
-    uint getCurrentTilingID() {return getTilingsBuf()->current_tiling_id();}
+    lm::tiling::Tiling* getCurrentTiling() {return (*this)[getCurrentTilingID()];}
+    uint getCurrentTilingID();
     lm::io::Tilings* getTilingsBuf() {return &tilingsBuf;}
 
     // mutators

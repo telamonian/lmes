@@ -79,7 +79,7 @@ FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,lm
  dwellTimes(),
  ffluxPhase(0),
  finishedTrajectoriesCounts(),
- maxFFluxPhase(input.tilings[0]->getEdgesCount()),
+ maxFFluxPhase(input.tilings.getCurrentTiling()->getEdgesCount()),
  maxPhaseZeroTime(atof(input.simulationParametersMap["maxPhaseZeroTime"].c_str())),
  simultaneousTrajectoryCount(simultaneousTrajectoryCount),
  xorShift(0,0)  //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
@@ -111,8 +111,8 @@ void FFluxTrajectoryList::init()
 {
 	initFFluxOutput();
     initTrajectories(simultaneousTrajectoryCount);
-    averageTilingHist.set_tiling_id(input.tilings[0]->getID());
-    for (lm::tiling::EdgeIterator e_it=input.tilings[0]->begin();e_it!=input.tilings[0]->end();e_it++)
+    averageTilingHist.set_tiling_id(input.tilings.getCurrentTiling()->getID());
+    for (lm::tiling::EdgeIterator e_it=input.tilings.getCurrentTiling()->begin();e_it!=input.tilings.getCurrentTiling()->end();e_it++)
     {
         averageTilingHist.add_tile_vals(0);
     }
@@ -123,21 +123,19 @@ void FFluxTrajectoryList::init()
 void FFluxTrajectoryList::initFFluxOutput()
 	// initialize variables related to fflux output
 {
-	ffluxOutput.set_order_parameter_id(0);
-	ffluxOutput.set_tiling_id(0);
-	// create 4 order_parameter_fflux_output entries, one for each combination of direction and lifecycle
-	ffluxOutput.add_order_parameter_fflux_output();
-	ffluxOutput.mutable_order_parameter_fflux_output(0)->set_direction(lm::io::FFluxOutput::FORWARD);
-	ffluxOutput.mutable_order_parameter_fflux_output(0)->set_lifecycle(lm::io::FFluxOutput::INITIAL);
-	ffluxOutput.add_order_parameter_fflux_output();
-	ffluxOutput.mutable_order_parameter_fflux_output(1)->set_direction(lm::io::FFluxOutput::FORWARD);
-	ffluxOutput.mutable_order_parameter_fflux_output(1)->set_lifecycle(lm::io::FFluxOutput::FINAL);
-	ffluxOutput.add_order_parameter_fflux_output();
-	ffluxOutput.mutable_order_parameter_fflux_output(2)->set_direction(lm::io::FFluxOutput::BACKWARD);
-	ffluxOutput.mutable_order_parameter_fflux_output(2)->set_lifecycle(lm::io::FFluxOutput::INITIAL);
-	ffluxOutput.add_order_parameter_fflux_output();
-	ffluxOutput.mutable_order_parameter_fflux_output(3)->set_direction(lm::io::FFluxOutput::BACKWARD);
-	ffluxOutput.mutable_order_parameter_fflux_output(3)->set_lifecycle(lm::io::FFluxOutput::FINAL);
+	ffluxOutput.set_tiling_id(input.tilings.getCurrentTilingID());
+	// create 4 trajectory_outputs entries, one for each combination of direction and lifecycle
+	lm::io::FFluxOutput::TrajectoryOutput* trajectoryOutput;
+	for (int direc=0; direc!=2; direc++)
+	{
+	    for (int lcycle=0; lcycle!=2; lcycle++)
+	    {
+            trajectoryOutput = ffluxOutput.add_trajectory_outputs();
+            trajectoryOutput->set_number_species(input.reactionModelBuf.number_species());
+            trajectoryOutput->set_direction(static_cast<lm::io::FFluxOutput::Direction>(direc));
+            trajectoryOutput->set_lifecycle(static_cast<lm::io::FFluxOutput::Lifecycle>(lcycle));
+	    }
+	}
 }
 
 void FFluxTrajectoryList::initReversed() // TODO: need to verify that reactionModel has a reversed_initial_species_count field before running this method
@@ -260,7 +258,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
                     Print::printf(Print::INFO, "Phase 0 probability flux: %.10f", (double)crossings[0].size()/(maxPhaseZeroTime*simultaneousTrajectoryCount));
                     for (int i=1;i<maxFFluxPhase;i++)
                     {
-                        Print::printf(Print::INFO, "Crossing probability for interface at %f: %.10f", input.tilings[0]->getEdge(i), (double)crossings[i].size()/finishedTrajectoriesCounts[i]);
+                        Print::printf(Print::INFO, "Crossing probability for interface at %f: %.10f", input.tilings.getCurrentTiling()->getEdge(i), (double)crossings[i].size()/finishedTrajectoriesCounts[i]);
                     }
                     double Kab = (double)crossings[0].size()/(maxPhaseZeroTime*simultaneousTrajectoryCount);
                     for (int i=1;i<maxFFluxPhase;i++)
@@ -450,10 +448,11 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(lm::fflux::FFluxTrajectory* t
 	// get a number from 0-3 based on the current direction of the fflux simulation and the lifecycle of the trajectory being added
 	uint outIndex = (direction!=FORWARD)<<1 | lifecycle!=lm::io::FFluxOutput::INITIAL;
 
-	ffluxOutput.mutable_order_parameter_fflux_output(outIndex)->add_count(traj->getOPVal());
-	ffluxOutput.mutable_order_parameter_fflux_output(outIndex)->add_edge_id(ffluxPhase);
-	ffluxOutput.mutable_order_parameter_fflux_output(outIndex)->add_time(traj->getSimTime());
-	ffluxOutput.mutable_order_parameter_fflux_output(outIndex)->add_trajectory_id(traj->getID());
+	ffluxOutput.mutable_trajectory_outputs(outIndex)->add_count(traj->getOPVal());
+	ffluxOutput.mutable_trajectory_outputs(outIndex)->add_edge_id(ffluxPhase);
+	traj->getLastSpeciesCounts(ffluxOutput.mutable_trajectory_outputs(outIndex));
+	ffluxOutput.mutable_trajectory_outputs(outIndex)->add_time(traj->getSimTime());
+	ffluxOutput.mutable_trajectory_outputs(outIndex)->add_trajectory_id(traj->getID());
 }
 
 }

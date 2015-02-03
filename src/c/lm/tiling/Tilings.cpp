@@ -102,15 +102,15 @@ void Tilings::initTiling(const lm::io::Tilings::Tiling& tiling)
 }
 
 // accessors
-lm::tiling::Tiling* Tilings::getCurrentTiling()
+uint Tilings::getCurrentTilingID()
 {
     if (hasCurrentTilingID())
     {
-        return (*this)[getCurrentTilingID()];
+        return getTilingsBuf()->current_tiling_id();
     }
     else
     {
-        return tilingMap.begin()->second;
+        return tilingMap.begin()->first;
     }
 }
 

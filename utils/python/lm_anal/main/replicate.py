@@ -2,16 +2,11 @@ class Replicate(object):
     def __init__(self, simdata):#, **kwargs):
         self.times = simdata['SpeciesCountTimes']
         self.counts = simdata['SpeciesCounts']
-        self.oparam = None
-        self.rcoords = None
 #         self.sweepParams = kwargs
     
     @property
-    def Oparam(self):
-        return 
-    
-    @property
-    def Rcoords(self):
+    def oparam(self):
+        return
     
     def __getstate__(self):
         """Return state values to be pickled."""
