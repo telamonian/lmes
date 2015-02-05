@@ -82,7 +82,7 @@ void ReplicateTrajectoryList::init()
 	{
 		trajectories[i] = new lm::replicates::ReplicateTrajectory(i,input);
 
-		// Initialize the first passage times in the cme state.
+		// Initialize the first passage times in the cme state for the species counts.
 		const string listString = input.simulationParametersMap["fptTrackingList"];
 		std::list<int> fptList;
 		size_t start=0, end=0;
@@ -104,8 +104,34 @@ void ReplicateTrajectoryList::init()
 			fpt->set_number_entries(1);
 			fpt->add_species_count(input.reactionModelBuf.initial_species_count(*it));
 			fpt->add_first_passage_time(0.0);
-			Print::printf(Print::DEBUG, "Added fpt tracking for species %d", *it);
+			Print::printf(Print::INFO, "Added fpt tracking for species %d", *it);
 		}
+
+		// Initialize the first passage times in the cme state for the order parameters.
+        const string listOPString = input.simulationParametersMap["fptOrderParameterTrackingList"];
+        std::list<int> fptOPList;
+        start=0, end=0;
+        while (end != string::npos)
+        {
+            end = listOPString.find(',', start);
+            string trackedOP = listOPString.substr(start, (end == string::npos) ? string::npos : end - start);
+            if (trackedOP.length() > 0)
+            {
+                fptOPList.push_back(atoi(trackedOP.c_str()));
+            }
+            start = end+1;
+        }
+        for (std::list<int>::iterator it=fptOPList.begin(); it != fptOPList.end(); it++)
+        {
+            lm::io::FirstPassageTimes* fpt = trajectories[i]->getState()->mutable_cme_state()->add_first_passage_times();
+            fpt->set_is_order_parameter(true);
+            fpt->set_trajectory_id(i);
+            fpt->set_species(*it);
+            fpt->set_number_entries(1);
+            fpt->add_species_count(trajectories[i]->getOPVal(*it));
+            fpt->add_first_passage_time(0.0);
+            Print::printf(Print::INFO, "Added fpt tracking for order parameter %d", *it);
+        }
 
         // Initialize the rdme state from the diffusion model.
         lm::io::RDMEState* rdmeState = trajectories[i]->getState()->mutable_rdme_state();

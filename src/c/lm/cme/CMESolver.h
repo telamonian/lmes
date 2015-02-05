@@ -229,19 +229,37 @@ protected:
     class FPTTracking
     {
     public:
-        int species;
         int minValueAchieved;
         int maxValueAchieved;
+        int species;
         std::deque<std::pair<int,double> > fptValues;
+
+        bool isOrderParameter;
+        int minOPValueAchieved;
+        int maxOPValueAchieved;
+        std::deque<std::pair<double,double> > fptOPValues;
+
         void serializeTo(uint64_t trajectoryId, lm::io::FirstPassageTimes* fpt)
         {
             fpt->set_trajectory_id(trajectoryId);
+            fpt->set_is_order_parameter(isOrderParameter);
             fpt->set_species(species);
             fpt->set_number_entries(fptValues.size());
-            for (std::deque<std::pair<int,double> >::iterator it=fptValues.begin(); it != fptValues.end(); it++)
+            if (fpt->is_order_parameter())
             {
-                fpt->add_species_count(it->first);
-                fpt->add_first_passage_time(it->second);
+                for (std::deque<std::pair<double,double> >::iterator it=fptOPValues.begin(); it != fptOPValues.end(); it++)
+                {
+                    fpt->add_op_count(it->first);
+                    fpt->add_first_passage_time(it->second);
+                }
+            }
+            else
+            {
+                for (std::deque<std::pair<int,double> >::iterator it=fptValues.begin(); it != fptValues.end(); it++)
+                {
+                    fpt->add_species_count(it->first);
+                    fpt->add_first_passage_time(it->second);
+                }
             }
         }
     };
@@ -341,11 +359,11 @@ protected:
         for (int i=0; i<(int)reactionModel->numberDependentSpecies[r]; i++)
         {
             speciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
-            updatedSpeciesCounts();
+            // updatedSpeciesCounts(); //// is it okay to move this line out of the loop?
         }
         if (ffluxFlag==true)
         {
-            // Update the order parameters, if required
+            // Update the order parameters,
             for (int i=0; i<oparams->size(); i++)
             {
                 (*oparams)[i]->calc(speciesCounts);
@@ -356,21 +374,69 @@ protected:
                 tilingHists[i].tileVals[(*tilings)[tilingHists[i].tilingID]->getTileIndex((*oparams)[(*tilings)[tilingHists[i].tilingID]->getOrderParameterID()]->get())] += timeStep;
             }
         }
+        updatedSpeciesCounts();
     }
 
     inline void updatedSpeciesCounts()
     {
+//        // Update the first passage time tables.
+//        for (int i=0; i<numberFptTrackedSpecies; i++)
+//        {
+//            if (fptTrackedSpecies[i].isOrderParameter)
+//            {
+//                double opCount
+//                opCount = (*oparams)[fptTrackedSpecies[i].species]->get();
+//
+//                while (opCount < fptTrackedSpecies[i].minValueAchieved)
+//                {
+//                    fptTrackedSpecies[i].fptValues.push_front(std::pair<double,double>(--fptTrackedSpecies[i].minOPValueAchieved,time));
+//                }
+//                while (opCount > fptTrackedSpecies[i].maxValueAchieved)
+//                {
+//                    fptTrackedSpecies[i].fptValues.push_back(std::pair<double,double>(++fptTrackedSpecies[i].maxOPValueAchieved,time));
+//                }
+//            }
+//            else
+//            {
+//                int speciesCount;
+//                speciesCount = speciesCounts[fptTrackedSpecies[i].species];
+//                while (speciesCount < fptTrackedSpecies[i].minValueAchieved)
+//                {
+//                    fptTrackedSpecies[i].fptValues.push_front(std::pair<int,double>(--fptTrackedSpecies[i].minValueAchieved,time));
+//                }
+//                while (speciesCount > fptTrackedSpecies[i].maxValueAchieved)
+//                {
+//                    fptTrackedSpecies[i].fptValues.push_back(std::pair<int,double>(++fptTrackedSpecies[i].maxValueAchieved,time));
+//                }
+//            }
+//        }
+
         // Update the first passage time tables.
         for (int i=0; i<numberFptTrackedSpecies; i++)
         {
-            int speciesCount = speciesCounts[fptTrackedSpecies[i].species];
-            while (speciesCount < fptTrackedSpecies[i].minValueAchieved)
+            if (fptTrackedSpecies[i].isOrderParameter)
             {
-                fptTrackedSpecies[i].fptValues.push_front(std::pair<int,double>(--fptTrackedSpecies[i].minValueAchieved,time));
+                double opCount = (*oparams)[fptTrackedSpecies[i].species]->get();
+                while (opCount < fptTrackedSpecies[i].minOPValueAchieved)
+                {
+                    fptTrackedSpecies[i].fptOPValues.push_front(std::pair<double,double>(--fptTrackedSpecies[i].minOPValueAchieved,time));
+                }
+                while (opCount > fptTrackedSpecies[i].maxOPValueAchieved)
+                {
+                    fptTrackedSpecies[i].fptOPValues.push_back(std::pair<double,double>(++fptTrackedSpecies[i].maxOPValueAchieved,time));
+                }
             }
-            while (speciesCount > fptTrackedSpecies[i].maxValueAchieved)
+            else
             {
-                fptTrackedSpecies[i].fptValues.push_back(std::pair<int,double>(++fptTrackedSpecies[i].maxValueAchieved,time));
+                int speciesCount = speciesCounts[fptTrackedSpecies[i].species];
+                while (speciesCount < fptTrackedSpecies[i].minValueAchieved)
+                {
+                    fptTrackedSpecies[i].fptValues.push_front(std::pair<int,double>(--fptTrackedSpecies[i].minValueAchieved,time));
+                }
+                while (speciesCount > fptTrackedSpecies[i].maxValueAchieved)
+                {
+                    fptTrackedSpecies[i].fptValues.push_back(std::pair<int,double>(++fptTrackedSpecies[i].maxValueAchieved,time));
+                }
             }
         }
     }

@@ -142,13 +142,13 @@ int WorkUnitRunner::run()
         }
 
         // Set the order parameters for the solver
-        if (solver->needsOrderParameters())
+        if (properties.has_order_parameters())
         {
-            if (properties.has_order_parameters())
-            {
-                solver->setOrderParameters(properties.order_parameters());
-            }
-            else
+            solver->setOrderParameters(properties.order_parameters());
+        }
+        else
+        {
+            if (solver->needsOrderParameters())
             {
                 throw Exception("Work Unit runner terminating, solver requires a set of order parameters but none was specified", properties.solver().c_str());
             }

@@ -154,7 +154,7 @@ class Input(object):
         sets a simulation parameter as an attribute on the Parameters group
         simParam: a SimulationParameter namedtuple
         '''
-        print simParam
+        print(simParam)
         self.f['Parameters'].attrs[simParam.key] = np.string_(str(simParam.val)+' ') # np.string_ conversion in place so that attr is stored as fixed length string
         
     def SetSimulationParameters(self, simParams):

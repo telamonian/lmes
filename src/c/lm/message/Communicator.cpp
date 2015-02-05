@@ -95,6 +95,7 @@ void Communicator::sendMessage(int destProcess, int destThread, lm::message::Mes
 
 void Communicator::sendMessage(Endpoint dest, lm::message::Message* msg)
 {
+//    Print::printf(Print::INFO, "Communicator %d:%d sending message: {\n%s}", source.process, source.thread, msg->DebugString().c_str());
     PROF_BEGIN(PROF_MESSAGE_SEND);
 
     // Set the message values.

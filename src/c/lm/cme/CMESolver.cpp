@@ -964,7 +964,7 @@ void CMESolver::reset()
     }
 
     // Reinitialize the order parameters, if required
-    if (needsOrderParameters())
+    if (oparams!=NULL) //// (needsOrderParameters())
     {
         oparams->initValues(speciesCounts);
     }
@@ -1041,7 +1041,7 @@ void CMESolver::setState(const lm::io::TrajectoryState& state)
     }
 
     // Reinitialize the order parameters, if required
-    if (needsOrderParameters())
+    if (oparams!=NULL) //// (needsOrderParameters())
     {
         oparams->initValues(speciesCounts);
     }
@@ -1056,6 +1056,7 @@ void CMESolver::setState(const lm::io::TrajectoryState& state)
         fptTrackedSpecies = new FPTTracking[numberFptTrackedSpecies];
         for (int i=0; i<numberFptTrackedSpecies; i++)
         {
+            fptTrackedSpecies[i].isOrderParameter = state.cme_state().first_passage_times(i).is_order_parameter();
             fptTrackedSpecies[i].species = state.cme_state().first_passage_times(i).species();
             fptTrackedSpecies[i].minValueAchieved = state.cme_state().first_passage_times(i).species_count(0);
             fptTrackedSpecies[i].maxValueAchieved = state.cme_state().first_passage_times(i).species_count(state.cme_state().first_passage_times(i).number_entries()-1);
