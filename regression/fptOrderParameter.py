@@ -22,12 +22,12 @@ op = OrderParameter(type=0,
                     speciesIDs=[0,1,2,3,4,5],
                     speciesCoefficients=[-1,-2,-2,1,2,2])
 simParams = [SimulationParameter(key='crossingsPerPhase',val='100'),
-            SimulationParameter(key='fptTrackingList',val='1,4'),
-#              SimulationParameter(key='fptOrderParameterTrackingList',val='0'),
+#              SimulationParameter(key='fptTrackingList',val='1,4'),
+             SimulationParameter(key='fptOrderParameterTrackingList',val='0'),
              SimulationParameter(key='maxPhaseZeroTime',val='10000'),
              SimulationParameter(key='maxSteps',val='10000000000'),
              SimulationParameter(key='maxTime',val='1e5'),
-             SimulationParameter(key='maxWorkUnitSteps',val='10000'),
+             SimulationParameter(key='maxWorkUnitSteps',val='10000000'),
              SimulationParameter(key='writeInterval',val='1e3')]
 
 replicateParameters.SetInitialSpeciesCounts(iSCs=iSCs)

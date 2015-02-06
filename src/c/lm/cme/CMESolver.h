@@ -244,11 +244,11 @@ protected:
             fpt->set_trajectory_id(trajectoryId);
             fpt->set_is_order_parameter(isOrderParameter);
             fpt->set_species(species);
-            fpt->set_number_entries(fptValues.size());
             if (fpt->is_order_parameter())
             {
                 for (std::deque<std::pair<double,double> >::iterator it=fptOPValues.begin(); it != fptOPValues.end(); it++)
                 {
+                    fpt->set_number_entries(fptOPValues.size());
                     fpt->add_op_count(it->first);
                     fpt->add_first_passage_time(it->second);
                 }
@@ -257,6 +257,7 @@ protected:
             {
                 for (std::deque<std::pair<int,double> >::iterator it=fptValues.begin(); it != fptValues.end(); it++)
                 {
+                    fpt->set_number_entries(fptValues.size());
                     fpt->add_species_count(it->first);
                     fpt->add_first_passage_time(it->second);
                 }

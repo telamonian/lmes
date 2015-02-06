@@ -184,7 +184,6 @@ int main(int argc, char** argv)
 
         Print::printf(Print::INFO, "Program execution finished.");
         google::protobuf::ShutdownProtobufLibrary();
-        Print::printf(Print::INFO, "Protobuf execution finished.");
         return 0;
     }
     catch (lm::MPIException & e)

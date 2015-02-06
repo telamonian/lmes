@@ -37,10 +37,11 @@
  * Author(s): Elijah Roberts
  */
 
-#include <string>
+#include <csignal>
 #include <map>
 #include <mpi.h>
 #include <pthread.h>
+#include <string>
 #include <vector>
 
 #include "hrtime.h"

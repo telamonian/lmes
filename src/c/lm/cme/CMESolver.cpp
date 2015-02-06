@@ -1058,11 +1058,23 @@ void CMESolver::setState(const lm::io::TrajectoryState& state)
         {
             fptTrackedSpecies[i].isOrderParameter = state.cme_state().first_passage_times(i).is_order_parameter();
             fptTrackedSpecies[i].species = state.cme_state().first_passage_times(i).species();
-            fptTrackedSpecies[i].minValueAchieved = state.cme_state().first_passage_times(i).species_count(0);
-            fptTrackedSpecies[i].maxValueAchieved = state.cme_state().first_passage_times(i).species_count(state.cme_state().first_passage_times(i).number_entries()-1);
-            for (int j=0; j<state.cme_state().first_passage_times(i).number_entries(); j++)
+            if (fptTrackedSpecies[i].isOrderParameter)
             {
-                fptTrackedSpecies[i].fptValues.push_back(std::pair<int,double>(state.cme_state().first_passage_times(i).species_count(j),state.cme_state().first_passage_times(i).first_passage_time(j)));
+                fptTrackedSpecies[i].minOPValueAchieved = state.cme_state().first_passage_times(i).op_count(0);
+                fptTrackedSpecies[i].maxOPValueAchieved = state.cme_state().first_passage_times(i).op_count(state.cme_state().first_passage_times(i).number_entries()-1);
+                for (int j=0; j<state.cme_state().first_passage_times(i).number_entries(); j++)
+                {
+                    fptTrackedSpecies[i].fptOPValues.push_back(std::pair<double,double>(state.cme_state().first_passage_times(i).op_count(j),state.cme_state().first_passage_times(i).first_passage_time(j)));
+                }
+            }
+            else
+            {
+                fptTrackedSpecies[i].minValueAchieved = state.cme_state().first_passage_times(i).species_count(0);
+                fptTrackedSpecies[i].maxValueAchieved = state.cme_state().first_passage_times(i).species_count(state.cme_state().first_passage_times(i).number_entries()-1);
+                for (int j=0; j<state.cme_state().first_passage_times(i).number_entries(); j++)
+                {
+                    fptTrackedSpecies[i].fptValues.push_back(std::pair<int,double>(state.cme_state().first_passage_times(i).species_count(j),state.cme_state().first_passage_times(i).first_passage_time(j)));
+                }
             }
         }
     }

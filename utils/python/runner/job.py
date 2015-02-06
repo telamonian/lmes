@@ -58,7 +58,7 @@ class Job(object):
         localFileUrl = 'file://%s' % PathJoin('localhost', localPath)
         remoteFileUrl = 'sftp://%s' % PathJoin(self.host, remotePath)
         remoteDirUrl = os.path.split(remoteFileUrl)[0]
-        print 'copying local file to remote: %s ---> %s' % (localFileUrl, remoteFileUrl)
+        print('copying local file to remote: %s ---> %s') % (localFileUrl, remoteFileUrl)
         remoteSagaDir = saga.filesystem.Directory(remoteDirUrl, saga.filesystem.CREATE_PARENTS, session=self.runner.session)
         localSagaFile = saga.filesystem.File(localFileUrl, saga.filesystem.CREATE, session=self.runner.session)
         localSagaFile.copy(remoteFileUrl)
@@ -157,7 +157,7 @@ class JobLM(Job):
         sets sampling rate on the basis of the slowest simple reaction rate
         '''
         reactionRateConstants = self.lmF.GetReactionRateConstants()
-        simParam = lmFile.SimulationParameter(key='writeInterval', val=2*float(1)/np.min(reactionRateConstants[:,0]))
+        simParam = lmFile.SimulationParameter(key='writeInterval', val=float(1)/np.min(reactionRateConstants[:,0]))
         self.lmF.SetSimulationParameter(simParam=simParam)
         self.lmF.Flush()
     
@@ -165,7 +165,10 @@ class JobLM(Job):
         '''
         sets total sampling time based on a combination of sampling rate and known switching time for the system at hand
         '''
-        simParam = lmFile.SimulationParameter(key='maxTime', val='1e6')
+        reactionRateConstants = self.lmF.GetReactionRateConstants()
+        totalRunTime = float(1)/np.min(reactionRateConstants[:,0]) * 1e7
+#         totalRunTime = 5e07
+        simParam = lmFile.SimulationParameter(key='maxTime', val=totalRunTime)
         self.lmF.SetSimulationParameter(simParam=simParam)
         self.lmF.Flush()
         
@@ -312,7 +315,7 @@ class JobSGELM(JobLM, JobSGE):
     
     @classmethod
     def GetMRO(cls):
-        print cls.mro()
+        print(cls.mro())
 
 JobSGELM.InitKeywords()
 

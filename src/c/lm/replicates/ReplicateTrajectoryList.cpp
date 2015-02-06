@@ -128,7 +128,7 @@ void ReplicateTrajectoryList::init()
             fpt->set_trajectory_id(i);
             fpt->set_species(*it);
             fpt->set_number_entries(1);
-            fpt->add_species_count(trajectories[i]->getOPVal(*it));
+            fpt->add_op_count(trajectories[i]->getOPVal(*it));
             fpt->add_first_passage_time(0.0);
             Print::printf(Print::INFO, "Added fpt tracking for order parameter %d", *it);
         }

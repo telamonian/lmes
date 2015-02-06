@@ -28,10 +28,11 @@ class SweepTup(object):
             yield self[i]
     
 class Sweep(object):
-    def __init__(self, cpu_count, host, lm_bin, lm_file_path, rootPath, autosetSamplingRate=False, autosetSamplingTime=False, inputTupsDefault=None, lmArgsGpusPerReplicate=0, replicateRange=(1,10), sweepTupX=None, sweepTupY=None, type='shell', user_id=None):
+    def __init__(self, cpu_count, host, lm_bin, lm_file_path, rootPath, autosetSamplingRate=False, autosetSamplingTime=False, diagonal=False, inputTupsDefault=None, lmArgsGpusPerReplicate=0, replicateRange=(1,10), sweepTupX=None, sweepTupY=None, type='shell', user_id=None):
         self.autosetSamplingRate = autosetSamplingRate
         self.autosetSamplingTime = autosetSamplingTime
         self.cpu_count = cpu_count
+        self.diagonal = diagonal
         self.host = host
         self.jobs = []
         self.lm_bin = lm_bin
@@ -66,8 +67,10 @@ class Sweep(object):
     def Setup(self):
         self.GetLMArgs()
         self.runner = Runner()
-        for labelX, inputTupsX in self.sweepTupX:
-            for labelY, inputTupsY in self.sweepTupY:
+        for i,(labelX,inputTupsX) in enumerate(self.sweepTupX):
+            for j,(labelY,inputTupsY) in enumerate(self.sweepTupY):
+                if self.diagonal and not i==j:
+                    continue
                 working_directory = PathJoin(self.rootPath, '%s_%s' % (labelX, labelY))
                 jobDict = {'arguments': ['-n', self.cpu_count, '-s', self.lm_file_path, '-x', self.lm_bin],
                            'copy_to': [[PathJoin(thisScriptsPath, 'sge_glue.sh'), '']],
