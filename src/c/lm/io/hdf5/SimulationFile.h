@@ -163,7 +163,6 @@ public:
     virtual void appendLatticeTimeSeries(uint64_t replicate, const lm::io::LatticeTimeSeries& data);
     virtual void appendParameterValues(uint64_t replicate, lm::io::ParameterValues * parameterValues) throw(HDF5Exception,InvalidArgException);
     virtual void setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTimes * speciesCounts) throw(HDF5Exception,InvalidArgException);
-//    virtual void setFirstPassageTimesOP(uint64_t replicate, lm::io::FirstPassageTimes * speciesCounts) throw(HDF5Exception,InvalidArgException);
     virtual vector<double> getLatticeTimes(uint64_t replicate) throw(HDF5Exception,InvalidArgException);
     virtual void getLattice(uint64_t replicate, unsigned int latticeIndex, lm::rdme::Lattice * lattice) throw(HDF5Exception,InvalidArgException);
     virtual void closeReplicate(uint64_t replicate) throw(HDF5Exception);

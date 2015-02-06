@@ -1609,8 +1609,8 @@ void Hdf5File::appendParameterValues(uint64_t replicate, lm::io::ParameterValues
 void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTimes * firstPassageTimes) throw(HDF5Exception,InvalidArgException)
 {
     // Make sure the data is consistent.
-//    if (firstPassageTimes->species_count_size() == 0) throw InvalidArgException("firstPassageTimes", "no entries to save");
-//    if (firstPassageTimes->species_count_size() != firstPassageTimes->number_entries() || firstPassageTimes->first_passage_time_size() != firstPassageTimes->number_entries()) throw InvalidArgException("firstPassageTimes", "inconsistent number of first passage time entries");
+    if (firstPassageTimes->species_count_size() == 0) throw InvalidArgException("firstPassageTimes", "no entries to save");
+    if (firstPassageTimes->species_count_size() != firstPassageTimes->number_entries() || firstPassageTimes->first_passage_time_size() != firstPassageTimes->number_entries()) throw InvalidArgException("firstPassageTimes", "inconsistent number of first passage time entries");
 
     ReplicateHandles * replicateHandles = openReplicateHandles(replicate);
 
@@ -1623,19 +1623,9 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTime
 
     // Construct a string representation of the species name.
     std::stringstream ss;
-    if (firstPassageTimes->is_order_parameter())
-    {
-        ss.fill('0');
-        ss.width(4);
-        ss << firstPassageTimes->species();
-        ss << "OP";
-    }
-    else
-    {
-        ss.fill('0');
-        ss.width(2);
-        ss << firstPassageTimes->species();
-    }
+    ss.fill('0');
+    ss.width(2);
+    ss << firstPassageTimes->species();
     string speciesString = ss.str();
 
     // Open the species group.
@@ -1661,7 +1651,7 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTime
         HDF5_EXCEPTION_CALL(dataspace_id,H5Screate_simple(RANK, dims, maxDims));
         HDF5_EXCEPTION_CALL(dcpl_id,H5Pcreate(H5P_DATASET_CREATE));
         HDF5_EXCEPTION_CHECK(H5Pset_chunk(dcpl_id, RANK, chunkDims));
-        HDF5_EXCEPTION_CALL(countsDatasetHandle,H5Dcreate2(speciesGroupHandle, "Counts", H5T_STD_I32LE, dataspace_id, H5P_DEFAULT, dcpl_id, H5P_DEFAULT));
+        HDF5_EXCEPTION_CALL(countsDatasetHandle,H5Dcreate2(speciesGroupHandle, "Counts", H5T_STD_U32LE, dataspace_id, H5P_DEFAULT, dcpl_id, H5P_DEFAULT));
         HDF5_EXCEPTION_CALL(timesDatasetHandle,H5Dcreate2(speciesGroupHandle, "Times", H5T_IEEE_F64LE, dataspace_id, H5P_DEFAULT, dcpl_id, H5P_DEFAULT));
         HDF5_EXCEPTION_CHECK(H5Pclose(dcpl_id));
         HDF5_EXCEPTION_CHECK(H5Sclose(dataspace_id));
@@ -1674,7 +1664,7 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTime
     hsize_t countsDims[RANK];
     HDF5_EXCEPTION_CALL(countsDataspace,H5Dget_space(countsDatasetHandle));
     HDF5_EXCEPTION_CALL(result,H5Sget_simple_extent_dims(countsDataspace, countsDims, NULL));
-    int minCount=0, maxCount=0;
+    uint minCount=0, maxCount=0;
     if (countsDims[0] == 1)
     {
         HDF5_EXCEPTION_CHECK(H5Dread(countsDatasetHandle, H5T_NATIVE_INT32, H5S_ALL, H5S_ALL, H5P_DEFAULT, &minCount));
@@ -1692,16 +1682,16 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTime
         count[0] = 1;
         start[0] = 0;
         HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(countsDataspace, H5S_SELECT_SET, start, NULL, count, NULL));
-        HDF5_EXCEPTION_CHECK(H5Dread(countsDatasetHandle, H5T_NATIVE_INT32, memDataspaceHandle, countsDataspace, H5P_DEFAULT, &minCount));
+        HDF5_EXCEPTION_CHECK(H5Dread(countsDatasetHandle, H5T_NATIVE_UINT32, memDataspaceHandle, countsDataspace, H5P_DEFAULT, &minCount));
         start[0] = countsDims[0]-1;
         HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(countsDataspace, H5S_SELECT_SET, start, NULL, count, NULL));
-        HDF5_EXCEPTION_CHECK(H5Dread(countsDatasetHandle, H5T_NATIVE_INT32, memDataspaceHandle, countsDataspace, H5P_DEFAULT, &maxCount));
+        HDF5_EXCEPTION_CHECK(H5Dread(countsDatasetHandle, H5T_NATIVE_UINT32, memDataspaceHandle, countsDataspace, H5P_DEFAULT, &maxCount));
         HDF5_EXCEPTION_CHECK(H5Sclose(memDataspaceHandle));
     }
     HDF5_EXCEPTION_CHECK(H5Sclose(countsDataspace));
 
     // Figure out the min and the max from the new counts.
-    int32_t minNewCount=firstPassageTimes->species_count(0), maxNewCount=firstPassageTimes->species_count(0);
+    uint32_t minNewCount=firstPassageTimes->species_count(0), maxNewCount=firstPassageTimes->species_count(0);
     for (int i=1; i<firstPassageTimes->species_count_size(); i++)
     {
         if (firstPassageTimes->species_count(i) < (int)minNewCount)
@@ -1715,7 +1705,7 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTime
     {
         // Allocate the block.
         countsDims[0] = maxNewCount-minNewCount+1;
-        int32_t * counts = new int32_t[countsDims[0]];
+        uint32_t * counts = new uint32_t[countsDims[0]];
         double * times = new double[countsDims[0]];
         for (uint i=0; i<countsDims[0]; i++)
         {
@@ -1726,14 +1716,14 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTime
         // Fill in the block.
         for (int i=0; i<firstPassageTimes->species_count_size(); i++)
         {
-            int32_t count = firstPassageTimes->species_count(i);
+            uint32_t count = firstPassageTimes->species_count(i);
             counts[count-minNewCount] = count;
             times[count-minNewCount] = firstPassageTimes->first_passage_time(i);
         }
 
         // Extend the datasets and write the block.
         HDF5_EXCEPTION_CHECK(H5Dset_extent(countsDatasetHandle, countsDims));
-        HDF5_EXCEPTION_CHECK(H5Dwrite(countsDatasetHandle, H5T_NATIVE_INT32, H5S_ALL, H5S_ALL, H5P_DEFAULT, counts));
+        HDF5_EXCEPTION_CHECK(H5Dwrite(countsDatasetHandle, H5T_NATIVE_UINT32, H5S_ALL, H5S_ALL, H5P_DEFAULT, counts));
         HDF5_EXCEPTION_CHECK(H5Dset_extent(timesDatasetHandle, countsDims));
         HDF5_EXCEPTION_CHECK(H5Dwrite(timesDatasetHandle, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, times));
 
@@ -1748,9 +1738,9 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTime
         // Allocate the new buffer.
         hsize_t endingStart[RANK], endingCount[RANK];
         endingCount[0] = maxNewCount-maxCount;
-        int32_t * newEndingCounts = new int32_t[endingCount[0]];
+        uint32_t * newEndingCounts = new uint32_t[endingCount[0]];
         double * newEndingTimes = new double[endingCount[0]];
-        for (int i=0; i<endingCount[0]; i++)
+        for (uint i=0; i<endingCount[0]; i++)
         {
             newEndingCounts[i] = 0;
             newEndingTimes[i] = -1.0;
@@ -1759,7 +1749,7 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTime
         // Fill in the buffer.
         for (int i=0; i<firstPassageTimes->species_count_size(); i++)
         {
-            int32_t count = firstPassageTimes->species_count(i);
+            uint32_t count = firstPassageTimes->species_count(i);
             newEndingCounts[count-maxCount-1] = count;
             newEndingTimes[count-maxCount-1] = firstPassageTimes->first_passage_time(i);
         }
@@ -1777,7 +1767,7 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTime
         HDF5_EXCEPTION_CHECK(H5Dset_extent(countsDatasetHandle, countsDims));
         HDF5_EXCEPTION_CALL(countsDataspaceHandle,H5Dget_space(countsDatasetHandle));
         HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(countsDataspaceHandle, H5S_SELECT_SET, endingStart, NULL, endingCount, NULL));
-        HDF5_EXCEPTION_CHECK(H5Dwrite(countsDatasetHandle, H5T_NATIVE_INT32, memDataspaceHandle, countsDataspaceHandle, H5P_DEFAULT, newEndingCounts));
+        HDF5_EXCEPTION_CHECK(H5Dwrite(countsDatasetHandle, H5T_NATIVE_UINT32, memDataspaceHandle, countsDataspaceHandle, H5P_DEFAULT, newEndingCounts));
         HDF5_EXCEPTION_CHECK(H5Sclose(countsDataspaceHandle));
         HDF5_EXCEPTION_CHECK(H5Dset_extent(timesDatasetHandle, countsDims));
         HDF5_EXCEPTION_CALL(timesDataspaceHandle,H5Dget_space(timesDatasetHandle));
@@ -1795,12 +1785,12 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTime
     else
     {
         // Declare the new buffer.
-        int32_t combinedMinCount = min(minCount,minNewCount);
-        int32_t combinedMaxCount = max(maxCount,maxNewCount);
+        uint32_t combinedMinCount = min(minCount,minNewCount);
+        uint32_t combinedMaxCount = max(maxCount,maxNewCount);
         size_t newSize = combinedMaxCount-combinedMinCount+1;
-        int32_t * newCounts = new int32_t[newSize];
+        uint32_t * newCounts = new uint32_t[newSize];
         double * newTimes = new double[newSize];
-        for (int i=0; i<newSize; i++)
+        for (uint i=0; i<newSize; i++)
         {
             newCounts[i] = 0;
             newTimes[i] = -1.0;
@@ -1811,14 +1801,14 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTime
         hsize_t memDims[RANK];
         memDims[0] = maxCount-minCount+1;
         HDF5_EXCEPTION_CALL(memDataspaceHandle,H5Screate_simple(RANK, memDims, NULL));
-        HDF5_EXCEPTION_CHECK(H5Dread(countsDatasetHandle, H5T_NATIVE_INT32, memDataspaceHandle, H5S_ALL, H5P_DEFAULT, &newCounts[minCount-combinedMinCount]));
+        HDF5_EXCEPTION_CHECK(H5Dread(countsDatasetHandle, H5T_NATIVE_UINT32, memDataspaceHandle, H5S_ALL, H5P_DEFAULT, &newCounts[minCount-combinedMinCount]));
         HDF5_EXCEPTION_CHECK(H5Dread(timesDatasetHandle, H5T_NATIVE_DOUBLE, memDataspaceHandle, H5S_ALL, H5P_DEFAULT, &newTimes[minCount-combinedMinCount]));
         HDF5_EXCEPTION_CHECK(H5Sclose(memDataspaceHandle));
 
         // Fill in the buffer with the new data.
         for (int i=0; i<firstPassageTimes->species_count_size(); i++)
         {
-            int32_t count = firstPassageTimes->species_count(i);
+            uint32_t count = firstPassageTimes->species_count(i);
             if (count < minCount || count > maxCount)
             {
                 newCounts[count-combinedMinCount] = count;
@@ -1835,7 +1825,7 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTime
         countsDims[0] = newSize;
         HDF5_EXCEPTION_CALL(memDataspaceHandle,H5Screate_simple(RANK, memDims, NULL));
         HDF5_EXCEPTION_CHECK(H5Dset_extent(countsDatasetHandle, countsDims));
-        HDF5_EXCEPTION_CHECK(H5Dwrite(countsDatasetHandle, H5T_NATIVE_INT32, memDataspaceHandle, H5S_ALL, H5P_DEFAULT, newCounts));
+        HDF5_EXCEPTION_CHECK(H5Dwrite(countsDatasetHandle, H5T_NATIVE_UINT32, memDataspaceHandle, H5S_ALL, H5P_DEFAULT, newCounts));
         HDF5_EXCEPTION_CHECK(H5Dset_extent(timesDatasetHandle, countsDims));
         HDF5_EXCEPTION_CHECK(H5Dwrite(timesDatasetHandle, H5T_NATIVE_DOUBLE, memDataspaceHandle, H5S_ALL, H5P_DEFAULT, newTimes));
         HDF5_EXCEPTION_CHECK(H5Sclose(memDataspaceHandle));
@@ -1851,243 +1841,6 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTime
     HDF5_EXCEPTION_CHECK(H5Gclose(speciesGroupHandle));
     HDF5_EXCEPTION_CHECK(H5Gclose(fptGroupHandle));
 }
-
-//void Hdf5File::setFirstPassageTimesOP(uint64_t replicate, lm::io::FirstPassageTimes * firstPassageTimes) throw(HDF5Exception,InvalidArgException)
-//{
-//    // Make sure the data is consistent.
-//    if (firstPassageTimes->op_count_size() == 0) throw InvalidArgException("firstPassageTimes", "no entries to save");
-//    if (firstPassageTimes->op_count_size() != firstPassageTimes->number_entries() || firstPassageTimes->first_passage_time_size() != firstPassageTimes->number_entries()) throw InvalidArgException("firstPassageTimes", "inconsistent number of first passage time entries");
-//
-//    ReplicateHandles * replicateHandles = openReplicateHandles(replicate);
-//
-//    // Open the first passage time group.
-//    hid_t fptGroupHandle;
-//    if ((fptGroupHandle=H5Gopen2(replicateHandles->group, "FirstPassageTimes", H5P_DEFAULT)) < 0)
-//    {
-//        HDF5_EXCEPTION_CALL(fptGroupHandle,H5Gcreate2(replicateHandles->group, "FirstPassageTimes", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
-//    }
-//
-//    // Construct a string representation of the species name.
-//    std::stringstream ss;
-//    ss.fill('0');
-//    ss.width(4);
-//    ss << firstPassageTimes->species();
-//    ss << "OP";
-//    string speciesString = ss.str();
-//
-//    // Open the species group.
-//    hid_t speciesGroupHandle, countsDatasetHandle, timesDatasetHandle;
-//    if ((speciesGroupHandle=H5Gopen2(fptGroupHandle, speciesString.c_str(), H5P_DEFAULT)) >= 0)
-//    {
-//        // Open the data sets.
-//        HDF5_EXCEPTION_CALL(countsDatasetHandle,H5Dopen2(speciesGroupHandle, "Counts", H5P_DEFAULT));
-//        HDF5_EXCEPTION_CALL(timesDatasetHandle,H5Dopen2(speciesGroupHandle, "Times", H5P_DEFAULT));
-//    }
-//    else
-//    {
-//        // Create the group.
-//        HDF5_EXCEPTION_CALL(speciesGroupHandle,H5Gcreate2(fptGroupHandle, speciesString.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
-//
-//        // Create the datasets.
-//        uint RANK=1;
-//        hsize_t dims[RANK], maxDims[RANK], chunkDims[RANK];
-//        dims[0] = 0;
-//        maxDims[0] = H5S_UNLIMITED;
-//        chunkDims[0] = 100;
-//        hid_t dataspace_id, dcpl_id;
-//        HDF5_EXCEPTION_CALL(dataspace_id,H5Screate_simple(RANK, dims, maxDims));
-//        HDF5_EXCEPTION_CALL(dcpl_id,H5Pcreate(H5P_DATASET_CREATE));
-//        HDF5_EXCEPTION_CHECK(H5Pset_chunk(dcpl_id, RANK, chunkDims));
-//        HDF5_EXCEPTION_CALL(countsDatasetHandle,H5Dcreate2(speciesGroupHandle, "Counts", H5T_IEEE_F64LE, dataspace_id, H5P_DEFAULT, dcpl_id, H5P_DEFAULT));
-//        HDF5_EXCEPTION_CALL(timesDatasetHandle,H5Dcreate2(speciesGroupHandle, "Times", H5T_IEEE_F64LE, dataspace_id, H5P_DEFAULT, dcpl_id, H5P_DEFAULT));
-//        HDF5_EXCEPTION_CHECK(H5Pclose(dcpl_id));
-//        HDF5_EXCEPTION_CHECK(H5Sclose(dataspace_id));
-//    }
-//
-//    // Read the lowest and highest first passage times in the file.
-//    uint RANK=1;
-//    int result;
-//    hid_t countsDataspace;
-//    hsize_t countsDims[RANK];
-//    HDF5_EXCEPTION_CALL(countsDataspace,H5Dget_space(countsDatasetHandle));
-//    HDF5_EXCEPTION_CALL(result,H5Sget_simple_extent_dims(countsDataspace, countsDims, NULL));
-//    double minCount=0, maxCount=0;
-//    if (countsDims[0] == 1)
-//    {
-//        HDF5_EXCEPTION_CHECK(H5Dread(countsDatasetHandle, H5T_IEEE_F64LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &minCount));
-//        maxCount = minCount;
-//    }
-//    else if (countsDims[0] > 1)
-//    {
-//        // Create the memory dataspace.
-//        hid_t memDataspaceHandle;
-//        hsize_t memDims[RANK];
-//        memDims[0] = 1;
-//        HDF5_EXCEPTION_CALL(memDataspaceHandle,H5Screate_simple(RANK, memDims, NULL));
-//
-//        hsize_t start[RANK], count[RANK];
-//        count[0] = 1;
-//        start[0] = 0;
-//        HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(countsDataspace, H5S_SELECT_SET, start, NULL, count, NULL));
-//        HDF5_EXCEPTION_CHECK(H5Dread(countsDatasetHandle, H5T_IEEE_F64LE, memDataspaceHandle, countsDataspace, H5P_DEFAULT, &minCount));
-//        start[0] = countsDims[0]-1;
-//        HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(countsDataspace, H5S_SELECT_SET, start, NULL, count, NULL));
-//        HDF5_EXCEPTION_CHECK(H5Dread(countsDatasetHandle, H5T_IEEE_F64LE, memDataspaceHandle, countsDataspace, H5P_DEFAULT, &maxCount));
-//        HDF5_EXCEPTION_CHECK(H5Sclose(memDataspaceHandle));
-//    }
-//    HDF5_EXCEPTION_CHECK(H5Sclose(countsDataspace));
-//
-//    // Figure out the min and the max from the new counts.
-//    double minNewCount=firstPassageTimes->op_count(0), maxNewCount=firstPassageTimes->op_count(0);
-//    for (int i=1; i<firstPassageTimes->op_count_size(); i++)
-//    {
-//        if (firstPassageTimes->op_count(i) < (double)minNewCount)
-//            minNewCount = firstPassageTimes->op_count(i);
-//        else if (firstPassageTimes->op_count(i) > (double)maxNewCount)
-//            maxNewCount = firstPassageTimes->op_count(i);
-//    }
-//
-//    // If there are no existing records, just insert one large block.
-//    if (countsDims[0] == 0)
-//    {
-//        // Allocate the block.
-//        countsDims[0] = firstPassageTimes->op_count_size();
-//        double * counts = new double[countsDims[0]];
-//        double * times = new double[countsDims[0]];
-//        for (uint i=0; i<countsDims[0]; i++)
-//        {
-//            counts[i] = 0.0;
-//            times[i] = -1.0;
-//        }
-//
-//        // Fill in the block.
-//        for (int i=0; i<firstPassageTimes->op_count_size(); i++)
-//        {
-//            double count = firstPassageTimes->op_count(i);
-//            counts[i] = count;
-//            times[i] = firstPassageTimes->first_passage_time(i);
-//        }
-//
-//        // Extend the datasets and write the block.
-//        HDF5_EXCEPTION_CHECK(H5Dset_extent(countsDatasetHandle, countsDims));
-//        HDF5_EXCEPTION_CHECK(H5Dwrite(countsDatasetHandle, H5T_IEEE_F64LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, counts));
-//        HDF5_EXCEPTION_CHECK(H5Dset_extent(timesDatasetHandle, countsDims));
-//        HDF5_EXCEPTION_CHECK(H5Dwrite(timesDatasetHandle, H5T_IEEE_F64LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, times));
-//
-//        // Free the buffers.
-//        delete [] counts;
-//        delete [] times;
-//    }
-//
-//    // Otherwise if there are only new records to append to the end, just add them
-//    else if (maxNewCount > maxCount && minNewCount > maxCount)
-//    {
-//        // Allocate the new buffer.
-//        hsize_t endingStart[RANK], endingCount[RANK];
-//        endingCount[0] = maxNewCount-maxCount;
-//        uint32_t * newEndingCounts = new uint32_t[endingCount[0]];
-//        double * newEndingTimes = new double[endingCount[0]];
-//        for (uint i=0; i<endingCount[0]; i++)
-//        {
-//            newEndingCounts[i] = 0;
-//            newEndingTimes[i] = -1.0;
-//        }
-//
-//        // Fill in the buffer.
-//        for (int i=0; i<firstPassageTimes->op_count_size(); i++)
-//        {
-//            uint32_t count = firstPassageTimes->op_count(i);
-//            newEndingCounts[count-maxCount-1] = count;
-//            newEndingTimes[count-maxCount-1] = firstPassageTimes->first_passage_time(i);
-//        }
-//
-//        // Create the memory dataspace.
-//        hid_t memDataspaceHandle;
-//        hsize_t memDims[RANK];
-//        memDims[0] = endingCount[0];
-//        HDF5_EXCEPTION_CALL(memDataspaceHandle,H5Screate_simple(RANK, memDims, NULL));
-//
-//        // Append the records.
-//        hid_t countsDataspaceHandle, timesDataspaceHandle;
-//        endingStart[0] = countsDims[0];
-//        countsDims[0] += endingCount[0];
-//        HDF5_EXCEPTION_CHECK(H5Dset_extent(countsDatasetHandle, countsDims));
-//        HDF5_EXCEPTION_CALL(countsDataspaceHandle,H5Dget_space(countsDatasetHandle));
-//        HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(countsDataspaceHandle, H5S_SELECT_SET, endingStart, NULL, endingCount, NULL));
-//        HDF5_EXCEPTION_CHECK(H5Dwrite(countsDatasetHandle, H5T_NATIVE_UINT32, memDataspaceHandle, countsDataspaceHandle, H5P_DEFAULT, newEndingCounts));
-//        HDF5_EXCEPTION_CHECK(H5Sclose(countsDataspaceHandle));
-//        HDF5_EXCEPTION_CHECK(H5Dset_extent(timesDatasetHandle, countsDims));
-//        HDF5_EXCEPTION_CALL(timesDataspaceHandle,H5Dget_space(timesDatasetHandle));
-//        HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(timesDataspaceHandle, H5S_SELECT_SET, endingStart, NULL, endingCount, NULL));
-//        HDF5_EXCEPTION_CHECK(H5Dwrite(timesDatasetHandle, H5T_NATIVE_DOUBLE, memDataspaceHandle, timesDataspaceHandle, H5P_DEFAULT, newEndingTimes));
-//        HDF5_EXCEPTION_CHECK(H5Sclose(timesDataspaceHandle));
-//        HDF5_EXCEPTION_CHECK(H5Sclose(memDataspaceHandle));
-//
-//        // Free the buffers.
-//        if (newEndingCounts != NULL) delete [] newEndingCounts;
-//        if (newEndingTimes != NULL) delete [] newEndingTimes;
-//    }
-//
-//    // Otherwise, we need to insert some records before and/or after the existing block so we have to copy the old data and rebuild.
-//    else
-//    {
-//        // Declare the new buffer.
-//        uint32_t combinedMinCount = min(minCount,minNewCount);
-//        uint32_t combinedMaxCount = max(maxCount,maxNewCount);
-//        size_t newSize = combinedMaxCount-combinedMinCount+1;
-//        uint32_t * newCounts = new uint32_t[newSize];
-//        double * newTimes = new double[newSize];
-//        for (uint i=0; i<newSize; i++)
-//        {
-//            newCounts[i] = 0;
-//            newTimes[i] = -1.0;
-//        }
-//
-//        // Copy the old data into the buffer.
-//        hid_t memDataspaceHandle;
-//        hsize_t memDims[RANK];
-//        memDims[0] = maxCount-minCount+1;
-//        HDF5_EXCEPTION_CALL(memDataspaceHandle,H5Screate_simple(RANK, memDims, NULL));
-//        HDF5_EXCEPTION_CHECK(H5Dread(countsDatasetHandle, H5T_NATIVE_UINT32, memDataspaceHandle, H5S_ALL, H5P_DEFAULT, &newCounts[minCount-combinedMinCount]));
-//        HDF5_EXCEPTION_CHECK(H5Dread(timesDatasetHandle, H5T_NATIVE_DOUBLE, memDataspaceHandle, H5S_ALL, H5P_DEFAULT, &newTimes[minCount-combinedMinCount]));
-//        HDF5_EXCEPTION_CHECK(H5Sclose(memDataspaceHandle));
-//
-//        // Fill in the buffer with the new data.
-//        for (int i=0; i<firstPassageTimes->op_count_size(); i++)
-//        {
-//            uint32_t count = firstPassageTimes->op_count(i);
-//            if (count < minCount || count > maxCount)
-//            {
-//                newCounts[count-combinedMinCount] = count;
-//                newTimes[count-combinedMinCount] = firstPassageTimes->first_passage_time(i);
-//            }
-//            else
-//            {
-//                throw InvalidArgException("firstPassageTimes", "contained duplicates of existing counts", count);
-//            }
-//        }
-//
-//        // Update the dataset with the combined data.
-//        memDims[0] = newSize;
-//        countsDims[0] = newSize;
-//        HDF5_EXCEPTION_CALL(memDataspaceHandle,H5Screate_simple(RANK, memDims, NULL));
-//        HDF5_EXCEPTION_CHECK(H5Dset_extent(countsDatasetHandle, countsDims));
-//        HDF5_EXCEPTION_CHECK(H5Dwrite(countsDatasetHandle, H5T_NATIVE_UINT32, memDataspaceHandle, H5S_ALL, H5P_DEFAULT, newCounts));
-//        HDF5_EXCEPTION_CHECK(H5Dset_extent(timesDatasetHandle, countsDims));
-//        HDF5_EXCEPTION_CHECK(H5Dwrite(timesDatasetHandle, H5T_NATIVE_DOUBLE, memDataspaceHandle, H5S_ALL, H5P_DEFAULT, newTimes));
-//        HDF5_EXCEPTION_CHECK(H5Sclose(memDataspaceHandle));
-//
-//        // Free the buffers.
-//        if (newCounts != NULL) delete [] newCounts;
-//        if (newTimes != NULL) delete [] newTimes;
-//    }
-//
-//    // Close any resources.
-//    HDF5_EXCEPTION_CHECK(H5Dclose(countsDatasetHandle));
-//    HDF5_EXCEPTION_CHECK(H5Dclose(timesDatasetHandle));
-//    HDF5_EXCEPTION_CHECK(H5Gclose(speciesGroupHandle));
-//    HDF5_EXCEPTION_CHECK(H5Gclose(fptGroupHandle));
-//}
 
 /*void SimulationFile::appendSpatialModelObjects(unsigned int replicate, lm::io::SpatialModel * model) throw(HDF5Exception,InvalidArgException)
 {

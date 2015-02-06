@@ -40,13 +40,9 @@
 package lm.io;
 
 message FirstPassageTimes {
-	optional bool is_order_parameter					= 1001 [default=false];
-	
     required uint64 trajectory_id                       = 1;
     required int32 species                              = 2;
     required int32 number_entries                       = 3;
     repeated int32 species_count                        = 4 [packed=true];
     repeated double first_passage_time                  = 5 [packed=true];
-    
-    repeated double op_count                        	= 1100 [packed=true];
 }

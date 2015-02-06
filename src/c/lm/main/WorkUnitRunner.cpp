@@ -37,11 +37,10 @@
  * Author(s): Elijah Roberts
  */
 
-#include <csignal>
+#include <string>
 #include <map>
 #include <mpi.h>
 #include <pthread.h>
-#include <string>
 #include <vector>
 
 #include "hrtime.h"
@@ -143,13 +142,13 @@ int WorkUnitRunner::run()
         }
 
         // Set the order parameters for the solver
-        if (properties.has_order_parameters())
+        if (solver->needsOrderParameters())
         {
-            solver->setOrderParameters(properties.order_parameters());
-        }
-        else
-        {
-            if (solver->needsOrderParameters())
+            if (properties.has_order_parameters())
+            {
+                solver->setOrderParameters(properties.order_parameters());
+            }
+            else
             {
                 throw Exception("Work Unit runner terminating, solver requires a set of order parameters but none was specified", properties.solver().c_str());
             }

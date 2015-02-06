@@ -94,14 +94,6 @@ void Hdf5OutputWriter::initialize()
 void Hdf5OutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
 {
     file->setFirstPassageTimes(data.trajectory_id(), (lm::io::FirstPassageTimes*)&data);
-//    if (data.is_order_parameter())
-//    {
-//        file->setFirstPassageTimesOP(data.trajectory_id(), (lm::io::FirstPassageTimes*)&data);
-//    }
-//    else
-//    {
-//        file->setFirstPassageTimes(data.trajectory_id(), (lm::io::FirstPassageTimes*)&data);
-//    }
 }
 
 void Hdf5OutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)

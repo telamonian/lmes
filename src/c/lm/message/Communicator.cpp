@@ -95,14 +95,6 @@ void Communicator::sendMessage(int destProcess, int destThread, lm::message::Mes
 
 void Communicator::sendMessage(Endpoint dest, lm::message::Message* msg)
 {
-    // debug for specific message type
-    if (msg->has_finished_work_unit())
-    {
-        for (int i = 0; i < msg->finished_work_unit().final_state().cme_state().first_passage_times_size(); ++i)
-        {
-            Print::printf(Print::INFO, "Communicator %d:%d sending message: {\n%s}", source.process, source.thread, msg->finished_work_unit().final_state().cme_state().first_passage_times(0).DebugString().c_str());
-        }
-    }
     PROF_BEGIN(PROF_MESSAGE_SEND);
 
     // Set the message values.
