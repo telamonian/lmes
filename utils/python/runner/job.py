@@ -167,7 +167,7 @@ class JobLM(Job):
         '''
         reactionRateConstants = self.lmF.GetReactionRateConstants()
         totalRunTime = float(1)/np.min(reactionRateConstants[:,0]) * 1e7
-#         totalRunTime = 5e07
+#         totalRunTime = 1e07
         simParam = lmFile.SimulationParameter(key='maxTime', val=totalRunTime)
         self.lmF.SetSimulationParameter(simParam=simParam)
         self.lmF.Flush()

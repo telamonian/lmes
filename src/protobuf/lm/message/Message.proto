@@ -68,7 +68,7 @@ message Message {
     repeated lm.message.StartWorkUnitRunner start_work_unit_runner              = 11;
     optional lm.message.StartedWorkUnitRunner started_work_unit_runner          = 12;
 
-    repeated lm.message.StopWorkUnitRunner stop_work_unit_runner			     = 13;
+    repeated lm.message.StopWorkUnitRunner stop_work_unit_runner			    = 13;
     optional lm.message.StoppedWorkUnitRunner stopped_work_unit_runner          = 14;
 
     optional lm.message.RunWorkUnit run_work_unit                               = 15;

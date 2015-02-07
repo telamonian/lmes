@@ -126,8 +126,15 @@ void FFluxTrajectoryList::initFFluxOutput()
 	ffluxOutput.set_tiling_id(input.tilings.getCurrentTilingID());
 	// create 4 trajectory_outputs entries, one for each combination of direction and lifecycle
 	lm::io::FFluxOutput::TrajectoryOutput* trajectoryOutput;
+	lm::io::FFluxOutput::BasinOutput* basinOutput;
+	lm::io::FFluxOutput::FinalOutput* finalOutput;
+	finalOutput = ffluxOutput.mutable_final_output();
+	finalOutput->set_number_tiles(maxFFluxPhase - 1);
 	for (int direc=0; direc!=2; direc++)
 	{
+	    basinOutput = ffluxOutput.add_basin_outputs();
+	    basinOutput->set_number_tiles(maxFFluxPhase - 1);
+        basinOutput->set_direction(static_cast<lm::io::FFluxOutput::Direction>(direc));
 	    for (int lcycle=0; lcycle!=2; lcycle++)
 	    {
             trajectoryOutput = ffluxOutput.add_trajectory_outputs();
