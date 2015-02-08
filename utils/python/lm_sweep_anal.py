@@ -247,15 +247,20 @@ class Sims(object):
         self.replicateKeys = self.f['/Simulations'].keys()
         self.replicateCount = len(self.replicateKeys)
         self.f.close()
+        
+        self.histogram = []
+        self.xBinCoordinates = []
+        self.yBinCoordinates = []
+#         self.p = []
         for key in self.replicateKeys:
             self.f = h5py.File(self.fPath)
             simdata = self.f['/Simulations'][key]
             sim = self.__class__.child(simdata, **self.sweepParams)
-            self.Rcoords()
-#         self.Pdf()
+            self.RcoordsHist(sim)
+#             self.Pdf()
+            del sim
             self.f.close()
         self.Save()
-        
     
     def CheckMod(self):
         '''
@@ -274,14 +279,48 @@ class Sims(object):
         with open(self.modTimePath, 'w') as modF:
             modF.write('%f' % os.path.getmtime(self.fPath))
     
-    def Load(self):
-        with open(self.picklePath, 'rb') as pickF:
-            self.sims = pickle.load(pickF)
+    def _Load(self):
         
+        with h5py.File(self.intermediatePath, 'r') as interF:
+            self.histogram = []
+            self.xBinCoordinates = []
+            self.yBinCoordinates = []
+            for key,val in interF["/Simulations/"]:
+                self.histogram.append(val['Histogram'])
+                self.xBinCoordinates.append(val['XBinCoordinates'])
+                self.yBinCoordinates.append(val['YBinCoordinates'])
+    
+    def Load(self, mode='LOAD_FRESH_ONLY'):
+        '''
+        loads an .lmint file
+        returns True if load is successful, False otherwise
+        possible modes - 
+        LOAD_FRESH_ONLY: will only load the .lmint file if a call to CheckMod returns True
+        LOAD_OLD: will load the .lmint file as long as it exists
+        '''
+        if mode=='LOAD_FRESH_ONLY':
+            if not self.CheckMod():
+                return False
+            self._Load()
+            return True
+        elif mode=='LOAD_OLD':
+            self._Load()
+        else:
+            return False
+                
     def Save(self):
         with h5py.File(self.intermediatePath, 'w') as interF:
-            self.tilingsGroup = interF.create_group('Simulations')
-            
+            simulationsGroup = interF.create_group("/Simulations")
+            for i,key in enumerate(self.replicateKeys):
+                replicateGroup = interF.create_group("/Simulations/%07d" % int(key))
+                # save out histogram binned output from each replicate as returned by matplotlib's hist2d function
+                histogram = replicateGroup.create_dataset("Histogram", self.histogram[i].shape, dtype=np.dtype('i32'))
+                histogram[...] = self.histogram[i]
+                xBinCoordinates = replicateGroup.create_dataset("XBinCoordinates", self.xBinCoordinates[i].shape, dtype=np.dtype('i32'))
+                xBinCoordinates[...] = self.xBinCoordinates[i]
+                yBinCoordinates = replicateGroup.create_dataset("YBinCoordinates", self.yBinCoordinates[i].shape, dtype=np.dtype('i32'))
+                yBinCoordinatesy[...] = self.yBinCoordinates[i]
+        self.SaveMod()
     
     def Figname(self, suffix, ext=True):
         if ext:
@@ -308,8 +347,14 @@ class Sims(object):
     def Rcoords(self, sim):
         self.rcoords = np.array([[],[]])
         sim.Rcoords()
-        self.rcoords = np.hstack([self.rcoords, sim.rcoords])
+        self.rcoords = np.hstack([self.rcoords, np.sum(sim.rcoords,0)])
 
+    def RcoordsHist(self, sim):
+        self.rcoords = np.array([[],[]])
+        sim.Rcoords()
+        h, x, y, p = plt.hist2d(sim.rcoords[0,:], sim.rcoords[1,:], range=[[0,100],[0,100]], bins=(100, 100))
+        self.h.append(h); self.x.append(x); self.y.append(y); #self.p.append(p);
+        
     def Savefig(self, fig, suffix):
         fname = self.Figname(suffix)
         fig.savefig(fname, bbox_inches='tight', transparent=True)
@@ -903,7 +948,7 @@ if __name__=="__main__":
 #     ffluxbiphasics = FFluxBiphasics(fname)
 #     ffluxbiphasics.SortByInterface()
 #     ffluxbiphasics.TrajMovSmooth()
-    sweepBiphasics = SweepBiphasics(rootPath, unpickle=True)
+    sweepBiphasics = SweepBiphasics(rootPath)
     if sys.argv[2]=='hist2d':
         sweepBiphasics.Hist2D()
     elif sys.argv[2]=='hist2dlog':

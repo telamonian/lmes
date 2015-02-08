@@ -33,7 +33,7 @@ def GetFFluxInputTups():
                         speciesCoefficients=[-1,-2,-2,1,2,2])
     simParams = [SimulationParameter(key='crossingsPerPhase',val='100'),
                  SimulationParameter(key='maxPhaseZeroTime',val='10000')]
-    tiling = Tiling(ID=0,
+    tiling = Tiling(id=0,
                     orderParameterID=0,
                     Type=0,
                     edges=np.linspace(-25,25,13))

@@ -198,7 +198,7 @@ if __name__=="__main__":
                  SimulationParameter(key='maxTime',val='Inf'),
                  SimulationParameter(key='maxWorkUnitSteps',val='10000'),
                  SimulationParameter(key='writeInterval',val='1e8')]
-    tiling = Tiling(ID=0,
+    tiling = Tiling(id=0,
                     orderParameterID=0,
                     Type=0,
                     edges=np.linspace(-25,25,13))
