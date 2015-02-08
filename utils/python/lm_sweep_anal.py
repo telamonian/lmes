@@ -268,8 +268,11 @@ class Sims(object):
         check the mod time file (written with SaveMod()) corresponding to this simulation file. 
         If the simulation file has changed since the mod time file was written, return False. Otherwise, return True
         '''
-        with open(self.modTimePath, 'r') as modF:
-            return float(modF.readline())==os.path.getmtime(self.fPath)
+        try:
+            with open(self.modTimePath, 'r') as modF:
+                return float(modF.readline())==os.path.getmtime(self.fPath)
+        except FileNotFoundError:
+            return False
     
     def SaveMod(self):
         '''
