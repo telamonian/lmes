@@ -98,15 +98,21 @@ Trajectory::~Trajectory()
 
 void Trajectory::initHists()
 {
-    for (lm::tiling::TilingMap::iterator t_it=input.tilings.begin();t_it!=input.tilings.end();t_it++)
+    lm::io::TilingHist* tHist = getState()->mutable_cme_state()->add_tiling_hists();
+    tHist->set_tiling_id(input.tilings.getCurrentTilingID());
+    for (lm::tiling::EdgeIterator e_it=input.tilings.getCurrentTiling()->begin();e_it!=input.tilings.getCurrentTiling()->end();e_it++)
     {
-        lm::io::TilingHist* tHist = getState()->mutable_cme_state()->add_tiling_hists();
-        tHist->set_tiling_id(t_it->second->getID());
-        for (lm::tiling::EdgeIterator e_it=t_it->second->begin();e_it!=t_it->second->end();e_it++)
-        {
-            tHist->add_tile_vals(0);
-        }
+        tHist->add_tile_vals(0);
     }
+//    for (lm::tiling::TilingMap::iterator t_it=input.tilings.begin();t_it!=input.tilings.end();t_it++)
+//    {
+//        lm::io::TilingHist* tHist = getState()->mutable_cme_state()->add_tiling_hists();
+//        tHist->set_tiling_id(t_it->second->getID());
+//        for (lm::tiling::EdgeIterator e_it=t_it->second->begin();e_it!=t_it->second->end();e_it++)
+//        {
+//            tHist->add_tile_vals(0);
+//        }
+//    }
 }
 
 void Trajectory::initMsg(map<string,string>& simulationParameters)

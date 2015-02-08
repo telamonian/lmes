@@ -351,10 +351,10 @@ protected:
                 (*oparams)[i]->calc(speciesCounts);
             }
             // Update the tilingHists, if required
-            for (int i=0;i<numberTilingHists;i++)
-            {
-                tilingHists[i].tileVals[(*tilings)[tilingHists[i].tilingID]->getTileIndex((*oparams)[(*tilings)[tilingHists[i].tilingID]->getOrderParameterID()]->get())] += timeStep;
-            }
+//            for (int i=0;i<numberTilingHists;i++)
+//            {
+//                tilingHists[i].tileVals[(*tilings)[tilingHists[i].tilingID]->getTileIndex((*oparams)[(*tilings)[tilingHists[i].tilingID]->getOrderParameterID()]->get())] += timeStep;
+//            }
         }
     }
 

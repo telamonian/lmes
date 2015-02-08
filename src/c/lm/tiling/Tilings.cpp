@@ -85,6 +85,10 @@ bool Tilings::init(lm::io::hdf5::Hdf5File* file)
 void Tilings::init(const lm::io::Tilings& newTilingsBuf)
 {
     setTilingsBuf(newTilingsBuf);
+    if (getTilingsBuf()->has_current_tiling_id())
+    {
+        currentTilingID = getTilingsBuf()->current_tiling_id();
+    }
     init();
 }
 

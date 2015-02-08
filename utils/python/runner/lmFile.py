@@ -5,7 +5,7 @@ import h5py
 import numpy as np
 import sys
 
-# namedtuples (which are similar to C structs) that hold raw data used to initialize the FFlux input
+# namedtuples (which are similar to C structs) that hold raw data used to initialize the Lattice Microbes input
 Dependency = namedtuple('Dependency', ['reactionID','dependencies'])
 DependencyMatrix = namedtuple('DependencyMatrix', ['matrix'])
 InitialSpeciesCounts = namedtuple('InitialSpeciesCounts',['speciesCounts'])
@@ -13,7 +13,7 @@ InitialSpeciesCountsBackward = namedtuple('InitialSpeciesCountsBackward',['speci
 OrderParameter = namedtuple('OrderParameter', ['id','type','speciesIDs','speciesCoefficients'])
 ReactionRateConstant = namedtuple('ReactionRateConstant', ['reactionID','rateConstant'])
 SimulationParameter = namedtuple('SimulationParameter', ['key', 'val'])
-Tiling = namedtuple('Tiling', ['ID','orderParameterID','Type','edges'])
+Tiling = namedtuple('Tiling', ['id','orderParameterID','Type','edges'])
 
 # list of input tuple Types
 inputTypes = [Dependency,DependencyMatrix,InitialSpeciesCounts,InitialSpeciesCountsBackward,OrderParameter,ReactionRateConstant,SimulationParameter,Tiling]
@@ -35,26 +35,15 @@ class Input(object):
     
     def AddTiling(self, tiling):
         '''
-        initializes a tiling and then sets it. this method is prefixed with Add instead of Set since it sets the id of the new tiling based on the length of the existing tiling group
-        tiling: a Tiling namedtuple
+        currently an alias to SetTiling. maaaay cause problems
         '''
-        tilingGroup = self.f.create_group("Tilings/%07d" % len(self.tilingsContainingGroup.keys()))
-        tilingGroup.attrs['ID'] = tiling.ID
-        tilingGroup.attrs['OrderParameterID'] = tiling.orderParameterID
-        tilingGroup.attrs['Type'] = tiling.Type
-        edges = tilingGroup.create_dataset("Edges", (len(tiling.edges),), dtype=np.dtype('d'))
-        edges[...] = tiling.edges
+        self.SetTiling(tiling)
             
-    def AddTilings(self, tilings):
+    def AddTilings(self, tilings, currentTilingID=None):
         '''
-        initializes the Tilings group and then adds a list of Tiling
-        tilings: a list of Tiling namedtuple
+        currently an alias to SetTilings. maaaay cause problems
         '''
-        if 'Tilings' in self.f.keys():
-            del self.f['Tilings']
-        self.tilingsContainingGroup = self.f.create_group('Tilings')
-        for tiling in tilings:
-            self.AddTiling(tiling)
+        self.SetTilings(tilings, currentTilingID=currentTilingID)
 
     def FixZerothOrderDependency(self, reactionID):
         self.f['/Model/Reaction/DependencyMatrix'][:,reactionID][...] = 1
@@ -135,7 +124,7 @@ class Input(object):
         '''
         if 'OrderParameters' in self.f.keys():
             del self.f['OrderParameters']
-        self.opsContainingGroup = self.f.create_group('OrderParameters')
+        self.opsGroup = self.f.create_group('OrderParameters')
         for op in ops:
             self.SetOrderParameter(op)
     
@@ -164,6 +153,37 @@ class Input(object):
         '''
         for simParam in simParams:
             self.SetSimulationParameter(simParam)
+            
+    def SetTiling(self, tiling):
+        '''
+        initializes a tiling and then sets it.
+        tiling: a Tiling namedtuple
+        '''
+        if 'Tilings' in self.f.keys():
+            if ('%07d' % tiling.id) in self.f['Tilings']:
+                del self.f['Tilings/%07d' % tiling.id]
+        tilingGroup = self.f.create_group("Tilings/%07d" % tiling.id)
+        tilingGroup.attrs['ID'] = tiling.id
+        tilingGroup.attrs['OrderParameterID'] = tiling.orderParameterID
+        tilingGroup.attrs['Type'] = tiling.Type
+        edges = tilingGroup.create_dataset("Edges", (len(tiling.edges),), dtype=np.dtype('d'))
+        edges[...] = tiling.edges
+            
+    def SetTilings(self, tilings, currentTilingID=None):
+        '''
+        initializes the Tilings group and then adds a list of Tiling
+        tilings: a list of Tiling namedtuple
+        '''
+        if 'Tilings' in self.f.keys():
+            del self.f['Tilings']
+        self.tilingsGroup = self.f.create_group('Tilings')
+        for tiling in tilings:
+            self.SetTiling(tiling)
+        if currentTilingID==None:
+            if len(self.tilingsGroup.keys()) > 0:
+                self.tilingsGroup.attrs['CurrentTilingID'] = int(self.tilingsGroup.keys()[0])
+        else:
+            self.tilingsGroup.attrs['CurrentTilingID'] = currentTilingID
     
 if __name__=="__main__":
     iSCs = InitialSpeciesCounts(speciesCounts=[4,16,1,0,0,0,0])

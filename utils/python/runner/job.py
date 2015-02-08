@@ -146,10 +146,7 @@ class JobLM(Job):
         '''
         for inputTup in self.lm_input_tups:
             tupTypeName = type(inputTup).__name__
-            if tupTypeName=='Tiling':
-                self.lmF.__getattribute__('Add%ss' % tupTypeName)([inputTup])
-            else:
-                self.lmF.__getattribute__('Set%s' % tupTypeName)(inputTup)
+            self.lmF.__getattribute__('Set%s' % tupTypeName)(inputTup)
         self.lmF.Flush()
         
     def AutosetSamplingRate(self):

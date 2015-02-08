@@ -643,7 +643,7 @@ void Hdf5File::setFFluxTrajectoryOutput(lm::io::FFluxOutput* ffluxOutput, int ou
     HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "EdgeID", 1, dims, H5T_STD_U64LE, ffluxOutput->trajectory_outputs(outIndex).edge_id().data()));
     speciesDims[0] = ffluxOutput->trajectory_outputs(outIndex).species_count_size()/ffluxOutput->number_species();
     speciesDims[1] = ffluxOutput->number_species();
-    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "SpeciesCount", 2, speciesDims, H5T_IEEE_F64LE, ffluxOutput->trajectory_outputs(outIndex).species_count().data()));
+    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "SpeciesCount", 2, speciesDims, H5T_STD_I32LE, ffluxOutput->trajectory_outputs(outIndex).species_count().data()));
     dims[0] = ffluxOutput->trajectory_outputs(outIndex).time_size();
     HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "Time", 1, dims, H5T_IEEE_F64LE, ffluxOutput->trajectory_outputs(outIndex).time().data()));
     dims[0] = ffluxOutput->trajectory_outputs(outIndex).trajectory_id_size();
@@ -1310,10 +1310,13 @@ void Hdf5File::setTilings(lm::io::Tilings * tilings)
     std::stringstream tilingSS; // declare a stringstream for the tiling's group name
     for (int i=0;i<tilings->tilings_size();i++)
     {
+        // get a pointer to the right tiling buf
+        lm::io::Tilings::Tiling* tilingBuf = tilings->mutable_tilings(i);
+
         // get the tiling's attribute data from the corresponding protobuf
-        id = tilings->tilings(i).id();
-        opID = tilings->tilings(i).order_parameter_id();
-        type = tilings->tilings(i).type();
+        id = tilingBuf->id();
+        opID = tilingBuf->order_parameter_id();
+        type = tilingBuf->type();
 
         // clear the stringstream with the tiling's group name
         tilingSS.str(std::string());
@@ -1322,7 +1325,7 @@ void Hdf5File::setTilings(lm::io::Tilings * tilings)
         // write the tiling's group name to the stringstream
         tilingSS.fill('0');
         tilingSS.width(7);
-        tilingSS << i;
+        tilingSS << id;
 
         // write the tiling's attributes
         HDF5_EXCEPTION_CALL(tilingGroup, H5Gcreate2(tilingsGroup, tilingSS.str().c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
@@ -1331,8 +1334,8 @@ void Hdf5File::setTilings(lm::io::Tilings * tilings)
         HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(tilingsGroup, tilingSS.str().c_str(), "Type", &type, 1));
 
         // write the tiling's datasets
-        binDims[0] = tilings->tilings(i).edges_size();
-        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(tilingGroup, "Edges", 1, binDims, H5T_IEEE_F64LE, tilings->tilings(i).edges().data()));
+        binDims[0] = tilingBuf->edges_size();
+        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(tilingGroup, "Edges", 1, binDims, H5T_IEEE_F64LE, tilingBuf->edges().data()));
         HDF5_EXCEPTION_CHECK(H5Gclose(tilingGroup));
     }
     HDF5_EXCEPTION_CHECK(H5Gclose(tilingsGroup));
