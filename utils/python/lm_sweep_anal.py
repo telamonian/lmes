@@ -280,7 +280,6 @@ class Sims(object):
             modF.write('%f' % os.path.getmtime(self.fPath))
     
     def _Load(self):
-        
         with h5py.File(self.intermediatePath, 'r') as interF:
             self.histogram = []
             self.xBinCoordinates = []
@@ -319,7 +318,7 @@ class Sims(object):
                 xBinCoordinates = replicateGroup.create_dataset("XBinCoordinates", self.xBinCoordinates[i].shape, dtype=np.dtype('i32'))
                 xBinCoordinates[...] = self.xBinCoordinates[i]
                 yBinCoordinates = replicateGroup.create_dataset("YBinCoordinates", self.yBinCoordinates[i].shape, dtype=np.dtype('i32'))
-                yBinCoordinatesy[...] = self.yBinCoordinates[i]
+                yBinCoordinates[...] = self.yBinCoordinates[i]
         self.SaveMod()
     
     def Figname(self, suffix, ext=True):
@@ -353,7 +352,7 @@ class Sims(object):
         self.rcoords = np.array([[],[]])
         sim.Rcoords()
         h, x, y, p = plt.hist2d(sim.rcoords[0,:], sim.rcoords[1,:], range=[[0,100],[0,100]], bins=(100, 100))
-        self.h.append(h); self.x.append(x); self.y.append(y); #self.p.append(p);
+        self.histogram.append(h); self.xBinCoordinates.append(x); self.yBinCoordinates.append(y); #self.p.append(p);
         
     def Savefig(self, fig, suffix):
         fname = self.Figname(suffix)
