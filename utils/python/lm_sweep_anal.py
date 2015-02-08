@@ -30,7 +30,7 @@ cm.hot.set_bad(cm.hot(0))
 # stuff to make the perceptual color maps
 pCMap = {}
 rPCMap = {}
-walk = next(os.walk(os.path.join(os.path.dirname(os.path.realpath(__file__)),'colormaps')))
+walk = next(os.walk(os.path.join(os.path.dirname(os.path.realpath(__file__)),'lm_anal','plot','colormaps')))
 for fname in (fname for fname in walk[2] if fname[0]!='.'):
     with open(os.path.join(walk[0],fname)) as f:
         cVals = np.array([list(map(float,line.strip().split(','))) for line in f])
@@ -219,18 +219,19 @@ class Sims(object):
         # if you want to unpickle an intermediate AND the raw data HAS NOT changed, then do so
         # otherwise if you want to unpickle an intermediate AND the raw data HAS changed, then work with the raw data
         # otherwise if you don't care about pickled anything, then work with the raw data
-        if unpickle==True:
-            try:
-                if self.CheckMod():
-                    self.Load()
-                else:
-                    self.Init()
-            except IOError:
-                self.Init()
-        else:
-            self.Init()
+#         if unpickle==True:
+#             try:
+#                 if self.CheckMod():
+#                     self.Load()
+#                 else:
+#                     self.Init()
+#             except IOError:
+#                 self.Init()
+#         else:
+#             self.Init()
 
-        self.Init()
+        if not self.Load():
+            self.Init()
     
     def __str__(self):
         outString = '\n'
@@ -239,12 +240,11 @@ class Sims(object):
         return outString[:-2]
     
     def Init(self):
-        self.SaveMod()
         self.f = h5py.File(self.fPath)
         self.params = self.f['/Parameters'].attrs
         self.maxtime = self.params['maxTime']
         self.writeinterval = self.params['writeInterval']
-        self.replicateKeys = self.f['/Simulations'].keys()
+        self.replicateKeys = list(self.f['/Simulations'].keys())
         self.replicateCount = len(self.replicateKeys)
         self.f.close()
         
@@ -253,6 +253,7 @@ class Sims(object):
         self.yBinCoordinates = []
 #         self.p = []
         for key in self.replicateKeys:
+            print('starting intermediate processing of replicate %07d' % int(key))
             self.f = h5py.File(self.fPath)
             simdata = self.f['/Simulations'][key]
             sim = self.__class__.child(simdata, **self.sweepParams)
@@ -300,10 +301,16 @@ class Sims(object):
         if mode=='LOAD_FRESH_ONLY':
             if not self.CheckMod():
                 return False
-            self._Load()
+            try:
+                self._Load()
+            except OSError:
+                return False
             return True
         elif mode=='LOAD_OLD':
-            self._Load()
+            try:
+                self._Load()
+            except OSError:
+                return False
         else:
             return False
                 
@@ -807,6 +814,7 @@ class SweepBiphasics(Biphasics):
                             self.sweepParams[key] = sorted(tmpSweepParamsList + [val])
                     fpath = os.path.join(tup[0], fname)
                     self.simsSweep.append(Biphasics(fpath, unpickle=unpickle, **sweepParamDict))
+                    print('finished intermediate processing of sweep datapoint %s' % self.simsSweep[-1])
             
     def Hist2D(self):
         for sims in self.simsSweep:
