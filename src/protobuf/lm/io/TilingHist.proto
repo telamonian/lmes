@@ -40,6 +40,9 @@
 package lm.io;
 
 message TilingHist {
-    required uint32 tiling_id       = 1;
-    repeated double tile_vals       = 2 [packed=true];
+	optional uint64 number_tiles	= 1 [default=0];
+    optional uint32 tiling_id       = 2 [default=0];
+    
+    repeated uint32 tile_indices	= 3 [packed=true];
+    repeated double tile_vals       = 4 [packed=true];
 }

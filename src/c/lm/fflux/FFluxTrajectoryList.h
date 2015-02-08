@@ -63,9 +63,10 @@ typedef std::vector<lm::io::TrajectoryState*> CrossingVector;
 typedef std::map<long long, CrossingVector> CrossingsMap;
 typedef std::map<long long, double> DwellTimeMap;
 typedef std::map<long long, long long> FinishedTrajectoriesCountMap;
+typedef std::vector<lm::io::TilingHist*> TilingVector;
+
 typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::DecreasingOrderParameterLimit>::iterator decrLimitIterator;
 typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::IncreasingOrderParameterLimit>::iterator incrLimitIterator;
-typedef std::vector<lm::io::TilingHist*> TilingVector;
 
 class FFluxTrajectoryList : public lm::trajectory::TrajectoryList
 {
@@ -94,6 +95,14 @@ public:
     virtual lm::io::TrajectoryState* getRandomCrossing(long long ffluxPhase);
     virtual CrossingsMap getSavedCrossings(lm::fflux::FFluxTrajectoryList::Direction dir);
 
+    lm::io::FFluxOutput ffluxOutput;
+
+protected:
+    typedef std::map<lm::fflux::FFluxTrajectoryList::Direction, CrossingsMap> SavedCrossings;
+    typedef std::map<lm::fflux::FFluxTrajectoryList::Direction, DwellTimeMap> SavedDwellTimes;
+    typedef std::map<lm::fflux::FFluxTrajectoryList::Direction, FinishedTrajectoriesCountMap> SavedFinishedTrajectoriesCounts;
+    typedef std::map<lm::fflux::FFluxTrajectoryList::Direction, lm::io::TilingHist*> SavedHists;
+
     // methods that encapsulate workUnitFinished inner loop tasks
     virtual void addCrossing(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg);
     virtual uint incrFFluxPhase();
@@ -109,9 +118,12 @@ public:
     virtual void saveFinishedTrajectoriesCounts();
 
     // methods related to fflux data output
-    virtual void ffluxOutputAddTrajectory(lm::fflux::FFluxTrajectory* traj, lm::io::FFluxOutput::Lifecycle lifecycle);
+    virtual void ffluxOutputAddBasin(CrossingsMap& crossings, FinishedTrajectoriesCountMap& finishedTrajectoriesCounts);
+    virtual void ffluxOutputAddTrajectory(FFluxTrajectory* traj, lm::io::FFluxOutput::Lifecycle lifecycle);
+    virtual void ffluxOutputPrintBasin(CrossingsMap& crossings, FinishedTrajectoriesCountMap& finishedTrajectoriesCounts);
+    virtual void ffluxOutputPrintFinal_DinnerMethod(SavedCrossings& savedCrossings, SavedDwellTimes& savedDwellTimes, SavedFinishedTrajectoriesCounts& savedFinishedTrajectoriesCounts, SavedHists& savedHists);
+    virtual void ffluxOutputSetFinal_DinnerMethod(SavedCrossings& savedCrossings, SavedDwellTimes& savedDwellTimes, SavedFinishedTrajectoriesCounts& savedFinishedTrajectoriesCounts, SavedHists& savedHists);
 
-    lm::io::FFluxOutput ffluxOutput;
 protected:
     Direction direction;
     long long ffluxPhase;
@@ -124,10 +136,11 @@ protected:
     CrossingsMap crossings;
     DwellTimeMap dwellTimes;
     FinishedTrajectoriesCountMap finishedTrajectoriesCounts;
-    std::map<lm::fflux::FFluxTrajectoryList::Direction, CrossingsMap> savedCrossings;
-    std::map<lm::fflux::FFluxTrajectoryList::Direction, DwellTimeMap> savedDwellTimes;
-    std::map<lm::fflux::FFluxTrajectoryList::Direction, FinishedTrajectoriesCountMap> savedFinishedTrajectoriesCounts;
-    std::map<lm::fflux::FFluxTrajectoryList::Direction, lm::io::TilingHist*> savedHists;
+
+    SavedCrossings savedCrossings;
+    SavedDwellTimes savedDwellTimes;
+    SavedFinishedTrajectoriesCounts savedFinishedTrajectoriesCounts;
+    SavedHists savedHists;
 
     // user defined parameters that determine how the forward flux sampling is carried out
     unsigned crossingsPerPhase; //the count of crossing events that should be collected for every fflux sampling phase

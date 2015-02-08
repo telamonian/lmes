@@ -141,7 +141,6 @@ public:
     virtual bool hasDiffusionModel();
     virtual void getDiffusionModel(lm::io::DiffusionModel* diffusionModel) throw(Exception,InvalidArgException,HDF5Exception);
     virtual void setDiffusionModel(lm::io::DiffusionModel* diffusionModel) throw(Exception,InvalidArgException,HDF5Exception);
-    virtual void setFFluxOutput(lm::io::FFluxOutput* ffluxOutput);
     virtual bool hasOrderParameters();
     virtual void getOrderParameters(lm::io::OrderParameters* orderParameters);
     virtual void setOrderParameters(lm::io::OrderParameters* orderParameters);
@@ -167,6 +166,12 @@ public:
     virtual void getLattice(uint64_t replicate, unsigned int latticeIndex, lm::rdme::Lattice * lattice) throw(HDF5Exception,InvalidArgException);
     virtual void closeReplicate(uint64_t replicate) throw(HDF5Exception);
     virtual void closeAllReplicates() throw(HDF5Exception);
+
+    // Methods for working with output from forward flux simulations
+    virtual void setFFluxOutput(lm::io::FFluxOutput* ffluxOutput);
+    virtual void setFFluxBasinOutput(lm::io::FFluxOutput* ffluxOutput, int basinIndex, hid_t basinGroup);
+    virtual void setFFluxFinalOutput(lm::io::FFluxOutput* ffluxOutput, hid_t ffluxOutputGroup);
+    virtual void setFFluxTrajectoryOutput(lm::io::FFluxOutput* ffluxOutput, int outIndex, hid_t lifecycleGroup);
 
     //virtual void appendSpatialModelObjects(uint64_t replicate, lm::io::SpatialModel * model) throw(HDF5Exception,InvalidArgException);
     //virtual void getSpatialModelObjects(uint64_t replicate, lm::io::SpatialModel * model) throw(HDF5Exception);

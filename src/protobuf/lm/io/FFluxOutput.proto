@@ -59,8 +59,7 @@ message FFluxOutput {
 
 		optional Direction direction	= 1 [default=FORWARD];
 		optional Lifecycle lifecycle	= 2 [default=INITIAL];
-		optional int32 number_species	= 3 [default=1];
-
+		
 		repeated double count			= 101;
 		repeated uint64 edge_id			= 102;
 		repeated double species_count	= 103 [packed=true];
@@ -69,26 +68,27 @@ message FFluxOutput {
 	}
 	
 	message BasinOutput {
-		optional Direction direction 					= 1 [default=FORWARD];
-		optional uint64 number_tiles	 				= 2 [default=0];
+		optional Direction direction 							= 1 [default=FORWARD];
 		
-		optional double phase_0_flux 					= 3;
-		optional double probability						= 4;
-		optional double switching_constant				= 5;
+		optional double phase_0_flux 							= 101;
+		optional double switching_rate_constant					= 102;
 		
-		optional lm.io.TilingHist crossing_probability 	= 6;
-		optional lm.io.TilingHist tile_probability		= 7;
+		optional lm.io.TilingHist probability_i_to_i_plus_one 	= 201;
+		// the starting basin-depedent probability
+		optional lm.io.TilingHist probability_i			= 202;
 	}
 	
 	message FinalOutput {
-		optional uint64 number_tiles			    = 1 [default=0];
-		
-		optional lm.io.TilingHist tile_probability	= 2;
+		// the normalized, starting basin-independent probability
+		optional lm.io.TilingHist probability_i	= 1;
 	}
-
-    required uint32 tiling_id      					= 1;
+	
+	// for a 1D tiling, this is going to be tiling->edges_size() + 1
+	optional int32 number_species					= 1 [default=0];
+	optional uint64 number_tiles	 				= 2 [default=0];
+    optional uint32 tiling_id      					= 3 [default=0];
     
-    repeated TrajectoryOutput trajectory_outputs 	= 2;
-    repeated BasinOutput basin_outputs				= 3;
-    optional FinalOutput final_output				= 4;
+    repeated TrajectoryOutput trajectory_outputs 	= 101;
+    repeated BasinOutput basin_outputs				= 102;
+    optional FinalOutput final_output				= 103;
 }

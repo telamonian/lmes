@@ -536,7 +536,6 @@ void Hdf5File::setFFluxOutput(lm::io::FFluxOutput* ffluxOutput)
     hid_t tilingsGroup, tilingGroup, ffluxOutputGroup;
 
     // get handle to Tilings group
-    //HDF5_EXCEPTION_CALL(tilingsGroup, H5Gcreate2(file, "/Tilings", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
     HDF5_EXCEPTION_CALL(tilingsGroup, H5Gopen(file, "/Tilings", H5P_DEFAULT));
 
     // declare a stringstream for the Tiling group name (i.e. its ID number)
@@ -552,7 +551,6 @@ void Hdf5File::setFFluxOutput(lm::io::FFluxOutput* ffluxOutput)
     tilingSS << ffluxOutput->tiling_id();
 
     // get handle to Tiling group
-    //HDF5_EXCEPTION_CALL(tilingGroup, H5Gcreate2(tilingsGroup, tilingSS.str().c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
     HDF5_EXCEPTION_CALL(tilingGroup, H5Gopen(tilingsGroup, tilingSS.str().c_str(), H5P_DEFAULT));
 
     // If the FFluxOutput group already exists, delete it
@@ -564,36 +562,50 @@ void Hdf5File::setFFluxOutput(lm::io::FFluxOutput* ffluxOutput)
     // Create and get handle to FFluxOutput group
     HDF5_EXCEPTION_CALL(ffluxOutputGroup, H5Gcreate2(tilingGroup, "FFluxOutput", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
 
-    // If there is FFluxOutput for forward or backwards runs, print out the relevant tables
+    // write the attributes for the FFluxOutput
+    hid_t attr, scalarSpace;
+    // steps to create attribute using H5Acreate: H5Screate,H5Acreate,H5Awrite,H5Aclose,H5Sclose
+    HDF5_EXCEPTION_CALL(scalarSpace, H5Screate(H5S_SCALAR));
+
+    int32_t number_species = ffluxOutput->number_species();
+    HDF5_EXCEPTION_CALL(attr, H5Acreate(ffluxOutputGroup, "NumberSpecies", H5T_STD_I32LE, scalarSpace, H5P_DEFAULT, H5P_DEFAULT));
+    HDF5_EXCEPTION_CHECK(H5Awrite(attr, H5T_STD_I32LE, &number_species));
+    HDF5_EXCEPTION_CHECK(H5Aclose(attr));
+
+    uint64_t number_tiles = ffluxOutput->number_tiles();
+    HDF5_EXCEPTION_CALL(attr, H5Acreate(ffluxOutputGroup, "NumberTiles", H5T_STD_U64LE, scalarSpace, H5P_DEFAULT, H5P_DEFAULT));
+    HDF5_EXCEPTION_CHECK(H5Awrite(attr, H5T_STD_U64LE, &number_tiles));
+    HDF5_EXCEPTION_CHECK(H5Aclose(attr));
+
+    uint32_t tiling_id = ffluxOutput->tiling_id();
+    HDF5_EXCEPTION_CALL(attr, H5Acreate(ffluxOutputGroup, "TilingID", H5T_STD_U32LE, scalarSpace, H5P_DEFAULT, H5P_DEFAULT));
+    HDF5_EXCEPTION_CHECK(H5Awrite(attr, H5T_STD_U32LE, &tiling_id));
+    HDF5_EXCEPTION_CHECK(H5Aclose(attr));
+
+    HDF5_EXCEPTION_CHECK(H5Sclose(scalarSpace));
+
+    // write the datasets for the FFluxOutput
     hid_t directionGroup, lifecycleGroup;
-    hsize_t dims[1], speciesDims[2];
     int outIndex;
     vector<string> directionStrings; directionStrings.push_back("FORWARD"); directionStrings.push_back("BACKWARD");
     vector<string> lifecycleStrings; lifecycleStrings.push_back("INITIAL"); lifecycleStrings.push_back("FINAL");
+
+    setFFluxFinalOutput(ffluxOutput, ffluxOutputGroup);
     // loop through the FORWARD and BACKWARD enums
     for (int i=0;i<2;i++)
     {
         // create a group corresponding to the direction (FORWARD or BACKWARD)
         HDF5_EXCEPTION_CALL(directionGroup, H5Gcreate2(ffluxOutputGroup, directionStrings[i].c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+        setFFluxBasinOutput(ffluxOutput, i, directionGroup);
 
         // loop through the INITIAL and FINAL enums
         for (int j=0;j<2;j++)
         {
             outIndex = i*2+j;
+
             // create a group corresponding to the lifecycle (INITIAL or FINAL)
             HDF5_EXCEPTION_CALL(lifecycleGroup, H5Gcreate2(directionGroup, lifecycleStrings[j].c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
-            // write the datasets for this particular OrderParameterFFluxOutput
-            dims[0] = ffluxOutput->trajectory_outputs(outIndex).count_size();
-            HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "Count", 1, dims, H5T_IEEE_F64LE, ffluxOutput->trajectory_outputs(outIndex).count().data()));
-            dims[0] = ffluxOutput->trajectory_outputs(outIndex).edge_id_size();
-            HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "EdgeID", 1, dims, H5T_STD_U64LE, ffluxOutput->trajectory_outputs(outIndex).edge_id().data()));
-            speciesDims[0] = ffluxOutput->trajectory_outputs(outIndex).species_count_size()/ffluxOutput->trajectory_outputs(outIndex).number_species();
-            speciesDims[1] = ffluxOutput->trajectory_outputs(outIndex).number_species();
-            HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "SpeciesCount", 2, speciesDims, H5T_IEEE_F64LE, ffluxOutput->trajectory_outputs(outIndex).species_count().data()));
-            dims[0] = ffluxOutput->trajectory_outputs(outIndex).time_size();
-            HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "Time", 1, dims, H5T_IEEE_F64LE, ffluxOutput->trajectory_outputs(outIndex).time().data()));
-            dims[0] = ffluxOutput->trajectory_outputs(outIndex).trajectory_id_size();
-            HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "TrajectoryID", 1, dims, H5T_STD_U64LE, ffluxOutput->trajectory_outputs(outIndex).trajectory_id().data()));
+            setFFluxTrajectoryOutput(ffluxOutput, outIndex, lifecycleGroup);
             HDF5_EXCEPTION_CHECK(H5Gclose(lifecycleGroup));
         }
         HDF5_EXCEPTION_CHECK(H5Gclose(directionGroup));
@@ -601,6 +613,41 @@ void Hdf5File::setFFluxOutput(lm::io::FFluxOutput* ffluxOutput)
     HDF5_EXCEPTION_CHECK(H5Gclose(ffluxOutputGroup));
     HDF5_EXCEPTION_CHECK(H5Gclose(tilingGroup));
     HDF5_EXCEPTION_CHECK(H5Gclose(tilingsGroup));
+}
+
+void Hdf5File::setFFluxBasinOutput(lm::io::FFluxOutput* ffluxOutput, int basinIndex, hid_t basinGroup)
+{
+    // write the attributes for this particular BasinOutput
+
+    // write the datasets for this particular BasinOutput
+    hsize_t dims[1];
+}
+
+void Hdf5File::setFFluxFinalOutput(lm::io::FFluxOutput* ffluxOutput, hid_t ffluxOutputGroup)
+{
+    // write the attributes for the FinalOutput
+
+    // write the datasets for the FinalOutput
+    hsize_t dims[1];
+}
+
+void Hdf5File::setFFluxTrajectoryOutput(lm::io::FFluxOutput* ffluxOutput, int outIndex, hid_t lifecycleGroup)
+{
+    // write the attributes for this particular TrajectoryOutput
+
+    // write the datasets for this particular TrajectoryOutput
+    hsize_t dims[1], speciesDims[2];
+    dims[0] = ffluxOutput->trajectory_outputs(outIndex).count_size();
+    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "Count", 1, dims, H5T_IEEE_F64LE, ffluxOutput->trajectory_outputs(outIndex).count().data()));
+    dims[0] = ffluxOutput->trajectory_outputs(outIndex).edge_id_size();
+    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "EdgeID", 1, dims, H5T_STD_U64LE, ffluxOutput->trajectory_outputs(outIndex).edge_id().data()));
+    speciesDims[0] = ffluxOutput->trajectory_outputs(outIndex).species_count_size()/ffluxOutput->number_species();
+    speciesDims[1] = ffluxOutput->number_species();
+    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "SpeciesCount", 2, speciesDims, H5T_IEEE_F64LE, ffluxOutput->trajectory_outputs(outIndex).species_count().data()));
+    dims[0] = ffluxOutput->trajectory_outputs(outIndex).time_size();
+    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "Time", 1, dims, H5T_IEEE_F64LE, ffluxOutput->trajectory_outputs(outIndex).time().data()));
+    dims[0] = ffluxOutput->trajectory_outputs(outIndex).trajectory_id_size();
+    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "TrajectoryID", 1, dims, H5T_STD_U64LE, ffluxOutput->trajectory_outputs(outIndex).trajectory_id().data()));
 }
 
 bool Hdf5File::hasOrderParameters()

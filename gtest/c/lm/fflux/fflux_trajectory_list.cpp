@@ -36,6 +36,8 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+#include "lm/gtest.h"
+
 #include <csignal>
 #include <map>
 #include <string>
