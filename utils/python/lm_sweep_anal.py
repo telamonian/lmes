@@ -301,21 +301,23 @@ class Sims(object):
         LOAD_FRESH_ONLY: will only load the .lmint file if a call to CheckMod returns True
         LOAD_OLD: will load the .lmint file as long as it exists
         '''
+        print('attempting to load intermediate file for sweep datapoint %s...' % self)
         if mode=='LOAD_FRESH_ONLY':
             if not self.CheckMod():
-                return False
+                print('...load failed'); return False
             try:
                 self._Load()
             except OSError:
-                return False
-            return True
+                print('...load failed'); return False
+            print('...load successful'); return True
         elif mode=='LOAD_OLD':
             try:
                 self._Load()
             except OSError:
-                return False
+                print('...load failed'); return False
+            print('...load successful'); return True
         else:
-            return False
+            print('...load failed'); return False
                 
     def Save(self):
         with h5py.File(self.intermediatePath, 'w') as interF:
