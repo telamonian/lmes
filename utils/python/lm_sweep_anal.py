@@ -234,7 +234,7 @@ class Sims(object):
             self.Init()
     
     def __str__(self):
-        outString = '\n'
+        outString = ''
         for key,val in self.sweepParams.items():
             outString+='%s: %s, ' % (key,val)
         return outString[:-2]
@@ -270,9 +270,12 @@ class Sims(object):
         '''
         try:
             with open(self.modTimePath, 'r') as modF:
-                return float(modF.readline())==os.path.getmtime(self.fPath)
+                if float(modF.readline())==os.path.getmtime(self.fPath):
+                    print('up to date mod file found'); return True
+                else:
+                    print('mod file out of date'); return False
         except FileNotFoundError:
-            return False
+            print('mod file does not exist'); return False
     
     def SaveMod(self):
         '''
@@ -288,7 +291,7 @@ class Sims(object):
             self.histogram = []
             self.xBinCoordinates = []
             self.yBinCoordinates = []
-            for key,val in interF["/Simulations/"]:
+            for key,val in interF["/Simulations/"].items():
                 self.histogram.append(val['Histogram'])
                 self.xBinCoordinates.append(val['XBinCoordinates'])
                 self.yBinCoordinates.append(val['YBinCoordinates'])
@@ -304,20 +307,20 @@ class Sims(object):
         print('attempting to load intermediate file for sweep datapoint %s...' % self)
         if mode=='LOAD_FRESH_ONLY':
             if not self.CheckMod():
-                print('...load failed'); return False
+                print('...load failed due to out of date or non-existant mod file'); return False
             try:
                 self._Load()
             except OSError:
-                print('...load failed'); return False
+                print('...load failed due to OSError raised in internal _Load function'); return False
             print('...load successful'); return True
         elif mode=='LOAD_OLD':
             try:
                 self._Load()
             except OSError:
-                print('...load failed'); return False
+                print('...load failed due to OSError raised in internal _Load function'); return False
             print('...load successful'); return True
         else:
-            print('...load failed'); return False
+            print('...load failed due to unknown mode argument value: %s' % mode); return False
                 
     def Save(self):
         with h5py.File(self.intermediatePath, 'w') as interF:
