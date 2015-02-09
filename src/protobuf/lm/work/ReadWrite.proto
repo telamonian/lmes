@@ -1,7 +1,0 @@
-package lm.work;
-
-message ReadWrite {
-	optional uint64 step				= 1;
-	optional double time       			= 2;
-	repeated uint32 species_count      	= 3 [packed=true];
-}

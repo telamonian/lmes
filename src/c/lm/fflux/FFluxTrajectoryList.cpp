@@ -187,6 +187,9 @@ void FFluxTrajectoryList::initPhaseNTrajectories(uint64_t trajectoriesToStart)
 
 lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg)
 {
+    // setup directionString for printing the name of the current simulation direction
+    vector<string> directionStrings; directionStrings.push_back("FORWARD"); directionStrings.push_back("BACKWARD");
+
     double simTime;
     // Call the base class method.
     lm::fflux::FFluxTrajectory* traj = static_cast<lm::fflux::FFluxTrajectory*>(TrajectoryList::workUnitFinished(finishedWorkUnitMsg));
@@ -203,7 +206,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
         if (traj->fluxedForward())
         {
             // ...add the work unit's final state to the appropriate list of crossings
-            Print::printf(Print::INFO,"Crossing %d added to phase %d list", crossings[ffluxPhase].size(), ffluxPhase);
+            Print::printf(Print::DEBUG,"Crossing %d added to phase %d list", crossings[ffluxPhase].size(), ffluxPhase);
             addCrossing(finishedWorkUnitMsg);
         }
         // Regardless of whether this crossing was a forward or backwards flux, increment this phase's finished trajectories counter and dwell time, and delete the finished trajectory
@@ -212,7 +215,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
         ++finishedTrajectoriesCounts[ffluxPhase];
         ffluxOutputAddTrajectory(traj, lm::io::FFluxOutput::FINAL);
         deleteTrajectory(finishedWorkUnitMsg.final_state().trajectory_id());
-        //Print::printf(Print::INFO, "ffluxPhase: %d, crossings[fflux].size(): %d, finishedTrajectoriesCount %d, time: %f, oparam: %f", ffluxPhase, crossings[ffluxPhase].size(), finishedTrajectoriesCounts[ffluxPhase], crossings[ffluxPhase].back()->cme_state().species_counts().time(crossings[ffluxPhase].back()->cme_state().species_counts().number_entries() - 1), calcTestCaseOParam(finishedWorkUnitMsg.final_state()));
+//        Print::printf(Print::INFO, "ffluxPhase: %d, crossings[fflux].size(): %d, finishedTrajectoriesCount %d, time: %f, oparam: %f", ffluxPhase, crossings[ffluxPhase].size(), finishedTrajectoriesCounts[ffluxPhase], crossings[ffluxPhase].back()->cme_state().species_counts().time(crossings[ffluxPhase].back()->cme_state().species_counts().number_entries() - 1), calcTestCaseOParam(finishedWorkUnitMsg.final_state()));
         // If the forward flux sampling is still in its 0th (ie initial) phase...
         if (isZerothPhase())
         {
@@ -225,6 +228,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
                 setAllFinished();
                 // Next, increment the fflux phase counter. If there are still more phases to run...
                 ++ffluxPhase;
+                Print::printf(Print::INFO,"Forward flux phase %d:%s starting now", ffluxPhase, directionStrings[direction].c_str());
                 if (!isFFluxDone())
                 {
                     // ...start up a new set of trajectories and make room to store their data
@@ -250,6 +254,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
 				setAllFinished();
                 // Next, increment the fflux phase counter. If there are still more phases to run...
                 ++ffluxPhase;
+                Print::printf(Print::INFO,"Forward flux phase %d:%s starting now", ffluxPhase, directionStrings[direction].c_str());
                 if (!isFFluxDone())
                 {
                     // ...and start up a new set of trajectories
@@ -395,11 +400,11 @@ void FFluxTrajectoryList::saveFinishedTrajectoriesCounts()
 
 void FFluxTrajectoryList::ffluxOutputAddBasin(CrossingsMap& crossings, FinishedTrajectoriesCountMap& finishedTrajectoriesCounts)
 {
-    // get a pointer to the right trajectory_outputs buf
+    // get a pointer to the germane BasinOutput buf
     lm::io::FFluxOutput::BasinOutput* basOut = ffluxOutput.mutable_basin_outputs(direction);
 
-    // load the data into the trajectory_outputs buf
-    basOut->set_phase_0_flux((double)crossings[0].size()/(maxPhaseZeroTime*simultaneousTrajectoryCount));
+    // load the data into the BasinOutput buf pointer
+    basOut->set_flux_out_of_tile_zero((double)crossings[0].size()/(maxPhaseZeroTime*simultaneousTrajectoryCount));
 
     basOut->clear_probability_i_to_i_plus_one();
     lm::io::TilingHist* probabilityIToIPlusOne = basOut->mutable_probability_i_to_i_plus_one();
@@ -416,23 +421,26 @@ void FFluxTrajectoryList::ffluxOutputAddBasin(CrossingsMap& crossings, FinishedT
     probabilityIToIPlusOne->add_tile_indices(maxFFluxPhase);
     probabilityIToIPlusOne->add_tile_vals(0.0);
 
-//    basOut->clear_probability_i();
-//    lm::io::TilingHist* probabilityI = basOut->mutable_probability_i();
-//    probabilityI->set_number_tiles(ffluxOutput.number_tiles());
-//    probabilityI->set_tiling_id(ffluxOutput.tiling_id());
-//
-//    probabilityI->add_tile_indices(0);
-//    probabilityI->add_tile_vals(0.0);
-//    double Kab = basOut->phase_0_flux()*probabilityI->tile_vals(1);
-//    probabilityI->add_tile_indices(1);
-//    probabilityI->add_tile_vals(Kab);
-//    for (int i=2;i<maxFFluxPhase;i++)
-//    {
-//        probabilityI->add_tile_indices(i);
-//        probabilityI->add_tile_vals(probabilityI->tile_vals(i-1)*probabilityIToIPlusOne->tile_vals(i));
-//    }
-//    probabilityI->add_tile_indices(maxFFluxPhase);
-//    probabilityI->add_tile_vals(0.0);
+    basOut->clear_probability_one_to_i_plus_one();
+    lm::io::TilingHist* probabilityOneToIPlusOne = basOut->mutable_probability_one_to_i_plus_one();
+    probabilityOneToIPlusOne->set_number_tiles(ffluxOutput.number_tiles());
+    probabilityOneToIPlusOne->set_tiling_id(ffluxOutput.tiling_id());
+
+    probabilityOneToIPlusOne->add_tile_indices(0);
+    probabilityOneToIPlusOne->add_tile_vals(0.0);
+    probabilityOneToIPlusOne->add_tile_indices(1);
+    probabilityOneToIPlusOne->add_tile_vals(probabilityIToIPlusOne->tile_vals(1));
+    for (int i=2;i<maxFFluxPhase;i++)
+    {
+        probabilityOneToIPlusOne->add_tile_indices(i);
+        probabilityOneToIPlusOne->add_tile_vals(probabilityOneToIPlusOne->tile_vals(i-1)*probabilityIToIPlusOne->tile_vals(i));
+    }
+    probabilityOneToIPlusOne->add_tile_indices(maxFFluxPhase);
+    probabilityOneToIPlusOne->add_tile_vals(0.0);
+
+    double probabilityOneToLast = probabilityOneToIPlusOne->tile_vals(maxFFluxPhase-1);
+    double switchingRateConstant = basOut->flux_out_of_tile_zero()*probabilityOneToLast;
+    basOut->set_switching_rate_constant(switchingRateConstant);
 }
 
 void FFluxTrajectoryList::ffluxOutputAddTrajectory(FFluxTrajectory* traj, lm::io::FFluxOutput::Lifecycle lifecycle)
@@ -440,10 +448,10 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(FFluxTrajectory* traj, lm::io
 	// get a number from 0-3 based on the current direction of the fflux simulation and the lifecycle of the trajectory being added
 	uint outIndex = (direction!=FORWARD)<<1 | lifecycle!=lm::io::FFluxOutput::INITIAL;
 
-	// get a pointer to the right trajectory_outputs buf
+	// get a pointer to the germane TrajectoryOutput buf
 	lm::io::FFluxOutput::TrajectoryOutput* trajOut = ffluxOutput.mutable_trajectory_outputs(outIndex);
 
-	// load the data into the trajectory_outputs buf
+	// load the data into the TrajectoryOutput buf pointer
 	trajOut->add_count(traj->getOPVal());
 	trajOut->add_edge_id(ffluxPhase);
 	traj->getLastSpeciesCounts(trajOut);
@@ -519,51 +527,86 @@ void FFluxTrajectoryList::ffluxOutputPrintFinal_DinnerMethod(SavedCrossings& sav
 void FFluxTrajectoryList::ffluxOutputSetFinal_DinnerMethod(SavedCrossings& savedCrossings, SavedDwellTimes& savedDwellTimes, SavedFinishedTrajectoriesCounts& savedFinishedTrajectoriesCounts, SavedHists& savedHists)
 {
     // This version of the probability calculation is taken from Dinner, 2010
-    double phaseZeroFluxA = (double)savedCrossings[FORWARD][0].size()/(maxPhaseZeroTime*simultaneousTrajectoryCount);
-    double phaseZeroFluxB = (double)savedCrossings[BACKWARD][0].size()/(maxPhaseZeroTime*simultaneousTrajectoryCount);
-    vector<double> paiaiplusone, pbibiplusone, pa0ai, pb0bi, pa0aiNormed, pb0biNormed;
-    for (int i=0;i<maxFFluxPhase;i++)
+    // And then modified by me to be in terms of the tiles rather than the edges in between them
+
+    // get a pointer to the FinalOutput buf
+    lm::io::FFluxOutput::FinalOutput* finalOut = ffluxOutput.mutable_final_output();
+
+    // initialize some pointers to BasinOutput bufs
+    lm::io::FFluxOutput::BasinOutput* basinOut,* oppositeBasinOut;
+
+    // some of the basin-associated data can't be calculated until both directions of the simulation, FORWARD and BACKWARD, are complete
+    // so we calculate that data here rather than in ffluxOutputAddBasin and then load it into the BasinOutput bufs
+    for (int direction=0; direction!=2; direction++)
     {
-        paiaiplusone.push_back((double)savedCrossings[FORWARD][i].size()/savedFinishedTrajectoriesCounts[FORWARD][i]);
-        pbibiplusone.push_back((double)savedCrossings[BACKWARD][i].size()/savedFinishedTrajectoriesCounts[BACKWARD][i]);
-        pa0ai.push_back(paiaiplusone[1]);
-        pb0bi.push_back(pbibiplusone[1]);
-        for (int j=1;j<i;j++)
+        // negate the current direction to get the opposite direction
+        int oppositeDirection = !direction;
+        // get pointers to the BasinOutputs corresponding to direction and oppositeDirection
+        basinOut = ffluxOutput.mutable_basin_outputs(direction);
+        oppositeBasinOut = ffluxOutput.mutable_basin_outputs(oppositeDirection);
+
+        double thisBasinLastVisitedProbability = oppositeBasinOut->switching_rate_constant()/(basinOut->switching_rate_constant() + oppositeBasinOut->switching_rate_constant());
+        basinOut->set_this_basin_last_visited_probability(thisBasinLastVisitedProbability);
+
+        // initialize the weight variable, used below to calculate a normalized version of probability_i
+        double weight = 0;
+        basinOut->clear_probability_i();
+        lm::io::TilingHist* probabilityI = basinOut->mutable_probability_i();
+        probabilityI->set_number_tiles(ffluxOutput.number_tiles());
+        probabilityI->set_tiling_id(ffluxOutput.tiling_id());
+
+        probabilityI->add_tile_indices(0);
+        probabilityI->add_tile_vals(0.0);
+        for (int i=1;i<maxFFluxPhase;i++)
         {
-            pa0ai[i]*=paiaiplusone[j];
-            pb0bi[i]*=pbibiplusone[j];
+            probabilityI->add_tile_indices(i);
+            probabilityI->add_tile_vals(basinOut->this_basin_last_visited_probability() *
+                                        basinOut->flux_out_of_tile_zero() *
+                                        basinOut->probability_one_to_i_plus_one().tile_vals(i) *
+                                        savedDwellTimes[static_cast<Direction>(direction)][i]);
+            // keep a running sum of the values of probability_i in weight
+            weight+=probabilityI->tile_vals(i);
+        }
+        probabilityI->add_tile_indices(maxFFluxPhase);
+        probabilityI->add_tile_vals(0.0);
+
+        basinOut->set_probability_i_weight(weight);
+
+        basinOut->clear_normalized_probability_i();
+        lm::io::TilingHist* normalizedProbabilityI = basinOut->mutable_normalized_probability_i();
+        for (int i=0;i<probabilityI->tile_vals_size();i++)
+        {
+            normalizedProbabilityI->add_tile_indices(probabilityI->tile_indices(i));
+            normalizedProbabilityI->add_tile_vals(probabilityI->tile_vals(i) /
+                                                  basinOut->probability_i_weight());
         }
     }
-//  std::partial_sum(paiaiplusone.begin(), paiaiplusone.end(), &pa0ai, std::multiplies<double>());
-    double Kab = pa0ai.back();
-    double Kba = pb0bi.back();
-    double Pa = Kba/(Kab + Kba);
-    double Pb = Kab/(Kab + Kba);
-    double totalWeight = 0;
-//  double totalProb = 0;
-    for (int i=1;i<maxFFluxPhase;i++)
+
+    // set our BasinOutput pointers so that we can be sure basinOut corresponds to FORWARD and oppositeBasinOut corresponds to BACKWARD
+    basinOut = ffluxOutput.mutable_basin_outputs(FORWARD);
+    oppositeBasinOut = ffluxOutput.mutable_basin_outputs(BACKWARD);
+
+    finalOut->clear_probability_i();
+    lm::io::TilingHist* probabilityI = finalOut->mutable_probability_i();
+    for (int i=0;i<probabilityI->tile_vals_size();i++)
     {
-        Print::printf(Print::INFO, "Forward tile %d probability: %.10f", i, Pa*phaseZeroFluxA*pa0ai[i]*savedDwellTimes[FORWARD][i]);
-        totalWeight+=Pa*phaseZeroFluxA*pa0ai[i]*savedDwellTimes[FORWARD][i];
+        probabilityI->add_tile_indices(i);
+        probabilityI->add_tile_vals(basinOut->probability_i().tile_vals(i) +
+                                    oppositeBasinOut->probability_i().tile_vals(probabilityI->tile_vals_size() - i));
     }
-    for (int i=1;i<maxFFluxPhase;i++)
+
+    // weight for basin-independent probability_i is just the sum of the weights for basin-dependent probability_i
+    finalOut->set_probability_i_weight(basinOut->probability_i_weight() + oppositeBasinOut->probability_i_weight());
+
+    finalOut->clear_normalized_probability_i();
+    lm::io::TilingHist* normalizedProbabilityI = finalOut->mutable_normalized_probability_i();
+    for (int i=0;i<probabilityI->tile_vals_size();i++)
     {
-        Print::printf(Print::INFO, "Backward tile %d probability: %.10f", i, Pb*phaseZeroFluxB*pb0bi[i]*savedDwellTimes[BACKWARD][i]);
-        totalWeight+=Pb*phaseZeroFluxB*pb0bi[i]*savedDwellTimes[BACKWARD][i];
+        normalizedProbabilityI->add_tile_indices(probabilityI->tile_indices(i));
+        normalizedProbabilityI->add_tile_vals(probabilityI->tile_vals(i) /
+                                              finalOut->probability_i_weight());
     }
-    for (int i=0;i<maxFFluxPhase;i++)
-    {
-        pa0aiNormed.push_back((Pa*phaseZeroFluxA*pa0ai[i]*savedDwellTimes[FORWARD][i])/totalWeight);
-        pb0biNormed.push_back((Pb*phaseZeroFluxB*pb0bi[i]*savedDwellTimes[BACKWARD][i])/totalWeight);
-    }
-    Print::printf(Print::INFO, "Pa: %.10f", Pa);
-    for (int i=1;i<maxFFluxPhase;i++)
-    {
-//  Print::printf(Print::INFO, "Forward bit %d probability: %.10f", i, Pa*pa0aiNormed[i]);
-//  Print::printf(Print::INFO, "Backward bit %d probability: %.10f", maxFFluxPhase-i, Pb*pb0biNormed[maxFFluxPhase-i]);
-        Print::printf(Print::INFO, "Normalized tile %d probability: %.10f", i, pa0aiNormed[i]+pb0biNormed[maxFFluxPhase-i]);
-    }
-    Print::printf(Print::INFO, "Pb: %.10f", Pb);
+
 }
 
 }

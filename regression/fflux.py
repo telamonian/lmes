@@ -73,6 +73,7 @@ ffluxInput.Close()
 raw_args = '-sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff hdf5 -fflux -f "biphasic_switch.lm"'
 args = shlex.split(raw_args)
 p = subprocess.Popen([path] + args)
+p.wait()
 
 # after this script sets up biphasic_switch.lm, the simulation can be rerun directly with:
 # ../build/lm -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff hdf5 -fflux -f "biphasic_switch.lm"

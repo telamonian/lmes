@@ -38,6 +38,7 @@ replicateParameters.Close()
 raw_args = '-r 1-10 -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff hdf5 -f "biphasic_switch.lm"'
 args = shlex.split(raw_args)
 p = subprocess.Popen([path] + args)
+p.wait()
 #os.execv(path, ['-r 1-10 -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff hdf5 -f "biphasic_switch.lm"'])
 #os.execl(path, '"-r 1,2,3,4,5,6,7,8,9,10"', '-sl', 'lm::cme::GillespieDSolver', '-cr', '1', '-gr', '1/4', '-ff', 'hdf5', '-f', 'biphasic_switch.lm')
 
