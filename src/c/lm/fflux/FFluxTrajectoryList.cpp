@@ -532,9 +532,6 @@ void FFluxTrajectoryList::ffluxOutputSetFinal_DinnerMethod(SavedCrossings& saved
     // get a pointer to the FinalOutput buf
     lm::io::FFluxOutput::FinalOutput* finalOut = ffluxOutput.mutable_final_output();
 
-    // initialize some pointers to BasinOutput bufs
-    lm::io::FFluxOutput::BasinOutput* basinOut,* oppositeBasinOut;
-
     // some of the basin-associated data can't be calculated until both directions of the simulation, FORWARD and BACKWARD, are complete
     // so we calculate that data here rather than in ffluxOutputAddBasin and then load it into the BasinOutput bufs
     for (int direction=0; direction!=2; direction++)
@@ -542,8 +539,8 @@ void FFluxTrajectoryList::ffluxOutputSetFinal_DinnerMethod(SavedCrossings& saved
         // negate the current direction to get the opposite direction
         int oppositeDirection = !direction;
         // get pointers to the BasinOutputs corresponding to direction and oppositeDirection
-        basinOut = ffluxOutput.mutable_basin_outputs(direction);
-        oppositeBasinOut = ffluxOutput.mutable_basin_outputs(oppositeDirection);
+        lm::io::FFluxOutput::BasinOutput* basinOut = ffluxOutput.mutable_basin_outputs(direction);
+        lm::io::FFluxOutput::BasinOutput* oppositeBasinOut = ffluxOutput.mutable_basin_outputs(oppositeDirection);
 
         double thisBasinLastVisitedProbability = oppositeBasinOut->switching_rate_constant()/(basinOut->switching_rate_constant() + oppositeBasinOut->switching_rate_constant());
         basinOut->set_this_basin_last_visited_probability(thisBasinLastVisitedProbability);
@@ -582,17 +579,17 @@ void FFluxTrajectoryList::ffluxOutputSetFinal_DinnerMethod(SavedCrossings& saved
         }
     }
 
-    // set our BasinOutput pointers so that we can be sure basinOut corresponds to FORWARD and oppositeBasinOut corresponds to BACKWARD
-    basinOut = ffluxOutput.mutable_basin_outputs(FORWARD);
-    oppositeBasinOut = ffluxOutput.mutable_basin_outputs(BACKWARD);
+    // set some BasinOuput buf pointers to correspond to the FORWARD and BACKWARD BasinOutputs
+    lm::io::FFluxOutput::BasinOutput* basinOut = ffluxOutput.mutable_basin_outputs(FORWARD);
+    lm::io::FFluxOutput::BasinOutput* oppositeBasinOut = ffluxOutput.mutable_basin_outputs(BACKWARD);
 
     finalOut->clear_probability_i();
     lm::io::TilingHist* probabilityI = finalOut->mutable_probability_i();
-    for (int i=0;i<probabilityI->tile_vals_size();i++)
+    for (int i=0;i<basinOut->probability_i().tile_vals_size();i++)
     {
         probabilityI->add_tile_indices(i);
         probabilityI->add_tile_vals(basinOut->probability_i().tile_vals(i) +
-                                    oppositeBasinOut->probability_i().tile_vals(probabilityI->tile_vals_size() - i));
+                                    oppositeBasinOut->probability_i().tile_vals(oppositeBasinOut->probability_i().tile_vals_size() - 1 - i));
     }
 
     // weight for basin-independent probability_i is just the sum of the weights for basin-dependent probability_i
