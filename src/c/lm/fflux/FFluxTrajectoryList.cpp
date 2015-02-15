@@ -213,7 +213,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
         simTime = traj->getSimTime();
         dwellTimes[ffluxPhase] += simTime;
         ++finishedTrajectoriesCounts[ffluxPhase];
-        ffluxOutputAddTrajectory(traj, lm::io::FFluxOutput::FINAL);
+//        ffluxOutputAddTrajectory(traj, lm::io::FFluxOutput::FINAL);
         deleteTrajectory(finishedWorkUnitMsg.final_state().trajectory_id());
 //        Print::printf(Print::INFO, "ffluxPhase: %d, crossings[fflux].size(): %d, finishedTrajectoriesCount %d, time: %f, oparam: %f", ffluxPhase, crossings[ffluxPhase].size(), finishedTrajectoriesCounts[ffluxPhase], crossings[ffluxPhase].back()->cme_state().species_counts().time(crossings[ffluxPhase].back()->cme_state().species_counts().number_entries() - 1), calcTestCaseOParam(finishedWorkUnitMsg.final_state()));
         // If the forward flux sampling is still in its 0th (ie initial) phase...
@@ -457,6 +457,10 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(FFluxTrajectory* traj, lm::io
 	traj->getLastSpeciesCounts(trajOut);
 	trajOut->add_time(traj->getSimTime());
 	trajOut->add_trajectory_id(traj->getID());
+	if (trajOut->time_size() > 100)
+	{
+
+	}
 }
 
 void FFluxTrajectoryList::ffluxOutputPrintBasin(CrossingsMap& crossings, FinishedTrajectoriesCountMap& finishedTrajectoriesCounts)
@@ -517,8 +521,6 @@ void FFluxTrajectoryList::ffluxOutputPrintFinal_DinnerMethod(SavedCrossings& sav
     Print::printf(Print::INFO, "Pa: %.10f", Pa);
     for (int i=1;i<maxFFluxPhase;i++)
     {
-//  Print::printf(Print::INFO, "Forward bit %d probability: %.10f", i, Pa*pa0aiNormed[i]);
-//  Print::printf(Print::INFO, "Backward bit %d probability: %.10f", maxFFluxPhase-i, Pb*pb0biNormed[maxFFluxPhase-i]);
         Print::printf(Print::INFO, "Normalized tile %d probability: %.10f", i, pa0aiNormed[i]+pb0biNormed[maxFFluxPhase-i]);
     }
     Print::printf(Print::INFO, "Pb: %.10f", Pb);

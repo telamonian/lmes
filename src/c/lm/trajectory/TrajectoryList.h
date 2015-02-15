@@ -46,6 +46,7 @@
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
+#include "lm/message/Communicator.h"
 #include "lm/message/Message.pb.h"
 #include "lm/trajectory/Trajectory.h"
 #include "lm/Types.h"
@@ -63,6 +64,9 @@ public:
     TrajectoryList(lm::input::Input& input);
     virtual ~TrajectoryList();
     virtual void init()=0;
+
+    //initializer
+    virtual void setCommunicator(lm::message::Communicator& newCom);
 
     // getter
     virtual lm::trajectory::Trajectory* getTrajectory(uint64_t trajectoryID);
@@ -97,15 +101,13 @@ public:
     virtual void printTrajectoryStatistics();
 
 protected:
-//    const lm::io::ReactionModel& reactionModel;
-//    const lm::io::DiffusionModel& diffusionModel;
-//    map<string,string>& simulationParameters;
+    lm::message::Communicator* communicator;
     lm::input::Input& input;
+    TrajectoryMap trajectories;
     uint64_t trajectoryCount;
     uint64_t workUnitCount;
     // this template message is used when initializing new Trajectory instances
     //lm::message::Message trajectoryTemplateMsg;
-    TrajectoryMap trajectories;
 };
 
 }

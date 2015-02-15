@@ -45,22 +45,22 @@ simParams = [SimulationParameter(key='crossingsPerPhase',val=crossingsPerPhase),
 tilings = []
 tiling = Tiling(id=19,
                 orderParameterID=0,
-                Type=0,
+                type=0,
                 edges=np.linspace(-25,25,13))
 tilings.append(tiling)
 tiling = Tiling(id=199,
                 orderParameterID=0,
-                Type=0,
+                type=0,
                 edges=np.linspace(-30,30,16))
 tilings.append(tiling)
 tiling = Tiling(id=7,
                 orderParameterID=0,
-                Type=0,
+                type=0,
                 edges=np.linspace(-25,25,11))
 tilings.append(tiling)
 tiling = Tiling(id=27194,
                 orderParameterID=0,
-                Type=0,
+                type=0,
                 edges=np.linspace(-20,20,5))
 tilings.append(tiling)
 ffluxInput.AddTilings(tilings=tilings, currentTilingID=199)

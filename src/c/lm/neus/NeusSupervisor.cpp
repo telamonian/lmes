@@ -105,7 +105,7 @@ void NeusSupervisor::startSimulation()
     Print::printf(Print::INFO, "Forward flux supervisor starting simulation.");
 
     // Create the new trajectory list.
-    trajectories = new NeusTrajectoryList(slots.getNumberSlots(),*input);
+    trajectoryList = new NeusTrajectoryList(slots.getNumberSlots(),*input);
 
     // Call the base class method.
     SimulationSupervisor::startSimulation();

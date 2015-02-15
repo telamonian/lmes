@@ -94,7 +94,7 @@ void FFluxSupervisor::finishSimulation()
 	ffluxOutput = msg->mutable_fflux_output();
 
 	// Assign the fflux output data
-	*ffluxOutput = static_cast<lm::fflux::FFluxTrajectoryList*>(trajectories)->ffluxOutput;
+	*ffluxOutput = static_cast<lm::fflux::FFluxTrajectoryList*>(trajectoryList)->ffluxOutput;
 
 	// Send the message
 	communicator.sendMessage(realOutputWriterProcess, realOutputWriterThread, &msgp);
@@ -124,7 +124,7 @@ void FFluxSupervisor::startSimulation()
     Print::printf(Print::INFO, "Forward flux supervisor starting simulation.");
 
     // Create the new trajectory list.
-    trajectories = new FFluxTrajectoryList(slots.getNumberSlots(),*input);
+    trajectoryList = new FFluxTrajectoryList(slots.getNumberSlots(),*input);
 
     // Call the base class method.
     SimulationSupervisor::startSimulation();

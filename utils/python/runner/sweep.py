@@ -28,7 +28,7 @@ class SweepTup(object):
             yield self[i]
     
 class Sweep(object):
-    def __init__(self, cpu_count, host, lm_bin, lm_file_path, rootPath, autosetSamplingRate=False, autosetSamplingTime=False, diagonal=False, inputTupsDefault=None, lmArgsGpusPerReplicate=0, replicateRange=(1,10), sweepTupX=None, sweepTupY=None, type='shell', user_id=None):
+    def __init__(self, cpu_count, host, lm_bin, lm_file_path, rootPath, autosetSamplingRate=False, autosetSamplingTime=False, diagonal=False, inputTupsDefault=None, lmArgsGpusPerReplicate=0, replicateRange=(1,10), sweepTupX=None, sweepTupY=None, type='shell', useForwardFlux=False, user_id=None):
         self.autosetSamplingRate = autosetSamplingRate
         self.autosetSamplingTime = autosetSamplingTime
         self.cpu_count = cpu_count
@@ -42,10 +42,12 @@ class Sweep(object):
         self.rootPath = rootPath
         self.user_id = user_id
         
-        self.lm_args_dict = {'cpus_per_replicate':  ('-cr',     '1'),
-                             'file_format':         ('-ff',     'hdf5'),
-                             'gpus_per_replicate':  ('-gr',     lmArgsGpusPerReplicate),
-                             'solver_class':        ('-sl',     'lm::cme::GillespieDSolver')}
+        self.lm_args_dict = {'cpus_per_replicate':           ('-cr',     '1'),
+                             'file_format':                  ('-ff',     'hdf5'),
+                             'gpus_per_replicate':           ('-gr',     lmArgsGpusPerReplicate),
+                             'solver_class':                 ('-sl',     'lm::cme::GillespieDSolver')}
+        if useForwardFlux:
+            self.lm_args_dict['use_forward_flux_sampling'] = ('-fflux',  '')
         
         self.inputTupsDefault = inputTupsDefault
         self.sweepTupX = sweepTupX

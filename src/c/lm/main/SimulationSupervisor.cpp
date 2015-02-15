@@ -69,7 +69,7 @@ namespace lm {
 namespace main {
 
 SimulationSupervisor::SimulationSupervisor()
-    :simulationRunning(true),performingCheckpoint(false),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),hasOutputWriterStarted(false),outputWriterProcess(-1),outputWriterThread(-1),hasCheckpointSignalerStarted(false),solverClassName(""),useCPUAffinity(false),input(NULL),hasReactionModel(false),hasDiffusionModel(false),hasOrderParameters(false),hasTilings(false),tilings(),trajectories(NULL),slots(&communicator),haveAllWorkUnitRunnersStarted(false),workUnitCount(0)
+    :simulationRunning(true),performingCheckpoint(false),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),hasOutputWriterStarted(false),outputWriterProcess(-1),outputWriterThread(-1),hasCheckpointSignalerStarted(false),solverClassName(""),useCPUAffinity(false),input(NULL),hasReactionModel(false),hasDiffusionModel(false),hasOrderParameters(false),hasTilings(false),tilings(),trajectoryList(NULL),slots(&communicator),haveAllWorkUnitRunnersStarted(false),workUnitCount(0)
 {
     resetPerformanceStatistics();
 }
@@ -77,7 +77,7 @@ SimulationSupervisor::SimulationSupervisor()
 SimulationSupervisor::~SimulationSupervisor()
 {
     if (input != NULL) delete input; input = NULL;
-    if (trajectories != NULL) delete trajectories; trajectories = NULL; // since Supervisors call new to allocate their TrajectoryLists, this needs to be here
+    if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL; // since Supervisors call new to allocate their TrajectoryLists, this needs to be here
 }
 
 void SimulationSupervisor::wake() throw(lm::thread::PthreadException)
@@ -153,8 +153,11 @@ void SimulationSupervisor::init()
         tilings.init(tilingsBuf);
     }
 
-//    // initialize input struct (used for setting up trajectories)
+    // initialize input struct (used for setting up trajectories)
     input = new lm::input::Input(hasDiffusionModel,hasOrderParameters,hasReactionModel,hasTilings,diffusionModelBuf,orderParametersBuf,ops,reactionModelBuf,simulationParametersBuf,simulationParametersMap,tilingsBuf,tilings);
+
+    // hand a pointer for the commincator to TrajectoryList
+    trajectoryList->setCommunicator(communicator);
 
     // close the file
     delete file;
@@ -512,7 +515,7 @@ bool SimulationSupervisor::assignWork()
         if (!slots.hasFreeSlots()) return false;
 
 		// Get the next trajectory to run, if there is one.
-		lm::message::Message * nextWorkUnitMsg = trajectories->getNextWorkUnitMsg();
+		lm::message::Message * nextWorkUnitMsg = trajectoryList->getNextWorkUnitMsg();
         if (nextWorkUnitMsg != NULL)
         {
             // Set the source process/thread
@@ -528,7 +531,7 @@ bool SimulationSupervisor::assignWork()
         }
         else
 		{
-			if (trajectories->isFinished())
+			if (trajectoryList->isFinished())
 			{
                 return true;	// When there's no more trajectories to run and it's time for the program to shut down, assignWork should return from here
 			}
@@ -556,10 +559,10 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
     stats_workUnitTime += msg.run_time();
 
     // If the trajectory associated with the finished work unit exists...
-    if (trajectories->exists(msg.final_state().trajectory_id()))
+    if (trajectoryList->exists(msg.final_state().trajectory_id()))
     {
 		// ...update the trajectory based on the results of the work unit
-		trajectories->workUnitFinished(msg);
+		trajectoryList->workUnitFinished(msg);
     }
     // Otherwise, assume that the associated trajectory has already been deleted and so skip reading in this result
     // The exists() check ensures that hangover results from older fflux phases aren't recorded as belonging to a newer phase
@@ -571,7 +574,7 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
     if (!performingCheckpoint)
     {
         // Fill the newly freed slot with a work unit. If there are more trajectories than slots, this is guaranteed to use the slot we just freed. Otherwise it will be the "coldest" (longest unoccupied) slot
-        if (assignWork() && (!ffluxFlag || trajectories->getSize()==0))	// The finishing condition for fflux simulations is a little different from normal
+        if (assignWork() && (!ffluxFlag || trajectoryList->getSize()==0))	// The finishing condition for fflux simulations is a little different from normal
         {
             Print::printf(Print::INFO, "Simulation finished.");
             finishSimulation();

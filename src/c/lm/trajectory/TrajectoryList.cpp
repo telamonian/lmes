@@ -58,13 +58,8 @@ using std::string;
 namespace lm {
 namespace trajectory {
 
-//TrajectoryList::TrajectoryList(const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters)
-//:reactionModel(reactionModel),diffusionModel(diffusionModel),simulationParameters(simulationParameters),trajectoryCount(0),workUnitCount(0)
-//{
-//}
-
 TrajectoryList::TrajectoryList(lm::input::Input& input)
-:input(input),trajectoryCount(0),workUnitCount(0)
+:communicator(NULL),input(input),trajectoryCount(0),workUnitCount(0)
 {
 }
 
@@ -88,6 +83,12 @@ void TrajectoryList::deleteTrajectory(uint64_t trajectoryID)
     TrajectoryMap::iterator it(trajectories.find(trajectoryID));
     delete it->second;
     trajectories.erase(it);
+}
+
+// initializer(s)
+void TrajectoryList::setCommunicator(lm::message::Communicator& newCom)
+{
+    communicator = &newCom;
 }
 
 lm::trajectory::Trajectory* TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)

@@ -13,7 +13,12 @@ InitialSpeciesCountsBackward = namedtuple('InitialSpeciesCountsBackward',['speci
 OrderParameter = namedtuple('OrderParameter', ['id','type','speciesIDs','speciesCoefficients'])
 ReactionRateConstant = namedtuple('ReactionRateConstant', ['reactionID','rateConstant'])
 SimulationParameter = namedtuple('SimulationParameter', ['key', 'val'])
-Tiling = namedtuple('Tiling', ['id','orderParameterID','Type','edges'])
+Tiling = namedtuple('Tiling', ['id','orderParameterID','type','edges'])
+
+# namedtuples with default values
+class Tiling(namedtuple('Tiling', ['id','orderParameterID','type','edges','isCurrentTiling'])):
+    def __new__(cls, id,orderParameterID,type,edges,isCurrentTiling=False):
+        return super(Tiling, cls).__new__(cls, id,orderParameterID,type,edges,isCurrentTiling)
 
 # list of input tuple Types
 inputTypes = [Dependency,DependencyMatrix,InitialSpeciesCounts,InitialSpeciesCountsBackward,OrderParameter,ReactionRateConstant,SimulationParameter,Tiling]
@@ -165,9 +170,12 @@ class Input(object):
         tilingGroup = self.f.create_group("Tilings/%07d" % tiling.id)
         tilingGroup.attrs['ID'] = tiling.id
         tilingGroup.attrs['OrderParameterID'] = tiling.orderParameterID
-        tilingGroup.attrs['Type'] = tiling.Type
+        tilingGroup.attrs['Type'] = tiling.type
         edges = tilingGroup.create_dataset("Edges", (len(tiling.edges),), dtype=np.dtype('d'))
         edges[...] = tiling.edges
+        
+        if tiling.isCurrentTiling:
+            self.f['Tilings'].attrs['CurrentTilingID'] = tiling.id
             
     def SetTilings(self, tilings, currentTilingID=None):
         '''
@@ -200,7 +208,7 @@ if __name__=="__main__":
                  SimulationParameter(key='writeInterval',val='1e8')]
     tiling = Tiling(id=0,
                     orderParameterID=0,
-                    Type=0,
+                    type=0,
                     edges=np.linspace(-25,25,13))
     input = Input('biphasic_switch.lm')
     input.AddTilings(tilings=[tiling])
