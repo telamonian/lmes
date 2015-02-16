@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import collections
 from collections import namedtuple
 import h5py
 import numpy as np
@@ -134,8 +135,13 @@ class Input(object):
             self.SetOrderParameter(op)
     
     def SetReactionRateConstant(self, rRate):
-        self.f['/Model/Reaction/ReactionRateConstants'][rRate.reactionID,0] = rRate.rateConstant
-    
+        if isinstance(rRate.rateConstant, collections.Iterable):
+            for index,rc in rRate.rateConstant:
+                # in this case, rRate.rateConstant should be a list of 2-tuples in the form of ((reactionConstantIndex, reactionConstant), ...)
+                self.f['/Model/Reaction/ReactionRateConstants'][rRate.reactionID,index] = rc
+        else:
+            self.f['/Model/Reaction/ReactionRateConstants'][rRate.reactionID,0] = rRate.rateConstant
+
     def SetReactionRateConstants(self, rRates):
         '''
         sets at least some of the reaction rate constants in the associated table in the Reaction Model
@@ -192,7 +198,11 @@ class Input(object):
                 self.tilingsGroup.attrs['CurrentTilingID'] = int(self.tilingsGroup.keys()[0])
         else:
             self.tilingsGroup.attrs['CurrentTilingID'] = currentTilingID
-    
+
+class Output(object):
+    def __init__(self, fPath, mode='r'):
+        self.fPath = fPath
+
 if __name__=="__main__":
     iSCs = InitialSpeciesCounts(speciesCounts=[4,16,1,0,0,0,0])
     iSCBs = InitialSpeciesCountsBackward(speciesCounts=[0,0,0,4,16,1,0])

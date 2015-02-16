@@ -35,3 +35,7 @@ bak_*
 /test_case/*
 !/test_case/clean
 !/test_case/clean/biphasic_switch*.lm
+
+# ipython notebook stuff
+*.ipynb
+.ipynb

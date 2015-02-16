@@ -154,7 +154,7 @@ class JobLM(Job):
         sets sampling rate on the basis of the slowest simple reaction rate
         '''
         reactionRateConstants = self.lmF.GetReactionRateConstants()
-        simParam = lmFile.SimulationParameter(key='writeInterval', val=str(int(1e3))) #val=float(1)/np.min(reactionRateConstants[:,0]))
+        simParam = lmFile.SimulationParameter(key='writeInterval', val=str(int(1e1))) #val=float(1)/np.min(reactionRateConstants[:,0]))
         self.lmF.SetSimulationParameter(simParam=simParam)
         self.lmF.Flush()
     
@@ -164,7 +164,7 @@ class JobLM(Job):
         '''
 #         reactionRateConstants = self.lmF.GetReactionRateConstants()
 #         totalRunTime = float(1)/np.min(reactionRateConstants[:,0]) * 1e7
-        totalRunTime = '1e5'
+        totalRunTime = '1e6'
         simParam = lmFile.SimulationParameter(key='maxTime', val=totalRunTime)
         self.lmF.SetSimulationParameter(simParam=simParam)
         self.lmF.Flush()

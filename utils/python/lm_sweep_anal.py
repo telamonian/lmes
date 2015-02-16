@@ -206,7 +206,7 @@ class Sim(object):
     
     def Rcoords(self):
         pass
-
+        
 class Sims(object):
     child = Sim
 
@@ -277,9 +277,8 @@ class Sims(object):
             self.f = h5py.File(self.fPath)
             simdata = self.f['/Simulations'][key]
             sim = self.__class__.child(simdata, **self.sweepParams)
-            self.InitFPT()
-            self.InitOParamHist
-            self.
+            if self.type=='replicateFPT':
+                self.GetFPT()
             elif self.type=='replicateProbability':
                 self.RcoordsHist(sim)
                 self.PdfHist()
@@ -1018,7 +1017,8 @@ class SweepBiphasics(Biphasics):
         fig,axesArr = plt.subplots(*shape)#, sharex=True, sharey=True)
         fig.set_size_inches(shape[1]*figDiagonalLength*2**(-1/float(2)), shape[0]*figDiagonalLength*2**(-1/float(2)))
         for i,sims in enumerate(self.simsSweep):
-            line = sims.Hist(fontSize=fontSize, fontSizeTicks=fontSizeTicks, hideLastTick=hideLastTick, logScaled=logScaled, normed=normed, saveFig=saveFig)
+            line = sims.Hist(axes=axesArr.ravel()[i], fig=fig, fontSize=fontSize, fontSizeTicks=fontSizeTicks, 
+                             hideLastTick=hideLastTick, logScaled=logScaled, normed=normed, saveFig=saveFig)
             self.linesForLegend.append(line)
             print(sims.sweepParams.keys())
             print(sims.sweepParams.values())
@@ -1031,7 +1031,7 @@ class SweepBiphasics(Biphasics):
         # delete the unused axes
         i+=1
         while i < axesArr.size:
-            sims.Hist2D(axes=axesArr.ravel()[i], fig=fig, fontSize=fontSize, saveFig=False)
+#             sims.Hist2D(axes=axesArr.ravel()[i], fig=fig, fontSize=fontSize, saveFig=False)
             axesArr.ravel()[i].axis('off')
             fig.delaxes(axesArr.ravel()[i])
             i+=1
