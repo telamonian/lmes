@@ -202,6 +202,17 @@ class Input(object):
 class Output(object):
     def __init__(self, fPath, mode='r'):
         self.fPath = fPath
+        
+    def GetTilings(self):
+        self.tilings = Tilings()
+        with h5py.File(self.fPath,'r') as simF:
+            try:
+                self.tilingsBuf.current_tiling_id = simF['Tilings'].attrs['currentTilingId']
+            except KeyError:
+                pass
+            for key,val in simF['Tilings'].items():
+                tilingBuf = self.tilingsBuf.tilings.add()
+                self.tilingMap[val.attrs['ID']] = Tiling(tilingBuf=tilingBuf, hdf5Tiling=val)
 
 if __name__=="__main__":
     iSCs = InitialSpeciesCounts(speciesCounts=[4,16,1,0,0,0,0])

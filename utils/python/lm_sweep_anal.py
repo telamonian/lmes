@@ -32,6 +32,7 @@ import pandas as pd
 #booooga boooga booga
 
 cm.hot.set_bad(cm.hot(0))
+cm.jet.set_bad(cm.jet(0))
 # stuff to make the perceptual color maps
 pCMap = {}
 rPCMap = {}
@@ -320,16 +321,24 @@ class Sims(object):
             if type=='replicateFPT':
                 pass
             elif type=='replicateProbability':
-                self.histogram = []
-                self.xBinCoordinates = []
-                self.yBinCoordinates = []
+                self.histogram = None
+                self.xBinCoordinates = None
+                self.yBinCoordinates = None
+                self.histograms = []
+                self.xBinCoordinatess = []
+                self.yBinCoordinatess = []
                 for key,val in interF["/Simulations/"].items():
-                    self.histogram = np.zeros(val['Histogram'].shape)
-                    val['Histogram'].read_direct(self.histogram)
-                    self.xBinCoordinates = np.zeros(val['XBinCoordinates'].shape)
-                    val['XBinCoordinates'].read_direct(self.xBinCoordinates)
-                    self.yBinCoordinates = np.zeros(val['YBinCoordinates'].shape)
-                    val['YBinCoordinates'].read_direct(self.yBinCoordinates)
+                    self.histograms.append(np.zeros(val['Histogram'].shape))
+                    val['Histogram'].read_direct(self.histograms[-1])
+                    self.xBinCoordinatess.append(np.zeros(val['XBinCoordinates'].shape))
+                    val['XBinCoordinates'].read_direct(self.xBinCoordinatess[-1])
+                    self.yBinCoordinatess.append(np.zeros(val['YBinCoordinates'].shape))
+                    val['YBinCoordinates'].read_direct(self.yBinCoordinatess[-1])
+                self.histogram = self.histograms[0]
+                for i in range(1,len(self.histograms)):
+                    self.histogram+=self.histograms[i]
+                self.xBinCoordinates = self.xBinCoordinatess[0]
+                self.yBinCoordinates = self.yBinCoordinatess[0]
                 self.PdfHist()
             elif type=='fflux':
                 pass
@@ -411,7 +420,6 @@ class Sims(object):
         for i,(key,val) in enumerate(sorted(histogram1D.items())):
             self.histogram1D[i,0] = key
             self.histogram1D[i,1] = val
-
     
     def FFluxProb(self, axes=None, fig=None, s=100):
         if axes==None:
@@ -575,7 +583,7 @@ class Sims(object):
         anim.save('hist_umbrella_1st_1_animation.gif' ,writer='imagemagick', fps=frames/float(playbacktime));
         print('done')
     
-    def Hist2D(self, axes=None, fig=None, fontSize=20, fontSizeTicks=14, fontSizeTitle=14, hideLastTick=False, norm=None, plotCbar=False, saveFig=True):
+    def Hist2D(self, axes=None, fig=None, cmap=cm.hot_r, fontSize=20, fontSizeTicks=14, fontSizeTitle=14, hideLastTick=False, norm=None, plotCbar=False, saveFig=True):
         if axes==None:
             axes = plt.axes()
         if fig==None:
@@ -583,7 +591,7 @@ class Sims(object):
             fig.set_size_inches(24,24)
         self.normedHistogram = np.copy(self.histogram)
         self.normedHistogram = self.normedHistogram/(np.max(self.histogram))
-        im = axes.imshow(self.normedHistogram, aspect='equal', extent=(0,100,0,100), norm=norm, origin='lower', cmap=cm.hot_r)
+        im = axes.imshow(self.normedHistogram[0:66,0:66], aspect='equal', cmap=cmap, extent=(0,66,0,66), interpolation='none', norm=norm, origin='lower')
         if plotCbar:
             l_f = LogFormatter(10, labelOnlyBase=False)
             cbar = fig.colorbar(im, ticks=np.logspace(-7,-1,6), format=l_f)
@@ -1059,7 +1067,7 @@ class SweepBiphasics(Biphasics):
         
         return axesArr, fig
         
-    def Hist2D(self, figDiagonalLength=6, fontSize=20, fontSizeTicks=14, fontSizeTitle=14, hideLastTick=False, hspace=.1, norm=None, plotCbarAtEnd=False, saveFig=True, shape=None, wspace = .1):
+    def Hist2D(self, cmap=cm.hot_r, figDiagonalLength=6, fontSize=20, fontSizeTicks=14, fontSizeTitle=14, hideLastTick=False, hspace=.1, norm=None, plotCbarAtEnd=False, saveFig=True, shape=None, wspace = .1):
         plotCbarAtEnd = True
         print(plotCbarAtEnd)
         if shape==None:
@@ -1071,7 +1079,7 @@ class SweepBiphasics(Biphasics):
                 plotCbar = True
             else:
                 plotCbar = False
-            sims.Hist2D(axes=axesArr.ravel()[i], fig=fig, fontSize=fontSize, fontSizeTicks=fontSizeTicks, fontSizeTitle=fontSizeTitle, 
+            sims.Hist2D(axes=axesArr.ravel()[i], fig=fig, cmap=cmap, fontSize=fontSize, fontSizeTicks=fontSizeTicks, fontSizeTitle=fontSizeTitle, 
                         hideLastTick=hideLastTick, norm=norm, plotCbar=plotCbar, saveFig=saveFig)
             print(sims.sweepParams.keys())
             print(sims.sweepParams.values())
