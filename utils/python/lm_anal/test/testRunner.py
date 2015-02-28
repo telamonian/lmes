@@ -1,3 +1,4 @@
+from oparams.oparams import OParamTestCase
 from tilings.tilings import TilingsTestCase
 
 import unittest

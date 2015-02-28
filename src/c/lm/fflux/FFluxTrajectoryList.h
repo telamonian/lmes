@@ -49,6 +49,7 @@
 #include "lm/io/FFluxOutput.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
+#include "lm/message/Communicator.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/trajectory/TrajectoryList.h"
@@ -75,7 +76,7 @@ public:
     enum Direction {FORWARD, BACKWARD};
 
 //    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters, lm::tiling::Tilings& tilings);
-    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,lm::input::Input& input);
+    FFluxTrajectoryList(lm::message::Communicator& communicator, uint64_t simultaneousTrajectoryCount,lm::input::Input& input);
     virtual ~FFluxTrajectoryList();
     virtual void init();
     virtual void initFFluxOutput();
@@ -89,13 +90,13 @@ public:
     // getters
     virtual CrossingVector getCrossings(long long ffluxPhase);
     virtual uint getCrossingsPerPhase();
+    virtual lm::io::FFluxOutput* getFFluxOutput();
+    virtual lm::io::FFluxOutput* getFFluxOutputStreaming();
     virtual long long getFFluxPhase();
     virtual double getMaxPhaseZeroTime();
     // Returns a randomly chosen crossing event (in the form of a TrajectoryState) collected durring forward flux phase ffluxPhase
     virtual lm::io::TrajectoryState* getRandomCrossing(long long ffluxPhase);
     virtual CrossingsMap getSavedCrossings(lm::fflux::FFluxTrajectoryList::Direction dir);
-
-    lm::io::FFluxOutput ffluxOutput;
 
 protected:
     typedef std::map<lm::fflux::FFluxTrajectoryList::Direction, CrossingsMap> SavedCrossings;
@@ -145,6 +146,10 @@ protected:
     // user defined parameters that determine how the forward flux sampling is carried out
     unsigned crossingsPerPhase; //the count of crossing events that should be collected for every fflux sampling phase
     double maxPhaseZeroTime;
+
+    // Messages used to send the large-ish FFluxOutput at the end of the simulation and to stream fflux TrajectoryOutput messages as the simulation runs
+    lm::message::Message msg;
+    lm::message::Message msgStreaming;
 };
 
 }

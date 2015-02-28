@@ -72,7 +72,7 @@ typedef map<lm::fflux::FFluxTrajectoryList::Direction, CrossingsMap> CrossingsMa
 typedef map<lm::fflux::FFluxTrajectoryList::Direction, DwellTimeMap> DwellTimeMapMap;
 typedef map<lm::fflux::FFluxTrajectoryList::Direction, FinishedTrajectoriesCountMap> FinishedTrajectoriesCountMapMap;
 
-FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,lm::input::Input& input)
+FFluxTrajectoryList::FFluxTrajectoryList(lm::message::Communicator& communicator, uint64_t simultaneousTrajectoryCount,lm::input::Input& input)
 :TrajectoryList(input),
  crossingsPerPhase(atof(input.simulationParametersMap["crossingsPerPhase"].c_str())),
  direction(FORWARD),
@@ -84,6 +84,7 @@ FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,lm
  simultaneousTrajectoryCount(simultaneousTrajectoryCount),
  xorShift(0,0)  //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
+    setCommunicator(communicator);
     init();
 }
 
@@ -127,24 +128,37 @@ void FFluxTrajectoryList::initFFluxOutput()
     lm::io::FFluxOutput::BasinOutput* basinOutput;
     lm::io::FFluxOutput::FinalOutput* finalOutput;
 
-	ffluxOutput.set_tiling_id(input.tilings.getCurrentTilingID());
-	ffluxOutput.set_number_tiles(maxFFluxPhase - 1);
-	ffluxOutput.set_number_species(input.reactionModelBuf.number_species());
+    // initialize the FFluxOutput part of the non-streaming/streaming member Messages
+    lm::message::ProcessWorkUnitOutput* msgPWUO = msg.add_process_work_unit_output();
+    msgPWUO->set_work_unit_id(999999999999998);
+
+    lm::message::ProcessWorkUnitOutput* msgStreamingPWUO = msgStreaming.add_process_work_unit_output();
+    msgStreamingPWUO->set_work_unit_id(999999999999999);
+
+	getFFluxOutput()->set_tiling_id(input.tilings.getCurrentTilingID());
+	getFFluxOutput()->set_number_tiles(maxFFluxPhase - 1);
+	getFFluxOutput()->set_number_species(input.reactionModelBuf.number_species());
+
+    getFFluxOutputStreaming()->set_tiling_id(input.tilings.getCurrentTilingID());
+    getFFluxOutputStreaming()->set_number_tiles(maxFFluxPhase - 1);
+    getFFluxOutputStreaming()->set_number_species(input.reactionModelBuf.number_species());
 
 	// setup 1 final_output entry
-	finalOutput = ffluxOutput.mutable_final_output();
+	finalOutput = getFFluxOutput()->mutable_final_output();
 	for (int direc=0; direc!=2; direc++)
 	{
 	    // create 2 basin_outputs entries, one for each direction
-	    basinOutput = ffluxOutput.add_basin_outputs();
+	    basinOutput = getFFluxOutput()->add_basin_outputs();
         basinOutput->set_direction(static_cast<lm::io::FFluxOutput::Direction>(direc));
-	    for (int lcycle=0; lcycle!=2; lcycle++)
-	    {
+//	    for (int lcycle=0; lcycle!=2; lcycle++)
+//	    {
+	        /////// FIXME //////////
+
 	        // create 4 trajectory_outputs entries, one for each combination of direction and lifecycle
-            trajectoryOutput = ffluxOutput.add_trajectory_outputs();
-            trajectoryOutput->set_direction(static_cast<lm::io::FFluxOutput::Direction>(direc));
-            trajectoryOutput->set_lifecycle(static_cast<lm::io::FFluxOutput::Lifecycle>(lcycle));
-	    }
+//            trajectoryOutput = getFFluxOutputStreaming()->add_trajectory_outputs();
+//            trajectoryOutput->set_direction(static_cast<lm::io::FFluxOutput::Direction>(direc));
+//            trajectoryOutput->set_lifecycle(static_cast<lm::io::FFluxOutput::Lifecycle>(lcycle));
+//	    }
 	}
 }
 
@@ -307,6 +321,16 @@ uint FFluxTrajectoryList::getCrossingsPerPhase()
     return crossingsPerPhase;
 }
 
+lm::io::FFluxOutput* FFluxTrajectoryList::getFFluxOutput()
+{
+    return msg.mutable_process_work_unit_output(0)->mutable_fflux_output();
+}
+
+lm::io::FFluxOutput* FFluxTrajectoryList::getFFluxOutputStreaming()
+{
+    return msgStreaming.mutable_process_work_unit_output(0)->mutable_fflux_output();
+}
+
 long long FFluxTrajectoryList::getFFluxPhase()
 {
     return ffluxPhase;
@@ -401,15 +425,15 @@ void FFluxTrajectoryList::saveFinishedTrajectoriesCounts()
 void FFluxTrajectoryList::ffluxOutputAddBasin(CrossingsMap& crossings, FinishedTrajectoriesCountMap& finishedTrajectoriesCounts)
 {
     // get a pointer to the germane BasinOutput buf
-    lm::io::FFluxOutput::BasinOutput* basOut = ffluxOutput.mutable_basin_outputs(direction);
+    lm::io::FFluxOutput::BasinOutput* basOut = getFFluxOutput()->mutable_basin_outputs(direction);
 
     // load the data into the BasinOutput buf pointer
     basOut->set_flux_out_of_tile_zero((double)crossings[0].size()/(maxPhaseZeroTime*simultaneousTrajectoryCount));
 
     basOut->clear_probability_i_to_i_plus_one();
     lm::io::TilingHist* probabilityIToIPlusOne = basOut->mutable_probability_i_to_i_plus_one();
-    probabilityIToIPlusOne->set_number_tiles(ffluxOutput.number_tiles());
-    probabilityIToIPlusOne->set_tiling_id(ffluxOutput.tiling_id());
+    probabilityIToIPlusOne->set_number_tiles(getFFluxOutput()->number_tiles());
+    probabilityIToIPlusOne->set_tiling_id(getFFluxOutput()->tiling_id());
 
     probabilityIToIPlusOne->add_tile_indices(0);
     probabilityIToIPlusOne->add_tile_vals(0.0);
@@ -423,8 +447,8 @@ void FFluxTrajectoryList::ffluxOutputAddBasin(CrossingsMap& crossings, FinishedT
 
     basOut->clear_probability_one_to_i_plus_one();
     lm::io::TilingHist* probabilityOneToIPlusOne = basOut->mutable_probability_one_to_i_plus_one();
-    probabilityOneToIPlusOne->set_number_tiles(ffluxOutput.number_tiles());
-    probabilityOneToIPlusOne->set_tiling_id(ffluxOutput.tiling_id());
+    probabilityOneToIPlusOne->set_number_tiles(getFFluxOutput()->number_tiles());
+    probabilityOneToIPlusOne->set_tiling_id(getFFluxOutput()->tiling_id());
 
     probabilityOneToIPlusOne->add_tile_indices(0);
     probabilityOneToIPlusOne->add_tile_vals(0.0);
@@ -448,19 +472,31 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(FFluxTrajectory* traj, lm::io
 	// get a number from 0-3 based on the current direction of the fflux simulation and the lifecycle of the trajectory being added
 	uint outIndex = (direction!=FORWARD)<<1 | lifecycle!=lm::io::FFluxOutput::INITIAL;
 
-	// get a pointer to the germane TrajectoryOutput buf
-	lm::io::FFluxOutput::TrajectoryOutput* trajOut = ffluxOutput.mutable_trajectory_outputs(outIndex);
+    // Initialize the fflux output data
+	getFFluxOutputStreaming()->Clear();
 
-	// load the data into the TrajectoryOutput buf pointer
-	trajOut->add_count(traj->getOPVal());
-	trajOut->add_edge_id(ffluxPhase);
-	traj->getLastSpeciesCounts(trajOut);
-	trajOut->add_time(traj->getSimTime());
-	trajOut->add_trajectory_id(traj->getID());
-	if (trajOut->time_size() > 100)
-	{
+    getFFluxOutputStreaming()->set_tiling_id(input.tilings.getCurrentTilingID());
+    getFFluxOutputStreaming()->set_number_tiles(maxFFluxPhase - 1);
+    getFFluxOutputStreaming()->set_number_species(input.reactionModelBuf.number_species());
 
-	}
+    // get a pointer to the germane TrajectoryOutput buf
+    lm::io::FFluxOutput::TrajectoryOutput* trajOut = getFFluxOutputStreaming()->add_trajectory_outputs();
+    trajOut->set_direction(static_cast<lm::io::FFluxOutput::Direction>(direction));
+    trajOut->set_lifecycle(static_cast<lm::io::FFluxOutput::Lifecycle>(lifecycle));
+
+    // load the data into the TrajectoryOutput buf pointer
+    trajOut->add_count(traj->getOPVal());
+    trajOut->add_edge_id(ffluxPhase);
+    traj->getLastSpeciesCounts(trajOut);
+    trajOut->add_time(traj->getSimTime());
+    trajOut->add_trajectory_id(traj->getID());
+//    if (trajOut->time_size() > 100)
+//    {
+//
+//    }
+
+    // Send the message
+    communicator->sendMessage(0,3, &msgStreaming);    //realOutputWriterProcess, realOutputWriterThread, &msgStreaming);
 }
 
 void FFluxTrajectoryList::ffluxOutputPrintBasin(CrossingsMap& crossings, FinishedTrajectoriesCountMap& finishedTrajectoriesCounts)
@@ -532,7 +568,7 @@ void FFluxTrajectoryList::ffluxOutputSetFinal_DinnerMethod(SavedCrossings& saved
     // And then modified by me to be in terms of the tiles rather than the edges in between them
 
     // get a pointer to the FinalOutput buf
-    lm::io::FFluxOutput::FinalOutput* finalOut = ffluxOutput.mutable_final_output();
+    lm::io::FFluxOutput::FinalOutput* finalOut = getFFluxOutput()->mutable_final_output();
 
     // some of the basin-associated data can't be calculated until both directions of the simulation, FORWARD and BACKWARD, are complete
     // so we calculate that data here rather than in ffluxOutputAddBasin and then load it into the BasinOutput bufs
@@ -541,8 +577,8 @@ void FFluxTrajectoryList::ffluxOutputSetFinal_DinnerMethod(SavedCrossings& saved
         // negate the current direction to get the opposite direction
         int oppositeDirection = !direction;
         // get pointers to the BasinOutputs corresponding to direction and oppositeDirection
-        lm::io::FFluxOutput::BasinOutput* basinOut = ffluxOutput.mutable_basin_outputs(direction);
-        lm::io::FFluxOutput::BasinOutput* oppositeBasinOut = ffluxOutput.mutable_basin_outputs(oppositeDirection);
+        lm::io::FFluxOutput::BasinOutput* basinOut = getFFluxOutput()->mutable_basin_outputs(direction);
+        lm::io::FFluxOutput::BasinOutput* oppositeBasinOut = getFFluxOutput()->mutable_basin_outputs(oppositeDirection);
 
         double thisBasinLastVisitedProbability = oppositeBasinOut->switching_rate_constant()/(basinOut->switching_rate_constant() + oppositeBasinOut->switching_rate_constant());
         basinOut->set_this_basin_last_visited_probability(thisBasinLastVisitedProbability);
@@ -551,8 +587,8 @@ void FFluxTrajectoryList::ffluxOutputSetFinal_DinnerMethod(SavedCrossings& saved
         double weight = 0;
         basinOut->clear_probability_i();
         lm::io::TilingHist* probabilityI = basinOut->mutable_probability_i();
-        probabilityI->set_number_tiles(ffluxOutput.number_tiles());
-        probabilityI->set_tiling_id(ffluxOutput.tiling_id());
+        probabilityI->set_number_tiles(getFFluxOutput()->number_tiles());
+        probabilityI->set_tiling_id(getFFluxOutput()->tiling_id());
 
         probabilityI->add_tile_indices(0);
         probabilityI->add_tile_vals(0.0);
@@ -582,8 +618,8 @@ void FFluxTrajectoryList::ffluxOutputSetFinal_DinnerMethod(SavedCrossings& saved
     }
 
     // set some BasinOuput buf pointers to correspond to the FORWARD and BACKWARD BasinOutputs
-    lm::io::FFluxOutput::BasinOutput* basinOut = ffluxOutput.mutable_basin_outputs(FORWARD);
-    lm::io::FFluxOutput::BasinOutput* oppositeBasinOut = ffluxOutput.mutable_basin_outputs(BACKWARD);
+    lm::io::FFluxOutput::BasinOutput* basinOut = getFFluxOutput()->mutable_basin_outputs(FORWARD);
+    lm::io::FFluxOutput::BasinOutput* oppositeBasinOut = getFFluxOutput()->mutable_basin_outputs(BACKWARD);
 
     finalOut->clear_probability_i();
     lm::io::TilingHist* probabilityI = finalOut->mutable_probability_i();

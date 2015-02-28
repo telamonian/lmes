@@ -553,14 +553,19 @@ void Hdf5File::setFFluxOutput(lm::io::FFluxOutput* ffluxOutput)
     // get handle to Tiling group
     HDF5_EXCEPTION_CALL(tilingGroup, H5Gopen(tilingsGroup, tilingSS.str().c_str(), H5P_DEFAULT));
 
-    // If the FFluxOutput group already exists, delete it
-    if (H5Lexists(tilingGroup, "FFluxOutput", H5P_DEFAULT))
-    {
-        HDF5_EXCEPTION_CHECK(H5Ldelete(tilingGroup, "FFluxOutput", H5P_DEFAULT));
-    }
+    // If the FFluxOutput group already exists, get the handle to it. Otherwise, create it
+    if ((ffluxOutputGroup = H5Gopen2(tilingGroup, "FFluxOutput", H5P_DEFAULT))>=0) {}
+    else {HDF5_EXCEPTION_CALL(ffluxOutputGroup, H5Gcreate2(tilingGroup, "FFluxOutput", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));}
 
-    // Create and get handle to FFluxOutput group
-    HDF5_EXCEPTION_CALL(ffluxOutputGroup, H5Gcreate2(tilingGroup, "FFluxOutput", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+
+//    // If the FFluxOutput group already exists, delete it
+//    if (H5Lexists(tilingGroup, "FFluxOutput", H5P_DEFAULT))
+//    {
+//        HDF5_EXCEPTION_CHECK(H5Ldelete(tilingGroup, "FFluxOutput", H5P_DEFAULT));
+//    }
+//
+//    // Create and get handle to FFluxOutput group
+//    HDF5_EXCEPTION_CALL(ffluxOutputGroup, H5Gcreate2(tilingGroup, "FFluxOutput", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
 
     // write the attributes for the FFluxOutput
     hid_t attr, scalarSpace;
@@ -569,17 +574,21 @@ void Hdf5File::setFFluxOutput(lm::io::FFluxOutput* ffluxOutput)
     HDF5_EXCEPTION_CALL(scalarSpace, H5Screate(H5S_SCALAR));
 
     int32_t number_species = ffluxOutput->number_species();
-    HDF5_EXCEPTION_CALL(attr, H5Acreate(ffluxOutputGroup, "NumberSpecies", H5T_STD_I32LE, scalarSpace, H5P_DEFAULT, H5P_DEFAULT));
+    // if the attr exists, get a handle to it, otherwise create it and still get the handle
+    if ((attr = H5Aopen(ffluxOutputGroup, "NumberSpecies", H5P_DEFAULT))>=0) {}
+    else {HDF5_EXCEPTION_CALL(attr, H5Acreate(ffluxOutputGroup, "NumberSpecies", H5T_STD_I32LE, scalarSpace, H5P_DEFAULT, H5P_DEFAULT));}
     HDF5_EXCEPTION_CHECK(H5Awrite(attr, H5T_STD_I32LE, &number_species));
     HDF5_EXCEPTION_CHECK(H5Aclose(attr));
 
     uint64_t number_tiles = ffluxOutput->number_tiles();
-    HDF5_EXCEPTION_CALL(attr, H5Acreate(ffluxOutputGroup, "NumberTiles", H5T_STD_U64LE, scalarSpace, H5P_DEFAULT, H5P_DEFAULT));
+    if ((attr = H5Aopen(ffluxOutputGroup, "NumberTiles", H5P_DEFAULT))>=0) {}
+    else {HDF5_EXCEPTION_CALL(attr, H5Acreate(ffluxOutputGroup, "NumberTiles", H5T_STD_U64LE, scalarSpace, H5P_DEFAULT, H5P_DEFAULT));}
     HDF5_EXCEPTION_CHECK(H5Awrite(attr, H5T_STD_U64LE, &number_tiles));
     HDF5_EXCEPTION_CHECK(H5Aclose(attr));
 
     uint32_t tiling_id = ffluxOutput->tiling_id();
-    HDF5_EXCEPTION_CALL(attr, H5Acreate(ffluxOutputGroup, "TilingID", H5T_STD_U32LE, scalarSpace, H5P_DEFAULT, H5P_DEFAULT));
+    if ((attr = H5Aopen(ffluxOutputGroup, "TilingID", H5P_DEFAULT))>0) {}
+    else {HDF5_EXCEPTION_CALL(attr, H5Acreate(ffluxOutputGroup, "TilingID", H5T_STD_U32LE, scalarSpace, H5P_DEFAULT, H5P_DEFAULT));}
     HDF5_EXCEPTION_CHECK(H5Awrite(attr, H5T_STD_U32LE, &tiling_id));
     HDF5_EXCEPTION_CHECK(H5Aclose(attr));
 
@@ -592,26 +601,58 @@ void Hdf5File::setFFluxOutput(lm::io::FFluxOutput* ffluxOutput)
     vector<string> directionStrings; directionStrings.push_back("FORWARD"); directionStrings.push_back("BACKWARD");
     vector<string> lifecycleStrings; lifecycleStrings.push_back("INITIAL"); lifecycleStrings.push_back("FINAL");
 
-    setFFluxFinalOutput(ffluxOutput, ffluxOutputGroup);
-    // loop through the FORWARD and BACKWARD enums
-    for (int i=0;i<2;i++)
+    if (ffluxOutput->has_final_output())
     {
-        // create a group corresponding to the direction (FORWARD or BACKWARD)
-        HDF5_EXCEPTION_CALL(directionGroup, H5Gcreate2(ffluxOutputGroup, directionStrings[i].c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
-        setFFluxBasinOutput(ffluxOutput, i, directionGroup);
+        setFFluxFinalOutput(ffluxOutput, ffluxOutputGroup);
+    }
 
-        // loop through the INITIAL and FINAL enums
-        for (int j=0;j<2;j++)
-        {
-            outIndex = i*2+j;
+    for (int i=0;i<ffluxOutput->basin_outputs_size();i++)
+    {
+        lm::io::FFluxOutput::BasinOutput* basinOut = ffluxOutput->mutable_basin_outputs(i);
+        // If the group corresponding to the basin direction already exists, get the handle to it. Otherwise, create it
+        if ((directionGroup = H5Gopen2(ffluxOutputGroup, directionStrings[basinOut->direction()].c_str(), H5P_DEFAULT))>=0) {}
+        else {HDF5_EXCEPTION_CALL(directionGroup, H5Gcreate2(ffluxOutputGroup, directionStrings[basinOut->direction()].c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));}
 
-            // create a group corresponding to the lifecycle (INITIAL or FINAL)
-            HDF5_EXCEPTION_CALL(lifecycleGroup, H5Gcreate2(directionGroup, lifecycleStrings[j].c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
-            setFFluxTrajectoryOutput(ffluxOutput, outIndex, lifecycleGroup);
-            HDF5_EXCEPTION_CHECK(H5Gclose(lifecycleGroup));
-        }
+        setFFluxBasinOutput(ffluxOutput, basinOut->direction(), directionGroup);
+
         HDF5_EXCEPTION_CHECK(H5Gclose(directionGroup));
     }
+
+    for (int i=0;i<ffluxOutput->trajectory_outputs_size();i++)
+    {
+        lm::io::FFluxOutput::TrajectoryOutput* trajOut = ffluxOutput->mutable_trajectory_outputs(i);
+        outIndex = (trajOut->direction())*2 + trajOut->lifecycle();
+        // If the group corresponding to the basin direction already exists, get the handle to it. Otherwise, create it
+        if ((directionGroup = H5Gopen2(ffluxOutputGroup, directionStrings[trajOut->direction()].c_str(), H5P_DEFAULT))>=0) {}
+        else {HDF5_EXCEPTION_CALL(directionGroup, H5Gcreate2(ffluxOutputGroup, directionStrings[trajOut->direction()].c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));}
+        // If the group corresponding to the trajectory direction and lifecycle (INITIAL or FINAL) already exists, get the handle to it. Otherwise, create it
+        if ((lifecycleGroup = H5Gopen2(directionGroup, lifecycleStrings[trajOut->lifecycle()].c_str(), H5P_DEFAULT))>=0) {}
+        else {HDF5_EXCEPTION_CALL(lifecycleGroup, H5Gcreate2(directionGroup, lifecycleStrings[trajOut->lifecycle()].c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));}
+
+        setFFluxTrajectoryOutput(ffluxOutput, outIndex, lifecycleGroup);
+
+        HDF5_EXCEPTION_CHECK(H5Gclose(lifecycleGroup));
+        HDF5_EXCEPTION_CHECK(H5Gclose(directionGroup));
+    }
+//    // loop through the FORWARD and BACKWARD enums
+//    for (int i=0;i<2;i++)
+//    {
+//        // create a group corresponding to the direction (FORWARD or BACKWARD)
+//        HDF5_EXCEPTION_CALL(directionGroup, H5Gcreate2(ffluxOutputGroup, directionStrings[i].c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+//        setFFluxBasinOutput(ffluxOutput, i, directionGroup);
+//
+//        // loop through the INITIAL and FINAL enums
+//        for (int j=0;j<2;j++)
+//        {
+//            outIndex = i*2+j;
+//
+//            // create a group corresponding to the lifecycle (INITIAL or FINAL)
+//            HDF5_EXCEPTION_CALL(lifecycleGroup, H5Gcreate2(directionGroup, lifecycleStrings[j].c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+//            setFFluxTrajectoryOutput(ffluxOutput, outIndex, lifecycleGroup);
+//            HDF5_EXCEPTION_CHECK(H5Gclose(lifecycleGroup));
+//        }
+//        HDF5_EXCEPTION_CHECK(H5Gclose(directionGroup));
+//    }
     HDF5_EXCEPTION_CHECK(H5Gclose(ffluxOutputGroup));
     HDF5_EXCEPTION_CHECK(H5Gclose(tilingGroup));
     HDF5_EXCEPTION_CHECK(H5Gclose(tilingsGroup));

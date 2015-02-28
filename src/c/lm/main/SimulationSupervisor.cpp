@@ -156,9 +156,6 @@ void SimulationSupervisor::init()
     // initialize input struct (used for setting up trajectories)
     input = new lm::input::Input(hasDiffusionModel,hasOrderParameters,hasReactionModel,hasTilings,diffusionModelBuf,orderParametersBuf,ops,reactionModelBuf,simulationParametersBuf,simulationParametersMap,tilingsBuf,tilings);
 
-    // hand a pointer for the commincator to TrajectoryList
-    trajectoryList->setCommunicator(communicator);
-
     // close the file
     delete file;
 }
@@ -482,6 +479,9 @@ void SimulationSupervisor::startSimulationIfAllWorkersStarted()
 
 void SimulationSupervisor::startSimulation()
 {
+    // the subclassed versions of startSimulation will have allocated trajectoryList by the time this is called, so now hand a pointer for the communicator to TrajectoryList
+    trajectoryList->setCommunicator(communicator);
+
     if (assignWork())
     {
         // If assign work returned true, there was nothing to be done.

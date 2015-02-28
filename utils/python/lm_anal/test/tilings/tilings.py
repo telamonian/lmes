@@ -15,7 +15,7 @@ class TilingsTestCase(unittest.TestCase):
     def test_edges_hdf5(self):
         self.tilings.rffHDF5()
 
-        # test reading of tilings from hdf5 and storing them with integer type keys
+        # test reading of tiling edges from hdf5 files
         edgeArr = np.array(self.tilings[19].edges)
         intendedEdgeArr = np.linspace(-25,25,13)
         self.assertTrue(np.allclose(edgeArr, intendedEdgeArr))
