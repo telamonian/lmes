@@ -171,6 +171,7 @@ public:
     virtual void setFFluxOutput(lm::io::FFluxOutput* ffluxOutput);
     virtual void setFFluxBasinOutput(lm::io::FFluxOutput* ffluxOutput, int basinIndex, hid_t basinGroup);
     virtual void setFFluxFinalOutput(lm::io::FFluxOutput* ffluxOutput, hid_t ffluxOutputGroup);
+    virtual void initFFluxTrajectoryOutput(hid_t lifecycleGroup);
     virtual void setFFluxTrajectoryOutput(lm::io::FFluxOutput* ffluxOutput, int outIndex, hid_t lifecycleGroup);
 
     //virtual void appendSpatialModelObjects(uint64_t replicate, lm::io::SpatialModel * model) throw(HDF5Exception,InvalidArgException);

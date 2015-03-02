@@ -563,9 +563,6 @@ void Hdf5File::setFFluxOutput(lm::io::FFluxOutput* ffluxOutput)
 //    {
 //        HDF5_EXCEPTION_CHECK(H5Ldelete(tilingGroup, "FFluxOutput", H5P_DEFAULT));
 //    }
-//
-//    // Create and get handle to FFluxOutput group
-//    HDF5_EXCEPTION_CALL(ffluxOutputGroup, H5Gcreate2(tilingGroup, "FFluxOutput", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
 
     // write the attributes for the FFluxOutput
     hid_t attr, scalarSpace;
@@ -629,30 +626,12 @@ void Hdf5File::setFFluxOutput(lm::io::FFluxOutput* ffluxOutput)
         if ((lifecycleGroup = H5Gopen2(directionGroup, lifecycleStrings[trajOut->lifecycle()].c_str(), H5P_DEFAULT))>=0) {}
         else {HDF5_EXCEPTION_CALL(lifecycleGroup, H5Gcreate2(directionGroup, lifecycleStrings[trajOut->lifecycle()].c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));}
 
-        setFFluxTrajectoryOutput(ffluxOutput, outIndex, lifecycleGroup);
+        setFFluxTrajectoryOutput(ffluxOutput, i, lifecycleGroup);
 
         HDF5_EXCEPTION_CHECK(H5Gclose(lifecycleGroup));
         HDF5_EXCEPTION_CHECK(H5Gclose(directionGroup));
     }
-//    // loop through the FORWARD and BACKWARD enums
-//    for (int i=0;i<2;i++)
-//    {
-//        // create a group corresponding to the direction (FORWARD or BACKWARD)
-//        HDF5_EXCEPTION_CALL(directionGroup, H5Gcreate2(ffluxOutputGroup, directionStrings[i].c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
-//        setFFluxBasinOutput(ffluxOutput, i, directionGroup);
-//
-//        // loop through the INITIAL and FINAL enums
-//        for (int j=0;j<2;j++)
-//        {
-//            outIndex = i*2+j;
-//
-//            // create a group corresponding to the lifecycle (INITIAL or FINAL)
-//            HDF5_EXCEPTION_CALL(lifecycleGroup, H5Gcreate2(directionGroup, lifecycleStrings[j].c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
-//            setFFluxTrajectoryOutput(ffluxOutput, outIndex, lifecycleGroup);
-//            HDF5_EXCEPTION_CHECK(H5Gclose(lifecycleGroup));
-//        }
-//        HDF5_EXCEPTION_CHECK(H5Gclose(directionGroup));
-//    }
+
     HDF5_EXCEPTION_CHECK(H5Gclose(ffluxOutputGroup));
     HDF5_EXCEPTION_CHECK(H5Gclose(tilingGroup));
     HDF5_EXCEPTION_CHECK(H5Gclose(tilingsGroup));
@@ -776,23 +755,85 @@ void Hdf5File::setFFluxFinalOutput(lm::io::FFluxOutput* ffluxOutput, hid_t fflux
     HDF5_EXCEPTION_CHECK(H5Gclose(normalizedProbabilityIGroup));
 }
 
+void Hdf5File::initFFluxTrajectoryOutput(hid_t lifecycleGroup)
+{
+    // initialize all of the trajectory datasets for this particular lifecycleGroup
+
+}
+
 void Hdf5File::setFFluxTrajectoryOutput(lm::io::FFluxOutput* ffluxOutput, int outIndex, hid_t lifecycleGroup)
 {
+    // get a pointer to the TrajectoryOutput buf
+    lm::io::FFluxOutput::TrajectoryOutput* trajOut = ffluxOutput->mutable_trajectory_outputs(outIndex);
+
     // write the attributes for this particular TrajectoryOutput
 
-    // write the datasets for this particular TrajectoryOutput
-    hsize_t dims[1], speciesDims[2];
-    dims[0] = ffluxOutput->trajectory_outputs(outIndex).count_size();
-    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "Count", 1, dims, H5T_IEEE_F64LE, ffluxOutput->trajectory_outputs(outIndex).count().data()));
-    dims[0] = ffluxOutput->trajectory_outputs(outIndex).edge_id_size();
-    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "EdgeID", 1, dims, H5T_STD_U64LE, ffluxOutput->trajectory_outputs(outIndex).edge_id().data()));
-    speciesDims[0] = ffluxOutput->trajectory_outputs(outIndex).species_count_size()/ffluxOutput->number_species();
-    speciesDims[1] = ffluxOutput->number_species();
-    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "SpeciesCount", 2, speciesDims, H5T_STD_I32LE, ffluxOutput->trajectory_outputs(outIndex).species_count().data()));
-    dims[0] = ffluxOutput->trajectory_outputs(outIndex).time_size();
-    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "Time", 1, dims, H5T_IEEE_F64LE, ffluxOutput->trajectory_outputs(outIndex).time().data()));
-    dims[0] = ffluxOutput->trajectory_outputs(outIndex).trajectory_id_size();
-    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "TrajectoryID", 1, dims, H5T_STD_U64LE, ffluxOutput->trajectory_outputs(outIndex).trajectory_id().data()));
+    // write the datasets for this particular TrajectoryOutput (adapted from the h5_extend.c tutorial)
+    // variables related to the 1D datasets (Count, EdgeID, Time, TrajectoryID)
+    uint RANK = 1;
+    hid_t dataspace, dataset, filespace, memspace, prop;
+    hsize_t chunkdims[RANK], dims[RANK], dimsr[RANK], dimstotal[RANK], maxdims[RANK], offset[RANK];
+    maxdims[0] = H5S_UNLIMITED;
+    chunkdims[0] = 100;
+
+    // write or extend the 1D Count dataset
+    dims[0] = trajOut->count_size();
+    // if the dataset exists, extend it
+    if ((dataset = H5Dopen2(lifecycleGroup, "Count", H5P_DEFAULT))>=0)
+    {
+        HDF5_EXCEPTION_CALL(prop, H5Dget_create_plist (dataset));
+
+        HDF5_EXCEPTION_CALL(filespace, H5Dget_space(dataset));
+        HDF5_EXCEPTION_CHECK(H5Sget_simple_extent_dims(filespace, dimsr, NULL));
+        /* Extend the dataset */
+        dimstotal[0] = dimsr[0] + dims[0];
+        HDF5_EXCEPTION_CHECK(H5Dset_extent(dataset, dimstotal));
+        HDF5_EXCEPTION_CALL(filespace, H5Dget_space(dataset));
+        /* Select a hyperslab in extended portion of dataset  */
+        offset[0] = dimsr[0];
+        HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset, NULL, dims, NULL));
+        /* Define memory space */
+        HDF5_EXCEPTION_CALL(memspace, H5Screate_simple(RANK, dims, NULL));
+        HDF5_EXCEPTION_CHECK(H5Dwrite(dataset, H5T_IEEE_F64LE, memspace, filespace, H5P_DEFAULT, trajOut->count().data()));
+
+        HDF5_EXCEPTION_CHECK(H5Dclose(dataset));
+        HDF5_EXCEPTION_CHECK(H5Sclose(memspace));
+        HDF5_EXCEPTION_CHECK(H5Sclose(filespace));
+    }
+    // otherwise, create the dataset
+    else
+    {
+        /* Create the data space with unlimited dimensions. */
+        HDF5_EXCEPTION_CALL(dataspace, H5Screate_simple(RANK, dims, maxdims));
+        /* Modify dataset creation properties, i.e. enable chunking  */
+        HDF5_EXCEPTION_CALL(prop, H5Pcreate(H5P_DATASET_CREATE));
+        HDF5_EXCEPTION_CHECK(H5Pset_chunk(prop, RANK, chunkdims));
+        /* Create a new dataset within the file using chunk creation properties.  */
+        dataset = H5Dcreate2(lifecycleGroup, "Count", H5T_IEEE_F64LE, dataspace, H5P_DEFAULT, prop, H5P_DEFAULT);
+        /* Write data to dataset */
+        HDF5_EXCEPTION_CHECK(H5Dwrite(dataset, H5T_IEEE_F64LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, trajOut->count().data()));
+
+        HDF5_EXCEPTION_CHECK(H5Dclose(dataset));
+        HDF5_EXCEPTION_CHECK(H5Pclose(prop));
+        HDF5_EXCEPTION_CHECK(H5Sclose(dataspace));
+    }
+
+
+//    // variables related to the 2D SpeciesCount dataset
+//    hsize_t speciesDims[2];
+//
+//
+//    dims[0] = ffluxOutput->trajectory_outputs(outIndex).count_size();
+//    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "Count", 1, dims, H5T_IEEE_F64LE, ffluxOutput->trajectory_outputs(outIndex).count().data()));
+//    dims[0] = ffluxOutput->trajectory_outputs(outIndex).edge_id_size();
+//    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "EdgeID", 1, dims, H5T_STD_U64LE, ffluxOutput->trajectory_outputs(outIndex).edge_id().data()));
+//    speciesDims[0] = ffluxOutput->trajectory_outputs(outIndex).species_count_size()/ffluxOutput->number_species();
+//    speciesDims[1] = ffluxOutput->number_species();
+//    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "SpeciesCount", 2, speciesDims, H5T_STD_I32LE, ffluxOutput->trajectory_outputs(outIndex).species_count().data()));
+//    dims[0] = ffluxOutput->trajectory_outputs(outIndex).time_size();
+//    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "Time", 1, dims, H5T_IEEE_F64LE, ffluxOutput->trajectory_outputs(outIndex).time().data()));
+//    dims[0] = ffluxOutput->trajectory_outputs(outIndex).trajectory_id_size();
+//    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "TrajectoryID", 1, dims, H5T_STD_U64LE, ffluxOutput->trajectory_outputs(outIndex).trajectory_id().data()));
 }
 
 bool Hdf5File::hasOrderParameters()
