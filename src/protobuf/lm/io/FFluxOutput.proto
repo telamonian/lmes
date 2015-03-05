@@ -59,11 +59,11 @@ message FFluxOutput {
 		optional Direction direction	= 1 [default=FORWARD];
 		optional Lifecycle lifecycle	= 2 [default=INITIAL];
 		
-		repeated double count			= 101;
-		repeated uint64 edge_id			= 102;
-		repeated double species_count	= 103 [packed=true];
-		repeated double time			= 104;
-		repeated uint64 trajectory_id	= 105;
+		repeated double count			= 101 [packed=true];
+		repeated uint64 edge_id			= 102 [packed=true];
+		repeated int32  species_count	= 103 [packed=true];
+		repeated double time			= 104 [packed=true];
+		repeated uint64 trajectory_id	= 105 [packed=true];
 	}
 	
 	message BasinOutput {

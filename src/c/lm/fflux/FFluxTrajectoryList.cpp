@@ -490,6 +490,7 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(FFluxTrajectory* traj, lm::io
     traj->getLastSpeciesCounts(trajOut);
     trajOut->add_time(traj->getSimTime());
     trajOut->add_trajectory_id(traj->getID());
+
 //    if (trajOut->time_size() > 100)
 //    {
 //

@@ -43,6 +43,7 @@
  */
 #include <cstdio>
 #include <cstring>
+#include <google/protobuf/repeated_field.h>
 #include <list>
 #include <map>
 #include <sstream>
@@ -626,7 +627,11 @@ void Hdf5File::setFFluxOutput(lm::io::FFluxOutput* ffluxOutput)
         if ((lifecycleGroup = H5Gopen2(directionGroup, lifecycleStrings[trajOut->lifecycle()].c_str(), H5P_DEFAULT))>=0) {}
         else {HDF5_EXCEPTION_CALL(lifecycleGroup, H5Gcreate2(directionGroup, lifecycleStrings[trajOut->lifecycle()].c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));}
 
-        setFFluxTrajectoryOutput(ffluxOutput, i, lifecycleGroup);
+        setFFluxTrajectoryOutput_Count(ffluxOutput, i, lifecycleGroup);
+        setFFluxTrajectoryOutput_EdgeID(ffluxOutput, i, lifecycleGroup);
+        setFFluxTrajectoryOutput_SpeciesCount(ffluxOutput, i, lifecycleGroup);
+        setFFluxTrajectoryOutput_Time(ffluxOutput, i, lifecycleGroup);
+        setFFluxTrajectoryOutput_TrajectoryID(ffluxOutput, i, lifecycleGroup);
 
         HDF5_EXCEPTION_CHECK(H5Gclose(lifecycleGroup));
         HDF5_EXCEPTION_CHECK(H5Gclose(directionGroup));
@@ -755,69 +760,46 @@ void Hdf5File::setFFluxFinalOutput(lm::io::FFluxOutput* ffluxOutput, hid_t fflux
     HDF5_EXCEPTION_CHECK(H5Gclose(normalizedProbabilityIGroup));
 }
 
-void Hdf5File::initFFluxTrajectoryOutput(hid_t lifecycleGroup)
+void Hdf5File::setFFluxTrajectoryOutput_Count(lm::io::FFluxOutput* ffluxOutput, int outIndex, hid_t lifecycleGroup)
 {
-    // initialize all of the trajectory datasets for this particular lifecycleGroup
-
+    lm::io::FFluxOutput::TrajectoryOutput* trajOut = ffluxOutput->mutable_trajectory_outputs(outIndex);
+    hsize_t dims[1];
+    dims[0] = ffluxOutput->trajectory_outputs(outIndex).count_size();
+    _setFFluxTrajectoryOutput<double>(trajOut->count(), dims, "Count", H5T_IEEE_F64LE, lifecycleGroup, 1);
 }
 
-void Hdf5File::setFFluxTrajectoryOutput(lm::io::FFluxOutput* ffluxOutput, int outIndex, hid_t lifecycleGroup)
+void Hdf5File::setFFluxTrajectoryOutput_EdgeID(lm::io::FFluxOutput* ffluxOutput, int outIndex, hid_t lifecycleGroup)
 {
-    // get a pointer to the TrajectoryOutput buf
     lm::io::FFluxOutput::TrajectoryOutput* trajOut = ffluxOutput->mutable_trajectory_outputs(outIndex);
+    hsize_t dims[1];
+    dims[0] = ffluxOutput->trajectory_outputs(outIndex).edge_id_size();
+    _setFFluxTrajectoryOutput<uint64_t>(trajOut->edge_id(), dims, "EdgeID", H5T_STD_U64LE, lifecycleGroup, 1);
+}
 
-    // write the attributes for this particular TrajectoryOutput
+void Hdf5File::setFFluxTrajectoryOutput_SpeciesCount(lm::io::FFluxOutput* ffluxOutput, int outIndex, hid_t lifecycleGroup)
+{
+    lm::io::FFluxOutput::TrajectoryOutput* trajOut = ffluxOutput->mutable_trajectory_outputs(outIndex);
+    hsize_t dims[2];
+    dims[0] = trajOut->species_count_size()/ffluxOutput->number_species();
+    dims[1] = ffluxOutput->number_species();
+    _setFFluxTrajectoryOutput<int32_t>(trajOut->species_count(), dims, "SpeciesCount", H5T_STD_I32LE, lifecycleGroup, 2);
+}
 
-    // write the datasets for this particular TrajectoryOutput (adapted from the h5_extend.c tutorial)
-    // variables related to the 1D datasets (Count, EdgeID, Time, TrajectoryID)
-    uint RANK = 1;
-    hid_t dataspace, dataset, filespace, memspace, prop;
-    hsize_t chunkdims[RANK], dims[RANK], dimsr[RANK], dimstotal[RANK], maxdims[RANK], offset[RANK];
-    maxdims[0] = H5S_UNLIMITED;
-    chunkdims[0] = 100;
+void Hdf5File::setFFluxTrajectoryOutput_Time(lm::io::FFluxOutput* ffluxOutput, int outIndex, hid_t lifecycleGroup)
+{
+    lm::io::FFluxOutput::TrajectoryOutput* trajOut = ffluxOutput->mutable_trajectory_outputs(outIndex);
+    hsize_t dims[1];
+    dims[0] = ffluxOutput->trajectory_outputs(outIndex).time_size();
+    _setFFluxTrajectoryOutput<double>(trajOut->time(), dims, "Time", H5T_IEEE_F64LE, lifecycleGroup, 1);
+}
 
-    // write or extend the 1D Count dataset
-    dims[0] = trajOut->count_size();
-    // if the dataset exists, extend it
-    if ((dataset = H5Dopen2(lifecycleGroup, "Count", H5P_DEFAULT))>=0)
-    {
-        HDF5_EXCEPTION_CALL(prop, H5Dget_create_plist (dataset));
-
-        HDF5_EXCEPTION_CALL(filespace, H5Dget_space(dataset));
-        HDF5_EXCEPTION_CHECK(H5Sget_simple_extent_dims(filespace, dimsr, NULL));
-        /* Extend the dataset */
-        dimstotal[0] = dimsr[0] + dims[0];
-        HDF5_EXCEPTION_CHECK(H5Dset_extent(dataset, dimstotal));
-        HDF5_EXCEPTION_CALL(filespace, H5Dget_space(dataset));
-        /* Select a hyperslab in extended portion of dataset  */
-        offset[0] = dimsr[0];
-        HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset, NULL, dims, NULL));
-        /* Define memory space */
-        HDF5_EXCEPTION_CALL(memspace, H5Screate_simple(RANK, dims, NULL));
-        HDF5_EXCEPTION_CHECK(H5Dwrite(dataset, H5T_IEEE_F64LE, memspace, filespace, H5P_DEFAULT, trajOut->count().data()));
-
-        HDF5_EXCEPTION_CHECK(H5Dclose(dataset));
-        HDF5_EXCEPTION_CHECK(H5Sclose(memspace));
-        HDF5_EXCEPTION_CHECK(H5Sclose(filespace));
-    }
-    // otherwise, create the dataset
-    else
-    {
-        /* Create the data space with unlimited dimensions. */
-        HDF5_EXCEPTION_CALL(dataspace, H5Screate_simple(RANK, dims, maxdims));
-        /* Modify dataset creation properties, i.e. enable chunking  */
-        HDF5_EXCEPTION_CALL(prop, H5Pcreate(H5P_DATASET_CREATE));
-        HDF5_EXCEPTION_CHECK(H5Pset_chunk(prop, RANK, chunkdims));
-        /* Create a new dataset within the file using chunk creation properties.  */
-        dataset = H5Dcreate2(lifecycleGroup, "Count", H5T_IEEE_F64LE, dataspace, H5P_DEFAULT, prop, H5P_DEFAULT);
-        /* Write data to dataset */
-        HDF5_EXCEPTION_CHECK(H5Dwrite(dataset, H5T_IEEE_F64LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, trajOut->count().data()));
-
-        HDF5_EXCEPTION_CHECK(H5Dclose(dataset));
-        HDF5_EXCEPTION_CHECK(H5Pclose(prop));
-        HDF5_EXCEPTION_CHECK(H5Sclose(dataspace));
-    }
-
+void Hdf5File::setFFluxTrajectoryOutput_TrajectoryID(lm::io::FFluxOutput* ffluxOutput, int outIndex, hid_t lifecycleGroup)
+{
+    lm::io::FFluxOutput::TrajectoryOutput* trajOut = ffluxOutput->mutable_trajectory_outputs(outIndex);
+    hsize_t dims[1];
+    dims[0] = ffluxOutput->trajectory_outputs(outIndex).trajectory_id_size();
+    _setFFluxTrajectoryOutput<uint64_t>(trajOut->trajectory_id(), dims, "TrajectoryID", H5T_STD_U64LE, lifecycleGroup, 1);
+}
 
 //    // variables related to the 2D SpeciesCount dataset
 //    hsize_t speciesDims[2];
@@ -834,6 +816,71 @@ void Hdf5File::setFFluxTrajectoryOutput(lm::io::FFluxOutput* ffluxOutput, int ou
 //    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "Time", 1, dims, H5T_IEEE_F64LE, ffluxOutput->trajectory_outputs(outIndex).time().data()));
 //    dims[0] = ffluxOutput->trajectory_outputs(outIndex).trajectory_id_size();
 //    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "TrajectoryID", 1, dims, H5T_STD_U64LE, ffluxOutput->trajectory_outputs(outIndex).trajectory_id().data()));
+
+template <typename T>
+void Hdf5File::_setFFluxTrajectoryOutput(::google::protobuf::RepeatedField<T> dataField, hsize_t* dims, string dsetName, hid_t dsetType, hid_t lifecycleGroup, uint RANK)
+{
+    // get a pointer to the TrajectoryOutput buf
+
+
+    // write the attributes for this particular TrajectoryOutput
+
+    // write the datasets for this particular TrajectoryOutput (adapted from the h5_extend.c tutorial)
+    // variables related to the 1D datasets (Count, EdgeID, Time, TrajectoryID)
+    hid_t dataspace, dataset, filespace, memspace, prop;
+    hsize_t chunkdims[RANK], dimsr[RANK], dimstotal[RANK], maxdims[RANK], offset[RANK];
+
+    // write or extend the 1D Count dataset
+    chunkdims[0] = 100;
+    maxdims[0] = H5S_UNLIMITED;
+    if (RANK==2)
+    {
+        chunkdims[1] = dims[1];
+        maxdims[1] = H5S_UNLIMITED;
+    }
+
+    // if the dataset exists, extend it
+    if ((dataset = H5Dopen2(lifecycleGroup, dsetName.c_str(), H5P_DEFAULT))>=0)
+    {
+        HDF5_EXCEPTION_CALL(prop, H5Dget_create_plist (dataset));
+
+        HDF5_EXCEPTION_CALL(filespace, H5Dget_space(dataset));
+        HDF5_EXCEPTION_CHECK(H5Sget_simple_extent_dims(filespace, dimsr, NULL));
+        /* Extend the dataset */
+        dimstotal[0] = dimsr[0] + dims[0];
+        if (RANK==2) {dimstotal[1] = dimsr[1];}
+        HDF5_EXCEPTION_CHECK(H5Dset_extent(dataset, dimstotal));
+        // reopen the now-extended dataset's filespace
+        HDF5_EXCEPTION_CALL(filespace, H5Dget_space(dataset));
+        /* Select a hyperslab in extended portion of dataset  */
+        offset[0] = dimsr[0];
+        if (RANK==2) {offset[1] = 0;}
+        HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset, NULL, dims, NULL));
+        /* Define memory space */
+        HDF5_EXCEPTION_CALL(memspace, H5Screate_simple(RANK, dims, NULL));
+        HDF5_EXCEPTION_CHECK(H5Dwrite(dataset, dsetType, memspace, filespace, H5P_DEFAULT, dataField.data()));
+
+        HDF5_EXCEPTION_CHECK(H5Dclose(dataset));
+        HDF5_EXCEPTION_CHECK(H5Sclose(memspace));
+        HDF5_EXCEPTION_CHECK(H5Sclose(filespace));
+    }
+    // otherwise, create the dataset
+    else
+    {
+        /* Create the dataField space with unlimited dimensions. */
+        HDF5_EXCEPTION_CALL(dataspace, H5Screate_simple(RANK, dims, maxdims));
+        /* Modify dataset creation properties, i.e. enable chunking  */
+        HDF5_EXCEPTION_CALL(prop, H5Pcreate(H5P_DATASET_CREATE));
+        HDF5_EXCEPTION_CHECK(H5Pset_chunk(prop, RANK, chunkdims));
+        /* Create a new dataset within the file using chunk creation properties.  */
+        dataset = H5Dcreate2(lifecycleGroup, dsetName.c_str(), dsetType, dataspace, H5P_DEFAULT, prop, H5P_DEFAULT);
+        /* Write dataField to dataset */
+        HDF5_EXCEPTION_CHECK(H5Dwrite(dataset, dsetType, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataField.data()));
+
+        HDF5_EXCEPTION_CHECK(H5Dclose(dataset));
+        HDF5_EXCEPTION_CHECK(H5Pclose(prop));
+        HDF5_EXCEPTION_CHECK(H5Sclose(dataspace));
+    }
 }
 
 bool Hdf5File::hasOrderParameters()
