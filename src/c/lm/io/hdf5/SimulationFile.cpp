@@ -839,6 +839,8 @@ void Hdf5File::_setFFluxTrajectoryOutput(::google::protobuf::RepeatedField<T> da
         maxdims[1] = H5S_UNLIMITED;
     }
 
+    HDF5_EXCEPTION_CHECK(H5Eset_auto2(H5E_DEFAULT, NULL, NULL));
+
     // if the dataset exists, extend it
     if ((dataset = H5Dopen2(lifecycleGroup, dsetName.c_str(), H5P_DEFAULT))>=0)
     {
