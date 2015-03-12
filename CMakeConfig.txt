@@ -16,9 +16,6 @@ SET(VERBOSITY_LEVEL 4)
 # uncomment and change the last part of the next line if some of your libraries/header files are on a nonstandard path
 #SET(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}")
 
-# uncomment to build cython extensions
-SET (MAKE_CYTHON yes)
-
 ############################
 #library specific path settings
 ############################

@@ -650,26 +650,34 @@ void Hdf5File::setFFluxBasinOutput(lm::io::FFluxOutput* ffluxOutput, int basinIn
     // write the attributes for this particular BasinOutput
     hid_t attr, scalarSpace;
     HDF5_EXCEPTION_CALL(scalarSpace, H5Screate(H5S_SCALAR));
-    double flux_out_of_tile_zero = basinOut->flux_out_of_tile_zero();
-    HDF5_EXCEPTION_CALL(attr, H5Acreate(basinGroup, "FluxOutOfTileZero", H5T_IEEE_F64LE, scalarSpace, H5P_DEFAULT, H5P_DEFAULT));
-    HDF5_EXCEPTION_CHECK(H5Awrite(attr, H5T_IEEE_F64LE, &flux_out_of_tile_zero));
-    HDF5_EXCEPTION_CHECK(H5Aclose(attr));
-
-    double switching_rate_constant = basinOut->switching_rate_constant();
-    HDF5_EXCEPTION_CALL(attr, H5Acreate(basinGroup, "SwitchingRateConstant", H5T_IEEE_F64LE, scalarSpace, H5P_DEFAULT, H5P_DEFAULT));
-    HDF5_EXCEPTION_CHECK(H5Awrite(attr, H5T_IEEE_F64LE, &switching_rate_constant));
-    HDF5_EXCEPTION_CHECK(H5Aclose(attr));
-
-    double this_basin_last_visited_probability = basinOut->this_basin_last_visited_probability();
-    HDF5_EXCEPTION_CALL(attr, H5Acreate(basinGroup, "ThisBasinLastVistedProbability", H5T_IEEE_F64LE, scalarSpace, H5P_DEFAULT, H5P_DEFAULT));
-    HDF5_EXCEPTION_CHECK(H5Awrite(attr, H5T_IEEE_F64LE, &this_basin_last_visited_probability));
-    HDF5_EXCEPTION_CHECK(H5Aclose(attr));
-
-    double probability_i_weight = basinOut->probability_i_weight();
-    HDF5_EXCEPTION_CALL(attr, H5Acreate(basinGroup, "ProbabilityIWeight", H5T_IEEE_F64LE, scalarSpace, H5P_DEFAULT, H5P_DEFAULT));
-    HDF5_EXCEPTION_CHECK(H5Awrite(attr, H5T_IEEE_F64LE, &probability_i_weight));
-    HDF5_EXCEPTION_CHECK(H5Aclose(attr));
-
+    if (basinOut->has_flux_out_of_tile_zero())
+    {
+        double flux_out_of_tile_zero = basinOut->flux_out_of_tile_zero();
+        HDF5_EXCEPTION_CALL(attr, H5Acreate(basinGroup, "FluxOutOfTileZero", H5T_IEEE_F64LE, scalarSpace, H5P_DEFAULT, H5P_DEFAULT));
+        HDF5_EXCEPTION_CHECK(H5Awrite(attr, H5T_IEEE_F64LE, &flux_out_of_tile_zero));
+        HDF5_EXCEPTION_CHECK(H5Aclose(attr));
+    }
+    if (basinOut->has_switching_rate_constant())
+    {
+        double switching_rate_constant = basinOut->switching_rate_constant();
+        HDF5_EXCEPTION_CALL(attr, H5Acreate(basinGroup, "SwitchingRateConstant", H5T_IEEE_F64LE, scalarSpace, H5P_DEFAULT, H5P_DEFAULT));
+        HDF5_EXCEPTION_CHECK(H5Awrite(attr, H5T_IEEE_F64LE, &switching_rate_constant));
+        HDF5_EXCEPTION_CHECK(H5Aclose(attr));
+    }
+    if (basinOut->has_this_basin_last_visited_probability())
+    {
+        double this_basin_last_visited_probability = basinOut->this_basin_last_visited_probability();
+        HDF5_EXCEPTION_CALL(attr, H5Acreate(basinGroup, "ThisBasinLastVistedProbability", H5T_IEEE_F64LE, scalarSpace, H5P_DEFAULT, H5P_DEFAULT));
+        HDF5_EXCEPTION_CHECK(H5Awrite(attr, H5T_IEEE_F64LE, &this_basin_last_visited_probability));
+        HDF5_EXCEPTION_CHECK(H5Aclose(attr));
+    }
+    if (basinOut->has_probability_i_weight())
+    {
+        double probability_i_weight = basinOut->probability_i_weight();
+        HDF5_EXCEPTION_CALL(attr, H5Acreate(basinGroup, "ProbabilityIWeight", H5T_IEEE_F64LE, scalarSpace, H5P_DEFAULT, H5P_DEFAULT));
+        HDF5_EXCEPTION_CHECK(H5Awrite(attr, H5T_IEEE_F64LE, &probability_i_weight));
+        HDF5_EXCEPTION_CHECK(H5Aclose(attr));
+    }
     HDF5_EXCEPTION_CHECK(H5Sclose(scalarSpace));
 
     // write the datasets for this particular BasinOutput
@@ -677,45 +685,42 @@ void Hdf5File::setFFluxBasinOutput(lm::io::FFluxOutput* ffluxOutput, int basinIn
     hsize_t dims[1];
     uint number_tiles, tiling_id;
 
-    dims[0] = basinOut->probability_i_to_i_plus_one().tile_vals_size();
-    HDF5_EXCEPTION_CALL(probabilityIToIPlusOneGroup, H5Gcreate2(basinGroup, "ProbabilityIToIPlusOne", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
-    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(probabilityIToIPlusOneGroup, "TileIndices", 1, dims, H5T_STD_U32LE, basinOut->probability_i_to_i_plus_one().tile_indices().data()));
-    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(probabilityIToIPlusOneGroup, "TileVals", 1, dims, H5T_IEEE_F64LE, basinOut->probability_i_to_i_plus_one().tile_vals().data()));
-    number_tiles = basinOut->probability_i_to_i_plus_one().number_tiles();
-    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(basinGroup, "ProbabilityIToIPlusOne", "NumberTiles", &number_tiles, 1));
-    tiling_id = basinOut->probability_i_to_i_plus_one().tiling_id();
-    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(basinGroup, "ProbabilityIToIPlusOne", "TilingID", &tiling_id, 1));
-    HDF5_EXCEPTION_CHECK(H5Gclose(probabilityIToIPlusOneGroup));
-
-    dims[0] = basinOut->probability_one_to_i_plus_one().tile_vals_size();
-    HDF5_EXCEPTION_CALL(probabilityOneToIPlusOneGroup, H5Gcreate2(basinGroup, "ProbabilityOneToIPlusOne", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
-    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(probabilityOneToIPlusOneGroup, "TileIndices", 1, dims, H5T_STD_U32LE, basinOut->probability_one_to_i_plus_one().tile_indices().data()));
-    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(probabilityOneToIPlusOneGroup, "TileVals", 1, dims, H5T_IEEE_F64LE, basinOut->probability_one_to_i_plus_one().tile_vals().data()));
-    number_tiles = basinOut->probability_one_to_i_plus_one().number_tiles();
-    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(basinGroup, "ProbabilityOneToIPlusOne", "NumberTiles", &number_tiles, 1));
-    tiling_id = basinOut->probability_one_to_i_plus_one().tiling_id();
-    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(basinGroup, "ProbabilityOneToIPlusOne", "TilingID", &tiling_id, 1));
-    HDF5_EXCEPTION_CHECK(H5Gclose(probabilityOneToIPlusOneGroup));
-
-    dims[0] = basinOut->probability_i().tile_vals_size();
-    HDF5_EXCEPTION_CALL(probabilityIGroup, H5Gcreate2(basinGroup, "ProbabilityI", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
-    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(probabilityIGroup, "TileIndices", 1, dims, H5T_STD_U32LE, basinOut->probability_i().tile_indices().data()));
-    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(probabilityIGroup, "TileVals", 1, dims, H5T_IEEE_F64LE, basinOut->probability_i().tile_vals().data()));
-    number_tiles = basinOut->probability_i().number_tiles();
-    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(basinGroup, "ProbabilityI", "NumberTiles", &number_tiles, 1));
-    tiling_id = basinOut->probability_i().tiling_id();
-    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(basinGroup, "ProbabilityI", "TilingID", &tiling_id, 1));
-    HDF5_EXCEPTION_CHECK(H5Gclose(probabilityIGroup));
-
-    dims[0] = basinOut->normalized_probability_i().tile_vals_size();
-    HDF5_EXCEPTION_CALL(normalizedProbabilityIGroup, H5Gcreate2(basinGroup, "NormalizedProbabilityI", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
-    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(normalizedProbabilityIGroup, "TileIndices", 1, dims, H5T_STD_U32LE, basinOut->normalized_probability_i().tile_indices().data()));
-    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(normalizedProbabilityIGroup, "TileVals", 1, dims, H5T_IEEE_F64LE, basinOut->normalized_probability_i().tile_vals().data()));
-    number_tiles = basinOut->normalized_probability_i().number_tiles();
-    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(basinGroup, "NormalizedProbabilityI", "NumberTiles", &number_tiles, 1));
-    tiling_id = basinOut->normalized_probability_i().tiling_id();
-    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(basinGroup, "NormalizedProbabilityI", "TilingID", &tiling_id, 1));
-    HDF5_EXCEPTION_CHECK(H5Gclose(normalizedProbabilityIGroup));
+    if (basinOut->probability_i_to_i_plus_one().tile_vals_size() > 0)
+    {
+        dims[0] = basinOut->probability_i_to_i_plus_one().tile_vals_size();
+        HDF5_EXCEPTION_CALL(probabilityIToIPlusOneGroup, H5Gcreate2(basinGroup, "ProbabilityIToIPlusOne", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(probabilityIToIPlusOneGroup, "TileIndices", 1, dims, H5T_STD_U32LE, basinOut->probability_i_to_i_plus_one().tile_indices().data()));
+        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(probabilityIToIPlusOneGroup, "TileVals", 1, dims, H5T_IEEE_F64LE, basinOut->probability_i_to_i_plus_one().tile_vals().data()));
+        number_tiles = basinOut->probability_i_to_i_plus_one().number_tiles();
+        HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(basinGroup, "ProbabilityIToIPlusOne", "NumberTiles", &number_tiles, 1));
+        tiling_id = basinOut->probability_i_to_i_plus_one().tiling_id();
+        HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(basinGroup, "ProbabilityIToIPlusOne", "TilingID", &tiling_id, 1));
+        HDF5_EXCEPTION_CHECK(H5Gclose(probabilityIToIPlusOneGroup));
+    }
+    if (basinOut->probability_one_to_i_plus_one().tile_vals_size() > 0)
+    {
+        dims[0] = basinOut->probability_one_to_i_plus_one().tile_vals_size();
+        HDF5_EXCEPTION_CALL(probabilityOneToIPlusOneGroup, H5Gcreate2(basinGroup, "ProbabilityOneToIPlusOne", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(probabilityOneToIPlusOneGroup, "TileIndices", 1, dims, H5T_STD_U32LE, basinOut->probability_one_to_i_plus_one().tile_indices().data()));
+        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(probabilityOneToIPlusOneGroup, "TileVals", 1, dims, H5T_IEEE_F64LE, basinOut->probability_one_to_i_plus_one().tile_vals().data()));
+        number_tiles = basinOut->probability_one_to_i_plus_one().number_tiles();
+        HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(basinGroup, "ProbabilityOneToIPlusOne", "NumberTiles", &number_tiles, 1));
+        tiling_id = basinOut->probability_one_to_i_plus_one().tiling_id();
+        HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(basinGroup, "ProbabilityOneToIPlusOne", "TilingID", &tiling_id, 1));
+        HDF5_EXCEPTION_CHECK(H5Gclose(probabilityOneToIPlusOneGroup));
+    }
+    if (basinOut->normalized_probability_i().tile_vals_size() > 0)
+    {
+        dims[0] = basinOut->normalized_probability_i().tile_vals_size();
+        HDF5_EXCEPTION_CALL(normalizedProbabilityIGroup, H5Gcreate2(basinGroup, "ProbabilityI", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(normalizedProbabilityIGroup, "TileIndices", 1, dims, H5T_STD_U32LE, basinOut->normalized_probability_i().tile_indices().data()));
+        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(normalizedProbabilityIGroup, "TileVals", 1, dims, H5T_IEEE_F64LE, basinOut->normalized_probability_i().tile_vals().data()));
+        number_tiles = basinOut->normalized_probability_i().number_tiles();
+        HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(basinGroup, "ProbabilityI", "NumberTiles", &number_tiles, 1));
+        tiling_id = basinOut->normalized_probability_i().tiling_id();
+        HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(basinGroup, "ProbabilityI", "TilingID", &tiling_id, 1));
+        HDF5_EXCEPTION_CHECK(H5Gclose(normalizedProbabilityIGroup));
+    }
 }
 
 void Hdf5File::setFFluxFinalOutput(lm::io::FFluxOutput* ffluxOutput, hid_t ffluxOutputGroup)
@@ -726,12 +731,28 @@ void Hdf5File::setFFluxFinalOutput(lm::io::FFluxOutput* ffluxOutput, hid_t fflux
     // write the attributes for the FinalOutput
     hid_t attr, scalarSpace;
     HDF5_EXCEPTION_CALL(scalarSpace, H5Screate(H5S_SCALAR));
-
-    double probability_i_weight = finalOut->probability_i_weight();
-    HDF5_EXCEPTION_CALL(attr, H5Acreate(ffluxOutputGroup, "ProbabilityIWeight", H5T_IEEE_F64LE, scalarSpace, H5P_DEFAULT, H5P_DEFAULT));
-    HDF5_EXCEPTION_CHECK(H5Awrite(attr, H5T_IEEE_F64LE, &probability_i_weight));
-    HDF5_EXCEPTION_CHECK(H5Aclose(attr));
-
+    if (finalOut->has_probability_i_weight())
+    {
+        double probability_i_weight = finalOut->probability_i_weight();
+        HDF5_EXCEPTION_CALL(attr, H5Acreate(ffluxOutputGroup, "ProbabilityIWeight", H5T_IEEE_F64LE, scalarSpace, H5P_DEFAULT, H5P_DEFAULT));
+        HDF5_EXCEPTION_CHECK(H5Awrite(attr, H5T_IEEE_F64LE, &probability_i_weight));
+        HDF5_EXCEPTION_CHECK(H5Aclose(attr));
+    }
+    if (finalOut->switching_rate_constants_size() > 0)
+    {
+        std::stringstream srcLabel;
+        for (int i=0;i<finalOut->switching_rate_constants_size();i++)
+        {
+            srcLabel.str(std::string());
+            srcLabel.clear();
+            srcLabel << "SwitchingRateConstant_FromBasin";
+            srcLabel << i;
+            double switching_rate_constant = finalOut->switching_rate_constants(i);
+            HDF5_EXCEPTION_CALL(attr, H5Acreate(ffluxOutputGroup, srcLabel.str().c_str(), H5T_IEEE_F64LE, scalarSpace, H5P_DEFAULT, H5P_DEFAULT));
+            HDF5_EXCEPTION_CHECK(H5Awrite(attr, H5T_IEEE_F64LE, &switching_rate_constant));
+            HDF5_EXCEPTION_CHECK(H5Aclose(attr));
+        }
+    }
     HDF5_EXCEPTION_CHECK(H5Sclose(scalarSpace));
 
     // write the datasets for the FinalOutput
@@ -739,24 +760,15 @@ void Hdf5File::setFFluxFinalOutput(lm::io::FFluxOutput* ffluxOutput, hid_t fflux
     hsize_t dims[1];
     uint number_tiles, tiling_id;
 
-    dims[0] = finalOut->probability_i().tile_vals_size();
-    HDF5_EXCEPTION_CALL(probabilityIGroup, H5Gcreate2(ffluxOutputGroup, "ProbabilityI", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
-    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(probabilityIGroup, "TileIndices", 1, dims, H5T_STD_U32LE, finalOut->probability_i().tile_indices().data()));
-    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(probabilityIGroup, "TileVals", 1, dims, H5T_IEEE_F64LE, finalOut->probability_i().tile_vals().data()));
-    number_tiles = finalOut->probability_i().number_tiles();
-    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(ffluxOutputGroup, "ProbabilityI", "NumberTiles", &number_tiles, 1));
-    tiling_id = finalOut->probability_i().tiling_id();
-    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(ffluxOutputGroup, "ProbabilityI", "TilingID", &tiling_id, 1));
-    HDF5_EXCEPTION_CHECK(H5Gclose(probabilityIGroup));
-
     dims[0] = finalOut->normalized_probability_i().tile_vals_size();
-    HDF5_EXCEPTION_CALL(normalizedProbabilityIGroup, H5Gcreate2(ffluxOutputGroup, "NormalizedProbabilityI", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
-    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(normalizedProbabilityIGroup, "TileIndices", 1, dims, H5T_STD_U32LE, finalOut->normalized_probability_i().tile_indices().data()));
+    HDF5_EXCEPTION_CALL(normalizedProbabilityIGroup, H5Gcreate2(ffluxOutputGroup, "ProbabilityI", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+    // if the intermediateOutputFlag is not set, TileIndices will be supressed, so account for that possibility
+    if (finalOut->normalized_probability_i().tile_indices_size() > 0) {HDF5_EXCEPTION_CHECK(H5LTmake_dataset(normalizedProbabilityIGroup, "TileIndices", 1, dims, H5T_STD_U32LE, finalOut->normalized_probability_i().tile_indices().data()));}
     HDF5_EXCEPTION_CHECK(H5LTmake_dataset(normalizedProbabilityIGroup, "TileVals", 1, dims, H5T_IEEE_F64LE, finalOut->normalized_probability_i().tile_vals().data()));
     number_tiles = finalOut->normalized_probability_i().number_tiles();
-    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(ffluxOutputGroup, "NormalizedProbabilityI", "NumberTiles", &number_tiles, 1));
+    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(ffluxOutputGroup, "ProbabilityI", "NumberTiles", &number_tiles, 1));
     tiling_id = finalOut->normalized_probability_i().tiling_id();
-    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(ffluxOutputGroup, "NormalizedProbabilityI", "TilingID", &tiling_id, 1));
+    HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(ffluxOutputGroup, "ProbabilityI", "TilingID", &tiling_id, 1));
     HDF5_EXCEPTION_CHECK(H5Gclose(normalizedProbabilityIGroup));
 }
 
@@ -801,22 +813,6 @@ void Hdf5File::setFFluxTrajectoryOutput_TrajectoryID(lm::io::FFluxOutput* ffluxO
     _setFFluxTrajectoryOutput<uint64_t>(trajOut->trajectory_id(), dims, "TrajectoryID", H5T_STD_U64LE, lifecycleGroup, 1);
 }
 
-//    // variables related to the 2D SpeciesCount dataset
-//    hsize_t speciesDims[2];
-//
-//
-//    dims[0] = ffluxOutput->trajectory_outputs(outIndex).count_size();
-//    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "Count", 1, dims, H5T_IEEE_F64LE, ffluxOutput->trajectory_outputs(outIndex).count().data()));
-//    dims[0] = ffluxOutput->trajectory_outputs(outIndex).edge_id_size();
-//    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "EdgeID", 1, dims, H5T_STD_U64LE, ffluxOutput->trajectory_outputs(outIndex).edge_id().data()));
-//    speciesDims[0] = ffluxOutput->trajectory_outputs(outIndex).species_count_size()/ffluxOutput->number_species();
-//    speciesDims[1] = ffluxOutput->number_species();
-//    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "SpeciesCount", 2, speciesDims, H5T_STD_I32LE, ffluxOutput->trajectory_outputs(outIndex).species_count().data()));
-//    dims[0] = ffluxOutput->trajectory_outputs(outIndex).time_size();
-//    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "Time", 1, dims, H5T_IEEE_F64LE, ffluxOutput->trajectory_outputs(outIndex).time().data()));
-//    dims[0] = ffluxOutput->trajectory_outputs(outIndex).trajectory_id_size();
-//    HDF5_EXCEPTION_CHECK(H5LTmake_dataset(lifecycleGroup, "TrajectoryID", 1, dims, H5T_STD_U64LE, ffluxOutput->trajectory_outputs(outIndex).trajectory_id().data()));
-
 template <typename T>
 void Hdf5File::_setFFluxTrajectoryOutput(::google::protobuf::RepeatedField<T> dataField, hsize_t* dims, string dsetName, hid_t dsetType, hid_t lifecycleGroup, uint RANK)
 {
@@ -838,8 +834,6 @@ void Hdf5File::_setFFluxTrajectoryOutput(::google::protobuf::RepeatedField<T> da
         chunkdims[1] = dims[1];
         maxdims[1] = H5S_UNLIMITED;
     }
-
-    HDF5_EXCEPTION_CHECK(H5Eset_auto2(H5E_DEFAULT, NULL, NULL));
 
     // if the dataset exists, extend it
     if ((dataset = H5Dopen2(lifecycleGroup, dsetName.c_str(), H5P_DEFAULT))>=0)

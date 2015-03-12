@@ -43,7 +43,7 @@ simParams = [SimulationParameter(key='crossingsPerPhase',val=crossingsPerPhase),
              SimulationParameter(key='maxWorkUnitSteps',val=str(int(1e7))),
              SimulationParameter(key='writeInterval',val='1e3')]
 tilings = []
-tiling = Tiling(id=19,
+tiling = Tiling(id=0,
                 orderParameterID=0,
                 type=0,
                 edges=np.linspace(-25,25,13))
@@ -63,14 +63,14 @@ tiling = Tiling(id=27194,
                 type=0,
                 edges=np.linspace(-20,20,5))
 tilings.append(tiling)
-ffluxInput.AddTilings(tilings=tilings, currentTilingID=199)
+ffluxInput.AddTilings(tilings=tilings, currentTilingID=0)
 ffluxInput.SetInitialSpeciesCounts(iSCs=iSCs)
 ffluxInput.SetInitialSpeciesCountsBackward(iSCBs=iSCBs)
 ffluxInput.SetOrderParameters(ops=[op])
 ffluxInput.SetSimulationParameters(simParams=simParams)
 ffluxInput.Close()
 
-raw_args = '-sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff hdf5 -fflux -f "biphasic_switch.lm"'
+raw_args = '-sl lm::cme::GillespieDSolver -cr 1 -gr 0 -ff hdf5 -fflux -f "biphasic_switch.lm"'
 args = shlex.split(raw_args)
 p = subprocess.Popen([path] + args)
 p.wait()

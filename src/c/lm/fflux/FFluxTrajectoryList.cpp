@@ -136,11 +136,11 @@ void FFluxTrajectoryList::initFFluxOutput()
     msgStreamingPWUO->set_work_unit_id(999999999999999);
 
 	getFFluxOutput()->set_tiling_id(input.tilings.getCurrentTilingID());
-	getFFluxOutput()->set_number_tiles(maxFFluxPhase - 1);
+	getFFluxOutput()->set_number_tiles(maxFFluxPhase + 1);
 	getFFluxOutput()->set_number_species(input.reactionModelBuf.number_species());
 
     getFFluxOutputStreaming()->set_tiling_id(input.tilings.getCurrentTilingID());
-    getFFluxOutputStreaming()->set_number_tiles(maxFFluxPhase - 1);
+    getFFluxOutputStreaming()->set_number_tiles(maxFFluxPhase + 1);
     getFFluxOutputStreaming()->set_number_species(input.reactionModelBuf.number_species());
 
 	// setup 1 final_output entry
@@ -172,7 +172,7 @@ void FFluxTrajectoryList::initTrajectories(uint64_t trajectoriesToStart,bool rev
     for (long long i=0; i<trajectoriesToStart; i++)
     {
     	lm::fflux::FFluxTrajectory* newTraj = new lm::fflux::FFluxTrajectory(trajectoryCount,ffluxPhase,input,reversed);
-    	ffluxOutputAddTrajectory(newTraj, lm::io::FFluxOutput::INITIAL);
+    	if (intermediateOutputFlag) {ffluxOutputAddTrajectory(newTraj, lm::io::FFluxOutput::INITIAL);}
     	trajectories[trajectoryCount] = newTraj;
         trajectoryCount++;
     }
@@ -183,7 +183,7 @@ void FFluxTrajectoryList::initTrajectories(uint64_t trajectoriesToStart, lm::io:
     for (long long i=0; i<trajectoriesToStart; i++)
     {
     	lm::fflux::FFluxTrajectory* newTraj = new lm::fflux::FFluxTrajectory(trajectoryCount,ffluxPhase,input,zerothTraj);
-    	ffluxOutputAddTrajectory(newTraj, lm::io::FFluxOutput::INITIAL);
+    	if (intermediateOutputFlag) {ffluxOutputAddTrajectory(newTraj, lm::io::FFluxOutput::INITIAL);}
     	trajectories[trajectoryCount] = newTraj;
         trajectoryCount++;
     }
@@ -227,7 +227,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
         simTime = traj->getSimTime();
         dwellTimes[ffluxPhase] += simTime;
         ++finishedTrajectoriesCounts[ffluxPhase];
-        ffluxOutputAddTrajectory(traj, lm::io::FFluxOutput::FINAL);
+        if (intermediateOutputFlag) {ffluxOutputAddTrajectory(traj, lm::io::FFluxOutput::FINAL);}
         deleteTrajectory(finishedWorkUnitMsg.final_state().trajectory_id());
 //        Print::printf(Print::INFO, "ffluxPhase: %d, crossings[fflux].size(): %d, finishedTrajectoriesCount %d, time: %f, oparam: %f", ffluxPhase, crossings[ffluxPhase].size(), finishedTrajectoriesCounts[ffluxPhase], crossings[ffluxPhase].back()->cme_state().species_counts().time(crossings[ffluxPhase].back()->cme_state().species_counts().number_entries() - 1), calcTestCaseOParam(finishedWorkUnitMsg.final_state()));
         // If the forward flux sampling is still in its 0th (ie initial) phase...
@@ -283,7 +283,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
                     saveDwellTimes();
                     saveFinishedTrajectoriesCounts();
 
-                    ffluxOutputFinishTrajectory();
+                    if (intermediateOutputFlag) {ffluxOutputFinishTrajectory();}
                     ffluxOutputAddBasin(crossings, finishedTrajectoriesCounts);
 
                     // If we have to run fflux sampling in both directions, check if we're on the forward phase...
@@ -297,6 +297,8 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
                     else
                     {
                         ffluxOutputSetFinal_DinnerMethod(savedCrossings, savedDwellTimes, savedFinishedTrajectoriesCounts, savedHists);
+                        // if intermediateOutputFlag is not set, remove the basinOutputs from the final output message
+                        if (!(intermediateOutputFlag)) {getFFluxOutput()->clear_basin_outputs();}
                     }
                 }
             }
@@ -489,7 +491,7 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(FFluxTrajectory* traj, lm::io
     trajOut->add_time(traj->getSimTime());
     trajOut->add_trajectory_id(traj->getID());
 
-// send a message to the output writer if a certain ammount of trajectory data has accumulated and if this is the final part of the current trajectory
+    // send a message to the output writer if a certain ammount of trajectory data has accumulated and if this is the final part of the current trajectory
     if (trajOut->time_size() > 100 && lifecycle==lm::io::FFluxOutput::FINAL)
     {
         // Send the message
@@ -632,13 +634,17 @@ void FFluxTrajectoryList::ffluxOutputSetFinal_DinnerMethod(SavedCrossings& saved
         lm::io::TilingHist* normalizedProbabilityI = basinOut->mutable_normalized_probability_i();
         for (int i=0;i<probabilityI->tile_vals_size();i++)
         {
+            normalizedProbabilityI->set_number_tiles(getFFluxOutput()->number_tiles());
+            normalizedProbabilityI->set_tiling_id(getFFluxOutput()->tiling_id());
             normalizedProbabilityI->add_tile_indices(probabilityI->tile_indices(i));
             normalizedProbabilityI->add_tile_vals(probabilityI->tile_vals(i) /
                                                   basinOut->probability_i_weight());
         }
+        // add the switching rate constant for this basin to the finalOut
+        finalOut->add_switching_rate_constants(basinOut->switching_rate_constant());
     }
 
-    // set some BasinOuput buf pointers to correspond to the FORWARD and BACKWARD BasinOutputs
+    // initialze some BasinOuput buf pointers to correspond to the FORWARD and BACKWARD BasinOutputs
     lm::io::FFluxOutput::BasinOutput* basinOut = getFFluxOutput()->mutable_basin_outputs(FORWARD);
     lm::io::FFluxOutput::BasinOutput* oppositeBasinOut = getFFluxOutput()->mutable_basin_outputs(BACKWARD);
 
@@ -646,23 +652,30 @@ void FFluxTrajectoryList::ffluxOutputSetFinal_DinnerMethod(SavedCrossings& saved
     lm::io::TilingHist* probabilityI = finalOut->mutable_probability_i();
     for (int i=0;i<basinOut->probability_i().tile_vals_size();i++)
     {
+        probabilityI->set_number_tiles(getFFluxOutput()->number_tiles());
+        probabilityI->set_tiling_id(getFFluxOutput()->tiling_id());
         probabilityI->add_tile_indices(i);
         probabilityI->add_tile_vals(basinOut->probability_i().tile_vals(i) +
                                     oppositeBasinOut->probability_i().tile_vals(oppositeBasinOut->probability_i().tile_vals_size() - 1 - i));
     }
 
     // weight for basin-independent probability_i is just the sum of the weights for basin-dependent probability_i
-    finalOut->set_probability_i_weight(basinOut->probability_i_weight() + oppositeBasinOut->probability_i_weight());
+    double probabilityIWeight = basinOut->probability_i_weight() + oppositeBasinOut->probability_i_weight();
 
     finalOut->clear_normalized_probability_i();
     lm::io::TilingHist* normalizedProbabilityI = finalOut->mutable_normalized_probability_i();
     for (int i=0;i<probabilityI->tile_vals_size();i++)
     {
+        normalizedProbabilityI->set_number_tiles(getFFluxOutput()->number_tiles());
+        normalizedProbabilityI->set_tiling_id(getFFluxOutput()->tiling_id());
         normalizedProbabilityI->add_tile_indices(probabilityI->tile_indices(i));
         normalizedProbabilityI->add_tile_vals(probabilityI->tile_vals(i) /
-                                              finalOut->probability_i_weight());
+                                              probabilityIWeight);
     }
 
+    // add or remove some things from finalOutput depending on the status of intermediateOutputFlag
+    if (intermediateOutputFlag) {finalOut->set_probability_i_weight(probabilityIWeight);}
+    if (!(intermediateOutputFlag)) {normalizedProbabilityI->clear_tile_indices();}
 }
 
 }

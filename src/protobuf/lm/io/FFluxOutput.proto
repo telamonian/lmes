@@ -105,6 +105,8 @@ message FFluxOutput {
 		optional lm.io.TilingHist normalized_probability_i  = 2;
 		// the weight factor used to calculate normalized_probability_i
 		optional double probability_i_weight				= 3;
+		// the switching rate constants for all of the basins
+		repeated double switching_rate_constants			= 101 [packed=true];
 	}
 	
 	optional int32 number_species					= 1 [default=0];

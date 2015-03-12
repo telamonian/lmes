@@ -158,6 +158,11 @@ bool shouldReserveOutputCore;
  */
 bool ffluxFlag;
 
+/*
+ * Flag to indicate that we want intermediate output related to simulation results
+ */
+bool intermediateOutputFlag;
+
 /**
  * Flag to run input output testing
  */
@@ -203,6 +208,7 @@ void parseArguments(int argc, char** argv)
 
     shouldReserveOutputCore = true;
     ffluxFlag = false;
+    intermediateOutputFlag = false;
     ioTestFlag = false;
 
     // Parse any arguments.
@@ -419,6 +425,12 @@ void parseArguments(int argc, char** argv)
         	 supervisorClassName = "lm::fflux::FFluxSupervisor";
 		}
 
+        //See if the user is trying to use forward flux sampling.
+        else if ((strcmp(option, "-intout") == 0 || strcmp(option, "--intermediate-output") == 0))
+        {
+             intermediateOutputFlag = true;
+        }
+
         //See if the user is trying to do an input output test.
         else if ((strcmp(option, "-ioflag") == 0 || strcmp(option, "--do-io-test") == 0))
         {
@@ -557,5 +569,6 @@ void printUsage(int argc, char** argv)
     std::cout << "  -sl solver        --solver=solver               The specific solver class to use for the simulations." << std::endl;
     std::cout << "  -ck               --checkpoint=interval         Enable checkpointing with the given interval as hh:mm:ss (default 00:00:00 -- disabled)." << std::endl;
     std::cout << "  -fflux            --use-forward-flux			Enable forward flux sampling (default disabled)." << std::endl;
+    std::cout << "  -intout           --intermediate-output         More verbose output. Consists of intermediate values used to calculate standard output.";
 }
 
