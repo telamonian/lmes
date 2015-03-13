@@ -142,6 +142,60 @@ function(PROTOBUF_GENERATE_CPP SRCS HDRS)
   set(${HDRS} ${${HDRS}} PARENT_SCOPE)
 endfunction()
 
+# mostly copy-paste of PROTOBUF_GENERATE_CPP
+function(PROTOBUF_GENERATE_PYTHON PB2S)
+  if(NOT ARGN)
+    message(SEND_ERROR "Error: PROTOBUF_GENERATE_CPP() called without any proto files")
+    return()
+  endif()
+
+  if(PROTOBUF_GENERATE_CPP_APPEND_PATH)
+    list(GET ARGN 0 FIL)
+    get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
+    get_filename_component(ABS_PATH ${ABS_FIL} PATH)
+    string(REGEX REPLACE "(.*/protobuf/).*" "\\1" PROTOBUF_ROOT_DIR ${ABS_PATH})
+    list(FIND _protobuf_include_path ${PROTOBUF_ROOT_DIR} _contains_already)
+    if(${_contains_already} EQUAL -1)
+        list(APPEND _protobuf_include_path  -I${PROTOBUF_ROOT_DIR})
+    endif()
+  else()
+    set(_protobuf_include_path -I ${CMAKE_CURRENT_SOURCE_DIR})
+  endif()
+
+  if(DEFINED PROTOBUF_IMPORT_DIRS)
+    foreach(DIR ${PROTOBUF_IMPORT_DIRS})
+      get_filename_component(ABS_PATH ${DIR} ABSOLUTE)
+      list(FIND _protobuf_include_path ${ABS_PATH} _contains_already)
+      if(${_contains_already} EQUAL -1)
+          list(APPEND _protobuf_include_path -I ${ABS_PATH})
+      endif()
+    endforeach()
+  endif()
+
+  set(${PB2S})
+  #the following loop has extensive custom changes to allow for complex paths for generated .pb.cc and .pb.h files
+  foreach(FIL ${ARGN})
+    get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
+    get_filename_component(ABS_DIR ${FIL} PATH)
+    get_filename_component(FIL_WE ${FIL} NAME_WE)
+
+    string(REGEX REPLACE ".*/protobuf(.*)" "\\1" REL_PATH "${ABS_DIR}")
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}${REL_PATH}")
+    list(APPEND ${PB2S} "${CMAKE_CURRENT_BINARY_DIR}${REL_PATH}/${FIL_WE}_pb2.py")
+    list(APPEND ABS_FILS  ${ABS_FIL})
+  endforeach()
+  add_custom_command(
+  OUTPUT ${${PB2S}}#"${CMAKE_CURRENT_BINARY_DIR}${REL_PATH}/${FIL_WE}_pb2.py"
+  COMMAND  ${PROTOBUF_PROTOC_EXECUTABLE}
+  ARGS --python_out ${CMAKE_CURRENT_BINARY_DIR} ${_protobuf_include_path} ${ABS_FILS}
+  DEPENDS ${ABS_FILS}
+  COMMENT "Running python protocol buffer compiler on ${ABS_FILS}"
+  VERBATIM )
+
+  set_source_files_properties(${${PB2S}} PROPERTIES GENERATED TRUE)
+  set(${PB2S} ${${PB2S}} PARENT_SCOPE)
+endfunction()
+
 # Internal function: search for normal library as well as a debug one
 #    if the debug one is specified also include debug/optimized keywords
 #    in *_LIBRARIES variable

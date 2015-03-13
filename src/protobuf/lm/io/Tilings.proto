@@ -62,4 +62,5 @@ message Tilings {
     }
 
     repeated Tiling tilings                 = 1;
+    optional uint32 current_tiling_id		= 2;
 }

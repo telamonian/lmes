@@ -76,7 +76,9 @@ public:
     virtual lm::io::TrajectoryLimits* getLimits();
     virtual lm::message::Message* getMsg();
     virtual lm::message::Message* getNextWorkUnitMsg(uint64_t nextWorkUnitID);
+    virtual double getOPVal(uint opID=0);
     virtual lm::message::RunWorkUnit* getRunMsg();
+    virtual lm::io::SpeciesCounts* getSpeciesCounts();
     virtual lm::io::TrajectoryState* getState();
     virtual status_t getStatus();
 

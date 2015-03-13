@@ -98,15 +98,21 @@ Trajectory::~Trajectory()
 
 void Trajectory::initHists()
 {
-    for (lm::tiling::TilingMap::iterator t_it=input.tilings.begin();t_it!=input.tilings.end();t_it++)
+    lm::io::TilingHist* tHist = getState()->mutable_cme_state()->add_tiling_hists();
+    tHist->set_tiling_id(input.tilings.getCurrentTilingID());
+    for (lm::tiling::EdgeIterator e_it=input.tilings.getCurrentTiling()->begin();e_it!=input.tilings.getCurrentTiling()->end();e_it++)
     {
-        lm::io::TilingHist* tHist = getState()->mutable_cme_state()->add_tiling_hists();
-        tHist->set_tiling_id(t_it->second->getID());
-        for (lm::tiling::EdgeIterator e_it=t_it->second->begin();e_it!=t_it->second->end();e_it++)
-        {
-            tHist->add_tile_vals(0);
-        }
+        tHist->add_tile_vals(0);
     }
+//    for (lm::tiling::TilingMap::iterator t_it=input.tilings.begin();t_it!=input.tilings.end();t_it++)
+//    {
+//        lm::io::TilingHist* tHist = getState()->mutable_cme_state()->add_tiling_hists();
+//        tHist->set_tiling_id(t_it->second->getID());
+//        for (lm::tiling::EdgeIterator e_it=t_it->second->begin();e_it!=t_it->second->end();e_it++)
+//        {
+//            tHist->add_tile_vals(0);
+//        }
+//    }
 }
 
 void Trajectory::initMsg(map<string,string>& simulationParameters)
@@ -183,9 +189,27 @@ lm::message::Message* Trajectory::getNextWorkUnitMsg(uint64_t nextWorkUnitID)
     }
 }
 
+double Trajectory::getOPVal(uint opID)
+{
+	uint speciesCountSize = getSpeciesCounts()->species_count_size();
+	uint* lastSpeciesCount = new uint[getSpeciesCounts()->number_species()];
+	uint offset = (getSpeciesCounts()->number_entries() - 1)*(getSpeciesCounts()->number_species());
+	for (int i=0; i<getSpeciesCounts()->number_species(); i++)
+	{
+		lastSpeciesCount[i] = getSpeciesCounts()->species_count(i + offset);
+	}
+	return input.oparams[opID]->calc(lastSpeciesCount);
+	delete [] lastSpeciesCount;
+}
+
 lm::message::RunWorkUnit* Trajectory::getRunMsg()
 {
 	return msg.mutable_run_work_unit();
+}
+
+lm::io::SpeciesCounts* Trajectory::getSpeciesCounts()
+{
+	return getState()->mutable_cme_state()->mutable_species_counts();
 }
 
 Trajectory::status_t Trajectory::getStatus()

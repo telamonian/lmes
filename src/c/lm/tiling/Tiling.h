@@ -60,7 +60,6 @@ public:
 
     // getters
     lm::io::Tilings::Arrangement getArrangement();
-
     double getEdge(uint edgeIndex);
     uint getEdgesCount() {return tilingBuf->edges_size();}
     uint getID() {return tilingBuf->id();}

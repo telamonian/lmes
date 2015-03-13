@@ -46,6 +46,7 @@
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
+#include "lm/message/Communicator.h"
 #include "lm/message/Message.pb.h"
 #include "lm/trajectory/Trajectory.h"
 #include "lm/Types.h"
@@ -64,6 +65,9 @@ public:
     virtual ~TrajectoryList();
     virtual void init()=0;
 
+    //initializer
+    virtual void setCommunicator(lm::message::Communicator& newCom);
+
     // getter
     virtual lm::trajectory::Trajectory* getTrajectory(uint64_t trajectoryID);
     virtual lm::trajectory::Trajectory::status_t getTrajectoryStatus(uint64_t trajectoryID);
@@ -71,10 +75,16 @@ public:
     virtual bool exists(uint64_t trajectoryID) {if (trajectories.find(trajectoryID)!=trajectories.end()) return true; else return false;}
     virtual size_t size() {return trajectories.size();}
 
+    // getter on whole list
+    virtual uint64_t getSize() {return trajectories.size();}
+
     // setter
     virtual void setTrajectoryStarted(uint64_t trajectoryID, bool trajectoryStarted);
     virtual void setTrajectoryStatus(uint64_t trajectoryID, lm::trajectory::Trajectory::status_t status);
     virtual void setTrajectoryState(uint64_t trajectoryID, const lm::io::TrajectoryState& state);
+
+    // setter on whole list
+    virtual void setAllFinished();
 
     // destroyer
     virtual void deleteTrajectory(uint64_t trajectoryID);
@@ -91,15 +101,13 @@ public:
     virtual void printTrajectoryStatistics();
 
 protected:
-//    const lm::io::ReactionModel& reactionModel;
-//    const lm::io::DiffusionModel& diffusionModel;
-//    map<string,string>& simulationParameters;
+    lm::message::Communicator* communicator;
     lm::input::Input& input;
+    TrajectoryMap trajectories;
     uint64_t trajectoryCount;
     uint64_t workUnitCount;
     // this template message is used when initializing new Trajectory instances
     //lm::message::Message trajectoryTemplateMsg;
-    TrajectoryMap trajectories;
 };
 
 }

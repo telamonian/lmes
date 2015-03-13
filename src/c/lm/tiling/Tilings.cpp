@@ -46,11 +46,11 @@ namespace tiling {
 
 TilingClassMap Tilings::tilingClassMap = Tilings::makeTilingClassMap();
 
-Tilings::Tilings()
+Tilings::Tilings(): currentTilingID(-1)
 {
 }
 
-Tilings::Tilings(const lm::io::Tilings& newTilingsBuf)
+Tilings::Tilings(const lm::io::Tilings& newTilingsBuf): currentTilingID(-1)
 {
     init(newTilingsBuf);
 }
@@ -85,6 +85,10 @@ bool Tilings::init(lm::io::hdf5::Hdf5File* file)
 void Tilings::init(const lm::io::Tilings& newTilingsBuf)
 {
     setTilingsBuf(newTilingsBuf);
+    if (getTilingsBuf()->has_current_tiling_id())
+    {
+        currentTilingID = getTilingsBuf()->current_tiling_id();
+    }
     init();
 }
 
@@ -99,6 +103,19 @@ void Tilings::initTiling(const lm::io::Tilings::Tiling& tiling)
 {
     tilingMap[tiling.id()] = (static_cast<lm::tiling::Tiling*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::tiling::Tiling",lm::tiling::Tilings::tilingClassMap[tiling.type()])));
     tilingMap[tiling.id()]->init(tiling);
+}
+
+// accessors
+uint Tilings::getCurrentTilingID()
+{
+    if (hasCurrentTilingID())
+    {
+        return getTilingsBuf()->current_tiling_id();
+    }
+    else
+    {
+        return tilingMap.begin()->first;
+    }
 }
 
 void Tilings::reverse()

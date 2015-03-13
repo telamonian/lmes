@@ -36,8 +36,8 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_FFLUX_FFLUXTRAJECTORY_H_
-#define LM_FFLUX_FFLUXTRAJECTORY_H_
+#ifndef LM_NEUS_NEUSTRAJECTORY_H_
+#define LM_NEUS_NEUSTRAJECTORY_H_
 
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/trajectory/Trajectory.h"
@@ -64,6 +64,7 @@ public:
 
     // accessors
     virtual lm::io::TrajectoryLimits::LimitType getFinalLimitType();
+    virtual void getLastSpeciesCounts(lm::io::FFluxOutput::TrajectoryOutput* trajectoryOutputBuf);
     virtual uint getSimSteps();
     virtual double getSimTime();
     virtual bool hasElapsed(double time);

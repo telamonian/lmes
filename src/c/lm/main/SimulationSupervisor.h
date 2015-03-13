@@ -148,7 +148,7 @@ protected:
     bool hasTilings;
     lm::io::Tilings tilingsBuf;
     lm::tiling::Tilings tilings;
-    lm::trajectory::TrajectoryList* trajectories;
+    lm::trajectory::TrajectoryList* trajectoryList;
     lm::slot::SlotList slots;
     bool haveAllWorkUnitRunnersStarted;
     long long workUnitCount;
@@ -160,7 +160,6 @@ private:
     long long stats_maxWorkUnitId;
     long long stats_workUnitsSteps;
     double stats_workUnitTime;
-
 };
 
 }

@@ -1,4 +1,4 @@
-#!/usr/local/bin/python
+#!/usr/bin/env python
 import bisect as bi
 from collections import OrderedDict
 import h5py
@@ -26,11 +26,15 @@ cm.hot.set_bad(cm.hot(0))
 # stuff to make the perceptual color maps
 pCMap = {}
 rPCMap = {}
-walk = os.walk(os.path.join(os.path.dirname(os.path.realpath(__file__)),'colormaps')).next()
+walk = next(os.walk(os.path.join(os.path.dirname(os.path.realpath(__file__)),'colormaps')))
 for fname in (fname for fname in walk[2] if fname[0]!='.'):
+    print(fname)
     with open(os.path.join(walk[0],fname)) as f:
-        cVals = np.array([map(float,line.strip().split(',')) for line in f])
+        cVals = np.array([list(map(float,line.strip().split(','))) for line in f])
         # Setting up columns for tuples
+        print(cVals)
+        
+        print(cVals.shape)
         b3 = cVals[:,2]
         b2 = cVals[:,2]
         b1 = np.linspace(0, 1, len(b2))
@@ -45,8 +49,8 @@ for fname in (fname for fname in walk[2] if fname[0]!='.'):
         G = zip(g1,g2,g3)
         B = zip(b1,b2,b3)
         # Transposing
-        RGB = zip(R,G,B)
-        rgb = zip(*RGB)
+        RGB = list(zip(R,G,B))
+        rgb = list(zip(*RGB))
         # Creating color maps
         k = ['red', 'green', 'blue']
         pCMap[fname.split('.')[0]] = matplotlib.colors.LinearSegmentedColormap(fname.split('.')[0], dict(zip(k,rgb)))
@@ -134,7 +138,7 @@ class MovieDir(object):
     def __enter__(self):
         self.oldDir = os.getcwd()
         try:
-            os.mkdir(self.dirName, 0755)
+            os.mkdir(self.dirName, 0o755)
         except OSError:
             pass
         os.chdir(path.join(self.oldDir,self.dirName))
@@ -229,7 +233,7 @@ class Sims(object):
             self.rcoords = np.hstack([self.rcoords, sim.rcoords])
     
     def Savefig(self, fig, suffix):
-        fname = self.Figname(suffix)
+        fname = os.path.join(os.getcwd(),self.Figname(suffix))
         fig.savefig(fname, bbox_inches='tight', transparent=True)
     
     def Hist(self):
@@ -238,7 +242,7 @@ class Sims(object):
         fig = plt.figure(1)
         axes = plt.axes()
         matplotlib.rcParams.update({'font.size': 30})
-        print 'graphing now...'
+        print('graphing now...')
         n, bins, patches = axes.hist(self.oparam, bins=200, range=(-100,100), normed=True)
         fig.clf()
         axes = plt.axes()
@@ -255,14 +259,14 @@ class Sims(object):
 #         labels = ['']*len(labels)
 #         axes.set_yticklabels(labels)
         self.Savefig(fig, '_hist')
-        print 'done'
+        print('done')
     
     def HistClassic(self):
         if self.oparam==None:
             self.Pdf()
         fig = plt.figure(1)
         axes = plt.axes()
-        print 'graphing now...'
+        print('graphing now...')
         n, bins, patches = axes.hist(self.oparam, bins=200, range=(-100,100), normed=True)
         axes.plot(bins[1:] - .5, n, 'r--')  # bins is the x coord of each vertical line on the histogram. n is the height of each bin. Thus, len(bins) = len(n)+1, and so the bins[1:] weirdness
         fig.set_size_inches(36,24)
@@ -272,7 +276,7 @@ class Sims(object):
         labels = ['']*len(labels)
         ax.set_yticklabels(labels)
         self.Savefig(fig, '_hist')
-        print 'done'
+        print('done')
     
     def HistUmbrella(self):
         '''histogram with umbrellas on for explaining umbrella sampling'''
@@ -284,7 +288,7 @@ class Sims(object):
         fig = plt.figure(1)
         fig.set_size_inches(12,8)
         ax = plt.axes()
-        print 'graphing now...'
+        print('graphing now...')
         n, bins, patches = ax.hist(self.oparam, bins=200, range=(-100,100), normed=True)
         line_x = bins[1:] - .5   # bins is the x coord of each vertical line on the histogram. n is the height of each bin. Thus, len(bins) = len(n)+1, and so the bins[1:] weirdness 
         ylim = (1.05*np.max(n))
@@ -319,26 +323,45 @@ class Sims(object):
             ax.invert_yaxis()
 #             if frame==99:
 #                 self.Savefig(fig, '_histumbrella_static_last')
-            print "saving frame _%09d" % frame
+            print("saving frame _%09d" % frame)
         
 #         [animate(9999) for foo in range(100)]
         anim = animation.FuncAnimation(fig, animate, frames=frames)
         anim.save('hist_umbrella_1st_1_animation.gif' ,writer='imagemagick', fps=frames/float(playbacktime));
-        print 'done'
+        print('done')
     
     def Hist2D(self):
         if self.rcoords==None:
             self.Rcoords()
         fig = plt.figure(1)
         axes = plt.axes()
-        print 'graphing now...'
+        print('graphing now...')
         axes.hist2d(self.rcoords[0,:], self.rcoords[1,:], range=[[0,100],[0,100]], bins=(100, 100))
         fig.set_size_inches(36,24)
         matplotlib.rcParams.update({'font.size': 42})
         axes.set_xlabel('copy num(A)')
         axes.set_ylabel('copy num(B)')
         self.Savefig(fig, '_hist2d')
-        print 'done'
+        print('done')
+        
+        
+    def Hist2DSepTraj(self):
+        '''
+        plots each individual trajectory as a separate Hist2D
+        '''
+        if self.rcoords==None:
+            self.Rcoords()
+        fig = plt.figure(1)
+        axes = plt.axes()
+        print('graphing now...')
+        for i,sim in enumerate(self.sims):
+            axes.hist2d(sim.rcoords[0,:], sim.rcoords[1,:], range=[[0,100],[0,100]], bins=(100, 100))
+            fig.set_size_inches(36,24)
+            matplotlib.rcParams.update({'font.size': 42})
+            axes.set_xlabel('copy num(A)')
+            axes.set_ylabel('copy num(B)')
+            self.Savefig(fig, '_hist2d_replicate%03d' % i)
+            print('done')
         
     def Hist2DLog(self):
         if self.rcoords==None:
@@ -346,8 +369,8 @@ class Sims(object):
         fig = plt.figure(1)
         fig.set_size_inches(12,8)
         axes = plt.axes()
-        print 'graphing now...'
-        counts,xbins,ybins,image =plt.hist2d(self.rcoords[0,:], self.rcoords[1,:],range=((0,40),(0,40)), bins=(40,40), normed=True, norm=LogNorm(), cmap=pCMap['cube1']) #cmap=cm.hot, range=[[0,84],[0,84]], bins=(84, 84))
+        print('graphing now...')
+        counts,xbins,ybins,image=plt.hist2d(self.rcoords[0,:], self.rcoords[1,:],range=((0,40),(0,40)), bins=(40,40), normed=True, norm=LogNorm(), cmap=pCMap['cube1']) #cmap=cm.hot, range=[[0,84],[0,84]], bins=(84, 84))
 #         plt.colorbar()
 
         matplotlib.rcParams.update({'font.size': 30})
@@ -374,7 +397,7 @@ class Sims(object):
 #         labels = ['']*len(labels)
 #         axes.set_yticklabels(labels) 
         self.Savefig(fig, '_hist2d_log_perceptual_1d')
-        print 'done'
+        print('done')
     
     def Hist2DLogBounce(self):
         if self.rcoords==None:
@@ -386,7 +409,7 @@ class Sims(object):
         fig = plt.figure(1)
         fig.set_size_inches(12,8)
         axes = plt.axes()
-        print 'graphing now...'
+        print('graphing now...')
         plt.hist2d(self.rcoords[0,:], self.rcoords[1,:], range=[[0,84],[0,84]], bins=(84, 84),normed=True, norm=LogNorm(), cmap=pCMap['cube1'])
         plt.colorbar()
         bb = Circle((0.5, 0.5), 1, fc='r')    # bb, the bouncing ball! star of the show
@@ -399,13 +422,13 @@ class Sims(object):
         axes.yaxis.set_ticks(np.arange(start, end, 20))
         axes.add_artist(bb)
         def animate(frame):
-            print "on frame %04d" % frame
+            print("on frame %04d" % frame)
             bb.center = self.rcoords[:,frame*step]
         
         plt.subplots_adjust(left=0.15, right=.95, bottom=.15, top=.95)
         anim = animation.FuncAnimation(fig, animate, frames=frames)
         anim.save('bouncing_ball.gif' ,writer='imagemagick', fps=frames/float(playbacktime));
-        print 'done'
+        print('done')
     
     def Passage(self):
         self.dwells = np.array([])
@@ -417,11 +440,11 @@ class Sims(object):
         xdata = np.array(sorted(self.dwells.tolist()))
         ydata = np.array(range(1, len(self.dwells) + 1))/float(len(self.dwells))
         fit = Fit(func, init, xdata=xdata, ydata=ydata)
-        print 'graphing now...'
+        print('graphing now...')
         fit.ScatterPlot(self.Figname('_passage_cdf', ext=False), clear=True)
         fit.SmoothPlot(self.Figname('_passage_cdf', ext=False), lim=('auto','auto'), labels=('time (k)','cdf'), annotate='k: %10e' % fit.params['k'].value)
-        print 'done'
-        print fit
+        print('done')
+        print(fit)
     
     def Surf3D(self):
         xbincnt = 300
@@ -466,14 +489,14 @@ class Sims(object):
             self.sims[i].Pdf()
         fig = plt.figure(1)
         axes = plt.axes()
-        print 'graphing now...'
+        print('graphing now...')
         axes.plot(self.sims[i].times[::100], self.sims[i].oparam[::100])
         fig.set_size_inches(72,6)
         axes.set_yticks(range(-100,101,10))
         axes.set_xlabel('time (k)')
         axes.set_ylabel('$\Delta$ (copy num(b) - copy num(a))')
         self.Savefig(fig, '_tcourse')
-        print 'done'
+        print('done')
           
     def TrajMov(self, trajID=0):
         datapoints = 10000
@@ -487,7 +510,7 @@ class Sims(object):
 #         fig.patch.set_facecolor('white')
 #         fig.patch.set_alpha(0)
         axes = plt.axes()
-        print 'graphing now...'
+        print('graphing now...')
         xoparams = self.sims[trajID].oparam[:datapoints]
         
         def animate(frame):
@@ -506,12 +529,12 @@ class Sims(object):
             axes.set_xlabel('$\Delta$ (copy num(b) - copy num(a))', fontsize=30)
             axes.set_ylabel('normalized count', fontsize=30)
             axes.invert_yaxis()
-            print "saving frame _%09d" % frame
+            print("saving frame _%09d" % frame)
         
         plt.subplots_adjust(left=0.1, right=.95, bottom=.15, top=.95)
         anim = animation.FuncAnimation(fig, animate, frames=frames)
         anim.save('mov_traj.gif' ,writer='imagemagick', fps=frames/float(playbacktime));
-        print 'done'
+        print('done')
         # to compile movie
         # ffmpeg -r 30 -i biphasic_switch_direct_%09d.png -c:v libx264 -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -r 30 -pix_fmt yuv420p biphasic_switch_direct.mp4
     
@@ -522,7 +545,7 @@ class Sims(object):
             self.Pdf()
         fig = plt.figure(1)
         axes = plt.axes()
-        print 'graphing now...'
+        print('graphing now...')
         xoparam = self.sims[trajID].oparam[0:frames]
         nAll, binsAll, patchesAll = axes.hist(xoparam, bins=200, range=(-100,100))#, normed=True)
         axes.cla()
@@ -562,12 +585,12 @@ class Sims(object):
             axes.set_ylim((-.05*np.max(nAll),np.max(nAll) + .05*np.max(nAll)))
             axes.invert_yaxis()
 #                 self.Savefig(fig, '_%09d' % i)
-            print "saving frame _%09d" % frame
+            print("saving frame _%09d" % frame)
             dot.remove()
         
         anim = animation.FuncAnimation(fig, animate, frames=frames)
         anim.save('smooth_mov_traj.gif' ,writer='imagemagick', fps=frames/float(playbacktime));
-        print 'done'
+        print('done')
         # to compile movie
         # ffmpeg -r 30 -i biphasic_switch_direct_%09d.png -c:v libx264 -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -r 30 -pix_fmt yuv420p biphasic_switch_direct.mp4
         # ffmpeg -r 30 -i biphasic_switch_direct_%09d.png -vcodec png biphasic_switch_direct_3spline.mov
@@ -615,7 +638,7 @@ class FFluxBiphasics(Biphasics):
             self.SortByInterface()
         fig = plt.figure(1)
         axes = plt.axes()
-        print 'graphing now...'
+        print('graphing now...')
         
         #for 
         nAll, binsAll, patchesAll = axes.hist(xoparam, bins=len(self.interfaces)-1, range=(-100,100))#, normed=True)
@@ -657,9 +680,9 @@ class FFluxBiphasics(Biphasics):
                 axes.set_ylim((-.05*np.max(nAll),np.max(nAll) + .05*np.max(nAll)))
                 axes.invert_yaxis()
                 self.Savefig(fig, '_%09d' % i)
-                print "saving frame _%09d" % i
+                print("saving frame _%09d" % i)
                 dot.remove()
-        print 'done'
+        print('done')
         # to compile movie
         # ffmpeg -r 30 -i biphasic_switch_direct_%09d.png -c:v libx264 -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -r 30 -pix_fmt yuv420p biphasic_switch_direct.mp4    
 
@@ -675,6 +698,8 @@ if __name__=="__main__":
         biphasics.HistUmbrella()
     elif sys.argv[2]=='hist2d':
         biphasics.Hist2D()
+    elif sys.argv[2]=='hist2dseptraj':
+        biphasics.Hist2DSepTraj()
     elif sys.argv[2]=='hist2dlog':
         biphasics.Hist2DLog()
     elif sys.argv[2]=='hist2dlogbounce':

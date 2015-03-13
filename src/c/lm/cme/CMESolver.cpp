@@ -51,6 +51,8 @@
 #include <time.h>
 #endif
 
+#include <cstdio>
+
 #include "lm/cme/CMESolver.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/OrderParameters.pb.h"
@@ -246,6 +248,28 @@ void CMESolver::ReactionModel::build(const uint numberSpeciesA, const uint numbe
                 propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
             }
         }
+        else if (reactionTypes[i] == ZerothOrderTimeDependentPropensityArgs::REACTION_TYPE)
+        {
+            // Find the dependencies.
+            uint numberDependencies = 0;
+            for (uint j=0; j<numberSpecies; j++)
+            {
+                if (D[j*numberReactions+i] == 1)
+                {
+                    numberDependencies++;
+                }
+            }
+            if (numberDependencies > 1000000)
+            {
+                throw InvalidArgException("D", "zeroth order time dependent reaction probably shouldn't have that many dependencies",numberDependencies);
+            }
+            else
+            {
+                propensityFunctions[i] = (void *)&zerothOrderTimeDependentPropensity;
+                propensityFunctionArgs[i] =  (void *)new ZerothOrderTimeDependentPropensityArgs(K[i*kCols], K[i*kCols+1], K[i*kCols+2]);
+                propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
+            }
+        }
         else if (reactionTypes[i] == FirstOrderPropensityArgs::REACTION_TYPE)
         {
             // Find the dependencies.
@@ -266,6 +290,30 @@ void CMESolver::ReactionModel::build(const uint numberSpeciesA, const uint numbe
                     else
                     {
                         throw InvalidArgException("D", "first order reaction had invalid number of dependencies",numberDependencies);
+                    }
+                }
+            }
+        }
+        else if (reactionTypes[i] == FirstOrderTimeDependentPropensityArgs::REACTION_TYPE)
+        {
+            // Find the dependencies.
+            uint numberDependencies = 0;
+            for (uint j=0; j<numberSpecies; j++)
+            {
+                if (D[j*numberReactions+i] == 1)
+                {
+                    numberDependencies++;
+
+                    // Set the table entry to the first non-zero dependency.
+                    if (numberDependencies < 1000000)
+                    {
+                        propensityFunctions[i] = (void *)&firstOrderTimeDependentPropensity;
+                        propensityFunctionArgs[i] =  (void *)new FirstOrderTimeDependentPropensityArgs(j, K[i*kCols], K[i*kCols+1], K[i*kCols+2]);
+                        propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
+                    }
+                    else
+                    {
+                        throw InvalidArgException("D", "first order time dependent reaction probably shouldn't have that many dependencies",numberDependencies);
                     }
                 }
             }
@@ -724,10 +772,38 @@ double CMESolver::zerothOrderPropensity(double time, uint * speciesCounts, void 
     return args->k;
 }
 
+double CMESolver::zerothOrderTimeDependentPropensity(double time, uint * speciesCounts, void * pargs)
+{
+    ZerothOrderTimeDependentPropensityArgs * args = (ZerothOrderTimeDependentPropensityArgs *)pargs;
+    //printf("zeroth order time is: %.3f\n", time);
+    //printf("zeroth order time dep prop: %.3f\n", args->ki + (args->kf - args->ki)*(time/args->tf));
+    if (args->tf > time) {
+        return args->ki + (args->kf - args->ki)*(time/args->tf);
+    }
+    else
+    {
+        return args->kf;
+    }
+}
+
 double CMESolver::firstOrderPropensity(double time, uint * speciesCounts, void * pargs)
 {
     FirstOrderPropensityArgs * args = (FirstOrderPropensityArgs *)pargs;
     return args->k * (double)speciesCounts[args->si];
+}
+
+double CMESolver::firstOrderTimeDependentPropensity(double time, uint * speciesCounts, void * pargs)
+{
+    FirstOrderTimeDependentPropensityArgs * args = (FirstOrderTimeDependentPropensityArgs *)pargs;
+    //printf("first order time is: %.3f\n", time);
+    //printf("first order time dep prop: %.3f\n", args->ki + (args->kf - args->ki)*(time/args->tf) * (double)speciesCounts[args->si]);
+    if (args->tf > time) {
+        return (args->ki + (args->kf - args->ki)*(time/args->tf)) * (double)speciesCounts[args->si];
+    }
+    else
+    {
+        return args->kf * (double)speciesCounts[args->si];
+    }
 }
 
 double CMESolver::secondOrderPropensity(double time, uint * speciesCounts, void * pargs)
@@ -941,11 +1017,11 @@ void CMESolver::getState(lm::io::TrajectoryState* state)
     }
 
     // Get the tiling hists
-//    state->mutable_cme_state()->clear_tiling_hists();
-//    for (uint i=0;i<numberTilingHists;i++)
-//    {
-//        tilingHists[i].serializeTo(state->mutable_cme_state()->add_tiling_hists());
-//    }
+    state->mutable_cme_state()->clear_tiling_hists();
+    for (uint i=0;i<numberTilingHists;i++)
+    {
+        tilingHists[i].serializeTo(state->mutable_cme_state()->add_tiling_hists());
+    }
 }
 
 void CMESolver::setState(const lm::io::TrajectoryState& state)
@@ -991,16 +1067,16 @@ void CMESolver::setState(const lm::io::TrajectoryState& state)
     }
 
     // Set the histogram bin values
-//    numberTilingHists = state.cme_state().tiling_hists_size();
-//    if (state.cme_state().tiling_hists_size() > 0)
-//    {
-//        tilingHists = new TilingHist[numberTilingHists];
-//        for (uint i=0;i<numberTilingHists;i++)
-//        {
-//            tilingHists[i] = TilingHist();
-//            tilingHists[i].init(state.cme_state().tiling_hists(i));
-//        }
-//    }
+    numberTilingHists = state.cme_state().tiling_hists_size();
+    if (state.cme_state().tiling_hists_size() > 0)
+    {
+        tilingHists = new TilingHist[numberTilingHists];
+        for (uint i=0;i<numberTilingHists;i++)
+        {
+            tilingHists[i] = TilingHist();
+            tilingHists[i].init(state.cme_state().tiling_hists(i));
+        }
+    }
 }
 
 void CMESolver::setLimits(const lm::io::TrajectoryLimits& limits)

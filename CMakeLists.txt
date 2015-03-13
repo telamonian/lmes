@@ -1,6 +1,7 @@
 cmake_minimum_REQUIRED(VERSION 2.8.7)
 SET(CMAKE_C_COMPILER gcc)
 SET(CMAKE_CXX_COMPILER g++)
+set(ENV{HDF5_ROOT} ${HDF5_ROOT})
 
 ################
 project(lm)
@@ -74,7 +75,7 @@ ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     # in order to support clang, the -stdlib=libstdc++ flag needs to be passed to clang, and the -ccbin clang flag needs to be passed to nvcc during the CUDA compilation (see src/cuda/CMakeLists.txt)
     # if you compiled the Lattice Microbes dependencies using clang in 10.9 (in particular google protobuf) and are getting strange linking errors to a particular dependency, you may need also need to recompile said dependency using the -stdlib=libstdc++ option 
     execute_process(COMMAND sw_vers OUTPUT_VARIABLE SW_VERS_DUMP)
-    STRING(REGEX REPLACE ".+ProductVersion:\t10\\.([0-9]).+" "\\1" OSX_VERSION "${SW_VERS_DUMP}" )
+    STRING(REGEX REPLACE ".+ProductVersion:\t10\\.([0-9].+)" "\\1" OSX_VERSION "${SW_VERS_DUMP}" )
     MESSAGE(STATUS "OSX_VERSION=10.${OSX_VERSION}")
     IF(OSX_VERSION GREATER 8)
         SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -stdlib=libstdc++")
@@ -100,7 +101,8 @@ add_subdirectory(src/c)
 IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
     add_subdirectory(src/cuda)
     add_dependencies(lm_cuda_lib lm_c_lib)
-ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional)) 
+ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
+add_subdirectory(src/python) 
 add_subdirectory(gtest/c)
 add_subdirectory(utils/c)
 add_dependencies(lm_sbml_import lm_c_lib)
@@ -108,31 +110,31 @@ add_dependencies(lm_sbml_import lm_c_lib)
 #get_directory_property(proto_vars DIRECTORY src/protobuf DEFINITION proto_srcs)
 
 ################
-#TARGET: lm
+#TARGET: lmes
 ################
 set(lm_main_src src/c/lm/main/MainMPI.cpp)
 
-add_executable(lm ${lm_main_src})
+add_executable(lmes ${lm_main_src})
 
 # The following code is need to ensue that all objects from the custom static libraries are
 # linked in to the executable, even if they are not referenced from the main program.
 # Without this, static initialization of the ClassFactory does not work.
 SET(LM_C_LIB lm_c_lib)
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    target_link_libraries(lm -Wl,--whole-archive)
-    target_link_libraries(lm ${LM_C_LIB})
-    target_link_libraries(lm -Wl,--no-whole-archive)
+    target_link_libraries(lmes -Wl,--whole-archive)
+    target_link_libraries(lmes ${LM_C_LIB})
+    target_link_libraries(lmes -Wl,--no-whole-archive)
 ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    target_link_libraries(lm -Wl,-force_load)
-    target_link_libraries(lm ${LM_C_LIB})
+    target_link_libraries(lmes -Wl,-force_load)
+    target_link_libraries(lmes ${LM_C_LIB})
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
-    target_link_libraries(lm lm_cuda_lib
+    target_link_libraries(lmes lm_cuda_lib
                              ${CUDA_LIBRARIES})
 ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional)) 
 
-target_link_libraries(lm ${CMAKE_THREAD_LIBS_INIT}
+target_link_libraries(lmes ${CMAKE_THREAD_LIBS_INIT}
                          ${libsbml_LIBRARIES}
                          ${PROTOBUF_LIBRARIES}
                          ${HDF5_LIBRARIES}
@@ -140,26 +142,23 @@ target_link_libraries(lm ${CMAKE_THREAD_LIBS_INIT}
                          ${MPI_C_LIBRARIES}
                          ${PYTHON_LIBRARY_DIRS})
 
-install(TARGETS lm DESTINATION bin)
+install(TARGETS lmes DESTINATION bin)
 
 ################
 #TARGET: cython
 ################
-if (MAKE_CYTHON STREQUAL yes)
-    set(CYTHON_OTHER_LIBS ${CMAKE_THREAD_LIBS_INIT}
-                          ${libsbml_LIBRARIES}
-                          ${PROTOBUF_LIBRARIES}
-                          ${HDF5_LIBRARIES}
-                          ${HDF5_HL_LIBRARIES}
-                          ${MPI_C_LIBRARIES}
-                          ${PYTHON_LIBRARY_DIRS})
+#set(CYTHON_OTHER_LIBS ${CMAKE_THREAD_LIBS_INIT}
+#                      ${libsbml_LIBRARIES}
+#                      ${PROTOBUF_LIBRARIES}
+#                      ${HDF5_LIBRARIES}
+#                      ${HDF5_HL_LIBRARIES}
+#                      ${MPI_C_LIBRARIES}
+#                      ${PYTHON_LIBRARY_DIRS})
 
-    add_custom_target(ReplicatePythonSourceTree ALL ${CMAKE_COMMAND} -P
-        ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/ReplicatePythonSourceTree.cmake
-        ${CMAKE_CURRENT_BINARY_DIR}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-    set(ENV{HDF5_ROOT} ${HDF5_ROOT})
-    include(UseCython)  ###cython
-    add_subdirectory(src/cython)
-endif (MAKE_CYTHON STREQUAL yes)
-                               
+
+add_custom_target(ReplicatePythonSourceTree ALL ${CMAKE_COMMAND} -P
+    ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/ReplicatePythonSourceTree.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+include(UseCython)  ###cython
+add_subdirectory(src/cython)                    

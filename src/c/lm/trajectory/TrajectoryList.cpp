@@ -58,13 +58,8 @@ using std::string;
 namespace lm {
 namespace trajectory {
 
-//TrajectoryList::TrajectoryList(const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters)
-//:reactionModel(reactionModel),diffusionModel(diffusionModel),simulationParameters(simulationParameters),trajectoryCount(0),workUnitCount(0)
-//{
-//}
-
 TrajectoryList::TrajectoryList(lm::input::Input& input)
-:input(input),trajectoryCount(0),workUnitCount(0)
+:communicator(NULL),input(input),trajectoryCount(0),workUnitCount(0)
 {
 }
 
@@ -84,9 +79,16 @@ void TrajectoryList::deleteAllTrajectories()
 
 void TrajectoryList::deleteTrajectory(uint64_t trajectoryID)
 {
+//	Print::printf(Print::INFO,"Deleting trajectory ID: %d", trajectoryID);
     TrajectoryMap::iterator it(trajectories.find(trajectoryID));
     delete it->second;
     trajectories.erase(it);
+}
+
+// initializer(s)
+void TrajectoryList::setCommunicator(lm::message::Communicator& newCom)
+{
+    communicator = &newCom;
 }
 
 lm::trajectory::Trajectory* TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
@@ -114,6 +116,7 @@ lm::trajectory::Trajectory* TrajectoryList::workUnitFinished(const lm::message::
 
 lm::message::Message* TrajectoryList::getNextWorkUnitMsg()
 {
+//	Print::printf(Print::INFO, "As I get the next work unit, the trajectories size is: %d\n", trajectories.size());
     for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
     {
         lm::message::Message* retMsg = it->second->getNextWorkUnitMsg(workUnitCount++);
@@ -151,6 +154,14 @@ Trajectory::status_t TrajectoryList::getTrajectoryStatus(uint64_t trajectoryID)
 lm::io::TrajectoryState* TrajectoryList::getTrajectoryState(uint64_t trajectoryID)
 {
     return trajectories[trajectoryID]->getState();
+}
+
+void TrajectoryList::setAllFinished()
+{
+	for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+	{
+		it->second->setStatus(Trajectory::FINISHED);
+	}
 }
 
 void TrajectoryList::setTrajectoryStarted(uint64_t trajectoryID, bool trajectoryStarted)

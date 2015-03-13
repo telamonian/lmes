@@ -95,7 +95,7 @@ void ReplicateSupervisor::startSimulation()
     Print::printf(Print::INFO, "Replicate supervisor starting simulation.");
 
     // Create the new trajectory list.
-    trajectories = new ReplicateTrajectoryList(*input, ::replicates.front(), ::replicates.back());
+    trajectoryList = new ReplicateTrajectoryList(*input, ::replicates.front(), ::replicates.back());
 
     // Call the base class method
     SimulationSupervisor::startSimulation();
@@ -103,7 +103,7 @@ void ReplicateSupervisor::startSimulation()
 
 void ReplicateSupervisor::finishSimulation()
 {
-    Print::printf(Print::INFO, "Replicate supervisor finished %d replicates in %0.2f seconds.", trajectories->size(), convertHrToSeconds(getHrTime()-simulationStartTime));
+    Print::printf(Print::INFO, "Replicate supervisor finished %d replicates in %0.2f seconds.", trajectoryList->size(), convertHrToSeconds(getHrTime()-simulationStartTime));
     SimulationSupervisor::finishSimulation();
 }
 
