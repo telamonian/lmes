@@ -4,7 +4,7 @@ sys.path.append(os.path.join(thisScriptDir, '../../python_protobuf/lm/io'))
 
 import h5py
 from Tilings_pb2 import Tilings as TilingsBuf
-from tiling import Tiling
+from .tiling import Tiling
 
 class Tilings(object):
     def __init__(self, fPath):

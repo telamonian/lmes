@@ -4,13 +4,13 @@ thisScriptDir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(thisScriptDir, '../..'))
 
 import src
-from src.oparams.oparams import OParams
+from src.main.replicate import Replicate
 
 import unittest
 
-class OParamTestCase(unittest.TestCase):
+class ReplicateTestCase(unittest.TestCase):
     def setUp(self):
-        self.oparams = OParams(fPath=os.path.join(thisScriptDir, '../testData/biphasic_switch.lm'))
+        self.replicate = Replicate(replicateID=3, fPath=os.path.join(thisScriptDir, '../testData/biphasic_switch.lm'))
         
     def test_type_hdf5(self):
         '''

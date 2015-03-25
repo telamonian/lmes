@@ -39,10 +39,27 @@
 
 package lm.io;
 
-message SpeciesCounts {
-    required uint64 trajectory_id                       = 1;
-    required int32 number_species                       = 2;
-    required int32 number_entries                       = 3;
-    repeated int32 species_count                        = 4 [packed=true];
-    repeated double time                                = 5 [packed=true];
+message Hist {
+	// rank:
+	// a single number equal to the count of dimensions spanned by the hist
+	optional uint64 rank		= 1;
+	// dims:
+	// list of ints, length=rank
+	// the nth entry is the number of bins/tiles along dimension n
+	repeated uint64 dims		= 2 [packed=true];
+	// openness:
+	// list of 2-tuples, one for each bin, of the form (int0,int1) where 0 indicates a closed edge and 1 indicates an open edge
+	// if openness is empty, then default is to assume that all bins are half-open on the right (ie (0,1))
+	// unused for now, in contrast to boundedness
+	repeated uint32 openness 	= 3 [packed=true];
+	// boundedness:
+	// list of 2-tuples, one for each dimesion covered by the hist, of the form (int0,int1) where int can be 0 or 1
+	// if int0 is 0, this indicates that the leftmost bin for the corresponding dim is unbounded on the left, and if int0 is 1 that the leftmost bin is bounded on both sides
+	// if int1 is 0, this indicates that the rightmost bin for the corresponding dim is unbounded on the right, and if int1 is 1 that the rightmost bin is bounded on both sides
+	repeated uint32 boundedness = 4 [packed=true];
+	
+	// edges:
+	// 
+	repeated double edges		= 100 [packed=true];
+	repeated double vals		= 101 [packed=true];
 }

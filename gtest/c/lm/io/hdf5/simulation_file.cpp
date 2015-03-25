@@ -60,10 +60,10 @@ TEST_F(SimulationFileFixture, ReadOrderParameters)
     }
     ASSERT_EQ(ops.order_parameters(0).id(), 0);
     ASSERT_EQ(ops.order_parameters(0).type(), 0);
-    ASSERT_EQ(ops.order_parameters(0).species_id(1), 1);
-    ASSERT_EQ(ops.order_parameters(0).species_id(4), 4);
-    ASSERT_DOUBLE_EQ(ops.order_parameters(0).species_coefficient(1), 2.0);
-    ASSERT_DOUBLE_EQ(ops.order_parameters(0).species_coefficient(3), -1.0);
+    ASSERT_EQ(ops.order_parameters(0).species_ids(1), 1);
+    ASSERT_EQ(ops.order_parameters(0).species_ids(4), 4);
+    ASSERT_DOUBLE_EQ(ops.order_parameters(0).species_coefficients(1), 2.0);
+    ASSERT_DOUBLE_EQ(ops.order_parameters(0).species_coefficients(3), -1.0);
 }
 
 TEST_F(SimulationFileFixture, ReadWriteReadOrderParameters)
@@ -76,10 +76,10 @@ TEST_F(SimulationFileFixture, ReadWriteReadOrderParameters)
     }
     ASSERT_EQ(ops.order_parameters(0).id(), 0);
     ASSERT_EQ(ops.order_parameters(0).type(), 0);
-    ASSERT_EQ(ops.order_parameters(0).species_id(1), 1);
-    ASSERT_EQ(ops.order_parameters(0).species_id(4), 4);
-    ASSERT_DOUBLE_EQ(ops.order_parameters(0).species_coefficient(1), 2.0);
-    ASSERT_DOUBLE_EQ(ops.order_parameters(0).species_coefficient(3), -1.0);
+    ASSERT_EQ(ops.order_parameters(0).species_ids(1), 1);
+    ASSERT_EQ(ops.order_parameters(0).species_ids(4), 4);
+    ASSERT_DOUBLE_EQ(ops.order_parameters(0).species_coefficients(1), 2.0);
+    ASSERT_DOUBLE_EQ(ops.order_parameters(0).species_coefficients(3), -1.0);
 }
 
 TEST_F(SimulationFileFixture, ReadTilings)

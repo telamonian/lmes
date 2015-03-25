@@ -32,10 +32,22 @@ shutil.copy('wo_fflux.biphasic_switch.lm','biphasic_switch.lm')
 ffluxInput = Input('biphasic_switch.lm')
 iSCs = InitialSpeciesCounts(speciesCounts=[4,16,1,0,0,0,0])
 iSCBs = InitialSpeciesCountsBackward(speciesCounts=[0,0,0,4,16,1,0])
+ops = []
 op = OrderParameter(type=0,
                     id=0,
                     speciesIDs=[0,1,2,3,4,5],
                     speciesCoefficients=[-1,-2,-2,1,2,2])
+ops.append(op)
+op = OrderParameter(type=0,
+                    id=1,
+                    speciesIDs=[0,1,2],
+                    speciesCoefficients=[1,2,2])
+ops.append(op)
+op = OrderParameter(type=0,
+                    id=2,
+                    speciesIDs=[3,4,5],
+                    speciesCoefficients=[1,2,2])
+ops.append(op)
 simParams = [SimulationParameter(key='crossingsPerPhase',val=crossingsPerPhase),
              SimulationParameter(key='maxPhaseZeroTime',val=maxPhaseZeroTime),
              SimulationParameter(key='maxSteps',val=str(int(1e10))),
@@ -45,6 +57,16 @@ simParams = [SimulationParameter(key='crossingsPerPhase',val=crossingsPerPhase),
 tilings = []
 tiling = Tiling(id=0,
                 orderParameterID=0,
+                type=0,
+                edges=np.linspace(-25,25,13))
+tilings.append(tiling)
+tiling = Tiling(id=1,
+                orderParameterID=1,
+                type=0,
+                edges=np.linspace(-25,25,13))
+tilings.append(tiling)
+tiling = Tiling(id=2,
+                orderParameterID=2,
                 type=0,
                 edges=np.linspace(-25,25,13))
 tilings.append(tiling)

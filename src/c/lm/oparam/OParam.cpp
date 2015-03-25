@@ -83,9 +83,9 @@ void OParamLinear::init(const lm::io::OrderParameters::OrderParameter& opRef)
 {
     // call parent method
     OParam::init(opRef);
-    size = op->species_id_size();
-    speciesID = op->species_id().data();
-    speciesCoefficient = op->species_coefficient().data();
+    size = op->species_ids_size();
+    speciesID = op->species_ids().data();
+    speciesCoefficient = op->species_coefficients().data();
 }
 
 double OParamLinear::calc(uint* speciesCounts)

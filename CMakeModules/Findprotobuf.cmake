@@ -145,7 +145,7 @@ endfunction()
 # mostly copy-paste of PROTOBUF_GENERATE_CPP
 function(PROTOBUF_GENERATE_PYTHON PB2S)
   if(NOT ARGN)
-    message(SEND_ERROR "Error: PROTOBUF_GENERATE_CPP() called without any proto files")
+    message(SEND_ERROR "Error: PROTOBUF_GENERATE_PYTHON() called without any proto files")
     return()
   endif()
 

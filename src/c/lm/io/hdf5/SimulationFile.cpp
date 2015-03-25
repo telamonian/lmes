@@ -913,7 +913,7 @@ herr_t Hdf5File::getOrderParametersCallback(hid_t loc_id, const char * name, con
     H5LTread_dataset_int(opGroup, "SpeciesIDs", speciesBuffer);
     for (int i=0;i<dims[0];i++)
     {
-        newOP->add_species_id(speciesBuffer[i]);
+        newOP->add_species_ids(speciesBuffer[i]);
     }
 
     H5LTget_dataset_info(opGroup, "SpeciesCoefficients", dims, &hdf5Type, &size);
@@ -921,7 +921,7 @@ herr_t Hdf5File::getOrderParametersCallback(hid_t loc_id, const char * name, con
     H5LTread_dataset_double(opGroup, "SpeciesCoefficients", coefficientBuffer);
     for (int i=0;i<dims[0];i++)
     {
-        newOP->add_species_coefficient(coefficientBuffer[i]);
+        newOP->add_species_coefficients(coefficientBuffer[i]);
     }
 
     // free the buffers
@@ -991,10 +991,10 @@ void Hdf5File::setOrderParameters(lm::io::OrderParameters * orderParameters)
         HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(opsGroup, opSS.str().c_str(), "Type", &type, 1));
 
         // write the order parameter's datasets
-        opDims[0] = orderParameters->order_parameters(i).species_id().size();
-        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(opGroup, "SpeciesIDs", 1, opDims, H5T_STD_U32LE, orderParameters->order_parameters(i).species_id().data()));
-        opDims[0] = orderParameters->order_parameters(i).species_coefficient().size();
-        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(opGroup, "SpeciesCoefficients", 1, opDims, H5T_IEEE_F64LE, orderParameters->order_parameters(i).species_coefficient().data()));
+        opDims[0] = orderParameters->order_parameters(i).species_ids().size();
+        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(opGroup, "SpeciesIDs", 1, opDims, H5T_STD_U32LE, orderParameters->order_parameters(i).species_ids().data()));
+        opDims[0] = orderParameters->order_parameters(i).species_coefficients().size();
+        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(opGroup, "SpeciesCoefficients", 1, opDims, H5T_IEEE_F64LE, orderParameters->order_parameters(i).species_coefficients().data()));
         HDF5_EXCEPTION_CHECK(H5Gclose(opGroup));
     }
     HDF5_EXCEPTION_CHECK(H5Gclose(opsGroup));

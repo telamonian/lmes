@@ -4,17 +4,17 @@ thisScriptDir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(thisScriptDir, '../..'))
 
 import src
-from src.tilings.tilings import Tilings
+from src.trajectory.trajectories import Trajectories
 
 import unittest
 
-class TilingsTestCase(unittest.TestCase):
+class TrajectoriesTestCase(unittest.TestCase):
     def setUp(self):
-        self.tilings = Tilings(fPath=os.path.join(thisScriptDir, '../testData/biphasic_switch.lm'))
+        self.trajectories = Trajectories(fPath=os.path.join(thisScriptDir, '../testData/biphasic_switch.lm'))
     
-    def test_arrangement(self):
+    def test_arrangement_hdf5(self):
         '''
-        test determination of arrangement of edges
+        test reading of oparam id from hdf5 files
         '''
         self.tilings.rffHDF5()
 
@@ -25,11 +25,9 @@ class TilingsTestCase(unittest.TestCase):
         self.assertEqual(arrangementInt, 0)
         
     def test_edges_hdf5(self):
-        '''
-        test reading of tiling edges from hdf5 files
-        '''
         self.tilings.rffHDF5()
 
+        # test reading of tiling edges from hdf5 files
         edgeArr = np.array(self.tilings[19].edges)
         intendedEdgeArr = np.linspace(-25,25,13)
         self.assertTrue(np.allclose(edgeArr, intendedEdgeArr))
@@ -41,7 +39,7 @@ class TilingsTestCase(unittest.TestCase):
 
     def test_id_hdf5(self):
         '''
-        test reading of tiling id from hdf5 files
+        test reading of oparam id from hdf5 files
         '''
         self.tilings.rffHDF5()
 
@@ -53,7 +51,7 @@ class TilingsTestCase(unittest.TestCase):
         
     def test_order_parameter_id_hdf5(self):
         '''
-        test reading of the id of the tiling's order parameter from hdf5 files
+        test reading of oparam id from hdf5 files
         '''
         self.tilings.rffHDF5()
 
@@ -65,7 +63,7 @@ class TilingsTestCase(unittest.TestCase):
     
     def test_type_hdf5(self):
         '''
-        test reading of tiling type from hdf5 files
+        test reading of oparam type from hdf5 files
         '''
         self.tilings.rffHDF5()
 
