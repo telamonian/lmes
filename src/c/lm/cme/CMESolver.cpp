@@ -82,7 +82,7 @@ namespace lm {
 namespace cme {
 
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
-:neededDists(neededDists),rng(NULL),oparams(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),tilingHists(NULL),trajectoryStarted(false),speciesCounts(NULL),time(0.0),timeStep(0.0),finalLimitType(static_cast<lm::io::TrajectoryLimits::LimitType>(0))
+:neededDists(neededDists),rng(NULL),oparams(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),tilingHists(NULL),trajectoryStarted(false),degreeAdvancements(NULL),orderParameterValues(NULL),speciesCounts(NULL),time(0.0),timeStep(0.0),finalLimitType(static_cast<lm::io::TrajectoryLimits::LimitType>(0))
 {
 }
 
@@ -92,6 +92,8 @@ CMESolver::~CMESolver()
     if (reactionModel != NULL) delete reactionModel; reactionModel = NULL;
 
     // Free any memory associated with the state.
+    if (degreeAdvancements != NULL) delete[] degreeAdvancements; degreeAdvancements = NULL;
+    if (orderParameterValues != NULL) delete[] orderParameterValues; orderParameterValues = NULL;
     if (speciesCounts != NULL) delete[] speciesCounts; speciesCounts = NULL;
 
     // Free any memory being used by the order parameters
@@ -963,17 +965,47 @@ void CMESolver::reset()
         speciesCounts[i] = 0;
     }
 
-    // Reinitialize the order parameters, if required
-    if (needsOrderParameters())
-    {
-        oparams->initValues(speciesCounts);
-    }
-
     // Reset the time.
     time = 0.0;
 
     // Reset the max time;
     maxTime = std::numeric_limits<double>::infinity();
+
+    // Reinitialize the order parameters, if required
+    if (needsOrderParameters())
+    {
+        oparams->initValues(speciesCounts, time);
+    }
+
+    // Reset the degreeAdvancements
+    if (daFlag)
+    {
+        if (degreeAdvancements != NULL)
+        {
+            delete[] degreeAdvancements;
+        }
+        degreeAdvancements = NULL;
+        degreeAdvancements = new uint[reactionModel->numberReactions];
+        for (uint i=0; i<reactionModel->numberReactions; i++)
+        {
+            degreeAdvancements[i] = 0;
+        }
+    }
+
+    // Reset the orderParameterValues
+    if (opvFlag)
+    {
+        if (orderParameterValues != NULL)
+        {
+            delete[] orderParameterValues;
+        }
+        orderParameterValues = NULL;
+        orderParameterValues = new double[oparams->size()];
+        for (uint i=0; i<oparams->size(); i++)
+        {
+            orderParameterValues[i] = 0;
+        }
+    }
 
     // Reset the species limits.
     numberSpeciesLimits = 0;
@@ -999,6 +1031,32 @@ void CMESolver::getState(lm::io::TrajectoryState* state)
 {
     // Get the trajectory id.
     state->set_trajectory_id(trajectoryId);
+
+    // Get the degree advancements.
+    if (daFlag)
+    {
+        state->mutable_cme_state()->mutable_degree_advancements()->set_trajectory_id(trajectoryId);
+        state->mutable_cme_state()->mutable_degree_advancements()->set_number_reactions(reactionModel->numberReactions);
+        state->mutable_cme_state()->mutable_degree_advancements()->set_number_entries(1);
+        for (int i=0; i<reactionModel->numberReactions; i++)
+        {
+            state->mutable_cme_state()->mutable_degree_advancements()->add_degree_advancements(degreeAdvancements[i]);
+        }
+        state->mutable_cme_state()->mutable_degree_advancements()->add_time(time);
+    }
+
+    // Get the order parameter values.
+    if (opvFlag)
+    {
+        state->mutable_cme_state()->mutable_order_parameter_values()->set_trajectory_id(trajectoryId);
+        state->mutable_cme_state()->mutable_order_parameter_values()->set_number_order_parameters(oparams->size());
+        state->mutable_cme_state()->mutable_order_parameter_values()->set_number_entries(1);
+        for (int i=0; i<oparams->size(); i++)
+        {
+            state->mutable_cme_state()->mutable_order_parameter_values()->add_order_parameter_values(orderParameterValues[i]);
+        }
+        state->mutable_cme_state()->mutable_order_parameter_values()->add_time(time);
+    }
 
     // Get the species counts.
     state->mutable_cme_state()->mutable_species_counts()->set_trajectory_id(trajectoryId);
@@ -1034,6 +1092,18 @@ void CMESolver::setState(const lm::io::TrajectoryState& state)
     // Set the trajectory id.
     trajectoryId = state.trajectory_id();
 
+    // Set the degree advancements.
+    for (int i=0; i<state.cme_state().degree_advancements().degree_advancements_size(); i++)
+    {
+        degreeAdvancements[i] = state.cme_state().degree_advancements().degree_advancements(i);
+    }
+
+    // Set the order parameter values.
+    for (int i=0; i<state.cme_state().order_parameter_values().order_parameter_values_size(); i++)
+    {
+        orderParameterValues[i] = state.cme_state().order_parameter_values().order_parameter_values(i);
+    }
+
     // Set the species counts.
     for (int i=0; i<state.cme_state().species_counts().species_count_size(); i++)
     {
@@ -1043,7 +1113,7 @@ void CMESolver::setState(const lm::io::TrajectoryState& state)
     // Reinitialize the order parameters, if required
     if (needsOrderParameters())
     {
-        oparams->initValues(speciesCounts);
+        oparams->initValues(speciesCounts, time);
     }
 
     time = state.cme_state().species_counts().time(0);

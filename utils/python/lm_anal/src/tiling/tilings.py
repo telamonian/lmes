@@ -15,6 +15,13 @@ class Tilings(object):
     def __getitem__(self, key):
         return self.tilingMap[key]
 
+    def hasHDF5(self):
+        with h5py.File(self.fPath,'r') as simF:
+            if 'Simulations' in simF.keys():
+                return True
+            else:
+                return False 
+
     def rffHDF5(self):
     # rff (read from file)
         with h5py.File(self.fPath,'r') as simF:

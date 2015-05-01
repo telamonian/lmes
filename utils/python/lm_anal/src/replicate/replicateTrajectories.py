@@ -9,6 +9,11 @@ class ReplicateTrajectories(object):
     def __getitem__(self, key):
         return self.trajectoryMap[key]
 
+    def hasHDF5(self):
+        with h5py.File(self.fPath,'r') as simF:
+            if 'Simulations' in simF.keys():
+                return TUREAD 
+        
     def rffHDF5(self):
     # rff (read from file)
         with h5py.File(self.fPath,'r') as simF:

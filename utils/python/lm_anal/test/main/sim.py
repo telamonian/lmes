@@ -10,4 +10,12 @@ import unittest
 
 class SimTestCase(unittest.TestCase):
     def setUp(self):
-        self.oparams = OParams(fPath=os.path.join(thisScriptDir, '../testData/biphasic_switch.lm'))
+        self.sim = Sim(os.path.join(thisScriptDir, '../testData/biphasic_switch.lm'))
+    
+    def test_load_data(self):
+        '''
+        test that Sim creates the appropriate suite of data objects upon instantiation
+        '''
+        for dataObjectName in ['oparams', 'replicateTrajectories', 'tilings']:
+            self.assertTrue(hasattr(self.sim, dataObjectName), msg='dataObject %s not in sim.__dict__: %s' % (dataObjectName, self.sim.__dict__))
+            self.assertIn(dataObjectName, self.sim.dataDict, msg='dataObject %s not in sim.dataDict: %s' % (dataObjectName, self.sim.dataDict))

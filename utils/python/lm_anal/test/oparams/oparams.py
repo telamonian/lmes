@@ -4,20 +4,27 @@ thisScriptDir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(thisScriptDir, '../..'))
 
 import src
-from src.oparams.oparams import OParams
+from src.oparam.oparams import OParams
 
 import unittest
 
 class OParamTestCase(unittest.TestCase):
     def setUp(self):
         self.oparams = OParams(fPath=os.path.join(thisScriptDir, '../testData/biphasic_switch.lm'))
+        self.oparams.rffHDF5()
         
+    def test_calc(self):
+        '''
+        test calculation of oparam value from species vector
+        '''    
+        oparamVal = self.oparams[0].calc(np.array(((4,16,1,0,0,0,0),)))
+        intendedOParamVal = -38
+        self.assertEqual(oparamVal, intendedOParamVal)
+    
     def test_type_hdf5(self):
         '''
         test reading of oparam type from hdf5 files
         '''
-        self.oparams.rffHDF5()
-
         typeInt = self.oparams[0].type
         self.assertEqual(typeInt, 0)
 
@@ -25,8 +32,6 @@ class OParamTestCase(unittest.TestCase):
         '''
         test reading of oparam id from hdf5 files
         '''
-        self.oparams.rffHDF5()
-
         idInt = self.oparams[0].id
         self.assertEqual(idInt, 0)
 
@@ -34,8 +39,6 @@ class OParamTestCase(unittest.TestCase):
         '''
         test reading of oparam species coefficient array from hdf5 files
         '''
-        self.oparams.rffHDF5()
-
         speciesCoefficientArr = np.array(self.oparams[0].species_coefficients)
         intendedSpeciesCoefficientArr = np.array([-1.0,-2.0,-2.0,1.0,2.0,2.0])
         self.assertTrue(np.allclose(speciesCoefficientArr, intendedSpeciesCoefficientArr))
@@ -44,8 +47,6 @@ class OParamTestCase(unittest.TestCase):
         '''
         test reading of oparam species id array from hdf5 files
         '''
-        self.oparams.rffHDF5()
-
         speciesIdArr = np.array(self.oparams[0].species_ids)
         intendedSpeciesIdArr = np.array([0,1,2,3,4,5])
         self.assertTrue(np.allclose(speciesIdArr, intendedSpeciesIdArr))

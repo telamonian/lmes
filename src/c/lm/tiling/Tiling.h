@@ -60,10 +60,12 @@ public:
 
     // getters
     lm::io::Tilings::Arrangement getArrangement();
-    double getEdge(uint edgeIndex);
+    uint getDim(uint dimIndex) {return tilingBuf->edges(dimIndex);}
+    double getEdge(uint edgeIndex) {return tilingBuf->edges(edgeIndex);}
     uint getEdgesCount() {return tilingBuf->edges_size();}
     uint getID() {return tilingBuf->id();}
     uint getOrderParameterID() {return tilingBuf->order_parameter_id();}
+    uint getRank() {return tilingBuf->rank();}
     uint getTileIndex(double opVal);    // get the index of the tile for making a histogram based on the tiling
 //    double getAscendingLimit(uint edgeIndex);
 //    double getDescendingLimit(uint edgeIndex);
@@ -78,16 +80,18 @@ protected:
     lm::io::Tilings::Tiling* tilingBuf;
 };
 
-class TilingAxial : public Tiling
+class TilingLattice : public Tiling
 {
 public:
     static bool registered;
     static bool registerClass();
     static void* allocateObject();
 
-    TilingAxial();
-    virtual ~TilingAxial() {}
+    TilingLattice();
+    virtual ~TilingLattice() {}
     virtual void init(const lm::io::Tilings::Tiling& tilingRef);
+
+
 };
 
 }

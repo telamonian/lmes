@@ -52,7 +52,7 @@ simParams = [SimulationParameter(key='crossingsPerPhase',val=crossingsPerPhase),
              SimulationParameter(key='maxPhaseZeroTime',val=maxPhaseZeroTime),
              SimulationParameter(key='maxSteps',val=str(int(1e10))),
              SimulationParameter(key='maxTime',val='1e5'),
-             SimulationParameter(key='maxWorkUnitSteps',val=str(int(1e7))),
+             SimulationParameter(key='maxWorkUnitSteps',val=str(int(1e5))),
              SimulationParameter(key='writeInterval',val='1e3')]
 tilings = []
 tiling = Tiling(id=0,
@@ -88,7 +88,7 @@ tilings.append(tiling)
 ffluxInput.AddTilings(tilings=tilings, currentTilingID=0)
 ffluxInput.SetInitialSpeciesCounts(iSCs=iSCs)
 ffluxInput.SetInitialSpeciesCountsBackward(iSCBs=iSCBs)
-ffluxInput.SetOrderParameters(ops=[op])
+ffluxInput.SetOrderParameters(ops=ops)
 ffluxInput.SetSimulationParameters(simParams=simParams)
 ffluxInput.Close()
 

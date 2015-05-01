@@ -1460,7 +1460,7 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
 
     // infer whether edges is sorted ascending or descending
     lm::io::Tilings::Arrangement sortArrangement = newTiling->edges(newTiling->edges_size()-1)>=newTiling->edges(0) ? lm::io::Tilings::ASCENDING : lm::io::Tilings::DESCENDING;
-    newTiling->set_arrangement(sortArrangement);
+    newTiling->add_arrangement(sortArrangement);
 
     // ensure that edges is actually sorted the way we guessed
     if (sortArrangement==lm::io::Tilings::ASCENDING)

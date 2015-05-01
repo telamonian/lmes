@@ -1,37 +1,34 @@
-#from ..io.simFile import simFileFactory
-# hdf5File = simFileFactory()
-import os
+from replicate import Replicate
+from ..io.simFile import simFileFactory
 
-from ..helper import CamelCase
-from ..oparam.oparams import OParams
-from ..replicate.replicateTrajectories import ReplicateTrajectories
-from ..tiling.tilings import Tilings
+hdf5File = simFileFactory()
 
 class Sim(object):
-    dataObjects = [OParams, ReplicateTrajectories, Tilings]
-    
-    def __init__(self, fPath, lmintOnly=False, **kwargs):
+    def __init__(self, fPath, type='replicateProbability', lmintOnly=False, **kwargs):
         self.fPath = fPath
         self.fDir, self.fNameFull = os.path.split(self.fPath)
         self.fName, self.fNameSuffix = self.fNameFull.split('.')[:2]
         self.modTimePath = os.path.join(self.fDir, '.' + self.fName) + '.mod'
         self.intermediatePath = os.path.join(self.fDir, self.fName) + '.lmint'
-#         self.
+        self.sweepParams = kwargs
+        self.type = type
+        self.oparam = None
+        self.rcoords = None
 
         if lmintOnly:
             # we only have a .lmint file and no base .lm file
             self._Load()
         elif not self.Load():
             self.Init()
-#         self.f = h5py.File(self.fPath)
-#         self.params = self.f['/Parameters'].attrs
-#         self.maxtime = self.params['maxTime']
-#         self.writeinterval = self.params['writeInterval']
-#         self.replicateKeys = list(self.f['/Simulations'].keys())
-#         self.replicateCount = len(self.replicateKeys)
-#         
-#         self.tileEdges = self.f['/Tilings/0000000/Edges']
-#         self.normalizedProbabilityI = self.f['/Tilings/0000000/FFluxOutput/NormalizedProbabilityI/TileVals']
+        self.f = h5py.File(self.fPath)
+        self.params = self.f['/Parameters'].attrs
+        self.maxtime = self.params['maxTime']
+        self.writeinterval = self.params['writeInterval']
+        self.replicateKeys = list(self.f['/Simulations'].keys())
+        self.replicateCount = len(self.replicateKeys)
+        
+        self.tileEdges = self.f['/Tilings/0000000/Edges']
+        self.normalizedProbabilityI = self.f['/Tilings/0000000/FFluxOutput/NormalizedProbabilityI/TileVals']
             
         # logic of the following conditional:
         # if you want to unpickle an intermediate AND the raw data HAS NOT changed, then do so
@@ -55,42 +52,34 @@ class Sim(object):
         return outString[:-2]
     
     def Init(self):
-        self.dataDict = {}
-        for dataObject in self.__class__.dataObjects:
-            temp = dataObject(fPath=self.fPath)
-            if temp.rffHDF5():
-                attrName = CamelCase(dataObject.__name__)
-                self.__setattr__(attrName, temp)
-                self.dataDict[attrName] = self.__getattribute__(attrName)
+        self.f = h5py.File(self.fPath)
+        self.params = self.f['/Parameters'].attrs
+        self.maxtime = self.params['maxTime']
+        self.writeinterval = self.params['writeInterval']
+        self.replicateKeys = list(self.f['/Simulations'].keys())
+        self.replicateCount = len(self.replicateKeys)
+        self.f.close()
         
-#         self.f = h5py.File(self.fPath)
-#         self.params = self.f['/Parameters'].attrs
-#         self.maxtime = self.params['maxTime']
-#         self.writeinterval = self.params['writeInterval']
-#         self.replicateKeys = list(self.f['/Simulations'].keys())
-#         self.replicateCount = len(self.replicateKeys)
-#         self.f.close()
-#         
-#         self.histogram = []
-#         self.xBinCoordinates = []
-#         self.yBinCoordinates = []
-# #         self.p = []
-#         for key in self.replicateKeys:
-#             print('starting intermediate processing of replicate %07d' % int(key))
-#             self.f = h5py.File(self.fPath)
-#             simdata = self.f['/Simulations'][key]
-#             sim = self.__class__.child(simdata, **self.sweepParams)
-#             self.InitFPT()
-#             self.InitOParamHist
-#             self.
-#             elif self.type=='replicateProbability':
-#                 self.RcoordsHist(sim)
-#                 self.PdfHist()
-#             elif self.type=='fflux':
-#                 self.GetFFluxOutput()
-#             del sim
-#             self.f.close()
-#         self.Save()
+        self.histogram = []
+        self.xBinCoordinates = []
+        self.yBinCoordinates = []
+#         self.p = []
+        for key in self.replicateKeys:
+            print('starting intermediate processing of replicate %07d' % int(key))
+            self.f = h5py.File(self.fPath)
+            simdata = self.f['/Simulations'][key]
+            sim = self.__class__.child(simdata, **self.sweepParams)
+            self.InitFPT()
+            self.InitOParamHist
+            self.
+            elif self.type=='replicateProbability':
+                self.RcoordsHist(sim)
+                self.PdfHist()
+            elif self.type=='fflux':
+                self.GetFFluxOutput()
+            del sim
+            self.f.close()
+        self.Save()
     
     def CheckMod(self):
         '''
@@ -146,8 +135,7 @@ class Sim(object):
         LOAD_FRESH_ONLY: will only load the .lmint file if a call to CheckMod returns True
         LOAD_OLD: will load the .lmint file as long as it exists
         '''
-        if hasattr(self, 'sweepParams'):
-            print('attempting to load intermediate file for sweep datapoint %s...' % self)
+        print('attempting to load intermediate file for sweep datapoint %s...' % self)
         if mode=='LOAD_FRESH_ONLY':
             if not self.CheckMod():
                 print('...load failed due to out of date or non-existant mod file'); return False

@@ -91,7 +91,7 @@ TEST_F(SimulationFileFixture, ReadTilings)
     ASSERT_EQ(tngs.tilings(0).order_parameter_id(), 0);
     ASSERT_DOUBLE_EQ(tngs.tilings(0).edges(1), -20.833333969116211);
     ASSERT_DOUBLE_EQ(tngs.tilings(0).edges(10), 16.666666030883789);
-    ASSERT_EQ(tngs.tilings(0).arrangement(), lm::io::Tilings::ASCENDING);
+    ASSERT_EQ(tngs.tilings(0).arrangement(0), lm::io::Tilings::ASCENDING);
 }
 
 TEST_F(SimulationFileFixture, ReadWriteReadTilings)
@@ -105,7 +105,7 @@ TEST_F(SimulationFileFixture, ReadWriteReadTilings)
     ASSERT_EQ(tngs.tilings(0).order_parameter_id(), 0);
     ASSERT_DOUBLE_EQ(tngs.tilings(0).edges(1), -20.833333969116211);
     ASSERT_DOUBLE_EQ(tngs.tilings(0).edges(10), 16.666666030883789);
-    ASSERT_EQ(tngs.tilings(0).arrangement(), lm::io::Tilings::ASCENDING);
+    ASSERT_EQ(tngs.tilings(0).arrangement(0), lm::io::Tilings::ASCENDING);
 }
 
 int main(int argc, char **argv) {

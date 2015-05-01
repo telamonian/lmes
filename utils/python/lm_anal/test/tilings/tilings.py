@@ -4,20 +4,19 @@ thisScriptDir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(thisScriptDir, '../..'))
 
 import src
-from src.tilings.tilings import Tilings
+from src.tiling.tilings import Tilings
 
 import unittest
 
 class TilingsTestCase(unittest.TestCase):
     def setUp(self):
         self.tilings = Tilings(fPath=os.path.join(thisScriptDir, '../testData/biphasic_switch.lm'))
+        self.tilings.rffHDF5()
     
     def test_arrangement(self):
         '''
         test determination of arrangement of edges
         '''
-        self.tilings.rffHDF5()
-
         arrangementInt = self.tilings[19].arrangement
         self.assertEqual(arrangementInt, 0)
         
@@ -28,8 +27,6 @@ class TilingsTestCase(unittest.TestCase):
         '''
         test reading of tiling edges from hdf5 files
         '''
-        self.tilings.rffHDF5()
-
         edgeArr = np.array(self.tilings[19].edges)
         intendedEdgeArr = np.linspace(-25,25,13)
         self.assertTrue(np.allclose(edgeArr, intendedEdgeArr))
@@ -43,8 +40,6 @@ class TilingsTestCase(unittest.TestCase):
         '''
         test reading of tiling id from hdf5 files
         '''
-        self.tilings.rffHDF5()
-
         idInt = self.tilings[19].id
         self.assertEqual(idInt, 19)
         
@@ -55,8 +50,6 @@ class TilingsTestCase(unittest.TestCase):
         '''
         test reading of the id of the tiling's order parameter from hdf5 files
         '''
-        self.tilings.rffHDF5()
-
         oparamIDInt = self.tilings[19].order_parameter_id
         self.assertEqual(oparamIDInt, 0)
         
@@ -67,8 +60,6 @@ class TilingsTestCase(unittest.TestCase):
         '''
         test reading of tiling type from hdf5 files
         '''
-        self.tilings.rffHDF5()
-
         typeInt = self.tilings[19].type
         self.assertEqual(typeInt, 0)
 

@@ -191,14 +191,14 @@ lm::message::Message* Trajectory::getNextWorkUnitMsg(uint64_t nextWorkUnitID)
 
 double Trajectory::getOPVal(uint opID)
 {
-	uint speciesCountSize = getSpeciesCounts()->species_count_size();
 	uint* lastSpeciesCount = new uint[getSpeciesCounts()->number_species()];
 	uint offset = (getSpeciesCounts()->number_entries() - 1)*(getSpeciesCounts()->number_species());
+	double time = getSpeciesCounts()->time(getSpeciesCounts()->number_entries() - 1);  //double time = getSpeciesCounts()->time(getSpeciesCounts()->time_size()-1);
 	for (int i=0; i<getSpeciesCounts()->number_species(); i++)
 	{
 		lastSpeciesCount[i] = getSpeciesCounts()->species_count(i + offset);
 	}
-	return input.oparams[opID]->calc(lastSpeciesCount);
+	return input.oparams[opID]->calc(lastSpeciesCount, time);
 	delete [] lastSpeciesCount;
 }
 

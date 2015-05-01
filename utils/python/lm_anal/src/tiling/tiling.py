@@ -4,9 +4,7 @@ DESCENDING = 1
 class Tiling(object):
     def __init__(self, tilingBuf, hdf5TilingGroup=None):
         self.tilingBuf = tilingBuf
-        if hdf5TilingGroup!=None:
-            self.InitFromHdf5(hdf5TilingGroup)
-
+        
         # add some attributes to the Tiling instance that allow for direct access to the underlying TilingBuf
         self.arrangement = self.tilingBuf.arrangement
         self.id = self.tilingBuf.id
@@ -14,6 +12,11 @@ class Tiling(object):
         self.type = self.tilingBuf.type
         self.edges = self.tilingBuf.edges
         
+        self.rank = self.tilingBuf.rank
+        self.dims = self.tilingBuf.dims
+        
+        if hdf5TilingGroup!=None:
+            self.InitFromHdf5(hdf5TilingGroup)
         self.InitArrangement()
 
     def InitArrangement(self):
@@ -36,9 +39,13 @@ class Tiling(object):
 
     def InitFromHdf5(self, hdf5TilingGroup):
             # initialize the data storage container underlying this Tiling instance, which is in turn a TilingBuf instance
-            self.tilingBuf.type = int(hdf5TilingGroup.attrs['Type'])
-            self.tilingBuf.id = int(hdf5TilingGroup.attrs['ID'])
-            self.tilingBuf.order_parameter_id = int(hdf5TilingGroup.attrs['OrderParameterID'])
-            for val in hdf5TilingGroup['Edges']:
-                self.tilingBuf.edges.append(val)
+            self.type = int(hdf5TilingGroup.attrs['Type'])
+            self.id = int(hdf5TilingGroup.attrs['ID'])
+            self.order_parameter_id = int(hdf5TilingGroup.attrs['OrderParameterID'])
+            self.edges.extend(hdf5TilingGroup['Edges'][...].tolist())
+#             for val in hdf5TilingGroup['Edges']:
+#                 self.tilingBuf.edges.append(val)
+            
+            self.rank = 1
+            self.dims.append(len(self.edges) + 1)
     

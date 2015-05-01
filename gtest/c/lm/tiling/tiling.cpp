@@ -52,7 +52,7 @@ public:
     }
     lm::io::hdf5::Hdf5File file;
     lm::io::Tilings tilingsBuf;
-    lm::tiling::TilingAxial tAX;
+    lm::tiling::TilingLattice tAX;
 };
 
 TEST_F(TilingFixture, GetEdge)

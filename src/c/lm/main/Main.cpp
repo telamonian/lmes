@@ -163,6 +163,16 @@ bool ffluxFlag;
  */
 bool intermediateOutputFlag;
 
+/*
+ * Flag that determines whether or not to track degree advancement in addition to species count
+ */
+bool daFlag;
+
+/*
+ * Flag that determines whether or not to track order parameter values in addition to species counts
+ */
+bool opvFlag;
+
 /**
  * Flag to run input output testing
  */
@@ -209,6 +219,8 @@ void parseArguments(int argc, char** argv)
     shouldReserveOutputCore = true;
     ffluxFlag = false;
     intermediateOutputFlag = false;
+    daFlag = false;
+    opvFlag = false;
     ioTestFlag = false;
 
     // Parse any arguments.

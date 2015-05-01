@@ -343,18 +343,28 @@ protected:
             speciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
             updatedSpeciesCounts();
         }
-        if (ffluxFlag==true)
+        if (ffluxFlag || opvFlag)
         {
             // Update the order parameters, if required
-            for (int i=0; i<oparams->size(); i++)
-            {
-                (*oparams)[i]->calc(speciesCounts);
-            }
+            oparams->calc(speciesCounts, time);
             // Update the tilingHists, if required
 //            for (int i=0;i<numberTilingHists;i++)
 //            {
 //                tilingHists[i].tileVals[(*tilings)[tilingHists[i].tilingID]->getTileIndex((*oparams)[(*tilings)[tilingHists[i].tilingID]->getOrderParameterID()]->get())] += timeStep;
 //            }
+        }
+        if (daFlag)
+        {
+            degreeAdvancements[r]++;
+        }
+        if (opvFlag)
+        {
+            int i = 0;
+            for (lm::oparam::OPMap::iterator m_it=oparams->begin();m_it!=oparams->end();++m_it)
+            {
+                orderParameterValues[i]=m_it->second->get();
+                i++;
+            }
         }
     }
 
@@ -405,6 +415,7 @@ protected:
                 }
             	break;
             case SpeciesLimit::INCREASING_ASCENDING:
+//                printf("limit: %.2f, opv_prev: %.2f, opv: %.2f\n", l.limit, (*oparams)[l.species]->getPrev(), (*oparams)[l.species]->get());
             	if ((*oparams)[l.species]->getPrev() < l.limit && (*oparams)[l.species]->get() >= l.limit)
                 {
                     finalLimitType = lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER;
@@ -477,8 +488,9 @@ protected:
     // The current state.
     uint64_t trajectoryId;
     bool trajectoryStarted;
+    uint* degreeAdvancements;
+    double* orderParameterValues;
     uint* speciesCounts;
-    uint* previousSpeciesCounts;
     double time;
     double timeStep;    // stores last time step calculated, used for building histogram
     int numberFptTrackedSpecies;

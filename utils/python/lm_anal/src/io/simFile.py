@@ -1,6 +1,6 @@
 from ..main.replicate import Replicate
-import hdf5
-import mod
+from . import hdf5
+from . import mod
 
 class simFileBase(object):
     def __init__(self, fPath):
