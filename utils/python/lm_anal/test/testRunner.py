@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-#from main.sim import SimTestCase
-#from plot.plotables.hist import HistTestCase
-# from plot.plotables.oparamProbabilityHist import OParamProbabilityHistTestCase
-from oparams.oparams import OParamTestCase
-# from replicate.replicateTrajectories import ReplicateTrajectoriesTestCase
-# from tilings.tilings import TilingsTestCase
+from main.sim import SimTestCase
+from plotable.hist import HistTestCase
+from plotable.oparamProbabilityHist import OParamProbabilityHistTestCase
+from oparam.oparams import OParamTestCase
+from replicate.replicateTrajectories import ReplicateTrajectoriesTestCase
+from tiling.tilings import TilingsTestCase
 
 import unittest
 

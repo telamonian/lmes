@@ -35,6 +35,11 @@ class TilingsTestCase(unittest.TestCase):
         intendedEdgeArr = np.linspace(-30,30,16)
         self.assertTrue(np.allclose(edgeArr, intendedEdgeArr))
     
+    def test_hasHDF5(self):
+        '''
+        test detection of presence relevant data in hdf5 files
+        '''
+        self.assertTrue(self.tilings.hasHDF5())    
 
     def test_id_hdf5(self):
         '''

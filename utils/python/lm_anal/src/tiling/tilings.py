@@ -2,33 +2,25 @@ import os,sys
 thisScriptDir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(thisScriptDir, '../../python_protobuf/lm/io'))
 
-import h5py
+from ..datum.data import Data
 from Tilings_pb2 import Tilings as TilingsBuf
 from .tiling import Tiling
 
-class Tilings(object):
+class Tilings(Data):
+    hdf5RootPath = 'Tilings'
+    
     def __init__(self, fPath):
-        self.fPath = fPath
-        self.tilingsBuf = TilingsBuf()
-        self.tilingMap = {}
+        super().__init__(fPath)
+        self.protobuf = TilingsBuf()
 
-    def __getitem__(self, key):
-        return self.tilingMap[key]
-
-    def hasHDF5(self):
-        with h5py.File(self.fPath,'r') as simF:
-            if 'Simulations' in simF.keys():
-                return True
-            else:
-                return False 
-
-    def rffHDF5(self):
-    # rff (read from file)
-        with h5py.File(self.fPath,'r') as simF:
-            try:
-                self.tilingsBuf.current_tiling_id = simF['Tilings'].attrs['currentTilingId']
-            except KeyError:
-                pass
-            for key,val in simF['Tilings'].items():
-                tilingBuf = self.tilingsBuf.tilings.add()
-                self.tilingMap[val.attrs['ID']] = Tiling(tilingBuf=tilingBuf, hdf5TilingGroup=val)
+    def _rffHDF5(self):
+        '''
+        rff (read from file)
+        '''
+        try:
+            self.protobuf.current_tiling_id = self.file[self.hdf5RootPath].attrs['currentTilingId']
+        except KeyError:
+            pass
+        for key,val in self.file[self.hdf5RootPath].items():
+            tilingBuf = self.protobuf.tilings.add()
+            self.map[val.attrs['ID']] = Tiling(tilingBuf=tilingBuf, hdf5TilingGroup=val)

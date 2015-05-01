@@ -20,13 +20,12 @@ class OParamTestCase(unittest.TestCase):
         oparamVal = self.oparams[0].calc(np.array(((4,16,1,0,0,0,0),)))
         intendedOParamVal = -38
         self.assertEqual(oparamVal, intendedOParamVal)
-    
-    def test_type_hdf5(self):
+
+    def test_hasHDF5(self):
         '''
-        test reading of oparam type from hdf5 files
+        test detection of presence relevant data in hdf5 files
         '''
-        typeInt = self.oparams[0].type
-        self.assertEqual(typeInt, 0)
+        self.assertTrue(self.oparams.hasHDF5())
 
     def test_id_hdf5(self):
         '''
@@ -50,3 +49,10 @@ class OParamTestCase(unittest.TestCase):
         speciesIdArr = np.array(self.oparams[0].species_ids)
         intendedSpeciesIdArr = np.array([0,1,2,3,4,5])
         self.assertTrue(np.allclose(speciesIdArr, intendedSpeciesIdArr))
+        
+    def test_type_hdf5(self):
+        '''
+        test reading of oparam type from hdf5 files
+        '''
+        typeInt = self.oparams[0].type
+        self.assertEqual(typeInt, 0)

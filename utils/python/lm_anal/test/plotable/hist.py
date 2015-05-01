@@ -1,12 +1,12 @@
 import os, sys
 thisScriptDir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(thisScriptDir, '../../..'))
+sys.path.append(os.path.join(thisScriptDir, '../..'))
 
 import numpy as np
 np.random.seed(0)
 from scipy import stats
 import src
-from src.plot.plotables.hist import Hist
+from src.plotable.hist import Hist
 
 import unittest
 

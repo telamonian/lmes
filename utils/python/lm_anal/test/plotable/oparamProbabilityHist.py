@@ -1,20 +1,20 @@
 import os, sys
 thisScriptDir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(thisScriptDir, '../../..'))
+sys.path.append(os.path.join(thisScriptDir, '../..'))
 
 import numpy as np
 np.random.seed(0)
 from scipy import stats
 import src
 from src.oparam.oparams import OParams
-from src.plot.plotables.oparamProbabilityHist import OParamProbabilityHist
+from src.plotable.oparamProbabilityHist import OParamProbabilityHist
 from src.replicate.replicateTrajectories import ReplicateTrajectories
 from src.tiling.tilings import Tilings
 
 import unittest
 
 class OParamProbabilityHistTestCase(unittest.TestCase):
-    testDataPath = '../../testData/biphasic_switch.lm'
+    testDataPath = '../testData/biphasic_switch.lm'
     
     def setUp(self):
         self.oparams = OParams(fPath=os.path.join(thisScriptDir, self.__class__.testDataPath))

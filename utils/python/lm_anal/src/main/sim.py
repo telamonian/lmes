@@ -10,7 +10,9 @@ from ..tiling.tilings import Tilings
 class Sim(object):
     dataObjects = [OParams, ReplicateTrajectories, Tilings]
     
-    def __init__(self, fPath, lmintOnly=False, **kwargs):
+    def __init__(self, fPath, dataObjects=None, lmintOnly=False, **kwargs):
+        if dataObjects!=None:
+            self.dataObjects = dataObjects
         self.fPath = fPath
         self.fDir, self.fNameFull = os.path.split(self.fPath)
         self.fName, self.fNameSuffix = self.fNameFull.split('.')[:2]
@@ -53,12 +55,17 @@ class Sim(object):
         for key,val in self.sweepParams.items():
             outString+='%s: %s, ' % (key,val)
         return outString[:-2]
+
     
     def Init(self):
+        self.InitData()
+    
+    def InitData(self):
         self.dataDict = {}
-        for dataObject in self.__class__.dataObjects:
+        for dataObject in self.dataObjects:
             temp = dataObject(fPath=self.fPath)
-            if temp.rffHDF5():
+            if temp.hasHDF5():
+                temp.rffHDF5()
                 attrName = CamelCase(dataObject.__name__)
                 self.__setattr__(attrName, temp)
                 self.dataDict[attrName] = self.__getattribute__(attrName)

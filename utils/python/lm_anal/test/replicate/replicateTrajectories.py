@@ -11,18 +11,12 @@ import unittest
 class ReplicateTrajectoriesTestCase(unittest.TestCase):
     def setUp(self):
         self.replicateTrajectories = ReplicateTrajectories(fPath=os.path.join(thisScriptDir, '../testData/biphasic_switch.lm'))
-        
-    def test_trajectory_id_hdf5(self):
+    
+    def test_hasHDF5(self):
         '''
-        test reading of trajectory id from hdf5 files
+        test detection of presence relevant data in hdf5 files
         '''
-        self.replicateTrajectories.rffHDF5()
-
-        idInt = self.replicateTrajectories[3].trajectory_id
-        self.assertEqual(idInt, 3)
-        
-        idInt = self.replicateTrajectories[7].trajectory_id
-        self.assertEqual(idInt, 7)
+        self.assertTrue(self.replicateTrajectories.hasHDF5())
     
     def test_number_species_hdf5(self):
         '''
@@ -61,3 +55,15 @@ class ReplicateTrajectoriesTestCase(unittest.TestCase):
         timeArr = np.array(self.replicateTrajectories[3].time).flatten()
         intendedTimeArr = np.array([0,1000,2000,3000,4000,5000,6000,7000,8000,9000,10000,11000,12000,13000,14000,15000,16000,17000,18000,19000,20000,21000,22000,23000,24000,25000,26000,27000,28000,29000,30000,31000,32000,33000,34000,35000,36000,37000,38000,39000,40000,41000,42000,43000,44000,45000,46000,47000,48000,49000,50000,51000,52000,53000,54000,55000,56000,57000,58000,59000,60000,61000,62000,63000,64000,65000,66000,67000,68000,69000,70000,71000,72000,73000,74000,75000,76000,77000,78000,79000,80000,81000,82000,83000,84000,85000,86000,87000,88000,89000,90000,91000,92000,93000,94000,95000,96000,97000,98000,99000,100000])
         self.assertTrue(np.allclose(timeArr, intendedTimeArr))
+        
+    def test_trajectory_id_hdf5(self):
+        '''
+        test reading of trajectory id from hdf5 files
+        '''
+        self.replicateTrajectories.rffHDF5()
+
+        idInt = self.replicateTrajectories[3].trajectory_id
+        self.assertEqual(idInt, 3)
+        
+        idInt = self.replicateTrajectories[7].trajectory_id
+        self.assertEqual(idInt, 7)
