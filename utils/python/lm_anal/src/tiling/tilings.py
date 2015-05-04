@@ -13,7 +13,7 @@ class Tilings(Data):
         super().__init__(fPath)
         self.protobuf = TilingsBuf()
 
-    def _rffHDF5(self):
+    def _rffHDF5(self, full, keys):
         '''
         rff (read from file)
         '''

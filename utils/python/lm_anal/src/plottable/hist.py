@@ -1,14 +1,15 @@
+from bisect import bisect
+import numpy as np
 import os,sys
 thisScriptDir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(thisScriptDir, '../../../'))
 sys.path.append(os.path.join(thisScriptDir, '../../../python_protobuf/lm/io'))
 
-from bisect import bisect
 from Hist_pb2 import Hist as HistBuf
-import numpy as np
+from .plottable import Plottable
 from src.helper import histogramdd
 
-class Hist(object):
+class Hist(Plottable):
     def __init__(self,dims,edges,rank):
         self._Init()
         self.Init(dims,edges,rank)

@@ -1,9 +1,9 @@
 from helper import PathJoin
 from job import JobSGELM, JobShellLM
 # this hackishness imports all of the things in the inputTypes list in lmFile
-from lmFile import *
 #import lmFile
 #from lmFile import GetTypes,inputTypes; GetTypes(inputTypes,__name__)
+from lmFile import *
 import os
 from runner import Runner
 

@@ -6,7 +6,7 @@ import numpy as np
 np.random.seed(0)
 from scipy import stats
 import src
-from src.plotable.hist import Hist
+from src.plottable.hist import Hist
 
 import unittest
 

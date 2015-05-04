@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from main.sim import SimTestCase
-from plotable.hist import HistTestCase
-from plotable.oparamProbabilityHist import OParamProbabilityHistTestCase
+from plottable.hist import HistTestCase
+from plottable.oparamProbabilityHist import OParamProbabilityHistTestCase
 from oparam.oparams import OParamTestCase
 from replicate.replicateTrajectories import ReplicateTrajectoriesTestCase
 from tiling.tilings import TilingsTestCase

@@ -18,7 +18,7 @@ class OParams(Data):
     def Calc(self, oparamID, speciesVec):
         return self[oparamID].Calc(speciesVec)
     
-    def _rffHDF5(self): 
+    def _rffHDF5(self, full, keys): 
         '''
         rff (read from file)
         '''

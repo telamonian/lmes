@@ -7,12 +7,12 @@ import numpy as np
 from TrajectoryState_pb2 import TrajectoryState as TrajectoryStateBuf
 
 class ReplicateTrajectory(object):
-    def __init__(self, trajectoryID, hdf5TrajectoryGroup=None):
+    def __init__(self, trajectoryID, hdf5TrajectoryGroup=None, full=False):
         self.trajectoryStateBuf = TrajectoryStateBuf()
         self.trajectoryStateBuf.trajectory_id = trajectoryID
         self.trajectoryStateBuf.cme_state.species_counts.trajectory_id = trajectoryID
         if hdf5TrajectoryGroup!=None:
-            self.InitFromHdf5(hdf5TrajectoryGroup)
+            self.InitFromHdf5(hdf5TrajectoryGroup, full=full)
         self.oparamProbabilityHistMap = {}
 
         # pass through attributes to the underlying TrajectoryStateBuf
@@ -20,17 +20,18 @@ class ReplicateTrajectory(object):
         self.number_species = self.trajectoryStateBuf.cme_state.species_counts.number_species
         self.trajectory_id = self.trajectoryStateBuf.cme_state.species_counts.trajectory_id
         
-    def InitFromHdf5(self, hdf5TrajectoryGroup, useNPArr=True):
+    def InitFromHdf5(self, hdf5TrajectoryGroup, full=False, useNPArr=True):
         '''
         initialize the data storage container underlying this ReplicateTrajectory instance, which is in turn a TrajectoryStateBuf instance (with some numpy arrays thrown in for good measure if useNPArr=True)
         '''
         self.trajectoryStateBuf.cme_state.species_counts.number_entries = hdf5TrajectoryGroup['SpeciesCounts'].shape[0]
         self.trajectoryStateBuf.cme_state.species_counts.number_species = hdf5TrajectoryGroup['SpeciesCounts'].shape[1]
         
-        if useNPArr:
-            self.InitNPArrFromHdf5(hdf5TrajectoryGroup)
-        else:
-            self.InitBufArrFromHdf5(hdf5TrajectoryGroup)
+        if full:
+            if useNPArr:
+                self.InitNPArrFromHdf5(hdf5TrajectoryGroup)
+            else:
+                self.InitBufArrFromHdf5(hdf5TrajectoryGroup)
     
     def InitNPArrFromHdf5(self, hdf5TrajectoryGroup):
         '''

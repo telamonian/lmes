@@ -1,20 +1,20 @@
-import h5py
+from .file import File
 
-class Data(object):
-    datumType = None
+class FileHDF5(File):
     hdf5RootPath = None
     
     def __init__(self, fPath):
         self.file = None
         self.fPath = fPath
-        self.protobuf = None
-        self.map = {}
     
     def __delitem__(self, key):
         del self.map[key]
     
     def __getitem__(self, key):
         return self.map[key]
+
+    def __iter__(self):
+        return self.map.items()
 
     def _hasHDF5(self):
         if self.hdf5RootPath in self.file:
@@ -27,17 +27,12 @@ class Data(object):
         
     def hasHDF5(self):
         '''
-        test if an hdf5 file has a non-empty group containing data relevant to this particular Data object 
+        test if an hdf5 file has a non-empty group containing data relevant to this particular object
         '''
         return self.wrapperHDF5(self._hasHDF5)
     
     def _rffHDF5(self, full, keys):
-        if keys==None:
-            keys = self.file[self.hdf5RootPath].keys()
-        
-        for key in keys:
-            val = self.file[os.path.join(self.hdf5RootPath, key)]
-            self.map[int(key)] = self.datumType(hdf5Group=val)
+        pass
     
     def rffHDF5(self, full=False, keys=None): 
         '''
@@ -55,14 +50,23 @@ class Data(object):
             self.rffHDF5(full=True, keys=[key])
             yield self[int(key)]
             del self[int(key)]
+        
+    def _wtfHDF5(self):
+        pass
+        
+    def wtfHDF5(self):
+        '''
+        wtf (write to file) for hdf5 files
+        '''
+        self.wrapperHDF5(self._wtfHDF5, mode='a')
 
-    def wrapperHDF5(self, func, **kwargs):
+    def wrapperHDF5(self, func, mode='r', **kwargs):
         '''
         if self.file==None, run the function (with *args) inside a 'with' block that assigns the hdf5 file object to self.file, then resets self.file to None
         else (self.file already contains something (hopefully the relevant hdf5 file)), just run the function (with *args)
         '''
         if self.file==None:
-            with h5py.File(self.fPath,'r') as self.file:
+            with h5py.File(self.fPath, mode) as self.file:
                 retVal = func(**kwargs)
             self.file = None
         else:

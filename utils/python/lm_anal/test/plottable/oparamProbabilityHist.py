@@ -7,7 +7,7 @@ np.random.seed(0)
 from scipy import stats
 import src
 from src.oparam.oparams import OParams
-from src.plotable.oparamProbabilityHist import OParamProbabilityHist
+from src.plottable.oparamProbabilityHist import OParamProbabilityHist
 from src.replicate.replicateTrajectories import ReplicateTrajectories
 from src.tiling.tilings import Tilings
 
@@ -22,8 +22,8 @@ class OParamProbabilityHistTestCase(unittest.TestCase):
         self.tilings = Tilings(fPath=os.path.join(thisScriptDir, self.__class__.testDataPath))
         self.tilings.rffHDF5()
         self.replicateTrajectories = ReplicateTrajectories(fPath=os.path.join(thisScriptDir, self.__class__.testDataPath))
-        self.replicateTrajectories.rffHDF5()
-        self.hist = OParamProbabilityHist(oparams=self.oparams,tiling=self.tilings[7])
+        self.replicateTrajectories.rffHDF5(full=True)
+        self.hist = OParamProbabilityHist(self, tilingID=7)
     
     def test_dims(self):
         '''
@@ -54,7 +54,7 @@ class OParamProbabilityHistTestCase(unittest.TestCase):
         '''
         test reading of times from hdf5 files
         '''
-        self.hist.AddSpeciesCounts(self.replicateTrajectories[4].species_count)
+        self.hist.AddSpeciesCounts(self.replicateTrajectories[5].species_count)
         vals = np.array(self.hist.vals)
         intendedVals = np.array([50.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 47.0])
         self.assertTrue(np.allclose(vals, intendedVals), msg='%s is not allclose to %s' % (vals.tolist(), intendedVals.tolist()))

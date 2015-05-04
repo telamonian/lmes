@@ -4,6 +4,7 @@ import os
 
 from ..helper import CamelCase
 from ..oparam.oparams import OParams
+from .. import plottable
 from ..replicate.replicateTrajectories import ReplicateTrajectories
 from ..tiling.tilings import Tilings
 
@@ -13,12 +14,14 @@ class Sim(object):
     def __init__(self, fPath, dataObjects=None, lmintOnly=False, **kwargs):
         if dataObjects!=None:
             self.dataObjects = dataObjects
+        self.plottables = {}
+            
+        # path setting stuff
         self.fPath = fPath
         self.fDir, self.fNameFull = os.path.split(self.fPath)
         self.fName, self.fNameSuffix = self.fNameFull.split('.')[:2]
         self.modTimePath = os.path.join(self.fDir, '.' + self.fName) + '.mod'
         self.intermediatePath = os.path.join(self.fDir, self.fName) + '.lmint'
-#         self.
 
         if lmintOnly:
             # we only have a .lmint file and no base .lm file
@@ -196,6 +199,15 @@ class Sim(object):
             
         self.SaveMod()
     
+    def _InitPlottable(self, id, type, **kwargs):
+        self.plottables[id] = plottable.__getattribute__(type)(self, **kwargs)
+    
+    def InitPlottable(self, id, type, useInt=True, **kwargs):
+        if useInt:
+            pass
+        else:
+            self._InitPlottable(id, type, **kwargs)
+        
     def Figname(self, suffix, ext=True):
         if ext:
             extension = '.png'
