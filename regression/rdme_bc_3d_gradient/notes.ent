@@ -7,13 +7,13 @@ lm_setdm ${filenamePrefix}.lm numberReactions=1 numberSpecies=1 numberSiteTypes=
 lm_setp ${filenamePrefix}.lm writeInterval=1e-1 latticeWriteInterval=1e-1 maxTime=1e-1;
 lm_setp ${filenamePrefix}.lm boundaryConditions=FIXED_GRADIENT boundarySite=0 boundarySpecies=0;
 h5copy -v -f shallow -i "gradient.h5" -s "dataset1" -o "${filenamePrefix}.lm" -d "Model/Diffusion/Gradient";
-#lmes -f ${filenamePrefix}.lm -r 1 -c 2 -cr 1 -g 1 -gr 1 -ca -sl lm::rdme::NextSubvolumeSolver | tee ${filenamePrefix}.log
+lmes -f ${filenamePrefix}.lm -r 1 -c 2 -cr 1 -g 0 -gr 0 -ca -sl lm::rdme::NextSubvolumeSolver | tee ${filenamePrefix}.log
 #lmes-cuda -f ${filenamePrefix}.lm -r 1 -c 2 -gr 0 -ca -sl lm::rdme::NextSubvolumeSolver | tee ${filenamePrefix}.log
 #lmes-cuda -f ${filenamePrefix}.lm -r 1 -c 2 -gr 1/8 -ca -sl lm::rdme::NextSubvolumeSolver | tee ${filenamePrefix}.log
 #lmes-submit ${filenamePrefix}.lm -r 1-20 -ca -sl lm::rdme::NextSubvolumeSolver ${filenamePrefix}.log smp-1 16
 #lmes-submit ${filenamePrefix}.lm -gr 0 -r 1 -ca -sl lm::rdme::NextSubvolumeSolver ${filenamePrefix}.log gpu-1 16
 #lmes-submit ${filenamePrefix}.lm -r 1 -ca -sl lm::rdme::NextSubvolumeSolver ${filenamePrefix}.log gpu-1 16
-lmes-submit ${filenamePrefix}.lm -r 1-20 -sl lm::rdme::NextSubvolumeSolver ${filenamePrefix}.log batch 16 eroberts 02:30:00
+#lmes-submit ${filenamePrefix}.lm -r 1-20 -sl lm::rdme::NextSubvolumeSolver ${filenamePrefix}.log batch 16 eroberts 02:30:00
 
 #### Timings ####
 xanthus                         550,000 rxns/s ->   740,000 rxns/s (34%) ->   780,000 rxns/s
