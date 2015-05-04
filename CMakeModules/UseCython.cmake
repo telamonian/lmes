@@ -71,8 +71,9 @@ set( CYTHON_FLAGS "" CACHE STRING
   "Extra flags to the cython compiler." )
 mark_as_advanced( CYTHON_ANNOTATE CYTHON_NO_DOCSTRINGS CYTHON_FLAGS )
 
-find_package( Cython REQUIRED )
-find_package( PythonLibs REQUIRED )
+# HACK: I removed the REQUIRED tags from the bellow find_package commands
+find_package( Cython )
+find_package( PythonLibs )
 
 set( CYTHON_CXX_EXTENSION "cxx" )
 set( CYTHON_C_EXTENSION "c" )
