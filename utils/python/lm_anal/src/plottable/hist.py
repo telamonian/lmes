@@ -11,25 +11,23 @@ from src.helper import histogramdd
 
 class Hist(Plottable):
     def __init__(self,dims,edges,rank):
-        self._Init()
-        self.Init(dims,edges,rank)
+        self._Init(dims,edges,rank)
         
         self.InitVals()
         #self.InitVals_Buf()
     
-    def _Init(self):
+    def _Init(self, dims, edges, rank):
         self.histBuf = HistBuf()
         # passthroughs
         self.dims = self.histBuf.dims
         self.edges = self.histBuf.edges
         self.rank = self.histBuf.rank
         
-    def Init(self,dims,edges,rank):
-        self.dims.extend(np.array(dims).flatten().tolist())
         self.edges.extend(np.array(edges).flatten())
+        self.dims.extend(np.array(dims).flatten().tolist())     # tolist() avoids a nasty error where protobuf considers numpy int64 to be different from python int
         self.rDims = np.array(self.dims) - 1                    # reduced dimensions, used in later calculations
         self.rank = rank
-        
+    
     def InitVals(self):
         self.vals = np.zeros(self.dims)
     
@@ -42,7 +40,11 @@ class Hist(Plottable):
     
     def ClearVals(self):
         self.vals[:] = 0
-        
+    
+    def GetEdgeIndices(self):
+        ''' based on what's in self.dims, generates a list of tuples of indices that can be used to transform the 1D protobuf array in which self.edges is stored into a list of lists, one list for every dim '''
+        return [(int(np.sum(self.rDims[:i])), int(np.sum(self.rDims[:i + 1]))) for i in range(self.rank)]
+    
     def GetEdges(self):
         return [self.edges[int(np.sum(self.rDims[:i])):int(np.sum(self.rDims[:i + 1]))] for i in range(self.rank)]
     
@@ -51,6 +53,7 @@ class Hist(Plottable):
         self.SetObservations(obs)
     
     def SetObservations(self, obs):
+        ''' same as AddObservations, but clears the previously added observations (if any) first '''
         self.ClearVals()
         self.AddObservations(obs)
     

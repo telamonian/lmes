@@ -12,6 +12,7 @@ import matplotlib.cm as cm
 from matplotlib.colors import LogNorm
 from matplotlib.patches import Circle, Wedge, Polygon
 import matplotlib.pyplot as plt
+from matplotlib.ticker import LogFormatter
 import numpy as np
 import os
 import pylab
@@ -23,18 +24,15 @@ from fit import Fit
 #matplotlib.rcParams['savefig.transparent'] = True
 
 cm.hot.set_bad(cm.hot(0))
+cm.jet.set_bad(cm.jet(0))
 # stuff to make the perceptual color maps
 pCMap = {}
 rPCMap = {}
 walk = next(os.walk(os.path.join(os.path.dirname(os.path.realpath(__file__)),'colormaps')))
 for fname in (fname for fname in walk[2] if fname[0]!='.'):
-    print(fname)
     with open(os.path.join(walk[0],fname)) as f:
         cVals = np.array([list(map(float,line.strip().split(','))) for line in f])
         # Setting up columns for tuples
-        print(cVals)
-        
-        print(cVals.shape)
         b3 = cVals[:,2]
         b2 = cVals[:,2]
         b1 = np.linspace(0, 1, len(b2))
@@ -206,7 +204,7 @@ class Sims(object):
     
     def Figname(self, suffix, ext=True):
         if ext:
-            extension = '.png'
+            extension = '.pdf'
         else:
             extension = ''
         return self.fname.split('.')[0] + suffix + extension
@@ -235,6 +233,44 @@ class Sims(object):
     def Savefig(self, fig, suffix):
         fname = os.path.join(os.getcwd(),self.Figname(suffix))
         fig.savefig(fname, bbox_inches='tight', transparent=True)
+    
+    def ContourLog(self):
+        contourZeros = True   # contour the zero valued areas at the same level as the lowest positive values
+        if self.rcoords==None:
+            self.Rcoords()
+        fig = plt.figure(1)
+        print('graphing now...')
+        range_x = (0,84)
+        range_y = (0,84)
+        centers_x = np.arange(*range_x) + .5
+        centers_y = np.arange(*range_y) + .5
+        counts,xbins,ybins,image=plt.hist2d(self.rcoords[0,:], self.rcoords[1,:], normed=True, norm=LogNorm(), cmap=cm.jet, range=[range_x,range_y], bins=(84, 84)) #range=((0,40),(0,40)), bins=(40,40), cmap=pCMap['cube1'])
+#         lF = LogFormatter(10, labelOnlyBase=True)
+        plt.clf()
+        fig = plt.figure(1)
+        axes = plt.axes()
+        fig.set_size_inches(12,8)
+        if contourZeros:
+            m = np.min(counts[np.nonzero(counts)])
+            for x in np.nditer(counts, op_flags=['readwrite']):
+                if x==0:
+                    x[...] = m
+        levels = np.logspace(-8,-1,8)
+#         CL = plt.contour(centers_x, centers_y, counts, norm=LogNorm(), cmap=cm.jet)
+        CF = plt.contourf(centers_x, centers_y, counts, levels=levels, norm=LogNorm(), cmap=cm.jet)
+        cbar = plt.colorbar() #(format=lF)
+
+        matplotlib.rcParams.update({'font.size': 30})
+        axes.set_xlabel('copy num(A)')
+        axes.set_ylabel('copy num(B)')
+        cbar.set_label('probability', rotation=270, labelpad=30)
+        start, end = np.floor(axes.get_xlim())
+        axes.xaxis.set_ticks(np.arange(start, end, 20))
+        start, end = np.floor(axes.get_ylim())
+        axes.yaxis.set_ticks(np.arange(start, end, 20))
+#         axes.set_xscale('log')
+#         axes.set_yscale('log')
+        self.Savefig(fig, '_contour_log_jet')
     
     def Hist(self):
         if self.oparam==None:
@@ -370,17 +406,21 @@ class Sims(object):
         fig.set_size_inches(12,8)
         axes = plt.axes()
         print('graphing now...')
-        counts,xbins,ybins,image=plt.hist2d(self.rcoords[0,:], self.rcoords[1,:],range=((0,40),(0,40)), bins=(40,40), normed=True, norm=LogNorm(), cmap=pCMap['cube1']) #cmap=cm.hot, range=[[0,84],[0,84]], bins=(84, 84))
-#         plt.colorbar()
+        counts,xbins,ybins,image=plt.hist2d(self.rcoords[0,:], self.rcoords[1,:], normed=True, norm=LogNorm(), cmap=cm.jet, range=[[0,84],[0,84]], bins=(84, 84)) #range=((0,40),(0,40)), bins=(40,40), cmap=pCMap['cube1'])
+#         lF = LogFormatter(10, labelOnlyBase=True)
+        cbar = plt.colorbar() #(format=lF)
 
         matplotlib.rcParams.update({'font.size': 30})
         axes.set_xlabel('copy num(A)')
         axes.set_ylabel('copy num(B)')
-#         start, end = axes.get_xlim()
-#         axes.xaxis.set_ticks(np.arange(start, end, 20))
-#         start, end = axes.get_ylim()
-#         axes.yaxis.set_ticks(np.arange(start, end, 20))
-        self.Savefig(fig, '_hist2d_log_perceptual')
+        cbar.set_label('probability', rotation=270, labelpad=30)
+        start, end = axes.get_xlim()
+        axes.xaxis.set_ticks(np.arange(start, end, 20))
+        start, end = axes.get_ylim()
+        axes.yaxis.set_ticks(np.arange(start, end, 20))
+#         axes.set_xscale('log')
+#         axes.set_yscale('log')
+        self.Savefig(fig, '_hist2d_log_jet')
         
         counts,xbins,ybins,image =plt.hist2d(self.rcoords[0,:], self.rcoords[1,:],range=((0,40),(0,40)), bins=(40,40), normed=True, cmap=pCMap['cube1'])
         fig.clf()
@@ -692,7 +732,9 @@ if __name__=="__main__":
 #     ffluxbiphasics.SortByInterface()
 #     ffluxbiphasics.TrajMovSmooth()
     biphasics = Biphasics(fname)
-    if sys.argv[2]=='hist':
+    if sys.argv[2]=='contourlog':
+        biphasics.ContourLog()
+    elif sys.argv[2]=='hist':
         biphasics.Hist()
     elif sys.argv[2]=='histumbrella':
         biphasics.HistUmbrella()

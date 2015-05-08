@@ -24,6 +24,7 @@ class OParamProbabilityHistTestCase(unittest.TestCase):
         self.replicateTrajectories = ReplicateTrajectories(fPath=os.path.join(thisScriptDir, self.__class__.testDataPath))
         self.replicateTrajectories.rffHDF5(full=True)
         self.hist = OParamProbabilityHist(self, tilingID=7)
+        self.hist.Init()
     
     def test_dims(self):
         '''

@@ -1,3 +1,5 @@
+import h5py
+
 from .file import File
 
 class FileHDF5(File):
@@ -6,6 +8,7 @@ class FileHDF5(File):
     def __init__(self, fPath):
         self.file = None
         self.fPath = fPath
+        self.map = {}
     
     def __delitem__(self, key):
         del self.map[key]
@@ -14,7 +17,7 @@ class FileHDF5(File):
         return self.map[key]
 
     def __iter__(self):
-        return self.map.items()
+        return self.map.items().__iter__()
 
     def _hasHDF5(self):
         if self.hdf5RootPath in self.file:
@@ -38,7 +41,7 @@ class FileHDF5(File):
         '''
         rff (read from file) for hdf5 files
         '''
-        self.wrapperHDF5(self._rffHDF5, full=full, keys=keys)
+        return self.wrapperHDF5(self._rffHDF5, full=full, keys=keys)
     
     def sffHDF5(self):
         '''
@@ -51,14 +54,14 @@ class FileHDF5(File):
             yield self[int(key)]
             del self[int(key)]
         
-    def _wtfHDF5(self):
+    def _wtfHDF5(self, keys):
         pass
         
-    def wtfHDF5(self):
+    def wtfHDF5(self, keys=None):
         '''
         wtf (write to file) for hdf5 files
         '''
-        self.wrapperHDF5(self._wtfHDF5, mode='a')
+        self.wrapperHDF5(self._wtfHDF5, mode='a', keys=keys)
 
     def wrapperHDF5(self, func, mode='r', **kwargs):
         '''
@@ -66,8 +69,12 @@ class FileHDF5(File):
         else (self.file already contains something (hopefully the relevant hdf5 file)), just run the function (with *args)
         '''
         if self.file==None:
-            with h5py.File(self.fPath, mode) as self.file:
-                retVal = func(**kwargs)
+            try:
+                with h5py.File(self.fPath, mode) as self.file:
+                    retVal = func(**kwargs)
+            except OSError:
+                self.file = None
+                return False
             self.file = None
         else:
             retVal = func(**kwargs)

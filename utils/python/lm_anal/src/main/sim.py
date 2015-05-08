@@ -1,6 +1,7 @@
 #from ..io.simFile import simFileFactory
 # hdf5File = simFileFactory()
 import os
+import re
 
 from ..helper import CamelCase
 from ..oparam.oparams import OParams
@@ -14,7 +15,7 @@ class Sim(object):
     def __init__(self, fPath, dataObjects=None, lmintOnly=False, **kwargs):
         if dataObjects!=None:
             self.dataObjects = dataObjects
-        self.plottables = {}
+#         self.plottables = {}
             
         # path setting stuff
         self.fPath = fPath
@@ -22,7 +23,9 @@ class Sim(object):
         self.fName, self.fNameSuffix = self.fNameFull.split('.')[:2]
         self.modTimePath = os.path.join(self.fDir, '.' + self.fName) + '.mod'
         self.intermediatePath = os.path.join(self.fDir, self.fName) + '.lmint'
-
+        
+        self.oparamProbabilityHists = plottable.OParamProbabilityHists(fPath=self.intermediatePath, sim=self)
+        
         if lmintOnly:
             # we only have a .lmint file and no base .lm file
             self._Load()
@@ -72,7 +75,28 @@ class Sim(object):
                 attrName = CamelCase(dataObject.__name__)
                 self.__setattr__(attrName, temp)
                 self.dataDict[attrName] = self.__getattribute__(attrName)
-        
+    
+#     def _InitPlottable(self, id, type, **kwargs):
+#         self.plottables[id] = plottable.__getattribute__(type)(self, **kwargs)
+#     
+#     def InitPlottable(self, id, type, useInt=True, **kwargs):
+#         self._InitPlottable(id, type, **kwargs)
+#         if useInt:
+#             self.plottables[id].rffHDF5()
+#         else:
+#             self.plottables[id].ReduceData()
+    
+    def InitPlottable(self, id, type, useInt=True, **kwargs):
+        if re.match('OparamProbabilityHist', type, flags=re.I) or re.match('oph', type, flags=re.I):
+            self.oparamProbabilityHists.InitPlottable(id=id, useInt=useInt, **kwargs)
+    
+    def ReduceData(self):
+#         for plottable in self.plottables.items():
+#             plottable.ReduceData()
+        for id, plottable in self.oparamProbabilityHists:
+            plottable.ReduceData()
+            
+    
 #         self.f = h5py.File(self.fPath)
 #         self.params = self.f['/Parameters'].attrs
 #         self.maxtime = self.params['maxTime']
@@ -198,15 +222,6 @@ class Sim(object):
                 pass
             
         self.SaveMod()
-    
-    def _InitPlottable(self, id, type, **kwargs):
-        self.plottables[id] = plottable.__getattribute__(type)(self, **kwargs)
-    
-    def InitPlottable(self, id, type, useInt=True, **kwargs):
-        if useInt:
-            pass
-        else:
-            self._InitPlottable(id, type, **kwargs)
         
     def Figname(self, suffix, ext=True):
         if ext:
