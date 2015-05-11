@@ -1,11 +1,14 @@
 import os
 
 from ..io.fileHDF5 import FileHDF5
-from .oparamProbabilityHist import OParamProbabilityHist
+from .oparamTrajectory import OParamTrajectory
 
-class OParamProbabilityHists(FileHDF5):
-    hdf5RootPath = '/Hist/OParam'
-    subType = OParamProbabilityHist
+class OParamTrajectories(FileHDF5):
+    '''
+    class that represents a time-resolved trajectory calculated from an order parameter (effectively, some generic function f(species_count, degree_advancement))
+    '''    
+    hdf5RootPath = '/Trajectory/OParam'
+    subType = OParamTrajectory
     
     def __init__(self, fPath, sim):
         self.sim = sim
@@ -19,11 +22,11 @@ class OParamProbabilityHists(FileHDF5):
         if useInt:
             if not self.rffHDF5(keys=[id]):
                 self.map[id].Init()
-                self.map[id].transformDatum()
+                self.map[id].transformData()
                 self.wtfHDF5(keys=[id])
         else:
             self.map[id].Init()
-            self.map[id].transformDatum()
+            self.map[id].transformData()
             self.wtfHDF5(keys=[id])
     
     def _rffHDF5(self, full=True, keys=None):

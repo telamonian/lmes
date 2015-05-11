@@ -1,6 +1,6 @@
-from .reducer import Reducer
+from .transform import Transform
 
-class Plottable(Reducer):
+class Plottable(Transform):
     '''
     base class for plottable objects.
     '''

@@ -1,4 +1,4 @@
-class Reducer(object):
+class Transform(object):
     dataAttr = None
 #     simData = None
     
@@ -7,9 +7,9 @@ class Reducer(object):
 #         for key,val in self.sim.dataDict.items():
 #             self.__setattr__(key, val)
     
-    def _ReduceData(self, datum):
+    def _transformDatum(self, datum):
         pass
             
-    def ReduceData(self):
+    def transformDatum(self):
         for datum in self.sim.__getattribute__(self.__class__.dataAttr).sffHDF5():
-            self._ReduceData(datum)
+            self._transformDatum(datum)

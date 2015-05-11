@@ -13,7 +13,6 @@ class ReplicateTrajectory(object):
         self.trajectoryStateBuf.cme_state.species_counts.trajectory_id = trajectoryID
         if hdf5TrajectoryGroup!=None:
             self.InitFromHdf5(hdf5TrajectoryGroup, full=full)
-        self.oparamProbabilityHistMap = {}
 
         # pass through attributes to the underlying TrajectoryStateBuf
         self.number_entries = self.trajectoryStateBuf.cme_state.species_counts.number_entries

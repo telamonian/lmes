@@ -84,17 +84,17 @@ class Sim(object):
 #         if useInt:
 #             self.plottables[id].rffHDF5()
 #         else:
-#             self.plottables[id].ReduceData()
+#             self.plottables[id].transformData()
     
     def InitPlottable(self, id, type, useInt=True, **kwargs):
         if re.match('OparamProbabilityHist', type, flags=re.I) or re.match('oph', type, flags=re.I):
             self.oparamProbabilityHists.InitPlottable(id=id, useInt=useInt, **kwargs)
     
-    def ReduceData(self):
+    def transformData(self):
 #         for plottable in self.plottables.items():
-#             plottable.ReduceData()
+#             plottable.transformData()
         for id, plottable in self.oparamProbabilityHists:
-            plottable.ReduceData()
+            plottable.transformData()
             
     
 #         self.f = h5py.File(self.fPath)

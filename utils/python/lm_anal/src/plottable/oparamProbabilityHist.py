@@ -1,11 +1,7 @@
-import h5py
 import numpy as np
-import os,sys
-thisScriptDir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(thisScriptDir, '../../python_protobuf/lm/io'))
+import os
 
 from .hist import Hist
-from .reducer import Reducer
 
 class OParamProbabilityHist(Hist):
     dataAttr = 'replicateTrajectories'
@@ -34,7 +30,7 @@ class OParamProbabilityHist(Hist):
         else:
             self.edgesNames = range(self.rank)
     
-    def _ReduceData(self, datum):
+    def _transformDatum(self, datum):
         self.AddSpeciesCounts(datum.species_count)
     
     def _rffHDF5(self, hdf5Group):
