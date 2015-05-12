@@ -1,3 +1,4 @@
+import h5py
 import os
 
 from ..io.fileHDF5 import FileHDF5
@@ -18,17 +19,20 @@ class OParamTrajectories(FileHDF5):
         self.map[id] = self.__class__.subType(id=id, sim=self.sim, **kwargs)
      
     def InitPlottable(self, id, keys=None, useInt=True, **kwargs):
-        keys = [kwargs.pop('trajID')]
+        try:
+            keys = [kwargs.pop('trajID')]
+        except KeyError:
+            pass
         self._InitPlottable(id, **kwargs)
         if useInt:
-            if not self.rffHDF5(keys=[id]):
+            if not self.rffHDF5(full=True, keys=[id]):
 #                 self.map[id].Init()
                 self.map[id].transformDatum(keys=keys)
-#                 self.wtfHDF5(keys=[id])
+                self.wtfHDF5(keys=[id])
         else:
 #             self.map[id].Init()
             self.map[id].transformDatum(keys=keys)
-#             self.wtfHDF5(keys=[id])
+            self.wtfHDF5(keys=[id])
     
     def _rffHDF5(self, full=True, keys=None):
         '''
@@ -42,7 +46,7 @@ class OParamTrajectories(FileHDF5):
                 val = self.file[os.path.join(self.__class__.hdf5RootPath, key)]
             except KeyError:
                 return False
-            self.map[key]._rffHDF5(hdf5Group=val)
+            self.map[key]._rffHDF5(full=full, hdf5Group=val)
         return True
             
     def _wtfHDF5(self, keys=None):
@@ -58,8 +62,10 @@ class OParamTrajectories(FileHDF5):
             hdf5RootGroup = self.file[self.__class__.hdf5RootPath]    
         
         for key in keys:
-            if key in hdf5RootGroup:
-                del hdf5RootGroup[key]
-            hdf5Group = hdf5RootGroup.create_group(key)
+            trajGroupName = '%07d' % self[key].trajectory_id
+            if trajGroupName in hdf5RootGroup:
+                del hdf5RootGroup[trajGroupName]
+            hdf5Group = hdf5RootGroup.create_group(trajGroupName)
+            hdf5RootGroup[key] = h5py.SoftLink(os.path.join(self.__class__.hdf5RootPath, trajGroupName))
             self[key]._wtfHDF5(hdf5Group=hdf5Group)
             

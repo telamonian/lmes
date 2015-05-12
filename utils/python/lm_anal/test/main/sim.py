@@ -116,20 +116,41 @@ class SimCreateOParamTrajectoryTestCase(unittest.TestCase):
         kwargs = {'oparamID': 0,
                   'trajID': 5}
         self.sim.InitPlottable(id=otID, type='OParamTrajectory', useInt=False, **kwargs)
-          
+           
         self.createdOParamTrajectoryTest(otID)
-#         rank = self.sim.oparamProbabilityHists[ophID].rank
-#         intendedRank = 1
-#         self.assertEqual(rank, intendedRank)
-#           
-#         dims = np.array(self.sim.oparamProbabilityHists[ophID].dims)
-#         intendedDims = np.array([12])
-#         self.assertTrue(np.allclose(dims, intendedDims), msg='%s is not allclose to %s' % (dims.tolist(), intendedDims.tolist()))
-#           
-#         edges = np.array(self.sim.oparamProbabilityHists[ophID].edges)
-#         intendedEdges = np.array([-25.0, -20.0, -15.0, -10.0, -5.0, 0.0, 5.0, 10.0, 15.0, 20.0, 25.0])
-#         self.assertTrue(np.allclose(edges, intendedEdges), msg='%s is not allclose to %s' % (edges.tolist(), intendedEdges.tolist()))
-#           
-#         vals = np.array(self.sim.oparamProbabilityHists[ophID].vals)
-#         intendedVals = np.array([50.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 7.0, 63.0, 887.0])
-#         self.assertTrue(np.allclose(vals, intendedVals), msg='%s is not allclose to %s' % (vals.tolist(), intendedVals.tolist()))
+         
+    def test_load_oparam_trajectory_useint_true_without_existing_lmint(self):
+        '''
+        test that Sim can load a plottable from an intermediate file
+        '''
+        try:
+            os.remove(self.sim.intermediatePath)
+        except FileNotFoundError:
+            pass
+        otID = 'otTestWithRed'
+        kwargs = {'oparamID': 0,
+                  'trajID': 5}
+        self.sim.InitPlottable(id=otID, type='OParamTrajectory', useInt=True, **kwargs)
+         
+        self.createdOParamTrajectoryTest(otID)
+        
+    
+    def test_load_oparam_trajectory_useint_true_with_existing_lmint(self):
+        '''
+        test that Sim can load a plottable from an intermediate file
+        '''
+        try:
+            os.remove(self.sim.intermediatePath)
+        except FileNotFoundError:
+            pass
+        otID = 'otTestWithRed'
+        kwargs = {'oparamID': 0,
+                  'trajID': 5}
+        # write the histogram out to the lmint file, then delete the in-memory representation
+        self.sim.InitPlottable(id=otID, type='OParamTrajectory', useInt=True, **kwargs)
+        del self.sim
+        # reload the histogram from the lmint file. Notice the lack of **kwargs in the InitPlottable signature, since it no longer needs the oparamID or trajID args
+        self.sim = Sim(testLMPath)
+        self.sim.InitPlottable(id=otID, type='OParamTrajectory', useInt=True)
+        
+        self.createdOParamTrajectoryTest(otID)
