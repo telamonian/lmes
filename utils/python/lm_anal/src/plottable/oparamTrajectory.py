@@ -1,10 +1,37 @@
 import numpy as np
 import os,sys
+thisScriptDir = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.join(thisScriptDir, '../../python_protobuf/lm/io'))
+sys.path.append(os.path.join(thisScriptDir, '../../python_protobuf'))
 
 from .plottable import Plottable
 from TrajectoryState_pb2 import TrajectoryState as TrajectoryStateBuf
 
 class OParamTrajectory(Plottable):
+    dataAttr = 'replicateTrajectories'
+    
+    # pass through attributes to the underlying TrajectoryStateBuf
+    @property
+    def number_entries(self):
+        return self.trajectoryStateBuf.cme_state.order_parameter_values.number_entries
+    @number_entries.setter
+    def number_entries(self, val):
+        self.trajectoryStateBuf.cme_state.order_parameter_values.number_entries = val
+    
+    @property
+    def number_order_parameters(self):
+        return self.trajectoryStateBuf.cme_state.order_parameter_values.number_order_parameters
+    @number_order_parameters.setter
+    def number_order_parameters(self, val):
+        self.trajectoryStateBuf.cme_state.order_parameter_values.number_order_parameters = val
+    
+    @property
+    def trajectory_id(self):
+        return self.trajectoryStateBuf.cme_state.order_parameter_values.trajectory_id
+    @trajectory_id.setter
+    def trajectory_id(self, val):
+        self.trajectoryStateBuf.cme_state.order_parameter_values.trajectory_id = val
+    
     def __init__(self, sim, full=False, hdf5TrajectoryGroup=None, id=None, oparamID=None, repTraj=None):
         self.sim = sim
         self.oparamID = oparamID
@@ -15,11 +42,10 @@ class OParamTrajectory(Plottable):
             self.rffHDF5(hdf5TrajectoryGroup, full=full)
         elif oparamID!=None and repTraj!=None:
             self._transformReplicateTrajectory(repTraj=repTraj, full=full)
-        
-        # pass through attributes to the underlying TrajectoryStateBuf
-        self.number_entries = self.trajectoryStateBuf.cme_state.order_parameter_values.number_entries
-        self.number_order_parameters = self.trajectoryStateBuf.cme_state.order_parameter_values.number_order_parameters
-        self.trajectory_id = self.trajectoryStateBuf.cme_state.order_parameter_values.trajectory_id
+    
+#         self.number_entries = self.trajectoryStateBuf.cme_state.order_parameter_values.number_entries
+#         self.number_order_parameters = self.trajectoryStateBuf.cme_state.order_parameter_values.number_order_parameters
+#         self.trajectory_id = self.trajectoryStateBuf.cme_state.order_parameter_values.trajectory_id
     
     def _rffHDF5(self, hdf5TrajectoryGroup, full=False, useNPArr=True):
         '''
@@ -58,7 +84,10 @@ class OParamTrajectory(Plottable):
         self.order_parameter_values = self.trajectoryStateBuf.cme_state.order_parameter_values.order_parameter_values
         self.time = self.trajectoryStateBuf.cme_state.order_parameter_values.time
 
-    def _transformReplicateTrajectory(self, repTraj, full=False, useNPArr=True):
+    def _transformDatum(self, repTraj):
+        self._transformReplicateTrajectory(repTraj=repTraj)
+    
+    def _transformReplicateTrajectory(self, repTraj, full=True, useNPArr=True):
         '''
         transform the data contained in a ReplicateTrajectory in order to generate this OParamTrajectory's data
         '''

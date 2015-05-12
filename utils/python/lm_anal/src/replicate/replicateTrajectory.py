@@ -7,6 +7,29 @@ import numpy as np
 from TrajectoryState_pb2 import TrajectoryState as TrajectoryStateBuf
 
 class ReplicateTrajectory(object):
+    
+        # pass through attributes to the underlying TrajectoryStateBuf
+    @property
+    def number_entries(self):
+        return self.trajectoryStateBuf.cme_state.species_counts.number_entries
+    @number_entries.setter
+    def number_entries(self, val):
+        self.trajectoryStateBuf.cme_state.species_counts.number_entries = val
+    
+    @property
+    def number_species(self):
+        return self.trajectoryStateBuf.cme_state.species_counts.number_species
+    @number_species.setter
+    def number_species(self, val):
+        self.trajectoryStateBuf.cme_state.species_counts.number_species = val
+    
+    @property
+    def trajectory_id(self):
+        return self.trajectoryStateBuf.cme_state.species_counts.trajectory_id
+    @trajectory_id.setter
+    def trajectory_id(self, val):
+        self.trajectoryStateBuf.cme_state.species_counts.trajectory_id = val
+    
     def __init__(self, trajectoryID, hdf5TrajectoryGroup=None, full=False):
         self.trajectoryStateBuf = TrajectoryStateBuf()
         self.trajectoryStateBuf.trajectory_id = trajectoryID
@@ -14,10 +37,10 @@ class ReplicateTrajectory(object):
         if hdf5TrajectoryGroup!=None:
             self.InitFromHdf5(hdf5TrajectoryGroup, full=full)
 
-        # pass through attributes to the underlying TrajectoryStateBuf
-        self.number_entries = self.trajectoryStateBuf.cme_state.species_counts.number_entries
-        self.number_species = self.trajectoryStateBuf.cme_state.species_counts.number_species
-        self.trajectory_id = self.trajectoryStateBuf.cme_state.species_counts.trajectory_id
+#         # pass through attributes to the underlying TrajectoryStateBuf
+#         self.number_entries = self.trajectoryStateBuf.cme_state.species_counts.number_entries
+#         self.number_species = self.trajectoryStateBuf.cme_state.species_counts.number_species
+#         self.trajectory_id = self.trajectoryStateBuf.cme_state.species_counts.trajectory_id
         
     def InitFromHdf5(self, hdf5TrajectoryGroup, full=False, useNPArr=True):
         '''

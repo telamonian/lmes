@@ -8,8 +8,8 @@ class Transform(object):
 #             self.__setattr__(key, val)
     
     def _transformDatum(self, datum):
-        pass
+        print('the Transform base class _transformDatum should not be called')
             
-    def transformDatum(self):
-        for datum in self.sim.__getattribute__(self.__class__.dataAttr).sffHDF5():
+    def transformDatum(self, keys=None, **kwargs):
+        for datum in self.sim.__getattribute__(self.__class__.dataAttr).sffHDF5(keys=keys):
             self._transformDatum(datum)

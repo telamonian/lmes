@@ -16,17 +16,23 @@ class Hist(Plottable):
         self.InitVals()
         #self.InitVals_Buf()
     
+    @property
+    def rank(self):
+        return self.histBuf.rank
+    @rank.setter
+    def rank(self, val):
+        self.histBuf.rank = int(val)
+    
     def _Init(self, dims, edges, rank):
         self.histBuf = HistBuf()
         # passthroughs
         self.dims = self.histBuf.dims
         self.edges = self.histBuf.edges
-        self.rank = self.histBuf.rank
         
         self.edges.extend(np.array(edges).flatten())
         self.dims.extend(np.array(dims).flatten().tolist())     # tolist() avoids a nasty error where protobuf considers numpy int64 to be different from python int
-        self.rDims = np.array(self.dims) - 1                    # reduced dimensions, used in later calculations
         self.rank = rank
+        self.rDims = np.array(self.dims) - 1                    # reduced dimensions, used in later calculations
     
     def InitVals(self):
         self.vals = np.zeros(self.dims)

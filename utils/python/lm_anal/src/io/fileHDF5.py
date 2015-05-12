@@ -43,14 +43,20 @@ class FileHDF5(File):
         '''
         return self.wrapperHDF5(self._rffHDF5, full=full, keys=keys)
     
-    def sffHDF5(self):
+    def sffHDF5(self, keys=None):
         '''
         sff (stream from file) for hdf5 files
         '''
-        with h5py.File(self.fPath,'r') as lmF:
-            keys = list(lmF[self.hdf5RootPath].keys())
+        if keys==None:
+            with h5py.File(self.fPath,'r') as lmF:
+                keys = list(lmF[self.hdf5RootPath].keys())
+                
         for key in keys:
-            self.rffHDF5(full=True, keys=[key])
+            try:
+                self.rffHDF5(full=True, keys=[key])
+            except KeyError:
+                key = '%07d' % key
+                self.rffHDF5(full=True, keys=[key])
             yield self[int(key)]
             del self[int(key)]
         

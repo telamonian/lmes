@@ -17,17 +17,18 @@ class OParamTrajectories(FileHDF5):
     def _InitPlottable(self, id, **kwargs):
         self.map[id] = self.__class__.subType(id=id, sim=self.sim, **kwargs)
      
-    def InitPlottable(self, id, useInt=True, **kwargs):
+    def InitPlottable(self, id, keys=None, useInt=True, **kwargs):
+        keys = [kwargs.pop('trajID')]
         self._InitPlottable(id, **kwargs)
         if useInt:
             if not self.rffHDF5(keys=[id]):
-                self.map[id].Init()
-                self.map[id].transformData()
-                self.wtfHDF5(keys=[id])
+#                 self.map[id].Init()
+                self.map[id].transformDatum(keys=keys)
+#                 self.wtfHDF5(keys=[id])
         else:
-            self.map[id].Init()
-            self.map[id].transformData()
-            self.wtfHDF5(keys=[id])
+#             self.map[id].Init()
+            self.map[id].transformDatum(keys=keys)
+#             self.wtfHDF5(keys=[id])
     
     def _rffHDF5(self, full=True, keys=None):
         '''
@@ -61,10 +62,4 @@ class OParamTrajectories(FileHDF5):
                 del hdf5RootGroup[key]
             hdf5Group = hdf5RootGroup.create_group(key)
             self[key]._wtfHDF5(hdf5Group=hdf5Group)
-        
-#         if self.hdf5RootPath in self.file:
-#             del self.file[self.hdf5RootPath]
-#         hdf5RootGroup = self.file.create_group(hdf5RootPath)
-#         for key,opprobhist in self:
-#             hdf5Group = hdf5RootGroup.create_group(key)
-#             opprobhist._wtfHDF5(hdf5Group=hdf5Group)
+            

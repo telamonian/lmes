@@ -45,16 +45,29 @@ class Data(object):
         '''
         self.wrapperHDF5(self._rffHDF5, full=full, keys=keys)
     
-    def sffHDF5(self):
+    def sffHDF5(self, keys=None):
         '''
         sff (stream from file) for hdf5 files
         '''
-        with h5py.File(self.fPath,'r') as lmF:
-            keys = list(lmF[self.hdf5RootPath].keys())
+        if keys==None:
+            with h5py.File(self.fPath,'r') as lmF:
+                keys = list(lmF[self.hdf5RootPath].keys())
+                
         for key in keys:
             self.rffHDF5(full=True, keys=[key])
             yield self[int(key)]
             del self[int(key)]
+    
+#     def sffHDF5(self):
+#         '''
+#         sff (stream from file) for hdf5 files
+#         '''
+#         with h5py.File(self.fPath,'r') as lmF:
+#             keys = list(lmF[self.hdf5RootPath].keys())
+#         for key in keys:
+#             self.rffHDF5(full=True, keys=[key])
+#             yield self[int(key)]
+#             del self[int(key)]
 
     def wrapperHDF5(self, func, **kwargs):
         '''

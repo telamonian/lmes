@@ -1,2 +1,4 @@
 from .oparamProbabilityHist import OParamProbabilityHist
 from .oparamProbabilityHists import OParamProbabilityHists
+from .oparamTrajectory import OParamTrajectory
+from .oparamTrajectories import OParamTrajectories

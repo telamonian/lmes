@@ -3,18 +3,19 @@
 import os
 import re
 
-from ..helper import CamelCase
+from ..helper import CamelCase, ShortenName, Singular
 from ..oparam.oparams import OParams
-from .. import plottable
+from ..plottable import *
 from ..replicate.replicateTrajectories import ReplicateTrajectories
 from ..tiling.tilings import Tilings
 
 class Sim(object):
-    dataObjects = [OParams, ReplicateTrajectories, Tilings]
+    dataTypes = [OParams, ReplicateTrajectories, Tilings]
+    plottableContainerTypes = [OParamProbabilityHists, OParamTrajectories]
     
-    def __init__(self, fPath, dataObjects=None, lmintOnly=False, **kwargs):
-        if dataObjects!=None:
-            self.dataObjects = dataObjects
+    def __init__(self, fPath, dataTypes=None, lmintOnly=False, **kwargs):
+        if dataTypes!=None:
+            self.dataTypes = dataTypes
 #         self.plottables = {}
             
         # path setting stuff
@@ -24,7 +25,7 @@ class Sim(object):
         self.modTimePath = os.path.join(self.fDir, '.' + self.fName) + '.mod'
         self.intermediatePath = os.path.join(self.fDir, self.fName) + '.lmint'
         
-        self.oparamProbabilityHists = plottable.OParamProbabilityHists(fPath=self.intermediatePath, sim=self)
+        self.InitPlottableContainers()
         
         if lmintOnly:
             # we only have a .lmint file and no base .lm file
@@ -61,14 +62,13 @@ class Sim(object):
         for key,val in self.sweepParams.items():
             outString+='%s: %s, ' % (key,val)
         return outString[:-2]
-
     
     def Init(self):
         self.InitData()
     
     def InitData(self):
         self.dataDict = {}
-        for dataObject in self.dataObjects:
+        for dataObject in self.dataTypes:
             temp = dataObject(fPath=self.fPath)
             if temp.hasHDF5():
                 temp.rffHDF5()
@@ -87,15 +87,38 @@ class Sim(object):
 #             self.plottables[id].transformData()
     
     def InitPlottable(self, id, type, useInt=True, **kwargs):
-        if re.match('OparamProbabilityHist', type, flags=re.I) or re.match('oph', type, flags=re.I):
-            self.oparamProbabilityHists.InitPlottable(id=id, useInt=useInt, **kwargs)
+        for iP in self.initPlottables.values():
+            if iP(id, type, useInt=useInt, **kwargs):
+                return True
+        return False
+#         if re.match('OparamProbabilityHist', type, flags=re.I) or re.match('oph', type, flags=re.I):
+#             self.oparamProbabilityHists.InitPlottable(id=id, useInt=useInt, **kwargs)
     
-    def transformData(self):
+    def _InitPlottableClosure(self, longName, shortName, plottableContainer):
+        def _InitPlottable(id, type, useInt=True, **kwargs):
+            if re.match(longName, type, flags=re.I) or re.match(shortName, type, flags=re.I):
+                plottableContainer.InitPlottable(id=id, useInt=useInt, **kwargs)
+                return True
+            else:
+                return False
+        return _InitPlottable
+    
+    def InitPlottableContainers(self):
+        self.plottableContainers = {}
+        self.initPlottables = {}
+        for pC in self.plottableContainerTypes:
+            self.__setattr__(CamelCase(pC.__name__), (pC(fPath=self.intermediatePath, sim=self)))
+            self.plottableContainers[CamelCase(pC.__name__)] = self.__getattribute__(CamelCase(pC.__name__))
+            singularName = Singular(pC.__name__)
+            self.initPlottables[singularName] = self._InitPlottableClosure(longName=singularName, shortName=ShortenName(singularName), plottableContainer=self.__getattribute__(CamelCase(pC.__name__)))
+#         print([id(initPlottable) for initPlottable in self.initPlottables.values()])
+    
+#     def transformData(self):
 #         for plottable in self.plottables.items():
 #             plottable.transformData()
-        for id, plottable in self.oparamProbabilityHists:
-            plottable.transformData()
-            
+#         for id, plottable in self.oparamProbabilityHists:
+#             plottable.transformData()
+#             
     
 #         self.f = h5py.File(self.fPath)
 #         self.params = self.f['/Parameters'].attrs

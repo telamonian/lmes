@@ -1,5 +1,6 @@
 from numpy import arange,around,array,asarray,atleast_1d,atleast_2d,bincount,diff,digitize,empty,isscalar,log10,ones,sort,where,zeros
 import numpy as np
+import re
 
 def CamelCase(s):
     '''
@@ -12,7 +13,22 @@ def CamelCase(s):
         else:
             return output
     return output
-    
+
+def ShortenName(s):
+    '''
+    input: CamelCase style name 
+    output: abbreviated form (in lowercase) generated from the first letter of each "word"
+    '''
+    return ''.join(re.findall('[A-Z]', s)).lower()
+
+def Singular(s):
+    '''
+    returns the singular form of a plural name
+    '''
+    if s[-3:]=='ies':
+        return s[:-3] + 'y'
+    elif s[-1]=='s':
+        return s[:-1]
 
 def histogramdd(sample, bins=10, range=None, normed=False, weights=None, includeOutliers=True):
     """
