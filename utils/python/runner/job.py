@@ -1,16 +1,14 @@
-import os, sys
-# script_dir = os.path.dirname(os.path.abspath(__file__))
-# script_dir_one_up = os.path.split(script_dir)[0]
-# sys.path.append(script_dir_one_up)
-
-from helper import *
-import lmFile
 import getpass
+import numbers
+import os, sys
 import re
 import saga
 from shutil import copy2 as cp
 import tempfile
 import uuid
+
+from .helper import *
+from . import lmFile
 
 class Job(object):
     '''
@@ -149,34 +147,14 @@ class JobLM(Job):
             self.lmF.__getattribute__('Set%s' % tupTypeName)(inputTup)
         self.lmF.Flush()
         
-    def AutosetSamplingRate(self):
-        '''
-        sets sampling rate on the basis of the slowest simple reaction rate
-        '''
-        reactionRateConstants = self.lmF.GetReactionRateConstants()
-        simParam = lmFile.SimulationParameter(key='writeInterval', val=str(int(1e1))) #val=float(1)/np.min(reactionRateConstants[:,0]))
-        self.lmF.SetSimulationParameter(simParam=simParam)
-        self.lmF.Flush()
-    
-    def AutosetSamplingTime(self):
-        '''
-        sets total sampling time based on a combination of sampling rate and known switching time for the system at hand
-        '''
-#         reactionRateConstants = self.lmF.GetReactionRateConstants()
-#         totalRunTime = float(1)/np.min(reactionRateConstants[:,0]) * 1e7
-        totalRunTime = '1e6'
-        simParam = lmFile.SimulationParameter(key='maxTime', val=totalRunTime)
-        self.lmF.SetSimulationParameter(simParam=simParam)
-        self.lmF.Flush()
-        
     def CopyToLm(self):
         self.MkTmpLm()
         if self.lm_input_tups!=None:
             self.ApplyInputTup()
-        if self.lm_autoset_sampling_rate:
-            self.AutosetSamplingRate()
-        if self.lm_autoset_sampling_time:
-            self.AutosetSamplingTime()
+        if self.lm_sampling_rate:
+            self.SetSamplingRate(rate=self.lm_sampling_rate)
+        if self.lm_sampling_time:
+            self.SetSamplingTime(time=self.lm_sampling_time)
         self.lmRemotePath = PathJoin(self.working_directory, self.lmName)
         self._CopyTo(self.lmTmpPath, self.lmRemotePath)
         self.RmTmpLm()
@@ -238,11 +216,67 @@ class JobLM(Job):
                 self.arguments.append('-a')
                 self.arguments.append('"-r %s"' % replicateString)
     
+    def SetSamplingRate(self, rate='auto'):
+        '''
+        if auto:
+            sets sampling rate on the basis of the slowest simple reaction rate
+        elif rate is a number:
+            sets sampling rate to rate
+        else:
+            raise a ValueError
+        '''
+        if rate=='auto':
+            reactionRateConstants = self.lmF.GetReactionRateConstants()
+            rateToSet = float(1)/np.min(reactionRateConstants[:,0])
+        elif isinstance(rate, numbers.Number):
+            # the arg is a python numeric type
+            rateToSet = rate
+        elif isinstance(rate, str):
+            # the arg is a string, try to convert it to a number
+            try:
+                rateToSet = int(rate)
+            except ValueError:
+                rateToSet = float(rate)
+        else:   
+            raise ValueError
+        rateToSet = '%.5f' % rateToSet
+        simParam = lmFile.SimulationParameter(key='writeInterval', val=rateToSet)
+        self.lmF.SetSimulationParameter(simParam=simParam)
+        self.lmF.Flush()
+    
+    def SetSamplingTime(self, time='auto', leastLikelyRate=1e7):
+        '''
+        if auto:
+            sets total sampling time based on a combination of sampling rate and known switching time (really the rate of the least likely event) for the system at hand
+        elif time is a number:
+            sets the total sampling time to time
+        else:
+            raise a ValueError
+        '''
+        if time=='auto':
+            reactionRateConstants = self.lmF.GetReactionRateConstants()
+            totalRunTimeToSet = float(1)/np.min(reactionRateConstants[:,0]) * leastLikelyRate
+        elif isinstance(time, numbers.Number):
+            # the arg is a python numeric type
+            totalRunTimeToSet = time
+        elif isinstance(time, str):
+            # the arg is a string, try to convert it to a number
+            try:
+                totalRunTimeToSet = int(time)
+            except ValueError:
+                totalRunTimeToSet = float(time)
+        else:   
+            raise ValueError
+        totalRunTimeToSet = '%.5f' % totalRunTimeToSet
+        simParam = lmFile.SimulationParameter(key='maxTime', val=totalRunTimeToSet)
+        self.lmF.SetSimulationParameter(simParam=simParam)
+        self.lmF.Flush()
+    
     @classmethod
     def _InitKeywords(cls, mro):
         # avoid repepitive addition
         if cls.__name__=='JobLM':
-            additionalKeywords = ('lm_args','lm_autoset_sampling_rate','lm_autoset_sampling_time','lm_file_path','lm_input_tups','lm_replicate_range')
+            additionalKeywords = ('lm_args','lm_sampling_rate','lm_sampling_time','lm_file_path','lm_input_tups','lm_replicate_range')
         else:
             additionalKeywords = ()
         return mro[mro.index(cls) + 1]._InitKeywords(mro) + additionalKeywords

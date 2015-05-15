@@ -28,9 +28,7 @@ class SweepTup(object):
             yield self[i]
     
 class Sweep(object):
-    def __init__(self, cpu_count, host, lm_bin, lm_file_path, rootPath, autosetSamplingRate=False, autosetSamplingTime=False, diagonal=False, inputTupsDefault=None, lmArgsGpusPerReplicate=0, replicateRange=(1,10), sweepTupX=None, sweepTupY=None, type='shell', useForwardFlux=False, user_id=None):
-        self.autosetSamplingRate = autosetSamplingRate
-        self.autosetSamplingTime = autosetSamplingTime
+    def __init__(self, cpu_count, host, lm_bin, lm_file_path, rootPath, diagonal=False, inputTupsDefault=None, lmArgsGpusPerReplicate=0, lm_sampling_rate=None, lm_sampling_time=None, replicateRange=(1,10), sweepTupX=None, sweepTupY=None, type='shell', useForwardFlux=False, user_id=None):
         self.cpu_count = cpu_count
         self.diagonal = diagonal
         self.host = host
@@ -38,6 +36,8 @@ class Sweep(object):
         self.lm_bin = lm_bin
         self.lm_file_path = lm_file_path
         self.lmFileName = os.path.split(lm_file_path)[-1]
+        self.lm_sampling_rate = lm_sampling_rate
+        self.lm_sampling_time = lm_sampling_time
         self.replicateRange = replicateRange
         self.rootPath = rootPath
         self.user_id = user_id
@@ -81,12 +81,12 @@ class Sweep(object):
                            'error': 'lm.err',
                            'executable': PathJoin(working_directory, 'sge_glue.sh'),
                            'host': self.host,
-                           'lm_autoset_sampling_rate': self.autosetSamplingRate,
-                           'lm_autoset_sampling_time': self.autosetSamplingTime,
                            'lm_args': self.lm_args,
                            'lm_file_path': self.lm_file_path,
                            'lm_input_tups': inputTupsX+inputTupsY+self.inputTupsDefault,
                            'lm_replicate_range': self.replicateRange,
+                           'lm_sampling_rate': self.lm_sampling_rate,
+                           'lm_sampling_time': self.lm_sampling_time,
                            'output': 'lm.log',
                            'user_id': self.user_id,
                            'working_directory': working_directory}

@@ -13,11 +13,12 @@ type = 'shell'
 user_id = 'tel'
 
 if __name__ == "__main__" and __package__ is None:
-    __package__ = "runner.test.remote_sge"
+    __package__ = "runner.test.local_sweep"
     script_dir = os.path.dirname(os.path.abspath(__file__))
     script_dir_three_up = os.path.split(os.path.split(os.path.split(script_dir)[0])[0])[0]
     sys.path.append(script_dir_three_up)
     import runner.test
+    import runner.test.local_sweep
 
 from ...helper import *
 from ...job import JobSGE
@@ -35,16 +36,16 @@ def GetFFluxInputTups():
                  SimulationParameter(key='maxPhaseZeroTime',val='10000')]
     tiling = Tiling(id=0,
                     orderParameterID=0,
-                    Type=0,
+                    type=0,
                     edges=np.linspace(-25,25,13))
     return [iSCs, iSCBs, op, tiling] + simParams
 
 if __name__=='__main__':
-    xTicks = LogTicks(-2,-2,base=10,resolution=1)
+    xTicks = LogTicks(-2,0,base=10,resolution=1)
     yTicks = xTicks/4.0
     # these inputTupsDefault get applied to every lm file before any simulations in the sweep
     simParams = [SimulationParameter(key='maxSteps',val='1e10'),
-                 SimulationParameter(key='maxWorkUnitSteps',val='10000')]
+                 SimulationParameter(key='maxWorkUnitSteps',val='1e8')]
     # production reaction rates get swept through in x...
     inputTupssX = [[ReactionRateConstant(reactionID=4, rateConstant=tick), ReactionRateConstant(reactionID=5, rateConstant=tick), ReactionRateConstant(reactionID=11, rateConstant=tick), ReactionRateConstant(reactionID=12, rateConstant=tick)] for tick in xTicks]
     # ...and degradation reaction rates get swept through in y
@@ -52,13 +53,14 @@ if __name__=='__main__':
     sweepTupX = SweepTup(inputTupss=inputTupssX, label='production%.5f', labelVals=xTicks)
     sweepTupY = SweepTup(inputTupss=inputTupssY, label='degradation%.5f', labelVals=yTicks)
     
-    sweep_dict = {'autosetSamplingRate': True,
-                  'autosetSamplingTime': True,
-                  'cpu_count': 2,
+    sweep_dict = {'cpu_count': 2,
+                  'diagonal': True,
                   'host': host,
                   'inputTupsDefault': simParams + GetFFluxInputTups(),
                   'lm_bin': lm_bin,
                   'lm_file_path': 'biphasic_switch.lm',
+                  'lm_sampling_rate': 'auto',
+                  'lm_sampling_time': 'auto',
                   'replicateRange': (1,100),
                   'rootPath': PathJoin(remote_home_directory, 'test/sweep'),
                   'sweepTupX': sweepTupX,
@@ -67,4 +69,4 @@ if __name__=='__main__':
                   'user_id': user_id}
     sweep = Sweep(**sweep_dict) 
     sweep.Setup()
-    sweep.Run()
+#     sweep.Run()

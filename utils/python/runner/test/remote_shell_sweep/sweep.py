@@ -52,13 +52,13 @@ if __name__=='__main__':
     sweepTupX = SweepTup(inputTupss=inputTupssX, label='production%.5f', labelVals=xTicks)
     sweepTupY = SweepTup(inputTupss=inputTupssY, label='degradation%.5f', labelVals=yTicks)
     
-    sweep_dict = {'autosetSamplingRate': True,
-                  'autosetSamplingTime': True,
-                  'cpu_count': 2,
+    sweep_dict = {'cpu_count': 2,
                   'host': host,
                   'inputTupsDefault': simParams + GetFFluxInputTups(),
                   'lm_bin': lm_bin,
                   'lm_file_path': 'biphasic_switch.lm',
+                  'lm_sampling_rate': 'auto',
+                  'lm_sampling_time': 'auto',
                   'replicateRange': (1,100),
                   'rootPath': PathJoin(remote_home_directory, 'test/sweep'),
                   'sweepTupX': sweepTupX,

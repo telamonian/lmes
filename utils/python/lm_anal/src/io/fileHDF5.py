@@ -34,14 +34,14 @@ class FileHDF5(File):
         '''
         return self.wrapperHDF5(self._hasHDF5)
     
-    def _rffHDF5(self, full, keys):
+    def _rffHDF5(self, full, keys, **kwargs):
         pass
     
-    def rffHDF5(self, full=False, keys=None): 
+    def rffHDF5(self, full=False, keys=None, **kwargs): 
         '''
         rff (read from file) for hdf5 files
         '''
-        return self.wrapperHDF5(self._rffHDF5, full=full, keys=keys)
+        return self.wrapperHDF5(self._rffHDF5, full=full, keys=keys, **kwargs)
     
     def sffHDF5(self, keys=None):
         '''

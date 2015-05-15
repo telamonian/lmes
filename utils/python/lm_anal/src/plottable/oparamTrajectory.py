@@ -10,6 +10,11 @@ from TrajectoryState_pb2 import TrajectoryState as TrajectoryStateBuf
 class OParamTrajectory(Plottable):
     dataAttr = 'replicateTrajectories'
     
+    # properties to support plotting
+    @property
+    def x(self):
+        return self.order_parameter_values[:,0]
+    
     # pass through attributes to the underlying TrajectoryStateBuf
     @property
     def number_entries(self):
@@ -109,6 +114,8 @@ class OParamTrajectory(Plottable):
     
     def _transformReplicateTrajectoryArraysNP(self, repTraj):
         self.order_parameter_values = self._transformSpeciesCounts(repTraj.species_count)
+        if len(self.order_parameter_values.shape)==1:
+            self.order_parameter_values = np.reshape(self.order_parameter_values, (-1,1))
         self.time = np.copy(repTraj.time)
     
     def _transformSpeciesCounts(self, speciesCounts):

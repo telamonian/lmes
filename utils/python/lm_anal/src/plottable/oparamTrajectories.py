@@ -23,6 +23,7 @@ class OParamTrajectories(FileHDF5):
             keys = [kwargs.pop('trajID')]
         except KeyError:
             pass
+        self.hdf5RootPath = os.path.join(self.__class__.hdf5RootPath, '%07d' % kwargs['oparamID'])
         self._InitPlottable(id, **kwargs)
         if useInt:
             if not self.rffHDF5(full=True, keys=[id]):
@@ -43,7 +44,7 @@ class OParamTrajectories(FileHDF5):
         
         for key in keys:
             try:
-                val = self.file[os.path.join(self.__class__.hdf5RootPath, key)]
+                val = self.file[os.path.join(self.hdf5RootPath, key)]
             except KeyError:
                 return False
             self.map[key]._rffHDF5(full=full, hdf5Group=val)
@@ -56,16 +57,16 @@ class OParamTrajectories(FileHDF5):
         if keys==None:
             keys = self.map.keys()
         
-        if self.__class__.hdf5RootPath not in self.file:
-            hdf5RootGroup = self.file.create_group(self.__class__.hdf5RootPath)
-        else:
-            hdf5RootGroup = self.file[self.__class__.hdf5RootPath]    
+        if self.hdf5RootPath in self.file:
+            hdf5RootGroup = self.file[self.hdf5RootPath]
+        else:    
+            hdf5RootGroup = self.file.create_group(self.hdf5RootPath)
         
         for key in keys:
             trajGroupName = '%07d' % self[key].trajectory_id
             if trajGroupName in hdf5RootGroup:
                 del hdf5RootGroup[trajGroupName]
             hdf5Group = hdf5RootGroup.create_group(trajGroupName)
-            hdf5RootGroup[key] = h5py.SoftLink(os.path.join(self.__class__.hdf5RootPath, trajGroupName))
+            hdf5RootGroup[key] = h5py.SoftLink(os.path.join(self.hdf5RootPath, trajGroupName))
             self[key]._wtfHDF5(hdf5Group=hdf5Group)
             

@@ -150,7 +150,8 @@ class SimCreateOParamTrajectoryTestCase(unittest.TestCase):
         self.sim.InitPlottable(id=otID, type='OParamTrajectory', useInt=True, **kwargs)
         del self.sim
         # reload the histogram from the lmint file. Notice the lack of **kwargs in the InitPlottable signature, since it no longer needs the oparamID or trajID args
+        kwargs = {'oparamID': 0}
         self.sim = Sim(testLMPath)
-        self.sim.InitPlottable(id=otID, type='OParamTrajectory', useInt=True)
+        self.sim.InitPlottable(id=otID, type='OParamTrajectory', useInt=True, **kwargs)
         
         self.createdOParamTrajectoryTest(otID)
