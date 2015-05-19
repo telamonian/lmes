@@ -132,7 +132,6 @@ void GillespieDSolver::setState(const lm::io::TrajectoryState& state)
 
 long long GillespieDSolver::generateTrajectory(long long maxSteps)
 {
-    double tempStartTime, tempElapsedTime;
     if (reactionModel == NULL) throw Exception("GillespieDSolver did not have a reaction model.");
     if (propensities == NULL) throw Exception("GillespieDSolver state was not initialized.");
 
@@ -173,9 +172,9 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         if (time == 0.0 || trajectoryStarted==false)
         {
 //        	printf("traj_id %d has_started %d\n", trajectoryId, trajectoryStarted);
-            nextSpeciesCountsWriteTime=writeInterval;
+            nextSpeciesCountsWriteTime = ceil(time/writeInterval)*writeInterval; //writeInterval;
             speciesCountsDataSet->set_number_entries(1);
-            speciesCountsDataSet->add_time(0.0);
+            speciesCountsDataSet->add_time(time);
             for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
         }
         else
@@ -183,9 +182,6 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
             nextSpeciesCountsWriteTime = ceil(time/writeInterval)*writeInterval;
         }
     }
-
-    tempElapsedTime = 0;
-    tempStartTime = time;
 
     // Get the interval for writing parameters.
 //    double nextParameterWriteTime = INFINITY;
@@ -220,7 +216,6 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         double expR = expRngValues[rngNext];
         timeStep = expR/totalPropensity;
         time += timeStep;
-        tempElapsedTime+=timeStep;
 
          // If the new time is past the end time, we are done.
         if (time >= maxTime)
@@ -346,7 +341,6 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
 //    	printf("gillespiedsolver outputProcess: %d outputThread: %d\n", outputProcess, outputThread);
         communicator->sendMessage(outputProcess, outputThread, &msgp);
     }
-//    printf("traj ID: %d trajectoryStarted: %d startTime: %.3f elapsedTime: %.3f\n", trajectoryID, trajectoryStarted, tempStartTime, tempElapsedTime);
 
     return steps;
 }
