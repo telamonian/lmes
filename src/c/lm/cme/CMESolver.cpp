@@ -1030,12 +1030,12 @@ void CMESolver::reset()
 void CMESolver::getState(lm::io::TrajectoryState* state)
 {
     // Get the trajectory id.
-    state->set_trajectory_id(trajectoryId);
+    state->set_trajectory_id(trajectoryID);
 
     // Get the degree advancements.
     if (daFlag)
     {
-        state->mutable_cme_state()->mutable_degree_advancements()->set_trajectory_id(trajectoryId);
+        state->mutable_cme_state()->mutable_degree_advancements()->set_trajectory_id(trajectoryID);
         state->mutable_cme_state()->mutable_degree_advancements()->set_number_reactions(reactionModel->numberReactions);
         state->mutable_cme_state()->mutable_degree_advancements()->set_number_entries(1);
         for (int i=0; i<reactionModel->numberReactions; i++)
@@ -1048,7 +1048,7 @@ void CMESolver::getState(lm::io::TrajectoryState* state)
     // Get the order parameter values.
     if (opvFlag)
     {
-        state->mutable_cme_state()->mutable_order_parameter_values()->set_trajectory_id(trajectoryId);
+        state->mutable_cme_state()->mutable_order_parameter_values()->set_trajectory_id(trajectoryID);
         state->mutable_cme_state()->mutable_order_parameter_values()->set_number_order_parameters(oparams->size());
         state->mutable_cme_state()->mutable_order_parameter_values()->set_number_entries(1);
         for (int i=0; i<oparams->size(); i++)
@@ -1059,7 +1059,7 @@ void CMESolver::getState(lm::io::TrajectoryState* state)
     }
 
     // Get the species counts.
-    state->mutable_cme_state()->mutable_species_counts()->set_trajectory_id(trajectoryId);
+    state->mutable_cme_state()->mutable_species_counts()->set_trajectory_id(trajectoryID);
     state->mutable_cme_state()->mutable_species_counts()->set_number_species((int)reactionModel->numberSpecies);
     state->mutable_cme_state()->mutable_species_counts()->set_number_entries(1);
     for (int i=0; i<(int)reactionModel->numberSpecies; i++)
@@ -1071,7 +1071,7 @@ void CMESolver::getState(lm::io::TrajectoryState* state)
     // Get the first passage times.
     for (int i=0; i<numberFptTrackedSpecies; i++)
     {
-        fptTrackedSpecies[i].serializeTo(trajectoryId, state->mutable_cme_state()->add_first_passage_times());
+        fptTrackedSpecies[i].serializeTo(trajectoryID, state->mutable_cme_state()->add_first_passage_times());
     }
 
     // Get the tiling hists
@@ -1090,7 +1090,7 @@ void CMESolver::setState(const lm::io::TrajectoryState& state)
     if (state.cme_state().species_counts().number_entries() != 1 || state.cme_state().species_counts().species_count_size() != (int)reactionModel->numberSpecies || state.cme_state().species_counts().time_size() != 1) throw Exception("State object has too many entries",state.cme_state().species_counts().number_entries());
 
     // Set the trajectory id.
-    trajectoryId = state.trajectory_id();
+    trajectoryID = state.trajectory_id();
 
     // Set the degree advancements.
     for (int i=0; i<state.cme_state().degree_advancements().degree_advancements_size(); i++)

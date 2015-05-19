@@ -177,7 +177,7 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     {
         // Initialize the data set.
         speciesCountsDataSet = msg->mutable_species_counts();
-        speciesCountsDataSet->set_trajectory_id(trajectoryId);
+        speciesCountsDataSet->set_trajectory_id(trajectoryID);
         speciesCountsDataSet->set_number_species(reactionModel->numberSpeciesToTrack);
         speciesCountsDataSet->set_number_entries(0);
 
@@ -206,7 +206,7 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     {
         // Initialize the data set.
         latticeDataSet = msg->mutable_lattice_time_series();
-        latticeDataSet->set_trajectory_id(trajectoryId);
+        latticeDataSet->set_trajectory_id(trajectoryID);
         latticeDataSet->set_number_entries(0);
 
         // If this is the start of the trajectory, add the initial counts.
@@ -420,7 +420,7 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     {
         for (int i=0; i<numberFptTrackedSpecies; i++)
         {
-            fptTrackedSpecies[i].serializeTo(trajectoryId, msg->add_first_passage_times());
+            fptTrackedSpecies[i].serializeTo(trajectoryID, msg->add_first_passage_times());
         }
     }
 

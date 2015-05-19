@@ -79,10 +79,13 @@ public:
     virtual double getOPVal(uint opID=0);
     virtual lm::message::RunWorkUnit* getRunMsg();
     virtual lm::io::SpeciesCounts* getSpeciesCounts();
+    virtual uint getSimSteps();
+    virtual double getSimTime();
     virtual lm::io::TrajectoryState* getState();
     virtual status_t getStatus();
 
     // mutators
+    virtual void resetSimTime();
     virtual void setID(uint64_t id);
     virtual void setLimits(const lm::io::TrajectoryLimits* newLimits);
     virtual void setMsg(const lm::message::Message& newMsg);

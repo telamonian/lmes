@@ -486,7 +486,7 @@ protected:
     list<TrackedParameter> trackedParameters;
 
     // The current state.
-    uint64_t trajectoryId;
+    uint64_t trajectoryID;
     bool trajectoryStarted;
     uint* degreeAdvancements;
     double* orderParameterValues;

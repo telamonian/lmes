@@ -84,10 +84,10 @@ Trajectory::Trajectory(uint64_t id,lm::input::Input& input,bool reversed)
     initMsg(input.simulationParametersMap);
 }
 
-Trajectory::Trajectory(uint64_t id,lm::input::Input& input,TrajectoryState* zerothState)
+Trajectory::Trajectory(uint64_t id,lm::input::Input& input,TrajectoryState* initialState)
     :id(id),input(input),status(NOT_STARTED),numberWorkUnitsPerformed(0)
 {
-    initState(zerothState);
+    initState(initialState);
     setID(id);
     initMsg(input.simulationParametersMap);
 }
@@ -153,10 +153,11 @@ void Trajectory::initState(const lm::io::ReactionModel& reactionModel,bool rever
     if (input.hasTilings) initHists();
 }
 
-void Trajectory::initState(lm::io::TrajectoryState* initState)
+void Trajectory::initState(lm::io::TrajectoryState* initialState)
 {
     // Make instance local copy of the passed state
-    setState(initState);
+    setState(initialState);
+//    resetSimTime();
 }
 
 // accessor definitions
@@ -212,6 +213,16 @@ lm::io::SpeciesCounts* Trajectory::getSpeciesCounts()
 	return getState()->mutable_cme_state()->mutable_species_counts();
 }
 
+uint Trajectory::getSimSteps()
+{
+    return getState()->cme_state().species_counts().number_entries();
+}
+
+double Trajectory::getSimTime()
+{
+    return getState()->cme_state().species_counts().time(getState()->cme_state().species_counts().time_size() - 1);
+}
+
 Trajectory::status_t Trajectory::getStatus()
 {
     return status;
@@ -223,6 +234,11 @@ lm::io::TrajectoryState* Trajectory::getState()
 }
 
 // mutator definitions
+void Trajectory::resetSimTime()
+{
+    getState()->mutable_cme_state()->mutable_species_counts()->set_time(getState()->cme_state().species_counts().time_size() - 1, 0.0);
+}
+
 void Trajectory::setID(uint64_t newID)
 {
     id = newID;

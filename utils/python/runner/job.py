@@ -7,8 +7,9 @@ from shutil import copy2 as cp
 import tempfile
 import uuid
 
-from .helper import *
-from . import lmFile
+import lmFile
+from helper import *
+
 
 class Job(object):
     '''

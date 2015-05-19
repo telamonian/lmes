@@ -36,8 +36,8 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_NEUS_NEUSTRAJECTORYLIST_H_
-#define LM_NEUS_NEUSTRAJECTORYLIST_H_
+#ifndef LM_FFLUX_FFLUXTRAJECTORYLIST_H_
+#define LM_FFLUX_FFLUXTRAJECTORYLIST_H_
 
 #include <google/protobuf/repeated_field.h>
 #include <map>
@@ -86,6 +86,8 @@ public:
     virtual void initPhaseNTrajectories(uint64_t trajectoriesToStart);
 
     virtual lm::fflux::FFluxTrajectory* workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg);
+    virtual lm::fflux::FFluxTrajectory* workUnitFinishedPhaseZero(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg, double prevTime, lm::fflux::FFluxTrajectory* traj);
+    virtual lm::fflux::FFluxTrajectory* workUnitFinishedPhaseN(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg, double prevTime, lm::fflux::FFluxTrajectory* traj);
 
     // getters
     virtual CrossingVector getCrossings(long long ffluxPhase);
@@ -119,7 +121,7 @@ protected:
     virtual void saveFinishedTrajectoriesCounts();
 
     // methods related to fflux data output
-    virtual void ffluxOutputAddBasin(CrossingsMap& crossings, FinishedTrajectoriesCountMap& finishedTrajectoriesCounts);
+    virtual void ffluxOutputAddBasin(CrossingsMap& crossings, DwellTimeMap& dwellTimes, FinishedTrajectoriesCountMap& finishedTrajectoriesCounts);
     virtual void ffluxOutputAddTrajectory(FFluxTrajectory* traj, lm::io::FFluxOutput::Lifecycle lifecycle);
     virtual void ffluxOutputFinishTrajectory();
     virtual void ffluxOutputPrintBasin(CrossingsMap& crossings, FinishedTrajectoriesCountMap& finishedTrajectoriesCounts);
@@ -128,6 +130,8 @@ protected:
 
 protected:
     Direction direction;
+    // for printing the name of the current simulation direction
+    static const std::vector<std::string> directionStrings;
     long long ffluxPhase;
     long long maxFFluxPhase;
     uint64_t simultaneousTrajectoryCount;

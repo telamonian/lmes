@@ -108,8 +108,8 @@ void FFluxSupervisor::receivedStartedOutputWriter(const lm::message::StartedOutp
     hasOutputWriterStarted = true;
 
     // set output process/thread to that of this supervisor, while keeping track of the real values
-    outputWriterProcess = communicator.getSourceProcess();
-    outputWriterThread = communicator.getSourceThread();
+    outputWriterProcess = msg.process(); //communicator.getSourceProcess();
+    outputWriterThread = msg.thread(); //communicator.getSourceThread();
     realOutputWriterProcess = msg.process();
     realOutputWriterThread = msg.thread();
     startSimulationIfAllWorkersStarted();

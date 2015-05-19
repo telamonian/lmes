@@ -132,6 +132,7 @@ void GillespieDSolver::setState(const lm::io::TrajectoryState& state)
 
 long long GillespieDSolver::generateTrajectory(long long maxSteps)
 {
+    double tempStartTime, tempElapsedTime;
     if (reactionModel == NULL) throw Exception("GillespieDSolver did not have a reaction model.");
     if (propensities == NULL) throw Exception("GillespieDSolver state was not initialized.");
 
@@ -164,7 +165,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     {
         // Initialize the data set.
         speciesCountsDataSet = msg->mutable_species_counts();
-        speciesCountsDataSet->set_trajectory_id(trajectoryId);
+        speciesCountsDataSet->set_trajectory_id(trajectoryID);
         speciesCountsDataSet->set_number_species(reactionModel->numberSpeciesToTrack);
         speciesCountsDataSet->set_number_entries(0);
 
@@ -182,6 +183,9 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
             nextSpeciesCountsWriteTime = ceil(time/writeInterval)*writeInterval;
         }
     }
+
+    tempElapsedTime = 0;
+    tempStartTime = time;
 
     // Get the interval for writing parameters.
 //    double nextParameterWriteTime = INFINITY;
@@ -216,6 +220,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         double expR = expRngValues[rngNext];
         timeStep = expR/totalPropensity;
         time += timeStep;
+        tempElapsedTime+=timeStep;
 
          // If the new time is past the end time, we are done.
         if (time >= maxTime)
@@ -331,16 +336,17 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     {
         for (int i=0; i<numberFptTrackedSpecies; i++)
         {
-            fptTrackedSpecies[i].serializeTo(trajectoryId, msg->add_first_passage_times());
+            fptTrackedSpecies[i].serializeTo(trajectoryID, msg->add_first_passage_times());
         }
     }
 
     // If the output message has any data, send it.
-    if ((msg->has_species_counts() || msg->first_passage_times_size() > 0) && !ffluxFlag)		// these messages aren't useful for fflux simulation
+    if (msg->has_species_counts() || msg->first_passage_times_size() > 0)// && !ffluxFlag)		// these messages aren't useful for fflux simulation
     {
 //    	printf("gillespiedsolver outputProcess: %d outputThread: %d\n", outputProcess, outputThread);
         communicator->sendMessage(outputProcess, outputThread, &msgp);
     }
+//    printf("traj ID: %d trajectoryStarted: %d startTime: %.3f elapsedTime: %.3f\n", trajectoryID, trajectoryStarted, tempStartTime, tempElapsedTime);
 
     return steps;
 }

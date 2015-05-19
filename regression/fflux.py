@@ -21,7 +21,7 @@ if fullLength==True:
     maxPhaseZeroTime = str(int(1e6))
 else:
     crossingsPerPhase = str(int(1e2))
-    maxPhaseZeroTime = str(int(1e4))
+    maxPhaseZeroTime = str(int(1e3))
 
 try:
     os.remove('biphasic_switch.lm')
@@ -51,9 +51,9 @@ ops.append(op)
 simParams = [SimulationParameter(key='crossingsPerPhase',val=crossingsPerPhase),
              SimulationParameter(key='maxPhaseZeroTime',val=maxPhaseZeroTime),
              SimulationParameter(key='maxSteps',val=str(int(1e10))),
-             SimulationParameter(key='maxTime',val='1e5'),
+             SimulationParameter(key='maxTime',val='1e10'),
              SimulationParameter(key='maxWorkUnitSteps',val=str(int(1e5))),
-             SimulationParameter(key='writeInterval',val='1e3')]
+             SimulationParameter(key='writeInterval',val='4')]
 tilings = []
 tiling = Tiling(id=0,
                 orderParameterID=0,
@@ -92,7 +92,7 @@ ffluxInput.SetOrderParameters(ops=ops)
 ffluxInput.SetSimulationParameters(simParams=simParams)
 ffluxInput.Close()
 
-raw_args = '-sl lm::cme::GillespieDSolver -cr 1 -gr 0 -ff hdf5 -fflux -f "biphasic_switch.lm"'
+raw_args = '-sl lm::cme::GillespieDSolver -cr 1 -gr 0 -ff hdf5 -fflux -f "biphasic_switch.lm" -intout'
 args = shlex.split(raw_args)
 p = subprocess.Popen([path] + args)
 p.wait()
