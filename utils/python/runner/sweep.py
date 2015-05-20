@@ -28,7 +28,7 @@ class SweepTup(object):
             yield self[i]
     
 class Sweep(object):
-    def __init__(self, cpu_count, host, lm_bin, lm_file_path, rootPath, diagonal=False, inputTupsDefault=None, lmArgsGpusPerReplicate=0, lm_sampling_rate=None, lm_sampling_time=None, replicateRange=(1,10), sweepTupX=None, sweepTupY=None, type='shell', useForwardFlux=False, user_id=None):
+    def __init__(self, cpu_count, host, lm_bin, lm_file_path, rootPath, diagonal=False, inputTupsDefault=None, lmArgsGpusPerReplicate=0, lmArgsIntout=False, lm_sampling_rate=None, lm_sampling_time=None, queue=None, replicateRange=(1,10), sweepTupX=None, sweepTupY=None, type='shell', useForwardFlux=False, user_id=None):
         self.cpu_count = cpu_count
         self.diagonal = diagonal
         self.host = host
@@ -38,6 +38,7 @@ class Sweep(object):
         self.lmFileName = os.path.split(lm_file_path)[-1]
         self.lm_sampling_rate = lm_sampling_rate
         self.lm_sampling_time = lm_sampling_time
+        self.queue = queue
         self.replicateRange = replicateRange
         self.rootPath = rootPath
         self.user_id = user_id
@@ -46,6 +47,10 @@ class Sweep(object):
                              'file_format':                  ('-ff',     'hdf5'),
                              'gpus_per_replicate':           ('-gr',     lmArgsGpusPerReplicate),
                              'solver_class':                 ('-sl',     'lm::cme::GillespieDSolver')}
+        
+        if lmArgsIntout:
+            self.lm_args_dict['record_intermediate_output'] = ('-intout','')
+        
         if useForwardFlux:
             self.lm_args_dict['use_forward_flux_sampling'] = ('-fflux',  '')
         
@@ -88,6 +93,7 @@ class Sweep(object):
                            'lm_sampling_rate': self.lm_sampling_rate,
                            'lm_sampling_time': self.lm_sampling_time,
                            'output': 'lm.log',
+                           'queue': self.queue,
                            'user_id': self.user_id,
                            'working_directory': working_directory}
                 currentJob = self.jobType(**jobDict)

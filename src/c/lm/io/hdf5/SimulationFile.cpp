@@ -618,6 +618,11 @@ void Hdf5File::setFFluxOutput(lm::io::FFluxOutput* ffluxOutput)
 
     for (int i=0;i<ffluxOutput->trajectory_outputs_size();i++)
     {
+        // some versions of HDF5 complain if you try to write out empty datasets, so skip those
+        if (ffluxOutput->trajectory_outputs(i).count_size()==0)
+        {
+            continue;
+        }
         lm::io::FFluxOutput::TrajectoryOutput* trajOut = ffluxOutput->mutable_trajectory_outputs(i);
         outIndex = (trajOut->direction())*2 + trajOut->lifecycle();
         // If the group corresponding to the basin direction already exists, get the handle to it. Otherwise, create it

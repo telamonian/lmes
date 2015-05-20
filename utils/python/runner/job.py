@@ -297,7 +297,7 @@ class JobSGE(Job):
                 else:
                     self.queue = 'smp-1'
                     self.pe = self.spmd_variation = 'mpi'
-            if 'kirin' in self.host:
+            elif 'kirin' in self.host:
                 self.environment = {'SAGA_HOSTNAME': 'kirin'}
                 self.queue = 'normal'
                 self.pe = self.spmd_variation = 'kirin-pe'
