@@ -749,9 +749,9 @@ void FFluxTrajectoryList::ffluxOutputSetFinal_DinnerMethod(SavedCrossings& saved
 
         probabilityI->add_tile_indices(0);
         probabilityI->add_tile_vals(0.0);
+        for (int i=0;i<=maxFFluxPhase;i++) printf("basin: %s phase: %d dwell time: %.3f\n", directionStrings[direction].c_str(), i, (savedDwellTimes[static_cast<Direction>(direction)][i]/savedFinishedTrajectoriesCounts[static_cast<Direction>(direction)][i]));
         for (int i=1;i<maxFFluxPhase;i++)
         {
-            printf("basin: %s phase: %d dwell time: %.3f\n", directionStrings[direction].c_str(), i, (savedDwellTimes[static_cast<Direction>(direction)][i]/savedFinishedTrajectoriesCounts[static_cast<Direction>(direction)][i]));
             probabilityI->add_tile_indices(i);
             probabilityI->add_tile_vals(basinOut->this_basin_last_visited_probability() *
                                         basinOut->flux_out_of_tile_zero() *
