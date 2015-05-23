@@ -161,6 +161,11 @@ void Trajectory::initState(lm::io::TrajectoryState* initialState)
 }
 
 // accessor definitions
+uint Trajectory::getFinalLimitID()
+{
+    return getState()->final_limit_id();
+}
+
 uint64_t Trajectory::getID()
 {
     return id;

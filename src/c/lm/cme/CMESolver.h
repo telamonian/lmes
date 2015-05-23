@@ -225,6 +225,7 @@ protected:
         limit_type_t type;
         int species;
         double limit;
+        uint limitID;
     };
     class FPTTracking
     {
@@ -305,13 +306,14 @@ public:
     virtual void getState(lm::io::TrajectoryState* state);
     virtual void setState(const lm::io::TrajectoryState& state);
     virtual void setLimits(const lm::io::TrajectoryLimits& limits);
+    virtual uint getFinalLimitID();
     virtual lm::io::TrajectoryLimits::LimitType getFinalLimitType();
 
 protected:
     virtual void setSpeciesUpperLimit(int species, int limit);
     virtual void setSpeciesLowerLimit(int species, int limit);
-    virtual void setSpeciesDecreasingLimit(lm::io::TrajectoryLimits::Arrangement, int opID, double limit);
-    virtual void setSpeciesIncreasingLimit(lm::io::TrajectoryLimits::Arrangement, int opID, double limit);
+    virtual void setSpeciesDecreasingLimit(lm::io::TrajectoryLimits::Arrangement, double limit, uint limitID, int opID);
+    virtual void setSpeciesIncreasingLimit(lm::io::TrajectoryLimits::Arrangement, double limit, uint limitID, int opID);
     virtual void addToParameterTrackingList(pair<string,double*>parameter);
 
     static double zerothOrderPropensity(double time, uint * speciesCounts, void * pargs);
@@ -395,6 +397,7 @@ protected:
             case SpeciesLimit::MIN:
                 if (int(speciesCounts[l.species]) <= l.limit)
                 {
+                    finalLimitID = 0;   // for now, limitID is unused for MIN and MAX limits
                     finalLimitType = lm::io::TrajectoryLimits::MINSPECIESCOUNT;
                     return true;
                 }
@@ -402,6 +405,7 @@ protected:
             case SpeciesLimit::MAX:
                 if (int(speciesCounts[l.species]) >= l.limit)
                 {
+                    finalLimitID = 0; // for now, limitID is unused for MIN and MAX limits
                     finalLimitType = lm::io::TrajectoryLimits::MAXSPECIESCOUNT;
                     return true;
                 }
@@ -410,6 +414,7 @@ protected:
             case SpeciesLimit::DECREASING_ASCENDING:
             	if ((*oparams)[l.species]->getPrev() >= l.limit && (*oparams)[l.species]->get() < l.limit)
                 {
+            	    finalLimitID = l.limitID;
                     finalLimitType = lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER;
                     return true;
                 }
@@ -418,6 +423,7 @@ protected:
 //                printf("limit: %.2f, opv_prev: %.2f, opv: %.2f\n", l.limit, (*oparams)[l.species]->getPrev(), (*oparams)[l.species]->get());
             	if ((*oparams)[l.species]->getPrev() < l.limit && (*oparams)[l.species]->get() >= l.limit)
                 {
+            	    finalLimitID = l.limitID;
                     finalLimitType = lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER;
                     return true;
                 }
@@ -426,6 +432,7 @@ protected:
             case SpeciesLimit::DECREASING_DESCENDING:
                 if ((*oparams)[l.species]->getPrev() > l.limit && (*oparams)[l.species]->get() <= l.limit)
                 {
+                    finalLimitID = l.limitID;
                     finalLimitType = lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER;
                     return true;
                 }
@@ -433,6 +440,7 @@ protected:
             case SpeciesLimit::INCREASING_DESCENDING:
                 if ((*oparams)[l.species]->getPrev() <= l.limit && (*oparams)[l.species]->get() > l.limit)
                 {
+                    finalLimitID = l.limitID;
                     finalLimitType = lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER;
                     return true;
                 }
@@ -498,7 +506,8 @@ protected:
     uint numberTilingHists;
     TilingHist* tilingHists;
 
-    // the type limit that stopped the trajectory. only has meaning after the trajectory's last step
+    // the id and the type of the limit that stopped the trajectory. only have meaning after the trajectory's last step
+    uint finalLimitID;
     lm::io::TrajectoryLimits::LimitType finalLimitType;
 };
 

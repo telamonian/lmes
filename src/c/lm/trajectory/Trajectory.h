@@ -72,6 +72,7 @@ public:
 //    virtual void initLimits() = 0;
 
     // accessors
+    virtual uint getFinalLimitID();
     virtual uint64_t getID();
     virtual lm::io::TrajectoryLimits* getLimits();
     virtual lm::message::Message* getMsg();

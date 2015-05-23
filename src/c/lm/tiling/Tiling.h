@@ -63,6 +63,7 @@ public:
     uint getDim(uint dimIndex) {return tilingBuf->edges(dimIndex);}
     double getEdge(uint edgeIndex) {return tilingBuf->edges(edgeIndex);}
     uint getEdgesCount() {return tilingBuf->edges_size();}
+    double getFinalEdge() {return getEdge(getEdgesCount() - 1);}
     uint getID() {return tilingBuf->id();}
     uint getOrderParameterID() {return tilingBuf->order_parameter_id();}
     uint getRank() {return tilingBuf->rank();}

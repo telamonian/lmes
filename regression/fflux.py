@@ -20,7 +20,7 @@ if fullLength==True:
     crossingsPerPhase = str(int(1e4))
     maxPhaseZeroTime = str(int(1e6))
 else:
-    crossingsPerPhase = str(int(1e2))
+    crossingsPerPhase = str(int(1e4))
     maxPhaseZeroTime = str(int(1e3))
 
 try:
@@ -92,10 +92,10 @@ ffluxInput.SetOrderParameters(ops=ops)
 ffluxInput.SetSimulationParameters(simParams=simParams)
 ffluxInput.Close()
 
-raw_args = '-sl lm::cme::GillespieDSolver -cr 1 -gr 0 -ff hdf5 -fflux -f "biphasic_switch.lm" -intout'
+raw_args = '-sl lm::cme::GillespieDSolver -cr 1 -gr 1/8 -ff hdf5 -fflux -f "biphasic_switch.lm" -intout'
 args = shlex.split(raw_args)
 p = subprocess.Popen([path] + args)
 p.wait()
 
 # after this script sets up biphasic_switch.lm, the simulation can be rerun directly with:
-# ../build/lm -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff hdf5 -fflux -f "biphasic_switch.lm"
+# ../build/lmes -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff hdf5 -fflux -f "biphasic_switch.lm" -intout

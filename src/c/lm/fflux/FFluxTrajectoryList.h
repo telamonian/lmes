@@ -86,8 +86,8 @@ public:
     virtual void initPhaseNTrajectories(uint64_t trajectoriesToStart);
 
     virtual lm::fflux::FFluxTrajectory* workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg);
-    virtual lm::fflux::FFluxTrajectory* workUnitFinishedPhaseZero(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg, double prevTime, lm::fflux::FFluxTrajectory* traj);
-    virtual lm::fflux::FFluxTrajectory* workUnitFinishedPhaseN(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg, double prevTime, lm::fflux::FFluxTrajectory* traj);
+    virtual lm::fflux::FFluxTrajectory* workUnitFinishedPhaseZero(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg, uint prevFinalLimitID, double prevTime, lm::fflux::FFluxTrajectory* traj);
+    virtual lm::fflux::FFluxTrajectory* workUnitFinishedPhaseN(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg, uint prevFinalLimitID, double prevTime, lm::fflux::FFluxTrajectory* traj);
 
     // getters
     virtual CrossingVector getCrossings(long long ffluxPhase);
