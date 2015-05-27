@@ -451,6 +451,8 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinishedPhaseN(const lm
                 ffluxOutputSetFinal_DinnerMethod(savedCrossings, savedDwellTimes, savedFinishedTrajectoriesCounts, savedHists);
                 // if intermediateOutputFlag is not set, remove the basinOutputs from the final output message
                 if (!(intermediateOutputFlag)) {getFFluxOutput()->clear_basin_outputs();}
+                // TODO this call to deleteAllTrajectories should not be necessary here, but there do seem to be a significant quantity of hangovers that stick around. Look into this
+                deleteAllTrajectories();
             }
         }
     }
