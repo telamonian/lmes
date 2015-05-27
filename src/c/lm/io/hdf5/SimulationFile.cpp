@@ -554,17 +554,17 @@ void Hdf5File::setFFluxOutput(lm::io::FFluxOutput* ffluxOutput)
     // get handle to Tiling group
     HDF5_EXCEPTION_CALL(tilingGroup, H5Gopen(tilingsGroup, tilingSS.str().c_str(), H5P_DEFAULT));
 
-//    // If the FFluxOutput group already exists, get the handle to it. Otherwise, create it
-//    if ((ffluxOutputGroup = H5Gopen2(tilingGroup, "FFluxOutput", H5P_DEFAULT))>=0) {}
-//    else {HDF5_EXCEPTION_CALL(ffluxOutputGroup, H5Gcreate2(tilingGroup, "FFluxOutput", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));}
+    // If the FFluxOutput group already exists, get the handle to it. Otherwise, create it
+    if ((ffluxOutputGroup = H5Gopen2(tilingGroup, "FFluxOutput", H5P_DEFAULT))>=0) {}
+    else {HDF5_EXCEPTION_CALL(ffluxOutputGroup, H5Gcreate2(tilingGroup, "FFluxOutput", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));}
 
 
-    // If the FFluxOutput group already exists, delete it
-    if (H5Lexists(tilingGroup, "FFluxOutput", H5P_DEFAULT))
-    {
-        HDF5_EXCEPTION_CHECK(H5Ldelete(tilingGroup, "FFluxOutput", H5P_DEFAULT));
-    }
-    HDF5_EXCEPTION_CALL(ffluxOutputGroup, H5Gcreate2(tilingGroup, "FFluxOutput", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+//    // If the FFluxOutput group already exists, delete it
+//    if (H5Lexists(tilingGroup, "FFluxOutput", H5P_DEFAULT))
+//    {
+//        HDF5_EXCEPTION_CHECK(H5Ldelete(tilingGroup, "FFluxOutput", H5P_DEFAULT));
+//    }
+//    HDF5_EXCEPTION_CALL(ffluxOutputGroup, H5Gcreate2(tilingGroup, "FFluxOutput", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
 
     // write the attributes for the FFluxOutput
     hid_t attr, scalarSpace;
