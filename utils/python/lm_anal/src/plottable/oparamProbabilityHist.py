@@ -33,7 +33,7 @@ class OParamProbabilityHist(Hist):
     def _transformDatum(self, datum):
         self.AddSpeciesCounts(datum.species_count)
     
-    def _rffHDF5(self, hdf5Group):
+    def _rff(self, hdf5Group):
         dims = hdf5Group.attrs['dims']
         rank = hdf5Group.attrs['rank']
         self.tilingID = hdf5Group.attrs['tilingID']
@@ -47,7 +47,7 @@ class OParamProbabilityHist(Hist):
         hdf5Group['vals'].read_direct(self.vals)
         self.InitEdgesNames()
             
-    def _wtfHDF5(self, hdf5Group):
+    def _wtf(self, hdf5Group):
         hdf5Group.create_dataset(name='vals', data=self.vals)
         hdf5EdgesGroup = hdf5Group.create_group('edges')
         for name, edges in zip(self.edgesNames, self.GetEdges()):

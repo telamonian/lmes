@@ -16,7 +16,7 @@ class Data(object):
     def __getitem__(self, key):
         return self.map[key]
 
-    def _hasHDF5(self):
+    def _has(self):
         if self.hdf5RootPath in self.file:
             if len(self.file[self.hdf5RootPath].keys()) > 0:
                 return True
@@ -25,13 +25,13 @@ class Data(object):
         else:
             return False
         
-    def hasHDF5(self):
+    def has(self):
         '''
         test if an hdf5 file has a non-empty group containing data relevant to this particular Data object 
         '''
-        return self.wrapperHDF5(self._hasHDF5)
+        return self.wrapperHDF5(self._has)
     
-    def _rffHDF5(self, full, keys):
+    def _rff(self, full, keys):
         if keys==None:
             keys = self.file[self.hdf5RootPath].keys()
         
@@ -39,13 +39,13 @@ class Data(object):
             val = self.file[os.path.join(self.hdf5RootPath, key)]
             self.map[int(key)] = self.datumType(hdf5Group=val)
     
-    def rffHDF5(self, full=False, keys=None): 
+    def rff(self, full=False, keys=None):
         '''
         rff (read from file) for hdf5 files
         '''
-        self.wrapperHDF5(self._rffHDF5, full=full, keys=keys)
+        self.wrapperHDF5(self._rff, full=full, keys=keys)
     
-    def sffHDF5(self, keys=None):
+    def sff(self, keys=None):
         '''
         sff (stream from file) for hdf5 files
         '''
@@ -54,18 +54,18 @@ class Data(object):
                 keys = list(lmF[self.hdf5RootPath].keys())
                 
         for key in keys:
-            self.rffHDF5(full=True, keys=[key])
+            self.rff(full=True, keys=[key])
             yield self[int(key)]
             del self[int(key)]
     
-#     def sffHDF5(self):
+#     def sff(self):
 #         '''
 #         sff (stream from file) for hdf5 files
 #         '''
 #         with h5py.File(self.fPath,'r') as lmF:
 #             keys = list(lmF[self.hdf5RootPath].keys())
 #         for key in keys:
-#             self.rffHDF5(full=True, keys=[key])
+#             self.rff(full=True, keys=[key])
 #             yield self[int(key)]
 #             del self[int(key)]
 

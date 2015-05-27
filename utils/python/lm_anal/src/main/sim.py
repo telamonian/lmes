@@ -6,8 +6,9 @@ import re
 from ..helper import CamelCase, ShortenName, Singular
 from ..oparam.oparams import OParams
 from ..plottable import *
-from ..replicate.replicateTrajectories import ReplicateTrajectories
+from src.datum.trajectory.replicateTrajectories import ReplicateTrajectories
 from ..tiling.tilings import Tilings
+
 
 class Sim(object):
     dataTypes = [OParams, ReplicateTrajectories, Tilings]
@@ -70,8 +71,8 @@ class Sim(object):
         self.dataDict = {}
         for dataObject in self.dataTypes:
             temp = dataObject(fPath=self.fPath)
-            if temp.hasHDF5():
-                temp.rffHDF5()
+            if temp.has():
+                temp.rff()
                 attrName = CamelCase(dataObject.__name__)
                 self.__setattr__(attrName, temp)
                 self.dataDict[attrName] = self.__getattribute__(attrName)
@@ -82,7 +83,7 @@ class Sim(object):
 #     def InitPlottable(self, id, type, useInt=True, **kwargs):
 #         self._InitPlottable(id, type, **kwargs)
 #         if useInt:
-#             self.plottables[id].rffHDF5()
+#             self.plottables[id].rff()
 #         else:
 #             self.plottables[id].transformData()
     

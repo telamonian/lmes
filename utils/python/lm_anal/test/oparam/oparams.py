@@ -11,7 +11,7 @@ import unittest
 class OParamTestCase(unittest.TestCase):
     def setUp(self):
         self.oparams = OParams(fPath=os.path.join(thisScriptDir, '../testData/biphasic_switch.lm'))
-        self.oparams.rffHDF5()
+        self.oparams.rff()
         
     def test_calc(self):
         '''
@@ -21,11 +21,11 @@ class OParamTestCase(unittest.TestCase):
         intendedOParamVal = -38
         self.assertEqual(oparamVal, intendedOParamVal)
 
-    def test_hasHDF5(self):
+    def test_has(self):
         '''
         test detection of presence relevant data in hdf5 files
         '''
-        self.assertTrue(self.oparams.hasHDF5())
+        self.assertTrue(self.oparams.has())
 
     def test_id_hdf5(self):
         '''

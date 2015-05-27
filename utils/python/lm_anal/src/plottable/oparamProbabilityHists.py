@@ -17,16 +17,16 @@ class OParamProbabilityHists(FileHDF5):
     def InitPlottable(self, id, useInt=True, **kwargs):
         self._InitPlottable(id, **kwargs)
         if useInt:
-            if not self.rffHDF5(keys=[id]):
+            if not self.rff(keys=[id]):
                 self.map[id].Init()
                 self.map[id].transformDatum()
-                self.wtfHDF5(keys=[id])
+                self.wtf(keys=[id])
         else:
             self.map[id].Init()
             self.map[id].transformDatum()
-            self.wtfHDF5(keys=[id])
+            self.wtf(keys=[id])
     
-    def _rffHDF5(self, full=True, keys=None):
+    def _rff(self, full=True, keys=None):
         '''
         rff (read from file) method for HDF5 lmint files
         '''
@@ -38,10 +38,10 @@ class OParamProbabilityHists(FileHDF5):
                 val = self.file[os.path.join(self.__class__.hdf5RootPath, key)]
             except KeyError:
                 return False
-            self.map[key]._rffHDF5(hdf5Group=val)
+            self.map[key]._rff(hdf5Group=val)
         return True
             
-    def _wtfHDF5(self, keys=None):
+    def _wtf(self, keys=None):
         '''
         wtf (write to file) method for HDF5 lmint files
         '''
@@ -57,11 +57,11 @@ class OParamProbabilityHists(FileHDF5):
             if key in hdf5RootGroup:
                 del hdf5RootGroup[key]
             hdf5Group = hdf5RootGroup.create_group(key)
-            self[key]._wtfHDF5(hdf5Group=hdf5Group)
+            self[key]._wtf(hdf5Group=hdf5Group)
         
 #         if self.hdf5RootPath in self.file:
 #             del self.file[self.hdf5RootPath]
 #         hdf5RootGroup = self.file.create_group(hdf5RootPath)
 #         for key,opprobhist in self:
 #             hdf5Group = hdf5RootGroup.create_group(key)
-#             opprobhist._wtfHDF5(hdf5Group=hdf5Group)
+#             opprobhist._wtf(hdf5Group=hdf5Group)

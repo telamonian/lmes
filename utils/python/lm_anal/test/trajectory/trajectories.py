@@ -1,10 +1,12 @@
+import os
+import sys
+
 import numpy as np
-import os, sys
+
 thisScriptDir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(thisScriptDir, '../..'))
 
-import src
-from src.trajectory.trajectories import Trajectories
+from src.datum.trajectory import Trajectories
 
 import unittest
 
@@ -16,7 +18,7 @@ class TrajectoriesTestCase(unittest.TestCase):
         '''
         test reading of oparam id from hdf5 files
         '''
-        self.tilings.rffHDF5()
+        self.tilings.rff()
 
         arrangementInt = self.tilings[19].arrangement
         self.assertEqual(arrangementInt, 0)
@@ -25,7 +27,7 @@ class TrajectoriesTestCase(unittest.TestCase):
         self.assertEqual(arrangementInt, 0)
         
     def test_edges_hdf5(self):
-        self.tilings.rffHDF5()
+        self.tilings.rff()
 
         # test reading of tiling edges from hdf5 files
         edgeArr = np.array(self.tilings[19].edges)
@@ -41,7 +43,7 @@ class TrajectoriesTestCase(unittest.TestCase):
         '''
         test reading of oparam id from hdf5 files
         '''
-        self.tilings.rffHDF5()
+        self.tilings.rff()
 
         idInt = self.tilings[19].id
         self.assertEqual(idInt, 19)
@@ -53,7 +55,7 @@ class TrajectoriesTestCase(unittest.TestCase):
         '''
         test reading of oparam id from hdf5 files
         '''
-        self.tilings.rffHDF5()
+        self.tilings.rff()
 
         oparamIDInt = self.tilings[19].order_parameter_id
         self.assertEqual(oparamIDInt, 0)
@@ -65,7 +67,7 @@ class TrajectoriesTestCase(unittest.TestCase):
         '''
         test reading of oparam type from hdf5 files
         '''
-        self.tilings.rffHDF5()
+        self.tilings.rff()
 
         typeInt = self.tilings[19].type
         self.assertEqual(typeInt, 0)

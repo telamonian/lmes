@@ -1,14 +1,14 @@
-import os, sys
+import os
+import sys
+
 thisScriptDir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(thisScriptDir, '../..'))
 
 import numpy as np
 np.random.seed(0)
-from scipy import stats
-import src
 from src.oparam.oparams import OParams
 from src.plottable.oparamProbabilityHist import OParamProbabilityHist
-from src.replicate.replicateTrajectories import ReplicateTrajectories
+from src.datum.trajectory.replicateTrajectories import ReplicateTrajectories
 from src.tiling.tilings import Tilings
 
 import unittest
@@ -18,11 +18,11 @@ class OParamProbabilityHistTestCase(unittest.TestCase):
     
     def setUp(self):
         self.oparams = OParams(fPath=os.path.join(thisScriptDir, self.__class__.testDataPath))
-        self.oparams.rffHDF5()
+        self.oparams.rff()
         self.tilings = Tilings(fPath=os.path.join(thisScriptDir, self.__class__.testDataPath))
-        self.tilings.rffHDF5()
+        self.tilings.rff()
         self.replicateTrajectories = ReplicateTrajectories(fPath=os.path.join(thisScriptDir, self.__class__.testDataPath))
-        self.replicateTrajectories.rffHDF5(full=True)
+        self.replicateTrajectories.rff(full=True)
         self.hist = OParamProbabilityHist(self, tilingID=7)
         self.hist.Init()
     

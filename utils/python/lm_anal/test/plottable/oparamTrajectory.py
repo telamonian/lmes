@@ -1,12 +1,14 @@
-import os, sys
+import os
+import sys
+
 import numpy as np
+
 thisScriptDir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(thisScriptDir, '../..'))
 
-import src
 from src.oparam.oparams import OParams
 from src.plottable.oparamTrajectory import OParamTrajectory
-from src.replicate.replicateTrajectories import ReplicateTrajectories
+from src.datum.trajectory.replicateTrajectories import ReplicateTrajectories
 from src.tiling.tilings import Tilings
 
 import unittest
@@ -20,11 +22,11 @@ class OParamTrajectoryTransformTestCase(unittest.TestCase):
     
     def setUp(self):
         self.oparams = OParams(fPath=testLMPath)
-        self.oparams.rffHDF5()
+        self.oparams.rff()
         self.tilings = Tilings(fPath=testLMPath)
-        self.tilings.rffHDF5()
+        self.tilings.rff()
         self.replicateTrajectories = ReplicateTrajectories(fPath=testLMPath)
-        self.replicateTrajectories.rffHDF5(full=True)
+        self.replicateTrajectories.rff(full=True)
         self.traj = OParamTrajectory(self, full=True, oparamID=0, repTraj=self.replicateTrajectories[5])
 
     def test_number_order_parameters_reduce(self):

@@ -45,7 +45,7 @@ class OParamTrajectory(Plottable):
         self.trajectoryStateBuf = TrajectoryStateBuf()
         
         if hdf5Group!=None:
-            self.rffHDF5(hdf5Group, full=full)
+            self.rff(hdf5Group, full=full)
         elif oparamID!=None and repTraj!=None:
             self._transformReplicateTrajectory(repTraj=repTraj, full=full)
     
@@ -53,7 +53,7 @@ class OParamTrajectory(Plottable):
 #         self.number_order_parameters = self.trajectoryStateBuf.cme_state.order_parameter_values.number_order_parameters
 #         self.trajectory_id = self.trajectoryStateBuf.cme_state.order_parameter_values.trajectory_id
     
-    def _rffHDF5(self, hdf5Group, full=True, useNPArr=True):
+    def _rff(self, hdf5Group, full=True, useNPArr=True):
         '''
         initialize the data storage container underlying this OParamTrajectoery instance, which is in turn a TrajectoryStateBuf instance (with some numpy arrays thrown in for good measure if useNPArr=True)
         '''
@@ -121,7 +121,7 @@ class OParamTrajectory(Plottable):
     def _transformSpeciesCounts(self, speciesCounts):
         return self.sim.oparams[self.oparamID].calc(speciesCounts)
     
-    def _wtfHDF5(self, hdf5Group):
+    def _wtf(self, hdf5Group):
         if len(self.order_parameter_values.shape)==1:
             shape = (self.order_parameter_values.shape[0], 1)
         hdf5Group.create_dataset(name='OrderParameterValues', data=self.order_parameter_values, shape=shape)

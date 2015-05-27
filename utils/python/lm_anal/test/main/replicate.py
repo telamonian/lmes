@@ -16,7 +16,7 @@ class ReplicateTestCase(unittest.TestCase):
         '''
         test reading of oparam type from hdf5 files
         '''
-        self.oparams.rffHDF5()
+        self.oparams.rff()
 
         typeInt = self.oparams[0].type
         self.assertEqual(typeInt, 0)
@@ -25,7 +25,7 @@ class ReplicateTestCase(unittest.TestCase):
         '''
         test reading of oparam id from hdf5 files
         '''
-        self.oparams.rffHDF5()
+        self.oparams.rff()
 
         idInt = self.oparams[0].id
         self.assertEqual(idInt, 0)
@@ -34,7 +34,7 @@ class ReplicateTestCase(unittest.TestCase):
         '''
         test reading of oparam species coefficient array from hdf5 files
         '''
-        self.oparams.rffHDF5()
+        self.oparams.rff()
 
         speciesCoefficientArr = np.array(self.oparams[0].species_coefficients)
         intendedSpeciesCoefficientArr = np.array([-1.0,-2.0,-2.0,1.0,2.0,2.0])
@@ -44,7 +44,7 @@ class ReplicateTestCase(unittest.TestCase):
         '''
         test reading of oparam species id array from hdf5 files
         '''
-        self.oparams.rffHDF5()
+        self.oparams.rff()
 
         speciesIdArr = np.array(self.oparams[0].species_ids)
         intendedSpeciesIdArr = np.array([0,1,2,3,4,5])

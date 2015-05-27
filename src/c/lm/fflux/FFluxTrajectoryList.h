@@ -137,6 +137,10 @@ protected:
     uint64_t simultaneousTrajectoryCount;
     lm::rng::XORShift xorShift; //RNG used for randomly choosing a crossing in a crossing vector
 
+    // members that hold trajectory data used for calculation of the forward flux during phase 0
+    std::map<uint,uint> phaseZeroCrossings;
+    std::map<uint,double> phaseZeroTimes;
+
     // members that hold the trajectory data used for the calculations at the end of fflux
     lm::io::TilingHist averageTilingHist;
     CrossingsMap crossings;

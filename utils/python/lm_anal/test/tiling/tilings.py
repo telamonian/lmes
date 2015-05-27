@@ -11,7 +11,7 @@ import unittest
 class TilingsTestCase(unittest.TestCase):
     def setUp(self):
         self.tilings = Tilings(fPath=os.path.join(thisScriptDir, '../testData/biphasic_switch.lm'))
-        self.tilings.rffHDF5()
+        self.tilings.rff()
     
     def test_arrangement(self):
         '''
@@ -35,11 +35,11 @@ class TilingsTestCase(unittest.TestCase):
         intendedEdgeArr = np.linspace(-30,30,16)
         self.assertTrue(np.allclose(edgeArr, intendedEdgeArr))
     
-    def test_hasHDF5(self):
+    def test_has(self):
         '''
         test detection of presence relevant data in hdf5 files
         '''
-        self.assertTrue(self.tilings.hasHDF5())    
+        self.assertTrue(self.tilings.has())
 
     def test_id_hdf5(self):
         '''

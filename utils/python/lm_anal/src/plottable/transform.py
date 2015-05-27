@@ -11,5 +11,5 @@ class Transform(object):
         print('the Transform base class _transformDatum should not be called')
             
     def transformDatum(self, keys=None, **kwargs):
-        for datum in self.sim.__getattribute__(self.__class__.dataAttr).sffHDF5(keys=keys):
+        for datum in self.sim.__getattribute__(self.__class__.dataAttr).sff(keys=keys):
             self._transformDatum(datum)

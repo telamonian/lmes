@@ -19,7 +19,7 @@ class FileHDF5(File):
     def __iter__(self):
         return self.map.items().__iter__()
 
-    def _hasHDF5(self):
+    def _has(self):
         if self.hdf5RootPath in self.file:
             if len(self.file[self.hdf5RootPath].keys()) > 0:
                 return True
@@ -28,22 +28,22 @@ class FileHDF5(File):
         else:
             return False
         
-    def hasHDF5(self):
+    def has(self):
         '''
         test if an hdf5 file has a non-empty group containing data relevant to this particular object
         '''
-        return self.wrapperHDF5(self._hasHDF5)
+        return self.wrapperHDF5(self._has)
     
-    def _rffHDF5(self, full, keys, **kwargs):
+    def _rff(self, full, keys, **kwargs):
         pass
     
-    def rffHDF5(self, full=False, keys=None, **kwargs): 
+    def rff(self, full=False, keys=None, **kwargs):
         '''
         rff (read from file) for hdf5 files
         '''
-        return self.wrapperHDF5(self._rffHDF5, full=full, keys=keys, **kwargs)
+        return self.wrapperHDF5(self._rff, full=full, keys=keys, **kwargs)
     
-    def sffHDF5(self, keys=None):
+    def sff(self, keys=None):
         '''
         sff (stream from file) for hdf5 files
         '''
@@ -53,21 +53,21 @@ class FileHDF5(File):
                 
         for key in keys:
             try:
-                self.rffHDF5(full=True, keys=[key])
+                self.rff(full=True, keys=[key])
             except KeyError:
                 key = '%07d' % key
-                self.rffHDF5(full=True, keys=[key])
+                self.rff(full=True, keys=[key])
             yield self[int(key)]
             del self[int(key)]
         
-    def _wtfHDF5(self, keys):
+    def _wtf(self, keys):
         pass
         
-    def wtfHDF5(self, keys=None):
+    def wtf(self, keys=None):
         '''
         wtf (write to file) for hdf5 files
         '''
-        self.wrapperHDF5(self._wtfHDF5, mode='a', keys=keys)
+        self.wrapperHDF5(self._wtf, mode='a', keys=keys)
 
     def wrapperHDF5(self, func, mode='r', **kwargs):
         '''

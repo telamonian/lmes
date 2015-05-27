@@ -26,16 +26,16 @@ class OParamTrajectories(FileHDF5):
         self.hdf5RootPath = os.path.join(self.__class__.hdf5RootPath, '%07d' % kwargs['oparamID'])
         self._InitPlottable(id, **kwargs)
         if useInt:
-            if not self.rffHDF5(full=True, keys=[id]):
+            if not self.rff(full=True, keys=[id]):
 #                 self.map[id].Init()
                 self.map[id].transformDatum(keys=keys)
-                self.wtfHDF5(keys=[id])
+                self.wtf(keys=[id])
         else:
 #             self.map[id].Init()
             self.map[id].transformDatum(keys=keys)
-            self.wtfHDF5(keys=[id])
+            self.wtf(keys=[id])
     
-    def _rffHDF5(self, full=True, keys=None):
+    def _rff(self, full=True, keys=None):
         '''
         rff (read from file) method for HDF5 lmint files
         '''
@@ -47,10 +47,10 @@ class OParamTrajectories(FileHDF5):
                 val = self.file[os.path.join(self.hdf5RootPath, key)]
             except KeyError:
                 return False
-            self.map[key]._rffHDF5(full=full, hdf5Group=val)
+            self.map[key]._rff(full=full, hdf5Group=val)
         return True
             
-    def _wtfHDF5(self, keys=None):
+    def _wtf(self, keys=None):
         '''
         wtf (write to file) method for HDF5 lmint files
         '''
@@ -68,5 +68,5 @@ class OParamTrajectories(FileHDF5):
                 del hdf5RootGroup[trajGroupName]
             hdf5Group = hdf5RootGroup.create_group(trajGroupName)
             hdf5RootGroup[key] = h5py.SoftLink(os.path.join(self.hdf5RootPath, trajGroupName))
-            self[key]._wtfHDF5(hdf5Group=hdf5Group)
+            self[key]._wtf(hdf5Group=hdf5Group)
             
