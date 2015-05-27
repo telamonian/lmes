@@ -349,7 +349,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinishedPhaseZero(const
         }
         phaseZeroCrossings[runnerIndex] = phaseZeroCrossings[runnerIndex] + 1;
     }
-    if (prevFinalLimitID!=1)
+    if (prevFinalLimitID==0)
     {
         dwellTimes[ffluxPhase]+=traj->getSimTime() - prevTime;
         phaseZeroTimes[runnerIndex]+=traj->getSimTime() - prevTime;
