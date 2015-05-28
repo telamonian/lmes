@@ -60,6 +60,14 @@ using std::string;
 namespace lm {
 namespace trajectory {
 
+char *trajectoryStatusStrings[] =
+{
+    "NOT_STARTED",
+    "RUNNING",
+    "WAITING",
+    "FINISHED"
+};
+
 //Trajectory::Trajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,lm::tiling::Tilings* tilings,bool reversed):
 //id(-1),status(NOT_STARTED)
 //{
@@ -236,6 +244,12 @@ Trajectory::status_t Trajectory::getStatus()
 lm::io::TrajectoryState* Trajectory::getState()
 {
     return getRunMsg()->mutable_initial_state();
+}
+
+// debug helper function for printing trajectory status to stdout
+void Trajectory::printStatus()
+{
+    printf("trajectory ID: %d has status: %s\n", id, trajectoryStatusStrings[getStatus()]);
 }
 
 // mutator definitions

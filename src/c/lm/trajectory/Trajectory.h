@@ -84,6 +84,7 @@ public:
     virtual double getSimTime();
     virtual lm::io::TrajectoryState* getState();
     virtual status_t getStatus();
+    virtual void printStatus();
 
     // mutators
     virtual void resetSimTime();

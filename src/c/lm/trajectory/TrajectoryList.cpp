@@ -68,6 +68,17 @@ TrajectoryList::~TrajectoryList()
     deleteAllTrajectories();
 }
 
+void TrajectoryList::deleteAllNotStarted()
+{
+    for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+    {
+        if (it->second->getStatus()==Trajectory::NOT_STARTED)
+        {
+            deleteTrajectory(it->second->getID());
+        }
+    }
+}
+
 void TrajectoryList::deleteAllTrajectories()
 {
     for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
@@ -143,7 +154,14 @@ bool TrajectoryList::isFinished()
 
 lm::trajectory::Trajectory* TrajectoryList::getTrajectory(uint64_t trajectoryID)
 {
-    return trajectories[trajectoryID];
+    if(trajectories.find(trajectoryID)!=trajectories.end())
+    {
+        return trajectories[trajectoryID];
+    }
+    else
+    {
+        return NULL;
+    }
 }
 
 Trajectory::status_t TrajectoryList::getTrajectoryStatus(uint64_t trajectoryID)
@@ -160,6 +178,7 @@ void TrajectoryList::setAllFinished()
 {
 	for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
 	{
+//	    it->second->printStatus();
 		it->second->setStatus(Trajectory::FINISHED);
 	}
 }
