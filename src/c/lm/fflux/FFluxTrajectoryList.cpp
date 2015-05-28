@@ -376,7 +376,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinishedPhaseZero(const
         carefulFlux/=runnerCount;
         Print::printf(Print::INFO,"The careful flux is: %.3f", carefulFlux);
         // ...delete any trajectories that have yet to start and mark the currently running set of trajectories as finished
-        deleteAllNotStarted();
+        deleteAllNotStarted(); setAllFinished();
         // Next, increment the fflux phase counter. If there are still more phases to run...
         ++ffluxPhase;
         Print::printf(Print::INFO,"Forward flux phase %d:%s starting now", ffluxPhase, directionStrings[direction].c_str());
@@ -417,8 +417,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinishedPhaseN(const lm
     if (isPhaseDone())
     {
         // ...delete any trajectories that have yet to start and mark the currently running set of trajectories as finished
-        deleteAllNotStarted();
-        setAllFinished();
+        deleteAllNotStarted(); setAllFinished();
         // Next, increment the fflux phase counter. If there are still more phases to run...
         ++ffluxPhase;
         if (!isFFluxDone())
