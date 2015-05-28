@@ -365,7 +365,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinishedPhaseZero(const
         deleteTrajectory(traj->getID());
         if (crossings.find(0)==crossings.end()) Print::printf(Print::ERROR, "No crossings were recorded during forward flux phase zero. Try increasing maxPhaseZeroTime");
         Print::printf(Print::INFO,"By the end of forward flux phase zero, %d forward crossings were recorded", crossings[ffluxPhase].size());
-        Print::printf(Print::INFO,"The forward flux is: %.3f", crossings[ffluxPhase].size()/dwellTimes[ffluxPhase]);
+        Print::printf(Print::INFO,"The forward flux is: %.10f", crossings[ffluxPhase].size()/dwellTimes[ffluxPhase]);
         double carefulFlux = 0;
         uint runnerCount = 0;
         for (map<uint, uint>::iterator it = phaseZeroCrossings.begin();it!=phaseZeroCrossings.end();it++)
@@ -374,7 +374,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinishedPhaseZero(const
             runnerCount++;
         }
         carefulFlux/=runnerCount;
-        Print::printf(Print::INFO,"The careful flux is: %.3f", carefulFlux);
+        Print::printf(Print::INFO,"The careful flux is: %.10f", carefulFlux);
         // ...delete any trajectories that have yet to start and mark the currently running set of trajectories as finished
         deleteAllNotStarted(); setAllFinished();
         // Next, increment the fflux phase counter. If there are still more phases to run...
