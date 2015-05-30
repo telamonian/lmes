@@ -153,6 +153,11 @@ int WorkUnitRunner::run()
                 throw Exception("Work Unit runner terminating, solver requires a set of order parameters but none was specified", properties.solver().c_str());
             }
         }
+        else if (properties.has_order_parameters())
+        {
+            opvFlag = true;
+            solver->setOrderParameters(properties.order_parameters());
+        }
 
         // Set the tilings for the solver
         if (solver->needsTilings())

@@ -92,7 +92,7 @@ ffluxInput.SetOrderParameters(ops=ops)
 ffluxInput.SetSimulationParameters(simParams=simParams)
 ffluxInput.Close()
 
-raw_args = '-sl lm::cme::GillespieDSolver -cr 1 -gr 1/8 -ff hdf5 -fflux -f "biphasic_switch.lm" -intout'
+raw_args = '-sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff hdf5 -fflux -f "biphasic_switch.lm" -intout'
 args = shlex.split(raw_args)
 p = subprocess.Popen([path] + args)
 p.wait()

@@ -41,7 +41,6 @@
 #include <map>
 #include <cstdio>
 #include <string>
-
 #include "lm/io/Tilings.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/Print.h"
@@ -142,6 +141,60 @@ void ReplicateTrajectory::initLimits(const ReactionModel& reactionModel,map<stri
                 uint parsedLimit = atoi(speciesUpperLimit.substr(equalsPos+1, string::npos).c_str());
                 getLimits()->set_max_species_count(parsedSpecies, parsedLimit);
                 Print::printf(Print::DEBUG, "Parsed upper limit %s to: %d <= %d", speciesUpperLimit.c_str(), parsedSpecies, parsedLimit);
+            }
+            start = end+1;
+        }
+    }
+
+    // Set the order parameter lower limits from the parameters.
+    if (simulationParameters.count("orderParameterLowerLimitList"))
+    {
+        string listString = simulationParameters["orderParameterLowerLimitList"];
+        size_t start=0, end=0;
+        while (end != string::npos)
+        {
+            end = listString.find(',', start);
+            string speciesLowerLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
+
+            size_t equalsPos=0;
+            equalsPos = speciesLowerLimit.find(':', 0);
+            if (equalsPos > 0 && equalsPos < speciesLowerLimit.length()-1)
+            {
+                int parsedOParamID = atoi(speciesLowerLimit.substr(0, equalsPos).c_str());
+                int parsedLimit = atoi(speciesLowerLimit.substr(equalsPos+1, string::npos).c_str());
+                lm::io::TrajectoryLimits::DecreasingOrderParameterLimit* dopl = getLimits()->add_decreasing_order_parameter_limit();
+                dopl->set_arrangement(lm::io::TrajectoryLimits::DESCENDING);
+                dopl->set_limit_id(0);
+                dopl->set_order_parameter_id(parsedOParamID);
+                dopl->add_value(parsedLimit);
+                Print::printf(Print::INFO, "Parsed order parameter lower limit %s to: %d => %d", speciesLowerLimit.c_str(), parsedOParamID, parsedLimit);
+            }
+            start = end+1;
+        }
+    }
+
+    // Set the species upper limits from the parameters.
+    if (simulationParameters.count("orderParameterUpperLimitList"))
+    {
+        string listString = simulationParameters["orderParameterUpperLimitList"];
+        size_t start=0, end=0;
+        while (end != string::npos)
+        {
+            end = listString.find(',', start);
+            string speciesLowerLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
+
+            size_t equalsPos=0;
+            equalsPos = speciesLowerLimit.find(':', 0);
+            if (equalsPos > 0 && equalsPos < speciesLowerLimit.length()-1)
+            {
+                int parsedOParamID = atoi(speciesLowerLimit.substr(0, equalsPos).c_str());
+                int parsedLimit = atoi(speciesLowerLimit.substr(equalsPos+1, string::npos).c_str());
+                lm::io::TrajectoryLimits::IncreasingOrderParameterLimit* iopl = getLimits()->add_increasing_order_parameter_limit();
+                iopl->set_arrangement(lm::io::TrajectoryLimits::ASCENDING);
+                iopl->set_limit_id(0);
+                iopl->set_order_parameter_id(parsedOParamID);
+                iopl->add_value(parsedLimit);
+                Print::printf(Print::INFO, "Parsed order parameter upper limit %s to: %d => %d", speciesLowerLimit.c_str(), parsedOParamID, parsedLimit);
             }
             start = end+1;
         }
