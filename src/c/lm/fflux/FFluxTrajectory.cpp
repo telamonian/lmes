@@ -61,13 +61,15 @@ namespace lm {
 namespace fflux {
 
 FFluxTrajectory::FFluxTrajectory(uint64_t id,uint ffluxPhase,lm::input::Input& input,bool reversed):
-Trajectory(id,input,reversed),ffluxPhase(ffluxPhase)
+Trajectory(id,input,reversed),ffluxPhase(ffluxPhase),lastLimitTime(0.0)
 {
     initLimits();
+    // tied up with time tracking during fflux phase 0
+    setFinalLimitID(0);
 }
 
 FFluxTrajectory::FFluxTrajectory(uint64_t id,uint ffluxPhase,lm::input::Input& input,TrajectoryState* initialState):
-Trajectory(id,input,initialState),ffluxPhase(ffluxPhase)
+Trajectory(id,input,initialState),ffluxPhase(ffluxPhase),lastLimitTime(getSimTime())
 {
     // Limit setting code
     initLimits();
@@ -193,6 +195,7 @@ bool FFluxTrajectory::fluxedForward()
     }
 }
 
+// accessor definitions
 uint FFluxTrajectory::getFFluxPhase()
 {
     return ffluxPhase;
@@ -201,6 +204,11 @@ uint FFluxTrajectory::getFFluxPhase()
 lm::io::TrajectoryLimits::LimitType FFluxTrajectory::getFinalLimitType()
 {
     return getState()->final_limit_type();
+}
+
+double FFluxTrajectory::getLastLimitTime()
+{
+    return lastLimitTime;
 }
 
 void FFluxTrajectory::getLastSpeciesCounts(lm::io::FFluxOutput::TrajectoryOutput* trajectoryOutputBuf)
@@ -216,6 +224,12 @@ void FFluxTrajectory::getLastSpeciesCounts(lm::io::FFluxOutput::TrajectoryOutput
 bool FFluxTrajectory::hasElapsed(double time)
 {
     return (getSimTime()>=time);
+}
+
+// mutator definitions
+void FFluxTrajectory::setLastLimitTime(double lLT)
+{
+    lastLimitTime = lLT;
 }
 
 }

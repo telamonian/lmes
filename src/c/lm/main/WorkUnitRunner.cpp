@@ -267,7 +267,7 @@ void WorkUnitRunner::runWorkUnit(const lm::message::RunWorkUnit& wu)
     if (limitReached)
     {
         msg2->set_status(lm::message::FinishedWorkUnit::LIMIT_REACHED);
-        msg2->mutable_final_state()->set_final_limit_id(static_cast<lm::cme::CMESolver*>(solver)->getFinalLimitID());
+//        msg2->mutable_final_state()->set_final_limit_id(static_cast<lm::cme::CMESolver*>(solver)->getFinalLimitID());
         msg2->mutable_final_state()->set_final_limit_type(static_cast<lm::cme::CMESolver*>(solver)->getFinalLimitType());
     }
     else

@@ -150,6 +150,67 @@ class Sim(object):
         self.counts = simdata['SpeciesCounts']
         self.oparam = None
     
+    def Flux(self):
+        if self.oparam==None:
+            self.Pdf()
+        crossing = 0
+        dwellTime = 0.0
+        lastBasin = False
+        #get initial basin, which we will then track from
+        i = 0
+        while not lastBasin:
+            lastBasin = self.Basin(i)
+            i += 1
+        prevBasin = trackedBasin = lastBasin
+        entryTime = self.times[i-1]
+        while i < len(self.oparam):
+            basin = self.Basin(i)
+            # a crossing out of the initial basin has occurred, record this as a flux event
+            if prevBasin==trackedBasin and basin!=trackedBasin:
+                crossing+=1
+            # a crossing into a basin has occurred, what to do depends on the basin and last visited basin
+            elif basin!=False and prevBasin!=basin:
+                if basin==trackedBasin:
+                    if lastBasin!=trackedBasin:
+                        entryTime = self.times[i]
+                elif basin!=trackedBasin:
+                    if lastBasin==trackedBasin:
+                        dwellTime+=self.times[i] - entryTime
+                lastBasin = basin
+            prevBasin = basin
+            i += 1
+        if lastBasin==trackedBasin:
+            dwellTime+=self.times[i-1] - entryTime
+        return crossing, dwellTime
+    
+    def FluxSimple(self):
+        if self.oparam==None:
+            self.Pdf()
+        crossing = 0
+        dwellTime = 0.0
+        lastBasin = False
+        #get initial basin, which we will then track from
+        i = 0
+        while not lastBasin:
+            lastBasin = self.Basin(i)
+            i += 1
+        prevBasin = trackedBasin = lastBasin
+        entryTime = self.times[i-1]
+        while i < len(self.oparam):
+            basin = self.Basin(i)
+            # a crossing out of the initial basin has occurred, record this as a flux event
+            if prevBasin==trackedBasin and basin!=trackedBasin:
+                crossing+=1
+                dwellTime+=self.times[i] - entryTime
+            # a crossing into a basin has occurred, what to do depends on the basin and last visited basin
+            elif prevBasin!=trackedBasin and basin==trackedBasin:
+                entryTime = self.times[i]
+            prevBasin = basin
+            i += 1
+        if basin==trackedBasin:
+            dwellTime+=self.times[i-1] - entryTime
+        return crossing, dwellTime
+    
     def Passage(self):
         if self.oparam==None:
             self.Pdf()
@@ -271,6 +332,28 @@ class Sims(object):
 #         axes.set_xscale('log')
 #         axes.set_yscale('log')
         self.Savefig(fig, '_contour_log_jet')
+    
+    def Flux(self):
+        self.crossings = np.zeros((len(self.sims),))
+        self.dwellTimes = np.zeros((len(self.sims),))
+        for i,sim in enumerate(self.sims):
+            self.crossings[i], self.dwellTimes[i] = sim.Flux()
+        print('crossings: %s' % self.crossings.tolist())
+        print('dwell_times: %s' % self.dwellTimes.tolist())
+        print('avg_crossings: %.10f' % np.mean(self.crossings))
+        print('avg_dwell_times: %.10f' % np.mean(self.dwellTimes))
+        print('flux: %.10f' % (np.sum(self.crossings)/np.sum(self.dwellTimes)))
+    
+    def FluxSimple(self):
+        self.crossings = np.zeros((len(self.sims),))
+        self.dwellTimes = np.zeros((len(self.sims),))
+        for i,sim in enumerate(self.sims):
+            self.crossings[i], self.dwellTimes[i] = sim.FluxSimple()
+        print('crossings: %s' % self.crossings.tolist())
+        print('dwell_times: %s' % self.dwellTimes.tolist())
+        print('avg_crossings: %.10f' % np.mean(self.crossings))
+        print('avg_dwell_times: %.10f' % np.mean(self.dwellTimes))
+        print('flux: %.10f' % (np.sum(self.crossings)/np.sum(self.dwellTimes)))
     
     def Hist(self):
         if self.oparam==None:
@@ -645,7 +728,7 @@ class Biphasic(Sim):
             return 'B'
         else:
             return False
-
+    
     def Pdf(self):
         reducer = np.array([-1,-2,-2,1,2,2,0])
         self.oparam = np.dot(self.counts, reducer)
@@ -734,6 +817,10 @@ if __name__=="__main__":
     biphasics = Biphasics(fname)
     if sys.argv[2]=='contourlog':
         biphasics.ContourLog()
+    elif sys.argv[2]=='flux':
+        biphasics.Flux()
+    elif sys.argv[2]=='fluxsimple':
+        biphasics.FluxSimple()
     elif sys.argv[2]=='hist':
         biphasics.Hist()
     elif sys.argv[2]=='histumbrella':

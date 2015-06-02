@@ -65,14 +65,20 @@ public:
     // accessors
     virtual uint getFFluxPhase();
     virtual lm::io::TrajectoryLimits::LimitType getFinalLimitType();
+    virtual double getLastLimitTime();
     virtual void getLastSpeciesCounts(lm::io::FFluxOutput::TrajectoryOutput* trajectoryOutputBuf);
     virtual bool hasElapsed(double time);
+
+    // mutators
+    virtual void setLastLimitTime(double lLT);
 
     //    uint getFFluxPhase() {return ffluxPhase;}
     //    void setFFluxPhase(uint newPhase) {ffluxPhase = newPhase;}
 
 protected:
     uint ffluxPhase;
+    // the simulation time when the trajectory last hit a limit (or 0.0)
+    double lastLimitTime;
 };
 
 }

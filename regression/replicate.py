@@ -5,8 +5,8 @@ import shutil
 import sys
 import shlex, subprocess
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'utils', 'python'))
-from lm_add_fflux_input import FFluxParameters, SimulationParameter
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'utils', 'python', 'runner'))
+from lmFile import Input,InitialSpeciesCounts,OrderParameter,ReactionRateConstant,SimulationParameter
 
 path = sys.argv[1]
 try:
@@ -14,19 +14,38 @@ try:
 except OSError:
     pass
 shutil.copy('wo_fflux.biphasic_switch.lm','biphasic_switch.lm')
-replicateParameters = FFluxParameters('biphasic_switch')
-simParams = [SimulationParameter(key='crossingsPerPhase',val='100'),
-             SimulationParameter(key='maxPhaseZeroTime',val='10000'),
-             SimulationParameter(key='maxSteps',val='10000000000'),
-             SimulationParameter(key='maxTime',val='1e5'),
-             SimulationParameter(key='maxWorkUnitSteps',val='10000000'),
-             SimulationParameter(key='writeInterval',val='1e3')]
-replicateParameters.SetSimulationParameters(simParams=simParams)
-replicateParameters.Close()
+replicateInput = Input('biphasic_switch.lm')
+
+iSCs = InitialSpeciesCounts(speciesCounts=[4,16,1,0,0,0,0])
+
+op = OrderParameter(type=0,
+                    id=0,
+                    speciesIDs=[0,1,2,3,4,5],
+                    speciesCoefficients=[-1,-2,-2,1,2,2])
+
+theta = 10
+reactionRateConstants = []
+productionConstants = [ReactionRateConstant(reactionID=4, rateConstant=1.0*theta), ReactionRateConstant(reactionID=5, rateConstant=1.0*theta), ReactionRateConstant(reactionID=11, rateConstant=1.0*theta), ReactionRateConstant(reactionID=12, rateConstant=1.0*theta)]
+reactionRateConstants+=productionConstants
+degradationConstants = [ReactionRateConstant(reactionID=6, rateConstant=.25*theta), ReactionRateConstant(reactionID=13, rateConstant=.25*theta)]
+reactionRateConstants+=degradationConstants
+
+simParams = [SimulationParameter(key='maxSteps',val=str(int(1e10))),
+             SimulationParameter(key='maxTime',val=str(int(1e5))),
+             SimulationParameter(key='maxWorkUnitSteps',val=str(int(1e8))),
+             SimulationParameter(key='writeInterval',val=str(5e-2))]
+
+replicateInput.SetInitialSpeciesCounts(iSCs=iSCs)
+replicateInput.SetOrderParameters(ops=[op])
+replicateInput.SetReactionRateConstants(rRates=reactionRateConstants)
+replicateInput.SetSimulationParameters(simParams=simParams)
+replicateInput.Close()
+
 raw_args = '-r 1-10 -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff hdf5 -f "biphasic_switch.lm"'
 args = shlex.split(raw_args)
 p = subprocess.Popen([path] + args)
 p.wait()
+
 #os.execv(path, ['-r 1-10 -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff hdf5 -f "biphasic_switch.lm"'])
 #os.execl(path, '"-r 1,2,3,4,5,6,7,8,9,10"', '-sl', 'lm::cme::GillespieDSolver', '-cr', '1', '-gr', '1/4', '-ff', 'hdf5', '-f', 'biphasic_switch.lm')
 

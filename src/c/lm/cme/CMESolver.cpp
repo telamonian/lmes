@@ -82,7 +82,7 @@ namespace lm {
 namespace cme {
 
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
-:neededDists(neededDists),rng(NULL),oparams(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),tilingHists(NULL),trajectoryStarted(false),degreeAdvancements(NULL),orderParameterValues(NULL),speciesCounts(NULL),time(0.0),timeStep(0.0),finalLimitID(0),finalLimitType(static_cast<lm::io::TrajectoryLimits::LimitType>(0))
+:neededDists(neededDists),rng(NULL),oparams(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),tilingHists(NULL),trajectoryStarted(false),degreeAdvancements(NULL),orderParameterValues(NULL),speciesCounts(NULL),time(0.0),timeStep(0.0),finalLimitID(-1),finalLimitType(static_cast<lm::io::TrajectoryLimits::LimitType>(0))
 {
 }
 
@@ -1032,6 +1032,9 @@ void CMESolver::getState(lm::io::TrajectoryState* state)
     // Get the trajectory id.
     state->set_trajectory_id(trajectoryID);
 
+    // Get the final limit ID
+    state->set_final_limit_id(finalLimitID);
+
     // Get the degree advancements.
     if (daFlag)
     {
@@ -1091,6 +1094,9 @@ void CMESolver::setState(const lm::io::TrajectoryState& state)
 
     // Set the trajectory id.
     trajectoryID = state.trajectory_id();
+
+    // Set the final limit ID
+    finalLimitID = state.final_limit_id();
 
     // Set the degree advancements.
     for (int i=0; i<state.cme_state().degree_advancements().degree_advancements_size(); i++)

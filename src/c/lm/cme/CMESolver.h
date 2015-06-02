@@ -397,7 +397,7 @@ protected:
             case SpeciesLimit::MIN:
                 if (int(speciesCounts[l.species]) <= l.limit)
                 {
-                    finalLimitID = 0;   // for now, limitID is unused for MIN and MAX limits
+                    finalLimitID = -1;   // for now, limitID is unused for MIN and MAX limits
                     finalLimitType = lm::io::TrajectoryLimits::MINSPECIESCOUNT;
                     return true;
                 }
@@ -405,7 +405,7 @@ protected:
             case SpeciesLimit::MAX:
                 if (int(speciesCounts[l.species]) >= l.limit)
                 {
-                    finalLimitID = 0; // for now, limitID is unused for MIN and MAX limits
+                    finalLimitID = -1; // for now, limitID is unused for MIN and MAX limits
                     finalLimitType = lm::io::TrajectoryLimits::MAXSPECIESCOUNT;
                     return true;
                 }
@@ -507,7 +507,7 @@ protected:
     TilingHist* tilingHists;
 
     // the id and the type of the limit that stopped the trajectory. only have meaning after the trajectory's last step
-    uint finalLimitID;
+    int64_t finalLimitID;
     lm::io::TrajectoryLimits::LimitType finalLimitType;
 };
 

@@ -214,10 +214,19 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
     lm::fflux::FFluxTrajectory* traj = static_cast<lm::fflux::FFluxTrajectory*>(getTrajectory(finishedWorkUnitMsg.final_state().trajectory_id()));
     double prevTime = traj->getSimTime();
     uint prevFinalLimitID = traj->getFinalLimitID();
+//    if (traj->getID()==0 && finishedWorkUnitMsg.status()!=lm::message::FinishedWorkUnit::LIMIT_REACHED)// && traj->getFinalLimitID()!=0)
+//    {
+//        printf("finalLimitID before: %d\n", traj->getFinalLimitID());
+//    }
     // Call the base class method.
     traj = static_cast<lm::fflux::FFluxTrajectory*>(TrajectoryList::workUnitFinished(finishedWorkUnitMsg));
 //    Print::printf(Print::DEBUG, "finishedTrajectoryCount is: %d",finishedTrajectoriesCounts[ffluxPhase]);
     // If the work unit was from a previous phase of the fflux simulation, delete the associated trajectory and move on
+
+//    if (traj->getID()==0 && finishedWorkUnitMsg.status()!=lm::message::FinishedWorkUnit::LIMIT_REACHED)// && prevFinalLimitID!=0)
+//    {
+//        printf("finalLimitID after: %d\n", traj->getFinalLimitID());
+//    }
     if (traj->getFFluxPhase() < ffluxPhase)
     {
     	deleteTrajectory(traj->getID());
@@ -225,100 +234,19 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
     // If the work unit stopped because it detected a crossing event...]
     else if (finishedWorkUnitMsg.status()==lm::message::FinishedWorkUnit::LIMIT_REACHED)
     {
-//        // ...and if the crossing event was a forward flux...
-//        if (traj->fluxedForward())
-//        {
-//            // ...add the work unit's final state to the appropriate list of crossings
-//            Print::printf(Print::DEBUG,"Crossing %d added to phase %d list", crossings[ffluxPhase].size(), ffluxPhase);
-//            addCrossing(finishedWorkUnitMsg);
-//        }
-//        // Regardless of whether this crossing was a forward or backwards flux, increment this phase's finished trajectories counter and dwell time, and delete the finished trajectory
-//        simTime = traj->getSimTime();
-//        dwellTimes[ffluxPhase] += simTime;
-//        ++finishedTrajectoriesCounts[ffluxPhase];
-//        if (intermediateOutputFlag) {ffluxOutputAddTrajectory(traj, lm::io::FFluxOutput::FINAL);}
-//        deleteTrajectory(finishedWorkUnitMsg.final_state().trajectory_id());
-//        Print::printf(Print::INFO, "ffluxPhase: %d, crossings[fflux].size(): %d, finishedTrajectoriesCount %d, time: %f, oparam: %f", ffluxPhase, crossings[ffluxPhase].size(), finishedTrajectoriesCounts[ffluxPhase], crossings[ffluxPhase].back()->cme_state().species_counts().time(crossings[ffluxPhase].back()->cme_state().species_counts().number_entries() - 1), calcTestCaseOParam(finishedWorkUnitMsg.final_state()));
         // If the forward flux sampling is still in its 0th (ie initial) phase...
         if (isZerothPhase())
         {
+//            if (traj->getID()==0)
+//            {
+//                printf("earlier: %.10f\tnow: %.10f\tdiff: %.10f\tdirection: %s\tfinalLimitID: %d\n", prevTime, traj->getSimTime(), traj->getSimTime() - prevTime, traj->fluxedForward() ? "FORWARD" : "BACKWARD", traj->getFinalLimitID());
+//            }
             workUnitFinishedPhaseZero(finishedWorkUnitMsg, prevFinalLimitID, prevTime, traj);
-//            // ...and if enough time has passed for phase zero to be complete...
-//            if (isZerothPhaseDone(simTime))
-//            {
-//                if (crossings.find(0)==crossings.end()) Print::printf(Print::ERROR, "No crossings were recorded during forward flux phase zero. Try increasing maxPhaseZeroTime");
-//                Print::printf(Print::INFO,"By the end of forward flux phase zero, %d forward crossings were recorded", crossings[ffluxPhase].size());
-//                // ...mark the currently running set of trajectories as finished
-//                setAllFinished();
-//                // Next, increment the fflux phase counter. If there are still more phases to run...
-//                ++ffluxPhase;
-//                Print::printf(Print::INFO,"Forward flux phase %d:%s starting now", ffluxPhase, directionStrings[direction].c_str());
-//                if (!isFFluxDone())
-//                {
-//                    // ...start up a new set of trajectories and make room to store their data
-//                    dwellTimes[ffluxPhase] = 0;
-//                    finishedTrajectoriesCounts[ffluxPhase] = 0;
-//                    initPhaseNTrajectories(simultaneousTrajectoryCount);
-//                }
-//            }
-//            // ...otherwise we still have more time to go in phase zero...
-//            else
-//            {
-//                // ...so start one phase zero trajectory.
-//                initTrajectories(1, crossings[ffluxPhase].back());
-//            }
         }
         // ...otherwise if ffluxPhase > 0...
         else
         {
             workUnitFinishedPhaseN(finishedWorkUnitMsg, prevFinalLimitID, prevTime, traj);
-//            // ...and if enough crossing events have been detected for this phase of forward flux sampling...
-//            if (isPhaseDone())
-//            {
-//                // ...mark the currently running set of trajectories as finished
-//				setAllFinished();
-//                // Next, increment the fflux phase counter. If there are still more phases to run...
-//                ++ffluxPhase;
-//                Print::printf(Print::INFO,"Forward flux phase %d:%s starting now", ffluxPhase, directionStrings[direction].c_str());
-//                if (!isFFluxDone())
-//                {
-//                    // ...and start up a new set of trajectories
-//                    dwellTimes[ffluxPhase] = 0;
-//                    finishedTrajectoriesCounts[ffluxPhase] = 0;
-//                    initPhaseNTrajectories(simultaneousTrajectoryCount);
-//                }
-//                // ...otherwise if the whole simulation is complete, output some data.
-//                else
-//                {
-//                    saveCrossings();
-//                    saveDwellTimes();
-//                    saveFinishedTrajectoriesCounts();
-//
-//                    if (intermediateOutputFlag) {ffluxOutputFinishTrajectory();}
-//                    ffluxOutputAddBasin(crossings, finishedTrajectoriesCounts);
-//
-//                    // If we have to run fflux sampling in both directions, check if we're on the forward phase...
-//                    if (direction==FORWARD) // if (direction==FORWARD && bothDirections==TRUE)
-//                    {
-//                        // ...and if we are, reverse the arrangement of the edges and restart the simulation
-//                        reverse();
-//                        restart();
-//                    }
-//                    // If we're completely done with sampling in both directions, do the probability calculations
-//                    else
-//                    {
-//                        ffluxOutputSetFinal_DinnerMethod(savedCrossings, savedDwellTimes, savedFinishedTrajectoriesCounts, savedHists);
-//                        // if intermediateOutputFlag is not set, remove the basinOutputs from the final output message
-//                        if (!(intermediateOutputFlag)) {getFFluxOutput()->clear_basin_outputs();}
-//                    }
-//                }
-//            }
-//            // ...otherwise we still need to collect more crossing events for this phase of forward flux sampling...
-//            else
-//            {
-//                // ...so start one phase N trajectory.
-//                initPhaseNTrajectories(1);
-//            }
         }
     }
     return traj;
@@ -351,17 +279,19 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinishedPhaseZero(const
     }
     if (prevFinalLimitID==0)
     {
-        dwellTimes[ffluxPhase]+=traj->getSimTime() - prevTime;
-        phaseZeroTimes[runnerIndex]+=traj->getSimTime() - prevTime;
+        dwellTimes[ffluxPhase]+=traj->getSimTime() - traj->getLastLimitTime();
+        phaseZeroTimes[runnerIndex]+=traj->getSimTime() - traj->getLastLimitTime();
     }
     // Regardless of whether this crossing was a forward or backwards flux, increment this phase's finished trajectories counter and dwell time, and delete the finished trajectory
     if (intermediateOutputFlag) {ffluxOutputAddTrajectory(traj, lm::io::FFluxOutput::FINAL);}
-    ++finishedTrajectoriesCounts[ffluxPhase];
 //        Print::printf(Print::INFO, "ffluxPhase: %d, crossings[fflux].size(): %d, finishedTrajectoriesCount %d, time: %f, oparam: %f", ffluxPhase, crossings[ffluxPhase].size(), finishedTrajectoriesCounts[ffluxPhase], crossings[ffluxPhase].back()->cme_state().species_counts().time(crossings[ffluxPhase].back()->cme_state().species_counts().number_entries() - 1), calcTestCaseOParam(finishedWorkUnitMsg.final_state()));
     // ...and if enough time has passed for phase zero to be complete...
 //    if (isPhaseDone())
     if (isZerothPhaseDone(traj->getSimTime()))
+//    if (isZerothPhaseDone(dwellTimes[ffluxPhase]))
     {
+        // increment the finished trajectory count by the total number of phase zero trajectories (i.e. workUnitRunnerCount)
+        finishedTrajectoriesCounts[0]+=simultaneousTrajectoryCount;
         deleteTrajectory(traj->getID());
         if (crossings.find(0)==crossings.end()) Print::printf(Print::ERROR, "No crossings were recorded during forward flux phase zero. Try increasing maxPhaseZeroTime");
         Print::printf(Print::INFO,"By the end of forward flux phase zero, %d forward crossings were recorded", crossings[ffluxPhase].size());
@@ -374,6 +304,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinishedPhaseZero(const
             runnerCount++;
         }
         carefulFlux/=runnerCount;
+        phaseZeroCrossings.clear(); phaseZeroTimes.clear();
         Print::printf(Print::INFO,"The careful flux is: %.10f", carefulFlux);
         // ...delete any trajectories that have yet to start and mark the currently running set of trajectories as finished
         deleteAllNotStarted(); setAllFinished();
@@ -391,9 +322,12 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinishedPhaseZero(const
     // ...otherwise we still have more time to go in phase zero...
     else
     {
-        deleteTrajectory(traj->getID());
-        // ...so start one phase zero trajectory.
-        initTrajectories(1, const_cast<lm::message::FinishedWorkUnit&>(finishedWorkUnitMsg).mutable_final_state());// crossings[ffluxPhase].back());
+        traj->setLastLimitTime(traj->getSimTime());
+        setTrajectoryStatus(finishedWorkUnitMsg.final_state().trajectory_id(), lm::trajectory::Trajectory::WAITING);
+//        deleteTrajectory(traj->getID());
+//        // ...so start one phase zero trajectory.
+//        initTrajectories(1, const_cast<lm::message::FinishedWorkUnit&>(finishedWorkUnitMsg).mutable_final_state()); // crossings[ffluxPhase].back());
+//        initTrajectories(1, direction==FORWARD ? false : true);
     }
     return traj;
 }
@@ -408,7 +342,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinishedPhaseN(const lm
         addCrossing(finishedWorkUnitMsg);
     }
     // Regardless of whether this crossing was a forward or backwards flux, increment this phase's finished trajectories counter and dwell time, and delete the finished trajectory
-    dwellTimes[ffluxPhase] += traj->getSimTime() - prevTime;
+    dwellTimes[ffluxPhase] += traj->getSimTime() - traj->getLastLimitTime();
     ++finishedTrajectoriesCounts[ffluxPhase];
     if (intermediateOutputFlag) {ffluxOutputAddTrajectory(traj, lm::io::FFluxOutput::FINAL);}
     deleteTrajectory(traj->getID());
@@ -511,7 +445,6 @@ CrossingsMap FFluxTrajectoryList::getSavedCrossings(lm::fflux::FFluxTrajectoryLi
 void FFluxTrajectoryList::addCrossing(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg)
 {
     lm::io::TrajectoryState* newCrossing = new lm::io::TrajectoryState(finishedWorkUnitMsg.final_state());
-
     crossings[ffluxPhase].push_back(newCrossing);
 }
 
@@ -646,7 +579,7 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(FFluxTrajectory* traj, lm::io
     trajOut->add_trajectory_id(traj->getID());
 
     // send a message to the output writer if a certain ammount of trajectory data has accumulated and if this is the final part of the current trajectory
-    if (trajOut->time_size() > 100 && lifecycle==lm::io::FFluxOutput::FINAL)
+    if (trajOut->time_size() > 100*simultaneousTrajectoryCount && lifecycle==lm::io::FFluxOutput::FINAL)
     {
         // Send the message
         communicator->sendMessage(0,3, &msgStreaming);    //realOutputWriterProcess, realOutputWriterThread, &msgStreaming);

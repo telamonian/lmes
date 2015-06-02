@@ -258,6 +258,11 @@ void Trajectory::resetSimTime()
     getState()->mutable_cme_state()->mutable_species_counts()->set_time(getState()->cme_state().species_counts().time_size() - 1, 0.0);
 }
 
+void Trajectory::setFinalLimitID(int64_t finalLimitID)
+{
+    getState()->set_final_limit_id(finalLimitID);
+}
+
 void Trajectory::setID(uint64_t newID)
 {
     id = newID;

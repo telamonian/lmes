@@ -88,6 +88,7 @@ public:
 
     // mutators
     virtual void resetSimTime();
+    virtual void setFinalLimitID(int64_t finalLimitID);
     virtual void setID(uint64_t id);
     virtual void setLimits(const lm::io::TrajectoryLimits* newLimits);
     virtual void setMsg(const lm::message::Message& newMsg);

@@ -196,6 +196,23 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     rng->getExpRandomDoubles(expRngValues,TUNE_LOCAL_RNG_CACHE_SIZE);
     int rngNext=0;
 
+//    if (trajectoryID==0)
+//    {
+//        if (trajectoryStarted==false)
+//        {
+//            printf("trajectoryID: %d starting with\n", trajectoryID);
+//        }
+//        else
+//        {
+//            printf("trajectoryID: %d restarting with\n", trajectoryID);
+//        }
+//        printf("order parameter: %.3f\n", (*oparams)[0]->get());
+//        printf("species counts: ");
+//        for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) printf("%d,", speciesCounts[i]);
+//        printf("\n");
+//        printf("time: %.10f\n", time);
+//    }
+
     // Run the direct method.
     Print::printf(Print::DEBUG, "Running Gillespie direct simulation for %d steps with %d species, %d reactions, %d species limits\n", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberSpeciesLimits);
     PROF_BEGIN(PROF_SIM_EXECUTE);
@@ -279,6 +296,17 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     }
     PROF_END(PROF_SIM_EXECUTE);
 
+//    if (trajectoryID==0 && steps==1000)
+//    {
+//        printf("trajectoryID: %d stopping with\n", trajectoryID);
+//        printf("order parameter: %.3f\n", (*oparams)[0]->get());
+//        printf("species counts: ");
+//        for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) printf("%d,", speciesCounts[i]);
+//        printf("\n");
+//        printf("steps: %d\n", steps);
+//        printf("time: %.10f\n", time);
+//    }
+
     bool reachedLimit = false;
 
     // If we finished the total time or ran out of reactions, write out the remaining time steps.
@@ -336,7 +364,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     }
 
     // If the output message has any data, send it.
-    if ((msg->has_species_counts() || msg->first_passage_times_size() > 0) && !ffluxFlag)		// these messages aren't useful for fflux simulation
+    if (msg->has_species_counts() || msg->first_passage_times_size() > 0)// && !ffluxFlag)		// these messages aren't useful for fflux simulation
     {
 //    	printf("gillespiedsolver outputProcess: %d outputThread: %d\n", outputProcess, outputThread);
         communicator->sendMessage(outputProcess, outputThread, &msgp);
