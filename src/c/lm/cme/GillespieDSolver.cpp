@@ -364,7 +364,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     }
 
     // If the output message has any data, send it.
-    if (msg->has_species_counts() || msg->first_passage_times_size() > 0)// && !ffluxFlag)		// these messages aren't useful for fflux simulation
+    if ((msg->has_species_counts() || msg->first_passage_times_size() > 0) && !ffluxFlag)		// these messages aren't useful for fflux simulation
     {
 //    	printf("gillespiedsolver outputProcess: %d outputThread: %d\n", outputProcess, outputThread);
         communicator->sendMessage(outputProcess, outputThread, &msgp);

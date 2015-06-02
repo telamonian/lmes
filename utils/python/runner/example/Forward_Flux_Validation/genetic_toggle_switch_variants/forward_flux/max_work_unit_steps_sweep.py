@@ -84,7 +84,7 @@ if __name__=='__main__':
                   'lm_sampling_rate': 1e3, #'auto',
                   'lm_sampling_time': 1e10,
                   'queue': queue,
-                  'rootPath': PathJoin(remote_home_directory, 'forward_flux_validation/gts_fflux_maxWorkUnitSteps'),
+                  'rootPath': PathJoin(remote_home_directory, 'forward_flux_validation/gts_fflux_fixed_maxWorkUnitSteps'),
                   'sweepTupX': sweepTupX,
                   'sweepTupY': sweepTupY,
                   'type': type,
