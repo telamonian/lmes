@@ -6,7 +6,13 @@ import os,sys
 import re
 from six import print_
 
-headers = ['param_name_0', 'param_val_0', 'param_name_1', 'param_val_1', 'switching_rate', 'flux_forward', 'probability_forward', 'flux_backward', 'probability_backward']
+headers = ['switching_rate', 'flux_forward', 'probability_forward', 'flux_backward', 'probability_backward']
+paramHeaders = ['param_name_%d', 'param_val_%d']
+
+# regex for matching parameters in the names of dirs in sweeps. '[^\W\d_]' is confusing, means (NOT ([^a-zA-Z0-9_] AND [1-9] AND _)), which really is just a portable [a-zA-Z]
+nonNumericPat = '[^\W\d_]+'
+scientificPat = '-?(?:0|[1-9]\d*)(?:\.\d*)?(?:[eE][+\-]?\d+)?'
+paramRe = re.compile('(?:(%s)(%s)_?)' % (nonNumericPat, scientificPat))
 
 def GetFPTs(lmFPath, fptSpecies, fptCount):
     fpts = []
@@ -67,12 +73,15 @@ def GetSweepSwitchFFlux(lmRootPath, tilingID):
         for fname in tup[2]:
             if fname[-3:]=='.lm':
                 print_(tup)
-                sweepParamRe = re.search('([^\W\d_]+)([\d\.]+)_([^\W\d_]+)([\d\.]+)', tup[0])
+                paramData = []
+                for paramBlock in os.path.split(tup[0])[-1].rstrip('_').split('_'):
+                    sweepParamMatch = paramRe.search(paramBlock)
+                    paramData+=list(sweepParamMatch.groups())
                 try:
                     switch_data_list = GetSwitchFFlux(os.path.join(tup[0],fname), tilingID)
                 except KeyError:
                     continue
-                switches.append([sweepParamRe.group(1), sweepParamRe.group(2), sweepParamRe.group(3), sweepParamRe.group(4)] + switch_data_list)
+                switches.append([paramData, switch_data_list])
     return switches
                 
 
@@ -80,13 +89,18 @@ if __name__=='__main__':
     fptSpecies = 4
     fptCount = 11
     tilingID = 0
-    switchingTimes = GetSweepSwitch(lmRootPath=sys.argv[1], fptSpecies=fptSpecies, fptCount=fptCount)
-#     switchingTimes = GetSweepSwitchFFlux(lmRootPath=sys.argv[1], tilingID=tilingID)
+#     switchingTimes = GetSweepSwitch(lmRootPath=sys.argv[1], fptSpecies=fptSpecies, fptCount=fptCount)
+    switchingData = GetSweepSwitchFFlux(lmRootPath=sys.argv[1], tilingID=tilingID)
+    for i in range(int(len(switchingData[0][0])/2)):
+        for header in paramHeaders:
+            print_(header % i, end='')
+            print_(',', end='')
     for header in headers:
         print_(header, end='')
         print_(',', end='')
     print_('\n', end='')
-    for row in sorted(switchingTimes, key=lambda st: float(st[1])):
+    for row in sorted(switchingData, key=lambda st: float(st[0][1])):
+        row = row[0] + row[1]
         for col in row:
             print_(col, end='')
             print_(',', end='')

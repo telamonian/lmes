@@ -7,12 +7,12 @@ from statsmodels.sandbox.tools import cross_val
 thisScriptsPath = os.path.dirname(os.path.realpath(__file__))
 
 #### USER DEFINED VARIABLES ####
-crossingsPerPhase = str(int(1e5))
-host = 'xanthus'
+crossingsPerPhase = str(int(1e4))
+host = 'kirin'
 lm_bin = '/home/cklein13/git/lm/build/lmes'
 local_home_directory = thisScriptsPath
-maxPhaseZeroTime = str(int(1e7))
-queue = 'smp-1'
+maxPhaseZeroTime = str(int(1e6))
+# queue = 'smp-1'
 remote_home_directory = '/home/cklein13'
 type = 'sge'
 user_id = 'cklein13'
@@ -62,7 +62,7 @@ if __name__=='__main__':
     yTicks = xTicks/4.0
     # these inputTupsDefault get applied to every lm file before any simulations in the sweep
     simParams = [SimulationParameter(key='maxSteps',val=str(int(1e10))),
-                 SimulationParameter(key='maxWorkUnitSteps',val=str(int(1e15)))]
+                 SimulationParameter(key='maxWorkUnitSteps',val=str(int(1e3)))]
     # production reaction rates get swept through in x...
     inputTupssX = [[ReactionRateConstant(reactionID=4, rateConstant=tick), ReactionRateConstant(reactionID=5, rateConstant=tick), ReactionRateConstant(reactionID=11, rateConstant=tick), ReactionRateConstant(reactionID=12, rateConstant=tick)] for tick in xTicks]
     # ...and degradation reaction rates get swept through in y
@@ -70,7 +70,7 @@ if __name__=='__main__':
     sweepTupX = SweepTup(inputTupss=inputTupssX, label='production%.5f', labelVals=xTicks)
     sweepTupY = SweepTup(inputTupss=inputTupssY, label='degradation%.5f', labelVals=yTicks)
 
-    sweep_dict = {'cpu_count': 30,
+    sweep_dict = {'cpu_count': 32,
                   'diagonal': True,
                   'host': host,
                   'inputTupsDefault': simParams + GetFFluxInputTups(),
@@ -80,7 +80,7 @@ if __name__=='__main__':
                   'lm_file_path': 'genetic_toggle_switch.lm',
                   'lm_sampling_rate': 1e3, #'auto',
                   'lm_sampling_time': 1e10,
-                  'queue': queue,
+#                   'queue': queue,
                   'rootPath': PathJoin(remote_home_directory, 'forward_flux_validation/gts_fflux_cpp_%.0e_mpzt_%.0e' % (int(crossingsPerPhase), int(maxPhaseZeroTime))),
                   'sweepTupX': sweepTupX,
                   'sweepTupY': sweepTupY,

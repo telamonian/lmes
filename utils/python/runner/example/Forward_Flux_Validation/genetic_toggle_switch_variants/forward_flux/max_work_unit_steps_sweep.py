@@ -7,11 +7,11 @@ from statsmodels.sandbox.tools import cross_val
 thisScriptsPath = os.path.dirname(os.path.realpath(__file__))
 
 #### USER DEFINED VARIABLES ####
-crossingsPerPhase = str(int(1e5))
+crossingsPerPhase = str(int(1e2))
 host = 'xanthus'
 lm_bin = '/home/cklein13/git/lm/build_cuda/lmes'
 local_home_directory = thisScriptsPath
-maxPhaseZeroTime = str(int(1e7))
+maxPhaseZeroTime = str(int(1e3))
 queue = 'gpu'
 remote_home_directory = '/home/cklein13'
 type = 'sge'
@@ -69,9 +69,6 @@ if __name__=='__main__':
     xTicks = LogTicks(8,4,base=10,resolution=0)
     inputTupssX = [[SimulationParameter(key='maxWorkUnitSteps',val=str(tick))] for tick in xTicks] 
     sweepTupX = SweepTup(inputTupss=inputTupssX, label='maxWorkUnitSteps%.0e', labelVals=xTicks)
-    # laziness WOoooOOooh! when later fixing this up (TODO), remember to take the 'diagonal' argument out of the sweep_dict
-    inputTupssY = [[SimulationParameter(key='maxWorkUnitSteps',val=str(tick))] for tick in xTicks] 
-    sweepTupY = SweepTup(inputTupss=inputTupssX, label='%s', labelVals=['' for tick in xTicks])
 
     sweep_dict = {'cpu_count': 16,
                   'diagonal': True,
@@ -86,7 +83,7 @@ if __name__=='__main__':
                   'queue': queue,
                   'rootPath': PathJoin(remote_home_directory, 'forward_flux_validation/gts_fflux_fixed_maxWorkUnitSteps'),
                   'sweepTupX': sweepTupX,
-                  'sweepTupY': sweepTupY,
+#                   'sweepTupY': sweepTupY,
                   'type': type,
                   'useForwardFlux': True,
                   'user_id': user_id}

@@ -1,4 +1,5 @@
 from helper import PathJoin
+from itertools import product
 from job import JobSGELM, JobShellLM
 # this hackishness imports all of the things in the inputTypes list in lmFile
 #import lmFile
@@ -28,7 +29,7 @@ class SweepTup(object):
             yield self[i]
     
 class Sweep(object):
-    def __init__(self, cpu_count, host, lm_bin, lm_file_path, rootPath, diagonal=False, inputTupsDefault=None, lmArgsGpusPerReplicate=0, lmArgsIntout=False, lm_sampling_rate=None, lm_sampling_time=None, queue=None, replicateRange=(1,10), sweepTupX=None, sweepTupY=None, type='shell', useForwardFlux=False, user_id=None):
+    def __init__(self, cpu_count, host, lm_bin, lm_file_path, rootPath, diagonal=False, inputTupsDefault=None, lmArgsGpusPerReplicate=0, lmArgsIntout=False, lm_sampling_rate=None, lm_sampling_time=None, queue=None, replicateRange=(1,10), sweepTups=None, sweepTupX=None, sweepTupY=None, type='shell', useForwardFlux=False, user_id=None):
         self.cpu_count = cpu_count
         self.diagonal = diagonal
         self.host = host
@@ -55,8 +56,16 @@ class Sweep(object):
             self.lm_args_dict['use_forward_flux_sampling'] = ('-fflux',  '')
         
         self.inputTupsDefault = inputTupsDefault
-        self.sweepTupX = sweepTupX
-        self.sweepTupY = sweepTupY
+        # sweepTups can be provided to the __init__ either as (sweepTupX and/or sweepTupY) or simply as a list of sweepTups
+        self.sweepTups = []
+        if (sweepTupX!=None or sweepTupY!=None) and sweepTups!=None:
+            raise
+        if sweepTupX!=None:
+            self.sweepTups.append(sweepTupX)
+        if sweepTupY!=None:
+            self.sweepTups.append(sweepTupY)
+        if sweepTups!=None:
+            self.sweepTups = sweepTups
         
         if type=='sge':
             self.jobType = JobSGELM
@@ -74,29 +83,30 @@ class Sweep(object):
     def Setup(self):
         self.GetLMArgs()
         self.runner = Runner()
-        for i,(labelX,inputTupsX) in enumerate(self.sweepTupX):
-            for j,(labelY,inputTupsY) in enumerate(self.sweepTupY):
-                if self.diagonal and not i==j:
-                    continue
-                working_directory = PathJoin(self.rootPath, '%s_%s' % (labelX, labelY))
-                jobDict = {'arguments': ['-n', self.cpu_count, '-s', self.lm_file_path, '-x', self.lm_bin],
-                           'copy_to': [[PathJoin(thisScriptsPath, 'sge_glue.sh'), '']],
-                           'copy_from': [],
-                           'cpu_count': self.cpu_count,
-                           'error': 'lm.err',
-                           'executable': PathJoin(working_directory, 'sge_glue.sh'),
-                           'host': self.host,
-                           'lm_args': self.lm_args,
-                           'lm_file_path': self.lm_file_path,
-                           'lm_input_tups': inputTupsX+inputTupsY+self.inputTupsDefault,
-                           'lm_replicate_range': self.replicateRange,
-                           'lm_sampling_rate': self.lm_sampling_rate,
-                           'lm_sampling_time': self.lm_sampling_time,
-                           'output': 'lm.log',
-                           'queue': self.queue,
-                           'user_id': self.user_id,
-                           'working_directory': working_directory}
-                currentJob = self.jobType(**jobDict)
-                currentJob.SetRunner(self.runner)
-                self.jobs.append(currentJob)
+        if self.diagonal:
+            sweepTupsCombos = zip(*self.sweepTups)
+        else:
+            sweepTupsCombos = product(*self.sweepTups)
+        for labels,inputTupss in (zip(*sweepTupsCombo) for sweepTupsCombo in sweepTupsCombos):
+            working_directory = PathJoin(self.rootPath, '_'.join(labels))
+            jobDict = {'arguments': ['-n', self.cpu_count, '-s', self.lm_file_path, '-x', self.lm_bin],
+                       'copy_to': [[PathJoin(thisScriptsPath, 'sge_glue.sh'), '']],
+                       'copy_from': [],
+                       'cpu_count': self.cpu_count,
+                       'error': 'lm.err',
+                       'executable': PathJoin(working_directory, 'sge_glue.sh'),
+                       'host': self.host,
+                       'lm_args': self.lm_args,
+                       'lm_file_path': self.lm_file_path,
+                       'lm_input_tups': [inputTup for inputTups in inputTupss for inputTup in inputTups] + self.inputTupsDefault,
+                       'lm_replicate_range': self.replicateRange,
+                       'lm_sampling_rate': self.lm_sampling_rate,
+                       'lm_sampling_time': self.lm_sampling_time,
+                       'output': 'lm.log',
+                       'queue': self.queue,
+                       'user_id': self.user_id,
+                       'working_directory': working_directory}
+            currentJob = self.jobType(**jobDict)
+            currentJob.SetRunner(self.runner)
+            self.jobs.append(currentJob)
         self.runner.Setup()
