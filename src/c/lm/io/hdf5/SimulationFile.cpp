@@ -50,6 +50,7 @@
 #include <string>
 #include <sys/stat.h>
 #include <vector>
+#include <zlib.h>
 
 #include "lm/Exceptions.h"
 #include "lm/Math.h"
@@ -1775,7 +1776,29 @@ void Hdf5File::appendLatticeTimeSeries(uint64_t replicate, const lm::io::Lattice
             if (!lattice.has_particles_ordering()) throw Exception("Invalid lattice, data ordering must be specified for HDF5 file output.");
             if (lattice.particles_ordering() != lm::io::ROW_MAJOR) throw Exception("Invalid lattice, data ordering must be in ROW_MAJOR format for HDF5 file output.");
             if (!lattice.has_particles()) throw Exception("Invalid lattice, data must be specified for HDF5 file output.");
-            if (lattice.lattice_x_size()*lattice.lattice_y_size()*lattice.lattice_z_size()*lattice.particles_per_site() != (int)lattice.particles().size()) throw Exception("Invalid lattice, lattice size and data size must agree for HDF5 file output.");
+
+            size_t latticeParticlesSize=0;
+            unsigned char* latticeParticlesData=NULL;
+            if (lattice.particles_compressed_deflate())
+            {
+                // Create a temporary buffer.
+                latticeParticlesSize = lattice.lattice_x_size()*lattice.lattice_y_size()*lattice.lattice_z_size()*lattice.particles_per_site();
+                latticeParticlesData = new unsigned char [latticeParticlesSize];
+
+                // Uncompress the particle data into the temp buffer.
+                const std::string& particles = lattice.particles();
+                ZLIB_EXCEPTION_CHECK(uncompress(latticeParticlesData, &latticeParticlesSize, (unsigned char*)&(particles[0]), particles.size()));
+                if (latticeParticlesSize != lattice.lattice_x_size()*lattice.lattice_y_size()*lattice.lattice_z_size()*lattice.particles_per_site())
+                    throw Exception("Error during particle decompression, wrong number of bytes returned",latticeParticlesSize,lattice.lattice_x_size()*lattice.lattice_y_size()*lattice.lattice_z_size()*lattice.particles_per_site());
+            }
+            else
+            {
+                const std::string& particles = lattice.particles();
+                latticeParticlesSize = particles.size();
+                latticeParticlesData = (unsigned char*)&(particles[0]);
+            }
+
+            if (lattice.lattice_x_size()*lattice.lattice_y_size()*lattice.lattice_z_size()*lattice.particles_per_site() != latticeParticlesSize) throw Exception("Invalid lattice, lattice size and data size must agree for HDF5 file output.");
 
             char latticeDatasetName[11];
             snprintf(latticeDatasetName, sizeof(latticeDatasetName), "%010d", latticeIndex);
@@ -1795,11 +1818,16 @@ void Hdf5File::appendLatticeTimeSeries(uint64_t replicate, const lm::io::Lattice
             HDF5_EXCEPTION_CHECK(H5Pset_deflate (dcplHandle, TUNE_LATTICE_GZIP_COMPRESSION_LEVEL));
             HDF5_EXCEPTION_CHECK(H5Pset_chunk(dcplHandle, RANK, chunk));
             HDF5_EXCEPTION_CALL(datasetHandle,H5Dcreate2(latticeGroupHandle, latticeDatasetName, H5T_STD_U8LE, dataspaceHandle, H5P_DEFAULT, dcplHandle, H5P_DEFAULT));
-            const std::string& particles = lattice.particles();
-            HDF5_EXCEPTION_CHECK(H5Dwrite(datasetHandle, H5T_NATIVE_UINT8, H5S_ALL, H5S_ALL, H5P_DEFAULT, &(particles[0])));
+            HDF5_EXCEPTION_CHECK(H5Dwrite(datasetHandle, H5T_NATIVE_UINT8, H5S_ALL, H5S_ALL, H5P_DEFAULT, latticeParticlesData));
             HDF5_EXCEPTION_CHECK(H5Dclose(datasetHandle));
             HDF5_EXCEPTION_CHECK(H5Pclose(dcplHandle));
             HDF5_EXCEPTION_CHECK(H5Sclose(dataspaceHandle));
+
+            // If this was compressed data, free the buffer.
+            if (lattice.particles_compressed_deflate())
+            {
+                delete[] latticeParticlesData;
+            }
         }
     }
 

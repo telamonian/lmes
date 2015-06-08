@@ -149,14 +149,14 @@ int OutputWriter::run()
                 // If the queue is too full, wait until it empties before reading any more messages.
                 while (tmpMessageQueueSize > MESSAGE_QUEUE_MAX_SIZE)
                 {
+                    Print::printf(Print::WARNING, "OutputWriter is receiving too much data, performance may be degraded. If this this message appear frequently, increase write intervals to increase performance. (%d bytes queued)",tmpMessageQueueSize);
+                    sleep(5);
+
                     //// BEGIN CRITICAL SECTION: messageQueueMutex
                     PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&messageQueueMutex));
                     tmpMessageQueueSize = messageQueueSize;
                     PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&messageQueueMutex));
                     //// END CRITICAL SECTION: messageQueueMutex
-
-                    Print::printf(Print::WARNING, "OutputWriter is receiving too much data, performance may be degraded. If this this message appear frequently, increase write intervals to increase performance. (%d bytes queued)",tmpMessageQueueSize);
-                    sleep(5);
                 }
             }
             else if (message->has_perform_checkpointing())
@@ -254,7 +254,7 @@ int OutputWriter::HelperThread::run()
         // Performance stats.
         hrtime lastUpdateTime = getHrTime();
         hrtime writingTime = 0;
-        int bytesWritten = 0;
+        long long int bytesWritten = 0;
         int messagesWritten = 0;
         int messagesQueued;
         int bytesQueued;
@@ -342,7 +342,7 @@ int OutputWriter::HelperThread::run()
             hrtime currentTime = getHrTime();
             if (convertHrToSeconds(currentTime-lastUpdateTime) > 60.0 && bytesWritten > 0 || finished)
             {
-                Print::printf(Print::INFO, "Wrote %u messages (%u bytes) in the last %0.1f seconds (%0.6f seconds writing). %u messages (%d bytes) queued. Flushing.",messagesWritten,bytesWritten,convertHrToSeconds(currentTime-lastUpdateTime), convertHrToSeconds(writingTime), messagesQueued, bytesQueued);
+                Print::printf(Print::INFO, "Wrote %u messages (%lld bytes) in the last %0.1f seconds (%0.6f seconds writing). %u messages (%d bytes) queued. Flushing.",messagesWritten,bytesWritten,convertHrToSeconds(currentTime-lastUpdateTime), convertHrToSeconds(writingTime), messagesQueued, bytesQueued);
                 p->flush();
                 lastUpdateTime = currentTime;
                 writingTime = 0;

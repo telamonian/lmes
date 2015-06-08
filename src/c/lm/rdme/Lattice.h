@@ -180,12 +180,12 @@ public:
 	virtual void print() const;
 
     // Methods to serialize the data.
-    virtual size_t serializeParticlesSize()=0;
-    virtual void serializeParticlesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering)=0;
-    virtual void deserializeParticlesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering)=0;
-    virtual size_t serializeSitesSize()=0;
-    virtual void serializeSitesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering)=0;
-    virtual void deserializeSitesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering)=0;
+    virtual size_t serializeParticlesSize(bool deflate)=0;
+    virtual size_t serializeParticlesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool deflate)=0;
+    virtual void deserializeParticlesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool inflate)=0;
+    virtual size_t serializeSitesSize(bool deflate)=0;
+    virtual size_t serializeSitesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool deflate)=0;
+    virtual void deserializeSitesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool inflate)=0;
 
 protected:
 	lattice_coord_t size;
