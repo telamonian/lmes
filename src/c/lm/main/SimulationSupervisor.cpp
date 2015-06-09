@@ -284,7 +284,7 @@ int SimulationSupervisor::run()
         while (running && simulationRunning)
         {
             // Read the next message.
-            communicator.receiveMessage(&message);
+            communicator.receiveMessage(&message, 5);
 
             // Do something with the message.
             if (message.has_resources_available())

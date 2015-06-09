@@ -72,7 +72,7 @@ public:
     virtual void removeParticles(lattice_size_t x,lattice_size_t y,lattice_size_t z) throw(InvalidSiteException);
     virtual void removeParticles(lattice_size_t index) throw(InvalidSiteException);
 	virtual void removeAllParticles();
-    virtual void deserializeParticlesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering)=0;
+    virtual void deserializeParticlesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool inflate);
 
 protected:
     virtual void allocateCudaMemory() throw(CUDAException);
