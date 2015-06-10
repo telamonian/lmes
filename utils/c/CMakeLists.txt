@@ -5,7 +5,8 @@ set(lm_utils_libs lm_c_lib
                   ${libsbml_LIBRARIES}
                   ${PROTOBUF_LIBRARIES}
                   ${HDF5_LIBRARIES}
-                  ${HDF5_HL_LIBRARIES})
+                  ${HDF5_HL_LIBRARIES}
+                  ${ZLIB_LIBRARIES})
 
 ################
 #TARGET: utils
@@ -29,3 +30,7 @@ target_link_libraries(lm_setp ${lm_utils_libs})
 file(GLOB lm_setrm_source lm_setrm.cpp util.cpp)
 add_executable(lm_setrm EXCLUDE_FROM_ALL ${lm_setrm_source})
 target_link_libraries(lm_setrm ${lm_utils_libs})
+
+file(GLOB sfile_to_lm_source sfile_to_lm.cpp)
+add_executable(sfile_to_lm EXCLUDE_FROM_ALL ${sfile_to_lm_source})
+target_link_libraries(sfile_to_lm ${lm_utils_libs})

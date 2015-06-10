@@ -102,6 +102,7 @@ ResourceMap::ResourceMap(list<string>hostnames, int defaultCPUCores, int default
             }
             else
             {
+                allocatedResources[hostnameProcessMap[resources.hostname]].useDefaultResources = false;
                 allocatedResources[hostnameProcessMap[resources.hostname]].cpuCores = resources.cpuCores;
                 allocatedResources[hostnameProcessMap[resources.hostname]].gpuDevices = resources.gpuDevices;
             }
@@ -112,7 +113,10 @@ ResourceMap::ResourceMap(list<string>hostnames, int defaultCPUCores, int default
         {
             ComputeResources resources=it->second;
             if (resources.cpuCores.size() == 0)
+            {
+                resources.useDefaultResources = false;
                 Print::printf(Print::WARNING, "Host %d (%s) had NO resources allocated in nodefile.", resources.controller_process, resources.hostname.c_str());
+            }
         }
     }
 }
@@ -273,8 +277,8 @@ bool ResourceMap::registerResources(const lm::message::ResourcesAvailable& msg)
         // Set the controller thread.
         resources.controller_thread = (int)msg.controller_thread();
 
-        // If there were no cpus specified, use the default cpu cores and gpu devices.
-        if (resources.cpuCores.size() == 0)
+        // If there were no resources specified, use the default cpu cores and gpu devices.
+        if (resources.useDefaultResources)
         {
             int num=msg.cpu_size();
             if (defaultCPUCores >= 0 && defaultCPUCores < num) num = defaultCPUCores;
