@@ -81,6 +81,11 @@ string sfileFilename = "";
  */
 string lmFilename = "";
 
+/**
+ * The record type to convert.
+ */
+string recordType = "";
+
 
 // Allocate the profile space.
 PROF_ALLOC;
@@ -119,41 +124,52 @@ int main(int argc, char** argv)
             // Read each sfile record.
             hrtime startTime=getHrTime();
             int64_t recordsProcessed=0;
+            int64_t recordsConverted=0;
             while (!sfile.isEof())
             {
                 SFileRecord record = sfile.readNextSFileRecord();
-                unsigned char* data = new unsigned char[record.dataSize];
-                sfile.readFully(data, record.dataSize);
+                recordsProcessed++;
 
                 // Process the record.
-                if (record.type == "protobuf:lm.io.FirstPassageTimes")
+                if (recordType == "" || recordType == record.type)
                 {
-                    lm::io::FirstPassageTimes msg;
-                    if (!msg.ParseFromArray(data, record.dataSize)) throw lm::Exception("Unable to deserialize FirstPassageTimes record");
-                    lmfile.setFirstPassageTimes(msg.trajectory_id(), (lm::io::FirstPassageTimes*)&msg);
-                }
-                else if (record.type == "protobuf:lm.io.SpeciesCounts")
-                {
-                    lm::io::SpeciesCounts msg;
-                    if (!msg.ParseFromArray(data, record.dataSize)) throw lm::Exception("Unable to deserialize SpeciesCounts record");
-                    lmfile.appendSpeciesCounts(msg.trajectory_id(), (lm::io::SpeciesCounts*)&msg);
-                }
-                else if (record.type == "protobuf:lm.io.LatticeTimeSeries")
-                {
-                    lm::io::LatticeTimeSeries msg;
-                    if (!msg.ParseFromArray(data, record.dataSize)) throw lm::Exception("Unable to deserialize LatticeTimeSeries record");
-                    lmfile.appendLatticeTimeSeries(msg.trajectory_id(), msg);
+                    // Read the data.
+                    unsigned char* data = new unsigned char[record.dataSize];
+                    sfile.readFully(data, record.dataSize);
+
+                    if (record.type == "protobuf:lm.io.FirstPassageTimes")
+                    {
+                        lm::io::FirstPassageTimes msg;
+                        if (!msg.ParseFromArray(data, record.dataSize)) throw lm::Exception("Unable to deserialize FirstPassageTimes record");
+                        lmfile.setFirstPassageTimes(msg.trajectory_id(), (lm::io::FirstPassageTimes*)&msg);
+                    }
+                    else if (record.type == "protobuf:lm.io.SpeciesCounts")
+                    {
+                        lm::io::SpeciesCounts msg;
+                        if (!msg.ParseFromArray(data, record.dataSize)) throw lm::Exception("Unable to deserialize SpeciesCounts record");
+                        lmfile.appendSpeciesCounts(msg.trajectory_id(), (lm::io::SpeciesCounts*)&msg);
+                    }
+                    else if (record.type == "protobuf:lm.io.LatticeTimeSeries")
+                    {
+                        lm::io::LatticeTimeSeries msg;
+                        if (!msg.ParseFromArray(data, record.dataSize)) throw lm::Exception("Unable to deserialize LatticeTimeSeries record");
+                        lmfile.appendLatticeTimeSeries(msg.trajectory_id(), msg);
+                    }
+                    else
+                    {
+                        printf("WARNING: Unknown record name=%s type=%s size=%lld\n",record.name.c_str(),record.type.c_str(),record.dataSize);
+                    }
+                    delete[] data;
+                    recordsConverted++;
                 }
                 else
                 {
-                    printf("WARNING: Unknown record name=%s type=%s size=%lld\n",record.name.c_str(),record.type.c_str(),record.dataSize);
+                    // Skip the data.
+                    sfile.skip(record.dataSize);
                 }
 
-
-                delete[] data;
-                recordsProcessed++;
                 if (recordsProcessed%1000 == 0)
-                    printf("Processed %lld records\n", recordsProcessed);
+                    printf("Record read: %lld, converted: %lld\n", recordsProcessed, recordsConverted);
             }
 
             // Close the files.
@@ -221,17 +237,25 @@ void parseArguments(int argc, char** argv)
         }
             
         //See if the user is trying to specify a filename.
-        else if (i == 1 && argc == 3)
+        else if (i == 1 && argc >= 3)
         {
             function = "convert";
             sfileFilename = option;
         }
         
         //See if the user is trying to specify a species count.
-        else if (i == 2 && argc == 3)
+        else if (i == 2 && argc >= 3)
         {
             lmFilename = option;
         }
+
+        //See if the user is trying to specify a record type.
+        else if (i == 3)
+        {
+            recordType = option;
+        }
+
+
              
         //This must be an invalid option.
         else {
@@ -247,6 +271,6 @@ void printUsage(int argc, char** argv)
 {
 	std::cout << "Usage: " << argv[0] << " (-h|--help)" << std::endl;
 	std::cout << "Usage: " << argv[0] << " (-v|--version)" << std::endl;
-    std::cout << "Usage: " << argv[0] << " sfile_filename lm_filename" << std::endl;
+    std::cout << "Usage: " << argv[0] << " sfile_filename lm_filename [record_type]" << std::endl;
 	std::cout << std::endl;
 }
