@@ -492,7 +492,7 @@ void CMESolver::ReactionModel::build(const uint numberSpeciesA, const uint numbe
             int xi=-1;
             for (uint j=0; j<numberSpecies; j++)
             {
-                if (D[j*numberReactions+i] == 1)
+                if (D[j*numberReactions+i] == 1 || D[j*numberReactions+i] == 2 || D[j*numberReactions+i] == 3)
                 {
                     if (xi != -1) throw InvalidArgException("D", "zeroth order KHill reaction can only have one dependency");
                     xi = j;
@@ -505,6 +505,75 @@ void CMESolver::ReactionModel::build(const uint numberSpeciesA, const uint numbe
             // Set the table entry.
             propensityFunctions[i] = (void *)&zerothOrderKHillPropensity;
             propensityFunctionArgs[i] =  (void *)new ZerothOrderKHillPropensityArgs(xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2], K[i*kCols+3]);
+            propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
+        }
+        else if (reactionTypes[i] == FirstOrderKHillPropensityArgs::REACTION_TYPE)
+        {
+            // Find the dependency.
+            int si=-1;
+            int xi=-1;
+            int count=0;
+            for (uint j=0; j<numberSpecies; j++)
+            {
+                if (D[j*numberReactions+i] == 1 || D[j*numberReactions+i] == 3)
+                {
+                    if (si == -1)
+                        si = j;
+                    else
+                        throw InvalidArgException("D", "first order KHill reaction can only have one species dependency");
+                }
+                if (D[j*numberReactions+i] == 2 || D[j*numberReactions+i] == 3)
+                {
+                    if (xi == -1)
+                        xi = j;
+                    else
+                        throw InvalidArgException("D", "first order KHill reaction can only have one Hill dependency");
+                }
+            }
+
+            // Make sure we found the right dependencies.
+            if (si == -1) throw InvalidArgException("D", "first order KHill reaction must have one species dependency");
+            if (xi == -1) throw InvalidArgException("D", "first order KHill reaction must have one Hill dependency");
+
+            // Set the table entry.
+            propensityFunctions[i] = (void *)&firstOrderKHillPropensity;
+            propensityFunctionArgs[i] =  (void *)new FirstOrderKHillPropensityArgs(si, xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2], K[i*kCols+3]);
+            propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
+        }
+        else if (reactionTypes[i] == SecondOrderKHillPropensityArgs::REACTION_TYPE)
+        {
+            // Find the dependency.
+            int s1i=-1;
+            int s2i=-1;
+            int xi=-1;
+            int count=0;
+            for (uint j=0; j<numberSpecies; j++)
+            {
+                if (D[j*numberReactions+i] == 1 || D[j*numberReactions+i] == 3)
+                {
+                    if (s1i == -1)
+                        s1i = j;
+                    else if (s2i == -1)
+                        s2i = j;
+                    else
+                        throw InvalidArgException("D", "second order KHill reaction can only have two species dependencies");
+                }
+                if (D[j*numberReactions+i] == 2 || D[j*numberReactions+i] == 3)
+                {
+                    if (xi == -1)
+                        xi = j;
+                    else
+                        throw InvalidArgException("D", "second order KHill reaction can only have one Hill dependency");
+                }
+            }
+
+            // Make sure we found the right dependencies.
+            if (s1i == -1 || s2i == -1) throw InvalidArgException("D", "second order KHill reaction must have two species dependencies");
+            if (xi == -1) throw InvalidArgException("D", "second order KHill reaction must have one Hill dependency");
+
+            // Set the table entry.
+            propensityFunctions[i] = (void *)&secondOrderKHillPropensity;
+            propensityFunctionArgs[i] =  (void *)new SecondOrderKHillPropensityArgs(s1i, s2i, xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2], K[i*kCols+3]);
             propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
         }
         else if (reactionTypes[i] == PDFitnessPropensityArgs::COOPERATE_REACTION_TYPE)
@@ -868,6 +937,24 @@ double CMESolver::zerothOrderKHillPropensity(double time, uint * speciesCounts, 
 	double xh = pow(x,args->h);
 
 	return args->k0+((args->dk*xh)/(xh+args->x0h));
+}
+
+double CMESolver::firstOrderKHillPropensity(double time, uint * speciesCounts, void * pargs)
+{
+    FirstOrderKHillPropensityArgs * args = (FirstOrderKHillPropensityArgs *)pargs;
+    uint x = speciesCounts[args->xi];
+    double xh = pow(x,args->h);
+    double k = args->k0+((args->dk*xh)/(xh+args->x0h));
+    return ((double)speciesCounts[args->si]) * k;
+}
+
+double CMESolver::secondOrderKHillPropensity(double time, uint * speciesCounts, void * pargs)
+{
+    SecondOrderKHillPropensityArgs * args = (SecondOrderKHillPropensityArgs *)pargs;
+    uint x = speciesCounts[args->xi];
+    double xh = pow(x,args->h);
+    double k = args->k0+((args->dk*xh)/(xh+args->x0h));
+    return ((double)speciesCounts[args->s1i]) * ((double)speciesCounts[args->s2i]) * k;
 }
 
 double CMESolver::pdCooperateFitnessPropensity(double time, uint * speciesCounts, void * pargs)

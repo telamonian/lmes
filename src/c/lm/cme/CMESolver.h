@@ -176,6 +176,29 @@ protected:
         double dk;
         double h;
     };
+    struct FirstOrderKHillPropensityArgs : public PropensityArgs
+    {
+        static const uint REACTION_TYPE = 8013;
+        FirstOrderKHillPropensityArgs(uint si, uint xi, uint x0, double k0, double k1, double h) :si(si),xi(xi),x0h(pow(x0,h)),k0(k0),dk(k1-k0),h(h) {}
+        uint si;
+        uint xi;
+        double x0h;
+        double k0;
+        double dk;
+        double h;
+    };
+    struct SecondOrderKHillPropensityArgs : public PropensityArgs
+    {
+        static const uint REACTION_TYPE = 8014;
+        SecondOrderKHillPropensityArgs(uint s1i, uint s2i, uint xi, uint x0, double k0, double k1, double h) :s1i(s1i),s2i(s2i),xi(xi),x0h(pow(x0,h)),k0(k0),dk(k1-k0),h(h) {}
+        uint s1i;
+        uint s2i;
+        uint xi;
+        double x0h;
+        double k0;
+        double dk;
+        double h;
+    };
     struct PDFitnessPropensityArgs : public PropensityArgs
     {
         static const uint COOPERATE_REACTION_TYPE = 8008;
@@ -325,6 +348,8 @@ protected:
     static double zerothOrderHeavisidePropensity(double time, uint * speciesCounts, void * pargs);
     static double zerothOrderNegativeFeedbackPropensity(double time, uint * speciesCounts, void * pargs);
     static double zerothOrderKHillPropensity(double time, uint * speciesCounts, void * pargs);
+    static double firstOrderKHillPropensity(double time, uint * speciesCounts, void * pargs);
+    static double secondOrderKHillPropensity(double time, uint * speciesCounts, void * pargs);
     static double pdCooperateFitnessPropensity(double time, uint * speciesCounts, void * pargs);
     static double pdDefectFitnessPropensity(double time, uint * speciesCounts, void * pargs);
     static double pdReflectingCooperateFitnessPropensity(double time, uint * speciesCounts, void * pargs);
