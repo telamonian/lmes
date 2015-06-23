@@ -2,9 +2,9 @@ from numpy import arange,around,array,asarray,atleast_1d,atleast_2d,bincount,dif
 import numpy as np
 import re
 
-def CamelCase(s):
+def CamelCaseLower(s):
     '''
-    convert attrName to camelCase
+    convert CamelCase to camelCase
     '''
     output = s
     for i,l in enumerate(output):
@@ -13,6 +13,19 @@ def CamelCase(s):
         else:
             return output
     return output
+
+def CamelCaseUpper(s):
+    '''
+    convert camelCase (or snake_case) to CamelCase
+    '''
+    if '_' in s:
+        output = ''
+        for token in s.split('_'):
+            token = token[0].upper() + token[1:]
+            output+=token
+        return output
+    else:
+        return s[0].upper() + s[1:]
 
 def ShortenName(s):
     '''

@@ -10,6 +10,7 @@ host = 'kirin'
 lm_bin = '/home/cklein13/git/lm/build/lmes'
 local_home_directory = thisScriptsPath
 remote_home_directory = '/home/cklein13'
+replicates = 5000
 type = 'sge'
 user_id = 'cklein13'
 runnerPath = '/Users/tel/git/lm/utils/python/runner'
@@ -62,8 +63,8 @@ if __name__=='__main__':
                   'lm_file_path': 'genetic_toggle_switch.lm',
                   'lm_sampling_rate': 1e3,
                   'lm_sampling_time': 1e10,
-                  'replicateRange': (1,100),
-                  'rootPath': PathJoin(remote_home_directory, 'forward_flux_validation/gts_basin_A_opul_100_reps'),
+                  'replicateRange': (1,replicates),
+                  'rootPath': PathJoin(remote_home_directory, 'forward_flux_validation/gts_basin_A_opul_%d_reps' % replicates),
                   'sweepTupX': sweepTupX,
                   'sweepTupY': sweepTupY,
                   'type': type,

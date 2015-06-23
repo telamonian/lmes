@@ -1,26 +1,21 @@
-class File(object):
+class IO(object):
     '''
     base class for all other objects that map closely to on-drive files
     '''
-    hdf5RootPath = None
 
     def __init__(self, fPath):
         self.file = None
         self.fPath = fPath
-        self.map = {}
-
-    def __delitem__(self, key):
-        del self.map[key]
-
-    def __getitem__(self, key):
-        return self.map[key]
-
-    def __iter__(self):
-        return self.map.items().__iter__()
 
     def has(self):
         '''
         test if a file contains relevant data
+        '''
+        pass
+
+    def keys(self):
+        '''
+        given a file and a kind of data that you're trying to retreive from it, this function returns a list of relevant data handles
         '''
         pass
 

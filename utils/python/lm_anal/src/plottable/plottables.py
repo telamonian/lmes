@@ -1,4 +1,4 @@
-from ..io.fileHDF5 import FileHDF5
+from src.io.ioHDF5 import FileHDF5
 
 class Plottables(FileHDF5):
     '''

@@ -1,7 +1,7 @@
 import h5py
 import os
 
-from ..io.fileHDF5 import FileHDF5
+from src.io.ioHDF5 import FileHDF5
 from .oparamTrajectory import OParamTrajectory
 
 class OParamTrajectories(FileHDF5):
