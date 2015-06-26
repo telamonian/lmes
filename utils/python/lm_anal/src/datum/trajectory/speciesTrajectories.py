@@ -5,4 +5,3 @@ from src.datum.trajectory.speciesTrajectory import SpeciesTrajectory
 
 class SpeciesTrajectories(Trajectories):
     datumType = SpeciesTrajectory
-    hdf5RootPath = 'Simulations'

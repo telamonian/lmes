@@ -7,10 +7,12 @@ from src.datum.trajectory.trajectory import Trajectory
 
 class SpeciesTrajectory(Trajectory, metaclass=DatumMetaclass):
     # data spec
-    #propertySpecs = {'number_entries':{'type':'scalar', 'storageType':'protoBuf', 'paths':('cme_state','species_counts','number_entries')}}
-    arrays = ('species_count', 'time')
-    scalars = ('number_entries', 'number_species', 'trajectory_id')
-    
+    propertySpecs = {'species_count':{'dtype':'int', 'storageType':'numpy', 'type':'array'},
+                     'time':{'dtype':'float', 'storageType':'numpy', 'type':'array'}}
+
+#     arrays = ('species_count', 'time')
+#     scalars = ('number_entries', 'number_species', 'trajectory_id')
+#     
 #     # pass through attributes to the underlying TrajectoryStateBuf
 #     @property
 #     def species_count(self):
@@ -20,7 +22,7 @@ class SpeciesTrajectory(Trajectory, metaclass=DatumMetaclass):
 #         # initialize the array if it doesn't alreay exist
 #         self.getArray(dims=val.shape, dtype=val.dtype, name='_species_count')
 #         val.read_direct(self._species_count)
-#     
+#      
 #     @property
 #     def time(self):
 #         return self._time

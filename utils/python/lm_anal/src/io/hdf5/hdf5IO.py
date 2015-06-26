@@ -18,10 +18,10 @@ class HDF5IO(IO):
 
     def input(self, full, hdf5Path, subCon):
         for spec in (spec for spec in self.hdf5Specs if (not spec.fullOnly or full)):
-            if spec.type=='array':
-                self.inputArray(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon)
-            elif spec.type=='attribute':
+            if spec.type=='attribute':
                 self.inputAttribute(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon)
+            elif spec.type=='dataset':
+                self.inputArray(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon)
             elif spec.type=='special':
                 self.__getattribute__('input' + CamelCaseUpper(spec.name))(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon)
             else:
