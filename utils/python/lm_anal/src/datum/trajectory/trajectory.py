@@ -10,11 +10,11 @@ from TrajectoryState_pb2 import TrajectoryState as TrajectoryStateBuf
 
 class Trajectory(Datum, metaclass=DatumMetaclass):
         # pass through attributes to the underlying TrajectoryStateBuf
-    propertySpecs = {'number_entries':{'type':'scalar', 'storageType':'protoBuf', 'paths':('cme_state','species_counts','number_entries')},
-                     'number_species':{'type':'scalar', 'storageType':'protoBuf', 'paths':('cme_state','species_counts','number_species')},
-                     'species_count':{'type':'array', 'storageType':'protoBuf', 'paths':('cme_state','species_counts','species_count')},
-                     'time':{'type':'array', 'storageType':'protoBuf', 'paths':('cme_state','species_counts','time')},
-                     'trajectory_id':{'type':'scalar', 'storageType':'protoBuf', 'paths':('trajectory_id',)}}
+    propertySpecs = {'number_entries':{'dtype':'int', 'paths':('cme_state','species_counts','number_entries'), 'storageType':'protoBuf', 'type':'scalar'},
+                     'number_species':{'dtype':'int', 'paths':('cme_state','species_counts','number_species'), 'storageType':'protoBuf', 'type':'scalar'},
+                     'species_count':{'dtype':'int', 'paths':('cme_state','species_counts','species_count'), 'storageType':'protoBuf', 'type':'array'},
+                     'time':{'dtype':'float', 'paths':('cme_state','species_counts','time'), 'storageType':'protoBuf', 'type':'array'},
+                     'trajectory_id':{'dtype':'int', 'paths':('trajectory_id',), 'storageType':'protoBuf', 'type':'scalar'}}
     
 #     @property
 #     def number_entries(self):

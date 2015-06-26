@@ -24,10 +24,12 @@ class DatumMetaclass(type):
                                       '\treturn self.protoBuf.%s' % '.'.join(val['paths'])]
                         setterList = ['@%s.setter' % name,
                                       'def %s(self, val):' % name,
-#                                       '\ttry:'
-                                      '\tself.protoBuf.%s.extend(val)' % '.'.join(val['paths'])]
-#                                       '\texcept AttributeError:',
-#                                       '\t\tself.protoBuf.%s.extend(val.resize)' % '.'.join(val['paths'])]
+                                      '\ttry:',
+                                      '\t\tself.protoBuf.%s.extend(val.astype(%s).flatten())' % ('.'.join(val['paths']), val['dtype']),
+                                      '\texcept AttributeError:',
+                                      '\t\ttmpArr=np.zeros(val.shape, dtype=%s)' % "np.dtype(('int', np.int64))",
+                                      '\t\tval.read_direct(tmpArr)',
+                                      '\t\tself.protoBuf.%s.extend(tmpArr.flatten())' % '.'.join(val['paths'])]
                         extraList = ['dct[name] = %s' % name]
                 if DEBUG_GETTERS_SETTERS:
                     # list[-1:-1] = [otherList] inserts the elements of otherList in front of the final element of list

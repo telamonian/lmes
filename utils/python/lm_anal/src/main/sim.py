@@ -1,4 +1,4 @@
-#from ..io.simFile import simFileFactory
+#from ..iolm.simFile import simFileFactory
 # hdf5File = simFileFactory()
 import os
 import re
