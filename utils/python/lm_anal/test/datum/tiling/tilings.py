@@ -1,27 +1,35 @@
 import numpy as np
 import os, sys
-thisScriptDir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(thisScriptDir, '../..'))
-
-import src
-from src.tiling.tilings import Tilings
-
 import unittest
+
+thisScriptDir = os.path.dirname(os.path.realpath(__file__))
+# sys.path.append(os.path.join(thisScriptDir, '../..'))
+
+# import src
+# from src.tiling.tilings import Tilings
+
+from src.io.hdf5.tiling.tilingsIO import TilingsIO
+from src.datum.tiling.tilings import Tilings
+
 
 class TilingsTestCase(unittest.TestCase):
     def setUp(self):
-        self.tilings = Tilings(fPath=os.path.join(thisScriptDir, '../testData/biphasic_switch.lm'))
-        self.tilings.rff()
+        self.tilingsIO = TilingsIO(fPath=os.path.join(thisScriptDir, '../../testData/biphasic_switch.lm'))
+        self.tilings = Tilings()
+        self.tilingsIO.rff(container=self.tilings)
     
     def test_arrangement(self):
         '''
         test determination of arrangement of edges
         '''
         arrangementInt = self.tilings[19].arrangement
-        self.assertEqual(arrangementInt, 0)
+        self.assertEqual(arrangementInt, [0])
         
         arrangementInt = self.tilings[199].arrangement
-        self.assertEqual(arrangementInt, 0)
+        self.assertEqual(arrangementInt, [0])
+        
+        arrangementInt = self.tilings[30099].arrangement
+        self.assertEqual(arrangementInt, [1])
         
     def test_edges_hdf5(self):
         '''
@@ -39,7 +47,7 @@ class TilingsTestCase(unittest.TestCase):
         '''
         test detection of presence relevant data in hdf5 files
         '''
-        self.assertTrue(self.tilings.has())
+        self.assertTrue(self.tilingsIO.has())
 
     def test_id_hdf5(self):
         '''

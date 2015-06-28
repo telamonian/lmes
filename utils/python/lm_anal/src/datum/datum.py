@@ -25,7 +25,7 @@ class DatumMetaclass(type):
                                       '\treturn self.protoBuf.%s' % '.'.join(val['paths'])]
                         setterList = ['@%s.setter' % name,
                                       'def %s(self, val):' % name,
-                                      '\tself.protoBuf.%s = val' % '.'.join(val['paths'])]
+                                      '\tself.protoBuf.%s = %s(val)' % ('.'.join(val['paths']), val['dtype'])]
                         extraList = ['dct[name] = %s' % name]
                 elif val['type']=='array':
                     if val['storageType']=='numpy':

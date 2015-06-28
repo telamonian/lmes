@@ -1,27 +1,51 @@
 import os,sys
-thisScriptDir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(thisScriptDir, '../../python_protobuf/lm/io'))
 
-from ..datum.data import Data
-from .oparam import OParam
-from .oparamLinear import OParamLinear
-from OrderParameters_pb2 import OrderParameters as OrderParametersBuf
+from src.datum.data import Data
+from src.datum.oparam.oparam import OParam
+
+thisScriptDir = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.join(thisScriptDir, '../../../python_protobuf/lm/io'))
+sys.path.append(os.path.join(thisScriptDir, '../../../python_protobuf'))
+from OrderParameters_pb2 import OrderParameters as OParamsBuf
 
 class OParams(Data):
-    hdf5RootPath = 'OrderParameters'
-    typeDict = {0:OParamLinear}
+    datumType = OParam
     
-    def __init__(self, fPath):
-        super().__init__(fPath)
-        self.protobuf = OrderParametersBuf()
+    def __init__(self):
+        super().__init__()
+        self.protobuf = OParamsBuf()
+    
+    def initDatum(self, key, **kwargs):
+        try:
+            return self.map[key]
+        except KeyError:
+            subcon = self.protobuf.order_parameters.add()
+            self.map[key] = self.datumType(subcon=subcon, **kwargs)
+            return self.map[key]
 
-    def Calc(self, oparamID, speciesVec):
-        return self[oparamID].Calc(speciesVec)
-    
-    def _rff(self, full, keys):
-        '''
-        rff (read from file)
-        '''
-        for key,val in self.file[self.hdf5RootPath].items():
-            oparamBuf = self.protobuf.order_parameters.add()
-            self.map[val.attrs['ID']] = self.__class__.typeDict[val.attrs['Type']](oparamBuf=oparamBuf, hdf5OParamGroup=val)
+# import os,sys
+# thisScriptDir = os.path.dirname(os.path.realpath(__file__))
+# sys.path.append(os.path.join(thisScriptDir, '../../python_protobuf/lm/io'))
+# 
+# from ..datum.data import Data
+# from Tilings_pb2 import Tilings as TilingsBuf
+# from .tiling import Tiling
+# 
+# class Tilings(Data):
+#     hdf5RootPath = 'Tilings'
+#     
+#     def __init__(self, fPath):
+#         super().__init__(fPath)
+#         self.protobuf = TilingsBuf()
+# 
+#     def _rff(self, full, keys):
+#         '''
+#         rff (read from file)
+#         '''
+#         try:
+#             self.protobuf.current_tiling_id = self.file[self.hdf5RootPath].attrs['currentTilingId']
+#         except KeyError:
+#             pass
+#         for key,val in self.file[self.hdf5RootPath].items():
+#             tilingBuf = self.protobuf.tilings.add()
+#             self.map[val.attrs['ID']] = Tiling(tilingBuf=tilingBuf, hdf5TilingGroup=val)

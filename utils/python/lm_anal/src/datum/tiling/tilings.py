@@ -1,11 +1,27 @@
-import os
+import os,sys
 
 from src.datum.data import Data
 from src.datum.tiling.tiling import Tiling
 
+thisScriptDir = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.join(thisScriptDir, '../../../python_protobuf/lm/io'))
+sys.path.append(os.path.join(thisScriptDir, '../../../python_protobuf'))
+from Tilings_pb2 import Tilings as TilingsBuf
+
 class Tilings(Data):
     datumType = Tiling
-    hdf5RootPath = 'Tilings'
+    
+    def __init__(self):
+        super().__init__()
+        self.protobuf = TilingsBuf()
+    
+    def initDatum(self, key, **kwargs):
+        try:
+            return self.map[key]
+        except KeyError:
+            subcon = self.protobuf.tilings.add()
+            self.map[key] = self.datumType(subcon=subcon, **kwargs)
+            return self.map[key]
 
 # import os,sys
 # thisScriptDir = os.path.dirname(os.path.realpath(__file__))

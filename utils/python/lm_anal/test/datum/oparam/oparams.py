@@ -1,31 +1,35 @@
 import numpy as np
 import os, sys
-thisScriptDir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(thisScriptDir, '../..'))
-
-import src
-from src.oparam.oparams import OParams
-
 import unittest
 
-class OParamTestCase(unittest.TestCase):
+thisScriptDir = os.path.dirname(os.path.realpath(__file__))
+# sys.path.append(os.path.join(thisScriptDir, '../..'))
+ 
+# import src
+# from src.oparam.oparams import OParams
+
+from src.io.hdf5.oparam.oparamsIO import OParamsIO
+from src.datum.oparam.oparams import OParams
+
+class OParamsTestCase(unittest.TestCase):
     def setUp(self):
-        self.oparams = OParams(fPath=os.path.join(thisScriptDir, '../testData/biphasic_switch.lm'))
-        self.oparams.rff()
+        self.oparamsIO = OParamsIO(fPath=os.path.join(thisScriptDir, '../../testData/biphasic_switch.lm'))
+        self.oparams = OParams()
+        self.oparamsIO.rff(container=self.oparams)
         
-    def test_calc(self):
-        '''
-        test calculation of oparam value from species vector
-        '''    
-        oparamVal = self.oparams[0].calc(np.array(((4,16,1,0,0,0,0),)))
-        intendedOParamVal = -38
-        self.assertEqual(oparamVal, intendedOParamVal)
+#     def test_calc(self):
+#         '''
+#         test calculation of oparam value from species vector
+#         '''    
+#         oparamVal = self.oparams[0].calc(np.array(((4,16,1,0,0,0,0),)))
+#         intendedOParamVal = -38
+#         self.assertEqual(oparamVal, intendedOParamVal)
 
     def test_has(self):
         '''
         test detection of presence relevant data in hdf5 files
         '''
-        self.assertTrue(self.oparams.has())
+        self.assertTrue(self.oparamsIO.has())
 
     def test_id_hdf5(self):
         '''

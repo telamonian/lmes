@@ -1,10 +1,8 @@
-import os
-import sys
-
 import numpy as np
+import os,sys
 
 thisScriptDir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(thisScriptDir, '../..'))
+# sys.path.append(os.path.join(thisScriptDir, '../..'))
 
 from src.io.hdf5.trajectory.bruteForceTrajectoriesIO import BruteForceTrajectoriesIO
 from src.datum.trajectory.speciesTrajectories import SpeciesTrajectories

@@ -2,6 +2,7 @@ ASCENDING = 0
 DESCENDING = 1
 
 import os
+import numpy as np
 
 from src.io.hdf5.hdf5IO import HDF5IO, HDF5Spec
 
@@ -20,7 +21,7 @@ class TilingsIO(HDF5IO):
         super().__init__(fPath)
     
     def inputArrangement(self, hdf5Path, hdf5Spec, subCon):
-        subCon.setScalar(name=hdf5Spec.name, val=self.getArrangement(subCon.edges))
+        subCon.setArray(name=hdf5Spec.name, val=np.array([self.getArrangement(subCon.edges)]))
         
     def getArrangement(self, edges):
         # based on first and last edges, infer if this tiling is arranged ASCENDING=0 or DESCENDING=1
@@ -41,4 +42,4 @@ class TilingsIO(HDF5IO):
         subCon.setScalar(name=hdf5Spec.name, val=len(self.file[hdf5Path][hdf5Spec.subKey].shape))
 
     def inputDims(self, hdf5Path, hdf5Spec, subCon):
-        subCon.setArray(name=hdf5Spec.name, val=self.file[hdf5Path][hdf5Spec.subKey].shape)
+        subCon.setArray(name=hdf5Spec.name, val=np.array(self.file[hdf5Path][hdf5Spec.subKey].shape))
