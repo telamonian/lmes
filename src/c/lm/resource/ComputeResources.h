@@ -51,7 +51,7 @@ namespace resource {
 class ComputeResources
 {
 public:
-    ComputeResources():hostname(""),controller_process(-1),controller_thread(-1),useDefaultResources(true) {}
+    ComputeResources():hostname(""),controller_process(-1),controller_thread(-1),useDefaultResources(false) {}
     string toString();
 
 public:

@@ -102,7 +102,6 @@ ResourceMap::ResourceMap(list<string>hostnames, int defaultCPUCores, int default
             }
             else
             {
-                allocatedResources[hostnameProcessMap[resources.hostname]].useDefaultResources = false;
                 allocatedResources[hostnameProcessMap[resources.hostname]].cpuCores = resources.cpuCores;
                 allocatedResources[hostnameProcessMap[resources.hostname]].gpuDevices = resources.gpuDevices;
             }
@@ -111,12 +110,19 @@ ResourceMap::ResourceMap(list<string>hostnames, int defaultCPUCores, int default
         // See if there are any hosts without a resource allocation in the file.
         for (map<int,ComputeResources>::iterator it=allocatedResources.begin(); it != allocatedResources.end(); it++)
         {
-            ComputeResources resources=it->second;
-            if (resources.cpuCores.size() == 0)
+            if (it->second.cpuCores.size() == 0)
             {
-                resources.useDefaultResources = false;
-                Print::printf(Print::WARNING, "Host %d (%s) had NO resources allocated in nodefile.", resources.controller_process, resources.hostname.c_str());
+                Print::printf(Print::WARNING, "Host %d (%s) had NO resources allocated in nodefile.", it->second.controller_process, it->second.hostname.c_str());
             }
+        }
+    }
+
+    // Otherwise, we didn't get a resource file so mark that we should use the default resources for each node.
+    else
+    {
+        for (map<int,ComputeResources>::iterator it=allocatedResources.begin(); it != allocatedResources.end(); it++)
+        {
+            it->second.useDefaultResources = true;
         }
     }
 }
@@ -303,7 +309,7 @@ bool ResourceMap::registerResources(const lm::message::ResourcesAvailable& msg)
         registeredResources[resources.controller_process] = resources;
         allocatedResources.erase(resources.controller_process);
 
-        Print::printf(Print::INFO, "Registered resources for host %s: %d cpu cores, %d gpu devices", resources.hostname.c_str(), resources.cpuCores.size(), resources.gpuDevices.size());
+        Print::printf(Print::INFO, "Registered resources for host %s (defaults=%d): %d cpu cores, %d gpu devices", resources.hostname.c_str(), resources.useDefaultResources, resources.cpuCores.size(), resources.gpuDevices.size());
     }
     else
     {
