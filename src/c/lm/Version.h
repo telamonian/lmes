@@ -38,7 +38,7 @@
  */
 
 #ifndef VERSION_NUM
-#define VERSION_NUM "2015.06"
+#define VERSION_NUM "2015.06.29"
 #define VERSION_NUM_MAJOR 2015
 #define VERSION_NUM_MINOR 06
 #endif
