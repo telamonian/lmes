@@ -17,6 +17,9 @@ class Data(object):
     def __getitem__(self, key):
         return self.map[key]
 
+    def __iter__(self):
+        return self.map.items()
+
     def initDatum(self, key, **kwargs):
         try:
             return self.map[key]
