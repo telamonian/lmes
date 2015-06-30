@@ -17,13 +17,25 @@ class OParamsTestCase(unittest.TestCase):
         self.oparams = OParams()
         self.oparamsIO.rff(container=self.oparams)
         
-#     def test_calc(self):
-#         '''
-#         test calculation of oparam value from species vector
-#         '''    
-#         oparamVal = self.oparams[0].calc(np.array(((4,16,1,0,0,0,0),)))
-#         intendedOParamVal = -38
-#         self.assertEqual(oparamVal, intendedOParamVal)
+    def test_calc(self):
+        '''
+        test calculation of oparam value from species vector
+        '''    
+        oparamVal = self.oparams[0].calc(np.array(((4,16,1,0,0,0,0),)))
+        intendedOParamVal = -38
+        self.assertEqual(oparamVal, intendedOParamVal)
+        
+        oparamVal = self.oparams[1].calc(np.array(((4,16,1,0,0,0,0),)))
+        intendedOParamVal = 38
+        self.assertEqual(oparamVal, intendedOParamVal)
+
+        oparamVal = self.oparams[2].calc(np.array(((74,0,13,4,16,1,0),)))
+        intendedOParamVal = 38
+        self.assertEqual(oparamVal, intendedOParamVal)
+
+        oparamVal = self.oparams[2].calc(np.array(((74,0,13,1,0,0,0),)))
+        intendedOParamVal = 1
+        self.assertEqual(oparamVal, intendedOParamVal)
 
     def test_has(self):
         '''

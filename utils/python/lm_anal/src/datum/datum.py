@@ -52,6 +52,10 @@ class DatumMetaclass(type):
                     setterList[-1:-1] = ["%sprint('setter for the %s property was called')" % (indent, name)]
                 exec('\n'.join(getterList + setterList + extraList))
         return super(DatumMetaclass, cls).__new__(cls, clsname, bases, dct)
+    
+    @property
+    def propertyNames(cls):
+        return cls.propertySpces.keys()
 
 class Datum(object, metaclass=DatumMetaclass):
     # maps go from hdf5 keys to protoBuf keys

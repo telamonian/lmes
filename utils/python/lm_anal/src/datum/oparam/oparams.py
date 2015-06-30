@@ -2,6 +2,7 @@ import os,sys
 
 from src.datum.data import Data
 from src.datum.oparam.oparam import OParam
+from src.datum.oparam.oparamLinear import OParamLinear
 
 thisScriptDir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(thisScriptDir, '../../../python_protobuf/lm/io'))

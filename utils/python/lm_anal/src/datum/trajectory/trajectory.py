@@ -1,3 +1,4 @@
+from abc import ABCMeta
 import os, sys
 
 from src.datum.datum import Datum
@@ -8,7 +9,10 @@ sys.path.append(os.path.join(thisScriptDir, '../../../python_protobuf/lm/io'))
 sys.path.append(os.path.join(thisScriptDir, '../../../python_protobuf'))
 from TrajectoryState_pb2 import TrajectoryState as TrajectoryStateBuf
 
-class Trajectory(Datum, metaclass=DatumMetaclass):
+class TrajectoryBase(metaclass=ABCMeta):
+    pass
+
+class Trajectory(Datum): #, TrajectoryBase): #, metaclass=DatumMetaclass):
     propertySpecs = {'number_entries':{'dtype':'int', 'paths':('cme_state','species_counts','number_entries'), 'storageType':'protoBuf', 'type':'scalar'},
                      'number_species':{'dtype':'int', 'paths':('cme_state','species_counts','number_species'), 'storageType':'protoBuf', 'type':'scalar'},
                      'species_count':{'dtype':'int', 'paths':('cme_state','species_counts','species_count'), 'storageType':'protoBuf', 'type':'array'},

@@ -5,7 +5,7 @@ import numpy as np
 from src.datum.datum import DatumMetaclass
 from src.datum.trajectory.trajectory import Trajectory
 
-class SpeciesTrajectory(Trajectory, metaclass=DatumMetaclass):
+class SpeciesTrajectory(Trajectory): #, metaclass=DatumMetaclass):
     # data spec
     propertySpecs = {'species_count':{'dtype':'int', 'storageType':'numpy', 'type':'array'},
                      'time':{'dtype':'float', 'storageType':'numpy', 'type':'array'}}
