@@ -15,6 +15,7 @@ import unittest
 
 from test.datum.oparam.oparams import OParamsTestCase
 from test.datum.tiling.tilings import TilingsTestCase
+# from test.datum.trajectory.oparamTrajectories import OParamTrajectoriesTestCase
 from test.datum.trajectory.speciesTrajectories import SpeciesTrajectoriesTestCase
 
 if __name__ == '__main__':

@@ -14,10 +14,9 @@ class TrajectoryBase(metaclass=ABCMeta):
 
 class Trajectory(Datum): #, TrajectoryBase): #, metaclass=DatumMetaclass):
     propertySpecs = {'number_entries':{'dtype':'int', 'paths':('cme_state','species_counts','number_entries'), 'storageType':'protoBuf', 'type':'scalar'},
-                     'number_species':{'dtype':'int', 'paths':('cme_state','species_counts','number_species'), 'storageType':'protoBuf', 'type':'scalar'},
-                     'species_count':{'dtype':'int', 'paths':('cme_state','species_counts','species_count'), 'storageType':'protoBuf', 'type':'array'},
                      'time':{'dtype':'float', 'paths':('cme_state','species_counts','time'), 'storageType':'protoBuf', 'type':'array'},
                      'trajectory_id':{'dtype':'int', 'paths':('trajectory_id',), 'storageType':'protoBuf', 'type':'scalar'}}
+#                      'species_count':{'dtype':'int', 'paths':('cme_state','species_counts','species_count'), 'storageType':'protoBuf', 'type':'array'},
     
 #     @property
 #     def number_entries(self):
