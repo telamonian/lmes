@@ -1,9 +1,8 @@
-from src.datum.trajectory.trajectory import TrajectoryBase
 from src.transform.propertyTransform.propertyTransform import PropertyTransform
 
 class TrajectorySpeciesCountToTrajectoryOParamValuesPT(PropertyTransform):
-    srcType = TrajectoryBase
-    dstType = TrajectoryBase
+    srcType = PropertyTransform.Trajectory
+    dstType = PropertyTransform.Trajectory
     srcProp = 'species_count'
     dstProp = 'order_parameter_values'
     

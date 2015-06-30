@@ -1,7 +1,8 @@
-from src.datum.trajectory.trajectory import TrajectoryBase
+from src.datum.trajectory.trajectory import Trajectory
 
 class PropertyTransform(object):
-    TrajectoryType = TrajectoryBase
+    Trajectory = Trajectory
+    dataTypeList = [Trajectory]
     
     srcType = None
     dstType = None
