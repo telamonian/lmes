@@ -17,7 +17,7 @@ class Trajectory(Datum): #, TrajectoryBase): #, metaclass=DatumMetaclass):
                      'time':{'dtype':'float', 'paths':('cme_state','species_counts','time'), 'storageType':'protoBuf', 'type':'array'},
                      'trajectory_id':{'dtype':'int', 'paths':('trajectory_id',), 'storageType':'protoBuf', 'type':'scalar'}}
 #                      'species_count':{'dtype':'int', 'paths':('cme_state','species_counts','species_count'), 'storageType':'protoBuf', 'type':'array'},
-    
+
 #     @property
 #     def number_entries(self):
 #         return self.trajectoryStateBuf.cme_state.species_counts.number_entries
@@ -56,3 +56,5 @@ class Trajectory(Datum): #, TrajectoryBase): #, metaclass=DatumMetaclass):
     def __init__(self, full=False):
         super().__init__(full=full)
         self.protoBuf = TrajectoryStateBuf()
+        
+TrajectoryBase.register(Trajectory)

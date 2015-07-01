@@ -2,22 +2,14 @@ from lm_anal.src.transform.propertyTransform.propertyTransforms import PropertyT
 
 class Transform(object):
     def __init__(self, src, dst, **kwargs):
-        self.propTrans = PropertyTransforms(src, dst, **kwargs)
-        self.do(src, dst)
+        self.propTrans = PropertyTransforms(src.datumType, dst.datumType, **kwargs)
+        self.initDst(src, dst)
+        self.execTransform(src, dst)
     
-    def do(self, src, dst):
+    def initDst(self, src, dst):
         for key,datum in src:
             dst.initDatum(key)
+
+    def execTransform(self, src, dst):
         for key,datum in dst:
-            self.propTrans(srcData=src, dstDatum=datum, key=key)
-        
-        
-#     def tfd(self, srcData, dstDatum, key):
-#         for prop in srcData[key].propertySpecs.keys():
-#             
-#     
-#     def _tfd(self, src, dst, **kwargs):
-#         '''
-#         tfd: transform from data
-#         '''
-#         pass
+            self.propTrans(srcDatum=src[key], dstDatum=datum)

@@ -9,7 +9,7 @@ from lm_anal.src.io.hdf5.trajectory.bruteForceTrajectoriesIO import BruteForceTr
 from lm_anal.src.datum.oparam.oparams import OParams
 from lm_anal.src.datum.trajectory.oparamTrajectories import OParamTrajectories
 from lm_anal.src.datum.trajectory.speciesTrajectories import SpeciesTrajectories
-from lm_anal.src.transform.transform import Transform
+from lm_anal.src.transform.speciesTrajectoryToOParamTrajectoryT import SpeciesTrajectoryToOParamTrajectoryT as SpecTrajToOPTrajT
 
 import unittest
 
@@ -24,16 +24,16 @@ class OParamTrajectoriesTestCase(unittest.TestCase):
     def loadData(self, full=False):
         self.bfTrajIO.rff(container=self.specTraj, full=full)
         self.oparamsIO.rff(container=self.oparams, full=full)
-        Transform(src=self.specTraj, dst=self.opTraj, oparam=self.oparams[0])
+        SpecTrajToOPTrajT(src=self.specTraj, dst=self.opTraj, oparam=self.oparams[0])
     
-#     def test_number_order_parameters_from_transfrom(self):
-#         '''
-#         test calculation of number of order parameters (really the sum of the rank of every order parameter) via the reduction of a ReplicateTrajectory
-#         '''
-#         self.loadData()
-        
-#         numberOP = self.traj.number_order_parameters
-#         self.assertEqual(numberOP, 1)
+    def test_number_order_parameters_from_transfrom(self):
+        '''
+        test calculation of number of order parameters (really the sum of the rank of every order parameter) via the reduction of a ReplicateTrajectory
+        '''
+        self.loadData()
+          
+        numberOP = self.opTraj[5].number_order_parameters
+        self.assertEqual(numberOP, 1)
     
     def test_number_entries_from_transfrom(self):
         '''

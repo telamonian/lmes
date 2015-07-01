@@ -9,15 +9,20 @@ def DefNPProp(name, spec):
         return self.__getattribute__('_'+name)
     @prop.setter
     def prop(self, val):
-        # initialize the array if it doesn't alreay exist
-        self.getArray(dims=val.shape, dtype=val.dtype, name='_'+name)
-        val.read_direct(self.__getattribute__('_'+name))
+        if hasattr(val, 'read_direct') and callable(getattr(val, 'read_direct', None)):
+            # initialize the array if it doesn't already exist
+            self.getArray(dims=val.shape, dtype=val.dtype, name='_'+name)
+            val.read_direct(self.__getattribute__('_'+name))
+        else:
+            self.__setattr__('_'+name, val)
     return prop
 
 class DatumMetaclass(type):
     def __new__(cls, clsname, bases, dct):
+        _propertyNames = dct.get('_propertyNames', set())
         if 'propertySpecs' in dct:
             for name,val in dct['propertySpecs'].items():
+                _propertyNames.add(name)
                 if val['type']=='scalar':
                     if val['storageType']=='protoBuf':
                         getterList = ['@property',
@@ -51,12 +56,13 @@ class DatumMetaclass(type):
                     indent = re.match('(\t*)', setterList[-1]).group(1)
                     setterList[-1:-1] = ["%sprint('setter for the %s property was called')" % (indent, name)]
                 exec('\n'.join(getterList + setterList + extraList))
+        dct['_propertyNames'] = _propertyNames
         return super(DatumMetaclass, cls).__new__(cls, clsname, bases, dct)
     
     @property
     def propertyNames(cls):
-        return cls.propertySpecs.keys()
-
+        return super(cls,cls)._propertyNames | cls._propertyNames
+    
 class Datum(object, metaclass=DatumMetaclass):
     # maps go from hdf5 keys to protoBuf keys
 #     attrMap = {}
@@ -67,7 +73,7 @@ class Datum(object, metaclass=DatumMetaclass):
     scalars = None
     
     def __init__(self, full=True):
-        # has this datum been made from a full set of input, or only a partial one (eg without arrays)?
+        # full: has this datum been made from a full set of input, or only a partial one (eg without arrays)?
         self.full = full
     
     def getArray(self, name, dims=None, dtype=None):

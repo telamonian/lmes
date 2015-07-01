@@ -18,7 +18,7 @@ class Data(object):
         return self.map[key]
 
     def __iter__(self):
-        return self.map.items()
+        return self.map.items().__iter__()
 
     def initDatum(self, key, **kwargs):
         try:

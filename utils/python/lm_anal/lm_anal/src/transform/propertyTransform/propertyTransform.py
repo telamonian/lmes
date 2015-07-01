@@ -1,8 +1,8 @@
-from lm_anal.src.datum.trajectory.trajectory import Trajectory
+from lm_anal.src.datum.trajectory.trajectory import TrajectoryBase
 
 class PropertyTransform(object):
-    Trajectory = Trajectory
-    dataTypeList = [Trajectory]
+    Trajectory = TrajectoryBase
+    dataTypeList = [TrajectoryBase]
     
     srcType = None
     dstType = None

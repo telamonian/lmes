@@ -10,4 +10,7 @@ class TrajectorySpeciesCountToTrajectoryOParamValuesPT(PropertyTransform):
         self.oparam = oparam
     
     def __call__(self, srcDatum, dstDatum):
-        pass
+        try:
+            dstDatum.__setattr__(self.dstProp, self.oparam.calc(srcDatum.__getattribute__(self.srcProp)))
+        except AttributeError:
+            pass
