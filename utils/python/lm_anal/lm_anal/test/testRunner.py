@@ -15,7 +15,7 @@ import unittest
 
 from lm_anal.test.datum.oparam.oparams import OParamsTestCase
 from lm_anal.test.datum.tiling.tilings import TilingsTestCase
-# from lm_anal.test.datum.trajectory.oparamTrajectories import OParamTrajectoriesTestCase
+from lm_anal.test.datum.trajectory.oparamTrajectories import OParamTrajectoriesTestCase
 from lm_anal.test.datum.trajectory.speciesTrajectories import SpeciesTrajectoriesTestCase
 
 if __name__ == '__main__':

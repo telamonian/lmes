@@ -55,7 +55,7 @@ class DatumMetaclass(type):
     
     @property
     def propertyNames(cls):
-        return cls.propertySpces.keys()
+        return cls.propertySpecs.keys()
 
 class Datum(object, metaclass=DatumMetaclass):
     # maps go from hdf5 keys to protoBuf keys
