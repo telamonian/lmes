@@ -4,6 +4,9 @@ from lm_anal.src.transform.propertyTransform.propertyTransforms import PropertyT
 from lm_anal.src.transform.transform import Transform
 
 class SpeciesTrajectoryToOParamTrajectoryT(Transform):
+    srcType = SpeciesTrajectory
+    dstType = OParamTrajectory
+    
     def __init__(self, src, dst, oparam, **kwargs):
         self.oparam = oparam
         super().__init__(src, dst, oparam=oparam, **kwargs)
