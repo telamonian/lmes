@@ -16,6 +16,16 @@ class Tiling(Datum, metaclass=DatumMetaclass):
     def __init__(self, subcon, full=False):
         super().__init__(full=full)
         self.protoBuf = subcon
+        
+    @property
+    def name(self):
+        try:
+            return self._name
+        except AttributeError:
+            return self.id
+    @name.setter
+    def name(self, val):
+        self._name = val
     
 #     def __init__(self, tilingBuf, hdf5TilingGroup=None):
 #         self.protoBuf = tilingBuf

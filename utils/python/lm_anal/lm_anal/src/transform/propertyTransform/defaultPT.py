@@ -1,6 +1,6 @@
-from lm_anal.src.transform.propertyTransform.propertyTransform import PropertyTransform
+from lm_anal.src.transform.propertyTransform import BasePT
 
-class DefaultPT(PropertyTransform):
+class DefaultPT(BasePT):
     def __init__(self, srcProp, dstProp, **kwargs):
         super().__init__(**kwargs)
         self.srcProp = srcProp

@@ -1,9 +1,4 @@
-from lm_anal.src.datum.trajectory.trajectory import TrajectoryBase
-
-class PropertyTransform(object):
-    Trajectory = TrajectoryBase
-    dataTypeList = [TrajectoryBase]
-    
+class BasePT(object): 
     srcType = None
     dstType = None
     srcProp = None

@@ -1,9 +1,8 @@
 from lm_anal.src.datum.trajectory.oparamTrajectory import OParamTrajectory
 from lm_anal.src.datum.trajectory.speciesTrajectory import SpeciesTrajectory
-from lm_anal.src.transform.propertyTransform.propertyTransforms import PropertyTransforms
-from lm_anal.src.transform.transform import Transform
+from lm_anal.src.transform import BaseT
 
-class SpeciesTrajectoryToOParamTrajectoryT(Transform):
+class SpeciesTrajectoryToOParamTrajectoryT(BaseT):
     srcType = SpeciesTrajectory
     dstType = OParamTrajectory
     

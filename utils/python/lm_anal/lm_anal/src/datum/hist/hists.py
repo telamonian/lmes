@@ -1,7 +1,7 @@
-from lm_anal.src.datum.data import Data
-from lm_anal.src.datum.hist.hists import Hist
+from lm_anal.src.datum import Data
+from lm_anal.src.datum.hist import Hist
 
-class Tilings(Data):
+class Hists(Data):
     datumType = Hist
     
     def __init__(self):

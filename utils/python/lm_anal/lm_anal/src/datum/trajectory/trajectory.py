@@ -1,22 +1,16 @@
 from abc import ABCMeta
 import os, sys
 
-from lm_anal.src.datum.datum import Datum
-from lm_anal.src.datum.datum import DatumMetaclass
-
-# thisScriptDir = os.path.dirname(os.path.realpath(__file__))
-# sys.path.append(os.path.join(thisScriptDir, '../../../python_protobuf/lm/io'))
-# sys.path.append(os.path.join(thisScriptDir, '../../../python_protobuf'))
 from lm_anal.python_protobuf.lm.io.TrajectoryState_pb2 import TrajectoryState as TrajectoryStateBuf
+from lm_anal.src.datum import Datum
 
 class TrajectoryBase(metaclass=ABCMeta):
     pass
 
-class Trajectory(Datum): #, TrajectoryBase): #, metaclass=DatumMetaclass):
+class Trajectory(Datum):
     propertySpecs = {'number_entries':{'dtype':'int', 'paths':('cme_state','species_counts','number_entries'), 'storageType':'protoBuf', 'type':'scalar'},
                      'time':{'dtype':'float', 'paths':('cme_state','species_counts','time'), 'storageType':'protoBuf', 'type':'array'},
                      'trajectory_id':{'dtype':'int', 'paths':('trajectory_id',), 'storageType':'protoBuf', 'type':'scalar'}}
-#                      'species_count':{'dtype':'int', 'paths':('cme_state','species_counts','species_count'), 'storageType':'protoBuf', 'type':'array'},
 
 #     @property
 #     def number_entries(self):

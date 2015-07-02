@@ -1,7 +1,6 @@
-from lm_anal.src.datum.datum import Datum
-from lm_anal.src.datum.datum import DatumMetaclass
+from lm_anal.src.datum import Datum
 
-class OParam(Datum, metaclass=DatumMetaclass):
+class OParam(Datum):
     propertySpecs = {'id':{'dtype':'int', 'paths':('id',), 'storageType':'protoBuf', 'type':'scalar'},
                      'species_ids':{'dtype':'int', 'paths':('species_ids',), 'storageType':'numpy', 'type':'array'},
                      'species_coefficients':{'dtype':'float', 'paths':('species_coefficients',), 'storageType':'numpy', 'type':'array'},
@@ -14,6 +13,16 @@ class OParam(Datum, metaclass=DatumMetaclass):
     @classmethod
     def registerSubtype(cls, typeID):
         cls.oparamSubtypeDict[typeID] = cls
+    
+    @property
+    def name(self):
+        try:
+            return self._name
+        except AttributeError:
+            return self.id
+    @name.setter
+    def name(self, val):
+        self._name = val
     
     def __init__(self, subcon, full=False):
         super().__init__(full=full)

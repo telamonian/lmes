@@ -1,6 +1,6 @@
-from lm_anal.src.transform.propertyTransform.propertyTransforms import PropertyTransforms
+from lm_anal.src.transform.propertyTransform import PropertyTransforms
 
-class Transform(object):
+class BaseT(object):
     def __init__(self, src, dst, **kwargs):
         self.propTrans = PropertyTransforms(src.datumType, dst.datumType, **kwargs)
         self.initDst(src, dst)

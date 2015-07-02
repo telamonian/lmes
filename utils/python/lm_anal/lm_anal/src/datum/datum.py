@@ -3,6 +3,14 @@ import re
 
 DEBUG_GETTERS_SETTERS = False
 
+def DefAliasProp(name, spec):
+    @property
+    def prop(self):
+        return self.__getattribute__(spec['targetName'])
+    @prop.setter
+    def prop(self, val):
+        self.__setattr__(spec['targetName'], val)
+
 def DefNPProp(name, spec):
     @property
     def prop(self):
@@ -49,6 +57,9 @@ class DatumMetaclass(type):
                                       '\t\tval.read_direct(tmpArr)',
                                       '\t\tself.protoBuf.%s.extend(tmpArr.flatten().tolist())' % '.'.join(val['paths'])]
                         extraList = ['dct[name] = %s' % name]
+                elif val['type']=='alias':
+                    dct[name] = DefAliasProp(name, val)
+                    continue 
                 if DEBUG_GETTERS_SETTERS:
                     # list[-1:-1] = [otherList] inserts the elements of otherList in front of the final element of list
                     indent = re.match('(\t*)', getterList[-1]).group(1)

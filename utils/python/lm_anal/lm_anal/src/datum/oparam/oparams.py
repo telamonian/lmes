@@ -1,13 +1,13 @@
 import os,sys
 
-from lm_anal.src.datum.data import Data
-from lm_anal.src.datum.oparam.oparam import OParam
-from lm_anal.src.datum.oparam.oparamLinear import OParamLinear
+from lm_anal.src.datum import Data
+from lm_anal.src.datum.oparam import OParam
+from lm_anal.src.datum.oparam import OParamLinear
 
-thisScriptDir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(thisScriptDir, '../../../python_protobuf/lm/io'))
-sys.path.append(os.path.join(thisScriptDir, '../../../python_protobuf'))
-from OrderParameters_pb2 import OrderParameters as OParamsBuf
+# thisScriptDir = os.path.dirname(os.path.realpath(__file__))
+# sys.path.append(os.path.join(thisScriptDir, '../../../python_protobuf/lm/io'))
+# sys.path.append(os.path.join(thisScriptDir, '../../../python_protobuf'))
+from lm_anal.python_protobuf.lm.io.OrderParameters_pb2 import OrderParameters as OParamsBuf
 
 class OParams(Data):
     datumType = OParam
