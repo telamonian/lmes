@@ -10,10 +10,6 @@ class SpeciesTrajectoryToOParamTrajectoryT(Transform):
     def __init__(self, src, dst, oparam, **kwargs):
         self.oparam = oparam
         super().__init__(src, dst, oparam=oparam, **kwargs)
-    
-    def initDst(self, src, dst):
-        for key,datum in src:
-            dst.initDatum(key)
 
     def execTransform(self, src, dst):
         for key,datum in dst:

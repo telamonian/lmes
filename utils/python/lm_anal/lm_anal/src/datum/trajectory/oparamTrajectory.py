@@ -7,7 +7,8 @@ from lm_anal.src.datum.trajectory.trajectory import Trajectory
 
 class OParamTrajectory(Trajectory): #, metaclass=DatumMetaclass):
     # data spec
-    propertySpecs = {'number_order_parameters':{'dtype':'int', 'paths':('cme_state','order_parameter_values','number_order_parameters'), 'storageType':'protoBuf', 'type':'scalar'},
+    propertySpecs = {'number_entries':{'dtype':'int', 'paths':('cme_state','order_parameter_values','number_entries'), 'storageType':'protoBuf', 'type':'scalar'},
+                     'number_order_parameters':{'dtype':'int', 'paths':('cme_state','order_parameter_values','number_order_parameters'), 'storageType':'protoBuf', 'type':'scalar'},
                      'order_parameter_values':{'dtype':'float', 'storageType':'numpy', 'type':'array'},
                      'time':{'dtype':'float', 'storageType':'numpy', 'type':'array'}}
 

@@ -7,8 +7,8 @@ from lm_anal.src.helper import CamelCaseUpper
 transformDict = {}
 transfromDirFiles = os.walk(thisScriptDir).__next__()[2]
 modNames = (os.path.splitext(modName)[0] for modName in transfromDirFiles 
-            if (modName[-5:]=='PT.py' and modName!='baseT.py'))
+            if (modName[-4:]=='T.py' and modName!='baseT.py'))
 for modName in modNames:
-    tmpCls = getattr(import_module('.'+modName, package='lm_anal.src.transform.propertyTransform'), CamelCaseUpper(modName))
+    tmpCls = getattr(import_module('.'+modName, package='lm_anal.src.transform'), CamelCaseUpper(modName))
     key = (tmpCls.srcType, tmpCls.dstType)
-    transformDict[key] = transformDict.get(key, []) + [tmpCls]
+    transformDict[key] = tmpCls

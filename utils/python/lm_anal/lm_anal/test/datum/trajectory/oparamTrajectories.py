@@ -9,7 +9,8 @@ from lm_anal.src.io.hdf5.trajectory.bruteForceTrajectoriesIO import BruteForceTr
 from lm_anal.src.datum.oparam.oparams import OParams
 from lm_anal.src.datum.trajectory.oparamTrajectories import OParamTrajectories
 from lm_anal.src.datum.trajectory.speciesTrajectories import SpeciesTrajectories
-from lm_anal.src.transform.speciesTrajectoryToOParamTrajectoryT import SpeciesTrajectoryToOParamTrajectoryT as SpecTrajToOPTrajT
+from lm_anal.src.transform.transforms import Transforms
+# from lm_anal.src.transform.speciesTrajectoryToOParamTrajectoryT import SpeciesTrajectoryToOParamTrajectoryT as SpecTrajToOPTrajT
 
 import unittest
 
@@ -24,7 +25,7 @@ class OParamTrajectoriesTestCase(unittest.TestCase):
     def loadData(self, full=False):
         self.bfTrajIO.rff(container=self.specTraj, full=full)
         self.oparamsIO.rff(container=self.oparams, full=full)
-        SpecTrajToOPTrajT(src=self.specTraj, dst=self.opTraj, oparam=self.oparams[0])
+        Transforms(src=self.specTraj, dst=self.opTraj, oparam=self.oparams[0])
     
     def test_number_order_parameters_from_transfrom(self):
         '''
