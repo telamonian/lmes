@@ -4,7 +4,7 @@ import os,sys
 thisScriptDir = os.path.dirname(os.path.realpath(__file__))
 testDataPath = os.path.join(thisScriptDir, '../../testData/biphasic_switch.lm')
 
-from .groundTruths import intendedOrderParameterValues5Arr
+from .groundTruths import intendedOrderParameterValues5Arr, intendedOrderParameterValues4Plus5Arr
 from lm_anal.src.io.hdf5.oparam import OParamsIO
 from lm_anal.src.io.hdf5.tiling import TilingsIO
 from lm_anal.src.io.hdf5.trajectory import BruteForceTrajectoriesIO
@@ -67,6 +67,22 @@ class OParamHistsTestCase(unittest.TestCase):
         intendedDims = np.array((101,101))
         self.assertTrue(np.allclose(hDims, intendedDims), msg='%s is not allclose to %s' % (hDims, intendedDims))
     
+    def test_klDivergence_from_transform(self):
+        '''
+        tests the determination of the Kullbeck Liebler divergence
+        for testing purposes, we have to fiddle with the data a little bit due to the general KL requirement that qk=0 implies pk=0
+        '''
+        self.loadData(full=True)
+        
+        it = np.nditer(self.opHists[2].h, flags=['multi_index'])
+        while not it.finished:
+            if it[0]==0:
+                self.opHists[5].h[it.multi_index[0], it.multi_index[1]] = 0
+            it.iternext()
+        klDiv = self.opHists[5].compare(self.opHists[2])
+        intendedKLDiv = 0.57520780480398515
+        self.assertAlmostEqual(klDiv, intendedKLDiv)
+    
     def test_order_parameter_values_from_transfrom(self):
         '''
         test calculation of order parameter values via the reduction of a ReplicateTrajectory
@@ -75,9 +91,38 @@ class OParamHistsTestCase(unittest.TestCase):
         self.loadData(full=True)
         
         orderParameterValuesArr = np.array(self.opHists[5].order_parameter_values)
-        self.assertTrue(np.allclose(orderParameterValuesArr, intendedOrderParameterValues5Arr))
-
-    def test_rank(self):
+        self.assertTrue(np.allclose(orderParameterValuesArr, intendedOrderParameterValues5Arr), 
+                        msg='%s is not allclose to %s' % (orderParameterValuesArr, intendedOrderParameterValues5Arr))
+    
+    def test_order_parameter_values_addition_from_transfrom(self):
+        '''
+        tests the += operator
+        '''
+        self.loadData(full=True)
+         
+        opHist5ID = id(self.opHists[5])
+        self.opHists[5]+=self.opHists[4]
+        newOPHist5ID = id(self.opHists[5])
+        orderParameterValuesArr = np.array(self.opHists[5].order_parameter_values)
+        self.assertTrue(np.allclose(orderParameterValuesArr, intendedOrderParameterValues4Plus5Arr),
+                        msg='%s is not allclose to %s' % (orderParameterValuesArr, intendedOrderParameterValues4Plus5Arr))
+        self.assertEqual(opHist5ID, newOPHist5ID)
+    
+    def test_order_parameter_values_subtraction_from_transfrom(self):
+        '''
+        tests the -= operator
+        '''
+        self.loadData(full=True)
+         
+        opHist5ID = id(self.opHists[5])
+        self.opHists[5]-=self.opHists[5]
+        newOPHist5ID = id(self.opHists[5])
+        opvSum = np.sum(self.opHists[5].h)
+        intendedOPVSum = 0.0
+        self.assertEqual(opvSum, intendedOPVSum)
+        self.assertEqual(opHist5ID, newOPHist5ID)
+    
+    def test_rank_from_transform(self):
         '''
         test rank field
         '''

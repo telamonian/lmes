@@ -16,6 +16,9 @@ class Data(object):
     
     def __getitem__(self, key):
         return self.map[key]
+    
+    def __setitem__(self, key, val):
+        self.map[key] = val
 
     def __iter__(self):
         return self.map.items().__iter__()
