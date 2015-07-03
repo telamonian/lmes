@@ -13,6 +13,7 @@ import unittest
 #from replicate.replicateTrajectories import ReplicateTrajectoriesTestCase
 # from tiling.tilings import TilingsTestCase
 
+from lm_anal.test.datum.hist.oparamHists import OParamHistsTestCase
 from lm_anal.test.datum.oparam.oparams import OParamsTestCase
 from lm_anal.test.datum.tiling.tilings import TilingsTestCase
 from lm_anal.test.datum.trajectory.oparamTrajectories import OParamTrajectoriesTestCase

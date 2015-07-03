@@ -8,11 +8,13 @@ class TrajectorySpeciesCountToHistOParamValuesPT(BasePT):
     srcProp = 'species_count'
     dstProp = 'order_parameter_values'
     
-    def __init__(self, oparam, **kwargs):
-        self.oparam = oparam
+    def __init__(self, oparams, tilings, **kwargs):
+        self.oparams = oparams
+        self.tilings = tilings
     
     def __call__(self, srcDatum, dstDatum):
         try:
+            dstDatum.setTilings(oparams=self.oparams, tilings=self.tilings)
             dstDatum.setArray(self.dstProp, self.oparam.calc(srcDatum.__getattribute__(self.srcProp)))
         except AttributeError:
             pass

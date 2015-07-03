@@ -28,9 +28,15 @@ class OParam(Datum):
         super().__init__(full=full)
         self.protoBuf = subcon
         
-    def Init(self):
+    def init(self):
+        pass
+    
+    def calc(self):
+        pass
+    
+    def combine(self, others):
         pass
     
     def setType(self, typeID):
         self.__class__ = self.oparamSubtypeDict[typeID]
-        self.Init()
+        self.init()

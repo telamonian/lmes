@@ -1,4 +1,5 @@
 from abc import ABCMeta
+import numpy as np
 
 from lm_anal.src.helper import histogramdd
 from lm_anal.src.datum import Datum
@@ -15,34 +16,40 @@ class Hist(Datum):
         super().__init__(full=full)
     
     @property
-    def dims(self):
-        dims = ()
-        for edges in self.edgess:
-            dims+=edges.shape + 1
+    def rDims(self):
+        return np.array(self.dims) - 1
     
     @property
     def rank(self):
-        return len(self.dims.shape)
+        return len(self.dims.size)
     
-    def Init(self):
-        self.histBuf = HistBuf()
-        # passthroughs
-        self.dims = self.histBuf.dims
-        self.edges = self.histBuf.edges
-        
-        self.edges.extend(np.array(edges).flatten())
-        self.dims.extend(np.array(dims).flatten().tolist())     # tolist() avoids a nasty error where protobuf considers numpy int64 to be different from python int
-        self.rank = rank
-        self.rDims = np.array(self.dims) - 1                    # reduced dimensions, used in later calculations
+    def initVals(self):
+        self.h = np.zeros(self.dims)
     
-    def InitVals(self):
-        self.vals = np.zeros(self.dims)
-    
-    def AddObs(self, obs):
+    def addObs(self, obs):
         ''' short alias for AddObservations'''
         self.AddObservations(obs)
     
-    def AddObservations(self, obs):
+    def addObservations(self, obs):
         self.h+=histogramdd(obs, bins=self.edges)[0]
+        
+    def clearVals(self):
+        self.vals[:] = 0
+    
+    def getEdgeIndices(self):
+        ''' based on what's in self.dims, generates a list of tuples of indices that can be used to transform the 1D protobuf array in which self.edges is stored into a list of lists, one list for every dim '''
+        return [(int(np.sum(self.rDims[:i])), int(np.sum(self.rDims[:i + 1]))) for i in range(self.rank)]
+    
+    def getEdges(self):
+        return [self.edges[int(np.sum(self.rDims[:i])):int(np.sum(self.rDims[:i + 1]))] for i in range(self.rank)]
+    
+    def setObs(self, obs):
+        ''' short alias for SetObservations'''
+        self.SetObservations(obs)
+    
+    def setObservations(self, obs):
+        ''' same as AddObservations, but clears the previously added observations (if any) first '''
+        self.ClearVals()
+        self.AddObservations(obs)
     
 HistBase.register(Hist)
