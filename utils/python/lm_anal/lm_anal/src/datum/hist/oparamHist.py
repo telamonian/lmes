@@ -19,3 +19,5 @@ class OParamHist(Hist):
         self.dims = np.array(dims)
         self.edges = np.hstack(edges)
         self.oparam = self.oparams[0].combine(self.oparams[1:])
+        
+        self.initH()

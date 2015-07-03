@@ -21,20 +21,20 @@ class Hist(Datum):
     
     @property
     def rank(self):
-        return len(self.dims.size)
+        return self.dims.size
     
-    def initVals(self):
+    def initH(self):
         self.h = np.zeros(self.dims)
     
     def addObs(self, obs):
         ''' short alias for AddObservations'''
-        self.AddObservations(obs)
+        self.addObservations(obs)
     
     def addObservations(self, obs):
-        self.h+=histogramdd(obs, bins=self.edges)[0]
+        self.h+=histogramdd(obs, bins=self.getEdges())[0]
         
     def clearVals(self):
-        self.vals[:] = 0
+        self.h[:] = 0
     
     def getEdgeIndices(self):
         ''' based on what's in self.dims, generates a list of tuples of indices that can be used to transform the 1D protobuf array in which self.edges is stored into a list of lists, one list for every dim '''
@@ -45,11 +45,11 @@ class Hist(Datum):
     
     def setObs(self, obs):
         ''' short alias for SetObservations'''
-        self.SetObservations(obs)
+        self.setObservations(obs)
     
     def setObservations(self, obs):
         ''' same as AddObservations, but clears the previously added observations (if any) first '''
-        self.ClearVals()
-        self.AddObservations(obs)
+        self.clearVals()
+        self.addObservations(obs)
     
 HistBase.register(Hist)

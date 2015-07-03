@@ -15,6 +15,6 @@ class TrajectorySpeciesCountToHistOParamValuesPT(BasePT):
     def __call__(self, srcDatum, dstDatum):
         try:
             dstDatum.setTilings(oparams=self.oparams, tilings=self.tilings)
-            dstDatum.setArray(self.dstProp, self.oparam.calc(srcDatum.__getattribute__(self.srcProp)))
+            dstDatum.setObservations(dstDatum.oparam.calc(srcDatum.__getattribute__(self.srcProp)))
         except AttributeError:
             pass

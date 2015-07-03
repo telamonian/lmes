@@ -10,6 +10,7 @@ def DefAliasProp(name, spec):
     @prop.setter
     def prop(self, val):
         self.__setattr__(spec['targetName'], val)
+    return prop
 
 def DefNPProp(name, spec):
     @property

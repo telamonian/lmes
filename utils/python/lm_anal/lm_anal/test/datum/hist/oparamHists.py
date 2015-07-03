@@ -4,6 +4,7 @@ import os,sys
 thisScriptDir = os.path.dirname(os.path.realpath(__file__))
 testDataPath = os.path.join(thisScriptDir, '../../testData/biphasic_switch.lm')
 
+from .groundTruths import intendedOrderParameterValues5Arr
 from lm_anal.src.io.hdf5.oparam import OParamsIO
 from lm_anal.src.io.hdf5.tiling import TilingsIO
 from lm_anal.src.io.hdf5.trajectory import BruteForceTrajectoriesIO
@@ -35,49 +36,54 @@ class OParamHistsTestCase(unittest.TestCase):
         
         Transforms(src=self.specTrajs, dst=self.opHists, oparams=self.oparams, tilings=tilings)
     
-#     def test_number_order_parameters_from_transfrom(self):
-#         '''
-#         test calculation of number of order parameters (really the sum of the rank of every order parameter) via the reduction of a ReplicateTrajectory
-#         '''
-#         self.loadData()
-#           
-#         numberOP = self.opTraj[5].number_order_parameters
-#         self.assertEqual(numberOP, 1)
-#     
-#     def test_number_entries_from_transfrom(self):
-#         '''
-#         test calculation of number of entries (basically, data rows) via the reduction of a ReplicateTrajectory
-#         '''
-#         self.loadData()
-#         
-#         numberEntries = self.opTraj[5].number_entries
-#         self.assertEqual(numberEntries, 101)
+    def test_dims_from_transform(self):
+        '''
+        test dims field
+        '''
+        self.loadData()
+        
+        dims = np.array(self.opHists[5].dims)
+        intendedDims = np.array((101,101))
+        self.assertTrue(np.allclose(dims, intendedDims), msg='%s is not allclose to %s' % (dims, intendedDims))
+    
+    def test_edges_from_transfrom(self):
+        '''
+        test edges
+        '''
+        self.loadData()
+        
+        edges = self.opHists[5].getEdges()
+        intendedEdges = [np.arange(100), np.arange(100)]
+        self.assertTrue(np.allclose(edges, np.array(intendedEdges)), msg='%s is not allclose to %s' % (edges, intendedEdges))
+    
+    def test_hDims_from_transfrom(self):
+        '''
+        test that the dimensions of the histogram match what's given back by the dims field
+        will fail if the .h field is not using numpy storage
+        '''
+        self.loadData()
+        
+        hDims = np.array(self.opHists[5].h.shape)
+        intendedDims = np.array((101,101))
+        self.assertTrue(np.allclose(hDims, intendedDims), msg='%s is not allclose to %s' % (hDims, intendedDims))
     
     def test_order_parameter_values_from_transfrom(self):
         '''
         test calculation of order parameter values via the reduction of a ReplicateTrajectory
+        the "ground truth" comparison histogram is massive, and so is stored in a separate module
         '''
         self.loadData(full=True)
         
-        orderParameterValuesArr = np.array(self.opHists[5].order_parameter_values).flatten()
-        intendedOrderParameterValuesArr = np.array([24.0,39.0,34.0,35.0,40.0,45.0,33.0,33.0,35.0,31.0,48.0,45.0,43.0,61.0,47.0,50.0,38.0,33.0,33.0,39.0,39.0,39.0,41.0,41.0,36.0,41.0,38.0,40.0,54.0,37.0,32.0,38.0,32.0,34.0,49.0,52.0,33.0,49.0,49.0,39.0,47.0,42.0,45.0,57.0,33.0,40.0,34.0,46.0,-25.0,-34.0,-35.0,-51.0,-32.0,-44.0,-38.0,-34.0,-37.0,-37.0,-68.0,-37.0,-36.0,-41.0,-40.0,-44.0,-39.0,-38.0,-40.0,-36.0,-49.0,-38.0,-44.0,-48.0,-29.0,-37.0,-19.0,-36.0,-45.0,-36.0,-38.0,-36.0,-35.0,-36.0,-29.0,-27.0,-39.0,-48.0,-41.0,-41.0,-43.0,-46.0,-46.0,-22.0,-37.0,-41.0,-29.0,-38.0,-40.0,-37.0,-35.0,-41.0,-42.0])
-        self.assertTrue(np.allclose(orderParameterValuesArr, intendedOrderParameterValuesArr))
+        orderParameterValuesArr = np.array(self.opHists[5].order_parameter_values)
+        self.assertTrue(np.allclose(orderParameterValuesArr, intendedOrderParameterValues5Arr))
+
+    def test_rank(self):
+        '''
+        test rank field
+        '''
+        self.loadData()
+        
+        rank = self.opHists[5].rank
+        intendedRank = 2
+        self.assertEqual(rank, intendedRank)
     
-#     def test_time_from_transfrom(self):
-#         '''
-#         test calculation of times via the reduction of a ReplicateTrajectory
-#         '''
-#         self.loadData(full=True)
-#         
-#         timeArr = np.array(self.opTraj[5].time).flatten()
-#         intendedTimeArr = np.array([0,1000,2000,3000,4000,5000,6000,7000,8000,9000,10000,11000,12000,13000,14000,15000,16000,17000,18000,19000,20000,21000,22000,23000,24000,25000,26000,27000,28000,29000,30000,31000,32000,33000,34000,35000,36000,37000,38000,39000,40000,41000,42000,43000,44000,45000,46000,47000,48000,49000,50000,51000,52000,53000,54000,55000,56000,57000,58000,59000,60000,61000,62000,63000,64000,65000,66000,67000,68000,69000,70000,71000,72000,73000,74000,75000,76000,77000,78000,79000,80000,81000,82000,83000,84000,85000,86000,87000,88000,89000,90000,91000,92000,93000,94000,95000,96000,97000,98000,99000,100000])
-#         self.assertTrue(np.allclose(timeArr, intendedTimeArr))
-#         
-#     def test_trajectory_id_from_transfrom(self):
-#         '''
-#         test calculation of trajectory id via the reduction of a ReplicateTrajectory
-#         '''
-#         self.loadData()
-#         
-#         idInt = self.opTraj[5].trajectory_id
-#         self.assertEqual(idInt, 5)
