@@ -77,10 +77,10 @@ ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     execute_process(COMMAND sw_vers OUTPUT_VARIABLE SW_VERS_DUMP)
     STRING(REGEX REPLACE ".+ProductVersion:\t10\\.([0-9][0-9]?).*$" "\\1" OSX_VERSION "${SW_VERS_DUMP}" )
     MESSAGE(STATUS "OSX_VERSION=10.${OSX_VERSION}")
-    IF(OSX_VERSION GREATER 8)
+    IF(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
         SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -stdlib=libstdc++")
         SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
-    ENDIF(OSX_VERSION GREATER 8)
+    ENDIF(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 include_directories(src/c/

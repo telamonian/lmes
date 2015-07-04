@@ -96,7 +96,7 @@ class OParamHistsTestCase(unittest.TestCase):
     
     def test_order_parameter_values_addition_from_transfrom(self):
         '''
-        tests the += operator
+        test the += operator
         '''
         self.loadData(full=True)
          
@@ -110,7 +110,7 @@ class OParamHistsTestCase(unittest.TestCase):
     
     def test_order_parameter_values_subtraction_from_transfrom(self):
         '''
-        tests the -= operator
+        test the -= operator
         '''
         self.loadData(full=True)
          

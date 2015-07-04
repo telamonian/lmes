@@ -20,8 +20,8 @@ if fullLength==True:
     crossingsPerPhase = str(int(1e4))
     maxPhaseZeroTime = str(int(1e6))
 else:
-    crossingsPerPhase = str(int(1e1))
-    maxPhaseZeroTime = str(int(1e5))
+    crossingsPerPhase = str(int(1e2))
+    maxPhaseZeroTime = str(int(1e4))
 
 try:
     os.remove('biphasic_switch.lm')
@@ -51,7 +51,7 @@ op = OrderParameter(type=0,
                     speciesCoefficients=[1,2,2])
 ops.append(op)
 
-theta = 10
+theta = 1
 reactionRateConstants = []
 productionConstants = [ReactionRateConstant(reactionID=4, rateConstant=1.0*theta), ReactionRateConstant(reactionID=5, rateConstant=1.0*theta), ReactionRateConstant(reactionID=11, rateConstant=1.0*theta), ReactionRateConstant(reactionID=12, rateConstant=1.0*theta)]
 reactionRateConstants+=productionConstants
@@ -66,7 +66,7 @@ simParams = [SimulationParameter(key='crossingsPerPhase',val=crossingsPerPhase),
              SimulationParameter(key='writeInterval',val='1000')]
 
 tilings = []
-tiling = Tiling(id=0,
+tiling = Tiling(id=19,
                 orderParameterID=0,
                 type=0,
                 edges=np.linspace(-25,25,13))
@@ -96,7 +96,7 @@ tiling = Tiling(id=27194,
                 type=0,
                 edges=np.linspace(-20,20,5))
 tilings.append(tiling)
-ffluxInput.AddTilings(tilings=tilings, currentTilingID=0)
+ffluxInput.AddTilings(tilings=tilings, currentTilingID=19)
 ffluxInput.SetInitialSpeciesCounts(iSCs=iSCs)
 ffluxInput.SetInitialSpeciesCountsBackward(iSCBs=iSCBs)
 ffluxInput.SetOrderParameters(ops=ops)
@@ -104,7 +104,7 @@ ffluxInput.SetReactionRateConstants(rRates=reactionRateConstants)
 ffluxInput.SetSimulationParameters(simParams=simParams)
 ffluxInput.Close()
 
-raw_args = '-sl lm::cme::GillespieDSolver -c 5 -cr 1 -gr 1/4 -ff hdf5 -fflux -f "biphasic_switch.lm" -intout'
+raw_args = '-sl lm::cme::GillespieDSolver -c 5 -cr 1 -gr 0 -ff hdf5 -fflux -f "biphasic_switch.lm" -intout'
 args = shlex.split(raw_args)
 p = subprocess.Popen([path] + args)
 p.wait()
