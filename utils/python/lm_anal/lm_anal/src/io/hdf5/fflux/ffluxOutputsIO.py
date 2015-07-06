@@ -1,15 +1,14 @@
 import os
 import numpy as np
 
-from lm_anal.src.io.hdf5.hdf5IO import HDF5IO, HDF5Spec
+from lm_anal.src.io.hdf5 import HDF5IO, HDF5Spec, HDF5Specs
 
-class OParamsIO(HDF5IO):
-    hdf5RootPath = 'OrderParameters'
-
-    hdf5Specs = (HDF5Spec(fullOnly=False, name='id', subKey='ID', type='attribute'),
-                 HDF5Spec(fullOnly=False, name='species_ids', subKey='SpeciesIDs', type='dataset'),
-                 HDF5Spec(fullOnly=False, name='species_coefficients', subKey='SpeciesCoefficients', type='dataset'),
-                 HDF5Spec(fullOnly=False, name='type', subKey='Type', type='special'))
+class FFluxOutputsIO(HDF5IO):
+    hdf5RootPath = 'Tilings'
+    hdf5Specs = HDF5Specs(HDF5Spec(fullOnly=False, name='number_species', subKey='NumberSpecies', type='attribute'),
+                          HDF5Spec(fullOnly=False, name='number_tiles', subKey='NumberTiles', type='attribute'),
+                          HDF5Spec(fullOnly=False, name='tiling_id', subKey='TilingID', type='attribute'),
+                          HDF5Spec(fullOnly=False, name='type', subKey='Type', type='embedded'))
 #                  HDF5Spec(fullOnly=False, name='dims', subKey='Edges', type='special'),
 #                  HDF5Spec(fullOnly=False, name='rank', subKey='Edges', type='special'),
     

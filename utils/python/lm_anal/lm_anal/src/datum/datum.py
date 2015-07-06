@@ -101,5 +101,8 @@ class Datum(object, metaclass=DatumMetaclass):
     def setArray(self, name, val):
         self.__setattr__(name, val)
     
+    def setEmbedded(self, name, subIO, val):
+        pass
+    
     def setScalar(self, name, val):
         self.__setattr__(name, val)

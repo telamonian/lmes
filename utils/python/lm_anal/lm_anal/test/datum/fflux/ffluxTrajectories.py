@@ -19,12 +19,13 @@ class FFluxTrajectoriesTestCase(unittest.TestCase):
         self.ffluxOutsIO.rff_Output(container=self.ffluxOuts, full=full)
         self.ffluxOutsIO.rff_Trajectory(container=self.ffluxOuts, full=full)
     
-    def test_number_species(self):
+    def test_get_trajectories_by_phase_from_hdf5(self):
         '''
         test the number_species field in FFluxOutput
         '''
-        self.loadData()
+        self.loadData(full=True)
         
-        numberSpecies = self.ffluxOuts[0].number_species
-        intendendNumberSpecies = 7
-        self.assertEqual(numberSpecies, intendendNumberSpecies)
+        orderParameterValuesArr = np.array(self.ffluxOuts[0].getTrajectoriesByPhase(2).order_parameter_values)
+        intendedOPVArr = 7
+        self.assertTrue(np.allclose(orderParameterValuesArr, intendedOPVArr), 
+                        msg='%s is not allclose to %s' % (orderParameterValuesArr, intendedOPVArr))

@@ -555,7 +555,7 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(FFluxTrajectory* traj, lm::io
 
     // load the data into the TrajectoryOutput buf pointer
     trajOut->add_count(traj->getOPVal());
-    trajOut->add_edge_id(traj->getFinalLimitID());
+    trajOut->add_edge_id(ffluxPhase); //traj->getFinalLimitID());
     traj->getLastSpeciesCounts(trajOut);
     trajOut->add_time(traj->getSimTime());
     trajOut->add_trajectory_id(traj->getID());

@@ -5,15 +5,18 @@ import os
 from lm_anal.src.helper import CamelCaseUpper
 from lm_anal.src.io.io import IO
 
-# class to hold descriptions of the hdf5 file spec for specific pieces of data
-HDF5Spec = namedtuple('HDF5Spec', ('fullOnly', 'name', 'subKey', 'type'))
-
 class HDF5IO(IO):
     hdf5RootPath = None
     hdf5Specs = None
     
-    def __init__(self, fPath):
+    def __init__(self, fPath, dPath='/'):
+        '''
+        fPath: path to the target HDF5 file
+        dPath: if specified, the starting path within the HDF5 file
+        '''
+        self._file = None
         self.file = None
+        self.dPath = dPath
         self.fPath = fPath
 
     def input(self, full, hdf5Path, subCon):
@@ -22,6 +25,8 @@ class HDF5IO(IO):
                 self.inputAttribute(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon)
             elif spec.type=='dataset':
                 self.inputArray(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon)
+            elif spec.type=='embedded':
+                self.inputEmbedded(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon)
             elif spec.type=='special':
                 self.__getattribute__('input' + CamelCaseUpper(spec.name))(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon)
             else:
@@ -32,7 +37,13 @@ class HDF5IO(IO):
     
     def inputAttribute(self, hdf5Path, hdf5Spec, subCon):
         subCon.setScalar(name=hdf5Spec.name, val=self.file[hdf5Path].attrs[hdf5Spec.subKey])
-
+    
+    def inputEmbedded(self, hdf5Path, hdf5Spec, subCon):
+        subSubCon = subCon.initEmbedded(pass)
+        subIO = hdf5Spec.subIO(fPath=self.fPath, dPath=hdf5Path)
+        subIO.rff(subSubCon)
+#         subCon.setEmbedded(name=hdf5Spec.name, subIO=hdf5Spec.subIO, val=self.file[hdf5Path][hdf5Spec.subKey])
+    
     def _has(self):
         if self.hdf5RootPath in self.file:
             if len(self.file[self.hdf5RootPath].keys()) > 0:
@@ -112,11 +123,14 @@ class HDF5IO(IO):
         '''
         if self.file==None:
             try:
-                with h5py.File(self.fPath, mode) as self.file:
+                with h5py.File(self.fPath, mode) as self._file:
+                    self.file = self._file[self.dPath]
                     retVal = func(**kwargs)
             except OSError:
+                self._file = None
                 self.file = None
                 return False
+            self._file = None
             self.file = None
         else:
             retVal = func(**kwargs)
