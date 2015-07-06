@@ -5,17 +5,17 @@ from lm_anal.src.datum.datum import Datum
 from lm_anal.src.datum.datum import DatumMetaclass
 
 class Tiling(Datum, metaclass=DatumMetaclass):
-    propertySpecs = {'arrangement':{'dtype':'int', 'paths':('arrangement',), 'storageType':'protoBuf', 'type':'array'},
-                 'dims':{'dtype':'int', 'paths':('dims',), 'storageType':'protoBuf', 'type':'array'},
-                 'edges':{'dtype':'float', 'paths':('edges',), 'storageType':'protoBuf', 'type':'array'},
-                 'id':{'dtype':'int', 'paths':('id',), 'storageType':'protoBuf', 'type':'scalar'},
-                 'order_parameter_id':{'dtype':'int', 'paths':('order_parameter_id',), 'storageType':'protoBuf', 'type':'scalar'},
-                 'rank':{'dtype':'int', 'paths':('rank',), 'storageType':'protoBuf', 'type':'scalar'},
-                 'type':{'dtype':'int', 'paths':('type',), 'storageType':'protoBuf', 'type':'scalar'}}
+    propertySpecs = {'arrangement':{'dtype':'int', 'paths':('arrangement',), 'storageType':'protobuf', 'type':'array'},
+                 'dims':{'dtype':'int', 'paths':('dims',), 'storageType':'protobuf', 'type':'array'},
+                 'edges':{'dtype':'float', 'paths':('edges',), 'storageType':'protobuf', 'type':'array'},
+                 'id':{'dtype':'int', 'paths':('id',), 'storageType':'protobuf', 'type':'scalar'},
+                 'order_parameter_id':{'dtype':'int', 'paths':('order_parameter_id',), 'storageType':'protobuf', 'type':'scalar'},
+                 'rank':{'dtype':'int', 'paths':('rank',), 'storageType':'protobuf', 'type':'scalar'},
+                 'type':{'dtype':'int', 'paths':('type',), 'storageType':'protobuf', 'type':'scalar'}}
     
     def __init__(self, subcon, full=False):
         super().__init__(full=full)
-        self.protoBuf = subcon
+        self.protobuf = subcon
         
     @property
     def name(self):
@@ -28,7 +28,7 @@ class Tiling(Datum, metaclass=DatumMetaclass):
         self._name = val
     
 #     def __init__(self, tilingBuf, hdf5TilingGroup=None):
-#         self.protoBuf = tilingBuf
+#         self.protobuf = tilingBuf
 #         
 #         # add some attributes to the Tiling instance that allow for direct access to the underlying TilingBuf
 #         self.arrangement = self.tilingBuf.arrangement

@@ -1,11 +1,8 @@
 from lm_anal.src.datum import Data
-from lm_anal.src.datum.fflux import FFlux
-
-from lm_anal.python_protobuf.lm.io.FFluxOutput_pb2 import FFluxOutput as FFluxOutputBuf
+from lm_anal.src.datum.fflux import FFluxOutput
 
 class FFluxOutputs(Data):
-    datumType = FFlux
+    datumType = FFluxOutput
     
     def __init__(self):
         super().__init__()
-        self.protobuf = FFluxOutputBuf()

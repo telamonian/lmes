@@ -7,7 +7,7 @@ from lm_anal.src.datum.trajectory.trajectory import Trajectory
 
 class SpeciesTrajectory(Trajectory): #, metaclass=DatumMetaclass):
     # data spec
-    propertySpecs = {'number_species':{'dtype':'int', 'paths':('cme_state','species_counts','number_species'), 'storageType':'protoBuf', 'type':'scalar'},
+    propertySpecs = {'number_species':{'dtype':'int', 'paths':('cme_state','species_counts','number_species'), 'storageType':'protobuf', 'type':'scalar'},
                      'species_count':{'dtype':'int', 'storageType':'numpy', 'type':'array'},
                      'time':{'dtype':'float', 'storageType':'numpy', 'type':'array'}}
 

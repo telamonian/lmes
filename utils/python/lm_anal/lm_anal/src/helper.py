@@ -2,6 +2,10 @@ from numpy import arange,around,array,asarray,atleast_1d,atleast_2d,bincount,dif
 import numpy as np
 import re
 
+from lm_anal.python_protobuf.lm.io.FFluxOutput_pb2 import FFluxOutput
+DirectionEnum = FFluxOutput.Direction 
+LifecycleEnum = FFluxOutput.Lifecycle
+
 def CamelCaseLower(s):
     '''
     convert CamelCase to camelCase

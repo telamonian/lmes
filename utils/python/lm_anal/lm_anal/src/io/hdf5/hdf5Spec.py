@@ -14,7 +14,7 @@ class HDF5SpecMetaclass(type):
         return super(HDF5SpecMetaclass, cls).__new__(cls, clsname, bases, dct)
 
 class HDF5Spec(object, metaclass=HDF5SpecMetaclass):
-    keywords = {'fullOnly', 'name', 'subKey', 'subIO', 'type'}
+    keywords = {'DataType', 'IOType', 'fullOnly', 'name', 'subKey', 'type'}
     
     def __init__(self, name, **kwargs):
         self.map = {}

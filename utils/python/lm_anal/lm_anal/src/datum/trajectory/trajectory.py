@@ -8,9 +8,9 @@ class TrajectoryBase(metaclass=ABCMeta):
     pass
 
 class Trajectory(Datum):
-    propertySpecs = {'number_entries':{'dtype':'int', 'paths':('cme_state','species_counts','number_entries'), 'storageType':'protoBuf', 'type':'scalar'},
-                     'time':{'dtype':'float', 'paths':('cme_state','species_counts','time'), 'storageType':'protoBuf', 'type':'array'},
-                     'trajectory_id':{'dtype':'int', 'paths':('trajectory_id',), 'storageType':'protoBuf', 'type':'scalar'}}
+    propertySpecs = {'number_entries':{'dtype':'int', 'paths':('cme_state','species_counts','number_entries'), 'storageType':'protobuf', 'type':'scalar'},
+                     'time':{'dtype':'float', 'paths':('cme_state','species_counts','time'), 'storageType':'protobuf', 'type':'array'},
+                     'trajectory_id':{'dtype':'int', 'paths':('trajectory_id',), 'storageType':'protobuf', 'type':'scalar'}}
 
 #     @property
 #     def number_entries(self):
@@ -21,34 +21,34 @@ class Trajectory(Datum):
     
 #     @property
 #     def number_species(self):
-#         return self.protoBuf.cme_state.species_counts.number_species
+#         return self.protobuf.cme_state.species_counts.number_species
 #     @number_species.setter
 #     def number_species(self, val):
-#         self.protoBuf.cme_state.species_counts.number_species = val
+#         self.protobuf.cme_state.species_counts.number_species = val
     
 #     @property
 #     def species_count(self):
-#         return self.protoBuf.cme_state.species_counts.species_count
+#         return self.protobuf.cme_state.species_counts.species_count
 #     @species_count.setter
 #     def species_count(self, val):
-#         self.protoBuf.cme_state.species_counts.species_count.extend(val.flatten())
+#         self.protobuf.cme_state.species_counts.species_count.extend(val.flatten())
 #     
 #     @property
 #     def time(self):
-#         return self.protoBuf.cme_state.species_counts.time
+#         return self.protobuf.cme_state.species_counts.time
 #     @time.setter
 #     def time(self, val):
-#         self.protoBuf.cme_state.species_counts.time.extend(val.flatten())
+#         self.protobuf.cme_state.species_counts.time.extend(val.flatten())
     
 #     @property
 #     def trajectory_id(self):
-#         return self.protoBuf.trajectory_id
+#         return self.protobuf.trajectory_id
 #     @trajectory_id.setter
 #     def trajectory_id(self, val):
-#         self.protoBuf.trajectory_id = val
+#         self.protobuf.trajectory_id = val
 #     
     def __init__(self, full=False):
         super().__init__(full=full)
-        self.protoBuf = TrajectoryStateBuf()
+        self.protobuf = TrajectoryStateBuf()
         
 TrajectoryBase.register(Trajectory)

@@ -1,12 +1,12 @@
 from lm_anal.src.datum import Datum
 
 class OParam(Datum):
-    propertySpecs = {'id':{'dtype':'int', 'paths':('id',), 'storageType':'protoBuf', 'type':'scalar'},
+    propertySpecs = {'id':{'dtype':'int', 'paths':('id',), 'storageType':'protobuf', 'type':'scalar'},
                      'species_ids':{'dtype':'int', 'paths':('species_ids',), 'storageType':'numpy', 'type':'array'},
                      'species_coefficients':{'dtype':'float', 'paths':('species_coefficients',), 'storageType':'numpy', 'type':'array'},
-                     'type':{'dtype':'int', 'paths':('type',), 'storageType':'protoBuf', 'type':'scalar'}}
-#                      'dims':{'dtype':'int', 'paths':('dims',), 'storageType':'protoBuf', 'type':'array'},                 
-#                      'rank':{'dtype':'int', 'paths':('rank',), 'storageType':'protoBuf', 'type':'scalar'},
+                     'type':{'dtype':'int', 'paths':('type',), 'storageType':'protobuf', 'type':'scalar'}}
+#                      'dims':{'dtype':'int', 'paths':('dims',), 'storageType':'protobuf', 'type':'array'},                 
+#                      'rank':{'dtype':'int', 'paths':('rank',), 'storageType':'protobuf', 'type':'scalar'},
 
     oparamSubtypeDict = {}
     
@@ -26,7 +26,7 @@ class OParam(Datum):
     
     def __init__(self, subcon, full=False):
         super().__init__(full=full)
-        self.protoBuf = subcon
+        self.protobuf = subcon
         
     def init(self):
         pass

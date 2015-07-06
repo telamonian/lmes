@@ -7,8 +7,8 @@ class DataMetaclass(object):
 class Data(object):
     datumType = None
     
-    def __init__(self):
-        self.protobuf = None
+    def __init__(self, protobuf=None):
+        self.protobuf = protobuf
         self.map = {}
     
     def __delitem__(self, key):

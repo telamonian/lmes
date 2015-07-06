@@ -14,7 +14,7 @@ class FFluxOutputsTestCase(unittest.TestCase):
         self.ffluxOuts = FFluxOutputs()
     
     def loadData(self, full=False):
-        self.ffluxOutsIO.rff_Output(container=self.ffluxOuts, full=full)
+        self.ffluxOutsIO.rff(container=self.ffluxOuts, full=full)
     
     def test_number_species(self):
         '''
@@ -22,6 +22,6 @@ class FFluxOutputsTestCase(unittest.TestCase):
         '''
         self.loadData()
         
-        numberSpecies = self.ffluxOuts[0].number_species
+        numberSpecies = self.ffluxOuts[19].number_species
         intendendNumberSpecies = 7
         self.assertEqual(numberSpecies, intendendNumberSpecies)
