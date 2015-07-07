@@ -12,7 +12,7 @@ class OParamsIO(HDF5IO):
 #                  HDF5Spec(fullOnly=False, name='dims', subKey='Edges', type='special'),
 #                  HDF5Spec(fullOnly=False, name='rank', subKey='Edges', type='special'),
     
-    def inputType(self, hdf5Path, hdf5Spec, subCon):
+    def inputType(self, hdf5Path, hdf5Spec, subCon, full):
         subCon.setType(typeID=self.file[hdf5Path].attrs[hdf5Spec.subKey])
         self.inputAttribute(hdf5Path, hdf5Spec, subCon)
     

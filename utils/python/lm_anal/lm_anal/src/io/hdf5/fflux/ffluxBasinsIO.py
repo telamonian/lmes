@@ -16,7 +16,7 @@ class FFluxBasinsIO(HDF5IO):
                           HDF5Spec(fullOnly=False, name='normalized_probability_i', subKey='ProbabilityI/TileVals', type='dataset'),
                           HDF5Spec(fullOnly=False, name='probability_i_weight', subKey='ProbabilityIWeight', type='attribute'))
     
-    def inputDirection(self, hdf5Path, hdf5Spec, subCon):
+    def inputDirection(self, hdf5Path, hdf5Spec, subCon, full):
         subCon.setScalar(name=hdf5Spec.name, val=DirectionEnum.Value(hdf5Path.split('/')[-1]))
         
     def _keys(self):

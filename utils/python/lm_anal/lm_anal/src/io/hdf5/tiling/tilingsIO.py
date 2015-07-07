@@ -19,7 +19,7 @@ class TilingsIO(HDF5IO):
     def __init__(self, fPath):
         super().__init__(fPath)
     
-    def inputArrangement(self, hdf5Path, hdf5Spec, subCon):
+    def inputArrangement(self, hdf5Path, hdf5Spec, subCon, full):
         subCon.setArray(name=hdf5Spec.name, val=np.array([self.getArrangement(subCon.edges)]))
         
     def getArrangement(self, edges):
@@ -37,8 +37,8 @@ class TilingsIO(HDF5IO):
                     raise ValueError
         return arrangement
 
-    def inputRank(self, hdf5Path, hdf5Spec, subCon):
+    def inputRank(self, hdf5Path, hdf5Spec, subCon, full):
         subCon.setScalar(name=hdf5Spec.name, val=len(self.file[hdf5Path][hdf5Spec.subKey].shape))
 
-    def inputDims(self, hdf5Path, hdf5Spec, subCon):
+    def inputDims(self, hdf5Path, hdf5Spec, subCon, full):
         subCon.setArray(name=hdf5Spec.name, val=np.array(self.file[hdf5Path][hdf5Spec.subKey].shape))

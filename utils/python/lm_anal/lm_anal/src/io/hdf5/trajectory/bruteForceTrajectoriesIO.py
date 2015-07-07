@@ -13,13 +13,13 @@ class BruteForceTrajectoriesIO(HDF5IO):
     def __init__(self, fPath):
         super().__init__(fPath)
             
-    def inputNumberEntries(self, hdf5Path, hdf5Spec, subCon):
+    def inputNumberEntries(self, hdf5Path, hdf5Spec, subCon, full):
         subCon.setScalar(name=hdf5Spec.name, val=self.file[hdf5Path][hdf5Spec.subKey].shape[0])
 
-    def inputNumberSpecies(self, hdf5Path, hdf5Spec, subCon):
+    def inputNumberSpecies(self, hdf5Path, hdf5Spec, subCon, full):
         subCon.setScalar(name='number_species', val=self.file[hdf5Path][hdf5Spec.subKey].shape[1])
 
-    def inputTrajectoryId(self, hdf5Path, hdf5Spec, subCon):
+    def inputTrajectoryId(self, hdf5Path, hdf5Spec, subCon, full):
         subCon.setScalar(name='trajectory_id', val=int(os.path.split(hdf5Path)[-1]))
 
 #     def __init__(self, hdf5TrajectoryGroup=None, full=False, useNPArr=True):

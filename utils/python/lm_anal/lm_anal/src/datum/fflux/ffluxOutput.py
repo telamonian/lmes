@@ -7,7 +7,7 @@ class FFluxOutput(Datum):
                             DPSpec(dtype='int', name='number_tiles', paths=('number_tiles',), storageType='protobuf', type='scalar'),
                             DPSpec(dtype='int', name='tiling_id', paths=('tiling_id',), storageType='protobuf', type='scalar'),
                             DPSpec(name='basin_outputs', paths=('basin_outputs',), storageType='protobuf', type='embedded'),
-#                             DPSpec(name='final_output', paths=('final_output',), storageType='protobuf', type='embedded'),
+                            DPSpec(name='final_output', paths=('final_output',), storageType='protobuf', type='embedded'),
                             DPSpec(name='trajectory_outputs', paths=('trajectory_outputs',), storageType='protobuf', type='embedded'))
 
     def __init__(self, full=False):

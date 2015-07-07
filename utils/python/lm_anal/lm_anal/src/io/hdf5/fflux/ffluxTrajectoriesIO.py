@@ -14,10 +14,10 @@ class FFluxTrajectoriesIO(HDF5IO):
                           HDF5Spec(fullOnly=True, name='time', subKey='Time', type='dataset'),
                           HDF5Spec(fullOnly=True, name='trajectory_id', subKey='TrajectoryID', type='dataset'))
     
-    def inputDirection(self, hdf5Path, hdf5Spec, subCon):
+    def inputDirection(self, hdf5Path, hdf5Spec, subCon, full):
         subCon.setScalar(name=hdf5Spec.name, val=DirectionEnum.Value(hdf5Path.split('/')[-2]))
 
-    def inputLifecycle(self, hdf5Path, hdf5Spec, subCon):
+    def inputLifecycle(self, hdf5Path, hdf5Spec, subCon, full):
         subCon.setScalar(name=hdf5Spec.name, val=LifecycleEnum.Value(hdf5Path.split('/')[-1]))
         
     def _keys(self):
