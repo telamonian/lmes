@@ -27,6 +27,8 @@ class HDF5IO(IO):
                 self.inputArray(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon)
             elif spec.type=='embedded':
                 self.inputEmbedded(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon, full=full)
+            elif spec.type=='tilingHist':
+                self.inputTilingHist(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon)
             elif spec.type=='special':
                 self.__getattribute__('input' + CamelCaseUpper(spec.name))(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon)
             else:
@@ -42,8 +44,10 @@ class HDF5IO(IO):
         subData = subCon.initEmbedded(name=hdf5Spec.name, DataType=hdf5Spec.DataType)
         subIO = hdf5Spec.IOType(fPath=self.fPath, hdf5RootPath=hdf5Path)
         subIO.rff(container=subData, full=full)
-#         subCon.setEmbedded(name=hdf5Spec.name, subIO=hdf5Spec.subIO, val=self.file[hdf5Path][hdf5Spec.subKey])
-    
+
+    def inputTilingHist(self, hdf5Path, hdf5Spec, subCon):
+        pass
+
     def _has(self):
         if self.hdf5RootPath in self.file:
             if len(self.file[self.hdf5RootPath].keys()) > 0:

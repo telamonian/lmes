@@ -13,6 +13,7 @@ import unittest
 #from replicate.replicateTrajectories import ReplicateTrajectoriesTestCase
 # from tiling.tilings import TilingsTestCase
 
+from lm_anal.test.datum.fflux.ffluxBasins import FFluxBasinsTestCase
 from lm_anal.test.datum.fflux.ffluxOutputs import FFluxOutputsTestCase
 from lm_anal.test.datum.fflux.ffluxTrajectories import FFluxTrajectoriesTestCase
 from lm_anal.test.datum.hist.oparamHists import OParamHistsTestCase

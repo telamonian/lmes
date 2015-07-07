@@ -1,9 +1,3 @@
-FORWARD = 0
-BACKWARD = 1
-
-INITIAL = 0
-FINAL = 1
-
 # from lm_anal.python_protobuf.lm.io.FFluxOutput_pb2 import TrajectoryOutput as TrajectoryOutputBuf
 from lm_anal.src.datum import Datum, DatumPropertySpec as DPSpec, DatumPropertySpecs as DPSpecs
 

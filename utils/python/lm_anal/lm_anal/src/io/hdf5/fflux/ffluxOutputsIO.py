@@ -1,15 +1,16 @@
 import os
 import numpy as np
 
-from lm_anal.src.datum.fflux import FFluxTrajectories
+from lm_anal.src.datum.fflux import FFluxBasins, FFluxTrajectories
 from lm_anal.src.io.hdf5 import HDF5IO, HDF5Spec, HDF5Specs
-from lm_anal.src.io.hdf5.fflux import FFluxTrajectoriesIO
+from lm_anal.src.io.hdf5.fflux import FFluxBasinsIO, FFluxTrajectoriesIO
 
 class FFluxOutputsIO(HDF5IO):
     hdf5RootPath = 'Tilings'
     hdf5Specs = HDF5Specs(HDF5Spec(fullOnly=False, name='number_species', subKey='NumberSpecies', type='attribute'),
                           HDF5Spec(fullOnly=False, name='number_tiles', subKey='NumberTiles', type='attribute'),
                           HDF5Spec(fullOnly=False, name='tiling_id', subKey='TilingID', type='attribute'),
+                          HDF5Spec(DataType=FFluxBasins, IOType=FFluxBasinsIO, fullOnly=False, name='basins', type='embedded'),
                           HDF5Spec(DataType=FFluxTrajectories, IOType=FFluxTrajectoriesIO, fullOnly=False, name='trajectories', type='embedded'))
     
     def _keys(self):

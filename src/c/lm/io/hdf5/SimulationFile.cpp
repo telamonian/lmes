@@ -673,7 +673,7 @@ void Hdf5File::setFFluxBasinOutput(lm::io::FFluxOutput* ffluxOutput, int basinIn
     if (basinOut->has_this_basin_last_visited_probability())
     {
         double this_basin_last_visited_probability = basinOut->this_basin_last_visited_probability();
-        HDF5_EXCEPTION_CALL(attr, H5Acreate(basinGroup, "ThisBasinLastVistedProbability", H5T_IEEE_F64LE, scalarSpace, H5P_DEFAULT, H5P_DEFAULT));
+        HDF5_EXCEPTION_CALL(attr, H5Acreate(basinGroup, "ThisBasinLastVisitedProbability", H5T_IEEE_F64LE, scalarSpace, H5P_DEFAULT, H5P_DEFAULT));
         HDF5_EXCEPTION_CHECK(H5Awrite(attr, H5T_IEEE_F64LE, &this_basin_last_visited_probability));
         HDF5_EXCEPTION_CHECK(H5Aclose(attr));
     }
