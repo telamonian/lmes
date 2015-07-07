@@ -16,7 +16,7 @@ class FFluxOutputsTestCase(unittest.TestCase):
     def loadData(self, full=False):
         self.ffluxOutsIO.rff(container=self.ffluxOuts, full=full)
     
-    def test_number_species(self):
+    def test_number_species_from_hdf5(self):
         '''
         test the number_species field in FFluxOutput
         '''
@@ -25,3 +25,24 @@ class FFluxOutputsTestCase(unittest.TestCase):
         numberSpecies = self.ffluxOuts[19].number_species
         intendendNumberSpecies = 7
         self.assertEqual(numberSpecies, intendendNumberSpecies)
+    
+    def test_number_tiles_from_hdf5(self):
+        '''
+        test the number_species field in FFluxOutput
+        '''
+        self.loadData()
+        
+        numberTiles = self.ffluxOuts[19].number_tiles
+        intendendNumberTiles = 14
+        self.assertEqual(numberTiles, intendendNumberTiles)
+
+    def test_tiling_id_from_hdf5(self):
+        '''
+        test the number_species field in FFluxOutput
+        '''
+        self.loadData()
+        
+        tilingID = self.ffluxOuts[19].tiling_id
+        intendendTilingID = 19
+        self.assertEqual(tilingID, intendendTilingID)
+    
