@@ -39,3 +39,5 @@ class FFluxTrajectoriesIO(HDF5IO):
         for key in keys:
             subCon = container.initDatum(key=key, full=full)
             self.input(full=full, hdf5Path=os.path.join(self.hdf5RootPath, str(key)), subCon=subCon)
+            if full:
+                subCon.genTrajectoryPhaseMap()

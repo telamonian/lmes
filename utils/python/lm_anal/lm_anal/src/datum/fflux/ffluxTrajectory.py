@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 # from lm_anal.python_protobuf.lm.io.FFluxOutput_pb2 import TrajectoryOutput as TrajectoryOutputBuf
 from lm_anal.src.datum import Datum, DatumPropertySpec as DPSpec, DatumPropertySpecs as DPSpecs
 
@@ -16,3 +18,9 @@ class FFluxTrajectory(Datum):
             self.protobuf = subBuf
 #         else:
 #             self.protobuf = TrajectoryOutputBuf()
+
+    def genTrajectoryPhaseMap(self):
+        self.trajectoryPhaseMap = OrderedDict()
+        for i,trajID in enumerate(self.trajectory_id):
+            self.trajectoryPhaseMap[trajID] = self.edge_id[i]
+        self.tPMap = self.trajectoryPhaseMap

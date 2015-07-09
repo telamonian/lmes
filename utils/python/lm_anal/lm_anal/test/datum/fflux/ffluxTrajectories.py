@@ -95,7 +95,21 @@ class FFluxTrajectoriesTestCase(unittest.TestCase):
         trajectoryIDArr = np.array(self.ffluxOuts[19].trajectories['FORWARD/FINAL'].trajectory_id)
         self.assertTrue(np.allclose(trajectoryIDArr, intendedTrajectoryID19Arr), 
                         msg='%s is not allclose to %s' % (trajectoryIDArr.tolist(), intendedTrajectoryID19Arr.tolist()))
-            
+    
+    def test_trajectoryPhaseMap_from_hdf5_supercontainer(self):
+        '''
+        test the generated trajectoryPhaseMap field in FFluxTrajectory
+        '''
+        self.loadData(full=True)
+        
+        phase = self.ffluxOuts[19].trajectories['FORWARD/INITIAL'].tPMap[2000]
+        intendendPhase = 3
+        self.assertEqual(phase, intendendPhase)
+        
+        phase = self.ffluxOuts[19].trajectories['BACKWARD/INITIAL'].tPMap[7000]
+        intendendPhase = 6
+        self.assertEqual(phase, intendendPhase)
+    
 #     def test_get_trajectories_by_phase_from_hdf5_from_supercontainer(self):
 #         '''
 #         test the number_species field in FFluxOutput

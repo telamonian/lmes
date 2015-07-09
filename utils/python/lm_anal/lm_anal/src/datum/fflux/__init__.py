@@ -1,4 +1,4 @@
-from lm_anal.src.datum.fflux.ffluxOutput import FFluxOutput
+from lm_anal.src.datum.fflux.ffluxOutput import FFluxBase, FFluxOutput
 from lm_anal.src.datum.fflux.ffluxBasin import FFluxBasin
 from lm_anal.src.datum.fflux.ffluxFinal import FFluxFinal
 from lm_anal.src.datum.fflux.ffluxTrajectory import FFluxTrajectory
