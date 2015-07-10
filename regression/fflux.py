@@ -20,8 +20,8 @@ if fullLength==True:
     crossingsPerPhase = str(int(1e4))
     maxPhaseZeroTime = str(int(1e6))
 else:
-    crossingsPerPhase = str(int(1e2))
-    maxPhaseZeroTime = str(int(1e4))
+    crossingsPerPhase = str(int(1e3))
+    maxPhaseZeroTime = str(int(1e6))
 
 try:
     os.remove('biphasic_switch.lm')
@@ -34,68 +34,58 @@ ffluxInput = Input('biphasic_switch.lm')
 iSCs = InitialSpeciesCounts(speciesCounts=[4,16,1,0,0,0,0])
 iSCBs = InitialSpeciesCountsBackward(speciesCounts=[0,0,0,4,16,1,0])
 
-ops = []
-op = OrderParameter(type=0,
-                    id=0,
-                    speciesIDs=[0,1,2,3,4,5],
-                    speciesCoefficients=[-1,-2,-2,1,2,2])
-ops.append(op)
-op = OrderParameter(type=0,
-                    id=1,
-                    speciesIDs=[0,1,2],
-                    speciesCoefficients=[1,2,2])
-ops.append(op)
-op = OrderParameter(type=0,
-                    id=2,
-                    speciesIDs=[3,4,5],
-                    speciesCoefficients=[1,2,2])
-ops.append(op)
+ops = [
+OrderParameter(type=0,
+               id=0,
+               speciesIDs=[0,1,2,3,4,5],
+               speciesCoefficients=[-1,-2,-2,1,2,2]),
+OrderParameter(type=0,
+               id=1,
+               speciesIDs=[0,1,2],
+               speciesCoefficients=[1,2,2]),
+OrderParameter(type=0,
+               id=2,
+               speciesIDs=[3,4,5],
+               speciesCoefficients=[1,2,2])]
 
 theta = 1
-reactionRateConstants = []
 productionConstants = [ReactionRateConstant(reactionID=4, rateConstant=1.0*theta), ReactionRateConstant(reactionID=5, rateConstant=1.0*theta), ReactionRateConstant(reactionID=11, rateConstant=1.0*theta), ReactionRateConstant(reactionID=12, rateConstant=1.0*theta)]
-reactionRateConstants+=productionConstants
 degradationConstants = [ReactionRateConstant(reactionID=6, rateConstant=.25*theta), ReactionRateConstant(reactionID=13, rateConstant=.25*theta)]
-reactionRateConstants+=degradationConstants
+reactionRateConstants = productionConstants + degradationConstants
 
 simParams = [SimulationParameter(key='crossingsPerPhase',val=crossingsPerPhase),
              SimulationParameter(key='maxPhaseZeroTime',val=maxPhaseZeroTime),
              SimulationParameter(key='maxSteps',val=str(int(1e10))),
              SimulationParameter(key='maxTime',val='1e10'),
-             SimulationParameter(key='maxWorkUnitSteps',val=str(int(1e3))),
+             SimulationParameter(key='maxWorkUnitSteps',val=str(int(1e15))),
              SimulationParameter(key='writeInterval',val='%.10f' % (1.0/(.25*theta)))]
 
-tilings = []
-tiling = Tiling(id=19,
-                orderParameterID=0,
-                type=0,
-                edges=np.linspace(-25,25,13))
-tilings.append(tiling)
-tiling = Tiling(id=1,
-                orderParameterID=1,
-                type=0,
-                edges=np.linspace(-25,25,13))
-tilings.append(tiling)
-tiling = Tiling(id=2,
-                orderParameterID=2,
-                type=0,
-                edges=np.linspace(-25,25,13))
-tilings.append(tiling)
-tiling = Tiling(id=199,
-                orderParameterID=0,
-                type=0,
-                edges=np.linspace(-30,30,16))
-tilings.append(tiling)
-tiling = Tiling(id=7,
-                orderParameterID=0,
-                type=0,
-                edges=np.linspace(-25,25,11))
-tilings.append(tiling)
-tiling = Tiling(id=27194,
-                orderParameterID=0,
-                type=0,
-                edges=np.linspace(-20,20,5))
-tilings.append(tiling)
+tilings = [
+Tiling(id=19,
+       orderParameterID=0,
+       type=0,
+       edges=np.linspace(-25,25,13)),
+Tiling(id=1,
+       orderParameterID=1,
+       type=0,
+       edges=np.arange(100)),
+Tiling(id=2,
+       orderParameterID=2,
+       type=0,
+       edges=np.arange(100)),
+Tiling(id=199,
+       orderParameterID=0,
+       type=0,
+       edges=np.linspace(-30,30,16)),
+Tiling(id=7,
+       orderParameterID=0,
+       type=0,
+       edges=np.linspace(-25,25,11)),
+Tiling(id=27194,
+       orderParameterID=0,
+       type=0,
+       edges=np.linspace(-20,20,5))]
+
 ffluxInput.AddTilings(tilings=tilings, currentTilingID=19)
 ffluxInput.SetInitialSpeciesCounts(iSCs=iSCs)
 ffluxInput.SetInitialSpeciesCountsBackward(iSCBs=iSCBs)

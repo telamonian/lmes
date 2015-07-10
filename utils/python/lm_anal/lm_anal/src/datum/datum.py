@@ -1,3 +1,4 @@
+from copy import deepcopy
 import numpy as np
 import re
 
@@ -20,7 +21,7 @@ def DefNPProp(name, spec):
     def prop(self, val):
         if hasattr(val, 'read_direct') and callable(getattr(val, 'read_direct', None)):
             # initialize the array if it doesn't already exist
-            self.getArray(dims=val.shape, dtype=val.dtype, name='_'+name)
+            self.getArray(dims=val.shape, dtype=spec['dtype'], name='_'+name)
             val.read_direct(self.__getattribute__('_'+name))
         else:
             self.__setattr__('_'+name, val)
@@ -98,6 +99,12 @@ class Datum(object, metaclass=DatumMetaclass):
         except AttributeError:
             self.__setattr__(name, np.zeros(dims, dtype=dtype))
             return self.__getattribute__(name)
+    
+    def getCopy(self):
+        '''
+        return a deep copy of the datum instance
+        '''
+        return deepcopy(self)
     
     def getScalar(self, name):
         return self.__getattribute__(name)

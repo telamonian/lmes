@@ -75,8 +75,14 @@ class Hist(Datum):
     def addObservations(self, obs):
         self.h+=histogramdd(obs, bins=self.getEdges())[0]
         
+    def addWeightedObservations(self, obs, weight=1.0):
+        self.h+=(histogramdd(obs, bins=self.getEdges())[0])*weight
+    
     def clearVals(self):
         self.h[:] = 0
+    
+    def reweight(self, weight):
+        self.h*=weight
     
     def setObservations(self, obs):
         '''
