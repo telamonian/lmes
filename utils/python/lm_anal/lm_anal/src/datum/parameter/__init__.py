@@ -1,0 +1,3 @@
+from lm_anal.src.datum.parameter.simulationParameter import SimulationParameter
+
+from lm_anal.src.datum.parameter.simulationParameters import SimulationParameters

@@ -15,11 +15,13 @@
 #             dct[keyword] = DefProp(keyword)
 #         return super(DatumPropertySpecMetaclass, cls).__new__(cls, clsname, bases, dct)
 
+from collections import OrderedDict
+
 class DatumPropertySpec(object): #, metaclass=DatumPropertySpecMetaclass):
     keywords = {'dtype', 'name', 'paths', 'storageType', 'targetName', 'type'}
     
     def __init__(self, name, **kwargs):
-        self.map = {}
+        self.map = OrderedDict()
         self.name = name
         for key,val in kwargs.items():
             self.map[key] = val
