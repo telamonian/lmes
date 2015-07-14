@@ -31,6 +31,5 @@ class SimulationParametersIO(HDF5IO):
             keys = self.keys()
     
         for key in keys:
-            dataKey = 0 # int(os.path.split(key)[0])
-            subCon = container.initDatum(key=dataKey, full=full)
+            subCon = container.initDatum(key=0, full=full)
             self.input(full=full, hdf5Path=os.path.join(self.hdf5RootPath, str(key)), subCon=subCon)

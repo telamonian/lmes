@@ -334,14 +334,8 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         reachedLimit = true;
     }
 
-    // See if we finished all of the steps.
-    else if (steps >= maxSteps)
-    {
-        Print::printf(Print::DEBUG, "Generated trajectory with %llu steps through time %e.", steps, time);
-    }
-
     // Otherwise we must have finished because of a species/order parameter limit, so just write out the last time.
-    else
+    else if (reachedSpeciesLimit())
     {
         // Record the species counts.
         if (writeTimeSteps)
@@ -353,6 +347,14 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         }
         reachedLimit = true;
     }
+
+    // See if we finished all of the steps.
+    else //if (steps >= maxSteps)
+    {
+        Print::printf(Print::DEBUG, "Generated trajectory with %llu steps through time %e.", steps, time);
+    }
+
+
 
     // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
     if (reachedLimit && numberFptTrackedSpecies > 0)
@@ -368,6 +370,11 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     {
 //    	printf("gillespiedsolver outputProcess: %d outputThread: %d\n", outputProcess, outputThread);
         communicator->sendMessage(outputProcess, outputThread, &msgp);
+    }
+
+    if (reachedLimit && steps>=maxSteps)
+    {
+        steps = maxSteps - 1;
     }
 
     return steps;

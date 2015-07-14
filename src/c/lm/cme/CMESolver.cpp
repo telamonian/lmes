@@ -1033,7 +1033,16 @@ void CMESolver::getState(lm::io::TrajectoryState* state)
     state->set_trajectory_id(trajectoryID);
 
     // Get the final limit ID
-    state->set_final_limit_id(finalLimitID);
+    if (finalLimitID!=-1)
+    {
+        state->set_final_limit_id(finalLimitID);
+    }
+
+    // Get the final limit type
+    if (finalLimitType!=0)
+    {
+        state->set_final_limit_type(finalLimitType);
+    }
 
     // Get the degree advancements.
     if (daFlag)
@@ -1096,7 +1105,16 @@ void CMESolver::setState(const lm::io::TrajectoryState& state)
     trajectoryID = state.trajectory_id();
 
     // Set the final limit ID
-    finalLimitID = state.final_limit_id();
+    if (state.has_final_limit_id())
+    {
+        finalLimitID = state.final_limit_id();
+    }
+
+    // Set the final limit type
+    if (state.has_final_limit_type())
+    {
+        finalLimitType = state.final_limit_type();
+    }
 
     // Set the degree advancements.
     for (int i=0; i<state.cme_state().degree_advancements().degree_advancements_size(); i++)

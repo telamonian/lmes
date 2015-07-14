@@ -438,10 +438,10 @@ protected:
                 }
                 break;
             case SpeciesLimit::INCREASING_DESCENDING:
-                if (numberSpeciesLimits==2 && (*oparams)[l.species]->getPrev() > l.limit)
-                {
-                    printf("fflux phase: %d, trajID: %d, prevOPV: %.3f, opV: %.3f\n", speciesLimits[0].limitID, trajectoryID, (*oparams)[l.species]->getPrev(), (*oparams)[l.species]->get());
-                }
+//                if (numberSpeciesLimits==2 && (*oparams)[l.species]->getPrev() > l.limit)
+//                {
+//                    printf("fflux phase: %d, trajID: %d, wuID: %d, prevOPV: %.3f, opV: %.3f\n", speciesLimits[0].limitID, trajectoryID, workUnitId, (*oparams)[l.species]->getPrev(), (*oparams)[l.species]->get());
+//                }
                 if ((*oparams)[l.species]->getPrev() <= l.limit && (*oparams)[l.species]->get() > l.limit)
                 {
                     finalLimitID = l.limitID;

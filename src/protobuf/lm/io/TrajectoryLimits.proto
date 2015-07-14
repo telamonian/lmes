@@ -41,7 +41,7 @@ package lm.io;
 
 message TrajectoryLimits {
     enum LimitType {MAXTIME=1; MINSPECIESCOUNT=10; MAXSPECIESCOUNT=11; DECREASINGORDERPARAMETER=20; INCREASINGORDERPARAMETER=21;}
-    enum Arrangement {ASCENDING=1;DESCENDING=2;}
+    enum Arrangement {ASCENDING=0;DESCENDING=1;}
 
     optional double max_time                            = 1;
     repeated int32 min_species_count                    = 2 [packed=true];
