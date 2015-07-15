@@ -6,10 +6,10 @@ class FFluxOutputToOParamHistT(BaseT):
     srcType = FFluxOutput
     dstType = OParamHist
     
-    def __init__(self, src, dst, oparams, specTrajs, tilings, **kwargs):
+    def __init__(self, src, dst, oparams, simParams, specTrajs, tilings, **kwargs):
         '''
         oparams: the complete oparams container
         tilings: a list of all the tilings you want to use to define the bins of the resultant histogram (OParamHist)
         specTrajs (temporary): a SpeciesTrajectories container with the data relevant to t
         '''
-        super().__init__(src, dst, oparams=oparams, specTrajs=specTrajs, tilings=tilings, **kwargs)
+        super().__init__(src, dst, oparams=oparams, simParams=simParams, specTrajs=specTrajs, tilings=tilings, **kwargs)

@@ -69,7 +69,52 @@ class Hist(Datum):
         '''
         get the Kullback-Leibler divergence between this hist and another. implemented using the entopy function from scipy.stats
         '''
-        return st.entropy(pk=self.h.flatten(), qk=other.h.flatten())
+        # scipy-based calculation
+        # return st.entropy(pk=self.h.flatten(), qk=other.h.flatten())
+        val = 0
+        it = np.nditer((self.h, other.h), flags=['multi_index'])
+        while not it.finished:
+            if it[0]==0 or it[1]==0:
+                it.iternext()
+                continue
+            val+=it[0]*np.log(it[0]/it[1])
+            it.iternext()
+        return val
+    
+    def getWeightedKLDivergence(self, other, weight=1):
+        '''
+        get the Kullback-Leibler divergence between this hist and another. implemented using the entopy function from scipy.stats
+        '''
+        # scipy-based calculation
+        # return st.entropy(pk=self.h.flatten(), qk=other.h.flatten())
+        val = 0
+        it = np.nditer((self.h, other.h), flags=['multi_index'])
+        while not it.finished:
+            if it[0]==0 or it[1]==0:
+                it.iternext()
+                continue
+            val+=it[0]*np.log(it[0]/(it[1]*weight))
+            it.iternext()
+        return val
+    
+    def getWeightedRMSD(self, other, weight=1):
+        '''
+        get the Kullback-Leibler divergence between this hist and another. implemented using the entopy function from scipy.stats
+        '''
+        # scipy-based calculation
+        # return st.entropy(pk=self.h.flatten(), qk=other.h.flatten())
+        val = 0
+        count = 0
+        it = np.nditer((self.h, other.h), flags=['multi_index'])
+        while not it.finished:
+            if it[0]==0 or it[1]==0:
+                it.iternext()
+                continue
+            val+=(it[0]-it[1]*weight)**2
+            count+=1
+            it.iternext()
+        val = np.sqrt(val/count)
+        return val
     
 # mutators
     def addObservations(self, obs):
@@ -83,6 +128,7 @@ class Hist(Datum):
     
     def reweight(self, weight):
         self.h*=weight
+        return self
     
     def setObservations(self, obs):
         '''

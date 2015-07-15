@@ -1,6 +1,7 @@
 import numpy as np
+from scipy.optimize import minimize
 
-from lm_anal.src.datum.hist import HistBase
+from lm_anal.src.datum.hist import HistBase, OParamHists
 from lm_anal.src.datum.fflux import FFluxBase
 from lm_anal.src.transform.propertyTransform import BasePT
 
@@ -10,16 +11,20 @@ class FFluxOutputTrajectoriesToHistOParamValuesPT(BasePT):
     srcProp = 'trajectories'
     dstProp = 'order_parameter_values'
     
-    def __init__(self, oparams, specTrajs, tilings, **kwargs):
+    def __init__(self, oparams, simParams, specTrajs, tilings, **kwargs):
         self.oparams = oparams
+        self.simParams = simParams
         self.specTrajs = specTrajs
         self.tilings = tilings
     
     def __call__(self, srcDatum, dstDatum):
         try:
+            stepTime = float(self.simParams.simulationParameter['writeInterval'])
             dstDatum.setTilings(oparams=self.oparams, tilings=self.tilings)
-            backwardDatum = dstDatum.getCopy()
-            oD = dstDatum.getCopy()
+            dstDatum.subDatum = OParamHists()
+            dstDatum.subDatum['FORWARD'] = dstDatum.getCopy()
+            dstDatum.subDatum['BACKWARD'] = dstDatum.getCopy()
+            dstDatum.subDatum['ZERO'] = dstDatum.getCopy()
             for trajID,traj in self.specTrajs:
                 try:
                     trajPhase = srcDatum.trajectories['FORWARD/INITIAL'].trajectoryPhaseMap[trajID]
@@ -29,34 +34,36 @@ class FFluxOutputTrajectoriesToHistOParamValuesPT(BasePT):
                     direction = 'BACKWARD'
                 if trajPhase==0:
                     weight = 1.0
-                    timeBoolArr = (traj.time % 4.0 == 0); timeBoolArr[0] = False; timeBoolArr[-1] = False
+                    timeBoolArr = (traj.time % stepTime == 0); timeBoolArr[0] = False; timeBoolArr[-1] = False
                     if np.any(timeBoolArr):
                         obs = dstDatum.oparam.calc(traj.species_count[timeBoolArr])
-                        oD.addWeightedObservations(obs, weight=weight)
+                        dstDatum.subDatum['ZERO'].addWeightedObservations(obs, weight=weight)
                     continue
                 elif trajPhase==1:
-                    weight = 4.0
+                    weight = stepTime
                 else:
-#                     if not isinstance(trajPhase - 1, int):
-#                         print(trajPhase - 1)
-                    weight = 4*srcDatum.basins[direction].probability_one_to_i_plus_one[trajPhase - 1]
-                timeBoolArr = (traj.time % 4.0 == 0); timeBoolArr[0] = False; timeBoolArr[-1] = False
+                    weight = stepTime*srcDatum.basins[direction].probability_one_to_i_plus_one[trajPhase - 1]
+                timeBoolArr = (traj.time % stepTime == 0); timeBoolArr[0] = False; timeBoolArr[-1] = False
                 if np.any(timeBoolArr):
                     obs = dstDatum.oparam.calc(traj.species_count[timeBoolArr])
                     if direction=='FORWARD':
-                        dstDatum.addWeightedObservations(obs, weight=weight)
+                        dstDatum.subDatum['FORWARD'].addWeightedObservations(obs, weight=weight)
                     else:
-                        backwardDatum.addWeightedObservations(obs, weight=weight)
-            for datum,direction in zip((dstDatum, backwardDatum), ('FORWARD', 'BACKWARD')):
-                datum.reweight(srcDatum.basins[direction].this_basin_last_visited_probability
-                              *srcDatum.basins[direction].flux_out_of_tile_zero)
-            dstDatum+=backwardDatum
+                        dstDatum.subDatum['BACKWARD'].addWeightedObservations(obs, weight=weight)
+            for direction in ('FORWARD', 'BACKWARD'):
+                dstDatum.subDatum[direction].reweight(srcDatum.basins[direction].this_basin_last_visited_probability
+                                                      *srcDatum.basins[direction].flux_out_of_tile_zero)
+            dstDatum+=dstDatum.subDatum['FORWARD']
+            dstDatum+=dstDatum.subDatum['BACKWARD']
             
+            # stiching the phase zero stuff on            
             nonzeroArr = np.nonzero(dstDatum.h)
-            weight = (dstDatum.h[1,26] + dstDatum.h[26,1])/(oD.h[1,26] + oD.h[26,1])
-            print('the weight to match phase zero is: %.8f' % weight)
-            oD.reweight(weight)
-            oD.h[nonzeroArr] = 0
-            dstDatum+=oD
+            weight = minimize(lambda x: dstDatum.getWeightedRMSD(dstDatum.subDatum['ZERO'], weight=x), x0=[.0001], method='Nelder-Mead')
+            #weight = minimize(lambda x: dstDatum.getWeightedKLDivergence(dstDatum.subDatum['ZERO'], weight=x), x0=[.0001], method='Nelder-Mead')
+            print('the weight to match phase zero is: %.8f' % weight.x)
+            dstDatum.subDatum['ZERO'].reweight(weight.x)
+            dstDatum.subDatum['ZERO_MASKED'] = dstDatum.subDatum['ZERO'].getCopy()
+            dstDatum.subDatum['ZERO_MASKED'].h[nonzeroArr] = 0
+            dstDatum+=dstDatum.subDatum['ZERO_MASKED']
         except AttributeError:
             pass
