@@ -27,8 +27,8 @@ class HDF5IO(IO):
                 self.inputArray(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon)
             elif spec.type=='embedded':
                 self.inputEmbedded(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon, full=full)
-            elif spec.type=='tilingHist':
-                self.inputTilingHist(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon)
+            elif spec.type=='hist':
+                self.inputHist(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon)
             elif spec.type=='special':
                 self.__getattribute__('input' + CamelCaseUpper(spec.name))(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon, full=full)
             else:
@@ -46,7 +46,7 @@ class HDF5IO(IO):
         subIO.rff(container=subData, full=full)
         return subData
 
-    def inputTilingHist(self, hdf5Path, hdf5Spec, subCon):
+    def inputHist(self, hdf5Path, hdf5Spec, subCon):
         pass
 
     def _has(self):
@@ -73,9 +73,40 @@ class HDF5IO(IO):
     def keys(self):
         return self.wrapperHDF5(self._keys)
 
+    def output(self, full, hdf5Path, subCon):
+        for spec in (spec for spec in self.hdf5Specs if (not spec.fullOnly or full)):
+            if spec.type=='attribute':
+                self.outputAttribute(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon)
+            elif spec.type=='dataset':
+                self.outputArray(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon)
+            elif spec.type=='embedded':
+                self.outputEmbedded(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon, full=full)
+            elif spec.type=='hist':
+                self.outputHist(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon)
+            elif spec.type=='special':
+                self.__getattribute__('output' + CamelCaseUpper(spec.name))(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon, full=full)
+            else:
+                raise
+    
+    def outputArray(self, hdf5Path, hdf5Spec, subCon):
+        del self.file[hdf5Path][hdf5Spec.subKey]
+        self.file[hdf5Path].create_dataset(hdf5Spec.subKey, data=subCon.getArray(name=hdf5Spec.name))
+    
+    def outputAttribute(self, hdf5Path, hdf5Spec, subCon):
+        self.file[hdf5Path].attrs[hdf5Spec.subKey] = subCon.getScalar(name=hdf5Spec.name)
+    
+    def outputEmbedded(self, hdf5Path, hdf5Spec, subCon, full):
+        subData = subCon.getEmbedded(name=hdf5Spec.name)
+        subIO = hdf5Spec.IOType(fPath=self.fPath, hdf5RootPath=hdf5Path)
+        subIO.wtf(container=subData, full=full)
+        return subData
+
+    def outputHist(self, hdf5Path, hdf5Spec, subCon):
+        pass
+    
     def _rff(self, container, full, keys):
         '''
-        internal rff (read from file) for data stored in hdf5 files
+        internal generic rff (read from file) for data stored in hdf5 files
         '''
         if keys==None:
             keys = self.keys()
@@ -112,14 +143,25 @@ class HDF5IO(IO):
             yield self[int(key)]
             del self[int(key)]
         
-    def _wtf(self, keys):
-        pass
+    def _wtf(self, container, full=True, keys):
+        '''
+        internal generic rff (read from file) for data stored in hdf5 files
+        '''
+        if keys==None:
+            keys = container.keys()
+            
+        for key in keys:
+            try:
+                outKey = '%07d' % key
+            except TypeError:
+                outKey = str(key)
+            self.output(full=full, hdf5Path=os.path.join(self.hdf5RootPath, outKey), subcon=container[key])
         
-    def wtf(self, keys=None):
+    def wtf(self, full=True, keys=None, **kwargs):
         '''
         wtf (write to file) for hdf5 files
         '''
-        self.wrapperHDF5(self._wtf, mode='a', keys=keys)
+        self.wrapperHDF5(self._wtf, full=full, mode='a', keys=keys, **kwargs)
 
     def wrapperHDF5(self, func, mode='r', **kwargs):
         '''
