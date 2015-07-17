@@ -67,12 +67,19 @@ class Hist(Datum):
     
     def getKLDivergence(self, other):
         '''
-        get the Kullback-Leibler divergence between this hist and another. implemented using the entopy function from scipy.stats
+        get the Kullback-Leibler divergence between this hist and another. alternatively, can be implemented using the entopy function from scipy.stats
         '''
         # scipy-based calculation
-        # return st.entropy(pk=self.h.flatten(), qk=other.h.flatten())
+        #return st.entropy(pk=self.h.flatten(), qk=other.h.flatten())
+        
+        # currently, both distributions get normalized in a totally straight-forward way 
+        sNormed = self.h/np.sum(self.h)   #[other.h!=0])
+        oNormed = other.h/np.sum(other.h) #[self.h!=0])
+        # alternatively, the distributions could be normalized in a way that takes into account the fact that we're masking out any bins that aren't nonzero in both distributions
+        #sNormed = self.h/np.sum(self.h[other.h!=0])
+        #oNormed = other.h/np.sum(other.h[self.h!=0])
         val = 0
-        it = np.nditer((self.h, other.h), flags=['multi_index'])
+        it = np.nditer((sNormed, oNormed), flags=['multi_index'])
         while not it.finished:
             if it[0]==0 or it[1]==0:
                 it.iternext()
@@ -83,10 +90,8 @@ class Hist(Datum):
     
     def getWeightedKLDivergence(self, other, weight=1):
         '''
-        get the Kullback-Leibler divergence between this hist and another. implemented using the entopy function from scipy.stats
+        get the Kullback-Leibler divergence between this hist and another, where the values of the other hist are multiplied by weight.
         '''
-        # scipy-based calculation
-        # return st.entropy(pk=self.h.flatten(), qk=other.h.flatten())
         val = 0
         it = np.nditer((self.h, other.h), flags=['multi_index'])
         while not it.finished:
@@ -99,7 +104,7 @@ class Hist(Datum):
     
     def getWeightedRMSD(self, other, weight=1):
         '''
-        get the Kullback-Leibler divergence between this hist and another. implemented using the entopy function from scipy.stats
+        get the RMSD between this hist and another. implemented using the entopy function from scipy.stats
         '''
         # scipy-based calculation
         # return st.entropy(pk=self.h.flatten(), qk=other.h.flatten())

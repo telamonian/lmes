@@ -113,6 +113,7 @@ class HDF5IO(IO):
     
         for key in keys:
             subCon = container.initDatum(key=int(key), full=full)
+            # the integer keys in Lattice Microbes hdf5 files are usually in %07d format, so if we can't find a key try that
             try:
                 self.input(full=full, hdf5Path=os.path.join(self.hdf5RootPath, str(key)), subCon=subCon)
             except KeyError:
@@ -143,7 +144,7 @@ class HDF5IO(IO):
             yield self[int(key)]
             del self[int(key)]
         
-    def _wtf(self, container, full=True, keys):
+    def _wtf(self, container, full, keys):
         '''
         internal generic rff (read from file) for data stored in hdf5 files
         '''
@@ -151,9 +152,10 @@ class HDF5IO(IO):
             keys = container.keys()
             
         for key in keys:
-            try:
+            # if the key is an integer, write it in the file as standard %07d Lattice Microbes hdf5 output form
+            if isinstance(key, int):
                 outKey = '%07d' % key
-            except TypeError:
+            else:
                 outKey = str(key)
             self.output(full=full, hdf5Path=os.path.join(self.hdf5RootPath, outKey), subcon=container[key])
         

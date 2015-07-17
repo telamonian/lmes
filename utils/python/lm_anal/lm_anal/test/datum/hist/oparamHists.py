@@ -74,13 +74,13 @@ class OParamHistsTestCase(unittest.TestCase):
         '''
         self.loadData(full=True)
         
-        it = np.nditer(self.opHists[2].h, flags=['multi_index'])
-        while not it.finished:
-            if it[0]==0:
-                self.opHists[5].h[it.multi_index[0], it.multi_index[1]] = 0
-            it.iternext()
+#         it = np.nditer(self.opHists[2].h, flags=['multi_index'])
+#         while not it.finished:
+#             if it[0]==0:
+#                 self.opHists[5].h[it.multi_index[0], it.multi_index[1]] = 0
+#             it.iternext()
         klDiv = self.opHists[5].compare(self.opHists[2])
-        intendedKLDiv = 0.57520780480398515
+        intendedKLDiv = -0.12568524690756483
         self.assertAlmostEqual(klDiv, intendedKLDiv)
     
     def test_order_parameter_values_from_transfrom(self):
