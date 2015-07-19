@@ -34,6 +34,15 @@ def CamelCaseUpper(s):
     else:
         return s[0].upper() + s[1:]
 
+def ListInStr(l,s):
+    '''
+    test if any of a list of substrings is in a string
+    '''
+    for subS in l:
+        if subS in s:
+            return True
+    return False
+
 def ShortenName(s):
     '''
     input: CamelCase style name 

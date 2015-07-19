@@ -58,6 +58,7 @@ public:
     virtual ~Communicator();
 
     std::string getHostname();
+    int getLastMessageSize() {return lastMessageSize;}
     int getSourceProcess() {return source.process;}
     int getSourceThread() {return source.thread;}
     int getMasterOutputProcess() {return masterOutput.process;}
@@ -74,6 +75,7 @@ public:
 private:
     char* inputBuffer;
     int inputBufferSize;
+    int lastMessageSize;
     Endpoint masterOutput;
     char* outputBuffer;
     int outputBufferSize;

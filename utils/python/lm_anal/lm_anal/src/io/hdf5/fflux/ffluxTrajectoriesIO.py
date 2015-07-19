@@ -1,7 +1,6 @@
 import os
-import numpy as np
 
-from lm_anal.src.helper import DirectionEnum, LifecycleEnum
+from lm_anal.src.helper import DirectionEnum, LifecycleEnum, ListInStr
 from lm_anal.src.io.hdf5 import HDF5IO, HDF5Spec, HDF5Specs
 
 class FFluxTrajectoriesIO(HDF5IO):
@@ -24,10 +23,10 @@ class FFluxTrajectoriesIO(HDF5IO):
         '''
         finds extant FFluxOutput data in an hdf5 file and returns the keys to the Trajectories part of it
         '''
-        return [os.path.relpath(lg.name, start='/'+self.hdf5RootPath)  
-                for dg in self.file[self.hdf5RootPath].values()         
-                for lg in dg.values()                                 
-                if ('FORWARD' in dg.name or 'BACKWARD' in dg.name) and ('INITIAL' in lg.name or 'FINAL' in lg.name)]
+        return [os.path.relpath(lg.name, start='/'+self.hdf5RootPath)
+                for dg in self.file[self.hdf5RootPath].values()
+                for lg in dg.values()
+                if ListInStr(['FORWARD','BACKWARD'], dg.name) and ListInStr(['INITIAL','RUNNING','FINAL'], lg.name)]
      
     def _rff(self, container, full, keys):
         '''

@@ -51,14 +51,14 @@ namespace lm {
 namespace message {
 
 Communicator::Communicator(Endpoint source)
-:source(source),masterOutput(source),inputBufferSize(100*1024*1024),inputBuffer(NULL),outputBufferSize(100*1024*1024),outputBuffer(NULL)
+:source(source),lastMessageSize(0),masterOutput(source),inputBufferSize(100*1024*1024),inputBuffer(NULL),outputBufferSize(100*1024*1024),outputBuffer(NULL)
 {
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(inputBufferSize, MPI_INFO_NULL, &inputBuffer));
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(outputBufferSize, MPI_INFO_NULL, &outputBuffer));
 }
 
 Communicator::Communicator(int process, int thread)
-:source(process,thread),masterOutput(process,thread),inputBufferSize(100*1024*1024),inputBuffer(NULL),outputBufferSize(100*1024*1024),outputBuffer(NULL)
+:source(process,thread),lastMessageSize(0),masterOutput(process,thread),inputBufferSize(100*1024*1024),inputBuffer(NULL),outputBufferSize(100*1024*1024),outputBuffer(NULL)
 {
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(inputBufferSize, MPI_INFO_NULL, &inputBuffer));
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(outputBufferSize, MPI_INFO_NULL, &outputBuffer));
@@ -105,6 +105,7 @@ void Communicator::sendMessage(Endpoint dest, lm::message::Message* msg)
 
     // Serialize the message into the buffer.
     int messageLength=msg->ByteSize();
+    lastMessageSize = messageLength;
     if (messageLength > outputBufferSize) throw lm::Exception("Message too large to serialize into output buffer",messageLength,outputBufferSize);
 
     PROF_BEGIN(PROF_MESSAGE_SERIALIZE);

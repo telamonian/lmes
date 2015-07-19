@@ -161,6 +161,9 @@ protected:
     // Messages used to send the large-ish FFluxOutput at the end of the simulation and to stream fflux TrajectoryOutput messages as the simulation runs
     lm::message::Message msg;
     lm::message::Message msgStreaming;
+
+    // tuning parameter for setting how much fflux data has to accumulate before it is sent off to the master output. normally this is dynamically adjusted
+    int ffluxOutputQueueSize;
 };
 
 }
