@@ -71,6 +71,7 @@ typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::IncreasingO
 
 class FFluxTrajectoryList : public lm::trajectory::TrajectoryList
 {
+    friend class FFluxSupervisor;
 public:
     // enumerated type used for describing the direction of the current fflux simulation relative to the arrangements (low-to-high or high-to-low) of the individual interfaces
     enum Direction {FORWARD, BACKWARD};
@@ -123,6 +124,7 @@ protected:
     // methods related to fflux data output
     virtual void ffluxOutputAddBasin(CrossingsMap& crossings, DwellTimeMap& dwellTimes, FinishedTrajectoriesCountMap& finishedTrajectoriesCounts);
     virtual void ffluxOutputAddTrajectory(FFluxTrajectory* traj, lm::io::FFluxOutput::Lifecycle lifecycle);
+    virtual void ffluxOutputAddTrajectory(const lm::io::SpeciesCounts& specCountsMsg, lm::io::FFluxOutput::Lifecycle lifecycle);
     virtual void ffluxOutputFinishTrajectory();
     virtual void ffluxOutputPrintBasin(CrossingsMap& crossings, FinishedTrajectoriesCountMap& finishedTrajectoriesCounts);
     virtual void ffluxOutputPrintFinal_DinnerMethod(SavedCrossings& savedCrossings, SavedDwellTimes& savedDwellTimes, SavedFinishedTrajectoriesCounts& savedFinishedTrajectoriesCounts, SavedHists& savedHists);

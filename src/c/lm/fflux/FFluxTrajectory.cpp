@@ -213,7 +213,6 @@ double FFluxTrajectory::getLastLimitTime()
 
 void FFluxTrajectory::getLastSpeciesCounts(lm::io::FFluxOutput::TrajectoryOutput* trajectoryOutputBuf)
 {
-    uint speciesCountSize = getSpeciesCounts()->species_count_size();
     uint offset = (getSpeciesCounts()->number_entries() - 1)*(getSpeciesCounts()->number_species());
     for (int i=0; i<getSpeciesCounts()->number_species(); i++)
     {

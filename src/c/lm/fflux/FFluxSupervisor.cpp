@@ -74,7 +74,7 @@ void* FFluxSupervisor::allocateObject()
     return new FFluxSupervisor();
 }
 
-FFluxSupervisor::FFluxSupervisor(): realOutputWriterProcess(-1), realOutputWriterThread(-1)
+FFluxSupervisor::FFluxSupervisor()
 {
 }
 
@@ -97,9 +97,21 @@ void FFluxSupervisor::finishSimulation()
 	*ffluxOutput = *(static_cast<lm::fflux::FFluxTrajectoryList*>(trajectoryList)->getFFluxOutput());
 
 	// Send the message
-	communicator.sendMessage(realOutputWriterProcess, realOutputWriterThread, &msgp);
+	communicator.sendMessageToMasterOutput(&msgp);
 
 	SimulationSupervisor::finishSimulation();
+}
+
+void FFluxSupervisor::receivedProcessWorkUnitOutput(lm::message::Message& msg)
+{
+    // Loop over every output in the message.
+    for (int i=0; i<msg.process_work_unit_output_size(); i++)
+    {
+        if (msg.process_work_unit_output(i).has_species_counts())
+        {
+            (static_cast<FFluxTrajectoryList*>(trajectoryList))->ffluxOutputAddTrajectory(msg.process_work_unit_output(i).species_counts(), lm::io::FFluxOutput::RUNNING);
+        }
+    }
 }
 
 void FFluxSupervisor::receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg)
@@ -108,10 +120,9 @@ void FFluxSupervisor::receivedStartedOutputWriter(const lm::message::StartedOutp
     hasOutputWriterStarted = true;
 
     // set output process/thread to that of this supervisor, while keeping track of the real values
-    outputWriterProcess = msg.process(); //communicator.getSourceProcess();
-    outputWriterThread = msg.thread(); //communicator.getSourceThread();
-    realOutputWriterProcess = msg.process();
-    realOutputWriterThread = msg.thread();
+    outputWriterProcess = communicator.getSourceProcess();
+    outputWriterThread = communicator.getSourceThread();
+    communicator.setMasterOutputEndpoint(msg.process(), msg.thread());
     startSimulationIfAllWorkersStarted();
 }
 

@@ -51,14 +51,14 @@ namespace lm {
 namespace message {
 
 Communicator::Communicator(Endpoint source)
-:source(source),inputBufferSize(100*1024*1024),inputBuffer(NULL),outputBufferSize(100*1024*1024),outputBuffer(NULL)
+:source(source),masterOutput(source),inputBufferSize(100*1024*1024),inputBuffer(NULL),outputBufferSize(100*1024*1024),outputBuffer(NULL)
 {
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(inputBufferSize, MPI_INFO_NULL, &inputBuffer));
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(outputBufferSize, MPI_INFO_NULL, &outputBuffer));
 }
 
 Communicator::Communicator(int process, int thread)
-:source(process,thread),inputBufferSize(100*1024*1024),inputBuffer(NULL),outputBufferSize(100*1024*1024),outputBuffer(NULL)
+:source(process,thread),masterOutput(process,thread),inputBufferSize(100*1024*1024),inputBuffer(NULL),outputBufferSize(100*1024*1024),outputBuffer(NULL)
 {
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(inputBufferSize, MPI_INFO_NULL, &inputBuffer));
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(outputBufferSize, MPI_INFO_NULL, &outputBuffer));
@@ -117,6 +117,12 @@ void Communicator::sendMessage(Endpoint dest, lm::message::Message* msg)
     //lm::Print::printf(lm::Print::DEBUG, "Sent message %d:%d->%d:%d = %d",process,thread,destProcess,destThread,messageLength);
 
     PROF_END(PROF_MESSAGE_SEND);
+}
+
+void Communicator::setMasterOutputEndpoint(int moProcess, int moThread)
+{
+    masterOutput.process = moProcess;
+    masterOutput.thread = moThread;
 }
 
 void Communicator::receiveMessage(lm::message::Message* msg)

@@ -598,7 +598,7 @@ void Hdf5File::setFFluxOutput(lm::io::FFluxOutput* ffluxOutput)
     hid_t directionGroup, lifecycleGroup;
     int outIndex;
     vector<string> directionStrings; directionStrings.push_back("FORWARD"); directionStrings.push_back("BACKWARD");
-    vector<string> lifecycleStrings; lifecycleStrings.push_back("INITIAL"); lifecycleStrings.push_back("FINAL");
+    vector<string> lifecycleStrings; lifecycleStrings.push_back("INITIAL"); lifecycleStrings.push_back("RUNNING"); lifecycleStrings.push_back("FINAL");
 
     if (ffluxOutput->has_final_output())
     {
@@ -625,7 +625,7 @@ void Hdf5File::setFFluxOutput(lm::io::FFluxOutput* ffluxOutput)
             continue;
         }
         lm::io::FFluxOutput::TrajectoryOutput* trajOut = ffluxOutput->mutable_trajectory_outputs(i);
-        outIndex = (trajOut->direction())*2 + trajOut->lifecycle();
+        outIndex = (trajOut->direction())*3 + trajOut->lifecycle();
         // If the group corresponding to the basin direction already exists, get the handle to it. Otherwise, create it
         if ((directionGroup = H5Gopen2(ffluxOutputGroup, directionStrings[trajOut->direction()].c_str(), H5P_DEFAULT))>=0) {}
         else {HDF5_EXCEPTION_CALL(directionGroup, H5Gcreate2(ffluxOutputGroup, directionStrings[trajOut->direction()].c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));}

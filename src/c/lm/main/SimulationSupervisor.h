@@ -115,6 +115,8 @@ protected:
     virtual void receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg);
     virtual void receivedPerformCheckpointing(const lm::message::PerformCheckpointing& msg);
     virtual void receivedFinishedCheckpointing(const lm::message::FinishedCheckpointing& msg);
+    virtual void receivedProcessWorkUnitOutput(lm::message::Message& msg);
+    virtual bool receivedOther(lm::message::Message& msg);
 
 private:
     bool parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg);

@@ -169,7 +169,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         speciesCountsDataSet->set_number_entries(0);
 
         // If this is the start of the trajectory, add the initial counts.
-        if (time == 0.0 || trajectoryStarted==false)
+        if ((time == 0.0 || trajectoryStarted==false) && !ffluxFlag)
         {
 //        	printf("traj_id %d has_started %d\n", trajectoryId, trajectoryStarted);
             nextSpeciesCountsWriteTime = ceil(time/writeInterval)*writeInterval; //writeInterval;
@@ -314,7 +314,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     {
         time = maxTime;
         Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);
-        if (writeTimeSteps)
+        if (writeTimeSteps && !ffluxFlag)
         {
             while (nextSpeciesCountsWriteTime <= (maxTime+1e-9))
             {
@@ -338,7 +338,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     else if (reachedSpeciesLimit())
     {
         // Record the species counts.
-        if (writeTimeSteps)
+        if (writeTimeSteps && !ffluxFlag)
         {
             // Record the species counts.
             speciesCountsDataSet->set_number_entries(speciesCountsDataSet->number_entries()+1);
@@ -353,8 +353,6 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     {
         Print::printf(Print::DEBUG, "Generated trajectory with %llu steps through time %e.", steps, time);
     }
-
-
 
     // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
     if (reachedLimit && numberFptTrackedSpecies > 0)

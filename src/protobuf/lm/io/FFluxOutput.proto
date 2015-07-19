@@ -50,7 +50,8 @@ message FFluxOutput {
     
     enum Lifecycle {
     	INITIAL		= 0;
-    	FINAL		= 1;
+    	RUNNING		= 1;
+    	FINAL		= 2;
     }
 
 	// holds a number of pairs of long, single column tables

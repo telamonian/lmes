@@ -127,7 +127,7 @@ void Trajectory::initMsg(map<string,string>& simulationParameters)
 {
     // Set the default work unit-specific limits
     int64_t maxWorkUnitSteps = atoll(simulationParameters["maxWorkUnitSteps"].c_str());
-    if (maxWorkUnitSteps <= 0) maxWorkUnitSteps = 10000000;
+    if (maxWorkUnitSteps <= 0) maxWorkUnitSteps = 1e15;
     getRunMsg()->set_max_steps(maxWorkUnitSteps);
 }
 

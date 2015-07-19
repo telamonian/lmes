@@ -57,22 +57,28 @@ public:
     Communicator(int process, int thread);
     virtual ~Communicator();
 
+    std::string getHostname();
     int getSourceProcess() {return source.process;}
     int getSourceThread() {return source.thread;}
+    int getMasterOutputProcess() {return masterOutput.process;}
+    int getMasterOutputThread() {return masterOutput.thread;}
+
+    void receiveMessage(lm::message::Message* msg);
 
     void sendMessage(int destProcess, int destThread, lm::message::Message* msg);
     void sendMessage(Endpoint dest, lm::message::Message* msg);
-    void receiveMessage(lm::message::Message* msg);
+    void sendMessageToMasterOutput(lm::message::Message* msg) {sendMessage(masterOutput, msg);}
 
-    std::string getHostname();
+    void setMasterOutputEndpoint(int moProcess, int moThread);
 
 private:
-    Endpoint source;
-    int inputBufferSize;
     char* inputBuffer;
-    int outputBufferSize;
+    int inputBufferSize;
+    Endpoint masterOutput;
     char* outputBuffer;
+    int outputBufferSize;
     MPI_Status messageStatus;
+    Endpoint source;
 };
 
 }

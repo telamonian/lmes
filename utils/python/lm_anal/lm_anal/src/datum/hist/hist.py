@@ -26,9 +26,13 @@ class Hist(Datum):
 # initializers
     def __init__(self, full=False):
         super().__init__(full=full)
+        self.mask = None
+        self.threshold = 0
+        self.weight = 1
 
     def initH(self):
         self.h = np.zeros(self.dims)
+        self.mask = np.ones(self.dims, dtype=bool)
 
 # properties
     @property
@@ -65,11 +69,12 @@ class Hist(Datum):
         '''
         return [self.edges[int(np.sum(self.rDims[:i])):int(np.sum(self.rDims[:i + 1]))] for i in range(self.rank)]
     
-    def getKLDivergence(self, other):
+    def getKLDivergence(self, other, absolute=False):
         '''
-        get the Kullback-Leibler divergence between this hist and another. alternatively, can be implemented using the entopy function from scipy.stats
+        get the Kullback-Leibler divergence between this hist and another.
+        absolute: if true, return absolute value of KL div
         '''
-        # scipy-based calculation
+        # implementation of KL div from scipy
         #return st.entropy(pk=self.h.flatten(), qk=other.h.flatten())
         
         # currently, both distributions get normalized in a totally straight-forward way 
@@ -86,11 +91,16 @@ class Hist(Datum):
                 continue
             val+=it[0]*np.log(it[0]/it[1])
             it.iternext()
-        return val
+        if absolute:
+            return np.abs(val)
+        else:
+            return val
     
-    def getWeightedKLDivergence(self, other, weight=1):
+    def getWeightedKLDivergence(self, other, absolute=False, weight=1):
         '''
         get the Kullback-Leibler divergence between this hist and another, where the values of the other hist are multiplied by weight.
+        absolute: if true, return absolute value of KL div
+        weight: unlike the standard getKLDivergence, this function does not normalize. Rather, the other distribution is weighted by this parameter
         '''
         val = 0
         it = np.nditer((self.h, other.h), flags=['multi_index'])
@@ -131,8 +141,50 @@ class Hist(Datum):
     def clearVals(self):
         self.h[:] = 0
     
+    def combine(self, other, autothreshold=False, otherMask=None):
+        '''
+        method to additively combine two histograms
+        self.h.shape must == other.h.shape, but they can be otherwise dissimilar (different total N, different normalization, etc.)
+        '''
+        pass
+    
+    def recalc(self, mask=None, threshold=None, weight=None):
+        '''
+        one stop shop for the heavy lifting involved with manipulating the histogram data
+        ensures that changing the weight won't affect the thresholding, etc.
+        also ensures that all manipulations start from the same raw data, so that we're not reweighting an already reweighted histogram, etc.
+        '''
+        if mask!=None:
+            self.mask = mask
+        if threshold!=None:
+            self.threshold = threshold
+        if weight!=None:
+            self.weight = weight
+            
+        zeroMask = np.logical_and(self.mask, np.logical_not(self.h_raw>=self.threshold))
+        try:
+            self.h[...] = self.h_raw*self.weight
+            self.h[zeroMask] = 0
+        except AttributeError:
+            self.h_raw = self.h.copy()
+            self.h[...] = self.h_raw*self.weight
+            self.h[zeroMask] = 0
+    
+    def remask(self, mask):
+        '''
+        function that takes a boolean mask (same size as self.h) and zeros out the values in self.h that correspond to the 'False' values in the mask
+        '''
+        if mask.size!=np.sum(self.dims):
+            raise
+        self.recalc(mask=mask)
+        return self
+    
+    def rethreshold(self, threshold):
+        self.recalc(threshold=threshold)
+        return self
+    
     def reweight(self, weight):
-        self.h*=weight
+        self.recalc(weight=weight)
         return self
     
     def setObservations(self, obs):

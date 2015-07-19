@@ -161,11 +161,11 @@ void FFluxTrajectoryList::initFFluxOutput()
 	    // create 2 basin_outputs entries, one for each direction
 	    basinOutput = getFFluxOutput()->add_basin_outputs();
         basinOutput->set_direction(static_cast<lm::io::FFluxOutput::Direction>(direc));
-	    for (int lcycle=0; lcycle!=2; lcycle++)
+	    for (int lcycle=0; lcycle!=3; lcycle++)
 	    {
 	        /////// FIXME //////////
 
-	        // create 4 trajectory_outputs entries, one for each combination of direction and lifecycle
+	        // create 6 trajectory_outputs entries, one for each combination of direction and lifecycle
             trajectoryOutput = getFFluxOutputStreaming()->add_trajectory_outputs();
             trajectoryOutput->set_direction(static_cast<lm::io::FFluxOutput::Direction>(direc));
             trajectoryOutput->set_lifecycle(static_cast<lm::io::FFluxOutput::Lifecycle>(lcycle));
@@ -541,8 +541,11 @@ void FFluxTrajectoryList::ffluxOutputAddBasin(CrossingsMap& crossings, DwellTime
 
 void FFluxTrajectoryList::ffluxOutputAddTrajectory(FFluxTrajectory* traj, lm::io::FFluxOutput::Lifecycle lifecycle)
 {
-	// get a number from 0-3 based on the current direction of the fflux simulation and the lifecycle of the trajectory being added
-	uint outIndex = (direction!=FORWARD)<<1 | lifecycle!=lm::io::FFluxOutput::INITIAL;
+	// get a number from 0-5 based on the current direction of the fflux simulation and the lifecycle of the trajectory being added
+    // exciting bitshift version! (only works for 0-3)
+	//uint outIndex = (direction!=FORWARD)<<1 | lifecycle!=lm::io::FFluxOutput::INITIAL;
+    // more practical version
+    uint outIndex = direction*3 + lifecycle;
 
 //    getFFluxOutputStreaming()->set_tiling_id(input.tilings.getCurrentTilingID());
 //    getFFluxOutputStreaming()->set_number_tiles(maxFFluxPhase - 1);
@@ -555,16 +558,23 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(FFluxTrajectory* traj, lm::io
 
     // load the data into the TrajectoryOutput buf pointer
     trajOut->add_count(traj->getOPVal());
-    trajOut->add_edge_id(ffluxPhase); //traj->getFinalLimitID());
+    if (lifecycle==lm::io::FFluxOutput::FINAL)
+    {
+        trajOut->add_edge_id(traj->getFinalLimitID());
+    }
+    else
+    {
+        trajOut->add_edge_id(ffluxPhase);
+    }
     traj->getLastSpeciesCounts(trajOut);
     trajOut->add_time(traj->getSimTime());
     trajOut->add_trajectory_id(traj->getID());
 
     // send a message to the output writer if a certain ammount of trajectory data has accumulated and if this is the final part of the current trajectory
-    if (trajOut->time_size() > 100*simultaneousTrajectoryCount && lifecycle==lm::io::FFluxOutput::FINAL)
+    if (trajOut->time_size() > 10000*simultaneousTrajectoryCount && lifecycle==lm::io::FFluxOutput::FINAL)
     {
         // Send the message
-        communicator->sendMessage(0,3, &msgStreaming);    //realOutputWriterProcess, realOutputWriterThread, &msgStreaming);
+        communicator->sendMessageToMasterOutput(&msgStreaming);      //0,3, &msgStreaming);
         // Clear both the final and initial trajectory data
         trajOut->clear_count(); trajOut->clear_edge_id(); trajOut->clear_species_count(); trajOut->clear_time(); trajOut->clear_trajectory_id();
 
@@ -573,9 +583,58 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(FFluxTrajectory* traj, lm::io
     }
 }
 
+void FFluxTrajectoryList::ffluxOutputAddTrajectory(const lm::io::SpeciesCounts& specCountsMsg, lm::io::FFluxOutput::Lifecycle lifecycle)
+{
+    // get a number from 0-5 based on the current direction of the fflux simulation and the lifecycle of the trajectory being added
+    uint outIndex = direction*3 + lifecycle;
+
+    // lookup the trajectory associated with the data in specCountsMsg
+    lm::fflux::FFluxTrajectory* traj = static_cast<FFluxTrajectory*>(getTrajectory(specCountsMsg.trajectory_id()));
+    if (traj!=NULL)
+    {
+        // get a pointer to the germane TrajectoryOutput buf
+        lm::io::FFluxOutput::TrajectoryOutput* trajOut = getFFluxOutputStreaming()->mutable_trajectory_outputs(outIndex);
+
+        for (int i=0;i<specCountsMsg.number_entries();i++)
+        {
+            // load the data into the TrajectoryOutput buf pointer
+            if (lifecycle==lm::io::FFluxOutput::FINAL)
+            {
+                trajOut->add_edge_id(traj->getFinalLimitID());
+            }
+            else
+            {
+                trajOut->add_edge_id(ffluxPhase);
+            }
+            trajOut->add_time(specCountsMsg.time(i));
+            trajOut->add_trajectory_id(traj->getID());
+
+            uint offset = i*(specCountsMsg.number_species());
+            // FIXME: deal with the whole int vs uint thing in the line bellow
+            trajOut->add_count(input.oparams[input.tilings.getCurrentTiling()->getOrderParameterID()]->calc((uint*)(specCountsMsg.species_count().data()) + offset, specCountsMsg.time(i)));
+            for (int j=0; j<specCountsMsg.number_species(); j++)
+            {
+                trajOut->add_species_count(specCountsMsg.species_count(offset + j));
+            }
+        }
+
+        // send a message to the output writer if a certain ammount of trajectory data has accumulated and if this is the final part of the current trajectory
+        if (trajOut->time_size() > 10000*simultaneousTrajectoryCount && lifecycle==lm::io::FFluxOutput::FINAL)
+        {
+            // Send the message
+            communicator->sendMessageToMasterOutput(&msgStreaming);      //0,3, &msgStreaming);
+            // Clear both the final and initial trajectory data
+            trajOut->clear_count(); trajOut->clear_edge_id(); trajOut->clear_species_count(); trajOut->clear_time(); trajOut->clear_trajectory_id();
+
+            lm::io::FFluxOutput::TrajectoryOutput* trajOutInitial = getFFluxOutputStreaming()->mutable_trajectory_outputs(outIndex - 1);
+            trajOutInitial->clear_count(); trajOutInitial->clear_edge_id(); trajOutInitial->clear_species_count(); trajOutInitial->clear_time(); trajOutInitial->clear_trajectory_id();
+        }
+    }
+}
+
 void FFluxTrajectoryList::ffluxOutputFinishTrajectory()
 {
-    communicator->sendMessage(0,3, &msgStreaming);    //realOutputWriterProcess, realOutputWriterThread, &msgStreaming);
+    communicator->sendMessageToMasterOutput(&msgStreaming);      //0,3, &msgStreaming);
 
     for (int i=0;i<2;i++)
     {

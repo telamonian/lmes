@@ -322,6 +322,14 @@ int SimulationSupervisor::run()
             else if (message.has_ping_target())
             {
             }
+            else if (message.process_work_unit_output_size() > 0)
+            {
+                receivedProcessWorkUnitOutput(message);
+            }
+            // hook for adding generic behavior to this loop in child Supervisors
+            else if (receivedOther(message))
+            {
+            }
             else
             {
 //            	if (!ffluxFlag)
@@ -615,6 +623,15 @@ void SimulationSupervisor::receivedFinishedCheckpointing(const lm::message::Fini
         Print::printf(Print::INFO, "Simulation finished.");
         finishSimulation();
     }
+}
+
+void SimulationSupervisor::receivedProcessWorkUnitOutput(lm::message::Message& msg)
+{
+}
+
+bool SimulationSupervisor::receivedOther(lm::message::Message& msg)
+{
+    return false;
 }
 
 void SimulationSupervisor::resetPerformanceStatistics()
