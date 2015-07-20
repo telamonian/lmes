@@ -3,36 +3,41 @@ import numpy as np
 import scipy.stats as st
 
 from lm_anal.src.helper import histogramdd
-from lm_anal.src.datum import Datum
+from lm_anal.src.datum import Datum, DatumPropertySpec as DPSpec, DatumPropertySpecs as DPSpecs
 
 class HistBase(metaclass=ABCMeta):
     pass
 
 class Hist(Datum):
 # class attributes
-    propertySpecs = {'dims':{'dtype':'float', 'storageType':'numpy', 'type':'array'},
-                     'edges':{'dtype':'float', 'storageType':'numpy', 'type':'array'},
-                     'h':{'dtype':'float', 'storageType':'numpy', 'type':'array'}}
+    propertySpecs = DPSpecs(DPSpec(name='dims', dtype='float', storageType='numpy', type='array'),
+                            DPSpec(name='edges', dtype='float', storageType='numpy', type='array'),
+                            DPSpec(name='h', dtype='float', storageType='numpy', type='histogram'))
+#     propertySpecs = {'dims':{'dtype':'float', 'storageType':'numpy', 'type':'array'},
+#                      'edges':{'dtype':'float', 'storageType':'numpy', 'type':'array'},
+#                      'h':{'dtype':'float', 'storageType':'numpy', 'type':'array'}}
 
 # operator overrides
     def __iadd__(self, other):
-        self.h+=other.h
+        self.h_raw+=other.h_raw
         return self
         
     def __isub__(self, other):
-        self.h-=other.h
+        self.h_raw-=other.h_raw
         return self
 
 # initializers
     def __init__(self, full=False):
         super().__init__(full=full)
-        self.mask = None
-        self.threshold = 0
-        self.weight = 1
+        self.h_cache_dirty = True
+        self.h_mask = None
+        self.h_threshold = 0
+        self.h_weight = 1
 
     def initH(self):
         self.h = np.zeros(self.dims)
-        self.mask = np.ones(self.dims, dtype=bool)
+        self.h_raw = np.zeros(self.dims)
+        self.h_mask = np.zeros(self.dims, dtype=bool)
 
 # properties
     @property
@@ -133,13 +138,16 @@ class Hist(Datum):
     
 # mutators
     def addObservations(self, obs):
-        self.h+=histogramdd(obs, bins=self.getEdges())[0]
+        self.h_raw+=histogramdd(obs, bins=self.getEdges())[0]
+        self.h_cache_dirty = True
         
     def addWeightedObservations(self, obs, weight=1.0):
-        self.h+=(histogramdd(obs, bins=self.getEdges())[0])*weight
+        self.h_raw+=(histogramdd(obs, bins=self.getEdges())[0])*weight
+        self.h_cache_dirty = True
     
     def clearVals(self):
-        self.h[:] = 0
+        self.h_raw[:] = 0
+        self.h_cache_dirty = True
     
     def combine(self, other, autothreshold=False, otherMask=None):
         '''
@@ -155,20 +163,20 @@ class Hist(Datum):
         also ensures that all manipulations start from the same raw data, so that we're not reweighting an already reweighted histogram, etc.
         '''
         if mask!=None:
-            self.mask = mask
+            self.h_mask = mask
         if threshold!=None:
-            self.threshold = threshold
+            self.h_threshold = threshold
         if weight!=None:
-            self.weight = weight
-            
-        zeroMask = np.logical_and(self.mask, np.logical_not(self.h_raw>=self.threshold))
-        try:
-            self.h[...] = self.h_raw*self.weight
-            self.h[zeroMask] = 0
-        except AttributeError:
-            self.h_raw = self.h.copy()
-            self.h[...] = self.h_raw*self.weight
-            self.h[zeroMask] = 0
+            self.h_weight = weight
+             
+#         try:
+#             self.h[...] = self.h_raw*self.weight
+#         except AttributeError:
+#             self.h_raw = self.h.copy()
+#             self.h[...] = self.h_raw*self.weight
+#              
+#         zeroMask = np.logical_and(self.mask, np.logical_not(self.h_raw>=self.threshold))
+#         self.h[zeroMask] = 0
     
     def remask(self, mask):
         '''
@@ -177,14 +185,17 @@ class Hist(Datum):
         if mask.size!=np.sum(self.dims):
             raise
         self.recalc(mask=mask)
+        self.h_cache_dirty = True
         return self
     
     def rethreshold(self, threshold):
         self.recalc(threshold=threshold)
+        self.h_cache_dirty = True
         return self
     
     def reweight(self, weight):
         self.recalc(weight=weight)
+        self.h_cache_dirty = True
         return self
     
     def setObservations(self, obs):

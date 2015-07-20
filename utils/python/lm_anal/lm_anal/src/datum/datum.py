@@ -2,18 +2,20 @@ from copy import deepcopy
 import numpy as np
 import re
 
+from lm_anal.src.datum.datumPropertySpec import DatumPropertySpec as DPSpec
+
 DEBUG_GETTERS_SETTERS = False
 
-def DefAliasProp(name, spec):
+def DefAliasProp(name, spec, dct):
     @property
     def prop(self):
         return self.__getattribute__(spec['targetName'])
     @prop.setter
     def prop(self, val):
         self.__setattr__(spec['targetName'], val)
-    return prop
+    dct[name] = prop
 
-def DefNPProp(name, spec):
+def DefNPArrayProp(name, spec, dct):
     @property
     def prop(self):
         return self.__getattribute__('_'+name)
@@ -25,51 +27,109 @@ def DefNPProp(name, spec):
             val.read_direct(self.__getattribute__('_'+name))
         else:
             self.__setattr__('_'+name, val)
-    return prop
+    dct[name] = prop
+
+def DefNPHistogramProp(name, spec, dct):
+    cache = '_%s' % name
+    cache_dirty = '%s_cache_dirty' % name
+    mask = '%s_mask' % name
+    raw = '%s_raw' % name
+    threshold = '%s_threshold' % name
+    weight = '%s_weight' % name
+    
+    @property
+    def prop(self):
+        if self.__getattribute__(cache_dirty):
+            self.__getattribute__(cache)[...] = self.__getattribute__(raw)*self.__getattribute__(weight)
+            
+            zeroMask = np.logical_or(self.__getattribute__(mask), self.__getattribute__(raw)<self.__getattribute__(threshold))
+            self.__getattribute__(cache)[zeroMask] = 0
+            
+            self.__setattr__(cache_dirty, False)
+            
+        return self.__getattribute__('_'+name)
+    @prop.setter
+    def prop(self, val):
+        if hasattr(val, 'read_direct') and callable(getattr(val, 'read_direct', None)):
+            # initialize the array if it doesn't already exist
+            self.getArray(dims=val.shape, dtype=spec['dtype'], name='_'+name)
+            val.read_direct(self.__getattribute__('_'+name))
+        else:
+            self.__setattr__('_'+name, val)
+    dct[name] = prop
+    
+    maskSpec = DPSpec(dtype='bool', name=mask, paths=(name,'_mask',), storageType='numpy', type='array')
+    rawSpec = DPSpec(dtype='float', name=raw, paths=(name,'_raw',), storageType='numpy', type='array')
+    
+    SetPropertyBySpec(mask, maskSpec, dct)
+    SetPropertyBySpec(raw, rawSpec, dct)
+
+def DefProtoArrayProp(name, spec, dct):
+    getterList = ['@property',
+                  'def %s(self):' % name,
+                  '\treturn self.protobuf.%s' % '.'.join(spec['paths'])]
+    setterList = ['@%s.setter' % name,
+                  'def %s(self, val):' % name,
+                  '\ttry:',
+                  '\t\tself.protobuf.%s.extend(val.astype(%s).flatten().tolist())' % ('.'.join(spec['paths']), spec['dtype']),
+                  '\texcept AttributeError:',
+                  '\t\ttmpArr=np.zeros(val.shape, dtype=%s)' % spec['dtype'],
+                  '\t\tval.read_direct(tmpArr)',
+                  '\t\tself.protobuf.%s.extend(tmpArr.flatten().tolist())' % '.'.join(spec['paths'])]
+    DefProtoPropFinish(name, getterList, setterList, dct)
+    
+def DefProtoScalarProp(name, spec, dct):
+    getterList = ['@property',
+                  'def %s(self):' % name,
+                  '\treturn self.protobuf.%s' % '.'.join(spec['paths'])]
+    setterList = ['@%s.setter' % name,
+                  'def %s(self, val):' % name,
+                  '\tself.protobuf.%s = %s(val)' % ('.'.join(spec['paths']), spec['dtype'])]
+    DefProtoPropFinish(name, getterList, setterList, dct)
+
+def DefProtoPropFinish(name, getterList, setterList, dct):
+    if DEBUG_GETTERS_SETTERS:
+        # list[-1:-1] = [otherList] inserts the elements of otherList in front of the final element of list
+        indent = re.match('(\t*)', getterList[-1]).group(1)
+        getterList[-1:-1] = ["%sprint('getter for the %s property was called')" % (indent, name)]
+        indent = re.match('(\t*)', setterList[-1]).group(1)
+        setterList[-1:-1] = ["%sprint('setter for the %s property was called')" % (indent, name)]
+    execList = ['dct[name] = %s' % name]
+    exec('\n'.join(getterList + setterList + execList))
+
+def SetPropertyBySpec(name, spec, dct):
+    _propertyNames = dct.get('_propertyNames', set())
+    _propertyNames.add(name)
+    dct['_propertyNames'] = _propertyNames
+    
+    if spec['type']=='alias':
+        DefAliasProp(name, spec, dct)
+    elif spec['type']=='array':
+        if spec['storageType']=='numpy':
+            DefNPArrayProp(name, spec, dct)
+        elif spec['storageType']=='protobuf':
+            DefProtoArrayProp(name, spec, dct)
+    elif spec['type']=='embedded':
+        pass
+    elif spec['type']=='histogram':
+        if spec['storageType']=='numpy':
+            DefNPHistogramProp(name, spec, dct)
+        elif spec['storageType']=='protobuf':
+            raise
+    elif spec['type']=='scalar':
+        if spec['storageType']=='protobuf':
+            DefProtoScalarProp(name, spec, dct)
+    elif spec['type']=='special':
+        # in this case, the property will have been defined in the normal way and the associated propertySpec is just for metadata purposes
+        pass
+    else:
+        raise
 
 class DatumMetaclass(type):
     def __new__(cls, clsname, bases, dct):
-        _propertyNames = dct.get('_propertyNames', set())
         if 'propertySpecs' in dct:
-            for name,val in dct['propertySpecs'].items():
-                _propertyNames.add(name)
-                if val['type']=='scalar':
-                    if val['storageType']=='protobuf':
-                        getterList = ['@property',
-                                      'def %s(self):' % name,
-                                      '\treturn self.protobuf.%s' % '.'.join(val['paths'])]
-                        setterList = ['@%s.setter' % name,
-                                      'def %s(self, val):' % name,
-                                      '\tself.protobuf.%s = %s(val)' % ('.'.join(val['paths']), val['dtype'])]
-                        extraList = ['dct[name] = %s' % name]
-                elif val['type']=='array':
-                    if val['storageType']=='numpy':
-                        dct[name] = DefNPProp(name, val)
-                        continue
-                    elif val['storageType']=='protobuf':
-                        getterList = ['@property',
-                                      'def %s(self):' % name,
-                                      '\treturn self.protobuf.%s' % '.'.join(val['paths'])]
-                        setterList = ['@%s.setter' % name,
-                                      'def %s(self, val):' % name,
-                                      '\ttry:',
-                                      '\t\tself.protobuf.%s.extend(val.astype(%s).flatten().tolist())' % ('.'.join(val['paths']), val['dtype']),
-                                      '\texcept AttributeError:',
-                                      '\t\ttmpArr=np.zeros(val.shape, dtype=%s)' % val['dtype'],
-                                      '\t\tval.read_direct(tmpArr)',
-                                      '\t\tself.protobuf.%s.extend(tmpArr.flatten().tolist())' % '.'.join(val['paths'])]
-                        extraList = ['dct[name] = %s' % name]
-                elif val['type']=='alias':
-                    dct[name] = DefAliasProp(name, val)
-                    continue 
-                if DEBUG_GETTERS_SETTERS:
-                    # list[-1:-1] = [otherList] inserts the elements of otherList in front of the final element of list
-                    indent = re.match('(\t*)', getterList[-1]).group(1)
-                    getterList[-1:-1] = ["%sprint('getter for the %s property was called')" % (indent, name)]
-                    indent = re.match('(\t*)', setterList[-1]).group(1)
-                    setterList[-1:-1] = ["%sprint('setter for the %s property was called')" % (indent, name)]
-                exec('\n'.join(getterList + setterList + extraList))
-        dct['_propertyNames'] = _propertyNames
+            for name,spec in dct['propertySpecs'].items():
+                SetPropertyBySpec(name, spec, dct)        
         return super(DatumMetaclass, cls).__new__(cls, clsname, bases, dct)
     
     @property

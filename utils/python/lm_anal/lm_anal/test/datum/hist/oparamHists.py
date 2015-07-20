@@ -131,4 +131,39 @@ class OParamHistsTestCase(unittest.TestCase):
         rank = self.opHists[5].rank
         intendedRank = 2
         self.assertEqual(rank, intendedRank)
-    
+
+    def test_rethreshold_from_transform(self):
+        '''
+        test rank field
+        '''
+        self.loadData(full=True)
+        
+        threshold = 5
+        oPVArr = np.array(self.opHists[5].rethreshold(threshold).order_parameter_values)
+        self.assertEqual(oPVArr[np.nonzero(oPVArr)].min(), threshold)
+        
+        threshold = 2
+        oPVArr = np.array(self.opHists[5].rethreshold(threshold).order_parameter_values)
+        self.assertEqual(oPVArr[np.nonzero(oPVArr)].min(), threshold)
+        
+    def test_reweight_from_transform(self):
+        '''
+        test rank field
+        '''
+        self.loadData(full=True)
+        
+        weight = 1.5
+        oPVArr = np.array(self.opHists[5].reweight(weight).order_parameter_values)
+        try:
+            testBool = np.allclose(oPVArr, intendedOrderParameterValues5Arr*weight)
+        except ValueError:
+            testBool = False
+        self.assertTrue(testBool, msg='not allclose: %s\n%s' % (oPVArr.tolist(), (intendedOrderParameterValues5Arr*weight).tolist()))
+        
+        weight = 7.3
+        oPVArr = np.array(self.opHists[5].reweight(weight).order_parameter_values)
+        try:
+            testBool = np.allclose(oPVArr, intendedOrderParameterValues5Arr*weight)
+        except ValueError:
+            testBool = False
+        self.assertTrue(testBool, msg='not allclose: %s\n%s' % (oPVArr.tolist(), (intendedOrderParameterValues5Arr*weight).tolist()))

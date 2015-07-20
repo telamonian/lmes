@@ -53,8 +53,12 @@ class FFluxTrajectoriesTestCase(unittest.TestCase):
         self.loadData(full=True)
         
         countArr = np.array(self.ffluxOuts[19].trajectories['BACKWARD/FINAL'].count)
-        self.assertTrue(np.allclose(countArr, intendedCount19Arr), 
-                        msg='%s is not allclose to %s' % (countArr.tolist(), intendedCount19Arr.tolist()))
+        try:
+            testBool = np.allclose(countArr, intendedCount19Arr)
+        except ValueError:
+            testBool = False
+            
+        self.assertTrue(testBool, msg='not allclose: %s\n%s' % (countArr.tolist(), intendedCount19Arr.tolist()))
     
     def test_edge_id_from_hdf5_supercontainer(self):
         '''
@@ -63,8 +67,12 @@ class FFluxTrajectoriesTestCase(unittest.TestCase):
         self.loadData(full=True)
         
         edgeIDArr = np.array(self.ffluxOuts[19].trajectories['BACKWARD/FINAL'].edge_id)
-        self.assertTrue(np.allclose(edgeIDArr, intendedEdgeID19Arr), 
-                        msg='%s is not allclose to %s' % (edgeIDArr.tolist(), intendedEdgeID19Arr.tolist()))
+        try:
+            testBool = np.allclose(edgeIDArr, intendedEdgeID19Arr)
+        except ValueError:
+            testBool = False
+            
+        self.assertTrue(testBool, msg='not allclose: %s\n%s' % (edgeIDArr.tolist(), intendedEdgeID19Arr.tolist()))
         
     def test_species_count_from_hdf5_supercontainer(self):
         '''
@@ -73,8 +81,12 @@ class FFluxTrajectoriesTestCase(unittest.TestCase):
         self.loadData(full=True)
         
         speciesCountArr = np.array(self.ffluxOuts[19].trajectories['BACKWARD/INITIAL'].species_count)
-        self.assertTrue(np.allclose(speciesCountArr, intendedSpeciesCount19Arr), 
-                        msg='%s is not allclose to %s' % (speciesCountArr.tolist(), intendedSpeciesCount19Arr.tolist()))
+        try:
+            testBool = np.allclose(speciesCountArr, intendedSpeciesCount19Arr)
+        except ValueError:
+            testBool = False
+            
+        self.assertTrue(testBool, msg='not allclose: %s\n%s' % (speciesCountArr.tolist(), intendedSpeciesCount19Arr.tolist()))
 
     def test_time_from_hdf5_supercontainer(self):
         '''
@@ -83,8 +95,12 @@ class FFluxTrajectoriesTestCase(unittest.TestCase):
         self.loadData(full=True)
         
         timeArr = np.array(self.ffluxOuts[19].trajectories['FORWARD/INITIAL'].time)
-        self.assertTrue(np.allclose(timeArr, intendedTime19Arr), 
-                        msg='%s is not allclose to %s' % (timeArr.tolist(), intendedTime19Arr.tolist()))
+        try:
+            testBool = np.allclose(timeArr, intendedTime19Arr)
+        except ValueError:
+            testBool = False
+            
+        self.assertTrue(testBool, msg='not allclose: %s\n%s' % (timeArr.tolist(), intendedTime19Arr.tolist()))
 
     def test_trajectory_id_from_hdf5_supercontainer(self):
         '''
@@ -93,8 +109,12 @@ class FFluxTrajectoriesTestCase(unittest.TestCase):
         self.loadData(full=True)
         
         trajectoryIDArr = np.array(self.ffluxOuts[19].trajectories['FORWARD/FINAL'].trajectory_id)
-        self.assertTrue(np.allclose(trajectoryIDArr, intendedTrajectoryID19Arr), 
-                        msg='%s is not allclose to %s' % (trajectoryIDArr.tolist(), intendedTrajectoryID19Arr.tolist()))
+        try:
+            testBool = np.allclose(trajectoryIDArr, intendedTrajectoryID19Arr)
+        except ValueError:
+            testBool = False
+            
+        self.assertTrue(testBool, msg='not allclose: %s\n%s' % (trajectoryIDArr.tolist(), intendedTrajectoryID19Arr.tolist()))
     
     def test_trajectoryPhaseMap_from_hdf5_supercontainer(self):
         '''
@@ -102,21 +122,10 @@ class FFluxTrajectoriesTestCase(unittest.TestCase):
         '''
         self.loadData(full=True)
         
-        phase = self.ffluxOuts[19].trajectories['FORWARD/INITIAL'].tPMap[2000]
-        intendendPhase = 3
+        phase = self.ffluxOuts[19].trajectories['FORWARD/INITIAL'].tPMap[200]
+        intendendPhase = 5
         self.assertEqual(phase, intendendPhase)
         
-        phase = self.ffluxOuts[19].trajectories['BACKWARD/INITIAL'].tPMap[7000]
-        intendendPhase = 6
+        phase = self.ffluxOuts[19].trajectories['BACKWARD/INITIAL'].tPMap[700]
+        intendendPhase = 7
         self.assertEqual(phase, intendendPhase)
-    
-#     def test_get_trajectories_by_phase_from_hdf5_from_supercontainer(self):
-#         '''
-#         test the number_species field in FFluxOutput
-#         '''
-#         self.loadData(full=True)
-#         
-#         orderParameterValuesArr = np.array(self.ffluxOuts[0].getTrajectoriesByPhase(2).order_parameter_values)
-#         intendedOPVArr = 7
-#         self.assertTrue(np.allclose(orderParameterValuesArr, intendedOPVArr), 
-#                         msg='%s is not allclose to %s' % (orderParameterValuesArr, intendedOPVArr))

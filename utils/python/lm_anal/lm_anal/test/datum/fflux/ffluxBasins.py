@@ -39,7 +39,7 @@ class FFluxBasinsTestCase(unittest.TestCase):
         self.loadData()
         
         fOOTZ = self.ffluxOuts[19].basins['BACKWARD'].flux_out_of_tile_zero
-        intendedFOOTZ = 0.013150746183255506
+        intendedFOOTZ = 0.023637928433073194
         self.assertEqual(fOOTZ, intendedFOOTZ)
         
     def test_probability_i_to_i_plus_one_from_hdf5_supercontainer(self):
@@ -49,9 +49,12 @@ class FFluxBasinsTestCase(unittest.TestCase):
         self.loadData()
         
         pITIPOArr = np.array(self.ffluxOuts[19].basins['BACKWARD'].probability_i_to_i_plus_one)
-        intendedPITIPOArr = np.array([0.0, 0.08071025020177562, 0.25839793281653745, 0.17889087656529518, 0.186219739292365, 0.36363636363636365, 0.6802721088435374, 0.6711409395973155, 0.8849557522123894, 0.9523809523809523, 0.9803921568627451, 0.9900990099009901, 1.0, 0.0])
-        self.assertTrue(np.allclose(pITIPOArr, intendedPITIPOArr), 
-                        msg='%s is not allclose to %s' % (pITIPOArr.tolist(), intendedPITIPOArr.tolist()))
+        intendedPITIPOArr = np.array([0.0, 0.07352941176470588, 0.2631578947368421, 0.15151515151515152, 0.23255813953488372, 0.24390243902439024, 0.7692307692307693, 0.7142857142857143, 0.9090909090909091, 1.0, 1.0, 1.0, 1.0, 0.0])
+        try:
+            testBool = np.allclose(pITIPOArr, intendedPITIPOArr)
+        except ValueError:
+            testBool = False
+        self.assertTrue(testBool, msg='not allclose: %s\n%s' % (pITIPOArr.tolist(), intendedPITIPOArr.tolist()))
         
     def test_probability_one_to_i_plus_one_from_hdf5_supercontainer(self):
         '''
@@ -60,9 +63,13 @@ class FFluxBasinsTestCase(unittest.TestCase):
         self.loadData()
         
         pOTIPOArr = np.array(self.ffluxOuts[19].basins['BACKWARD'].probability_one_to_i_plus_one)
-        intendedPOTIPOArr = np.array([0.0, 0.08071025020177562, 0.020855361809244344, 0.003730833955142101, 0.000694754926469665, 0.0002526381550798782, 0.00017186269053052938, 0.00011534408760438213, 0.00010207441380918773, 9.721372743732165e-05, 9.530757591894279e-05, 9.43639365534087e-05, 9.43639365534087e-05, 0.0])
-        self.assertTrue(np.allclose(pOTIPOArr, intendedPOTIPOArr), 
-                        msg='%s is not allclose to %s' % (pOTIPOArr.tolist(), intendedPOTIPOArr.tolist()))
+        intendedPOTIPOArr = np.array([0.0, 0.07352941176470588, 0.019349845201238388, 0.002931794727460362, 0.0006818127273163632, 0.0001662957871503325, 0.00012791983626948654, 9.137131162106182e-05, 8.306482874641983e-05, 8.306482874641983e-05, 8.306482874641983e-05, 8.306482874641983e-05, 8.306482874641983e-05, 0.0]
+)
+        try:
+            testBool = np.allclose(pOTIPOArr, intendedPOTIPOArr)
+        except ValueError:
+            testBool = False
+        self.assertTrue(testBool, msg='not allclose: %s\n%s' % (pOTIPOArr.tolist(), intendedPOTIPOArr.tolist()))
         
     def test_switching_rate_constant_from_hdf5_supercontainer(self):
         '''
@@ -71,7 +78,7 @@ class FFluxBasinsTestCase(unittest.TestCase):
         self.loadData()
         
         sRC = self.ffluxOuts[19].basins['FORWARD'].switching_rate_constant
-        intendedSRC = 1.4245720355377518e-06
+        intendedSRC = 1.6387447525749705e-05
         self.assertEqual(sRC, intendedSRC)
         
     def test_this_basin_last_visited_probability_from_hdf5_supercontainer(self):
@@ -81,7 +88,7 @@ class FFluxBasinsTestCase(unittest.TestCase):
         self.loadData()
         
         tBLVP = self.ffluxOuts[19].basins['FORWARD'].this_basin_last_visited_probability
-        intendedTBLVP = 0.4655573225399856
+        intendedTBLVP = 0.10699624982978065
         self.assertEqual(tBLVP, intendedTBLVP)
     
     def test_normalized_probability_i_from_hdf5_supercontainer(self):
@@ -91,9 +98,12 @@ class FFluxBasinsTestCase(unittest.TestCase):
         self.loadData()
         
         nPIArr = np.array(self.ffluxOuts[19].basins['BACKWARD'].normalized_probability_i)
-        intendedNPIArr = np.array([0.0, 0.30803196355740853, 0.4722507478859476, 0.14650431612917839, 0.037852528081999584, 0.012936026072806401, 0.005943697880347311, 0.005747621441612776, 0.0023723255599249504, 0.0024823479647461486, 0.001859262926038078, 0.001796319929439493, 0.0022228425705505045, 0.0])
-        self.assertTrue(np.allclose(nPIArr, intendedNPIArr), 
-                        msg='%s is not allclose to %s' % (nPIArr.tolist(), intendedNPIArr.tolist()))
+        intendedNPIArr = np.array([0.0, 0.3685161375962372, 0.4565662571463312, 0.11297381231383266, 0.036226501277728654, 0.010722065777065503, 0.003771104914008929, 0.0037157368243411425, 0.0016875366791118842, 0.000836013569533786, 0.002161008843341682, 0.0017434061735918955, 0.0010804188848755809, 0.0])
+        try:
+            testBool = np.allclose(nPIArr, intendedNPIArr)
+        except ValueError:
+            testBool = False
+        self.assertTrue(testBool, msg='not allclose: %s\n%s' % (nPIArr.tolist(), intendedNPIArr.tolist()))
     
     def test_probability_i_weight_from_hdf5_supercontainer(self):
         '''
@@ -102,5 +112,5 @@ class FFluxBasinsTestCase(unittest.TestCase):
         self.loadData()
         
         pIW = self.ffluxOuts[19].basins['BACKWARD'].probability_i_weight
-        intendedPIW = 0.004338316118085342
+        intendedPIW = 0.011927032085228354
         self.assertEqual(pIW, intendedPIW)

@@ -23,9 +23,12 @@ class FFluxFinalsTestCase(unittest.TestCase):
         self.loadData()
         
         nPIArr = np.array(self.ffluxOuts[19].final.normalized_probability_i)
-        intendedNPIArr = np.array([0.0, 0.1685286975142742, 0.2596058374478095, 0.06545679564291343, 0.01734156982149253, 0.007243820741418165, 0.006096191846746076, 0.005767933015542406, 0.007972192029605016, 0.019397293950068204, 0.07054829257815604, 0.2249624316694031, 0.14707894374257094, 0.0])
-        self.assertTrue(np.allclose(nPIArr, intendedNPIArr), 
-                        msg='%s is not allclose to %s' % (nPIArr.tolist(), intendedNPIArr.tolist()))
+        intendedNPIArr = np.array([0.0, 0.051038094495580714, 0.06264335646258878, 0.0354464871779969, 0.015252771852579224, 0.006031896682331968, 0.004989390291953673, 0.004799346322550579, 0.010185304772892766, 0.03177013864162024, 0.09424706659742561, 0.3784152048792951, 0.30518094182318445, 0.0])
+        try:
+            testBool = np.allclose(nPIArr, intendedNPIArr)
+        except ValueError:
+            testBool = False
+        self.assertTrue(testBool, msg='not allclose: %s\n%s' % (nPIArr.tolist(), intendedNPIArr.tolist()))
     
     def test_probability_i_weight_from_hdf5_supercontainer(self):
         '''
@@ -34,7 +37,7 @@ class FFluxFinalsTestCase(unittest.TestCase):
         self.loadData()
         
         pIW = self.ffluxOuts[19].final.probability_i_weight
-        intendedPIW = 0.009137992026641959
+        intendedPIW = 0.014428621881428233
         self.assertEqual(pIW, intendedPIW)
         
     def test_switching_rate_constants_from_hdf5_supercontainer(self):
@@ -44,6 +47,9 @@ class FFluxFinalsTestCase(unittest.TestCase):
         self.loadData()
         
         sRCArr = np.array(self.ffluxOuts[19].final.switching_rate_constants)
-        intendedSRCArr = np.array([1.4245720355377518e-06, 1.240956178466704e-06])
-        self.assertTrue(np.allclose(sRCArr, intendedSRCArr), 
-                        msg='%s is not allclose to %s' % (sRCArr.tolist(), intendedSRCArr.tolist()))
+        intendedSRCArr = np.array([1.6387447525749705e-05, 1.963480477213353e-06])
+        try:
+            testBool = np.allclose(sRCArr, intendedSRCArr)
+        except ValueError:
+            testBool = False
+        self.assertTrue(testBool, msg='not allclose: %s\n%s' % (sRCArr.tolist(), intendedSRCArr.tolist()))
