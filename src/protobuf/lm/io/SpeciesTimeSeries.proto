@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2015 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -37,47 +37,12 @@
  * Author(s): Elijah Roberts
  */
 
-#ifndef LM_IO_SFILEOutputWriter
-#define LM_IO_SFILEOutputWriter
+package lm.io;
 
-#include "lm/io/FirstPassageTimes.pb.h"
-#include "lm/io/OutputWriter.h"
-#include "lm/io/SpeciesCounts.pb.h"
-#include "lm/io/SpeciesTimeSeries.pb.h"
-#include "lm/io/sfile/SFile.h"
+import "robertslab/NDArray.proto";
 
-namespace lm {
-namespace io {
-namespace sfile {
-
-class SFileOutputWriter : public OutputWriter
-{
-public:
-    static bool registered;
-    static bool registerClass();
-    static void* allocateObject();
-
-public:
-    SFileOutputWriter();
-    virtual ~SFileOutputWriter();
-    virtual void initialize();
-    virtual void finalize();
-
-protected:
-    virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
-    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
-    virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data);
-    virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data);
-    virtual void flush();
-    virtual void checkpoint();
-
-private:
-    SFile* file;
-};
-
+message SpeciesTimeSeries {
+    required uint64 trajectory_id                       = 1;
+    required robertslab.NDArray counts                  = 2;    //2D; rows=times,cols=counts; type=int32
+    required robertslab.NDArray times                   = 3;    //1D; rows=times; type=float64
 }
-}
-}
-
-
-#endif

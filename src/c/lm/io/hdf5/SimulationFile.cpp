@@ -69,6 +69,7 @@
 #include "lm/io/SimulationParameters.pb.h"
 #include "lm/io/SpatialModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
+#include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/io/Tilings.pb.h"
 #include "lm/io/hdf5/HDF5.h"
 #include "lm/io/hdf5/SimulationFile.h"
@@ -1626,6 +1627,67 @@ void Hdf5File::openReplicate(uint64_t replicate) throw(HDF5Exception)
 
 void Hdf5File::appendSpeciesCounts(uint64_t replicate, lm::io::SpeciesCounts * speciesCounts) throw(HDF5Exception)
 {
+    appendSpeciesTimeSeries(replicate, speciesCounts->number_entries(), speciesCounts->number_species(), speciesCounts->species_count().data(), speciesCounts->time().data());
+}
+
+void Hdf5File::appendSpeciesTimeSeries(uint64_t replicate, const lm::io::SpeciesTimeSeries& speciesTimeSeries)
+{
+    int numberEntries = speciesTimeSeries.counts().shape(0);
+    int numberSpecies = speciesTimeSeries.counts().shape(1);
+
+    if (speciesTimeSeries.times().shape(0) != numberEntries)
+        InvalidArgException("speciesTimeSeries.times.shape", "Numebr of rows in time array incocnsistent with counts array.");
+
+    // Extract the data, decompressing if necessary.
+    int32_t* counts=NULL;
+    if (speciesTimeSeries.counts().compressed_deflate())
+    {
+        counts = new int32_t[numberEntries*numberSpecies];
+        size_t size = numberEntries*numberSpecies*sizeof(counts[0]);
+        size_t uncompressedSize = size;
+        const std::string& str = speciesTimeSeries.counts().data();
+        ZLIB_EXCEPTION_CHECK(uncompress((unsigned char *)counts, &uncompressedSize, (unsigned char*)&(str[0]), str.size()));
+        if (uncompressedSize != size)
+            throw Exception("Error during data decompression, wrong number of bytes returned.");
+    }
+    else
+    {
+        const std::string& str = speciesTimeSeries.counts().data();
+        if (str.size() != numberEntries*numberSpecies*sizeof(counts[0]))
+            InvalidArgException("speciesTimeSeries.counts.data", "Incorrect size for data array.");
+        counts = (int32_t*)&(str[0]);
+    }
+    double* times=NULL;
+    if (speciesTimeSeries.times().compressed_deflate())
+    {
+        times = new double[numberEntries];
+        size_t size = numberEntries*sizeof(times[0]);
+        size_t uncompressedSize = size;
+        const std::string& str = speciesTimeSeries.times().data();
+        ZLIB_EXCEPTION_CHECK(uncompress((unsigned char *)times, &uncompressedSize, (unsigned char*)&(str[0]), str.size()));
+        if (uncompressedSize != size)
+            throw Exception("Error during data decompression, wrong number of bytes returned.");
+    }
+    else
+    {
+        const std::string& str = speciesTimeSeries.times().data();
+        if (str.size() != numberEntries*sizeof(times[0]))
+            InvalidArgException("speciesTimeSeries.times.data", "Incorrect size for data array.");
+        times = (double*)&(str[0]);
+    }
+
+    // Append the data.
+    appendSpeciesTimeSeries(replicate, numberEntries, numberSpecies, counts, times);
+
+    // Free any allocated memory.
+    if (speciesTimeSeries.counts().compressed_deflate())
+        delete[] counts;
+    if (speciesTimeSeries.times().compressed_deflate())
+        delete[] times;
+}
+
+void Hdf5File::appendSpeciesTimeSeries(uint64_t replicate, int numberEntries, int numberSpecies, const int32_t* counts, const double* times)
+{
     ReplicateHandles * handles = openReplicateHandles(replicate);
 
     // Update the species counts dataset.
@@ -1640,25 +1702,25 @@ void Hdf5File::appendSpeciesCounts(uint64_t replicate, lm::io::SpeciesCounts * s
         HDF5_EXCEPTION_CHECK(H5Sclose(dataspace_id));
 
         // Extend the dataset by the number of rows in the data set.
-        dims[0] += speciesCounts->number_entries();
+        dims[0] += numberEntries;
         HDF5_EXCEPTION_CHECK(H5Dset_extent(handles->speciesCountsDataset, dims));
 
         // Create the memory dataset.
         hid_t memspace_id;
         hsize_t memDims[RANK];
-        memDims[0] = speciesCounts->number_entries();
-        memDims[1] = speciesCounts->number_species();
+        memDims[0] = numberEntries;
+        memDims[1] = numberSpecies;
         HDF5_EXCEPTION_CALL(memspace_id,H5Screate_simple(RANK, memDims, NULL));
 
         // Write the new data.
         HDF5_EXCEPTION_CALL(dataspace_id,H5Dget_space(handles->speciesCountsDataset));
         hsize_t start[RANK], count[RANK];
-        start[0] = dims[0]-speciesCounts->number_entries();
+        start[0] = dims[0]-numberEntries;
         start[1] = 0;
         count[0] = memDims[0];
         count[1] = memDims[1];
         HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, start, NULL, count, NULL));
-        HDF5_EXCEPTION_CHECK(H5Dwrite(handles->speciesCountsDataset, H5T_NATIVE_INT32, memspace_id, dataspace_id, H5P_DEFAULT, speciesCounts->species_count().data()));
+        HDF5_EXCEPTION_CHECK(H5Dwrite(handles->speciesCountsDataset, H5T_NATIVE_INT32, memspace_id, dataspace_id, H5P_DEFAULT, counts));
 
         // Cleanup some resources.
         HDF5_EXCEPTION_CHECK(H5Sclose(dataspace_id));
@@ -1677,22 +1739,22 @@ void Hdf5File::appendSpeciesCounts(uint64_t replicate, lm::io::SpeciesCounts * s
         HDF5_EXCEPTION_CHECK(H5Sclose(dataspace_id));
 
         // Extend the dataset by the number of rows in the data set.
-        dims[0] += speciesCounts->number_entries();
+        dims[0] += numberEntries;
         HDF5_EXCEPTION_CHECK(H5Dset_extent(handles->speciesCountTimesDataset, dims));
 
         // Create the memory dataset.
         hid_t memspace_id;
         hsize_t memDims[RANK];
-        memDims[0] = speciesCounts->number_entries();
+        memDims[0] = numberEntries;
         HDF5_EXCEPTION_CALL(memspace_id,H5Screate_simple(RANK, memDims, NULL));
 
         // Write the new data.
         HDF5_EXCEPTION_CALL(dataspace_id,H5Dget_space(handles->speciesCountTimesDataset));
         hsize_t start[RANK], count[RANK];
-        start[0] = dims[0]-speciesCounts->number_entries();
+        start[0] = dims[0]-numberEntries;
         count[0] = memDims[0];
         HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, start, NULL, count, NULL));
-        HDF5_EXCEPTION_CHECK(H5Dwrite(handles->speciesCountTimesDataset, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id, H5P_DEFAULT, speciesCounts->time().data()));
+        HDF5_EXCEPTION_CHECK(H5Dwrite(handles->speciesCountTimesDataset, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id, H5P_DEFAULT, times));
 
         // Cleanup some resources.
         HDF5_EXCEPTION_CHECK(H5Sclose(dataspace_id));

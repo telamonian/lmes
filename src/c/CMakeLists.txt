@@ -9,7 +9,7 @@ file(GLOB to_remove_main_function lm/main/MainMPI.cpp)
 file(GLOB to_remove_neus lm/neus/*)
 list(REMOVE_ITEM lm_c_source ${to_remove_main_function} ${to_remove_neus})
 
-file(GLOB lm_proto_src ../protobuf/*/*/*.proto)
+file(GLOB_RECURSE lm_proto_src ../protobuf/*.proto)
 
 #include_directories(${CMAKE_CURRENT_BINARY_DIR})
 PROTOBUF_GENERATE_CPP(proto_srcs proto_hdrs ${lm_proto_src})

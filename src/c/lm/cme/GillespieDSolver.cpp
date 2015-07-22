@@ -48,10 +48,9 @@
 #include <list>
 #include <map>
 #include <string>
-#if defined(MACOSX)
-#elif defined(LINUX)
-#include <time.h>
-#endif
+#include <vector>
+#include <zlib.h>
+
 #include "lm/ClassFactory.h"
 #include "lm/Tune.h"
 #include "lm/Math.h"
@@ -59,7 +58,7 @@
 #include "lm/cme/CMESolver.h"
 #include "lm/cme/GillespieDSolver.h"
 #include "lm/io/FirstPassageTimes.pb.h"
-#include "lm/io/SpeciesCounts.pb.h"
+#include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/ProcessWorkUnitOutput.pb.h"
 #include "lm/rng/RandomGenerator.h"
@@ -75,6 +74,7 @@
 using std::string;
 using std::list;
 using std::map;
+using std::vector;
 using lm::rng::RandomGenerator;
 
 namespace lm {
@@ -156,38 +156,25 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     // Get the interval for writing species counts.
     double writeInterval = atof(simulationParameters["writeInterval"].c_str());
     bool writeTimeSteps = (writeInterval > 0.0);
-    double nextSpeciesCountsWriteTime;
-    lm::io::SpeciesCounts* speciesCountsDataSet = NULL;
+    double nextSpeciesWriteTime;
+    vector<int32_t> speciesTimeSeriesCounts;
+    vector<double> speciesTimeSeriesTimes;
 
     // If we are writing time steps, create the data set.
     if (writeTimeSteps)
     {
-        // Initialize the data set.
-        speciesCountsDataSet = msg->mutable_species_counts();
-        speciesCountsDataSet->set_trajectory_id(trajectoryId);
-        speciesCountsDataSet->set_number_species(reactionModel->numberSpeciesToTrack);
-        speciesCountsDataSet->set_number_entries(0);
-
         // If this is the start of the trajectory, add the initial counts.
         if (time == 0.0 || trajectoryStarted==false)
         {
-//        	printf("traj_id %d has_started %d\n", trajectoryId, trajectoryStarted);
-            nextSpeciesCountsWriteTime=writeInterval;
-            speciesCountsDataSet->set_number_entries(1);
-            speciesCountsDataSet->add_time(0.0);
-            for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
+            nextSpeciesWriteTime=writeInterval;
+            for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
+            speciesTimeSeriesTimes.push_back(0.0);
         }
         else
         {
-            nextSpeciesCountsWriteTime = ceil(time/writeInterval)*writeInterval;
+            nextSpeciesWriteTime = ceil(time/writeInterval)*writeInterval;
         }
     }
-
-    // Get the interval for writing parameters.
-//    double nextParameterWriteTime = INFINITY;
-//    double parameterWriteInterval = atof((*parameters)["parameterWriteInterval"].c_str());
-//    if (trackedParameters.size() > 0 && parameterWriteInterval > 0.0)
-//        nextParameterWriteTime = recordParameters(0.0, parameterWriteInterval, 0.0);
 
     // Local cache of random numbers.
     double rngValues[TUNE_LOCAL_RNG_CACHE_SIZE];
@@ -227,22 +214,14 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         if (writeTimeSteps)
         {
             // Write time steps until the next write time is past the current time.
-            while (nextSpeciesCountsWriteTime <= (time+1e-9))
+            while (nextSpeciesWriteTime <= (time+1e-9))
             {
                 // Record the species counts.
-                speciesCountsDataSet->set_number_entries(speciesCountsDataSet->number_entries()+1);
-                speciesCountsDataSet->add_time(nextSpeciesCountsWriteTime);
-                for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
-                nextSpeciesCountsWriteTime += writeInterval;
+                for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
+                speciesTimeSeriesTimes.push_back(nextSpeciesWriteTime);
+                nextSpeciesWriteTime += writeInterval;
             }
         }
-
-        // If we are recording parameter values, write out the values before this event occurred.
-//        if (nextParameterWriteTime <= (time+1e-9))
-//        {
-//            nextParameterWriteTime = recordParameters(nextParameterWriteTime, parameterWriteInterval, time);
-//            addedParameterValues = true;
-//        }
 
         // Calculate which reaction it was.
         double rngValue = rngValues[rngNext]*totalPropensity;
@@ -288,13 +267,12 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);
         if (writeTimeSteps)
         {
-            while (nextSpeciesCountsWriteTime <= (maxTime+1e-9))
+            while (nextSpeciesWriteTime <= (maxTime+1e-9))
             {
                 // Record the species counts.
-                speciesCountsDataSet->set_number_entries(speciesCountsDataSet->number_entries()+1);
-                speciesCountsDataSet->add_time(nextSpeciesCountsWriteTime);
-                for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
-                nextSpeciesCountsWriteTime += writeInterval;
+                for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
+                speciesTimeSeriesTimes.push_back(nextSpeciesWriteTime);
+                nextSpeciesWriteTime += writeInterval;
             }
 
             // If we are recording parameter values, write out the remaining value intervals.
@@ -319,11 +297,46 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         if (writeTimeSteps)
         {
             // Record the species counts.
-            speciesCountsDataSet->set_number_entries(speciesCountsDataSet->number_entries()+1);
-            speciesCountsDataSet->add_time(time);
-            for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
+            for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
+            speciesTimeSeriesTimes.push_back(time);
         }
         reachedLimit = true;
+    }
+
+    // If we have any species time series data, add them to the output message.
+    if (speciesTimeSeriesCounts.size() > 0 || speciesTimeSeriesTimes.size() > 0)
+    {
+        // Make sure the arrays are of a consistent size.
+        if (speciesTimeSeriesCounts.size() == speciesTimeSeriesTimes.size()*reactionModel->numberSpeciesToTrack)
+        {
+            lm::io::SpeciesTimeSeries* speciesTimeSeriesDataSet = msg->mutable_species_time_series();
+            speciesTimeSeriesDataSet->set_trajectory_id(trajectoryId);
+
+            robertslab::NDArray* counts = speciesTimeSeriesDataSet->mutable_counts();
+            counts->set_data_type(robertslab::NDArray::int32);
+            counts->set_compressed_deflate(true);
+            counts->add_shape(speciesTimeSeriesTimes.size());
+            counts->add_shape(reactionModel->numberSpeciesToTrack);
+            std::string* data = counts->mutable_data();
+            size_t dataSizeEstimate=compressBound(speciesTimeSeriesCounts.size()*sizeof(int32_t));
+            data->resize(dataSizeEstimate);
+            ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)speciesTimeSeriesCounts.data(), speciesTimeSeriesCounts.size()*sizeof(int32_t)));
+            data->resize(dataSizeEstimate);
+
+            robertslab::NDArray* times = speciesTimeSeriesDataSet->mutable_times();
+            times->set_data_type(robertslab::NDArray::float64);
+            times->set_compressed_deflate(true);
+            times->add_shape(speciesTimeSeriesTimes.size());
+            data = times->mutable_data();
+            dataSizeEstimate=compressBound(speciesTimeSeriesTimes.size()*sizeof(double));
+            data->resize(dataSizeEstimate);
+            ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)speciesTimeSeriesTimes.data(), speciesTimeSeriesTimes.size()*sizeof(double)));
+            data->resize(dataSizeEstimate);
+        }
+        else
+        {
+            Print::printf(Print::ERROR, "Species time series counts and time mismatch %d,%d,%d", speciesTimeSeriesCounts.size(), reactionModel->numberSpeciesToTrack, speciesTimeSeriesTimes.size());
+        }
     }
 
     // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
@@ -336,7 +349,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     }
 
     // If the output message has any data, send it.
-    if ((msg->has_species_counts() || msg->first_passage_times_size() > 0) && !ffluxFlag)		// these messages aren't useful for fflux simulation
+    if ((msg->has_species_time_series() || msg->first_passage_times_size() > 0) && !ffluxFlag)		// these messages aren't useful for fflux simulation
     {
 //    	printf("gillespiedsolver outputProcess: %d outputThread: %d\n", outputProcess, outputThread);
         communicator->sendMessage(outputProcess, outputThread, &msgp);
