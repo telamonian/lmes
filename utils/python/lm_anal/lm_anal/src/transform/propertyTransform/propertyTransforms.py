@@ -12,13 +12,12 @@ propertyTransfromDirFiles = os.walk(thisScriptDir).__next__()[2]
 modNames = (os.path.splitext(modName)[0] for modName in propertyTransfromDirFiles 
             if (modName[-5:]=='PT.py' and not (modName=='defaultPT.py' or modName=='basePT.py')))
 for modName in modNames:
-    try:
-        tmpCls = getattr(import_module('.'+modName, package='lm_anal.src.transform.propertyTransform'), CamelCaseUpper(modName))
-    except AttributeError:
-        # TODO: fix this hackish fix
-        if CamelCaseUpper(modName)[:5]=='Fflux':
-            ModName = 'FFlux' + CamelCaseUpper(modName)[5:]
-        tmpCls = getattr(import_module('.'+modName, package='lm_anal.src.transform.propertyTransform'), ModName)
+    # TODO: fix this hackish fix
+    className = CamelCaseUpper(modName)
+    if className[:5]=='Fflux':
+        className = 'FFlux' + className[5:]
+        
+    tmpCls = getattr(import_module('.'+modName, package='lm_anal.src.transform.propertyTransform'), className)
     key = (tmpCls.srcType, tmpCls.dstType)
     propertyTransformDict[key] = propertyTransformDict.get(key, []) + [tmpCls]
 ##################################################

@@ -37,3 +37,4 @@ class SFileIO(IO):
         '''
         wtf (write to file)
         '''
+        pass

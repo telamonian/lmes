@@ -3,6 +3,7 @@ import numpy as np
 import re
 
 from lm_anal.src.datum.datumPropertySpec import DatumPropertySpec as DPSpec
+from lm_anal.src.helper import CamelCaseUpper
 
 DEBUG_GETTERS_SETTERS = False
 
@@ -32,6 +33,8 @@ def DefNPArrayProp(name, spec, dct):
 def DefNPHistogramProp(name, spec, dct):
     cache = '_%s' % name
     cache_dirty = '%s_cache_dirty' % name
+    dimsName = '%s_dims' % name
+    edgesName = '%s_edges' % name
     mask = '%s_mask' % name
     raw = '%s_raw' % name
     threshold = '%s_threshold' % name
@@ -58,11 +61,30 @@ def DefNPHistogramProp(name, spec, dct):
             self.__setattr__('_'+name, val)
     dct[name] = prop
     
+    dimsSpec = DPSpec(dtype='int', name=dimsName, paths=(name,'_dims',), storageType='numpy', type='array')
+    edgesSpec = DPSpec(dtype='float', name=edgesName, paths=(name,'_edges',), storageType='numpy', type='array')
     maskSpec = DPSpec(dtype='bool', name=mask, paths=(name,'_mask',), storageType='numpy', type='array')
     rawSpec = DPSpec(dtype='float', name=raw, paths=(name,'_raw',), storageType='numpy', type='array')
     
+    SetPropertyBySpec(dimsName, dimsSpec, dct)
+    SetPropertyBySpec(edgesName, edgesSpec, dct)
     SetPropertyBySpec(mask, maskSpec, dct)
     SetPropertyBySpec(raw, rawSpec, dct)
+    
+    def initializer(self, dims=None, edges=None):
+        if dims is not None:
+            self.__setattr__(dimsName, dims)
+        if edges is not None:
+            self.__setattr__(edgesName, edges)
+        self.__setattr__(cache_dirty, True)
+        self.__setattr__(threshold, 0)
+        self.__setattr__(weight, 1)
+        
+        self.__setattr__(name, np.zeros(self.__getattribute__(dimsName)))
+        self.__setattr__(raw, np.zeros(self.__getattribute__(dimsName)))
+        self.__setattr__(mask, np.zeros(self.__getattribute__(dimsName), dtype=bool))
+    
+    dct['init' + CamelCaseUpper(name)] = initializer
 
 def DefProtoArrayProp(name, spec, dct):
     getterList = ['@property',
@@ -165,6 +187,9 @@ class Datum(object, metaclass=DatumMetaclass):
         return a deep copy of the datum instance
         '''
         return deepcopy(self)
+    
+    def getEmbedded(self, name):
+        return self.__getattribute__(name)
     
     def getScalar(self, name):
         return self.__getattribute__(name)

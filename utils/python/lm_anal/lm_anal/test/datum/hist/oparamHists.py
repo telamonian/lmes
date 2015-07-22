@@ -42,7 +42,7 @@ class OParamHistsTestCase(unittest.TestCase):
         '''
         self.loadData()
         
-        dims = np.array(self.opHists[5].dims)
+        dims = np.array(self.opHists[5].h_dims)
         intendedDims = np.array((101,101))
         self.assertTrue(np.allclose(dims, intendedDims), msg='%s is not allclose to %s' % (dims, intendedDims))
     
@@ -132,23 +132,44 @@ class OParamHistsTestCase(unittest.TestCase):
         intendedRank = 2
         self.assertEqual(rank, intendedRank)
 
+    def test_remask_from_transform(self):
+        '''
+        test remask method
+        we will attempt to mask first 4 nonzero values in order_parameter_values
+        '''
+        self.loadData(full=True)
+
+        mask = np.zeros(self.opHists[5].order_parameter_values.shape, dtype=bool)
+        opHistNonzero = self.opHists[5].order_parameter_values.nonzero()
+        mask[opHistNonzero[0][:4], opHistNonzero[1][:4]] = True
+        opVArr = np.array(self.opHists[5].remask(mask).order_parameter_values)
+        
+        intendedMaskedOPV5Arr = intendedOrderParameterValues5Arr.copy()
+        intendedMaskedOPV5Arr[opHistNonzero[0][:4], opHistNonzero[1][:4]] = 0
+        
+        try:
+            testBool = np.allclose(opVArr, intendedMaskedOPV5Arr)
+        except ValueError:
+            testBool = False
+        self.assertTrue(testBool, msg='not allclose: %s\n%s' % (opVArr.tolist(), (intendedMaskedOPV5Arr).tolist()))
+
     def test_rethreshold_from_transform(self):
         '''
-        test rank field
+        test rethreshold method
         '''
         self.loadData(full=True)
         
         threshold = 5
-        oPVArr = np.array(self.opHists[5].rethreshold(threshold).order_parameter_values)
-        self.assertEqual(oPVArr[np.nonzero(oPVArr)].min(), threshold)
+        opVArr = np.array(self.opHists[5].rethreshold(threshold).order_parameter_values)
+        self.assertEqual(opVArr[np.nonzero(opVArr)].min(), threshold)
         
         threshold = 2
-        oPVArr = np.array(self.opHists[5].rethreshold(threshold).order_parameter_values)
-        self.assertEqual(oPVArr[np.nonzero(oPVArr)].min(), threshold)
+        opVArr = np.array(self.opHists[5].rethreshold(threshold).order_parameter_values)
+        self.assertEqual(opVArr[np.nonzero(opVArr)].min(), threshold)
         
     def test_reweight_from_transform(self):
         '''
-        test rank field
+        test reweight method
         '''
         self.loadData(full=True)
         

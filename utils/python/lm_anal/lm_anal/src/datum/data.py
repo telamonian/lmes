@@ -2,7 +2,7 @@ import h5py
 
 class DataMetaclass(object):
     def __new__(cls, clsname, bases, dct):
-        pass
+        return super(DataMetaclass, cls).__new__(cls, clsname, bases, dct)
 
 class Data(object):
     datumType = None
@@ -22,6 +22,9 @@ class Data(object):
 
     def __iter__(self):
         return self.map.items().__iter__()
+
+    def valIter(self):
+        return self.map.values().__iter__()
 
     def initDatum(self, key, **kwargs):
         try:

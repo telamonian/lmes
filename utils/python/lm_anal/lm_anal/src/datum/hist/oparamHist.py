@@ -16,8 +16,8 @@ class OParamHist(Hist):
             self.oparams.append(oparams[tiling.order_parameter_id])
             dims.append(len(tiling.edges) + 1)
             edges.append(np.array(tiling.edges))
-        self.dims = np.array(dims)
-        self.edges = np.hstack(edges)
+#         self.h_dims = np.array(dims)
+#         self.h_edges = np.hstack(edges)
         self.oparam = self.oparams[0].combine(self.oparams[1:])
         
-        self.initH()
+        self.initH(dims=np.array(dims), edges=np.hstack(edges))

@@ -12,3 +12,5 @@ class SpeciesTrajectoryToOParamHistT(BaseT):
         tilings: a list of all the tilings you want to use to define the bins of the resultant histogram (OParamHist)
         '''
         super().__init__(src, dst, oparams=oparams, tilings=tilings, **kwargs)
+        # combine all of the histograms we just created into a single 'sum' histogram
+        dst.getSum()

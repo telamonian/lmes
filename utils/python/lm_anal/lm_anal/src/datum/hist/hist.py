@@ -1,4 +1,5 @@
 from abc import ABCMeta
+from itertools import chain
 import numpy as np
 import scipy.stats as st
 
@@ -10,43 +11,48 @@ class HistBase(metaclass=ABCMeta):
 
 class Hist(Datum):
 # class attributes
-    propertySpecs = DPSpecs(DPSpec(name='dims', dtype='float', storageType='numpy', type='array'),
-                            DPSpec(name='edges', dtype='float', storageType='numpy', type='array'),
+    propertySpecs = DPSpecs(#DPSpec(name='dims', dtype='float', storageType='numpy', type='array'),
+                            #DPSpec(name='edges', dtype='float', storageType='numpy', type='array'),
                             DPSpec(name='h', dtype='float', storageType='numpy', type='histogram'))
-#     propertySpecs = {'dims':{'dtype':'float', 'storageType':'numpy', 'type':'array'},
-#                      'edges':{'dtype':'float', 'storageType':'numpy', 'type':'array'},
-#                      'h':{'dtype':'float', 'storageType':'numpy', 'type':'array'}}
 
 # operator overrides
+    def __add__(self, other):
+        return self.h_raw + other.h_raw
+    
+    def __sub__(self, other):
+        return self.h_raw - other.h_raw
+    
     def __iadd__(self, other):
         self.h_raw+=other.h_raw
+        self.h_cache_dirty = True
         return self
         
     def __isub__(self, other):
         self.h_raw-=other.h_raw
+        self.h_cache_dirty = True
         return self
 
 # initializers
     def __init__(self, full=False):
         super().__init__(full=full)
-        self.h_cache_dirty = True
-        self.h_mask = None
-        self.h_threshold = 0
-        self.h_weight = 1
 
-    def initH(self):
-        self.h = np.zeros(self.dims)
-        self.h_raw = np.zeros(self.dims)
-        self.h_mask = np.zeros(self.dims, dtype=bool)
+#     def initH(self):
+#         self.h_cache_dirty = True
+#         self.h_threshold = 0
+#         self.h_weight = 1
+#         
+#         self.h = np.zeros(self.dims)
+#         self.h_raw = np.zeros(self.dims)
+#         self.h_mask = np.zeros(self.dims, dtype=bool)
 
 # properties
     @property
     def rDims(self):
-        return np.array(self.dims) - 1
+        return np.array(self.h_dims) - 1
     
     @property
     def rank(self):
-        return self.dims.size
+        return self.h_dims.size
 
 # aliases
     def addObs(self, obs):
@@ -72,7 +78,7 @@ class Hist(Datum):
         '''
         rolls the 1D self.edges array into an nD array based on what's in self.dims
         '''
-        return [self.edges[int(np.sum(self.rDims[:i])):int(np.sum(self.rDims[:i + 1]))] for i in range(self.rank)]
+        return [self.h_edges[int(np.sum(self.rDims[:i])):int(np.sum(self.rDims[:i + 1]))] for i in range(self.rank)]
     
     def getKLDivergence(self, other, absolute=False):
         '''
@@ -149,12 +155,19 @@ class Hist(Datum):
         self.h_raw[:] = 0
         self.h_cache_dirty = True
     
-    def combine(self, other, autothreshold=False, otherMask=None):
+    def combine(self, others, autothreshold=False, otherMask=None):
         '''
-        method to additively combine two histograms
+        method to additively combine many histograms
         self.h.shape must == other.h.shape, but they can be otherwise dissimilar (different total N, different normalization, etc.)
         '''
-        pass
+        if isinstance(others, HistBase):
+            others = [others]
+        
+        retVal = self.getCopy()
+        retVal.initH()
+        for other in chain([self], others):
+            retVal.h_raw+=other.h
+        return retVal
     
     def recalc(self, mask=None, threshold=None, weight=None):
         '''
@@ -162,27 +175,18 @@ class Hist(Datum):
         ensures that changing the weight won't affect the thresholding, etc.
         also ensures that all manipulations start from the same raw data, so that we're not reweighting an already reweighted histogram, etc.
         '''
-        if mask!=None:
+        if mask is not None:
             self.h_mask = mask
-        if threshold!=None:
+        if threshold is not None:
             self.h_threshold = threshold
-        if weight!=None:
+        if weight is not None:
             self.h_weight = weight
-             
-#         try:
-#             self.h[...] = self.h_raw*self.weight
-#         except AttributeError:
-#             self.h_raw = self.h.copy()
-#             self.h[...] = self.h_raw*self.weight
-#              
-#         zeroMask = np.logical_and(self.mask, np.logical_not(self.h_raw>=self.threshold))
-#         self.h[zeroMask] = 0
     
     def remask(self, mask):
         '''
         function that takes a boolean mask (same size as self.h) and zeros out the values in self.h that correspond to the 'False' values in the mask
         '''
-        if mask.size!=np.sum(self.dims):
+        if mask.size!=np.product(self.h_dims):
             raise
         self.recalc(mask=mask)
         self.h_cache_dirty = True

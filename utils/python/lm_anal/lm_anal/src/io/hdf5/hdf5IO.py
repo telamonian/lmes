@@ -3,6 +3,8 @@ import h5py
 import os
 
 from lm_anal.src.helper import CamelCaseUpper
+from lm_anal.src.io.hdf5.hdf5Spec import HDF5Spec
+from lm_anal.src.io.hdf5.hdf5Specs import HDF5Specs
 from lm_anal.src.io.io import IO
 
 class HDF5IO(IO):
@@ -20,17 +22,21 @@ class HDF5IO(IO):
         self.fPath = fPath
 
     def input(self, full, hdf5Path, subCon):
-        for spec in (spec for spec in self.hdf5Specs if (not spec.fullOnly or full)):
-            if spec.type=='attribute':
-                self.inputAttribute(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon)
-            elif spec.type=='dataset':
-                self.inputArray(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon)
-            elif spec.type=='embedded':
-                self.inputEmbedded(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon, full=full)
-            elif spec.type=='hist':
-                self.inputHist(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon)
-            elif spec.type=='special':
-                self.__getattribute__('input' + CamelCaseUpper(spec.name))(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon, full=full)
+        for spec in self.hdf5Specs:
+            self.inputBySpec(full, hdf5Path, spec, subCon)
+    
+    def inputBySpec(self, full, hdf5Path, hdf5Spec, subCon):
+        if (not hdf5Spec.fullOnly or full):
+            if hdf5Spec.type=='attribute':
+                self.inputAttribute(hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, subCon=subCon)
+            elif hdf5Spec.type=='dataset':
+                self.inputArray(hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, subCon=subCon)
+            elif hdf5Spec.type=='embedded':
+                self.inputEmbedded(hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, subCon=subCon, full=full)
+            elif hdf5Spec.type=='hist':
+                self.inputHist(hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, subCon=subCon, full=full)
+            elif hdf5Spec.type=='special':
+                self.__getattribute__('input' + CamelCaseUpper(hdf5Spec.name))(hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, subCon=subCon, full=full)
             else:
                 raise
     
@@ -46,9 +52,24 @@ class HDF5IO(IO):
         subIO.rff(container=subData, full=full)
         return subData
 
-    def inputHist(self, hdf5Path, hdf5Spec, subCon):
-        pass
-
+    def inputHist(self, hdf5Path, hdf5Spec, subCon, full):
+        cache_dirty = '%s_cache_dirty' % hdf5Spec.name
+        edges = '%s_edges' % hdf5Spec.name
+        mask = '%s_mask' % hdf5Spec.name
+        raw = '%s_raw' % hdf5Spec.name
+        threshold = '%s_threshold' % hdf5Spec.name
+        weight = '%s_weight' % hdf5Spec.name
+        
+        specs = HDF5Specs(HDF5Spec(fullOnly=False, name=edges, subKey=edges, type='dataset'),
+                          HDF5Spec(fullOnly=True, name=mask, subKey=mask, type='dataset'),
+                          HDF5Spec(fullOnly=True, name=raw, subKey=raw, type='dataset'),
+                          HDF5Spec(fullOnly=False, name=threshold, subKey=threshold, type='attribute'),
+                          HDF5Spec(fullOnly=False, name=weight, subKey=weight, type='attribute'))
+        
+        subCon.__setattr__(cache_dirty, True)
+        for spec in specs:
+            self.inputBySpec(full, hdf5Path, spec, subCon)
+        
     def _has(self):
         if self.hdf5RootPath in self.file:
             if len(self.file[self.hdf5RootPath].keys()) > 0:
@@ -73,20 +94,23 @@ class HDF5IO(IO):
     def keys(self):
         return self.wrapperHDF5(self._keys)
 
-    def output(self, full, hdf5Path, subCon):
-        for spec in (spec for spec in self.hdf5Specs if (not spec.fullOnly or full)):
-            if spec.type=='attribute':
-                self.outputAttribute(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon)
-            elif spec.type=='dataset':
-                self.outputArray(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon)
-            elif spec.type=='embedded':
-                self.outputEmbedded(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon, full=full)
-            elif spec.type=='hist':
-                self.outputHist(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon)
-            elif spec.type=='special':
-                self.__getattribute__('output' + CamelCaseUpper(spec.name))(hdf5Path=hdf5Path, hdf5Spec=spec, subCon=subCon, full=full)
-            else:
-                raise
+    def output(self, hdf5Path, subCon):
+        for spec in self.hdf5Specs:
+            self.outputBySpec(self, hdf5Path, spec, subCon)
+    
+    def outputBySpec(self, hdf5Path, hdf5Spec, subCon):
+        if hdf5Spec.type=='attribute':
+            self.outputAttribute(hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, subCon=subCon)
+        elif hdf5Spec.type=='dataset':
+            self.outputArray(hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, subCon=subCon)
+        elif hdf5Spec.type=='embedded':
+            self.outputEmbedded(hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, subCon=subCon)
+        elif hdf5Spec.type=='hist':
+            self.outputHist(hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, subCon=subCon)
+        elif hdf5Spec.type=='special':
+            self.__getattribute__('output' + CamelCaseUpper(hdf5Spec.name))(hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, subCon=subCon)
+        else:
+            raise
     
     def outputArray(self, hdf5Path, hdf5Spec, subCon):
         del self.file[hdf5Path][hdf5Spec.subKey]
@@ -102,7 +126,20 @@ class HDF5IO(IO):
         return subData
 
     def outputHist(self, hdf5Path, hdf5Spec, subCon):
-        pass
+        edges = '%s_edges' % hdf5Spec.name
+        mask = '%s_mask' % hdf5Spec.name
+        raw = '%s_raw' % hdf5Spec.name
+        threshold = '%s_threshold' % hdf5Spec.name
+        weight = '%s_weight' % hdf5Spec.name
+        
+        specs = HDF5Specs(HDF5Spec(fullOnly=False, name=edges, subKey=edges, type='dataset'),
+                          HDF5Spec(fullOnly=True, name=mask, subKey=mask, type='dataset'),
+                          HDF5Spec(fullOnly=True, name=raw, subKey=raw, type='dataset'),
+                          HDF5Spec(fullOnly=False, name=threshold, subKey=threshold, type='attribute'),
+                          HDF5Spec(fullOnly=False, name=weight, subKey=weight, type='attribute'))
+        
+        for spec in specs:
+            self.outputBySpec(hdf5Path, spec, subCon)
     
     def _rff(self, container, full, keys):
         '''

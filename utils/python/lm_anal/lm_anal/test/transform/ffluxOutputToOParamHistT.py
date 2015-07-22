@@ -5,12 +5,16 @@ thisScriptDir = os.path.dirname(os.path.realpath(__file__))
 testDataPath = os.path.join(thisScriptDir, '../testData/biphasic_switch_fflux_simulations.lm')
 
 from lm_anal.src.io.hdf5.fflux import FFluxOutputsIO
+from lm_anal.src.io.hdf5.parameter import SimulationParametersIO
 from lm_anal.src.io.hdf5.oparam import OParamsIO
 from lm_anal.src.io.hdf5.tiling import TilingsIO
+
 from lm_anal.src.datum.fflux import FFluxOutputs
 from lm_anal.src.datum.hist import OParamHists
+from lm_anal.src.datum.parameter import SimulationParameters
 from lm_anal.src.datum.oparam import OParams
 from lm_anal.src.datum.tiling import Tilings
+
 from lm_anal.src.transform import Transforms
 
 import unittest
@@ -19,21 +23,24 @@ class FFluxOutputToOParamHistTTestCase(unittest.TestCase):
     def setUp(self):
         self.ffluxOutsIO = FFluxOutputsIO(fPath=testDataPath)
         self.oparamsIO = OParamsIO(fPath=testDataPath)
+        self.simParamsIO = SimulationParametersIO(self.testDataPath)
         self.tilingsIO = TilingsIO(fPath=testDataPath)
         
         self.ffluxOuts = FFluxOutputs()
         self.oparams = OParams()
         self.opHists = OParamHists()
+        self.simParams = SimulationParameters()
         self.tilings = Tilings()
     
     def loadData(self, full=False):
         self.ffluxOutsIO.rff(container=self.ffluxOuts, full=full)
         self.oparamsIO.rff(container=self.oparams, full=full)
+        self.simParamsIO.rff(container=self.simParams, full=full)
         self.tilingsIO.rff(container=self.tilings, full=full)
         
         tilings = [self.tilings[1], self.tilings[2]]
         
-        Transforms(src=self.ffluxOuts, dst=self.opHists, oparams=self.oparams, tilings=tilings)
+        Transforms(src=self.ffluxOuts, dst=self.opHists, oparams=self.oparams, simParams=self.simParams, tilings=tilings)
     
     def test_order_parameter_values(self):
         '''
