@@ -70,6 +70,7 @@
 #include "lm/thread/Worker.h"
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
+#include "robertslab/pbuf/NDArray.pb.h"
 
 using std::string;
 using std::list;
@@ -312,8 +313,8 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
             lm::io::SpeciesTimeSeries* speciesTimeSeriesDataSet = msg->mutable_species_time_series();
             speciesTimeSeriesDataSet->set_trajectory_id(trajectoryId);
 
-            robertslab::NDArray* counts = speciesTimeSeriesDataSet->mutable_counts();
-            counts->set_data_type(robertslab::NDArray::int32);
+            robertslab::pbuf::NDArray* counts = speciesTimeSeriesDataSet->mutable_counts();
+            counts->set_data_type(robertslab::pbuf::NDArray::int32);
             counts->set_compressed_deflate(true);
             counts->add_shape(speciesTimeSeriesTimes.size());
             counts->add_shape(reactionModel->numberSpeciesToTrack);
@@ -323,8 +324,8 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
             ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)speciesTimeSeriesCounts.data(), speciesTimeSeriesCounts.size()*sizeof(int32_t)));
             data->resize(dataSizeEstimate);
 
-            robertslab::NDArray* times = speciesTimeSeriesDataSet->mutable_times();
-            times->set_data_type(robertslab::NDArray::float64);
+            robertslab::pbuf::NDArray* times = speciesTimeSeriesDataSet->mutable_times();
+            times->set_data_type(robertslab::pbuf::NDArray::float64);
             times->set_compressed_deflate(true);
             times->add_shape(speciesTimeSeriesTimes.size());
             data = times->mutable_data();

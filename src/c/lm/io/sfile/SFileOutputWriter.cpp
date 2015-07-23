@@ -96,7 +96,7 @@ void SFileOutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes
     const int MAX_BUFFER_SIZE=128;
     char buffer[MAX_BUFFER_SIZE+1];
     memset(buffer, 0, MAX_BUFFER_SIZE+1);
-    snprintf(buffer,MAX_BUFFER_SIZE,"/Simulations/%lld/FirstPassageTimes/%d",data.trajectory_id(), data.species());
+    snprintf(buffer,MAX_BUFFER_SIZE,"/Simulations/%llu/FirstPassageTimes/%d",data.trajectory_id(), data.species());
     SFileRecord record(string(buffer), string("protobuf:lm.io.FirstPassageTimes"), data.ByteSize());
     file->writeSFileRecord(record);
     file->writeMessage(data);
@@ -107,7 +107,7 @@ void SFileOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
     const int MAX_BUFFER_SIZE=128;
     char buffer[MAX_BUFFER_SIZE+1];
     memset(buffer, 0, MAX_BUFFER_SIZE+1);
-    snprintf(buffer,MAX_BUFFER_SIZE,"/Simulations/%lld/SpeciesCounts",data.trajectory_id());
+    snprintf(buffer,MAX_BUFFER_SIZE,"/Simulations/%llu/SpeciesCounts",data.trajectory_id());
     SFileRecord record(string(buffer), string("protobuf:lm.io.SpeciesCounts"), data.ByteSize());
     file->writeSFileRecord(record);
     file->writeMessage(data);
@@ -118,7 +118,7 @@ void SFileOutputWriter::processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries
     const int MAX_BUFFER_SIZE=128;
     char buffer[MAX_BUFFER_SIZE+1];
     memset(buffer, 0, MAX_BUFFER_SIZE+1);
-    snprintf(buffer,MAX_BUFFER_SIZE,"/Simulations/%lld/SpeciesTimeSeries",data.trajectory_id());
+    snprintf(buffer,MAX_BUFFER_SIZE,"/Simulations/%llu/SpeciesTimeSeries",data.trajectory_id());
     SFileRecord record(string(buffer), string("protobuf:lm.io.SpeciesTimeSeries"), data.ByteSize());
     file->writeSFileRecord(record);
     file->writeMessage(data);
@@ -129,7 +129,7 @@ void SFileOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries
     const int MAX_BUFFER_SIZE=128;
     char buffer[MAX_BUFFER_SIZE+1];
     memset(buffer, 0, MAX_BUFFER_SIZE+1);
-    snprintf(buffer,MAX_BUFFER_SIZE,"/Simulations/%lld/LatticeTimeSeries",data.trajectory_id());
+    snprintf(buffer,MAX_BUFFER_SIZE,"/Simulations/%llu/LatticeTimeSeries",data.trajectory_id());
     SFileRecord record(string(buffer), string("protobuf:lm.io.LatticeTimeSeries"), data.ByteSize());
     file->writeSFileRecord(record);
     file->writeMessage(data);

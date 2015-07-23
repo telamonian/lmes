@@ -15,9 +15,6 @@ file(GLOB_RECURSE lm_proto_src ../protobuf/*.proto)
 PROTOBUF_GENERATE_CPP(proto_srcs proto_hdrs ${lm_proto_src})
 PROTOBUF_GENERATE_PYTHON(proto_pb2s ${lm_proto_src})
 
-#message(srcs_${proto_srcs})
-#message(hdrs_${proto_hdrs})
-
 set_source_files_properties(${proto_srcs} PROPERTIES GENERATED TRUE)
 set_source_files_properties(${proto_hdrs} PROPERTIES GENERATED TRUE)
 

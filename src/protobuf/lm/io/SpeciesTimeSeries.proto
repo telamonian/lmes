@@ -39,10 +39,10 @@
 
 package lm.io;
 
-import "robertslab/NDArray.proto";
+import "robertslab/pbuf/NDArray.proto";
 
 message SpeciesTimeSeries {
-    required uint64 trajectory_id                       = 1;
-    required robertslab.NDArray counts                  = 2;    //2D; rows=times,cols=counts; type=int32
-    required robertslab.NDArray times                   = 3;    //1D; rows=times; type=float64
+    required uint64 trajectory_id                             = 1;
+    required robertslab.pbuf.NDArray counts                   = 2;    //2D; rows=times,cols=counts; type=int32
+    required robertslab.pbuf.NDArray times                    = 3;    //1D; rows=times; type=float64
 }

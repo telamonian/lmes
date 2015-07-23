@@ -34,7 +34,7 @@
  * Author(s): Elijah Roberts
  */
 
-package robertslab;
+package robertslab.pbuf;
 
 message NDArray {
 
