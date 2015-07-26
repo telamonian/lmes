@@ -1,0 +1,2 @@
+from lm_anal.src.spec.transform.propertyTransform.propertyTransformSpec import PropertyTransformSpec
+from lm_anal.src.spec.transform.propertyTransform.propertyTransformSpecs import PropertyTransformSpecs

@@ -1,3 +1,4 @@
+import collections.abc
 from numpy import arange,around,array,asarray,atleast_1d,atleast_2d,bincount,diff,digitize,empty,isscalar,log10,ones,sort,where,zeros
 import numpy as np
 import re
@@ -11,15 +12,23 @@ LifecycleEnum = FFluxOutput.Lifecycle
 
 def CamelCaseLower(s):
     '''
-    convert CamelCase to camelCase
+    convert CamelCase (or snake_case) to camelCase
     '''
-    output = s
-    for i,l in enumerate(output):
-        if l.isupper():
-            output = output[:i] + l.lower() + output[i+1:]
-        else:
-            return output
-    return output
+    if '_' in s:
+        output = ''
+        tokens = s.split('_')
+        output+=CamelCaseLower(tokens[0])
+        for token in tokens[1:]:
+            output+=CamelCaseUpper(token)
+        return output
+    else:
+        output = s
+        for i,l in enumerate(output):
+            if l.isupper():
+                output = output[:i] + l.lower() + output[i+1:]
+            else:
+                return output
+        return output
 
 def CamelCaseUpper(s):
     '''
@@ -28,11 +37,27 @@ def CamelCaseUpper(s):
     if '_' in s:
         output = ''
         for token in s.split('_'):
-            token = token[0].upper() + token[1:]
-            output+=token
+#             token = token[0].upper() + token[1:]
+#             output+=token
+            output+=CamelCaseUpper(token)
         return output
     else:
         return s[0].upper() + s[1:]
+
+def FixedWidth(s):
+    '''
+    helper function for formatting keys in the Lattice Microbes hdf5 standard '%07d' format
+    '''
+    if isinstance(s, int):
+        return '%07d' % s
+    else:
+        return s
+
+def IsContainer(x):
+    '''
+    tests if x is an instance of one of the builtin container types
+    '''
+    return isinstance(x, collections.abc.Container)
 
 def ListInStr(l,s):
     '''
@@ -42,6 +67,12 @@ def ListInStr(l,s):
         if subS in s:
             return True
     return False
+
+def PathJoin(path, *paths):
+    '''
+    exactly like os.path.join, except that it *will* join absolute paths without throwing out prior path elements
+    '''
+    return os.path.join(path, *[path.lstrip(os.sep) for path in paths])
 
 def ShortenName(s):
     '''
@@ -58,6 +89,15 @@ def Singular(s):
         return s[:-3] + 'y'
     elif s[-1]=='s':
         return s[:-1]
+
+def Tupify(x):
+    '''
+    if x is an instance of a builtin container, convert it to a tuple. Otherwise, place x into a tuple
+    '''
+    if IsContainer(x):
+        return tuple(x)
+    else:
+        return (x,)
 
 def histogramdd(sample, bins=10, range=None, normed=False, weights=None, includeOutliers=True):
     """

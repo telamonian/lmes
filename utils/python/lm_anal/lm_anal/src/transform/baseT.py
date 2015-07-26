@@ -8,7 +8,8 @@ class BaseT(object):
     
     def initDst(self, src, dst):
         for key,datum in src:
-            dst.initDatum(key)
+            # TODO: fix up 'full' keyword system. Here specifically, how should 'full' flag be set for Datum created from a Transform?
+            dst.initDatum(key, full=datum.full)
 
     def execTransform(self, src, dst):
         for key,datum in dst:

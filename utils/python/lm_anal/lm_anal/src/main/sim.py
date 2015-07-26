@@ -2,6 +2,7 @@ import numpy as np
 import os,sys
 
 from lm_anal.src.io.hdf5.fflux import FFluxBasinsIO, FFluxFinalsIO, FFluxOutputsIO, FFluxTrajectoriesIO
+from lm_anal.src.io.hdf5.hist import OParamHistsIO
 from lm_anal.src.io.hdf5.parameter import SimulationParametersIO
 from lm_anal.src.io.hdf5.oparam import OParamsIO
 from lm_anal.src.io.hdf5.tiling import TilingsIO
@@ -25,56 +26,66 @@ class Sim(object):
         self.fPath = fPath
         self.fDir, self.fNameFull = os.path.split(self.fPath)
         self.fName, self.fNameSuffix = self.fNameFull.split('.')[:2]
-        self.intermediatePath = os.path.join(self.fDir, self.fName) + '.lmint'
+        self.intermediatePath = os.path.join(self.fDir, '.' + self.fName) + '.lmint'
         
         self.modIO = TimeIO(fPath=self.fPath)
-        
-#         if lmintOnly:
-#             # we only have a .lmint file and no base .lm file
-#             self._Load()
-#         elif not self.Load():
-#             self.Init()
-            
-        # logic of the following conditional:
-        # if you want to unpickle an intermediate AND the raw data HAS NOT changed, then do so
-        # otherwise if you want to unpickle an intermediate AND the raw data HAS changed, then work with the raw data
-        # otherwise if you don't care about pickled anything, then work with the raw data
-#         if unpickle==True:
-#             try:
-#                 if self.CheckMod():
-#                     self.Load()
-#                 else:
-#                     self.Init()
-#             except IOError:
-#                 self.Init()
-#         else:
-#             self.Init()
+           
+    def clear(self):
+        for attrName in ('oparams, opHists, specTrajs, tilings'):
+            try: 
+                self.__delattr__(attrName)
+            except AttributeError:
+                pass
     
-#     def __str__(self):
-#         outString = ''
-#         for key,val in self.sweepParams.items():
-#             outString+='%s: %s, ' % (key,val)
-#         return outString[:-2]
-#     
-    def cook(self, recipeName, **kwargs):
-        self.__getattribute__('%sRecipe' % recipeName)(**kwargs)
+    def gen(self, recipeName, freshenInt=True, readInt=True, writeInt=True, **kwargs):
+        # if we're told not to bother reading the .lmint, or if the restore "fails", use the relevant recipe to generate the data
+        if not readInt or not self.restore(recipeName, freshenInt, **kwargs):
+            self.__getattribute__('%sRecipe' % recipeName)(**kwargs)
+            # if we're writing out .lmints, do it now
+            if writeInt:
+                self.save(recipeName, **kwargs)
+        
+    def restore(self, recipeName, freshenInt, **kwargs):
+        # if intermediate file does not exist, gen the data
+        if not os.path.isfile(self.intermediatePath):
+            return False
+        # if freshenInt is False, restroe from existing .lmint no matter what. Otherwise, restore from .lmint if the mod file says it's fresh
+        if not freshenInt or self.modIO.checkMod():
+            self.__getattribute__('%sRestore' % recipeName)(**kwargs)
+            return True
+        else:
+            return False
+    
+    def save(self, recipeName, **kwargs):
+        self.__getattribute__('%sSave' % recipeName)(**kwargs)
+        self.modIO.saveMod()
         
     def OParamHistsRecipe(self, tilingIDs, **kwargs):
-        self.bfTrajsIO = BruteForceTrajectoriesIO(fPath=self.fPath  )
-        self.oparamsIO = OParamsIO(fPath=self.fPath)
-        self.tilingsIO = TilingsIO(fPath=self.fPath)
+        bfTrajsIO = BruteForceTrajectoriesIO(fPath=self.fPath)
+        oparamsIO = OParamsIO(fPath=self.fPath)
+        tilingsIO = TilingsIO(fPath=self.fPath)
         
         self.oparams = OParams()
         self.opHists = OParamHists()
         self.specTrajs = SpeciesTrajectories()
         self.tilings = Tilings()
         
-        self.bfTrajsIO.rff(container=self.specTrajs, full=True)
-        self.oparamsIO.rff(container=self.oparams, full=True)
-        self.tilingsIO.rff(container=self.tilings, full=True)
+        bfTrajsIO.rff(container=self.specTrajs, full=True)
+        oparamsIO.rff(container=self.oparams, full=True)
+        tilingsIO.rff(container=self.tilings, full=True)
         
         tilings = [self.tilings[i] for i in tilingIDs]
         
         Transforms(src=self.specTrajs, dst=self.opHists, oparams=self.oparams, tilings=tilings)
         
-    
+    def OParamHistsRestore(self, **kwargs):
+        oparamHistsIO = OParamHistsIO(fPath=self.intermediatePath)
+        
+        self.opHists = OParamHists()
+        
+        oparamHistsIO.rff(container=self.opHists, full=True)
+        
+    def OParamHistsSave(self, **kwargs):
+        opHistsIO = OParamHistsIO(fPath=self.intermediatePath)
+        
+        opHistsIO.wtf(container=self.opHists)

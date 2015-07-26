@@ -19,7 +19,16 @@ class ModIO(IO):
         check the mod time file (written with SaveMod()) corresponding to file. 
         If the simulation file has changed since the mod time file was written, return False. Otherwise, return True
         '''
+        if self.exists():
+            return self._checkMod()
+        else:
+            return False
+    
+    def _checkMod(self):
         pass
+    
+    def exists(self):
+        return os.path.isfile(self.modFPath)
     
     def _has(self):
         '''
@@ -59,6 +68,9 @@ class ModIO(IO):
         write out a mod time file.
         to remove all .mod files from a dir tree in bash, use: rm */.[^.]*.mod
         '''
+        return self._saveMod()
+    
+    def _saveMod(self):
         pass
 
     def _wtf(self, full, keys):

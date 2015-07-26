@@ -3,7 +3,7 @@ import os
 from lm_anal.src.io.mod.modIO import ModIO
 
 class TimeIO(ModIO):
-    def checkMod(self):
+    def _checkMod(self):
         '''
         check the mod time file (written with SaveMod()) corresponding to file. 
         If the simulation file has changed since the mod time file was written, return False. Otherwise, return True
@@ -17,7 +17,7 @@ class TimeIO(ModIO):
         '''
         self.modTime = float(self.file.readline())
     
-    def saveMod(self):
+    def _saveMod(self):
         '''
         write out a mod time file corresponding to file.
         the format will be a single line with the time the simulation file was last modified

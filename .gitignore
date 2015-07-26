@@ -39,3 +39,7 @@ bak_*
 # ipython notebook stuff
 *.ipynb
 .ipynb
+
+# lm_anal intermediate file stuff
+*.lmint
+*.mod
