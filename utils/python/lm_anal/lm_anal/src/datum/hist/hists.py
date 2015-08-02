@@ -1,5 +1,7 @@
-from lm_anal.src.datum import Data
-from lm_anal.src.datum.hist import Hist
+from lm_anal.src.datum.data import Data
+from lm_anal.src.datum.hist.hist import Hist
+
+__all__ = ['Hists']
 
 class Hists(Data):
     datumType = Hist

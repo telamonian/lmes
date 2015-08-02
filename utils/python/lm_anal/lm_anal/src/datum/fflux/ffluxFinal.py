@@ -1,6 +1,8 @@
 # from lm_anal.python_protobuf.lm.io.FFluxOutput_pb2 import BasinOutput as BasinOutputBuf
 from lm_anal.src.datum import Datum, DatumPropertySpec as DPSpec, DatumPropertySpecs as DPSpecs
 
+__all__ = ['FFluxFinal']
+
 class FFluxFinal(Datum):
     propertySpecs = DPSpecs(DPSpec(dtype='float', name='probability_i', paths=('probability_i',), storageType='numpy', type='array'),
                             DPSpec(dtype='float', name='normalized_probability_i', paths=('normalized_probability_i',), storageType='numpy', type='array'),

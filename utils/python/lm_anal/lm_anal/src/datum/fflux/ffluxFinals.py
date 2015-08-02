@@ -1,6 +1,8 @@
 from lm_anal.src.datum import Data
 from lm_anal.src.datum.fflux import FFluxFinal
 
+__all__ = ['FFluxFinals']
+
 class FFluxFinals(Data):
     datumType = FFluxFinal
 

@@ -1,6 +1,8 @@
 # from lm_anal.python_protobuf.lm.io.FFluxOutput_pb2 import BasinOutput as BasinOutputBuf
 from lm_anal.src.datum import Datum, DatumPropertySpec as DPSpec, DatumPropertySpecs as DPSpecs
 
+__all__ = ['FFluxBasin']
+
 class FFluxBasin(Datum):
     propertySpecs = DPSpecs(DPSpec(dtype='int', name='direction', paths=('direction',), storageType='protobuf', type='scalar'),
                             DPSpec(dtype='float', name='flux_out_of_tile_zero', paths=('flux_out_of_tile_zero',), storageType='protobuf', type='scalar'),

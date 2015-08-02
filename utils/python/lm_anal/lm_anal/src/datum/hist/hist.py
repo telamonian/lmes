@@ -1,13 +1,12 @@
-from abc import ABCMeta
 from itertools import chain
 import numpy as np
 import scipy.stats as st
 
 from lm_anal.src.helper import histogramdd
 from lm_anal.src.datum import Datum, DatumPropertySpec as DPSpec, DatumPropertySpecs as DPSpecs
+from lm_anal.src.datumABC import HistABC
 
-class HistBase(metaclass=ABCMeta):
-    pass
+__all__ = ['Hist']
 
 class Hist(Datum):
 # class attributes
@@ -209,4 +208,4 @@ class Hist(Datum):
         self.clearVals()
         self.addObservations(obs)
     
-HistBase.register(Hist)
+HistABC.register(Hist)

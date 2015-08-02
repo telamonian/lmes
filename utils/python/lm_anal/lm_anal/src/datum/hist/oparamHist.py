@@ -1,6 +1,8 @@
 import numpy as np
 
-from lm_anal.src.datum.hist import Hist
+from lm_anal.src.datum.hist.hist import Hist
+
+__all__ = ['OParamHist']
 
 class OParamHist(Hist):
     propertySpecs = {'order_parameter_values':{'targetName':'h','type':'alias'}}

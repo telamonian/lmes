@@ -1,13 +1,11 @@
-from abc import ABCMeta
 import os,sys
 thisScriptDir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(thisScriptDir, '../../../python_protobuf'))
 from lm_anal.python_protobuf.lm.io.FFluxOutput_pb2 import FFluxOutput as FFluxOutputBuf
-
 from lm_anal.src.datum import Datum, DatumPropertySpec as DPSpec, DatumPropertySpecs as DPSpecs
+from lm_anal.src.datumABC import FFluxABC
 
-class FFluxBase(metaclass=ABCMeta):
-    pass
+__all__ = ['FFluxOutput']
 
 class FFluxOutput(Datum):
     propertySpecs = DPSpecs(DPSpec(dtype='int', name='number_species', paths=('number_species',), storageType='protobuf', type='scalar'),
@@ -21,4 +19,4 @@ class FFluxOutput(Datum):
         super().__init__(full=full)
         self.protobuf = FFluxOutputBuf()
         
-FFluxBase.register(FFluxOutput)
+FFluxABC.register(FFluxOutput)

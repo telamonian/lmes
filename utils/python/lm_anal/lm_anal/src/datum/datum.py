@@ -7,6 +7,8 @@ from lm_anal.src.helper import CamelCaseUpper
 
 DEBUG_GETTERS_SETTERS = False
 
+__all__ = ['DatumMetaclass', 'Datum']
+
 def DefAliasProp(name, spec, dct):
     @property
     def prop(self):

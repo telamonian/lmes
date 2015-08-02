@@ -1,11 +1,10 @@
-from abc import ABCMeta
 import os, sys
 
 from lm_anal.python_protobuf.lm.io.TrajectoryState_pb2 import TrajectoryState as TrajectoryStateBuf
 from lm_anal.src.datum import Datum
+from lm_anal.src.datumABC.trajectory import TrajectoryABC
 
-class TrajectoryBase(metaclass=ABCMeta):
-    pass
+__all__ = ['Trajectory']
 
 class Trajectory(Datum):
     propertySpecs = {'number_entries':{'dtype':'int', 'paths':('cme_state','species_counts','number_entries'), 'storageType':'protobuf', 'type':'scalar'},
@@ -51,4 +50,4 @@ class Trajectory(Datum):
         super().__init__(full=full)
         self.protobuf = TrajectoryStateBuf()
         
-TrajectoryBase.register(Trajectory)
+TrajectoryABC.register(Trajectory)

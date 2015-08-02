@@ -4,6 +4,9 @@ import numpy as np
 
 from lm_anal.src.datum.datum import DatumMetaclass
 from lm_anal.src.datum.trajectory.trajectory import Trajectory
+from lm_anal.src.datumABC import TrajectoryABC
+
+__all__ = ['SpeciesTrajectory']
 
 class SpeciesTrajectory(Trajectory): #, metaclass=DatumMetaclass):
     # data spec

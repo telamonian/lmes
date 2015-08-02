@@ -3,6 +3,8 @@ from collections import OrderedDict
 # from lm_anal.python_protobuf.lm.io.FFluxOutput_pb2 import TrajectoryOutput as TrajectoryOutputBuf
 from lm_anal.src.datum import Datum, DatumPropertySpec as DPSpec, DatumPropertySpecs as DPSpecs
 
+__all__ = ['FFluxTrajectory']
+
 class FFluxTrajectory(Datum):
     propertySpecs = DPSpecs(DPSpec(dtype='int', name='direction', paths=('direction',), storageType='protobuf', type='scalar'),
                             DPSpec(dtype='int', name='lifecycle', paths=('lifecycle',), storageType='protobuf', type='scalar'),

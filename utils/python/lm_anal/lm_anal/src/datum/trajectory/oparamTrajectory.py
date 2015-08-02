@@ -5,6 +5,8 @@ import numpy as np
 from lm_anal.src.datum.datum import DatumMetaclass
 from lm_anal.src.datum.trajectory.trajectory import Trajectory
 
+__all__ = ['OParamTrajectory']
+
 class OParamTrajectory(Trajectory): #, metaclass=DatumMetaclass):
     # data spec
     propertySpecs = {'number_entries':{'dtype':'int', 'paths':('cme_state','order_parameter_values','number_entries'), 'storageType':'protobuf', 'type':'scalar'},

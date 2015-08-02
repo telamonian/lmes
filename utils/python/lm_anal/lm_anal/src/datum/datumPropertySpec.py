@@ -17,6 +17,8 @@
 
 from collections import OrderedDict
 
+__all__ = ['DatumPropertySpec']
+
 class DatumPropertySpec(object): #, metaclass=DatumPropertySpecMetaclass):
     keywords = {'dtype', 'name', 'paths', 'storageType', 'targetName', 'type'}
     

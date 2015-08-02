@@ -1,6 +1,8 @@
 from collections import OrderedDict
 
-from lm_anal.src.helper import Tupify
+from lm_anal.src.helper import Setify,Tupify
+
+__all__ = ['Spec','SpecMetaclass']
 
 def DefProp(name):
     @property
@@ -13,7 +15,10 @@ def DefProp(name):
  
 class SpecMetaclass(type):
     def __new__(cls, clsname, bases, dct):
-        for keyword in dct['keywords']:
+        for keyword in (dct.get('keywords', set()) |
+                        dct.get('requiredKeywords', set()) |
+                        dct.get('setKeywords', set()) |
+                        dct.get('tupleKeywords', set())):
             dct[keyword] = DefProp(keyword)
         return super(SpecMetaclass, cls).__new__(cls, clsname, bases, dct)
 
@@ -21,6 +26,7 @@ class Spec(object, metaclass=SpecMetaclass):
     keywords = set()
     
     requiredKeywords = set()
+    setKeywords = set()
     tupleKeywords = set()
     
     def __init__(self, **kwargs):
@@ -29,6 +35,11 @@ class Spec(object, metaclass=SpecMetaclass):
         # test if required keywords is a subset of the keyword arguments we actually got
         if not self.requiredKeywords <= kwargs.keys():
             raise
+        
+        # for all of the setKeywords, make sure that the associated argument is a set
+        for key in self.setKeywords:
+            if key in kwargs:
+                kwargs[key] = Setify(kwargs[key])
         
         # for all of the tupleKeywords, make sure that the associated argument is a tuple
         for key in self.tupleKeywords:
@@ -42,6 +53,9 @@ class Spec(object, metaclass=SpecMetaclass):
         
         for key,val in kwargs.items():
             self[key] = val
+    
+    def __contains__(self, key):
+        return key in self.map
     
     def __delitem__(self, key):
         del self.map[key]

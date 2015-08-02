@@ -1,5 +1,7 @@
 from collections import OrderedDict
 
+__all__ = ['HDF5Specs']
+
 class HDF5Specs(object):
     def __init__(self, *args):
         self.map = OrderedDict()

@@ -13,25 +13,25 @@ import unittest
 #from replicate.replicateTrajectories import ReplicateTrajectoriesTestCase
 # from tiling.tilings import TilingsTestCase
 
-from lm_anal.test.datum.fflux.ffluxBasins import FFluxBasinsTestCase
-from lm_anal.test.datum.fflux.ffluxFinals import FFluxFinalsTestCase
-from lm_anal.test.datum.fflux.ffluxOutputs import FFluxOutputsTestCase
-from lm_anal.test.datum.fflux.ffluxTrajectories import FFluxTrajectoriesTestCase
- 
-from lm_anal.test.datum.hist.oparamHists import OParamHistsTestCase
-  
-from lm_anal.test.datum.oparam.oparams import OParamsTestCase
-   
-from lm_anal.test.datum.parameter.simulationParameter import SimulationParametersTestCase
-   
-from lm_anal.test.datum.tiling.tilings import TilingsTestCase
-   
+# from lm_anal.test.datum.fflux.ffluxBasins import FFluxBasinsTestCase
+# from lm_anal.test.datum.fflux.ffluxFinals import FFluxFinalsTestCase
+# from lm_anal.test.datum.fflux.ffluxOutputs import FFluxOutputsTestCase
+# from lm_anal.test.datum.fflux.ffluxTrajectories import FFluxTrajectoriesTestCase
+#  
+# from lm_anal.test.datum.hist.oparamHists import OParamHistsTestCase
+#   
+# from lm_anal.test.datum.oparam.oparams import OParamsTestCase
+#    
+# from lm_anal.test.datum.parameter.simulationParameter import SimulationParametersTestCase
+#    
+# from lm_anal.test.datum.tiling.tilings import TilingsTestCase
+#    
 from lm_anal.test.datum.trajectory.oparamTrajectories import OParamTrajectoriesTestCase
-from lm_anal.test.datum.trajectory.speciesTrajectories import SpeciesTrajectoriesTestCase
-
-from lm_anal.test.io.mod.timeIO import TimeIOTestCase
-
-from lm_anal.test.main.sims import SimsBFTrajToOPHistTestCase
+# from lm_anal.test.datum.trajectory.speciesTrajectories import SpeciesTrajectoriesTestCase
+# 
+# from lm_anal.test.io.mod.timeIO import TimeIOTestCase
+# 
+# from lm_anal.test.main.sims import SimsBFTrajToOPHistTestCase
  
 # from lm_anal.test.transform.ffluxOutputToOParamHistT import FFluxOutputToOParamHistTTestCase
 

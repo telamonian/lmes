@@ -1,6 +1,6 @@
 import h5py
 
-from lm_anal.src.helper import FixedWidth
+__all__ = ['DataMetaclass', 'Data']
 
 class DataMetaclass(object):
     def __new__(cls, clsname, bases, dct):
@@ -34,11 +34,20 @@ class Data(object):
     def __iter__(self):
         return self.map.items().__iter__()
 
-    def keyIter(self):
-        return self.map.keys().__iter__()
+    def keyIter(self, keys=None):
+        # the keys keyword is here mostly for symmetry with valIter
+        if keys==None:
+            return self.map.keys().__iter__()
+        else:
+            for key in keys:
+                yield key
 
-    def valIter(self):
-        return self.map.values().__iter__()
+    def valIter(self, keys=None):
+        if keys==None:
+            return self.map.values().__iter__()
+        else:
+            for key in keys:
+                yield self[key]
 
 # accessors
     def keys(self):

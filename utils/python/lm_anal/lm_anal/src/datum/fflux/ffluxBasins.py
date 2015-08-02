@@ -1,6 +1,8 @@
 from lm_anal.src.datum import Data
 from lm_anal.src.datum.fflux import FFluxBasin
 
+__all__ = ['FFluxBasins']
+
 class FFluxBasins(Data):
     datumType = FFluxBasin
 

@@ -7,6 +7,8 @@ def DefProp(name):
         self[name] = val
     return prop
 
+__all__ = ['HDF5SpecMetaclass', 'HDF5Spec']
+
 class HDF5SpecMetaclass(type):
     def __new__(cls, clsname, bases, dct):
         for keyword in dct['keywords']:

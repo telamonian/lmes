@@ -1,5 +1,7 @@
 from collections import OrderedDict
 
+__all__ = ['DatumPropertySpecs']
+
 class DatumPropertySpecs(object):
     def __init__(self, *args):
         self.map = OrderedDict()

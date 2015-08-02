@@ -1,5 +1,7 @@
-from lm_anal.src.datum.hist import Hists
-from lm_anal.src.datum.hist import OParamHist
+from lm_anal.src.datum.hist.hists import Hists
+from lm_anal.src.datum.hist.oparamHist import OParamHist
+
+__all__ = ['OParamHists']
 
 class OParamHists(Hists):
     datumType = OParamHist

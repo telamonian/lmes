@@ -1,6 +1,8 @@
 from lm_anal.src.datum import Data
 from lm_anal.src.datum.fflux import FFluxTrajectory
 
+__all__ = ['FFluxTrajectories']
+
 class FFluxTrajectories(Data):
     datumType = FFluxTrajectory
 

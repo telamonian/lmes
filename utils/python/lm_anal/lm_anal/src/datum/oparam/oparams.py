@@ -3,6 +3,7 @@ import os,sys
 from lm_anal.src.datum import Data
 from lm_anal.src.datum.oparam import OParam
 from lm_anal.src.datum.oparam import OParamLinear
+from lm_anal.src.helper import Tupify
 
 # thisScriptDir = os.path.dirname(os.path.realpath(__file__))
 # sys.path.append(os.path.join(thisScriptDir, '../../../python_protobuf/lm/io'))
@@ -15,6 +16,11 @@ class OParams(Data):
     def __init__(self):
         super().__init__()
         self.protobuf = OParamsBuf()
+    
+    def combineByID(self, oparamIDs):
+        oparamIDs = Tupify(oparamIDs)
+        oparams = [self[oparamIDs[i]] for i in oparamIDs]
+        return oparams[0].combine(oparams[1:])
     
     def initDatum(self, key, **kwargs):
         try:
