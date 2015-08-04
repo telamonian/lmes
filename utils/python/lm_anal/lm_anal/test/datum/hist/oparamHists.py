@@ -16,6 +16,24 @@ from lm_anal.src.transform import Transforms
 
 import unittest
 
+class OParamHistsSumCheck(object):
+    def checkOParamHistsSum(self, intendedSum):
+        self.opHists.genSum()
+        sum = np.sum(self.opHists['sum'].order_parameter_values)
+        sumArr = self.opHists['sum'].order_parameter_values
+        altIntendedSum = sum([np.sum(self.opHists[i].order_parameter_values) for i in range(1,11)])
+        altIntendedSumArr = sum([self.opHists[i].order_parameter_values for i in range(1,11)])
+        
+        # if everything==0, then none of these tests are very interesting
+        self.assertTrue(sum > 0)
+        self.assertEqual(sum, intendedSum)
+        self.assertEqual(sum, altIntendedSum)
+        try:
+            testBool = np.allclose(sumArr, altIntendedSumArr)
+        except ValueError:
+            testBool = False
+        self.assertTrue(testBool, msg='not allclose: %s\n%s' % (sumArr.tolist(), altIntendedSumArr.tolist()))
+
 class OParamHistsTestCase(unittest.TestCase):
     def setUp(self):
         self.bfTrajsIO = BruteForceTrajectoriesIO(fPath=testDataPath)
@@ -32,9 +50,7 @@ class OParamHistsTestCase(unittest.TestCase):
         self.oparamsIO.rff(container=self.oparams, full=full)
         self.tilingsIO.rff(container=self.tilings, full=full)
         
-        tilings = [self.tilings[1], self.tilings[2]]
-        
-        Transforms(src=self.specTrajs, dst=self.opHists, oparams=self.oparams, tilings=tilings)
+        Transforms(srcs=self.specTrajs, dsts=self.opHists, oparams=self.oparams, tilings=self.tilings, tilingIDs=(1,2))
     
     def test_dims_from_transform(self):
         '''

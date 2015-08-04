@@ -9,6 +9,9 @@ class SimulationParameters(Data):
     def __init__(self):
         super().__init__()
 
+    def get(self, key):
+        return next(self.map.values())[key]
+
     def initDatum(self, key, **kwargs):
         try:
             return self.map[key]

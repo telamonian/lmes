@@ -18,9 +18,15 @@ class OParams(Data):
         self.protobuf = OParamsBuf()
     
     def combineByID(self, oparamIDs):
+        oparams = self.getByID(oparamIDs)
+        try:
+            return oparams[0].combine(oparams[1:])
+        except AttributeError:
+            raise
+    
+    def getByID(self, oparamIDs):
         oparamIDs = Tupify(oparamIDs)
-        oparams = [self[oparamIDs[i]] for i in oparamIDs]
-        return oparams[0].combine(oparams[1:])
+        return [self[i] for i in oparamIDs]
     
     def initDatum(self, key, **kwargs):
         try:

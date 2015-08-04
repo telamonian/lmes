@@ -51,7 +51,7 @@ class SimsBFTrajToOPHistTestCase(unittest.TestCase):
             testBool = np.allclose(oPVSumArr, intendedOPVSumArr)
         except ValueError:
             testBool = False
-#         self.assertTrue(testBool, msg='not allclose: %s\n%s' % (oPVSumArr.tolist(), intendedOPVSumArr.tolist()))
+        self.assertTrue(testBool, msg='not allclose: %s\n%s' % (oPVSumArr.tolist(), intendedOPVSumArr.tolist()))
     
     def loadData(self, full=False):
         pass

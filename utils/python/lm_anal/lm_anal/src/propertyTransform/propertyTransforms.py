@@ -26,12 +26,11 @@ import os
 from pathlib import Path
 
 from lm_anal.src.helper import ShallowImportPackages
+from lm_anal.src.propertyTransform.copyPT import CopyPT
 
 propertyTransformPath = Path(os.path.dirname(os.path.realpath(__file__)))
 propertyTransformName = __package__
 srcPropertyTransformPkgDict = ShallowImportPackages(path=[str(propertyTransformPath)], name=propertyTransformName, outputAll=False)
-
-# from lm_anal.src.transform.propertyTransform.copyPT import CopyPT
 
 __all__ = ['PropertyTransforms']
 
@@ -59,13 +58,18 @@ class PropertyTransforms(object):
         
         # now that we have the right pt pkg, load up the pts themselves
         for propTransSpec in self.propertyTransformSpecs.values():
-            ptFound = False
-            for PropertyTransform in self.propertyTransformDict.values():
-                if PropertyTransform.checkProps(propTransSpec.srcProps, propTransSpec.dstProps):
-                    self.propertyTransforms.append(PropertyTransform())
-                    ptFound = True
-                    break
-            if not ptFound:
+            if propTransSpec.type=='copy':
+                self.propertyTransforms.append(CopyPT(srcProps=propTransSpec.srcProps, dstProps=propTransSpec.dstProps))
+            elif propTransSpec.type=='special':
+                ptFound = False
+                for PropertyTransform in self.propertyTransformDict.values():
+                    if PropertyTransform.checkProps(PropertyTransform, propTransSpec.srcProps, propTransSpec.dstProps):
+                        self.propertyTransforms.append(PropertyTransform())
+                        ptFound = True
+                        break
+                if not ptFound:
+                    raise
+            else:
                 raise
             
 #         self.srcPropNames = srcDatumType.propertyNames

@@ -2,8 +2,13 @@ from lm_anal.src.datumABC.fflux import FFluxABC
 from lm_anal.src.datumABC.hist import HistABC
 from lm_anal.src.datumABC.trajectory import TrajectoryABC
 
+from lm_anal.src.helper import Tupify
+
 __all__ = ['datumABCDict', 'IsDatum', 'GetDatumABC', 'GetDatumABCSet', 'GetDatumPkgName',
+                           'GetDatumStrABC', 'GetDatumStrABCSet',
                            'IsDatumType', 'GetDatumTypeABC', 'GetDatumTypeABCSet', 'GetDatumTypePkgName']
+
+# TODO: organize all this crap into classes(?)
 
 datumABCDict = {'fflux':FFluxABC, 'hist':HistABC, 'trajectory':TrajectoryABC}
 
@@ -26,11 +31,14 @@ def GetDatumABC(x):
             return datumABC
     raise
 
-def GetDatumABCSet(xs):
+def GetDatumABCSet(xs, frozen=False):
     '''
-    return the set of abstract base classes of a sequence of datum instances xs
+    return the (frozen)set of abstract base classes of a sequence of datum instances xs
     '''
-    return set().union(map(GetDatumABC, xs))
+    if frozen:
+        return frozenset().union(map(GetDatumABC, Tupify(xs)))
+    else:
+        return set().union(map(GetDatumABC, Tupify(xs)))
 
 def GetDatumPkgName(x):
     '''
@@ -40,6 +48,22 @@ def GetDatumPkgName(x):
         if isinstance(x, datumABC):
             return pkgName
     raise
+
+# functions that take strings as arguments
+def GetDatumStrABC(x):
+    '''
+    return the abstract base class of datum name string x
+    '''
+    return datumABCDict[x]
+
+def GetDatumStrABCSet(xs, frozen=False):
+    '''
+    return the (frozen)set of abstract base classes of a sequence of datum name strings xs
+    '''
+    if frozen:
+        return frozenset().union(map(GetDatumStrABC, Tupify(xs)))
+    else:
+        return set().union(map(GetDatumStrABC, Tupify(xs)))
 
 # functions that take types (ie classes themselves) as arguments
 def IsDatumType(x):
@@ -60,11 +84,14 @@ def GetDatumTypeABC(x):
             return datumABC
     raise
 
-def GetDatumTypeABCSet(xs):
+def GetDatumTypeABCSet(xs, frozen=False):
     '''
-    return the set of abstract base classes of a sequence of datum types xs
+    return the (frozen)set of abstract base classes of a sequence of datum types xs
     '''
-    return set().union(map(GetDatumTypeABC, xs))
+    if frozen:
+        return frozenset().union(map(GetDatumTypeABC, Tupify(xs)))
+    else:
+        return set().union(map(GetDatumTypeABC, Tupify(xs)))
 
 def GetDatumTypePkgName(x):
     '''

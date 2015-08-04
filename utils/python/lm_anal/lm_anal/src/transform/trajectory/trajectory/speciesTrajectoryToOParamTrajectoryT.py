@@ -1,18 +1,21 @@
 from lm_anal.src.datum.trajectory.oparamTrajectory import OParamTrajectory
 from lm_anal.src.datum.trajectory.speciesTrajectory import SpeciesTrajectory
-from lm_anal.src.transform import BaseT
 from lm_anal.src.spec import PropertyTransformSpec, PropertyTransformSpecs, TransformSpec, TransformSpecs
+from lm_anal.src.transform import BaseT
 
 __all__ = ['SpeciesTrajectoryToOParamTrajectoryT']
 
 class SpeciesTrajectoryToOParamTrajectoryT(BaseT):
-    srcTypes = {SpeciesTrajectory}
-    dstTypes = {OParamTrajectory}
+    srcTypes = frozenset({SpeciesTrajectory})
+    dstTypes = frozenset({OParamTrajectory})
     
-    transformSpecs = TransformSpecs(TransformSpec(srcTypes=SpeciesTrajectory, dstTypes=OParamTrajectory, extraArgs='oparamIDs', requiredData='oparams',
+    transformSpecs = TransformSpecs(TransformSpec(srcTypes=SpeciesTrajectory, dstTypes=OParamTrajectory, requiredArgs='oparamIDs', requiredData='oparams',
                                                   propertyTransformSpecs=PropertyTransformSpecs(
-                                                  PropertyTransformSpec(srcProps='species_count', dstProps='order_parameter_values', extraArgs='oparamIDs', type='special'),
-                                                  PropertyTransformSpec(srcProps='', dstProps='number_order_parameters', extraArgs='oparamIDs', type='special'))))
+                                                  PropertyTransformSpec(dstProps='number_entries', srcProps='number_entries', type='copy'),
+                                                  PropertyTransformSpec(dstProps='number_order_parameters', srcProps='', requiredArgs='oparamIDs', type='special'),                                              
+                                                  PropertyTransformSpec(dstProps='order_parameter_values', srcProps='species_count', requiredArgs='oparamIDs', type='special'),
+                                                  PropertyTransformSpec(dstProps='time', srcProps='time', type='copy'),
+                                                  PropertyTransformSpec(dstProps='trajectory_id', srcProps='trajectory_id', type='copy'))))
 #     srcType = SpeciesTrajectory
 #     dstType = OParamTrajectory
 #     

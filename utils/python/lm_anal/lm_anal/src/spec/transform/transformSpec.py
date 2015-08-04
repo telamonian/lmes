@@ -4,11 +4,11 @@ from lm_anal.src.spec.spec import Spec
 __all__ = ['TransformSpec']
 
 class TransformSpec(Spec):
-    keywords = {'name', 'srcTypes', 'dstTypes', 'propertyTransformSpecs', 'extraArgs', 'requiredData'}
+    keywords = {'name', 'srcTypes', 'dstTypes', 'propertyTransformSpecs', 'requiredArgs', 'requiredData'}
     
     requiredKeywords = {'srcTypes', 'dstTypes'}
     # if we got a single srcTypes/dstTypes rather than a list (or whatever), put it in a set. Otherwise, convert to set
-    setKeywords = {'srcTypes', 'dstTypes', 'extraArgs', 'requiredData'}
+    setKeywords = {'srcTypes', 'dstTypes', 'requiredArgs', 'requiredData'}
         
     def defaultName(self, **kwargs):
         # if we don't specify a name, come up with one from srcTypes + dstTypes -> <ST1>And<ST2>...To<DT1>And<DT2>...

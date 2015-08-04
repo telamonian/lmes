@@ -1,4 +1,3 @@
-import numpy as np; np.set_printoptions(precision=1, threshold=1e6, linewidth=1e6)
 import os,sys
 
 thisScriptDir = os.path.dirname(os.path.realpath(__file__))
@@ -17,9 +16,11 @@ from lm_anal.src.datum.tiling import Tilings
 
 from lm_anal.src.transform import Transforms
 
+from lm_anal.test.datum.hist.oparamHists import OParamHistsSumCheck
+
 import unittest
 
-class FFluxOutputToOParamHistTTestCase(unittest.TestCase):
+class FFluxOutputAndSpeciesTrajectoryToOParamHistT(unittest.TestCase, OParamHistsSumCheck):
     def setUp(self):
         self.ffluxOutsIO = FFluxOutputsIO(fPath=testDataPath)
         self.oparamsIO = OParamsIO(fPath=testDataPath)
@@ -28,7 +29,7 @@ class FFluxOutputToOParamHistTTestCase(unittest.TestCase):
         
         self.ffluxOuts = FFluxOutputs()
         self.oparams = OParams()
-        self.opHists = OParamHists()
+        self.ffluxOPHists = OParamHists()
         self.simParams = SimulationParameters()
         self.tilings = Tilings()
     

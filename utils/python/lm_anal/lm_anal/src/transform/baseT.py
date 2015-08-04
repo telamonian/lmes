@@ -51,10 +51,10 @@ class BaseT(object):
         self.propertyTransforms = []
         self.requiredKeywords = set()
         for transSpec in self.transformSpecs.values():
-            self.requiredKeywords = self.requiredKeywords | (transSpec['extraArgs'] | transSpec['requiredData'])
+            self.requiredKeywords = self.requiredKeywords | (transSpec['requiredArgs'] | transSpec['requiredData'])
             self.propertyTransforms.append(PropertyTransforms(srcABCs=self.srcABCs, dstABCs=self.dstABCs, propertyTransformSpecs=transSpec['propertyTransformSpecs']))
     
-    def tfd(self, src, dst, keys=None, **kwargs):
+    def tfd(self, srcs, dsts, keys=None, **kwargs):
         '''
         generic tfd (transform from datum) method
         '''
@@ -64,11 +64,11 @@ class BaseT(object):
                 raise
         
         if keys==None:
-            keys = src.keys()
+            keys = srcs.keys()
             
-        for key,srcDatum in zip(keys,src.valIter(keys)):
+        for key,srcDatum in zip(keys,srcs.valIter(keys)):
             # TODO: fix up 'full' keyword system. Here specifically, how should 'full' flag be set for Datum created from a Transform?
-            dstDatum = dst.initDatum(key, full=srcDatum.full)
+            dstDatum = dsts.initDatum(key, full=srcDatum.full)
             for propertyTransform in self.propertyTransforms:
                 propertyTransform.transformProperties(srcDatum, dstDatum, **kwargs)
         

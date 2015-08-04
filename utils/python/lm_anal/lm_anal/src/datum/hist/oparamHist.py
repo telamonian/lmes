@@ -10,16 +10,16 @@ class OParamHist(Hist):
     def __init__(self, full=False):
         super().__init__(full=full)
         
-    def setTilings(self, oparams, tilings):
+    def setTilings(self, oparams, tilings, tilingIDs):
+        # TODO: move the setTilings functionality to the Tiling package, ie give Tiling objects a combine method like OParam objects have now
         self.oparams = []
         dims = []
         edges = []
-        for tiling in tilings:
+        
+        for tiling in tilings.getByID(tilingIDs):
             self.oparams.append(oparams[tiling.order_parameter_id])
             dims.append(len(tiling.edges) + 1)
             edges.append(np.array(tiling.edges))
-#         self.h_dims = np.array(dims)
-#         self.h_edges = np.hstack(edges)
-        self.oparam = self.oparams[0].combine(self.oparams[1:])
         
+        self.oparam = self.oparams[0].combine(self.oparams[1:])        
         self.initH(dims=np.array(dims), edges=np.hstack(edges))

@@ -3,12 +3,15 @@ from lm_anal.src.datum.trajectory import SpeciesTrajectory
 from lm_anal.src.spec import PropertyTransformSpec, PropertyTransformSpecs, TransformSpec, TransformSpecs
 from lm_anal.src.transform import BaseT
 
-#__all__ = ['SpeciesTrajectoryToOParamHist']
+__all__ = ['SpeciesTrajectoryToOParamHistT']
 
 class SpeciesTrajectoryToOParamHistT(BaseT):
-    transformSpecs = TransformSpecs(TransformSpec(srcTypes=SpeciesTrajectory, dstTypes=OParamHist, extraArgs='tilingIDs', requiredData=('oparams','tilings'),
-                                                  propertyTransformSpecs=PropertyTransformSpecs(
-                                                  PropertyTransformSpec(srcProps='species_count', dstProps='order_parameter_values', extraArgs='tilingIDs', type='special'))))
+    srcTypes = frozenset({SpeciesTrajectory})
+    dstTypes = frozenset({OParamHist})
+    
+    transformSpecs = TransformSpecs(TransformSpec(srcTypes=SpeciesTrajectory, dstTypes=OParamHist, requiredArgs='tilingIDs', requiredData={'oparams','tilings'},
+                                                  propertyTransformSpecs=PropertyTransformSpecs(                                             
+                                                                         PropertyTransformSpec(dstProps='order_parameter_values', srcProps='species_count', requiredArgs='tilingIDs', type='special'))))
 #     srcType = SpeciesTrajectory
 #     dstType = OParamHist
 #     

@@ -1,13 +1,26 @@
 from collections import OrderedDict
+from copy import deepcopy
 
-__all__ = ['Specs']
+__all__ = ['SpecsMetaclass', 'Specs']
 
-class Specs(object):
-    def __init__(self, *args):
+def DefAllProp(setKeyword):
+    @property
+    def prop(self):
+        return set().union(*(spec[setKeyword] for spec in self.values()))
+    return prop
+ 
+class SpecsMetaclass(type):
+    def __new__(cls, clsname, bases, dct):
+        if 'specType' in dct:
+            for setKeyword in dct['specType'].setKeywords:
+                dct['%sAll' % setKeyword] = DefAllProp(setKeyword)
+        return super(SpecsMetaclass, cls).__new__(cls, clsname, bases, dct)
+
+class Specs(object, metaclass=SpecsMetaclass):
+    def __init__(self, *specList):
         self.counter = 0
         self.map = OrderedDict()
-        for arg in args:
-            self[self.genKey(arg, args)] = arg
+        self.addSpecList(specList)
     
     def __contains__(self, key):
         return key in self.map
@@ -24,19 +37,44 @@ class Specs(object):
     def __iter__(self):
         return self.map.__iter__()
     
+    def addSpec(self, spec):
+        '''
+        after initialization, use this method to add Spec to Specs
+        '''
+        self[self.genKey(spec=spec, specList=None)] = spec
+    
+    def addSpecList(self, specList):
+        for spec in specList:
+            self[self.genKey(spec=spec, specList=specList)] = spec
+    
+    def combine(self, *others):
+        newSpecs = deepcopy(self)
+        newSpecs.update(others)
+        return newSpecs
+    
     def items(self):
         return self.map.items()
     
-    def defaultKey(self, arg, args):
+    def defaultKey(self, spec, specList):
         key = self.counter
         self.counter+=1
+        while key in self:
+            key = self.counter
+            self.counter+=1
         return key
     
-    def genKey(self, arg, args):
-        if 'name' in arg:
-            return arg['name']
+    def genKey(self, spec, specList):
+        if 'name' in spec:
+            return spec['name']
         else:
-            return self.defaultKey(arg, args)
+            return self.defaultKey(spec, specList)
+    
+    def getCopy(self):
+        return deepcopy(self)
+    
+    def update(self, *others):
+        for other in others:
+            self.map.update(other.map)
     
     def size(self):
         return len(self.map)

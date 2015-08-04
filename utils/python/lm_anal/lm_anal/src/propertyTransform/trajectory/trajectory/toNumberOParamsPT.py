@@ -1,12 +1,14 @@
+from lm_anal.src.datumABC import datumABCDict
 from lm_anal.src.propertyTransform import BasePT
 
 __all__ = ['ToNumberOParamsPT']
 
 class ToNumberOParamsPT(BasePT):
-    #srcTypes = {TrajectoryBase}
-#     dstABCs = {TrajectoryBase}
-    srcProps = {''}
-    dstProps = {'number_order_parameters'}
+    srcABCs = frozenset({datumABCDict['trajectory']})
+    dstABCs = frozenset({datumABCDict['trajectory']})
+    
+    srcProps = frozenset({''})
+    dstProps = frozenset({'number_order_parameters'})
     
 #     def __init__(self):#, oparam, **kwargs):
 #         self.oparam = oparam

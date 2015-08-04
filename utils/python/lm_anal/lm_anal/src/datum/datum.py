@@ -1,9 +1,11 @@
 from copy import deepcopy
 import numpy as np
 import re
+import types
 
 from lm_anal.src.datum.datumPropertySpec import DatumPropertySpec as DPSpec
 from lm_anal.src.helper import CamelCaseUpper
+from lm_anal.src.spec import DatumSpecs
 
 DEBUG_GETTERS_SETTERS = False
 
@@ -153,12 +155,19 @@ class DatumMetaclass(type):
     def __new__(cls, clsname, bases, dct):
         if 'propertySpecs' in dct:
             for name,spec in dct['propertySpecs'].items():
-                SetPropertyBySpec(name, spec, dct)        
+                SetPropertyBySpec(name, spec, dct)
         return super(DatumMetaclass, cls).__new__(cls, clsname, bases, dct)
+    
+    # TODO: reorg things so that this property is called 'propertySpecs' and the class atribute is '_propertySpecs'
+    @property
+    def combinedPropertySpecs(cls):
+        newDatumSpecs = DatumSpecs()
+        newDatumSpecs.update(*[datumType.propertySpecs for datumType in cls.__mro__ if hasattr(datumType, 'propertySpecs')])
+        return newDatumSpecs
     
     @property
     def propertyNames(cls):
-        return super(cls,cls)._propertyNames | cls._propertyNames
+        return set().union(*map(lambda x: x._propertyNames if hasattr(x, '_propertyNames') else set(), cls.__mro__))
     
 class Datum(object, metaclass=DatumMetaclass):
     # maps go from hdf5 keys to protobuf keys

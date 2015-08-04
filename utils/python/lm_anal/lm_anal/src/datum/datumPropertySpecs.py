@@ -1,3 +1,4 @@
+from copy import deepcopy
 from collections import OrderedDict
 
 __all__ = ['DatumPropertySpecs']
@@ -22,3 +23,12 @@ class DatumPropertySpecs(object):
     
     def items(self):
         return self.map.items()
+    
+    def combine(self, *others):
+        newSpecs = deepcopy(self)
+        newSpecs.update(others)
+        return newSpecs
+    
+    def update(self, *others):
+        for other in others:
+            self.map.update(other.map)

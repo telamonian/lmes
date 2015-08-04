@@ -1,19 +1,18 @@
-import h5py
-import os,sys
-import numpy as np
-
-from lm_anal.src.datum.datum import DatumMetaclass
 from lm_anal.src.datum.trajectory.trajectory import Trajectory
+from lm_anal.src.spec import DatumSpec, DatumSpecs
 
 __all__ = ['OParamTrajectory']
 
-class OParamTrajectory(Trajectory): #, metaclass=DatumMetaclass):
-    # data spec
-    propertySpecs = {'number_entries':{'dtype':'int', 'paths':('cme_state','order_parameter_values','number_entries'), 'storageType':'protobuf', 'type':'scalar'},
-                     'number_order_parameters':{'dtype':'int', 'paths':('cme_state','order_parameter_values','number_order_parameters'), 'storageType':'protobuf', 'type':'scalar'},
-                     'order_parameter_values':{'dtype':'float', 'storageType':'numpy', 'type':'array'},
-                     'time':{'dtype':'float', 'storageType':'numpy', 'type':'array'}}
-
+class OParamTrajectory(Trajectory):
+    propertySpecs = DatumSpecs(DatumSpec(name='number_entries', dtype='int', paths=('cme_state','order_parameter_values','number_entries'), storageType='protobuf', type='scalar'),
+                               DatumSpec(name='number_order_parameters', dtype='int', paths=('cme_state','order_parameter_values','number_order_parameters'), storageType='protobuf', type='scalar'),
+                               DatumSpec(name='order_parameter_values', dtype='float', storageType='numpy', type='array'),
+                               DatumSpec(name='time', dtype='float', storageType='numpy', type='array'))
+#     propertySpecs = {'number_entries':{'dtype':'int', 'paths':('cme_state','order_parameter_values','number_entries'), 'storageType':'protobuf', 'type':'scalar'},
+#                      'number_order_parameters':{'dtype':'int', 'paths':('cme_state','order_parameter_values','number_order_parameters'), 'storageType':'protobuf', 'type':'scalar'},
+#                      'order_parameter_values':{'dtype':'float', 'storageType':'numpy', 'type':'array'},
+#                      'time':{'dtype':'float', 'storageType':'numpy', 'type':'array'}}
+    
 #     arrays = ('species_count', 'time')
 #     scalars = ('number_entries', 'number_species', 'trajectory_id')
 #     

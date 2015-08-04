@@ -14,6 +14,26 @@ from lm_anal.src.transform.transforms import Transforms
 
 import unittest
 
+class OParamTrajectoriesClassTestCase(unittest.TestCase):
+    def setUp(self):
+        self.opTraj = OParamTrajectories()
+    
+    def test_combinedPropertySpecs(self):
+        '''
+        test the combinedPropertySpecs class property
+        '''
+        pSNames = set([name for name in self.opTraj.datumType.combinedPropertySpecs])
+        intendedPSNames = {'number_order_parameters','number_entries','order_parameter_values','time','trajectory_id'}
+        self.assertEqual(pSNames, intendedPSNames, msg='not allclose: %s\n%s' % (pSNames, intendedPSNames))
+        
+    def test_propertyNames(self):
+        '''
+        test the propertyNames class property
+        '''
+        pNs = self.opTraj.datumType.propertyNames
+        intendedPNs = {'number_order_parameters','number_entries','order_parameter_values','time','trajectory_id'}
+        self.assertEqual(pNs, intendedPNs, msg='not allclose: %s\n%s' % (pNs, intendedPNs))
+
 class OParamTrajectoriesTestCase(unittest.TestCase):
     def setUp(self):
         self.bfTrajIO = BruteForceTrajectoriesIO(fPath=os.path.join(thisScriptDir, '../../testData/biphasic_switch.lm'))
@@ -25,6 +45,7 @@ class OParamTrajectoriesTestCase(unittest.TestCase):
     def loadData(self, full=False):
         self.bfTrajIO.rff(container=self.specTraj, full=full)
         self.oparamsIO.rff(container=self.oparams, full=full)
+        
         Transforms(srcs=self.specTraj, dsts=self.opTraj, oparams=self.oparams, oparamIDs=0)
     
     def test_number_order_parameters_from_transfrom(self):

@@ -1,21 +1,22 @@
 class BasePT(object):
-    srcProps = None
-    dstProps = None
-    
-    @classmethod
-    def checkSrcProps(cls, srcProps):
-        return srcProps==cls.srcProps
-    
-    @classmethod
-    def checkDstProps(cls, dstProps):
-        return dstProps==cls.dstProps
-    
-    @classmethod
-    def checkProps(cls, srcProps, dstProps):
-        return srcProps==cls.srcProps and dstProps==cls.dstProps
+    srcABCs = frozenset()
+    dstABCs = frozenset()
+    srcTypes = frozenset()
+    dstTypes = frozenset()
+    srcProps = frozenset()
+    dstProps = frozenset()
     
     def __init__(self, **kwargs):
         pass
+    
+    def checkSrcProps(self, srcProps):
+        return srcProps==self.srcProps
+    
+    def checkDstProps(self, dstProps):
+        return dstProps==self.dstProps
+    
+    def checkProps(self, srcProps, dstProps):
+        return srcProps==self.srcProps and dstProps==self.dstProps
     
     def ptfd(self, srcDatum, dstDatum, **kwargs):
         '''

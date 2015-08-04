@@ -1,12 +1,14 @@
+from lm_anal.src.datumABC import datumABCDict
 from lm_anal.src.propertyTransform import BasePT
 
 __all__ = ['SpeciesCountToTrajectoryOParamValuesPT']
 
 class SpeciesCountToTrajectoryOParamValuesPT(BasePT):
-    #srcTypes = {TrajectoryBase}
-#     dstABCs = {TrajectoryBase}
-    srcProps = {'species_count'}
-    dstProps = {'order_parameter_values'}
+    srcABCs = frozenset({datumABCDict['trajectory']})
+    dstABCs = frozenset({datumABCDict['trajectory']})
+    
+    srcProps = frozenset({'species_count'})
+    dstProps = frozenset({'order_parameter_values'})
     
 #     def __init__(self):#, oparam, **kwargs):
 #         self.oparam = oparam
