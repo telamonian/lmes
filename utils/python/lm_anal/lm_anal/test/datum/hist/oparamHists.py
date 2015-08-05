@@ -1,5 +1,6 @@
 import numpy as np
 import os,sys
+import time
 
 thisScriptDir = os.path.dirname(os.path.realpath(__file__))
 testDataPath = os.path.join(thisScriptDir, '../../testData/biphasic_switch.lm')
@@ -23,7 +24,7 @@ class OParamHistsSumCheck(object):
         sumArr = self.opHists['sum'].order_parameter_values
         altIntendedSum = sum([np.sum(self.opHists[i].order_parameter_values) for i in range(1,11)])
         altIntendedSumArr = sum([self.opHists[i].order_parameter_values for i in range(1,11)])
-        
+         
         # if everything==0, then none of these tests are very interesting
         self.assertTrue(sum > 0)
         self.assertEqual(sum, intendedSum)
@@ -36,6 +37,8 @@ class OParamHistsSumCheck(object):
 
 class OParamHistsTestCase(unittest.TestCase):
     def setUp(self):
+#         self.startTime = time.time()
+        
         self.bfTrajsIO = BruteForceTrajectoriesIO(fPath=testDataPath)
         self.oparamsIO = OParamsIO(fPath=testDataPath)
         self.tilingsIO = TilingsIO(fPath=testDataPath)
@@ -44,6 +47,10 @@ class OParamHistsTestCase(unittest.TestCase):
         self.opHists = OParamHists()
         self.specTrajs = SpeciesTrajectories()
         self.tilings = Tilings()
+        
+#     def tearDown(self):
+#         t = time.time() - self.startTime
+#         print("%s: %.3f" % (self.id(), t))
     
     def loadData(self, full=False):
         self.bfTrajsIO.rff(container=self.specTrajs, full=full)
@@ -104,11 +111,20 @@ class OParamHistsTestCase(unittest.TestCase):
         test calculation of order parameter values via the reduction of a ReplicateTrajectory
         the "ground truth" comparison histogram is massive, and so is stored in a separate module
         '''
+#         loadTime = time.time()
         self.loadData(full=True)
+#         print('load time %.3f' % (time.time() - loadTime))
         
+#         arrayifyTime = time.time()
         orderParameterValuesArr = np.array(self.opHists[5].order_parameter_values)
-        self.assertTrue(np.allclose(orderParameterValuesArr, intendedOrderParameterValues5Arr), 
-                        msg='%s is not allclose to %s' % (orderParameterValuesArr, intendedOrderParameterValues5Arr))
+#         print('arrayify time %.3f' % (time.time() - arrayifyTime))
+        
+#         checkTime = time.time()
+        self.assertTrue(np.allclose(orderParameterValuesArr, intendedOrderParameterValues5Arr),
+                msg='%s is not allclose to %s' % (orderParameterValuesArr.tolist(), intendedOrderParameterValues5Arr.tolist()))
+        # alternative form for checking equality of arrays
+        # self.assertTrue(not (orderParameterValuesArr - intendedOrderParameterValues5Arr).any())
+#         print('check time %.3f' % (time.time() - checkTime))
     
     def test_order_parameter_values_addition_from_transfrom(self):
         '''
@@ -120,8 +136,12 @@ class OParamHistsTestCase(unittest.TestCase):
         self.opHists[5]+=self.opHists[4]
         newOPHist5ID = id(self.opHists[5])
         orderParameterValuesArr = np.array(self.opHists[5].order_parameter_values)
+        
+#         checkTime = time.time()
         self.assertTrue(np.allclose(orderParameterValuesArr, intendedOrderParameterValues4Plus5Arr),
-                        msg='%s is not allclose to %s' % (orderParameterValuesArr, intendedOrderParameterValues4Plus5Arr))
+                        msg='%s is not allclose to %s' % (orderParameterValuesArr.tolist(), intendedOrderParameterValues4Plus5Arr.tolist()))
+#         print('check time %.3f' % (time.time() - checkTime))
+
         self.assertEqual(opHist5ID, newOPHist5ID)
     
     def test_order_parameter_values_subtraction_from_transfrom(self):
