@@ -4,10 +4,12 @@ from lm_anal.src.spec.spec import Spec
 __all__ = ['PropertyTransformSpec']
 
 class PropertyTransformSpec(Spec):
-    keywords = {'name',  'srcProps', 'dstProps', 'requiredArgs', 'type'}
+    keywords = {'name', 'dstProps', 'srcProps', 'preMap', 'requiredArgs', 'type'}
     
-    requiredKeywords = {'srcProps', 'dstProps'}
-    setKeywords = {'srcProps', 'dstProps', 'requiredArgs'}
+    requiredKeywords = {'dstProps', 'srcProps'}
+    setKeywords = {'dstProps', 'srcProps', 'requiredArgs'}
+    
+    defaultKeywordDict = {'preMap':False}
     
     def defaultName(self, **kwargs):
         # if we don't specify a name, come up with one from srcProps + dstProps -> <SP1>And<SP2>...To<DP1>And<DP2>...

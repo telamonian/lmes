@@ -56,6 +56,12 @@ class Data(object):
     def items(self):
         return self.map.items()
     
+    def peek(self):
+        '''
+        return the "first" entry from self.map
+        '''
+        return next(self.map.values().__iter__())
+    
     def vals(self):
         return self.map.vals()
     

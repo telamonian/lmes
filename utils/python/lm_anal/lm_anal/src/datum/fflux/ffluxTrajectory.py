@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import numpy as np
 
 # from lm_anal.python_protobuf.lm.io.FFluxOutput_pb2 import TrajectoryOutput as TrajectoryOutputBuf
 from lm_anal.src.datum import Datum, DatumPropertySpec as DPSpec, DatumPropertySpecs as DPSpecs
@@ -21,8 +22,12 @@ class FFluxTrajectory(Datum):
 #         else:
 #             self.protobuf = TrajectoryOutputBuf()
 
-    def genTrajectoryPhaseMap(self):
-        self.trajectoryPhaseMap = OrderedDict()
-        for i,trajID in enumerate(self.trajectory_id):
-            self.trajectoryPhaseMap[trajID] = self.edge_id[i]
-        self.tPMap = self.trajectoryPhaseMap
+    def genTrajectoryPhaseMap(self, directionID):
+        tpmDtype = list(zip(('trajectory_id', 'basin', 'phase'), ('int','int','int')))
+        self.trajectory_phase_map = np.zeros((len(self.trajectory_id),), dtype=tpmDtype)
+        self.trajectory_phase_map['trajectory_id'][:] = self.trajectory_id
+        self.trajectory_phase_map['basin'][:] = directionID
+        self.trajectory_phase_map['phase'][:] = self.edge_id
+#         for i,trajID in enumerate(self.trajectory_id):
+#             self.trajectory_phase_map[trajID] = (directionID, self.edge_id[i])
+        self.tPMap = self.trajectory_phase_map

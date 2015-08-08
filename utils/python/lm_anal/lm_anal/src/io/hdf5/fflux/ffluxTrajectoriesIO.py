@@ -1,6 +1,6 @@
 import os
 
-from lm_anal.src.helper import DirectionEnum, LifecycleEnum, ListInStr
+from lm_anal.src.helper import DirectionEnum, LifecycleEnum, ListInStr, timewith
 from lm_anal.src.io.hdf5 import HDF5IO, HDF5Spec, HDF5Specs
 
 class FFluxTrajectoriesIO(HDF5IO):
@@ -38,5 +38,7 @@ class FFluxTrajectoriesIO(HDF5IO):
         for key in keys:
             subCon = container.initDatum(key=key, full=full)
             self.input(full=full, hdf5Path=os.path.join(self.hdf5RootPath, str(key)), subCon=subCon)
-            if full:
-                subCon.genTrajectoryPhaseMap()
+            if full and 'INITIAL' in key:
+                directionID = 0 if 'FORWARD' in key else 1
+                with timewith('genTrajectoryPhaseMap') as t:
+                    subCon.genTrajectoryPhaseMap(directionID)

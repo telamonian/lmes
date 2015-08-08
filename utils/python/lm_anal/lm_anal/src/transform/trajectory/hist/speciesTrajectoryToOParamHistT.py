@@ -11,7 +11,7 @@ class SpeciesTrajectoryToOParamHistT(BaseT):
     
     transformSpecs = TransformSpecs(TransformSpec(srcTypes=SpeciesTrajectory, dstTypes=OParamHist, requiredArgs='tilingIDs', requiredData={'oparams','tilings'},
                                                   propertyTransformSpecs=PropertyTransformSpecs(                                             
-                                                                         PropertyTransformSpec(dstProps='order_parameter_values', srcProps='species_count', requiredArgs='tilingIDs', type='special'))))
+                                                  PropertyTransformSpec(dstProps='order_parameter_values', srcProps='species_count', requiredArgs='tilingIDs', type='special'))))
 #     srcType = SpeciesTrajectory
 #     dstType = OParamHist
 #     

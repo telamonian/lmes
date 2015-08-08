@@ -145,6 +145,10 @@ def SetPropertyBySpec(name, spec, dct):
     elif spec['type']=='scalar':
         if spec['storageType']=='protobuf':
             DefProtoScalarProp(name, spec, dct)
+        elif spec['storageType']=='default':
+            pass
+    elif spec['type']=='subData':
+        pass
     elif spec['type']=='special':
         # in this case, the property will have been defined in the normal way and the associated propertySpec is just for metadata purposes
         pass
@@ -184,6 +188,10 @@ class Datum(object, metaclass=DatumMetaclass):
     
     def initEmbedded(self, name, DataType):
         self.__setattr__(name, DataType(self.protobuf))
+        return self.__getattribute__(name)
+    
+    def initSubData(self, name, DataType):
+        self.__setattr__(name, DataType())
         return self.__getattribute__(name)
     
     def getArray(self, name, dims=None, dtype=None):

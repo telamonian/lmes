@@ -1,17 +1,16 @@
 import numpy as np
 from scipy.optimize import minimize
 
-from lm_anal.src.datum.hist import OParamHists
 from lm_anal.src.datumABC import GetDatumStrABCSet
 from lm_anal.src.propertyTransform.basePT import BasePT
 
-__all__ = ['FFluxTrajectoriesAndSpeciesCountToOParamValuesPT']
+# __all__ = ['SpeciesCountToOParamValuesPT']
 
-class FFluxTrajectoriesAndSpeciesCountToOParamValuesPT(BasePT):
+class SpeciesCountToOParamValuesPT(BasePT):
     srcABCs = GetDatumStrABCSet(('fflux', 'trajectory'))
     dstABCs = GetDatumStrABCSet('hist')
     
-    srcProps = frozenset({'trajectories', 'species_count'})
+    srcProps = frozenset({'species_count'})
     dstProps = frozenset({'order_parameter_values'})
     
     def ptfd(self, srcDatum, dstDatum, **kwargs):

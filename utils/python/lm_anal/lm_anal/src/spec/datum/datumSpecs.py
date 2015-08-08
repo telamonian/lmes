@@ -1,9 +1,13 @@
 from lm_anal.src.helper import Setify
+from lm_anal.src.spec.datum.datumSpec import DatumSpec
 from lm_anal.src.spec.specs import Specs
 
 __all__ = ['DatumSpecs']
 
 class DatumSpecs(Specs):
+    def addAlias(self, name, targetName):
+        self.addSpecList((DatumSpec(name=name, targetName=targetName, type='alias'),))
+    
     def getAliases(self):
         '''
         an iterator over the entries in self.map that contain alias-type DatumSpecs

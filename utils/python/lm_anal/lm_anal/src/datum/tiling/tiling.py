@@ -1,6 +1,8 @@
 ASCENDING = 0
 DESCENDING = 1
 
+import numpy as np
+
 from lm_anal.src.datum.datum import Datum
 from lm_anal.src.datum.datum import DatumMetaclass
 
@@ -26,6 +28,21 @@ class Tiling(Datum, metaclass=DatumMetaclass):
     @name.setter
     def name(self, val):
         self._name = val
+    
+    def getEdgeIndices(self):
+        return [np.arange(start,end) for start,end in self.getEdgeIndexStartEnds()]
+    
+    def getEdgeIndexStartEnds(self):
+        '''
+        based on what's in self.dims, generates a list of tuples of indices that can be used to transform the 1D array in which self.edges is stored into a list of lists, one list for every dim
+        '''
+        return [(int(np.sum(self.dims[:i])), int(np.sum(self.dims[:i + 1]))) for i in range(self.rank)]
+    
+    def getEdges(self):
+        '''
+        rolls the 1D self.edges array into an nD list-of-lists based on what's in self.dims
+        '''
+        return [self.edges[int(np.sum(self.dims[:i])):int(np.sum(self.dims[:i + 1]))] for i in range(self.rank)]
     
 #     def __init__(self, tilingBuf, hdf5TilingGroup=None):
 #         self.protobuf = tilingBuf

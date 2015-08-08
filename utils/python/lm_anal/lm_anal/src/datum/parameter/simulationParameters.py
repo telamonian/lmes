@@ -10,7 +10,7 @@ class SimulationParameters(Data):
         super().__init__()
 
     def get(self, key):
-        return next(self.map.values())[key]
+        return self.peek()[key]
 
     def initDatum(self, key, **kwargs):
         try:
