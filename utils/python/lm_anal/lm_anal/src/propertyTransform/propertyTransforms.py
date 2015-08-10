@@ -25,7 +25,8 @@
 import os
 from pathlib import Path
 
-from lm_anal.src.helper import ShallowImportPackages
+from lm_anal.src.datumABC import GetDatumTypeABCSet
+from lm_anal.src.helper import Setify, ShallowImportPackages
 from lm_anal.src.propertyTransform.copyPT import CopyPT
 
 propertyTransformPath = Path(os.path.dirname(os.path.realpath(__file__)))
@@ -35,10 +36,12 @@ srcPropertyTransformPkgDict = ShallowImportPackages(path=[str(propertyTransformP
 __all__ = ['PropertyTransforms']
 
 class PropertyTransforms(object):
-    def __init__(self, srcABCs, dstABCs, propertyTransformSpecs):
+    def __init__(self, srcTypes, dstTypes, propertyTransformSpecs):
         self.propertyTransforms = []
-        self.srcABCs = srcABCs
-        self.dstABCs = dstABCs
+        self.srcTypes = Setify(srcTypes)
+        self.dstTypes = Setify(dstTypes)
+        self.srcABCs = GetDatumTypeABCSet(self.srcTypes)
+        self.dstABCs = GetDatumTypeABCSet(self.dstTypes)
         self.propertyTransformSpecs = propertyTransformSpecs
         
         # based on src and dst ABCs, get the pkg with the appropriate PropertyTransform types

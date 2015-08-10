@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.optimize import minimize
 
 from lm_anal.src.datumABC import datumABCDict, GetDatumStrABCSet
 from lm_anal.src.helper import FastVStack, Tupify
@@ -35,7 +34,7 @@ class BasinsToPhaseWeightsPT(BasePT):
                     weightPart[i] = (stepTime*ffluxDatum.basins[direction].probability_one_to_i_plus_one[i - 1], directionID, i)
             weightParts.append(weightPart)
         weights = FastVStack(*weightParts)
-        weights.sort(order=['basin','phase'])
+        weights.sort(order=['basin_id','phase_id'])
         
         dstDatum.setArray('phase_weights', weights)
         dstDatum.setArray('interface_tiling_id', np.array(Tupify(ffluxDatum.tiling_id)))

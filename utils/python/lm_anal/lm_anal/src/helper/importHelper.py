@@ -1,8 +1,82 @@
 from importlib import import_module
-from pkgutil import iter_modules
+from pkgutil import get_loader, iter_modules
 
-__all__ = ['ShallowImport', 'ShallowImportModules', 'ShallowImportPackages', 'ShallowImportAll', 'ShallowImportAllModules', 'ShallowImportAllPackages']
+__all__ = ['LazyImporter', 'LazyAttrImporter', 'LazyClass',
+           'ShallowImport', 'ShallowImportModules', 'ShallowImportPackages', 
+           'ShallowImportAll', 'ShallowImportAllModules', 'ShallowImportAllPackages']
 
+# LazyImporter stuff
+class LazyImporter(object):
+    '''
+    object that allows for dynamic importing of a module specified at initialization time
+    '''
+    def __init__(self, modName, attrName=None):
+        '''
+        modName: a normal "dot-path" style module name (eg modName='scipy.stats')
+        attrName: optionally specify a module attribute to be later retrieved
+        '''
+        self.attrName = attrName
+        self.modName = modName
+        self.loader = get_loader(self.modName)
+    
+    def __call__(self):
+        '''
+        same as get
+        '''
+        return self.get()
+        
+    def get(self):
+        '''
+        imports the module and returns it
+        '''
+        return self.loader.load_module()
+    
+    def getAttr(self, attrName=None):
+        '''
+        imports the module and returns a specific attribute from it
+        '''
+        if attrName is None:
+            attrName = self.attrName
+        return self.get().__getattribute__(attrName)
+    
+    def getVar(self, varName):
+        '''
+        alias for getAttr
+        '''
+        return self.getAttr(attrName=varName)
+
+class LazyAttrImporter(LazyImporter):
+    '''
+    subclass of LazyImporter that (when directly called) returns mod.__getattribute__(self.attrName) instead of simply mod
+    '''
+    def __call__(self):
+        '''
+        same as getAttr
+        '''
+        return self.getAttr()
+    
+class LazyClass(LazyImporter):
+    '''
+    subclass of LazyImporter that can act as a class and return new instances when called
+    basically a way of deferring the importation of a class until a new instance of said class is actually needed
+    '''
+    def __init__(self, modName, clsName=None, attrName=None):
+        if clsName is not None:
+            realAttrName = clsName
+        elif attrName is not None:
+            realAttrName = attrName
+        else:
+            raise
+        
+        super().__init__(modName=modName, attrName=realAttrName)
+    
+    def __call__(self):
+        '''
+        same as getAttr, with an extra call
+        '''
+        return self.getAttr()()
+    
+# ShallowImport stuff
 def AllAttrCheck(mod):
     return hasattr(mod, '__all__')
 
@@ -25,9 +99,12 @@ def DefImportedProp(name, mod):
 def ShallowImport(path, name, modCheck=DefaultCheck, moduleOnly=False, pkgOnly=False, outputAll=True):
     '''
     imports every module and package in path into the name namespace
+    use in a __init__.py file verbatim like this:
+        localDict, modList = ShallowImport(path=__path__, name=__name__)
+        locals().update(localDict)
     '''
     localDict = {}
-    allList = []
+    modList = []
     for importer, modName, isPkg in iter_modules(path=path, prefix=name+'.'):
         if modName.split('.')[-1][:4]=='old_':
             # this is disabled code, skip it
@@ -38,14 +115,14 @@ def ShallowImport(path, name, modCheck=DefaultCheck, moduleOnly=False, pkgOnly=F
             continue
         mod = import_module(modName)
         if not modCheck(mod):
-            # POI: we should maybe add a way to completely unload modules we're not interested in here, but a quick check of SO shows that's hard to do
+            # POI: we should maybe add a way to completely unload modules we're not interested in here, but a quick check of SO shows that's non-trivial to do
             del mod
             continue
         modShortName = modName.split(name+'.')[-1]
         localDict[modShortName] = mod
-        allList+=modShortName
+        modList+=modShortName
     if outputAll:
-        return localDict, allList
+        return localDict, modList
     else:
         return localDict
 
@@ -78,7 +155,7 @@ def ShallowImportAll(path, name, modCheck=AllAttrCheck, moduleOnly=False, pkgOnl
             continue
         mod = import_module(modName)
         if not modCheck(mod):
-            # POI: we should maybe add a way to completely unload modules we're not interested in here, but a quick check of SO shows that's hard to do
+            # POI: we should maybe add a way to completely unload modules we're not interested in here, but a quick check of SO shows that's non-trivial to do
             del mod
             continue
         for clsName in mod.__all__:

@@ -40,5 +40,5 @@ class FFluxTrajectoriesIO(HDF5IO):
             self.input(full=full, hdf5Path=os.path.join(self.hdf5RootPath, str(key)), subCon=subCon)
             if full and 'INITIAL' in key:
                 directionID = 0 if 'FORWARD' in key else 1
-                with timewith('genTrajectoryPhaseMap') as t:
-                    subCon.genTrajectoryPhaseMap(directionID)
+                # with timewith('genTrajectoryPhaseMap') as t:    # PROFILING
+                subCon.genTrajectoryPhaseMap(directionID)

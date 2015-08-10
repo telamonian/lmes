@@ -122,6 +122,8 @@ void FFluxSupervisor::receivedStartedOutputWriter(const lm::message::StartedOutp
     // set output process/thread to that of this supervisor, while keeping track of the real values
     outputWriterProcess = communicator.getSourceProcess();
     outputWriterThread = communicator.getSourceThread();
+//    outputWriterProcess = msg.process();
+//    outputWriterThread = msg.thread();
     communicator.setMasterOutputEndpoint(msg.process(), msg.thread());
     startSimulationIfAllWorkersStarted();
 }

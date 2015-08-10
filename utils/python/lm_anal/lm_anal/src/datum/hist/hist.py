@@ -124,10 +124,8 @@ class Hist(Datum):
     
     def getWeightedRMSD(self, other, weight=1):
         '''
-        get the RMSD between this hist and another. implemented using the entopy function from scipy.stats
+        get the RMSD between this hist and another.
         '''
-        # scipy-based calculation
-        # return st.entropy(pk=self.h.flatten(), qk=other.h.flatten())
         val = 0
         count = 0
         it = np.nditer((self.h, other.h), flags=['multi_index'])
@@ -154,19 +152,29 @@ class Hist(Datum):
         self.h_raw[:] = 0
         self.h_cache_dirty = True
     
-    def combine(self, others, autothreshold=False, otherMask=None):
+    def combine(self, *others, autothreshold=False, otherMask=None):
         '''
         method to additively combine many histograms
         self.h.shape must == other.h.shape, but they can be otherwise dissimilar (different total N, different normalization, etc.)
-        '''
-        if isinstance(others, HistBase):
-            others = [others]
-        
+        ''' 
         retVal = self.getCopy()
         retVal.initH()
         for other in chain([self], others):
             retVal.h_raw+=other.h
+        self.h_cache_dirty = True
         return retVal
+
+    def combineInPlace(self, *others, autothreshold=False, otherMask=None):
+        '''
+        method to additively combine many histograms in place relative to self
+        self.h.shape must == other.h.shape, but they can be otherwise dissimilar (different total N, different normalization, etc.)
+        ''' 
+        for other in others:
+            self.h_raw+=other.h
+        self.h_cache_dirty = True
+    
+    def normalize(self):
+        self.reweight(self.h_weight/np.sum(self.h))
     
     def recalc(self, mask=None, threshold=None, weight=None):
         '''
@@ -180,6 +188,12 @@ class Hist(Datum):
             self.h_threshold = threshold
         if weight is not None:
             self.h_weight = weight
+        
+        anySet = (mask      is not None or 
+                  threshold is not None or 
+                  weight    is not None) 
+        if anySet:
+            self.h_cache_dirty = True
     
     def remask(self, mask):
         '''
@@ -188,17 +202,14 @@ class Hist(Datum):
         if mask.size!=np.product(self.h_dims):
             raise
         self.recalc(mask=mask)
-        self.h_cache_dirty = True
         return self
     
     def rethreshold(self, threshold):
         self.recalc(threshold=threshold)
-        self.h_cache_dirty = True
         return self
     
     def reweight(self, weight):
         self.recalc(weight=weight)
-        self.h_cache_dirty = True
         return self
     
     def setObservations(self, obs):

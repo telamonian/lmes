@@ -1,7 +1,7 @@
+from collections import OrderedDict
 from copy import deepcopy
 import numpy as np
 import re
-import types
 
 from lm_anal.src.datum.datumPropertySpec import DatumPropertySpec as DPSpec
 from lm_anal.src.helper import CamelCaseUpper
@@ -42,8 +42,10 @@ def DefNPHistogramProp(name, spec, dct):
     mask = '%s_mask' % name
     raw = '%s_raw' % name
     threshold = '%s_threshold' % name
+    trunc = '%s_trunc' % name
     weight = '%s_weight' % name
     
+    # main histogram accessor property
     @property
     def prop(self):
         if self.__getattribute__(cache_dirty):
@@ -64,6 +66,12 @@ def DefNPHistogramProp(name, spec, dct):
         else:
             self.__setattr__('_'+name, val)
     dct[name] = prop
+    
+    # truncated histogram accessor property, for getting a histogram with the half-open bins at the extremities clipped off
+    def truncProp(self):
+        truncSlice = [np.s_[1:-1] for dim in self.__getattribute__(dimsName)]
+        return self.__getattribute__(name)[truncSlice]
+    dct[trunc] = truncProp
     
     dimsSpec = DPSpec(dtype='int', name=dimsName, paths=(name,'_dims',), storageType='numpy', type='array')
     edgesSpec = DPSpec(dtype='float', name=edgesName, paths=(name,'_edges',), storageType='numpy', type='array')
@@ -123,10 +131,18 @@ def DefProtoPropFinish(name, getterList, setterList, dct):
     execList = ['dct[name] = %s' % name]
     exec('\n'.join(getterList + setterList + execList))
 
-def SetPropertyBySpec(name, spec, dct):
+def SetPropertyName(name, spec, dct):
     _propertyNames = dct.get('_propertyNames', set())
     _propertyNames.add(name)
     dct['_propertyNames'] = _propertyNames
+    
+def SetSubDataInit(name, spec, dct):
+    _initDict = dct.get('_initDict', OrderedDict())
+    _initDict[name] = spec['subDataType']
+    dct['_initDict'] = _initDict
+
+def SetPropertyBySpec(name, spec, dct):
+    SetPropertyName(name, spec, dct)
     
     if spec['type']=='alias':
         DefAliasProp(name, spec, dct)
@@ -148,9 +164,9 @@ def SetPropertyBySpec(name, spec, dct):
         elif spec['storageType']=='default':
             pass
     elif spec['type']=='subData':
-        pass
+        SetSubDataInit(name, spec, dct)
     elif spec['type']=='special':
-        # in this case, the property will have been defined in the normal way and the associated propertySpec is just for metadata purposes
+        # in this case, instead of being made into a property this attr will handled in the standard python way, and the associated propertySpec is just for metadata purposes
         pass
     else:
         raise
@@ -170,6 +186,12 @@ class DatumMetaclass(type):
         return newDatumSpecs
     
     @property
+    def initDict(cls):
+        newInitDict = OrderedDict()
+        [newInitDict.update(datumType._initDict) for datumType in cls.__mro__ if hasattr(datumType, '_initDict')]
+        return newInitDict
+    
+    @property
     def propertyNames(cls):
         return set().union(*map(lambda x: x._propertyNames if hasattr(x, '_propertyNames') else set(), cls.__mro__))
     
@@ -182,6 +204,13 @@ class Datum(object, metaclass=DatumMetaclass):
     arrays = None
     scalars = None
     
+    @property
+    def initDict(self):
+        return self.__class__.initDict
+#         newInitDict = OrderedDict()
+#         [newInitDict.update(datumType._initDict) for datumType in self.__class__.__mro__ if hasattr(datumType, '_initDict')]
+#         return newInitDict
+    
     def __init__(self, full=True):
         # full: has this datum been made from a full set of input, or only a partial one (eg without arrays)?
         self.full = full
@@ -190,7 +219,14 @@ class Datum(object, metaclass=DatumMetaclass):
         self.__setattr__(name, DataType(self.protobuf))
         return self.__getattribute__(name)
     
-    def initSubData(self, name, DataType):
+    def initSubData(self):
+        '''
+        currently this function iterates through the mro (via the initDict property), which can be slow when initializing 1e7 separate instances, so only call as needed
+        '''
+        for attrName,Init in self.initDict.items():
+            self.__setattr__(attrName, Init())
+    
+    def initSubDataDynamically(self, name, DataType):
         self.__setattr__(name, DataType())
         return self.__getattribute__(name)
     

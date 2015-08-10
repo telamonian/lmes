@@ -54,13 +54,14 @@ class Spec(object, metaclass=SpecMetaclass):
         self.map = OrderedDict()
         
         # check to see if any of the conditionalKeywords should be added to this spec instance
-        for key,val in self.conditionalKeywords.items():
-            if key in kwargs and kwargs[key]==val['equals']:
-                self.addKeywords(val['keywords'])
-                if 'required' in val and val['required']:
-                    self.requiredKeywords = self.requiredKeywords | Setify(val['keywords'])
-                else:
-                    self.keywords = self.keywords | Setify(val['keywords'])
+        self.initConditionalKeywords(**kwargs)
+#         for key,val in self.conditionalKeywords.items():
+#             if key in kwargs and kwargs[key]==val['equals']:
+#                 self.addKeywords(val['keywords'])
+#                 if 'required' in val and val['required']:
+#                     self.requiredKeywords = self.requiredKeywords | Setify(val['keywords'])
+#                 else:
+#                     self.keywords = self.keywords | Setify(val['keywords'])
                 
         # test if required keywords is a subset of the keyword arguments we actually got
         if not self.requiredKeywords <= kwargs.keys():
@@ -88,7 +89,20 @@ class Spec(object, metaclass=SpecMetaclass):
         # load in all of the values
         for key,val in kwargs.items():
             self[key] = val
-    
+
+# encapsultations of functionality from __init__
+    def initConditionalKeywords(self, **kwargs):
+        # check to see if any of the conditionalKeywords should be added to this spec instance
+        for ckDict in self.conditionalKeywords:
+            key = ckDict['checkKeyword']
+            if key in kwargs and kwargs[key]==ckDict['equals']:
+                self.addKeywords(ckDict['keywords'])
+                if 'required' in ckDict and ckDict['required']:
+                    self.requiredKeywords = self.requiredKeywords | Setify(ckDict['keywords'])
+                else:
+                    self.keywords = self.keywords | Setify(ckDict['keywords'])
+
+# magic methods and such
     def __contains__(self, key):
         return key in self.map
     
@@ -102,8 +116,9 @@ class Spec(object, metaclass=SpecMetaclass):
         if key in self.allKeywords:
             self.map[key] = val
         else:
-            raise AttributeError
-    
+            raise
+
+# other(?)
     def addKeywords(self, keywords):
         for keyword in Setify(keywords):
             self.__setattr__(keyword, KeywordDescriptor(keyword))

@@ -13,6 +13,7 @@ class SpecsMetaclass(type):
     def __new__(cls, clsname, bases, dct):
         if 'specType' in dct:
             for setKeyword in dct['specType'].setKeywords:
+                # for every setKeyword in this Specs's specType, create a property that returns the union of all corresponding sets contained in a Specs instance
                 dct['%sAll' % setKeyword] = DefAllProp(setKeyword)
         return super(SpecsMetaclass, cls).__new__(cls, clsname, bases, dct)
 

@@ -5,8 +5,8 @@ __all__ = ['DatumSpec']
 class DatumSpec(Spec): #, metaclass=DatumPropertySpecMetaclass):
     keywords = {'dtype', 'name', 'paths', 'storageType', 'targetName', 'type'}
     
-    conditionalKeywords = {'type':{'equals':'array', 'keywords':'columnLabels'}}
-#                            'type':{'equals':'subData', 'keywords':'subDataType', 'required':True}}
+    conditionalKeywords = [{'checkKeyword':'type','equals':'array', 'keywords':'columnLabels'},
+                           {'checkKeyword':'type','equals':'subData', 'keywords':'subDataType'}]
     
 #     def __init__(self, name, **kwargs):
 #         self.map = OrderedDict()

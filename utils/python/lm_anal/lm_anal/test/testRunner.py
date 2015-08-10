@@ -35,7 +35,7 @@ import unittest
 # 
 # from lm_anal.test.main.sims import SimsBFTrajToOPHistTestCase
  
-from lm_anal.test.transform.ffluxOutputAndSpeciesTrajectoryToOParamHistT import FFluxOutputAndSpeciesTrajectoryToOParamHistTTestCase
+from lm_anal.test.transform.ffluxOutputAndSpeciesTrajectoryToFFluxHistT import FFluxOutputAndSpeciesTrajectoryToFFluxHistTTestCase
 
 if __name__ == '__main__':
     unittest.main()

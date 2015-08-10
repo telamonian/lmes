@@ -52,7 +52,7 @@ class BaseT(object):
         self.requiredKeywords = set()
         for transSpec in self.transformSpecs.values():
             self.requiredKeywords = self.requiredKeywords | (transSpec['requiredArgs'] | transSpec['requiredData'])
-            self.propertyTransforms.append(PropertyTransforms(srcABCs=self.srcABCs, dstABCs=self.dstABCs, propertyTransformSpecs=transSpec['propertyTransformSpecs']))
+            self.propertyTransforms.append(PropertyTransforms(srcTypes=transSpec['srcTypes'], dstTypes=transSpec['dstTypes'], propertyTransformSpecs=transSpec['propertyTransformSpecs']))
     
     def tfd(self, srcs, dsts, keys=None, **kwargs):
         '''

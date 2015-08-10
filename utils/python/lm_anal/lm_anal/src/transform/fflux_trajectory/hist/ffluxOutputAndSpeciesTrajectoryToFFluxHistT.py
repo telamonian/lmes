@@ -5,19 +5,20 @@ from lm_anal.src.datumABC import datumABCDict, GetDatumTypeABC
 from lm_anal.src.spec import PropertyTransformSpec, PropertyTransformSpecs, TransformSpec, TransformSpecs
 from lm_anal.src.transform import BaseT
 
-__all__ = ['FFluxOutputAndSpeciesTrajectoryToOParamHistT']
+__all__ = ['FFluxOutputAndSpeciesTrajectoryToFFluxHistT']
 
-class FFluxOutputAndSpeciesTrajectoryToOParamHistT(BaseT):
+class FFluxOutputAndSpeciesTrajectoryToFFluxHistT(BaseT):
     srcTypes = frozenset({FFluxOutput, SpeciesTrajectory}) 
     dstTypes = frozenset({FFluxHist})
     
     transformSpecs = TransformSpecs(TransformSpec(srcTypes={FFluxOutput}, dstTypes={FFluxHist}, requiredArgs='tilingIDs', requiredData={'oparams', 'tilings'},
                                                   propertyTransformSpecs=PropertyTransformSpecs(
+                                                  PropertyTransformSpec(dstProps='basin_weights', srcProps='basins', type='special'),
                                                   PropertyTransformSpec(dstProps='phase_weights', srcProps='basins', type='special'),
                                                   PropertyTransformSpec(dstProps='trajectory_phase_map', srcProps='trajectories', preMap=True, requiredArgs='tilingIDs', type='special'))),
-                                    TransformSpec(srcTypes={SpeciesTrajectory}, dstTypes={FFluxHist}, requiredArgs='tilingIDs', requiredData={'oparams', 'tilings'},
-                                                  propertyTransformSpecs=PropertyTransformSpecs( )))
-#                                                   PropertyTransformSpec(dstProps='order_parameter_values', srcProps='species_count', requiredArgs='tilingIDs', type='special'))))
+                                    TransformSpec(srcTypes={FFluxOutput, SpeciesTrajectory}, dstTypes={FFluxHist}, requiredArgs='tilingIDs', requiredData={'oparams', 'tilings'},
+                                                  propertyTransformSpecs=PropertyTransformSpecs(
+                                                  PropertyTransformSpec(dstProps='order_parameter_values', srcProps='species_count', requiredArgs='tilingIDs', type='special'))))
     
 #     def __init__(self, src, dst, oparams, simParams, specTrajs, tilings, **kwargs):
 #         '''

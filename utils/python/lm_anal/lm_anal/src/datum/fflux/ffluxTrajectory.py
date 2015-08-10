@@ -23,11 +23,11 @@ class FFluxTrajectory(Datum):
 #             self.protobuf = TrajectoryOutputBuf()
 
     def genTrajectoryPhaseMap(self, directionID):
-        tpmDtype = list(zip(('trajectory_id', 'basin', 'phase'), ('int','int','int')))
+        tpmDtype = list(zip(('trajectory_id', 'basin_id', 'phase_id'), ('int','int','int')))
         self.trajectory_phase_map = np.zeros((len(self.trajectory_id),), dtype=tpmDtype)
         self.trajectory_phase_map['trajectory_id'][:] = self.trajectory_id
-        self.trajectory_phase_map['basin'][:] = directionID
-        self.trajectory_phase_map['phase'][:] = self.edge_id
+        self.trajectory_phase_map['basin_id'][:] = directionID
+        self.trajectory_phase_map['phase_id'][:] = self.edge_id
 #         for i,trajID in enumerate(self.trajectory_id):
 #             self.trajectory_phase_map[trajID] = (directionID, self.edge_id[i])
         self.tPMap = self.trajectory_phase_map
