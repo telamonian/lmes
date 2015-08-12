@@ -19,7 +19,7 @@ from lm_anal.src.datum.trajectory import SpeciesTrajectories
 
 from lm_anal.src.transform import Transforms
 
-class FFluxOutputToOParamHistTExample(object):
+class FFluxOutputToOParamHistTEagerExample(object):
     def __init__(self, testDataPath=testDataPath):
         self.testDataPath = testDataPath
 

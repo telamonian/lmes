@@ -10,7 +10,13 @@ class SimulationParametersIO(HDF5IO):
     
     def __init__(self, fPath):
         super().__init__(fPath)
-            
+    
+    def _has(self):
+        if self.hdf5RootPath in self.file:
+            return True
+        else:
+            return False
+        
     def inputKey(self, hdf5Path, hdf5Spec, subCon, full):
         subCon.setArray(name=hdf5Spec.name, val=np.array(list(self.file[hdf5Path].attrs.keys())))
 

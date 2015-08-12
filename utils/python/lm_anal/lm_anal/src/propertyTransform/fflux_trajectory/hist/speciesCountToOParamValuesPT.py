@@ -51,7 +51,7 @@ class SpeciesCountToOParamValuesPT(BasePT):
             # get a boolean mask that will allow us to select out only those timepoints that coincide with the stepTime
             timeBoolArr = (traj.time % dstDatum.time_step == 0)
             # make sure that the initial and final timepoints are masked out in any case
-            timeBoolArr[0] = False; timeBoolArr[-1] = False
+#             timeBoolArr[0] = False; timeBoolArr[-1] = False
             # if all of the timepoints are masked, skip this trajectory
             if not np.any(timeBoolArr):
                 continue

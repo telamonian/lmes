@@ -1,18 +1,23 @@
 import os
 import numpy as np
 
-from lm_anal.src.datum.fflux import FFluxBasins, FFluxFinals, FFluxTrajectories
+# from lm_anal.src.datum.fflux import FFluxBasins, FFluxFinals, FFluxTrajectories
+from lm_anal.src.helper import LazyClass
 from lm_anal.src.io.hdf5 import HDF5IO, HDF5Spec, HDF5Specs
 from lm_anal.src.io.hdf5.fflux import FFluxBasinsIO, FFluxFinalsIO, FFluxTrajectoriesIO
+
+lzFFluxBasins = LazyClass(modName='lm_anal.src.datum.fflux', clsName='FFluxBasins')
+lzFFluxFinals = LazyClass(modName='lm_anal.src.datum.fflux', clsName='FFluxFinals')
+lzFFluxTrajectories = LazyClass(modName='lm_anal.src.datum.fflux', clsName='FFluxTrajectories')
 
 class FFluxOutputsIO(HDF5IO):
     hdf5RootPath = 'Tilings'
     hdf5Specs = HDF5Specs(HDF5Spec(fullOnly=False, name='number_species', subKey='NumberSpecies', type='attribute'),
                           HDF5Spec(fullOnly=False, name='number_tiles', subKey='NumberTiles', type='attribute'),
                           HDF5Spec(fullOnly=False, name='tiling_id', subKey='TilingID', type='attribute'),
-                          HDF5Spec(DataType=FFluxBasins, IOType=FFluxBasinsIO, fullOnly=False, name='basins', type='embedded'),
-                          HDF5Spec(DataType=FFluxFinals, IOType=FFluxFinalsIO, fullOnly=False, name='finals', type='special'),
-                          HDF5Spec(DataType=FFluxTrajectories, IOType=FFluxTrajectoriesIO, fullOnly=False, name='trajectories', type='embedded'))
+                          HDF5Spec(DataType=lzFFluxBasins, IOType=FFluxBasinsIO, fullOnly=False, name='basins', type='embedded'),
+                          HDF5Spec(DataType=lzFFluxFinals, IOType=FFluxFinalsIO, fullOnly=False, name='finals', type='special'),
+                          HDF5Spec(DataType=lzFFluxTrajectories, IOType=FFluxTrajectoriesIO, fullOnly=False, name='trajectories', type='embedded'))
     
     def inputFinals(self, hdf5Path, hdf5Spec, subCon, full):
         subData = self.inputEmbedded(hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, subCon=subCon, full=full)

@@ -68,6 +68,7 @@ def DefNPHistogramProp(name, spec, dct):
     dct[name] = prop
     
     # truncated histogram accessor property, for getting a histogram with the half-open bins at the extremities clipped off
+    @property
     def truncProp(self):
         truncSlice = [np.s_[1:-1] for dim in self.__getattribute__(dimsName)]
         return self.__getattribute__(name)[truncSlice]
@@ -216,7 +217,7 @@ class Datum(object, metaclass=DatumMetaclass):
         self.full = full
     
     def initEmbedded(self, name, DataType):
-        self.__setattr__(name, DataType(self.protobuf))
+        self.__setattr__(name, DataType(protobuf=self.protobuf))
         return self.__getattribute__(name)
     
     def initSubData(self):

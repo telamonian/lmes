@@ -6,9 +6,6 @@ __all__ = ['Hists']
 class Hists(Data):
     datumType = Hist
     
-    def __init__(self):
-        super().__init__()
-    
     def getSum(self):
         histsIter = self.valIter()
         self['sum'] = next(histsIter).combine(histsIter)

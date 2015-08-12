@@ -32,10 +32,14 @@ import unittest
 # from lm_anal.test.helper.numpyHelper import NumpyHelperTestCase
 
 # from lm_anal.test.io.mod.timeIO import TimeIOTestCase
-# 
+
+from lm_anal.test.io.hdf5.hist.ffluxHistsIO import FFluxHistsHDF5IOTestCase
+# from lm_anal.test.io.hdf5.hist.oparamHistsIO import OParamHistsHDF5IOTestCase
+
 # from lm_anal.test.main.sims import SimsBFTrajToOPHistTestCase
  
-from lm_anal.test.transform.ffluxOutputAndSpeciesTrajectoryToFFluxHistT import FFluxOutputAndSpeciesTrajectoryToFFluxHistTTestCase
+# from lm_anal.test.transform.fflux_trajectory.hist.ffluxOutputAndSpeciesTrajectoryToFFluxHistT import FFluxOutputAndSpeciesTrajectoryToFFluxHistTTestCase
+# from lm_anal.test.transform.trajectory.hist.speciesTrajectoryToOParamHistT import SpeciesTrajectoryToOParamHistTTestCase
 
 if __name__ == '__main__':
     unittest.main()

@@ -11,6 +11,8 @@ from lm_anal.src.io.io import IO
 __all__ = ['HDF5IO']
 
 class HDF5IO(IO):
+    suffix = '.lm'
+    
     hdf5RootPath = None
     hdf5Specs = None
     
@@ -75,7 +77,7 @@ class HDF5IO(IO):
         for spec in specs:
             self.inputBySpec(full, hdf5Path, spec, subCon)
         subCon.setScalar(name=cache_dirty, val=True)
-        subCon.setArray(name=dims, val=subCon.__getattribute__(raw).shape)
+        subCon.setArray(name=dims, val=np.array(subCon.__getattribute__(raw).shape))
         subCon.setArray(name=cache, val=np.zeros(subCon.__getattribute__(raw).shape))
 #         subCon.__setattr__(cache_dirty, True)
 #         subCon.__setattr__()

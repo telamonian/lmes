@@ -2,12 +2,12 @@ import os,sys
 
 from lm_anal.src.datum.data import Data
 from lm_anal.src.datum.parameter import SimulationParameter
+from lm_anal.src.io.hdf5.parameter import SimulationParametersIO
 
 class SimulationParameters(Data):
     datumType = SimulationParameter
-    
-    def __init__(self):
-        super().__init__()
+    hdf5IOType = SimulationParametersIO
+    sfileIOType = None
 
     def get(self, key):
         return self.peek()[key]

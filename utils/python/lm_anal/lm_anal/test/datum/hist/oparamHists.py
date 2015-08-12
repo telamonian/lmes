@@ -1,9 +1,10 @@
 import numpy as np
 import os,sys
+from pathlib import Path
 import time
 
-thisScriptDir = os.path.dirname(os.path.realpath(__file__))
-testDataPath = os.path.join(thisScriptDir, '../../testData/biphasic_switch.lm')
+thisScriptDir = Path(os.path.dirname(os.path.realpath(__file__)))
+testDataPath = thisScriptDir / Path('../../testData/biphasic_switch.lm')
 
 from .groundTruths import intendedOrderParameterValues5Arr, intendedOrderParameterValues4Plus5Arr
 from lm_anal.src.io.hdf5.oparam import OParamsIO
@@ -35,78 +36,94 @@ class OParamHistsSumCheck(object):
             testBool = False
         self.assertTrue(testBool, msg='not allclose: %s\n%s' % (sumArr.tolist(), altIntendedSumArr.tolist()))
 
-class OParamHistsTestCase(unittest.TestCase):
-    def setUp(self):
-#         self.startTime = time.time()
-        
+class OParamHistsEagerTestBase(object):    
+    def loadData(self, full=False):
         self.bfTrajsIO = BruteForceTrajectoriesIO(fPath=testDataPath)
         self.oparamsIO = OParamsIO(fPath=testDataPath)
         self.tilingsIO = TilingsIO(fPath=testDataPath)
         
-        self.oparams = OParams()
-        self.opHists = OParamHists()
-        self.specTrajs = SpeciesTrajectories()
-        self.tilings = Tilings()
-        
+        self.bfTrajsIO.rff(container=self.specTrajs, full=full)
+        self.oparamsIO.rff(container=self.oparams, full=full)
+        self.tilingsIO.rff(container=self.tilings, full=full)
+         
+        Transforms(srcs=self.specTrajs, dsts=self.opHists, oparams=self.oparams, tilings=self.tilings, tilingIDs=(1,2))
+    
+    def cleanUpInt(self):
+        # make sure all of the .lmint/.mod stuff is cleaned up
+        try:
+            os.remove(str(testDataPath.with_suffix('.mod')))
+        except FileNotFoundError:
+            pass
+        try:
+            os.remove(str(testDataPath.with_suffix('.lmint')))
+        except FileNotFoundError:
+            pass
+
+class OParamHistsLazyTestBase(object):
+#     def setUp(self):
+#         self.startTime = time.time()
+
 #     def tearDown(self):
 #         t = time.time() - self.startTime
 #         print("%s: %.3f" % (self.id(), t))
     
     def loadData(self, full=False):
-        self.bfTrajsIO.rff(container=self.specTrajs, full=full)
-        self.oparamsIO.rff(container=self.oparams, full=full)
-        self.tilingsIO.rff(container=self.tilings, full=full)
+        self.oparams = OParams(fPath=str(testDataPath))
+        self.specTrajs = SpeciesTrajectories(fPath=str(testDataPath))
+        self.tilings = Tilings(fPath=str(testDataPath))
         
-        Transforms(srcs=self.specTrajs, dsts=self.opHists, oparams=self.oparams, tilings=self.tilings, tilingIDs=(1,2))
+        transformKwargs = {'oparams':self.oparams, 'tilings':self.tilings, 'tilingIDs':(1,2)}
+        
+        self.opHists = OParamHists(dataToTransform=self.specTrajs, fPath=str(testDataPath), transformKwargs=transformKwargs)
     
-    def test_dims_from_transform(self):
+    def loadDataEagerly(self, full=False):
+        self.loadData(full=full)
+        self.opHists.map
+    
+    def cleanUpInt(self):
+        # make sure all of the .lmint/.mod stuff is cleaned up
+        try:
+            os.remove(str(testDataPath.with_suffix('.mod')))
+        except FileNotFoundError:
+            pass
+        try:
+            os.remove(str(testDataPath.with_suffix('.lmint')))
+        except FileNotFoundError:
+            pass
+    
+class OParamHistsFieldsTestBase(object):
+    def test_dims(self):
         '''
         test dims field
         '''
         self.loadData()
-        
+         
         dims = np.array(self.opHists[5].h_dims)
         intendedDims = np.array((101,101))
         self.assertTrue(np.allclose(dims, intendedDims), msg='%s is not allclose to %s' % (dims, intendedDims))
-    
-    def test_edges_from_transfrom(self):
+     
+    def test_edges(self):
         '''
         test edges
         '''
         self.loadData()
-        
+         
         edges = self.opHists[5].getEdges()
         intendedEdges = [np.arange(100), np.arange(100)]
         self.assertTrue(np.allclose(edges, np.array(intendedEdges)), msg='%s is not allclose to %s' % (edges, intendedEdges))
-    
-    def test_hDims_from_transfrom(self):
+     
+    def test_hDims(self):
         '''
         test that the dimensions of the histogram match what's given back by the dims field
         will fail if the .h field is not using numpy storage
         '''
         self.loadData()
-        
+         
         hDims = np.array(self.opHists[5].h.shape)
         intendedDims = np.array((101,101))
         self.assertTrue(np.allclose(hDims, intendedDims), msg='%s is not allclose to %s' % (hDims, intendedDims))
     
-    def test_klDivergence_from_transform(self):
-        '''
-        tests the determination of the Kullbeck Liebler divergence
-        for testing purposes, we have to fiddle with the data a little bit due to the general KL requirement that qk=0 implies pk=0
-        '''
-        self.loadData(full=True)
-        
-#         it = np.nditer(self.opHists[2].h, flags=['multi_index'])
-#         while not it.finished:
-#             if it[0]==0:
-#                 self.opHists[5].h[it.multi_index[0], it.multi_index[1]] = 0
-#             it.iternext()
-        klDiv = self.opHists[5].compare(self.opHists[2])
-        intendedKLDiv = -0.12568524690756483
-        self.assertAlmostEqual(klDiv, intendedKLDiv)
-    
-    def test_order_parameter_values_from_transfrom(self):
+    def test_order_parameter_values(self):
         '''
         test calculation of order parameter values via the reduction of a ReplicateTrajectory
         the "ground truth" comparison histogram is massive, and so is stored in a separate module
@@ -126,7 +143,34 @@ class OParamHistsTestCase(unittest.TestCase):
         # self.assertTrue(not (orderParameterValuesArr - intendedOrderParameterValues5Arr).any())
 #         print('check time %.3f' % (time.time() - checkTime))
     
-    def test_order_parameter_values_addition_from_transfrom(self):
+    def test_rank(self):
+        '''
+        test rank field
+        '''
+        self.loadData()
+         
+        rank = self.opHists[5].rank
+        intendedRank = 2
+        self.assertEqual(rank, intendedRank)
+
+class OParamHistsMethodsTestBase(object):
+    def test_klDivergence(self):
+        '''
+        tests the determination of the Kullbeck Liebler divergence
+        for testing purposes, we have to fiddle with the data a little bit due to the general KL requirement that qk=0 implies pk=0
+        '''
+        self.loadData(full=True)
+        
+#         it = np.nditer(self.opHists[2].h, flags=['multi_index'])
+#         while not it.finished:
+#             if it[0]==0:
+#                 self.opHists[5].h[it.multi_index[0], it.multi_index[1]] = 0
+#             it.iternext()
+        klDiv = self.opHists[5].compare(self.opHists[2])
+        intendedKLDiv = -0.12568524690756483
+        self.assertAlmostEqual(klDiv, intendedKLDiv)
+    
+    def test_order_parameter_values_addition(self):
         '''
         test the += operator
         '''
@@ -144,7 +188,7 @@ class OParamHistsTestCase(unittest.TestCase):
 
         self.assertEqual(opHist5ID, newOPHist5ID)
     
-    def test_order_parameter_values_subtraction_from_transfrom(self):
+    def test_order_parameter_values_subtraction(self):
         '''
         test the -= operator
         '''
@@ -158,17 +202,7 @@ class OParamHistsTestCase(unittest.TestCase):
         self.assertEqual(opvSum, intendedOPVSum)
         self.assertEqual(opHist5ID, newOPHist5ID)
     
-    def test_rank_from_transform(self):
-        '''
-        test rank field
-        '''
-        self.loadData()
-        
-        rank = self.opHists[5].rank
-        intendedRank = 2
-        self.assertEqual(rank, intendedRank)
-
-    def test_remask_from_transform(self):
+    def test_remask(self):
         '''
         test remask method
         we will attempt to mask first 4 nonzero values in order_parameter_values
@@ -189,7 +223,7 @@ class OParamHistsTestCase(unittest.TestCase):
             testBool = False
         self.assertTrue(testBool, msg='not allclose: %s\n%s' % (opVArr.tolist(), (intendedMaskedOPV5Arr).tolist()))
 
-    def test_rethreshold_from_transform(self):
+    def test_rethreshold(self):
         '''
         test rethreshold method
         '''
@@ -203,7 +237,7 @@ class OParamHistsTestCase(unittest.TestCase):
         opVArr = np.array(self.opHists[5].rethreshold(threshold).order_parameter_values)
         self.assertEqual(opVArr[np.nonzero(opVArr)].min(), threshold)
         
-    def test_reweight_from_transform(self):
+    def test_reweight(self):
         '''
         test reweight method
         '''

@@ -26,7 +26,7 @@ class BasinsToPhaseWeightsPT(BasePT):
         weightParts = []
         for directionID,direction in zip((0, 1),('FORWARD', 'BACKWARD')):
             # for now, as with the rest of lmes fflux, the interface tiling has to be 1D
-            weightPart = np.zeros((np.sum(kwargs['tilings'][ffluxDatum.tiling_id].dims),), dtype=pwDtype)
+            weightPart = np.zeros((np.sum(kwargs['tilings'][ffluxDatum.tiling_id].dims),), dtype=dstDatum.propertySpecs['phase_weights']['dtype'])
             for dimIndices in kwargs['tilings'][ffluxDatum.tiling_id].getEdgeIndices():
                 weightPart[dimIndices[0]] = (1, directionID, 0)
                 weightPart[dimIndices[1]] = (stepTime, directionID, 1)

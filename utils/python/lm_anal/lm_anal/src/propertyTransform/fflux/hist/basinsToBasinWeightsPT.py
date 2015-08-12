@@ -19,7 +19,7 @@ class BasinsToBasinWeightsPT(BasePT):
         bwDtype = list(zip(dstDatum.propertySpecs['basin_weights']['columnLabels'], 
                            dstDatum.propertySpecs['basin_weights']['dtype']))
         
-        weights = np.zeros((2,), dtype=bwDtype)
+        weights = np.zeros((2,), dtype=dstDatum.propertySpecs['basin_weights']['dtype'])
         for directionID,direction in zip((0, 1),('FORWARD', 'BACKWARD')):
             weights[directionID] = (ffluxDatum.basins[direction].this_basin_last_visited_probability
                                    *ffluxDatum.basins[direction].flux_out_of_tile_zero, 

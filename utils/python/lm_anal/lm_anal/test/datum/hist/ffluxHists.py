@@ -1,9 +1,10 @@
 import numpy as np
 import os,sys
+from pathlib import Path
 import unittest
 
-thisScriptDir = os.path.dirname(os.path.realpath(__file__))
-testDataPath = os.path.join(thisScriptDir, '../testData/biphasic_switch_fflux_simulations.lm')
+thisScriptDir = Path(os.path.dirname(os.path.realpath(__file__)))
+testDataPath = thisScriptDir / Path('../../testData/biphasic_switch_fflux_simulations.lm')
 
 from lm_anal.src.io.hdf5.fflux import FFluxOutputsIO
 from lm_anal.src.io.hdf5.parameter import SimulationParametersIO
@@ -20,10 +21,8 @@ from lm_anal.src.datum.trajectory import SpeciesTrajectories
 
 from lm_anal.src.transform import Transforms
 
-from lm_anal.test.datum.hist.oparamHists import OParamHistsSumCheck
-
-class FFluxOutputAndSpeciesTrajectoryToFFluxHistTTestCase(unittest.TestCase, OParamHistsSumCheck):
-    def setUp(self):
+class FFluxHistsEagerTestBase(object):        
+    def loadData(self, full=False):
         self.bfTrajIO = BruteForceTrajectoriesIO(fPath=testDataPath)
         self.ffluxOutsIO = FFluxOutputsIO(fPath=testDataPath)
         self.oparamsIO = OParamsIO(fPath=testDataPath)
@@ -37,7 +36,6 @@ class FFluxOutputAndSpeciesTrajectoryToFFluxHistTTestCase(unittest.TestCase, OPa
         self.specTraj = SpeciesTrajectories()
         self.tilings = Tilings()
         
-    def loadData(self, full=False):
         self.bfTrajIO.rff(container=self.specTraj, full=full)
         self.ffluxOutsIO.rff(container=self.ffluxOuts, full=full)
         self.oparamsIO.rff(container=self.oparams, full=full)
@@ -47,7 +45,35 @@ class FFluxOutputAndSpeciesTrajectoryToFFluxHistTTestCase(unittest.TestCase, OPa
         tilingIDs = [1,2]
         
         Transforms(srcs={self.specTraj, self.ffluxOuts}, dsts=self.ffluxHists, oparams=self.oparams, simulationParameters=self.simParams, tilings=self.tilings, tilingIDs=tilingIDs)
+
+class FFluxHistsLazyTestBase(object):
+    def loadData(self, full=False):
+        self.ffluxOuts = FFluxOutputs(fPath=str(testDataPath))
+        self.oparams = OParams(fPath=str(testDataPath))
+        self.simParams = SimulationParameters(fPath=str(testDataPath))
+        self.specTrajs = SpeciesTrajectories(fPath=str(testDataPath))
+        self.tilings = Tilings(fPath=str(testDataPath))
+        
+        transformKwargs = {'oparams':self.oparams, 'simulationParameters':self.simParams, 'tilings':self.tilings, 'tilingIDs':(1,2)}
+        
+        self.ffluxHists = FFluxHists(dataToTransform={self.specTrajs, self.ffluxOuts}, fPath=str(testDataPath), transformKwargs=transformKwargs)
+        
+    def loadDataEagerly(self, full=False):
+        self.loadData(full=full)
+        self.ffluxHists.map
     
+    def cleanUpInt(self):
+        # make sure all of the .lmint/.mod stuff is cleaned up
+        try:
+            os.remove(str(testDataPath.with_suffix('.mod')))
+        except FileNotFoundError:
+            pass
+        try:
+            os.remove(str(testDataPath.with_suffix('.lmint')))
+        except FileNotFoundError:
+            pass
+
+class FFluxHistsFieldsTestBase(object):
     def test_order_parameter_values(self):
         '''
         test the order_parameter_values in the histogram that results from a FFluxTrajectoryToOParamHistT transform

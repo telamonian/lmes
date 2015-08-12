@@ -70,11 +70,11 @@ class LazyClass(LazyImporter):
         
         super().__init__(modName=modName, attrName=realAttrName)
     
-    def __call__(self):
+    def __call__(self, **kwargs):
         '''
-        same as getAttr, with an extra call
+        same as getAttr, with an extra call and possibly some kwargs
         '''
-        return self.getAttr()()
+        return self.getAttr()(**kwargs)
     
 # ShallowImport stuff
 def AllAttrCheck(mod):

@@ -4,6 +4,7 @@ from lm_anal.src.datum import Data
 from lm_anal.src.datum.oparam import OParam
 from lm_anal.src.datum.oparam import OParamLinear
 from lm_anal.src.helper import Tupify
+from lm_anal.src.io.hdf5.oparam import OParamsIO
 
 # thisScriptDir = os.path.dirname(os.path.realpath(__file__))
 # sys.path.append(os.path.join(thisScriptDir, '../../../python_protobuf/lm/io'))
@@ -12,10 +13,13 @@ from lm_anal.python_protobuf.lm.io.OrderParameters_pb2 import OrderParameters as
 
 class OParams(Data):
     datumType = OParam
+    hdf5IOType = OParamsIO
+    sfileIOType = None
     
-    def __init__(self):
-        super().__init__()
-        self.protobuf = OParamsBuf()
+    def __init__(self, protobuf=None, dataToTransform=None, fPath=None, transformKwargs=None):
+        if protobuf==None:
+            protobuf=OParamsBuf()
+        super().__init__(protobuf=protobuf, dataToTransform=dataToTransform, fPath=fPath, transformKwargs=transformKwargs)
     
     def combineByID(self, oparamIDs):
         oparams = self.getByID(oparamIDs)
