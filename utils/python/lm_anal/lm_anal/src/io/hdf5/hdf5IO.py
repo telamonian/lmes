@@ -83,20 +83,33 @@ class HDF5IO(IO):
 #         subCon.__setattr__()
         #subCon.__getattribute__(init)(dims=np.array(subCon.__getattribute__(raw).shape))
         
-    def _has(self):
-        if self.hdf5RootPath in self.file:
-            if len(self.file[self.hdf5RootPath].keys()) > 0:
-                return True
-            else:
-                return False
-        else:
-            return False
-        
+#     def _has(self):
+#         if self.hdf5RootPath in self.file:
+#             if len(self.file[self.hdf5RootPath].keys()) > 0:
+#                 return True
+#             else:
+#                 return False
+#         else:
+#             return False
+#         
+#     def has(self):
+#         '''
+#         test if an hdf5 file has a non-empty group containing data relevant to this particular object
+#         '''
+#         return self.wrapperHDF5(self._has)
+
     def has(self):
         '''
-        test if an hdf5 file has a non-empty group containing data relevant to this particular object
+        test if an hdf5 file has any entries relevant to the Data type that we're trying to read in/out
         '''
-        return self.wrapperHDF5(self._has)
+        try:
+            return len(self.keys())!=0
+        except KeyError:
+            # if we got here, the hdf5 file doesn't contain the relevant group
+            return False
+        except TypeError:
+            # if we got here, the hdf5 file doesn't even exist yet
+            return False
 
     def _keys(self):
         '''

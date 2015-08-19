@@ -98,7 +98,19 @@ def DefNPHistogramProp(name, spec, dct):
         self.__setattr__(mask, np.zeros(self.__getattribute__(dimsName), dtype=bool))
     
     dct['init' + CamelCaseUpper(name)] = initializer
+    
+    def reslice(self, slyce):
+        '''
+        unfinished for now, still needs to be able to reshape edges
+        '''
+        self.__setattr__(name, self.__getattribute__(name)[slyce])
+        self.__setattr__(raw, self.__getattribute__(raw)[slyce])
+        self.__setattr__(mask, self.__getattribute__(mask)[slyce])
 
+        self.__setattr__(dimsName, self.__getattribute__(name).shape)
+        
+    dct['reslice' + CamelCaseUpper(name)] = reslice
+    
 def DefProtoArrayProp(name, spec, dct):
     getterList = ['@property',
                   'def %s(self):' % name,

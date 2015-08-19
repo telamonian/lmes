@@ -1,3 +1,7 @@
+from collections import OrderedDict
+from pathlib import Path
+import re
+
 from lm_anal.src.main import Sim
 
 class SimsMetaclass(type):
@@ -5,12 +9,59 @@ class SimsMetaclass(type):
         return super(SimsMetaclass, cls).__new__(cls, clsname, bases, dct)
 
 class Sims(object):
-    def __init__(self, fPath=None):
-        self.map = {}
-        
-        if fPath is not None:
-            self.initSim(0, fPath=fPath)
+    hdf5Synonyms = ['hdf5', 'lm', '.lm']
+    sfileSynonyms = ['hdfs', 'sfile', '.sfile']
     
+    @staticmethod
+    def parseKeyFromPath(path, rootPath):
+        relPath = path.relative_to(rootPath)
+        relPathParts = [part for part in relPath.parent.parts if part!='/']
+        tokenList = [relPath.stem]
+        for part in relPathParts:
+            for tokens in part.split('_-_'):
+                tokenList = [tuple(tokens.split('_'))] + tokenList
+                
+        if len(tokenList)==1:
+            return tokenList[0]
+        else:
+            return tuple(tokenList)
+    
+    def __init__(self, rootPath, fType='hdf5', **kwargs):
+        self.initFType(fType)
+        self.map = OrderedDict()
+        self.rootPath = Path(rootPath)
+        self.initSims(**kwargs)
+    
+    def initFType(self, fType):
+        '''
+        initialize fType with some normalization/sanity checks
+        '''
+        if fType in self.hdf5Synonyms:
+            self.fType = 'hdf5'
+            self.suffix = '.lm'
+        elif fType in self.sfileSynonyms:
+            self.ftype = 'sfile'
+            self.suffix = '.sfile'
+        else:
+            raise
+
+    def initSim(self, key, fPath, **kwargs):
+        try:
+            return self.map[key]
+        except KeyError:
+            self.map[key] = Sim(fPath=fPath, name=key, **kwargs)
+            return self.map[key]
+    
+    def initSims(self, **kwargs):
+        for fPath in self.rootPath.rglob('*{}'.format(self.suffix)):
+            key = self.parseKeyFromPath(fPath, self.rootPath)
+            self.initSim(key, fPath, **kwargs)
+            
+        if len(self.map)==0:
+            for fPath in self.rootPath.rglob('*{}'.format('.lmint')):
+                key = self.parseKeyFromPath(fPath, self.rootPath)
+                self.initSim(key, fPath, **kwargs)
+        
     def __delitem__(self, key):
         del self.map[key]
     
@@ -22,17 +73,10 @@ class Sims(object):
 
     def __iter__(self):
         return self.map.items().__iter__()
-
-    def initSim(self, key, **kwargs):
-        try:
-            return self.map[key]
-        except KeyError:
-            self.map[key] = Sim(**kwargs)
-            return self.map[key]
-        
-    def map(self, recipeName, **kwargs):
-        self.__getattribute__('%sMap' % recipeName)(**kwargs)
-        
-    def OParamHistsMap(self, tilingIDs, **kwargs):
-        for sim in self:
-            sim.map('OParamHists', tilingIDs=tilingIDs)
+    
+#     def map(self, recipeName, **kwargs):
+#         self.__getattribute__('%sMap' % recipeName)(**kwargs)
+#         
+#     def OParamHistsMap(self, tilingIDs, **kwargs):
+#         for sim in self:
+#             sim.map('OParamHists', tilingIDs=tilingIDs)

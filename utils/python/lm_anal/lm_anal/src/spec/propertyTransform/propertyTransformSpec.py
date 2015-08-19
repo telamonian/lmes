@@ -9,7 +9,8 @@ class PropertyTransformSpec(Spec):
     requiredKeywords = {'dstProps', 'srcProps'}
     setKeywords = {'dstProps', 'srcProps', 'requiredArgs'}
     
-    defaultKeywordDict = {'preMap':False}
+    defaultKeywordDict = {'type':'special'}
+#     defaultKeywordDict = {'preMap':False}
     
     def defaultName(self, **kwargs):
         # if we don't specify a name, come up with one from srcProps + dstProps -> <SP1>And<SP2>...To<DP1>And<DP2>...

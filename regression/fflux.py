@@ -49,8 +49,12 @@ OrderParameter(type=0,
                speciesCoefficients=[1,2,2])]
 
 theta = 1
-productionConstants = [ReactionRateConstant(reactionID=4, rateConstant=1.0*theta), ReactionRateConstant(reactionID=5, rateConstant=1.0*theta), ReactionRateConstant(reactionID=11, rateConstant=1.0*theta), ReactionRateConstant(reactionID=12, rateConstant=1.0*theta)]
-degradationConstants = [ReactionRateConstant(reactionID=6, rateConstant=.25*theta), ReactionRateConstant(reactionID=13, rateConstant=.25*theta)]
+productionConstants = [ReactionRateConstant(reactionID=4, rateConstant=1.0*theta), 
+                       ReactionRateConstant(reactionID=5, rateConstant=1.0*theta), 
+                       ReactionRateConstant(reactionID=11, rateConstant=1.0*theta), 
+                       ReactionRateConstant(reactionID=12, rateConstant=1.0*theta)]
+degradationConstants = [ReactionRateConstant(reactionID=6, rateConstant=.25*theta), 
+                        ReactionRateConstant(reactionID=13, rateConstant=.25*theta)]
 reactionRateConstants = productionConstants + degradationConstants
 
 simParams = [SimulationParameter(key='crossingsPerPhase',val=crossingsPerPhase),

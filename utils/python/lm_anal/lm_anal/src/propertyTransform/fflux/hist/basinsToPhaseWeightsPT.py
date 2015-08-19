@@ -13,8 +13,9 @@ class BasinsToPhaseWeightsPT(BasePT):
     srcProps = frozenset({'basins'})
     dstProps = frozenset({'phase_weights'})
     
-    def ptfd(self, srcDatum, dstDatum, **kwargs):
-        ffluxDatum = srcDatum[datumABCDict['fflux']]
+    def ptfd(self, srcDict, dstDict, **kwargs):
+        ffluxDatum = srcDict['FFluxOutput']
+        dstDatum = dstDict['FFluxHist']
         
         # dtype for the resulting phase_weights array
         pwDtype = list(zip(dstDatum.propertySpecs['phase_weights']['columnLabels'], 
@@ -31,7 +32,7 @@ class BasinsToPhaseWeightsPT(BasePT):
                 weightPart[dimIndices[0]] = (1, directionID, 0)
                 weightPart[dimIndices[1]] = (stepTime, directionID, 1)
                 for i in dimIndices[2:]:
-                    weightPart[i] = (stepTime*ffluxDatum.basins[direction].probability_one_to_i_plus_one[i - 1], directionID, i)
+                    weightPart[i] = (stepTime*ffluxDatum.basins[direction].probability_one_to_i_plus_one[i -1], directionID, i)
             weightParts.append(weightPart)
         weights = FastVStack(*weightParts)
         weights.sort(order=['basin_id','phase_id'])

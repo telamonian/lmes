@@ -1,4 +1,15 @@
-__all__ = ['IsContainer', 'Frozensetify', 'Setify', 'Tupify']
+__all__ = ['FindInstanceInSet','IsContainer', 'Frozensetify', 'Setify', 'Tupify']
+
+def FindInstanceInSet(sett, Tipe, raiseNotFound=False):
+    '''
+    return the "first" instance of Type Tipe in set sett
+    '''
+    for obj in sett:
+        if isinstance(obj, Tipe):
+            return obj
+    if raiseNotFound:
+        raise
+    # return None
 
 def IsContainer(x):
     '''
@@ -6,6 +17,7 @@ def IsContainer(x):
     '''
     return isinstance(x, (dict, frozenset, list, set, tuple))#collections.abc.Container)
 
+# functions to compel generic data into a particular sequence Type
 def Frozensetify(x):
     '''
     if x is an instance of a builtin container, convert it to a frozenset. Otherwise, place x into a frozenset

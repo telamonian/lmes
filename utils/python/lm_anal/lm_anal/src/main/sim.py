@@ -1,41 +1,87 @@
+from collections import OrderedDict
+from inspect import isclass
+from itertools import chain
 import numpy as np
 import os,sys
+from pathlib import Path
 
+from lm_anal.src.helper import CamelCaseLower
+from lm_anal.src.io.hdf5 import HDF5IO
 from lm_anal.src.io.hdf5.fflux import FFluxBasinsIO, FFluxFinalsIO, FFluxOutputsIO, FFluxTrajectoriesIO
-from lm_anal.src.io.hdf5.hist import OParamHistsIO
+from lm_anal.src.io.hdf5.hist import FFluxHistsIO, OParamHistsIO
 from lm_anal.src.io.hdf5.parameter import SimulationParametersIO
 from lm_anal.src.io.hdf5.oparam import OParamsIO
 from lm_anal.src.io.hdf5.tiling import TilingsIO
 from lm_anal.src.io.hdf5.trajectory import BruteForceTrajectoriesIO
 from lm_anal.src.io.mod import TimeIO
+from lm_anal.src.datum import Data
 from lm_anal.src.datum.fflux import FFluxBasins, FFluxFinals, FFluxOutputs, FFluxTrajectories
-from lm_anal.src.datum.hist import OParamHists
+from lm_anal.src.datum.hist import FFluxHists, OParamHists
 from lm_anal.src.datum.parameter import SimulationParameters
 from lm_anal.src.datum.oparam import OParams
 from lm_anal.src.datum.tiling import Tilings
 from lm_anal.src.datum.trajectory import SpeciesTrajectories
 from lm_anal.src.transform import Transforms
 
+inputDataTypes = [OParams, SimulationParameters, Tilings]
+dataTypes = [DataType for DataType in vars().values() if isclass(DataType) and issubclass(DataType, Data) and not DataType in inputDataTypes]
+# hdf5IOTypes = [Hdf5IOType for Hdf5IOType in vars().values() if isclass(Hdf5IOType) and issubclass(Hdf5IOType, HDF5IO)]
+
 class SimMetaclass(type):
     def __new__(cls, clsname, bases, dct):
         return super(SimMetaclass, cls).__new__(cls, clsname, bases, dct)
 
 class Sim(object):
-    def __init__(self, fPath, lmintOnly=False, **kwargs):
+    @property
+    def fPathStr(self):
+        return str(self.fPath)
+
+# initializers
+    def __init__(self, fPath, name=None, lmintOnly=False, **kwargs):
         # path setting stuff
-        self.fPath = fPath
-        self.fDir, self.fNameFull = os.path.split(self.fPath)
-        self.fName, self.fNameSuffix = self.fNameFull.split('.')[:2]
-        self.intermediatePath = os.path.join(self.fDir, '.' + self.fName) + '.lmint'
+        self.fPath = Path(fPath)
+#         self.fDir, self.fNameFull = os.path.split(self.fPath)
+#         self.fName, self.fNameSuffix = self.fNameFull.split('.')[:2]
+#         self.intermediatePath = os.path.join(self.fDir, '.' + self.fName) + '.lmint'
         
-        self.modIO = TimeIO(fPath=self.fPath)
-           
+        self.modIO = TimeIO(fPath=self.fPathStr)
+        self.initInputData()
+        self.initData()
+    
+    def initData(self):
+        self.dataDict = OrderedDict()
+        for DataType in dataTypes:
+            dataName = CamelCaseLower(DataType.__name__)
+            self.__setattr__(dataName, DataType(fPath=self.fPath, dataToTransformDict=self.inputDataDict))
+            self.dataDict[dataName] = self.__getattribute__(dataName)
+            
+        self.ffluxHists.dataToTransform = self.ffluxOutputs
+        self.oparamHists.dataToTransform = self.speciesTrajectories
+    
+    def initInputData(self):
+        self.inputDataDict = OrderedDict()
+        for InputDataType in inputDataTypes:
+            inputDataName = CamelCaseLower(InputDataType.__name__)
+            self.__setattr__(inputDataName, InputDataType(fPath=self.fPath))
+            self.inputDataDict[inputDataName] = self.__getattribute__(inputDataName)
+    
+# accessors
+    def items(self):
+        return (item for item in chain(self.inputDataDict.items(), self.dataDict.items()))
+
+# mutators
     def clear(self):
         for attrName in ('oparams, opHists, specTrajs, tilings'):
             try: 
                 self.__delattr__(attrName)
             except AttributeError:
                 pass
+    
+    
+    
+    
+    
+    
     
     def gen(self, recipeName, freshenInt=True, readInt=True, writeInt=True, **kwargs):
         # if we're told not to bother reading the .lmint, or if the restore "fails", use the relevant recipe to generate the data

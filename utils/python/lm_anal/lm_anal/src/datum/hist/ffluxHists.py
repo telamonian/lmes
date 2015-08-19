@@ -10,5 +10,5 @@ __all__ = ['FFluxHists']
 
 class FFluxHists(OParamHists):
     datumType = FFluxHist
-    hdf5IOType = FFluxHistsIO
-    sfileIOType = None
+    Hdf5IOType = FFluxHistsIO
+    SFileType = None

@@ -16,11 +16,11 @@ class SpeciesCountToOParamValuesPT(BasePT):
     srcProps = frozenset({'species_count'})
     dstProps = frozenset({'order_parameter_values'})
     
-    def ptfd(self, srcDatum, dstDatum, **kwargs):
+    def ptfd(self, srcDict, dstDict, **kwargs):
+        trajData = srcDict['SpeciesTrajectories']
+        dstDatum = dstDict['FFluxHist']
         if not dstDatum.full:
             return
-        
-        trajData = srcDatum[datumABCDict['trajectory']]
         
         # set the ffluxHist's tiling
         dstDatum.setArray('bin_tiling_id', np.array(kwargs['tilingIDs']))

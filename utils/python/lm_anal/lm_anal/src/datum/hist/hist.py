@@ -1,8 +1,9 @@
+from collections import Counter
 from itertools import chain
 import numpy as np
 import scipy.stats as st
 
-from lm_anal.src.helper import histogramdd
+from lm_anal.src.helper import histogramdd, timewith
 from lm_anal.src.datum import Datum, DatumPropertySpec as DPSpec, DatumPropertySpecs as DPSpecs
 from lm_anal.src.datumABC import HistABC
 
@@ -67,6 +68,53 @@ class Hist(Datum):
         self.setObservations(obs)
 
 # accessors
+    def drawIndicesFromRaw(self, nSample=1, hRawSum=None, hRawCumSum=None):
+        '''
+        draw from the distribution of h array indices, weighted by the h_raw bin counts 
+        return a tuple-of-ntuples, where the first n-1 entries of the inner tuple correspond to a particular index, and the nth entry is the number of times the index was drawn
+        '''
+        if hRawSum==None:
+            hRawSum = np.sum(self.h_raw)
+        if hRawCumSum==None:
+            hRawCumSum = np.cumsum(self.h_raw)  #.reshape(self.h_raw.shape)
+        
+        rands = np.random.rand(nSample)*hRawSum  #).tolist()
+        raveledSamples = np.searchsorted(hRawCumSum, rands)
+        uniqueSamples,uniqueCounts = np.unique(raveledSamples, return_counts=True) 
+        #np.column_stack(np.unravel_index(np.unique(raveledSamples, return_counts=True)[0], self.h_raw.shape) + (np.unique(raveledSamples, return_counts=True)[1],))
+        return np.column_stack(np.unravel_index(uniqueSamples, self.h_raw.shape) + (uniqueCounts,))
+#         rands.sort()
+#         
+#         samples = []
+#         for i,val in np.ndenumerate(hRawCumSum):
+#             broken = False
+#             for j,rand in enumerate(rands):
+#                 if rand>=val:
+#                     broken = True
+#                     break
+#                 else:
+#                     samples.append(i)
+#             if broken:
+#                 rands = rands[j:]
+#             else:
+#                 # we ended up here because we hit the end of the rands list in the inner loop
+#                 break
+#         return samples
+                    
+    def getDownsampleFromRaw(self, nSample=None, frac=.1):
+        '''
+        get a downsampled copy of this histogram based on the counts in h_raw, with number of samples=nSamples
+        '''
+        if nSample==None:
+            nSample = int(frac*np.sum(self.h_raw))
+        
+        downHist = self.getCopy()
+        downHist.clearVals()
+        
+        samples = self.drawIndicesFromRaw(nSample)
+        downHist.addObservationsByIndex(samples)
+        return downHist
+        
     def getEdgeIndices(self):
         '''
         based on what's in self.dims, generates a list of tuples of indices that can be used to transform the 1D protobuf array in which self.edges is stored into a list of lists, one list for every dim
@@ -79,7 +127,7 @@ class Hist(Datum):
         '''
         return [self.h_edges[int(np.sum(self.rDims[:i])):int(np.sum(self.rDims[:i + 1]))] for i in range(self.rank)]
     
-    def getKLDivergence(self, other, absolute=False):
+    def getKLDivergence(self, other, normalize=True, absolute=False):
         '''
         get the Kullback-Leibler divergence between this hist and another.
         absolute: if true, return absolute value of KL div
@@ -87,14 +135,35 @@ class Hist(Datum):
         # implementation of KL div from scipy
         #return st.entropy(pk=self.h.flatten(), qk=other.h.flatten())
         
-        # currently, both distributions get normalized in a totally straight-forward way 
-        sNormed = self.h/np.sum(self.h)   #[other.h!=0])
-        oNormed = other.h/np.sum(other.h) #[self.h!=0])
-        # alternatively, the distributions could be normalized in a way that takes into account the fact that we're masking out any bins that aren't nonzero in both distributions
-        #sNormed = self.h/np.sum(self.h[other.h!=0])
-        #oNormed = other.h/np.sum(other.h[self.h!=0])
+        effectiveShape = ()
+        for selfDim,otherDim in zip(self.h.shape, other.h.shape):
+            effectiveShape+=(np.s_[:np.min((selfDim, otherDim))],)
+        
+        #normalization stuff
+        if normalize=='mask':
+            eitherZeroMask = np.logical_or(self.h[effectiveShape]==0, other.h[effectiveShape]==0)
+        
+        newHists = [None, None]
+        for i,oldHist in enumerate([self,other]):
+            if normalize=='mask':
+                # normalize the distributions in a way that takes into account the fact that we're masking out any bins that aren't nonzero in both distributions
+                newHists[i] = oldHist.getCopy()
+                zeroMask = np.ones(newHists[i].h.shape, dtype=bool)
+                zeroMask[effectiveShape] = eitherZeroMask
+                newHists[i].remask(zeroMask)
+                newHists[i].normalize()
+            elif normalize:
+                # normalize both distributions in a totally straight-forward way
+                newHists[i] = oldHist.getCopy()
+                newHists[i].normalize()
+            else:
+                # just use whatever distributions we're handed
+                newHists[i] = oldHist
+        selfHist,otherHist = newHists
+        
+        # calculation stuff
         val = 0
-        it = np.nditer((sNormed, oNormed), flags=['multi_index'])
+        it = np.nditer((selfHist.h[effectiveShape], otherHist.h[effectiveShape]), flags=['multi_index'])
         while not it.finished:
             if it[0]==0 or it[1]==0:
                 it.iternext()
@@ -141,7 +210,22 @@ class Hist(Datum):
     
 # mutators
     def addObservations(self, obs):
+        '''
+        add observations by means of a list of tuples containing observations
+        '''
         self.h_raw+=histogramdd(obs, bins=self.getEdges())[0]
+        self.h_cache_dirty = True
+
+    def addObservationsByIndex(self, obs):
+        '''
+        add observations by means of a list of tuples corresponding to the indices of the underlying histogram array rather than the bin edge values
+        '''
+#         with timewith('%d counting' % obs.shape[0]) as tw:
+#             c = Counter(tuple((tuple(row) for row in obs)))
+#         for i,val in c.items():
+#             self.h_raw[i]+=val
+        for row in obs:
+            self.h_raw[tuple(row[:-1])] = row[-1]
         self.h_cache_dirty = True
         
     def addWeightedObservations(self, obs, weight=1.0):

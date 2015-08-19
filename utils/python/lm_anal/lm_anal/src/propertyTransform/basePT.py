@@ -18,7 +18,7 @@ class BasePT(object):
     def checkProps(self, srcProps, dstProps):
         return srcProps==self.srcProps and dstProps==self.dstProps
     
-    def ptfd(self, srcDatum, dstDatum, **kwargs):
+    def ptfd(self, srcDict, dstDict, **kwargs):
         '''
         generic ptfd (property transform from datum) method
         '''

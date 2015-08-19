@@ -575,7 +575,7 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(FFluxTrajectory* traj, lm::io
     ffluxOutputQueueSize = (10.0*1024.0*1024.0)/(8 + 8 + getFFluxOutputStreaming()->number_species()*4 + 8 + 8);
 
     // send a message to the output writer if a certain number of "rows" of trajectory data has accumulated                 // and if this is the final part of the current trajectory
-    if (trajOut->time_size() > ffluxOutputQueueSize*simultaneousTrajectoryCount)                                            // && lifecycle==lm::io::FFluxOutput::FINAL)
+    if (trajOut->time_size() > ffluxOutputQueueSize)    //*simultaneousTrajectoryCount)                                            // && lifecycle==lm::io::FFluxOutput::FINAL)
     {
         ffluxOutputFinishTrajectory();
 //        // Send the message
@@ -633,7 +633,7 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(const lm::io::SpeciesCounts& 
         ffluxOutputQueueSize = (10.0*1024.0*1024.0)/(8 + 8 + getFFluxOutputStreaming()->number_species()*4 + 8 + 8);
 
         // send a message to the output writer if a certain number of "rows" of trajectory data has accumulated                 // and if this is the final part of the current trajectory
-        if (trajOut->time_size() > ffluxOutputQueueSize*simultaneousTrajectoryCount)                                            // && lifecycle==lm::io::FFluxOutput::FINAL)
+        if (trajOut->time_size() > ffluxOutputQueueSize)    //*simultaneousTrajectoryCount)                                            // && lifecycle==lm::io::FFluxOutput::FINAL)
         {
             ffluxOutputFinishTrajectory();
 //            // Send the message

@@ -14,11 +14,9 @@ class TrajectoriesToTrajectoryPhaseMapPT(BasePT):
     srcProps = frozenset({'trajectories'})
     dstProps = frozenset({'trajectory_phase_map'})
     
-    def ptfd(self, srcDatum, dstDatum, **kwargs):
-        if not dstDatum.full:
-            return
-        
-        ffluxDatum = srcDatum[datumABCDict['fflux']]
+    def ptfd(self, srcDict, dstDict, **kwargs):
+        ffluxDatum = srcDict['FFluxOutput']
+        dstDatum = dstDict['FFluxHist']
         
         trajectoryPhaseMapParts = [ffluxDatum.trajectories['%s/INITIAL' % direction].trajectory_phase_map for direction in ('FORWARD', 'BACKWARD')]
         trajectoryPhaseMap = FastVStack(*trajectoryPhaseMapParts)

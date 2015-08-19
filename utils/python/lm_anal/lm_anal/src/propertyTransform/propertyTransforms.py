@@ -26,7 +26,7 @@ import os
 from pathlib import Path
 
 from lm_anal.src.datumABC import GetDatumTypeABCSet
-from lm_anal.src.helper import Setify, ShallowImportPackages
+from lm_anal.src.helper import FindInstanceInSet, Setify, ShallowImportPackages
 from lm_anal.src.propertyTransform.copyPT import CopyPT
 
 propertyTransformPath = Path(os.path.dirname(os.path.realpath(__file__)))
@@ -36,13 +36,25 @@ srcPropertyTransformPkgDict = ShallowImportPackages(path=[str(propertyTransformP
 __all__ = ['PropertyTransforms']
 
 class PropertyTransforms(object):
-    def __init__(self, srcTypes, dstTypes, propertyTransformSpecs):
+    def __init__(self, srcTypes, dstTypes, propertyTransformSpecs, srcDataTypes=None, dstDataTypes=None, srcKeyType=None, dstKeyType=None, **kwargs):
         self.propertyTransforms = []
-        self.srcTypes = Setify(srcTypes)
-        self.dstTypes = Setify(dstTypes)
+        self.srcTypes = srcTypes
+        self.dstTypes = dstTypes
         self.srcABCs = GetDatumTypeABCSet(self.srcTypes)
         self.dstABCs = GetDatumTypeABCSet(self.dstTypes)
         self.propertyTransformSpecs = propertyTransformSpecs
+        
+        # settings the attrs that might be ==None
+        for attrName,val in zip(('srcDataTypes', 'dstDataTypes'), (srcDataTypes, dstDataTypes)):
+            if val!=None:
+                self.__setattr__(attrName, val)
+            else:
+                self.__setattr__(attrName, set())
+        for attrName,val in zip(('srcKeyType', 'dstKeyType'), (srcKeyType, dstKeyType)):
+            if val!=None:
+                self.__setattr__(attrName, val)
+            else:
+                self.__setattr__(attrName, None)
         
         # based on src and dst ABCs, get the pkg with the appropriate PropertyTransform types
         for srcPropertyTransformPkg in srcPropertyTransformPkgDict.values():
@@ -87,9 +99,32 @@ class PropertyTransforms(object):
 #                 else:
 #                     raise
     
-    def transformProperties(self, srcDatum, dstDatum, **kwargs):
+    @staticmethod
+    def findDataFromDatumInSet(datumSet, Tipe):
+        for obj in datumSet:
+            try:
+                if issubclass(obj.datumType, Tipe):
+                    return obj
+            except AttributeError:
+                pass
+        # we got here because no appropriate data instance was found
+        raise
+    
+    def buildDict(self, datumSet, kind='src'):
+        retDict = {}
+        datumTypes = self.__getattribute__('%sTypes' % kind)
+        dataTypes = self.__getattribute__('%sDataTypes' % kind)
+        for DatumType in datumTypes:
+            retDict[DatumType.__name__] = FindInstanceInSet(datumSet, DatumType)
+        for DataType in dataTypes:
+            retDict[DataType.__name__] = self.findDataFromDatumInSet(datumSet, DataType)
+        return retDict
+    
+    def transformProperties(self, srcs, dsts, **kwargs):
+        srcDict = self.buildDict(srcs, kind='src')
+        dstDict = self.buildDict(dsts, kind='dst')
         for propTran in self.propertyTransforms:
-            propTran.ptfd(srcDatum=srcDatum, dstDatum=dstDatum, **kwargs)
+            propTran.ptfd(srcDict=srcDict, dstDict=dstDict, **kwargs)
             
 #     def getBaseClass(self, datumType):
 #         '''

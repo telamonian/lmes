@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 import os,sys
 import numpy as np; np.set_printoptions(precision=1, threshold=1e6, linewidth=1e6)
+from pathlib import Path
+import pytest
 import unittest
+
+thisScriptPath = os.path.realpath(__file__)
 
 # from main.sim import SimTestCase
 # from main.sim import SimCreateOParamHistTestCase
@@ -33,13 +37,18 @@ import unittest
 
 # from lm_anal.test.io.mod.timeIO import TimeIOTestCase
 
-from lm_anal.test.io.hdf5.hist.ffluxHistsIO import FFluxHistsHDF5IOTestCase
+# from lm_anal.test.io.hdf5.hist.ffluxHistsIO import FFluxHistsHDF5IOTestCase
 # from lm_anal.test.io.hdf5.hist.oparamHistsIO import OParamHistsHDF5IOTestCase
 
-# from lm_anal.test.main.sims import SimsBFTrajToOPHistTestCase
+# from lm_anal.test.main.sims import SimsTestCase
  
+from lm_anal.test.transform.fflux.hist import FFluxOutputToFFluxHistTSimTestCase
 # from lm_anal.test.transform.fflux_trajectory.hist.ffluxOutputAndSpeciesTrajectoryToFFluxHistT import FFluxOutputAndSpeciesTrajectoryToFFluxHistTTestCase
 # from lm_anal.test.transform.trajectory.hist.speciesTrajectoryToOParamHistT import SpeciesTrajectoryToOParamHistTTestCase
 
 if __name__ == '__main__':
+#     FFluxOutputToFFluxHistTSimTestCase.simpleRun()
+#     pytest.main(args= thisScriptPath + ' -s')
+#     ffluxOutputToFFluxHistTSimTestCase = FFluxOutputToFFluxHistTSimTestCase()
+#     ffluxOutputToFFluxHistTSimTestCase.run()
     unittest.main()

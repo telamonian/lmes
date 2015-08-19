@@ -55,13 +55,6 @@ class Spec(object, metaclass=SpecMetaclass):
         
         # check to see if any of the conditionalKeywords should be added to this spec instance
         self.initConditionalKeywords(**kwargs)
-#         for key,val in self.conditionalKeywords.items():
-#             if key in kwargs and kwargs[key]==val['equals']:
-#                 self.addKeywords(val['keywords'])
-#                 if 'required' in val and val['required']:
-#                     self.requiredKeywords = self.requiredKeywords | Setify(val['keywords'])
-#                 else:
-#                     self.keywords = self.keywords | Setify(val['keywords'])
                 
         # test if required keywords is a subset of the keyword arguments we actually got
         if not self.requiredKeywords <= kwargs.keys():
@@ -112,11 +105,18 @@ class Spec(object, metaclass=SpecMetaclass):
     def __getitem__(self, key):
         return self.map[key]
     
+    def __iter__(self):
+        return self.map.__iter__()
+    
     def __setitem__(self, key, val):
         if key in self.allKeywords:
             self.map[key] = val
         else:
             raise
+
+# accessors
+    def keys(self):
+        return self.map.keys()
 
 # other(?)
     def addKeywords(self, keywords):

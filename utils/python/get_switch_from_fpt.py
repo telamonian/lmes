@@ -9,7 +9,7 @@ from six import print_
 headers = ['switching_rate', 'flux_forward', 'probability_forward', 'flux_backward', 'probability_backward']
 paramHeaders = ['param_name_%d', 'param_val_%d']
 
-# regex for matching parameters in the names of dirs in sweeps. '[^\W\d_]' is confusing, means (NOT ([^a-zA-Z0-9_] AND [1-9] AND _)), which really is just a portable [a-zA-Z]
+# regex for matching parameters in the names of dirs in sweeps. '[^\W\d_]' is confusing, means (NOT ([^a-zA-Z0-9_] AND [0-9] AND _)), which really is just a portable [a-zA-Z]
 nonNumericPat = '[^\W\d_]+'
 scientificPat = '-?(?:0|[1-9]\d*)(?:\.\d*)?(?:[eE][+\-]?\d+)?'
 paramRe = re.compile('(?:(%s)(%s)_?)' % (nonNumericPat, scientificPat))

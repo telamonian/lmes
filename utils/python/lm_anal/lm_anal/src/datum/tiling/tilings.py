@@ -12,8 +12,8 @@ from lm_anal.python_protobuf.lm.io.Tilings_pb2 import Tilings as TilingsBuf
 
 class Tilings(Data):
     datumType = Tiling
-    hdf5IOType = TilingsIO
-    sfileIOType = None
+    Hdf5IOType = TilingsIO
+    SFileType = None
        
     def __init__(self, protobuf=None, dataToTransform=None, fPath=None, transformKwargs=None):
         if protobuf==None:

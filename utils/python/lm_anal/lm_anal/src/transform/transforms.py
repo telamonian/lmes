@@ -22,7 +22,7 @@ import os
 from pathlib import Path
 
 from lm_anal.src.datumABC import GetDatumTypeABCSet
-from lm_anal.src.helper import Tupify, ShallowImportPackages
+from lm_anal.src.helper import Setify, ShallowImportPackages, Tupify
 
 transformPath = Path(os.path.dirname(os.path.realpath(__file__)))
 transformName = __package__
@@ -31,8 +31,9 @@ srcTransformPkgDict = ShallowImportPackages(path=[str(transformPath)], name=tran
 
 class Transforms(object):
     def __init__(self, srcs, dsts, **kwargs):
-        self.srcTypes = set(map(lambda x: x.datumType, Tupify(srcs)))
-        self.dstTypes = set(map(lambda x: x.datumType, Tupify(dsts)))
+        srcs,dsts = Setify(srcs),Setify(dsts)
+        self.srcTypes = set(map(lambda x: x.datumType, srcs))
+        self.dstTypes = set(map(lambda x: x.datumType, dsts))
         self.srcABCs = GetDatumTypeABCSet(self.srcTypes)
         self.dstABCs = GetDatumTypeABCSet(self.dstTypes)
         

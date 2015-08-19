@@ -12,8 +12,9 @@ class BasinsToBasinWeightsPT(BasePT):
     srcProps = frozenset({'basins'})
     dstProps = frozenset({'basin_weights'})
     
-    def ptfd(self, srcDatum, dstDatum, **kwargs):
-        ffluxDatum = srcDatum[datumABCDict['fflux']]
+    def ptfd(self, srcDict, dstDict, **kwargs):
+        ffluxDatum = srcDict['FFluxOutput']
+        dstDatum = dstDict['FFluxHist']
         
         # dtype for the resulting phase_weights array
         bwDtype = list(zip(dstDatum.propertySpecs['basin_weights']['columnLabels'], 

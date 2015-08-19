@@ -6,8 +6,8 @@ from lm_anal.src.io.hdf5.parameter import SimulationParametersIO
 
 class SimulationParameters(Data):
     datumType = SimulationParameter
-    hdf5IOType = SimulationParametersIO
-    sfileIOType = None
+    Hdf5IOType = SimulationParametersIO
+    SFileType = None
 
     def get(self, key):
         return self.peek()[key]

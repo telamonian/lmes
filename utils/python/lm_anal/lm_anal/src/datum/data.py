@@ -26,7 +26,9 @@ class LazyMapDescriptor(object):
                     obj.po = '.lm'
             else:
                 # produce the data via transform
-                lzTransforms(srcs=obj.dataToTransform, dsts=obj, **obj.transformKwargs)
+                transformKwargs = obj.transformKwargs
+                transformKwargs.update(obj.dataToTransformDict)
+                lzTransforms(srcs=obj.dataToTransform, dsts=obj, **transformKwargs)
                 # record the object's point-of-origin as a transform
                 obj.po = 'transform'
                 # save the data to the .lmint file
@@ -39,18 +41,22 @@ class DataMetaclass(object):
 
 class Data(object):
     datumType = None
-    hdf5IOType = None
-    sfileIOType = None
+    Hdf5IOType = None
+    SFileType = None
     
     map = LazyMapDescriptor()
     
 # initializers
-    def __init__(self, protobuf=None, dataToTransform=None, fPath=None, transformKwargs=None):
+    def __init__(self, protobuf=None, dataToTransform=None, dataToTransformDict=None, fPath=None, transformKwargs=None):
         self.protobuf = protobuf
         # point-of-origin, tells us from whence this data came
         self.po = None
         
         self.dataToTransform = dataToTransform
+        if dataToTransformDict==None:
+            self.dataToTransformDict = {}
+        else:
+            self.dataToTransformDict = dataToTransformDict
         if fPath is not None:
             self.fPath = Path(fPath)
         else:
@@ -64,28 +70,28 @@ class Data(object):
 #             self.map = {}
     
     def initIO(self):
-        self.intIO = self.hdf5IOType(fPath=str(self.fPath.with_suffix('.lmint')))
+        self.intIO = self.Hdf5IOType(fPath=str(self.fPath.with_suffix('.lmint')))
         if self.intIO.has():
             self.readIO = self.intIO
             return True
         
         if self.fPath.suffix=='.lm':
             # if the fPath suffix implies that f is an hdf5 file, try reading in using the hdf5IO first
-            return self.initReadIO(self.hdf5IOType, self.sfileIOType)
+            return self.initReadIO(self.Hdf5IOType, self.SFileType)
         elif self.fPath.suffix=='.sfile':
             # if the fPath suffix implies that f is an sfile file, try reading in using the sfileIO first
-            return self.initReadIO(self.sfileIOType, self.hdf5IOType)
+            return self.initReadIO(self.SFileType, self.Hdf5IOType)
         else:
             # the current default is to try reading in from the hdf5IO first
-            return self.initReadIO(self.hdf5IOType, self.sfileIOType)
+            return self.initReadIO(self.Hdf5IOType, self.SFileType)
         
 #         if self.fPath.suffix=='.lm':
-#             self.readIO = self.hdf5IOType(fPath=str(self.fPath))
+#             self.readIO = self.Hdf5IOType(fPath=str(self.fPath))
 #             if self.readIO.has():
 #                 return True
 #             else:
 #             # TODO: for now, the sfile stuff is unimplemented, so leave it off
-#                 # self.readIO = self.sfileIOType(fPath=str(self.fPath))
+#                 # self.readIO = self.SFileType(fPath=str(self.fPath))
 #                 # if self.readIO.has():
 #                 #     return True
 #                 # else:     
@@ -93,7 +99,7 @@ class Data(object):
 #                 return False
 #         elif self.fPath.suffix=='.sfile':
 #         # TODO: for now, the sfile stuff is unimplemented, so leave it off
-#             # self.readIO = self.sfileIOType(fPath=str(self.fPath))
+#             # self.readIO = self.SFileType(fPath=str(self.fPath))
 #             # if self.readIO.has():
 #             #    return True
 #             # else:

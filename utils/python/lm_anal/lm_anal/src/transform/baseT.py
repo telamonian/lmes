@@ -1,4 +1,5 @@
 from lm_anal.src.datumABC import GetDatumTypeABCSet
+from lm_anal.src.helper import FindInstanceInSet
 from lm_anal.src.propertyTransform import PropertyTransforms
 
 class BaseT(object):
@@ -38,7 +39,7 @@ class BaseT(object):
     @classmethod
     def checkTypes(cls, srcTypes, dstTypes):
         return srcTypes==cls.srcTypes and dstTypes==cls.dstTypes
-        
+    
     def __init__(self):     #, src, dst, keys=None, **kwargs):
 #         pkg = import_module('.'.join(self.__class__.__module__.split('.')[:-1]))
 #         self.propertyTransformPkgDict = pkg.propertyTransformPkgDict
@@ -52,7 +53,22 @@ class BaseT(object):
         self.requiredKeywords = set()
         for transSpec in self.transformSpecs.values():
             self.requiredKeywords = self.requiredKeywords | (transSpec['requiredArgs'] | transSpec['requiredData'])
-            self.propertyTransforms.append(PropertyTransforms(srcTypes=transSpec['srcTypes'], dstTypes=transSpec['dstTypes'], propertyTransformSpecs=transSpec['propertyTransformSpecs']))
+            self.propertyTransforms.append(PropertyTransforms(**transSpec))
+#                                                               srcTypes=transSpec['srcTypes'], dstTypes=transSpec['dstTypes'],
+#                                                               srcDataTypes=transSpec['srcDataTypes'], dstTypes=transSpec['dstTypes'],
+#                                                               srcTypes=transSpec['srcTypes'], dstTypes=transSpec['dstTypes'], 
+#                                                               propertyTransformSpecs=transSpec['propertyTransformSpecs']))
+    
+    @staticmethod
+    def findDataFromDatumInSet(datumSet, Tipe):
+        for obj in datumSet:
+            try:
+                if issubclass(obj.datumType, Tipe):
+                    return obj
+            except AttributeError:
+                pass
+        # we got here because no appropriate data instance was found
+        raise
     
     def tfd(self, srcs, dsts, keys=None, **kwargs):
         '''
@@ -63,12 +79,26 @@ class BaseT(object):
             if keyword not in kwargs:
                 raise
         
-        if keys==None:
-            keys = srcs.keys()
+        for pT in self.propertyTransforms:
+            if len(pT.srcTypes)==1:
+                srcKeyData = self.findDataFromDatumInSet(srcs, next(iter(pT.srcTypes)))
+            else:
+                srcKeyData = self.findDataFromDatumInSet(srcs, pT.srcKeyType)
             
-        for key,srcDatum in zip(keys,srcs.valIter(keys)):
-            # TODO: fix up 'full' keyword system. Here specifically, how should 'full' flag be set for Datum created from a Transform?
-            dstDatum = dsts.initDatum(key, full=srcDatum.full)
-            for propertyTransform in self.propertyTransforms:
-                propertyTransform.transformProperties(srcDatum, dstDatum, **kwargs)
-        
+            if len(pT.dstTypes)==1:
+                dstKeyData = self.findDataFromDatumInSet(dsts, next(iter(pT.dstTypes)))
+            else:
+                dstKeyData = self.findDataFromDatumInSet(dsts, pT.dstKeyType)
+                    
+            if keys==None:
+                keys = srcKeyData.keys()
+                
+            for key in keys:
+                srcDatum = srcKeyData[key]
+                srcsWithDatum = {srcDatum} | srcs
+                # TODO: fix up 'full' keyword system. Here specifically, how should 'full' flag be set for Datum created from a Transform?
+                dstDatum = dstKeyData.initDatum(key, full=srcDatum.full)
+                dstsWithDatum = {dstDatum} | dsts
+                
+                pT.transformProperties(srcs=srcsWithDatum, dsts=dstsWithDatum, **kwargs)
+            

@@ -21,13 +21,17 @@ from lm_anal.src.datum.trajectory import SpeciesTrajectories
 
 from lm_anal.src.transform import Transforms
 
-class FFluxHistsEagerTestBase(object):        
+from lm_anal.test.testBase import EagerTestBase, LazyTestBase, SimTestBase
+
+class FFluxHistsEagerTestBase(object):
+    testDataPath = testDataPath
+    
     def loadData(self, full=False):
-        self.bfTrajIO = BruteForceTrajectoriesIO(fPath=testDataPath)
-        self.ffluxOutsIO = FFluxOutputsIO(fPath=testDataPath)
-        self.oparamsIO = OParamsIO(fPath=testDataPath)
-        self.simParamsIO = SimulationParametersIO(fPath=testDataPath)
-        self.tilingsIO = TilingsIO(fPath=testDataPath)
+        self.bfTrajIO = BruteForceTrajectoriesIO(fPath=self.testDataPath)
+        self.ffluxOutsIO = FFluxOutputsIO(fPath=self.testDataPath)
+        self.oparamsIO = OParamsIO(fPath=self.testDataPath)
+        self.simParamsIO = SimulationParametersIO(fPath=self.testDataPath)
+        self.tilingsIO = TilingsIO(fPath=self.testDataPath)
         
         self.ffluxHists = FFluxHists()
         self.ffluxOuts = FFluxOutputs()
@@ -47,12 +51,14 @@ class FFluxHistsEagerTestBase(object):
         Transforms(srcs={self.specTraj, self.ffluxOuts}, dsts=self.ffluxHists, oparams=self.oparams, simulationParameters=self.simParams, tilings=self.tilings, tilingIDs=tilingIDs)
 
 class FFluxHistsLazyTestBase(object):
+    testDataPath = testDataPath
+    
     def loadData(self, full=False):
-        self.ffluxOuts = FFluxOutputs(fPath=str(testDataPath))
-        self.oparams = OParams(fPath=str(testDataPath))
-        self.simParams = SimulationParameters(fPath=str(testDataPath))
-        self.specTrajs = SpeciesTrajectories(fPath=str(testDataPath))
-        self.tilings = Tilings(fPath=str(testDataPath))
+        self.ffluxOuts = FFluxOutputs(fPath=str(self.testDataPath))
+        self.oparams = OParams(fPath=str(self.testDataPath))
+        self.simParams = SimulationParameters(fPath=str(self.testDataPath))
+        self.specTrajs = SpeciesTrajectories(fPath=str(self.testDataPath))
+        self.tilings = Tilings(fPath=str(self.testDataPath))
         
         transformKwargs = {'oparams':self.oparams, 'simulationParameters':self.simParams, 'tilings':self.tilings, 'tilingIDs':(1,2)}
         
@@ -72,6 +78,11 @@ class FFluxHistsLazyTestBase(object):
             os.remove(str(testDataPath.with_suffix('.lmint')))
         except FileNotFoundError:
             pass
+
+class FFluxHistsSimTestBase(SimTestBase):
+    def getTransformKwargsDict(self):
+        transformKwargDict = {'ffluxHists':{'tilingIDs':(1,2)}}
+        return transformKwargDict
 
 class FFluxHistsFieldsTestBase(object):
     def test_order_parameter_values(self):
