@@ -590,7 +590,7 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(FFluxTrajectory* traj, lm::io
 //
         // adjust (dynamically) the fflux output queue tuning parameter
         //ffluxOutputQueueSize*=(10.0*1024.0*1024.0)/communicator->getLastMessageSize();
-        printf("ffluxOutputQueueSize: %d\n", ffluxOutputQueueSize);
+//        printf("ffluxOutputQueueSize: %d\n", ffluxOutputQueueSize);
     }
 }
 
@@ -648,7 +648,7 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(const lm::io::SpeciesCounts& 
 
             // adjust (dynamically) the fflux output queue tuning parameter
             //ffluxOutputQueueSize*=(10.0*1024.0*1024.0)/communicator->getLastMessageSize();
-            printf("ffluxOutputQueueSize: %d\n", ffluxOutputQueueSize);
+//            printf("ffluxOutputQueueSize: %d\n", ffluxOutputQueueSize);
         }
     }
 }

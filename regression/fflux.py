@@ -65,6 +65,10 @@ simParams = [SimulationParameter(key='crossingsPerPhase',val=crossingsPerPhase),
              SimulationParameter(key='writeInterval',val='%.10f' % (1.0/(.25*theta)))]
 
 tilings = [
+Tiling(id=0,
+       orderParameterID=0,
+       type=0,
+       edges=np.linspace(-25,25,13)),
 Tiling(id=19,
        orderParameterID=0,
        type=0,

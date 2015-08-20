@@ -8,7 +8,7 @@ thisScriptsPath = os.path.dirname(os.path.realpath(__file__))
 
 #### USER DEFINED VARIABLES ####
 host = 'xanthus'
-lm_bin = '/home/cklein13/git/lm/build_cuda/lmes'
+lm_bin = '/home/cklein13/git/lm/build/lmes'
 local_home_directory = thisScriptsPath
 maxPhaseZeroTime = str(int(1e6))
 queue = 'gpu'
@@ -29,16 +29,51 @@ from sweep import Sweep, SweepTup
 def GetFFluxInputTups():
     iSCs = InitialSpeciesCounts(speciesCounts=[4,16,1,0,0,0,0])
     iSCBs = InitialSpeciesCountsBackward(speciesCounts=[0,0,0,4,16,1,0])
-    op = OrderParameter(type=0,
-                        id=0,
-                        speciesIDs=[0,1,2,3,4,5],
-                        speciesCoefficients=[-1,-2,-2,1,2,2])
+    ops = [
+        OrderParameter(type=0,
+                       id=0,
+                       speciesIDs=[0,1,2,3,4,5],
+                       speciesCoefficients=[-1,-2,-2,1,2,2]),
+        OrderParameter(type=0,
+                       id=1,
+                       speciesIDs=[0,1,2],
+                       speciesCoefficients=[1,2,2]),
+        OrderParameter(type=0,
+                       id=2,
+                       speciesIDs=[3,4,5],
+                       speciesCoefficients=[1,2,2])]
     simParams = [SimulationParameter(key='maxPhaseZeroTime',val=maxPhaseZeroTime)]
-    tiling = Tiling(id=0,
-                    orderParameterID=0,
-                    type=0,
-                    edges=np.linspace(-25,25,13))
-    return [iSCs, iSCBs, op, tiling] + simParams
+    tilings = [
+        Tiling(id=0,
+               orderParameterID=0,
+               type=0,
+               edges=np.linspace(-25,25,13),
+               isCurrentTiling=True),
+        Tiling(id=19,
+               orderParameterID=0,
+               type=0,
+               edges=np.linspace(-25,25,13)),
+        Tiling(id=1,
+               orderParameterID=1,
+               type=0,
+               edges=np.arange(100)),
+        Tiling(id=2,
+               orderParameterID=2,
+               type=0,
+               edges=np.arange(100)),
+        Tiling(id=199,
+               orderParameterID=0,
+               type=0,
+               edges=np.linspace(-30,30,16)),
+        Tiling(id=7,
+               orderParameterID=0,
+               type=0,
+               edges=np.linspace(-25,25,11)),
+        Tiling(id=27194,
+               orderParameterID=0,
+               type=0,
+               edges=np.linspace(-20,20,5))]
+    return [iSCs, iSCBs] + ops + simParams + tilings
 #     tilings = []
 #     tileCounts = list(range(0,51))[-1::-10]
 #     tileCounts[-1] = 1
@@ -55,8 +90,8 @@ def GetFFluxInputTups():
 #     return [iSCs, iSCBs, op] + tilings + simParams
 
 if __name__=='__main__':
-    xTicks = LogTicks(-1,1,base=10,resolution=4)
-    yTicks = LogTicks(2,6,base=10,resolution=-.5)
+    xTicks = LogTicks(0,1,base=10,resolution=4)
+    yTicks = [int(1e5)] #LogTicks(3,5,base=10,resolution=0)
     # these inputTupsDefault get applied to every lm file before any simulations in the sweep
     simParams = [SimulationParameter(key='maxSteps',val=str(int(1e10))),
                  SimulationParameter(key='maxWorkUnitSteps',val=str(int(1e15)))]
@@ -83,7 +118,7 @@ if __name__=='__main__':
     print('Running jobs with these parameters:')
     print(['%s_%s' % (lx,ly) for lx in labelX for ly in labelY])
     
-    sweep_dict = {'cpu_count': 16,
+    sweep_dict = {'cpu_count': 15,
                   #'diagonal': True,
                   'host': host,
                   'inputTupsDefault': simParams + GetFFluxInputTups(),
@@ -91,10 +126,10 @@ if __name__=='__main__':
                   'lmArgsGpusPerReplicate': '1/4',
                   'lm_bin': lm_bin,
                   'lm_file_path': 'genetic_toggle_switch.lm',
-                  'lm_sampling_rate': 'auto', #1e3
+                  'lm_sampling_rate': {'rate':'auto', 'weight':.1}, #1e3
                   'lm_sampling_time': 1e10,
                   'queue': queue,
-                  'rootPath': PathJoin(remote_home_directory, 'forward_flux_validation/gts_fflux_barrier_height_vs_crossingsPerPhase_sweep'),
+                  'rootPath': PathJoin(remote_home_directory, 'forward_flux_validation/gts_fflux_barrier_height_vs_crossingsPerPhase_tenfold_sampling'),
                   'sweepTupX': sweepTupX,
                   'sweepTupY': sweepTupY,
                   'type': type,

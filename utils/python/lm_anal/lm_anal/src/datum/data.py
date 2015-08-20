@@ -26,8 +26,8 @@ class LazyMapDescriptor(object):
                     obj.po = '.lm'
             else:
                 # produce the data via transform
-                transformKwargs = obj.transformKwargs
-                transformKwargs.update(obj.dataToTransformDict)
+                transformKwargs = obj.dataToTransformDict.copy()
+                transformKwargs.update(obj.transformKwargs)
                 lzTransforms(srcs=obj.dataToTransform, dsts=obj, **transformKwargs)
                 # record the object's point-of-origin as a transform
                 obj.po = 'transform'

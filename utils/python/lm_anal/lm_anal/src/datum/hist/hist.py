@@ -83,23 +83,6 @@ class Hist(Datum):
         uniqueSamples,uniqueCounts = np.unique(raveledSamples, return_counts=True) 
         #np.column_stack(np.unravel_index(np.unique(raveledSamples, return_counts=True)[0], self.h_raw.shape) + (np.unique(raveledSamples, return_counts=True)[1],))
         return np.column_stack(np.unravel_index(uniqueSamples, self.h_raw.shape) + (uniqueCounts,))
-#         rands.sort()
-#         
-#         samples = []
-#         for i,val in np.ndenumerate(hRawCumSum):
-#             broken = False
-#             for j,rand in enumerate(rands):
-#                 if rand>=val:
-#                     broken = True
-#                     break
-#                 else:
-#                     samples.append(i)
-#             if broken:
-#                 rands = rands[j:]
-#             else:
-#                 # we ended up here because we hit the end of the rands list in the inner loop
-#                 break
-#         return samples
                     
     def getDownsampleFromRaw(self, nSample=None, frac=.1):
         '''

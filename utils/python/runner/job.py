@@ -152,8 +152,11 @@ class JobLM(Job):
         self.MkTmpLm()
         if self.lm_input_tups!=None:
             self.ApplyInputTup()
-        if self.lm_sampling_rate:
-            self.SetSamplingRate(rate=self.lm_sampling_rate)
+        if self.lm_sampling_rate is not None:
+            if isinstance(self.lm_sampling_rate, dict):
+                self.SetSamplingRate(**self.lm_sampling_rate)
+            else:
+                self.SetSamplingRate(rate=self.lm_sampling_rate)
         if self.lm_sampling_time:
             self.SetSamplingTime(time=self.lm_sampling_time)
         self.lmRemotePath = PathJoin(self.working_directory, self.lmName)
@@ -217,10 +220,10 @@ class JobLM(Job):
                 self.arguments.append('-a')
                 self.arguments.append('"-r %s"' % replicateString)
     
-    def SetSamplingRate(self, rate='auto'):
+    def SetSamplingRate(self, rate='auto', weight=1):
         '''
         if auto:
-            sets sampling rate on the basis of the slowest simple reaction rate
+            sets sampling rate on the basis of the slowest simple reaction rate. rate is then multiplied by weight
         elif rate is a number:
             sets sampling rate to rate
         else:
@@ -228,7 +231,7 @@ class JobLM(Job):
         '''
         if rate=='auto':
             reactionRateConstants = self.lmF.GetReactionRateConstants()
-            rateToSet = float(1)/np.min(reactionRateConstants[:,0])
+            rateToSet = float(weight)/np.min(reactionRateConstants[:,0])
         elif isinstance(rate, numbers.Number):
             # the arg is a python numeric type
             rateToSet = rate
