@@ -10,6 +10,11 @@ enable_testing()
 # if certain packages cannot be found, the end-user (you) can change the variables in CMakeConfig.txt to point to package paths
 include(CMakeConfig.txt)
 
+# stuff for enabling the built in profiler
+if(PROF_ENABLE)
+    add_definitions(-DPROF_ENABLE -DPROF_CUDA_ENABLE=0 -DPROF_MAX_THREADS=15 -DPROF_MAX_EVENTS=1000000 -DPROF_OUT_FILE=timing.prof)
+endif(PROF_ENABLE)
+
 # package finding stuff
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/CMakeModules)
 

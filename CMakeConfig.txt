@@ -8,10 +8,13 @@
 #SET(CMAKE_INSTALL_PREFIX "/usr/local")
 
 # USE_CUDA can be set to yes, no, or optional, in which case CUDA will be used if cmake can find it on your system
-SET(USE_CUDA no)
+SET(USE_CUDA optional)
 
 # Set the verbosity level, as described in the lm::Print function. 10 is complete, 4 is normal-ish
 SET(VERBOSITY_LEVEL 4)
+
+# Enable the built in profiler
+SET(PROF_ENABLE true)
 
 # uncomment and change the last part of the next line if some of your libraries/header files are on a nonstandard path
 #SET(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}")

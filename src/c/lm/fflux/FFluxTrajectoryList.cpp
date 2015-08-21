@@ -57,6 +57,8 @@
 #include "lm/Print.h"
 #include "lm/trajectory/Trajectory.h"
 #include "lm/tiling/Tilings.h"
+#include "lptf/Profile.h"
+#include "lptf/ProfileCodes.h"
 
 using lm::io::DiffusionModel;
 using lm::io::ReactionModel;
@@ -213,6 +215,7 @@ void FFluxTrajectoryList::initPhaseNTrajectories(uint64_t trajectoriesToStart)
 
 lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg)
 {
+    PROF_BEGIN(PROF_FFLUX_WORK_UNIT_FINISHED);
     lm::fflux::FFluxTrajectory* traj = static_cast<lm::fflux::FFluxTrajectory*>(getTrajectory(finishedWorkUnitMsg.final_state().trajectory_id()));
     double prevTime = traj->getSimTime();
     uint prevFinalLimitID = traj->getFinalLimitID();
@@ -237,11 +240,13 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
             workUnitFinishedPhaseN(finishedWorkUnitMsg, prevFinalLimitID, prevTime, traj);
         }
     }
+    PROF_END(PROF_FFLUX_WORK_UNIT_FINISHED);
     return traj;
 }
 
 lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinishedPhaseZero(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg, uint prevFinalLimitID, double prevTime, lm::fflux::FFluxTrajectory* traj)
 {
+    PROF_BEGIN(PROF_FFLUX_WORK_UNIT_FINISHED_PHASE_ZERO);
     uint runnerIndex = finishedWorkUnitMsg.thread() + finishedWorkUnitMsg.process()*1000;
     // ...and if the crossing event was a forward flux...
     if (traj->fluxedForward() && traj->getFinalLimitID()==0)
@@ -312,11 +317,13 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinishedPhaseZero(const
 //        initTrajectories(1, const_cast<lm::message::FinishedWorkUnit&>(finishedWorkUnitMsg).mutable_final_state()); // crossings[ffluxPhase].back());
 //        initTrajectories(1, direction==FORWARD ? false : true);
     }
+    PROF_END(PROF_FFLUX_WORK_UNIT_FINISHED_PHASE_ZERO);
     return traj;
 }
 
 lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinishedPhaseN(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg, uint prevFinalLimitID, double prevTime, lm::fflux::FFluxTrajectory* traj)
 {
+    PROF_BEGIN(PROF_FFLUX_WORK_UNIT_FINISHED_PHASE_N);
     // ...and if the crossing event was a forward flux...
     if (traj->fluxedForward())
     {
@@ -379,6 +386,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinishedPhaseN(const lm
         // ...so start one phase N trajectory.
         initPhaseNTrajectories(1);
     }
+    PROF_END(PROF_FFLUX_WORK_UNIT_FINISHED_PHASE_N);
     return traj;
 }
 

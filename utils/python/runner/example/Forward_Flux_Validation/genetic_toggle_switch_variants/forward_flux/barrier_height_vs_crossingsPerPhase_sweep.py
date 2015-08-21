@@ -8,7 +8,7 @@ thisScriptsPath = os.path.dirname(os.path.realpath(__file__))
 
 #### USER DEFINED VARIABLES ####
 host = 'xanthus'
-lm_bin = '/home/cklein13/git/lm/build/lmes'
+lm_bin = '/home/cklein13/git/lm/build_cuda/lmes'
 local_home_directory = thisScriptsPath
 maxPhaseZeroTime = str(int(1e6))
 queue = 'gpu'
