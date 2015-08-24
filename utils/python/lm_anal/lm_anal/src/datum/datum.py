@@ -29,7 +29,9 @@ def DefNPArrayProp(name, spec, dct):
         if hasattr(val, 'read_direct') and callable(getattr(val, 'read_direct', None)):
             # initialize the array if it doesn't already exist
             self.getArray(dims=val.shape, dtype=spec['dtype'], name='_'+name)
-            val.read_direct(self.__getattribute__('_'+name))
+            if val.shape!=():
+                # if the dataset is empty, h5py complains via an OSError
+                val.read_direct(self.__getattribute__('_'+name))
         else:
             self.__setattr__('_'+name, val)
     dct[name] = prop
@@ -151,7 +153,7 @@ def SetPropertyName(name, spec, dct):
     
 def SetSubDataInit(name, spec, dct):
     _initDict = dct.get('_initDict', OrderedDict())
-    _initDict[name] = spec['subDataType']
+    _initDict[name] = spec['SubDataType']
     dct['_initDict'] = _initDict
 
 def SetPropertyBySpec(name, spec, dct):
@@ -260,6 +262,9 @@ class Datum(object, metaclass=DatumMetaclass):
         return self.__getattribute__(name)
     
     def getScalar(self, name):
+        return self.__getattribute__(name)
+    
+    def getSubData(self, name):
         return self.__getattribute__(name)
     
     def setArray(self, name, val):

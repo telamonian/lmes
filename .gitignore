@@ -43,3 +43,5 @@ bak_*
 # lm_anal intermediate file stuff
 *.lmint
 *.mod
+
+.gdb_history

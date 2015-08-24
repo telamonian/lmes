@@ -29,7 +29,7 @@ class FFluxTrajectoriesToOParamValuesPT(BasePT):
         dstDatum.setTilings(oparams=kwargs['oparams'], tilings=kwargs['tilings'], tilingIDs=kwargs['tilingIDs'])
         
         # initialize some extra histograms in which to store some intermediate data
-        subFFluxHist = FFluxHist()
+        subFFluxHist = FFluxHist(full=True)
         subFFluxHist.setArray('basin_weights', dstDatum.basin_weights)
         subFFluxHist.setArray('phase_weights', dstDatum.phase_weights)
         subFFluxHist.setTilings(oparams=kwargs['oparams'], tilings=kwargs['tilings'], tilingIDs=kwargs['tilingIDs'])

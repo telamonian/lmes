@@ -1,4 +1,17 @@
-__all__ = ['FindInstanceInSet','IsContainer', 'Frozensetify', 'Setify', 'Tupify']
+__all__ = ['Depth', 'FindInstanceInSet','IsContainer', 'Frozensetify', 'Setify', 'Tupify']
+
+def Depth(x):
+    '''
+    a simple, non-robust function for determining how many levels a homogenous list-of-lists-of-lists-of... has
+    '''
+    depth = 0
+    while True:
+        if IsContainer(x):
+            depth+=1
+            x = x[0]
+        else:
+            break
+    return depth
 
 def FindInstanceInSet(sett, Tipe, raiseNotFound=False):
     '''

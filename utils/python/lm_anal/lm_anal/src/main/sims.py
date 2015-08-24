@@ -72,7 +72,16 @@ class Sims(object):
         self.map[key] = val
 
     def __iter__(self):
-        return self.map.items().__iter__()
+        return self.map.__iter__()
+    
+    def items(self):
+        return self.map.items()
+    
+    def keys(self):
+        return self.map.keys()
+    
+    def values(self):
+        return self.map.values()
     
 #     def map(self, recipeName, **kwargs):
 #         self.__getattribute__('%sMap' % recipeName)(**kwargs)

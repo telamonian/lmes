@@ -70,6 +70,12 @@ class BaseT(object):
         # we got here because no appropriate data instance was found
         raise
     
+    def genDatumKey(self, inputKey, **kwargs):
+        '''
+        overridable method that allows for the keys of transform-produced datums to be customized at the class level
+        '''
+        return inputKey
+        
     def tfd(self, srcs, dsts, keys=None, **kwargs):
         '''
         generic tfd (transform from datum) method
@@ -96,8 +102,9 @@ class BaseT(object):
             for key in keys:
                 srcDatum = srcKeyData[key]
                 srcsWithDatum = {srcDatum} | srcs
+                datumKey = self.genDatumKey(key, **kwargs)
                 # TODO: fix up 'full' keyword system. Here specifically, how should 'full' flag be set for Datum created from a Transform?
-                dstDatum = dstKeyData.initDatum(key, full=srcDatum.full)
+                dstDatum = dstKeyData.initDatum(datumKey, full=srcDatum.full)
                 dstsWithDatum = {dstDatum} | dsts
                 
                 pT.transformProperties(srcs=srcsWithDatum, dsts=dstsWithDatum, **kwargs)

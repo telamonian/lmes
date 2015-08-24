@@ -1,3 +1,4 @@
+import ast
 from collections import namedtuple
 import h5py
 import numpy as np
@@ -40,6 +41,8 @@ class HDF5IO(IO):
                 self.inputEmbedded(hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, subCon=subCon, full=full)
             elif hdf5Spec.type=='histogram':
                 self.inputHist(hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, subCon=subCon, full=full)
+            elif hdf5Spec.type=='subData':
+                self.inputSubData(hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, subCon=subCon, full=full)
             elif hdf5Spec.type=='special':
                 self.__getattribute__('input' + CamelCaseUpper(hdf5Spec.name))(hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, subCon=subCon, full=full)
             else:
@@ -79,10 +82,14 @@ class HDF5IO(IO):
         subCon.setScalar(name=cache_dirty, val=True)
         subCon.setArray(name=dims, val=np.array(subCon.__getattribute__(raw).shape))
         subCon.setArray(name=cache, val=np.zeros(subCon.__getattribute__(raw).shape))
-#         subCon.__setattr__(cache_dirty, True)
-#         subCon.__setattr__()
-        #subCon.__getattribute__(init)(dims=np.array(subCon.__getattribute__(raw).shape))
-        
+    
+    def inputSubData(self, hdf5Path, hdf5Spec, subCon, full):
+        subData = subCon.getSubData(name=hdf5Spec.name)
+        subHdf5RootPath = os.path.join(hdf5Path, hdf5Spec.subKey)
+        subIO = hdf5Spec.IOType(fPath=self.fPath, hdf5RootPath=subHdf5RootPath)
+        subIO.rff(container=subData, full=full)
+        return subData
+    
 #     def _has(self):
 #         if self.hdf5RootPath in self.file:
 #             if len(self.file[self.hdf5RootPath].keys()) > 0:
@@ -134,6 +141,8 @@ class HDF5IO(IO):
                 self.outputEmbedded(hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, subCon=subCon)
             elif hdf5Spec.type=='histogram':
                 self.outputHist(hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, subCon=subCon)
+            elif hdf5Spec.type=='subData':
+                self.outputSubData(hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, subCon=subCon)
             elif hdf5Spec.type=='special':
                 self.__getattribute__('output' + CamelCaseUpper(hdf5Spec.name))(hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, subCon=subCon)
             else:
@@ -176,6 +185,13 @@ class HDF5IO(IO):
         
         for spec in specs:
             self.outputBySpec(hdf5Path, spec, subCon)
+
+    def outputSubData(self, hdf5Path, hdf5Spec, subCon):
+        subData = subCon.getSubData(name=hdf5Spec.name)
+        subHdf5RootPath = os.path.join(hdf5Path, hdf5Spec.subKey)
+        subIO = hdf5Spec.IOType(fPath=self.fPath, hdf5RootPath=subHdf5RootPath)
+        subIO.wtf(container=subData)
+        return subData
     
     def _rff(self, container, full, keys):
         '''
@@ -188,12 +204,15 @@ class HDF5IO(IO):
             try:
                 datumKey = int(key)
             except ValueError:
-                datumKey = key
+                try:
+                    datumKey = ast.literal_eval(key)
+                except ValueError:
+                    datumKey = key
             subCon = container.initDatum(key=datumKey, full=full)
-            # the integer keys in Lattice Microbes hdf5 files are usually in %07d format, so if we can't find a key try that
             try:
                 self.input(full=full, hdf5Path=os.path.join(self.hdf5RootPath, str(key)), subCon=subCon)
             except KeyError:
+                # the integer keys in Lattice Microbes hdf5 files are usually in %07d format, so if the key isn't found try putting the key into that format
                 del container[int(key)]
                 key = '%07d' % key
                 subCon = container.initDatum(key=int(key), full=full)
@@ -230,7 +249,7 @@ class HDF5IO(IO):
             
         for key in keys:
             # if the key is an integer, write it in the file as standard %07d Lattice Microbes hdf5 output form
-            outKey = FixedWidth(key)
+            outKey = str(FixedWidth(key))
             self.output(hdf5Path=os.path.join(self.hdf5RootPath, outKey), subCon=container[key])
         
     def wtf(self, keys=None, **kwargs):

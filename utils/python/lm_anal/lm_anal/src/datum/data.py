@@ -173,4 +173,3 @@ class Data(object):
     
     def vals(self):
         return self.map.vals()
-    
