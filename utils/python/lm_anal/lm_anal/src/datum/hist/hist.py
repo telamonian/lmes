@@ -153,6 +153,7 @@ class Hist(Datum):
                 continue
             val+=it[0]*np.log(it[0]/it[1])
             it.iternext()
+        
         if absolute:
             return np.abs(val)
         else:
@@ -172,7 +173,11 @@ class Hist(Datum):
                 continue
             val+=it[0]*np.log(it[0]/(it[1]*weight))
             it.iternext()
-        return val
+        
+        if absolute:
+            return np.abs(val)
+        else:
+            return val
     
     def getWeightedRMSD(self, other, weight=1):
         '''

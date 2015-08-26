@@ -65,8 +65,9 @@ class FFluxTrajectoriesToOParamValuesPT(BasePT):
 #         nonzeroMask = np.nonzero(dstDatum.h)==False
         nonzeroMask = dstDatum.h!=0
         for direction in directionDict.values():
-            phaseZeroWeight = minimize(lambda x: dstDatum.getWeightedRMSD(dstDatum.phase_zero_order_parameter_values[direction], weight=x), x0=[1], method='Nelder-Mead')
-            #phaseZeroWeight = minimize(lambda x: dstDatum.getWeightedKLDivergence(dstDatum.phase_zero_order_parameter_values[direction], weight=x), x0=[.0001], method='Nelder-Mead')
+            dstDatum.phase_zero_order_parameter_values[direction].rethreshold(10)
+#             phaseZeroWeight = minimize(lambda x: dstDatum.getWeightedRMSD(dstDatum.phase_zero_order_parameter_values[direction], weight=x), x0=[1], method='Nelder-Mead')
+            phaseZeroWeight = minimize(lambda x: dstDatum.getWeightedKLDivergence(dstDatum.phase_zero_order_parameter_values[direction], weight=x, absolute=True), x0=[.0001], method='Nelder-Mead')
             print('the %s phase zero best fit weight is: %.8f' % (direction, phaseZeroWeight.x))
             dstDatum.phase_zero_order_parameter_values[direction].reweight(phaseZeroWeight.x)
             dstDatum.phase_zero_order_parameter_values[direction].remask(nonzeroMask)

@@ -32,7 +32,8 @@ class BasinsToPhaseWeightsPT(BasePT):
                 weightPart[dimIndices[0]] = (1, directionID, 0)
                 weightPart[dimIndices[1]] = (stepTime, directionID, 1)
                 for i in dimIndices[2:]:
-                    weightPart[i] = (stepTime*ffluxDatum.basins[direction].probability_one_to_i_plus_one[i -1], directionID, i)
+                    weightPart[i] = (stepTime*ffluxDatum.basins[direction].probability_one_to_i_plus_one[i - 1], directionID, i)
+                    print(i, weightPart[i])
             weightParts.append(weightPart)
         weights = FastVStack(*weightParts)
         weights.sort(order=['basin_id','phase_id'])

@@ -14,7 +14,10 @@ class Sims(object):
     
     @staticmethod
     def parseKeyFromPath(path, rootPath):
-        relPath = path.relative_to(rootPath)
+        if path==rootPath:
+            relPath = Path(path.name)
+        else:
+            relPath = path.relative_to(rootPath)
         relPathParts = [part for part in relPath.parent.parts if part!='/']
         tokenList = [relPath.stem]
         for part in relPathParts:
@@ -53,7 +56,12 @@ class Sims(object):
             return self.map[key]
     
     def initSims(self, **kwargs):
-        for fPath in self.rootPath.rglob('*{}'.format(self.suffix)):
+        if self.rootPath.is_file():
+            fPaths = (self.rootPath,)
+        else:
+            fPaths = self.rootPath.rglob('*{}'.format(self.suffix))
+        
+        for fPath in fPaths:
             key = self.parseKeyFromPath(fPath, self.rootPath)
             self.initSim(key, fPath, **kwargs)
             

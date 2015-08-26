@@ -17,11 +17,11 @@ try:
 except IndexError:
     fullLength = False
 if fullLength==True:
-    crossingsPerPhase = str(int(1e4))
+    crossingsPerPhase = str(int(2.5e4))
     maxPhaseZeroTime = str(int(1e6))
 else:
-    crossingsPerPhase = str(int(1e2))
-    maxPhaseZeroTime = str(int(1e4))
+    crossingsPerPhase = str(int(5e3))
+    maxPhaseZeroTime = str(int(1e5))
 
 try:
     os.remove('biphasic_switch.lm')
@@ -68,7 +68,7 @@ tilings = [
 Tiling(id=0,
        orderParameterID=0,
        type=0,
-       edges=np.linspace(-25,25,13)),
+       edges=np.linspace(-27,27,3)),
 Tiling(id=19,
        orderParameterID=0,
        type=0,
@@ -81,6 +81,10 @@ Tiling(id=2,
        orderParameterID=2,
        type=0,
        edges=np.arange(100)),
+Tiling(id=3,
+       orderParameterID=0,
+       type=0,
+       edges=np.arange(-99,100)),
 Tiling(id=199,
        orderParameterID=0,
        type=0,
@@ -94,7 +98,7 @@ Tiling(id=27194,
        type=0,
        edges=np.linspace(-20,20,5))]
 
-ffluxInput.AddTilings(tilings=tilings, currentTilingID=19)
+ffluxInput.AddTilings(tilings=tilings, currentTilingID=0)
 ffluxInput.SetInitialSpeciesCounts(iSCs=iSCs)
 ffluxInput.SetInitialSpeciesCountsBackward(iSCBs=iSCBs)
 ffluxInput.SetOrderParameters(ops=ops)

@@ -8,7 +8,7 @@ from lm_anal.src.main import Sim, Sims
 
 thisScriptDir = Path(os.path.dirname(os.path.realpath(__file__)))
 inputFilePath = (thisScriptDir / Path('../test/testData/biphasic_switch.lm')).resolve()
-ffluxRootPath = Path('/Users/tel/temp_data/gts_fflux_barrier_height_vs_crossingsPerPhase_sweep').resolve()           #(thisScriptDir / Path('../../../../../regression/biphasic_switch.lm')).resolve()
+ffluxRootPath = Path('/Users/tel/temp_data/gts_fflux_barrier_height_vs_crossingsPerPhase_vs_interfacesCount').resolve()           #(thisScriptDir / Path('../../../../../regression/biphasic_switch.lm')).resolve()
 
 class FFluxHistsExample(object):
     def __init__(self, inputFilePath=inputFilePath, ffluxRootPath=ffluxRootPath):
