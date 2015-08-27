@@ -101,6 +101,11 @@ void Hdf5OutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
     file->appendSpeciesCounts(data.trajectory_id(), (lm::io::SpeciesCounts*)&data);
 }
 
+void Hdf5OutputWriter::processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data)
+{
+    file->appendSpeciesTimeSeries(data.trajectory_id(), data);
+}
+
 void Hdf5OutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)
 {
     file->appendLatticeTimeSeries(data.trajectory_id(), data);

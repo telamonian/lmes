@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-
 import os
 import numpy as np
+import re
 import shutil
 import sys
 import shlex, subprocess
@@ -10,18 +10,27 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'utils', 'python',
 from lmFile import Input,Dependency,DependencyMatrix,InitialSpeciesCounts,InitialSpeciesCountsBackward,OrderParameter,ReactionRateConstant,SimulationParameter,Tiling
 
 path = sys.argv[1]
+
+fullLength = False
+timingLength = False
 try:
-    fullLength = sys.argv[2]
-    if fullLength=='True' or fullLength=='true':
+    length = sys.argv[2]
+    if re.match('full', length, re.IGNORECASE):
         fullLength = True
+    elif re.match('timing', length, re.IGNORECASE):
+        timingLength = True
 except IndexError:
-    fullLength = False
+    pass
+
 if fullLength==True:
     crossingsPerPhase = str(int(2.5e4))
     maxPhaseZeroTime = str(int(1e6))
+elif timingLength==True:
+    crossingsPerPhase = str(int(2e4))
+    maxPhaseZeroTime = str(int(5e5))
 else:
-    crossingsPerPhase = str(int(5e3))
-    maxPhaseZeroTime = str(int(1e5))
+    crossingsPerPhase = str(int(1e2))
+    maxPhaseZeroTime = str(int(1e4))
 
 try:
     os.remove('biphasic_switch.lm')
@@ -68,7 +77,7 @@ tilings = [
 Tiling(id=0,
        orderParameterID=0,
        type=0,
-       edges=np.linspace(-27,27,3)),
+       edges=np.linspace(-27,27,13)),
 Tiling(id=19,
        orderParameterID=0,
        type=0,

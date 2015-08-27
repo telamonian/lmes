@@ -45,6 +45,7 @@ find_package(Threads REQUIRED)
 find_package(libsbml)
 find_package(protobuf REQUIRED)
 find_package(HDF5 COMPONENTS C HL REQUIRED)
+find_package(ZLIB REQUIRED)
 find_package(PythonInterp)
 find_package(PythonLibs)
 #find_package(SWIG)
@@ -97,9 +98,9 @@ include_directories(src/c/
                     ${libsbml_INCLUDE_DIRS} 
                     ${PROTOBUF_INCLUDE_DIRS}
                     ${HDF5_INCLUDE_DIRS}
+                    ${ZLIB_INCLUDE_DIRS}
                     ${MPI_C_INCLUDE_PATH}
-                    ${CUDA_INCLUDE_DIRS}
-                    ${PYTHON_INCLUDE_DIRS})
+                    ${CUDA_INCLUDE_DIRS})
 
 # add subdirectories
 add_subdirectory(src/c)
@@ -144,8 +145,8 @@ target_link_libraries(lmes ${CMAKE_THREAD_LIBS_INIT}
                          ${PROTOBUF_LIBRARIES}
                          ${HDF5_LIBRARIES}
                          ${HDF5_HL_LIBRARIES}
-                         ${MPI_C_LIBRARIES}
-                         ${PYTHON_LIBRARY_DIRS})
+                         ${ZLIB_LIBRARIES}
+                         ${MPI_C_LIBRARIES})
 
 install(TARGETS lmes DESTINATION bin)
 
@@ -157,6 +158,7 @@ install(TARGETS lmes DESTINATION bin)
 #                      ${PROTOBUF_LIBRARIES}
 #                      ${HDF5_LIBRARIES}
 #                      ${HDF5_HL_LIBRARIES}
+#                      ${ZLIB_LIBRARIES}
 #                      ${MPI_C_LIBRARIES}
 #                      ${PYTHON_LIBRARY_DIRS})
 

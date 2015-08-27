@@ -1,37 +1,42 @@
 /*
  * University of Illinois Open Source License
  * Copyright 2008-2011 Luthey-Schulten Group,
+ * Copyright 2012-2015 Roberts Group,
  * All rights reserved.
- * 
+ *
  * Developed by: Luthey-Schulten Group
  * 			     University of Illinois at Urbana-Champaign
  * 			     http://www.scs.uiuc.edu/~schulten
- * 
+ *
+ * Developed by: Roberts Group
+ * 			     Johns Hopkins University
+ * 			     http://biophysics.jhu.edu/roberts/
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the Software), to deal with 
- * the Software without restriction, including without limitation the rights to 
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
- * of the Software, and to permit persons to whom the Software is furnished to 
+ * this software and associated documentation files (the Software), to deal with
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to
  * do so, subject to the following conditions:
- * 
- * - Redistributions of source code must retain the above copyright notice, 
+ *
+ * - Redistributions of source code must retain the above copyright notice,
  * this list of conditions and the following disclaimers.
- * 
- * - Redistributions in binary form must reproduce the above copyright notice, 
- * this list of conditions and the following disclaimers in the documentation 
+ *
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimers in the documentation
  * and/or other materials provided with the distribution.
- * 
+ *
  * - Neither the names of the Luthey-Schulten Group, University of Illinois at
- * Urbana-Champaign, nor the names of its contributors may be used to endorse or
- * promote products derived from this Software without specific prior written
- * permission.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL 
- * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR 
- * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+ * Urbana-Champaign, the Roberts Group, Johns Hopkins University, nor the names
+ * of its contributors may be used to endorse or promote products derived from
+ * this Software without specific prior written permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
  * Author(s): Elijah Roberts
@@ -41,6 +46,8 @@
 #include <vector>
 #include <climits>
 #include <cstring>
+#include <zlib.h>
+
 #include "lm/Types.h"
 #include "lm/Exceptions.h"
 #include "lm/rdme/Lattice.h"
@@ -367,165 +374,338 @@ void ByteLattice::removeAllParticles()
     char* data=&((*particles)[0]);
 }*/
 
-size_t ByteLattice::serializeParticlesSize()
+
+size_t ByteLattice::serializeParticlesSize(bool deflate)
 {
-    return size.x*size.y*size.z*getMaxOccupancy();
+    if (!deflate)
+    {
+        return size.x*size.y*size.z*getMaxOccupancy();
+    }
+    else
+    {
+        return compressBound(size.x*size.y*size.z*getMaxOccupancy());
+    }
 }
 
-void ByteLattice::serializeParticlesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering)
+size_t ByteLattice::serializeParticlesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool deflate)
 {
-    if (bufferSize != size.x*size.y*size.z*getMaxOccupancy()) throw lm::InvalidArgException("bufferSize", "the buffer size was not equal to the lattice data size");
-    int particlesPerSite = wordsPerSite*PARTICLES_PER_WORD;
-
-    if (dataOrdering == ROW_MAJOR || dataOrdering == COLUMN_MAJOR)
+    if (!deflate)
     {
-        // Cast the buffers as appropriate.
-        uint32_t * sourceParticles = (uint32_t *)particles;
-        uint8_t * destParticles = (uint8_t *)destBuffer;
+        if (bufferSize != size.x*size.y*size.z*getMaxOccupancy()) throw lm::InvalidArgException("bufferSize", "the buffer size was not equal to the lattice data size");
+        int particlesPerSite = wordsPerSite*PARTICLES_PER_WORD;
 
-        // Walk through the source buffer and copy the particles.
-        int latticeIndex=0;
-        for (int w=0; w<(int)wordsPerSite; w++)
+        if (dataOrdering == ROW_MAJOR || dataOrdering == COLUMN_MAJOR)
         {
-            for (int z=0; z<(int)size.z; z++)
+            // Cast the buffers as appropriate.
+            uint32_t * sourceParticles = (uint32_t *)particles;
+            uint8_t * destParticles = (uint8_t *)destBuffer;
+
+            // Walk through the source buffer and copy the particles.
+            int latticeIndex=0;
+            for (int w=0; w<(int)wordsPerSite; w++)
             {
-                for (int y=0; y<(int)size.y; y++)
+                for (int z=0; z<(int)size.z; z++)
                 {
-                    for (int x=0; x<(int)size.x; x++,latticeIndex++)
+                    for (int y=0; y<(int)size.y; y++)
                     {
-                        uint8_t * byteParticles = (uint8_t *)(&sourceParticles[latticeIndex]);
-                        for (int pi=0,p=(int)w*PARTICLES_PER_WORD; pi<(int)PARTICLES_PER_WORD; pi++,p++)
+                        for (int x=0; x<(int)size.x; x++,latticeIndex++)
                         {
-                            uint destIndex;
-                            if (dataOrdering == ROW_MAJOR)
-                                destIndex = x*size.y*size.z*particlesPerSite + y*size.z*particlesPerSite + z*particlesPerSite + p;
-                            else
-                                destIndex = p*size.x*size.y*size.z + z*size.x*size.y + y*size.x + x;
-                            destParticles[destIndex] = byteParticles[pi];
+                            uint8_t * byteParticles = (uint8_t *)(&sourceParticles[latticeIndex]);
+                            for (int pi=0,p=(int)w*PARTICLES_PER_WORD; pi<(int)PARTICLES_PER_WORD; pi++,p++)
+                            {
+                                uint destIndex;
+                                if (dataOrdering == ROW_MAJOR)
+                                    destIndex = x*size.y*size.z*particlesPerSite + y*size.z*particlesPerSite + z*particlesPerSite + p;
+                                else
+                                    destIndex = p*size.x*size.y*size.z + z*size.x*size.y + y*size.x + x;
+                                destParticles[destIndex] = byteParticles[pi];
+                            }
+                        }
+                    }
+                }
+            }
+            return size.x*size.y*size.z*getMaxOccupancy();
+        }
+        else if (dataOrdering == NATIVE_ORDER)
+        {
+            memcpy(destBuffer, particles, bufferSize);
+            return size.x*size.y*size.z*getMaxOccupancy();
+        }
+        else
+        {
+            throw Exception("Invalid data ordering",dataOrdering);
+        }
+    }
+    else
+    {
+        if (dataOrdering == ROW_MAJOR || dataOrdering == COLUMN_MAJOR)
+        {
+            // Create a temporary buffer.
+            size_t tmpBufferSize = numberSites*wordsPerSite*PARTICLES_PER_WORD;
+            unsigned char* tmpBuffer = new unsigned char [tmpBufferSize];
+
+            // Copy the particle data to the temp buffer with the correct data ordering.
+            serializeParticlesTo(tmpBuffer, tmpBufferSize, dataOrdering, false);
+
+            // Compress the temp buffer into the output buffer.
+            ZLIB_EXCEPTION_CHECK(compress((unsigned char*)destBuffer, &bufferSize, tmpBuffer, tmpBufferSize));
+
+            // Free the temp buffer.
+            delete[] tmpBuffer;
+
+            // Return the size of the compressed data.
+            return bufferSize;
+        }
+        else if (dataOrdering == NATIVE_ORDER)
+        {
+            // Compress the data directly to the output buffer.
+            ZLIB_EXCEPTION_CHECK(compress((unsigned char*)destBuffer, &bufferSize, (unsigned char*)particles, numberSites*wordsPerSite*PARTICLES_PER_WORD));
+            return bufferSize;
+        }
+        else
+        {
+            throw Exception("Invalid data ordering",dataOrdering);
+        }
+    }
+}
+
+void ByteLattice::deserializeParticlesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering,  bool inflate)
+{
+    if (!inflate)
+    {
+        if (bufferSize != size.x*size.y*size.z*getMaxOccupancy()) throw lm::InvalidArgException("bufferSize", "the buffer size was not equal to the lattice data size");
+        int particlesPerSite = wordsPerSite*PARTICLES_PER_WORD;
+
+        if (dataOrdering == ROW_MAJOR || dataOrdering == COLUMN_MAJOR)
+        {
+            // Cast the buffers as appropriate.
+            uint32_t * destParticles = (uint32_t *)particles;
+            uint8_t * sourceParticles = (uint8_t *)srcBuffer;
+
+            // Walk through the source buffer and copy the particles.
+            int latticeIndex=0;
+            for (int w=0; w<(int)wordsPerSite; w++)
+            {
+                for (int z=0; z<(int)size.z; z++)
+                {
+                    for (int y=0; y<(int)size.y; y++)
+                    {
+                        for (int x=0; x<(int)size.x; x++,latticeIndex++)
+                        {
+                            uint8_t * byteParticles = (uint8_t *)(&destParticles[latticeIndex]);
+                            for (int pi=0,p=(int)w*PARTICLES_PER_WORD; pi<(int)PARTICLES_PER_WORD; pi++,p++)
+                            {
+                                uint destIndex;
+                                if (dataOrdering == ROW_MAJOR)
+                                    destIndex = x*size.y*size.z*particlesPerSite + y*size.z*particlesPerSite + z*particlesPerSite + p;
+                                else
+                                    destIndex = p*size.x*size.y*size.z + z*size.x*size.y + y*size.x + x;
+                                byteParticles[pi] = sourceParticles[destIndex];
+                            }
                         }
                     }
                 }
             }
         }
+        else if (dataOrdering == NATIVE_ORDER)
+        {
+            memcpy(particles, srcBuffer, bufferSize);
+        }
+        else
+        {
+            throw Exception("Invalid data ordering",dataOrdering);
+        }
     }
-    else if (dataOrdering == NATIVE_ORDER)
+    else
     {
-        memcpy(destBuffer, particles, bufferSize);
+        if (dataOrdering == ROW_MAJOR || dataOrdering == COLUMN_MAJOR)
+        {
+            // Create a temporary buffer.
+            size_t tmpBufferSize = numberSites*wordsPerSite*PARTICLES_PER_WORD;
+            unsigned char* tmpBuffer = new unsigned char [tmpBufferSize];
+
+            // Uncompress the particle data into the temp buffer.
+            ZLIB_EXCEPTION_CHECK(uncompress(tmpBuffer, &tmpBufferSize, (unsigned char*)srcBuffer, bufferSize));
+            if (tmpBufferSize != numberSites*wordsPerSite*PARTICLES_PER_WORD)
+                throw Exception("Error during particle deserialization, wrong number of bytes returned",tmpBufferSize,numberSites*wordsPerSite*PARTICLES_PER_WORD);
+
+            // Copy the particle data to the temp buffer with the correct data ordering.
+            deserializeParticlesFrom(tmpBuffer, tmpBufferSize, dataOrdering, false);
+
+            // Free the temp buffer.
+            delete[] tmpBuffer;
+        }
+        else if (dataOrdering == NATIVE_ORDER)
+        {
+            // Uncompress the buffer directly to the data.
+            size_t particleBufferSize=numberSites*wordsPerSite*PARTICLES_PER_WORD;
+            ZLIB_EXCEPTION_CHECK(uncompress((unsigned char*)particles, &particleBufferSize, (unsigned char*)srcBuffer, bufferSize));
+            if (particleBufferSize != numberSites*wordsPerSite*PARTICLES_PER_WORD)
+                throw Exception("Error during native particle deserialization, wrong number of bytes returned",particleBufferSize,numberSites*wordsPerSite*PARTICLES_PER_WORD);
+        }
+        else
+        {
+            throw Exception("Invalid data ordering",dataOrdering);
+        }
     }
 }
 
-void ByteLattice::deserializeParticlesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering)
+size_t ByteLattice::serializeSitesSize(bool deflate)
 {
-    if (bufferSize != size.x*size.y*size.z*getMaxOccupancy()) throw lm::InvalidArgException("bufferSize", "the buffer size was not equal to the lattice data size");
-    int particlesPerSite = wordsPerSite*PARTICLES_PER_WORD;
-
-    if (dataOrdering == ROW_MAJOR || dataOrdering == COLUMN_MAJOR)
+    if (!deflate)
     {
-        // Cast the buffers as appropriate.
-        uint32_t * destParticles = (uint32_t *)particles;
-        uint8_t * sourceParticles = (uint8_t *)srcBuffer;
+        return size.x*size.y*size.z;
+    }
+    else
+    {
+        return compressBound(size.x*size.y*size.z);
+    }
+}
 
-        // Walk through the source buffer and copy the particles.
-        int latticeIndex=0;
-        for (int w=0; w<(int)wordsPerSite; w++)
+size_t ByteLattice::serializeSitesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool deflate)
+{
+    if (!deflate)
+    {
+        if (bufferSize != size.x*size.y*size.z) throw lm::InvalidArgException("bufferSize", "the buffer size was not equal to the lattice sites data size");
+
+        if (dataOrdering == ROW_MAJOR || dataOrdering == COLUMN_MAJOR)
         {
+            // Cast the buffers as appropriate.
+            uint8_t * sourceSites = (uint8_t *)siteTypes;
+            uint8_t * destSites = (uint8_t *)destBuffer;
+
+            // Walk through the source buffer and copy the particles.
+            int sourceIndex=0;
             for (int z=0; z<(int)size.z; z++)
             {
                 for (int y=0; y<(int)size.y; y++)
                 {
-                    for (int x=0; x<(int)size.x; x++,latticeIndex++)
+                    for (int x=0; x<(int)size.x; x++,sourceIndex++)
                     {
-                        uint8_t * byteParticles = (uint8_t *)(&destParticles[latticeIndex]);
-                        for (int pi=0,p=(int)w*PARTICLES_PER_WORD; pi<(int)PARTICLES_PER_WORD; pi++,p++)
-                        {
-                            uint destIndex;
-                            if (dataOrdering == ROW_MAJOR)
-                                destIndex = x*size.y*size.z*particlesPerSite + y*size.z*particlesPerSite + z*particlesPerSite + p;
-                            else
-                                destIndex = p*size.x*size.y*size.z + z*size.x*size.y + y*size.x + x;
-                            byteParticles[pi] = sourceParticles[destIndex];
-                        }
+                        uint destIndex;
+                        if (dataOrdering == ROW_MAJOR)
+                            destIndex = x*size.y*size.z + y*size.z + z;
+                        else
+                            destIndex = z*size.x*size.y + y*size.x + x;
+                        destSites[destIndex] = sourceSites[sourceIndex];
+                    }
+                }
+            }
+            return size.x*size.y*size.z;
+        }
+        else if (dataOrdering == NATIVE_ORDER)
+        {
+            memcpy(destBuffer, siteTypes, bufferSize);
+            return size.x*size.y*size.z;
+        }
+        else
+        {
+            throw Exception("Invalid data ordering",dataOrdering);
+        }
+    }
+    else
+    {
+        if (dataOrdering == ROW_MAJOR || dataOrdering == COLUMN_MAJOR)
+        {
+            // Create a temporary buffer.
+            size_t tmpBufferSize = numberSites;
+            unsigned char* tmpBuffer = new unsigned char [tmpBufferSize];
+
+            // Copy the particle data to the temp buffer with the correct data ordering.
+            serializeSitesTo(tmpBuffer, tmpBufferSize, dataOrdering, false);
+
+            // Compress the temp buffer intot he output buffer.
+            ZLIB_EXCEPTION_CHECK(compress((unsigned char*)destBuffer, &bufferSize, tmpBuffer, tmpBufferSize));
+
+            // Free the temp buffer.
+            delete[] tmpBuffer;
+
+            // Return the size of the compressed data.
+            return bufferSize;
+        }
+        else if (dataOrdering == NATIVE_ORDER)
+        {
+            // Compress the data directly to the output buffer.
+            ZLIB_EXCEPTION_CHECK(compress((unsigned char*)destBuffer, &bufferSize, (unsigned char*)siteTypes, numberSites));
+            return bufferSize;
+        }
+        else
+        {
+            throw Exception("Invalid data ordering",dataOrdering);
+        }
+    }
+}
+
+void ByteLattice::deserializeSitesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool inflate)
+{
+    if (!inflate)
+    {
+        if (bufferSize != size.x*size.y*size.z) throw lm::InvalidArgException("bufferSize", "the buffer size was not equal to the lattice sites data size");
+
+        if (dataOrdering == ROW_MAJOR || dataOrdering == COLUMN_MAJOR)
+        {
+            // Cast the buffers as appropriate.
+            uint8_t* sourceSites = (uint8_t*)srcBuffer;
+            uint8_t* destSites = (uint8_t*)siteTypes;
+
+            // Walk through the source buffer and copy the sites.
+            int destIndex=0;
+            for (int z=0; z<(int)size.z; z++)
+            {
+                for (int y=0; y<(int)size.y; y++)
+                {
+                    for (int x=0; x<(int)size.x; x++,destIndex++)
+                    {
+                        int sourceIndex;
+                        if (dataOrdering == ROW_MAJOR)
+                            sourceIndex = x*size.y*size.z + y*size.z + z;
+                        else
+                            sourceIndex = z*size.x*size.y + y*size.x + x;
+                        destSites[destIndex] = sourceSites[sourceIndex];
                     }
                 }
             }
         }
-    }
-    else if (dataOrdering == NATIVE_ORDER)
-    {
-        memcpy(particles, srcBuffer, bufferSize);
-    }
-}
-
-size_t ByteLattice::serializeSitesSize()
-{
-    return size.x*size.y*size.z;
-}
-
-void ByteLattice::serializeSitesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering)
-{
-    if (bufferSize != size.x*size.y*size.z) throw lm::InvalidArgException("bufferSize", "the buffer size was not equal to the lattice data size");
-
-    if (dataOrdering == ROW_MAJOR || dataOrdering == COLUMN_MAJOR)
-    {
-        // Cast the buffers as appropriate.
-        uint8_t * sourceSites = (uint8_t *)siteTypes;
-        uint8_t * destSites = (uint8_t *)destBuffer;
-
-        // Walk through the source buffer and copy the particles.
-        int sourceIndex=0;
-        for (int z=0; z<(int)size.z; z++)
+        else if (dataOrdering == NATIVE_ORDER)
         {
-            for (int y=0; y<(int)size.y; y++)
-            {
-                for (int x=0; x<(int)size.x; x++,sourceIndex++)
-                {
-                    uint destIndex;
-                    if (dataOrdering == ROW_MAJOR)
-                        destIndex = x*size.y*size.z + y*size.z + z;
-                    else
-                        destIndex = z*size.x*size.y + y*size.x + x;
-                    destSites[destIndex] = sourceSites[sourceIndex];
-                }
-            }
+            memcpy(siteTypes, srcBuffer, bufferSize);
+        }
+        else
+        {
+            throw Exception("Invalid data ordering",dataOrdering);
         }
     }
-    else if (dataOrdering == NATIVE_ORDER)
+    else
     {
-        memcpy(destBuffer, siteTypes, bufferSize);
-    }
-}
-
-void ByteLattice::deserializeSitesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering)
-{
-    if (bufferSize != size.x*size.y*size.z) throw lm::InvalidArgException("bufferSize", "the buffer size was not equal to the lattice sites data size");
-
-    if (dataOrdering == ROW_MAJOR || dataOrdering == COLUMN_MAJOR)
-    {
-        // Cast the buffers as appropriate.
-        uint8_t* sourceSites = (uint8_t*)srcBuffer;
-        uint8_t* destSites = (uint8_t*)siteTypes;
-
-        // Walk through the source buffer and copy the sites.
-        int destIndex=0;
-        for (int z=0; z<(int)size.z; z++)
+        if (dataOrdering == ROW_MAJOR || dataOrdering == COLUMN_MAJOR)
         {
-            for (int y=0; y<(int)size.y; y++)
-            {
-                for (int x=0; x<(int)size.x; x++,destIndex++)
-                {
-                    int sourceIndex;
-                    if (dataOrdering == ROW_MAJOR)
-                        sourceIndex = x*size.y*size.z + y*size.z + z;
-                    else
-                        sourceIndex = z*size.x*size.y + y*size.x + x;
-                    destSites[destIndex] = sourceSites[sourceIndex];
-                }
-            }
+            // Create a temporary buffer.
+            size_t tmpBufferSize = numberSites;
+            unsigned char* tmpBuffer = new unsigned char [tmpBufferSize];
+
+            // Uncompress the site data into the temp buffer.
+            ZLIB_EXCEPTION_CHECK(uncompress(tmpBuffer, &tmpBufferSize, (unsigned char*)srcBuffer, bufferSize));
+            if (tmpBufferSize != numberSites)
+                throw Exception("Error during site deserialization, wrong number of bytes returned",tmpBufferSize,numberSites);
+
+            // Copy the site data to the temp buffer with the correct data ordering.
+            deserializeSitesFrom(tmpBuffer, tmpBufferSize, dataOrdering, false);
+
+            // Free the temp buffer.
+            delete[] tmpBuffer;
         }
-    }
-    else if (dataOrdering == NATIVE_ORDER)
-    {
-        memcpy(siteTypes, srcBuffer, bufferSize);
+        else if (dataOrdering == NATIVE_ORDER)
+        {
+            // Uncompress the buffer directly to the data.
+            size_t siteBufferSize=numberSites;
+            ZLIB_EXCEPTION_CHECK(uncompress((unsigned char*)siteTypes, &siteBufferSize, (unsigned char*)srcBuffer, bufferSize));
+            if (siteBufferSize != numberSites)
+                throw Exception("Error during native site deserialization, wrong number of bytes returned",siteBufferSize,numberSites);
+        }
+        else
+        {
+            throw Exception("Invalid data ordering",dataOrdering);
+        }
     }
 }
 

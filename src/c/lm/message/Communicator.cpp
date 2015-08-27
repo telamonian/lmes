@@ -37,7 +37,9 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
+#include <sched.h>
 #include <string>
+#include <unistd.h>
 #include <google/protobuf/message.h>
 
 #include "lm/MPI.h"
@@ -126,13 +128,32 @@ void Communicator::setMasterOutputEndpoint(int moProcess, int moThread)
     masterOutput.thread = moThread;
 }
 
-void Communicator::receiveMessage(lm::message::Message* msg)
+void Communicator::receiveMessage(lm::message::Message* msg, int sleepMilliseconds)
 {
     PROF_BEGIN(PROF_MESSAGE_RECEIVE);
 
     // Receive the data.
     //lm::Print::printf(lm::Print::DEBUG, "Receiving message %d:%d",process,thread);
-    MPI_EXCEPTION_CHECK(MPI_Recv(inputBuffer, inputBufferSize, MPI_BYTE, MPI_ANY_SOURCE, source.thread, MPI_COMM_WORLD, &messageStatus));
+
+    // If we shouldn't sleep while waiting, call blocking receive.
+    if (sleepMilliseconds <= 0)
+    {
+        MPI_EXCEPTION_CHECK(MPI_Recv(inputBuffer, inputBufferSize, MPI_BYTE, MPI_ANY_SOURCE, source.thread, MPI_COMM_WORLD, &messageStatus));
+    }
+    else
+    {
+        // Otherwise, poll for the message sleeping in between.
+        MPI_Request request;
+        MPI_EXCEPTION_CHECK(MPI_Irecv(inputBuffer, inputBufferSize, MPI_BYTE, MPI_ANY_SOURCE, source.thread, MPI_COMM_WORLD, &request));
+        int messageReceived=0;
+        while (true)
+        {
+            MPI_EXCEPTION_CHECK(MPI_Test(&request, &messageReceived, &messageStatus));
+            if (messageReceived)
+                break;
+            usleep(sleepMilliseconds*1000);
+        }
+    }
 
     // Get the length of the data.
     int messageLength;

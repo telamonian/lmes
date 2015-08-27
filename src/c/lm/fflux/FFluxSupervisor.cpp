@@ -111,6 +111,10 @@ void FFluxSupervisor::receivedProcessWorkUnitOutput(lm::message::Message& msg)
         {
             (static_cast<FFluxTrajectoryList*>(trajectoryList))->ffluxOutputAddTrajectory(msg.process_work_unit_output(i).species_counts(), lm::io::FFluxOutput::RUNNING);
         }
+        else if (msg.process_work_unit_output(i).has_species_time_series())
+        {
+            (static_cast<FFluxTrajectoryList*>(trajectoryList))->ffluxOutputAddTrajectory(msg.process_work_unit_output(i).species_time_series(), lm::io::FFluxOutput::RUNNING);
+        }
     }
 }
 

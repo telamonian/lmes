@@ -50,8 +50,10 @@
 #include "lm/io/CMEState.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/FFluxOutput.pb.h"
+#include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
+#include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/main/Main.h"
 #include "lm/Print.h"
@@ -586,16 +588,6 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(FFluxTrajectory* traj, lm::io
     if (trajOut->time_size() > ffluxOutputQueueSize)    //*simultaneousTrajectoryCount)                                            // && lifecycle==lm::io::FFluxOutput::FINAL)
     {
         ffluxOutputFinishTrajectory();
-//        // Send the message
-//        communicator->sendMessageToMasterOutput(&msgStreaming);      //0,3, &msgStreaming);
-//
-//        // Clear final, running, and initial trajectory data
-//        for (int i=0;i<3;i++)
-//        {
-//            lm::io::FFluxOutput::TrajectoryOutput* trajOutToClean = getFFluxOutputStreaming()->mutable_trajectory_outputs(direction*3 + i);
-//            trajOutToClean->clear_count(); trajOutToClean->clear_edge_id(); trajOutToClean->clear_species_count(); trajOutToClean->clear_time(); trajOutToClean->clear_trajectory_id();
-//        }
-//
         // adjust (dynamically) the fflux output queue tuning parameter
         //ffluxOutputQueueSize*=(10.0*1024.0*1024.0)/communicator->getLastMessageSize();
 //        printf("ffluxOutputQueueSize: %d\n", ffluxOutputQueueSize);
@@ -644,21 +636,67 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(const lm::io::SpeciesCounts& 
         if (trajOut->time_size() > ffluxOutputQueueSize)    //*simultaneousTrajectoryCount)                                            // && lifecycle==lm::io::FFluxOutput::FINAL)
         {
             ffluxOutputFinishTrajectory();
-//            // Send the message
-//            communicator->sendMessageToMasterOutput(&msgStreaming);      //0,3, &msgStreaming);
-//
-//            // Clear final, running, and initial trajectory data
-//            for (int i=0;i<3;i++)
-//            {
-//                lm::io::FFluxOutput::TrajectoryOutput* trajOutToClean = getFFluxOutputStreaming()->mutable_trajectory_outputs(direction*3 + i);
-//                trajOutToClean->clear_count(); trajOutToClean->clear_edge_id(); trajOutToClean->clear_species_count(); trajOutToClean->clear_time(); trajOutToClean->clear_trajectory_id();
-//            }
-
-            // adjust (dynamically) the fflux output queue tuning parameter
-            //ffluxOutputQueueSize*=(10.0*1024.0*1024.0)/communicator->getLastMessageSize();
-//            printf("ffluxOutputQueueSize: %d\n", ffluxOutputQueueSize);
         }
     }
+}
+
+void FFluxTrajectoryList::ffluxOutputAddTrajectory(const lm::io::SpeciesTimeSeries& speciesTimeSeriesMsg, lm::io::FFluxOutput::Lifecycle lifecycle)
+{
+    // get a number from 0-5 based on the current direction of the fflux simulation and the lifecycle of the trajectory being added
+    uint outIndex = direction*3 + lifecycle;
+
+    int numberEntries = speciesTimeSeriesMsg.counts().shape(0);
+    int numberSpecies = speciesTimeSeriesMsg.counts().shape(1);
+
+    int32_t* counts = lm::io::hdf5::Hdf5File::dumpSpeciesCounts(speciesTimeSeriesMsg);
+    double* times = lm::io::hdf5::Hdf5File::dumpSpeciesTimes(speciesTimeSeriesMsg);
+//    lm::io::hdf5::Hdf5File::dumpSpeciesCountsAndTimes(speciesTimeSeriesMsg, counts, times);
+
+    // lookup the trajectory associated with the data in specCountsMsg
+    lm::fflux::FFluxTrajectory* traj = static_cast<FFluxTrajectory*>(getTrajectory(speciesTimeSeriesMsg.trajectory_id()));
+    if (traj!=NULL)
+    {
+        // get a pointer to the germane TrajectoryOutput buf
+        lm::io::FFluxOutput::TrajectoryOutput* trajOut = getFFluxOutputStreaming()->mutable_trajectory_outputs(outIndex);
+
+        for (int i=0;i<numberEntries;i++)
+        {
+            // load the data into the TrajectoryOutput buf pointer
+            if (lifecycle==lm::io::FFluxOutput::FINAL)
+            {
+                trajOut->add_edge_id(traj->getFinalLimitID());
+            }
+            else
+            {
+                trajOut->add_edge_id(traj->getFFluxPhase());
+            }
+            trajOut->add_time(times[i]);
+            trajOut->add_trajectory_id(traj->getID());
+
+            uint offset = i*(numberSpecies);
+            // FIXME: deal with the whole int vs uint thing in the line bellow
+            trajOut->add_count(input.oparams[input.tilings.getCurrentTiling()->getOrderParameterID()]->calc((uint*)counts + offset, times[i]));
+            for (int j=0; j<numberSpecies; j++)
+            {
+                trajOut->add_species_count(counts[offset + j]);
+            }
+        }
+
+        // adjust (statically) the fflux output queue tuning parameter. matches to 1/10 the size of the communicator's buffer and the size requirements of a single "row" in FFlux TrajectoryOutput
+        ffluxOutputQueueSize = (10.0*1024.0*1024.0)/(8 + 8 + getFFluxOutputStreaming()->number_species()*4 + 8 + 8);
+
+        // send a message to the output writer if a certain number of "rows" of trajectory data has accumulated
+        if (trajOut->time_size() > ffluxOutputQueueSize)
+        {
+            ffluxOutputFinishTrajectory();
+        }
+    }
+
+    // Free any allocated memory.
+    if (speciesTimeSeriesMsg.counts().compressed_deflate())
+        delete[] counts;
+    if (speciesTimeSeriesMsg.times().compressed_deflate())
+        delete[] times;
 }
 
 void FFluxTrajectoryList::ffluxOutputFinishTrajectory()

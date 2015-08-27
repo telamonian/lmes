@@ -151,7 +151,7 @@ int ResourceController::run()
         while (true)
         {
             // Read the next message.
-            communicator.receiveMessage(&message);
+            communicator.receiveMessage(&message, 20);
 
             // Do something with the message.
             if (message.start_work_unit_runner_size() > 0)
