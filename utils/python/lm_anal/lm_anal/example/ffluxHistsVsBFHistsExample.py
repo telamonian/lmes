@@ -30,10 +30,10 @@ class FFluxHistsVsBFHistsExample(object):
         self.ffluxRootPath = ffluxRootPath
         self.ffluxSims = Sims(rootPath=self.ffluxRootPath)
         for ffluxSim in self.ffluxSims.values():
-            ffluxSim.ffluxHists.transformKwargs = {'tilingIDs':((1,2),3)}
+            ffluxSim.ffluxHists.transformKwargs = {'tilingIDs':((1,2),)}
 #             ffluxSim.ffluxHists.transformKwargs = {'oparams':self.inputSim.oparams, 'tilings':self.inputSim.tilings, 'tilingIDs':((1,2),3)}
         
-        self.ffluxHist = next(self.ffluxSims.values().__iter__()).ffluxHists[(('InterfaceTilingID', 0), ('BinTilingIDs', (3,)))]
+#         self.ffluxHist = next(self.ffluxSims.values().__iter__()).ffluxHists[(('InterfaceTilingID', 0), ('BinTilingIDs', (3,)))]
 #         self.ffluxHist = self.ffluxSims[(('theta1.0e+00', 'cpp1.0e+06'), 'genetic_toggle_switch')].ffluxHists[(('InterfaceTilingID', 0), ('BinTilingIDs', (1, 2)))]
         
 if __name__=='__main__':

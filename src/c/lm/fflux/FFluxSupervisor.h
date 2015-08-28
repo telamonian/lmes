@@ -65,13 +65,14 @@ public:
     FFluxSupervisor();
     virtual ~FFluxSupervisor();
 
-
 protected:
     virtual void receivedProcessWorkUnitOutput(lm::message::Message& msg);
     virtual void receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg);
     virtual void finishSimulation();
     virtual void startSimulation();
 
+protected:
+    int recvSleepMilliseconds;
 };
 
 }

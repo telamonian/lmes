@@ -284,6 +284,10 @@ class Hist(Datum):
         self.recalc(weight=weight)
         return self
     
+    def scaleWeight(self, weightScale):
+        self.reweight(weight=self.h_weight*weightScale)
+        return self
+    
     def setObservations(self, obs):
         '''
         same as AddObservations, but clears the previously added observations (if any) first

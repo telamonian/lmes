@@ -171,5 +171,5 @@ class Data(object):
         '''
         return next(self.map.values().__iter__())
     
-    def vals(self):
-        return self.map.vals()
+    def values(self):
+        return self.map.values()

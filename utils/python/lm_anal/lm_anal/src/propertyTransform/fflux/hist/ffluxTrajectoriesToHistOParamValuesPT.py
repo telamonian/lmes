@@ -42,6 +42,7 @@ class FFluxTrajectoriesToOParamValuesPT(BasePT):
         phaseWeightDict = {(pwRow['basin_id'], pwRow['phase_id']):pwRow['weight'] for pwRow in dstDatum.phase_weights}
         
         for directionID,direction in directionDict.items():
+            runsPerPhaseList = srcDatum.basins['%s' % direction].runs_per_phase
             trajs = srcDatum.trajectories['%s/RUNNING' % direction]
             
             phaseChangeIndices = (trajs.edge_id[1:] - trajs.edge_id[:-1]).nonzero()[0] + 1
@@ -49,8 +50,10 @@ class FFluxTrajectoriesToOParamValuesPT(BasePT):
                 phaseID = trajs.edge_id[start if start is not None else 0]
                 phaseStr = 'zero' if phaseID==0 else 'n'
                 subFFluxHist = dstDatum.__getattribute__('phase_%s_order_parameter_values' % phaseStr)[direction]
-                runsPerPhase = np.unique(trajs.trajectory_id[start:end]).size
-                weight = phaseWeightDict[(directionID, phaseID)] / float(runsPerPhase)
+#                 runsPerPhase = trajs.trajectory_id[start:end].max() - trajs.trajectory_id[start:end].min() + 1
+                runsPerPhase = 1 if phaseID==0 else float(runsPerPhaseList[phaseID])
+                weight = phaseWeightDict[(directionID, phaseID)] / runsPerPhase
+#                 print('phaseID: %d, runsPerPhase: %d, weight: %.3e' % (phaseID,runsPerPhase,weight))
                 
                 obs = dstDatum.oparam.calc(trajs.species_count[start:end])
                 subFFluxHist.addWeightedObservations(obs, weight=weight)
@@ -61,16 +64,35 @@ class FFluxTrajectoriesToOParamValuesPT(BasePT):
         dstDatum.combineInPlace(dstDatum.phase_n_order_parameter_values['FORWARD'], 
                                 dstDatum.phase_n_order_parameter_values['BACKWARD'])
             
+        def opVal(edges):
+            return edges[1] - edges[0]
+
         # stitch the brute force hist obtained during phase 0 onto the fflux-derived hist
 #         nonzeroMask = np.nonzero(dstDatum.h)==False
         nonzeroMask = dstDatum.h!=0
-        for direction in directionDict.values():
-            dstDatum.phase_zero_order_parameter_values[direction].rethreshold(10)
-#             phaseZeroWeight = minimize(lambda x: dstDatum.getWeightedRMSD(dstDatum.phase_zero_order_parameter_values[direction], weight=x), x0=[1], method='Nelder-Mead')
-            phaseZeroWeight = minimize(lambda x: dstDatum.getWeightedKLDivergence(dstDatum.phase_zero_order_parameter_values[direction], weight=x, absolute=True), x0=[.0001], method='Nelder-Mead')
+#         dstDatum.scaleWeight(1e6)
+        for directionID,direction in directionDict.items():
+#             dstDatum.phase_zero_order_parameter_values[direction].rethreshold(1)
+            nearLambdaZeroMask = np.ones(dstDatum.h.shape, dtype=bool)
+            sel = [np.s_[:], np.s_[:]]
+            sel[directionID] = np.s_[24:]
+            sel = tuple(sel)
+            nearLambdaZeroMask[sel] = False
+            dstDatum.phase_zero_order_parameter_values[direction].remask(nearLambdaZeroMask)
+            nmOpt = {'disp': True}
+            reweighter = np.sum(dstDatum.h_raw)/np.sum(dstDatum.phase_zero_order_parameter_values[direction].h_raw)
+            print(reweighter)
+            dstDatum.phase_zero_order_parameter_values[direction].scaleWeight(reweighter)
+            phaseZeroWeight = minimize(lambda x: dstDatum.getWeightedRMSD(dstDatum.phase_zero_order_parameter_values[direction], weight=x), x0=1, method='Nelder-Mead')
+#             phaseZeroWeight = minimize(lambda x: dstDatum.getWeightedKLDivergence(dstDatum.phase_zero_order_parameter_values[direction], weight=x, absolute=True), x0=[1e-8], method='Nelder-Mead')
             print('the %s phase zero best fit weight is: %.8f' % (direction, phaseZeroWeight.x))
-            dstDatum.phase_zero_order_parameter_values[direction].reweight(phaseZeroWeight.x)
-            dstDatum.phase_zero_order_parameter_values[direction].remask(nonzeroMask)
+            dstDatum.phase_zero_order_parameter_values[direction].scaleWeight(phaseZeroWeight.x)
+            newMask = nonzeroMask.copy()
+            sel = [np.s_[:], np.s_[:]]
+            sel[not directionID] = np.s_[24:]
+            sel = tuple(sel)
+            newMask[sel] = True
+            dstDatum.phase_zero_order_parameter_values[direction].remask(newMask)
         dstDatum.combineInPlace(dstDatum.phase_zero_order_parameter_values['FORWARD'],
                                 dstDatum.phase_zero_order_parameter_values['BACKWARD'])
         

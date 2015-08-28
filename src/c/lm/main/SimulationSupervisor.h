@@ -154,6 +154,8 @@ protected:
     lm::slot::SlotList slots;
     bool haveAllWorkUnitRunnersStarted;
     long long workUnitCount;
+    // if >0, we use a hand-rolled mpi receive polling scheme in order to reduce the supervisor cpu%
+    int recvSleepMilliseconds;
 
 private:
     hrtime stats_lastPrintTime;

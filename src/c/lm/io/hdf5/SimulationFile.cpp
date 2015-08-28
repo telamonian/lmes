@@ -70,6 +70,7 @@
 #include "lm/io/SpatialModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
+#include "lm/io/TilingHist.pb.h"
 #include "lm/io/Tilings.pb.h"
 #include "lm/io/hdf5/HDF5.h"
 #include "lm/io/hdf5/SimulationFile.h"
@@ -729,6 +730,8 @@ void Hdf5File::setFFluxBasinOutput(lm::io::FFluxOutput* ffluxOutput, int basinIn
         HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(basinGroup, "ProbabilityI", "TilingID", &tiling_id, 1));
         HDF5_EXCEPTION_CHECK(H5Gclose(normalizedProbabilityIGroup));
     }
+    setTilingHist(basinOut->mutable_runs_per_phase(), "RunsPerPhase", basinGroup);
+    setTilingHist(basinOut->mutable_time_per_phase(), "TimePerPhase", basinGroup);
 }
 
 void Hdf5File::setFFluxFinalOutput(lm::io::FFluxOutput* ffluxOutput, hid_t ffluxOutputGroup)
@@ -884,6 +887,26 @@ void Hdf5File::_setFFluxTrajectoryOutput(::google::protobuf::RepeatedField<T> da
         HDF5_EXCEPTION_CHECK(H5Dclose(dataset));
         HDF5_EXCEPTION_CHECK(H5Pclose(prop));
         HDF5_EXCEPTION_CHECK(H5Sclose(dataspace));
+    }
+}
+
+void Hdf5File::setTilingHist(lm::io::TilingHist* tilingHist, std::string datasetName, hid_t superGroup)
+{
+    if (tilingHist->tile_vals_size() > 0)
+    {
+        hid_t thGroup;
+        hsize_t dims[1];
+        uint number_tiles, tiling_id;
+
+        dims[0] = tilingHist->tile_vals_size();
+        HDF5_EXCEPTION_CALL(thGroup, H5Gcreate2(superGroup, datasetName.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(thGroup, "TileIndices", 1, dims, H5T_STD_U32LE, tilingHist->tile_indices().data()));
+        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(thGroup, "TileVals", 1, dims, H5T_IEEE_F64LE, tilingHist->tile_vals().data()));
+        number_tiles = tilingHist->number_tiles();
+        HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(superGroup, datasetName.c_str(), "NumberTiles", &number_tiles, 1));
+        tiling_id = tilingHist->tiling_id();
+        HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(superGroup, datasetName.c_str(), "TilingID", &tiling_id, 1));
+        HDF5_EXCEPTION_CHECK(H5Gclose(thGroup));
     }
 }
 

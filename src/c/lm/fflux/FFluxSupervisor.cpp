@@ -74,7 +74,8 @@ void* FFluxSupervisor::allocateObject()
     return new FFluxSupervisor();
 }
 
-FFluxSupervisor::FFluxSupervisor()
+FFluxSupervisor::FFluxSupervisor():
+    recvSleepMilliseconds(-1)
 {
 }
 

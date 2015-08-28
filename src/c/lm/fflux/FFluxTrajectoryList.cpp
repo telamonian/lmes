@@ -513,6 +513,34 @@ void FFluxTrajectoryList::ffluxOutputAddBasin(CrossingsMap& crossings, DwellTime
     basOut->set_flux_out_of_tile_zero((double)crossings[0].size()/dwellTimes[0]);
 //    basOut->set_flux_out_of_tile_zero((double)crossings[0].size()/(maxPhaseZeroTime*simultaneousTrajectoryCount));
 
+    basOut->clear_runs_per_phase();
+    lm::io::TilingHist* runsPerPhase = basOut->mutable_runs_per_phase();
+    runsPerPhase->set_number_tiles(getFFluxOutput()->number_tiles());
+    runsPerPhase->set_tiling_id(getFFluxOutput()->tiling_id());
+
+    runsPerPhase->add_tile_indices(0);
+    runsPerPhase->add_tile_vals(crossings[0].size());
+    for (int i=1;i<maxFFluxPhase;i++)
+    {
+        runsPerPhase->add_tile_indices(i);
+        runsPerPhase->add_tile_vals(finishedTrajectoriesCounts[i]);
+    }
+    runsPerPhase->add_tile_indices(maxFFluxPhase);
+    runsPerPhase->add_tile_vals(0.0);
+
+    basOut->clear_time_per_phase();
+    lm::io::TilingHist* timePerPhase = basOut->mutable_time_per_phase();
+    timePerPhase->set_number_tiles(getFFluxOutput()->number_tiles());
+    timePerPhase->set_tiling_id(getFFluxOutput()->tiling_id());
+
+    for (int i=-1;i<maxFFluxPhase;i++)
+    {
+        timePerPhase->add_tile_indices(i);
+        timePerPhase->add_tile_vals(dwellTimes[i]);
+    }
+    timePerPhase->add_tile_indices(maxFFluxPhase);
+    timePerPhase->add_tile_vals(0.0);
+
     basOut->clear_probability_i_to_i_plus_one();
     lm::io::TilingHist* probabilityIToIPlusOne = basOut->mutable_probability_i_to_i_plus_one();
     probabilityIToIPlusOne->set_number_tiles(getFFluxOutput()->number_tiles());

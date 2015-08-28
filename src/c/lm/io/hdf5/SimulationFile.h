@@ -74,6 +74,7 @@ class ParameterValues;
 class SimulationParameters;
 class SpeciesCounts;
 class SpatialModel;
+class TilingHist;
 class Tilings;
 
 namespace hdf5 {
@@ -184,6 +185,7 @@ public:
     virtual void setFFluxTrajectoryOutput_TrajectoryID(lm::io::FFluxOutput* ffluxOutput, int outIndex, hid_t lifecycleGroup);
     template <typename T>
     void _setFFluxTrajectoryOutput(::google::protobuf::RepeatedField<T> data, hsize_t* dims, string dsetName, hid_t dsetType, hid_t lifecycleGroup, uint RANK);
+    virtual void setTilingHist(lm::io::TilingHist* tilingHist, std::string datasetName, hid_t superGroup);
 
     //virtual void appendSpatialModelObjects(uint64_t replicate, lm::io::SpatialModel * model) throw(HDF5Exception,InvalidArgException);
     //virtual void getSpatialModelObjects(uint64_t replicate, lm::io::SpatialModel * model) throw(HDF5Exception);

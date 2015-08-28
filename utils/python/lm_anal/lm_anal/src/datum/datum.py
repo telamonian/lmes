@@ -267,7 +267,9 @@ class Datum(object, metaclass=DatumMetaclass):
     def getSubData(self, name):
         return self.__getattribute__(name)
     
-    def setArray(self, name, val):
+    def setArray(self, name, val, source_sel=None):
+        if source_sel is not None:
+            val = val[source_sel]
         self.__setattr__(name, val)
     
     def setScalar(self, name, val):

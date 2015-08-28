@@ -27,6 +27,9 @@ class SweepTup(object):
     def __iter__(self):
         for i in range(len(self.inputTupss)):
             yield self[i]
+            
+    def GetLabels(self):
+        return [self.label % self.labelVals[i] for i in range(len(self.inputTupss))]
     
 class Sweep(object):
     def __init__(self, cpu_count, host, lm_bin, lm_file_path, rootPath, diagonal=False, inputTupsDefault=None, lmArgsGpusPerReplicate=0, lmArgsIntout=False, lm_sampling_rate=None, lm_sampling_time=None, queue=None, replicateRange=(1,10), sweepTups=None, sweepTupX=None, sweepTupY=None, type='shell', useForwardFlux=False, user_id=None):
@@ -81,6 +84,7 @@ class Sweep(object):
         self.runner.Run()
     
     def Setup(self):
+        print('Setting up jobs with these parameters: ')
         self.GetLMArgs()
         self.runner = Runner()
         if self.diagonal:
@@ -88,6 +92,7 @@ class Sweep(object):
         else:
             sweepTupsCombos = product(*self.sweepTups)
         for labels,inputTupss in (zip(*sweepTupsCombo) for sweepTupsCombo in sweepTupsCombos):
+            print('_'.join(labels))
             working_directory = PathJoin(self.rootPath, '_'.join(labels))
             jobDict = {'arguments': ['-n', self.cpu_count, '-s', self.lm_file_path, '-x', self.lm_bin],
                        'copy_to': [[PathJoin(thisScriptsPath, 'sge_glue.sh'), '']],

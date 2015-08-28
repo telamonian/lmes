@@ -14,10 +14,24 @@ class FFluxBasinsIO(HDF5IO):
                           HDF5Spec(fullOnly=False, name='this_basin_last_visited_probability', subKey='ThisBasinLastVisitedProbability', type='attribute'),
 #                           HDF5Spec(fullOnly=False, name='probability_i', subKey='ProbabilityI/TileVals', type='dataset'),
                           HDF5Spec(fullOnly=False, name='normalized_probability_i', subKey='ProbabilityI/TileVals', type='dataset'),
-                          HDF5Spec(fullOnly=False, name='probability_i_weight', subKey='ProbabilityIWeight', type='attribute'))
+                          HDF5Spec(fullOnly=False, name='probability_i_weight', subKey='ProbabilityIWeight', type='attribute'),
+                          HDF5Spec(fullOnly=False, name='runs_per_phase', subKey='RunsPerPhase/TileVals', type='special'),
+                          HDF5Spec(fullOnly=False, name='time_per_phase', subKey='TimePerPhase/TileVals', type='special'))
     
     def inputDirection(self, hdf5Path, hdf5Spec, subCon, full):
         subCon.setScalar(name=hdf5Spec.name, val=DirectionEnum.Value(hdf5Path.split('/')[-1]))
+        
+    def inputRunsPerPhase(self, hdf5Path, hdf5Spec, subCon, full):
+        try:
+            self.inputArray(hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, subCon=subCon)
+        except KeyError:
+            pass
+    
+    def inputTimePerPhase(self, hdf5Path, hdf5Spec, subCon, full):
+        try:
+            subCon.setArray(name=hdf5Spec.name, val=self.file[hdf5Path][hdf5Spec.subKey], source_sel=np.s_[1:])
+        except KeyError:
+            pass
         
     def _keys(self):
         '''

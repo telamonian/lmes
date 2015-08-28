@@ -25,3 +25,6 @@ class SimsLazyExample(object):
         for name,hist in zip(chain(self.nSamples, ['original']), chain(self.opHistDownsamples, [self.opHist])):
             self.klDivDict[name] = self.opHist.getKLDivergence(hist, normalize='mask')
             print(name, self.klDivDict[name])
+            
+if __name__=='__main__':
+    SimsLazyExample()

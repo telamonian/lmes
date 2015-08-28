@@ -42,7 +42,6 @@ def GetFFluxInputTups():
                        id=2,
                        speciesIDs=[3,4,5],
                        speciesCoefficients=[1,2,2])]
-    simParams = [SimulationParameter(key='maxPhaseZeroTime',val=maxPhaseZeroTime)]
     tilings = [
         Tiling(id=0,
                orderParameterID=0,
@@ -73,7 +72,7 @@ def GetFFluxInputTups():
                orderParameterID=0,
                type=0,
                edges=np.linspace(-20,20,5))]
-    return [iSCs, iSCBs] + ops + simParams + tilings
+    return [iSCs, iSCBs] + ops + tilings
 #     tilings = []
 #     tileCounts = list(range(0,51))[-1::-10]
 #     tileCounts[-1] = 1
@@ -90,33 +89,38 @@ def GetFFluxInputTups():
 #     return [iSCs, iSCBs, op] + tilings + simParams
 
 if __name__=='__main__':
-    xTicks = LogTicks(0,1,base=10,resolution=4)
-    yTicks = [int(1e5)] #LogTicks(3,5,base=10,resolution=0)
+    cppTicks = LogTicks(2,4,base=10,resolution=0)
+    pztTicks = LogTicks(2,6,base=10,resolution=-.5)
+    thetaTicks = LogTicks(0,1,base=10,resolution=4)
+    
     # these inputTupsDefault get applied to every lm file before any simulations in the sweep
     simParams = [SimulationParameter(key='maxSteps',val=str(int(1e10))),
                  SimulationParameter(key='maxWorkUnitSteps',val=str(int(1e15)))]
-    # barrier heights get swept through in x...
-    inputTupssX = []
-    for theta in xTicks:
+    
+    sweepTups = []
+    # crossings per phase sweep
+    cppInputTups = []
+    for phaseZeroTime in pztTicks:
+        cppInputTups.append([SimulationParameter(key='crossingsPerPhase',val=phaseZeroTime)])
+    sweepTups.append(SweepTup(inputTupss=cppInputTups, label='cpp%.1e', labelVals=cppTicks))
+    
+    # phase zero time sweep
+    pztInputTups = []
+    for phaseZeroTime in pztTicks:
+        pztInputTups.append([SimulationParameter(key='maxPhaseZeroTime',val=phaseZeroTime)])
+    sweepTups.append(SweepTup(inputTupss=pztInputTups, label='pzt%.1e', labelVals=pztTicks))
+    
+    # barrier height sweep
+    thetaInputTups = []
+    for theta in thetaTicks:
         productionConstants = [ReactionRateConstant(reactionID=4, rateConstant=1.0*theta), 
                                ReactionRateConstant(reactionID=5, rateConstant=1.0*theta), 
                                ReactionRateConstant(reactionID=11, rateConstant=1.0*theta), 
                                ReactionRateConstant(reactionID=12, rateConstant=1.0*theta)]
         degradationConstants = [ReactionRateConstant(reactionID=6, rateConstant=.25*theta), 
                                 ReactionRateConstant(reactionID=13, rateConstant=.25*theta)]
-        inputTupssX.append(productionConstants + degradationConstants)
-    # ...and crossingsPerPhase get swept through in y
-    inputTupssY = []
-    for crossingsPerPhase in yTicks:
-        inputTupssY.append([SimulationParameter(key='crossingsPerPhase',val=crossingsPerPhase)])
-    
-    sweepTupX = SweepTup(inputTupss=inputTupssX, label='theta%.1e', labelVals=xTicks)
-    sweepTupY = SweepTup(inputTupss=inputTupssY, label='cpp%.1e', labelVals=yTicks)
-    
-    labelX = np.array(['theta%.1e' % xTick for xTick in xTicks])
-    labelY = np.array(['cpp%.1e' % yTick for yTick in yTicks])
-    print('Running jobs with these parameters:')
-    print(['%s_%s' % (lx,ly) for lx in labelX for ly in labelY])
+        thetaInputTups.append(productionConstants + degradationConstants)
+    sweepTups.append(SweepTup(inputTupss=thetaInputTups, label='theta%.1e', labelVals=thetaTicks))
     
     sweep_dict = {'cpu_count': 15,
                   #'diagonal': True,
@@ -130,8 +134,7 @@ if __name__=='__main__':
                   'lm_sampling_time': 1e10,
                   'queue': queue,
                   'rootPath': PathJoin(remote_home_directory, 'forward_flux_validation/gts_fflux_barrier_height_vs_crossingsPerPhase_tenfold_sampling'),
-                  'sweepTupX': sweepTupX,
-                  'sweepTupY': sweepTupY,
+                  'sweepTups': sweepTups,
                   'type': type,
                   'useForwardFlux': True,
                   'user_id': user_id}
