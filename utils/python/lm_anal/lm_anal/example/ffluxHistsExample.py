@@ -24,8 +24,12 @@ class FFluxHistsExample(object):
             try:
                 sim.ffluxHists.map
                 print('finished %s' % str(key))
+                del sim
+                del self.ffluxSims[key]
             except AttributeError:
                 print("%s didn't finish" % str(key))
+                del sim
+                del self.ffluxSims[key]
             
 if __name__=='__main__':
     FFluxHistsExample()

@@ -61,6 +61,8 @@ public:
     static bool registerClass();
     static void* allocateObject();
 
+    virtual int getRecvSleepMilliseconds();
+
 public:
     FFluxSupervisor();
     virtual ~FFluxSupervisor();
@@ -70,9 +72,6 @@ protected:
     virtual void receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg);
     virtual void finishSimulation();
     virtual void startSimulation();
-
-protected:
-    int recvSleepMilliseconds;
 };
 
 }

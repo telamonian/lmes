@@ -68,8 +68,14 @@ using std::string;
 namespace lm {
 namespace main {
 
+// if >0, we use a hand-rolled mpi receive polling scheme in order to reduce the supervisor cpu%
+int SimulationSupervisor::getRecvSleepMilliseconds()
+{
+    return 5;
+}
+
 SimulationSupervisor::SimulationSupervisor()
-    :simulationRunning(true),performingCheckpoint(false),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),hasOutputWriterStarted(false),outputWriterProcess(-1),outputWriterThread(-1),hasCheckpointSignalerStarted(false),solverClassName(""),useCPUAffinity(false),input(NULL),hasReactionModel(false),hasDiffusionModel(false),hasOrderParameters(false),hasTilings(false),tilings(),trajectoryList(NULL),slots(&communicator),haveAllWorkUnitRunnersStarted(false),workUnitCount(0),recvSleepMilliseconds(5)
+    :simulationRunning(true),performingCheckpoint(false),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),hasOutputWriterStarted(false),outputWriterProcess(-1),outputWriterThread(-1),hasCheckpointSignalerStarted(false),solverClassName(""),useCPUAffinity(false),input(NULL),hasReactionModel(false),hasDiffusionModel(false),hasOrderParameters(false),hasTilings(false),tilings(),trajectoryList(NULL),slots(&communicator),haveAllWorkUnitRunnersStarted(false),workUnitCount(0)
 {
     resetPerformanceStatistics();
 }
@@ -273,7 +279,6 @@ bool SimulationSupervisor::parseBoundaryConditions(lm::io::BoundaryConditions* b
     return bc->axis_specific_boundaries();
 }
 
-
 int SimulationSupervisor::run()
 {
     try
@@ -284,7 +289,7 @@ int SimulationSupervisor::run()
         while (running && simulationRunning)
         {
             // Read the next message.
-            communicator.receiveMessage(&message, recvSleepMilliseconds);
+            communicator.receiveMessage(&message, getRecvSleepMilliseconds());
 
             // Do something with the message.
             if (message.has_resources_available())

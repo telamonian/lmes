@@ -74,8 +74,13 @@ void* FFluxSupervisor::allocateObject()
     return new FFluxSupervisor();
 }
 
-FFluxSupervisor::FFluxSupervisor():
-    recvSleepMilliseconds(-1)
+// if >0, we use a hand-rolled mpi receive polling scheme in order to reduce the supervisor cpu%
+int FFluxSupervisor::getRecvSleepMilliseconds()
+{
+    return -1;
+}
+
+FFluxSupervisor::FFluxSupervisor()
 {
 }
 

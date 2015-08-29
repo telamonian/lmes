@@ -10,7 +10,6 @@ thisScriptsPath = os.path.dirname(os.path.realpath(__file__))
 host = 'xanthus'
 lm_bin = '/home/cklein13/git/lm/build_cuda/lmes'
 local_home_directory = thisScriptsPath
-maxPhaseZeroTime = str(int(1e6))
 queue = 'gpu'
 remote_home_directory = '/home/cklein13'
 type = 'sge'
@@ -46,7 +45,7 @@ def GetFFluxInputTups():
         Tiling(id=0,
                orderParameterID=0,
                type=0,
-               edges=np.linspace(-25,25,13),
+               edges=np.linspace(-27,27,13),
                isCurrentTiling=True),
         Tiling(id=19,
                orderParameterID=0,
@@ -60,6 +59,10 @@ def GetFFluxInputTups():
                orderParameterID=2,
                type=0,
                edges=np.arange(100)),
+        Tiling(id=3,
+               orderParameterID=0,
+               type=0,
+               edges=np.arange(-100,100)),
         Tiling(id=199,
                orderParameterID=0,
                type=0,
@@ -91,7 +94,7 @@ def GetFFluxInputTups():
 if __name__=='__main__':
     cppTicks = LogTicks(2,4,base=10,resolution=0)
     pztTicks = LogTicks(2,6,base=10,resolution=-.5)
-    thetaTicks = LogTicks(0,1,base=10,resolution=4)
+    thetaTicks = LogTicks(0,1,base=10,resolution=4)[1:]
     
     # these inputTupsDefault get applied to every lm file before any simulations in the sweep
     simParams = [SimulationParameter(key='maxSteps',val=str(int(1e10))),
@@ -130,7 +133,7 @@ if __name__=='__main__':
                   'lmArgsGpusPerReplicate': '1/4',
                   'lm_bin': lm_bin,
                   'lm_file_path': 'genetic_toggle_switch.lm',
-                  'lm_sampling_rate': {'rate':'auto', 'weight':.1}, #1e3
+                  'lm_sampling_rate': 'auto',    #{'rate':'auto', 'weight':.1}, #1e3
                   'lm_sampling_time': 1e10,
                   'queue': queue,
                   'rootPath': PathJoin(remote_home_directory, 'forward_flux_validation/gts_fflux_barrier_height_vs_crossingsPerPhase_tenfold_sampling'),
