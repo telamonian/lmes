@@ -51,13 +51,14 @@ namespace resource {
 class ComputeResources
 {
 public:
-    ComputeResources():hostname(""),controller_process(-1),controller_thread(-1) {}
+    ComputeResources():hostname(""),controller_process(-1),controller_thread(-1),useDefaultResources(false) {}
     string toString();
 
 public:
     string hostname;
     int controller_process;
     int controller_thread;
+    bool useDefaultResources;
     vector<int> cpuCores;
     vector<int> gpuDevices;
 };

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-
 import os
 import numpy as np
+import re
 import shutil
 import sys
 import shlex, subprocess
@@ -10,18 +10,27 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'utils', 'python',
 from lmFile import Input,Dependency,DependencyMatrix,InitialSpeciesCounts,InitialSpeciesCountsBackward,OrderParameter,ReactionRateConstant,SimulationParameter,Tiling
 
 path = sys.argv[1]
+
+fullLength = False
+timingLength = False
 try:
-    fullLength = sys.argv[2]
-    if fullLength=='True' or fullLength=='true':
+    length = sys.argv[2]
+    if re.match('full', length, re.IGNORECASE):
         fullLength = True
+    elif re.match('timing', length, re.IGNORECASE):
+        timingLength = True
 except IndexError:
-    fullLength = False
+    pass
+
 if fullLength==True:
-    crossingsPerPhase = str(int(1e4))
+    crossingsPerPhase = str(int(1e5))
     maxPhaseZeroTime = str(int(1e6))
+elif timingLength==True:
+    crossingsPerPhase = str(int(2e4))
+    maxPhaseZeroTime = str(int(5e5))
 else:
     crossingsPerPhase = str(int(1e2))
-    maxPhaseZeroTime = str(int(1e4))
+    maxPhaseZeroTime = str(int(1e2))
 
 try:
     os.remove('biphasic_switch.lm')
@@ -68,7 +77,7 @@ tilings = [
 Tiling(id=0,
        orderParameterID=0,
        type=0,
-       edges=np.linspace(-25,25,13)),
+       edges=np.linspace(-27,27,13)),
 Tiling(id=19,
        orderParameterID=0,
        type=0,
@@ -81,6 +90,10 @@ Tiling(id=2,
        orderParameterID=2,
        type=0,
        edges=np.arange(100)),
+Tiling(id=3,
+       orderParameterID=0,
+       type=0,
+       edges=np.arange(-99,100)),
 Tiling(id=199,
        orderParameterID=0,
        type=0,
@@ -94,7 +107,7 @@ Tiling(id=27194,
        type=0,
        edges=np.linspace(-20,20,5))]
 
-ffluxInput.AddTilings(tilings=tilings, currentTilingID=19)
+ffluxInput.AddTilings(tilings=tilings, currentTilingID=0)
 ffluxInput.SetInitialSpeciesCounts(iSCs=iSCs)
 ffluxInput.SetInitialSpeciesCountsBackward(iSCBs=iSCBs)
 ffluxInput.SetOrderParameters(ops=ops)

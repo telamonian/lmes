@@ -121,7 +121,7 @@ void RDMESolver::setDiffusionModel(const lm::io::DiffusionModel& dm)
 
     // Fill in the site types.
     const string sites = dm.initial_lattice().sites();
-    lattice->deserializeSitesFrom(sites.data(), sites.size(), (Lattice::SerializationDataOrder)dm.initial_lattice().sites_ordering());
+    lattice->deserializeSitesFrom(sites.data(), sites.size(), (Lattice::SerializationDataOrder)dm.initial_lattice().sites_ordering(), dm.initial_lattice().sites_compressed_deflate());
 
 
     if (dm.has_boundary_conditions())
@@ -385,9 +385,12 @@ void RDMESolver::getState(lm::io::TrajectoryState* state)
     l->set_lattice_y_size(diffusionModel->latticeYSize);
     l->set_lattice_z_size(diffusionModel->latticeZSize);
     l->set_particles_per_site(diffusionModel->particlesPerSite);
+    l->set_particles_compressed_deflate(true);
+    size_t dataSizeEstimate = lattice->serializeParticlesSize(true);
     string* particles=new string();
-    particles->resize(lattice->serializeParticlesSize());
-    lattice->serializeParticlesTo(&((*particles)[0]), particles->size(), Lattice::NATIVE_ORDER);
+    particles->resize(dataSizeEstimate);
+    size_t dataSizeActual=lattice->serializeParticlesTo(&((*particles)[0]), dataSizeEstimate, Lattice::NATIVE_ORDER, true);
+    particles->resize(dataSizeActual);
     l->set_allocated_particles(particles);
 }
 
@@ -405,7 +408,7 @@ void RDMESolver::setState(const lm::io::TrajectoryState& state)
 
     // Set the lattice state.
     const string particles = state.rdme_state().species_positions().particles();
-    lattice->deserializeParticlesFrom(particles.data(), particles.size(), (Lattice::SerializationDataOrder)state.rdme_state().species_positions().particles_ordering());
+    lattice->deserializeParticlesFrom(particles.data(), particles.size(), (Lattice::SerializationDataOrder)state.rdme_state().species_positions().particles_ordering(), state.rdme_state().species_positions().particles_compressed_deflate());
 }
 
 }

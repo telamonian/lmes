@@ -37,11 +37,14 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
+#include <zlib.h>
+
 #include "lm/ClassFactory.h"
 #include "lm/Print.h"
 #include "lm/io/LatticeTimeSeries.pb.h"
 #include "lm/io/ConsoleOutputWriter.h"
 #include "lm/io/OutputWriter.h"
+#include "lm/io/SpeciesTimeSeries.pb.h"
 
 
 namespace lm {
@@ -107,6 +110,74 @@ void ConsoleOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data
 
     // Print the output to stdout.
     Print::printf(Print::INFO, "ConsoleOutputWriter received species counts for trajectory %d:\n%s",data.trajectory_id(),buffer);
+}
+
+void ConsoleOutputWriter::processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data)
+{
+    // Print the output into the buffer.
+    memset(buffer, 0, BUFFER_SIZE+1);
+    int offset=snprintf(buffer,BUFFER_SIZE,"--------------------------------------------------------------------------------\n");
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"Trajectory: %lld\n", data.trajectory_id());
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"Counts: NDArray<type=%d> (", data.counts().data_type());
+    for (int i=0; i<data.counts().shape_size(); i++)
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%d,",data.counts().shape(i));
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,") size=%d\n",(int)data.counts().data().size());
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"Times: NDArray<type=%d> (", data.times().data_type());
+    for (int i=0; i<data.times().shape_size(); i++)
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%d,",data.times().shape(i));
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,") size=%d\n",(int)data.times().data().size());
+
+    // Extract the data.
+    int32_t* counts=NULL;
+    if (data.counts().compressed_deflate())
+    {
+        size_t countsSize = data.counts().shape(0)*data.counts().shape(1)*sizeof(int32_t);
+        counts = new int32_t[countsSize];
+        const std::string& countsStr = data.counts().data();
+        ZLIB_EXCEPTION_CHECK(uncompress((unsigned char *)counts, &countsSize, (unsigned char*)&(countsStr[0]), countsStr.size()));
+        if (countsSize != data.counts().shape(0)*data.counts().shape(1)*sizeof(int32_t))
+            throw Exception("Error during data decompression, wrong number of bytes returned.");
+    }
+    else
+    {
+        const std::string& countsStr = data.counts().data();
+        counts = (int32_t*)&(countsStr[0]);
+    }
+    double* times=NULL;
+    if (data.times().compressed_deflate())
+    {
+        size_t timesSize = data.times().shape(0)*sizeof(double);
+        times = new double[timesSize];
+        const std::string& timesStr = data.times().data();
+        ZLIB_EXCEPTION_CHECK(uncompress((unsigned char *)times, &timesSize, (unsigned char*)&(timesStr[0]), timesStr.size()));
+        if (timesSize != data.times().shape(0)*sizeof(double))
+            throw Exception("Error during data decompression, wrong number of bytes returned.");
+    }
+    else
+    {
+        const std::string& timesStr = data.times().data();
+        times = (double*)&(timesStr[0]);
+    }
+
+    // Print the counts.
+    for (int i=0, index=0; i<data.counts().shape(0); i++)
+    {
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%10.3f:",times[i]);
+        for (int j=0; j<data.counts().shape(1); j++, index++)
+            offset+=snprintf(buffer+offset,BUFFER_SIZE-offset," %5d",counts[index]);
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"\n");
+    }
+
+    if (data.counts().compressed_deflate())
+        delete[] counts;
+    if (data.times().compressed_deflate())
+        delete[] times;
+
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"--------------------------------------------------------------------------------");
+
+    // Print the output to stdout.
+    Print::printf(Print::INFO, "ConsoleOutputWriter received species time series for trajectory %d:\n%s",data.trajectory_id(),buffer);
+
 }
 
 void ConsoleOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)

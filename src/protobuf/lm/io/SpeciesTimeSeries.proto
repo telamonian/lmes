@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2015 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -34,48 +34,15 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts, Max Klein
+ * Author(s): Elijah Roberts
  */
-#ifndef FFLUXSUPERVISOR_H_
-#define FFLUXSUPERVISOR_H_
 
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/FFluxOutput.pb.h"
-#include "lm/io/ReactionModel.pb.h"
-#include "lm/io/TrajectoryLimits.pb.h"
-#include "lm/main/SimulationSupervisor.h"
-#include "lm/message/FinishedWorkUnit.pb.h"
-#include "lm/message/StartedWorkUnit.pb.h"
-#include "lm/trajectory/TrajectoryList.h"
-#include "lm/MPI.h"
-#include "lm/Print.h"
-#include "lm/thread/Worker.h"
+package lm.io;
 
-namespace lm {
-namespace fflux {
+import "robertslab/pbuf/NDArray.proto";
 
-class FFluxSupervisor : public lm::main::SimulationSupervisor
-{
-public:
-    static bool registered;
-    static bool registerClass();
-    static void* allocateObject();
-
-public:
-    FFluxSupervisor();
-    virtual ~FFluxSupervisor();
-
-protected:
-    virtual void receivedProcessWorkUnitOutput(lm::message::Message& msg);
-    virtual void receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg);
-    virtual void finishSimulation();
-    virtual void startSimulation();
-
-protected:
-    int recvSleepMilliseconds;
-};
-
+message SpeciesTimeSeries {
+    required uint64 trajectory_id                             = 1;
+    required robertslab.pbuf.NDArray counts                   = 2;    //2D; rows=times,cols=counts; type=int32
+    required robertslab.pbuf.NDArray times                    = 3;    //1D; rows=times; type=float64
 }
-}
-
-#endif /* FFLUXSUPERVISOR_H_ */

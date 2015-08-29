@@ -12,7 +12,9 @@ class FFluxBasin(Datum):
                             DPSpec(dtype='float', name='this_basin_last_visited_probability', paths=('this_basin_last_visited_probability',), storageType='protobuf', type='scalar'),
                             DPSpec(dtype='float', name='probability_i', paths=('probability_i',), storageType='numpy', type='array'),
                             DPSpec(dtype='float', name='normalized_probability_i', paths=('normalized_probability_i',), storageType='numpy', type='array'),
-                            DPSpec(dtype='float', name='probability_i_weight', paths=('probability_i_weight',), storageType='protobuf', type='scalar'))
+                            DPSpec(dtype='float', name='probability_i_weight', paths=('probability_i_weight',), storageType='protobuf', type='scalar'),
+                            DPSpec(dtype='float', name='runs_per_phase', paths=('runs_per_phase',), storageType='numpy', type='array'),
+                            DPSpec(dtype='float', name='time_per_phase', paths=('time_per_phase',), storageType='numpy', type='array'))
                             
     def __init__(self, subBuf, full=False, **kwargs):
         super().__init__(full=full, **kwargs)

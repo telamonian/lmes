@@ -72,6 +72,9 @@ message FFluxOutput {
 		
 		optional double flux_out_of_tile_zero					= 101;
 		
+		optional lm.io.TilingHist time_per_phase				= 200;
+		optional lm.io.TilingHist runs_per_phase				= 201;
+		
 		// given that a trajectory has reached tile i coming from this basin, this is the probability that the trajectory reaches tile i+1 before it falls back into the basin
 		// the first and last entries are both zeroed out
 		optional lm.io.TilingHist probability_i_to_i_plus_one 	= 102;

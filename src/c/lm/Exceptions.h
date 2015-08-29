@@ -97,6 +97,14 @@ public:
 //    virtual ~IOException() throw() {}
 };
 
+class ZlibException : public Exception
+{
+public:
+    ZlibException(const int errorNumber) : Exception("ZLib exception", errorNumber) {}
+};
+
+#define ZLIB_EXCEPTION_CHECK(zlib_call) {int _zlib_ret_=zlib_call; if (_zlib_ret_ != Z_OK) throw ZlibException(_zlib_ret_);}
+
 }
 
 #endif

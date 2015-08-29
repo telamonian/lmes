@@ -193,9 +193,9 @@ void CudaByteLattice::removeAllParticles()
 	isGPUMemorySynched = false;
 }
 
-void CudaByteLattice::deserializeParticlesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering)
+void CudaByteLattice::deserializeParticlesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool inflate)
 {
-    ByteLattice::deserializeParticlesFrom(srcBuffer, bufferSize, dataOrdering);
+    ByteLattice::deserializeParticlesFrom(srcBuffer, bufferSize, dataOrdering, inflate);
     isGPUMemorySynched = false;
 }
 

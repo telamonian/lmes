@@ -221,12 +221,14 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
             l->set_lattice_z_size(lattice->getZSize());
             l->set_particles_per_site(lattice->getMaxOccupancy());
             l->set_particles_ordering(lm::io::ROW_MAJOR);
-            size_t dataSize = lattice->serializeParticlesSize();
+            l->set_particles_compressed_deflate(true);
+            size_t dataSizeEstimate = lattice->serializeParticlesSize(true);
             std::string* data = l->mutable_particles();
-            data->resize(dataSize);
+            data->resize(dataSizeEstimate);
             PROF_BEGIN(PROF_NSM_SERIALIZE_LATTICE);
-            lattice->serializeParticlesTo(&((*data)[0]), dataSize, Lattice::ROW_MAJOR);
+            size_t dataSizeActual=lattice->serializeParticlesTo(&((*data)[0]), dataSizeEstimate, Lattice::ROW_MAJOR, true);
             PROF_END(PROF_NSM_SERIALIZE_LATTICE);
+            data->resize(dataSizeActual);
         }
         else
         {
@@ -295,12 +297,14 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
                l->set_lattice_z_size(lattice->getZSize());
                l->set_particles_per_site(lattice->getMaxOccupancy());
                l->set_particles_ordering(lm::io::ROW_MAJOR);
-               size_t dataSize = lattice->serializeParticlesSize();
+               l->set_particles_compressed_deflate(true);
+               size_t dataSizeEstimate = lattice->serializeParticlesSize(true);
                std::string* data = l->mutable_particles();
-               data->resize(dataSize);
+               data->resize(dataSizeEstimate);
                PROF_BEGIN(PROF_NSM_SERIALIZE_LATTICE);
-               lattice->serializeParticlesTo(&((*data)[0]), dataSize, Lattice::ROW_MAJOR);
+               size_t dataSizeActual=lattice->serializeParticlesTo(&((*data)[0]), dataSizeEstimate, Lattice::ROW_MAJOR, true);
                PROF_END(PROF_NSM_SERIALIZE_LATTICE);
+               data->resize(dataSizeActual);
                nextLatticeWriteTime += latticeWriteInterval;
            }
        }
@@ -358,12 +362,14 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
                 l->set_lattice_z_size(lattice->getZSize());
                 l->set_particles_per_site(lattice->getMaxOccupancy());
                 l->set_particles_ordering(lm::io::ROW_MAJOR);
-                size_t dataSize = lattice->serializeParticlesSize();
+                l->set_particles_compressed_deflate(true);
+                size_t dataSizeEstimate = lattice->serializeParticlesSize(true);
                 std::string* data = l->mutable_particles();
-                data->resize(dataSize);
+                data->resize(dataSizeEstimate);
                 PROF_BEGIN(PROF_NSM_SERIALIZE_LATTICE);
-                lattice->serializeParticlesTo(&((*data)[0]), dataSize, Lattice::ROW_MAJOR);
+                size_t dataSizeActual=lattice->serializeParticlesTo(&((*data)[0]), dataSizeEstimate, Lattice::ROW_MAJOR, true);
                 PROF_END(PROF_NSM_SERIALIZE_LATTICE);
+                data->resize(dataSizeActual);
                 nextLatticeWriteTime += latticeWriteInterval;
             }
         }
@@ -405,12 +411,14 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
             l->set_lattice_z_size(lattice->getZSize());
             l->set_particles_per_site(lattice->getMaxOccupancy());
             l->set_particles_ordering(lm::io::ROW_MAJOR);
-            size_t dataSize = lattice->serializeParticlesSize();
+            l->set_particles_compressed_deflate(true);
+            size_t dataSizeEstimate = lattice->serializeParticlesSize(true);
             std::string* data = l->mutable_particles();
-            data->resize(dataSize);
+            data->resize(dataSizeEstimate);
             PROF_BEGIN(PROF_NSM_SERIALIZE_LATTICE);
-            lattice->serializeParticlesTo(&((*data)[0]), dataSize, Lattice::ROW_MAJOR);
+            size_t dataSizeActual=lattice->serializeParticlesTo(&((*data)[0]), dataSizeEstimate, Lattice::ROW_MAJOR, true);
             PROF_END(PROF_NSM_SERIALIZE_LATTICE);
+            data->resize(dataSizeActual);
         }
         reachedLimit = true;
     }

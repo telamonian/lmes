@@ -6,8 +6,9 @@ lmes -f first_order_birth_death_1.lm -c 2 -gr 1/8 -ca -ff log -ws |tee first_ord
 
 # Try with time limit.
 rm -f first_order_birth_death_2.lm && lm_sbml_import first_order_birth_death_2.lm first_order_birth_death.sbml
-lm_setp first_order_birth_death_2.lm maxTime=1e6 writeInterval=1e6 maxWorkUnitSteps=100000000
-lmes -f first_order_birth_death_2.lm -r 1-10 -c 4 -gr 1/8 -ca -ff null -ws |tee first_order_birth_death_2.log
+lm_setp first_order_birth_death_2.lm maxTime=1e5 writeInterval=1e4
+#lmes -f first_order_birth_death_2.lm -r 1-10 -c 4 -gr 0 -ca -ff hdf5 -ws -ck 00:00:20 |tee first_order_birth_death_2.log
+lmes-submit first_order_birth_death_2.lm -r 1-20 first_order_birth_death_2.log normal 16
 
 #### Timings ####
 xanthus                       
@@ -15,6 +16,10 @@ xanthus-cp-2 (cpu-only)
 xanthus-cp-2 (cpu+GPU)        
 barkeri (cpu-only)              16,700,000 rxns/s
 barkeri (cpu+GPU)               25,800,000 rxns/s
+hhpc                             6,000,000 rxns/s
+
+#### Performance profiling ####
+perf stat lmes -f first_order_birth_death_2.lm -r 1 -c 2 -gr 0 -ca -ff null -ws
 
 
 # Try with upper species limit.

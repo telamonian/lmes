@@ -43,6 +43,7 @@
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/io/SpeciesCounts.pb.h"
+#include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/io/sfile/SFile.h"
 
 namespace lm {
@@ -65,6 +66,7 @@ public:
 protected:
     virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
+    virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data);
     virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data);
     virtual void flush();
     virtual void checkpoint();
