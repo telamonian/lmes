@@ -12,7 +12,7 @@ include(CMakeConfig.txt)
 
 # stuff for enabling the built in profiler
 if(PROF_ENABLE)
-    add_definitions(-DPROF_ENABLE -DPROF_CUDA_ENABLE=0 -DPROF_MAX_THREADS=15 -DPROF_MAX_EVENTS=1000000 -DPROF_OUT_FILE=timing.prof)
+    add_definitions(-DPROF_ENABLE -DPROF_CUDA_ENABLE=0 -DPROF_MAX_THREADS=16 -DPROF_MAX_EVENTS=10000000 -DPROF_OUT_FILE=timing.prof)
 endif(PROF_ENABLE)
 
 # package finding stuff
@@ -40,6 +40,12 @@ ENDIF(USE_CUDA STREQUAL optional)
 IF(CUDA_FOUND AND NOT CUDA_CUDA_LIBRARY)
     set(CUDA_FOUND false)
 ENDIF(CUDA_FOUND AND NOT CUDA_CUDA_LIBRARY)
+# sets a single definitive BUILD_WITH_CUDA flag based on the input flag USE_CUDA and the result of find_package(cuda)
+if(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
+    set(BUILD_WITH_CUDA true)
+else(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
+    set(BUILD_WITH_CUDA false)
+endif(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
 
 find_package(Threads REQUIRED)
 find_package(libsbml)
@@ -98,8 +104,12 @@ include_directories(src/c/
                     ${PROTOBUF_INCLUDE_DIRS}
                     ${HDF5_INCLUDE_DIRS}
                     ${MPI_C_INCLUDE_PATH}
-                    ${CUDA_INCLUDE_DIRS}
                     ${PYTHON_INCLUDE_DIRS})
+
+if(BUILD_WITH_CUDA)
+    include_directories(${CUDA_INCLUDE_DIRS})
+endif(BUILD_WITH_CUDA)
+
 
 # add subdirectories
 add_subdirectory(src/c)
