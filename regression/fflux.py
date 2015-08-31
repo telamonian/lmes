@@ -26,11 +26,11 @@ if fullLength==True:
     crossingsPerPhase = str(int(1e5))
     maxPhaseZeroTime = str(int(1e6))
 elif timingLength==True:
-    crossingsPerPhase = str(int(2e4))
+    crossingsPerPhase = str(int(5e4))
     maxPhaseZeroTime = str(int(5e5))
 else:
-    crossingsPerPhase = str(int(1e2))
-    maxPhaseZeroTime = str(int(1e2))
+    crossingsPerPhase = str(int(1e4))
+    maxPhaseZeroTime = str(int(1e4))
 
 try:
     os.remove('biphasic_switch.lm')

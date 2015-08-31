@@ -65,7 +65,7 @@ public:
     int getMasterOutputThread() {return masterOutput.thread;}
 
     void sendMessage(int destProcess, int destThread, lm::message::Message* msg);
-    void sendMessage(Endpoint dest, lm::message::Message* msg);
+    void sendMessage(Endpoint dest, lm::message::Message* msg, int sleepMilliseconds=0);
     void sendMessageToMasterOutput(lm::message::Message* msg) {sendMessage(masterOutput, msg);}
     void receiveMessage(lm::message::Message* msg, int sleepMilliseconds=0);
 
