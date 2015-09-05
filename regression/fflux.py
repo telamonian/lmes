@@ -29,7 +29,7 @@ elif timingLength==True:
     crossingsPerPhase = str(int(5e4))
     maxPhaseZeroTime = str(int(5e5))
 else:
-    crossingsPerPhase = str(int(1e4))
+    crossingsPerPhase = str(int(1e3))
     maxPhaseZeroTime = str(int(1e4))
 
 try:

@@ -1,15 +1,17 @@
 from collections import Counter
 from itertools import chain
+import matplotlib.pyplot as plt 
 import numpy as np
 import scipy.stats as st
 
-from lm_anal.src.helper import histogramdd, timewith
 from lm_anal.src.datum import Datum, DatumPropertySpec as DPSpec, DatumPropertySpecs as DPSpecs
 from lm_anal.src.datumABC import HistABC
+from lm_anal.src.helper import histogramdd, timewith
+from lm_anal.src.plottable import DensePlottable
 
 __all__ = ['Hist']
 
-class Hist(Datum):
+class Hist(Datum, DensePlottable):
 # class attributes
     propertySpecs = DPSpecs(#DPSpec(name='dims', dtype='float', storageType='numpy', type='array'),
                             #DPSpec(name='edges', dtype='float', storageType='numpy', type='array'),
@@ -109,6 +111,16 @@ class Hist(Datum):
         rolls the 1D self.edges array into an nD array based on what's in self.dims
         '''
         return [self.h_edges[int(np.sum(self.rDims[:i])):int(np.sum(self.rDims[:i + 1]))] for i in range(self.rank)]
+    
+    def getEdgesWithPadding(self, paddingWidth=1):
+        eWP = []
+        for edges in self.getEdges():
+            paddedEdges = np.zeros((edges.size + 2,))
+            paddedEdges[1:-1] = edges
+            paddedEdges[0] = edges[0] - paddingWidth
+            paddedEdges[-1] = edges[-1] + paddingWidth
+            eWP.append(paddedEdges)
+        return eWP
     
     def getKLDivergence(self, other, normalize=True, absolute=False):
         '''
@@ -294,5 +306,33 @@ class Hist(Datum):
         '''
         self.clearVals()
         self.addObservations(obs)
+
+# # plotting stuff
+    @property
+    def axLabels(self):
+        return self._axLabels
     
+    @property
+    def plotData(self):
+        return self.h
+    
+#     def plot(self, fig=None, ax=None, scale='log'):
+#         if fig is None:
+#             fig = plt.figure(figsize=(12,12))
+#         if ax is None:
+#             ax = fig.gca()
+#         
+#         if len(self.h_dims)==1:
+#             ax.plot(self.getEdgesWithPadding()[0][:-1], self.h)
+#             if scale=='log':
+#                 ax.set_yscale('log')
+#             ax.set_xlim(self.getEdgesWithPadding()[0][0], self.getEdgesWithPadding()[0][-2])
+#         
+#         elif len(self.h_dims)==2:
+#             X, Y = np.meshgrid(*self.getEdgesWithPadding())
+#             ax.pcolormesh(X, Y, self.h)
+#             ax.set_xlim(self.getEdgesWithPadding()[0][0], self.getEdgesWithPadding()[0][-1])
+#             ax.set_ylim(self.getEdgesWithPadding()[1][0], self.getEdgesWithPadding()[1][-1])
+        
+
 HistABC.register(Hist)

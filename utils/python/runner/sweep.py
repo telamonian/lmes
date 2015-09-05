@@ -92,8 +92,8 @@ class Sweep(object):
         else:
             sweepTupsCombos = product(*self.sweepTups)
         for labels,inputTupss in (zip(*sweepTupsCombo) for sweepTupsCombo in sweepTupsCombos):
-            print('_'.join(labels))
-            working_directory = PathJoin(self.rootPath, '_'.join(labels))
+            print('_-_'.join(labels))
+            working_directory = PathJoin(self.rootPath, '_-_'.join(labels))
             jobDict = {'arguments': ['-n', self.cpu_count, '-s', self.lm_file_path, '-x', self.lm_bin],
                        'copy_to': [[PathJoin(thisScriptsPath, 'sge_glue.sh'), '']],
                        'copy_from': [],

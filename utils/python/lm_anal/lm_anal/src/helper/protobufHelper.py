@@ -13,7 +13,6 @@ def AppendProtobufPath():
         
 AppendProtobufPath()
 
-
 from lm_anal.python_protobuf.lm.io.FFluxOutput_pb2 import FFluxOutput
 DirectionEnum = FFluxOutput.Direction 
 LifecycleEnum = FFluxOutput.Lifecycle

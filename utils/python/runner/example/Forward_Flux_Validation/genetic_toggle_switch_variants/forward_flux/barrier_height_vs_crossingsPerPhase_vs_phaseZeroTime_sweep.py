@@ -7,8 +7,8 @@ from statsmodels.sandbox.tools import cross_val
 thisScriptsPath = os.path.dirname(os.path.realpath(__file__))
 
 #### USER DEFINED VARIABLES ####
-host = 'xanthus'
-lm_bin = '/home/cklein13/git/lm/build_cuda/lmes'
+host = 'kirin'
+lm_bin = '/home/cklein13/git/lm/build/lmes'
 local_home_directory = thisScriptsPath
 queue = 'gpu'
 remote_home_directory = '/home/cklein13'
@@ -94,7 +94,7 @@ def GetFFluxInputTups():
 if __name__=='__main__':
     cppTicks = LogTicks(2,4,base=10,resolution=0)
     pztTicks = LogTicks(2,6,base=10,resolution=-.5)
-    thetaTicks = LogTicks(0,1,base=10,resolution=4)[1:]
+    thetaTicks = LogTicks(-1,0,base=10,resolution=4)[:-1]
     
     # these inputTupsDefault get applied to every lm file before any simulations in the sweep
     simParams = [SimulationParameter(key='maxSteps',val=str(int(1e10))),
@@ -103,15 +103,15 @@ if __name__=='__main__':
     sweepTups = []
     # crossings per phase sweep
     cppInputTups = []
-    for phaseZeroTime in pztTicks:
-        cppInputTups.append([SimulationParameter(key='crossingsPerPhase',val=phaseZeroTime)])
-    sweepTups.append(SweepTup(inputTupss=cppInputTups, label='cpp%.1e', labelVals=cppTicks))
+    for crossingPerPhase in cppTicks:
+        cppInputTups.append([SimulationParameter(key='crossingsPerPhase',val=crossingPerPhase)])
+    sweepTups.append(SweepTup(inputTupss=cppInputTups, label='cpp_%.1e', labelVals=cppTicks))
     
     # phase zero time sweep
     pztInputTups = []
     for phaseZeroTime in pztTicks:
         pztInputTups.append([SimulationParameter(key='maxPhaseZeroTime',val=phaseZeroTime)])
-    sweepTups.append(SweepTup(inputTupss=pztInputTups, label='pzt%.1e', labelVals=pztTicks))
+    sweepTups.append(SweepTup(inputTupss=pztInputTups, label='pzt_%.1e', labelVals=pztTicks))
     
     # barrier height sweep
     thetaInputTups = []
@@ -123,20 +123,20 @@ if __name__=='__main__':
         degradationConstants = [ReactionRateConstant(reactionID=6, rateConstant=.25*theta), 
                                 ReactionRateConstant(reactionID=13, rateConstant=.25*theta)]
         thetaInputTups.append(productionConstants + degradationConstants)
-    sweepTups.append(SweepTup(inputTupss=thetaInputTups, label='theta%.1e', labelVals=thetaTicks))
+    sweepTups.append(SweepTup(inputTupss=thetaInputTups, label='theta_%.1e', labelVals=thetaTicks))
     
-    sweep_dict = {'cpu_count': 15,
+    sweep_dict = {'cpu_count': 8,
                   #'diagonal': True,
                   'host': host,
                   'inputTupsDefault': simParams + GetFFluxInputTups(),
                   'lmArgsIntout': True,
-                  'lmArgsGpusPerReplicate': '1/4',
+#                   'lmArgsGpusPerReplicate': '1/4',
                   'lm_bin': lm_bin,
                   'lm_file_path': 'genetic_toggle_switch.lm',
                   'lm_sampling_rate': 'auto',    #{'rate':'auto', 'weight':.1}, #1e3
                   'lm_sampling_time': 1e10,
-                  'queue': queue,
-                  'rootPath': PathJoin(remote_home_directory, 'forward_flux_validation/gts_fflux_barrier_height_vs_crossingsPerPhase_tenfold_sampling'),
+#                   'queue': queue,
+                  'rootPath': PathJoin(remote_home_directory, 'forward_flux_validation/gts_-_fflux_-_barrier_height_-_crossingsPerPhase_-_phaseZeroTime'),
                   'sweepTups': sweepTups,
                   'type': type,
                   'useForwardFlux': True,

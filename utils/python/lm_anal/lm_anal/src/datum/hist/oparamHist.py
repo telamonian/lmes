@@ -21,5 +21,9 @@ class OParamHist(Hist):
             dims.append(len(tiling.edges) + 1)
             edges.append(np.array(tiling.edges))
         
+        self._axLabels = []
+        for oparam in self.oparams:
+            self.axLabels.append('Order parameter %d' % oparam.id)
+        
         self.oparam = self.oparams[0].combine(self.oparams[1:])        
         self.initH(dims=np.array(dims), edges=np.hstack(edges))
