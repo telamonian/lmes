@@ -14,7 +14,8 @@ class DensePlottable(Plottable):
             
             self.ax.set_xlim(self.getEdgesWithPadding()[0][0], self.getEdgesWithPadding()[0][-2])
             
-            self.ax.set_xlabel(self.axLabels[0])
+#             self.ax.set_xlabel(self.axLabels[0])
+            self.ax.set_xlabel('order parameter 0')
             self.ax.set_ylabel('counts')
             
         elif len(self.h_dims)==2:
@@ -23,12 +24,23 @@ class DensePlottable(Plottable):
                 pltKwargs['norm'] = LogNorm()
             else:
                 pltKwargs['norm'] = Normalize()
-            self.ax.pcolormesh(X, Y, self.plotData, **pltKwargs)
+            im = self.ax.pcolormesh(X, Y, self.plotData, **pltKwargs)
+#             self.plotColorbar(im)
             
             self.ax.set_xlim(self.getEdgesWithPadding()[0][0], self.getEdgesWithPadding()[0][-1])
             self.ax.set_ylim(self.getEdgesWithPadding()[1][0], self.getEdgesWithPadding()[1][-1])
             
-            self.ax.set_xlabel(self.axLabels[0])
-            self.ax.set_ylabel(self.axLabels[1])
+            self.ax.set_xlabel('order parameter 1')
+            self.ax.set_ylabel('order parameter 2')
+            
+#             self.ax.set_xlabel(self.axLabels[0])
+#             self.ax.set_ylabel(self.axLabels[1])
             
         self.resizeLabels()
+        
+        return self.fig, self.ax, figKwargs, axesKwargs, pltKwargs
+        
+    def plotColorbar(self, im):
+        axcolor = self.fig.add_axes([0.95, 0.12, 0.03, 0.79])
+#         t = np.logspace(-4,10,base=10,num=20)
+        self.fig.colorbar(im, cax=axcolor)#, ticks=t, format='$%.2e$')

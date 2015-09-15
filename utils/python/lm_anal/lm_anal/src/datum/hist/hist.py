@@ -54,7 +54,10 @@ class Hist(Datum, DensePlottable):
     
     @property
     def rank(self):
-        return self.h_dims.size
+        try:
+            return self.h_dims.size
+        except AttributeError:
+            return len(self.h_dims)
 
 # aliases
     def addObs(self, obs):

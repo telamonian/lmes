@@ -24,7 +24,7 @@ from lm_anal.src.datum.trajectory import SpeciesTrajectories
 from lm_anal.src.transform import Transforms
 
 _inputDataTypes = [OParams, SimulationParameters, Tilings]
-_dataTypes = [DataType for DataType in vars().values() if isclass(DataType) and issubclass(DataType, Data) and not DataType in _inputDataTypes]
+_dataTypes = [DataType for DataType in vars().values() if isclass(DataType) and issubclass(DataType, Data) and not DataType in inputDataTypes]
 # hdf5IOTypes = [Hdf5IOType for Hdf5IOType in vars().values() if isclass(Hdf5IOType) and issubclass(Hdf5IOType, HDF5IO)]
 
 class SimMetaclass(type):

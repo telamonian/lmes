@@ -1,5 +1,6 @@
 from lm_anal.src.datumABC.fflux import FFluxABC
 from lm_anal.src.datumABC.hist import HistABC
+from lm_anal.src.datumABC.pCloud import PCloudABC
 from lm_anal.src.datumABC.trajectory import TrajectoryABC
 from lm_anal.src.helper import Tupify
 
@@ -9,7 +10,7 @@ __all__ = ['datumABCDict', 'IsDatum', 'GetDatumABC', 'GetDatumABCSet', 'GetDatum
 
 # TODO: organize all this crap into classes(?)
 
-datumABCDict = {'fflux':FFluxABC, 'hist':HistABC, 'trajectory':TrajectoryABC}
+datumABCDict = {'fflux':FFluxABC, 'hist':HistABC, 'pCloud':PCloudABC, 'trajectory':TrajectoryABC}
 
 # functions that take instances as arguments
 def IsDatum(x):

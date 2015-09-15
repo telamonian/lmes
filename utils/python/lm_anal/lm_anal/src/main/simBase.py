@@ -6,34 +6,14 @@ import os,sys
 from pathlib import Path
 
 from lm_anal.src.helper import CamelCaseLower
-from lm_anal.src.io.hdf5 import HDF5IO
-from lm_anal.src.io.hdf5.fflux import FFluxBasinsIO, FFluxFinalsIO, FFluxOutputsIO, FFluxTrajectoriesIO
-from lm_anal.src.io.hdf5.hist import FFluxHistsIO, OParamHistsIO
-from lm_anal.src.io.hdf5.parameter import SimulationParametersIO
-from lm_anal.src.io.hdf5.oparam import OParamsIO
-from lm_anal.src.io.hdf5.tiling import TilingsIO
-from lm_anal.src.io.hdf5.trajectory import BruteForceTrajectoriesIO
 from lm_anal.src.io.mod import TimeIO
-from lm_anal.src.datum import Data
-from lm_anal.src.datum.fflux import FFluxBasins, FFluxFinals, FFluxOutputs, FFluxTrajectories
-from lm_anal.src.datum.hist import FFluxHists, OParamHists
-from lm_anal.src.datum.parameter import SimulationParameters
-from lm_anal.src.datum.oparam import OParams
-from lm_anal.src.datum.tiling import Tilings
-from lm_anal.src.datum.trajectory import SpeciesTrajectories
-from lm_anal.src.transform import Transforms
-
-_inputDataTypes = [OParams, SimulationParameters, Tilings]
-_dataTypes = [DataType for DataType in vars().values() if isclass(DataType) and issubclass(DataType, Data) and not DataType in _inputDataTypes]
-# hdf5IOTypes = [Hdf5IOType for Hdf5IOType in vars().values() if isclass(Hdf5IOType) and issubclass(Hdf5IOType, HDF5IO)]
 
 class SimMetaclass(type):
     def __new__(cls, clsname, bases, dct):
         return super(SimMetaclass, cls).__new__(cls, clsname, bases, dct)
 
 class Sim(object):
-    inputDataTypes = _inputDataTypes
-    dataTypes = _dataTypes
+    dataTypes = None
         
     @property
     def fPathStr(self):
@@ -60,13 +40,6 @@ class Sim(object):
             
         self.ffluxHists.dataToTransform = self.ffluxOutputs
         self.oparamHists.dataToTransform = self.speciesTrajectories
-    
-    def initInputData(self):
-        self.inputDataDict = OrderedDict()
-        for InputDataType in self.inputDataTypes:
-            inputDataName = CamelCaseLower(InputDataType.__name__)
-            self.__setattr__(inputDataName, InputDataType(fPath=self.fPath))
-            self.inputDataDict[inputDataName] = self.__getattribute__(inputDataName)
     
 # accessors
     def items(self):

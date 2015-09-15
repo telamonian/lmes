@@ -34,11 +34,11 @@ class FFluxHist(OParamHist):
         subFFluxHist.setTilings(oparams=oparams, tilings=tilings, tilingIDs=tilingIDs)
         directionDict = {0:'FORWARD',1:'BACKWARD'}
         for pwRow in self.phase_weights: 
-            self.phase_n_order_parameter_values['%s/%s' % (pwRow['basin_id'], pwRow['phase_id'])] = subFFluxHist.getCopy()
+            self.phase_n_order_parameter_values[('basin_id', pwRow['basin_id']), ('phase_id', pwRow['phase_id'])] = subFFluxHist.getCopy()
 #             if pwRow['basin_id'] in directionDict:
 #                 self.phase_n_order_parameter_values['%s/%s' % (directionDict[pwRow['basin_id']], pwRow['phase_id'])] = self.phase_n_order_parameter_values['%s/%s' % pwRow[1:]]
         for bwRow in self.basin_weights:
-            self.basin_n_order_parameter_values['%s' % bwRow['basin_id']] = subFFluxHist.getCopy()
+            self.basin_n_order_parameter_values[('basin_id', bwRow['basin_id'])] = subFFluxHist.getCopy()
 #             if bwRow['basin_id'] in directionDict: 
 #                 self.basin_n_order_parameter_values['%s' % directionDict[bwRow['basin_id']]] = self.basin_n_order_parameter_values['%s' % bwRow['basin_id']]
     
@@ -54,7 +54,7 @@ class FFluxHist(OParamHist):
             phaseChangeIndices = (trajs.edge_id[1:] - trajs.edge_id[:-1]).nonzero()[0] + 1
             for start,end in zip(chain([None], phaseChangeIndices), chain(phaseChangeIndices, [None])):
                 phaseID = trajs.edge_id[start if start is not None else 0]
-                subFFluxHist = self.phase_n_order_parameter_values['%s/%s' % (directionID, phaseID)]
+                subFFluxHist = self.phase_n_order_parameter_values[('basin_id', directionID), ('phase_id', phaseID)]
 #                 runsPerPhase = trajs.trajectory_id[start:end].max() - trajs.trajectory_id[start:end].min() + 1
                 runsPerPhase = 1 if phaseID==0 else float(runsPerPhaseList[phaseID])
                 weight = phaseWeightDict[(directionID, phaseID)] / runsPerPhase
@@ -100,11 +100,13 @@ class FFluxHist(OParamHist):
         for directionID,direction in directionDict.items():
             subHists= []
             for key,hist in self.phase_n_order_parameter_values.items():
-                histBasinID,histPhaseID = [int(val) for val in key.split('/')]
-                if directionID==histBasinID and histPhaseID!=0: 
+#                 histBasinID,histPhaseID = [int(val) for val in key.split('/')]
+#                 if directionID==histBasinID and histPhaseID!=0: 
+                keyDict = dict(key)
+                if keyDict['basin_id']==directionID and keyDict['phase_id']!=0: 
                     subHists.append(hist)
-            self.basin_n_order_parameter_values['%s' % directionID].combineInPlace(*subHists)
-            self.basin_n_order_parameter_values['%s' % directionID].reweight(basinWeightDict[directionID])
+            self.basin_n_order_parameter_values[('basin_id', directionID)].combineInPlace(*subHists)
+            self.basin_n_order_parameter_values[('basin_id', directionID)].reweight(basinWeightDict[directionID])
     
     def combineBasinHists(self):
         self.combineInPlace(*list(self.basin_n_order_parameter_values.values()))
@@ -113,7 +115,7 @@ class FFluxHist(OParamHist):
         directionDict = OrderedDict(((0,'FORWARD'), (1,'BACKWARD')))
         
         for directionID,direction in directionDict.items():
-            pzKey = '%s/0' % directionID
+            pzKey = ('basin_id', directionID), ('phase_id', 0)
             reweighter = np.sum(self.h_raw)/np.sum(self.phase_n_order_parameter_values[pzKey].h_raw)
             print(reweighter)
             self.phase_n_order_parameter_values[pzKey].scaleWeight(reweighter)
@@ -127,8 +129,10 @@ class FFluxHist(OParamHist):
         
         pzHists= []
         for key,hist in self.phase_n_order_parameter_values.items():
-            histBasinID,histPhaseID = key.split('/')
-            if histPhaseID!=0: 
+#             histBasinID,histPhaseID = key.split('/')
+#             if histPhaseID!=0: 
+            keyDict = dict(key)
+            if keyDict['phase_id']==0: 
                 hist.remask(nonzeroMask)
                 pzHists.append(hist)
         self.combineInPlace(*pzHists)

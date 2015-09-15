@@ -128,6 +128,9 @@ class Data(object):
             return self.map[key]
     
 # magic methods and the like
+    def __call__(self, key):
+        return self.map[key]
+
     def __contains__(self, key):
         return key in self.map
 

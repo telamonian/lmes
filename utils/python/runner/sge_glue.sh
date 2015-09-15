@@ -71,10 +71,15 @@ if [ -n "$SGE_TASK_ID" ] ; then
 	echo "Host: $HOSTNAME"
 	echo "Num Hosts: $NHOSTS"
 	echo "Num Slots: $NSLOTS"
-	echo "Nodes:"
-	cat $TMPDIR/machines
-#	echo "Resources:"
-#   cat $TMPDIR/machine-resources
+	# if the Nodes and/or Resources files exist (depends on how the PE is set up), print them
+	if [ -f $TMPDIR/machines ]; then
+		echo "Nodes:"
+		cat $TMPDIR/machines
+	fi
+	if [ -f $TMPDIR/machine-resources ]; then
+		echo "Resources:"
+    	cat $TMPDIR/machine-resources
+	fi
 	
     # Create the MPICH node list.
 	uniq < $TMPDIR/machines > $TMPDIR/mpich.hosts
@@ -83,7 +88,6 @@ if [ -n "$SGE_TASK_ID" ] ; then
 	cat $TMPDIR/mpich.hosts
 	
     node_file_option="-f $TMPDIR/mpich.hosts"
-    
     
     if [[ $SAGA_HOSTNAME == "kirin" ]]; then
         lm_nodelist_option="--nodelist=$TMPDIR/machines"

@@ -33,3 +33,5 @@ class SparsePlottable(Plottable):
 #             self.ax.set_ylabel(self.axLabels[1])
             
         self.resizeLabels()
+        
+        return self.fig, self.ax, figKwargs, axesKwargs, pltKwargs

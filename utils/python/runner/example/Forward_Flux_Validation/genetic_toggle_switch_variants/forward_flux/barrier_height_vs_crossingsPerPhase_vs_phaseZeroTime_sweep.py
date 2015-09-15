@@ -7,8 +7,8 @@ from statsmodels.sandbox.tools import cross_val
 thisScriptsPath = os.path.dirname(os.path.realpath(__file__))
 
 #### USER DEFINED VARIABLES ####
-host = 'kirin'
-lm_bin = '/home/cklein13/git/lm/build/lmes'
+host = 'xanthus'
+lm_bin = '/home/cklein13/git/lm/build_cuda/lmes'
 local_home_directory = thisScriptsPath
 queue = 'gpu'
 remote_home_directory = '/home/cklein13'
@@ -92,9 +92,11 @@ def GetFFluxInputTups():
 #     return [iSCs, iSCBs, op] + tilings + simParams
 
 if __name__=='__main__':
-    cppTicks = LogTicks(2,4,base=10,resolution=0)
-    pztTicks = LogTicks(2,6,base=10,resolution=-.5)
-    thetaTicks = LogTicks(-1,0,base=10,resolution=4)[:-1]
+    cppTicks = [1e5]    #LogTicks(2,4,base=10,resolution=0)
+    pztTicks = [1e7]   #LogTicks(2,6,base=10,resolution=-.5)
+    thetaTicks = LogTicks(-1,1,base=10,resolution=4)
+    thetaTicks = thetaTicks[1:5].tolist() + thetaTicks[6:10].tolist()
+    thetaTicks = LogTicks(-1,1,base=10,resolution=0).tolist() + thetaTicks
     
     # these inputTupsDefault get applied to every lm file before any simulations in the sweep
     simParams = [SimulationParameter(key='maxSteps',val=str(int(1e10))),
@@ -130,13 +132,13 @@ if __name__=='__main__':
                   'host': host,
                   'inputTupsDefault': simParams + GetFFluxInputTups(),
                   'lmArgsIntout': True,
-#                   'lmArgsGpusPerReplicate': '1/4',
+                  'lmArgsGpusPerReplicate': '0',
                   'lm_bin': lm_bin,
                   'lm_file_path': 'genetic_toggle_switch.lm',
                   'lm_sampling_rate': 'auto',    #{'rate':'auto', 'weight':.1}, #1e3
                   'lm_sampling_time': 1e10,
-#                   'queue': queue,
-                  'rootPath': PathJoin(remote_home_directory, 'forward_flux_validation/gts_-_fflux_-_barrier_height_-_crossingsPerPhase_-_phaseZeroTime'),
+                  'queue': queue,
+                  'rootPath': PathJoin(remote_home_directory, 'forward_flux_validation/gts_-_fflux_-_crossingsPerPhase_-_phaseZeroTime_-_theta_-_newnew'),
                   'sweepTups': sweepTups,
                   'type': type,
                   'useForwardFlux': True,
