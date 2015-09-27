@@ -1,1 +1,1 @@
-#foo
+from lm_anal.test.datum.trajectory.speciesTrajectories import SpeciesTrajectoriesSimTestBase, SpeciesTrajectoriesFieldsTestBase

@@ -87,6 +87,14 @@ class BaseTestBase(object):
         except FileNotFoundError:
             pass
 
+    def assertArraysEqual(self, arr1, arr2):
+        try:
+            testBool = (arr1==arr2).all()
+        except AttributeError:
+            testBool = False
+        self.assertTrue(testBool, msg='not equal: %s\n%s' % (arr1.tolist(), arr2.tolist()))
+        
+
 class EagerTestBase(BaseTestBase):
     def loadData(self, full=False, fileType='hdf5', **kwargs):
         for dataTypeName in self.dataTypeNames:
