@@ -105,6 +105,7 @@ void TrajectoryList::setCommunicator(lm::message::Communicator& newCom)
 lm::trajectory::Trajectory* TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
 {
     Trajectory* t = trajectories[msg.final_state().trajectory_id()];
+    // store some info for later use by printTrajectoryStatistics
     t->incrementWorkUnitsPerformed();
 
     // Print some performance statistics, if it has been a while.

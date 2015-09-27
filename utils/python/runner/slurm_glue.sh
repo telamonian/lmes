@@ -56,7 +56,11 @@ echo "lm_args=$lm_args, lm_bin=$lm_bin, log_file=$log_file, number_cpus=$number_
 # Copy the simulation file to the scratch directory.
 SCRATCHDIR=/tmp
 SCRATCHFILE=`basename $sim_file`
-JOB_UUID=`mktemp -u XXXXXXXXXXX`
+if [ -n "$SLURM_JOBID" ] ; then
+	JOB_UUID=$SLURM_JOBID
+else
+	JOB_UUID=`mktemp -u XXXXXXXXXXX`
+fi
 
 SCRATCHDIR=$SCRATCHDIR/$JOB_UUID
 SCRATCHFILE=$SCRATCHDIR/$SCRATCHFILE
@@ -64,58 +68,53 @@ mkdir -p $SCRATCHDIR
 echo "Copying $sim_file to $SCRATCHFILE"
 cp -v $sim_file $SCRATCHFILE
 
-if [ -n "$SGE_TASK_ID" ] ; then
+if [ -n "$SLURM_JOBID" ] ; then
     # Print out the machines allocated to the job.
-	echo "Running in $SGE_O_WORKDIR"
-	echo "Job: $JOB_ID"
-	echo "Host: $HOSTNAME"
-	echo "Num Hosts: $NHOSTS"
-	echo "Num Slots: $NSLOTS"
-	# if the Nodes and/or Resources files exist (depends on how the PE is set up), print them
-	if [ -f $TMPDIR/machines ]; then
-		echo "Nodes:"
-		cat $TMPDIR/machines
-	fi
-	if [ -f $TMPDIR/machine-resources ]; then
-		echo "Resources:"
-    	cat $TMPDIR/machine-resources
-	fi
+	echo "Running in $SLURM_SUBMIT_DIR"
+	echo "Job: $SLURM_JOBID"
+	echo "Host: $SLURM_SUBMIT_HOST"
+	echo "Nodes: $SLURM_JOB_NODELIST"
+	echo "CPUs: $SLURM_CPUS_ON_NODE"
 	
     # Create the MPICH node list.
-	uniq < $TMPDIR/machines > $TMPDIR/mpich.hosts
-	NUMNODES=`cat $TMPDIR/mpich.hosts|wc -l`
+	scontrol show hostname $SLURM_JOB_NODELIST > $SCRATCHDIR/mpich.hosts
+	NUMNODES=`cat $SCRATCHDIR/mpich.hosts|wc -l`
 	echo "MPICH Hosts:"
-	cat $TMPDIR/mpich.hosts
+	cat $SCRATCHDIR/mpich.hosts
 	
-    node_file_option="-f $TMPDIR/mpich.hosts"
-    
-    if [[ $SAGA_HOSTNAME == "kirin" ]]; then
-        lm_nodelist_option="--nodelist=$TMPDIR/machines"
-        mpi_bin="mpiexec -launcher ssh"
-    else
-        lm_resource_map_option="--resource-map=$TMPDIR/machine-resources"
-        mpi_bin="mpirun"
-    fi    
+	node_file_option="-f $SCRATCHDIR/mpich.hosts"
+
+#    if [[ $SAGA_HOSTNAME == "kirin" ]]; then
+#        lm_nodelist_option="--nodelist=$TMPDIR/machines"
+#        mpi_bin="mpiexec -launcher ssh"
+#    else
+#        lm_resource_map_option="--resource-map=$TMPDIR/machine-resources"
+#        mpi_bin="mpirun"
+#    fi    
     
 else # this job is running in a normal shell
     NUMNODES=1
     lm_args="$lm_args -c $number_cpus"
-    mpi_bin="mpirun"
 fi
 
 # Add the cuda lib directory, if it exists.
-if [ -d /usr/local/cuda/lib64 ]; then
-    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64
+if [ "${QUEUE}" == "gpu" ]; then
+    echo \$LD_LIBRARY_PATH
+    echo \$PATH
+    module list
+    module load cuda
+    echo \$LD_LIBRARY_PATH
+    echo \$PATH
+    module list
 fi
+
+mpi_bin="mpirun"
 
 # Run the job.
-echo "Running $mpi_bin -n $NUMNODES $node_file_option $lm_bin $lm_resource_map_option $lm_nodelist_option $lm_args -f $SCRATCHFILE"
-$mpi_bin -n $NUMNODES $node_file_option $lm_bin $lm_resource_map_option $lm_nodelist_option $lm_args -f $SCRATCHFILE
+echo "Running $mpi_bin -n $NUMNODES $node_file_option $lm_bin $lm_resource_map_option $lm_nodelist_option $lm_args -f $sim_file"
+$mpi_bin -n $NUMNODES $node_file_option $lm_bin $lm_resource_map_option $lm_nodelist_option $lm_args -f $sim_file
 
 # Copy the results back to the simulation directory.
-echo "Copying results back to $sim_file"
-cp -v $SCRATCHFILE $sim_file && rm $SCRATCHFILE
-if [ -f $SCRATCHFILE.chk ]; then
-    cp -v $SCRATCHFILE.chk $sim_file.chk && rm $SCRATCHFILE.chk
-fi
+rm \$SCRATCHDIR/mpich.hosts
 rm -r $SCRATCHDIR
+echo "Done."

@@ -10,15 +10,17 @@ class SpeciesCountToHistOParamValuesPT(BasePT):
     srcProps = frozenset({'species_count'})
     dstProps = frozenset({'order_parameter_values'})
     
-    def ptfd(self, srcDatum, dstDatum, **kwargs):
+    def ptfd(self, srcDict, dstDict, **kwargs):
+        srcDatum = srcDict['SpeciesTrajectory']
+        dstDatum = dstDict['OParamHist']
+        if not dstDatum.full:
+            return
+        
         srcProp = next(iter(self.srcProps))
         dstProp = next(iter(self.dstProps))
         
         dstDatum.setTilings(oparams=kwargs['oparams'], tilings=kwargs['tilings'], tilingIDs=kwargs['tilingIDs'])
-        try:
-            dstDatum.setObservations(dstDatum.oparam.calc(srcDatum.__getattribute__(srcProp)))
-        except AttributeError:
-            pass
+        dstDatum.setObservations(dstDatum.oparam.calc(srcDatum.__getattribute__(srcProp)))
     
 #     def __init__(self, oparams, tilings, **kwargs):
 #         self.oparams = oparams

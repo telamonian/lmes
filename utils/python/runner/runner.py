@@ -3,6 +3,7 @@ import operator
 import os
 import re
 import saga
+import subprocess
 
 class Runner(object):
     def __init__(self, jobs=None):
@@ -40,11 +41,18 @@ class Runner(object):
 #             remoteSrcSaga.copy(localDirSaga.get_url())
 
     def CreateContext(self):
-        # Your ssh identity on the remote machine.
-        self.ctx = saga.Context("ssh")
+        if self.pass_exe is not None:
+            self.ctx = saga.Context("UserPass")
+            self.ctx.user_id = self.user_id
+            # get the password by reading the stdout from an exe
+            self.ctx.user_pass = subprocess.Popen(self.pass_exe, stdout=subprocess.PIPE).communicate()[0].strip()
+        else:
+            # Your ssh identity on the remote machine.
+            self.ctx = saga.Context("ssh")
+            
+            # Change e.g., if you have a different username on the remote machine
+            self.ctx.user_id = self.user_id
         
-        # Change e.g., if you have a differnent username on the remote machine
-        self.ctx.user_id = self.user_id
     
     def CreateSession(self):
         self.session = saga.Session()
@@ -62,16 +70,19 @@ class Runner(object):
     
     def CreateJobServiceShell(self):
         self.url_shell = "ssh://%s" % self.host
-        # Create a job service object that represent a remote sge cluster.
-        # The keyword 'sge' in the url scheme triggers the SGE adaptors
-        # and '+ssh' enables SGE remote access via SSH.
         self.js_shell = saga.job.Service(self.url_shell,session=self.session)
+        
+    def CreateJobServiceSlurm(self):
+        self.url_slurm = "slurm+ssh://%s" % self.host
+        self.js_slurm = saga.job.Service(self.url_slurm,session=self.session)
     
     def CreateJobSaga(self, job):
-        if 'sge' in job.type:
+        if 'sge' in job.jobTypeName:
             self.CreateJobSagaSGE(job.jd)
-        elif 'shell' in job.type:
+        elif 'shell' in job.jobTypeName:
             self.CreateJobSagaShell(job.jd)
+        elif 'slurm' in job.jobTypeName:
+            self.CreateJobSagaSlurm(job.jd)
         else:
             raise
     
@@ -81,9 +92,10 @@ class Runner(object):
         self.jobs_saga.append(self.js_sge.create_job(job_description))
         
     def CreateJobSagaShell(self, job_description):
-        # Create a new job from the job description. The initial state of 
-        # the job is 'New'.
         self.jobs_saga.append(self.js_shell.create_job(job_description))
+    
+    def CreateJobSagaSlurm(self, job_description):
+        self.jobs_saga.append(self.js_slurm.create_job(job_description))
     
     def Finish(self):
         try:
@@ -92,6 +104,10 @@ class Runner(object):
             pass
         try:
             self.js_shell.close()
+        except AttributeError:
+            pass
+        try:
+            self.js_slurm.close()
         except AttributeError:
             pass
     
@@ -113,7 +129,7 @@ class Runner(object):
 #         for job_saga in self.js_shell.list():
 #             print " * %s" % job_saga
  
-        if 'shell' in job.type:
+        if 'shell' in job.jobTypeName:
             print "this job's working dir is %s" % job.jd.working_directory
             print "this job's exec is %s" % job.jd.executable
             print "this job's args are %s" % job.jd.arguments
@@ -140,16 +156,19 @@ class Runner(object):
         
     def Setup(self):
         self.host = self.jobs[0].host
+        self.pass_exe = self.jobs[0].pass_exe
         self.user_id = self.jobs[0].user_id
         
         self.CreateContext()
         self.CreateSession()
         
-        job_types = map(operator.methodcaller('__getattribute__','type'), self.jobs)
+        job_types = map(operator.methodcaller('__getattribute__','jobTypeName'), self.jobs)
         if InList('sge', job_types):
             self.CreateJobServiceSGE()
         if InList('shell', job_types):
             self.CreateJobServiceShell()
+        if InList('slurm', job_types):
+            self.CreateJobServiceSlurm()
             
         for job in self.jobs:
             if job.copy_to!=None:

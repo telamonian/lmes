@@ -16,13 +16,17 @@ class Job(object):
     copy_to: a list of tuples of the form ('file path on local to copy to remote', 'directory path of destination directory on remote')
     copy_from: a list of tuples of the form ('file path on remote to copy to local', 'directory path of destination directory on local')
     '''
-    type = 'job'
+    jobTypeName = 'job'
     
     def __init__(self, **kwargs):
         for key in kwargs:
             if key in self.__class__.keywords:
                 self.__setattr__(key, kwargs[key])
+            elif kwargs[key] is None:
+                pass
             else:
+                print key
+                print self.__class__.keywords
                 raise
         for key in self.__class__.keywords:
             if key not in kwargs:
@@ -114,7 +118,7 @@ class Job(object):
         
     @classmethod
     def _InitKeywords(cls, mro):
-        return ('arguments','copy_to','copy_from', 'cpu_count','environment', 'error','executable','host','output','user_id','working_directory')
+        return ('arguments','copy_to','copy_from', 'cpu_count','environment', 'error','executable','host','output','pass_exe','user_id','working_directory')
     
     @classmethod
     def InitKeywords(cls):
@@ -131,7 +135,7 @@ Job.InitKeywords()
 Job.InitKeywordsDescription()
 
 class JobLM(Job):
-    type = 'lm'
+    jobTypeName = 'lm'
     
     def _Init(self, callingClassName):
         if callingClassName=='JobLM':
@@ -248,7 +252,7 @@ class JobLM(Job):
         self.lmF.SetSimulationParameter(simParam=simParam)
         self.lmF.Flush()
     
-    def SetSamplingTime(self, time='auto', leastLikelyRate=1e7):
+    def SetSamplingTime(self, time='auto', leastLikelyRate=1e8):
         '''
         if auto:
             sets total sampling time based on a combination of sampling rate and known switching time (really the rate of the least likely event) for the system at hand
@@ -288,7 +292,7 @@ class JobLM(Job):
 JobLM.InitKeywords()
 
 class JobSGE(Job):
-    type = 'sge'
+    jobTypeName = 'sge'
     
     def _Init(self, callingClassName):
         if callingClassName=='JobSGE':
@@ -309,23 +313,6 @@ class JobSGE(Job):
             if self.total_cpu_count==None:
                 self.total_cpu_count = 1
     
-#     def _Init(self, mro):
-#         super(type(self), self).Init()
-#         if 'xanthus' in self.host:
-#             if self.queue=='gpu':
-#                 self.queue = 'gpu-1'
-#                 self.pe = self.spmd_variation = 'mpi-cuda'
-#             else:
-#                 self.queue = 'smp-1'
-#                 self.pe = self.spmd_variation = 'mpi'
-#         if 'kirin' in self.host:
-#             self.queue = 'normal'
-#             self.pe = self.spmd_variation = 'kirin-pe'
-#         else:
-#             self.spmd_variation = self.pe
-#         if self.total_cpu_count==None:
-#             self.total_cpu_count = 1
-    
     @classmethod
     def _InitKeywords(cls, mro):
         # avoid repepitive addition
@@ -343,18 +330,59 @@ JobSGE.InitKeywords()
 JobSGE.InitKeywordsDescription()
 
 class JobShell(Job):
-    type = 'shell'
+    jobTypeName = 'shell'
 
+class JobSlurm(Job):
+    jobTypeName = 'slurm'
+    
+    def _Init(self, callingClassName):
+        if callingClassName=='JobSlurm':
+            if 'marcc' in self.host:
+                self.environment = {'SAGA_HOSTNAME': 'marcc'}
+                if self.queue==None:
+                    self.queue = 'parallel'
+            
+            self.exclusive = True
+            self.export = 'ALL'
+            self.mail_type = 'end'
+            self.job_contact = self.user_mail   
+            self.wall_time_limit = 10080
+            
+            cpus_per_node = 24
+            if not self.cpu_count % cpus_per_node==0:
+                raise
+            self.number_of_processes = self.cpu_count/cpus_per_node
+            self.processes_per_host = 1
+    
+    @classmethod
+    def _InitKeywords(cls, mro):
+        # avoid repepitive addition
+        if cls.__name__=='JobSlurm':
+            additionalKeywords = ('project', 'queue', 'total_cpu_count', 'user_mail')
+        else:
+            additionalKeywords = ()
+        return mro[mro.index(cls) + 1]._InitKeywords(mro) + additionalKeywords
+    
+    @classmethod
+    def InitKeywordsDescription(cls):
+        cls.keywords_description = super(cls,cls).keywords_description + ('exclusive', 'export', 'job_contact', 'mail_type', 'number_of_processes', 'processes_per_host', 'project', 'queue', 'total_cpu_count', 'wall_time_limit')
+
+JobSlurm.InitKeywords()
+JobSlurm.InitKeywordsDescription()
+
+# combined Job types
 class JobSGELM(JobLM, JobSGE):
-    type = 'sgelm'
+    jobTypeName = 'sgelm'
     
     @classmethod
     def GetMRO(cls):
         print(cls.mro())
-
 JobSGELM.InitKeywords()
 
 class JobShellLM(JobLM, JobShell):
-    type = 'shelllm'
-
+    jobTypeName = 'shelllm'
 JobShellLM.InitKeywords()
+
+class JobSlurmLM(JobLM, JobSlurm):
+    jobTypeName = 'slurmlm'
+JobSlurmLM.InitKeywords()

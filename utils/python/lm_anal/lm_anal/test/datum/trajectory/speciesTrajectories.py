@@ -6,8 +6,16 @@ thisScriptDir = os.path.dirname(os.path.realpath(__file__))
 
 from lm_anal.src.io.hdf5.trajectory.bruteForceTrajectoriesIO import BruteForceTrajectoriesIO
 from lm_anal.src.datum.trajectory.speciesTrajectories import SpeciesTrajectories
+from lm_anal.test.testBase import EagerTestBase, LazyTestBase, SimTestBase
 
-import unittest
+
+
+class SpeciesTrajectoriesSimTestBase(SimTestBase):
+    _dataTypeNames = ['speciesTrajectories']
+    
+    def getTransformKwargsDict(self):
+        transformKwargDict = {'ffluxHists':{'tilingIDs':((1,2),0)}}
+        return transformKwargDict
 
 class SpeciesTrajectoriesTestCase(unittest.TestCase):
     def setUp(self):

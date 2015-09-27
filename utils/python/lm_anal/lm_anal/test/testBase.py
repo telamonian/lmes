@@ -136,4 +136,4 @@ class SimTestBase(BaseTestBase):
             self.__getattribute__(dataName).__setattr__('transformKwargs', transformKwargs)
     
     def getTransformKwargsDict(self):
-        pass
+        return dict()

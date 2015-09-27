@@ -36,13 +36,15 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #include <climits>
+#include <cstdio>
 #include <iostream>
 #include <pthread.h>
 #include <sstream>
 #include <string>
 #include <vector>
+
+#include "hrtime.h"
 #include "lm/Exceptions.h"
 #include "lm/Math.h"
 #include "lm/MPI.h"
@@ -65,6 +67,7 @@ namespace slot {
 
 SlotList::SlotList(lm::message::Communicator * communicator): communicator(communicator)
 {
+    resetSlotsStatistics();
 }
 
 SlotList::~SlotList()
@@ -264,11 +267,39 @@ void SlotList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
     // Make sure the slot was correctly marked as busy.
     if (slots[slotId].status != Slot::BUSY) throw Exception("Work unit runner was not marked as busy while running work unit",slotId,workUnitId);
 
+    // store some info for later use by printSlotsStatistics
+    slots[slotId].getStatsFromFinishedWorkUnit(msg);
+
+    // Print some performance statistics, if it has been a while.
+    printSlotsStatistics();
+
     // Erase the work unit from our map.
     workUnitToSlotMap.erase(workUnitId);
 
     // Mark the slot as free.
     slots[slotId].status = Slot::FREE;
+}
+
+void SlotList::printSlotsStatistics()
+{
+    // Print some performance statistics, if it has been a while.
+    hrtime currentTime = getHrTime();
+    if (convertHrToSeconds(currentTime - stats_lastPrintTime) > 700.0)
+    {
+        Print::printf(Print::INFO, "Slots status");
+        Print::printf(Print::INFO, Slot::getSlotStatisticsHeader().c_str());
+        Print::printf(Print::INFO, Slot::getSlotStatisticsHeaderBreak().c_str());
+        for (SlotVector::iterator it=slots.begin(); it!=slots.end(); it++)
+        {
+            Print::printf(Print::INFO, it->getSlotStatistics().c_str());
+        }
+        stats_lastPrintTime = getHrTime();
+    }
+}
+
+void SlotList::resetSlotsStatistics()
+{
+    stats_lastPrintTime = getHrTime();
 }
 
 }

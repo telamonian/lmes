@@ -68,22 +68,6 @@ char *trajectoryStatusStrings[] =
     "FINISHED"
 };
 
-//Trajectory::Trajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,lm::tiling::Tilings* tilings,bool reversed):
-//id(-1),status(NOT_STARTED)
-//{
-//    initState(reactionModel, reversed);
-//    setID(id);
-//    initMsg(simulationParameters);
-//}
-//
-//Trajectory::Trajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,lm::tiling::Tilings* tilings,TrajectoryState* zerothState):
-//id(id),status(NOT_STARTED)
-//{
-//    initState(zerothState);
-//    setID(id);
-//    initMsg(simulationParameters);
-//}
-
 Trajectory::Trajectory(uint64_t id,lm::input::Input& input,bool reversed)
 :id(-1),input(input),status(NOT_STARTED),numberWorkUnitsPerformed(0)
 {

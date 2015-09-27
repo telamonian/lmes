@@ -31,9 +31,9 @@ degradationConstants = [ReactionRateConstant(reactionID=6, rateConstant=.25*thet
 reactionRateConstants+=degradationConstants
 
 simParams = [SimulationParameter(key='maxSteps',val=str(int(1e10))),
-             SimulationParameter(key='maxTime',val=str(int(1e5))),
-             SimulationParameter(key='maxWorkUnitSteps',val=str(int(1e8))),
-             SimulationParameter(key='writeInterval',val=str(5e-2))]
+             SimulationParameter(key='maxTime',val=str(int(1e7))),
+             SimulationParameter(key='maxWorkUnitSteps',val=str(int(1e6))),
+             SimulationParameter(key='writeInterval',val=str(1e1))]
 
 replicateInput.SetInitialSpeciesCounts(iSCs=iSCs)
 replicateInput.SetOrderParameters(ops=[op])
@@ -41,7 +41,7 @@ replicateInput.SetReactionRateConstants(rRates=reactionRateConstants)
 replicateInput.SetSimulationParameters(simParams=simParams)
 replicateInput.Close()
 
-raw_args = '-r 1-10 -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff hdf5 -f "biphasic_switch.lm"'
+raw_args = '-r 1-10 -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff sfile -fo biphasic_switch.sfile -f "biphasic_switch.lm"'
 args = shlex.split(raw_args)
 p = subprocess.Popen([path] + args)
 p.wait()
@@ -49,4 +49,5 @@ p.wait()
 #os.execv(path, ['-r 1-10 -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff hdf5 -f "biphasic_switch.lm"'])
 #os.execl(path, '"-r 1,2,3,4,5,6,7,8,9,10"', '-sl', 'lm::cme::GillespieDSolver', '-cr', '1', '-gr', '1/4', '-ff', 'hdf5', '-f', 'biphasic_switch.lm')
 
-#../build/lm -r 1-10 -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff hdf5 -f "biphasic_switch.lm"
+#../build/lmes -r 1-10 -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff hdf5 -f "biphasic_switch.lm"
+#../build/lmes -r 1-10 -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff sfile -fo biphasic_switch.sfile -f "biphasic_switch.lm"

@@ -59,8 +59,6 @@ class Trajectory
 public:
     enum status_t {NOT_STARTED, RUNNING, WAITING, FINISHED};
 
-//    Trajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings* tilings,bool reversed=false);
-//    Trajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings* tilings,lm::io::TrajectoryState* zerothState);
     Trajectory(uint64_t id,lm::input::Input& input,bool reversed=false);
     Trajectory(uint64_t id,lm::input::Input& input,lm::io::TrajectoryState* zerothState);
     virtual ~Trajectory();
@@ -69,7 +67,6 @@ public:
     virtual void initMsg(const lm::message::Message& newMsg);
     virtual void initState(const lm::io::ReactionModel& reactionModel,bool reversed);
     virtual void initState(lm::io::TrajectoryState* zerothState);
-//    virtual void initLimits() = 0;
 
     // accessors
     virtual uint getFinalLimitID();
@@ -104,11 +101,6 @@ protected:
     uint64_t id;
     lm::input::Input& input;
     lm::message::Message msg;
-//    lm::io::ReactionModel& reactionModel;
-//    lm::io::DiffusionModel& diffusionModel;
-//    map<string,string> simulationParameters;
-//    lm::io::TrajectoryLimits limits;
-//    lm::io::TrajectoryState state;  // state is supposed to be synced at all (or at least most) times with the msg.run_work_unit.initial_state field
     status_t status;
     int64_t numberWorkUnitsPerformed;
 };

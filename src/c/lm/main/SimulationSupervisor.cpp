@@ -565,6 +565,7 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
 {
     Print::printf(Print::VERBOSE_DEBUG, "Work unit %d finished in %0.3f s.",msg.work_unit_id(),msg.run_time());
 
+    // collect global performance stats for printPerformanceStatistics
     stats_workUnits++;
     stats_minWorkUnitId = std::min(stats_minWorkUnitId,(long long)msg.work_unit_id());
     stats_maxWorkUnitId = std::max(stats_maxWorkUnitId,(long long)msg.work_unit_id());
@@ -578,7 +579,6 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
 		trajectoryList->workUnitFinished(msg);
     }
     // Otherwise, assume that the associated trajectory has already been deleted and so skip reading in this result
-    // The exists() check ensures that hangover results from older fflux phases aren't recorded as belonging to a newer phase
 
     // Free the slot that the returning work unit just ran on
     slots.workUnitFinished(msg);

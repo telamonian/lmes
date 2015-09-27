@@ -11,7 +11,7 @@ lm_bin = '/home/cklein13/git/lm/build_cuda/lmes'
 local_home_directory = thisScriptsPath
 queue = 'gpu'
 remote_home_directory = '/home/cklein13'
-type = 'sge'
+jobTypeName = 'sge'
 user_id = 'cklein13'
 runnerPath = '/Users/tel/git/lm/utils/python/runner'
 ################################
@@ -68,7 +68,7 @@ if __name__=='__main__':
                   'rootPath': PathJoin(remote_home_directory, 'forward_flux_validation/gts_basin_A_initial_flux'),
                   'sweepTupX': sweepTupX,
                   'sweepTupY': sweepTupY,
-                  'type': type,
+                  'jobTypeName': jobTypeName,
                   'user_id': user_id}
     sweep = Sweep(**sweep_dict) 
     sweep.Setup()

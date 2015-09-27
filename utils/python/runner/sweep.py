@@ -1,6 +1,6 @@
 from helper import PathJoin
 from itertools import product
-from job import JobSGELM, JobShellLM
+from job import JobSGELM, JobShellLM, JobSlurmLM
 # this hackishness imports all of the things in the inputTypes list in lmFile
 #import lmFile
 #from lmFile import GetTypes,inputTypes; GetTypes(inputTypes,__name__)
@@ -32,7 +32,7 @@ class SweepTup(object):
         return [self.label % self.labelVals[i] for i in range(len(self.inputTupss))]
     
 class Sweep(object):
-    def __init__(self, cpu_count, host, lm_bin, lm_file_path, rootPath, diagonal=False, inputTupsDefault=None, lmArgsGpusPerReplicate=0, lmArgsIntout=False, lm_sampling_rate=None, lm_sampling_time=None, queue=None, replicateRange=(1,10), sweepTups=None, sweepTupX=None, sweepTupY=None, type='shell', useForwardFlux=False, user_id=None):
+    def __init__(self, cpu_count, host, jobTypeName, lm_bin, lm_file_path, rootPath, diagonal=False, inputTupsDefault=None, lmArgsGpusPerReplicate=0, lmArgsIntout=False, lm_sampling_rate=None, lm_sampling_time=None, pass_exe=None, queue=None, replicateRange=(1,10), sweepTups=None, sweepTupX=None, sweepTupY=None, useForwardFlux=False, user_id=None, user_mail=None):
         self.cpu_count = cpu_count
         self.diagonal = diagonal
         self.host = host
@@ -42,13 +42,16 @@ class Sweep(object):
         self.lmFileName = os.path.split(lm_file_path)[-1]
         self.lm_sampling_rate = lm_sampling_rate
         self.lm_sampling_time = lm_sampling_time
+        self.pass_exe = pass_exe
         self.queue = queue
         self.replicateRange = replicateRange
         self.rootPath = rootPath
         self.user_id = user_id
+        self.user_mail = user_mail
         
         self.lm_args_dict = {'cpus_per_replicate':           ('-cr',     '1'),
-                             'file_format':                  ('-ff',     'hdf5'),
+                             'file_format':                  ('-ff',     'sfile'),
+                             'output_filename':              ('-fo',     '%s.sfile' % self.lmFileName.split('.')[0]),
                              'gpus_per_replicate':           ('-gr',     lmArgsGpusPerReplicate),
                              'solver_class':                 ('-sl',     'lm::cme::GillespieDSolver')}
         
@@ -70,10 +73,15 @@ class Sweep(object):
         if sweepTups!=None:
             self.sweepTups = sweepTups
         
-        if type=='sge':
+        if jobTypeName=='sge':
             self.jobType = JobSGELM
-        elif type=='shell':
+            self.bashGlue = 'sge_glue.sh'
+        elif jobTypeName=='shell':
             self.jobType = JobShellLM
+            self.bashGlue = 'sge_glue.sh'
+        elif jobTypeName=='slurm':
+            self.jobType = JobSlurmLM
+            self.bashGlue = 'slurm_glue.sh'
     
     def GetLMArgs(self):
         self.lm_args = ''
@@ -95,11 +103,11 @@ class Sweep(object):
             print('_-_'.join(labels))
             working_directory = PathJoin(self.rootPath, '_-_'.join(labels))
             jobDict = {'arguments': ['-n', self.cpu_count, '-s', self.lm_file_path, '-x', self.lm_bin],
-                       'copy_to': [[PathJoin(thisScriptsPath, 'sge_glue.sh'), '']],
+                       'copy_to': [[PathJoin(thisScriptsPath, self.bashGlue), '']],
                        'copy_from': [],
                        'cpu_count': self.cpu_count,
                        'error': 'lm.err',
-                       'executable': PathJoin(working_directory, 'sge_glue.sh'),
+                       'executable': PathJoin(working_directory, self.bashGlue),
                        'host': self.host,
                        'lm_args': self.lm_args,
                        'lm_file_path': self.lm_file_path,
@@ -108,8 +116,10 @@ class Sweep(object):
                        'lm_sampling_rate': self.lm_sampling_rate,
                        'lm_sampling_time': self.lm_sampling_time,
                        'output': 'lm.log',
+                       'pass_exe': self.pass_exe,
                        'queue': self.queue,
                        'user_id': self.user_id,
+                       'user_mail': self.user_mail,
                        'working_directory': working_directory}
             currentJob = self.jobType(**jobDict)
             currentJob.SetRunner(self.runner)
