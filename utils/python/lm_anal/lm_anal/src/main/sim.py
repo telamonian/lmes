@@ -20,6 +20,7 @@ from lm_anal.src.datum.hist import FFluxHists, OParamHists
 from lm_anal.src.datum.parameter import SimulationParameters
 from lm_anal.src.datum.oparam import OParams
 from lm_anal.src.datum.tiling import Tilings
+from lm_anal.src.datum.trajectory import OParamTrajectories
 from lm_anal.src.datum.trajectory import SpeciesTrajectories
 from lm_anal.src.transform import Transforms
 

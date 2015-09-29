@@ -1,1 +1,2 @@
-from lm_anal.test.datum.trajectory.speciesTrajectories import SpeciesTrajectoriesSimTestBase, SpeciesTrajectoriesFieldsTestBase
+from lm_anal.test.datum.trajectory.speciesTrajectories import SpeciesTrajectoriesSimTestBase, SpeciesTrajectoriesFieldsTestSet
+from lm_anal.test.datum.trajectory.oparamTrajectories import OParamTrajectoriesSimTestBase, OParamTrajectoriesClassTestSet, OParamTrajectoriesFieldsTestSet

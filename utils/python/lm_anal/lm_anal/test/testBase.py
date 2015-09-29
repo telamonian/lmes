@@ -59,12 +59,12 @@ class BaseTestBase(object):
             obj.tearDown()
     
     def setUp(self):
-        print('setUp')
+        print('%s setUp() called' % BaseTestBase.__name__)
         pass
         self.cleanUpInt()
         
     def tearDown(self):
-        print('tearDown')
+        print('%s tearDown() called' % BaseTestBase.__name__)
         pass
         self.cleanUpInt()
     
@@ -92,8 +92,11 @@ class BaseTestBase(object):
             testBool = (arr1==arr2).all()
         except AttributeError:
             testBool = False
-        self.assertTrue(testBool, msg='not equal: %s\n%s' % (arr1.tolist(), arr2.tolist()))
+        self.assertTrue(testBool, msg='arrays not equal: %s\n%s' % (arr1.tolist(), arr2.tolist()))
         
+    def assertSetsEqual(self, set1, set2):
+        testBool = set1==set2
+        self.assertTrue(testBool, msg='sets not equal: %s\n%s' % (set1, set2))
 
 class EagerTestBase(BaseTestBase):
     def loadData(self, full=False, fileType='hdf5', **kwargs):

@@ -8,16 +8,11 @@ from lm_anal.test.testBase import EagerTestBase, LazyTestBase, SimTestBase
 class SpeciesTrajectoriesSimTestBase(SimTestBase):
     _dataTypeNames = ['speciesTrajectories']
 
-class SpeciesTrajectoriesFieldsTestBase(object):
-#     def setUp(self):
-#         self.bfTrajIO = BruteForceTrajectoriesIO(fPath=os.path.join(thisScriptDir, '../../testData/biphasic_switch.lm'))
-#         self.specTraj = SpeciesTrajectories()
-    
+class SpeciesTrajectoriesFieldsTestSet(object):
     def test_number_species_hdf5(self):
         '''
         test reading of number of species(s) from hdf5 files
         '''
-#         self.bfTrajIO.rff(container=self.speciesTrajectories)
         self.loadData()
         
         numberSpecies = self.speciesTrajectories[4].number_species
@@ -27,7 +22,6 @@ class SpeciesTrajectoriesFieldsTestBase(object):
         '''
         test reading of number of entries (basically, data rows) from hdf5 files
         '''
-#         self.bfTrajIO.rff(container=self.speciesTrajectories)
         self.loadData()
 
         numberEntries = self.speciesTrajectories[4].number_entries
@@ -37,7 +31,6 @@ class SpeciesTrajectoriesFieldsTestBase(object):
         '''
         test reading of species counts from hdf5 files
         '''
-#         self.bfTrajIO.rff(container=self.speciesTrajectories, full=True)
         self.loadData(full=True)
 
         speciesCountArr = np.array(self.speciesTrajectories[4].species_count).flatten()
@@ -49,7 +42,6 @@ class SpeciesTrajectoriesFieldsTestBase(object):
         '''
         test reading of times from hdf5 files
         '''
-#         self.bfTrajIO.rff(container=self.speciesTrajectories, full=True)
         self.loadData(full=True)
         
         timeArr = np.array(self.speciesTrajectories[4].time).flatten()
@@ -61,7 +53,6 @@ class SpeciesTrajectoriesFieldsTestBase(object):
         '''
         test reading of trajectory id from hdf5 files
         '''
-#         self.bfTrajIO.rff(container=self.speciesTrajectories)
         self.loadData()
 
         idInt = self.speciesTrajectories[4].trajectory_id

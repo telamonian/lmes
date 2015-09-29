@@ -1,12 +1,12 @@
 import os
 from pathlib import Path
 
-from lm_anal.test.datum.trajectory import SpeciesTrajectoriesSimTestBase, SpeciesTrajectoriesFieldsTestBase
+from lm_anal.test.datum.trajectory import SpeciesTrajectoriesSimTestBase, SpeciesTrajectoriesFieldsTestSet
 
 thisScriptDir = Path(__file__).resolve().parent
 testFilePath = (thisScriptDir / Path('../../../testData/biphasic_switch.lm')).resolve()
 
-class SpeciesTrajectoriesHDF5IOTestBase(SpeciesTrajectoriesFieldsTestBase):
+class SpeciesTrajectoriesHDF5IOTestBase(SpeciesTrajectoriesFieldsTestSet):
     testFilePath = testFilePath
     
     def setUp(self):
