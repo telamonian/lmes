@@ -1,7 +1,7 @@
 import numpy as np
 import os,sys
 
-from lm_anal.src.io.hdf5.trajectory.bruteForceTrajectoriesIO import BruteForceTrajectoriesIO
+from lm_anal.src.io.hdf5.trajectory.speciesTrajectoriesIO import SpeciesTrajectoriesIO
 from lm_anal.src.datum.trajectory.speciesTrajectories import SpeciesTrajectories
 from lm_anal.test.testBase import EagerTestBase, LazyTestBase, SimTestBase
 

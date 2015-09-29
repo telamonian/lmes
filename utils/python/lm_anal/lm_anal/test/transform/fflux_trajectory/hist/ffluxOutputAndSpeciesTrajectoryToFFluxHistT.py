@@ -21,7 +21,7 @@ class FFluxOutputAndSpeciesTrajectoryToFFluxHistTTestCase(unittest.TestCase, FFl
 # from lm_anal.src.io.hdf5.parameter import SimulationParametersIO
 # from lm_anal.src.io.hdf5.oparam import OParamsIO
 # from lm_anal.src.io.hdf5.tiling import TilingsIO
-# from lm_anal.src.io.hdf5.trajectory import BruteForceTrajectoriesIO
+# from lm_anal.src.io.hdf5.trajectory import SpeciesTrajectoriesIO
 # 
 # from lm_anal.src.datum.fflux import FFluxOutputs
 # from lm_anal.src.datum.hist import FFluxHists
@@ -36,7 +36,7 @@ class FFluxOutputAndSpeciesTrajectoryToFFluxHistTTestCase(unittest.TestCase, FFl
 # 
 # class FFluxOutputAndSpeciesTrajectoryToFFluxHistTTestCase(unittest.TestCase, OParamHistsSumCheck):
 #     def setUp(self):
-#         self.bfTrajIO = BruteForceTrajectoriesIO(fPath=testDataPath)
+#         self.bfTrajIO = SpeciesTrajectoriesIO(fPath=testDataPath)
 #         self.ffluxOutsIO = FFluxOutputsIO(fPath=testDataPath)
 #         self.oparamsIO = OParamsIO(fPath=testDataPath)
 #         self.simParamsIO = SimulationParametersIO(fPath=testDataPath)

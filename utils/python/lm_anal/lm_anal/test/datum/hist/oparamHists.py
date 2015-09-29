@@ -9,7 +9,7 @@ testDataPath = thisScriptDir / Path('../../testData/biphasic_switch.lm')
 from .groundTruths import intendedOrderParameterValues5Arr, intendedOrderParameterValues4Plus5Arr
 from lm_anal.src.io.hdf5.oparam import OParamsIO
 from lm_anal.src.io.hdf5.tiling import TilingsIO
-from lm_anal.src.io.hdf5.trajectory import BruteForceTrajectoriesIO
+from lm_anal.src.io.hdf5.trajectory import SpeciesTrajectoriesIO
 from lm_anal.src.datum.hist import OParamHists
 from lm_anal.src.datum.oparam import OParams
 from lm_anal.src.datum.tiling import Tilings
@@ -38,7 +38,7 @@ class OParamHistsSumCheck(object):
 
 class OParamHistsEagerTestBase(object):    
     def loadData(self, full=False):
-        self.bfTrajsIO = BruteForceTrajectoriesIO(fPath=testDataPath)
+        self.bfTrajsIO = SpeciesTrajectoriesIO(fPath=testDataPath)
         self.oparamsIO = OParamsIO(fPath=testDataPath)
         self.tilingsIO = TilingsIO(fPath=testDataPath)
         

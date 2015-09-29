@@ -13,10 +13,12 @@ class ToNumberOParamsPT(BasePT):
 #     def __init__(self):#, oparam, **kwargs):
 #         self.oparam = oparam
     
-    def ptfd(self, srcDatum, dstDatum, **kwargs):
-        dstDatum.oparam = kwargs['oparams'].combineByID(kwargs['oparamIDs'])
+    def ptfd(self, srcDict, dstDict, **kwargs):
         srcProp = next(iter(self.srcProps))
         dstProp = next(iter(self.dstProps))
+        dstDatum = dstDict['OParamTrajectory']
+        
+        dstDatum.oparam = kwargs['oparams'].combineByID(kwargs['oparamIDs'])
         try:
             dstDatum.__setattr__(dstProp, dstDatum.oparam.numberOrderParameters)
         except AttributeError:

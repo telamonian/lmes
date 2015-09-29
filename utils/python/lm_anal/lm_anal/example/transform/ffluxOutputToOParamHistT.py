@@ -8,7 +8,7 @@ from lm_anal.src.io.hdf5.fflux import FFluxOutputsIO
 from lm_anal.src.io.hdf5.parameter import SimulationParametersIO
 from lm_anal.src.io.hdf5.oparam import OParamsIO
 from lm_anal.src.io.hdf5.tiling import TilingsIO
-from lm_anal.src.io.hdf5.trajectory import BruteForceTrajectoriesIO
+from lm_anal.src.io.hdf5.trajectory import SpeciesTrajectoriesIO
  
 from lm_anal.src.datum.fflux import FFluxOutputs
 from lm_anal.src.datum.hist import FFluxHists
@@ -26,7 +26,7 @@ class FFluxOutputToOParamHistTEagerExample(object):
         self.testDataPath = testDataPath
 
     def setUp(self):
-        self.bfTrajIO = BruteForceTrajectoriesIO(fPath=self.testDataPath)
+        self.bfTrajIO = SpeciesTrajectoriesIO(fPath=self.testDataPath)
         self.ffluxOutsIO = FFluxOutputsIO(fPath=self.testDataPath)
         self.oparamsIO = OParamsIO(fPath=self.testDataPath)
         self.simParamsIO = SimulationParametersIO(fPath=self.testDataPath)

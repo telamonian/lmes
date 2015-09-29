@@ -80,7 +80,7 @@ class Sim(object):
 #         self.modIO.saveMod()
 #         
 #     def OParamHistsRecipe(self, tilingIDs, **kwargs):
-#         bfTrajsIO = BruteForceTrajectoriesIO(fPath=self.fPath)
+#         bfTrajsIO = SpeciesTrajectoriesIO(fPath=self.fPath)
 #         oparamsIO = OParamsIO(fPath=self.fPath)
 #         tilingsIO = TilingsIO(fPath=self.fPath)
 #         

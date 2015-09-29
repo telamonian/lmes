@@ -74,7 +74,7 @@ class PropertyTransforms(object):
         # now that we have the right pt pkg, load up the pts themselves
         for propTransSpec in self.propertyTransformSpecs.values():
             if propTransSpec.type=='copy':
-                self.propertyTransforms.append(CopyPT(srcProps=propTransSpec.srcProps, dstProps=propTransSpec.dstProps))
+                self.propertyTransforms.append(CopyPT(srcProps=propTransSpec.srcProps, dstProps=propTransSpec.dstProps, srcTypes=self.srcTypes, dstTypes=self.dstTypes))
             elif propTransSpec.type=='special':
                 ptFound = False
                 for PropertyTransform in self.propertyTransformDict.values():

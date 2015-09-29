@@ -5,15 +5,19 @@ thisScriptDir = os.path.dirname(os.path.realpath(__file__))
 # sys.path.append(os.path.join(thisScriptDir, '../..'))
 
 from lm_anal.src.io.hdf5.oparam.oparamsIO import OParamsIO
-from lm_anal.src.io.hdf5.trajectory.bruteForceTrajectoriesIO import BruteForceTrajectoriesIO
-from lm_anal.src.datum.oparam.oparams import OParams
-from lm_anal.src.datum.trajectory.oparamTrajectories import OParamTrajectories
-from lm_anal.src.datum.trajectory.speciesTrajectories import SpeciesTrajectories
+from lm_anal.src.io.hdf5.trajectory.speciesTrajectoriesIO import SpeciesTrajectoriesIO
+from lm_anal.src.datum.oparam import OParams
+from lm_anal.src.datum.trajectory import OParamTrajectory, OParamTrajectories
+from lm_anal.src.datum.trajectory import SpeciesTrajectories
 from lm_anal.src.transform.transforms import Transforms
 from lm_anal.test.testBase import EagerTestBase, LazyTestBase, SimTestBase
 
 class OParamTrajectoriesSimTestBase(SimTestBase):
     _dataTypeNames = ['oparamTrajectories']
+    
+    def getTransformKwargsDict(self):
+        transformKwargDict = {'oparamTrajectories':{'oparamIDs':(0,)}}
+        return transformKwargDict
 
 class OParamTrajectoriesClassTestSet(object):
 #     def setUp(self):
@@ -23,7 +27,7 @@ class OParamTrajectoriesClassTestSet(object):
         '''
         test the combinedPropertySpecs class property
         '''
-        pSNames = set([name for name in self.oparamTrajectories.datumType.combinedPropertySpecs])
+        pSNames = set([name for name in OParamTrajectory.combinedPropertySpecs])
         intendedPSNames = {'number_order_parameters','number_entries','order_parameter_values','time','trajectory_id'}
         self.assertSetsEqual(pSNames, intendedPSNames)
         
@@ -31,13 +35,13 @@ class OParamTrajectoriesClassTestSet(object):
         '''
         test the propertyNames class property
         '''
-        pNs = self.oparamTrajectories.datumType.propertyNames
+        pNs = OParamTrajectory.propertyNames
         intendedPNs = {'number_order_parameters','number_entries','order_parameter_values','time','trajectory_id'}
         self.assertSetsEqual(pNs, intendedPNs)
 
 class OParamTrajectoriesFieldsTestSet(object):
 #     def setUp(self):
-#         self.bfTrajIO = BruteForceTrajectoriesIO(fPath=os.path.join(thisScriptDir, '../../testData/biphasic_switch.lm'))
+#         self.bfTrajIO = SpeciesTrajectoriesIO(fPath=os.path.join(thisScriptDir, '../../testData/biphasic_switch.lm'))
 #         self.oparamsIO = OParamsIO(fPath=os.path.join(thisScriptDir, '../../testData/biphasic_switch.lm'))
 #         self.oparams = OParams()
 #         self.opTraj = OParamTrajectories()

@@ -28,7 +28,8 @@ thisScriptPath = os.path.realpath(__file__)
 
 # from lm_anal.test.io.mod.timeIO import TimeIOTestCase
 
-# from lm_anal.test.io.hdf5.trajectory import SpeciesTrajectoriesHDF5IOSimTestBase
+from lm_anal.test.io.hdf5.trajectory import SpeciesTrajectoriesHDF5IOSimTestBase
+from lm_anal.test.io.hdf5.trajectory import OParamTrajectoriesHDF5IOSimTestBase
 
 # from lm_anal.test.io.hdf5.hist.ffluxHistsIO import FFluxHistsHDF5IOSimTestBase
 # from lm_anal.test.io.hdf5.hist.oparamHistsIO import OParamHistsHDF5IOTestCase
@@ -52,7 +53,9 @@ def RunUnittest(varsDict, localsDict, failfast=False, **kwargs):
 
 def SimpleRun(varsDict):
     for TestBase in GetTestBases(varsDict):
-        TestBase.simpleRun()
+        testCaseName = TestBase.__name__[:-4] + 'Case'
+        TestCase = type(testCaseName, (TestBase, unittest.TestCase), {})
+        TestCase.simpleRun()
 
 if __name__ == '__main__':
     RunUnittest(varsDict=vars(), localsDict=locals())

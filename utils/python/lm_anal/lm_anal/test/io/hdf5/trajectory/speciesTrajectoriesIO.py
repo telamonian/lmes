@@ -8,14 +8,6 @@ testFilePath = (thisScriptDir / Path('../../../testData/biphasic_switch.lm')).re
 
 class SpeciesTrajectoriesHDF5IOTestBase(SpeciesTrajectoriesFieldsTestSet):
     testFilePath = testFilePath
-    
-    def setUp(self):
-        self.cleanUpInt()
-        self.loadDataEagerly()
-         
-    def tearDown(self):
-        pass
-#         self.cleanUpInt()
          
     def test_point_of_origin(self):
         '''

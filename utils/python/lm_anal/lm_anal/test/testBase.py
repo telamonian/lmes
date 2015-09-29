@@ -12,7 +12,7 @@ from lm_anal.src.io.hdf5.hist import FFluxHistsIO, OParamHistsIO
 from lm_anal.src.io.hdf5.parameter import SimulationParametersIO
 from lm_anal.src.io.hdf5.oparam import OParamsIO
 from lm_anal.src.io.hdf5.tiling import TilingsIO
-from lm_anal.src.io.hdf5.trajectory import BruteForceTrajectoriesIO
+from lm_anal.src.io.hdf5.trajectory import SpeciesTrajectoriesIO
 from lm_anal.src.io.mod import TimeIO
 
 from lm_anal.src.datum import Data
@@ -59,13 +59,13 @@ class BaseTestBase(object):
             obj.tearDown()
     
     def setUp(self):
-        print('%s setUp() called' % BaseTestBase.__name__)
         pass
+#         print('%s setUp() called' % BaseTestBase.__name__)
         self.cleanUpInt()
         
     def tearDown(self):
-        print('%s tearDown() called' % BaseTestBase.__name__)
         pass
+#         print('%s tearDown() called' % BaseTestBase.__name__)
         self.cleanUpInt()
     
     def loadData(self, full=False, **kwargs):
