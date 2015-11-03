@@ -33,6 +33,8 @@ dataTypeDict = {DataType.__name__:DataType for DataType in vars().values() if is
 __all__ = ['EagerTestBase', 'LazyTestBase', 'SimTestBase']
 
 class BaseTestBase(object):
+    disableCleanUpInt = False
+    
     dataTypeDict = dataTypeDict
 #     hdf5IOTypeDict = hdf5IOTypeDict
     
@@ -53,6 +55,7 @@ class BaseTestBase(object):
     @classmethod
     def simpleRun(cls):
         obj = cls()
+        # obj = cls(methodName='simpleRun')
         for testMethod in (obj.__getattribute__(methodName) for methodName in dir(obj) if ismethod(obj.__getattribute__(methodName)) and methodName[:4]=='test'):
             obj.setUp()
             testMethod()
@@ -77,6 +80,9 @@ class BaseTestBase(object):
             self.__getattribute__(dataName).map
     
     def cleanUpInt(self):
+        # if this function has been disabled at the instance (or possibly class) level, skip it
+        if self.disableCleanUpInt:
+            return
         # make sure all of the .lmint/.mod stuff is cleaned up
         try:
             os.remove(str(self.testFilePath.with_suffix('.mod')))
@@ -86,6 +92,13 @@ class BaseTestBase(object):
             os.remove(str(self.testFilePath.with_suffix('.lmint')))
         except FileNotFoundError:
             pass
+
+    def assertArraysAllClose(self, arr1, arr2):
+        try:
+            testBool = np.allclose(arr1, arr2)
+        except AttributeError:
+            testBool = False
+        self.assertTrue(testBool, msg='arrays not all close: %s\n%s' % (arr1.tolist()[:10], arr2.tolist()[:10]))
 
     def assertArraysEqual(self, arr1, arr2):
         try:

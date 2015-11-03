@@ -185,7 +185,7 @@ function(PROTOBUF_GENERATE_PYTHON PB2S)
     list(APPEND ABS_FILS  ${ABS_FIL})
   endforeach()
   add_custom_command(
-  OUTPUT ${${PB2S}}#"${CMAKE_CURRENT_BINARY_DIR}${REL_PATH}/${FIL_WE}_pb2.py"
+  OUTPUT ${${PB2S}}    #"${CMAKE_CURRENT_BINARY_DIR}${REL_PATH}/${FIL_WE}_pb2.py"
   COMMAND  ${PROTOBUF_PROTOC_EXECUTABLE}
   ARGS --python_out ${CMAKE_CURRENT_BINARY_DIR} ${_protobuf_include_path} ${ABS_FILS}
   DEPENDS ${ABS_FILS}

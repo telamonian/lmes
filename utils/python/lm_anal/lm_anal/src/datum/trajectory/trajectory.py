@@ -11,6 +11,10 @@ class Trajectory(Datum):
     propertySpecs = DatumSpecs(DatumSpec(name='number_entries', dtype='int', paths=('cme_state','species_counts','number_entries'), storageType='protobuf', type='scalar'),
                                DatumSpec(name='time', dtype='float', paths=('cme_state','species_counts','time'), storageType='protobuf', type='array'),
                                DatumSpec(name='trajectory_id', dtype='int', paths=('trajectory_id',), storageType='protobuf', type='scalar'))
+    
+    @property
+    def key(self):
+        return ('id', self.trajectory_id)
 #     propertySpecs = {'number_entries':{'dtype':'int', 'paths':('cme_state','species_counts','number_entries'), 'storageType':'protobuf', 'type':'scalar'},
 #                      'time':{'dtype':'float', 'paths':('cme_state','species_counts','time'), 'storageType':'protobuf', 'type':'array'},
 #                      'trajectory_id':{'dtype':'int', 'paths':('trajectory_id',), 'storageType':'protobuf', 'type':'scalar'}}

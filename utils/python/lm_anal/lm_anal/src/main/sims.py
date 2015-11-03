@@ -81,23 +81,24 @@ class Sims(object):
     def __call__(self, *args, **kwargs):
         archetype = next(self.map.values().__iter__())
         if hasattr(archetype, '__name__') and archetype.__name__[:4]=='plot':
-            grid,gridLabels,singletonElems = self.getGrid()
-            axArrShape = (np.product(grid.shape[1::2]), np.product(grid.shape[::2]))
-            fig, axArr = plt.subplots(*axArrShape, gridspec_kw={})
-            fig.set_size_inches(np.array(axArrShape)[1]*8, np.array(axArrShape)[0]*6)
-            fig.tight_layout()
-            for datumPlotFunc,ax,axLabel in zip(grid.ravel(), axArr.ravel(), gridLabels.ravel()):
-                if datumPlotFunc is not None:
-                    datumPlotFunc.__call__(fig=fig, ax=ax, *args, **kwargs)
-                    
-#                     fontSize = ax.get_xaxis().get_majorticklabels()[0].get_size()
-#                     ax.set_title(axLabel, fontsize=fontSize)
-                else:
-                    ax.axis('off')
-                    fig.delaxes(ax)
-                    
-#             plt.tight_layout()
-#             return fig, axArr
+            self._plotGrid(self, *args, **kwargs)
+#             grid,gridLabels,singletonElems = self.getGrid()
+#             axArrShape = (np.product(grid.shape[1::2]), np.product(grid.shape[::2]))
+#             fig, axArr = plt.subplots(*axArrShape, gridspec_kw={})
+#             fig.set_size_inches(np.array(axArrShape)[1]*8, np.array(axArrShape)[0]*6)
+#             fig.tight_layout()
+#             for datumPlotFunc,ax,axLabel in zip(grid.ravel(), axArr.ravel(), gridLabels.ravel()):
+#                 if datumPlotFunc is not None:
+#                     datumPlotFunc.__call__(fig=fig, ax=ax, *args, **kwargs)
+#
+# #                     fontSize = ax.get_xaxis().get_majorticklabels()[0].get_size()
+# #                     ax.set_title(axLabel, fontsize=fontSize)
+#                 else:
+#                     ax.axis('off')
+#                     fig.delaxes(ax)
+#
+# #             plt.tight_layout()
+# #             return fig, axArr
         else:
             newDict = MagicDict()
             for oldKey,oldVal in self.map.items():
@@ -148,7 +149,26 @@ class Sims(object):
 
     def __iter__(self):
         return self.map.__iter__()
-    
+
+    def _plotGrid(self, *args, **kwargs):
+        grid,gridLabels,singletonElems = self.getGrid()
+        axArrShape = (np.product(grid.shape[1::2]), np.product(grid.shape[::2]))
+        fig, axArr = plt.subplots(*axArrShape, gridspec_kw={})
+        fig.set_size_inches(np.array(axArrShape)[1]*8, np.array(axArrShape)[0]*6)
+        fig.tight_layout()
+        for datumPlotFunc,ax,axLabel in zip(grid.ravel(), axArr.ravel(), gridLabels.ravel()):
+            if datumPlotFunc is not None:
+                datumPlotFunc.__call__(fig=fig, ax=ax, *args, **kwargs)
+
+            #                     fontSize = ax.get_xaxis().get_majorticklabels()[0].get_size()
+            #                     ax.set_title(axLabel, fontsize=fontSize)
+            else:
+                ax.axis('off')
+                fig.delaxes(ax)
+
+            #             plt.tight_layout()
+            #             return fig, axArr
+
     def getGrid(self):
         return self.map.getGrid()
     

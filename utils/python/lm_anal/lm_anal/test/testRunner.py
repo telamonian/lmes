@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from inspect import isclass
+from inspect import getargspec,isclass
 import os,sys
 import numpy as np; np.set_printoptions(precision=1, threshold=1e6, linewidth=1e6)
 from pathlib import Path
@@ -41,25 +41,41 @@ from lm_anal.test.io.hdf5.trajectory import OParamTrajectoriesHDF5IOSimTestBase
 # from lm_anal.test.transform.trajectory.hist.speciesTrajectoryToOParamHistT import SpeciesTrajectoryToOParamHistTTestCase
 from lm_anal.test.transform.trajectory.trajectory import SpeciesTrajectoryToOParamTrajectoryTSimTestBase
 
-def GetTestBases(varsDict):
-    return [TestBase for TestBase in varsDict.values() if isclass(TestBase) and TestBase.__name__[-8:]=='TestBase']
+class TestRunner(object):
+    def __init__(self, varsDict, localsDict, disableCleanUpInt=False):
+        self.varsDict = varsDict
+        self.localsDict = localsDict
+        self.disableCleanUpInt = disableCleanUpInt
 
-def RunUnittest(varsDict, localsDict, failfast=False, **kwargs):
-    for TestBase in GetTestBases(varsDict):
-        testCaseName = TestBase.__name__[:-4] + 'Case'
-        TestCase = type(testCaseName, (TestBase, unittest.TestCase), {})
-        localsDict[testCaseName] = TestCase
-    unittest.main(failfast=failfast, **kwargs)
-
-def SimpleRun(varsDict):
-    for TestBase in GetTestBases(varsDict):
-        testCaseName = TestBase.__name__[:-4] + 'Case'
-        TestCase = type(testCaseName, (TestBase, unittest.TestCase), {})
-        TestCase.simpleRun()
+    def GetTestBases(self):
+        return [TestBase for TestBase in self.varsDict.values() if isclass(TestBase) and TestBase.__name__[-8:]=='TestBase']
+    
+    def GetTestCases(self, exportToLocals=False):
+        testCases = []
+        for TestBase in self.GetTestBases():
+            testCaseName = TestBase.__name__[:-4] + 'Case'
+            TestCase = type(testCaseName, (TestBase, unittest.TestCase), {})
+            
+            if self.disableCleanUpInt:
+                TestCase.disableCleanUpInt = True
+            if exportToLocals:
+                self.localsDict[testCaseName] = TestCase
+            
+            testCases.append(TestCase)
+        return testCases
+    
+    def RunUnittest(self, failfast=False, **kwargs):
+        self.GetTestCases(exportToLocals=True)
+        unittest.main(failfast=failfast, **kwargs)
+    
+    def SimpleRun(self):
+        for TestCase in self.GetTestCases():
+            TestCase.simpleRun()
 
 if __name__ == '__main__':
-    RunUnittest(varsDict=vars(), localsDict=locals())
-#     SimpleRun(varsDict=vars())
+    testRunner = TestRunner(varsDict=vars(), localsDict=locals(), disableCleanUpInt=True)
+    testRunner.RunUnittest()
+#     testRunner.SimpleRun()
     
     
     
