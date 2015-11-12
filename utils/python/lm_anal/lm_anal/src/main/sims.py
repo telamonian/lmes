@@ -1,9 +1,14 @@
-from copy import copy
+from ast import literal_eval
+from copy import copy as shallowCopy
+import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 import numpy as np
+import re
 from pathlib import Path
 import re
 
+from lm_anal.src.helper import HideAxesFrame, InchesToPoints, PointsToInches
 from lm_anal.src.main import Sim
 from lm_anal.src.magicDict import MagicDict
 
@@ -12,6 +17,8 @@ class SimsMetaclass(type):
         return super(SimsMetaclass, cls).__new__(cls, clsname, bases, dct)
 
 class Sims(object):
+    privateMethodRe = re.compile(r'_[^_]*')
+
     hdf5Synonyms = {'hdf5', 'lm', '.lm'}
     lmintSynonyms = {'int', 'lmint', '.lmint'}
     sfileSynonyms = {'hdfs', 'sfile', '.sfile'}
@@ -82,23 +89,6 @@ class Sims(object):
         archetype = next(self.map.values().__iter__())
         if hasattr(archetype, '__name__') and archetype.__name__[:4]=='plot':
             self._plotGrid(self, *args, **kwargs)
-#             grid,gridLabels,singletonElems = self.getGrid()
-#             axArrShape = (np.product(grid.shape[1::2]), np.product(grid.shape[::2]))
-#             fig, axArr = plt.subplots(*axArrShape, gridspec_kw={})
-#             fig.set_size_inches(np.array(axArrShape)[1]*8, np.array(axArrShape)[0]*6)
-#             fig.tight_layout()
-#             for datumPlotFunc,ax,axLabel in zip(grid.ravel(), axArr.ravel(), gridLabels.ravel()):
-#                 if datumPlotFunc is not None:
-#                     datumPlotFunc.__call__(fig=fig, ax=ax, *args, **kwargs)
-#
-# #                     fontSize = ax.get_xaxis().get_majorticklabels()[0].get_size()
-# #                     ax.set_title(axLabel, fontsize=fontSize)
-#                 else:
-#                     ax.axis('off')
-#                     fig.delaxes(ax)
-#
-# #             plt.tight_layout()
-# #             return fig, axArr
         else:
             newDict = MagicDict()
             for oldKey,oldVal in self.map.items():
@@ -150,31 +140,125 @@ class Sims(object):
     def __iter__(self):
         return self.map.__iter__()
 
+    def _addGridGlobalLabels(self, fig, xLabel=None, yLabel=None):
+        fontSizeX,fontSizeY = self._getFontSizesFromFigSize(fig)
+
+        ax = fig.add_subplot(111)#, zorder=-1000)
+        HideAxesFrame(ax)
+
+        ax.set_xlabel(xLabel, size=fontSizeX)
+        ax.set_ylabel(yLabel, size=fontSizeY)
+
+        # xPad = self._getFigPadFracFromFontSize(dim=0, fig=fig, fontSize=fontSizeX)
+        # yPad = self._getFigPadFracFromFontSize(dim=1, fig=fig, fontSize=fontSizeY)
+
+        # plt.annotate(xLabel, xy=(0.5, 0), xytext=(0, 0),
+        #                     xycoords='figure fraction', textcoords='offset points',
+        #                     size=fontSizeX, ha='center', va='top')
+
+        # xKwargs = {'x':0.5, 'y':-xPad, 'text':xLabel, 'ha':'center', 'size':fontSizeX, 's':None}
+        # yKwargs = {'x':-yPad, 'y':0.5, 'text':yLabel, 'va':'center', 'rotation':'vertical', 'size':fontSizeY, 's':None}
+        # for kwargs in [kwargs for kwargs in [xKwargs, yKwargs] if kwargs['text'] is not None]:
+        #     fig.text(**kwargs)
+        return (fontSizeX, fontSizeY)
+
+    def _addGridColumnLabels(self, axArr, grid):
+        pad = 5 # in points
+        columnLabels = self._genGridColumnLabels(grid)
+
+        for ax,label in zip(axArr[0,:].ravel(), columnLabels):
+            ax.annotate(label, xy=(0.5, 1), xytext=(0, pad),
+                        xycoords='axes fraction', textcoords='offset points',
+                        size='large', ha='center', va='baseline')
+
+    def _addGridRowLabels(self, axArr, grid):
+        pad = 5 # in points
+        rowLabels = self._genGridRowLabels(grid)
+
+        for ax,label in zip(axArr[:,-1].ravel(), rowLabels):
+            ax.annotate(label, xy=(1, 0.5), xytext=(pad, 0),
+                        xycoords='axes fraction', textcoords='offset points',
+                        size='large', ha='left', va='center', rotation='vertical')
+
+    def _formatGridPlot(self, fig, axArr, grid):
+        figXLabel = grid['obj'].ravel()[0].getXLabel()        #axArr.ravel()[0].get_xlabel()
+        figYLabel = grid['obj'].ravel()[0].getYLabel()        #axArr.ravel()[0].get_ylabel()
+        for ax in axArr.ravel():
+            # once for x...
+            ax.set_xlabel('')
+            # this is going to need to be more complex to do the tick pruning I wanted...
+            # for tickText in ax.get_xaxis().get_majorticklabels()[0:1] + ax.get_xaxis().get_majorticklabels()[-1:]:
+            #     print(tickText.get_visible())
+            #     tickText.set_visible(False)
+
+            # and once for y
+            ax.set_ylabel('')
+
+        self._addGridRowLabels(axArr, grid)
+        self._addGridColumnLabels(axArr, grid)
+
+        self._addGridGlobalLabels(fig, figXLabel, figYLabel)
+        fig.tight_layout()
+
+    def _genGridColumnLabels(self, grid):
+        return self._genGridLineLabels(grid, dim=0)
+
+    def _genGridRowLabels(self, grid):
+        return self._genGridLineLabels(grid, dim=1)
+
+    def _genGridLineLabels(self, grid, dim):
+        labels = []
+        lineSlice = (0,)*dim + (slice(None),) + (0,)*(len(grid['label'].shape) - dim - 1)
+        for i,gridLabel in enumerate(grid['label'][lineSlice].ravel()):
+            # difference out the label that changes along this dim
+            otherSet = set([tup for tups in grid['label'][lineSlice][:i] for tup in tups] +
+                           [tup for tups in grid['label'][lineSlice][i+1:] for tup in tups])
+            # this set should contain only a single tuple
+            uniqueLabelSet = set(gridLabel) - otherSet
+            # stupid iterator crap to get the 'first' element in a set
+            labels.append(next(uniqueLabelSet.__iter__()))
+        return labels
+
+    def _getFigPadFracFromFontSize(self, dim, fig, fontSize):
+        extent = fig.get_size_inches()[dim]
+        return PointsToInches(fontSize)/extent
+
+    def _getFontSizesFromFigSize(self, fig, scaleFactor=.07):
+        fontSizes = []
+        extent = min(fig.get_size_inches())
+        for i in range(len(fig.get_size_inches())):
+            fontSizeInInches = extent*float(scaleFactor)
+            fontSizes.append(InchesToPoints(fontSizeInInches))
+        return fontSizes
+
     def _plotGrid(self, *args, **kwargs):
-        grid,gridLabels,singletonElems = self.getGrid()
+        # self ends up at the front of args (due to the nature of method signatures), so pop it off
+        args = list(args); args.pop(0)
+        grid,singletonElems = self.getGrid()
+
         axArrShape = (np.product(grid.shape[1::2]), np.product(grid.shape[::2]))
-        fig, axArr = plt.subplots(*axArrShape, gridspec_kw={})
+        fig, axArr = plt.subplots(*axArrShape, gridspec_kw={}, sharex=True, sharey=True)
         fig.set_size_inches(np.array(axArrShape)[1]*8, np.array(axArrShape)[0]*6)
         fig.tight_layout()
-        for datumPlotFunc,ax,axLabel in zip(grid.ravel(), axArr.ravel(), gridLabels.ravel()):
+        # delay turning any axes off until after formatting to preserve correct placement/spacing
+        badAxes = []
+        for i,(datumPlotFunc,ax) in enumerate(zip(grid['obj'].ravel(), axArr.T.ravel())):
             if datumPlotFunc is not None:
                 datumPlotFunc.__call__(fig=fig, ax=ax, *args, **kwargs)
-
-            #                     fontSize = ax.get_xaxis().get_majorticklabels()[0].get_size()
-            #                     ax.set_title(axLabel, fontsize=fontSize)
             else:
-                ax.axis('off')
-                fig.delaxes(ax)
-
-            #             plt.tight_layout()
-            #             return fig, axArr
+                badAxes.append(i)
+                # fig.delaxes(ax)
+                # ax.set_frame_on(False)
+        self._formatGridPlot(fig, axArr, grid)
+        for ax in (axArr.ravel()[i] for i in badAxes):
+            HideAxesFrame(ax)
 
     def getGrid(self):
         return self.map.getGrid()
     
     def getShallowCopy(self):
         self.copying = True
-        retCopy = copy(self)
+        retCopy = shallowCopy(self)
         self.copying = False
         retCopy.copying = False
         return retCopy

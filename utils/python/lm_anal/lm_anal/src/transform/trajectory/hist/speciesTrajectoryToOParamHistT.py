@@ -10,8 +10,9 @@ class SpeciesTrajectoryToOParamHistT(BaseT):
     dstTypes = frozenset({OParamHist})
     
     transformSpecs = TransformSpecs(TransformSpec(srcTypes=SpeciesTrajectory, dstTypes=OParamHist, requiredArgs='tilingIDs', requiredData={'oparams','tilings'},
-                                                  propertyTransformSpecs=PropertyTransformSpecs(                                             
-                                                  PropertyTransformSpec(dstProps='order_parameter_values', srcProps='species_count', requiredArgs='tilingIDs', type='special'))))
+                                        propertyTransformSpecs=PropertyTransformSpecs(
+                                            PropertyTransformSpec(dstProps='order_parameter_values', srcProps='species_count', requiredArgs='tilingIDs', type='special'),
+                                            PropertyTransformSpec(dstProps='tilings', srcProps='tilings', type='copy'))))
 #     srcType = SpeciesTrajectory
 #     dstType = OParamHist
 #     

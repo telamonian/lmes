@@ -52,13 +52,22 @@ class Plottable(object):
         bbox = self.ax.get_window_extent().transformed(self.fig.dpi_scale_trans.inverted())
         return bbox.width, bbox.height
     
-    def getFontSizesFromAxesSize(self, scaleFactor=.1):
+    def getFontSizesFromAxesSize(self, scaleFactor=.07):
         fontSizes = []
         for length in self.getAxesSize():
             fontSizeInInches = length*float(scaleFactor)
             fontSizes.append(fontSizeInInches*POINTS_PER_INCH)
         return fontSizes
-    
+
+    def getXLabel(self):
+        return ''
+
+    def getYLabel(self):
+        return ''
+
+    def getAxLabels(self):
+        return (self.getXLabel(), self.getYLabel())
+
     def resizeLabels(self, fontSize=None):
         self.resizeAxisLabels(fontSize)
         self.resizeTickLabels(fontSize)
@@ -68,8 +77,7 @@ class Plottable(object):
             fontSizes = self.getFontSizesFromAxesSize()
         else:
             fontSizes = [fontSize]*2
-        
-        print(fontSizes)
+
         for i,axis in enumerate((self.ax.get_xaxis(), self.ax.get_yaxis())):
             axis.get_label().set_size(fontSizes[i])
     

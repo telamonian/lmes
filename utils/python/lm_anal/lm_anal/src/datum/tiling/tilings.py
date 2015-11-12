@@ -14,15 +14,15 @@ class Tilings(Data):
     datumType = Tiling
     Hdf5IOType = TilingsIO
     SFileType = None
-       
+
     def __init__(self, protobuf=None, dataToTransform=None, fPath=None, transformKwargs=None):
         if protobuf==None:
             protobuf=TilingsBuf()
         super().__init__(protobuf=protobuf, dataToTransform=dataToTransform, fPath=fPath, transformKwargs=transformKwargs)
         
-    def getByID(self, tilingIDs):
-        tilingIDs = Tupify(tilingIDs)
-        return [self[i] for i in tilingIDs]
+    # def getByID(self, tilingIDs):
+    #     tilingIDs = Tupify(tilingIDs)
+    #     return [self[i] for i in tilingIDs]
 
     def initDatum(self, key, **kwargs):
         try:
@@ -31,6 +31,8 @@ class Tilings(Data):
             subcon = self.protobuf.tilings.add()
             self.map[key] = self.datumType(subcon=subcon, **kwargs)
             return self.map[key]
+
+
 
 # import os,sys
 # thisScriptDir = os.path.dirname(os.path.realpath(__file__))

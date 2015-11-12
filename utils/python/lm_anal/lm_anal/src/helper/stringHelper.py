@@ -1,3 +1,4 @@
+import os
 import re
 
 __all__ = ['CamelCaseLower', 'CamelCaseUpper', 'FixedWidth', 'ListInStr', 'PathJoin', 'ShortenName', 'Singular']

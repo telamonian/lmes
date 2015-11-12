@@ -12,18 +12,30 @@ class OParamHist(Hist):
         
     def setTilings(self, oparams, tilings, tilingIDs):
         # TODO: move the setTilings functionality to the Tiling package, ie give Tiling objects a combine method like OParam objects have now
-        self.oparams = []
+        self.tilings = tilings.sliceByKeys(tilingIDs)
+        self.oparams = oparams.sliceByKeys([tiling.order_parameter_id for tiling in self.tilings.valIter()])
+
         dims = []
         edges = []
-        
+
+
+
+
+
         for tiling in tilings.getByID(tilingIDs):
-            self.oparams.append(oparams[tiling.order_parameter_id])
+            oparamIDs.append(tiling.order_parameter_id)
             dims.append(len(tiling.edges) + 1)
             edges.append(np.array(tiling.edges))
         
-        self._axLabels = []
-        for oparam in self.oparams:
-            self.axLabels.append('Order parameter %d' % oparam.id)
-        
         self.oparam = self.oparams[0].combine(self.oparams[1:])        
         self.initH(dims=np.array(dims), edges=np.hstack(edges))
+
+# plotting stuff
+    def getXLabel(self):
+        return self.oparams[0]
+
+    def getYLabel(self):
+        if len(self.h_dims)>1:
+            return self.oparams[1]
+        else:
+            return 'counts'

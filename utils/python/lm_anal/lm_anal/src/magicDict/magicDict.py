@@ -1,11 +1,13 @@
 from collections import OrderedDict
 import numpy as np
 
-from lm_anal.src.helper import Frozensetify
+from lm_anal.src.helper import ContainerEval, Frozensetify
 
 __all__ = ['MagicDict']
 
 class MagicDict(OrderedDict):
+    gridDType = [('obj', 'O'), ('label', 'O')]
+
     def __init__(self, *args, **kwargs): 
         OrderedDict.__init__(self, *args, **kwargs)
         self.elemDict = OrderedDict()
@@ -65,8 +67,7 @@ class MagicDict(OrderedDict):
         gridElems, singletonElems = self.getGridElemsWithSingletons()
         gridElemKeys = [gridElem[0] for gridElem in gridElems]
         gridElemVals = [gridElem[1] for gridElem in gridElems]
-        grid = np.zeros([len(elemVals) for elemVals in gridElemVals], dtype=object)
-        gridLabels = np.zeros(grid.shape, dtype=object)
+        grid = np.zeros([len(elemVals) for elemVals in gridElemVals], dtype=self.gridDType)
 #         elemValMeshgrid = np.meshgrid(*gridElemVals)
         it = np.nditer(grid, flags=['multi_index', 'refs_ok'])
         for gridSpot in it:
@@ -76,17 +77,17 @@ class MagicDict(OrderedDict):
             gridKey = []
             for elemKey,elemVal in zip(gridElemKeys, elemVals):
                 gridKey.append((elemKey,) + elemVal)
-            gridLabels[it.multi_index] = gridKey
+            grid[it.multi_index]['label'] = tuple(gridKey)
             gridKey+=singletonElems
             try:
-#                 print(gridKey)
                 gridVal = self[gridKey]
             except KeyError:
                 gridVal = None
             if isinstance(gridVal, MagicDict):
                 raise
-            grid[it.multi_index] = gridVal
-        return grid, gridLabels, singletonElems
+            grid[it.multi_index]['obj'] = gridVal
+        # self.sortGrid(grid)
+        return grid, singletonElems
     
     def getGridElems(self, excludeSingletons=True):
         self.sortElems()
@@ -134,6 +135,15 @@ class MagicDict(OrderedDict):
             self.addElemsFromKey(key)
     
     def sortElems(self):
-        for elemValDict in self.elemDict.values():
-            elemValDict = OrderedDict(sorted(elemValDict.items(), key=lambda item: item[0]))
-        self.elemDict = OrderedDict(sorted(self.elemDict.items(), key=lambda item: item[0]))
+        for key, elemValDict in self.elemDict.items():
+            self.elemDict[key] = OrderedDict(sorted(elemValDict.items(), key=lambda item: ContainerEval(item[0])))
+        self.elemDict = OrderedDict(sorted(self.elemDict.items(), key=lambda item: ContainerEval(item[0])))
+
+    @staticmethod
+    def evalElems(elems):
+        return [(elem[0], NumEval(elem[1])) for elem in elems]
+
+    # @staticmethod
+    # def sortGrid(grid):
+    #     for i in np.arange(len(grid.shape)):
+    #         grid = grid[np.lexsort(NumEval(grid['label']), axis=i)]

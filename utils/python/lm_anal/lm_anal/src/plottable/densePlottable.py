@@ -15,8 +15,8 @@ class DensePlottable(Plottable):
             self.ax.set_xlim(self.getEdgesWithPadding()[0][0], self.getEdgesWithPadding()[0][-2])
             
 #             self.ax.set_xlabel(self.axLabels[0])
-            self.ax.set_xlabel('order parameter 0')
-            self.ax.set_ylabel('counts')
+            self.ax.set_xlabel(self.getXLabel())
+            self.ax.set_ylabel(self.getYLabel())
             
         elif len(self.h_dims)==2:
             X, Y = np.meshgrid(*self.getEdgesWithPadding())
@@ -30,12 +30,9 @@ class DensePlottable(Plottable):
             self.ax.set_xlim(self.getEdgesWithPadding()[0][0], self.getEdgesWithPadding()[0][-1])
             self.ax.set_ylim(self.getEdgesWithPadding()[1][0], self.getEdgesWithPadding()[1][-1])
             
-            self.ax.set_xlabel('order parameter 1')
-            self.ax.set_ylabel('order parameter 2')
-            
-#             self.ax.set_xlabel(self.axLabels[0])
-#             self.ax.set_ylabel(self.axLabels[1])
-            
+            self.ax.set_xlabel(self.getXLabel())
+            self.ax.set_ylabel(self.getYLabel())
+
         self.resizeLabels()
         
         return self.fig, self.ax, figKwargs, axesKwargs, pltKwargs

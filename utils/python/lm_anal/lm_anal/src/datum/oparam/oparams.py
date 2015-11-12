@@ -21,16 +21,18 @@ class OParams(Data):
             protobuf=OParamsBuf()
         super().__init__(protobuf=protobuf, dataToTransform=dataToTransform, fPath=fPath, transformKwargs=transformKwargs)
     
-    def combineByID(self, oparamIDs):
-        oparams = self.getByID(oparamIDs)
+    def combineByIDs(self, oparamIDs):
+        oparams = self.sliceByKeys(oparamIDs)
+        oit = oparams.valIter()
+        first,others = next(oit),list(oit)
         try:
-            return oparams[0].combine(oparams[1:])
+            return first.combine(others)
         except AttributeError:
             raise
     
-    def getByID(self, oparamIDs):
-        oparamIDs = Tupify(oparamIDs)
-        return [self[i] for i in oparamIDs]
+    # def getByID(self, oparamIDs):
+    #     oparamIDs = Tupify(oparamIDs)
+    #     return [self[i] for i in oparamIDs]
     
     def initDatum(self, key, **kwargs):
         try:

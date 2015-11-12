@@ -1,4 +1,5 @@
-import h5py
+from copy import copy as shallowCopy
+from collections import OrderedDict
 from pathlib import Path
 
 from lm_anal.src.helper import LazyClass
@@ -13,7 +14,7 @@ class LazyMapDescriptor(object):
     this descriptor "masks" itself when called, so any given Data instance can only call it once
     '''
     def __get__(self, obj, ObjType):
-        obj.__dict__['map'] = {}
+        obj.__dict__['map'] = OrderedDict()
         if obj.dataToTransform is not None or obj.fPath is not None:
             obj.initIO()
             if obj.readIO is not None:
@@ -136,7 +137,7 @@ class Data(object):
 
     def __delitem__(self, key):
         del self.map[key]
-    
+
     def __getitem__(self, key):
         return self.map[key]
     
@@ -173,6 +174,32 @@ class Data(object):
         return the "first" entry from self.map
         '''
         return next(self.map.values().__iter__())
-    
+
+    def sliceByKeys(self, keys, inPlace=False):
+        if inPlace:
+            data = self
+        else:
+            data = shallowCopy(self)
+
+        # symmetric difference of self keys and the keys from arg
+        for oldKey in data.keys() ^ keys:
+            data.pop(oldKey)
+
+        return data
+
     def values(self):
         return self.map.values()
+
+# func mapping/vectorization methods
+    # returns an ordered dict with keys=self.map.keys and vals=result of func
+    def mapFunc(self, func, doRaise=False, **kwargs):
+        retDict = OrderedDict()
+        for key,val in self:
+            try:
+                retDict[key] = func(val, **kwargs)
+            except Exception as e:
+                if doRaise:
+                    raise e
+                else:
+                    retDict[key] = None
+        return retDict
