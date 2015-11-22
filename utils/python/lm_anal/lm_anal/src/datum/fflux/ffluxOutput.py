@@ -1,7 +1,7 @@
 import os,sys
 thisScriptDir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(thisScriptDir, '../../../python_protobuf'))
-from lm_anal.python_protobuf.lm.io.FFluxOutput_pb2 import FFluxOutput as FFluxOutputBuf
+from lm.io.FFluxOutput_pb2 import FFluxOutput as FFluxOutputBuf
 from lm_anal.src.datum import Datum, DatumPropertySpec as DPSpec, DatumPropertySpecs as DPSpecs
 from lm_anal.src.datumABC import FFluxABC
 

@@ -1,7 +1,7 @@
 from collections import OrderedDict
 import numpy as np
 
-# from lm_anal.python_protobuf.lm.io.FFluxOutput_pb2 import TrajectoryOutput as TrajectoryOutputBuf
+# from lm.io.FFluxOutput_pb2 import TrajectoryOutput as TrajectoryOutputBuf
 from lm_anal.src.datum import Datum, DatumPropertySpec as DPSpec, DatumPropertySpecs as DPSpecs
 
 __all__ = ['FFluxTrajectory']

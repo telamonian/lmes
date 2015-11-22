@@ -8,11 +8,11 @@ class OParam(Datum):
 #                      'dims':{'dtype':'int', 'paths':('dims',), 'storageType':'protobuf', 'type':'array'},                 
 #                      'rank':{'dtype':'int', 'paths':('rank',), 'storageType':'protobuf', 'type':'scalar'},
 
-    oparamSubtypeDict = {}
+    subtypeDict = {}
     
     @classmethod
     def registerSubtype(cls, typeID):
-        cls.oparamSubtypeDict[typeID] = cls
+        cls.subtypeDict[typeID] = cls
     
     @property
     def name(self):
@@ -38,5 +38,5 @@ class OParam(Datum):
         pass
     
     def setType(self, typeID):
-        self.__class__ = self.oparamSubtypeDict[typeID]
+        self.__class__ = self.subtypeDict[typeID]
         self.init()

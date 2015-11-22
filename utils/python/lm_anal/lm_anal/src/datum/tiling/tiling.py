@@ -1,24 +1,33 @@
 ASCENDING = 0
 DESCENDING = 1
 
-import numpy as np
+from lm_anal.src.datum.datumSubtypable import DatumSubtypable   #, DatumMetaclass
+from lm_anal.src.spec import DatumSpec as DatSpc, DatumSpecs as DatSpcs
 
-from lm_anal.src.datum.datum import Datum
-from lm_anal.src.datum.datum import DatumMetaclass
+class Tiling(DatumSubtypable):    #, metaclass=DatumMetaclass):
+    subtypeID = None
 
-class Tiling(Datum, metaclass=DatumMetaclass):
-    propertySpecs = {'arrangement':{'dtype':'int', 'paths':('arrangement',), 'storageType':'protobuf', 'type':'array'},
-                 'dims':{'dtype':'int', 'paths':('dims',), 'storageType':'protobuf', 'type':'array'},
-                 'edges':{'dtype':'float', 'paths':('edges',), 'storageType':'protobuf', 'type':'array'},
-                 'id':{'dtype':'int', 'paths':('id',), 'storageType':'protobuf', 'type':'scalar'},
-                 'order_parameter_id':{'dtype':'int', 'paths':('order_parameter_id',), 'storageType':'protobuf', 'type':'scalar'},
-                 'rank':{'dtype':'int', 'paths':('rank',), 'storageType':'protobuf', 'type':'scalar'},
-                 'type':{'dtype':'int', 'paths':('type',), 'storageType':'protobuf', 'type':'scalar'}}
+    propertySpecs = DatSpcs(
+        DatSpc(name='arrangement', dtype='int', paths=('arrangement',), storageType='numpy', type='array'),
+        DatSpc(name='dims', dtype='int', paths=('dims',), storageType='numpy', type='array'),
+        DatSpc(name='edges', dtype='float', paths=('edges',), storageType='numpy', type='array'),
+        DatSpc(name='id', dtype='int', paths=('id',), storageType='default', type='scalar'),
+        DatSpc(name='order_parameter_id', dtype='int', paths=('order_parameter_id',), storageType='default', type='scalar'),
+        DatSpc(name='rank', dtype='int', paths=('rank',), storageType='default', type='scalar'),
+        DatSpc(name='type', dtype='int', paths=('type',), storageType='default', type='scalar'))
+
+    # propertySpecs = {'arrangement':{'dtype':'int', 'paths':('arrangement',), 'storageType':'protobuf', 'type':'array'},
+    #                  'dims':{'dtype':'int', 'paths':('dims',), 'storageType':'protobuf', 'type':'array'},
+    #                  'edges':{'dtype':'float', 'paths':('edges',), 'storageType':'protobuf', 'type':'array'},
+    #                  'id':{'dtype':'int', 'paths':('id',), 'storageType':'protobuf', 'type':'scalar'},
+    #                  'order_parameter_id':{'dtype':'int', 'paths':('order_parameter_id',), 'storageType':'protobuf', 'type':'scalar'},
+    #                  'rank':{'dtype':'int', 'paths':('rank',), 'storageType':'protobuf', 'type':'scalar'},
+    #                  'type':{'dtype':'int', 'paths':('type',), 'storageType':'protobuf', 'type':'scalar'}}
     
-    def __init__(self, subcon, full=False):
-        super().__init__(full=full)
-        self.protobuf = subcon
-        
+    # def __init__(self, subcon, full=False):
+    #     super().__init__(full=full)
+    #     self.protobuf = subcon
+
     @property
     def name(self):
         try:
@@ -28,21 +37,6 @@ class Tiling(Datum, metaclass=DatumMetaclass):
     @name.setter
     def name(self, val):
         self._name = val
-    
-    def getEdgeIndices(self):
-        return [np.arange(start,end) for start,end in self.getEdgeIndexStartEnds()]
-    
-    def getEdgeIndexStartEnds(self):
-        '''
-        based on what's in self.dims, generates a list of tuples of indices that can be used to transform the 1D array in which self.edges is stored into a list of lists, one list for every dim
-        '''
-        return [(int(np.sum(self.dims[:i])), int(np.sum(self.dims[:i + 1]))) for i in range(self.rank)]
-    
-    def getEdges(self):
-        '''
-        rolls the 1D self.edges array into an nD list-of-lists based on what's in self.dims
-        '''
-        return [self.edges[int(np.sum(self.dims[:i])):int(np.sum(self.dims[:i + 1]))] for i in range(self.rank)]
     
 #     def __init__(self, tilingBuf, hdf5TilingGroup=None):
 #         self.protobuf = tilingBuf

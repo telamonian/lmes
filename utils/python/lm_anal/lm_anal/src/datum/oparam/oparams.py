@@ -9,7 +9,7 @@ from lm_anal.src.io.hdf5.oparam import OParamsIO
 # thisScriptDir = os.path.dirname(os.path.realpath(__file__))
 # sys.path.append(os.path.join(thisScriptDir, '../../../python_protobuf/lm/io'))
 # sys.path.append(os.path.join(thisScriptDir, '../../../python_protobuf'))
-from lm_anal.python_protobuf.lm.io.OrderParameters_pb2 import OrderParameters as OParamsBuf
+from lm.io.OrderParameters_pb2 import OrderParameters as OParamsBuf
 
 class OParams(Data):
     datumType = OParam
@@ -20,7 +20,12 @@ class OParams(Data):
         if protobuf==None:
             protobuf=OParamsBuf()
         super().__init__(protobuf=protobuf, dataToTransform=dataToTransform, fPath=fPath, transformKwargs=transformKwargs)
-    
+
+    def combine(self):
+        vit = self.valIter()
+        first,others = next(vit),list(vit)
+        return first.combine(others)
+
     def combineByIDs(self, oparamIDs):
         oparams = self.sliceByKeys(oparamIDs)
         oit = oparams.valIter()

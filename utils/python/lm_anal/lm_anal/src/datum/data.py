@@ -2,7 +2,7 @@ from copy import copy as shallowCopy
 from collections import OrderedDict
 from pathlib import Path
 
-from lm_anal.src.helper import LazyClass
+from lm_anal.src.helper import LazyClass, Setify
 
 lzTransforms = LazyClass(modName='lm_anal.src.transform', clsName='Transforms')
 
@@ -149,15 +149,15 @@ class Data(object):
 
     def keyIter(self, keys=None):
         # the keys keyword is here mostly for symmetry with valIter
-        if keys==None:
-            return self.map.keys().__iter__()
+        if keys is None:
+            yield from self.keys().__iter__()
         else:
             for key in keys:
                 yield key
 
     def valIter(self, keys=None):
-        if keys==None:
-            return self.map.values().__iter__()
+        if keys is None:
+            yield from self.values().__iter__()
         else:
             for key in keys:
                 yield self[key]
@@ -180,15 +180,20 @@ class Data(object):
             data = self
         else:
             data = shallowCopy(self)
+            data.map = shallowCopy(self.map)
 
         # symmetric difference of self keys and the keys from arg
-        for oldKey in data.keys() ^ keys:
+        for oldKey in set(data.keys()) ^ Setify(keys):
             data.pop(oldKey)
 
         return data
 
     def values(self):
         return self.map.values()
+
+# mutators
+    def pop(self, key):
+        return self.map.pop(key)
 
 # func mapping/vectorization methods
     # returns an ordered dict with keys=self.map.keys and vals=result of func

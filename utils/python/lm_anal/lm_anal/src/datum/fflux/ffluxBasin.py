@@ -1,4 +1,4 @@
-# from lm_anal.python_protobuf.lm.io.FFluxOutput_pb2 import BasinOutput as BasinOutputBuf
+# from lm.io.FFluxOutput_pb2 import BasinOutput as BasinOutputBuf
 from lm_anal.src.datum import Datum, DatumPropertySpec as DPSpec, DatumPropertySpecs as DPSpecs
 
 __all__ = ['FFluxBasin']

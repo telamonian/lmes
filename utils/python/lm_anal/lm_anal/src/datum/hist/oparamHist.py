@@ -11,24 +11,28 @@ class OParamHist(Hist):
         super().__init__(full=full)
         
     def setTilings(self, oparams, tilings, tilingIDs):
-        # TODO: move the setTilings functionality to the Tiling package, ie give Tiling objects a combine method like OParam objects have now
         self.tilings = tilings.sliceByKeys(tilingIDs)
         self.oparams = oparams.sliceByKeys([tiling.order_parameter_id for tiling in self.tilings.valIter()])
+        #
+        # dims = []
+        # edges = []
+        #
+        #
+        #
+        #
+        #
+        # for tiling in tilings.getByID(tilingIDs):
+        #     oparamIDs.append(tiling.order_parameter_id)
+        #     dims.append(len(tiling.edges) + 1)
+        #     edges.append(np.array(tiling.edges))
 
-        dims = []
-        edges = []
 
-
-
-
-
-        for tiling in tilings.getByID(tilingIDs):
-            oparamIDs.append(tiling.order_parameter_id)
-            dims.append(len(tiling.edges) + 1)
-            edges.append(np.array(tiling.edges))
-        
-        self.oparam = self.oparams[0].combine(self.oparams[1:])        
-        self.initH(dims=np.array(dims), edges=np.hstack(edges))
+        self.oparam = self.oparams.combine()
+        self.tiling = self.tilings.combine()
+        # self.oparam = self.oparams[0].combine(self.oparams[1:])
+        # self.tiling = self.tilings[0].combine(self.tilings[1:])
+        #self.initH(dims=np.array(dims), edges=np.hstack(edges))
+        self.initH(dims=(self.tiling.dims + 1), edges=self.tiling.edges)
 
 # plotting stuff
     def getXLabel(self):

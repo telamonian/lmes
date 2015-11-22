@@ -16,8 +16,8 @@ class Hist(Datum, DensePlottable):
 # class attributes
     propertySpecs = DPSpecs(#DPSpec(name='dims', dtype='float', storageType='numpy', type='array'),
                             #DPSpec(name='edges', dtype='float', storageType='numpy', type='array'),
-                            DPSpec(name='h', dtype='float', storageType='numpy', type='histogram'),
-                            DPSpec(name='tilings', paths=('tilings',), SubDataType=Tiling, type='subData'))
+                            DPSpec(name='h', dtype='float', storageType='numpy', type='histogram'))
+                            # DPSpec(name='tilings', paths=('tilings',), SubDataType=Tiling, type='subData')
 
 # operator overrides
     def __add__(self, other):

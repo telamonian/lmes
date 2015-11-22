@@ -32,7 +32,7 @@ class SweepTup(object):
         return [self.label % self.labelVals[i] for i in range(len(self.inputTupss))]
     
 class Sweep(object):
-    def __init__(self, cpu_count, host, jobTypeName, lm_bin, lm_file_path, rootPath, diagonal=False, inputTupsDefault=None, lmArgsGpusPerReplicate=0, lmArgsIntout=False, lm_sampling_rate=None, lm_sampling_time=None, pass_exe=None, queue=None, replicateRange=(1,10), sweepTups=None, sweepTupX=None, sweepTupY=None, useForwardFlux=False, user_id=None, user_mail=None):
+    def __init__(self, cpu_count, host, jobTypeName, lm_bin, lm_file_path, rootPath, diagonal=False, inputTupsDefault=None, lmArgsGpusPerReplicate=0, lmArgsIntout=False, lm_sampling_rate=None, lm_sampling_time=None, pass_exe=None, queue=None, replicateRange=(1,10), sweepTups=None, sweepTupX=None, sweepTupY=None, useForwardFlux=False, useSFile=False, user_id=None, user_mail=None):
         self.cpu_count = cpu_count
         self.diagonal = diagonal
         self.host = host
@@ -50,16 +50,20 @@ class Sweep(object):
         self.user_mail = user_mail
         
         self.lm_args_dict = {'cpus_per_replicate':           ('-cr',     '1'),
-                             'file_format':                  ('-ff',     'sfile'),
-                             'output_filename':              ('-fo',     '%s.sfile' % self.lmFileName.split('.')[0]),
                              'gpus_per_replicate':           ('-gr',     lmArgsGpusPerReplicate),
                              'solver_class':                 ('-sl',     'lm::cme::GillespieDSolver')}
         
         if lmArgsIntout:
-            self.lm_args_dict['record_intermediate_output'] = ('-intout','')
+            self.lm_args_dict['record_intermediate_output'] = ('-intout', '')
         
         if useForwardFlux:
-            self.lm_args_dict['use_forward_flux_sampling'] = ('-fflux',  '')
+            self.lm_args_dict['use_forward_flux_sampling'] = ('-fflux', '')
+
+        if useSFile:
+            self.lm_args_dict['file_format'] = ('-ff', 'sfile')
+            self.lm_args_dict['output_filename'] = ('-fo', '%s.sfile' % self.lmFileName.split('.')[0])
+        else:
+            self.lm_args_dict['file_format'] = ('-ff', 'hdf5')
         
         self.inputTupsDefault = inputTupsDefault
         # sweepTups can be provided to the __init__ either as (sweepTupX and/or sweepTupY) or simply as a list of sweepTups

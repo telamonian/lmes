@@ -1,6 +1,6 @@
 import os, sys
 
-from lm_anal.python_protobuf.lm.io.TrajectoryState_pb2 import TrajectoryState as TrajectoryStateBuf
+from lm.io.TrajectoryState_pb2 import TrajectoryState as TrajectoryStateBuf
 from lm_anal.src.datum import Datum
 from lm_anal.src.datumABC.trajectory import TrajectoryABC
 from lm_anal.src.spec import DatumSpec, DatumSpecs

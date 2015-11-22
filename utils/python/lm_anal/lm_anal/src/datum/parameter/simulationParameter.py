@@ -1,6 +1,6 @@
 import numpy as np
 
-from lm_anal.python_protobuf.lm.io.SimulationParameters_pb2 import SimulationParameters as SimulationParametersBuf
+from lm.io.SimulationParameters_pb2 import SimulationParameters as SimulationParametersBuf
 from lm_anal.src.datum import Datum, DatumMetaclass, DatumPropertySpec, DatumPropertySpecs
 
 class SimulationParameter(Datum, metaclass=DatumMetaclass):

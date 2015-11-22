@@ -191,7 +191,8 @@ class DatumMetaclass(type):
         if 'propertySpecs' in dct:
             for name,spec in dct['propertySpecs'].items():
                 SetPropertyBySpec(name, spec, dct)
-        return super(DatumMetaclass, cls).__new__(cls, clsname, bases, dct)
+        # return super(DatumMetaclass, cls).__new__(cls, clsname, bases, dct)
+        return super().__new__(cls, clsname, bases, dct)
     
     # TODO: reorg things so that this property is called 'propertySpecs' and the class atribute is '_propertySpecs'
     @property

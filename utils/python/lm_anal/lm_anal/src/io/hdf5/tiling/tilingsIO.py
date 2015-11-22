@@ -14,7 +14,7 @@ class TilingsIO(HDF5IO):
                           HDF5Spec(fullOnly=False, name='id', subKey='ID', type='attribute'),
                           HDF5Spec(fullOnly=False, name='order_parameter_id', subKey='OrderParameterID', type='attribute'),
                           HDF5Spec(fullOnly=False, name='rank', subKey='Edges', type='special'),
-                          HDF5Spec(fullOnly=False, name='type', subKey='Type', type='attribute'))
+                          HDF5Spec(fullOnly=False, name='type', subKey='Type', type='special'))
     
     def __init__(self, fPath):
         super().__init__(fPath)
@@ -37,8 +37,12 @@ class TilingsIO(HDF5IO):
                     raise ValueError
         return arrangement
 
+    def inputDims(self, hdf5Path, hdf5Spec, subCon, full):
+        subCon.setArray(name=hdf5Spec.name, val=np.array(self.file[hdf5Path][hdf5Spec.subKey].shape))
+
     def inputRank(self, hdf5Path, hdf5Spec, subCon, full):
         subCon.setScalar(name=hdf5Spec.name, val=len(self.file[hdf5Path][hdf5Spec.subKey].shape))
 
-    def inputDims(self, hdf5Path, hdf5Spec, subCon, full):
-        subCon.setArray(name=hdf5Spec.name, val=np.array(self.file[hdf5Path][hdf5Spec.subKey].shape))
+    def inputType(self, hdf5Path, hdf5Spec, subCon, full):
+        subCon.setType(typeID=self.file[hdf5Path].attrs[hdf5Spec.subKey])
+        self.inputAttribute(hdf5Path, hdf5Spec, subCon)
