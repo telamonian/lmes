@@ -25,7 +25,7 @@ class DensePlottable(Plottable):
             else:
                 pltKwargs['norm'] = Normalize()
             im = self.ax.pcolormesh(X, Y, self.plotData, **pltKwargs)
-#             self.plotColorbar(im)
+            self.plotColorbar(im)
             
             self.ax.set_xlim(self.getEdgesWithPadding()[0][0], self.getEdgesWithPadding()[0][-1])
             self.ax.set_ylim(self.getEdgesWithPadding()[1][0], self.getEdgesWithPadding()[1][-1])
