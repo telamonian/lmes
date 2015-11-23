@@ -196,8 +196,8 @@ class Data(object):
         return self.map.pop(key)
 
 # func mapping/vectorization methods
-    # returns an ordered dict with keys=self.map.keys and vals=result of func
     def mapFunc(self, func, doRaise=False, **kwargs):
+        # returns an ordered dict with keys=self.map.keys and vals=result of func
         retDict = OrderedDict()
         for key,val in self:
             try:

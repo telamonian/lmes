@@ -90,7 +90,14 @@ class Hist(Datum, DensePlottable):
         uniqueSamples,uniqueCounts = np.unique(raveledSamples, return_counts=True) 
         #np.column_stack(np.unravel_index(np.unique(raveledSamples, return_counts=True)[0], self.h_raw.shape) + (np.unique(raveledSamples, return_counts=True)[1],))
         return np.column_stack(np.unravel_index(uniqueSamples, self.h_raw.shape) + (uniqueCounts,))
-                    
+
+    def getBinCenters(self):
+        centers = []
+        for edgeArr in self.getEdgeArrays():
+            edgeDiff = (edgeArr[1:] - edgeArr[:-1])/2
+            centers.append(np.concatenate(((edgeArr[0] - edgeDiff[0],), edgeArr[:-1] + edgeDiff, (edgeArr[-1] + edgeDiff[-1],))))
+        return centers
+
     def getDownsampleFromRaw(self, nSample=None, frac=.1):
         '''
         get a downsampled copy of this histogram based on the counts in h_raw, with number of samples=nSamples
@@ -104,19 +111,22 @@ class Hist(Datum, DensePlottable):
         samples = self.drawIndicesFromRaw(nSample)
         downHist.addObservationsByIndex(samples)
         return downHist
-        
-    def getEdgeIndices(self):
-        '''
-        based on what's in self.dims, generates a list of tuples of indices that can be used to transform the 1D protobuf array in which self.edges is stored into a list of lists, one list for every dim
-        '''
-        return [(int(np.sum(self.rDims[:i])), int(np.sum(self.rDims[:i + 1]))) for i in range(self.rank)]
-    
+
     def getEdges(self):
         '''
         rolls the 1D self.edges array into an nD array based on what's in self.dims
         '''
         return [self.h_edges[int(np.sum(self.rDims[:i])):int(np.sum(self.rDims[:i + 1]))] for i in range(self.rank)]
-    
+
+    def getEdgeArrays(self):
+        return [np.array(edgeList) for edgeList in self.getEdges()]
+
+    def getEdgeIndices(self):
+        '''
+        based on what's in self.dims, generates a list of tuples of indices that can be used to transform the 1D protobuf array in which self.edges is stored into a list of lists, one list for every dim
+        '''
+        return [(int(np.sum(self.rDims[:i])), int(np.sum(self.rDims[:i + 1]))) for i in range(self.rank)]
+
     def getEdgesWithPadding(self, paddingWidth=1):
         eWP = []
         for edges in self.getEdges():
@@ -212,6 +222,19 @@ class Hist(Datum, DensePlottable):
             it.iternext()
         val = np.sqrt(val/count)
         return val
+
+    def split(self, n=2):
+        splitHists = [self.getCopy() for i in range(n)]
+        probabilities = [1/float(n)]*n
+        for i,val in enumerate(self.h.ravel()):
+            for j,splitVal in enumerate(np.random.multinomial(val, probabilities)):
+                splitHists[j].h_raw.ravel()[i] = splitVal
+
+        # mark the cache of all the hists as dirty
+        for hist in splitHists:
+            hist.h_cache_dirty = True
+
+        return splitHists
     
 # mutators
     def addObservations(self, obs):
@@ -241,11 +264,14 @@ class Hist(Datum, DensePlottable):
         self.h_raw[:] = 0
         self.h_cache_dirty = True
     
-    def combine(self, *others, autothreshold=False, otherMask=None):
+    def combine(self, *others, autothreshold=False, inPlace=False, otherMask=None):
         '''
         method to additively combine many histograms
         self.h.shape must == other.h.shape, but they can be otherwise dissimilar (different total N, different normalization, etc.)
-        ''' 
+        '''
+        if inPlace:
+            self.combineInPlace(*others, autothreshold=autothreshold, otherMask=otherMask)
+            return self
         retVal = self.getCopy()
         retVal.initH()
         for other in chain([self], others):

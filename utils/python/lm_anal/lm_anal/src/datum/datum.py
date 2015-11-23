@@ -103,14 +103,17 @@ def DefNPHistogramProp(name, spec, dct):
     
     def reslice(self, slyce):
         '''
-        unfinished for now, still needs to be able to reshape edges
+        unfinished for now, still needs to be able to reshape edges properly
         '''
+        # this should(?) get rewritten so it can operate on any arbitrary .edges and not just .h_edges (ie factor out .getEdges())
+        self.__setattr__(edgesName, np.concatenate([edges[sly][:-1] for edges,sly in zip(self.getEdges(), slyce)]))
+
         self.__setattr__(name, self.__getattribute__(name)[slyce])
         self.__setattr__(raw, self.__getattribute__(raw)[slyce])
         self.__setattr__(mask, self.__getattribute__(mask)[slyce])
 
         self.__setattr__(dimsName, self.__getattribute__(name).shape)
-        
+
     dct['reslice' + CamelCaseUpper(name)] = reslice
     
 def DefProtoArrayProp(name, spec, dct):

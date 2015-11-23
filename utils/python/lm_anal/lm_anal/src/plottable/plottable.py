@@ -6,6 +6,8 @@ import numpy as np
 from lm_anal.src.helper import POINTS_PER_INCH
 
 class Plottable(object):
+    # these attrs should not be copied when making a deepcopy of this object
+    doNotCopyAttrs = ['ax', 'axcolor', 'cbar', 'fig', 'im']
     initialized = False
     
     # to deal with the fact that matplotlib objects don't play well with deepcopy
@@ -14,10 +16,8 @@ class Plottable(object):
         result = cls.__new__(cls)
         memo[id(self)] = result
         for k, v in self.__dict__.items():
-            if k=='fig':
-                result.fig = None
-            elif k=='ax':
-                result.ax = None
+            if k in self.doNotCopyAttrs:
+                result.__setattr__(k, None)
             else:
                 setattr(result, k, deepcopy(v, memo))
         return result
@@ -28,6 +28,9 @@ class Plottable(object):
             Plottable.initialized = True
     
     def plot(self, fig=None, ax=None, scale='log', figKwargs=None, axesKwargs=None, pltKwargs=None):
+        # init attrs directly from args
+        self.scale = scale
+
         self.initPlottingEnvironment()
         
         if axesKwargs is None:
@@ -72,19 +75,21 @@ class Plottable(object):
         self.resizeAxisLabels(fontSize)
         self.resizeTickLabels(fontSize)
     
-    def resizeAxisLabels(self, fontSize=None):
+    def resizeAxisLabels(self, ax=None, fontSize=None):
+        ax = self.ax if ax is None else ax
         if fontSize==None:
             fontSizes = self.getFontSizesFromAxesSize()
         else:
             fontSizes = [fontSize]*2
 
-        for i,axis in enumerate((self.ax.get_xaxis(), self.ax.get_yaxis())):
+        for i,axis in enumerate((ax.get_xaxis(), ax.get_yaxis())):
             axis.get_label().set_size(fontSizes[i])
     
-    def resizeTickLabels(self, fontSize=None):
+    def resizeTickLabels(self, ax=None, fontSize=None):
+        ax = self.ax if ax is None else ax
         if fontSize==None:
             fontSize = np.min(self.getFontSizesFromAxesSize())
         
-        for axis in (self.ax.get_xaxis(), self.ax.get_yaxis()):
+        for axis in (ax.get_xaxis(), ax.get_yaxis()):
             for tickLabel in axis.get_majorticklabels():
                 tickLabel.set_size(fontSize)

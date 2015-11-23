@@ -8,6 +8,14 @@ __all__ = ['MagicDict']
 class MagicDict(OrderedDict):
     gridDType = [('obj', 'O'), ('label', 'O')]
 
+    @staticmethod
+    def getElemFromKey(elemKey, key):
+        for elem in key:
+            if elemKey==elem[0]:
+                return elem[1]
+        # we got here cuz we didn't find anything
+        raise KeyError('could not find elemKey: %s in key: %s' % (elemKey, key))
+
     def __init__(self, *args, **kwargs): 
         OrderedDict.__init__(self, *args, **kwargs)
         self.elemDict = OrderedDict()
@@ -19,23 +27,44 @@ class MagicDict(OrderedDict):
         self.popElemsFromKey(key)
         OrderedDict.__delitem__(self, key)
     
-    def __getitem__(self, key):
-        key = Frozensetify(key)
+    def __getitem__(self, keyTups):
+        # ignore the order of the (elemKey, elemVal) tuples
+        keySet = Frozensetify(keyTups)
         try:
-            return OrderedDict.__getitem__(self, key)
+            return self._get(keySet=keySet)
         except KeyError:
-            newDict = MagicDict()
-            anyFound = False
-            for oldKey,oldVal in self.items():
-                if key<=oldKey:
-                    newDict[oldKey] = oldVal
-                    anyFound = True
-            if anyFound:
-                newDict.sortElems()
-                return newDict
-            else:
-                raise KeyError
-    
+            try:
+                # _get may have failed because the user entered a tup instead of a tup-of-tups for the key, so try to fix that
+                keySet = Frozensetify((keyTups,))
+                return self._get(keySet=keySet)
+            except TypeError:
+                # maybe make this a less soft fail
+                return None
+
+    def _get(self, keySet):
+        try:
+            # if you specified an **exact** key, return the matching value
+            return self._getExact(keySet=keySet)
+        except KeyError:
+            # otherwise, if your key partially matches any keys in the magicDict, return a new magicDict with only the matching items
+            return self._query(keySet=keySet)
+
+    def _getExact(self, keySet):
+        return OrderedDict.__getitem__(self, keySet)
+
+    def _query(self, keySet):
+        newDict = MagicDict()
+        anyFound = False
+        for oldKeySet,oldVal in self.items():
+            if keySet<=oldKeySet:
+                newDict[oldKeySet] = oldVal
+                anyFound = True
+        if anyFound:
+            newDict.sortElems()
+            return newDict
+        else:
+            raise KeyError("keySet: %s did not partially match any keys in this %s" % (keySet, self.__class__.__name__))
+
     def __setitem__(self, key, val):
         key = Frozensetify(key)
         self.addElemsFromKey(key)
@@ -67,7 +96,14 @@ class MagicDict(OrderedDict):
         gridElems, singletonElems = self.getGridElemsWithSingletons()
         gridElemKeys = [gridElem[0] for gridElem in gridElems]
         gridElemVals = [gridElem[1] for gridElem in gridElems]
-        grid = np.zeros([len(elemVals) for elemVals in gridElemVals], dtype=self.gridDType)
+
+        gridShape = [len(elemVals) for elemVals in gridElemVals]
+        # a lot of later code expects grid to be 2D, so coerce 1D grids into (1,X) grids
+        if len(gridShape)==0:
+            gridShape = (1, 1)
+        elif len(gridShape)==1:
+            gridShape.append(1)
+        grid = np.zeros(gridShape, dtype=self.gridDType)
 #         elemValMeshgrid = np.meshgrid(*gridElemVals)
         it = np.nditer(grid, flags=['multi_index', 'refs_ok'])
         for gridSpot in it:
@@ -108,7 +144,13 @@ class MagicDict(OrderedDict):
             else:
                 gridElems.append((elemKey, list(elemValDict.keys())))
         return gridElems, singletonElems
-    
+
+    def peek(self):
+        '''
+        return the "first" entry from self
+        '''
+        return next(self.values().__iter__())
+
     def popElem(self, elem):
         elemValDict = self.elemDict[elem[0]]
         
@@ -139,9 +181,9 @@ class MagicDict(OrderedDict):
             self.elemDict[key] = OrderedDict(sorted(elemValDict.items(), key=lambda item: ContainerEval(item[0])))
         self.elemDict = OrderedDict(sorted(self.elemDict.items(), key=lambda item: ContainerEval(item[0])))
 
-    @staticmethod
-    def evalElems(elems):
-        return [(elem[0], NumEval(elem[1])) for elem in elems]
+    # @staticmethod
+    # def evalElems(elems):
+    #     return [(elem[0], NumEval(elem[1])) for elem in elems]
 
     # @staticmethod
     # def sortGrid(grid):

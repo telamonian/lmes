@@ -85,23 +85,26 @@ class Sims(object):
             self.initSim(key, fPath, **kwargs)
             
 # magic!
+    def _call(self, *args, **kwargs):
+        newDict = MagicDict()
+        for oldKey,oldVal in self.map.items():
+            if oldVal is None:
+                newDict[oldKey] = None
+            else:
+                try:
+                    newDict[oldKey] = oldVal.__call__(*args, **kwargs)
+                except:
+                    newDict[oldKey] = None
+        newSims = self.getShallowCopy()
+        newSims.map = newDict
+        return newSims
+
     def __call__(self, *args, **kwargs):
         archetype = next(self.map.values().__iter__())
         if hasattr(archetype, '__name__') and archetype.__name__[:4]=='plot':
             self._plotGrid(self, *args, **kwargs)
         else:
-            newDict = MagicDict()
-            for oldKey,oldVal in self.map.items():
-                if oldVal is None:
-                    newDict[oldKey] = None
-                else:
-                    try:
-                        newDict[oldKey] = oldVal.__call__(*args, **kwargs)
-                    except:
-                        newDict[oldKey] = None
-            newSims = self.getShallowCopy()
-            newSims.map = newDict
-            return newSims
+            return self._call(*args, **kwargs)
 
     def __delitem__(self, key):
         del self.map[key]
@@ -116,7 +119,9 @@ class Sims(object):
             return val
     
     def __getattr__(self, name):
+        # this gets called if an attr isn't found in this Sims object
         if name=='__setstate__':    # or name=='__copy__' or name=='__reduce_ex__':
+            # this is __getattr__ speak for 'you're out of luck, buddy'
             raise AttributeError
         if self.copying:
             raise AttributeError
@@ -143,11 +148,11 @@ class Sims(object):
     def _addGridGlobalLabels(self, fig, xLabel=None, yLabel=None):
         fontSizeX,fontSizeY = self._getFontSizesFromFigSize(fig)
 
-        ax = fig.add_subplot(111)#, zorder=-1000)
+        ax = fig.add_subplot(111, zorder=-1000)
         HideAxesFrame(ax)
 
         ax.set_xlabel(xLabel, size=fontSizeX)
-        ax.set_ylabel(yLabel, size=fontSizeY)
+        ax.set_ylabel(yLabel, labelpad=5, size=fontSizeY)
 
         # xPad = self._getFigPadFracFromFontSize(dim=0, fig=fig, fontSize=fontSizeX)
         # yPad = self._getFigPadFracFromFontSize(dim=1, fig=fig, fontSize=fontSizeY)
@@ -163,6 +168,10 @@ class Sims(object):
         return (fontSizeX, fontSizeY)
 
     def _addGridColumnLabels(self, axArr, grid):
+        # if there's only one column, skip this
+        if grid.shape[0] < 2:
+            return
+
         pad = 5 # in points
         columnLabels = self._genGridColumnLabels(grid)
 
@@ -172,6 +181,10 @@ class Sims(object):
                         size='large', ha='center', va='baseline')
 
     def _addGridRowLabels(self, axArr, grid):
+        # if there's only one row, skip this
+        if grid.shape[1] < 2:
+            return
+
         pad = 5 # in points
         rowLabels = self._genGridRowLabels(grid)
 
@@ -181,8 +194,9 @@ class Sims(object):
                         size='large', ha='left', va='center', rotation='vertical')
 
     def _formatGridPlot(self, fig, axArr, grid):
-        figXLabel = grid['obj'].ravel()[0].getXLabel()        #axArr.ravel()[0].get_xlabel()
-        figYLabel = grid['obj'].ravel()[0].getYLabel()        #axArr.ravel()[0].get_ylabel()
+        # the grid cotains bound functions instead of datums, so we need the below ugliness to get at datum.getXLabel()
+        figXLabel = grid['obj'].ravel()[0].__self__.getXLabel()        #axArr.ravel()[0].get_xlabel()
+        figYLabel = grid['obj'].ravel()[0].__self__.getYLabel()        #axArr.ravel()[0].get_ylabel()
         for ax in axArr.ravel():
             # once for x...
             ax.set_xlabel('')
@@ -193,6 +207,9 @@ class Sims(object):
 
             # and once for y
             ax.set_ylabel('')
+
+            # for now, set every axes to have an equal aspect ratio. may want to add way to turn this on/off at the datum level
+            ax.set_aspect('equal')
 
         self._addGridRowLabels(axArr, grid)
         self._addGridColumnLabels(axArr, grid)
@@ -236,9 +253,15 @@ class Sims(object):
         args = list(args); args.pop(0)
         grid,singletonElems = self.getGrid()
 
-        axArrShape = (np.product(grid.shape[1::2]), np.product(grid.shape[::2]))
+        # unroll higher-D grids into 2D grids
+        axArrShape = (np.product(grid.shape[1::2], dtype=int), np.product(grid.shape[::2], dtype=int))
         fig, axArr = plt.subplots(*axArrShape, gridspec_kw={}, sharex=True, sharey=True)
-        fig.set_size_inches(np.array(axArrShape)[1]*8, np.array(axArrShape)[0]*6)
+        # .subplots() flattens away dimensions of length 1, but we want a 2D axArr so add them back in if necessary
+        if not isinstance(axArr, np.ndarray):
+            axArr = np.array([axArr], dtype='O').reshape(1,1)
+        elif len(axArr.shape) < 2:
+            axArr = axArr.reshape(1,-1)
+        fig.set_size_inches(np.array(axArrShape)[1]*8, np.array(axArrShape)[0]*8)
         fig.tight_layout()
         # delay turning any axes off until after formatting to preserve correct placement/spacing
         badAxes = []
@@ -262,16 +285,39 @@ class Sims(object):
         self.copying = False
         retCopy.copying = False
         return retCopy
-    
+
+# explicit functional methods for dealing with objects in the underlying MagicDict
+    def call(self, *args, **kwargs):
+        return self._call(*args, **kwargs)
+
+    def get(self, name):
+        return self.__getattr__(name)
+
+    def getItem(self, name):
+        return self.get('__getitem__')(name)
+
+# explicit functional methods for "collapsing" the Sims object and returning simple iterators/lists, or in some cases values
+    def getItems(self):
+        return list(self.items())
+
+    def getKeys(self):
+        return list(self.keys())
+
+    def getValues(self):
+        return list(self.values())
+
     def items(self):
         return self.map.items()
-    
+
     def keys(self):
         return self.map.keys()
-    
+
+    def peek(self):
+        return self.map.peek()
+
     def values(self):
         return self.map.values()
-    
+
 #     def map(self, recipeName, **kwargs):
 #         self.__getattribute__('%sMap' % recipeName)(**kwargs)
 #         

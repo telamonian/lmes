@@ -10,7 +10,7 @@ class SparsePlottable(Plottable):
         for dataCol in self.plotData.T:
             self.ax.plot(self.getEdgesWithPadding()[0][:-1], dataCol, **pltKwargs)
         
-        if scale=='log':
+        if self.scale=='log':
             self.ax.set_yscale('log')
         
         self.ax.set_xlim(self.getEdgesWithPadding()[0][0], self.getEdgesWithPadding()[0][-2])
