@@ -6,9 +6,18 @@ import numpy as np
 from lm_anal.src.helper import POINTS_PER_INCH
 
 class Plottable(object):
+    # TODO: doNotCopyAttrs should be subject to cooperative multiple inheritance. Can this be implmented in a metaclass?
     # these attrs should not be copied when making a deepcopy of this object
-    doNotCopyAttrs = ['ax', 'axcolor', 'cbar', 'fig', 'im']
+    doNotCopyAttrs = ['ax', 'axcolor', 'cbar', 'fig', 'im'] + ['file']
     initialized = False
+
+    # make a set of color maps with reasonable 'bad' values
+    Dummy = type('Dummy', (object,), {})
+    cmBad = Dummy()
+    for name,attr in matplotlib.cm.__dict__.items():
+        if isinstance(attr, matplotlib.colors.LinearSegmentedColormap):
+            cmBad.__setattr__(name, deepcopy(attr))
+            cmBad.__getattribute__(name).set_bad(attr(0))
     
     # to deal with the fact that matplotlib objects don't play well with deepcopy
     def __deepcopy__(self, memo):
@@ -19,12 +28,16 @@ class Plottable(object):
             if k in self.doNotCopyAttrs:
                 result.__setattr__(k, None)
             else:
-                setattr(result, k, deepcopy(v, memo))
+                try:
+                    setattr(result, k, deepcopy(v, memo))
+                except TypeError:
+                    pass
         return result
     
     def initPlottingEnvironment(self):
         if not Plottable.initialized:
             matplotlib.rcParams.update({'font.size': 20, 'axes.formatter.limits':(-4,4)})
+
             Plottable.initialized = True
     
     def plot(self, fig=None, ax=None, scale='log', figKwargs=None, axesKwargs=None, pltKwargs=None):
@@ -93,3 +106,8 @@ class Plottable(object):
         for axis in (ax.get_xaxis(), ax.get_yaxis()):
             for tickLabel in axis.get_majorticklabels():
                 tickLabel.set_size(fontSize)
+
+    def savefig(self, *args, **kwargs):
+        if 'bbox_inches' not in kwargs:
+            kwargs['bbox_inches'] = 'tight'
+        plt.savefig(*args, **kwargs)

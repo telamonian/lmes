@@ -21,12 +21,12 @@ class OParamHist(Hist):
 # plotting stuff
     def getXLabel(self):
         if len(self.h_dims)>1:
-            return 'total A (in all molecules)'
+            return r'total A ($A+2 \cdot A_2+2 \cdot OA_2$)'
         else:
             return 'total B - total A'
 
     def getYLabel(self):
         if len(self.h_dims)>1:
-            return 'total B (in all molecules)'
+            return r'total B ($B+2 \cdot B_2+2 \cdot OB_2$)'
         else:
             return 'counts'

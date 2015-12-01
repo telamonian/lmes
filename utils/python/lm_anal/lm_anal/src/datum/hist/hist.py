@@ -235,6 +235,16 @@ class Hist(Datum, DensePlottable):
             hist.h_cache_dirty = True
 
         return splitHists
+
+    def splitCumSum(self, n=2):
+        '''
+        good for animating brute force histograms
+        '''
+        splits = np.array(self.split(n=n), dtype='O')
+        for i in range(splits.size):
+            for j in range(i+1, splits.size):
+                splits.ravel()[i]+=splits.ravel()[j]
+        return splits
     
 # mutators
     def addObservations(self, obs):

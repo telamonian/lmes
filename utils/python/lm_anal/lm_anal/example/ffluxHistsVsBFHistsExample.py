@@ -1,15 +1,21 @@
 from collections import OrderedDict
+from copy import deepcopy
 from itertools import chain
 import numpy as np
 import os
 from pathlib import Path
 
+from lm_anal.src.datum.hist import OParamHist
 from lm_anal.src.helper import ContainerEval, timewith
 from lm_anal.src.magicDict.magicDict import MagicDict
 from lm_anal.src.main import Sim, Sims
+from lm_anal.src.plottable import Plottable
+
+# fix some issues with deepcopy() caused by the monkeypatching this script does
+Plottable.doNotCopyAttrs+=['hist1D']
 
 thisScriptDir = Path(os.path.dirname(os.path.realpath(__file__)))
-inputFilePath = (thisScriptDir / Path('../test/testData/biphasic_switch.lm')).resolve()
+inputFilePath = (thisScriptDir / Path('../../../../../regression/biphasic_switch.lm')).resolve()
 bfRootPath = (thisScriptDir / Path('../../../../../regression/genetic_toggle_switch_test_data')).resolve()
 # ffluxRootPath = Path('/Users/tel/temp_data/gts_fflux_barrier_height_vs_crossingsPerPhase_sweep_long').resolve()
 # ffluxRootPath = Path('../../../../../regression/biphasic_switch.lm')
@@ -21,8 +27,8 @@ class FFluxHistsVsBFHistsExample(object):
             self.clearLmint()
         self.lmintOnly = lmintOnly
         # inputSim stuff
-#         self.inputFilePath = inputFilePath
-#         self.inputSim = Sim(fPath=self.inputFilePath)
+        self.inputFilePath = inputFilePath
+        self.inputSim = Sim(fPath=self.inputFilePath)
         
         # bfSims stuff
         self.bfRootPath = bfRootPath
@@ -69,32 +75,83 @@ class FFluxHistsVsBFHistsExample(object):
             print('could not make FFluxHist objects')
             pass
 
-        self.genKLDiv()
-        self.assignBFHist()
+        self.assignBFHist(normalizeBF=False)
+        # self.genKLDiv()
 
-    def assignBFHist(self):
+
+    def assignBFHist(self, normalizeBF=True):
         '''
         "assign" the proper bfHist to each of the ffluxHists
         '''
-        for ffluxKey,ffluxSim in self.ffluxSims.items():
-            ffluxHist2D = ffluxSim.ffluxHists[('InterfaceTilingID', 0), ('BinTilingIDs', (1,2))]
-            theta = MagicDict.getElemFromKey('theta', ffluxKey)
-            ffluxHist2D.bfHist = self.bfSims[self.ffluxBFConversionDict[theta]].oparamHists['Sum']
+        for dim in (1,2):
+            for ffluxKey in self.ffluxSims.keys():
+                theta = MagicDict.getElemFromKey('theta', ffluxKey)
+                bfAKey = self.ffluxBFConversionDict[theta]
 
-    def genKLDiv(self):
-        for ffluxKey,ffluxSim in self.ffluxSims.items():
-            ffluxHist2D = ffluxSim.ffluxHists[('InterfaceTilingID', 0), ('BinTilingIDs', (1,2))]
-            theta = MagicDict.getElemFromKey('theta', ffluxKey)
-            bfHist = self.bfSims[self.ffluxBFConversionDict[theta]].oparamHists['Sum']
+                bfHist = self.getBFHistByKeyDim(bfAKey, dim)
+                if normalizeBF:
+                    bfHist.normalize()
+                ffluxHist = self.getFFluxHistByKeyDim(ffluxKey, dim)
+                ffluxHist.bfHist = bfHist
 
-            # zeroMask = np.logical_or(ffluxHist2D.h==0, bfHist.h==0)
+    def clearLmint(self):
+        if ffluxRootPath.is_file():
+            lmintList = [ffluxRootPath.with_suffix('.lmint')]
+        else:
+            lmintList = ffluxRootPath.rglob('*.lmint')
+            for lmintPath in lmintList:
+                try:
+                    lmintPath.unlink()
+                except FileNotFoundError:
+                    pass
+
+    def gen1DBFHists(self):
+        '''
+        gen the 1D equivalent for every 2D brute force hist in the dataset, then add them to the 2D hist as .hist1D
+        '''
+        for bfKey,bfSim in self.bfSims.items():
+            bfHist2D = bfSim.oparamHists['Sum']
+            bfHist1D = OParamHist()
+            bfHist1D.setTilings(self.inputSim.oparams, self.inputSim.tilings, tilingIDs=[3])
+            for i,edge in enumerate(bfHist1D.h_edges):
+                # an off-by-one error is introduced by the tracing procedure, fix it by indexing bfHist1D with i+1
+                bfHist1D.h_raw[i+1] = bfHist2D.h.trace(offset=int(edge))
+            bfHist2D.hist1D = bfHist1D
+        self._ran_gen1DBFHists = True
+
+    def genKLDiv(self, dim=1, mask1DExtremes=35, normalize='mask'):
+        for ffluxKey,ffluxSim in self.ffluxSims.items():
+            theta = MagicDict.getElemFromKey('theta', ffluxKey)
+            keySetA = self.ffluxBFConversionDict[theta]
+            bfHist = self.getBFHistByKeyDim(keySetA, dim)
+            ffluxHist = self.getFFluxHistByKeyDim(ffluxKey, dim)
+
+            # zeroMask = np.logical_or(ffluxHist.h==0, bfHist.h==0)
             # bfHist.remask(zeroMask)
             # bfHist.normalize()
-            # ffluxHist2D.remask(zeroMask)
-            # ffluxHist2D.normalize()
-            ffluxHist2D.klDiv = bfHist.getKLDivergence(ffluxHist2D, normalize='mask')
+            # ffluxHist.remask(zeroMask)
+            # ffluxHist.normalize()
+            if dim==1 and mask1DExtremes:
+                extremesMask = np.ones(bfHist.h.shape, dtype=bool)
+                extremesMask[mask1DExtremes:-mask1DExtremes] = 0
 
-    def genKLDivTransition(self):
+                bfHistForCalc = deepcopy(bfHist)
+                bfHistForCalc.remask(extremesMask)
+                bfHistForCalc.normalize()
+
+                ffluxHistForCalc = deepcopy(ffluxHist)
+                ffluxHistForCalc.remask(extremesMask)
+                ffluxHistForCalc.normalize()
+            else:
+                bfHistForCalc = bfHist
+                ffluxHistForCalc = ffluxHist
+
+            ffluxHist.klDiv = bfHistForCalc.getKLDivergence(ffluxHistForCalc, normalize=normalize)
+
+    def genKLDivVariants(self):
+        '''
+        gen variant kl div values, such as over only the transition region
+        '''
         for ffluxKey,ffluxSim in self.ffluxSims.items():
             ffluxHist2D = ffluxSim.ffluxHists[('InterfaceTilingID', 0), ('BinTilingIDs', (1,2))]
             theta = MagicDict.getElemFromKey('theta', ffluxKey)
@@ -123,17 +180,6 @@ class FFluxHistsVsBFHistsExample(object):
             modFFluxHist2D.normalize()
             ffluxHist2D.klDivProbable = modBFHist.getKLDivergence(modFFluxHist2D)
 
-    def clearLmint(self):
-        if ffluxRootPath.is_file():
-            lmintList = [ffluxRootPath.with_suffix('.lmint')]
-        else:
-            lmintList = ffluxRootPath.rglob('*.lmint')
-            for lmintPath in lmintList:
-                try:
-                    lmintPath.unlink()
-                except FileNotFoundError:
-                    pass
-
     def genFFluxBFConversionDict(self):
         bfKeys = []
         for key in self.bfSims[('startingInBasin', 'A')].keys():
@@ -144,27 +190,30 @@ class FFluxHistsVsBFHistsExample(object):
 
         return OrderedDict(zip(ffluxThetas, bfKeys))
 
-    def genStdKLDiv(self, nDownsampled=7, theta='1.0e+00'):
+    def genStdKLDiv(self, dim=1, nDownsampled=7, theta='1.0e+00'):
         nSamples = np.logspace(2, 1+nDownsampled, base=10, num=nDownsampled, dtype=int)
 
-        bfHist = self.bfSims[self.ffluxBFConversionDict[theta]].oparamHists['Sum']
+        keySetA = self.ffluxBFConversionDict[theta]
+        bfHist = self.getBFHistByKeyDim(keySetA, dim)
 
         self.opHistDownsamples = []
         for n in nSamples:
             with timewith('%d' % n) as tw:
                 self.opHistDownsamples.append(bfHist.getDownsampleFromRaw(nSample=n))
 
-        self.klDivDict2D = OrderedDict()
-        for name,hist in zip(chain(nSamples, ['original']), chain(self.opHistDownsamples, [self.bfHist])):
+        self.klDivDict = OrderedDict()
+        for name,hist in zip(chain(nSamples, ['original']), chain(self.opHistDownsamples, [bfHist])):
             bfHistWithoutSamples = bfHist.getCopy()
             bfHistWithoutSamples.h_raw-=hist.h_raw
             bfHistWithoutSamples.h_cache_dirty = True
             print(bfHistWithoutSamples.h.sum())
             print(hist.h.sum())
-            self.klDivDict2D[name] = bfHistWithoutSamples.getKLDivergence(hist, normalize='mask')
-        print('2D klDivDict contents:')
-        print(list(self.klDivDict2D.keys()))
-        print(list(self.klDivDict2D.values()))
+            self.klDivDict[name] = bfHistWithoutSamples.getKLDivergence(hist, normalize='mask')
+        print('klDivDict contents:')
+        print(list(self.klDivDict.keys()))
+        print(list(self.klDivDict.values()))
+
+        return self.klDivDict
 
     def genStdKLDivBetweenBasins(self, nDownsampled=7, theta='1.0e+00'):
         nSamples = np.logspace(2, 1+nDownsampled, base=10, num=nDownsampled, dtype=int)
@@ -179,20 +228,22 @@ class FFluxHistsVsBFHistsExample(object):
             with timewith('%d' % n) as tw:
                 self.opHistDownsamples.append(bfHistA.getDownsampleFromRaw(nSample=n))
 
-        self.klDivDict2D = OrderedDict()
+        self.klDivDict = OrderedDict()
         for name,hist in zip(chain(nSamples, ['original']), chain(self.opHistDownsamples, [self.bfHist])):
-            self.klDivDict2D[name] = bfHistB.getKLDivergence(hist, normalize='mask')
-        print('2D klDivDict contents:')
-        print(list(self.klDivDict2D.keys()))
-        print(list(self.klDivDict2D.values()))
+            self.klDivDict[name] = bfHistB.getKLDivergence(hist, normalize='mask')
+        print('klDivDict contents:')
+        print(list(self.klDivDict.keys()))
+        print(list(self.klDivDict.values()))
 
-    def genStdKLDivWithSplit(self, nDownsampled=7, theta='1.0e+00'):
+    def genStdKLDivWithSplit(self, dim=1, nDownsampled=7, theta='1.0e+00'):
         nSamples = np.logspace(2, 1+nDownsampled, base=10, num=nDownsampled, dtype=int)
 
         keySetA = self.ffluxBFConversionDict[theta]
-        bfHist = self.bfSims[keySetA].oparamHists['Sum']
+        bfHist = self.getBFHistByKeyDim(keySetA, dim)
 
         testHist,sampleHist = bfHist.split()
+        testHist.reweight(1)
+        sampleHist.reweight(1)
 
         print(testHist.h.sum())
         print(sampleHist.h.sum())
@@ -202,12 +253,34 @@ class FFluxHistsVsBFHistsExample(object):
             with timewith('%d' % n) as tw:
                 self.opHistDownsamples.append(sampleHist.getDownsampleFromRaw(nSample=n))
 
-        self.klDivDict2D = OrderedDict()
+        self.klDivDict = OrderedDict()
         for name,hist in zip(chain(nSamples, ['original']), chain(self.opHistDownsamples, [sampleHist])):
-            self.klDivDict2D[name] = testHist.getKLDivergence(hist, normalize='mask')
-        print('2D klDivDict contents:')
-        print(list(self.klDivDict2D.keys()))
-        print(list(self.klDivDict2D.values()))
+            self.klDivDict[name] = testHist.getKLDivergence(hist, normalize='mask')
+        print('klDivDict contents:')
+        print(list(self.klDivDict.keys()))
+        print(list(self.klDivDict.values()))
+
+    def getBFHistByKeyDim(self, key, dim):
+        if dim==1:
+            if not hasattr(self, '_ran_gen1DBFHists') or not self._ran_gen1DBFHists:
+                self.gen1DBFHists()
+            bfHist = self.bfSims[key].oparamHists['Sum'].hist1D
+        elif dim==2:
+            bfHist = self.bfSims[key].oparamHists['Sum']
+        else:
+            raise ValueError('Got %s for dim. Please choose either 1 or 2' % dim)
+
+        return bfHist
+
+    def getFFluxHistByKeyDim(self, key, dim):
+        if dim==1:
+            histKeyTup = (('InterfaceTilingID', 0), ('BinTilingIDs', (3,)))
+        elif dim==2:
+            histKeyTup = (('InterfaceTilingID', 0), ('BinTilingIDs', (1,2)))
+        else:
+            raise ValueError('Got %s for dim. Please choose either 1 or 2' % dim)
+
+        return self.ffluxSims[key].ffluxHists[histKeyTup]
 
 if __name__=='__main__':
     FFluxHistsVsBFHistsExample()

@@ -5,38 +5,20 @@ import numpy as np
 from lm_anal.src.plottable.plottable import Plottable
 
 class DensePlottable(Plottable):
-    def plot(self, fig=None, ax=None, scale='log', figKwargs=None, axesKwargs=None, pltKwargs=None):
-        # fig, ax, figKwargs, axesKwargs, pltKwargs = super().plot(fig=fig, ax=ax, scale=scale, figKwargs=figKwargs, axesKwargs=axesKwargs, pltKwargs=pltKwargs)
+    def plot(self, fig=None, ax=None, blank=False, scale='log', figKwargs=None, axesKwargs=None, pltKwargs=None):
         fig, ax, figKwargs, axesKwargs, pltKwargs = self.plotSetup(fig=fig, ax=ax, scale=scale, figKwargs=figKwargs, axesKwargs=axesKwargs, pltKwargs=pltKwargs)
 
         if len(self.h_dims)==1:
-            self.im = self.ax.plot(self.getEdgesWithPadding()[0][:-1], self.plotData, **pltKwargs)
-#             if self.scale=='log':
-#                 self.ax.set_yscale('log')
-#
-#             self.ax.set_xlim(self.getEdgesWithPadding()[0][0], self.getEdgesWithPadding()[0][-2])
-#
-# #             self.ax.set_xlabel(self.axLabels[0])
-#             self.ax.set_xlabel(self.getXLabel())
-#             self.ax.set_ylabel(self.getYLabel())
-            
+            if not blank:
+                self.im = self.ax.plot(self.getEdgesWithPadding()[0][:-1], self.plotData, **pltKwargs)
         elif len(self.h_dims)==2:
             X, Y = np.meshgrid(*self.getEdgesWithPadding())
             if self.scale=='log':
                 pltKwargs['norm'] = LogNorm()
             else:
-                pass
-                # pltKwargs['norm'] = Normalize()
-            self.im = self.ax.pcolormesh(X, Y, self.plotData, **pltKwargs)
-            # self.plotColorbar(self.im)
-            
-            # self.ax.set_xlim(self.getEdgesWithPadding()[0][0], self.getEgesWithPadding()[0][-1])
-            # self.ax.set_ylim(self.getEdgesWithPadding()[1][0], self.getEdgesWithPadding()[1][-1])
-            #
-            # self.ax.set_xlabel(self.getXLabel())
-            # self.ax.set_ylabel(self.getYLabel())
-
-        # self.resizeLabels()
+                pltKwargs['norm'] = Normalize()
+            if not blank:
+                self.im = self.ax.pcolormesh(X, Y, self.plotData, **pltKwargs)
         return self.fig, self.ax, figKwargs, axesKwargs, pltKwargs
 
     def plotContour(self, fig=None, ax=None, scale='log',
@@ -54,9 +36,6 @@ class DensePlottable(Plottable):
             hist = deepcopy(self.plotData)
             m = np.min(hist[np.nonzero(hist)])
             hist[hist < contourThreshold] = contourThreshold
-            # for x in np.nditer(self.h, op_flags=['readwrite']):
-            #     if x==0:
-            #         x[...] = m
         else:
             hist = self.plotData
         if self.scale=='log':
@@ -71,6 +50,7 @@ class DensePlottable(Plottable):
 
     def plotSetup(self, fig=None, ax=None, scale='log', figKwargs=None, axesKwargs=None, pltKwargs=None):
         fig, ax, figKwargs, axesKwargs, pltKwargs = super().plot(fig=fig, ax=ax, scale=scale, figKwargs=figKwargs, axesKwargs=axesKwargs, pltKwargs=pltKwargs)
+        pad = 20
 
         if len(self.h_dims)==1:
             if self.scale=='log':
@@ -79,26 +59,30 @@ class DensePlottable(Plottable):
             self.ax.set_xlim(self.getEdgesWithPadding()[0][0], self.getEdgesWithPadding()[0][-2])
 
             #             self.ax.set_xlabel(self.axLabels[0])
-            self.ax.set_xlabel(self.getXLabel())
-            self.ax.set_ylabel(self.getYLabel())
+            self.ax.set_xlabel(self.getXLabel(), labelpad=pad)
+            self.ax.set_ylabel(self.getYLabel(), labelpad=pad + 10)
 
         elif len(self.h_dims)==2:
+            if 'cmap' not in pltKwargs:
+                pltKwargs['cmap'] = self.cmBad.jet
+
             self.ax.set_xlim(self.getEdgesWithPadding()[0][0], self.getEdgesWithPadding()[0][-1])
             self.ax.set_ylim(self.getEdgesWithPadding()[1][0], self.getEdgesWithPadding()[1][-1])
 
-            self.ax.set_xlabel(self.getXLabel())
-            self.ax.set_ylabel(self.getYLabel())
+            self.ax.set_xlabel(self.getXLabel(), labelpad=pad)
+            self.ax.set_ylabel(self.getYLabel(), labelpad=pad + 10)
 
         self.resizeLabels()
 
         return self.fig, self.ax, figKwargs, axesKwargs, pltKwargs
 
-    def plotColorbar(self, im=None, label='probability', tickFormat=None):
+    def plotColorbar(self, im=None, label='probability', **pltKwargs):
         im = im if im is not None else self.im
-        self.axcolor = self.fig.add_axes([0.95, 0.12, 0.03, 0.79])
+        self.axCBar = self.fig.add_axes([0.95, 0.12, 0.03, 0.79])
 #         t = np.logspace(-4,10,base=10,num=20)
-        self.cbar = self.fig.colorbar(im, cax=self.axcolor, format=None) #, ticks=t,
+
+        self.cbar = self.fig.colorbar(im, cax=self.axCBar, **pltKwargs) #, ticks=t,
         self.cbar.set_label(label, rotation=270, labelpad=75)
 
-        self.resizeAxisLabels(ax=self.axcolor)
-        self.resizeTickLabels(ax=self.axcolor)
+        self.resizeAxisLabels(ax=self.axCBar)
+        self.resizeTickLabels(ax=self.axCBar)

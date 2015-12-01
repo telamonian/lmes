@@ -270,6 +270,7 @@ class HDF5IO(IO):
             except OSError:
                 self.file = None
                 return False
+            # TODO: getting weird errors with deepcopy and closed h5py files. maybe make the following line into a finally: block?
             self.file = None
         else:
             retVal = func(**kwargs)

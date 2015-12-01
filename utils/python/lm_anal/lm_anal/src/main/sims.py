@@ -102,7 +102,7 @@ class Sims(object):
     def __call__(self, *args, **kwargs):
         archetype = next(self.map.values().__iter__())
         if hasattr(archetype, '__name__') and archetype.__name__[:4]=='plot':
-            self._plotGrid(self, *args, **kwargs)
+            return self._plotGrid(self, *args, **kwargs)
         else:
             return self._call(*args, **kwargs)
 
@@ -151,8 +151,8 @@ class Sims(object):
         ax = fig.add_subplot(111, zorder=-1000)
         HideAxesFrame(ax)
 
-        ax.set_xlabel(xLabel, size=fontSizeX)
-        ax.set_ylabel(yLabel, labelpad=5, size=fontSizeY)
+        ax.set_xlabel(xLabel, labelpad=fontSizeX/2.0, size=fontSizeX)
+        ax.set_ylabel(yLabel, labelpad=fontSizeY, size=fontSizeY)
 
         # xPad = self._getFigPadFracFromFontSize(dim=0, fig=fig, fontSize=fontSizeX)
         # yPad = self._getFigPadFracFromFontSize(dim=1, fig=fig, fontSize=fontSizeY)
@@ -209,7 +209,8 @@ class Sims(object):
             ax.set_ylabel('')
 
             # for now, set every axes to have an equal aspect ratio. may want to add way to turn this on/off at the datum level
-            ax.set_aspect('equal')
+            # if not ax.get_xscale()=='log' and not ax.get_yscale()=='log':
+            #     ax.set_aspect('equal')
 
         self._addGridRowLabels(axArr, grid)
         self._addGridColumnLabels(axArr, grid)
@@ -255,13 +256,24 @@ class Sims(object):
 
         # unroll higher-D grids into 2D grids
         axArrShape = (np.product(grid.shape[1::2], dtype=int), np.product(grid.shape[::2], dtype=int))
-        fig, axArr = plt.subplots(*axArrShape, gridspec_kw={}, sharex=True, sharey=True)
+        if 'fig' in kwargs and 'axArr' in kwargs:
+            fig = kwargs.pop('fig')
+            axArr = kwargs.pop('axArr')
+        else:
+            figKwargs = kwargs.pop('figKwargs') if 'figKwargs' in kwargs else {}
+            subplot_kw = kwargs.pop('axesKwargs') if 'axesKwargs' in kwargs else {}
+            sharex = kwargs.pop('sharex') if 'sharex' in kwargs else True
+            sharey = kwargs.pop('sharey') if 'sharey' in kwargs else True
+            if 'extent' in kwargs:
+                figKwargs['figsize'] = np.array(axArrShape)[::-1]*kwargs.pop('extent')
+            elif 'figsize' not in figKwargs:
+                figKwargs['figsize'] = np.array(axArrShape)[::-1]*8
+            fig, axArr = plt.subplots(*axArrShape, gridspec_kw={}, sharex=sharex, sharey=sharey, subplot_kw=subplot_kw, **figKwargs)
         # .subplots() flattens away dimensions of length 1, but we want a 2D axArr so add them back in if necessary
         if not isinstance(axArr, np.ndarray):
             axArr = np.array([axArr], dtype='O').reshape(1,1)
         elif len(axArr.shape) < 2:
             axArr = axArr.reshape(1,-1)
-        fig.set_size_inches(np.array(axArrShape)[1]*8, np.array(axArrShape)[0]*8)
         fig.tight_layout()
         # delay turning any axes off until after formatting to preserve correct placement/spacing
         badAxes = []
@@ -275,9 +287,13 @@ class Sims(object):
         self._formatGridPlot(fig, axArr, grid)
         for ax in (axArr.ravel()[i] for i in badAxes):
             HideAxesFrame(ax)
+        return fig, axArr, grid
 
     def getGrid(self):
         return self.map.getGrid()
+
+    def getGridShape(self):
+        return self.map.getGrid()[0].shape
     
     def getShallowCopy(self):
         self.copying = True

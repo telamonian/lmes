@@ -67,7 +67,10 @@ class FFluxHist(OParamHist):
                 # skip trying to add observations that got completely masked out
                 if obs.shape[0] > 0:
                     subFFluxHist.addWeightedObservations(obs, weight=weight)
-    
+
+    def combineBasinHists(self):
+        self.combineInPlace(*list(self.basin_n_order_parameter_values.values()))
+
     def getPhaseZeroObsMaskingSlice(self, directionID, oparams, pzObs, speciesCounts, tilings, cutoffInterface=3):
         arrangmentDict = OrderedDict(((0,'ASCENDING'), (1,'DESCENDING')))
         interfaceTiling = tilings[self.interface_tiling_id[0]]
@@ -107,10 +110,20 @@ class FFluxHist(OParamHist):
                     subHists.append(hist)
             self.basin_n_order_parameter_values[('basin_id', directionID)].combineInPlace(*subHists)
             self.basin_n_order_parameter_values[('basin_id', directionID)].reweight(basinWeightDict[directionID])
-    
-    def combineBasinHists(self):
-        self.combineInPlace(*list(self.basin_n_order_parameter_values.values()))
-        
+
+    def stitchPhaseZeroHists(self):
+        nonzeroMask = self.h!=0
+
+        pzHists= []
+        for key,hist in self.phase_n_order_parameter_values.items():
+            #             histBasinID,histPhaseID = key.split('/')
+            #             if histPhaseID!=0:
+            keyDict = dict(key)
+            if keyDict['phase_id']==0:
+                hist.remask(nonzeroMask)
+                pzHists.append(hist)
+        self.combineInPlace(*pzHists)
+
     def weightPhaseZeroHists(self):
         directionDict = OrderedDict(((0,'FORWARD'), (1,'BACKWARD')))
         
@@ -123,16 +136,3 @@ class FFluxHist(OParamHist):
 #             phaseZeroWeight = minimize(lambda x: self.getWeightedKLDivergence(self.phase_zero_order_parameter_values[direction], weight=x, absolute=True), x0=[1e-8], method='Nelder-Mead')
             print('the %s phase zero best fit weight is: %.8f' % (direction, phaseZeroWeight.x))
             self.phase_n_order_parameter_values[pzKey].scaleWeight(phaseZeroWeight.x)
-    
-    def stitchPhaseZeroHists(self):
-        nonzeroMask = self.h!=0
-        
-        pzHists= []
-        for key,hist in self.phase_n_order_parameter_values.items():
-#             histBasinID,histPhaseID = key.split('/')
-#             if histPhaseID!=0: 
-            keyDict = dict(key)
-            if keyDict['phase_id']==0: 
-                hist.remask(nonzeroMask)
-                pzHists.append(hist)
-        self.combineInPlace(*pzHists)
