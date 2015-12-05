@@ -4,6 +4,7 @@ import os
 import numpy as np
 import re
 import shutil
+from six import print_
 import sys
 import shlex, subprocess
 
@@ -146,8 +147,8 @@ def Main():
 
 def Run(execPath, lmArgs):
     cmdToks = [execPath] + ['-sl', 'lm::cme::GillespieDSolver', '-f', 'biphasic_switch.lm', '-fflux', '-intout'] + lmArgs
-    print 'running with:'
-    print ' '.join(cmdToks)
+    print_('running with:')
+    print_(' '.join(cmdToks))
     p = subprocess.Popen(cmdToks)
     p.wait()
 
