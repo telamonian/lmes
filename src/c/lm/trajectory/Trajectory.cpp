@@ -40,12 +40,13 @@
 #include <map>
 #include <string>
 
-#include "lm/Print.h"
 #include "lm/input/Input.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Message.pb.h"
+#include "lm/option/SimulationParameters.h"
+#include "lm/Print.h"
 #include "lm/tiling/Tilings.h"
 #include "lm/trajectory/Trajectory.h"
 #include "lm/Types.h"
@@ -73,7 +74,7 @@ Trajectory::Trajectory(uint64_t id,lm::input::Input& input,bool reversed)
 {
     initState(input.reactionModelBuf, reversed);
     setID(id);
-    initMsg(input.simulationParametersMap);
+    initMsg(input.simulationParameters);
 }
 
 Trajectory::Trajectory(uint64_t id,lm::input::Input& input,TrajectoryState* initialState)
@@ -81,7 +82,7 @@ Trajectory::Trajectory(uint64_t id,lm::input::Input& input,TrajectoryState* init
 {
     initState(initialState);
     setID(id);
-    initMsg(input.simulationParametersMap);
+    initMsg(input.simulationParameters);
 }
 
 Trajectory::~Trajectory()
@@ -107,7 +108,7 @@ void Trajectory::initHists()
 //    }
 }
 
-void Trajectory::initMsg(map<string,string>& simulationParameters)
+void Trajectory::initMsg(lm::option::SimulationParameters& simulationParameters)
 {
     // Set the default work unit-specific limits
     int64_t maxWorkUnitSteps = atoll(simulationParameters["maxWorkUnitSteps"].c_str());

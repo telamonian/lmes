@@ -73,13 +73,13 @@ typedef map<lm::fflux::FFluxTrajectoryList::Direction, FinishedTrajectoriesCount
 
 NeusTrajectoryList::NeusTrajectoryList(uint64_t simultaneousTrajectoryCount,lm::input::Input& input)
 :TrajectoryList(input),
- crossingsPerPhase(atof(input.simulationParametersMap["crossingsPerPhase"].c_str())),
+ crossingsPerPhase(atof(input.simulationParameters["crossingsPerPhase"].c_str())),
  direction(FORWARD),
  dwellTimes(),
  ffluxPhase(0),
  finishedTrajectoriesCounts(),
  maxFFluxPhase(input.tilings[0]->getEdgesCount()),
- maxPhaseZeroTime(atof(input.simulationParametersMap["maxPhaseZeroTime"].c_str())),
+ maxPhaseZeroTime(atof(input.simulationParameters["maxPhaseZeroTime"].c_str())),
  simultaneousTrajectoryCount(simultaneousTrajectoryCount),
  xorShift(0,0)  //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {

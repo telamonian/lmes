@@ -4,8 +4,8 @@
  * All rights reserved.
  *
  * Developed by: Roberts Group
- *                  Johns Hopkins University
- *                  http://biophysics.jhu.edu/roberts/
+ *               Johns Hopkins University
+ *               http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -36,36 +36,72 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_FFLUX_FFLUXTRAJECTORY_H_
-#define LM_FFLUX_FFLUXTRAJECTORY_H_
-
-#include <map>
 #include <string>
+#include <vector>
 
-#include "lm/input/Input.h"
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/io/SimulationParameters.pb.h"
 #include "lm/option/SimulationParameters.h"
-#include "lm/trajectory/Trajectory.h"
-#include "lm/tiling/Tilings.h"
-#include "lm/Types.h"
+
+using std::string;
+using std::vector;
 
 namespace lm {
-namespace replicates {
+namespace option {
 
-class ReplicateTrajectory : public lm::trajectory::Trajectory
+const char notFoundCStr[] = {1,2,3,4,5,6,7,8,9,10,11,12};    //{'S','F','R','X',1,65,243,72,36,217,55,18,134,11,234,83};
+const string SimulationParameters::notFound(notFoundCStr);  // = "\1\2\3\4\5\6\7\8\9\10\11\12";
+
+// accessors
+SimParamMap::iterator SimulationParameters::findFirst(vector<string>& keys)
 {
-public:
-//    ReplicateTrajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters);
-//    ReplicateTrajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::io::TrajectoryState* zerothState);
-    ReplicateTrajectory(uint64_t id,lm::input::Input& input);
-    ReplicateTrajectory(uint64_t id,lm::input::Input& input,lm::io::TrajectoryState* zerothState);
-    virtual ~ReplicateTrajectory();
+    SimParamMap::iterator findIt;
+    for (vector<string>::iterator keyIt=keys.begin(); keyIt!=keys.end(); keyIt++) {
+        findIt = find(*keyIt);
+        if (not isEnd(findIt)) {
+            return findIt;
+        }
+    }
+    return findIt;
+}
 
-    virtual void initLimits(const lm::io::ReactionModel& reactionModel,lm::option::SimulationParameters& simulationParameters);
-};
+// mutators
+void SimulationParameters::bufToMap(const lm::io::SimulationParameters& inBuf, SimParamMap& outMap)
+{
+    for (int i=0; i<inBuf.key_size() && i<inBuf.value_size(); i++)
+    {
+        outMap[inBuf.key(i)] = inBuf.value(i);
+    }
+}
+
+void SimulationParameters::mapToBuf(SimParamMap& inMap, lm::io::SimulationParameters& outBuf)
+{
+    outBuf.Clear();
+    for (SimParamMap::iterator it=inMap.begin(); it!=inMap.end(); it++) {
+        outBuf.add_key(it->first);
+        outBuf.add_value(it->second);
+    }
+}
+
+bool SimulationParameters::rFB(const lm::io::SimulationParameters& inBuf) // rFB = read From Buf
+{
+    setBuf(inBuf);
+    bufToMap();
+    return true;
+}
+
+bool SimulationParameters::rFF(lm::io::hdf5::Hdf5File* file) // rFF = read From File
+{
+    setMap(file->getParameters());
+    mapToBuf();
+    return true;
+}
+
+bool SimulationParameters::rFM(SimParamMap& inMap) // rFM = read From Map
+{
+    setMap(inMap);
+    mapToBuf();
+    return true;
+}
 
 }
 }
-
-#endif

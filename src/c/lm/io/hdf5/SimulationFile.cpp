@@ -328,7 +328,7 @@ void Hdf5File::getParameters(lm::io::SimulationParameters* parameters)
     }
 }
 
-map<string,string> Hdf5File::getParameters()
+map<string,string>& Hdf5File::getParameters()
 {
     return parameterMap;
 }

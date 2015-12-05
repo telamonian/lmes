@@ -98,12 +98,13 @@ void SimulationSupervisor::init()
     // Open the simulation file.
     lm::io::hdf5::Hdf5File * file = new lm::io::hdf5::Hdf5File(simulationInputFilename);
 
-    // Get the simulation parameters and read them into a map.
-    file->getParameters(&simulationParametersBuf);
-    for (int i=0; i<simulationParametersBuf.key_size() && i<simulationParametersBuf.value_size(); i++)
-    {
-        simulationParametersMap[simulationParametersBuf.key(i)] = simulationParametersBuf.value(i);
-    }
+    // Get the simulation parameters.
+    simulationParameters.rFF(file);
+//    file->getParameters(&simulationParametersBuf);
+//    for (int i=0; i<simulationParametersBuf.key_size() && i<simulationParametersBuf.value_size(); i++)
+//    {
+//        simulationParameters[simulationParametersBuf.key(i)] = simulationParametersBuf.value(i);
+//    }
 
     // Get the reaction model.
     if (file->hasReactionModel())
@@ -119,24 +120,24 @@ void SimulationSupervisor::init()
         file->getDiffusionModel(&diffusionModelBuf);
 
         // See if we need to fill in the boundary conditions from the simulation parameters.
-        if (simulationParametersMap.count("boundaryConditions") == 1 && !diffusionModelBuf.has_boundary_conditions())
+        if (simulationParameters.count("boundaryConditions") == 1 && !diffusionModelBuf.has_boundary_conditions())
         {
             lm::io::BoundaryConditions* bc=diffusionModelBuf.mutable_boundary_conditions();
-            if (!parseBoundaryConditions(bc, simulationParametersMap["boundaryConditions"].c_str()))
+            if (!parseBoundaryConditions(bc, simulationParameters["boundaryConditions"].c_str()))
             {
-                throw Exception("Could not parse boundaryConditions parameter",simulationParametersMap["boundaryConditions"].c_str());
+                throw Exception("Could not parse boundaryConditions parameter",simulationParameters["boundaryConditions"].c_str());
             }
-            if (simulationParametersMap.count("boundarySite") == 1)
+            if (simulationParameters.count("boundarySite") == 1)
             {
-                bc->set_boundary_site(atoi(simulationParametersMap["boundarySite"].c_str()));
+                bc->set_boundary_site(atoi(simulationParameters["boundarySite"].c_str()));
             }
-            if (simulationParametersMap.count("boundarySpecies") == 1)
+            if (simulationParameters.count("boundarySpecies") == 1)
             {
-                bc->set_boundary_species(atoi(simulationParametersMap["boundarySpecies"].c_str()));
+                bc->set_boundary_species(atoi(simulationParameters["boundarySpecies"].c_str()));
             }
-            if (simulationParametersMap.count("boundaryConcentration") == 1)
+            if (simulationParameters.count("boundaryConcentration") == 1)
             {
-                bc->set_boundary_concentration(atof(simulationParametersMap["boundaryConcentration"].c_str()));
+                bc->set_boundary_concentration(atof(simulationParameters["boundaryConcentration"].c_str()));
             }
             if (file->hasBoundaryGradient())
             {
@@ -160,7 +161,7 @@ void SimulationSupervisor::init()
     }
 
     // initialize input struct (used for setting up trajectories)
-    input = new lm::input::Input(hasDiffusionModel,hasOrderParameters,hasReactionModel,hasTilings,diffusionModelBuf,orderParametersBuf,ops,reactionModelBuf,simulationParametersBuf,simulationParametersMap,tilingsBuf,tilings);
+    input = new lm::input::Input(hasDiffusionModel,hasOrderParameters,hasReactionModel,hasTilings,diffusionModelBuf,orderParametersBuf,ops,reactionModelBuf,simulationParameters,tilingsBuf,tilings);
 
     // close the file
     delete file;

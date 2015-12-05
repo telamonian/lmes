@@ -61,23 +61,30 @@ class Job(object):
         localFileUrl = 'file://%s' % PathJoin('localhost', localPath)
         remoteFileUrl = 'sftp://%s' % PathJoin(self.host, remotePath)
         remoteDirUrl = os.path.split(remoteFileUrl)[0]
+
         print('copying local file to remote: %s ---> %s') % (localFileUrl, remoteFileUrl)
+
         remoteSagaDir = saga.filesystem.Directory(remoteDirUrl, saga.filesystem.CREATE_PARENTS, session=self.runner.session)
         localSagaFile = saga.filesystem.File(localFileUrl, saga.filesystem.CREATE, session=self.runner.session)
+
         localSagaFile.copy(remoteFileUrl)
         localSagaFile.close()
         remoteSagaDir.close()
 
-    def CopyTo(self):
+    def CopyTo(self, srcDstTups=None):
         '''
-        for every tuple in job.copy_to, copies local file at path in tuple[0] to remote directory path in tuple[1]
+        for every tuple in job.copy_to (or srcDstTups if that arg is specified), copies local file at path in tuple[0] to remote directory path in tuple[1]
         '''
-        for localPath,remotePath in self.copy_to:
+        if srcDstTups is None:
+            srcDstTups = self.copy_to
+        for localPath,remotePath in srcDstTups:
             fileName = os.path.split(localPath)[-1]
             if not os.path.isabs(localPath):
                 remotePath = PathJoin(os.getcwd(), fileName)
             if remotePath=='':
                 remotePath = PathJoin(self.working_directory, fileName)
+            elif not os.path.isabs(remotePath):
+                remotePath = PathJoin(self.working_directory, remotePath)
             self._CopyTo(localPath, remotePath)
 
     def _CopyFrom(self, job, relativeToWorkingDirectory=False):
@@ -86,9 +93,12 @@ class Job(object):
         '''
         for remoteSrc,localDir in job.copy_to:
             localDirUrl = 'file://%s' % os.path.join('localhost', localDir)
-            localDirSaga = saga.filesystem.Directory(localDirUrl, saga.filesystem.CREATE, session=self.session)
             remoteSrcUrl = 'sftp://%s' % os.path.join(job.host, remoteSrc)
-            remoteSrcSaga = saga.filesystem.File(remoteSrcUrl)
+            print('copying remote file to local: %s ---> %s') % (localDirUrl, remoteSrcUrl)
+
+            localDirSaga = saga.filesystem.Directory(localDirUrl, saga.filesystem.CREATE, session=self.runner.session)
+            remoteSrcSaga = saga.filesystem.File(remoteSrcUrl, session=self.runner.session)
+
             remoteSrcSaga.copy(localDirSaga.get_url())
     
     def CreateJobDescription(self):
@@ -115,10 +125,29 @@ class Job(object):
     def SetRunner(self, runner):
         self.runner = runner
         runner.AddJob(self)
-        
+
+    def WriteTo(self, txtDstTups=None):
+        '''
+        for every tuple (txt, dst) in self.write_to (or txtDstTups), write txt to a temp file and then pass the schlimiel to .CopyTo()
+        '''
+        if txtDstTups is None:
+            txtDstTups = self.write_to
+        srcDstTups = []
+
+        for txt,dst in txtDstTups:
+            tmpFileDescriptor,tmpPath = tempfile.mkstemp()
+            with os.fdopen(tmpFileDescriptor, 'w+') as tmp:
+                tmp.write(txt)
+            srcDstTups.append((tmpPath, dst))
+
+        self.CopyTo(srcDstTups=srcDstTups)
+
+        for tmpPath,dst in srcDstTups:
+            os.unlink(tmpPath)
+
     @classmethod
     def _InitKeywords(cls, mro):
-        return ('arguments','copy_to','copy_from', 'cpu_count','environment', 'error','executable','host','output','pass_exe','user_id','working_directory')
+        return ('arguments','copy_to','copy_from', 'cpu_count','environment', 'error','executable','host', 'name', 'output','pass_exe','user_id','working_directory')
     
     @classmethod
     def InitKeywords(cls):
@@ -129,7 +158,7 @@ class Job(object):
         '''
         subset of keywords used for creating the composed saga.job.Description object
         '''
-        cls.keywords_description = ('arguments','environment','error','executable','output','working_directory')
+        cls.keywords_description = ('arguments','environment','error','executable','name','output','working_directory')
 
 Job.InitKeywords()
 Job.InitKeywordsDescription()

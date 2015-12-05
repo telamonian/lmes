@@ -47,10 +47,10 @@
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/OrderParameters.pb.h"
 #include "lm/io/ReactionModel.pb.h"
-#include "lm/io/SimulationParameters.pb.h"
 #include "lm/io/SpatialModel.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/oparam/OParams.h"
+#include "lm/option/SimulationParameters.h"
 #include "lm/tiling/Tilings.h"
 
 using std::map;
@@ -63,7 +63,7 @@ struct Input
 {
 public:
     Input();
-    Input(bool hasDiffusionModel,bool hasOrderParameters,bool hasReactionModel,bool hasTilings,lm::io::DiffusionModel& diffusionModelBuf,lm::io::OrderParameters& orderParametersBuf,lm::oparam::OParams& oparams,lm::io::ReactionModel& reactionModelBuf, lm::io::SimulationParameters& simulationParametersBuf, map<string,string>& simulationParametersMap,lm::io::Tilings& tilingsBuf,lm::tiling::Tilings& tilings):
+    Input(bool hasDiffusionModel,bool hasOrderParameters,bool hasReactionModel,bool hasTilings,lm::io::DiffusionModel& diffusionModelBuf,lm::io::OrderParameters& orderParametersBuf,lm::oparam::OParams& oparams,lm::io::ReactionModel& reactionModelBuf, lm::option::SimulationParameters& simulationParameters, lm::io::Tilings& tilingsBuf,lm::tiling::Tilings& tilings):
         hasDiffusionModel(hasDiffusionModel),
         hasOrderParameters(hasOrderParameters),
         hasReactionModel(hasReactionModel),
@@ -72,8 +72,7 @@ public:
         orderParametersBuf(orderParametersBuf),
         oparams(oparams),
         reactionModelBuf(reactionModelBuf),
-        simulationParametersBuf(simulationParametersBuf),
-        simulationParametersMap(simulationParametersMap),
+        simulationParameters(simulationParameters),
         tilingsBuf(tilingsBuf),
         tilings(tilings) {}
 
@@ -85,8 +84,7 @@ public:
     lm::io::OrderParameters& orderParametersBuf;
     lm::oparam::OParams& oparams;
     lm::io::ReactionModel& reactionModelBuf;
-    lm::io::SimulationParameters& simulationParametersBuf;
-    map<string,string>& simulationParametersMap;
+    lm::option::SimulationParameters& simulationParameters;
     lm::io::Tilings& tilingsBuf;
     lm::tiling::Tilings& tilings;
 };

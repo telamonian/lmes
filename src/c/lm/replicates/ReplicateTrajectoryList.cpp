@@ -83,7 +83,7 @@ void ReplicateTrajectoryList::init()
 		trajectories[i] = new lm::replicates::ReplicateTrajectory(i,input);
 
 		// Initialize the first passage times in the cme state.
-		const string listString = input.simulationParametersMap["fptTrackingList"];
+		const string listString = input.simulationParameters["fptTrackingList"];
 		std::list<int> fptList;
 		size_t start=0, end=0;
 		while (end != string::npos)

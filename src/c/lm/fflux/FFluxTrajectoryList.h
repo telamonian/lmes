@@ -76,11 +76,14 @@ class FFluxTrajectoryList : public lm::trajectory::TrajectoryList
 public:
     // enumerated type used for describing the direction of the current fflux simulation relative to the arrangements (low-to-high or high-to-low) of the individual interfaces
     enum Direction {FORWARD, BACKWARD};
+    // enumerated type used for picking which phase termination check to use
+    enum PhaseCheck {CROSSINGS, TIME};
 
 //    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters, lm::tiling::Tilings& tilings);
     FFluxTrajectoryList(lm::message::Communicator& communicator, uint64_t simultaneousTrajectoryCount,lm::input::Input& input);
     virtual ~FFluxTrajectoryList();
     virtual void init();
+    virtual void initChecks(lm::input::Input& input);
     virtual void initFFluxOutput();
     virtual void initReversed();
     virtual void initTrajectories(uint64_t toStartCount,bool reversed=false);
@@ -112,9 +115,9 @@ protected:
     virtual void addCrossing(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg);
     virtual uint incrFFluxPhase();
     virtual bool isFFluxDone();
-    virtual bool isPhaseDone();
-    virtual bool isZerothPhase();
-    virtual bool isZerothPhaseDone(double);
+    virtual bool isPhaseDoneN(double simTime);
+    virtual bool isPhaseDoneZero(double simTime);
+    virtual bool isPhaseZero();
     virtual void reduceTilingHist(const lm::io::TilingHist& tHist);
     virtual void restart();
     virtual void reverse();
@@ -157,8 +160,13 @@ protected:
     SavedHists savedHists;
 
     // user defined parameters that determine how the forward flux sampling is carried out
-    unsigned crossingsPerPhase; //the count of crossing events that should be collected for every fflux sampling phase
-    double maxPhaseZeroTime;
+    unsigned maxCrossingsZero;
+    double maxTimeZero;
+    unsigned maxCrossingsN; //the count of crossing events that should be collected for every fflux sampling phase
+    double maxTimeN;
+
+    PhaseCheck checkZero;
+    PhaseCheck checkN;
 
     // Messages used to send the large-ish FFluxOutput at the end of the simulation and to stream fflux TrajectoryOutput messages as the simulation runs
     lm::message::Message msg;

@@ -43,6 +43,7 @@
 #include <string>
 #include "lm/io/Tilings.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/option/SimulationParameters.h"
 #include "lm/Print.h"
 #include "lm/replicates/ReplicateTrajectory.h"
 #include "lm/tiling/Tilings.h"
@@ -70,25 +71,25 @@ namespace replicates {
 //    initLimits(reactionModel,simulationParameters);
 //}
 
-ReplicateTrajectory::ReplicateTrajectory(uint64_t id,lm::input::Input& input):
-Trajectory(id,input)
+ReplicateTrajectory::ReplicateTrajectory(uint64_t id, lm::input::Input& input):
+Trajectory(id, input)
 {
     // Limit setting code
-    initLimits(input.reactionModelBuf,input.simulationParametersMap);
+    initLimits(input.reactionModelBuf,input.simulationParameters);
 }
 
-ReplicateTrajectory::ReplicateTrajectory(uint64_t id,lm::input::Input& input,TrajectoryState* zerothState):
+ReplicateTrajectory::ReplicateTrajectory(uint64_t id,lm::input::Input& input, TrajectoryState* zerothState):
 Trajectory(id,input,zerothState)
 {
     // Limit setting code
-    initLimits(input.reactionModelBuf,input.simulationParametersMap);
+    initLimits(input.reactionModelBuf,input.simulationParameters);
 }
 
 ReplicateTrajectory::~ReplicateTrajectory()
 {
 }
 
-void ReplicateTrajectory::initLimits(const ReactionModel& reactionModel,map<string,string>& simulationParameters)
+void ReplicateTrajectory::initLimits(const ReactionModel& reactionModel, lm::option::SimulationParameters& simulationParameters)
 {
     // See if we have a max time limit.
     if (simulationParameters.count("maxTime"))
@@ -173,7 +174,7 @@ void ReplicateTrajectory::initLimits(const ReactionModel& reactionModel,map<stri
         }
     }
 
-    // Set the species upper limits from the parameters.
+    // Set the order parameter upper limits from the parameters.
     if (simulationParameters.count("orderParameterUpperLimitList"))
     {
         string listString = simulationParameters["orderParameterUpperLimitList"];

@@ -7,13 +7,22 @@ from statsmodels.sandbox.tools import cross_val
 thisScriptsPath = os.path.dirname(os.path.realpath(__file__))
 
 #### USER DEFINED VARIABLES ####
-host = 'xanthus'
-lm_bin = '/home/cklein13/git/lm/build_cuda/lmes'
+# host = 'xanthus'
+# lm_bin = '/home/cklein13/git/lm/build_cuda/lmes'
+# queue = 'gpu'
+# remote_home_directory = '/home/cklein13'
+# jobTypeName = 'sge'
+# user_id = 'cklein13'
+
+host = 'gateway2.marcc.jhu.edu'
+lm_bin = '/home-1/cklein13@jhu.edu/git/lm/build/lmes'   #'/home-2/erober32@jhu.edu/usr/bin/lmes'
+remote_home_directory = '/home-1/cklein13@jhu.edu/work/cklein13'
+jobTypeName = 'slurm'
+user_id = 'cklein13@jhu.edu'
+pass_exe = '/Users/tel/usr/bin/sp_marcc'
+user_mail = 'cklein13@jhu.edu'
+
 local_home_directory = thisScriptsPath
-queue = 'gpu'
-remote_home_directory = '/home/cklein13'
-jobTypeName = 'sge'
-user_id = 'cklein13'
 runnerPath = '/Users/tel/git/lm/utils/python/runner'
 ################################
 
@@ -92,12 +101,10 @@ def GetFFluxInputTups():
 #     return [iSCs, iSCBs, op] + tilings + simParams
 
 if __name__=='__main__':
-    cppTicks = [1e5]    #LogTicks(2,4,base=10,resolution=0)
-    pztTicks = [1e7]   #LogTicks(2,6,base=10,resolution=-.5)
-    thetaTicks = LogTicks(-1,1,base=10,resolution=4)
-    # thetaTicks = thetaTicks[1:5].tolist() + thetaTicks[6:10].tolist()
-    # thetaTicks = LogTicks(-1,1,base=10,resolution=0).tolist() + thetaTicks
-    replicateTicks = list(range(2,4))
+    cppTicks = [1e4] #LogTicks(2,7,base=10,resolution=0)
+    pztTicks = [1e4]   #LogTicks(2,6,base=10,resolution=-.5)
+    thetaTicks = [1] #LogTicks(1,-1,base=10,resolution=1)   #LogTicks(-1,1,base=10,resolution=4)
+    replicateTicks = [0] #list(range(3))
 
     # these inputTupsDefault get applied to every lm file before any simulations in the sweep
     simParams = [SimulationParameter(key='maxSteps',val=str(int(1e10))),
@@ -134,22 +141,33 @@ if __name__=='__main__':
         replicateInputTups.append([])
     sweepTups.append(SweepTup(inputTupss=replicateInputTups, label='rep_%d', labelVals=replicateTicks))
 
-    sweep_dict = {'cpu_count': 16,
+    sweep_dict = {'cpu_count': 24*1,
                   #'diagonal': True,
                   'host': host,
                   'inputTupsDefault': simParams + GetFFluxInputTups(),
                   'lmArgsIntout': True,
-                  'lmArgsGpusPerReplicate': '1/4',
                   'lm_bin': lm_bin,
+                  'lm_cores': 8,
                   'lm_file_path': 'genetic_toggle_switch.lm',
                   'lm_sampling_rate': 'auto',    #{'rate':'auto', 'weight':.1}, #1e3
                   'lm_sampling_time': 1e10,
-                  'queue': queue,
-                  'rootPath': PathJoin(remote_home_directory, 'forward_flux_validation/gts_-_fflux_-_crossingsPerPhase_-_phaseZeroTime_-_theta_-_replicate'),
+                  'rootPath': PathJoin(remote_home_directory, 'forward_flux_validation/gts_-_fflux_-_crossingsPerPhase_-_phaseZeroTime_-_theta_-_replicate_-_test'),
                   'sweepTups': sweepTups,
                   'jobTypeName': jobTypeName,
                   'useForwardFlux': True,
                   'user_id': user_id}
+
+    try:
+        sweep_dict['queue'] = queue
+        if 'gpu' in queue:
+            sweep_dict['lmArgsGpusPerReplicate'] = '1/4'
+    except NameError:
+        pass
+
+    if host=='gateway2.marcc.jhu.edu':
+        sweep_dict.update({'pass_exe': pass_exe,
+                           'user_mail': user_mail})
+
     sweep = Sweep(**sweep_dict) 
     sweep.Setup()
     sweep.Run()

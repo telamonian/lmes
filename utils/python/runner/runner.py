@@ -90,7 +90,7 @@ class Runner(object):
         # Create a new job from the job description. The initial state of 
         # the job is 'New'.
         self.jobs_saga.append(self.js_sge.create_job(job_description))
-        
+
     def CreateJobSagaShell(self, job_description):
         self.jobs_saga.append(self.js_shell.create_job(job_description))
     
@@ -119,7 +119,7 @@ class Runner(object):
         # Now we can start our job_saga.
         print "\n...starting job_saga...\n"
         job_saga.run()
- 
+
         print "job ID    : %s" % (job_saga.id)
         print "job State : %s" % (job_saga.state)
  
@@ -175,5 +175,22 @@ class Runner(object):
                 job.CopyTo()
             if hasattr(job, 'lm_file_path') and job.lm_file_path!=None:
                 job.CopyToLm()
+
+            if 'shell' not in job.jobTypeName:
+                self.WriteSubmitScript(job)
+
             self.CreateJobSaga(job)
-    
+
+    def WriteSubmitScript(self, job):
+        # save a copy of the submit script to the working directory for rerunning purposes
+        print "copying submit script (to use if you want to rerun this job later) to working directory"
+        if 'sge' in job.jobTypeName:
+            service = self.js_sge
+            suffix = 'sge'
+        elif 'slurm' in job.jobTypeName:
+            service = self.js_slurm
+            suffix = 'slurm'
+        submit_script = service._adaptor._generate_submit_script(job.jd)
+
+        scriptName = '.'.join([job.name, suffix])
+        job.WriteTo([(submit_script, scriptName)])

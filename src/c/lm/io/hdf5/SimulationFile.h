@@ -136,7 +136,7 @@ public:
 
     // Methods for working with parameters.
     virtual void getParameters(lm::io::SimulationParameters* parameters);
-    virtual map<string,string> getParameters();
+    virtual map<string,string>& getParameters();
     virtual string getParameter(string key, string defaultValue="");
     virtual void setParameter(string key, string value) throw(HDF5Exception);
 

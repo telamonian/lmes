@@ -51,7 +51,6 @@
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/OrderParameters.pb.h"
 #include "lm/io/ReactionModel.pb.h"
-#include "lm/io/SimulationParameters.pb.h"
 #include "lm/io/Tilings.pb.h"
 #include "lm/message/Communicator.h"
 #include "lm/message/FinishedCheckpointing.pb.h"
@@ -64,6 +63,7 @@
 #include "lm/message/StartedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnitRunner.pb.h"
 #include "lm/oparam/OParams.h"
+#include "lm/option/SimulationParameters.h"
 #include "lm/resource/ResourceMap.h"
 #include "lm/slot/SlotList.h"
 #include "lm/trajectory/TrajectoryList.h"
@@ -139,8 +139,9 @@ protected:
     std::string solverClassName;
     bool useCPUAffinity;
     lm::input::Input* input;
-    lm::io::SimulationParameters simulationParametersBuf;
-    map<string,string> simulationParametersMap;
+    lm::option::SimulationParameters simulationParameters;
+//    lm::io::SimulationParameters simulationParametersBuf;
+//    map<string,string> simulationParameters;
     bool hasReactionModel;
     lm::io::ReactionModel reactionModelBuf;
     bool hasDiffusionModel;

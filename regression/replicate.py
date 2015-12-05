@@ -9,10 +9,12 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'utils', 'python',
 from lmFile import Input,InitialSpeciesCounts,OrderParameter,ReactionRateConstant,SimulationParameter
 
 path = sys.argv[1]
-try:
-    os.remove('biphasic_switch.lm')
-except OSError:
-    pass
+fPathsToRemove = ['biphasic_switch.lm', 'biphasic_switch.sfile']
+for fPath in fPathsToRemove:
+    try:
+        os.remove(fPath)
+    except OSError:
+        pass
 shutil.copy('wo_fflux.biphasic_switch.lm','biphasic_switch.lm')
 replicateInput = Input('biphasic_switch.lm')
 
@@ -31,7 +33,7 @@ degradationConstants = [ReactionRateConstant(reactionID=6, rateConstant=.25*thet
 reactionRateConstants+=degradationConstants
 
 simParams = [SimulationParameter(key='maxSteps',val=str(int(1e10))),
-             SimulationParameter(key='maxTime',val=str(int(1e7))),
+             SimulationParameter(key='maxTime',val=str(int(1e5))),
              SimulationParameter(key='maxWorkUnitSteps',val=str(int(1e6))),
              SimulationParameter(key='writeInterval',val=str(1e1))]
 

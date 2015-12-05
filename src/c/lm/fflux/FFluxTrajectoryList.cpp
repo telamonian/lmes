@@ -86,21 +86,24 @@ typedef map<lm::fflux::FFluxTrajectoryList::Direction, CrossingsMap> CrossingsMa
 typedef map<lm::fflux::FFluxTrajectoryList::Direction, DwellTimeMap> DwellTimeMapMap;
 typedef map<lm::fflux::FFluxTrajectoryList::Direction, FinishedTrajectoriesCountMap> FinishedTrajectoriesCountMapMap;
 
-FFluxTrajectoryList::FFluxTrajectoryList(lm::message::Communicator& communicator, uint64_t simultaneousTrajectoryCount,lm::input::Input& input)
+FFluxTrajectoryList::FFluxTrajectoryList(lm::message::Communicator& communicator, uint64_t simultaneousTrajectoryCount, lm::input::Input& input)
 :TrajectoryList(input),
- crossingsPerPhase(atof(input.simulationParametersMap["crossingsPerPhase"].c_str())),
  direction(FORWARD),
  dwellTimes(),
  ffluxPhase(0),
  ffluxOutputQueueSize(1e4),
  finishedTrajectoriesCounts(),
  maxFFluxPhase(input.tilings.getCurrentTiling()->getEdgesCount()),
- maxPhaseZeroTime(atof(input.simulationParametersMap["maxPhaseZeroTime"].c_str())),
+ maxCrossingsZero(0),
+ maxTimeZero(0),
+ maxCrossingsN(0),
+ maxTimeN(0),
  simultaneousTrajectoryCount(simultaneousTrajectoryCount),
  xorShift(0,0)  //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
     setCommunicator(communicator);
     init();
+    initChecks(input);
 }
 
 FFluxTrajectoryList::~FFluxTrajectoryList()
@@ -135,6 +138,57 @@ void FFluxTrajectoryList::init()
     dwellTimes[-1] = 0;
     dwellTimes[0] = 0;
     finishedTrajectoriesCounts[0] = 0;
+}
+
+void FFluxTrajectoryList::initChecks(lm::input::Input& input)
+{
+    vector<string> crossingsKeysZero, timeKeysZero, crossingsKeysN, timeKeysN;
+    crossingsKeysZero.push_back("maxCrossingsZero");
+    crossingsKeysZero.push_back("mcz");
+    timeKeysZero.push_back("maxTimeZero");
+    timeKeysZero.push_back("mtz");
+    timeKeysZero.push_back("maxPhaseZeroTime");
+
+    crossingsKeysN.push_back("maxCrossingsN");
+    crossingsKeysN.push_back("mcn");
+    crossingsKeysN.push_back("crossingsPerPhase");
+    timeKeysN.push_back("maxTimeN");
+    timeKeysN.push_back("mtn");
+
+    map<string,string>::iterator findIt;
+    findIt = input.simulationParameters.findFirst(crossingsKeysZero);
+    if (not input.simulationParameters.isEnd(findIt)) {
+        checkZero = CROSSINGS;
+        maxCrossingsZero = atof(findIt->second.c_str());
+    }
+    else
+    {
+        findIt = input.simulationParameters.findFirst(timeKeysZero);
+        if (not input.simulationParameters.isEnd(findIt)) {
+            checkZero = TIME;
+            maxTimeZero = atof(findIt->second.c_str());
+        }
+        else {
+            Print::printf(Print::ERROR, "ForwardFluxTrajectoryList did not get a phase zero termination condition. Please set either the maxCrossingsZero or the maxTimeZero parameter.");
+        }
+    }
+
+    findIt = input.simulationParameters.findFirst(crossingsKeysN);
+    if (not input.simulationParameters.isEnd(findIt)) {
+        checkN = CROSSINGS;
+        maxCrossingsN = atof(findIt->second.c_str());
+    }
+    else
+    {
+        findIt = input.simulationParameters.findFirst(timeKeysN);
+        if (not input.simulationParameters.isEnd(findIt)) {
+            checkN = TIME;
+            maxTimeN = atof(findIt->second.c_str());
+        }
+        else {
+            Print::printf(Print::ERROR, "ForwardFluxTrajectoryList did not get a phase n termination condition. Please set either the maxCrossingsN or the maxTimeN parameter.");
+        }
+    }
 }
 
 // initialize variables related to fflux output
@@ -232,7 +286,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::mess
     else if (finishedWorkUnitMsg.status()==lm::message::FinishedWorkUnit::LIMIT_REACHED)
     {
         // If the forward flux sampling is still in its 0th (ie initial) phase...
-        if (isZerothPhase())
+        if (isPhaseZero())
         {
             workUnitFinishedPhaseZero(finishedWorkUnitMsg, prevFinalLimitID, prevTime, traj);
         }
@@ -274,7 +328,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinishedPhaseZero(const
 //        Print::printf(Print::INFO, "ffluxPhase: %d, crossings[fflux].size(): %d, finishedTrajectoriesCount %d, time: %f, oparam: %f", ffluxPhase, crossings[ffluxPhase].size(), finishedTrajectoriesCounts[ffluxPhase], crossings[ffluxPhase].back()->cme_state().species_counts().time(crossings[ffluxPhase].back()->cme_state().species_counts().number_entries() - 1), calcTestCaseOParam(finishedWorkUnitMsg.final_state()));
     // ...and if enough time has passed for phase zero to be complete...
 //    if (isPhaseDone())
-    if (isZerothPhaseDone(traj->getSimTime()))
+    if (isPhaseDoneZero(traj->getSimTime()))
 //    if (isZerothPhaseDone(dwellTimes[ffluxPhase]))
     {
         // increment the finished trajectory count by the total number of phase zero trajectories (i.e. workUnitRunnerCount)
@@ -337,11 +391,11 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinishedPhaseN(const lm
     dwellTimes[ffluxPhase] += traj->getSimTime() - traj->getLastLimitTime();
     ++finishedTrajectoriesCounts[ffluxPhase];
     if (intermediateOutputFlag) {ffluxOutputAddTrajectory(traj, lm::io::FFluxOutput::FINAL);}
-    deleteTrajectory(traj->getID());
 //        Print::printf(Print::INFO, "ffluxPhase: %d, crossings[fflux].size(): %d, finishedTrajectoriesCount %d, time: %f, oparam: %f", ffluxPhase, crossings[ffluxPhase].size(), finishedTrajectoriesCounts[ffluxPhase], crossings[ffluxPhase].back()->cme_state().species_counts().time(crossings[ffluxPhase].back()->cme_state().species_counts().number_entries() - 1), calcTestCaseOParam(finishedWorkUnitMsg.final_state()));
     // ...and if enough crossing events have been detected for this phase of forward flux sampling...
-    if (isPhaseDone())
+    if (isPhaseDoneN(traj->getSimTime()))
     {
+        deleteTrajectory(traj->getID());
         // ...delete any trajectories that have yet to start and mark the currently running set of trajectories as finished
         deleteAllNotStarted(); setAllFinished();
         // Next, increment the fflux phase counter. If there are still more phases to run...
@@ -385,6 +439,7 @@ lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinishedPhaseN(const lm
     // ...otherwise we still need to collect more crossing events for this phase of forward flux sampling...
     else
     {
+        deleteTrajectory(traj->getID());
         // ...so start one phase N trajectory.
         initPhaseNTrajectories(1);
     }
@@ -400,7 +455,7 @@ CrossingVector FFluxTrajectoryList::getCrossings(long long ffluxPhase)
 
 uint FFluxTrajectoryList::getCrossingsPerPhase()
 {
-    return crossingsPerPhase;
+    return maxCrossingsN;
 }
 
 lm::io::FFluxOutput* FFluxTrajectoryList::getFFluxOutput()
@@ -420,7 +475,7 @@ long long FFluxTrajectoryList::getFFluxPhase()
 
 double FFluxTrajectoryList::getMaxPhaseZeroTime()
 {
-    return maxPhaseZeroTime;
+    return maxTimeZero;
 }
 
 lm::io::TrajectoryState* FFluxTrajectoryList::getRandomCrossing(long long ffluxPhase)
@@ -451,19 +506,33 @@ bool FFluxTrajectoryList::isFFluxDone()
     return (ffluxPhase>=maxFFluxPhase);
 }
 
-bool FFluxTrajectoryList::isPhaseDone()
+bool FFluxTrajectoryList::isPhaseDoneN(double simTime)
 {
-    return (crossings[ffluxPhase].size()>=crossingsPerPhase);
+    if (checkN==CROSSINGS)
+    {
+        return crossings[ffluxPhase].size()>=maxCrossingsN;
+    }
+    else if (checkN==TIME)
+    {
+        return simTime>=maxTimeN;
+    }
 }
 
-bool FFluxTrajectoryList::isZerothPhase()
+bool FFluxTrajectoryList::isPhaseDoneZero(double simTime)
+{
+    if (checkZero==CROSSINGS)
+    {
+        return crossings[ffluxPhase].size()>=maxCrossingsZero;
+    }
+    else if (checkZero==TIME)
+    {
+        return simTime>=maxTimeZero;
+    }
+}
+
+bool FFluxTrajectoryList::isPhaseZero()
 {
     return (ffluxPhase==0);
-}
-
-bool FFluxTrajectoryList::isZerothPhaseDone(double simTime)
-{
-    return simTime>=maxPhaseZeroTime;
 }
 
 void FFluxTrajectoryList::reduceTilingHist(const lm::io::TilingHist& tHist)
@@ -511,7 +580,7 @@ void FFluxTrajectoryList::ffluxOutputAddBasin(CrossingsMap& crossings, DwellTime
 
     // load the data into the BasinOutput buf pointer
     basOut->set_flux_out_of_tile_zero((double)crossings[0].size()/dwellTimes[0]);
-//    basOut->set_flux_out_of_tile_zero((double)crossings[0].size()/(maxPhaseZeroTime*simultaneousTrajectoryCount));
+//    basOut->set_flux_out_of_tile_zero((double)crossings[0].size()/(maxTimeZero*simultaneousTrajectoryCount));
 
     basOut->clear_runs_per_phase();
     lm::io::TilingHist* runsPerPhase = basOut->mutable_runs_per_phase();
@@ -747,12 +816,12 @@ void FFluxTrajectoryList::ffluxOutputFinishTrajectory()
 
 void FFluxTrajectoryList::ffluxOutputPrintBasin(CrossingsMap& crossings, FinishedTrajectoriesCountMap& finishedTrajectoriesCounts)
 {
-    Print::printf(Print::INFO, "Phase 0 probability flux: %.10f", (double)crossings[0].size()/(maxPhaseZeroTime*simultaneousTrajectoryCount));
+    Print::printf(Print::INFO, "Phase 0 probability flux: %.10f", (double)crossings[0].size()/(maxTimeZero*simultaneousTrajectoryCount));
     for (int i=1;i<maxFFluxPhase;i++)
     {
         Print::printf(Print::INFO, "Probability of crossing from tile %d:%f to tile %d:%f : %.10f", i, input.tilings.getCurrentTiling()->getEdge(i), i+1, input.tilings.getCurrentTiling()->getEdge(i+1), (double)crossings[i].size()/finishedTrajectoriesCounts[i]);
     }
-    double Kab = (double)crossings[0].size()/(maxPhaseZeroTime*simultaneousTrajectoryCount);
+    double Kab = (double)crossings[0].size()/(maxTimeZero*simultaneousTrajectoryCount);
     for (int i=1;i<maxFFluxPhase;i++)
     {
         Kab *= (double)crossings[i].size()/finishedTrajectoriesCounts[i];
@@ -763,8 +832,8 @@ void FFluxTrajectoryList::ffluxOutputPrintBasin(CrossingsMap& crossings, Finishe
 void FFluxTrajectoryList::ffluxOutputPrintFinal_DinnerMethod(SavedCrossings& savedCrossings, SavedDwellTimes& savedDwellTimes, SavedFinishedTrajectoriesCounts& savedFinishedTrajectoriesCounts, SavedHists& savedHists)
 {
     // This version of the probability calculation is taken from Dinner, 2010
-    double phaseZeroFluxA = (double)savedCrossings[FORWARD][0].size()/(maxPhaseZeroTime*simultaneousTrajectoryCount);
-    double phaseZeroFluxB = (double)savedCrossings[BACKWARD][0].size()/(maxPhaseZeroTime*simultaneousTrajectoryCount);
+    double phaseZeroFluxA = (double)savedCrossings[FORWARD][0].size()/(maxTimeZero*simultaneousTrajectoryCount);
+    double phaseZeroFluxB = (double)savedCrossings[BACKWARD][0].size()/(maxTimeZero*simultaneousTrajectoryCount);
     vector<double> paiaiplusone, pbibiplusone, pa0ai, pb0bi, pa0aiNormed, pb0biNormed;
     for (int i=0;i<maxFFluxPhase;i++)
     {

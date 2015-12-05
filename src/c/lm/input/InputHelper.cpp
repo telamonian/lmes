@@ -55,27 +55,27 @@ namespace lm {
 namespace input {
 
 // this should be called after rFFDiffusionModelBuf
-bool InputHelper::rFFBoundaryConditionsBuf(lm::io::hdf5::Hdf5File* file, lm::io::DiffusionModel* diffusionModelBuf, lm::main::SimulationParametersMap* simulationParametersMap)
+bool InputHelper::rFFBoundaryConditionsBuf(lm::io::hdf5::Hdf5File* file, lm::io::DiffusionModel* diffusionModelBuf, lm::option::SimulationParameters* simulationParameters)
 {
     // See if we need to fill in the boundary conditions from the simulation parameters.
-    if (simulationParametersMap->count("boundaryConditions") == 1 && !diffusionModelBuf->has_boundary_conditions())
+    if (simulationParameters->count("boundaryConditions") == 1 && !diffusionModelBuf->has_boundary_conditions())
     {
         lm::io::BoundaryConditions* bc=diffusionModelBuf->mutable_boundary_conditions();
-        if (!parseBoundaryConditions(bc, (*simulationParametersMap)["boundaryConditions"].c_str()))
+        if (!parseBoundaryConditions(bc, (*simulationParameters)["boundaryConditions"].c_str()))
         {
-            throw Exception("Could not parse boundaryConditions parameter",(*simulationParametersMap)["boundaryConditions"].c_str());
+            throw Exception("Could not parse boundaryConditions parameter",(*simulationParameters)["boundaryConditions"].c_str());
         }
-        if (simulationParametersMap->count("boundarySite") == 1)
+        if (simulationParameters->count("boundarySite") == 1)
         {
-            bc->set_boundary_site(atoi((*simulationParametersMap)["boundarySite"].c_str()));
+            bc->set_boundary_site(atoi((*simulationParameters)["boundarySite"].c_str()));
         }
-        if (simulationParametersMap->count("boundarySpecies") == 1)
+        if (simulationParameters->count("boundarySpecies") == 1)
         {
-            bc->set_boundary_species(atoi((*simulationParametersMap)["boundarySpecies"].c_str()));
+            bc->set_boundary_species(atoi((*simulationParameters)["boundarySpecies"].c_str()));
         }
-        if (simulationParametersMap->count("boundaryConcentration") == 1)
+        if (simulationParameters->count("boundaryConcentration") == 1)
         {
-            bc->set_boundary_concentration(atof((*simulationParametersMap)["boundaryConcentration"].c_str()));
+            bc->set_boundary_concentration(atof((*simulationParameters)["boundaryConcentration"].c_str()));
         }
         if (file->hasBoundaryGradient())
         {
@@ -89,12 +89,12 @@ bool InputHelper::rFFBoundaryConditionsBuf(lm::io::hdf5::Hdf5File* file, lm::io:
     }
 }
 
-bool InputHelper::rFFDiffusionModelBuf(lm::io::hdf5::Hdf5File* file, lm::io::DiffusionModel* diffusionModelBuf, lm::main::SimulationParametersMap* simulationParametersMap)
+bool InputHelper::rFFDiffusionModelBuf(lm::io::hdf5::Hdf5File* file, lm::io::DiffusionModel* diffusionModelBuf, lm::option::SimulationParameters* simulationParameters)
 {
     if (file->hasDiffusionModel())
     {
         file->getDiffusionModel(diffusionModelBuf);
-        rFFBoundaryConditionsBuf(file,diffusionModelBuf,simulationParametersMap);
+        rFFBoundaryConditionsBuf(file,diffusionModelBuf,simulationParameters);
         return true;
     }
     else
@@ -103,7 +103,7 @@ bool InputHelper::rFFDiffusionModelBuf(lm::io::hdf5::Hdf5File* file, lm::io::Dif
     }
 }
 
-bool InputHelper::rFFOrderParameters(lm::io::hdf5::Hdf5File* file, lm::oparam::OParams* oparams, lm::main::SimulationParametersMap* simulationParametersMap)
+bool InputHelper::rFFOrderParameters(lm::io::hdf5::Hdf5File* file, lm::oparam::OParams* oparams, lm::option::SimulationParameters* simulationParameters)
 {
     if (file->hasOrderParameters())
     {
@@ -116,7 +116,7 @@ bool InputHelper::rFFOrderParameters(lm::io::hdf5::Hdf5File* file, lm::oparam::O
     }
 }
 
-bool InputHelper::rFFOrderParametersBuf(lm::io::hdf5::Hdf5File* file, lm::io::OrderParameters* orderParametersBuf, lm::main::SimulationParametersMap* simulationParametersMap)
+bool InputHelper::rFFOrderParametersBuf(lm::io::hdf5::Hdf5File* file, lm::io::OrderParameters* orderParametersBuf, lm::option::SimulationParameters* simulationParameters)
 {
     if (file->hasOrderParameters())
     {
@@ -129,7 +129,7 @@ bool InputHelper::rFFOrderParametersBuf(lm::io::hdf5::Hdf5File* file, lm::io::Or
     }
 }
 
-bool InputHelper::rFFReactionModelBuf(lm::io::hdf5::Hdf5File* file, lm::io::ReactionModel* reactionModelBuf, lm::main::SimulationParametersMap* simulationParametersMap)
+bool InputHelper::rFFReactionModelBuf(lm::io::hdf5::Hdf5File* file, lm::io::ReactionModel* reactionModelBuf, lm::option::SimulationParameters* simulationParameters)
 {
     if (file->hasReactionModel())
     {
@@ -142,17 +142,18 @@ bool InputHelper::rFFReactionModelBuf(lm::io::hdf5::Hdf5File* file, lm::io::Reac
     }
 }
 
-bool InputHelper::rFFSimulationParameters(lm::io::hdf5::Hdf5File* file, lm::io::SimulationParameters* simulationParametersBuf, lm::main::SimulationParametersMap* simulationParametersMap)
+bool InputHelper::rFFSimulationParameters(lm::io::hdf5::Hdf5File* file, lm::option::SimulationParameters* simulationParameters)
 {
-    file->getParameters(simulationParametersBuf);
-    for (int i=0; i<simulationParametersBuf->key_size() && i<simulationParametersBuf->value_size(); i++)
-    {
-        (*simulationParametersMap)[simulationParametersBuf->key(i)] = simulationParametersBuf->value(i);
-    }
+    simulationParameters->rFF(file);
+//    file->getParameters(simulationParametersBuf);
+//    for (int i=0; i<simulationParametersBuf->key_size() && i<simulationParametersBuf->value_size(); i++)
+//    {
+//        (*simulationParametersMap)[simulationParametersBuf->key(i)] = simulationParametersBuf->value(i);
+//    }
     return true;
 }
 
-bool InputHelper::rFFTilings(lm::io::hdf5::Hdf5File* file, lm::tiling::Tilings* tilings, lm::main::SimulationParametersMap* simulationParametersMap)
+bool InputHelper::rFFTilings(lm::io::hdf5::Hdf5File* file, lm::tiling::Tilings* tilings, lm::option::SimulationParameters* simulationParameters)
 {
     if (file->hasTilings())
     {
@@ -165,7 +166,7 @@ bool InputHelper::rFFTilings(lm::io::hdf5::Hdf5File* file, lm::tiling::Tilings* 
     }
 }
 
-bool InputHelper::rFFTilingsBuf(lm::io::hdf5::Hdf5File* file, lm::io::Tilings* tilingsBuf, lm::main::SimulationParametersMap* simulationParametersMap)
+bool InputHelper::rFFTilingsBuf(lm::io::hdf5::Hdf5File* file, lm::io::Tilings* tilingsBuf, lm::option::SimulationParameters* simulationParameters)
 {
     if (file->hasTilings())
     {
@@ -178,15 +179,15 @@ bool InputHelper::rFFTilingsBuf(lm::io::hdf5::Hdf5File* file, lm::io::Tilings* t
     }
 }
 
-lm::input::Input* InputHelper::rFFInput(lm::io::hdf5::Hdf5File* file, lm::io::DiffusionModel* dMB, lm::io::OrderParameters* orderParametersBuf, lm::oparam::OParams* ops, lm::io::ReactionModel* rMB, lm::io::SimulationParameters* sPB, lm::main::SimulationParametersMap* sPM, lm::io::Tilings* tilingsBuf, lm::tiling::Tilings* tngs)
+lm::input::Input* InputHelper::rFFInput(lm::io::hdf5::Hdf5File* file, lm::io::DiffusionModel* dMB, lm::io::OrderParameters* orderParametersBuf, lm::oparam::OParams* ops, lm::io::ReactionModel* rMB, lm::option::SimulationParameters* sPS, lm::io::Tilings* tilingsBuf, lm::tiling::Tilings* tngs)
 {
     bool hasDMB,hasOPs,hasRMB,hasTngs;
-    rFFSimulationParameters(file, sPB, sPM);
-    hasDMB = rFFDiffusionModelBuf(file, dMB, sPM);
-    hasOPs = rFFOrderParameters(file, ops, sPM);
-    hasRMB = rFFReactionModelBuf(file, rMB, sPM);
-    hasTngs = rFFTilings(file, tngs, sPM);
-    return new lm::input::Input(hasDMB,hasOPs,hasRMB,hasTngs,*dMB,*orderParametersBuf,*ops,*rMB,*sPB,*sPM,*tilingsBuf,*tngs);
+    rFFSimulationParameters(file, sPS);
+    hasDMB = rFFDiffusionModelBuf(file, dMB, sPS);
+    hasOPs = rFFOrderParameters(file, ops, sPS);
+    hasRMB = rFFReactionModelBuf(file, rMB, sPS);
+    hasTngs = rFFTilings(file, tngs, sPS);
+    return new lm::input::Input(hasDMB,hasOPs,hasRMB,hasTngs,*dMB,*orderParametersBuf,*ops,*rMB,*sPS,*tilingsBuf,*tngs);
 }
 
 bool InputHelper::parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg)

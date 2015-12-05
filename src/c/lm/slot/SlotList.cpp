@@ -170,7 +170,7 @@ void SlotList::createSlot(int slotId, ComputeResources resources, bool useCPUAff
     for (vector<int>::iterator it=resources.gpuDevices.begin(); it != resources.gpuDevices.end(); it++)
         s->add_gpu(*it);
     s->set_solver(solver);
-    (*s->mutable_simulation_parameters()) = input->simulationParametersBuf;
+    (*s->mutable_simulation_parameters()) = *(input->simulationParameters.serialize());
     if (input->hasReactionModel)
         (*s->mutable_reaction_model()) = input->reactionModelBuf;
     if (input->hasDiffusionModel)

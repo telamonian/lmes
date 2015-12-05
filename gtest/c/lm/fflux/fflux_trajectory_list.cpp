@@ -124,23 +124,23 @@ TEST_F(FFluxTrajectoryListFixture, IsPhaseDone)
     *fWUB.mutable_final_state() = *(ffTL->getTrajectoryState(2));
 
     ffTL->incrFFluxPhase();
-    EXPECT_EQ(ffTL->isPhaseDone(), false);
+    EXPECT_EQ(ffTL->isPhaseDoneN(), false);
     ffTL->addCrossing(fWUB);
-    EXPECT_EQ(ffTL->isPhaseDone(), false);
+    EXPECT_EQ(ffTL->isPhaseDoneN(), false);
     for (int i=0;i<ffTL->getCrossingsPerPhase()-2;++i)
     {
         ffTL->addCrossing(fWUB);
     }
-    EXPECT_EQ(ffTL->isPhaseDone(), false);
+    EXPECT_EQ(ffTL->isPhaseDoneN(), false);
     ffTL->addCrossing(fWUB);
-    EXPECT_EQ(ffTL->isPhaseDone(), true);
+    EXPECT_EQ(ffTL->isPhaseDoneN(), true);
 }
 
 TEST_F(FFluxTrajectoryListFixture, IsZerothPhase)
 {
-    EXPECT_EQ(ffTL->isZerothPhase(), true);
+    EXPECT_EQ(ffTL->isPhaseZero(), true);
     ffTL->incrFFluxPhase();
-    EXPECT_EQ(ffTL->isZerothPhase(), false);
+    EXPECT_EQ(ffTL->isPhaseZero(), false);
 }
 
 TEST_F(FFluxTrajectoryListFixture, IsZerothPhaseDone)
@@ -159,16 +159,16 @@ TEST_F(FFluxTrajectoryListFixture, IsZerothPhaseDone)
 
 TEST_F(FFluxTrajectoryListFixture, Reset)
 {
-    EXPECT_EQ(ffTL->isZerothPhase(), true);
+    EXPECT_EQ(ffTL->isPhaseZero(), true);
     ffTL->incrFFluxPhase();
-    EXPECT_EQ(ffTL->isZerothPhase(), false);
+    EXPECT_EQ(ffTL->isPhaseZero(), false);
 }
 
 TEST_F(FFluxTrajectoryListFixture, Restart)
 {
-    EXPECT_EQ(ffTL->isZerothPhase(), true);
+    EXPECT_EQ(ffTL->isPhaseZero(), true);
     ffTL->incrFFluxPhase();
-    EXPECT_EQ(ffTL->isZerothPhase(), false);
+    EXPECT_EQ(ffTL->isPhaseZero(), false);
 }
 
 TEST_F(FFluxTrajectoryListFixture, SaveCrossings)

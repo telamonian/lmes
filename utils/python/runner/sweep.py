@@ -32,11 +32,12 @@ class SweepTup(object):
         return [self.label % self.labelVals[i] for i in range(len(self.inputTupss))]
     
 class Sweep(object):
-    def __init__(self, cpu_count, host, jobTypeName, lm_bin, lm_file_path, rootPath, diagonal=False, inputTupsDefault=None, lmArgsGpusPerReplicate=0, lmArgsIntout=False, lm_sampling_rate=None, lm_sampling_time=None, pass_exe=None, queue=None, replicateRange=(1,10), sweepTups=None, sweepTupX=None, sweepTupY=None, useForwardFlux=False, useSFile=False, user_id=None, user_mail=None):
+    def __init__(self, cpu_count, host, jobTypeName, lm_bin, lm_file_path, rootPath, diagonal=False, inputTupsDefault=None, jobName='lm', lmArgsGpusPerReplicate=0, lmArgsIntout=False, lm_cores=None, lm_sampling_rate=None, lm_sampling_time=None, pass_exe=None, queue=None, replicateRange=(1,10), sweepTups=None, sweepTupX=None, sweepTupY=None, useForwardFlux=False, useSFile=False, user_id=None, user_mail=None):
         self.cpu_count = cpu_count
         self.diagonal = diagonal
         self.host = host
         self.jobs = []
+        self.jobName = jobName
         self.lm_bin = lm_bin
         self.lm_file_path = lm_file_path
         self.lmFileName = os.path.split(lm_file_path)[-1]
@@ -55,7 +56,10 @@ class Sweep(object):
         
         if lmArgsIntout:
             self.lm_args_dict['record_intermediate_output'] = ('-intout', '')
-        
+
+        if lm_cores is not None:
+            self.lm_args_dict['cores'] = ('-c', lm_cores)
+
         if useForwardFlux:
             self.lm_args_dict['use_forward_flux_sampling'] = ('-fflux', '')
 
@@ -119,6 +123,7 @@ class Sweep(object):
                        'lm_replicate_range': self.replicateRange,
                        'lm_sampling_rate': self.lm_sampling_rate,
                        'lm_sampling_time': self.lm_sampling_time,
+                       'name': self.jobName,
                        'output': 'lm.log',
                        'pass_exe': self.pass_exe,
                        'queue': self.queue,
