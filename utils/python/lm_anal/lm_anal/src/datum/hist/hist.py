@@ -21,10 +21,14 @@ class Hist(Datum, DensePlottable):
 
 # operator overrides
     def __add__(self, other):
-        return self.h_raw + other.h_raw
+        new = self.getCopy()
+        new+=other
+        return new
     
     def __sub__(self, other):
-        return self.h_raw - other.h_raw
+        new = self.getCopy()
+        new-=other
+        return new
     
     def __iadd__(self, other):
         self.h_raw+=other.h_raw

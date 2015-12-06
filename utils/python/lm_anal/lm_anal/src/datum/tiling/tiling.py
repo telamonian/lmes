@@ -25,4 +25,3 @@ class Tiling(DatumSubtypable):    #, metaclass=DatumMetaclass):
     @name.setter
     def name(self, val):
         self._name = val
-    

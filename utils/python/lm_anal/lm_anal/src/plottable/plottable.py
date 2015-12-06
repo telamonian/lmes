@@ -108,6 +108,9 @@ class Plottable(object):
                 tickLabel.set_size(fontSize)
 
     def savefig(self, *args, **kwargs):
+        if len(args)==0:
+            ext = '.eps' if 'ext' not in kwargs else kwargs.pop('ext')
+            args = [str(self.fPath.with_suffix(ext))]
         if 'bbox_inches' not in kwargs:
             kwargs['bbox_inches'] = 'tight'
         plt.savefig(*args, **kwargs)

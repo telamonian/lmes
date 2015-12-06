@@ -48,7 +48,7 @@ class Data(object):
     map = LazyMapDescriptor()
     
 # initializers
-    def __init__(self, protobuf=None, dataToTransform=None, dataToTransformDict=None, fPath=None, transformKwargs=None):
+    def __init__(self, protobuf=None, dataToTransform=None, dataToTransformDict=None, fPath=None, lazyLoad=True, transformKwargs=None):
         self.protobuf = protobuf
         # point-of-origin, tells us from whence this data came
         self.po = None
@@ -66,11 +66,17 @@ class Data(object):
             self.transformKwargs = transformKwargs
         else:
             self.transformKwargs = {}
-            
+
 #         if self.dataToTransform is None and self.fPath is None:
 #             self.map = {}
-    
-    def initIO(self):
+
+        if not lazyLoad:
+            # .map starts out as a descriptor for lazy loading purposes, this bypass that contraption and eagerly generate map
+            self.map
+
+    def initIO(self, fPath=None):
+        if fPath is not None:
+            self.fPath = fPath
         self.intIO = self.Hdf5IOType(fPath=str(self.fPath.with_suffix('.lmint')))
         if self.intIO.has():
             self.readIO = self.intIO
@@ -191,9 +197,21 @@ class Data(object):
     def values(self):
         return self.map.values()
 
+# io
+    def wtint(self, fPath=None):
+        '''
+        write to int
+        '''
+        if fPath is not None:
+            self.initIO(fPath=fPath)
+        self.intIO.wtf(container=self)
+
 # mutators
     def pop(self, key):
         return self.map.pop(key)
+
+    def transform(self, *dataToTransform, **transformKwargs):
+        lzTransforms(srcs=dataToTransform, dsts=self, **transformKwargs)
 
 # func mapping/vectorization methods
     def mapFunc(self, func, doRaise=False, **kwargs):

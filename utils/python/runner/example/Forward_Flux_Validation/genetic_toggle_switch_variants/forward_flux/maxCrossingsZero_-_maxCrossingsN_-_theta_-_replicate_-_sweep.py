@@ -100,46 +100,50 @@ def GetFFluxInputTups():
 #                               isCurrentTiling=isCurrentTiling))
 #     return [iSCs, iSCBs, op] + tilings + simParams
 
+def genSweepTup(ticks, label, paramFunc):
+    inputTups = []
+    for tick in ticks:
+        inputTups.append(paramFunc(tick))
+    return SweepTup(inputTupss=inputTups, label=label, labelVals=ticks)
+
 if __name__=='__main__':
-    cppTicks = [1e4] #LogTicks(2,7,base=10,resolution=0)
-    pztTicks = [1e4]   #LogTicks(2,6,base=10,resolution=-.5)
-    thetaTicks = [1] #LogTicks(1,-1,base=10,resolution=1)   #LogTicks(-1,1,base=10,resolution=4)
-    replicateTicks = [0] #list(range(3))
+    mczTicks = [1e5] #LogTicks(2,6,base=10,resolution=0)
+    # mtzTicks = [1e4]   #LogTicks(2,6,base=10,resolution=-.5)
+    mcnTicks = LogTicks(2,6,base=10,resolution=0)
+    thetaTicks = LogTicks(1,-1,base=10,resolution=1)   #LogTicks(-1,1,base=10,resolution=4)
+    replicateTicks = [2] #list(range(2))
 
     # these inputTupsDefault get applied to every lm file before any simulations in the sweep
     simParams = [SimulationParameter(key='maxSteps',val=str(int(1e10))),
                  SimulationParameter(key='maxWorkUnitSteps',val=str(int(1e15)))]
-    
+
     sweepTups = []
-    # crossings per phase sweep
-    cppInputTups = []
-    for crossingPerPhase in cppTicks:
-        cppInputTups.append([SimulationParameter(key='crossingsPerPhase',val=crossingPerPhase)])
-    sweepTups.append(SweepTup(inputTupss=cppInputTups, label='cpp_%.1e', labelVals=cppTicks))
-    
-    # phase zero time sweep
-    pztInputTups = []
-    for phaseZeroTime in pztTicks:
-        pztInputTups.append([SimulationParameter(key='maxPhaseZeroTime',val=phaseZeroTime)])
-    sweepTups.append(SweepTup(inputTupss=pztInputTups, label='pzt_%.1e', labelVals=pztTicks))
-    
-    # barrier height sweep
-    thetaInputTups = []
-    for theta in thetaTicks:
-        productionConstants = [ReactionRateConstant(reactionID=4, rateConstant=1.0*theta), 
-                               ReactionRateConstant(reactionID=5, rateConstant=1.0*theta), 
-                               ReactionRateConstant(reactionID=11, rateConstant=1.0*theta), 
+    # max crossings per phase Zero sweep
+    sweepTups.append(genSweepTup(ticks=mczTicks, label='mcz_%.1e',
+                                 paramFunc=lambda maxCrossingsZero: [SimulationParameter(key='maxCrossingsZero', val=maxCrossingsZero)]))
+
+    # max time per phase Zero sweep
+    # sweepTups.append(genSweepTup(ticks=mtzTicks, label='mtz_%.1e',
+    #                              paramFunc=lambda maxTimeZero: [SimulationParameter(key='maxTimeZero', val=maxTimeZero)]))
+
+    # max crossings per phase N sweep
+    sweepTups.append(genSweepTup(ticks=mcnTicks, label='mcn_%.1e',
+                                 paramFunc=lambda maxCrossingsN: [SimulationParameter(key='maxCrossingsN', val=maxCrossingsN)]))
+
+    # barrier height (theta) sweep
+    def genBarrierHeightParams(theta):
+        productionConstants = [ReactionRateConstant(reactionID=4, rateConstant=1.0*theta),
+                               ReactionRateConstant(reactionID=5, rateConstant=1.0*theta),
+                               ReactionRateConstant(reactionID=11, rateConstant=1.0*theta),
                                ReactionRateConstant(reactionID=12, rateConstant=1.0*theta)]
-        degradationConstants = [ReactionRateConstant(reactionID=6, rateConstant=.25*theta), 
+        degradationConstants = [ReactionRateConstant(reactionID=6, rateConstant=.25*theta),
                                 ReactionRateConstant(reactionID=13, rateConstant=.25*theta)]
-        thetaInputTups.append(productionConstants + degradationConstants)
-    sweepTups.append(SweepTup(inputTupss=thetaInputTups, label='theta_%.1e', labelVals=thetaTicks))
+        return productionConstants + degradationConstants
+    sweepTups.append(genSweepTup(ticks=thetaTicks, label='theta_%.1e', paramFunc=genBarrierHeightParams))
 
     # replicate sweep
-    replicateInputTups = []
-    for rep in replicateTicks:
-        replicateInputTups.append([])
-    sweepTups.append(SweepTup(inputTupss=replicateInputTups, label='rep_%d', labelVals=replicateTicks))
+    sweepTups.append(genSweepTup(ticks=replicateTicks, label='rep_%d',
+                                 paramFunc=lambda replicateNum: []))
 
     sweep_dict = {'cpu_count': 24*1,
                   #'diagonal': True,
@@ -151,7 +155,7 @@ if __name__=='__main__':
                   'lm_file_path': 'genetic_toggle_switch.lm',
                   'lm_sampling_rate': 'auto',    #{'rate':'auto', 'weight':.1}, #1e3
                   'lm_sampling_time': 1e10,
-                  'rootPath': PathJoin(remote_home_directory, 'forward_flux_validation/gts_-_fflux_-_crossingsPerPhase_-_phaseZeroTime_-_theta_-_replicate_-_test'),
+                  'rootPath': PathJoin(remote_home_directory, 'forward_flux_validation/gts_-_fflux_-_maxCrossingsZero_-_maxCrossingsN_-_theta_-_replicate'),
                   'sweepTups': sweepTups,
                   'jobTypeName': jobTypeName,
                   'useForwardFlux': True,
