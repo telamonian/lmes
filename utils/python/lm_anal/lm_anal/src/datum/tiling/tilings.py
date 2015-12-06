@@ -13,10 +13,15 @@ class Tilings(Data):
     Hdf5IOType = TilingsIO
     SFileType = None
 
-    def __init__(self, protobuf=None, dataToTransform=None, fPath=None, transformKwargs=None):
-        if protobuf==None:
-            protobuf=TilingsBuf()
-        super().__init__(protobuf=protobuf, dataToTransform=dataToTransform, fPath=fPath, transformKwargs=transformKwargs)
+    # def __init__(self, protobuf=None, dataToTransform=None, fPath=None, transformKwargs=None):
+    #     if protobuf==None:
+    #         protobuf=TilingsBuf()
+    #     super().__init__(protobuf=protobuf, dataToTransform=dataToTransform, fPath=fPath, transformKwargs=transformKwargs)
+
+    # def _init(self, protobuf, dataToTransform, dataToTransformDict, fPath, lazyLoad, transformKwargs):
+    #     if protobuf is None:
+    #         protobuf = TilingsBuf()
+    #     super()._init(protobuf=protobuf, dataToTransform=dataToTransform, dataToTransformDict=dataToTransformDict, fPath=fPath, lazyLoad=lazyLoad, transformKwargs=transformKwargs)
 
     def combine(self):
         vit = self.valIter()

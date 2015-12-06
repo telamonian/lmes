@@ -109,9 +109,9 @@ def genSweepTup(ticks, label, paramFunc):
 if __name__=='__main__':
     mczTicks = [1e5] #LogTicks(2,6,base=10,resolution=0)
     # mtzTicks = [1e4]   #LogTicks(2,6,base=10,resolution=-.5)
-    mcnTicks = LogTicks(2,6,base=10,resolution=0)
+    mcnTicks = [1e5]    #LogTicks(2,6,base=10,resolution=0)
     thetaTicks = LogTicks(1,-1,base=10,resolution=1)   #LogTicks(-1,1,base=10,resolution=4)
-    replicateTicks = [2] #list(range(2))
+    replicateTicks = list(range(3))
 
     # these inputTupsDefault get applied to every lm file before any simulations in the sweep
     simParams = [SimulationParameter(key='maxSteps',val=str(int(1e10))),

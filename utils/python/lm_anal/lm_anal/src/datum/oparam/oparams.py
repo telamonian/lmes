@@ -16,10 +16,15 @@ class OParams(Data):
     Hdf5IOType = OParamsIO
     SFileType = None
     
-    def __init__(self, protobuf=None, dataToTransform=None, fPath=None, transformKwargs=None):
-        if protobuf==None:
-            protobuf=OParamsBuf()
-        super().__init__(protobuf=protobuf, dataToTransform=dataToTransform, fPath=fPath, transformKwargs=transformKwargs)
+    # def __init__(self, protobuf=None, dataToTransform=None, fPath=None, lazyLoad=True, transformKwargs=None):
+    #     if protobuf==None:
+    #         protobuf=OParamsBuf()
+    #     super().__init__(protobuf=protobuf, dataToTransform=dataToTransform, fPath=fPath, lazyLoad=lazyLoad, transformKwargs=transformKwargs)
+
+    def _init(self, protobuf, dataToTransform, dataToTransformDict, fPath, lazyLoad, transformKwargs):
+        if protobuf is None:
+            protobuf = OParamsBuf()
+        super()._init(protobuf=protobuf, dataToTransform=dataToTransform, dataToTransformDict=dataToTransformDict, fPath=fPath, lazyLoad=lazyLoad, transformKwargs=transformKwargs)
 
     def combine(self):
         vit = self.valIter()

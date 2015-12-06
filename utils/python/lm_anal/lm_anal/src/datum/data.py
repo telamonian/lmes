@@ -49,6 +49,12 @@ class Data(object):
     
 # initializers
     def __init__(self, protobuf=None, dataToTransform=None, dataToTransformDict=None, fPath=None, lazyLoad=True, transformKwargs=None):
+        '''
+        calls the actual ._init() method. This makes it possible for subclasses to override ._init() while still inheriting the default parameter values in the .__init__() signature
+        '''
+        self._init(protobuf=protobuf, dataToTransform=dataToTransform, dataToTransformDict=dataToTransformDict, fPath=fPath, lazyLoad=lazyLoad, transformKwargs=transformKwargs)
+        
+    def _init(self, protobuf, dataToTransform, dataToTransformDict, fPath, lazyLoad, transformKwargs):
         self.protobuf = protobuf
         # point-of-origin, tells us from whence this data came
         self.po = None
