@@ -140,8 +140,48 @@ class Hist(Datum, DensePlottable):
             paddedEdges[-1] = edges[-1] + paddingWidth
             eWP.append(paddedEdges)
         return eWP
-    
-    def getKLDivergence(self, other, normalize=True, absolute=False):
+
+    def getKLDivergence(self, other, absolute=False, normalize=True):
+        selfHist,otherHist,effectiveShape = self.getKLDivergenceSetup(other=other, absolute=absolute, normalize=normalize)
+
+        # calculation stuff
+        val = 0
+        it = np.nditer((selfHist.h[effectiveShape], otherHist.h[effectiveShape]), flags=['multi_index'])
+        while not it.finished:
+            if it[0]==0 or it[1]==0:
+                it.iternext()
+                continue
+            val+=it[0]*np.log(it[0]/it[1])
+            it.iternext()
+
+        if absolute:
+            return np.abs(val)
+        else:
+            return val
+
+    def getKLDivergenceArr(self, other, absolute=False, normalize=True):
+        selfHist,otherHist,effectiveShape = self.getKLDivergenceSetup(other=other, absolute=absolute, normalize=normalize)
+
+        # calculation stuff
+        retVal = self.getCopy()
+        retVal.initH()
+        retVal.clearVals()
+
+        it = np.nditer((selfHist.h[effectiveShape], otherHist.h[effectiveShape]), flags=['multi_index'])
+        while not it.finished:
+            if it[0]==0 or it[1]==0:
+                it.iternext()
+                continue
+            retVal.h_raw[it.multi_index] = it[0]*np.log(it[0]/it[1])
+            it.iternext()
+
+        retVal.h_cache_dirty = True
+        if absolute:
+            return np.abs(retVal)
+        else:
+            return retVal
+
+    def getKLDivergenceSetup(self, other, absolute, normalize):
         '''
         get the Kullback-Leibler divergence between this hist and another.
         absolute: if true, return absolute value of KL div
@@ -174,22 +214,23 @@ class Hist(Datum, DensePlottable):
                 # just use whatever distributions we're handed
                 newHists[i] = oldHist
         selfHist,otherHist = newHists
-        
-        # calculation stuff
-        val = 0
-        it = np.nditer((selfHist.h[effectiveShape], otherHist.h[effectiveShape]), flags=['multi_index'])
-        while not it.finished:
-            if it[0]==0 or it[1]==0:
-                it.iternext()
-                continue
-            val+=it[0]*np.log(it[0]/it[1])
-            it.iternext()
-        
-        if absolute:
-            return np.abs(val)
+        return selfHist,otherHist,effectiveShape
+
+    def getStdErrArr(self, other, normalize=True):
+        retVal = self.getCopy()
+        retVal.initH()
+
+        if normalize:
+            retVal.normalize()
+            o = other.getCopy()
+            o.normalize()
         else:
-            return val
-    
+            o = other
+
+        retVal.h_raw = (retVal.h - o.h)/retVal.h
+        retVal.h_cache_dirty = True
+        return retVal
+
     def getWeightedKLDivergence(self, other, absolute=False, weight=1):
         '''
         get the Kullback-Leibler divergence between this hist and another, where the values of the other hist are multiplied by weight.

@@ -44,10 +44,10 @@ class OParams(Data):
     #     oparamIDs = Tupify(oparamIDs)
     #     return [self[i] for i in oparamIDs]
     
-    def initDatum(self, key, **kwargs):
-        try:
-            return self.map[key]
-        except KeyError:
-            subcon = self.protobuf.order_parameters.add()
-            self.map[key] = self.datumType(subcon=subcon, **kwargs)
-            return self.map[key]
+    # def initDatum(self, key, **kwargs):
+    #     try:
+    #         return self.map[key]
+    #     except KeyError:
+    #         subcon = self.protobuf.order_parameters.add()
+    #         self.map[key] = self.datumType(subcon=subcon, **kwargs)
+    #         return self.map[key]

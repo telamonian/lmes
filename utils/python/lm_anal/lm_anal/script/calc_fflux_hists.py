@@ -13,8 +13,9 @@ thisScriptDir = Path(os.path.dirname(os.path.realpath(__file__)))
 
 class FFluxHistsExample(object):
     def __init__(self, ffluxRootPath, inputFilePath=None):
-        self.inputFilePath = inputFilePath
-        self.inputSim = Sim(fPath=self.inputFilePath)
+        if inputFilePath is not None:
+            self.inputFilePath = inputFilePath
+            self.inputSim = Sim(fPath=self.inputFilePath)
         
         self.ffluxRootPath = ffluxRootPath
         self.ffluxSims = Sims(rootPath=self.ffluxRootPath)

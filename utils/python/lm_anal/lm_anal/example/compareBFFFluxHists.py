@@ -11,6 +11,8 @@ from lm_anal.src.magicDict.magicDict import MagicDict
 from lm_anal.src.main import Sim, Sims
 from lm_anal.src.plottable import Plottable
 
+__all__ = ['CompareBFFFluxHists']
+
 # fix some issues with deepcopy() caused by the monkeypatching this script does
 Plottable.doNotCopyAttrs+=['hist1D']
 
@@ -21,14 +23,15 @@ bfRootPath = (thisScriptDir / Path('../../../../../regression/genetic_toggle_swi
 # ffluxRootPath = Path('../../../../../regression/biphasic_switch.lm')
 ffluxRootPath = Path('/Users/tel/temp_data/gts_-_fflux_-_crossingsPerPhase_-_phaseZeroTime_-_theta_-_replicate').resolve()
 
-class FFluxHistsVsBFHistsExample(object):
-    def __init__(self, inputFilePath=inputFilePath, bfRootPath=bfRootPath, ffluxRootPath=ffluxRootPath, clearLmint=False, lmintOnly=False):
+class CompareBFFFluxHists(object):
+    def __init__(self, bfRootPath=bfRootPath, ffluxRootPath=ffluxRootPath, inputFilePath=inputFilePath, clearLmint=False, lmintOnly=False):
         if clearLmint:
             self.clearLmint()
         self.lmintOnly = lmintOnly
         # inputSim stuff
-        self.inputFilePath = inputFilePath
-        self.inputSim = Sim(fPath=self.inputFilePath)
+        if inputFilePath is not None:
+            self.inputFilePath = inputFilePath
+            self.inputSim = Sim(fPath=self.inputFilePath)
         
         # bfSims stuff
         self.bfRootPath = bfRootPath
@@ -86,7 +89,10 @@ class FFluxHistsVsBFHistsExample(object):
         for dim in (1,2):
             for ffluxKey in self.ffluxSims.keys():
                 theta = MagicDict.getElemFromKey('theta', ffluxKey)
-                bfAKey = self.ffluxBFConversionDict[theta]
+                try:
+                    bfAKey = self.ffluxBFConversionDict[theta]
+                except KeyError:
+                    bfAKey = self.ffluxBFConversionDict['1.0e+00']
 
                 bfHist = self.getBFHistByKeyDim(bfAKey, dim)
                 if normalizeBF:
@@ -190,7 +196,21 @@ class FFluxHistsVsBFHistsExample(object):
 
         return OrderedDict(zip(ffluxThetas, bfKeys))
 
-    def genStdKLDiv(self, dim=1, nDownsampled=7, theta='1.0e+00'):
+    def genKLDivArrs(self, dim, rep, theta):
+        if dim==1:
+            ffluxHists = self.ffluxSims[('rep', rep), ('theta', theta)].ffluxHists((('InterfaceTilingID', 0), ('BinTilingIDs', (3,))))
+        elif dim==2:
+            ffluxHists = self.ffluxSims[('rep', rep), ('theta', theta)].ffluxHists((('InterfaceTilingID', 0), ('BinTilingIDs', (1,2))))
+        ffluxHistsCopy = deepcopy(ffluxHists)
+        bfHists = ffluxHistsCopy.bfHist
+        bfHists.normalize()
+
+        def ConvertToKLDiv(ffluxHist):
+            return ffluxHist.bfHist.getKLDivergenceArr(ffluxHist, normalize='mask')
+
+        return ffluxHists.mapFunc(ConvertToKLDiv, doRaise=True)
+
+    def genKLDivStd(self, dim=1, nDownsampled=7, theta='1.0e+00'):
         nSamples = np.logspace(2, 1+nDownsampled, base=10, num=nDownsampled, dtype=int)
 
         keySetA = self.ffluxBFConversionDict[theta]
@@ -215,7 +235,7 @@ class FFluxHistsVsBFHistsExample(object):
 
         return self.klDivDict
 
-    def genStdKLDivBetweenBasins(self, nDownsampled=7, theta='1.0e+00'):
+    def genKLDivStdBetweenBasins(self, nDownsampled=7, theta='1.0e+00'):
         nSamples = np.logspace(2, 1+nDownsampled, base=10, num=nDownsampled, dtype=int)
 
         keySetA = self.ffluxBFConversionDict[theta]
@@ -235,7 +255,7 @@ class FFluxHistsVsBFHistsExample(object):
         print(list(self.klDivDict.keys()))
         print(list(self.klDivDict.values()))
 
-    def genStdKLDivWithSplit(self, dim=1, nDownsampled=7, theta='1.0e+00'):
+    def genKLDivStdWithSplit(self, dim=1, nDownsampled=7, theta='1.0e+00'):
         nSamples = np.logspace(2, 1+nDownsampled, base=10, num=nDownsampled, dtype=int)
 
         keySetA = self.ffluxBFConversionDict[theta]
@@ -260,6 +280,22 @@ class FFluxHistsVsBFHistsExample(object):
         print(list(self.klDivDict.keys()))
         print(list(self.klDivDict.values()))
 
+    def genStdErrArrs(self, dim, rep, theta):
+        if dim==1:
+            ffluxHists = self.ffluxSims[('rep', rep), ('theta', theta)].ffluxHists((('InterfaceTilingID', 0), ('BinTilingIDs', (3,))))
+        elif dim==2:
+            ffluxHists = self.ffluxSims[('rep', rep), ('theta', theta)].ffluxHists((('InterfaceTilingID', 0), ('BinTilingIDs', (1,2))))
+        ffluxHistsCopy = deepcopy(ffluxHists)
+        bfHists = ffluxHistsCopy.bfHist
+        bfHists.normalize()
+
+        def ConvertToStdErr(ffluxHist):
+            return ffluxHist.bfHist.getStdErrArr(ffluxHist)
+            # ffluxHist.h = (ffluxHist.bfHist.h - ffluxHist.h)/ffluxHist.bfHist.h
+            # return ffluxHist
+
+        ffluxHists.mapFunc(ConvertToStdErr)
+
     def getBFHistByKeyDim(self, key, dim):
         if dim==1:
             if not hasattr(self, '_ran_gen1DBFHists') or not self._ran_gen1DBFHists:
@@ -283,4 +319,4 @@ class FFluxHistsVsBFHistsExample(object):
         return self.ffluxSims[key].ffluxHists[histKeyTup]
 
 if __name__=='__main__':
-    FFluxHistsVsBFHistsExample()
+    CompareBFFFluxHists()

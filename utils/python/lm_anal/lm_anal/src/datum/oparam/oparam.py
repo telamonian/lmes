@@ -1,13 +1,15 @@
 from lm_anal.src.datum import Datum
+from lm_anal.src.spec import DatumSpec as DatSpc, DatumSpecs as DatSpcs
 
 class OParam(Datum):
-    propertySpecs = {'id':{'dtype':'int', 'paths':('id',), 'storageType':'protobuf', 'type':'scalar'},
-                     'species_ids':{'dtype':'int', 'paths':('species_ids',), 'storageType':'numpy', 'type':'array'},
-                     'species_coefficients':{'dtype':'float', 'paths':('species_coefficients',), 'storageType':'numpy', 'type':'array'},
-                     'type':{'dtype':'int', 'paths':('type',), 'storageType':'protobuf', 'type':'scalar'}}
-#                      'dims':{'dtype':'int', 'paths':('dims',), 'storageType':'protobuf', 'type':'array'},                 
-#                      'rank':{'dtype':'int', 'paths':('rank',), 'storageType':'protobuf', 'type':'scalar'},
-
+    propertySpecs = DatSpcs(
+         DatSpc(name='id', dtype='int', paths=('id',), storageType='default', type='scalar'),
+         DatSpc(name='species_ids', dtype='int', paths=('species_ids',), storageType='numpy', type='array'),
+         DatSpc(name='species_coefficients', dtype='float', paths=('species_coefficients',), storageType='numpy', type='array'),
+         DatSpc(name='type', dtype='int', paths=('type',), storageType='default', type='scalar'),
+         # DatSpc(name='dims', dtype='int', paths=('dims',), storageType='protobuf', type='array'),
+         # DatSpc(name='rank', dtype='int', paths=('rank',), storageType='protobuf', type='scalar'),
+    )
     subtypeDict = {}
     
     @classmethod
@@ -24,9 +26,9 @@ class OParam(Datum):
     def name(self, val):
         self._name = val
     
-    def __init__(self, subcon, full=False):
-        super().__init__(full=full)
-        self.protobuf = subcon
+    # def __init__(self, subcon, full=False):
+    #     super().__init__(full=full)
+    #     self.protobuf = subcon
         
     def init(self):
         pass

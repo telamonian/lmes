@@ -56,7 +56,7 @@ class DensePlottable(Plottable):
             if self.scale=='log':
                 self.ax.set_yscale('log')
 
-            self.ax.set_xlim(self.getEdgesWithPadding()[0][0], self.getEdgesWithPadding()[0][-2])
+            # self.ax.set_xlim(self.getEdgesWithPadding()[0][0], self.getEdgesWithPadding()[0][-2])
 
             #             self.ax.set_xlabel(self.axLabels[0])
             self.ax.set_xlabel(self.getXLabel(), labelpad=pad)
@@ -66,19 +66,23 @@ class DensePlottable(Plottable):
             if 'cmap' not in pltKwargs:
                 pltKwargs['cmap'] = self.cmBad.jet
 
-            self.ax.set_xlim(self.getEdgesWithPadding()[0][0], self.getEdgesWithPadding()[0][-1])
-            self.ax.set_ylim(self.getEdgesWithPadding()[1][0], self.getEdgesWithPadding()[1][-1])
+            # self.ax.set_xlim(self.getEdgesWithPadding()[0][0], self.getEdgesWithPadding()[0][-1])
+            # self.ax.set_ylim(self.getEdgesWithPadding()[1][0], self.getEdgesWithPadding()[1][-1])
 
             self.ax.set_xlabel(self.getXLabel(), labelpad=pad)
             self.ax.set_ylabel(self.getYLabel(), labelpad=pad + 10)
 
         self.resizeLabels()
+        self.setLims()
 
         return self.fig, self.ax, figKwargs, axesKwargs, pltKwargs
 
-    def plotColorbar(self, im=None, label='probability', **pltKwargs):
+    def plotColorbar(self, ax=None, im=None, label='probability', **pltKwargs):
         im = im if im is not None else self.im
-        self.axCBar = self.fig.add_axes([0.95, 0.12, 0.03, 0.79])
+        if ax is None:
+            self.axCBar = self.fig.add_axes([1.05, 0.12, 0.03, 0.79])   #([0.95, 0.12, 0.03, 0.79])
+        else:
+            self.axCBar = ax
 #         t = np.logspace(-4,10,base=10,num=20)
 
         self.cbar = self.fig.colorbar(im, cax=self.axCBar, **pltKwargs) #, ticks=t,
@@ -86,3 +90,10 @@ class DensePlottable(Plottable):
 
         self.resizeAxisLabels(ax=self.axCBar)
         self.resizeTickLabels(ax=self.axCBar)
+
+    def setLims(self):
+        if len(self.h_dims)==1:
+            self.ax.set_xlim(self.getEdgesWithPadding()[0][0], self.getEdgesWithPadding()[0][-2])
+        elif len(self.h_dims)==2:
+            self.ax.set_xlim(self.getEdgesWithPadding()[0][0], self.getEdgesWithPadding()[0][-1])
+            self.ax.set_ylim(self.getEdgesWithPadding()[1][0], self.getEdgesWithPadding()[1][-1])

@@ -88,20 +88,22 @@ class Plottable(object):
         self.resizeAxisLabels(fontSize)
         self.resizeTickLabels(fontSize)
     
-    def resizeAxisLabels(self, ax=None, fontSize=None):
+    def resizeAxisLabels(self, ax=None, fontSize=None, sizeDatum=None):
         ax = self.ax if ax is None else ax
+        sizeDatum = self if sizeDatum is None else sizeDatum
         if fontSize==None:
-            fontSizes = self.getFontSizesFromAxesSize()
+            fontSizes = sizeDatum.getFontSizesFromAxesSize()
         else:
             fontSizes = [fontSize]*2
 
         for i,axis in enumerate((ax.get_xaxis(), ax.get_yaxis())):
             axis.get_label().set_size(fontSizes[i])
     
-    def resizeTickLabels(self, ax=None, fontSize=None):
+    def resizeTickLabels(self, ax=None, fontSize=None, sizeDatum=None):
         ax = self.ax if ax is None else ax
+        sizeDatum = self if sizeDatum is None else sizeDatum
         if fontSize==None:
-            fontSize = np.min(self.getFontSizesFromAxesSize())
+            fontSize = np.min(sizeDatum.getFontSizesFromAxesSize())
         
         for axis in (ax.get_xaxis(), ax.get_yaxis()):
             for tickLabel in axis.get_majorticklabels():
@@ -114,3 +116,6 @@ class Plottable(object):
         if 'bbox_inches' not in kwargs:
             kwargs['bbox_inches'] = 'tight'
         plt.savefig(*args, **kwargs)
+
+    def setLims(self):
+        pass
