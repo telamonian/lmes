@@ -13,6 +13,23 @@ import lm_anal.src.helper as hlp
 from lm_anal.src.main import Sim
 from lm_anal.src.magicDict import MagicDict
 
+class FilterRegex(object):
+    def __init__(self, pat, kind):
+        if kind!='exclude' and kind!='include':
+            raise ValueError('kind should be exclude or include, kind: %s' % kind)
+        self.pat = pat
+        #self.antipat = r'^((?!%s).)*$' % self.pat
+        self.kind = kind
+        self.exclude = self.kind=='exclude'
+
+        self.regex = re.compile(pat)
+
+    def __call__(self, s):
+        if self.regex.search(str(s)):
+            return True if self.exclude else False
+        else:
+            return False if self.exclude else True
+
 class SimsMetaclass(type):
     def __new__(cls, clsname, bases, dct):
         return super(SimsMetaclass, cls).__new__(cls, clsname, bases, dct)
@@ -37,14 +54,52 @@ class Sims(object):
                 keyElems+=[tuple(multiToken.split('_'))]
                 
         return tuple(keyElems)
-    
-    def __init__(self, rootPath, fType='hdf5', **kwargs):
+
+    @staticmethod
+    def parseFilterRule(filterRule):
+        if filterRule[0]=='-':
+            kind = 'exclude'
+        elif filterRule[0]=='+':
+            kind = 'include'
+        else:
+            raise ValueError("invalid filterRule. filterRules shoudld start with '-' (exclude) or '+' (include) filterRule: %s" % filterRule)
+        return FilterRegex(pat=filterRule[1:], kind=kind)
+
+    def __init__(self, rootPath, filters=None, filterRules=None, fType='hdf5', **kwargs):
         self.copying = False
+
+        self.filters = [] if filters is None else filters
+        if filterRules is not None:
+            self.initFilterRules(filterRules)
+
         self.initFType(fType)
         self.map = MagicDict()
         self.rootPath = Path(rootPath)
         self.initSims(**kwargs)
-    
+
+    def initFilterRules(self, filterRules):
+        for filterRule in filterRules:
+            self.filters.append(self.parseFilterRule(filterRule))
+
+    def filterPath(self, p):
+        '''
+        runs all of the functions in .filters on p
+        '''
+        for Filter in self.filters:
+            if Filter(p):
+                if Filter.kind=='exclude':
+                    return True
+                else:
+                    return False
+        return False
+
+    def filterPaths(self, ps):
+        retPs = []
+        for p in ps:
+            if not self.filterPath(p):
+                retPs.append(p)
+        return retPs
+
     def initFType(self, fType):
         '''
         initialize fType with some normalization/sanity checks
@@ -73,11 +128,18 @@ class Sims(object):
             fPaths = (self.rootPath,)
         else:
             fPaths = self.rootPath.rglob('*{}'.format(self.suffix))
-        
+
+        if self.filters:
+            fPaths = self.filterPaths(fPaths)
+
         self._initSims(fPaths, **kwargs)
             
         if len(self.map)==0:
             fPaths = self.rootPath.rglob('*{}'.format('.lmint'))
+
+            if self.filters:
+                fPaths = self.filterPaths(fPaths)
+
             self._initSims(fPaths, **kwargs)
                 
     def _initSims(self, fPaths, **kwargs):
@@ -146,35 +208,37 @@ class Sims(object):
     def __iter__(self):
         return self.map.__iter__()
 
-    def _addGridGlobalLabels(self, fig, xLabel=None, yLabel=None, suptitle=None):
-        fontSizeX,fontSizeY = self._getFontSizesFromFigSize(fig)
+    def _addGridGlobalLabels(self, fig, grid, xLabel=None, yLabel=None, suptitle=None):
         fontScaler = 2.0/3.0
-        fontSizeX,fontSizeY = fontSizeX*fontScaler,fontSizeY*fontScaler
+        fontSizeGlobalLabelX,fontSizeGlobalLabelY = np.array(self._getFontSizesFromFigSize(fig))*fontScaler
 
         ax = fig.add_subplot(111, zorder=-1000)
         hlp.HideAxesFrame(ax)
 
-        ax.set_xlabel(xLabel, labelpad=fontSizeX/2.0, size=fontSizeX)
-        ax.set_ylabel(yLabel, labelpad=fontSizeY, size=fontSizeY)
+        fontSizeAxLabelX,fontSizeAxLabelY = self._getFirstGoodGridObj(grid).getFontSizesFromAxesSize()
+
+        ax.set_xlabel(xLabel, labelpad=fontSizeAxLabelX, size=fontSizeGlobalLabelX)
+        ax.set_ylabel(yLabel, labelpad=fontSizeAxLabelY*3, size=fontSizeGlobalLabelY)
 
         suptitle = str(suptitle)
         figSize = self._getFigSizeInPoints(fig)
-        fontSizeTitle = float(figSize[0])/len(suptitle)
-        yPosTitle = (float(fontSizeTitle)/figSize[1])*1.5 + 1
-        ax.set_title(suptitle, y=yPosTitle, size=fontSizeTitle, zorder=10)
+        fontSizeGlobalTitle = float(figSize[0])/len(suptitle)
+        # 1 plus a multiple of fontSizeAxLabelX in units of fig height
+        yPosTitle = 1 + (float(fontSizeAxLabelX)/figSize[1])*2
+        ax.set_title(suptitle, y=yPosTitle, size=fontSizeGlobalTitle, zorder=10)
 
-        # xPad = self._getFigPadFracFromFontSize(dim=0, fig=fig, fontSize=fontSizeX)
-        # yPad = self._getFigPadFracFromFontSize(dim=1, fig=fig, fontSize=fontSizeY)
+        # xPad = self._getFigPadFracFromFontSize(dim=0, fig=fig, fontSize=fontSizeGlobalLabelX)
+        # yPad = self._getFigPadFracFromFontSize(dim=1, fig=fig, fontSize=fontSizeGlobalLabelY)
 
         # plt.annotate(xLabel, xy=(0.5, 0), xytext=(0, 0),
         #                     xycoords='figure fraction', textcoords='offset points',
-        #                     size=fontSizeX, ha='center', va='top')
+        #                     size=fontSizeGlobalLabelX, ha='center', va='top')
 
-        # xKwargs = {'x':0.5, 'y':-xPad, 'text':xLabel, 'ha':'center', 'size':fontSizeX, 's':None}
-        # yKwargs = {'x':-yPad, 'y':0.5, 'text':yLabel, 'va':'center', 'rotation':'vertical', 'size':fontSizeY, 's':None}
+        # xKwargs = {'x':0.5, 'y':-xPad, 'text':xLabel, 'ha':'center', 'size':fontSizeGlobalLabelX, 's':None}
+        # yKwargs = {'x':-yPad, 'y':0.5, 'text':yLabel, 'va':'center', 'rotation':'vertical', 'size':fontSizeGlobalLabelY, 's':None}
         # for kwargs in [kwargs for kwargs in [xKwargs, yKwargs] if kwargs['text'] is not None]:
         #     fig.text(**kwargs)
-        return fontSizeX,fontSizeY
+        return fontSizeGlobalLabelX,fontSizeGlobalLabelY
 
     def _addGridColumnLabels(self, axArr, axArrMask, grid, stickyLabels=True):
         '''
@@ -298,7 +362,7 @@ class Sims(object):
         self._addGridRowLabels(axArr=axArr, axArrMask=axArrMask, grid=grid, stickyLabels=stickyLabels)
         self._addGridColumnLabels(axArr=axArr, axArrMask=axArrMask, grid=grid, stickyLabels=stickyLabels)
 
-        self._addGridGlobalLabels(fig, figXLabel, figYLabel, figSuptitle)
+        self._addGridGlobalLabels(fig=fig, grid=grid, xLabel=figXLabel, yLabel=figYLabel, suptitle=figSuptitle)
         fig.tight_layout()
 
     def _genGridColumnLabels(self, grid):
@@ -398,9 +462,11 @@ class Sims(object):
         axArrMask = axArrMask.T
         if cbar:
             self._plotGridCbar(fig=fig, grid=grid, cbarKwargs=cbarKwargs)
-        for ax in (axArr.ravel()[i] for i in badAxes):
+        for ax in axArr[axArrMask].ravel():
+            ax.axis('off')
+        # for ax in (axArr.ravel()[i] for i in badAxes):
             # ax.axis('off')
-            hlp.HideAxesFrame(ax)
+            # hlp.HideAxesFrame(ax)
         self._formatGridPlot(fig=fig, axArr=axArr, grid=grid, axArrMask=axArrMask, singletonElems=singletonElems, stickyLabels=stickyLabels, stickyTicklabels=stickyTicklabels)
         return fig, axArr, grid
 

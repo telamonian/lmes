@@ -10,7 +10,6 @@ import uuid
 import lmFile
 from helper import *
 
-
 class Job(object):
     '''
     copy_to: a list of tuples of the form ('file path on local to copy to remote', 'directory path of destination directory on remote')

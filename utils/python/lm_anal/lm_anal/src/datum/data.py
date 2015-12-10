@@ -2,9 +2,9 @@ from copy import copy as shallowCopy
 from collections import OrderedDict
 from pathlib import Path
 
-from lm_anal.src.helper import LazyClass, Setify
+import lm_anal.src.helper as hlp
 
-lzTransforms = LazyClass(modName='lm_anal.src.transform', clsName='Transforms')
+lzTransforms = hlp.LazyClass(modName='lm_anal.src.transform', clsName='Transforms')
 
 __all__ = ['DataMetaclass', 'Data']
 
@@ -142,7 +142,20 @@ class Data(object):
     
 # magic methods and the like
     def __call__(self, key):
-        return self.map[key]
+        try:
+            return self.map[key]
+        except KeyError as e:
+            # key is a tuple-of-tuples
+            keySet = {key}
+            for datumKey,val in self.map.items():
+                if keySet <= hlp.Setify(datumKey):
+                    return val
+            # key is a tuple-of-tulpes-of-tuples
+            keySet = hlp.Setify(key)
+            for datumKey,val in self.map.items():
+                if keySet <= hlp.Setify(datumKey):
+                    return val
+            raise e
 
     def __contains__(self, key):
         return key in self.map
@@ -195,7 +208,7 @@ class Data(object):
             data.map = shallowCopy(self.map)
 
         # symmetric difference of self keys and the keys from arg
-        for oldKey in set(data.keys()) ^ Setify(keys):
+        for oldKey in set(data.keys()) ^ hlp.Setify(keys):
             data.pop(oldKey)
 
         return data

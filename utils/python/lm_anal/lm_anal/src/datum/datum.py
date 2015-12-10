@@ -53,7 +53,7 @@ def DefNPHistogramProp(name, spec, dct):
         if self.__getattribute__(cache_dirty):
             self.__getattribute__(cache)[...] = self.__getattribute__(raw)*self.__getattribute__(weight)
             
-            zeroMask = np.logical_or(self.__getattribute__(mask), self.__getattribute__(raw)<self.__getattribute__(threshold))
+            zeroMask = np.logical_or(self.__getattribute__(mask), (-self.__getattribute__(threshold) < self.__getattribute__(raw)) < self.__getattribute__(threshold))
             self.__getattribute__(cache)[zeroMask] = 0
             
             self.__setattr__(cache_dirty, False)

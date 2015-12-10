@@ -64,13 +64,19 @@ class Plottable(object):
         
         return self.fig, self.ax, figKwargs, axesKwargs, pltKwargs
     
-    def getAxesSize(self):
-        bbox = self.ax.get_window_extent().transformed(self.fig.dpi_scale_trans.inverted())
+    def getAxesSize(self, ax=None, fig=None):
+        ax = ax if ax is not None else self.ax
+        fig = fig if fig is not None else self.fig
+
+        bbox = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
         return bbox.width, bbox.height
     
-    def getFontSizesFromAxesSize(self, scaleFactor=.07):
+    def getFontSizesFromAxesSize(self, ax=None, fig=None, scaleFactor=.07):
+        ax = ax if ax is not None else self.ax
+        fig = fig if fig is not None else self.fig
+
         fontSizes = []
-        for length in self.getAxesSize():
+        for length in self.getAxesSize(ax=ax, fig=fig):
             fontSizeInInches = length*float(scaleFactor)
             fontSizes.append(fontSizeInInches*POINTS_PER_INCH)
         return fontSizes

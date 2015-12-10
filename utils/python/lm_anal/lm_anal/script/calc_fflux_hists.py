@@ -40,6 +40,8 @@ def Main():
 
     parser = ArgumentParser('example script that will take Forward Flux simulation output stored in hdf5 .lm files and create .lmint files with multidimensional histograms of the epigenetic landscape')
     parser.add_argument('dataPath', nargs='?', default=defaultDP, help='path to single .lm file with fflux output, or to root of dir tree containing many such .lm files')
+    parser.add_argument('-f', '--filterRules', nargs='+', help="filter rules. '+<regex>' -> include, '-<regex>' -> exclude, first rule that applies to a file is used, files are included by default\n" +
+                                                               "example: -f '-b\wb.*' '+.+boo' -> this will include george and faboo, and exclude bob and baboo")
     parser.add_argument('-i', '--inputFilePath', default=None, help='path to .lm file with appropriate inputs (oparams, tilings) if these are lacking from your data files')
 
     args = vars(parser.parse_args())

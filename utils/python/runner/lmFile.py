@@ -14,7 +14,7 @@ InitialSpeciesCountsBackward = namedtuple('InitialSpeciesCountsBackward',['speci
 OrderParameter = namedtuple('OrderParameter', ['id','type','speciesIDs','speciesCoefficients'])
 ReactionRateConstant = namedtuple('ReactionRateConstant', ['reactionID','rateConstant'])
 SimulationParameter = namedtuple('SimulationParameter', ['key', 'val'])
-Tiling = namedtuple('Tiling', ['id','orderParameterID','type','edges'])
+# Tiling = namedtuple('Tiling', ['id','orderParameterID','type','edges'])
 
 # namedtuples with default values
 class Tiling(namedtuple('Tiling', ['id','orderParameterID','type','edges','isCurrentTiling'])):
@@ -179,8 +179,9 @@ class Input(object):
         tilingGroup.attrs['Type'] = tiling.type
         edges = tilingGroup.create_dataset("Edges", (len(tiling.edges),), dtype=np.dtype('d'))
         edges[...] = tiling.edges
-        
+
         if tiling.isCurrentTiling:
+            print "setting current tiling: %d" % tiling.id
             self.f['Tilings'].attrs['CurrentTilingID'] = tiling.id
             
     def SetTilings(self, tilings, currentTilingID=None):

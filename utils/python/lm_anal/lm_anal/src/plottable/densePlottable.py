@@ -1,5 +1,5 @@
 from copy import deepcopy
-from matplotlib.colors import LogNorm, Normalize
+from matplotlib.colors import LogNorm, Normalize, SymLogNorm
 import numpy as np
 
 from lm_anal.src.plottable.plottable import Plottable
@@ -15,6 +15,13 @@ class DensePlottable(Plottable):
             X, Y = np.meshgrid(*self.getEdgesWithPadding())
             if self.scale=='log':
                 pltKwargs['norm'] = LogNorm()
+            elif self.scale is not None and self.scale[:6]=='symlog':
+                symlogToks = self.scale.split('_')
+                if len(symlogToks)==1:
+                    linthresh = 1.0
+                else:
+                    linthresh = float(symlogToks[1])
+                pltKwargs['norm'] = SymLogNorm(linthresh=linthresh)
             else:
                 pltKwargs['norm'] = Normalize()
             if not blank:
@@ -29,7 +36,7 @@ class DensePlottable(Plottable):
         minLev = np.log10(self.plotData.min()) if minLev is None else minLev
         maxLev = np.log10(self.plotData.max()) if maxLev is None else maxLev
 
-        centers_x,centers_y = self.getBinCenters() #[edgeArr + .5 for edgeArr in self.getEdgeArrays()]
+        centers_x,centers_y = self.getBinCenters()
 
         # contour the zero valued areas at the same level as the lowest positive values
         if contourZeros:
@@ -56,18 +63,12 @@ class DensePlottable(Plottable):
             if self.scale=='log':
                 self.ax.set_yscale('log')
 
-            # self.ax.set_xlim(self.getEdgesWithPadding()[0][0], self.getEdgesWithPadding()[0][-2])
-
-            #             self.ax.set_xlabel(self.axLabels[0])
             self.ax.set_xlabel(self.getXLabel(), labelpad=pad)
             self.ax.set_ylabel(self.getYLabel(), labelpad=pad + 10)
 
         elif len(self.h_dims)==2:
             if 'cmap' not in pltKwargs:
                 pltKwargs['cmap'] = self.cmBad.jet
-
-            # self.ax.set_xlim(self.getEdgesWithPadding()[0][0], self.getEdgesWithPadding()[0][-1])
-            # self.ax.set_ylim(self.getEdgesWithPadding()[1][0], self.getEdgesWithPadding()[1][-1])
 
             self.ax.set_xlabel(self.getXLabel(), labelpad=pad)
             self.ax.set_ylabel(self.getYLabel(), labelpad=pad + 10)
@@ -83,9 +84,8 @@ class DensePlottable(Plottable):
             self.axCBar = self.fig.add_axes([1.05, 0.12, 0.03, 0.79])   #([0.95, 0.12, 0.03, 0.79])
         else:
             self.axCBar = ax
-#         t = np.logspace(-4,10,base=10,num=20)
 
-        self.cbar = self.fig.colorbar(im, cax=self.axCBar, **pltKwargs) #, ticks=t,
+        self.cbar = self.fig.colorbar(im, cax=self.axCBar, **pltKwargs)
         self.cbar.set_label(label, rotation=270, labelpad=75)
 
         self.resizeAxisLabels(ax=self.axCBar)

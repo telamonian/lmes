@@ -175,11 +175,10 @@ class Hist(Datum, DensePlottable):
             retVal.h_raw[it.multi_index] = it[0]*np.log(it[0]/it[1])
             it.iternext()
 
-        retVal.h_cache_dirty = True
         if absolute:
-            return np.abs(retVal)
-        else:
-            return retVal
+            retVal.h_raw = np.abs(retVal.h_raw)
+        retVal.h_cache_dirty = True
+        return retVal
 
     def getKLDivergenceSetup(self, other, absolute, normalize):
         '''
@@ -219,6 +218,7 @@ class Hist(Datum, DensePlottable):
     def getStdErrArr(self, other, normalize=True):
         retVal = self.getCopy()
         retVal.initH()
+        retVal.clearVals()
 
         if normalize:
             retVal.normalize()

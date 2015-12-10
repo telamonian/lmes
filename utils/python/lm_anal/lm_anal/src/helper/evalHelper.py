@@ -16,7 +16,7 @@ def ContainerEval(xs):
 def NumEval(s):
     try:
         return literal_eval(s)
-    except ValueError:
+    except (SyntaxError, ValueError) as e:
         return s
 
 # NumEvalVectorized = np.vectorize(NumEval, otypes=['O'])
