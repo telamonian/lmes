@@ -115,7 +115,13 @@ def DefNPHistogramProp(name, spec, dct):
         self.__setattr__(dimsName, self.__getattribute__(name).shape)
 
     dct['reslice' + CamelCaseUpper(name)] = reslice
-    
+
+    def set(self, arr):
+        self.__setattr__(cache_dirty, True)
+        self.__getattribute__(raw)[...] = arr
+
+    dct['set' + CamelCaseUpper(name)] = set
+
 def DefProtoArrayProp(name, spec, dct):
     getterList = ['@property',
                   'def %s(self):' % name,

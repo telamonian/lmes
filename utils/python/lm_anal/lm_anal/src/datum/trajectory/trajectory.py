@@ -8,9 +8,9 @@ from lm_anal.src.spec import DatumSpec, DatumSpecs
 __all__ = ['Trajectory']
 
 class Trajectory(Datum):
-    propertySpecs = DatumSpecs(DatumSpec(name='number_entries', dtype='int', paths=('cme_state','species_counts','number_entries'), storageType='protobuf', type='scalar'),
-                               DatumSpec(name='time', dtype='float', paths=('cme_state','species_counts','time'), storageType='protobuf', type='array'),
-                               DatumSpec(name='trajectory_id', dtype='int', paths=('trajectory_id',), storageType='protobuf', type='scalar'))
+    propertySpecs = DatumSpecs(DatumSpec(name='number_entries', dtype='int', paths=('cme_state','species_counts','number_entries'), storageType='default', type='scalar'),
+                               DatumSpec(name='time', dtype='float', paths=('cme_state','species_counts','time'), storageType='numpy', type='array'),
+                               DatumSpec(name='trajectory_id', dtype='int', paths=('trajectory_id',), storageType='default', type='scalar'))
     
     @property
     def key(self):

@@ -2,6 +2,7 @@ from copy import deepcopy
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from pathlib import Path
 
 from lm_anal.src.helper import POINTS_PER_INCH
 
@@ -116,7 +117,11 @@ class Plottable(object):
                 tickLabel.set_size(fontSize)
 
     def savefig(self, *args, **kwargs):
-        if len(args)==0:
+        args = list(args)
+        if len(args)!=0:
+            if 'ext' in kwargs:
+                args[0] = str(Path(args[0]).with_suffix(kwargs.pop('ext')))
+        else:
             ext = '.eps' if 'ext' not in kwargs else kwargs.pop('ext')
             args = [str(self.fPath.with_suffix(ext))]
         if 'bbox_inches' not in kwargs:

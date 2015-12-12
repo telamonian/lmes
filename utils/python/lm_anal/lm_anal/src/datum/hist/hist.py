@@ -3,6 +3,7 @@ from itertools import chain
 import matplotlib.pyplot as plt 
 import numpy as np
 import scipy.stats as st
+from types import GeneratorType
 
 from lm_anal.src.datum import Datum, DatumPropertySpec as DPSpec, DatumPropertySpecs as DPSpecs
 from lm_anal.src.datum.tiling.tiling import Tiling
@@ -325,12 +326,22 @@ class Hist(Datum, DensePlottable):
         self.h.shape must == other.h.shape, but they can be otherwise dissimilar (different total N, different normalization, etc.)
         '''
         if inPlace:
+            if not len(others) > 0:
+                return self
             self.combineInPlace(*others, autothreshold=autothreshold, otherMask=otherMask)
             return self
         retVal = self.getCopy()
         retVal.initH()
-        for other in chain([self], others):
-            retVal.h_raw+=other.h
+
+        if not len(others) > 0:
+            return retVal
+
+        if isinstance(others[0], GeneratorType):
+            histChain = chain([self], *others)
+        else:
+            histChain = chain([self], others)
+        for hist in histChain:
+            retVal.h_raw+=hist.h
         self.h_cache_dirty = True
         return retVal
 

@@ -222,7 +222,7 @@ class Data(object):
         write to int
         '''
         if fPath is not None:
-            self.initIO(fPath=fPath)
+            self.initIO(fPath=Path(fPath))
         self.intIO.wtf(container=self)
 
 # mutators

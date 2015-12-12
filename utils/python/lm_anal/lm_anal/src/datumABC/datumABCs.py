@@ -66,38 +66,38 @@ def GetDatumStrABCSet(xs, frozen=False):
         return set().union(map(GetDatumStrABC, Tupify(xs)))
 
 # functions that take types (ie classes themselves) as arguments
-def IsDatumType(x):
+def IsDatumType(tipe):
     '''
     test if x is an instance of one of the lm_anal datum types (that has a defined ABC)
     '''
     for datumABC in datumABCDict.values():
-        if issubclass(x, datumABC):
+        if issubclass(tipe, datumABC):
             return True
     return False
 
-def GetDatumTypeABC(x):
+def GetDatumTypeABC(tipe):
     '''
     return the abstract base class of datum type x
     '''
     for datumABC in datumABCDict.values():
-        if issubclass(x, datumABC):
+        if issubclass(tipe, datumABC):
             return datumABC
-    raise
+    raise TypeError('type %s does not have a known abstract base class' % tipe)
 
-def GetDatumTypeABCSet(xs, frozen=False):
+def GetDatumTypeABCSet(tipes, frozen=False):
     '''
     return the (frozen)set of abstract base classes of a sequence of datum types xs
     '''
     if frozen:
-        return frozenset().union(map(GetDatumTypeABC, Tupify(xs)))
+        return frozenset().union(map(GetDatumTypeABC, Tupify(tipes)))
     else:
-        return set().union(map(GetDatumTypeABC, Tupify(xs)))
+        return set().union(map(GetDatumTypeABC, Tupify(tipes)))
 
-def GetDatumTypePkgName(x):
+def GetDatumTypePkgName(tipe):
     '''
     return the name of the package from whence datum type x comes
     '''
     for pkgName,datumABC in datumABCDict.items():
-        if issubclass(x, datumABC):
+        if issubclass(tipe, datumABC):
             return pkgName
     raise

@@ -54,10 +54,6 @@ class BaseT(object):
         for transSpec in self.transformSpecs.values():
             self.requiredKeywords = self.requiredKeywords | (transSpec['requiredArgs'] | transSpec['requiredData'])
             self.propertyTransforms.append(PropertyTransforms(**transSpec))
-#                                                               srcTypes=transSpec['srcTypes'], dstTypes=transSpec['dstTypes'],
-#                                                               srcDataTypes=transSpec['srcDataTypes'], dstTypes=transSpec['dstTypes'],
-#                                                               srcTypes=transSpec['srcTypes'], dstTypes=transSpec['dstTypes'], 
-#                                                               propertyTransformSpecs=transSpec['propertyTransformSpecs']))
     
     @staticmethod
     def findDataFromDatumInSet(datumSet, Tipe):

@@ -5,7 +5,10 @@ __all__ = ['Hists']
 
 class Hists(Data):
     datumType = Hist
-    
-    def getSum(self):
+
+    def cacheSum(self):
+        self['sum'] = self.genSum()
+
+    def genSum(self):
         histsIter = self.valIter()
-        self['sum'] = next(histsIter).combine(histsIter)
+        return next(histsIter).combine(histsIter)
