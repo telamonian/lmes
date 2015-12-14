@@ -18,14 +18,17 @@ class SpeciesTrajectoriesSrlz(Serializable):
         if buf.counts.data_type != NDArrayBuf.int32 or buf.times.data_type != NDArrayBuf.float64:
             raise TypeError("Invalid array data types.")
 
-    def deserialize(self, data, full=True):
+    def deserialize(self, data, full=True, trajID=None):
         # Deserialize the data.
         buf = SpeciesTimeSeriesBuf()
         buf.ParseFromString(data)
         self.bufConsistnecyCheck(buf)
 
         # get the trajectoryID
-        trajID = buf.trajectory_id
+        if trajID is None:
+            trajID = buf.trajectory_id
+        elif trajID=='uuid':
+            trajID = np.random.randint(1e7, 1e8, 1)[0]
         
         # initialize a new Datum from the container
         subCon = self.initDatum(key=trajID, full=full)
@@ -34,20 +37,8 @@ class SpeciesTrajectoriesSrlz(Serializable):
         subCon.setScalar(name='trajectory_id', val=trajID)
         
         # Convert the serialized NDArray data in the buf to proper numpy arrays
-        subCon.setArray(name='species_count', val=self.deserializeArrFromBuf(buf.counts))
-        subCon.setArray(name='time', val=self.deserializeArrFromBuf(buf.times))
-
-        # if buf.counts.compressed_deflate:
-        #     np.reshape(np.fromstring(zlib.decompress(buf.counts.data), dtype=np.int32), buf.counts.shape))
-        # else:
-        #     subCon.setArray(name='species_count',
-        #                     val=np.reshape(np.fromstring(buf.counts.data, dtype=np.int32), buf.counts.shape))
-        # if buf.times.compressed_deflate:
-        #     subCon.setArray(name='time',
-        #                     val=np.reshape(np.fromstring(zlib.decompress(buf.times.data), dtype=np.float64), buf.times.shape))
-        # else:
-        #     subCon.setArray(name='time',
-        #                     val=np.reshape(np.fromstring(buf.times.data, dtype=np.float64), buf.times.shape))
+        subCon.catArray(name='species_count', val=self.deserializeArrFromBuf(buf.counts))
+        subCon.catArray(name='time', val=self.deserializeArrFromBuf(buf.times))
 
     def serialize(self, keys=None):
         container = self if keys is None else self.sliceByKeys(keys)

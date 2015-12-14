@@ -24,11 +24,6 @@ class Serializable(object):
         dtype = Serializable.getNPDtypeFromBufDType(arrBuf.data_type)
         return Serializable.deserializeArr(arrString=arrBuf.data, dtype=dtype, shape=arrBuf.shape, compressed=arrBuf.compressed_deflate)
 
-        # if bufArr.compressed_deflate:
-        #     return np.reshape(np.fromstring(zlib.decompress(bufArr.data), dtype=dtype), bufArr.shape)
-        # else:
-        #     return np.reshape(np.fromstring(bufArr.data, dtype=dtype), bufArr.shape)
-
     @staticmethod
     def getBufDtypeFromNPDType(npDtype):
         return NDArrayBuf.__getattribute__(npDtype.name)

@@ -284,3 +284,11 @@ class Datum(object, metaclass=DatumMetaclass):
     
     def setScalar(self, name, val):
         self.__setattr__(name, val)
+
+    def catArray(self, name, val, axis=0, source_sel=None):
+        if source_sel is not None:
+            val = val[source_sel]
+        try:
+            self.__setattr__(name, np.concatenate((self.__getattribute__(name), val), axis=axis))
+        except AttributeError:
+            self.setArray(name=name, val=val, source_sel=source_sel)

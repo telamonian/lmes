@@ -1,4 +1,4 @@
-from numpy import arange,around,array,asarray,atleast_1d,atleast_2d,bincount,diff,digitize,empty,isscalar,log10,ones,sort,where,zeros
+from numpy import arange,around,array,asarray,atleast_1d,atleast_2d,bincount,diff,digitize,empty,isscalar,log10,ones,searchsorted,sort,where,zeros
 import numpy as np
 
 __all__ = ['histogramdd']
@@ -127,6 +127,8 @@ def histogramdd(sample, bins=10, range=None, normed=False, weights=None, include
     # Compute the bin number each sample falls into.
     Ncount = {}
     for i in arange(D):
+        # searchsorted is faster for many bins
+        # Ncount[i] = searchsorted(edges[i], sample[:, i], "right")
         Ncount[i] = digitize(sample[:, i], edges[i])
 
     # Using digitize, values that fall on an edge are put in the right bin.
