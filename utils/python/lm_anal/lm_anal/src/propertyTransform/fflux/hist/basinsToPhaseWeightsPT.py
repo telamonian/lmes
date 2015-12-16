@@ -17,10 +17,6 @@ class BasinsToPhaseWeightsPT(BasePT):
         ffluxDatum = srcDict['FFluxOutput']
         dstDatum = dstDict['FFluxHist']
         
-        # dtype for the resulting phase_weights array
-        pwDtype = list(zip(dstDatum.propertySpecs['phase_weights']['columnLabels'], 
-                           dstDatum.propertySpecs['phase_weights']['dtype']))
-        
         # the sampling rate set by 'writeInterval' in SimulationParameters
         stepTime = float(kwargs['simulationParameters'].get('writeInterval'))
         

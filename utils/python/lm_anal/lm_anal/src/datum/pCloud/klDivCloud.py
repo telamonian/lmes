@@ -2,16 +2,12 @@ import numpy as np
 import os, sys
 
 from lm_anal.src.datum.pCloud import PCloud
-from lm_anal.src.spec import DatumSpec, DatumSpecs
+from lm_anal.src.spec import DatumSpec as DatSpc, DatumSpecs as DatSpcs
 
 __all__ = ['KLDivCloud']
 
 class KLDivCloud(PCloud):
-    propertySpecs = DatumSpecs()
-    
+    propertySpecs = DatSpcs(DatSpc(name='points', dtype='float', paths=('points'), storageType='numpy', type='array'))
+
     # add some alias specs
     propertySpecs.addAlias(name='kl_div', targetName='points')
-    
-    def __init__(self, full=False):
-        super().__init__(full=full) 
-        self.labels = np.array(['kl_div'])

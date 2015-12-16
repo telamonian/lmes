@@ -20,6 +20,12 @@ def DefAliasProp(name, spec, dct):
         self.__setattr__(spec['targetName'], val)
     dct[name] = prop
 
+def DefFieldAliasProp(name, spec, dct):
+    @property
+    def prop(self):
+        return self.__getattribute__(spec['targetName']).__getitem__(spec['targetField'])
+    dct[name] = prop
+
 def DefNPArrayProp(name, spec, dct):
     @property
     def prop(self):
@@ -170,6 +176,8 @@ def SetPropertyBySpec(name, spec, dct):
     
     if spec['type']=='alias':
         DefAliasProp(name, spec, dct)
+    elif spec['type']=='fieldAlias':
+        DefFieldAliasProp(name, spec, dct)
     elif spec['type']=='array':
         if spec['storageType']=='numpy':
             DefNPArrayProp(name, spec, dct)
