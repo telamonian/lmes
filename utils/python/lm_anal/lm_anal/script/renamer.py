@@ -8,8 +8,16 @@ DIR = 1
 FILE = 2
 
 class RenamerFuncs(object):
-    # def productionDegradationToTheta(self, name):
+    snPat = scientificNotationPat = r'([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)'
+    productionDegradationRegex = re.compile(r'production_(%s)_-_degradation_%s' % ((snPat,)*2))
 
+    def productionDegradationToTheta(self, name):
+        pdSearch = self.productionDegradationRegex.search(name)
+        if pdSearch:
+            theta = 'theta_%.1e' % float(pdSearch.group(1))
+            return self.productionDegradationRegex.sub(theta, name)
+        else:
+            return None
 
     def regexRepl(self, name):
         if self.regex.search(name):
@@ -31,13 +39,18 @@ class Renamer(RenamerFuncs):
         self.rootPath = Path(rootPath)
         self.matchPattern = matchPattern
         self.replacePattern = replacePattern
-        self.regex = re.compile(self.matchPattern)
+
+        if specialFunc is None:
+            self.regex = re.compile(self.matchPattern)
+            self.renamerFunc = self.regexRepl
+        else:
+            self.renamerFunc = self.__getattribute__(specialFunc)
     
     def rename(self, doTest=False):
         walker = os.walk(self.rootPathStr)
         for dirPath,tup in ((Path(tups[0]),tups[self.walkTupIndex]) for tups in walker):
             for name in tup:
-                newName = self.regexRepl(name)
+                newName = self.renamerFunc(name)
                 if newName:
                 # if self.regex.search(name):
                 #     newName = self.regex.sub(self.replacePattern, name)
@@ -89,8 +102,9 @@ if __name__=='__main__':
     elif fileFlag:
         RenamerType = FileRenamer
     else:
+        raise ValueError("Please set either the -d flag for renaming directories or the -f flag for renaming files")
         # default type if neither --dir nor --file is set is FileRenamer
-        RenamerType = FileRenamer
+        # RenamerType = FileRenamer
     
     renamer = RenamerType(**kwargs)     #rootPath=rootPath, matchPattern=matchPattern, replacePattern=replacePattern)
     
