@@ -66,8 +66,6 @@ public:
     SimParamMap* getMap() {return &map;}
     bool isEnd(SimParamMap::iterator it) {return it==end();}
 
-    static bool isNotFound(std::string s) {return s==notFound;}
-
 // mutators
     // for the buf <-> map conversion methods, if you drop an arg it'll use the internal map and/or buf
     void bufToMap() {bufToMap(buf, map);}
@@ -103,9 +101,6 @@ public:
 private:
     lm::io::SimulationParameters buf;
     SimParamMap map;
-
-    // for checking the result of findFirst
-    const static std::string notFound;
 };
 
 }

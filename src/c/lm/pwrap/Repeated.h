@@ -36,69 +36,45 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#include <string>
-#include <vector>
+#ifndef LM_PWRAP_REPEATED
+#define LM_PWRAP_REPEATED
 
-#include "lm/io/SimulationParameters.pb.h"
-#include "lm/option/SimulationParameters.h"
-
-using std::string;
-using std::vector;
+#include <google/protobuf/repeated_field.h>
 
 namespace lm {
-namespace option {
+namespace pwrap {
 
-// accessors
-SimParamMap::iterator SimulationParameters::findFirst(vector<string>& keys)
+template <typename T>
+class Repeated
 {
-    SimParamMap::iterator findIt;
-    for (vector<string>::iterator keyIt=keys.begin(); keyIt!=keys.end(); keyIt++) {
-        findIt = find(*keyIt);
-        if (not isEnd(findIt)) {
-            return findIt;
-        }
-    }
-    return findIt;
-}
+public:
+    Repeated(): bufField(NULL) {}
+    Repeated(google::protobuf::RepeatedField<T> * bufField): bufField(bufField) {}
+    ~Repeated() {}
+
+// pass throughs
+// accessors
+    const T& Get(int index) const {return bufField->Get(index);}
+    T* Mutable(int index) {return bufField->Mutable(index);}
 
 // mutators
-void SimulationParameters::bufToMap(const lm::io::SimulationParameters& inBuf, SimParamMap& outMap)
-{
-    for (int i=0; i<inBuf.key_size() && i<inBuf.value_size(); i++)
-    {
-        outMap[inBuf.key(i)] = inBuf.value(i);
-    }
-}
+    T* Add() {return bufField->Add();}
+    void Add(const T& value) {bufField->Add(value);}
+    void Set(int index, const T& value) {bufField->Set(index, value);}
 
-void SimulationParameters::mapToBuf(SimParamMap& inMap, lm::io::SimulationParameters& outBuf)
-{
-    outBuf.Clear();
-    for (SimParamMap::iterator it=inMap.begin(); it!=inMap.end(); it++) {
-        outBuf.add_key(it->first);
-        outBuf.add_value(it->second);
-    }
-}
+// wrapper functions
+// accessors
 
-bool SimulationParameters::rFB(const lm::io::SimulationParameters& inBuf) // rFB = read From Buf
-{
-    setBuf(inBuf);
-    bufToMap();
-    return true;
-}
+// mutators
+    inline Repeated<T>& operator<<(T val) {bufField->Add(val); return &this;}
+//    inline Repeated<T>& operator<<(Repeated<T>& rep, T val) {rep.bufField->Add(val); return rep;}
+    inline void setBufField(google::protobuf::RepeatedField<T>* newBufField) {bufField=newBufField;}
 
-bool SimulationParameters::rFF(lm::io::hdf5::Hdf5File* file) // rFF = read From File
-{
-    setMap(file->getParameters());
-    mapToBuf();
-    return true;
-}
-
-bool SimulationParameters::rFM(SimParamMap& inMap) // rFM = read From Map
-{
-    setMap(inMap);
-    mapToBuf();
-    return true;
-}
+public:
+    google::protobuf::RepeatedField<T>* bufField;
+};
 
 }
 }
+
+#endif /* LM_PWRAP_REPEATED */

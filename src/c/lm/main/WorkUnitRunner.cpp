@@ -155,7 +155,7 @@ int WorkUnitRunner::run()
         }
         else if (properties.has_order_parameters())
         {
-            opvFlag = true;
+            opTrackingFlag = true;
             solver->setOrderParameters(properties.order_parameters());
         }
 

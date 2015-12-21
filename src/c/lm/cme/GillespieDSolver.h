@@ -50,6 +50,7 @@
 #include <string>
 #include "lm/ClassFactory.h"
 #include "lm/cme/CMESolver.h"
+#include "lm/pwrap/NDArray.h"
 #include "lm/rng/RandomGenerator.h"
 
 using std::map;
@@ -80,6 +81,7 @@ protected:
     inline void updatePropensities(double time, uint r);
 
 protected:
+    lm::pwrap::NDArray<double> opCounts, opTimes;
     double * propensities;
 };
 

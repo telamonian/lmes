@@ -82,7 +82,7 @@ namespace lm {
 namespace cme {
 
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
-:neededDists(neededDists),rng(NULL),oparams(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),tilingHists(NULL),trajectoryStarted(false),degreeAdvancements(NULL),orderParameterValues(NULL),speciesCounts(NULL),time(0.0),timeStep(0.0),finalLimitID(-1),finalLimitType(static_cast<lm::io::TrajectoryLimits::LimitType>(0))
+:neededDists(neededDists),rng(NULL),oparams(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),tilingHists(NULL),trajectoryStarted(false),degreeAdvancements(NULL),orderParameterCounts(NULL),speciesCounts(NULL),time(0.0),timeStep(0.0),finalLimitID(-1),finalLimitType(static_cast<lm::io::TrajectoryLimits::LimitType>(0))
 {
 }
 
@@ -93,7 +93,7 @@ CMESolver::~CMESolver()
 
     // Free any memory associated with the state.
     if (degreeAdvancements != NULL) delete[] degreeAdvancements; degreeAdvancements = NULL;
-    if (orderParameterValues != NULL) delete[] orderParameterValues; orderParameterValues = NULL;
+    if (orderParameterCounts != NULL) delete[] orderParameterCounts; orderParameterCounts = NULL;
     if (speciesCounts != NULL) delete[] speciesCounts; speciesCounts = NULL;
 
     // Free any memory being used by the order parameters
@@ -1080,17 +1080,17 @@ void CMESolver::reset()
     }
 
     // Reset the orderParameterValues
-    if (opvFlag)
+    if (opActivatedFlag)
     {
-        if (orderParameterValues != NULL)
+        if (orderParameterCounts != NULL)
         {
-            delete[] orderParameterValues;
+            delete[] orderParameterCounts;
         }
-        orderParameterValues = NULL;
-        orderParameterValues = new double[oparams->size()];
+        orderParameterCounts = NULL;
+        orderParameterCounts = new double[oparams->size()];
         for (uint i=0; i<oparams->size(); i++)
         {
-            orderParameterValues[i] = 0;
+            orderParameterCounts[i] = 0;
         }
     }
 
@@ -1145,16 +1145,16 @@ void CMESolver::getState(lm::io::TrajectoryState* state)
     }
 
     // Get the order parameter values.
-    if (opvFlag)
+    if (opTrackingFlag)
     {
-        state->mutable_cme_state()->mutable_order_parameter_values()->set_trajectory_id(trajectoryID);
-        state->mutable_cme_state()->mutable_order_parameter_values()->set_number_order_parameters(oparams->size());
-        state->mutable_cme_state()->mutable_order_parameter_values()->set_number_entries(1);
+        state->mutable_cme_state()->mutable_order_parameter_counts()->set_trajectory_id(trajectoryID);
+        state->mutable_cme_state()->mutable_order_parameter_counts()->set_number_order_parameters(oparams->size());
+        state->mutable_cme_state()->mutable_order_parameter_counts()->set_number_entries(1);
         for (int i=0; i<oparams->size(); i++)
         {
-            state->mutable_cme_state()->mutable_order_parameter_values()->add_order_parameter_values(orderParameterValues[i]);
+            state->mutable_cme_state()->mutable_order_parameter_counts()->add_order_parameter_counts(orderParameterCounts[i]);
         }
-        state->mutable_cme_state()->mutable_order_parameter_values()->add_time(time);
+        state->mutable_cme_state()->mutable_order_parameter_counts()->add_time(time);
     }
 
     // Get the species counts.
@@ -1210,9 +1210,9 @@ void CMESolver::setState(const lm::io::TrajectoryState& state)
     }
 
     // Set the order parameter values.
-    for (int i=0; i<state.cme_state().order_parameter_values().order_parameter_values_size(); i++)
+    for (int i=0; i<state.cme_state().order_parameter_counts().order_parameter_counts_size(); i++)
     {
-        orderParameterValues[i] = state.cme_state().order_parameter_values().order_parameter_values(i);
+        orderParameterCounts[i] = state.cme_state().order_parameter_counts().order_parameter_counts(i);
     }
 
     // Set the species counts.

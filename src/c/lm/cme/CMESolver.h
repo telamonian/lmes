@@ -321,7 +321,7 @@ public:
     virtual void setReactionModel(const lm::io::ReactionModel& rm);
     virtual bool needsDiffusionModel() {return false;}
     virtual void setDiffusionModel(const lm::io::DiffusionModel& dm) {}
-    virtual bool needsOrderParameters() {return (ffluxFlag || opvFlag);}
+    virtual bool needsOrderParameters() {return (opActivatedFlag);}
     virtual void setOrderParameters(const lm::io::OrderParameters& opsBuf);
     virtual bool needsTilings() {return ffluxFlag;}
     virtual void setTilings(const lm::io::Tilings& tilingsBuf);
@@ -370,7 +370,7 @@ protected:
             speciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
             updatedSpeciesCounts();
         }
-        if (ffluxFlag || opvFlag)
+        if (opActivatedFlag)
         {
             // Update the order parameters, if required
             oparams->calc(speciesCounts, time);
@@ -384,12 +384,12 @@ protected:
         {
             degreeAdvancements[r]++;
         }
-        if (opvFlag)
+        if (opTrackingFlag)
         {
             int i = 0;
             for (lm::oparam::OPMap::iterator m_it=oparams->begin();m_it!=oparams->end();++m_it)
             {
-                orderParameterValues[i]=m_it->second->get();
+                orderParameterCounts[i]=m_it->second->get();
                 i++;
             }
         }
@@ -526,7 +526,7 @@ protected:
     uint64_t trajectoryID;
     bool trajectoryStarted;
     uint* degreeAdvancements;
-    double* orderParameterValues;
+    double* orderParameterCounts;
     uint* speciesCounts;
     double time;
     double timeStep;    // stores last time step calculated, used for building histogram

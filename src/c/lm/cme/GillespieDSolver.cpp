@@ -161,20 +161,42 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     vector<int32_t> speciesTimeSeriesCounts;
     vector<double> speciesTimeSeriesTimes;
 
+    // Get the interval for writing order parameters.
+    double writeIntervalOP = atof(simulationParameters["writeIntervalOP"].c_str());
+    bool writeTimeStepsOP = (writeInterval > 0.0);
+    double nextOrderParameterWriteTime;
+    vector<double> orderParameterTimeSeriesCounts, orderParameterTimeSeriesTimes;
+
     // If we are writing time steps, create the data set.
     if (writeTimeSteps)
     {
         // If this is the start of the trajectory, add the initial counts.
         if ((time == 0.0 || trajectoryStarted==false) && !ffluxFlag)
         {
-//        	printf("traj_id %d has_started %d\n", trajectoryId, trajectoryStarted);
-            nextSpeciesWriteTime = ceil(time/writeInterval)*writeInterval; //writeInterval;
+        	//printf("traj_id %d has_started %d\n", trajectoryId, trajectoryStarted);
+            nextSpeciesWriteTime = ceil(time/writeInterval)*writeInterval;
             for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
             speciesTimeSeriesTimes.push_back(time);
         }
         else
         {
             nextSpeciesWriteTime = ceil(time/writeInterval)*writeInterval;
+        }
+    }
+
+    // If we are writing order parameter time steps, create the data set.
+    if (writeTimeStepsOP)
+    {
+        // If this is the start of the trajectory, add the initial counts.
+        if ((time == 0.0 || trajectoryStarted==false) && !ffluxFlag)
+        {
+            nextOrderParameterWriteTime = ceil(time/writeIntervalOP)*writeIntervalOP;
+            for (uint i=0; i<oparams->size(); i++) orderParameterTimeSeriesCounts.push_back(orderParameterCounts[i]);
+            orderParameterTimeSeriesTimes.push_back(time);
+        }
+        else
+        {
+            nextOrderParameterWriteTime = ceil(time/writeIntervalOP)*writeIntervalOP;
         }
     }
 
@@ -229,16 +251,29 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
             break;
         }
 
-        // If we are writing time steps, write out any time steps before this event occurred.
+        // If we are writing species time steps, write out any species time steps before this event occurred.
         if (writeTimeSteps)
         {
-            // Write time steps until the next write time is past the current time.
+            // Write species time steps until the next write time is past the current time.
             while (nextSpeciesWriteTime <= (time+1e-9))
             {
                 // Record the species counts.
                 for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
                 speciesTimeSeriesTimes.push_back(nextSpeciesWriteTime);
                 nextSpeciesWriteTime += writeInterval;
+            }
+        }
+
+        // If we are writing order parameter time steps, write out any order parameter time steps before this event occurred.
+        if (writeTimeStepsOP)
+        {
+            // Write order parameter time steps until the next write time is past the current time.
+            while (nextOrderParameterWriteTime <= (time+1e-9))
+            {
+                // Record the order parameter counts.
+                for (uint i=0; i<oparams->size(); i++) orderParameterTimeSeriesCounts.push_back(orderParameterCounts[i]);
+                orderParameterTimeSeriesTimes.push_back(nextOrderParameterWriteTime);
+                nextOrderParameterWriteTime += writeIntervalOP;
             }
         }
 
@@ -311,6 +346,17 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     ////            recordParameters(nextParameterWriteTime, parameterWriteInterval, maxTime);
     //        }
         }
+
+        if (writeTimeStepsOP && !ffluxFlag)
+        {
+            while (nextOrderParameterWriteTime <= (maxTime+1e-9))
+            {
+                // Record the order parameter counts.
+                for (uint i=0; i<oparams->size(); i++) orderParameterTimeSeriesCounts.push_back(orderParameterCounts[i]);
+                orderParameterTimeSeriesTimes.push_back(nextOrderParameterWriteTime);
+                nextOrderParameterWriteTime += writeIntervalOP;
+            }
+        }
         reachedLimit = true;
     }
 
@@ -320,9 +366,15 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         // Record the species counts.
         if (writeTimeSteps && !ffluxFlag)
         {
-            // Record the species counts.
             for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
             speciesTimeSeriesTimes.push_back(time);
+        }
+
+        // Record the order parameter counts.
+        if (writeTimeStepsOP && !ffluxFlag)
+        {
+            for (uint i=0; i<oparams->size(); i++) orderParameterTimeSeriesCounts.push_back(orderParameterCounts[i]);
+            orderParameterTimeSeriesTimes.push_back(nextOrderParameterWriteTime);
         }
         reachedLimit = true;
     }
@@ -369,6 +421,42 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         }
     }
 
+//    // If we have any order parameter time series data, add them to the output message.
+//    if (orderParameterTimeSeriesCounts.size() > 0 || orderParameterTimeSeriesTimes.size() > 0)
+//    {
+//        // Make sure the arrays are of a consistent size.
+//        if (orderParameterTimeSeriesCounts.size() == orderParameterTimeSeriesTimes.size()*reactionModel->numberSpeciesToTrack)
+//        {
+//            lm::io::SpeciesTimeSeries* orderParameterTimeSeriesDataSet = msg->mutable_orderParameter_time_series();
+//            orderParameterTimeSeriesDataSet->set_trajectory_id(trajectoryID);
+//
+//            robertslab::pbuf::NDArray* counts = orderParameterTimeSeriesDataSet->mutable_counts();
+//            counts->set_data_type(robertslab::pbuf::NDArray::int32);
+//            counts->set_compressed_deflate(true);
+//            counts->add_shape(orderParameterTimeSeriesTimes.size());
+//            counts->add_shape(reactionModel->numberSpeciesToTrack);
+//            std::string* data = counts->mutable_data();
+//            size_t dataSizeEstimate=compressBound(orderParameterTimeSeriesCounts.size()*sizeof(int32_t));
+//            data->resize(dataSizeEstimate);
+//            ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)orderParameterTimeSeriesCounts.data(), orderParameterTimeSeriesCounts.size()*sizeof(int32_t)));
+//            data->resize(dataSizeEstimate);
+//
+//            robertslab::pbuf::NDArray* times = orderParameterTimeSeriesDataSet->mutable_times();
+//            times->set_data_type(robertslab::pbuf::NDArray::float64);
+//            times->set_compressed_deflate(true);
+//            times->add_shape(orderParameterTimeSeriesTimes.size());
+//            data = times->mutable_data();
+//            dataSizeEstimate=compressBound(orderParameterTimeSeriesTimes.size()*sizeof(double));
+//            data->resize(dataSizeEstimate);
+//            ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)orderParameterTimeSeriesTimes.data(), orderParameterTimeSeriesTimes.size()*sizeof(double)));
+//            data->resize(dataSizeEstimate);
+//        }
+//        else
+//        {
+//            Print::printf(Print::ERROR, "Species time series counts and time mismatch %d,%d,%d", orderParameterTimeSeriesCounts.size(), reactionModel->numberSpeciesToTrack, orderParameterTimeSeriesTimes.size());
+//        }
+//    }
+
     // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
     if (reachedLimit && numberFptTrackedSpecies > 0)
     {
@@ -382,7 +470,6 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
 //    if ((msg->has_species_time_series() && msg->species_time_series().number_entries() > 0) || msg->first_passage_times_size() > 0)
     if (msg->has_species_time_series() || msg->first_passage_times_size() > 0)
     {
-//    	printf("gillespiedsolver outputProcess: %d outputThread: %d\n", outputProcess, outputThread);
         // for fflux simulation, the output process/thread values are ultimately set in FFluxSupervisor::receivedStartedOutputWriter
         communicator->sendMessage(outputProcess, outputThread, &msgp);
     }

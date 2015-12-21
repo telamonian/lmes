@@ -36,69 +36,10 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#include <string>
-#include <vector>
-
-#include "lm/io/SimulationParameters.pb.h"
-#include "lm/option/SimulationParameters.h"
-
-using std::string;
-using std::vector;
+#include "lm/pwrap/Repeated.h"
 
 namespace lm {
-namespace option {
-
-// accessors
-SimParamMap::iterator SimulationParameters::findFirst(vector<string>& keys)
-{
-    SimParamMap::iterator findIt;
-    for (vector<string>::iterator keyIt=keys.begin(); keyIt!=keys.end(); keyIt++) {
-        findIt = find(*keyIt);
-        if (not isEnd(findIt)) {
-            return findIt;
-        }
-    }
-    return findIt;
-}
-
-// mutators
-void SimulationParameters::bufToMap(const lm::io::SimulationParameters& inBuf, SimParamMap& outMap)
-{
-    for (int i=0; i<inBuf.key_size() && i<inBuf.value_size(); i++)
-    {
-        outMap[inBuf.key(i)] = inBuf.value(i);
-    }
-}
-
-void SimulationParameters::mapToBuf(SimParamMap& inMap, lm::io::SimulationParameters& outBuf)
-{
-    outBuf.Clear();
-    for (SimParamMap::iterator it=inMap.begin(); it!=inMap.end(); it++) {
-        outBuf.add_key(it->first);
-        outBuf.add_value(it->second);
-    }
-}
-
-bool SimulationParameters::rFB(const lm::io::SimulationParameters& inBuf) // rFB = read From Buf
-{
-    setBuf(inBuf);
-    bufToMap();
-    return true;
-}
-
-bool SimulationParameters::rFF(lm::io::hdf5::Hdf5File* file) // rFF = read From File
-{
-    setMap(file->getParameters());
-    mapToBuf();
-    return true;
-}
-
-bool SimulationParameters::rFM(SimParamMap& inMap) // rFM = read From Map
-{
-    setMap(inMap);
-    mapToBuf();
-    return true;
-}
+namespace pwrap {
 
 }
 }
