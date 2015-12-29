@@ -262,7 +262,7 @@ int OutputWriter::HelperThread::run()
         bool finished = false;
         while (!finished)
         {
-            lm::message::Message* message=NULL;
+            lm::message::Message* msg=NULL;
             int messageSize=0;
 
             //// BEGIN CRITICAL SECTION: messageQueueMutex
@@ -272,11 +272,11 @@ int OutputWriter::HelperThread::run()
             if (!p->messageQueue.empty())
             {
                 // Get the next message.
-                message = p->messageQueue.front();
+                msg = p->messageQueue.front();
                 p->messageQueue.pop();
 
                 // Update the total message size in the queue.
-                messageSize = message->ByteSize();
+                messageSize = msg->ByteSize();
                 p->messageQueueSize -= messageSize;
 
                 // Get some queue stats.
@@ -305,32 +305,37 @@ int OutputWriter::HelperThread::run()
             //// END CRITICAL SECTION: messageQueueMutex
 
             // If we got a message off of the queue, process it.
-            if (message != NULL)
+            if (msg != NULL)
             {
                 // Loop over every output in the message.
-                for (int i=0; i<message->process_work_unit_output_size(); i++)
+                for (int i=0; i<msg->process_work_unit_output_size(); i++)
                 {
                     hrtime startWriting = getHrTime();
-                    if (message->process_work_unit_output(i).has_species_counts())
+
+                    if (msg->process_work_unit_output(i).has_fflux_output())
                     {
-                        p->processSpeciesCounts(message->process_work_unit_output(i).species_counts());
+                        p->processFFluxOutput(msg->process_work_unit_output(i).fflux_output());
                     }
-                    if (message->process_work_unit_output(i).first_passage_times_size() > 0)
+                    if (msg->process_work_unit_output(i).first_passage_times_size() > 0)
                     {
-                        for (int j=0; j<message->process_work_unit_output(i).first_passage_times_size(); j++)
-                            p->processFirstPassageTimes(message->process_work_unit_output(i).first_passage_times(j));
+                        for (int j=0; j<msg->process_work_unit_output(i).first_passage_times_size(); j++)
+                            p->processFirstPassageTimes(msg->process_work_unit_output(i).first_passage_times(j));
                     }
-                    if (message->process_work_unit_output(i).has_species_time_series())
+                    if (msg->process_work_unit_output(i).has_lattice_time_series())
                     {
-                        p->processSpeciesTimeSeries(message->process_work_unit_output(i).species_time_series());
+                        p->processLatticeTimeSeries(msg->process_work_unit_output(i).lattice_time_series());
                     }
-                    if (message->process_work_unit_output(i).has_lattice_time_series())
+                    if (msg->process_work_unit_output(i).has_order_parameter_time_series())
                     {
-                        p->processLatticeTimeSeries(message->process_work_unit_output(i).lattice_time_series());
+                        p->processOrderParameterTimeSeries(msg->process_work_unit_output(i).order_parameter_time_series());
                     }
-                    if (message->process_work_unit_output(i).has_fflux_output())
+                    if (msg->process_work_unit_output(i).has_species_counts())
                     {
-                        p->processFFluxOutput(message->process_work_unit_output(i).fflux_output());
+                        p->processSpeciesCounts(msg->process_work_unit_output(i).species_counts());
+                    }
+                    if (msg->process_work_unit_output(i).has_species_time_series())
+                    {
+                        p->processSpeciesTimeSeries(msg->process_work_unit_output(i).species_time_series());
                     }
                     writingTime += getHrTime()-startWriting;
                 }
@@ -338,8 +343,8 @@ int OutputWriter::HelperThread::run()
                 messagesWritten++;
 
                 // Delete the message.
-                delete message;
-                message = NULL;
+                delete msg;
+                msg = NULL;
             }
 
             // See if we should display some stats.

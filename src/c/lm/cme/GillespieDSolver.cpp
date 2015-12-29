@@ -163,7 +163,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
 
     // Get the interval for writing order parameters.
     double writeIntervalOP = atof(simulationParameters["writeIntervalOP"].c_str());
-    bool writeTimeStepsOP = (writeInterval > 0.0);
+    bool writeTimeStepsOP = (writeIntervalOP > 0.0);
     double nextOrderParameterWriteTime;
     vector<double> orderParameterTimeSeriesCounts, orderParameterTimeSeriesTimes;
 
@@ -421,41 +421,28 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         }
     }
 
-//    // If we have any order parameter time series data, add them to the output message.
-//    if (orderParameterTimeSeriesCounts.size() > 0 || orderParameterTimeSeriesTimes.size() > 0)
-//    {
-//        // Make sure the arrays are of a consistent size.
-//        if (orderParameterTimeSeriesCounts.size() == orderParameterTimeSeriesTimes.size()*reactionModel->numberSpeciesToTrack)
-//        {
-//            lm::io::SpeciesTimeSeries* orderParameterTimeSeriesDataSet = msg->mutable_orderParameter_time_series();
-//            orderParameterTimeSeriesDataSet->set_trajectory_id(trajectoryID);
-//
-//            robertslab::pbuf::NDArray* counts = orderParameterTimeSeriesDataSet->mutable_counts();
-//            counts->set_data_type(robertslab::pbuf::NDArray::int32);
-//            counts->set_compressed_deflate(true);
-//            counts->add_shape(orderParameterTimeSeriesTimes.size());
-//            counts->add_shape(reactionModel->numberSpeciesToTrack);
-//            std::string* data = counts->mutable_data();
-//            size_t dataSizeEstimate=compressBound(orderParameterTimeSeriesCounts.size()*sizeof(int32_t));
-//            data->resize(dataSizeEstimate);
-//            ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)orderParameterTimeSeriesCounts.data(), orderParameterTimeSeriesCounts.size()*sizeof(int32_t)));
-//            data->resize(dataSizeEstimate);
-//
-//            robertslab::pbuf::NDArray* times = orderParameterTimeSeriesDataSet->mutable_times();
-//            times->set_data_type(robertslab::pbuf::NDArray::float64);
-//            times->set_compressed_deflate(true);
-//            times->add_shape(orderParameterTimeSeriesTimes.size());
-//            data = times->mutable_data();
-//            dataSizeEstimate=compressBound(orderParameterTimeSeriesTimes.size()*sizeof(double));
-//            data->resize(dataSizeEstimate);
-//            ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)orderParameterTimeSeriesTimes.data(), orderParameterTimeSeriesTimes.size()*sizeof(double)));
-//            data->resize(dataSizeEstimate);
-//        }
-//        else
-//        {
-//            Print::printf(Print::ERROR, "Species time series counts and time mismatch %d,%d,%d", orderParameterTimeSeriesCounts.size(), reactionModel->numberSpeciesToTrack, orderParameterTimeSeriesTimes.size());
-//        }
-//    }
+    // If we have any order parameter time series data, add them to the output message.
+    if (orderParameterTimeSeriesCounts.size() > 0 || orderParameterTimeSeriesTimes.size() > 0)
+    {
+        // Make sure the arrays are of a consistent size.
+        if (orderParameterTimeSeriesCounts.size() == orderParameterTimeSeriesTimes.size()*oparams->size())
+        {
+            lm::io::SpeciesTimeSeries* orderParameterTimeSeriesDataSet = msg->mutable_order_parameter_time_series();
+            orderParameterTimeSeriesDataSet->set_trajectory_id(trajectoryID);
+
+            opCounts.setBuf(orderParameterTimeSeriesDataSet->mutable_counts());
+            opCounts.shape() << orderParameterTimeSeriesTimes.size() << oparams->size();
+            opCounts.set_data(orderParameterTimeSeriesCounts, robertslab::pbuf::NDArray::float64);
+
+            opTimes.setBuf(orderParameterTimeSeriesDataSet->mutable_times());
+            opTimes.shape() << orderParameterTimeSeriesTimes.size();
+            opTimes.set_data(orderParameterTimeSeriesTimes, robertslab::pbuf::NDArray::float64);
+        }
+        else
+        {
+            Print::printf(Print::ERROR, "Order parameter time series counts and time mismatch %d,%d,%d", orderParameterTimeSeriesCounts.size(), oparams->size(), orderParameterTimeSeriesTimes.size());
+        }
+    }
 
     // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
     if (reachedLimit && numberFptTrackedSpecies > 0)
@@ -468,7 +455,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
 
     // If the output message has any data, send it.
 //    if ((msg->has_species_time_series() && msg->species_time_series().number_entries() > 0) || msg->first_passage_times_size() > 0)
-    if (msg->has_species_time_series() || msg->first_passage_times_size() > 0)
+    if (msg->has_order_parameter_time_series() || msg->has_species_time_series() || msg->first_passage_times_size() > 0)
     {
         // for fflux simulation, the output process/thread values are ultimately set in FFluxSupervisor::receivedStartedOutputWriter
         communicator->sendMessage(outputProcess, outputThread, &msgp);

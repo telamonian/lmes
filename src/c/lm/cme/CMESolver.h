@@ -321,7 +321,7 @@ public:
     virtual void setReactionModel(const lm::io::ReactionModel& rm);
     virtual bool needsDiffusionModel() {return false;}
     virtual void setDiffusionModel(const lm::io::DiffusionModel& dm) {}
-    virtual bool needsOrderParameters() {return (opActivatedFlag);}
+    virtual bool needsOrderParameters() {return ffluxFlag;}
     virtual void setOrderParameters(const lm::io::OrderParameters& opsBuf);
     virtual bool needsTilings() {return ffluxFlag;}
     virtual void setTilings(const lm::io::Tilings& tilingsBuf);

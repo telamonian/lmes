@@ -35,7 +35,7 @@ reactionRateConstants+=degradationConstants
 simParams = [SimulationParameter(key='maxSteps',val=str(int(1e10))),
              SimulationParameter(key='maxTime',val=str(int(2e6))),
              SimulationParameter(key='maxWorkUnitSteps',val=str(int(1e6))),
-             SimulationParameter(key='writeInterval',val=str(3e-2))]
+             SimulationParameter(key='writeInterval',val=str(int(1e1)))]
 
 replicateInput.SetInitialSpeciesCounts(iSCs=iSCs)
 replicateInput.SetOrderParameters(ops=[op])

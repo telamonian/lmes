@@ -39,9 +39,8 @@
 #ifndef LM_PWRAP_NDARRAY
 #define LM_PWRAP_NDARRAY
 
-#include <iterator>
-#include <map>
 #include <string>
+#include <vector>
 #include <zlib.h>
 
 #include "lm/Types.h"
@@ -68,7 +67,7 @@ public:
     ArrayOrder array_order() const {return buf->array_order();}
     ByteOrder byte_order() const {return buf->byte_order();}
     DataType data_type() const {return buf->data_type();}
-    const Repeated<int32_t>& shape() const {return shape_;}
+    Repeated<int32_t>& shape() {return shape_;}
     const Repeated<int32_t>& shape(int index) const {return shape_.Get(index);}
     const std::string& data() const {return buf->data();}
     bool compressed_deflate() const {return buf->compressed_deflate();}
@@ -89,8 +88,9 @@ public:
 // accessors
 
 // mutators
-    inline void set_data(T& value, DataType dtype, bool compressed=true)
+    inline void set_data(std::vector<T>& value, DataType dtype, bool compressed=true)
     {
+        set_data_type(dtype);
         size_t dataSizeEstimate=compressBound(value.size()*sizeof(T));
         mutable_data()->resize(dataSizeEstimate);
         ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*mutable_data())[0]), &dataSizeEstimate, (unsigned char*)value.data(), value.size()*sizeof(T)));

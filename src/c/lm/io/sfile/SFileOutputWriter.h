@@ -65,9 +65,10 @@ public:
 
 protected:
     virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
+    virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data);
+    virtual void processOrderParameterTimeSeries(const lm::io::SpeciesTimeSeries& data);
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
     virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data);
-    virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data);
     virtual void flush();
     virtual void checkpoint();
 

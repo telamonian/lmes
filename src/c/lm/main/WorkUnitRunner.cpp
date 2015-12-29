@@ -141,6 +141,19 @@ int WorkUnitRunner::run()
                 throw Exception("Work Unit runner terminating, solver requires a diffusion model but none was specified", properties.solver().c_str());
         }
 
+        // Set the tilings for the solver
+        if (solver->needsTilings())
+        {
+            if (properties.has_tilings())
+            {
+                solver->setTilings(properties.tilings());
+            }
+            else
+            {
+                throw Exception("Work Unit runner terminating, solver requires a set of tilings but none was specified", properties.solver().c_str());
+            }
+        }
+
         // Set the order parameters for the solver
         if (solver->needsOrderParameters())
         {
@@ -157,19 +170,6 @@ int WorkUnitRunner::run()
         {
             opTrackingFlag = true;
             solver->setOrderParameters(properties.order_parameters());
-        }
-
-        // Set the tilings for the solver
-        if (solver->needsTilings())
-        {
-            if (properties.has_tilings())
-            {
-                solver->setTilings(properties.tilings());
-            }
-            else
-            {
-                throw Exception("Work Unit runner terminating, solver requires a set of tilings but none was specified", properties.solver().c_str());
-            }
         }
 
         // Tell the supervisor the runner was started.

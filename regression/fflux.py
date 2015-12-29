@@ -66,7 +66,7 @@ def _Main(execPath, fullLength, lmArgs, phaseCheckDictOverride, timingLength):
     simParams = [SimulationParameter(key='maxSteps',val=str(int(1e10))),
                  SimulationParameter(key='maxTime',val='1e10'),
                  SimulationParameter(key='maxWorkUnitSteps',val=str(int(1e15))),
-                 SimulationParameter(key='writeInterval',val='%.10f' % (1.0/(.25*theta)))]
+                 SimulationParameter(key='writeIntervalOP',val='%.10f' % (1.0/(.25*theta)))]
 
     for key,val in phaseCheckDict.items():
         if val is not None:
@@ -133,16 +133,26 @@ def Main():
     parser.add_argument('-mtn', '--maxTimeN',                        help='max time to run phase N for')
 
     parser.add_argument('-f', '--fullLength', action='store_true',   help='set this flag to do a test run using the default "best" parameters for forward flux')
+    parser.add_argument('--sfile', action='store_true',              help='set this flag to use SFile output. Equivalent to -ff sfile -fo biphasic_switch.sfile')
     parser.add_argument('-t', '--timingLength', action='store_true', help='set this flag to do a test run that should last for at least a minute in both phase zero and the combined total of the rest of the phases')
 
     kwargs = vars(parser.parse_args())
+    print_(kwargs)
 
     phaseCheckDictOverride = {key:val for key,val in ((key, kwargs.pop(key)) for key in ('maxCrossingsZero', 'maxTimeZero', 'maxCrossingsN', 'maxTimeN')) if val is not None}
     kwargs['phaseCheckDictOverride'] = phaseCheckDictOverride
+    
+    if kwargs.pop('sfile'):
+        kwargs['ff'] = 'sfile'
+        kwargs['fo'] = 'biphasic_switch.sfile'
+        try:
+            os.remove('biphasic_switch.sfile')
+        except OSError:
+            pass
 
     lmArgs = [tok for tup in ((key,val) for key,val in (('-%s' % key, kwargs.pop(key)) for key in ('c', 'cr', 'gr', 'ff', 'fo')) if val is not None) for tok in tup]
     kwargs['lmArgs'] = lmArgs
-
+    
     _Main(**kwargs)
 
 def Run(execPath, lmArgs):

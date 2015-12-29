@@ -36,6 +36,7 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+#include <list>
 #include <string>
 #include <vector>
 
@@ -52,13 +53,34 @@ namespace option {
 SimParamMap::iterator SimulationParameters::findFirst(vector<string>& keys)
 {
     SimParamMap::iterator findIt;
-    for (vector<string>::iterator keyIt=keys.begin(); keyIt!=keys.end(); keyIt++) {
+    for (vector<string>::const_iterator keyIt=keys.begin(); keyIt!=keys.end(); keyIt++) {
         findIt = find(*keyIt);
         if (not isEnd(findIt)) {
             return findIt;
         }
     }
     return findIt;
+}
+
+std::list<int> SimulationParameters::parseIntList(const std::string& key) const
+{
+    SimParamMap::const_iterator findIt = getMapConst()->find(key);
+    const string listString = (not isEnd(findIt)) ? findIt->second : "";
+//    const string listString = (*this)[key];
+
+    std::list<int> intList;
+    size_t strStart=0, strEnd= 0;
+    while (strEnd != string::npos)
+    {
+        strEnd = listString.find(',', strStart);
+        string intString = listString.substr(strStart, (strEnd == string::npos) ? string::npos : strEnd - strStart);
+        if (intString.length() > 0)
+        {
+            intList.push_back(atoi(intString.c_str()));
+        }
+        strStart = strEnd+1;
+    }
+    return intList;
 }
 
 // mutators

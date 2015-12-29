@@ -39,9 +39,10 @@
 #ifndef LM_OPTION_SIMULATIONPARAMETERS
 #define LM_OPTION_SIMULATIONPARAMETERS
 
-#include <iterator>
+#include <list>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/SimulationParameters.pb.h"
@@ -64,7 +65,9 @@ public:
     SimParamMap::iterator findFirst(std::vector<std::string>& keys);
     lm::io::SimulationParameters* getBuf() {return &buf;}
     SimParamMap* getMap() {return &map;}
-    bool isEnd(SimParamMap::iterator it) {return it==end();}
+    const SimParamMap* getMapConst() const {return &map;}
+    bool isEnd(SimParamMap::const_iterator it) const {return it==map.end();}
+    std::list<int> parseIntList(const std::string& key) const;
 
 // mutators
     // for the buf <-> map conversion methods, if you drop an arg it'll use the internal map and/or buf

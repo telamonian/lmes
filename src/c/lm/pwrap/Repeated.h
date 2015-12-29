@@ -66,7 +66,7 @@ public:
 // accessors
 
 // mutators
-    inline Repeated<T>& operator<<(T val) {bufField->Add(val); return &this;}
+    inline Repeated<T>& operator<<(T val) {bufField->Add(val); return *this;}
 //    inline Repeated<T>& operator<<(Repeated<T>& rep, T val) {rep.bufField->Add(val); return rep;}
     inline void setBufField(google::protobuf::RepeatedField<T>* newBufField) {bufField=newBufField;}
 
