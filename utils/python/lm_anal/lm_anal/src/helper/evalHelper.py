@@ -3,7 +3,7 @@ import numpy as np
 
 from lm_anal.src.helper.typeHelper import IsContainer
 
-__all__ = ['ContainerEval', 'NumEval']
+__all__ = ['ContainerEval', 'ContainerEvalReplaceNone', 'NumEval']
 
 def ContainerEval(xs):
     if not IsContainer(xs):
@@ -11,6 +11,15 @@ def ContainerEval(xs):
     evaledList = []
     for x in xs:
         evaledList.append(ContainerEval(x))
+    return evaledList
+
+def ContainerEvalReplaceNone(xs, replaceNone=float('-inf')):
+    if not IsContainer(xs):
+        evaledNum = NumEval(xs)
+        return replaceNone if evaledNum is None else evaledNum
+    evaledList = []
+    for x in xs:
+        evaledList.append(ContainerEvalReplaceNone(x))
     return evaledList
 
 def NumEval(s):

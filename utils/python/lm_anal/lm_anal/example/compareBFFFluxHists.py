@@ -37,25 +37,27 @@ class CompareBFFFluxHists(object):
         self.bfRootPath = bfRootPath
         self.bfSims = Sims(rootPath=self.bfRootPath, filterRules=filterRules)
 
-        self.ffluxBFConversionDict = self.genFFluxBFConversionDict()
+        # self.ffluxBFConversionDict = self.genFFluxBFConversionDict()
 
         # combine the histograms from runs that started in basin A with those from basin B
-        for keySetA,simA in self.bfSims[('startingInBasin', 'A')].items():
-            keySetB = (keySetA - {('startingInBasin', 'A')}) | {('startingInBasin', 'B')}
-            simB = self.bfSims[keySetB]
-            opHA = simA.oparamHists['Sum']
-            opHB = simB.oparamHists['Sum']
+        for samples in ['1e9', '1e11']:
+            for keySetA,simA in self.bfSims[('samples', samples), ('basin', 'A')].items():
+                keySetB = (keySetA - {('basin', 'A')}) | {('basin', 'B')}
+                simB = self.bfSims[keySetB]
+                opHA = simA.oparamHists['Sum']
+                opHB = simB.oparamHists['Sum']
 
-            # the masks for this data set are the inverse of the standard I eventually decided on, so fix that
-            for opH in [opHA, opHB]:
-                opH.remask(np.zeros(opH.h_mask.shape, dtype=bool))
-                opH.resliceH(np.s_[:101,:101])
+                if samples=='1e9':
+                    # the masks for this data set are the inverse of the standard I eventually decided on, so fix that
+                    for opH in [opHA, opHB]:
+                        opH.remask(np.zeros(opH.h_mask.shape, dtype=bool))
+                        opH.resliceH(np.s_[:101,:101])
 
-            opHA.combine(opHB, inPlace=True)
-            # for opH in [opHA, opHB]:
-            #     print(opH.h.sum())
+                opHA.combine(opHB, inPlace=True)
+                # for opH in [opHA, opHB]:
+                #     print(opH.h.sum())
 
-        self.bfHist = self.bfSims[(('degradation', '0.25000'), ('production', '1.00000'), ('startingInBasin', 'A'), ('name', 'biphasic_switch'))].oparamHists['Sum']
+        self.bfHist = self.bfSims[(('theta', '1.0e+00'), ('samples', '1e11'), ('basin', 'A'))].peek().oparamHists['Sum']
 
         # self.bfHist.resliceH(np.s_[:101,:101])
         
@@ -89,12 +91,13 @@ class CompareBFFFluxHists(object):
         for dim in (1,2):
             for ffluxKey in self.ffluxSims.keys():
                 theta = MagicDict.getElemFromKey('theta', ffluxKey)
-                try:
-                    bfAKey = self.ffluxBFConversionDict[theta]
-                except KeyError:
-                    bfAKey = self.ffluxBFConversionDict['1.0e+00']
+                keySetA = self.getKeySetA(theta)
+                # try:
+                #     bfAKey = self.ffluxBFConversionDict[theta]
+                # except KeyError:
+                #     bfAKey = self.ffluxBFConversionDict['1.0e+00']
 
-                bfHist = self.getBFHistByKeyDim(bfAKey, dim)
+                bfHist = self.getBFHistByKeyDim(keySetA, dim)
                 if normalizeBF:
                     bfHist.normalize()
                 ffluxHist = self.getFFluxHistByKeyDim(ffluxKey, dim)
@@ -127,7 +130,7 @@ class CompareBFFFluxHists(object):
 
     def genFFluxBFConversionDict(self):
         bfKeys = []
-        for key in self.bfSims[('startingInBasin', 'A')].keys():
+        for key in self.bfSims[('basin', 'A')].keys():
             bfKeys.append(sorted(tuple(key)))
         bfKeys.sort()
 
@@ -138,7 +141,7 @@ class CompareBFFFluxHists(object):
     def genKLDiv(self, dim=1, mask1DExtremes=35, normalize='mask'):
         for ffluxKey,ffluxSim in self.ffluxSims.items():
             theta = MagicDict.getElemFromKey('theta', ffluxKey)
-            keySetA = self.ffluxBFConversionDict[theta]
+            keySetA = self.getKeySetA(theta)
             bfHist = self.getBFHistByKeyDim(keySetA, dim)
             ffluxHist = self.getFFluxHistByKeyDim(ffluxKey, dim)
 
@@ -185,7 +188,8 @@ class CompareBFFFluxHists(object):
         for ffluxKey,ffluxSim in self.ffluxSims.items():
             ffluxHist2D = ffluxSim.ffluxHists[('InterfaceTilingID', 0), ('BinTilingIDs', (1,2))]
             theta = MagicDict.getElemFromKey('theta', ffluxKey)
-            bfHist = self.bfSims[self.ffluxBFConversionDict[theta]].oparamHists['Sum']
+            keySetA = self.getKeySetA(theta)
+            bfHist = self.bfSims[keySetA].peek().oparamHists['Sum']
 
             modFFluxHist2D = ffluxHist2D.basin_n_order_parameter_values[('basin_id', 0)].combine(ffluxHist2D.basin_n_order_parameter_values[('basin_id', 1)])
             modBFHist = bfHist.getCopy()
@@ -213,7 +217,7 @@ class CompareBFFFluxHists(object):
     def genKLDivStd(self, dim=1, nDownsampled=7, theta='1.0e+00'):
         nSamples = np.logspace(2, 1+nDownsampled, base=10, num=nDownsampled, dtype=int)
 
-        keySetA = self.ffluxBFConversionDict[theta]
+        keySetA = self.getKeySetA(theta)
         bfHist = self.getBFHistByKeyDim(keySetA, dim)
 
         self.opHistDownsamples = []
@@ -238,8 +242,8 @@ class CompareBFFFluxHists(object):
     def genKLDivStdBetweenBasins(self, nDownsampled=7, theta='1.0e+00'):
         nSamples = np.logspace(2, 1+nDownsampled, base=10, num=nDownsampled, dtype=int)
 
-        keySetA = self.ffluxBFConversionDict[theta]
-        keySetB = (set(keySetA) - {('startingInBasin', 'A')}) | {('startingInBasin', 'B')}
+        keySetA = self.getKeySetA(theta)
+        keySetB = (set(keySetA) - {('basin', 'A')}) | {('basin', 'B')}
         bfHistA = self.bfSims[keySetA].oparamHists['Sum']
         bfHistB = self.bfSims[keySetB].oparamHists['Sum']
 
@@ -255,15 +259,24 @@ class CompareBFFFluxHists(object):
         print(list(self.klDivDict.keys()))
         print(list(self.klDivDict.values()))
 
-    def genKLDivStdWithSplit(self, dim=1, nDownsampled=7, theta='1.0e+00'):
+    def genKLDivStdWithSplit(self, dim=1, nDownsampled=7, theta='1.0e+00', mask1DExtremes=None):
         nSamples = np.logspace(2, 1+nDownsampled, base=10, num=nDownsampled, dtype=int)
 
-        keySetA = self.ffluxBFConversionDict[theta]
+        keySetA = self.getKeySetA(theta)
         bfHist = self.getBFHistByKeyDim(keySetA, dim)
 
-        testHist,sampleHist = bfHist.split()
+        bfHistForCalc = deepcopy(bfHist)
+        bfHistForCalc.reweight(1)
+
+        testHist,sampleHist = bfHistForCalc.split()
         testHist.reweight(1)
         sampleHist.reweight(1)
+
+        if dim==1 and mask1DExtremes:
+            extremesMask = np.ones(bfHist.h.shape, dtype=bool)
+            extremesMask[mask1DExtremes:-mask1DExtremes] = 0
+
+            testHist.remask(extremesMask)
 
         print(testHist.h.sum())
         print(sampleHist.h.sum())
@@ -275,6 +288,8 @@ class CompareBFFFluxHists(object):
 
         self.klDivDict = OrderedDict()
         for name,hist in zip(chain(nSamples, ['original']), chain(self.opHistDownsamples, [sampleHist])):
+            if dim==1 and mask1DExtremes:
+                hist.remask(extremesMask)
             self.klDivDict[name] = testHist.getKLDivergence(hist, normalize='mask')
         print('klDivDict contents:')
         print(list(self.klDivDict.keys()))
@@ -300,13 +315,17 @@ class CompareBFFFluxHists(object):
         if dim==1:
             if not hasattr(self, '_ran_gen1DBFHists') or not self._ran_gen1DBFHists:
                 self.gen1DBFHists()
-            bfHist = self.bfSims[key].oparamHists['Sum'].hist1D
+            try:
+                return self.bfSims[key].peek().oparamHists['Sum'].hist1D
+            except AttributeError:
+                return self.bfSims[key].oparamHists['Sum'].hist1D
         elif dim==2:
-            bfHist = self.bfSims[key].oparamHists['Sum']
+            try:
+                return self.bfSims[key].peek().oparamHists['Sum']
+            except AttributeError:
+                return self.bfSims[key].oparamHists['Sum']
         else:
             raise ValueError('Got %s for dim. Please choose either 1 or 2' % dim)
-
-        return bfHist
 
     def getFFluxHistByKeyDim(self, simsKey, dim):
         if dim==1:
@@ -321,6 +340,10 @@ class CompareBFFFluxHists(object):
                 return val
 
         raise KeyError("No key containing %s found in self.ffluxSims[%s].ffluxHists" % (bTIDTup, simsKey))
+
+    @staticmethod
+    def getKeySetA(theta, samples='1e11'):
+        return (('theta', theta), ('samples', samples), ('basin', 'A'))
 
 if __name__=='__main__':
     CompareBFFFluxHists()

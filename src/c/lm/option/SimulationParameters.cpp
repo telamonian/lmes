@@ -66,7 +66,6 @@ std::list<int> SimulationParameters::parseIntList(const std::string& key) const
 {
     SimParamMap::const_iterator findIt = getMapConst()->find(key);
     const string listString = (not isEnd(findIt)) ? findIt->second : "";
-//    const string listString = (*this)[key];
 
     std::list<int> intList;
     size_t strStart=0, strEnd= 0;

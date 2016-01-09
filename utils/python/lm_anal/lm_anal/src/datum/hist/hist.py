@@ -85,9 +85,9 @@ class Hist(Datum, DensePlottable):
         draw from the distribution of h array indices, weighted by the h_raw bin counts 
         return a tuple-of-ntuples, where the first n-1 entries of the inner tuple correspond to a particular index, and the nth entry is the number of times the index was drawn
         '''
-        if hRawSum==None:
+        if hRawSum is None:
             hRawSum = np.sum(self.h_raw)
-        if hRawCumSum==None:
+        if hRawCumSum is None:
             hRawCumSum = np.cumsum(self.h_raw)  #.reshape(self.h_raw.shape)
         
         rands = np.random.rand(nSample)*hRawSum  #).tolist()
@@ -103,11 +103,23 @@ class Hist(Datum, DensePlottable):
             centers.append(np.concatenate(((edgeArr[0] - edgeDiff[0],), edgeArr[:-1] + edgeDiff, (edgeArr[-1] + edgeDiff[-1],))))
         return centers
 
+    def getDiagonalIndices(self, axes=None, offsets=None):
+        '''
+        get the indices along the diagonal of a multidimensional histogram
+        '''
+        allAxes = np.arange(len(self.h_raw.shape))
+        axes = allAxes if axes is None else np.asarray(axes)
+        offsets = np.zeros(axes.size) if offsets is None else np.asarray(offsets)
+        offsetDict = {ax:offset for ax,offset in zip(axes, offsets)}
+
+        diagLen = (np.array(self.h_raw.shape)[axes] - offsets).min()
+        return [np.arange(diagLen) + offsetDict[ax] if ax in offsetDict else np.zeros(diagLen) for ax in allAxes]
+
     def getDownsampleFromRaw(self, nSample=None, frac=.1):
         '''
         get a downsampled copy of this histogram based on the counts in h_raw, with number of samples=nSamples
         '''
-        if nSample==None:
+        if nSample is None:
             nSample = int(frac*np.sum(self.h_raw))
         
         downHist = self.getCopy()
@@ -269,6 +281,17 @@ class Hist(Datum, DensePlottable):
         val = np.sqrt(val/count)
         return val
 
+    def runWithCopy(self, function, *args, **kwargs):
+        '''
+        helper function that deals with histogram initialization when running functions on copies of self
+        '''
+        retVal = self.getCopy()
+        retVal.initH()
+
+        function(retVal, *args, **kwargs)
+        self.h_cache_dirty = True
+        return retVal
+
     def split(self, n=2):
         splitHists = [self.getCopy() for i in range(n)]
         probabilities = [1/float(n)]*n
@@ -330,19 +353,20 @@ class Hist(Datum, DensePlottable):
                 return self
             self.combineInPlace(*others, autothreshold=autothreshold, otherMask=otherMask)
             return self
+
         retVal = self.getCopy()
         retVal.initH()
 
         if not len(others) > 0:
             return retVal
-
         if isinstance(others[0], GeneratorType):
             histChain = chain([self], *others)
         else:
             histChain = chain([self], others)
         for hist in histChain:
             retVal.h_raw+=hist.h
-        self.h_cache_dirty = True
+
+        retVal.h_cache_dirty = True
         return retVal
 
     def combineInPlace(self, *others, autothreshold=False, otherMask=None):
@@ -396,7 +420,47 @@ class Hist(Datum, DensePlottable):
     def scaleWeight(self, weightScale):
         self.reweight(weight=self.h_weight*weightScale)
         return self
-    
+
+    def _sliceDiagonal(self, retVal, sliceStart, sliceEnd, axes=None, normalize=False):
+        if axes is not None and not len(sliceStart)==len(sliceEnd)==len(axes):
+            raise ValueError('in hist._sliceDiagonal, if axes is specific then it is required that \
+                              len(sliceStart)==len(sliceEnd)==len(axes). \
+                              sliceStart: %s, sliceEnd: %s, axes: %s' % (sliceStart, sliceEnd, axes))
+        elif axes is None and not len(sliceStart)==len(sliceEnd)==self.rank:
+            raise ValueError('in hist._sliceDiagonal, if axes is not specific then it is required that \
+                              len(sliceStart)==len(sliceEnd)==self.rank. \
+                              sliceStart: %s, sliceEnd: %s, self.rank: %d' % (sliceStart, sliceEnd, self.rank))
+
+        #sliceLC,sliceUC = np.asarray(sliceLC),np.asarray(sliceUC)
+        # sliceDims = (sliceUC - sliceLC - 1)
+        # offsets = np.zeros((sliceDims.sum() - (sliceDims - 1).sum(), sliceDims.size))
+
+        axes = np.arange(len(self.h_raw.shape)) if axes is None else np.asarray(axes)
+        slize,reducedSlize = ([0]*len(self.h_raw.shape),)*2
+        for i,ax in enumerate(axes):
+            slize[ax] = slice(sliceStart[i], sliceEnd[i])
+            reducedSlize[ax] = slice(sliceStart[i] + 1, sliceEnd[i])
+        # retVal should start off full of 0
+        retVal[slize] = 1
+        retVal[reducedSlize] = 0
+        offsetsArr = np.column_stack(retVal.nonZero())
+        offsetsArr-=offsetsArr.min(axis=1).reshape(-1,1)
+        for offsets in offsetsArr:
+            dI = self.getDiagonalIndices(axes=axes, offsets=offsets)
+            retVal.h_raw[dI] = self.h_raw[dI]
+
+        if normalize:
+            retVal.normalize()
+        return retVal
+
+    def sliceDiagonal(self, sliceStart, sliceEnd, axes=None, normalize=False):
+        '''
+        Returns a version of the hist with only the diagonals that pass through
+        the box with lower and upper corners defined by the points sliceStart and sliceEnd.
+        '''
+        return self.runWithCopy(self._sliceDiagonal, **{'sliceStart':sliceStart, 'sliceEnd':sliceEnd,
+                                                        'axes':axes, 'normalize':normalize})
+
     def setObservations(self, obs):
         '''
         same as AddObservations, but clears the previously added observations (if any) first

@@ -262,7 +262,15 @@ class Datum(object, metaclass=DatumMetaclass):
     def initSubDataDynamically(self, name, DataType):
         self.__setattr__(name, DataType())
         return self.__getattribute__(name)
-    
+
+    def catArray(self, name, val, axis=0, source_sel=None):
+        if source_sel is not None:
+            val = val[source_sel]
+        try:
+            self.__setattr__(name, np.concatenate((self.__getattribute__(name), val), axis=axis))
+        except AttributeError:
+            self.setArray(name=name, val=val, source_sel=source_sel)
+
     def getArray(self, name, dims=None, dtype=None):
         try:
             return self.__getattribute__(name)
@@ -284,7 +292,7 @@ class Datum(object, metaclass=DatumMetaclass):
     
     def getSubData(self, name):
         return self.__getattribute__(name)
-    
+
     def setArray(self, name, val, source_sel=None):
         if source_sel is not None:
             val = val[source_sel]
@@ -292,11 +300,3 @@ class Datum(object, metaclass=DatumMetaclass):
     
     def setScalar(self, name, val):
         self.__setattr__(name, val)
-
-    def catArray(self, name, val, axis=0, source_sel=None):
-        if source_sel is not None:
-            val = val[source_sel]
-        try:
-            self.__setattr__(name, np.concatenate((self.__getattribute__(name), val), axis=axis))
-        except AttributeError:
-            self.setArray(name=name, val=val, source_sel=source_sel)

@@ -41,7 +41,7 @@ class Plottable(object):
 
             Plottable.initialized = True
     
-    def plot(self, fig=None, ax=None, scale='log', figKwargs=None, axesKwargs=None, pltKwargs=None):
+    def plot(self, fig=None, ax=None, figKwargs=None, axesKwargs=None, pltKwargs=None, scale='log'):
         # init attrs directly from args
         self.scale = scale
 

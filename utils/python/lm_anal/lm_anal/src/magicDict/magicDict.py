@@ -1,7 +1,7 @@
 from collections import OrderedDict
 import numpy as np
 
-from lm_anal.src.helper import ContainerEval, Frozensetify
+from lm_anal.src.helper import ContainerEvalReplaceNone, Frozensetify
 
 __all__ = ['MagicDict']
 
@@ -33,13 +33,13 @@ class MagicDict(OrderedDict):
         try:
             return self._get(keySet=keySet)
         except KeyError:
-            try:
-                # _get may have failed because the user entered a tup instead of a tup-of-tups for the key, so try to fix that
-                keySet = Frozensetify((keyTups,))
-                return self._get(keySet=keySet)
-            except TypeError:
-                # maybe make this a less soft fail
-                return None
+            # try:
+            # _get may have failed because the user entered a tup instead of a tup-of-tups for the key, so try to fix that
+            keySet = Frozensetify((keyTups,))
+            return self._get(keySet=keySet)
+            # except TypeError:
+            #     # maybe make this a less soft fail
+            #     return None
 
     def _get(self, keySet):
         try:
@@ -116,7 +116,7 @@ class MagicDict(OrderedDict):
             grid[it.multi_index]['label'] = tuple(gridKey)
             gridKey+=singletonElems
             try:
-                gridVal = self[gridKey]
+                gridVal = self[tuple(gridKey)]
             except KeyError:
                 gridVal = None
             if isinstance(gridVal, MagicDict):
@@ -178,8 +178,14 @@ class MagicDict(OrderedDict):
     
     def sortElems(self):
         for key, elemValDict in self.elemDict.items():
-            self.elemDict[key] = OrderedDict(sorted(elemValDict.items(), key=lambda item: ContainerEval(item[0])))
-        self.elemDict = OrderedDict(sorted(self.elemDict.items(), key=lambda item: ContainerEval(item[0])))
+            self.elemDict[key] = OrderedDict(sorted(elemValDict.items(), key=self.sortElemsKeyFunc))    #lambda item: ContainerEval(item[0])))
+        self.elemDict = OrderedDict(sorted(self.elemDict.items(), key=self.sortElemsKeyFunc))   #lambda item: ContainerEval(item[0])))
+
+    @staticmethod
+    def sortElemsKeyFunc(item):
+        return ContainerEvalReplaceNone(item[0])
+        # evaled = ContainerEval(item[0])
+        # return float('-inf') if evaled is None else evaled
 
     # @staticmethod
     # def evalElems(elems):

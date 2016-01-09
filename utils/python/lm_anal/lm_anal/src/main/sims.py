@@ -48,7 +48,7 @@ class Sims(object):
         else:
             relPath = path.relative_to(rootPath)
         relPathParts = [part for part in relPath.parent.parts if part!='/']
-        keyElems = [('name', relPath.stem)]
+        keyElems = [('fileName', relPath.stem)]
         for part in relPathParts:
             for multiToken in part.split('_-_'):
                 keyElems+=[tuple(multiToken.split('_'))]
