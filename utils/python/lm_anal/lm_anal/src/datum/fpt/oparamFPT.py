@@ -5,7 +5,8 @@ __all__ = ['OParamFPT']
 
 class OParamFPT(FPT):
     # change name of base FPT 'id' field to 'oparam_id', and type of 'count' field to float
-    propertySpecs = DatSpcs(DatSpc(name='points', dtype=[('oparam_id', 'int'), ('count', 'float'), ('time', 'float')], paths=('points'), storageType='numpy', type='array'))
+    pointsDtype = [('oparam_id', 'int'), ('count', 'float'), ('initial_count', 'float'), ('time', 'float')]
+    propertySpecs = DatSpcs(DatSpc(name='points', dtype=pointsDtype, paths=('points'), storageType='numpy', type='array'))
 
     # add some field alias specs
     propertySpecs.addFieldAlias(name='id', targetField='oparam_id', targetName='points')

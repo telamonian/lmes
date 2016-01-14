@@ -8,7 +8,7 @@ from types import GeneratorType
 from lm_anal.src.datum import Datum, DatumPropertySpec as DPSpec, DatumPropertySpecs as DPSpecs
 from lm_anal.src.datum.tiling.tiling import Tiling
 from lm_anal.src.datumABC import HistABC
-from lm_anal.src.helper import histogramdd, timewith
+from lm_anal.src.helper import Depth, DiagonalMask, histogramdd, timewith
 from lm_anal.src.plottable import DensePlottable
 
 __all__ = ['Hist']
@@ -80,6 +80,48 @@ class Hist(Datum, DensePlottable):
         self.setObservations(obs)
 
 # accessors
+    def coordinateFromIndex(self, iz):
+        coords = []
+        depth = Depth(iz)
+        if depth==0:
+            iz = [[iz]]
+        elif depth==1:
+            iz = [[i] for i in iz]
+
+        for i,edges in zip(iz, self.getEdges()):
+            coords.append(edges[i])
+
+        if depth==0:
+            return coords[0][0]
+        if depth==1:
+            return [coord for l in coords for coord in l]
+        else:
+            return coords
+
+    def indexFromCoordinate(self, coords):
+        iz = []
+        depth = Depth(coords)
+        if depth==0:
+            coords = [[coords]]
+        elif depth==1:
+            coords = [[coord] for coord in coords]
+
+        for coord,edges in zip(coords, self.getEdges()):
+            iz.append(edges.searchsorted(coord))
+
+        if depth==0:
+            return iz[0][0]
+        if depth==1:
+            return [i for l in iz for i in l]
+        else:
+            return iz
+
+    def coordinateSliceFromIndexSlice(self, izStart, izEnd):
+        return self.coordinateFromIndex(izStart),self.indexFromCoordinate(izEnd)
+
+    def indexSliceFromCoordinateSlice(self, coordsStart, coordsEnd):
+        return self.indexFromCoordinate(coordsStart),self.indexFromCoordinate(coordsEnd)
+
     def drawIndicesFromRaw(self, nSample=1, hRawSum=None, hRawCumSum=None):
         '''
         draw from the distribution of h array indices, weighted by the h_raw bin counts 
@@ -154,8 +196,26 @@ class Hist(Datum, DensePlottable):
             eWP.append(paddedEdges)
         return eWP
 
-    def getKLDivergence(self, other, absolute=False, normalize=True):
-        selfHist,otherHist,effectiveShape = self.getKLDivergenceSetup(other=other, absolute=absolute, normalize=normalize)
+    def getKLDivergence(self, other, absolute=False, normalize='mask', edges=None, sliceStart=None, sliceEnd=None, sliceCoordinate=True, sliceDiagonal=False, sliceInverse=True):
+        '''
+        get the Kullback-Leibler divergence between this hist and another.
+        absolute: if true, return absolute value of KL div
+        '''
+        # implementation of KL div from scipy
+        #return st.entropy(pk=self.h.flatten(), qk=other.h.flatten())
+
+        # if the edges arg is set, call this same function multiple times with different sliceStart,sliceEnd vals
+        if edges is not None:
+            divKwargs = {'absolute':absolute, 'normalize':normalize, 'edges':None, 'sliceCoordinate':sliceCoordinate,
+                         'sliceDiagonal':sliceDiagonal, 'sliceInverse':sliceInverse}
+            divs = []
+            for start,end in zip(edges[:-1], edges[1:]):
+                divs.append(self.getKLDivergence(other, sliceStart=[start], sliceEnd=[end], **divKwargs))
+            return divs
+
+        selfHist,otherHist,effectiveShape = self.getKLDivergenceSetup(other=other, absolute=absolute, normalize=normalize,
+                                                sliceStart=sliceStart, sliceEnd=sliceEnd, sliceCoordinate=sliceCoordinate,
+                                                sliceDiagonal=sliceDiagonal, sliceInverse=sliceInverse)
 
         # calculation stuff
         val = 0
@@ -172,8 +232,10 @@ class Hist(Datum, DensePlottable):
         else:
             return val
 
-    def getKLDivergenceArr(self, other, absolute=False, normalize=True):
-        selfHist,otherHist,effectiveShape = self.getKLDivergenceSetup(other=other, absolute=absolute, normalize=normalize)
+    def getKLDivergenceArr(self, other, absolute=False, normalize='mask', sliceStart=None, sliceEnd=None, sliceCoordinate=True, sliceDiagonal=False, sliceInverse=True):
+        selfHist,otherHist,effectiveShape = self.getKLDivergenceSetup(other=other, absolute=absolute, normalize=normalize,
+                                                                      sliceStart=sliceStart, sliceEnd=sliceEnd, sliceCoordinate=sliceCoordinate,
+                                                                      sliceDiagonal=sliceDiagonal, sliceInverse=sliceInverse)
 
         # calculation stuff
         retVal = self.getCopy()
@@ -193,38 +255,36 @@ class Hist(Datum, DensePlottable):
         retVal.h_cache_dirty = True
         return retVal
 
-    def getKLDivergenceSetup(self, other, absolute, normalize):
-        '''
-        get the Kullback-Leibler divergence between this hist and another.
-        absolute: if true, return absolute value of KL div
-        '''
-        # implementation of KL div from scipy
-        #return st.entropy(pk=self.h.flatten(), qk=other.h.flatten())
-        
+    def getKLDivergenceSetup(self, other, absolute, normalize, sliceStart, sliceEnd, sliceCoordinate, sliceDiagonal, sliceInverse):
         effectiveShape = ()
         for selfDim,otherDim in zip(self.h.shape, other.h.shape):
             effectiveShape+=(np.s_[:np.min((selfDim, otherDim))],)
-        
-        #normalization stuff
-        if normalize=='mask':
-            eitherZeroMask = np.logical_or(self.h[effectiveShape]==0, other.h[effectiveShape]==0)
-        
+
         newHists = [None, None]
+        for i,oldHist in enumerate([self,other]):
+            # if we're normalizing or masking, make copies of the hists we're handed
+            if normalize or (sliceStart is not None and sliceEnd is not None):
+                newHists[i] = oldHist.getCopy()
+            else:
+                newHists[i] = oldHist
+
+            if sliceStart is not None and sliceEnd is not None:
+                newHists[i].maskSlice(start=sliceStart, end=sliceEnd, coordinate=sliceCoordinate,
+                                      diagonal=sliceDiagonal, inverse=sliceInverse, normalize=False)
+
+        if normalize=='mask':
+            eitherZeroMask = np.logical_or(newHists[0].h[effectiveShape]==0, newHists[1].h[effectiveShape]==0)
         for i,oldHist in enumerate([self,other]):
             if normalize=='mask':
                 # normalize the distributions in a way that takes into account the fact that we're masking out any bins that aren't nonzero in both distributions
-                newHists[i] = oldHist.getCopy()
-                zeroMask = np.ones(newHists[i].h.shape, dtype=bool)
-                zeroMask[effectiveShape] = eitherZeroMask
-                newHists[i].remask(zeroMask)
+                # zeroMask = np.ones(newHists[i].h.shape, dtype=bool)
+                # zeroMask[effectiveShape] = eitherZeroMask
+                newHists[i].remask(eitherZeroMask)
                 newHists[i].normalize()
             elif normalize:
                 # normalize both distributions in a totally straight-forward way
-                newHists[i] = oldHist.getCopy()
                 newHists[i].normalize()
-            else:
-                # just use whatever distributions we're handed
-                newHists[i] = oldHist
+
         selfHist,otherHist = newHists
         return selfHist,otherHist,effectiveShape
 
@@ -314,7 +374,7 @@ class Hist(Datum, DensePlottable):
             for j in range(i+1, splits.size):
                 splits.ravel()[i]+=splits.ravel()[j]
         return splits
-    
+
 # mutators
     def addObservations(self, obs):
         '''
@@ -377,10 +437,45 @@ class Hist(Datum, DensePlottable):
         for other in others:
             self.h_raw+=other.h
         self.h_cache_dirty = True
-    
-    def normalize(self):
-        self.reweight(self.h_weight/np.sum(self.h))
-    
+
+    def copyCounts(self, other):
+        self.h = other.h
+        self.h_raw = other.h_raw
+        self.h_mask = other.h_mask
+        self.h_threshold = other.h_threshold
+        self.h_weight = other.h_weight
+
+    def maskDiagonalSlice(self, start, end, axes=None, coordinate=True, inverse=False, normalize=False):
+        if coordinate:
+            start, end = self.indexSliceFromCoordinateSlice(start, end)
+
+        self.remask(DiagonalMask(arr=self.h_raw, sliceStart=start, sliceEnd=end, axes=axes, inverse=inverse))
+        self.normalize(method=normalize)
+        return self
+
+    def maskSlice(self, start, end, axes=None, clear=True, coordinate=True, diagonal=False, inverse=False, normalize=False):
+        if diagonal:
+            return self.maskDiagonalSlice(start=start, end=end, axes=axes, coordinate=coordinate, inverse=inverse, normalize=normalize)
+        if clear:
+            self.h_mask.fill(True if inverse else False)
+        if coordinate:
+            start,end = self.indexSliceFromCoordinateSlice(start, end)
+
+        slize = [slice(s, e) for s,e in zip(start, end)]
+        self.h_mask[slize] = False if inverse else True
+        self.normalize(method=normalize)
+        self.h_cache_dirty = True
+        return self
+
+    def normalize(self, method=True):
+        if method:
+            if method=='raw':
+                # this way makes .h_raw.sum()==1.0
+                self.reweight(float(1)/np.sum(self.h_raw))
+            else:
+                # this way makes .h.sum()==1.0
+                self.reweight(self.h_weight/np.sum(self.h))
+
     def recalc(self, mask=None, threshold=None, weight=None):
         '''
         one stop shop for the heavy lifting involved with manipulating the histogram data
@@ -405,7 +500,7 @@ class Hist(Datum, DensePlottable):
         function that takes a boolean mask (same size as self.h) and zeros out the values in self.h that correspond to the 'False' values in the mask
         '''
         if mask.size!=np.product(self.h_dims):
-            raise
+            raise ValueError('In Hist.remask, mask.shape and self.h_dims should agree. mask.shape: %s, self.h_dims: %s' % (mask.shape, self.h_dims))
         self.recalc(mask=mask)
         return self
     
@@ -431,19 +526,15 @@ class Hist(Datum, DensePlottable):
                               len(sliceStart)==len(sliceEnd)==self.rank. \
                               sliceStart: %s, sliceEnd: %s, self.rank: %d' % (sliceStart, sliceEnd, self.rank))
 
-        #sliceLC,sliceUC = np.asarray(sliceLC),np.asarray(sliceUC)
-        # sliceDims = (sliceUC - sliceLC - 1)
-        # offsets = np.zeros((sliceDims.sum() - (sliceDims - 1).sum(), sliceDims.size))
-
         axes = np.arange(len(self.h_raw.shape)) if axes is None else np.asarray(axes)
-        slize,reducedSlize = ([0]*len(self.h_raw.shape),)*2
+        slize,reducedSlize = [0]*len(self.h_raw.shape),[0]*len(self.h_raw.shape)
         for i,ax in enumerate(axes):
             slize[ax] = slice(sliceStart[i], sliceEnd[i])
             reducedSlize[ax] = slice(sliceStart[i] + 1, sliceEnd[i])
-        # retVal should start off full of 0
-        retVal[slize] = 1
-        retVal[reducedSlize] = 0
-        offsetsArr = np.column_stack(retVal.nonZero())
+        # retVal.h_raw should start off full of 0
+        retVal.h_raw[slize] = 1
+        retVal.h_raw[reducedSlize] = 0
+        offsetsArr = np.column_stack(retVal.h_raw.nonzero())
         offsetsArr-=offsetsArr.min(axis=1).reshape(-1,1)
         for offsets in offsetsArr:
             dI = self.getDiagonalIndices(axes=axes, offsets=offsets)
@@ -453,13 +544,19 @@ class Hist(Datum, DensePlottable):
             retVal.normalize()
         return retVal
 
-    def sliceDiagonal(self, sliceStart, sliceEnd, axes=None, normalize=False):
+    def sliceDiagonal(self, sliceStart, sliceEnd, axes=None, inplace=False, normalize=False):
         '''
         Returns a version of the hist with only the diagonals that pass through
         the box with lower and upper corners defined by the points sliceStart and sliceEnd.
         '''
-        return self.runWithCopy(self._sliceDiagonal, **{'sliceStart':sliceStart, 'sliceEnd':sliceEnd,
-                                                        'axes':axes, 'normalize':normalize})
+        retVal = self.runWithCopy(self._sliceDiagonal, **{'sliceStart':sliceStart, 'sliceEnd':sliceEnd,
+                                                          'axes':axes, 'normalize':normalize})
+        if inplace:
+            # this isn't optimized
+            self.copyCounts(retVal)
+            return self
+        else:
+            return retVal
 
     def setObservations(self, obs):
         '''
@@ -467,6 +564,10 @@ class Hist(Datum, DensePlottable):
         '''
         self.clearVals()
         self.addObservations(obs)
+
+    def unmask(self):
+        self.h_mask.fill(False)
+        self.h_cache_dirty = True
 
 # # plotting stuff
     @property

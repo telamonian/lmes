@@ -1,7 +1,5 @@
-import os, sys
-
 from lm_anal.src.datum import Datum
-from lm_anal.src.datumABC.trajectory import PCloudABC
+from lm_anal.src.datumABC.pcloud import PCloudABC
 from lm_anal.src.spec import DatumSpec as DatSpc, DatumSpecs as DatSpcs
 
 __all__ = ['PCloud']

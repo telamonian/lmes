@@ -26,7 +26,7 @@ class SimsLazyExample(object):
 #         self.klDivDict2D = OrderedDict()
 #         for name,hist in zip(chain(self.nSamples, ['original']), chain(self.opHistDownsamples, [self.opHist])):
 #             self.klDivDict2D[name] = self.opHist.getKLDivergence(hist, normalize='mask')
-#         print('2D klDivDict contents:')
+#         print('2D divDict contents:')
 #         print(list(self.klDivDict2D.keys()))
 #         print(list(self.klDivDict2D.values()))
         

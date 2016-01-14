@@ -64,12 +64,9 @@ class Specs(object, metaclass=SpecsMetaclass):
         return newSpecs
 
     def defaultKey(self, spec, specList):
-        key = self.counter
-        self.counter+=1
-        while key in self:
-            key = self.counter
+        while self.counter in self:
             self.counter+=1
-        return key
+        return self.counter
     
     def genKey(self, spec, specList):
         if 'name' in spec:

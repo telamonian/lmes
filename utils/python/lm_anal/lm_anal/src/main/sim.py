@@ -16,7 +16,9 @@ from lm_anal.src.io.hdf5.trajectory import SpeciesTrajectoriesIO
 from lm_anal.src.io.mod import TimeIO
 from lm_anal.src.datum import Data
 from lm_anal.src.datum.fflux import FFluxBasins, FFluxFinals, FFluxOutputs, FFluxTrajectories
+from lm_anal.src.datum.fpt import OParamFPTs, SpeciesFPTs
 from lm_anal.src.datum.hist import FFluxHists, OParamHists
+from lm_anal.src.datum.model import ReactionModel
 from lm_anal.src.datum.parameter import SimulationParameters
 from lm_anal.src.datum.oparam import OParams
 from lm_anal.src.datum.tiling import Tilings

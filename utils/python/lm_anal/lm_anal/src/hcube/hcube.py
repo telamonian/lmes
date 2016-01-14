@@ -1,153 +1,4 @@
-from ast import literal_eval
-from copy import copy as shallowCopy
-import matplotlib as mpl
-import matplotlib.font_manager as mfm
-import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
-import numpy as np
-import re
-from pathlib import Path
-import re
-
-import lm_anal.src.helper as hlp
-from lm_anal.src.main import Sim
-from lm_anal.src.magicDict import MagicDict
-
-class FilterRegex(object):
-    def __init__(self, pat, kind):
-        if kind!='exclude' and kind!='include':
-            raise ValueError('kind should be exclude or include, kind: %s' % kind)
-        self.pat = pat
-        #self.antipat = r'^((?!%s).)*$' % self.pat
-        self.kind = kind
-        self.exclude = self.kind=='exclude'
-
-        self.regex = re.compile(pat)
-
-    def __call__(self, s):
-        if self.regex.search(str(s)):
-            return True if self.exclude else False
-        else:
-            return False if self.exclude else True
-
-class SimsMetaclass(type):
-    def __new__(cls, clsname, bases, dct):
-        return super(SimsMetaclass, cls).__new__(cls, clsname, bases, dct)
-
-class Sims(object):
-    privateMethodRe = re.compile(r'_[^_]*')
-
-    hdf5Synonyms = {'hdf5', 'lm', '.lm'}
-    lmintSynonyms = {'int', 'lmint', '.lmint'}
-    sfileSynonyms = {'hdfs', 'sfile', '.sfile'}
-    
-    @staticmethod
-    def parseKeyFromPath(path, rootPath):
-        if path==rootPath:
-            relPath = Path(path.name)
-        else:
-            relPath = path.relative_to(rootPath)
-        relPathParts = [part for part in relPath.parent.parts if part!='/']
-        keyElems = [('fileName', relPath.stem)]
-        for part in relPathParts:
-            for multiToken in part.split('_-_'):
-                keyElems+=[tuple(multiToken.split('_'))]
-                
-        return tuple(keyElems)
-
-    @staticmethod
-    def parseFilterRule(filterRule):
-        if filterRule[0]=='-':
-            kind = 'exclude'
-        elif filterRule[0]=='+':
-            kind = 'include'
-        else:
-            raise ValueError("invalid filterRule. filterRules shoudld start with '-' (exclude) or '+' (include) filterRule: %s" % filterRule)
-        return FilterRegex(pat=filterRule[1:], kind=kind)
-
-    def __init__(self, rootPath, filters=None, filterRules=None, fType='hdf5', **kwargs):
-        self.copying = False
-
-        self.filters = [] if filters is None else filters
-        if filterRules is not None:
-            self.initFilterRules(filterRules)
-
-        self.initFType(fType)
-        self.map = MagicDict()
-        self.rootPath = Path(rootPath)
-        self.initSims(**kwargs)
-
-    def initFilterRules(self, filterRules):
-        for filterRule in filterRules:
-            self.filters.append(self.parseFilterRule(filterRule))
-
-    def filterPath(self, p):
-        '''
-        runs all of the functions in .filters on p
-        '''
-        for Filter in self.filters:
-            if Filter(p):
-                if Filter.kind=='exclude':
-                    return True
-                else:
-                    return False
-        return False
-
-    def filterPaths(self, ps):
-        retPs = []
-        for p in ps:
-            if not self.filterPath(p):
-                retPs.append(p)
-        return retPs
-
-    def initFType(self, fType):
-        '''
-        initialize fType with some normalization/sanity checks
-        '''
-        if fType in self.hdf5Synonyms:
-            self.fType = 'hdf5'
-            self.suffix = '.lm'
-        elif fType in self.sfileSynonyms:
-            self.ftype = 'sfile'
-            self.suffix = '.sfile'
-        elif fType in self.lmintSynonyms:
-            self.ftype = 'lmint'
-            self.suffix = '.lmint'
-        else:
-            raise
-
-    def initSim(self, key, fPath, **kwargs):
-        try:
-            return self.map[key]
-        except KeyError:
-            self.map[key] = Sim(fPath=fPath, name=key, **kwargs)
-            return self.map[key]
-    
-    def initSims(self, **kwargs):
-        if self.rootPath.is_file():
-            fPaths = (self.rootPath,)
-        else:
-            fPaths = self.rootPath.rglob('*{}'.format(self.suffix))
-
-        if self.filters:
-            fPaths = self.filterPaths(fPaths)
-
-        self._initSims(fPaths, **kwargs)
-            
-        if len(self.map)==0:
-            fPaths = self.rootPath.rglob('*{}'.format('.lmint'))
-
-            if self.filters:
-                fPaths = self.filterPaths(fPaths)
-
-            self._initSims(fPaths, **kwargs)
-                
-    def _initSims(self, fPaths, **kwargs):
-        for fPath in fPaths:
-            key = self.parseKeyFromPath(fPath, self.rootPath)
-            self.initSim(key, fPath, **kwargs)
-            
-# magic!
+class HCube(object):
     def _call(self, *args, **kwargs):
         newDict = MagicDict()
         for oldKey,oldVal in self.map.items():
@@ -171,7 +22,7 @@ class Sims(object):
 
     def __delitem__(self, key):
         del self.map[key]
-    
+
     def __getitem__(self, key):
         val = self.map[key]
         if isinstance(val, MagicDict):
@@ -180,7 +31,7 @@ class Sims(object):
             return simsView
         else:
             return val
-    
+
     def __getattr__(self, name):
         # this gets called if an attr isn't found in this Sims object
         if name=='__setstate__':    # or name=='__copy__' or name=='__reduce_ex__':
@@ -201,7 +52,7 @@ class Sims(object):
         newSims = self.getShallowCopy()
         newSims.map = newDict
         return newSims
-        
+
     def __setitem__(self, key, val):
         self.map[key] = val
 
@@ -297,10 +148,10 @@ class Sims(object):
             for i,axis in enumerate((ax.get_xaxis(), ax.get_yaxis())):
                 for tickText in axis.get_majorticklabels():
                     tickText.set_visible(False)
-            # this is going to need to be more complex to do the tick pruning I wanted...
-            # for tickText in ax.get_xaxis().get_majorticklabels()[0:1] + ax.get_xaxis().get_majorticklabels()[-1:]:
-            #     print(tickText.get_visible())
-            #     tickText.set_visible(False)
+                    # this is going to need to be more complex to do the tick pruning I wanted...
+                    # for tickText in ax.get_xaxis().get_majorticklabels()[0:1] + ax.get_xaxis().get_majorticklabels()[-1:]:
+                    #     print(tickText.get_visible())
+                    #     tickText.set_visible(False)
 
         # # turn back on the necessary ticklabels
         # for dim in (0,1):
@@ -438,7 +289,7 @@ class Sims(object):
 
         stickyLabels = kwargs.pop('stickyLabels') if 'stickyLabels' in kwargs else True
         stickyTicklabels = kwargs.pop('stickyTicklabels') if 'stickyTicklabels' in kwargs else True
-        
+
         # unroll higher-D grids into 2D grids
         axArrShape = (np.product(grid.shape[1::2], dtype=int), np.product(grid.shape[::2], dtype=int))
         fig,axArr = self._setupFig(axArrShape, kwargs)
@@ -464,7 +315,7 @@ class Sims(object):
             self._plotGridCbar(fig=fig, grid=grid, cbarKwargs=cbarKwargs)
         for ax in axArr[axArrMask].ravel():
             ax.axis('off')
-        # for ax in (axArr.ravel()[i] for i in badAxes):
+            # for ax in (axArr.ravel()[i] for i in badAxes):
             # ax.axis('off')
             # hlp.HideAxesFrame(ax)
         self._formatGridPlot(fig=fig, axArr=axArr, grid=grid, axArrMask=axArrMask, singletonElems=singletonElems, stickyLabels=stickyLabels, stickyTicklabels=stickyTicklabels)
@@ -495,7 +346,7 @@ class Sims(object):
 
     def getGridShape(self):
         return self.map.getGrid()[0].shape
-    
+
     def getShallowCopy(self):
         self.copying = True
         retCopy = shallowCopy(self)
@@ -503,7 +354,7 @@ class Sims(object):
         retCopy.copying = False
         return retCopy
 
-# explicit functional methods for dealing with objects in the underlying MagicDict
+    # explicit functional methods for dealing with objects in the underlying MagicDict
     def call(self, *args, **kwargs):
         return self._call(*args, **kwargs)
 
@@ -513,7 +364,7 @@ class Sims(object):
     def getItem(self, name):
         return self.get('__getitem__')(name)
 
-# explicit functional methods for "collapsing" the Sims object and returning simple iterators/lists, or in some cases values
+    # explicit functional methods for "collapsing" the Sims object and returning simple iterators/lists, or in some cases values
     def getItems(self):
         return list(self.items())
 
@@ -535,7 +386,7 @@ class Sims(object):
     def values(self):
         return self.map.values()
 
-# spark RDD-like methods
+    # spark RDD-like methods
     def mapFunc(self, func, *args, **kwargs):
         doRaise = kwargs.pop('doRaise') if 'doRaise' in kwargs else False
 
@@ -554,10 +405,3 @@ class Sims(object):
         newSims = self.getShallowCopy()
         newSims.map = newDict
         return newSims
-
-#     def map(self, recipeName, **kwargs):
-#         self.__getattribute__('%sMap' % recipeName)(**kwargs)
-#         
-#     def OParamHistsMap(self, tilingIDs, **kwargs):
-#         for sim in self:
-#             sim.map('OParamHists', tilingIDs=tilingIDs)
