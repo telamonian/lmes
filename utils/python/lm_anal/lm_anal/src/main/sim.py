@@ -43,7 +43,7 @@ class Sim(object):
         return str(self.fPath)
 
 # initializers
-    def __init__(self, fPath, name=None, lmintOnly=False, **kwargs):
+    def __init__(self, fPath, lazyLoad=True, lmintOnly=False, name=None, **kwargs):
         # path setting stuff
         self.fPath = Path(fPath)
 #         self.fDir, self.fNameFull = os.path.split(self.fPath)
@@ -51,14 +51,14 @@ class Sim(object):
 #         self.intermediatePath = os.path.join(self.fDir, '.' + self.fName) + '.lmint'
         
         self.modIO = TimeIO(fPath=self.fPathStr)
-        self.initInputData()
-        self.initData()
+        self.initInputData(lazyLoad=lazyLoad)
+        self.initData(lazyLoad=lazyLoad)
     
-    def initData(self):
+    def initData(self, lazyLoad=True):
         self.dataDict = OrderedDict()
         for DataType in self.dataTypes:
             dataName = CamelCaseLower(DataType.__name__)
-            self.__setattr__(dataName, DataType(fPath=self.fPath, dataToTransformDict=self.inputDataDict))
+            self.__setattr__(dataName, DataType(fPath=self.fPath, dataToTransformDict=self.inputDataDict, lazyLoad=lazyLoad))
             self.dataDict[dataName] = self.__getattribute__(dataName)
             
         self.ffluxHists.dataToTransform = self.ffluxOutputs
@@ -66,11 +66,11 @@ class Sim(object):
         self.oparamHists.dataToTransform = self.speciesTrajectories
         self.oparamTrajectories.dataToTransform = self.speciesTrajectories
     
-    def initInputData(self):
+    def initInputData(self, lazyLoad=True):
         self.inputDataDict = OrderedDict()
         for InputDataType in self.inputDataTypes:
             inputDataName = CamelCaseLower(InputDataType.__name__)
-            self.__setattr__(inputDataName, InputDataType(fPath=self.fPath))
+            self.__setattr__(inputDataName, InputDataType(fPath=self.fPath, lazyLoad=lazyLoad))
             self.inputDataDict[inputDataName] = self.__getattribute__(inputDataName)
     
 # accessors
