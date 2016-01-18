@@ -3,5 +3,5 @@ from lm_anal.src.helper import ShallowImportAllModules
 
 dstABCs = {datumABCDict['pcloud']}
 
-transformDict, __all__ = ShallowImportAllModules(path=__path__, name=__name__)
-locals().update(transformDict)
+propertyTransformDict, __all__ = ShallowImportAllModules(path=__path__, name=__name__)
+locals().update(propertyTransformDict)

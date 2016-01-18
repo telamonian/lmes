@@ -36,7 +36,7 @@ class Transforms(object):
         self.dstTypes = set(map(lambda x: x.datumType, dsts))
         self.srcABCs = GetDatumTypeABCSet(self.srcTypes)
         self.dstABCs = GetDatumTypeABCSet(self.dstTypes)
-        
+
         # based on src and dst ABCs, get the pkg with the appropriate Transform types
         for srcTransformPkg in srcTransformPkgDict.values():
             if self.srcABCs==srcTransformPkg.srcABCs:

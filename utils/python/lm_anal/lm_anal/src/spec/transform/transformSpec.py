@@ -10,12 +10,14 @@ class TransformSpec(Spec):
     # if we got a single srcTypes/dstTypes rather than a list (or whatever), put it in a set. Otherwise, convert to set
     setKeywords = {'srcTypes', 'dstTypes', 'srcDataTypes', 'dstDataTypes', 'srcKeyType', 'dstKeyType', 'requiredArgs', 'requiredData'}
     
-    defaultKeywordDict = {'srcTypes':set(),
-                          'dstTypes':set(),
-                          'srcDataTypes':set(), 
-                          'dstDataTypes':set(), 
-                          'srcKeyType':set(), 
-                          'dstKeyType':set()}
+    defaultKeyValDict = {'srcTypes':set(),
+                         'dstTypes':set(),
+                         'srcDataTypes':set(),
+                         'dstDataTypes':set(),
+                         'srcKeyType':set(),
+                         'dstKeyType':set(),
+                         'requiredArgs':set(),
+                         'requiredData':set()}
     
     @staticmethod
     def getNamesFromKwargs(kind='src', **kwargs):

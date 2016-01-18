@@ -4,7 +4,7 @@ import h5py
 import numpy as np
 import os
 
-from lm_anal.src.helper import CamelCaseUpper, FixedWidth
+from lm_anal.src.helper import CamelCaseUpper, FixedWidth, NumifyString
 from lm_anal.src.io.hdf5.hdf5Spec import HDF5Spec
 from lm_anal.src.io.hdf5.hdf5Specs import HDF5Specs
 from lm_anal.src.io.io import IO
@@ -26,6 +26,30 @@ class HDF5IO(IO):
         if hdf5RootPath!=None:
             self.hdf5RootPath = hdf5RootPath
         self.fPath = fPath
+
+    def delete(self, hdf5Path):
+        del self.file[hdf5Path]
+
+    def _dff(self, keys, raiseIfNotExists):
+        if keys==None:
+            keys = self.keys()
+
+        for key in keys:
+            try:
+                self.delete(hdf5Path=os.path.join(self.hdf5RootPath, str(key)))
+            except KeyError:
+                try:
+                    # the integer keys in Lattice Microbes hdf5 files are usually in %07d format, so if the key isn't found try putting the key into that format
+                    key = '%07d' % key
+                    self.delete(hdf5Path=os.path.join(self.hdf5RootPath, str(key)))
+                except KeyError:
+                    if raiseIfNotExists:
+                        raise
+                    else:
+                        pass
+
+    def dff(self, keys=None, raiseIfNotExists=False):
+        self.wrapperHDF5(self._dff, mode='a', keys=keys, raiseIfNotExists=raiseIfNotExists)
 
     def input(self, full, hdf5Path, subCon):
         for spec in self.hdf5Specs:
@@ -122,7 +146,7 @@ class HDF5IO(IO):
         '''
         basic hdf5 version of keys. Assumes that relevant data is located in each of the subgroups of self.hdf5RootPath
         '''
-        return list(self.file[self.hdf5RootPath].keys())  
+        return list(self.file[self.hdf5RootPath].keys())
 
     def keys(self):
         return self.wrapperHDF5(self._keys)
@@ -201,13 +225,16 @@ class HDF5IO(IO):
             keys = self.keys()
     
         for key in keys:
-            try:
-                datumKey = int(key)
-            except ValueError:
-                try:
-                    datumKey = ast.literal_eval(key)
-                except ValueError:
-                    datumKey = key
+            # try:
+            #     datumKey = int(key)
+            # except ValueError:
+            #     try:
+            #         datumKey = ast.literal_eval(key)
+            #     except ValueError:
+            #         datumKey = key
+
+            # convert the key to a numeric type, if possible
+            datumKey = NumifyString(key)
             subCon = container.initDatum(key=datumKey, full=full)
             try:
                 self.input(full=full, hdf5Path=os.path.join(self.hdf5RootPath, str(key)), subCon=subCon)
@@ -242,7 +269,7 @@ class HDF5IO(IO):
         
     def _wtf(self, container, keys):
         '''
-        internal generic rff (read from file) for data stored in hdf5 files
+        internal generic wtf (write to file) to store data in hdf5 files
         '''
         if keys==None:
             keys = container.keys()

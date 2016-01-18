@@ -9,5 +9,15 @@ class DataSingleton(Data):
     '''
     singletonKey = None
 
+    @property
+    def singleton(self):
+        '''
+        property that returns the single Datum belonging to this Data
+        '''
+        return self.map[self.singletonKey]
+
     def __getattr__(self, attr):
-        return self.map[self.singletonKey].__getattr__(attr)
+        '''
+        pass calls to unknown attributes through to the .singleton Datum
+        '''
+        return self.singleton.__getattribute__(attr)

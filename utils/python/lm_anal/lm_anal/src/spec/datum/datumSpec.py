@@ -10,4 +10,5 @@ class DatumSpec(Spec): #, metaclass=DatumPropertySpecMetaclass):
                            # another (deprecated) example of a conditionalKeyword
                            #{'checkKeyword':'type','equals':'array', 'keywords':'columnLabels'}
 
-    defaultKeywordDict = {'type': None}
+    defaultKeyValDict = {'storageType': 'default',
+                          'type': None}

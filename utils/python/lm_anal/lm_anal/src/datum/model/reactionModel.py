@@ -9,7 +9,7 @@ class ReactionModel(Model):
     propertySpecs = DatSpcs(
         DatSpc(name='dependency_matrix', dtype=np.uint, paths=('dependency_matrix'), storageType='numpy', type='array'),
         DatSpc(name='initial_species_counts', dtype=np.uint, paths=('initial_species_counts'), storageType='numpy', type='array'),
-        DatSpc(name='initial_species_counts_reversed', dtype=np.uint, paths=('initial_species_counts_reversed'), storageType='numpy', type='array'),
+        DatSpc(name='initial_species_counts_backward', dtype=np.uint, paths=('initial_species_counts_backward'), storageType='numpy', type='array'),
         DatSpc(name='reaction_rate_constants', dtype=np.float64, paths=('reaction_rate_constants'), storageType='numpy', type='array'),
         DatSpc(name='reaction_types', dtype=np.uint, paths=('reaction_types'), storageType='numpy', type='array'),
         DatSpc(name='stoichiometric_matrix', dtype=np.int, paths=('stoichiometric_matrix'), storageType='numpy', type='array')

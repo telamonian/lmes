@@ -6,9 +6,12 @@ from lm_anal.src.helper import Depth, Tupify
 from lm_anal.src.spec import PropertyTransformSpec, PropertyTransformSpecs, TransformSpec, TransformSpecs
 from lm_anal.src.transform import BaseT
 
-__all__ = ['FFluxOutputToFFluxHistT']
+__all__ = ['HistToKLDivCloudT']
 
-class FFluxOutputToFFluxHistT(BaseT):
+class HistToKLDivCloudT(BaseT):
+    '''
+    unimplemented
+    '''
     srcTypes = frozenset({FFluxOutput}) 
     dstTypes = frozenset({FFluxHist})
     

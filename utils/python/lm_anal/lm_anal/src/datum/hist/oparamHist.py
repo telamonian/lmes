@@ -1,5 +1,3 @@
-import numpy as np
-
 from lm_anal.src.datum.hist.hist import Hist
 
 __all__ = ['OParamHist']

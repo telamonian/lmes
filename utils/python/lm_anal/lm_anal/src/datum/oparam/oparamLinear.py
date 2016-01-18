@@ -15,7 +15,7 @@ class OParamLinear(OParam):
         self.multiplier = self.multiplier.reshape((-1, 1))
     
     def calc(self, speciesCounts):
-        return speciesCounts[:,np.min(self.species_ids):np.max(self.species_ids)+1].dot(self.multiplier)
+        return np.asarray(speciesCounts[:,np.min(self.species_ids):np.max(self.species_ids)+1]).dot(self.multiplier)
     
     def combine(self, others):
         newOP = deepcopy(self)

@@ -14,7 +14,7 @@ class LazyMapDescriptor(object):
     this descriptor "masks" itself when called, so any given Data instance can only call it once
     '''
     def __get__(self, obj, ObjType):
-        obj.__dict__['map'] = OrderedDict()
+        obj.__setattr__('map', OrderedDict())
         if obj.dataToTransform is not None or obj.fPath is not None:
             obj.initIO()
             if obj.readIO is not None:
@@ -83,14 +83,15 @@ class Data(object):
     def initIO(self, fPath=None):
         if fPath is not None:
             self.fPath = fPath
-        self.intIO = self.Hdf5IOType(fPath=str(self.fPath.with_suffix('.lmint')))
+        self.initIntIO()
         if self.intIO.has():
             self.readIO = self.intIO
             return True
-        
+
         if self.fPath.suffix=='.lm':
             # if the fPath suffix implies that f is an hdf5 file, try reading in using the hdf5IO first
-            return self.initReadIO(self.Hdf5IOType, self.SFileType)
+            retVal = self.initReadIO(self.Hdf5IOType, self.SFileType)
+            return retVal
         elif self.fPath.suffix=='.sfile':
             # if the fPath suffix implies that f is an sfile file, try reading in using the sfileIO first
             return self.initReadIO(self.SFileType, self.Hdf5IOType)
@@ -122,7 +123,11 @@ class Data(object):
 #                 else:
 #                     self.readIO = None
 #                     return False
-    
+
+    def initIntIO(self, fPath=None):
+        fPath = self.fPath if fPath is None else fPath
+        self.intIO = self.Hdf5IOType(fPath=str(fPath.with_suffix('.lmint')))
+
     def initReadIO(self, *ioTypes):
         for ioType in ioTypes:
             if ioType is None:
@@ -217,17 +222,49 @@ class Data(object):
         return self.map.values()
 
 # io
-    def wtint(self, fPath=None):
+    def dfint(self, fPath=None, raiseIfNotExists=False):
+        '''
+        delete from int
+        '''
+        if fPath is not None:
+            self.initIntIO(fPath=Path(fPath))
+        self.intIO.dff(raiseIfNotExists=raiseIfNotExists)
+
+    def wtint(self, fPath=None, deleteIfExists=True):
         '''
         write to int
         '''
         if fPath is not None:
-            self.initIO(fPath=Path(fPath))
+            self.initIntIO(fPath=Path(fPath))
+        if deleteIfExists:
+            self.dfint()
         self.intIO.wtf(container=self)
 
 # mutators
     def pop(self, key):
         return self.map.pop(key)
+
+    def regen(self, fPath=None, overwriteInt=True):
+        if fPath is not None:
+            self.initIntIO(fPath=Path(fPath))
+
+        if self.po is None:
+            # make sure the normal IO machinery is initialized
+            self.resetMap()
+
+        if overwriteInt:
+            self.dfint()
+
+        self.resetMap()
+
+    def resetMap(self):
+        # reset the .map lazy loader
+        try:
+            del self.map
+        except AttributeError:
+            pass
+        # poke the .map lazy loader
+        self.map
 
     def transform(self, *dataToTransform, **transformKwargs):
         lzTransforms(srcs=dataToTransform, dsts=self, **transformKwargs)

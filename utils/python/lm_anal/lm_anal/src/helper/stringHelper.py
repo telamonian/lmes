@@ -38,12 +38,12 @@ def CamelCaseUpper(s):
         # using s[0:1] instead of s[0] handles the empty string appropriately
         return s[0:1].upper() + s[1:]
 
-def FixedWidth(s):
+def FixedWidth(s, width='07'):
     '''
     helper function for formatting keys in the Lattice Microbes hdf5 standard '%07d' format
     '''
     if isinstance(s, int):
-        return '%07d' % s
+        return ('%%sd' % width) % s
     else:
         return s
 

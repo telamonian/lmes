@@ -1,4 +1,6 @@
-__all__ = ['Depth', 'FindInstanceInSet','IsContainer', 'Frozensetify', 'Setify', 'Tupify']
+import ast
+
+__all__ = ['Depth', 'FindInstanceInSet','IsContainer', 'Frozensetify', 'NumifyString', 'Setify', 'Tupify']
 
 def Depth(x):
     '''
@@ -39,6 +41,18 @@ def Frozensetify(x):
         return frozenset(x)
     else:
         return frozenset({x})
+
+def NumifyString(x):
+    try:
+        # first try a simple int() conversion...
+        return int(x)
+    except ValueError:
+        try:
+            # ...then see if it can eval to any numeric type...
+            return ast.literal_eval(x)
+        except ValueError:
+            # ... and if everything fails just return the original string
+            return x
 
 def Setify(x):
     '''

@@ -18,7 +18,7 @@ from lm_anal.src.datum import Data
 from lm_anal.src.datum.fflux import FFluxBasins, FFluxFinals, FFluxOutputs, FFluxTrajectories
 from lm_anal.src.datum.fpt import OParamFPTs, SpeciesFPTs
 from lm_anal.src.datum.hist import FFluxHists, OParamHists
-from lm_anal.src.datum.model import ReactionModel
+from lm_anal.src.datum.model import ReactionModels
 from lm_anal.src.datum.parameter import SimulationParameters
 from lm_anal.src.datum.oparam import OParams
 from lm_anal.src.datum.tiling import Tilings
@@ -26,7 +26,7 @@ from lm_anal.src.datum.trajectory import OParamTrajectories
 from lm_anal.src.datum.trajectory import SpeciesTrajectories
 from lm_anal.src.transform import Transforms
 
-_inputDataTypes = [OParams, SimulationParameters, Tilings]
+_inputDataTypes = [OParams, ReactionModels, SimulationParameters, Tilings]
 _dataTypes = [DataType for DataType in vars().values() if isclass(DataType) and issubclass(DataType, Data) and not DataType in _inputDataTypes]
 # hdf5IOTypes = [Hdf5IOType for Hdf5IOType in vars().values() if isclass(Hdf5IOType) and issubclass(Hdf5IOType, HDF5IO)]
 
@@ -62,6 +62,7 @@ class Sim(object):
             self.dataDict[dataName] = self.__getattribute__(dataName)
             
         self.ffluxHists.dataToTransform = self.ffluxOutputs
+        self.oparamFPTs.dataToTransform = self.ffluxOutputs
         self.oparamHists.dataToTransform = self.speciesTrajectories
         self.oparamTrajectories.dataToTransform = self.speciesTrajectories
     

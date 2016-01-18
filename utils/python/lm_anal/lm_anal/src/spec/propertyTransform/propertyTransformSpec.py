@@ -9,7 +9,7 @@ class PropertyTransformSpec(Spec):
     requiredKeywords = {'dstProps', 'srcProps'}
     setKeywords = {'dstProps', 'srcProps', 'requiredArgs'}
     
-    defaultKeywordDict = {'type':'special'}
+    defaultKeyValDict = {'type':'special'}
 #     defaultKeywordDict = {'preMap':False}
     
     def defaultName(self, **kwargs):

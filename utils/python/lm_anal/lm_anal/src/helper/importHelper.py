@@ -23,27 +23,27 @@ class LazyImporter(object):
         '''
         same as get
         '''
-        return self.get()
-        
-    def get(self):
+        return self.lz_get()
+
+    def lz_get(self):
         '''
         imports the module and returns it
         '''
         return self.loader.load_module()
     
-    def getAttr(self, attrName=None):
+    def lz_getAttr(self, attrName=None):
         '''
         imports the module and returns a specific attribute from it
         '''
         if attrName is None:
             attrName = self.attrName
-        return self.get().__getattribute__(attrName)
+        return self.lz_get().__getattribute__(attrName)
     
-    def getVar(self, varName):
+    def lz_getVar(self, varName):
         '''
         alias for getAttr
         '''
-        return self.getAttr(attrName=varName)
+        return self.lz_getAttr(attrName=varName)
 
 class LazyAttrImporter(LazyImporter):
     '''
@@ -53,7 +53,7 @@ class LazyAttrImporter(LazyImporter):
         '''
         same as getAttr
         '''
-        return self.getAttr()
+        return self.lz_getAttr()
     
 class LazyClass(LazyImporter):
     '''
@@ -74,7 +74,13 @@ class LazyClass(LazyImporter):
         '''
         same as getAttr, with an extra call and possibly some kwargs
         '''
-        return self.getAttr()(**kwargs)
+        return self.lz_getAttr()(**kwargs)
+
+    def __getattr__(self, clsAttrName):
+        '''
+        pass through to class attributes
+        '''
+        return getattr(self.lz_getAttr(), clsAttrName)
     
 # ShallowImport stuff
 def AllAttrCheck(mod):
