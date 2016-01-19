@@ -1,12 +1,17 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2008-2010 Luthey-Schulten Group,
+ * Copyright 2008-2012 Luthey-Schulten Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  * 
  * Developed by: Luthey-Schulten Group
- * 			     University of Illinois at Urbana-Champaign
- * 			     http://www.scs.uiuc.edu/~schulten
+ *               University of Illinois at Urbana-Champaign
+ *               http://www.scs.uiuc.edu/~schulten
  * 
+ * Developed by: Roberts Group
+ *               Johns Hopkins University
+ *               http://biophysics.jhu.edu/roberts/
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with 
  * the Software without restriction, including without limitation the rights to 
@@ -22,9 +27,9 @@
  * and/or other materials provided with the distribution.
  * 
  * - Neither the names of the Luthey-Schulten Group, University of Illinois at
- * Urbana-Champaign, nor the names of its contributors may be used to endorse or
- * promote products derived from this Software without specific prior written
- * permission.
+ * Urbana-Champaign, the Roberts Group, Johns Hopkins University, nor the names
+ * of its contributors may be used to endorse or promote products derived from
+ * this Software without specific prior written permission.
  * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
@@ -73,29 +78,6 @@ public:
     static const int MASTER=0;
 
     // MPI messages.
-    // replicate running messages
-    static const int MSG_RUN_SIMULATION         = 1;
-    static const int MSG_SIMULATION_FINISHED    = 2;
-    static const int MSG_OUTPUT_DATA_STATIC     = 10;
-
-    // replicate initialization messages
-    static const int MSG_SIMULTANEOUS_REPLICATES = 26;
-    static const int MSG_MSG_SIZE = 27;
-    static const int MSG_SIMULATION_PARAMETERS = 28;
-    static const int MSG_REACTION_MODEL = 29;
-    static const int MSG_DIFFUSION_MODEL = 30;
-    static const int MSG_LATTICE = 31;
-    static const int MSG_LATTICE_SITES = 32;
-
-    // work unit related messages
-    static const int MSG_WORK_UNIT = 50;
-    static const int MSG_RESULT_UNIT = 51;
-
-    // thread waking messages
-    static const int MSG_WAKE_REPLICATE_SUPERVISOR    = 96;
-    static const int MSG_WAKE_REPLICATE_DISTRIBUTOR = 97;
-    static const int MSG_WAKE_DATA_OUTPUT_WORKER    = 98;
-
     static const int MSG_EXIT                   = 99;
 
     static const int OUTPUT_DATA_STATIC_MAX_SIZE    = 10*1024*1024;
