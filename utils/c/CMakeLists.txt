@@ -11,10 +11,6 @@ set(lm_utils_libs lm_c_lib
 ################
 #TARGET: utils
 ################
-file(GLOB lm_python_source lm_python.cpp)
-add_executable(lm_python EXCLUDE_FROM_ALL ${lm_python_source})
-target_link_libraries(lm_python ${lm_utils_libs})
-
 file(GLOB lm_sbml_import_source lm_sbml_import.cpp)
 add_executable(lm_sbml_import EXCLUDE_FROM_ALL ${lm_sbml_import_source})
 target_link_libraries(lm_sbml_import ${lm_utils_libs})
