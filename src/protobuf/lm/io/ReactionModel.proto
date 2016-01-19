@@ -36,13 +36,13 @@
  *
  * Author(s): Elijah Roberts
  */
-
 package lm.io;
 
 message ReactionModel {
   required uint32 number_species                = 1;
   required uint32 number_reactions              = 2;
   repeated uint32 initial_species_count         = 3 [packed=true];
+  repeated uint32 initial_species_count_backward= 100 [packed=true];
 
   message Reaction {
     required uint32 type                        = 1;
@@ -55,5 +55,4 @@ message ReactionModel {
   repeated Reaction reaction                    = 4;
   repeated int32  stoichiometric_matrix         = 5 [packed=true];
   repeated uint32 dependency_matrix             = 6 [packed=true];
-  
 }

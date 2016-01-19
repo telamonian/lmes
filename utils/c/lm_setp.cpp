@@ -55,7 +55,7 @@ void printUsage(int argc, char** argv);
 
 using std::string;
 using std::map;
-using lm::io::hdf5::SimulationFile;
+using lm::io::hdf5::Hdf5File;
 
 /**
  * The function being performed.
@@ -102,13 +102,13 @@ int main(int argc, char** argv)
 		    if (stat(filename.c_str(), &fileStats) != 0)
 		    {
 		        if (numberSpecies > 0)
-		            SimulationFile::create(filename, numberSpecies);
+		            Hdf5File::create(filename, numberSpecies);
 		        else
-		            SimulationFile::create(filename);
+		            Hdf5File::create(filename);
 		    }
 
 			// Open the file.
-		    SimulationFile file(filename);
+		    Hdf5File file(filename);
 
 		    // Set the parameters.
             printf("Setting parameters in simulation file %s:\n", filename.c_str());

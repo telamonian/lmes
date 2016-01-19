@@ -53,6 +53,7 @@ public:
     virtual ~XORShift() {}
 
     virtual uint32_t getRandom();
+    virtual unsigned int getRandomIntFromRange(unsigned int low, unsigned int high);
     virtual double getRandomDouble();
     virtual double getExpRandomDouble();
     virtual double getNormRandomDouble();

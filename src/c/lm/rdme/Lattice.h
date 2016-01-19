@@ -55,6 +55,8 @@
 // Type to store a lattice index.
 typedef uint32_t            lattice_size_t;
 
+const static int LATTICE_SIZE_MAX = 0xFFFFFFFF;
+
 // Type to store a lattice coordinate.
 struct lattice_coord_t {
     lattice_coord_t(lattice_size_t x=0, lattice_size_t y=0, lattice_size_t z=0):x(x),y(y),z(z){}
@@ -101,8 +103,7 @@ public:
 class Lattice
 {
 public:
-    static void rowMajorByteSerialize(void * destBuffer, void * lattice, size_t bufferSize);
-    static void rowMajorByteSerializeSites(void * destBuffer, void * lattice, size_t bufferSize);
+    enum SerializationDataOrder {ROW_MAJOR=0, COLUMN_MAJOR=1, NATIVE_ORDER=2};
 
 public:
     // Lattice limits.
@@ -120,11 +121,28 @@ public:
 	virtual lattice_size_t getZSize() const;
 	virtual lattice_size_t getNumberSites() const;
 	virtual si_dist_t getSpacing() const;
-	
-	virtual void getNeighboringSites(lattice_size_t index, lattice_size_t * neighboringIndices)=0;
 
-	// Lattice site methods.
-	virtual site_t getSiteType(lattice_size_t x, lattice_size_t y, lattice_size_t z) const throw(InvalidSiteException)=0;
+    virtual void getNeighboringSites(lattice_size_t index, lattice_size_t * neighboringIndices, bool periodic)=0;
+
+    inline bool isBoundarySite(lattice_size_t x, lattice_size_t y, lattice_size_t z) const
+    {
+        return (x==0 || y==0 || z==0 || x == size.x-1 || y == size.y-1 || z == size.z-1);
+    }
+    inline bool isBoundarySite(lattice_size_t index) const
+    {
+        lattice_size_t z = index/(size.x*size.y);
+        lattice_size_t xy   = index%(size.x*size.y);
+        lattice_size_t y = xy/size.x;
+        lattice_size_t x = xy%size.x;
+        return isBoundarySite(x,y,z);
+    }
+    inline int numberBoundaryNeighbors(lattice_size_t x, lattice_size_t y, lattice_size_t z) const
+    {
+        return ((x==0||x == size.x-1)?1:0)+((y==0||y == size.y-1)?1:0)+((z==0||z == size.z-1)?1:0);
+    }
+
+    // Lattice site methods.
+    virtual site_t getSiteType(lattice_size_t x, lattice_size_t y, lattice_size_t z) const throw(InvalidSiteException)=0;
 	virtual site_t getSiteType(lattice_size_t index) const throw(InvalidSiteException)=0;
 	virtual void setSiteType(lattice_size_t x, lattice_size_t y, lattice_size_t z, site_t site) throw(InvalidSiteException)=0;
 	virtual void setSiteType(lattice_size_t index, site_t site) throw(InvalidSiteException)=0;
@@ -140,8 +158,8 @@ public:
     virtual void removeParticles(lattice_size_t x,lattice_size_t y,lattice_size_t z) throw(InvalidSiteException)=0;
     virtual void removeParticles(lattice_size_t index) throw(InvalidSiteException)=0;
 	virtual void removeAllParticles();
-	
-	/**
+
+    /**
 	 * Particle searching methods.
 	 */
 
@@ -161,9 +179,13 @@ public:
 
 	virtual void print() const;
 
-	// Methods to set the data directly.
-	virtual void setFromRowMajorByteData(void * buffer, size_t bufferSize)=0;
-	virtual void setSitesFromRowMajorByteData(void * buffer, size_t bufferSize)=0;
+    // Methods to serialize the data.
+    virtual size_t serializeParticlesSize(bool deflate)=0;
+    virtual size_t serializeParticlesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool deflate)=0;
+    virtual void deserializeParticlesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool inflate)=0;
+    virtual size_t serializeSitesSize(bool deflate)=0;
+    virtual size_t serializeSitesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool deflate)=0;
+    virtual void deserializeSitesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool inflate)=0;
 
 protected:
 	lattice_coord_t size;

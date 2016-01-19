@@ -66,6 +66,7 @@ using lm::rng::RandomGenerator;
 namespace lm {
 namespace cme {
 
+/*
 FluctuatingNRSolver::FluctuatingNRSolver():NextReactionSolver((RandomGenerator::Distributions)(RandomGenerator::NORMAL))
 {
 }
@@ -359,6 +360,6 @@ double FluctuatingNRSolver::ouPropensity(double time, uint * speciesCounts, void
     double (*propensityFunction)(double, uint * speciesCounts, void * args) = (double (*)(double, uint*, void*))args->basePropensityFunction;
     return (*propensityFunction)(time, speciesCounts, args->basePropensityFunctionArgs);
 }
-
+*/
 }
 }

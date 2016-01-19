@@ -1,37 +1,42 @@
 /*
  * University of Illinois Open Source License
  * Copyright 2008-2011 Luthey-Schulten Group,
+ * Copyright 2012-2015 Roberts Group,
  * All rights reserved.
- * 
+ *
  * Developed by: Luthey-Schulten Group
  * 			     University of Illinois at Urbana-Champaign
  * 			     http://www.scs.uiuc.edu/~schulten
- * 
+ *
+ * Developed by: Roberts Group
+ * 			     Johns Hopkins University
+ * 			     http://biophysics.jhu.edu/roberts/
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the Software), to deal with 
- * the Software without restriction, including without limitation the rights to 
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
- * of the Software, and to permit persons to whom the Software is furnished to 
+ * this software and associated documentation files (the Software), to deal with
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to
  * do so, subject to the following conditions:
- * 
- * - Redistributions of source code must retain the above copyright notice, 
+ *
+ * - Redistributions of source code must retain the above copyright notice,
  * this list of conditions and the following disclaimers.
- * 
- * - Redistributions in binary form must reproduce the above copyright notice, 
- * this list of conditions and the following disclaimers in the documentation 
+ *
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimers in the documentation
  * and/or other materials provided with the distribution.
- * 
+ *
  * - Neither the names of the Luthey-Schulten Group, University of Illinois at
- * Urbana-Champaign, nor the names of its contributors may be used to endorse or
- * promote products derived from this Software without specific prior written
- * permission.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL 
- * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR 
- * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+ * Urbana-Champaign, the Roberts Group, Johns Hopkins University, nor the names
+ * of its contributors may be used to endorse or promote products derived from
+ * this Software without specific prior written permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
  * Author(s): Elijah Roberts
@@ -50,12 +55,6 @@ namespace rdme {
 class ByteLattice : public Lattice
 {
 public:
-    static void nativeSerialize(void * destBuffer, void * lattice, size_t latticeSize);
-    static void copyNativeToRowMajorByte(void * destBuffer, void * sourceBuffer, lattice_size_t xSize, lattice_size_t ySize, lattice_size_t zSize, uint particlesPerSite, size_t bufferSize);
-    static void copyRowMajorByteToNative(void * destBuffer, void * sourceBuffer, lattice_size_t xSize, lattice_size_t ySize, lattice_size_t zSize, uint particlesPerSite, size_t bufferSize);
-    static void copySitesRowMajorByteToNative(void * destBuffer, void * sourceBuffer, lattice_size_t xSize, lattice_size_t ySize, lattice_size_t zSize, size_t bufferSize);
-
-public:
     // Lattice limits.
     virtual site_t getMaxSiteType() const;
     virtual particle_t getMaxParticle() const;
@@ -64,9 +63,9 @@ public:
 public:
     ByteLattice(lattice_coord_t size, si_dist_t spacing, uint particlesPerSite) throw(std::bad_alloc,InvalidArgException,Exception);
     ByteLattice(lattice_size_t xSize, lattice_size_t ySize, lattice_size_t zSize, si_dist_t spacing, uint particlesPerSite) throw(std::bad_alloc,InvalidArgException,Exception);
-	virtual ~ByteLattice() throw(std::bad_alloc);
+	virtual ~ByteLattice(); //TODO: the ~ByteLattice throw spec doesn't work with c++11. Maybe reenable somehow? throw(std::bad_alloc);
 	
-	virtual void getNeighboringSites(lattice_size_t index, lattice_size_t * neighboringIndices);
+    virtual void getNeighboringSites(lattice_size_t index, lattice_size_t * neighboringIndices, bool periodic);
 
 	// Lattice site methods.
 	virtual site_t getSiteType(lattice_size_t x, lattice_size_t y, lattice_size_t z) const throw(InvalidSiteException);
@@ -95,8 +94,12 @@ public:
     virtual std::vector<particle_loc_t> findParticles(particle_t minParticleType, particle_t maxParticleType);
 	
     // Methods to set the data directly.
-    virtual void setFromRowMajorByteData(void * buffer, size_t bufferSize);
-    virtual void setSitesFromRowMajorByteData(void * buffer, size_t bufferSize);
+    virtual size_t serializeParticlesSize(bool deflate);
+    virtual size_t serializeParticlesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool deflate);
+    virtual void deserializeParticlesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool inflate);
+    virtual size_t serializeSitesSize(bool deflate);
+    virtual size_t serializeSitesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool deflate);
+    virtual void deserializeSitesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool inflate);
 
 protected:
 	virtual void allocateMemory() throw(std::bad_alloc);

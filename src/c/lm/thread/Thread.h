@@ -40,6 +40,7 @@
 #ifndef LM_THREAD_THREAD_H_
 #define LM_THREAD_THREAD_H_
 
+#include <errno.h>
 #include <pthread.h>
 #include "lm/Exceptions.h"
 
@@ -58,12 +59,17 @@ public:
 class Thread
 {
 public:
-    Thread() throw(PthreadException);
-    virtual ~Thread() throw(PthreadException);
+    static int nextThreadNumber;
+
+public:
+    Thread();
+    virtual ~Thread();
     virtual void start() throw(PthreadException);
     virtual void stop() throw(PthreadException);
+    virtual void wait() throw(PthreadException);
     virtual void wake() throw(PthreadException)=0;
     virtual pthread_t getId() {return threadId;}
+    virtual int getThreadNumber() {return threadNumber;}
     virtual void setAffinity(int cpuNumber) throw(PthreadException);
 
 protected:
@@ -74,6 +80,7 @@ private:
 
 protected:
     pthread_mutex_t controlMutex;
+    int threadNumber;
     pthread_t threadId;
     volatile bool running;
     int cpuNumber;
@@ -87,6 +94,7 @@ protected:
  * Exception wrapping for pthreads api.
  */
 #define PTHREAD_EXCEPTION_CHECK(pthread_call) {int _pthread_ret_=pthread_call; if (_pthread_ret_ != 0) throw lm::thread::PthreadException(_pthread_ret_,__FILE__,__LINE__);}
+#define PTHREAD_TIMEOUT_EXCEPTION_CHECK(pthread_call) {int _pthread_ret_=pthread_call; if (_pthread_ret_ != 0 && _pthread_ret_ != ETIMEDOUT) throw lm::thread::PthreadException(_pthread_ret_,__FILE__,__LINE__);}
 
 
 #endif

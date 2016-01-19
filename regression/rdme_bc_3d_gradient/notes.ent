@@ -1,0 +1,26 @@
+
+# A specified 3d gradient, starting from no particles.
+filenamePrefix=rdme_bc_3d_gradient;
+rm -f ${filenamePrefix}.lm && rm -f ${filenamePrefix}.log;
+lm_sbml_import ${filenamePrefix}.lm ${filenamePrefix}.sbml;
+lm_setdm ${filenamePrefix}.lm numberReactions=1 numberSpecies=1 numberSiteTypes=1 "latticeSize=[100,100,100]" latticeSpacing=5.0e-8 particlesPerSite=8 "DiffusionMatrix=[3e-10]" "ReactionLocationMatrix=[1]";
+lm_setp ${filenamePrefix}.lm writeInterval=1e-1 latticeWriteInterval=1e-1 maxTime=1e-1;
+lm_setp ${filenamePrefix}.lm boundaryConditions=FIXED_GRADIENT boundarySite=0 boundarySpecies=0;
+h5copy -v -f shallow -i "gradient.h5" -s "dataset1" -o "${filenamePrefix}.lm" -d "Model/Diffusion/Gradient";
+lmes -f ${filenamePrefix}.lm -r 1 -c 2 -cr 1 -g 0 -gr 0 -ca -sl lm::rdme::NextSubvolumeSolver | tee ${filenamePrefix}.log
+#lmes-cuda -f ${filenamePrefix}.lm -r 1 -c 2 -gr 0 -ca -sl lm::rdme::NextSubvolumeSolver | tee ${filenamePrefix}.log
+#lmes-cuda -f ${filenamePrefix}.lm -r 1 -c 2 -gr 1/8 -ca -sl lm::rdme::NextSubvolumeSolver | tee ${filenamePrefix}.log
+#lmes-submit ${filenamePrefix}.lm -r 1-20 -ca -sl lm::rdme::NextSubvolumeSolver ${filenamePrefix}.log smp-1 16
+#lmes-submit ${filenamePrefix}.lm -gr 0 -r 1 -ca -sl lm::rdme::NextSubvolumeSolver ${filenamePrefix}.log gpu-1 16
+#lmes-submit ${filenamePrefix}.lm -r 1 -ca -sl lm::rdme::NextSubvolumeSolver ${filenamePrefix}.log gpu-1 16
+#lmes-submit ${filenamePrefix}.lm -r 1-20 -sl lm::rdme::NextSubvolumeSolver ${filenamePrefix}.log batch 16 eroberts 02:30:00
+
+#### Timings ####
+xanthus                         550,000 rxns/s ->   740,000 rxns/s (34%) ->   780,000 rxns/s
+xanthus-cp-2 (cpu-only)       1,000,000 rxns/s -> 1,400,000 rxns/s (40%) -> 1,413,000 rxns/s
+xanthus-cp-2 (cpu+GPU)        1,000,000 rxns/s                           -> 1,540,000 rxns/s
+barkeri (cpu-only)              670,000 rxns/s -> 1,060,000 rxns/s (58%) -> 1,035,000 rxns/s
+barkeri (cpu+GPU)               690,000 rxns/s                           -> 1,083,000 rxns/s
+
+
+

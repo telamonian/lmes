@@ -52,8 +52,6 @@
 #include "lm/cme/NextReactionSolver.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
-#include "lm/main/DataOutputQueue.h"
-#include "lm/main/ResourceAllocator.h"
 #include "lm/reaction/ReactionQueue.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/rng/XORShift.h"
@@ -77,6 +75,7 @@ using lm::rng::RandomGenerator;
 namespace lm {
 namespace cme {
 
+/*
 NextReactionSolver::NextReactionSolver():CMESolver((RandomGenerator::Distributions)(RandomGenerator::EXPONENTIAL)),reactionQueue(NULL)
 {
 }
@@ -425,6 +424,6 @@ int NextReactionSolver::updateReactionEvents(uint sourceReaction, double time, i
 
     return rngNext;
 }
-
+*/
 }
 }

@@ -41,6 +41,8 @@
 #include "lm/Types.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/rng/XORShift.h"
+#include "lptf/Profile.h"
+#include "lptf/ProfileCodes.h"
 
 namespace lm {
 namespace rng {
@@ -67,6 +69,15 @@ double XORShift::getRandomDouble()
 {
     uint32_t r = getRandom();
     return ((double)r)*(2.328306436539e-10); //1/(2^32)
+}
+
+/**
+ * Returns an unsigned int value in the range [low high). Very slightly biased towards low
+ */
+unsigned int XORShift::getRandomIntFromRange(unsigned int low, unsigned int high)
+{
+	uint32_t r = getRandom();
+	return floor(r*(high - low)*(2.328306436539e-10) + low); //1/((2^32))
 }
 
 /**
@@ -114,15 +125,18 @@ double XORShift::getNormRandomDouble()
 
 void XORShift::getRandomDoubles(double * rngs, int numberRNGs)
 {
+    PROF_BEGIN(PROF_CACHE_RNG);
     for (int i=0; i<numberRNGs; i++)
     {
         uint32_t r = getRandom();
         rngs[i] = ((double)r)*(2.328306436539e-10); //1/(2^32)
     }
+    PROF_END(PROF_CACHE_RNG);
 }
 
 void XORShift::getExpRandomDoubles(double * rngs, int numberRNGs)
 {
+    PROF_BEGIN(PROF_CACHE_EXP_RNG);
     for (int i=0; i<numberRNGs; i++)
     {
         uint64_t r;
@@ -130,10 +144,12 @@ void XORShift::getExpRandomDoubles(double * rngs, int numberRNGs)
         double d = ((double)r)*(2.328306435997e-10); //1/((2^32)+1) range (0.0 1.0)
         rngs[i] = -log(d);
     }
+    PROF_END(PROF_CACHE_EXP_RNG);
 }
 
 void XORShift::getNormRandomDoubles(double * rngs, int numberRNGs)
 {
+    PROF_BEGIN(PROF_CACHE_NORM_RNG);
     // Generate an even number of rngs that does not exceed the buffer size.
     int i;
     for (i=0; i<(numberRNGs>>1)<<1; i+=2)
@@ -179,6 +195,7 @@ void XORShift::getNormRandomDoubles(double * rngs, int numberRNGs)
         rngs[i+1] = s * cos(d2);
         #endif
     }
+    PROF_END(PROF_CACHE_NORM_RNG);
 }
 
 }

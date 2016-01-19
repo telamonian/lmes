@@ -50,13 +50,13 @@
 using std::map;
 using std::list;
 using std::string;
-using lm::main::ResourceAllocator;
 using lm::reaction::ReactionQueue;
 using lm::rng::RandomGenerator;
 
 namespace lm {
 namespace cme {
 
+/*
 class FluctuatingNRSolver : public NextReactionSolver
 {
 protected:
@@ -89,7 +89,7 @@ protected:
     virtual void destroyModel();
     static double ouPropensity(double time, uint * speciesCounts, void * pargs);
 };
-
+*/
 }
 }
 

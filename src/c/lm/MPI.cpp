@@ -41,6 +41,7 @@
 #include <iostream>
 #include <mpi.h>
 #include "lm/Exceptions.h"
+#include "lm/Print.h"
 #include "lm/MPI.h"
 
 namespace lm {
@@ -68,7 +69,7 @@ throw(MPIException)
     MPI_EXCEPTION_CHECK(MPI_Get_version(&version, &subversion));
 
     // Initialize the library.
-    MPI_EXCEPTION_CHECK(MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &threadSupport));
+    MPI_EXCEPTION_CHECK(MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &threadSupport));
 
     // Set the error handler to return errors for the world.
     MPI_EXCEPTION_CHECK(MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN));
@@ -102,9 +103,32 @@ throw(MPIException)
 void MPI::finalize()
 throw(MPIException)
 {
+//	MPI_Status messageStatus;
+//	MPI_EXCEPTION_CHECK(MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &messageStatus));
+//	Print::printf(Print::DEBUG, "%d", messageStatus.MPI_SOURCE);
     // Close own the MPI library.
     MPI_EXCEPTION_CHECK(MPI_Finalize());
 }
 
+//send message, one by one, to all nodes including master. nodes should use MPI_Recv plus the relevant tag to receive
+void MPI::MastBcastOut(void * buf, int count, MPI_Datatype datatype, int tag, MPI_Comm comm)
+{
+    Print::printf(Print::DEBUG, "in mastbcastout, lm::MPI::worldSize is %d and lm::MPI::MASTER is %d.", lm::MPI::worldSize, lm::MPI::MASTER);
+    for(int destProc=0; destProc < lm::MPI::worldSize; ++destProc)
+    {
+        MPI_EXCEPTION_CHECK(MPI_Send(buf, count, datatype, destProc, tag, comm));
+    }
 }
 
+//
+//template <typename t>
+//void MPI::MastBcastIn(t * recvtable, int recvcount, MPI_Datatype recvtype, int recvtag, MPI_Comm comm)
+//{
+//    MPI_Status messageStatus;
+//    for(int sendProc=0; sendProc < lm::MPI::worldSize; ++sendProc)
+//    {
+//        MPI_EXCEPTION_CHECK(MPI_Recv(recvtable + sendProc, recvcount, recvtype, sendProc, recvtag, comm, &messageStatus));
+//    }
+//}
+
+}

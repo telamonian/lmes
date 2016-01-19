@@ -44,14 +44,14 @@
 #include "lm/Exceptions.h"
 #include "lm/Types.h"
 #include "lm/cme/FluctuatingNRSolver.h"
-#include "lm/main/ResourceAllocator.h"
+#include "lm/resource/ResourceAllocator.h"
 #include "lm/rng/RandomGenerator.h"
 #define BOOST_TEST_MODULE LatticeMicrobe
 #include <boost/test/unit_test.hpp>
 
 using std::map;
 using std::string;
-using lm::main::ResourceAllocator;
+using lm::resource::ResourceAllocator;
 using lm::rng::RandomGenerator;
 
 class FluctuatingNRSolverTester : public lm::cme::FluctuatingNRSolver

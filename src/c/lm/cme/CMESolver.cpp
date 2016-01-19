@@ -1,59 +1,68 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2010-2011 Luthey-Schulten Group,
+ * Copyright 2008-2011 Luthey-Schulten Group,
+ * Copyright 2012-2015 Roberts Group,
  * All rights reserved.
- * 
+ *
  * Developed by: Luthey-Schulten Group
  * 			     University of Illinois at Urbana-Champaign
  * 			     http://www.scs.uiuc.edu/~schulten
- * 
+ *
+ * Developed by: Roberts Group
+ * 			     Johns Hopkins University
+ * 			     http://biophysics.jhu.edu/roberts/
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the Software), to deal with 
- * the Software without restriction, including without limitation the rights to 
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
- * of the Software, and to permit persons to whom the Software is furnished to 
+ * this software and associated documentation files (the Software), to deal with
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to
  * do so, subject to the following conditions:
- * 
- * - Redistributions of source code must retain the above copyright notice, 
+ *
+ * - Redistributions of source code must retain the above copyright notice,
  * this list of conditions and the following disclaimers.
- * 
- * - Redistributions in binary form must reproduce the above copyright notice, 
- * this list of conditions and the following disclaimers in the documentation 
+ *
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimers in the documentation
  * and/or other materials provided with the distribution.
- * 
+ *
  * - Neither the names of the Luthey-Schulten Group, University of Illinois at
- * Urbana-Champaign, nor the names of its contributors may be used to endorse or
- * promote products derived from this Software without specific prior written
- * permission.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL 
- * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR 
- * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+ * Urbana-Champaign, the Roberts Group, Johns Hopkins University, nor the names
+ * of its contributors may be used to endorse or promote products derived from
+ * this Software without specific prior written permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
-
-#include <string>
+#include <cmath>
+#include <limits>
 #include <list>
 #include <map>
-#include <cmath>
+#include <string>
 #if defined(MACOSX)
 #elif defined(LINUX)
 #include <time.h>
 #endif
-#include "lm/Tune.h"
-#include "lm/Math.h"
-#include "lm/Print.h"
+
+#include <cstdio>
+
 #include "lm/cme/CMESolver.h"
 #include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/io/OrderParameters.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
-#include "lm/main/DataOutputQueue.h"
-#include "lm/main/ResourceAllocator.h"
+#include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/io/TrajectoryState.pb.h"
+#include "lm/Math.h"
+#include "lm/oparam/OParams.h"
+#include "lm/Print.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/rng/XORShift.h"
 #ifdef OPT_CUDA
@@ -61,11 +70,9 @@
 #endif
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
+#include "lm/Tune.h"
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
-
-
-
 
 using std::string;
 using std::list;
@@ -75,163 +82,70 @@ namespace lm {
 namespace cme {
 
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
-:neededDists(neededDists),replicate(-1),parameters(NULL),resources(NULL),rng(NULL),numberSpecies(0),numberSpeciesToTrack(0),numberReactions(0),initialSpeciesCounts(NULL),speciesCounts(NULL),reactionTypes(NULL),S(NULL),D(NULL),propensityFunctions(NULL),propensityFunctionArgs(NULL),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),numberDependentSpecies(NULL),dependentSpecies(NULL),dependentSpeciesChange(NULL),numberDependentReactions(NULL),dependentReactions(NULL)
+:neededDists(neededDists),rng(NULL),oparams(NULL),reactionModel(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),tilingHists(NULL),trajectoryStarted(false),speciesCounts(NULL),time(0.0),timeStep(0.0),finalLimitType(static_cast<lm::io::TrajectoryLimits::LimitType>(0))
 {
 }
 
 CMESolver::~CMESolver()
 {
     // Free any model memory.
-    destroyModel();
+    if (reactionModel != NULL) delete reactionModel; reactionModel = NULL;
+
+    // Free any memory associated with the state.
+    if (speciesCounts != NULL) delete[] speciesCounts; speciesCounts = NULL;
+
+    // Free any memory being used by the order parameters
+    if (oparams != NULL) delete oparams; oparams = NULL;
 
     // Free any other memory.
     if (rng != NULL) delete rng; rng = NULL;
     if (speciesLimits != NULL) delete[] speciesLimits; speciesLimits = NULL;
     if (fptTrackedSpecies != NULL) delete[] fptTrackedSpecies; fptTrackedSpecies = NULL;
+    if (tilingHists!=NULL) delete[] tilingHists; tilingHists = NULL;
 }
 
-
-
-void CMESolver::initialize(unsigned int replicate, map<string,string> * parameters, ResourceAllocator::ComputeResources * resources)
+CMESolver::ReactionModel::ReactionModel(uint numberSpecies, uint numberReactions)
+:numberSpecies(numberSpecies),numberSpeciesToTrack(numberSpecies),numberReactions(numberReactions),initialSpeciesCounts(NULL),reactionTypes(NULL),S(NULL),D(NULL),propensityFunctions(NULL),propensityFunctionArgs(NULL),numberDependentSpecies(NULL),dependentSpecies(NULL),dependentSpeciesChange(NULL),numberDependentReactions(NULL),dependentReactions(NULL)
 {
-    this->replicate = replicate;
-    this->parameters = parameters;
-    this->resources = resources;
-
-    if (neededDists != RandomGenerator::NONE)
-    {
-        #ifdef OPT_CUDA
-        // Create the cuda based rng, if we are using cuda and we have a cuda device assigned.
-        if (resources->cudaDevices.size() > 0)
-        {
-            rng = new lm::rng::XORWow(resources->cudaDevices[0], replicate, atoi((*parameters)["seed"].c_str()), neededDists);
-            Print::printf(Print::DEBUG, "Seeding xorwow rng with top word %u and bottom word %u", (unsigned int)(rng->getSeed()>>32), (unsigned int)(rng->getSeed()&0xFFFFFFFFLL));
-        }
-        #endif
-
-        if (rng == NULL)
-        {
-            rng = new lm::rng::XORShift(replicate, atoi((*parameters)["seed"].c_str()));
-            Print::printf(Print::DEBUG, "Seeding xorshift rng with top word %u and bottom word %u", (unsigned int)(rng->getSeed()>>32), (unsigned int)(rng->getSeed()&0xFFFFFFFFLL));
-        }
-    }
-
-    // Set the fpt tracked species from the parameters.
-    string listString = (*parameters)["fptTrackingList"];
-    list<uint> fptList;
-    size_t start=0, end=0;
-    while (end != string::npos)
-    {
-        end = listString.find(',', start);
-        string trackedSpecies = listString.substr(start, (end == string::npos) ? string::npos : end - start);
-        if (trackedSpecies.length() > 0)
-        {
-			fptList.push_back(atoi(trackedSpecies.c_str()));
-			Print::printf(Print::DEBUG, "Parsed fpt tracking %s to: %d", trackedSpecies.c_str(), atoi(trackedSpecies.c_str()));
-        }
-        start = end+1;
-    }
-    setFptTrackingList(fptList);
-
-    // Set the species lower limits from the parameters.
-    listString = (*parameters)["speciesLowerLimitList"];
-    start=0, end=0;
-    while (end != string::npos)
-    {
-        end = listString.find(',', start);
-        string speciesLowerLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
-
-        size_t equalsPos=0;
-        equalsPos = speciesLowerLimit.find(':', 0);
-        if (equalsPos > 0 && equalsPos < speciesLowerLimit.length()-1)
-        {
-        	uint parsedSpecies = atoi(speciesLowerLimit.substr(0, equalsPos).c_str());
-        	uint parsedLimit = atoi(speciesLowerLimit.substr(equalsPos+1, string::npos).c_str());
-        	setSpeciesLowerLimit(parsedSpecies, parsedLimit);
-        	Print::printf(Print::DEBUG, "Parsed lower limit %s to: %d => %d", speciesLowerLimit.c_str(), parsedSpecies, parsedLimit);
-        }
-        start = end+1;
-    }
-
-    // Set the species upper limits from the parameters.
-    listString = (*parameters)["speciesUpperLimitList"];
-    start=0, end=0;
-    while (end != string::npos)
-    {
-        end = listString.find(',', start);
-        string speciesUpperLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
-
-        size_t equalsPos=0;
-        equalsPos = speciesUpperLimit.find(':', 0);
-        if (equalsPos > 0 && equalsPos < speciesUpperLimit.length()-1)
-        {
-        	uint parsedSpecies = atoi(speciesUpperLimit.substr(0, equalsPos).c_str());
-        	uint parsedLimit = atoi(speciesUpperLimit.substr(equalsPos+1, string::npos).c_str());
-        	setSpeciesUpperLimit(parsedSpecies, parsedLimit);
-        	Print::printf(Print::DEBUG, "Parsed upper limit %s to: %d <= %d", speciesUpperLimit.c_str(), parsedSpecies, parsedLimit);
-        }
-        start = end+1;
-    }
-}
-
-void CMESolver::allocateModel(uint numberSpeciesA, uint numberReactionsA)
-{
-    // Set the number of species and reactions.
-    numberSpecies = numberSpeciesA;
-    numberSpeciesToTrack = numberSpeciesA;
-    numberReactions = numberReactionsA;
-
     // Allocate species counts.
     initialSpeciesCounts = new uint[numberSpecies];
-    speciesCounts = new uint[numberSpecies];
-    for (uint i=0; i<numberSpecies; i++)
-    {
-        initialSpeciesCounts[i] = 0;
-        speciesCounts[i] = 0;
-    }
+    memset(initialSpeciesCounts, 0, numberSpecies*sizeof(*initialSpeciesCounts));
 
     if (numberReactions > 0)
     {
-		// Allocate reaction/species matrices.
-		reactionTypes = new uint [numberReactions];
-		for (uint i=0; i<numberReactions; i++) reactionTypes[i] = 0;
-		S = new int [numberSpecies*numberReactions];
-		D = new uint [numberSpecies*numberReactions];
-		for (uint i=0; i<numberSpecies*numberReactions; i++)
-		{
-			S[i] = 0;
-			D[i] = 0;
-		}
+        // Allocate reaction/species matrices.
+        reactionTypes = new uint [numberReactions];
+        memset(reactionTypes, 0, numberReactions*sizeof(*reactionTypes));
+        S = new int [numberSpecies*numberReactions];
+        memset(S, 0, numberSpecies*numberReactions*sizeof(*S));
+        D = new uint [numberSpecies*numberReactions];
+        memset(D, 0, numberSpecies*numberReactions*sizeof(*D));
 
-		// Allocate propensity function tables.
-		propensityFunctions = new void *[numberReactions];
-		propensityFunctionArgs = new void *[numberReactions];
-		for (uint i=0; i<numberReactions; i++)
-		{
-			propensityFunctions[i] = NULL;
-			propensityFunctionArgs[i] = NULL;
-		}
+        // Allocate propensity function tables.
+        propensityFunctions = new void *[numberReactions];
+        memset(propensityFunctions, 0, numberReactions*sizeof(*propensityFunctions));
+        propensityFunctionArgs = new void *[numberReactions];
+        memset(propensityFunctionArgs, 0, numberReactions*sizeof(*propensityFunctionArgs));
 
-		// Allocate the species dependency tables.
-		numberDependentSpecies = new uint[numberReactions];
-		memset(numberDependentSpecies, 0, numberReactions*sizeof(*numberDependentSpecies));
-		dependentSpecies = new uint*[numberReactions];
-		memset(dependentSpecies, 0, numberReactions*sizeof(*dependentSpecies));
-		dependentSpeciesChange = new int*[numberReactions];
-		memset(dependentSpeciesChange, 0, numberReactions*sizeof(*dependentSpeciesChange));
+        // Allocate the species dependency tables.
+        numberDependentSpecies = new uint[numberReactions];
+        memset(numberDependentSpecies, 0, numberReactions*sizeof(*numberDependentSpecies));
+        dependentSpecies = new uint*[numberReactions];
+        memset(dependentSpecies, 0, numberReactions*sizeof(*dependentSpecies));
+        dependentSpeciesChange = new int*[numberReactions];
+        memset(dependentSpeciesChange, 0, numberReactions*sizeof(*dependentSpeciesChange));
 
-		// Allocate the reaction dependency tables.
-		numberDependentReactions = new uint[numberReactions];
-		memset(numberDependentReactions, 0, numberReactions*sizeof(*numberDependentReactions));
-		dependentReactions = new uint*[numberReactions];
-		memset(dependentReactions, 0, numberReactions*sizeof(*dependentReactions));
+        // Allocate the reaction dependency tables.
+        numberDependentReactions = new uint[numberReactions];
+        memset(numberDependentReactions, 0, numberReactions*sizeof(*numberDependentReactions));
+        dependentReactions = new uint*[numberReactions];
+        memset(dependentReactions, 0, numberReactions*sizeof(*dependentReactions));
     }
 }
 
-void CMESolver::destroyModel()
+CMESolver::ReactionModel::~ReactionModel()
 {
     if (initialSpeciesCounts != NULL) delete[] initialSpeciesCounts; initialSpeciesCounts = NULL;
-    if (speciesCounts != NULL) delete[] speciesCounts; speciesCounts = NULL;
     if (reactionTypes != NULL) delete[] reactionTypes; reactionTypes = NULL;
     if (S != NULL) delete[] S; S = NULL;
     if (D != NULL) delete[] D; D = NULL;
@@ -248,8 +162,8 @@ void CMESolver::destroyModel()
     {
         for (uint i=0; i<numberReactions; i++)
         {
-        	if (dependentSpecies[i] != NULL)
-        		delete[] dependentSpecies[i];
+            if (dependentSpecies[i] != NULL)
+                delete[] dependentSpecies[i];
         }
         delete[] dependentSpecies;
         dependentSpecies = NULL;
@@ -258,8 +172,8 @@ void CMESolver::destroyModel()
     {
         for (uint i=0; i<numberReactions; i++)
         {
-        	if (dependentSpeciesChange[i] != NULL)
-        		delete[] dependentSpeciesChange[i];
+            if (dependentSpeciesChange[i] != NULL)
+                delete[] dependentSpeciesChange[i];
         }
         delete[] dependentSpeciesChange;
         dependentSpeciesChange = NULL;
@@ -271,8 +185,8 @@ void CMESolver::destroyModel()
     {
         for (uint i=0; i<numberReactions; i++)
         {
-        	if (dependentReactions[i] != NULL)
-        		delete[] dependentReactions[i];
+            if (dependentReactions[i] != NULL)
+                delete[] dependentReactions[i];
         }
         delete[] dependentReactions;
         dependentReactions = NULL;
@@ -284,44 +198,9 @@ void CMESolver::destroyModel()
     numberReactions = 0;
 }
 
-void CMESolver::setReactionModel(lm::io::ReactionModel * rm)
-{
-    if (rm->number_reactions() != (uint)rm->reaction_size()) throw InvalidArgException("rm", "number of reaction does not agree with reaction list size");
-
-    // Figure out the max number of columns we need in the k matrix.
-    uint kCols = 0;
-    for (uint i=0; i<rm->number_reactions(); i++)
-        kCols = max(kCols,(uint)rm->reaction(i).rate_constant_size());
-
-    // Set the K and reaction type tables.
-    uint * reactionType = new uint[rm->number_reactions()];
-    double * K = new double[rm->number_reactions()*kCols];
-    for (uint i=0; i<rm->number_reactions(); i++)
-    {
-        reactionType[i] = rm->reaction(i).type();
-        for (uint j=0; j<(uint)rm->reaction(i).rate_constant_size(); j++)
-        {
-            K[i*kCols+j] = rm->reaction(i).rate_constant(j);
-        }
-    }
-
-    // Build the model.
-    buildModel(rm->number_species(), rm->number_reactions(), rm->initial_species_count().data(), reactionType, K, rm->stoichiometric_matrix().data(), rm->dependency_matrix().data(), kCols);
-
-    // Free any resources.
-    if (reactionType !=  NULL) delete [] reactionType; reactionType = NULL;
-    if (K !=  NULL) delete [] K; K = NULL;
-}
-
-void CMESolver::buildModel(const uint numberSpeciesA, const uint numberReactionsA, const uint * initialSpeciesCountsA, const uint * reactionTypesA, const double * K, const int * SA, const uint * DA, const uint kCols)
+void CMESolver::ReactionModel::build(const uint numberSpeciesA, const uint numberReactionsA, const uint * initialSpeciesCountsA, const uint * reactionTypesA, const double * K, const int * SA, const uint * DA, const uint kCols)
 {
     if (numberReactionsA > 0 && kCols == 0) throw InvalidArgException("K", "must have at least 1 column");
-
-    // Destroy the previous model, if we have one.
-    destroyModel();
-
-    // Allocate space for the new model.
-    allocateModel(numberSpeciesA, numberReactionsA);
 
     // Set the initial species counts.
     for (uint i=0; i<numberSpecies; i++)
@@ -332,7 +211,7 @@ void CMESolver::buildModel(const uint numberSpeciesA, const uint numberReactions
     // Set the reaction types.
     for (uint i=0; i<numberReactions; i++)
     {
-    	reactionTypes[i] = reactionTypesA[i];
+        reactionTypes[i] = reactionTypesA[i];
     }
 
     // Set the stoichiometric and dependency matrices.
@@ -343,7 +222,6 @@ void CMESolver::buildModel(const uint numberSpeciesA, const uint numberReactions
     }
 
     PDFitnessPropensityArgs* globalPDFitnessPropensityArgs=NULL;
-    GlobalENFirstOrderPropensityArgs* globalENFirstOrderPropensityArgs=NULL;
 
     // Create the propensity functions table.
     for (uint i=0; i<numberReactions; i++)
@@ -367,6 +245,28 @@ void CMESolver::buildModel(const uint numberSpeciesA, const uint numberReactions
             {
                 propensityFunctions[i] = (void *)&zerothOrderPropensity;
                 propensityFunctionArgs[i] =  (void *)new ZerothOrderPropensityArgs(K[i*kCols]);
+                propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
+            }
+        }
+        else if (reactionTypes[i] == ZerothOrderTimeDependentPropensityArgs::REACTION_TYPE)
+        {
+            // Find the dependencies.
+            uint numberDependencies = 0;
+            for (uint j=0; j<numberSpecies; j++)
+            {
+                if (D[j*numberReactions+i] == 1)
+                {
+                    numberDependencies++;
+                }
+            }
+            if (numberDependencies > 1000000)
+            {
+                throw InvalidArgException("D", "zeroth order time dependent reaction probably shouldn't have that many dependencies",numberDependencies);
+            }
+            else
+            {
+                propensityFunctions[i] = (void *)&zerothOrderTimeDependentPropensity;
+                propensityFunctionArgs[i] =  (void *)new ZerothOrderTimeDependentPropensityArgs(K[i*kCols], K[i*kCols+1], K[i*kCols+2]);
                 propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
             }
         }
@@ -394,6 +294,30 @@ void CMESolver::buildModel(const uint numberSpeciesA, const uint numberReactions
                 }
             }
         }
+        else if (reactionTypes[i] == FirstOrderTimeDependentPropensityArgs::REACTION_TYPE)
+        {
+            // Find the dependencies.
+            uint numberDependencies = 0;
+            for (uint j=0; j<numberSpecies; j++)
+            {
+                if (D[j*numberReactions+i] == 1)
+                {
+                    numberDependencies++;
+
+                    // Set the table entry to the first non-zero dependency.
+                    if (numberDependencies < 1000000)
+                    {
+                        propensityFunctions[i] = (void *)&firstOrderTimeDependentPropensity;
+                        propensityFunctionArgs[i] =  (void *)new FirstOrderTimeDependentPropensityArgs(j, K[i*kCols], K[i*kCols+1], K[i*kCols+2]);
+                        propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
+                    }
+                    else
+                    {
+                        throw InvalidArgException("D", "first order time dependent reaction probably shouldn't have that many dependencies",numberDependencies);
+                    }
+                }
+            }
+        }
         else if (reactionTypes[i] == SecondOrderPropensityArgs::REACTION_TYPE)
         {
             // Find the dependencies.
@@ -410,20 +334,20 @@ void CMESolver::buildModel(const uint numberSpeciesA, const uint numberReactions
                     if (numberDependencies == 1)
                         firstDependency = j;
                     else if (numberDependencies == 2)
-                    	secondDependency = j;
+                        secondDependency = j;
                 }
             }
-			if (numberDependencies == 2)
-			{
-				propensityFunctions[i] = (void *)&secondOrderPropensity;
-				propensityFunctionArgs[i] =  (void *)new SecondOrderPropensityArgs(firstDependency, secondDependency, K[i*kCols]);
-				propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
-			}
-			else
-			{
-				printf("%d\n",numberDependencies);
-				throw InvalidArgException("D", "second order reaction had invalid number of dependencies",numberDependencies);
-			}
+            if (numberDependencies == 2)
+            {
+                propensityFunctions[i] = (void *)&secondOrderPropensity;
+                propensityFunctionArgs[i] =  (void *)new SecondOrderPropensityArgs(firstDependency, secondDependency, K[i*kCols]);
+                propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
+            }
+            else
+            {
+                printf("%d\n",numberDependencies);
+                throw InvalidArgException("D", "second order reaction had invalid number of dependencies",numberDependencies);
+            }
         }
         else if (reactionTypes[i] == SecondOrderSelfPropensityArgs::REACTION_TYPE)
         {
@@ -438,19 +362,19 @@ void CMESolver::buildModel(const uint numberSpeciesA, const uint numberReactions
 
                     // Set the table entry to the first non-zero dependency.
                     if (numberDependencies == 1)
-                    	firstDependency = j;
+                        firstDependency = j;
                 }
             }
-			if (numberDependencies == 1)
-			{
-				propensityFunctions[i] = (void *)&secondOrderSelfPropensity;
-				propensityFunctionArgs[i] =  (void *)new SecondOrderSelfPropensityArgs(firstDependency, K[i*kCols]);
-				propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
-			}
-			else
-			{
-				throw InvalidArgException("D", "second order self reaction had invalid number of dependencies",numberDependencies);
-			}
+            if (numberDependencies == 1)
+            {
+                propensityFunctions[i] = (void *)&secondOrderSelfPropensity;
+                propensityFunctionArgs[i] =  (void *)new SecondOrderSelfPropensityArgs(firstDependency, K[i*kCols]);
+                propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
+            }
+            else
+            {
+                throw InvalidArgException("D", "second order self reaction had invalid number of dependencies",numberDependencies);
+            }
         }
         else if (reactionTypes[i] == KHillPropensityArgs::REACTION_TYPE)
         {
@@ -528,20 +452,20 @@ void CMESolver::buildModel(const uint numberSpeciesA, const uint numberReactions
             {
                 if (D[j*numberReactions+i] == 1)
                 {
-                	if (xi != -1) throw InvalidArgException("D", "zeroth order Heaviside reaction can only have one dependency");
-                	xi = j;
+                    if (xi != -1) throw InvalidArgException("D", "zeroth order Heaviside reaction can only have one dependency");
+                    xi = j;
                 }
             }
 
             // Make sure we found the right dependencies.
-			if (xi == -1) throw InvalidArgException("D", "zeroth order Heaviside reaction must have one dependency");
+            if (xi == -1) throw InvalidArgException("D", "zeroth order Heaviside reaction must have one dependency");
 
-			// Set the table entry.
-			propensityFunctions[i] = (void *)&zerothOrderHeavisidePropensity;
-			propensityFunctionArgs[i] =  (void *)new ZerothOrderHeavisidePropensityArgs(xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2]);
-			propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
+            // Set the table entry.
+            propensityFunctions[i] = (void *)&zerothOrderHeavisidePropensity;
+            propensityFunctionArgs[i] =  (void *)new ZerothOrderHeavisidePropensityArgs(xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2]);
+            propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
         }
-        else if (reactionTypes[i] == ZerothOrderKHillPropensityArgs::REACTION_TYPE)
+        else if (reactionTypes[i] == ZerothOrderNegativeFeedbackPropensityArgs::REACTION_TYPE)
         {
             // Find the dependency.
             int xi=-1;
@@ -549,18 +473,108 @@ void CMESolver::buildModel(const uint numberSpeciesA, const uint numberReactions
             {
                 if (D[j*numberReactions+i] == 1)
                 {
-                	if (xi != -1) throw InvalidArgException("D", "zeroth order KHill reaction can only have one dependency");
-                	xi = j;
+                    if (xi != -1) throw InvalidArgException("D", "zeroth order negative feedback reaction can only have one dependency");
+                    xi = j;
                 }
             }
 
             // Make sure we found the right dependencies.
-			if (xi == -1) throw InvalidArgException("D", "zeroth order KHill reaction must have one dependency");
+            if (xi == -1) throw InvalidArgException("D", "zeroth order negative feedback reaction must have one dependency");
 
-			// Set the table entry.
-			propensityFunctions[i] = (void *)&zerothOrderKHillPropensity;
-			propensityFunctionArgs[i] =  (void *)new ZerothOrderKHillPropensityArgs(xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2], K[i*kCols+3]);
-			propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
+            // Set the table entry.
+            propensityFunctions[i] = (void *)&zerothOrderNegativeFeedbackPropensity;
+            propensityFunctionArgs[i] =  (void *)new ZerothOrderNegativeFeedbackPropensityArgs(xi, K[i*kCols], K[i*kCols+1], K[i*kCols+2]);
+            propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
+        }
+        else if (reactionTypes[i] == ZerothOrderKHillPropensityArgs::REACTION_TYPE)
+        {
+            // Find the dependency.
+            int xi=-1;
+            for (uint j=0; j<numberSpecies; j++)
+            {
+                if (D[j*numberReactions+i] == 1 || D[j*numberReactions+i] == 2 || D[j*numberReactions+i] == 3)
+                {
+                    if (xi != -1) throw InvalidArgException("D", "zeroth order KHill reaction can only have one dependency");
+                    xi = j;
+                }
+            }
+
+            // Make sure we found the right dependencies.
+            if (xi == -1) throw InvalidArgException("D", "zeroth order KHill reaction must have one dependency");
+
+            // Set the table entry.
+            propensityFunctions[i] = (void *)&zerothOrderKHillPropensity;
+            propensityFunctionArgs[i] =  (void *)new ZerothOrderKHillPropensityArgs(xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2], K[i*kCols+3]);
+            propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
+        }
+        else if (reactionTypes[i] == FirstOrderKHillPropensityArgs::REACTION_TYPE)
+        {
+            // Find the dependency.
+            int si=-1;
+            int xi=-1;
+            int count=0;
+            for (uint j=0; j<numberSpecies; j++)
+            {
+                if (D[j*numberReactions+i] == 1 || D[j*numberReactions+i] == 3)
+                {
+                    if (si == -1)
+                        si = j;
+                    else
+                        throw InvalidArgException("D", "first order KHill reaction can only have one species dependency");
+                }
+                if (D[j*numberReactions+i] == 2 || D[j*numberReactions+i] == 3)
+                {
+                    if (xi == -1)
+                        xi = j;
+                    else
+                        throw InvalidArgException("D", "first order KHill reaction can only have one Hill dependency");
+                }
+            }
+
+            // Make sure we found the right dependencies.
+            if (si == -1) throw InvalidArgException("D", "first order KHill reaction must have one species dependency");
+            if (xi == -1) throw InvalidArgException("D", "first order KHill reaction must have one Hill dependency");
+
+            // Set the table entry.
+            propensityFunctions[i] = (void *)&firstOrderKHillPropensity;
+            propensityFunctionArgs[i] =  (void *)new FirstOrderKHillPropensityArgs(si, xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2], K[i*kCols+3]);
+            propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
+        }
+        else if (reactionTypes[i] == SecondOrderKHillPropensityArgs::REACTION_TYPE)
+        {
+            // Find the dependency.
+            int s1i=-1;
+            int s2i=-1;
+            int xi=-1;
+            int count=0;
+            for (uint j=0; j<numberSpecies; j++)
+            {
+                if (D[j*numberReactions+i] == 1 || D[j*numberReactions+i] == 3)
+                {
+                    if (s1i == -1)
+                        s1i = j;
+                    else if (s2i == -1)
+                        s2i = j;
+                    else
+                        throw InvalidArgException("D", "second order KHill reaction can only have two species dependencies");
+                }
+                if (D[j*numberReactions+i] == 2 || D[j*numberReactions+i] == 3)
+                {
+                    if (xi == -1)
+                        xi = j;
+                    else
+                        throw InvalidArgException("D", "second order KHill reaction can only have one Hill dependency");
+                }
+            }
+
+            // Make sure we found the right dependencies.
+            if (s1i == -1 || s2i == -1) throw InvalidArgException("D", "second order KHill reaction must have two species dependencies");
+            if (xi == -1) throw InvalidArgException("D", "second order KHill reaction must have one Hill dependency");
+
+            // Set the table entry.
+            propensityFunctions[i] = (void *)&secondOrderKHillPropensity;
+            propensityFunctionArgs[i] =  (void *)new SecondOrderKHillPropensityArgs(s1i, s2i, xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2], K[i*kCols+3]);
+            propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
         }
         else if (reactionTypes[i] == PDFitnessPropensityArgs::COOPERATE_REACTION_TYPE)
         {
@@ -570,22 +584,22 @@ void CMESolver::buildModel(const uint numberSpeciesA, const uint numberReactions
             {
                 if (D[j*numberReactions+i] == 1)
                 {
-                	if (xi != -1) throw InvalidArgException("D", "PD cooperate fitness reaction can only have one dependency");
-                	xi = j;
+                    if (xi != -1) throw InvalidArgException("D", "PD cooperate fitness reaction can only have one dependency");
+                    xi = j;
                 }
             }
 
             // Make sure we found the right dependencies.
-			if (xi == -1) throw InvalidArgException("D", "PD cooperate fitness reaction must have one dependency");
+            if (xi == -1) throw InvalidArgException("D", "PD cooperate fitness reaction must have one dependency");
 
-			// Set the table entry.
-			propensityFunctions[i] = (void *)&pdCooperateFitnessPropensity;
-			if (globalPDFitnessPropensityArgs == NULL)
-			{
-				globalPDFitnessPropensityArgs = new PDFitnessPropensityArgs(xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2], K[i*kCols+3]);
-				propensityArgs.push_back(globalPDFitnessPropensityArgs);
-			}
-			propensityFunctionArgs[i] = (void *)globalPDFitnessPropensityArgs;
+            // Set the table entry.
+            propensityFunctions[i] = (void *)&pdCooperateFitnessPropensity;
+            if (globalPDFitnessPropensityArgs == NULL)
+            {
+                globalPDFitnessPropensityArgs = new PDFitnessPropensityArgs(xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2], K[i*kCols+3]);
+                propensityArgs.push_back(globalPDFitnessPropensityArgs);
+            }
+            propensityFunctionArgs[i] = (void *)globalPDFitnessPropensityArgs;
 
         }
         else if (reactionTypes[i] == PDFitnessPropensityArgs::DEFECT_REACTION_TYPE)
@@ -596,22 +610,22 @@ void CMESolver::buildModel(const uint numberSpeciesA, const uint numberReactions
             {
                 if (D[j*numberReactions+i] == 1)
                 {
-                	if (xi != -1) throw InvalidArgException("D", "PD defect fitness reaction can only have one dependency");
-                	xi = j;
+                    if (xi != -1) throw InvalidArgException("D", "PD defect fitness reaction can only have one dependency");
+                    xi = j;
                 }
             }
 
             // Make sure we found the right dependencies.
-			if (xi == -1) throw InvalidArgException("D", "PD defect fitness reaction must have one dependency");
+            if (xi == -1) throw InvalidArgException("D", "PD defect fitness reaction must have one dependency");
 
-			// Set the table entry.
-			propensityFunctions[i] = (void *)&pdDefectFitnessPropensity;
-			if (globalPDFitnessPropensityArgs == NULL)
-			{
-				globalPDFitnessPropensityArgs = new PDFitnessPropensityArgs(xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2], K[i*kCols+3]);
-				propensityArgs.push_back(globalPDFitnessPropensityArgs);
-			}
-			propensityFunctionArgs[i] = (void *)globalPDFitnessPropensityArgs;
+            // Set the table entry.
+            propensityFunctions[i] = (void *)&pdDefectFitnessPropensity;
+            if (globalPDFitnessPropensityArgs == NULL)
+            {
+                globalPDFitnessPropensityArgs = new PDFitnessPropensityArgs(xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2], K[i*kCols+3]);
+                propensityArgs.push_back(globalPDFitnessPropensityArgs);
+            }
+            propensityFunctionArgs[i] = (void *)globalPDFitnessPropensityArgs;
         }
         else if (reactionTypes[i] == PDFitnessPropensityArgs::REFLECTING_COOPERATE_REACTION_TYPE)
         {
@@ -621,24 +635,24 @@ void CMESolver::buildModel(const uint numberSpeciesA, const uint numberReactions
             {
                 if (D[j*numberReactions+i] == 1)
                 {
-                	if (xi != -1) throw InvalidArgException("D", "PD reflecting cooperate fitness reaction can only have one dependency");
-                	xi = j;
+                    if (xi != -1) throw InvalidArgException("D", "PD reflecting cooperate fitness reaction can only have one dependency");
+                    xi = j;
                 }
             }
 
             // Make sure we found the right dependencies.
-			if (xi == -1) throw InvalidArgException("D", "PD reflecting cooperate fitness reaction must have one dependency");
+            if (xi == -1) throw InvalidArgException("D", "PD reflecting cooperate fitness reaction must have one dependency");
 
-			// Set the table entry.
-			propensityFunctions[i] = (void *)&pdReflectingCooperateFitnessPropensity;
-			if (globalPDFitnessPropensityArgs == NULL)
-			{
-				globalPDFitnessPropensityArgs = new PDFitnessPropensityArgs(xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2], K[i*kCols+3], K[i*kCols+4], K[i*kCols+5]);
-				propensityArgs.push_back(globalPDFitnessPropensityArgs);
-			}
-			globalPDFitnessPropensityArgs->lowBoundary = (uint)round(K[i*kCols+4]);
-			globalPDFitnessPropensityArgs->highBoundary = (uint)round(K[i*kCols+5]);
-			propensityFunctionArgs[i] = (void *)globalPDFitnessPropensityArgs;
+            // Set the table entry.
+            propensityFunctions[i] = (void *)&pdReflectingCooperateFitnessPropensity;
+            if (globalPDFitnessPropensityArgs == NULL)
+            {
+                globalPDFitnessPropensityArgs = new PDFitnessPropensityArgs(xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2], K[i*kCols+3], K[i*kCols+4], K[i*kCols+5]);
+                propensityArgs.push_back(globalPDFitnessPropensityArgs);
+            }
+            globalPDFitnessPropensityArgs->lowBoundary = (uint)round(K[i*kCols+4]);
+            globalPDFitnessPropensityArgs->highBoundary = (uint)round(K[i*kCols+5]);
+            propensityFunctionArgs[i] = (void *)globalPDFitnessPropensityArgs;
 
         }
         else if (reactionTypes[i] == PDFitnessPropensityArgs::REFLECTING_DEFECT_REACTION_TYPE)
@@ -649,107 +663,51 @@ void CMESolver::buildModel(const uint numberSpeciesA, const uint numberReactions
             {
                 if (D[j*numberReactions+i] == 1)
                 {
-                	if (xi != -1) throw InvalidArgException("D", "PD reflecting defect fitness reaction can only have one dependency");
-                	xi = j;
+                    if (xi != -1) throw InvalidArgException("D", "PD reflecting defect fitness reaction can only have one dependency");
+                    xi = j;
                 }
             }
 
             // Make sure we found the right dependencies.
-			if (xi == -1) throw InvalidArgException("D", "PD reflecting defect fitness reaction must have one dependency");
+            if (xi == -1) throw InvalidArgException("D", "PD reflecting defect fitness reaction must have one dependency");
 
-			// Set the table entry.
-			propensityFunctions[i] = (void *)&pdReflectingDefectFitnessPropensity;
-			if (globalPDFitnessPropensityArgs == NULL)
-			{
-				globalPDFitnessPropensityArgs = new PDFitnessPropensityArgs(xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2], K[i*kCols+3], K[i*kCols+4], K[i*kCols+5]);
-				propensityArgs.push_back(globalPDFitnessPropensityArgs);
-			}
-			globalPDFitnessPropensityArgs->lowBoundary = (uint)round(K[i*kCols+4]);
-			globalPDFitnessPropensityArgs->highBoundary = (uint)round(K[i*kCols+5]);
-			propensityFunctionArgs[i] = (void *)globalPDFitnessPropensityArgs;
+            // Set the table entry.
+            propensityFunctions[i] = (void *)&pdReflectingDefectFitnessPropensity;
+            if (globalPDFitnessPropensityArgs == NULL)
+            {
+                globalPDFitnessPropensityArgs = new PDFitnessPropensityArgs(xi, (uint)round(K[i*kCols]), K[i*kCols+1], K[i*kCols+2], K[i*kCols+3], K[i*kCols+4], K[i*kCols+5]);
+                propensityArgs.push_back(globalPDFitnessPropensityArgs);
+            }
+            globalPDFitnessPropensityArgs->lowBoundary = (uint)round(K[i*kCols+4]);
+            globalPDFitnessPropensityArgs->highBoundary = (uint)round(K[i*kCols+5]);
+            propensityFunctionArgs[i] = (void *)globalPDFitnessPropensityArgs;
         }
-        else if (reactionTypes[i] == MichaelisMentenPropensityArgs::REACTION_TYPE)
+        else if (reactionTypes[i] == EffectiveBurstPropensityArgs::REACTION_TYPE)
         {
             // Find the dependencies.
-            uint numberEnzymeDependencies = 0;
-            uint numberSubstrateDependencies = 0;
-            uint enzymeDependency;
-            uint substrateDependency;
+            uint numberDependencies = 0;
             for (uint j=0; j<numberSpecies; j++)
             {
                 if (D[j*numberReactions+i] == 1)
                 {
-                	numberEnzymeDependencies++;
-                    enzymeDependency = j;
-                }
-                else if (D[j*numberReactions+i] == 2)
-                {
-                	numberSubstrateDependencies++;
-                    substrateDependency = j;
-                }
-            }
-			if (numberEnzymeDependencies == 1 && numberSubstrateDependencies == 1)
-			{
-				printf("Setting indices %d %d\n",enzymeDependency,substrateDependency);
-				propensityFunctions[i] = (void *)&michaelisMentenPropensity;
-				propensityFunctionArgs[i] =  (void *)new MichaelisMentenPropensityArgs(enzymeDependency, substrateDependency, K[i*kCols], K[i*kCols+1], K[i*kCols+2]);
-				propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
-			}
-			else
-			{
-				throw InvalidArgException("D", "Michaelis-Menten reaction had invalid dependencies",numberEnzymeDependencies,numberEnzymeDependencies);
-			}
-        }
-        else if (reactionTypes[i] == GlobalENFirstOrderPropensityArgs::REACTION_TYPE_1 || reactionTypes[i] == GlobalENFirstOrderPropensityArgs::REACTION_TYPE_2 || reactionTypes[i] == GlobalENFirstOrderPropensityArgs::REACTION_TYPE_3 || reactionTypes[i] == GlobalENFirstOrderPropensityArgs::REACTION_TYPE_4)
-        {
-            // Find the dependency.
-            int xi=-1;
-            for (uint j=0; j<numberSpecies; j++)
-            {
-                if (D[j*numberReactions+i] == 1)
-                {
-                	if (xi != -1) throw InvalidArgException("D", "first order reaction can only have one dependency");
-                	xi = j;
+                    numberDependencies++;
+
+                    // Set the table entry to the first non-zero dependency.
+                    if (numberDependencies == 1)
+                    {
+                        propensityFunctions[i] = (void *)&effectiveBurstPropensity;
+                        propensityFunctionArgs[i] =  (void *)new EffectiveBurstPropensityArgs(j, int(round(K[i*kCols])), K[i*kCols+1]);
+                        propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
+                    }
+                    else
+                    {
+                        throw InvalidArgException("D", "first order reaction had invalid number of dependencies",numberDependencies);
+                    }
                 }
             }
-
-            // Make sure we found the right dependencies.
-			if (xi == -1) throw InvalidArgException("D", "first order reaction must have one dependency");
-
-			// Create the global argument, if it doesn't already exist.
-			if (globalENFirstOrderPropensityArgs == NULL)
-			{
-				globalENFirstOrderPropensityArgs = new GlobalENFirstOrderPropensityArgs();
-				propensityArgs.push_back(globalENFirstOrderPropensityArgs);
-			}
-
-			// Set the table entries.
-			if (reactionTypes[i] == GlobalENFirstOrderPropensityArgs::REACTION_TYPE_1)
-			{
-				globalENFirstOrderPropensityArgs->s1 = xi;
-				globalENFirstOrderPropensityArgs->k1 = K[i*kCols];
-				propensityFunctions[i] = (void *)&globalENFirstOrderPropensity_1;
-			}
-			else if (reactionTypes[i] == GlobalENFirstOrderPropensityArgs::REACTION_TYPE_2)
-			{
-				globalENFirstOrderPropensityArgs->s2 = xi;
-				globalENFirstOrderPropensityArgs->k2 = K[i*kCols];
-				propensityFunctions[i] = (void *)&globalENFirstOrderPropensity_2;
-			}
-			else if (reactionTypes[i] == GlobalENFirstOrderPropensityArgs::REACTION_TYPE_3)
-			{
-				globalENFirstOrderPropensityArgs->s3 = xi;
-				globalENFirstOrderPropensityArgs->k3 = K[i*kCols];
-				propensityFunctions[i] = (void *)&globalENFirstOrderPropensity_3;
-			}
-			else if (reactionTypes[i] == GlobalENFirstOrderPropensityArgs::REACTION_TYPE_4)
-			{
-				globalENFirstOrderPropensityArgs->s4 = xi;
-				globalENFirstOrderPropensityArgs->k4 = K[i*kCols];
-				propensityFunctions[i] = (void *)&globalENFirstOrderPropensity_4;
-			}
-			propensityFunctionArgs[i] = (void *)globalENFirstOrderPropensityArgs;
         }
+
+
     }
 
     // Create the species dependency tables from the S matrix.
@@ -804,16 +762,117 @@ void CMESolver::buildModel(const uint numberSpeciesA, const uint numberReactions
     }
 }
 
+void CMESolver::ReactionModel::setPropensityFunction(uint reaction, double (*propensityFunction)(double time, uint * speciesCounts, void * args), void * propensityFunctionArg)
+{
+    if (reaction >= numberReactions) throw InvalidArgException("reaction", "reaction index exceeded the number of reactions");
+    propensityFunctions[reaction] = (void *)propensityFunction;
+    propensityFunctionArgs[reaction] = propensityFunctionArg;
+}
+
+void CMESolver::setComputeResources(vector<int> cpus, vector<int> gpus)
+{
+    MESolver::setComputeResources(cpus, gpus);
+
+    // Create the appropriate RNG.
+    if (neededDists != RandomGenerator::NONE)
+    {
+        if (gpus.size() > 0)
+        {
+            #ifdef OPT_CUDA
+            // Create the cuda based rng.
+            rng = new lm::rng::XORWow(gpus[0], 0, 0, neededDists);
+            #endif
+        }
+
+        if (rng == NULL)
+        {
+            rng = new lm::rng::XORShift(0, 0);
+        }
+    }
+}
+
+void CMESolver::setReactionModel(const lm::io::ReactionModel& rm)
+{
+    if (rm.number_reactions() != (uint)rm.reaction_size()) throw InvalidArgException("rm", "number of reaction does not agree with reaction list size");
+
+    if (reactionModel != NULL) delete reactionModel;
+    reactionModel = new ReactionModel(rm.number_species(), rm.number_reactions());
+
+    // Figure out the max number of columns we need in the k matrix.
+    uint kCols = 0;
+    for (uint i=0; i<rm.number_reactions(); i++)
+        kCols = max(kCols,(uint)rm.reaction(i).rate_constant_size());
+
+    // Set the K and reaction type tables.
+    uint * reactionType = new uint[rm.number_reactions()];
+    double * K = new double[rm.number_reactions()*kCols];
+    for (uint i=0; i<rm.number_reactions(); i++)
+    {
+        reactionType[i] = rm.reaction(i).type();
+        for (uint j=0; j<(uint)rm.reaction(i).rate_constant_size(); j++)
+        {
+            K[i*kCols+j] = rm.reaction(i).rate_constant(j);
+        }
+    }
+
+    // Build the model.
+    reactionModel->build(rm.number_species(), rm.number_reactions(), rm.initial_species_count().data(), reactionType, K, rm.stoichiometric_matrix().data(), rm.dependency_matrix().data(), kCols);
+
+    // Free any resources.
+    if (reactionType !=  NULL) delete [] reactionType; reactionType = NULL;
+    if (K !=  NULL) delete [] K; K = NULL;
+}
+
+void CMESolver::setOrderParameters(const lm::io::OrderParameters& opsBuf)
+{
+    oparams = new lm::oparam::OParams();
+    oparams->init(opsBuf);
+}
+
+void CMESolver::setTilings(const lm::io::Tilings& tilingsBuf)
+{
+    tilings = new lm::tiling::Tilings();
+    tilings->init(tilingsBuf);
+}
+
 double CMESolver::zerothOrderPropensity(double time, uint * speciesCounts, void * pargs)
 {
     ZerothOrderPropensityArgs * args = (ZerothOrderPropensityArgs *)pargs;
     return args->k;
 }
 
+double CMESolver::zerothOrderTimeDependentPropensity(double time, uint * speciesCounts, void * pargs)
+{
+    ZerothOrderTimeDependentPropensityArgs * args = (ZerothOrderTimeDependentPropensityArgs *)pargs;
+    //printf("zeroth order time is: %.3f\n", time);
+    //printf("zeroth order time dep prop: %.3f\n", args->ki + (args->kf - args->ki)*(time/args->tf));
+    if (args->tf > time) {
+        return args->ki + (args->kf - args->ki)*(time/args->tf);
+    }
+    else
+    {
+        return args->kf;
+    }
+}
+
 double CMESolver::firstOrderPropensity(double time, uint * speciesCounts, void * pargs)
 {
     FirstOrderPropensityArgs * args = (FirstOrderPropensityArgs *)pargs;
     return args->k * (double)speciesCounts[args->si];
+}
+
+double CMESolver::firstOrderTimeDependentPropensity(double time, uint * speciesCounts, void * pargs)
+{
+    FirstOrderTimeDependentPropensityArgs * args = (FirstOrderTimeDependentPropensityArgs *)pargs;
+    //printf("first order time is: %.3f\n", time);
+    //printf("first order time dep prop: %.3f\n", args->ki + (args->kf - args->ki)*(time/args->tf) * (double)speciesCounts[args->si]);
+    if (args->tf > time) {
+        return (args->ki + (args->kf - args->ki)*(time/args->tf)) * (double)speciesCounts[args->si];
+    }
+    else
+    {
+        return args->kf * (double)speciesCounts[args->si];
+    }
 }
 
 double CMESolver::secondOrderPropensity(double time, uint * speciesCounts, void * pargs)
@@ -857,10 +916,18 @@ double CMESolver::kHillTransportPropensity(double time, uint * speciesCounts, vo
 double CMESolver::zerothOrderHeavisidePropensity(double time, uint * speciesCounts, void * pargs)
 {
 	ZerothOrderHeavisidePropensityArgs * args = (ZerothOrderHeavisidePropensityArgs *)pargs;
-
-	//Print::printf(Print::DEBUG, "Recalculating zerothOrderHeavisidePropensity for %d (count=%d) with %d,%e,%e = %e", args->xi, speciesCounts[args->xi], args->x0, args->k0, args->k1, ((speciesCounts[args->xi]<args->x0)?(args->k0):(args->k1)));
-
 	return ((speciesCounts[args->xi]<args->x0)?(args->k0):(args->k1));
+}
+
+double CMESolver::zerothOrderNegativeFeedbackPropensity(double time, uint * speciesCounts, void * pargs)
+{
+    ZerothOrderNegativeFeedbackPropensityArgs * args = (ZerothOrderNegativeFeedbackPropensityArgs *)pargs;
+    int x = (int)speciesCounts[args->xi];
+    double X=args->X;
+    double beta=args->beta;
+    double p=X*((1.0+beta)/(1.0+beta*(x>=0?pow(double(x)/X,args->h):0.0)));
+    //Print::printf(Print::DEBUG, "Recalculating zerothOrderNegativeFeedbackPropensity for %d (%d) with %e,%e,%e = %e", args->xi, x, args->X, args->beta, args->h, p);
+    return p;
 }
 
 double CMESolver::zerothOrderKHillPropensity(double time, uint * speciesCounts, void * pargs)
@@ -870,6 +937,24 @@ double CMESolver::zerothOrderKHillPropensity(double time, uint * speciesCounts, 
 	double xh = pow(x,args->h);
 
 	return args->k0+((args->dk*xh)/(xh+args->x0h));
+}
+
+double CMESolver::firstOrderKHillPropensity(double time, uint * speciesCounts, void * pargs)
+{
+    FirstOrderKHillPropensityArgs * args = (FirstOrderKHillPropensityArgs *)pargs;
+    uint x = speciesCounts[args->xi];
+    double xh = pow(x,args->h);
+    double k = args->k0+((args->dk*xh)/(xh+args->x0h));
+    return ((double)speciesCounts[args->si]) * k;
+}
+
+double CMESolver::secondOrderKHillPropensity(double time, uint * speciesCounts, void * pargs)
+{
+    SecondOrderKHillPropensityArgs * args = (SecondOrderKHillPropensityArgs *)pargs;
+    uint x = speciesCounts[args->xi];
+    double xh = pow(x,args->h);
+    double k = args->k0+((args->dk*xh)/(xh+args->x0h));
+    return ((double)speciesCounts[args->s1i]) * ((double)speciesCounts[args->s2i]) * k;
 }
 
 double CMESolver::pdCooperateFitnessPropensity(double time, uint * speciesCounts, void * pargs)
@@ -926,103 +1011,263 @@ double CMESolver::pdReflectingDefectFitnessPropensity(double time, uint * specie
 	return prop;
 }
 
-double CMESolver::michaelisMentenPropensity(double time, uint * speciesCounts, void * pargs)
+double CMESolver::MichaelisMentenPropensity(double time, uint * speciesCounts, void * pargs)
 {
-	MichaelisMentenPropensityArgs * args = (MichaelisMentenPropensityArgs *)pargs;
-	double ret=(args->kV*args->kcat*((double)speciesCounts[args->enzymeIndex])*((double)speciesCounts[args->substrateIndex]))/(args->kM+((double)speciesCounts[args->substrateIndex]));
-	//Print::printf(Print::DEBUG, "Recalculating michaelisMentenPropensity for E=%d,%d S=%d,%d with %e,%e,%e = %e", args->enzymeIndex, speciesCounts[args->enzymeIndex], args->substrateIndex, speciesCounts[args->substrateIndex], args->kV, args->kcat, args->kM, ret);
-    return ret;
+    MichaelisMentenPropensityArgs * args = (MichaelisMentenPropensityArgs *)pargs;
+    return args->v*((double)speciesCounts[args->si]/(args->k + (double)speciesCounts[args->si]));
 }
 
-double CMESolver::globalENFirstOrderPropensity_1(double time, uint * speciesCounts, void * pargs)
+double CMESolver::effectiveBurstPropensity(double time, uint * speciesCounts, void * pargs)
 {
-	GlobalENFirstOrderPropensityArgs * args = (GlobalENFirstOrderPropensityArgs *)pargs;
-    double ret = args->k1 * (double)speciesCounts[args->s1] * args->EN;
-	//Print::printf(Print::VERBOSE_DEBUG, "Recalculating global EN 1st order reaction 1 for k=%e, x=%d (%d), EN=%e: %e",args->k1,speciesCounts[args->s1],args->s1,args->EN,ret);
-	return ret;
+    EffectiveBurstPropensityArgs * args = (EffectiveBurstPropensityArgs *)pargs;
+    int n = (int)speciesCounts[args->ni];
+    int N = args->N;
+    double x=double(n)/double(N);
+    double b = args->b;
+    return N*((1+(b*x))/(1+b));
 }
 
-double CMESolver::globalENFirstOrderPropensity_2(double time, uint * speciesCounts, void * pargs)
+void CMESolver::reset()
 {
-	GlobalENFirstOrderPropensityArgs * args = (GlobalENFirstOrderPropensityArgs *)pargs;
-	double ret =  args->k2 * (double)speciesCounts[args->s2] * args->EN;
-	//Print::printf(Print::VERBOSE_DEBUG, "Recalculating global EN 1st order reaction 2 for k=%e, x=%d (%d), EN=%e: %e",args->k2,speciesCounts[args->s2],args->s2,args->EN,ret);
-	return ret;
-}
+    MESolver::reset();
 
-double CMESolver::globalENFirstOrderPropensity_3(double time, uint * speciesCounts, void * pargs)
-{
-	GlobalENFirstOrderPropensityArgs * args = (GlobalENFirstOrderPropensityArgs *)pargs;
-	double ret =  args->k3 * (double)speciesCounts[args->s3] * args->EN;
-	//Print::printf(Print::VERBOSE_DEBUG, "Recalculating global EN 1st order reaction 3 for k=%e, x=%d (%d), EN=%e: %e",args->k3,speciesCounts[args->s3],args->s3,args->EN,ret);
-	return ret;
-}
-
-double CMESolver::globalENFirstOrderPropensity_4(double time, uint * speciesCounts, void * pargs)
-{
-	GlobalENFirstOrderPropensityArgs * args = (GlobalENFirstOrderPropensityArgs *)pargs;
-	double ret =  args->k4 * (double)speciesCounts[args->s4] * args->EN;
-	//Print::printf(Print::VERBOSE_DEBUG, "Recalculating global EN 1st order reaction 4 for k=%e, x=%d (%d), EN=%e: %e",args->k4,speciesCounts[args->s4],args->s4,args->EN,ret);
-	return ret;
-}
-
-
-void CMESolver::setModelPropensityFunction(uint reaction, double (*propensityFunction)(double time, uint * speciesCounts, void * args), void * propensityFunctionArg)
-{
-    if (reaction >= numberReactions) throw InvalidArgException("reaction", "reaction index exceeded the number of reactions");
-    propensityFunctions[reaction] = (void *)propensityFunction;
-    propensityFunctionArgs[reaction] = propensityFunctionArg;
-}
-
-void CMESolver::setSpeciesUpperLimit(uint species, uint limit)
-{
-    // Allocate a larger list for the limits.
-    SpeciesLimit * newSpeciesLimits = new SpeciesLimit[++numberSpeciesLimits];
-    if (numberSpeciesLimits > 1)
+    // Free any previous state.
+    if (speciesCounts != NULL)
     {
-        for (uint i=0; i<numberSpeciesLimits-1; i++)
-            newSpeciesLimits[i] = speciesLimits[i];
+        delete[] speciesCounts;
+    }
+    speciesCounts = NULL;
+
+    // Make sure we have a reaction model.
+    if (reactionModel == NULL) throw Exception("Tried to reset state of CMESolver with no reaction model.");
+
+    // Allocate space for the new state.
+    speciesCounts = new uint[reactionModel->numberSpecies];
+
+    // Reset the species counts.
+    for (uint i=0; i<reactionModel->numberSpecies; i++)
+    {
+        speciesCounts[i] = 0;
+    }
+
+    // Reinitialize the order parameters, if required
+    if (needsOrderParameters())
+    {
+        oparams->initValues(speciesCounts);
+    }
+
+    // Reset the time.
+    time = 0.0;
+
+    // Reset the max time;
+    maxTime = std::numeric_limits<double>::infinity();
+
+    // Reset the species limits.
+    numberSpeciesLimits = 0;
+    if (speciesLimits != NULL)
+    {
         delete[] speciesLimits;
     }
-    speciesLimits = newSpeciesLimits;
-    speciesLimits[numberSpeciesLimits-1].type = 1;
-    speciesLimits[numberSpeciesLimits-1].species = species;
-    speciesLimits[numberSpeciesLimits-1].limit = limit;
-}
+    speciesLimits = NULL;
 
-void CMESolver::setSpeciesLowerLimit(uint species, uint limit)
-{
-    // Allocate a larger list for the limits.
-    SpeciesLimit * newSpeciesLimits = new SpeciesLimit[++numberSpeciesLimits];
-    if (numberSpeciesLimits > 1)
-    {
-        for (uint i=0; i<numberSpeciesLimits-1; i++)
-            newSpeciesLimits[i] = speciesLimits[i];
-        delete[] speciesLimits;
-    }
-    speciesLimits = newSpeciesLimits;
-    speciesLimits[numberSpeciesLimits-1].type = -1;
-    speciesLimits[numberSpeciesLimits-1].species = species;
-    speciesLimits[numberSpeciesLimits-1].limit = limit;
-}
-
-void CMESolver::setFptTrackingList(list<uint> speciesList)
-{
-    // If we already had a list, free it.
+    // Reset the fpt tracking list.
+    numberFptTrackedSpecies = 0;
     if (fptTrackedSpecies != NULL) delete[] fptTrackedSpecies; fptTrackedSpecies = NULL;
 
-    // Allocate a new list.
-    numberFptTrackedSpecies = speciesList.size();
-    fptTrackedSpecies = new FPTTracking[numberFptTrackedSpecies];
+    // Reset the tracked parameters list.
+    trackedParameters.clear();
 
-    // Initialize the list.
-    int i=0;
-    for (list<uint>::iterator it = speciesList.begin(); it != speciesList.end(); it++, i++)
+    // Reset the tiling histograms list.
+    numberTilingHists = 0;
+    if (tilingHists!=NULL) delete[] tilingHists; tilingHists = NULL;
+}
+
+void CMESolver::getState(lm::io::TrajectoryState* state)
+{
+    // Get the trajectory id.
+    state->set_trajectory_id(trajectoryId);
+
+    // Get the species counts.
+    state->mutable_cme_state()->mutable_species_counts()->set_trajectory_id(trajectoryId);
+    state->mutable_cme_state()->mutable_species_counts()->set_number_species((int)reactionModel->numberSpecies);
+    state->mutable_cme_state()->mutable_species_counts()->set_number_entries(1);
+    for (int i=0; i<(int)reactionModel->numberSpecies; i++)
     {
-        fptTrackedSpecies[i].species = *it;
-        fptTrackedSpecies[i].minValueAchieved = 0;
-        fptTrackedSpecies[i].maxValueAchieved = 0;
-        fptTrackedSpecies[i].dataSet.set_species(fptTrackedSpecies[i].species);
+        state->mutable_cme_state()->mutable_species_counts()->add_species_count(speciesCounts[i]);
+    }
+    state->mutable_cme_state()->mutable_species_counts()->add_time(time);
+
+    // Get the first passage times.
+    for (int i=0; i<numberFptTrackedSpecies; i++)
+    {
+        fptTrackedSpecies[i].serializeTo(trajectoryId, state->mutable_cme_state()->add_first_passage_times());
+    }
+
+    // Get the tiling hists
+    state->mutable_cme_state()->clear_tiling_hists();
+    for (uint i=0;i<numberTilingHists;i++)
+    {
+        tilingHists[i].serializeTo(state->mutable_cme_state()->add_tiling_hists());
+    }
+}
+
+void CMESolver::setState(const lm::io::TrajectoryState& state)
+{
+    // Validate the state.
+    if (!state.has_cme_state()) throw Exception("State object does not contain the necessary data to initialize the solver.");
+    if (state.cme_state().species_counts().number_species() != (int)reactionModel->numberSpecies) throw Exception("State object and reaction model have differing species count",state.cme_state().species_counts().number_species(),reactionModel->numberSpecies);
+    if (state.cme_state().species_counts().number_entries() != 1 || state.cme_state().species_counts().species_count_size() != (int)reactionModel->numberSpecies || state.cme_state().species_counts().time_size() != 1) throw Exception("State object has too many entries",state.cme_state().species_counts().number_entries());
+
+    // Set the trajectory id.
+    trajectoryId = state.trajectory_id();
+
+    // Set the species counts.
+    for (int i=0; i<state.cme_state().species_counts().species_count_size(); i++)
+    {
+        speciesCounts[i] = state.cme_state().species_counts().species_count(i);
+    }
+
+    // Reinitialize the order parameters, if required
+    if (needsOrderParameters())
+    {
+        oparams->initValues(speciesCounts);
+    }
+
+    time = state.cme_state().species_counts().time(0);
+    trajectoryStarted = state.trajectory_started();
+
+    // Set the first passage times.
+    numberFptTrackedSpecies = state.cme_state().first_passage_times_size();
+    if (numberFptTrackedSpecies > 0)
+    {
+        fptTrackedSpecies = new FPTTracking[numberFptTrackedSpecies];
+        for (int i=0; i<numberFptTrackedSpecies; i++)
+        {
+            fptTrackedSpecies[i].species = state.cme_state().first_passage_times(i).species();
+            fptTrackedSpecies[i].minValueAchieved = state.cme_state().first_passage_times(i).species_count(0);
+            fptTrackedSpecies[i].maxValueAchieved = state.cme_state().first_passage_times(i).species_count(state.cme_state().first_passage_times(i).number_entries()-1);
+            for (int j=0; j<state.cme_state().first_passage_times(i).number_entries(); j++)
+            {
+                fptTrackedSpecies[i].fptValues.push_back(std::pair<int,double>(state.cme_state().first_passage_times(i).species_count(j),state.cme_state().first_passage_times(i).first_passage_time(j)));
+            }
+        }
+    }
+
+    // Set the histogram bin values
+    numberTilingHists = state.cme_state().tiling_hists_size();
+    if (state.cme_state().tiling_hists_size() > 0)
+    {
+        tilingHists = new TilingHist[numberTilingHists];
+        for (uint i=0;i<numberTilingHists;i++)
+        {
+            tilingHists[i] = TilingHist();
+            tilingHists[i].init(state.cme_state().tiling_hists(i));
+        }
+    }
+}
+
+void CMESolver::setLimits(const lm::io::TrajectoryLimits& limits)
+{
+    // Set the max time.
+    if (limits.has_max_time())
+        maxTime = limits.max_time();
+
+    // Set any upper or lower bounds.
+    for (int i=0; i<limits.min_species_count_size(); i++)
+        if (limits.min_species_count(i) != -1)
+            setSpeciesLowerLimit(i, limits.min_species_count(i));
+    for (int i=0; i<limits.max_species_count_size(); i++)
+        if (limits.max_species_count(i) != -1)
+            setSpeciesUpperLimit(i, limits.max_species_count(i));
+
+    // Set any increasing/decreasing order parameter bound crossing detections.
+    for (int i=0; i<limits.decreasing_order_parameter_limit_size(); i++)
+    {
+        for (int j=0; j<limits.decreasing_order_parameter_limit(i).value_size(); j++)
+        {
+            setSpeciesDecreasingLimit(limits.decreasing_order_parameter_limit(i).arrangement(), limits.decreasing_order_parameter_limit(i).order_parameter_id(), limits.decreasing_order_parameter_limit(i).value(j));
+        }
+    }
+    for (int i=0; i<limits.increasing_order_parameter_limit_size(); i++)
+    {
+        for (int j=0; j<limits.increasing_order_parameter_limit(i).value_size(); j++)
+        {
+            setSpeciesIncreasingLimit(limits.increasing_order_parameter_limit(i).arrangement(), limits.increasing_order_parameter_limit(i).order_parameter_id(), limits.increasing_order_parameter_limit(i).value(j));
+        }
+    }
+}
+
+void CMESolver::setSpeciesLowerLimit(int species, int limit)
+{
+    // Allocate a larger list for the limits/limit crossings.
+    SpeciesLimit * newSpeciesLimits = new SpeciesLimit[++numberSpeciesLimits];
+    if (numberSpeciesLimits > 1)
+    {
+        for (uint i=0; i<numberSpeciesLimits-1; i++)
+            newSpeciesLimits[i] = speciesLimits[i];
+        delete[] speciesLimits;
+    }
+    speciesLimits = newSpeciesLimits;
+    speciesLimits[numberSpeciesLimits-1].type = SpeciesLimit::MIN;
+    speciesLimits[numberSpeciesLimits-1].species = species;
+    speciesLimits[numberSpeciesLimits-1].limit = limit;
+}
+
+void CMESolver::setSpeciesUpperLimit(int species, int limit)
+{
+    // Allocate a larger list for the limits/limit crossings.
+    SpeciesLimit * newSpeciesLimits = new SpeciesLimit[++numberSpeciesLimits];
+    if (numberSpeciesLimits > 1)
+    {
+        for (uint i=0; i<numberSpeciesLimits-1; i++)
+            newSpeciesLimits[i] = speciesLimits[i];
+        delete[] speciesLimits;
+    }
+    speciesLimits = newSpeciesLimits;
+    speciesLimits[numberSpeciesLimits-1].type = SpeciesLimit::MAX;
+    speciesLimits[numberSpeciesLimits-1].species = species;
+    speciesLimits[numberSpeciesLimits-1].limit = limit;
+}
+
+void CMESolver::setSpeciesDecreasingLimit(lm::io::TrajectoryLimits::Arrangement arr, int opID, double limit)
+{
+	// Allocate a larger list for the limits/limit crossings.
+	SpeciesLimit* newSpeciesLimits = new SpeciesLimit[++numberSpeciesLimits];
+	if (numberSpeciesLimits > 1)
+	{
+		memcpy(newSpeciesLimits, speciesLimits, sizeof(SpeciesLimit)*(numberSpeciesLimits-1));
+		delete[] speciesLimits;
+	}
+	speciesLimits = newSpeciesLimits;
+	speciesLimits[numberSpeciesLimits-1].type = (arr==lm::io::TrajectoryLimits::ASCENDING) ? SpeciesLimit::DECREASING_ASCENDING : SpeciesLimit::DECREASING_DESCENDING;
+	speciesLimits[numberSpeciesLimits-1].species = opID;
+	speciesLimits[numberSpeciesLimits-1].limit = limit;
+}
+
+void CMESolver::setSpeciesIncreasingLimit(lm::io::TrajectoryLimits::Arrangement arr, int opID, double limit)
+{
+	// Allocate a larger list for the limits/limit crossings.
+	SpeciesLimit* newSpeciesLimits = new SpeciesLimit[++numberSpeciesLimits];
+	if (numberSpeciesLimits > 1)
+	{
+		memcpy(newSpeciesLimits, speciesLimits, sizeof(SpeciesLimit)*(numberSpeciesLimits-1));
+		delete[] speciesLimits;
+	}
+	speciesLimits = newSpeciesLimits;
+	speciesLimits[numberSpeciesLimits-1].type = (arr==lm::io::TrajectoryLimits::ASCENDING) ? SpeciesLimit::INCREASING_ASCENDING : SpeciesLimit::INCREASING_DESCENDING;
+	speciesLimits[numberSpeciesLimits-1].species = opID;
+	speciesLimits[numberSpeciesLimits-1].limit = limit;
+}
+
+lm::io::TrajectoryLimits::LimitType CMESolver::getFinalLimitType()
+{
+    if (finalLimitType!=0)
+    {
+        return finalLimitType;
+    }
+    else
+    {
+        return lm::io::TrajectoryLimits::MAXTIME;
     }
 }
 
@@ -1031,7 +1276,7 @@ void CMESolver::addToParameterTrackingList(pair<string,double*> parameter)
     trackedParameters.push_back(TrackedParameter(parameter.first, parameter.second));
 }
 
-double CMESolver::recordParameters(double nextRecordTime, double recordInterval, double simulationTime)
+/*double CMESolver::recordParameters(double nextRecordTime, double recordInterval, double simulationTime)
 {
 	if (recordInterval > 0.0)
 	{
@@ -1055,7 +1300,9 @@ double CMESolver::recordParameters(double nextRecordTime, double recordInterval,
 
     return nextRecordTime;
 }
+*/
 
+/*
 void CMESolver::queueRecordedParameters(bool flush)
 {
     for (list<TrackedParameter>::iterator it = trackedParameters.begin(); it != trackedParameters.end(); it++)
@@ -1073,6 +1320,7 @@ void CMESolver::queueRecordedParameters(bool flush)
         }
     }
 }
+*/
 
 }
 }

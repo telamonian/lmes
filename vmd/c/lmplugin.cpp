@@ -61,14 +61,14 @@ using lm::Exception;
 using lm::io::DiffusionModel;
 using lm::io::SpatialModel;
 using lm::io::hdf5::HDF5Exception;
-using lm::io::hdf5::SimulationFile;
+using lm::io::hdf5::Hdf5File;
 using lm::rdme::ByteLattice;
 
 struct lmobjects
 {
     int bond_from[1];
     int bond_to[1];
-    SimulationFile * file;
+    Hdf5File * file;
     uint replicate;
     uint numberFrames;
     vector<si_time_t> frameTimes;
@@ -153,7 +153,7 @@ static void *lm_open_read(const char *filename, const char *filetype, int *natom
 		if (getenv("LM_CREATE_SITE_ATOMS") != NULL && atoi(getenv("LM_CREATE_SITE_ATOMS")) > 0) objects->usingSiteAtoms = true;
 
         // Open the file.
-        objects->file = new SimulationFile(filename);
+        objects->file = new Hdf5File(filename);
 		printf("LMplugin Info) Opened file: %s, replicate %d, using options LM_CREATE_OBSTACLE_ATOMS=%d, LM_CREATE_SITE_ATOMS=%d.\n", filename, objects->replicate, objects->usingObstacleAtoms?1:0, objects->usingSiteAtoms?1:0);
 
         // Read the diffusion model.

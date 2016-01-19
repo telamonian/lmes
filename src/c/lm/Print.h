@@ -45,7 +45,7 @@
 namespace lm {
 
 /**
- * Class for accessing CUDA functions.
+ * Class for verbosity-configurable print function.
  */
 class Print
 {

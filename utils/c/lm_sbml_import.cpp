@@ -63,7 +63,7 @@ using std::vector;
 using std::string;
 using lm::Exception;
 using lm::io::ReactionModel;
-using lm::io::hdf5::SimulationFile;
+using lm::io::hdf5::Hdf5File;
 using lm::Print;
 
 /**
@@ -86,7 +86,7 @@ string inputFilename = "";
  */
 map<string, double> userParameterValues;
 
-void importSBMLModel(SimulationFile * lmFile, string sbmlFilename) throw(Exception);
+void importSBMLModel(Hdf5File * lmFile, string sbmlFilename) throw(Exception);
 void importSBMLModelL3V1(ReactionModel * lmModel, Model * sbmlModel) throw(Exception);
 void importSBMLModelL3V1Kinetics(uint reactionIndex, KineticLaw * kinetics, ReactionModel * lmModel, uint * D, map<string,uint> & speciesIndices, uint numberReactions, vector<string> & globalParameters, map<string,double> & globalParameterValues) throw(Exception);
 bool isZerothOrderReaction(const ASTNode * root, vector<string> & parameters, map<string,uint> & speciesIndices);
@@ -128,11 +128,11 @@ int main(int argc, char** argv)
 		    // If the output file doesn't exist, create it.
 		    if (stat(outputFilename.c_str(), &fileStats) != 0)
 		    {
-		        SimulationFile::create(outputFilename);
+		        Hdf5File::create(outputFilename);
 		    }
 
 			// Open the file.
-		    SimulationFile outputFile(outputFilename);
+		    Hdf5File outputFile(outputFilename);
 
 		    // Open the sbml file.
 		    importSBMLModel(&outputFile, inputFilename);
@@ -167,15 +167,15 @@ int main(int argc, char** argv)
     return -1;
 }
 
-void importSBMLModel(SimulationFile * lmFile, string sbmlFilename) throw(Exception)
+void importSBMLModel(Hdf5File * lmFile, string sbmlFilename) throw(Exception)
 {
     // Read in the SBML document.
     std::auto_ptr<SBMLDocument> sbmlDocument(readSBML(sbmlFilename.c_str()));
-    if (sbmlDocument->getNumErrors() > 0)
-    {
-        sbmlDocument->printErrors();
-        throw Exception("Error reading SBML file");
-    }
+//    if (sbmlDocument->getNumErrors() > 0)
+//    {
+//        sbmlDocument->printErrors();
+//        throw Exception("Error reading SBML file");
+//    }
 
     // Make sure we know how to process the document.
     if (sbmlDocument->getLevel() == 3 && sbmlDocument->getVersion() == 1)

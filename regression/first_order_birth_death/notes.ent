@@ -1,0 +1,46 @@
+
+# Try with no limits.
+rm -f first_order_birth_death_1.lm && lm_sbml_import first_order_birth_death_1.lm first_order_birth_death.sbml
+lm_setp first_order_birth_death_1.lm writeInterval=1e1
+lmes -f first_order_birth_death_1.lm -c 2 -gr 1/8 -ca -ff log -ws |tee first_order_birth_death_1.log
+
+# Try with time limit.
+rm -f first_order_birth_death_2.lm && lm_sbml_import first_order_birth_death_2.lm first_order_birth_death.sbml
+lm_setp first_order_birth_death_2.lm maxTime=1e5 writeInterval=1e4
+#lmes -f first_order_birth_death_2.lm -r 1-10 -c 4 -gr 0 -ca -ff hdf5 -ws -ck 00:00:20 |tee first_order_birth_death_2.log
+lmes-submit first_order_birth_death_2.lm -r 1-20 first_order_birth_death_2.log normal 16
+
+#### Timings ####
+xanthus                       
+xanthus-cp-2 (cpu-only)       
+xanthus-cp-2 (cpu+GPU)        
+barkeri (cpu-only)              16,700,000 rxns/s
+barkeri (cpu+GPU)               25,800,000 rxns/s
+hhpc                             6,000,000 rxns/s
+
+#### Performance profiling ####
+perf stat lmes -f first_order_birth_death_2.lm -r 1 -c 2 -gr 0 -ca -ff null -ws
+
+
+# Try with upper species limit.
+rm -f first_order_birth_death_3.lm && lm_sbml_import first_order_birth_death_3.lm first_order_birth_death.sbml
+lm_setp first_order_birth_death_3.lm "speciesUpperLimitList=0:1100" writeInterval=1e-1
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f first_order_birth_death_3.lm -c 2 -gr 1/8 -ca -ff log -ws |tee first_order_birth_death_3.log
+
+# Try with lower species limit.
+rm -f first_order_birth_death_4.lm && lm_sbml_import first_order_birth_death_4.lm first_order_birth_death.sbml
+lm_setp first_order_birth_death_4.lm "speciesLowerLimitList=0:900" writeInterval=1e-2
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f first_order_birth_death_4.lm -c 2 -gr 1/8 -ca -ff log -ws |tee first_order_birth_death_4.log
+
+# Try with fpt tracking.
+rm -f first_order_birth_death_5.lm && lm_sbml_import first_order_birth_death_5.lm first_order_birth_death.sbml
+lm_setp first_order_birth_death_5.lm maxTime=1e5 writeInterval=1e1 fptTrackingList=0
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f first_order_birth_death_5.lm -c 2 -gr 1/8 -ca -ff log -ws |tee first_order_birth_death_5.log
+
+# Make a large pdf file for Hadoop analysis.
+rm -f first_order_birth_death_6.lm && lm_sbml_import first_order_birth_death_6.lm first_order_birth_death.sbml
+lm_setp first_order_birth_death_6.lm maxTime=1e5 writeInterval=1e0
+lmes -f first_order_birth_death_6.lm -r 1-3 -c 4 -gr 0 -ca -ff sfile -fo first_order_birth_death_6.sfile -ws
+lmes-submit first_order_birth_death_6.lm -r 1-1000 -ff sfile -fo first_order_birth_death_6_sfile.sfile -ws first_order_birth_6_death_sfile.log parallel 480 eroberts@jhu.edu 4:00:00
+lmes-submit first_order_birth_death_6_hdf5.lm -r 1-20 -ff hdf5 -ws first_order_birth_death_6_hdf5.log parallel 24 eroberts@jhu.edu 4:00:00
+

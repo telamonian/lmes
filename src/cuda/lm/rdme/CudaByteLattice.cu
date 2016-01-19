@@ -193,9 +193,9 @@ void CudaByteLattice::removeAllParticles()
 	isGPUMemorySynched = false;
 }
 
-void CudaByteLattice::setFromRowMajorByteData(void * buffer, size_t bufferSize)
+void CudaByteLattice::deserializeParticlesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool inflate)
 {
-    ByteLattice::setFromRowMajorByteData(buffer, bufferSize);
+    ByteLattice::deserializeParticlesFrom(srcBuffer, bufferSize, dataOrdering, inflate);
     isGPUMemorySynched = false;
 }
 

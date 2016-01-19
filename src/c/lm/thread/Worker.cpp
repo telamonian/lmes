@@ -37,6 +37,7 @@
  * Author(s): Elijah Roberts
  */
 
+#include "lm/Print.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 #include "lm/thread/WorkerManager.h"
@@ -44,13 +45,13 @@
 namespace lm {
 namespace thread {
 
-Worker::Worker() throw(PthreadException)
+Worker::Worker()
 :aborted(false)
 {
     WorkerManager::getInstance()->addWorker(this);
 }
 
-Worker::~Worker() throw(PthreadException)
+Worker::~Worker()
 {
     WorkerManager::getInstance()->removeWorker(this);
 }
@@ -70,8 +71,6 @@ void Worker::abort() throw(PthreadException)
     // Wake the thread.
     wake();
 }
-
-void Worker::checkpoint() throw(PthreadException) {}
 
 }
 }

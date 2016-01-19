@@ -1,0 +1,42 @@
+#in order to commit future changes to this file, first run
+#:$ git update-index --no-assume-unchanged CMakeConfig.txt
+#then commit normally, then run
+#:$ git update-index --assume-unchanged CMakeConfig.txt
+#and commit again
+
+# sets the prefix dir for installation of lm (ie running "make install")
+SET(CMAKE_INSTALL_PREFIX "/usr/local")
+
+# USE_CUDA can be set to yes, no, or optional, in which case CUDA will be used if cmake can find it on your system
+SET(USE_CUDA yes)
+
+# Set the verbosity level, as described in the lm::Print function. 10 is complete, 4 is normal-ish
+SET(VERBOSITY_LEVEL 4)
+
+# uncomment and change the last part of the next line if some of your libraries/header files are on a nonstandard path
+#SET(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}")
+
+############################
+#library specific path settings
+############################
+
+#SET(SBML_ROOT "/Users/eroberts/usr")
+
+#SET(PROTOBUF_ROOT "/Users/eroberts/usr")
+
+SET(ENV{HDF5_ROOT} "/Users/tel/git/installer_lm/Cellar/hdf5/1.8.14/")
+
+#SET(MPI_C_COMPILER "/Users/eroberts/usr/local/bin/mpicc")
+#SET(MPI_C_EXEC "/Users/eroberts/usr/local/bin/mpirun")
+#SET(MPI_CXX_COMPILER "/Users/eroberts/usr/local/bin/mpicxx")
+#SET(MPI_CXX_EXEC "/Users/eroberts/usr/local/bin/mpirun")
+
+#SET(CUDA_TOOLKIT_ROOT_DIR "/usr/local/cuda")
+#SET(CUDA_SDK_ROOT_DIR "/usr/local/cuda")
+
+#SET(SWIG_EXECUTABLE "/usr/local/bin/swig")
+
+#SET(PYTHON_LIBRARY "/usr/local/Cellar/python/2.7.6/Frameworks/Python.framework/Versions/2.7/lib/python2.7")
+#SET(PYTHON_INCLUDE_DIR "/usr/local/Cellar/python/2.7.6/Frameworks/Python.framework/Versions/2.7/include/python2.7/")
+
+#SET(BOOST_ROOT "/usr/local/Cellar/boost/1.55.0")

@@ -46,47 +46,68 @@
 #include "lm/Exceptions.h"
 #include "lm/Types.h"
 #include "lm/rng/RandomGenerator.h"
+#include "lptf/Profile.h"
+#include "lptf/ProfileCodes.h"
 
 namespace lm {
 namespace rng {
 
 RandomGenerator::RandomGenerator(uint32_t seedTop, uint32_t seedBottom, Distributions availableDists)
-:seed((((uint64_t)(seedTop))<<32)|(uint64_t)(seedBottom)),availableDists(availableDists)
+:seed(0LL),availableDists(availableDists)
 {
     if (seedBottom == 0)
     {
         #if defined(MACOSX)
-        seed |= (uint32_t)mach_absolute_time();
+        seedBottom = (uint32_t)mach_absolute_time();
         #elif defined(LINUX)
         struct timespec seed_timespec;
         if (clock_gettime(CLOCK_REALTIME, &seed_timespec) != 0) throw lm::Exception("Error getting time to use for random seed.");
-        seed |= seed_timespec.tv_nsec;
+        seedBottom = seed_timespec.tv_nsec;
         #endif
     }
+
+    if (seedTop == 0)
+    {
+        #if defined(MACOSX)
+        seedTop = (uint32_t)mach_absolute_time();
+        #elif defined(LINUX)
+        struct timespec seed_timespec;
+        if (clock_gettime(CLOCK_REALTIME, &seed_timespec) != 0) throw lm::Exception("Error getting time to use for random seed.");
+        seedTop = seed_timespec.tv_nsec;
+        #endif
+    }
+
+    seed = (((uint64_t)(seedTop))<<32)|(uint64_t)(seedBottom);
 }
 
 void RandomGenerator::getRandomDoubles(double * rngs, int numberRNGs)
 {
+    PROF_BEGIN(PROF_CACHE_RNG);
     for (int i=0; i<numberRNGs; i++)
     {
         rngs[i] = getRandomDouble();
     }
+    PROF_END(PROF_CACHE_RNG);
 }
 
 void RandomGenerator::getExpRandomDoubles(double * rngs, int numberRNGs)
 {
+    PROF_BEGIN(PROF_CACHE_EXP_RNG);
     for (int i=0; i<numberRNGs; i++)
     {
         rngs[i] = getExpRandomDouble();
     }
+    PROF_END(PROF_CACHE_EXP_RNG);
 }
 
 void RandomGenerator::getNormRandomDoubles(double * rngs, int numberRNGs)
 {
+    PROF_BEGIN(PROF_CACHE_NORM_RNG);
     for (int i=0; i<numberRNGs; i++)
     {
         rngs[i] = getNormRandomDouble();
     }
+    PROF_END(PROF_CACHE_NORM_RNG);
 }
 
 }

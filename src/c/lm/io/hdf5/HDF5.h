@@ -52,6 +52,7 @@ class HDF5Exception : public lm::Exception
 {
 public:
     HDF5Exception(herr_t errorCode, const char * file, const int line) : Exception("HDF5 error",(int)errorCode,file,line) {}
+//    virtual ~HDF5Exception() throw() {}
     void printStackTrace() {H5Eprint2(H5E_DEFAULT,NULL);}
 };
 

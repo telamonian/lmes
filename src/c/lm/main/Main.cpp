@@ -1,42 +1,46 @@
 /*
  * University of Illinois Open Source License
  * Copyright 2008-2011 Luthey-Schulten Group,
+ * Copyright 2012-2014 Roberts Group,
  * All rights reserved.
- * 
+ *
  * Developed by: Luthey-Schulten Group
  * 			     University of Illinois at Urbana-Champaign
  * 			     http://www.scs.uiuc.edu/~schulten
- * 
+ *
+ * Developed by: Roberts Group
+ * 			     Johns Hopkins University
+ * 			     http://biophysics.jhu.edu/roberts/
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the Software), to deal with 
- * the Software without restriction, including without limitation the rights to 
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
- * of the Software, and to permit persons to whom the Software is furnished to 
+ * this software and associated documentation files (the Software), to deal with
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to
  * do so, subject to the following conditions:
- * 
- * - Redistributions of source code must retain the above copyright notice, 
+ *
+ * - Redistributions of source code must retain the above copyright notice,
  * this list of conditions and the following disclaimers.
- * 
- * - Redistributions in binary form must reproduce the above copyright notice, 
- * this list of conditions and the following disclaimers in the documentation 
+ *
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimers in the documentation
  * and/or other materials provided with the distribution.
- * 
+ *
  * - Neither the names of the Luthey-Schulten Group, University of Illinois at
- * Urbana-Champaign, nor the names of its contributors may be used to endorse or
- * promote products derived from this Software without specific prior written
- * permission.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL 
- * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR 
- * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+ * Urbana-Champaign, the Roberts Group, Johns Hopkins University, nor the names
+ * of its contributors may be used to endorse or promote products derived from
+ * this Software without specific prior written permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
-
 #include <string>
 #include <list>
 #include <vector>
@@ -59,7 +63,7 @@
 #include "lm/Types.h"
 #include "lm/Exceptions.h"
 #include "lm/main/Main.h"
-#include "lm/me/MESolverFactory.h"
+#include "hrtime.h"
 
 using std::string;
 using std::vector;
@@ -70,14 +74,24 @@ using std::vector;
 string functionOption = "interpreter";
 
 /**
- * The name of the file containing the simulation.
+ * The name of the file containing the simulation input.
  */
-string simulationFilename;
+string simulationInputFilename;
+
+/**
+ * The name of the file containing the simulation output.
+ */
+string simulationOutputFilename;
+
+/**
+ * The output writer to use for the simulations.
+ */
+string outputWriterClassName;
 
 /**
  * The number of replicates of the simulation that should be performed.
  */
-vector<int> replicates;
+vector<uint64_t> replicates;
 
 /**
  * The interval at which the results file should be checkpointed.
@@ -90,52 +104,69 @@ time_t checkpointInterval = 0;
 volatile bool globalAbort = false;
 
 /**
+ * The supervisor to use for the simulations.
+ */
+string supervisorClassName;
+
+/**
  * The solver to use for the simulations.
  */
-lm::me::MESolverFactory solverFactory;
+string solverClassName;
 
-#ifdef OPT_MPI
 /**
- * The filename for the node list.
+ * The filename for the resource list.
  */
-string nodelistFilename;
-#endif
+string resourceFilename;
 
 /**
  * The number of cpu cores assigned to each process.
  */
-int numberCpuCores;
+int cpuCores;
 
 /**
- * The number of cpu cores to assign per replicate (can be a fraction, e.g., 1/2, 1/4, etc).
+ * The number of cpu cores to assign per runner (can be a fraction, e.g., 1/2, 1/4, etc).
  */
-float cpuCoresPerReplicate;
-
-#ifdef OPT_CUDA
+double cpuCoresPerRunner;
 
 /**
- * The cuda devices assigned to each process.
+ * Whether we should use CPU affinity.
  */
-vector<int> cudaDevices;
+bool useCPUAffinity;
 
 /**
- * The number of cuda devices to assign per replicate (can be a fraction, e.g., 1/2, 1/4, etc).
+ * The number gpu devices assigned to each process.
  */
-float cudaDevicesPerReplicate;
+int gpuDevices;
+
+/**
+ * The number of gpu devices to assign per runner (can be a fraction, e.g., 1/2, 1/4, etc).
+ */
+double gpuDevicesPerRunner;
 
 /**
  * Whether we should print the cuda device capabilities on startup.
  */
-bool shouldPrintCudaCapabilities;
-
-#endif
+bool shouldPrintGPUCapabilities;
 
 /**
  * Whether we should reserve a core for the output thread.
  */
 bool shouldReserveOutputCore;
 
+/**
+ * Flag to indicate that forward flux simulation is in use.
+ */
+bool ffluxFlag;
 
+/*
+ * Flag to indicate that we want intermediate output related to simulation results
+ */
+bool intermediateOutputFlag;
+
+/**
+ * Flag to run input output testing
+ */
+bool ioTestFlag;
 
 /**
  * Prints the copyright notice.
@@ -147,30 +178,10 @@ void printCopyright(int argc, char** argv)
 #ifdef OPT_CUDA
     std::cout << " CUDA";
 #endif
-#ifdef OPT_MPI
     std::cout << " MPI";
-#endif
     std::cout << "." << std::endl;
     std::cout << "Copyright (C) " << COPYRIGHT_DATE << " Luthey-Schulten Group, University of Illinois at Urbana-Champaign." << std::endl;
     std::cout << "Copyright (C) " << COPYRIGHT_DATE_JHU << " Roberts Group, Johns Hopkins University." << std::endl << std::endl;
-}
-
-/**
- * Gets the number of physical cpu cores on the system.
- */
-int getPhysicalCpuCores()
-{
-    // Get the number of processors.
-    #if defined(MACOSX)
-    uint physicalCpuCores;
-    size_t  physicalCpuCoresSize=sizeof(physicalCpuCores);
-    sysctlbyname("hw.activecpu",&physicalCpuCores,&physicalCpuCoresSize,NULL,0);
-    return physicalCpuCores;
-    #elif defined(LINUX)
-    return get_nprocs();
-    #else
-    #error "Unsupported architecture."
-    #endif
 }
 
 /**
@@ -182,19 +193,23 @@ void parseArguments(int argc, char** argv)
     replicates.clear();
     replicates.push_back(1);
 
-    numberCpuCores = getPhysicalCpuCores();
-    cpuCoresPerReplicate = 1.0;
+    cpuCores = -1;
+    cpuCoresPerRunner = 1.0;
+    useCPUAffinity = false;
+    gpuDevices = -1;
+    gpuDevicesPerRunner = 1.0;
+    shouldPrintGPUCapabilities = true;
 
-    solverFactory.setSolver("lm::rdme::MpdRdmeSolver");
+    simulationInputFilename = "";
+    simulationOutputFilename = "";
+    outputWriterClassName = "lm::io::hdf5::Hdf5OutputWriter";
+    supervisorClassName = "lm::replicates::ReplicateSupervisor";
+    solverClassName = "lm::cme::GillespieDSolver";
 
-    #ifdef OPT_CUDA
-    cudaDevices.clear();
-    for (int i=0; i<lm::CUDA::getNumberDevices(); i++)
-        cudaDevices.push_back(i);
-    cudaDevicesPerReplicate = 1.0;
-    shouldPrintCudaCapabilities = true;
-    #endif
     shouldReserveOutputCore = true;
+    ffluxFlag = false;
+    intermediateOutputFlag = false;
+    ioTestFlag = false;
 
     // Parse any arguments.
     for (int i=1; i<argc; i++)
@@ -213,7 +228,19 @@ void parseArguments(int argc, char** argv)
         	functionOption = "version";
             break;
         }
-            
+
+        //See if the user is trying to execute an iotest.
+        else if (strcmp(option, "-iotest") == 0 || strcmp(option, "--input-ouput-test") == 0)
+        {
+            functionOption = "iotest";
+
+            // Get the filename.
+            if (i < argc-1)
+                simulationInputFilename = argv[++i];
+            else
+                throw lm::CommandLineArgumentException("missing simulation input file.");
+        }
+
         //See if the user is trying to get the device info.
         else if (strcmp(option, "-l") == 0 || strcmp(option, "--list-devices") == 0) {
             functionOption = "devices";
@@ -226,9 +253,29 @@ void parseArguments(int argc, char** argv)
 
             // Get the filename.
             if (i < argc-1)
-                simulationFilename = argv[++i];
+                simulationInputFilename = argv[++i];
             else
-                throw lm::CommandLineArgumentException("missing simulation filename.");
+                throw lm::CommandLineArgumentException("missing simulation input file.");
+        }
+
+        //See if the user is trying to set the output filename.
+        else if ((strcmp(option, "-fo") == 0 || strcmp(option, "--output-file") == 0) && i < (argc-1))
+        {
+            simulationOutputFilename=argv[++i];
+        }
+        else if (strncmp(option, "--output-file=", strlen("--output-file=")) == 0)
+        {
+            simulationOutputFilename=option+strlen("--output-file=");
+        }
+
+        //See if the user is trying to set the output format.
+        else if ((strcmp(option, "-ff") == 0 || strcmp(option, "--output-format") == 0) && i < (argc-1))
+        {
+            outputWriterClassName=parseOutputFormatArg(argv[++i]);
+        }
+        else if (strncmp(option, "--output-format=", strlen("--output-format=")) == 0)
+        {
+            outputWriterClassName=parseOutputFormatArg(option+strlen("--output-format="));
         }
 
         //See if the user is trying to set the replicates.
@@ -255,108 +302,170 @@ void parseArguments(int argc, char** argv)
 		#ifdef OPT_CUDA
         else if ((strcmp(option, "-sp") == 0 || strcmp(option, "--spatially-resolved") == 0))
         {
-            solverFactory.setSolver("lm::rdme::MpdRdmeSolver");
+            solverClassName = "lm::rdme::NextSubvolumeSolver";
         }
 		#else
         else if ((strcmp(option, "-sp") == 0 || strcmp(option, "--spatially-resolved") == 0))
         {
-            solverFactory.setSolver("lm::rdme::NextSubvolumeSolver");
+            solverClassName = "lm::rdme::NextSubvolumeSolver";
         }
 		#endif
         else if ((strcmp(option, "-ws") == 0 || strcmp(option, "--well-stirred") == 0))
         {
-            solverFactory.setSolver("lm::cme::GillespieDSolver");
+            solverClassName = "lm::cme::GillespieDSolver";
         }
         else if ((strcmp(option, "-m") == 0 || strcmp(option, "--model") == 0) && i < (argc-1))
         {
-            solverFactory.setSolver(argv[++i]);
+            solverClassName = argv[++i];
         }
         else if (strncmp(option, "--model=", strlen("--model=")) == 0)
         {
-            solverFactory.setSolver(option+strlen("--model="));
+            solverClassName = option+strlen("--model=");
         }
         else if ((strcmp(option, "-sl") == 0 || strcmp(option, "--solver") == 0) && i < (argc-1))
         {
-            solverFactory.setSolver(argv[++i]);
+            solverClassName = argv[++i];
         }
         else if (strncmp(option, "--solver=", strlen("--solver=")) == 0)
         {
-            solverFactory.setSolver(option+strlen("--solver="));
+            solverClassName = option+strlen("--solver=");
+        }
+
+        //See if the user is trying to set the node list.
+        else if ((strcmp(option, "-n") == 0 || strcmp(option, "--nodelist") == 0) && i < (argc-1))
+        {
+            resourceFilename=argv[++i];
+        }
+        else if (strncmp(option, "--nodelist=", strlen("--nodelist=")) == 0)
+        {
+            resourceFilename=option+strlen("--nodelist=");
+        }
+
+        //See if the user is trying to set the resource map.
+        else if ((strcmp(option, "-m") == 0 || strcmp(option, "--resource-map") == 0) && i < (argc-1))
+        {
+            resourceFilename=argv[++i];
+        }
+        else if (strncmp(option, "--resource-map=", strlen("--resource-map=")) == 0)
+        {
+            resourceFilename=option+strlen("--resource-map=");
         }
 
         //See if the user is trying to set the number of cpus.
         else if ((strcmp(option, "-c") == 0 || strcmp(option, "--cpu") == 0) && i < (argc-1))
         {
-            numberCpuCores=atoi(argv[++i]);
+            cpuCores=atoi(argv[++i]);
         }
         else if (strncmp(option, "--cpu=", strlen("--cpu=")) == 0)
         {
-            numberCpuCores=atoi(option+strlen("--cpu="));
+            cpuCores=atoi(option+strlen("--cpu="));
         }
 
-		#ifdef OPT_MPI
-        //See if the user is trying to set the number of cpus.
-        else if ((strcmp(option, "-n") == 0 || strcmp(option, "--nodelist") == 0) && i < (argc-1))
-        {
-            nodelistFilename=argv[++i];
-        }
-        else if (strncmp(option, "--nodelist=", strlen("--nodelist=")) == 0)
-        {
-        	nodelistFilename=option+strlen("--nodelist=");
-        }
-		#endif
-
-        //See if the user is trying to set the number of cuda devices per replicate.
-         else if ((strcmp(option, "-cr") == 0 || strcmp(option, "--cpus-per-replicate") == 0) && i < (argc-1))
+         //See if the user is trying to set the number of gpu devices per runner.
+         else if ((strcmp(option, "-cr") == 0 || strcmp(option, "--cpus-per-runner") == 0 || strcmp(option, "--cpus-per-replicate") == 0) && i < (argc-1))
          {
-             cpuCoresPerReplicate=parseIntReciprocalArg(argv[++i]);
+             cpuCoresPerRunner=parseIntReciprocalArg(argv[++i]);
          }
+        else if (strncmp(option, "--cpus-per-runner=", strlen("--cpus-per-runner=")) == 0)
+        {
+            cpuCoresPerRunner=parseIntReciprocalArg(option+strlen("--cpus-per-runner="));
+        }
          else if (strncmp(option, "--cpus-per-replicate=", strlen("--cpus-per-replicate=")) == 0)
          {
-             cpuCoresPerReplicate=parseIntReciprocalArg(option+strlen("--cpus-per-replicate="));
+             cpuCoresPerRunner=parseIntReciprocalArg(option+strlen("--cpus-per-replicate="));
          }
 
-		#ifdef OPT_CUDA
-        //See if the user is trying to set the cuda devices.
+
+        //See if the user is trying to turn on cpu affinity.
+         else if ((strcmp(option, "-ca") == 0 || strcmp(option, "--cpu-affinity") == 0))
+         {
+             useCPUAffinity = true;
+         }
+
+         //See if the user is trying to set the gpu devices.
          else if ((strcmp(option, "-g") == 0 || strcmp(option, "--gpu") == 0) && i < (argc-1))
          {
-             parseIntListArg(cudaDevices, argv[++i]);
+             gpuDevices=atoi(argv[++i]);
          }
          else if (strncmp(option, "--gpu=", strlen("--gpu=")) == 0)
          {
-             parseIntListArg(cudaDevices, option+strlen("--gpu="));
+             gpuDevices=atoi(option+strlen("--gpu="));
          }
 
-        //See if the user is trying to set the number of cuda devices per replicate.
-         else if ((strcmp(option, "-gr") == 0 || strcmp(option, "--gpus-per-replicate") == 0) && i < (argc-1))
+         //See if the user is trying to set the number of gpu devices per runner.
+         else if ((strcmp(option, "-gr") == 0 || strcmp(option, "--gpus-per-runner") == 0 || strcmp(option, "--gpus-per-replicate") == 0) && i < (argc-1))
          {
-             cudaDevicesPerReplicate=parseIntReciprocalArg(argv[++i]);
+             gpuDevicesPerRunner=parseIntReciprocalArg(argv[++i]);
          }
-         else if (strncmp(option, "--gpus-per-replicate=", strlen("--gpus-per-replicate=")) == 0)
+         else if (strncmp(option, "--gpus-per-runner=", strlen("--gpus-per-runner=")) == 0)
          {
-             cudaDevicesPerReplicate=parseIntReciprocalArg(option+strlen("--gpus-per-replicate="));
+             gpuDevicesPerRunner=parseIntReciprocalArg(option+strlen("--gpus-per-runner="));
          }
-             
+        else if (strncmp(option, "--gpus-per-replicate=", strlen("--gpus-per-replicate=")) == 0)
+        {
+            gpuDevicesPerRunner=parseIntReciprocalArg(option+strlen("--gpus-per-replicate="));
+        }
+
         //See if the user is trying to turn off cuda capability printing.
          else if ((strcmp(option, "-nc") == 0 || strcmp(option, "--no-capabilities") == 0))
          {
-             shouldPrintCudaCapabilities = false;
+             shouldPrintGPUCapabilities = false;
          }
-		#endif
+
         //See if the user is trying to turn off cuda capability printing.
          else if ((strcmp(option, "-nr") == 0 || strcmp(option, "--no-reserve-core") == 0))
          {
         	 shouldReserveOutputCore = false;
          }
 
+        //See if the user is trying to use forward flux sampling.
+        else if ((strcmp(option, "-fflux") == 0 || strcmp(option, "--use-forward-flux") == 0))
+		{
+        	 ffluxFlag = true;
+        	 supervisorClassName = "lm::fflux::FFluxSupervisor";
+		}
+
+        //See if the user is trying to use forward flux sampling.
+        else if ((strcmp(option, "-intout") == 0 || strcmp(option, "--intermediate-output") == 0))
+        {
+             intermediateOutputFlag = true;
+        }
+
+        //See if the user is trying to do an input output test.
+        else if ((strcmp(option, "-ioflag") == 0 || strcmp(option, "--do-io-test") == 0))
+        {
+             ioTestFlag = true;
+        }
+
         //This must be an invalid option.
         else {
             throw lm::CommandLineArgumentException(option);
         }
     }
+
+    // Perform some validation.
+    if (outputWriterClassName == "lm::io::hdf5::Hdf5OutputWriter" && simulationOutputFilename == "")
+        simulationOutputFilename = simulationInputFilename;
+    else if (outputWriterClassName == "lm::io::hdf5::Hdf5OutputWriter" && simulationOutputFilename != simulationInputFilename)
+        throw lm::CommandLineArgumentException("cannot specify separate input and output files with the hdf5 format.");
+    if (outputWriterClassName == "lm::io::sfile::SFileOutputWriter" && simulationOutputFilename == "")
+        throw lm::CommandLineArgumentException("missing simulation output file.");
 }
 
-void parseIntListArg(vector<int> & list, char * arg)
+string parseOutputFormatArg(char* option)
+{
+    if (strcmp(option, "hdf5") == 0)
+        return "lm::io::hdf5::Hdf5OutputWriter";
+    else if (strcmp(option, "sfile") == 0)
+        return "lm::io::sfile::SFileOutputWriter";
+    else if (strcmp(option, "log") == 0)
+        return "lm::io::ConsoleOutputWriter";
+    else if (strcmp(option, "null") == 0)
+        return "lm::io::NullOutputWriter";
+    throw lm::CommandLineArgumentException(option);
+}
+
+void parseIntListArg(vector<uint64_t> & list, char* arg)
 {
     list.clear();
     char * argbuf = new char[strlen(arg)+1];
@@ -418,15 +527,15 @@ time_t parseTimeArg(char * arg)
     return time;
 }
 
-float parseIntReciprocalArg(char * arg)
+double parseIntReciprocalArg(char * arg)
 {
     if (strlen(arg) >= 3 && arg[0] == '1' && arg[1] == '/')
     {
-        return 1.0f/(float)atoi(arg+2);
+        return 1.0/(double)atoi(arg+2);
     }
     else
     {
-        return (float)atoi(arg);
+        return (double)atoi(arg);
     }
 }
 
@@ -435,38 +544,31 @@ float parseIntReciprocalArg(char * arg)
  */
 void printUsage(int argc, char** argv)
 {
-#ifndef OPT_MPI
-	std::cout << "Usage: lm (-h|--help)" << std::endl;
-	std::cout << "Usage: lm (-v|--version)" << std::endl;
-	std::cout << "Usage: lm [OPTIONS] (-l|--list-devices)" << std::endl;
-	std::cout << "Usage: lm [OPTIONS]" << std::endl;
-	std::cout << "Usage: lm [OPTIONS] (-s|--script) script_filename [(-sa|--script-args) script_arguments+]" << std::endl;
-    std::cout << "Usage: lm [OPTIONS] [SIM_OPTIONS] (-f|--file) simulation_filename " << std::endl;
-#else
     std::cout << "Usage: mpirun lm (-h|--help)" << std::endl;
     std::cout << "Usage: mpirun lm (-v|--version)" << std::endl;
     std::cout << "Usage: mpirun lm (-l|--list-devices)" << std::endl;
-    std::cout << "Usage: mpirun lm [OPTIONS] [SIM_OPTIONS] (-f|--file) simulation_filename" << std::endl;
-#endif
+    std::cout << "Usage: mpirun lm [OPTIONS] [SIM_OPTIONS] (-f|--file) input_filename" << std::endl;
     std::cout << std::endl;
     std::cout << "OPTIONS" << std::endl;
-#ifdef OPT_MPI
-    std::cout << "  -n node_file      --nodelist=node_file         A file containing the list of nodes on which to run, one line per available CPU core." << std::endl;
-#endif
-    std::cout << "  -c num_cpus       --cpu=num_cpus               The number of CPUs on which to execute (default all)." << std::endl;
-    std::cout << "  -cr num           --cpus-per-replicate=num     The number of CPUs (possibly fractional) to assign per replicate, e.g. \"2\", \"1/4\" (default 1)." << std::endl;
-#ifdef OPT_CUDA
-    std::cout << "  -g cuda_devices   --gpu=cuda_devices           A list of cuda devices on which to execute, e.g. \"0-3\", \"0,2\" (default 0)." << std::endl;
-    std::cout << "  -gr num           --gpus-per-replicate=num     The number of cuda devices (possibly fractional) to assign per replicate, e.g. \"2\", \"1/4\" (default 1)." << std::endl;
-    std::cout << "  -nc               --no-capabilities            Don't print the capabilities of the CUDA devices." << std::endl;
-#endif
-    std::cout << "  -nr               --no-reserve-core            Don't reserve a CPU core for the output thread." << std::endl;
+    std::cout << "  -fo output_file   --output-file=output_filename The file for the simulation output, if different than the input file. Required for sfile, invalid for hdf5." << std::endl;
+    std::cout << "  -ff format        --output-format=format        The file format for the simulation output. Valid values are \"hdf5\" (default)|\"sfile\"|\"log\"|\"null\"." << std::endl;
+    std::cout << "  -n node_file      --nodelist=node_file          A file containing the list of nodes on which to run, one line per available CPU core." << std::endl;
+    std::cout << "  -m map_file       --resource-map=map_file       A file containing the map of resources to use: hostname processor_id_list gpu_id_list." << std::endl;
+    std::cout << "  -c num_cpus       --cpu=num_cpus                The number of CPUs on which to execute (default all)." << std::endl;
+    std::cout << "  -cr num           --cpus-per-runner=num         The number of CPUs (possibly fractional) to assign per runner, e.g. \"2\", \"1/4\" (default 1)." << std::endl;
+    std::cout << "  -ca               --cpu-affinity                Turn on CPU affinity." << std::endl;
+    std::cout << "  -g num_gpus       --gpu=num_gpus                The number of GPUs on which to execute (default all)." << std::endl;
+    std::cout << "  -gr num           --gpus-per-runner=num         The number of GPUs (possibly fractional) to assign per runner, e.g. \"2\", \"1/4\" (default 1)." << std::endl;
+    std::cout << "  -nc               --no-capabilities             Don't print the capabilities of the GPU devices." << std::endl;
+    std::cout << "  -nr               --no-reserve-core             Don't reserve a CPU core for the output thread." << std::endl;
     std::cout << std::endl;
     std::cout << "SIM_OPTIONS" << std::endl;
-    std::cout << "  -r replicates     --replicates=replicates      A list of replicates to run, e.g. \"0-9\", \"0,11,21\" (default 0)." << std::endl;
-    std::cout << "  -sp               --spatially-resolved         The simulations should use the spatially resolved reaction model (default)." << std::endl;
-    std::cout << "  -ws               --well-stirred               The simulations should use the well-stirred reaction model." << std::endl;
-    std::cout << "  -sl solver        --solver=solver              The specific solver class to use for the simulations." << std::endl;
-    std::cout << "  -ck               --checkpoint=interval        Enable checkpointing with the given interval as hh:mm:ss (default 00:00:00 -- disabled)." << std::endl;
+    std::cout << "  -r replicates     --replicates=replicates       A list of replicates to run, e.g. \"0-9\", \"0,11,21\" (default 0)." << std::endl;
+    std::cout << "  -sp               --spatially-resolved          The simulations should use the spatially resolved reaction model (default)." << std::endl;
+    std::cout << "  -ws               --well-stirred                The simulations should use the well-stirred reaction model." << std::endl;
+    std::cout << "  -sl solver        --solver=solver               The specific solver class to use for the simulations." << std::endl;
+    std::cout << "  -ck               --checkpoint=interval         Enable checkpointing with the given interval as hh:mm:ss (default 00:00:00 -- disabled)." << std::endl;
+    std::cout << "  -fflux            --use-forward-flux			Enable forward flux sampling (default disabled)." << std::endl;
+    std::cout << "  -intout           --intermediate-output         More verbose output. Consists of intermediate values used to calculate standard output.";
 }
 

@@ -42,6 +42,7 @@
 
 #include <cstdio>
 #include <exception>
+#include <string>
 
 namespace lm
 {
@@ -73,6 +74,7 @@ class CommandLineArgumentException : public Exception
 public:
 	CommandLineArgumentException(const char* message) : Exception(message) {}
     CommandLineArgumentException(const char* message, const char* arg1) : Exception(message, arg1) {}
+//    virtual ~CommandLineArgumentException() throw() {}
 };
 
 class InvalidArgException : public Exception
@@ -83,14 +85,25 @@ public:
     InvalidArgException(const char* arg, const char* argMessage, const char * argMessageParameter) : Exception("Invalid argument", arg, argMessage, argMessageParameter) {}
     InvalidArgException(const char* arg, const char* argMessage, const int argMessageParameter) : Exception("Invalid argument", arg, argMessage, argMessageParameter) {}
     InvalidArgException(const char* arg, const char* argMessage, const int argMessageParameter1, const int argMessageParameter2) : Exception() {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s, %s (%d,%d)", "Invalid argument", arg, argMessage, argMessageParameter1, argMessageParameter2);}
+//    virtual ~InvalidArgException() throw() {}
 };
 
 class IOException : public Exception
 {
 public:
+    IOException(const std::string message) : Exception("IO exception", message.c_str()) {}
     IOException(const char* message, const char* arg) : Exception("IO exception", message, arg) {}
     IOException(const char* message, const int arg) : Exception("IO exception", message, arg) {}
+//    virtual ~IOException() throw() {}
 };
+
+class ZlibException : public Exception
+{
+public:
+    ZlibException(const int errorNumber) : Exception("ZLib exception", errorNumber) {}
+};
+
+#define ZLIB_EXCEPTION_CHECK(zlib_call) {int _zlib_ret_=zlib_call; if (_zlib_ret_ != Z_OK) throw ZlibException(_zlib_ret_);}
 
 }
 

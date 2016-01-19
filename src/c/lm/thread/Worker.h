@@ -48,10 +48,9 @@ namespace thread {
 class Worker : public Thread
 {
 public:
-    Worker() throw(PthreadException);
-    virtual ~Worker() throw(PthreadException);
+    Worker();
+    virtual ~Worker();
     virtual void abort() throw(PthreadException);
-    virtual void checkpoint() throw(PthreadException);
 
 protected:
     volatile bool aborted;

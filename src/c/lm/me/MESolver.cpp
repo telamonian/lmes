@@ -38,6 +38,7 @@
  */
 
 #include "lm/me/MESolver.h"
+#include "lm/io/SimulationParameters.pb.h"
 
 namespace lm {
 namespace me {
@@ -48,6 +49,39 @@ MESolver::MESolver()
 
 MESolver::~MESolver()
 {
+}
+
+void MESolver::setComputeResources(vector<int> cpus, vector<int> gpus)
+{
+    this->cpus = cpus;
+    this->gpus = gpus;
+}
+
+int MESolver::getSimultaneousTrajectories()
+{
+    return 1;
+}
+
+void MESolver::setSimulationParameters(const lm::io::SimulationParameters& simulationParameters)
+{
+    this->simulationParameters.clear();
+    for (int i=0; i<simulationParameters.key_size() && i<simulationParameters.value_size(); i++)
+        this->simulationParameters[simulationParameters.key(i)] = simulationParameters.value(i);
+}
+
+void MESolver::reset()
+{
+    communicator = NULL;
+    outputProcess = -1;
+    outputThread = -1;
+}
+
+void MESolver::setCommunicator(lm::message::Communicator* communicator, int outputProcess, int outputThread, int64_t workUnitId)
+{
+    this->communicator = communicator;
+    this->outputProcess = outputProcess;
+    this->outputThread = outputThread;
+    this->workUnitId = workUnitId;
 }
 
 }

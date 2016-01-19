@@ -43,6 +43,8 @@
 #include <mpi.h>
 #include "lm/Exceptions.h"
 
+#define MPI_EXCEPTION_CHECK(mpi_call) {int _mpi_ret_=mpi_call; if (_mpi_ret_ != MPI_SUCCESS) throw lm::MPIException(_mpi_ret_);}
+
 void MPIErrorHandler(MPI_Comm *, int *rc, ...);
 
 namespace lm {
@@ -58,7 +60,7 @@ public:
 };
 
 /**
- * Class for accessing CUDA functions.
+ * Class for accessing basic MPI functions and constants.
  */
 class MPI
 {
@@ -71,9 +73,29 @@ public:
     static const int MASTER=0;
 
     // MPI messages.
+    // replicate running messages
     static const int MSG_RUN_SIMULATION         = 1;
     static const int MSG_SIMULATION_FINISHED    = 2;
     static const int MSG_OUTPUT_DATA_STATIC     = 10;
+
+    // replicate initialization messages
+    static const int MSG_SIMULTANEOUS_REPLICATES = 26;
+    static const int MSG_MSG_SIZE = 27;
+    static const int MSG_SIMULATION_PARAMETERS = 28;
+    static const int MSG_REACTION_MODEL = 29;
+    static const int MSG_DIFFUSION_MODEL = 30;
+    static const int MSG_LATTICE = 31;
+    static const int MSG_LATTICE_SITES = 32;
+
+    // work unit related messages
+    static const int MSG_WORK_UNIT = 50;
+    static const int MSG_RESULT_UNIT = 51;
+
+    // thread waking messages
+    static const int MSG_WAKE_REPLICATE_SUPERVISOR    = 96;
+    static const int MSG_WAKE_REPLICATE_DISTRIBUTOR = 97;
+    static const int MSG_WAKE_DATA_OUTPUT_WORKER    = 98;
+
     static const int MSG_EXIT                   = 99;
 
     static const int OUTPUT_DATA_STATIC_MAX_SIZE    = 10*1024*1024;
@@ -81,11 +103,22 @@ public:
     static void init(int argc, char** argv) throw(MPIException);
     static void printCapabilities() throw(MPIException);
     static void finalize() throw(MPIException);
+
+    //send from master node to all nodes, one by one, including master. nodes should MPI_Recv plus the relevant tag to receive
+    static void MastBcastOut(void *buf, int count, MPI_Datatype datatype, int tag, MPI_Comm comm);
+
+    //receive from all nodes, one by one, including master. nodes should use MPI_Send plus the relevant tag to send
+    template <typename t>
+    static void MastBcastIn(t * recvtable, int recvcount, MPI_Datatype recvtype, int recvtag, MPI_Comm comm)
+    {
+        MPI_Status messageStatus;
+        for(int sendProc=0; sendProc < lm::MPI::worldSize; ++sendProc)
+        {
+            MPI_EXCEPTION_CHECK(MPI_Recv(recvtable + sendProc, recvcount, recvtype, sendProc, recvtag, comm, &messageStatus));
+        }
+    }
+
 };
 
 }
-
-#define MPI_EXCEPTION_CHECK(mpi_call) {int _mpi_ret_=mpi_call; if (_mpi_ret_ != MPI_SUCCESS) throw lm::MPIException(_mpi_ret_);}
-
-
 #endif /*LM_MPI_H_*/

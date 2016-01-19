@@ -1,50 +1,55 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2008 Luthey-Schulten Group, 
+ * Copyright 2008-2011 Luthey-Schulten Group,
+ * Copyright 2012-2014 Roberts Group,
  * All rights reserved.
- * 
+ *
  * Developed by: Luthey-Schulten Group
  * 			     University of Illinois at Urbana-Champaign
  * 			     http://www.scs.uiuc.edu/~schulten
- * 
+ *
+ * Developed by: Roberts Group
+ * 			     Johns Hopkins University
+ * 			     http://biophysics.jhu.edu/roberts/
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the Software), to deal with 
- * the Software without restriction, including without limitation the rights to 
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
- * of the Software, and to permit persons to whom the Software is furnished to 
+ * this software and associated documentation files (the Software), to deal with
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to
  * do so, subject to the following conditions:
- * 
- * - Redistributions of source code must retain the above copyright notice, 
+ *
+ * - Redistributions of source code must retain the above copyright notice,
  * this list of conditions and the following disclaimers.
- * 
- * - Redistributions in binary form must reproduce the above copyright notice, 
- * this list of conditions and the following disclaimers in the documentation 
+ *
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimers in the documentation
  * and/or other materials provided with the distribution.
- * 
+ *
  * - Neither the names of the Luthey-Schulten Group, University of Illinois at
- * Urbana-Champaign, nor the names of its contributors may be used to endorse or
- * promote products derived from this Software without specific prior written
- * permission.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL 
- * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR 
- * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+ * Urbana-Champaign, the Roberts Group, Johns Hopkins University, nor the names
+ * of its contributors may be used to endorse or promote products derived from
+ * this Software without specific prior written permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
-
 #ifndef LKMAIN_H_
 #define LKMAIN_H_
 
-#include <string>
-#include <list>
-#include <vector>
 #include <ctime>
-#include "lm/me/MESolverFactory.h"
+#include <list>
+#include <string>
+#include <vector>
+#include "lm/Types.h"
+#include "hrtime.h"
 
 using std::string;
 using std::vector;
@@ -55,14 +60,24 @@ using std::vector;
 extern string functionOption;
 
 /**
- * The name of the file containing the simulation.
+ * The name of the file containing the simulation input.
  */
-extern string simulationFilename;
+extern string simulationInputFilename;
+
+/**
+ * The name of the file containing the simulation output.
+ */
+extern string simulationOutputFilename;
+
+/**
+ * The output writer to use for the simulations.
+ */
+extern string outputWriterClassName;
 
 /**
  * The number of replicates of the simulation that should be performed.
  */
-extern vector<int> replicates;
+extern vector<uint64_t> replicates;
 
 /**
  * The interval at which the results file should be checkpointed.
@@ -75,9 +90,19 @@ extern time_t checkpointInterval;
 extern volatile bool globalAbort;
 
 /**
+ * The supervisor to use for the simulations.
+ */
+extern string supervisorClassName;
+
+/**
  * The solver to use for the simulations.
  */
-extern lm::me::MESolverFactory solverFactory;
+extern string solverClassName;
+
+/**
+ * The filename for the resource list.
+ */
+extern string resourceFilename;
 
 #ifdef OPT_MPI
 /**
@@ -89,36 +114,52 @@ extern string nodelistFilename;
 /**
  * The number of cpu cores assigned to each process.
  */
-extern int numberCpuCores;
+extern int cpuCores;
 
 /**
- * The number of cpu cores to assign per replicate (can be a fraction, e.g., 1/2, 1/4, etc).
+ * The number of cpu cores to assign per runner (can be a fraction, e.g., 1/2, 1/4, etc).
  */
-extern float cpuCoresPerReplicate;
-
-#ifdef OPT_CUDA
+extern double cpuCoresPerRunner;
 
 /**
- * The cuda devices assigned to each process.
+ * Whether we should use CPU affinity.
  */
-extern vector<int> cudaDevices;
+extern bool useCPUAffinity;
 
 /**
- * The number of cuda devices to assign per replicate (can be a fraction, e.g., 1/2, 1/4, etc).
+ * The number gpu devices assigned to each process.
  */
-extern float cudaDevicesPerReplicate;
+extern int gpuDevices;
+
+/**
+ * The number of gpu devices to assign per runner (can be a fraction, e.g., 1/2, 1/4, etc).
+ */
+extern double gpuDevicesPerRunner;
 
 /**
  * Whether we should print the cuda device capabilities on startup.
  */
-extern bool shouldPrintCudaCapabilities;
-
-#endif
+extern bool shouldPrintGPUCapabilities;
 
 /**
  * Whether we should reserve a core for the output thread.
  */
 extern bool shouldReserveOutputCore;
+
+/**
+ * Flag to indicate that forward flux simulation is in use.
+ */
+extern bool ffluxFlag;
+
+/*
+ * Flag to indicate that we want intermediate output related to simulation results
+ */
+extern bool intermediateOutputFlag;
+
+/*
+ * Flag to indicate that we're running a test of the program's input and output
+ */
+extern bool ioTestFlag;
 
 #ifdef OPT_PYTHON
 /**
@@ -151,9 +192,10 @@ extern vector<string> scriptArguments;
 void printCopyright(int argc, char** argv);
 int getPhysicalCpuCores();
 void parseArguments(int argc, char** argv);
-void parseIntListArg(vector<int> & list, char * option);
-time_t parseTimeArg(char * option);
-float parseIntReciprocalArg(char * option);
+string parseOutputFormatArg(char* option);
+void parseIntListArg(vector<uint64_t> & list, char* option);
+time_t parseTimeArg(char* option);
+double parseIntReciprocalArg(char* option);
 void printUsage(int argc, char** argv);
 void discoverEnvironment();
 void initPython();
