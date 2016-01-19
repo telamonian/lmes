@@ -1,0 +1,57 @@
+
+# Global fixed concentration. Uniform concentration. Average occupancy should be 1 particle. 
+rm -f rdme_bc_fixed_conc_global.lm && lm_sbml_import rdme_bc_fixed_conc_global.lm rdme_bc.sbml
+lm_setdm rdme_bc_fixed_conc_global.lm numberReactions=2 numberSpecies=3 numberSiteTypes=1 "latticeSize=[10,10,10]" latticeSpacing=1e-6 particlesPerSite=8 "DiffusionMatrix=[8.15e-14]" "ReactionLocationMatrix=[0]";
+lm_setp rdme_bc_fixed_conc_global.lm maxTime=1e4 writeInterval=1e2 latticeWriteInterval=1e3
+lm_setp rdme_bc_fixed_conc_global.lm boundaryConditions=FIXED_CONCENTRATION boundarySite=0 boundarySpecies=2 boundaryConcentration=1.66e-9
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f rdme_bc_fixed_conc_global.lm -c 2 -gr 1/8 -ca -ff log -sp |tee rdme_bc_fixed_conc_global.log
+
+# All axis individually at a fixed concentration. Uniform concentration. Average occupancy should be 1 particle. 
+rm -f rdme_bc_fixed_conc_all.lm && lm_sbml_import rdme_bc_fixed_conc_all.lm rdme_bc.sbml
+lm_setdm rdme_bc_fixed_conc_all.lm numberReactions=2 numberSpecies=3 numberSiteTypes=1 "latticeSize=[10,10,10]" latticeSpacing=1e-6 particlesPerSite=8 "DiffusionMatrix=[8.15e-14]" "ReactionLocationMatrix=[0]";
+lm_setp rdme_bc_fixed_conc_all.lm maxTime=1e4 writeInterval=1e-2 latticeWriteInterval=1e7
+lm_setp rdme_bc_fixed_conc_all.lm boundaryConditions=-x:FIXED_CONCENTRATION,+x:FIXED_CONCENTRATION,-y:FIXED_CONCENTRATION,+y:FIXED_CONCENTRATION,-z:FIXED_CONCENTRATION,+z:FIXED_CONCENTRATION boundarySite=0 boundarySpecies=2 boundaryConcentration=1.66e-9
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f rdme_bc_fixed_conc_all.lm -c 2 -gr 1/8 -ca -ff log -sp |tee rdme_bc_fixed_conc_all.log
+
+# Minus x at a fixed concentration plus x absorbing. Gradient along x axis. 
+rm -f rdme_bc_fixed_conc_x_minus.lm && lm_sbml_import rdme_bc_fixed_conc_x_minus.lm rdme_bc.sbml
+lm_setdm rdme_bc_fixed_conc_x_minus.lm numberReactions=2 numberSpecies=3 numberSiteTypes=1 "latticeSize=[10,10,10]" latticeSpacing=1e-6 particlesPerSite=8 "DiffusionMatrix=[8.15e-14]" "ReactionLocationMatrix=[0]";
+lm_setp rdme_bc_fixed_conc_x_minus.lm maxTime=1e4 writeInterval=1e2 latticeWriteInterval=1e3
+lm_setp rdme_bc_fixed_conc_x_minus.lm boundaryConditions=-x:FIXED_CONCENTRATION,+x:ABSORBING,y:PERIODIC,z:PERIODIC boundarySite=0 boundarySpecies=2 boundaryConcentration=3.32e-9
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f rdme_bc_fixed_conc_x_minus.lm -c 2 -gr 1/8 -ca -ff log -sp |tee rdme_bc_fixed_conc_x_minus.log
+
+# Plus x at a fixed concentration minus x absorbing. Gradient along x axis. 
+rm -f rdme_bc_fixed_conc_x_plus.lm && lm_sbml_import rdme_bc_fixed_conc_x_plus.lm rdme_bc.sbml
+lm_setdm rdme_bc_fixed_conc_x_plus.lm numberReactions=2 numberSpecies=3 numberSiteTypes=1 "latticeSize=[10,10,10]" latticeSpacing=1e-6 particlesPerSite=8 "DiffusionMatrix=[8.15e-14]" "ReactionLocationMatrix=[0]";
+lm_setp rdme_bc_fixed_conc_x_plus.lm maxTime=1e4 writeInterval=1e-2 latticeWriteInterval=1e7
+lm_setp rdme_bc_fixed_conc_x_plus.lm boundaryConditions=+x:FIXED_CONCENTRATION,-x:ABSORBING,y:PERIODIC,z:PERIODIC boundarySite=0 boundarySpecies=2 boundaryConcentration=3.32e-9
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f rdme_bc_fixed_conc_x_plus.lm -c 2 -gr 1/8 -ca -ff log -sp |tee rdme_bc_fixed_conc_x_plus.log
+
+# Minus y at a fixed concentration plus x absorbing. Gradient along y axis. 
+rm -f rdme_bc_fixed_conc_y_minus.lm && lm_sbml_import rdme_bc_fixed_conc_y_minus.lm rdme_bc.sbml
+lm_setdm rdme_bc_fixed_conc_y_minus.lm numberReactions=2 numberSpecies=3 numberSiteTypes=1 "latticeSize=[10,10,10]" latticeSpacing=1e-6 particlesPerSite=8 "DiffusionMatrix=[8.15e-14]" "ReactionLocationMatrix=[0]";
+lm_setp rdme_bc_fixed_conc_y_minus.lm maxTime=1e4 writeInterval=1e-2 latticeWriteInterval=1e7
+lm_setp rdme_bc_fixed_conc_y_minus.lm boundaryConditions=-y:FIXED_CONCENTRATION,+y:ABSORBING,x:PERIODIC,z:PERIODIC boundarySite=0 boundarySpecies=2 boundaryConcentration=3.32e-9
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f rdme_bc_fixed_conc_y_minus.lm -c 2 -gr 1/8 -ca -ff log -sp |tee rdme_bc_fixed_conc_y_minus.log
+
+# Plus y at a fixed concentration minus x absorbing. Gradient along y axis. 
+rm -f rdme_bc_fixed_conc_y_plus.lm && lm_sbml_import rdme_bc_fixed_conc_y_plus.lm rdme_bc.sbml
+lm_setdm rdme_bc_fixed_conc_y_plus.lm numberReactions=2 numberSpecies=3 numberSiteTypes=1 "latticeSize=[10,10,10]" latticeSpacing=1e-6 particlesPerSite=8 "DiffusionMatrix=[8.15e-14]" "ReactionLocationMatrix=[0]";
+lm_setp rdme_bc_fixed_conc_y_plus.lm maxTime=1e4 writeInterval=1e-2 latticeWriteInterval=1e7
+lm_setp rdme_bc_fixed_conc_y_plus.lm boundaryConditions=+y:FIXED_CONCENTRATION,-y:ABSORBING,x:PERIODIC,z:PERIODIC boundarySite=0 boundarySpecies=2 boundaryConcentration=3.32e-9
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f rdme_bc_fixed_conc_y_plus.lm -c 2 -gr 1/8 -ca -ff log -sp |tee rdme_bc_fixed_conc_y_plus.log
+
+# Minus z at a fixed concentration plus z absorbing. Gradient along z axis. 
+rm -f rdme_bc_fixed_conc_z_minus.lm && lm_sbml_import rdme_bc_fixed_conc_z_minus.lm rdme_bc.sbml
+lm_setdm rdme_bc_fixed_conc_z_minus.lm numberReactions=2 numberSpecies=3 numberSiteTypes=1 "latticeSize=[10,10,10]" latticeSpacing=1e-6 particlesPerSite=8 "DiffusionMatrix=[8.15e-14]" "ReactionLocationMatrix=[0]";
+lm_setp rdme_bc_fixed_conc_z_minus.lm maxTime=1e4 writeInterval=1e2 latticeWriteInterval=1e3
+lm_setp rdme_bc_fixed_conc_z_minus.lm boundaryConditions=-z:FIXED_CONCENTRATION,+z:ABSORBING,x:PERIODIC,y:PERIODIC boundarySite=0 boundarySpecies=2 boundaryConcentration=3.32e-9
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f rdme_bc_fixed_conc_z_minus.lm -c 2 -gr 1/8 -ca -ff log -sp |tee rdme_bc_fixed_conc_z_minus.log
+
+# Plus z at a fixed concentration minus z absorbing. Gradient along z axis. 
+rm -f rdme_bc_fixed_conc_z_plus.lm && lm_sbml_import rdme_bc_fixed_conc_z_plus.lm rdme_bc.sbml
+lm_setdm rdme_bc_fixed_conc_z_plus.lm numberReactions=2 numberSpecies=3 numberSiteTypes=1 "latticeSize=[10,10,10]" latticeSpacing=1e-6 particlesPerSite=8 "DiffusionMatrix=[8.15e-14]" "ReactionLocationMatrix=[0]";
+lm_setp rdme_bc_fixed_conc_z_plus.lm maxTime=1e4 writeInterval=1e-2 latticeWriteInterval=1e7
+lm_setp rdme_bc_fixed_conc_z_plus.lm boundaryConditions=+z:FIXED_CONCENTRATION,-z:ABSORBING,x:PERIODIC,y:PERIODIC boundarySite=0 boundarySpecies=2 boundaryConcentration=3.32e-9
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f rdme_bc_fixed_conc_z_plus.lm -c 2 -gr 1/8 -ca -ff log -sp |tee rdme_bc_fixed_conc_z_plus.log
+

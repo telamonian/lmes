@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sbml xmlns="http://www.sbml.org/sbml/level3/version1/core" level="3" version="1">
+    <model id="bimolecular" substanceUnits="item" timeUnits="second" volumeUnits="litre" extentUnits="item">
+        <listOfUnitDefinitions>
+            <unitDefinition id="per_second">
+                <listOfUnits>
+                    <unit kind="second" exponent="-1" scale="0" multiplier="1"/>
+                </listOfUnits>
+            </unitDefinition>
+            <unitDefinition id="per_item_per_second">
+                <listOfUnits>
+                    <unit kind="item"   exponent="-1" scale="0" multiplier="1"/>
+                    <unit kind="second" exponent="-1" scale="0" multiplier="1"/>
+                </listOfUnits>
+            </unitDefinition>
+            <unitDefinition id="per_molar_per_second">
+                <listOfUnits>
+                    <unit kind="litre"  exponent="1" scale="0" multiplier="1"/>
+                    <unit kind="mole"   exponent="-1" scale="0" multiplier="1"/>
+                    <unit kind="second" exponent="-1" scale="0" multiplier="1"/>
+                </listOfUnits>
+            </unitDefinition>
+        </listOfUnitDefinitions>
+        <listOfCompartments>
+            <compartment id="cell" size="6e-14" spatialDimensions="3" constant="true"/>
+        </listOfCompartments>
+        <listOfSpecies>
+            <species id="A" compartment="cell" initialAmount="20" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+            <species id="B" compartment="cell" initialAmount="20" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+            <species id="C" compartment="cell" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+        </listOfSpecies>
+        <listOfReactions>
+            <reaction id="Forward" reversible="false" fast="false">
+                <listOfReactants>
+                    <speciesReference species="A" stoichiometry="1" constant="true"/>
+                    <speciesReference species="B" stoichiometry="1" constant="true"/>
+                </listOfReactants>
+                <listOfProducts>
+                    <speciesReference species="C" stoichiometry="1" constant="true"/>
+                </listOfProducts>
+                <kineticLaw>
+                    <math xmlns="http://www.w3.org/1998/Math/MathML">
+                        <apply>
+                            <divide/>
+                            <apply>
+                                <times/>
+                                <ci> k1 </ci>
+                                <ci> A </ci>
+                                <ci> B </ci>
+                            </apply>
+                            <apply>
+                                <times/>
+                                <csymbol encoding="text" definitionURL="http://www.sbml.org/sbml/symbols/avogadro"/>
+                                <ci> cell </ci>
+                            </apply>
+                        </apply>
+                    </math>
+                    <listOfLocalParameters>
+                        <localParameter id="k1" value="1.07e9" units="per_molar_per_second"/>
+                    </listOfLocalParameters>
+                </kineticLaw>
+            </reaction>
+            <reaction id="Reverse" reversible="false" fast="false">
+                <listOfReactants>
+                    <speciesReference species="C" stoichiometry="1" constant="true"/>
+                </listOfReactants>
+                <listOfProducts>
+                    <speciesReference species="A" stoichiometry="1" constant="true"/>
+                    <speciesReference species="B" stoichiometry="1" constant="true"/>
+                </listOfProducts>
+                <kineticLaw>
+                    <math xmlns="http://www.w3.org/1998/Math/MathML">
+                        <apply>
+                            <times/>
+                            <ci> k2 </ci>
+                            <ci> C </ci>
+                        </apply>
+                    </math>
+                    <listOfLocalParameters>
+                        <localParameter id="k2" value="1e-1" units="per_second"/>
+                    </listOfLocalParameters>
+                </kineticLaw>
+            </reaction>
+        </listOfReactions>
+    </model>
+</sbml>

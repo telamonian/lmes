@@ -1,0 +1,33 @@
+
+# Barrier in middle x-y plane separating the two ends. Particles should mix.
+rm -f rdme_bc_periodic.lm && lm_sbml_import rdme_bc_periodic.lm rdme_bc.sbml
+lm_setdm rdme_bc_periodic.lm numberReactions=2 numberSpecies=3 numberSiteTypes=3 "latticeSize=[3,4,5]" latticeSpacing=1e-6 particlesPerSite=8 "DiffusionMatrix(:,:,0)=[8.15e-14,0,8.15e-14;0,0,0;8.15e-14,0,8.15e-14;]" "DiffusionMatrix(:,:,1)=[8.15e-14,0,8.15e-14;0,0,0;8.15e-14,0,8.15e-14;]" "DiffusionMatrix(:,:,2)=[0,0,0;0,8.15e-14,0;0,0,0]" "ReactionLocationMatrix=[0,1,0;0,1,0]";
+lm_setp rdme_bc_periodic.lm maxTime=1e5 writeInterval=1e2 latticeWriteInterval=1e4
+lm_setp rdme_bc_periodic.lm boundaryConditions=PERIODIC
+lm_python -s rdme_bc.py -sa rdme_bc_periodic.lm
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f rdme_bc_periodic.lm -c 2 -gr 1/8 -ca -ff log -sp |tee rdme_bc_periodic.log
+
+# Barrier in middle x-y plane separating the two ends. Particles should disappear.
+rm -f rdme_bc_absorbing.lm && lm_sbml_import rdme_bc_absorbing.lm rdme_bc.sbml
+lm_setdm rdme_bc_absorbing.lm numberReactions=2 numberSpecies=3 numberSiteTypes=3 "latticeSize=[3,4,5]" latticeSpacing=1e-6 particlesPerSite=8 "DiffusionMatrix(:,:,0)=[8.15e-14,0,8.15e-14;0,0,0;8.15e-14,0,8.15e-14;]" "DiffusionMatrix(:,:,1)=[8.15e-14,0,8.15e-14;0,0,0;8.15e-14,0,8.15e-14;]" "DiffusionMatrix(:,:,2)=[0,0,0;0,8.15e-14,0;0,0,0]" "ReactionLocationMatrix=[0,1,0;0,1,0]";
+lm_setp rdme_bc_absorbing.lm maxTime=1e5 writeInterval=1e2 latticeWriteInterval=1e4
+lm_setp rdme_bc_absorbing.lm boundaryConditions=ABSORBING
+lm_python -s rdme_bc.py -sa rdme_bc_absorbing.lm
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f rdme_bc_absorbing.lm -c 2 -gr 1/8 -ca -ff log -sp |tee rdme_bc_absorbing.log
+
+# Barrier in middle x-y plane separating the two ends. Particle should maintain segregation.
+rm -f rdme_bc_reflecting.lm && lm_sbml_import rdme_bc_reflecting.lm rdme_bc.sbml
+lm_setdm rdme_bc_reflecting.lm numberReactions=2 numberSpecies=3 numberSiteTypes=3 "latticeSize=[3,4,5]" latticeSpacing=1e-6 particlesPerSite=8 "DiffusionMatrix(:,:,0)=[8.15e-14,0,8.15e-14;0,0,0;8.15e-14,0,8.15e-14;]" "DiffusionMatrix(:,:,1)=[8.15e-14,0,8.15e-14;0,0,0;8.15e-14,0,8.15e-14;]" "DiffusionMatrix(:,:,2)=[0,0,0;0,8.15e-14,0;0,0,0]" "ReactionLocationMatrix=[0,1,0;0,1,0]";
+lm_setp rdme_bc_reflecting.lm maxTime=1e5 writeInterval=1e2 latticeWriteInterval=1e4
+lm_setp rdme_bc_reflecting.lm boundaryConditions=REFLECTING
+lm_python -s rdme_bc.py -sa rdme_bc_reflecting.lm
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f rdme_bc_reflecting.lm -c 2 -gr 1/8 -ca -ff log -sp |tee rdme_bc_reflecting.log
+
+# Barrier in middle x-y plane separating the two ends. Top particles should disappear, bottom particle remain.
+rm -f rdme_bc_axis1.lm && lm_sbml_import rdme_bc_axis1.lm rdme_bc.sbml
+lm_setdm rdme_bc_axis1.lm numberReactions=2 numberSpecies=3 numberSiteTypes=3 "latticeSize=[3,4,5]" latticeSpacing=1e-6 particlesPerSite=8 "DiffusionMatrix(:,:,0)=[8.15e-14,0,8.15e-14;0,0,0;8.15e-14,0,8.15e-14;]" "DiffusionMatrix(:,:,1)=[8.15e-14,0,8.15e-14;0,0,0;8.15e-14,0,8.15e-14;]" "DiffusionMatrix(:,:,2)=[0,0,0;0,8.15e-14,0;0,0,0]" "ReactionLocationMatrix=[0,1,0;0,1,0]";
+lm_setp rdme_bc_axis1.lm maxTime=1e5 writeInterval=1e2 latticeWriteInterval=1e4
+lm_setp rdme_bc_axis1.lm boundaryConditions=+z:REFLECTING,-z:ABSORBING,x:PERIODIC,y:PERIODIC
+lm_python -s rdme_bc.py -sa rdme_bc_axis1.lm
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f rdme_bc_axis1.lm -c 2 -gr 1/8 -ca -ff log -sp |tee rdme_bc_axis1.log
+
