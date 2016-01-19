@@ -52,9 +52,6 @@ find_package(libsbml)
 find_package(protobuf REQUIRED)
 find_package(HDF5 COMPONENTS C HL REQUIRED)
 find_package(ZLIB REQUIRED)
-find_package(PythonInterp)
-find_package(PythonLibs)
-#find_package(SWIG)
 #find_package(Boost)
 
 # automagic setup for linux, os X 10.7-8 (and lower?), and os X 10.9
@@ -79,6 +76,7 @@ ENDIF(DEFINED CUSTOM_CXX_FLAGS)
 
 # for now, no c++11 support
 #SET(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     add_definitions(-DLINUX)
 ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -98,20 +96,19 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 include_directories(src/c/
                     ${CMAKE_CURRENT_BINARY_DIR}/src/c/
                     src/cuda/
-                    src/cython/
                     src/protobuf/
-                    src/swig/
-                    ${libsbml_INCLUDE_DIRS} 
                     ${PROTOBUF_INCLUDE_DIRS}
                     ${HDF5_INCLUDE_DIRS}
                     ${ZLIB_INCLUDE_DIRS}
-                    ${MPI_C_INCLUDE_PATH}
-                    ${PYTHON_INCLUDE_DIRS})
+                    ${MPI_C_INCLUDE_PATH})
 
 if(BUILD_WITH_CUDA)
     include_directories(${CUDA_INCLUDE_DIRS})
 endif(BUILD_WITH_CUDA)
 
+if(libsbml_FOUND)
+    include_directories(${libsbml_INCLUDE_DIRS})
+endif(libsbml_FOUND)
 
 # add subdirectories
 add_subdirectory(src/c)
@@ -119,8 +116,7 @@ IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
     add_subdirectory(src/cuda)
     add_dependencies(lm_cuda_lib lm_c_lib)
 ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
-add_subdirectory(src/python) 
-add_subdirectory(gtest/c)
+#add_subdirectory(gtest/c)
 add_subdirectory(utils/c)
 add_dependencies(lm_sbml_import lm_c_lib)
 #set_source_files_properties(${proto_hdrs} PROPERTIES GENERATED TRUE)
@@ -152,31 +148,17 @@ IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
 ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional)) 
 
 target_link_libraries(lmes ${CMAKE_THREAD_LIBS_INIT}
-                         ${libsbml_LIBRARIES}
                          ${PROTOBUF_LIBRARIES}
                          ${HDF5_LIBRARIES}
                          ${HDF5_HL_LIBRARIES}
                          ${ZLIB_LIBRARIES}
                          ${MPI_C_LIBRARIES})
 
-install(TARGETS lmes DESTINATION bin)
+install(TARGETS lmes DESTINATION bin COMPONENT lmes)
 
-################
-#TARGET: cython
-################
-#set(CYTHON_OTHER_LIBS ${CMAKE_THREAD_LIBS_INIT}
-#                      ${libsbml_LIBRARIES}
-#                      ${PROTOBUF_LIBRARIES}
-#                      ${HDF5_LIBRARIES}
-#                      ${HDF5_HL_LIBRARIES}
-#                      ${ZLIB_LIBRARIES}
-#                      ${MPI_C_LIBRARIES}
-#                      ${PYTHON_LIBRARY_DIRS})
-
-
-add_custom_target(ReplicatePythonSourceTree ALL ${CMAKE_COMMAND} -P
-    ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/ReplicatePythonSourceTree.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-include(UseCython)  ###cython
-add_subdirectory(src/cython)                    
+add_custom_target(install-lmes
+    DEPENDS lmes
+    COMMAND
+        "${CMAKE_COMMAND}" -DCMAKE_INSTALL_COMPONENT=lmes
+        -P "${CMAKE_BINARY_DIR}/cmake_install.cmake"
+)
