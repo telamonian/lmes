@@ -5,10 +5,10 @@
 #and commit again
 
 # sets the prefix dir for installation of lm (ie running "make install")
-SET(CMAKE_INSTALL_PREFIX "/usr/local")
+SET(CMAKE_INSTALL_PREFIX "/Users/tel/usr/test")
 
 # USE_CUDA can be set to yes, no, or optional, in which case CUDA will be used if cmake can find it on your system
-SET(USE_CUDA yes)
+SET(USE_CUDA no)
 
 # Set the verbosity level, as described in the lm::Print function. 10 is complete, 4 is normal-ish
 SET(VERBOSITY_LEVEL 4)
@@ -24,7 +24,7 @@ SET(VERBOSITY_LEVEL 4)
 
 #SET(PROTOBUF_ROOT "/Users/eroberts/usr")
 
-SET(ENV{HDF5_ROOT} "/Users/tel/git/installer_lm/Cellar/hdf5/1.8.14/")
+#SET(ENV{HDF5_ROOT} "/Users/tel/git/installer_lm/Cellar/hdf5/1.8.14/")
 
 #SET(MPI_C_COMPILER "/Users/eroberts/usr/local/bin/mpicc")
 #SET(MPI_C_EXEC "/Users/eroberts/usr/local/bin/mpirun")
