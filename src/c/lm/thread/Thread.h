@@ -84,7 +84,6 @@ protected:
     pthread_t threadId;
     volatile bool running;
     int cpuNumber;
-    int returnValue;
 };
 
 }

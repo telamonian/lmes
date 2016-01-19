@@ -104,13 +104,6 @@ extern string solverClassName;
  */
 extern string resourceFilename;
 
-#ifdef OPT_MPI
-/**
- * The filename for the node list.
- */
-extern string nodelistFilename;
-#endif
-
 /**
  * The number of cpu cores assigned to each process.
  */
