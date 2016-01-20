@@ -167,10 +167,10 @@ int main(int argc, char** argv)
                 {
                     vector<double> values = parseValues(value);
                     if (values.size() != 3) throw lm::Exception("Three values must be specified for the lattice size.");
-                    model.set_lattice_x_size((uint)lround(values[0]));
-                    model.set_lattice_y_size((uint)lround(values[1]));
-                    model.set_lattice_z_size((uint)lround(values[2]));
-                    printf("%s=[%d,%d,%d]\n", key.c_str(), model.lattice_x_size(), model.lattice_y_size(), model.lattice_z_size());
+                    model.mutable_initial_lattice()->set_lattice_x_size((uint)lround(values[0]));
+                    model.mutable_initial_lattice()->set_lattice_y_size((uint)lround(values[1]));
+                    model.mutable_initial_lattice()->set_lattice_z_size((uint)lround(values[2]));
+                    printf("%s=[%d,%d,%d]\n", key.c_str(), model.initial_lattice().lattice_x_size(), model.initial_lattice().lattice_y_size(), model.initial_lattice().lattice_z_size());
                 }
                 else if (key == "latticeSpacing")
                 {
@@ -183,13 +183,13 @@ int main(int argc, char** argv)
                 {
                     vector<double> values = parseValues(value);
                     if (values.size() != 1) throw lm::Exception("A single value must be specified for number of particles per site.");
-                    model.set_particles_per_site((uint)lround(values[0]));
-                    printf("%s=%d\n", key.c_str(), model.particles_per_site());
+                    model.mutable_initial_lattice()->set_particles_per_site((uint)lround(values[0]));
+                    printf("%s=%d\n", key.c_str(), model.initial_lattice().particles_per_site());
                 }
                 else if (key == "DiffusionMatrix")
                 {
                     // Make sure the matrix is the correct size.
-                    for (uint i=model.diffusion_matrix_size(); i<model.number_species()*model.number_site_types()*model.number_site_types(); i++)
+                    for (int i=model.diffusion_matrix_size(); i<model.number_species()*model.number_site_types()*model.number_site_types(); i++)
                         model.add_diffusion_matrix(0.0);
 
                     // Parse the indices.
@@ -222,7 +222,7 @@ int main(int argc, char** argv)
                 else if (key == "ReactionLocationMatrix")
                 {
                     // Make sure the matrix is the correct size.
-                    for (uint i=model.reaction_location_matrix_size(); i<model.number_reactions()*model.number_site_types(); i++)
+                    for (int i=model.reaction_location_matrix_size(); i<model.number_reactions()*model.number_site_types(); i++)
                         model.add_reaction_location_matrix(0);
 
                     // Parse the indices.
@@ -266,11 +266,11 @@ int main(int argc, char** argv)
 		    file.setDiffusionModel(&model);
 
 		    // Create the lattice and lattice sites matrices.
-		    uint8_t * data =  new uint8_t[model.lattice_x_size()*model.lattice_y_size()*model.lattice_z_size()*model.particles_per_site()];
-		    for (uint i=0; i<model.lattice_x_size()*model.lattice_y_size()*model.lattice_z_size()*model.particles_per_site(); i++)
+            uint8_t * data =  new uint8_t[model.initial_lattice().lattice_x_size()*model.initial_lattice().lattice_y_size()*model.initial_lattice().lattice_z_size()*model.initial_lattice().particles_per_site()];
+            for (int i=0; i<model.initial_lattice().lattice_x_size()*model.initial_lattice().lattice_y_size()*model.initial_lattice().lattice_z_size()*model.initial_lattice().particles_per_site(); i++)
 		        data[i] = 0;
-		    uint8_t * sitesData =  new uint8_t[model.lattice_x_size()*model.lattice_y_size()*model.lattice_z_size()];
-		    for (uint i=0; i<model.lattice_x_size()*model.lattice_y_size()*model.lattice_z_size(); i++)
+            uint8_t * sitesData =  new uint8_t[model.initial_lattice().lattice_x_size()*model.initial_lattice().lattice_y_size()*model.initial_lattice().lattice_z_size()];
+            for (int i=0; i<model.initial_lattice().lattice_x_size()*model.initial_lattice().lattice_y_size()*model.initial_lattice().lattice_z_size(); i++)
 		    	sitesData[i] = 0;
 
 		    // If we can read the reaction model, fill in the initial species counts.
@@ -278,7 +278,7 @@ int main(int argc, char** argv)
 		    {
 				ReactionModel reactionModel;
 				file.getReactionModel(&reactionModel);
-				if (reactionModel.number_species() == model.number_species() && (uint)reactionModel.initial_species_count_size() == model.number_species())
+                if (reactionModel.number_species() == model.number_species() && reactionModel.initial_species_count_size() == model.number_species())
 				{
 					lm::rng::XORShift rng(0, 0);
 					for (uint i=0; i<reactionModel.number_species(); i++)
@@ -290,18 +290,18 @@ int main(int argc, char** argv)
 							numberAttempts++;
 							double randomValues[3];
 							rng.getRandomDoubles(randomValues, 3);
-							uint x = (uint)floor(randomValues[0]*(double)model.lattice_x_size());
-							if (x == model.lattice_x_size()) x--;
-							uint y = (uint)floor(randomValues[1]*(double)model.lattice_y_size());
-							if (y == model.lattice_y_size()) y--;
-							uint z = (uint)floor(randomValues[2]*(double)model.lattice_z_size());
-							if (z == model.lattice_z_size()) z--;
+                            uint x = (uint)floor(randomValues[0]*(double)model.initial_lattice().lattice_x_size());
+                            if (x == model.initial_lattice().lattice_x_size()) x--;
+                            uint y = (uint)floor(randomValues[1]*(double)model.initial_lattice().lattice_y_size());
+                            if (y == model.initial_lattice().lattice_y_size()) y--;
+                            uint z = (uint)floor(randomValues[2]*(double)model.initial_lattice().lattice_z_size());
+                            if (z == model.initial_lattice().lattice_z_size()) z--;
 
-							for (uint j=0; j<model.particles_per_site(); j++)
+                            for (int j=0; j<model.initial_lattice().particles_per_site(); j++)
 							{
-								uint index=x*model.lattice_y_size()*model.lattice_z_size()*model.particles_per_site() + \
-										   y*model.lattice_z_size()*model.particles_per_site() + \
-										   z*model.particles_per_site() + j;
+                                uint index=x*model.initial_lattice().lattice_y_size()*model.initial_lattice().lattice_z_size()*model.initial_lattice().particles_per_site() + \
+                                           y*model.initial_lattice().lattice_z_size()*model.initial_lattice().particles_per_site() + \
+                                           z*model.initial_lattice().particles_per_site() + j;
 								if (data[index] == 0)
 								{
 									data[index] = i+1;
@@ -316,7 +316,7 @@ int main(int argc, char** argv)
 		    }
 
 		    // Write the lattice to the file.
-		    file.setDiffusionModelLattice(&model, data, sitesData);
+            file.setDiffusionModel(&model, data, sitesData);
 		    delete[] data;
 		    delete[] sitesData;
 

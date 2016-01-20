@@ -174,7 +174,7 @@ bool ioTestFlag;
 
 void printCopyright(int argc, char** argv)
 {
-    std::cout << "Lattice Microbe v" << VERSION_NUM << " build " << BUILD_INFO << " in " << (sizeof(uintv_t)*8) << "-bit mode with options";
+    std::cout << "Lattice Microbe ES v" << VERSION_NUM << " build " << BUILD_INFO << " in " << (sizeof(uintv_t)*8) << "-bit mode with options";
 #ifdef OPT_CUDA
     std::cout << " CUDA";
 #endif
