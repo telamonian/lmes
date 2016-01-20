@@ -13,7 +13,7 @@ set(lm_utils_libs lm_c_lib
 add_custom_target(utils)
                                      
 file(GLOB lm_setdm_source lm_setdm.cpp util.cpp)
-add_executable(lm_setdm EXCLUDE_FROM_ALL ${lm_setdm_source})
+add_executable(lm_setdm ${lm_setdm_source})
 target_link_libraries(lm_setdm ${lm_utils_libs})
                                
 file(GLOB lm_setp_source lm_setp.cpp)
