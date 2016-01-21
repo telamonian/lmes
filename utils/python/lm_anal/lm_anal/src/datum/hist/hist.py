@@ -259,6 +259,9 @@ class Hist(Datum, DensePlottable):
 
         # if the edges arg is set, call this same function multiple times with different sliceStart,sliceEnd vals
         if edges is not None:
+            if sliceStart is not None or sliceEnd is not None:
+                raise ValueError('in .getKLDivergence(), if edges is not None both sliceStart and sliceEnd should be None. \
+                                  edges: %s, sliceStart: %s, sliceEnd: %s' % (edges, sliceStart, sliceEnd))
             divKwargs = {'absolute':absolute, 'normalize':normalize, 'edges':None, 'sliceCoordinate':sliceCoordinate,
                          'sliceDiagonal':sliceDiagonal, 'sliceInverse':sliceInverse}
             divs = []
@@ -308,14 +311,31 @@ class Hist(Datum, DensePlottable):
         retVal.h_cache_dirty = True
         return retVal
 
-    def getJSDivergence(self, other, absolute=False, normalize=True, sliceStart=None, sliceEnd=None, sliceCoordinate=True, sliceDiagonal=False, sliceInverse=True):
-        divKwargs = {'absolute':absolute, 'normalize':normalize, 'sliceStart':sliceStart, 'sliceEnd':sliceEnd,
+    def getJSDivergence(self, other, absolute=False, normalize=True, edges=None, sliceStart=None, sliceEnd=None, sliceCoordinate=True, sliceDiagonal=False, sliceInverse=True):
+        divKwargs = {'absolute':absolute, 'normalize':normalize, 'edges':edges, 'sliceStart':sliceStart, 'sliceEnd':sliceEnd,
                      'sliceCoordinate':sliceCoordinate, 'sliceDiagonal':sliceDiagonal, 'sliceInverse':sliceInverse}
-        return self.getJSDivergenceArr(other=other, **divKwargs).sum()
+        if edges is not None:
+            return [jsDivArr.h.sum() for jsDivArr in self.getJSDivergenceArr(other=other, **divKwargs)]
+        else:
+            return self.getJSDivergenceArr(other=other, **divKwargs).h.sum()
 
-    def getJSDivergenceArr(self, other, absolute=False, normalize=True, sliceStart=None, sliceEnd=None, sliceCoordinate=True, sliceDiagonal=False, sliceInverse=True):
-        divKwargs = {'absolute':absolute, 'normalize':normalize, 'sliceStart':sliceStart, 'sliceEnd':sliceEnd,
-                     'sliceCoordinate':sliceCoordinate, 'sliceDiagonal':sliceDiagonal, 'sliceInverse':sliceInverse}
+    def getJSDivergenceArr(self, other, absolute=False, normalize=True, edges=None, sliceStart=None, sliceEnd=None, sliceCoordinate=True, sliceDiagonal=False, sliceInverse=True):
+        divKwargs = {'absolute':absolute, 'normalize':normalize}
+
+        # if the edges arg is set, call this same function multiple times with different sliceStart,sliceEnd vals
+        if edges is not None:
+            if sliceStart is not None or sliceEnd is not None:
+                raise ValueError('in .getJSDivergenceArr(), if edges is not None both sliceStart and sliceEnd should be None. \
+                                  edges: %s, sliceStart: %s, sliceEnd: %s' % (edges, sliceStart, sliceEnd))
+            divKwargs.update({'edges':None, 'sliceCoordinate':sliceCoordinate,
+                              'sliceDiagonal':sliceDiagonal, 'sliceInverse':sliceInverse})
+            divs = []
+            for start,end in zip(edges[:-1], edges[1:]):
+                divs.append(self.getJSDivergenceArr(other, sliceStart=[start], sliceEnd=[end], **divKwargs))
+            return divs
+
+        divKwargs.update({'sliceStart':sliceStart, 'sliceEnd':sliceEnd, 'sliceCoordinate':sliceCoordinate,
+                          'sliceDiagonal':sliceDiagonal, 'sliceInverse':sliceInverse})
         selfHist,otherHist,effectiveShape = self.getDivergenceSetup(other=other, **divKwargs)
 
         meanHist = selfHist.combine(otherHist, scale=0.5)

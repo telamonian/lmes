@@ -16,16 +16,17 @@ datumTypeToHDF5TypeDict = {'alias': None,
 
 def GetHDF5SpecsFromDatumSpecs(datumSpecs, dct):
     newHdf5Specs = HDF5Specs()
-    for datumSpec in datumSpecs.values():
+    for datumSpec in datumSpecs.getReals():
         hdf5SpecKwargs = {}
         hdf5SpecKwargs['name'] = datumSpec['name']
         hdf5SpecKwargs['fullOnly'] = False
         hdf5SpecKwargs['subKey'] = CamelCaseUpper(datumSpec['name'])
         if datumSpec['type'] not in datumTypeToHDF5TypeDict:
-            raise KeyError('while trying to generate an HDF5Spec from a DatumSpec, the type of the DatumSpec could not be matched to any of the known HDF5Spec types.\n \
-                                datumSpec.map: %s, datumTypeToHDF5TypeDict: %s' % (datumSpec.map, datumTypeToHDF5TypeDict))
+            raise KeyError('while trying to generate an HDF5Spec from a DatumSpec, the type of the DatumSpec could not be matched to any of the known HDF5Spec types.\n\
+                            datumSpec.map: %s, datumTypeToHDF5TypeDict: %s' % (datumSpec.map, datumTypeToHDF5TypeDict))
         else:
             hdf5SpecKwargs['type'] = datumTypeToHDF5TypeDict[datumSpec['type']]
+
         newHdf5Specs[hdf5SpecKwargs['name']] = HDF5Spec(**hdf5SpecKwargs)
     return newHdf5Specs
 

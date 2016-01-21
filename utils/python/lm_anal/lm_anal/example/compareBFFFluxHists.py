@@ -265,7 +265,8 @@ class CompareBFFFluxHists(object):
         print(list(self.divDict.keys()))
         print(list(self.divDict.values()))
 
-    def genKLDivStdWithSplit(self, dim=1, nDownsampled=7, edges=None, sliceStart=None, sliceEnd=None, sliceCoordinate=True, sliceDiagonal=False, sliceInverse=True, theta='1.0e+00'):
+    def genDivStdWithSplit(self, divType='KL', dim=1, nDownsampled=7, edges=None, sliceStart=None, sliceEnd=None,
+                           sliceCoordinate=True, sliceDiagonal=False, sliceInverse=True, theta='1.0e+00'):
         startSampleN,endSampleN = (2,nDownsampled+1) if Depth(nDownsampled)==0 else (nDownsampled[0],nDownsampled[1]+1)
 
         nSamples = np.logspace(startSampleN, endSampleN, base=10, num=(endSampleN - startSampleN + 1), dtype=int)
@@ -280,31 +281,41 @@ class CompareBFFFluxHists(object):
         print(testHist.h.sum())
         print(sampleHist.h.sum())
 
+        if divType=='KL':
+            DivFunc = testHist.getKLDivergence
+        elif divType=='JS':
+            DivFunc = testHist.getJSDivergence
+
         self.opHistDownsamples = []
         for n in nSamples:
             with timewith('%.0e' % n) as tw:
                 self.opHistDownsamples.append(sampleHist.getDownsampleFromRaw(nSample=n))
         
-        sliceKwargs = {'coordinate':sliceCoordinate, 'diagonal':sliceDiagonal,
-                       'inverse':sliceInverse, 'normalize':'raw'}
+        divKwargs = {'edges':edges, 'sliceStart':sliceStart, 'sliceEnd':sliceEnd,
+                     'sliceCoordinate':sliceCoordinate, 'sliceDiagonal':sliceDiagonal, 'sliceInverse':sliceInverse}
+
+            # = {'coordinate':sliceCoordinate, 'diagonal':sliceDiagonal,
+            #            'inverse':sliceInverse, 'normalize':'raw'}
         self.divDict = OrderedDict()
         for name,hist in zip(chain(nSamples, ['original']), chain(self.opHistDownsamples, [sampleHist])):
-            if edges is not None:
-                divs = []
-                for start,end in zip(edges[:-1], edges[1:]):
-                    hist.maskSlice(start=[start], end=[end], **sliceKwargs)
-                    divs.append(testHist.getKLDivergence(hist, normalize='mask'))
-                self.divDict[name] = divs
-            else:
-                if sliceStart is not None and sliceEnd is not None:
-                    hist.maskSlice(start=sliceStart, end=sliceEnd, **sliceKwargs)
-                self.divDict[name] = testHist.getKLDivergence(hist, normalize='mask')
+            self.divDict[name] = DivFunc(hist, **divKwargs)
+            # if edges is not None:
+            #     divs = []
+            #     for start,end in zip(edges[:-1], edges[1:]):
+            #         hist.maskSlice(start=[start], end=[end], **sliceKwargs)
+            #         divs.append(testHist.getKLDivergence(hist, normalize='mask'))
+            #     self.divDict[name] = divs
+            # else:
+            #     if sliceStart is not None and sliceEnd is not None:
+            #         hist.maskSlice(start=sliceStart, end=sliceEnd, **sliceKwargs)
+            #     self.divDict[name] = testHist.getKLDivergence(hist, normalize='mask')
         print('divDict contents:')
         for item in self.divDict.items():
             try:
                 print('%.0e: %s' % item)
             except TypeError:
                 print('%s: %s' % item)
+        return self.divDict
 
     def genStdErrArrs(self, dim, simsKey):
         if dim==1:

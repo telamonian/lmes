@@ -8,12 +8,13 @@ __all__ = ['DatumSpecs']
 
 class DatumSpecs(Specs):
     aliasRe = re.compile('alias', re.IGNORECASE)
+    specType = DatumSpec
 
     def addAlias(self, name, targetName):
         self.addSpecList((DatumSpec(name=name, targetName=targetName, type='alias'),))
 
     def addFieldAlias(self, name, targetField, targetName):
-        self.addSpecList((DatumSpec(name=name, targetField=targetField, targetName=targetName, type='alias'),))
+        self.addSpecList((DatumSpec(name=name, targetField=targetField, targetName=targetName, type='fieldAlias'),))
 
     def getAliases(self):
         '''

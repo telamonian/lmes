@@ -18,6 +18,8 @@ class SpecsMetaclass(type):
         return super(SpecsMetaclass, cls).__new__(cls, clsname, bases, dct)
 
 class Specs(object, metaclass=SpecsMetaclass):
+    specType = None
+
     def __init__(self, *specList, **kwargs):
         # init attributes directly from args
         self.keywordValOverrideDict = kwargs['keywordValOverrideDict'] if 'keywordValOverrideDict' in kwargs else None
@@ -43,7 +45,15 @@ class Specs(object, metaclass=SpecsMetaclass):
     
     def __iter__(self):
         return self.map.__iter__()
-    
+
+    def add(self, *args, **kwargs):
+        specList = []
+        if kwargs:
+            specList.append(self.specType(**kwargs))
+        for specKwargs in args:
+            specList.append(self.specType(**specKwargs))
+        self.addSpecList(specList=specList)
+
     def addSpec(self, spec, specList=None):
         '''
         Even when adding a single spec, the whole specList may affect how its key is generated, so make a way to pass it in
