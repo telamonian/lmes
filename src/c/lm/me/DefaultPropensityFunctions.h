@@ -37,37 +37,27 @@
  * Author(s): Elijah Roberts
  */
 
-#ifndef CLASSFACTORY_H
-#define CLASSFACTORY_H
+#ifndef LM_ME_DEFAULTPROPENSITYFUNCTIONS_H
+#define LM_ME_DEFAULTPROPENSITYFUNCTIONS_H
 
-#include <list>
-#include <map>
-#include <string>
-
-using std::list;
-using std::map;
-using std::string;
+#include "lm/me/PropensityFunction.h"
 
 namespace lm {
+namespace me {
 
-typedef void* (*ClassAllocator)(void);
-
-class ClassFactory
+class DefaultPropensityFunctions : public PropensityFunctionCollection
 {
 public:
-    static ClassFactory& getInstance();
+    static bool registered;
+    static bool registerClass();
+    static void* allocateObject();
 
 public:
-    ClassFactory() {}
-    ~ClassFactory() {}
-    void registerClass(string baseClassName, string className, ClassAllocator allocator);
-    void* allocateObjectOfClass(string baseClassName, string className);
-    list<string> getAllSubclasses(string baseClassName);
-    void printRegisteredClasses();
-
-private:
-    map<string,map<string,ClassAllocator> > knownClasses;
+    DefaultPropensityFunctions();
+    virtual ~DefaultPropensityFunctions();
+    virtual list<PropensityDefinition> getPropensityDefinitions();
 };
 
 }
-#endif // CLASSFACTORY_H
+}
+#endif // LM_ME_DEFAULTPROPENSITYFUNCTIONS_H

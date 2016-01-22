@@ -37,37 +37,61 @@
  * Author(s): Elijah Roberts
  */
 
-#ifndef CLASSFACTORY_H
-#define CLASSFACTORY_H
-
-#include <list>
-#include <map>
-#include <string>
-
-using std::list;
-using std::map;
-using std::string;
+#include "lm/ClassFactory.h"
+#include "lm/me/DefaultPropensityFunctions.h"
+#include "lm/me/PropensityFunction.h"
 
 namespace lm {
+namespace me {
 
-typedef void* (*ClassAllocator)(void);
+bool DefaultPropensityFunctions::registered=DefaultPropensityFunctions::registerClass();
 
-class ClassFactory
+bool DefaultPropensityFunctions::registerClass()
 {
-public:
-    static ClassFactory& getInstance();
+    lm::ClassFactory::getInstance().registerClass("lm::me::PropensityFunctionCollection", "lm::me::DefaultPropensityFunctions", &DefaultPropensityFunctions::allocateObject);
+    return true;
+}
 
-public:
-    ClassFactory() {}
-    ~ClassFactory() {}
-    void registerClass(string baseClassName, string className, ClassAllocator allocator);
-    void* allocateObjectOfClass(string baseClassName, string className);
-    list<string> getAllSubclasses(string baseClassName);
-    void printRegisteredClasses();
+void* DefaultPropensityFunctions::allocateObject()
+{
+    return new DefaultPropensityFunctions();
+}
 
-private:
-    map<string,map<string,ClassAllocator> > knownClasses;
+DefaultPropensityFunctions::DefaultPropensityFunctions()
+{
+}
+
+DefaultPropensityFunctions::~DefaultPropensityFunctions()
+{
+}
+
+struct FirstOrderPropensity : public PropensityFunctionArgs
+{
+    FirstOrderPropensity(uint si, double k) :si(si),k(k) {}
+    uint si;
+    double k;
+
+    static PropensityFunctionArgs* init(int reactionIndex, ndarray<int> S, ndarray<uint> D, ndarray<double>K)
+    {
+        return new FirstOrderPropensity(0,0.0);
+    }
+
+    static double calculate(double time, int* speciesCounts, PropensityFunctionArgs* pargs)
+    {
+        FirstOrderPropensity * args = (FirstOrderPropensity*)pargs;
+        return args->k * (double)speciesCounts[args->si];
+    }
 };
 
+
+list<PropensityDefinition> DefaultPropensityFunctions::getPropensityDefinitions()
+{
+    list<PropensityDefinition> defs;
+    defs.push_back(PropensityDefinition(1, &FirstOrderPropensity::calculate, &FirstOrderPropensity::init));
+    return defs;
 }
-#endif // CLASSFACTORY_H
+
+
+
+}
+}

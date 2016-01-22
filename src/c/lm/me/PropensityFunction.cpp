@@ -38,70 +38,58 @@
  */
 
 #include <list>
-#include <map>
 #include <string>
 
 #include "lm/ClassFactory.h"
-#include "lm/Exceptions.h"
 #include "lm/Print.h"
+#include "lm/Types.h"
+#include "lm/me/PropensityFunction.h"
 
 using std::list;
-using std::map;
-using std::string;
+using std::list;
 
 namespace lm {
+namespace me {
 
-ClassFactory& ClassFactory::getInstance()
+PropensityFunctions::PropensityFunctions()
 {
-    static ClassFactory instance;
-    return instance;
-}
+    // Get a list of all the propensity function collections that have been registered.
+    list<string> collections = lm::ClassFactory::getInstance().getAllSubclasses("lm::me::PropensityFunctionCollection");
 
-void ClassFactory::registerClass(string baseClassName, string className, ClassAllocator allocator)
-{
-    knownClasses[baseClassName][className] = allocator;
-}
-
-void* ClassFactory::allocateObjectOfClass(string baseClassName, string className)
-{
-    if (knownClasses.count(baseClassName) == 1)
+    for (list<string>::iterator it=collections.begin(); it != collections.end(); it++)
     {
-        map<string,ClassAllocator> knownSubclasses = knownClasses[baseClassName];
-        if (knownSubclasses.count(className) == 1)
+        PropensityFunctionCollection* c = (PropensityFunctionCollection*)lm::ClassFactory::getInstance().allocateObjectOfClass("lm::me::PropensityFunctionCollection", *it);
+        list<PropensityDefinition> defs = c->getPropensityDefinitions();
+        for (list<PropensityDefinition>::iterator it2=defs.begin(); it2 != defs.end(); it2++)
         {
-            ClassAllocator allocator = knownSubclasses[className];
-            return allocator();
-        }
-    }
-    throw Exception("No allocator found for baseclass/class", baseClassName.c_str(), className.c_str());
-}
-
-list<string> ClassFactory::getAllSubclasses(string baseClassName)
-{
-    list<string> subclasses;
-    if (knownClasses.count(baseClassName) == 1)
-    {
-        map<string,ClassAllocator> knownSubclasses = knownClasses[baseClassName];
-        for (map<string,ClassAllocator>::iterator it=knownSubclasses.begin(); it != knownSubclasses.end(); it++)
-        {
-            subclasses.push_back(it->first.c_str());
-        }
-    }
-    return subclasses;
-}
-
-void ClassFactory::printRegisteredClasses()
-{
-    Print::printf(Print::DEBUG, "The following dynamic classes were registered during initialization:");
-    for (map<string,map<string,ClassAllocator> >::iterator it=knownClasses.begin(); it != knownClasses.end(); it++)
-    {
-        string baseClassName = it->first.c_str();
-        map<string,ClassAllocator> knownSubclasses = it->second;
-        for (map<string,ClassAllocator>::iterator it2=knownSubclasses.begin(); it2 != knownSubclasses.end(); it2++)
-        {
-            Print::printf(Print::DEBUG, "%s -> %s", baseClassName.c_str(), it2->first.c_str());
+            if (functions.count(it2->id) == 0)
+                functions[it2->id] = *it2;
+            else
+                Print::printf(Print::WARNING, "Multiple definitions for propensity function %d, ignoring function from class %s", it2->id, it->c_str());
         }
     }
 }
 
+PropensityFunctions::~PropensityFunctions()
+{
+}
+
+PropensityFunction PropensityFunctions::getPropensityFunction(int id)
+{
+}
+
+PropensityFunctionArgs* PropensityFunctions::getPropensityFunctionArgs(int id, int reactionIndex, ndarray<int> S, ndarray<uint> D, ndarray<double>K)
+{
+
+}
+
+PropensityFunctionCollection::PropensityFunctionCollection()
+{
+}
+
+PropensityFunctionCollection::~PropensityFunctionCollection()
+{
+}
+
+}
 }

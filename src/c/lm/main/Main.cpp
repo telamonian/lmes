@@ -229,6 +229,12 @@ void parseArguments(int argc, char** argv)
             break;
         }
 
+        //See if the user is trying to perfrom a debug test.
+        else if (strcmp(option, "--debug") == 0) {
+            functionOption = "debug";
+            break;
+        }
+
         //See if the user is trying to execute an iotest.
         else if (strcmp(option, "-iotest") == 0 || strcmp(option, "--input-ouput-test") == 0)
         {
@@ -571,4 +577,46 @@ void printUsage(int argc, char** argv)
     std::cout << "  -fflux            --use-forward-flux			Enable forward flux sampling (default disabled)." << std::endl;
     std::cout << "  -intout           --intermediate-output         More verbose output. Consists of intermediate values used to calculate standard output.";
 }
+
+#include "lm/Types.h"
+#include "lm/me/PropensityFunction.h"
+
+void mainDebug(int argc, char** argv)
+{
+    tuple<uint> t1(3, (uint[]){1,2,3});
+    tuple<uint> t2(3, (uint[]){4,5,6});
+    t1.print("\n");
+    t2.print("\n");
+    t2=t1;
+    t1.print("\n");
+    t2.print("\n");
+
+    tuple<uint> t3(10,5,3);
+    ndarray<double> a1(t3);
+    a1.print("\n");
+    for (uint r=0; r<a1.shape[0]; r++)
+        for (uint c=0; c<a1.shape[1]; c++)
+            a1[tuple<uint>(r,c,0)] = (double)r;
+    a1.print("\n");
+    for (uint r=0; r<a1.shape[0]; r++)
+        for (uint c=0; c<a1.shape[1]; c++)
+            a1[tuple<uint>(r,c,0)] = (double)c;
+    a1.print("\n");
+    for (uint r=0; r<a1.shape[0]; r++)
+        for (uint c=0; c<a1.shape[1]; c++)
+            for (uint d=0; d<a1.shape[2]; d++)
+                a1[tuple<uint>(r,c,d)] = (double)d;
+    a1.print("\n");
+
+    lm::me::PropensityFunctions f;
+}
+
+
+
+
+
+
+
+
+
 

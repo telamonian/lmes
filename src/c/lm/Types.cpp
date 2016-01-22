@@ -37,37 +37,9 @@
  * Author(s): Elijah Roberts
  */
 
-#ifndef CLASSFACTORY_H
-#define CLASSFACTORY_H
+#include "lm/Types.h"
 
-#include <list>
-#include <map>
-#include <string>
+template<> const char* printf_format_string<int>() {return "%d";}
+template<> const char* printf_format_string<uint>() {return "%u";}
+template<> const char* printf_format_string<double>() {return "%f";}
 
-using std::list;
-using std::map;
-using std::string;
-
-namespace lm {
-
-typedef void* (*ClassAllocator)(void);
-
-class ClassFactory
-{
-public:
-    static ClassFactory& getInstance();
-
-public:
-    ClassFactory() {}
-    ~ClassFactory() {}
-    void registerClass(string baseClassName, string className, ClassAllocator allocator);
-    void* allocateObjectOfClass(string baseClassName, string className);
-    list<string> getAllSubclasses(string baseClassName);
-    void printRegisteredClasses();
-
-private:
-    map<string,map<string,ClassAllocator> > knownClasses;
-};
-
-}
-#endif // CLASSFACTORY_H
