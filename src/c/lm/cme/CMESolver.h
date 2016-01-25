@@ -53,18 +53,20 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "lm/Math.h"
+#include "lm/Types.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/ParameterValues.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/main/Main.h"
-#include "lm/Math.h"
 #include "lm/me/MESolver.h"
+#include "lm/me/PropensityFunctions.h"
 #include "lm/oparam/OParams.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/thread/Thread.h"
 #include "lm/tiling/Tilings.h"
-#include "lm/Types.h"
 
 using std::list;
 using std::map;
@@ -85,149 +87,6 @@ namespace cme {
 class CMESolver : public MESolver
 {
 protected:
-    struct PropensityArgs
-    {
-        virtual ~PropensityArgs() {}
-    };
-
-    struct ZerothOrderTimeDependentPropensityArgs : public PropensityArgs
-    {
-        static const uint REACTION_TYPE = 1000;
-        ZerothOrderTimeDependentPropensityArgs(double ki, double kf, double tf) :ki(ki),kf(kf),tf(tf) {}
-        double ki, kf, tf;
-    };
-    struct FirstOrderTimeDependentPropensityArgs : public PropensityArgs
-    {
-        static const uint REACTION_TYPE = 1001;
-        FirstOrderTimeDependentPropensityArgs(uint si, double ki, double kf, double tf) :si(si),ki(ki),kf(kf),tf(tf) {}
-        uint si;
-        double ki, kf, tf;
-    };
-    struct SecondOrderPropensityArgs : public PropensityArgs
-    {
-        static const uint REACTION_TYPE = 2;
-        SecondOrderPropensityArgs(uint s1i, uint s2i, double k) :s1i(s1i),s2i(s2i),k(k) {}
-        uint s1i, s2i;
-        double k;
-    };
-    struct SecondOrderSelfPropensityArgs : public PropensityArgs
-    {
-        static const uint REACTION_TYPE = 3;
-        SecondOrderSelfPropensityArgs(uint si, double k) :si(si),k(k) {}
-        uint si;
-        double k;
-    };
-    struct KHillPropensityArgs : public PropensityArgs
-    {
-        static const uint REACTION_TYPE = 4;
-        KHillPropensityArgs(uint si, double k0, double dk, double I50, double Iex, double h) :si(si),k(k0+(dk/(pow(I50/Iex,h)+1))) {}
-        uint si;
-        double k;
-    };
-    struct KHillTransportPropensityArgs : public PropensityArgs
-    {
-        static const uint REACTION_TYPE = 5;
-        KHillTransportPropensityArgs(uint si, uint xi, double k0, double dk, double I50, double Iex, double kit, double kid, double KM, double h, double V) :si(si),xi(xi),k0(k0),dk(dk),IRh(pow(I50/Iex,h)),ITp(kit/(kid*(Iex+KM)*NA*V)),h(h) {}
-        uint si;
-        uint xi;
-        double k0;
-        double dk;
-        double IRh;
-        double ITp;
-        double h;
-    };
-    struct ZerothOrderHeavisidePropensityArgs : public PropensityArgs
-    {
-        static const uint REACTION_TYPE = 6;
-        ZerothOrderHeavisidePropensityArgs(uint xi, uint x0, double k0, double k1) :xi(xi),x0(x0),k0(k0),k1(k1) {}
-        uint xi;
-        uint x0;
-        double k0;
-        double k1;
-    };
-    struct ZerothOrderNegativeFeedbackPropensityArgs : public PropensityArgs
-    {
-        static const uint REACTION_TYPE = 8006;
-        ZerothOrderNegativeFeedbackPropensityArgs(uint xi, double X, double beta, double h) :xi(xi),X(X),beta(beta),h(h) {}
-        uint xi;
-        double X;
-        double beta;
-        double h;
-    };
-    struct ZerothOrderKHillPropensityArgs : public PropensityArgs
-    {
-        static const uint REACTION_TYPE = 8007;
-        ZerothOrderKHillPropensityArgs(uint xi, uint x0, double k0, double k1, double h) :xi(xi),x0h(pow(x0,h)),k0(k0),dk(k1-k0),h(h) {}
-        uint xi;
-        double x0h;
-        double k0;
-        double dk;
-        double h;
-    };
-    struct FirstOrderKHillPropensityArgs : public PropensityArgs
-    {
-        static const uint REACTION_TYPE = 8013;
-        FirstOrderKHillPropensityArgs(uint si, uint xi, uint x0, double k0, double k1, double h) :si(si),xi(xi),x0h(pow(x0,h)),k0(k0),dk(k1-k0),h(h) {}
-        uint si;
-        uint xi;
-        double x0h;
-        double k0;
-        double dk;
-        double h;
-    };
-    struct SecondOrderKHillPropensityArgs : public PropensityArgs
-    {
-        static const uint REACTION_TYPE = 8014;
-        SecondOrderKHillPropensityArgs(uint s1i, uint s2i, uint xi, uint x0, double k0, double k1, double h) :s1i(s1i),s2i(s2i),xi(xi),x0h(pow(x0,h)),k0(k0),dk(k1-k0),h(h) {}
-        uint s1i;
-        uint s2i;
-        uint xi;
-        double x0h;
-        double k0;
-        double dk;
-        double h;
-    };
-    struct PDFitnessPropensityArgs : public PropensityArgs
-    {
-        static const uint COOPERATE_REACTION_TYPE = 8008;
-        static const uint DEFECT_REACTION_TYPE = 8009;
-        static const uint REFLECTING_COOPERATE_REACTION_TYPE = 8010;
-        static const uint REFLECTING_DEFECT_REACTION_TYPE = 8011;
-        PDFitnessPropensityArgs(uint ni, double N, double c, double b, double s, double lowBoundary=0.0, double highBoundary=0.0) :ni(ni),N(N),c(c),b(b),s(s),lowBoundary((uint)round(lowBoundary)),highBoundary((uint)round(highBoundary)) {}
-        uint ni;
-        double N;
-        double c;
-        double b;
-        double s;
-        uint lowBoundary;
-        uint highBoundary;
-    };
-    struct MichaelisMentenPropensityArgs : public PropensityArgs
-    {
-        static const uint REACTION_TYPE = 8012;
-        MichaelisMentenPropensityArgs(uint si, double k0, double v0, double O) :si(si),k(k0*O),v(v0*O) {}
-        uint si;
-        double k;
-        double v;
-    };
-    struct ZerothOrderNegativeFeedbackExtrinsicPropensityArgs : public PropensityArgs
-    {
-        static const uint REACTION_TYPE = 8019;
-        ZerothOrderNegativeFeedbackExtrinsicPropensityArgs(uint xi, double k, double beta, int mi, double invM) :xi(xi),k(k),beta(beta),mi(mi),invM(invM) {}
-        uint xi;
-        double k;
-        double beta;
-        uint mi;
-        double invM;
-    };
-    struct EffectiveBurstPropensityArgs : public PropensityArgs
-    {
-        static const uint REACTION_TYPE = 8100;
-        EffectiveBurstPropensityArgs(uint ni, int N, double b) :ni(ni),N(N),b(b) {}
-        uint ni;
-        int N;
-        double b;
-    };
 
     class SpeciesLimit
     {
@@ -325,24 +184,6 @@ protected:
     virtual void setSpeciesIncreasingLimit(lm::io::TrajectoryLimits::Arrangement, int opID, double limit);
     virtual void addToParameterTrackingList(pair<string,double*>parameter);
 
-    static double zerothOrderTimeDependentPropensity(double time, uint * speciesCounts, void * pargs);
-    static double firstOrderTimeDependentPropensity(double time, uint * speciesCounts, void * pargs);
-    static double secondOrderPropensity(double time, uint * speciesCounts, void * pargs);
-    static double secondOrderSelfPropensity(double time, uint * speciesCounts, void * pargs);
-    static double kHillPropensity(double time, uint * speciesCounts, void * pargs);
-    static double kHillTransportPropensity(double time, uint * speciesCounts, void * pargs);
-    static double zerothOrderHeavisidePropensity(double time, uint * speciesCounts, void * pargs);
-    static double zerothOrderNegativeFeedbackPropensity(double time, uint * speciesCounts, void * pargs);
-    static double zerothOrderKHillPropensity(double time, uint * speciesCounts, void * pargs);
-    static double firstOrderKHillPropensity(double time, uint * speciesCounts, void * pargs);
-    static double secondOrderKHillPropensity(double time, uint * speciesCounts, void * pargs);
-    static double pdCooperateFitnessPropensity(double time, uint * speciesCounts, void * pargs);
-    static double pdDefectFitnessPropensity(double time, uint * speciesCounts, void * pargs);
-    static double pdReflectingCooperateFitnessPropensity(double time, uint * speciesCounts, void * pargs);
-    static double pdReflectingDefectFitnessPropensity(double time, uint * speciesCounts, void * pargs);
-    static double MichaelisMentenPropensity(double time, uint * speciesCounts, void * pargs);
-    static double effectiveBurstPropensity(double time, uint * speciesCounts, void * pargs);
-
     //virtual double recordParameters(double nextRecordTime, double recordInterval, double simulationTime);
     //virtual void queueRecordedParameters(bool flush=false);
 
@@ -357,9 +198,9 @@ protected:
         if (ffluxFlag==true)
         {
             // Update the order parameters, if required
-            for (int i=0; i<oparams->size(); i++)
+            for (uint i=0; i<oparams->size(); i++)
             {
-                (*oparams)[i]->calc(speciesCounts);
+                (*oparams)[i]->calc((uint*)speciesCounts);
             }
             // Update the tilingHists, if required
 //            for (int i=0;i<numberTilingHists;i++)
@@ -456,18 +297,17 @@ protected:
         ReactionModel(uint numberSpecies, uint numberReactions);
         virtual ~ReactionModel();
         virtual void build(const uint numberSpecies, const uint numberReactions, const uint * initialSpeciesCounts, const uint * reactionTypesA, const double * k, const int * S, const uint * D, const uint kCols=1);
-        virtual void setPropensityFunction(uint reaction, double (*propensityFunction)(double time, uint * speciesCounts, void * args), void * propensityFunctionArg);
+        virtual void setPropensityFunction(uint reaction, lm::me::PropensityFunction* propensityFunction, lm::me::PropensityFunctionCalculator propensityFunctionCalculator);
 
         uint numberSpecies;
         uint numberSpeciesToTrack;
         uint numberReactions;
-        uint* initialSpeciesCounts;                    // numberSpecies
+        int* initialSpeciesCounts;                     // numberSpecies
         uint* reactionTypes;                           // numberReactions
-        int* S;                                        // Stoichiometric matrix: numberSpecies x numberReactions
-        uint* D;                                       // Dependency matrix: numberSpecies x numberReactions
-        void** propensityFunctions;
-        void** propensityFunctionArgs;
-        list<PropensityArgs*> propensityArgs;
+        ndarray<int> S;                                // Stoichiometric matrix: numberSpecies x numberReactions
+        ndarray<uint> D;                               // Dependency matrix: numberSpecies x numberReactions
+        lm::me::PropensityFunction** propensityFunctionArgs;
+        lm::me::PropensityFunctionCalculator* propensityFunctionCalculators;
 
         // Dependency tables.
         uint* numberDependentSpecies;
@@ -488,8 +328,8 @@ protected:
     // The current state.
     uint64_t trajectoryId;
     bool trajectoryStarted;
-    uint* speciesCounts;
-    uint* previousSpeciesCounts;
+    int* speciesCounts;
+    int* previousSpeciesCounts;
     double time;
     double timeStep;    // stores last time step calculated, used for building histogram
     int numberFptTrackedSpecies;

@@ -37,15 +37,15 @@
  * Author(s): Elijah Roberts
  */
 
-#ifndef LM_ME_DEFAULTPROPENSITYFUNCTIONS_H
-#define LM_ME_DEFAULTPROPENSITYFUNCTIONS_H
+#ifndef LM_CME_CMEPROPENSITYFUNCTIONS_H
+#define LM_CME_CMEPROPENSITYFUNCTIONS_H
 
-#include "lm/me/PropensityFunction.h"
+#include "lm/me/PropensityFunctions.h"
 
 namespace lm {
-namespace me {
+namespace cme {
 
-class DefaultPropensityFunctions : public PropensityFunctionCollection
+class CMEPropensityFunctions : public lm::me::PropensityFunctionCollection
 {
 public:
     static bool registered;
@@ -53,11 +53,11 @@ public:
     static void* allocateObject();
 
 public:
-    DefaultPropensityFunctions();
-    virtual ~DefaultPropensityFunctions();
-    virtual list<PropensityDefinition> getPropensityDefinitions();
+    CMEPropensityFunctions();
+    virtual ~CMEPropensityFunctions();
+    virtual list<lm::me::PropensityFunctionDefinition> getPropensityFunctionDefinitions();
 };
 
 }
 }
-#endif // LM_ME_DEFAULTPROPENSITYFUNCTIONS_H
+#endif // LM_ME_CMEPROPENSITYFUNCTIONS_H

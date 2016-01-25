@@ -38,20 +38,56 @@
  */
 
 #include <list>
+#include <map>
 #include <string>
+#include <vector>
 
 #include "lm/ClassFactory.h"
 #include "lm/Print.h"
 #include "lm/Types.h"
-#include "lm/me/PropensityFunction.h"
+#include "lm/me/PropensityFunctions.h"
 
 using std::list;
-using std::list;
+using std::map;
+using std::string;
+using std::vector;
 
 namespace lm {
 namespace me {
 
-PropensityFunctions::PropensityFunctions()
+
+utuple PropensityFunction::getDependencies(const uint reactionIndex, const ndarray<uint> D)
+{
+    if (reactionIndex >= D.shape[1]) throw InvalidArgException("reactionIndex", "index was too large for the dependency matrix",reactionIndex,D.shape[1]);
+
+    // Find the dependencies.
+    vector<uint> dependencyVector;
+    for (uint i=0; i<D.shape[0]; i++)
+    {
+        uint d = D[utuple(i,reactionIndex)];
+        if (d != 0)
+            dependencyVector.push_back(i);
+    }
+    return utuple(dependencyVector);
+}
+
+utuple PropensityFunction::getSpecificDependencies(const uint reactionIndex, const ndarray<uint> D, const uint dependencyType)
+{
+    if (reactionIndex >= D.shape[1]) throw InvalidArgException("reactionIndex", "index was too large for the dependency matrix",reactionIndex,D.shape[1]);
+
+    // Find the dependencies.
+    vector<uint> dependencyVector;
+    for (uint i=0; i<D.shape[0]; i++)
+    {
+        uint d = D[utuple(i,reactionIndex)];
+        if (d == dependencyType)
+            dependencyVector.push_back(i);
+    }
+    return utuple(dependencyVector);
+}
+
+
+PropensityFunctionFactory::PropensityFunctionFactory()
 {
     // Get a list of all the propensity function collections that have been registered.
     list<string> collections = lm::ClassFactory::getInstance().getAllSubclasses("lm::me::PropensityFunctionCollection");
@@ -59,8 +95,8 @@ PropensityFunctions::PropensityFunctions()
     for (list<string>::iterator it=collections.begin(); it != collections.end(); it++)
     {
         PropensityFunctionCollection* c = (PropensityFunctionCollection*)lm::ClassFactory::getInstance().allocateObjectOfClass("lm::me::PropensityFunctionCollection", *it);
-        list<PropensityDefinition> defs = c->getPropensityDefinitions();
-        for (list<PropensityDefinition>::iterator it2=defs.begin(); it2 != defs.end(); it2++)
+        list<PropensityFunctionDefinition> defs = c->getPropensityFunctionDefinitions();
+        for (list<PropensityFunctionDefinition>::iterator it2=defs.begin(); it2 != defs.end(); it2++)
         {
             if (functions.count(it2->id) == 0)
                 functions[it2->id] = *it2;
@@ -70,25 +106,25 @@ PropensityFunctions::PropensityFunctions()
     }
 }
 
-PropensityFunctions::~PropensityFunctions()
+PropensityFunctionFactory::~PropensityFunctionFactory()
 {
 }
 
-PropensityFunction PropensityFunctions::getPropensityFunction(int id)
-{
-    if (functions.count(id) == 1)
-        return functions[id].function;
-    throw lm::InvalidArgException("id","the specified propensity function was not found",id);
-}
-
-PropensityFunctionArgs* PropensityFunctions::getPropensityFunctionArgs(int id, int reactionIndex, ndarray<int> S, ndarray<uint> D, tuple<double>K)
+PropensityFunction* PropensityFunctionFactory::createPropensityFunction(uint id, int reactionIndex, ndarray<int> S, ndarray<uint> D, tuple<double>K)
 {
     if (functions.count(id) == 0)
-        throw lm::InvalidArgException("id","the specified propensity function arg creator was not found",id);
-
-    PropensityFunctionArgsCreator f = functions[id].argsCreator;
+        throw lm::InvalidArgException("id","the specified propensity function was not found",id);
+    PropensityFunctionCreator f = functions[id].create;
     return (*f)(reactionIndex, S, D, K);
 }
+
+PropensityFunctionCalculator PropensityFunctionFactory::getPropensityFunctionCalculator(uint id)
+{
+    if (functions.count(id) == 0)
+        throw lm::InvalidArgException("id","the specified propensity function was not found",id);
+    return functions[id].calculate;
+}
+
 
 PropensityFunctionCollection::PropensityFunctionCollection()
 {

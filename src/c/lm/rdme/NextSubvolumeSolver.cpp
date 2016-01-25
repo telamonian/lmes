@@ -133,7 +133,7 @@ void NextSubvolumeSolver::setDiffusionModel(const lm::io::DiffusionModel& dm)
     latticeSpacingSquared = diffusionModel->latticeSpacing*diffusionModel->latticeSpacing;
 
     // Update the propensity functions with the subvolume size.
-    for (uint i=0; i<reactionModel->numberReactions; i++)
+    /*DEBUGfor (uint i=0; i<reactionModel->numberReactions; i++)
     {
         if (reactionModel->reactionTypes[i] == SecondOrderPropensityArgs::REACTION_TYPE)
         {
@@ -145,6 +145,8 @@ void NextSubvolumeSolver::setDiffusionModel(const lm::io::DiffusionModel& dm)
             ((SecondOrderSelfPropensityArgs *)reactionModel->propensityFunctionArgs[i])->k *= numberSubvolumes;
         }
     }
+    */
+    throw Exception("Second order fix not yet implemented.");
 }
 
 long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
@@ -155,7 +157,7 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
 
     // Make sure we have propensity functions for every reaction.
     for (uint i=0; i<reactionModel->numberReactions; i++)
-        if (reactionModel->propensityFunctions[i] == NULL || reactionModel->propensityFunctionArgs[i] == NULL)
+        if (reactionModel->propensityFunctionCalculators[i] == NULL || reactionModel->propensityFunctionArgs[i] == NULL)
             throw Exception("A reaction did not have a valid propensity function",i);
 
     // Make sure that the initial species counts agree with the actual number in the lattice.
@@ -513,8 +515,7 @@ double NextSubvolumeSolver::calculateSubvolumePropensity(si_time_t time, lattice
         // Make sure the reaction can occur in this subvolume.
         if (diffusionModel->RL[i*diffusionModel->numberSiteTypes+sourceSite])
     	{
-            double (*propensityFunction)(double, uint *, void *) = (double (*)(double, uint*, void*))reactionModel->propensityFunctions[i];
-            subvolumePropensity += (*propensityFunction)(time, (uint*)currentSubvolumeSpeciesCounts, reactionModel->propensityFunctionArgs[i]);
+            subvolumePropensity += (*reactionModel->propensityFunctionCalculators[i])(time, currentSubvolumeSpeciesCounts, reactionModel->propensityFunctionArgs[i]);
         }
     }
 
@@ -643,8 +644,7 @@ int NextSubvolumeSolver::performSubvolumeEvent(si_time_t time, lattice_size_t su
     	// Make sure the reaction can occur in this subvolume.
         if (diffusionModel->RL[r*diffusionModel->numberSiteTypes+sourceSite])
     	{
-            double (*propensityFunction)(double, uint *, void *) = (double (*)(double, uint*, void*))reactionModel->propensityFunctions[r];
-            double reactionPropensity = (*propensityFunction)(time, (uint*)currentSubvolumeSpeciesCounts, reactionModel->propensityFunctionArgs[r]);
+            double reactionPropensity = (*reactionModel->propensityFunctionCalculators[r])(time, currentSubvolumeSpeciesCounts, reactionModel->propensityFunctionArgs[r]);
 			if (reactionPropensity > 0.0)
 			{
 				if (rngValue <= reactionPropensity)

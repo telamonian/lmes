@@ -138,7 +138,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
 
     // Make sure we have propensity functions for every reaction.
     for (uint i=0; i<reactionModel->numberReactions; i++)
-        if (reactionModel->propensityFunctions[i] == NULL || reactionModel->propensityFunctionArgs[i] == NULL)
+        if (reactionModel->propensityFunctionCalculators[i] == NULL || reactionModel->propensityFunctionArgs[i] == NULL)
             throw Exception("A reaction did not have a valid propensity function",i);
 
     // Create local copies of the data for efficiency.
@@ -364,8 +364,7 @@ void GillespieDSolver::updateAllPropensities(double time)
     // Update the propensities.
     for (uint i=0; i<reactionModel->numberReactions; i++)
     {
-        double (*propensityFunction)(double, uint * speciesCounts, void * args) = (double (*)(double, uint*, void*))reactionModel->propensityFunctions[i];
-        propensities[i] = (*propensityFunction)(time, speciesCounts, reactionModel->propensityFunctionArgs[i]);
+        propensities[i] = (*(reactionModel->propensityFunctionCalculators[i]))(time, speciesCounts, reactionModel->propensityFunctionArgs[i]);
     }
 }
 
@@ -375,8 +374,7 @@ void GillespieDSolver::updatePropensities(double time, uint sourceReaction)
     for (uint i=0; i<reactionModel->numberDependentReactions[sourceReaction]; i++)
     {
         uint r = reactionModel->dependentReactions[sourceReaction][i];
-        double (*propensityFunction)(double, uint * speciesCounts, void * args) = (double (*)(double, uint*, void*))reactionModel->propensityFunctions[r];
-        propensities[r] = (*propensityFunction)(time, speciesCounts, reactionModel->propensityFunctionArgs[r]);
+        propensities[r] = (*reactionModel->propensityFunctionCalculators[r])(time, speciesCounts, reactionModel->propensityFunctionArgs[r]);
     }
 }
 

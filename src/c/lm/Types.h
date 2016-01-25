@@ -46,11 +46,17 @@
 #define TYPES_H_
 
 #include <cstring>
+#include <list>
+#include <vector>
+
 #include <stdint.h>
 #define __STDC_LIMIT_MACROS
 #include <limits.h>
 
 #include "lm/Exceptions.h"
+
+using std::list;
+using std::vector;
 
 /*
  * General types.
@@ -79,21 +85,27 @@ template <typename T> const char* printf_format_string();
 
 template <typename T> struct tuple
 {
+    tuple(const tuple& t)
+    :len(t.len),values(new T[t.len]())
+    {
+        memcpy(values, t.values, sizeof(T)*len);
+    }
+
     tuple(T v1)
-    :len(1),values(new T[len])
+    :len(1),values(new T[len]())
     {
         values[0] = v1;
     }
 
     tuple(T v1, T v2)
-    :len(2),values(new T[len])
+    :len(2),values(new T[len]())
     {
         values[0] = v1;
         values[1] = v2;
     }
 
     tuple(T v1, T v2, T v3)
-    :len(3),values(new T[len])
+    :len(3),values(new T[len]())
     {
         values[0] = v1;
         values[1] = v2;
@@ -101,15 +113,24 @@ template <typename T> struct tuple
     }
 
     tuple(uint len, const T* valuesArray)
-    :len(len),values(new T[len])
+    :len(len),values(new T[len]())
     {
         memcpy(values, valuesArray, sizeof(T)*len);
     }
 
-    tuple(const tuple& t)
-    :len(t.len),values(new T[t.len])
+    tuple(list<T> valuesList)
+    :len(valuesList.size()),values(new T[len]())
     {
-        memcpy(values, t.values, sizeof(T)*len);
+        int i=0;
+        for (typename std::list<T>::iterator it = valuesList.begin(); it != valuesList.end(); it++)
+            values[i++] = *it;
+    }
+
+    tuple(vector<T> valuesVector)
+    :len(valuesVector.size()),values(new T[len]())
+    {
+        for (uint i=0; i<valuesVector.size(); i++)
+            values[i] = valuesVector[i];
     }
 
     tuple& operator=(const tuple& t)
@@ -166,18 +187,18 @@ template <typename T> struct ndarray
 {
 public:
     ndarray(tuple<uint> shape)
-    :shape(shape),numberValues(calculateNumberValues(shape)),values(new T[numberValues])
+    :shape(shape),numberValues(calculateNumberValues(shape)),values(new T[numberValues]())
     {
     }
 
     ndarray(tuple<uint> shape, T* valuesArray)
-    :shape(shape),numberValues(calculateNumberValues(shape)),values(new T[numberValues])
+    :shape(shape),numberValues(calculateNumberValues(shape)),values(new T[numberValues]())
     {
         memcpy(values, valuesArray, sizeof(T)*numberValues);
     }
 
     ndarray(const ndarray& a)
-    :shape(a.shape),numberValues(a.numberValues),values(new T[numberValues])
+    :shape(a.shape),numberValues(a.numberValues),values(new T[numberValues]())
     {
         memcpy(values, a.values, sizeof(T)*numberValues);
     }

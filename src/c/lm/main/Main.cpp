@@ -579,7 +579,7 @@ void printUsage(int argc, char** argv)
 }
 
 #include "lm/Types.h"
-#include "lm/me/PropensityFunction.h"
+#include "lm/me/PropensityFunctions.h"
 
 void mainDebug(int argc, char** argv)
 {
@@ -594,25 +594,30 @@ void mainDebug(int argc, char** argv)
             a1[tuple<uint>(r,c,0)] = (double)c;
     a1.print("\n");
 
-    int id=1;
-    uint reactionIndex=0;
     uint numberSpecies=2;
     uint numberReactions=1;
     ndarray<int> S(tuple<uint>(numberSpecies,numberReactions));
     ndarray<uint> D(tuple<uint>(numberSpecies,numberReactions));
 
+    uint reactionIndex=0;
     S[tuple<uint>(0,reactionIndex)] = -1;
     S[tuple<uint>(1,reactionIndex)] = 1;
     D[tuple<uint>(0,reactionIndex)] = 1;
+    D[tuple<uint>(1,reactionIndex)] = 0;
     tuple<double> k(0.1);
+    S.print("\n");
+    D.print("\n");
+    k.print("\n");
 
-    lm::me::PropensityFunctions fs;
-    PropensityFunction f = fs.getPropensityFunction(id);
-    PropensityFunctionArgs* args = fs.getPropensityFunctionArgs(id, reactionIndex, S, D, k);
+    int id=1;
+    lm::me::PropensityFunctionFactory fs;
+    lm::me::PropensityFunction* args = fs.createPropensityFunction(id, reactionIndex, S, D, k);
+    lm::me::PropensityFunctionCalculator f = fs.getPropensityFunctionCalculator(id);
 
     double time=10.0;
     int* speciesCounts=new int[numberSpecies];
-    speciesCounts[0] = 3;
+    speciesCounts[0] = 10;
+    speciesCounts[1] = 3;
     double a = (*f)(time, speciesCounts, args);
     S.print("\n");
     D.print("\n");

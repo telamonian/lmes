@@ -40,52 +40,59 @@
 #ifndef LM_ME_PROPENSITYFUNCTION_H
 #define LM_ME_PROPENSITYFUNCTION_H
 
+#include <limits>
 #include <list>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "lm/Types.h"
 
 using std::list;
 using std::map;
 using std::string;
+using std::vector;
 
-
-// The base class for any propensity function arguemnts.
-struct PropensityFunctionArgs
-{
-    virtual ~PropensityFunctionArgs() {}
-};
-
-// The type definition for a propensity function.
-typedef double (*PropensityFunction)(const double time, const int* speciesCounts, const PropensityFunctionArgs* args);
-
-// The type definition for a function to create the propensity argumnets.
-typedef PropensityFunctionArgs* (*PropensityFunctionArgsCreator)(const int reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k);
 
 namespace lm {
 namespace me {
 
-struct PropensityDefinition
+// The base class for any propensity function.
+struct PropensityFunction
 {
-    PropensityDefinition():id(-1),function(NULL),argsCreator(NULL){}
-    PropensityDefinition(int id, PropensityFunction function, PropensityFunctionArgsCreator argsCreator):id(id),function(function),argsCreator(argsCreator){}
-    PropensityDefinition(const PropensityDefinition& p):id(p.id),function(p.function),argsCreator(p.argsCreator){}
-    int id;
-    PropensityFunction function;
-    PropensityFunctionArgsCreator argsCreator;
+    static utuple getDependencies(const uint reactionIndex, const ndarray<uint> D);
+    static utuple getSpecificDependencies(const uint reactionIndex, const ndarray<uint> D, const uint dependencyType);
+
+    PropensityFunction() {}
+    virtual ~PropensityFunction() {}
 };
 
-class PropensityFunctions
+// The type definition for a function to create the propensity function.
+typedef PropensityFunction* (*PropensityFunctionCreator)(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k);
+
+// The type definition for a propensity function.
+typedef double (*PropensityFunctionCalculator)(const double time, const int* speciesCounts, const PropensityFunction* args);
+
+struct PropensityFunctionDefinition
+{
+    PropensityFunctionDefinition():id(std::numeric_limits<uint>::max()),create(NULL),calculate(NULL){}
+    PropensityFunctionDefinition(uint id, PropensityFunctionCreator create, PropensityFunctionCalculator calculate):id(id),create(create),calculate(calculate){}
+    PropensityFunctionDefinition(const PropensityFunctionDefinition& p):id(p.id),create(p.create),calculate(p.calculate){}
+    uint id;
+    PropensityFunctionCreator create;
+    PropensityFunctionCalculator calculate;
+};
+
+class PropensityFunctionFactory
 {
 public:
-    PropensityFunctions();
-    ~PropensityFunctions();
-    PropensityFunction getPropensityFunction(int id);
-    PropensityFunctionArgs* getPropensityFunctionArgs(int id, int reactionIndex, ndarray<int> S, ndarray<uint> D, tuple<double>k);
+    PropensityFunctionFactory();
+    ~PropensityFunctionFactory();
+    PropensityFunction* createPropensityFunction(uint id, int reactionIndex, ndarray<int> S, ndarray<uint> D, tuple<double>k);
+    PropensityFunctionCalculator getPropensityFunctionCalculator(uint id);
 
 private:
-    map<int,PropensityDefinition> functions;
+    map<uint,PropensityFunctionDefinition> functions;
 };
 
 // The base class for a collection of propensity functions.
@@ -94,7 +101,7 @@ class PropensityFunctionCollection
 public:
     PropensityFunctionCollection();
     virtual ~PropensityFunctionCollection();
-    virtual list<PropensityDefinition> getPropensityDefinitions()=0;
+    virtual list<PropensityFunctionDefinition> getPropensityFunctionDefinitions()=0;
 };
 
 }
