@@ -45,6 +45,7 @@
 #ifndef TYPES_H_
 #define TYPES_H_
 
+#include <cstring>
 #include <stdint.h>
 #define __STDC_LIMIT_MACROS
 #include <limits.h>
@@ -124,18 +125,23 @@ template <typename T> struct tuple
         if (values != NULL) delete[] values; values = NULL;
     }
 
-    const T operator[](int index) const
+    const T operator[](const int index) const
     {
-        return (*this)[(uint)index];
+        return get((const uint)index);
     }
 
-    const T operator[](uint index) const
+    const T operator[](const uint index) const
+    {
+        return get(index);
+    }
+
+    const T get(const uint index) const
     {
         if (index < len) return values[index];
         else throw lm::InvalidArgException("index","index exceeded length of tuple");
     }
 
-    void print(const char* suffix="")
+    void print(const char* suffix="") const
     {
         printf("(");
         for (uint i=0; i<len; i++)
@@ -153,6 +159,8 @@ public:
 private:
     T* values;
 };
+
+typedef tuple<uint> utuple;
 
 template <typename T> struct ndarray
 {
@@ -187,7 +195,17 @@ public:
         if (values != NULL) delete[] values; values = NULL;
     }
 
-    T& operator[](tuple<uint> index)
+    const T& operator[](const tuple<uint>& index) const
+    {
+        return const_cast<ndarray *>(this)->get(index);
+    }
+
+    T& operator[](const tuple<uint>& index)
+    {
+        return get(index);
+    }
+
+    T& get(const tuple<uint>& index)
     {
         // Validate the index.
         if (index.len != shape.len) throw lm::InvalidArgException("index","index tuple must have the same length as the shape of an ndarray");
@@ -208,7 +226,7 @@ public:
         return values[position];
     }
 
-    void print(const char* suffix="")
+    void print(const char* suffix="") const
     {
         if (shape.len == 1)
         {
@@ -223,12 +241,12 @@ public:
         else if (shape.len == 2)
         {
             printf("[[");
-            for (uint j=0; j<shape[1]; j++)
+            for (uint i=0; i<shape[0]; i++)
             {
-                if (j > 0) printf (" [");
-                for (uint i=0; i<shape[0]; i++)
+                if (i > 0) printf (" [");
+                for (uint j=0; j<shape[1]; j++)
                 {
-                    if (i > 0) printf (",");
+                    if (j > 0) printf (",");
                     printf(printf_format_string<T>(),(*this)[tuple<uint>(i,j)]);
                 }
                 printf("]\n");
@@ -241,12 +259,12 @@ public:
             for (uint k=0; k<shape[2]; k++)
             {
                 if (k > 0) printf (" [[");
-                for (uint j=0; j<shape[1]; j++)
+                for (uint i=0; i<shape[0]; i++)
                 {
-                    if (j > 0) printf ("  [");
-                    for (uint i=0; i<shape[0]; i++)
+                    if (i > 0) printf ("  [");
+                    for (uint j=0; j<shape[1]; j++)
                     {
-                        if (i > 0) printf (",");
+                        if (j > 0) printf (",");
                         printf(printf_format_string<T>(),(*this)[tuple<uint>(i,j,k)]);
                     }
                     printf("]\n");

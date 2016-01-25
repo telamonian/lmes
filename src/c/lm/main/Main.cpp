@@ -583,17 +583,8 @@ void printUsage(int argc, char** argv)
 
 void mainDebug(int argc, char** argv)
 {
-    tuple<uint> t1(3, (uint[]){1,2,3});
-    tuple<uint> t2(3, (uint[]){4,5,6});
-    t1.print("\n");
-    t2.print("\n");
-    t2=t1;
-    t1.print("\n");
-    t2.print("\n");
-
-    tuple<uint> t3(10,5,3);
+    tuple<uint> t3(10,5,1);
     ndarray<double> a1(t3);
-    a1.print("\n");
     for (uint r=0; r<a1.shape[0]; r++)
         for (uint c=0; c<a1.shape[1]; c++)
             a1[tuple<uint>(r,c,0)] = (double)r;
@@ -602,13 +593,33 @@ void mainDebug(int argc, char** argv)
         for (uint c=0; c<a1.shape[1]; c++)
             a1[tuple<uint>(r,c,0)] = (double)c;
     a1.print("\n");
-    for (uint r=0; r<a1.shape[0]; r++)
-        for (uint c=0; c<a1.shape[1]; c++)
-            for (uint d=0; d<a1.shape[2]; d++)
-                a1[tuple<uint>(r,c,d)] = (double)d;
-    a1.print("\n");
 
-    lm::me::PropensityFunctions f;
+    int id=1;
+    uint reactionIndex=0;
+    uint numberSpecies=2;
+    uint numberReactions=1;
+    ndarray<int> S(tuple<uint>(numberSpecies,numberReactions));
+    ndarray<uint> D(tuple<uint>(numberSpecies,numberReactions));
+
+    S[tuple<uint>(0,reactionIndex)] = -1;
+    S[tuple<uint>(1,reactionIndex)] = 1;
+    D[tuple<uint>(0,reactionIndex)] = 1;
+    tuple<double> k(0.1);
+
+    lm::me::PropensityFunctions fs;
+    PropensityFunction f = fs.getPropensityFunction(id);
+    PropensityFunctionArgs* args = fs.getPropensityFunctionArgs(id, reactionIndex, S, D, k);
+
+    double time=10.0;
+    int* speciesCounts=new int[numberSpecies];
+    speciesCounts[0] = 3;
+    double a = (*f)(time, speciesCounts, args);
+    S.print("\n");
+    D.print("\n");
+    k.print("\n");
+    printf("%f: a=%f\n",time,a);
+    delete[] speciesCounts;
+
 }
 
 

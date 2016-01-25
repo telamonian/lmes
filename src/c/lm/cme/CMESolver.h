@@ -76,7 +76,7 @@ using lm::rng::RandomGenerator;
 
 namespace lm {
 
-namespace io {
+namespace ioFirstOrderPropensity {
 class ReactionModel;
 }
 
@@ -89,24 +89,12 @@ protected:
     {
         virtual ~PropensityArgs() {}
     };
-    struct ZerothOrderPropensityArgs : public PropensityArgs
-    {
-        static const uint REACTION_TYPE = 0;
-        ZerothOrderPropensityArgs(double k) :k(k) {}
-        double k;
-    };
+
     struct ZerothOrderTimeDependentPropensityArgs : public PropensityArgs
     {
         static const uint REACTION_TYPE = 1000;
         ZerothOrderTimeDependentPropensityArgs(double ki, double kf, double tf) :ki(ki),kf(kf),tf(tf) {}
         double ki, kf, tf;
-    };
-    struct FirstOrderPropensityArgs : public PropensityArgs
-    {
-        static const uint REACTION_TYPE = 1;
-        FirstOrderPropensityArgs(uint si, double k) :si(si),k(k) {}
-        uint si;
-        double k;
     };
     struct FirstOrderTimeDependentPropensityArgs : public PropensityArgs
     {
@@ -337,9 +325,7 @@ protected:
     virtual void setSpeciesIncreasingLimit(lm::io::TrajectoryLimits::Arrangement, int opID, double limit);
     virtual void addToParameterTrackingList(pair<string,double*>parameter);
 
-    static double zerothOrderPropensity(double time, uint * speciesCounts, void * pargs);
     static double zerothOrderTimeDependentPropensity(double time, uint * speciesCounts, void * pargs);
-    static double firstOrderPropensity(double time, uint * speciesCounts, void * pargs);
     static double firstOrderTimeDependentPropensity(double time, uint * speciesCounts, void * pargs);
     static double secondOrderPropensity(double time, uint * speciesCounts, void * pargs);
     static double secondOrderSelfPropensity(double time, uint * speciesCounts, void * pargs);

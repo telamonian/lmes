@@ -58,10 +58,10 @@ struct PropensityFunctionArgs
 };
 
 // The type definition for a propensity function.
-typedef double (*PropensityFunction)(double time, int* speciesCounts, PropensityFunctionArgs* args);
+typedef double (*PropensityFunction)(const double time, const int* speciesCounts, const PropensityFunctionArgs* args);
 
 // The type definition for a function to create the propensity argumnets.
-typedef PropensityFunctionArgs* (*PropensityFunctionArgsCreator)(int reactionIndex, ndarray<int> S, ndarray<uint> D, ndarray<double>K);
+typedef PropensityFunctionArgs* (*PropensityFunctionArgsCreator)(const int reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k);
 
 namespace lm {
 namespace me {
@@ -82,7 +82,7 @@ public:
     PropensityFunctions();
     ~PropensityFunctions();
     PropensityFunction getPropensityFunction(int id);
-    PropensityFunctionArgs* getPropensityFunctionArgs(int id, int reactionIndex, ndarray<int> S, ndarray<uint> D, ndarray<double>K);
+    PropensityFunctionArgs* getPropensityFunctionArgs(int id, int reactionIndex, ndarray<int> S, ndarray<uint> D, tuple<double>k);
 
 private:
     map<int,PropensityDefinition> functions;

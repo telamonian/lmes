@@ -76,11 +76,18 @@ PropensityFunctions::~PropensityFunctions()
 
 PropensityFunction PropensityFunctions::getPropensityFunction(int id)
 {
+    if (functions.count(id) == 1)
+        return functions[id].function;
+    throw lm::InvalidArgException("id","the specified propensity function was not found",id);
 }
 
-PropensityFunctionArgs* PropensityFunctions::getPropensityFunctionArgs(int id, int reactionIndex, ndarray<int> S, ndarray<uint> D, ndarray<double>K)
+PropensityFunctionArgs* PropensityFunctions::getPropensityFunctionArgs(int id, int reactionIndex, ndarray<int> S, ndarray<uint> D, tuple<double>K)
 {
+    if (functions.count(id) == 0)
+        throw lm::InvalidArgException("id","the specified propensity function arg creator was not found",id);
 
+    PropensityFunctionArgsCreator f = functions[id].argsCreator;
+    return (*f)(reactionIndex, S, D, K);
 }
 
 PropensityFunctionCollection::PropensityFunctionCollection()

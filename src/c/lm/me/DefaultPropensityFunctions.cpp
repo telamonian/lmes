@@ -65,18 +65,68 @@ DefaultPropensityFunctions::~DefaultPropensityFunctions()
 {
 }
 
+struct ZerothOrderPropensity : public PropensityFunctionArgs
+{
+    ZerothOrderPropensity(uint si, double k) :si(si),k(k) {}
+    uint si;
+    double k;
+
+    static PropensityFunctionArgs* init(const int reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+    {
+        // Find the dependencies.
+        uint numberDependencies = 0;
+        uint dependency = 0;
+        for (uint i=0; i<D.shape[0]; i++)
+        {
+            if (D[utuple(i,reactionIndex)] == 1)
+            {
+                numberDependencies++;
+                dependency = i;
+            }
+        }
+        if (numberDependencies != 0) throw InvalidArgException("D", "zeroth order propensity had invalid number of dependencies",numberDependencies);
+
+        // Find the rate costant.
+        if (k.len < 1)  throw InvalidArgException("k", "zeroth order propensity needs one rate constant",k.len);
+
+        return new ZerothOrderPropensity(dependency,k[0]);
+    }
+
+    static double calculate(const double time, const int* speciesCounts, const PropensityFunctionArgs* pargs)
+    {
+        ZerothOrderPropensity * args = (ZerothOrderPropensity*)pargs;
+        return args->k;
+    }
+};
+
 struct FirstOrderPropensity : public PropensityFunctionArgs
 {
     FirstOrderPropensity(uint si, double k) :si(si),k(k) {}
     uint si;
     double k;
 
-    static PropensityFunctionArgs* init(int reactionIndex, ndarray<int> S, ndarray<uint> D, ndarray<double>K)
+    static PropensityFunctionArgs* init(const int reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
     {
-        return new FirstOrderPropensity(0,0.0);
+        // Find the dependencies.
+        uint numberDependencies = 0;
+        uint dependency = 0;
+        for (uint i=0; i<D.shape[0]; i++)
+        {
+            if (D[utuple(i,reactionIndex)] == 1)
+            {
+                numberDependencies++;
+                dependency = i;
+            }
+        }
+        if (numberDependencies != 1) throw InvalidArgException("D", "first order propensity had invalid number of dependencies",numberDependencies);
+
+        // Find the rate costant.
+        if (k.len < 1)  throw InvalidArgException("k", "first order propensity needs one rate constant",k.len);
+
+        return new FirstOrderPropensity(dependency,k[0]);
     }
 
-    static double calculate(double time, int* speciesCounts, PropensityFunctionArgs* pargs)
+    static double calculate(const double time, const int* speciesCounts, const PropensityFunctionArgs* pargs)
     {
         FirstOrderPropensity * args = (FirstOrderPropensity*)pargs;
         return args->k * (double)speciesCounts[args->si];
@@ -87,6 +137,7 @@ struct FirstOrderPropensity : public PropensityFunctionArgs
 list<PropensityDefinition> DefaultPropensityFunctions::getPropensityDefinitions()
 {
     list<PropensityDefinition> defs;
+    defs.push_back(PropensityDefinition(0, &ZerothOrderPropensity::calculate, &ZerothOrderPropensity::init));
     defs.push_back(PropensityDefinition(1, &FirstOrderPropensity::calculate, &FirstOrderPropensity::init));
     return defs;
 }

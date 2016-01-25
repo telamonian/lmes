@@ -226,29 +226,7 @@ void CMESolver::ReactionModel::build(const uint numberSpeciesA, const uint numbe
     // Create the propensity functions table.
     for (uint i=0; i<numberReactions; i++)
     {
-        if (reactionTypes[i] == ZerothOrderPropensityArgs::REACTION_TYPE)
-        {
-            // Find the dependencies.
-            uint numberDependencies = 0;
-            for (uint j=0; j<numberSpecies; j++)
-            {
-                if (D[j*numberReactions+i] == 1)
-                {
-                    numberDependencies++;
-                }
-            }
-            if (numberDependencies > 0)
-            {
-                throw InvalidArgException("D", "zeroth order reaction cannot have any dependencies",numberDependencies);
-            }
-            else
-            {
-                propensityFunctions[i] = (void *)&zerothOrderPropensity;
-                propensityFunctionArgs[i] =  (void *)new ZerothOrderPropensityArgs(K[i*kCols]);
-                propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
-            }
-        }
-        else if (reactionTypes[i] == ZerothOrderTimeDependentPropensityArgs::REACTION_TYPE)
+        if (reactionTypes[i] == ZerothOrderTimeDependentPropensityArgs::REACTION_TYPE)
         {
             // Find the dependencies.
             uint numberDependencies = 0;
@@ -268,30 +246,6 @@ void CMESolver::ReactionModel::build(const uint numberSpeciesA, const uint numbe
                 propensityFunctions[i] = (void *)&zerothOrderTimeDependentPropensity;
                 propensityFunctionArgs[i] =  (void *)new ZerothOrderTimeDependentPropensityArgs(K[i*kCols], K[i*kCols+1], K[i*kCols+2]);
                 propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
-            }
-        }
-        else if (reactionTypes[i] == FirstOrderPropensityArgs::REACTION_TYPE)
-        {
-            // Find the dependencies.
-            uint numberDependencies = 0;
-            for (uint j=0; j<numberSpecies; j++)
-            {
-                if (D[j*numberReactions+i] == 1)
-                {
-                    numberDependencies++;
-
-                    // Set the table entry to the first non-zero dependency.
-                    if (numberDependencies == 1)
-                    {
-                        propensityFunctions[i] = (void *)&firstOrderPropensity;
-                        propensityFunctionArgs[i] =  (void *)new FirstOrderPropensityArgs(j, K[i*kCols]);
-                        propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
-                    }
-                    else
-                    {
-                        throw InvalidArgException("D", "first order reaction had invalid number of dependencies",numberDependencies);
-                    }
-                }
             }
         }
         else if (reactionTypes[i] == FirstOrderTimeDependentPropensityArgs::REACTION_TYPE)
@@ -835,12 +789,6 @@ void CMESolver::setTilings(const lm::io::Tilings& tilingsBuf)
     tilings->init(tilingsBuf);
 }
 
-double CMESolver::zerothOrderPropensity(double time, uint * speciesCounts, void * pargs)
-{
-    ZerothOrderPropensityArgs * args = (ZerothOrderPropensityArgs *)pargs;
-    return args->k;
-}
-
 double CMESolver::zerothOrderTimeDependentPropensity(double time, uint * speciesCounts, void * pargs)
 {
     ZerothOrderTimeDependentPropensityArgs * args = (ZerothOrderTimeDependentPropensityArgs *)pargs;
@@ -853,12 +801,6 @@ double CMESolver::zerothOrderTimeDependentPropensity(double time, uint * species
     {
         return args->kf;
     }
-}
-
-double CMESolver::firstOrderPropensity(double time, uint * speciesCounts, void * pargs)
-{
-    FirstOrderPropensityArgs * args = (FirstOrderPropensityArgs *)pargs;
-    return args->k * (double)speciesCounts[args->si];
 }
 
 double CMESolver::firstOrderTimeDependentPropensity(double time, uint * speciesCounts, void * pargs)
