@@ -26,8 +26,8 @@ class OParam(Datum):
     def name(self, val):
         self._name = val
     
-    # def __init__(self, subcon, full=False):
-    #     super().__init__(full=full)
+    # def __init__(self, subcon, o=None):
+    #     super().__init__(o=o)
     #     self.protobuf = subcon
         
     def init(self):

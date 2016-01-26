@@ -8,5 +8,5 @@ __all__ = ['OParamTrajectories']
 
 class OParamTrajectories(Trajectories):
     datumType = OParamTrajectory
-    Hdf5IOType = OParamTrajectoriesIO
-    SFileType = None
+    hdf5IOType = OParamTrajectoriesIO
+    sfileType = None

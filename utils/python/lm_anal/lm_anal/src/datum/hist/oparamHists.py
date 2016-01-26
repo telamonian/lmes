@@ -6,5 +6,5 @@ __all__ = ['OParamHists']
 
 class OParamHists(Hists):
     datumType = OParamHist
-    Hdf5IOType = OParamHistsIO
-    SFileType = None
+    hdf5IOType = OParamHistsIO
+    sfileType = None

@@ -7,6 +7,7 @@ class IO(object):
         self.file = None
         self.fPath = fPath
 
+# accessors
     def has(self):
         '''
         test if a file contains relevant data
@@ -19,7 +20,14 @@ class IO(object):
         '''
         pass
 
-    def rff(self, full=False, keys=None, **kwargs):
+# IO methods
+    def dff(self, excludedFields=None, keys=None, raiseIfNotExists=False):
+        '''
+        dff (delete from file)
+        '''
+        pass
+
+    def rff(self, container, excludedFields=None, keys=None, o=None):
         '''
         rff (read from file)
         '''
@@ -31,7 +39,8 @@ class IO(object):
         '''
         pass
 
-    def wtf(self, keys=None):
+    def wtf(self, container, excludedFields=None, keys=None, o=None):
         '''
         wtf (write to file)
         '''
+        pass

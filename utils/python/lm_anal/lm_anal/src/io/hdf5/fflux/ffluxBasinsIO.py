@@ -18,16 +18,16 @@ class FFluxBasinsIO(HDF5IO):
                           HDF5Spec(fullOnly=False, name='runs_per_phase', subKey='RunsPerPhase/TileVals', type='special'),
                           HDF5Spec(fullOnly=False, name='time_per_phase', subKey='TimePerPhase/TileVals', type='special'))
     
-    def inputDirection(self, hdf5Path, hdf5Spec, subCon, full):
+    def inputDirection(self, hdf5Path, hdf5Spec, subCon):
         subCon.setScalar(name=hdf5Spec.name, val=DirectionEnum.Value(hdf5Path.split('/')[-1]))
         
-    def inputRunsPerPhase(self, hdf5Path, hdf5Spec, subCon, full):
+    def inputRunsPerPhase(self, hdf5Path, hdf5Spec, subCon):
         try:
             self.inputArray(hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, subCon=subCon)
         except KeyError:
             pass
     
-    def inputTimePerPhase(self, hdf5Path, hdf5Spec, subCon, full):
+    def inputTimePerPhase(self, hdf5Path, hdf5Spec, subCon):
         try:
             subCon.setArray(name=hdf5Spec.name, val=self.file[hdf5Path][hdf5Spec.subKey], source_sel=np.s_[1:])
         except KeyError:
@@ -40,14 +40,15 @@ class FFluxBasinsIO(HDF5IO):
         return [os.path.relpath(dg.name, start='/'+self.hdf5RootPath)  
                 for dg in self.file[self.hdf5RootPath].values()                              
                 if 'FORWARD' in dg.name or 'BACKWARD' in dg.name]
-     
-    def _rff(self, container, full, keys):
-        '''
-        internal rff (read from file) for data stored in hdf5 files
-        '''
-        if keys==None:
-            keys = self.keys()
-    
-        for key in keys:
-            subCon = container.initDatum(key=key, full=full)
-            self.input(full=full, hdf5Path=os.path.join(self.hdf5RootPath, str(key)), subCon=subCon)
+
+    # TORM
+    # def _rff(self, container, full, keys):
+    #     '''
+    #     internal rff (read from file) for data stored in hdf5 files
+    #     '''
+    #     if keys==None:
+    #         keys = self.keys()
+    #
+    #     for key in keys:
+    #         subCon = container.initDatum(key=key, full=full)
+    #         self.input(full=full, hdf5Path=os.path.join(self.hdf5RootPath, str(key)), subCon=subCon)

@@ -1,24 +1,22 @@
-import os
-
-from lm_anal.src.io.hdf5 import HDF5IO, HDF5Spec, HDF5Specs
+from lm_anal.src.io.hdf5 import HDF5IO
+from lm_anal.src.spec.io.hdf5 import HDF5IOSpec, HDF5IOSpecs
 
 class OParamTrajectoriesIO(HDF5IO):
     hdf5RootPath = 'OParamTrajectories'
-    hdf5Specs = HDF5Specs(HDF5Spec(fullOnly=False, name='number_entries', subKey='OrderParameterValues', type='special'),
-                          HDF5Spec(fullOnly=False, name='number_order_parameters', subKey='OrderParameterValues', type='special'),
-                          HDF5Spec(fullOnly=False, name='trajectory_id', subKey='ID', type='attribute'),
-                          HDF5Spec(fullOnly=True, name='order_parameter_values', subKey='OrderParameterValues', type='dataset'),
-                          HDF5Spec(fullOnly=True, name='time', subKey='SpeciesCountTimes', type='dataset'))
-    
+    hdf5Specs = HDF5IOSpecs(HDF5IOSpec(name='number_entries', subKey='OrderParameterValues', type='special'),
+                            HDF5IOSpec(name='number_order_parameters', subKey='OrderParameterValues', type='special'),
+                            HDF5IOSpec(name='trajectory_id', subKey='ID', type='attribute'),
+                            HDF5IOSpec(name='order_parameter_values', fullOnly=True, subKey='OrderParameterValues', type='dataset'),
+                            HDF5IOSpec(name='time', fullOnly=True, subKey='SpeciesCountTimes', type='dataset'))
     
     def __init__(self, fPath):
         super().__init__(fPath)
 
 # special input methods
-    def inputNumberEntries(self, hdf5Path, hdf5Spec, subCon, full):
+    def inputNumberEntries(self, hdf5Path, hdf5Spec, subCon):
         subCon.setScalar(name=hdf5Spec.name, val=self.file[hdf5Path][hdf5Spec.subKey].shape[0])
 
-    def inputNumberOrderParameters(self, hdf5Path, hdf5Spec, subCon, full):
+    def inputNumberOrderParameters(self, hdf5Path, hdf5Spec, subCon):
         subCon.setScalar(name=hdf5Spec.name, val=self.file[hdf5Path][hdf5Spec.subKey].shape[1])
         
 # special output methods

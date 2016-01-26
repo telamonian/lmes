@@ -19,7 +19,7 @@ class LazyMapDescriptor(object):
             obj.initIO()
             if obj.readIO is not None:
                 # read the data in from file
-                obj.readIO.rff(container=obj, full=True)
+                obj.readIO.rff(container=obj, excludedFields=obj.excludedFieldsRead)
                 # record the object's point-of-origin
                 if obj.readIO==obj.intIO:
                     obj.po = '.lmint'
@@ -33,7 +33,7 @@ class LazyMapDescriptor(object):
                 # record the object's point-of-origin as a transform
                 obj.po = 'transform'
                 # save the data to the .lmint file
-                obj.intIO.wtf(container=obj)
+                obj.intIO.wtf(container=obj, excludedFields=obj.excludedFieldsWrite)
         return obj.map
 
 class DataMetaclass(object):
@@ -42,8 +42,8 @@ class DataMetaclass(object):
 
 class Data(object):
     datumType = None
-    Hdf5IOType = None
-    SFileType = None
+    hdf5IOType = None
+    sfileType = None
     
     map = LazyMapDescriptor()
     
@@ -58,7 +58,11 @@ class Data(object):
         self.protobuf = protobuf
         # point-of-origin, tells us from whence this data came
         self.po = None
-        
+
+        # sets of fields excluded from being read into and/or written out from this Data's Datums
+        self.excludedFieldsRead = set()
+        self.excludedFieldsWrite = set()
+
         self.dataToTransform = dataToTransform
         if dataToTransformDict==None:
             self.dataToTransformDict = {}
@@ -90,22 +94,22 @@ class Data(object):
 
         if self.fPath.suffix=='.lm':
             # if the fPath suffix implies that f is an hdf5 file, try reading in using the hdf5IO first
-            retVal = self.initReadIO(self.Hdf5IOType, self.SFileType)
+            retVal = self.initReadIO(self.hdf5IOType, self.sfileType)
             return retVal
         elif self.fPath.suffix=='.sfile':
             # if the fPath suffix implies that f is an sfile file, try reading in using the sfileIO first
-            return self.initReadIO(self.SFileType, self.Hdf5IOType)
+            return self.initReadIO(self.sfileType, self.hdf5IOType)
         else:
             # the current default is to try reading in from the hdf5IO first
-            return self.initReadIO(self.Hdf5IOType, self.SFileType)
+            return self.initReadIO(self.hdf5IOType, self.sfileType)
         
 #         if self.fPath.suffix=='.lm':
-#             self.readIO = self.Hdf5IOType(fPath=str(self.fPath))
+#             self.readIO = self.hdf5IOType(fPath=str(self.fPath))
 #             if self.readIO.has():
 #                 return True
 #             else:
 #             # TODO: for now, the sfile stuff is unimplemented, so leave it off
-#                 # self.readIO = self.SFileType(fPath=str(self.fPath))
+#                 # self.readIO = self.sfileType(fPath=str(self.fPath))
 #                 # if self.readIO.has():
 #                 #     return True
 #                 # else:     
@@ -113,7 +117,7 @@ class Data(object):
 #                 return False
 #         elif self.fPath.suffix=='.sfile':
 #         # TODO: for now, the sfile stuff is unimplemented, so leave it off
-#             # self.readIO = self.SFileType(fPath=str(self.fPath))
+#             # self.readIO = self.sfileType(fPath=str(self.fPath))
 #             # if self.readIO.has():
 #             #    return True
 #             # else:
@@ -126,7 +130,7 @@ class Data(object):
 
     def initIntIO(self, fPath=None):
         fPath = self.fPath if fPath is None else fPath
-        self.intIO = self.Hdf5IOType(fPath=str(fPath.with_suffix('.lmint')))
+        self.intIO = self.hdf5IOType(fPath=str(fPath.with_suffix('.lmint')))
 
     def initReadIO(self, *ioTypes):
         for ioType in ioTypes:
@@ -228,7 +232,7 @@ class Data(object):
         '''
         if fPath is not None:
             self.initIntIO(fPath=Path(fPath))
-        self.intIO.dff(raiseIfNotExists=raiseIfNotExists)
+        self.intIO.dff(raiseIfNotExists=raiseIfNotExists, excludedFields=self.excludedFieldsWrite)
 
     def wtint(self, fPath=None, deleteIfExists=True):
         '''
@@ -238,9 +242,26 @@ class Data(object):
             self.initIntIO(fPath=Path(fPath))
         if deleteIfExists:
             self.dfint()
-        self.intIO.wtf(container=self)
+        self.intIO.wtf(container=self, excludedFields=self.excludedFieldsWrite)
 
 # mutators
+    def clearExcludedFields(self, *fieldNames, read=True, write=True):
+        '''
+        completely clears the .excludedFields... attrs if *fieldNames is empty
+        otherwise, it just removes the names in *fieldNames from the .excludedFields... attrs
+        '''
+        if not fieldNames:
+            if read:
+                self.excludedFieldsRead = set()
+            if write:
+                self.excludedFieldsWrite = set()
+        else:
+            for fieldName in fieldNames:
+                if read:
+                    self.excludedFieldsRead.pop(fieldName)
+                if write:
+                    self.excludedFieldsWrite.pop(fieldName)
+
     def pop(self, key):
         return self.map.pop(key)
 
@@ -265,6 +286,16 @@ class Data(object):
             pass
         # poke the .map lazy loader
         self.map
+
+    def setExcludedFields(self, *fieldNames, read=True, write=True):
+        '''
+        any fields in *fieldNames will not be read into and/or written out from this Data's Datums
+        '''
+        for fieldName in fieldNames:
+            if read:
+                self.excludedFieldsRead.add(fieldName)
+            if write:
+                self.excludedFieldsWrite.add(fieldName)
 
     def transform(self, *dataToTransform, **transformKwargs):
         lzTransforms(srcs=dataToTransform, dsts=self, **transformKwargs)

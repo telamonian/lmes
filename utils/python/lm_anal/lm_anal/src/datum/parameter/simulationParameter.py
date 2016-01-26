@@ -7,8 +7,8 @@ class SimulationParameter(Datum, metaclass=DatumMetaclass):
     propertySpecs = DatumPropertySpecs(DatumPropertySpec(dtype='str', name='key', paths=('key',), storageType='protobuf', type='array'),
                                        DatumPropertySpec(dtype='str', name='value', paths=('value',), storageType='protobuf', type='array'))
     
-    def __init__(self, full=False):
-        super().__init__(full=full)
+    def __init__(self, o=None):
+        super().__init__(o=o)
         self.protobuf = SimulationParametersBuf()
         
     def __getitem__(self, key):

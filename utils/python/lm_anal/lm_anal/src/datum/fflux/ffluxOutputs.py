@@ -6,5 +6,5 @@ __all__ = ['FFluxOutputs']
 
 class FFluxOutputs(Data):
     datumType = FFluxOutput
-    Hdf5IOType = FFluxOutputsIO
-    SFileType = None
+    hdf5IOType = FFluxOutputsIO
+    sfileType = None

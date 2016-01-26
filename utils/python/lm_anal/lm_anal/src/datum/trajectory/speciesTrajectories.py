@@ -9,5 +9,5 @@ __all__ = ['SpeciesTrajectories']
 
 class SpeciesTrajectories(Trajectories, SpeciesTrajectoriesSrlz):
     datumType = SpeciesTrajectory
-    Hdf5IOType = SpeciesTrajectoriesIO
-    SFileType = None
+    hdf5IOType = SpeciesTrajectoriesIO
+    sfileType = None

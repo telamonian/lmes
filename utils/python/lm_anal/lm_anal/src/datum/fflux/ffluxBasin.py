@@ -16,8 +16,8 @@ class FFluxBasin(Datum):
                             DPSpec(dtype='float', name='runs_per_phase', paths=('runs_per_phase',), storageType='numpy', type='array'),
                             DPSpec(dtype='float', name='time_per_phase', paths=('time_per_phase',), storageType='numpy', type='array'))
                             
-    def __init__(self, subBuf, full=False, **kwargs):
-        super().__init__(full=full, **kwargs)
+    def __init__(self, subBuf, o=None, **kwargs):
+        super().__init__(o=o, **kwargs)
         if subBuf!=None:
             self.protobuf = subBuf
 #         else:

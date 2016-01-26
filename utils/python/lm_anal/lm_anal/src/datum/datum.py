@@ -208,7 +208,6 @@ class DatumMetaclass(type):
         if 'propertySpecs' in dct:
             for name,spec in dct['propertySpecs'].items():
                 SetPropertyBySpec(name, spec, dct)
-        # return super(DatumMetaclass, cls).__new__(cls, clsname, bases, dct)
         return super().__new__(cls, clsname, bases, dct)
     
     # TODO: reorg things so that this property is called 'propertySpecs' and the class atribute is '_propertySpecs'
@@ -227,7 +226,11 @@ class DatumMetaclass(type):
     @property
     def propertyNames(cls):
         return set().union(*map(lambda x: x._propertyNames if hasattr(x, '_propertyNames') else set(), cls.__mro__))
-    
+
+    @staticmethod
+    def setPropertyBySpec(name, spec, dct):
+        SetPropertyBySpec(name=name, spec=spec, dct=dct)
+
 class Datum(object, metaclass=DatumMetaclass):
     # maps go from hdf5 keys to protobuf keys
 #     attrMap = {}
@@ -244,9 +247,8 @@ class Datum(object, metaclass=DatumMetaclass):
 #         [newInitDict.update(datumType._initDict) for datumType in self.__class__.__mro__ if hasattr(datumType, '_initDict')]
 #         return newInitDict
     
-    def __init__(self, full=True):
-        # full: has this datum been made from a full set of input, or only a partial one (eg without arrays)?
-        self.full = full
+    def __init__(self, o=None):
+        self.o = o
     
     def initEmbedded(self, name, DataType):
         self.__setattr__(name, DataType(protobuf=self.protobuf))

@@ -1,10 +1,10 @@
-from lm_anal.src.datum.hist.hists import Hists
-from lm_anal.src.datum.hist.oparamHist import OParamHist
+from lm_anal.src.datum.hist.ffluxInterfaceHist import FFluxInterfaceHist
+from lm_anal.src.datum.hist.oparamHists import OParamHists
+from lm_anal.src.io.hdf5.hist import FFluxInterfaceHistsIO
 
-__all__ = ['OParamHists']
+__all__ = ['FFluxInterfaceHists']
 
-class OParamHists(Hists):
-    datumType = OParamHist
-    
-    def __init__(self):
-        super().__init__()
+class FFluxInterfaceHists(OParamHists):
+    datumType = FFluxInterfaceHist
+    hdf5IOType = FFluxInterfaceHistsIO
+    sfileType = None

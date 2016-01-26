@@ -5,8 +5,8 @@ __all__ = ['OParamHist']
 class OParamHist(Hist):
     propertySpecs = {'order_parameter_values':{'targetName':'h','type':'alias'}}
     
-    def __init__(self, full=False):
-        super().__init__(full=full)
+    def __init__(self, o=None):
+        super().__init__(o=o)
         
     def setTilings(self, oparams, tilings, tilingIDs):
         self.tilings = tilings.sliceByKeys(tilingIDs)

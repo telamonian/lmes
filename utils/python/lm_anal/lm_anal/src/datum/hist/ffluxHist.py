@@ -20,12 +20,9 @@ class FFluxHist(OParamHist):
         DatumSpec(name='time_step', dtype='float', paths=('time_step',), storageType='default', type='scalar'),
         DatumSpec(name='trajectory_phase_map', dtype=[('trajectory_id','int'),('basin_id','int'),('phase_id','int')], paths=('trajectory_phase_map',), storageType='numpy', type='array')
     )
-    
-    # add some alias specs
-    propertySpecs.addAlias(name='phase_0_order_parameter_values', targetName='phase_zero_order_parameter_values')
-      
-    def __init__(self, full=False):
-        super().__init__(full=full)
+
+    def __init__(self, o=None):
+        super().__init__(o=o)
         
         self.initSubData()
 
@@ -37,13 +34,9 @@ class FFluxHist(OParamHist):
         directionDict = {0:'FORWARD',1:'BACKWARD'}
         for pwRow in self.phase_weights: 
             self.phase_n_order_parameter_values[('basin_id', pwRow['basin_id']), ('phase_id', pwRow['phase_id'])] = subFFluxHist.getCopy()
-#             if pwRow['basin_id'] in directionDict:
-#                 self.phase_n_order_parameter_values['%s/%s' % (directionDict[pwRow['basin_id']], pwRow['phase_id'])] = self.phase_n_order_parameter_values['%s/%s' % pwRow[1:]]
         for bwRow in self.basin_weights:
             self.basin_n_order_parameter_values[('basin_id', bwRow['basin_id'])] = subFFluxHist.getCopy()
-#             if bwRow['basin_id'] in directionDict: 
-#                 self.basin_n_order_parameter_values['%s' % directionDict[bwRow['basin_id']]] = self.basin_n_order_parameter_values['%s' % bwRow['basin_id']]
-    
+
     def addObservationsToSubHists(self, ffoDatum, oparams, tilings):
         # add all of the observations for each phase to the appropriate subHist
         directionDict = OrderedDict(((0,'FORWARD'), (1,'BACKWARD')))
@@ -60,8 +53,7 @@ class FFluxHist(OParamHist):
 #                 runsPerPhase = trajs.trajectory_id[start:end].max() - trajs.trajectory_id[start:end].min() + 1
                 runsPerPhase = 1 if phaseID==0 else float(runsPerPhaseList[phaseID])
                 weight = phaseWeightDict[(directionID, phaseID)] / runsPerPhase
-#                 print('phaseID: %d, runsPerPhase: %d, weight: %.3e' % (phaseID,runsPerPhase,weight))
-                
+
                 obs = self.oparam.calc(trajs.species_count[start:end])
                 if phaseID==0:
                     fancySlice = self.getPhaseZeroObsMaskingSlice(directionID=directionID, oparams=oparams, pzObs=obs, speciesCounts=trajs.species_count[start:end], tilings=tilings)
@@ -105,8 +97,6 @@ class FFluxHist(OParamHist):
         for directionID,direction in directionDict.items():
             subHists= []
             for key,hist in self.phase_n_order_parameter_values.items():
-#                 histBasinID,histPhaseID = [int(val) for val in key.split('/')]
-#                 if directionID==histBasinID and histPhaseID!=0: 
                 keyDict = dict(key)
                 if keyDict['basin_id']==directionID and keyDict['phase_id']!=0: 
                     subHists.append(hist)
@@ -118,8 +108,6 @@ class FFluxHist(OParamHist):
 
         pzHists= []
         for key,hist in self.phase_n_order_parameter_values.items():
-            #             histBasinID,histPhaseID = key.split('/')
-            #             if histPhaseID!=0:
             keyDict = dict(key)
             if keyDict['phase_id']==0:
                 hist.remask(nonzeroMask)

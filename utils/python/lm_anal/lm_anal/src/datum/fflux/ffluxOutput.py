@@ -15,8 +15,8 @@ class FFluxOutput(Datum):
                             DPSpec(name='final_output', paths=('final_output',), storageType='protobuf', type='embedded'),
                             DPSpec(name='trajectory_outputs', paths=('trajectory_outputs',), storageType='protobuf', type='embedded'))
 
-    def __init__(self, full=False):
-        super().__init__(full=full)
+    def __init__(self, o=None):
+        super().__init__(o=o)
         self.protobuf = FFluxOutputBuf()
         
 FFluxABC.register(FFluxOutput)

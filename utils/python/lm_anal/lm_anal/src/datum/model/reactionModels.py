@@ -10,5 +10,5 @@ class ReactionModels(Models):
     singletonKey = 'Reaction'
 
     datumType = ReactionModel
-    Hdf5IOType = lzReactionModelIO
-    SFileType = None
+    hdf5IOType = lzReactionModelIO
+    sfileType = None

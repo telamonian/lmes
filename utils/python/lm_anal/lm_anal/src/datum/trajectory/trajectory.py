@@ -54,8 +54,8 @@ class Trajectory(Datum):
 #     def trajectory_id(self, val):
 #         self.protobuf.trajectory_id = val
 #     
-    def __init__(self, full=False):
-        super().__init__(full=full)
+    def __init__(self, o=None):
+        super().__init__(o=o)
         self.protobuf = TrajectoryStateBuf()
         
 TrajectoryABC.register(Trajectory)

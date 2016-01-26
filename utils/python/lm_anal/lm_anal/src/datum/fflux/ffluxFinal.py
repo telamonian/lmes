@@ -9,8 +9,8 @@ class FFluxFinal(Datum):
                             DPSpec(dtype='float', name='probability_i_weight', paths=('probability_i_weight',), storageType='protobuf', type='scalar'),
                             DPSpec(dtype='float', name='switching_rate_constants', paths=('switching_rate_constants',), storageType='numpy', type='array'))
                             
-    def __init__(self, subBuf, full=False, **kwargs):
-        super().__init__(full=full, **kwargs)
+    def __init__(self, subBuf, o=None, **kwargs):
+        super().__init__(o=o, **kwargs)
         if subBuf!=None:
             self.protobuf = subBuf
 #         else:

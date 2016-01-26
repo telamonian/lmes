@@ -10,8 +10,8 @@ from lm.io.Tilings_pb2 import Tilings as TilingsBuf
 
 class Tilings(Data):
     datumType = Tiling
-    Hdf5IOType = TilingsIO
-    SFileType = None
+    hdf5IOType = TilingsIO
+    sfileType = None
 
     # def __init__(self, protobuf=None, dataToTransform=None, fPath=None, transformKwargs=None):
     #     if protobuf==None:

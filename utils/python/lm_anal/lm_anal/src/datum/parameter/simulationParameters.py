@@ -8,8 +8,8 @@ class SimulationParameters(DataSingleton):
     singletonKey = 'Parameters'
 
     datumType = SimulationParameter
-    Hdf5IOType = SimulationParametersIO
-    SFileType = None
+    hdf5IOType = SimulationParametersIO
+    sfileType = None
 
     # def get(self, key):
     #     return self.peek()[key]

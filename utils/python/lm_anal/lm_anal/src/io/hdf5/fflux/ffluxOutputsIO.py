@@ -16,11 +16,11 @@ class FFluxOutputsIO(HDF5IO):
                           HDF5Spec(fullOnly=False, name='number_tiles', subKey='NumberTiles', type='attribute'),
                           HDF5Spec(fullOnly=False, name='tiling_id', subKey='TilingID', type='attribute'),
                           HDF5Spec(DataType=lzFFluxBasins, IOType=FFluxBasinsIO, fullOnly=False, name='basins', type='embedded'),
-                          HDF5Spec(DataType=lzFFluxFinals, IOType=FFluxFinalsIO, fullOnly=False, name='finals', type='special'),
+                          HDF5Spec(DataType=lzFFluxFinals, IOType=FFluxFinalsIO, fullOnly=False, name='finals', type='specialSubData'),
                           HDF5Spec(DataType=lzFFluxTrajectories, IOType=FFluxTrajectoriesIO, fullOnly=False, name='trajectories', type='embedded'))
     
-    def inputFinals(self, hdf5Path, hdf5Spec, subCon, full):
-        subData = self.inputEmbedded(hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, subCon=subCon, full=full)
+    def inputFinals(self, excludedFields, hdf5Path, hdf5Spec, o, subCon):
+        subData = self.inputEmbedded(excludedFields=excludedFields, hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, o=o, subCon=subCon)
         subCon.final = subData[0]
         
     def _keys(self):
@@ -32,7 +32,7 @@ class FFluxOutputsIO(HDF5IO):
                 for ffog in tg.values()                                 
                 if 'FFluxOutput' in ffog.name]
     
-    def _rff(self, container, full, keys):
+    def _rff(self, container, excludedFields, keys, o):
         '''
         internal rff (read from file) for FFluxOutput data stored in hdf5 files
         '''
@@ -41,11 +41,11 @@ class FFluxOutputsIO(HDF5IO):
     
         for key in keys:
             dataKey = int(os.path.split(key)[0])
-            subCon = container.initDatum(key=dataKey, full=full)
+            subCon = container.initDatum(key=dataKey, o=o)
             try:
-                self.input(full=full, hdf5Path=os.path.join(self.hdf5RootPath, str(key)), subCon=subCon)
+                self.input(excludedFields=excludedFields, hdf5Path=os.path.join(self.hdf5RootPath, str(key)), o=o, subCon=subCon)
             except KeyError:
                 del container[dataKey]
                 key = '%07d' % key
-                subCon = container.initDatum(key=dataKey, full=full)
-                self.input(full=full, hdf5Path=os.path.join(self.hdf5RootPath, str(key)), subCon=subCon)
+                subCon = container.initDatum(key=dataKey, o=o)
+                self.input(excludedFields=excludedFields, hdf5Path=os.path.join(self.hdf5RootPath, str(key)), o=o, subCon=subCon)

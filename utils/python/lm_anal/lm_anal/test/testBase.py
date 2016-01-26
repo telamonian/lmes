@@ -28,7 +28,7 @@ from lm_anal.src.main import Sim
 from lm_anal.src.transform import Transforms
 
 dataTypeDict = {DataType.__name__:DataType for DataType in vars().values() if isclass(DataType) and issubclass(DataType, Data)}
-# hdf5IOTypeDict = {Hdf5IOType.__name__:Hdf5IOType for Hdf5IOType in vars().values() if isclass(Hdf5IOType) and issubclass(Hdf5IOType, HDF5IO)}
+# hdf5IOTypeDict = {hdf5IOType.__name__:hdf5IOType for hdf5IOType in vars().values() if isclass(hdf5IOType) and issubclass(hdf5IOType, HDF5IO)}
 
 __all__ = ['EagerTestBase', 'LazyTestBase', 'SimTestBase']
 
@@ -119,7 +119,7 @@ class EagerTestBase(BaseTestBase):
             self.__setattr__(CamelCaseLower(dataTypeName), data)
             
             if fileType=='hdf5':
-                IOType = DataType.Hdf5IOType
+                IOType = DataType.hdf5IOType
             elif fileType=='sfile':
                 IOType = DataType.SFileIOType
             io = IOType(fPath=self.testFilePath)

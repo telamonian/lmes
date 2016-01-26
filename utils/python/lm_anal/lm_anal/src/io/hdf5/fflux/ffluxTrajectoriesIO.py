@@ -13,10 +13,10 @@ class FFluxTrajectoriesIO(HDF5IO):
                           HDF5Spec(fullOnly=True, name='time', subKey='Time', type='dataset'),
                           HDF5Spec(fullOnly=True, name='trajectory_id', subKey='TrajectoryID', type='dataset'))
     
-    def inputDirection(self, hdf5Path, hdf5Spec, subCon, full):
+    def inputDirection(self, hdf5Path, hdf5Spec, subCon):
         subCon.setScalar(name=hdf5Spec.name, val=DirectionEnum.Value(hdf5Path.split('/')[-2]))
 
-    def inputLifecycle(self, hdf5Path, hdf5Spec, subCon, full):
+    def inputLifecycle(self, hdf5Path, hdf5Spec, subCon):
         subCon.setScalar(name=hdf5Spec.name, val=LifecycleEnum.Value(hdf5Path.split('/')[-1]))
         
     def _keys(self):
@@ -28,7 +28,7 @@ class FFluxTrajectoriesIO(HDF5IO):
                 for lg in dg.values()
                 if ListInStr(['FORWARD','BACKWARD'], dg.name) and ListInStr(['INITIAL','RUNNING','FINAL'], lg.name)]
      
-    def _rff(self, container, full, keys):
+    def _rff(self, container, excludedFields, keys, o):
         '''
         internal rff (read from file) for data stored in hdf5 files
         '''
@@ -36,9 +36,9 @@ class FFluxTrajectoriesIO(HDF5IO):
             keys = self.keys()
     
         for key in keys:
-            subCon = container.initDatum(key=key, full=full)
-            self.input(full=full, hdf5Path=os.path.join(self.hdf5RootPath, str(key)), subCon=subCon)
-            if full and 'INITIAL' in key:
+            subCon = container.initDatum(key=key, o=o)
+            self.input(excludedFields=excludedFields, hdf5Path=os.path.join(self.hdf5RootPath, str(key)), o=o, subCon=subCon)
+            if o is None and 'INITIAL' in key:
                 directionID = 0 if 'FORWARD' in key else 1
                 # with timewith('genTrajectoryPhaseMap') as t:    # PROFILING
                 subCon.genTrajectoryPhaseMap(directionID)

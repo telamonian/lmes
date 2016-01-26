@@ -1,3 +1,3 @@
-from lm_anal.src.io.hdf5.fpt.fptIO import FPTIO
-from lm_anal.src.io.hdf5.fpt.oparamFPTIO import OParamFPTIO
-from lm_anal.src.io.hdf5.fpt.speciesFPTIO import SpeciesFPTIO
+from lm_anal.src.io.hdf5.fpt.fptsIO import FPTsIO
+from lm_anal.src.io.hdf5.fpt.oparamFPTsIO import OParamFPTsIO
+from lm_anal.src.io.hdf5.fpt.speciesFPTsIO import SpeciesFPTsIO

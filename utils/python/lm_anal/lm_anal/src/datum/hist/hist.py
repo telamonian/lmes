@@ -15,9 +15,7 @@ __all__ = ['Hist']
 
 class Hist(Datum, DensePlottable):
 # class attributes
-    propertySpecs = DPSpecs(#DPSpec(name='dims', dtype='float', storageType='numpy', type='array'),
-                            #DPSpec(name='edges', dtype='float', storageType='numpy', type='array'),
-                            DPSpec(name='h', dtype='float', storageType='numpy', type='histogram'))
+    propertySpecs = DPSpecs(DPSpec(name='h', dtype='float', storageType='numpy', type='histogram'))
                             # DPSpec(name='tilings', paths=('tilings',), SubDataType=Tiling, type='subData')
 
 # operator overrides
@@ -62,8 +60,8 @@ class Hist(Datum, DensePlottable):
         return self
 
 # initializers
-    def __init__(self, full=False):
-        super().__init__(full=full)
+    def __init__(self, o=None):
+        super().__init__(o=o)
 
 #     def initH(self):
 #         self.h_cache_dirty = True

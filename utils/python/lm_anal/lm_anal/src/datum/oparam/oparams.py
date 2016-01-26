@@ -13,8 +13,8 @@ from lm.io.OrderParameters_pb2 import OrderParameters as OParamsBuf
 
 class OParams(Data):
     datumType = OParam
-    Hdf5IOType = OParamsIO
-    SFileType = None
+    hdf5IOType = OParamsIO
+    sfileType = None
     
     # def __init__(self, protobuf=None, dataToTransform=None, fPath=None, lazyLoad=True, transformKwargs=None):
     #     if protobuf==None:

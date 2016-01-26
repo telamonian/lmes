@@ -8,5 +8,5 @@ __all__ = ['Models']
 
 class Models(DataSingleton):
     datumType = Model
-    Hdf5IOType = lzModelIO
-    SFileType = None
+    hdf5IOType = lzModelIO
+    sfileType = None
