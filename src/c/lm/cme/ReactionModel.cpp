@@ -49,15 +49,11 @@ namespace lm {
 namespace cme {
 
 ReactionModel::ReactionModel(const lm::io::ReactionModel& rm)
-:numberSpecies(rm.number_species()),numberSpeciesToTrack(rm.number_species()),numberReactions((uint)rm.number_reactions()),S(ndarray<int>(utuple(numberSpecies,numberReactions),rm.stoichiometric_matrix().data())),D(ndarray<uint>(utuple(numberSpecies,numberReactions),rm.dependency_matrix().data())),propensityFunctionTypes(NULL),propensityFunctionArgs(NULL),propensityFunctionCalculators(NULL),numberDependentSpecies(NULL),dependentSpecies(NULL),dependentSpeciesChange(NULL),numberDependentReactions(NULL),dependentReactions(NULL)
+:numberSpecies(rm.number_species()),numberSpeciesToTrack(rm.number_species()),numberReactions((uint)rm.number_reactions()),S(ndarray<int>(utuple(numberSpecies,numberReactions),rm.stoichiometric_matrix().data())),D(ndarray<uint>(utuple(numberSpecies,numberReactions),rm.dependency_matrix().data())),propensityFunctions(NULL),numberDependentSpecies(NULL),dependentSpecies(NULL),dependentSpeciesChange(NULL),numberDependentReactions(NULL),dependentReactions(NULL)
 {
     // Allocate propensity function tables.
-    propensityFunctionTypes = new uint[numberReactions];
-    memset(propensityFunctionTypes, 0, numberReactions*sizeof(*propensityFunctionTypes));
-    propensityFunctionArgs = new lm::me::PropensityFunction*[numberReactions];
-    memset(propensityFunctionArgs, 0, numberReactions*sizeof(*propensityFunctionArgs));
-    propensityFunctionCalculators = new lm::me::PropensityFunctionCalculator[numberReactions];
-    memset(propensityFunctionCalculators, 0, numberReactions*sizeof(*propensityFunctionCalculators));
+    propensityFunctions = new lm::me::PropensityFunction*[numberReactions];
+    memset(propensityFunctions, 0, numberReactions*sizeof(*propensityFunctions));
 
     // Create the propensity functions table.
     lm::me::PropensityFunctionFactory fs;
@@ -66,10 +62,8 @@ ReactionModel::ReactionModel(const lm::io::ReactionModel& rm)
         // Create the rate constant tuple.
         tuple<double> k(rm.reaction(i).rate_constant_size(), rm.reaction(i).rate_constant().data());
 
-        // Get the propensity function and arguments.
-        propensityFunctionTypes[i] = rm.reaction(i).type();
-        propensityFunctionArgs[i] = fs.createPropensityFunction(rm.reaction(i).type(), i, S, D, k);
-        propensityFunctionCalculators[i] = fs.getPropensityFunctionCalculator(rm.reaction(i).type());
+        // Get the propensity function.
+        propensityFunctions[i] = fs.createPropensityFunction(rm.reaction(i).type(), i, S, D, k);
     }
 
     // Allocate the species dependency tables.
@@ -141,17 +135,14 @@ ReactionModel::ReactionModel(const lm::io::ReactionModel& rm)
 ReactionModel::~ReactionModel()
 {
     // Free the propensity function arguments and array.
-    if (propensityFunctionArgs != NULL)
+    if (propensityFunctions != NULL)
     {
         for (uint i=0; i<numberReactions; i++)
         {
-            if (propensityFunctionArgs[i] != NULL) delete propensityFunctionArgs[i]; propensityFunctionArgs[i]=NULL;
+            if (propensityFunctions[i] != NULL) delete propensityFunctions[i]; propensityFunctions[i]=NULL;
         }
-        delete[] propensityFunctionArgs; propensityFunctionArgs = NULL;
+        delete[] propensityFunctions; propensityFunctions = NULL;
     }
-
-    // Free the propensity function calculator array.
-    if (propensityFunctionCalculators != NULL) delete[] propensityFunctionCalculators; propensityFunctionCalculators = NULL;
 
     // Free the species dependency tables.
     if (numberDependentSpecies != NULL) delete[] numberDependentSpecies; numberDependentSpecies = NULL;
@@ -190,12 +181,11 @@ ReactionModel::~ReactionModel()
     }
 }
 
-void ReactionModel::setPropensityFunction(uint reaction, lm::me::PropensityFunction* propensityFunctionArg, lm::me::PropensityFunctionCalculator propensityFunctionCalculator)
+void ReactionModel::setPropensityFunction(uint reaction, lm::me::PropensityFunction* propensityFunction)
 {
     if (reaction >= numberReactions) throw InvalidArgException("reaction", "reaction index exceeded the number of reactions",reaction);
-    if (propensityFunctionArgs[reaction] != NULL) delete propensityFunctionArgs[reaction];
-    propensityFunctionArgs[reaction] = propensityFunctionArg;
-    propensityFunctionCalculators[reaction] = propensityFunctionCalculator;
+    if (propensityFunctions[reaction] != NULL) delete propensityFunctions[reaction];
+    propensityFunctions[reaction] = propensityFunction;
 }
 
 }

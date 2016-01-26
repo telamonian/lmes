@@ -58,29 +58,32 @@ namespace lm {
 namespace me {
 
 // The base class for any propensity function.
-struct PropensityFunction
+class PropensityFunction
 {
+public:
     static utuple getDependencies(const uint reactionIndex, const ndarray<uint> D);
     static utuple getSpecificDependencies(const uint reactionIndex, const ndarray<uint> D, const uint dependencyType);
 
-    PropensityFunction() {}
+public:
+    PropensityFunction(const uint id):id(id){}
     virtual ~PropensityFunction() {}
+    const uint getId() {return id;}
+    virtual double calculate(const double time, const int* speciesCounts)=0;
+
+protected:
+    const uint id;
 };
 
 // The type definition for a function to create the propensity function.
 typedef PropensityFunction* (*PropensityFunctionCreator)(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k);
 
-// The type definition for a propensity function.
-typedef double (*PropensityFunctionCalculator)(const double time, const int* speciesCounts, const PropensityFunction* args);
-
 struct PropensityFunctionDefinition
 {
-    PropensityFunctionDefinition():id(std::numeric_limits<uint>::max()),create(NULL),calculate(NULL){}
-    PropensityFunctionDefinition(uint id, PropensityFunctionCreator create, PropensityFunctionCalculator calculate):id(id),create(create),calculate(calculate){}
-    PropensityFunctionDefinition(const PropensityFunctionDefinition& p):id(p.id),create(p.create),calculate(p.calculate){}
+    PropensityFunctionDefinition():id(std::numeric_limits<uint>::max()),create(NULL){}
+    PropensityFunctionDefinition(uint id, PropensityFunctionCreator create):id(id),create(create){}
+    PropensityFunctionDefinition(const PropensityFunctionDefinition& p):id(p.id),create(p.create){}
     uint id;
     PropensityFunctionCreator create;
-    PropensityFunctionCalculator calculate;
 };
 
 class PropensityFunctionFactory
@@ -89,7 +92,6 @@ public:
     PropensityFunctionFactory();
     ~PropensityFunctionFactory();
     PropensityFunction* createPropensityFunction(uint id, int reactionIndex, ndarray<int> S, ndarray<uint> D, tuple<double>k);
-    PropensityFunctionCalculator getPropensityFunctionCalculator(uint id);
 
 private:
     map<uint,PropensityFunctionDefinition> functions;

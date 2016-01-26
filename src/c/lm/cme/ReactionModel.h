@@ -53,16 +53,14 @@ class ReactionModel
 public:
     ReactionModel(const lm::io::ReactionModel& rm);
     virtual ~ReactionModel();
-    virtual void setPropensityFunction(uint reaction, lm::me::PropensityFunction* propensityFunction, lm::me::PropensityFunctionCalculator propensityFunctionCalculator);
+    virtual void setPropensityFunction(uint reaction, lm::me::PropensityFunction* propensityFunction);
 
     const uint numberSpecies;
     uint numberSpeciesToTrack;
     const uint numberReactions;
     ndarray<int> S;                                // Stoichiometric matrix: numberSpecies x numberReactions
     ndarray<uint> D;                               // Dependency matrix: numberSpecies x numberReactions
-    uint* propensityFunctionTypes;
-    lm::me::PropensityFunction** propensityFunctionArgs;
-    lm::me::PropensityFunctionCalculator* propensityFunctionCalculators;
+    lm::me::PropensityFunction** propensityFunctions;
 
     // Dependency tables.
     uint* numberDependentSpecies;

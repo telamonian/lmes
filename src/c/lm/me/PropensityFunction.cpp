@@ -118,14 +118,6 @@ PropensityFunction* PropensityFunctionFactory::createPropensityFunction(uint id,
     return (*f)(reactionIndex, S, D, K);
 }
 
-PropensityFunctionCalculator PropensityFunctionFactory::getPropensityFunctionCalculator(uint id)
-{
-    if (functions.count(id) == 0)
-        throw lm::InvalidArgException("id","the specified propensity function was not found",id);
-    return functions[id].calculate;
-}
-
-
 PropensityFunctionCollection::PropensityFunctionCollection()
 {
 }

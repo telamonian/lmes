@@ -157,7 +157,7 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
 
     // Make sure we have propensity functions for every reaction.
     for (uint i=0; i<reactionModel->numberReactions; i++)
-        if (reactionModel->propensityFunctionCalculators[i] == NULL || reactionModel->propensityFunctionArgs[i] == NULL)
+        if (reactionModel->propensityFunctions[i] == NULL)
             throw Exception("A reaction did not have a valid propensity function",i);
 
     // Make sure that the initial species counts agree with the actual number in the lattice.
@@ -515,7 +515,7 @@ double NextSubvolumeSolver::calculateSubvolumePropensity(si_time_t time, lattice
         // Make sure the reaction can occur in this subvolume.
         if (diffusionModel->RL[i*diffusionModel->numberSiteTypes+sourceSite])
     	{
-            subvolumePropensity += (*reactionModel->propensityFunctionCalculators[i])(time, currentSubvolumeSpeciesCounts, reactionModel->propensityFunctionArgs[i]);
+            subvolumePropensity += reactionModel->propensityFunctions[i]->calculate(time, currentSubvolumeSpeciesCounts);
         }
     }
 
@@ -644,7 +644,7 @@ int NextSubvolumeSolver::performSubvolumeEvent(si_time_t time, lattice_size_t su
     	// Make sure the reaction can occur in this subvolume.
         if (diffusionModel->RL[r*diffusionModel->numberSiteTypes+sourceSite])
     	{
-            double reactionPropensity = (*reactionModel->propensityFunctionCalculators[r])(time, currentSubvolumeSpeciesCounts, reactionModel->propensityFunctionArgs[r]);
+            double reactionPropensity = reactionModel->propensityFunctions[r]->calculate(time, currentSubvolumeSpeciesCounts);
 			if (reactionPropensity > 0.0)
 			{
 				if (rngValue <= reactionPropensity)

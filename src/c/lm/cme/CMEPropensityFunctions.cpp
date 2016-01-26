@@ -75,16 +75,17 @@ CMEPropensityFunctions::~CMEPropensityFunctions()
 {
 }
 
-struct ZerothOrderPropensity : public lm::me::PropensityFunction
+class ZerothOrderPropensity : public lm::me::PropensityFunction
 {
+public:
     static const uint REACTION_TYPE = 0;
 
-    ZerothOrderPropensity(double k):k(k) {}
+    ZerothOrderPropensity(double k) :PropensityFunction(REACTION_TYPE),k(k) {}
     double k;
 
-    static lm::me::PropensityFunctionDefinition registerFunction()
+    double calculate(const double time, const int* speciesCounts)
     {
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create, &calculate);
+        return k;
     }
 
     static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
@@ -99,24 +100,24 @@ struct ZerothOrderPropensity : public lm::me::PropensityFunction
         return new ZerothOrderPropensity(k[0]);
     }
 
-    static double calculate(const double time, const int* speciesCounts, const PropensityFunction* pargs)
+    static lm::me::PropensityFunctionDefinition registerFunction()
     {
-        ZerothOrderPropensity * args = (ZerothOrderPropensity*)pargs;
-        return args->k;
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
     }
 };
 
-struct FirstOrderPropensity : public lm::me::PropensityFunction
+class FirstOrderPropensity : public lm::me::PropensityFunction
 {
+public:
     static const uint REACTION_TYPE = 1;
 
-    FirstOrderPropensity(uint si, double k) :si(si),k(k) {}
+    FirstOrderPropensity(uint si, double k) :PropensityFunction(REACTION_TYPE),si(si),k(k) {}
     uint si;
     double k;
 
-    static lm::me::PropensityFunctionDefinition registerFunction()
+    double calculate(const double time, const int* speciesCounts)
     {
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create, &calculate);
+        return k * double(speciesCounts[si]);
     }
 
     static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
@@ -131,10 +132,9 @@ struct FirstOrderPropensity : public lm::me::PropensityFunction
         return new FirstOrderPropensity(dependencies[0],k[0]);
     }
 
-    static double calculate(const double time, const int* speciesCounts, const PropensityFunction* pargs)
+    static lm::me::PropensityFunctionDefinition registerFunction()
     {
-        FirstOrderPropensity * args = (FirstOrderPropensity*)pargs;
-        return args->k * (double)speciesCounts[args->si];
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
     }
 };
 

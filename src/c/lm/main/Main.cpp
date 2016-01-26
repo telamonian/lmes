@@ -611,14 +611,13 @@ void mainDebug(int argc, char** argv)
 
     int id=1;
     lm::me::PropensityFunctionFactory fs;
-    lm::me::PropensityFunction* args = fs.createPropensityFunction(id, reactionIndex, S, D, k);
-    lm::me::PropensityFunctionCalculator f = fs.getPropensityFunctionCalculator(id);
+    lm::me::PropensityFunction* f = fs.createPropensityFunction(id, reactionIndex, S, D, k);
 
     double time=10.0;
     int* speciesCounts=new int[numberSpecies];
     speciesCounts[0] = 10;
     speciesCounts[1] = 3;
-    double a = (*f)(time, speciesCounts, args);
+    double a = f->calculate(time, speciesCounts);
     S.print("\n");
     D.print("\n");
     k.print("\n");
