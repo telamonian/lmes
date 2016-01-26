@@ -91,20 +91,20 @@ template <typename T> struct tuple
         memcpy(values, t.values, sizeof(T)*len);
     }
 
-    tuple(T v1)
+    tuple(const T v1)
     :len(1),values(new T[len]())
     {
         values[0] = v1;
     }
 
-    tuple(T v1, T v2)
+    tuple(const T v1, const T v2)
     :len(2),values(new T[len]())
     {
         values[0] = v1;
         values[1] = v2;
     }
 
-    tuple(T v1, T v2, T v3)
+    tuple(const T v1, const T v2, const T v3)
     :len(3),values(new T[len]())
     {
         values[0] = v1;
@@ -118,7 +118,7 @@ template <typename T> struct tuple
         memcpy(values, valuesArray, sizeof(T)*len);
     }
 
-    tuple(list<T> valuesList)
+    tuple(const list<T>& valuesList)
     :len(valuesList.size()),values(new T[len]())
     {
         int i=0;
@@ -126,7 +126,7 @@ template <typename T> struct tuple
             values[i++] = *it;
     }
 
-    tuple(vector<T> valuesVector)
+    tuple(const vector<T>& valuesVector)
     :len(valuesVector.size()),values(new T[len]())
     {
         for (uint i=0; i<valuesVector.size(); i++)
@@ -144,11 +144,6 @@ template <typename T> struct tuple
     virtual ~tuple()
     {
         if (values != NULL) delete[] values; values = NULL;
-    }
-
-    const T operator[](const int index) const
-    {
-        return get((const uint)index);
     }
 
     const T operator[](const uint index) const
@@ -186,12 +181,12 @@ typedef tuple<uint> utuple;
 template <typename T> struct ndarray
 {
 public:
-    ndarray(tuple<uint> shape)
+    ndarray(const tuple<uint>& shape)
     :shape(shape),numberValues(calculateNumberValues(shape)),values(new T[numberValues]())
     {
     }
 
-    ndarray(tuple<uint> shape, T* valuesArray)
+    ndarray(const tuple<uint>& shape, const T* valuesArray)
     :shape(shape),numberValues(calculateNumberValues(shape)),values(new T[numberValues]())
     {
         memcpy(values, valuesArray, sizeof(T)*numberValues);

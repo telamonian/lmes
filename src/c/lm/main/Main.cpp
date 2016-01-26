@@ -579,7 +579,7 @@ void printUsage(int argc, char** argv)
 }
 
 #include "lm/Types.h"
-#include "lm/me/PropensityFunctions.h"
+#include "lm/me/PropensityFunction.h"
 
 void mainDebug(int argc, char** argv)
 {

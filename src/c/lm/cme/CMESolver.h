@@ -56,13 +56,15 @@
 
 #include "lm/Math.h"
 #include "lm/Types.h"
+#include "lm/cme/ReactionModel.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/ParameterValues.pb.h"
+#include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/main/Main.h"
 #include "lm/me/MESolver.h"
-#include "lm/me/PropensityFunctions.h"
+#include "lm/me/PropensityFunction.h"
 #include "lm/oparam/OParams.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/thread/Thread.h"
@@ -287,36 +289,9 @@ protected:
 protected:
     RandomGenerator::Distributions neededDists;
     RandomGenerator * rng;
+    ReactionModel* reactionModel;
     lm::oparam::OParams* oparams;
     lm::tiling::Tilings* tilings;
-
-    // The reaction model.
-    class ReactionModel
-    {
-    public:
-        ReactionModel(uint numberSpecies, uint numberReactions);
-        virtual ~ReactionModel();
-        virtual void build(const uint numberSpecies, const uint numberReactions, const uint * initialSpeciesCounts, const uint * reactionTypesA, const double * k, const int * S, const uint * D, const uint kCols=1);
-        virtual void setPropensityFunction(uint reaction, lm::me::PropensityFunction* propensityFunction, lm::me::PropensityFunctionCalculator propensityFunctionCalculator);
-
-        uint numberSpecies;
-        uint numberSpeciesToTrack;
-        uint numberReactions;
-        int* initialSpeciesCounts;                     // numberSpecies
-        uint* reactionTypes;                           // numberReactions
-        ndarray<int> S;                                // Stoichiometric matrix: numberSpecies x numberReactions
-        ndarray<uint> D;                               // Dependency matrix: numberSpecies x numberReactions
-        lm::me::PropensityFunction** propensityFunctionArgs;
-        lm::me::PropensityFunctionCalculator* propensityFunctionCalculators;
-
-        // Dependency tables.
-        uint* numberDependentSpecies;
-        uint** dependentSpecies;
-        int** dependentSpeciesChange;
-        uint* numberDependentReactions;
-        uint** dependentReactions;
-    };
-    ReactionModel* reactionModel;
 
     // The current limits.
     double maxTime;

@@ -44,7 +44,7 @@
 
 #include "lm/ClassFactory.h"
 #include "lm/cme/CMEPropensityFunctions.h"
-#include "lm/me/PropensityFunctions.h"
+#include "lm/me/PropensityFunction.h"
 
 using std::list;
 using std::map;

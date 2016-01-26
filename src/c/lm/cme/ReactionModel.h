@@ -37,27 +37,42 @@
  * Author(s): Elijah Roberts
  */
 
-#ifndef LM_CME_CMEPROPENSITYFUNCTIONS_H
-#define LM_CME_CMEPROPENSITYFUNCTIONS_H
+#ifndef LM_CME_REACTIONMODEL_H_
+#define LM_CME_REACTIONMODEL_H_
 
+#include "lm/Types.h"
+#include "lm/io/ReactionModel.pb.h"
 #include "lm/me/PropensityFunction.h"
 
 namespace lm {
 namespace cme {
 
-class CMEPropensityFunctions : public lm::me::PropensityFunctionCollection
+// The reaction model.
+class ReactionModel
 {
 public:
-    static bool registered;
-    static bool registerClass();
-    static void* allocateObject();
+    ReactionModel(const lm::io::ReactionModel& rm);
+    virtual ~ReactionModel();
+    virtual void setPropensityFunction(uint reaction, lm::me::PropensityFunction* propensityFunction, lm::me::PropensityFunctionCalculator propensityFunctionCalculator);
 
-public:
-    CMEPropensityFunctions();
-    virtual ~CMEPropensityFunctions();
-    virtual list<lm::me::PropensityFunctionDefinition> getPropensityFunctionDefinitions();
+    const uint numberSpecies;
+    uint numberSpeciesToTrack;
+    const uint numberReactions;
+    ndarray<int> S;                                // Stoichiometric matrix: numberSpecies x numberReactions
+    ndarray<uint> D;                               // Dependency matrix: numberSpecies x numberReactions
+    uint* propensityFunctionTypes;
+    lm::me::PropensityFunction** propensityFunctionArgs;
+    lm::me::PropensityFunctionCalculator* propensityFunctionCalculators;
+
+    // Dependency tables.
+    uint* numberDependentSpecies;
+    uint** dependentSpecies;
+    int** dependentSpeciesChange;
+    uint* numberDependentReactions;
+    uint** dependentReactions;
 };
 
 }
 }
-#endif // LM_ME_CMEPROPENSITYFUNCTIONS_H
+
+#endif

@@ -45,7 +45,7 @@
 #include "lm/ClassFactory.h"
 #include "lm/Print.h"
 #include "lm/Types.h"
-#include "lm/me/PropensityFunctions.h"
+#include "lm/me/PropensityFunction.h"
 
 using std::list;
 using std::map;
