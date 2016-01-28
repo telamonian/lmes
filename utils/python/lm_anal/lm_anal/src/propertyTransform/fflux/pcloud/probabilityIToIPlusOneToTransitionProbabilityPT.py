@@ -3,9 +3,9 @@ import numpy as np
 from lm_anal.src.datumABC import GetDatumStrABCSet
 from lm_anal.src.propertyTransform.basePT import BasePT
 
-__all__ = ['FluxOutOfTileZeroToInterfaceFluxPT']
+__all__ = ['ProbabilityIToIPlusOneToTransitionProbabilityPT']
 
-class FluxOutOfTileZeroToInterfaceFluxPT(BasePT):
+class ProbabilityIToIPlusOneToTransitionProbabilityPT(BasePT):
     srcABCs = GetDatumStrABCSet('fflux')
     dstABCs = GetDatumStrABCSet('pcloud')
     
