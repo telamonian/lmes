@@ -106,13 +106,22 @@ class HDF5IO(IO):
         #                   HDF5IOSpec(fullOnly=False, name=weight, subKey=weight, type='attribute'))
         #
 
+        # hack to deal with older .lmint files lacking the cache field in stored FFluxHists
+        buildCache = False
         histogramIOSpecs = HistogramIOSpecs(histogramName=hdf5Spec.name)
         for spec in histogramIOSpecs.values():
-            self.inputBySpec(excludedFields=excludedFields, hdf5Path=hdf5Path, hdf5Spec=spec, o=o, subCon=subCon)
+            try:
+                self.inputBySpec(excludedFields=excludedFields, hdf5Path=hdf5Path, hdf5Spec=spec, o=o, subCon=subCon)
+            except KeyError as e:
+                if spec.name==histogramIOSpecs.cache:
+                    buildCache = True
+                else:
+                    raise e
         subCon.setArray(name=histogramIOSpecs.dims, val=np.array(subCon.__getattribute__(histogramIOSpecs.raw).shape))
 
-        # subCon.setArray(name=cache, val=np.zeros(subCon.__getattribute__(raw).shape))
-        # subCon.setScalar(name=cache_dirty, val=True)
+        if buildCache:
+            subCon.setArray(name=histogramIOSpecs.cache, val=np.zeros(subCon.__getattribute__(histogramIOSpecs.raw).shape))
+            subCon.setScalar(name=histogramIOSpecs.cache_dirty, val=True)
     
     def inputSubData(self, excludedFields, hdf5Path, hdf5Spec, o, subCon):
         subData = subCon.getSubData(name=hdf5Spec.name)

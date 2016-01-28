@@ -1,4 +1,5 @@
 from lm_anal.src.helper import CamelCaseUpper
+from lm_anal.src.spec.io.hdf5.hdf5IOSpec import HDF5IOSpec
 from lm_anal.src.spec.io.hdf5.hdf5IOSpecs import HDF5IOSpecs
 
 __all__ = ['HistogramIOSpecs']
@@ -41,11 +42,11 @@ class HistogramIOSpecs(HDF5IOSpecs):
         return '%s_weight' % self.histogramName
 
     def __init__(self, histogramName):
-        self.add()
+        self.histogramName = histogramName
 
-        self.add(name=self.cache, subKey=self.cache, type='dataset')
-        self.add(name=self.edges, subKey=self.edges, type='dataset')
-        self.add(name=self.mask, subKey=self.mask, type='dataset')
-        self.add(name=self.raw, subKey=self.raw, type='dataset')
-        self.add(name=self.threshold, subKey=self.threshold, type='attribute')
-        self.add(name=self.weight, subKey=self.weight, type='attribute')
+        super().__init__(HDF5IOSpec(name=self.cache, subKey=self.cache, type='dataset'),
+                         HDF5IOSpec(name=self.edges, subKey=self.edges, type='dataset'),
+                         HDF5IOSpec(name=self.mask, subKey=self.mask, type='dataset'),
+                         HDF5IOSpec(name=self.raw, subKey=self.raw, type='dataset'),
+                         HDF5IOSpec(name=self.threshold, subKey=self.threshold, type='attribute'),
+                         HDF5IOSpec(name=self.weight, subKey=self.weight, type='attribute'))
