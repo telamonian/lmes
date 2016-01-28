@@ -10,7 +10,7 @@ class BasinsToOParamFPTPT(BasePT):
     dstABCs = GetDatumStrABCSet('pcloud')
     
     srcProps = frozenset({'basins'})
-    dstProps = frozenset({'oparamFPT'})
+    dstProps = frozenset({'oparam_fpt'})
     
     def ptfd(self, srcDict, dstDict, **kwargs):
         ffluxDatum = srcDict['FFluxOutput']
@@ -24,7 +24,7 @@ class BasinsToOParamFPTPT(BasePT):
         oparam = kwargs['oparams'][tiling.order_parameter_id]
         reactionModel = kwargs['reactionModels']
 
-        oparamFPT = np.zeros(len(edges)*len(directionIDs), dtype=dstDatum.propertySpecs['points']['dtype'])
+        oparam_fpt = np.zeros(len(edges)*len(directionIDs), dtype=dstDatum.propertySpecs['points']['dtype'])
         for directionID,direction in zip(directionIDs, directions):
             initSpeciesCount = reactionModel.initial_species_counts if direction=='FORWARD' else reactionModel.initial_species_counts_backward
             initOParamCount = oparam.calc(np.atleast_2d(initSpeciesCount))
@@ -37,11 +37,10 @@ class BasinsToOParamFPTPT(BasePT):
                 probabilityOneToIPlusOne = basin.probability_one_to_i_plus_one[i] if i>0 else 1
 
                 time = 1.0/(fluxOutOfTileZero*probabilityOneToIPlusOne)
-                # oparamFPT fields: oparam_id, count, initial_count, time
-                oparamFPT[i + directionID*len(edges)] = (oparam.id,
-                                                         edge,
-                                                         initOParamCount,
-                                                         time)
+                # oparam_fpt fields: oparam_id, count, initial_count, time
+                oparam_fpt[i + directionID*len(edges)] = (oparam.id,
+                                                          edge,
+                                                          initOParamCount,
+                                                          time)
 
-        dstDatum.setArray('oparamFPT', oparamFPT)
-        dstDatum.setScalar('order_parameter_id', oparam.id)
+        dstDatum.setArray('oparam_fpt', oparam_fpt)

@@ -8,12 +8,12 @@ from lm_anal.src.datumABC import FFluxABC
 __all__ = ['FFluxOutput']
 
 class FFluxOutput(Datum):
-    propertySpecs = DPSpecs(DPSpec(dtype='int', name='number_species', paths=('number_species',), storageType='protobuf', type='scalar'),
-                            DPSpec(dtype='int', name='number_tiles', paths=('number_tiles',), storageType='protobuf', type='scalar'),
-                            DPSpec(dtype='int', name='tiling_id', paths=('tiling_id',), storageType='protobuf', type='scalar'),
-                            DPSpec(name='basin_outputs', paths=('basin_outputs',), storageType='protobuf', type='embedded'),
-                            DPSpec(name='final_output', paths=('final_output',), storageType='protobuf', type='embedded'),
-                            DPSpec(name='trajectory_outputs', paths=('trajectory_outputs',), storageType='protobuf', type='embedded'))
+    propertySpecs = DPSpecs(DPSpec(name='number_species', dtype='int', paths=('number_species',), storageType='protobuf', type='scalar'),
+                            DPSpec(name='number_tiles', dtype='int', paths=('number_tiles',), storageType='protobuf', type='scalar'),
+                            DPSpec(name='tiling_id', dtype='int', paths=('tiling_id',), storageType='protobuf', type='scalar'),
+                            DPSpec(name='basins', paths=('basin_outputs',), storageType='protobuf', type='embedded'),
+                            DPSpec(name='final', paths=('final_output',), storageType='protobuf', type='embedded'),
+                            DPSpec(name='trajectories', paths=('trajectory_outputs',), storageType='protobuf', type='embedded'))
 
     def __init__(self, o=None):
         super().__init__(o=o)

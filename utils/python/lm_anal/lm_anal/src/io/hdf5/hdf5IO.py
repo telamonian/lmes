@@ -1,12 +1,8 @@
-import ast
-from collections import namedtuple
 import h5py
 import numpy as np
 import os
 
 from lm_anal.src.helper import CamelCaseUpper, FixedWidth, NumifyString
-from lm_anal.src.io.hdf5.hdf5Spec import HDF5Spec
-from lm_anal.src.io.hdf5.hdf5Specs import HDF5Specs
 from lm_anal.src.io.io import IO
 from lm_anal.src.spec.io.hdf5 import HistogramIOSpecs
 
@@ -53,12 +49,14 @@ class HDF5IO(IO):
         self.wrapperHDF5(self._dff, mode='a', excludedFields=excludedFields, keys=keys, raiseIfNotExists=raiseIfNotExists)
 
     def input(self, excludedFields, hdf5Path, o, subCon):
-        for spec in self.hdf5Specs:
+        for spec in self.hdf5Specs.values():
             self.inputBySpec(excludedFields=excludedFields, hdf5Path=hdf5Path, hdf5Spec=spec, o=o, subCon=subCon)
     
     def inputBySpec(self, excludedFields, hdf5Path, hdf5Spec, o, subCon):
         inclusionTests = [hdf5Spec.name not in excludedFields,
                           hdf5Spec.o is None or hdf5Spec.o<=o]
+        # if subCon.__class__.__name__=='FFluxOutput':
+        #     import pdb; pdb.set_trace()
         if np.all(inclusionTests):
             if hdf5Spec.type=='attribute':
                 self.inputAttribute(hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, subCon=subCon)
@@ -101,15 +99,15 @@ class HDF5IO(IO):
         # threshold = '%s_threshold' % hdf5Spec.name
         # weight = '%s_weight' % hdf5Spec.name
         #
-        # specs = HDF5Specs(HDF5Spec(fullOnly=False, name=edges, subKey=edges, type='dataset'),
-        #                   HDF5Spec(fullOnly=True, name=mask, subKey=mask, type='dataset'),
-        #                   HDF5Spec(fullOnly=True, name=raw, subKey=raw, type='dataset'),
-        #                   HDF5Spec(fullOnly=False, name=threshold, subKey=threshold, type='attribute'),
-        #                   HDF5Spec(fullOnly=False, name=weight, subKey=weight, type='attribute'))
+        # specs = HDF5IOSpecs(HDF5IOSpec(fullOnly=False, name=edges, subKey=edges, type='dataset'),
+        #                   HDF5IOSpec(fullOnly=True, name=mask, subKey=mask, type='dataset'),
+        #                   HDF5IOSpec(fullOnly=True, name=raw, subKey=raw, type='dataset'),
+        #                   HDF5IOSpec(fullOnly=False, name=threshold, subKey=threshold, type='attribute'),
+        #                   HDF5IOSpec(fullOnly=False, name=weight, subKey=weight, type='attribute'))
         #
 
         histogramIOSpecs = HistogramIOSpecs(histogramName=hdf5Spec.name)
-        for spec in histogramIOSpecs:
+        for spec in histogramIOSpecs.values():
             self.inputBySpec(excludedFields=excludedFields, hdf5Path=hdf5Path, hdf5Spec=spec, o=o, subCon=subCon)
         subCon.setArray(name=histogramIOSpecs.dims, val=np.array(subCon.__getattribute__(histogramIOSpecs.raw).shape))
 
@@ -161,7 +159,7 @@ class HDF5IO(IO):
         return self.wrapperHDF5(self._keys)
 
     def output(self, excludedFields, hdf5Path, o, subCon):
-        for spec in self.hdf5Specs:
+        for spec in self.hdf5Specs.values():
             self.outputBySpec(excludedFields=excludedFields, hdf5Path=hdf5Path, hdf5Spec=spec, o=o, subCon=subCon)
     
     def outputBySpec(self, excludedFields, hdf5Path, hdf5Spec, o, subCon):
@@ -214,14 +212,14 @@ class HDF5IO(IO):
         # threshold = '%s_threshold' % hdf5Spec.name
         # weight = '%s_weight' % hdf5Spec.name
         #
-        # specs = HDF5Specs(HDF5Spec(name=cache, subKey=cache, type='dataset'),
-        #                   HDF5Spec(name=edges, subKey=edges, type='dataset'),
-        #                   HDF5Spec(name=mask, subKey=mask, type='dataset'),
-        #                   HDF5Spec(name=raw, subKey=raw, type='dataset'),
-        #                   HDF5Spec(name=threshold, subKey=threshold, type='attribute'),
-        #                   HDF5Spec(name=weight, subKey=weight, type='attribute'))
+        # specs = HDF5IOSpecs(HDF5IOSpec(name=cache, subKey=cache, type='dataset'),
+        #                   HDF5IOSpec(name=edges, subKey=edges, type='dataset'),
+        #                   HDF5IOSpec(name=mask, subKey=mask, type='dataset'),
+        #                   HDF5IOSpec(name=raw, subKey=raw, type='dataset'),
+        #                   HDF5IOSpec(name=threshold, subKey=threshold, type='attribute'),
+        #                   HDF5IOSpec(name=weight, subKey=weight, type='attribute'))
         
-        for spec in HistogramIOSpecs(histogramName=hdf5Spec.name):
+        for spec in HistogramIOSpecs(histogramName=hdf5Spec.name).values():
             self.outputBySpec(excludedFields=excludedFields, hdf5Path=hdf5Path, hdf5Spec=spec, o=o, subCon=subCon)
 
     def outputSubData(self, excludedFields, hdf5Path, hdf5Spec, o, subCon):

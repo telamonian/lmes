@@ -3,8 +3,9 @@ import numpy as np
 
 # from lm_anal.src.datum.fflux import FFluxBasins, FFluxFinals, FFluxTrajectories
 from lm_anal.src.helper import LazyClass
-from lm_anal.src.io.hdf5 import HDF5IO, HDF5Spec, HDF5Specs
+from lm_anal.src.io.hdf5 import HDF5IO
 from lm_anal.src.io.hdf5.fflux import FFluxBasinsIO, FFluxFinalsIO, FFluxTrajectoriesIO
+from lm_anal.src.spec.io.hdf5 import HDF5IOSpec, HDF5IOSpecs
 
 lzFFluxBasins = LazyClass(modName='lm_anal.src.datum.fflux', clsName='FFluxBasins')
 lzFFluxFinals = LazyClass(modName='lm_anal.src.datum.fflux', clsName='FFluxFinals')
@@ -12,12 +13,12 @@ lzFFluxTrajectories = LazyClass(modName='lm_anal.src.datum.fflux', clsName='FFlu
 
 class FFluxOutputsIO(HDF5IO):
     hdf5RootPath = 'Tilings'
-    hdf5Specs = HDF5Specs(HDF5Spec(fullOnly=False, name='number_species', subKey='NumberSpecies', type='attribute'),
-                          HDF5Spec(fullOnly=False, name='number_tiles', subKey='NumberTiles', type='attribute'),
-                          HDF5Spec(fullOnly=False, name='tiling_id', subKey='TilingID', type='attribute'),
-                          HDF5Spec(DataType=lzFFluxBasins, IOType=FFluxBasinsIO, fullOnly=False, name='basins', type='embedded'),
-                          HDF5Spec(DataType=lzFFluxFinals, IOType=FFluxFinalsIO, fullOnly=False, name='finals', type='specialSubData'),
-                          HDF5Spec(DataType=lzFFluxTrajectories, IOType=FFluxTrajectoriesIO, fullOnly=False, name='trajectories', type='embedded'))
+    hdf5Specs = HDF5IOSpecs(HDF5IOSpec(name='number_species', subKey='NumberSpecies', type='attribute'),
+                            HDF5IOSpec(name='number_tiles', subKey='NumberTiles', type='attribute'),
+                            HDF5IOSpec(name='tiling_id', subKey='TilingID', type='attribute'),
+                            HDF5IOSpec(DataType=lzFFluxBasins, IOType=FFluxBasinsIO, name='basins', type='embedded'),
+                            HDF5IOSpec(DataType=lzFFluxFinals, IOType=FFluxFinalsIO, name='finals', type='specialSubData'),
+                            HDF5IOSpec(DataType=lzFFluxTrajectories, IOType=FFluxTrajectoriesIO, name='trajectories', type='embedded'))
     
     def inputFinals(self, excludedFields, hdf5Path, hdf5Spec, o, subCon):
         subData = self.inputEmbedded(excludedFields=excludedFields, hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, o=o, subCon=subCon)

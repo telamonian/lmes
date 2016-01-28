@@ -68,7 +68,7 @@ class HistToKLDivCloudT(BaseT):
                     srcsWithDatum = {srcDatum} | srcs
                     datumKey = self.genDatumKeyTuples(key, **kwargs)
                     # TODO: fix up 'full' keyword system. Here specifically, how should 'full' flag be set for Datum created from a Transform?
-                    dstDatum = dstKeyData.initDatum(datumKey, full=srcDatum.full)
+                    dstDatum = dstKeyData.initDatum(datumKey, o=srcDatum.o)
                     dstsWithDatum = {dstDatum} | dsts
                     
                     pT.transformProperties(srcs=srcsWithDatum, dsts=dstsWithDatum, **kwargs)

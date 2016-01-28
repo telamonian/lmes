@@ -1,7 +1,5 @@
 import os
 
-from lm_anal.src.io.hdf5.hdf5Spec import HDF5Spec
-from lm_anal.src.io.hdf5.hdf5Specs import HDF5Specs
 from lm_anal.src.io.hdf5.hdf5IO import HDF5IO
 
 __all__ = ['HDF5IOSingleton', 'HDF5IOSingletonMetaclass']

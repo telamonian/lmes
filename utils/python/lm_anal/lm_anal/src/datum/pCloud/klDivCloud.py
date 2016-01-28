@@ -8,7 +8,6 @@ __all__ = ['KLDivCloud']
 
 class KLDivCloud(PCloud):
     propertySpecs = DatSpcs()
-    # propertySpecs = DatSpcs(DatSpc(name='points', dtype='float', paths=('points'), storageType='numpy', type='array'))
 
     # add some alias specs
     propertySpecs.addAlias(name='kl_div', targetName='points')

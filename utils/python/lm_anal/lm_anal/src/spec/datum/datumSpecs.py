@@ -38,7 +38,14 @@ class DatumSpecs(Specs):
                 if self.aliasRe.search(spec.type):
                     continue
             yield name,spec
-    
+
+    def getRealSpecs(self):
+        '''
+        returns a copy of self with the alias-type DatumSpecs removed
+        '''
+        return self.__class__(*[spec for spec in self.values()
+                                if spec.type is None or not self.aliasRe.search(spec.type)])
+
     def getUnsatisfied(self, satisfiedNames):
         satisfiedNames = Setify(satisfiedNames)
         unsatisfiedNames = set()

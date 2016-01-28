@@ -1,18 +1,19 @@
 import os
 import numpy as np
 
-from lm_anal.src.io.hdf5 import HDF5IO, HDF5Spec, HDF5Specs
+from lm_anal.src.io.hdf5 import HDF5IO
+from lm_anal.src.spec.io.hdf5 import HDF5IOSpec, HDF5IOSpecs
 
 class OParamsIO(HDF5IO):
     hdf5RootPath = 'OrderParameters'
-    hdf5Specs = HDF5Specs(HDF5Spec(fullOnly=False, name='id', subKey='ID', type='attribute'),
-                          HDF5Spec(fullOnly=False, name='species_ids', subKey='SpeciesIDs', type='dataset'),
-                          HDF5Spec(fullOnly=False, name='species_coefficients', subKey='SpeciesCoefficients', type='dataset'),
-                          HDF5Spec(fullOnly=False, name='type', subKey='Type', type='special'))
-#                  HDF5Spec(fullOnly=False, name='dims', subKey='Edges', type='special'),
-#                  HDF5Spec(fullOnly=False, name='rank', subKey='Edges', type='special'),
+    hdf5Specs = HDF5IOSpecs(HDF5IOSpec(fullOnly=False, name='id', subKey='ID', type='attribute'),
+                          HDF5IOSpec(fullOnly=False, name='species_ids', subKey='SpeciesIDs', type='dataset'),
+                          HDF5IOSpec(fullOnly=False, name='species_coefficients', subKey='SpeciesCoefficients', type='dataset'),
+                          HDF5IOSpec(fullOnly=False, name='type', subKey='Type', type='special'))
+#                  HDF5IOSpec(fullOnly=False, name='dims', subKey='Edges', type='special'),
+#                  HDF5IOSpec(fullOnly=False, name='rank', subKey='Edges', type='special'),
     
-    def inputType(self, hdf5Path, hdf5Spec, subCon, full):
+    def inputType(self, hdf5Path, hdf5Spec, subCon):
         subCon.setType(typeID=self.file[hdf5Path].attrs[hdf5Spec.subKey])
         self.inputAttribute(hdf5Path, hdf5Spec, subCon)
     

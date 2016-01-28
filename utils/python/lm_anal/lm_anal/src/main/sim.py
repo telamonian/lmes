@@ -20,6 +20,7 @@ from lm_anal.src.datum.fpt import OParamFPTs, SpeciesFPTs
 from lm_anal.src.datum.hist import FFluxHists, OParamHists
 from lm_anal.src.datum.model import ReactionModels
 from lm_anal.src.datum.parameter import SimulationParameters
+from lm_anal.src.datum.probability import InterfaceFluxes, TransitionProbabilities
 from lm_anal.src.datum.oparam import OParams
 from lm_anal.src.datum.tiling import Tilings
 from lm_anal.src.datum.trajectory import OParamTrajectories
@@ -62,9 +63,11 @@ class Sim(object):
             self.dataDict[dataName] = self.__getattribute__(dataName)
             
         self.ffluxHists.dataToTransform = self.ffluxOutputs
+        self.interfaceFluxes.dataToTransform = self.ffluxOutputs
         self.oparamFPTs.dataToTransform = self.ffluxOutputs
         self.oparamHists.dataToTransform = self.speciesTrajectories
         self.oparamTrajectories.dataToTransform = self.speciesTrajectories
+        self.transitionProbabilities.dataToTransform = self.ffluxOutputs
     
     def initInputData(self, lazyLoad=True):
         self.inputDataDict = OrderedDict()

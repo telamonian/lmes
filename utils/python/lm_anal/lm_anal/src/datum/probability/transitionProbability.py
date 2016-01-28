@@ -1,11 +1,11 @@
 from lm_anal.src.datum.probability.probability import Probability
-from lm_anal.src.spec import DatumSpec as DatSpc, DatumSpecs as DatSpcs
+from lm_anal.src.spec import DatumSpec, DatumSpecs
 
 __all__ = ['TransitionProbability']
 
 class TransitionProbability(Probability):
-    pointsDtype = [('start', 'float'), ('success', 'float'), ('failure', 'float'), ('probability', 'float')]
-    propertySpecs = DatSpcs()
+    pointsDtype = [('failure', 'float'), ('initial', 'float'), ('success', 'float'), ('probability', 'float')]
+    propertySpecs = DatumSpecs()
 
     # add an alias for .points in order to differentiate it from the .points property of all the other pcloud Datums during transforms
-    propertySpecs.addAlias(name='transitionProbability', targetName='points')
+    propertySpecs.addAlias(name='transition_probability', targetName='points')

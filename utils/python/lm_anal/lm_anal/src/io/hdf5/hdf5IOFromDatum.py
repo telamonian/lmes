@@ -15,10 +15,9 @@ datumTypeToHDF5TypeDict = {'alias': None,
 
 def GetHDF5IOSpecsFromDatumSpecs(datumSpecs, dct):
     newHdf5Specs = HDF5IOSpecs()
-    for datumSpec in datumSpecs.getReals():
+    for datumSpec in datumSpecs.getRealSpecs().values():
         hdf5SpecKwargs = {}
         hdf5SpecKwargs['name'] = datumSpec['name']
-        hdf5SpecKwargs['fullOnly'] = False
         hdf5SpecKwargs['subKey'] = CamelCaseUpper(datumSpec['name'])
         if datumSpec['type'] not in datumTypeToHDF5TypeDict:
             raise KeyError('while trying to generate an HDF5IOSpec from a DatumSpec, the type of the DatumSpec could not be matched to any of the known HDF5IOSpec types.\n\
@@ -31,6 +30,7 @@ def GetHDF5IOSpecsFromDatumSpecs(datumSpecs, dct):
 
 class HDF5IOFromDatumMetaclass(type):
     def __new__(cls, clsname, bases, dct):
+        # try to get .datumType directly from the new class's dct, and if that fails check to see if .datumType can be determined from dct['dataType']
         if 'datumType' in dct and dct['datumType'] is not None:
             datumType = dct['datumType']
         elif 'dataType' in dct and dct['dataType'].datumType is not None:

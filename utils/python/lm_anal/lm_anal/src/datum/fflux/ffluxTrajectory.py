@@ -3,6 +3,7 @@ import numpy as np
 
 # from lm.io.FFluxOutput_pb2 import TrajectoryOutput as TrajectoryOutputBuf
 from lm_anal.src.datum import Datum, DatumPropertySpec as DPSpec, DatumPropertySpecs as DPSpecs
+from lm_anal.src.datumABC import FFluxABC
 
 __all__ = ['FFluxTrajectory']
 
@@ -31,3 +32,5 @@ class FFluxTrajectory(Datum):
 #         for i,trajID in enumerate(self.trajectory_id):
 #             self.trajectory_phase_map[trajID] = (directionID, self.edge_id[i])
         self.tPMap = self.trajectory_phase_map
+
+FFluxABC.register(FFluxTrajectory)

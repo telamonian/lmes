@@ -15,12 +15,14 @@ def Depth(x):
             break
     return depth
 
-def FindInstanceInSet(sett, Tipe, raiseNotFound=False):
+def FindInstanceInSet(sett, tipe, discard=False, raiseNotFound=False):
     '''
     return the "first" instance of Type Tipe in set sett
     '''
     for obj in sett:
-        if isinstance(obj, Tipe):
+        if isinstance(obj, tipe):
+            if discard:
+                sett.discard(obj)
             return obj
     if raiseNotFound:
         raise

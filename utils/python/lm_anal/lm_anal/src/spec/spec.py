@@ -115,9 +115,15 @@ class Spec(object, metaclass=SpecMetaclass):
             raise
 
 # accessors
+    def items(self):
+        return self.map.items()
+
     def keys(self):
         return self.map.keys()
 
+    def values(self):
+        return self.map.values()
+    
 # other(?)
     def addKeywords(self, keywords):
         for keyword in Setify(keywords):

@@ -20,6 +20,5 @@ class PCloudMetaclass(DatumMetaclass):
 
 class PCloud(Datum, metaclass=PCloudMetaclass):
     pointsDtype = 'float'
-    # propertySpecs = DatSpcs(DatSpc(name='points', dtype='float', paths=('points'), storageType='numpy', type='array'))
-        
+
 PCloudABC.register(PCloud)

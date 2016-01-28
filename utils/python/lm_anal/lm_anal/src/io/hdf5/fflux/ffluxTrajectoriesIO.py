@@ -1,17 +1,18 @@
 import os
 
 from lm_anal.src.helper import DirectionEnum, LifecycleEnum, ListInStr, timewith
-from lm_anal.src.io.hdf5 import HDF5IO, HDF5Spec, HDF5Specs
+from lm_anal.src.io.hdf5 import HDF5IO
+from lm_anal.src.spec.io.hdf5 import HDF5IOSpec, HDF5IOSpecs
 
 class FFluxTrajectoriesIO(HDF5IO):
     hdf5RootPath = 'Tilings'
-    hdf5Specs = HDF5Specs(HDF5Spec(fullOnly=False, name='direction', type='special'),
-                          HDF5Spec(fullOnly=False, name='lifecycle', type='special'),
-                          HDF5Spec(fullOnly=True, name='count', subKey='Count', type='dataset'),
-                          HDF5Spec(fullOnly=True, name='edge_id', subKey='EdgeID', type='dataset'),
-                          HDF5Spec(fullOnly=True, name='species_count', subKey='SpeciesCount', type='dataset'),
-                          HDF5Spec(fullOnly=True, name='time', subKey='Time', type='dataset'),
-                          HDF5Spec(fullOnly=True, name='trajectory_id', subKey='TrajectoryID', type='dataset'))
+    hdf5Specs = HDF5IOSpecs(HDF5IOSpec(fullOnly=False, name='direction', type='special'),
+                            HDF5IOSpec(fullOnly=False, name='lifecycle', type='special'),
+                            HDF5IOSpec(fullOnly=True, name='count', subKey='Count', type='dataset'),
+                            HDF5IOSpec(fullOnly=True, name='edge_id', subKey='EdgeID', type='dataset'),
+                            HDF5IOSpec(fullOnly=True, name='species_count', subKey='SpeciesCount', type='dataset'),
+                            HDF5IOSpec(fullOnly=True, name='time', subKey='Time', type='dataset'),
+                            HDF5IOSpec(fullOnly=True, name='trajectory_id', subKey='TrajectoryID', type='dataset'))
     
     def inputDirection(self, hdf5Path, hdf5Spec, subCon):
         subCon.setScalar(name=hdf5Spec.name, val=DirectionEnum.Value(hdf5Path.split('/')[-2]))
@@ -38,7 +39,7 @@ class FFluxTrajectoriesIO(HDF5IO):
         for key in keys:
             subCon = container.initDatum(key=key, o=o)
             self.input(excludedFields=excludedFields, hdf5Path=os.path.join(self.hdf5RootPath, str(key)), o=o, subCon=subCon)
-            if o is None and 'INITIAL' in key:
+            if o and 'INITIAL' in key:
                 directionID = 0 if 'FORWARD' in key else 1
                 # with timewith('genTrajectoryPhaseMap') as t:    # PROFILING
                 subCon.genTrajectoryPhaseMap(directionID)

@@ -100,10 +100,12 @@ class PropertyTransforms(object):
 #                     raise
     
     @staticmethod
-    def findDataFromDatumInSet(datumSet, Tipe):
+    def findDataFromDatumInSet(datumSet, tipe, discard=False):
         for obj in datumSet:
             try:
-                if issubclass(obj.datumType, Tipe):
+                if issubclass(obj.datumType, tipe):
+                    if discard:
+                        datumSet.discard(obj)
                     return obj
             except AttributeError:
                 pass
@@ -114,10 +116,18 @@ class PropertyTransforms(object):
         retDict = {}
         datumTypes = self.__getattribute__('%sTypes' % kind)
         dataTypes = self.__getattribute__('%sDataTypes' % kind)
-        for DatumType in datumTypes:
-            retDict[DatumType.__name__] = FindInstanceInSet(datumSet, DatumType)
-        for DataType in dataTypes:
-            retDict[DataType.__name__] = self.findDataFromDatumInSet(datumSet, DataType)
+        for dataType in dataTypes:
+            retDict[dataType.__name__] = self.findDataFromDatumInSet(datumSet=datumSet, tipe=dataType, discard=True)
+        for datumType in datumTypes:
+            retDict[datumType.__name__] = FindInstanceInSet(sett=datumSet, tipe=datumType, discard=True, raiseNotFound=True)
+        # if there happen to be extra Datums in datumSet, try adding them to retDict
+        for datum in datumSet:
+            datumType = datum.__class__.__name__
+            if datumType not in retDict:
+                retDict[datumType] = datum
+            else:
+                # there's an extra Datum in datumSet that has the same type as one of the explicitly defined dataTypes
+                raise
         return retDict
     
     def transformProperties(self, srcs, dsts, **kwargs):

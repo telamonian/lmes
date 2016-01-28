@@ -1,31 +1,23 @@
 from lm_anal.src.datum.fflux import FFluxOutput
-from lm_anal.src.datum.fpt import OParamFPT
+from lm_anal.src.datum.probability import InterfaceFlux
 from lm_anal.src.spec import PropertyTransformSpec, PropertyTransformSpecs, TransformSpec, TransformSpecs
 from lm_anal.src.transform import BaseT
 
-__all__ = ['FFluxOutputToOParamFPTT']
+__all__ = ['FFluxOutputToInterfaceFluxT']
 
-class FFluxOutputToOParamFPTT(BaseT):
-    srcTypes = frozenset({FFluxOutput}) 
-    dstTypes = frozenset({OParamFPT})
+class FFluxOutputToInterfaceFluxT(BaseT):
+    srcTypes = frozenset({FFluxOutput})
+    dstTypes = frozenset({InterfaceFlux})
     
-    transformSpecs = TransformSpecs(TransformSpec(srcTypes={FFluxOutput}, dstTypes={OParamFPT}, requiredData={'oparams', 'reactionModels', 'tilings'},
+    transformSpecs = TransformSpecs(TransformSpec(srcTypes={FFluxOutput}, dstTypes={InterfaceFlux}, requiredData={'tilings'},
         propertyTransformSpecs=PropertyTransformSpecs(
-            PropertyTransformSpec(dstProps='oparam_fpt', srcProps='basins', type='special'))))
+            PropertyTransformSpec(dstProps='interface_flux', srcProps='flux_out_of_tile_zero', type='special'))))
     
-    def genDatumKeyTuples(self, inputKey, **kwargs):
+    def genDatumKeyTuples(self, ffluxOutputKey, ffluxBasinKey, **kwargs):
         '''
         (key, value) pair tuples version
         '''
-        return (('InterfaceTilingID', inputKey),)
-    
-    def genDatumKeyDelimited(self, inputKey, **kwargs):
-        '''
-        '_' and '_-_' delimited version
-        '''
-        return '_-_'.join([
-            '_'.join(['InterfaceTilingID', str(inputKey)])
-        ])
+        return (('InterfaceTilingID', ffluxOutputKey), ('Direction', ffluxBasinKey))
 
     def tfd(self, srcs, dsts, keys=None, **kwargs):
         # check to make sure that we've got all of the data we need (in addition to src and dst)
@@ -45,14 +37,14 @@ class FFluxOutputToOParamFPTT(BaseT):
                 dstKeyData = self.findDataFromDatumInSet(dsts, pT.dstKeyType)
                     
             if keys==None:
-                keys = srcKeyData.keys()
+                keys = [(ffluxOutputKey, ffluxBasinKey) for ffluxOutputKey,val in srcKeyData.items() for ffluxBasinKey in val.basins.keys()]
 
-            for key in keys:
-                srcDatum = srcKeyData[key]
-                srcsWithDatum = {srcDatum} | srcs
-                datumKey = self.genDatumKeyTuples(key, **kwargs)
+            for ffluxOutputKey,ffluxBasinKey in keys:
+                ffluxOutputDatum,ffluxBasinDatum = srcKeyData[ffluxOutputKey],srcKeyData[ffluxOutputKey].basins[ffluxBasinKey]
+                srcsWithDatum = {ffluxOutputDatum,ffluxBasinDatum} | srcs
+                datumKey = self.genDatumKeyTuples(ffluxOutputKey, ffluxBasinKey, **kwargs)
                 # TODO: fix up 'full' keyword system. Here specifically, how should 'full' flag be set for Datum created from a Transform?
-                dstDatum = dstKeyData.initDatum(datumKey, o=srcDatum.o)
+                dstDatum = dstKeyData.initDatum(datumKey, o=ffluxOutputDatum.o)
                 dstsWithDatum = {dstDatum} | dsts
 
                 pT.transformProperties(srcs=srcsWithDatum, dsts=dstsWithDatum, **kwargs)

@@ -1,5 +1,6 @@
 # from lm.io.FFluxOutput_pb2 import BasinOutput as BasinOutputBuf
 from lm_anal.src.datum import Datum, DatumPropertySpec as DPSpec, DatumPropertySpecs as DPSpecs
+from lm_anal.src.datumABC import FFluxABC
 
 __all__ = ['FFluxFinal']
 
@@ -15,3 +16,5 @@ class FFluxFinal(Datum):
             self.protobuf = subBuf
 #         else:
 #             self.protobuf = BasinOutputBuf()
+
+FFluxABC.register(FFluxFinal)

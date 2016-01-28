@@ -1,14 +1,15 @@
 import os
 import numpy as np
 
-from lm_anal.src.io.hdf5 import HDF5IOSingleton, HDF5Spec, HDF5Specs
+from lm_anal.src.io.hdf5 import HDF5IOSingleton
+from lm_anal.src.spec.io.hdf5 import HDF5IOSpec, HDF5IOSpecs
 
 class SimulationParametersIO(HDF5IOSingleton):
     hdf5RootPath = ''
     singletonKey = 'Parameters'
 
-    hdf5Specs = HDF5Specs(HDF5Spec(fullOnly=False, name='key', type='special'),
-                          HDF5Spec(fullOnly=False, name='value', type='special'))
+    hdf5Specs = HDF5IOSpecs(HDF5IOSpec(fullOnly=False, name='key', type='special'),
+                          HDF5IOSpec(fullOnly=False, name='value', type='special'))
     
     def __init__(self, fPath):
         super().__init__(fPath)

@@ -1,11 +1,11 @@
 from lm_anal.src.datum.pcloud.pcloud import PCloud
 from lm_anal.src.spec import DatumSpec, DatumSpecs
 
-__all__ = ['FPT']
+__all__ = ['InterfaceFlux']
 
-class FPT(PCloud):
-    pointsDtype = [('id', 'int'), ('count', 'int'), ('initial_count', 'int'), ('time', 'float')]
+class InterfaceFlux(PCloud):
+    pointsDtype = [('interface', 'float'), ('flux', 'float')]
     propertySpecs = DatumSpecs()
 
     # add an alias for .points in order to differentiate it from the .points property of all the other pcloud Datums during transforms
-    propertySpecs.addAlias(name='fpt', targetName='points')
+    propertySpecs.addAlias(name='interface_flux', targetName='points')
