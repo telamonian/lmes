@@ -229,62 +229,8 @@ protected:
         }
     }
 
-    inline bool reachedSpeciesLimit()
-    {
-        for (uint i=0; i<numberSpeciesLimits; i++)
-        {
-            SpeciesLimit l = speciesLimits[i];
-            switch (l.type)
-            {
-            case SpeciesLimit::MIN:
-                if (int(speciesCounts[l.species]) <= l.limit)
-                {
-                    finalLimitType = lm::io::TrajectoryLimits::MINSPECIESCOUNT;
-                    return true;
-                }
-                break;
-            case SpeciesLimit::MAX:
-                if (int(speciesCounts[l.species]) >= l.limit)
-                {
-                    finalLimitType = lm::io::TrajectoryLimits::MAXSPECIESCOUNT;
-                    return true;
-                }
-                break;
-            // use the ASCENDING limit checks when starting to the left of the limit
-            case SpeciesLimit::DECREASING_ASCENDING:
-            	if ((*oparams)[l.species]->getPrev() >= l.limit && (*oparams)[l.species]->get() < l.limit)
-                {
-                    finalLimitType = lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER;
-                    return true;
-                }
-            	break;
-            case SpeciesLimit::INCREASING_ASCENDING:
-            	if ((*oparams)[l.species]->getPrev() < l.limit && (*oparams)[l.species]->get() >= l.limit)
-                {
-                    finalLimitType = lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER;
-                    return true;
-                }
-            	break;
-            // use the DESCENDING limit checks when starting to the right of the limit
-            case SpeciesLimit::DECREASING_DESCENDING:
-                if ((*oparams)[l.species]->getPrev() > l.limit && (*oparams)[l.species]->get() <= l.limit)
-                {
-                    finalLimitType = lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER;
-                    return true;
-                }
-                break;
-            case SpeciesLimit::INCREASING_DESCENDING:
-                if ((*oparams)[l.species]->getPrev() <= l.limit && (*oparams)[l.species]->get() > l.limit)
-                {
-                    finalLimitType = lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER;
-                    return true;
-                }
-                break;
-            }
+    virtual bool isTrajectoryOutsideLimits();
 
-        }
-        return false;
-    }
 
 protected:
     RandomGenerator::Distributions neededDists;

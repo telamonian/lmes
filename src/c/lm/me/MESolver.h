@@ -84,6 +84,9 @@ public:
     virtual long long generateTrajectory(long long maxSteps)=0;
 
 protected:
+    virtual bool isTrajectoryOutsideLimits()=0;
+
+protected:
     vector<int> cpus;
     vector<int> gpus;
     map<string,string> simulationParameters;

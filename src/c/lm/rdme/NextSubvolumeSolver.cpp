@@ -258,8 +258,12 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     bool affectedNeighbor;
     lattice_size_t subvolume;
     lattice_size_t neighborSubvolume;
-    while (steps < maxSteps && !reachedSpeciesLimit())
+    while (steps < maxSteps)
     {
+        // If we are outside of the limits, stop the trajectory.
+        if (isTrajectoryOutsideLimits())
+            break;
+
         steps++;
 
         // Get the next subvolume with a reaction and the reaction time.

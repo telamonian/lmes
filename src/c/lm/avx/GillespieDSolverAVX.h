@@ -80,6 +80,7 @@ protected:
     void updateAllPropensities(const uint numberSpecies);
     //void updatePropensities(avxd time, uint sourceReaction);
     void performReactionEvent(uint* reactionsToPerform);
+    virtual bool isTrajectoryOutsideLimits();
 
 protected:
     double* speciesCounts;
@@ -87,6 +88,8 @@ protected:
     avxd time;
 
     avxd maxTime;
+
+    bool trajectoryStarted[DOUBLES_PER_AVX];
 
 };
 

@@ -193,8 +193,12 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     Print::printf(Print::DEBUG, "Running Gillespie direct simulation for %d steps with %d species, %d reactions, %d species limits\n", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberSpeciesLimits);
     PROF_BEGIN(PROF_SIM_EXECUTE);
     long long steps=0;
-    while (totalPropensity > 0 && steps < maxSteps && !reachedSpeciesLimit())
+    while (totalPropensity > 0 && steps < maxSteps)
     {
+        // If we are outside of the limits, stop the trajectory.
+        if (isTrajectoryOutsideLimits())
+            break;
+
         steps++;
 
         // See if we need to update our rng caches.

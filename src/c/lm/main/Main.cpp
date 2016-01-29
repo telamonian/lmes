@@ -656,7 +656,7 @@ void mainDebug(int argc, char** argv)
     /**/
     lm::avx::GillespieDSolverAVX* s = new lm::avx::GillespieDSolverAVX();
     hrtime start = getHrTime();
-    long long steps = s->generateTrajectory(100000000);
+    long long steps = s->generateTrajectory(10000000);
     hrtime stop = getHrTime();
     printf("Performed %lld steps in %0.3f seconds (%0.4e steps/second)\n",steps,convertHrToSeconds(stop-start),double(steps)/convertHrToSeconds(stop-start));
     delete s;

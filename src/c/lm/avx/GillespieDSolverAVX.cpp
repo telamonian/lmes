@@ -62,6 +62,7 @@
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/ProcessWorkUnitOutput.pb.h"
+#include "lm/message/WorkUnitOutput.pb.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/rng/XORShift.h"
 #ifdef OPT_CUDA
@@ -97,6 +98,12 @@ void* GillespieDSolverAVX::allocateObject()
 
 GillespieDSolverAVX::GillespieDSolverAVX():CMESolver((RandomGenerator::Distributions)(RandomGenerator::EXPONENTIAL|RandomGenerator::UNIFORM)),propensities(NULL)
 {
+    // Initialize any array variables.
+    for (int i=0; i<DOUBLES_PER_AVX; i++)
+    {
+        trajectoryStarted[i] = false;
+    }
+
     vector<int> cpus;
     cpus.push_back(0);
     setComputeResources(cpus, vector<int>());
@@ -213,7 +220,9 @@ GillespieDSolverAVX::GillespieDSolverAVX():CMESolver((RandomGenerator::Distribut
     // Set the propensities.
     updateAllPropensities(reactionModel->numberSpecies);
 
+    time = _mm256_setr_pd(0.0, 1.99999999999999, 3.99999999999999, 9.99999999999999);
     maxTime = _mm256_setr_pd(100000.0, 100000.0, 100000.0, 100000.0);
+    simulationParameters["writeInterval"] = "1000.0";
 }
 
 GillespieDSolverAVX::~GillespieDSolverAVX()
@@ -231,6 +240,12 @@ int GillespieDSolverAVX::getSimultaneousTrajectories()
 void GillespieDSolverAVX::reset()
 {
     CMESolver::reset();
+
+    // Reset any array variables.
+    for (int i=0; i<DOUBLES_PER_AVX; i++)
+    {
+        trajectoryStarted[i] = false;
+    }
 
     // Free any previous state.
     if (speciesCounts != NULL) free(speciesCounts); speciesCounts = NULL;
@@ -291,32 +306,39 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
     }
 
     // Create the output message.
-//    lm::message::Message msgp;
-//    lm::message::ProcessWorkUnitOutput* msg = msgp.add_process_work_unit_output();
-//    msg->set_work_unit_id(workUnitId);
+    lm::message::Message msgp;
+    lm::message::ProcessWorkUnitOutput* msg = msgp.mutable_process_work_unit_output();
+    lm::message::WorkUnitOutput* output[DOUBLES_PER_AVX];
+    for (int i=0; i<DOUBLES_PER_AVX; i++)
+        output[i] = msg->add_output();
 
     // Get the interval for writing species counts.
-//    double writeInterval = atof(simulationParameters["writeInterval"].c_str());
-//    bool writeTimeSteps = (writeInterval > 0.0);
-//    double nextSpeciesWriteTime;
-//    vector<int32_t> speciesTimeSeriesCounts;
-//    vector<double> speciesTimeSeriesTimes;
+    double writeInterval = atof(simulationParameters["writeInterval"].c_str());
+    bool writeTimeSteps = (writeInterval > 0.0);
+    avxd eps = _mm256_set1_pd(1e-9);
+    avxd nextSpeciesWriteTime;
+    vector<int32_t> speciesTimeSeriesCounts[DOUBLES_PER_AVX];
+    vector<double> speciesTimeSeriesTimes[DOUBLES_PER_AVX];
 
-//    // If we are writing time steps, create the data set.
-//    if (writeTimeSteps)
-//    {
-//        // If this is the start of the trajectory, add the initial counts.
-//        if (time == 0.0 || trajectoryStarted==false)
-//        {
-//            nextSpeciesWriteTime=writeInterval;
-//            for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
-//            speciesTimeSeriesTimes.push_back(0.0);
-//        }
-//        else
-//        {
-//            nextSpeciesWriteTime = ceil(time/writeInterval)*writeInterval;
-//        }
-//    }
+    // If we are writing time steps, create the data set.
+    if (writeTimeSteps)
+    {
+        // See if this is the start of the trajectory.
+        for (int i=0; i<DOUBLES_PER_AVX; i++)
+        {
+            // If this element was true, save the reaction and set the random propensity to inf.
+            if (((double*)&time)[i] == 0.0 || trajectoryStarted[i]==false)
+            {
+                ((double*)&nextSpeciesWriteTime)[i] = writeInterval;
+                for (uint j=0; j<reactionModel->numberSpeciesToTrack; j++) speciesTimeSeriesCounts[i].push_back(lround(speciesCounts[j*numberSpecies+i]));
+                speciesTimeSeriesTimes[i].push_back(0.0);
+            }
+            else
+            {
+                ((double*)&nextSpeciesWriteTime)[i] = ceil(((double*)&time)[i]/writeInterval)*writeInterval;
+            }
+        }
+    }
 
     // Local cache of random numbers.
     int rngNext=0;
@@ -333,15 +355,20 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
     long long steps=0;
     while (steps < maxSteps)
     {
-        // If any propensities are zero, we are done.
+        int allFalse;
+        int trueMask;
+
+        // If any propensities are zero, stop the trajectory.
         avxd comp = _mm256_cmp_pd(totalPropensity, _mm256_setzero_pd(), _CMP_LE_OQ);
-        int allFalse = _mm256_testz_pd(comp,comp);
+        allFalse = _mm256_testz_pd(comp,comp);
         if (!allFalse)
         {
             break;
         }
-        // See if we have reached any limits.
-        //!reachedSpeciesLimit()
+
+        // If we are outside of the limits, stop the trajectory.
+        if (isTrajectoryOutsideLimits())
+            break;
 
         // See if we need to update our rng caches.
         if (rngNext >= TUNE_LOCAL_RNG_CACHE_SIZE)
@@ -377,17 +404,30 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
         steps++;
 
         // If we are writing time steps, write out any time steps before this event occurred.
-//        if (writeTimeSteps)
-//        {
-//            // Write time steps until the next write time is past the current time.
-//            while (nextSpeciesWriteTime <= (time+1e-9))
-//            {
-//                // Record the species counts.
-//                for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
-//                speciesTimeSeriesTimes.push_back(nextSpeciesWriteTime);
-//                nextSpeciesWriteTime += writeInterval;
-//            }
-//        }
+        if (writeTimeSteps)
+        {
+            // Loop until we have finished writing out all elements.
+            while (true)
+            {
+                // See if any elements still need time steps written.
+                comp = _mm256_cmp_pd(nextSpeciesWriteTime, _mm256_add_pd(time, eps), _CMP_LE_OQ);
+                trueMask = _mm256_movemask_pd(comp);
+                if (!trueMask) break;
+
+                // Go through the mask.
+                for (int i=0; i<DOUBLES_PER_AVX; i++)
+                {
+                    // If this element was true, write its counts.
+                    if (trueMask&(1<<i))
+                    {
+                        // Record the species counts.
+                        for (uint j=0; j<reactionModel->numberSpeciesToTrack; j++) speciesTimeSeriesCounts[i].push_back(lround(speciesCounts[j*numberSpecies+i]));
+                        speciesTimeSeriesTimes[i].push_back(((double*)&nextSpeciesWriteTime)[i]);
+                        ((double*)&nextSpeciesWriteTime)[i] += writeInterval;
+                    }
+                }
+            }
+        }
 
         // Calculate a random propensity to figure out the reaction.
         avxd rngValue = _mm256_load_pd(&rngValues[rngNext]);
@@ -427,7 +467,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
             if (!allFalse)
             {
                 // Get a bitmask of all values that were true.
-                int trueMask = _mm256_movemask_pd(comp);
+                trueMask = _mm256_movemask_pd(comp);
 
                 // Go through the mask.
                 for (int i=0; i<DOUBLES_PER_AVX; i++)
@@ -478,15 +518,6 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
 
         //Print::printf(Print::VERBOSE_DEBUG, "Step %d: time=%e, count=%d, prop=%e, totprop=%e",steps,time,speciesCounts[0],propensities[0],totalPropensity);
 
-        // If we are recording every event, add it.
-//        if (!writeTimeSteps)
-//        {
-//            speciesCountsDataSet.set_number_entries(speciesCountsDataSet.number_entries()+1);
-//            speciesCountsDataSet.add_time(time);
-//            for (uint i=0; i<numberSpeciesToTrack; i++) speciesCountsDataSet.add_species_count(speciesCounts[i]);
-//        }
-
-
 //        double* p = (double*)&time;
 //        printf("Time:             %8.2f %8.2f %8.2f %8.2f\n", p[0], p[1], p[2], p[3]);
 //        p = (double*)speciesCounts;
@@ -516,6 +547,16 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
     rngValues = NULL;
     free(expRngValues);
     expRngValues = NULL;
+
+    for (int i=0; i<DOUBLES_PER_AVX; i++)
+    {
+        printf("Trajectory %d (%lu)\n---------------------\n",i,speciesTimeSeriesCounts[i].size());
+        for (int j=0; j<speciesTimeSeriesCounts[i].size(); j++)
+        {
+            printf("%12.4f: %6d\n",speciesTimeSeriesTimes[i][j],speciesTimeSeriesCounts[i][j]);
+        }
+        printf("---------------------\n");
+    }
 
 //    bool reachedLimit = false;
 
@@ -648,6 +689,63 @@ void GillespieDSolverAVX::performReactionEvent(uint* reactionsToPerform)
             speciesCounts[(reactionModel->dependentSpecies[r][i])*DOUBLES_PER_AVX+j] += double(reactionModel->dependentSpeciesChange[r][i]);
         }
     }
+}
+
+bool CMESolver::isTrajectoryOutsideLimits()
+{
+    for (uint i=0; i<numberSpeciesLimits; i++)
+    {
+        SpeciesLimit l = speciesLimits[i];
+        switch (l.type)
+        {
+        case SpeciesLimit::MIN:
+            if (int(speciesCounts[l.species]) <= l.limit)
+            {
+                finalLimitType = lm::io::TrajectoryLimits::MINSPECIESCOUNT;
+                return true;
+            }
+            break;
+        case SpeciesLimit::MAX:
+            if (int(speciesCounts[l.species]) >= l.limit)
+            {
+                finalLimitType = lm::io::TrajectoryLimits::MAXSPECIESCOUNT;
+                return true;
+            }
+            break;
+        // use the ASCENDING limit checks when starting to the left of the limit
+        case SpeciesLimit::DECREASING_ASCENDING:
+            if ((*oparams)[l.species]->getPrev() >= l.limit && (*oparams)[l.species]->get() < l.limit)
+            {
+                finalLimitType = lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER;
+                return true;
+            }
+            break;
+        case SpeciesLimit::INCREASING_ASCENDING:
+            if ((*oparams)[l.species]->getPrev() < l.limit && (*oparams)[l.species]->get() >= l.limit)
+            {
+                finalLimitType = lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER;
+                return true;
+            }
+            break;
+        // use the DESCENDING limit checks when starting to the right of the limit
+        case SpeciesLimit::DECREASING_DESCENDING:
+            if ((*oparams)[l.species]->getPrev() > l.limit && (*oparams)[l.species]->get() <= l.limit)
+            {
+                finalLimitType = lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER;
+                return true;
+            }
+            break;
+        case SpeciesLimit::INCREASING_DESCENDING:
+            if ((*oparams)[l.species]->getPrev() <= l.limit && (*oparams)[l.species]->get() > l.limit)
+            {
+                finalLimitType = lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER;
+                return true;
+            }
+            break;
+        }
+
+    }
+    return false;
 }
 
 
