@@ -85,7 +85,7 @@ namespace lm {
 namespace cme {
 
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
-:neededDists(neededDists),rng(NULL),reactionModel(NULL),oparams(NULL),maxTime(std::numeric_limits<double>::infinity()),numberSpeciesLimits(0),speciesLimits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),tilingHists(NULL),trajectoryStarted(false),speciesCounts(NULL),time(0.0),timeStep(0.0),finalLimitType(static_cast<lm::io::TrajectoryLimits::LimitType>(0))
+:neededDists(neededDists),rng(NULL),reactionModel(NULL),oparams(NULL),numberLimits(0),limits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),tilingHists(NULL),trajectoryStarted(false),speciesCounts(NULL),time(0.0),timeStep(0.0),finalLimitType(static_cast<lm::io::TrajectoryLimits::LimitType>(0))
 {
 }
 
@@ -102,7 +102,7 @@ CMESolver::~CMESolver()
 
     // Free any other memory.
     if (rng != NULL) delete rng; rng = NULL;
-    if (speciesLimits != NULL) delete[] speciesLimits; speciesLimits = NULL;
+    if (limits != NULL) delete[] limits; limits = NULL;
     if (fptTrackedSpecies != NULL) delete[] fptTrackedSpecies; fptTrackedSpecies = NULL;
     if (tilingHists!=NULL) delete[] tilingHists; tilingHists = NULL;
 }
@@ -183,16 +183,9 @@ void CMESolver::reset()
     // Reset the time.
     time = 0.0;
 
-    // Reset the max time;
-    maxTime = std::numeric_limits<double>::infinity();
-
     // Reset the species limits.
-    numberSpeciesLimits = 0;
-    if (speciesLimits != NULL)
-    {
-        delete[] speciesLimits;
-    }
-    speciesLimits = NULL;
+    numberLimits = 0;
+    if (limits != NULL) delete[] limits; limits = NULL;
 
     // Reset the fpt tracking list.
     numberFptTrackedSpecies = 0;
@@ -292,35 +285,17 @@ void CMESolver::setState(const lm::io::TrajectoryState& state)
 
 void CMESolver::setLimits(const lm::io::TrajectoryLimits& limits)
 {
-    // Set the max time.
-    if (limits.has_max_time())
-        maxTime = limits.max_time();
-
-    // Set any upper or lower bounds.
-    for (int i=0; i<limits.min_species_count_size(); i++)
-        if (limits.min_species_count(i) != -1)
-            setSpeciesLowerLimit(i, limits.min_species_count(i));
-    for (int i=0; i<limits.max_species_count_size(); i++)
-        if (limits.max_species_count(i) != -1)
-            setSpeciesUpperLimit(i, limits.max_species_count(i));
-
-    // Set any increasing/decreasing order parameter bound crossing detections.
-    for (int i=0; i<limits.decreasing_order_parameter_limit_size(); i++)
-    {
-        for (int j=0; j<limits.decreasing_order_parameter_limit(i).value_size(); j++)
-        {
-            setSpeciesDecreasingLimit(limits.decreasing_order_parameter_limit(i).arrangement(), limits.decreasing_order_parameter_limit(i).order_parameter_id(), limits.decreasing_order_parameter_limit(i).value(j));
-        }
-    }
-    for (int i=0; i<limits.increasing_order_parameter_limit_size(); i++)
-    {
-        for (int j=0; j<limits.increasing_order_parameter_limit(i).value_size(); j++)
-        {
-            setSpeciesIncreasingLimit(limits.increasing_order_parameter_limit(i).arrangement(), limits.increasing_order_parameter_limit(i).order_parameter_id(), limits.increasing_order_parameter_limit(i).value(j));
-        }
-    }
+    // Count the limits.
+    numberLimits = 0;
+    if (limits.has_max_time_limit()) numberLimits++;
+    numberLimits += limits.min_species_count_limit_size();
+    numberLimits += limits.max_species_count_limit_size();
+    numberLimits += limits.decreasing_order_parameter_limit_size();
+    numberLimits += limits.increasing_order_parameter_limit_size();
+    this->limits = new TrajectoryLimit[numberLimits];
 }
 
+/*
 void CMESolver::setSpeciesLowerLimit(int species, int limit)
 {
     // Allocate a larger list for the limits/limit crossings.
@@ -382,7 +357,7 @@ void CMESolver::setSpeciesIncreasingLimit(lm::io::TrajectoryLimits::Arrangement 
 	speciesLimits[numberSpeciesLimits-1].species = opID;
 	speciesLimits[numberSpeciesLimits-1].limit = limit;
 }
-
+*/
 lm::io::TrajectoryLimits::LimitType CMESolver::getFinalLimitType()
 {
     if (finalLimitType!=0)
@@ -397,6 +372,7 @@ lm::io::TrajectoryLimits::LimitType CMESolver::getFinalLimitType()
 
 bool CMESolver::isTrajectoryOutsideLimits()
 {
+    /*
     for (uint i=0; i<numberSpeciesLimits; i++)
     {
         SpeciesLimit l = speciesLimits[i];
@@ -448,7 +424,7 @@ bool CMESolver::isTrajectoryOutsideLimits()
             break;
         }
 
-    }
+    }*/
     return false;
 }
 

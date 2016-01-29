@@ -350,7 +350,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
     rng->getExpRandomDoubles(expRngValues,TUNE_LOCAL_RNG_CACHE_SIZE, true);
 
     // Run the direct method.
-    Print::printf(Print::DEBUG, "Running Gillespie direct avx simulation for %d steps with %d species, %d reactions, %d species limits\n", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberSpeciesLimits);
+    Print::printf(Print::DEBUG, "Running Gillespie direct avx simulation for %d steps with %d species, %d reactions, %d species limits\n", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberLimits);
     PROF_BEGIN(PROF_SIM_EXECUTE);
     long long steps=0;
     while (steps < maxSteps)
@@ -691,8 +691,9 @@ void GillespieDSolverAVX::performReactionEvent(uint* reactionsToPerform)
     }
 }
 
-bool CMESolver::isTrajectoryOutsideLimits()
+bool GillespieDSolverAVX::isTrajectoryOutsideLimits()
 {
+    /*
     for (uint i=0; i<numberSpeciesLimits; i++)
     {
         SpeciesLimit l = speciesLimits[i];
@@ -744,7 +745,7 @@ bool CMESolver::isTrajectoryOutsideLimits()
             break;
         }
 
-    }
+    }*/
     return false;
 }
 

@@ -190,7 +190,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     int rngNext=0;
 
     // Run the direct method.
-    Print::printf(Print::DEBUG, "Running Gillespie direct simulation for %d steps with %d species, %d reactions, %d species limits\n", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberSpeciesLimits);
+    Print::printf(Print::DEBUG, "Running Gillespie direct simulation for %d steps with %d species, %d reactions, %d species limits\n", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberLimits);
     PROF_BEGIN(PROF_SIM_EXECUTE);
     long long steps=0;
     while (totalPropensity > 0 && steps < maxSteps)

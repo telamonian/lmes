@@ -90,14 +90,14 @@ class CMESolver : public MESolver
 {
 protected:
 
-    class SpeciesLimit
+    struct TrajectoryLimit
     {
-    public:
-        enum limit_type_t {MIN, MAX, DECREASING_ASCENDING, INCREASING_ASCENDING, DECREASING_DESCENDING, INCREASING_DESCENDING};
-        limit_type_t type;
-        int species;
-        double limit;
+        lm::io::TrajectoryLimits::LimitType type;
+        uint32_t id;
+        int32_t ivalue;
+        double dvalue;
     };
+
     class FPTTracking
     {
     public:
@@ -239,10 +239,9 @@ protected:
     lm::oparam::OParams* oparams;
     lm::tiling::Tilings* tilings;
 
-    // The current limits.
-    double maxTime;
-    uint numberSpeciesLimits;
-    SpeciesLimit* speciesLimits;
+    // Limits for the trajectory.
+    size_t numberLimits;
+    TrajectoryLimit* limits;
 
     list<TrackedParameter> trackedParameters;
 

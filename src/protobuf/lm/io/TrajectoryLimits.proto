@@ -76,10 +76,9 @@ message TrajectoryLimits {
         repeated double value                           = 3 [packed=true];
     }
 
-    required LimitType limit_type                                               = 1
-    optional double max_time_limit                                              = 2;
-    repeated MinSpeciesCountLimit min_species_count_limit                       = 3;
-    repeated MaxSpeciesCountLimit max_species_count_limit                       = 4;
-    repeated DecreasingOrderParameterLimit decreasing_order_parameter_limit     = 5;
-    repeated IncreasingOrderParameterLimit increasing_order_parameter_limit     = 6;
+    optional double max_time_limit                                              = 1;
+    repeated MinSpeciesCountLimit min_species_count_limit                       = 2;
+    repeated MaxSpeciesCountLimit max_species_count_limit                       = 3;
+    repeated DecreasingOrderParameterLimit decreasing_order_parameter_limit     = 4;
+    repeated IncreasingOrderParameterLimit increasing_order_parameter_limit     = 5;
 }
