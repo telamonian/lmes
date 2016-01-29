@@ -57,6 +57,7 @@
 #include "lm/message/StartWorkUnitRunner.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnitRunner.pb.h"
+#include "lm/message/WorkUnit.pb.h"
 #include "lm/resource/ComputeResources.h"
 #include "lm/resource/ResourceMap.h"
 #include "lm/slot/SlotList.h"
@@ -515,16 +516,16 @@ bool SimulationSupervisor::assignWork()
         if (!slots.hasFreeSlots()) return false;
 
 		// Get the next trajectory to run, if there is one.
-		lm::message::Message * nextWorkUnitMsg = trajectoryList->getNextWorkUnitMsg();
+        lm::message::Message* nextWorkUnitMsg = trajectoryList->getNextWorkUnitMsg();
         if (nextWorkUnitMsg != NULL)
         {
             // Set the source process/thread
-            nextWorkUnitMsg->mutable_run_work_unit()->set_supervisor_process(communicator.getSourceProcess());
-            nextWorkUnitMsg->mutable_run_work_unit()->set_supervisor_thread(communicator.getSourceThread());
+            nextWorkUnitMsg->mutable_run_work_unit()->mutable_work_unit(0)->set_supervisor_process(communicator.getSourceProcess());
+            nextWorkUnitMsg->mutable_run_work_unit()->mutable_work_unit(0)->set_supervisor_thread(communicator.getSourceThread());
 
             // Set the writer process/thread
-            nextWorkUnitMsg->mutable_run_work_unit()->set_output_process(outputWriterProcess);
-            nextWorkUnitMsg->mutable_run_work_unit()->set_output_thread(outputWriterThread);
+            nextWorkUnitMsg->mutable_run_work_unit()->mutable_work_unit(0)->set_output_process(outputWriterProcess);
+            nextWorkUnitMsg->mutable_run_work_unit()->mutable_work_unit(0)->set_output_thread(outputWriterThread);
 
             // Run the work unit.
             slots.runWorkUnit(nextWorkUnitMsg);

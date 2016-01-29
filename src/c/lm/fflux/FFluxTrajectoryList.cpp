@@ -129,11 +129,11 @@ void FFluxTrajectoryList::initFFluxOutput()
     lm::io::FFluxOutput::FinalOutput* finalOutput;
 
     // initialize the FFluxOutput part of the non-streaming/streaming member Messages
-    lm::message::ProcessWorkUnitOutput* msgPWUO = msg.add_process_work_unit_output();
-    msgPWUO->set_work_unit_id(999999999999998);
+    lm::message::ProcessWorkUnitOutput* msgPWUO = msg.mutable_process_work_unit_output();
+    msgPWUO->add_output()->set_work_unit_id(999999999999998);
 
-    lm::message::ProcessWorkUnitOutput* msgStreamingPWUO = msgStreaming.add_process_work_unit_output();
-    msgStreamingPWUO->set_work_unit_id(999999999999999);
+    lm::message::ProcessWorkUnitOutput* msgStreamingPWUO = msgStreaming.mutable_process_work_unit_output();
+    msgStreamingPWUO->add_output()->set_work_unit_id(999999999999999);
 
 	getFFluxOutput()->set_tiling_id(input.tilings.getCurrentTilingID());
 	getFFluxOutput()->set_number_tiles(maxFFluxPhase + 1);
@@ -326,12 +326,12 @@ uint FFluxTrajectoryList::getCrossingsPerPhase()
 
 lm::io::FFluxOutput* FFluxTrajectoryList::getFFluxOutput()
 {
-    return msg.mutable_process_work_unit_output(0)->mutable_fflux_output();
+    return msg.mutable_process_work_unit_output()->mutable_output(0)->mutable_fflux_output();
 }
 
 lm::io::FFluxOutput* FFluxTrajectoryList::getFFluxOutputStreaming()
 {
-    return msgStreaming.mutable_process_work_unit_output(0)->mutable_fflux_output();
+    return msgStreaming.mutable_process_work_unit_output()->mutable_output(0)->mutable_fflux_output();
 }
 
 long long FFluxTrajectoryList::getFFluxPhase()

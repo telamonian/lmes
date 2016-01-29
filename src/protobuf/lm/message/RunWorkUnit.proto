@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -39,16 +39,8 @@
 
 package lm.message;
 
-import "lm/io/TrajectoryLimits.proto";
-import "lm/io/TrajectoryState.proto";
+import "lm/message/WorkUnit.proto";
 
 message RunWorkUnit {
-    required uint64 work_unit_id                   = 1;
-    required int32 supervisor_process              = 2;
-    required int32 supervisor_thread               = 3;
-    required int32 output_process                  = 4;
-    required int32 output_thread                   = 5;
-    required int64 max_steps                       = 6;
-    required lm.io.TrajectoryState initial_state   = 7;
-    optional lm.io.TrajectoryLimits limits         = 8;
+    repeated lm.message.WorkUnit work_unit     = 1;
 }

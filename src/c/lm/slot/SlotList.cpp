@@ -223,7 +223,7 @@ bool SlotList::hasBusySlots()
 
 void SlotList::runWorkUnit(lm::message::Message* runWorkUnitMsg)
 {
-    int64_t workUnitId = (int64_t)runWorkUnitMsg->run_work_unit().work_unit_id();
+    int64_t workUnitId = (int64_t)runWorkUnitMsg->run_work_unit().work_unit(0).work_unit_id();
 
     // Make sure we are not processing this work unit.
     if (workUnitToSlotMap.count(workUnitId) > 0)

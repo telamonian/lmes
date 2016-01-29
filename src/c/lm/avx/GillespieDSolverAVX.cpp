@@ -37,6 +37,8 @@
  * Author(s): Elijah Roberts
  */
 
+#ifdef OPT_AVX
+
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -221,6 +223,11 @@ GillespieDSolverAVX::~GillespieDSolverAVX()
     if (propensities != NULL) free(propensities); propensities = NULL;
 }
 
+int GillespieDSolverAVX::getSimultaneousTrajectories()
+{
+    return DOUBLES_PER_AVX;
+}
+
 void GillespieDSolverAVX::reset()
 {
     CMESolver::reset();
@@ -266,10 +273,10 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
     if (reactionModel == NULL) throw Exception("GillespieDSolverAVX did not have a reaction model.");
     if (propensities == NULL) throw Exception("GillespieDSolverAVX state was not initialized.");
 
-//    // Make sure we have propensity functions for every reaction.
-//    for (uint i=0; i<reactionModel->numberReactions; i++)
-//        if (reactionModel->propensityFunctions[i] == NULL)
-//            throw Exception("A reaction did not have a valid propensity function",i);
+    // Make sure we have propensity functions for every reaction.
+    for (uint i=0; i<reactionModel->numberReactions; i++)
+        if (reactionModel->propensityFunctions[i] == NULL)
+            throw Exception("A reaction did not have a valid propensity function",i);
 
     // Create local copies of the data for efficiency.
     const uint numberSpecies = reactionModel->numberSpecies;
@@ -646,3 +653,5 @@ void GillespieDSolverAVX::performReactionEvent(uint* reactionsToPerform)
 
 }
 }
+
+#endif

@@ -4,8 +4,8 @@
  * All rights reserved.
  *
  * Developed by: Roberts Group
- * 			     Johns Hopkins University
- * 			     http://biophysics.jhu.edu/roberts/
+ *                  Johns Hopkins University
+ *                  http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -34,64 +34,21 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
-#ifdef OPT_AVX
+package lm.message;
 
-#ifndef LM_AVX_GILLESPIEDSOLVERAVX_H_
-#define LM_AVX_GILLESPIEDSOLVERAVX_H_
+import "lm/io/TrajectoryLimits.proto";
+import "lm/io/TrajectoryState.proto";
 
-#include <map>
-#include <list>
-#include <string>
-
-#include <immintrin.h>
-
-#include "lm/ClassFactory.h"
-#include "lm/cme/CMESolver.h"
-#include "lm/rng/RandomGenerator.h"
-
-using std::map;
-using std::list;
-using std::string;
-using lm::rng::RandomGenerator;
-
-namespace lm {
-namespace avx {
-
-class GillespieDSolverAVX : public lm::cme::CMESolver
-{
-public:
-    static bool registered;
-    static bool registerClass();
-    static void* allocateObject();
-
-public:
-    GillespieDSolverAVX();
-    virtual ~GillespieDSolverAVX();
-    virtual int getSimultaneousTrajectories();
-    virtual void reset();
-    virtual void getState(lm::io::TrajectoryState* state);
-    virtual void setState(const lm::io::TrajectoryState& state);
-    virtual long long generateTrajectory(long long maxSteps);
-
-protected:
-    void updateAllPropensities(const uint numberSpecies);
-    //void updatePropensities(avxd time, uint sourceReaction);
-    void performReactionEvent(uint* reactionsToPerform);
-
-protected:
-    double* speciesCounts;
-    double* propensities;
-    avxd time;
-
-    avxd maxTime;
-
-};
-
+message WorkUnit {
+    required uint64 work_unit_id                   = 1;
+    required int32 supervisor_process              = 2;
+    required int32 supervisor_thread               = 3;
+    required int32 output_process                  = 4;
+    required int32 output_thread                   = 5;
+    required int64 max_steps                       = 6;
+    required lm.io.TrajectoryState initial_state   = 7;
+    optional lm.io.TrajectoryLimits limits         = 8;
 }
-}
-
-#endif
-#endif

@@ -53,6 +53,7 @@
 #include "lm/message/Message.pb.h"
 #include "lm/message/ProcessWorkUnitOutput.pb.h"
 #include "lm/message/StartedOutputWriter.pb.h"
+#include "lm/message/WorkUnitOutput.pb.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 #include "lm/Types.h"
@@ -128,7 +129,7 @@ int OutputWriter::run()
             lm::message::Message* message = new lm::message::Message();
             communicator.receiveMessage(message);
 
-            if (message->process_work_unit_output_size() > 0)
+            if (message->has_process_work_unit_output())
             {
                 //// BEGIN CRITICAL SECTION: messageQueueMutex
                 PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&messageQueueMutex));
@@ -308,29 +309,31 @@ int OutputWriter::HelperThread::run()
             if (message != NULL)
             {
                 // Loop over every output in the message.
-                for (int i=0; i<message->process_work_unit_output_size(); i++)
+                lm::message::ProcessWorkUnitOutput pwu = message->process_work_unit_output();
+                for (int i=0; i<pwu.output_size(); i++)
                 {
                     hrtime startWriting = getHrTime();
-                    if (message->process_work_unit_output(i).has_species_counts())
+                    lm::message::WorkUnitOutput output = pwu.output(i);
+                    if (output.has_species_counts())
                     {
-                        p->processSpeciesCounts(message->process_work_unit_output(i).species_counts());
+                        p->processSpeciesCounts(output.species_counts());
                     }
-                    if (message->process_work_unit_output(i).first_passage_times_size() > 0)
+                    if (output.first_passage_times_size() > 0)
                     {
-                        for (int j=0; j<message->process_work_unit_output(i).first_passage_times_size(); j++)
-                            p->processFirstPassageTimes(message->process_work_unit_output(i).first_passage_times(j));
+                        for (int j=0; j<output.first_passage_times_size(); j++)
+                            p->processFirstPassageTimes(output.first_passage_times(j));
                     }
-                    if (message->process_work_unit_output(i).has_species_time_series())
+                    if (output.has_species_time_series())
                     {
-                        p->processSpeciesTimeSeries(message->process_work_unit_output(i).species_time_series());
+                        p->processSpeciesTimeSeries(output.species_time_series());
                     }
-                    if (message->process_work_unit_output(i).has_lattice_time_series())
+                    if (output.has_lattice_time_series())
                     {
-                        p->processLatticeTimeSeries(message->process_work_unit_output(i).lattice_time_series());
+                        p->processLatticeTimeSeries(output.lattice_time_series());
                     }
-                    if (message->process_work_unit_output(i).has_fflux_output())
+                    if (output.has_fflux_output())
                     {
-                        p->processFFluxOutput(message->process_work_unit_output(i).fflux_output());
+                        p->processFFluxOutput(output.fflux_output());
                     }
                     writingTime += getHrTime()-startWriting;
                 }

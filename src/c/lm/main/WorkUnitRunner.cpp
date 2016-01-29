@@ -60,6 +60,7 @@
 #include "lm/message/RunWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
 #include "lm/message/StartWorkUnitRunner.pb.h"
+#include "lm/message/WorkUnit.pb.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 #include "lptf/Profile.h"
@@ -186,7 +187,7 @@ int WorkUnitRunner::run()
             // Do something with the message.
             if (message.has_run_work_unit())
             {
-                runWorkUnit(message.run_work_unit());
+                runWorkUnits(message.run_work_unit());
             }
             else if (message.has_ping_target())
             {
@@ -223,52 +224,57 @@ int WorkUnitRunner::run()
     return -1;
 }
 
-void WorkUnitRunner::runWorkUnit(const lm::message::RunWorkUnit& wu)
+void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwu)
 {
-    // Tell the supervisor the work unit is started.
-    lm::message::Message msgp1;
-    lm::message::StartedWorkUnit* msg1 = msgp1.mutable_started_work_unit();
-    msg1->set_work_unit_id(wu.work_unit_id());
-    communicator.sendMessage(wu.supervisor_process(), wu.supervisor_thread(), &msgp1);
-
-    // Reset the solver.
-    solver->reset();
-
-    // Set the communicator.
-    solver->setCommunicator(&communicator, wu.output_process(), wu.output_thread(), wu.work_unit_id());
-
-    // Set the initial state.
-    solver->setState(wu.initial_state());
-
-    // Set the limits.
-    if (wu.has_limits()) solver->setLimits(wu.limits());
-
-    // Run the work unit.
-    hrtime t1=getHrTime();
-    long long steps = solver->generateTrajectory(wu.max_steps());
-    bool limitReached = (steps<wu.max_steps());
-    hrtime t2=getHrTime();
-
-    // Tell the supervisor the work unit has finished.
-    lm::message::Message msgp2;
-    lm::message::FinishedWorkUnit* msg2 = msgp2.mutable_finished_work_unit();
-    msg2->set_work_unit_id(wu.work_unit_id());
-    msg2->set_process(lm::MPI::worldRank);
-    msg2->set_thread(getThreadNumber());
-    msg2->set_run_time(convertHrToSeconds(t2-t1));
-    msg2->set_steps(steps);
-    msg2->mutable_final_state()->set_trajectory_id(wu.initial_state().trajectory_id());
-    solver->getState(msg2->mutable_final_state());
-    if (limitReached)
+    for (int i=0; i<rwu.work_unit_size(); i++)
     {
-        msg2->set_status(lm::message::FinishedWorkUnit::LIMIT_REACHED);
-        msg2->mutable_final_state()->set_final_limit_type(static_cast<lm::cme::CMESolver*>(solver)->getFinalLimitType());
+        lm::message::WorkUnit wu = rwu.work_unit(i);
+
+        // Tell the supervisor the work unit is started.
+        lm::message::Message msgp1;
+        lm::message::StartedWorkUnit* msg1 = msgp1.mutable_started_work_unit();
+        msg1->set_work_unit_id(wu.work_unit_id());
+        communicator.sendMessage(wu.supervisor_process(), wu.supervisor_thread(), &msgp1);
+
+        // Reset the solver.
+        solver->reset();
+
+        // Set the communicator.
+        solver->setCommunicator(&communicator, wu.output_process(), wu.output_thread(), wu.work_unit_id());
+
+        // Set the initial state.
+        solver->setState(wu.initial_state());
+
+        // Set the limits.
+        if (wu.has_limits()) solver->setLimits(wu.limits());
+
+        // Run the work unit.
+        hrtime t1=getHrTime();
+        long long steps = solver->generateTrajectory(wu.max_steps());
+        bool limitReached = (steps<wu.max_steps());
+        hrtime t2=getHrTime();
+
+        // Tell the supervisor the work unit has finished.
+        lm::message::Message msgp2;
+        lm::message::FinishedWorkUnit* msg2 = msgp2.mutable_finished_work_unit();
+        msg2->set_work_unit_id(wu.work_unit_id());
+        msg2->set_process(lm::MPI::worldRank);
+        msg2->set_thread(getThreadNumber());
+        msg2->set_run_time(convertHrToSeconds(t2-t1));
+        msg2->set_steps(steps);
+        msg2->mutable_final_state()->set_trajectory_id(wu.initial_state().trajectory_id());
+        solver->getState(msg2->mutable_final_state());
+        if (limitReached)
+        {
+            msg2->set_status(lm::message::FinishedWorkUnit::LIMIT_REACHED);
+            msg2->mutable_final_state()->set_final_limit_type(static_cast<lm::cme::CMESolver*>(solver)->getFinalLimitType());
+        }
+        else
+        {
+            msg2->set_status(lm::message::FinishedWorkUnit::STEPS_FINISHED);
+        }
+        communicator.sendMessage(wu.supervisor_process(), wu.supervisor_thread(), &msgp2);
     }
-    else
-    {
-        msg2->set_status(lm::message::FinishedWorkUnit::STEPS_FINISHED);
-    }
-    communicator.sendMessage(wu.supervisor_process(), wu.supervisor_thread(), &msgp2);
 }
 
 }

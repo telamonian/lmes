@@ -61,6 +61,7 @@
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/ProcessWorkUnitOutput.pb.h"
+#include "lm/message/WorkUnitOutput.pb.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/rng/XORShift.h"
 #ifdef OPT_CUDA
@@ -153,8 +154,9 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     for (uint i=0; i<numberReactions; i++) totalPropensity += propensities[i];
 
     // Create the output message.
-    lm::message::Message msgp;
-    lm::message::ProcessWorkUnitOutput* msg = msgp.add_process_work_unit_output();
+    lm::message::Message msgpp;
+    lm::message::ProcessWorkUnitOutput* msgp = msgpp.mutable_process_work_unit_output();
+    lm::message::WorkUnitOutput* msg = msgp->add_output();
     msg->set_work_unit_id(workUnitId);
 
     // Get the interval for writing species counts.
@@ -356,7 +358,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     if ((msg->has_species_time_series() || msg->first_passage_times_size() > 0) && !ffluxFlag)		// these messages aren't useful for fflux simulation
     {
 //    	printf("gillespiedsolver outputProcess: %d outputThread: %d\n", outputProcess, outputThread);
-        communicator->sendMessage(outputProcess, outputThread, &msgp);
+        communicator->sendMessage(outputProcess, outputThread, &msgpp);
     }
 
     return steps;

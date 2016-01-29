@@ -120,7 +120,7 @@ void Trajectory::initMsg(map<string,string>& simulationParameters)
     // Set the default work unit-specific limits
     int64_t maxWorkUnitSteps = atoll(simulationParameters["maxWorkUnitSteps"].c_str());
     if (maxWorkUnitSteps <= 0) maxWorkUnitSteps = 10000000;
-    getRunMsg()->set_max_steps(maxWorkUnitSteps);
+    getRunMsg()->mutable_work_unit(0)->set_max_steps(maxWorkUnitSteps);
 }
 
 void Trajectory::initMsg(const lm::message::Message& newMsg)
@@ -167,7 +167,7 @@ uint64_t Trajectory::getID()
 
 lm::io::TrajectoryLimits* Trajectory::getLimits()
 {
-    return getRunMsg()->mutable_limits();
+    return getRunMsg()->mutable_work_unit(0)->mutable_limits();
 }
 
 lm::message::Message* Trajectory::getMsg()
@@ -204,6 +204,8 @@ double Trajectory::getOPVal(uint opID)
 
 lm::message::RunWorkUnit* Trajectory::getRunMsg()
 {
+    if (msg.mutable_run_work_unit()->work_unit_size() == 0)
+        msg.mutable_run_work_unit()->add_work_unit();
 	return msg.mutable_run_work_unit();
 }
 
@@ -219,7 +221,7 @@ Trajectory::status_t Trajectory::getStatus()
 
 lm::io::TrajectoryState* Trajectory::getState()
 {
-    return getRunMsg()->mutable_initial_state();
+    return getRunMsg()->mutable_work_unit(0)->mutable_initial_state();
 }
 
 // mutator definitions
@@ -232,7 +234,7 @@ void Trajectory::setID(uint64_t newID)
 
 void Trajectory::setLimits(const lm::io::TrajectoryLimits* newLimits)
 {
-    *(getRunMsg()->mutable_limits()) = *newLimits;
+    *(getRunMsg()->mutable_work_unit(0)->mutable_limits()) = *newLimits;
 }
 
 void Trajectory::setMsg(const lm::message::Message& newMsg)
@@ -257,7 +259,7 @@ void Trajectory::setStatus(status_t newStatus)
 
 void Trajectory::setWorkUnitId(uint64_t id)
 {
-    getRunMsg()->set_work_unit_id(id);
+    getRunMsg()->mutable_work_unit(0)->set_work_unit_id(id);
 }
 
 void Trajectory::incrementWorkUnitsPerformed()

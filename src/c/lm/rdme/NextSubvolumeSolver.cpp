@@ -52,6 +52,7 @@
 #include "lm/io/LatticeTimeSeries.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/message/ProcessWorkUnitOutput.pb.h"
+#include "lm/message/WorkUnitOutput.pb.h"
 #include "lm/rdme/Lattice.h"
 #include "lm/rdme/ByteLattice.h"
 #include "lm/rdme/NextSubvolumeSolver.h"
@@ -164,8 +165,9 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     checkSpeciesCountsAgainstLattice();
 
     // Create the output message.
-    lm::message::Message msgp;
-    lm::message::ProcessWorkUnitOutput* msg = msgp.add_process_work_unit_output();
+    lm::message::Message msgpp;
+    lm::message::ProcessWorkUnitOutput* msgp = msgpp.mutable_process_work_unit_output();
+    lm::message::WorkUnitOutput* msg = msgp->add_output();
     msg->set_work_unit_id(workUnitId);
 
     // Get the interval for writing species counts.
@@ -437,7 +439,7 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     // If the output message has any data, send it.
     if (msg->has_species_counts() || msg->first_passage_times_size() > 0 || msg->has_lattice_time_series())
     {
-        communicator->sendMessage(outputProcess, outputThread, &msgp);
+        communicator->sendMessage(outputProcess, outputThread, &msgpp);
     }
 
     return steps;

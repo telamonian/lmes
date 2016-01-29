@@ -1,11 +1,11 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
- * 			     Johns Hopkins University
- * 			     http://biophysics.jhu.edu/roberts/
+ *               Johns Hopkins University
+ *               http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -39,17 +39,8 @@
 
 package lm.message;
 
-import "lm/io/FFluxOutput.proto";
-import "lm/io/FirstPassageTimes.proto";
-import "lm/io/SpeciesCounts.proto";
-import "lm/io/SpeciesTimeSeries.proto";
-import "lm/io/LatticeTimeSeries.proto";
+import "lm/message/WorkUnitOutput.proto";
 
 message ProcessWorkUnitOutput {
-	required int64 work_unit_id                          = 1;
-	optional lm.io.SpeciesCounts species_counts          = 2;
-	repeated lm.io.FirstPassageTimes first_passage_times = 3;
-        optional lm.io.SpeciesTimeSeries species_time_series = 6;
-	optional lm.io.LatticeTimeSeries lattice_time_series = 4;
-	optional lm.io.FFluxOutput fflux_output              = 5;
+        repeated lm.message.WorkUnitOutput output = 1;
 }
