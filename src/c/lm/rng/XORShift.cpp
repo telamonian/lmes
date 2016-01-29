@@ -128,31 +128,79 @@ double XORShift::getNormRandomDouble()
     #endif
 }
 
-void XORShift::getRandomDoubles(double * rngs, int numberRNGs)
+void XORShift::getRandomDoubles(double * rngs, int numberRNGs, bool bufferAvxAligned)
 {
-    PROF_BEGIN(PROF_CACHE_RNG);
-    for (int i=0; i<numberRNGs; i++)
-    {
-        uint32_t r = getRandom();
-        rngs[i] = ((double)r)*(2.328306436539e-10); //1/(2^32)
+#ifdef OPT_AVX
+    if (!bufferAvxAligned) {
+#endif
+        PROF_BEGIN(PROF_CACHE_RNG);
+        for (int i=0; i<numberRNGs; i++)
+        {
+            uint32_t r = getRandom();
+            rngs[i] = ((double)r)*(2.328306436539e-10); //1/(2^32)
+        }
+        PROF_END(PROF_CACHE_RNG);
+#ifdef OPT_AVX
+    } else {
+        PROF_BEGIN(PROF_CACHE_RNG);
+
+        // Convert to double and normalize using avx.
+        const avxd norm = _mm256_set1_pd(2.328306436539e-10);                       // 1/(2^32)
+        const avxd half = _mm256_set1_pd(0.5);
+        const uint LOOPS = 2;
+        avxi irng[LOOPS];
+        for (int i=0; i<numberRNGs; i+=INT32S_PER_AVX*LOOPS)
+        {
+            for (int j=0; j<INT32S_PER_AVX*LOOPS; j++)
+                ((int32_t*)&irng)[j] = getRandom();
+
+            for (int j=0; j<LOOPS; j++)
+            {
+                // Process the four lo rngs.
+                __m128i irngHalf = _mm256_extractf128_si256(irng[j], 0);
+                avxd rng = _mm256_fmadd_pd(_mm256_cvtepi32_pd(irngHalf), norm, half);    // Range (-0.5-0.5)+0.5
+                _mm256_store_pd(&rngs[i+j*2*DOUBLES_PER_AVX],rng);
+
+                // Process the four hi rngs.
+                irngHalf = _mm256_extractf128_si256(irng[j], 1);
+                rng = _mm256_fmadd_pd(_mm256_cvtepi32_pd(irngHalf), norm, half);    // Range (-0.5-0.5)+0.5
+                _mm256_store_pd(&rngs[i+j*2*DOUBLES_PER_AVX+DOUBLES_PER_AVX],rng);
+            }
+        }
+
+        // Free the int buffer.
+        PROF_END(PROF_CACHE_RNG);
     }
-    PROF_END(PROF_CACHE_RNG);
+#endif
 }
 
-void XORShift::getExpRandomDoubles(double * rngs, int numberRNGs)
+void XORShift::getExpRandomDoubles(double * rngs, int numberRNGs, bool bufferAvxAligned)
 {
-    PROF_BEGIN(PROF_CACHE_EXP_RNG);
-    for (int i=0; i<numberRNGs; i++)
-    {
-        uint64_t r;
-        while ((r=(uint64_t)getRandom()) == 0);
-        double d = ((double)r)*(2.328306435997e-10); //1/((2^32)+1) range (0.0 1.0)
-        rngs[i] = -log(d);
+#ifdef OPT_AVX
+    if (!bufferAvxAligned) {
+#endif
+        PROF_BEGIN(PROF_CACHE_EXP_RNG);
+        for (int i=0; i<numberRNGs; i++)
+        {
+            uint64_t r;
+            while ((r=(uint64_t)getRandom()) == 0);
+            double d = ((double)r)*(2.328306435997e-10); //1/((2^32)+1) range (0.0 1.0)
+            rngs[i] = -log(d);
+        }
+        PROF_END(PROF_CACHE_EXP_RNG);
+#ifdef OPT_AVX
+    } else {
+        PROF_BEGIN(PROF_CACHE_RNG);
+        getRandomDoubles(rngs, numberRNGs, bufferAvxAligned);
+        for (int i=0; i<numberRNGs; i++)
+            rngs[i] = -log(rngs[i]);
+
+        PROF_END(PROF_CACHE_RNG);
     }
-    PROF_END(PROF_CACHE_EXP_RNG);
+#endif
 }
 
-void XORShift::getNormRandomDoubles(double * rngs, int numberRNGs)
+void XORShift::getNormRandomDoubles(double * rngs, int numberRNGs, bool bufferAvxAligned)
 {
     PROF_BEGIN(PROF_CACHE_NORM_RNG);
     // Generate an even number of rngs that does not exceed the buffer size.

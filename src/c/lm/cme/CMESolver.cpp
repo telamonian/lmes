@@ -57,6 +57,7 @@
 #include "lm/Print.h"
 #include "lm/Types.h"
 #include "lm/cme/CMESolver.h"
+#include "lm/cme/ReactionModel.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/OrderParameters.pb.h"
 #include "lm/io/ReactionModel.pb.h"

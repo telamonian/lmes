@@ -55,6 +55,26 @@ using std::vector;
 namespace lm {
 namespace me {
 
+#ifdef OPT_AVX
+avxd PropensityFunction::calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies)
+{
+    double* results;
+    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&results, DOUBLES_PER_AVX*sizeof(double), DOUBLES_PER_AVX*sizeof(double)));
+    int* intSpeciesCounts = new int[numberSpecies];
+    for (uint i=0; i<DOUBLES_PER_AVX; i++)
+    {
+        for (uint j=0; j<numberSpecies; j++)
+        {
+            intSpeciesCounts[j] = (int)(speciesCounts[j*DOUBLES_PER_AVX+i]+0.5);
+        }
+        results[i] = calculate(((double*)&time)[i], intSpeciesCounts, numberSpecies);
+    }
+    avxd ret = _mm256_load_pd(results);
+    delete[] intSpeciesCounts;
+    free(results);
+    return ret;
+}
+#endif
 
 utuple PropensityFunction::getDependencies(const uint reactionIndex, const ndarray<uint> D)
 {

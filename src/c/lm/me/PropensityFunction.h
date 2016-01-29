@@ -68,7 +68,10 @@ public:
     PropensityFunction(const uint id):id(id){}
     virtual ~PropensityFunction() {}
     const uint getId() {return id;}
-    virtual double calculate(const double time, const int* speciesCounts)=0;
+    virtual double calculate(const double time, const int* speciesCounts, const uint numberSpecies)=0;
+#ifdef OPT_AVX
+    virtual avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies);
+#endif
 
 protected:
     const uint id;

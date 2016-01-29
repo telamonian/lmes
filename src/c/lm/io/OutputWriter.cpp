@@ -344,7 +344,7 @@ int OutputWriter::HelperThread::run()
 
             // See if we should display some stats.
             hrtime currentTime = getHrTime();
-            if (convertHrToSeconds(currentTime-lastUpdateTime) > 60.0 && bytesWritten > 0 || finished)
+            if ((convertHrToSeconds(currentTime-lastUpdateTime) > 60.0 && bytesWritten > 0) || finished)
             {
                 Print::printf(Print::INFO, "Wrote %u messages (%lld bytes) in the last %0.1f seconds (%0.6f seconds writing). %u messages (%d bytes) queued. Flushing.",messagesWritten,bytesWritten,convertHrToSeconds(currentTime-lastUpdateTime), convertHrToSeconds(writingTime), messagesQueued, bytesQueued);
                 p->flush();

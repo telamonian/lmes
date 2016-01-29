@@ -83,10 +83,17 @@ public:
     ZerothOrderPropensity(double k) :PropensityFunction(REACTION_TYPE),k(k) {}
     double k;
 
-    double calculate(const double time, const int* speciesCounts)
+    double calculate(const double time, const int* speciesCounts, const uint numberSpecies)
     {
         return k;
     }
+
+#ifdef OPT_AVX
+    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies)
+    {
+        return _mm256_set1_pd(k);
+    }
+#endif
 
     static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
     {
@@ -115,10 +122,17 @@ public:
     uint si;
     double k;
 
-    double calculate(const double time, const int* speciesCounts)
+    double calculate(const double time, const int* speciesCounts, const uint numberSpecies)
     {
         return k * double(speciesCounts[si]);
     }
+
+#ifdef OPT_AVX
+    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies)
+    {
+        return _mm256_mul_pd(_mm256_set1_pd(k), _mm256_load_pd(&speciesCounts[si*DOUBLES_PER_AVX]));
+    }
+#endif
 
     static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
     {

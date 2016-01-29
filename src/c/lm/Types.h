@@ -78,6 +78,21 @@ typedef double              si_dist_t;
 typedef double              si_time_t;
 
 /*
+ * AVX types.
+ */
+#ifdef OPT_AVX
+#include <immintrin.h>
+#define DOUBLES_PER_AVX 4
+#define INT32S_PER_AVX 8
+#define avxd __m256d
+#define avxi __m256i
+#endif
+
+#if defined(OPT_AVX) and !defined(__FMA__)
+#define _mm256_fmadd_pd(a,b,c) _mm256_add_pd(_mm256_mul_pd(a,b),c);
+#endif
+
+/*
  *  Array types.
  */
 
@@ -233,7 +248,7 @@ public:
         for (uint i=0; i<shape.len; i++)
         {
             uint offset=1;
-            for (uint j=0; j<i; j++)
+            for (uint j=i+1; j<shape.len; j++)
                 offset *= shape[j];
             position += index[i]*offset;
         }

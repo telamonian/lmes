@@ -85,7 +85,7 @@ RandomGenerator::RandomGenerator(uint32_t seedTop, uint32_t seedBottom, Distribu
     seed = (((uint64_t)(seedTop))<<32)|(uint64_t)(seedBottom);
 }
 
-void RandomGenerator::getRandomDoubles(double * rngs, int numberRNGs)
+void RandomGenerator::getRandomDoubles(double * rngs, int numberRNGs, bool bufferAvxAligned)
 {
     PROF_BEGIN(PROF_CACHE_RNG);
     for (int i=0; i<numberRNGs; i++)
@@ -95,7 +95,7 @@ void RandomGenerator::getRandomDoubles(double * rngs, int numberRNGs)
     PROF_END(PROF_CACHE_RNG);
 }
 
-void RandomGenerator::getExpRandomDoubles(double * rngs, int numberRNGs)
+void RandomGenerator::getExpRandomDoubles(double * rngs, int numberRNGs, bool bufferAvxAligned)
 {
     PROF_BEGIN(PROF_CACHE_EXP_RNG);
     for (int i=0; i<numberRNGs; i++)
@@ -105,7 +105,7 @@ void RandomGenerator::getExpRandomDoubles(double * rngs, int numberRNGs)
     PROF_END(PROF_CACHE_EXP_RNG);
 }
 
-void RandomGenerator::getNormRandomDoubles(double * rngs, int numberRNGs)
+void RandomGenerator::getNormRandomDoubles(double * rngs, int numberRNGs, bool bufferAvxAligned)
 {
     PROF_BEGIN(PROF_CACHE_NORM_RNG);
     for (int i=0; i<numberRNGs; i++)

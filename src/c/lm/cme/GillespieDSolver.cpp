@@ -115,7 +115,10 @@ void GillespieDSolver::reset()
     propensities = new double[reactionModel->numberReactions];
 
     // Set the propensities to their initial values.
-    updateAllPropensities(0.0);
+    for (int i=0; i<reactionModel->numberReactions; i++)
+    {
+        propensities[i] = 0.0;
+    }
 }
 
 void GillespieDSolver::getState(lm::io::TrajectoryState* state)
@@ -128,7 +131,7 @@ void GillespieDSolver::setState(const lm::io::TrajectoryState& state)
     CMESolver::setState(state);
 
     // Set the propensities to their initial values.
-    updateAllPropensities(time);
+    updateAllPropensities(time, reactionModel->numberSpecies);
 }
 
 long long GillespieDSolver::generateTrajectory(long long maxSteps)
@@ -142,8 +145,8 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
             throw Exception("A reaction did not have a valid propensity function",i);
 
     // Create local copies of the data for efficiency.
-    uint numberSpecies = reactionModel->numberSpecies;
-    uint numberReactions = reactionModel->numberReactions;
+    const uint numberSpecies = reactionModel->numberSpecies;
+    const uint numberReactions = reactionModel->numberReactions;
 
     // Initialize the total propensity.
     double totalPropensity = 0.0;
@@ -237,7 +240,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
 
         // Update species counts and propensities given the reaction that occurred.
         performReactionEvent(r);
-        updatePropensities(time, r);
+        updatePropensities(time, r, numberSpecies);
 
         // Recalculate the total propensity.
         totalPropensity = 0.0;
@@ -359,22 +362,22 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     return steps;
 }
 
-void GillespieDSolver::updateAllPropensities(double time)
+void GillespieDSolver::updateAllPropensities(double time, const uint numberSpecies)
 {
     // Update the propensities.
     for (uint i=0; i<reactionModel->numberReactions; i++)
     {
-        propensities[i] = reactionModel->propensityFunctions[i]->calculate(time, speciesCounts);
+        propensities[i] = reactionModel->propensityFunctions[i]->calculate(time, speciesCounts, numberSpecies);
     }
 }
 
-void GillespieDSolver::updatePropensities(double time, uint sourceReaction)
+void GillespieDSolver::updatePropensities(double time, uint sourceReaction, const uint numberSpecies)
 {
     // Update the propensities of the dependent reactions.
     for (uint i=0; i<reactionModel->numberDependentReactions[sourceReaction]; i++)
     {
         uint r = reactionModel->dependentReactions[sourceReaction][i];
-        propensities[r] = reactionModel->propensityFunctions[i]->calculate(time, speciesCounts);
+        propensities[r] = reactionModel->propensityFunctions[i]->calculate(time, speciesCounts, numberSpecies);
     }
 }
 

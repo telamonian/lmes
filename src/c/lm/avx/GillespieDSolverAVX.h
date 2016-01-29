@@ -37,38 +37,54 @@
  * Author(s): Elijah Roberts
  */
 
-#ifndef LM_CME_REACTIONMODEL_H_
-#define LM_CME_REACTIONMODEL_H_
+#ifndef LM_AVX_GILLESPIEDSOLVERAVX_H_
+#define LM_AVX_GILLESPIEDSOLVERAVX_H_
 
-#include "lm/Types.h"
-#include "lm/io/ReactionModel.pb.h"
-#include "lm/me/PropensityFunction.h"
+#include <map>
+#include <list>
+#include <string>
+
+#include <immintrin.h>
+
+#include "lm/ClassFactory.h"
+#include "lm/cme/CMESolver.h"
+#include "lm/rng/RandomGenerator.h"
+
+using std::map;
+using std::list;
+using std::string;
+using lm::rng::RandomGenerator;
 
 namespace lm {
-namespace cme {
+namespace avx {
 
-// The reaction model.
-class ReactionModel
+class GillespieDSolverAVX : public lm::cme::CMESolver
 {
 public:
-    ReactionModel(const uint numberSpecies, const uint numberReactions);
-    ReactionModel(const lm::io::ReactionModel& rm);
-    virtual ~ReactionModel();
-    virtual void setPropensityFunction(uint reaction, lm::me::PropensityFunction* propensityFunction);
+    static bool registered;
+    static bool registerClass();
+    static void* allocateObject();
 
-    const uint numberSpecies;
-    uint numberSpeciesToTrack;
-    const uint numberReactions;
-    ndarray<int> S;                                // Stoichiometric matrix: numberSpecies x numberReactions
-    ndarray<uint> D;                               // Dependency matrix: numberSpecies x numberReactions
-    lm::me::PropensityFunction** propensityFunctions;
+public:
+    GillespieDSolverAVX();
+    virtual ~GillespieDSolverAVX();
+    virtual void reset();
+    virtual void getState(lm::io::TrajectoryState* state);
+    virtual void setState(const lm::io::TrajectoryState& state);
+    virtual long long generateTrajectory(long long maxSteps);
 
-    // Dependency tables.
-    uint* numberDependentSpecies;
-    uint** dependentSpecies;
-    int** dependentSpeciesChange;
-    uint* numberDependentReactions;
-    uint** dependentReactions;
+protected:
+    void updateAllPropensities(const uint numberSpecies);
+    //void updatePropensities(avxd time, uint sourceReaction);
+    void performReactionEvent(uint* reactionsToPerform);
+
+protected:
+    double* speciesCounts;
+    double* propensities;
+    avxd time;
+
+    avxd maxTime;
+
 };
 
 }

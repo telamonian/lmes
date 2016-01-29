@@ -48,6 +48,28 @@ using std::list;
 namespace lm {
 namespace cme {
 
+ReactionModel::ReactionModel(const uint numberSpecies, const uint numberReactions)
+:numberSpecies(numberSpecies),numberSpeciesToTrack(numberSpecies),numberReactions(numberReactions),S(ndarray<int>(utuple(numberSpecies,numberReactions))),D(ndarray<uint>(utuple(numberSpecies,numberReactions))),propensityFunctions(NULL),numberDependentSpecies(NULL),dependentSpecies(NULL),dependentSpeciesChange(NULL),numberDependentReactions(NULL),dependentReactions(NULL)
+{
+    // Allocate propensity function tables.
+    propensityFunctions = new lm::me::PropensityFunction*[numberReactions];
+    memset(propensityFunctions, 0, numberReactions*sizeof(*propensityFunctions));
+
+    // Allocate the species dependency tables.
+    numberDependentSpecies = new uint[numberReactions];
+    memset(numberDependentSpecies, 0, numberReactions*sizeof(*numberDependentSpecies));
+    dependentSpecies = new uint*[numberReactions];
+    memset(dependentSpecies, 0, numberReactions*sizeof(*dependentSpecies));
+    dependentSpeciesChange = new int*[numberReactions];
+    memset(dependentSpeciesChange, 0, numberReactions*sizeof(*dependentSpeciesChange));
+
+    // Allocate the reaction dependency tables.
+    numberDependentReactions = new uint[numberReactions];
+    memset(numberDependentReactions, 0, numberReactions*sizeof(*numberDependentReactions));
+    dependentReactions = new uint*[numberReactions];
+    memset(dependentReactions, 0, numberReactions*sizeof(*dependentReactions));
+}
+
 ReactionModel::ReactionModel(const lm::io::ReactionModel& rm)
 :numberSpecies(rm.number_species()),numberSpeciesToTrack(rm.number_species()),numberReactions((uint)rm.number_reactions()),S(ndarray<int>(utuple(numberSpecies,numberReactions),rm.stoichiometric_matrix().data())),D(ndarray<uint>(utuple(numberSpecies,numberReactions),rm.dependency_matrix().data())),propensityFunctions(NULL),numberDependentSpecies(NULL),dependentSpecies(NULL),dependentSpeciesChange(NULL),numberDependentReactions(NULL),dependentReactions(NULL)
 {

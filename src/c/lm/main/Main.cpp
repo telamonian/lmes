@@ -578,11 +578,18 @@ void printUsage(int argc, char** argv)
     std::cout << "  -intout           --intermediate-output         More verbose output. Consists of intermediate values used to calculate standard output.";
 }
 
+#include "hrtime.h"
+#include "lm/Exceptions.h"
 #include "lm/Types.h"
 #include "lm/me/PropensityFunction.h"
+#include "lm/rng/XORShift.h"
+
+#include <immintrin.h>
+#include "lm/avx/GillespieDSolverAVX.h"
 
 void mainDebug(int argc, char** argv)
 {
+    /*
     tuple<uint> t3(10,5,1);
     ndarray<double> a1(t3);
     for (uint r=0; r<a1.shape[0]; r++)
@@ -623,7 +630,92 @@ void mainDebug(int argc, char** argv)
     k.print("\n");
     printf("%f: a=%f\n",time,a);
     delete[] speciesCounts;
+    */
 
+    /*__m256d time = _mm256_setzero_pd();
+    __m256d maxTime = _mm256_set1_pd(2.0);
+    __m256d totalPropensity = _mm256_set1_pd(2.0);
+    __m256d expR = _mm256_setr_pd(1.0, 2.0, 3.0, 4.0);
+    __m256d timestep = _mm256_div_pd(expR, totalPropensity);
+    time = _mm256_add_pd(time,timestep);
+
+    __m256d comp = _mm256_cmp_pd(time, maxTime, _CMP_GE_OQ);
+
+    double* res = (double*)&comp;
+    printf("%lf %lf %lf %lf\n", res[0], res[1], res[2], res[3]);
+
+
+     // If any new time is past the end time, we are done.
+    int allFalse = _mm256_testz_pd(comp,comp);
+    printf("%d\n",allFalse);
+    */
+
+    /**
+      Generate a trajectory using GillespieDSolverAVX.
+      */
+    /**/
+    lm::avx::GillespieDSolverAVX* s = new lm::avx::GillespieDSolverAVX();
+    hrtime start = getHrTime();
+    long long steps = s->generateTrajectory(100000000);
+    hrtime stop = getHrTime();
+    printf("Performed %lld steps in %0.3f seconds (%0.4e steps/second)\n",steps,convertHrToSeconds(stop-start),double(steps)/convertHrToSeconds(stop-start));
+    delete s;
+   /**/
+
+
+    /**
+      * Write out a bunch of randome numbers.
+      */
+    /*
+    lm::rng::XORShift rng(0,0);
+    double* rngValues = NULL;
+    double* expRngValues = NULL;
+    int rngCount=10000000;
+    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&rngValues, DOUBLES_PER_AVX*sizeof(double), rngCount*sizeof(double)));
+    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&expRngValues, DOUBLES_PER_AVX*sizeof(double), rngCount*sizeof(double)));
+
+    // Warmup.
+    rng.getRandomDoubles(rngValues,rngCount);
+    rng.getExpRandomDoubles(expRngValues,rngCount);
+    rng.getRandomDoubles(rngValues,rngCount, true);
+    rng.getExpRandomDoubles(expRngValues,rngCount, true);
+
+    // Test with avx.
+    {
+    hrtime start = getHrTime();
+    rng.getRandomDoubles(rngValues,rngCount, true);
+    hrtime stop = getHrTime();
+    printf("Calculated %d norm rngs with avx in %0.3f seconds (%0.4e rngs/second)\n",rngCount,convertHrToSeconds(stop-start),double(rngCount)/convertHrToSeconds(stop-start));
+    start = getHrTime();
+    rng.getExpRandomDoubles(expRngValues,rngCount, true);
+    stop = getHrTime();
+    printf("Calculated %d exp rngs with avx in %0.3f seconds (%0.4e rngs/second)\n",rngCount,convertHrToSeconds(stop-start),double(rngCount)/convertHrToSeconds(stop-start));
+    FILE* f = fopen("rng-avx.txt", "w");
+    for (int i=0; i<rngCount; i++)
+        fprintf(f, "%e %e\n", rngValues[i], expRngValues[i]);
+    fclose(f);
+    }
+
+
+    // Test without avx.
+    hrtime start = getHrTime();
+    rng.getRandomDoubles(rngValues,rngCount);
+    hrtime stop = getHrTime();
+    printf("Calculated %d norm rngs in %0.3f seconds (%0.4e rngs/second)\n",rngCount,convertHrToSeconds(stop-start),double(rngCount)/convertHrToSeconds(stop-start));
+    start = getHrTime();
+    rng.getExpRandomDoubles(expRngValues,rngCount);
+    stop = getHrTime();
+    printf("Calculated %d exp rngs in %0.3f seconds (%0.4e rngs/second)\n",rngCount,convertHrToSeconds(stop-start),double(rngCount)/convertHrToSeconds(stop-start));
+    FILE* f = fopen("rng.txt", "w");
+    for (int i=0; i<rngCount; i++)
+        fprintf(f, "%e %e\n", rngValues[i], expRngValues[i]);
+    fclose(f);
+
+    free(rngValues);
+    rngValues = NULL;
+    free(expRngValues);
+    expRngValues = NULL;
+    */
 }
 
 
