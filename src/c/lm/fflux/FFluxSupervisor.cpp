@@ -88,15 +88,16 @@ void FFluxSupervisor::finishSimulation()
 	// Create the output message.
     lm::message::Message msgpp;
     lm::message::ProcessWorkUnitOutput* msgp = msgpp.mutable_process_work_unit_output();
-    lm::message::WorkUnitOutput* msg = msgp->add_output();
-	msg->set_work_unit_id(999999999999999);
+    msgp->set_work_unit_id(999999999999999);
+    lm::message::WorkUnitOutput* msg = msgp->add_part_output();
 
 	// Initialize the fflux output data
 	lm::io::FFluxOutput* ffluxOutput = NULL;
 	ffluxOutput = msg->mutable_fflux_output();
 
 	// Assign the fflux output data
-	*ffluxOutput = *(static_cast<lm::fflux::FFluxTrajectoryList*>(trajectoryList)->getFFluxOutput());
+    //TODO: uncomment following line
+    //*ffluxOutput = *(static_cast<lm::fflux::FFluxTrajectoryList*>(trajectoryList)->getFFluxOutput());
 
 	// Send the message
     communicator.sendMessage(realOutputWriterProcess, realOutputWriterThread, &msgpp);
@@ -126,7 +127,8 @@ void FFluxSupervisor::startSimulation()
     Print::printf(Print::INFO, "Forward flux supervisor starting simulation.");
 
     // Create the new trajectory list.
-    trajectoryList = new FFluxTrajectoryList(communicator, slots.getNumberSlots(),*input);
+    //TODO: uncomment following line
+    //trajectoryList = new FFluxTrajectoryList(communicator, slots.getNumberSlots(),*input);
 
     // Call the base class method.
     SimulationSupervisor::startSimulation();

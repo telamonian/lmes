@@ -1,11 +1,11 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
- * 			     Johns Hopkins University
- * 			     http://biophysics.jhu.edu/roberts/
+ *               Johns Hopkins University
+ *               http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -39,20 +39,20 @@
 package lm.message;
 
 import "lm/io/DiffusionModel.proto";
+import "lm/io/FirstPassageInput.proto";
 import "lm/io/OrderParameters.proto";
 import "lm/io/ReactionModel.proto";
-import "lm/io/SimulationParameters.proto";
 import "lm/io/Tilings.proto";
 
 message StartWorkUnitRunner {
-	required int32 work_unit_runner_id                          = 1;
-    optional bool use_cpu_affinity                              = 2;
-    repeated int32 cpu                                          = 3;
-    repeated int32 gpu                                          = 4;
-    required string solver                                      = 5;
-    required lm.io.SimulationParameters simulation_parameters   = 6;
-    optional lm.io.ReactionModel reaction_model                 = 7;
-    optional lm.io.DiffusionModel diffusion_model               = 8;
-    optional lm.io.OrderParameters order_parameters             = 9;
-    optional lm.io.Tilings tilings                              = 10;
+    required int32 work_unit_runner_id                              = 1;
+    optional bool use_cpu_affinity                                  = 2;
+    repeated int32 cpu                                              = 3;
+    repeated int32 gpu                                              = 4;
+    required string solver                                          = 5;
+    optional lm.io.ReactionModel reaction_model                     = 7;
+    optional lm.io.DiffusionModel diffusion_model                   = 8;
+    optional lm.io.FirstPassageInput first_passage_input            = 11;
+    optional lm.io.OrderParameters order_parameters                 = 9;
+    optional lm.io.Tilings tilings                                  = 10;
 }

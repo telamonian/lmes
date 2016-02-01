@@ -69,7 +69,7 @@ void Tilings::clearTilingMap()
     }
 }
 
-bool Tilings::init(lm::io::hdf5::Hdf5File* file)
+bool Tilings::init(const lm::io::hdf5::Hdf5File* file)
 {
     if (rFFTilingsBuf(file))
     {
@@ -126,7 +126,7 @@ void Tilings::reverse()
     }
 }
 
-bool Tilings::rFFTilingsBuf(lm::io::hdf5::Hdf5File* file)
+bool Tilings::rFFTilingsBuf(const lm::io::hdf5::Hdf5File* file)
 {
     if (file->hasTilings())
     {

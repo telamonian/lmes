@@ -57,6 +57,7 @@
 #include "lm/tiling/Tilings.h"
 #include "lm/Types.h"
 
+/*
 namespace lm {
 namespace fflux {
 
@@ -127,6 +128,8 @@ protected:
     virtual void ffluxOutputSetFinal_DinnerMethod(SavedCrossings& savedCrossings, SavedDwellTimes& savedDwellTimes, SavedFinishedTrajectoriesCounts& savedFinishedTrajectoriesCounts, SavedHists& savedHists);
 
 protected:
+    lm::message::Communicator* communicator;
+    lm::input::Input& input;
     Direction direction;
     long long ffluxPhase;
     long long maxFFluxPhase;
@@ -155,5 +158,5 @@ protected:
 
 }
 }
-
+*/
 #endif

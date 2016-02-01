@@ -56,7 +56,7 @@ public:
     enum status_t {NOT_STARTED, RUNNING, WAITING, FINISHED};
 
     Trajectory(uint64_t id, const lm::io::TrajectoryState& initialState);
-    Trajectory(uint64_t id, const lm::input::Input& input);
+    Trajectory(uint64_t id, const lm::input::Input& input, bool reversed=false);
     virtual ~Trajectory();
     //virtual void initHists();
 

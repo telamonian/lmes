@@ -178,7 +178,6 @@ public:
     virtual void getState(lm::io::TrajectoryState* state);
     virtual void setState(const lm::io::TrajectoryState& state);
     virtual void setLimits(const lm::io::TrajectoryLimits& limits);
-    virtual lm::io::TrajectoryLimits::LimitType getFinalLimitType();
 
 protected:
     virtual void setSpeciesUpperLimit(int species, int limit);
@@ -241,7 +240,7 @@ protected:
     lm::tiling::Tilings* tilings;
 
     // Trajectory status.
-    lm::io::WorkUnitStatus status;
+    lm::message::WorkUnitStatus::Status status;
 
     // Limits for the trajectory.
     double timeLimit;

@@ -134,31 +134,31 @@ public:
     virtual string checkpoint() throw(IOException,HDF5Exception);
 
     // Methods for working with parameters.
-    virtual void getParameters(lm::io::SimulationParameters* parameters);
+    virtual void getParameters(lm::io::SimulationParameters* parameters) const;
     virtual map<string,string> getParameters();
     virtual string getParameter(string key, string defaultValue="");
     virtual void setParameter(string key, string value) throw(HDF5Exception);
 
     // Methods for working with the model.
-    virtual bool hasDiffusionModel();
-    virtual void getDiffusionModel(lm::io::DiffusionModel* diffusionModel) throw(Exception,InvalidArgException,HDF5Exception);
-    virtual void setDiffusionModel(lm::io::DiffusionModel* diffusionModel) throw(Exception,InvalidArgException,HDF5Exception);
-    virtual bool hasOrderParameters();
-    virtual void getOrderParameters(lm::io::OrderParameters* orderParameters);
+    virtual bool hasDiffusionModel() const;
+    virtual void getDiffusionModel(lm::io::DiffusionModel* diffusionModel) const;
+    virtual void setDiffusionModel(lm::io::DiffusionModel* diffusionModel);
+    virtual bool hasOrderParameters() const;
+    virtual void getOrderParameters(lm::io::OrderParameters* orderParameters) const;
     virtual void setOrderParameters(lm::io::OrderParameters* orderParameters);
-    virtual bool hasReactionModel();
-	virtual void getReactionModel(lm::io::ReactionModel* reactionModel) throw(Exception,InvalidArgException,HDF5Exception);
-	virtual void setReactionModel(lm::io::ReactionModel* reactionModel) throw(Exception,InvalidArgException,HDF5Exception);
-    virtual void setSpatialModel(lm::io::SpatialModel* model) throw(Exception,InvalidArgException,HDF5Exception);
-    virtual void getSpatialModel(lm::io::SpatialModel* model) throw(Exception,InvalidArgException,HDF5Exception);
-    virtual bool hasTilings();
-    virtual void getTilings(lm::io::Tilings* tilings);
+    virtual bool hasReactionModel() const;
+    virtual void getReactionModel(lm::io::ReactionModel* reactionModel) const;
+    virtual void setReactionModel(lm::io::ReactionModel* reactionModel);
+    virtual void setSpatialModel(lm::io::SpatialModel* model);
+    virtual void getSpatialModel(lm::io::SpatialModel* model) const;
+    virtual bool hasTilings() const;
+    virtual void getTilings(lm::io::Tilings* tilings) const;
     virtual void setTilings(lm::io::Tilings* tilings);
-    virtual bool hasBoundaryGradient();
-    virtual void getBoundaryGradient(lm::io::BoundaryConditions* bc);
+    virtual bool hasBoundaryGradient() const;
+    virtual void getBoundaryGradient(lm::io::BoundaryConditions* bc) const;
 
     // Methods for working with a replicate.
-    virtual bool replicateExists(uint64_t replicate) throw(HDF5Exception);
+    virtual bool replicateExists(uint64_t replicate);
     virtual void openReplicate(uint64_t replicate) throw(HDF5Exception);
     virtual void appendSpeciesCounts(uint64_t replicate, lm::io::SpeciesCounts * speciesCounts) throw(HDF5Exception);
     virtual void appendSpeciesTimeSeries(uint64_t replicate, const lm::io::SpeciesTimeSeries& speciesCounts);

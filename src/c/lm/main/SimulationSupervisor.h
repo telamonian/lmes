@@ -96,13 +96,12 @@ public:
     void wake() throw(lm::thread::PthreadException);
 
 protected:
-//    virtual void initLimits();
     virtual void startSimulation();
     virtual bool assignWork();
     virtual void finishSimulation();
 
     virtual int run();
-    virtual void resourceAvailable(const lm::message::ResourcesAvailable& msg);
+    virtual void receivedResourceAvailable(const lm::message::ResourcesAvailable& msg);
     virtual void allResourcesRegistered();
     virtual void startOutputWriter();
     virtual void receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg);
@@ -117,7 +116,6 @@ protected:
     virtual void receivedFinishedCheckpointing(const lm::message::FinishedCheckpointing& msg);
 
 private:
-    bool parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg);
     void resetPerformanceStatistics();
     void printPerformanceStatistics(bool flush=false);
 
@@ -136,18 +134,6 @@ protected:
     std::string solverClassName;
     bool useCPUAffinity;
     lm::input::Input* input;
-    lm::io::SimulationParameters simulationParametersBuf;
-    map<string,string> simulationParametersMap;
-    bool hasReactionModel;
-    lm::io::ReactionModel reactionModelBuf;
-    bool hasDiffusionModel;
-    lm::io::DiffusionModel diffusionModelBuf;
-    bool hasOrderParameters;
-    lm::io::OrderParameters orderParametersBuf;
-    lm::oparam::OParams ops;
-    bool hasTilings;
-    lm::io::Tilings tilingsBuf;
-    lm::tiling::Tilings tilings;
     lm::trajectory::TrajectoryList* trajectoryList;
     lm::slot::SlotList slots;
     bool haveAllWorkUnitRunnersStarted;

@@ -63,7 +63,7 @@ public:
     OParams();
     ~OParams();
     void clearOPMap();
-    bool init(lm::io::hdf5::Hdf5File* file);
+    bool init(const lm::io::hdf5::Hdf5File* file);
     void init(const lm::io::OrderParameters& oparams);
     void init();
     void initOParam(const lm::io::OrderParameters::OrderParameter& oparam);

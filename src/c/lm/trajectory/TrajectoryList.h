@@ -46,7 +46,6 @@
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
-#include "lm/message/Communicator.h"
 #include "lm/message/Message.pb.h"
 #include "lm/trajectory/Trajectory.h"
 #include "lm/Types.h"

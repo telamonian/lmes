@@ -63,6 +63,7 @@
 #include "lm/message/Message.pb.h"
 #include "lm/message/ProcessWorkUnitOutput.pb.h"
 #include "lm/message/WorkUnitOutput.pb.h"
+#include "lm/message/WorkUnitStatus.pb.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/rng/XORShift.h"
 #ifdef OPT_CUDA
@@ -98,9 +99,14 @@ void* GillespieDSolverAVX::allocateObject()
 
 GillespieDSolverAVX::GillespieDSolverAVX():CMESolver((RandomGenerator::Distributions)(RandomGenerator::EXPONENTIAL|RandomGenerator::UNIFORM)),propensities(NULL)
 {
+    // Initialize the time limit.
+    timeLimit = _mm256_set1_pd(std::numeric_limits<double>::infinity());
+
     // Initialize any array variables.
     for (int i=0; i<DOUBLES_PER_AVX; i++)
     {
+        status[i] = lm::message::WorkUnitStatus::NONE;
+        limitReached[i] = lm::io::TrajectoryLimits::NONE;
         trajectoryStarted[i] = false;
     }
 
@@ -221,7 +227,7 @@ GillespieDSolverAVX::GillespieDSolverAVX():CMESolver((RandomGenerator::Distribut
     updateAllPropensities(reactionModel->numberSpecies);
 
     time = _mm256_setr_pd(0.0, 1.99999999999999, 3.99999999999999, 9.99999999999999);
-    maxTime = _mm256_setr_pd(100000.0, 100000.0, 100000.0, 100000.0);
+    timeLimit = _mm256_setr_pd(100000.0, 100000.0, 100000.0, 100000.0);
     simulationParameters["writeInterval"] = "1000.0";
 }
 
@@ -308,14 +314,15 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
     // Create the output message.
     lm::message::Message msgp;
     lm::message::ProcessWorkUnitOutput* msg = msgp.mutable_process_work_unit_output();
+    msg->set_work_unit_id(workUnitId);
     lm::message::WorkUnitOutput* output[DOUBLES_PER_AVX];
     for (int i=0; i<DOUBLES_PER_AVX; i++)
-        output[i] = msg->add_output();
+        output[i] = msg->add_part_output();
 
     // Get the interval for writing species counts.
     double writeInterval = atof(simulationParameters["writeInterval"].c_str());
     bool writeTimeSteps = (writeInterval > 0.0);
-    avxd eps = _mm256_set1_pd(1e-9);
+    avxd eps = _mm256_set1_pd(EPS);
     avxd nextSpeciesWriteTime;
     vector<int32_t> speciesTimeSeriesCounts[DOUBLES_PER_AVX];
     vector<double> speciesTimeSeriesTimes[DOUBLES_PER_AVX];
@@ -353,22 +360,23 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
     Print::printf(Print::DEBUG, "Running Gillespie direct avx simulation for %d steps with %d species, %d reactions, %d species limits\n", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberLimits);
     PROF_BEGIN(PROF_SIM_EXECUTE);
     long long steps=0;
-    while (steps < maxSteps)
+    int allFalse;
+    int trueMask;
+    avxd comp;
+    while (true)
     {
-        int allFalse;
-        int trueMask;
-
-        // If any propensities are zero, stop the trajectory.
-        avxd comp = _mm256_cmp_pd(totalPropensity, _mm256_setzero_pd(), _CMP_LE_OQ);
-        allFalse = _mm256_testz_pd(comp,comp);
-        if (!allFalse)
+        // See if we have finished the steps.
+        if (steps < maxSteps)
         {
+            for (int i=0; i<DOUBLES_PER_AVX; i++)
+            {
+                status[i] = lm::message::WorkUnitStatus::STEPS_FINISHED;
+            }
             break;
         }
 
-        // If we are outside of the limits, stop the trajectory.
-        if (isTrajectoryOutsideLimits())
-            break;
+        // Increment the steps.
+        steps++;
 
         // See if we need to update our rng caches.
         if (rngNext >= TUNE_LOCAL_RNG_CACHE_SIZE)
@@ -393,15 +401,30 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
 //        }
 
          // If any new time is past the end time, we are done.
-        comp = _mm256_cmp_pd(time, maxTime, _CMP_GE_OQ);
+        comp = _mm256_cmp_pd(time, timeLimit, _CMP_GE_OQ);
         allFalse = _mm256_testz_pd(comp,comp);
         if (!allFalse)
         {
+            // Get a bitmask of all values that were true.
+            trueMask = _mm256_movemask_pd(comp);
+
+            // Go through the mask.
+            for (int i=0; i<DOUBLES_PER_AVX; i++)
+            {
+                // If this element was true, set that the max time limit was reached.
+                if (trueMask&(1<<i))
+                {
+                    status[i] = lm::message::WorkUnitStatus::LIMIT_REACHED;
+                    limitReached[i] = lm::io::TrajectoryLimits::MAXTIME;
+                }
+                else
+                {
+                    // Otherwise set that we finsihed steps.
+                    status[i] = lm::message::WorkUnitStatus::STEPS_FINISHED;
+                }
+            }
             break;
         }
-
-        // Increment the steps.
-        steps++;
 
         // If we are writing time steps, write out any time steps before this event occurred.
         if (writeTimeSteps)
@@ -503,8 +526,14 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
 
         //printf("Reaction to perform: %d %d %d %d\n", reactionsToPerform[0], reactionsToPerform[1], reactionsToPerform[2], reactionsToPerform[3]);
 
-        // Update species counts and propensities given the reaction that occurred.
+        // Update the species counts.
         performReactionEvent(reactionsToPerform);
+
+        // If we are outside of the limits, stop the trajectory.
+        if (isTrajectoryOutsideLimits())
+            break;
+
+        // Update the propensites given the reaction that occurred.
         //updatePropensities(time, r);
         updateAllPropensities(numberSpecies);
 
@@ -514,6 +543,30 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
         {
             avxd propensity = _mm256_load_pd(&propensities[i*DOUBLES_PER_AVX]);
             totalPropensity = _mm256_add_pd(totalPropensity,propensity);
+        }
+
+        // If any total propensities is zero, stop the trajectory.
+        avxd comp = _mm256_cmp_pd(totalPropensity, _mm256_setzero_pd(), _CMP_LE_OQ);
+        allFalse = _mm256_testz_pd(comp,comp);
+        if (!allFalse)
+        {
+            // Get a bitmask of all values that were true.
+            trueMask = _mm256_movemask_pd(comp);
+
+            // Go through the mask.
+            for (int i=0; i<DOUBLES_PER_AVX; i++)
+            {
+                // If this element was true, save the reaction and set the random propensity to inf.
+                if (trueMask&(1<<i))
+                {
+                    status[i] = lm::message::WorkUnitStatus::ERROR;
+                }
+                else
+                {
+                    status[i] = lm::message::WorkUnitStatus::STEPS_FINISHED;
+                }
+            }
+            break;
         }
 
         //Print::printf(Print::VERBOSE_DEBUG, "Step %d: time=%e, count=%d, prop=%e, totprop=%e",steps,time,speciesCounts[0],propensities[0],totalPropensity);

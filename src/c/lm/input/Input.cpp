@@ -39,6 +39,7 @@
 #include <map>
 #include <string>
 
+#include "lm/input/Input.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/BoundaryConditions.pb.h"
 #include "lm/io/DiffusionModel.pb.h"
@@ -55,15 +56,17 @@ namespace lm {
 namespace input {
 
 Input::Input(const lm::io::hdf5::Hdf5File& file)
-:reactionModelPresent(false),diffusionModelPresent(false),orderParametersPresent(false),tilingsPresent(false)
+:reactionModelPresent(false),diffusionModelPresent(false),firstPassageTimesPresent(false),orderParametersPresent(false),tilingsPresent(false),
+ stepsPerWorkUnit(10000000)
 {
     // Get the simulation parameters.
     file.getParameters(&simulationParametersMsg);
-    for (int i=0; i<simulationParametersMsg.key_size() && i<simulationParametersMsg->value_size(); i++)
+    for (int i=0; i<simulationParametersMsg.key_size() && i<simulationParametersMsg.value_size(); i++)
     {
         simulationParameters[simulationParametersMsg.key(i)] = simulationParametersMsg.value(i);
     }
 
+    // Get the reaction model.
     if (file.hasReactionModel())
     {
         file.getReactionModel(&reactionModel);
@@ -77,7 +80,7 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         diffusionModelPresent = true;
 
         // See if we need to fill in the boundary conditions from the simulation parameters.
-        if (simulationParameters.count("boundaryConditions") == 1 && !diffusionModel->has_boundary_conditions())
+        if (simulationParameters.count("boundaryConditions") == 1 && !diffusionModel.has_boundary_conditions())
         {
             lm::io::BoundaryConditions* bc=diffusionModel.mutable_boundary_conditions();
             if (!parseBoundaryConditions(bc, simulationParameters["boundaryConditions"].c_str()))
@@ -86,28 +89,48 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
             }
             if (simulationParameters.count("boundarySite") == 1)
             {
-                bc->set_boundary_site(atoi((*simulationParametersMap)["boundarySite"].c_str()));
+                bc->set_boundary_site(atoi(simulationParameters["boundarySite"].c_str()));
             }
             if (simulationParameters.count("boundarySpecies") == 1)
             {
-                bc->set_boundary_species(atoi((*simulationParametersMap)["boundarySpecies"].c_str()));
+                bc->set_boundary_species(atoi(simulationParameters["boundarySpecies"].c_str()));
             }
             if (simulationParameters.count("boundaryConcentration") == 1)
             {
-                bc->set_boundary_concentration(atof((*simulationParametersMap)["boundaryConcentration"].c_str()));
+                bc->set_boundary_concentration(atof(simulationParameters["boundaryConcentration"].c_str()));
             }
-            if (file->hasBoundaryGradient())
+            if (file.hasBoundaryGradient())
             {
-                file->getBoundaryGradient(bc);
+                file.getBoundaryGradient(bc);
             }
         }
     }
 
+    // Get the first passage times.
+    if (simulationParameters.count("fptTrackingList"))
+    {
+        // Initialize the first passage times in the cme state.
+        const string listString = simulationParameters["fptTrackingList"];
+        std::list<int> fptList;
+        size_t start=0, end=0;
+        while (end != string::npos)
+        {
+            end = listString.find(',', start);
+            string trackedSpecies = listString.substr(start, (end == string::npos) ? string::npos : end - start);
+            if (trackedSpecies.length() > 0)
+            {
+                firstPassageParameters.add_species_to_track((uint)atoi(trackedSpecies.c_str()));
+            }
+            start = end+1;
+        }
+        firstPassageTimesPresent = true;
+    }
+
     // Get the order parameters.
-    if (file->hasOrderParameters())
+    if (file.hasOrderParameters())
     {
         file.getOrderParameters(&orderParametersMsg);
-        oparams.init(&file);
+        orderParameters.init(&file);
         orderParametersPresent = true;
     }
 
@@ -118,6 +141,10 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         tilings.init(&file);
         tilingsPresent = true;
     }
+
+    // Get some specific simulation parameters.
+    if (simulationParameters.count("fptTrackingList"))
+        stepsPerWorkUnit = atoll(simulationParameters["maxWorkUnitSteps"].c_str());
 
 }
 
@@ -162,7 +189,7 @@ bool Input::parseBoundaryConditions(lm::io::BoundaryConditions* bc, string arg)
                 bc->set_x_minus(type);
             }
             else if (axis == "y")
-        hasDiffusionModel    {
+            {
                 bc->set_axis_specific_boundaries(true);
                 bc->set_y_plus(type);
                 bc->set_y_minus(type);

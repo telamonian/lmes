@@ -86,11 +86,11 @@ namespace lm {
 namespace cme {
 
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
-    :neededDists(neededDists),rng(NULL),reactionModel(NULL),oparams(NULL),status(lm::io::WorkUnitStatus::NONE),timeLimit(std::limits<double>::infinity),numberLimits(0),limits(NULL),limitReached(lm::io::TrajectoryLimits::NONE),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),tilingHists(NULL),trajectoryStarted(false),speciesCounts(NULL),time(0.0),timeStep(0.0)
+:neededDists(neededDists),rng(NULL),reactionModel(NULL),oparams(NULL),status(lm::message::WorkUnitStatus::NONE),timeLimit(std::numeric_limits<double>::infinity()),numberLimits(0),limits(NULL),limitReached(lm::io::TrajectoryLimits::NONE),trajectoryStarted(false),speciesCounts(NULL),time(0.0),timeStep(0.0),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),tilingHists(NULL)
 {
 }
 
-CMESolver::~CMESolver()trajectoryStatus
+CMESolver::~CMESolver()
 {
     // Free any model memory.
     if (reactionModel != NULL) delete reactionModel; reactionModel = NULL;
@@ -182,7 +182,7 @@ void CMESolver::reset()
     }
 
     // Reset the status.
-    status = lm::io::WorkUnitStatus::NONE
+    status = lm::message::WorkUnitStatus::NONE;
 
     // Reset the time.
     time = 0.0;
@@ -358,17 +358,6 @@ void CMESolver::setSpeciesIncreasingLimit(lm::io::TrajectoryLimits::Arrangement 
 	speciesLimits[numberSpeciesLimits-1].limit = limit;
 }
 */
-lm::io::TrajectoryLimits::LimitType CMESolver::getFinalLimitType()
-{
-    if (finalLimitType!=0)
-    {
-        return finalLimitType;
-    }
-    else
-    {
-        return lm::io::TrajectoryLimits::MAXTIME;
-    }
-}
 
 bool CMESolver::isTrajectoryOutsideLimits()
 {
@@ -425,61 +414,9 @@ bool CMESolver::isTrajectoryOutsideLimits()
         }
 
     }*/
-    status = lm::message::WorkUnitStatus::LIMIT_REACHED;
+    //status = lm::message::WorkUnitStatus::LIMIT_REACHED;
     return false;
 }
-
-
-void CMESolver::addToParameterTrackingList(pair<string,double*> parameter)
-{
-    trackedParameters.push_back(TrackedParameter(parameter.first, parameter.second));
-}
-
-/*double CMESolver::recordParameters(double nextRecordTime, double recordInterval, double simulationTime)
-{
-	if (recordInterval > 0.0)
-	{
-		// Write parameter values until the next write time is past the current time.
-		do
-		{
-			// Update the parameter values.
-			for (list<TrackedParameter>::iterator it = trackedParameters.begin(); it != trackedParameters.end(); it++)
-			{
-				// Record the species counts.
-				it->dataSet.add_time(nextRecordTime);
-				it->dataSet.add_value(*(it->valuePointer));
-			}
-			nextRecordTime += recordInterval;
-		}
-		while (nextRecordTime <= (simulationTime+1e-9));
-
-		// Output the data, if necessary.
-		queueRecordedParameters(false);
-	}
-
-    return nextRecordTime;
-}
-*/
-
-/*
-void CMESolver::queueRecordedParameters(bool flush)
-{
-    for (list<TrackedParameter>::iterator it = trackedParameters.begin(); it != trackedParameters.end(); it++)
-    {
-        if (it->dataSet.value_size() >= TUNE_PARAMETER_VALUES_BUFFER_SIZE || (flush && it->dataSet.value_size() > 0))
-        {
-            // Push it to the output queue.
-            PROF_BEGIN(PROF_SERIALIZE_PV);
-            lm::main::DataOutputQueue::getInstance()->pushDataSet(lm::main::DataOutputQueue::PARAMETER_VALUES, replicate, &it->dataSet);
-            PROF_END(PROF_SERIALIZE_PV);
-
-            // Reset the data set.
-            it->dataSet.Clear();
-            it->dataSet.set_parameter(it->name);
-        }
-    }
-}
-*/
 
 }
 }

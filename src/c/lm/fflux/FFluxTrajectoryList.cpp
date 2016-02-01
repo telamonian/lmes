@@ -64,6 +64,7 @@ using std::map;
 using std::string;
 using std::vector;
 
+/*
 namespace lm {
 namespace fflux {
 
@@ -74,17 +75,18 @@ typedef map<lm::fflux::FFluxTrajectoryList::Direction, FinishedTrajectoriesCount
 
 FFluxTrajectoryList::FFluxTrajectoryList(lm::message::Communicator& communicator, uint64_t simultaneousTrajectoryCount,lm::input::Input& input)
 :TrajectoryList(input),
- crossingsPerPhase(atof(input.simulationParametersMap["crossingsPerPhase"].c_str())),
+ communicator(&communicator),
+ input(input),
+ crossingsPerPhase(atof(input.getSimulationParameters().at("crossingsPerPhase").c_str())),
  direction(FORWARD),
  dwellTimes(),
  ffluxPhase(0),
  finishedTrajectoriesCounts(),
- maxFFluxPhase(input.tilings.getCurrentTiling()->getEdgesCount()),
- maxPhaseZeroTime(atof(input.simulationParametersMap["maxPhaseZeroTime"].c_str())),
+ maxFFluxPhase(input.getTilings().getCurrentTiling()->getEdgesCount()),
+ maxPhaseZeroTime(atof(input.getSimulationParameters().at("maxPhaseZeroTime").c_str())),
  simultaneousTrajectoryCount(simultaneousTrajectoryCount),
  xorShift(0,0)  //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
-    setCommunicator(communicator);
     init();
 }
 
@@ -112,8 +114,8 @@ void FFluxTrajectoryList::init()
 {
 	initFFluxOutput();
     initTrajectories(simultaneousTrajectoryCount);
-    averageTilingHist.set_tiling_id(input.tilings.getCurrentTiling()->getID());
-    for (lm::tiling::EdgeIterator e_it=input.tilings.getCurrentTiling()->begin();e_it!=input.tilings.getCurrentTiling()->end();e_it++)
+    averageTilingHist.set_tiling_id(input.getTilings().getCurrentTiling()->getID());
+    for (lm::tiling::EdgeIterator e_it=input.getTilings().getCurrentTiling()->begin();e_it!=input.tilings.getCurrentTiling()->end();e_it++)
     {
         averageTilingHist.add_tile_vals(0);
     }
@@ -680,3 +682,4 @@ void FFluxTrajectoryList::ffluxOutputSetFinal_DinnerMethod(SavedCrossings& saved
 
 }
 }
+*/

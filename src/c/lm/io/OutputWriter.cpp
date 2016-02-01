@@ -309,11 +309,11 @@ int OutputWriter::HelperThread::run()
             if (message != NULL)
             {
                 // Loop over every output in the message.
+                hrtime startWriting = getHrTime();
                 lm::message::ProcessWorkUnitOutput pwu = message->process_work_unit_output();
-                for (int i=0; i<pwu.output_size(); i++)
+                for (int i=0; i<pwu.part_output_size(); i++)
                 {
-                    hrtime startWriting = getHrTime();
-                    lm::message::WorkUnitOutput output = pwu.output(i);
+                    lm::message::WorkUnitOutput output = pwu.part_output(i);
                     if (output.has_species_counts())
                     {
                         p->processSpeciesCounts(output.species_counts());
@@ -335,8 +335,8 @@ int OutputWriter::HelperThread::run()
                     {
                         p->processFFluxOutput(output.fflux_output());
                     }
-                    writingTime += getHrTime()-startWriting;
                 }
+                writingTime += getHrTime()-startWriting;
                 bytesWritten += messageSize;
                 messagesWritten++;
 

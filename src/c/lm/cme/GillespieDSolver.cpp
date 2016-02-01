@@ -156,8 +156,8 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     // Create the output message.
     lm::message::Message msgpp;
     lm::message::ProcessWorkUnitOutput* msgp = msgpp.mutable_process_work_unit_output();
-    lm::message::WorkUnitOutput* msg = msgp->add_output();
-    msg->set_work_unit_id(workUnitId);
+    msgp->set_work_unit_id(workUnitId);
+    lm::message::WorkUnitOutput* msg = msgp->add_part_output();
 
     // Get the interval for writing species counts.
     double writeInterval = atof(simulationParameters["writeInterval"].c_str());
@@ -202,6 +202,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
             break;
         }
 
+        // Increment the steps.
         steps++;
 
         // See if we need to update our rng caches.
@@ -218,11 +219,11 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         time += timeStep;
 
         // If we are outside of the time limit, stop the trajectory.
-        if (time > timeLimit)
+        if (time >= timeLimit)
         {
-            limitReached = lm::io::TrajectoryLimits::MAXTIME;
             status = lm::message::WorkUnitStatus::LIMIT_REACHED;
-            break
+            limitReached = lm::io::TrajectoryLimits::MAXTIME;
+            break;
         }
 
         // If we are writing time steps, write out any time steps before this event occurred.
@@ -290,7 +291,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);
         if (writeTimeSteps)
         {
-            while (nextSpeciesWriteTime <= (maxTime+1e-9))
+            while (nextSpeciesWriteTime <= (timeLimit+1e-9))
             {
                 // Record the species counts.
                 for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
@@ -310,7 +311,6 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
             for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
             speciesTimeSeriesTimes.push_back(time);
         }
-        reachedLimit = true;
     }
 
     // If we have any species time series data, add them to the output message.

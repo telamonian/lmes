@@ -317,10 +317,10 @@ herr_t Hdf5File::parseParameter(hid_t location_id, const char *attr_name, const 
     return 0;
 }
 
-void Hdf5File::getParameters(lm::io::SimulationParameters* parameters)
+void Hdf5File::getParameters(lm::io::SimulationParameters* parameters) const
 {
     parameters->Clear();
-    for (map<string,string>::iterator it=parameterMap.begin(); it != parameterMap.end(); it++)
+    for (map<string,string>::const_iterator it=parameterMap.begin(); it != parameterMap.end(); it++)
     {
         parameters->add_key(it->first);
         parameters->add_value(it->second);
@@ -382,12 +382,12 @@ void Hdf5File::loadModel() throw(Exception,HDF5Exception)
     }
 }
 
-bool Hdf5File::hasDiffusionModel()
+bool Hdf5File::hasDiffusionModel() const
 {
     return (H5Lexists(file, "/Model/Diffusion", H5P_DEFAULT) != 0);
 }
 
-void Hdf5File::getDiffusionModel(lm::io::DiffusionModel* diffusionModel) throw(Exception,InvalidArgException,HDF5Exception)
+void Hdf5File::getDiffusionModel(lm::io::DiffusionModel* diffusionModel) const
 {
     // Make sure the model is not null and then clear it.
     if (diffusionModel == NULL) throw InvalidArgException("diffusionModel", "cannot be null");
@@ -466,7 +466,7 @@ void Hdf5File::getDiffusionModel(lm::io::DiffusionModel* diffusionModel) throw(E
     }
 }
 
-void Hdf5File::setDiffusionModel(lm::io::DiffusionModel * diffusionModel) throw(Exception,InvalidArgException,HDF5Exception)
+void Hdf5File::setDiffusionModel(lm::io::DiffusionModel * diffusionModel)
 {
     // Validate that the model is consistent.
     if (diffusionModel == NULL) throw InvalidArgException("diffusionModel", "cannot be NULL");
@@ -881,7 +881,7 @@ void Hdf5File::_setFFluxTrajectoryOutput(::google::protobuf::RepeatedField<T> da
     }
 }
 
-bool Hdf5File::hasOrderParameters()
+bool Hdf5File::hasOrderParameters() const
 {
     return (H5Lexists(file, "/OrderParameters", H5P_DEFAULT)!=0);
 }
@@ -936,7 +936,7 @@ herr_t Hdf5File::getOrderParametersCallback(hid_t loc_id, const char * name, con
     return 0;
 }
 
-void Hdf5File::getOrderParameters(lm::io::OrderParameters* orderParameters)
+void Hdf5File::getOrderParameters(lm::io::OrderParameters* orderParameters) const
 {
     // Make sure the orderParameters protobuf is not null and then clear it
     if (orderParameters == NULL) throw InvalidArgException("orderParameters", "cannot be null");
@@ -1002,12 +1002,12 @@ void Hdf5File::setOrderParameters(lm::io::OrderParameters * orderParameters)
     HDF5_EXCEPTION_CHECK(H5Gclose(opsGroup));
 }
 
-bool Hdf5File::hasReactionModel()
+bool Hdf5File::hasReactionModel() const
 {
     return (H5Lexists(file, "/Model/Reaction", H5P_DEFAULT) != 0);
 }
 
-void Hdf5File::getReactionModel(lm::io::ReactionModel * reactionModel) throw(Exception,InvalidArgException,HDF5Exception)
+void Hdf5File::getReactionModel(lm::io::ReactionModel * reactionModel) const
 {
     // Make sure the model is not null and then clear it.
     if (reactionModel == NULL) throw InvalidArgException("reactionModel", "cannot be null");
@@ -1016,8 +1016,9 @@ void Hdf5File::getReactionModel(lm::io::ReactionModel * reactionModel) throw(Exc
     if (H5Lexists(file, "/Model/Reaction", H5P_DEFAULT))
     {
         // Read at least the numbers of species.
-        HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Model/Reaction", "numberSpecies", &numberSpecies));
-        reactionModel->set_number_species(numberSpecies);
+        unsigned int constNumberSpecies;
+        HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Model/Reaction", "numberSpecies", &constNumberSpecies));
+        reactionModel->set_number_species(constNumberSpecies);
         reactionModel->set_number_reactions(0);
 
         // If we have the number of reactions, we must have a full model so read it.
@@ -1029,7 +1030,7 @@ void Hdf5File::getReactionModel(lm::io::ReactionModel * reactionModel) throw(Exc
 
             // Read the initial species counts.
             H5LTget_dataset_info(file, "/Model/Reaction/InitialSpeciesCounts", dims, &type, &size);
-            if (dims[0] != numberSpecies || size != sizeof(uint)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/InitialSpeciesCounts");
+            if (dims[0] != constNumberSpecies || size != sizeof(uint)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/InitialSpeciesCounts");
 
             // Read the number of reactions.
             uint numberReactions;
@@ -1045,9 +1046,9 @@ void Hdf5File::getReactionModel(lm::io::ReactionModel * reactionModel) throw(Exc
                 H5LTget_dataset_info(file, "/Model/Reaction/ReactionRateConstants", dims, &type, &size);
                 if (dims[0] != numberReactions || dims[1] != MAX_REACTION_RATE_CONSTANTS || size != sizeof(double)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/ReactionRateConstants");
                 H5LTget_dataset_info(file, "/Model/Reaction/StoichiometricMatrix", dims, &type, &size);
-                if (dims[0] != numberSpecies || dims[1] != numberReactions || size != sizeof(int)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/StoichiometricMatrix");
+                if (dims[0] != constNumberSpecies || dims[1] != numberReactions || size != sizeof(int)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/StoichiometricMatrix");
                 H5LTget_dataset_info(file, "/Model/Reaction/DependencyMatrix", dims, &type, &size);
-                if (dims[0] != numberSpecies || dims[1] != numberReactions || size != sizeof(uint)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/DependencyMatrix");
+                if (dims[0] != constNumberSpecies || dims[1] != numberReactions || size != sizeof(uint)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/DependencyMatrix");
 
                 // If we have rate noise terms, make sure they are the correct size.
                 const uint NUMBER_NOISE_COLS = 2;
@@ -1065,21 +1066,21 @@ void Hdf5File::getReactionModel(lm::io::ReactionModel * reactionModel) throw(Exc
                 {
                     hasInitialSpeciesCountsBackward = true;
                     H5LTget_dataset_info(file, "/Model/Reaction/InitialSpeciesCountsBackward", dims, &type, &size);
-                    if (dims[0] != numberSpecies || size != sizeof(uint)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/InitialSpeciesCountsBackward");
+                    if (dims[0] != constNumberSpecies || size != sizeof(uint)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Reaction/InitialSpeciesCountsBackward");
                 }
 
                 // Allocate some buffers for reading the data.
-                int * intBuffer = new int[numberSpecies*numberReactions];
+                int * intBuffer = new int[constNumberSpecies*numberReactions];
                 double * doubleBuffer = new double[numberReactions*MAX_REACTION_RATE_CONSTANTS];
                 double * noiseBuffer = new double[numberReactions*NUMBER_NOISE_COLS];
 
                 // Read the initial species counts.
                 H5LTread_dataset_int(file, "/Model/Reaction/InitialSpeciesCounts", intBuffer);
-                for (uint i=0; i<numberSpecies; i++) reactionModel->add_initial_species_count((uint)intBuffer[i]);
+                for (uint i=0; i<constNumberSpecies; i++) reactionModel->add_initial_species_count((uint)intBuffer[i]);
                 if (hasInitialSpeciesCountsBackward)
                 {
                     H5LTread_dataset_int(file, "/Model/Reaction/InitialSpeciesCountsBackward", intBuffer);
-                    for (uint i=0; i<numberSpecies; i++) reactionModel->add_initial_species_count_backward((uint)intBuffer[i]);
+                    for (uint i=0; i<constNumberSpecies; i++) reactionModel->add_initial_species_count_backward((uint)intBuffer[i]);
                 }
 
                 // Read the reaction info.
@@ -1115,9 +1116,9 @@ void Hdf5File::getReactionModel(lm::io::ReactionModel * reactionModel) throw(Exc
 
                 // Read the matrices.
                 H5LTread_dataset_int(file, "/Model/Reaction/StoichiometricMatrix", intBuffer);
-                for (uint i=0; i<numberSpecies*numberReactions; i++) reactionModel->add_stoichiometric_matrix(intBuffer[i]);
+                for (uint i=0; i<constNumberSpecies*numberReactions; i++) reactionModel->add_stoichiometric_matrix(intBuffer[i]);
                 H5LTread_dataset_int(file, "/Model/Reaction/DependencyMatrix", intBuffer);
-                for (uint i=0; i<numberSpecies*numberReactions; i++) reactionModel->add_dependency_matrix((uint)intBuffer[i]);
+                for (uint i=0; i<constNumberSpecies*numberReactions; i++) reactionModel->add_dependency_matrix((uint)intBuffer[i]);
 
                 // Free the buffers.
                 delete [] noiseBuffer;
@@ -1128,7 +1129,7 @@ void Hdf5File::getReactionModel(lm::io::ReactionModel * reactionModel) throw(Exc
     }
 }
 
-void Hdf5File::setReactionModel(lm::io::ReactionModel * reactionModel) throw(Exception,InvalidArgException,HDF5Exception)
+void Hdf5File::setReactionModel(lm::io::ReactionModel * reactionModel)
 {
     // Validate that the model is consistent.
     if (reactionModel == NULL) throw InvalidArgException("reactionModel", "cannot be NULL");
@@ -1219,7 +1220,7 @@ void Hdf5File::setReactionModel(lm::io::ReactionModel * reactionModel) throw(Exc
     }
 }
 
-void Hdf5File::getSpatialModel(lm::io::SpatialModel * spatialModel) throw(Exception,InvalidArgException,HDF5Exception)
+void Hdf5File::getSpatialModel(lm::io::SpatialModel * spatialModel) const
 {
     // Make sure the model is not null and then clear it.
     if (spatialModel == NULL) throw InvalidArgException("spatialModel", "cannot be null");
@@ -1314,7 +1315,7 @@ void Hdf5File::getSpatialModel(lm::io::SpatialModel * spatialModel) throw(Except
     }
 }
 
-void Hdf5File::setSpatialModel(lm::io::SpatialModel * spatialModel) throw(Exception,InvalidArgException,HDF5Exception)
+void Hdf5File::setSpatialModel(lm::io::SpatialModel * spatialModel)
 {
     // Validate that the model is consistent.
     if (spatialModel == NULL) throw InvalidArgException("spatialModel", "cannot be NULL");
@@ -1421,7 +1422,7 @@ void Hdf5File::setSpatialModel(lm::io::SpatialModel * spatialModel) throw(Except
     }
 }
 
-bool Hdf5File::hasTilings()
+bool Hdf5File::hasTilings() const
 {
     return (H5Lexists(file, "/Tilings", H5P_DEFAULT)!=0);
 }
@@ -1489,7 +1490,7 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
     return 0;
 }
 
-void Hdf5File::getTilings(lm::io::Tilings* tilings)
+void Hdf5File::getTilings(lm::io::Tilings* tilings) const
 {
     // Make sure the tilings protobuf is not null and then clear it
     if (tilings == NULL) throw InvalidArgException("tilings", "cannot be null");
@@ -1572,12 +1573,12 @@ void Hdf5File::setTilings(lm::io::Tilings * tilings)
     HDF5_EXCEPTION_CHECK(H5Gclose(tilingsGroup));
 }
 
-bool Hdf5File::hasBoundaryGradient()
+bool Hdf5File::hasBoundaryGradient() const
 {
     return (H5Lexists(file, "/Model/Diffusion/Gradient", H5P_DEFAULT) != 0);
 }
 
-void Hdf5File::getBoundaryGradient(lm::io::BoundaryConditions* bc)
+void Hdf5File::getBoundaryGradient(lm::io::BoundaryConditions* bc) const
 {
     // Make sure the model is not null and then clear it.
     if (bc == NULL) throw InvalidArgException("bc", "cannot be null");
@@ -1612,7 +1613,7 @@ void Hdf5File::getBoundaryGradient(lm::io::BoundaryConditions* bc)
     }
 }
 
-bool Hdf5File::replicateExists(uint64_t replicate) throw(HDF5Exception)
+bool Hdf5File::replicateExists(uint64_t replicate)
 {
     char replicateName[8];
     snprintf(replicateName, sizeof(replicateName), "%07d", (int)replicate);

@@ -39,59 +39,70 @@
 #ifndef LM_INPUT_INPUT_H
 #define LM_INPUT_INPUT_H
 
+#include <list>
 #include <map>
 #include <string>
 
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/BoundaryConditions.pb.h"
 #include "lm/io/DiffusionModel.pb.h"
+#include "lm/io/FirstPassageInput.pb.h"
 #include "lm/io/OrderParameters.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SimulationParameters.pb.h"
 #include "lm/oparam/OParams.h"
 #include "lm/tiling/Tilings.h"
 
+using std::list;
 using std::map;
 using std::string;
 
 namespace lm {
 namespace input {
 
-struct Input
+class Input
 {
-public:
-    Input(const lm::io::hdf5::Hdf5File& file);
-    virtual ~Input();
-
-    bool hasReactionModel() {return reactionModelPresent;}
-    bool hasDiffusionModel() {return diffusionModelPresent;}
-    bool hasOrderParameters() {return orderParametersPresent;}
-    bool hasTilings() {return tilingsPresent;}
-
-    const map<string,string>& getSimulationParameters() {return simulationParameters;}
-    const lm::io::ReactionModel& getReactionModel() {return reactionModel;}
-    const lm::io::DiffusionModel& getDiffusionModel() {return diffusionModel;}
-    const lm::oparam::OParams& getOrderParameters() {return orderParameters;}
-    const lm::tiling::Tilings& getTilings() {return tilings;}
-
-
-protected:
-    bool parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg);
-
 protected:
     bool reactionModelPresent;
     bool diffusionModelPresent;
+    bool firstPassageTimesPresent;
     bool orderParametersPresent;
     bool tilingsPresent;
 
-    lm::io::SimulationParameters* simulationParametersMsg;
+    lm::io::SimulationParameters simulationParametersMsg;
     map<string,string> simulationParameters;
     lm::io::ReactionModel reactionModel;
     lm::io::DiffusionModel diffusionModel;
+    lm::io::FirstPassageInput firstPassageParameters;
     lm::io::OrderParameters orderParametersMsg;
     lm::oparam::OParams orderParameters;
     lm::io::Tilings tilingsMsg;
     lm::tiling::Tilings tilings;
+
+    uint64_t stepsPerWorkUnit;
+
+public:
+    Input(const lm::io::hdf5::Hdf5File& file);
+    virtual ~Input();
+
+    bool hasReactionModel() const {return reactionModelPresent;}
+    bool hasDiffusionModel() const {return diffusionModelPresent;}
+    bool hasFirstPassageTimes() const {return firstPassageTimesPresent;}
+    bool hasOrderParameters() const {return orderParametersPresent;}
+    bool hasTilings() const {return tilingsPresent;}
+
+    const map<string,string>& getSimulationParameters() const {return simulationParameters;}
+    const lm::io::ReactionModel& getReactionModel() const {return reactionModel;}
+    const lm::io::DiffusionModel& getDiffusionModel() const {return diffusionModel;}
+    const lm::io::FirstPassageInput& getFirstPassageParameters() const {return firstPassageParameters;}
+    const lm::oparam::OParams& getOrderParameters() const {return orderParameters;}
+    const lm::tiling::Tilings& getTilings() const {return tilings;}
+
+    uint64_t getStepsPerWorkUnit() const {return stepsPerWorkUnit;}
+
+protected:
+    bool parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg);
+
 };
 
 //class Input

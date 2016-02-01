@@ -83,13 +83,22 @@ protected:
     virtual bool isTrajectoryOutsideLimits();
 
 protected:
+
+    // Trajectory status.
+    lm::message::WorkUnitStatus::Status status[DOUBLES_PER_AVX];
+
+    // Limits for the trajectory.
+    avxd timeLimit;
+    lm::io::TrajectoryLimits::LimitType limitReached[DOUBLES_PER_AVX];
+
+    // The current state.
+    bool trajectoryStarted[DOUBLES_PER_AVX];
     double* speciesCounts;
     double* propensities;
     avxd time;
 
-    avxd maxTime;
 
-    bool trajectoryStarted[DOUBLES_PER_AVX];
+
 
 };
 

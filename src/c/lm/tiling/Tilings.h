@@ -63,7 +63,7 @@ public:
     Tilings(const lm::io::Tilings& tilings);
     ~Tilings();
     void clearTilingMap();
-    bool init(lm::io::hdf5::Hdf5File* file);
+    bool init(const lm::io::hdf5::Hdf5File* file);
     void init(const lm::io::Tilings& tilings);
     void init();
     void initTiling(const lm::io::Tilings::Tiling& tiling);
@@ -75,8 +75,8 @@ public:
 
     // accessors
     bool hasCurrentTilingID() {return getTilingsBuf()->has_current_tiling_id();}
-    lm::tiling::Tiling* getCurrentTiling() {return tilingMap[getCurrentTilingID()];}
-    uint getCurrentTilingID();
+    const lm::tiling::Tiling* getCurrentTiling() const {return tilingMap.at(getCurrentTilingID());}
+    uint getCurrentTilingID() const;
     lm::io::Tilings* getTilingsBuf() {return &tilingsBuf;}
 
     // mutators

@@ -70,7 +70,7 @@ namespace lm {
 namespace main {
 
 SimulationSupervisor::SimulationSupervisor()
-    :simulationRunning(true),performingCheckpoint(false),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),hasOutputWriterStarted(false),outputWriterProcess(-1),outputWriterThread(-1),hasCheckpointSignalerStarted(false),solverClassName(""),useCPUAffinity(false),input(NULL),hasReactionModel(false),hasDiffusionModel(false),hasOrderParameters(false),hasTilings(false),tilings(),trajectoryList(NULL),slots(&communicator),haveAllWorkUnitRunnersStarted(false),workUnitCount(0)
+:simulationRunning(true),performingCheckpoint(false),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),hasOutputWriterStarted(false),outputWriterProcess(-1),outputWriterThread(-1),hasCheckpointSignalerStarted(false),solverClassName(""),useCPUAffinity(false),input(NULL),trajectoryList(NULL),slots(&communicator),haveAllWorkUnitRunnersStarted(false),workUnitCount(0)
 {
     resetPerformanceStatistics();
 }
@@ -90,196 +90,9 @@ void SimulationSupervisor::wake() throw(lm::thread::PthreadException)
 
 void SimulationSupervisor::init()
 {
-    // Open the simulation file.
-    lm::io::hdf5::Hdf5File * file = new lm::io::hdf5::Hdf5File(simulationInputFilename);
-
-    // Get the simulation parameters and read them into a map.
-    file->getParameters(&simulationParametersBuf);
-    for (int i=0; i<simulationParametersBuf.key_size() && i<simulationParametersBuf.value_size(); i++)
-    {
-        simulationParametersMap[simulationParametersBuf.key(i)] = simulationParametersBuf.value(i);
-    }
-
-    // Get the reaction model.
-    if (file->hasReactionModel())
-    {
-        hasReactionModel = true;
-        file->getReactionModel(&reactionModelBuf);
-    }
-
-    // Get the diffusion model.
-    if (file->hasDiffusionModel())
-    {
-        hasDiffusionModel = true;
-        file->getDiffusionModel(&diffusionModelBuf);
-
-        // See if we need to fill in the boundary conditions from the simulation parameters.
-        if (simulationParametersMap.count("boundaryConditions") == 1 && !diffusionModelBuf.has_boundary_conditions())
-        {
-            lm::io::BoundaryConditions* bc=diffusionModelBuf.mutable_boundary_conditions();
-            if (!parseBoundaryConditions(bc, simulationParametersMap["boundaryConditions"].c_str()))
-            {
-                throw Exception("Could not parse boundaryConditions parameter",simulationParametersMap["boundaryConditions"].c_str());
-            }
-            if (simulationParametersMap.count("boundarySite") == 1)
-            {
-                bc->set_boundary_site(atoi(simulationParametersMap["boundarySite"].c_str()));
-            }
-            if (simulationParametersMap.count("boundarySpecies") == 1)
-            {
-                bc->set_boundary_species(atoi(simulationParametersMap["boundarySpecies"].c_str()));
-            }
-            if (simulationParametersMap.count("boundaryConcentration") == 1)
-            {
-                bc->set_boundary_concentration(atof(simulationParametersMap["boundaryConcentration"].c_str()));
-            }
-            if (file->hasBoundaryGradient())
-            {
-                file->getBoundaryGradient(bc);
-            }
-        }
-    }
-
-    if (file->hasOrderParameters())
-    {
-        hasOrderParameters = true;
-        file->getOrderParameters(&orderParametersBuf);
-        ops.init(orderParametersBuf);
-    }
-
-    if (file->hasTilings())
-    {
-        hasTilings = true;
-        file->getTilings(&tilingsBuf);
-        tilings.init(tilingsBuf);
-    }
-
-    // Set the default work unit-specific limits
-    int64_t maxWorkUnitSteps = atoll(simulationParameters["maxWorkUnitSteps"].c_str());
-    if (maxWorkUnitSteps <= 0) maxWorkUnitSteps = 10000000;
-    getRunMsg()->mutable_work_unit(0)->set_max_steps(maxWorkUnitSteps);
-
-
-    // initialize input struct (used for setting up trajectories)
-    input = new lm::input::Input(hasDiffusionModel,hasOrderParameters,hasReactionModel,hasTilings,diffusionModelBuf,orderParametersBuf,ops,reactionModelBuf,simulationParametersBuf,simulationParametersMap,tilingsBuf,tilings);
-
-    // close the file
-    delete file;
+    // Initialize the input object with the input file.
+    input = new lm::input::Input(lm::io::hdf5::Hdf5File(simulationInputFilename));
 }
-
-bool SimulationSupervisor::parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg)
-{
-    lm::io::BoundaryConditions::BoundaryConditionsType type;
-
-    // See if it is a global boundary condition.
-    if (lm::io::BoundaryConditions_BoundaryConditionsType_Parse(arg, &type))
-    {
-        bc->set_global(type);
-        return true;
-    }
-
-    // See if there are axis specific boundary conditions.
-    char * argbuf = new char[arg.size()+1];
-    memset(argbuf,0,arg.size()+1);
-    strcpy(argbuf,arg.c_str());
-    char * pch = strtok(argbuf,",");
-    while (pch != NULL)
-    {
-        if (strlen(pch) >= 3 && (pch[0] == 'x' || pch[0] == 'y' || pch[0] == 'z') && pch[1] == ':')
-        {
-            // Parse the axis-specific type.
-            if (!lm::io::BoundaryConditions_BoundaryConditionsType_Parse(std::string(pch+2), &type))
-            {
-                delete[] argbuf;
-                return false;
-            }
-
-            // Set the axis value.
-            pch[1] = '\0';
-            std::string axis=pch;
-            if (axis == "x")
-            {
-                bc->set_axis_specific_boundaries(true);
-                bc->set_x_plus(type);
-                bc->set_x_minus(type);
-            }
-            else if (axis == "y")
-            {
-                bc->set_axis_specific_boundaries(true);
-                bc->set_y_plus(type);
-                bc->set_y_minus(type);
-            }
-            else if (axis == "z")
-            {
-                bc->set_axis_specific_boundaries(true);
-                bc->set_z_plus(type);
-                bc->set_z_minus(type);
-            }
-            else
-            {
-                delete[] argbuf;
-                return false;
-            }
-        }
-        else if (strlen(pch) >= 4 && ((pch[0] == '+' || pch[0] == '-') && (pch[1] == 'x' || pch[1] == 'y' || pch[1] == 'z')) && pch[2] == ':')
-        {
-            // Parse the axis-specific type.
-            if (!lm::io::BoundaryConditions_BoundaryConditionsType_Parse(std::string(pch+3), &type))
-            {
-                delete[] argbuf;
-                return false;
-            }
-
-            // Set the axis value.
-            pch[2] = '\0';
-            std::string axis=pch;
-            if (axis == "+x" && type != lm::io::BoundaryConditions::PERIODIC)
-            {
-                bc->set_axis_specific_boundaries(true);
-                bc->set_x_plus(type);
-            }
-            else if (axis == "-x" && type != lm::io::BoundaryConditions::PERIODIC)
-            {
-                bc->set_axis_specific_boundaries(true);
-                bc->set_x_minus(type);
-            }
-            else if (axis == "+y" && type != lm::io::BoundaryConditions::PERIODIC)
-            {
-                bc->set_axis_specific_boundaries(true);
-                bc->set_y_plus(type);
-            }
-            else if (axis == "-y" && type != lm::io::BoundaryConditions::PERIODIC)
-            {
-                bc->set_axis_specific_boundaries(true);
-                bc->set_y_minus(type);
-            }
-            else if (axis == "+z" && type != lm::io::BoundaryConditions::PERIODIC)
-            {
-                bc->set_axis_specific_boundaries(true);
-                bc->set_z_plus(type);
-            }
-            else if (axis == "-z")
-            {
-                bc->set_axis_specific_boundaries(true);
-                bc->set_z_minus(type);
-            }
-            else
-            {
-                delete[] argbuf;
-                return false;
-            }
-        }
-        else
-        {
-            delete[] argbuf;
-            return false;
-        }
-        pch = strtok(NULL,",");
-    }
-    delete[] argbuf;
-    return bc->axis_specific_boundaries();
-}
-
 
 int SimulationSupervisor::run()
 {
@@ -296,7 +109,7 @@ int SimulationSupervisor::run()
             // Do something with the message.
             if (message.has_resources_available())
             {
-                resourceAvailable(message.resources_available());
+                receivedResourceAvailable(message.resources_available());
             }
             else if (message.has_started_output_writer())
             {
@@ -331,11 +144,8 @@ int SimulationSupervisor::run()
             }
             else
             {
-            	if (!ffluxFlag)
-            	{
-            		Print::printf(Print::ERROR, "Supervisor received an unknown message: {\n%s}",message.DebugString().c_str());
-            	}
-			}
+                Print::printf(Print::ERROR, "Supervisor received an unknown message: {\n%s}",message.DebugString().c_str());
+            }
 
             // Print any performance statistics.
             printPerformanceStatistics();
@@ -370,7 +180,7 @@ int SimulationSupervisor::run()
     return -1;
 }
 
-void SimulationSupervisor::resourceAvailable(const lm::message::ResourcesAvailable& msg)
+void SimulationSupervisor::receivedResourceAvailable(const lm::message::ResourcesAvailable& msg)
 {
     Print::printf(Print::INFO, "Resource controller %d:%d on %s registered with %d cpu core(s) and %d gpu device(s).", msg.controller_process(), msg.controller_thread(), msg.hostname().c_str(), msg.cpu_size(), msg.gpu_size());
     if (resourceMap->registerResources(msg))
@@ -486,9 +296,6 @@ void SimulationSupervisor::startSimulationIfAllWorkersStarted()
 
 void SimulationSupervisor::startSimulation()
 {
-    // the subclassed versions of startSimulation will have allocated trajectoryList by the time this is called, so now hand a pointer for the communicator to TrajectoryList
-    trajectoryList->setCommunicator(communicator);
-
     if (assignWork())
     {
         // If assign work returned true, there was nothing to be done.
@@ -520,6 +327,13 @@ bool SimulationSupervisor::assignWork()
 	{
         // Allocate the next free slot, if there is one. Except for once (at the program's end), assignWork should return from here.
         if (!slots.hasFreeSlots()) return false;
+
+        // NEW unfinished
+        // Set the default work unit-specific limits
+        getRunMsg()->mutable_work_unit(0)->set_max_steps(maxWorkUnitSteps);
+
+
+
 
         // NEW UNFINISHED
         if (getStatus()==Trajectory::NOT_STARTED || getStatus()==Trajectory::WAITING)

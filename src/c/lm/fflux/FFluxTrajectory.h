@@ -39,10 +39,12 @@
 #ifndef LM_NEUS_NEUSTRAJECTORY_H_
 #define LM_NEUS_NEUSTRAJECTORY_H_
 
+#include "lm/Types.h"
+#include "lm/io/FFluxOutput.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/input/Input.h"
 #include "lm/trajectory/Trajectory.h"
 #include "lm/tiling/Tilings.h"
-#include "lm/Types.h"
 
 namespace lm {
 namespace fflux {
@@ -50,10 +52,8 @@ namespace fflux {
 class FFluxTrajectory : public lm::trajectory::Trajectory
 {
 public:
-//    FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings& tilings,bool reversed=false);
-//    FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings& tilings,lm::io::TrajectoryState* state);
-    FFluxTrajectory(uint64_t id,uint ffluxPhase,lm::input::Input& input,bool reversed=false);
-    FFluxTrajectory(uint64_t id,uint ffluxPhase,lm::input::Input& input,lm::io::TrajectoryState* state);
+    FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::input::Input& input,bool reversed=false);
+    FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::input::Input& input,lm::io::TrajectoryState* state);
     virtual ~FFluxTrajectory();
     //virtual void initZerothTrajectory();
     virtual void initLimits();
@@ -72,6 +72,8 @@ public:
     //    uint getFFluxPhase() {return ffluxPhase;}
     //    void setFFluxPhase(uint newPhase) {ffluxPhase = newPhase;}
 
+protected:
+    const lm::input::Input& input;
     uint ffluxPhase;
 };
 

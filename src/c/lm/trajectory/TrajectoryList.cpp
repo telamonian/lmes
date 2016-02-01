@@ -85,12 +85,6 @@ void TrajectoryList::deleteTrajectory(uint64_t trajectoryID)
     trajectories.erase(it);
 }
 
-// initializer(s)
-void TrajectoryList::setCommunicator(lm::message::Communicator& newCom)
-{
-    communicator = &newCom;
-}
-
 lm::trajectory::Trajectory* TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
 {
     Trajectory* t = trajectories[msg.final_state().trajectory_id()];
