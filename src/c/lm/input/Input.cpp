@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -45,22 +45,200 @@
 #include "lm/io/OrderParameters.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SimulationParameters.pb.h"
-#include "lm/io/SpatialModel.pb.h"
-#include "lm/input/Input.h"
-#include "lm/message/Message.pb.h"
+#include "lm/oparam/OParams.h"
+#include "lm/tiling/Tilings.h"
 
 using std::map;
 using std::string;
 
 namespace lm {
 namespace input {
-//
-//class Input
-//{
-//public:
-//    Input();
-//    Input(lm::io::hdf5::Hdf5File& file);
-//    virtual ~Input();
+
+Input::Input(const lm::io::hdf5::Hdf5File& file)
+:reactionModelPresent(false),diffusionModelPresent(false),orderParametersPresent(false),tilingsPresent(false)
+{
+    // Get the simulation parameters.
+    file.getParameters(&simulationParametersMsg);
+    for (int i=0; i<simulationParametersMsg.key_size() && i<simulationParametersMsg->value_size(); i++)
+    {
+        simulationParameters[simulationParametersMsg.key(i)] = simulationParametersMsg.value(i);
+    }
+
+    if (file.hasReactionModel())
+    {
+        file.getReactionModel(&reactionModel);
+        reactionModelPresent = true;
+    }
+
+    // Get the diffusion model.
+    if (file.hasDiffusionModel())
+    {
+        file.getDiffusionModel(&diffusionModel);
+        diffusionModelPresent = true;
+
+        // See if we need to fill in the boundary conditions from the simulation parameters.
+        if (simulationParameters.count("boundaryConditions") == 1 && !diffusionModel->has_boundary_conditions())
+        {
+            lm::io::BoundaryConditions* bc=diffusionModel.mutable_boundary_conditions();
+            if (!parseBoundaryConditions(bc, simulationParameters["boundaryConditions"].c_str()))
+            {
+                throw Exception("Could not parse boundaryConditions parameter",simulationParameters["boundaryConditions"].c_str());
+            }
+            if (simulationParameters.count("boundarySite") == 1)
+            {
+                bc->set_boundary_site(atoi((*simulationParametersMap)["boundarySite"].c_str()));
+            }
+            if (simulationParameters.count("boundarySpecies") == 1)
+            {
+                bc->set_boundary_species(atoi((*simulationParametersMap)["boundarySpecies"].c_str()));
+            }
+            if (simulationParameters.count("boundaryConcentration") == 1)
+            {
+                bc->set_boundary_concentration(atof((*simulationParametersMap)["boundaryConcentration"].c_str()));
+            }
+            if (file->hasBoundaryGradient())
+            {
+                file->getBoundaryGradient(bc);
+            }
+        }
+    }
+
+    // Get the order parameters.
+    if (file->hasOrderParameters())
+    {
+        file.getOrderParameters(&orderParametersMsg);
+        oparams.init(&file);
+        orderParametersPresent = true;
+    }
+
+    // Get the tilings.
+    if (file.hasTilings())
+    {
+        file.getTilings(&tilingsMsg);
+        tilings.init(&file);
+        tilingsPresent = true;
+    }
+
+}
+
+Input::~Input()
+{
+}
+
+bool Input::parseBoundaryConditions(lm::io::BoundaryConditions* bc, string arg)
+{
+    lm::io::BoundaryConditions::BoundaryConditionsType type;
+
+    // See if it is a global boundary condition.
+    if (lm::io::BoundaryConditions_BoundaryConditionsType_Parse(arg, &type))
+    {
+        bc->set_global(type);
+        return true;
+    }
+
+    // See if there are axis specific boundary conditions.
+    char * argbuf = new char[arg.size()+1];
+    memset(argbuf,0,arg.size()+1);
+    strcpy(argbuf,arg.c_str());
+    char * pch = strtok(argbuf,",");
+    while (pch != NULL)
+    {
+        if (strlen(pch) >= 3 && (pch[0] == 'x' || pch[0] == 'y' || pch[0] == 'z') && pch[1] == ':')
+        {
+            // Parse the axis-specific type.
+            if (!lm::io::BoundaryConditions_BoundaryConditionsType_Parse(std::string(pch+2), &type))
+            {
+                delete[] argbuf;
+                return false;
+            }
+
+            // Set the axis value.
+            pch[1] = '\0';
+            std::string axis=pch;
+            if (axis == "x")
+            {
+                bc->set_axis_specific_boundaries(true);
+                bc->set_x_plus(type);
+                bc->set_x_minus(type);
+            }
+            else if (axis == "y")
+        hasDiffusionModel    {
+                bc->set_axis_specific_boundaries(true);
+                bc->set_y_plus(type);
+                bc->set_y_minus(type);
+            }
+            else if (axis == "z")
+            {
+                bc->set_axis_specific_boundaries(true);
+                bc->set_z_plus(type);
+                bc->set_z_minus(type);
+            }
+            else
+            {
+                delete[] argbuf;
+                return false;
+            }
+        }
+        else if (strlen(pch) >= 4 && ((pch[0] == '+' || pch[0] == '-') && (pch[1] == 'x' || pch[1] == 'y' || pch[1] == 'z')) && pch[2] == ':')
+        {
+            // Parse the axis-specific type.
+            if (!lm::io::BoundaryConditions_BoundaryConditionsType_Parse(std::string(pch+3), &type))
+            {
+                delete[] argbuf;
+                return false;
+            }
+
+            // Set the axis value.
+            pch[2] = '\0';
+            std::string axis=pch;
+            if (axis == "+x" && type != lm::io::BoundaryConditions::PERIODIC)
+            {
+                bc->set_axis_specific_boundaries(true);
+                bc->set_x_plus(type);
+            }
+            else if (axis == "-x" && type != lm::io::BoundaryConditions::PERIODIC)
+            {
+                bc->set_axis_specific_boundaries(true);
+                bc->set_x_minus(type);
+            }
+            else if (axis == "+y" && type != lm::io::BoundaryConditions::PERIODIC)
+            {
+                bc->set_axis_specific_boundaries(true);
+                bc->set_y_plus(type);
+            }
+            else if (axis == "-y" && type != lm::io::BoundaryConditions::PERIODIC)
+            {
+                bc->set_axis_specific_boundaries(true);
+                bc->set_y_minus(type);
+            }
+            else if (axis == "+z" && type != lm::io::BoundaryConditions::PERIODIC)
+            {
+                bc->set_axis_specific_boundaries(true);
+                bc->set_z_plus(type);
+            }
+            else if (axis == "-z")
+            {
+                bc->set_axis_specific_boundaries(true);
+                bc->set_z_minus(type);
+            }
+            else
+            {
+                delete[] argbuf;
+                return false;
+            }
+        }
+        else
+        {
+            delete[] argbuf;
+            return false;
+        }
+        pch = strtok(NULL,",");
+    }
+    delete[] argbuf;
+    return bc->axis_specific_boundaries();
+}
+
+
 //
 //    // has methods
 //    virtual bool hasBoundaryGradient();
@@ -70,22 +248,22 @@ namespace input {
 //    virtual bool hasTilings();
 //
 //    // get protobuf methods
-//    virtual lm::io::BoundaryConditions* getBoundaryGradientBuf();
-//    virtual lm::io::DiffusionModel* getDiffusionModelBuf();
-//    virtual lm::io::SimulationParameters* getParametersBuf();
-//    virtual lm::io::OrderParameters* getOrderParametersBuf();
-//    virtual lm::io::ReactionModel* getReactionModelBuf();
-//    virtual lm::io::SpatialModel* getSpatialModelBuf();
-//    virtual lm::io::Tilings* getTilingsBuf();
+//    virtual lm::io::BoundaryConditions* getBoundaryGradient();
+//    virtual lm::io::DiffusionModel* getDiffusionModel();
+//    virtual lm::io::SimulationParameters* getParameters();
+//    virtual lm::io::OrderParameters* getOrderParameters();
+//    virtual lm::io::ReactionModel* getReactionModel();
+//    virtual lm::io::SpatialModel* getSpatialModel();
+//    virtual lm::io::Tilings* getTilings();
 //
 //    // get protobuf methods (load-into-pointer style)
-//    virtual void getBoundaryGradientBuf(lm::io::BoundaryConditions* bc);
-//    virtual void getDiffusionModelBuf(lm::io::DiffusionModel* diffusionModel);
-//    virtual void getParametersBuf(lm::io::SimulationParameters* parameters);
-//    virtual void getOrderParametersBuf(lm::io::OrderParameters* orderParameters);
-//    virtual void getReactionModelBuf(lm::io::ReactionModel* reactionModel);
-//    virtual void getSpatialModelBuf(lm::io::SpatialModel* model);
-//    virtual void getTilingsBuf(lm::io::Tilings* tilings);
+//    virtual void getBoundaryGradient(lm::io::BoundaryConditions* bc);
+//    virtual void getDiffusionModel(lm::io::DiffusionModel* diffusionModel);
+//    virtual void getParameters(lm::io::SimulationParameters* parameters);
+//    virtual void getOrderParameters(lm::io::OrderParameters* orderParameters);
+//    virtual void getReactionModel(lm::io::ReactionModel* reactionModel);
+//    virtual void getSpatialModel(lm::io::SpatialModel* model);
+//    virtual void getTilings(lm::io::Tilings* tilings);
 //
 //    // get wrapper methods
 //    virtual map<string,string> getParameters();
@@ -102,17 +280,17 @@ namespace input {
 //
 //protected:
 //    // load from file methods
-//    virtual void _loadBoundaryGradientBuf(lm::io::BoundaryConditions* bc);
-//    virtual void _loadDiffusionModelBuf(lm::io::DiffusionModel* diffusionModel);
-//    virtual void _loadParametersBuf(lm::io::SimulationParameters* parameters);
-//    virtual void _loadOrderParametersBuf(lm::io::OrderParameters* orderParameters);
-//    virtual void _loadReactionModelBuf(lm::io::ReactionModel* reactionModel);
-//    virtual void _loadSpatialModelBuf(lm::io::SpatialModel* model);
-//    virtual void _loadTilingsBuf(lm::io::Tilings* tilings);
+//    virtual void _loadBoundaryGradient(lm::io::BoundaryConditions* bc);
+//    virtual void _loadDiffusionModel(lm::io::DiffusionModel* diffusionModel);
+//    virtual void _loadParameters(lm::io::SimulationParameters* parameters);
+//    virtual void _loadOrderParameters(lm::io::OrderParameters* orderParameters);
+//    virtual void _loadReactionModel(lm::io::ReactionModel* reactionModel);
+//    virtual void _loadSpatialModel(lm::io::SpatialModel* model);
+//    virtual void _loadTilings(lm::io::Tilings* tilings);
 //
 //private:
 //    lm::io::hdf5::Hdf5File& file;
-//    lm::message::Message msgBuf;
+//    lm::message::Message msg;
 //};
 
 }

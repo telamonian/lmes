@@ -82,40 +82,10 @@ void ReplicateTrajectoryList::init()
 	{
 		trajectories[i] = new lm::replicates::ReplicateTrajectory(i,input);
 
-		// Initialize the first passage times in the cme state.
-		const string listString = input.simulationParametersMap["fptTrackingList"];
-		std::list<int> fptList;
-		size_t start=0, end=0;
-		while (end != string::npos)
-		{
-			end = listString.find(',', start);
-			string trackedSpecies = listString.substr(start, (end == string::npos) ? string::npos : end - start);
-			if (trackedSpecies.length() > 0)
-			{
-				fptList.push_back(atoi(trackedSpecies.c_str()));
-			}
-			start = end+1;
-		}
-		for (std::list<int>::iterator it=fptList.begin(); it != fptList.end(); it++)
-		{
-			lm::io::FirstPassageTimes* fpt= trajectories[i]->getState()->mutable_cme_state()->add_first_passage_times();
-			fpt->set_trajectory_id(i);
-			fpt->set_species(*it);
-			fpt->set_number_entries(1);
-			fpt->add_species_count(input.reactionModelBuf.initial_species_count(*it));
-			fpt->add_first_passage_time(0.0);
-			Print::printf(Print::DEBUG, "Added fpt tracking for species %d", *it);
-		}
 
-        // Initialize the rdme state from the diffusion model.
-        lm::io::RDMEState* rdmeState = trajectories[i]->getState()->mutable_rdme_state();
-        lm::io::Lattice* initialLattice = rdmeState->mutable_species_positions();
-        initialLattice->set_lattice_x_size(input.diffusionModelBuf.initial_lattice().lattice_x_size());
-        initialLattice->set_lattice_y_size(input.diffusionModelBuf.initial_lattice().lattice_y_size());
-        initialLattice->set_lattice_z_size(input.diffusionModelBuf.initial_lattice().lattice_z_size());
-        initialLattice->set_particles_per_site(input.diffusionModelBuf.initial_lattice().particles_per_site());
-        initialLattice->set_particles_ordering(input.diffusionModelBuf.initial_lattice().particles_ordering());
-        initialLattice->set_particles(input.diffusionModelBuf.initial_lattice().particles());
+
+
+
     }
 }
 

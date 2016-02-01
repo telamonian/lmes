@@ -154,6 +154,12 @@ void SimulationSupervisor::init()
         tilings.init(tilingsBuf);
     }
 
+    // Set the default work unit-specific limits
+    int64_t maxWorkUnitSteps = atoll(simulationParameters["maxWorkUnitSteps"].c_str());
+    if (maxWorkUnitSteps <= 0) maxWorkUnitSteps = 10000000;
+    getRunMsg()->mutable_work_unit(0)->set_max_steps(maxWorkUnitSteps);
+
+
     // initialize input struct (used for setting up trajectories)
     input = new lm::input::Input(hasDiffusionModel,hasOrderParameters,hasReactionModel,hasTilings,diffusionModelBuf,orderParametersBuf,ops,reactionModelBuf,simulationParametersBuf,simulationParametersMap,tilingsBuf,tilings);
 
@@ -514,6 +520,19 @@ bool SimulationSupervisor::assignWork()
 	{
         // Allocate the next free slot, if there is one. Except for once (at the program's end), assignWork should return from here.
         if (!slots.hasFreeSlots()) return false;
+
+        // NEW UNFINISHED
+        if (getStatus()==Trajectory::NOT_STARTED || getStatus()==Trajectory::WAITING)
+        {
+            setStatus(Trajectory::RUNNING);
+            setWorkUnitId(nextWorkUnitID);
+            return getMsg();
+        }
+        else
+        {
+            return NULL;
+        }
+
 
 		// Get the next trajectory to run, if there is one.
         lm::message::Message* nextWorkUnitMsg = trajectoryList->getNextWorkUnitMsg();

@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -41,14 +41,13 @@
 #include <string>
 
 #include "lm/Print.h"
+#include "lm/Types.h"
 #include "lm/input/Input.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
-#include "lm/message/Message.pb.h"
 #include "lm/tiling/Tilings.h"
 #include "lm/trajectory/Trajectory.h"
-#include "lm/Types.h"
 
 using lm::io::DiffusionModel;
 using lm::io::ReactionModel;
@@ -60,43 +59,94 @@ using std::string;
 namespace lm {
 namespace trajectory {
 
-//Trajectory::Trajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,lm::tiling::Tilings* tilings,bool reversed):
-//id(-1),status(NOT_STARTED)
-//{
-//    initState(reactionModel, reversed);
-//    setID(id);
-//    initMsg(simulationParameters);
-//}
-//
-//Trajectory::Trajectory(uint64_t id,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,lm::tiling::Tilings* tilings,TrajectoryState* zerothState):
-//id(id),status(NOT_STARTED)
-//{
-//    initState(zerothState);
-//    setID(id);
-//    initMsg(simulationParameters);
-//}
-
-Trajectory::Trajectory(uint64_t id,lm::input::Input& input,bool reversed)
-:id(-1),input(input),status(NOT_STARTED),numberWorkUnitsPerformed(0)
+Trajectory::Trajectory(uint64_t id,const lm::io::TrajectoryState& initialState)
+:id(id),status(NOT_STARTED),state(initialState),numberWorkUnitsPerformed(0)
 {
-    initState(input.reactionModelBuf, reversed);
-    setID(id);
-    initMsg(input.simulationParametersMap);
 }
 
-Trajectory::Trajectory(uint64_t id,lm::input::Input& input,TrajectoryState* zerothState)
-    :id(id),input(input),status(NOT_STARTED),numberWorkUnitsPerformed(0)
+Trajectory::Trajectory(uint64_t id, const lm::input::Input& input)
+:id(id),status(NOT_STARTED),state(),numberWorkUnitsPerformed(0)
 {
-    initState(zerothState);
-    setID(id);
-    initMsg(input.simulationParametersMap);
+    initializeState(input);
 }
+
+void Trajectory::initializeState(const lm::input::Input& input, bool reversed)
+{
+    state.Clear();
+
+    // Set cme state from the reaction model.
+    if (input.hasReactionModel())
+    {
+        state.mutable_cme_state()->mutable_species_counts()->set_number_entries(1);
+        state.mutable_cme_state()->mutable_species_counts()->set_number_species(reactionModel.number_species());
+        if (!reversed)
+        {
+            for (uint j=0; j<reactionModel.number_species(); j++)
+            {
+                getState()->mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.initial_species_count(j));
+            }
+        }
+        else
+        {
+            for (uint j=0; j<reactionModel.number_species(); j++)
+            {
+                getState()->mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.initial_species_count_backward(j));  // reversed_initial_species_count is set in the input file
+            }
+        }
+        getState()->mutable_cme_state()->mutable_species_counts()->add_time(0.0);
+    }
+
+    // Initialize the rdme state from the diffusion model.
+    if (input.hasDiffusionModel)
+    {
+        lm::io::RDMEState* rdmeState = trajectories[i]->getState()->mutable_rdme_state();
+        lm::io::Lattice* initialLattice = rdmeState->mutable_species_positions();
+        initialLattice->set_lattice_x_size(input.diffusionModelBuf.initial_lattice().lattice_x_size());
+        initialLattice->set_lattice_y_size(input.diffusionModelBuf.initial_lattice().lattice_y_size());
+        initialLattice->set_lattice_z_size(input.diffusionModelBuf.initial_lattice().lattice_z_size());
+        initialLattice->set_particles_per_site(input.diffusionModelBuf.initial_lattice().particles_per_site());
+        initialLattice->set_particles_ordering(input.diffusionModelBuf.initial_lattice().particles_ordering());
+        initialLattice->set_particles(input.diffusionModelBuf.initial_lattice().particles());
+    }
+
+    // Initialize the first passage times in the cme state.
+    if (input.simulationParametersMap.count("fptTrackingList") == 0)
+    {
+    const string listString = input.simulationParametersMap["fptTrackingList"];
+    std::list<int> fptList;
+    size_t start=0, end=0;
+    while (end != string::npos)
+    {
+        end = listString.find(',', start);
+        string trackedSpecies = listString.substr(start, (end == string::npos) ? string::npos : end - start);
+        if (trackedSpecies.length() > 0)
+        {
+            fptList.push_back(atoi(trackedSpecies.c_str()));
+        }
+        start = end+1;
+    }
+    for (std::list<int>::iterator it=fptList.begin(); it != fptList.end(); it++)
+    {
+        lm::io::FirstPassageTimes* fpt= trajectories[i]->getState()->mutable_cme_state()->add_first_passage_times();
+        fpt->set_trajectory_id(i);
+        fpt->set_species(*it);
+        fpt->set_number_entries(1);
+        fpt->add_species_count(input.reactionModelBuf.initial_species_count(*it));
+        fpt->add_first_passage_time(0.0);
+        Print::printf(Print::DEBUG, "Added fpt tracking for species %d", *it);
+    }
+
+
+
+    //if (input.hasTilings) initHists();
+}
+
 
 Trajectory::~Trajectory()
 {
 }
 
-void Trajectory::initHists()
+/*void Trajectory::initHists()
 {
     lm::io::TilingHist* tHist = getState()->mutable_cme_state()->add_tiling_hists();
     tHist->set_tiling_id(input.tilings.getCurrentTilingID());
@@ -114,104 +164,11 @@ void Trajectory::initHists()
 //        }
 //    }
 }
+*/
 
-void Trajectory::initMsg(map<string,string>& simulationParameters)
-{
-    // Set the default work unit-specific limits
-    int64_t maxWorkUnitSteps = atoll(simulationParameters["maxWorkUnitSteps"].c_str());
-    if (maxWorkUnitSteps <= 0) maxWorkUnitSteps = 10000000;
-    getRunMsg()->mutable_work_unit(0)->set_max_steps(maxWorkUnitSteps);
-}
-
-void Trajectory::initMsg(const lm::message::Message& newMsg)
-{
-    setMsg(newMsg);
-}
-
-void Trajectory::initState(const lm::io::ReactionModel& reactionModel,bool reversed) // this version of initState creates the zeroth state from scratch
-{
-    // if state has any info in it already, clear it
-    getState()->Clear();
-    getState()->mutable_cme_state()->mutable_species_counts()->set_number_species(reactionModel.number_species());
-    getState()->mutable_cme_state()->mutable_species_counts()->set_number_entries(1);
-    if (!reversed)
-    {
-        for (int j=0; j<(int)reactionModel.number_species(); j++)
-        {
-            getState()->mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.initial_species_count(j));
-        }
-    }
-    else
-    {
-        for (int j=0; j<(int)reactionModel.number_species(); j++)
-        {
-            getState()->mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.initial_species_count_backward(j));  // reversed_initial_species_count is set in the input file
-        }
-    }
-    getState()->mutable_cme_state()->mutable_species_counts()->add_time(0.0);
-//    if (input.hasOrderParameters) initOPs();
-    if (input.hasTilings) initHists();
-}
-
-void Trajectory::initState(lm::io::TrajectoryState* initState)
-{
-    // Make instance local copy of the passed state
-    setState(initState);
-}
-
-// accessor definitions
-uint64_t Trajectory::getID()
+uint64_t Trajectory::getId()
 {
     return id;
-}
-
-lm::io::TrajectoryLimits* Trajectory::getLimits()
-{
-    return getRunMsg()->mutable_work_unit(0)->mutable_limits();
-}
-
-lm::message::Message* Trajectory::getMsg()
-{
-    return &msg;
-}
-
-lm::message::Message* Trajectory::getNextWorkUnitMsg(uint64_t nextWorkUnitID)
-{
-    if (getStatus()==Trajectory::NOT_STARTED || getStatus()==Trajectory::WAITING)
-    {
-        setStatus(Trajectory::RUNNING);
-        setWorkUnitId(nextWorkUnitID);
-        return getMsg();
-    }
-    else
-    {
-        return NULL;
-    }
-}
-
-double Trajectory::getOPVal(uint opID)
-{
-	uint speciesCountSize = getSpeciesCounts()->species_count_size();
-	uint* lastSpeciesCount = new uint[getSpeciesCounts()->number_species()];
-	uint offset = (getSpeciesCounts()->number_entries() - 1)*(getSpeciesCounts()->number_species());
-	for (int i=0; i<getSpeciesCounts()->number_species(); i++)
-	{
-		lastSpeciesCount[i] = getSpeciesCounts()->species_count(i + offset);
-	}
-	return input.oparams[opID]->calc(lastSpeciesCount);
-	delete [] lastSpeciesCount;
-}
-
-lm::message::RunWorkUnit* Trajectory::getRunMsg()
-{
-    if (msg.mutable_run_work_unit()->work_unit_size() == 0)
-        msg.mutable_run_work_unit()->add_work_unit();
-	return msg.mutable_run_work_unit();
-}
-
-lm::io::SpeciesCounts* Trajectory::getSpeciesCounts()
-{
-	return getState()->mutable_cme_state()->mutable_species_counts();
 }
 
 Trajectory::status_t Trajectory::getStatus()
@@ -219,32 +176,14 @@ Trajectory::status_t Trajectory::getStatus()
     return status;
 }
 
-lm::io::TrajectoryState* Trajectory::getState()
+const lm::io::TrajectoryState& Trajectory::getState()
 {
-    return getRunMsg()->mutable_work_unit(0)->mutable_initial_state();
+    return state;
 }
 
-// mutator definitions
-void Trajectory::setID(uint64_t newID)
+int64_t Trajectory::getWorkUnitsPerformed()
 {
-    id = newID;
-    getState()->set_trajectory_id(newID);
-    getState()->mutable_cme_state()->mutable_species_counts()->set_trajectory_id(newID);
-}
-
-void Trajectory::setLimits(const lm::io::TrajectoryLimits* newLimits)
-{
-    *(getRunMsg()->mutable_work_unit(0)->mutable_limits()) = *newLimits;
-}
-
-void Trajectory::setMsg(const lm::message::Message& newMsg)
-{
-    msg = newMsg;
-}
-
-void Trajectory::setStarted(bool trajectoryStarted)
-{
-    getState()->set_trajectory_started(trajectoryStarted);
+    return numberWorkUnitsPerformed;
 }
 
 void Trajectory::setState(const lm::io::TrajectoryState* newState)
@@ -257,19 +196,9 @@ void Trajectory::setStatus(status_t newStatus)
     status = newStatus;
 }
 
-void Trajectory::setWorkUnitId(uint64_t id)
-{
-    getRunMsg()->mutable_work_unit(0)->set_work_unit_id(id);
-}
-
 void Trajectory::incrementWorkUnitsPerformed()
 {
     numberWorkUnitsPerformed++;
-}
-
-int64_t Trajectory::getWorkUnitsPerformed()
-{
-    return numberWorkUnitsPerformed;
 }
 
 }

@@ -54,29 +54,24 @@
 using std::map;
 using std::string;
 
+
+typedef std::map<uint64_t, lm::trajectory::Trajectory*> TrajectoryMap;
+
 namespace lm {
 namespace trajectory {
 
 class TrajectoryList
 {
 public:
-//    TrajectoryList(const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel, map<string,string>& simulationParameters);
     TrajectoryList(lm::input::Input& input);
     virtual ~TrajectoryList();
     virtual void init()=0;
 
-    //initializer
-    virtual void setCommunicator(lm::message::Communicator& newCom);
-
-    // getter
     virtual lm::trajectory::Trajectory* getTrajectory(uint64_t trajectoryID);
     virtual lm::trajectory::Trajectory::status_t getTrajectoryStatus(uint64_t trajectoryID);
     virtual lm::io::TrajectoryState* getTrajectoryState(uint64_t trajectoryID);
     virtual bool exists(uint64_t trajectoryID) {if (trajectories.find(trajectoryID)!=trajectories.end()) return true; else return false;}
     virtual size_t size() {return trajectories.size();}
-
-    // getter on whole list
-    virtual uint64_t getSize() {return trajectories.size();}
 
     // setter
     virtual void setTrajectoryStarted(uint64_t trajectoryID, bool trajectoryStarted);
@@ -94,20 +89,10 @@ public:
     virtual bool isFinished();
     virtual lm::trajectory::Trajectory* workUnitFinished(const lm::message::FinishedWorkUnit & msg);
 
-    // dealing with the internal template Message methods
-//    virtual lm::message::RunWorkUnit* getRunMsg() {return trajectoryTemplateMsg.mutable_run_work_unit();}
-//    virtual lm::io::TrajectoryLimits* getLimitsMsg() {return getRunMsg()->mutable_limits();}
-
     virtual void printTrajectoryStatistics();
 
 protected:
-    lm::message::Communicator* communicator;
-    lm::input::Input& input;
     TrajectoryMap trajectories;
-    uint64_t trajectoryCount;
-    uint64_t workUnitCount;
-    // this template message is used when initializing new Trajectory instances
-    //lm::message::Message trajectoryTemplateMsg;
 };
 
 }

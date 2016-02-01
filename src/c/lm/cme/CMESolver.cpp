@@ -65,6 +65,7 @@
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/me/PropensityFunction.h"
+#include "lm/message/WorkUnitStatus.pb.h"
 #include "lm/oparam/OParams.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/rng/XORShift.h"
@@ -85,11 +86,11 @@ namespace lm {
 namespace cme {
 
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
-:neededDists(neededDists),rng(NULL),reactionModel(NULL),oparams(NULL),numberLimits(0),limits(NULL),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),tilingHists(NULL),trajectoryStarted(false),speciesCounts(NULL),time(0.0),timeStep(0.0),finalLimitType(static_cast<lm::io::TrajectoryLimits::LimitType>(0))
+    :neededDists(neededDists),rng(NULL),reactionModel(NULL),oparams(NULL),status(lm::io::WorkUnitStatus::NONE),timeLimit(std::limits<double>::infinity),numberLimits(0),limits(NULL),limitReached(lm::io::TrajectoryLimits::NONE),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),tilingHists(NULL),trajectoryStarted(false),speciesCounts(NULL),time(0.0),timeStep(0.0)
 {
 }
 
-CMESolver::~CMESolver()
+CMESolver::~CMESolver()trajectoryStatus
 {
     // Free any model memory.
     if (reactionModel != NULL) delete reactionModel; reactionModel = NULL;
@@ -180,19 +181,18 @@ void CMESolver::reset()
         oparams->initValues((uint*)speciesCounts);
     }
 
+    // Reset the status.
+    status = lm::io::WorkUnitStatus::NONE
+
     // Reset the time.
     time = 0.0;
 
-    // Reset the species limits.
-    numberLimits = 0;
-    if (limits != NULL) delete[] limits; limits = NULL;
+    // Reset the limits reached.
+    limitReached = lm::io::TrajectoryLimits::NONE;
 
     // Reset the fpt tracking list.
     numberFptTrackedSpecies = 0;
     if (fptTrackedSpecies != NULL) delete[] fptTrackedSpecies; fptTrackedSpecies = NULL;
-
-    // Reset the tracked parameters list.
-    trackedParameters.clear();
 
     // Reset the tiling histograms list.
     numberTilingHists = 0;
@@ -287,12 +287,12 @@ void CMESolver::setLimits(const lm::io::TrajectoryLimits& limits)
 {
     // Count the limits.
     numberLimits = 0;
-    if (limits.has_max_time_limit()) numberLimits++;
     numberLimits += limits.min_species_count_limit_size();
     numberLimits += limits.max_species_count_limit_size();
     numberLimits += limits.decreasing_order_parameter_limit_size();
     numberLimits += limits.increasing_order_parameter_limit_size();
-    this->limits = new TrajectoryLimit[numberLimits];
+    if (numberLimits > 0)
+        this->limits = new TrajectoryLimit[numberLimits];
 }
 
 /*
@@ -425,6 +425,7 @@ bool CMESolver::isTrajectoryOutsideLimits()
         }
 
     }*/
+    status = lm::message::WorkUnitStatus::LIMIT_REACHED;
     return false;
 }
 

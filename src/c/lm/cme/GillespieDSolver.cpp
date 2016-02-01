@@ -193,11 +193,14 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     Print::printf(Print::DEBUG, "Running Gillespie direct simulation for %d steps with %d species, %d reactions, %d species limits\n", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberLimits);
     PROF_BEGIN(PROF_SIM_EXECUTE);
     long long steps=0;
-    while (totalPropensity > 0 && steps < maxSteps)
+    while (true)
     {
-        // If we are outside of the limits, stop the trajectory.
-        if (isTrajectoryOutsideLimits())
+        // See if we have finished the steps.
+        if (steps < maxSteps)
+        {
+            status = lm::message::WorkUnitStatus::STEPS_FINISHED;
             break;
+        }
 
         steps++;
 
@@ -214,10 +217,12 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         timeStep = expR/totalPropensity;
         time += timeStep;
 
-         // If the new time is past the end time, we are done.
-        if (time >= maxTime)
+        // If we are outside of the time limit, stop the trajectory.
+        if (time > timeLimit)
         {
-            break;
+            limitReached = lm::io::TrajectoryLimits::MAXTIME;
+            status = lm::message::WorkUnitStatus::LIMIT_REACHED;
+            break
         }
 
         // If we are writing time steps, write out any time steps before this event occurred.
@@ -244,36 +249,44 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
                 rngValue -= propensities[r];
         }
 
-        // Update species counts and propensities given the reaction that occurred.
+        // Update species counts.
         performReactionEvent(r);
+
+        // If we are outside of the limits, stop the trajectory.
+        if (isTrajectoryOutsideLimits())
+            break;
+
+        // Update the propensites given the reaction that occurred.
         updatePropensities(time, r, numberSpecies);
 
         // Recalculate the total propensity.
         totalPropensity = 0.0;
         for (uint i=0; i<numberReactions; i++) totalPropensity += propensities[i];
 
+        // If the total propensity is zero, return an error.
+        if (totalPropensity > 0)
+        {
+            status = lm::message::WorkUnitStatus::ERROR;
+            break;
+        }
+
         //Print::printf(Print::VERBOSE_DEBUG, "Step %d: time=%e, count=%d, prop=%e, totprop=%e",steps,time,speciesCounts[0],propensities[0],totalPropensity);
-
-        // If we are recording every event, add it.
-//        if (!writeTimeSteps)
-//        {
-//            speciesCountsDataSet.set_number_entries(speciesCountsDataSet.number_entries()+1);
-//            speciesCountsDataSet.add_time(time);
-//            for (uint i=0; i<numberSpeciesToTrack; i++) speciesCountsDataSet.add_species_count(speciesCounts[i]);
-//        }
-
 
          // Go to the next rng pair.
         rngNext++;
     }
     PROF_END(PROF_SIM_EXECUTE);
 
-    bool reachedLimit = false;
-
-    // If we finished the total time or ran out of reactions, write out the remaining time steps.
-    if (time >= maxTime || totalPropensity <= 0)
+    // See if we finished all of the steps.
+    if (status == lm::message::WorkUnitStatus::STEPS_FINISHED)
     {
-        time = maxTime;
+        Print::printf(Print::DEBUG, "Generated trajectory with %llu steps through time %e.", steps, time);
+    }
+
+    // If we finished the total time, write out the remaining time steps.
+    else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && limitReached == lm::io::TrajectoryLimits::MAXTIME)
+    {
+        time = timeLimit;
         Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);
         if (writeTimeSteps)
         {
@@ -284,24 +297,11 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
                 speciesTimeSeriesTimes.push_back(nextSpeciesWriteTime);
                 nextSpeciesWriteTime += writeInterval;
             }
-
-            // If we are recording parameter values, write out the remaining value intervals.
-    //        if (nextParameterWriteTime <= (maxTime+1e-9))
-    //        {
-    ////            recordParameters(nextParameterWriteTime, parameterWriteInterval, maxTime);
-    //        }
         }
-        reachedLimit = true;
-    }
-
-    // See if we finished all of the steps.
-    else if (steps >= maxSteps)
-    {
-        Print::printf(Print::DEBUG, "Generated trajectory with %llu steps through time %e.", steps, time);
     }
 
     // Otherwise we must have finished because of a species/order parameter limit, so just write out the last time.
-    else
+    else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED)
     {
         // Record the species counts.
         if (writeTimeSteps)
@@ -350,7 +350,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     }
 
     // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
-    if (reachedLimit && numberFptTrackedSpecies > 0)
+    if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFptTrackedSpecies > 0)
     {
         for (int i=0; i<numberFptTrackedSpecies; i++)
         {

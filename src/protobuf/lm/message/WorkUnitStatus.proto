@@ -37,49 +37,22 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-package lm.io;
+package lm.message;
 
-message TrajectoryLimits {
+import "lm/io/TrajectoryState.proto";
 
-    enum LimitType {
-        NONE=0;
-        MAXTIME=1;
-        MINSPECIESCOUNT=10;
-        MAXSPECIESCOUNT=11;
-        DECREASINGORDERPARAMETER=20;
-        INCREASINGORDERPARAMETER=21;
+message WorkUnitStatus {
+
+    enum Status {
+        NONE            = 0;
+        STEPS_FINISHED  = 1;
+        LIMIT_REACHED   = 2;
+        ERROR           = 3;
     }
 
-    enum Arrangement {
-        ASCENDING=1;
-        DESCENDING=2;
-    }
-
-    message MinSpeciesCountLimit {
-        required uint32 species_id                      = 1;
-        required int32 value                            = 2;
-    }
-
-    message MaxSpeciesCountLimit {
-        required uint32 species_id                      = 1;
-        required int32 value                            = 2;
-    }
-
-    message DecreasingOrderParameterLimit {
-        optional Arrangement arrangement                = 1 [default=ASCENDING];
-        required uint32 order_parameter_id              = 2;
-        repeated double value                           = 3 [packed=true];
-    }
-
-    message IncreasingOrderParameterLimit {
-        optional Arrangement arrangement                = 1 [default=ASCENDING];
-        required uint32 order_parameter_id              = 2;
-        repeated double value                           = 3 [packed=true];
-    }
-
-    optional double max_time_limit                                              = 1;
-    repeated MinSpeciesCountLimit min_species_count_limit                       = 2;
-    repeated MaxSpeciesCountLimit max_species_count_limit                       = 3;
-    repeated DecreasingOrderParameterLimit decreasing_order_parameter_limit     = 4;
-    repeated IncreasingOrderParameterLimit increasing_order_parameter_limit     = 5;
+    required Status status                         = 4;
+    required double run_time                       = 5;
+    required int64 steps                           = 6;
+    required lm.io.TrajectoryState final_state     = 7;
+    optional string error_message                  = 8;
 }

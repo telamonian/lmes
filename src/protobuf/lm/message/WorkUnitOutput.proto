@@ -46,7 +46,6 @@ import "lm/io/SpeciesTimeSeries.proto";
 import "lm/io/LatticeTimeSeries.proto";
 
 message WorkUnitOutput {
-	required int64 work_unit_id                          = 1;
 	optional lm.io.SpeciesCounts species_counts          = 2;
 	repeated lm.io.FirstPassageTimes first_passage_times = 3;
         optional lm.io.SpeciesTimeSeries species_time_series = 6;

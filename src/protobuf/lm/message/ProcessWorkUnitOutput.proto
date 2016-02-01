@@ -42,5 +42,6 @@ package lm.message;
 import "lm/message/WorkUnitOutput.proto";
 
 message ProcessWorkUnitOutput {
-        repeated lm.message.WorkUnitOutput output = 1;
+    required int64 work_unit_id                         = 1;
+    repeated lm.message.WorkUnitOutput part_output      = 2;
 }

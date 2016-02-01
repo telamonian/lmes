@@ -252,7 +252,7 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     expRngNext=updateAllSubvolumePropensities(time, expRngNext, expRngValues);
 
     // Run the next subvolume method.
-    Print::printf(Print::DEBUG, "Running next subvolume simulation for %d steps with %d species, %d reactions, %d subvolumes, %d site types for %e s.", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberSubvolumes, diffusionModel->numberSiteTypes, maxTime);
+    Print::printf(Print::DEBUG, "Running next subvolume simulation for %d steps with %d species, %d reactions, %d subvolumes, %d site types with %d limits.", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberSubvolumes, diffusionModel->numberSiteTypes, numberLimits);
     PROF_BEGIN(PROF_SIM_EXECUTE);
     long long steps=0;
     bool affectedNeighbor;
@@ -260,21 +260,15 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     lattice_size_t neighborSubvolume;
     while (steps < maxSteps)
     {
-        // If we are outside of the limits, stop the trajectory.
-        if (isTrajectoryOutsideLimits())
-            break;
-
         steps++;
 
         // Get the next subvolume with a reaction and the reaction time.
         subvolume = reactionQueue->getNextReaction();
         time = reactionQueue->getReactionEvent(subvolume).time;
 
-        // If the new time is past the end time, we are done.
-       if (time >= maxTime)
-       {
-           break;
-       }
+        // If we are outside of the time limit, stop the trajectory.
+        if (isTrajectoryOutsideTimeLimit())
+            break;
 
        // If we are writing time steps, write out any time steps before this event occurred.
        if (writingSpeciesCounts)
@@ -324,6 +318,10 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
        uniRngNext=performSubvolumeEvent(time, subvolume, uniRngNext, uniRngValues, affectedNeighbor, neighborSubvolume);
        PROF_END(PROF_NSM_PERFORM_SUBVOLUME_EVENT);
 
+       // If we are outside of the limits, stop the trajectory.
+       if (isTrajectoryOutsideLimits())
+           break;
+
        // Update the propensity in the affected subvolumes.
        PROF_BEGIN(PROF_NSM_UPDATE_SUBVOLUME_PROPENSITY);
        expRngNext=updateSubvolumePropensity(time, subvolume, expRngNext, expRngValues);
@@ -337,16 +335,21 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     // Make sure that the final species counts agree with the actual number in the lattice.
     checkSpeciesCountsAgainstLattice();
 
-    bool reachedLimit = false;
+    // See if we finished all of the steps.
+    if (limitReached == lm::io::TrajectoryLimits::NONE)
+    {
+        limitReached = lm::io::TrajectoryLimits::MAXSTEPS;
+        Print::printf(Print::DEBUG, "Generated trajectory with %llu steps through time %e.", steps, time);
+    }
 
     // If we finished the total time, write out the remaining time steps.
-    if (time >= maxTime)
+    else if (limitReached == lm::io::TrajectoryLimits::MAXTIME)
     {
-        time = maxTime;
+        time = timeLimit;
         Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);
         if (writingSpeciesCounts)
         {
-            while (nextSpeciesCountsWriteTime <= (maxTime+EPS))
+            while (nextSpeciesCountsWriteTime <= (timeLimit+EPS))
             {
                 // Record the species counts.
                 speciesCountsDataSet->set_number_entries(speciesCountsDataSet->number_entries()+1);
@@ -359,7 +362,7 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
         if (writingLattice)
         {
             // Write time steps until the next write time is past the current time.
-            while (nextLatticeWriteTime <= (maxTime+EPS))
+            while (nextLatticeWriteTime <= (timeLimit+EPS))
             {
                 // Record the species counts.
                 latticeDataSet->set_number_entries(latticeDataSet->number_entries()+1);
@@ -381,23 +384,10 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
                 nextLatticeWriteTime += latticeWriteInterval;
             }
         }
-            // If we are recording parameter values, write out the remaining value intervals.
-    //        if (nextParameterWriteTime <= (maxTime+1e-9))
-    //        {
-    ////            recordParameters(nextParameterWriteTime, parameterWriteInterval, maxTime);
-    //        }
-
-        reachedLimit = true;
     }
 
 
-    // See if we finished all of the steps.
-    else if (steps >= maxSteps)
-    {
-        Print::printf(Print::DEBUG, "Generated trajectory with %llu steps through time %e.", steps, time);
-    }
-
-    // Otherwise we must have finished because of a species limit, so just write out the last time.
+    // Otherwise we must have finished because of another limit, so just write out the last time.
     else
     {
         // Record the species counts.
@@ -428,11 +418,10 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
             PROF_END(PROF_NSM_SERIALIZE_LATTICE);
             data->resize(dataSizeActual);
         }
-        reachedLimit = true;
     }
 
     // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
-    if (reachedLimit && numberFptTrackedSpecies > 0)
+    if (limitReached != lm::io::TrajectoryLimits::MAXSTEPS && numberFptTrackedSpecies > 0)
     {
         for (int i=0; i<numberFptTrackedSpecies; i++)
         {

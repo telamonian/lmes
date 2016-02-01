@@ -65,6 +65,7 @@
 #include "lm/main/Main.h"
 #include "lm/me/MESolver.h"
 #include "lm/me/PropensityFunction.h"
+#include "lm/message/WorkUnitStatus.pb.h"
 #include "lm/oparam/OParams.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/thread/Thread.h"
@@ -239,17 +240,19 @@ protected:
     lm::oparam::OParams* oparams;
     lm::tiling::Tilings* tilings;
 
+    // Trajectory status.
+    lm::io::WorkUnitStatus status;
+
     // Limits for the trajectory.
+    double timeLimit;
     size_t numberLimits;
     TrajectoryLimit* limits;
-
-    list<TrackedParameter> trackedParameters;
+    lm::io::TrajectoryLimits::LimitType limitReached;
 
     // The current state.
     uint64_t trajectoryId;
     bool trajectoryStarted;
     int* speciesCounts;
-    int* previousSpeciesCounts;
     double time;
     double timeStep;    // stores last time step calculated, used for building histogram
     int numberFptTrackedSpecies;
@@ -257,8 +260,6 @@ protected:
     uint numberTilingHists;
     TilingHist* tilingHists;
 
-    // the type limit that stopped the trajectory. only has meaning after the trajectory's last step
-    lm::io::TrajectoryLimits::LimitType finalLimitType;
 };
 
 }
