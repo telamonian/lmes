@@ -167,8 +167,8 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     // Create the output message.
     lm::message::Message msgpp;
     lm::message::ProcessWorkUnitOutput* msgp = msgpp.mutable_process_work_unit_output();
-    lm::message::WorkUnitOutput* msg = msgp->add_output();
-    msg->set_work_unit_id(workUnitId);
+    msgp->set_work_unit_id(workUnitId);
+    lm::message::WorkUnitOutput* msg = msgp->add_part_output();
 
     // Get the interval for writing species counts.
     double speciesCountsWriteInterval=atof(simulationParameters["writeInterval"].c_str());
@@ -266,9 +266,7 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
         subvolume = reactionQueue->getNextReaction();
         time = reactionQueue->getReactionEvent(subvolume).time;
 
-        // If we are outside of the time limit, stop the trajectory.
-        if (isTrajectoryOutsideTimeLimit())
-            break;
+        // TODO: check for over timelimit.
 
        // If we are writing time steps, write out any time steps before this event occurred.
        if (writingSpeciesCounts)
@@ -338,7 +336,7 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     // See if we finished all of the steps.
     if (limitReached == lm::io::TrajectoryLimits::NONE)
     {
-        limitReached = lm::io::TrajectoryLimits::MAXSTEPS;
+        //TODO fix: limitReached = lm::io::TrajectoryLimits::MAXSTEPS;
         Print::printf(Print::DEBUG, "Generated trajectory with %llu steps through time %e.", steps, time);
     }
 
@@ -421,13 +419,13 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     }
 
     // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
-    if (limitReached != lm::io::TrajectoryLimits::MAXSTEPS && numberFptTrackedSpecies > 0)
+    /*TODO fix if (limitReached != lm::io::TrajectoryLimits::MAXSTEPS && numberFptTrackedSpecies > 0)
     {
         for (int i=0; i<numberFptTrackedSpecies; i++)
         {
             fptTrackedSpecies[i].serializeTo(trajectoryId, msg->add_first_passage_times());
         }
-    }
+    }*/
 
     // If the output message has any data, send it.
     if (msg->has_species_counts() || msg->first_passage_times_size() > 0 || msg->has_lattice_time_series())

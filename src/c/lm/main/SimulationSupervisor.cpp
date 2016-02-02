@@ -270,7 +270,7 @@ void SimulationSupervisor::receivedStartedCheckpointSignaler(const lm::message::
 void SimulationSupervisor::startWorkUnitRunners()
 {
     map<int,ComputeResources> allResources = resourceMap->getAvailableResources();
-    slots.createAllSlots(allResources, cpuCoresPerRunner, gpuDevicesPerRunner, useCPUAffinity, solverClassName, input);
+    slots.createAllSlots(allResources, cpuCoresPerRunner, gpuDevicesPerRunner, useCPUAffinity, solverClassName, *input);
 }
 
 void SimulationSupervisor::receivedStartedWorkUnitRunner(const lm::message::StartedWorkUnitRunner & msg)

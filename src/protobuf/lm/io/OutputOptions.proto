@@ -34,23 +34,14 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts, Max Klein
+ * Author(s): Elijah Roberts
  */
-package lm.message;
 
-import "lm/io/DiffusionModel.proto";
-import "lm/io/OrderParameters.proto";
-import "lm/io/ReactionModel.proto";
-import "lm/io/Tilings.proto";
+package lm.io;
 
-message StartWorkUnitRunner {
-    required int32 work_unit_runner_id                              = 1;
-    optional bool use_cpu_affinity                                  = 2;
-    repeated int32 cpu                                              = 3;
-    repeated int32 gpu                                              = 4;
-    required string solver                                          = 5;
-    optional lm.io.ReactionModel reaction_model                     = 7;
-    optional lm.io.DiffusionModel diffusion_model                   = 8;
-    optional lm.io.OrderParameters order_parameters                 = 9;
-    optional lm.io.Tilings tilings                                  = 10;
+message OutputOptions {
+    optional double write_interval                      = 1;
+    optional double lattice_write_interval              = 2;
+    repeated uint32 fpt_species_to_track                = 3;
 }
+

@@ -106,26 +106,6 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         }
     }
 
-    // Get the first passage times.
-    if (simulationParameters.count("fptTrackingList"))
-    {
-        // Initialize the first passage times in the cme state.
-        const string listString = simulationParameters["fptTrackingList"];
-        std::list<int> fptList;
-        size_t start=0, end=0;
-        while (end != string::npos)
-        {
-            end = listString.find(',', start);
-            string trackedSpecies = listString.substr(start, (end == string::npos) ? string::npos : end - start);
-            if (trackedSpecies.length() > 0)
-            {
-                firstPassageParameters.add_species_to_track((uint)atoi(trackedSpecies.c_str()));
-            }
-            start = end+1;
-        }
-        firstPassageTimesPresent = true;
-    }
-
     // Get the order parameters.
     if (file.hasOrderParameters())
     {
@@ -142,8 +122,37 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         tilingsPresent = true;
     }
 
-    // Get some specific simulation parameters.
-    if (simulationParameters.count("fptTrackingList"))
+    // Get the output options.
+    {
+        if (simulationParameters.count("writeInterval"))
+            outputOptions.set_write_interval(atof(simulationParameters["writeInterval"].c_str()));
+
+        if (simulationParameters.count("latticeWriteInterval"))
+            outputOptions.set_lattice_write_interval(atof(simulationParameters["latticeWriteInterval"].c_str()));
+
+        // Get the first passage times.
+        if (simulationParameters.count("fptTrackingList"))
+        {
+            // Initialize the first passage times in the cme state.
+            const string listString = simulationParameters["fptTrackingList"];
+            std::list<int> fptList;
+            size_t start=0, end=0;
+            while (end != string::npos)
+            {
+                end = listString.find(',', start);
+                string trackedSpecies = listString.substr(start, (end == string::npos) ? string::npos : end - start);
+                if (trackedSpecies.length() > 0)
+                {
+                    outputOptions.add_species_to_track((uint)atoi(trackedSpecies.c_str()));
+                }
+                start = end+1;
+            }
+            firstPassageTimesPresent = true;
+        }
+    }
+
+    // Get some specific input parameters.
+    if (simulationParameters.count("maxWorkUnitSteps"))
         stepsPerWorkUnit = atoll(simulationParameters["maxWorkUnitSteps"].c_str());
 
 }

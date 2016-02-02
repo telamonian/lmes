@@ -46,10 +46,11 @@
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/BoundaryConditions.pb.h"
 #include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/FirstPassageInput.pb.h"
 #include "lm/io/OrderParameters.pb.h"
+#include "lm/io/OutputOptions.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SimulationParameters.pb.h"
+#include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/oparam/OParams.h"
 #include "lm/tiling/Tilings.h"
 
@@ -68,16 +69,19 @@ protected:
     bool firstPassageTimesPresent;
     bool orderParametersPresent;
     bool tilingsPresent;
+    bool trajectoryLimitsPresent;
+    bool outputOptionsPresent;
 
     lm::io::SimulationParameters simulationParametersMsg;
     map<string,string> simulationParameters;
     lm::io::ReactionModel reactionModel;
     lm::io::DiffusionModel diffusionModel;
-    lm::io::FirstPassageInput firstPassageParameters;
     lm::io::OrderParameters orderParametersMsg;
     lm::oparam::OParams orderParameters;
     lm::io::Tilings tilingsMsg;
     lm::tiling::Tilings tilings;
+    lm::io::TrajectoryLimits trajectoryLimits;
+    lm::io::OutputOptions outputOptions;
 
     uint64_t stepsPerWorkUnit;
 
@@ -90,13 +94,19 @@ public:
     bool hasFirstPassageTimes() const {return firstPassageTimesPresent;}
     bool hasOrderParameters() const {return orderParametersPresent;}
     bool hasTilings() const {return tilingsPresent;}
+    bool hasTrajectoryLimits() const {return trajectoryLimitsPresent;}
+    bool hasOutputOptions() const {return outputOptionsPresent;}
+
 
     const map<string,string>& getSimulationParameters() const {return simulationParameters;}
     const lm::io::ReactionModel& getReactionModel() const {return reactionModel;}
     const lm::io::DiffusionModel& getDiffusionModel() const {return diffusionModel;}
-    const lm::io::FirstPassageInput& getFirstPassageParameters() const {return firstPassageParameters;}
+    const lm::io::OrderParameters& getOrderParametersMsg() const {return orderParametersMsg;}
     const lm::oparam::OParams& getOrderParameters() const {return orderParameters;}
+    const lm::io::Tilings& getTilingsMsg() const {return tilingsMsg;}
     const lm::tiling::Tilings& getTilings() const {return tilings;}
+    const lm::io::TrajectoryLimits& getTrajectoryLimits() const {return trajectoryLimits;}
+    const lm::io::OutputOptions& getOutputOptions() const {return outputOptions;}
 
     uint64_t getStepsPerWorkUnit() const {return stepsPerWorkUnit;}
 

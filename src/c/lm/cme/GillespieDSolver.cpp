@@ -1,7 +1,7 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2008-2011 Luthey-Schulten Group,
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2008-2012 Luthey-Schulten Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Luthey-Schulten Group

@@ -39,6 +39,7 @@
 
 package lm.message;
 
+import "lm/io/OutputOptions.proto";
 import "lm/io/TrajectoryLimits.proto";
 import "lm/message/WorkUnit.proto";
 
@@ -49,5 +50,6 @@ message RunWorkUnit {
     required int32 output_process                  = 4;
     required int32 output_thread                   = 5;
     optional lm.io.TrajectoryLimits limits         = 6;
+    optional lm.io.OutputOptions output_options    = 8;
     repeated lm.message.WorkUnit part              = 7;
 }
