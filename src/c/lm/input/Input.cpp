@@ -39,6 +39,7 @@
 #include <map>
 #include <string>
 
+#include "lm/Print.h"
 #include "lm/input/Input.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/BoundaryConditions.pb.h"
@@ -56,7 +57,7 @@ namespace lm {
 namespace input {
 
 Input::Input(const lm::io::hdf5::Hdf5File& file)
-:reactionModelPresent(false),diffusionModelPresent(false),firstPassageTimesPresent(false),orderParametersPresent(false),tilingsPresent(false),
+:reactionModelPresent(false),diffusionModelPresent(false),orderParametersPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),outputOptionsPresent(false),
  stepsPerWorkUnit(10000000)
 {
     // Get the simulation parameters.
@@ -122,13 +123,81 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         tilingsPresent = true;
     }
 
+    // Get the limits.
+    {
+        // See if we have a max time limit.
+        if (simulationParameters.count("maxTime"))
+        {
+            trajectoryLimits.set_max_time_limit(atof(simulationParameters["maxTime"].c_str()));
+            trajectoryLimitsPresent = true;
+        }
+
+        // Set the species lower limits from the parameters.
+        if (simulationParameters.count("speciesLowerLimitList"))
+        {
+            string listString = simulationParameters["speciesLowerLimitList"];
+            size_t start=0, end=0;
+            while (end != string::npos)
+            {
+                end = listString.find(',', start);
+                string speciesLowerLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
+
+                size_t equalsPos=0;
+                equalsPos = speciesLowerLimit.find(':', 0);
+                if (equalsPos > 0 && equalsPos < speciesLowerLimit.length()-1)
+                {
+                    uint parsedSpecies = (uint)atoi(speciesLowerLimit.substr(0, equalsPos).c_str());
+                    int parsedLimit = atoi(speciesLowerLimit.substr(equalsPos+1, string::npos).c_str());
+                    lm::io::TrajectoryLimits::SpeciesCountLimit* limit = trajectoryLimits.add_min_species_count_limit();
+                    limit->set_species_id(parsedSpecies);
+                    limit->set_value(parsedLimit);
+                    Print::printf(Print::DEBUG, "Parsed lower limit %s to: %d => %d", speciesLowerLimit.c_str(), parsedSpecies, parsedLimit);
+                }
+                start = end+1;
+            }
+            trajectoryLimitsPresent = true;
+        }
+
+        // Set the species upper limits from the parameters.
+        if (simulationParameters.count("speciesUpperLimitList"))
+        {
+            string listString = simulationParameters["speciesUpperLimitList"];
+            size_t start=0, end=0;
+            while (end != string::npos)
+            {
+                end = listString.find(',', start);
+                string speciesUpperLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
+
+                size_t equalsPos=0;
+                equalsPos = speciesUpperLimit.find(':', 0);
+                if (equalsPos > 0 && equalsPos < speciesUpperLimit.length()-1)
+                {
+                    uint parsedSpecies = atoi(speciesUpperLimit.substr(0, equalsPos).c_str());
+                    uint parsedLimit = atoi(speciesUpperLimit.substr(equalsPos+1, string::npos).c_str());
+                    lm::io::TrajectoryLimits::SpeciesCountLimit* limit = trajectoryLimits.add_max_species_count_limit();
+                    limit->set_species_id(parsedSpecies);
+                    limit->set_value(parsedLimit);
+                    Print::printf(Print::DEBUG, "Parsed upper limit %s to: %d <= %d", speciesUpperLimit.c_str(), parsedSpecies, parsedLimit);
+                }
+                start = end+1;
+            }
+            trajectoryLimitsPresent = true;
+        }
+    }
+
     // Get the output options.
     {
         if (simulationParameters.count("writeInterval"))
-            outputOptions.set_write_interval(atof(simulationParameters["writeInterval"].c_str()));
+        {
+            outputOptions.set_species_write_interval(atof(simulationParameters["writeInterval"].c_str()));
+            outputOptionsPresent = true;
+        }
 
         if (simulationParameters.count("latticeWriteInterval"))
+        {
             outputOptions.set_lattice_write_interval(atof(simulationParameters["latticeWriteInterval"].c_str()));
+            outputOptionsPresent = true;
+        }
 
         // Get the first passage times.
         if (simulationParameters.count("fptTrackingList"))
@@ -143,15 +212,15 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
                 string trackedSpecies = listString.substr(start, (end == string::npos) ? string::npos : end - start);
                 if (trackedSpecies.length() > 0)
                 {
-                    outputOptions.add_species_to_track((uint)atoi(trackedSpecies.c_str()));
+                    outputOptions.add_fpt_species_to_track((uint)atoi(trackedSpecies.c_str()));
                 }
                 start = end+1;
             }
-            firstPassageTimesPresent = true;
+            outputOptionsPresent = true;
         }
     }
 
-    // Get some specific input parameters.
+    // Get some generic input options.
     if (simulationParameters.count("maxWorkUnitSteps"))
         stepsPerWorkUnit = atoll(simulationParameters["maxWorkUnitSteps"].c_str());
 

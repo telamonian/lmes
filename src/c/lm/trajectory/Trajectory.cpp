@@ -98,34 +98,33 @@ void Trajectory::initializeState(const lm::input::Input& input, bool reversed)
         state.mutable_cme_state()->mutable_species_counts()->add_time(0.0);
 
         // Initialize the first passage times in the cme state.
-        if (input.hasFirstPassageTimes())
+        if (input.getOutputOptions().fpt_species_to_track_size())
         {
-            list<uint> fptSpeciesList = input.getFirstPassageTimesSpecies();
-            for (std::list<uint>::iterator it=fptSpeciresList.begin(); it != fptSpeciesList.end(); it++)
+            for (int i=0; i<input.getOutputOptions().fpt_species_to_track_size(); i++)
             {
                 lm::io::FirstPassageTimes* fpt = state.mutable_cme_state()->add_first_passage_times();
-                fpt->set_trajectory_id(i);
-                fpt->set_species(*it);
+                fpt->set_trajectory_id(id);
+                fpt->set_species(i);
                 fpt->set_number_entries(1);
-                fpt->add_species_count(reactionModel.initial_species_count(*it));
+                fpt->add_species_count(reactionModel.initial_species_count(i));
                 fpt->add_first_passage_time(0.0);
-                Print::printf(Print::DEBUG, "Added fpt tracking for species %d", *it);
+                Print::printf(Print::DEBUG, "Added fpt tracking for species %d", i);
             }
         }
-
     }
 
     // Initialize the rdme state from the diffusion model.
-    if (input.hasDiffusionModel)
+    if (input.hasDiffusionModel())
     {
-        lm::io::RDMEState* rdmeState = trajectories[i]->getState()->mutable_rdme_state();
+        const lm::io::DiffusionModel& diffusionModel = input.getDiffusionModel();
+        lm::io::RDMEState* rdmeState = state.mutable_rdme_state();
         lm::io::Lattice* initialLattice = rdmeState->mutable_species_positions();
-        initialLattice->set_lattice_x_size(input.diffusionModelBuf.initial_lattice().lattice_x_size());
-        initialLattice->set_lattice_y_size(input.diffusionModelBuf.initial_lattice().lattice_y_size());
-        initialLattice->set_lattice_z_size(input.diffusionModelBuf.initial_lattice().lattice_z_size());
-        initialLattice->set_particles_per_site(input.diffusionModelBuf.initial_lattice().particles_per_site());
-        initialLattice->set_particles_ordering(input.diffusionModelBuf.initial_lattice().particles_ordering());
-        initialLattice->set_particles(input.diffusionModelBuf.initial_lattice().particles());
+        initialLattice->set_lattice_x_size(diffusionModel.initial_lattice().lattice_x_size());
+        initialLattice->set_lattice_y_size(diffusionModel.initial_lattice().lattice_y_size());
+        initialLattice->set_lattice_z_size(diffusionModel.initial_lattice().lattice_z_size());
+        initialLattice->set_particles_per_site(diffusionModel.initial_lattice().particles_per_site());
+        initialLattice->set_particles_ordering(diffusionModel.initial_lattice().particles_ordering());
+        initialLattice->set_particles(diffusionModel.initial_lattice().particles());
     }
 
 
@@ -178,9 +177,9 @@ int64_t Trajectory::getWorkUnitsPerformed()
     return numberWorkUnitsPerformed;
 }
 
-void Trajectory::setState(const lm::io::TrajectoryState* newState)
+void Trajectory::setState(const lm::io::TrajectoryState& newState)
 {
-    *getState() = *newState;
+    state.CopyFrom(newState);
 }
 
 void Trajectory::setStatus(status_t newStatus)

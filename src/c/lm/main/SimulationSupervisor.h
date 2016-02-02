@@ -58,11 +58,13 @@
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/ResourcesAvailable.pb.h"
+#include "lm/message/RunWorkUnit.pb.h"
 #include "lm/message/StartWorkUnitRunner.pb.h"
 #include "lm/message/StartedCheckpointSignaler.pb.h"
 #include "lm/message/StartedOutputWriter.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnitRunner.pb.h"
+#include "lm/message/WorkUnit.pb.h"
 #include "lm/oparam/OParams.h"
 #include "lm/resource/ResourceMap.h"
 #include "lm/slot/SlotList.h"
@@ -96,8 +98,15 @@ public:
     void wake() throw(lm::thread::PthreadException);
 
 protected:
+    virtual void buildTrajectoryList()=0;
+    virtual void destroyTrajectoryList();
     virtual void startSimulation();
+    virtual void startSimulationPhase();
     virtual bool assignWork();
+    virtual void buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg);
+    virtual void buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint minWorkUnits);
+    virtual bool performAnotherSimulationPhase();
+    virtual void finishSimulationPhase();
     virtual void finishSimulation();
 
     virtual int run();

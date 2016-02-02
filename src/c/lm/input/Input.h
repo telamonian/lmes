@@ -66,7 +66,6 @@ class Input
 protected:
     bool reactionModelPresent;
     bool diffusionModelPresent;
-    bool firstPassageTimesPresent;
     bool orderParametersPresent;
     bool tilingsPresent;
     bool trajectoryLimitsPresent;
@@ -91,7 +90,6 @@ public:
 
     bool hasReactionModel() const {return reactionModelPresent;}
     bool hasDiffusionModel() const {return diffusionModelPresent;}
-    bool hasFirstPassageTimes() const {return firstPassageTimesPresent;}
     bool hasOrderParameters() const {return orderParametersPresent;}
     bool hasTilings() const {return tilingsPresent;}
     bool hasTrajectoryLimits() const {return trajectoryLimitsPresent;}

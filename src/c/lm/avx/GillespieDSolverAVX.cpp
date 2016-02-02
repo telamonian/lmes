@@ -228,7 +228,8 @@ GillespieDSolverAVX::GillespieDSolverAVX():CMESolver((RandomGenerator::Distribut
 
     time = _mm256_setr_pd(0.0, 1.99999999999999, 3.99999999999999, 9.99999999999999);
     timeLimit = _mm256_setr_pd(100000.0, 100000.0, 100000.0, 100000.0);
-    simulationParameters["writeInterval"] = "1000.0";
+    writeSpeciesTimeSeries = true;
+    speciesWriteInterval = 1000.0;
 }
 
 GillespieDSolverAVX::~GillespieDSolverAVX()
@@ -320,15 +321,13 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
         output[i] = msg->add_part_output();
 
     // Get the interval for writing species counts.
-    double writeInterval = atof(simulationParameters["writeInterval"].c_str());
-    bool writeTimeSteps = (writeInterval > 0.0);
     avxd eps = _mm256_set1_pd(EPS);
     avxd nextSpeciesWriteTime;
     vector<int32_t> speciesTimeSeriesCounts[DOUBLES_PER_AVX];
     vector<double> speciesTimeSeriesTimes[DOUBLES_PER_AVX];
 
     // If we are writing time steps, create the data set.
-    if (writeTimeSteps)
+    if (writeSpeciesTimeSeries)
     {
         // See if this is the start of the trajectory.
         for (int i=0; i<DOUBLES_PER_AVX; i++)
@@ -336,13 +335,13 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
             // If this element was true, save the reaction and set the random propensity to inf.
             if (((double*)&time)[i] == 0.0 || trajectoryStarted[i]==false)
             {
-                ((double*)&nextSpeciesWriteTime)[i] = writeInterval;
+                ((double*)&nextSpeciesWriteTime)[i] = speciesWriteInterval;
                 for (uint j=0; j<reactionModel->numberSpeciesToTrack; j++) speciesTimeSeriesCounts[i].push_back(lround(speciesCounts[j*numberSpecies+i]));
                 speciesTimeSeriesTimes[i].push_back(0.0);
             }
             else
             {
-                ((double*)&nextSpeciesWriteTime)[i] = ceil(((double*)&time)[i]/writeInterval)*writeInterval;
+                ((double*)&nextSpeciesWriteTime)[i] = ceil(((double*)&time)[i]/speciesWriteInterval)*speciesWriteInterval;
             }
         }
     }
@@ -427,7 +426,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
         }
 
         // If we are writing time steps, write out any time steps before this event occurred.
-        if (writeTimeSteps)
+        if (writeSpeciesTimeSeries)
         {
             // Loop until we have finished writing out all elements.
             while (true)
@@ -446,7 +445,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
                         // Record the species counts.
                         for (uint j=0; j<reactionModel->numberSpeciesToTrack; j++) speciesTimeSeriesCounts[i].push_back(lround(speciesCounts[j*numberSpecies+i]));
                         speciesTimeSeriesTimes[i].push_back(((double*)&nextSpeciesWriteTime)[i]);
-                        ((double*)&nextSpeciesWriteTime)[i] += writeInterval;
+                        ((double*)&nextSpeciesWriteTime)[i] += speciesWriteInterval;
                     }
                 }
             }
@@ -618,14 +617,14 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
 //    {
 //        time = maxTime;
 //        Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);
-//        if (writeTimeSteps)
+//        if (writeSpeciesTimeSeries)
 //        {
 //            while (nextSpeciesWriteTime <= (maxTime+1e-9))
 //            {
 //                // Record the species counts.
 //                for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
 //                speciesTimeSeriesTimes.push_back(nextSpeciesWriteTime);
-//                nextSpeciesWriteTime += writeInterval;
+//                nextSpeciesWriteTime += speciesWriteInterval;
 //            }
 
 //            // If we are recording parameter values, write out the remaining value intervals.
@@ -647,7 +646,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
 //    else
 //    {
 //        // Record the species counts.
-//        if (writeTimeSteps)
+//        if (writeSpeciesTimeSeries)
 //        {
 //            // Record the species counts.
 //            for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);

@@ -411,5 +411,15 @@ void RDMESolver::setState(const lm::io::TrajectoryState& state)
     lattice->deserializeParticlesFrom(particles.data(), particles.size(), (Lattice::SerializationDataOrder)state.rdme_state().species_positions().particles_ordering(), state.rdme_state().species_positions().particles_compressed_deflate());
 }
 
+void RDMESolver::setOutputOptions(const lm::io::OutputOptions& outputOptions)
+{
+    CMESolver::setOutputOptions(outputOptions);
+    if (outputOptions.has_lattice_write_interval())
+    {
+        writeLatticeTimeSeries = true;
+        latticeWriteInterval = outputOptions.lattice_write_interval();
+    }
+}
+
 }
 }

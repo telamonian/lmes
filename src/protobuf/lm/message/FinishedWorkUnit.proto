@@ -45,5 +45,6 @@ message FinishedWorkUnit {
     required int64 work_unit_id                         = 1;
     required int64 process                              = 2;
     required int64 thread                               = 3;
-    repeated lm.message.WorkUnitStatus part_status      = 4;
+    required double run_time                            = 4;
+    repeated lm.message.WorkUnitStatus part_status      = 5;
 }

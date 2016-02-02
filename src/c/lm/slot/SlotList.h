@@ -79,6 +79,7 @@ public:
     void markSlotStarted(const lm::message::StartedWorkUnitRunner & msg);
     bool hasUnstartedSlots();
     bool hasFreeSlots();
+    const Slot& getFreeSlot();
     bool hasBusySlots();
     void runWorkUnit(lm::message::Message* runWorkUnitMsg);
     void workUnitFinished(const lm::message::FinishedWorkUnit& msg);

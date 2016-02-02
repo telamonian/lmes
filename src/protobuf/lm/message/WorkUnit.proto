@@ -42,6 +42,5 @@ package lm.message;
 import "lm/io/TrajectoryState.proto";
 
 message WorkUnit {
-    required int64 max_steps                       = 1;
     required lm.io.TrajectoryState initial_state   = 2;
 }

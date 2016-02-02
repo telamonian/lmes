@@ -62,13 +62,6 @@ int MESolver::getSimultaneousTrajectories()
     return 1;
 }
 
-void MESolver::setSimulationParameters(const lm::io::SimulationParameters& simulationParameters)
-{
-    this->simulationParameters.clear();
-    for (int i=0; i<simulationParameters.key_size() && i<simulationParameters.value_size(); i++)
-        this->simulationParameters[simulationParameters.key(i)] = simulationParameters.value(i);
-}
-
 void MESolver::reset()
 {
     communicator = NULL;

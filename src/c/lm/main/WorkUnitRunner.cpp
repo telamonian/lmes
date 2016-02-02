@@ -123,9 +123,6 @@ int WorkUnitRunner::run()
         for (int i=0; i<properties.gpu_size(); i++) gpus.push_back(properties.gpu(i));
         solver->setComputeResources(cpus, gpus);
 
-        // Set the simulation parameters.
-        solver->setSimulationParameters(properties.simulation_parameters());
-
         // Set the model for the solver.
         if (solver->needsReactionModel())
         {
@@ -143,29 +140,15 @@ int WorkUnitRunner::run()
         }
 
         // Set the order parameters for the solver
-        if (solver->needsOrderParameters())
+        if (properties.has_order_parameters())
         {
-            if (properties.has_order_parameters())
-            {
-                solver->setOrderParameters(properties.order_parameters());
-            }
-            else
-            {
-                throw Exception("Work Unit runner terminating, solver requires a set of order parameters but none was specified", properties.solver().c_str());
-            }
+            solver->setOrderParameters(properties.order_parameters());
         }
 
         // Set the tilings for the solver
-        if (solver->needsTilings())
+        if (properties.has_tilings())
         {
-            if (properties.has_tilings())
-            {
-                solver->setTilings(properties.tilings());
-            }
-            else
-            {
-                throw Exception("Work Unit runner terminating, solver requires a set of tilings but none was specified", properties.solver().c_str());
-            }
+            solver->setTilings(properties.tilings());
         }
 
         // Tell the supervisor the runner was started.
@@ -226,55 +209,57 @@ int WorkUnitRunner::run()
 
 void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwu)
 {
-    for (int i=0; i<rwu.work_unit_size(); i++)
-    {
-        lm::message::WorkUnit wu = rwu.work_unit(i);
+    // Tell the supervisor the work unit is started.
+    lm::message::Message msgp1;
+    lm::message::StartedWorkUnit* msg1 = msgp1.mutable_started_work_unit();
+    msg1->set_work_unit_id(rwu.work_unit_id());
+    communicator.sendMessage(rwu.supervisor_process(), rwu.supervisor_thread(), &msgp1);
 
-        // Tell the supervisor the work unit is started.
-        lm::message::Message msgp1;
-        lm::message::StartedWorkUnit* msg1 = msgp1.mutable_started_work_unit();
-        msg1->set_work_unit_id(wu.work_unit_id());
-        communicator.sendMessage(wu.supervisor_process(), wu.supervisor_thread(), &msgp1);
+    // Set the communicator.
+    solver->setCommunicator(&communicator, rwu.output_process(), rwu.output_thread(), rwu.work_unit_id());
+
+    // Set the limits.
+    if (rwu.has_trajectory_limits())
+        solver->setLimits(rwu.trajectory_limits());
+
+    // Set the output options.
+    if (rwu.has_output_options())
+        solver->setOutputOptions(rwu.output_options());
+
+    // Create the finished work units message.
+    lm::message::Message msg2;
+    lm::message::FinishedWorkUnit* wuf = msg2.mutable_finished_work_unit();
+    wuf->set_work_unit_id(rwu.work_unit_id());
+    wuf->set_process(lm::MPI::worldRank);
+    wuf->set_thread(getThreadNumber());
+
+    hrtime startTime=getHrTime();
+    for (int i=0; i<rwu.part_size(); i++)
+    {
+        lm::message::WorkUnit wu = rwu.part(i);
 
         // Reset the solver.
         solver->reset();
 
-        // Set the communicator.
-        solver->setCommunicator(&communicator, wu.output_process(), wu.output_thread(), wu.work_unit_id());
-
         // Set the initial state.
         solver->setState(wu.initial_state());
 
-        // Set the limits.
-        if (wu.has_limits()) solver->setLimits(wu.limits());
-
         // Run the work unit.
         hrtime t1=getHrTime();
-        long long steps = solver->generateTrajectory(wu.max_steps());
-        bool limitReached = (steps<wu.max_steps());
+        long long steps = solver->generateTrajectory(rwu.max_steps());
         hrtime t2=getHrTime();
 
-        // Tell the supervisor the work unit has finished.
-        lm::message::Message msgp2;
-        lm::message::FinishedWorkUnit* msg2 = msgp2.mutable_finished_work_unit();
-        msg2->set_work_unit_id(wu.work_unit_id());
-        msg2->set_process(lm::MPI::worldRank);
-        msg2->set_thread(getThreadNumber());
-        msg2->set_run_time(convertHrToSeconds(t2-t1));
-        msg2->set_steps(steps);
-        msg2->mutable_final_state()->set_trajectory_id(wu.initial_state().trajectory_id());
-        solver->getState(msg2->mutable_final_state());
-        if (limitReached)
-        {
-            msg2->set_status(lm::message::FinishedWorkUnit::LIMIT_REACHED);
-            msg2->mutable_final_state()->set_final_limit_type(static_cast<lm::cme::CMESolver*>(solver)->getFinalLimitType());
-        }
-        else
-        {
-            msg2->set_status(lm::message::FinishedWorkUnit::STEPS_FINISHED);
-        }
-        communicator.sendMessage(wu.supervisor_process(), wu.supervisor_thread(), &msgp2);
+        // Create the status for this part.
+        lm::message::WorkUnitStatus* status = wuf->add_part_status();
+        status->set_status(solver->getStatus());
+        status->set_run_time(convertHrToSeconds(t2-t1));
+        status->set_steps(steps);
+        solver->getState(status->mutable_final_state());
     }
+
+    // Tell the supervisor the work unit has finished.
+    wuf->set_run_time(convertHrToSeconds(getHrTime()-startTime));
+    communicator.sendMessage(rwu.supervisor_process(), rwu.supervisor_thread(), &msg2);
 }
 
 }

@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -54,12 +54,14 @@
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/ResourcesAvailable.pb.h"
+#include "lm/message/RunWorkUnit.pb.h"
 #include "lm/message/StartWorkUnitRunner.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnitRunner.pb.h"
 #include "lm/message/WorkUnit.pb.h"
 #include "lm/resource/ComputeResources.h"
 #include "lm/resource/ResourceMap.h"
+#include "lm/slot/Slot.h"
 #include "lm/slot/SlotList.h"
 
 using lm::resource::ComputeResources;
@@ -294,18 +296,56 @@ void SimulationSupervisor::startSimulationIfAllWorkersStarted()
     }
 }
 
+void SimulationSupervisor::destroyTrajectoryList()
+{
+    if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL;
+}
+
 void SimulationSupervisor::startSimulation()
 {
+    Print::printf(Print::INFO, "Simulation started.");
+    startSimulationPhase();
+}
+
+void SimulationSupervisor::startSimulationPhase()
+{
+    // Build the list of trajectories to simulate.
+    buildTrajectoryList();
+
+    // Assign the first batch of work.
     if (assignWork())
     {
         // If assign work returned true, there was nothing to be done.
-        Print::printf(Print::INFO, "Simulation finished, no work to be performed.");
+        Print::printf(Print::INFO, "No work to be performed.");
+        finishSimulationPhase();
+    }
+}
+
+bool SimulationSupervisor::performAnotherSimulationPhase()
+{
+    return false;
+}
+
+void SimulationSupervisor::finishSimulationPhase()
+{
+    // Delete the list of trajectories.
+    destroyTrajectoryList();
+
+    // If we need to perform another phase, do so, otherwsise stop th simulation.
+    if (performAnotherSimulationPhase())
+    {
+        startSimulationPhase();
+    }
+    else
+    {
         finishSimulation();
     }
 }
 
 void SimulationSupervisor::finishSimulation()
 {
+    Print::printf(Print::INFO, "Simulation finished.");
+
     // Mark that the simulation is finished so we exit our message loop.
     simulationRunning = false;
 
@@ -328,44 +368,29 @@ bool SimulationSupervisor::assignWork()
         // Allocate the next free slot, if there is one. Except for once (at the program's end), assignWork should return from here.
         if (!slots.hasFreeSlots()) return false;
 
-        // NEW unfinished
-        // Set the default work unit-specific limits
-        getRunMsg()->mutable_work_unit(0)->set_max_steps(maxWorkUnitSteps);
+        // Create the run work unit message.
+        lm::message::Message msg;
+        lm::message::RunWorkUnit* rwuMsg = msg.mutable_run_work_unit();
 
+        // Build the run work units message.
+        buildRunWorkUnitHeader(rwuMsg);
 
+        // Get the free slot.
+        const lm::slot::Slot slot = slots.getFreeSlot();
 
+        // Build the work unit parts.
+        buildRunWorkUnitParts(rwuMsg, slot.getSimultaneousWorkUnits());
 
-        // NEW UNFINISHED
-        if (getStatus()==Trajectory::NOT_STARTED || getStatus()==Trajectory::WAITING)
+        // See if there were any parts to run.
+        if (rwuMsg->part_size() > 0)
         {
-            setStatus(Trajectory::RUNNING);
-            setWorkUnitId(nextWorkUnitID);
-            return getMsg();
-        }
-        else
-        {
-            return NULL;
-        }
-
-
-		// Get the next trajectory to run, if there is one.
-        lm::message::Message* nextWorkUnitMsg = trajectoryList->getNextWorkUnitMsg();
-        if (nextWorkUnitMsg != NULL)
-        {
-            // Set the source process/thread
-            nextWorkUnitMsg->mutable_run_work_unit()->mutable_work_unit(0)->set_supervisor_process(communicator.getSourceProcess());
-            nextWorkUnitMsg->mutable_run_work_unit()->mutable_work_unit(0)->set_supervisor_thread(communicator.getSourceThread());
-
-            // Set the writer process/thread
-            nextWorkUnitMsg->mutable_run_work_unit()->mutable_work_unit(0)->set_output_process(outputWriterProcess);
-            nextWorkUnitMsg->mutable_run_work_unit()->mutable_work_unit(0)->set_output_thread(outputWriterThread);
-
             // Run the work unit.
-            slots.runWorkUnit(nextWorkUnitMsg);
+            slots.runWorkUnit(&msg);
         }
         else
 		{
-			if (trajectoryList->isFinished())
+            // If there were no work units to run, see if it was because they are all finsished.
+            if (trajectoryList->areAllFinished())
 			{
                 return true;	// When there's no more trajectories to run and it's time for the program to shut down, assignWork should return from here
 			}
@@ -375,6 +400,34 @@ bool SimulationSupervisor::assignWork()
 			}
 		}
 	}
+}
+
+void SimulationSupervisor::buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg)
+{
+    // Set the work unit id.
+    msg->set_work_unit_id(workUnitCount++);
+
+    // Set the source process/thread.
+    msg->set_supervisor_process(communicator.getSourceProcess());
+    msg->set_supervisor_thread(communicator.getSourceThread());
+
+    // Set the writer process/thread.
+    msg->set_output_process(outputWriterProcess);
+    msg->set_output_thread(outputWriterThread);
+
+    // Set the limits.
+    msg->mutable_trajectory_limits()->CopyFrom(input->getTrajectoryLimits());
+
+    // Set the output options.
+    msg->mutable_output_options()->CopyFrom(input->getOutputOptions());
+
+    // Set the maximum number of steps for the work unit.
+    msg->set_max_steps(input->getStepsPerWorkUnit());
+}
+
+void SimulationSupervisor::buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint minWorkUnits)
+{
+    trajectoryList->addWorkUnitParts(msg->work_unit_id(), msg, minWorkUnits);
 }
 
 void SimulationSupervisor::receivedStartedWorkUnit(const lm::message::StartedWorkUnit& msg)
@@ -389,29 +442,25 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
     stats_workUnits++;
     stats_minWorkUnitId = std::min(stats_minWorkUnitId,(long long)msg.work_unit_id());
     stats_maxWorkUnitId = std::max(stats_maxWorkUnitId,(long long)msg.work_unit_id());
-    stats_workUnitsSteps += msg.steps();
-    stats_workUnitTime += msg.run_time();
-
-    // If the trajectory associated with the finished work unit exists...
-    if (trajectoryList->exists(msg.final_state().trajectory_id()))
+    for (int i=0; i<msg.part_status_size(); i++)
     {
-		// ...update the trajectory based on the results of the work unit
-		trajectoryList->workUnitFinished(msg);
+        stats_workUnitsSteps += msg.part_status(i).steps();
+        stats_workUnitTime += msg.part_status(i).run_time();
     }
-    // Otherwise, assume that the associated trajectory has already been deleted and so skip reading in this result
-    // The exists() check ensures that hangover results from older fflux phases aren't recorded as belonging to a newer phase
 
-    // Free the slot that the returning work unit just ran on
+    // Update the trajectory list.
+    trajectoryList->workUnitFinished(msg);
+
+    // Update the slots list.
     slots.workUnitFinished(msg);
 
     // If we are not performing a checkpoint, distribute more work.
     if (!performingCheckpoint)
     {
         // Fill the newly freed slot with a work unit. If there are more trajectories than slots, this is guaranteed to use the slot we just freed. Otherwise it will be the "coldest" (longest unoccupied) slot
-        if (assignWork() && (!ffluxFlag || trajectoryList->getSize()==0))	// The finishing condition for fflux simulations is a little different from normal
+        if (assignWork())
         {
-            Print::printf(Print::INFO, "Simulation finished.");
-            finishSimulation();
+            finishSimulationPhase();
         }
     }
 

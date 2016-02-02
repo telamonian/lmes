@@ -185,6 +185,7 @@ void SlotList::markSlotStarted(const lm::message::StartedWorkUnitRunner& msg)
     slots[msg.work_unit_runner_id()].status = Slot::FREE;
     slots[msg.work_unit_runner_id()].workUnitRunnerEndpoint.process = msg.process();
     slots[msg.work_unit_runner_id()].workUnitRunnerEndpoint.thread = msg.thread();
+    slots[msg.work_unit_runner_id()].simultaneousWorkUnits = msg.simultaneous_work_units();
 }
 
 bool SlotList::hasUnstartedSlots()
@@ -207,6 +208,17 @@ bool SlotList::hasFreeSlots()
             return true;
     }
     return false;
+}
+
+const Slot& SlotList::getFreeSlot()
+{
+    // Find the first free slot.
+    for (size_t i=0; i<slots.size(); i++)
+    {
+        if (slots[i].status == Slot::FREE)
+            return slots[i];
+    }
+    throw Exception("No free slots available.");
 }
 
 bool SlotList::hasBusySlots()

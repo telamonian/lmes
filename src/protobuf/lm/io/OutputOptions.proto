@@ -40,7 +40,7 @@
 package lm.io;
 
 message OutputOptions {
-    optional double write_interval                      = 1;
+    optional double species_write_interval              = 1;
     optional double lattice_write_interval              = 2;
     repeated uint32 fpt_species_to_track                = 3;
 }

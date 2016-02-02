@@ -80,7 +80,7 @@ public:
 
     // mutators
     void setOParamsBuf(const lm::io::OrderParameters& newOParamsBuf) {*getOParamsBuf() = newOParamsBuf;}
-    bool rFFOParamsBuf(lm::io::hdf5::Hdf5File* file); // rFF = read From File
+    bool rFFOParamsBuf(const lm::io::hdf5::Hdf5File* file); // rFF = read From File
 
     // static methods
     static OPClassMap opClassMap;

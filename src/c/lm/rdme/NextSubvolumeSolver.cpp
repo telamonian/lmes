@@ -171,13 +171,11 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     lm::message::WorkUnitOutput* msg = msgp->add_part_output();
 
     // Get the interval for writing species counts.
-    double speciesCountsWriteInterval=atof(simulationParameters["writeInterval"].c_str());
-    bool writingSpeciesCounts = (speciesCountsWriteInterval > 0.0);
     double nextSpeciesCountsWriteTime;
     lm::io::SpeciesCounts* speciesCountsDataSet = NULL;
 
     // If we are writing time steps, create the data set.
-    if (writingSpeciesCounts)
+    if (writeSpeciesTimeSeries)
     {
         // Initialize the data set.
         speciesCountsDataSet = msg->mutable_species_counts();
@@ -188,25 +186,23 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
         // If this is the start of the trajectory, add the initial counts.
         if (time == 0.0)
         {
-            nextSpeciesCountsWriteTime=speciesCountsWriteInterval;
+            nextSpeciesCountsWriteTime=speciesWriteInterval;
             speciesCountsDataSet->set_number_entries(1);
             speciesCountsDataSet->add_time(0.0);
             for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
         }
         else
         {
-            nextSpeciesCountsWriteTime = ceil(time/speciesCountsWriteInterval)*speciesCountsWriteInterval;
+            nextSpeciesCountsWriteTime = ceil(time/speciesWriteInterval)*speciesWriteInterval;
         }
     }
 
     // Get the interval for writing species counts.
-    double latticeWriteInterval=atof(simulationParameters["latticeWriteInterval"].c_str());
-    bool writingLattice = (speciesCountsWriteInterval > 0.0);
     double nextLatticeWriteTime;
     lm::io::LatticeTimeSeries* latticeDataSet = NULL;
 
     // If we are writing time steps, create the data set.
-    if (writingLattice)
+    if (writeLatticeTimeSeries)
     {
         // Initialize the data set.
         latticeDataSet = msg->mutable_lattice_time_series();
@@ -269,7 +265,7 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
         // TODO: check for over timelimit.
 
        // If we are writing time steps, write out any time steps before this event occurred.
-       if (writingSpeciesCounts)
+       if (writeSpeciesTimeSeries)
        {
            // Write time steps until the next write time is past the current time.
            while (nextSpeciesCountsWriteTime <= (time+EPS))
@@ -278,12 +274,12 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
                speciesCountsDataSet->set_number_entries(speciesCountsDataSet->number_entries()+1);
                speciesCountsDataSet->add_time(nextSpeciesCountsWriteTime);
                for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
-               nextSpeciesCountsWriteTime += speciesCountsWriteInterval;
+               nextSpeciesCountsWriteTime += speciesWriteInterval;
            }
        }
 
        // If we are writing time steps, write out any time steps before this event occurred.
-       if (writingLattice)
+       if (writeLatticeTimeSeries)
        {
            // Write time steps until the next write time is past the current time.
            while (nextLatticeWriteTime <= (time+EPS))
@@ -345,7 +341,7 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     {
         time = timeLimit;
         Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);
-        if (writingSpeciesCounts)
+        if (writeSpeciesTimeSeries)
         {
             while (nextSpeciesCountsWriteTime <= (timeLimit+EPS))
             {
@@ -353,11 +349,11 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
                 speciesCountsDataSet->set_number_entries(speciesCountsDataSet->number_entries()+1);
                 speciesCountsDataSet->add_time(nextSpeciesCountsWriteTime);
                 for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
-                nextSpeciesCountsWriteTime += speciesCountsWriteInterval;
+                nextSpeciesCountsWriteTime += speciesWriteInterval;
             }
         }
 
-        if (writingLattice)
+        if (writeLatticeTimeSeries)
         {
             // Write time steps until the next write time is past the current time.
             while (nextLatticeWriteTime <= (timeLimit+EPS))
@@ -389,14 +385,14 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     else
     {
         // Record the species counts.
-        if (writingSpeciesCounts)
+        if (writeSpeciesTimeSeries)
         {
             // Record the species counts.
             speciesCountsDataSet->set_number_entries(speciesCountsDataSet->number_entries()+1);
             speciesCountsDataSet->add_time(time);
             for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
         }
-        if (writingLattice)
+        if (writeLatticeTimeSeries)
         {
             // Record the lattice.
             latticeDataSet->set_number_entries(latticeDataSet->number_entries()+1);

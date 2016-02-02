@@ -97,6 +97,7 @@ protected:
         uint32_t id;
         int32_t ivalue;
         double dvalue;
+        lm::io::TrajectoryLimits::Arrangement arrangement;
     };
 
     class FPTTracking
@@ -118,13 +119,7 @@ protected:
             }
         }
     };
-    struct TrackedParameter
-    {
-        TrackedParameter(string name, double * valuePointer):name(name),valuePointer(valuePointer) {dataSet.set_parameter(name);}
-        string name;
-        double * valuePointer;
-        lm::io::ParameterValues dataSet;
-    };
+
     class TilingHist
     {
     public:
@@ -170,47 +165,18 @@ public:
     virtual void setReactionModel(const lm::io::ReactionModel& rm);
     virtual bool needsDiffusionModel() {return false;}
     virtual void setDiffusionModel(const lm::io::DiffusionModel& dm) {}
-    virtual bool needsOrderParameters() {return ffluxFlag;}
     virtual void setOrderParameters(const lm::io::OrderParameters& opsBuf);
-    virtual bool needsTilings() {return ffluxFlag;}
     virtual void setTilings(const lm::io::Tilings& tilingsBuf);
     virtual void reset();
     virtual void getState(lm::io::TrajectoryState* state);
     virtual void setState(const lm::io::TrajectoryState& state);
     virtual void setLimits(const lm::io::TrajectoryLimits& limits);
+    virtual void setOutputOptions(const lm::io::OutputOptions& outputOptions);
+    virtual lm::message::WorkUnitStatus::Status getStatus() {return status;}
 
 protected:
-    virtual void setSpeciesUpperLimit(int species, int limit);
-    virtual void setSpeciesLowerLimit(int species, int limit);
-    virtual void setSpeciesDecreasingLimit(lm::io::TrajectoryLimits::Arrangement, int opID, double limit);
-    virtual void setSpeciesIncreasingLimit(lm::io::TrajectoryLimits::Arrangement, int opID, double limit);
-    virtual void addToParameterTrackingList(pair<string,double*>parameter);
 
-    //virtual double recordParameters(double nextRecordTime, double recordInterval, double simulationTime);
-    //virtual void queueRecordedParameters(bool flush=false);
-
-    inline void performReactionEvent(uint r)
-    {
-    	// Update the counts according to the dependency tables.
-        for (int i=0; i<(int)reactionModel->numberDependentSpecies[r]; i++)
-        {
-            speciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
-            updatedSpeciesCounts();
-        }
-        if (ffluxFlag==true)
-        {
-            // Update the order parameters, if required
-            for (uint i=0; i<oparams->size(); i++)
-            {
-                (*oparams)[i]->calc((uint*)speciesCounts);
-            }
-            // Update the tilingHists, if required
-//            for (int i=0;i<numberTilingHists;i++)
-//            {
-//                tilingHists[i].tileVals[(*tilings)[tilingHists[i].tilingID]->getTileIndex((*oparams)[(*tilings)[tilingHists[i].tilingID]->getOrderParameterID()]->get())] += timeStep;
-//            }
-        }
-    }
+    virtual void performReactionEvent(uint r);
 
     inline void updatedSpeciesCounts()
     {
@@ -248,14 +214,18 @@ protected:
     TrajectoryLimit* limits;
     lm::io::TrajectoryLimits::LimitType limitReached;
 
+    // Output options.
+    bool writeSpeciesTimeSeries;
+    double speciesWriteInterval;
+    int numberFptTrackedSpecies;
+    FPTTracking* fptTrackedSpecies;
+
     // The current state.
     uint64_t trajectoryId;
     bool trajectoryStarted;
     int* speciesCounts;
     double time;
     double timeStep;    // stores last time step calculated, used for building histogram
-    int numberFptTrackedSpecies;
-    FPTTracking* fptTrackedSpecies;
     uint numberTilingHists;
     TilingHist* tilingHists;
 

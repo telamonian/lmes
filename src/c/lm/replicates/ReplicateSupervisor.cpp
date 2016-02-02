@@ -94,11 +94,14 @@ void ReplicateSupervisor::startSimulation()
 
     Print::printf(Print::INFO, "Replicate supervisor starting simulation.");
 
-    // Create the new trajectory list.
-    trajectoryList = new ReplicateTrajectoryList(*input, ::replicates.front(), ::replicates.back());
-
     // Call the base class method
     SimulationSupervisor::startSimulation();
+}
+
+void ReplicateSupervisor::buildTrajectoryList()
+{
+    // Create the new trajectory list.
+    trajectoryList = new ReplicateTrajectoryList(*input, ::replicates.front(), ::replicates.back());
 }
 
 void ReplicateSupervisor::finishSimulation()

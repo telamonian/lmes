@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -66,9 +66,13 @@ namespace lm {
 namespace replicates {
 
 ReplicateTrajectoryList::ReplicateTrajectoryList(lm::input::Input& input, uint64_t firstTrajectory, uint64_t lastTrajectory)
-:TrajectoryList(input),firstTrajectory(firstTrajectory),lastTrajectory(lastTrajectory),stats_lastPrintTime(getHrTime())
+:TrajectoryList(),firstTrajectory(firstTrajectory),lastTrajectory(lastTrajectory),stats_lastPrintTime(getHrTime())
 {
-    init();
+    for (uint64_t i=firstTrajectory; i<=lastTrajectory; i++)
+    {
+        trajectories[i] = new lm::trajectory::Trajectory(i,input);
+        waitingTrajectories[i] = trajectories[i];
+    }
 }
 
 ReplicateTrajectoryList::~ReplicateTrajectoryList()
@@ -76,54 +80,38 @@ ReplicateTrajectoryList::~ReplicateTrajectoryList()
 
 }
 
-void ReplicateTrajectoryList::init()
+void ReplicateTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
 {
-	for (uint64_t i=firstTrajectory; i<=lastTrajectory; i++)
-	{
-		trajectories[i] = new lm::replicates::ReplicateTrajectory(i,input);
+    //Call the base class method.
+    TrajectoryList::workUnitFinished(msg);
 
-
-
-
-
-    }
-}
-
-lm::trajectory::Trajectory* ReplicateTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
-{
-    lm::trajectory::Trajectory* t = TrajectoryList::workUnitFinished(msg);
-    if (t->getStatus() == lm::trajectory::Trajectory::FINISHED)
+    // Print out a message for any trajectories that finished.
+    for (int i=0; i<msg.part_status_size(); i++)
     {
-        Print::printf(Print::INFO, "Replicate %lld completed with %8.2e of simulation time using %d work units.", t->getID(), t->getState()->cme_state().species_counts().time(0), t->getWorkUnitsPerformed());
+        uint64_t id = msg.part_status(i).final_state().trajectory_id();
+        lm::trajectory::Trajectory* t = trajectories[id];
+        if (t->getStatus() == lm::trajectory::Trajectory::FINISHED)
+        {
+            Print::printf(Print::INFO, "Replicate %lld completed with %8.2e of simulation time using %d work units.", t->getId(), t->getState().cme_state().species_counts().time(0), t->getWorkUnitsPerformed());
+        }
     }
-
-    return t;
 }
 
-lm::message::Message* ReplicateTrajectoryList::getNextWorkUnitMsg()
+uint64_t ReplicateTrajectoryList::findNextTrajectoryToRun()
 {
     uint64_t minId=UINT64_MAX;
     double minTime=std::numeric_limits<double>::infinity();
-    for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+    for (TrajectoryMap::iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
     {
         lm::trajectory::Trajectory* t = it->second;
-        if (t->getStatus()==lm::trajectory::Trajectory::NOT_STARTED || t->getStatus()==lm::trajectory::Trajectory::WAITING)
+        double time = t->getState().cme_state().species_counts().time(0);
+        if (time < minTime)
         {
-            double time = t->getState()->cme_state().species_counts().time(0);
-            if (time < minTime)
-            {
-                minTime = time;
-                minId = it->first;
-            }
+            minTime = time;
+            minId = it->first;
         }
     }
-
-    // If we found an available trajectory, return the next work unit message.
-    if (minId != UINT64_MAX)
-    {
-        return trajectories[minId]->getNextWorkUnitMsg(workUnitCount++);
-    }
-    return NULL;
+    return minId;
 }
 
 void ReplicateTrajectoryList::printTrajectoryStatistics()
@@ -140,7 +128,7 @@ void ReplicateTrajectoryList::printTrajectoryStatistics()
         {
             uint64_t id = it->first;
             lm::trajectory::Trajectory* t = it->second;
-            Print::printf(Print::INFO, "%10lld %-11s %8.2e %10d", id, statusStrings[(int)t->getStatus()].c_str(), t->getState()->cme_state().species_counts().time(0), t->getWorkUnitsPerformed());
+            Print::printf(Print::INFO, "%10lld %-11s %8.2e %10d", id, statusStrings[(int)t->getStatus()].c_str(), t->getState().cme_state().species_counts().time(0), t->getWorkUnitsPerformed());
         }
         stats_lastPrintTime = getHrTime();
     }

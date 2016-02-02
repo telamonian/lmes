@@ -67,7 +67,6 @@ public:
     virtual int64_t getWorkUnitsPerformed();
 
     // mutators
-    virtual void setId(uint64_t newId);
     virtual void setStatus(status_t newStatus);
     virtual void setState(const lm::io::TrajectoryState& newState);
     virtual void incrementWorkUnitsPerformed();

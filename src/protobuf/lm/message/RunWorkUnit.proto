@@ -44,12 +44,13 @@ import "lm/io/TrajectoryLimits.proto";
 import "lm/message/WorkUnit.proto";
 
 message RunWorkUnit {
-    required uint64 work_unit_id                   = 1;
-    required int32 supervisor_process              = 2;
-    required int32 supervisor_thread               = 3;
-    required int32 output_process                  = 4;
-    required int32 output_thread                   = 5;
-    optional lm.io.TrajectoryLimits limits         = 6;
-    optional lm.io.OutputOptions output_options    = 8;
-    repeated lm.message.WorkUnit part              = 7;
+    required uint64 work_unit_id                        = 1;
+    required int32 supervisor_process                   = 2;
+    required int32 supervisor_thread                    = 3;
+    required int32 output_process                       = 4;
+    required int32 output_thread                        = 5;
+    optional lm.io.TrajectoryLimits trajectory_limits   = 6;
+    optional lm.io.OutputOptions output_options         = 8;
+    required uint64 max_steps                           = 9;
+    repeated lm.message.WorkUnit part                   = 7;
 }

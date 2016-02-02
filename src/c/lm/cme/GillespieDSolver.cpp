@@ -160,25 +160,23 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     lm::message::WorkUnitOutput* msg = msgp->add_part_output();
 
     // Get the interval for writing species counts.
-    double writeInterval = atof(simulationParameters["writeInterval"].c_str());
-    bool writeTimeSteps = (writeInterval > 0.0);
     double nextSpeciesWriteTime;
     vector<int32_t> speciesTimeSeriesCounts;
     vector<double> speciesTimeSeriesTimes;
 
     // If we are writing time steps, create the data set.
-    if (writeTimeSteps)
+    if (writeSpeciesTimeSeries)
     {
         // If this is the start of the trajectory, add the initial counts.
         if (time == 0.0 || trajectoryStarted==false)
         {
-            nextSpeciesWriteTime=writeInterval;
+            nextSpeciesWriteTime=speciesWriteInterval;
             for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
             speciesTimeSeriesTimes.push_back(0.0);
         }
         else
         {
-            nextSpeciesWriteTime = ceil(time/writeInterval)*writeInterval;
+            nextSpeciesWriteTime = ceil(time/speciesWriteInterval)*speciesWriteInterval;
         }
     }
 
@@ -227,7 +225,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         }
 
         // If we are writing time steps, write out any time steps before this event occurred.
-        if (writeTimeSteps)
+        if (writeSpeciesTimeSeries)
         {
             // Write time steps until the next write time is past the current time.
             while (nextSpeciesWriteTime <= (time+1e-9))
@@ -235,7 +233,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
                 // Record the species counts.
                 for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
                 speciesTimeSeriesTimes.push_back(nextSpeciesWriteTime);
-                nextSpeciesWriteTime += writeInterval;
+                nextSpeciesWriteTime += speciesWriteInterval;
             }
         }
 
@@ -289,14 +287,14 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     {
         time = timeLimit;
         Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);
-        if (writeTimeSteps)
+        if (writeSpeciesTimeSeries)
         {
             while (nextSpeciesWriteTime <= (timeLimit+1e-9))
             {
                 // Record the species counts.
                 for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
                 speciesTimeSeriesTimes.push_back(nextSpeciesWriteTime);
-                nextSpeciesWriteTime += writeInterval;
+                nextSpeciesWriteTime += speciesWriteInterval;
             }
         }
     }
@@ -305,7 +303,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED)
     {
         // Record the species counts.
-        if (writeTimeSteps)
+        if (writeSpeciesTimeSeries)
         {
             // Record the species counts.
             for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);

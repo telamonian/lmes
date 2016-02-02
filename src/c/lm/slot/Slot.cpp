@@ -50,7 +50,7 @@ namespace lm {
 namespace slot {
 
 Slot::Slot(int32_t id, lm::resource::ComputeResources resources)
-:id(id), status(NOT_STARTED), resources(resources)
+:id(id),status(NOT_STARTED),resources(resources),simultaneousWorkUnits(0)
 {
 }
 

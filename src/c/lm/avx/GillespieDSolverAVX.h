@@ -79,7 +79,7 @@ public:
 protected:
     void updateAllPropensities(const uint numberSpecies);
     //void updatePropensities(avxd time, uint sourceReaction);
-    void performReactionEvent(uint* reactionsToPerform);
+    virtual void performReactionEvent(uint* reactionsToPerform);
     virtual bool isTrajectoryOutsideLimits();
 
 protected:

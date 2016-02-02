@@ -203,6 +203,13 @@ void FFluxTrajectoryList::initPhaseNTrajectories(uint64_t trajectoriesToStart)
 
 lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg)
 {
+    //TODO fix this block, copied it from supervisor, but it is better placed here now.
+    // If the trajectory associated with the finished work unit exists...
+    if (trajectoryList->exists(msg.final_state().trajectory_id()))
+    {
+        // ...update the trajectory based on the results of the work unit
+    }
+
     // setup directionString for printing the name of the current simulation direction
     vector<string> directionStrings; directionStrings.push_back("FORWARD"); directionStrings.push_back("BACKWARD");
 

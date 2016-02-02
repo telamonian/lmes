@@ -50,9 +50,9 @@ message WorkUnitStatus {
         ERROR           = 3;
     }
 
-    required Status status                         = 4;
-    required double run_time                       = 5;
-    required int64 steps                           = 6;
-    required lm.io.TrajectoryState final_state     = 7;
-    optional string error_message                  = 8;
+    required Status status                         = 1;
+    required double run_time                       = 2;
+    required int64 steps                           = 3;
+    required lm.io.TrajectoryState final_state     = 4;
+    optional string error_message                  = 5;
 }

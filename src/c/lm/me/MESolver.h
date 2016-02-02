@@ -45,8 +45,8 @@
 #include <vector>
 
 #include "lm/io/DiffusionModel.pb.h"
+#include "lm/io/OutputOptions.pb.h"
 #include "lm/io/ReactionModel.pb.h"
-#include "lm/io/SimulationParameters.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Communicator.h"
@@ -67,21 +67,20 @@ public:
     virtual ~MESolver();
     virtual void setComputeResources(vector<int> cpus, vector<int> gpus);
     virtual int getSimultaneousTrajectories();
-    virtual void setSimulationParameters(const lm::io::SimulationParameters& simulationParameters);
     virtual bool needsReactionModel()=0;
     virtual void setReactionModel(const lm::io::ReactionModel& rm)=0;
     virtual bool needsDiffusionModel()=0;
     virtual void setDiffusionModel(const lm::io::DiffusionModel& dm)=0;
-    virtual bool needsOrderParameters()=0;
     virtual void setOrderParameters(const lm::io::OrderParameters& ops)=0;
-    virtual bool needsTilings()=0;
     virtual void setTilings(const lm::io::Tilings& tilings)=0;
     virtual void reset();
     virtual void setCommunicator(lm::message::Communicator* communicator, int outputProcess, int outputThread, int64_t workUnitId);
     virtual void getState(lm::io::TrajectoryState* state)=0;
     virtual void setState(const lm::io::TrajectoryState& state)=0;
     virtual void setLimits(const lm::io::TrajectoryLimits& limits)=0;
+    virtual void setOutputOptions(const lm::io::OutputOptions& outputOptions)=0;
     virtual long long generateTrajectory(long long maxSteps)=0;
+    virtual lm::message::WorkUnitStatus::Status getStatus()=0;
 
 protected:
     virtual bool isTrajectoryOutsideLimits()=0;
@@ -89,7 +88,6 @@ protected:
 protected:
     vector<int> cpus;
     vector<int> gpus;
-    map<string,string> simulationParameters;
     lm::message::Communicator* communicator;
     int outputProcess;
     int outputThread;
