@@ -18,8 +18,9 @@ class timewith():
     '''
     taken from https://zapier.com/engineering/profiling-python-boss/
     '''
-    def __init__(self, name=''):
+    def __init__(self, name='', finishMessage='finished'):
         self.name = name
+        self.finishMessage = finishMessage
         self.start = time.time()
 
     @property
@@ -35,5 +36,4 @@ class timewith():
         return self
 
     def __exit__(self, type, value, traceback):
-        self.checkpoint('finished')
-        pass
+        self.checkpoint(self.finishMessage)
