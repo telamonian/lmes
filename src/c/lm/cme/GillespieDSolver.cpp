@@ -183,9 +183,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     // Local cache of random numbers.
     double rngValues[TUNE_LOCAL_RNG_CACHE_SIZE];
     double expRngValues[TUNE_LOCAL_RNG_CACHE_SIZE];
-    rng->getRandomDoubles(rngValues,TUNE_LOCAL_RNG_CACHE_SIZE);
-    rng->getExpRandomDoubles(expRngValues,TUNE_LOCAL_RNG_CACHE_SIZE);
-    int rngNext=0;
+    int rngNext=TUNE_LOCAL_RNG_CACHE_SIZE;
 
     // Run the direct method.
     Print::printf(Print::DEBUG, "Running Gillespie direct simulation for %d steps with %d species, %d reactions, %d species limits\n", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberLimits);
@@ -194,7 +192,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     while (true)
     {
         // See if we have finished the steps.
-        if (steps < maxSteps)
+        if (steps >= maxSteps)
         {
             status = lm::message::WorkUnitStatus::STEPS_FINISHED;
             break;
@@ -263,10 +261,23 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         for (uint i=0; i<numberReactions; i++) totalPropensity += propensities[i];
 
         // If the total propensity is zero, return an error.
-        if (totalPropensity > 0)
+        if (totalPropensity <= 0)
         {
-            status = lm::message::WorkUnitStatus::ERROR;
-            break;
+            // If we have a time limit, say that we reached it.
+            if (timeLimit < std::numeric_limits<double>::infinity())
+            {
+                timeStep = timeLimit-time;
+                time = timeLimit;
+                status = lm::message::WorkUnitStatus::LIMIT_REACHED;
+                limitReached = lm::io::TrajectoryLimits::MAXTIME;
+            }
+
+            // Otherwise, zero propensity is an error.
+            else
+            {
+                status = lm::message::WorkUnitStatus::ERROR;
+                break;
+            }
         }
 
         //Print::printf(Print::VERBOSE_DEBUG, "Step %d: time=%e, count=%d, prop=%e, totprop=%e",steps,time,speciesCounts[0],propensities[0],totalPropensity);

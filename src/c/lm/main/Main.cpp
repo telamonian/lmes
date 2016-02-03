@@ -175,10 +175,13 @@ bool ioTestFlag;
 void printCopyright(int argc, char** argv)
 {
     std::cout << "Lattice Microbe ES v" << VERSION_NUM << " build " << BUILD_INFO << " in " << (sizeof(uintv_t)*8) << "-bit mode with options";
+    std::cout << " MPI";
 #ifdef OPT_CUDA
     std::cout << " CUDA";
 #endif
-    std::cout << " MPI";
+#ifdef OPT_AVX
+    std::cout << " AVX";
+#endif
     std::cout << "." << std::endl;
     std::cout << "Copyright (C) " << COPYRIGHT_DATE << " Luthey-Schulten Group, University of Illinois at Urbana-Champaign." << std::endl;
     std::cout << "Copyright (C) " << COPYRIGHT_DATE_JHU << " Roberts Group, Johns Hopkins University." << std::endl << std::endl;
@@ -585,6 +588,7 @@ void printUsage(int argc, char** argv)
 #include "lm/rng/XORShift.h"
 
 #include <immintrin.h>
+#include "lm/cme/GillespieDSolver.h"
 #include "lm/avx/GillespieDSolverAVX.h"
 
 void mainDebug(int argc, char** argv)
@@ -651,15 +655,139 @@ void mainDebug(int argc, char** argv)
     */
 
     /**
-      Generate a trajectory using GillespieDSolverAVX.
+      Generate a trajectory.
       */
     /**/
-    lm::avx::GillespieDSolverAVX* s = new lm::avx::GillespieDSolverAVX();
+    //lm::avx::GillespieDSolverAVX s = new lm::avx::GillespieDSolverAVX();
+    lm::cme::GillespieDSolver s;
+
+    vector<int> cpus;
+    cpus.push_back(0);
+    s.setComputeResources(cpus, vector<int>());
+
+    // First order decay model.
+//    lm::io::ReactionModel rm;
+//    rm.set_number_species(1);
+//    rm.set_number_reactions(1);
+//    rm.add_initial_species_count(100);
+//    rm.add_reaction();
+//    rm.mutable_reaction(0)->set_type(1);
+//    rm.mutable_reaction(0)->add_rate_constant(0.5);
+//    rm.add_dependency_matrix(1);
+//    rm.add_stoichiometric_matrix(-1);
+
+    // First order birth death model.
+    lm::io::ReactionModel rm;
+    rm.set_number_species(1);
+    rm.set_number_reactions(2);
+    rm.add_initial_species_count(1000);
+    rm.add_reaction();
+    rm.mutable_reaction(0)->set_type(0);
+    rm.mutable_reaction(0)->add_rate_constant(1000.0);
+    rm.add_reaction();
+    rm.mutable_reaction(1)->set_type(1);
+    rm.mutable_reaction(1)->add_rate_constant(1.0);
+    rm.add_dependency_matrix(0);
+    rm.add_dependency_matrix(1);
+    rm.add_stoichiometric_matrix(1);
+    rm.add_stoichiometric_matrix(-1);
+
+    // Three reaction birth death.
+//    lm::io::ReactionModel rm;
+//    rm.set_number_species(1);
+//    rm.set_number_reactions(3);
+//    rm.add_initial_species_count(100);
+//    rm.add_reaction();
+//    rm.mutable_reaction(0)->set_type(1);
+//    rm.mutable_reaction(0)->add_rate_constant(0.5);
+//    rm.add_reaction();
+//    rm.mutable_reaction(1)->set_type(0);
+//    rm.mutable_reaction(1)->add_rate_constant(100.0);
+//    rm.add_reaction();
+//    rm.mutable_reaction(2)->set_type(1);
+//    rm.mutable_reaction(2)->add_rate_constant(0.5);
+//    rm.add_dependency_matrix(1);
+//    rm.add_dependency_matrix(0);
+//    rm.add_dependency_matrix(1);
+//    rm.add_stoichiometric_matrix(-1);
+//    rm.add_stoichiometric_matrix(1);
+//    rm.add_stoichiometric_matrix(-1);
+
+    // Two species parallel three reaction birth death.
+//    lm::io::ReactionModel rm;
+//    rm.set_number_species(2);
+//    rm.set_number_reactions(6);
+//    rm.add_initial_species_count(100);
+//    rm.add_reaction();
+//    rm.mutable_reaction(0)->set_type(1);
+//    rm.mutable_reaction(0)->add_rate_constant(0.5);
+//    rm.add_reaction();
+//    rm.mutable_reaction(1)->set_type(0);
+//    rm.mutable_reaction(1)->add_rate_constant(100.0);
+//    rm.add_reaction();
+//    rm.mutable_reaction(2)->set_type(1);
+//    rm.mutable_reaction(2)->add_rate_constant(0.5);
+//    rm.add_reaction();
+//    rm.mutable_reaction(3)->set_type(1);
+//    rm.mutable_reaction(3)->add_rate_constant(0.5);
+//    rm.add_reaction();
+//    rm.mutable_reaction(4)->set_type(0);
+//    rm.mutable_reaction(4)->add_rate_constant(10.0);
+//    rm.add_reaction();
+//    rm.mutable_reaction(5)->set_type(1);
+//    rm.mutable_reaction(5)->add_rate_constant(0.5);
+//    rm.add_dependency_matrix(1);
+//    rm.add_dependency_matrix(0);
+//    rm.add_dependency_matrix(1);
+//    rm.add_dependency_matrix(0);
+//    rm.add_dependency_matrix(0);
+//    rm.add_dependency_matrix(0);
+//    rm.add_dependency_matrix(0);
+//    rm.add_dependency_matrix(0);
+//    rm.add_dependency_matrix(0);
+//    rm.add_dependency_matrix(1);
+//    rm.add_dependency_matrix(0);
+//    rm.add_dependency_matrix(1);
+//    rm.add_stoichiometric_matrix(-1);
+//    rm.add_stoichiometric_matrix(1);
+//    rm.add_stoichiometric_matrix(-1);
+//    rm.add_stoichiometric_matrix(0);
+//    rm.add_stoichiometric_matrix(0);
+//    rm.add_stoichiometric_matrix(0);
+//    rm.add_stoichiometric_matrix(0);
+//    rm.add_stoichiometric_matrix(0);
+//    rm.add_stoichiometric_matrix(0);
+//    rm.add_stoichiometric_matrix(-1);
+//    rm.add_stoichiometric_matrix(1);
+//    rm.add_stoichiometric_matrix(-1);
+
+    // Set the reaction model.
+    s.setReactionModel(rm);
+
+    // Set the limits.
+    lm::io::TrajectoryLimits limits;
+    //limits.set_max_time_limit(100.0);
+    s.setLimits(limits);
+
+    // Reset the solver.
+    s.reset();
+
+    // Set the initial state.
+    lm::io::TrajectoryState state;
+    state.set_trajectory_id(1);
+    state.mutable_cme_state();
+    state.mutable_cme_state()->mutable_species_counts()->set_trajectory_id(state.trajectory_id());
+    state.mutable_cme_state()->mutable_species_counts()->set_number_species(rm.number_species());
+    state.mutable_cme_state()->mutable_species_counts()->set_number_entries(1);
+    for (int i=0; i<rm.number_species(); i++)
+        state.mutable_cme_state()->mutable_species_counts()->add_species_count(rm.initial_species_count(i));
+    state.mutable_cme_state()->mutable_species_counts()->add_time(0.0);
+    s.setState(state);
+
     hrtime start = getHrTime();
-    long long steps = s->generateTrajectory(10000000);
+    long long steps = s.generateTrajectory(100000000);
     hrtime stop = getHrTime();
     printf("Performed %lld steps in %0.3f seconds (%0.4e steps/second)\n",steps,convertHrToSeconds(stop-start),double(steps)/convertHrToSeconds(stop-start));
-    delete s;
    /**/
 
 

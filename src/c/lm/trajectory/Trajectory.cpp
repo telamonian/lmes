@@ -75,10 +75,13 @@ void Trajectory::initializeState(const lm::input::Input& input, bool reversed)
 {
     state.Clear();
 
+    state.set_trajectory_id(id);
+
     // Set cme state from the reaction model.
     if (input.hasReactionModel())
     {
         const lm::io::ReactionModel& reactionModel = input.getReactionModel();
+        state.mutable_cme_state()->mutable_species_counts()->set_trajectory_id(id);
         state.mutable_cme_state()->mutable_species_counts()->set_number_entries(1);
         state.mutable_cme_state()->mutable_species_counts()->set_number_species(reactionModel.number_species());
         if (!reversed)

@@ -76,7 +76,7 @@ void* ReplicateSupervisor::allocateObject()
 }
 
 ReplicateSupervisor::ReplicateSupervisor()
-:simulationStartTime(0)
+:simulationStartTime(0),numberReplicates(0)
 {
 }
 
@@ -102,11 +102,12 @@ void ReplicateSupervisor::buildTrajectoryList()
 {
     // Create the new trajectory list.
     trajectoryList = new ReplicateTrajectoryList(*input, ::replicates.front(), ::replicates.back());
+    numberReplicates += trajectoryList->size();
 }
 
 void ReplicateSupervisor::finishSimulation()
 {
-    Print::printf(Print::INFO, "Replicate supervisor finished %d replicates in %0.2f seconds.", trajectoryList->size(), convertHrToSeconds(getHrTime()-simulationStartTime));
+    Print::printf(Print::INFO, "Replicate supervisor finished %lld replicates in %0.2f seconds.", numberReplicates, convertHrToSeconds(getHrTime()-simulationStartTime));
     SimulationSupervisor::finishSimulation();
 }
 

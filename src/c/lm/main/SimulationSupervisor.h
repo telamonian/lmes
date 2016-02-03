@@ -151,6 +151,7 @@ protected:
 private:
     hrtime stats_lastPrintTime;
     long long stats_workUnits;
+    long long stats_workUnitsParts;
     long long stats_minWorkUnitId;
     long long stats_maxWorkUnitId;
     long long stats_workUnitsSteps;

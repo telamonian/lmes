@@ -175,28 +175,9 @@ public:
     virtual lm::message::WorkUnitStatus::Status getStatus() {return status;}
 
 protected:
-
     virtual void performReactionEvent(uint r);
-
-    inline void updatedSpeciesCounts()
-    {
-        // Update the first passage time tables.
-        for (int i=0; i<numberFptTrackedSpecies; i++)
-        {
-            int speciesCount = speciesCounts[fptTrackedSpecies[i].species];
-            while (speciesCount < fptTrackedSpecies[i].minValueAchieved)
-            {
-                fptTrackedSpecies[i].fptValues.push_front(std::pair<int,double>(--fptTrackedSpecies[i].minValueAchieved,time));
-            }
-            while (speciesCount > fptTrackedSpecies[i].maxValueAchieved)
-            {
-                fptTrackedSpecies[i].fptValues.push_back(std::pair<int,double>(++fptTrackedSpecies[i].maxValueAchieved,time));
-            }
-        }
-    }
-
+    virtual void updatedSpeciesCounts();
     virtual bool isTrajectoryOutsideLimits();
-
 
 protected:
     RandomGenerator::Distributions neededDists;

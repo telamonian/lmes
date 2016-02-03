@@ -351,7 +351,24 @@ void CMESolver::performReactionEvent(uint r)
     for (int i=0; i<(int)reactionModel->numberDependentSpecies[r]; i++)
     {
         speciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
-        updatedSpeciesCounts();
+    }
+    updatedSpeciesCounts();
+}
+
+void CMESolver::updatedSpeciesCounts()
+{
+    // Update the first passage time tables.
+    for (int i=0; i<numberFptTrackedSpecies; i++)
+    {
+        int speciesCount = speciesCounts[fptTrackedSpecies[i].species];
+        while (speciesCount < fptTrackedSpecies[i].minValueAchieved)
+        {
+            fptTrackedSpecies[i].fptValues.push_front(std::pair<int,double>(--fptTrackedSpecies[i].minValueAchieved,time));
+        }
+        while (speciesCount > fptTrackedSpecies[i].maxValueAchieved)
+        {
+            fptTrackedSpecies[i].fptValues.push_back(std::pair<int,double>(++fptTrackedSpecies[i].maxValueAchieved,time));
+        }
     }
 
     // Update any order parameters.

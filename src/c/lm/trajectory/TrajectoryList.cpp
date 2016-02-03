@@ -153,6 +153,9 @@ int TrajectoryList::addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUn
     // Add these trajectories to the work units running map.
     workUnitsRunning[workUnitId] = trajectoriesAdded;
 
+    // Print some performance statistics, if it has been a while.
+    printTrajectoryStatistics();
+
     return trajectoriesAdded.size();
 }
 
@@ -222,9 +225,6 @@ void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
             throw Exception("Unknown work unit status", msg.part_status(partIndex).status());
         }
     }
-
-    // Print some performance statistics, if it has been a while.
-    printTrajectoryStatistics();
 }
 
 void TrajectoryList::printTrajectoryStatistics()

@@ -97,11 +97,10 @@ void* GillespieDSolverAVX::allocateObject()
     return new GillespieDSolverAVX();
 }
 
-GillespieDSolverAVX::GillespieDSolverAVX():CMESolver((RandomGenerator::Distributions)(RandomGenerator::EXPONENTIAL|RandomGenerator::UNIFORM)),propensities(NULL)
+GillespieDSolverAVX::GillespieDSolverAVX()
+:CMESolver((RandomGenerator::Distributions)(RandomGenerator::EXPONENTIAL|RandomGenerator::UNIFORM)),
+timeLimit(_mm256_set1_pd(std::numeric_limits<double>::infinity())),speciesCounts(NULL),propensities(NULL),time(_mm256_set1_pd(0.0)),timeStep(_mm256_set1_pd(0.0))
 {
-    // Initialize the time limit.
-    timeLimit = _mm256_set1_pd(std::numeric_limits<double>::infinity());
-
     // Initialize any array variables.
     for (int i=0; i<DOUBLES_PER_AVX; i++)
     {
@@ -109,127 +108,6 @@ GillespieDSolverAVX::GillespieDSolverAVX():CMESolver((RandomGenerator::Distribut
         limitReached[i] = lm::io::TrajectoryLimits::NONE;
         trajectoryStarted[i] = false;
     }
-
-    vector<int> cpus;
-    cpus.push_back(0);
-    setComputeResources(cpus, vector<int>());
-
-    /*lm::io::ReactionModel rm;
-    rm.set_number_species(1);
-    rm.set_number_reactions(1);
-    rm.add_initial_species_count(100);
-    rm.add_reaction();
-    rm.mutable_reaction(0)->set_type(1);
-    rm.mutable_reaction(0)->add_rate_constant(0.5);
-    rm.add_dependency_matrix(1);
-    rm.add_stoichiometric_matrix(-1);
-    */
-
-    lm::io::ReactionModel rm;
-    rm.set_number_species(1);
-    rm.set_number_reactions(2);
-    rm.add_initial_species_count(1000);
-    rm.add_reaction();
-    rm.mutable_reaction(0)->set_type(0);
-    rm.mutable_reaction(0)->add_rate_constant(1000.0);
-    rm.add_reaction();
-    rm.mutable_reaction(1)->set_type(1);
-    rm.mutable_reaction(1)->add_rate_constant(1.0);
-    rm.add_dependency_matrix(0);
-    rm.add_dependency_matrix(1);
-    rm.add_stoichiometric_matrix(1);
-    rm.add_stoichiometric_matrix(-1);
-
-
-    /*lm::io::ReactionModel rm;
-    rm.set_number_species(1);
-    rm.set_number_reactions(3);
-    rm.add_initial_species_count(100);
-    rm.add_reaction();
-    rm.mutable_reaction(0)->set_type(1);
-    rm.mutable_reaction(0)->add_rate_constant(0.5);
-    rm.add_reaction();
-    rm.mutable_reaction(1)->set_type(0);
-    rm.mutable_reaction(1)->add_rate_constant(100.0);
-    rm.add_reaction();
-    rm.mutable_reaction(2)->set_type(1);
-    rm.mutable_reaction(2)->add_rate_constant(0.5);
-    rm.add_dependency_matrix(1);
-    rm.add_dependency_matrix(0);
-    rm.add_dependency_matrix(1);
-    rm.add_stoichiometric_matrix(-1);
-    rm.add_stoichiometric_matrix(1);
-    rm.add_stoichiometric_matrix(-1);
-    */
-
-    /*lm::io::ReactionModel rm;
-    rm.set_number_species(2);
-    rm.set_number_reactions(6);
-    rm.add_initial_species_count(100);
-    rm.add_reaction();
-    rm.mutable_reaction(0)->set_type(1);
-    rm.mutable_reaction(0)->add_rate_constant(0.5);
-    rm.add_reaction();
-    rm.mutable_reaction(1)->set_type(0);
-    rm.mutable_reaction(1)->add_rate_constant(100.0);
-    rm.add_reaction();
-    rm.mutable_reaction(2)->set_type(1);
-    rm.mutable_reaction(2)->add_rate_constant(0.5);
-    rm.add_reaction();
-    rm.mutable_reaction(3)->set_type(1);
-    rm.mutable_reaction(3)->add_rate_constant(0.5);
-    rm.add_reaction();
-    rm.mutable_reaction(4)->set_type(0);
-    rm.mutable_reaction(4)->add_rate_constant(10.0);
-    rm.add_reaction();
-    rm.mutable_reaction(5)->set_type(1);
-    rm.mutable_reaction(5)->add_rate_constant(0.5);
-    rm.add_dependency_matrix(1);
-    rm.add_dependency_matrix(0);
-    rm.add_dependency_matrix(1);
-    rm.add_dependency_matrix(0);
-    rm.add_dependency_matrix(0);
-    rm.add_dependency_matrix(0);
-    rm.add_dependency_matrix(0);
-    rm.add_dependency_matrix(0);
-    rm.add_dependency_matrix(0);
-    rm.add_dependency_matrix(1);
-    rm.add_dependency_matrix(0);
-    rm.add_dependency_matrix(1);
-    rm.add_stoichiometric_matrix(-1);
-    rm.add_stoichiometric_matrix(1);
-    rm.add_stoichiometric_matrix(-1);
-    rm.add_stoichiometric_matrix(0);
-    rm.add_stoichiometric_matrix(0);
-    rm.add_stoichiometric_matrix(0);
-    rm.add_stoichiometric_matrix(0);
-    rm.add_stoichiometric_matrix(0);
-    rm.add_stoichiometric_matrix(0);
-    rm.add_stoichiometric_matrix(-1);
-    rm.add_stoichiometric_matrix(1);
-    rm.add_stoichiometric_matrix(-1);*/
-
-    setReactionModel(rm);
-
-    reset();
-
-    // Set the species counts.
-    speciesCounts[0] = 1000.0;
-    speciesCounts[1] = 1000.0;
-    speciesCounts[2] = 1000.0;
-    speciesCounts[3] = 1000.0;
-//    speciesCounts[4] = 10.0;
-//    speciesCounts[5] = 10.0;
-//    speciesCounts[6] = 10.0;
-//    speciesCounts[7] = 10.0;
-
-    // Set the propensities.
-    updateAllPropensities(reactionModel->numberSpecies);
-
-    time = _mm256_setr_pd(0.0, 1.99999999999999, 3.99999999999999, 9.99999999999999);
-    timeLimit = _mm256_setr_pd(100000.0, 100000.0, 100000.0, 100000.0);
-    writeSpeciesTimeSeries = true;
-    speciesWriteInterval = 1000.0;
 }
 
 GillespieDSolverAVX::~GillespieDSolverAVX()
@@ -251,6 +129,8 @@ void GillespieDSolverAVX::reset()
     // Reset any array variables.
     for (int i=0; i<DOUBLES_PER_AVX; i++)
     {
+        status[i] = lm::message::WorkUnitStatus::NONE;
+        limitReached[i] = lm::io::TrajectoryLimits::NONE;
         trajectoryStarted[i] = false;
     }
 
@@ -347,13 +227,11 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
     }
 
     // Local cache of random numbers.
-    int rngNext=0;
     double* rngValues = NULL;
     double* expRngValues = NULL;
     POSIX_EXCEPTION_CHECK(posix_memalign((void**)&rngValues, DOUBLES_PER_AVX*sizeof(double), TUNE_LOCAL_RNG_CACHE_SIZE*sizeof(double)));
     POSIX_EXCEPTION_CHECK(posix_memalign((void**)&expRngValues, DOUBLES_PER_AVX*sizeof(double), TUNE_LOCAL_RNG_CACHE_SIZE*sizeof(double)));
-    rng->getRandomDoubles(rngValues,TUNE_LOCAL_RNG_CACHE_SIZE, true);
-    rng->getExpRandomDoubles(expRngValues,TUNE_LOCAL_RNG_CACHE_SIZE, true);
+    int rngNext=TUNE_LOCAL_RNG_CACHE_SIZE;
 
     // Run the direct method.
     Print::printf(Print::DEBUG, "Running Gillespie direct avx simulation for %d steps with %d species, %d reactions, %d species limits\n", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberLimits);
@@ -365,7 +243,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
     while (true)
     {
         // See if we have finished the steps.
-        if (steps < maxSteps)
+        if (steps >= maxSteps)
         {
             for (int i=0; i<DOUBLES_PER_AVX; i++)
             {

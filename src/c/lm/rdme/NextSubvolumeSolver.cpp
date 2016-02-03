@@ -239,10 +239,8 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     // Local cache of random numbers.
     double expRngValues[TUNE_LOCAL_RNG_CACHE_SIZE];
     double uniRngValues[TUNE_LOCAL_RNG_CACHE_SIZE];
-    rng->getExpRandomDoubles(expRngValues,TUNE_LOCAL_RNG_CACHE_SIZE);
-    rng->getRandomDoubles(uniRngValues,TUNE_LOCAL_RNG_CACHE_SIZE);
-    int expRngNext=0;
-    int uniRngNext=0;
+    int expRngNext=TUNE_LOCAL_RNG_CACHE_SIZE;
+    int uniRngNext=TUNE_LOCAL_RNG_CACHE_SIZE;
 
     // Initialize the reaction queue.
     expRngNext=updateAllSubvolumePropensities(time, expRngNext, expRngValues);
@@ -254,8 +252,16 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     bool affectedNeighbor;
     lattice_size_t subvolume;
     lattice_size_t neighborSubvolume;
-    while (steps < maxSteps)
+    while (true)
     {
+        // See if we have finished the steps.
+        if (steps >= maxSteps)
+        {
+            status = lm::message::WorkUnitStatus::STEPS_FINISHED;
+            break;
+        }
+
+        // Increment the steps.
         steps++;
 
         // Get the next subvolume with a reaction and the reaction time.
@@ -321,6 +327,8 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
        expRngNext=updateSubvolumePropensity(time, subvolume, expRngNext, expRngValues);
        if (affectedNeighbor) expRngNext=updateSubvolumePropensity(time, neighborSubvolume, expRngNext, expRngValues);
        PROF_END(PROF_NSM_UPDATE_SUBVOLUME_PROPENSITY);
+
+       //TODO: check for zero propensity.
 
        //Print::printf(Print::VERBOSE_DEBUG, "Step %d: time=%e, count=%d,%d,%d",steps,time,speciesCounts[0],speciesCounts[1],speciesCounts[2]);
     }

@@ -50,7 +50,6 @@
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Message.pb.h"
-#include "lm/replicates/ReplicateTrajectory.h"
 #include "lm/replicates/ReplicateTrajectoryList.h"
 #include "lm/trajectory/Trajectory.h"
 #include "lm/trajectory/TrajectoryList.h"

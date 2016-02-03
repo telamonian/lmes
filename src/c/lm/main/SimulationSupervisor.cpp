@@ -444,6 +444,7 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
     stats_maxWorkUnitId = std::max(stats_maxWorkUnitId,(long long)msg.work_unit_id());
     for (int i=0; i<msg.part_status_size(); i++)
     {
+        stats_workUnitsParts++;
         stats_workUnitsSteps += msg.part_status(i).steps();
         stats_workUnitTime += msg.part_status(i).run_time();
     }
@@ -504,6 +505,7 @@ void SimulationSupervisor::resetPerformanceStatistics()
 {
     stats_lastPrintTime = getHrTime();
     stats_workUnits = 0;
+    stats_workUnitsParts = 0;
     stats_minWorkUnitId = LLONG_MAX;
     stats_maxWorkUnitId = 0;
     stats_workUnitsSteps = 0;
@@ -518,7 +520,7 @@ void SimulationSupervisor::printPerformanceStatistics(bool flush)
     {
         if (stats_workUnits > 0)
         {
-            Print::printf(Print::INFO, "Finished %lld work units (ids in range %lld to %lld) in the last %0.1f seconds. %lld steps in %0.3e seconds (%0.3e steps/second).",stats_workUnits,stats_minWorkUnitId,stats_maxWorkUnitId,convertHrToSeconds(currentTime-stats_lastPrintTime), stats_workUnitsSteps, stats_workUnitTime, double(stats_workUnitsSteps)/stats_workUnitTime);
+            Print::printf(Print::INFO, "Finished %lld work units (ids in range %lld to %lld) with %lld parts in the last %0.1f seconds. %lld steps in %0.3e seconds (%0.3e steps/second).",stats_workUnits,stats_minWorkUnitId,stats_maxWorkUnitId,stats_workUnitsParts,convertHrToSeconds(currentTime-stats_lastPrintTime), stats_workUnitsSteps, stats_workUnitTime, double(stats_workUnitsSteps)/stats_workUnitTime);
         }
         stats_lastPrintTime = currentTime;
         resetPerformanceStatistics();

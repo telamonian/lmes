@@ -64,9 +64,6 @@ int MESolver::getSimultaneousTrajectories()
 
 void MESolver::reset()
 {
-    communicator = NULL;
-    outputProcess = -1;
-    outputThread = -1;
 }
 
 void MESolver::setCommunicator(lm::message::Communicator* communicator, int outputProcess, int outputThread, int64_t workUnitId)

@@ -96,10 +96,7 @@ protected:
     double* speciesCounts;
     double* propensities;
     avxd time;
-
-
-
-
+    avxd timeStep;
 };
 
 }

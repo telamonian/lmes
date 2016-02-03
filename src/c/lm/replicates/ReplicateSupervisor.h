@@ -85,6 +85,7 @@ protected:
 
 private:
     hrtime simulationStartTime;
+    uint64_t numberReplicates;
 };
 
 }
