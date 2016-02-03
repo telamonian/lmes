@@ -22,6 +22,7 @@ class GenData(object):
         for key,sim in self.sims.items():
             simName = str(tuple(key))
             for dataToExcludeFrom,field in self.excludedFields:
+                print(dataToExcludeFrom, field)
                 sim.__getattribute__(CamelCaseLower(dataToExcludeFrom)).setExcludedFields(field)
 
             print('starting generation of %s from Sim %s' % (dataType, simName))
@@ -33,6 +34,8 @@ class GenData(object):
                         sim.__getattribute__(CamelCaseLower(dataType)).regen()
                     sim.__getattribute__(CamelCaseLower(dataType)).map
                     print('finished %s' % simName)
+                except (KeyboardInterrupt, SystemExit):
+                    raise
                 except: #AttributeError:
                     print("%s didn't finish" % simName)
                 finally:
@@ -55,7 +58,7 @@ def Main():
     if kwargs['excludedFields'] is not None and len(kwargs['excludedFields']) % 2!=0:
         raise ValueError('odd number of arguments passed to --excludedFields. These args should be pair of dataType, fieldName')
     else:
-        kwargs['excludedFields'] = zip(kwargs['excludedFields'][::2], kwargs['excludedFields'][1::2])
+        kwargs['excludedFields'] = list(zip(kwargs['excludedFields'][::2], kwargs['excludedFields'][1::2]))
 
     _Main(**kwargs)
 
