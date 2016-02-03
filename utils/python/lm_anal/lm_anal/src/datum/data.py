@@ -278,6 +278,8 @@ class Data(object):
 
         self.resetMap()
 
+        return self
+
     def resetMap(self):
         # reset the .map lazy loader
         try:
@@ -301,12 +303,28 @@ class Data(object):
         lzTransforms(srcs=dataToTransform, dsts=self, **transformKwargs)
 
 # func mapping/vectorization methods
-    def mapFunc(self, func, doRaise=False, **kwargs):
+    def mapFunc(self, func, *args, doRaise=False, **kwargs):
         # returns an ordered dict with keys=self.map.keys and vals=result of func
         retDict = OrderedDict()
-        for key,val in self:
+        for key,datum in self:
             try:
-                retDict[key] = func(val, **kwargs)
+                retDict[key] = func(datum, *args, **kwargs)
+            except Exception as e:
+                if doRaise:
+                    raise e
+                else:
+                    retDict[key] = None
+        return retDict
+
+    def mapGet(self, attrName, doRaise=False):
+        return self.mapMethod('__getattribute__', attrName, doRaise=doRaise)
+
+    def mapMethod(self, methodName, *args, doRaise=False, **kwargs):
+        # returns an ordered dict with keys=self.map.keys and vals=self.__getattribute__(methodName)(**kwargs)
+        retDict = OrderedDict()
+        for key,datum in self:
+            try:
+                retDict[key] = datum.__getattribute__(methodName)(*args, **kwargs)
             except Exception as e:
                 if doRaise:
                     raise e

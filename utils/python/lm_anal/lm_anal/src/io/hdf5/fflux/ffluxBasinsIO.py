@@ -30,7 +30,8 @@ class FFluxBasinsIO(HDF5IO):
     
     def inputTimePerPhase(self, hdf5Path, hdf5Spec, subCon):
         try:
-            subCon.setArray(name=hdf5Spec.name, val=self.file[hdf5Path][hdf5Spec.subKey], source_sel=np.s_[1:])
+            # subCon.setArray(name=hdf5Spec.name, val=self.file[hdf5Path][hdf5Spec.subKey], source_sel=np.s_[1:])
+            self.inputArray(hdf5Path=hdf5Path, hdf5Spec=hdf5Spec, subCon=subCon)
         except KeyError:
             pass
         

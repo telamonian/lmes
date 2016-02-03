@@ -1,17 +1,17 @@
 from lm_anal.src.datum.fflux import FFluxOutput
-from lm_anal.src.datum.probability import FFluxInterfaceFlux
+from lm_anal.src.datum.probability import InterfaceFlux
 from lm_anal.src.spec import PropertyTransformSpec, PropertyTransformSpecs, TransformSpec, TransformSpecs
 from lm_anal.src.transform import BaseT
 
-__all__ = ['FFluxOutputToFFluxInterfaceFluxT']
+__all__ = ['FFluxOutputToInterfaceFluxT']
 
-class FFluxOutputToFFluxInterfaceFluxT(BaseT):
+class FFluxOutputToInterfaceFluxT(BaseT):
     srcTypes = frozenset({FFluxOutput})
-    dstTypes = frozenset({FFluxInterfaceFlux})
+    dstTypes = frozenset({InterfaceFlux})
     
-    transformSpecs = TransformSpecs(TransformSpec(srcTypes={FFluxOutput}, dstTypes={FFluxInterfaceFlux}, requiredData={'tilings'},
+    transformSpecs = TransformSpecs(TransformSpec(srcTypes={FFluxOutput}, dstTypes={InterfaceFlux}, requiredData={'tilings'},
         propertyTransformSpecs=PropertyTransformSpecs(
-            PropertyTransformSpec(dstProps='fflux_interface_flux', srcProps='flux_out_of_tile_zero', type='special'))))
+            PropertyTransformSpec(dstProps='interface_flux', srcProps='flux_out_of_tile_zero', type='special'))))
     
     def genDatumKeyTuples(self, ffluxOutputKey, ffluxBasinKey, **kwargs):
         '''

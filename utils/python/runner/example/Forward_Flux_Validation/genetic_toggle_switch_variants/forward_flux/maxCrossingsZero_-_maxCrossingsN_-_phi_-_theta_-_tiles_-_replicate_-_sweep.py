@@ -96,11 +96,11 @@ def genSweepTup(ticks, label, paramFunc):
 if __name__=='__main__':
     mczTicks = [1e5] #LogTicks(2,6,base=10,resolution=0)
     # mtzTicks = [1e4]   #LogTicks(2,6,base=10,resolution=-.5)
-    mcnTicks = [1e5]    #LogTicks(2,6,base=10,resolution=0)
+    mcnTicks = LogTicks(2,6,base=10,resolution=0)
     phiTicks = [1e0]
     thetaTicks = LogTicks(1,-1,base=10,resolution=1)   #LogTicks(-1,1,base=10,resolution=4)
-    tileTicks = [2] + list(range(4,21))[::4]
-    replicateTicks = list(range(3))
+    tileTicks = [12] #[2] + list(range(4,21))[::4]
+    replicateTicks = list(range(3,10))
 
     # these inputTupsDefault get applied to every lm file before any simulations in the sweep
     simParams = [SimulationParameter(key='maxSteps',val=str(int(1e10))),
@@ -153,9 +153,9 @@ if __name__=='__main__':
                   'lm_bin': lm_bin,
                   'lm_cores': 8,
                   'lm_file_path': 'genetic_toggle_switch.lm',
-                  'lm_sampling_rate': 'auto',    #{'rate':'auto', 'weight':.1}, #1e3
+                  'lm_sampling_rate': 1e10, #'auto',    #{'rate':'auto', 'weight':.1}, #1e3
                   'lm_sampling_time': 1e10,
-                  'rootPath': PathJoin(remote_home_directory, 'forward_flux_validation/gts_-_fflux_-_maxCrossingsZero_-_maxCrossingsN_-_phi_-_theta_-_tiles_-_replicate'),
+                  'rootPath': PathJoin(remote_home_directory, 'forward_flux_validation/name_gts_-_sim_fflux_-_mcz_None_-_mtn_None_-_phi_1.0e+00_-_tiles_12_-_writeInterval_inf'),
                   'sweepTups': sweepTups,
                   'jobTypeName': jobTypeName,
                   'useForwardFlux': True,

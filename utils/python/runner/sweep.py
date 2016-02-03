@@ -119,7 +119,7 @@ class Sweep(object):
                        'host': self.host,
                        'lm_args': self.lm_args,
                        'lm_file_path': self.lm_file_path,
-                       'lm_input_tups': [inputTup for inputTups in inputTupss for inputTup in inputTups] + self.inputTupsDefault,
+                       'lm_input_tups': self.inputTupsDefault + [inputTup for inputTups in inputTupss for inputTup in inputTups],
                        'lm_replicate_range': self.replicateRange,
                        'lm_sampling_rate': self.lm_sampling_rate,
                        'lm_sampling_time': self.lm_sampling_time,

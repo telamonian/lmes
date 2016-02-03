@@ -367,7 +367,7 @@ class JobSlurm(Job):
         if callingClassName=='JobSlurm':
             if 'marcc' in self.host:
                 self.environment = {'SAGA_HOSTNAME': 'marcc'}
-                if self.queue==None:
+                if self.queue is None:
                     self.queue = 'parallel'
             
             self.exclusive = True
@@ -375,18 +375,21 @@ class JobSlurm(Job):
             self.mail_type = 'end'
             self.job_contact = self.user_mail   
             self.wall_time_limit = 10080
-            
+
+            if self.processes_per_host is None:
+                self.processes_per_host = 1
             cpus_per_node = 24
+            if not cpus_per_node % self.processes_per_host==0:
+                raise
             if not self.cpu_count % cpus_per_node==0:
                 raise
-            self.number_of_processes = self.cpu_count/cpus_per_node
-            self.processes_per_host = 1
+            self.number_of_processes = (self.cpu_count/cpus_per_node)*self.processes_per_host
     
     @classmethod
     def _InitKeywords(cls, mro):
         # avoid repepitive addition
         if cls.__name__=='JobSlurm':
-            additionalKeywords = ('project', 'queue', 'total_cpu_count', 'user_mail')
+            additionalKeywords = ('processes_per_host', 'project', 'queue', 'total_cpu_count', 'user_mail')
         else:
             additionalKeywords = ()
         return mro[mro.index(cls) + 1]._InitKeywords(mro) + additionalKeywords

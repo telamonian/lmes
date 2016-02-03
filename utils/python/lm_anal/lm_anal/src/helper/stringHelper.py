@@ -1,7 +1,7 @@
 import os
 import re
 
-__all__ = ['CamelCaseLower', 'CamelCaseUpper', 'FixedWidth', 'ListInStr', 'PathJoin', 'ShortenName', 'Singular']
+__all__ = ['CamelCaseLower', 'CamelCaseUpper', 'FixedWidth', 'ListInStr', 'PathJoin', 'ShortenName', 'Singular', 'SnakeCaseLower']
 
 def CamelCaseLower(s):
     '''
@@ -30,8 +30,6 @@ def CamelCaseUpper(s):
     if '_' in s:
         output = ''
         for token in s.split('_'):
-#             token = token[0].upper() + token[1:]
-#             output+=token
             output+=CamelCaseUpper(token)
         return output
     else:
@@ -77,3 +75,13 @@ def Singular(s):
         return s[:-3] + 'y'
     elif s[-1]=='s':
         return s[:-1]
+
+capitalizedWordRe = re.compile(r'([^_])([A-Z][a-z]+)')
+blockOfCapitalsRe = re.compile(r'([a-z0-9])([A-Z])')
+def SnakeCaseLower(s):
+    '''
+    convert camelCase, CamelCase, or Snake_Case to snake_case
+    modified from http://stackoverflow.com/a/1176023/425458
+    '''
+    s1 = capitalizedWordRe.sub(r'\1_\2', s)
+    return blockOfCapitalsRe.sub(r'\1_\2', s1).lower()

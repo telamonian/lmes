@@ -19,7 +19,7 @@ lm_bin = '/home-1/cklein13@jhu.edu/git/lm/build/lmes'   #'/home-2/erober32@jhu.e
 remote_home_directory = '/home-1/cklein13@jhu.edu/work/cklein13'
 jobTypeName = 'slurm'
 user_id = 'cklein13@jhu.edu'
-pass_exe = '/Users/tel/usr/bin/sp_marcc'
+# pass_exe = '/Users/tel/usr/bin/sp_marcc'
 user_mail = 'cklein13@jhu.edu'
 
 local_home_directory = thisScriptsPath
@@ -35,8 +35,8 @@ from runner import Runner
 from sweep import Sweep, SweepTup
 
 def GetFFluxInputTups():
-    iSCs = InitialSpeciesCounts(speciesCounts=[0,0,0,4,16,1,0])
-    iSCBs = InitialSpeciesCountsBackward(speciesCounts=[4,16,1,0,0,0,0])
+    iSCs = InitialSpeciesCounts(speciesCounts=[4,16,1,0,0,0,0])
+    iSCBs = InitialSpeciesCountsBackward(speciesCounts=[0,0,0,4,16,1,0])
     ops = [
         OrderParameter(type=0,
                        id=0,
@@ -50,14 +50,13 @@ def GetFFluxInputTups():
                        id=2,
                        speciesIDs=[3,4,5],
                        speciesCoefficients=[1,2,2])]
-    simParams = [SimulationParameter(key='crossingsPerPhase',val=str(int(1e5))),
-                 SimulationParameter(key='maxPhaseZeroTime',val=str(int(1e7)))]
+    simParams = [SimulationParameter(key='maxCrossingsZero',val=str(int(1e5))),
+                 SimulationParameter(key='maxCrossingsN',val=str(int(1e5)))]
     tilings = [
         Tiling(id=0,
                orderParameterID=0,
                type=0,
-               edges=np.linspace(-27,27,13),
-               isCurrentTiling=True),
+               edges=np.linspace(-27,27,13)),
         Tiling(id=19,
                orderParameterID=0,
                type=0,
@@ -74,19 +73,27 @@ def GetFFluxInputTups():
                orderParameterID=0,
                type=0,
                edges=np.arange(-100,100)),
-        Tiling(id=199,
-               orderParameterID=0,
-               type=0,
-               edges=np.linspace(-30,30,16)),
         Tiling(id=7,
                orderParameterID=0,
                type=0,
-               edges=np.linspace(-25,25,11)),
-        Tiling(id=27194,
-               orderParameterID=0,
-               type=0,
-               edges=np.linspace(-20,20,5))]
-    return [iSCs, iSCBs] + ops + tilings + simParams
+               edges=np.linspace(-25,25,11))]
+
+    tilingsSweep = []
+    tileCounts = [2] + list(range(4,21))[::4]
+    for i in tileCounts:
+        id = 100 + i
+        numEdges = i+1
+        tilings.append(Tiling(id=id,
+                              orderParameterID=0,
+                              type=0,
+                              edges=np.linspace(-27, 27, numEdges)))
+    return [iSCs, iSCBs] + ops + simParams + tilings + tilingsSweep
+
+def genSweepTup(ticks, label, paramFunc):
+    inputTups = []
+    for tick in ticks:
+        inputTups.append(paramFunc(tick))
+    return SweepTup(inputTupss=inputTups, label=label, labelVals=ticks)
 
 if __name__=='__main__':
     thetaTicks = LogTicks(1,-1,base=10,resolution=1)
@@ -108,7 +115,7 @@ if __name__=='__main__':
     simParams = [SimulationParameter(key='maxSteps',val=str(int(1e15))),
                  SimulationParameter(key='maxWorkUnitSteps',val=str(int(1e8)))]
 
-    sweep_dict = {'cpu_count': 720,
+    sweep_dict = {'cpu_count': 24*30,
 #                   'diagonal': True,
                   'host': host,
                   'inputTupsDefault': simParams + GetFFluxInputTups(),
@@ -116,13 +123,23 @@ if __name__=='__main__':
                   'lm_file_path': 'genetic_toggle_switch.lm',
                   'lm_sampling_rate': 'auto',    #{'rate':'auto', 'weight':.1}, #1e3
                   'lm_sampling_time': 'auto',
-                'pass_exe': pass_exe,
                   'replicateRange': (1,1000),
                   'rootPath': PathJoin(remote_home_directory, 'forward_flux_validation/gts_-_bf_-_basin_B_-_theta'),
                   'sweepTups': sweepTups,
                   'jobTypeName': jobTypeName,
-                  'user_id': user_id,
-                'user_mail': user_mail}
+                  'user_id': user_id}
+
+    try:
+        sweep_dict['queue'] = queue
+        if 'gpu' in queue:
+            sweep_dict['lmArgsGpusPerReplicate'] = '1/4'
+    except NameError:
+        pass
+
+    if host=='gateway2.marcc.jhu.edu':
+        sweep_dict.update({#'pass_exe': pass_exe,
+                           'user_mail': user_mail})
+
     sweep = Sweep(**sweep_dict) 
     sweep.Setup()
     sweep.Run()
