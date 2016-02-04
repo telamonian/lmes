@@ -392,7 +392,7 @@ void GillespieDSolver::updatePropensities(double time, uint sourceReaction, cons
     for (uint i=0; i<reactionModel->numberDependentReactions[sourceReaction]; i++)
     {
         uint r = reactionModel->dependentReactions[sourceReaction][i];
-        propensities[r] = reactionModel->propensityFunctions[i]->calculate(time, speciesCounts, numberSpecies);
+        propensities[r] = reactionModel->propensityFunctions[r]->calculate(time, speciesCounts, numberSpecies);
     }
 }
 
