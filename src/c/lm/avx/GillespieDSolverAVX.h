@@ -78,7 +78,7 @@ public:
     virtual lm::message::WorkUnitStatus::Status getStatus(uint trajectoryNumber=0);
 
 protected:
-    void updateAllPropensities(const uint numberSpecies);
+    void updateAllPropensities();
     //void updatePropensities(avxd time, uint sourceReaction);
     virtual void performReactionEvent(uint* reactionsToPerform);
     virtual bool isTrajectoryOutsideLimits();

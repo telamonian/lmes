@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sbml xmlns="http://www.sbml.org/sbml/level3/version1/core" level="3" version="1">
-    <model id="first_order_decay" substanceUnits="item" timeUnits="second" volumeUnits="litre" extentUnits="item">
+    <model id="second_order_reversible" substanceUnits="item" timeUnits="second" volumeUnits="litre" extentUnits="item">
         <listOfUnitDefinitions>
             <unitDefinition id="per_second">
                 <listOfUnits>
@@ -12,35 +12,51 @@
             <compartment id="V" size="1" spatialDimensions="3" constant="true"/>
         </listOfCompartments>
         <listOfSpecies>
-            <species id="n"  compartment="V" initialAmount="2000"
+            <species id="a"  compartment="V" initialAmount="1000"
+                             hasOnlySubstanceUnits="true" boundaryCondition="false"
+                             constant="false"/>
+            <species id="b"  compartment="V" initialAmount="1000"
+                             hasOnlySubstanceUnits="true" boundaryCondition="false"
+                             constant="false"/>
+            <species id="c"  compartment="V" initialAmount="0"
                              hasOnlySubstanceUnits="true" boundaryCondition="false"
                              constant="false"/>
         </listOfSpecies>
         <listOfReactions>
         
-            <reaction id="birth" reversible="false" fast="false">
+            <reaction id="forward" reversible="false" fast="false">
+                <listOfReactants>
+                    <speciesReference species="a" stoichiometry="1" constant="true"/>
+                    <speciesReference species="b" stoichiometry="1" constant="true"/>
+                </listOfReactants>
                 <listOfProducts>
-                    <speciesReference species="n" stoichiometry="1" constant="true"/>
+                    <speciesReference species="c" stoichiometry="1" constant="true"/>
                 </listOfProducts>
                 <kineticLaw>
                     <math xmlns="http://www.w3.org/1998/Math/MathML">
                         <apply>
                             <times/>
-                            <cn> 1000 </cn>
+                            <cn> 0.002 </cn>
+                            <ci> a </ci>
+                            <ci> b </ci>
                         </apply>
                     </math>
                 </kineticLaw>
             </reaction>
-            <reaction id="death" reversible="false" fast="false">
+            <reaction id="backward" reversible="false" fast="false">
                 <listOfReactants>
-                    <speciesReference species="n" stoichiometry="1" constant="true"/>
+                    <speciesReference species="c" stoichiometry="1" constant="true"/>
                 </listOfReactants>
+                <listOfProducts>
+                    <speciesReference species="a" stoichiometry="1" constant="true"/>
+                    <speciesReference species="b" stoichiometry="1" constant="true"/>
+                </listOfProducts>
                 <kineticLaw>
                     <math xmlns="http://www.w3.org/1998/Math/MathML">
                         <apply>
                             <times/>
                             <cn> 1 </cn>
-                            <ci> n </ci>
+                            <ci> c </ci>
                         </apply>
                     </math>
                 </kineticLaw>

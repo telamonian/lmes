@@ -118,19 +118,19 @@ class FirstOrderPropensity : public lm::me::PropensityFunction
 public:
     static const uint REACTION_TYPE = 1;
 
-    FirstOrderPropensity(uint si, double k) :PropensityFunction(REACTION_TYPE),si(si),k(k) {}
-    uint si;
+    FirstOrderPropensity(uint s, double k) :PropensityFunction(REACTION_TYPE),s(s),k(k) {}
+    uint s;
     double k;
 
     double calculate(const double time, const int* speciesCounts, const uint numberSpecies)
     {
-        return k * double(speciesCounts[si]);
+        return k * double(speciesCounts[s]);
     }
 
 #ifdef OPT_AVX
     avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies)
     {
-        return _mm256_mul_pd(_mm256_set1_pd(k), _mm256_load_pd(&speciesCounts[si*DOUBLES_PER_AVX]));
+        return _mm256_mul_pd(_mm256_set1_pd(k), _mm256_load_pd(&speciesCounts[s*DOUBLES_PER_AVX]));
     }
 #endif
 
@@ -152,12 +152,93 @@ public:
     }
 };
 
+class SecondOrderPropensity : public lm::me::PropensityFunction
+{
+public:
+    static const uint REACTION_TYPE = 2;
+
+    SecondOrderPropensity(uint s1, uint s2, double k) :PropensityFunction(REACTION_TYPE),s1(s1),s2(s2),k(k) {}
+    uint s1,s2;
+    double k;
+
+    double calculate(const double time, const int* speciesCounts, const uint numberSpecies)
+    {
+        return k * double(speciesCounts[s1]*speciesCounts[s2]);
+    }
+
+#ifdef OPT_AVX
+    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies)
+    {
+        return _mm256_mul_pd(_mm256_set1_pd(k),_mm256_mul_pd(_mm256_load_pd(&speciesCounts[s1*DOUBLES_PER_AVX]), _mm256_load_pd(&speciesCounts[s2*DOUBLES_PER_AVX])));
+    }
+#endif
+
+    static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+    {
+        // Find the species dependencies.
+        utuple dependencies = getDependencies(reactionIndex, D);
+        if (dependencies.len != 2) throw InvalidArgException("D", "second order propensity had invalid number of dependencies",dependencies.len);
+
+        // Find the rate costant.
+        if (k.len < 1)  throw InvalidArgException("k", "second order propensity needs one rate constant",k.len);
+
+        return new SecondOrderPropensity(dependencies[0],dependencies[1],k[0]);
+    }
+
+    static lm::me::PropensityFunctionDefinition registerFunction()
+    {
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
+    }
+};
+
+class SecondOrderSelfPropensity : public lm::me::PropensityFunction
+{
+public:
+    static const uint REACTION_TYPE = 3;
+
+    SecondOrderSelfPropensity(uint s, double k) :PropensityFunction(REACTION_TYPE),s(s),k(k) {}
+    uint s;
+    double k;
+
+    double calculate(const double time, const int* speciesCounts, const uint numberSpecies)
+    {
+        return k * double(speciesCounts[s]*(speciesCounts[s]-1));
+    }
+
+#ifdef OPT_AVX
+    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies)
+    {
+        avxd c = _mm256_load_pd(&speciesCounts[s*DOUBLES_PER_AVX]);
+        avxd cm1 = _mm256_sub_pd(c, _mm256_set1_pd(1.0));
+        return _mm256_mul_pd(_mm256_set1_pd(k), _mm256_mul_pd(c,cm1));
+    }
+#endif
+
+    static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+    {
+        // Find the species dependencies.
+        utuple dependencies = getDependencies(reactionIndex, D);
+        if (dependencies.len != 1) throw InvalidArgException("D", "second order self propensity had invalid number of dependencies",dependencies.len);
+
+        // Find the rate costant.
+        if (k.len < 1)  throw InvalidArgException("k", "second order self propensity needs one rate constant",k.len);
+
+        return new SecondOrderSelfPropensity(dependencies[0],k[0]);
+    }
+
+    static lm::me::PropensityFunctionDefinition registerFunction()
+    {
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
+    }
+};
 
 list<lm::me::PropensityFunctionDefinition> CMEPropensityFunctions::getPropensityFunctionDefinitions()
 {
     list<lm::me::PropensityFunctionDefinition> defs;
     defs.push_back(ZerothOrderPropensity::registerFunction());
     defs.push_back(FirstOrderPropensity::registerFunction());
+    defs.push_back(SecondOrderPropensity::registerFunction());
+    defs.push_back(SecondOrderSelfPropensity::registerFunction());
     return defs;
 }
 
@@ -180,20 +261,6 @@ list<lm::me::PropensityFunctionDefinition> CMEPropensityFunctions::getPropensity
         FirstOrderTimeDependentPropensityArgs(uint si, double ki, double kf, double tf) :si(si),ki(ki),kf(kf),tf(tf) {}
         uint si;
         double ki, kf, tf;
-    };
-    struct SecondOrderPropensityArgs : public PropensityArgs
-    {
-        static const uint REACTION_TYPE = 2;
-        SecondOrderPropensityArgs(uint s1i, uint s2i, double k) :s1i(s1i),s2i(s2i),k(k) {}
-        uint s1i, s2i;
-        double k;
-    };
-    struct SecondOrderSelfPropensityArgs : public PropensityArgs
-    {
-        static const uint REACTION_TYPE = 3;
-        SecondOrderSelfPropensityArgs(uint si, double k) :si(si),k(k) {}
-        uint si;
-        double k;
     };
     struct KHillPropensityArgs : public PropensityArgs
     {
@@ -309,8 +376,6 @@ list<lm::me::PropensityFunctionDefinition> CMEPropensityFunctions::getPropensity
 
     static double zerothOrderTimeDependentPropensity(double time, uint * speciesCounts, void * pargs);
     static double firstOrderTimeDependentPropensity(double time, uint * speciesCounts, void * pargs);
-    static double secondOrderPropensity(double time, uint * speciesCounts, void * pargs);
-    static double secondOrderSelfPropensity(double time, uint * speciesCounts, void * pargs);
     static double kHillPropensity(double time, uint * speciesCounts, void * pargs);
     static double kHillTransportPropensity(double time, uint * speciesCounts, void * pargs);
     static double zerothOrderHeavisidePropensity(double time, uint * speciesCounts, void * pargs);
@@ -351,21 +416,6 @@ double CMESolver::firstOrderTimeDependentPropensity(double time, uint * speciesC
     {
         return args->kf * (double)speciesCounts[args->si];
     }
-}
-
-double CMESolver::secondOrderPropensity(double time, uint * speciesCounts, void * pargs)
-{
-    SecondOrderPropensityArgs * args = (SecondOrderPropensityArgs *)pargs;
-    return args->k * ((double)speciesCounts[args->s1i]) * ((double)speciesCounts[args->s2i]);
-}
-
-double CMESolver::secondOrderSelfPropensity(double time, uint * speciesCounts, void * pargs)
-{
-    SecondOrderSelfPropensityArgs * args = (SecondOrderSelfPropensityArgs *)pargs;
-    uint count = speciesCounts[args->si];
-    if (count >= 2)
-        return args->k * ((double)count) * ((double)(count-1));
-    return 0.0;
 }
 
 double CMESolver::kHillPropensity(double time, uint * speciesCounts, void * pargs)
@@ -551,64 +601,6 @@ if (reactionTypes[i] == ZerothOrderTimeDependentPropensityArgs::REACTION_TYPE)
                         throw InvalidArgException("D", "first order time dependent reaction probably shouldn't have that many dependencies",numberDependencies);
                     }
                 }
-            }
-        }
-        else if (reactionTypes[i] == SecondOrderPropensityArgs::REACTION_TYPE)
-        {
-            // Find the dependencies.
-            uint numberDependencies = 0;
-            uint firstDependency;
-            uint secondDependency;
-            for (uint j=0; j<numberSpecies; j++)
-            {
-                if (D[j*numberReactions+i] == 1)
-                {
-                    numberDependencies++;
-
-                    // Set the table entry to the first two non-zero dependencies.
-                    if (numberDependencies == 1)
-                        firstDependency = j;
-                    else if (numberDependencies == 2)
-                        secondDependency = j;
-                }
-            }
-            if (numberDependencies == 2)
-            {
-                propensityFunctions[i] = (void *)&secondOrderPropensity;
-                propensityFunctionArgs[i] =  (void *)new SecondOrderPropensityArgs(firstDependency, secondDependency, K[i*kCols]);
-                propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
-            }
-            else
-            {
-                printf("%d\n",numberDependencies);
-                throw InvalidArgException("D", "second order reaction had invalid number of dependencies",numberDependencies);
-            }
-        }
-        else if (reactionTypes[i] == SecondOrderSelfPropensityArgs::REACTION_TYPE)
-        {
-            // Find the dependencies.
-            uint numberDependencies = 0;
-            uint firstDependency;
-            for (uint j=0; j<numberSpecies; j++)
-            {
-                if (D[j*numberReactions+i] == 1)
-                {
-                    numberDependencies++;
-
-                    // Set the table entry to the first non-zero dependency.
-                    if (numberDependencies == 1)
-                        firstDependency = j;
-                }
-            }
-            if (numberDependencies == 1)
-            {
-                propensityFunctions[i] = (void *)&secondOrderSelfPropensity;
-                propensityFunctionArgs[i] =  (void *)new SecondOrderSelfPropensityArgs(firstDependency, K[i*kCols]);
-                propensityArgs.push_back((PropensityArgs *)propensityFunctionArgs[i]);
-            }
-            else
-            {
-                throw InvalidArgException("D", "second order self reaction had invalid number of dependencies",numberDependencies);
             }
         }
         else if (reactionTypes[i] == KHillPropensityArgs::REACTION_TYPE)

@@ -259,7 +259,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         totalPropensity = 0.0;
         for (uint i=0; i<numberReactions; i++) totalPropensity += propensities[i];
 
-        // If the total propensity is zero, return an error.
+        // If the total propensity is zero, stop the simulation.
         if (totalPropensity <= 0)
         {
             // If we have a time limit, say that we reached it.

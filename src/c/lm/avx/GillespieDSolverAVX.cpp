@@ -88,7 +88,7 @@ bool GillespieDSolverAVX::registered=GillespieDSolverAVX::registerClass();
 
 bool GillespieDSolverAVX::registerClass()
 {
-    lm::ClassFactory::getInstance().registerClass("lm::me::MESolver","lm::cme::GillespieDSolverAVX",&GillespieDSolverAVX::allocateObject);
+    lm::ClassFactory::getInstance().registerClass("lm::me::MESolver","lm::avx::GillespieDSolverAVX",&GillespieDSolverAVX::allocateObject);
     return true;
 }
 
@@ -167,7 +167,7 @@ void GillespieDSolverAVX::setState(const lm::io::TrajectoryState& state, uint tr
     if (trajectoryNumber >= getSimultaneousTrajectories()) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
 
     // Set the propensities to their initial values.
-    updateAllPropensities(reactionModel->numberSpecies);
+    updateAllPropensities();
 }
 
 lm::message::WorkUnitStatus::Status GillespieDSolverAVX::getStatus(uint trajectoryNumber)
@@ -418,7 +418,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
 
         // Update the propensites given the reaction that occurred.
         //updatePropensities(time, r);
-        updateAllPropensities(numberSpecies);
+        updateAllPropensities(  );
 
         // Recalculate the total propensity.
         totalPropensity = _mm256_setzero_pd();
@@ -594,12 +594,12 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
     return steps;
 }
 
-void GillespieDSolverAVX::updateAllPropensities(const uint numberSpecies)
+void GillespieDSolverAVX::updateAllPropensities()
 {
     // Update the propensities.
     for (uint i=0; i<reactionModel->numberReactions; i++)
     {
-        avxd propensity = reactionModel->propensityFunctions[i]->calculateAvx(time, speciesCounts, numberSpecies);
+        avxd propensity = reactionModel->propensityFunctions[i]->calculateAvx(time, speciesCounts, reactionModel->numberSpecies);
         _mm256_store_pd(&propensities[i*DOUBLES_PER_AVX], propensity);
     }
 }
