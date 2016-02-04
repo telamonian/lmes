@@ -52,6 +52,7 @@
 #include "lm/io/LatticeTimeSeries.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/message/ProcessWorkUnitOutput.pb.h"
+#include "lm/message/WorkUnitOutput.pb.h"
 #include "lm/rdme/Lattice.h"
 #include "lm/rdme/ByteLattice.h"
 #include "lm/rdme/NextSubvolumeSolver.h"
@@ -110,14 +111,14 @@ void NextSubvolumeSolver::reset()
 
 }
 
-void NextSubvolumeSolver::getState(lm::io::TrajectoryState* state)
+void NextSubvolumeSolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
 {
-    RDMESolver::getState(state);
+    RDMESolver::getState(state, trajectoryNumber);
 }
 
-void NextSubvolumeSolver::setState(const lm::io::TrajectoryState& state)
+void NextSubvolumeSolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNumber)
 {
-    RDMESolver::setState(state);
+    RDMESolver::setState(state, trajectoryNumber);
 }
 
 void NextSubvolumeSolver::setDiffusionModel(const lm::io::DiffusionModel& dm)
@@ -133,7 +134,7 @@ void NextSubvolumeSolver::setDiffusionModel(const lm::io::DiffusionModel& dm)
     latticeSpacingSquared = diffusionModel->latticeSpacing*diffusionModel->latticeSpacing;
 
     // Update the propensity functions with the subvolume size.
-    for (uint i=0; i<reactionModel->numberReactions; i++)
+    /*DEBUGfor (uint i=0; i<reactionModel->numberReactions; i++)
     {
         if (reactionModel->reactionTypes[i] == SecondOrderPropensityArgs::REACTION_TYPE)
         {
@@ -145,6 +146,8 @@ void NextSubvolumeSolver::setDiffusionModel(const lm::io::DiffusionModel& dm)
             ((SecondOrderSelfPropensityArgs *)reactionModel->propensityFunctionArgs[i])->k *= numberSubvolumes;
         }
     }
+    */
+    throw Exception("Second order fix not yet implemented.");
 }
 
 long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
@@ -155,25 +158,24 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
 
     // Make sure we have propensity functions for every reaction.
     for (uint i=0; i<reactionModel->numberReactions; i++)
-        if (reactionModel->propensityFunctions[i] == NULL || reactionModel->propensityFunctionArgs[i] == NULL)
+        if (reactionModel->propensityFunctions[i] == NULL)
             throw Exception("A reaction did not have a valid propensity function",i);
 
     // Make sure that the initial species counts agree with the actual number in the lattice.
     checkSpeciesCountsAgainstLattice();
 
     // Create the output message.
-    lm::message::Message msgp;
-    lm::message::ProcessWorkUnitOutput* msg = msgp.add_process_work_unit_output();
-    msg->set_work_unit_id(workUnitId);
+    lm::message::Message msgpp;
+    lm::message::ProcessWorkUnitOutput* msgp = msgpp.mutable_process_work_unit_output();
+    msgp->set_work_unit_id(workUnitId);
+    lm::message::WorkUnitOutput* msg = msgp->add_part_output();
 
     // Get the interval for writing species counts.
-    double speciesCountsWriteInterval=atof(simulationParameters["writeInterval"].c_str());
-    bool writingSpeciesCounts = (speciesCountsWriteInterval > 0.0);
     double nextSpeciesCountsWriteTime;
     lm::io::SpeciesCounts* speciesCountsDataSet = NULL;
 
     // If we are writing time steps, create the data set.
-    if (writingSpeciesCounts)
+    if (writeSpeciesTimeSeries)
     {
         // Initialize the data set.
         speciesCountsDataSet = msg->mutable_species_counts();
@@ -184,25 +186,23 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
         // If this is the start of the trajectory, add the initial counts.
         if (time == 0.0)
         {
-            nextSpeciesCountsWriteTime=speciesCountsWriteInterval;
+            nextSpeciesCountsWriteTime=speciesWriteInterval;
             speciesCountsDataSet->set_number_entries(1);
             speciesCountsDataSet->add_time(0.0);
             for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
         }
         else
         {
-            nextSpeciesCountsWriteTime = ceil(time/speciesCountsWriteInterval)*speciesCountsWriteInterval;
+            nextSpeciesCountsWriteTime = ceil(time/speciesWriteInterval)*speciesWriteInterval;
         }
     }
 
     // Get the interval for writing species counts.
-    double latticeWriteInterval=atof(simulationParameters["latticeWriteInterval"].c_str());
-    bool writingLattice = (speciesCountsWriteInterval > 0.0);
     double nextLatticeWriteTime;
     lm::io::LatticeTimeSeries* latticeDataSet = NULL;
 
     // If we are writing time steps, create the data set.
-    if (writingLattice)
+    if (writeLatticeTimeSeries)
     {
         // Initialize the data set.
         latticeDataSet = msg->mutable_lattice_time_series();
@@ -239,37 +239,39 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     // Local cache of random numbers.
     double expRngValues[TUNE_LOCAL_RNG_CACHE_SIZE];
     double uniRngValues[TUNE_LOCAL_RNG_CACHE_SIZE];
-    rng->getExpRandomDoubles(expRngValues,TUNE_LOCAL_RNG_CACHE_SIZE);
-    rng->getRandomDoubles(uniRngValues,TUNE_LOCAL_RNG_CACHE_SIZE);
-    int expRngNext=0;
-    int uniRngNext=0;
+    int expRngNext=TUNE_LOCAL_RNG_CACHE_SIZE;
+    int uniRngNext=TUNE_LOCAL_RNG_CACHE_SIZE;
 
     // Initialize the reaction queue.
     expRngNext=updateAllSubvolumePropensities(time, expRngNext, expRngValues);
 
     // Run the next subvolume method.
-    Print::printf(Print::DEBUG, "Running next subvolume simulation for %d steps with %d species, %d reactions, %d subvolumes, %d site types for %e s.", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberSubvolumes, diffusionModel->numberSiteTypes, maxTime);
+    Print::printf(Print::DEBUG, "Running next subvolume simulation for %d steps with %d species, %d reactions, %d subvolumes, %d site types with %d limits.", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberSubvolumes, diffusionModel->numberSiteTypes, numberLimits);
     PROF_BEGIN(PROF_SIM_EXECUTE);
     long long steps=0;
     bool affectedNeighbor;
     lattice_size_t subvolume;
     lattice_size_t neighborSubvolume;
-    while (steps < maxSteps && !reachedSpeciesLimit())
+    while (true)
     {
+        // See if we have finished the steps.
+        if (steps >= maxSteps)
+        {
+            status = lm::message::WorkUnitStatus::STEPS_FINISHED;
+            break;
+        }
+
+        // Increment the steps.
         steps++;
 
         // Get the next subvolume with a reaction and the reaction time.
         subvolume = reactionQueue->getNextReaction();
         time = reactionQueue->getReactionEvent(subvolume).time;
 
-        // If the new time is past the end time, we are done.
-       if (time >= maxTime)
-       {
-           break;
-       }
+        // TODO: check for over timelimit.
 
        // If we are writing time steps, write out any time steps before this event occurred.
-       if (writingSpeciesCounts)
+       if (writeSpeciesTimeSeries)
        {
            // Write time steps until the next write time is past the current time.
            while (nextSpeciesCountsWriteTime <= (time+EPS))
@@ -278,12 +280,12 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
                speciesCountsDataSet->set_number_entries(speciesCountsDataSet->number_entries()+1);
                speciesCountsDataSet->add_time(nextSpeciesCountsWriteTime);
                for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
-               nextSpeciesCountsWriteTime += speciesCountsWriteInterval;
+               nextSpeciesCountsWriteTime += speciesWriteInterval;
            }
        }
 
        // If we are writing time steps, write out any time steps before this event occurred.
-       if (writingLattice)
+       if (writeLatticeTimeSeries)
        {
            // Write time steps until the next write time is past the current time.
            while (nextLatticeWriteTime <= (time+EPS))
@@ -316,11 +318,17 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
        uniRngNext=performSubvolumeEvent(time, subvolume, uniRngNext, uniRngValues, affectedNeighbor, neighborSubvolume);
        PROF_END(PROF_NSM_PERFORM_SUBVOLUME_EVENT);
 
+       // If we are outside of the limits, stop the trajectory.
+       if (isTrajectoryOutsideLimits())
+           break;
+
        // Update the propensity in the affected subvolumes.
        PROF_BEGIN(PROF_NSM_UPDATE_SUBVOLUME_PROPENSITY);
        expRngNext=updateSubvolumePropensity(time, subvolume, expRngNext, expRngValues);
        if (affectedNeighbor) expRngNext=updateSubvolumePropensity(time, neighborSubvolume, expRngNext, expRngValues);
        PROF_END(PROF_NSM_UPDATE_SUBVOLUME_PROPENSITY);
+
+       //TODO: check for zero propensity.
 
        //Print::printf(Print::VERBOSE_DEBUG, "Step %d: time=%e, count=%d,%d,%d",steps,time,speciesCounts[0],speciesCounts[1],speciesCounts[2]);
     }
@@ -329,29 +337,34 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     // Make sure that the final species counts agree with the actual number in the lattice.
     checkSpeciesCountsAgainstLattice();
 
-    bool reachedLimit = false;
+    // See if we finished all of the steps.
+    if (limitReached == lm::io::TrajectoryLimits::NONE)
+    {
+        //TODO fix: limitReached = lm::io::TrajectoryLimits::MAXSTEPS;
+        Print::printf(Print::DEBUG, "Generated trajectory with %llu steps through time %e.", steps, time);
+    }
 
     // If we finished the total time, write out the remaining time steps.
-    if (time >= maxTime)
+    else if (limitReached == lm::io::TrajectoryLimits::MAXTIME)
     {
-        time = maxTime;
+        time = timeLimit;
         Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);
-        if (writingSpeciesCounts)
+        if (writeSpeciesTimeSeries)
         {
-            while (nextSpeciesCountsWriteTime <= (maxTime+EPS))
+            while (nextSpeciesCountsWriteTime <= (timeLimit+EPS))
             {
                 // Record the species counts.
                 speciesCountsDataSet->set_number_entries(speciesCountsDataSet->number_entries()+1);
                 speciesCountsDataSet->add_time(nextSpeciesCountsWriteTime);
                 for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
-                nextSpeciesCountsWriteTime += speciesCountsWriteInterval;
+                nextSpeciesCountsWriteTime += speciesWriteInterval;
             }
         }
 
-        if (writingLattice)
+        if (writeLatticeTimeSeries)
         {
             // Write time steps until the next write time is past the current time.
-            while (nextLatticeWriteTime <= (maxTime+EPS))
+            while (nextLatticeWriteTime <= (timeLimit+EPS))
             {
                 // Record the species counts.
                 latticeDataSet->set_number_entries(latticeDataSet->number_entries()+1);
@@ -373,34 +386,21 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
                 nextLatticeWriteTime += latticeWriteInterval;
             }
         }
-            // If we are recording parameter values, write out the remaining value intervals.
-    //        if (nextParameterWriteTime <= (maxTime+1e-9))
-    //        {
-    ////            recordParameters(nextParameterWriteTime, parameterWriteInterval, maxTime);
-    //        }
-
-        reachedLimit = true;
     }
 
 
-    // See if we finished all of the steps.
-    else if (steps >= maxSteps)
-    {
-        Print::printf(Print::DEBUG, "Generated trajectory with %llu steps through time %e.", steps, time);
-    }
-
-    // Otherwise we must have finished because of a species limit, so just write out the last time.
+    // Otherwise we must have finished because of another limit, so just write out the last time.
     else
     {
         // Record the species counts.
-        if (writingSpeciesCounts)
+        if (writeSpeciesTimeSeries)
         {
             // Record the species counts.
             speciesCountsDataSet->set_number_entries(speciesCountsDataSet->number_entries()+1);
             speciesCountsDataSet->add_time(time);
             for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesCountsDataSet->add_species_count(speciesCounts[i]);
         }
-        if (writingLattice)
+        if (writeLatticeTimeSeries)
         {
             // Record the lattice.
             latticeDataSet->set_number_entries(latticeDataSet->number_entries()+1);
@@ -420,22 +420,21 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
             PROF_END(PROF_NSM_SERIALIZE_LATTICE);
             data->resize(dataSizeActual);
         }
-        reachedLimit = true;
     }
 
     // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
-    if (reachedLimit && numberFptTrackedSpecies > 0)
+    /*TODO fix if (limitReached != lm::io::TrajectoryLimits::MAXSTEPS && numberFptTrackedSpecies > 0)
     {
         for (int i=0; i<numberFptTrackedSpecies; i++)
         {
             fptTrackedSpecies[i].serializeTo(trajectoryId, msg->add_first_passage_times());
         }
-    }
+    }*/
 
     // If the output message has any data, send it.
     if (msg->has_species_counts() || msg->first_passage_times_size() > 0 || msg->has_lattice_time_series())
     {
-        communicator->sendMessage(outputProcess, outputThread, &msgp);
+        communicator->sendMessage(outputProcess, outputThread, &msgpp);
     }
 
     return steps;
@@ -513,8 +512,7 @@ double NextSubvolumeSolver::calculateSubvolumePropensity(si_time_t time, lattice
         // Make sure the reaction can occur in this subvolume.
         if (diffusionModel->RL[i*diffusionModel->numberSiteTypes+sourceSite])
     	{
-            double (*propensityFunction)(double, uint *, void *) = (double (*)(double, uint*, void*))reactionModel->propensityFunctions[i];
-            subvolumePropensity += (*propensityFunction)(time, (uint*)currentSubvolumeSpeciesCounts, reactionModel->propensityFunctionArgs[i]);
+            subvolumePropensity += reactionModel->propensityFunctions[i]->calculate(time, currentSubvolumeSpeciesCounts, reactionModel->numberSpecies);
         }
     }
 
@@ -643,8 +641,7 @@ int NextSubvolumeSolver::performSubvolumeEvent(si_time_t time, lattice_size_t su
     	// Make sure the reaction can occur in this subvolume.
         if (diffusionModel->RL[r*diffusionModel->numberSiteTypes+sourceSite])
     	{
-            double (*propensityFunction)(double, uint *, void *) = (double (*)(double, uint*, void*))reactionModel->propensityFunctions[r];
-            double reactionPropensity = (*propensityFunction)(time, (uint*)currentSubvolumeSpeciesCounts, reactionModel->propensityFunctionArgs[r]);
+            double reactionPropensity = reactionModel->propensityFunctions[r]->calculate(time, currentSubvolumeSpeciesCounts, reactionModel->numberSpecies);
 			if (reactionPropensity > 0.0)
 			{
 				if (rngValue <= reactionPropensity)
@@ -720,7 +717,7 @@ bool NextSubvolumeSolver::performSubvolumeDiffusionEvent(si_time_t time, lattice
                         if (rngValue <= diffusionPropensity)
                         {
                             speciesCounts[i]--;
-                            updatedSpeciesCounts();
+                            if (hasUpdateSpeciesCountsListeners) callUpdateSpeciesCountsListeners();
                             currentSubvolumeSpeciesCounts[i]--;
                             updateSubvolumeWithSpeciesCounts(subvolume);
                             affectedNeighbor = false;
@@ -787,7 +784,7 @@ bool NextSubvolumeSolver::performSubvolumeInfluxEvent(si_time_t time, lattice_si
         if (rngValue <= influxPropensity)
         {
             speciesCounts[diffusionModel->boundaryConditions.boundary_species()]++;
-            updatedSpeciesCounts();
+            if (hasUpdateSpeciesCountsListeners) callUpdateSpeciesCountsListeners();
             currentSubvolumeSpeciesCounts[diffusionModel->boundaryConditions.boundary_species()]++;
             updateSubvolumeWithSpeciesCounts(subvolume);
             return true;

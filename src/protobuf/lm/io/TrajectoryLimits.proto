@@ -1,11 +1,11 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
- * 			     Johns Hopkins University
- * 			     http://biophysics.jhu.edu/roberts/
+ *               Johns Hopkins University
+ *               http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -40,11 +40,25 @@
 package lm.io;
 
 message TrajectoryLimits {
-    enum LimitType {MAXTIME=1; MINSPECIESCOUNT=10; MAXSPECIESCOUNT=11; DECREASINGORDERPARAMETER=20; INCREASINGORDERPARAMETER=21;}
-    enum Arrangement {ASCENDING=1;DESCENDING=2;}
-    optional double max_time                            = 1;
-    repeated int32 min_species_count                    = 2 [packed=true];
-    repeated int32 max_species_count                    = 3 [packed=true];
+
+    enum LimitType {
+        NONE=0;
+        MAXTIME=1;
+        MINSPECIESCOUNT=10;
+        MAXSPECIESCOUNT=11;
+        DECREASINGORDERPARAMETER=20;
+        INCREASINGORDERPARAMETER=21;
+    }
+
+    enum Arrangement {
+        ASCENDING=1;
+        DESCENDING=2;
+    }
+
+    message SpeciesCountLimit {
+        required uint32 species_id                      = 1;
+        required int32 value                            = 2;
+    }
 
     message DecreasingOrderParameterLimit {
         optional Arrangement arrangement                = 1 [default=ASCENDING];
@@ -58,6 +72,9 @@ message TrajectoryLimits {
         repeated double value                           = 3 [packed=true];
     }
 
+    optional double max_time_limit                                              = 1;
+    repeated SpeciesCountLimit min_species_count_limit                          = 2;
+    repeated SpeciesCountLimit max_species_count_limit                          = 3;
     repeated DecreasingOrderParameterLimit decreasing_order_parameter_limit     = 4;
     repeated IncreasingOrderParameterLimit increasing_order_parameter_limit     = 5;
 }

@@ -59,9 +59,9 @@ public:
     EdgeIterator end() {return tilingBuf->edges().end();}
 
     // getters
-    lm::io::Tilings::Arrangement getArrangement();
+    lm::io::Tilings::Arrangement getArrangement() const;
     double getEdge(uint edgeIndex);
-    uint getEdgesCount() {return tilingBuf->edges_size();}
+    uint getEdgesCount() const {return tilingBuf->edges_size();}
     uint getID() {return tilingBuf->id();}
     uint getOrderParameterID() {return tilingBuf->order_parameter_id();}
     uint getTileIndex(double opVal);    // get the index of the tile for making a histogram based on the tiling

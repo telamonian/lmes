@@ -90,6 +90,7 @@ public:
     InvalidArgException(const char* arg, const char* argMessage, const char * argMessageParameter) : Exception("Invalid argument", arg, argMessage, argMessageParameter) {}
     InvalidArgException(const char* arg, const char* argMessage, const int argMessageParameter) : Exception("Invalid argument", arg, argMessage, argMessageParameter) {}
     InvalidArgException(const char* arg, const char* argMessage, const int argMessageParameter1, const int argMessageParameter2) : Exception() {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s, %s (%d,%d)", "Invalid argument", arg, argMessage, argMessageParameter1, argMessageParameter2);}
+    InvalidArgException(const char* arg, const char* argMessage, const int argMessageParameter1, const int argMessageParameter2, const int argMessageParameter3) : Exception() {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s, %s (%d,%d,%d)", "Invalid argument", arg, argMessage, argMessageParameter1, argMessageParameter2, argMessageParameter3);}
 //    virtual ~InvalidArgException() throw() {}
 };
 
@@ -108,7 +109,15 @@ public:
     ZlibException(const int errorNumber) : Exception("ZLib exception", errorNumber) {}
 };
 
-#define ZLIB_EXCEPTION_CHECK(zlib_call) {int _zlib_ret_=zlib_call; if (_zlib_ret_ != Z_OK) throw ZlibException(_zlib_ret_);}
+#define ZLIB_EXCEPTION_CHECK(zlib_call) {int _zlib_ret_=zlib_call; if (_zlib_ret_ != Z_OK) throw lm::ZlibException(_zlib_ret_);}
+
+class PosixException : public Exception
+{
+public:
+    PosixException(const int errorNumber) : Exception("Posix exception", errorNumber) {}
+};
+
+#define POSIX_EXCEPTION_CHECK(posix_call) {int _posix_ret_=posix_call; if (_posix_ret_ != 0) throw lm::PosixException(_posix_ret_);}
 
 }
 

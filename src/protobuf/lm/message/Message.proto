@@ -85,7 +85,7 @@ message Message {
 
     optional lm.message.StopResourceController stop_resource_controller         = 50;
     
-    repeated lm.message.ProcessWorkUnitOutput process_work_unit_output          = 100;
+    optional lm.message.ProcessWorkUnitOutput process_work_unit_output          = 100;
 
     optional lm.message.PingTarget ping_target                                  = 1000;
 }

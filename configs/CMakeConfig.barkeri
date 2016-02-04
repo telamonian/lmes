@@ -8,7 +8,7 @@
 SET(CMAKE_INSTALL_PREFIX "/Users/eroberts/usr/local")
 
 #USE_CUDA can be set to yes, no, or optional, in which case CUDA will be used if cmake can find it on your system
-SET(USE_CUDA yes)
+SET(USE_CUDA no)
 
 #Set the verbosity level, as described in the lm::Print function. 10 is complete, 4 is normal-ish
 SET(VERBOSITY_LEVEL 4)
@@ -16,13 +16,15 @@ SET(VERBOSITY_LEVEL 4)
 #uncomment and change the last part of the next line if some of your libraries/header files are on a nonstandard path
 SET(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" /Users/eroberts/usr/local)
 
-#SET(CUSTOM_C_FLAGS "-g -m64 -fPIC -Wall -fmessage-length=0")
-#SET(CUSTOM_CXX_FLAGS "-g -m64 -fPIC -Wall -fmessage-length=0")
-SET(CUSTOM_C_FLAGS "-m64 -march=core2 -O3 -fPIC -Wall -fmessage-length=0")
-SET(CUSTOM_CXX_FLAGS "-m64 -march=core2 -O3 -fPIC -Wall -fmessage-length=0")
+#SET(CUSTOM_C_FLAGS "-g -m64 -march=corei7-avx -fPIC -Wall -fmessage-length=0")
+#SET(CUSTOM_CXX_FLAGS "-g -m64 -march=corei7-avx -fPIC -Wall -fmessage-length=0")
+SET(CUSTOM_C_FLAGS "-m64 -march=corei7-avx -O3 -fPIC -Wall -fmessage-length=0")
+SET(CUSTOM_CXX_FLAGS "-m64 -march=corei7-avx -O3 -fPIC -Wall -fmessage-length=0")
 
 SET(HDF5_LIBRARIES /Users/eroberts/usr/local/lib/libhdf5.8.dylib)
 SET(HDF5_HL_LIBRARIES /Users/eroberts/usr/local/lib/libhdf5_hl.8.dylib)
+
+add_definitions(-DOPT_AVX)
 
 #add_definitions(-DPROF_ENABLE -DPROF_CUDA_ENABLE=0 -DPROF_MAX_THREADS=15 -DPROF_MAX_EVENTS=1000000 -DPROF_OUT_FILE=timing.prof)
 

@@ -64,6 +64,7 @@ using std::map;
 using std::string;
 using std::vector;
 
+/*
 namespace lm {
 namespace fflux {
 
@@ -74,17 +75,18 @@ typedef map<lm::fflux::FFluxTrajectoryList::Direction, FinishedTrajectoriesCount
 
 FFluxTrajectoryList::FFluxTrajectoryList(lm::message::Communicator& communicator, uint64_t simultaneousTrajectoryCount,lm::input::Input& input)
 :TrajectoryList(input),
- crossingsPerPhase(atof(input.simulationParametersMap["crossingsPerPhase"].c_str())),
+ communicator(&communicator),
+ input(input),
+ crossingsPerPhase(atof(input.getSimulationParameters().at("crossingsPerPhase").c_str())),
  direction(FORWARD),
  dwellTimes(),
  ffluxPhase(0),
  finishedTrajectoriesCounts(),
- maxFFluxPhase(input.tilings.getCurrentTiling()->getEdgesCount()),
- maxPhaseZeroTime(atof(input.simulationParametersMap["maxPhaseZeroTime"].c_str())),
+ maxFFluxPhase(input.getTilings().getCurrentTiling()->getEdgesCount()),
+ maxPhaseZeroTime(atof(input.getSimulationParameters().at("maxPhaseZeroTime").c_str())),
  simultaneousTrajectoryCount(simultaneousTrajectoryCount),
  xorShift(0,0)  //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
 {
-    setCommunicator(communicator);
     init();
 }
 
@@ -112,8 +114,8 @@ void FFluxTrajectoryList::init()
 {
 	initFFluxOutput();
     initTrajectories(simultaneousTrajectoryCount);
-    averageTilingHist.set_tiling_id(input.tilings.getCurrentTiling()->getID());
-    for (lm::tiling::EdgeIterator e_it=input.tilings.getCurrentTiling()->begin();e_it!=input.tilings.getCurrentTiling()->end();e_it++)
+    averageTilingHist.set_tiling_id(input.getTilings().getCurrentTiling()->getID());
+    for (lm::tiling::EdgeIterator e_it=input.getTilings().getCurrentTiling()->begin();e_it!=input.tilings.getCurrentTiling()->end();e_it++)
     {
         averageTilingHist.add_tile_vals(0);
     }
@@ -129,11 +131,11 @@ void FFluxTrajectoryList::initFFluxOutput()
     lm::io::FFluxOutput::FinalOutput* finalOutput;
 
     // initialize the FFluxOutput part of the non-streaming/streaming member Messages
-    lm::message::ProcessWorkUnitOutput* msgPWUO = msg.add_process_work_unit_output();
-    msgPWUO->set_work_unit_id(999999999999998);
+    lm::message::ProcessWorkUnitOutput* msgPWUO = msg.mutable_process_work_unit_output();
+    msgPWUO->add_output()->set_work_unit_id(999999999999998);
 
-    lm::message::ProcessWorkUnitOutput* msgStreamingPWUO = msgStreaming.add_process_work_unit_output();
-    msgStreamingPWUO->set_work_unit_id(999999999999999);
+    lm::message::ProcessWorkUnitOutput* msgStreamingPWUO = msgStreaming.mutable_process_work_unit_output();
+    msgStreamingPWUO->add_output()->set_work_unit_id(999999999999999);
 
 	getFFluxOutput()->set_tiling_id(input.tilings.getCurrentTilingID());
 	getFFluxOutput()->set_number_tiles(maxFFluxPhase + 1);
@@ -201,6 +203,13 @@ void FFluxTrajectoryList::initPhaseNTrajectories(uint64_t trajectoriesToStart)
 
 lm::fflux::FFluxTrajectory* FFluxTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg)
 {
+    //TODO fix this block, copied it from supervisor, but it is better placed here now.
+    // If the trajectory associated with the finished work unit exists...
+    if (trajectoryList->exists(msg.final_state().trajectory_id()))
+    {
+        // ...update the trajectory based on the results of the work unit
+    }
+
     // setup directionString for printing the name of the current simulation direction
     vector<string> directionStrings; directionStrings.push_back("FORWARD"); directionStrings.push_back("BACKWARD");
 
@@ -326,12 +335,12 @@ uint FFluxTrajectoryList::getCrossingsPerPhase()
 
 lm::io::FFluxOutput* FFluxTrajectoryList::getFFluxOutput()
 {
-    return msg.mutable_process_work_unit_output(0)->mutable_fflux_output();
+    return msg.mutable_process_work_unit_output()->mutable_output(0)->mutable_fflux_output();
 }
 
 lm::io::FFluxOutput* FFluxTrajectoryList::getFFluxOutputStreaming()
 {
-    return msgStreaming.mutable_process_work_unit_output(0)->mutable_fflux_output();
+    return msgStreaming.mutable_process_work_unit_output()->mutable_output(0)->mutable_fflux_output();
 }
 
 long long FFluxTrajectoryList::getFFluxPhase()
@@ -680,3 +689,4 @@ void FFluxTrajectoryList::ffluxOutputSetFinal_DinnerMethod(SavedCrossings& saved
 
 }
 }
+*/

@@ -60,14 +60,14 @@ using std::string;
 namespace lm {
 namespace fflux {
 
-FFluxTrajectory::FFluxTrajectory(uint64_t id,uint ffluxPhase,lm::input::Input& input,bool reversed):
-Trajectory(id,input,reversed),ffluxPhase(ffluxPhase)
+FFluxTrajectory::FFluxTrajectory(uint64_t id, uint ffluxPhase, const lm::input::Input& input, bool reversed):
+Trajectory(id,input,reversed),input(input),ffluxPhase(ffluxPhase)
 {
     initLimits();
 }
 
-FFluxTrajectory::FFluxTrajectory(uint64_t id,uint ffluxPhase,lm::input::Input& input,TrajectoryState* zerothState):
-Trajectory(id,input,zerothState),ffluxPhase(ffluxPhase)
+FFluxTrajectory::FFluxTrajectory(uint64_t id, uint ffluxPhase, const lm::input::Input& input, TrajectoryState* zerothState):
+Trajectory(id,input,zerothState),input(input),ffluxPhase(ffluxPhase)
 {
     // Limit setting code
     initLimits();
@@ -79,7 +79,7 @@ FFluxTrajectory::~FFluxTrajectory()
 
 bool FFluxTrajectory::fluxedBackward()
 {
-    if (input.tilings.getCurrentTiling()->getArrangement()==lm::io::Tilings::ASCENDING)
+    if (input.getTilings().getCurrentTiling()->getArrangement()==lm::io::Tilings::ASCENDING)
     {
         return (getFinalLimitType()==lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER);
     }
@@ -91,7 +91,7 @@ bool FFluxTrajectory::fluxedBackward()
 
 bool FFluxTrajectory::fluxedForward()
 {
-    if (input.tilings.getCurrentTiling()->getArrangement()==lm::io::Tilings::ASCENDING)
+    if (input.getTilings().getCurrentTiling()->getArrangement()==lm::io::Tilings::ASCENDING)
     {
         return (getFinalLimitType()==lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER);
     }
@@ -103,27 +103,27 @@ bool FFluxTrajectory::fluxedForward()
 
 lm::io::TrajectoryLimits::LimitType FFluxTrajectory::getFinalLimitType()
 {
-    return getState()->final_limit_type();
+    return state.limit_reached();
 }
 
 void FFluxTrajectory::getLastSpeciesCounts(lm::io::FFluxOutput::TrajectoryOutput* trajectoryOutputBuf)
 {
-    uint speciesCountSize = getSpeciesCounts()->species_count_size();
-    uint offset = (getSpeciesCounts()->number_entries() - 1)*(getSpeciesCounts()->number_species());
-    for (int i=0; i<getSpeciesCounts()->number_species(); i++)
+    lm::io::SpeciesCounts speciesCounts = state.cme_state().species_counts();
+    uint offset = (speciesCounts.number_entries() - 1)*(speciesCounts.number_species());
+    for (int i=0; i<speciesCounts.number_species(); i++)
     {
-        trajectoryOutputBuf->add_species_count(getSpeciesCounts()->species_count(i + offset));
+        trajectoryOutputBuf->add_species_count(speciesCounts.species_count(i + offset));
     }
 }
 
 uint FFluxTrajectory::getSimSteps()
 {
-    return getState()->cme_state().species_counts().number_entries();
+    return state.cme_state().species_counts().number_entries();
 }
 
 double FFluxTrajectory::getSimTime()
 {
-    return getState()->cme_state().species_counts().time(getState()->cme_state().species_counts().time_size() - 1);
+    return state.cme_state().species_counts().time(state.cme_state().species_counts().time_size() - 1);
 }
 
 bool FFluxTrajectory::hasElapsed(double time)
@@ -133,14 +133,16 @@ bool FFluxTrajectory::hasElapsed(double time)
 
 void FFluxTrajectory::initLimits()
 {
-    getRunMsg()->mutable_limits()->Clear();
+    /* TODO: this needs to be moved somewhere else, probably forward flux supervisor.
+     *
+    getRunMsg()->mutable_work_unit(0)->mutable_limits()->Clear();
     // we are dealing with a combinatoric case where both either ffluxPhase is zero or it isn't, and the tiling arrangment is ASCENDING or it isn't
     // each of the 4 sets of possible pairs of true/false values corresponds to one of the numbers 0-3
     switch ((ffluxPhase!=0)<<1|input.tilings.getCurrentTiling()->getArrangement()!=lm::io::Tilings::ASCENDING)
     {
     case 0: // ffluxphase==0 and tilings.getCurrentTiling().getArrangement()==lm::io::Tilings::ASCENDING
     {
-        lm::io::TrajectoryLimits::IncreasingOrderParameterLimit* iopl = getRunMsg()->mutable_limits()->add_increasing_order_parameter_limit();
+        lm::io::TrajectoryLimits::IncreasingOrderParameterLimit* iopl = getRunMsg()->mutable_work_unit(0)->mutable_limits()->add_increasing_order_parameter_limit();
         iopl->set_arrangement(lm::io::TrajectoryLimits::ASCENDING);
         iopl->set_order_parameter_id(input.tilings.getCurrentTiling()->getOrderParameterID());
         iopl->add_value(input.tilings.getCurrentTiling()->getEdge(0));
@@ -148,7 +150,7 @@ void FFluxTrajectory::initLimits()
     }
     case 1: // ffluxphase==0 and tilings.getCurrentTiling().getArrangement()==lm::io::Tilings::DESCENDING
     {
-        lm::io::TrajectoryLimits::DecreasingOrderParameterLimit* dopl = getRunMsg()->mutable_limits()->add_decreasing_order_parameter_limit();
+        lm::io::TrajectoryLimits::DecreasingOrderParameterLimit* dopl = getRunMsg()->mutable_work_unit(0)->mutable_limits()->add_decreasing_order_parameter_limit();
         dopl->set_arrangement(lm::io::TrajectoryLimits::DESCENDING);
         dopl->set_order_parameter_id(input.tilings.getCurrentTiling()->getOrderParameterID());
         dopl->add_value(input.tilings.getCurrentTiling()->getEdge(0));
@@ -156,11 +158,11 @@ void FFluxTrajectory::initLimits()
     }
     case 2: // ffluxphase!=0 and tilings.getCurrentTiling().getArrangement()==lm::io::Tilings::ASCENDING
     {
-        lm::io::TrajectoryLimits::DecreasingOrderParameterLimit* dopl = getRunMsg()->mutable_limits()->add_decreasing_order_parameter_limit();
+        lm::io::TrajectoryLimits::DecreasingOrderParameterLimit* dopl = getRunMsg()->mutable_work_unit(0)->mutable_limits()->add_decreasing_order_parameter_limit();
         dopl->set_order_parameter_id(input.tilings.getCurrentTiling()->getOrderParameterID());
         dopl->add_value(input.tilings.getCurrentTiling()->getEdge(0));
         dopl->set_arrangement(lm::io::TrajectoryLimits::ASCENDING);
-        lm::io::TrajectoryLimits::IncreasingOrderParameterLimit* iopl = getRunMsg()->mutable_limits()->add_increasing_order_parameter_limit();
+        lm::io::TrajectoryLimits::IncreasingOrderParameterLimit* iopl = getRunMsg()->mutable_work_unit(0)->mutable_limits()->add_increasing_order_parameter_limit();
         iopl->set_arrangement(lm::io::TrajectoryLimits::ASCENDING);
         iopl->set_order_parameter_id(input.tilings.getCurrentTiling()->getOrderParameterID());
         iopl->add_value(input.tilings.getCurrentTiling()->getEdge(ffluxPhase));
@@ -168,17 +170,18 @@ void FFluxTrajectory::initLimits()
     }
     case 3: // ffluxphase!=0 and tilings.getCurrentTiling().getArrangement()==lm::io::Tilings::DESCENDING
     {
-        lm::io::TrajectoryLimits::IncreasingOrderParameterLimit* iopl = getRunMsg()->mutable_limits()->add_increasing_order_parameter_limit();
+        lm::io::TrajectoryLimits::IncreasingOrderParameterLimit* iopl = getRunMsg()->mutable_work_unit(0)->mutable_limits()->add_increasing_order_parameter_limit();
         iopl->set_arrangement(lm::io::TrajectoryLimits::DESCENDING);
         iopl->set_order_parameter_id(input.tilings.getCurrentTiling()->getOrderParameterID());
         iopl->add_value(input.tilings.getCurrentTiling()->getEdge(0));
-        lm::io::TrajectoryLimits::DecreasingOrderParameterLimit* dopl = getRunMsg()->mutable_limits()->add_decreasing_order_parameter_limit();
+        lm::io::TrajectoryLimits::DecreasingOrderParameterLimit* dopl = getRunMsg()->mutable_work_unit(0)->mutable_limits()->add_decreasing_order_parameter_limit();
         dopl->set_arrangement(lm::io::TrajectoryLimits::DESCENDING);
         dopl->set_order_parameter_id(input.tilings.getCurrentTiling()->getOrderParameterID());
         dopl->add_value(input.tilings.getCurrentTiling()->getEdge(ffluxPhase));
         break;
     }
     }
+    */
 }
 
 }

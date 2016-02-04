@@ -63,7 +63,7 @@ void Tiling::init(const lm::io::Tilings::Tiling& tilingRef)
     setArrangement(tilingBuf->arrangement());
 }
 
-lm::io::Tilings::Arrangement Tiling::getArrangement()
+lm::io::Tilings::Arrangement Tiling::getArrangement() const
 {
     return tilingBuf->arrangement();
 }

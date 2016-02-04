@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -37,6 +37,7 @@
  * Author(s): Elijah Roberts
  */
 
+#include <list>
 #include <map>
 #include <string>
 
@@ -44,6 +45,7 @@
 #include "lm/Exceptions.h"
 #include "lm/Print.h"
 
+using std::list;
 using std::map;
 using std::string;
 
@@ -72,6 +74,20 @@ void* ClassFactory::allocateObjectOfClass(string baseClassName, string className
         }
     }
     throw Exception("No allocator found for baseclass/class", baseClassName.c_str(), className.c_str());
+}
+
+list<string> ClassFactory::getAllSubclasses(string baseClassName)
+{
+    list<string> subclasses;
+    if (knownClasses.count(baseClassName) == 1)
+    {
+        map<string,ClassAllocator> knownSubclasses = knownClasses[baseClassName];
+        for (map<string,ClassAllocator>::iterator it=knownSubclasses.begin(); it != knownSubclasses.end(); it++)
+        {
+            subclasses.push_back(it->first.c_str());
+        }
+    }
+    return subclasses;
 }
 
 void ClassFactory::printRegisteredClasses()

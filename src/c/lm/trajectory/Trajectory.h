@@ -43,73 +43,45 @@
 #include <string>
 
 #include "lm/input/Input.h"
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
-#include "lm/message/Message.pb.h"
 #include "lm/tiling/Tilings.h"
 #include "lm/Types.h"
 
 namespace lm {
 namespace trajectory {
 
-// Trajectory is responsible for RunWorkUnit messages
 class Trajectory
 {
 public:
     enum status_t {NOT_STARTED, RUNNING, WAITING, FINISHED};
 
-//    Trajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings* tilings,bool reversed=false);
-//    Trajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings* tilings,lm::io::TrajectoryState* zerothState);
-    Trajectory(uint64_t id,lm::input::Input& input,bool reversed=false);
-    Trajectory(uint64_t id,lm::input::Input& input,lm::io::TrajectoryState* zerothState);
+    Trajectory(uint64_t id, const lm::io::TrajectoryState& initialState);
+    Trajectory(uint64_t id, const lm::input::Input& input, bool reversed=false);
     virtual ~Trajectory();
-    virtual void initHists();
-    virtual void initMsg(std::map<std::string,std::string>& simulationParameters);
-    virtual void initMsg(const lm::message::Message& newMsg);
-    virtual void initState(const lm::io::ReactionModel& reactionModel,bool reversed);
-    virtual void initState(lm::io::TrajectoryState* zerothState);
-//    virtual void initLimits() = 0;
+    //virtual void initHists();
 
     // accessors
-    virtual uint64_t getID();
-    virtual lm::io::TrajectoryLimits* getLimits();
-    virtual lm::message::Message* getMsg();
-    virtual lm::message::Message* getNextWorkUnitMsg(uint64_t nextWorkUnitID);
-    virtual double getOPVal(uint opID=0);
-    virtual lm::message::RunWorkUnit* getRunMsg();
-    virtual lm::io::SpeciesCounts* getSpeciesCounts();
-    virtual lm::io::TrajectoryState* getState();
+    virtual uint64_t getId();
     virtual status_t getStatus();
+    virtual const lm::io::TrajectoryState& getState();
+    virtual int64_t getWorkUnitsPerformed();
 
     // mutators
-    virtual void setID(uint64_t id);
-    virtual void setLimits(const lm::io::TrajectoryLimits* newLimits);
-    virtual void setMsg(const lm::message::Message& newMsg);
-    virtual void setStarted(bool trajectoryStarted);
-    virtual void setState(const lm::io::TrajectoryState* newState);
     virtual void setStatus(status_t newStatus);
-    virtual void setWorkUnitId(uint64_t id);
-
+    virtual void setState(const lm::io::TrajectoryState& newState);
     virtual void incrementWorkUnitsPerformed();
-    virtual int64_t getWorkUnitsPerformed();
+
+protected:
+    virtual void initializeState(const lm::input::Input& input, bool reversed=false);
 
 protected:
     uint64_t id;
-    lm::input::Input& input;
-    lm::message::Message msg;
-//    lm::io::ReactionModel& reactionModel;
-//    lm::io::DiffusionModel& diffusionModel;
-//    map<string,string> simulationParameters;
-//    lm::io::TrajectoryLimits limits;
-//    lm::io::TrajectoryState state;  // state is supposed to be synced at all (or at least most) times with the msg.run_work_unit.initial_state field
     status_t status;
+    lm::io::TrajectoryState state;
     int64_t numberWorkUnitsPerformed;
 };
 
 }
 }
-
-typedef std::map<uint64_t, lm::trajectory::Trajectory*> TrajectoryMap;
 
 #endif

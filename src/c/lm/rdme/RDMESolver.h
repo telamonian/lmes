@@ -1,7 +1,7 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2008-2011 Luthey-Schulten Group,
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2008-2012 Luthey-Schulten Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Luthey-Schulten Group
@@ -64,8 +64,9 @@ public:
     virtual bool needsDiffusionModel() {return true;}
     virtual void setDiffusionModel(const lm::io::DiffusionModel& dm);
     virtual void reset();
-    virtual void getState(lm::io::TrajectoryState* state);
-    virtual void setState(const lm::io::TrajectoryState& state);
+    virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0);
+    virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0);
+    virtual void setOutputOptions(const lm::io::OutputOptions& outputOptions);
 
 protected:
     class DiffusionModel
@@ -98,6 +99,10 @@ protected:
 
     // The current state.
     Lattice* lattice;
+
+    // Output options.
+    bool writeLatticeTimeSeries;
+    double latticeWriteInterval;
 };
 
 }

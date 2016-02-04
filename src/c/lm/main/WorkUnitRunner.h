@@ -65,7 +65,7 @@ public:
     virtual ~WorkUnitRunner();
     virtual void wake() throw(PthreadException);
     virtual int run();
-    virtual void runWorkUnit(const lm::message::RunWorkUnit& msg);
+    virtual void runWorkUnits(const lm::message::RunWorkUnit& msg);
 
     //id getter methods
     virtual int	getProcess() {return communicator.getSourceProcess();}

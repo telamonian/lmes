@@ -62,9 +62,9 @@ public:
     virtual double getRandomDouble();
     virtual double getExpRandomDouble();
     virtual double getNormRandomDouble();
-    virtual void getRandomDoubles(double * rngs, int numberRNGs);
-    virtual void getExpRandomDoubles(double * rngs, int numberRNGs);
-    virtual void getNormRandomDoubles(double * rngs, int numberRNGs);
+    virtual void getRandomDoubles(double * rngs, int numberRNGs, bool bufferAvxAligned=false);
+    virtual void getExpRandomDoubles(double * rngs, int numberRNGs, bool bufferAvxAligned=false);
+    virtual void getNormRandomDoubles(double * rngs, int numberRNGs, bool bufferAvxAligned=false);
 
 
 protected:

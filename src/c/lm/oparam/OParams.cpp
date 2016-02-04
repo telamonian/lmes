@@ -65,7 +65,7 @@ void OParams::clearOPMap()
     }
 }
 
-bool OParams::init(lm::io::hdf5::Hdf5File* file)
+bool OParams::init(const lm::io::hdf5::Hdf5File* file)
 {
     if(rFFOParamsBuf(file))
     {
@@ -111,7 +111,7 @@ void OParams::initValues(uint* speciesCounts)
     }
 }
 
-bool OParams::rFFOParamsBuf(lm::io::hdf5::Hdf5File* file)
+bool OParams::rFFOParamsBuf(const lm::io::hdf5::Hdf5File* file)
 {
     if (file->hasOrderParameters())
     {

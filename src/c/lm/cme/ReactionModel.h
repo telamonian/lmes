@@ -1,11 +1,11 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
- *                  Johns Hopkins University
- *                  http://biophysics.jhu.edu/roberts/
+ * 			     Johns Hopkins University
+ * 			     http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -34,34 +34,41 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts, Max Klein
+ * Author(s): Elijah Roberts
  */
-#ifndef LM_FFLUX_FFLUXTRAJECTORY_H_
-#define LM_FFLUX_FFLUXTRAJECTORY_H_
 
-#include <map>
-#include <string>
+#ifndef LM_CME_REACTIONMODEL_H_
+#define LM_CME_REACTIONMODEL_H_
 
-#include "lm/input/Input.h"
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/ReactionModel.pb.h"
-#include "lm/trajectory/Trajectory.h"
-#include "lm/tiling/Tilings.h"
 #include "lm/Types.h"
+#include "lm/io/ReactionModel.pb.h"
+#include "lm/me/PropensityFunction.h"
 
 namespace lm {
-namespace replicates {
+namespace cme {
 
-class ReplicateTrajectory : public lm::trajectory::Trajectory
+// The reaction model.
+class ReactionModel
 {
 public:
-//    ReplicateTrajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters);
-//    ReplicateTrajectory(uint64_t id,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::io::TrajectoryState* zerothState);
-    ReplicateTrajectory(uint64_t id,lm::input::Input& input);
-    ReplicateTrajectory(uint64_t id,lm::input::Input& input,lm::io::TrajectoryState* zerothState);
-    virtual ~ReplicateTrajectory();
+    ReactionModel(const uint numberSpecies, const uint numberReactions);
+    ReactionModel(const lm::io::ReactionModel& rm);
+    virtual ~ReactionModel();
+    virtual void setPropensityFunction(uint reaction, lm::me::PropensityFunction* propensityFunction);
 
-    virtual void initLimits(const lm::io::ReactionModel& reactionModel,std::map<std::string,std::string>& simulationParameters);
+    const uint numberSpecies;
+    uint numberSpeciesToTrack;
+    const uint numberReactions;
+    ndarray<int> S;                                // Stoichiometric matrix: numberSpecies x numberReactions
+    ndarray<uint> D;                               // Dependency matrix: numberSpecies x numberReactions
+    lm::me::PropensityFunction** propensityFunctions;
+
+    // Dependency tables.
+    uint* numberDependentSpecies;
+    uint** dependentSpecies;
+    int** dependentSpeciesChange;
+    uint* numberDependentReactions;
+    uint** dependentReactions;
 };
 
 }

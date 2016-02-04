@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -65,10 +65,11 @@ public:
 //    ReplicateTrajectoryList(const lm::io::ReactionModel& reactionModel, const lm::io::DiffusionModel& diffusionModel, map<std::string,std::string>& simulationParameters, uint64_t firstTrajectory, uint64_t lastTrajectory);
     ReplicateTrajectoryList(lm::input::Input& input, uint64_t firstTrajectory, uint64_t lastTrajectory);
     virtual ~ReplicateTrajectoryList();
-    virtual void init();
-    virtual lm::trajectory::Trajectory* workUnitFinished(const lm::message::FinishedWorkUnit& msg);
-    virtual lm::message::Message* getNextWorkUnitMsg();
+    virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg);
+
+protected:
     virtual void printTrajectoryStatistics();
+    virtual uint64_t findNextTrajectoryToRun();
 
 protected:
     uint64_t firstTrajectory;

@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -51,7 +51,6 @@
 #include "lm/message/Communicator.h"
 #include "lm/message/Message.pb.h"
 #include "lm/resource/ComputeResources.h"
-#include "lm/rng/XORShift.h"
 #include "lm/slot/Slot.h"
 #include "lm/thread/Thread.h"
 
@@ -72,14 +71,15 @@ public:
     ~SlotList();
 
     //create slot methods
-    void createAllSlots(map<int,ComputeResources> & allResources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, lm::input::Input* input);
-    int createProcessSlots(int startingSlotId, int process, ComputeResources resources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, lm::input::Input* input);
-    void createSlot(int slotId, ComputeResources resources, bool useCPUAffinity, lm::message::Message* msg, string solver, lm::input::Input* input);
+    void createAllSlots(map<int,ComputeResources> & allResources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input);
+    int createProcessSlots(int startingSlotId, int process, ComputeResources resources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input);
+    void createSlot(int slotId, ComputeResources resources, bool useCPUAffinity, lm::message::Message* msg, string solver, const lm::input::Input& input);
 
     int getNumberSlots() {return slots.size();}
     void markSlotStarted(const lm::message::StartedWorkUnitRunner & msg);
     bool hasUnstartedSlots();
     bool hasFreeSlots();
+    const Slot& getFreeSlot();
     bool hasBusySlots();
     void runWorkUnit(lm::message::Message* runWorkUnitMsg);
     void workUnitFinished(const lm::message::FinishedWorkUnit& msg);

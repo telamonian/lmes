@@ -175,10 +175,13 @@ bool ioTestFlag;
 void printCopyright(int argc, char** argv)
 {
     std::cout << "Lattice Microbe ES v" << VERSION_NUM << " build " << BUILD_INFO << " in " << (sizeof(uintv_t)*8) << "-bit mode with options";
+    std::cout << " MPI";
 #ifdef OPT_CUDA
     std::cout << " CUDA";
 #endif
-    std::cout << " MPI";
+#ifdef OPT_AVX
+    std::cout << " AVX";
+#endif
     std::cout << "." << std::endl;
     std::cout << "Copyright (C) " << COPYRIGHT_DATE << " Luthey-Schulten Group, University of Illinois at Urbana-Champaign." << std::endl;
     std::cout << "Copyright (C) " << COPYRIGHT_DATE_JHU << " Roberts Group, Johns Hopkins University." << std::endl << std::endl;
@@ -226,6 +229,12 @@ void parseArguments(int argc, char** argv)
         //See if the user is trying to get the version info.
         else if (strcmp(option, "-v") == 0 || strcmp(option, "--version") == 0) {
         	functionOption = "version";
+            break;
+        }
+
+        //See if the user is trying to perfrom a debug test.
+        else if (strcmp(option, "--debug") == 0) {
+            functionOption = "debug";
             break;
         }
 
@@ -571,4 +580,278 @@ void printUsage(int argc, char** argv)
     std::cout << "  -fflux            --use-forward-flux			Enable forward flux sampling (default disabled)." << std::endl;
     std::cout << "  -intout           --intermediate-output         More verbose output. Consists of intermediate values used to calculate standard output.";
 }
+
+#include "hrtime.h"
+#include "lm/Exceptions.h"
+#include "lm/Types.h"
+#include "lm/me/PropensityFunction.h"
+#include "lm/rng/XORShift.h"
+
+#include <immintrin.h>
+#include "lm/cme/GillespieDSolver.h"
+#include "lm/avx/GillespieDSolverAVX.h"
+
+void mainDebug(int argc, char** argv)
+{
+    /*
+    tuple<uint> t3(10,5,1);
+    ndarray<double> a1(t3);
+    for (uint r=0; r<a1.shape[0]; r++)
+        for (uint c=0; c<a1.shape[1]; c++)
+            a1[tuple<uint>(r,c,0)] = (double)r;
+    a1.print("\n");
+    for (uint r=0; r<a1.shape[0]; r++)
+        for (uint c=0; c<a1.shape[1]; c++)
+            a1[tuple<uint>(r,c,0)] = (double)c;
+    a1.print("\n");
+
+    uint numberSpecies=2;
+    uint numberReactions=1;
+    ndarray<int> S(tuple<uint>(numberSpecies,numberReactions));
+    ndarray<uint> D(tuple<uint>(numberSpecies,numberReactions));
+
+    uint reactionIndex=0;
+    S[tuple<uint>(0,reactionIndex)] = -1;
+    S[tuple<uint>(1,reactionIndex)] = 1;
+    D[tuple<uint>(0,reactionIndex)] = 1;
+    D[tuple<uint>(1,reactionIndex)] = 0;
+    tuple<double> k(0.1);
+    S.print("\n");
+    D.print("\n");
+    k.print("\n");
+
+    int id=1;
+    lm::me::PropensityFunctionFactory fs;
+    lm::me::PropensityFunction* f = fs.createPropensityFunction(id, reactionIndex, S, D, k);
+
+    double time=10.0;
+    int* speciesCounts=new int[numberSpecies];
+    speciesCounts[0] = 10;
+    speciesCounts[1] = 3;
+    double a = f->calculate(time, speciesCounts);
+    S.print("\n");
+    D.print("\n");
+    k.print("\n");
+    printf("%f: a=%f\n",time,a);
+    delete[] speciesCounts;
+    */
+
+    /*__m256d time = _mm256_setzero_pd();
+    __m256d maxTime = _mm256_set1_pd(2.0);
+    __m256d totalPropensity = _mm256_set1_pd(2.0);
+    __m256d expR = _mm256_setr_pd(1.0, 2.0, 3.0, 4.0);
+    __m256d timestep = _mm256_div_pd(expR, totalPropensity);
+    time = _mm256_add_pd(time,timestep);
+
+    __m256d comp = _mm256_cmp_pd(time, maxTime, _CMP_GE_OQ);
+
+    double* res = (double*)&comp;
+    printf("%lf %lf %lf %lf\n", res[0], res[1], res[2], res[3]);
+
+
+     // If any new time is past the end time, we are done.
+    int allFalse = _mm256_testz_pd(comp,comp);
+    printf("%d\n",allFalse);
+    */
+
+    /**
+      Generate a trajectory.
+      */
+    /**/
+    //lm::avx::GillespieDSolverAVX s = new lm::avx::GillespieDSolverAVX();
+    lm::cme::GillespieDSolver s;
+
+    vector<int> cpus;
+    cpus.push_back(0);
+    s.setComputeResources(cpus, vector<int>());
+
+    // First order decay model.
+//    lm::io::ReactionModel rm;
+//    rm.set_number_species(1);
+//    rm.set_number_reactions(1);
+//    rm.add_initial_species_count(100);
+//    rm.add_reaction();
+//    rm.mutable_reaction(0)->set_type(1);
+//    rm.mutable_reaction(0)->add_rate_constant(0.5);
+//    rm.add_dependency_matrix(1);
+//    rm.add_stoichiometric_matrix(-1);
+
+    // First order birth death model.
+    lm::io::ReactionModel rm;
+    rm.set_number_species(1);
+    rm.set_number_reactions(2);
+    rm.add_initial_species_count(1000);
+    rm.add_reaction();
+    rm.mutable_reaction(0)->set_type(0);
+    rm.mutable_reaction(0)->add_rate_constant(1000.0);
+    rm.add_reaction();
+    rm.mutable_reaction(1)->set_type(1);
+    rm.mutable_reaction(1)->add_rate_constant(1.0);
+    rm.add_dependency_matrix(0);
+    rm.add_dependency_matrix(1);
+    rm.add_stoichiometric_matrix(1);
+    rm.add_stoichiometric_matrix(-1);
+
+    // Three reaction birth death.
+//    lm::io::ReactionModel rm;
+//    rm.set_number_species(1);
+//    rm.set_number_reactions(3);
+//    rm.add_initial_species_count(100);
+//    rm.add_reaction();
+//    rm.mutable_reaction(0)->set_type(1);
+//    rm.mutable_reaction(0)->add_rate_constant(0.5);
+//    rm.add_reaction();
+//    rm.mutable_reaction(1)->set_type(0);
+//    rm.mutable_reaction(1)->add_rate_constant(100.0);
+//    rm.add_reaction();
+//    rm.mutable_reaction(2)->set_type(1);
+//    rm.mutable_reaction(2)->add_rate_constant(0.5);
+//    rm.add_dependency_matrix(1);
+//    rm.add_dependency_matrix(0);
+//    rm.add_dependency_matrix(1);
+//    rm.add_stoichiometric_matrix(-1);
+//    rm.add_stoichiometric_matrix(1);
+//    rm.add_stoichiometric_matrix(-1);
+
+    // Two species parallel three reaction birth death.
+//    lm::io::ReactionModel rm;
+//    rm.set_number_species(2);
+//    rm.set_number_reactions(6);
+//    rm.add_initial_species_count(100);
+//    rm.add_reaction();
+//    rm.mutable_reaction(0)->set_type(1);
+//    rm.mutable_reaction(0)->add_rate_constant(0.5);
+//    rm.add_reaction();
+//    rm.mutable_reaction(1)->set_type(0);
+//    rm.mutable_reaction(1)->add_rate_constant(100.0);
+//    rm.add_reaction();
+//    rm.mutable_reaction(2)->set_type(1);
+//    rm.mutable_reaction(2)->add_rate_constant(0.5);
+//    rm.add_reaction();
+//    rm.mutable_reaction(3)->set_type(1);
+//    rm.mutable_reaction(3)->add_rate_constant(0.5);
+//    rm.add_reaction();
+//    rm.mutable_reaction(4)->set_type(0);
+//    rm.mutable_reaction(4)->add_rate_constant(10.0);
+//    rm.add_reaction();
+//    rm.mutable_reaction(5)->set_type(1);
+//    rm.mutable_reaction(5)->add_rate_constant(0.5);
+//    rm.add_dependency_matrix(1);
+//    rm.add_dependency_matrix(0);
+//    rm.add_dependency_matrix(1);
+//    rm.add_dependency_matrix(0);
+//    rm.add_dependency_matrix(0);
+//    rm.add_dependency_matrix(0);
+//    rm.add_dependency_matrix(0);
+//    rm.add_dependency_matrix(0);
+//    rm.add_dependency_matrix(0);
+//    rm.add_dependency_matrix(1);
+//    rm.add_dependency_matrix(0);
+//    rm.add_dependency_matrix(1);
+//    rm.add_stoichiometric_matrix(-1);
+//    rm.add_stoichiometric_matrix(1);
+//    rm.add_stoichiometric_matrix(-1);
+//    rm.add_stoichiometric_matrix(0);
+//    rm.add_stoichiometric_matrix(0);
+//    rm.add_stoichiometric_matrix(0);
+//    rm.add_stoichiometric_matrix(0);
+//    rm.add_stoichiometric_matrix(0);
+//    rm.add_stoichiometric_matrix(0);
+//    rm.add_stoichiometric_matrix(-1);
+//    rm.add_stoichiometric_matrix(1);
+//    rm.add_stoichiometric_matrix(-1);
+
+    // Set the reaction model.
+    s.setReactionModel(rm);
+
+    // Set the limits.
+    lm::io::TrajectoryLimits limits;
+    //limits.set_max_time_limit(100.0);
+    s.setLimits(limits);
+
+    // Reset the solver.
+    s.reset();
+
+    // Set the initial state.
+    lm::io::TrajectoryState state;
+    state.set_trajectory_id(1);
+    state.mutable_cme_state();
+    state.mutable_cme_state()->mutable_species_counts()->set_trajectory_id(state.trajectory_id());
+    state.mutable_cme_state()->mutable_species_counts()->set_number_species(rm.number_species());
+    state.mutable_cme_state()->mutable_species_counts()->set_number_entries(1);
+    for (int i=0; i<rm.number_species(); i++)
+        state.mutable_cme_state()->mutable_species_counts()->add_species_count(rm.initial_species_count(i));
+    state.mutable_cme_state()->mutable_species_counts()->add_time(0.0);
+    s.setState(state);
+
+    hrtime start = getHrTime();
+    long long steps = s.generateTrajectory(100000000);
+    hrtime stop = getHrTime();
+    printf("Performed %lld steps in %0.3f seconds (%0.4e steps/second)\n",steps,convertHrToSeconds(stop-start),double(steps)/convertHrToSeconds(stop-start));
+   /**/
+
+
+    /**
+      * Write out a bunch of randome numbers.
+      */
+    /*
+    lm::rng::XORShift rng(0,0);
+    double* rngValues = NULL;
+    double* expRngValues = NULL;
+    int rngCount=10000000;
+    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&rngValues, DOUBLES_PER_AVX*sizeof(double), rngCount*sizeof(double)));
+    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&expRngValues, DOUBLES_PER_AVX*sizeof(double), rngCount*sizeof(double)));
+
+    // Warmup.
+    rng.getRandomDoubles(rngValues,rngCount);
+    rng.getExpRandomDoubles(expRngValues,rngCount);
+    rng.getRandomDoubles(rngValues,rngCount, true);
+    rng.getExpRandomDoubles(expRngValues,rngCount, true);
+
+    // Test with avx.
+    {
+    hrtime start = getHrTime();
+    rng.getRandomDoubles(rngValues,rngCount, true);
+    hrtime stop = getHrTime();
+    printf("Calculated %d norm rngs with avx in %0.3f seconds (%0.4e rngs/second)\n",rngCount,convertHrToSeconds(stop-start),double(rngCount)/convertHrToSeconds(stop-start));
+    start = getHrTime();
+    rng.getExpRandomDoubles(expRngValues,rngCount, true);
+    stop = getHrTime();
+    printf("Calculated %d exp rngs with avx in %0.3f seconds (%0.4e rngs/second)\n",rngCount,convertHrToSeconds(stop-start),double(rngCount)/convertHrToSeconds(stop-start));
+    FILE* f = fopen("rng-avx.txt", "w");
+    for (int i=0; i<rngCount; i++)
+        fprintf(f, "%e %e\n", rngValues[i], expRngValues[i]);
+    fclose(f);
+    }
+
+
+    // Test without avx.
+    hrtime start = getHrTime();
+    rng.getRandomDoubles(rngValues,rngCount);
+    hrtime stop = getHrTime();
+    printf("Calculated %d norm rngs in %0.3f seconds (%0.4e rngs/second)\n",rngCount,convertHrToSeconds(stop-start),double(rngCount)/convertHrToSeconds(stop-start));
+    start = getHrTime();
+    rng.getExpRandomDoubles(expRngValues,rngCount);
+    stop = getHrTime();
+    printf("Calculated %d exp rngs in %0.3f seconds (%0.4e rngs/second)\n",rngCount,convertHrToSeconds(stop-start),double(rngCount)/convertHrToSeconds(stop-start));
+    FILE* f = fopen("rng.txt", "w");
+    for (int i=0; i<rngCount; i++)
+        fprintf(f, "%e %e\n", rngValues[i], expRngValues[i]);
+    fclose(f);
+
+    free(rngValues);
+    rngValues = NULL;
+    free(expRngValues);
+    expRngValues = NULL;
+    */
+}
+
+
+
+
+
+
+
+
+
 

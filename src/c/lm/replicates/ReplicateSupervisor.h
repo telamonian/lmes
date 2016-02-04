@@ -80,11 +80,12 @@ public:
 
 protected:
     virtual void startSimulation();
+    virtual void buildTrajectoryList();
     virtual void finishSimulation();
-//    virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg);
 
 private:
     hrtime simulationStartTime;
+    uint64_t numberReplicates;
 };
 
 }

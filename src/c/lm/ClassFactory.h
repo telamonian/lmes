@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -40,9 +40,11 @@
 #ifndef CLASSFACTORY_H
 #define CLASSFACTORY_H
 
+#include <list>
 #include <map>
 #include <string>
 
+using std::list;
 using std::map;
 using std::string;
 
@@ -60,6 +62,7 @@ public:
     ~ClassFactory() {}
     void registerClass(string baseClassName, string className, ClassAllocator allocator);
     void* allocateObjectOfClass(string baseClassName, string className);
+    list<string> getAllSubclasses(string baseClassName);
     void printRegisteredClasses();
 
 private:

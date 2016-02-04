@@ -372,11 +372,11 @@ void RDMESolver::reset()
     lattice->removeAllParticles();
 }
 
-void RDMESolver::getState(lm::io::TrajectoryState* state)
+void RDMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
 {
     if (diffusionModel == NULL || lattice == NULL) throw Exception("RDMESolver get state called before diffusion model was set.");
 
-    CMESolver::getState(state);
+    CMESolver::getState(state, trajectoryNumber);
 
     // Get the lattice state.
     lm::io::Lattice* l = state->mutable_rdme_state()->mutable_species_positions();
@@ -394,7 +394,7 @@ void RDMESolver::getState(lm::io::TrajectoryState* state)
     l->set_allocated_particles(particles);
 }
 
-void RDMESolver::setState(const lm::io::TrajectoryState& state)
+void RDMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNumber)
 {
     // Valdiate the state.
     if (diffusionModel == NULL || lattice == NULL) throw Exception("RDMESolver set state called before diffusion model was set.");
@@ -404,11 +404,21 @@ void RDMESolver::setState(const lm::io::TrajectoryState& state)
     if (state.rdme_state().species_positions().lattice_z_size() != diffusionModel->latticeZSize) throw Exception("State object and diffusion model have differing lattice z size",state.rdme_state().species_positions().lattice_z_size(),diffusionModel->latticeZSize);
     if (state.rdme_state().species_positions().particles_per_site() != diffusionModel->particlesPerSite) throw Exception("State object and diffusion model have differing number of particles per site",state.rdme_state().species_positions().particles_per_site(),diffusionModel->particlesPerSite);
 
-    CMESolver::setState(state);
+    CMESolver::setState(state, trajectoryNumber);
 
     // Set the lattice state.
     const string particles = state.rdme_state().species_positions().particles();
     lattice->deserializeParticlesFrom(particles.data(), particles.size(), (Lattice::SerializationDataOrder)state.rdme_state().species_positions().particles_ordering(), state.rdme_state().species_positions().particles_compressed_deflate());
+}
+
+void RDMESolver::setOutputOptions(const lm::io::OutputOptions& outputOptions)
+{
+    CMESolver::setOutputOptions(outputOptions);
+    if (outputOptions.has_lattice_write_interval())
+    {
+        writeLatticeTimeSeries = true;
+        latticeWriteInterval = outputOptions.lattice_write_interval();
+    }
 }
 
 }

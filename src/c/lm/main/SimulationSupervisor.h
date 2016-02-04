@@ -58,11 +58,13 @@
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/ResourcesAvailable.pb.h"
+#include "lm/message/RunWorkUnit.pb.h"
 #include "lm/message/StartWorkUnitRunner.pb.h"
 #include "lm/message/StartedCheckpointSignaler.pb.h"
 #include "lm/message/StartedOutputWriter.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnitRunner.pb.h"
+#include "lm/message/WorkUnit.pb.h"
 #include "lm/oparam/OParams.h"
 #include "lm/resource/ResourceMap.h"
 #include "lm/slot/SlotList.h"
@@ -96,13 +98,19 @@ public:
     void wake() throw(lm::thread::PthreadException);
 
 protected:
-//    virtual void initLimits();
+    virtual void buildTrajectoryList()=0;
+    virtual void destroyTrajectoryList();
     virtual void startSimulation();
+    virtual void startSimulationPhase();
     virtual bool assignWork();
+    virtual void buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg);
+    virtual void buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint minWorkUnits);
+    virtual bool performAnotherSimulationPhase();
+    virtual void finishSimulationPhase();
     virtual void finishSimulation();
 
     virtual int run();
-    virtual void resourceAvailable(const lm::message::ResourcesAvailable& msg);
+    virtual void receivedResourceAvailable(const lm::message::ResourcesAvailable& msg);
     virtual void allResourcesRegistered();
     virtual void startOutputWriter();
     virtual void receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg);
@@ -117,7 +125,6 @@ protected:
     virtual void receivedFinishedCheckpointing(const lm::message::FinishedCheckpointing& msg);
 
 private:
-    bool parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg);
     void resetPerformanceStatistics();
     void printPerformanceStatistics(bool flush=false);
 
@@ -136,18 +143,6 @@ protected:
     std::string solverClassName;
     bool useCPUAffinity;
     lm::input::Input* input;
-    lm::io::SimulationParameters simulationParametersBuf;
-    map<string,string> simulationParametersMap;
-    bool hasReactionModel;
-    lm::io::ReactionModel reactionModelBuf;
-    bool hasDiffusionModel;
-    lm::io::DiffusionModel diffusionModelBuf;
-    bool hasOrderParameters;
-    lm::io::OrderParameters orderParametersBuf;
-    lm::oparam::OParams ops;
-    bool hasTilings;
-    lm::io::Tilings tilingsBuf;
-    lm::tiling::Tilings tilings;
     lm::trajectory::TrajectoryList* trajectoryList;
     lm::slot::SlotList slots;
     bool haveAllWorkUnitRunnersStarted;
@@ -156,6 +151,7 @@ protected:
 private:
     hrtime stats_lastPrintTime;
     long long stats_workUnits;
+    long long stats_workUnitsParts;
     long long stats_minWorkUnitId;
     long long stats_maxWorkUnitId;
     long long stats_workUnitsSteps;

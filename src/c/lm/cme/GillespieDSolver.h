@@ -71,13 +71,13 @@ public:
     GillespieDSolver();
     virtual ~GillespieDSolver();
     virtual void reset();
-    virtual void getState(lm::io::TrajectoryState* state);
-    virtual void setState(const lm::io::TrajectoryState& state);
+    virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0);
+    virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0);
     virtual long long generateTrajectory(long long maxSteps);
 
 protected:
-    inline void updateAllPropensities(double time);
-    inline void updatePropensities(double time, uint r);
+    inline void updateAllPropensities(double time, const uint numberSpecies);
+    inline void updatePropensities(double time, uint r, const uint numberSpecies);
 
 protected:
     double * propensities;

@@ -68,8 +68,9 @@ public:
 
 protected:
     virtual void receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg);
-    virtual void finishSimulation();
     virtual void startSimulation();
+    virtual void buildTrajectoryList();
+    virtual void finishSimulation();
 
 protected:
     int realOutputWriterProcess;

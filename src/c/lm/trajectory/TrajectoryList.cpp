@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -41,7 +41,6 @@
 #include <string>
 
 #include "lm/Print.h"
-#include "lm/input/Input.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
@@ -58,14 +57,48 @@ using std::string;
 namespace lm {
 namespace trajectory {
 
-TrajectoryList::TrajectoryList(lm::input::Input& input)
-:communicator(NULL),input(input),trajectoryCount(0),workUnitCount(0)
+TrajectoryList::TrajectoryList()
 {
 }
 
 TrajectoryList::~TrajectoryList()
 {
     deleteAllTrajectories();
+}
+
+void TrajectoryList::setAllFinished()
+{
+    for (TrajectoryMap::iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
+    {
+        it->second->setStatus(Trajectory::FINISHED);
+        finishedTrajectories[it->first] = it->second;
+    }
+    waitingTrajectories.clear();
+    for (TrajectoryMap::iterator it=runningTrajectories.begin(); it!=runningTrajectories.end(); it++)
+    {
+        it->second->setStatus(Trajectory::FINISHED);
+        finishedTrajectories[it->first] = it->second;
+    }
+    runningTrajectories.clear();
+    workUnitsRunning.clear();
+}
+
+bool TrajectoryList::areAllFinished()
+{
+    return waitingTrajectories.size() == 0 && runningTrajectories.size() == 0;
+}
+
+void TrajectoryList::deleteTrajectory(uint64_t id)
+{
+    if (trajectories.count(id))
+    {
+        delete trajectories[id];
+        trajectories[id] = NULL;
+        trajectories.erase(id);
+        waitingTrajectories.erase(id);
+        runningTrajectories.erase(id);
+        finishedTrajectories.erase(id);
+    }
 }
 
 void TrajectoryList::deleteAllTrajectories()
@@ -75,108 +108,123 @@ void TrajectoryList::deleteAllTrajectories()
         delete it->second;
     }
     trajectories.clear();
+    waitingTrajectories.clear();
+    runningTrajectories.clear();
+    finishedTrajectories.clear();
+
 }
 
-void TrajectoryList::deleteTrajectory(uint64_t trajectoryID)
+uint64_t TrajectoryList::findNextTrajectoryToRun()
 {
-//	Print::printf(Print::INFO,"Deleting trajectory ID: %d", trajectoryID);
-    TrajectoryMap::iterator it(trajectories.find(trajectoryID));
-    delete it->second;
-    trajectories.erase(it);
+    TrajectoryMap::iterator it=waitingTrajectories.begin();
+    return it->first;
 }
 
-// initializer(s)
-void TrajectoryList::setCommunicator(lm::message::Communicator& newCom)
+int TrajectoryList::addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUnit* msg, uint numberParts)
 {
-    communicator = &newCom;
-}
+    list<uint64_t> trajectoriesAdded;
+    for (int i=0; i<numberParts; i++)
+    {
+        // See if any trajectories are waiting.
+        if (waitingTrajectories.size() > 0)
+        {
+            // Get the first trajectory.
+            uint64_t id = findNextTrajectoryToRun();
+            if (!waitingTrajectories.count(id))
+                throw Exception("Consistency error in trajectory list, next trajectory to run was not in the waiting list",id);
+            Trajectory* t = waitingTrajectories[id];
 
-lm::trajectory::Trajectory* TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
-{
-    Trajectory* t = trajectories[msg.final_state().trajectory_id()];
-    t->incrementWorkUnitsPerformed();
+            // Validate that it really needs to be run.
+            if (t->getStatus() != Trajectory::NOT_STARTED && t->getStatus() != Trajectory::WAITING)
+                throw Exception("Consistency error in trajectory list, invalid trajectory in the waiting list",id,t->getStatus());
+
+            // Move it to the running list.
+            trajectoriesAdded.push_back(id);
+            t->setStatus(Trajectory::RUNNING);
+            waitingTrajectories.erase(id);
+            runningTrajectories[id] = t;
+
+            // Fill in the message.
+            lm::message::WorkUnit* wu = msg->add_part();
+            wu->mutable_initial_state()->CopyFrom(t->getState());
+        }
+    }
+
+    // Add these trajectories to the work units running map.
+    workUnitsRunning[workUnitId] = trajectoriesAdded;
 
     // Print some performance statistics, if it has been a while.
     printTrajectoryStatistics();
 
-    if (msg.status() == lm::message::FinishedWorkUnit::LIMIT_REACHED)
-    {
-        setTrajectoryStatus(msg.final_state().trajectory_id(), Trajectory::FINISHED);
-        setTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
-    }
-    else
-    {
-        setTrajectoryStatus(msg.final_state().trajectory_id(), Trajectory::WAITING);
-        setTrajectoryState(msg.final_state().trajectory_id(), msg.final_state());
-    }
-    setTrajectoryStarted(msg.final_state().trajectory_id(), true);
-
-    return getTrajectory(msg.final_state().trajectory_id());
+    return trajectoriesAdded.size();
 }
 
-lm::message::Message* TrajectoryList::getNextWorkUnitMsg()
+void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
 {
-//	Print::printf(Print::INFO, "As I get the next work unit, the trajectories size is: %d\n", trajectories.size());
-    for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+    // Get the work unit id.
+    uint64_t workUnitId = msg.work_unit_id();
+
+    //Get the list of trajectories associated with this work unit.
+    list<uint64_t> involvedTrajectories = workUnitsRunning[workUnitId];
+    workUnitsRunning.erase(workUnitId);
+
+    //Make sure the sizes between the list and the message are consistent.
+    if (involvedTrajectories.size() != msg.part_status_size())
+        throw Exception("Consistency error in trajectory list, number of involved trajectories differed from work units finished message",workUnitId);
+
+    // Loop over the trajectories.
+    for (list<uint64_t>::iterator it=involvedTrajectories.begin(); it != involvedTrajectories.end(); it++)
     {
-        lm::message::Message* retMsg = it->second->getNextWorkUnitMsg(workUnitCount++);
-        if (retMsg!=NULL)
+        uint64_t id = *it;
+        if (runningTrajectories.count(id) == 0)
+            throw Exception("Consistency error in trajectory list, expected trajectory not in the running list",id);
+
+        Trajectory* t = runningTrajectories[id];
+        if (t->getStatus() != Trajectory::RUNNING)
+            throw Exception("Consistency error in trajectory list, expected trajectory did not have a running status",id);
+
+        // Find the trajectory in the message.
+        int partIndex=-1;
+        for (int i=0; i<msg.part_status_size(); i++)
         {
-            return retMsg;
+            if (msg.part_status(i).final_state().trajectory_id() == id)
+            {
+                partIndex = i;
+                break;
+            }
+        }
+        if (partIndex == -1)
+            throw Exception("Consistency error in trajectory list, could not find trajectory id in work units finished",id);
+
+        // Update the state of the trajectory.
+        t->setState(msg.part_status(partIndex).final_state());
+        t->incrementWorkUnitsPerformed();
+
+        // Update the status of the trajectory and move to the appropriate list.
+        if (msg.part_status(partIndex).status() == lm::message::WorkUnitStatus::STEPS_FINISHED)
+        {
+            t->setStatus(Trajectory::WAITING);
+            runningTrajectories.erase(id);
+            waitingTrajectories[id] = t;
+        }
+        else if (msg.part_status(partIndex).status() == lm::message::WorkUnitStatus::LIMIT_REACHED)
+        {
+            t->setStatus(Trajectory::FINISHED);
+            runningTrajectories.erase(id);
+            finishedTrajectories[id] = t;
+        }
+        else if (msg.part_status(partIndex).status() == lm::message::WorkUnitStatus::ERROR)
+        {
+            if (msg.part_status(partIndex).has_error_message())
+                throw Exception("Error received in work unit status",msg.part_status(partIndex).error_message().c_str());
+            else
+                throw Exception("Error received in work unit status","<no error message specified");
+        }
+        else
+        {
+            throw Exception("Unknown work unit status", msg.part_status(partIndex).status());
         }
     }
-    return NULL;
-}
-
-// check if all of the trajectories are truly finished or if some of them are still running
-bool TrajectoryList::isFinished()
-{
-    for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
-    {
-        if (it->second->getStatus()==Trajectory::RUNNING)
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
-lm::trajectory::Trajectory* TrajectoryList::getTrajectory(uint64_t trajectoryID)
-{
-    return trajectories[trajectoryID];
-}
-
-Trajectory::status_t TrajectoryList::getTrajectoryStatus(uint64_t trajectoryID)
-{
-    return trajectories[trajectoryID]->getStatus();
-}
-
-lm::io::TrajectoryState* TrajectoryList::getTrajectoryState(uint64_t trajectoryID)
-{
-    return trajectories[trajectoryID]->getState();
-}
-
-void TrajectoryList::setAllFinished()
-{
-	for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
-	{
-		it->second->setStatus(Trajectory::FINISHED);
-	}
-}
-
-void TrajectoryList::setTrajectoryStarted(uint64_t trajectoryID, bool trajectoryStarted)
-{
-    trajectories[trajectoryID]->setStarted(trajectoryStarted);
-}
-
-void TrajectoryList::setTrajectoryStatus(uint64_t trajectoryID, Trajectory::status_t status)
-{
-    trajectories[trajectoryID]->setStatus(status);
-}
-
-void TrajectoryList::setTrajectoryState(uint64_t trajectoryID, const lm::io::TrajectoryState& state)
-{
-    trajectories[trajectoryID]->setState(&state);
 }
 
 void TrajectoryList::printTrajectoryStatistics()

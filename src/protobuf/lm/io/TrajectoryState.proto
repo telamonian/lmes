@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -48,6 +48,6 @@ message TrajectoryState {
     optional bool trajectory_started                            = 2 [default = false];
     optional lm.io.CMEState cme_state                           = 3;
     optional lm.io.RDMEState rdme_state                         = 4;
-    optional lm.io.TrajectoryLimits.LimitType final_limit_type  = 5;
+    optional lm.io.TrajectoryLimits.LimitType limit_reached     = 5;
     optional bytes solver_state                                 = 100;
 }
