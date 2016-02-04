@@ -167,22 +167,32 @@ public:
     virtual void setDiffusionModel(const lm::io::DiffusionModel& dm) {}
     virtual void setOrderParameters(const lm::io::OrderParameters& opsBuf);
     virtual void setTilings(const lm::io::Tilings& tilingsBuf);
-    virtual void reset();
-    virtual void getState(lm::io::TrajectoryState* state);
-    virtual void setState(const lm::io::TrajectoryState& state);
     virtual void setLimits(const lm::io::TrajectoryLimits& limits);
     virtual void setOutputOptions(const lm::io::OutputOptions& outputOptions);
-    virtual lm::message::WorkUnitStatus::Status getStatus() {return status;}
+    virtual void reset();
+    virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0);
+    virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0);
+    virtual lm::message::WorkUnitStatus::Status getStatus(uint trajectoryNumber=0);
 
 protected:
-    virtual void performReactionEvent(uint r);
-    virtual void updatedSpeciesCounts();
+    inline void performReactionEvent(uint r)
+    {
+        // Update the counts according to the dependency tables.
+        for (int i=0; i<(int)reactionModel->numberDependentSpecies[r]; i++)
+        {
+            speciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
+        }
+        if (hasUpdateSpeciesCountsListeners) callUpdateSpeciesCountsListeners();
+    }
+
+    virtual void callUpdateSpeciesCountsListeners();
     virtual bool isTrajectoryOutsideLimits();
 
 protected:
     RandomGenerator::Distributions neededDists;
     RandomGenerator * rng;
     ReactionModel* reactionModel;
+    bool hasUpdateSpeciesCountsListeners;
     lm::oparam::OParams* oparams;
     lm::tiling::Tilings* tilings;
 

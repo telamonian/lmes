@@ -234,15 +234,16 @@ void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwu)
     wuf->set_thread(getThreadNumber());
 
     hrtime startTime=getHrTime();
-    for (int i=0; i<rwu.part_size(); i++)
+    for (int i=0; i<rwu.part_size(); i+=solver->getSimultaneousTrajectories())
     {
-        lm::message::WorkUnit wu = rwu.part(i);
-
         // Reset the solver.
         solver->reset();
 
-        // Set the initial state.
-        solver->setState(wu.initial_state());
+        // Configure the solver state for each simultaneous trajectory.
+        for (int j=0; j<solver->getSimultaneousTrajectories(); j++)
+        {
+            solver->setState(rwu.part(i+j).initial_state(), j);
+        }
 
         // Run the work unit.
         hrtime t1=getHrTime();
@@ -250,11 +251,14 @@ void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwu)
         hrtime t2=getHrTime();
 
         // Create the status for this part.
-        lm::message::WorkUnitStatus* status = wuf->add_part_status();
-        status->set_status(solver->getStatus());
-        status->set_run_time(convertHrToSeconds(t2-t1));
-        status->set_steps(steps);
-        solver->getState(status->mutable_final_state());
+        for (int j=0; j<solver->getSimultaneousTrajectories(); j++)
+        {
+            lm::message::WorkUnitStatus* status = wuf->add_part_status();
+            status->set_status(solver->getStatus(j));
+            solver->getState(status->mutable_final_state(),j);
+            status->set_run_time(convertHrToSeconds(t2-t1));
+            status->set_steps(steps);
+        }
     }
 
     // Tell the supervisor the work unit has finished.

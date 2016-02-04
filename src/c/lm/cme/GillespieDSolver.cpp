@@ -122,14 +122,14 @@ void GillespieDSolver::reset()
     }
 }
 
-void GillespieDSolver::getState(lm::io::TrajectoryState* state)
+void GillespieDSolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
 {
-    CMESolver::getState(state);
+    CMESolver::getState(state, trajectoryNumber);
 }
 
-void GillespieDSolver::setState(const lm::io::TrajectoryState& state)
+void GillespieDSolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNumber)
 {
-    CMESolver::setState(state);
+    CMESolver::setState(state, trajectoryNumber);
 
     // Set the propensities to their initial values.
     updateAllPropensities(time, reactionModel->numberSpecies);
@@ -250,8 +250,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         performReactionEvent(r);
 
         // If we are outside of the limits, stop the trajectory.
-        if (isTrajectoryOutsideLimits())
-            break;
+        if (numberLimits > 0 && isTrajectoryOutsideLimits()) break;
 
         // Update the propensites given the reaction that occurred.
         updatePropensities(time, r, numberSpecies);

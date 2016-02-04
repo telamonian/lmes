@@ -70,11 +70,12 @@ public:
 public:
     GillespieDSolverAVX();
     virtual ~GillespieDSolverAVX();
-    virtual int getSimultaneousTrajectories();
+    virtual uint getSimultaneousTrajectories();
     virtual void reset();
-    virtual void getState(lm::io::TrajectoryState* state);
-    virtual void setState(const lm::io::TrajectoryState& state);
+    virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0);
+    virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0);
     virtual long long generateTrajectory(long long maxSteps);
+    virtual lm::message::WorkUnitStatus::Status getStatus(uint trajectoryNumber=0);
 
 protected:
     void updateAllPropensities(const uint numberSpecies);

@@ -64,8 +64,8 @@ public:
     virtual bool needsDiffusionModel() {return true;}
     virtual void setDiffusionModel(const lm::io::DiffusionModel& dm);
     virtual void reset();
-    virtual void getState(lm::io::TrajectoryState* state);
-    virtual void setState(const lm::io::TrajectoryState& state);
+    virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0);
+    virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0);
     virtual void setOutputOptions(const lm::io::OutputOptions& outputOptions);
 
 protected:

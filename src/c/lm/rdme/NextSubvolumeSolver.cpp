@@ -111,14 +111,14 @@ void NextSubvolumeSolver::reset()
 
 }
 
-void NextSubvolumeSolver::getState(lm::io::TrajectoryState* state)
+void NextSubvolumeSolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
 {
-    RDMESolver::getState(state);
+    RDMESolver::getState(state, trajectoryNumber);
 }
 
-void NextSubvolumeSolver::setState(const lm::io::TrajectoryState& state)
+void NextSubvolumeSolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNumber)
 {
-    RDMESolver::setState(state);
+    RDMESolver::setState(state, trajectoryNumber);
 }
 
 void NextSubvolumeSolver::setDiffusionModel(const lm::io::DiffusionModel& dm)
@@ -717,7 +717,7 @@ bool NextSubvolumeSolver::performSubvolumeDiffusionEvent(si_time_t time, lattice
                         if (rngValue <= diffusionPropensity)
                         {
                             speciesCounts[i]--;
-                            updatedSpeciesCounts();
+                            if (hasUpdateSpeciesCountsListeners) callUpdateSpeciesCountsListeners();
                             currentSubvolumeSpeciesCounts[i]--;
                             updateSubvolumeWithSpeciesCounts(subvolume);
                             affectedNeighbor = false;
@@ -784,7 +784,7 @@ bool NextSubvolumeSolver::performSubvolumeInfluxEvent(si_time_t time, lattice_si
         if (rngValue <= influxPropensity)
         {
             speciesCounts[diffusionModel->boundaryConditions.boundary_species()]++;
-            updatedSpeciesCounts();
+            if (hasUpdateSpeciesCountsListeners) callUpdateSpeciesCountsListeners();
             currentSubvolumeSpeciesCounts[diffusionModel->boundaryConditions.boundary_species()]++;
             updateSubvolumeWithSpeciesCounts(subvolume);
             return true;

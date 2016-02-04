@@ -86,7 +86,7 @@ namespace lm {
 namespace cme {
 
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
-:neededDists(neededDists),rng(NULL),reactionModel(NULL),oparams(NULL),tilings(NULL),status(lm::message::WorkUnitStatus::NONE),timeLimit(std::numeric_limits<double>::infinity()),numberLimits(0),limits(NULL),limitReached(lm::io::TrajectoryLimits::NONE),writeSpeciesTimeSeries(false),speciesWriteInterval(0.0),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),trajectoryStarted(false),speciesCounts(NULL),time(0.0),timeStep(0.0),tilingHists(NULL)
+:neededDists(neededDists),rng(NULL),reactionModel(NULL),hasUpdateSpeciesCountsListeners(false),oparams(NULL),tilings(NULL),status(lm::message::WorkUnitStatus::NONE),timeLimit(std::numeric_limits<double>::infinity()),numberLimits(0),limits(NULL),limitReached(lm::io::TrajectoryLimits::NONE),writeSpeciesTimeSeries(false),speciesWriteInterval(0.0),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),trajectoryStarted(false),speciesCounts(NULL),time(0.0),timeStep(0.0),tilingHists(NULL)
 {
 }
 
@@ -143,6 +143,7 @@ void CMESolver::setOrderParameters(const lm::io::OrderParameters& opsBuf)
     if (oparams != NULL) delete oparams; oparams = NULL;
     oparams = new lm::oparam::OParams();
     oparams->init(opsBuf);
+    hasUpdateSpeciesCountsListeners = true;
 }
 
 void CMESolver::setTilings(const lm::io::Tilings& tilingsBuf)
@@ -150,6 +151,7 @@ void CMESolver::setTilings(const lm::io::Tilings& tilingsBuf)
     if (tilings != NULL) delete tilings; tilings = NULL;
     tilings = new lm::tiling::Tilings();
     tilings->init(tilingsBuf);
+    hasUpdateSpeciesCountsListeners = true;
 }
 
 
@@ -200,8 +202,10 @@ void CMESolver::reset()
     if (tilingHists!=NULL) delete[] tilingHists; tilingHists = NULL;
 }
 
-void CMESolver::getState(lm::io::TrajectoryState* state)
+void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
 {
+    if (trajectoryNumber >= getSimultaneousTrajectories()) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
+
     // Get the trajectory id.
     state->set_trajectory_id(trajectoryId);
     state->set_trajectory_started(true);
@@ -233,8 +237,10 @@ void CMESolver::getState(lm::io::TrajectoryState* state)
     state->set_limit_reached(limitReached);
 }
 
-void CMESolver::setState(const lm::io::TrajectoryState& state)
+void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNumber)
 {
+    if (trajectoryNumber >= getSimultaneousTrajectories()) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
+
     // Validate the state.
     if (!state.has_cme_state()) throw Exception("State object does not contain the necessary data to initialize the solver.");
     if (state.cme_state().species_counts().number_species() != (int)reactionModel->numberSpecies) throw Exception("State object and reaction model have differing species count",state.cme_state().species_counts().number_species(),reactionModel->numberSpecies);
@@ -273,6 +279,7 @@ void CMESolver::setState(const lm::io::TrajectoryState& state)
                 fptTrackedSpecies[i].fptValues.push_back(std::pair<int,double>(state.cme_state().first_passage_times(i).species_count(j),state.cme_state().first_passage_times(i).first_passage_time(j)));
             }
         }
+        hasUpdateSpeciesCountsListeners = true;
     }
 
     // Set the histogram bin values
@@ -286,6 +293,12 @@ void CMESolver::setState(const lm::io::TrajectoryState& state)
             tilingHists[i].init(state.cme_state().tiling_hists(i));
         }
     }
+}
+
+lm::message::WorkUnitStatus::Status CMESolver::getStatus(uint trajectoryNumber)
+{
+    if (trajectoryNumber >= getSimultaneousTrajectories()) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
+    return status;
 }
 
 void CMESolver::setLimits(const lm::io::TrajectoryLimits& limits)
@@ -345,17 +358,7 @@ void CMESolver::setOutputOptions(const lm::io::OutputOptions& outputOptions)
     }
 }
 
-void CMESolver::performReactionEvent(uint r)
-{
-    // Update the counts according to the dependency tables.
-    for (int i=0; i<(int)reactionModel->numberDependentSpecies[r]; i++)
-    {
-        speciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
-    }
-    updatedSpeciesCounts();
-}
-
-void CMESolver::updatedSpeciesCounts()
+void CMESolver::callUpdateSpeciesCountsListeners()
 {
     // Update the first passage time tables.
     for (int i=0; i<numberFptTrackedSpecies; i++)

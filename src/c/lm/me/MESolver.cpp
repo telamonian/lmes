@@ -57,7 +57,7 @@ void MESolver::setComputeResources(vector<int> cpus, vector<int> gpus)
     this->gpus = gpus;
 }
 
-int MESolver::getSimultaneousTrajectories()
+uint MESolver::getSimultaneousTrajectories()
 {
     return 1;
 }

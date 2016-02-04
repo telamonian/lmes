@@ -117,7 +117,7 @@ GillespieDSolverAVX::~GillespieDSolverAVX()
     if (propensities != NULL) free(propensities); propensities = NULL;
 }
 
-int GillespieDSolverAVX::getSimultaneousTrajectories()
+uint GillespieDSolverAVX::getSimultaneousTrajectories()
 {
     return DOUBLES_PER_AVX;
 }
@@ -157,17 +157,23 @@ void GillespieDSolverAVX::reset()
     }
 }
 
-void GillespieDSolverAVX::getState(lm::io::TrajectoryState* state)
+void GillespieDSolverAVX::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
 {
-    CMESolver::getState(state);
+    if (trajectoryNumber >= getSimultaneousTrajectories()) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
 }
 
-void GillespieDSolverAVX::setState(const lm::io::TrajectoryState& state)
+void GillespieDSolverAVX::setState(const lm::io::TrajectoryState& state, uint trajectoryNumber)
 {
-    CMESolver::setState(state);
+    if (trajectoryNumber >= getSimultaneousTrajectories()) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
 
     // Set the propensities to their initial values.
     updateAllPropensities(reactionModel->numberSpecies);
+}
+
+lm::message::WorkUnitStatus::Status GillespieDSolverAVX::getStatus(uint trajectoryNumber)
+{
+    if (trajectoryNumber >= getSimultaneousTrajectories()) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
+    return status[trajectoryNumber];
 }
 
 long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
