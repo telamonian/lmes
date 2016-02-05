@@ -49,7 +49,7 @@
 #include <immintrin.h>
 
 #include "lm/ClassFactory.h"
-#include "lm/cme/CMESolver.h"
+#include "lm/cme/GillespieDSolver.h"
 #include "lm/rng/RandomGenerator.h"
 
 using std::map;
@@ -60,7 +60,7 @@ using lm::rng::RandomGenerator;
 namespace lm {
 namespace avx {
 
-class GillespieDSolverAVX : public lm::cme::CMESolver
+class GillespieDSolverAVX : public lm::cme::GillespieDSolver
 {
 public:
     static bool registered;
@@ -71,6 +71,7 @@ public:
     GillespieDSolverAVX();
     virtual ~GillespieDSolverAVX();
     virtual uint getSimultaneousTrajectories();
+    virtual void setLimits(const lm::io::TrajectoryLimits& limits);
     virtual void reset();
     virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0);
     virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0);
@@ -79,11 +80,16 @@ public:
 
 protected:
     void updateAllPropensities();
-    //void updatePropensities(avxd time, uint sourceReaction);
+    void updatePropensities(avxd time, uint* sourceReaction);
     virtual void performReactionEvent(uint* reactionsToPerform);
     virtual bool isTrajectoryOutsideLimits();
+    void copyTrajectoryStateToBaseSolver(uint trajectoryNumber);
+    void copyTrajectoryStateFromBaseSolver(uint trajectoryNumber);
 
 protected:
+
+    // If the trajectory has been initialized.
+    bool initialized[DOUBLES_PER_AVX];
 
     // Trajectory status.
     lm::message::WorkUnitStatus::Status status[DOUBLES_PER_AVX];
@@ -93,6 +99,7 @@ protected:
     lm::io::TrajectoryLimits::LimitType limitReached[DOUBLES_PER_AVX];
 
     // The current state.
+    uint64_t trajectoryId[DOUBLES_PER_AVX];
     bool trajectoryStarted[DOUBLES_PER_AVX];
     double* speciesCounts;
     double* propensities;

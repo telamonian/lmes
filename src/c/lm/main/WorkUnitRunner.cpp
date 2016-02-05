@@ -233,36 +233,41 @@ void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwu)
     wuf->set_process(lm::MPI::worldRank);
     wuf->set_thread(getThreadNumber());
 
-    hrtime startTime=getHrTime();
+    long long totalSteps=0;
+    hrtime totalTime=0;
     for (int i=0; i<rwu.part_size(); i+=solver->getSimultaneousTrajectories())
     {
         // Reset the solver.
         solver->reset();
 
         // Configure the solver state for each simultaneous trajectory.
-        for (int j=0; j<solver->getSimultaneousTrajectories(); j++)
+        for (int j=0; j<solver->getSimultaneousTrajectories() && (i+j)<rwu.part_size(); j++)
         {
             solver->setState(rwu.part(i+j).initial_state(), j);
         }
+//        printf("Setting state\n");
+//        rwu.PrintDebugString();
 
         // Run the work unit.
         hrtime t1=getHrTime();
-        long long steps = solver->generateTrajectory(rwu.max_steps());
-        hrtime t2=getHrTime();
+        totalSteps += solver->generateTrajectory(rwu.max_steps());
+        totalTime += getHrTime()-t1;
 
         // Create the status for this part.
-        for (int j=0; j<solver->getSimultaneousTrajectories(); j++)
+        for (int j=0; j<solver->getSimultaneousTrajectories() && (i+j)<rwu.part_size(); j++)
         {
             lm::message::WorkUnitStatus* status = wuf->add_part_status();
             status->set_status(solver->getStatus(j));
             solver->getState(status->mutable_final_state(),j);
-            status->set_run_time(convertHrToSeconds(t2-t1));
-            status->set_steps(steps);
         }
+//        printf("Getting state.\n");
+//        wuf->PrintDebugString();
     }
 
     // Tell the supervisor the work unit has finished.
-    wuf->set_run_time(convertHrToSeconds(getHrTime()-startTime));
+    wuf->set_run_time(totalTime);
+    wuf->set_steps(totalSteps);
+    wuf->set_run_time(convertHrToSeconds(totalTime));
     communicator.sendMessage(rwu.supervisor_process(), rwu.supervisor_thread(), &msg2);
 }
 

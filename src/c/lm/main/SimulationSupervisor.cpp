@@ -442,12 +442,10 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
     stats_workUnits++;
     stats_minWorkUnitId = std::min(stats_minWorkUnitId,(long long)msg.work_unit_id());
     stats_maxWorkUnitId = std::max(stats_maxWorkUnitId,(long long)msg.work_unit_id());
+    stats_workUnitsSteps += msg.steps();
+    stats_workUnitTime += msg.run_time();
     for (int i=0; i<msg.part_status_size(); i++)
-    {
         stats_workUnitsParts++;
-        stats_workUnitsSteps += msg.part_status(i).steps();
-        stats_workUnitTime += msg.part_status(i).run_time();
-    }
 
     // Update the trajectory list.
     trajectoryList->workUnitFinished(msg);

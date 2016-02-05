@@ -189,6 +189,7 @@ void CMESolver::reset()
 
     // Reset the time.
     time = 0.0;
+    timeStep = 0.0;
 
     // Reset the limits reached.
     limitReached = lm::io::TrajectoryLimits::NONE;
@@ -218,7 +219,12 @@ void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
     {
         state->mutable_cme_state()->mutable_species_counts()->add_species_count(speciesCounts[i]);
     }
+
+    // Set the time.
     state->mutable_cme_state()->mutable_species_counts()->add_time(time);
+
+    // Set the limit reached during the simulation.
+    state->set_limit_reached(limitReached);
 
     // Get the first passage times.
     for (int i=0; i<numberFptTrackedSpecies; i++)
@@ -233,8 +239,6 @@ void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
         tilingHists[i].serializeTo(state->mutable_cme_state()->add_tiling_hists());
     }
 
-    // Set the limit reached during the simulation.
-    state->set_limit_reached(limitReached);
 }
 
 void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNumber)
@@ -282,7 +286,7 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
         hasUpdateSpeciesCountsListeners = true;
     }
 
-    // Set the histogram bin values
+    // Set the histogram bin values.
     numberTilingHists = state.cme_state().tiling_hists_size();
     if (state.cme_state().tiling_hists_size() > 0)
     {

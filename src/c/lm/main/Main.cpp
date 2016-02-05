@@ -587,6 +587,7 @@ void printUsage(int argc, char** argv)
 #include "lm/me/PropensityFunction.h"
 #include "lm/rng/XORShift.h"
 
+#include <limits>
 #include <immintrin.h>
 #include "lm/cme/GillespieDSolver.h"
 #include "lm/avx/GillespieDSolverAVX.h"
@@ -657,7 +658,7 @@ void mainDebug(int argc, char** argv)
     /**
       Generate a trajectory.
       */
-    /**/
+    /*
     //lm::avx::GillespieDSolverAVX s = new lm::avx::GillespieDSolverAVX();
     lm::cme::GillespieDSolver s;
 
@@ -788,7 +789,7 @@ void mainDebug(int argc, char** argv)
     long long steps = s.generateTrajectory(100000000);
     hrtime stop = getHrTime();
     printf("Performed %lld steps in %0.3f seconds (%0.4e steps/second)\n",steps,convertHrToSeconds(stop-start),double(steps)/convertHrToSeconds(stop-start));
-   /**/
+   */
 
 
     /**
@@ -844,6 +845,42 @@ void mainDebug(int argc, char** argv)
     free(expRngValues);
     expRngValues = NULL;
     */
+
+    /**
+      * Test the RNG limits using avx.
+      */
+    /**/
+    // Convert to double and normalize using avx.
+    long long denom = std::numeric_limits<uint32_t>::max();
+    denom += 2;
+    double newNorm = 1.0/double(denom);
+    const avxd norm = _mm256_set1_pd(newNorm);
+    //const avxd norm = _mm256_set1_pd(2.328306436538696289062500000000e-10); // 1/(2^32)
+    //const avxd norm = _mm256_set1_pd(2.328306435996595202819747782996e-10);// 1/(2^32+1)
+    const avxd half = _mm256_set1_pd(0.5);
+    avxi irng;
+    for (int j=0; j<INT32S_PER_AVX; j++)
+        if (j%2 == 0)
+            ((int32_t*)&irng)[j] = std::numeric_limits<int32_t>::min();
+        else
+            ((int32_t*)&irng)[j] = std::numeric_limits<int32_t>::max();
+    printf("Min: %d, Max: %d, Norm %0.30e\n",std::numeric_limits<int32_t>::min(),std::numeric_limits<int32_t>::max(), ((double*)&norm)[0]);
+
+    // Process the four lo rngs.
+    __m128i irngHalf = _mm256_extractf128_si256(irng, 0);
+    avxd rng = _mm256_fmadd_pd(_mm256_cvtepi32_pd(irngHalf), norm, half);    // Range (-0.5-0.5)+0.5
+
+    double* res = (double*)&rng;
+    printf("RNG: %18.12e %18.12e %18.12e %18.12e\n", res[0], res[1], res[2], res[3]);
+    printf("CMP: %d %d %d %d\n", res[0]==0.0, res[1]==1.0, res[2]>0.0, res[3]<1.0);
+
+    // Process the four hi rngs.
+    irngHalf = _mm256_extractf128_si256(irng, 1);
+    rng = _mm256_fmadd_pd(_mm256_cvtepi32_pd(irngHalf), norm, half);    // Range (-0.5-0.5)+0.5
+    res = (double*)&rng;
+    printf("RNG: %18.12e %18.12e %18.12e %18.12e\n", res[0], res[1], res[2], res[3]);
+    printf("CMP: %d %d %d %d\n", res[0]==0.0, res[1]==1.0, res[2]>0.0, res[3]<1.0);
+    /**/
 }
 
 

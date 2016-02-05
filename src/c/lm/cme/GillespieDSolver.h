@@ -76,8 +76,8 @@ public:
     virtual long long generateTrajectory(long long maxSteps);
 
 protected:
-    inline void updateAllPropensities(double time, const uint numberSpecies);
-    inline void updatePropensities(double time, uint r, const uint numberSpecies);
+    virtual void updateAllPropensities();
+    inline void updatePropensities(uint r);
 
 protected:
     double * propensities;

@@ -71,7 +71,7 @@ public:
     virtual double getRandomDouble()=0;
     virtual double getExpRandomDouble()=0;
     virtual double getNormRandomDouble()=0;
-    virtual void getRandomDoubles(double * rngs, int numberRNGs, bool bufferAvxAligned=false);
+    virtual void getRandomDoubles(double * rngs, int numberRNGs, bool greaterThanZero=false, bool bufferAvxAligned=false);
     virtual void getExpRandomDoubles(double * rngs, int numberRNGs, bool bufferAvxAligned=false);
     virtual void getNormRandomDoubles(double * rngs, int numberRNGs, bool bufferAvxAligned=false);
 

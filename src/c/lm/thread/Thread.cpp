@@ -133,7 +133,7 @@ void * Thread::start_thread(void * obj)
     PROF_SET_THREAD(thread->threadNumber);
 
     // Enter the thread run method.
-    int ret = thread->run();
+    size_t ret = thread->run();
 
     // The run method has finished, so the thread should exit.
     pthread_exit((void *)ret);

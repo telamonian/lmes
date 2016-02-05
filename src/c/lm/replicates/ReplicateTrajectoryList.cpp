@@ -110,6 +110,16 @@ uint64_t ReplicateTrajectoryList::findNextTrajectoryToRun()
             minId = it->first;
         }
     }
+
+    if (minId == UINT64_MAX)
+    {
+        for (TrajectoryMap::iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
+        {
+            it->second->getState().PrintDebugString();
+        }
+        throw Exception("Consistency error in ReplicateTrajectoryList, no next trajectory found",minId,waitingTrajectories.size());
+    }
+
     return minId;
 }
 

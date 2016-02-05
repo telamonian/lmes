@@ -132,7 +132,7 @@ void GillespieDSolver::setState(const lm::io::TrajectoryState& state, uint traje
     CMESolver::setState(state, trajectoryNumber);
 
     // Set the propensities to their initial values.
-    updateAllPropensities(time, reactionModel->numberSpecies);
+    updateAllPropensities();
 }
 
 long long GillespieDSolver::generateTrajectory(long long maxSteps)
@@ -146,7 +146,6 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
             throw Exception("A reaction did not have a valid propensity function",i);
 
     // Create local copies of the data for efficiency.
-    const uint numberSpecies = reactionModel->numberSpecies;
     const uint numberReactions = reactionModel->numberReactions;
 
     // Initialize the total propensity.
@@ -253,7 +252,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         if (numberLimits > 0 && isTrajectoryOutsideLimits()) break;
 
         // Update the propensites given the reaction that occurred.
-        updatePropensities(time, r, numberSpecies);
+        updatePropensities(r);
 
         // Recalculate the total propensity.
         totalPropensity = 0.0;
@@ -275,8 +274,8 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
             else
             {
                 status = lm::message::WorkUnitStatus::ERROR;
-                break;
             }
+            break;
         }
 
         //Print::printf(Print::VERBOSE_DEBUG, "Step %d: time=%e, count=%d, prop=%e, totprop=%e",steps,time,speciesCounts[0],propensities[0],totalPropensity);
@@ -285,6 +284,9 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         rngNext++;
     }
     PROF_END(PROF_SIM_EXECUTE);
+
+    // Track if we added any output to the message.
+    bool createdOutput = false;
 
     // See if we finished all of the steps.
     if (status == lm::message::WorkUnitStatus::STEPS_FINISHED)
@@ -350,6 +352,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
             data->resize(dataSizeEstimate);
             ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)speciesTimeSeriesTimes.data(), speciesTimeSeriesTimes.size()*sizeof(double)));
             data->resize(dataSizeEstimate);
+            createdOutput = true;
         }
         else
         {
@@ -364,34 +367,34 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         {
             fptTrackedSpecies[i].serializeTo(trajectoryId, msg->add_first_passage_times());
         }
+        createdOutput = true;
     }
 
     // If the output message has any data, send it.
-    if ((msg->has_species_time_series() || msg->first_passage_times_size() > 0) && !ffluxFlag)		// these messages aren't useful for fflux simulation
+    if (createdOutput)
     {
-//    	printf("gillespiedsolver outputProcess: %d outputThread: %d\n", outputProcess, outputThread);
         communicator->sendMessage(outputProcess, outputThread, &msgpp);
     }
 
     return steps;
 }
 
-void GillespieDSolver::updateAllPropensities(double time, const uint numberSpecies)
+void GillespieDSolver::updateAllPropensities()
 {
     // Update the propensities.
     for (uint i=0; i<reactionModel->numberReactions; i++)
     {
-        propensities[i] = reactionModel->propensityFunctions[i]->calculate(time, speciesCounts, numberSpecies);
+        propensities[i] = reactionModel->propensityFunctions[i]->calculate(time, speciesCounts, reactionModel->numberSpecies);
     }
 }
 
-void GillespieDSolver::updatePropensities(double time, uint sourceReaction, const uint numberSpecies)
+void GillespieDSolver::updatePropensities(uint sourceReaction)
 {
     // Update the propensities of the dependent reactions.
     for (uint i=0; i<reactionModel->numberDependentReactions[sourceReaction]; i++)
     {
         uint r = reactionModel->dependentReactions[sourceReaction][i];
-        propensities[r] = reactionModel->propensityFunctions[r]->calculate(time, speciesCounts, numberSpecies);
+        propensities[r] = reactionModel->propensityFunctions[r]->calculate(time, speciesCounts, reactionModel->numberSpecies);
     }
 }
 

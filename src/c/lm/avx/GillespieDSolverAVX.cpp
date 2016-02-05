@@ -98,14 +98,15 @@ void* GillespieDSolverAVX::allocateObject()
 }
 
 GillespieDSolverAVX::GillespieDSolverAVX()
-:CMESolver((RandomGenerator::Distributions)(RandomGenerator::EXPONENTIAL|RandomGenerator::UNIFORM)),
-timeLimit(_mm256_set1_pd(std::numeric_limits<double>::infinity())),speciesCounts(NULL),propensities(NULL),time(_mm256_set1_pd(0.0)),timeStep(_mm256_set1_pd(0.0))
+:GillespieDSolver(),timeLimit(_mm256_set1_pd(std::numeric_limits<double>::infinity())),speciesCounts(NULL),propensities(NULL),time(_mm256_set1_pd(0.0)),timeStep(_mm256_set1_pd(0.0))
 {
     // Initialize any array variables.
     for (int i=0; i<DOUBLES_PER_AVX; i++)
     {
+        initialized[i] = false;
         status[i] = lm::message::WorkUnitStatus::NONE;
         limitReached[i] = lm::io::TrajectoryLimits::NONE;
+        trajectoryId[i] = 0;
         trajectoryStarted[i] = false;
     }
 }
@@ -122,17 +123,18 @@ uint GillespieDSolverAVX::getSimultaneousTrajectories()
     return DOUBLES_PER_AVX;
 }
 
+void GillespieDSolverAVX::setLimits(const lm::io::TrajectoryLimits& limits)
+{
+    GillespieDSolver::setLimits(limits);
+
+    // Set the time limit, if we have one.
+    if (limits.has_max_time_limit())
+        timeLimit = _mm256_set1_pd(limits.max_time_limit());
+}
+
 void GillespieDSolverAVX::reset()
 {
-    CMESolver::reset();
-
-    // Reset any array variables.
-    for (int i=0; i<DOUBLES_PER_AVX; i++)
-    {
-        status[i] = lm::message::WorkUnitStatus::NONE;
-        limitReached[i] = lm::io::TrajectoryLimits::NONE;
-        trajectoryStarted[i] = false;
-    }
+    GillespieDSolver::reset();
 
     // Free any previous state.
     if (speciesCounts != NULL) free(speciesCounts); speciesCounts = NULL;
@@ -155,19 +157,109 @@ void GillespieDSolverAVX::reset()
     {
         propensities[i] = 0.0;
     }
+
+    // Reset any array variables.
+    for (int i=0; i<DOUBLES_PER_AVX; i++)
+    {
+        initialized[i] = false;
+        status[i] = lm::message::WorkUnitStatus::NONE;
+        limitReached[i] = lm::io::TrajectoryLimits::NONE;
+        trajectoryId[i] = 0;
+        trajectoryStarted[i] = false;
+    }
+
+    // Reset the time.
+    time = _mm256_set1_pd(0.0);
+    timeStep = _mm256_set1_pd(0.0);
+
 }
 
 void GillespieDSolverAVX::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
 {
     if (trajectoryNumber >= getSimultaneousTrajectories()) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
+
+    // Setup the base class state with the specified trajextory.
+    copyTrajectoryStateToBaseSolver(trajectoryNumber);
+
+    // Run the base get state method last.
+    CMESolver::getState(state, trajectoryNumber);
 }
 
 void GillespieDSolverAVX::setState(const lm::io::TrajectoryState& state, uint trajectoryNumber)
 {
-    if (trajectoryNumber >= getSimultaneousTrajectories()) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
+    // Run the base set state first.
+    CMESolver::setState(state, trajectoryNumber);
 
-    // Set the propensities to their initial values.
-    updateAllPropensities();
+    // Copy the state from the base class.
+    copyTrajectoryStateFromBaseSolver(trajectoryNumber);
+
+    // Mark that this trajectory was initialized.
+    initialized[trajectoryNumber] = true;
+}
+
+void GillespieDSolverAVX::copyTrajectoryStateToBaseSolver(uint trajectoryNumber)
+{
+    // Set the trajectory id.
+    CMESolver::trajectoryId = trajectoryId[trajectoryNumber];
+
+    // Set the trajectory started flag.
+    CMESolver::trajectoryStarted = trajectoryStarted[trajectoryNumber];
+
+    // Set the species counts.
+    for (uint i=0; i<reactionModel->numberSpecies; i++)
+    {
+        CMESolver::speciesCounts[i] = lround(speciesCounts[i*DOUBLES_PER_AVX+trajectoryNumber]);
+    }
+
+    // Set the time.
+    CMESolver::time = ((double*)&time)[trajectoryNumber];
+    CMESolver::timeStep = ((double*)&timeStep)[trajectoryNumber];
+
+    // Set the limit reached.
+    CMESolver::limitReached = limitReached[trajectoryNumber];
+
+    // Set the status.
+    CMESolver::status = status[trajectoryNumber];
+
+    // Set the first passage times.
+    //TODO: implement.
+
+    // Set the histogram bin values.
+    //TODO: implement
+}
+
+void GillespieDSolverAVX::copyTrajectoryStateFromBaseSolver(uint trajectoryNumber)
+{
+    // Set the trajectory id.
+    trajectoryId[trajectoryNumber] = CMESolver::trajectoryId;
+
+    // Set the trajectory started flag.
+    trajectoryStarted[trajectoryNumber] = CMESolver::trajectoryStarted;
+
+    // Set the species counts.
+    for (uint i=0; i<reactionModel->numberSpecies; i++)
+    {
+        speciesCounts[i*DOUBLES_PER_AVX+trajectoryNumber] = double(CMESolver::speciesCounts[i]);
+    }
+
+    // Set the time.
+    ((double*)&time)[trajectoryNumber] = CMESolver::time;
+    ((double*)&timeStep)[trajectoryNumber] = CMESolver::timeStep;
+
+    // Set the limit reached.
+    limitReached[trajectoryNumber] = CMESolver::limitReached;
+
+    // Set the status.
+    status[trajectoryNumber] = CMESolver::status;
+
+    // Reinitialize the order parameters.
+    //TODO: implement.
+
+    // Set the first passage times.
+    //TODO: implement.
+
+    // Set the histogram bin values.
+    //TODO: implement
 }
 
 lm::message::WorkUnitStatus::Status GillespieDSolverAVX::getStatus(uint trajectoryNumber)
@@ -178,6 +270,30 @@ lm::message::WorkUnitStatus::Status GillespieDSolverAVX::getStatus(uint trajecto
 
 long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
 {
+    // See how many trajectories were initialized.
+    uint numberInitialized=0;
+    for (int i=0; i<DOUBLES_PER_AVX; i++)
+        if (initialized[i])
+            numberInitialized++;
+
+    // If any trajectories were not initialized, run them all with the base Gillespie solver.
+    if (numberInitialized != DOUBLES_PER_AVX)
+    {
+        long long steps=0;
+        for (int i=0; i<DOUBLES_PER_AVX; i++)
+        {
+            if (initialized[i])
+            {
+                Print::printf(Print::INFO, "GillespieDSolverAVX started without a full set of trajectories, running trajectory %llu with the GillespieDSolver.", trajectoryId[i]);
+                copyTrajectoryStateToBaseSolver(i);
+                GillespieDSolver::updateAllPropensities();
+                steps += GillespieDSolver::generateTrajectory(maxSteps);
+                copyTrajectoryStateFromBaseSolver(i);
+            }
+        }
+        return steps;
+    }
+
     if (reactionModel == NULL) throw Exception("GillespieDSolverAVX did not have a reaction model.");
     if (propensities == NULL) throw Exception("GillespieDSolverAVX state was not initialized.");
 
@@ -189,6 +305,9 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
     // Create local copies of the data for efficiency.
     const uint numberSpecies = reactionModel->numberSpecies;
     const uint numberReactions = reactionModel->numberReactions;
+
+    // Set the propensities to their initial values.
+    updateAllPropensities();
 
     // Initialize the total propensity.
     avxd totalPropensity = _mm256_setzero_pd();
@@ -240,21 +359,22 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
     int rngNext=TUNE_LOCAL_RNG_CACHE_SIZE;
 
     // Run the direct method.
-    Print::printf(Print::DEBUG, "Running Gillespie direct avx simulation for %d steps with %d species, %d reactions, %d species limits\n", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberLimits);
+    Print::printf(Print::DEBUG, "Running Gillespie direct AVX simulation for %d steps with %d species, %d reactions, %d species limits\n", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberLimits);
     PROF_BEGIN(PROF_SIM_EXECUTE);
     long long steps=0;
     int allFalse;
     int trueMask;
     avxd comp;
+    avxd expR;
+    avxd nextTimeStep;
+    avxd nextTime;
     while (true)
     {
         // See if we have finished the steps.
         if (steps >= maxSteps)
         {
             for (int i=0; i<DOUBLES_PER_AVX; i++)
-            {
                 status[i] = lm::message::WorkUnitStatus::STEPS_FINISHED;
-            }
             break;
         }
 
@@ -270,21 +390,27 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
         }
 
         // Calculate the time to the next reaction.
-        avxd expR = _mm256_load_pd(&expRngValues[rngNext]);
-        avxd timestep = _mm256_div_pd(expR, totalPropensity);
-        time = _mm256_add_pd(time,timestep);
+        expR = _mm256_load_pd(&expRngValues[rngNext]);
+        nextTimeStep = _mm256_div_pd(expR, totalPropensity);
+        nextTime = _mm256_add_pd(time,nextTimeStep);
 
+//        comp = _mm256_cmp_pd(nextTime, _mm256_set1_pd(std::numeric_limits<double>::infinity()), _CMP_LT_OQ);
+//        trueMask = _mm256_movemask_pd(comp);
+//        if (trueMask != 0x0F)
 //        {
-//        double* res = (double*)&expR;
-//        printf("ERNG: %8.2e %8.2e %8.2e %8.2e\n", res[0], res[1], res[2], res[3]);
-//        res = (double*)&timestep;
-//        printf("TS:   %8.2e %8.2e %8.2e %8.2e\n", res[0], res[1], res[2], res[3]);
-//        res = (double*)&time;
-//        printf("TIME: %8.2e %8.2e %8.2e %8.2e\n", res[0], res[1], res[2], res[3]);
+//            double* res = (double*)&expR;
+//            printf("ERNG: %8.2e %8.2e %8.2e %8.2e\n", res[0], res[1], res[2], res[3]);
+//            res = (double*)&nextTimeStep;
+//            printf("TS:   %8.2e %8.2e %8.2e %8.2e\n", res[0], res[1], res[2], res[3]);
+//            res = (double*)&nextTime;
+//            printf("TIME: %8.2e %8.2e %8.2e %8.2e\n", res[0], res[1], res[2], res[3]);
+//            res = (double*)&totalPropensity;
+//            printf("TP: %8.2e %8.2e %8.2e %8.2e\n", res[0], res[1], res[2], res[3]);
+//            break;
 //        }
 
          // If any new time is past the end time, we are done.
-        comp = _mm256_cmp_pd(time, timeLimit, _CMP_GE_OQ);
+        comp = _mm256_cmp_pd(nextTime, timeLimit, _CMP_GE_OQ);
         allFalse = _mm256_testz_pd(comp,comp);
         if (!allFalse)
         {
@@ -302,12 +428,16 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
                 }
                 else
                 {
-                    // Otherwise set that we finsihed steps.
+                    // Otherwise set that we finished steps.
                     status[i] = lm::message::WorkUnitStatus::STEPS_FINISHED;
                 }
             }
             break;
         }
+
+        // Otherwise, set the time and timestep since no reactions were over the max time.
+        timeStep = nextTimeStep;
+        time = nextTime;
 
         // If we are writing time steps, write out any time steps before this event occurred.
         if (writeSpeciesTimeSeries)
@@ -351,7 +481,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
         uint reactionsSelected = 0;
         uint reactionsToPerform[DOUBLES_PER_AVX];
         memset(reactionsToPerform, 0xFF, DOUBLES_PER_AVX*sizeof(uint));
-        for (uint r=0; r<(numberReactions-1); r++)
+        for (uint r=0; r<numberReactions; r++)
         {
             // Load the propensities.
             avxd propensity = _mm256_load_pd(&propensities[r*DOUBLES_PER_AVX]);
@@ -413,12 +543,10 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
         performReactionEvent(reactionsToPerform);
 
         // If we are outside of the limits, stop the trajectory.
-        if (isTrajectoryOutsideLimits())
-            break;
+        if (numberLimits > 0 && isTrajectoryOutsideLimits()) break;
 
         // Update the propensites given the reaction that occurred.
-        //updatePropensities(time, r);
-        updateAllPropensities(  );
+        updatePropensities(time, reactionsToPerform);
 
         // Recalculate the total propensity.
         totalPropensity = _mm256_setzero_pd();
@@ -442,7 +570,20 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
                 // If this element was true, save the reaction and set the random propensity to inf.
                 if (trueMask&(1<<i))
                 {
-                    status[i] = lm::message::WorkUnitStatus::ERROR;
+                    // If we have a time limit, say that we reached it.
+                    if (((double*)&timeLimit)[i] < std::numeric_limits<double>::infinity())
+                    {
+                        ((double*)&timeStep)[i] = ((double*)&timeLimit)[i]-((double*)&time)[i];
+                        ((double*)&time)[i] = ((double*)&timeLimit)[i];
+                        status[i] = lm::message::WorkUnitStatus::LIMIT_REACHED;
+                        limitReached[i] = lm::io::TrajectoryLimits::MAXTIME;
+                    }
+
+                    // Otherwise, zero propensity is an error.
+                    else
+                    {
+                        status[i] = lm::message::WorkUnitStatus::ERROR;
+                    }
                 }
                 else
                 {
@@ -476,122 +617,111 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
 //    p = (double*)&totalPropensity;
 //    printf("Final Total Propensity: %8.2f %8.2f %8.2f %8.2f\n", p[0], p[1], p[2], p[3]);
 
-
-
     // Delete the rng caches.
     free(rngValues);
     rngValues = NULL;
     free(expRngValues);
     expRngValues = NULL;
 
+    // Track if we added any output to the message.
+    bool createdOutput = false;
+
+    // Finalize each of the trajectories.
     for (int i=0; i<DOUBLES_PER_AVX; i++)
     {
-        printf("Trajectory %d (%lu)\n---------------------\n",i,speciesTimeSeriesCounts[i].size());
-        for (int j=0; j<speciesTimeSeriesCounts[i].size(); j++)
+        // See if we finished all of the steps.
+        if (status[i] == lm::message::WorkUnitStatus::STEPS_FINISHED)
         {
-            printf("%12.4f: %6d\n",speciesTimeSeriesTimes[i][j],speciesTimeSeriesCounts[i][j]);
+            Print::printf(Print::DEBUG, "Generated trajectory %llu with %llu steps through time %e.", trajectoryId[i], steps, ((double*)&time)[i]);
         }
-        printf("---------------------\n");
+
+        // If we finished the total time, write out the remaining time steps.
+        else if (status[i] == lm::message::WorkUnitStatus::LIMIT_REACHED && limitReached[i] == lm::io::TrajectoryLimits::MAXTIME)
+        {
+            ((double*)&time)[i] = ((double*)&timeLimit)[i];
+            Print::printf(Print::DEBUG, "Generated trajectory %llu through time %e.", trajectoryId[i], ((double*)&time)[i]);
+            if (writeSpeciesTimeSeries)
+            {
+                while (((double*)&nextSpeciesWriteTime)[i] <= (((double*)&timeLimit)[i]+1e-9))
+                {
+                    // Record the species counts.
+                    for (uint j=0; j<reactionModel->numberSpeciesToTrack; j++) speciesTimeSeriesCounts[i].push_back(lround(speciesCounts[j*numberSpecies+i]));
+                    speciesTimeSeriesTimes[i].push_back(((double*)&nextSpeciesWriteTime)[i]);
+                    ((double*)&nextSpeciesWriteTime)[i] += speciesWriteInterval;
+                }
+            }
+        }
+
+        // Otherwise we must have finished because of a species/order parameter limit, so just write out the last time.
+        else if (status[i] == lm::message::WorkUnitStatus::LIMIT_REACHED)
+        {
+            // Record the species counts.
+            if (writeSpeciesTimeSeries)
+            {
+                // Record the species counts.
+                for (uint j=0; j<reactionModel->numberSpeciesToTrack; j++) speciesTimeSeriesCounts[i].push_back(lround(speciesCounts[j*numberSpecies+i]));
+                speciesTimeSeriesTimes[i].push_back(((double*)&time)[i]);
+            }
+        }
+
+        // If we have any species time series data, add them to the output message.
+        if (speciesTimeSeriesCounts[i].size() > 0 || speciesTimeSeriesTimes[i].size() > 0)
+        {
+            // Make sure the arrays are of a consistent size.
+            if (speciesTimeSeriesCounts[i].size() == speciesTimeSeriesTimes[i].size()*reactionModel->numberSpeciesToTrack)
+            {
+                lm::io::SpeciesTimeSeries* speciesTimeSeriesDataSet = output[i]->mutable_species_time_series();
+                speciesTimeSeriesDataSet->set_trajectory_id(trajectoryId[i]);
+
+                robertslab::pbuf::NDArray* counts = speciesTimeSeriesDataSet->mutable_counts();
+                counts->set_data_type(robertslab::pbuf::NDArray::int32);
+                counts->set_compressed_deflate(true);
+                counts->add_shape(speciesTimeSeriesTimes[i].size());
+                counts->add_shape(reactionModel->numberSpeciesToTrack);
+                std::string* data = counts->mutable_data();
+                size_t dataSizeEstimate=compressBound(speciesTimeSeriesCounts[i].size()*sizeof(int32_t));
+                data->resize(dataSizeEstimate);
+                ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)speciesTimeSeriesCounts[i].data(), speciesTimeSeriesCounts[i].size()*sizeof(int32_t)));
+                data->resize(dataSizeEstimate);
+
+                robertslab::pbuf::NDArray* times = speciesTimeSeriesDataSet->mutable_times();
+                times->set_data_type(robertslab::pbuf::NDArray::float64);
+                times->set_compressed_deflate(true);
+                times->add_shape(speciesTimeSeriesTimes[i].size());
+                data = times->mutable_data();
+                dataSizeEstimate=compressBound(speciesTimeSeriesTimes[i].size()*sizeof(double));
+                data->resize(dataSizeEstimate);
+                ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)speciesTimeSeriesTimes[i].data(), speciesTimeSeriesTimes[i].size()*sizeof(double)));
+                data->resize(dataSizeEstimate);
+
+                createdOutput = true;
+            }
+            else
+            {
+                Print::printf(Print::ERROR, "Species time series counts and time mismatch %d,%d,%d", speciesTimeSeriesCounts[i].size(), reactionModel->numberSpeciesToTrack, speciesTimeSeriesTimes[i].size());
+            }
+        }
+
+        // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
+        if (status[i] == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFptTrackedSpecies > 0)
+        {
+            // TODO: implement.
+//            for (int i=0; i<numberFptTrackedSpecies; i++)
+//            {
+//                fptTrackedSpecies[i].serializeTo(trajectoryId, msg->add_first_passage_times());
+//            }
+            createdOutput = true;
+        }
     }
 
-//    bool reachedLimit = false;
+    // If the output message has any data, send it.
+    if (createdOutput)
+    {
+        communicator->sendMessage(outputProcess, outputThread, &msgp);
+    }
 
-//    // If we finished the total time or ran out of reactions, write out the remaining time steps.
-//    if (time >= maxTime || totalPropensity <= 0)
-//    {
-//        time = maxTime;
-//        Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);
-//        if (writeSpeciesTimeSeries)
-//        {
-//            while (nextSpeciesWriteTime <= (maxTime+1e-9))
-//            {
-//                // Record the species counts.
-//                for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
-//                speciesTimeSeriesTimes.push_back(nextSpeciesWriteTime);
-//                nextSpeciesWriteTime += speciesWriteInterval;
-//            }
 
-//            // If we are recording parameter values, write out the remaining value intervals.
-//    //        if (nextParameterWriteTime <= (maxTime+1e-9))
-//    //        {
-//    ////            recordParameters(nextParameterWriteTime, parameterWriteInterval, maxTime);
-//    //        }
-//        }
-//        reachedLimit = true;
-//    }
-
-//    // See if we finished all of the steps.
-//    else if (steps >= maxSteps)
-//    {
-//        Print::printf(Print::DEBUG, "Generated trajectory with %llu steps through time %e.", steps, time);
-//    }
-
-//    // Otherwise we must have finished because of a species/order parameter limit, so just write out the last time.
-//    else
-//    {
-//        // Record the species counts.
-//        if (writeSpeciesTimeSeries)
-//        {
-//            // Record the species counts.
-//            for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
-//            speciesTimeSeriesTimes.push_back(time);
-//        }
-//        reachedLimit = true;
-//    }
-
-//    // If we have any species time series data, add them to the output message.
-//    if (speciesTimeSeriesCounts.size() > 0 || speciesTimeSeriesTimes.size() > 0)
-//    {
-//        // Make sure the arrays are of a consistent size.
-//        if (speciesTimeSeriesCounts.size() == speciesTimeSeriesTimes.size()*reactionModel->numberSpeciesToTrack)
-//        {
-//            lm::io::SpeciesTimeSeries* speciesTimeSeriesDataSet = msg->mutable_species_time_series();
-//            speciesTimeSeriesDataSet->set_trajectory_id(trajectoryId);
-
-//            robertslab::pbuf::NDArray* counts = speciesTimeSeriesDataSet->mutable_counts();
-//            counts->set_data_type(robertslab::pbuf::NDArray::int32);
-//            counts->set_compressed_deflate(true);
-//            counts->add_shape(speciesTimeSeriesTimes.size());
-//            counts->add_shape(reactionModel->numberSpeciesToTrack);
-//            std::string* data = counts->mutable_data();
-//            size_t dataSizeEstimate=compressBound(speciesTimeSeriesCounts.size()*sizeof(int32_t));
-//            data->resize(dataSizeEstimate);
-//            ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)speciesTimeSeriesCounts.data(), speciesTimeSeriesCounts.size()*sizeof(int32_t)));
-//            data->resize(dataSizeEstimate);
-
-//            robertslab::pbuf::NDArray* times = speciesTimeSeriesDataSet->mutable_times();
-//            times->set_data_type(robertslab::pbuf::NDArray::float64);
-//            times->set_compressed_deflate(true);
-//            times->add_shape(speciesTimeSeriesTimes.size());
-//            data = times->mutable_data();
-//            dataSizeEstimate=compressBound(speciesTimeSeriesTimes.size()*sizeof(double));
-//            data->resize(dataSizeEstimate);
-//            ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)speciesTimeSeriesTimes.data(), speciesTimeSeriesTimes.size()*sizeof(double)));
-//            data->resize(dataSizeEstimate);
-//        }
-//        else
-//        {
-//            Print::printf(Print::ERROR, "Species time series counts and time mismatch %d,%d,%d", speciesTimeSeriesCounts.size(), reactionModel->numberSpeciesToTrack, speciesTimeSeriesTimes.size());
-//        }
-//    }
-
-//    // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
-//    if (reachedLimit && numberFptTrackedSpecies > 0)
-//    {
-//        for (int i=0; i<numberFptTrackedSpecies; i++)
-//        {
-//            fptTrackedSpecies[i].serializeTo(trajectoryId, msg->add_first_passage_times());
-//        }
-//    }
-
-//    // If the output message has any data, send it.
-//    if ((msg->has_species_time_series() || msg->first_passage_times_size() > 0) && !ffluxFlag)		// these messages aren't useful for fflux simulation
-//    {
-////    	printf("GillespieDSolverAVX outputProcess: %d outputThread: %d\n", outputProcess, outputThread);
-//        communicator->sendMessage(outputProcess, outputThread, &msgp);
-//    }
-
-    return steps;
+    return steps*DOUBLES_PER_AVX;
 }
 
 void GillespieDSolverAVX::updateAllPropensities()
@@ -604,15 +734,17 @@ void GillespieDSolverAVX::updateAllPropensities()
     }
 }
 
-//void GillespieDSolverAVX::updatePropensities(avxd time, uint sourceReaction)
-//{
+void GillespieDSolverAVX::updatePropensities(avxd time, uint* sourceReaction)
+{
+    updateAllPropensities();
+    // TODO: implement
 //    // Update the propensities of the dependent reactions.
 //    for (uint i=0; i<reactionModel->numberDependentReactions[sourceReaction]; i++)
 //    {
 //        uint r = reactionModel->dependentReactions[sourceReaction][i];
 //        propensities[r] = reactionModel->propensityFunctions[i]->calculateAvx(time, speciesCounts, reactionModel->numberSpecies);
 //    }
-//}
+}
 
 void GillespieDSolverAVX::performReactionEvent(uint* reactionsToPerform)
 {
@@ -629,7 +761,7 @@ void GillespieDSolverAVX::performReactionEvent(uint* reactionsToPerform)
 
 bool GillespieDSolverAVX::isTrajectoryOutsideLimits()
 {
-    /*
+    /* TODO: implement
     for (uint i=0; i<numberSpeciesLimits; i++)
     {
         SpeciesLimit l = speciesLimits[i];

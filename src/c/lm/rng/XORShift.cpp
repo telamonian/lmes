@@ -128,7 +128,7 @@ double XORShift::getNormRandomDouble()
     #endif
 }
 
-void XORShift::getRandomDoubles(double * rngs, int numberRNGs, bool bufferAvxAligned)
+void XORShift::getRandomDoubles(double * rngs, int numberRNGs, bool greaterThanZero, bool bufferAvxAligned)
 {
 #ifdef OPT_AVX
     if (!bufferAvxAligned) {
@@ -145,7 +145,7 @@ void XORShift::getRandomDoubles(double * rngs, int numberRNGs, bool bufferAvxAli
         PROF_BEGIN(PROF_CACHE_RNG);
 
         // Convert to double and normalize using avx.
-        const avxd norm = _mm256_set1_pd(2.328306436539e-10);                       // 1/(2^32)
+        const avxd norm = greaterThanZero?_mm256_set1_pd(2.328306435996595202819747782996e-10):_mm256_set1_pd(2.328306436538696289062500000000e-10);// 1/(2^32+1) or 1/(2^32)
         const avxd half = _mm256_set1_pd(0.5);
         const uint LOOPS = 2;
         avxi irng[LOOPS];
@@ -191,7 +191,7 @@ void XORShift::getExpRandomDoubles(double * rngs, int numberRNGs, bool bufferAvx
 #ifdef OPT_AVX
     } else {
         PROF_BEGIN(PROF_CACHE_RNG);
-        getRandomDoubles(rngs, numberRNGs, bufferAvxAligned);
+        getRandomDoubles(rngs, numberRNGs, true, true);
         for (int i=0; i<numberRNGs; i++)
             rngs[i] = -log(rngs[i]);
 
