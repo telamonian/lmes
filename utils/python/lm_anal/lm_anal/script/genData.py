@@ -22,7 +22,6 @@ class GenData(object):
         for key,sim in self.sims.items():
             simName = str(tuple(key))
             for dataToExcludeFrom,field in self.excludedFields:
-                print(dataToExcludeFrom, field)
                 sim.__getattribute__(CamelCaseLower(dataToExcludeFrom)).setExcludedFields(field)
 
             # sim.ffluxHists.transformKwargs = {'tilingIDs':((1,2),3)}
@@ -59,7 +58,7 @@ def Main():
 
     if kwargs['excludedFields'] is not None:
         if len(kwargs['excludedFields']) % 2!=0:
-            raise ValueError('odd number of arguments passed to --excludedFields. These args should be pair of dataType, fieldName')
+            raise ValueError('odd number of arguments passed to --excludedFields. These args should be pairs of dataType, fieldName. --excludedFields: %s' % kwargs['excludedFields'])
         else:
             kwargs['excludedFields'] = list(zip(kwargs['excludedFields'][::2], kwargs['excludedFields'][1::2]))
 

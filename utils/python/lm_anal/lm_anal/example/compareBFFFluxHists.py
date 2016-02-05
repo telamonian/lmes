@@ -35,7 +35,10 @@ class CompareBFFFluxHists(object):
         
         # bfSims stuff
         self.bfRootPath = bfRootPath
-        self.bfSims = Sims(rootPath=self.bfRootPath, filterRules=filterRules)
+        bfSimsKwargs = {'rootPath': self.bfRootPath, 'filterRules': filterRules}
+        if self.lmintOnly:
+            bfSimsKwargs['fType'] = 'lmint'
+        self.bfSims = Sims(**bfSimsKwargs)
 
         # self.ffluxBFConversionDict = self.genFFluxBFConversionDict()
 
@@ -63,10 +66,10 @@ class CompareBFFFluxHists(object):
         
         # ffluxSims stuff
         self.ffluxRootPath = ffluxRootPath
+        ffluxSimsKwargs = {'rootPath': self.ffluxRootPath, 'filterRules': filterRules}
         if self.lmintOnly:
-            self.ffluxSims = Sims(rootPath=self.ffluxRootPath, filterRules=filterRules, fType='lmint')
-        else:
-            self.ffluxSims = Sims(rootPath=self.ffluxRootPath, filterRules=filterRules)
+            ffluxSimsKwargs['fType'] = 'lmint'
+        self.ffluxSims = Sims(**ffluxSimsKwargs)
         for ffluxSim in self.ffluxSims.values():
             ffluxSim.ffluxHists.transformKwargs = {'tilingIDs':((1,2),3)}
 #             ffluxSim.ffluxHists.transformKwargs = {'oparams':self.inputSim.oparams, 'tilings':self.inputSim.tilings, 'tilingIDs':((1,2),3)}
@@ -100,8 +103,11 @@ class CompareBFFFluxHists(object):
                 bfHist = self.getBFHistByKeyDim(keySetA, dim)
                 if normalizeBF:
                     bfHist.normalize()
-                ffluxHist = self.getFFluxHistByKeyDim(ffluxKey, dim)
-                ffluxHist.bfHist = bfHist
+                try:
+                    ffluxHist = self.getFFluxHistByKeyDim(ffluxKey, dim)
+                    ffluxHist.bfHist = bfHist
+                except (AttributeError, KeyError):
+                    pass
 
     def clearLmint(self):
         if ffluxRootPath.is_file():
