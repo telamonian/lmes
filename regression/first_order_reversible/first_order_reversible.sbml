@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sbml xmlns="http://www.sbml.org/sbml/level3/version1/core" level="3" version="1">
+    <model id="first_order_decay" substanceUnits="item" timeUnits="second" volumeUnits="litre" extentUnits="item">
+        <listOfUnitDefinitions>
+            <unitDefinition id="per_second">
+                <listOfUnits>
+                    <unit kind="second" exponent="-1" scale="0" multiplier="1"/>
+                </listOfUnits>
+            </unitDefinition>
+        </listOfUnitDefinitions>
+        <listOfCompartments>
+            <compartment id="V" size="1" spatialDimensions="3" constant="true"/>
+        </listOfCompartments>
+        <listOfSpecies>
+            <species id="a"  compartment="V" initialAmount="1000"
+                             hasOnlySubstanceUnits="true" boundaryCondition="false"
+                             constant="false"/>
+            <species id="b"  compartment="V" initialAmount="0"
+                             hasOnlySubstanceUnits="true" boundaryCondition="false"
+                             constant="false"/>
+        </listOfSpecies>
+        <listOfReactions>
+        
+            <reaction id="forward" reversible="false" fast="false">
+                <listOfReactants>
+                    <speciesReference species="a" stoichiometry="1" constant="true"/>
+                </listOfReactants>
+                <listOfProducts>
+                    <speciesReference species="b" stoichiometry="1" constant="true"/>
+                </listOfProducts>
+                <kineticLaw>
+                    <math xmlns="http://www.w3.org/1998/Math/MathML">
+                        <apply>
+                            <times/>
+                            <cn> 1 </cn>
+                            <ci> a </ci>
+                        </apply>
+                    </math>
+                </kineticLaw>
+            </reaction>
+            <reaction id="backward" reversible="false" fast="false">
+                <listOfReactants>
+                    <speciesReference species="b" stoichiometry="1" constant="true"/>
+                </listOfReactants>
+                <listOfProducts>
+                    <speciesReference species="a" stoichiometry="1" constant="true"/>
+                </listOfProducts>
+                <kineticLaw>
+                    <math xmlns="http://www.w3.org/1998/Math/MathML">
+                        <apply>
+                            <times/>
+                            <cn> 1 </cn>
+                            <ci> b </ci>
+                        </apply>
+                    </math>
+                </kineticLaw>
+            </reaction>
+            
+        </listOfReactions>
+    </model>
+</sbml>

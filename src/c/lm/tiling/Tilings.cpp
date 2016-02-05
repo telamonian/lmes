@@ -69,7 +69,7 @@ void Tilings::clearTilingMap()
     }
 }
 
-bool Tilings::init(lm::io::hdf5::Hdf5File* file)
+bool Tilings::init(const lm::io::hdf5::Hdf5File* file)
 {
     if (rFFTilingsBuf(file))
     {
@@ -106,11 +106,11 @@ void Tilings::initTiling(const lm::io::Tilings::Tiling& tiling)
 }
 
 // accessors
-uint Tilings::getCurrentTilingID()
+uint Tilings::getCurrentTilingID() const
 {
     if (hasCurrentTilingID())
     {
-        return getTilingsBuf()->current_tiling_id();
+        return tilingsBuf.current_tiling_id();
     }
     else
     {
@@ -126,7 +126,7 @@ void Tilings::reverse()
     }
 }
 
-bool Tilings::rFFTilingsBuf(lm::io::hdf5::Hdf5File* file)
+bool Tilings::rFFTilingsBuf(const lm::io::hdf5::Hdf5File* file)
 {
     if (file->hasTilings())
     {

@@ -1,0 +1,58 @@
+
+# Global fixed concentration. Uniform concentration. Average occupancy should be 1 particle. 
+rm -f rdme_bc_fixed_gradient_global.lm && lm_sbml_import rdme_bc_fixed_gradient_global.lm rdme_bc.sbml
+lm_setdm rdme_bc_fixed_gradient_global.lm numberReactions=2 numberSpecies=3 numberSiteTypes=1 "latticeSize=[10,10,10]" latticeSpacing=1e-6 particlesPerSite=8 "DiffusionMatrix=[8.15e-14]" "ReactionLocationMatrix=[0]";
+lm_setp rdme_bc_fixed_gradient_global.lm maxTime=1e4 writeInterval=1e2 latticeWriteInterval=1e3
+lm_setp rdme_bc_fixed_gradient_global.lm boundaryConditions=FIXED_GRADIENT boundarySite=0 boundarySpecies=2
+python rdme_build_gradient.py rdme_bc_fixed_gradient_global.lm 10 10 10 x 1.66e-9 1.66e-9
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f rdme_bc_fixed_gradient_global.lm --resource-map=nodes -ca -ff log -sp |tee rdme_bc_fixed_gradient_global.log
+
+# Increasing gradient along x axis. Average occupancy should be 1.5 particles.
+rm -f rdme_bc_fixed_gradient_x_pos.lm && lm_sbml_import rdme_bc_fixed_gradient_x_pos.lm rdme_bc.sbml
+lm_setdm rdme_bc_fixed_gradient_x_pos.lm numberReactions=2 numberSpecies=3 numberSiteTypes=1 "latticeSize=[10,10,10]" latticeSpacing=1e-6 particlesPerSite=8 "DiffusionMatrix=[8.15e-14]" "ReactionLocationMatrix=[0]";
+lm_setp rdme_bc_fixed_gradient_x_pos.lm maxTime=1e4 writeInterval=1e2 latticeWriteInterval=1e3
+lm_setp rdme_bc_fixed_gradient_x_pos.lm boundaryConditions=x:FIXED_GRADIENT,y:PERIODIC,z:PERIODIC boundarySite=0 boundarySpecies=2
+python rdme_build_gradient.py rdme_bc_fixed_gradient_x_pos.lm 10 10 10 x 1.66e-9 3.32e-9
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f rdme_bc_fixed_gradient_x_pos.lm -c 2 -gr 1/8 -ca -ff log -sp |tee rdme_bc_fixed_gradient_x_pos.log
+
+# Increasing gradient along x axis. Average occupancy should be 1.5 particles.
+rm -f rdme_bc_fixed_gradient_x_neg.lm && lm_sbml_import rdme_bc_fixed_gradient_x_neg.lm rdme_bc.sbml
+lm_setdm rdme_bc_fixed_gradient_x_neg.lm numberReactions=2 numberSpecies=3 numberSiteTypes=1 "latticeSize=[10,10,10]" latticeSpacing=1e-6 particlesPerSite=8 "DiffusionMatrix=[8.15e-14]" "ReactionLocationMatrix=[0]";
+lm_setp rdme_bc_fixed_gradient_x_neg.lm maxTime=1e4 writeInterval=1e2 latticeWriteInterval=1e3
+lm_setp rdme_bc_fixed_gradient_x_neg.lm boundaryConditions=x:FIXED_GRADIENT,y:PERIODIC,z:PERIODIC boundarySite=0 boundarySpecies=2
+python rdme_build_gradient.py rdme_bc_fixed_gradient_x_neg.lm 10 10 10 x 3.32e-9 1.66e-9
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f rdme_bc_fixed_gradient_x_neg.lm -c 2 -gr 1/8 -ca -ff log -sp |tee rdme_bc_fixed_gradient_x_neg.log
+
+# Increasing gradient along y axis. Average occupancy should be 1.5 particles.
+rm -f rdme_bc_fixed_gradient_y_pos.lm && lm_sbml_import rdme_bc_fixed_gradient_y_pos.lm rdme_bc.sbml
+lm_setdm rdme_bc_fixed_gradient_y_pos.lm numberReactions=2 numberSpecies=3 numberSiteTypes=1 "latticeSize=[10,10,10]" latticeSpacing=1e-6 particlesPerSite=8 "DiffusionMatrix=[8.15e-14]" "ReactionLocationMatrix=[0]";
+lm_setp rdme_bc_fixed_gradient_y_pos.lm maxTime=1e4 writeInterval=1e2 latticeWriteInterval=1e3
+lm_setp rdme_bc_fixed_gradient_y_pos.lm boundaryConditions=y:FIXED_GRADIENT,x:PERIODIC,z:PERIODIC boundarySite=0 boundarySpecies=2
+python rdme_build_gradient.py rdme_bc_fixed_gradient_y_pos.lm 10 10 10 y 1.66e-9 3.32e-9
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f rdme_bc_fixed_gradient_y_pos.lm -c 2 -gr 1/8 -ca -ff log -sp |tee rdme_bc_fixed_gradient_y_pos.log
+
+# Increasing gradient along y axis. Average occupancy should be 1.5 particles.
+rm -f rdme_bc_fixed_gradient_y_neg.lm && lm_sbml_import rdme_bc_fixed_gradient_y_neg.lm rdme_bc.sbml
+lm_setdm rdme_bc_fixed_gradient_y_neg.lm numberReactions=2 numberSpecies=3 numberSiteTypes=1 "latticeSize=[10,10,10]" latticeSpacing=1e-6 particlesPerSite=8 "DiffusionMatrix=[8.15e-14]" "ReactionLocationMatrix=[0]";
+lm_setp rdme_bc_fixed_gradient_y_neg.lm maxTime=1e4 writeInterval=1e2 latticeWriteInterval=1e3
+lm_setp rdme_bc_fixed_gradient_y_neg.lm boundaryConditions=y:FIXED_GRADIENT,x:PERIODIC,z:PERIODIC boundarySite=0 boundarySpecies=2
+python rdme_build_gradient.py rdme_bc_fixed_gradient_y_neg.lm 10 10 10 y 3.32e-9 1.66e-9
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f rdme_bc_fixed_gradient_y_neg.lm -c 2 -gr 1/8 -ca -ff log -sp |tee rdme_bc_fixed_gradient_y_neg.log
+
+# Increasing gradient along z axis. Average occupancy should be 1.5 particles.
+rm -f rdme_bc_fixed_gradient_z_pos.lm && lm_sbml_import rdme_bc_fixed_gradient_z_pos.lm rdme_bc.sbml
+lm_setdm rdme_bc_fixed_gradient_z_pos.lm numberReactions=2 numberSpecies=3 numberSiteTypes=1 "latticeSize=[10,10,10]" latticeSpacing=1e-6 particlesPerSite=8 "DiffusionMatrix=[8.15e-14]" "ReactionLocationMatrix=[0]";
+lm_setp rdme_bc_fixed_gradient_z_pos.lm maxTime=1e4 writeInterval=1e2 latticeWriteInterval=1e3
+lm_setp rdme_bc_fixed_gradient_z_pos.lm boundaryConditions=z:FIXED_GRADIENT,x:PERIODIC,y:PERIODIC boundarySite=0 boundarySpecies=2
+python rdme_build_gradient.py rdme_bc_fixed_gradient_z_pos.lm 10 10 10 z 1.66e-9 3.32e-9
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f rdme_bc_fixed_gradient_z_pos.lm -c 2 -gr 1/8 -ca -ff log -sp |tee rdme_bc_fixed_gradient_z_pos.log
+
+# Increasing gradient along z axis. Average occupancy should be 1.5 particles.
+rm -f rdme_bc_fixed_gradient_z_neg.lm && lm_sbml_import rdme_bc_fixed_gradient_z_neg.lm rdme_bc.sbml
+lm_setdm rdme_bc_fixed_gradient_z_neg.lm numberReactions=2 numberSpecies=3 numberSiteTypes=1 "latticeSize=[10,10,10]" latticeSpacing=1e-6 particlesPerSite=8 "DiffusionMatrix=[8.15e-14]" "ReactionLocationMatrix=[0]";
+lm_setp rdme_bc_fixed_gradient_z_neg.lm maxTime=1e4 writeInterval=1e2 latticeWriteInterval=1e3
+lm_setp rdme_bc_fixed_gradient_z_neg.lm boundaryConditions=z:FIXED_GRADIENT,x:PERIODIC,y:PERIODIC boundarySite=0 boundarySpecies=2
+python rdme_build_gradient.py rdme_bc_fixed_gradient_z_neg.lm 10 10 10 z 3.32e-9 1.66e-9
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f rdme_bc_fixed_gradient_z_neg.lm -c 2 -gr 1/8 -ca -ff log -sp |tee rdme_bc_fixed_gradient_z_neg.log
+
+

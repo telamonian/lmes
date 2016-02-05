@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -50,6 +50,8 @@ using std::vector;
 namespace lm {
 namespace slot {
 
+class SlotList;
+
 class Slot
 {
 public:
@@ -58,12 +60,18 @@ public:
 public:
     Slot(int id, lm::resource::ComputeResources resources);
 	~Slot();
+    int getId() const {return id;}
+    uint getSimultaneousWorkUnits() const {return simultaneousWorkUnits;}
 
-public:
+protected:
     int id;
     Status status;
     lm::resource::ComputeResources resources;
     lm::message::Endpoint workUnitRunnerEndpoint;
+    uint simultaneousWorkUnits;
+
+friend class SlotList;
+
 };
 
 }

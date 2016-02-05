@@ -1,12 +1,17 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2008-2010 Luthey-Schulten Group,
+ * Copyright 2008-2012 Luthey-Schulten Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  * 
  * Developed by: Luthey-Schulten Group
- * 			     University of Illinois at Urbana-Champaign
- * 			     http://www.scs.uiuc.edu/~schulten
+ *               University of Illinois at Urbana-Champaign
+ *               http://www.scs.uiuc.edu/~schulten
  * 
+ * Developed by: Roberts Group
+ *               Johns Hopkins University
+ *               http://biophysics.jhu.edu/roberts/
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with 
  * the Software without restriction, including without limitation the rights to 
@@ -22,9 +27,9 @@
  * and/or other materials provided with the distribution.
  * 
  * - Neither the names of the Luthey-Schulten Group, University of Illinois at
- * Urbana-Champaign, nor the names of its contributors may be used to endorse or
- * promote products derived from this Software without specific prior written
- * permission.
+ * Urbana-Champaign, the Roberts Group, Johns Hopkins University, nor the names
+ * of its contributors may be used to endorse or promote products derived from
+ * this Software without specific prior written permission.
  * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
@@ -85,6 +90,7 @@ public:
     InvalidArgException(const char* arg, const char* argMessage, const char * argMessageParameter) : Exception("Invalid argument", arg, argMessage, argMessageParameter) {}
     InvalidArgException(const char* arg, const char* argMessage, const int argMessageParameter) : Exception("Invalid argument", arg, argMessage, argMessageParameter) {}
     InvalidArgException(const char* arg, const char* argMessage, const int argMessageParameter1, const int argMessageParameter2) : Exception() {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s, %s (%d,%d)", "Invalid argument", arg, argMessage, argMessageParameter1, argMessageParameter2);}
+    InvalidArgException(const char* arg, const char* argMessage, const int argMessageParameter1, const int argMessageParameter2, const int argMessageParameter3) : Exception() {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s, %s (%d,%d,%d)", "Invalid argument", arg, argMessage, argMessageParameter1, argMessageParameter2, argMessageParameter3);}
 //    virtual ~InvalidArgException() throw() {}
 };
 
@@ -103,7 +109,15 @@ public:
     ZlibException(const int errorNumber) : Exception("ZLib exception", errorNumber) {}
 };
 
-#define ZLIB_EXCEPTION_CHECK(zlib_call) {int _zlib_ret_=zlib_call; if (_zlib_ret_ != Z_OK) throw ZlibException(_zlib_ret_);}
+#define ZLIB_EXCEPTION_CHECK(zlib_call) {int _zlib_ret_=zlib_call; if (_zlib_ret_ != Z_OK) throw lm::ZlibException(_zlib_ret_);}
+
+class PosixException : public Exception
+{
+public:
+    PosixException(const int errorNumber) : Exception("Posix exception", errorNumber) {}
+};
+
+#define POSIX_EXCEPTION_CHECK(posix_call) {int _posix_ret_=posix_call; if (_posix_ret_ != 0) throw lm::PosixException(_posix_ret_);}
 
 }
 

@@ -1,15 +1,33 @@
-2012-12-JHU
+2016.01.20
 
     General
-    * First JHU branch pulled from latest UI branch as of 2012-09-03.
-    * Increased time resolution for simulation duration output in the standalone version (ported from MPI version).
+    * First LMES public release, branched from UIUC branch on 2012-09-03.
+    * Changed to CMake for building.
+    * Significant rewrite of the core program logic to support enhanced sampling of master equations.
+        - Moved to a supervisor/worker framework where the supervisor directs workers to execute many small work units.
+        - Replicate supervisor runs small chunks of each trajectory rather than one complete trajectory at at time,
+          which can make better use of resources.
+    * Added a generic framework for registering new implementations of solvers, writers, supervisors, etc.
+    * Removed support for standalone version, only the MPI build is now supported.
+    * Added an SFile output writer for efficient writing of output for use with Hadoop/Spark clusters.
     
     MPI
+    * Require the MPI library support the MPI_THREAD_MULTIPLE capability, which current is only supported by MPICH.
+        - A single MPI process is started per node, using multiple threads to perform the work.
+        - A resource controller runs in the MPI thread, which starts worker threads as needed. 
+    * Use protocol buffers for all network messages.
     * Added support for using a different number of cores on each node.
     * Added support for reading the list of assigned nodes from the PBS queue system using the PBS_NODEFILE environment
       variable. In this case the -c flag is ignored.
-      
+    
+    CME
+    * Added zlib compression of CME output to greatly reduce file sizes.
+    * Allow for the calculation of arbitrary order parameters during simulation execution.
+    
     RDME
     * Fixed a bug when using the CUDA MPDRDME solver in which the overflow list was not being used and particles were
       being lost (Thanks to Jacob Halatek and Michael Hartmann for reporting).
+    * Significant performance improvements to the next subvolume solver by optimizing the reaction queue.
+    * Added optional zlib compression of lattices during serialization.
+    * Added several new boundary conditions, including gradient boundary conditions.
       

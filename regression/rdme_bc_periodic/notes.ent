@@ -1,0 +1,25 @@
+
+# Barrier separating the two halfs of x axis with separated particles. Both particle types should mix.
+rm -f rdme_bc_periodic_x.lm && lm_sbml_import rdme_bc_periodic_x.lm rdme_bc.sbml
+lm_setdm rdme_bc_periodic_x.lm numberReactions=2 numberSpecies=3 numberSiteTypes=3 "latticeSize=[5,3,4]" latticeSpacing=1e-6 particlesPerSite=8 "DiffusionMatrix(:,:,0)=[8.15e-14,0,8.15e-14;0,0,0;8.15e-14,0,8.15e-14;]" "DiffusionMatrix(:,:,1)=[8.15e-14,0,8.15e-14;0,0,0;8.15e-14,0,8.15e-14;]" "DiffusionMatrix(:,:,2)=[0,0,0;0,8.15e-14,0;0,0,0]" "ReactionLocationMatrix=[0,0,0;0,0,0]";
+lm_setp rdme_bc_periodic_x.lm maxTime=1e5 writeInterval=1e-2 latticeWriteInterval=1e7
+lm_setp rdme_bc_periodic_x.lm boundaryConditions=x:PERIODIC,y:REFLECTING,z:REFLECTING
+lm_python -s rdme_bc_periodic_x.py -sa rdme_bc_periodic_x.lm
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f rdme_bc_periodic_x.lm -c 2 -gr 1/8 -ca -ff log -sp |tee rdme_bc_periodic_x.log
+
+# Barrier separating the two halfs of y axis with separated particles. Both particle types should mix.
+rm -f rdme_bc_periodic_y.lm && lm_sbml_import rdme_bc_periodic_y.lm rdme_bc.sbml
+lm_setdm rdme_bc_periodic_y.lm numberReactions=2 numberSpecies=3 numberSiteTypes=3 "latticeSize=[4,5,3]" latticeSpacing=1e-6 particlesPerSite=8 "DiffusionMatrix(:,:,0)=[8.15e-14,0,8.15e-14;0,0,0;8.15e-14,0,8.15e-14;]" "DiffusionMatrix(:,:,1)=[8.15e-14,0,8.15e-14;0,0,0;8.15e-14,0,8.15e-14;]" "DiffusionMatrix(:,:,2)=[0,0,0;0,8.15e-14,0;0,0,0]" "ReactionLocationMatrix=[0,0,0;0,0,0]";
+lm_setp rdme_bc_periodic_y.lm maxTime=1e5 writeInterval=1e-2 latticeWriteInterval=1e7
+lm_setp rdme_bc_periodic_y.lm boundaryConditions=x:REFLECTING,y:PERIODIC,z:REFLECTING
+lm_python -s rdme_bc_periodic_y.py -sa rdme_bc_periodic_y.lm
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f rdme_bc_periodic_y.lm -c 2 -gr 1/8 -ca -ff log -sp |tee rdme_bc_periodic_y.log
+
+# Barrier separating the two halfs of z axis with separated particles. Both particle types should mix.
+rm -f rdme_bc_periodic_z.lm && lm_sbml_import rdme_bc_periodic_z.lm rdme_bc.sbml
+lm_setdm rdme_bc_periodic_z.lm numberReactions=2 numberSpecies=3 numberSiteTypes=3 "latticeSize=[3,4,5]" latticeSpacing=1e-6 particlesPerSite=8 "DiffusionMatrix(:,:,0)=[8.15e-14,0,8.15e-14;0,0,0;8.15e-14,0,8.15e-14;]" "DiffusionMatrix(:,:,1)=[8.15e-14,0,8.15e-14;0,0,0;8.15e-14,0,8.15e-14;]" "DiffusionMatrix(:,:,2)=[0,0,0;0,8.15e-14,0;0,0,0]" "ReactionLocationMatrix=[0,0,0;0,0,0]";
+lm_setp rdme_bc_periodic_z.lm maxTime=1e5 writeInterval=1e-2 latticeWriteInterval=1e7
+lm_setp rdme_bc_periodic_z.lm boundaryConditions=x:REFLECTING,y:REFLECTING,z:PERIODIC
+lm_python -s rdme_bc_periodic_z.py -sa rdme_bc_periodic_z.lm
+~/Work/Lab/Code/LatticeMicrobes/build/lm -f rdme_bc_periodic_z.lm -c 2 -gr 1/8 -ca -ff log -sp |tee rdme_bc_periodic_z.log
+

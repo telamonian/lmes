@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -44,15 +44,16 @@
 
 #include "lm/input/Input.h"
 #include "lm/io/ReactionModel.pb.h"
-#include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
-#include "lm/message/Communicator.h"
-#include "lm/message/Message.pb.h"
+#include "lm/message/RunWorkUnit.pb.h"
 #include "lm/trajectory/Trajectory.h"
 #include "lm/Types.h"
 
 using std::map;
 using std::string;
+
+
+typedef std::map<uint64_t,lm::trajectory::Trajectory*> TrajectoryMap;
 
 namespace lm {
 namespace trajectory {
@@ -60,54 +61,31 @@ namespace trajectory {
 class TrajectoryList
 {
 public:
-//    TrajectoryList(const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel, map<string,string>& simulationParameters);
-    TrajectoryList(lm::input::Input& input);
+    TrajectoryList();
     virtual ~TrajectoryList();
-    virtual void init()=0;
 
-    //initializer
-    virtual void setCommunicator(lm::message::Communicator& newCom);
+    virtual bool exists(uint64_t id) const {return trajectories.count(id) == 1;}
+    virtual size_t size() const {return trajectories.size();}
 
-    // getter
-    virtual lm::trajectory::Trajectory* getTrajectory(uint64_t trajectoryID);
-    virtual lm::trajectory::Trajectory::status_t getTrajectoryStatus(uint64_t trajectoryID);
-    virtual lm::io::TrajectoryState* getTrajectoryState(uint64_t trajectoryID);
-    virtual bool exists(uint64_t trajectoryID) {if (trajectories.find(trajectoryID)!=trajectories.end()) return true; else return false;}
-    virtual size_t size() {return trajectories.size();}
-
-    // getter on whole list
-    virtual uint64_t getSize() {return trajectories.size();}
-
-    // setter
-    virtual void setTrajectoryStarted(uint64_t trajectoryID, bool trajectoryStarted);
-    virtual void setTrajectoryStatus(uint64_t trajectoryID, lm::trajectory::Trajectory::status_t status);
-    virtual void setTrajectoryState(uint64_t trajectoryID, const lm::io::TrajectoryState& state);
-
-    // setter on whole list
     virtual void setAllFinished();
+    virtual bool areAllFinished();
 
-    // destroyer
     virtual void deleteTrajectory(uint64_t trajectoryID);
     virtual void deleteAllTrajectories();
 
-    virtual lm::message::Message* getNextWorkUnitMsg();
-    virtual bool isFinished();
-    virtual lm::trajectory::Trajectory* workUnitFinished(const lm::message::FinishedWorkUnit & msg);
-
-    // dealing with the internal template Message methods
-//    virtual lm::message::RunWorkUnit* getRunMsg() {return trajectoryTemplateMsg.mutable_run_work_unit();}
-//    virtual lm::io::TrajectoryLimits* getLimitsMsg() {return getRunMsg()->mutable_limits();}
-
-    virtual void printTrajectoryStatistics();
+    virtual int addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUnit* msg, uint numberParts);
+    virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg);
 
 protected:
-    lm::message::Communicator* communicator;
-    lm::input::Input& input;
+    virtual void printTrajectoryStatistics();
+    virtual uint64_t findNextTrajectoryToRun();
+
+protected:
     TrajectoryMap trajectories;
-    uint64_t trajectoryCount;
-    uint64_t workUnitCount;
-    // this template message is used when initializing new Trajectory instances
-    //lm::message::Message trajectoryTemplateMsg;
+    TrajectoryMap waitingTrajectories;
+    TrajectoryMap runningTrajectories;
+    TrajectoryMap finishedTrajectories;
+    map<uint64_t,list<uint64_t> > workUnitsRunning;
 };
 
 }

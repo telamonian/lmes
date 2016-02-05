@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -54,11 +54,14 @@
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/ResourcesAvailable.pb.h"
+#include "lm/message/RunWorkUnit.pb.h"
 #include "lm/message/StartWorkUnitRunner.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnitRunner.pb.h"
+#include "lm/message/WorkUnit.pb.h"
 #include "lm/resource/ComputeResources.h"
 #include "lm/resource/ResourceMap.h"
+#include "lm/slot/Slot.h"
 #include "lm/slot/SlotList.h"
 
 using lm::resource::ComputeResources;
@@ -69,7 +72,7 @@ namespace lm {
 namespace main {
 
 SimulationSupervisor::SimulationSupervisor()
-    :simulationRunning(true),performingCheckpoint(false),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),hasOutputWriterStarted(false),outputWriterProcess(-1),outputWriterThread(-1),hasCheckpointSignalerStarted(false),solverClassName(""),useCPUAffinity(false),input(NULL),hasReactionModel(false),hasDiffusionModel(false),hasOrderParameters(false),hasTilings(false),tilings(),trajectoryList(NULL),slots(&communicator),haveAllWorkUnitRunnersStarted(false),workUnitCount(0)
+:simulationRunning(true),performingCheckpoint(false),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),hasOutputWriterStarted(false),outputWriterProcess(-1),outputWriterThread(-1),hasCheckpointSignalerStarted(false),solverClassName(""),useCPUAffinity(false),input(NULL),trajectoryList(NULL),slots(&communicator),haveAllWorkUnitRunnersStarted(false),workUnitCount(0)
 {
     resetPerformanceStatistics();
 }
@@ -89,190 +92,9 @@ void SimulationSupervisor::wake() throw(lm::thread::PthreadException)
 
 void SimulationSupervisor::init()
 {
-    // Open the simulation file.
-    lm::io::hdf5::Hdf5File * file = new lm::io::hdf5::Hdf5File(simulationInputFilename);
-
-    // Get the simulation parameters and read them into a map.
-    file->getParameters(&simulationParametersBuf);
-    for (int i=0; i<simulationParametersBuf.key_size() && i<simulationParametersBuf.value_size(); i++)
-    {
-        simulationParametersMap[simulationParametersBuf.key(i)] = simulationParametersBuf.value(i);
-    }
-
-    // Get the reaction model.
-    if (file->hasReactionModel())
-    {
-        hasReactionModel = true;
-        file->getReactionModel(&reactionModelBuf);
-    }
-
-    // Get the diffusion model.
-    if (file->hasDiffusionModel())
-    {
-        hasDiffusionModel = true;
-        file->getDiffusionModel(&diffusionModelBuf);
-
-        // See if we need to fill in the boundary conditions from the simulation parameters.
-        if (simulationParametersMap.count("boundaryConditions") == 1 && !diffusionModelBuf.has_boundary_conditions())
-        {
-            lm::io::BoundaryConditions* bc=diffusionModelBuf.mutable_boundary_conditions();
-            if (!parseBoundaryConditions(bc, simulationParametersMap["boundaryConditions"].c_str()))
-            {
-                throw Exception("Could not parse boundaryConditions parameter",simulationParametersMap["boundaryConditions"].c_str());
-            }
-            if (simulationParametersMap.count("boundarySite") == 1)
-            {
-                bc->set_boundary_site(atoi(simulationParametersMap["boundarySite"].c_str()));
-            }
-            if (simulationParametersMap.count("boundarySpecies") == 1)
-            {
-                bc->set_boundary_species(atoi(simulationParametersMap["boundarySpecies"].c_str()));
-            }
-            if (simulationParametersMap.count("boundaryConcentration") == 1)
-            {
-                bc->set_boundary_concentration(atof(simulationParametersMap["boundaryConcentration"].c_str()));
-            }
-            if (file->hasBoundaryGradient())
-            {
-                file->getBoundaryGradient(bc);
-            }
-        }
-    }
-
-    if (file->hasOrderParameters())
-    {
-        hasOrderParameters = true;
-        file->getOrderParameters(&orderParametersBuf);
-        ops.init(orderParametersBuf);
-    }
-
-    if (file->hasTilings())
-    {
-        hasTilings = true;
-        file->getTilings(&tilingsBuf);
-        tilings.init(tilingsBuf);
-    }
-
-    // initialize input struct (used for setting up trajectories)
-    input = new lm::input::Input(hasDiffusionModel,hasOrderParameters,hasReactionModel,hasTilings,diffusionModelBuf,orderParametersBuf,ops,reactionModelBuf,simulationParametersBuf,simulationParametersMap,tilingsBuf,tilings);
-
-    // close the file
-    delete file;
+    // Initialize the input object with the input file.
+    input = new lm::input::Input(lm::io::hdf5::Hdf5File(simulationInputFilename));
 }
-
-bool SimulationSupervisor::parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg)
-{
-    lm::io::BoundaryConditions::BoundaryConditionsType type;
-
-    // See if it is a global boundary condition.
-    if (lm::io::BoundaryConditions_BoundaryConditionsType_Parse(arg, &type))
-    {
-        bc->set_global(type);
-        return true;
-    }
-
-    // See if there are axis specific boundary conditions.
-    char * argbuf = new char[arg.size()+1];
-    memset(argbuf,0,arg.size()+1);
-    strcpy(argbuf,arg.c_str());
-    char * pch = strtok(argbuf,",");
-    while (pch != NULL)
-    {
-        if (strlen(pch) >= 3 && (pch[0] == 'x' || pch[0] == 'y' || pch[0] == 'z') && pch[1] == ':')
-        {
-            // Parse the axis-specific type.
-            if (!lm::io::BoundaryConditions_BoundaryConditionsType_Parse(std::string(pch+2), &type))
-            {
-                delete[] argbuf;
-                return false;
-            }
-
-            // Set the axis value.
-            pch[1] = '\0';
-            std::string axis=pch;
-            if (axis == "x")
-            {
-                bc->set_axis_specific_boundaries(true);
-                bc->set_x_plus(type);
-                bc->set_x_minus(type);
-            }
-            else if (axis == "y")
-            {
-                bc->set_axis_specific_boundaries(true);
-                bc->set_y_plus(type);
-                bc->set_y_minus(type);
-            }
-            else if (axis == "z")
-            {
-                bc->set_axis_specific_boundaries(true);
-                bc->set_z_plus(type);
-                bc->set_z_minus(type);
-            }
-            else
-            {
-                delete[] argbuf;
-                return false;
-            }
-        }
-        else if (strlen(pch) >= 4 && ((pch[0] == '+' || pch[0] == '-') && (pch[1] == 'x' || pch[1] == 'y' || pch[1] == 'z')) && pch[2] == ':')
-        {
-            // Parse the axis-specific type.
-            if (!lm::io::BoundaryConditions_BoundaryConditionsType_Parse(std::string(pch+3), &type))
-            {
-                delete[] argbuf;
-                return false;
-            }
-
-            // Set the axis value.
-            pch[2] = '\0';
-            std::string axis=pch;
-            if (axis == "+x" && type != lm::io::BoundaryConditions::PERIODIC)
-            {
-                bc->set_axis_specific_boundaries(true);
-                bc->set_x_plus(type);
-            }
-            else if (axis == "-x" && type != lm::io::BoundaryConditions::PERIODIC)
-            {
-                bc->set_axis_specific_boundaries(true);
-                bc->set_x_minus(type);
-            }
-            else if (axis == "+y" && type != lm::io::BoundaryConditions::PERIODIC)
-            {
-                bc->set_axis_specific_boundaries(true);
-                bc->set_y_plus(type);
-            }
-            else if (axis == "-y" && type != lm::io::BoundaryConditions::PERIODIC)
-            {
-                bc->set_axis_specific_boundaries(true);
-                bc->set_y_minus(type);
-            }
-            else if (axis == "+z" && type != lm::io::BoundaryConditions::PERIODIC)
-            {
-                bc->set_axis_specific_boundaries(true);
-                bc->set_z_plus(type);
-            }
-            else if (axis == "-z")
-            {
-                bc->set_axis_specific_boundaries(true);
-                bc->set_z_minus(type);
-            }
-            else
-            {
-                delete[] argbuf;
-                return false;
-            }
-        }
-        else
-        {
-            delete[] argbuf;
-            return false;
-        }
-        pch = strtok(NULL,",");
-    }
-    delete[] argbuf;
-    return bc->axis_specific_boundaries();
-}
-
 
 int SimulationSupervisor::run()
 {
@@ -289,7 +111,7 @@ int SimulationSupervisor::run()
             // Do something with the message.
             if (message.has_resources_available())
             {
-                resourceAvailable(message.resources_available());
+                receivedResourceAvailable(message.resources_available());
             }
             else if (message.has_started_output_writer())
             {
@@ -324,11 +146,8 @@ int SimulationSupervisor::run()
             }
             else
             {
-            	if (!ffluxFlag)
-            	{
-            		Print::printf(Print::ERROR, "Supervisor received an unknown message: {\n%s}",message.DebugString().c_str());
-            	}
-			}
+                Print::printf(Print::ERROR, "Supervisor received an unknown message: {\n%s}",message.DebugString().c_str());
+            }
 
             // Print any performance statistics.
             printPerformanceStatistics();
@@ -363,7 +182,7 @@ int SimulationSupervisor::run()
     return -1;
 }
 
-void SimulationSupervisor::resourceAvailable(const lm::message::ResourcesAvailable& msg)
+void SimulationSupervisor::receivedResourceAvailable(const lm::message::ResourcesAvailable& msg)
 {
     Print::printf(Print::INFO, "Resource controller %d:%d on %s registered with %d cpu core(s) and %d gpu device(s).", msg.controller_process(), msg.controller_thread(), msg.hostname().c_str(), msg.cpu_size(), msg.gpu_size());
     if (resourceMap->registerResources(msg))
@@ -453,7 +272,7 @@ void SimulationSupervisor::receivedStartedCheckpointSignaler(const lm::message::
 void SimulationSupervisor::startWorkUnitRunners()
 {
     map<int,ComputeResources> allResources = resourceMap->getAvailableResources();
-    slots.createAllSlots(allResources, cpuCoresPerRunner, gpuDevicesPerRunner, useCPUAffinity, solverClassName, input);
+    slots.createAllSlots(allResources, cpuCoresPerRunner, gpuDevicesPerRunner, useCPUAffinity, solverClassName, *input);
 }
 
 void SimulationSupervisor::receivedStartedWorkUnitRunner(const lm::message::StartedWorkUnitRunner & msg)
@@ -477,21 +296,56 @@ void SimulationSupervisor::startSimulationIfAllWorkersStarted()
     }
 }
 
+void SimulationSupervisor::destroyTrajectoryList()
+{
+    if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL;
+}
+
 void SimulationSupervisor::startSimulation()
 {
-    // the subclassed versions of startSimulation will have allocated trajectoryList by the time this is called, so now hand a pointer for the communicator to TrajectoryList
-    trajectoryList->setCommunicator(communicator);
+    Print::printf(Print::INFO, "Simulation started.");
+    startSimulationPhase();
+}
 
+void SimulationSupervisor::startSimulationPhase()
+{
+    // Build the list of trajectories to simulate.
+    buildTrajectoryList();
+
+    // Assign the first batch of work.
     if (assignWork())
     {
         // If assign work returned true, there was nothing to be done.
-        Print::printf(Print::INFO, "Simulation finished, no work to be performed.");
+        Print::printf(Print::INFO, "No work to be performed.");
+        finishSimulationPhase();
+    }
+}
+
+bool SimulationSupervisor::performAnotherSimulationPhase()
+{
+    return false;
+}
+
+void SimulationSupervisor::finishSimulationPhase()
+{
+    // Delete the list of trajectories.
+    destroyTrajectoryList();
+
+    // If we need to perform another phase, do so, otherwsise stop th simulation.
+    if (performAnotherSimulationPhase())
+    {
+        startSimulationPhase();
+    }
+    else
+    {
         finishSimulation();
     }
 }
 
 void SimulationSupervisor::finishSimulation()
 {
+    Print::printf(Print::INFO, "Simulation finished.");
+
     // Mark that the simulation is finished so we exit our message loop.
     simulationRunning = false;
 
@@ -514,24 +368,29 @@ bool SimulationSupervisor::assignWork()
         // Allocate the next free slot, if there is one. Except for once (at the program's end), assignWork should return from here.
         if (!slots.hasFreeSlots()) return false;
 
-		// Get the next trajectory to run, if there is one.
-		lm::message::Message * nextWorkUnitMsg = trajectoryList->getNextWorkUnitMsg();
-        if (nextWorkUnitMsg != NULL)
+        // Create the run work unit message.
+        lm::message::Message msg;
+        lm::message::RunWorkUnit* rwuMsg = msg.mutable_run_work_unit();
+
+        // Build the run work units message.
+        buildRunWorkUnitHeader(rwuMsg);
+
+        // Get the free slot.
+        const lm::slot::Slot slot = slots.getFreeSlot();
+
+        // Build the work unit parts.
+        buildRunWorkUnitParts(rwuMsg, slot.getSimultaneousWorkUnits());
+
+        // See if there were any parts to run.
+        if (rwuMsg->part_size() > 0)
         {
-            // Set the source process/thread
-            nextWorkUnitMsg->mutable_run_work_unit()->set_supervisor_process(communicator.getSourceProcess());
-            nextWorkUnitMsg->mutable_run_work_unit()->set_supervisor_thread(communicator.getSourceThread());
-
-            // Set the writer process/thread
-            nextWorkUnitMsg->mutable_run_work_unit()->set_output_process(outputWriterProcess);
-            nextWorkUnitMsg->mutable_run_work_unit()->set_output_thread(outputWriterThread);
-
             // Run the work unit.
-            slots.runWorkUnit(nextWorkUnitMsg);
+            slots.runWorkUnit(&msg);
         }
         else
 		{
-			if (trajectoryList->isFinished())
+            // If there were no work units to run, see if it was because they are all finsished.
+            if (trajectoryList->areAllFinished())
 			{
                 return true;	// When there's no more trajectories to run and it's time for the program to shut down, assignWork should return from here
 			}
@@ -541,6 +400,34 @@ bool SimulationSupervisor::assignWork()
 			}
 		}
 	}
+}
+
+void SimulationSupervisor::buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg)
+{
+    // Set the work unit id.
+    msg->set_work_unit_id(workUnitCount++);
+
+    // Set the source process/thread.
+    msg->set_supervisor_process(communicator.getSourceProcess());
+    msg->set_supervisor_thread(communicator.getSourceThread());
+
+    // Set the writer process/thread.
+    msg->set_output_process(outputWriterProcess);
+    msg->set_output_thread(outputWriterThread);
+
+    // Set the limits.
+    msg->mutable_trajectory_limits()->CopyFrom(input->getTrajectoryLimits());
+
+    // Set the output options.
+    msg->mutable_output_options()->CopyFrom(input->getOutputOptions());
+
+    // Set the maximum number of steps for the work unit.
+    msg->set_max_steps(input->getStepsPerWorkUnit());
+}
+
+void SimulationSupervisor::buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint minWorkUnits)
+{
+    trajectoryList->addWorkUnitParts(msg->work_unit_id(), msg, minWorkUnits);
 }
 
 void SimulationSupervisor::receivedStartedWorkUnit(const lm::message::StartedWorkUnit& msg)
@@ -557,27 +444,22 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
     stats_maxWorkUnitId = std::max(stats_maxWorkUnitId,(long long)msg.work_unit_id());
     stats_workUnitsSteps += msg.steps();
     stats_workUnitTime += msg.run_time();
+    for (int i=0; i<msg.part_status_size(); i++)
+        stats_workUnitsParts++;
 
-    // If the trajectory associated with the finished work unit exists...
-    if (trajectoryList->exists(msg.final_state().trajectory_id()))
-    {
-		// ...update the trajectory based on the results of the work unit
-		trajectoryList->workUnitFinished(msg);
-    }
-    // Otherwise, assume that the associated trajectory has already been deleted and so skip reading in this result
-    // The exists() check ensures that hangover results from older fflux phases aren't recorded as belonging to a newer phase
+    // Update the trajectory list.
+    trajectoryList->workUnitFinished(msg);
 
-    // Free the slot that the returning work unit just ran on
+    // Update the slots list.
     slots.workUnitFinished(msg);
 
     // If we are not performing a checkpoint, distribute more work.
     if (!performingCheckpoint)
     {
         // Fill the newly freed slot with a work unit. If there are more trajectories than slots, this is guaranteed to use the slot we just freed. Otherwise it will be the "coldest" (longest unoccupied) slot
-        if (assignWork() && (!ffluxFlag || trajectoryList->getSize()==0))	// The finishing condition for fflux simulations is a little different from normal
+        if (assignWork())
         {
-            Print::printf(Print::INFO, "Simulation finished.");
-            finishSimulation();
+            finishSimulationPhase();
         }
     }
 
@@ -621,6 +503,7 @@ void SimulationSupervisor::resetPerformanceStatistics()
 {
     stats_lastPrintTime = getHrTime();
     stats_workUnits = 0;
+    stats_workUnitsParts = 0;
     stats_minWorkUnitId = LLONG_MAX;
     stats_maxWorkUnitId = 0;
     stats_workUnitsSteps = 0;
@@ -635,7 +518,7 @@ void SimulationSupervisor::printPerformanceStatistics(bool flush)
     {
         if (stats_workUnits > 0)
         {
-            Print::printf(Print::INFO, "Finished %lld work units (ids in range %lld to %lld) in the last %0.1f seconds. %lld steps in %0.3e seconds (%0.3e steps/second).",stats_workUnits,stats_minWorkUnitId,stats_maxWorkUnitId,convertHrToSeconds(currentTime-stats_lastPrintTime), stats_workUnitsSteps, stats_workUnitTime, double(stats_workUnitsSteps)/stats_workUnitTime);
+            Print::printf(Print::INFO, "Finished %lld work units (ids in range %lld to %lld) with %lld parts in the last %0.1f seconds. %lld steps in %0.3e seconds (%0.3e steps/second).",stats_workUnits,stats_minWorkUnitId,stats_maxWorkUnitId,stats_workUnitsParts,convertHrToSeconds(currentTime-stats_lastPrintTime), stats_workUnitsSteps, stats_workUnitTime, double(stats_workUnitsSteps)/stats_workUnitTime);
         }
         stats_lastPrintTime = currentTime;
         resetPerformanceStatistics();

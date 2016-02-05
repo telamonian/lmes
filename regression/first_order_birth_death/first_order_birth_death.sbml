@@ -12,7 +12,7 @@
             <compartment id="V" size="1" spatialDimensions="3" constant="true"/>
         </listOfCompartments>
         <listOfSpecies>
-            <species id="n"  compartment="V" initialAmount="1000"
+            <species id="n"  compartment="V" initialAmount="2000"
                              hasOnlySubstanceUnits="true" boundaryCondition="false"
                              constant="false"/>
         </listOfSpecies>

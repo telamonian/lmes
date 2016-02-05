@@ -144,6 +144,10 @@ int main(int argc, char** argv)
                     // Mark that we need to start all of the processes.
                     startAllProcesses = 1;
                 }
+                else if (functionOption == "debug")
+                {
+                    mainDebug(argc, argv);
+                }
                 else
                 {
                     throw lm::CommandLineArgumentException("unknown function.");

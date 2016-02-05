@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -71,7 +71,7 @@ SlotList::~SlotList()
 {
 }
 
-void SlotList::createAllSlots(map<int,ComputeResources> & allResources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, lm::input::Input* input)
+void SlotList::createAllSlots(map<int,ComputeResources> & allResources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input)
 {
     int nextSlotId = 0;
     for (map<int,ComputeResources>::iterator it=allResources.begin(); it != allResources.end(); it++)
@@ -80,7 +80,7 @@ void SlotList::createAllSlots(map<int,ComputeResources> & allResources, double c
 	}
 }
 
-int SlotList::createProcessSlots(int startingSlotId, int process, ComputeResources resources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, lm::input::Input* input)
+int SlotList::createProcessSlots(int startingSlotId, int process, ComputeResources resources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input)
 {
     // Make sure we are using the correct process.
     if (process != resources.controller_process)
@@ -151,7 +151,7 @@ int SlotList::createProcessSlots(int startingSlotId, int process, ComputeResourc
     return i;
 }
 
-void SlotList::createSlot(int slotId, ComputeResources resources, bool useCPUAffinity, lm::message::Message* msg, string solver, lm::input::Input* input)
+void SlotList::createSlot(int slotId, ComputeResources resources, bool useCPUAffinity, lm::message::Message* msg, string solver, const lm::input::Input& input)
 {
     Print::printf(Print::INFO, "Creating slot %d on process (%d:%d) using resources: %s.", slotId, resources.controller_process, resources.controller_thread, resources.toString().c_str());
 
@@ -167,18 +167,17 @@ void SlotList::createSlot(int slotId, ComputeResources resources, bool useCPUAff
     for (vector<int>::iterator it=resources.gpuDevices.begin(); it != resources.gpuDevices.end(); it++)
         s->add_gpu(*it);
     s->set_solver(solver);
-    (*s->mutable_simulation_parameters()) = input->simulationParametersBuf;
-    if (input->hasReactionModel)
-        (*s->mutable_reaction_model()) = input->reactionModelBuf;
-    if (input->hasDiffusionModel)
-        (*s->mutable_diffusion_model()) = input->diffusionModelBuf;
-    if (input->hasOrderParameters)
-        (*s->mutable_order_parameters()) = input->orderParametersBuf;
-    if (input->hasTilings)
-        (*s->mutable_tilings()) = input->tilingsBuf;
+    if (input.hasReactionModel())
+        s->mutable_reaction_model()->CopyFrom(input.getReactionModel());
+    if (input.hasDiffusionModel())
+        s->mutable_diffusion_model()->CopyFrom(input.getDiffusionModel());
+    if (input.hasOrderParameters())
+        s->mutable_order_parameters()->CopyFrom(input.getOrderParametersMsg());
+    if (input.hasTilings())
+        s->mutable_tilings()->CopyFrom(input.getTilingsMsg());
 }
 
-void SlotList::markSlotStarted(const lm::message::StartedWorkUnitRunner & msg)
+void SlotList::markSlotStarted(const lm::message::StartedWorkUnitRunner& msg)
 {
     // Mark the work unit runner as started.
     if (msg.work_unit_runner_id() < 0 || msg.work_unit_runner_id() >= (int)slots.size()) throw Exception("Invalid work unit runner id received in started work unit runner message",msg.work_unit_runner_id());
@@ -186,6 +185,7 @@ void SlotList::markSlotStarted(const lm::message::StartedWorkUnitRunner & msg)
     slots[msg.work_unit_runner_id()].status = Slot::FREE;
     slots[msg.work_unit_runner_id()].workUnitRunnerEndpoint.process = msg.process();
     slots[msg.work_unit_runner_id()].workUnitRunnerEndpoint.thread = msg.thread();
+    slots[msg.work_unit_runner_id()].simultaneousWorkUnits = msg.simultaneous_work_units();
 }
 
 bool SlotList::hasUnstartedSlots()
@@ -208,6 +208,17 @@ bool SlotList::hasFreeSlots()
             return true;
     }
     return false;
+}
+
+const Slot& SlotList::getFreeSlot()
+{
+    // Find the first free slot.
+    for (size_t i=0; i<slots.size(); i++)
+    {
+        if (slots[i].status == Slot::FREE)
+            return slots[i];
+    }
+    throw Exception("No free slots available.");
 }
 
 bool SlotList::hasBusySlots()

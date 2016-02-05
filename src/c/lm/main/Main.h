@@ -196,4 +196,6 @@ void finalizePython();
 void startInterpreter();
 void executeScript(std::string filename, std::list<std::string> arguments, int replicate=0);
 
+void mainDebug(int argc, char** argv);
+
 #endif
