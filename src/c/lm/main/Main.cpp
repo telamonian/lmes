@@ -182,6 +182,9 @@ void printCopyright(int argc, char** argv)
 #ifdef OPT_AVX
     std::cout << " AVX";
 #endif
+#ifdef OPT_SVML
+    std::cout << " SVML";
+#endif
     std::cout << "." << std::endl;
     std::cout << "Copyright (C) " << COPYRIGHT_DATE << " Luthey-Schulten Group, University of Illinois at Urbana-Champaign." << std::endl;
     std::cout << "Copyright (C) " << COPYRIGHT_DATE_JHU << " Roberts Group, Johns Hopkins University." << std::endl << std::endl;

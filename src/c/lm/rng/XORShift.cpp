@@ -188,13 +188,43 @@ void XORShift::getExpRandomDoubles(double * rngs, int numberRNGs, bool bufferAvx
             rngs[i] = -log(d);
         }
         PROF_END(PROF_CACHE_EXP_RNG);
-#ifdef OPT_AVX
+#if defined(OPT_AVX) && !defined(OPT_SVML)
     } else {
         PROF_BEGIN(PROF_CACHE_RNG);
         getRandomDoubles(rngs, numberRNGs, true, true);
         for (int i=0; i<numberRNGs; i++)
             rngs[i] = -log(rngs[i]);
 
+        PROF_END(PROF_CACHE_RNG);
+    }
+#endif
+#if defined(OPT_AVX) && defined(OPT_SVML)
+    } else {
+        PROF_BEGIN(PROF_CACHE_RNG);
+
+        // Convert to double and normalize using avx.
+        const avxd norm = _mm256_set1_pd(2.328306435996595202819747782996e-10);// 1/(2^32+1)
+        const avxd half = _mm256_set1_pd(0.5);
+        const uint LOOPS = 2;
+        avxi irng[LOOPS];
+        for (int i=0; i<numberRNGs; i+=INT32S_PER_AVX*LOOPS)
+        {
+            for (int j=0; j<INT32S_PER_AVX*LOOPS; j++)
+                ((int32_t*)&irng)[j] = getRandom();
+
+            for (int j=0; j<LOOPS; j++)
+            {
+                // Process the four lo rngs.
+                __m128i irngHalf = _mm256_extractf128_si256(irng[j], 0);
+                avxd erng = _mm256_log_pd(_mm256_fmadd_pd(_mm256_cvtepi32_pd(irngHalf), norm, half));
+                _mm256_store_pd(&rngs[i+j*2*DOUBLES_PER_AVX],rng);
+
+                // Process the four hi rngs.
+                irngHalf = _mm256_extractf128_si256(irng[j], 1);
+                erng = _mm256_log_pd(_mm256_fmadd_pd(_mm256_cvtepi32_pd(irngHalf), norm, half));
+                _mm256_store_pd(&rngs[i+j*2*DOUBLES_PER_AVX+DOUBLES_PER_AVX],rng);
+            }
+        }
         PROF_END(PROF_CACHE_RNG);
     }
 #endif
