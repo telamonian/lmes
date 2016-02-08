@@ -806,7 +806,7 @@ void mainDebug(int argc, char** argv)
         lm::rng::XORShift rng(0,0);
         double* rngValues = NULL;
         double* expRngValues = NULL;
-        int rngCount=10000;
+        int rngCount=10000000;
         POSIX_EXCEPTION_CHECK(posix_memalign((void**)&rngValues, DOUBLES_PER_AVX*sizeof(double), rngCount*sizeof(double)));
         POSIX_EXCEPTION_CHECK(posix_memalign((void**)&expRngValues, DOUBLES_PER_AVX*sizeof(double), rngCount*sizeof(double)));
 
