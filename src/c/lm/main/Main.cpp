@@ -182,6 +182,9 @@ void printCopyright(int argc, char** argv)
 #ifdef OPT_AVX
     std::cout << " AVX";
 #endif
+#ifdef OPT_FMA
+    std::cout << " FMA";
+#endif
 #ifdef OPT_SVML
     std::cout << " SVML";
 #endif

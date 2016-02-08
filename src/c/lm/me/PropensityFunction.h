@@ -67,7 +67,7 @@ public:
 public:
     PropensityFunction(const uint type):type(type){}
     virtual ~PropensityFunction() {}
-    const uint getType() const {return type;}
+    uint getType() const {return type;}
     virtual double calculate(const double time, const int* speciesCounts, const uint numberSpecies)const=0;
 #ifdef OPT_AVX
     virtual avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const;
