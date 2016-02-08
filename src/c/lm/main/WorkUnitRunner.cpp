@@ -245,8 +245,6 @@ void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwu)
         {
             solver->setState(rwu.part(i+j).initial_state(), j);
         }
-//        printf("Setting state\n");
-//        rwu.PrintDebugString();
 
         // Run the work unit.
         hrtime t1=getHrTime();
@@ -260,8 +258,6 @@ void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwu)
             status->set_status(solver->getStatus(j));
             solver->getState(status->mutable_final_state(),j);
         }
-//        printf("Getting state.\n");
-//        wuf->PrintDebugString();
     }
 
     // Tell the supervisor the work unit has finished.

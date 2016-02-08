@@ -185,7 +185,43 @@ protected:
         if (hasUpdateSpeciesCountsListeners) callUpdateSpeciesCountsListeners();
     }
 
-    virtual void callUpdateSpeciesCountsListeners();
+    inline void callUpdateSpeciesCountsListeners()
+    {
+        // Update the first passage time tables.
+        for (int i=0; i<numberFptTrackedSpecies; i++)
+        {
+            int speciesCount = speciesCounts[fptTrackedSpecies[i].species];
+            while (speciesCount < fptTrackedSpecies[i].minValueAchieved)
+            {
+                fptTrackedSpecies[i].fptValues.push_front(std::pair<int,double>(--fptTrackedSpecies[i].minValueAchieved,time));
+            }
+            while (speciesCount > fptTrackedSpecies[i].maxValueAchieved)
+            {
+                fptTrackedSpecies[i].fptValues.push_back(std::pair<int,double>(++fptTrackedSpecies[i].maxValueAchieved,time));
+            }
+        }
+
+        // Update any order parameters.
+    //    if (oparams != NULL)
+    //    {
+    //        for (uint i=0; i<oparams->size(); i++)
+    //        {
+    //            (*oparams)[i]->calc((uint*)speciesCounts);
+    //        }
+    //    }
+
+        // Update any tilingHists.
+        if (tilings != NULL)
+        {
+            for (int i=0;i<numberTilingHists;i++)
+            {
+                tilingHists[i].tileVals[(*tilings)[tilingHists[i].tilingID]->getTileIndex((*oparams)[(*tilings)[tilingHists[i].tilingID]->getOrderParameterID()]->get())] += timeStep;
+            }
+        }
+    }
+
+
+    //virtual void callUpdateSpeciesCountsListeners();
     virtual bool isTrajectoryOutsideLimits();
 
 protected:

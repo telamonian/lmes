@@ -81,7 +81,7 @@ CMEOrderParameters::~CMEOrderParameters()
 class LinearCombinationOrderParameter : public lm::oparam::OrderParameterFunction
 {
 public:
-    static const uint OPARAM_TYPE = 1;
+    static const uint OPARAM_TYPE = 0;
 
     LinearCombinationOrderParameter(size_t size, uint* speciesIndex, double* speciesCoefficient)
     :OrderParameterFunction(OPARAM_TYPE),size(size),speciesIndex(speciesIndex),speciesCoefficient(speciesCoefficient) {}
