@@ -217,12 +217,12 @@ void XORShift::getExpRandomDoubles(double * rngs, int numberRNGs, bool bufferAvx
                 // Process the four lo rngs.
                 __m128i irngHalf = _mm256_extractf128_si256(irng[j], 0);
                 avxd erng = _mm256_log_pd(_mm256_fmadd_pd(_mm256_cvtepi32_pd(irngHalf), norm, half));
-                _mm256_store_pd(&rngs[i+j*2*DOUBLES_PER_AVX],rng);
+                _mm256_store_pd(&rngs[i+j*2*DOUBLES_PER_AVX],erng);
 
                 // Process the four hi rngs.
                 irngHalf = _mm256_extractf128_si256(irng[j], 1);
                 erng = _mm256_log_pd(_mm256_fmadd_pd(_mm256_cvtepi32_pd(irngHalf), norm, half));
-                _mm256_store_pd(&rngs[i+j*2*DOUBLES_PER_AVX+DOUBLES_PER_AVX],rng);
+                _mm256_store_pd(&rngs[i+j*2*DOUBLES_PER_AVX+DOUBLES_PER_AVX],erng);
             }
         }
         PROF_END(PROF_CACHE_RNG);

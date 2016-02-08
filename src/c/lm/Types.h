@@ -88,8 +88,8 @@ typedef double              si_time_t;
 #define avxi __m256i
 #endif
 
-#if defined(OPT_AVX) and !defined(__FMA__)
-#define _mm256_fmadd_pd(a,b,c) _mm256_add_pd(_mm256_mul_pd(a,b),c);
+#if defined(OPT_AVX) && !defined(__FMA__)
+#define _mm256_fmadd_pd(a,b,c) _mm256_add_pd(_mm256_mul_pd(a,b),c)
 #endif
 
 /*
