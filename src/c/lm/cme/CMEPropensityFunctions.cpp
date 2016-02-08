@@ -83,13 +83,13 @@ public:
     ZerothOrderPropensity(double k) :PropensityFunction(REACTION_TYPE),k(k) {}
     double k;
 
-    double calculate(const double time, const int* speciesCounts, const uint numberSpecies)
+    double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
         return k;
     }
 
 #ifdef OPT_AVX
-    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies)
+    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
     {
         return _mm256_set1_pd(k);
     }
@@ -122,13 +122,13 @@ public:
     uint s;
     double k;
 
-    double calculate(const double time, const int* speciesCounts, const uint numberSpecies)
+    double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
         return k * double(speciesCounts[s]);
     }
 
 #ifdef OPT_AVX
-    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies)
+    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
     {
         return _mm256_mul_pd(_mm256_set1_pd(k), _mm256_load_pd(&speciesCounts[s*DOUBLES_PER_AVX]));
     }
@@ -161,13 +161,13 @@ public:
     uint s1,s2;
     double k;
 
-    double calculate(const double time, const int* speciesCounts, const uint numberSpecies)
+    double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
         return k * double(speciesCounts[s1]*speciesCounts[s2]);
     }
 
 #ifdef OPT_AVX
-    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies)
+    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
     {
         return _mm256_mul_pd(_mm256_set1_pd(k),_mm256_mul_pd(_mm256_load_pd(&speciesCounts[s1*DOUBLES_PER_AVX]), _mm256_load_pd(&speciesCounts[s2*DOUBLES_PER_AVX])));
     }
@@ -200,13 +200,13 @@ public:
     uint s;
     double k;
 
-    double calculate(const double time, const int* speciesCounts, const uint numberSpecies)
+    double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
         return k * double(speciesCounts[s]*(speciesCounts[s]-1));
     }
 
 #ifdef OPT_AVX
-    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies)
+    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
     {
         avxd c = _mm256_load_pd(&speciesCounts[s*DOUBLES_PER_AVX]);
         avxd cm1 = _mm256_sub_pd(c, _mm256_set1_pd(1.0));

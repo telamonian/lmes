@@ -34,11 +34,11 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
-#ifndef LM_ME_PROPENSITYFUNCTION_H
-#define LM_ME_PROPENSITYFUNCTION_H
+#ifndef LM_OPARAM_ORDERPARAMETERFUNCTION_H
+#define LM_OPARAM_ORDERPARAMETERFUNCTION_H
 
 #include <limits>
 #include <list>
@@ -47,6 +47,7 @@
 #include <vector>
 
 #include "lm/Types.h"
+#include "lm/io/OrderParameters.pb.h"
 
 using std::list;
 using std::map;
@@ -55,18 +56,14 @@ using std::vector;
 
 
 namespace lm {
-namespace me {
+namespace oparam {
 
 // The base class for any propensity function.
-class PropensityFunction
+class OrderParameterFunction
 {
 public:
-    static utuple getDependencies(const uint reactionIndex, const ndarray<uint> D);
-    static utuple getSpecificDependencies(const uint reactionIndex, const ndarray<uint> D, const uint dependencyType);
-
-public:
-    PropensityFunction(const uint type):type(type){}
-    virtual ~PropensityFunction() {}
+    OrderParameterFunction(const uint type):type(type){}
+    virtual ~OrderParameterFunction() {}
     const uint getType() const {return type;}
     virtual double calculate(const double time, const int* speciesCounts, const uint numberSpecies)const=0;
 #ifdef OPT_AVX
@@ -78,38 +75,38 @@ protected:
 };
 
 // The type definition for a function to create the propensity function.
-typedef PropensityFunction* (*PropensityFunctionCreator)(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k);
+typedef OrderParameterFunction* (*OrderParameterFunctionCreator)(const lm::io::OrderParameters::OrderParameter& msg);
 
-struct PropensityFunctionDefinition
+struct OrderParameterFunctionDefinition
 {
-    PropensityFunctionDefinition():type(std::numeric_limits<uint>::max()),create(NULL){}
-    PropensityFunctionDefinition(uint type, PropensityFunctionCreator create):type(type),create(create){}
-    PropensityFunctionDefinition(const PropensityFunctionDefinition& p):type(p.type),create(p.create){}
+    OrderParameterFunctionDefinition():type(std::numeric_limits<uint>::max()),create(NULL){}
+    OrderParameterFunctionDefinition(uint type, OrderParameterFunctionCreator create):type(type),create(create){}
+    OrderParameterFunctionDefinition(const OrderParameterFunctionDefinition& p):type(p.type),create(p.create){}
     uint type;
-    PropensityFunctionCreator create;
+    OrderParameterFunctionCreator create;
 };
 
-class PropensityFunctionFactory
+class OrderParameterFunctionFactory
 {
 public:
-    PropensityFunctionFactory();
-    ~PropensityFunctionFactory();
-    PropensityFunction* createPropensityFunction(uint type, int reactionIndex, ndarray<int> S, ndarray<uint> D, tuple<double>k);
+    OrderParameterFunctionFactory();
+    ~OrderParameterFunctionFactory();
+    OrderParameterFunction* createOrderParameterFunction(const lm::io::OrderParameters::OrderParameter& msg);
 
 private:
-    map<uint,PropensityFunctionDefinition> functions;
+    map<uint,OrderParameterFunctionDefinition> functions;
 };
 
 // The base class for a collection of propensity functions.
-class PropensityFunctionCollection
+class OrderParameterFunctionCollection
 {
 public:
-    PropensityFunctionCollection();
-    virtual ~PropensityFunctionCollection();
-    virtual list<PropensityFunctionDefinition> getPropensityFunctionDefinitions()=0;
+    OrderParameterFunctionCollection();
+    virtual ~OrderParameterFunctionCollection();
+    virtual list<OrderParameterFunctionDefinition> getOrderParameterFunctionDefinitions()=0;
 };
 
 }
 }
 
-#endif // LM_ME_PROPENSITYFUNCTION_H
+#endif // LM_OPARAM_ORDERPARAMETERFUNCTION_H

@@ -34,7 +34,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #include <list>
@@ -45,7 +45,7 @@
 #include "lm/ClassFactory.h"
 #include "lm/Print.h"
 #include "lm/Types.h"
-#include "lm/me/PropensityFunction.h"
+#include "lm/oparam/OrderParameterFunction.h"
 
 using std::list;
 using std::map;
@@ -53,10 +53,10 @@ using std::string;
 using std::vector;
 
 namespace lm {
-namespace me {
+namespace oparam {
 
 #ifdef OPT_AVX
-avxd PropensityFunction::calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
+avxd OrderParameterFunction::calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
 {
     double* results;
     POSIX_EXCEPTION_CHECK(posix_memalign((void**)&results, DOUBLES_PER_AVX*sizeof(double), DOUBLES_PER_AVX*sizeof(double)));
@@ -76,73 +76,42 @@ avxd PropensityFunction::calculateAvx(const avxd time, const double* speciesCoun
 }
 #endif
 
-utuple PropensityFunction::getDependencies(const uint reactionIndex, const ndarray<uint> D)
+OrderParameterFunctionFactory::OrderParameterFunctionFactory()
 {
-    if (reactionIndex >= D.shape[1]) throw InvalidArgException("reactionIndex", "index was too large for the dependency matrix",reactionIndex,D.shape[1]);
-
-    // Find the dependencies.
-    vector<uint> dependencyVector;
-    for (uint i=0; i<D.shape[0]; i++)
-    {
-        uint d = D[utuple(i,reactionIndex)];
-        if (d != 0)
-            dependencyVector.push_back(i);
-    }
-    return utuple(dependencyVector);
-}
-
-utuple PropensityFunction::getSpecificDependencies(const uint reactionIndex, const ndarray<uint> D, const uint dependencyType)
-{
-    if (reactionIndex >= D.shape[1]) throw InvalidArgException("reactionIndex", "index was too large for the dependency matrix",reactionIndex,D.shape[1]);
-
-    // Find the dependencies.
-    vector<uint> dependencyVector;
-    for (uint i=0; i<D.shape[0]; i++)
-    {
-        uint d = D[utuple(i,reactionIndex)];
-        if (d == dependencyType)
-            dependencyVector.push_back(i);
-    }
-    return utuple(dependencyVector);
-}
-
-
-PropensityFunctionFactory::PropensityFunctionFactory()
-{
-    // Get a list of all the propensity function collections that have been registered.
-    list<string> collections = lm::ClassFactory::getInstance().getAllSubclasses("lm::me::PropensityFunctionCollection");
+    // Get a list of all the order parameter function collections that have been registered.
+    list<string> collections = lm::ClassFactory::getInstance().getAllSubclasses("lm::oparam::OrderParameterFunctionCollection");
 
     for (list<string>::iterator it=collections.begin(); it != collections.end(); it++)
     {
-        PropensityFunctionCollection* c = (PropensityFunctionCollection*)lm::ClassFactory::getInstance().allocateObjectOfClass("lm::me::PropensityFunctionCollection", *it);
-        list<PropensityFunctionDefinition> defs = c->getPropensityFunctionDefinitions();
-        for (list<PropensityFunctionDefinition>::iterator it2=defs.begin(); it2 != defs.end(); it2++)
+        OrderParameterFunctionCollection* c = (OrderParameterFunctionCollection*)lm::ClassFactory::getInstance().allocateObjectOfClass("lm::me::OrderParameterFunctionCollection", *it);
+        list<OrderParameterFunctionDefinition> defs = c->getOrderParameterFunctionDefinitions();
+        for (list<OrderParameterFunctionDefinition>::iterator it2=defs.begin(); it2 != defs.end(); it2++)
         {
             if (functions.count(it2->type) == 0)
                 functions[it2->type] = *it2;
             else
-                Print::printf(Print::WARNING, "Multiple definitions for propensity function %d, ignoring function from class %s", it2->type, it->c_str());
+                Print::printf(Print::WARNING, "Multiple definitions for order parameter function %d, ignoring function from class %s", it2->type, it->c_str());
         }
     }
 }
 
-PropensityFunctionFactory::~PropensityFunctionFactory()
+OrderParameterFunctionFactory::~OrderParameterFunctionFactory()
 {
 }
 
-PropensityFunction* PropensityFunctionFactory::createPropensityFunction(uint type, int reactionIndex, ndarray<int> S, ndarray<uint> D, tuple<double>K)
+OrderParameterFunction* OrderParameterFunctionFactory::createOrderParameterFunction(const lm::io::OrderParameters::OrderParameter& op)
 {
-    if (functions.count(type) == 0)
-        throw lm::InvalidArgException("type","the specified propensity function was not found",type);
-    PropensityFunctionCreator f = functions[type].create;
-    return (*f)(reactionIndex, S, D, K);
+    if (functions.count(op.type()) == 0)
+        throw lm::InvalidArgException("op.type","the specified order parameter function was not found",op.type());
+    OrderParameterFunctionCreator f = functions[op.type()].create;
+    return (*f)(op);
 }
 
-PropensityFunctionCollection::PropensityFunctionCollection()
+OrderParameterFunctionCollection::OrderParameterFunctionCollection()
 {
 }
 
-PropensityFunctionCollection::~PropensityFunctionCollection()
+OrderParameterFunctionCollection::~OrderParameterFunctionCollection()
 {
 }
 
