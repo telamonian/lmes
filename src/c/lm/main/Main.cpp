@@ -799,93 +799,97 @@ void mainDebug(int argc, char** argv)
 
 
     /**
-      * Write out a bunch of randome numbers.
+      * Write out a bunch of random numbers.
       */
-    /*
-    lm::rng::XORShift rng(0,0);
-    double* rngValues = NULL;
-    double* expRngValues = NULL;
-    int rngCount=10000000;
-    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&rngValues, DOUBLES_PER_AVX*sizeof(double), rngCount*sizeof(double)));
-    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&expRngValues, DOUBLES_PER_AVX*sizeof(double), rngCount*sizeof(double)));
-
-    // Warmup.
-    rng.getRandomDoubles(rngValues,rngCount);
-    rng.getExpRandomDoubles(expRngValues,rngCount);
-    rng.getRandomDoubles(rngValues,rngCount, true);
-    rng.getExpRandomDoubles(expRngValues,rngCount, true);
-
-    // Test with avx.
+    /**/
     {
-    hrtime start = getHrTime();
-    rng.getRandomDoubles(rngValues,rngCount, true);
-    hrtime stop = getHrTime();
-    printf("Calculated %d norm rngs with avx in %0.3f seconds (%0.4e rngs/second)\n",rngCount,convertHrToSeconds(stop-start),double(rngCount)/convertHrToSeconds(stop-start));
-    start = getHrTime();
-    rng.getExpRandomDoubles(expRngValues,rngCount, true);
-    stop = getHrTime();
-    printf("Calculated %d exp rngs with avx in %0.3f seconds (%0.4e rngs/second)\n",rngCount,convertHrToSeconds(stop-start),double(rngCount)/convertHrToSeconds(stop-start));
-    FILE* f = fopen("rng-avx.txt", "w");
-    for (int i=0; i<rngCount; i++)
-        fprintf(f, "%e %e\n", rngValues[i], expRngValues[i]);
-    fclose(f);
+        lm::rng::XORShift rng(0,0);
+        double* rngValues = NULL;
+        double* expRngValues = NULL;
+        int rngCount=10000;
+        POSIX_EXCEPTION_CHECK(posix_memalign((void**)&rngValues, DOUBLES_PER_AVX*sizeof(double), rngCount*sizeof(double)));
+        POSIX_EXCEPTION_CHECK(posix_memalign((void**)&expRngValues, DOUBLES_PER_AVX*sizeof(double), rngCount*sizeof(double)));
+
+        // Warmup.
+        rng.getRandomDoubles(rngValues,rngCount);
+        rng.getExpRandomDoubles(expRngValues,rngCount);
+        rng.getRandomDoubles(rngValues,rngCount, true);
+        rng.getExpRandomDoubles(expRngValues,rngCount, true);
+
+        // Test with avx.
+        {
+        hrtime start = getHrTime();
+        rng.getRandomDoubles(rngValues,rngCount, true);
+        hrtime stop = getHrTime();
+        printf("Calculated %d norm rngs with avx in %0.3f seconds (%0.4e rngs/second)\n",rngCount,convertHrToSeconds(stop-start),double(rngCount)/convertHrToSeconds(stop-start));
+        start = getHrTime();
+        rng.getExpRandomDoubles(expRngValues,rngCount, true);
+        stop = getHrTime();
+        printf("Calculated %d exp rngs with avx in %0.3f seconds (%0.4e rngs/second)\n",rngCount,convertHrToSeconds(stop-start),double(rngCount)/convertHrToSeconds(stop-start));
+        FILE* f = fopen("rng-avx.txt", "w");
+        for (int i=0; i<rngCount; i++)
+            fprintf(f, "%e %e\n", rngValues[i], expRngValues[i]);
+        fclose(f);
+        }
+
+
+        // Test without avx.
+        hrtime start = getHrTime();
+        rng.getRandomDoubles(rngValues,rngCount);
+        hrtime stop = getHrTime();
+        printf("Calculated %d norm rngs in %0.3f seconds (%0.4e rngs/second)\n",rngCount,convertHrToSeconds(stop-start),double(rngCount)/convertHrToSeconds(stop-start));
+        start = getHrTime();
+        rng.getExpRandomDoubles(expRngValues,rngCount);
+        stop = getHrTime();
+        printf("Calculated %d exp rngs in %0.3f seconds (%0.4e rngs/second)\n",rngCount,convertHrToSeconds(stop-start),double(rngCount)/convertHrToSeconds(stop-start));
+        FILE* f = fopen("rng.txt", "w");
+        for (int i=0; i<rngCount; i++)
+            fprintf(f, "%e %e\n", rngValues[i], expRngValues[i]);
+        fclose(f);
+
+        free(rngValues);
+        rngValues = NULL;
+        free(expRngValues);
+        expRngValues = NULL;
     }
-
-
-    // Test without avx.
-    hrtime start = getHrTime();
-    rng.getRandomDoubles(rngValues,rngCount);
-    hrtime stop = getHrTime();
-    printf("Calculated %d norm rngs in %0.3f seconds (%0.4e rngs/second)\n",rngCount,convertHrToSeconds(stop-start),double(rngCount)/convertHrToSeconds(stop-start));
-    start = getHrTime();
-    rng.getExpRandomDoubles(expRngValues,rngCount);
-    stop = getHrTime();
-    printf("Calculated %d exp rngs in %0.3f seconds (%0.4e rngs/second)\n",rngCount,convertHrToSeconds(stop-start),double(rngCount)/convertHrToSeconds(stop-start));
-    FILE* f = fopen("rng.txt", "w");
-    for (int i=0; i<rngCount; i++)
-        fprintf(f, "%e %e\n", rngValues[i], expRngValues[i]);
-    fclose(f);
-
-    free(rngValues);
-    rngValues = NULL;
-    free(expRngValues);
-    expRngValues = NULL;
-    */
+    /**/
 
     /**
       * Test the RNG limits using avx.
       */
     /**/
-    // Convert to double and normalize using avx.
-    long long denom = std::numeric_limits<uint32_t>::max();
-    denom += 2;
-    double newNorm = 1.0/double(denom);
-    const avxd norm = _mm256_set1_pd(newNorm);
-    //const avxd norm = _mm256_set1_pd(2.328306436538696289062500000000e-10); // 1/(2^32)
-    //const avxd norm = _mm256_set1_pd(2.328306435996595202819747782996e-10);// 1/(2^32+1)
-    const avxd half = _mm256_set1_pd(0.5);
-    avxi irng;
-    for (int j=0; j<INT32S_PER_AVX; j++)
-        if (j%2 == 0)
-            ((int32_t*)&irng)[j] = std::numeric_limits<int32_t>::min();
-        else
-            ((int32_t*)&irng)[j] = std::numeric_limits<int32_t>::max();
-    printf("Min: %d, Max: %d, Norm %0.30e\n",std::numeric_limits<int32_t>::min(),std::numeric_limits<int32_t>::max(), ((double*)&norm)[0]);
+    {
+        // Convert to double and normalize using avx.
+        //long long denom = std::numeric_limits<uint32_t>::max();
+        //denom += 2;
+        //double newNorm = 1.0/double(denom);
+        //const avxd norm = _mm256_set1_pd(newNorm);
+        const avxd norm1 = _mm256_set1_pd(2.328306436538696289062500000000e-10); // 1/(2^32)
+        const avxd norm2 = _mm256_set1_pd(2.328306435996595202819747782996e-10);// 1/(2^32+1)
+        const avxd half = _mm256_set1_pd(0.5);
+        avxi irng;
+        for (int j=0; j<INT32S_PER_AVX; j++)
+            if (j%2 == 0)
+                ((int32_t*)&irng)[j] = std::numeric_limits<int32_t>::min();
+            else
+                ((int32_t*)&irng)[j] = std::numeric_limits<int32_t>::max();
+        printf("Min: %d, Max: %d, Norm %0.30e\n",std::numeric_limits<int32_t>::min(),std::numeric_limits<int32_t>::max(), ((double*)&norm1)[0]);
 
-    // Process the four lo rngs.
-    __m128i irngHalf = _mm256_extractf128_si256(irng, 0);
-    avxd rng = _mm256_fmadd_pd(_mm256_cvtepi32_pd(irngHalf), norm, half);    // Range (-0.5-0.5)+0.5
+        // Process the four lo rngs.
+        __m128i irngHalf = _mm256_extractf128_si256(irng, 0);
+        avxd rng = _mm256_fmadd_pd(_mm256_cvtepi32_pd(irngHalf), norm1, half);    // Range (-0.5-0.5)+0.5
 
-    double* res = (double*)&rng;
-    printf("RNG: %18.12e %18.12e %18.12e %18.12e\n", res[0], res[1], res[2], res[3]);
-    printf("CMP: %d %d %d %d\n", res[0]==0.0, res[1]==1.0, res[2]>0.0, res[3]<1.0);
+        double* res = (double*)&rng;
+        printf("RNG: %18.12e %18.12e %18.12e %18.12e\n", res[0], res[1], res[2], res[3]);
+        printf("CMP: %d %d %d %d\n", res[0]==0.0, res[1]==1.0, res[2]>0.0, res[3]<1.0);
 
-    // Process the four hi rngs.
-    irngHalf = _mm256_extractf128_si256(irng, 1);
-    rng = _mm256_fmadd_pd(_mm256_cvtepi32_pd(irngHalf), norm, half);    // Range (-0.5-0.5)+0.5
-    res = (double*)&rng;
-    printf("RNG: %18.12e %18.12e %18.12e %18.12e\n", res[0], res[1], res[2], res[3]);
-    printf("CMP: %d %d %d %d\n", res[0]==0.0, res[1]==1.0, res[2]>0.0, res[3]<1.0);
+        // Process the four hi rngs.
+        irngHalf = _mm256_extractf128_si256(irng, 1);
+        rng = _mm256_fmadd_pd(_mm256_cvtepi32_pd(irngHalf), norm2, half);    // Range (-0.5-0.5)+0.5
+        res = (double*)&rng;
+        printf("RNG: %18.12e %18.12e %18.12e %18.12e\n", res[0], res[1], res[2], res[3]);
+        printf("CMP: %d %d %d %d\n", res[0]==0.0, res[1]==1.0, res[2]>0.0, res[3]<1.0);
+    }
     /**/
 }
 

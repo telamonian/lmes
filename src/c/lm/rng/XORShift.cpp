@@ -203,6 +203,7 @@ void XORShift::getExpRandomDoubles(double * rngs, int numberRNGs, bool bufferAvx
         getRandomDoubles(rngs, numberRNGs, true, true);
         for (int i=0; i<numberRNGs; i+=DOUBLES_PER_AVX)
             _mm256_store_pd(&rngs[i],_mm256_log_pd(_mm256_load_pd(&rngs[i])));
+        printf("Using svml log\n");
         PROF_END(PROF_CACHE_RNG);
     }
 #endif
