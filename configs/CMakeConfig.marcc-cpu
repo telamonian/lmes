@@ -5,7 +5,7 @@
 #and commit again
 
 #sets the prefix dir for installation of lm (ie running "make install")
-SET(CMAKE_INSTALL_PREFIX "/home-2/erober32@jhu.edu/usr")
+SET(CMAKE_INSTALL_PREFIX "/home-2/erober32@jhu.edu/share/apps")
 
 #USE_CUDA can be set to yes, no, or optional, in which case CUDA will be used if cmake can find it on your system
 SET(USE_CUDA no)
@@ -16,8 +16,12 @@ SET(VERBOSITY_LEVEL 4)
 #uncomment and change the last part of the next line if some of your libraries/header files are on a nonstandard path
 SET(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" /home-2/erober32@jhu.edu/usr)
 
-SET(CUSTOM_C_FLAGS "-m64 -march=core2 -O3 -fPIC -Wall -fmessage-length=0")
-SET(CUSTOM_CXX_FLAGS "-m64 -march=core2 -O3 -fPIC -Wall -fmessage-length=0")
+SET(CUSTOM_C_FLAGS "-m64 -march=corei7-avx -O3 -fPIC -Wall -fmessage-length=0")
+SET(CUSTOM_CXX_FLAGS "-m64 -march=corei7-avx -O3 -fPIC -Wall -fmessage-length=0")
+
+add_definitions(-DOPT_AVX)
+add_definitions(-DOPT_FMA)
+add_definitions(-DOPT_SVML)
 
 
 ############################
