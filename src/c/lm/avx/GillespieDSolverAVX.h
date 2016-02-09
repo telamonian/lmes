@@ -102,6 +102,11 @@ protected:
     lm::io::TrajectoryLimits::LimitType limitReached[DOUBLES_PER_AVX];
     double* limitValues;
 
+    //First passage time variables.
+    uint numberFptValues;
+    double* fptMinValuesAchieved;
+    double* fptMaxValuesAchieved;
+
     // The current state.
     uint64_t trajectoryId[DOUBLES_PER_AVX];
     bool trajectoryStarted[DOUBLES_PER_AVX];

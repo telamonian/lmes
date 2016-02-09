@@ -266,9 +266,6 @@ void CMESolver::reset()
     // Reset the tiling histograms list.
     numberTilingHists = 0;
     if (tilingHists!=NULL) delete[] tilingHists; tilingHists = NULL;
-
-
-
 }
 
 void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)

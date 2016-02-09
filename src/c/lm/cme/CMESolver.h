@@ -243,6 +243,8 @@ protected:
     // Output options.
     bool writeSpeciesTimeSeries;
     double speciesWriteInterval;
+
+    //First passage time variables.
     int numberFptTrackedSpecies;
     FPTTracking* fptTrackedSpecies;
 

@@ -213,7 +213,12 @@ void parseArguments(int argc, char** argv)
     simulationOutputFilename = "";
     outputWriterClassName = "lm::io::hdf5::Hdf5OutputWriter";
     supervisorClassName = "lm::replicates::ReplicateSupervisor";
+
+#ifdef OPT_AVX
+    solverClassName = "lm::avx::GillespieDSolverAVX";
+#else
     solverClassName = "lm::cme::GillespieDSolver";
+#endif
 
     shouldReserveOutputCore = true;
     ffluxFlag = false;
