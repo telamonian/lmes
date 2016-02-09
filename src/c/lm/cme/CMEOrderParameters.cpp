@@ -138,11 +138,50 @@ public:
     }
 };
 
+class TwoSpeciesOrderParameter : public lm::oparam::OrderParameterFunction
+{
+public:
+    static const uint OPARAM_TYPE = 2;
+
+    TwoSpeciesOrderParameter(uint s1, uint s2, double k1, double k2):OrderParameterFunction(OPARAM_TYPE),s1(s1),s2(s2),k1(k1),k2(k2) {}
+    uint s1, s2;
+    double k1, k2;
+
+    double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
+    {
+        return k1*double(speciesCounts[s1]) + k2*double(speciesCounts[s2]);
+    }
+
+#ifdef OPT_AVX
+    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
+    {
+        avxd value = _mm256_mul_pd(_mm256_set1_pd(k1), _mm256_load_pd(&speciesCounts[s1*DOUBLES_PER_AVX]));
+        return _mm256_fmadd_pd(_mm256_set1_pd(k2), _mm256_load_pd(&speciesCounts[s2*DOUBLES_PER_AVX]), value);
+    }
+#endif
+
+    static OrderParameterFunction* create(const lm::io::OrderParameters::OrderParameter& op)
+    {
+        if (op.type() != OPARAM_TYPE)
+            throw lm::InvalidArgException("op.type", "Mismatch of types during creation of two species order parameter function",op.type(), OPARAM_TYPE);
+        if (op.species_id_size() != 2 && op.species_coefficient_size() != 2)
+            throw lm::InvalidArgException("op.size", "Mismatch of sizes during creation of two species order parameter function",op.species_id_size(), op.species_coefficient_size());
+
+        return new TwoSpeciesOrderParameter(op.species_id(0), op.species_id(1), op.species_coefficient(0), op.species_coefficient(1));
+    }
+
+    static lm::oparam::OrderParameterFunctionDefinition registerFunction()
+    {
+        return lm::oparam::OrderParameterFunctionDefinition(OPARAM_TYPE, &create);
+    }
+};
+
 
 list<lm::oparam::OrderParameterFunctionDefinition> CMEOrderParameters::getOrderParameterFunctionDefinitions()
 {
     list<lm::oparam::OrderParameterFunctionDefinition> defs;
     defs.push_back(LinearCombinationOrderParameter::registerFunction());
+    defs.push_back(TwoSpeciesOrderParameter::registerFunction());
     return defs;
 }
 

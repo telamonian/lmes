@@ -81,6 +81,22 @@ public:
     const double* speciesCoefficient;
 };
 
+class OParamTwoSpecies : public OParam
+{
+public:
+    static bool registered;
+    static bool registerClass();
+    static void* allocateObject();
+
+    OParamTwoSpecies();
+    virtual ~OParamTwoSpecies() {}
+    virtual void init(const lm::io::OrderParameters::OrderParameter& opRef);
+    virtual double calc(uint* speciesCounts);
+public:
+    uint s1, s2;
+    double k1, k2;
+};
+
 }
 }
 

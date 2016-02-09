@@ -83,7 +83,7 @@ OrderParameterFunctionFactory::OrderParameterFunctionFactory()
 
     for (list<string>::iterator it=collections.begin(); it != collections.end(); it++)
     {
-        OrderParameterFunctionCollection* c = (OrderParameterFunctionCollection*)lm::ClassFactory::getInstance().allocateObjectOfClass("lm::me::OrderParameterFunctionCollection", *it);
+        OrderParameterFunctionCollection* c = (OrderParameterFunctionCollection*)lm::ClassFactory::getInstance().allocateObjectOfClass("lm::oparam::OrderParameterFunctionCollection", *it);
         list<OrderParameterFunctionDefinition> defs = c->getOrderParameterFunctionDefinitions();
         for (list<OrderParameterFunctionDefinition>::iterator it2=defs.begin(); it2 != defs.end(); it2++)
         {

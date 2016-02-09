@@ -45,7 +45,7 @@ namespace lm {
 namespace oparam {
 
 // base class OParam methods
-OParam::OParam(): val(0), prevVal(0), op(NULL)
+OParam::OParam(): op(NULL), val(0), prevVal(0)
 {
 }
 
@@ -108,6 +108,36 @@ double OParamLinear::calc(uint* speciesCounts)
 //    }
 //    return val;
 //}
+
+
+bool OParamTwoSpecies::registered=OParamTwoSpecies::registerClass();
+bool OParamTwoSpecies::registerClass()
+{
+    lm::ClassFactory::getInstance().registerClass("lm::oparam::OParam","lm::oparam::OParamTwoSpecies",&OParamTwoSpecies::allocateObject);
+    return true;
+}
+void* OParamTwoSpecies::allocateObject()
+{
+    return new OParamTwoSpecies();
+}
+
+OParamTwoSpecies::OParamTwoSpecies(): OParam() {}
+
+void OParamTwoSpecies::init(const lm::io::OrderParameters::OrderParameter& opRef)
+{
+    // call parent method
+    OParam::init(opRef);
+    s1 = op->species_id(0);
+    s2 = op->species_id(1);
+    k1 = op->species_coefficient(0);
+    k2 = op->species_coefficient(1);
+}
+
+double OParamTwoSpecies::calc(uint* speciesCounts)
+{
+    return k1*double(speciesCounts[s1]) + k2*double(speciesCounts[s2]);
+}
+
 
 }
 }

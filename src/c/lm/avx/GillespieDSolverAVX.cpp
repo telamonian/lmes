@@ -98,7 +98,7 @@ void* GillespieDSolverAVX::allocateObject()
 }
 
 GillespieDSolverAVX::GillespieDSolverAVX()
-:GillespieDSolver(),timeLimit(_mm256_set1_pd(std::numeric_limits<double>::infinity())),speciesCounts(NULL),propensities(NULL),time(_mm256_set1_pd(0.0)),timeStep(_mm256_set1_pd(0.0))
+:GillespieDSolver(),timeLimit(_mm256_set1_pd(std::numeric_limits<double>::infinity())),limitValues(NULL),speciesCounts(NULL),propensities(NULL),time(_mm256_set1_pd(0.0)),timeStep(_mm256_set1_pd(0.0)),orderParameterValues(NULL),orderParameterPreviousValues(NULL)
 {
     // Initialize any array variables.
     for (int i=0; i<DOUBLES_PER_AVX; i++)
@@ -113,9 +113,12 @@ GillespieDSolverAVX::GillespieDSolverAVX()
 
 GillespieDSolverAVX::~GillespieDSolverAVX()
 {
-    // Free any state.
+    // Free any memory.
+    if (limitValues != NULL) free(limitValues); limitValues = NULL;
     if (speciesCounts != NULL) free(speciesCounts); speciesCounts = NULL;
     if (propensities != NULL) free(propensities); propensities = NULL;
+    if (orderParameterValues != NULL) free(orderParameterValues); orderParameterValues = NULL;
+    if (orderParameterPreviousValues != NULL) free(orderParameterPreviousValues); orderParameterPreviousValues = NULL;
 }
 
 uint GillespieDSolverAVX::getSimultaneousTrajectories()
@@ -123,18 +126,9 @@ uint GillespieDSolverAVX::getSimultaneousTrajectories()
     return DOUBLES_PER_AVX;
 }
 
-void GillespieDSolverAVX::setLimits(const lm::io::TrajectoryLimits& limits)
+void GillespieDSolverAVX::setReactionModel(const lm::io::ReactionModel& rm)
 {
-    GillespieDSolver::setLimits(limits);
-
-    // Set the time limit, if we have one.
-    if (limits.has_max_time_limit())
-        timeLimit = _mm256_set1_pd(limits.max_time_limit());
-}
-
-void GillespieDSolverAVX::reset()
-{
-    GillespieDSolver::reset();
+    GillespieDSolver::setReactionModel(rm);
 
     // Free any previous state.
     if (speciesCounts != NULL) free(speciesCounts); speciesCounts = NULL;
@@ -143,14 +137,60 @@ void GillespieDSolverAVX::reset()
     // Allocate species counts table.
     POSIX_EXCEPTION_CHECK(posix_memalign((void**)&speciesCounts, DOUBLES_PER_AVX*sizeof(double), reactionModel->numberSpecies*DOUBLES_PER_AVX*sizeof(double)));
 
+    // Allocate reaction propensities table.
+    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&propensities, DOUBLES_PER_AVX*sizeof(double), reactionModel->numberReactions*DOUBLES_PER_AVX*sizeof(double)));
+
+}
+
+void GillespieDSolverAVX::setOrderParameters(const lm::io::OrderParameters& ops)
+{
+    GillespieDSolver::setOrderParameters(ops);
+
+    // Free any previous state.
+    if (orderParameterValues != NULL) free(orderParameterValues); orderParameterValues = NULL;
+    if (orderParameterPreviousValues != NULL) free(orderParameterPreviousValues); orderParameterPreviousValues = NULL;
+
+    // Allocate space for the order parameters.
+    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&orderParameterValues, DOUBLES_PER_AVX*sizeof(double), numberOrderParameters*DOUBLES_PER_AVX*sizeof(double)));
+    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&orderParameterPreviousValues, DOUBLES_PER_AVX*sizeof(double), numberOrderParameters*DOUBLES_PER_AVX*sizeof(double)));
+}
+
+void GillespieDSolverAVX::setLimits(const lm::io::TrajectoryLimits& lm)
+{
+    GillespieDSolver::setLimits(lm);
+
+    // Set the time limit.
+    timeLimit = _mm256_set1_pd(CMESolver::timeLimit);
+
+    // Free any previous limit values.
+    if (limitValues != NULL) free(limitValues); limitValues = NULL;
+
+    if (numberLimits > 0)
+    {
+        // Allocate space for the limit values.
+        POSIX_EXCEPTION_CHECK(posix_memalign((void**)&limitValues, DOUBLES_PER_AVX*sizeof(double), numberLimits*DOUBLES_PER_AVX*sizeof(double)));
+
+        // Copy the limit values into the avx buffer.
+        for (int i=0; i<numberLimits; i++)
+        {
+            for (int j=0; j<DOUBLES_PER_AVX; j++)
+                if (limits[i].type == lm::io::TrajectoryLimits::MINSPECIESCOUNT || limits[i].type == lm::io::TrajectoryLimits::MAXSPECIESCOUNT)
+                    limitValues[i*DOUBLES_PER_AVX+j] = double(limits[i].ivalue);
+                else
+                    limitValues[i*DOUBLES_PER_AVX+j] = limits[i].dvalue;
+        }
+    }
+}
+
+void GillespieDSolverAVX::reset()
+{
+    GillespieDSolver::reset();
+
     // Reset the species counts.
     for (int i=0; i<reactionModel->numberSpecies*DOUBLES_PER_AVX; i++)
     {
         speciesCounts[i] = 0.0;
     }
-
-    // Allocate reaction propensities table.
-    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&propensities, DOUBLES_PER_AVX*sizeof(double), reactionModel->numberReactions*DOUBLES_PER_AVX*sizeof(double)));
 
     // Reset the propensities.
     for (int i=0; i<reactionModel->numberReactions*DOUBLES_PER_AVX; i++)
@@ -171,6 +211,13 @@ void GillespieDSolverAVX::reset()
     // Reset the time.
     time = _mm256_set1_pd(0.0);
     timeStep = _mm256_set1_pd(0.0);
+
+    // Reset the order parameters.
+    for (size_t i=0; i<numberOrderParameters*DOUBLES_PER_AVX; i++)
+    {
+        orderParameterValues[i] = 0.0;
+        orderParameterPreviousValues[i] = 0.0;
+    }
 
 }
 
@@ -199,6 +246,12 @@ void GillespieDSolverAVX::setState(const lm::io::TrajectoryState& state, uint tr
 
 void GillespieDSolverAVX::copyTrajectoryStateToBaseSolver(uint trajectoryNumber)
 {
+    // Set the status.
+    CMESolver::status = status[trajectoryNumber];
+
+    // Set the limit reached.
+    CMESolver::limitReached = limitReached[trajectoryNumber];
+
     // Set the trajectory id.
     CMESolver::trajectoryId = trajectoryId[trajectoryNumber];
 
@@ -215,11 +268,12 @@ void GillespieDSolverAVX::copyTrajectoryStateToBaseSolver(uint trajectoryNumber)
     CMESolver::time = ((double*)&time)[trajectoryNumber];
     CMESolver::timeStep = ((double*)&timeStep)[trajectoryNumber];
 
-    // Set the limit reached.
-    CMESolver::limitReached = limitReached[trajectoryNumber];
-
-    // Set the status.
-    CMESolver::status = status[trajectoryNumber];
+    // Set the order parameters.
+    for (uint i=0; i<numberOrderParameters; i++)
+    {
+        CMESolver::orderParameterValues[i] = orderParameterValues[i*DOUBLES_PER_AVX+trajectoryNumber];
+        CMESolver::orderParameterPreviousValues[i] = orderParameterPreviousValues[i*DOUBLES_PER_AVX+trajectoryNumber];
+    }
 
     // Set the first passage times.
     //TODO: implement.
@@ -230,6 +284,12 @@ void GillespieDSolverAVX::copyTrajectoryStateToBaseSolver(uint trajectoryNumber)
 
 void GillespieDSolverAVX::copyTrajectoryStateFromBaseSolver(uint trajectoryNumber)
 {
+    // Set the status.
+    status[trajectoryNumber] = CMESolver::status;
+
+    // Set the limit reached.
+    limitReached[trajectoryNumber] = CMESolver::limitReached;
+
     // Set the trajectory id.
     trajectoryId[trajectoryNumber] = CMESolver::trajectoryId;
 
@@ -246,14 +306,12 @@ void GillespieDSolverAVX::copyTrajectoryStateFromBaseSolver(uint trajectoryNumbe
     ((double*)&time)[trajectoryNumber] = CMESolver::time;
     ((double*)&timeStep)[trajectoryNumber] = CMESolver::timeStep;
 
-    // Set the limit reached.
-    limitReached[trajectoryNumber] = CMESolver::limitReached;
-
-    // Set the status.
-    status[trajectoryNumber] = CMESolver::status;
-
-    // Reinitialize the order parameters.
-    //TODO: implement.
+    // Set the order parameters.
+    for (uint i=0; i<numberOrderParameters; i++)
+    {
+        orderParameterValues[i*DOUBLES_PER_AVX+trajectoryNumber] = CMESolver::orderParameterValues[i];
+        orderParameterPreviousValues[i*DOUBLES_PER_AVX+trajectoryNumber] = CMESolver::orderParameterPreviousValues[i];
+    }
 
     // Set the first passage times.
     //TODO: implement.
@@ -341,7 +399,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
             if (((double*)&time)[i] == 0.0 || trajectoryStarted[i]==false)
             {
                 ((double*)&nextSpeciesWriteTime)[i] = speciesWriteInterval;
-                for (uint j=0; j<reactionModel->numberSpeciesToTrack; j++) speciesTimeSeriesCounts[i].push_back(lround(speciesCounts[j*numberSpecies+i]));
+                for (uint j=0; j<reactionModel->numberSpeciesToTrack; j++) speciesTimeSeriesCounts[i].push_back(lround(speciesCounts[j*DOUBLES_PER_AVX+i]));
                 speciesTimeSeriesTimes[i].push_back(0.0);
             }
             else
@@ -457,7 +515,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
                     if (trueMask&(1<<i))
                     {
                         // Record the species counts.
-                        for (uint j=0; j<reactionModel->numberSpeciesToTrack; j++) speciesTimeSeriesCounts[i].push_back(lround(speciesCounts[j*numberSpecies+i]));
+                        for (uint j=0; j<reactionModel->numberSpeciesToTrack; j++) speciesTimeSeriesCounts[i].push_back(lround(speciesCounts[j*DOUBLES_PER_AVX+i]));
                         speciesTimeSeriesTimes[i].push_back(((double*)&nextSpeciesWriteTime)[i]);
                         ((double*)&nextSpeciesWriteTime)[i] += speciesWriteInterval;
                     }
@@ -540,10 +598,10 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
         //printf("Reaction to perform: %d %d %d %d\n", reactionsToPerform[0], reactionsToPerform[1], reactionsToPerform[2], reactionsToPerform[3]);
 
         // Update the species counts.
-        performReactionEvent(reactionsToPerform);
+        performReactionEventAVX(reactionsToPerform);
 
         // If we are outside of the limits, stop the trajectory.
-        if (numberLimits > 0 && isTrajectoryOutsideLimits()) break;
+        if (numberLimits > 0 && isTrajectoryOutsideLimitsAVX()) break;
 
         // Update the propensites given the reaction that occurred.
         updatePropensities(time, reactionsToPerform);
@@ -645,7 +703,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
                 while (((double*)&nextSpeciesWriteTime)[i] <= (((double*)&timeLimit)[i]+1e-9))
                 {
                     // Record the species counts.
-                    for (uint j=0; j<reactionModel->numberSpeciesToTrack; j++) speciesTimeSeriesCounts[i].push_back(lround(speciesCounts[j*numberSpecies+i]));
+                    for (uint j=0; j<reactionModel->numberSpeciesToTrack; j++) speciesTimeSeriesCounts[i].push_back(lround(speciesCounts[j*DOUBLES_PER_AVX+i]));
                     speciesTimeSeriesTimes[i].push_back(((double*)&nextSpeciesWriteTime)[i]);
                     ((double*)&nextSpeciesWriteTime)[i] += speciesWriteInterval;
                 }
@@ -659,7 +717,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
             if (writeSpeciesTimeSeries)
             {
                 // Record the species counts.
-                for (uint j=0; j<reactionModel->numberSpeciesToTrack; j++) speciesTimeSeriesCounts[i].push_back(lround(speciesCounts[j*numberSpecies+i]));
+                for (uint j=0; j<reactionModel->numberSpeciesToTrack; j++) speciesTimeSeriesCounts[i].push_back(lround(speciesCounts[j*DOUBLES_PER_AVX+i]));
                 speciesTimeSeriesTimes[i].push_back(((double*)&time)[i]);
             }
         }
@@ -746,7 +804,7 @@ void GillespieDSolverAVX::updatePropensities(avxd time, uint* sourceReaction)
 //    }
 }
 
-void GillespieDSolverAVX::performReactionEvent(uint* reactionsToPerform)
+void GillespieDSolverAVX::performReactionEventAVX(uint* reactionsToPerform)
 {
     // Update the counts according to the dependency tables.
     for (uint j=0; j<DOUBLES_PER_AVX; j++)
@@ -757,63 +815,111 @@ void GillespieDSolverAVX::performReactionEvent(uint* reactionsToPerform)
             speciesCounts[(reactionModel->dependentSpecies[r][i])*DOUBLES_PER_AVX+j] += double(reactionModel->dependentSpeciesChange[r][i]);
         }
     }
+    if (hasUpdateSpeciesCountsListeners) callUpdateSpeciesCountsListenersAVX();
 }
 
-bool GillespieDSolverAVX::isTrajectoryOutsideLimits()
+void GillespieDSolverAVX::callUpdateSpeciesCountsListenersAVX()
 {
-    /* TODO: implement
-    for (uint i=0; i<numberSpeciesLimits; i++)
+    // Update the first passage time tables.
+    for (int i=0; i<numberFptTrackedSpecies; i++)
     {
-        SpeciesLimit l = speciesLimits[i];
+    }
+
+    // Update any order parameters.
+    if (numberOrderParameters > 0)
+    {
+        // Copy the old order parameters.
+        memcpy(orderParameterPreviousValues, orderParameterValues, numberOrderParameters*sizeof(double)*DOUBLES_PER_AVX);
+
+        // Update any order parameters.
+        for (int i=0; i<numberOrderParameters; i++)
+        {
+            avxd value = orderParameterFunctions[i]->calculateAvx(time, speciesCounts, reactionModel->numberSpecies);
+            _mm256_store_pd(&orderParameterValues[i*DOUBLES_PER_AVX], value);
+        }
+    }
+
+    // Update any tilingHists.
+}
+
+bool GillespieDSolverAVX::isTrajectoryOutsideLimitsAVX()
+{
+    // Go through the limits.
+    for (uint i=0; i<numberLimits; i++)
+    {
+        int outsideLimitMask=0;
+        TrajectoryLimit& l = limits[i];
+        avxd limitValue = _mm256_load_pd(&limitValues[i*DOUBLES_PER_AVX]);
+        avxd comp1;
+        avxd comp2;
+
+        // Check the limit type.
         switch (l.type)
         {
-        case SpeciesLimit::MIN:
-            if (int(speciesCounts[l.species]) <= l.limit)
+        case lm::io::TrajectoryLimits::MINSPECIESCOUNT:
+            comp1 = _mm256_cmp_pd(_mm256_load_pd(&speciesCounts[l.id*DOUBLES_PER_AVX]), limitValue, _CMP_LE_OQ);
+            outsideLimitMask = _mm256_movemask_pd(comp1);
+            break;
+
+        case lm::io::TrajectoryLimits::MAXSPECIESCOUNT:
+            comp1 = _mm256_cmp_pd(_mm256_load_pd(&speciesCounts[l.id*DOUBLES_PER_AVX]), limitValue, _CMP_GE_OQ);
+            outsideLimitMask = _mm256_movemask_pd(comp1);
+            break;
+
+        case lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER:
+            if (l.arrangement == lm::io::TrajectoryLimits::ASCENDING)
             {
-                finalLimitType = lm::io::TrajectoryLimits::MINSPECIESCOUNT;
-                return true;
+                comp1 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterPreviousValues[l.id*DOUBLES_PER_AVX]), limitValue, _CMP_GE_OQ);
+                comp2 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterValues[l.id*DOUBLES_PER_AVX]), limitValue, _CMP_LT_OQ);
+                outsideLimitMask = _mm256_movemask_pd(comp1)&_mm256_movemask_pd(comp2);
+            }
+            else
+            {
+                comp1 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterPreviousValues[l.id*DOUBLES_PER_AVX]), limitValue, _CMP_GT_OQ);
+                comp2 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterValues[l.id*DOUBLES_PER_AVX]), limitValue, _CMP_LE_OQ);
+                outsideLimitMask = _mm256_movemask_pd(comp1)&_mm256_movemask_pd(comp2);
             }
             break;
-        case SpeciesLimit::MAX:
-            if (int(speciesCounts[l.species]) >= l.limit)
+
+        case lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER:
+            if (l.arrangement == lm::io::TrajectoryLimits::ASCENDING)
             {
-                finalLimitType = lm::io::TrajectoryLimits::MAXSPECIESCOUNT;
-                return true;
+                comp1 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterPreviousValues[l.id*DOUBLES_PER_AVX]), limitValue, _CMP_LT_OQ);
+                comp2 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterValues[l.id*DOUBLES_PER_AVX]), limitValue, _CMP_GE_OQ);
+                outsideLimitMask = _mm256_movemask_pd(comp1)&_mm256_movemask_pd(comp2);
+            }
+            else
+            {
+                comp1 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterPreviousValues[l.id*DOUBLES_PER_AVX]), limitValue, _CMP_LE_OQ);
+                comp2 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterValues[l.id*DOUBLES_PER_AVX]), limitValue, _CMP_GT_OQ);
+                outsideLimitMask = _mm256_movemask_pd(comp1)&_mm256_movemask_pd(comp2);
             }
             break;
-        // use the ASCENDING limit checks when starting to the left of the limit
-        case SpeciesLimit::DECREASING_ASCENDING:
-            if ((*oparams)[l.species]->getPrev() >= l.limit && (*oparams)[l.species]->get() < l.limit)
-            {
-                finalLimitType = lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER;
-                return true;
-            }
-            break;
-        case SpeciesLimit::INCREASING_ASCENDING:
-            if ((*oparams)[l.species]->getPrev() < l.limit && (*oparams)[l.species]->get() >= l.limit)
-            {
-                finalLimitType = lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER;
-                return true;
-            }
-            break;
-        // use the DESCENDING limit checks when starting to the right of the limit
-        case SpeciesLimit::DECREASING_DESCENDING:
-            if ((*oparams)[l.species]->getPrev() > l.limit && (*oparams)[l.species]->get() <= l.limit)
-            {
-                finalLimitType = lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER;
-                return true;
-            }
-            break;
-        case SpeciesLimit::INCREASING_DESCENDING:
-            if ((*oparams)[l.species]->getPrev() <= l.limit && (*oparams)[l.species]->get() > l.limit)
-            {
-                finalLimitType = lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER;
-                return true;
-            }
+        default:
             break;
         }
 
-    }*/
+        // Check if the limit was triggered.
+        if (outsideLimitMask)
+        {
+            // Go through the mask.
+            for (int j=0; j<DOUBLES_PER_AVX; j++)
+            {
+                // If this element was true, set that the max time limit was reached.
+                if (outsideLimitMask&(1<<j))
+                {
+                    status[j] = lm::message::WorkUnitStatus::LIMIT_REACHED;
+                    limitReached[j] = l.type;
+                }
+                else
+                {
+                    // Otherwise set that we finished steps.
+                    status[j] = lm::message::WorkUnitStatus::STEPS_FINISHED;
+                }
+            }
+            return true;
+        }
+    }
     return false;
 }
 

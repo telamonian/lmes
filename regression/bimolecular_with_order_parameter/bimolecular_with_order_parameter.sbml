@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sbml xmlns="http://www.sbml.org/sbml/level3/version1/core" level="3" version="1">
+    <model id="second_order_reversible" substanceUnits="item" timeUnits="second" volumeUnits="litre" extentUnits="item">
+        <listOfUnitDefinitions>
+            <unitDefinition id="per_second">
+                <listOfUnits>
+                    <unit kind="second" exponent="-1" scale="0" multiplier="1"/>
+                </listOfUnits>
+            </unitDefinition>
+        </listOfUnitDefinitions>
+        <listOfCompartments>
+            <compartment id="V" size="1" spatialDimensions="3" constant="true"/>
+        </listOfCompartments>
+        <listOfSpecies>
+            <species id="a"  compartment="V" initialAmount="500"
+                             hasOnlySubstanceUnits="true" boundaryCondition="false"
+                             constant="false"/>
+            <species id="b"  compartment="V" initialAmount="500"
+                             hasOnlySubstanceUnits="true" boundaryCondition="false"
+                             constant="false"/>
+            <species id="c"  compartment="V" initialAmount="500"
+                             hasOnlySubstanceUnits="true" boundaryCondition="false"
+                             constant="false"/>
+            <species id="d"  compartment="V" initialAmount="50"
+                             hasOnlySubstanceUnits="true" boundaryCondition="false"
+                             constant="false"/>
+            <species id="e"  compartment="V" initialAmount="50"
+                             hasOnlySubstanceUnits="true" boundaryCondition="false"
+                             constant="false"/>
+            <species id="f"  compartment="V" initialAmount="50"
+                             hasOnlySubstanceUnits="true" boundaryCondition="false"
+                             constant="false"/>
+        </listOfSpecies>
+        <listOfReactions>
+        
+            <reaction id="forward_1" reversible="false" fast="false">
+                <listOfReactants>
+                    <speciesReference species="a" stoichiometry="1" constant="true"/>
+                    <speciesReference species="b" stoichiometry="1" constant="true"/>
+                </listOfReactants>
+                <listOfProducts>
+                    <speciesReference species="c" stoichiometry="1" constant="true"/>
+                </listOfProducts>
+                <kineticLaw>
+                    <math xmlns="http://www.w3.org/1998/Math/MathML">
+                        <apply>
+                            <times/>
+                            <cn> 0.002 </cn>
+                            <ci> a </ci>
+                            <ci> b </ci>
+                        </apply>
+                    </math>
+                </kineticLaw>
+            </reaction>
+            <reaction id="backward_1" reversible="false" fast="false">
+                <listOfReactants>
+                    <speciesReference species="c" stoichiometry="1" constant="true"/>
+                </listOfReactants>
+                <listOfProducts>
+                    <speciesReference species="a" stoichiometry="1" constant="true"/>
+                    <speciesReference species="b" stoichiometry="1" constant="true"/>
+                </listOfProducts>
+                <kineticLaw>
+                    <math xmlns="http://www.w3.org/1998/Math/MathML">
+                        <apply>
+                            <times/>
+                            <cn> 1 </cn>
+                            <ci> c </ci>
+                        </apply>
+                    </math>
+                </kineticLaw>
+            </reaction>
+            
+            <reaction id="forward_2" reversible="false" fast="false">
+                <listOfReactants>
+                    <speciesReference species="d" stoichiometry="1" constant="true"/>
+                    <speciesReference species="e" stoichiometry="1" constant="true"/>
+                </listOfReactants>
+                <listOfProducts>
+                    <speciesReference species="f" stoichiometry="1" constant="true"/>
+                </listOfProducts>
+                <kineticLaw>
+                    <math xmlns="http://www.w3.org/1998/Math/MathML">
+                        <apply>
+                            <times/>
+                            <cn> 0.02 </cn>
+                            <ci> d </ci>
+                            <ci> e </ci>
+                        </apply>
+                    </math>
+                </kineticLaw>
+            </reaction>
+            <reaction id="backward_2" reversible="false" fast="false">
+                <listOfReactants>
+                    <speciesReference species="f" stoichiometry="1" constant="true"/>
+                </listOfReactants>
+                <listOfProducts>
+                    <speciesReference species="d" stoichiometry="1" constant="true"/>
+                    <speciesReference species="e" stoichiometry="1" constant="true"/>
+                </listOfProducts>
+                <kineticLaw>
+                    <math xmlns="http://www.w3.org/1998/Math/MathML">
+                        <apply>
+                            <times/>
+                            <cn> 1 </cn>
+                            <ci> f </ci>
+                        </apply>
+                    </math>
+                </kineticLaw>
+            </reaction>
+            
+        </listOfReactions>
+    </model>
+</sbml>

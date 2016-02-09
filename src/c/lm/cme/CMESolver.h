@@ -66,7 +66,7 @@
 #include "lm/me/MESolver.h"
 #include "lm/me/PropensityFunction.h"
 #include "lm/message/WorkUnitStatus.pb.h"
-#include "lm/oparam/OParams.h"
+#include "lm/oparam/OrderParameterFunction.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/thread/Thread.h"
 #include "lm/tiling/Tilings.h"
@@ -202,35 +202,34 @@ protected:
         }
 
         // Update any order parameters.
-    //    if (oparams != NULL)
-    //    {
-    //        for (uint i=0; i<oparams->size(); i++)
-    //        {
-    //            (*oparams)[i]->calc((uint*)speciesCounts);
-    //        }
-    //    }
-
-        // Update any tilingHists.
-        if (tilings != NULL)
+        for (int i=0; i<numberOrderParameters; i++)
         {
-            for (int i=0;i<numberTilingHists;i++)
-            {
-                tilingHists[i].tileVals[(*tilings)[tilingHists[i].tilingID]->getTileIndex((*oparams)[(*tilings)[tilingHists[i].tilingID]->getOrderParameterID()]->get())] += timeStep;
-            }
+            orderParameterPreviousValues[i] = orderParameterValues[i];
+            orderParameterValues[i] = orderParameterFunctions[i]->calculate(time, speciesCounts, reactionModel->numberSpecies);
         }
+
+//        // Update any tilingHists.
+//        if (tilings != NULL)
+//        {
+//            for (int i=0;i<numberTilingHists;i++)
+//            {
+//                tilingHists[i].tileVals[(*tilings)[tilingHists[i].tilingID]->getTileIndex((*oparams)[(*tilings)[tilingHists[i].tilingID]->getOrderParameterID()]->get())] += timeStep;
+//            }
+//        }
     }
 
-
-    //virtual void callUpdateSpeciesCountsListeners();
-    virtual bool isTrajectoryOutsideLimits();
+    bool isTrajectoryOutsideLimits();
 
 protected:
     RandomGenerator::Distributions neededDists;
     RandomGenerator * rng;
     ReactionModel* reactionModel;
     bool hasUpdateSpeciesCountsListeners;
-    lm::oparam::OParams* oparams;
     lm::tiling::Tilings* tilings;
+
+    // Order parameter function.
+    size_t numberOrderParameters;
+    lm::oparam::OrderParameterFunction** orderParameterFunctions;
 
     // Trajectory status.
     lm::message::WorkUnitStatus::Status status;
@@ -253,6 +252,8 @@ protected:
     int* speciesCounts;
     double time;
     double timeStep;    // stores last time step calculated, used for building histogram
+    double* orderParameterValues;
+    double* orderParameterPreviousValues;
     uint numberTilingHists;
     TilingHist* tilingHists;
 

@@ -71,6 +71,8 @@ public:
     GillespieDSolverAVX();
     virtual ~GillespieDSolverAVX();
     virtual uint getSimultaneousTrajectories();
+    virtual void setReactionModel(const lm::io::ReactionModel& rm);
+    virtual void setOrderParameters(const lm::io::OrderParameters& opsBuf);
     virtual void setLimits(const lm::io::TrajectoryLimits& limits);
     virtual void reset();
     virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0);
@@ -81,8 +83,9 @@ public:
 protected:
     void updateAllPropensities();
     void updatePropensities(avxd time, uint* sourceReaction);
-    virtual void performReactionEvent(uint* reactionsToPerform);
-    virtual bool isTrajectoryOutsideLimits();
+    void performReactionEventAVX(uint* reactionsToPerform);
+    void callUpdateSpeciesCountsListenersAVX();
+    bool isTrajectoryOutsideLimitsAVX();
     void copyTrajectoryStateToBaseSolver(uint trajectoryNumber);
     void copyTrajectoryStateFromBaseSolver(uint trajectoryNumber);
 
@@ -97,6 +100,7 @@ protected:
     // Limits for the trajectory.
     avxd timeLimit;
     lm::io::TrajectoryLimits::LimitType limitReached[DOUBLES_PER_AVX];
+    double* limitValues;
 
     // The current state.
     uint64_t trajectoryId[DOUBLES_PER_AVX];
@@ -105,6 +109,8 @@ protected:
     double* propensities;
     avxd time;
     avxd timeStep;
+    double* orderParameterValues;
+    double* orderParameterPreviousValues;
 };
 
 }
