@@ -42,6 +42,7 @@
 #ifndef LM_AVX_GILLESPIEDSOLVERAVX_H_
 #define LM_AVX_GILLESPIEDSOLVERAVX_H_
 
+#include <deque>
 #include <map>
 #include <list>
 #include <string>
@@ -52,8 +53,10 @@
 #include "lm/cme/GillespieDSolver.h"
 #include "lm/rng/RandomGenerator.h"
 
-using std::map;
+using std::deque;
 using std::list;
+using std::map;
+using std::pair;
 using std::string;
 using lm::rng::RandomGenerator;
 
@@ -106,6 +109,7 @@ protected:
     uint numberFptValues;
     double* fptMinValuesAchieved;
     double* fptMaxValuesAchieved;
+    deque<pair<int,double> >* fptValues;
 
     // The current state.
     uint64_t trajectoryId[DOUBLES_PER_AVX];

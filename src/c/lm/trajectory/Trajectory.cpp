@@ -105,13 +105,13 @@ void Trajectory::initializeState(const lm::input::Input& input, bool reversed)
         {
             for (int i=0; i<input.getOutputOptions().fpt_species_to_track_size(); i++)
             {
+                uint speciesIndex = input.getOutputOptions().fpt_species_to_track(i);
                 lm::io::FirstPassageTimes* fpt = state.mutable_cme_state()->add_first_passage_times();
                 fpt->set_trajectory_id(id);
-                fpt->set_species(i);
+                fpt->set_species(speciesIndex);
                 fpt->set_number_entries(1);
-                fpt->add_species_count(reactionModel.initial_species_count(i));
+                fpt->add_species_count(reactionModel.initial_species_count(speciesIndex));
                 fpt->add_first_passage_time(0.0);
-                Print::printf(Print::DEBUG, "Added fpt tracking for species %d", i);
             }
         }
     }
