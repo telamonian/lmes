@@ -1,8 +1,0 @@
-
-# Try with time limit.
-rm rdme_bimolecular.lm && lm_sbml_import rdme_bimolecular.lm rdme_bimolecular.sbml
-lm_setdm rdme_bimolecular.lm numberReactions=2 numberSpecies=3 numberSiteTypes=3 "latticeSize=[3,4,5]" latticeSpacing=1e-6 particlesPerSite=8 "DiffusionMatrix(:,:,0)=[8.15e-14,8.15e-14,0;8.15e-14,8.15e-14,0;0,0,0]" "DiffusionMatrix(:,:,1)=[0,0,0;0,8.15e-14,8.15e-14;0,8.15e-14,8.15e-14;]" "DiffusionMatrix(:,:,2)=[0,0,0;0,8.15e-14,0;0,0,0]" "ReactionLocationMatrix=[0,1,0;0,1,0]";
-lm_setp rdme_bimolecular.lm maxTime=1e5 writeInterval=1e1 latticeWriteInterval=1e3
-lm_python -s rdme_bimolecular.py -sa rdme_bimolecular.lm
-~/Work/Lab/Code/LatticeMicrobes/build/lm -f rdme_bimolecular.lm -c 2 -gr 1/8 -ca -ff log -sp |tee rdme_bimolecular.log
-

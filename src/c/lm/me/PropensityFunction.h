@@ -65,9 +65,11 @@ public:
     static utuple getSpecificDependencies(const uint reactionIndex, const ndarray<uint> D, const uint dependencyType);
 
 public:
-    PropensityFunction(const uint type):type(type){}
+    PropensityFunction(const uint type, uint order):type(type),order(order){}
     virtual ~PropensityFunction() {}
     uint getType() const {return type;}
+    uint getOrder() const {return order;}
+    virtual void changeVolume(double volumeMultiplier)=0;
     virtual double calculate(const double time, const int* speciesCounts, const uint numberSpecies)const=0;
 #ifdef OPT_AVX
     virtual avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const;
@@ -75,6 +77,7 @@ public:
 
 protected:
     const uint type;
+    const uint order;
 };
 
 // The type definition for a function to create the propensity function.

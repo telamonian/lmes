@@ -80,9 +80,10 @@ class ZerothOrderPropensity : public lm::me::PropensityFunction
 public:
     static const uint REACTION_TYPE = 0;
 
-    ZerothOrderPropensity(double k) :PropensityFunction(REACTION_TYPE),k(k) {}
+    ZerothOrderPropensity(double k) :PropensityFunction(REACTION_TYPE,0),k(k) {}
     double k;
 
+    void changeVolume(double volumeMultiplier) {k*=volumeMultiplier;}
     double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
         return k;
@@ -118,10 +119,11 @@ class FirstOrderPropensity : public lm::me::PropensityFunction
 public:
     static const uint REACTION_TYPE = 1;
 
-    FirstOrderPropensity(uint s, double k) :PropensityFunction(REACTION_TYPE),s(s),k(k) {}
+    FirstOrderPropensity(uint s, double k) :PropensityFunction(REACTION_TYPE,1),s(s),k(k) {}
     uint s;
     double k;
 
+    void changeVolume(double volumeMultiplier) {}
     double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
         return k * double(speciesCounts[s]);
@@ -157,10 +159,11 @@ class SecondOrderPropensity : public lm::me::PropensityFunction
 public:
     static const uint REACTION_TYPE = 2;
 
-    SecondOrderPropensity(uint s1, uint s2, double k) :PropensityFunction(REACTION_TYPE),s1(s1),s2(s2),k(k) {}
+    SecondOrderPropensity(uint s1, uint s2, double k) :PropensityFunction(REACTION_TYPE,2),s1(s1),s2(s2),k(k) {}
     uint s1,s2;
     double k;
 
+    void changeVolume(double volumeMultiplier) {k/=volumeMultiplier;}
     double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
         return k * double(speciesCounts[s1]*speciesCounts[s2]);
@@ -196,10 +199,11 @@ class SecondOrderSelfPropensity : public lm::me::PropensityFunction
 public:
     static const uint REACTION_TYPE = 3;
 
-    SecondOrderSelfPropensity(uint s, double k) :PropensityFunction(REACTION_TYPE),s(s),k(k) {}
+    SecondOrderSelfPropensity(uint s, double k) :PropensityFunction(REACTION_TYPE,2),s(s),k(k) {}
     uint s;
     double k;
 
+    void changeVolume(double volumeMultiplier) {k/=volumeMultiplier;}
     double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
         return k * double(speciesCounts[s]*(speciesCounts[s]-1));

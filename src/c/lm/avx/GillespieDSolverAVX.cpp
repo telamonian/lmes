@@ -735,7 +735,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
             Print::printf(Print::DEBUG, "Generated trajectory %llu through time %e.", trajectoryId[i], ((double*)&time)[i]);
             if (writeSpeciesTimeSeries)
             {
-                while (((double*)&nextSpeciesWriteTime)[i] <= (((double*)&timeLimit)[i]+1e-9))
+                while (((double*)&nextSpeciesWriteTime)[i] <= (((double*)&timeLimit)[i]+EPS))
                 {
                     // Record the species counts.
                     for (uint j=0; j<reactionModel->numberSpeciesToTrack; j++) speciesTimeSeriesCounts[i].push_back(lround(speciesCounts[j*DOUBLES_PER_AVX+i]));
