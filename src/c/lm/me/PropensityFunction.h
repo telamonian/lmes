@@ -53,7 +53,6 @@ using std::map;
 using std::string;
 using std::vector;
 
-
 namespace lm {
 namespace me {
 
@@ -61,8 +60,8 @@ namespace me {
 class PropensityFunction
 {
 public:
-    static utuple getDependencies(const uint reactionIndex, const ndarray<uint> D);
-    static utuple getSpecificDependencies(const uint reactionIndex, const ndarray<uint> D, const uint dependencyType);
+    inline static utuple getDependencies(const uint reactionIndex, const ndarray<uint> D);
+    inline static utuple getSpecificDependencies(const uint reactionIndex, const ndarray<uint> D, const uint dependencyType);
 
 public:
     PropensityFunction(const uint type, uint order):type(type),order(order){}
@@ -107,10 +106,42 @@ private:
 class PropensityFunctionCollection
 {
 public:
-    PropensityFunctionCollection();
-    virtual ~PropensityFunctionCollection();
+    PropensityFunctionCollection() {}
+    virtual ~PropensityFunctionCollection() {}
     virtual list<PropensityFunctionDefinition> getPropensityFunctionDefinitions()=0;
 };
+
+
+utuple PropensityFunction::getDependencies(const uint reactionIndex, const ndarray<uint> D)
+{
+    if (reactionIndex >= D.shape[1]) throw InvalidArgException("reactionIndex", "index was too large for the dependency matrix",reactionIndex,D.shape[1]);
+
+    // Find the dependencies.
+    vector<uint> dependencyVector;
+    for (uint i=0; i<D.shape[0]; i++)
+    {
+        uint d = D[utuple(i,reactionIndex)];
+        if (d != 0)
+            dependencyVector.push_back(i);
+    }
+    return utuple(dependencyVector);
+}
+
+utuple PropensityFunction::getSpecificDependencies(const uint reactionIndex, const ndarray<uint> D, const uint dependencyType)
+{
+    if (reactionIndex >= D.shape[1]) throw InvalidArgException("reactionIndex", "index was too large for the dependency matrix",reactionIndex,D.shape[1]);
+
+    // Find the dependencies.
+    vector<uint> dependencyVector;
+    for (uint i=0; i<D.shape[0]; i++)
+    {
+        uint d = D[utuple(i,reactionIndex)];
+        if (d == dependencyType)
+            dependencyVector.push_back(i);
+    }
+    return utuple(dependencyVector);
+}
+
 
 }
 }

@@ -77,37 +77,6 @@ avxd PropensityFunction::calculateAvx(const avxd time, const double* speciesCoun
 }
 #endif
 
-utuple PropensityFunction::getDependencies(const uint reactionIndex, const ndarray<uint> D)
-{
-    if (reactionIndex >= D.shape[1]) throw InvalidArgException("reactionIndex", "index was too large for the dependency matrix",reactionIndex,D.shape[1]);
-
-    // Find the dependencies.
-    vector<uint> dependencyVector;
-    for (uint i=0; i<D.shape[0]; i++)
-    {
-        uint d = D[utuple(i,reactionIndex)];
-        if (d != 0)
-            dependencyVector.push_back(i);
-    }
-    return utuple(dependencyVector);
-}
-
-utuple PropensityFunction::getSpecificDependencies(const uint reactionIndex, const ndarray<uint> D, const uint dependencyType)
-{
-    if (reactionIndex >= D.shape[1]) throw InvalidArgException("reactionIndex", "index was too large for the dependency matrix",reactionIndex,D.shape[1]);
-
-    // Find the dependencies.
-    vector<uint> dependencyVector;
-    for (uint i=0; i<D.shape[0]; i++)
-    {
-        uint d = D[utuple(i,reactionIndex)];
-        if (d == dependencyType)
-            dependencyVector.push_back(i);
-    }
-    return utuple(dependencyVector);
-}
-
-
 PropensityFunctionFactory::PropensityFunctionFactory()
 {
     // Get a list of all the propensity function collections that have been registered.
@@ -137,14 +106,6 @@ PropensityFunction* PropensityFunctionFactory::createPropensityFunction(uint typ
         throw lm::InvalidArgException("type","the specified propensity function was not found",type);
     PropensityFunctionCreator f = functions[type].create;
     return (*f)(reactionIndex, S, D, K);
-}
-
-PropensityFunctionCollection::PropensityFunctionCollection()
-{
-}
-
-PropensityFunctionCollection::~PropensityFunctionCollection()
-{
 }
 
 }

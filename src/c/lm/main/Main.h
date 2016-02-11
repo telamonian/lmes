@@ -187,6 +187,7 @@ int getPhysicalCpuCores();
 void parseArguments(int argc, char** argv);
 string parseOutputFormatArg(char* option);
 void parseIntListArg(vector<uint64_t> & list, char* option);
+void parseStringListArg(vector<string>& list, char* option);
 time_t parseTimeArg(char* option);
 double parseIntReciprocalArg(char* option);
 void printUsage(int argc, char** argv);

@@ -50,20 +50,23 @@
 #include <cstring>
 #include <cstdio>
 #include <ctime>
+
 #include <sys/stat.h>
 #if defined(MACOSX)
 #include <sys/sysctl.h>
 #elif defined(LINUX)
 #include <sys/sysinfo.h>
 #endif
+#include "hrtime.h"
+#include "lm/ClassFactory.h"
 #ifdef OPT_CUDA
 #include "lm/Cuda.h"
 #endif
-#include "lm/Version.h"
-#include "lm/Types.h"
 #include "lm/Exceptions.h"
+#include "lm/Print.h"
+#include "lm/Types.h"
+#include "lm/Version.h"
 #include "lm/main/Main.h"
-#include "hrtime.h"
 
 using std::string;
 using std::vector;
@@ -457,6 +460,25 @@ void parseArguments(int argc, char** argv)
              ioTestFlag = true;
         }
 
+        //See if the user is trying to set the gpu devices.
+        else if ((strcmp(option, "-so") == 0 || strcmp(option, "--shared-libraries") == 0) && i < (argc-1))
+        {
+            vector<string> sharedLibraries;
+            parseStringListArg(sharedLibraries, argv[++i]);
+            for (vector<string>::iterator it=sharedLibraries.begin(); it!=sharedLibraries.end(); it++)
+                lm::ClassFactory::getInstance().registerClassesFromExternalLibrary(*it);
+        }
+        else if (strncmp(option, "--shared-libraries=", strlen("--shared-libraries=")) == 0)
+        {
+            vector<string> sharedLibraries;
+            parseStringListArg(sharedLibraries, option+strlen("--shared-libraries="));
+            for (vector<string>::iterator it=sharedLibraries.begin(); it!=sharedLibraries.end(); it++)
+                lm::ClassFactory::getInstance().registerClassesFromExternalLibrary(*it);
+        }
+
+
+
+
         //This must be an invalid option.
         else {
             throw lm::CommandLineArgumentException(option);
@@ -506,6 +528,20 @@ void parseIntListArg(vector<uint64_t> & list, char* arg)
         {
             if (strlen(pch) > 0) list.push_back(atoi(pch));
         }
+        pch = strtok(NULL," ,;:");
+    }
+    delete[] argbuf;
+}
+
+void parseStringListArg(vector<string>& list, char* arg)
+{
+    list.clear();
+    char * argbuf = new char[strlen(arg)+1];
+    strcpy(argbuf,arg);
+    char * pch = strtok(argbuf," ,;:\"");
+    while (pch != NULL)
+    {
+        if (strlen(pch) > 0) list.push_back(string(pch));
         pch = strtok(NULL," ,;:");
     }
     delete[] argbuf;
@@ -581,6 +617,7 @@ void printUsage(int argc, char** argv)
     std::cout << "  -gr num           --gpus-per-runner=num         The number of GPUs (possibly fractional) to assign per runner, e.g. \"2\", \"1/4\" (default 1)." << std::endl;
     std::cout << "  -nc               --no-capabilities             Don't print the capabilities of the GPU devices." << std::endl;
     std::cout << "  -nr               --no-reserve-core             Don't reserve a CPU core for the output thread." << std::endl;
+    std::cout << "  -so               --shared-libraries=libs       A comma delimited list of shared library to load." << std::endl;
     std::cout << std::endl;
     std::cout << "SIM_OPTIONS" << std::endl;
     std::cout << "  -r replicates     --replicates=replicates       A list of replicates to run, e.g. \"0-9\", \"0,11,21\" (default 0)." << std::endl;

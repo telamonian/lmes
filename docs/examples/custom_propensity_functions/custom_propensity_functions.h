@@ -37,53 +37,25 @@
  * Author(s): Elijah Roberts
  */
 
-#ifndef CLASSFACTORY_H
-#define CLASSFACTORY_H
+#ifndef LM_EXAMPLE_CUSTOMPROPENSITYFUNCTIONS_H
+#define LM_EXAMPLE_CUSTOMPROPENSITYFUNCTIONS_H
 
-#include <list>
-#include <map>
-#include <string>
-
-using std::list;
-using std::map;
-using std::string;
-
-extern "C"
-{
-    typedef void* (*ClassAllocator)(void);
-
-    typedef struct
-    {
-        int numberClasses;
-        const char** baseClassNames;
-        const char** classNames;
-        ClassAllocator* allocators;
-
-    } ExternalClassDefinitions;
-}
-
+#include "lm/me/PropensityFunction.h"
 
 namespace lm {
+namespace example {
 
-class ClassFactory
+class CustomPropensityFunctions : public lm::me::PropensityFunctionCollection
 {
 public:
-    static ClassFactory& getInstance();
-
+    static void* allocateObject();
+    
 public:
-    ClassFactory() {}
-    ~ClassFactory() {}
-    void registerClass(string baseClassName, string className, ClassAllocator allocator);
-    void registerClassesFromExternalLibrary(string filename);
-    void* allocateObjectOfClass(string baseClassName, string className);
-    list<string> getAllSubclasses(string baseClassName);
-    void printRegisteredClasses();
-
-private:
-    map<string,map<string,ClassAllocator> > knownClasses;
-    map<string,bool> loadedExternalLibraries;
+    CustomPropensityFunctions();
+    virtual ~CustomPropensityFunctions();
+    virtual list<lm::me::PropensityFunctionDefinition> getPropensityFunctionDefinitions();
 };
 
-
 }
-#endif // CLASSFACTORY_H
+}
+#endif // LM_EXAMPLE_CUSTOMPROPENSITYFUNCTIONS_H

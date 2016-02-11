@@ -41,6 +41,9 @@
 #include <map>
 #include <string>
 
+#include <dlfcn.h>
+
+
 #include "lm/ClassFactory.h"
 #include "lm/Exceptions.h"
 #include "lm/Print.h"
@@ -48,6 +51,7 @@
 using std::list;
 using std::map;
 using std::string;
+
 
 namespace lm {
 
@@ -60,6 +64,23 @@ ClassFactory& ClassFactory::getInstance()
 void ClassFactory::registerClass(string baseClassName, string className, ClassAllocator allocator)
 {
     knownClasses[baseClassName][className] = allocator;
+}
+
+void ClassFactory::registerClassesFromExternalLibrary(string filename)
+{
+    if (loadedExternalLibraries.count(filename) == 0)
+    {
+        void* libraryHandle;
+        if ((libraryHandle=dlopen(filename.c_str(), RTLD_NOW)) == NULL)
+            throw Exception("Failed to load shared library",filename.c_str(), dlerror());
+
+        void* symbolHandle;
+        if ((libraryHandle=dlsym(libraryHandle, "registerClasses")) == NULL)
+            throw Exception("Failed to find registerClasses symbol in shared library",filename.c_str(), dlerror());
+
+        lm::Print::printf(lm::Print::INFO, "Successfully loaded shared library %s.",filename.c_str());
+        loadedExternalLibraries[filename] = true;
+    }
 }
 
 void* ClassFactory::allocateObjectOfClass(string baseClassName, string className)
