@@ -61,7 +61,7 @@ namespace rdme {
 //}
 
 DiffusionModel::DiffusionModel(const lm::io::DiffusionModel& dm)
-:numberSpecies((uint)dm.number_species()),numberReactions((uint)dm.number_reactions()),numberSiteTypes((uint)dm.number_site_types()),DF(NULL),RL(NULL),latticeSpacing(dm.lattice_spacing()),latticeXSize((uint)dm.initial_lattice().lattice_x_size()),latticeYSize((uint)dm.initial_lattice().lattice_y_size()),latticeZSize((uint)dm.initial_lattice().lattice_z_size()),particlesPerSite((uint)dm.initial_lattice().particles_per_site()),hasBoundaryInflux(false),boundaryInflux(NULL)
+    :numberSpecies((uint)dm.number_species()),numberReactions((uint)dm.number_reactions()),numberSiteTypes((uint)dm.number_site_types()),DF(NULL),RL(NULL),latticeSpacing(dm.lattice_spacing()),latticeXSize((uint)dm.initial_lattice().lattice_x_size()),latticeYSize((uint)dm.initial_lattice().lattice_y_size()),latticeZSize((uint)dm.initial_lattice().lattice_z_size()),particlesPerSite((uint)dm.initial_lattice().particles_per_site()),hasBoundaryInflux(false),boundaryInflux(NULL)
 {
     // Allocate the matrices.
     DF = new double[numberSiteTypes*numberSiteTypes*numberSpecies];
@@ -77,8 +77,13 @@ DiffusionModel::DiffusionModel(const lm::io::DiffusionModel& dm)
     ByteLattice initialLattice(latticeXSize, latticeYSize, latticeZSize, latticeSpacing, particlesPerSite);
     initialLattice.deserializeSitesFrom(sites.data(), sites.size(), (Lattice::SerializationDataOrder)dm.initial_lattice().sites_ordering(), dm.initial_lattice().sites_compressed_deflate());
 
-    // Create the boundary conditions.
-    if (dm.has_boundary_conditions())
+    // If no boundary conditinos were specified, set the default.
+    if (!dm.has_boundary_conditions())
+    {
+        boundaryConditions.set_global(lm::io::BoundaryConditions::REFLECTING);
+    }
+    // Otherwise, copy the boundary conditions from the message.
+    else
     {
         boundaryConditions = dm.boundary_conditions();
 
