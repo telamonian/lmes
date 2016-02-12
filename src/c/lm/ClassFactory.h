@@ -60,6 +60,8 @@ extern "C"
         ClassAllocator* allocators;
 
     } ExternalClassDefinitions;
+
+    typedef void (*ExternalLibraryRegisterClasses)(ExternalClassDefinitions* definitions);
 }
 
 
@@ -81,7 +83,7 @@ public:
 
 private:
     map<string,map<string,ClassAllocator> > knownClasses;
-    map<string,bool> loadedExternalLibraries;
+    map<string,void*> loadedExternalLibraries;
 };
 
 

@@ -75,11 +75,48 @@ void ClassFactory::registerClassesFromExternalLibrary(string filename)
             throw Exception("Failed to load shared library",filename.c_str(), dlerror());
 
         void* symbolHandle;
-        if ((libraryHandle=dlsym(libraryHandle, "registerClasses")) == NULL)
+        if ((symbolHandle=dlsym(libraryHandle, "registerClasses")) == NULL)
+        {
+            dlclose(libraryHandle);
             throw Exception("Failed to find registerClasses symbol in shared library",filename.c_str(), dlerror());
+        }
 
-        lm::Print::printf(lm::Print::INFO, "Successfully loaded shared library %s.",filename.c_str());
-        loadedExternalLibraries[filename] = true;
+        // Save the library handle from this library.
+        loadedExternalLibraries[filename] = libraryHandle;
+
+        // Get the class defintions from the library.
+        ExternalClassDefinitions definitions;
+        definitions.numberClasses = 0;
+        definitions.baseClassNames = NULL;
+        definitions.classNames = NULL;
+        definitions.allocators = NULL;
+        ExternalLibraryRegisterClasses f = (ExternalLibraryRegisterClasses)symbolHandle;
+        (*f)(&definitions);
+
+        if (definitions.numberClasses == 0)
+        {
+            lm::Print::printf(lm::Print::INFO, "No classes located in shared library %s", filename.c_str());
+            return;
+        }
+
+        // Make sure we have pointers.
+        if (definitions.baseClassNames == NULL || definitions.classNames == NULL || definitions.allocators == NULL)
+            throw Exception("Invalid pointers in class defintions from external library",filename.c_str());
+
+        // Register the classes.
+        for (int i=0; i<definitions.numberClasses; i++)
+        {
+            if (definitions.baseClassNames[i] == NULL || definitions.classNames[i] == NULL || definitions.allocators[i] == NULL)
+                throw Exception("Invalid pointers in class defintion from external library",filename.c_str(),i);
+            registerClass(definitions.baseClassNames[i], definitions.classNames[i], definitions.allocators[i]);
+        }
+
+        // Free the space used by the definitions.
+        delete[] definitions.baseClassNames;
+        delete[] definitions.classNames;
+        delete[] definitions.allocators;
+
+        lm::Print::printf(lm::Print::INFO, "Successfully loaded %d classes from shared library %s",definitions.numberClasses, filename.c_str());
     }
 }
 

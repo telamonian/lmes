@@ -39,7 +39,8 @@
 
 #include <cmath>
 #include <list>
- 
+
+#include "lm/Types.h"
 #include "lm/ClassFactory.h"
 #include "lm/Exceptions.h"
 #include "lm/me/PropensityFunction.h"
@@ -56,11 +57,9 @@ extern "C" {
         definitions->classNames = new const char*[definitions->numberClasses];
         definitions->allocators = new ClassAllocator[definitions->numberClasses];
         
-        definitions->baseClassNames[0] = "lm::me::PropensityFunction";
-        definitions->classNames[0] = "lm::example::MyHillPropensity";
+        definitions->baseClassNames[0] = "lm::me::PropensityFunctionCollection";
+        definitions->classNames[0] = "lm::example::CustomPropensityFunctions";
         definitions->allocators[0] = &lm::example::CustomPropensityFunctions::allocateObject;
-        
-        //, "lm::cme::CMEOrderParameters", 
     }
 }
 
@@ -72,12 +71,11 @@ class MyHillPropensity : public lm::me::PropensityFunction
 public:
     static const uint REACTION_TYPE = 9999;
 
-    MyHillPropensity(uint si, uint xi, uint x0, double k0, double k1, double h)
-    :PropensityFunction(REACTION_TYPE,1),si(si),xi(xi),x0h(pow(x0,h)),k0(k0),dk(k1-k0),h(h) {}
+    MyHillPropensity(uint si, double k0, double k1, double s0, double h)
+    :PropensityFunction(REACTION_TYPE,1),si(si),k0(k0),dk(k1-k0),s0h(pow(s0,h)),h(h) {}
     
     uint si;
-    uint xi;
-    double x0h;
+    double s0h;
     double k0;
     double dk;
     double h;
@@ -85,24 +83,27 @@ public:
     void changeVolume(double volumeMultiplier) {}
     double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
-        uint x = speciesCounts[xi];
-        double xh = pow(x,h);
-        double k = k0+((dk*xh)/(xh+x0h));
-        return ((double)speciesCounts[si]) * k;
+        double s = double(speciesCounts[si]);
+        double sh = pow(s,h);
+        return k0+((dk*sh)/(sh+s0h));
     }
+#ifdef OPT_AVX
+    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
+    {
+        return naiveCalculateAvx(this, time, speciesCounts, numberSpecies);
+    }
+#endif
 
     static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
     {
         // Find the species dependencies.
         utuple sd = getSpecificDependencies(reactionIndex, D, 1);
-        utuple xd = getSpecificDependencies(reactionIndex, D, 2);
-        if (sd.len != 1) throw InvalidArgException("D", "MyHillPropensity needs one species dependency, had",sd.len);
-        if (xd.len != 1) throw InvalidArgException("D", "MyHillPropensity needs one function dependency, had",xd.len);
+        if (sd.len != 1) throw InvalidArgException("D", "MyHillPropensity needs one species dependency, had", sd.len);
 
         // Find the rate costant.
         if (k.len != 4)  throw InvalidArgException("k", "MyHillPropensity needs four parameters, had",k.len);
 
-        return new MyHillPropensity(sd[0], xd[0], lround(k[0]), k[1], k[2], k[3]);
+        return new MyHillPropensity(sd[0], k[0], k[1], k[2], k[3]);
     }
 
     static lm::me::PropensityFunctionDefinition registerFunction()

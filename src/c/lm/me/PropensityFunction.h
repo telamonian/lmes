@@ -62,6 +62,7 @@ class PropensityFunction
 public:
     inline static utuple getDependencies(const uint reactionIndex, const ndarray<uint> D);
     inline static utuple getSpecificDependencies(const uint reactionIndex, const ndarray<uint> D, const uint dependencyType);
+    inline static avxd naiveCalculateAvx(const PropensityFunction* fn, const avxd time, const double* speciesCounts, const uint numberSpecies);
 
 public:
     PropensityFunction(const uint type, uint order):type(type),order(order){}
@@ -71,7 +72,7 @@ public:
     virtual void changeVolume(double volumeMultiplier)=0;
     virtual double calculate(const double time, const int* speciesCounts, const uint numberSpecies)const=0;
 #ifdef OPT_AVX
-    virtual avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const;
+    virtual avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const=0;
 #endif
 
 protected:
@@ -97,9 +98,11 @@ public:
     PropensityFunctionFactory();
     ~PropensityFunctionFactory();
     PropensityFunction* createPropensityFunction(uint type, int reactionIndex, ndarray<int> S, ndarray<uint> D, tuple<double>k);
+    void printRegisteredFunctions();
 
 private:
     map<uint,PropensityFunctionDefinition> functions;
+    map<uint,string> functionSources;
 };
 
 // The base class for a collection of propensity functions.
@@ -110,7 +113,6 @@ public:
     virtual ~PropensityFunctionCollection() {}
     virtual list<PropensityFunctionDefinition> getPropensityFunctionDefinitions()=0;
 };
-
 
 utuple PropensityFunction::getDependencies(const uint reactionIndex, const ndarray<uint> D)
 {
@@ -141,6 +143,23 @@ utuple PropensityFunction::getSpecificDependencies(const uint reactionIndex, con
     }
     return utuple(dependencyVector);
 }
+
+#ifdef OPT_AVX
+avxd PropensityFunction::naiveCalculateAvx(const PropensityFunction* fn, const avxd time, const double* speciesCounts, const uint numberSpecies)
+{
+    avxd results;
+    int* intSpeciesCounts = new int[numberSpecies];
+    for (uint i=0; i<DOUBLES_PER_AVX; i++)
+    {
+        for (uint j=0; j<numberSpecies; j++)
+        {
+            intSpeciesCounts[j] = (int)(speciesCounts[j*DOUBLES_PER_AVX+i]+0.5);
+            ((double*)&results)[i] = fn->calculate(((double*)&time)[i], intSpeciesCounts, numberSpecies);
+        }
+    }
+    return results;
+}
+#endif
 
 
 }

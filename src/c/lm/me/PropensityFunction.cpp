@@ -56,27 +56,6 @@ using std::vector;
 namespace lm {
 namespace me {
 
-#ifdef OPT_AVX
-avxd PropensityFunction::calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
-{
-    double* results;
-    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&results, DOUBLES_PER_AVX*sizeof(double), DOUBLES_PER_AVX*sizeof(double)));
-    int* intSpeciesCounts = new int[numberSpecies];
-    for (uint i=0; i<DOUBLES_PER_AVX; i++)
-    {
-        for (uint j=0; j<numberSpecies; j++)
-        {
-            intSpeciesCounts[j] = (int)(speciesCounts[j*DOUBLES_PER_AVX+i]+0.5);
-        }
-        results[i] = calculate(((double*)&time)[i], intSpeciesCounts, numberSpecies);
-    }
-    avxd ret = _mm256_load_pd(results);
-    delete[] intSpeciesCounts;
-    free(results);
-    return ret;
-}
-#endif
-
 PropensityFunctionFactory::PropensityFunctionFactory()
 {
     // Get a list of all the propensity function collections that have been registered.
@@ -89,9 +68,14 @@ PropensityFunctionFactory::PropensityFunctionFactory()
         for (list<PropensityFunctionDefinition>::iterator it2=defs.begin(); it2 != defs.end(); it2++)
         {
             if (functions.count(it2->type) == 0)
+            {
                 functions[it2->type] = *it2;
+                functionSources[it2->type] = *it;
+            }
             else
+            {
                 Print::printf(Print::WARNING, "Multiple definitions for propensity function %d, ignoring function from class %s", it2->type, it->c_str());
+            }
         }
     }
 }
@@ -106,6 +90,16 @@ PropensityFunction* PropensityFunctionFactory::createPropensityFunction(uint typ
         throw lm::InvalidArgException("type","the specified propensity function was not found",type);
     PropensityFunctionCreator f = functions[type].create;
     return (*f)(reactionIndex, S, D, K);
+}
+
+void PropensityFunctionFactory::printRegisteredFunctions()
+{
+    Print::printf(Print::DEBUG, "The following propensity functions were registered during initialization:");
+    for (map<uint,PropensityFunctionDefinition>::iterator it=functions.begin(); it != functions.end(); it++)
+    {
+        PropensityFunctionDefinition def = it->second;
+        Print::printf(Print::DEBUG, "%s -> %d", functionSources[it->first].c_str(), def.type);
+    }
 }
 
 }
