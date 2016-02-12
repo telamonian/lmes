@@ -1,3 +1,20 @@
+2016.02.12
+
+    General
+    * Implemented generic framework for defining propensity functions.
+    * Implemented the ability to load classes at run time from a shared library, including propensity functions.
+    * Added the ability for a work unit runner to be given a list of work units parts to run before asking for more
+      work.
+    * Reorganized the supervisor/trajectory list framework in preparation for release of enhanced sampling code.
+    
+    CME
+    * Added an AVX optimized version of the Gillespie direct solver with ~1.8X performance increase. Compile with the
+      OPT_AVX option defined to enable.
+    * Added support for FMA instructions when compiling with AVX instructions enabled. Compile with the
+      OPT_FMA option defined to enable.
+    * Added support for Intel's SVML library when compiling with icc and with AVX instructions enabled. Compile with the
+      OPT_SVML option defined to enable.
+
 2016.01.20
 
     General
