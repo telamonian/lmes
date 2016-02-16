@@ -1,2 +1,0 @@
-from lm_anal.test.io.hdf5.trajectory.speciesTrajectoriesIO import SpeciesTrajectoriesHDF5IOSimTestBase
-from lm_anal.test.io.hdf5.trajectory.oparamTrajectoriesIO import OParamTrajectoriesHDF5IOSimTestBase

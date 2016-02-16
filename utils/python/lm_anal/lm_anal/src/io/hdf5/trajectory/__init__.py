@@ -1,2 +1,0 @@
-from lm_anal.src.io.hdf5.trajectory.speciesTrajectoriesIO import SpeciesTrajectoriesIO
-from lm_anal.src.io.hdf5.trajectory.oparamTrajectoriesIO import OParamTrajectoriesIO
