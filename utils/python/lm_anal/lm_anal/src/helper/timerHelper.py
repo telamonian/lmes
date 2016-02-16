@@ -16,7 +16,7 @@ def timedec(f):
 
 class timewith():
     '''
-    taken from https://zapier.com/engineering/profiling-python-boss/
+    modified from https://zapier.com/engineering/profiling-python-boss/
     '''
     def __init__(self, name='', finishMessage='finished'):
         self.name = name
