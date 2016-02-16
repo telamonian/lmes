@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2015 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -37,12 +37,38 @@
  * Author(s): Elijah Roberts
  */
 
-package lm.io;
+#ifndef LM_RDME_DIFFUSIONMODEL_H_
+#define LM_RDME_DIFFUSIONMODEL_H_
 
-import "robertslab/pbuf/NDArray.proto";
+#include "lm/Types.h"
+#include "lm/io/BoundaryConditions.pb.h"
+#include "lm/io/DiffusionModel.pb.h"
 
-message SpeciesTimeSeries {
-    required uint64 trajectory_id                             = 1;
-    required robertslab.pbuf.NDArray counts                   = 2;    //2D; rows=times,cols=species; type=int32
-    required robertslab.pbuf.NDArray times                    = 3;    //1D; rows=times; type=float64
+namespace lm {
+namespace rdme {
+
+class DiffusionModel
+{
+public:
+    DiffusionModel(const lm::io::DiffusionModel& dm);
+    virtual ~DiffusionModel();
+
+    const uint numberSpecies;
+    const uint numberReactions;
+    uint numberSiteTypes;
+    double* DF;                             // Diffusion matrix: numberSiteTypes x numberSiteTypes x numberSpecies
+    bool* RL;								// Reaction location matrix: numberReactions x numberSiteTypes
+    double latticeSpacing;
+    uint latticeXSize;
+    uint latticeYSize;
+    uint latticeZSize;
+    uint particlesPerSite;
+    lm::io::BoundaryConditions boundaryConditions;
+    bool hasBoundaryInflux;
+    double* boundaryInflux;
+};
+
 }
+}
+
+#endif

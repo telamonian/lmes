@@ -88,6 +88,7 @@ public:
     {
         std::map<uint,std::string> m;
         m[0] = "lm::oparam::OParamLinear";
+        m[2] = "lm::oparam::OParamTwoSpecies";
         // m[9999...] = "lm::oparam::OParamTranscendental";
         return m;
     }

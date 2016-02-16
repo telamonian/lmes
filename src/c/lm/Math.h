@@ -50,7 +50,7 @@
 #define PID4        0.7853981634
 #define PIOVER180   0.0174532925
 #define NA          6.02214179e23
-#define EPS         1e-12
+#define EPS         1e-9
 
 
 

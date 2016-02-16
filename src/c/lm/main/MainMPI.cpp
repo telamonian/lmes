@@ -71,6 +71,7 @@
 #include "lm/main/ResourceController.h"
 #include "lm/main/SignalHandler.h"
 #include "lm/main/SimulationSupervisor.h"
+#include "lm/me/PropensityFunction.h"
 #include "lm/resource/ResourceMap.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/WorkerManager.h"
@@ -319,6 +320,10 @@ void executeSimulationMPISingleMaster(ResourceMap* resourceMap)
 
     // Print a list of the registered classes.
     lm::ClassFactory::getInstance().printRegisteredClasses();
+
+    // Print a list of the registered propensity fucntinos.
+    lm::me::PropensityFunctionFactory fs;
+    fs.printRegisteredFunctions();
 
     // Start the resource controller for this process.
     lm::main::ResourceController resourceController;

@@ -22,11 +22,11 @@
             </unitDefinition>
         </listOfUnitDefinitions>
         <listOfCompartments>
-            <compartment id="cell" size="6e-14" spatialDimensions="3" constant="true"/>
+            <compartment id="cell" size="2.1e-13" spatialDimensions="3" constant="true"/>
         </listOfCompartments>
         <listOfSpecies>
-            <species id="A" compartment="cell" initialAmount="20" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
-            <species id="B" compartment="cell" initialAmount="20" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+            <species id="A" compartment="cell" initialAmount="100" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+            <species id="B" compartment="cell" initialAmount="100" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
             <species id="C" compartment="cell" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
         </listOfSpecies>
         <listOfReactions>
@@ -56,7 +56,7 @@
                         </apply>
                     </math>
                     <listOfLocalParameters>
-                        <localParameter id="k1" value="1.07e9" units="per_molar_per_second"/>
+                        <localParameter id="k1" value="2.5293e9" units="per_molar_per_second"/>
                     </listOfLocalParameters>
                 </kineticLaw>
             </reaction>
@@ -77,7 +77,7 @@
                         </apply>
                     </math>
                     <listOfLocalParameters>
-                        <localParameter id="k2" value="1e-1" units="per_second"/>
+                        <localParameter id="k2" value="1" units="per_second"/>
                     </listOfLocalParameters>
                 </kineticLaw>
             </reaction>

@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2015 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -34,15 +34,30 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
-package lm.io;
+#ifndef LM_CME_CMEORDERPARAMETERFUNCTIONS_H
+#define LM_CME_CMEORDERPARAMETERFUNCTIONS_H
 
-import "robertslab/pbuf/NDArray.proto";
+#include "lm/oparam/OrderParameterFunction.h"
 
-message SpeciesTimeSeries {
-    required uint64 trajectory_id                             = 1;
-    required robertslab.pbuf.NDArray counts                   = 2;    //2D; rows=times,cols=species; type=int32
-    required robertslab.pbuf.NDArray times                    = 3;    //1D; rows=times; type=float64
+namespace lm {
+namespace cme {
+
+class CMEOrderParameters : public lm::oparam::OrderParameterFunctionCollection
+{
+public:
+    static bool registered;
+    static bool registerClass();
+    static void* allocateObject();
+
+public:
+    CMEOrderParameters();
+    virtual ~CMEOrderParameters();
+    virtual list<lm::oparam::OrderParameterFunctionDefinition> getOrderParameterFunctionDefinitions();
+};
+
 }
+}
+#endif // LM_CME_CMEORDERPARAMETERFUNCTIONS_H

@@ -200,7 +200,7 @@ void NextReactionSolver::generateTrajectory()
         if (writeTimeSteps)
         {
             // Write time steps until the next write time is past the current time.
-            while (nextSpeciesCountsWriteTime <= (time+1e-9))
+            while (nextSpeciesCountsWriteTime <= (time+EPS))
             {
                 // Record the species counts.
                 speciesCountsDataSet.set_number_entries(speciesCountsDataSet.number_entries()+1);
@@ -212,7 +212,7 @@ void NextReactionSolver::generateTrajectory()
         }
 
         // If we are recording parameter values, write out the values before this event occurred.
-        if (nextParameterWriteTime <= (time+1e-9))
+        if (nextParameterWriteTime <= (time+EPS))
         {
             nextParameterWriteTime = recordParameters(nextParameterWriteTime, parameterWriteInterval, time);
             addedParameterValues = true;
@@ -296,7 +296,7 @@ void NextReactionSolver::generateTrajectory()
     	if (writeTimeSteps)
     	{
 			Print::printf(Print::DEBUG, "Finished with time %e (%e)", time, maxTime);
-			while (nextSpeciesCountsWriteTime <= (maxTime+1e-9))
+            while (nextSpeciesCountsWriteTime <= (maxTime+EPS))
 			{
 				Print::printf(Print::VERBOSE_DEBUG, "Recording event at time %e (%e)", nextSpeciesCountsWriteTime, maxTime);
 				// Record the species counts.
@@ -317,7 +317,7 @@ void NextReactionSolver::generateTrajectory()
     	}
 
 		// If we are recording parameter values, write out the remaining value intervals.
-		if (nextParameterWriteTime <= (maxTime+1e-9))
+        if (nextParameterWriteTime <= (maxTime+EPS))
 		{
 			recordParameters(nextParameterWriteTime, parameterWriteInterval, maxTime);
 		}

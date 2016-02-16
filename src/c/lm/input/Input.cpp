@@ -183,6 +183,60 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
             }
             trajectoryLimitsPresent = true;
         }
+
+        // Set the order parameter upper limits from an order parameter.
+        if (simulationParameters.count("orderParameterUpperLimitList"))
+        {
+            string listString = simulationParameters["orderParameterUpperLimitList"];
+            size_t start=0, end=0;
+            while (end != string::npos)
+            {
+                end = listString.find(',', start);
+                string orderParameterUpperLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
+
+                size_t equalsPos=0;
+                equalsPos = orderParameterUpperLimit.find(':', 0);
+                if (equalsPos > 0 && equalsPos < orderParameterUpperLimit.length()-1)
+                {
+                    uint parsedOrderParameter = atoi(orderParameterUpperLimit.substr(0, equalsPos).c_str());
+                    double parsedLimit = atof(orderParameterUpperLimit.substr(equalsPos+1, string::npos).c_str());
+                    lm::io::TrajectoryLimits::IncreasingOrderParameterLimit* limit = trajectoryLimits.add_increasing_order_parameter_limit();
+                    limit->set_order_parameter_id(parsedOrderParameter);
+                    limit->add_value(parsedLimit);
+                    limit->set_arrangement(lm::io::TrajectoryLimits::ASCENDING);
+                    Print::printf(Print::DEBUG, "Parsed op upper limit %s to: %d <= %e", orderParameterUpperLimit.c_str(), parsedOrderParameter, parsedLimit);
+                }
+                start = end+1;
+            }
+            trajectoryLimitsPresent = true;
+        }
+
+        // Set the order parameter lower limits from an order parameter.
+        if (simulationParameters.count("orderParameterLowerLimitList"))
+        {
+            string listString = simulationParameters["orderParameterLowerLimitList"];
+            size_t start=0, end=0;
+            while (end != string::npos)
+            {
+                end = listString.find(',', start);
+                string orderParameterLowerLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
+
+                size_t equalsPos=0;
+                equalsPos = orderParameterLowerLimit.find(':', 0);
+                if (equalsPos > 0 && equalsPos < orderParameterLowerLimit.length()-1)
+                {
+                    uint parsedOrderParameter = atoi(orderParameterLowerLimit.substr(0, equalsPos).c_str());
+                    double parsedLimit = atof(orderParameterLowerLimit.substr(equalsPos+1, string::npos).c_str());
+                    lm::io::TrajectoryLimits::DecreasingOrderParameterLimit* limit = trajectoryLimits.add_decreasing_order_parameter_limit();
+                    limit->set_order_parameter_id(parsedOrderParameter);
+                    limit->add_value(parsedLimit);
+                    limit->set_arrangement(lm::io::TrajectoryLimits::DESCENDING);
+                    Print::printf(Print::DEBUG, "Parsed op lower limit %s to: %d <= %e", orderParameterLowerLimit.c_str(), parsedOrderParameter, parsedLimit);
+                }
+                start = end+1;
+            }
+            trajectoryLimitsPresent = true;
+        }
     }
 
     // Get the output options.

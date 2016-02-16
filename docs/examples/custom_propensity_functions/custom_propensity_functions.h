@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2015 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -37,12 +37,25 @@
  * Author(s): Elijah Roberts
  */
 
-package lm.io;
+#ifndef LM_EXAMPLE_CUSTOMPROPENSITYFUNCTIONS_H
+#define LM_EXAMPLE_CUSTOMPROPENSITYFUNCTIONS_H
 
-import "robertslab/pbuf/NDArray.proto";
+#include "lm/me/PropensityFunction.h"
 
-message SpeciesTimeSeries {
-    required uint64 trajectory_id                             = 1;
-    required robertslab.pbuf.NDArray counts                   = 2;    //2D; rows=times,cols=species; type=int32
-    required robertslab.pbuf.NDArray times                    = 3;    //1D; rows=times; type=float64
+namespace lm {
+namespace example {
+
+class CustomPropensityFunctions : public lm::me::PropensityFunctionCollection
+{
+public:
+    static void* allocateObject();
+    
+public:
+    CustomPropensityFunctions();
+    virtual ~CustomPropensityFunctions();
+    virtual list<lm::me::PropensityFunctionDefinition> getPropensityFunctionDefinitions();
+};
+
 }
+}
+#endif // LM_EXAMPLE_CUSTOMPROPENSITYFUNCTIONS_H

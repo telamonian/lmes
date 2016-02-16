@@ -48,9 +48,24 @@ using std::list;
 using std::map;
 using std::string;
 
-namespace lm {
+extern "C"
+{
+    typedef void* (*ClassAllocator)(void);
 
-typedef void* (*ClassAllocator)(void);
+    typedef struct
+    {
+        int numberClasses;
+        const char** baseClassNames;
+        const char** classNames;
+        ClassAllocator* allocators;
+
+    } ExternalClassDefinitions;
+
+    typedef void (*ExternalLibraryRegisterClasses)(ExternalClassDefinitions* definitions);
+}
+
+
+namespace lm {
 
 class ClassFactory
 {
@@ -61,13 +76,16 @@ public:
     ClassFactory() {}
     ~ClassFactory() {}
     void registerClass(string baseClassName, string className, ClassAllocator allocator);
+    void registerClassesFromExternalLibrary(string filename);
     void* allocateObjectOfClass(string baseClassName, string className);
     list<string> getAllSubclasses(string baseClassName);
     void printRegisteredClasses();
 
 private:
     map<string,map<string,ClassAllocator> > knownClasses;
+    map<string,void*> loadedExternalLibraries;
 };
+
 
 }
 #endif // CLASSFACTORY_H

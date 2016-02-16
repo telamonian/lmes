@@ -188,13 +188,22 @@ void XORShift::getExpRandomDoubles(double * rngs, int numberRNGs, bool bufferAvx
             rngs[i] = -log(d);
         }
         PROF_END(PROF_CACHE_EXP_RNG);
-#ifdef OPT_AVX
+#if defined(OPT_AVX) && !defined(OPT_SVML)
     } else {
         PROF_BEGIN(PROF_CACHE_RNG);
         getRandomDoubles(rngs, numberRNGs, true, true);
         for (int i=0; i<numberRNGs; i++)
             rngs[i] = -log(rngs[i]);
-
+        PROF_END(PROF_CACHE_RNG);
+    }
+#endif
+#if defined(OPT_AVX) && defined(OPT_SVML)
+    } else {
+        PROF_BEGIN(PROF_CACHE_RNG);
+        getRandomDoubles(rngs, numberRNGs, true, true);
+        avxd minusone = _mm256_set1_pd(-1.0);
+        for (int i=0; i<numberRNGs; i+=DOUBLES_PER_AVX)
+            _mm256_store_pd(&rngs[i],_mm256_mul_pd(minusone,_mm256_log_pd(_mm256_load_pd(&rngs[i]))));
         PROF_END(PROF_CACHE_RNG);
     }
 #endif

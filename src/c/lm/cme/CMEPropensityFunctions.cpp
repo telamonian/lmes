@@ -80,16 +80,17 @@ class ZerothOrderPropensity : public lm::me::PropensityFunction
 public:
     static const uint REACTION_TYPE = 0;
 
-    ZerothOrderPropensity(double k) :PropensityFunction(REACTION_TYPE),k(k) {}
+    ZerothOrderPropensity(double k) :PropensityFunction(REACTION_TYPE,0),k(k) {}
     double k;
 
-    double calculate(const double time, const int* speciesCounts, const uint numberSpecies)
+    void changeVolume(double volumeMultiplier) {k*=volumeMultiplier;}
+    double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
         return k;
     }
 
 #ifdef OPT_AVX
-    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies)
+    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
     {
         return _mm256_set1_pd(k);
     }
@@ -118,17 +119,18 @@ class FirstOrderPropensity : public lm::me::PropensityFunction
 public:
     static const uint REACTION_TYPE = 1;
 
-    FirstOrderPropensity(uint s, double k) :PropensityFunction(REACTION_TYPE),s(s),k(k) {}
+    FirstOrderPropensity(uint s, double k) :PropensityFunction(REACTION_TYPE,1),s(s),k(k) {}
     uint s;
     double k;
 
-    double calculate(const double time, const int* speciesCounts, const uint numberSpecies)
+    void changeVolume(double volumeMultiplier) {}
+    double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
         return k * double(speciesCounts[s]);
     }
 
 #ifdef OPT_AVX
-    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies)
+    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
     {
         return _mm256_mul_pd(_mm256_set1_pd(k), _mm256_load_pd(&speciesCounts[s*DOUBLES_PER_AVX]));
     }
@@ -157,17 +159,18 @@ class SecondOrderPropensity : public lm::me::PropensityFunction
 public:
     static const uint REACTION_TYPE = 2;
 
-    SecondOrderPropensity(uint s1, uint s2, double k) :PropensityFunction(REACTION_TYPE),s1(s1),s2(s2),k(k) {}
+    SecondOrderPropensity(uint s1, uint s2, double k) :PropensityFunction(REACTION_TYPE,2),s1(s1),s2(s2),k(k) {}
     uint s1,s2;
     double k;
 
-    double calculate(const double time, const int* speciesCounts, const uint numberSpecies)
+    void changeVolume(double volumeMultiplier) {k/=volumeMultiplier;}
+    double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
         return k * double(speciesCounts[s1]*speciesCounts[s2]);
     }
 
 #ifdef OPT_AVX
-    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies)
+    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
     {
         return _mm256_mul_pd(_mm256_set1_pd(k),_mm256_mul_pd(_mm256_load_pd(&speciesCounts[s1*DOUBLES_PER_AVX]), _mm256_load_pd(&speciesCounts[s2*DOUBLES_PER_AVX])));
     }
@@ -196,17 +199,18 @@ class SecondOrderSelfPropensity : public lm::me::PropensityFunction
 public:
     static const uint REACTION_TYPE = 3;
 
-    SecondOrderSelfPropensity(uint s, double k) :PropensityFunction(REACTION_TYPE),s(s),k(k) {}
+    SecondOrderSelfPropensity(uint s, double k) :PropensityFunction(REACTION_TYPE,2),s(s),k(k) {}
     uint s;
     double k;
 
-    double calculate(const double time, const int* speciesCounts, const uint numberSpecies)
+    void changeVolume(double volumeMultiplier) {k/=volumeMultiplier;}
+    double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
         return k * double(speciesCounts[s]*(speciesCounts[s]-1));
     }
 
 #ifdef OPT_AVX
-    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies)
+    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
     {
         avxd c = _mm256_load_pd(&speciesCounts[s*DOUBLES_PER_AVX]);
         avxd cm1 = _mm256_sub_pd(c, _mm256_set1_pd(1.0));

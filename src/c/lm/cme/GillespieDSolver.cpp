@@ -225,7 +225,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         if (writeSpeciesTimeSeries)
         {
             // Write time steps until the next write time is past the current time.
-            while (nextSpeciesWriteTime <= (time+1e-9))
+            while (nextSpeciesWriteTime <= (time+EPS))
             {
                 // Record the species counts.
                 for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
@@ -301,7 +301,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);
         if (writeSpeciesTimeSeries)
         {
-            while (nextSpeciesWriteTime <= (timeLimit+1e-9))
+            while (nextSpeciesWriteTime <= (timeLimit+EPS))
             {
                 // Record the species counts.
                 for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);

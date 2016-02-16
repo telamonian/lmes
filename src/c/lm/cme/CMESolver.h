@@ -1,7 +1,7 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2008-2011 Luthey-Schulten Group,
- * Copyright 2012-2015 Roberts Group,
+ * Copyright 2008-2012 Luthey-Schulten Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Luthey-Schulten Group
@@ -66,7 +66,7 @@
 #include "lm/me/MESolver.h"
 #include "lm/me/PropensityFunction.h"
 #include "lm/message/WorkUnitStatus.pb.h"
-#include "lm/oparam/OParams.h"
+#include "lm/oparam/OrderParameterFunction.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/thread/Thread.h"
 #include "lm/tiling/Tilings.h"
@@ -185,16 +185,51 @@ protected:
         if (hasUpdateSpeciesCountsListeners) callUpdateSpeciesCountsListeners();
     }
 
-    virtual void callUpdateSpeciesCountsListeners();
-    virtual bool isTrajectoryOutsideLimits();
+    inline void callUpdateSpeciesCountsListeners()
+    {
+        // Update the first passage time tables.
+        for (int i=0; i<numberFptTrackedSpecies; i++)
+        {
+            int speciesCount = speciesCounts[fptTrackedSpecies[i].species];
+            while (speciesCount < fptTrackedSpecies[i].minValueAchieved)
+            {
+                fptTrackedSpecies[i].fptValues.push_front(std::pair<int,double>(--fptTrackedSpecies[i].minValueAchieved,time));
+            }
+            while (speciesCount > fptTrackedSpecies[i].maxValueAchieved)
+            {
+                fptTrackedSpecies[i].fptValues.push_back(std::pair<int,double>(++fptTrackedSpecies[i].maxValueAchieved,time));
+            }
+        }
+
+        // Update any order parameters.
+        for (int i=0; i<numberOrderParameters; i++)
+        {
+            orderParameterPreviousValues[i] = orderParameterValues[i];
+            orderParameterValues[i] = orderParameterFunctions[i]->calculate(time, speciesCounts, reactionModel->numberSpecies);
+        }
+
+//        // Update any tilingHists.
+//        if (tilings != NULL)
+//        {
+//            for (int i=0;i<numberTilingHists;i++)
+//            {
+//                tilingHists[i].tileVals[(*tilings)[tilingHists[i].tilingID]->getTileIndex((*oparams)[(*tilings)[tilingHists[i].tilingID]->getOrderParameterID()]->get())] += timeStep;
+//            }
+//        }
+    }
+
+    bool isTrajectoryOutsideLimits();
 
 protected:
     RandomGenerator::Distributions neededDists;
     RandomGenerator * rng;
     ReactionModel* reactionModel;
     bool hasUpdateSpeciesCountsListeners;
-    lm::oparam::OParams* oparams;
     lm::tiling::Tilings* tilings;
+
+    // Order parameter function.
+    size_t numberOrderParameters;
+    lm::oparam::OrderParameterFunction** orderParameterFunctions;
 
     // Trajectory status.
     lm::message::WorkUnitStatus::Status status;
@@ -208,6 +243,8 @@ protected:
     // Output options.
     bool writeSpeciesTimeSeries;
     double speciesWriteInterval;
+
+    //First passage time variables.
     int numberFptTrackedSpecies;
     FPTTracking* fptTrackedSpecies;
 
@@ -217,6 +254,8 @@ protected:
     int* speciesCounts;
     double time;
     double timeStep;    // stores last time step calculated, used for building histogram
+    double* orderParameterValues;
+    double* orderParameterPreviousValues;
     uint numberTilingHists;
     TilingHist* tilingHists;
 

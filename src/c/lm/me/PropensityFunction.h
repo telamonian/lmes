@@ -53,7 +53,6 @@ using std::map;
 using std::string;
 using std::vector;
 
-
 namespace lm {
 namespace me {
 
@@ -61,20 +60,24 @@ namespace me {
 class PropensityFunction
 {
 public:
-    static utuple getDependencies(const uint reactionIndex, const ndarray<uint> D);
-    static utuple getSpecificDependencies(const uint reactionIndex, const ndarray<uint> D, const uint dependencyType);
+    inline static utuple getDependencies(const uint reactionIndex, const ndarray<uint> D);
+    inline static utuple getSpecificDependencies(const uint reactionIndex, const ndarray<uint> D, const uint dependencyType);
+    inline static avxd naiveCalculateAvx(const PropensityFunction* fn, const avxd time, const double* speciesCounts, const uint numberSpecies);
 
 public:
-    PropensityFunction(const uint id):id(id){}
+    PropensityFunction(const uint type, uint order):type(type),order(order){}
     virtual ~PropensityFunction() {}
-    const uint getId() {return id;}
-    virtual double calculate(const double time, const int* speciesCounts, const uint numberSpecies)=0;
+    uint getType() const {return type;}
+    uint getOrder() const {return order;}
+    virtual void changeVolume(double volumeMultiplier)=0;
+    virtual double calculate(const double time, const int* speciesCounts, const uint numberSpecies)const=0;
 #ifdef OPT_AVX
-    virtual avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies);
+    virtual avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const=0;
 #endif
 
 protected:
-    const uint id;
+    const uint type;
+    const uint order;
 };
 
 // The type definition for a function to create the propensity function.
@@ -82,10 +85,10 @@ typedef PropensityFunction* (*PropensityFunctionCreator)(const uint reactionInde
 
 struct PropensityFunctionDefinition
 {
-    PropensityFunctionDefinition():id(std::numeric_limits<uint>::max()),create(NULL){}
-    PropensityFunctionDefinition(uint id, PropensityFunctionCreator create):id(id),create(create){}
-    PropensityFunctionDefinition(const PropensityFunctionDefinition& p):id(p.id),create(p.create){}
-    uint id;
+    PropensityFunctionDefinition():type(std::numeric_limits<uint>::max()),create(NULL){}
+    PropensityFunctionDefinition(uint type, PropensityFunctionCreator create):type(type),create(create){}
+    PropensityFunctionDefinition(const PropensityFunctionDefinition& p):type(p.type),create(p.create){}
+    uint type;
     PropensityFunctionCreator create;
 };
 
@@ -94,20 +97,70 @@ class PropensityFunctionFactory
 public:
     PropensityFunctionFactory();
     ~PropensityFunctionFactory();
-    PropensityFunction* createPropensityFunction(uint id, int reactionIndex, ndarray<int> S, ndarray<uint> D, tuple<double>k);
+    PropensityFunction* createPropensityFunction(uint type, int reactionIndex, ndarray<int> S, ndarray<uint> D, tuple<double>k);
+    void printRegisteredFunctions();
 
 private:
     map<uint,PropensityFunctionDefinition> functions;
+    map<uint,string> functionSources;
 };
 
 // The base class for a collection of propensity functions.
 class PropensityFunctionCollection
 {
 public:
-    PropensityFunctionCollection();
-    virtual ~PropensityFunctionCollection();
+    PropensityFunctionCollection() {}
+    virtual ~PropensityFunctionCollection() {}
     virtual list<PropensityFunctionDefinition> getPropensityFunctionDefinitions()=0;
 };
+
+utuple PropensityFunction::getDependencies(const uint reactionIndex, const ndarray<uint> D)
+{
+    if (reactionIndex >= D.shape[1]) throw InvalidArgException("reactionIndex", "index was too large for the dependency matrix",reactionIndex,D.shape[1]);
+
+    // Find the dependencies.
+    vector<uint> dependencyVector;
+    for (uint i=0; i<D.shape[0]; i++)
+    {
+        uint d = D[utuple(i,reactionIndex)];
+        if (d != 0)
+            dependencyVector.push_back(i);
+    }
+    return utuple(dependencyVector);
+}
+
+utuple PropensityFunction::getSpecificDependencies(const uint reactionIndex, const ndarray<uint> D, const uint dependencyType)
+{
+    if (reactionIndex >= D.shape[1]) throw InvalidArgException("reactionIndex", "index was too large for the dependency matrix",reactionIndex,D.shape[1]);
+
+    // Find the dependencies.
+    vector<uint> dependencyVector;
+    for (uint i=0; i<D.shape[0]; i++)
+    {
+        uint d = D[utuple(i,reactionIndex)];
+        if (d == dependencyType)
+            dependencyVector.push_back(i);
+    }
+    return utuple(dependencyVector);
+}
+
+#ifdef OPT_AVX
+avxd PropensityFunction::naiveCalculateAvx(const PropensityFunction* fn, const avxd time, const double* speciesCounts, const uint numberSpecies)
+{
+    avxd results;
+    int* intSpeciesCounts = new int[numberSpecies];
+    for (uint i=0; i<DOUBLES_PER_AVX; i++)
+    {
+        for (uint j=0; j<numberSpecies; j++)
+        {
+            intSpeciesCounts[j] = (int)(speciesCounts[j*DOUBLES_PER_AVX+i]+0.5);
+            ((double*)&results)[i] = fn->calculate(((double*)&time)[i], intSpeciesCounts, numberSpecies);
+        }
+    }
+    return results;
+}
+#endif
+
 
 }
 }

@@ -48,6 +48,7 @@
 #include "lm/cme/CMESolver.h"
 #include "lm/io/BoundaryConditions.pb.h"
 #include "lm/io/DiffusionModel.pb.h"
+#include "lm/rdme/DiffusionModel.h"
 #include "lm/rdme/Lattice.h"
 
 using lm::cme::CMESolver;
@@ -67,27 +68,6 @@ public:
     virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0);
     virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0);
     virtual void setOutputOptions(const lm::io::OutputOptions& outputOptions);
-
-protected:
-    class DiffusionModel
-    {
-    public:
-        DiffusionModel(int numberSpecies, int numberReactions, int numberSiteTypes);
-        virtual ~DiffusionModel();
-        int numberSpecies;
-        int numberReactions;
-        int numberSiteTypes;
-        double* DF;                             // Diffusion matrix: numberSiteTypes x numberSiteTypes x numberSpecies
-        bool* RL;								// Reaction location matrix: numberReactions x numberSiteTypes
-        double latticeSpacing;
-        int latticeXSize;
-        int latticeYSize;
-        int latticeZSize;
-        int particlesPerSite;
-        lm::io::BoundaryConditions boundaryConditions;
-        bool hasBoundaryInflux;
-        double* boundaryInflux;
-    };
 
 protected:
     virtual void allocateLattice(lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing);
