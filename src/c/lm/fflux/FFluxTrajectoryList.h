@@ -58,7 +58,6 @@
 #include "lm/tiling/Tilings.h"
 #include "lm/Types.h"
 
-/*
 namespace lm {
 namespace fflux {
 
@@ -181,5 +180,4 @@ protected:
 
 }
 }
-*/
 #endif

@@ -41,14 +41,6 @@
 
 #include "lm/Print.h"
 #include "lm/input/Input.h"
-#include "lm/io/hdf5/SimulationFile.h"
-#include "lm/io/BoundaryConditions.pb.h"
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/OrderParameters.pb.h"
-#include "lm/io/ReactionModel.pb.h"
-#include "lm/io/SimulationParameters.pb.h"
-#include "lm/oparam/OParams.h"
-#include "lm/tiling/Tilings.h"
 
 using std::map;
 using std::string;
@@ -61,11 +53,12 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
  stepsPerWorkUnit(10000000)
 {
     // Get the simulation parameters.
-    file.getParameters(&simulationParametersMsg);
-    for (int i=0; i<simulationParametersMsg.key_size() && i<simulationParametersMsg.value_size(); i++)
-    {
-        simulationParameters[simulationParametersMsg.key(i)] = simulationParametersMsg.value(i);
-    }
+    simulationParameters.rFF(file);
+//    file.getParameters(&simulationParametersMsg);
+//    for (int i=0; i<simulationParametersMsg.key_size() && i<simulationParametersMsg.value_size(); i++)
+//    {
+//        simulationParameters[simulationParametersMsg.key(i)] = simulationParametersMsg.value(i);
+//    }
 
     // Get the reaction model.
     if (file.hasReactionModel())
@@ -396,61 +389,6 @@ bool Input::parseBoundaryConditions(lm::io::BoundaryConditions* bc, string arg)
     delete[] argbuf;
     return bc->axis_specific_boundaries();
 }
-
-
-//
-//    // has methods
-//    virtual bool hasBoundaryGradient();
-//    virtual bool hasDiffusionModel();
-//    virtual bool hasOrderParameters();
-//    virtual bool hasReactionModel();
-//    virtual bool hasTilings();
-//
-//    // get protobuf methods
-//    virtual lm::io::BoundaryConditions* getBoundaryGradient();
-//    virtual lm::io::DiffusionModel* getDiffusionModel();
-//    virtual lm::io::SimulationParameters* getParameters();
-//    virtual lm::io::OrderParameters* getOrderParameters();
-//    virtual lm::io::ReactionModel* getReactionModel();
-//    virtual lm::io::SpatialModel* getSpatialModel();
-//    virtual lm::io::Tilings* getTilings();
-//
-//    // get protobuf methods (load-into-pointer style)
-//    virtual void getBoundaryGradient(lm::io::BoundaryConditions* bc);
-//    virtual void getDiffusionModel(lm::io::DiffusionModel* diffusionModel);
-//    virtual void getParameters(lm::io::SimulationParameters* parameters);
-//    virtual void getOrderParameters(lm::io::OrderParameters* orderParameters);
-//    virtual void getReactionModel(lm::io::ReactionModel* reactionModel);
-//    virtual void getSpatialModel(lm::io::SpatialModel* model);
-//    virtual void getTilings(lm::io::Tilings* tilings);
-//
-//    // get wrapper methods
-//    virtual map<string,string> getParameters();
-//    virtual string getParameter(string key, string defaultValue="");
-//    virtual lm::oparam::OParam* getOrderParameter();
-//
-//    // set methods
-//    virtual void setDiffusionModel(lm::io::DiffusionModel* diffusionModel);
-//    virtual void setOrderParameters(lm::io::OrderParameters* orderParameters);
-//    virtual void setParameter(string key, string value);
-//    virtual void setReactionModel(lm::io::ReactionModel* reactionModel);
-//    virtual void setSpatialModel(lm::io::SpatialModel* model);
-//    virtual void setTilings(lm::io::Tilings* tilings);
-//
-//protected:
-//    // load from file methods
-//    virtual void _loadBoundaryGradient(lm::io::BoundaryConditions* bc);
-//    virtual void _loadDiffusionModel(lm::io::DiffusionModel* diffusionModel);
-//    virtual void _loadParameters(lm::io::SimulationParameters* parameters);
-//    virtual void _loadOrderParameters(lm::io::OrderParameters* orderParameters);
-//    virtual void _loadReactionModel(lm::io::ReactionModel* reactionModel);
-//    virtual void _loadSpatialModel(lm::io::SpatialModel* model);
-//    virtual void _loadTilings(lm::io::Tilings* tilings);
-//
-//private:
-//    lm::io::hdf5::Hdf5File& file;
-//    lm::message::Message msg;
-//};
 
 }
 }

@@ -39,10 +39,10 @@
 
 package lm.io;
 
-message OrderParametersCounts {
+message OrderParametersValues {
 	required uint64 trajectory_id                       = 1;
     required int32 number_order_parameters         		= 2;
     required int32 number_entries                       = 3;
-    repeated double order_parameter_counts              = 4 [packed=true];
+    repeated double order_parameter_values              = 4 [packed=true];
     repeated double time                                = 5 [packed=true];
 }

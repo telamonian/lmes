@@ -159,15 +159,15 @@ void FFluxTrajectoryList::initChecks(lm::input::Input& input)
     timeKeysN.push_back("mtn");
 
     map<string,string>::iterator findIt;
-    findIt = input.simulationParameters.findFirst(crossingsKeysZero);
-    if (not input.simulationParameters.isEnd(findIt)) {
+    findIt = input.getSimulationParameters().findFirst(crossingsKeysZero);
+    if (not input.getSimulationParameters().isEnd(findIt)) {
         checkZero = CROSSINGS;
         maxCrossingsZero = atof(findIt->second.c_str());
     }
     else
     {
-        findIt = input.simulationParameters.findFirst(timeKeysZero);
-        if (not input.simulationParameters.isEnd(findIt)) {
+        findIt = input.getSimulationParameters().findFirst(timeKeysZero);
+        if (not input.getSimulationParameters().isEnd(findIt)) {
             checkZero = TIME;
             maxTimeZero = atof(findIt->second.c_str());
         }
@@ -176,15 +176,15 @@ void FFluxTrajectoryList::initChecks(lm::input::Input& input)
         }
     }
 
-    findIt = input.simulationParameters.findFirst(crossingsKeysN);
-    if (not input.simulationParameters.isEnd(findIt)) {
+    findIt = input.getSimulationParameters().findFirst(crossingsKeysN);
+    if (not input.getSimulationParameters().isEnd(findIt)) {
         checkN = CROSSINGS;
         maxCrossingsN = atof(findIt->second.c_str());
     }
     else
     {
-        findIt = input.simulationParameters.findFirst(timeKeysN);
-        if (not input.simulationParameters.isEnd(findIt)) {
+        findIt = input.getSimulationParameters().findFirst(timeKeysN);
+        if (not input.getSimulationParameters().isEnd(findIt)) {
             checkN = TIME;
             maxTimeN = atof(findIt->second.c_str());
         }

@@ -13,12 +13,15 @@ SET(USE_CUDA no)
 # Set the verbosity level, as described in the lm::Print function. 10 is complete, 4 is normal-ish.
 SET(VERBOSITY_LEVEL 4)
 
+# Uncomment next line to enable the built in profiler
+#SET(PROF_ENABLE true)
+
 # Uncomment and change the last part of the next line if some of your libraries/header files are on a nonstandard path.
 #SET(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" "/usr/local/custom/path")
 
-
 ############################
-
+# compiler flags
+############################
 # uncomment to set any custom compiler flags.
 #SET(CUSTOM_C_FLAGS "-g -m64 -fPIC -Wall -fmessage-length=0")
 #SET(CUSTOM_CXX_FLAGS "-g -m64 -fPIC -Wall -fmessage-length=0")

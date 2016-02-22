@@ -60,29 +60,28 @@ public:
     virtual ~Trajectory();
 
     // accessors
-    virtual uint getFinalLimitID();
     virtual uint64_t getId();
+    virtual int64_t getLimitIndexReached();
     virtual double getOrderParameterValue(uint opID);
     virtual uint getSimSteps();
     virtual double getSimTime();
-    virtual lm::io::SpeciesCounts* getSpeciesCounts();
+    virtual const lm::io::SpeciesCounts& getSpeciesCounts();
     virtual const lm::io::TrajectoryState& getState();
     virtual status_t getStatus();
     virtual int64_t getWorkUnitsPerformed();
     virtual void printStatus();
 
     // mutators
-    virtual int64_t getWorkUnitsPerformed();
     virtual void incrementWorkUnitsPerformed();
     virtual void resetSimTime();
-    virtual void setFinalLimitID(int64_t finalLimitID);
+    virtual void setID(uint64_t trajectoryID);
+    virtual void setLimitIndexReached(int64_t limitIndex);
     virtual void setState(const lm::io::TrajectoryState& newState);
     virtual void setStatus(status_t newStatus);
 
 protected:
-    virtual void inititializeHists();
+    virtual void inititializeHists(const lm::input::Input& input);
     virtual void initializeState(const lm::input::Input& input, bool reversed=false);
-    virtual void initializeState(const lm::io::TrajectoryState& initialState);
 
 protected:
     uint64_t id;

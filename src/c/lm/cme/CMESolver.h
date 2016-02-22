@@ -232,6 +232,9 @@ protected:
     bool hasUpdateSpeciesCountsListeners;
     lm::tiling::Tilings* tilings;
 
+    // number of degree advancements to track
+    size_t numberDegreeAdvancements;
+
     // Order parameter function.
     size_t numberOrderParameters;
     lm::oparam::OrderParameterFunction** orderParameterFunctions;
@@ -243,8 +246,8 @@ protected:
     double timeLimit;
     size_t numberLimits;
     TrajectoryLimit* limits;
-    lm::io::TrajectoryLimits::LimitType limitReached;
     int64_t limitIndexReached;
+    lm::io::TrajectoryLimits::LimitType limitReached;
 
     // Output options.
     bool writeSpeciesTimeSeries;

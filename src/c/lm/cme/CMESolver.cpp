@@ -304,14 +304,14 @@ void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
 //    // Get the order parameter values.
 //    if (numberOrderParameters > 0)
 //    {
-//        state->mutable_cme_state()->mutable_order_parameter_counts()->set_trajectory_id(trajectoryId);
-//        state->mutable_cme_state()->mutable_order_parameter_counts()->set_number_order_parameters(numberOrderParameters);
-//        state->mutable_cme_state()->mutable_order_parameter_counts()->set_number_entries(1);
+//        state->mutable_cme_state()->mutable_order_parameter_values()->set_trajectory_id(trajectoryId);
+//        state->mutable_cme_state()->mutable_order_parameter_values()->set_number_order_parameters(numberOrderParameters);
+//        state->mutable_cme_state()->mutable_order_parameter_values()->set_number_entries(1);
 //        for (int i=0; i<numberOrderParameters; i++)
 //        {
-//            state->mutable_cme_state()->mutable_order_parameter_counts()->add_order_parameter_counts(orderParameterCounts[i]);
+//            state->mutable_cme_state()->mutable_order_parameter_values()->add_order_parameter_values(orderParameterValues[i]);
 //        }
-//        state->mutable_cme_state()->mutable_order_parameter_counts()->add_time(time);
+//        state->mutable_cme_state()->mutable_order_parameter_values()->add_time(time);
 //    }
 
     // Get the species counts.
@@ -376,9 +376,9 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
     limitReached = state.limit_reached();
 
 //    // Set the order parameter values.
-//    for (int i=0; i<state.cme_state().order_parameter_counts().order_parameter_counts_size(); i++)
+//    for (int i=0; i<state.cme_state().order_parameter_values().order_parameter_values_size(); i++)
 //    {
-//        orderParameterValues[i] = state.cme_state().order_parameter_counts().order_parameter_counts(i);
+//        orderParameterValues[i] = state.cme_state().order_parameter_values().order_parameter_values(i);
 //        orderParameterPreviousValues[i] = orderParameterValues[i];
 //    }
 

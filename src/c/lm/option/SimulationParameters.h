@@ -62,7 +62,8 @@ public:
     ~SimulationParameters() {}
 
 // accessors
-    SimParamMap::iterator findFirst(std::vector<std::string>& keys);
+    SimParamMap::const_iterator findFirst(const std::vector<std::string>& keys) const;
+    SimParamMap::iterator findFirst(const std::vector<std::string>& keys);
     lm::io::SimulationParameters* getBuf() {return &buf;}
     SimParamMap* getMap() {return &map;}
     const SimParamMap* getMapConst() const {return &map;}
@@ -82,11 +83,11 @@ public:
     void mapToBuf(SimParamMap& inMap, lm::io::SimulationParameters& outBuf);
 
     bool rFB(const lm::io::SimulationParameters& inBuf); // rFB = read From Buf
-    bool rFF(lm::io::hdf5::Hdf5File* file); // rFF = read From File
-    bool rFM(SimParamMap& inMap); // rFM = read From Map
+    bool rFF(const lm::io::hdf5::Hdf5File& file); // rFF = read From File
+    bool rFM(const SimParamMap& inMap); // rFM = read From Map
 
     void setBuf(const lm::io::SimulationParameters& newBuf) {*getBuf() = newBuf;}
-    void setMap(SimParamMap& newMap) {*getMap() = newMap;}
+    void setMap(const SimParamMap& newMap) {*getMap() = newMap;}
 
 // pass-throughs to the underlying SimulationParameters buf and SimParamMap
     std::string& operator[](const std::string& key) {return map[key];}

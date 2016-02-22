@@ -50,9 +50,9 @@ namespace lm {
 namespace option {
 
 // accessors
-SimParamMap::iterator SimulationParameters::findFirst(vector<string>& keys)
+SimParamMap::const_iterator SimulationParameters::findFirst(const vector<string>& keys) const
 {
-    SimParamMap::iterator findIt;
+    SimParamMap::const_iterator findIt;
     for (vector<string>::const_iterator keyIt=keys.begin(); keyIt!=keys.end(); keyIt++) {
         findIt = find(*keyIt);
         if (not isEnd(findIt)) {
@@ -61,6 +61,12 @@ SimParamMap::iterator SimulationParameters::findFirst(vector<string>& keys)
     }
     return findIt;
 }
+
+SimParamMap::iterator SimulationParameters::findFirst(const vector<string>& keys)
+{
+    return const_cast<SimParamMap::iterator>(static_cast<const SimulationParameters*>(this)->findFirst(keys));
+}
+
 
 std::list<int> SimulationParameters::parseIntList(const std::string& key) const
 {
@@ -107,14 +113,14 @@ bool SimulationParameters::rFB(const lm::io::SimulationParameters& inBuf) // rFB
     return true;
 }
 
-bool SimulationParameters::rFF(lm::io::hdf5::Hdf5File* file) // rFF = read From File
+bool SimulationParameters::rFF(const lm::io::hdf5::Hdf5File& file) // rFF = read From File
 {
-    setMap(file->getParameters());
+    setMap(file.getParameters());
     mapToBuf();
     return true;
 }
 
-bool SimulationParameters::rFM(SimParamMap& inMap) // rFM = read From Map
+bool SimulationParameters::rFM(const SimParamMap& inMap) // rFM = read From Map
 {
     setMap(inMap);
     mapToBuf();

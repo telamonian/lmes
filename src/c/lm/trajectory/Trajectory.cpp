@@ -142,12 +142,12 @@ void Trajectory::initializeState(const lm::input::Input& input, bool reversed)
         initialLattice->set_particles(diffusionModel.initial_lattice().particles());
     }
 
-    if (input.hasTilings) inititializeHists();
+    if (input.hasTilings) inititializeHists(input);
 }
 
-void Trajectory::inititializeHists()
+void Trajectory::inititializeHists(const lm::input::Input& input)
 {
-    lm::io::TilingHist* tHist = getState()->mutable_cme_state()->add_tiling_hists();
+    lm::io::TilingHist* tHist = state.mutable_cme_state()->add_tiling_hists();
     tHist->set_tiling_id(input.tilings.getCurrentTilingID());
     for (lm::tiling::EdgeIterator e_it=input.tilings.getCurrentTiling()->begin();e_it!=input.tilings.getCurrentTiling()->end();e_it++)
     {
@@ -165,42 +165,42 @@ void Trajectory::inititializeHists()
 }
 
 // accessor definitions
-uint Trajectory::getFinalLimitID()
+int64_t Trajectory::getLimitIndexReached()
 {
-    return getState()->final_limit_id();
+    return state.limit_index_reached();
 }
 
-uint64_t Trajectory::getID()
+uint64_t Trajectory::getId()
 {
     return id;
 }
 
 double Trajectory::getOrderParameterValue(uint opID)
 {
-	uint* lastSpeciesCount = new uint[getSpeciesCounts()->number_species()];
-	uint offset = (getSpeciesCounts()->number_entries() - 1)*(getSpeciesCounts()->number_species());
-	double time = getSpeciesCounts()->time(getSpeciesCounts()->number_entries() - 1);  //double time = getSpeciesCounts()->time(getSpeciesCounts()->time_size()-1);
-	for (int i=0; i<getSpeciesCounts()->number_species(); i++)
+	uint* lastSpeciesCount = new uint[getSpeciesCounts().number_species()];
+	uint offset = (getSpeciesCounts().number_entries() - 1)*(getSpeciesCounts().number_species());
+	double time = getSpeciesCounts().time(getSpeciesCounts().number_entries() - 1);  //double time = getSpeciesCounts()->time(getSpeciesCounts()->time_size()-1);
+	for (int i=0; i<getSpeciesCounts().number_species(); i++)
 	{
-		lastSpeciesCount[i] = getSpeciesCounts()->species_count(i + offset);
+		lastSpeciesCount[i] = getSpeciesCounts().species_count(i + offset);
 	}
 	return input.oparams[opID]->calc(lastSpeciesCount, time);
 	delete [] lastSpeciesCount;
 }
 
-lm::io::SpeciesCounts* Trajectory::getSpeciesCounts()
+const lm::io::SpeciesCounts& Trajectory::getSpeciesCounts()
 {
-	return getState()->mutable_cme_state()->mutable_species_counts();
+	return state.cme_state().species_counts();
 }
 
 uint Trajectory::getSimSteps()
 {
-    return getState()->cme_state().species_counts().number_entries();
+    return getSpeciesCounts().number_entries();
 }
 
 double Trajectory::getSimTime()
 {
-    return getState()->cme_state().species_counts().time(getState()->cme_state().species_counts().time_size() - 1);
+    return getSpeciesCounts().time(getSpeciesCounts().time_size() - 1);
 }
 
 Trajectory::status_t Trajectory::getStatus()
@@ -222,19 +222,19 @@ void Trajectory::printStatus()
 // mutator definitions
 void Trajectory::resetSimTime()
 {
-    getState()->mutable_cme_state()->mutable_species_counts()->set_time(getState()->cme_state().species_counts().time_size() - 1, 0.0);
+    state.mutable_cme_state()->mutable_species_counts()->set_time(getSpeciesCounts().time_size() - 1, 0.0);
 }
 
-void Trajectory::setFinalLimitID(int64_t finalLimitID)
+void Trajectory::setLimitIndexReached(int64_t limitIndex)
 {
-    getState()->set_final_limit_id(finalLimitID);
+    state.set_limit_index_reached(limitIndex);
 }
 
 void Trajectory::setID(uint64_t newID)
 {
     id = newID;
-    getState()->set_trajectory_id(newID);
-    getState()->mutable_cme_state()->mutable_species_counts()->set_trajectory_id(newID);
+    state.set_trajectory_id(newID);
+    state.mutable_cme_state()->mutable_species_counts()->set_trajectory_id(newID);
 }
 
 void Trajectory::setState(const lm::io::TrajectoryState& newState)

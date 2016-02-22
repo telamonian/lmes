@@ -328,6 +328,11 @@ void Hdf5File::getParameters(lm::io::SimulationParameters* parameters) const
     }
 }
 
+const map<string,string>& Hdf5File::getParameters() const
+{
+    return parameterMap;
+}
+
 map<string,string>& Hdf5File::getParameters()
 {
     return parameterMap;
@@ -1725,42 +1730,6 @@ void Hdf5File::appendSpeciesTimeSeries(uint64_t replicate, const lm::io::Species
     // Extract the data, decompressing if necessary.
     int32_t* counts=dumpSpeciesCounts(speciesTimeSeries);
     double* times=dumpSpeciesTimes(speciesTimeSeries);
-//    int32_t* counts=NULL;
-//    if (speciesTimeSeries.counts().compressed_deflate())
-//    {
-//        counts = new int32_t[numberEntries*numberSpecies];
-//        size_t size = numberEntries*numberSpecies*sizeof(counts[0]);
-//        size_t uncompressedSize = size;
-//        const std::string& str = speciesTimeSeries.counts().data();
-//        ZLIB_EXCEPTION_CHECK(uncompress((unsigned char *)counts, &uncompressedSize, (unsigned char*)&(str[0]), str.size()));
-//        if (uncompressedSize != size)
-//            throw Exception("Error during data decompression, wrong number of bytes returned.");
-//    }
-//    else
-//    {
-//        const std::string& str = speciesTimeSeries.counts().data();
-//        if (str.size() != numberEntries*numberSpecies*sizeof(counts[0]))
-//            InvalidArgException("speciesTimeSeries.counts.data", "Incorrect size for data array.");
-//        counts = (int32_t*)&(str[0]);
-//    }
-//    double* times=NULL;
-//    if (speciesTimeSeries.times().compressed_deflate())
-//    {
-//        times = new double[numberEntries];
-//        size_t size = numberEntries*sizeof(times[0]);
-//        size_t uncompressedSize = size;
-//        const std::string& str = speciesTimeSeries.times().data();
-//        ZLIB_EXCEPTION_CHECK(uncompress((unsigned char *)times, &uncompressedSize, (unsigned char*)&(str[0]), str.size()));
-//        if (uncompressedSize != size)
-//            throw Exception("Error during data decompression, wrong number of bytes returned.");
-//    }
-//    else
-//    {
-//        const std::string& str = speciesTimeSeries.times().data();
-//        if (str.size() != numberEntries*sizeof(times[0]))
-//            InvalidArgException("speciesTimeSeries.times.data", "Incorrect size for data array.");
-//        times = (double*)&(str[0]);
-//    }
 
     // Append  the data.
     appendSpeciesTimeSeries(replicate, numberEntries, numberSpecies, counts, times);

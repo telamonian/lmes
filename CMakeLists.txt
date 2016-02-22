@@ -1,14 +1,19 @@
-cmake_minimum_REQUIRED(VERSION 2.8.7)
-SET(CMAKE_C_COMPILER gcc)
-SET(CMAKE_CXX_COMPILER g++)
+# the following commands are wrapped to prevent errors when this CMakeLists.txt is included as a subdirectory in another CMakeLists.txt
+if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    cmake_minimum_REQUIRED(VERSION 3.0.0)
+    SET(CMAKE_C_COMPILER gcc)
+    SET(CMAKE_CXX_COMPILER g++)
+endif(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 set(ENV{HDF5_ROOT} ${HDF5_ROOT})
 
 ################
 project(lm)
 ################
+SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules)
 enable_testing()
 # if certain packages cannot be found, the end-user (you) can change the variables in CMakeConfig.txt to point to package paths
 include(CMakeConfig.txt)
+include(TestAVX)
 
 # stuff for enabling the built in profiler
 if(PROF_ENABLE)
@@ -16,8 +21,6 @@ if(PROF_ENABLE)
 endif(PROF_ENABLE)
 
 # package finding stuff
-SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/CMakeModules)
-
 find_package(MPI REQUIRED)
 message("testing if mpi is mpich...")
 execute_process(COMMAND ${MPI_C_COMPILER} -v OUTPUT_VARIABLE MPI_VERSION_DUMP ERROR_QUIET)
@@ -54,7 +57,6 @@ find_package(HDF5 COMPONENTS C HL REQUIRED)
 find_package(ZLIB REQUIRED)
 #find_package(Boost)
 
-# automagic setup for linux, os X 10.7-8 (and lower?), and os X 10.9
 add_definitions(-DBUILD_INFO -DVERBOSITY_LEVEL=${VERBOSITY_LEVEL})
 IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
     add_definitions(-DOPT_CUDA)
@@ -64,19 +66,20 @@ IF(DEFINED CUSTOM_C_FLAGS)
     SET(CMAKE_C_FLAGS ${CUSTOM_C_FLAGS})
     MESSAGE(STATUS "Using custom C flags: ${CMAKE_C_FLAGS}")
 ELSE(DEFINED CUSTOM_C_FLAGS)
-    SET(CMAKE_C_FLAGS "-g -m64 -fPIC -Wall -fmessage-length=0")
+    SET(CMAKE_C_FLAGS "-g -march=native -fPIC -Wall -fmessage-length=0")
 ENDIF(DEFINED CUSTOM_C_FLAGS)
 
 IF(DEFINED CUSTOM_CXX_FLAGS)
     SET(CMAKE_CXX_FLAGS ${CUSTOM_CXX_FLAGS})
     MESSAGE(STATUS "Using custom C++ flags: ${CMAKE_CXX_FLAGS}")
 ELSE(DEFINED CUSTOM_CXX_FLAGS)
-    SET(CMAKE_CXX_FLAGS "-g -m64 -fPIC -Wall -fmessage-length=0")
+    SET(CMAKE_CXX_FLAGS "-g -march=native -fPIC -Wall -fmessage-length=0")
 ENDIF(DEFINED CUSTOM_CXX_FLAGS)
 
 # for now, no c++11 support
 #SET(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 
+# automagic setup for linux, os X 10.7-8 (and lower?), and os X 10.9 (and higher)
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     add_definitions(-DLINUX)
 ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -109,6 +112,20 @@ endif(BUILD_WITH_CUDA)
 if(libsbml_FOUND)
     include_directories(${libsbml_INCLUDE_DIRS})
 endif(libsbml_FOUND)
+
+TestAVX(COMPILER_HAS_AVX)
+if(COMPILER_HAS_AVX)
+    add_definitions(-DOPT_AVX)
+endif(COMPILER_HAS_AVX)
+
+# to help clion find the generated protobuf code
+string(REGEX MATCH "[Cc][Ll]ion" BUILT_WITH_CLION "${lm_BINARY_DIR}")
+if(BUILT_WITH_CLION)
+    include_directories(${CMAKE_CURRENT_BINARY_DIR}/../Debug/src/c/
+                        ${CMAKE_CURRENT_BINARY_DIR}/../MinSizeRel/src/c/
+                        ${CMAKE_CURRENT_BINARY_DIR}/../Release/src/c/
+                        ${CMAKE_CURRENT_BINARY_DIR}/../RelWithDebInfo/src/c/)
+endif(BUILT_WITH_CLION)
 
 # add subdirectories
 add_subdirectory(src/c)
