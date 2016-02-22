@@ -67,7 +67,7 @@ public:
     void init(const lm::io::OrderParameters& oparams);
     void init();
     void initOParam(const lm::io::OrderParameters::OrderParameter& oparam);
-    void initValues(uint* speciesCounts);
+    void initValues(uint* speciesCounts, double time);
 
     // operators
     lm::oparam::OParam* operator[](uint i) {return opMap[i];}
@@ -75,6 +75,7 @@ public:
     OPMap::iterator end() {return opMap.end();}
 
     // accessors
+    void calc(uint* speciesCounts, double time);
     lm::io::OrderParameters* getOParamsBuf() {return &oparamsBuf;}
     uint size() {return size_;}
 

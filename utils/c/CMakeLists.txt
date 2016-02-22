@@ -49,5 +49,4 @@ add_custom_target(install-utils
     DEPENDS utils
     COMMAND
         "${CMAKE_COMMAND}" -DCMAKE_INSTALL_COMPONENT=utils
-        -P "${CMAKE_BINARY_DIR}/cmake_install.cmake"
-)
+        -P "${CMAKE_BINARY_DIR}/cmake_install.cmake")

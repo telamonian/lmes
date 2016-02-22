@@ -36,8 +36,8 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_NEUS_NEUSTRAJECTORY_H_
-#define LM_NEUS_NEUSTRAJECTORY_H_
+#ifndef LM_FFLUX_FFLUXTRAJECTORY_H_
+#define LM_FFLUX_FFLUXTRAJECTORY_H_
 
 #include "lm/Types.h"
 #include "lm/io/FFluxOutput.pb.h"
@@ -63,11 +63,14 @@ public:
     virtual bool fluxedForward();
 
     // accessors
+    virtual uint getFFluxPhase();
     virtual lm::io::TrajectoryLimits::LimitType getFinalLimitType();
+    virtual double getLastLimitTime();
     virtual void getLastSpeciesCounts(lm::io::FFluxOutput::TrajectoryOutput* trajectoryOutputBuf);
-    virtual uint getSimSteps();
-    virtual double getSimTime();
     virtual bool hasElapsed(double time);
+
+    // mutators
+    virtual void setLastLimitTime(double lLT);
 
     //    uint getFFluxPhase() {return ffluxPhase;}
     //    void setFFluxPhase(uint newPhase) {ffluxPhase = newPhase;}
@@ -75,6 +78,8 @@ public:
 protected:
     const lm::input::Input& input;
     uint ffluxPhase;
+    // the simulation time when the trajectory last hit a limit (or 0.0)
+    double lastLimitTime;
 };
 
 }

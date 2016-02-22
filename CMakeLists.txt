@@ -120,9 +120,6 @@ ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
 #add_subdirectory(gtest/c)
 
 add_subdirectory(utils/c)
-if(libsbml_FOUND)
-    add_dependencies(lm_sbml_import lm_c_lib)
-endif(libsbml_FOUND)
 
 #set_source_files_properties(${proto_hdrs} PROPERTIES GENERATED TRUE)
 #get_directory_property(proto_vars DIRECTORY src/protobuf DEFINITION proto_srcs)

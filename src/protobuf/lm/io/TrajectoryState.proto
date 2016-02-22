@@ -44,10 +44,11 @@ import "lm/io/RDMEState.proto";
 import "lm/io/TrajectoryLimits.proto";
 
 message TrajectoryState {
-    required uint64 trajectory_id                               = 1;
-    optional bool trajectory_started                            = 2 [default = false];
-    optional lm.io.CMEState cme_state                           = 3;
-    optional lm.io.RDMEState rdme_state                         = 4;
-    optional lm.io.TrajectoryLimits.LimitType limit_reached     = 5;
-    optional bytes solver_state                                 = 100;
+    required uint64 trajectory_id                                = 1;
+    optional bool trajectory_started                             = 2 [default = false];
+    optional lm.io.CMEState cme_state                            = 3;
+    optional lm.io.RDMEState rdme_state                          = 4;
+    optional int64 limit_index_reached                           = 5;
+    optional lm.io.TrajectoryLimits.LimitType limit_type_reached = 6;
+    optional bytes solver_state                                  = 100;
 }

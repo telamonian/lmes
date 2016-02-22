@@ -36,13 +36,14 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #ifndef LM_RESOURCE_SLOTALLOCATOR_H_
 #define LM_RESOURCE_SLOTALLOCATOR_H_
 
 #include <map>
 #include <string>
 #include <vector>
+
+#include "hrtime.h"
 #include "lm/Types.h"
 #include "lm/input/Input.h"
 #include "lm/io/DiffusionModel.pb.h"
@@ -84,12 +85,15 @@ public:
     void runWorkUnit(lm::message::Message* runWorkUnitMsg);
     void workUnitFinished(const lm::message::FinishedWorkUnit& msg);
 
-
+    void printSlotsStatistics();
+    void resetSlotsStatistics();
 
 private:
-    vector<Slot> slots;
+    SlotVector slots;
     map<int64_t,int> workUnitToSlotMap;
     lm::message::Communicator* communicator;
+
+    hrtime stats_lastPrintTime;
 };
 
 }

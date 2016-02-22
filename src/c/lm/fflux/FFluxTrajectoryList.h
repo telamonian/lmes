@@ -36,8 +36,8 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_NEUS_NEUSTRAJECTORYLIST_H_
-#define LM_NEUS_NEUSTRAJECTORYLIST_H_
+#ifndef LM_FFLUX_FFLUXTRAJECTORYLIST_H_
+#define LM_FFLUX_FFLUXTRAJECTORYLIST_H_
 
 #include <google/protobuf/repeated_field.h>
 #include <map>
@@ -48,6 +48,7 @@
 #include "lm/input/Input.h"
 #include "lm/io/FFluxOutput.pb.h"
 #include "lm/io/ReactionModel.pb.h"
+#include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Communicator.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
@@ -72,14 +73,18 @@ typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::IncreasingO
 
 class FFluxTrajectoryList : public lm::trajectory::TrajectoryList
 {
+    friend class FFluxSupervisor;
 public:
     // enumerated type used for describing the direction of the current fflux simulation relative to the arrangements (low-to-high or high-to-low) of the individual interfaces
     enum Direction {FORWARD, BACKWARD};
+    // enumerated type used for picking which phase termination check to use
+    enum PhaseCheck {CROSSINGS, TIME};
 
 //    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters, lm::tiling::Tilings& tilings);
     FFluxTrajectoryList(lm::message::Communicator& communicator, uint64_t simultaneousTrajectoryCount,lm::input::Input& input);
     virtual ~FFluxTrajectoryList();
     virtual void init();
+    virtual void initChecks(lm::input::Input& input);
     virtual void initFFluxOutput();
     virtual void initReversed();
     virtual void initTrajectories(uint64_t toStartCount,bool reversed=false);
@@ -87,6 +92,8 @@ public:
     virtual void initPhaseNTrajectories(uint64_t trajectoriesToStart);
 
     virtual lm::fflux::FFluxTrajectory* workUnitFinished(const lm::message::FinishedWorkUnit & finishedWorkUnitMsg);
+    virtual lm::fflux::FFluxTrajectory* workUnitFinishedPhaseZero(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg, uint prevFinalLimitID, double prevTime, lm::fflux::FFluxTrajectory* traj);
+    virtual lm::fflux::FFluxTrajectory* workUnitFinishedPhaseN(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg, uint prevFinalLimitID, double prevTime, lm::fflux::FFluxTrajectory* traj);
 
     // getters
     virtual CrossingVector getCrossings(long long ffluxPhase);
@@ -109,9 +116,9 @@ protected:
     virtual void addCrossing(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg);
     virtual uint incrFFluxPhase();
     virtual bool isFFluxDone();
-    virtual bool isPhaseDone();
-    virtual bool isZerothPhase();
-    virtual bool isZerothPhaseDone(double);
+    virtual bool isPhaseDoneN(double simTime);
+    virtual bool isPhaseDoneZero(double simTime);
+    virtual bool isPhaseZero();
     virtual void reduceTilingHist(const lm::io::TilingHist& tHist);
     virtual void restart();
     virtual void reverse();
@@ -120,8 +127,10 @@ protected:
     virtual void saveFinishedTrajectoriesCounts();
 
     // methods related to fflux data output
-    virtual void ffluxOutputAddBasin(CrossingsMap& crossings, FinishedTrajectoriesCountMap& finishedTrajectoriesCounts);
+    virtual void ffluxOutputAddBasin(CrossingsMap& crossings, DwellTimeMap& dwellTimes, FinishedTrajectoriesCountMap& finishedTrajectoriesCounts);
     virtual void ffluxOutputAddTrajectory(FFluxTrajectory* traj, lm::io::FFluxOutput::Lifecycle lifecycle);
+    virtual void ffluxOutputAddTrajectory(const lm::io::SpeciesCounts& specCountsMsg, lm::io::FFluxOutput::Lifecycle lifecycle);
+    virtual void ffluxOutputAddTrajectory(const lm::io::SpeciesTimeSeries& specTimeSeriesMsg, lm::io::FFluxOutput::Lifecycle lifecycle);
     virtual void ffluxOutputFinishTrajectory();
     virtual void ffluxOutputPrintBasin(CrossingsMap& crossings, FinishedTrajectoriesCountMap& finishedTrajectoriesCounts);
     virtual void ffluxOutputPrintFinal_DinnerMethod(SavedCrossings& savedCrossings, SavedDwellTimes& savedDwellTimes, SavedFinishedTrajectoriesCounts& savedFinishedTrajectoriesCounts, SavedHists& savedHists);
@@ -131,10 +140,16 @@ protected:
     lm::message::Communicator* communicator;
     lm::input::Input& input;
     Direction direction;
+    // for printing the name of the current simulation direction
+    static const std::vector<std::string> directionStrings;
     long long ffluxPhase;
     long long maxFFluxPhase;
     uint64_t simultaneousTrajectoryCount;
     lm::rng::XORShift xorShift; //RNG used for randomly choosing a crossing in a crossing vector
+
+//    // members that hold trajectory data used for calculation of the forward flux during phase 0
+//    std::map<uint,uint> phaseZeroCrossings;
+//    std::map<uint,double> phaseZeroTimes;
 
     // members that hold the trajectory data used for the calculations at the end of fflux
     lm::io::TilingHist averageTilingHist;
@@ -148,12 +163,20 @@ protected:
     SavedHists savedHists;
 
     // user defined parameters that determine how the forward flux sampling is carried out
-    unsigned crossingsPerPhase; //the count of crossing events that should be collected for every fflux sampling phase
-    double maxPhaseZeroTime;
+    unsigned maxCrossingsZero;
+    double maxTimeZero;
+    unsigned maxCrossingsN; //the count of crossing events that should be collected for every fflux sampling phase
+    double maxTimeN;
+
+    PhaseCheck checkZero;
+    PhaseCheck checkN;
 
     // Messages used to send the large-ish FFluxOutput at the end of the simulation and to stream fflux TrajectoryOutput messages as the simulation runs
     lm::message::Message msg;
     lm::message::Message msgStreaming;
+
+    // tuning parameter for setting how much fflux data has to accumulate before it is sent off to the master output. normally this is dynamically adjusted
+    int ffluxOutputQueueSize;
 };
 
 }

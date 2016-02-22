@@ -52,8 +52,8 @@ public:
     OParam();
     virtual ~OParam();
     virtual void init(const lm::io::OrderParameters::OrderParameter& opRef);
-    virtual void initValues(uint* speciesCounts);
-    virtual double calc(uint* speciesCounts) = 0;
+    virtual void initValues(uint* speciesCounts, double time);
+    virtual double calc(uint* speciesCounts, double time) = 0;
     double get() {return val;}
     double getPrev() {return prevVal;}
     void set(double newVal) {val = newVal;}
@@ -74,7 +74,7 @@ public:
     OParamLinear();
     virtual ~OParamLinear() {}
     virtual void init(const lm::io::OrderParameters::OrderParameter& opRef);
-    virtual double calc(uint* speciesCounts);
+    virtual double calc(uint* speciesCounts, double time);
 public:
     uint size;
     const uint* speciesID;

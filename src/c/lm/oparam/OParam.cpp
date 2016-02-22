@@ -59,9 +59,9 @@ void OParam::init(const lm::io::OrderParameters::OrderParameter& opRef)
     op = new lm::io::OrderParameters::OrderParameter(opRef);
 }
 
-void OParam::initValues(uint* speciesCounts)
+void OParam::initValues(uint* speciesCounts, double time)
 {
-    calc(speciesCounts);
+    calc(speciesCounts, time);
     prevVal = val;
 }
 
@@ -83,12 +83,12 @@ void OParamLinear::init(const lm::io::OrderParameters::OrderParameter& opRef)
 {
     // call parent method
     OParam::init(opRef);
-    size = op->species_id_size();
-    speciesID = op->species_id().data();
-    speciesCoefficient = op->species_coefficient().data();
+    size = op->species_ids_size();
+    speciesID = op->species_ids().data();
+    speciesCoefficient = op->species_coefficients().data();
 }
 
-double OParamLinear::calc(uint* speciesCounts)
+double OParamLinear::calc(uint* speciesCounts, double time)
 {
     prevVal = val;
     val = 0;

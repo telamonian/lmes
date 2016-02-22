@@ -70,6 +70,7 @@
 #include "lm/io/SpatialModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
+#include "lm/io/TilingHist.pb.h"
 #include "lm/io/Tilings.pb.h"
 #include "lm/io/hdf5/HDF5.h"
 #include "lm/io/hdf5/SimulationFile.h"
@@ -327,7 +328,7 @@ void Hdf5File::getParameters(lm::io::SimulationParameters* parameters) const
     }
 }
 
-map<string,string> Hdf5File::getParameters()
+map<string,string>& Hdf5File::getParameters()
 {
     return parameterMap;
 }
@@ -566,6 +567,7 @@ void Hdf5File::setFFluxOutput(lm::io::FFluxOutput* ffluxOutput)
 //    {
 //        HDF5_EXCEPTION_CHECK(H5Ldelete(tilingGroup, "FFluxOutput", H5P_DEFAULT));
 //    }
+//    HDF5_EXCEPTION_CALL(ffluxOutputGroup, H5Gcreate2(tilingGroup, "FFluxOutput", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
 
     // write the attributes for the FFluxOutput
     hid_t attr, scalarSpace;
@@ -599,7 +601,7 @@ void Hdf5File::setFFluxOutput(lm::io::FFluxOutput* ffluxOutput)
     hid_t directionGroup, lifecycleGroup;
     int outIndex;
     vector<string> directionStrings; directionStrings.push_back("FORWARD"); directionStrings.push_back("BACKWARD");
-    vector<string> lifecycleStrings; lifecycleStrings.push_back("INITIAL"); lifecycleStrings.push_back("FINAL");
+    vector<string> lifecycleStrings; lifecycleStrings.push_back("INITIAL"); lifecycleStrings.push_back("RUNNING"); lifecycleStrings.push_back("FINAL");
 
     if (ffluxOutput->has_final_output())
     {
@@ -620,8 +622,13 @@ void Hdf5File::setFFluxOutput(lm::io::FFluxOutput* ffluxOutput)
 
     for (int i=0;i<ffluxOutput->trajectory_outputs_size();i++)
     {
+        // some versions of HDF5 complain if you try to write out empty datasets, so skip those
+        if (ffluxOutput->trajectory_outputs(i).count_size()==0)
+        {
+            continue;
+        }
         lm::io::FFluxOutput::TrajectoryOutput* trajOut = ffluxOutput->mutable_trajectory_outputs(i);
-        outIndex = (trajOut->direction())*2 + trajOut->lifecycle();
+        outIndex = (trajOut->direction())*3 + trajOut->lifecycle();
         // If the group corresponding to the basin direction already exists, get the handle to it. Otherwise, create it
         if ((directionGroup = H5Gopen2(ffluxOutputGroup, directionStrings[trajOut->direction()].c_str(), H5P_DEFAULT))>=0) {}
         else {HDF5_EXCEPTION_CALL(directionGroup, H5Gcreate2(ffluxOutputGroup, directionStrings[trajOut->direction()].c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));}
@@ -669,7 +676,7 @@ void Hdf5File::setFFluxBasinOutput(lm::io::FFluxOutput* ffluxOutput, int basinIn
     if (basinOut->has_this_basin_last_visited_probability())
     {
         double this_basin_last_visited_probability = basinOut->this_basin_last_visited_probability();
-        HDF5_EXCEPTION_CALL(attr, H5Acreate(basinGroup, "ThisBasinLastVistedProbability", H5T_IEEE_F64LE, scalarSpace, H5P_DEFAULT, H5P_DEFAULT));
+        HDF5_EXCEPTION_CALL(attr, H5Acreate(basinGroup, "ThisBasinLastVisitedProbability", H5T_IEEE_F64LE, scalarSpace, H5P_DEFAULT, H5P_DEFAULT));
         HDF5_EXCEPTION_CHECK(H5Awrite(attr, H5T_IEEE_F64LE, &this_basin_last_visited_probability));
         HDF5_EXCEPTION_CHECK(H5Aclose(attr));
     }
@@ -723,6 +730,8 @@ void Hdf5File::setFFluxBasinOutput(lm::io::FFluxOutput* ffluxOutput, int basinIn
         HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(basinGroup, "ProbabilityI", "TilingID", &tiling_id, 1));
         HDF5_EXCEPTION_CHECK(H5Gclose(normalizedProbabilityIGroup));
     }
+    setTilingHist(basinOut->mutable_runs_per_phase(), "RunsPerPhase", basinGroup);
+    setTilingHist(basinOut->mutable_time_per_phase(), "TimePerPhase", basinGroup);
 }
 
 void Hdf5File::setFFluxFinalOutput(lm::io::FFluxOutput* ffluxOutput, hid_t ffluxOutputGroup)
@@ -881,6 +890,26 @@ void Hdf5File::_setFFluxTrajectoryOutput(::google::protobuf::RepeatedField<T> da
     }
 }
 
+void Hdf5File::setTilingHist(lm::io::TilingHist* tilingHist, std::string datasetName, hid_t superGroup)
+{
+    if (tilingHist->tile_vals_size() > 0)
+    {
+        hid_t thGroup;
+        hsize_t dims[1];
+        uint number_tiles, tiling_id;
+
+        dims[0] = tilingHist->tile_vals_size();
+        HDF5_EXCEPTION_CALL(thGroup, H5Gcreate2(superGroup, datasetName.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(thGroup, "TileIndices", 1, dims, H5T_STD_U32LE, tilingHist->tile_indices().data()));
+        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(thGroup, "TileVals", 1, dims, H5T_IEEE_F64LE, tilingHist->tile_vals().data()));
+        number_tiles = tilingHist->number_tiles();
+        HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(superGroup, datasetName.c_str(), "NumberTiles", &number_tiles, 1));
+        tiling_id = tilingHist->tiling_id();
+        HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(superGroup, datasetName.c_str(), "TilingID", &tiling_id, 1));
+        HDF5_EXCEPTION_CHECK(H5Gclose(thGroup));
+    }
+}
+
 bool Hdf5File::hasOrderParameters() const
 {
     return (H5Lexists(file, "/OrderParameters", H5P_DEFAULT)!=0);
@@ -915,7 +944,7 @@ herr_t Hdf5File::getOrderParametersCallback(hid_t loc_id, const char * name, con
     H5LTread_dataset_int(opGroup, "SpeciesIDs", speciesBuffer);
     for (int i=0;i<dims[0];i++)
     {
-        newOP->add_species_id(speciesBuffer[i]);
+        newOP->add_species_ids(speciesBuffer[i]);
     }
 
     H5LTget_dataset_info(opGroup, "SpeciesCoefficients", dims, &hdf5Type, &size);
@@ -923,7 +952,7 @@ herr_t Hdf5File::getOrderParametersCallback(hid_t loc_id, const char * name, con
     H5LTread_dataset_double(opGroup, "SpeciesCoefficients", coefficientBuffer);
     for (int i=0;i<dims[0];i++)
     {
-        newOP->add_species_coefficient(coefficientBuffer[i]);
+        newOP->add_species_coefficients(coefficientBuffer[i]);
     }
 
     // free the buffers
@@ -993,10 +1022,10 @@ void Hdf5File::setOrderParameters(lm::io::OrderParameters * orderParameters)
         HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(opsGroup, opSS.str().c_str(), "Type", &type, 1));
 
         // write the order parameter's datasets
-        opDims[0] = orderParameters->order_parameters(i).species_id().size();
-        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(opGroup, "SpeciesIDs", 1, opDims, H5T_STD_U32LE, orderParameters->order_parameters(i).species_id().data()));
-        opDims[0] = orderParameters->order_parameters(i).species_coefficient().size();
-        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(opGroup, "SpeciesCoefficients", 1, opDims, H5T_IEEE_F64LE, orderParameters->order_parameters(i).species_coefficient().data()));
+        opDims[0] = orderParameters->order_parameters(i).species_ids().size();
+        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(opGroup, "SpeciesIDs", 1, opDims, H5T_STD_U32LE, orderParameters->order_parameters(i).species_ids().data()));
+        opDims[0] = orderParameters->order_parameters(i).species_coefficients().size();
+        HDF5_EXCEPTION_CHECK(H5LTmake_dataset(opGroup, "SpeciesCoefficients", 1, opDims, H5T_IEEE_F64LE, orderParameters->order_parameters(i).species_coefficients().data()));
         HDF5_EXCEPTION_CHECK(H5Gclose(opGroup));
     }
     HDF5_EXCEPTION_CHECK(H5Gclose(opsGroup));
@@ -1463,7 +1492,7 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
 
     // infer whether edges is sorted ascending or descending
     lm::io::Tilings::Arrangement sortArrangement = newTiling->edges(newTiling->edges_size()-1)>=newTiling->edges(0) ? lm::io::Tilings::ASCENDING : lm::io::Tilings::DESCENDING;
-    newTiling->set_arrangement(sortArrangement);
+    newTiling->add_arrangement(sortArrangement);
 
     // ensure that edges is actually sorted the way we guessed
     if (sortArrangement==lm::io::Tilings::ASCENDING)
@@ -1631,13 +1660,10 @@ void Hdf5File::appendSpeciesCounts(uint64_t replicate, lm::io::SpeciesCounts * s
     appendSpeciesTimeSeries(replicate, speciesCounts->number_entries(), speciesCounts->number_species(), speciesCounts->species_count().data(), speciesCounts->time().data());
 }
 
-void Hdf5File::appendSpeciesTimeSeries(uint64_t replicate, const lm::io::SpeciesTimeSeries& speciesTimeSeries)
+int32_t* Hdf5File::dumpSpeciesCounts(const lm::io::SpeciesTimeSeries& speciesTimeSeries)
 {
     int numberEntries = speciesTimeSeries.counts().shape(0);
     int numberSpecies = speciesTimeSeries.counts().shape(1);
-
-    if (speciesTimeSeries.times().shape(0) != numberEntries)
-        InvalidArgException("speciesTimeSeries.times.shape", "Numebr of rows in time array incocnsistent with counts array.");
 
     // Extract the data, decompressing if necessary.
     int32_t* counts=NULL;
@@ -1658,6 +1684,15 @@ void Hdf5File::appendSpeciesTimeSeries(uint64_t replicate, const lm::io::Species
             InvalidArgException("speciesTimeSeries.counts.data", "Incorrect size for data array.");
         counts = (int32_t*)&(str[0]);
     }
+    return counts;
+}
+
+double* Hdf5File::dumpSpeciesTimes(const lm::io::SpeciesTimeSeries& speciesTimeSeries)
+{
+    // Extract the data, decompressing if necessary.
+    int numberEntries = speciesTimeSeries.counts().shape(0);
+    int numberSpecies = speciesTimeSeries.counts().shape(1);
+
     double* times=NULL;
     if (speciesTimeSeries.times().compressed_deflate())
     {
@@ -1676,8 +1711,58 @@ void Hdf5File::appendSpeciesTimeSeries(uint64_t replicate, const lm::io::Species
             InvalidArgException("speciesTimeSeries.times.data", "Incorrect size for data array.");
         times = (double*)&(str[0]);
     }
+    return times;
+}
 
-    // Append the data.
+void Hdf5File::appendSpeciesTimeSeries(uint64_t replicate, const lm::io::SpeciesTimeSeries& speciesTimeSeries)
+{
+    int numberEntries = speciesTimeSeries.counts().shape(0);
+    int numberSpecies = speciesTimeSeries.counts().shape(1);
+
+    if (speciesTimeSeries.times().shape(0) != numberEntries)
+        InvalidArgException("speciesTimeSeries.times.shape", "Numebr of rows in time array incocnsistent with counts array.");
+
+    // Extract the data, decompressing if necessary.
+    int32_t* counts=dumpSpeciesCounts(speciesTimeSeries);
+    double* times=dumpSpeciesTimes(speciesTimeSeries);
+//    int32_t* counts=NULL;
+//    if (speciesTimeSeries.counts().compressed_deflate())
+//    {
+//        counts = new int32_t[numberEntries*numberSpecies];
+//        size_t size = numberEntries*numberSpecies*sizeof(counts[0]);
+//        size_t uncompressedSize = size;
+//        const std::string& str = speciesTimeSeries.counts().data();
+//        ZLIB_EXCEPTION_CHECK(uncompress((unsigned char *)counts, &uncompressedSize, (unsigned char*)&(str[0]), str.size()));
+//        if (uncompressedSize != size)
+//            throw Exception("Error during data decompression, wrong number of bytes returned.");
+//    }
+//    else
+//    {
+//        const std::string& str = speciesTimeSeries.counts().data();
+//        if (str.size() != numberEntries*numberSpecies*sizeof(counts[0]))
+//            InvalidArgException("speciesTimeSeries.counts.data", "Incorrect size for data array.");
+//        counts = (int32_t*)&(str[0]);
+//    }
+//    double* times=NULL;
+//    if (speciesTimeSeries.times().compressed_deflate())
+//    {
+//        times = new double[numberEntries];
+//        size_t size = numberEntries*sizeof(times[0]);
+//        size_t uncompressedSize = size;
+//        const std::string& str = speciesTimeSeries.times().data();
+//        ZLIB_EXCEPTION_CHECK(uncompress((unsigned char *)times, &uncompressedSize, (unsigned char*)&(str[0]), str.size()));
+//        if (uncompressedSize != size)
+//            throw Exception("Error during data decompression, wrong number of bytes returned.");
+//    }
+//    else
+//    {
+//        const std::string& str = speciesTimeSeries.times().data();
+//        if (str.size() != numberEntries*sizeof(times[0]))
+//            InvalidArgException("speciesTimeSeries.times.data", "Incorrect size for data array.");
+//        times = (double*)&(str[0]);
+//    }
+
+    // Append  the data.
     appendSpeciesTimeSeries(replicate, numberEntries, numberSpecies, counts, times);
 
     // Free any allocated memory.

@@ -103,11 +103,19 @@ void OParams::initOParam(const lm::io::OrderParameters::OrderParameter& oparam)
     opMap[oparam.id()]->init(oparam);
 }
 
-void OParams::initValues(uint* speciesCounts)
+void OParams::initValues(uint* speciesCounts, double time)
 {
     for (OPMap::iterator m_it=begin();m_it!=end();++m_it)
     {
-        m_it->second->initValues(speciesCounts);
+        m_it->second->initValues(speciesCounts, time);
+    }
+}
+
+void OParams::calc(uint* speciesCounts, double time)
+{
+    for (OPMap::iterator m_it=begin();m_it!=end();++m_it)
+    {
+        m_it->second->calc(speciesCounts, time);
     }
 }
 

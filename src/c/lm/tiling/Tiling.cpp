@@ -60,17 +60,17 @@ Tiling::~Tiling()
 void Tiling::init(const lm::io::Tilings::Tiling& tilingRef)
 {
     tilingBuf = new lm::io::Tilings::Tiling(tilingRef);
-    setArrangement(tilingBuf->arrangement());
+    setArrangement(tilingBuf->arrangement(0));
 }
 
 lm::io::Tilings::Arrangement Tiling::getArrangement() const
 {
-    return tilingBuf->arrangement();
+    return tilingBuf->arrangement(0);
 }
 
 void Tiling::setArrangement(lm::io::Tilings::Arrangement newArr)
 {
-    if (tilingBuf->arrangement()!=newArr)
+    if (tilingBuf->arrangement(0)!=newArr)
     {
         reverse();
     }
@@ -78,17 +78,12 @@ void Tiling::setArrangement(lm::io::Tilings::Arrangement newArr)
 
 void Tiling::reverse()
 {
-    tilingBuf->set_arrangement(tilingBuf->arrangement()==lm::io::Tilings::ASCENDING ? lm::io::Tilings::DESCENDING : lm::io::Tilings::ASCENDING);
+    tilingBuf->set_arrangement(0, tilingBuf->arrangement(0)==lm::io::Tilings::ASCENDING ? lm::io::Tilings::DESCENDING : lm::io::Tilings::ASCENDING);
     int revLoops = tilingBuf->edges_size()/2;
     for (int i=0;i<revLoops;++i)
     {
         tilingBuf->mutable_edges()->SwapElements(i, tilingBuf->edges_size()-(i+1));
     }
-}
-
-double Tiling::getEdge(uint edgeIndex)
-{
-    return tilingBuf->edges(edgeIndex);
 }
 
 uint Tiling::getTileIndex(double opVal)
@@ -99,21 +94,21 @@ uint Tiling::getTileIndex(double opVal)
 }
 
 // derived class methods
-bool TilingAxial::registered=TilingAxial::registerClass();
-bool TilingAxial::registerClass()
+bool TilingLattice::registered=TilingLattice::registerClass();
+bool TilingLattice::registerClass()
 {
-    lm::ClassFactory::getInstance().registerClass("lm::tiling::Tiling","lm::tiling::TilingBin",&TilingAxial::allocateObject);
+    lm::ClassFactory::getInstance().registerClass("lm::tiling::Tiling","lm::tiling::TilingBin",&TilingLattice::allocateObject);
 //    lm::tiling::Tilings::tilingClassMap[0] = "lm::tiling::TilingBin";
     return true;
 }
-void* TilingAxial::allocateObject()
+void* TilingLattice::allocateObject()
 {
-    return new TilingAxial();
+    return new TilingLattice();
 }
 
-TilingAxial::TilingAxial(): Tiling() {}
+TilingLattice::TilingLattice(): Tiling() {}
 
-void TilingAxial::init(const lm::io::Tilings::Tiling& tilingRef)
+void TilingLattice::init(const lm::io::Tilings::Tiling& tilingRef)
 {
     // call parent method
     Tiling::init(tilingRef);

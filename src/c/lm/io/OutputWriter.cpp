@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -314,27 +314,33 @@ int OutputWriter::HelperThread::run()
                 for (int i=0; i<pwu.part_output_size(); i++)
                 {
                     lm::message::WorkUnitOutput output = pwu.part_output(i);
-                    if (output.has_species_counts())
+                    if (output.has_fflux_output())
                     {
-                        p->processSpeciesCounts(output.species_counts());
+                        p->processFFluxOutput(output.fflux_output());
                     }
                     if (output.first_passage_times_size() > 0)
                     {
                         for (int j=0; j<output.first_passage_times_size(); j++)
                             p->processFirstPassageTimes(output.first_passage_times(j));
                     }
-                    if (output.has_species_time_series())
-                    {
-                        p->processSpeciesTimeSeries(output.species_time_series());
-                    }
                     if (output.has_lattice_time_series())
                     {
                         p->processLatticeTimeSeries(output.lattice_time_series());
                     }
-                    if (output.has_fflux_output())
+                    if (output.has_order_parameter_time_series())
                     {
-                        p->processFFluxOutput(output.fflux_output());
+                        p->processOrderParameterTimeSeries(output.order_parameter_time_series());
                     }
+                    if (output.has_species_counts())
+                    {
+                        p->processSpeciesCounts(output.species_counts());
+                    }
+                    if (output.has_species_time_series())
+                    {
+                        p->processSpeciesTimeSeries(output.species_time_series());
+                    }
+
+
                 }
                 writingTime += getHrTime()-startWriting;
                 bytesWritten += messageSize;

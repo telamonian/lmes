@@ -75,12 +75,54 @@ void* FFluxSupervisor::allocateObject()
     return new FFluxSupervisor();
 }
 
-FFluxSupervisor::FFluxSupervisor(): realOutputWriterProcess(-1), realOutputWriterThread(-1)
+// if >0, we use a hand-rolled mpi receive polling scheme in order to reduce the supervisor cpu%
+int FFluxSupervisor::getRecvSleepMilliseconds()
+{
+    return -1;
+}
+
+FFluxSupervisor::FFluxSupervisor()
 {
 }
 
 FFluxSupervisor::~FFluxSupervisor()
 {
+}
+
+//void FFluxSupervisor::finishSimulation()
+//{
+//	// Create the output message.
+//	lm::message::Message msgp;
+//	lm::message::ProcessWorkUnitOutput* msg = msgp.add_process_work_unit_output();
+//	msg->set_work_unit_id(999999999999999);
+//
+//	// Initialize the fflux output data
+//	lm::io::FFluxOutput* ffluxOutput = NULL;
+//	ffluxOutput = msg->mutable_fflux_output();
+//
+//	// Assign the fflux output data
+//	*ffluxOutput = *(static_cast<lm::fflux::FFluxTrajectoryList*>(trajectoryList)->getFFluxOutput());
+//
+//	// Send the message
+//	communicator.sendMessageToMasterOutput(&msgp);
+//
+//	SimulationSupervisor::finishSimulation();
+//}
+
+void FFluxSupervisor::receivedProcessWorkUnitOutput(lm::message::Message& msg)
+{
+    // Loop over every output in the message.
+    for (int i=0; i<msg.process_work_unit_output_size(); i++)
+    {
+        if (msg.process_work_unit_output(i).has_species_counts())
+        {
+            (static_cast<FFluxTrajectoryList*>(trajectoryList))->ffluxOutputAddTrajectory(msg.process_work_unit_output(i).species_counts(), lm::io::FFluxOutput::RUNNING);
+        }
+        else if (msg.process_work_unit_output(i).has_species_time_series())
+        {
+            (static_cast<FFluxTrajectoryList*>(trajectoryList))->ffluxOutputAddTrajectory(msg.process_work_unit_output(i).species_time_series(), lm::io::FFluxOutput::RUNNING);
+        }
+    }
 }
 
 void FFluxSupervisor::receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg)
@@ -91,8 +133,9 @@ void FFluxSupervisor::receivedStartedOutputWriter(const lm::message::StartedOutp
     // set output process/thread to that of this supervisor, while keeping track of the real values
     outputWriterProcess = communicator.getSourceProcess();
     outputWriterThread = communicator.getSourceThread();
-    realOutputWriterProcess = msg.process();
-    realOutputWriterThread = msg.thread();
+//    outputWriterProcess = msg.process();
+//    outputWriterThread = msg.thread();
+    communicator.setMasterOutputEndpoint(msg.process(), msg.thread());
     startSimulationIfAllWorkersStarted();
 }
 

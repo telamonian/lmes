@@ -74,6 +74,7 @@ class ParameterValues;
 class SimulationParameters;
 class SpeciesCounts;
 class SpatialModel;
+class TilingHist;
 class Tilings;
 
 namespace hdf5 {
@@ -135,7 +136,7 @@ public:
 
     // Methods for working with parameters.
     virtual void getParameters(lm::io::SimulationParameters* parameters) const;
-    virtual map<string,string> getParameters();
+    virtual map<string,string>& getParameters();
     virtual string getParameter(string key, string defaultValue="");
     virtual void setParameter(string key, string value) throw(HDF5Exception);
 
@@ -161,6 +162,8 @@ public:
     virtual bool replicateExists(uint64_t replicate);
     virtual void openReplicate(uint64_t replicate) throw(HDF5Exception);
     virtual void appendSpeciesCounts(uint64_t replicate, lm::io::SpeciesCounts * speciesCounts) throw(HDF5Exception);
+    static int32_t* dumpSpeciesCounts(const lm::io::SpeciesTimeSeries& speciesTimeSeries);
+    static double* dumpSpeciesTimes(const lm::io::SpeciesTimeSeries& speciesTimeSeries);
     virtual void appendSpeciesTimeSeries(uint64_t replicate, const lm::io::SpeciesTimeSeries& speciesCounts);
     virtual void appendSpeciesTimeSeries(uint64_t replicate, int numberEntries, int numberSpecies, const int32_t* counts, const double* times);
     virtual void appendLatticeTimeSeries(uint64_t replicate, const lm::io::LatticeTimeSeries& data);
@@ -182,6 +185,7 @@ public:
     virtual void setFFluxTrajectoryOutput_TrajectoryID(lm::io::FFluxOutput* ffluxOutput, int outIndex, hid_t lifecycleGroup);
     template <typename T>
     void _setFFluxTrajectoryOutput(::google::protobuf::RepeatedField<T> data, hsize_t* dims, string dsetName, hid_t dsetType, hid_t lifecycleGroup, uint RANK);
+    virtual void setTilingHist(lm::io::TilingHist* tilingHist, std::string datasetName, hid_t superGroup);
 
     //virtual void appendSpatialModelObjects(uint64_t replicate, lm::io::SpatialModel * model) throw(HDF5Exception,InvalidArgException);
     //virtual void getSpatialModelObjects(uint64_t replicate, lm::io::SpatialModel * model) throw(HDF5Exception);

@@ -38,14 +38,16 @@
  */
 package lm.io;
 
+import "lm/io/DegreeAdvancements.proto";
 import "lm/io/FirstPassageTimes.proto";
-import "lm/io/OrderParametersValues.proto";
+import "lm/io/OrderParametersCounts.proto";
 import "lm/io/SpeciesCounts.proto";
 import "lm/io/TilingHist.proto";
 
 message CMEState {
     required SpeciesCounts species_counts                   = 1;
+    optional DegreeAdvancements degree_advancements			= 5;
     repeated FirstPassageTimes first_passage_times          = 2;
-    optional OrderParametersValues order_parameter_values   = 3;
+    optional OrderParametersCounts order_parameter_counts   = 3;
     repeated TilingHist tiling_hists                        = 4;
 }

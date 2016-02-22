@@ -1,0 +1,79 @@
+/*
+ * University of Illinois Open Source License
+ * Copyright 2011 Luthey-Schulten Group,
+ * All rights reserved.
+ * 
+ * Developed by: Luthey-Schulten Group
+ * 			     University of Illinois at Urbana-Champaign
+ * 			     http://www.scs.uiuc.edu/~schulten
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the Software), to deal with 
+ * the Software without restriction, including without limitation the rights to 
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
+ * of the Software, and to permit persons to whom the Software is furnished to 
+ * do so, subject to the following conditions:
+ * 
+ * - Redistributions of source code must retain the above copyright notice, 
+ * this list of conditions and the following disclaimers.
+ * 
+ * - Redistributions in binary form must reproduce the above copyright notice, 
+ * this list of conditions and the following disclaimers in the documentation 
+ * and/or other materials provided with the distribution.
+ * 
+ * - Neither the names of the Luthey-Schulten Group, University of Illinois at
+ * Urbana-Champaign, nor the names of its contributors may be used to endorse or
+ * promote products derived from this Software without specific prior written
+ * permission.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL 
+ * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR 
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+ * OTHER DEALINGS WITH THE SOFTWARE.
+ *
+ * Author(s): Elijah Roberts, Max Klein
+ */
+
+package lm.io;
+
+message Hist {
+    enum EdgeType {
+        CLOSED = 0;
+        OPEN = 1;
+        IGNORED = 2;
+    }
+	
+	// rank:
+	// a single number equal to the count of dimensions spanned by the hist
+	optional uint64 rank		= 1;
+	// dims:
+	// list of ints, length=rank
+	// the nth entry is the number of bins/tiles along dimension n
+	repeated uint64 dims		= 2 [packed=true];
+	
+	// edges:
+	// list of edges that divide the tiles in the histogram. 
+	// Multidimensional array stored as 1D array in C-order (row varies slowest with increasing index, then columns, and so forth (hyperslabs?))
+	repeated double edges		= 100 [packed=true];
+	repeated double vals		= 101 [packed=true];
+
+	// edge_types
+	// a set of tuples, one tuple for each bin in the histogram (count(bins) = (dims[0]-1)+(dims[1]-1)+...+(dims[rank-1]-1) = count(edges)-rank). 
+	// Indicates the type of the left and right bin edges. IGNORED is a special type that can be assigned to the leftmost or rightmost edge along a particular dimension, and which means that the corresponding bin is half-infinite
+	// If not specified, the default value for edge_types is ((IGNORED,OPEN),(CLOSED,OPEN),...,(CLOSED, IGNORED),...,(IGNORED,OPEN),(CLOSED,OPEN),...,(CLOSED, IGNORED))
+	// Multidimensional array stored as 1D array in C-order.
+	repeated EdgeType edge_types	= 200 [packed=true];
+
+	// openness:
+	// list of 2-tuples, one for each bin, of the form (int0,int1) where 0 indicates a closed edge and 1 indicates an open edge
+	// if openness is empty, then default is to assume that all bins are half-open on the right (ie (0,1))
+//	repeated uint32 openness 	= 3 [packed=true];
+	// boundedness:
+	// list of 2-tuples, one for each dimesion covered by the hist, of the form (int0,int1) where int can be 0 or 1
+	// if int0 is 0, this indicates that the leftmost bin for the corresponding dim is unbounded on the left, and if int0 is 1 that the leftmost bin is bounded on both sides
+	// if int1 is 0, this indicates that the rightmost bin for the corresponding dim is unbounded on the right, and if int1 is 1 that the rightmost bin is bounded on both sides
+//	repeated uint32 boundedness = 4 [packed=true];
+}

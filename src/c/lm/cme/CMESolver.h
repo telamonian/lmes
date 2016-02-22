@@ -182,10 +182,10 @@ protected:
         {
             speciesCounts[reactionModel->dependentSpecies[r][i]] += reactionModel->dependentSpeciesChange[r][i];
         }
-        if (hasUpdateSpeciesCountsListeners) callUpdateSpeciesCountsListeners();
+        if (hasUpdateSpeciesCountsListeners) callUpdateSpeciesCountsListeners(r);
     }
 
-    inline void callUpdateSpeciesCountsListeners()
+    inline void callUpdateSpeciesCountsListeners(uint r)
     {
         // Update the first passage time tables.
         for (int i=0; i<numberFptTrackedSpecies; i++)
@@ -206,6 +206,11 @@ protected:
         {
             orderParameterPreviousValues[i] = orderParameterValues[i];
             orderParameterValues[i] = orderParameterFunctions[i]->calculate(time, speciesCounts, reactionModel->numberSpecies);
+        }
+
+        if (daFlag)
+        {
+            degreeAdvancements[r]++;
         }
 
 //        // Update any tilingHists.
@@ -239,6 +244,7 @@ protected:
     size_t numberLimits;
     TrajectoryLimit* limits;
     lm::io::TrajectoryLimits::LimitType limitReached;
+    int64_t limitIndexReached;
 
     // Output options.
     bool writeSpeciesTimeSeries;
@@ -251,6 +257,7 @@ protected:
     // The current state.
     uint64_t trajectoryId;
     bool trajectoryStarted;
+    uint* degreeAdvancements;
     int* speciesCounts;
     double time;
     double timeStep;    // stores last time step calculated, used for building histogram

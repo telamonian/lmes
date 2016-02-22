@@ -71,6 +71,12 @@ using std::string;
 namespace lm {
 namespace main {
 
+// if >0, we use a hand-rolled mpi receive polling scheme in order to reduce the supervisor cpu%
+int SimulationSupervisor::getRecvSleepMilliseconds()
+{
+    return 5;
+}
+
 SimulationSupervisor::SimulationSupervisor()
 :simulationRunning(true),performingCheckpoint(false),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),hasOutputWriterStarted(false),outputWriterProcess(-1),outputWriterThread(-1),hasCheckpointSignalerStarted(false),solverClassName(""),useCPUAffinity(false),input(NULL),trajectoryList(NULL),slots(&communicator),haveAllWorkUnitRunnersStarted(false),workUnitCount(0)
 {
@@ -106,7 +112,7 @@ int SimulationSupervisor::run()
         while (running && simulationRunning)
         {
             // Read the next message.
-            communicator.receiveMessage(&message, 5);
+            communicator.receiveMessage(&message, getRecvSleepMilliseconds());
 
             // Do something with the message.
             if (message.has_resources_available())
@@ -142,6 +148,14 @@ int SimulationSupervisor::run()
                 receivedFinishedCheckpointing(message.finished_checkpointing());
             }
             else if (message.has_ping_target())
+            {
+            }
+            else if (message.process_work_unit_output_size() > 0)
+            {
+                receivedProcessWorkUnitOutput(message);
+            }
+            // hook for adding generic behavior to this loop in child Supervisors
+            else if (receivedOther(message))
             {
             }
             else
@@ -439,6 +453,7 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
 {
     Print::printf(Print::VERBOSE_DEBUG, "Work unit %d finished in %0.3f s.",msg.work_unit_id(),msg.run_time());
 
+    // collect global performance stats for printPerformanceStatistics
     stats_workUnits++;
     stats_minWorkUnitId = std::min(stats_minWorkUnitId,(long long)msg.work_unit_id());
     stats_maxWorkUnitId = std::max(stats_maxWorkUnitId,(long long)msg.work_unit_id());
@@ -446,6 +461,16 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
     stats_workUnitTime += msg.run_time();
     for (int i=0; i<msg.part_status_size(); i++)
         stats_workUnitsParts++;
+
+// TODO: decide if the exists() check code is necessary, and if so fold it into FFluxTrajectoryList
+//    // If the trajectory associated with the finished work unit exists...
+//    if (trajectoryList->exists(msg.final_state().trajectory_id()))
+//    {
+//        // ...update the trajectory based on the results of the work unit
+//        trajectoryList->workUnitFinished(msg);
+//    }
+//    // Otherwise, assume that the associated trajectory has already been deleted and so skip reading in this result
+//    // The exists() check ensures that hangover results from older fflux phases aren't recorded as belonging to a newer phase
 
     // Update the trajectory list.
     trajectoryList->workUnitFinished(msg);
@@ -497,6 +522,15 @@ void SimulationSupervisor::receivedFinishedCheckpointing(const lm::message::Fini
         Print::printf(Print::INFO, "Simulation finished.");
         finishSimulation();
     }
+}
+
+void SimulationSupervisor::receivedProcessWorkUnitOutput(lm::message::Message& msg)
+{
+}
+
+bool SimulationSupervisor::receivedOther(lm::message::Message& msg)
+{
+    return false;
 }
 
 void SimulationSupervisor::resetPerformanceStatistics()

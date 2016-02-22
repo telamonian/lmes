@@ -50,7 +50,8 @@ message FFluxOutput {
     
     enum Lifecycle {
     	INITIAL		= 0;
-    	FINAL		= 1;
+    	RUNNING		= 1;
+    	FINAL		= 2;
     }
 
 	// holds a number of pairs of long, single column tables
@@ -70,6 +71,9 @@ message FFluxOutput {
 		optional Direction direction 							= 1 [default=FORWARD];
 		
 		optional double flux_out_of_tile_zero					= 101;
+		
+		optional lm.io.TilingHist time_per_phase				= 200;
+		optional lm.io.TilingHist runs_per_phase				= 201;
 		
 		// given that a trajectory has reached tile i coming from this basin, this is the probability that the trajectory reaches tile i+1 before it falls back into the basin
 		// the first and last entries are both zeroed out

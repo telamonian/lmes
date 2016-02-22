@@ -1,9 +1,5 @@
 ~$*
 .DS_Store
-.cproject
-.idea
-.pydevproject
-.project
 
 /local.mk
 /build
@@ -31,7 +27,29 @@ bak_*
 /Debug
 
 /regression/biphasic_switch.lm
+/regression/biphasic_switch.sfile
 
 /test_case/*
 !/test_case/clean
 !/test_case/clean/biphasic_switch*.lm
+
+#eclipse stuff
+.cproject
+.externalToolBuilders
+.pydevproject
+.project
+
+# ipython notebook stuff
+#*.ipynb
+#.ipynb
+.ipynb_checkpoints
+
+# jetbrains stuff
+.idea
+*.iml
+
+# lm_anal intermediate file stuff
+*.lmint
+*.mod
+
+.gdb_history

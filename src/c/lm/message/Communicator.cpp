@@ -53,14 +53,14 @@ namespace lm {
 namespace message {
 
 Communicator::Communicator(Endpoint source)
-:source(source),inputBufferSize(100*1024*1024),inputBuffer(NULL),outputBufferSize(100*1024*1024),outputBuffer(NULL)
+:source(source),lastMessageSize(0),masterOutput(source),inputBufferSize(100*1024*1024),inputBuffer(NULL),outputBufferSize(100*1024*1024),outputBuffer(NULL)
 {
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(inputBufferSize, MPI_INFO_NULL, &inputBuffer));
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(outputBufferSize, MPI_INFO_NULL, &outputBuffer));
 }
 
 Communicator::Communicator(int process, int thread)
-:source(process,thread),inputBufferSize(100*1024*1024),inputBuffer(NULL),outputBufferSize(100*1024*1024),outputBuffer(NULL)
+:source(process,thread),lastMessageSize(0),masterOutput(process,thread),inputBufferSize(100*1024*1024),inputBuffer(NULL),outputBufferSize(100*1024*1024),outputBuffer(NULL)
 {
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(inputBufferSize, MPI_INFO_NULL, &inputBuffer));
     MPI_EXCEPTION_CHECK(MPI_Alloc_mem(outputBufferSize, MPI_INFO_NULL, &outputBuffer));
@@ -95,7 +95,7 @@ void Communicator::sendMessage(int destProcess, int destThread, lm::message::Mes
     sendMessage(Endpoint(destProcess,destThread), msg);
 }
 
-void Communicator::sendMessage(Endpoint dest, lm::message::Message* msg)
+void Communicator::sendMessage(Endpoint dest, lm::message::Message* msg, int sleepMilliseconds)
 {
     PROF_BEGIN(PROF_MESSAGE_SEND);
 
@@ -107,6 +107,7 @@ void Communicator::sendMessage(Endpoint dest, lm::message::Message* msg)
 
     // Serialize the message into the buffer.
     int messageLength=msg->ByteSize();
+    lastMessageSize = messageLength;
     if (messageLength > outputBufferSize) throw lm::Exception("Message too large to serialize into output buffer",messageLength,outputBufferSize);
 
     PROF_BEGIN(PROF_MESSAGE_SERIALIZE);
@@ -115,10 +116,44 @@ void Communicator::sendMessage(Endpoint dest, lm::message::Message* msg)
 
     // Send the buffer.
     //lm::Print::printf(lm::Print::DEBUG, "Sending message %d:%d->%d:%d = %d",process,thread,destProcess,destThread,messageLength);
-    MPI_EXCEPTION_CHECK(MPI_Send(outputBuffer, messageLength, MPI_BYTE, dest.process, dest.thread, MPI_COMM_WORLD));
+    if (sleepMilliseconds==-1)
+    {
+        MPI_Request request;
+        MPI_EXCEPTION_CHECK(MPI_Isend(outputBuffer, messageLength, MPI_BYTE, dest.process, dest.thread, MPI_COMM_WORLD, &request));
+        int messageSent=0;
+        while (true)
+        {
+            MPI_EXCEPTION_CHECK(MPI_Test(&request, &messageSent, &messageStatus));
+            if (messageSent)
+                break;
+        }
+    }
+    else if (sleepMilliseconds<=0)
+    {
+        MPI_EXCEPTION_CHECK(MPI_Send(outputBuffer, messageLength, MPI_BYTE, dest.process, dest.thread, MPI_COMM_WORLD));
+    }
+    else
+    {
+        MPI_Request request;
+        MPI_EXCEPTION_CHECK(MPI_Isend(outputBuffer, messageLength, MPI_BYTE, dest.process, dest.thread, MPI_COMM_WORLD, &request));
+        int messageSent=0;
+        while (true)
+        {
+            MPI_EXCEPTION_CHECK(MPI_Test(&request, &messageSent, &messageStatus));
+            if (messageSent)
+                break;
+            usleep(sleepMilliseconds*1000);
+        }
+    }
     //lm::Print::printf(lm::Print::DEBUG, "Sent message %d:%d->%d:%d = %d",process,thread,destProcess,destThread,messageLength);
 
     PROF_END(PROF_MESSAGE_SEND);
+}
+
+void Communicator::setMasterOutputEndpoint(int moProcess, int moThread)
+{
+    masterOutput.process = moProcess;
+    masterOutput.thread = moThread;
 }
 
 void Communicator::receiveMessage(lm::message::Message* msg, int sleepMilliseconds)
@@ -129,7 +164,19 @@ void Communicator::receiveMessage(lm::message::Message* msg, int sleepMillisecon
     //lm::Print::printf(lm::Print::DEBUG, "Receiving message %d:%d",process,thread);
 
     // If we shouldn't sleep while waiting, call blocking receive.
-    if (sleepMilliseconds <= 0)
+    if (sleepMilliseconds==-1)
+    {
+        MPI_Request request;
+        MPI_EXCEPTION_CHECK(MPI_Irecv(inputBuffer, inputBufferSize, MPI_BYTE, MPI_ANY_SOURCE, source.thread, MPI_COMM_WORLD, &request));
+        int messageReceived=0;
+        while (true)
+        {
+            MPI_EXCEPTION_CHECK(MPI_Test(&request, &messageReceived, &messageStatus));
+            if (messageReceived)
+                break;
+        }
+    }
+    else if (sleepMilliseconds <= 0)
     {
         MPI_EXCEPTION_CHECK(MPI_Recv(inputBuffer, inputBufferSize, MPI_BYTE, MPI_ANY_SOURCE, source.thread, MPI_COMM_WORLD, &messageStatus));
     }

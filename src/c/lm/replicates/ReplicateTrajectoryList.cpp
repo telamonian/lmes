@@ -76,7 +76,6 @@ ReplicateTrajectoryList::ReplicateTrajectoryList(lm::input::Input& input, uint64
 
 ReplicateTrajectoryList::~ReplicateTrajectoryList()
 {
-
 }
 
 void ReplicateTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)

@@ -52,6 +52,7 @@
 #include "lm/io/SimulationParameters.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/oparam/OParams.h"
+#include "lm/option/SimulationParameters.h"
 #include "lm/tiling/Tilings.h"
 
 using std::list;
@@ -72,7 +73,7 @@ protected:
     bool outputOptionsPresent;
 
     lm::io::SimulationParameters simulationParametersMsg;
-    map<string,string> simulationParameters;
+    lm::option::SimulationParameters simulationParameters;
     lm::io::ReactionModel reactionModel;
     lm::io::DiffusionModel diffusionModel;
     lm::io::OrderParameters orderParametersMsg;
@@ -96,7 +97,7 @@ public:
     bool hasOutputOptions() const {return outputOptionsPresent;}
 
 
-    const map<string,string>& getSimulationParameters() const {return simulationParameters;}
+    const lm::option::SimulationParameters& getSimulationParameters() const {return simulationParameters;}
     const lm::io::ReactionModel& getReactionModel() const {return reactionModel;}
     const lm::io::DiffusionModel& getDiffusionModel() const {return diffusionModel;}
     const lm::io::OrderParameters& getOrderParametersMsg() const {return orderParametersMsg;}
@@ -121,17 +122,29 @@ protected:
 //    virtual ~Input();
 //
 //    // has methods
+//    virtual bool hasBoundaryGradient();
+//    virtual bool hasDiffusionModel();
+//    virtual bool hasOrderParameters();
+//    virtual bool hasReactionModel();
+//    virtual bool hasTilings();
 //
 //    // get protobuf methods
+//    virtual lm::io::BoundaryConditions* getBoundaryGradientBuf();
+//    virtual lm::io::DiffusionModel* getDiffusionModelBuf();
+//    virtual lm::io::SimulationParameters* getParametersBuf();
+//    virtual lm::io::OrderParameters* getOrderParametersBuf();
+//    virtual lm::io::ReactionModel* getReactionModelBuf();
+//    virtual lm::io::SpatialModel* getSpatialModelBuf();
+//    virtual lm::io::Tilings* getTilingsBuf();
 //
-//    // get proto methods (load-into-pointer style)
-//    virtual void getBoundaryGradient(lm::io::BoundaryConditions* bc);
-//    virtual void getDiffusionModel(lm::io::DiffusionModel* diffusionModel);
-//    virtual void getParameters(lm::io::SimulationParameters* parameters);
-//    virtual void getOrderParameters(lm::io::OrderParameters* orderParameters);
-//    virtual void getReactionModel(lm::io::ReactionModel* reactionModel);
-//    virtual void getSpatialModel(lm::io::SpatialModel* model);
-//    virtual void getTilings(lm::io::Tilings* tilings);
+//    // get protobuf methods (load-into-pointer style)
+//    virtual void getBoundaryGradientBuf(lm::io::BoundaryConditions* bcBuf);
+//    virtual void getDiffusionModelBuf(lm::io::DiffusionModel* diffusionModelBuf);
+//    virtual void getParametersBuf(lm::io::SimulationParameters* parametersBuf);
+//    virtual void getOrderParametersBuf(lm::io::OrderParameters* orderParametersBuf);
+//    virtual void getReactionModelBuf(lm::io::ReactionModel* reactionModelBuf);
+//    virtual void getSpatialModelBuf(lm::io::SpatialModel* modelBuf);
+//    virtual void getTilingsBuf(lm::io::Tilings* tilingsBuf);
 //
 //    // get wrapper methods
 //    virtual map<string,string> getParameters();
@@ -140,30 +153,30 @@ protected:
 //    virtual lm::tiling::Tiling* getTiling(uint id)
 //
 //    // set protobuf methods
-//    virtual void getBoundaryGradient(lm::io::BoundaryConditions* bc);
-//    virtual void setDiffusionModel(lm::io::DiffusionModel& diffusionModel);
-//    virtual void setOrderParameters(lm::io::OrderParameters& orderParameters);
-//    virtual void setParameters(lm::io::SimulationParameters& parameters);
-//    virtual void setReactionModel(lm::io::ReactionModel& reactionModel);
-//    virtual void setSpatialModel(lm::io::SpatialModel& model);
-//    virtual void setTilings(lm::io::Tilings& tilings);
+//    virtual void getBoundaryGradientBuf(lm::io::BoundaryConditions* bcBuf);
+//    virtual void setDiffusionModelBuf(lm::io::DiffusionModel& diffusionModelBuf);
+//    virtual void setOrderParametersBuf(lm::io::OrderParameters& orderParametersBuf);
+//    virtual void setParametersBuf(lm::io::SimulationParameters& parametersBuf);
+//    virtual void setReactionModelBuf(lm::io::ReactionModel& reactionModelBuf);
+//    virtual void setSpatialModelBuf(lm::io::SpatialModel& modelBuf);
+//    virtual void setTilingsBuf(lm::io::Tilings& tilingsBuf);
 //
 //    // set wrapper methods
 //    virtual void setParameter(string key, string value);
 //
 //protected:
 //    // load from file methods
-//    virtual void _loadBoundaryGradient(lm::io::BoundaryConditions* bc);
-//    virtual void _loadDiffusionModel(lm::io::DiffusionModel* diffusionModel);
-//    virtual void _loadParameters(lm::io::SimulationParameters* parameters);
-//    virtual void _loadOrderParameters(lm::io::OrderParameters* orderParameters);
-//    virtual void _loadReactionModel(lm::io::ReactionModel* reactionModel);
-//    virtual void _loadSpatialModel(lm::io::SpatialModel* model);
-//    virtual void _loadTilings(lm::io::Tilings* tilings);
+//    virtual void _loadBoundaryGradientBuf(lm::io::BoundaryConditions* bcBuf);
+//    virtual void _loadDiffusionModelBuf(lm::io::DiffusionModel* diffusionModelBuf);
+//    virtual void _loadParametersBuf(lm::io::SimulationParameters* parametersBuf);
+//    virtual void _loadOrderParametersBuf(lm::io::OrderParameters* orderParametersBuf);
+//    virtual void _loadReactionModelBuf(lm::io::ReactionModel* reactionModelBuf);
+//    virtual void _loadSpatialModelBuf(lm::io::SpatialModel* modelBuf);
+//    virtual void _loadTilingsBuf(lm::io::Tilings* tilingsBuf);
 //
 //private:
 //    lm::io::hdf5::Hdf5File& file;
-//    lm::message::Message msg;
+//    lm::message::Message msgBuf;
 //};
 
 }

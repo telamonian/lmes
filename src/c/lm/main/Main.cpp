@@ -166,6 +166,21 @@ bool ffluxFlag;
  */
 bool intermediateOutputFlag;
 
+/*
+ * Flag that determines whether or not to track degree advancement in addition to species count
+ */
+bool daFlag;
+
+/*
+ * Flag to indicate that we need to initialize the order parameters and update them at every simulation step
+ */
+bool opActivatedFlag;
+
+/*
+ * Flag that determines whether or not to track order parameter values in addition to species counts
+ */
+bool opTrackingFlag;
+
 /**
  * Flag to run input output testing
  */
@@ -226,6 +241,9 @@ void parseArguments(int argc, char** argv)
     shouldReserveOutputCore = true;
     ffluxFlag = false;
     intermediateOutputFlag = false;
+    daFlag = false;
+    opActivatedFlag = false;
+    opTrackingFlag = false;
     ioTestFlag = false;
 
     // Parse any arguments.
@@ -445,6 +463,7 @@ void parseArguments(int argc, char** argv)
         else if ((strcmp(option, "-fflux") == 0 || strcmp(option, "--use-forward-flux") == 0))
 		{
         	 ffluxFlag = true;
+        	 opActivatedFlag = true;
         	 supervisorClassName = "lm::fflux::FFluxSupervisor";
 		}
 

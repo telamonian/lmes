@@ -70,6 +70,8 @@ public:
     virtual void setAllFinished();
     virtual bool areAllFinished();
 
+    // destroyer
+    virtual void deleteAllNotStarted();
     virtual void deleteTrajectory(uint64_t trajectoryID);
     virtual void deleteAllTrajectories();
 

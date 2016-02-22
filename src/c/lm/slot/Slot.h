@@ -36,16 +36,15 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #ifndef SLOT_H_
 #define SLOT_H_
 
+#include <string>
+
 #include "lm/Types.h"
 #include "lm/message/Endpoint.h"
+#include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/resource/ComputeResources.h"
-
-using std::string;
-using std::vector;
 
 namespace lm {
 namespace slot {
@@ -60,8 +59,19 @@ public:
 public:
     Slot(int id, lm::resource::ComputeResources resources);
 	~Slot();
+
+	// getters
     int getId() const {return id;}
     uint getSimultaneousWorkUnits() const {return simultaneousWorkUnits;}
+	void getStatsFromFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg);
+
+	static std::string getSlotStatisticsHeader();
+	static std::string getSlotStatisticsHeaderBreak();
+	std::string getSlotStatistics();
+
+	// setters
+	void resetSlotStatistics();
+	void printSlotStatistics();
 
 protected:
     int id;
@@ -70,11 +80,17 @@ protected:
     lm::message::Endpoint workUnitRunnerEndpoint;
     uint simultaneousWorkUnits;
 
+	long long stats_workUnits;
+	long long stats_workUnitsSteps;
+	double stats_workUnitsTime;
+
 friend class SlotList;
 
 };
 
 }
 }
+
+typedef std::vector<lm::slot::Slot> SlotVector;
 
 #endif /* SLOT_H_ */

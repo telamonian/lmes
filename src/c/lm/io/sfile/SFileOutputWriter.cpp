@@ -102,6 +102,28 @@ void SFileOutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes
     file->writeMessage(data);
 }
 
+void SFileOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)
+{
+    const int MAX_BUFFER_SIZE=128;
+    char buffer[MAX_BUFFER_SIZE+1];
+    memset(buffer, 0, MAX_BUFFER_SIZE+1);
+    snprintf(buffer,MAX_BUFFER_SIZE,"/Simulations/%llu/LatticeTimeSeries",data.trajectory_id());
+    SFileRecord record(string(buffer), string("protobuf:lm.io.LatticeTimeSeries"), data.ByteSize());
+    file->writeSFileRecord(record);
+    file->writeMessage(data);
+}
+
+void SFileOutputWriter::processOrderParameterTimeSeries(const lm::io::SpeciesTimeSeries& data)
+{
+    const int MAX_BUFFER_SIZE=128;
+    char buffer[MAX_BUFFER_SIZE+1];
+    memset(buffer, 0, MAX_BUFFER_SIZE+1);
+    snprintf(buffer,MAX_BUFFER_SIZE,"/Simulations/%llu/orderParameterTimeSeries",data.trajectory_id());
+    SFileRecord record(string(buffer), string("protobuf:lm.io.SpeciesTimeSeries"), data.ByteSize());
+    file->writeSFileRecord(record);
+    file->writeMessage(data);
+}
+
 void SFileOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
 {
     const int MAX_BUFFER_SIZE=128;
@@ -120,17 +142,6 @@ void SFileOutputWriter::processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries
     memset(buffer, 0, MAX_BUFFER_SIZE+1);
     snprintf(buffer,MAX_BUFFER_SIZE,"/Simulations/%llu/SpeciesTimeSeries",data.trajectory_id());
     SFileRecord record(string(buffer), string("protobuf:lm.io.SpeciesTimeSeries"), data.ByteSize());
-    file->writeSFileRecord(record);
-    file->writeMessage(data);
-}
-
-void SFileOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)
-{
-    const int MAX_BUFFER_SIZE=128;
-    char buffer[MAX_BUFFER_SIZE+1];
-    memset(buffer, 0, MAX_BUFFER_SIZE+1);
-    snprintf(buffer,MAX_BUFFER_SIZE,"/Simulations/%llu/LatticeTimeSeries",data.trajectory_id());
-    SFileRecord record(string(buffer), string("protobuf:lm.io.LatticeTimeSeries"), data.ByteSize());
     file->writeSFileRecord(record);
     file->writeMessage(data);
 }

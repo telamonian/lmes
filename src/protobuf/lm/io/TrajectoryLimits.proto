@@ -62,14 +62,16 @@ message TrajectoryLimits {
 
     message DecreasingOrderParameterLimit {
         optional Arrangement arrangement                = 1 [default=ASCENDING];
-        required uint32 order_parameter_id              = 2;
-        repeated double value                           = 3 [packed=true];
+        optional int64 limit_index						= 2 [default=-1];
+        required uint32 order_parameter_id              = 3;
+        repeated double value                           = 4 [packed=true];
     }
 
     message IncreasingOrderParameterLimit {
         optional Arrangement arrangement                = 1 [default=ASCENDING];
-        required uint32 order_parameter_id              = 2;
-        repeated double value                           = 3 [packed=true];
+        optional int64 limit_index						= 2 [default=-1];
+        required uint32 order_parameter_id              = 3;
+        repeated double value                           = 4 [packed=true];
     }
 
     optional double max_time_limit                                              = 1;

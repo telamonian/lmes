@@ -60,10 +60,10 @@ TEST_F(SimulationFileFixture, ReadOrderParameters)
     }
     ASSERT_EQ(ops.order_parameters(0).id(), 0);
     ASSERT_EQ(ops.order_parameters(0).type(), 0);
-    ASSERT_EQ(ops.order_parameters(0).species_id(1), 1);
-    ASSERT_EQ(ops.order_parameters(0).species_id(4), 4);
-    ASSERT_DOUBLE_EQ(ops.order_parameters(0).species_coefficient(1), 2.0);
-    ASSERT_DOUBLE_EQ(ops.order_parameters(0).species_coefficient(3), -1.0);
+    ASSERT_EQ(ops.order_parameters(0).species_ids(1), 1);
+    ASSERT_EQ(ops.order_parameters(0).species_ids(4), 4);
+    ASSERT_DOUBLE_EQ(ops.order_parameters(0).species_coefficients(1), 2.0);
+    ASSERT_DOUBLE_EQ(ops.order_parameters(0).species_coefficients(3), -1.0);
 }
 
 TEST_F(SimulationFileFixture, ReadWriteReadOrderParameters)
@@ -76,10 +76,10 @@ TEST_F(SimulationFileFixture, ReadWriteReadOrderParameters)
     }
     ASSERT_EQ(ops.order_parameters(0).id(), 0);
     ASSERT_EQ(ops.order_parameters(0).type(), 0);
-    ASSERT_EQ(ops.order_parameters(0).species_id(1), 1);
-    ASSERT_EQ(ops.order_parameters(0).species_id(4), 4);
-    ASSERT_DOUBLE_EQ(ops.order_parameters(0).species_coefficient(1), 2.0);
-    ASSERT_DOUBLE_EQ(ops.order_parameters(0).species_coefficient(3), -1.0);
+    ASSERT_EQ(ops.order_parameters(0).species_ids(1), 1);
+    ASSERT_EQ(ops.order_parameters(0).species_ids(4), 4);
+    ASSERT_DOUBLE_EQ(ops.order_parameters(0).species_coefficients(1), 2.0);
+    ASSERT_DOUBLE_EQ(ops.order_parameters(0).species_coefficients(3), -1.0);
 }
 
 TEST_F(SimulationFileFixture, ReadTilings)
@@ -91,7 +91,7 @@ TEST_F(SimulationFileFixture, ReadTilings)
     ASSERT_EQ(tngs.tilings(0).order_parameter_id(), 0);
     ASSERT_DOUBLE_EQ(tngs.tilings(0).edges(1), -20.833333969116211);
     ASSERT_DOUBLE_EQ(tngs.tilings(0).edges(10), 16.666666030883789);
-    ASSERT_EQ(tngs.tilings(0).arrangement(), lm::io::Tilings::ASCENDING);
+    ASSERT_EQ(tngs.tilings(0).arrangement(0), lm::io::Tilings::ASCENDING);
 }
 
 TEST_F(SimulationFileFixture, ReadWriteReadTilings)
@@ -105,7 +105,7 @@ TEST_F(SimulationFileFixture, ReadWriteReadTilings)
     ASSERT_EQ(tngs.tilings(0).order_parameter_id(), 0);
     ASSERT_DOUBLE_EQ(tngs.tilings(0).edges(1), -20.833333969116211);
     ASSERT_DOUBLE_EQ(tngs.tilings(0).edges(10), 16.666666030883789);
-    ASSERT_EQ(tngs.tilings(0).arrangement(), lm::io::Tilings::ASCENDING);
+    ASSERT_EQ(tngs.tilings(0).arrangement(0), lm::io::Tilings::ASCENDING);
 }
 
 int main(int argc, char **argv) {

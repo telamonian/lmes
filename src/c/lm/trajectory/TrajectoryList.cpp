@@ -88,16 +88,14 @@ bool TrajectoryList::areAllFinished()
     return waitingTrajectories.size() == 0 && runningTrajectories.size() == 0;
 }
 
-void TrajectoryList::deleteTrajectory(uint64_t id)
+void TrajectoryList::deleteAllNotStarted()
 {
-    if (trajectories.count(id))
+    for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
     {
-        delete trajectories[id];
-        trajectories[id] = NULL;
-        trajectories.erase(id);
-        waitingTrajectories.erase(id);
-        runningTrajectories.erase(id);
-        finishedTrajectories.erase(id);
+        if (it->second->getStatus()==Trajectory::NOT_STARTED)
+        {
+            deleteTrajectory(it->second->getID());
+        }
     }
 }
 
@@ -111,7 +109,26 @@ void TrajectoryList::deleteAllTrajectories()
     waitingTrajectories.clear();
     runningTrajectories.clear();
     finishedTrajectories.clear();
+}
 
+//void TrajectoryList::deleteTrajectory(uint64_t trajectoryID)
+//{
+//    TrajectoryMap::iterator it(trajectories.find(trajectoryID));
+//    delete it->second;
+//    trajectories.erase(it);
+//}
+
+void TrajectoryList::deleteTrajectory(uint64_t id)
+{
+    if (trajectories.count(id))
+    {
+        delete trajectories[id];
+        trajectories[id] = NULL;
+        trajectories.erase(id);
+        waitingTrajectories.erase(id);
+        runningTrajectories.erase(id);
+        finishedTrajectories.erase(id);
+    }
 }
 
 uint64_t TrajectoryList::findNextTrajectoryToRun()

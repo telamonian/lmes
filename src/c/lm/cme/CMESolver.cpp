@@ -1,7 +1,7 @@
 /*
  * University of Illinois Open Source License
  * Copyright 2008-2011 Luthey-Schulten Group,
- * Copyright 2012-2015 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Luthey-Schulten Group
@@ -86,7 +86,7 @@ namespace lm {
 namespace cme {
 
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
-:neededDists(neededDists),rng(NULL),reactionModel(NULL),hasUpdateSpeciesCountsListeners(false),tilings(NULL),numberOrderParameters(0),orderParameterFunctions(NULL),status(lm::message::WorkUnitStatus::NONE),timeLimit(std::numeric_limits<double>::infinity()),numberLimits(0),limits(NULL),limitReached(lm::io::TrajectoryLimits::NONE),writeSpeciesTimeSeries(false),speciesWriteInterval(0.0),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),trajectoryStarted(false),speciesCounts(NULL),time(0.0),timeStep(0.0),orderParameterValues(NULL),orderParameterPreviousValues(NULL),tilingHists(NULL)
+:neededDists(neededDists),rng(NULL),reactionModel(NULL),hasUpdateSpeciesCountsListeners(false),tilings(NULL),numberOrderParameters(0),orderParameterFunctions(NULL),status(lm::message::WorkUnitStatus::NONE),timeLimit(std::numeric_limits<double>::infinity()),numberLimits(0),limits(NULL),limitIndexReached(-1),limitReached(lm::io::TrajectoryLimits::NONE),writeSpeciesTimeSeries(false),speciesWriteInterval(0.0),numberFptTrackedSpecies(0),fptTrackedSpecies(NULL),trajectoryStarted(false),speciesCounts(NULL),time(0.0),timeStep(0.0),degreeAdvancements(NULL),orderParameterValues(NULL),orderParameterPreviousValues(NULL),tilingHists(NULL)
 {
 }
 
@@ -96,10 +96,11 @@ CMESolver::~CMESolver()
     if (reactionModel != NULL) delete reactionModel; reactionModel = NULL;
 
     // Free any memory associated with the state.
-    if (speciesCounts != NULL) delete[] speciesCounts; speciesCounts = NULL;
+    if (degreeAdvancements != NULL) delete[] degreeAdvancements; degreeAdvancements = NULL;
     if (orderParameterFunctions != NULL) delete orderParameterFunctions; orderParameterFunctions = NULL;
     if (orderParameterValues != NULL) delete orderParameterValues; orderParameterValues = NULL;
     if (orderParameterPreviousValues != NULL) delete orderParameterPreviousValues; orderParameterPreviousValues = NULL;
+    if (speciesCounts != NULL) delete[] speciesCounts; speciesCounts = NULL;
     if (tilings != NULL) delete tilings; tilings = NULL;
 
     // Free any other memory.
@@ -235,22 +236,17 @@ void CMESolver::reset()
     // Make sure we have a reaction model.
     if (reactionModel == NULL) throw Exception("Tried to reset state of CMESolver with no reaction model.");
 
-    // Reset the status.
-    status = lm::message::WorkUnitStatus::NONE;
+    // Reset the degree advancements.
+    for (uint i=0; i<numberDegreeAdvancements; i++)
+        degreeAdvancements[i] = 0;
+
+    // Reset the fpt tracking list.
+    numberFptTrackedSpecies = 0;
+    if (fptTrackedSpecies != NULL) delete[] fptTrackedSpecies; fptTrackedSpecies = NULL;
 
     // Reset the limits reached.
+    limitIndexReached = -1;
     limitReached = lm::io::TrajectoryLimits::NONE;
-
-    // Reset trajectory started.
-    trajectoryStarted = false;
-
-    // Reset the species counts.
-    for (uint i=0; i<reactionModel->numberSpecies; i++)
-        speciesCounts[i] = 0;
-
-    // Reset the time.
-    time = 0.0;
-    timeStep = 0.0;
 
     // Reset the order parameters.
     for (size_t i=0; i<numberOrderParameters; i++)
@@ -259,22 +255,64 @@ void CMESolver::reset()
         orderParameterPreviousValues[i] = 0.0;
     }
 
-    // Reset the fpt tracking list.
-    numberFptTrackedSpecies = 0;
-    if (fptTrackedSpecies != NULL) delete[] fptTrackedSpecies; fptTrackedSpecies = NULL;
+    // Reset the species counts.
+    for (uint i=0; i<reactionModel->numberSpecies; i++)
+        speciesCounts[i] = 0;
+
+    // Reset the status.
+    status = lm::message::WorkUnitStatus::NONE;
 
     // Reset the tiling histograms list.
     numberTilingHists = 0;
     if (tilingHists!=NULL) delete[] tilingHists; tilingHists = NULL;
+
+    // Reset the time.
+    time = 0.0;
+    timeStep = 0.0;
+
+    // Reset trajectory started.
+    trajectoryStarted = false;
 }
 
 void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
 {
     if (trajectoryNumber >= getSimultaneousTrajectories()) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
 
-    // Get the trajectory id.
-    state->set_trajectory_id(trajectoryId);
-    state->set_trajectory_started(true);
+    // Get the degree advancements.
+    if (numberDegreeAdvancements > 0)
+    {
+        state->mutable_cme_state()->mutable_degree_advancements()->set_trajectory_id(trajectoryId);
+        state->mutable_cme_state()->mutable_degree_advancements()->set_number_reactions(reactionModel->numberReactions);
+        state->mutable_cme_state()->mutable_degree_advancements()->set_number_entries(1);
+        for (int i=0; i<numberDegreeAdvancements; i++)
+        {
+            state->mutable_cme_state()->mutable_degree_advancements()->add_degree_advancements(degreeAdvancements[i]);
+        }
+        state->mutable_cme_state()->mutable_degree_advancements()->add_time(time);
+    }
+
+    // Get the first passage times.
+    for (int i=0; i<numberFptTrackedSpecies; i++)
+    {
+        fptTrackedSpecies[i].serializeTo(trajectoryId, state->mutable_cme_state()->add_first_passage_times());
+    }
+
+    // Get the limit reached during the simulation.
+    state->set_limit_index_reached(limitIndexReached);
+    state->set_limit_reached(limitReached);
+
+//    // Get the order parameter values.
+//    if (numberOrderParameters > 0)
+//    {
+//        state->mutable_cme_state()->mutable_order_parameter_counts()->set_trajectory_id(trajectoryId);
+//        state->mutable_cme_state()->mutable_order_parameter_counts()->set_number_order_parameters(numberOrderParameters);
+//        state->mutable_cme_state()->mutable_order_parameter_counts()->set_number_entries(1);
+//        for (int i=0; i<numberOrderParameters; i++)
+//        {
+//            state->mutable_cme_state()->mutable_order_parameter_counts()->add_order_parameter_counts(orderParameterCounts[i]);
+//        }
+//        state->mutable_cme_state()->mutable_order_parameter_counts()->add_time(time);
+//    }
 
     // Get the species counts.
     state->mutable_cme_state()->mutable_species_counts()->set_trajectory_id(trajectoryId);
@@ -285,18 +323,6 @@ void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
         state->mutable_cme_state()->mutable_species_counts()->add_species_count(speciesCounts[i]);
     }
 
-    // Set the time.
-    state->mutable_cme_state()->mutable_species_counts()->add_time(time);
-
-    // Set the limit reached during the simulation.
-    state->set_limit_reached(limitReached);
-
-    // Get the first passage times.
-    for (int i=0; i<numberFptTrackedSpecies; i++)
-    {
-        fptTrackedSpecies[i].serializeTo(trajectoryId, state->mutable_cme_state()->add_first_passage_times());
-    }
-
     // Get the tiling hists
     state->mutable_cme_state()->clear_tiling_hists();
     for (uint i=0;i<numberTilingHists;i++)
@@ -304,6 +330,12 @@ void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
         tilingHists[i].serializeTo(state->mutable_cme_state()->add_tiling_hists());
     }
 
+    // Get the time.
+    state->mutable_cme_state()->mutable_species_counts()->add_time(time);
+
+    // Get the trajectory id.
+    state->set_trajectory_id(trajectoryId);
+    state->set_trajectory_started(true);
 }
 
 void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNumber)
@@ -315,24 +347,10 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
     if (state.cme_state().species_counts().number_species() != (int)reactionModel->numberSpecies) throw Exception("State object and reaction model have differing species count",state.cme_state().species_counts().number_species(),reactionModel->numberSpecies);
     if (state.cme_state().species_counts().number_entries() != 1 || state.cme_state().species_counts().species_count_size() != (int)reactionModel->numberSpecies || state.cme_state().species_counts().time_size() != 1) throw Exception("State object has too many entries",state.cme_state().species_counts().number_entries());
 
-    // Set the trajectory id.
-    trajectoryId = state.trajectory_id();
-
-    // Set the species counts.
-    for (int i=0; i<state.cme_state().species_counts().species_count_size(); i++)
+    // Set the degree advancements.
+    for (int i=0; i<state.cme_state().degree_advancements().degree_advancements_size(); i++)
     {
-        speciesCounts[i] = state.cme_state().species_counts().species_count(i);
-    }
-
-    // Set the time.
-    time = state.cme_state().species_counts().time(0);
-    trajectoryStarted = state.trajectory_started();
-
-    // Set the order parameters.
-    for (int i=0; i<numberOrderParameters; i++)
-    {
-        orderParameterValues[i] = orderParameterFunctions[i]->calculate(time, speciesCounts, reactionModel->numberSpecies);
-        orderParameterPreviousValues[i] = orderParameterValues[i];
+        degreeAdvancements[i] = state.cme_state().degree_advancements().degree_advancements(i);
     }
 
     // Set the first passage times.
@@ -353,6 +371,30 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
         hasUpdateSpeciesCountsListeners = true;
     }
 
+    // Set the limit reached during the simulation.
+    limitIndexReached = state.limit_index_reached();
+    limitReached = state.limit_reached();
+
+//    // Set the order parameter values.
+//    for (int i=0; i<state.cme_state().order_parameter_counts().order_parameter_counts_size(); i++)
+//    {
+//        orderParameterValues[i] = state.cme_state().order_parameter_counts().order_parameter_counts(i);
+//        orderParameterPreviousValues[i] = orderParameterValues[i];
+//    }
+
+    // Set the order parameters.
+    for (int i=0; i<numberOrderParameters; i++)
+    {
+        orderParameterValues[i] = orderParameterFunctions[i]->calculate(time, speciesCounts, reactionModel->numberSpecies);
+        orderParameterPreviousValues[i] = orderParameterValues[i];
+    }
+
+    // Set the species counts.
+    for (int i=0; i<state.cme_state().species_counts().species_count_size(); i++)
+    {
+        speciesCounts[i] = state.cme_state().species_counts().species_count(i);
+    }
+
     // Set the histogram bin values.
     numberTilingHists = state.cme_state().tiling_hists_size();
     if (state.cme_state().tiling_hists_size() > 0)
@@ -364,6 +406,13 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
             tilingHists[i].init(state.cme_state().tiling_hists(i));
         }
     }
+
+    // Set the time.
+    time = state.cme_state().species_counts().time(0);
+    trajectoryStarted = state.trajectory_started();
+
+    // Set the trajectory id.
+    trajectoryId = state.trajectory_id();
 }
 
 lm::message::WorkUnitStatus::Status CMESolver::getStatus(uint trajectoryNumber)

@@ -60,6 +60,14 @@ using std::string;
 namespace lm {
 namespace trajectory {
 
+char *trajectoryStatusStrings[] =
+{
+    "NOT_STARTED",
+    "RUNNING",
+    "WAITING",
+    "FINISHED"
+};
+
 Trajectory::Trajectory(uint64_t id,const lm::io::TrajectoryState& initialState)
 :id(id),status(NOT_STARTED),state(initialState),numberWorkUnitsPerformed(0)
 {
@@ -69,6 +77,10 @@ Trajectory::Trajectory(uint64_t id, const lm::input::Input& input, bool reversed
 :id(id),status(NOT_STARTED),state(),numberWorkUnitsPerformed(0)
 {
     initializeState(input, reversed);
+}
+
+Trajectory::~Trajectory()
+{
 }
 
 void Trajectory::initializeState(const lm::input::Input& input, bool reversed)
@@ -130,17 +142,10 @@ void Trajectory::initializeState(const lm::input::Input& input, bool reversed)
         initialLattice->set_particles(diffusionModel.initial_lattice().particles());
     }
 
-
-
-    //if (input.hasTilings) initHists();
+    if (input.hasTilings) inititializeHists();
 }
 
-
-Trajectory::~Trajectory()
-{
-}
-
-/*void Trajectory::initHists()
+void Trajectory::inititializeHists()
 {
     lm::io::TilingHist* tHist = getState()->mutable_cme_state()->add_tiling_hists();
     tHist->set_tiling_id(input.tilings.getCurrentTilingID());
@@ -158,11 +163,44 @@ Trajectory::~Trajectory()
 //        }
 //    }
 }
-*/
 
-uint64_t Trajectory::getId()
+// accessor definitions
+uint Trajectory::getFinalLimitID()
+{
+    return getState()->final_limit_id();
+}
+
+uint64_t Trajectory::getID()
 {
     return id;
+}
+
+double Trajectory::getOrderParameterValue(uint opID)
+{
+	uint* lastSpeciesCount = new uint[getSpeciesCounts()->number_species()];
+	uint offset = (getSpeciesCounts()->number_entries() - 1)*(getSpeciesCounts()->number_species());
+	double time = getSpeciesCounts()->time(getSpeciesCounts()->number_entries() - 1);  //double time = getSpeciesCounts()->time(getSpeciesCounts()->time_size()-1);
+	for (int i=0; i<getSpeciesCounts()->number_species(); i++)
+	{
+		lastSpeciesCount[i] = getSpeciesCounts()->species_count(i + offset);
+	}
+	return input.oparams[opID]->calc(lastSpeciesCount, time);
+	delete [] lastSpeciesCount;
+}
+
+lm::io::SpeciesCounts* Trajectory::getSpeciesCounts()
+{
+	return getState()->mutable_cme_state()->mutable_species_counts();
+}
+
+uint Trajectory::getSimSteps()
+{
+    return getState()->cme_state().species_counts().number_entries();
+}
+
+double Trajectory::getSimTime()
+{
+    return getState()->cme_state().species_counts().time(getState()->cme_state().species_counts().time_size() - 1);
 }
 
 Trajectory::status_t Trajectory::getStatus()
@@ -175,9 +213,28 @@ const lm::io::TrajectoryState& Trajectory::getState()
     return state;
 }
 
-int64_t Trajectory::getWorkUnitsPerformed()
+// debug helper function for printing trajectory status to stdout
+void Trajectory::printStatus()
 {
-    return numberWorkUnitsPerformed;
+    printf("trajectory ID: %d has status: %s\n", id, trajectoryStatusStrings[getStatus()]);
+}
+
+// mutator definitions
+void Trajectory::resetSimTime()
+{
+    getState()->mutable_cme_state()->mutable_species_counts()->set_time(getState()->cme_state().species_counts().time_size() - 1, 0.0);
+}
+
+void Trajectory::setFinalLimitID(int64_t finalLimitID)
+{
+    getState()->set_final_limit_id(finalLimitID);
+}
+
+void Trajectory::setID(uint64_t newID)
+{
+    id = newID;
+    getState()->set_trajectory_id(newID);
+    getState()->mutable_cme_state()->mutable_species_counts()->set_trajectory_id(newID);
 }
 
 void Trajectory::setState(const lm::io::TrajectoryState& newState)
@@ -193,6 +250,11 @@ void Trajectory::setStatus(status_t newStatus)
 void Trajectory::incrementWorkUnitsPerformed()
 {
     numberWorkUnitsPerformed++;
+}
+
+int64_t Trajectory::getWorkUnitsPerformed()
+{
+    return numberWorkUnitsPerformed;
 }
 
 }

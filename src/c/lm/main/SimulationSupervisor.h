@@ -51,7 +51,6 @@
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/OrderParameters.pb.h"
 #include "lm/io/ReactionModel.pb.h"
-#include "lm/io/SimulationParameters.pb.h"
 #include "lm/io/Tilings.pb.h"
 #include "lm/message/Communicator.h"
 #include "lm/message/FinishedCheckpointing.pb.h"
@@ -85,6 +84,7 @@ class SimulationSupervisor : public lm::thread::Worker
 {
 public:
     static const int THREAD_ID = 0;
+    virtual int getRecvSleepMilliseconds();
 
 public:
     SimulationSupervisor();
@@ -123,6 +123,8 @@ protected:
     virtual void receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg);
     virtual void receivedPerformCheckpointing(const lm::message::PerformCheckpointing& msg);
     virtual void receivedFinishedCheckpointing(const lm::message::FinishedCheckpointing& msg);
+    virtual void receivedProcessWorkUnitOutput(lm::message::Message& msg);
+    virtual bool receivedOther(lm::message::Message& msg);
 
 private:
     void resetPerformanceStatistics();

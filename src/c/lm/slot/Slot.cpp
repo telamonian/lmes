@@ -36,15 +36,41 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
+#include <cstdio>
+#include <iomanip>
+#include <map>
+#include <sstream>
 #include <string>
-#include <vector>
-#include "lm/message/Communicator.h"
-#include "lm/message/Message.pb.h"
+
 #include "lm/Print.h"
+#include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/slot/Slot.h"
 
+using std::fixed;
+using std::map;
+using std::ostringstream;
+using std::setprecision;
+using std::scientific;
 using std::string;
+using std::setfill;
+using std::setw;
+
+typedef vector<string> HeaderVector;
+typedef map<string, int> ColumnMap;
+
+const string headerStrings[] = {"ID", "Host_name", "Process:Thread", "Work_units", "Work_unit_steps", "Work_unit_time", "Steps_per_sec"};
+HeaderVector headers(headerStrings, headerStrings + 7);
+const ColumnMap::value_type rawData[] = {
+    ColumnMap::value_type("ID", 5),
+    ColumnMap::value_type("Host_name", 20),
+    ColumnMap::value_type("Process:Thread", 20),
+    ColumnMap::value_type("Work_units", 15),
+    ColumnMap::value_type("Work_unit_steps", 20),
+    ColumnMap::value_type("Work_unit_time", 20),
+    ColumnMap::value_type("Steps_per_sec", 19)
+};
+const int numElems = sizeof rawData / sizeof rawData[0];
+ColumnMap statsColumnMap(rawData, rawData + numElems);
 
 namespace lm {
 namespace slot {
@@ -52,10 +78,65 @@ namespace slot {
 Slot::Slot(int32_t id, lm::resource::ComputeResources resources)
 :id(id),status(NOT_STARTED),resources(resources),simultaneousWorkUnits(0)
 {
+    resetSlotStatistics();
 }
 
 Slot::~Slot()
 {
+}
+
+string Slot::getSlotStatisticsHeader()
+{
+    ostringstream headerStream;
+    for (HeaderVector::iterator it=headers.begin(); it!=headers.end(); it++)
+    {
+        headerStream << setw(statsColumnMap[*it]) << *it;
+    }
+    return headerStream.str();
+}
+
+string Slot::getSlotStatisticsHeaderBreak()
+{
+    ostringstream headerBreakStream;
+    headerBreakStream << setw(Slot::getSlotStatisticsHeader().size()) << setfill('-') << "";
+    return headerBreakStream.str();
+}
+
+string Slot::getSlotStatistics()
+{
+    ostringstream statsStream, ptStream;
+    statsStream << fixed << setprecision(0) << setw(statsColumnMap["ID"]) << id;
+    statsStream << setw(statsColumnMap["Host_name"]) << resources.hostname;
+    ptStream << resources.controller_process << ":" << resources.controller_thread;
+    statsStream << fixed << setprecision(0) << setw(statsColumnMap["Process:Thread"]) << ptStream.str();
+    statsStream << fixed << setprecision(0) << setw(statsColumnMap["Work_units"]) << stats_workUnits;
+    statsStream << scientific << setprecision(3) << setw(statsColumnMap["Work_unit_steps"]) << (double)stats_workUnitsSteps;
+    statsStream << scientific << setprecision(3) << setw(statsColumnMap["Work_unit_time"]) << stats_workUnitsTime;
+    statsStream << scientific << setprecision(3) << setw(statsColumnMap["Steps_per_sec"]) << stats_workUnitsSteps/stats_workUnitsTime;
+    return statsStream.str();
+}
+
+void Slot::getStatsFromFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg)
+{
+    // collect slot performance stats for getSlotStatistic
+    stats_workUnits++;
+    stats_workUnitsSteps += msg.steps();
+    stats_workUnitsTime += msg.run_time();
+}
+
+void Slot::resetSlotStatistics()
+{
+    stats_workUnits = 0;
+    stats_workUnitsSteps = 0;
+    stats_workUnitsTime = 0.0;
+}
+
+void Slot::printSlotStatistics()
+{
+    Print::printf(Print::INFO, "Slot status");
+    Print::printf(Print::INFO, Slot::getSlotStatisticsHeader().c_str());
+    Print::printf(Print::INFO, Slot::getSlotStatisticsHeaderBreak().c_str());
+    Print::printf(Print::INFO, getSlotStatistics().c_str());
 }
 
 }
