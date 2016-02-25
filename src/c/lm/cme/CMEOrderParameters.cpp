@@ -117,16 +117,16 @@ public:
     {
         if (op.type() != OPARAM_TYPE)
             throw lm::InvalidArgException("op.type", "Mismatch of types during creation of linear order parameter function",op.type(), OPARAM_TYPE);
-        if (op.species_id_size() != op.species_coefficient_size())
-            throw lm::InvalidArgException("op.size", "Mismatch of sizes during creation of linear order parameter function",op.species_id_size(), op.species_coefficient_size());
+        if (op.species_ids_size() != op.species_coefficients_size())
+            throw lm::InvalidArgException("op.size", "Mismatch of sizes during creation of linear order parameter function",op.species_ids_size(), op.species_coefficients_size());
 
-        size_t size = op.species_id_size();
+        size_t size = op.species_ids_size();
         uint* speciesIndex = new uint[size];
         double* speciesCoefficient = new double[size];
         for (size_t i=0; i<size; i++)
         {
-            speciesIndex[i] = op.species_id(i);
-            speciesCoefficient[i] = op.species_coefficient(i);
+            speciesIndex[i] = op.species_ids(i);
+            speciesCoefficient[i] = op.species_coefficients(i);
         }
 
         return new LinearCombinationOrderParameter(size, speciesIndex, speciesCoefficient);
@@ -164,10 +164,10 @@ public:
     {
         if (op.type() != OPARAM_TYPE)
             throw lm::InvalidArgException("op.type", "Mismatch of types during creation of two species order parameter function",op.type(), OPARAM_TYPE);
-        if (op.species_id_size() != 2 && op.species_coefficient_size() != 2)
-            throw lm::InvalidArgException("op.size", "Mismatch of sizes during creation of two species order parameter function",op.species_id_size(), op.species_coefficient_size());
+        if (op.species_ids_size() != 2 && op.species_coefficients_size() != 2)
+            throw lm::InvalidArgException("op.size", "Mismatch of sizes during creation of two species order parameter function",op.species_ids_size(), op.species_coefficients_size());
 
-        return new TwoSpeciesOrderParameter(op.species_id(0), op.species_id(1), op.species_coefficient(0), op.species_coefficient(1));
+        return new TwoSpeciesOrderParameter(op.species_ids(0), op.species_ids(1), op.species_coefficients(0), op.species_coefficients(1));
     }
 
     static lm::oparam::OrderParameterFunctionDefinition registerFunction()

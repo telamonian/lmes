@@ -113,7 +113,7 @@ void SFileOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries
     file->writeMessage(data);
 }
 
-void SFileOutputWriter::processOrderParameterTimeSeries(const lm::io::SpeciesTimeSeries& data)
+void SFileOutputWriter::processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data)
 {
     const int MAX_BUFFER_SIZE=128;
     char buffer[MAX_BUFFER_SIZE+1];

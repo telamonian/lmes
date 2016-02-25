@@ -94,7 +94,7 @@ void TrajectoryList::deleteAllNotStarted()
     {
         if (it->second->getStatus()==Trajectory::NOT_STARTED)
         {
-            deleteTrajectory(it->second->getID());
+            deleteTrajectory(it->second->getId());
         }
     }
 }

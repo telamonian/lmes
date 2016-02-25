@@ -55,8 +55,8 @@ public:
     virtual void init(const lm::io::Tilings::Tiling& tilingRef);
 
     // iterators (over the edges)
-    EdgeIterator begin() {return tilingBuf->edges().begin();}
-    EdgeIterator end() {return tilingBuf->edges().end();}
+    EdgeIterator begin() const {return tilingBuf->edges().begin();}
+    EdgeIterator end() const {return tilingBuf->edges().end();}
 
     // getters
     lm::io::Tilings::Arrangement getArrangement() const;

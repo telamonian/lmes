@@ -25,8 +25,8 @@ SET(VERBOSITY_LEVEL 4)
 # uncomment to set any custom compiler flags.
 #SET(CUSTOM_C_FLAGS "-g -m64 -fPIC -Wall -fmessage-length=0")
 #SET(CUSTOM_CXX_FLAGS "-g -m64 -fPIC -Wall -fmessage-length=0")
-#SET(CUSTOM_C_FLAGS "-m64 -march=core2 -O3 -fPIC -Wall -fmessage-length=0")
-#SET(CUSTOM_CXX_FLAGS "-m64 -march=core2 -O3 -fPIC -Wall -fmessage-length=0")
+SET(CUSTOM_C_FLAGS "-march=native -O3 -fPIC -Wall -fmessage-length=0")
+SET(CUSTOM_CXX_FLAGS "-march=native -O3 -fPIC -Wall -fmessage-length=0")
 
 ############################
 # library specific path settings, uncomment and set if you need to adjust specific library settings.

@@ -676,7 +676,7 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(FFluxTrajectory* traj, lm::io
 //    trajOut->set_lifecycle(static_cast<lm::io::FFluxOutput::Lifecycle>(lifecycle));
 
     // load the data into the TrajectoryOutput buf pointer
-    trajOut->add_count(traj->getOPVal());
+    trajOut->add_count(traj->getOrderParameterValue());
     if (lifecycle==lm::io::FFluxOutput::FINAL)
     {
         trajOut->add_edge_id(traj->getFinalLimitID());

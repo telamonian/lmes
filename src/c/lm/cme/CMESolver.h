@@ -94,10 +94,11 @@ protected:
     struct TrajectoryLimit
     {
         lm::io::TrajectoryLimits::LimitType type;
-        uint32_t id;
+        lm::io::TrajectoryLimits::StoppingCondition stoppingCondition;
+        uint32_t valueID;
         int32_t ivalue;
         double dvalue;
-        lm::io::TrajectoryLimits::Arrangement arrangement;
+        uint64_t uvalue;
     };
 
     class FPTTracking
@@ -232,9 +233,6 @@ protected:
     bool hasUpdateSpeciesCountsListeners;
     lm::tiling::Tilings* tilings;
 
-    // number of degree advancements to track
-    size_t numberDegreeAdvancements;
-
     // Order parameter function.
     size_t numberOrderParameters;
     lm::oparam::OrderParameterFunction** orderParameterFunctions;
@@ -247,11 +245,11 @@ protected:
     size_t numberLimits;
     TrajectoryLimit* limits;
     int64_t limitIndexReached;
-    lm::io::TrajectoryLimits::LimitType limitReached;
+    lm::io::TrajectoryLimits::LimitType limitTypeReached;
 
     // Output options.
-    bool writeSpeciesTimeSeries;
-    double speciesWriteInterval;
+    bool writeDegreeAdvancementTimeSeries, writeOrderParameterTimeSeries, writeSpeciesTimeSeries;
+    double degreeAdvancementWriteInterval, orderParameterWriteInterval, speciesWriteInterval;
 
     //First passage time variables.
     int numberFptTrackedSpecies;

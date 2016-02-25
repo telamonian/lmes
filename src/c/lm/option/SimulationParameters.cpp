@@ -36,15 +36,26 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+#include <istream>
+#include <iterator>
 #include <list>
 #include <string>
+#include <sstream>
+#include <utility>
 #include <vector>
 
 #include "lm/io/SimulationParameters.pb.h"
 #include "lm/option/SimulationParameters.h"
+#include "lm/Print.h"
+#include "lm/Types.h"
 
+using std::getline;
+using std::pair;
+
+using std::stringstream;
 using std::string;
 using std::vector;
+using std::ws;
 
 namespace lm {
 namespace option {
@@ -52,28 +63,41 @@ namespace option {
 // accessors
 SimParamMap::const_iterator SimulationParameters::findFirst(const vector<string>& keys) const
 {
-    SimParamMap::const_iterator findIt;
-    for (vector<string>::const_iterator keyIt=keys.begin(); keyIt!=keys.end(); keyIt++) {
-        findIt = find(*keyIt);
-        if (not isEnd(findIt)) {
-            return findIt;
+    SimParamMap::const_iterator findCIt;
+    for (vector<string>::const_iterator keyCIt=keys.begin(); keyCIt!=keys.end(); keyCIt++) {
+        findCIt = find(*keyCIt);
+        if (not isEnd(findCIt)) {
+            return findCIt;
         }
     }
-    return findIt;
+    return findCIt;
 }
 
 SimParamMap::iterator SimulationParameters::findFirst(const vector<string>& keys)
 {
-    return const_cast<SimParamMap::iterator>(static_cast<const SimulationParameters*>(this)->findFirst(keys));
+    // an attempt to recycle the code from a const qualified method into a non-const version of the same method
+    // return const_cast<SimParamMap::iterator>(static_cast<const SimulationParameters*>(this)->findFirst(keys));
+
+    // unfortunately, though in general the above would work, it turns out that you can't const_cast an iterator, so we need something a bit more complex
+    SimParamMap::const_iterator findCIt(static_cast<const SimulationParameters*>(this)->findFirst(keys));
+#if __cplusplus > 199711L
+    // http://stackoverflow.com/a/10669041/425458
+    // in c++11, calling .erase() with a duplicate const_iterator (ie an empty range) returns a non-const iterator while erasing nothing
+    return map.erase(findCIt, findCIt);
+#else
+    // unlike the c++11 solution, this one (may) run in linear time since in general it has to increment the non-const iterator one by one
+    SimParamMap::iterator findIt(map.begin());
+    std::advance(findIt, std::distance<SimParamMap::const_iterator>(findIt,findCIt));
+    return findIt;
+#endif
 }
 
-
-std::list<int> SimulationParameters::parseIntList(const std::string& key) const
+vector<int> SimulationParameters::getIntVector(const string &key) const
 {
-    SimParamMap::const_iterator findIt = getMapConst()->find(key);
+    SimParamMap::const_iterator findIt = getMap().find(key);
     const string listString = (not isEnd(findIt)) ? findIt->second : "";
 
-    std::list<int> intList;
+    vector<int> intVector;
     size_t strStart=0, strEnd= 0;
     while (strEnd != string::npos)
     {
@@ -81,11 +105,82 @@ std::list<int> SimulationParameters::parseIntList(const std::string& key) const
         string intString = listString.substr(strStart, (strEnd == string::npos) ? string::npos : strEnd - strStart);
         if (intString.length() > 0)
         {
-            intList.push_back(atoi(intString.c_str()));
+            intVector.push_back(atoi(intString.c_str()));
         }
         strStart = strEnd+1;
     }
-    return intList;
+    return intVector;
+}
+
+vector<vector<int> > SimulationParameters::getIntPairsVector(const std::string &key) const
+{
+    SimParamMap::const_iterator findIt = getMap().find(key);
+    const string listString = (not isEnd(findIt)) ? findIt->second : "";
+
+    vector<vector<int> > intPairsVector;
+    size_t strStart=0, strEnd= 0;
+    while (strEnd != string::npos)
+    {
+        strEnd = listString.find(',', strStart);
+        string intPairsString = listString.substr(strStart, (strEnd == string::npos) ? string::npos : strEnd - strStart);
+
+        size_t equalsPos=0;
+        equalsPos = intPairsString.find(':', 0);
+        if (equalsPos > 0 && equalsPos < intPairsString.length()-1)
+        {
+            vector<int> intPairVector;
+            intPairVector.push_back(atoi(intPairsString.substr(0, equalsPos).c_str()));
+            intPairVector.push_back(atoi(intPairsString.substr(equalsPos+1, string::npos).c_str()));
+            intPairsVector.push_back(intPairVector);
+        }
+        strStart = strEnd+1;
+    }
+    return intPairsVector;
+}
+
+template <typename T>
+vector<T> SimulationParameters::parseVector(const std::string &key) const
+{
+    stringstream vecSS(map.at(key));
+
+    vector<T> parsedVector;
+    T i;
+    while (vecSS >> i)
+    {
+        parsedVector.push_back(i);
+
+        // strip any white space in between the last number parsed and the next delimiter
+        vecSS >> ws;
+        if (vecSS.peek() == ',')
+            vecSS.ignore();
+    }
+    return parsedVector;
+}
+
+template <typename T1, typename T2>
+pairVector<T1, T2>::type SimulationParameters::parsePairVector(const std::string& key, const std::string& debugMessage) const
+{
+    stringstream pairVecSS(map.at(key));
+
+    pairVector<T1, T2>::type parsedPairVector;
+    string pairString;
+    while (getline(pairVecSS, pairString, ':'))
+    {
+        pair<T1, T2> p;
+        stringstream pairSS(pairString);
+
+        pairSS >> p.first;
+        // strip any white space in between the last number parsed and the next delimiter
+        pairSS >> ws;
+        if (pairVecSS.peek() == ',')
+            pairVecSS.ignore();
+        pairSS >> p.second;
+
+        parsedPairVector.push_back(p);
+
+        Print::printf(Print::DEBUG, "Parsed %s %s to: %f => %f", debugMessage, pairString, p.first, p.second);
+    }
+    return parsedPairVector;
 }
 
 // mutators

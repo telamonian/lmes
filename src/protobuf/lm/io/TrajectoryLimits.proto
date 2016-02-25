@@ -40,43 +40,66 @@
 package lm.io;
 
 message TrajectoryLimits {
-
     enum LimitType {
         NONE=0;
-        MAXTIME=1;
-        MINSPECIESCOUNT=10;
-        MAXSPECIESCOUNT=11;
-        DECREASINGORDERPARAMETER=20;
-        INCREASINGORDERPARAMETER=21;
+        TIME=1;
+        SPECIES=2;
+        ORDER_PARAMETER=3;
+        DEGREE_ADVANCEMENT=4;
     }
 
-    enum Arrangement {
-        ASCENDING=1;
-        DESCENDING=2;
+    enum StoppingCondition {
+        option allow_alias = true;
+
+        LESS_THAN=0;
+        LESS_THAN_EQUAL_TO=1;
+        GREATER_THAN=2;
+        GREATER_THAN_EQUAL_TO=3;
+
+        MIN=0;
+        MAX=2;
+
+        PREVIOUS_LT_CURRENT_GEQ=4;
+        PREVIOUS_LEQ_CURRENT_GT=5;
+        PREVIOUS_GT_CURRENT_LEQ=6;
+        PREVIOUS_GEQ_CURRENT_LT=7;
+
+        INCREASING_OPEN=4;
+        INCREASING_CLOSED=5;
+        DECREASING_OPEN=6;
+        DECREASING_CLOSED=7;
     }
 
-    message SpeciesCountLimit {
-        required uint32 species_id                      = 1;
-        required int32 value                            = 2;
+    message TrajectoryLimit {
+        required LimitType limit_type                   = 1;
+        required StoppingCondition stopping_condition   = 2;
+
+        optional uint32 value_id                        = 3;
+        oneof value_oneof {
+            double dvalue                               = 4;
+            int32 ivalue                                = 5;
+            uint64 uvalue                               = 6;
+        }
     }
 
-    message DecreasingOrderParameterLimit {
-        optional Arrangement arrangement                = 1 [default=ASCENDING];
-        optional int64 limit_index						= 2 [default=-1];
-        required uint32 order_parameter_id              = 3;
-        repeated double value                           = 4 [packed=true];
-    }
+//    message TrajectoryLimit {
+//        required ValueType limit_type                   = 1;
+//        required StoppingCondition stopping_condition   = 2;
+//
+//        oneof id_oneof {
+//            uint32 order_parameter_id                   = 3;
+//            uint32 reaction_id                          = 4;
+//            uint32 species_id                           = 5;
+//        }
+//
+//        oneof value_oneof {
+//            uint64 degree_advancement_count             = 6;
+//            double order_parameter_value                = 7;
+//            int32 species_count                         = 8;
+//            double time                                 = 9;
+//        }
+//    }
 
-    message IncreasingOrderParameterLimit {
-        optional Arrangement arrangement                = 1 [default=ASCENDING];
-        optional int64 limit_index						= 2 [default=-1];
-        required uint32 order_parameter_id              = 3;
-        repeated double value                           = 4 [packed=true];
-    }
-
-    optional double max_time_limit                                              = 1;
-    repeated SpeciesCountLimit min_species_count_limit                          = 2;
-    repeated SpeciesCountLimit max_species_count_limit                          = 3;
-    repeated DecreasingOrderParameterLimit decreasing_order_parameter_limit     = 4;
-    repeated IncreasingOrderParameterLimit increasing_order_parameter_limit     = 5;
+    repeated TrajectoryLimit trajectory_limits          = 1;
+    optional TrajectoryLimit time_limit                 = 2;
 }

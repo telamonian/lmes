@@ -47,6 +47,7 @@
 
 #include <cstring>
 #include <list>
+#include <utility>
 #include <vector>
 
 #include <stdint.h>
@@ -95,6 +96,13 @@ typedef double              si_time_t;
 /*
  *  Array types.
  */
+
+template<typename T1, typename T2> struct pairVector
+{
+    typedef vector<std::pair<T1, T2> > type;
+    typedef typename type::iterator iterator;
+    typedef typename type::const_iterator const_iterator;
+};
 
 template <typename T> const char* printf_format_string();
 

@@ -244,7 +244,7 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
         if (time >= timeLimit)
         {
             status = lm::message::WorkUnitStatus::LIMIT_REACHED;
-            limitReached = lm::io::TrajectoryLimits::MAXTIME;
+            limitTypeReached = lm::io::TrajectoryLimits::MAXTIME;
             break;
         }
 
@@ -323,7 +323,7 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     }
 
     // If we finished the total time, write out the remaining time steps.
-    else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && limitReached == lm::io::TrajectoryLimits::MAXTIME)
+    else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && limitTypeReached == lm::io::TrajectoryLimits::MAXTIME)
     {
         time = timeLimit;
         Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);
@@ -732,7 +732,9 @@ bool NextSubvolumeSolver::performSubvolumeDiffusionEvent(si_time_t time, lattice
                         if (rngValue <= diffusionPropensity)
                         {
                             speciesCounts[i]--;
-                            if (hasUpdateSpeciesCountsListeners) callUpdateSpeciesCountsListeners();
+                            // callUpdateSpeciesCountsListeners for the CME is supposed to take reaction number as an arg (for degree advancements)
+                            // TODO: the above doesn't exactly apply here, so for now a hack
+                            if (hasUpdateSpeciesCountsListeners) callUpdateSpeciesCountsListeners(subvolume + 1000);
                             currentSubvolumeSpeciesCounts[i]--;
                             updateSubvolumeWithSpeciesCounts(subvolume);
                             affectedNeighbor = false;
@@ -799,7 +801,9 @@ bool NextSubvolumeSolver::performSubvolumeInfluxEvent(si_time_t time, lattice_si
         if (rngValue <= influxPropensity)
         {
             speciesCounts[diffusionModel->boundaryConditions.boundary_species()]++;
-            if (hasUpdateSpeciesCountsListeners) callUpdateSpeciesCountsListeners();
+            // callUpdateSpeciesCountsListeners for the CME is supposed to take reaction number as an arg (for degree advancements)
+            // TODO: the above doesn't exactly apply here, so for now a hack
+            if (hasUpdateSpeciesCountsListeners) callUpdateSpeciesCountsListeners(subvolume + 1000);
             currentSubvolumeSpeciesCounts[diffusionModel->boundaryConditions.boundary_species()]++;
             updateSubvolumeWithSpeciesCounts(subvolume);
             return true;

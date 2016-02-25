@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import numpy as np
 from six import print_
 import sys
 import zlib
@@ -6,6 +7,8 @@ import zlib
 from lm.io.SpeciesTimeSeries_pb2 import SpeciesTimeSeries as SpeciesTimeSeriesBuf
 from lm_anal.src.datum.trajectory import SpeciesTrajectories
 from robertslab.sfile import *
+
+np.set_printoptions(edgeitems=int(1e4), threshold=int(1e4), linewidth=int(1e3))
 
 def DeserializeAsBuf(data):
     buf = SpeciesTimeSeriesBuf()
@@ -25,7 +28,7 @@ def DeserializeAsBuf(data):
     else:
         times=np.reshape(np.fromstring(buf.times.data, dtype=np.float64), buf.times.shape)
     
-    print_(times)
+    print_(times.astype)
     print_(species_counts)
 
 def DeserializeAsData(data):

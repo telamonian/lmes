@@ -3,11 +3,17 @@
 #################
 #TARGET: lm_c_lib
 #################
-#get the source files
+# list of files/dirs to exclude from the build of lm_c_lib
+set(to_remove_globs lm/fflux/*
+                    lm/main/MainMPI.cpp
+                    lm/neus/*)
+
+# get the source files
 file(GLOB_RECURSE lm_c_source *.cpp *.cc *.h)
-file(GLOB to_remove_main_function lm/main/MainMPI.cpp)
-file(GLOB to_remove_neus lm/neus/*)
-list(REMOVE_ITEM lm_c_source ${to_remove_main_function} ${to_remove_neus})
+
+# remove files from the sources list as appropriate
+file(GLOB to_remove_srcs ${to_remove_globs})
+list(REMOVE_ITEM lm_c_source ${to_remove_srcs})
 
 file(GLOB_RECURSE lm_proto_src ../protobuf/*.proto)
 

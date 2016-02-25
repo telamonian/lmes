@@ -91,7 +91,7 @@ public:
     OParamTwoSpecies();
     virtual ~OParamTwoSpecies() {}
     virtual void init(const lm::io::OrderParameters::OrderParameter& opRef);
-    virtual double calc(uint* speciesCounts);
+    virtual double calc(uint* speciesCounts, double time);
 public:
     uint s1, s2;
     double k1, k2;

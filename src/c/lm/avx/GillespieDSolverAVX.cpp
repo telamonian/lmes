@@ -105,7 +105,7 @@ GillespieDSolverAVX::GillespieDSolverAVX()
     {
         initialized[i] = false;
         status[i] = lm::message::WorkUnitStatus::NONE;
-        limitReached[i] = lm::io::TrajectoryLimits::NONE;
+        limitTypeReached[i] = lm::io::TrajectoryLimits::NONE;
         trajectoryId[i] = 0;
         trajectoryStarted[i] = false;
     }
@@ -206,7 +206,7 @@ void GillespieDSolverAVX::reset()
     {
         initialized[i] = false;
         status[i] = lm::message::WorkUnitStatus::NONE;
-        limitReached[i] = lm::io::TrajectoryLimits::NONE;
+        limitTypeReached[i] = lm::io::TrajectoryLimits::NONE;
         trajectoryId[i] = 0;
         trajectoryStarted[i] = false;
     }
@@ -276,7 +276,7 @@ void GillespieDSolverAVX::copyTrajectoryStateToBaseSolver(uint trajectoryNumber)
     CMESolver::status = status[trajectoryNumber];
 
     // Set the limit reached.
-    CMESolver::limitReached = limitReached[trajectoryNumber];
+    CMESolver::limitTypeReached = limitTypeReached[trajectoryNumber];
 
     // Set the trajectory id.
     CMESolver::trajectoryId = trajectoryId[trajectoryNumber];
@@ -319,7 +319,7 @@ void GillespieDSolverAVX::copyTrajectoryStateFromBaseSolver(uint trajectoryNumbe
     status[trajectoryNumber] = CMESolver::status;
 
     // Set the limit reached.
-    limitReached[trajectoryNumber] = CMESolver::limitReached;
+    limitTypeReached[trajectoryNumber] = CMESolver::limitTypeReached;
 
     // Set the trajectory id.
     trajectoryId[trajectoryNumber] = CMESolver::trajectoryId;
@@ -517,7 +517,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
                 if (trueMask&(1<<i))
                 {
                     status[i] = lm::message::WorkUnitStatus::LIMIT_REACHED;
-                    limitReached[i] = lm::io::TrajectoryLimits::MAXTIME;
+                    limitTypeReached[i] = lm::io::TrajectoryLimits::MAXTIME;
                 }
                 else
                 {
@@ -669,7 +669,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
                         ((double*)&timeStep)[i] = ((double*)&timeLimit)[i]-((double*)&time)[i];
                         ((double*)&time)[i] = ((double*)&timeLimit)[i];
                         status[i] = lm::message::WorkUnitStatus::LIMIT_REACHED;
-                        limitReached[i] = lm::io::TrajectoryLimits::MAXTIME;
+                        limitTypeReached[i] = lm::io::TrajectoryLimits::MAXTIME;
                     }
 
                     // Otherwise, zero propensity is an error.
@@ -729,7 +729,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
         }
 
         // If we finished the total time, write out the remaining time steps.
-        else if (status[i] == lm::message::WorkUnitStatus::LIMIT_REACHED && limitReached[i] == lm::io::TrajectoryLimits::MAXTIME)
+        else if (status[i] == lm::message::WorkUnitStatus::LIMIT_REACHED && limitTypeReached[i] == lm::io::TrajectoryLimits::MAXTIME)
         {
             ((double*)&time)[i] = ((double*)&timeLimit)[i];
             Print::printf(Print::DEBUG, "Generated trajectory %llu through time %e.", trajectoryId[i], ((double*)&time)[i]);
@@ -1010,7 +1010,7 @@ bool GillespieDSolverAVX::isTrajectoryOutsideLimitsAVX()
                 if (outsideLimitMask&(1<<j))
                 {
                     status[j] = lm::message::WorkUnitStatus::LIMIT_REACHED;
-                    limitReached[j] = l.type;
+                    limitTypeReached[j] = l.type;
                 }
                 else
                 {

@@ -142,18 +142,18 @@ void Trajectory::initializeState(const lm::input::Input& input, bool reversed)
         initialLattice->set_particles(diffusionModel.initial_lattice().particles());
     }
 
-    if (input.hasTilings) inititializeHists(input);
+    if (input.hasTilings()) inititializeHists(input);
 }
 
 void Trajectory::inititializeHists(const lm::input::Input& input)
 {
     lm::io::TilingHist* tHist = state.mutable_cme_state()->add_tiling_hists();
-    tHist->set_tiling_id(input.tilings.getCurrentTilingID());
-    for (lm::tiling::EdgeIterator e_it=input.tilings.getCurrentTiling()->begin();e_it!=input.tilings.getCurrentTiling()->end();e_it++)
+    tHist->set_tiling_id(input.getTilings().getCurrentTilingID());
+    for (lm::tiling::EdgeIterator e_it=input.getTilings().getCurrentTiling()->begin();e_it!=input.getTilings().getCurrentTiling()->end();e_it++)
     {
         tHist->add_tile_vals(0);
     }
-//    for (lm::tiling::TilingMap::iterator t_it=input.tilings.begin();t_it!=input.tilings.end();t_it++)
+//    for (lm::tiling::TilingMap::iterator t_it=input.getTilings().begin();t_it!=input.getTilings().end();t_it++)
 //    {
 //        lm::io::TilingHist* tHist = getState()->mutable_cme_state()->add_tiling_hists();
 //        tHist->set_tiling_id(t_it->second->getID());
@@ -175,17 +175,19 @@ uint64_t Trajectory::getId()
     return id;
 }
 
-double Trajectory::getOrderParameterValue(uint opID)
+const lm::io::OrderParametersValues& Trajectory::getOrderParameterValues()
 {
-	uint* lastSpeciesCount = new uint[getSpeciesCounts().number_species()];
-	uint offset = (getSpeciesCounts().number_entries() - 1)*(getSpeciesCounts().number_species());
-	double time = getSpeciesCounts().time(getSpeciesCounts().number_entries() - 1);  //double time = getSpeciesCounts()->time(getSpeciesCounts()->time_size()-1);
-	for (int i=0; i<getSpeciesCounts().number_species(); i++)
-	{
-		lastSpeciesCount[i] = getSpeciesCounts().species_count(i + offset);
-	}
-	return input.oparams[opID]->calc(lastSpeciesCount, time);
-	delete [] lastSpeciesCount;
+    state.cme_state().order_parameter_values().order_parameter_values();
+    return state.cme_state().order_parameter_values();
+//	uint* lastSpeciesCount = new uint[getSpeciesCounts().number_species()];
+//	uint offset = (getSpeciesCounts().number_entries() - 1)*(getSpeciesCounts().number_species());
+//	double time = getSpeciesCounts().time(getSpeciesCounts().number_entries() - 1);  //double time = getSpeciesCounts()->time(getSpeciesCounts()->time_size()-1);
+//	for (int i=0; i<getSpeciesCounts().number_species(); i++)
+//	{
+//		lastSpeciesCount[i] = getSpeciesCounts().species_count(i + offset);
+//	}
+//	return input.oparams[opID]->calc(lastSpeciesCount, time);
+//	delete [] lastSpeciesCount;
 }
 
 const lm::io::SpeciesCounts& Trajectory::getSpeciesCounts()

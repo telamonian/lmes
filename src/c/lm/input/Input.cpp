@@ -41,6 +41,8 @@
 
 #include "lm/Print.h"
 #include "lm/input/Input.h"
+#include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/Types.h"
 
 using std::map;
 using std::string;
@@ -121,32 +123,25 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         // See if we have a max time limit.
         if (simulationParameters.count("maxTime"))
         {
-            trajectoryLimits.set_max_time_limit(atof(simulationParameters["maxTime"].c_str()));
+            lm::io::TrajectoryLimits::TrajectoryLimit* limit = trajectoryLimits.mutable_time_limit();
+            limit->set_limit_type(lm::io::TrajectoryLimits::TIME);
+            limit->set_stopping_condition(lm::io::TrajectoryLimits::GREATER_THAN);
+            limit->set_dvalue(simulationParameters.getDouble("maxTime"));
+
             trajectoryLimitsPresent = true;
         }
 
         // Set the species lower limits from the parameters.
         if (simulationParameters.count("speciesLowerLimitList"))
         {
-            string listString = simulationParameters["speciesLowerLimitList"];
-            size_t start=0, end=0;
-            while (end != string::npos)
+            pairVector<uint, int>::type idLimitVec(simulationParameters.parsePairVector<uint, int>("speciesLowerLimitList", "species lower limit"));
+            for (pairVector<uint, int>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
             {
-                end = listString.find(',', start);
-                string speciesLowerLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
-
-                size_t equalsPos=0;
-                equalsPos = speciesLowerLimit.find(':', 0);
-                if (equalsPos > 0 && equalsPos < speciesLowerLimit.length()-1)
-                {
-                    uint parsedSpecies = (uint)atoi(speciesLowerLimit.substr(0, equalsPos).c_str());
-                    int parsedLimit = atoi(speciesLowerLimit.substr(equalsPos+1, string::npos).c_str());
-                    lm::io::TrajectoryLimits::SpeciesCountLimit* limit = trajectoryLimits.add_min_species_count_limit();
-                    limit->set_species_id(parsedSpecies);
-                    limit->set_value(parsedLimit);
-                    Print::printf(Print::DEBUG, "Parsed lower limit %s to: %d => %d", speciesLowerLimit.c_str(), parsedSpecies, parsedLimit);
-                }
-                start = end+1;
+                lm::io::TrajectoryLimits::TrajectoryLimit* limit = trajectoryLimits.add_trajectory_limits();
+                limit->set_limit_type(lm::io::TrajectoryLimits::SPECIES);
+                limit->set_stopping_condition(lm::io::TrajectoryLimits::LESS_THAN);
+                limit->set_value_id(it->first);
+                limit->set_ivalue(it->second);
             }
             trajectoryLimitsPresent = true;
         }
@@ -154,79 +149,44 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         // Set the species upper limits from the parameters.
         if (simulationParameters.count("speciesUpperLimitList"))
         {
-            string listString = simulationParameters["speciesUpperLimitList"];
-            size_t start=0, end=0;
-            while (end != string::npos)
+            pairVector<uint, int>::type idLimitVec(simulationParameters.parsePairVector<uint, int>("speciesUpperLimitList", "species upper limit"));
+            for (pairVector<uint, int>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
             {
-                end = listString.find(',', start);
-                string speciesUpperLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
-
-                size_t equalsPos=0;
-                equalsPos = speciesUpperLimit.find(':', 0);
-                if (equalsPos > 0 && equalsPos < speciesUpperLimit.length()-1)
-                {
-                    uint parsedSpecies = atoi(speciesUpperLimit.substr(0, equalsPos).c_str());
-                    uint parsedLimit = atoi(speciesUpperLimit.substr(equalsPos+1, string::npos).c_str());
-                    lm::io::TrajectoryLimits::SpeciesCountLimit* limit = trajectoryLimits.add_max_species_count_limit();
-                    limit->set_species_id(parsedSpecies);
-                    limit->set_value(parsedLimit);
-                    Print::printf(Print::DEBUG, "Parsed upper limit %s to: %d <= %d", speciesUpperLimit.c_str(), parsedSpecies, parsedLimit);
-                }
-                start = end+1;
+                lm::io::TrajectoryLimits::TrajectoryLimit* limit = trajectoryLimits.add_trajectory_limits();
+                limit->set_limit_type(lm::io::TrajectoryLimits::SPECIES);
+                limit->set_stopping_condition(lm::io::TrajectoryLimits::MAX);
+                limit->set_value_id(it->first);
+                limit->set_ivalue(it->second);
             }
             trajectoryLimitsPresent = true;
         }
 
-        // Set the order parameter upper limits from an order parameter.
-        if (simulationParameters.count("orderParameterUpperLimitList"))
-        {
-            string listString = simulationParameters["orderParameterUpperLimitList"];
-            size_t start=0, end=0;
-            while (end != string::npos)
-            {
-                end = listString.find(',', start);
-                string orderParameterUpperLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
-
-                size_t equalsPos=0;
-                equalsPos = orderParameterUpperLimit.find(':', 0);
-                if (equalsPos > 0 && equalsPos < orderParameterUpperLimit.length()-1)
-                {
-                    uint parsedOrderParameter = atoi(orderParameterUpperLimit.substr(0, equalsPos).c_str());
-                    double parsedLimit = atof(orderParameterUpperLimit.substr(equalsPos+1, string::npos).c_str());
-                    lm::io::TrajectoryLimits::IncreasingOrderParameterLimit* limit = trajectoryLimits.add_increasing_order_parameter_limit();
-                    limit->set_order_parameter_id(parsedOrderParameter);
-                    limit->add_value(parsedLimit);
-                    limit->set_arrangement(lm::io::TrajectoryLimits::ASCENDING);
-                    Print::printf(Print::DEBUG, "Parsed op upper limit %s to: %d <= %e", orderParameterUpperLimit.c_str(), parsedOrderParameter, parsedLimit);
-                }
-                start = end+1;
-            }
-            trajectoryLimitsPresent = true;
-        }
-
-        // Set the order parameter lower limits from an order parameter.
+        // Set the order parameter lower limits from the parameters.
         if (simulationParameters.count("orderParameterLowerLimitList"))
         {
-            string listString = simulationParameters["orderParameterLowerLimitList"];
-            size_t start=0, end=0;
-            while (end != string::npos)
+            pairVector<uint, double>::type idLimitVec(simulationParameters.parsePairVector<uint, double>("orderParameterLowerLimitList", "order parameter lower limit"));
+            for (pairVector<uint, double>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
             {
-                end = listString.find(',', start);
-                string orderParameterLowerLimit = listString.substr(start, (end == string::npos) ? string::npos : end - start);
-
-                size_t equalsPos=0;
-                equalsPos = orderParameterLowerLimit.find(':', 0);
-                if (equalsPos > 0 && equalsPos < orderParameterLowerLimit.length()-1)
-                {
-                    uint parsedOrderParameter = atoi(orderParameterLowerLimit.substr(0, equalsPos).c_str());
-                    double parsedLimit = atof(orderParameterLowerLimit.substr(equalsPos+1, string::npos).c_str());
-                    lm::io::TrajectoryLimits::DecreasingOrderParameterLimit* limit = trajectoryLimits.add_decreasing_order_parameter_limit();
-                    limit->set_order_parameter_id(parsedOrderParameter);
-                    limit->add_value(parsedLimit);
-                    limit->set_arrangement(lm::io::TrajectoryLimits::DESCENDING);
-                    Print::printf(Print::DEBUG, "Parsed op lower limit %s to: %d <= %e", orderParameterLowerLimit.c_str(), parsedOrderParameter, parsedLimit);
-                }
-                start = end+1;
+                lm::io::TrajectoryLimits::TrajectoryLimit* limit = trajectoryLimits.add_trajectory_limits();
+                limit->set_limit_type(lm::io::TrajectoryLimits::ORDER_PARAMETER);
+                limit->set_stopping_condition(lm::io::TrajectoryLimits::LESS_THAN);
+                limit->set_value_id(it->first);
+                limit->set_dvalue(it->second);
+            }
+            trajectoryLimitsPresent = true;
+        }
+        
+        // Set the order parameter upper limits from the parameters.
+        if (simulationParameters.count("orderParameterUpperLimitList"))
+        {
+            pairVector<uint, double>::type idLimitVec(simulationParameters.parsePairVector<uint, double>("orderParameterUpperLimitList", "order parameter upper limit"));
+            for (pairVector<uint, double>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
+            {
+                lm::io::TrajectoryLimits::TrajectoryLimit* limit = trajectoryLimits.add_trajectory_limits();
+                limit->set_limit_type(lm::io::TrajectoryLimits::ORDER_PARAMETER);
+                limit->set_stopping_condition(lm::io::TrajectoryLimits::GREATER_THAN);
+                limit->set_value_id(it->first);
+                limit->set_dvalue(it->second);
             }
             trajectoryLimitsPresent = true;
         }

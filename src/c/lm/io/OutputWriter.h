@@ -78,7 +78,7 @@ protected:
     virtual void processFFluxOutput(const lm::io::FFluxOutput& data) {}
     virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data)=0;
     virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)=0;
-    virtual void processOrderParameterTimeSeries(const lm::io::SpeciesTimeSeries& data) {}
+    virtual void processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data) {}
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data)=0;
     virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data)=0;
 

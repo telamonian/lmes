@@ -127,13 +127,13 @@ void OParamTwoSpecies::init(const lm::io::OrderParameters::OrderParameter& opRef
 {
     // call parent method
     OParam::init(opRef);
-    s1 = op->species_id(0);
-    s2 = op->species_id(1);
-    k1 = op->species_coefficient(0);
-    k2 = op->species_coefficient(1);
+    s1 = op->species_ids(0);
+    s2 = op->species_ids(1);
+    k1 = op->species_coefficients(0);
+    k2 = op->species_coefficients(1);
 }
 
-double OParamTwoSpecies::calc(uint* speciesCounts)
+double OParamTwoSpecies::calc(uint* speciesCounts, double time)
 {
     return k1*double(speciesCounts[s1]) + k2*double(speciesCounts[s2]);
 }

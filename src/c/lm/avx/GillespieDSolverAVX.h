@@ -102,7 +102,7 @@ protected:
 
     // Limits for the trajectory.
     avxd timeLimit;
-    lm::io::TrajectoryLimits::LimitType limitReached[DOUBLES_PER_AVX];
+    lm::io::TrajectoryLimits::LimitType limitTypeReached[DOUBLES_PER_AVX];
     double* limitValues;
 
     //First passage time variables.

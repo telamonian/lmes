@@ -164,7 +164,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     vector<double> degreeAdvancementTimeSeriesTimes;
     if (writeDegreeAdvancementTimeSeries)
     {
-        nextDegreeAdvancementWriteTime = ceil(time/DegreeAdvancementWriteInterval)*DegreeAdvancementWriteInterval;
+        nextDegreeAdvancementWriteTime = ceil(time/degreeAdvancementWriteInterval)*degreeAdvancementWriteInterval;
     }
 
     // Get the interval for writing order parameters.
@@ -235,7 +235,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         {
             status = lm::message::WorkUnitStatus::LIMIT_REACHED;
             limitIndexReached =
-            limitReached = lm::io::TrajectoryLimits::MAXTIME;
+            limitTypeReached = lm::io::TrajectoryLimits::MAXTIME;
             break;
         }
 
@@ -298,7 +298,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
                 timeStep = timeLimit-time;
                 time = timeLimit;
                 status = lm::message::WorkUnitStatus::LIMIT_REACHED;
-                limitReached = lm::io::TrajectoryLimits::MAXTIME;
+                limitTypeReached = lm::io::TrajectoryLimits::MAXTIME;
             }
 
             // Otherwise, zero propensity is an error.
@@ -326,7 +326,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     }
 
     // If we finished the total time, write out the remaining time steps.
-    else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && limitReached == lm::io::TrajectoryLimits::MAXTIME)
+    else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && limitTypeReached == lm::io::TrajectoryLimits::MAXTIME)
     {
         time = timeLimit;
         Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);
@@ -413,13 +413,13 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     if (orderParameterTimeSeriesCounts.size() > 0 || orderParameterTimeSeriesTimes.size() > 0)
     {
         // Make sure the arrays are of a consistent size.
-        if (orderParameterTimeSeriesCounts.size() == orderParameterTimeSeriesTimes.size()*oparams->size())
+        if (orderParameterTimeSeriesCounts.size() == orderParameterTimeSeriesTimes.size()*numberOrderParameters)
         {
-            lm::io::SpeciesTimeSeries* orderParameterTimeSeriesDataSet = msg->mutable_order_parameter_time_series();
-            orderParameterTimeSeriesDataSet->set_trajectory_id(trajectoryID);
+            lm::io::OrderParameterTimeSeries* orderParameterTimeSeriesDataSet = msg->mutable_order_parameter_time_series();
+            orderParameterTimeSeriesDataSet->set_trajectory_id(trajectoryId);
 
-            opCounts.setBuf(orderParameterTimeSeriesDataSet->mutable_counts());
-            opCounts.shape() << orderParameterTimeSeriesTimes.size() << oparams->size();
+            opCounts.setBuf(orderParameterTimeSeriesDataSet->mutable_values());
+            opCounts.shape() << orderParameterTimeSeriesTimes.size() << numberOrderParameters;
             opCounts.set_data(orderParameterTimeSeriesCounts, robertslab::pbuf::NDArray::float64);
 
             opTimes.setBuf(orderParameterTimeSeriesDataSet->mutable_times());
@@ -428,7 +428,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         }
         else
         {
-            Print::printf(Print::ERROR, "Order parameter time series counts and time mismatch %d,%d,%d", orderParameterTimeSeriesCounts.size(), oparams->size(), orderParameterTimeSeriesTimes.size());
+            Print::printf(Print::ERROR, "Order parameter time series counts and time mismatch %d,%d,%d", orderParameterTimeSeriesCounts.size(), numberOrderParameters, orderParameterTimeSeriesTimes.size());
         }
     }
 
@@ -448,10 +448,10 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         communicator->sendMessage(outputProcess, outputThread, &msgpp);
     }
 
-    if (reachedLimit && steps>=maxSteps)
-    {
-        steps = maxSteps - 1;
-    }
+//    if (reachedLimit && steps>=maxSteps)
+//    {
+//        steps = maxSteps - 1;
+//    }
 
     return steps;
 }

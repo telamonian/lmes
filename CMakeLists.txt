@@ -36,13 +36,15 @@ ENDIF(MPICH_LOWER MATCHES "mpich" OR MPICH_UPPER MATCHES "MPICH")
 IF (USE_CUDA STREQUAL yes)
     find_package(cuda REQUIRED)
 ENDIF(USE_CUDA STREQUAL yes)
+
 IF (USE_CUDA STREQUAL optional)
     find_package(cuda)
+    # protects against using CUDA when the headers are present without the libraries and USE_CUDA is set to optional
+    IF(CUDA_FOUND AND NOT CUDA_CUDA_LIBRARY)
+        set(CUDA_FOUND false)
+    ENDIF(CUDA_FOUND AND NOT CUDA_CUDA_LIBRARY)
 ENDIF(USE_CUDA STREQUAL optional)
-# protects against using CUDA when the headers are present without the libraries and USE_CUDA is set to optional
-IF(CUDA_FOUND AND NOT CUDA_CUDA_LIBRARY)
-    set(CUDA_FOUND false)
-ENDIF(CUDA_FOUND AND NOT CUDA_CUDA_LIBRARY)
+
 # sets a single definitive BUILD_WITH_CUDA flag based on the input flag USE_CUDA and the result of find_package(cuda)
 if(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
     set(BUILD_WITH_CUDA true)
@@ -57,11 +59,13 @@ find_package(HDF5 COMPONENTS C HL REQUIRED)
 find_package(ZLIB REQUIRED)
 #find_package(Boost)
 
+# add some definitions that will get passed on to the compiler
 add_definitions(-DBUILD_INFO -DVERBOSITY_LEVEL=${VERBOSITY_LEVEL})
-IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
+IF(BUILD_WITH_CUDA)
     add_definitions(-DOPT_CUDA)
-ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
+ENDIF(BUILD_WITH_CUDA)
 
+# set compiler flags for c and c++
 IF(DEFINED CUSTOM_C_FLAGS)
     SET(CMAKE_C_FLAGS ${CUSTOM_C_FLAGS})
     MESSAGE(STATUS "Using custom C flags: ${CMAKE_C_FLAGS}")
@@ -98,7 +102,6 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 include_directories(src/c/
                     ${CMAKE_CURRENT_BINARY_DIR}/src/c/
-                    src/cuda/
                     src/protobuf/
                     ${PROTOBUF_INCLUDE_DIRS}
                     ${HDF5_INCLUDE_DIRS}
@@ -106,7 +109,8 @@ include_directories(src/c/
                     ${MPI_C_INCLUDE_PATH})
 
 if(BUILD_WITH_CUDA)
-    include_directories(${CUDA_INCLUDE_DIRS})
+    include_directories(src/cuda/
+                        ${CUDA_INCLUDE_DIRS})
 endif(BUILD_WITH_CUDA)
 
 if(libsbml_FOUND)
@@ -121,18 +125,18 @@ endif(COMPILER_HAS_AVX)
 # to help clion find the generated protobuf code
 string(REGEX MATCH "[Cc][Ll]ion" BUILT_WITH_CLION "${lm_BINARY_DIR}")
 if(BUILT_WITH_CLION)
-    include_directories(${CMAKE_CURRENT_BINARY_DIR}/../Debug/src/c/
-                        ${CMAKE_CURRENT_BINARY_DIR}/../MinSizeRel/src/c/
-                        ${CMAKE_CURRENT_BINARY_DIR}/../Release/src/c/
-                        ${CMAKE_CURRENT_BINARY_DIR}/../RelWithDebInfo/src/c/)
+    include_directories(${CMAKE_BINARY_DIR}/../Debug/src/c/
+                        ${CMAKE_BINARY_DIR}/../MinSizeRel/src/c/
+                        ${CMAKE_BINARY_DIR}/../Release/src/c/
+                        ${CMAKE_BINARY_DIR}/../RelWithDebInfo/src/c/)
 endif(BUILT_WITH_CLION)
 
 # add subdirectories
 add_subdirectory(src/c)
-IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
+IF(BUILD_WITH_CUDA)
     add_subdirectory(src/cuda)
     add_dependencies(lm_cuda_lib lm_c_lib)
-ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
+ENDIF(BUILD_WITH_CUDA)
 
 #add_subdirectory(gtest/c)
 
@@ -161,10 +165,10 @@ ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(lmes ${LM_C_LIB})
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
-IF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
+IF(BUILD_WITH_CUDA)
     target_link_libraries(lmes lm_cuda_lib
                              ${CUDA_LIBRARIES})
-ENDIF(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional)) 
+ENDIF(BUILD_WITH_CUDA)
 
 target_link_libraries(lmes ${CMAKE_THREAD_LIBS_INIT}
                          ${PROTOBUF_LIBRARIES}

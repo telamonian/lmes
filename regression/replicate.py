@@ -33,7 +33,7 @@ degradationConstants = [ReactionRateConstant(reactionID=6, rateConstant=.25*thet
 reactionRateConstants+=degradationConstants
 
 simParams = [SimulationParameter(key='maxSteps',val=str(int(1e10))),
-             SimulationParameter(key='maxTime',val=str(int(2e6))),
+             SimulationParameter(key='maxTime',val=str(int(1e5))),
              SimulationParameter(key='maxWorkUnitSteps',val=str(int(1e6))),
              SimulationParameter(key='writeInterval',val=str(int(1e1)))]
 
@@ -43,7 +43,7 @@ replicateInput.SetReactionRateConstants(rRates=reactionRateConstants)
 replicateInput.SetSimulationParameters(simParams=simParams)
 replicateInput.Close()
 
-raw_args = '-r 1-10 -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff sfile -fo biphasic_switch.sfile -f "biphasic_switch.lm"'
+raw_args = '-r 1-10 -sl lm::cme::GillespieDSolver -cr 1 -gr 0 -ff sfile -fo biphasic_switch.sfile -f "biphasic_switch.lm"'
 args = shlex.split(raw_args)
 p = subprocess.Popen([path] + args)
 p.wait()

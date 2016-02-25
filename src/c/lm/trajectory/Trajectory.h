@@ -62,7 +62,7 @@ public:
     // accessors
     virtual uint64_t getId();
     virtual int64_t getLimitIndexReached();
-    virtual double getOrderParameterValue(uint opID);
+    virtual const lm::io::OrderParametersValues& getOrderParameterValues();
     virtual uint getSimSteps();
     virtual double getSimTime();
     virtual const lm::io::SpeciesCounts& getSpeciesCounts();

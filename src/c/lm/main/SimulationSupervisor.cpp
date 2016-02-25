@@ -150,7 +150,7 @@ int SimulationSupervisor::run()
             else if (message.has_ping_target())
             {
             }
-            else if (message.process_work_unit_output_size() > 0)
+            else if (message.has_process_work_unit_output() > 0)
             {
                 receivedProcessWorkUnitOutput(message);
             }
