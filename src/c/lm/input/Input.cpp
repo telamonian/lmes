@@ -42,8 +42,12 @@
 #include "lm/Print.h"
 #include "lm/input/Input.h"
 #include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/trajectory/TrajectoryLimits.h"
 #include "lm/Types.h"
 
+using lm::io::TrajectoryLimits::LimitType;
+using lm::io::TrajectoryLimits::StoppingCondition;
+using lm::trajectory::LimitValueT;
 using std::map;
 using std::string;
 
@@ -123,65 +127,71 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
             trajectoryLimitsPresent = true;
         }
 
-        // Set the species lower limits from the parameters.
-        if (simulationParameters.count("speciesLowerLimitList"))
-        {
-            pairVector<uint, int>::type idLimitVec(simulationParameters.parsePairVector<uint, int>("speciesLowerLimitList", "species lower limit"));
-            for (pairVector<uint, int>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
-            {
-                lm::io::TrajectoryLimits::TrajectoryLimit* limit = trajectoryLimits.add_trajectory_limits();
-                limit->set_limit_type(lm::io::TrajectoryLimits::SPECIES);
-                limit->set_stopping_condition(lm::io::TrajectoryLimits::MIN);
-                limit->set_value_id(it->first);
-                limit->set_ivalue(it->second);
-            }
-            trajectoryLimitsPresent = true;
-        }
+        if (simulationParameters.count("speciesLowerLimitList")) trajectoryLimitsPresent = parseLimits<lm::io::TrajectoryLimits::SPECIES>("speciesLowerLimitList", "species lower limit", lm::io::TrajectoryLimits::MIN);
+        if (simulationParameters.count("speciesLowerLimitList")) trajectoryLimitsPresent = parseLimits<lm::io::TrajectoryLimits::SPECIES>("speciesLowerLimitList", "species lower limit", lm::io::TrajectoryLimits::MAX);
+        if (simulationParameters.count("speciesLowerLimitList")) trajectoryLimitsPresent = parseLimits<lm::io::TrajectoryLimits::ORDER_PARAMETER>("speciesLowerLimitList", "species lower limit", lm::io::TrajectoryLimits::MIN);
+        if (simulationParameters.count("speciesLowerLimitList")) trajectoryLimitsPresent = parseLimits<lm::io::TrajectoryLimits::ORDER_PARAMETER>("speciesLowerLimitList", "species lower limit", lm::io::TrajectoryLimits::MAX);
 
-        // Set the species upper limits from the parameters.
-        if (simulationParameters.count("speciesUpperLimitList"))
-        {
-            pairVector<uint, int>::type idLimitVec(simulationParameters.parsePairVector<uint, int>("speciesUpperLimitList", "species upper limit"));
-            for (pairVector<uint, int>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
-            {
-                lm::io::TrajectoryLimits::TrajectoryLimit* limit = trajectoryLimits.add_trajectory_limits();
-                limit->set_limit_type(lm::io::TrajectoryLimits::SPECIES);
-                limit->set_stopping_condition(lm::io::TrajectoryLimits::MAX);
-                limit->set_value_id(it->first);
-                limit->set_ivalue(it->second);
-            }
-            trajectoryLimitsPresent = true;
-        }
 
-        // Set the order parameter lower limits from the parameters.
-        if (simulationParameters.count("orderParameterLowerLimitList"))
-        {
-            pairVector<uint, double>::type idLimitVec(simulationParameters.parsePairVector<uint, double>("orderParameterLowerLimitList", "order parameter lower limit"));
-            for (pairVector<uint, double>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
-            {
-                lm::io::TrajectoryLimits::TrajectoryLimit* limit = trajectoryLimits.add_trajectory_limits();
-                limit->set_limit_type(lm::io::TrajectoryLimits::ORDER_PARAMETER);
-                limit->set_stopping_condition(lm::io::TrajectoryLimits::MIN);
-                limit->set_value_id(it->first);
-                limit->set_dvalue(it->second);
-            }
-            trajectoryLimitsPresent = true;
-        }
-        
-        // Set the order parameter upper limits from the parameters.
-        if (simulationParameters.count("orderParameterUpperLimitList"))
-        {
-            pairVector<uint, double>::type idLimitVec(simulationParameters.parsePairVector<uint, double>("orderParameterUpperLimitList", "order parameter upper limit"));
-            for (pairVector<uint, double>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
-            {
-                lm::io::TrajectoryLimits::TrajectoryLimit* limit = trajectoryLimits.add_trajectory_limits();
-                limit->set_limit_type(lm::io::TrajectoryLimits::ORDER_PARAMETER);
-                limit->set_stopping_condition(lm::io::TrajectoryLimits::MAX);
-                limit->set_value_id(it->first);
-                limit->set_dvalue(it->second);
-            }
-            trajectoryLimitsPresent = true;
-        }
+//        // Set the species lower limits from the parameters.
+//        if (simulationParameters.count("speciesLowerLimitList"))
+//        {
+//            pairVector<uint, int>::type idLimitVec(simulationParameters.parsePairVector<uint, int>("speciesLowerLimitList", "species lower limit"));
+//            for (pairVector<uint, int>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
+//            {
+//                lm::io::TrajectoryLimits::TrajectoryLimit* limit = trajectoryLimits.add_trajectory_limits();
+//                limit->set_limit_type(lm::io::TrajectoryLimits::SPECIES);
+//                limit->set_stopping_condition(lm::io::TrajectoryLimits::MIN);
+//                limit->set_value_id(it->first);
+//                limit->set_ival5e(it->second);
+//            }
+//            trajectoryLimitsPresent = true;
+//        }
+//
+//        // Set the species upper limits from the parameters.
+//        if (simulationParameters.count("speciesUpperLimitList"))
+//        {
+//            pairVector<uint, int>::type idLimitVec(simulationParameters.parsePairVector<uint, int>("speciesUpperLimitList", "species upper limit"));
+//            for (pairVector<uint, int>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
+//            {
+//                lm::io::TrajectoryLimits::TrajectoryLimit* limit = trajectoryLimits.add_trajectory_limits();
+//                limit->set_limit_type(lm::io::TrajectoryLimits::SPECIES);
+//                limit->set_stopping_condition(lm::io::TrajectoryLimits::MAX);
+//                limit->set_value_id(it->first);
+//                limit->set_ivalue(it->second);
+//            }
+//            trajectoryLimitsPresent = true;
+//        }
+//
+//        // Set the order parameter lower limits from the parameters.
+//        if (simulationParameters.count("orderParameterLowerLimitList"))
+//        {
+//            pairVector<uint, double>::type idLimitVec(simulationParameters.parsePairVector<uint, double>("orderParameterLowerLimitList", "order parameter lower limit"));
+//            for (pairVector<uint, double>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
+//            {
+//                lm::io::TrajectoryLimits::TrajectoryLimit* limit = trajectoryLimits.add_trajectory_limits();
+//                limit->set_limit_type(lm::io::TrajectoryLimits::ORDER_PARAMETER);
+//                limit->set_stopping_condition(lm::io::TrajectoryLimits::MIN);
+//                limit->set_value_id(it->first);
+//                limit->set_dvalue(it->second);
+//            }
+//            trajectoryLimitsPresent = true;
+//        }
+//
+//        // Set the order parameter upper limits from the parameters.
+//        if (simulationParameters.count("orderParameterUpperLimitList"))
+//        {
+//            pairVector<uint, double>::type idLimitVec(simulationParameters.parsePairVector<uint, double>("orderParameterUpperLimitList", "order parameter upper limit"));
+//            for (pairVector<uint, double>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
+//            {
+//                lm::io::TrajectoryLimits::TrajectoryLimit* limit = trajectoryLimits.add_trajectory_limits();
+//                limit->set_limit_type(lm::io::TrajectoryLimits::ORDER_PARAMETER);
+//                limit->set_stopping_condition(lm::io::TrajectoryLimits::MAX);
+//                limit->set_value_id(it->first);
+//                limit->set_dvalue(it->second);
+//            }
+//            trajectoryLimitsPresent = true;
+//        }
     }
 
     // Get the output options.
@@ -342,7 +352,15 @@ bool Input::parseBoundaryConditions(lm::io::BoundaryConditions* bc, string arg)
     return bc->axis_specific_boundaries();
 }
 
-template <typename T> bool parseLimits(const lm::option::SimulationParameters& simParams);
+template <LimitType LT> bool Input::parseLimits(string key, string debugString, StoppingCondition sc, bool includeEndpoint)
+{
+    pairVector<uint, LimitValueT<LT>::type>::type idLimitVec(simulationParameters.parsePairVector<uint, LimitValueT<LT>::type>(key, debugString));
+    for (pairVector<uint, LimitValueT<LT>::type>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
+    {
+        trajectoryLimits.addLimitBuf<LT>(it->first, it->second, sc, lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID, includeEndpoint);
+    }
+    return idLimitVec.size() > 0;
+}
 
 }
 }

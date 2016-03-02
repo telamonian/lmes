@@ -45,7 +45,7 @@
 namespace lm {
 namespace pwrap {
 
-// main template
+// main template for type generator struct
 template <typename T> struct RepeatedTypedef {typedef google::protobuf::RepeatedPtrField<T> type;};
 // specializations for "primitive" types
 template <> struct RepeatedTypedef<double> {typedef google::protobuf::RepeatedField<double> type;};

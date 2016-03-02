@@ -54,6 +54,14 @@
 namespace lm {
 namespace trajectory {
 
+// main template for LimitType->ValueType type generator
+template <lm::io::TrajectoryLimits::LimitType LT> struct LimitValueT;
+// NB: if any new LimitType enum values are added in the future, add a template specialization below
+template <> struct LimitValueT<lm::io::TrajectoryLimits::TIME> {typedef double type;};
+template <> struct LimitValueT<lm::io::TrajectoryLimits::SPECIES> {typedef int32_t type;};
+template <> struct LimitValueT<lm::io::TrajectoryLimits::ORDER_PARAMETER> {typedef double type;};
+template <> struct LimitValueT<lm::io::TrajectoryLimits::DEGREE_ADVANCEMENT> {typedef uint32_t type;};
+
 struct TrajectoryLimit
 {
     lm::io::TrajectoryLimits::LimitType type;
@@ -100,14 +108,12 @@ public:
     const vectorType& vec() const {return _vec;}
 
 // mutators
-    template <typename T> subBufType* _addLimitBuf(uint32_t valID, T val, LimitType lt, StoppingCondition sc, int32_t id=DEFAULT_LIMIT_ID, bool includeEndpoint=true);
-
-    // NB: if any new LimitType enum values are added in the future, add a template specialization below
-    template <LimitType LT> subBufType* addLimitBuf();
-    template <> subBufType* addLimitBuf<bufType::TIME>(uint32_t valID, double val, StoppingCondition sc, int32_t id=DEFAULT_LIMIT_ID, bool includeEndpoint=true) {return _addLimitBuf<>(valID, val, bufType::TIME, sc, id, includeEndpoint);}
-    template <> subBufType* addLimitBuf<bufType::SPECIES>(uint32_t valID, int32_t val, StoppingCondition sc, int32_t id=DEFAULT_LIMIT_ID, bool includeEndpoint=true) {return _addLimitBuf<>(valID, val, bufType::SPECIES, sc, id, includeEndpoint);}
-    template <> subBufType* addLimitBuf<bufType::ORDER_PARAMETER>(uint32_t valID, double val, StoppingCondition sc, int32_t id=DEFAULT_LIMIT_ID, bool includeEndpoint=true) {return _addLimitBuf<>(valID, val, bufType::ORDER_PARAMETER, sc, id, includeEndpoint);}
-    template <> subBufType* addLimitBuf<bufType::DEGREE_ADVANCEMENT>(uint32_t valID, uint64_t val, StoppingCondition sc, int32_t id=DEFAULT_LIMIT_ID, bool includeEndpoint=true) {return _addLimitBuf<>(valID, val, bufType::DEGREE_ADVANCEMENT, sc, id, includeEndpoint);}
+    template <LimitType LT> subBufType* addLimitBuf(uint32_t valID, LimitValueT<LT>::type val, StoppingCondition sc, int32_t id=DEFAULT_LIMIT_ID, bool includeEndpoint=true);
+//    template <> subBufType* addLimitBuf<bufType::TIME>(uint32_t valID, double val, StoppingCondition sc, int32_t id=DEFAULT_LIMIT_ID, bool includeEndpoint=true) {return _addLimitBuf<>(valID, val, bufType::TIME, sc, id, includeEndpoint);}
+//    template <> subBufType* addLimitBuf<bufType::SPECIES>(uint32_t valID, int32_t val, StoppingCondition sc, int32_t id=DEFAULT_LIMIT_ID, bool includeEndpoint=true) {return _addLimitBuf<>(valID, val, bufType::SPECIES, sc, id, includeEndpoint);}
+//    template <> subBufType* addLimitBuf<bufType::ORDER_PARAMETER>(uint32_t valID, double val, StoppingCondition sc, int32_t id=DEFAULT_LIMIT_ID, bool includeEndpoint=true) {return _addLimitBuf<>(valID, val, bufType::ORDER_PARAMETER, sc, id, includeEndpoint);}
+//    template <> subBufType* addLimitBuf<bufType::DEGREE_ADVANCEMENT>(uint32_t valID, uint64_t val, StoppingCondition sc, int32_t id=DEFAULT_LIMIT_ID, bool includeEndpoint=true) {return _addLimitBuf<>(valID, val, bufType::DEGREE_ADVANCEMENT, sc, id, includeEndpoint);}
+//    template <typename T> subBufType* _addLimitBuf(uint32_t valID, T val, LimitType lt, StoppingCondition sc, int32_t id=DEFAULT_LIMIT_ID, bool includeEndpoint=true);
 
     void seatRepeated(bufType& inBuf) {_repeated.setRepFieldPtr(inBuf.mutable_trajectory_limits());}
     void seatRepeated() {seatRepeated(_buf);}

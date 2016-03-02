@@ -68,8 +68,9 @@ public:
     const SimParamMap& map() const {return _map;}
     bool isEnd(SimParamMap::const_iterator it) const {return it==_map.end();}
     template <typename T> T parse(const std::string &key) const;
-    template <typename T> vector<T> parseVector(const std::string &key) const;
+
     template <typename T1, typename T2> typename pairVector<T1, T2>::type parsePairVector(const std::string &key, const std::string& debugString="") const;
+    template <typename T> vector<T> parseVector(const std::string &key) const;
 
 // mutators
     // for the buf <-> map conversion methods, if you drop an arg it'll use the internal map and/or buf

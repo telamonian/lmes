@@ -42,6 +42,7 @@
 
 using lm::io::TrajectoryLimits::LimitType;
 using lm::io::TrajectoryLimits::StoppingCondition;
+using lm::trajectory::LimitValueT;
 
 namespace lm {
 namespace trajectory {
@@ -59,10 +60,10 @@ TrajectoryLimits::repeatedType::const_iterator TrajectoryLimits::findBuf(int32_t
     return it;
 }
 
-template <typename T> lm::io::TrajectoryLimits::TrajectoryLimit* TrajectoryLimits::_addLimitBuf(uint32_t valID, T val, LimitType lt, StoppingCondition sc, int32_t id, bool includeEndpoint)
+template <LimitType LT> lm::io::TrajectoryLimits::TrajectoryLimit* TrajectoryLimits::addLimitBuf(uint32_t valID, LimitValueT<LT>::type val, StoppingCondition sc, int32_t id, bool includeEndpoint)
 {
     lm::io::TrajectoryLimits::TrajectoryLimit* tlBuf;
-    if (lt==lm::io::TrajectoryLimits::TIME)
+    if (LT==lm::io::TrajectoryLimits::TIME)
     {
         tlBuf = _buf.mutable_time_limit();
         // for now, the expected behavior is that the id of the time limit will default to -1
@@ -75,7 +76,7 @@ template <typename T> lm::io::TrajectoryLimits::TrajectoryLimit* TrajectoryLimit
         tlBuf->set_id(id==DEFAULT_LIMIT_ID ? nextID++ : id);
     }
 
-    tlBuf->set_limit_type(lt);
+    tlBuf->set_limit_type(LT);
     tlBuf->set_stopping_condition(sc);
     tlBuf->set_include_endpoint(includeEndpoint);
 
