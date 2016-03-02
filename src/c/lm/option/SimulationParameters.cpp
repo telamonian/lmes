@@ -86,62 +86,26 @@ SimParamMap::iterator SimulationParameters::findFirst(const vector<string>& keys
     return map.erase(findCIt, findCIt);
 #else
     // unlike the c++11 solution, this one (may) run in linear time since in general it has to increment the non-const iterator one by one
-    SimParamMap::iterator findIt(map.begin());
+    SimParamMap::iterator findIt(_map.begin());
     std::advance(findIt, std::distance<SimParamMap::const_iterator>(findIt,findCIt));
     return findIt;
 #endif
 }
 
-vector<int> SimulationParameters::getIntVector(const string &key) const
+template <typename T>
+T SimulationParameters::parse(const std::string& key) const
 {
-    SimParamMap::const_iterator findIt = getMap().find(key);
-    const string listString = (not isEnd(findIt)) ? findIt->second : "";
+    T retVal;
+    stringstream ss(_map.at(key));
 
-    vector<int> intVector;
-    size_t strStart=0, strEnd= 0;
-    while (strEnd != string::npos)
-    {
-        strEnd = listString.find(',', strStart);
-        string intString = listString.substr(strStart, (strEnd == string::npos) ? string::npos : strEnd - strStart);
-        if (intString.length() > 0)
-        {
-            intVector.push_back(atoi(intString.c_str()));
-        }
-        strStart = strEnd+1;
-    }
-    return intVector;
-}
-
-vector<vector<int> > SimulationParameters::getIntPairsVector(const std::string &key) const
-{
-    SimParamMap::const_iterator findIt = getMap().find(key);
-    const string listString = (not isEnd(findIt)) ? findIt->second : "";
-
-    vector<vector<int> > intPairsVector;
-    size_t strStart=0, strEnd= 0;
-    while (strEnd != string::npos)
-    {
-        strEnd = listString.find(',', strStart);
-        string intPairsString = listString.substr(strStart, (strEnd == string::npos) ? string::npos : strEnd - strStart);
-
-        size_t equalsPos=0;
-        equalsPos = intPairsString.find(':', 0);
-        if (equalsPos > 0 && equalsPos < intPairsString.length()-1)
-        {
-            vector<int> intPairVector;
-            intPairVector.push_back(atoi(intPairsString.substr(0, equalsPos).c_str()));
-            intPairVector.push_back(atoi(intPairsString.substr(equalsPos+1, string::npos).c_str()));
-            intPairsVector.push_back(intPairVector);
-        }
-        strStart = strEnd+1;
-    }
-    return intPairsVector;
+    ss >> retVal;
+    return retVal;
 }
 
 template <typename T>
-vector<T> SimulationParameters::parseVector(const std::string &key) const
+vector<T> SimulationParameters::parseVector(const std::string& key) const
 {
-    stringstream vecSS(map.at(key));
+    stringstream vecSS(_map.at(key));
 
     vector<T> parsedVector;
     T i;
@@ -160,7 +124,7 @@ vector<T> SimulationParameters::parseVector(const std::string &key) const
 template <typename T1, typename T2>
 pairVector<T1, T2>::type SimulationParameters::parsePairVector(const std::string& key, const std::string& debugMessage) const
 {
-    stringstream pairVecSS(map.at(key));
+    stringstream pairVecSS(_map.at(key));
 
     pairVector<T1, T2>::type parsedPairVector;
     string pairString;
@@ -192,10 +156,10 @@ void SimulationParameters::bufToMap(const lm::io::SimulationParameters& inBuf, S
     }
 }
 
-void SimulationParameters::mapToBuf(SimParamMap& inMap, lm::io::SimulationParameters& outBuf)
+void SimulationParameters::mapToBuf(const SimParamMap& inMap, lm::io::SimulationParameters& outBuf)
 {
     outBuf.Clear();
-    for (SimParamMap::iterator it=inMap.begin(); it!=inMap.end(); it++) {
+    for (SimParamMap::const_iterator it=inMap.begin(); it!=inMap.end(); it++) {
         outBuf.add_key(it->first);
         outBuf.add_value(it->second);
     }

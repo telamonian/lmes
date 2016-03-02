@@ -97,7 +97,8 @@ public:
         mutable_data()->resize(dataSizeEstimate);
     }
 
-    inline void setBuf(robertslab::pbuf::NDArray* newBuf) {buf=newBuf; shape_.setBufField(buf->mutable_shape());}
+    inline void setBuf(robertslab::pbuf::NDArray* newBuf) {buf=newBuf;
+        shape_.setRepFieldPtr(buf->mutable_shape());}
 
 public:
     robertslab::pbuf::NDArray* buf;

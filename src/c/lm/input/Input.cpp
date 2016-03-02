@@ -51,17 +51,9 @@ namespace lm {
 namespace input {
 
 Input::Input(const lm::io::hdf5::Hdf5File& file)
-:reactionModelPresent(false),diffusionModelPresent(false),orderParametersPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),outputOptionsPresent(false),
- stepsPerWorkUnit(10000000)
+:reactionModelPresent(false),diffusionModelPresent(false),orderParametersPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),
+ outputOptionsPresent(false),simulationParameters(file),stepsPerWorkUnit(10000000)
 {
-    // Get the simulation parameters.
-    simulationParameters.rFF(file);
-//    file.getParameters(&simulationParametersMsg);
-//    for (int i=0; i<simulationParametersMsg.key_size() && i<simulationParametersMsg.value_size(); i++)
-//    {
-//        simulationParameters[simulationParametersMsg.key(i)] = simulationParametersMsg.value(i);
-//    }
-
     // Get the reaction model.
     if (file.hasReactionModel())
     {
@@ -125,8 +117,8 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         {
             lm::io::TrajectoryLimits::TrajectoryLimit* limit = trajectoryLimits.mutable_time_limit();
             limit->set_limit_type(lm::io::TrajectoryLimits::TIME);
-            limit->set_stopping_condition(lm::io::TrajectoryLimits::GREATER_THAN);
-            limit->set_dvalue(simulationParameters.getDouble("maxTime"));
+            limit->set_stopping_condition(lm::io::TrajectoryLimits::MAX);
+            limit->set_dvalue(simulationParameters.parse<double>("maxTime"));
 
             trajectoryLimitsPresent = true;
         }
@@ -139,7 +131,7 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
             {
                 lm::io::TrajectoryLimits::TrajectoryLimit* limit = trajectoryLimits.add_trajectory_limits();
                 limit->set_limit_type(lm::io::TrajectoryLimits::SPECIES);
-                limit->set_stopping_condition(lm::io::TrajectoryLimits::LESS_THAN);
+                limit->set_stopping_condition(lm::io::TrajectoryLimits::MIN);
                 limit->set_value_id(it->first);
                 limit->set_ivalue(it->second);
             }
@@ -169,7 +161,7 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
             {
                 lm::io::TrajectoryLimits::TrajectoryLimit* limit = trajectoryLimits.add_trajectory_limits();
                 limit->set_limit_type(lm::io::TrajectoryLimits::ORDER_PARAMETER);
-                limit->set_stopping_condition(lm::io::TrajectoryLimits::LESS_THAN);
+                limit->set_stopping_condition(lm::io::TrajectoryLimits::MIN);
                 limit->set_value_id(it->first);
                 limit->set_dvalue(it->second);
             }
@@ -184,7 +176,7 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
             {
                 lm::io::TrajectoryLimits::TrajectoryLimit* limit = trajectoryLimits.add_trajectory_limits();
                 limit->set_limit_type(lm::io::TrajectoryLimits::ORDER_PARAMETER);
-                limit->set_stopping_condition(lm::io::TrajectoryLimits::GREATER_THAN);
+                limit->set_stopping_condition(lm::io::TrajectoryLimits::MAX);
                 limit->set_value_id(it->first);
                 limit->set_dvalue(it->second);
             }
@@ -349,6 +341,8 @@ bool Input::parseBoundaryConditions(lm::io::BoundaryConditions* bc, string arg)
     delete[] argbuf;
     return bc->axis_specific_boundaries();
 }
+
+template <typename T> bool parseLimits(const lm::option::SimulationParameters& simParams);
 
 }
 }

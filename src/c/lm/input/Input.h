@@ -54,6 +54,7 @@
 #include "lm/oparam/OParams.h"
 #include "lm/option/SimulationParameters.h"
 #include "lm/tiling/Tilings.h"
+#include "lm/trajectory/TrajectoryLimits.h"
 
 using std::list;
 using std::map;
@@ -72,7 +73,7 @@ protected:
     bool trajectoryLimitsPresent;
     bool outputOptionsPresent;
 
-    lm::io::SimulationParameters simulationParametersMsg;
+//    lm::io::SimulationParameters simulationParametersMsg;
     lm::option::SimulationParameters simulationParameters;
     lm::io::ReactionModel reactionModel;
     lm::io::DiffusionModel diffusionModel;
@@ -96,7 +97,6 @@ public:
     bool hasTrajectoryLimits() const {return trajectoryLimitsPresent;}
     bool hasOutputOptions() const {return outputOptionsPresent;}
 
-
     const lm::option::SimulationParameters& getSimulationParameters() const {return simulationParameters;}
     const lm::io::ReactionModel& getReactionModel() const {return reactionModel;}
     const lm::io::DiffusionModel& getDiffusionModel() const {return diffusionModel;}
@@ -110,8 +110,9 @@ public:
     uint64_t getStepsPerWorkUnit() const {return stepsPerWorkUnit;}
 
 protected:
+    bool _parseLimits(const lm::option::SimulationParameters& simParams);
+    template <typename T> bool _parseLimits(const lm::option::SimulationParameters& simParams);
     bool parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg);
-
 };
 
 //class Input

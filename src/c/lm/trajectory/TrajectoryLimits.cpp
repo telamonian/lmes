@@ -36,39 +36,54 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+#include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/trajectory/TrajectoryLimits.h"
+#include "lm/Types.h"
 
-package lm.io;
+using lm::io::TrajectoryLimits::LimitType;
+using lm::io::TrajectoryLimits::StoppingCondition;
 
-message TrajectoryLimits {
-    enum LimitType {
-        NONE=0;
-        TIME=1;
-        SPECIES=2;
-        ORDER_PARAMETER=3;
-        DEGREE_ADVANCEMENT=4;
-    }
+namespace lm {
+namespace trajectory {
 
-    enum StoppingCondition {
-        MIN=0;
-        MAX=1;
-        INCREASING=2;
-        DECREASING=3;
-    }
-
-    message TrajectoryLimit {
-        required LimitType limit_type                   = 1;
-        required StoppingCondition stopping_condition   = 2;
-        optional int32 id                               = 3 [default=-1];
-        optional bool include_endpoint                  = 4 [default=true];
-
-        optional uint32 value_id                        = 5;
-        oneof value_oneof {
-            double dvalue                               = 6;
-            int32 ivalue                                = 7;
-            uint64 uvalue                               = 8;
+TrajectoryLimits::repeatedType::const_iterator TrajectoryLimits::findBuf(int32_t id) const
+{
+    TrajectoryLimits::repeatedType::const_iterator it=repeated().begin();
+    for (;it!=repeated().end();it++)
+    {
+        if (it->id()==id)
+        {
+            return it;
         }
     }
+    return it;
+}
 
-    repeated TrajectoryLimit trajectory_limits          = 1;
-    optional TrajectoryLimit time_limit                 = 2;
+template <typename T> lm::io::TrajectoryLimits::TrajectoryLimit* TrajectoryLimits::_addLimitBuf(uint32_t valID, T val, LimitType lt, StoppingCondition sc, int32_t id, bool includeEndpoint)
+{
+    lm::io::TrajectoryLimits::TrajectoryLimit* tlBuf;
+    if (lt==lm::io::TrajectoryLimits::TIME)
+    {
+        tlBuf = _buf.mutable_time_limit();
+        // for now, the expected behavior is that the id of the time limit will default to -1
+        tlBuf->set_id(id==DEFAULT_LIMIT_ID ? -1 : id);
+    }
+    else
+    {
+        tlBuf = _repeated.Add();
+        // for now, the expected behavior is that the id of most limits (ie not TIME) will default to an incrementing counter
+        tlBuf->set_id(id==DEFAULT_LIMIT_ID ? nextID++ : id);
+    }
+
+    tlBuf->set_limit_type(lt);
+    tlBuf->set_stopping_condition(sc);
+    tlBuf->set_include_endpoint(includeEndpoint);
+
+    tlBuf->set_value_id(valID);
+    setLimitBufValue(tlBuf, val);
+
+    return tlBuf;
+}
+
+}
 }

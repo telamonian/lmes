@@ -40,38 +40,58 @@
 #define LM_PWRAP_REPEATED
 
 #include <google/protobuf/repeated_field.h>
+#include <string>
 
 namespace lm {
 namespace pwrap {
 
+// main template
+template <typename T> struct RepeatedTypedef {typedef google::protobuf::RepeatedPtrField<T> type;};
+// specializations for "primitive" types
+template <> struct RepeatedTypedef<double> {typedef google::protobuf::RepeatedField<double> type;};
+template <> struct RepeatedTypedef<float> {typedef google::protobuf::RepeatedField<float> type;};
+template <> struct RepeatedTypedef<int32_t> {typedef google::protobuf::RepeatedField<int32_t> type;};
+template <> struct RepeatedTypedef<int64_t> {typedef google::protobuf::RepeatedField<int64_t> type;};
+template <> struct RepeatedTypedef<uint32_t> {typedef google::protobuf::RepeatedField<uint32_t> type;};
+template <> struct RepeatedTypedef<uint64_t> {typedef google::protobuf::RepeatedField<uint64_t> type;};
+template <> struct RepeatedTypedef<std::string> {typedef google::protobuf::RepeatedField<std::string> type;};
+
 template <typename T>
-class Repeated
+class Repeated : public RepeatedTypedef<T>
 {
 public:
-    Repeated(): bufField(NULL) {}
-    Repeated(google::protobuf::RepeatedField<T> * bufField): bufField(bufField) {}
+    // typedefs
+//    typedef google::protobuf::RepeatedField<T> type;
+    typedef typename type::iterator iterator;
+    typedef typename type::const_iterator const_iterator;
+
+    Repeated(): repFieldPtr(NULL) {}
+    Repeated(type* repFieldPtr): repFieldPtr(repFieldPtr) {}
     ~Repeated() {}
 
 // pass throughs
 // accessors
-    const T& Get(int index) const {return bufField->Get(index);}
-    T* Mutable(int index) {return bufField->Mutable(index);}
+    const_iterator begin() const {return repFieldPtr->begin();}
+    const_iterator end() const {return repFieldPtr->end();}
+    const T& Get(int index) const {return repFieldPtr->Get(index);}
 
 // mutators
-    T* Add() {return bufField->Add();}
-    void Add(const T& value) {bufField->Add(value);}
-    void Set(int index, const T& value) {bufField->Set(index, value);}
+    iterator begin() {return repFieldPtr->begin();}
+    iterator end() {return repFieldPtr->end();}
+    T* Add() {return repFieldPtr->Add();}
+    void Add(const T& value) {repFieldPtr->Add(value);}
+    T* Mutable(int index) {return repFieldPtr->Mutable(index);}
+    void Set(int index, const T& value) {repFieldPtr->Set(index, value);}
 
 // wrapper functions
 // accessors
 
 // mutators
-    inline Repeated<T>& operator<<(T val) {bufField->Add(val); return *this;}
-//    inline Repeated<T>& operator<<(Repeated<T>& rep, T val) {rep.bufField->Add(val); return rep;}
-    inline void setBufField(google::protobuf::RepeatedField<T>* newBufField) {bufField=newBufField;}
+    inline Repeated<T>& operator<<(T val) {repFieldPtr->Add(val); return *this;}
+    inline void setRepFieldPtr(type* newRepFieldPtr) {repFieldPtr = newRepFieldPtr;}
 
-public:
-    google::protobuf::RepeatedField<T>* bufField;
+protected:
+    type* repFieldPtr;
 };
 
 }
