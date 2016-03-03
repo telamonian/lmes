@@ -41,6 +41,7 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <list>
@@ -73,14 +74,15 @@
 #include "lm/rng/XORWow.h"
 #endif
 #include "lm/thread/Thread.h"
-#include "lm/thread/Worker.h"
+#include "lm/thread/Worker.h
+#include "lm/trajectory/TrajectoryLimits.h"
 #include "lm/Tune.h"
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
 
-using std::string;
 using std::list;
 using std::map;
+using std::string;
 
 namespace lm {
 namespace cme {
@@ -88,7 +90,7 @@ namespace cme {
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
 :neededDists(neededDists),rng(NULL),reactionModel(NULL),hasUpdateSpeciesCountsListeners(false),tilings(NULL),numberOrderParameters(0),
  orderParameterFunctions(NULL),status(lm::message::WorkUnitStatus::NONE),timeLimit(std::numeric_limits<double>::infinity()),
- numberLimits(0),limits(NULL),limitIndexReached(-1),limitTypeReached(lm::io::TrajectoryLimits::NONE),
+ numberLimits(0),limits(NULL),limitIDReached(lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID),limitTypeReached(lm::io::TrajectoryLimits::NONE),
  writeDegreeAdvancementTimeSeries(false),writeOrderParameterTimeSeries(false),writeSpeciesTimeSeries(false),
  degreeAdvancementWriteInterval(0.0), orderParameterWriteInterval(0.0),speciesWriteInterval(0.0),numberFptTrackedSpecies(0),
  fptTrackedSpecies(NULL),trajectoryStarted(false),speciesCounts(NULL),time(0.0),timeStep(0.0),degreeAdvancements(NULL),
@@ -189,40 +191,56 @@ void CMESolver::setLimits(const lm::io::TrajectoryLimits& lm)
     // Free any previous limits;
     if (limits != NULL) delete[] limits; limits = NULL;
 
+    // use the TrajectoryLimits buffer to initialize the TrajectoryLimits object
+    trajectoryLimits.rFB(lm);
+
     // Set the time limit.
-    if (lm.has_time_limit())
-        timeLimit = lm.time_limit().dvalue();
-    else
-        timeLimit = std::numeric_limits<double>::infinity();
+    timeLimit = trajectoryLimits.getTimeLimitValue();
 
     // Count the non-time limits.
-    numberLimits =  lm.trajectory_limits_size();
+    numberLimits = trajectoryLimits.size();
 
+    // If we have any limits, copy them over to a simple array
     if (numberLimits > 0)
     {
         limits = new TrajectoryLimit[numberLimits];
-        for (int i = 0; i < numberLimits; i++)
-        {
-            limits[i].type = lm.trajectory_limits(i).limit_type();
-            limits[i].stoppingCondition = lm.trajectory_limits(i).stopping_condition();
-            limits[i].valueID = lm.trajectory_limits(i).value_id();
-            switch(lm.trajectory_limits(i).value_oneof_case())
-            {
-            case lm::io::TrajectoryLimits::TrajectoryLimit::kDvalue :
-                limits[i].dvalue = lm.trajectory_limits(i).dvalue();
-                break;
-            case lm::io::TrajectoryLimits::TrajectoryLimit::kIvalue :
-                limits[i].ivalue = lm.trajectory_limits(i).ivalue();
-                break;
-            case lm::io::TrajectoryLimits::TrajectoryLimit::kUvalue :
-                limits[i].uvalue = lm.trajectory_limits(i).uvalue();
-                break;
-            default:
-                throw Exception("In CMESolver, a limit did not have an associated value", limits[i].type, limits[i].stoppingCondition);
-                break;
-            }
-        }
+        std::copy(trajectoryLimits.vec().begin(), trajectoryLimits.vec().end(), limits);
     }
+
+//    // Set the time limit.
+//    if (lm.has_time_limit())
+//        timeLimit = lm.time_limit().dvalue();
+//    else
+//        timeLimit = std::numeric_limits<double>::infinity();
+//
+//    // Count the non-time limits.
+//    numberLimits =  lm.trajectory_limits_size();
+//
+//    if (numberLimits > 0)
+//    {
+//        limits = new TrajectoryLimit[numberLimits];
+//        for (int i = 0; i < numberLimits; i++)
+//        {
+//            limits[i].type = lm.trajectory_limits(i).limit_type();
+//            limits[i].stoppingCondition = lm.trajectory_limits(i).stopping_condition();
+//            limits[i].valueID = lm.trajectory_limits(i).value_id();
+//            switch(lm.trajectory_limits(i).value_oneof_case())
+//            {
+//            case lm::io::TrajectoryLimits::TrajectoryLimit::kDvalue :
+//                limits[i].dvalue = lm.trajectory_limits(i).dvalue();
+//                break;
+//            case lm::io::TrajectoryLimits::TrajectoryLimit::kIvalue :
+//                limits[i].ivalue = lm.trajectory_limits(i).ivalue();
+//                break;
+//            case lm::io::TrajectoryLimits::TrajectoryLimit::kUvalue :
+//                limits[i].uvalue = lm.trajectory_limits(i).uvalue();
+//                break;
+//            default:
+//                throw Exception("In CMESolver, a limit did not have an associated value", limits[i].type, limits[i].stoppingCondition);
+//                break;
+//            }
+//        }
+//    }
 }
 
 void CMESolver::reset()
@@ -241,7 +259,7 @@ void CMESolver::reset()
     if (fptTrackedSpecies != NULL) delete[] fptTrackedSpecies; fptTrackedSpecies = NULL;
 
     // Reset the limits reached.
-    limitIndexReached = -1;
+    limitIDReached = lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID;
     limitTypeReached = lm::io::TrajectoryLimits::NONE;
 
     // Reset the order parameters.
@@ -294,8 +312,10 @@ void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
     }
 
     // Get the limit reached during the simulation.
-    state->set_limit_index_reached(limitIndexReached);
-    state->set_limit_type_reached(limitTypeReached);
+    if (limitTypeReached!=lm::io::TrajectoryLimits::NONE)
+    {
+        state->mutable_limit_reached()->CopyFrom(*trajectoryLimits.findBuf(limitIDReached));
+    }
 
     // Get the order parameter values.
     if (numberOrderParameters > 0)
@@ -367,9 +387,12 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
         hasUpdateSpeciesCountsListeners = true;
     }
 
-    // Set the limit reached during the simulation.
-    limitIndexReached = state.limit_index_reached();
-    limitTypeReached = state.limit_type_reached();
+    // Set the previous limit reached by the associated trajectory, if any.
+    if (state.has_limit_reached())
+    {
+        limitIDReached = state.limit_reached().id();
+        limitTypeReached = state.limit_reached().limit_type();
+    }
 
 //    // Set the order parameter values.
 //    for (int i=0; i<state.cme_state().order_parameter_values().order_parameter_values_size(); i++)
@@ -441,67 +464,74 @@ bool CMESolver::isTrajectoryOutsideLimits()
     for (uint i=0; i<numberLimits; i++)
     {
         TrajectoryLimit& l = limits[i];
-        switch (l.type)
+        if (checkLimit<l.type, l.stoppingCondition, l.includeEndpoint>(l))
         {
-        case lm::io::TrajectoryLimits::MINSPECIESCOUNT:
-            if (speciesCounts[l.id] <= l.ivalue)
-            {
-                status = lm::message::WorkUnitStatus::LIMIT_REACHED;
-                limitTypeReached = l.type;
-                return true;
-            }
-            break;
-        case lm::io::TrajectoryLimits::MAXSPECIESCOUNT:
-            if (speciesCounts[l.id] >= l.ivalue)
-            {
-                status = lm::message::WorkUnitStatus::LIMIT_REACHED;
-                limitTypeReached = l.type;
-                return true;
-            }
-            break;
-        case lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER:
-            if (l.arrangement == lm::io::TrajectoryLimits::ASCENDING)
-            {
-                if (orderParameterPreviousValues[l.id] >= l.dvalue && orderParameterValues[l.id] < l.dvalue)
-                {
-                    status = lm::message::WorkUnitStatus::LIMIT_REACHED;
-                    limitTypeReached = l.type;
-                    return true;
-                }
-            }
-            else
-            {
-                if (orderParameterPreviousValues[l.id] > l.dvalue && orderParameterValues[l.id] <= l.dvalue)
-                {
-                    status = lm::message::WorkUnitStatus::LIMIT_REACHED;
-                    limitTypeReached = l.type;
-                    return true;
-                }
-            }
-            break;
-        case lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER:
-            if (l.arrangement == lm::io::TrajectoryLimits::ASCENDING)
-            {
-                if (orderParameterPreviousValues[l.id] < l.dvalue && orderParameterValues[l.id] >= l.dvalue)
-                {
-                    status = lm::message::WorkUnitStatus::LIMIT_REACHED;
-                    limitTypeReached = l.type;
-                    return true;
-                }
-            }
-            else
-            {
-                if (orderParameterPreviousValues[l.id] <= l.dvalue && orderParameterValues[l.id] > l.dvalue)
-                {
-                    status = lm::message::WorkUnitStatus::LIMIT_REACHED;
-                    limitTypeReached = l.type;
-                    return true;
-                }
-            }
-            break;
-        default:
-            break;
+            status = lm::message::WorkUnitStatus::LIMIT_REACHED;
+            limitIDReached = l.limitID;
+            limitTypeReached = l.type;
+            return true;
         }
+//        switch (l.type)
+//        {
+//        case lm::io::TrajectoryLimits::MINSPECIESCOUNT:
+//            if (speciesCounts[l.valueID] <= l.ivalue)
+//            {
+//                status = lm::message::WorkUnitStatus::LIMIT_REACHED;
+//                limitTypeReached = l.type;
+//                return true;
+//            }
+//            break;
+//        case lm::io::TrajectoryLimits::MAXSPECIESCOUNT:
+//            if (speciesCounts[l.valueID] >= l.ivalue)
+//            {
+//                status = lm::message::WorkUnitStatus::LIMIT_REACHED;
+//                limitTypeReached = l.type;
+//                return true;
+//            }
+//            break;
+//        case lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER:
+//            if (l.arrangement == lm::io::TrajectoryLimits::ASCENDING)
+//            {
+//                if (orderParameterPreviousValues[l.valueID] >= l.dvalue && orderParameterValues[l.valueID] < l.dvalue)
+//                {
+//                    status = lm::message::WorkUnitStatus::LIMIT_REACHED;
+//                    limitTypeReached = l.type;
+//                    return true;
+//                }
+//            }
+//            else
+//            {
+//                if (orderParameterPreviousValues[l.valueID] > l.dvalue && orderParameterValues[l.valueID] <= l.dvalue)
+//                {
+//                    status = lm::message::WorkUnitStatus::LIMIT_REACHED;
+//                    limitTypeReached = l.type;
+//                    return true;
+//                }
+//            }
+//            break;
+//        case lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER:
+//            if (l.arrangement == lm::io::TrajectoryLimits::ASCENDING)
+//            {
+//                if (orderParameterPreviousValues[l.valueID] < l.dvalue && orderParameterValues[l.valueID] >= l.dvalue)
+//                {
+//                    status = lm::message::WorkUnitStatus::LIMIT_REACHED;
+//                    limitTypeReached = l.type;
+//                    return true;
+//                }
+//            }
+//            else
+//            {
+//                if (orderParameterPreviousValues[l.valueID] <= l.dvalue && orderParameterValues[l.valueID] > l.dvalue)
+//                {
+//                    status = lm::message::WorkUnitStatus::LIMIT_REACHED;
+//                    limitTypeReached = l.type;
+//                    return true;
+//                }
+//            }
+//            break;
+//        default:
+//            break;
+//        }
     }
     return false;
 }

@@ -54,6 +54,7 @@
 #include <utility>
 #include <vector>
 
+#include "lm/EnumHelper.h"
 #include "lm/Math.h"
 #include "lm/Types.h"
 #include "lm/cme/ReactionModel.h"
@@ -70,6 +71,7 @@
 #include "lm/rng/RandomGenerator.h"
 #include "lm/thread/Thread.h"
 #include "lm/tiling/Tilings.h"
+#include "lm/trajectory/TrajectoryLimits.h"
 
 using std::list;
 using std::map;
@@ -78,6 +80,7 @@ using std::string;
 using std::vector;
 using lm::me::MESolver;
 using lm::rng::RandomGenerator;
+using lm::trajectory::TrajectoryLimit;
 
 namespace lm {
 
@@ -90,16 +93,15 @@ namespace cme {
 class CMESolver : public MESolver
 {
 protected:
-
-    struct TrajectoryLimit
-    {
-        lm::io::TrajectoryLimits::LimitType type;
-        lm::io::TrajectoryLimits::StoppingCondition stoppingCondition;
-        uint32_t valueID;
-        int32_t ivalue;
-        double dvalue;
-        uint64_t uvalue;
-    };
+//    struct TrajectoryLimit
+//    {
+//        lm::io::TrajectoryLimits::LimitType type;
+//        lm::io::TrajectoryLimits::StoppingCondition stoppingCondition;
+//        uint32_t valueID;
+//        int32_t ivalue;
+//        double dvalue;
+//        uint64_t uvalue;
+//    };
 
     class FPTTracking
     {
@@ -224,6 +226,32 @@ protected:
 //        }
     }
 
+    template <EH::LimitType LT, EH::StoppingCondition SC, bool includeEndpoint> bool checkLimit(TrajectoryLimit l);
+
+    // specializations for degree advancements min/max limits
+    template <> bool checkLimit<EH::DEGREE_ADVANCEMENT, EH::MIN, true>(TrajectoryLimit l) {return (degreeAdvancements[l.valueID] <= l.ivalue);}
+    template <> bool checkLimit<EH::DEGREE_ADVANCEMENT, EH::MIN, false>(TrajectoryLimit l) {return (degreeAdvancements[l.valueID] < l.ivalue);}
+    template <> bool checkLimit<EH::DEGREE_ADVANCEMENT, EH::MAX, true>(TrajectoryLimit l) {return (degreeAdvancements[l.valueID] >= l.ivalue);}
+    template <> bool checkLimit<EH::DEGREE_ADVANCEMENT, EH::MAX, false>(TrajectoryLimit l) {return (degreeAdvancements[l.valueID] > l.ivalue);}
+
+    // specializations for order parameter min/max limits
+    template <> bool checkLimit<EH::ORDER_PARAMETER, EH::MIN, true>(TrajectoryLimit l) {return (orderParameterValues[l.valueID] <= l.ivalue);}
+    template <> bool checkLimit<EH::ORDER_PARAMETER, EH::MIN, false>(TrajectoryLimit l) {return (orderParameterValues[l.valueID] < l.ivalue);}
+    template <> bool checkLimit<EH::ORDER_PARAMETER, EH::MAX, true>(TrajectoryLimit l) {return (orderParameterValues[l.valueID] >= l.ivalue);}
+    template <> bool checkLimit<EH::ORDER_PARAMETER, EH::MAX, false>(TrajectoryLimit l) {return (orderParameterValues[l.valueID] > l.ivalue);}
+
+    // specializations for order parameter increasing/decreasing limits
+    template <> bool checkLimit<EH::ORDER_PARAMETER, EH::DECREASING, true>(TrajectoryLimit l) {return (orderParameterPreviousValues[l.valueID] >= l.dvalue && orderParameterValues[l.valueID] < l.dvalue);}
+    template <> bool checkLimit<EH::ORDER_PARAMETER, EH::DECREASING, false>(TrajectoryLimit l) {return (orderParameterPreviousValues[l.valueID] > l.dvalue && orderParameterValues[l.valueID] <= l.dvalue);}
+    template <> bool checkLimit<EH::ORDER_PARAMETER, EH::INCREASING, true>(TrajectoryLimit l) {return (orderParameterPreviousValues[l.valueID] <= l.dvalue && orderParameterValues[l.valueID] > l.dvalue);}
+    template <> bool checkLimit<EH::ORDER_PARAMETER, EH::INCREASING, false>(TrajectoryLimit l) {return (orderParameterPreviousValues[l.valueID] < l.dvalue && orderParameterValues[l.valueID] >= l.dvalue);}
+
+    // specializations for species min/max limits
+    template <> bool checkLimit<EH::SPECIES, EH::MIN, true>(TrajectoryLimit l) {return (speciesCounts[l.valueID] <= l.ivalue);}
+    template <> bool checkLimit<EH::SPECIES, EH::MIN, false>(TrajectoryLimit l) {return (speciesCounts[l.valueID] < l.ivalue);}
+    template <> bool checkLimit<EH::SPECIES, EH::MAX, true>(TrajectoryLimit l) {return (speciesCounts[l.valueID] >= l.ivalue);}
+    template <> bool checkLimit<EH::SPECIES, EH::MAX, false>(TrajectoryLimit l) {return (speciesCounts[l.valueID] > l.ivalue);}
+
     bool isTrajectoryOutsideLimits();
 
 protected:
@@ -241,10 +269,11 @@ protected:
     lm::message::WorkUnitStatus::Status status;
 
     // Limits for the trajectory.
+    lm::trajectory::TrajectoryLimits trajectoryLimits;
     double timeLimit;
     size_t numberLimits;
     TrajectoryLimit* limits;
-    int64_t limitIndexReached;
+    int32_t limitIDReached;
     lm::io::TrajectoryLimits::LimitType limitTypeReached;
 
     // Output options.

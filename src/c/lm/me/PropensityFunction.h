@@ -62,7 +62,9 @@ class PropensityFunction
 public:
     inline static utuple getDependencies(const uint reactionIndex, const ndarray<uint> D);
     inline static utuple getSpecificDependencies(const uint reactionIndex, const ndarray<uint> D, const uint dependencyType);
+#ifdef OPT_AVX
     inline static avxd naiveCalculateAvx(const PropensityFunction* fn, const avxd time, const double* speciesCounts, const uint numberSpecies);
+#endif
 
 public:
     PropensityFunction(const uint type, uint order):type(type),order(order){}

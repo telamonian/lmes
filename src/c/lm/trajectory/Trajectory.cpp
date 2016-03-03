@@ -92,7 +92,7 @@ void Trajectory::initializeState(const lm::input::Input& input, bool reversed)
     // Set cme state from the reaction model.
     if (input.hasReactionModel())
     {
-        const lm::io::ReactionModel& reactionModel = input.getReactionModel();
+        const lm::io::ReactionModel& reactionModel = input.getReactionModelMsg();
         state.mutable_cme_state()->mutable_species_counts()->set_trajectory_id(id);
         state.mutable_cme_state()->mutable_species_counts()->set_number_entries(1);
         state.mutable_cme_state()->mutable_species_counts()->set_number_species(reactionModel.number_species());
@@ -113,11 +113,11 @@ void Trajectory::initializeState(const lm::input::Input& input, bool reversed)
         state.mutable_cme_state()->mutable_species_counts()->add_time(0.0);
 
         // Initialize the first passage times in the cme state.
-        if (input.getOutputOptions().fpt_species_to_track_size())
+        if (input.getOutputOptionsMsg().fpt_species_to_track_size())
         {
-            for (int i=0; i<input.getOutputOptions().fpt_species_to_track_size(); i++)
+            for (int i=0; i< input.getOutputOptionsMsg().fpt_species_to_track_size(); i++)
             {
-                uint speciesIndex = input.getOutputOptions().fpt_species_to_track(i);
+                uint speciesIndex = input.getOutputOptionsMsg().fpt_species_to_track(i);
                 lm::io::FirstPassageTimes* fpt = state.mutable_cme_state()->add_first_passage_times();
                 fpt->set_trajectory_id(id);
                 fpt->set_species(speciesIndex);
@@ -131,7 +131,7 @@ void Trajectory::initializeState(const lm::input::Input& input, bool reversed)
     // Initialize the rdme state from the diffusion model.
     if (input.hasDiffusionModel())
     {
-        const lm::io::DiffusionModel& diffusionModel = input.getDiffusionModel();
+        const lm::io::DiffusionModel& diffusionModel = input.getDiffusionModelMsg();
         lm::io::RDMEState* rdmeState = state.mutable_rdme_state();
         lm::io::Lattice* initialLattice = rdmeState->mutable_species_positions();
         initialLattice->set_lattice_x_size(diffusionModel.initial_lattice().lattice_x_size());

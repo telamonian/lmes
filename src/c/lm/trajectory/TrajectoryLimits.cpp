@@ -50,17 +50,13 @@ namespace trajectory {
 TrajectoryLimits::repeatedType::const_iterator TrajectoryLimits::findBuf(int32_t id) const
 {
     TrajectoryLimits::repeatedType::const_iterator it=repeated().begin();
-    for (;it!=repeated().end();it++)
-    {
-        if (it->id()==id)
-        {
-            return it;
-        }
-    }
+    // if the .id() of a TrajectoryLimit buf matches, return it
+    for (;it!=repeated().end();it++) if (it->id()==id) return it;
+    // otherwise, return .end()
     return it;
 }
 
-template <LimitType LT> lm::io::TrajectoryLimits::TrajectoryLimit* TrajectoryLimits::addLimitBuf(uint32_t valID, LimitValueT<LT>::type val, StoppingCondition sc, int32_t id, bool includeEndpoint)
+template <LimitType LT> lm::io::TrajectoryLimits::TrajectoryLimit* TrajectoryLimits::addLimitBuf(uint32_t valID, LimitValueT<LT>::type val, StoppingCondition sc, bool includeEndpoint, int32_t id)
 {
     lm::io::TrajectoryLimits::TrajectoryLimit* tlBuf;
     if (LT==lm::io::TrajectoryLimits::TIME)
@@ -86,5 +82,75 @@ template <LimitType LT> lm::io::TrajectoryLimits::TrajectoryLimit* TrajectoryLim
     return tlBuf;
 }
 
+// rFB = read From Buf
+void TrajectoryLimits::rFB(const TrajectoryLimitsBuf& inBuf)
+{
+    if (&inBuf!=&_buf) _buf.CopyFrom(inBuf);
+    seatRepeated();
+    wTV();
+}
+
+// rFB = write To Buf
+void TrajectoryLimits::wTB(TrajectoryLimitsBuf& outBuf)
+{
+    outBuf.clear_trajectory_limits();
+    for (TrajectoryLimits::const_iterator it=vec().begin(); it!=vec().end(); it++)
+    {
+        TrajectoryLimitBuf* limitBuf = outBuf.add_trajectory_limits();
+        limitBuf->CopyFrom(structToBuf(*it));
+    }
+}
+
+// wTV = write To Vec
+void TrajectoryLimits::wTV(vectorType& outVec)
+{
+    outVec.clear();
+    for (TrajectoryLimits::repeatedType::const_iterator it=repeated().begin(); it!=repeated().end(); it++)
+    {
+        outVec.push_back(bufToStruct(*it));
+    }
+}
+
+TrajectoryLimit TrajectoryLimits::bufToStruct(const lm::io::TrajectoryLimits::TrajectoryLimit& inBuf)
+{
+    TrajectoryLimit limit;
+    limit.type = inBuf.limit_type();
+    limit.stoppingCondition = inBuf.stopping_condition();
+    limit.limitID = inBuf.id();
+    limit.includeEndpoint = inBuf.include_endpoint();
+
+    limit.valueID = inBuf.value_id();
+    switch(inBuf.value_oneof_case())
+    {
+        case lm::io::TrajectoryLimits::TrajectoryLimit::kDvalue :
+            limit.dvalue = inBuf.dvalue();
+            break;
+        case lm::io::TrajectoryLimits::TrajectoryLimit::kIvalue :
+            limit.ivalue = inBuf.ivalue();
+            break;
+        case lm::io::TrajectoryLimits::TrajectoryLimit::kUvalue :
+            limit.uvalue = inBuf.uvalue();
+            break;
+        default:
+            throw Exception("When converting a TrajectoryLimit buf to a TrajectoryLimit buf, a TrajectoryLimit buf did not have an associated value", limit.type, limit.stoppingCondition);
+            break;
+    }
+    return limit;
+}
+    
+TrajectoryLimitBuf TrajectoryLimits::structToBuf(const TrajectoryLimit& inStruct)
+{
+    TrajectoryLimitBuf limitBuf;
+    limitBuf.set_limit_type(inStruct.type);
+    limitBuf.set_stopping_condition(inStruct.stoppingCondition);
+    limitBuf.set_id(inStruct.limitID);
+    limitBuf.set_include_endpoint(inStruct.includeEndpoint);
+
+    limitBuf.set_value_id(inStruct.valueID);
+    setLimitValue<inStruct.type>(limitBuf, getLimitValue<inStruct.type>(inStruct));
+
+    return limitBuf;
+}
+    
 }
 }

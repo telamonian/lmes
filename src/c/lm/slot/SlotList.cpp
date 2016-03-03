@@ -171,9 +171,9 @@ void SlotList::createSlot(int slotId, ComputeResources resources, bool useCPUAff
         s->add_gpu(*it);
     s->set_solver(solver);
     if (input.hasReactionModel())
-        s->mutable_reaction_model()->CopyFrom(input.getReactionModel());
+        s->mutable_reaction_model()->CopyFrom(input.getReactionModelMsg());
     if (input.hasDiffusionModel())
-        s->mutable_diffusion_model()->CopyFrom(input.getDiffusionModel());
+        s->mutable_diffusion_model()->CopyFrom(input.getDiffusionModelMsg());
     if (input.hasOrderParameters())
         s->mutable_order_parameters()->CopyFrom(input.getOrderParametersMsg());
     if (input.hasTilings())

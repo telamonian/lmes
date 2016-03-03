@@ -61,7 +61,7 @@ class Repeated : public RepeatedTypedef<T>
 {
 public:
     // typedefs
-//    typedef google::protobuf::RepeatedField<T> type;
+    typedef typename RepeatedTypedef<T>::type type;
     typedef typename type::iterator iterator;
     typedef typename type::const_iterator const_iterator;
 
@@ -80,6 +80,7 @@ public:
     iterator end() {return repFieldPtr->end();}
     T* Add() {return repFieldPtr->Add();}
     void Add(const T& value) {repFieldPtr->Add(value);}
+    void Clear() {repFieldPtr->Clear();}
     T* Mutable(int index) {return repFieldPtr->Mutable(index);}
     void Set(int index, const T& value) {repFieldPtr->Set(index, value);}
 

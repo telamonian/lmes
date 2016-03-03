@@ -67,9 +67,10 @@ public:
     const io::SimulationParameters& buf() {return _buf;}
     const SimParamMap& map() const {return _map;}
     bool isEnd(SimParamMap::const_iterator it) const {return it==_map.end();}
-    template <typename T> T parse(const std::string &key) const;
 
+    template <typename T> T parse(const std::string &key) const;
     template <typename T1, typename T2> typename pairVector<T1, T2>::type parsePairVector(const std::string &key, const std::string& debugString="") const;
+
     template <typename T> vector<T> parseVector(const std::string &key) const;
 
 // mutators

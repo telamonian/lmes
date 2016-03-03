@@ -73,7 +73,6 @@ protected:
     bool trajectoryLimitsPresent;
     bool outputOptionsPresent;
 
-//    lm::io::SimulationParameters simulationParametersMsg;
     lm::option::SimulationParameters simulationParameters;
     lm::io::ReactionModel reactionModel;
     lm::io::DiffusionModel diffusionModel;
@@ -81,13 +80,15 @@ protected:
     lm::oparam::OParams orderParameters;
     lm::io::Tilings tilingsMsg;
     lm::tiling::Tilings tilings;
-//    lm::io::TrajectoryLimits trajectoryLimits;
     lm::trajectory::TrajectoryLimits trajectoryLimits;
     lm::io::OutputOptions outputOptions;
 
     uint64_t stepsPerWorkUnit;
 
 public:
+    // include some protobuf-related typedefs within this class's scope
+    #include "lm/MsgTypes.h"
+
     Input(const lm::io::hdf5::Hdf5File& file);
     virtual ~Input();
 
@@ -99,19 +100,19 @@ public:
     bool hasOutputOptions() const {return outputOptionsPresent;}
 
     const lm::option::SimulationParameters& getSimulationParameters() const {return simulationParameters;}
-    const lm::io::ReactionModel& getReactionModel() const {return reactionModel;}
-    const lm::io::DiffusionModel& getDiffusionModel() const {return diffusionModel;}
+    const lm::io::ReactionModel& getReactionModelMsg() const {return reactionModel;}
+    const lm::io::DiffusionModel& getDiffusionModelMsg() const {return diffusionModel;}
     const lm::io::OrderParameters& getOrderParametersMsg() const {return orderParametersMsg;}
     const lm::oparam::OParams& getOrderParameters() const {return orderParameters;}
     const lm::io::Tilings& getTilingsMsg() const {return tilingsMsg;}
     const lm::tiling::Tilings& getTilings() const {return tilings;}
-    const lm::trajectory::TrajectoryLimits& getTrajectoryLimits() const {return trajectoryLimits;}
-    const lm::io::OutputOptions& getOutputOptions() const {return outputOptions;}
+    const lm::io::TrajectoryLimits& getTrajectoryLimitsMsg() const {return trajectoryLimits.buf();}
+    const lm::io::OutputOptions& getOutputOptionsMsg() const {return outputOptions;}
 
     uint64_t getStepsPerWorkUnit() const {return stepsPerWorkUnit;}
 
 protected:
-    template <lm::io::TrajectoryLimits::LimitType LT> bool parseLimits(std::string key, std::string debugString, lm::io::TrajectoryLimits::StoppingCondition sc, bool includeEndpoint=true);
+    template <LimitType LT> bool parseLimits(std::string key, std::string debugString, StoppingCondition sc, bool includeEndpoint=true);
     bool parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg);
 };
 

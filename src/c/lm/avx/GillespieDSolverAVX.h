@@ -93,7 +93,6 @@ protected:
     void copyTrajectoryStateFromBaseSolver(uint trajectoryNumber);
 
 protected:
-
     // If the trajectory has been initialized.
     bool initialized[DOUBLES_PER_AVX];
 
@@ -102,6 +101,7 @@ protected:
 
     // Limits for the trajectory.
     avxd timeLimit;
+    int32_t limitIDReached[DOUBLES_PER_AVX];
     lm::io::TrajectoryLimits::LimitType limitTypeReached[DOUBLES_PER_AVX];
     double* limitValues;
 

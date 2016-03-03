@@ -1,7 +1,12 @@
 /*
  * University of Illinois Open Source License
+ * Copyright 2008-2012 Luthey-Schulten Group,
  * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
+ *
+ * Developed by: Luthey-Schulten Group
+ * 			     University of Illinois at Urbana-Champaign
+ * 			     http://www.scs.uiuc.edu/~schulten
  *
  * Developed by: Roberts Group
  * 			     Johns Hopkins University
@@ -21,10 +26,10 @@
  * this list of conditions and the following disclaimers in the documentation
  * and/or other materials provided with the distribution.
  *
- * - Neither the names of the Roberts Group, Johns Hopkins University,
- * nor the names of its contributors may be used to endorse or
- * promote products derived from this Software without specific prior written
- * permission.
+ * - Neither the names of the Luthey-Schulten Group, University of Illinois at
+ * Urbana-Champaign, the Roberts Group, Johns Hopkins University, nor the names
+ * of its contributors may be used to endorse or promote products derived from
+ * this Software without specific prior written permission.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -36,10 +41,29 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+#ifndef LM_ENUMHELPER
+#define LM_ENUMHELPER
 
-#include "lm/Types.h"
+#include "lm/io/TrajectoryLimits.pb.h"
 
-template<> const char* printf_format_string<int>() {return "%d";}
-template<> const char* printf_format_string<uint>() {return "%u";}
-template<> const char* printf_format_string<double>() {return "%f";}
+struct EH
+{
+    // enum typedefs
+    typedef lm::io::TrajectoryLimits::LimitType LimitType;
+    typedef lm::io::TrajectoryLimits::StoppingCondition StoppingCondition;
 
+    // LimitType enum values
+    static const LimitType NONE = lm::io::TrajectoryLimits::NONE;
+    static const LimitType TIME = lm::io::TrajectoryLimits::TIME;
+    static const LimitType SPECIES = lm::io::TrajectoryLimits::SPECIES;
+    static const LimitType ORDER_PARAMETER = lm::io::TrajectoryLimits::ORDER_PARAMETER;
+    static const LimitType DEGREE_ADVANCEMENT = lm::io::TrajectoryLimits::DEGREE_ADVANCEMENT;
+
+    // StoppingCondition enum values
+    static const StoppingCondition MIN = lm::io::TrajectoryLimits::MIN;
+    static const StoppingCondition MAX = lm::io::TrajectoryLimits::MAX;
+    static const StoppingCondition INCREASING = lm::io::TrajectoryLimits::INCREASING;
+    static const StoppingCondition DECREASING = lm::io::TrajectoryLimits::DECREASING;
+};
+
+#endif /* LM_ENUMHELPER */
