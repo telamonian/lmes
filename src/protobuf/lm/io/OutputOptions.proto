@@ -40,13 +40,13 @@
 package lm.io;
 
 message OutputOptions {
-    optional double species_write_interval              = 1;
+    optional double degree_advancement_write_interval   = 1;
     optional double lattice_write_interval              = 2;
-    optional double order_parameter_write_interval      = 5;
-    optional double degree_advancement_write_interval   = 6;
+    optional double order_parameter_write_interval      = 3;
+    optional double species_write_interval              = 4;
 
-    repeated uint32 fpt_species_to_track                = 3;
-    repeated uint32 da_reactions_to_track               = 4;
+    repeated uint32 da_reactions_to_track               = 5;
+    repeated uint32 fpt_species_to_track                = 6;
 
     optional bool output_initial_state                  = 101 [default=true];
     optional bool output_final_state                    = 102 [default=true];

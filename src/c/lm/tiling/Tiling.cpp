@@ -39,9 +39,11 @@
 #include <algorithm>
 
 #include "lm/ClassFactory.h"
+#include "lm/EnumHelper.h"
 #include "lm/io/Tilings.pb.h"
 #include "lm/tiling/Tiling.h"
 #include "lm/tiling/Tilings.h"
+#include "lm/trajectory/TrajectoryLimits.h"
 #include "lm/Types.h"
 
 namespace lm {
@@ -61,6 +63,36 @@ void Tiling::init(const lm::io::Tilings::Tiling& tilingRef)
 {
     tilingBuf = new lm::io::Tilings::Tiling(tilingRef);
     setArrangement(tilingBuf->arrangement(0));
+}
+
+// flips the stopping condition of the added limits around depending on whether the tiling's edges currently sort ascending or descending
+Tiling::TrajectoryLimitBuf* Tiling::addLimitBuf(lm::trajectory::TrajectoryLimits& tls, uint edgeIndex, EH::StoppingCondition stoppingCondition, bool rightOpenBins) const
+{
+    // if the tiling sorts descending, flip the stopping condition around
+    if (getArrangement()==EH::DESCENDING)
+    {
+        switch (stoppingCondition)
+        {
+        case EH::MIN: stoppingCondition = EH::MAX; break;
+        case EH::MAX: stoppingCondition = EH::MIN; break;
+        case EH::DECREASING: stoppingCondition = EH::INCREASING; break;
+        case EH::INCREASING: stoppingCondition = EH::DECREASING; break;
+        default: break;
+        }
+    }
+    
+    // keep the includeEndpoint property of the added limit consistent with right-open bins on this tiling, or with left-open bins if rightOpenBins is false
+    bool includeEndpoint;
+    switch (stoppingCondition)
+    {
+        case EH::MIN: includeEndpoint = rightOpenBins; break;
+        case EH::MAX: includeEndpoint = !rightOpenBins; break;
+        case EH::DECREASING: includeEndpoint = rightOpenBins; break;
+        case EH::INCREASING: includeEndpoint = !rightOpenBins; break;
+        default: break;
+    }
+
+    return tls.addLimitBuf<EH::ORDER_PARAMETER>(getOrderParameterID(), getEdge(edgeIndex), stoppingCondition, includeEndpoint);
 }
 
 lm::io::Tilings::Arrangement Tiling::getArrangement() const

@@ -1070,52 +1070,6 @@ bool GillespieDSolverAVX::isTrajectoryOutsideLimitsAVX()
         default:
             break;
         }
-//        
-//        // Check the limit type.
-//        switch (l.type)
-//        {
-//        case lm::io::TrajectoryLimits::MINSPECIESCOUNT:
-//            comp1 = _mm256_cmp_pd(_mm256_load_pd(&speciesCounts[l.id*DOUBLES_PER_AVX]), limitValue, _CMP_LE_OQ);
-//            outsideLimitMask = _mm256_movemask_pd(comp1);
-//            break;
-//
-//        case lm::io::TrajectoryLimits::MAXSPECIESCOUNT:
-//            comp1 = _mm256_cmp_pd(_mm256_load_pd(&speciesCounts[l.id*DOUBLES_PER_AVX]), limitValue, _CMP_GE_OQ);
-//            outsideLimitMask = _mm256_movemask_pd(comp1);
-//            break;
-//
-//        case lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER:
-//            if (l.arrangement == lm::io::TrajectoryLimits::ASCENDING)
-//            {
-//                comp1 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterPreviousValues[l.id*DOUBLES_PER_AVX]), limitValue, _CMP_GE_OQ);
-//                comp2 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterValues[l.id*DOUBLES_PER_AVX]), limitValue, _CMP_LT_OQ);
-//                outsideLimitMask = _mm256_movemask_pd(comp1)&_mm256_movemask_pd(comp2);
-//            }
-//            else
-//            {
-//                comp1 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterPreviousValues[l.id*DOUBLES_PER_AVX]), limitValue, _CMP_GT_OQ);
-//                comp2 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterValues[l.id*DOUBLES_PER_AVX]), limitValue, _CMP_LE_OQ);
-//                outsideLimitMask = _mm256_movemask_pd(comp1)&_mm256_movemask_pd(comp2);
-//            }
-//            break;
-//
-//        case lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER:
-//            if (l.arrangement == lm::io::TrajectoryLimits::ASCENDING)
-//            {
-//                comp1 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterPreviousValues[l.id*DOUBLES_PER_AVX]), limitValue, _CMP_LT_OQ);
-//                comp2 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterValues[l.id*DOUBLES_PER_AVX]), limitValue, _CMP_GE_OQ);
-//                outsideLimitMask = _mm256_movemask_pd(comp1)&_mm256_movemask_pd(comp2);
-//            }
-//            else
-//            {
-//                comp1 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterPreviousValues[l.id*DOUBLES_PER_AVX]), limitValue, _CMP_LE_OQ);
-//                comp2 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterValues[l.id*DOUBLES_PER_AVX]), limitValue, _CMP_GT_OQ);
-//                outsideLimitMask = _mm256_movemask_pd(comp1)&_mm256_movemask_pd(comp2);
-//            }
-//            break;
-//        default:
-//            break;
-//        }
 
         // Check if the limit was triggered.
         if (outsideLimitMask)

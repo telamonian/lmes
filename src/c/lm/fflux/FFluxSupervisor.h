@@ -46,6 +46,7 @@
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
+#include "lm/trajectory/TrajectoryLimits.h"
 #include "lm/trajectory/TrajectoryList.h"
 #include "lm/MPI.h"
 #include "lm/Print.h"
@@ -68,15 +69,21 @@ public:
     virtual ~FFluxSupervisor();
 
 protected:
+    virtual void buildRunWorkUnitLimits(lm::message::RunWorkUnit* msg);
     virtual void receivedProcessWorkUnitOutput(lm::message::Message& msg);
     virtual void receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg);
     virtual void startSimulation();
     virtual void buildTrajectoryList();
     virtual void finishSimulation();
 
-//protected:
-//    int realOutputWriterProcess;
-//    int realOutputWriterThread;
+    virtual void setLimits();
+
+protected:
+    int ffluxPhase;
+    lm::trajectory::TrajectoryLimits trajectoryLimits;
+
+    //    int realOutputWriterProcess;
+    //    int realOutputWriterThread;
 };
 
 }

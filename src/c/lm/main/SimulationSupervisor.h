@@ -104,6 +104,7 @@ protected:
     virtual void startSimulationPhase();
     virtual bool assignWork();
     virtual void buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg);
+    virtual void buildRunWorkUnitLimits(lm::message::RunWorkUnit* msg);
     virtual void buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint minWorkUnits);
     virtual bool performAnotherSimulationPhase();
     virtual void finishSimulationPhase();

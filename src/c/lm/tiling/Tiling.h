@@ -39,7 +39,9 @@
 #ifndef LM_TILING_TILING
 #define LM_TILING_TILING
 
+#include "lm/EnumHelper.h"
 #include "lm/io/Tilings.pb.h"
+#include "lm/trajectory/TrajectoryLimits.h"
 #include "lm/Types.h"
 
 namespace lm {
@@ -50,30 +52,33 @@ typedef google::protobuf::RepeatedField<double>::const_iterator EdgeIterator;
 class Tiling
 {
 public:
+// typedefs
+    typedef lm::io::TrajectoryLimits::TrajectoryLimit TrajectoryLimitBuf;
+
+// initializers
     Tiling();
     virtual ~Tiling();
     virtual void init(const lm::io::Tilings::Tiling& tilingRef);
 
-    // iterators (over the edges)
-    EdgeIterator begin() const {return tilingBuf->edges().begin();}
-    EdgeIterator end() const {return tilingBuf->edges().end();}
-
-    // getters
-    lm::io::Tilings::Arrangement getArrangement() const;
-    uint getDim(uint dimIndex) {return tilingBuf->edges(dimIndex);}
-    double getEdge(uint edgeIndex) const {return tilingBuf->edges(edgeIndex);}
-    uint getEdgesCount() const {return tilingBuf->edges_size();}
-    double getFinalEdge() const {return getEdge(getEdgesCount() - 1);}
-    uint getID() {return tilingBuf->id();}
-    uint getOrderParameterID() {return tilingBuf->order_parameter_id();}
-    uint getRank() {return tilingBuf->rank();}
-    uint getTileIndex(double opVal);    // get the index of the tile for making a histogram based on the tiling
+// accessors
+    TrajectoryLimitBuf* addLimitBuf(lm::trajectory::TrajectoryLimits& tls, uint edgeIndex, EH::StoppingCondition stoppingCondition, bool openClosed=true) const;
 //    double getAscendingLimit(uint edgeIndex);
 //    double getDescendingLimit(uint edgeIndex);
+    EdgeIterator begin() const {return tilingBuf->edges().begin();}
+    EdgeIterator end() const {return tilingBuf->edges().end();}
+    lm::io::Tilings::Arrangement getArrangement() const;
+    uint64_t getDim(uint dimIndex) const {return tilingBuf->dims(dimIndex);}
+    double getEdge(uint edgeIndex) const {return tilingBuf->edges(edgeIndex);}
+    int getEdgesCount() const {return tilingBuf->edges_size();}
+    double getLastEdge() const {return getEdge(getLastEdgeIndex());}
+    uint getLastEdgeIndex() const {return getEdgesCount() - 1;}
+    uint getID() const {return tilingBuf->id();}
+    uint getOrderParameterID() const {return tilingBuf->order_parameter_id();}
+    uint64_t getRank() const {return tilingBuf->rank();}
+    uint getTileIndex(double opVal);    // get the index of the tile for making a histogram based on the tiling
 
+// mutators
     void reverse();
-
-    // setters
     void setArrangement(lm::io::Tilings::Arrangement arrangement);
     void setOrderParameterID(uint opID) {tilingBuf->set_order_parameter_id(opID);}
 

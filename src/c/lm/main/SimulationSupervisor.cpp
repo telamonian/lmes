@@ -430,13 +430,19 @@ void SimulationSupervisor::buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg)
     msg->set_output_thread(outputWriterThread);
 
     // Set the limits.
-    msg->mutable_trajectory_limits()->CopyFrom(input->getTrajectoryLimitsMsg());
+    buildRunWorkUnitLimits(msg);
 
     // Set the output options.
     msg->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());
 
     // Set the maximum number of steps for the work unit.
     msg->set_max_steps(input->getStepsPerWorkUnit());
+}
+
+void SimulationSupervisor::buildRunWorkUnitLimits(lm::message::RunWorkUnit* msg)
+{
+    // Set the limits.
+    msg->mutable_trajectory_limits()->CopyFrom(input->getTrajectoryLimitsMsg());
 }
 
 void SimulationSupervisor::buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint minWorkUnits)

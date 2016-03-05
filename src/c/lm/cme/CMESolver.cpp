@@ -206,6 +206,13 @@ void CMESolver::setLimits(const lm::io::TrajectoryLimits& lm)
         std::copy(trajectoryLimits.vec().begin(), trajectoryLimits.vec().end(), limits);
     }
 
+    // if any of the limits are degree advancement limits, make sure that we're tracking them
+    if (trajectoryLimits.hasDegreeAdvancementLimit())
+    {
+        hasDegreeAdvancementListener = true;
+        hasUpdateSpeciesCountsListeners = true;
+    }
+
 //    // Set the time limit.
 //    if (lm.has_time_limit())
 //        timeLimit = lm.time_limit().dvalue();
@@ -449,11 +456,16 @@ void CMESolver::setOutputOptions(const lm::io::OutputOptions& outputOptions)
     {
         writeDegreeAdvancementTimeSeries = true;
         degreeAdvancementWriteInterval = outputOptions.degree_advancement_write_interval();
+
+        hasDegreeAdvancementListener = true;
+        hasUpdateSpeciesCountsListeners = true;
     }
     if (outputOptions.has_order_parameter_write_interval())
     {
         writeOrderParameterTimeSeries = true;
         orderParameterWriteInterval = outputOptions.order_parameter_write_interval();
+
+        hasUpdateSpeciesCountsListeners = true;
     }
     if (outputOptions.has_species_write_interval())
     {
@@ -573,6 +585,9 @@ bool CMESolver::isTrajectoryOutsideLimits()
             case EH::INCREASING: throw Exception("unimplemented"); break;
             case EH::DECREASING: throw Exception("unimplemented"); break;
             }
+            break;
+
+        default:
             break;
         }
 

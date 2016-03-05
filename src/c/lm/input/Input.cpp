@@ -123,30 +123,20 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
             trajectoryLimitsPresent = true;
         }
 
-        if (simulationParameters.count("speciesLowerLimitList"))
-            trajectoryLimitsPresent = parseLimits<EH::SPECIES>("speciesLowerLimitList", "species lower limit", EH::MIN);
-
-        if (simulationParameters.count("speciesUpperLimitList"))
-            trajectoryLimitsPresent = parseLimits<EH::SPECIES>("speciesUpperLimitList", "species upper limit", EH::MAX);
-
-        if (simulationParameters.count("orderParameterLowerLimitList"))
-            trajectoryLimitsPresent = parseLimits<EH::ORDER_PARAMETER>("orderParameterLowerLimitList", "order parameter lower limit", EH::MIN);
-
-        if (simulationParameters.count("orderParameterUpperLimitList"))
-            trajectoryLimitsPresent = parseLimits<EH::ORDER_PARAMETER>("orderParameterUpperLimitList", "order parameter upper limit", EH::MAX);
+        // set the other limits, if present in the simulation parameters
+        trajectoryLimitsPresent = parseLimits<EH::DEGREE_ADVANCEMENT>("degreeAdvancementLowerLimitList", "degree advancement lower limit", EH::MIN);
+        trajectoryLimitsPresent = parseLimits<EH::DEGREE_ADVANCEMENT>("degreeAdvancementUpperLimitList", "degree advancement upper limit", EH::MAX);
+        trajectoryLimitsPresent = parseLimits<EH::ORDER_PARAMETER>("orderParameterLowerLimitList", "order parameter lower limit", EH::MIN);
+        trajectoryLimitsPresent = parseLimits<EH::ORDER_PARAMETER>("orderParameterUpperLimitList", "order parameter upper limit", EH::MAX);
+        trajectoryLimitsPresent = parseLimits<EH::SPECIES>("speciesLowerLimitList", "species lower limit", EH::MIN);
+        trajectoryLimitsPresent = parseLimits<EH::SPECIES>("speciesUpperLimitList", "species upper limit", EH::MAX);
     }
 
     // Get the output options.
     {
-        if (simulationParameters.count("writeInterval"))
+        if (simulationParameters.count("degreeAdvancementWriteInterval"))
         {
-            outputOptions.set_species_write_interval(atof(simulationParameters["writeInterval"].c_str()));
-            outputOptionsPresent = true;
-        }
-
-        if (simulationParameters.count("latticeWriteInterval"))
-        {
-            outputOptions.set_lattice_write_interval(atof(simulationParameters["latticeWriteInterval"].c_str()));
+            outputOptions.set_degree_advancement_write_interval(simulationParameters.parse("degreeAdvancementWriteInterval"));
             outputOptionsPresent = true;
         }
 
@@ -167,6 +157,24 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
                 }
                 start = end+1;
             }
+            outputOptionsPresent = true;
+        }
+
+        if (simulationParameters.count("latticeWriteInterval"))
+        {
+            outputOptions.set_lattice_write_interval(atof(simulationParameters["latticeWriteInterval"].c_str()));
+            outputOptionsPresent = true;
+        }
+
+        if (simulationParameters.count("orderParameterWriteInterval"))
+        {
+            outputOptions.set_order_parameter_write_interval(simulationParameters.parse("orderParameterWriteInterval"));
+            outputOptionsPresent = true;
+        }
+        
+        if (simulationParameters.count("writeInterval"))
+        {
+            outputOptions.set_species_write_interval(atof(simulationParameters["writeInterval"].c_str()));
             outputOptionsPresent = true;
         }
     }
@@ -296,13 +304,27 @@ bool Input::parseBoundaryConditions(lm::io::BoundaryConditions* bc, string arg)
 
 template <EH::LimitType LT> bool Input::parseLimits(string key, string debugString, EH::StoppingCondition sc, bool includeEndpoint)
 {
-    typename pairVector<uint, typename LimitValueT<LT>::type>::type idLimitVec(simulationParameters.parsePairVector<uint, typename LimitValueT<LT>::type>(key, debugString));
-    for (typename pairVector<uint, typename LimitValueT<LT>::type>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
+    if (simulationParameters.count(key))
     {
-        trajectoryLimits.addLimitBuf<LT>(it->first, it->second, sc, includeEndpoint);
+        typename pairVector<uint, typename LimitValueT<LT>::type>::type idLimitVec(
+                simulationParameters.parsePairVector<uint, typename LimitValueT<LT>::type>(key, debugString));
+        for (typename pairVector<uint, typename LimitValueT<LT>::type>::iterator it(idLimitVec.begin());
+             it != idLimitVec.end(); it++)
+        {
+            trajectoryLimits.addLimitBuf<LT>(it->first, it->second, sc, includeEndpoint);
+        }
+        return idLimitVec.size() > 0;
     }
-    return idLimitVec.size() > 0;
+    else
+    {
+        return false;
+    }
 }
+
+//template <typename T> bool Input::parseOption(std::string key)
+//{
+//
+//}
 
 }
 }

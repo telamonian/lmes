@@ -44,11 +44,26 @@
 #ifndef LM_ENUMHELPER
 #define LM_ENUMHELPER
 
+#include "lm/io/Tilings.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 
 // a helper class to make accessing the types and values of various enums easier
 struct EH
 {
+// from Tilings.proto
+    // enum typedefs
+    typedef lm::io::Tilings::SortOrder SortOrder;
+    typedef lm::io::Tilings::TilingType TilingType;
+
+    // SortOrder enum values
+    static const SortOrder ASCENDING = lm::io::Tilings::ASCENDING;
+    static const SortOrder DESCENDING = lm::io::Tilings::DESCENDING;
+
+    // TilingType enum values
+    static const TilingType LATTICE = lm::io::Tilings::LATTICE;
+    static const TilingType VORONOI = lm::io::Tilings::VORONOI;
+
+// from TrajectoryLimits.proto
     // enum typedefs
     typedef lm::io::TrajectoryLimits::LimitType LimitType;
     typedef lm::io::TrajectoryLimits::StoppingCondition StoppingCondition;

@@ -110,8 +110,9 @@ public:
     uint64_t getStepsPerWorkUnit() const {return stepsPerWorkUnit;}
 
 protected:
-    template <EH::LimitType LT> inline bool parseLimits(std::string key, std::string debugString, EH::StoppingCondition sc, bool includeEndpoint=true);
     bool parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg);
+    template <EH::LimitType LT> inline bool parseLimits(std::string key, std::string debugString, EH::StoppingCondition sc, bool includeEndpoint=true);
+//    template <typename T> inline bool parseOption(std::string key);
 };
 
 //class Input

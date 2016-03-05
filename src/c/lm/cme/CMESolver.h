@@ -180,6 +180,12 @@ protected:
 
     inline void callUpdateSpeciesCountsListeners(uint r)
     {
+        // Update the degree advancement
+        if (hasDegreeAdvancementListener)
+        {
+            degreeAdvancements[r]++;
+        }
+
         // Update the first passage time tables.
         for (int i=0; i<numberFptTrackedSpecies; i++)
         {
@@ -201,11 +207,6 @@ protected:
             orderParameterValues[i] = orderParameterFunctions[i]->calculate(time, speciesCounts, reactionModel->numberSpecies);
         }
 
-        if (daFlag)
-        {
-            degreeAdvancements[r]++;
-        }
-
 //        // Update any tilingHists.
 //        if (tilings != NULL)
 //        {
@@ -224,8 +225,11 @@ protected:
     bool hasUpdateSpeciesCountsListeners;
     lm::tiling::Tilings* tilings;
 
+    // Degree advancement tracking
+    bool hasDegreeAdvancementListener;
+
     // Order parameter function.
-    size_t numberOrderParameters;
+    int32_t numberOrderParameters;
     lm::oparam::OrderParameterFunction** orderParameterFunctions;
 
     // Trajectory status.

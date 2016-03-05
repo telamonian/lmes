@@ -89,14 +89,13 @@ template <> inline int32_t _getLimitValue<int32_t, TrajectoryLimit>(const Trajec
 template <> inline uint64_t _getLimitValue<uint64_t, TrajectoryLimit>(const TrajectoryLimit& tl) {return tl.uvalue;}
 template <EH::LimitType LT, typename ContainerT> inline typename LimitValueT<LT>::type getLimitValue(const ContainerT& tl) {return _getLimitValue<typename LimitValueT<LT>::type, ContainerT>(tl);}
 
-template <typename ValueT, typename ContainerT> inline void _setLimitValue(ContainerT& tl, ValueT val);
-template <> inline void _setLimitValue<double, TrajectoryLimitBuf>(TrajectoryLimitBuf& tl, double val) {tl.set_dvalue(val);}
-template <> inline void _setLimitValue<int32_t, TrajectoryLimitBuf>(TrajectoryLimitBuf& tl, int32_t val) {tl.set_ivalue(val);}
-template <> inline void _setLimitValue<uint64_t, TrajectoryLimitBuf>(TrajectoryLimitBuf& tl, uint64_t val) {tl.set_uvalue(val);}
-template <> inline void _setLimitValue<double, TrajectoryLimit>(TrajectoryLimit& tl, double val) {tl.dvalue = val;}
-template <> inline void _setLimitValue<int32_t, TrajectoryLimit>(TrajectoryLimit& tl, int32_t val) {tl.ivalue = val;}
-template <> inline void _setLimitValue<uint64_t, TrajectoryLimit>(TrajectoryLimit& tl, uint64_t val) {tl.uvalue = val;}
-template <EH::LimitType LT, typename ContainerT> inline void setLimitValue(ContainerT& tl, typename LimitValueT<LT>::type val) {_setLimitValue<typename LimitValueT<LT>::type, ContainerT>(tl, val);}
+template <typename ContainerT, typename ValueT> inline void setLimitValue(ContainerT& tl, ValueT val);
+template <> inline void setLimitValue<TrajectoryLimitBuf, double>(TrajectoryLimitBuf& tl, double val) {tl.set_dvalue(val);}
+template <> inline void setLimitValue<TrajectoryLimitBuf, int32_t>(TrajectoryLimitBuf& tl, int32_t val) {tl.set_ivalue(val);}
+template <> inline void setLimitValue<TrajectoryLimitBuf, uint64_t>(TrajectoryLimitBuf& tl, uint64_t val) {tl.set_uvalue(val);}
+template <> inline void setLimitValue<TrajectoryLimit, double>(TrajectoryLimit& tl, double val) {tl.dvalue = val;}
+template <> inline void setLimitValue<TrajectoryLimit, int32_t>(TrajectoryLimit& tl, int32_t val) {tl.ivalue = val;}
+template <> inline void setLimitValue<TrajectoryLimit, uint64_t>(TrajectoryLimit& tl, uint64_t val) {tl.uvalue = val;}
         
 class TrajectoryLimits
 {
@@ -118,9 +117,12 @@ public:
     ~TrajectoryLimits() {}
 
 // accessors
+    repeatedType::const_iterator findBuf(int32_t id) const;
+    repeatedType::const_iterator findBuf(EH::LimitType lt) const;
     const TrajectoryLimitBuf& getTimeBuf() const {return _buf.time_limit();}
     double getTimeLimitValue() const {return _buf.has_time_limit() ? _buf.time_limit().dvalue() : std::numeric_limits<double>::infinity();}
-    repeatedType::const_iterator findBuf(int32_t id) const;
+    bool hasDegreeAdvancementLimit() const {return (findBuf(EH::DEGREE_ADVANCEMENT)!=repeated().end());}
+
 
     const TrajectoryLimitsBuf& buf() const {return _buf;}
     const repeatedType& repeated() const {return _repeated;}
@@ -154,6 +156,7 @@ public:
         return tlBuf;
     }
 
+    void clear() {_buf.Clear(); _vec.clear(); seatRepeated();}
     void seatRepeated(TrajectoryLimitsBuf& inBuf) {_repeated.setRepFieldPtr(inBuf.mutable_trajectory_limits());}
     void seatRepeated() {seatRepeated(_buf);}
     void setBuf(const TrajectoryLimitsBuf& inBuf) {_buf.CopyFrom(inBuf);}

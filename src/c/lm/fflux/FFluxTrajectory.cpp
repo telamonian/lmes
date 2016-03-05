@@ -109,7 +109,7 @@ void FFluxTrajectory::initLimits()
         iopl->set_arrangement(lm::io::TrajectoryLimits::ASCENDING);
         iopl->set_limit_id(input.tilings.getCurrentTiling()->getEdgesCount() - 1);
         iopl->set_order_parameter_id(input.tilings.getCurrentTiling()->getOrderParameterID());
-        iopl->add_value(input.tilings.getCurrentTiling()->getFinalEdge());
+        iopl->add_value(input.tilings.getCurrentTiling()->getLastEdge());
         break;
     }
     case 1: // ffluxphase==0 and tilings.getCurrentTiling().getArrangement()==lm::io::Tilings::DESCENDING
@@ -133,7 +133,7 @@ void FFluxTrajectory::initLimits()
         dopl->set_arrangement(lm::io::TrajectoryLimits::DESCENDING);
         dopl->set_limit_id(input.tilings.getCurrentTiling()->getEdgesCount() - 1);
         dopl->set_order_parameter_id(input.tilings.getCurrentTiling()->getOrderParameterID());
-        dopl->add_value(input.tilings.getCurrentTiling()->getFinalEdge());
+        dopl->add_value(input.tilings.getCurrentTiling()->getLastEdge());
         break;
     }
     case 2: // ffluxphase!=0 and tilings.getCurrentTiling().getArrangement()==lm::io::Tilings::ASCENDING

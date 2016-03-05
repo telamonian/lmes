@@ -4,8 +4,7 @@
 #TARGET: lm_c_lib
 #################
 # list of files/dirs to exclude from the build of lm_c_lib
-set(to_remove_globs lm/fflux/*
-                    lm/main/MainMPI.cpp
+set(to_remove_globs lm/main/MainMPI.cpp
                     lm/neus/*)
 
 # get the source files
