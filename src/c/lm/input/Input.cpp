@@ -39,12 +39,15 @@
 #include <map>
 #include <string>
 
+#include "lm/EnumHelper.h"
 #include "lm/Print.h"
 #include "lm/input/Input.h"
 #include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/option/SimulationParameters.h"
 #include "lm/trajectory/TrajectoryLimits.h"
 #include "lm/Types.h"
 
+using lm::trajectory::LimitValueT;
 using std::map;
 using std::string;
 
@@ -116,21 +119,21 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         // See if we have a max time limit.
         if (simulationParameters.count("maxTime"))
         {
-            trajectoryLimits.addLimitBuf<LimitBufType::TIME>(0, simulationParameters.parse<double>("maxTime"), LimitBufType::MAX);
+            trajectoryLimits.addLimitBuf<EH::TIME>(0, simulationParameters.parse<double>("maxTime"), EH::MAX);
             trajectoryLimitsPresent = true;
         }
 
         if (simulationParameters.count("speciesLowerLimitList"))
-            trajectoryLimitsPresent = parseLimits<LimitBufType::SPECIES>("speciesLowerLimitList", "species lower limit", LimitBufType::MIN);
+            trajectoryLimitsPresent = parseLimits<EH::SPECIES>("speciesLowerLimitList", "species lower limit", EH::MIN);
 
         if (simulationParameters.count("speciesUpperLimitList"))
-            trajectoryLimitsPresent = parseLimits<LimitBufType::SPECIES>("speciesUpperLimitList", "species upper limit", LimitBufType::MAX);
+            trajectoryLimitsPresent = parseLimits<EH::SPECIES>("speciesUpperLimitList", "species upper limit", EH::MAX);
 
         if (simulationParameters.count("orderParameterLowerLimitList"))
-            trajectoryLimitsPresent = parseLimits<LimitBufType::ORDER_PARAMETER>("orderParameterLowerLimitList", "order parameter lower limit", LimitBufType::MIN);
+            trajectoryLimitsPresent = parseLimits<EH::ORDER_PARAMETER>("orderParameterLowerLimitList", "order parameter lower limit", EH::MIN);
 
         if (simulationParameters.count("orderParameterUpperLimitList"))
-            trajectoryLimitsPresent = parseLimits<LimitBufType::ORDER_PARAMETER>("orderParameterUpperLimitList", "order parameter upper limit", LimitBufType::MAX);
+            trajectoryLimitsPresent = parseLimits<EH::ORDER_PARAMETER>("orderParameterUpperLimitList", "order parameter upper limit", EH::MAX);
     }
 
     // Get the output options.
@@ -291,10 +294,10 @@ bool Input::parseBoundaryConditions(lm::io::BoundaryConditions* bc, string arg)
     return bc->axis_specific_boundaries();
 }
 
-template <LimitType LT> bool Input::parseLimits(string key, string debugString, StoppingCondition sc, bool includeEndpoint)
+template <EH::LimitType LT> bool Input::parseLimits(string key, string debugString, EH::StoppingCondition sc, bool includeEndpoint)
 {
-    pairVector<uint, LimitValueT<LT>::type>::type idLimitVec(simulationParameters.parsePairVector<uint, LimitValueT<LT>::type>(key, debugString));
-    for (pairVector<uint, LimitValueT<LT>::type>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
+    typename pairVector<uint, typename LimitValueT<LT>::type>::type idLimitVec(simulationParameters.parsePairVector<uint, typename LimitValueT<LT>::type>(key, debugString));
+    for (typename pairVector<uint, typename LimitValueT<LT>::type>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
     {
         trajectoryLimits.addLimitBuf<LT>(it->first, it->second, sc, includeEndpoint);
     }

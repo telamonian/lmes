@@ -46,6 +46,7 @@
 
 #include "lm/io/TrajectoryLimits.pb.h"
 
+// a helper class to make accessing the types and values of various enums easier
 struct EH
 {
     // enum typedefs

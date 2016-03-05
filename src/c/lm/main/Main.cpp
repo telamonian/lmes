@@ -868,8 +868,11 @@ void mainDebug(int argc, char** argv)
         double* rngValues = NULL;
         double* expRngValues = NULL;
         int rngCount=10000000;
+
+#ifdef OPT_AVX
         POSIX_EXCEPTION_CHECK(posix_memalign((void**)&rngValues, DOUBLES_PER_AVX*sizeof(double), rngCount*sizeof(double)));
         POSIX_EXCEPTION_CHECK(posix_memalign((void**)&expRngValues, DOUBLES_PER_AVX*sizeof(double), rngCount*sizeof(double)));
+#endif
 
         // Warmup.
         rng.getRandomDoubles(rngValues,rngCount);
@@ -877,6 +880,7 @@ void mainDebug(int argc, char** argv)
         rng.getRandomDoubles(rngValues,rngCount, true);
         rng.getExpRandomDoubles(expRngValues,rngCount, true);
 
+#ifdef OPT_AVX
         // Test with avx.
         {
         hrtime start = getHrTime();
@@ -892,6 +896,7 @@ void mainDebug(int argc, char** argv)
             fprintf(f, "%e %e\n", rngValues[i], expRngValues[i]);
         fclose(f);
         }
+#endif
 
 
         // Test without avx.
@@ -915,6 +920,7 @@ void mainDebug(int argc, char** argv)
     }
     /**/
 
+#ifdef OPT_AVX
     /**
       * Test the RNG limits using avx.
       */
@@ -952,6 +958,8 @@ void mainDebug(int argc, char** argv)
         printf("CMP: %d %d %d %d\n", res[0]==0.0, res[1]==1.0, res[2]>0.0, res[3]<1.0);
     }
     /**/
+#endif
+
 }
 
 

@@ -93,16 +93,6 @@ namespace cme {
 class CMESolver : public MESolver
 {
 protected:
-//    struct TrajectoryLimit
-//    {
-//        lm::io::TrajectoryLimits::LimitType type;
-//        lm::io::TrajectoryLimits::StoppingCondition stoppingCondition;
-//        uint32_t valueID;
-//        int32_t ivalue;
-//        double dvalue;
-//        uint64_t uvalue;
-//    };
-
     class FPTTracking
     {
     public:
@@ -225,33 +215,6 @@ protected:
 //            }
 //        }
     }
-
-    template <EH::LimitType LT, EH::StoppingCondition SC, bool includeEndpoint> bool checkLimit(TrajectoryLimit l);
-
-    // specializations for degree advancements min/max limits
-    template <> bool checkLimit<EH::DEGREE_ADVANCEMENT, EH::MIN, true>(TrajectoryLimit l) {return (degreeAdvancements[l.valueID] <= l.ivalue);}
-    template <> bool checkLimit<EH::DEGREE_ADVANCEMENT, EH::MIN, false>(TrajectoryLimit l) {return (degreeAdvancements[l.valueID] < l.ivalue);}
-    template <> bool checkLimit<EH::DEGREE_ADVANCEMENT, EH::MAX, true>(TrajectoryLimit l) {return (degreeAdvancements[l.valueID] >= l.ivalue);}
-    template <> bool checkLimit<EH::DEGREE_ADVANCEMENT, EH::MAX, false>(TrajectoryLimit l) {return (degreeAdvancements[l.valueID] > l.ivalue);}
-
-    // specializations for order parameter min/max limits
-    template <> bool checkLimit<EH::ORDER_PARAMETER, EH::MIN, true>(TrajectoryLimit l) {return (orderParameterValues[l.valueID] <= l.ivalue);}
-    template <> bool checkLimit<EH::ORDER_PARAMETER, EH::MIN, false>(TrajectoryLimit l) {return (orderParameterValues[l.valueID] < l.ivalue);}
-    template <> bool checkLimit<EH::ORDER_PARAMETER, EH::MAX, true>(TrajectoryLimit l) {return (orderParameterValues[l.valueID] >= l.ivalue);}
-    template <> bool checkLimit<EH::ORDER_PARAMETER, EH::MAX, false>(TrajectoryLimit l) {return (orderParameterValues[l.valueID] > l.ivalue);}
-
-    // specializations for order parameter increasing/decreasing limits
-    template <> bool checkLimit<EH::ORDER_PARAMETER, EH::DECREASING, true>(TrajectoryLimit l) {return (orderParameterPreviousValues[l.valueID] >= l.dvalue && orderParameterValues[l.valueID] < l.dvalue);}
-    template <> bool checkLimit<EH::ORDER_PARAMETER, EH::DECREASING, false>(TrajectoryLimit l) {return (orderParameterPreviousValues[l.valueID] > l.dvalue && orderParameterValues[l.valueID] <= l.dvalue);}
-    template <> bool checkLimit<EH::ORDER_PARAMETER, EH::INCREASING, true>(TrajectoryLimit l) {return (orderParameterPreviousValues[l.valueID] <= l.dvalue && orderParameterValues[l.valueID] > l.dvalue);}
-    template <> bool checkLimit<EH::ORDER_PARAMETER, EH::INCREASING, false>(TrajectoryLimit l) {return (orderParameterPreviousValues[l.valueID] < l.dvalue && orderParameterValues[l.valueID] >= l.dvalue);}
-
-    // specializations for species min/max limits
-    template <> bool checkLimit<EH::SPECIES, EH::MIN, true>(TrajectoryLimit l) {return (speciesCounts[l.valueID] <= l.ivalue);}
-    template <> bool checkLimit<EH::SPECIES, EH::MIN, false>(TrajectoryLimit l) {return (speciesCounts[l.valueID] < l.ivalue);}
-    template <> bool checkLimit<EH::SPECIES, EH::MAX, true>(TrajectoryLimit l) {return (speciesCounts[l.valueID] >= l.ivalue);}
-    template <> bool checkLimit<EH::SPECIES, EH::MAX, false>(TrajectoryLimit l) {return (speciesCounts[l.valueID] > l.ivalue);}
-
     bool isTrajectoryOutsideLimits();
 
 protected:
@@ -285,17 +248,17 @@ protected:
     FPTTracking* fptTrackedSpecies;
 
     // The current state.
-    uint64_t trajectoryId;
-    bool trajectoryStarted;
-    uint* degreeAdvancements;
-    int* speciesCounts;
-    double time;
-    double timeStep;    // stores last time step calculated, used for building histogram
+    uint64_t* degreeAdvancements;
     double* orderParameterValues;
     double* orderParameterPreviousValues;
+    int32_t* speciesCounts;
+    double time;
+    double timeStep;    // stores last time step calculated, used for building histogram
+    uint64_t trajectoryId;
+    bool trajectoryStarted;
+
     uint numberTilingHists;
     TilingHist* tilingHists;
-
 };
 
 }

@@ -40,13 +40,16 @@
 #define LM_OPTION_SIMULATIONPARAMETERS
 
 #include <map>
+#include <sstream>
 #include <stdlib.h>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/SimulationParameters.pb.h"
-#include "lm/types.h"
+#include "lm/Print.h"
+#include "lm/Types.h"
 
 namespace lm {
 namespace option {
@@ -68,10 +71,60 @@ public:
     const SimParamMap& map() const {return _map;}
     bool isEnd(SimParamMap::const_iterator it) const {return it==_map.end();}
 
-    template <typename T> T parse(const std::string &key) const;
-    template <typename T1, typename T2> typename pairVector<T1, T2>::type parsePairVector(const std::string &key, const std::string& debugString="") const;
+    template <typename T>
+    T parse(const std::string &key) const
+    {
+        T retVal;
+        std::stringstream ss(_map.at(key));
 
-    template <typename T> vector<T> parseVector(const std::string &key) const;
+        ss >> retVal;
+        return retVal;
+    }
+
+    template <typename T1, typename T2>
+    typename pairVector<T1, T2>::type parsePairVector(const std::string &key, const std::string& debugMessage="") const
+    {
+        std::stringstream pairVecSS(_map.at(key));
+
+        typename pairVector<T1, T2>::type parsedPairVector;
+        std::string pairString;
+        while (getline(pairVecSS, pairString, ':'))
+        {
+            std::pair<T1, T2> p;
+            std::stringstream pairSS(pairString);
+
+            pairSS >> p.first;
+            // strip any white space in between the last number parsed and the next delimiter
+            pairSS >> std::ws;
+            if (pairVecSS.peek() == ',')
+                pairVecSS.ignore();
+            pairSS >> p.second;
+
+            parsedPairVector.push_back(p);
+
+            Print::printf(Print::DEBUG, "Parsed %s %s to: %f => %f", debugMessage.c_str(), pairString.c_str(), p.first, p.second);
+        }
+        return parsedPairVector;
+    }
+
+    template <typename T> vector<T>
+    parseVector(const std::string &key) const
+    {
+        std::stringstream vecSS(_map.at(key));
+
+        vector<T> parsedVector;
+        T i;
+        while (vecSS >> i)
+        {
+            parsedVector.push_back(i);
+
+            // strip any white space in between the last number parsed and the next delimiter
+            vecSS >> std::ws;
+            if (vecSS.peek() == ',')
+                vecSS.ignore();
+        }
+        return parsedVector;
+    }
 
 // mutators
     // for the buf <-> map conversion methods, if you drop an arg it'll use the internal map and/or buf

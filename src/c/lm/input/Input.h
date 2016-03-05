@@ -43,6 +43,7 @@
 #include <map>
 #include <string>
 
+#include "lm/EnumHelper.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/BoundaryConditions.pb.h"
 #include "lm/io/DiffusionModel.pb.h"
@@ -86,9 +87,6 @@ protected:
     uint64_t stepsPerWorkUnit;
 
 public:
-    // include some protobuf-related typedefs within this class's scope
-    #include "lm/MsgTypes.h"
-
     Input(const lm::io::hdf5::Hdf5File& file);
     virtual ~Input();
 
@@ -112,7 +110,7 @@ public:
     uint64_t getStepsPerWorkUnit() const {return stepsPerWorkUnit;}
 
 protected:
-    template <LimitType LT> bool parseLimits(std::string key, std::string debugString, StoppingCondition sc, bool includeEndpoint=true);
+    template <EH::LimitType LT> inline bool parseLimits(std::string key, std::string debugString, EH::StoppingCondition sc, bool includeEndpoint=true);
     bool parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg);
 };
 

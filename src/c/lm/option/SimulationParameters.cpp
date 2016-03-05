@@ -91,61 +91,61 @@ SimParamMap::iterator SimulationParameters::findFirst(const vector<string>& keys
     return findIt;
 #endif
 }
-
-template <typename T>
-T SimulationParameters::parse(const std::string& key) const
-{
-    T retVal;
-    stringstream ss(_map.at(key));
-
-    ss >> retVal;
-    return retVal;
-}
-
-template <typename T>
-vector<T> SimulationParameters::parseVector(const std::string& key) const
-{
-    stringstream vecSS(_map.at(key));
-
-    vector<T> parsedVector;
-    T i;
-    while (vecSS >> i)
-    {
-        parsedVector.push_back(i);
-
-        // strip any white space in between the last number parsed and the next delimiter
-        vecSS >> ws;
-        if (vecSS.peek() == ',')
-            vecSS.ignore();
-    }
-    return parsedVector;
-}
-
-template <typename T1, typename T2>
-pairVector<T1, T2>::type SimulationParameters::parsePairVector(const std::string& key, const std::string& debugMessage) const
-{
-    stringstream pairVecSS(_map.at(key));
-
-    pairVector<T1, T2>::type parsedPairVector;
-    string pairString;
-    while (getline(pairVecSS, pairString, ':'))
-    {
-        pair<T1, T2> p;
-        stringstream pairSS(pairString);
-
-        pairSS >> p.first;
-        // strip any white space in between the last number parsed and the next delimiter
-        pairSS >> ws;
-        if (pairVecSS.peek() == ',')
-            pairVecSS.ignore();
-        pairSS >> p.second;
-
-        parsedPairVector.push_back(p);
-
-        Print::printf(Print::DEBUG, "Parsed %s %s to: %f => %f", debugMessage, pairString, p.first, p.second);
-    }
-    return parsedPairVector;
-}
+//
+//template <typename T>
+//T SimulationParameters::parse(const std::string& key) const
+//{
+//    T retVal;
+//    stringstream ss(_map.at(key));
+//
+//    ss >> retVal;
+//    return retVal;
+//}
+//
+//template <typename T>
+//vector<T> SimulationParameters::parseVector(const std::string& key) const
+//{
+//    stringstream vecSS(_map.at(key));
+//
+//    vector<T> parsedVector;
+//    T i;
+//    while (vecSS >> i)
+//    {
+//        parsedVector.push_back(i);
+//
+//        // strip any white space in between the last number parsed and the next delimiter
+//        vecSS >> ws;
+//        if (vecSS.peek() == ',')
+//            vecSS.ignore();
+//    }
+//    return parsedVector;
+//}
+//
+//template <typename T1, typename T2>
+//typename pairVector<T1, T2>::type SimulationParameters::parsePairVector(const std::string& key, const std::string& debugMessage) const
+//{
+//    stringstream pairVecSS(_map.at(key));
+//
+//    typename pairVector<T1, T2>::type parsedPairVector;
+//    string pairString;
+//    while (getline(pairVecSS, pairString, ':'))
+//    {
+//        pair<T1, T2> p;
+//        stringstream pairSS(pairString);
+//
+//        pairSS >> p.first;
+//        // strip any white space in between the last number parsed and the next delimiter
+//        pairSS >> ws;
+//        if (pairVecSS.peek() == ',')
+//            pairVecSS.ignore();
+//        pairSS >> p.second;
+//
+//        parsedPairVector.push_back(p);
+//
+//        Print::printf(Print::DEBUG, "Parsed %s %s to: %f => %f", debugMessage, pairString, p.first, p.second);
+//    }
+//    return parsedPairVector;
+//}
 
 // mutators
 void SimulationParameters::bufToMap(const lm::io::SimulationParameters& inBuf, SimParamMap& outMap)

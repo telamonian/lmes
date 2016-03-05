@@ -36,12 +36,11 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+#include "lm/EnumHelper.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/trajectory/TrajectoryLimits.h"
 #include "lm/Types.h"
 
-using lm::io::TrajectoryLimits::LimitType;
-using lm::io::TrajectoryLimits::StoppingCondition;
 using lm::trajectory::LimitValueT;
 
 namespace lm {
@@ -56,31 +55,31 @@ TrajectoryLimits::repeatedType::const_iterator TrajectoryLimits::findBuf(int32_t
     return it;
 }
 
-template <LimitType LT> lm::io::TrajectoryLimits::TrajectoryLimit* TrajectoryLimits::addLimitBuf(uint32_t valID, LimitValueT<LT>::type val, StoppingCondition sc, bool includeEndpoint, int32_t id)
-{
-    lm::io::TrajectoryLimits::TrajectoryLimit* tlBuf;
-    if (LT==lm::io::TrajectoryLimits::TIME)
-    {
-        tlBuf = _buf.mutable_time_limit();
-        // for now, the expected behavior is that the id of the time limit will default to -1
-        tlBuf->set_id(id==DEFAULT_LIMIT_ID ? -1 : id);
-    }
-    else
-    {
-        tlBuf = _repeated.Add();
-        // for now, the expected behavior is that the id of most limits (ie not TIME) will default to an incrementing counter
-        tlBuf->set_id(id==DEFAULT_LIMIT_ID ? nextID++ : id);
-    }
-
-    tlBuf->set_limit_type(LT);
-    tlBuf->set_stopping_condition(sc);
-    tlBuf->set_include_endpoint(includeEndpoint);
-
-    tlBuf->set_value_id(valID);
-    setLimitBufValue(tlBuf, val);
-
-    return tlBuf;
-}
+//template <EH::LimitType LT> lm::io::TrajectoryLimits::TrajectoryLimit* TrajectoryLimits::addLimitBuf(uint32_t valID, typename LimitValueT<LT>::type val, EH::StoppingCondition sc, bool includeEndpoint, int32_t id)
+//{
+//    lm::io::TrajectoryLimits::TrajectoryLimit* tlBuf;
+//    if (LT==lm::io::TrajectoryLimits::TIME)
+//    {
+//        tlBuf = _buf.mutable_time_limit();
+//        // for now, the expected behavior is that the id of the time limit will default to -1
+//        tlBuf->set_id(id==DEFAULT_LIMIT_ID ? -1 : id);
+//    }
+//    else
+//    {
+//        tlBuf = _repeated.Add();
+//        // for now, the expected behavior is that the id of most limits (ie not TIME) will default to an incrementing counter
+//        tlBuf->set_id(id==DEFAULT_LIMIT_ID ? nextID++ : id);
+//    }
+//
+//    tlBuf->set_limit_type(LT);
+//    tlBuf->set_stopping_condition(sc);
+//    tlBuf->set_include_endpoint(includeEndpoint);
+//
+//    tlBuf->set_value_id(valID);
+//    setLimitBufValue(tlBuf, val);
+//
+//    return tlBuf;
+//}
 
 // rFB = read From Buf
 void TrajectoryLimits::rFB(const TrajectoryLimitsBuf& inBuf)
@@ -122,17 +121,17 @@ TrajectoryLimit TrajectoryLimits::bufToStruct(const lm::io::TrajectoryLimits::Tr
     limit.valueID = inBuf.value_id();
     switch(inBuf.value_oneof_case())
     {
-        case lm::io::TrajectoryLimits::TrajectoryLimit::kDvalue :
+        case TrajectoryLimitBuf::kDvalue:
             limit.dvalue = inBuf.dvalue();
             break;
-        case lm::io::TrajectoryLimits::TrajectoryLimit::kIvalue :
+        case TrajectoryLimitBuf::kIvalue:
             limit.ivalue = inBuf.ivalue();
             break;
-        case lm::io::TrajectoryLimits::TrajectoryLimit::kUvalue :
+        case TrajectoryLimitBuf::kUvalue:
             limit.uvalue = inBuf.uvalue();
             break;
         default:
-            throw Exception("When converting a TrajectoryLimit buf to a TrajectoryLimit buf, a TrajectoryLimit buf did not have an associated value", limit.type, limit.stoppingCondition);
+            throw Exception("When converting a TrajectoryLimit buf to a TrajectoryLimit struct, the TrajectoryLimit buf did not have an associated value", inBuf.limit_type(), inBuf.stopping_condition());
             break;
     }
     return limit;
@@ -147,8 +146,25 @@ TrajectoryLimitBuf TrajectoryLimits::structToBuf(const TrajectoryLimit& inStruct
     limitBuf.set_include_endpoint(inStruct.includeEndpoint);
 
     limitBuf.set_value_id(inStruct.valueID);
-    setLimitValue<inStruct.type>(limitBuf, getLimitValue<inStruct.type>(inStruct));
 
+    switch(inStruct.type)
+    {
+    case EH::TIME:
+        setLimitValue<EH::TIME>(limitBuf, getLimitValue<EH::TIME>(inStruct));
+        break;
+    case EH::SPECIES:
+        setLimitValue<EH::SPECIES>(limitBuf, getLimitValue<EH::SPECIES>(inStruct));
+        break;
+    case EH::ORDER_PARAMETER:
+        setLimitValue<EH::ORDER_PARAMETER>(limitBuf, getLimitValue<EH::ORDER_PARAMETER>(inStruct));
+        break;
+    case EH::DEGREE_ADVANCEMENT:
+        setLimitValue<EH::DEGREE_ADVANCEMENT>(limitBuf, getLimitValue<EH::DEGREE_ADVANCEMENT>(inStruct));
+        break;
+    default:
+        throw Exception("When converting a TrajectoryLimit struct to a TrajectoryLimit buf, the TrajectoryLimit struct did not have a recognized type", inStruct.type, inStruct.stoppingCondition);
+        break;
+    }
     return limitBuf;
 }
     

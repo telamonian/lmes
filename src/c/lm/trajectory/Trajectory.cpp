@@ -165,17 +165,17 @@ void Trajectory::inititializeHists(const lm::input::Input& input)
 }
 
 // accessor definitions
-int64_t Trajectory::getLimitIndexReached()
+const lm::io::TrajectoryLimits::TrajectoryLimit& Trajectory::getLimitReached() const
 {
-    return state.limit_index_reached();
+    return state.limit_reached();
 }
 
-uint64_t Trajectory::getId()
+uint64_t Trajectory::getId() const
 {
     return id;
 }
 
-const lm::io::OrderParametersValues& Trajectory::getOrderParameterValues()
+const lm::io::OrderParametersValues& Trajectory::getOrderParameterValues() const
 {
     state.cme_state().order_parameter_values().order_parameter_values();
     return state.cme_state().order_parameter_values();
@@ -190,46 +190,56 @@ const lm::io::OrderParametersValues& Trajectory::getOrderParameterValues()
 //	delete [] lastSpeciesCount;
 }
 
-const lm::io::SpeciesCounts& Trajectory::getSpeciesCounts()
+const lm::io::SpeciesCounts& Trajectory::getSpeciesCounts() const
 {
 	return state.cme_state().species_counts();
 }
 
-uint Trajectory::getSimSteps()
+int32_t Trajectory::getSimSteps() const
 {
     return getSpeciesCounts().number_entries();
 }
 
-double Trajectory::getSimTime()
+double Trajectory::getSimTime() const
 {
     return getSpeciesCounts().time(getSpeciesCounts().time_size() - 1);
 }
 
-Trajectory::status_t Trajectory::getStatus()
+Trajectory::status_t Trajectory::getStatus() const
 {
     return status;
 }
 
-const lm::io::TrajectoryState& Trajectory::getState()
+const lm::io::TrajectoryState& Trajectory::getState() const
 {
     return state;
 }
 
+int64_t Trajectory::getWorkUnitsPerformed() const
+{
+    return numberWorkUnitsPerformed;
+}
+
 // debug helper function for printing trajectory status to stdout
-void Trajectory::printStatus()
+void Trajectory::printStatus() const
 {
     printf("trajectory ID: %d has status: %s\n", id, trajectoryStatusStrings[getStatus()]);
 }
 
 // mutator definitions
+void Trajectory::incrementWorkUnitsPerformed()
+{
+    numberWorkUnitsPerformed++;
+}
+
 void Trajectory::resetSimTime()
 {
     state.mutable_cme_state()->mutable_species_counts()->set_time(getSpeciesCounts().time_size() - 1, 0.0);
 }
 
-void Trajectory::setLimitIndexReached(int64_t limitIndex)
+void Trajectory::setLimitReached(const lm::io::TrajectoryLimits::TrajectoryLimit& limitBuf)
 {
-    state.set_limit_index_reached(limitIndex);
+    state.mutable_limit_reached()->CopyFrom(limitBuf);
 }
 
 void Trajectory::setID(uint64_t newID)
@@ -247,16 +257,6 @@ void Trajectory::setState(const lm::io::TrajectoryState& newState)
 void Trajectory::setStatus(status_t newStatus)
 {
     status = newStatus;
-}
-
-void Trajectory::incrementWorkUnitsPerformed()
-{
-    numberWorkUnitsPerformed++;
-}
-
-int64_t Trajectory::getWorkUnitsPerformed()
-{
-    return numberWorkUnitsPerformed;
 }
 
 }

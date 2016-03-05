@@ -51,8 +51,8 @@ message TrajectoryLimits {
     enum StoppingCondition {
         MIN=0;
         MAX=1;
-        INCREASING=2;
-        DECREASING=3;
+        DECREASING=2;
+        INCREASING=3;
     }
 
     message TrajectoryLimit {

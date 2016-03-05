@@ -80,23 +80,23 @@ template <> struct LimitValueT<EH::DEGREE_ADVANCEMENT> {typedef uint64_t type;};
 template <> struct LimitValueT<EH::ORDER_PARAMETER> {typedef double type;};
 template <> struct LimitValueT<EH::SPECIES> {typedef int32_t type;};
 
-template <typename ValueT, typename ContainerT> ValueT _getLimitValue(const ContainerT& tl);
-template <> double _getLimitValue<double, TrajectoryLimitBuf>(const TrajectoryLimitBuf& tl) {return tl.dvalue();}
-template <> int32_t _getLimitValue<int32_t, TrajectoryLimitBuf>(const TrajectoryLimitBuf& tl) {return tl.ivalue();}
-template <> uint64_t _getLimitValue<uint64_t, TrajectoryLimitBuf>(const TrajectoryLimitBuf& tl) {return tl.uvalue();}
-template <> double _getLimitValue<double, TrajectoryLimit>(const TrajectoryLimit& tl) {return tl.dvalue;}
-template <> int32_t _getLimitValue<int32_t, TrajectoryLimit>(const TrajectoryLimit& tl) {return tl.ivalue;}
-template <> uint64_t _getLimitValue<uint64_t, TrajectoryLimit>(const TrajectoryLimit& tl) {return tl.uvalue;}
-template <EH::LimitType LT, typename ContainerT> typename LimitValueT<LT>::type getLimitValue(const ContainerT& tl) {return _getLimitValue<LimitValueT<LT>::type, ContainerT>(tl);}
+template <typename ValueT, typename ContainerT> inline ValueT _getLimitValue(const ContainerT& tl);
+template <> inline double _getLimitValue<double, TrajectoryLimitBuf>(const TrajectoryLimitBuf& tl) {return tl.dvalue();}
+template <> inline int32_t _getLimitValue<int32_t, TrajectoryLimitBuf>(const TrajectoryLimitBuf& tl) {return tl.ivalue();}
+template <> inline uint64_t _getLimitValue<uint64_t, TrajectoryLimitBuf>(const TrajectoryLimitBuf& tl) {return tl.uvalue();}
+template <> inline double _getLimitValue<double, TrajectoryLimit>(const TrajectoryLimit& tl) {return tl.dvalue;}
+template <> inline int32_t _getLimitValue<int32_t, TrajectoryLimit>(const TrajectoryLimit& tl) {return tl.ivalue;}
+template <> inline uint64_t _getLimitValue<uint64_t, TrajectoryLimit>(const TrajectoryLimit& tl) {return tl.uvalue;}
+template <EH::LimitType LT, typename ContainerT> inline typename LimitValueT<LT>::type getLimitValue(const ContainerT& tl) {return _getLimitValue<typename LimitValueT<LT>::type, ContainerT>(tl);}
 
-template <typename ValueT, typename ContainerT> void _setLimitValue(ContainerT& tl, ValueT val);
-template <> void _setLimitValue<double, TrajectoryLimitBuf>(TrajectoryLimitBuf& tl, double val) {tl.set_dvalue(val);}
-template <> void _setLimitValue<int32_t, TrajectoryLimitBuf>(TrajectoryLimitBuf& tl, int32_t val) {tl.set_ivalue(val);}
-template <> void _setLimitValue<uint64_t, TrajectoryLimitBuf>(TrajectoryLimitBuf& tl, uint64_t val) {tl.set_uvalue(val);}
-template <> void _setLimitValue<double, TrajectoryLimit>(TrajectoryLimit& tl, double val) {tl.dvalue = val;}
-template <> void _setLimitValue<int32_t, TrajectoryLimit>(TrajectoryLimit& tl, int32_t val) {tl.ivalue = val;}
-template <> void _setLimitValue<uint64_t, TrajectoryLimit>(TrajectoryLimit& tl, uint64_t val) {tl.uvalue = val;}
-template <EH::LimitType LT, typename ContainerT> void setLimitValue(ContainerT& tl, typename LimitValueT<LT>::type val) {_setLimitValue<LimitValueT<LT>::type, ContainerT>(tl, val);}
+template <typename ValueT, typename ContainerT> inline void _setLimitValue(ContainerT& tl, ValueT val);
+template <> inline void _setLimitValue<double, TrajectoryLimitBuf>(TrajectoryLimitBuf& tl, double val) {tl.set_dvalue(val);}
+template <> inline void _setLimitValue<int32_t, TrajectoryLimitBuf>(TrajectoryLimitBuf& tl, int32_t val) {tl.set_ivalue(val);}
+template <> inline void _setLimitValue<uint64_t, TrajectoryLimitBuf>(TrajectoryLimitBuf& tl, uint64_t val) {tl.set_uvalue(val);}
+template <> inline void _setLimitValue<double, TrajectoryLimit>(TrajectoryLimit& tl, double val) {tl.dvalue = val;}
+template <> inline void _setLimitValue<int32_t, TrajectoryLimit>(TrajectoryLimit& tl, int32_t val) {tl.ivalue = val;}
+template <> inline void _setLimitValue<uint64_t, TrajectoryLimit>(TrajectoryLimit& tl, uint64_t val) {tl.uvalue = val;}
+template <EH::LimitType LT, typename ContainerT> inline void setLimitValue(ContainerT& tl, typename LimitValueT<LT>::type val) {_setLimitValue<typename LimitValueT<LT>::type, ContainerT>(tl, val);}
         
 class TrajectoryLimits
 {
@@ -127,7 +127,32 @@ public:
     const vectorType& vec() const {return _vec;}
 
 // mutators
-    template <EH::LimitType LT> TrajectoryLimitBuf* addLimitBuf(uint32_t valID, typename LimitValueT<LT>::type val, EH::StoppingCondition sc, bool includeEndpoint=true, int32_t id=DEFAULT_LIMIT_ID);
+    template <EH::LimitType LT>
+    inline TrajectoryLimitBuf* addLimitBuf(uint32_t valID, typename LimitValueT<LT>::type val, EH::StoppingCondition sc, bool includeEndpoint=true, int32_t id=DEFAULT_LIMIT_ID)
+    {
+        lm::io::TrajectoryLimits::TrajectoryLimit* tlBuf;
+        if (LT==lm::io::TrajectoryLimits::TIME)
+        {
+            tlBuf = _buf.mutable_time_limit();
+            // for now, the expected behavior is that the id of the time limit will default to -1
+            tlBuf->set_id(id==DEFAULT_LIMIT_ID ? -1 : id);
+        }
+        else
+        {
+            tlBuf = _repeated.Add();
+            // for now, the expected behavior is that the id of most limits (ie not TIME) will default to an incrementing counter
+            tlBuf->set_id(id==DEFAULT_LIMIT_ID ? nextID++ : id);
+        }
+
+        tlBuf->set_limit_type(LT);
+        tlBuf->set_stopping_condition(sc);
+        tlBuf->set_include_endpoint(includeEndpoint);
+
+        tlBuf->set_value_id(valID);
+        setLimitBufValue(tlBuf, val);
+
+        return tlBuf;
+    }
 
     void seatRepeated(TrajectoryLimitsBuf& inBuf) {_repeated.setRepFieldPtr(inBuf.mutable_trajectory_limits());}
     void seatRepeated() {seatRepeated(_buf);}
@@ -163,6 +188,21 @@ protected:
     repeatedType _repeated;
     vectorType _vec;
 };
+
+// the main checkLimit template. Call this function when checking any values against any limits
+template <EH::StoppingCondition sc, bool includeEndpoint> struct checkLimit;
+
+// specializations of checkLimit with regards to stoppingCondition and includeEndpoint for the basic min/max limits
+template <> struct checkLimit<EH::MIN, false> {template <typename T> static bool call(T val, T limitVal) {return (val < limitVal);}};
+template <> struct checkLimit<EH::MIN, true> {template <typename T> static bool call(T val, T limitVal) {return (val <= limitVal);}};
+template <> struct checkLimit<EH::MAX, false> {template <typename T> static bool call(T val, T limitVal) {return (val > limitVal);}};
+template <> struct checkLimit<EH::MAX, true> {template <typename T> static bool call(T val, T limitVal) {return (val >= limitVal);}};
+
+// specializations of checkLimit with regards to stoppingCondition and includeEndpoint for the slightly more complex decreasing/increasing limits
+template <> struct checkLimit<EH::DECREASING, false> {template <typename T> static bool call(T prevVal, T val, T limitVal) {return (prevVal > limitVal && val <= limitVal);}};
+template <> struct checkLimit<EH::DECREASING, true> {template <typename T> static bool call(T prevVal, T val, T limitVal) {return (prevVal >= limitVal && val < limitVal);}};
+template <> struct checkLimit<EH::INCREASING, false> {template <typename T> static bool call(T prevVal, T val, T limitVal) {return (prevVal < limitVal && val >= limitVal);}};
+template <> struct checkLimit<EH::INCREASING, true> {template <typename T> static bool call(T prevVal, T val, T limitVal) {return (prevVal <= limitVal && val > limitVal);}};
 
 }
 }
