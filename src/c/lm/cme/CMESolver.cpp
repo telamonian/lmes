@@ -478,17 +478,25 @@ bool CMESolver::isTrajectoryOutsideLimits()
             switch (l.stoppingCondition)
             {
             case EH::MIN:
-                switch (l.includeEndpoint)
+                if (l.includeEndpoint)
                 {
-                case false: limitReached = checkLimit<EH::MIN, false>::call(speciesCounts[l.valueID], l.ivalue); break;
-                case true: limitReached = checkLimit<EH::MIN, true>::call(speciesCounts[l.valueID], l.ivalue); break;
-                } break;
+                    limitReached = checkLimit<EH::MIN, true>::call(speciesCounts[l.valueID], l.ivalue);
+                }
+                else
+                {
+                    limitReached = checkLimit<EH::MIN, false>::call(speciesCounts[l.valueID], l.ivalue);
+                }
+                break;
             case EH::MAX:
-                switch (l.includeEndpoint)
+                if (l.includeEndpoint)
                 {
-                case false: limitReached = checkLimit<EH::MAX, false>::call(speciesCounts[l.valueID], l.ivalue); break;
-                case true: limitReached = checkLimit<EH::MAX, true>::call(speciesCounts[l.valueID], l.ivalue); break;
-                } break;
+                    limitReached = checkLimit<EH::MAX, true>::call(speciesCounts[l.valueID], l.ivalue);
+                }
+                else
+                {
+                    limitReached = checkLimit<EH::MAX, false>::call(speciesCounts[l.valueID], l.ivalue);
+                }
+                break;
             case EH::INCREASING: throw Exception("unimplemented"); break;
             case EH::DECREASING: throw Exception("unimplemented"); break;
             } break;
@@ -497,51 +505,75 @@ bool CMESolver::isTrajectoryOutsideLimits()
             switch (l.stoppingCondition)
             {
             case EH::MIN:
-                switch (l.includeEndpoint)
+                if (l.includeEndpoint)
                 {
-                case false: limitReached = checkLimit<EH::MIN, false>::call(orderParameterValues[l.valueID], l.dvalue); break;
-                case true: limitReached = checkLimit<EH::MIN, true>::call(orderParameterValues[l.valueID], l.dvalue); break;
+                    limitReached = checkLimit<EH::MIN, true>::call(orderParameterValues[l.valueID], l.dvalue);
+                }
+                else
+                {
+                    limitReached = checkLimit<EH::MIN, false>::call(orderParameterValues[l.valueID], l.dvalue);
                 }
                 break;
             case EH::MAX:
-                switch (l.includeEndpoint)
+                if (l.includeEndpoint)
                 {
-                case false: limitReached = checkLimit<EH::MAX, false>::call(orderParameterValues[l.valueID], l.dvalue); break;
-                case true: limitReached = checkLimit<EH::MAX, true>::call(orderParameterValues[l.valueID], l.dvalue); break;
+                    limitReached = checkLimit<EH::MAX, true>::call(orderParameterValues[l.valueID], l.dvalue);
+                }
+                else
+                {
+                    limitReached = checkLimit<EH::MAX, false>::call(orderParameterValues[l.valueID], l.dvalue);
                 }
                 break;
             case EH::DECREASING:
-                switch (l.includeEndpoint)
+                if (l.includeEndpoint)
                 {
-                case false: limitReached = checkLimit<EH::DECREASING, false>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue); break;
-                case true: limitReached = checkLimit<EH::DECREASING, true>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue); break;
-                } break;
+                    checkLimit<EH::DECREASING, true>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
+                }
+                else
+                {
+                    checkLimit<EH::DECREASING, false>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
+                }
+                break;
             case EH::INCREASING:
-                switch (l.includeEndpoint)
+                if (l.includeEndpoint)
                 {
-                case false: limitReached = checkLimit<EH::INCREASING, false>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue); break;
-                case true: limitReached = checkLimit<EH::INCREASING, true>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue); break;
-                } break;
-            } break;
+                    checkLimit<EH::INCREASING, true>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
+                }
+                else
+                {
+                    checkLimit<EH::INCREASING, false>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
+                }
+                break;
+            }
+            break;
 
         case EH::DEGREE_ADVANCEMENT:
             switch (l.stoppingCondition)
             {
             case EH::MIN:
-                switch (l.includeEndpoint)
+                if (l.includeEndpoint)
                 {
-                case false: limitReached = checkLimit<EH::MIN, false>::call(degreeAdvancements[l.valueID], l.uvalue); break;
-                case true: limitReached = checkLimit<EH::MIN, true>::call(degreeAdvancements[l.valueID], l.uvalue); break;
-                } break;
+                    limitReached = checkLimit<EH::MIN, true>::call(degreeAdvancements[l.valueID], l.uvalue);
+                }
+                else
+                {
+                    limitReached = checkLimit<EH::MIN, false>::call(degreeAdvancements[l.valueID], l.uvalue);
+                }
+                break;
             case EH::MAX:
-                switch (l.includeEndpoint)
+                if (l.includeEndpoint)
                 {
-                case false: limitReached = checkLimit<EH::MAX, false>::call(degreeAdvancements[l.valueID], l.uvalue); break;
-                case true: limitReached = checkLimit<EH::MAX, true>::call(degreeAdvancements[l.valueID], l.uvalue); break;
-                } break;
+                    limitReached = checkLimit<EH::MAX, true>::call(degreeAdvancements[l.valueID], l.uvalue);
+                }
+                else
+                {
+                    limitReached = checkLimit<EH::MAX, false>::call(degreeAdvancements[l.valueID], l.uvalue);
+                }
+                break;
             case EH::INCREASING: throw Exception("unimplemented"); break;
             case EH::DECREASING: throw Exception("unimplemented"); break;
-            } break;
+            }
+            break;
         }
 
         if (limitReached)
