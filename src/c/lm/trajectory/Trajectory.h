@@ -55,14 +55,15 @@ class Trajectory
 public:
     enum status_t {NOT_STARTED, RUNNING, WAITING, FINISHED};
 
-    Trajectory(uint64_t id, const lm::io::TrajectoryState& initialState);
-    Trajectory(uint64_t id, const lm::input::Input& input, bool reversed=false);
+    Trajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryState& initialState);
+    Trajectory(uint64_t id, uint64_t phase, const lm::input::Input& input, bool reversed=false);
     virtual ~Trajectory();
 
     // accessors
-    virtual uint64_t getId() const;
+    virtual uint64_t getID() const;
     virtual const lm::io::TrajectoryLimits::TrajectoryLimit& getLimitReached() const;
     virtual const lm::io::OrderParametersValues& getOrderParameterValues() const;
+    virtual uint64_t getPhase() const;
     virtual int32_t getSimSteps() const;
     virtual double getSimTime() const;
     virtual const lm::io::SpeciesCounts& getSpeciesCounts() const;
@@ -76,6 +77,7 @@ public:
     virtual void resetSimTime();
     virtual void setID(uint64_t trajectoryID);
     virtual void setLimitReached(const lm::io::TrajectoryLimits::TrajectoryLimit& limitBuf);
+    virtual void setPhase(uint64_t newPhase);
     virtual void setState(const lm::io::TrajectoryState& newState);
     virtual void setStatus(status_t newStatus);
 
@@ -85,9 +87,10 @@ protected:
 
 protected:
     uint64_t id;
-    status_t status;
-    lm::io::TrajectoryState state;
     int64_t numberWorkUnitsPerformed;
+    uint64_t phase;
+    lm::io::TrajectoryState state;
+    status_t status;
 };
 
 }

@@ -38,6 +38,7 @@
  */
 
 #include <algorithm>
+#include <limits>
 #include <string>
 
 #include "hrtime.h"
@@ -78,7 +79,10 @@ int SimulationSupervisor::getRecvSleepMilliseconds()
 }
 
 SimulationSupervisor::SimulationSupervisor()
-:simulationRunning(true),performingCheckpoint(false),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),outputWriterClassName(""),hasOutputWriterStarted(false),outputWriterProcess(-1),outputWriterThread(-1),hasCheckpointSignalerStarted(false),solverClassName(""),useCPUAffinity(false),input(NULL),trajectoryList(NULL),slots(&communicator),haveAllWorkUnitRunnersStarted(false),workUnitCount(0)
+:simulationRunning(true),performingCheckpoint(false),communicator(lm::MPI::worldRank,THREAD_ID),resourceMap(NULL),simulationInputFilename(""),
+ simulationOutputFilename(""),outputWriterClassName(""),hasOutputWriterStarted(false),outputWriterProcess(-1),outputWriterThread(-1),
+ hasCheckpointSignalerStarted(false),solverClassName(""),useCPUAffinity(false),input(NULL),trajectoryList(NULL),slots(&communicator),
+ haveAllWorkUnitRunnersStarted(false),workUnitCount(0),phase(0)
 {
     resetPerformanceStatistics();
 }
@@ -348,6 +352,7 @@ void SimulationSupervisor::finishSimulationPhase()
     // If we need to perform another phase, do so, otherwsise stop th simulation.
     if (performAnotherSimulationPhase())
     {
+        incrementSimulationPhase();
         startSimulationPhase();
     }
     else
@@ -372,6 +377,12 @@ void SimulationSupervisor::finishSimulation()
         msg.mutable_stop_resource_controller()->set_abort(false);
         communicator.sendMessage(it->second.controller_process, it->second.controller_thread, &msg);
     }
+}
+
+void SimulationSupervisor::incrementSimulationPhase()
+{
+    phase++;
+    trajectoryList.incrementSimulationPhase();
 }
 
 bool SimulationSupervisor::assignWork()
@@ -544,7 +555,7 @@ void SimulationSupervisor::resetPerformanceStatistics()
     stats_lastPrintTime = getHrTime();
     stats_workUnits = 0;
     stats_workUnitsParts = 0;
-    stats_minWorkUnitId = LLONG_MAX;
+    stats_minWorkUnitId = std::numeric_limits<long long>::max();
     stats_maxWorkUnitId = 0;
     stats_workUnitsSteps = 0;
     stats_workUnitTime = 0.0;
@@ -563,7 +574,6 @@ void SimulationSupervisor::printPerformanceStatistics(bool flush)
         stats_lastPrintTime = currentTime;
         resetPerformanceStatistics();
     }
-
 }
 
 }

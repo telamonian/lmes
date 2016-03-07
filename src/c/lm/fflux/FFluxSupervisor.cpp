@@ -36,23 +36,25 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+#include <limits>
 #include <map>
 #include <string>
 
 #include "lm/ClassFactory.h"
-#include "lm/Print.h"
+#include "lm/fflux/FFluxSupervisor.h"
+#include "lm/fflux/FFluxTrajectoryList.h"
 #include "lm/io/OutputWriter.h"
+#include "lm/io/TrajectoryState.pb.h"
 #include "lm/main/Main.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
+#include "lm/message/ProcessWorkUnitOutput.pb.h"
 #include "lm/message/RunWorkUnit.pb.h"
 #include "lm/message/StartedOutputWriter.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
 #include "lm/message/WorkUnitOutput.pb.h"
-#include "lm/io/TrajectoryState.pb.h"
-#include "lm/fflux/FFluxSupervisor.h"
-#include "lm/fflux/FFluxTrajectoryList.h"
+#include "lm/Print.h"
 #include "lm/resource/ResourceMap.h"
 #include "lm/tiling/Tiling.h"
 
@@ -222,18 +224,43 @@ void FFluxSupervisor::setLimits()
 //	SimulationSupervisor::finishSimulation();
 //}
 
+void FFluxSupervisor::finishSimulation()
+{
+    // Create the output message.
+    lm::message::Message msgBuf;
+    lm::message::ProcessWorkUnitOutput* pwoBuf = msgBuf.mutable_process_work_unit_output();
+    pwoBuf->set_work_unit_id(std::numeric_limits::max());
+    lm::message::WorkUnitOutput* msg = pwoBuf->add_part_output();
+
+    // Initialize/assign the fflux output data
+    lm::io::FFluxOutput* ffluxOutputBuf = msg->mutable_fflux_output();
+    ffluxOutputBuf->CopyFrom(*(static_cast<lm::fflux::FFluxTrajectoryList*>(trajectoryList)->getFFluxOutput()));
+
+    // Send the message
+    communicator.sendMessageToMasterOutput(&msgBuf);
+
+    SimulationSupervisor::finishSimulation();
+}
+
+void FFluxSupervisor::incrementFFluxPhase()
+{
+    ffluxPhase++;
+}
+
 void FFluxSupervisor::receivedProcessWorkUnitOutput(lm::message::Message& msg)
 {
     // Loop over every output in the message.
-    for (int i=0; i<msg.process_work_unit_output_size(); i++)
+    lm::message::ProcessWorkUnitOutput pwu = msg.process_work_unit_output();
+    for (int i=0; i<pwu.part_output_size(); i++)
     {
-        if (msg.process_work_unit_output(i).has_species_counts())
+        lm::message::WorkUnitOutput output = pwu.part_output(i);
+        if (output.has_species_counts())
         {
-            (static_cast<FFluxTrajectoryList*>(trajectoryList))->ffluxOutputAddTrajectory(msg.process_work_unit_output(i).species_counts(), lm::io::FFluxOutput::RUNNING);
+            (static_cast<FFluxTrajectoryList*>(trajectoryList))->ffluxOutputAddTrajectory(output.species_counts(), lm::io::FFluxOutput::RUNNING);
         }
-        else if (msg.process_work_unit_output(i).has_species_time_series())
+        else if (output.has_species_time_series())
         {
-            (static_cast<FFluxTrajectoryList*>(trajectoryList))->ffluxOutputAddTrajectory(msg.process_work_unit_output(i).species_time_series(), lm::io::FFluxOutput::RUNNING);
+            (static_cast<FFluxTrajectoryList*>(trajectoryList))->ffluxOutputAddTrajectory(output.species_time_series(), lm::io::FFluxOutput::RUNNING);
         }
     }
 }
@@ -250,6 +277,11 @@ void FFluxSupervisor::receivedStartedOutputWriter(const lm::message::StartedOutp
 //    outputWriterThread = msg.thread();
     communicator.setMasterOutputEndpoint(msg.process(), msg.thread());
     startSimulationIfAllWorkersStarted();
+}
+
+void FFluxSupervisor::resetFFluxPhase()
+{
+    ffluxPhase = 0;
 }
 
 void FFluxSupervisor::startSimulation()
@@ -269,30 +301,6 @@ void FFluxSupervisor::buildTrajectoryList()
     //TODO: uncomment following line
     //trajectoryList = new FFluxTrajectoryList(communicator, slots.getNumberSlots(),*input);
 }
-
-void FFluxSupervisor::finishSimulation()
-{
-    // Create the output message.
-    lm::message::Message msgpp;
-    lm::message::ProcessWorkUnitOutput* msgp = msgpp.mutable_process_work_unit_output();
-    msgp->set_work_unit_id(999999999999999);
-    lm::message::WorkUnitOutput* msg = msgp->add_part_output();
-
-    // Initialize the fflux output data
-    lm::io::FFluxOutput* ffluxOutput = NULL;
-    ffluxOutput = msg->mutable_fflux_output();
-
-    // Assign the fflux output data
-    //TODO: uncomment following line
-    //*ffluxOutput = *(static_cast<lm::fflux::FFluxTrajectoryList*>(trajectoryList)->getFFluxOutput());
-
-    // Send the message
-    communicator.sendMessage(realOutputWriterProcess, realOutputWriterThread, &msgpp);
-
-    SimulationSupervisor::finishSimulation();
-}
-
-
 
 }
 }

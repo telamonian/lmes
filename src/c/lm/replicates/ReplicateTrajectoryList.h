@@ -63,20 +63,20 @@ class ReplicateTrajectoryList : public lm::trajectory::TrajectoryList
 
 public:
 //    ReplicateTrajectoryList(const lm::io::ReactionModel& reactionModel, const lm::io::DiffusionModel& diffusionModel, map<std::string,std::string>& simulationParameters, uint64_t firstTrajectory, uint64_t lastTrajectory);
-    ReplicateTrajectoryList(lm::input::Input& input, uint64_t firstTrajectory, uint64_t lastTrajectory);
+    ReplicateTrajectoryList(const lm::input::Input& input, uint64_t firstTrajectory, uint64_t lastTrajectory);
     virtual ~ReplicateTrajectoryList();
     virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg);
 
 protected:
-    virtual void printTrajectoryStatistics();
-    virtual uint64_t findNextTrajectoryToRun();
+    virtual void printTrajectoryStatistics() const;
+    virtual uint64_t findNextTrajectoryToRun() const;
 
 protected:
     uint64_t firstTrajectory;
     uint64_t lastTrajectory;
 
 private:
-    hrtime stats_lastPrintTime;
+    mutable hrtime stats_lastPrintTime;
 };
 
 }

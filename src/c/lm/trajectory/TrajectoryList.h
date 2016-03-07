@@ -45,13 +45,14 @@
 #include "lm/input/Input.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
+#include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/RunWorkUnit.pb.h"
+#include "lm/message/WorkUnitStatus.pb.h"
 #include "lm/trajectory/Trajectory.h"
 #include "lm/Types.h"
 
 using std::map;
 using std::string;
-
 
 typedef std::map<uint64_t,lm::trajectory::Trajectory*> TrajectoryMap;
 
@@ -61,28 +62,36 @@ namespace trajectory {
 class TrajectoryList
 {
 public:
-    TrajectoryList();
+    TrajectoryList(const lm::input::Input& input);
     virtual ~TrajectoryList();
 
-    virtual bool exists(uint64_t id) const {return trajectories.count(id) == 1;}
-    virtual size_t size() const {return trajectories.size();}
-
-    virtual void setAllFinished();
-    virtual bool areAllFinished();
-
-    // destroyer
+// destroyer
     virtual void deleteAllNotStarted();
     virtual void deleteTrajectory(uint64_t trajectoryID);
     virtual void deleteAllTrajectories();
 
+// accessors
+    virtual bool areAllFinished() const;
+    virtual bool exists(uint64_t id) const {return trajectories.count(id)==1;}
+    virtual uint64_t getPhase() {return phase;}
+    virtual size_t size() const {return trajectories.size();}
+
+// mutators
     virtual int addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUnit* msg, uint numberParts);
-    virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg);
+    virtual void TrajectoryList::incrementSimulationPhase();
+    virtual void setPhase(uint64_t newPhase) {phase = newPhase;}
+    virtual void setAllFinished();
+    virtual void workUnitFinished(const lm::message::FinishedWorkUnit& fwuBuf);
+    virtual void workUnitPartFinished(const lm::message::WorkUnitStatus& wusBuf);
+    virtual void workUnitPartFinished(const lm::message::WorkUnitStatus& wusBuf, lm::trajectory::Trajectory* traj);
 
 protected:
-    virtual void printTrajectoryStatistics();
-    virtual uint64_t findNextTrajectoryToRun();
+    virtual uint64_t findNextTrajectoryToRun() const;
+    virtual void printTrajectoryStatistics() const {};
 
 protected:
+    const lm::input::Input& input;
+    uint64_t phase;
     TrajectoryMap trajectories;
     TrajectoryMap waitingTrajectories;
     TrajectoryMap runningTrajectories;

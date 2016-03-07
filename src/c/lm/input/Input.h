@@ -66,29 +66,23 @@ namespace input {
 
 class Input
 {
-protected:
-    bool reactionModelPresent;
-    bool diffusionModelPresent;
-    bool orderParametersPresent;
-    bool tilingsPresent;
-    bool trajectoryLimitsPresent;
-    bool outputOptionsPresent;
-
-    lm::option::SimulationParameters simulationParameters;
-    lm::io::ReactionModel reactionModel;
-    lm::io::DiffusionModel diffusionModel;
-    lm::io::OrderParameters orderParametersMsg;
-    lm::oparam::OParams orderParameters;
-    lm::io::Tilings tilingsMsg;
-    lm::tiling::Tilings tilings;
-    lm::trajectory::TrajectoryLimits trajectoryLimits;
-    lm::io::OutputOptions outputOptions;
-
-    uint64_t stepsPerWorkUnit;
-
 public:
     Input(const lm::io::hdf5::Hdf5File& file);
     virtual ~Input();
+
+    // accessors
+    const lm::tiling::Tiling& getCurrentTiling() const {return getTilings().getCurrentTiling();}
+    const lm::io::DiffusionModel& getDiffusionModelMsg() const {return diffusionModel;}
+    const lm::oparam::OParams& getOrderParameters() const {return orderParameters;}
+    const lm::io::OrderParameters& getOrderParametersMsg() const {return orderParametersMsg;}
+    const lm::io::OutputOptions& getOutputOptionsMsg() const {return outputOptions;}
+    const lm::io::ReactionModel& getReactionModelMsg() const {return reactionModel;}
+    const lm::option::SimulationParameters& getSimulationParameters() const {return simulationParameters;}
+    const lm::tiling::Tilings& getTilings() const {return tilings;}
+    const lm::io::Tilings& getTilingsMsg() const {return tilingsMsg;}
+    const lm::io::TrajectoryLimits& getTrajectoryLimitsMsg() const {return trajectoryLimits.buf();}
+
+    uint64_t getStepsPerWorkUnit() const {return stepsPerWorkUnit;}
 
     bool hasReactionModel() const {return reactionModelPresent;}
     bool hasDiffusionModel() const {return diffusionModelPresent;}
@@ -97,22 +91,30 @@ public:
     bool hasTrajectoryLimits() const {return trajectoryLimitsPresent;}
     bool hasOutputOptions() const {return outputOptionsPresent;}
 
-    const lm::option::SimulationParameters& getSimulationParameters() const {return simulationParameters;}
-    const lm::io::ReactionModel& getReactionModelMsg() const {return reactionModel;}
-    const lm::io::DiffusionModel& getDiffusionModelMsg() const {return diffusionModel;}
-    const lm::io::OrderParameters& getOrderParametersMsg() const {return orderParametersMsg;}
-    const lm::oparam::OParams& getOrderParameters() const {return orderParameters;}
-    const lm::io::Tilings& getTilingsMsg() const {return tilingsMsg;}
-    const lm::tiling::Tilings& getTilings() const {return tilings;}
-    const lm::io::TrajectoryLimits& getTrajectoryLimitsMsg() const {return trajectoryLimits.buf();}
-    const lm::io::OutputOptions& getOutputOptionsMsg() const {return outputOptions;}
-
-    uint64_t getStepsPerWorkUnit() const {return stepsPerWorkUnit;}
-
 protected:
     bool parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg);
     template <EH::LimitType LT> inline bool parseLimits(std::string key, std::string debugString, EH::StoppingCondition sc, bool includeEndpoint=true);
 //    template <typename T> inline bool parseOption(std::string key);
+
+protected:
+    bool diffusionModelPresent;
+    bool reactionModelPresent;
+    bool orderParametersPresent;
+    bool outputOptionsPresent;
+    bool tilingsPresent;
+    bool trajectoryLimitsPresent;
+
+    lm::io::DiffusionModel diffusionModel;
+    lm::io::OrderParameters orderParametersMsg;
+    lm::oparam::OParams orderParameters;
+    lm::io::OutputOptions outputOptions;
+    lm::io::ReactionModel reactionModel;
+    lm::io::Tilings tilingsMsg;
+    lm::tiling::Tilings tilings;
+    lm::trajectory::TrajectoryLimits trajectoryLimits;
+    lm::option::SimulationParameters simulationParameters;
+
+    uint64_t stepsPerWorkUnit;
 };
 
 //class Input

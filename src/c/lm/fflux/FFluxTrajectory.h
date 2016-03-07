@@ -52,11 +52,9 @@ namespace fflux {
 class FFluxTrajectory : public lm::trajectory::Trajectory
 {
 public:
-    FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::input::Input& input,bool reversed=false);
-    FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::input::Input& input,lm::io::TrajectoryState* state);
+    FFluxTrajectory(uint64_t id, uint64_t phase, const lm::input::Input& input, bool reversed, uint64_t ffluxPhase);
+    FFluxTrajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryState& state, uint64_t ffluxPhase, const lm::input::Input& input);
     virtual ~FFluxTrajectory();
-    //virtual void initZerothTrajectory();
-    virtual void initLimits();
 
     // methods for detecting when a flux event has occurred
     virtual bool fluxedBackward();
@@ -70,14 +68,14 @@ public:
     virtual bool hasElapsed(double time);
 
     // mutators
-    virtual void setLastLimitTime(double lLT);
+    virtual void setLastLimitTime(double llt);
 
     //    uint getFFluxPhase() {return ffluxPhase;}
     //    void setFFluxPhase(uint newPhase) {ffluxPhase = newPhase;}
 
 protected:
+    uint64_t ffluxPhase;
     const lm::input::Input& input;
-    uint ffluxPhase;
     // the simulation time when the trajectory last hit a limit (or 0.0)
     double lastLimitTime;
 };

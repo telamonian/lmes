@@ -69,17 +69,20 @@ public:
     virtual ~FFluxSupervisor();
 
 protected:
+//mutators
     virtual void buildRunWorkUnitLimits(lm::message::RunWorkUnit* msg);
-    virtual void receivedProcessWorkUnitOutput(lm::message::Message& msg);
-    virtual void receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg);
-    virtual void startSimulation();
     virtual void buildTrajectoryList();
     virtual void finishSimulation();
-
+    virtual void incrementFFluxPhase();
+    virtual void receivedProcessWorkUnitOutput(lm::message::Message& msg);
+    virtual void receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg);
+    virtual void resetFFluxPhase();
     virtual void setLimits();
+    virtual void startSimulation();
 
 protected:
-    int ffluxPhase;
+    uint64_t ffluxPhase;
+    lm::input::Input* input;
     lm::trajectory::TrajectoryLimits trajectoryLimits;
 
     //    int realOutputWriterProcess;

@@ -54,32 +54,41 @@ class Communicator
 {
 public:
     Communicator(Endpoint source);
-    Communicator(int process, int thread);
+    Communicator(int srcProcess, int srcThread);
     virtual ~Communicator();
 
-    std::string getHostname();
-    int getLastMessageSize() {return lastMessageSize;}
-    int getSourceProcess() {return source.process;}
-    int getSourceThread() {return source.thread;}
-    int getMasterOutputProcess() {return masterOutput.process;}
-    int getMasterOutputThread() {return masterOutput.thread;}
+    // accessors
+    std::string getHostname() const;
+    int getLastMessageSize() const {return lastMessageSize;}
+    int getSourceProcess() const {return source.process;}
+    int getSourceThread() const {return source.thread;}
+    int getMasterOutputProcess() const {return masterOutput.process;}
+    int getMasterOutputThread() const {return masterOutput.thread;}
 
-    void sendMessage(int destProcess, int destThread, lm::message::Message* msg);
-    void sendMessage(Endpoint dest, lm::message::Message* msg, int sleepMilliseconds=-1);
-    void sendMessageToMasterOutput(lm::message::Message* msg) {sendMessage(masterOutput, msg);}
-    void receiveMessage(lm::message::Message* msg, int sleepMilliseconds=0);
-
+    // mutators
     void setMasterOutputEndpoint(int moProcess, int moThread);
 
-private:
+    // send and receive messages
+    void sendMessage(int destProcess, int destThread, lm::message::Message* msg, int sleepMilliseconds=-1);
+    void sendMessage(Endpoint dest, lm::message::Message* msg, int sleepMilliseconds=-1);
+    void sendMessageToMasterOutput(lm::message::Message* msg, int sleepMilliseconds=-1) {sendMessage(masterOutput, msg, sleepMilliseconds);}
+    void receiveMessage(lm::message::Message* msg, int sleepMilliseconds=0);
+
+protected:
+    void initBuffers();
+
+protected:
     char* inputBuffer;
     int inputBufferSize;
     int lastMessageSize;
-    Endpoint masterOutput;
     char* outputBuffer;
     int outputBufferSize;
     MPI_Status messageStatus;
+
+    // endpoints
+    Endpoint masterOutput;
     Endpoint source;
+    Endpoint supervisor;
 };
 
 }

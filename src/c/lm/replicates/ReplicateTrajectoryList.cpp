@@ -64,12 +64,12 @@ using std::string;
 namespace lm {
 namespace replicates {
 
-ReplicateTrajectoryList::ReplicateTrajectoryList(lm::input::Input& input, uint64_t firstTrajectory, uint64_t lastTrajectory)
-:TrajectoryList(),firstTrajectory(firstTrajectory),lastTrajectory(lastTrajectory),stats_lastPrintTime(getHrTime())
+ReplicateTrajectoryList::ReplicateTrajectoryList(const lm::input::Input& input, uint64_t firstTrajectory, uint64_t lastTrajectory)
+:TrajectoryList(input),firstTrajectory(firstTrajectory),lastTrajectory(lastTrajectory),stats_lastPrintTime(getHrTime())
 {
     for (uint64_t i=firstTrajectory; i<=lastTrajectory; i++)
     {
-        trajectories[i] = new lm::trajectory::Trajectory(i,input);
+        trajectories[i] = new lm::trajectory::Trajectory(i, getPhase(), input);
         waitingTrajectories[i] = trajectories[i];
     }
 }
@@ -90,16 +90,17 @@ void ReplicateTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUn
         lm::trajectory::Trajectory* t = trajectories[id];
         if (t->getStatus() == lm::trajectory::Trajectory::FINISHED)
         {
-            Print::printf(Print::INFO, "Replicate %lld completed with %8.2e of simulation time using %d work units.", t->getId(), t->getState().cme_state().species_counts().time(0), t->getWorkUnitsPerformed());
+            Print::printf(Print::INFO, "Replicate %lld completed with %8.2e of simulation time using %d work units.",
+                          t->getID(), t->getState().cme_state().species_counts().time(0), t->getWorkUnitsPerformed());
         }
     }
 }
 
-uint64_t ReplicateTrajectoryList::findNextTrajectoryToRun()
+uint64_t ReplicateTrajectoryList::findNextTrajectoryToRun() const
 {
     uint64_t minId=UINT64_MAX;
     double minTime=std::numeric_limits<double>::infinity();
-    for (TrajectoryMap::iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
+    for (TrajectoryMap::const_iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
     {
         lm::trajectory::Trajectory* t = it->second;
         double time = t->getState().cme_state().species_counts().time(0);
@@ -112,7 +113,7 @@ uint64_t ReplicateTrajectoryList::findNextTrajectoryToRun()
 
     if (minId == UINT64_MAX)
     {
-        for (TrajectoryMap::iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
+        for (TrajectoryMap::const_iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
         {
             it->second->getState().PrintDebugString();
         }
@@ -122,7 +123,7 @@ uint64_t ReplicateTrajectoryList::findNextTrajectoryToRun()
     return minId;
 }
 
-void ReplicateTrajectoryList::printTrajectoryStatistics()
+void ReplicateTrajectoryList::printTrajectoryStatistics() const
 {
     // Print some performance statistics, if it has been a while.
     hrtime currentTime = getHrTime();
@@ -132,7 +133,7 @@ void ReplicateTrajectoryList::printTrajectoryStatistics()
         Print::printf(Print::INFO, "Trajectory status");
         Print::printf(Print::INFO, "        ID State       Time     Work Units");
         Print::printf(Print::INFO, "------------------------------------------");
-        for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+        for (TrajectoryMap::const_iterator it=trajectories.begin(); it!=trajectories.end(); it++)
         {
             uint64_t id = it->first;
             lm::trajectory::Trajectory* t = it->second;

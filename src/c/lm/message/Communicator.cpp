@@ -55,15 +55,13 @@ namespace message {
 Communicator::Communicator(Endpoint source)
 :source(source),lastMessageSize(0),masterOutput(source),inputBufferSize(100*1024*1024),inputBuffer(NULL),outputBufferSize(100*1024*1024),outputBuffer(NULL)
 {
-    MPI_EXCEPTION_CHECK(MPI_Alloc_mem(inputBufferSize, MPI_INFO_NULL, &inputBuffer));
-    MPI_EXCEPTION_CHECK(MPI_Alloc_mem(outputBufferSize, MPI_INFO_NULL, &outputBuffer));
+    initBuffers();
 }
 
-Communicator::Communicator(int process, int thread)
-:source(process,thread),lastMessageSize(0),masterOutput(process,thread),inputBufferSize(100*1024*1024),inputBuffer(NULL),outputBufferSize(100*1024*1024),outputBuffer(NULL)
+Communicator::Communicator(int srcProcess, int srcThread)
+:source(srcProcess,srcThread),lastMessageSize(0),masterOutput(srcProcess,srcThread),inputBufferSize(100*1024*1024),inputBuffer(NULL),outputBufferSize(100*1024*1024),outputBuffer(NULL)
 {
-    MPI_EXCEPTION_CHECK(MPI_Alloc_mem(inputBufferSize, MPI_INFO_NULL, &inputBuffer));
-    MPI_EXCEPTION_CHECK(MPI_Alloc_mem(outputBufferSize, MPI_INFO_NULL, &outputBuffer));
+    initBuffers();
 }
 
 Communicator::~Communicator()
@@ -80,7 +78,13 @@ Communicator::~Communicator()
     }
 }
 
-std::string Communicator::getHostname()
+void Communicator::initBuffers()
+{
+    MPI_EXCEPTION_CHECK(MPI_Alloc_mem(inputBufferSize, MPI_INFO_NULL, &inputBuffer));
+    MPI_EXCEPTION_CHECK(MPI_Alloc_mem(outputBufferSize, MPI_INFO_NULL, &outputBuffer));
+}
+
+std::string Communicator::getHostname() const
 {
     char hostname[MPI_MAX_PROCESSOR_NAME+1];
     memset(hostname,0,sizeof(hostname));
@@ -89,10 +93,9 @@ std::string Communicator::getHostname()
     return std::string(hostname);
 }
 
-
-void Communicator::sendMessage(int destProcess, int destThread, lm::message::Message* msg)
+void Communicator::sendMessage(int destProcess, int destThread, lm::message::Message* msg, int sleepMilliseconds)
 {
-    sendMessage(Endpoint(destProcess,destThread), msg);
+    sendMessage(Endpoint(destProcess,destThread), msg, sleepMilliseconds);
 }
 
 void Communicator::sendMessage(Endpoint dest, lm::message::Message* msg, int sleepMilliseconds)

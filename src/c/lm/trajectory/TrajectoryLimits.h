@@ -123,7 +123,6 @@ public:
     double getTimeLimitValue() const {return _buf.has_time_limit() ? _buf.time_limit().dvalue() : std::numeric_limits<double>::infinity();}
     bool hasDegreeAdvancementLimit() const {return (findBuf(EH::DEGREE_ADVANCEMENT)!=repeated().end());}
 
-
     const TrajectoryLimitsBuf& buf() const {return _buf;}
     const repeatedType& repeated() const {return _repeated;}
     const vectorType& vec() const {return _vec;}
@@ -156,7 +155,7 @@ public:
         return tlBuf;
     }
 
-    void clear() {_buf.Clear(); _vec.clear(); seatRepeated();}
+    void clear(bool resetNextID=true) {_buf.Clear(); _vec.clear(); seatRepeated(); if (resetNextID) nextID=0;}
     void seatRepeated(TrajectoryLimitsBuf& inBuf) {_repeated.setRepFieldPtr(inBuf.mutable_trajectory_limits());}
     void seatRepeated() {seatRepeated(_buf);}
     void setBuf(const TrajectoryLimitsBuf& inBuf) {_buf.CopyFrom(inBuf);}

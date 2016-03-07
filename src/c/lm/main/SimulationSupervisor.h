@@ -109,6 +109,7 @@ protected:
     virtual bool performAnotherSimulationPhase();
     virtual void finishSimulationPhase();
     virtual void finishSimulation();
+    virtual void incrementSimulationPhase();
 
     virtual int run();
     virtual void receivedResourceAvailable(const lm::message::ResourcesAvailable& msg);
@@ -150,6 +151,7 @@ protected:
     lm::slot::SlotList slots;
     bool haveAllWorkUnitRunnersStarted;
     long long workUnitCount;
+    uint64_t phase;
 
 private:
     hrtime stats_lastPrintTime;

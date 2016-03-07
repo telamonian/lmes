@@ -68,13 +68,13 @@ char *trajectoryStatusStrings[] =
     "FINISHED"
 };
 
-Trajectory::Trajectory(uint64_t id,const lm::io::TrajectoryState& initialState)
-:id(id),status(NOT_STARTED),state(initialState),numberWorkUnitsPerformed(0)
+Trajectory::Trajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryState& initialState)
+:id(id),phase(phase),status(NOT_STARTED),state(initialState),numberWorkUnitsPerformed(0)
 {
 }
 
-Trajectory::Trajectory(uint64_t id, const lm::input::Input& input, bool reversed)
-:id(id),status(NOT_STARTED),state(),numberWorkUnitsPerformed(0)
+Trajectory::Trajectory(uint64_t id, uint64_t phase, const lm::input::Input& input, bool reversed)
+:id(id),phase(phase),status(NOT_STARTED),state(),numberWorkUnitsPerformed(0)
 {
     initializeState(input, reversed);
 }
@@ -164,13 +164,13 @@ void Trajectory::inititializeHists(const lm::input::Input& input)
 //    }
 }
 
-// accessor definitions
+// accessors
 const lm::io::TrajectoryLimits::TrajectoryLimit& Trajectory::getLimitReached() const
 {
     return state.limit_reached();
 }
 
-uint64_t Trajectory::getId() const
+uint64_t Trajectory::getID() const
 {
     return id;
 }
@@ -188,6 +188,11 @@ const lm::io::OrderParametersValues& Trajectory::getOrderParameterValues() const
 //	}
 //	return input.oparams[opID]->calc(lastSpeciesCount, time);
 //	delete [] lastSpeciesCount;
+}
+
+uint64_t Trajectory::getPhase() const
+{
+    return phase;
 }
 
 const lm::io::SpeciesCounts& Trajectory::getSpeciesCounts() const
@@ -226,7 +231,7 @@ void Trajectory::printStatus() const
     printf("trajectory ID: %d has status: %s\n", id, trajectoryStatusStrings[getStatus()]);
 }
 
-// mutator definitions
+// mutators
 void Trajectory::incrementWorkUnitsPerformed()
 {
     numberWorkUnitsPerformed++;
@@ -237,16 +242,21 @@ void Trajectory::resetSimTime()
     state.mutable_cme_state()->mutable_species_counts()->set_time(getSpeciesCounts().time_size() - 1, 0.0);
 }
 
-void Trajectory::setLimitReached(const lm::io::TrajectoryLimits::TrajectoryLimit& limitBuf)
-{
-    state.mutable_limit_reached()->CopyFrom(limitBuf);
-}
-
 void Trajectory::setID(uint64_t newID)
 {
     id = newID;
     state.set_trajectory_id(newID);
     state.mutable_cme_state()->mutable_species_counts()->set_trajectory_id(newID);
+}
+
+void Trajectory::setLimitReached(const lm::io::TrajectoryLimits::TrajectoryLimit& limitBuf)
+{
+    state.mutable_limit_reached()->CopyFrom(limitBuf);
+}
+
+void Trajectory::setPhase(uint64_t newPhase)
+{
+    phase = newPhase;
 }
 
 void Trajectory::setState(const lm::io::TrajectoryState& newState)
