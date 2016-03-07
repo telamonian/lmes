@@ -102,7 +102,7 @@ string Slot::getSlotStatisticsHeaderBreak()
     return headerBreakStream.str();
 }
 
-string Slot::getSlotStatistics()
+string Slot::getSlotStatistics() const
 {
     ostringstream statsStream, ptStream;
     statsStream << fixed << setprecision(0) << setw(statsColumnMap["ID"]) << id;
@@ -131,7 +131,7 @@ void Slot::resetSlotStatistics()
     stats_workUnitsTime = 0.0;
 }
 
-void Slot::printSlotStatistics()
+void Slot::printSlotStatistics() const
 {
     Print::printf(Print::INFO, "Slot status");
     Print::printf(Print::INFO, Slot::getSlotStatisticsHeader().c_str());

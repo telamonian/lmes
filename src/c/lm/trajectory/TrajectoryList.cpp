@@ -175,6 +175,34 @@ void TrajectoryList::setAllFinished()
     workUnitsRunning.clear();
 }
 
+void TrajectoryList::setTrajectoryFinished(lm::trajectory::Trajectory* traj)
+{
+    traj->setStatus(Trajectory::FINISHED);
+
+    uint64_t id = traj->getID();
+    if (runningTrajectories.count(id)) runningTrajectories.erase(id);
+    if (waitingTrajectories.count(id)) waitingTrajectories.erase(id);
+    finishedTrajectories[id] = traj;
+}
+void TrajectoryList::setTrajectoryRunning(lm::trajectory::Trajectory* traj)
+{
+    traj->setStatus(Trajectory::RUNNING);
+
+    uint64_t id = traj->getID();
+    if (finishedTrajectories.count(id)) finishedTrajectories.erase(id);
+    if (waitingTrajectories.count(id)) waitingTrajectories.erase(id);
+    runningTrajectories[id] = traj;
+}
+void TrajectoryList::setTrajectoryWaiting(lm::trajectory::Trajectory* traj)
+{
+    traj->setStatus(Trajectory::WAITING);
+
+    uint64_t id = traj->getID();
+    if (finishedTrajectories.count(id)) finishedTrajectories.erase(id);
+    if (runningTrajectories.count(id)) runningTrajectories.erase(id);
+    waitingTrajectories[id] = traj;
+}
+
 void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& fwuBuf)
 {
     // Get the work unit id.

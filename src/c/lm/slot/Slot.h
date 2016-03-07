@@ -67,11 +67,11 @@ public:
 
 	static std::string getSlotStatisticsHeader();
 	static std::string getSlotStatisticsHeaderBreak();
-	std::string getSlotStatistics();
+	std::string getSlotStatistics() const;
 
 	// setters
 	void resetSlotStatistics();
-	void printSlotStatistics();
+	void printSlotStatistics() const;
 
 protected:
     int id;

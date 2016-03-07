@@ -62,9 +62,9 @@ public:
 
     // accessors
     virtual uint getFFluxPhase();
-    virtual lm::io::TrajectoryLimits::LimitType getFinalLimitType();
+    virtual io::TrajectoryLimits::StoppingCondition getLastLimitStoppingCondition();
     virtual double getLastLimitTime();
-    virtual void getLastSpeciesCounts(lm::io::FFluxOutput::TrajectoryOutput* trajectoryOutputBuf);
+//    virtual void getLastSpeciesCounts(lm::io::FFluxOutput::TrajectoryOutput* trajectoryOutputBuf);
     virtual bool hasElapsed(double time);
 
     // mutators

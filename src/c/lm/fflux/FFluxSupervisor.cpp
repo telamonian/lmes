@@ -117,9 +117,9 @@ void FFluxSupervisor::setLimits()
         tiling.addLimitBuf(trajectoryLimits, ffluxPhase, EH::INCREASING);
     }
 
-//    switch ((ffluxPhase!=0)<<1|input.tilings.getCurrentTiling()->getArrangement()!=lm::io::Tilings::ASCENDING)
+//    switch ((ffluxPhase!=0)<<1|input.tilings.getCurrentTiling()->getSortOrder()!=lm::io::Tilings::ASCENDING)
 //    {
-//    case 0: // ffluxphase==0 and tilings.getCurrentTiling().getArrangement()==lm::io::Tilings::ASCENDING
+//    case 0: // ffluxphase==0 and tilings.getCurrentTiling().getSortOrder()==lm::io::Tilings::ASCENDING
 //    {
 //        // increasing edge 0 limit
 //        lm::io::TrajectoryLimits::IncreasingOrderParameterLimit* iopl = getRunMsg()->mutable_work_unit(0)->mutable_limits()->add_increasing_order_parameter_limit();
@@ -143,7 +143,7 @@ void FFluxSupervisor::setLimits()
 //        iopl->add_value(input.tilings.getCurrentTiling()->getFinalEdge());
 //        break;
 //    }
-//    case 1: // ffluxphase==0 and tilings.getCurrentTiling().getArrangement()==lm::io::Tilings::DESCENDING
+//    case 1: // ffluxphase==0 and tilings.getCurrentTiling().getSortOrder()==lm::io::Tilings::DESCENDING
 //    {
 //        // decreasing edge 0 limit
 //        lm::io::TrajectoryLimits::DecreasingOrderParameterLimit* dopl = getRunMsg()->mutable_work_unit(0)->mutable_limits()->add_decreasing_order_parameter_limit();
@@ -167,7 +167,7 @@ void FFluxSupervisor::setLimits()
 //        dopl->add_value(input.tilings.getCurrentTiling()->getFinalEdge());
 //        break;
 //    }
-//    case 2: // ffluxphase!=0 and tilings.getCurrentTiling().getArrangement()==lm::io::Tilings::ASCENDING
+//    case 2: // ffluxphase!=0 and tilings.getCurrentTiling().getSortOrder()==lm::io::Tilings::ASCENDING
 //    {
 //        // decreasing edge 0 limit
 //        lm::io::TrajectoryLimits::DecreasingOrderParameterLimit* dopl = getRunMsg()->mutable_work_unit(0)->mutable_limits()->add_decreasing_order_parameter_limit();
@@ -184,7 +184,7 @@ void FFluxSupervisor::setLimits()
 //        iopl->add_value(input.tilings.getCurrentTiling()->getEdge(ffluxPhase));
 //        break;
 //    }
-//    case 3: // ffluxphase!=0 and tilings.getCurrentTiling().getArrangement()==lm::io::Tilings::DESCENDING
+//    case 3: // ffluxphase!=0 and tilings.getCurrentTiling().getSortOrder()==lm::io::Tilings::DESCENDING
 //    {
 //        // increasing edge 0 limit
 //        lm::io::TrajectoryLimits::IncreasingOrderParameterLimit* iopl = getRunMsg()->mutable_work_unit(0)->mutable_limits()->add_increasing_order_parameter_limit();
@@ -227,17 +227,17 @@ void FFluxSupervisor::setLimits()
 void FFluxSupervisor::finishSimulation()
 {
     // Create the output message.
-    lm::message::Message msgBuf;
-    lm::message::ProcessWorkUnitOutput* pwoBuf = msgBuf.mutable_process_work_unit_output();
-    pwoBuf->set_work_unit_id(std::numeric_limits::max());
-    lm::message::WorkUnitOutput* msg = pwoBuf->add_part_output();
+    lm::message::Message msg;
+    lm::message::ProcessWorkUnitOutput* pwoMsg = msg.mutable_process_work_unit_output();
+    pwoMsg->set_work_unit_id(std::numeric_limits<int64_t>::max());
+    lm::message::WorkUnitOutput* wuoMsg = pwoMsg->add_part_output();
 
     // Initialize/assign the fflux output data
-    lm::io::FFluxOutput* ffluxOutputBuf = msg->mutable_fflux_output();
+    lm::io::FFluxOutput* ffluxOutputBuf = wuoMsg->mutable_fflux_output();
     ffluxOutputBuf->CopyFrom(*(static_cast<lm::fflux::FFluxTrajectoryList*>(trajectoryList)->getFFluxOutput()));
 
     // Send the message
-    communicator.sendMessageToMasterOutput(&msgBuf);
+    communicator.sendMessageToMasterOutput(&msg);
 
     SimulationSupervisor::finishSimulation();
 }
@@ -245,22 +245,23 @@ void FFluxSupervisor::finishSimulation()
 void FFluxSupervisor::incrementFFluxPhase()
 {
     ffluxPhase++;
+    static_cast<lm::fflux::FFluxTrajectoryList*>(trajectoryList)->incrementFFluxPhase();
 }
 
 void FFluxSupervisor::receivedProcessWorkUnitOutput(lm::message::Message& msg)
 {
     // Loop over every output in the message.
-    lm::message::ProcessWorkUnitOutput pwu = msg.process_work_unit_output();
-    for (int i=0; i<pwu.part_output_size(); i++)
+    lm::message::ProcessWorkUnitOutput pwuMsg = msg.process_work_unit_output();
+    for (int i=0; i<pwuMsg.part_output_size(); i++)
     {
-        lm::message::WorkUnitOutput output = pwu.part_output(i);
-        if (output.has_species_counts())
+        lm::message::WorkUnitOutput wuoMsg = pwuMsg.part_output(i);
+        if (wuoMsg.has_species_counts())
         {
-            (static_cast<FFluxTrajectoryList*>(trajectoryList))->ffluxOutputAddTrajectory(output.species_counts(), lm::io::FFluxOutput::RUNNING);
+            (static_cast<FFluxTrajectoryList*>(trajectoryList))->ffluxOutputAddTrajectory(wuoMsg.species_counts(), lm::io::FFluxOutput::RUNNING);
         }
-        else if (output.has_species_time_series())
+        else if (wuoMsg.has_species_time_series())
         {
-            (static_cast<FFluxTrajectoryList*>(trajectoryList))->ffluxOutputAddTrajectory(output.species_time_series(), lm::io::FFluxOutput::RUNNING);
+            (static_cast<FFluxTrajectoryList*>(trajectoryList))->ffluxOutputAddTrajectory(wuoMsg.species_time_series(), lm::io::FFluxOutput::RUNNING);
         }
     }
 }
@@ -299,7 +300,7 @@ void FFluxSupervisor::startSimulation()
 void FFluxSupervisor::buildTrajectoryList()
 {
     //TODO: uncomment following line
-    //trajectoryList = new FFluxTrajectoryList(communicator, slots.getNumberSlots(),*input);
+    trajectoryList = new FFluxTrajectoryList(*input, communicator, slots.getSimultaneousWorkUnits());
 }
 
 }

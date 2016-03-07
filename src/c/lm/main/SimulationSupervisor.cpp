@@ -382,7 +382,7 @@ void SimulationSupervisor::finishSimulation()
 void SimulationSupervisor::incrementSimulationPhase()
 {
     phase++;
-    trajectoryList.incrementSimulationPhase();
+    trajectoryList->incrementSimulationPhase();
 }
 
 bool SimulationSupervisor::assignWork()

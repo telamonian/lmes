@@ -93,7 +93,7 @@ public:
         // m[9999...] = "lm::oparam::OParamTranscendental";
         return m;
     }
-private:
+protected:
     lm::io::OrderParameters oparamsBuf;
     OPMap opMap;
     uint size_;

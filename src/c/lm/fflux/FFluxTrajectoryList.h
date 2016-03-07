@@ -68,9 +68,6 @@ typedef std::map<long long, double> DwellTimeMap;
 typedef std::map<long long, long long> FinishedTrajectoriesCountMap;
 typedef std::vector<lm::io::TilingHist*> TilingVector;
 
-typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::DecreasingOrderParameterLimit>::iterator decrLimitIterator;
-typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::IncreasingOrderParameterLimit>::iterator incrLimitIterator;
-
 class FFluxTrajectoryList : public lm::trajectory::TrajectoryList
 {
     friend class FFluxSupervisor;
@@ -96,14 +93,12 @@ public:
     virtual void workUnitPartFinishedPhaseN(const message::WorkUnitStatus& wusMsg, lm::fflux::FFluxTrajectory* traj, uint prevFinalLimitID, double prevTime);
 
     // getters
-    virtual CrossingVector getCrossings(long long ffluxPhase);
+    virtual CrossingVector getCrossings(uint64_t ffluxPhase);
     virtual uint getCrossingsPerPhase();
     virtual lm::io::FFluxOutput* getFFluxOutput();
     virtual lm::io::FFluxOutput* getFFluxOutputStreaming();
-    virtual long long getFFluxPhase();
-    virtual double getMaxPhaseZeroTime();
     // Returns a randomly chosen crossing event (in the form of a TrajectoryState) collected durring forward flux phase ffluxPhase
-    virtual lm::io::TrajectoryState* getRandomCrossing(long long ffluxPhase);
+    virtual lm::io::TrajectoryState* getRandomCrossing(uint64_t ffluxPhase);
     virtual CrossingsMap getSavedCrossings(lm::fflux::FFluxTrajectoryList::Direction dir);
 
 protected:
@@ -113,8 +108,8 @@ protected:
     typedef std::map<lm::fflux::FFluxTrajectoryList::Direction, lm::io::TilingHist*> SavedHists;
 
     // methods that encapsulate workUnitFinished inner loop tasks
-    virtual void addCrossing(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg);
-    virtual uint incrFFluxPhase();
+    virtual void addCrossing(const message::WorkUnitStatus& wusMsg);
+    virtual void incrementFFluxPhase();
     virtual bool isFFluxDone();
     virtual bool isPhaseDoneN(double simTime);
     virtual bool isPhaseDoneZero(double simTime);
@@ -141,8 +136,8 @@ protected:
     Direction direction;
     // for printing the name of the current simulation direction
     static const std::vector<std::string> directionStrings;
-    long long ffluxPhase;
-    long long maxFFluxPhase;
+    uint64_t ffluxPhase;
+    uint64_t maxFFluxPhase;
     uint64_t simultaneousTrajectoryCount;
     uint64_t trajectoryCount;
     lm::rng::XORShift xorShift; //RNG used for randomly choosing a crossing in a crossing vector

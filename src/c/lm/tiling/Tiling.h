@@ -61,12 +61,13 @@ public:
     virtual void init(const lm::io::Tilings::Tiling& tilingRef);
 
 // accessors
-    TrajectoryLimitBuf* addLimitBuf(lm::trajectory::TrajectoryLimits& tls, uint edgeIndex, EH::StoppingCondition stoppingCondition, bool openClosed=true) const;
+    TrajectoryLimitBuf* addLimitBuf(lm::trajectory::TrajectoryLimits& tls, uint edgeIndex,
+                                    EH::StoppingCondition stoppingCondition, bool openClosed = true) const;
 //    double getAscendingLimit(uint edgeIndex);
 //    double getDescendingLimit(uint edgeIndex);
     EdgeIterator begin() const {return tilingBuf->edges().begin();}
     EdgeIterator end() const {return tilingBuf->edges().end();}
-    lm::io::Tilings::Arrangement getArrangement() const;
+    io::Tilings::SortOrder getSortOrder() const;
     uint64_t getDim(uint dimIndex) const {return tilingBuf->dims(dimIndex);}
     double getEdge(uint edgeIndex) const {return tilingBuf->edges(edgeIndex);}
     int getEdgesCount() const {return tilingBuf->edges_size();}
@@ -79,7 +80,7 @@ public:
 
 // mutators
     void reverse();
-    void setArrangement(lm::io::Tilings::Arrangement arrangement);
+    void setSortOrder(io::Tilings::SortOrder sortOrder);
     void setOrderParameterID(uint opID) {tilingBuf->set_order_parameter_id(opID);}
 
 protected:

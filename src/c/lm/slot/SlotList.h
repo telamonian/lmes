@@ -76,7 +76,8 @@ public:
     int createProcessSlots(int startingSlotId, int process, ComputeResources resources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input);
     void createSlot(int slotId, ComputeResources resources, bool useCPUAffinity, lm::message::Message* msg, string solver, const lm::input::Input& input);
 
-    int getNumberSlots() {return slots.size();}
+    uint getNumberSlots() const {return slots.size();}
+    uint getSimultaneousWorkUnits() const {uint count=0; for (SlotVector::const_iterator it=slots.begin();it!=slots.end();count+=it++->simultaneousWorkUnits); return count;}
     void markSlotStarted(const lm::message::StartedWorkUnitRunner & msg);
     bool hasUnstartedSlots();
     bool hasFreeSlots();
@@ -85,7 +86,7 @@ public:
     void runWorkUnit(lm::message::Message* runWorkUnitMsg);
     void workUnitFinished(const lm::message::FinishedWorkUnit& msg);
 
-    void printSlotsStatistics();
+    void printSlotsStatistics() const;
     void resetSlotsStatistics();
 
 private:
@@ -93,7 +94,7 @@ private:
     map<int64_t,int> workUnitToSlotMap;
     lm::message::Communicator* communicator;
 
-    hrtime stats_lastPrintTime;
+    mutable hrtime stats_lastPrintTime;
 };
 
 }

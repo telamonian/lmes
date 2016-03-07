@@ -149,7 +149,7 @@ void Trajectory::inititializeHists(const lm::input::Input& input)
 {
     lm::io::TilingHist* tHist = state.mutable_cme_state()->add_tiling_hists();
     tHist->set_tiling_id(input.getTilings().getCurrentTilingID());
-    for (lm::tiling::EdgeIterator e_it=input.getTilings().getCurrentTiling()->begin();e_it!=input.getTilings().getCurrentTiling()->end();e_it++)
+    for (lm::tiling::EdgeIterator e_it=input.getCurrentTiling().begin();e_it!=input.getCurrentTiling().end();e_it++)
     {
         tHist->add_tile_vals(0);
     }

@@ -82,7 +82,6 @@ protected:
 
 protected:
     uint64_t ffluxPhase;
-    lm::input::Input* input;
     lm::trajectory::TrajectoryLimits trajectoryLimits;
 
     //    int realOutputWriterProcess;

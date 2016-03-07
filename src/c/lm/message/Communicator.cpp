@@ -93,12 +93,12 @@ std::string Communicator::getHostname() const
     return std::string(hostname);
 }
 
-void Communicator::sendMessage(int destProcess, int destThread, lm::message::Message* msg, int sleepMilliseconds)
+void Communicator::sendMessage(int destProcess, int destThread, lm::message::Message* msg, int sleepMilliseconds) const
 {
     sendMessage(Endpoint(destProcess,destThread), msg, sleepMilliseconds);
 }
 
-void Communicator::sendMessage(Endpoint dest, lm::message::Message* msg, int sleepMilliseconds)
+void Communicator::sendMessage(Endpoint dest, lm::message::Message* msg, int sleepMilliseconds) const
 {
     PROF_BEGIN(PROF_MESSAGE_SEND);
 
@@ -159,7 +159,7 @@ void Communicator::setMasterOutputEndpoint(int moProcess, int moThread)
     masterOutput.thread = moThread;
 }
 
-void Communicator::receiveMessage(lm::message::Message* msg, int sleepMilliseconds)
+void Communicator::receiveMessage(lm::message::Message* msg, int sleepMilliseconds) const
 {
     PROF_BEGIN(PROF_MESSAGE_RECEIVE);
 

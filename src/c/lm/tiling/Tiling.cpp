@@ -62,14 +62,14 @@ Tiling::~Tiling()
 void Tiling::init(const lm::io::Tilings::Tiling& tilingRef)
 {
     tilingBuf = new lm::io::Tilings::Tiling(tilingRef);
-    setArrangement(tilingBuf->arrangement(0));
+    setSortOrder(tilingBuf->sort_order(0));
 }
 
 // flips the stopping condition of the added limits around depending on whether the tiling's edges currently sort ascending or descending
 Tiling::TrajectoryLimitBuf* Tiling::addLimitBuf(lm::trajectory::TrajectoryLimits& tls, uint edgeIndex, EH::StoppingCondition stoppingCondition, bool rightOpenBins) const
 {
     // if the tiling sorts descending, flip the stopping condition around
-    if (getArrangement()==EH::DESCENDING)
+    if (getSortOrder()==EH::DESCENDING)
     {
         switch (stoppingCondition)
         {
@@ -95,14 +95,14 @@ Tiling::TrajectoryLimitBuf* Tiling::addLimitBuf(lm::trajectory::TrajectoryLimits
     return tls.addLimitBuf<EH::ORDER_PARAMETER>(getOrderParameterID(), getEdge(edgeIndex), stoppingCondition, includeEndpoint);
 }
 
-lm::io::Tilings::Arrangement Tiling::getArrangement() const
+io::Tilings::SortOrder Tiling::getSortOrder() const
 {
-    return tilingBuf->arrangement(0);
+    return tilingBuf->sort_order(0);
 }
 
-void Tiling::setArrangement(lm::io::Tilings::Arrangement newArr)
+void Tiling::setSortOrder(io::Tilings::SortOrder newArr)
 {
-    if (tilingBuf->arrangement(0)!=newArr)
+    if (tilingBuf->sort_order(0)!=newArr)
     {
         reverse();
     }
@@ -110,7 +110,7 @@ void Tiling::setArrangement(lm::io::Tilings::Arrangement newArr)
 
 void Tiling::reverse()
 {
-    tilingBuf->set_arrangement(0, tilingBuf->arrangement(0)==lm::io::Tilings::ASCENDING ? lm::io::Tilings::DESCENDING : lm::io::Tilings::ASCENDING);
+    tilingBuf->set_sort_order(0, tilingBuf->sort_order(0)==lm::io::Tilings::ASCENDING ? lm::io::Tilings::DESCENDING : lm::io::Tilings::ASCENDING);
     int revLoops = tilingBuf->edges_size()/2;
     for (int i=0;i<revLoops;++i)
     {

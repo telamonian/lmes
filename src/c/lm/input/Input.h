@@ -82,6 +82,7 @@ public:
     const lm::io::Tilings& getTilingsMsg() const {return tilingsMsg;}
     const lm::io::TrajectoryLimits& getTrajectoryLimitsMsg() const {return trajectoryLimits.buf();}
 
+    uint64_t getPartsPerWorkUnit() const {return partsPerWorkUnit;}
     uint64_t getStepsPerWorkUnit() const {return stepsPerWorkUnit;}
 
     bool hasReactionModel() const {return reactionModelPresent;}
@@ -90,6 +91,9 @@ public:
     bool hasTilings() const {return tilingsPresent;}
     bool hasTrajectoryLimits() const {return trajectoryLimitsPresent;}
     bool hasOutputOptions() const {return outputOptionsPresent;}
+
+    lm::oparam::OParams* mutableOrderParameters() {return &orderParameters;}
+    lm::tiling::Tilings* mutableTilings() {return &tilings;}
 
 protected:
     bool parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg);
@@ -114,6 +118,7 @@ protected:
     lm::trajectory::TrajectoryLimits trajectoryLimits;
     lm::option::SimulationParameters simulationParameters;
 
+    uint64_t partsPerWorkUnit;
     uint64_t stepsPerWorkUnit;
 };
 

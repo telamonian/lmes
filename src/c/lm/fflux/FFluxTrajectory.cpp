@@ -77,25 +77,25 @@ FFluxTrajectory::~FFluxTrajectory()
 
 bool FFluxTrajectory::fluxedBackward()
 {
-    if (input.tilings.getCurrentTiling()->getArrangement()==lm::io::Tilings::ASCENDING)
+    if (input.getCurrentTiling().getSortOrder()==lm::io::Tilings::ASCENDING)
     {
-        return (getFinalLimitType()==lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER);
+        return (getLastLimitStoppingCondition()==lm::io::TrajectoryLimits::DECREASING);
     }
     else
     {
-        return (getFinalLimitType()==lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER);
+        return (getLastLimitStoppingCondition()==lm::io::TrajectoryLimits::INCREASING);
     }
 }
 
 bool FFluxTrajectory::fluxedForward()
 {
-    if (input.tilings.getCurrentTiling()->getArrangement()==lm::io::Tilings::ASCENDING)
+    if (input.getCurrentTiling().getSortOrder()==lm::io::Tilings::ASCENDING)
     {
-        return (getFinalLimitType()==lm::io::TrajectoryLimits::INCREASINGORDERPARAMETER);
+        return (getLastLimitStoppingCondition()==lm::io::TrajectoryLimits::INCREASING);
     }
     else
     {
-        return (getFinalLimitType()==lm::io::TrajectoryLimits::DECREASINGORDERPARAMETER);
+        return (getLastLimitStoppingCondition()==lm::io::TrajectoryLimits::DECREASING);
     }
 }
 
@@ -105,9 +105,9 @@ uint FFluxTrajectory::getFFluxPhase()
     return ffluxPhase;
 }
 
-lm::io::TrajectoryLimits::LimitType FFluxTrajectory::getFinalLimitType()
+io::TrajectoryLimits::StoppingCondition FFluxTrajectory::getLastLimitStoppingCondition()
 {
-    return getState()->final_limit_type();
+    return getState().limit_reached().stopping_condition();
 }
 
 double FFluxTrajectory::getLastLimitTime()
@@ -115,14 +115,15 @@ double FFluxTrajectory::getLastLimitTime()
     return lastLimitTime;
 }
 
-void FFluxTrajectory::getLastSpeciesCounts(lm::io::FFluxOutput::TrajectoryOutput* trajectoryOutputBuf)
-{
-    uint offset = (getSpeciesCounts()->number_entries() - 1)*(getSpeciesCounts()->number_species());
-    for (int i=0; i<getSpeciesCounts()->number_species(); i++)
-    {
-        trajectoryOutputBuf->add_species_count(getSpeciesCounts()->species_count(i + offset));
-    }
-}
+// TODO: reenable?
+//void FFluxTrajectory::getLastSpeciesCounts(lm::io::FFluxOutput::TrajectoryOutput* trajectoryOutputBuf)
+//{
+//    uint offset = (getSpeciesCounts()->number_entries() - 1)*(getSpeciesCounts()->number_species());
+//    for (int i=0; i<getSpeciesCounts()->number_species(); i++)
+//    {
+//        trajectoryOutputBuf->add_species_count(getSpeciesCounts()->species_count(i + offset));
+//    }
+//}
 
 bool FFluxTrajectory::hasElapsed(double time)
 {

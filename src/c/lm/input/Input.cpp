@@ -136,7 +136,7 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
     {
         if (simulationParameters.count("degreeAdvancementWriteInterval"))
         {
-            outputOptions.set_degree_advancement_write_interval(simulationParameters.parse("degreeAdvancementWriteInterval"));
+            outputOptions.set_degree_advancement_write_interval(simulationParameters.parse<double>("degreeAdvancementWriteInterval"));
             outputOptionsPresent = true;
         }
 
@@ -168,7 +168,7 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
 
         if (simulationParameters.count("orderParameterWriteInterval"))
         {
-            outputOptions.set_order_parameter_write_interval(simulationParameters.parse("orderParameterWriteInterval"));
+            outputOptions.set_order_parameter_write_interval(simulationParameters.parse<double>("orderParameterWriteInterval"));
             outputOptionsPresent = true;
         }
         
@@ -180,9 +180,13 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
     }
 
     // Get some generic input options.
+    if (simulationParameters.count("partsPerWorkUnit"))
+        partsPerWorkUnit = simulationParameters.parse<uint64_t>("partsPerWorkUnit");
+    else
+        partsPerWorkUnit = 100;
+
     if (simulationParameters.count("maxWorkUnitSteps"))
         stepsPerWorkUnit = atoll(simulationParameters["maxWorkUnitSteps"].c_str());
-
 }
 
 Input::~Input()

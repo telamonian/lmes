@@ -78,9 +78,12 @@ public:
 
 // mutators
     virtual int addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUnit* msg, uint numberParts);
-    virtual void TrajectoryList::incrementSimulationPhase();
+    virtual void incrementSimulationPhase();
     virtual void setPhase(uint64_t newPhase) {phase = newPhase;}
     virtual void setAllFinished();
+    virtual void setTrajectoryFinished(lm::trajectory::Trajectory* traj);
+    virtual void setTrajectoryRunning(lm::trajectory::Trajectory* traj);
+    virtual void setTrajectoryWaiting(lm::trajectory::Trajectory* traj);
     virtual void workUnitFinished(const lm::message::FinishedWorkUnit& fwuBuf);
     virtual void workUnitPartFinished(const lm::message::WorkUnitStatus& wusBuf);
     virtual void workUnitPartFinished(const lm::message::WorkUnitStatus& wusBuf, lm::trajectory::Trajectory* traj);

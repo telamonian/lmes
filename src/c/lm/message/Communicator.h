@@ -65,25 +65,26 @@ public:
     int getMasterOutputProcess() const {return masterOutput.process;}
     int getMasterOutputThread() const {return masterOutput.thread;}
 
+    // send and receive messages
+    void sendMessage(int destProcess, int destThread, lm::message::Message* msg, int sleepMilliseconds=-1) const;
+    void sendMessage(Endpoint dest, lm::message::Message* msg, int sleepMilliseconds=-1) const;
+    void sendMessageToMasterOutput(lm::message::Message* msg, int sleepMilliseconds=-1) const {sendMessage(masterOutput, msg, sleepMilliseconds);}
+    void receiveMessage(lm::message::Message* msg, int sleepMilliseconds=0) const;
+
     // mutators
     void setMasterOutputEndpoint(int moProcess, int moThread);
-
-    // send and receive messages
-    void sendMessage(int destProcess, int destThread, lm::message::Message* msg, int sleepMilliseconds=-1);
-    void sendMessage(Endpoint dest, lm::message::Message* msg, int sleepMilliseconds=-1);
-    void sendMessageToMasterOutput(lm::message::Message* msg, int sleepMilliseconds=-1) {sendMessage(masterOutput, msg, sleepMilliseconds);}
-    void receiveMessage(lm::message::Message* msg, int sleepMilliseconds=0);
 
 protected:
     void initBuffers();
 
 protected:
-    char* inputBuffer;
     int inputBufferSize;
-    int lastMessageSize;
-    char* outputBuffer;
     int outputBufferSize;
-    MPI_Status messageStatus;
+
+    mutable char* inputBuffer;
+    mutable int lastMessageSize;
+    mutable MPI_Status messageStatus;
+    mutable char* outputBuffer;
 
     // endpoints
     Endpoint masterOutput;

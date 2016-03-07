@@ -1496,18 +1496,18 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
     }
 
     // infer whether edges is sorted ascending or descending
-    lm::io::Tilings::Arrangement sortArrangement = newTiling->edges(newTiling->edges_size()-1)>=newTiling->edges(0) ? lm::io::Tilings::ASCENDING : lm::io::Tilings::DESCENDING;
-    newTiling->add_arrangement(sortArrangement);
+    lm::io::Tilings::SortOrder sortOrder = newTiling->edges(newTiling->edges_size()-1)>=newTiling->edges(0) ? lm::io::Tilings::ASCENDING : lm::io::Tilings::DESCENDING;
+    newTiling->add_sort_order(sortOrder);
 
     // ensure that edges is actually sorted the way we guessed
-    if (sortArrangement==lm::io::Tilings::ASCENDING)
+    if (sortOrder==lm::io::Tilings::ASCENDING)
     {
         for (int i=0;i<newTiling->edges_size()-1;i++)
         {
             if (newTiling->edges(i) > newTiling->edges(i+1)) throw Exception("A set of Edges in one of your Tilings is improperly sorted (guessed ASCENDING)", cdT->filename.c_str(), "/Tilings/xxxxxxx/Edges");
         }
     }
-    else // (sortArrangement==lm::io::Tilings::DESCENDING)
+    else // (sortOrder==lm::io::Tilings::DESCENDING)
     {
         for (int i=0;i<newTiling->edges_size()-1;i++)
         {

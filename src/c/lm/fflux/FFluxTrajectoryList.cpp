@@ -200,11 +200,13 @@ void FFluxTrajectoryList::initFFluxOutput()
     lm::io::FFluxOutput::FinalOutput* finalOutput;
 
     // initialize the FFluxOutput part of the non-streaming/streaming member Messages
-    lm::message::ProcessWorkUnitOutput* msgPWUO = msg.mutable_process_work_unit_output();
-    msgPWUO->add_output()->set_work_unit_id(999999999999998);
+    lm::message::ProcessWorkUnitOutput* pwoMsg = msg.mutable_process_work_unit_output();
+    pwoMsg->set_work_unit_id(std::numeric_limits<int64_t>::max());
+    pwoMsg->add_part_output();
 
-    lm::message::ProcessWorkUnitOutput* msgStreamingPWUO = msgStreaming.mutable_process_work_unit_output();
-    msgStreamingPWUO->add_output()->set_work_unit_id(999999999999999);
+    lm::message::ProcessWorkUnitOutput* pwoMsgStreaming = msgStreaming.mutable_process_work_unit_output();
+    pwoMsgStreaming->set_work_unit_id(std::numeric_limits<int64_t>::max());;
+    pwoMsgStreaming->add_part_output();
 
 	getFFluxOutput()->set_tiling_id(input.getTilings().getCurrentTilingID());
 	getFFluxOutput()->set_number_tiles(maxFFluxPhase + 1);
@@ -242,7 +244,7 @@ void FFluxTrajectoryList::initTrajectories(uint64_t trajectoriesToStart,bool rev
 {
     for (long long i=0; i<trajectoriesToStart; i++)
     {
-    	lm::fflux::FFluxTrajectory* newTraj = new lm::fflux::FFluxTrajectory(trajectoryCount,ffluxPhase,input,reversed);
+    	lm::fflux::FFluxTrajectory* newTraj = new lm::fflux::FFluxTrajectory(trajectoryCount, phase, input, reversed, ffluxPhase);
     	if (intermediateOutputFlag) {ffluxOutputAddTrajectory(newTraj, lm::io::FFluxOutput::INITIAL);}
     	trajectories[trajectoryCount++] = newTraj;
     }
@@ -252,7 +254,7 @@ void FFluxTrajectoryList::initTrajectories(uint64_t trajectoriesToStart, lm::io:
 {
     for (long long i=0; i<trajectoriesToStart; i++)
     {
-    	lm::fflux::FFluxTrajectory* newTraj = new lm::fflux::FFluxTrajectory(trajectoryCount,ffluxPhase,input,oldTraj);
+    	lm::fflux::FFluxTrajectory* newTraj = new lm::fflux::FFluxTrajectory(trajectoryCount, phase, *oldTraj, ffluxPhase, input);
     	if (intermediateOutputFlag) {ffluxOutputAddTrajectory(newTraj, lm::io::FFluxOutput::INITIAL);}
     	trajectories[trajectoryCount++] = newTraj;
     }
@@ -279,27 +281,27 @@ void FFluxTrajectoryList::workUnitPartFinished(const message::WorkUnitStatus& wu
     }
 
     double prevTime = traj->getSimTime();
-    uint prevFinalLimitID = traj->getFinalLimitID();
+    uint prevFinalLimitID = traj->getLimitReached().id();
 
     // Call the base class method.
-    traj = static_cast<lm::fflux::FFluxTrajectory*>(TrajectoryList::workUnitPartFinished(wusMsg));
+    TrajectoryList::workUnitPartFinished(wusMsg);
     // If the work unit was from a previous phase of the fflux simulation, delete the associated trajectory and move on
     if (traj->getFFluxPhase() < ffluxPhase)
     {
     	deleteTrajectory(traj->getID());
     }
     // If the work unit stopped because it detected a crossing event...]
-    else if (wusMsg.status()==lm::message::FinishedWorkUnit::LIMIT_REACHED)
+    else if (wusMsg.status()==lm::message::WorkUnitStatus::LIMIT_REACHED)
     {
         // If the forward flux sampling is still in its 0th (ie initial) phase...
         if (isPhaseZero())
         {
-            workUnitFinishedPhaseZero(wusMsg, prevFinalLimitID, prevTime, traj);
+            workUnitPartFinishedPhaseZero(wusMsg, traj, prevFinalLimitID, prevTime);
         }
         // ...otherwise if ffluxPhase > 0...
         else
         {
-            workUnitFinishedPhaseN(wusMsg, prevFinalLimitID, prevTime, traj);
+            workUnitPartFinishedPhaseN(wusMsg, traj, prevFinalLimitID, prevTime);
         }
     }
     PROF_END(PROF_FFLUX_WORK_UNIT_FINISHED);
@@ -309,7 +311,7 @@ void FFluxTrajectoryList::workUnitPartFinishedPhaseZero(const message::WorkUnitS
 {
     PROF_BEGIN(PROF_FFLUX_WORK_UNIT_FINISHED_PHASE_ZERO);
     // ...and if the crossing event was a forward flux...
-    if (traj->fluxedForward() && traj->getFinalLimitID()==0)
+    if (traj->fluxedForward() && traj->getLimitReached().id()==0)
     {
         // ...add the work unit's final state to the appropriate list of crossings
         Print::printf(Print::DEBUG,"Crossing %d added to phase %d list", crossings[ffluxPhase].size(), ffluxPhase);
@@ -357,21 +359,21 @@ void FFluxTrajectoryList::workUnitPartFinishedPhaseZero(const message::WorkUnitS
             // ...start up a new set of trajectories and make room to store their data
             dwellTimes[ffluxPhase] = 0;
             finishedTrajectoriesCounts[ffluxPhase] = 0;
-            initPhaseNTrajectories(simultaneousTrajectoryCount);
+            initPhaseNTrajectories(simultaneousTrajectoryCount*input.getPartsPerWorkUnit());
         }
     }
     // ...otherwise we still have more time to go in phase zero...
     else
     {
         traj->setLastLimitTime(traj->getSimTime());
-        setTrajectoryStatus(wusMsg.final_state().trajectory_id(), lm::trajectory::Trajectory::WAITING);
+        setTrajectoryWaiting(traj);
+//        setTrajectoryStatus(wusMsg.final_state().trajectory_id(), lm::trajectory::Trajectory::WAITING);
 //        deleteTrajectory(traj->getID());
 //        // ...so start one phase zero trajectory.
 //        initTrajectories(1, const_cast<lm::message::FinishedWorkUnit&>(finishedWorkUnitMsg).mutable_final_state()); // crossings[ffluxPhase].back());
 //        initTrajectories(1, direction==FORWARD ? false : true);
     }
     PROF_END(PROF_FFLUX_WORK_UNIT_FINISHED_PHASE_ZERO);
-    return traj;
 }
 
 void FFluxTrajectoryList::workUnitPartFinishedPhaseN(const message::WorkUnitStatus& wusMsg, lm::fflux::FFluxTrajectory* traj, uint prevFinalLimitID, double prevTime)
@@ -403,7 +405,7 @@ void FFluxTrajectoryList::workUnitPartFinishedPhaseN(const message::WorkUnitStat
             dwellTimes[ffluxPhase] = 0;
             finishedTrajectoriesCounts[ffluxPhase] = 0;
             Print::printf(Print::INFO,"Forward flux phase %d:%s starting now", ffluxPhase, directionStrings[direction].c_str());
-            initPhaseNTrajectories(simultaneousTrajectoryCount);
+            initPhaseNTrajectories(simultaneousTrajectoryCount*input.getPartsPerWorkUnit());
         }
         // ...otherwise if the whole simulation is complete, output some data.
         else
@@ -441,11 +443,10 @@ void FFluxTrajectoryList::workUnitPartFinishedPhaseN(const message::WorkUnitStat
         initPhaseNTrajectories(1);
     }
     PROF_END(PROF_FFLUX_WORK_UNIT_FINISHED_PHASE_N);
-    return traj;
 }
 
 // getters
-CrossingVector FFluxTrajectoryList::getCrossings(long long ffluxPhase)
+CrossingVector FFluxTrajectoryList::getCrossings(uint64_t ffluxPhase)
 {
     return crossings[ffluxPhase];
 }
@@ -457,27 +458,17 @@ uint FFluxTrajectoryList::getCrossingsPerPhase()
 
 lm::io::FFluxOutput* FFluxTrajectoryList::getFFluxOutput()
 {
-    return msg.mutable_process_work_unit_output()->mutable_output(0)->mutable_fflux_output();
+    return msg.mutable_process_work_unit_output()->mutable_part_output(0)->mutable_fflux_output();
 }
 
 lm::io::FFluxOutput* FFluxTrajectoryList::getFFluxOutputStreaming()
 {
-    return msgStreaming.mutable_process_work_unit_output()->mutable_output(0)->mutable_fflux_output();
+    return msgStreaming.mutable_process_work_unit_output()->mutable_part_output(0)->mutable_fflux_output();
 }
 
-long long FFluxTrajectoryList::getFFluxPhase()
+lm::io::TrajectoryState* FFluxTrajectoryList::getRandomCrossing(uint64_t ffluxPhase)
 {
-    return ffluxPhase;
-}
-
-double FFluxTrajectoryList::getMaxPhaseZeroTime()
-{
-    return maxTimeZero;
-}
-
-lm::io::TrajectoryState* FFluxTrajectoryList::getRandomCrossing(long long ffluxPhase)
-{
-    unsigned i = floor(xorShift.getRandomDouble()*crossings[ffluxPhase].size());
+    uint i = floor(xorShift.getRandomDouble()*crossings[ffluxPhase].size());
     return crossings[ffluxPhase][i];
 }
 
@@ -487,15 +478,15 @@ CrossingsMap FFluxTrajectoryList::getSavedCrossings(lm::fflux::FFluxTrajectoryLi
 }
 
 // encapsulated inner loop functions
-void FFluxTrajectoryList::addCrossing(const lm::message::FinishedWorkUnit& finishedWorkUnitMsg)
+void FFluxTrajectoryList::addCrossing(const message::WorkUnitStatus& wusMsg)
 {
-    lm::io::TrajectoryState* newCrossing = new lm::io::TrajectoryState(finishedWorkUnitMsg.final_state());
+    lm::io::TrajectoryState* newCrossing = new lm::io::TrajectoryState(wusMsg.final_state());
     crossings[ffluxPhase].push_back(newCrossing);
 }
 
-uint FFluxTrajectoryList::incrFFluxPhase()
+void FFluxTrajectoryList::incrementFFluxPhase()
 {
-    return ++ffluxPhase;
+    ffluxPhase++;
 }
 
 bool FFluxTrajectoryList::isFFluxDone()
@@ -551,7 +542,7 @@ void FFluxTrajectoryList::restart()
 void FFluxTrajectoryList::reverse()
 {
     direction = direction==FORWARD ? BACKWARD : FORWARD;
-    input.tilings.reverse();
+    const_cast<lm::input::Input&>(input).mutableTilings()->reverse();
 }
 
 void FFluxTrajectoryList::saveCrossings()
@@ -662,16 +653,18 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(FFluxTrajectory* traj, lm::io
 //    trajOut->set_lifecycle(static_cast<lm::io::FFluxOutput::Lifecycle>(lifecycle));
 
     // load the data into the TrajectoryOutput buf pointer
-    trajOut->add_count(traj->getOrderParameterValue());
+    //TODO fix and reenable the following line
+//    trajOut->add_count(traj->getOrderParameterValue());
     if (lifecycle==lm::io::FFluxOutput::FINAL)
     {
-        trajOut->add_edge_id(traj->getFinalLimitID());
+        trajOut->add_edge_id(traj->getLimitReached().id());
     }
     else
     {
         trajOut->add_edge_id(traj->getFFluxPhase());
     }
-    traj->getLastSpeciesCounts(trajOut);
+    //TODO fix and reenable the following line
+//    traj->getLastSpeciesCounts(trajOut);
     trajOut->add_time(traj->getSimTime());
     trajOut->add_trajectory_id(traj->getID());
 
@@ -694,7 +687,7 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(const lm::io::SpeciesCounts& 
     uint outIndex = direction*3 + lifecycle;
 
     // lookup the trajectory associated with the data in specCountsMsg
-    lm::fflux::FFluxTrajectory* traj = static_cast<FFluxTrajectory*>(getTrajectory(specCountsMsg.trajectory_id()));
+    lm::fflux::FFluxTrajectory* traj = static_cast<FFluxTrajectory*>(trajectories[specCountsMsg.trajectory_id()]);
     if (traj!=NULL)
     {
         // get a pointer to the germane TrajectoryOutput buf
@@ -705,7 +698,7 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(const lm::io::SpeciesCounts& 
             // load the data into the TrajectoryOutput buf pointer
             if (lifecycle==lm::io::FFluxOutput::FINAL)
             {
-                trajOut->add_edge_id(traj->getFinalLimitID());
+                trajOut->add_edge_id(traj->getLimitReached().id());
             }
             else
             {
@@ -715,8 +708,9 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(const lm::io::SpeciesCounts& 
             trajOut->add_trajectory_id(traj->getID());
 
             uint offset = i*(specCountsMsg.number_species());
-            // FIXME: deal with the whole int vs uint thing in the line bellow
-            trajOut->add_count(input.oparams[input.tilings.getCurrentTiling()->getOrderParameterID()]->calc((uint*)(specCountsMsg.species_count().data()) + offset, specCountsMsg.time(i)));
+            // TODO reenable the lines below
+//            lm::oparam::OParam* op = trajOut->add_count(const_cast<lm::input::Input&>(input).mutableOrderParameters()[input.getCurrentTiling().getOrderParameterID()];
+//            trajOut->add_count(op->calc((uint*)(specCountsMsg.species_count().data()) + offset, specCountsMsg.time(i))));
             for (int j=0; j<specCountsMsg.number_species(); j++)
             {
                 trajOut->add_species_count(specCountsMsg.species_count(offset + j));
@@ -747,7 +741,7 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(const lm::io::SpeciesTimeSeri
 //    lm::io::hdf5::Hdf5File::dumpSpeciesCountsAndTimes(speciesTimeSeriesMsg, counts, times);
 
     // lookup the trajectory associated with the data in specCountsMsg
-    lm::fflux::FFluxTrajectory* traj = static_cast<FFluxTrajectory*>(getTrajectory(speciesTimeSeriesMsg.trajectory_id()));
+    lm::fflux::FFluxTrajectory* traj = static_cast<FFluxTrajectory*>(trajectories[speciesTimeSeriesMsg.trajectory_id()]);
     if (traj!=NULL)
     {
         // get a pointer to the germane TrajectoryOutput buf
@@ -758,7 +752,7 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(const lm::io::SpeciesTimeSeri
             // load the data into the TrajectoryOutput buf pointer
             if (lifecycle==lm::io::FFluxOutput::FINAL)
             {
-                trajOut->add_edge_id(traj->getFinalLimitID());
+                trajOut->add_edge_id(traj->getLimitReached().id());
             }
             else
             {
@@ -768,8 +762,10 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(const lm::io::SpeciesTimeSeri
             trajOut->add_trajectory_id(traj->getID());
 
             uint offset = i*(numberSpecies);
-            // FIXME: deal with the whole int vs uint thing in the line bellow
-            trajOut->add_count(input.getOrderParameters()[input.getTilings().getCurrentTiling().getOrderParameterID()]->calc((uint*)counts + offset, times[i]));
+            // TODO reenable the lines below
+//            lm::oparam::OParam* op = trajOut->add_count(const_cast<lm::input::Input&>(input).getOrderParameters()[input.getCurrentTiling().getOrderParameterID()];
+//            trajOut->add_count(op->calc((uint*)counts + offset, times[i])));
+//            trajOut->add_count(input.getOrderParameters()[input.getTilings().getCurrentTiling().getOrderParameterID()].calc((uint*)counts + offset, times[i]));
             for (int j=0; j<numberSpecies; j++)
             {
                 trajOut->add_species_count(counts[offset + j]);
@@ -795,7 +791,7 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(const lm::io::SpeciesTimeSeri
 
 void FFluxTrajectoryList::ffluxOutputFinishTrajectory()
 {
-    communicator->sendMessageToMasterOutput(&msgStreaming);      //0,3, &msgStreaming);
+    communicator.sendMessageToMasterOutput(&msgStreaming);      //0,3, &msgStreaming);
 
     for (int i=0;i<3;i++)
     {
@@ -816,7 +812,7 @@ void FFluxTrajectoryList::ffluxOutputPrintBasin(CrossingsMap& crossings, Finishe
     Print::printf(Print::INFO, "Phase 0 probability flux: %.10f", (double)crossings[0].size()/(maxTimeZero*simultaneousTrajectoryCount));
     for (int i=1;i<maxFFluxPhase;i++)
     {
-        Print::printf(Print::INFO, "Probability of crossing from tile %d:%f to tile %d:%f : %.10f", i, input.tilings.getCurrentTiling()->getEdge(i), i+1, input.tilings.getCurrentTiling()->getEdge(i+1), (double)crossings[i].size()/finishedTrajectoriesCounts[i]);
+        Print::printf(Print::INFO, "Probability of crossing from tile %d:%f to tile %d:%f : %.10f", i, input.getCurrentTiling().getEdge(i), i+1, input.getCurrentTiling().getEdge(i+1), (double)crossings[i].size()/finishedTrajectoriesCounts[i]);
     }
     double Kab = (double)crossings[0].size()/(maxTimeZero*simultaneousTrajectoryCount);
     for (int i=1;i<maxFFluxPhase;i++)

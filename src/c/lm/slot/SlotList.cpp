@@ -291,7 +291,7 @@ void SlotList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
     slots[slotId].status = Slot::FREE;
 }
 
-void SlotList::printSlotsStatistics()
+void SlotList::printSlotsStatistics() const
 {
     // Print some performance statistics, if it has been a while.
     hrtime currentTime = getHrTime();
@@ -300,7 +300,7 @@ void SlotList::printSlotsStatistics()
         Print::printf(Print::INFO, "Slots status");
         Print::printf(Print::INFO, Slot::getSlotStatisticsHeader().c_str());
         Print::printf(Print::INFO, Slot::getSlotStatisticsHeaderBreak().c_str());
-        for (SlotVector::iterator it=slots.begin(); it!=slots.end(); it++)
+        for (SlotVector::const_iterator it=slots.begin(); it!=slots.end(); it++)
         {
             Print::printf(Print::INFO, it->getSlotStatistics().c_str());
         }
