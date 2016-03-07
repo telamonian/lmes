@@ -708,9 +708,9 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(const lm::io::SpeciesCounts& 
             trajOut->add_trajectory_id(traj->getID());
 
             uint offset = i*(specCountsMsg.number_species());
-            // TODO reenable the lines below
-//            lm::oparam::OParam* op = trajOut->add_count(const_cast<lm::input::Input&>(input).mutableOrderParameters()[input.getCurrentTiling().getOrderParameterID()];
-//            trajOut->add_count(op->calc((uint*)(specCountsMsg.species_count().data()) + offset, specCountsMsg.time(i))));
+            // TODO make the oparam calc lines less awful
+            lm::oparam::OParam* op = (*const_cast<lm::input::Input&>(input).mutableOrderParameters())[input.getCurrentTiling().getOrderParameterID()];
+            trajOut->add_count(op->calc((uint*)(specCountsMsg.species_count().data()) + offset, specCountsMsg.time(i)));
             for (int j=0; j<specCountsMsg.number_species(); j++)
             {
                 trajOut->add_species_count(specCountsMsg.species_count(offset + j));
@@ -762,9 +762,9 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(const lm::io::SpeciesTimeSeri
             trajOut->add_trajectory_id(traj->getID());
 
             uint offset = i*(numberSpecies);
-            // TODO reenable the lines below
-//            lm::oparam::OParam* op = trajOut->add_count(const_cast<lm::input::Input&>(input).getOrderParameters()[input.getCurrentTiling().getOrderParameterID()];
-//            trajOut->add_count(op->calc((uint*)counts + offset, times[i])));
+            // TODO make the oparam calc lines less awful
+            lm::oparam::OParam* op = (*const_cast<lm::input::Input&>(input).mutableOrderParameters())[input.getCurrentTiling().getOrderParameterID()];
+            trajOut->add_count(op->calc((uint*)counts + offset, times[i]));
 //            trajOut->add_count(input.getOrderParameters()[input.getTilings().getCurrentTiling().getOrderParameterID()].calc((uint*)counts + offset, times[i]));
             for (int j=0; j<numberSpecies; j++)
             {
