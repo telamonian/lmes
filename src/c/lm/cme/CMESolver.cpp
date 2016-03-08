@@ -405,18 +405,18 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
     }
 
 //    // Set the order parameter values.
-//    for (int i=0; i<state.cme_state().order_parameter_values().order_parameter_values_size(); i++)
-//    {
-//        orderParameterValues[i] = state.cme_state().order_parameter_values().order_parameter_values(i);
-//        orderParameterPreviousValues[i] = orderParameterValues[i];
-//    }
-
-    // Set the order parameters.
-    for (int i=0; i<numberOrderParameters; i++)
+    for (int i=0; i<state.cme_state().order_parameter_values().order_parameter_values_size(); i++)
     {
-        orderParameterValues[i] = orderParameterFunctions[i]->calculate(time, speciesCounts, reactionModel->numberSpecies);
+        orderParameterValues[i] = state.cme_state().order_parameter_values().order_parameter_values(i);
         orderParameterPreviousValues[i] = orderParameterValues[i];
     }
+
+    // Set the order parameters.
+//    for (int i=0; i<numberOrderParameters; i++)
+//    {
+//        orderParameterValues[i] = orderParameterFunctions[i]->calculate(time, speciesCounts, reactionModel->numberSpecies);
+//        orderParameterPreviousValues[i] = orderParameterValues[i];
+//    }
 
     // Set the species counts.
     for (int i=0; i<state.cme_state().species_counts().species_count_size(); i++)

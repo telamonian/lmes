@@ -43,8 +43,8 @@
 #include <vector>
 #include <zlib.h>
 
-#include "lm/Types.h"
 #include "lm/pwrap/Repeated.h"
+#include "lm/Types.h"
 #include "robertslab/pbuf/NDArray.pb.h"
 
 namespace lm {
@@ -58,50 +58,79 @@ template <typename T>
 class NDArray
 {
 public:
-    NDArray(): buf(NULL) {}
-    NDArray(robertslab::pbuf::NDArray* newBuf): buf(NULL) {setBuf(newBuf);}
+    NDArray(): arrMsg(NULL) {}
+    NDArray(robertslab::pbuf::NDArray* newBuf): arrMsg(NULL) {setMsgPtr(newBuf);}
     ~NDArray() {}
+
+// accessors
+    int32_t size() const {return shape().product();}
+    size_t sizeBytes() const {return size()*sizeof(T);}
+
+// mutators
+    inline void get_data(T* valPtr)
+    {
+        if (compressed_deflate())
+        {
+            size_t countsSize = sizeBytes();
+            ZLIB_EXCEPTION_CHECK(uncompress((unsigned char *)valPtr, &countsSize, (unsigned char*)&(data()[0]), data().size()));
+            if (countsSize != sizeBytes())
+                throw Exception("Error during data decompression, wrong number of bytes returned.");
+        }
+        else
+        {
+            memcpy(valPtr, (T*)&(data()[0]), data().size());
+        }
+    }
+
+    inline void set_data(const std::vector<T>& value)
+    {
+        if (compressed_deflate())
+        {
+            size_t dataSizeEstimate=compressBound(value.size()*sizeof(T));
+            mutable_data()->resize(dataSizeEstimate);
+            ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*mutable_data())[0]), &dataSizeEstimate, (unsigned char*)value.data(), value.size()*sizeof(T)));
+            mutable_data()->resize(dataSizeEstimate);
+        }
+        else
+        {
+            mutable_data()->resize(value.size()*sizeof(T));
+            memcpy((unsigned char*)&((*mutable_data())[0]), (unsigned char*)value.data(), value.size()*sizeof(T));
+        }
+    }
+
+    inline void set_data(std::vector<T>& value, DataType dtype, bool compressed)
+    {
+        set_data_type(dtype);
+        set_compressed_deflate(compressed);
+        set_data(value);
+    }
+
+    void setMsgPtr(robertslab::pbuf::NDArray* newArrMsg) {arrMsg=newArrMsg; shape_.setRepFieldPtr(arrMsg->mutable_shape());}
 
 // pass throughs
 // accessors
-    ArrayOrder array_order() const {return buf->array_order();}
-    ByteOrder byte_order() const {return buf->byte_order();}
-    DataType data_type() const {return buf->data_type();}
-    Repeated<int32_t>& shape() {return shape_;}
-    const Repeated<int32_t>& shape(int index) const {return shape_.Get(index);}
-    const std::string& data() const {return buf->data();}
-    bool compressed_deflate() const {return buf->compressed_deflate();}
+    ArrayOrder array_order() const {return arrMsg->array_order();}
+    ByteOrder byte_order() const {return arrMsg->byte_order();}
+    DataType data_type() const {return arrMsg->data_type();}
+    const Repeated<int32_t>& shape() const {return shape_;}
+    int32_t shape(int index) const {return shape_.Get(index);}
 
+    const std::string& data() const {return arrMsg->data();}
+    bool compressed_deflate() const {return arrMsg->compressed_deflate();}
+
+// mutators
     Repeated<int32_t>* mutable_shape() {return &shape_;}
-    std::string* mutable_data() {return buf->mutable_data();}
+    std::string* mutable_data() {return arrMsg->mutable_data();}
+    Repeated<int32_t>& shape() {return shape_;}
 
-// mutators
-    void set_array_order(ArrayOrder value) {buf->set_array_order(value);}
-    void set_byte_order(ByteOrder value) {buf->set_byte_order(value);}
-    void set_data_type(DataType value) {buf->set_data_type(value);}
+    void set_array_order(ArrayOrder value) {arrMsg->set_array_order(value);}
+    void set_byte_order(ByteOrder value) {arrMsg->set_byte_order(value);}
+    void set_data_type(DataType value) {arrMsg->set_data_type(value);}
     void set_shape(int index, const int32_t& value) {shape_.Set(index, value);}
-//    void set_data(std::string& value) {buf->set_data(value);}
-    void set_compressed_deflate(bool value) {buf->set_compressed_deflate(value);}
-
-
-// wrapper functions
-// accessors
-
-// mutators
-    inline void set_data(std::vector<T>& value, DataType dtype, bool compressed=true)
-    {
-        set_data_type(dtype);
-        size_t dataSizeEstimate=compressBound(value.size()*sizeof(T));
-        mutable_data()->resize(dataSizeEstimate);
-        ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*mutable_data())[0]), &dataSizeEstimate, (unsigned char*)value.data(), value.size()*sizeof(T)));
-        mutable_data()->resize(dataSizeEstimate);
-    }
-
-    inline void setBuf(robertslab::pbuf::NDArray* newBuf) {buf=newBuf;
-        shape_.setRepFieldPtr(buf->mutable_shape());}
+    void set_compressed_deflate(bool value) {arrMsg->set_compressed_deflate(value);}
 
 public:
-    robertslab::pbuf::NDArray* buf;
+    robertslab::pbuf::NDArray* arrMsg;
 protected:
     Repeated<int32_t> shape_;
 };

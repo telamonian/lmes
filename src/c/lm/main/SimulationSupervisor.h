@@ -98,60 +98,64 @@ public:
     void wake() throw(lm::thread::PthreadException);
 
 protected:
-    virtual void buildTrajectoryList()=0;
-    virtual void destroyTrajectoryList();
+    virtual int run();
+
+    virtual void receivedResourceAvailable(const lm::message::ResourcesAvailable& msg);
+    virtual void allResourcesRegistered();
+    virtual void startOutputWriter();
+    virtual void startCheckpointSignaler();
+    virtual void startWorkUnitRunners();
+
+    virtual void receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg);
+    virtual void receivedStartedCheckpointSignaler(const lm::message::StartedCheckpointSignaler& msg);
+    virtual void receivedStartedWorkUnitRunner(const lm::message::StartedWorkUnitRunner & msg);
+    virtual void startSimulationIfAllWorkersStarted();
     virtual void startSimulation();
     virtual void startSimulationPhase();
+    virtual void buildTrajectoryList()=0;
+
+    virtual void receivedStartedWorkUnit(const lm::message::StartedWorkUnit& msg);
+
+    virtual void receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg);
     virtual bool assignWork();
     virtual void buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg);
     virtual void buildRunWorkUnitLimits(lm::message::RunWorkUnit* msg);
     virtual void buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint minWorkUnits);
-    virtual bool performAnotherSimulationPhase();
     virtual void finishSimulationPhase();
-    virtual void finishSimulation();
+    virtual void destroyTrajectoryList();
+    virtual bool performAnotherSimulationPhase();
     virtual void incrementSimulationPhase();
+    virtual void finishSimulation();
 
-    virtual int run();
-    virtual void receivedResourceAvailable(const lm::message::ResourcesAvailable& msg);
-    virtual void allResourcesRegistered();
-    virtual void startOutputWriter();
-    virtual void receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg);
-    virtual void startCheckpointSignaler();
-    virtual void receivedStartedCheckpointSignaler(const lm::message::StartedCheckpointSignaler& msg);
-    virtual void startWorkUnitRunners();
-    virtual void receivedStartedWorkUnitRunner(const lm::message::StartedWorkUnitRunner & msg);
-    virtual void startSimulationIfAllWorkersStarted();
-    virtual void receivedStartedWorkUnit(const lm::message::StartedWorkUnit& msg);
-    virtual void receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg);
     virtual void receivedPerformCheckpointing(const lm::message::PerformCheckpointing& msg);
     virtual void receivedFinishedCheckpointing(const lm::message::FinishedCheckpointing& msg);
     virtual void receivedProcessWorkUnitOutput(lm::message::Message& msg);
     virtual bool receivedOther(lm::message::Message& msg);
 
 private:
-    void resetPerformanceStatistics();
     void printPerformanceStatistics(bool flush=false);
+    void resetPerformanceStatistics();
 
 protected:
-    bool simulationRunning;
-    bool performingCheckpoint;
     lm::message::Communicator communicator;
+    bool hasCheckpointSignalerStarted;
+    bool hasOutputWriterStarted;
+    bool haveAllWorkUnitRunnersStarted;
+    lm::input::Input* input;
+    std::string outputWriterClassName;
+    int outputWriterProcess;
+    int outputWriterThread;
+    bool performingCheckpoint;
     lm::resource::ResourceMap* resourceMap;
     std::string simulationInputFilename;
     std::string simulationOutputFilename;
-    std::string outputWriterClassName;
-    bool hasOutputWriterStarted;
-    int outputWriterProcess;
-    int outputWriterThread;
-    bool hasCheckpointSignalerStarted;
-    std::string solverClassName;
-    bool useCPUAffinity;
-    lm::input::Input* input;
-    lm::trajectory::TrajectoryList* trajectoryList;
+    uint64_t simulationPhase;
+    bool simulationRunning;
     lm::slot::SlotList slots;
-    bool haveAllWorkUnitRunnersStarted;
+    std::string solverClassName;
+    lm::trajectory::TrajectoryList* trajectoryList;
+    bool useCPUAffinity;
     long long workUnitCount;
-    uint64_t phase;
 
 private:
     hrtime stats_lastPrintTime;

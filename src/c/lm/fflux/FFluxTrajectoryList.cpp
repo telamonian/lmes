@@ -88,7 +88,7 @@ typedef map<lm::fflux::FFluxTrajectoryList::Direction, DwellTimeMap> DwellTimeMa
 typedef map<lm::fflux::FFluxTrajectoryList::Direction, FinishedTrajectoriesCountMap> FinishedTrajectoriesCountMapMap;
 
 FFluxTrajectoryList::FFluxTrajectoryList(lm::input::Input& input, lm::message::Communicator& communicator, uint64_t simultaneousTrajectoryCount)
-:TrajectoryList(input),
+: TrajectoryList(input, 0),
  communicator(communicator),
  direction(FORWARD),
  dwellTimes(),
@@ -244,7 +244,7 @@ void FFluxTrajectoryList::initTrajectories(uint64_t trajectoriesToStart,bool rev
 {
     for (long long i=0; i<trajectoriesToStart; i++)
     {
-    	lm::fflux::FFluxTrajectory* newTraj = new lm::fflux::FFluxTrajectory(trajectoryCount, phase, input, reversed, ffluxPhase);
+    	lm::fflux::FFluxTrajectory* newTraj = new lm::fflux::FFluxTrajectory(trajectoryCount, simulationPhase, input, reversed, ffluxPhase);
     	if (intermediateOutputFlag) {ffluxOutputAddTrajectory(newTraj, lm::io::FFluxOutput::INITIAL);}
     	trajectories[trajectoryCount++] = newTraj;
     }
@@ -254,7 +254,7 @@ void FFluxTrajectoryList::initTrajectories(uint64_t trajectoriesToStart, lm::io:
 {
     for (long long i=0; i<trajectoriesToStart; i++)
     {
-    	lm::fflux::FFluxTrajectory* newTraj = new lm::fflux::FFluxTrajectory(trajectoryCount, phase, *oldTraj, ffluxPhase, input);
+    	lm::fflux::FFluxTrajectory* newTraj = new lm::fflux::FFluxTrajectory(trajectoryCount, simulationPhase, *oldTraj, ffluxPhase, input);
     	if (intermediateOutputFlag) {ffluxOutputAddTrajectory(newTraj, lm::io::FFluxOutput::INITIAL);}
     	trajectories[trajectoryCount++] = newTraj;
     }

@@ -39,6 +39,7 @@
 #include <list>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "lm/Print.h"
 #include "lm/Types.h"
@@ -56,6 +57,7 @@ using lm::tiling::Tilings;
 using std::list;
 using std::map;
 using std::string;
+using std::vector;
 
 namespace lm {
 namespace trajectory {
@@ -69,12 +71,12 @@ char *trajectoryStatusStrings[] =
 };
 
 Trajectory::Trajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryState& initialState)
-:id(id),phase(phase),status(NOT_STARTED),state(initialState),numberWorkUnitsPerformed(0)
+:id(id),simulationPhase(phase),status(NOT_STARTED),state(initialState),numberWorkUnitsPerformed(0)
 {
 }
 
 Trajectory::Trajectory(uint64_t id, uint64_t phase, const lm::input::Input& input, bool reversed)
-:id(id),phase(phase),status(NOT_STARTED),state(),numberWorkUnitsPerformed(0)
+:id(id),simulationPhase(phase),status(NOT_STARTED),state(),numberWorkUnitsPerformed(0)
 {
     initializeState(input, reversed);
 }
@@ -165,6 +167,24 @@ void Trajectory::inititializeHists(const lm::input::Input& input)
 }
 
 // accessors
+vector<double> Trajectory::getLastOrderParameterValues() const
+{
+    const lm::io::OrderParametersValues& orderParameterValues(getOrderParameterValues());
+
+    // offset the order_parameter_values iterator to ensure that we only get the last "row" of values
+    int offset = (orderParameterValues.number_entries() - 1)*(orderParameterValues.number_order_parameters());
+    return vector<double>(orderParameterValues.order_parameter_values().begin()+offset, orderParameterValues.order_parameter_values().end());
+}
+
+vector<int32_t> Trajectory::getLastSpeciesCounts() const
+{
+    const lm::io::SpeciesCounts& speciesCounts(getSpeciesCounts());
+
+    // offset the species_count iterator to ensure that we only get the last "row" of values
+    int offset = (speciesCounts.number_entries() - 1)*(speciesCounts.number_species());
+    return vector<int32_t>(speciesCounts.species_count().begin()+offset, speciesCounts.species_count().end());
+}
+
 const lm::io::TrajectoryLimits::TrajectoryLimit& Trajectory::getLimitReached() const
 {
     return state.limit_reached();
@@ -177,7 +197,6 @@ uint64_t Trajectory::getID() const
 
 const lm::io::OrderParametersValues& Trajectory::getOrderParameterValues() const
 {
-    state.cme_state().order_parameter_values().order_parameter_values();
     return state.cme_state().order_parameter_values();
 //	uint* lastSpeciesCount = new uint[getSpeciesCounts().number_species()];
 //	uint offset = (getSpeciesCounts().number_entries() - 1)*(getSpeciesCounts().number_species());
@@ -190,14 +209,9 @@ const lm::io::OrderParametersValues& Trajectory::getOrderParameterValues() const
 //	delete [] lastSpeciesCount;
 }
 
-uint64_t Trajectory::getPhase() const
+uint64_t Trajectory::getSimulationPhase() const
 {
-    return phase;
-}
-
-const lm::io::SpeciesCounts& Trajectory::getSpeciesCounts() const
-{
-	return state.cme_state().species_counts();
+    return simulationPhase;
 }
 
 int32_t Trajectory::getSimSteps() const
@@ -208,6 +222,11 @@ int32_t Trajectory::getSimSteps() const
 double Trajectory::getSimTime() const
 {
     return getSpeciesCounts().time(getSpeciesCounts().time_size() - 1);
+}
+
+const lm::io::SpeciesCounts& Trajectory::getSpeciesCounts() const
+{
+    return state.cme_state().species_counts();
 }
 
 Trajectory::status_t Trajectory::getStatus() const
@@ -252,11 +271,6 @@ void Trajectory::setID(uint64_t newID)
 void Trajectory::setLimitReached(const lm::io::TrajectoryLimits::TrajectoryLimit& limitBuf)
 {
     state.mutable_limit_reached()->CopyFrom(limitBuf);
-}
-
-void Trajectory::setPhase(uint64_t newPhase)
-{
-    phase = newPhase;
 }
 
 void Trajectory::setState(const lm::io::TrajectoryState& newState)

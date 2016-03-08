@@ -61,7 +61,7 @@ using std::string;
 namespace lm {
 namespace trajectory {
 
-TrajectoryList::TrajectoryList(const lm::input::Input& input): input(input), phase(0)
+TrajectoryList::TrajectoryList(const lm::input::Input& input, uint64_t simulationPhase) : input(input), simulationPhase(simulationPhase)
 {
 }
 
@@ -155,7 +155,7 @@ int TrajectoryList::addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUn
 
 void TrajectoryList::incrementSimulationPhase()
 {
-    phase++;
+    simulationPhase++;
 }
 
 void TrajectoryList::setAllFinished()

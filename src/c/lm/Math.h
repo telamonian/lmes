@@ -52,7 +52,10 @@
 #define NA          6.02214179e23
 #define EPS         1e-9
 
-
+template <typename T1, typename T2> inline T1 add(T1 val1, T2 val2)
+{
+    return val1 + val2;
+};
 
 inline bool isPower2(unsigned int x)
 {
@@ -93,6 +96,10 @@ inline unsigned int log2(unsigned long long x)
     return r;
 }
 
+template <typename T1, typename T2> inline T1 mul(T1 val1, T2 val2)
+{
+    return val1 * val2;
+};
 
 #ifndef __cuda_cuda_h__
 using std::min;

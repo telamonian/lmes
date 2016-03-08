@@ -40,34 +40,47 @@
 #define LM_PWRAP_REPEATED
 
 #include <google/protobuf/repeated_field.h>
+#include <numeric>
 #include <string>
+
+#include "lm/Math.h"
+#include "lm/Types.h"
 
 namespace lm {
 namespace pwrap {
 
-// main template for type generator struct
-template <typename T> struct RepeatedTypedef {typedef google::protobuf::RepeatedPtrField<T> type;};
-// specializations for "primitive" types
-template <> struct RepeatedTypedef<double> {typedef google::protobuf::RepeatedField<double> type;};
-template <> struct RepeatedTypedef<float> {typedef google::protobuf::RepeatedField<float> type;};
-template <> struct RepeatedTypedef<int32_t> {typedef google::protobuf::RepeatedField<int32_t> type;};
-template <> struct RepeatedTypedef<int64_t> {typedef google::protobuf::RepeatedField<int64_t> type;};
-template <> struct RepeatedTypedef<uint32_t> {typedef google::protobuf::RepeatedField<uint32_t> type;};
-template <> struct RepeatedTypedef<uint64_t> {typedef google::protobuf::RepeatedField<uint64_t> type;};
-template <> struct RepeatedTypedef<std::string> {typedef google::protobuf::RepeatedField<std::string> type;};
+// main template for type generator struct that will return google::protobuf::RepeatedField<T> for a numeric or string T and google::protobuf::RepeatedPtrField<T> otherwise
+template <typename T, bool> struct _RepeatedTypedef;
+template <typename T> struct _RepeatedTypedef<T, false> {typedef google::protobuf::RepeatedPtrField<T> type;};
+template <typename T> struct _RepeatedTypedef<T, true> {typedef google::protobuf::RepeatedField<T> type;};
+template <typename T> struct RepeatedTypedef {typedef typename _RepeatedTypedef<T, IsPrimitive<T>::value>::type type;};
+
+// product functor
+template <typename T, bool> struct _ProductFunctor;
+template <typename T> struct _ProductFunctor<T, true> {template <typename iteratorType> static T call(iteratorType bit, iteratorType eit) {return std::accumulate(bit, eit, 1, mul);}};
+template <typename T> struct _ProductFunctor<T, false> {};
+template <typename T> struct ProductFunctor {template <typename iteratorType> static T call(iteratorType bit, iteratorType eit) {return _ProductFunctor<T, IsNumeric<T>::value>::call(bit, eit);}};
 
 template <typename T>
 class Repeated : public RepeatedTypedef<T>
 {
 public:
-    // typedefs
+// typedefs
     typedef typename RepeatedTypedef<T>::type type;
     typedef typename type::iterator iterator;
     typedef typename type::const_iterator const_iterator;
 
+// constructors/destructors
     Repeated(): repFieldPtr(NULL) {}
     Repeated(type* repFieldPtr): repFieldPtr(repFieldPtr) {}
     ~Repeated() {}
+
+// accessors
+    inline T product() const {return ProductFunctor<T>::call(begin(), end());}
+
+// mutators
+    inline Repeated<T>& operator<<(T val) {repFieldPtr->Add(val); return *this;}
+    inline void setRepFieldPtr(type* newRepFieldPtr) {repFieldPtr = newRepFieldPtr;}
 
 // pass throughs
 // accessors
@@ -84,15 +97,9 @@ public:
     T* Mutable(int index) {return repFieldPtr->Mutable(index);}
     void Set(int index, const T& value) {repFieldPtr->Set(index, value);}
 
-// wrapper functions
-// accessors
-
-// mutators
-    inline Repeated<T>& operator<<(T val) {repFieldPtr->Add(val); return *this;}
-    inline void setRepFieldPtr(type* newRepFieldPtr) {repFieldPtr = newRepFieldPtr;}
-
 protected:
     type* repFieldPtr;
+
 };
 
 }

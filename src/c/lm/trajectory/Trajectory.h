@@ -41,6 +41,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 #include "lm/input/Input.h"
 #include "lm/io/TrajectoryState.pb.h"
@@ -61,9 +62,11 @@ public:
 
     // accessors
     virtual uint64_t getID() const;
+    virtual std::vector<double> getLastOrderParameterValues() const;
+    virtual std::vector<int32_t> getLastSpeciesCounts() const;
     virtual const lm::io::TrajectoryLimits::TrajectoryLimit& getLimitReached() const;
     virtual const lm::io::OrderParametersValues& getOrderParameterValues() const;
-    virtual uint64_t getPhase() const;
+    virtual uint64_t getSimulationPhase() const;
     virtual int32_t getSimSteps() const;
     virtual double getSimTime() const;
     virtual const lm::io::SpeciesCounts& getSpeciesCounts() const;
@@ -77,7 +80,6 @@ public:
     virtual void resetSimTime();
     virtual void setID(uint64_t trajectoryID);
     virtual void setLimitReached(const lm::io::TrajectoryLimits::TrajectoryLimit& limitBuf);
-    virtual void setPhase(uint64_t newPhase);
     virtual void setState(const lm::io::TrajectoryState& newState);
     virtual void setStatus(status_t newStatus);
 
@@ -88,7 +90,7 @@ protected:
 protected:
     uint64_t id;
     int64_t numberWorkUnitsPerformed;
-    uint64_t phase;
+    uint64_t simulationPhase;
     lm::io::TrajectoryState state;
     status_t status;
 };

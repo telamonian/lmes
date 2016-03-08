@@ -65,11 +65,11 @@ namespace lm {
 namespace replicates {
 
 ReplicateTrajectoryList::ReplicateTrajectoryList(const lm::input::Input& input, uint64_t firstTrajectory, uint64_t lastTrajectory)
-:TrajectoryList(input),firstTrajectory(firstTrajectory),lastTrajectory(lastTrajectory),stats_lastPrintTime(getHrTime())
+: TrajectoryList(input, 0), firstTrajectory(firstTrajectory), lastTrajectory(lastTrajectory), stats_lastPrintTime(getHrTime())
 {
     for (uint64_t i=firstTrajectory; i<=lastTrajectory; i++)
     {
-        trajectories[i] = new lm::trajectory::Trajectory(i, getPhase(), input);
+        trajectories[i] = new lm::trajectory::Trajectory(i, getSimulationPhase(), input);
         waitingTrajectories[i] = trajectories[i];
     }
 }

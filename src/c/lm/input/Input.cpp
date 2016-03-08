@@ -56,7 +56,7 @@ namespace input {
 
 Input::Input(const lm::io::hdf5::Hdf5File& file)
 :reactionModelPresent(false),diffusionModelPresent(false),orderParametersPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),
- outputOptionsPresent(false),simulationParameters(file),stepsPerWorkUnit(10000000)
+ outputOptionsPresent(false),simulationParameters(file),partsPerWorkUnit(1),stepsPerWorkUnit(10000000)
 {
     // Get the reaction model.
     if (file.hasReactionModel())
@@ -182,8 +182,6 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
     // Get some generic input options.
     if (simulationParameters.count("partsPerWorkUnit"))
         partsPerWorkUnit = simulationParameters.parse<uint64_t>("partsPerWorkUnit");
-    else
-        partsPerWorkUnit = 100;
 
     if (simulationParameters.count("maxWorkUnitSteps"))
         stepsPerWorkUnit = atoll(simulationParameters["maxWorkUnitSteps"].c_str());
