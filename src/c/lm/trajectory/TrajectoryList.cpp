@@ -41,7 +41,6 @@
 #include <string>
 
 #include "lm/Print.h"
-#include "lm/input/Input.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
@@ -61,7 +60,11 @@ using std::string;
 namespace lm {
 namespace trajectory {
 
-TrajectoryList::TrajectoryList(const lm::input::Input& input, uint64_t simulationPhase) : input(input), simulationPhase(simulationPhase)
+TrajectoryList::TrajectoryList(): simulationPhase(0)
+{
+}
+
+TrajectoryList::TrajectoryList(uint64_t simulationPhase): simulationPhase(simulationPhase)
 {
 }
 
@@ -153,6 +156,17 @@ int TrajectoryList::addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUn
     return trajectoriesAdded.size();
 }
 
+Trajectory* TrajectoryList::getRunningTrajectory(uint64_t id)
+{
+    if (runningTrajectories.count(id) == 0)
+        throw Exception("Consistency error in trajectory list, expected trajectory not in the running list",id);
+
+    Trajectory* t = runningTrajectories[id];
+    if (t->getStatus() != Trajectory::RUNNING)
+        throw Exception("Consistency error in trajectory list, expected trajectory did not have a running status",id);
+    return t;
+}
+
 void TrajectoryList::incrementSimulationPhase()
 {
     simulationPhase++;
@@ -220,12 +234,10 @@ void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& fwuBu
     for (list<uint64_t>::iterator it=involvedTrajectories.begin(); it != involvedTrajectories.end(); it++)
     {
         uint64_t id = *it;
-        if (runningTrajectories.count(id) == 0)
-            throw Exception("Consistency error in trajectory list, expected trajectory not in the running list",id);
 
-        Trajectory* t = runningTrajectories[id];
-        if (t->getStatus() != Trajectory::RUNNING)
-            throw Exception("Consistency error in trajectory list, expected trajectory did not have a running status",id);
+        // normally the trajectory associated with the id has to still exist at this point or an exception is thrown. The two lines below are a hook that allows subclasses to override this behavior.
+        Trajectory* t = getRunningTrajectory(id);
+        if (t==NULL) continue;
 
         // Find the trajectory in the message.
         int partIndex=-1;

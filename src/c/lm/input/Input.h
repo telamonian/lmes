@@ -94,6 +94,7 @@ public:
 
     lm::oparam::OParams* mutableOrderParameters() {return &orderParameters;}
     lm::tiling::Tilings* mutableTilings() {return &tilings;}
+    lm::trajectory::TrajectoryLimits* mutableTrajectoryLimits() {return &trajectoryLimits;}
 
 protected:
     bool parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg);

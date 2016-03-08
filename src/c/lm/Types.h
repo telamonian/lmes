@@ -338,18 +338,7 @@ private:
 /*
  * type testing utilities
  */
-// main template for IsNumeric type testing utility. For numeric types, IsNumeric<T>::value will be true
-template <typename T> struct IsNumeric {static const bool value = false;};
-// specializations for numeric types. For these IsNumeric::value will be true
-template <> struct IsNumeric<double> {static const bool value = true;};
-template <> struct IsNumeric<float> {static const bool value = true;};
-template <> struct IsNumeric<int32_t> {static const bool value = true;};
-template <> struct IsNumeric<int64_t> {static const bool value = true;};
-template <> struct IsNumeric<uint32_t> {static const bool value = true;};
-template <> struct IsNumeric<uint64_t> {static const bool value = true;};
-
-// main template for IsPrimitive type testing utility. For numeric types and strings, IsPrimitive<T>::value will be true
-template <typename T> struct IsPrimitive {static const bool value = IsNumeric<T>::value;};
-template <> struct IsPrimitive<std::string> {static const bool value = true;};
+// template for IsNumeric type testing utility. For numeric types, IsNumeric<T>::value will be true
+template <typename T> struct IsNumeric {static const bool value = std::numeric_limits<T>::is_specialized;};
 
 #endif

@@ -198,15 +198,6 @@ uint64_t Trajectory::getID() const
 const lm::io::OrderParametersValues& Trajectory::getOrderParameterValues() const
 {
     return state.cme_state().order_parameter_values();
-//	uint* lastSpeciesCount = new uint[getSpeciesCounts().number_species()];
-//	uint offset = (getSpeciesCounts().number_entries() - 1)*(getSpeciesCounts().number_species());
-//	double time = getSpeciesCounts().time(getSpeciesCounts().number_entries() - 1);  //double time = getSpeciesCounts()->time(getSpeciesCounts()->time_size()-1);
-//	for (int i=0; i<getSpeciesCounts().number_species(); i++)
-//	{
-//		lastSpeciesCount[i] = getSpeciesCounts().species_count(i + offset);
-//	}
-//	return input.oparams[opID]->calc(lastSpeciesCount, time);
-//	delete [] lastSpeciesCount;
 }
 
 uint64_t Trajectory::getSimulationPhase() const
@@ -251,6 +242,24 @@ void Trajectory::printStatus() const
 }
 
 // mutators
+double* Trajectory::getLastOrderParameterValuesMutable()
+{
+    lm::io::OrderParametersValues* opv(state.mutable_cme_state()->mutable_order_parameter_values());
+
+    // offset the order_parameter_values pointer to ensure that we only get the last "row" of values
+    int offset = (opv->number_entries() - 1)*(opv->number_order_parameters());
+    return opv->mutable_order_parameter_values()->mutable_data() + offset;
+}
+
+int32_t* Trajectory::getLastSpeciesCountsMutable()
+{
+    lm::io::SpeciesCounts* sc(state.mutable_cme_state()->mutable_species_counts());
+
+    // offset the species_count pointer to ensure that we only get the last "row" of values
+    int offset = (sc->number_entries() - 1)*(sc->number_species());
+    return sc->mutable_species_count()->mutable_data() + offset;
+}
+
 void Trajectory::incrementWorkUnitsPerformed()
 {
     numberWorkUnitsPerformed++;

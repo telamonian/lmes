@@ -49,20 +49,14 @@
 namespace lm {
 namespace pwrap {
 
-// main template for type generator struct that will return google::protobuf::RepeatedField<T> for a numeric or string T and google::protobuf::RepeatedPtrField<T> otherwise
+// main template for type generator struct that will return google::protobuf::RepeatedField<T> for a numeric T and google::protobuf::RepeatedPtrField<T> otherwise
 template <typename T, bool> struct _RepeatedTypedef;
 template <typename T> struct _RepeatedTypedef<T, false> {typedef google::protobuf::RepeatedPtrField<T> type;};
 template <typename T> struct _RepeatedTypedef<T, true> {typedef google::protobuf::RepeatedField<T> type;};
-template <typename T> struct RepeatedTypedef {typedef typename _RepeatedTypedef<T, IsPrimitive<T>::value>::type type;};
-
-// product functor
-template <typename T, bool> struct _ProductFunctor;
-template <typename T> struct _ProductFunctor<T, true> {template <typename iteratorType> static T call(iteratorType bit, iteratorType eit) {return std::accumulate(bit, eit, 1, mul);}};
-template <typename T> struct _ProductFunctor<T, false> {};
-template <typename T> struct ProductFunctor {template <typename iteratorType> static T call(iteratorType bit, iteratorType eit) {return _ProductFunctor<T, IsNumeric<T>::value>::call(bit, eit);}};
+template <typename T> struct RepeatedTypedef {typedef typename _RepeatedTypedef<T, IsNumeric<T>::value>::type type;};
 
 template <typename T>
-class Repeated : public RepeatedTypedef<T>
+class Repeated
 {
 public:
 // typedefs

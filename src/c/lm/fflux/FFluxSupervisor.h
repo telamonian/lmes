@@ -70,19 +70,19 @@ public:
 
 protected:
 //mutators
-    virtual void buildRunWorkUnitLimits(lm::message::RunWorkUnit* msg);
+//    virtual void buildRunWorkUnitLimits(lm::message::RunWorkUnit* msg);
     virtual void buildTrajectoryList();
     virtual void finishSimulation();
     virtual void incrementFFluxPhase();
     virtual void receivedProcessWorkUnitOutput(lm::message::Message& msg);
     virtual void receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg);
     virtual void resetFFluxPhase();
-    virtual void setLimits();
+//    virtual void setLimits();
     virtual void startSimulation();
 
 protected:
     uint64_t ffluxPhase;
-    lm::trajectory::TrajectoryLimits trajectoryLimits;
+//    lm::trajectory::TrajectoryLimits trajectoryLimits;
 
     //    int realOutputWriterProcess;
     //    int realOutputWriterThread;

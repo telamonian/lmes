@@ -53,10 +53,12 @@
 #include "lm/message/Communicator.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/Message.pb.h"
+#include "lm/message/WorkUnitOutput.pb.h"
 #include "lm/message/WorkUnitStatus.pb.h"
-#include "lm/trajectory/TrajectoryList.h"
 #include "lm/rng/XORShift.h"
 #include "lm/tiling/Tilings.h"
+#include "lm/trajectory/Trajectory.h"
+#include "lm/trajectory/TrajectoryList.h"
 #include "lm/Types.h"
 
 namespace lm {
@@ -78,7 +80,7 @@ public:
     enum PhaseCheck {CROSSINGS, TIME};
 
 //    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters, lm::tiling::Tilings& tilings);
-    FFluxTrajectoryList(lm::input::Input& input, lm::message::Communicator& communicator, uint64_t simultaneousTrajectoryCount);
+    FFluxTrajectoryList(uint64_t simulationPhase, lm::input::Input& input, lm::message::Communicator& communicator, uint64_t simultaneousTrajectoryCount);
     virtual ~FFluxTrajectoryList();
     virtual void init();
     virtual void initChecks(lm::input::Input& input);
@@ -88,7 +90,9 @@ public:
     virtual void initTrajectories(uint64_t toStartCount, lm::io::TrajectoryState* zerothTraj);
     virtual void initPhaseNTrajectories(uint64_t trajectoriesToStart);
 
-    virtual void workUnitPartFinished(const lm::message::WorkUnitStatus& wusMsg, lm::fflux::FFluxTrajectory* traj);
+    virtual void setLimits();
+
+    virtual void workUnitPartFinished(const lm::message::WorkUnitStatus& wusMsg, lm::trajectory::Trajectory* traj);
     virtual void workUnitPartFinishedPhaseZero(const message::WorkUnitStatus& wusMsg, lm::fflux::FFluxTrajectory* traj, uint prevFinalLimitID, double prevTime);
     virtual void workUnitPartFinishedPhaseN(const message::WorkUnitStatus& wusMsg, lm::fflux::FFluxTrajectory* traj, uint prevFinalLimitID, double prevTime);
 
@@ -97,8 +101,8 @@ public:
     virtual uint getCrossingsPerPhase();
     virtual lm::io::FFluxOutput* getFFluxOutput();
     virtual lm::io::FFluxOutput* getFFluxOutputStreaming();
-    // Returns a randomly chosen crossing event (in the form of a TrajectoryState) collected durring forward flux phase ffluxPhase
-    virtual lm::io::TrajectoryState* getRandomCrossing(uint64_t ffluxPhase);
+    virtual lm::io::TrajectoryState* getRandomCrossing(uint64_t ffluxPhase);        // Returns a randomly chosen crossing event (in the form of a TrajectoryState) collected durring forward flux phase ffluxPhase
+    virtual lm::trajectory::Trajectory* getRunningTrajectory(uint64_t id);          // same as the parent class method but does an exists check to handle the case that we're trying to get a trajectory from a finished phase
     virtual CrossingsMap getSavedCrossings(lm::fflux::FFluxTrajectoryList::Direction dir);
 
 protected:
@@ -137,6 +141,7 @@ protected:
     // for printing the name of the current simulation direction
     static const std::vector<std::string> directionStrings;
     uint64_t ffluxPhase;
+    lm::input::Input& input;
     uint64_t maxFFluxPhase;
     uint64_t simultaneousTrajectoryCount;
     uint64_t trajectoryCount;

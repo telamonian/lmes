@@ -395,7 +395,7 @@ bool SimulationSupervisor::assignWork()
     // Go though the available slots and fill them with work units.
     while (true)
     {
-        // Allocate the next free slot, if there is one. Except for once (at the program's end), assignWork should return from here.
+        // Allocate the next free slot, if there is one. AssignWork should return from here, except for when it's the end of a simulation phase or the end of the program.
         if (!slots.hasFreeSlots()) return false;
 
         // Create the run work unit message.

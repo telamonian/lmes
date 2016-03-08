@@ -76,6 +76,8 @@ public:
     virtual void printStatus() const;
 
     // mutators
+    virtual double* getLastOrderParameterValuesMutable();
+    virtual int32_t* getLastSpeciesCountsMutable();
     virtual void incrementWorkUnitsPerformed();
     virtual void resetSimTime();
     virtual void setID(uint64_t trajectoryID);

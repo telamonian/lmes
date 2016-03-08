@@ -62,7 +62,8 @@ namespace trajectory {
 class TrajectoryList
 {
 public:
-    TrajectoryList(const lm::input::Input& input, uint64_t simulationPhase);
+    TrajectoryList();
+    TrajectoryList(uint64_t simulationPhase);
     virtual ~TrajectoryList();
 
 // destroyer
@@ -78,6 +79,7 @@ public:
 
 // mutators
     virtual int addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUnit* msg, uint numberParts);
+    virtual Trajectory* getRunningTrajectory(uint64_t id);
     virtual void incrementSimulationPhase();
     virtual void setSimulationPhase(uint64_t newPhase) {simulationPhase = newPhase;}
     virtual void setAllFinished();
@@ -93,7 +95,6 @@ protected:
     virtual void printTrajectoryStatistics() const {};
 
 protected:
-    const lm::input::Input& input;
     uint64_t simulationPhase;
     TrajectoryMap trajectories;
     TrajectoryMap waitingTrajectories;

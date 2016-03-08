@@ -65,7 +65,7 @@ namespace lm {
 namespace replicates {
 
 ReplicateTrajectoryList::ReplicateTrajectoryList(const lm::input::Input& input, uint64_t firstTrajectory, uint64_t lastTrajectory)
-: TrajectoryList(input, 0), firstTrajectory(firstTrajectory), lastTrajectory(lastTrajectory), stats_lastPrintTime(getHrTime())
+:firstTrajectory(firstTrajectory), lastTrajectory(lastTrajectory), stats_lastPrintTime(getHrTime())
 {
     for (uint64_t i=firstTrajectory; i<=lastTrajectory; i++)
     {
