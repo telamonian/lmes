@@ -41,6 +41,7 @@
 #define LM_OPARAM_OPARAM
 
 #include "lm/io/OrderParameters.pb.h"
+#include "lm/io/TrajectoryState.pb.h"
 #include "lm/Types.h"
 
 namespace lm {
@@ -53,7 +54,9 @@ public:
     virtual ~OParam();
     virtual void init(const lm::io::OrderParameters::OrderParameter& opRef);
     virtual void initValues(uint* speciesCounts, double time);
-    virtual double calc(uint* speciesCounts, double time) = 0;
+    virtual double calc(const uint* speciesCounts, double time) const = 0;
+    virtual double calc(const lm::io::TrajectoryState& state) const;
+    virtual double calcAndStore(uint* speciesCounts, double time);
     double get() {return val;}
     double getPrev() {return prevVal;}
     void set(double newVal) {val = newVal;}
@@ -74,7 +77,7 @@ public:
     OParamLinear();
     virtual ~OParamLinear() {}
     virtual void init(const lm::io::OrderParameters::OrderParameter& opRef);
-    virtual double calc(uint* speciesCounts, double time);
+    virtual double calc(const uint* speciesCounts, double time) const;
 public:
     uint size;
     const uint* speciesID;
@@ -91,7 +94,7 @@ public:
     OParamTwoSpecies();
     virtual ~OParamTwoSpecies() {}
     virtual void init(const lm::io::OrderParameters::OrderParameter& opRef);
-    virtual double calc(uint* speciesCounts, double time);
+    virtual double calc(const uint* speciesCounts, double time) const;
 public:
     uint s1, s2;
     double k1, k2;

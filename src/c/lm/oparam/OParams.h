@@ -75,11 +75,12 @@ public:
     OPMap::iterator end() {return opMap.end();}
 
     // accessors
-    void calc(uint* speciesCounts, double time);
-    lm::io::OrderParameters* getOParamsBuf() {return &oparamsBuf;}
-    uint size() {return size_;}
+    const lm::oparam::OParam* at(const uint& key) const {return opMap.at(key);}
+    uint64_t size() const {return opMap.size();}
 
     // mutators
+    void calcAndStore(uint* speciesCounts, double time);
+    lm::io::OrderParameters* getOParamsBuf() {return &oparamsBuf;}
     void setOParamsBuf(const lm::io::OrderParameters& newOParamsBuf) {*getOParamsBuf() = newOParamsBuf;}
     bool rFFOParamsBuf(const lm::io::hdf5::Hdf5File* file); // rFF = read From File
 
@@ -96,7 +97,6 @@ public:
 protected:
     lm::io::OrderParameters oparamsBuf;
     OPMap opMap;
-    uint size_;
 };
 
 }

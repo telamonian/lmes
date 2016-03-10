@@ -38,7 +38,7 @@
  */
 #include "lm/ClassFactory.h"
 #include "lm/io/OrderParameters.pb.h"
-//#include "lm/io/TrajectoryState.pb.h"
+#include "lm/io/TrajectoryState.pb.h"
 #include "lm/oparam/OParam.h"
 
 namespace lm {
@@ -61,8 +61,24 @@ void OParam::init(const lm::io::OrderParameters::OrderParameter& opRef)
 
 void OParam::initValues(uint* speciesCounts, double time)
 {
-    calc(speciesCounts, time);
+    val = calc(speciesCounts, time);
     prevVal = val;
+}
+
+double OParam::calcAndStore(uint* speciesCounts, double time)
+{
+    prevVal = val;
+    val = calc(speciesCounts, time);
+    return val;
+}
+
+double OParam::calc(const lm::io::TrajectoryState& state) const
+{
+    const lm::io::SpeciesCounts& sc(state.cme_state().species_counts());
+
+    // offset the species_count pointer to ensure that we only get the last "row" of values
+    int offset = (sc.number_entries() - 1)*(sc.number_species());
+    return calc((uint*)(sc.species_count().data() + offset), sc.time(sc.number_entries() - 1));
 }
 
 // derived class methods
@@ -88,27 +104,15 @@ void OParamLinear::init(const lm::io::OrderParameters::OrderParameter& opRef)
     speciesCoefficient = op->species_coefficients().data();
 }
 
-double OParamLinear::calc(uint* speciesCounts, double time)
+double OParamLinear::calc(const uint* speciesCounts, double time) const
 {
-    prevVal = val;
-    val = 0;
+    double newVal = 0;
     for (int i=0;i<size;++i)
     {
-        val+=speciesCounts[speciesID[i]]*speciesCoefficient[i];
+        newVal+=speciesCounts[speciesID[i]]*speciesCoefficient[i];
     }
-    return val;
+    return newVal;
 }
-
-//double OParamLinear::calc(lm::io::TrajectoryState& state)
-//{
-//    val = 0;
-//    for (int i=0;i<size;++i)
-//    {
-//        val+=state.cme_state().species_counts().species_count(speciesID[i]) * speciesCoefficient[i];
-//    }
-//    return val;
-//}
-
 
 bool OParamTwoSpecies::registered=OParamTwoSpecies::registerClass();
 bool OParamTwoSpecies::registerClass()
@@ -133,7 +137,7 @@ void OParamTwoSpecies::init(const lm::io::OrderParameters::OrderParameter& opRef
     k2 = op->species_coefficients(1);
 }
 
-double OParamTwoSpecies::calc(uint* speciesCounts, double time)
+double OParamTwoSpecies::calc(const uint* speciesCounts, double time) const
 {
     return k1*double(speciesCounts[s1]) + k2*double(speciesCounts[s2]);
 }

@@ -13,12 +13,34 @@ SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModu
 enable_testing()
 # if certain packages cannot be found, the end-user (you) can change the variables in CMakeConfig.txt to point to package paths
 include(CMakeConfig.txt)
+include(ConfigFunctions)
 include(TestAVX)
 
-# stuff for enabling the built in profiler
-if(PROF_ENABLE)
-    add_definitions(-DPROF_ENABLE -DPROF_CUDA_ENABLE=0 -DPROF_MAX_THREADS=16 -DPROF_MAX_EVENTS=10000000 -DPROF_OUT_FILE=timing.prof)
-endif(PROF_ENABLE)
+# Set architecture flag, used in c and c++ flags.
+# Will be replaced by the CUSTOM_ARCH_FLAG variable from CMakeConfig.txt if set
+SetConfigDefault(ARCH_FLAG CUSTOM_ARCH_FLAG "native")
+
+# Lattice Microbes standard compiler flags
+set(LM_FLAGS_OPTIMIZED "-O3 -DNDEBUG -march=${ARCH_FLAG} -fPIC -Wall -fmessage-length=0")
+set(LM_FLAGS_DEBUG "-g -march=${ARCH_FLAG} -fPIC -Wall -fmessage-length=0")
+
+# Set compiler flags for c and c++ for the various builds.
+if(NOT CMAKE_BUILD_TYPE)
+    # Will be replaced by the CUSTOM_C_FLAGS and CUSTOM_CXX_FLAGS variables from CMakeConfig.txt if set
+    SetConfigDefault(CMAKE_C_FLAGS      CUSTOM_C_FLAGS      ${LM_FLAGS_DEBUG})
+    SetConfigDefault(CMAKE_CXX_FLAGS    CUSTOM_CXX_FLAGS    ${LM_FLAGS_DEBUG})
+elseif(CMAKE_BUILD_TYPE STREQUAL DEBUG)
+    # Will be replaced by the CUSTOM_C_FLAGS_DEBUG and CUSTOM_CXX_FLAGS_DEBUG variables from CMakeConfig.txt if set
+    SetConfigDefault(CMAKE_C_FLAGS_DEBUG     CUSTOM_C_FLAGS_DEBUG     ${LM_FLAGS_DEBUG})
+    SetConfigDefault(CMAKE_CXX_FLAGS_DEBUG   CUSTOM_CXX_FLAGS_DEBUG   ${LM_FLAGS_DEBUG})
+elseif(CMAKE_BUILD_TYPE STREQUAL RELEASE)
+    # Will be replaced by the CUSTOM_C_FLAGS_RELEASE and CUSTOM_CXX_FLAGS_RELEASE variables from CMakeConfig.txt if set
+    SetConfigDefault(CMAKE_C_FLAGS_RELEASE      CUSTOM_C_FLAGS_RELEASE      ${LM_FLAGS_OPTIMIZED})
+    SetConfigDefault(CMAKE_CXX_FLAGS_RELEASE    CUSTOM_CXX_FLAGS_RELEASE    ${LM_FLAGS_OPTIMIZED})
+endif(NOT CMAKE_BUILD_TYPE)
+
+# for now, no c++11 support
+#SET(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 
 # package finding stuff
 find_package(MPI REQUIRED)
@@ -59,29 +81,20 @@ find_package(HDF5 COMPONENTS C HL REQUIRED)
 find_package(ZLIB REQUIRED)
 #find_package(Boost)
 
+TestAVX(BUILD_WITH_AVX ${USE_AVX})
+
 # add some definitions that will get passed on to the compiler
 add_definitions(-DBUILD_INFO -DVERBOSITY_LEVEL=${VERBOSITY_LEVEL})
 IF(BUILD_WITH_CUDA)
     add_definitions(-DOPT_CUDA)
 ENDIF(BUILD_WITH_CUDA)
-
-# set compiler flags for c and c++
-IF(DEFINED CUSTOM_C_FLAGS)
-    SET(CMAKE_C_FLAGS ${CUSTOM_C_FLAGS})
-    MESSAGE(STATUS "Using custom C flags: ${CMAKE_C_FLAGS}")
-ELSE(DEFINED CUSTOM_C_FLAGS)
-    SET(CMAKE_C_FLAGS "-g -march=native -fPIC -Wall -fmessage-length=0")
-ENDIF(DEFINED CUSTOM_C_FLAGS)
-
-IF(DEFINED CUSTOM_CXX_FLAGS)
-    SET(CMAKE_CXX_FLAGS ${CUSTOM_CXX_FLAGS})
-    MESSAGE(STATUS "Using custom C++ flags: ${CMAKE_CXX_FLAGS}")
-ELSE(DEFINED CUSTOM_CXX_FLAGS)
-    SET(CMAKE_CXX_FLAGS "-g -march=native -fPIC -Wall -fmessage-length=0")
-ENDIF(DEFINED CUSTOM_CXX_FLAGS)
-
-# for now, no c++11 support
-#SET(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+if(BUILD_WITH_AVX)
+    add_definitions(-DOPT_AVX)
+endif(BUILD_WITH_AVX)
+# stuff for enabling the built in profiler
+if(PROF_ENABLE)
+    add_definitions(-DPROF_ENABLE -DPROF_CUDA_ENABLE=0 -DPROF_MAX_THREADS=16 -DPROF_MAX_EVENTS=10000000 -DPROF_OUT_FILE=timing.prof)
+endif(PROF_ENABLE)
 
 # automagic setup for linux, os X 10.7-8 (and lower?), and os X 10.9 (and higher)
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -116,11 +129,6 @@ endif(BUILD_WITH_CUDA)
 if(libsbml_FOUND)
     include_directories(${libsbml_INCLUDE_DIRS})
 endif(libsbml_FOUND)
-
-TestAVX(COMPILER_HAS_AVX)
-if(COMPILER_HAS_AVX)
-    add_definitions(-DOPT_AVX)
-endif(COMPILER_HAS_AVX)
 
 # to help clion find the generated protobuf code
 string(REGEX MATCH "[Cc][Ll]ion" BUILT_WITH_CLION "${lm_BINARY_DIR}")

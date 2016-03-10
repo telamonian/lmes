@@ -135,6 +135,8 @@ protected:
     virtual void ffluxOutputPrintFinal_DinnerMethod(SavedCrossings& savedCrossings, SavedDwellTimes& savedDwellTimes, SavedFinishedTrajectoriesCounts& savedFinishedTrajectoriesCounts, SavedHists& savedHists);
     virtual void ffluxOutputSetFinal_DinnerMethod(SavedCrossings& savedCrossings, SavedDwellTimes& savedDwellTimes, SavedFinishedTrajectoriesCounts& savedFinishedTrajectoriesCounts, SavedHists& savedHists);
 
+    virtual void setAllFinished();
+
 protected:
     const lm::message::Communicator& communicator;
     Direction direction;

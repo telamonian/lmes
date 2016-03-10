@@ -87,6 +87,7 @@ public:
 
 protected:
     virtual void inititializeHists(const lm::input::Input& input);
+    virtual void initializeOrderParameters(const lm::input::Input& input);
     virtual void initializeState(const lm::input::Input& input, bool reversed=false);
 
 protected:

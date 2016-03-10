@@ -11,7 +11,59 @@ import shlex, subprocess
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'utils', 'python', 'runner'))
 from lmFile import Input,Dependency,DependencyMatrix,InitialSpeciesCounts,InitialSpeciesCountsBackward,OrderParameter,ReactionRateConstant,SimulationParameter,Tiling
 
-def _Main(execPath, fullLength, lmArgs, phaseCheckDictOverride, timingLength):
+def _Main(execPath, lmArgs, fullLength, phaseCheckDictOverride, timingLength):
+    BuildInput(fullLength=fullLength, phaseCheckDictOverride=phaseCheckDictOverride, timingLength=timingLength)
+    Run(execPath=execPath, lmArgs=lmArgs)
+
+def Main():
+    parser = ArgumentParser('script to test out a complete Forward Flux Lattice Microbes run')
+
+    parser.add_argument('execPath', default='', nargs='?',           help='path to lmes (the Lattice Microbes executable).\n' +
+                                                                          'If left blank, the regression test input file\n' +
+                                                                          'will be built but the test will not be run')
+
+    parser.add_argument('-c', '--cpu', dest='c', default='5')
+    parser.add_argument('-cr', '--cpus-per-runner', dest='cr', default='1')
+    parser.add_argument('-gr', '--gpus-per-runner', dest='gr', default='1/4')
+    parser.add_argument('-ff', '--output-format', dest='ff', default='hdf5')
+    parser.add_argument('-fo', '--output-file', dest='fo')
+
+    parser.add_argument('-mcz', '--maxCrossingsZero',                help='max crossing to record for phase zero')
+    parser.add_argument('-mtz', '--maxTimeZero',                     help='max time to run phase zero for')
+    parser.add_argument('-mcn', '--maxCrossingsN',                   help='max crossing to record for phase N')
+    parser.add_argument('-mtn', '--maxTimeN',                        help='max time to run phase N for')
+
+    parser.add_argument('-f', '--fullLength', action='store_true',   help='set this flag to do a test run using the default "best" parameters for forward flux')
+    parser.add_argument('--sfile', action='store_true',              help='set this flag to use SFile output. Equivalent to -ff sfile -fo biphasic_switch.sfile')
+    parser.add_argument('-t', '--timingLength', action='store_true', help='set this flag to do a test run that should last for at least a minute in both phase zero and the combined total of the rest of the phases')
+
+    kwargs = vars(parser.parse_args())
+    print_(kwargs)
+
+    phaseCheckDictOverride = {key:val for key,val in ((key, kwargs.pop(key)) for key in ('maxCrossingsZero', 'maxTimeZero', 'maxCrossingsN', 'maxTimeN')) if val is not None}
+    kwargs['phaseCheckDictOverride'] = phaseCheckDictOverride
+
+    if not kwargs['execPath']:
+        print_('Building lmes forward flux simulation input file without executing the test')
+
+        buildInputKwargs = {key:kwargs[key] for key in ('fullLength', 'phaseCheckDictOverride', 'timingLength')}
+        BuildInput(**buildInputKwargs)
+    else:
+        print_('Building lmes forward flux simulation input file and then running a test')
+        if kwargs.pop('sfile'):
+            kwargs['ff'] = 'sfile'
+            kwargs['fo'] = 'biphasic_switch.sfile'
+            try:
+                os.remove('biphasic_switch.sfile')
+            except OSError:
+                pass
+
+        lmArgs = [tok for tup in ((key,val) for key,val in (('-%s' % key, kwargs.pop(key)) for key in ('c', 'cr', 'gr', 'ff', 'fo')) if val is not None) for tok in tup]
+        kwargs['lmArgs'] = lmArgs
+
+        _Main(**kwargs)
+
+def BuildInput(fullLength, phaseCheckDictOverride, timingLength):
     if fullLength:
         phaseCheckDict = {'maxCrossingsZero': 1e5,
                           'maxTimeZero': None,  #1e6
@@ -41,18 +93,18 @@ def _Main(execPath, fullLength, lmArgs, phaseCheckDictOverride, timingLength):
     iSCBs = InitialSpeciesCountsBackward(speciesCounts=[0,0,0,4,16,1,0])
 
     ops = [
-    OrderParameter(type=0,
-                   id=0,
-                   speciesIDs=[0,1,2,3,4,5],
-                   speciesCoefficients=[-1,-2,-2,1,2,2]),
-    OrderParameter(type=0,
-                   id=1,
-                   speciesIDs=[0,1,2],
-                   speciesCoefficients=[1,2,2]),
-    OrderParameter(type=0,
-                   id=2,
-                   speciesIDs=[3,4,5],
-                   speciesCoefficients=[1,2,2])]
+        OrderParameter(type=0,
+                       id=0,
+                       speciesIDs=[0,1,2,3,4,5],
+                       speciesCoefficients=[-1,-2,-2,1,2,2])]
+        # OrderParameter(type=0,
+        #                id=1,
+        #                speciesIDs=[0,1,2],
+        #                speciesCoefficients=[1,2,2]),
+        # OrderParameter(type=0,
+        #                id=2,
+        #                speciesIDs=[3,4,5],
+        #                speciesCoefficients=[1,2,2])]
 
     theta = 1
     productionConstants = [ReactionRateConstant(reactionID=4, rateConstant=1.0*theta),
@@ -73,38 +125,38 @@ def _Main(execPath, fullLength, lmArgs, phaseCheckDictOverride, timingLength):
             simParams.append(SimulationParameter(key=key, val=str(int(float(val)))))
 
     tilings = [
-    Tiling(id=0,
-           orderParameterID=0,
-           type=0,
-           edges=np.linspace(-27,27,13)),
-    Tiling(id=19,
-           orderParameterID=0,
-           type=0,
-           edges=np.linspace(-25,25,13)),
-    Tiling(id=1,
-           orderParameterID=1,
-           type=0,
-           edges=np.arange(100)),
-    Tiling(id=2,
-           orderParameterID=2,
-           type=0,
-           edges=np.arange(100)),
-    Tiling(id=3,
-           orderParameterID=0,
-           type=0,
-           edges=np.arange(-100,100)),
-    Tiling(id=199,
-           orderParameterID=0,
-           type=0,
-           edges=np.linspace(-30,30,16)),
-    Tiling(id=7,
-           orderParameterID=0,
-           type=0,
-           edges=np.linspace(-25,25,11)),
-    Tiling(id=27194,
-           orderParameterID=0,
-           type=0,
-           edges=np.linspace(-20,20,5))]
+        Tiling(id=0,
+               orderParameterID=0,
+               type=0,
+               edges=np.linspace(-27,27,13)),
+        Tiling(id=19,
+               orderParameterID=0,
+               type=0,
+               edges=np.linspace(-25,25,13)),
+        Tiling(id=1,
+               orderParameterID=1,
+               type=0,
+               edges=np.arange(100)),
+        Tiling(id=2,
+               orderParameterID=2,
+               type=0,
+               edges=np.arange(100)),
+        Tiling(id=3,
+               orderParameterID=0,
+               type=0,
+               edges=np.arange(-100,100)),
+        Tiling(id=199,
+               orderParameterID=0,
+               type=0,
+               edges=np.linspace(-30,30,16)),
+        Tiling(id=7,
+               orderParameterID=0,
+               type=0,
+               edges=np.linspace(-25,25,11)),
+        Tiling(id=27194,
+               orderParameterID=0,
+               type=0,
+               edges=np.linspace(-20,20,5))]
 
     ffluxInput.AddTilings(tilings=tilings, currentTilingID=0)
     ffluxInput.SetInitialSpeciesCounts(iSCs=iSCs)
@@ -113,47 +165,6 @@ def _Main(execPath, fullLength, lmArgs, phaseCheckDictOverride, timingLength):
     ffluxInput.SetReactionRateConstants(rRates=reactionRateConstants)
     ffluxInput.SetSimulationParameters(simParams=simParams)
     ffluxInput.Close()
-
-    Run(execPath, lmArgs)
-
-def Main():
-    parser = ArgumentParser('script to test out a complete Forward Flux Lattice Microbes run')
-
-    parser.add_argument('execPath',                                  help='path to lmes (the Lattice Microbes executable)')
-
-    parser.add_argument('-c', '--cpu', dest='c', default='5')
-    parser.add_argument('-cr', '--cpus-per-runner', dest='cr', default='1')
-    parser.add_argument('-gr', '--gpus-per-runner', dest='gr', default='1/4')
-    parser.add_argument('-ff', '--output-format', dest='ff', default='hdf5')
-    parser.add_argument('-fo', '--output-file', dest='fo')
-
-    parser.add_argument('-mcz', '--maxCrossingsZero',                help='max crossing to record for phase zero')
-    parser.add_argument('-mtz', '--maxTimeZero',                     help='max time to run phase zero for')
-    parser.add_argument('-mcn', '--maxCrossingsN',                   help='max crossing to record for phase N')
-    parser.add_argument('-mtn', '--maxTimeN',                        help='max time to run phase N for')
-
-    parser.add_argument('-f', '--fullLength', action='store_true',   help='set this flag to do a test run using the default "best" parameters for forward flux')
-    parser.add_argument('--sfile', action='store_true',              help='set this flag to use SFile output. Equivalent to -ff sfile -fo biphasic_switch.sfile')
-    parser.add_argument('-t', '--timingLength', action='store_true', help='set this flag to do a test run that should last for at least a minute in both phase zero and the combined total of the rest of the phases')
-
-    kwargs = vars(parser.parse_args())
-    print_(kwargs)
-
-    phaseCheckDictOverride = {key:val for key,val in ((key, kwargs.pop(key)) for key in ('maxCrossingsZero', 'maxTimeZero', 'maxCrossingsN', 'maxTimeN')) if val is not None}
-    kwargs['phaseCheckDictOverride'] = phaseCheckDictOverride
-    
-    if kwargs.pop('sfile'):
-        kwargs['ff'] = 'sfile'
-        kwargs['fo'] = 'biphasic_switch.sfile'
-        try:
-            os.remove('biphasic_switch.sfile')
-        except OSError:
-            pass
-
-    lmArgs = [tok for tup in ((key,val) for key,val in (('-%s' % key, kwargs.pop(key)) for key in ('c', 'cr', 'gr', 'ff', 'fo')) if val is not None) for tok in tup]
-    kwargs['lmArgs'] = lmArgs
-    
-    _Main(**kwargs)
 
 def Run(execPath, lmArgs):
     cmdToks = [execPath] + ['-sl', 'lm::cme::GillespieDSolver', '-f', 'biphasic_switch.lm', '-fflux', '-intout'] + lmArgs

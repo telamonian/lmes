@@ -228,7 +228,7 @@ void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& fwuBu
 
     //Make sure the sizes between the list and the message are consistent.
     if (involvedTrajectories.size() != fwuBuf.part_status_size())
-        throw Exception("Consistency error in trajectory list, number of involved trajectories differed from work units finished message",workUnitId);
+        throw Exception("Consistency error in trajectory list, number of involved trajectories differed from work units finished message",workUnitId, involvedTrajectories.size(), fwuBuf.part_status_size());
 
     // Loop over the trajectories.
     for (list<uint64_t>::iterator it=involvedTrajectories.begin(); it != involvedTrajectories.end(); it++)

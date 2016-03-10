@@ -250,7 +250,9 @@ void FFluxTrajectoryList::initTrajectories(uint64_t trajectoriesToStart,bool rev
     {
     	lm::fflux::FFluxTrajectory* newTraj = new lm::fflux::FFluxTrajectory(trajectoryCount, simulationPhase, input, reversed, ffluxPhase);
     	if (intermediateOutputFlag) {ffluxOutputAddTrajectory(newTraj, lm::io::FFluxOutput::INITIAL);}
-    	trajectories[trajectoryCount++] = newTraj;
+    	trajectories[trajectoryCount] = newTraj;
+        waitingTrajectories[trajectoryCount] = trajectories[trajectoryCount];
+        trajectoryCount++;
     }
 }
 
@@ -260,7 +262,9 @@ void FFluxTrajectoryList::initTrajectories(uint64_t trajectoriesToStart, lm::io:
     {
     	lm::fflux::FFluxTrajectory* newTraj = new lm::fflux::FFluxTrajectory(trajectoryCount, simulationPhase, *oldTraj, ffluxPhase, input);
     	if (intermediateOutputFlag) {ffluxOutputAddTrajectory(newTraj, lm::io::FFluxOutput::INITIAL);}
-    	trajectories[trajectoryCount++] = newTraj;
+        trajectories[trajectoryCount] = newTraj;
+        waitingTrajectories[trajectoryCount] = trajectories[trajectoryCount];
+        trajectoryCount++;
     }
 }
 
@@ -304,7 +308,7 @@ void FFluxTrajectoryList::workUnitPartFinished(const message::WorkUnitStatus& wu
     uint prevFinalLimitID = ffluxTraj->getLimitReached().id();
 
     // Call the base class method.
-    TrajectoryList::workUnitPartFinished(wusMsg);
+    TrajectoryList::workUnitPartFinished(wusMsg, static_cast<lm::trajectory::Trajectory*>(ffluxTraj));
     // If the work unit was from a previous phase of the fflux simulation, delete the associated trajectory and move on
     if (ffluxTraj->getFFluxPhase() < ffluxPhase)
     {
@@ -693,8 +697,8 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(FFluxTrajectory* traj, lm::io
 //    {
 //        trajOut->add_count(opValPtr[i]);
 //    }
-    lm::oparam::OParam* op = (*const_cast<lm::input::Input&>(input).mutableOrderParameters())[input.getCurrentTiling().getOrderParameterID()];
-    trajOut->add_count(op->calc((uint*)(traj->getLastOrderParameterValuesMutable()), traj->getSimTime()));
+    const lm::oparam::OParam* op = input.getOrderParameters().at(input.getCurrentTiling().getOrderParameterID());
+    trajOut->add_count(op->calc((uint*)(traj->getLastSpeciesCountsMutable()), traj->getSimTime()));
 
     int32_t* specCountPtr = traj->getLastSpeciesCountsMutable();
     for (int i = 0; i < traj->getSpeciesCounts().number_species(); i++)
@@ -746,8 +750,7 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(const io::SpeciesCounts& spec
             trajOut->add_trajectory_id(traj->getID());
 
             uint offset = i*(specCountsMsg.number_species());
-            // TODO make the oparam calc lines less awful
-            lm::oparam::OParam* op = (*const_cast<lm::input::Input&>(input).mutableOrderParameters())[input.getCurrentTiling().getOrderParameterID()];
+            const lm::oparam::OParam* op = input.getOrderParameters().at(input.getCurrentTiling().getOrderParameterID());
             trajOut->add_count(op->calc((uint*)(specCountsMsg.species_count().data()) + offset, specCountsMsg.time(i)));
             for (int j=0; j<specCountsMsg.number_species(); j++)
             {
@@ -800,8 +803,7 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(const lm::io::SpeciesTimeSeri
             trajOut->add_trajectory_id(traj->getID());
 
             uint offset = i*(numberSpecies);
-            // TODO make the oparam calc lines less awful
-            lm::oparam::OParam* op = (*const_cast<lm::input::Input&>(input).mutableOrderParameters())[input.getCurrentTiling().getOrderParameterID()];
+            const lm::oparam::OParam* op = input.getOrderParameters().at(input.getCurrentTiling().getOrderParameterID());
             trajOut->add_count(op->calc((uint*)counts + offset, times[i]));
 //            trajOut->add_count(input.getOrderParameters()[input.getTilings().getCurrentTiling().getOrderParameterID()].calc((uint*)counts + offset, times[i]));
             for (int j=0; j<numberSpecies; j++)
@@ -1002,6 +1004,22 @@ void FFluxTrajectoryList::ffluxOutputSetFinal_DinnerMethod(SavedCrossings& saved
     if (!(intermediateOutputFlag)) {normalizedProbabilityI->clear_tile_indices();}
 }
 
+void FFluxTrajectoryList::setAllFinished()
+{
+    for (TrajectoryMap::iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
+    {
+        it->second->setStatus(Trajectory::FINISHED);
+        finishedTrajectories[it->first] = it->second;
+    }
+    waitingTrajectories.clear();
+    for (TrajectoryMap::iterator it=runningTrajectories.begin(); it!=runningTrajectories.end(); it++)
+    {
+        it->second->setStatus(Trajectory::FINISHED);
+        finishedTrajectories[it->first] = it->second;
+    }
+    runningTrajectories.clear();
+    workUnitsRunning.clear();
+}
 
 }
 }

@@ -95,25 +95,32 @@ void Trajectory::initializeState(const lm::input::Input& input, bool reversed)
     if (input.hasReactionModel())
     {
         const lm::io::ReactionModel& reactionModel = input.getReactionModelMsg();
-        state.mutable_cme_state()->mutable_species_counts()->set_trajectory_id(id);
-        state.mutable_cme_state()->mutable_species_counts()->set_number_entries(1);
-        state.mutable_cme_state()->mutable_species_counts()->set_number_species(reactionModel.number_species());
+        lm::io::SpeciesCounts* sc = state.mutable_cme_state()->mutable_species_counts();
+        sc->set_trajectory_id(id);
+        sc->set_number_entries(1);
+        sc->set_number_species(reactionModel.number_species());
         if (!reversed)
         {
             for (uint j=0; j<reactionModel.number_species(); j++)
             {
-                state.mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.initial_species_count(j));
+                sc->add_species_count(reactionModel.initial_species_count(j));
             }
         }
         else
         {
             for (uint j=0; j<reactionModel.number_species(); j++)
             {
-                state.mutable_cme_state()->mutable_species_counts()->add_species_count(reactionModel.initial_species_count_backward(j));  // reversed_initial_species_count is set in the input file
+                sc->add_species_count(reactionModel.initial_species_count_backward(j));  // reversed_initial_species_count is set in the input file
             }
         }
-        state.mutable_cme_state()->mutable_species_counts()->add_time(0.0);
-
+        sc->add_time(0.0);
+        
+        // Initialize the order parameters values
+        if (input.hasOrderParameters())
+        {
+            initializeOrderParameters(input);
+        }
+        
         // Initialize the first passage times in the cme state.
         if (input.getOutputOptionsMsg().fpt_species_to_track_size())
         {
@@ -164,6 +171,21 @@ void Trajectory::inititializeHists(const lm::input::Input& input)
 //            tHist->add_tile_vals(0);
 //        }
 //    }
+}
+
+void Trajectory::initializeOrderParameters(const lm::input::Input& input)
+{
+    const lm::io::ReactionModel& reactionModel = input.getReactionModelMsg();
+    const lm::oparam::OParams& oparams = input.getOrderParameters();
+    lm::io::OrderParametersValues* opv = state.mutable_cme_state()->mutable_order_parameter_values();
+    opv->set_trajectory_id(id);
+    opv->set_number_entries(1);
+    opv->set_number_order_parameters(oparams.size());
+    for (uint i=0; i<opv->number_order_parameters(); i++)
+    {
+        opv->add_order_parameter_values(oparams.at(i)->calc(state));
+    }
+    opv->add_time(0.0);
 }
 
 // accessors

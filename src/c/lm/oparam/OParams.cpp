@@ -47,7 +47,7 @@ namespace oparam {
 
 OPClassMap OParams::opClassMap = OParams::makeOPClassMap();
 
-OParams::OParams(): size_(0)
+OParams::OParams()
 {
 }
 
@@ -93,7 +93,6 @@ void OParams::init()
     for (OPIterator op_it=getOParamsBuf()->order_parameters().begin();op_it!=getOParamsBuf()->order_parameters().end();++op_it)
     {
         initOParam(*op_it);
-        size_++;
     }
 }
 
@@ -111,11 +110,11 @@ void OParams::initValues(uint* speciesCounts, double time)
     }
 }
 
-void OParams::calc(uint* speciesCounts, double time)
+void OParams::calcAndStore(uint* speciesCounts, double time)
 {
     for (OPMap::iterator m_it=begin();m_it!=end();++m_it)
     {
-        m_it->second->calc(speciesCounts, time);
+        m_it->second->calcAndStore(speciesCounts, time);
     }
 }
 

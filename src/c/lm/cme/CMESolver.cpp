@@ -539,21 +539,21 @@ bool CMESolver::isTrajectoryOutsideLimits()
             case EH::DECREASING:
                 if (l.includeEndpoint)
                 {
-                    checkLimit<EH::DECREASING, true>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
+                    limitReached = checkLimit<EH::DECREASING, true>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
                 }
                 else
                 {
-                    checkLimit<EH::DECREASING, false>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
+                    limitReached = checkLimit<EH::DECREASING, false>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
                 }
                 break;
             case EH::INCREASING:
                 if (l.includeEndpoint)
                 {
-                    checkLimit<EH::INCREASING, true>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
+                    limitReached = checkLimit<EH::INCREASING, true>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
                 }
                 else
                 {
-                    checkLimit<EH::INCREASING, false>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
+                    limitReached = checkLimit<EH::INCREASING, false>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
                 }
                 break;
             }
