@@ -85,6 +85,7 @@ public:
     uint64_t getPartsPerWorkUnit() const {return partsPerWorkUnit;}
     uint64_t getStepsPerWorkUnit() const {return stepsPerWorkUnit;}
 
+    bool hasDegreeAdvancement() const {return degreeAdvancementPresent;}
     bool hasReactionModel() const {return reactionModelPresent;}
     bool hasDiffusionModel() const {return diffusionModelPresent;}
     bool hasOrderParameters() const {return orderParametersPresent;}
@@ -99,9 +100,10 @@ public:
 protected:
     bool parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg);
     template <EH::LimitType LT> inline bool parseLimits(std::string key, std::string debugString, EH::StoppingCondition sc, bool includeEndpoint=true);
-//    template <typename T> inline bool parseOption(std::string key);
+    template <typename T, typename MF, typename valT> inline bool parseAndSet(T& obj, MF (T::*mf)(valT), std::string key);
 
 protected:
+    bool degreeAdvancementPresent;
     bool diffusionModelPresent;
     bool reactionModelPresent;
     bool orderParametersPresent;

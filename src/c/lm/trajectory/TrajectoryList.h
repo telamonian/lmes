@@ -75,6 +75,9 @@ public:
     virtual bool areAllFinished() const;
     virtual bool exists(uint64_t id) const {return trajectories.count(id)==1;}
     virtual uint64_t getSimulationPhase() const {return simulationPhase;}
+    virtual bool isTrajectoryFinished(lm::trajectory::Trajectory* traj);
+    virtual bool isTrajectoryRunning(lm::trajectory::Trajectory* traj);
+    virtual bool isTrajectoryWaiting(lm::trajectory::Trajectory* traj);
     virtual size_t size() const {return trajectories.size();}
 
 // mutators
@@ -86,7 +89,7 @@ public:
     virtual void setTrajectoryFinished(lm::trajectory::Trajectory* traj);
     virtual void setTrajectoryRunning(lm::trajectory::Trajectory* traj);
     virtual void setTrajectoryWaiting(lm::trajectory::Trajectory* traj);
-    virtual void workUnitFinished(const lm::message::FinishedWorkUnit& fwuBuf);
+    virtual void workUnitFinished(const lm::message::FinishedWorkUnit& fwuMsg);
     virtual void workUnitPartFinished(const lm::message::WorkUnitStatus& wusBuf);
     virtual void workUnitPartFinished(const lm::message::WorkUnitStatus& wusBuf, lm::trajectory::Trajectory* traj);
 

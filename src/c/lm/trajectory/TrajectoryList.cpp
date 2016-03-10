@@ -38,6 +38,7 @@
  */
 #include <list>
 #include <map>
+#include <stdexcept>
 #include <string>
 
 #include "lm/Print.h"
@@ -90,6 +91,7 @@ void TrajectoryList::deleteAllTrajectories()
     for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
     {
         delete it->second;
+        it->second = NULL;
     }
     trajectories.clear();
     waitingTrajectories.clear();
@@ -116,7 +118,49 @@ bool TrajectoryList::areAllFinished() const
     return waitingTrajectories.size() == 0 && runningTrajectories.size() == 0;
 }
 
-//mutators
+bool TrajectoryList::isTrajectoryFinished(lm::trajectory::Trajectory* traj)
+{
+    if (finishedTrajectories.count(traj->getID())==1)
+    {
+        if (traj->getStatus()!=Trajectory::FINISHED)
+            throw Exception("Consistency error, trajectory was in finished list but did not have finished status: id, status", traj->getID(), traj->getStatus());
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool TrajectoryList::isTrajectoryRunning(lm::trajectory::Trajectory* traj)
+{
+    if (runningTrajectories.count(traj->getID())==1)
+    {
+        if (traj->getStatus()!=Trajectory::RUNNING)
+            throw Exception("Consistency error, trajectory was in running list but did not have running status: id, status", traj->getID(), traj->getStatus());
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool TrajectoryList::isTrajectoryWaiting(lm::trajectory::Trajectory* traj)
+{
+    if (waitingTrajectories.count(traj->getID())==1)
+    {
+        if (traj->getStatus()!=Trajectory::WAITING)
+            throw Exception("Consistency error, trajectory was in waiting list but did not have waiting status: id, status", traj->getID(), traj->getStatus());
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+// mutators
 int TrajectoryList::addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUnit* msg, uint numberParts)
 {
     list<uint64_t> trajectoriesAdded;
@@ -217,18 +261,26 @@ void TrajectoryList::setTrajectoryWaiting(lm::trajectory::Trajectory* traj)
     waitingTrajectories[id] = traj;
 }
 
-void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& fwuBuf)
+void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& fwuMsg)
 {
     // Get the work unit id.
-    uint64_t workUnitId = fwuBuf.work_unit_id();
+    uint64_t workUnitId = fwuMsg.work_unit_id();
 
-    //Get the list of trajectories associated with this work unit.
-    list<uint64_t> involvedTrajectories = workUnitsRunning[workUnitId];
+    // Get the list of trajectories associated with this work unit.
+    list<uint64_t> involvedTrajectories;
+    try
+    {
+        involvedTrajectories = workUnitsRunning.at(workUnitId);
+    }
+    catch (std::out_of_range e)
+    {
+        throw Exception("ID of finished work unit not found in the list of running work units: id", workUnitId);
+    }
     workUnitsRunning.erase(workUnitId);
 
     //Make sure the sizes between the list and the message are consistent.
-    if (involvedTrajectories.size() != fwuBuf.part_status_size())
-        throw Exception("Consistency error in trajectory list, number of involved trajectories differed from work units finished message",workUnitId, involvedTrajectories.size(), fwuBuf.part_status_size());
+    if (involvedTrajectories.size() != fwuMsg.part_status_size())
+        throw Exception("Consistency error in trajectory list, number of involved trajectories differed from work units finished message: id, involved trajectories, work unit trajectories", workUnitId, involvedTrajectories.size(), fwuMsg.part_status_size());
 
     // Loop over the trajectories.
     for (list<uint64_t>::iterator it=involvedTrajectories.begin(); it != involvedTrajectories.end(); it++)
@@ -241,9 +293,9 @@ void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& fwuBu
 
         // Find the trajectory in the message.
         int partIndex=-1;
-        for (int i=0; i<fwuBuf.part_status_size(); i++)
+        for (int i=0; i<fwuMsg.part_status_size(); i++)
         {
-            if (fwuBuf.part_status(i).final_state().trajectory_id() == id)
+            if (fwuMsg.part_status(i).final_state().trajectory_id() == id)
             {
                 partIndex = i;
                 break;
@@ -252,7 +304,7 @@ void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& fwuBu
         if (partIndex == -1)
             throw Exception("Consistency error in trajectory list, could not find trajectory id in work units finished",id);
 
-        workUnitPartFinished(fwuBuf.part_status(partIndex), t);
+        workUnitPartFinished(fwuMsg.part_status(partIndex), t);
 
 //        // Update the state of the trajectory.
 //        t->setState(fwuBuf.part_status(partIndex).final_state());

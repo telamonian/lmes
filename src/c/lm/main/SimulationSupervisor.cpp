@@ -468,12 +468,12 @@ void SimulationSupervisor::buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, 
 
 void SimulationSupervisor::finishSimulationPhase()
 {
-    // Delete the list of trajectories.
-    destroyTrajectoryList();
-
     // If we need to perform another phase, do so, otherwsise stop th simulation.
     if (performAnotherSimulationPhase())
     {
+        // destroying the trajectory list causes problems, may be unneccessary
+//        // Delete the list of trajectories.
+//        destroyTrajectoryList();
         incrementSimulationPhase();
         startSimulationPhase();
     }
@@ -515,6 +515,9 @@ void SimulationSupervisor::finishSimulation()
         msg.mutable_stop_resource_controller()->set_abort(false);
         communicator.sendMessage(it->second.controller_process, it->second.controller_thread, &msg);
     }
+
+    // Delete the list of trajectories.
+    destroyTrajectoryList();
 }
 
 void SimulationSupervisor::receivedPerformCheckpointing(const lm::message::PerformCheckpointing& msg)

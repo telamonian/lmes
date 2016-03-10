@@ -71,8 +71,9 @@ char *trajectoryStatusStrings[] =
 };
 
 Trajectory::Trajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryState& initialState)
-:id(id),simulationPhase(phase),status(NOT_STARTED),state(initialState),numberWorkUnitsPerformed(0)
+:id(static_cast<uint>(-1)),simulationPhase(phase),status(NOT_STARTED),state(initialState),numberWorkUnitsPerformed(0)
 {
+    setID(id);
 }
 
 Trajectory::Trajectory(uint64_t id, uint64_t phase, const lm::input::Input& input, bool reversed)
@@ -94,6 +95,13 @@ void Trajectory::initializeState(const lm::input::Input& input, bool reversed)
     // Set cme state from the reaction model.
     if (input.hasReactionModel())
     {
+        // Initialize the degree advancements
+        if (input.hasDegreeAdvancement())
+        {
+            initializeDegreeAdvancements(input);
+        }
+
+        // Initialize the species counts
         const lm::io::ReactionModel& reactionModel = input.getReactionModelMsg();
         lm::io::SpeciesCounts* sc = state.mutable_cme_state()->mutable_species_counts();
         sc->set_trajectory_id(id);
@@ -151,7 +159,22 @@ void Trajectory::initializeState(const lm::input::Input& input, bool reversed)
         initialLattice->set_particles(diffusionModel.initial_lattice().particles());
     }
 
-    if (input.hasTilings()) inititializeHists(input);
+    // Initialize the tiling hists
+    if (input.hasTilings())
+    {
+        inititializeHists(input);
+    }
+}
+
+void Trajectory::initializeDegreeAdvancements(const lm::input::Input& input)
+{
+    const lm::io::ReactionModel& reactionModel = input.getReactionModelMsg();
+    lm::io::DegreeAdvancements* da = state.mutable_cme_state()->mutable_degree_advancements();
+    da->set_trajectory_id(id);
+    da->set_number_entries(1);
+    da->set_number_reactions(reactionModel.number_reactions());
+    da->mutable_degree_advancements()->Resize(da->number_reactions(), 0);
+    da->add_time(0.0);
 }
 
 void Trajectory::inititializeHists(const lm::input::Input& input)
@@ -175,7 +198,6 @@ void Trajectory::inititializeHists(const lm::input::Input& input)
 
 void Trajectory::initializeOrderParameters(const lm::input::Input& input)
 {
-    const lm::io::ReactionModel& reactionModel = input.getReactionModelMsg();
     const lm::oparam::OParams& oparams = input.getOrderParameters();
     lm::io::OrderParametersValues* opv = state.mutable_cme_state()->mutable_order_parameter_values();
     opv->set_trajectory_id(id);
@@ -297,6 +319,9 @@ void Trajectory::setID(uint64_t newID)
     id = newID;
     state.set_trajectory_id(newID);
     state.mutable_cme_state()->mutable_species_counts()->set_trajectory_id(newID);
+
+    if (state.mutable_cme_state()->has_degree_advancements()) state.mutable_cme_state()->mutable_degree_advancements()->set_trajectory_id(newID);
+    if (state.mutable_cme_state()->has_order_parameter_values()) state.mutable_cme_state()->mutable_order_parameter_values()->set_trajectory_id(newID);
 }
 
 void Trajectory::setLimitReached(const lm::io::TrajectoryLimits::TrajectoryLimit& limitBuf)

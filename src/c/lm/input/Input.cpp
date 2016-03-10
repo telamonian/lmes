@@ -42,11 +42,13 @@
 #include "lm/EnumHelper.h"
 #include "lm/Print.h"
 #include "lm/input/Input.h"
+#include "lm/io/OutputOptions.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/option/SimulationParameters.h"
 #include "lm/trajectory/TrajectoryLimits.h"
 #include "lm/Types.h"
 
+using lm::io::OutputOptions;
 using lm::trajectory::LimitValueT;
 using std::map;
 using std::string;
@@ -124,8 +126,8 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         }
 
         // set the other limits, if present in the simulation parameters
-        trajectoryLimitsPresent = parseLimits<EH::DEGREE_ADVANCEMENT>("degreeAdvancementLowerLimitList", "degree advancement lower limit", EH::MIN);
-        trajectoryLimitsPresent = parseLimits<EH::DEGREE_ADVANCEMENT>("degreeAdvancementUpperLimitList", "degree advancement upper limit", EH::MAX);
+        trajectoryLimitsPresent = degreeAdvancementPresent = parseLimits<EH::DEGREE_ADVANCEMENT>("degreeAdvancementLowerLimitList", "degree advancement lower limit", EH::MIN);
+        trajectoryLimitsPresent = degreeAdvancementPresent = parseLimits<EH::DEGREE_ADVANCEMENT>("degreeAdvancementUpperLimitList", "degree advancement upper limit", EH::MAX);
         trajectoryLimitsPresent = parseLimits<EH::ORDER_PARAMETER>("orderParameterLowerLimitList", "order parameter lower limit", EH::MIN);
         trajectoryLimitsPresent = parseLimits<EH::ORDER_PARAMETER>("orderParameterUpperLimitList", "order parameter upper limit", EH::MAX);
         trajectoryLimitsPresent = parseLimits<EH::SPECIES>("speciesLowerLimitList", "species lower limit", EH::MIN);
@@ -136,8 +138,10 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
     {
         if (simulationParameters.count("degreeAdvancementWriteInterval"))
         {
-            outputOptions.set_degree_advancement_write_interval(simulationParameters.parse<double>("degreeAdvancementWriteInterval"));
+            degreeAdvancementPresent = parseAndSet(outputOptions, &OutputOptions::set_degree_advancement_write_interval, "degreeAdvancementWriteInterval");
             outputOptionsPresent = true;
+//            outputOptions.set_degree_advancement_write_interval(simulationParameters.parse<double>("degreeAdvancementWriteInterval"));
+//            outputOptionsPresent = degreeAdvancementPresent = true;
         }
 
         // Get the first passage times.
@@ -323,10 +327,12 @@ template <EH::LimitType LT> bool Input::parseLimits(string key, string debugStri
     }
 }
 
-//template <typename T> bool Input::parseOption(std::string key)
-//{
-//
-//}
+// by using template parameter inference on the setter (passed as a function pointer), this template automatically figures out what type to parse from simulationParameters
+template <typename T, typename MF, typename valT> bool Input::parseAndSet(T& obj, MF (T::*mf)(valT), string key)
+{
+    (obj.*mf)(simulationParameters.parse<valT>(key));
+    return true;
+}
 
 }
 }

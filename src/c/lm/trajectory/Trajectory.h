@@ -86,6 +86,7 @@ public:
     virtual void setStatus(status_t newStatus);
 
 protected:
+    virtual void initializeDegreeAdvancements(const lm::input::Input& input);
     virtual void inititializeHists(const lm::input::Input& input);
     virtual void initializeOrderParameters(const lm::input::Input& input);
     virtual void initializeState(const lm::input::Input& input, bool reversed=false);

@@ -93,8 +93,8 @@ public:
     virtual void setLimits();
 
     virtual void workUnitPartFinished(const lm::message::WorkUnitStatus& wusMsg, lm::trajectory::Trajectory* traj);
-    virtual void workUnitPartFinishedPhaseZero(const message::WorkUnitStatus& wusMsg, lm::fflux::FFluxTrajectory* traj, uint prevFinalLimitID, double prevTime);
-    virtual void workUnitPartFinishedPhaseN(const message::WorkUnitStatus& wusMsg, lm::fflux::FFluxTrajectory* traj, uint prevFinalLimitID, double prevTime);
+    virtual void workUnitPartFinishedPhaseZero(const message::WorkUnitStatus& wusMsg, lm::fflux::FFluxTrajectory* traj, int prevFinalLimitID, double prevTime);
+    virtual void workUnitPartFinishedPhaseN(const message::WorkUnitStatus& wusMsg, lm::fflux::FFluxTrajectory* traj, int prevFinalLimitID, double prevTime);
 
     // getters
     virtual CrossingVector getCrossings(uint64_t ffluxPhase);

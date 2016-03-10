@@ -207,64 +207,64 @@ int WorkUnitRunner::run()
     return -1;
 }
 
-void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwu)
+void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
 {
     // Tell the supervisor the work unit is started.
     lm::message::Message msgp1;
     lm::message::StartedWorkUnit* msg1 = msgp1.mutable_started_work_unit();
-    msg1->set_work_unit_id(rwu.work_unit_id());
-    communicator.sendMessage(rwu.supervisor_process(), rwu.supervisor_thread(), &msgp1);
+    msg1->set_work_unit_id(rwuMsg.work_unit_id());
+    communicator.sendMessage(rwuMsg.supervisor_process(), rwuMsg.supervisor_thread(), &msgp1);
 
     // Set the communicator.
-    solver->setCommunicator(&communicator, rwu.output_process(), rwu.output_thread(), rwu.work_unit_id());
+    solver->setCommunicator(&communicator, rwuMsg.output_process(), rwuMsg.output_thread(), rwuMsg.work_unit_id());
 
     // Set the limits.
-    if (rwu.has_trajectory_limits())
-        solver->setLimits(rwu.trajectory_limits());
+    if (rwuMsg.has_trajectory_limits())
+        solver->setLimits(rwuMsg.trajectory_limits());
 
     // Set the output options.
-    if (rwu.has_output_options())
-        solver->setOutputOptions(rwu.output_options());
+    if (rwuMsg.has_output_options())
+        solver->setOutputOptions(rwuMsg.output_options());
 
     // Create the finished work units message.
     lm::message::Message msg2;
-    lm::message::FinishedWorkUnit* wuf = msg2.mutable_finished_work_unit();
-    wuf->set_work_unit_id(rwu.work_unit_id());
-    wuf->set_process(lm::MPI::worldRank);
-    wuf->set_thread(getThreadNumber());
+    lm::message::FinishedWorkUnit* fwuMsg = msg2.mutable_finished_work_unit();
+    fwuMsg->set_work_unit_id(rwuMsg.work_unit_id());
+    fwuMsg->set_process(lm::MPI::worldRank);
+    fwuMsg->set_thread(getThreadNumber());
 
     long long totalSteps=0;
     hrtime totalTime=0;
-    for (int i=0; i<rwu.part_size(); i+=solver->getSimultaneousTrajectories())
+    for (int i=0; i<rwuMsg.part_size(); i+=solver->getSimultaneousTrajectories())
     {
         // Reset the solver.
         solver->reset();
 
         // Configure the solver state for each simultaneous trajectory.
-        for (int j=0; j<solver->getSimultaneousTrajectories() && (i+j)<rwu.part_size(); j++)
+        for (int j=0; j<solver->getSimultaneousTrajectories() && (i+j)<rwuMsg.part_size(); j++)
         {
-            solver->setState(rwu.part(i+j).initial_state(), j);
+            solver->setState(rwuMsg.part(i+j).initial_state(), j);
         }
 
         // Run the work unit.
         hrtime t1=getHrTime();
-        totalSteps += solver->generateTrajectory(rwu.max_steps());
+        totalSteps += solver->generateTrajectory(rwuMsg.max_steps());
         totalTime += getHrTime()-t1;
 
         // Create the status for this part.
-        for (int j=0; j<solver->getSimultaneousTrajectories() && (i+j)<rwu.part_size(); j++)
+        for (int j=0; j<solver->getSimultaneousTrajectories() && (i+j)<rwuMsg.part_size(); j++)
         {
-            lm::message::WorkUnitStatus* status = wuf->add_part_status();
+            lm::message::WorkUnitStatus* status = fwuMsg->add_part_status();
             status->set_status(solver->getStatus(j));
             solver->getState(status->mutable_final_state(),j);
         }
     }
 
     // Tell the supervisor the work unit has finished.
-    wuf->set_run_time(totalTime);
-    wuf->set_steps(totalSteps);
-    wuf->set_run_time(convertHrToSeconds(totalTime));
-    communicator.sendMessage(rwu.supervisor_process(), rwu.supervisor_thread(), &msg2);
+    fwuMsg->set_run_time(totalTime);
+    fwuMsg->set_steps(totalSteps);
+    fwuMsg->set_run_time(convertHrToSeconds(totalTime));
+    communicator.sendMessage(rwuMsg.supervisor_process(), rwuMsg.supervisor_thread(), &msg2);
 }
 
 }

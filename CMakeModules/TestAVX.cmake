@@ -15,12 +15,7 @@ function(TestAVX varName required)
         SET(${varName} false)
 
     else(required STREQUAL yes)
-        # set some flags for the test compilation
-        if(CMAKE_BUILD_TYPE STREQUAL DEBUG)
-            set(CMAKE_REQUIRED_FLAGS ${CMAKE_CXX_FLAGS_DEBUG})
-        elseif(CMAKE_BUILD_TYPE STREQUAL RELEASE)
-            set(CMAKE_REQUIRED_FLAGS ${CMAKE_CXX_FLAGS_RELEASE})
-        endif(CMAKE_BUILD_TYPE STREQUAL DEBUG)
+        setTestCompileFlags()
 
         CHECK_CXX_SOURCE_COMPILES(
            "#include <immintrin.h>
@@ -53,4 +48,23 @@ function(TestAVX varName required)
 
     endif(required STREQUAL yes)
     SET(${varName} ${${varName}} PARENT_SCOPE)
+endfunction()
+
+function(setTestCompileFlags)
+    # convert the build type string to lower case for easy comparison
+    string(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_LOWER)
+    # set some flags for the test compilation
+    if(NOT CMAKE_BUILD_TYPE_LOWER)
+        set(CMAKE_REQUIRED_FLAGS ${CMAKE_CXX_FLAGS} PARENT_SCOPE)
+    elseif(CMAKE_BUILD_TYPE_LOWER STREQUAL debug)
+        set(CMAKE_REQUIRED_FLAGS ${CMAKE_CXX_FLAGS_DEBUG} PARENT_SCOPE)
+    elseif(CMAKE_BUILD_TYPE_LOWER STREQUAL release)
+        set(CMAKE_REQUIRED_FLAGS ${CMAKE_CXX_FLAGS_RELEASE} PARENT_SCOPE)
+    elseif(CMAKE_BUILD_TYPE_LOWER STREQUAL relwithdebinfo)
+        set(CMAKE_REQUIRED_FLAGS ${CMAKE_CXX_FLAGS_RELWITHDEBINFO} PARENT_SCOPE)
+    elseif(CMAKE_BUILD_TYPE_LOWER STREQUAL minsizerel)
+        set(CMAKE_REQUIRED_FLAGS ${CMAKE_CXX_FLAGS_MINSIZEREL} PARENT_SCOPE)
+    else(NOT CMAKE_BUILD_TYPE_LOWER)
+        message(WARNING "No AVX testing support for specified build type: ${CMAKE_BUILD_TYPE}. Test results may be incorrect.")
+    endif(NOT CMAKE_BUILD_TYPE_LOWER)
 endfunction()

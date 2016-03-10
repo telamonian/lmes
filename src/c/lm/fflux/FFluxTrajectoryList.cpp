@@ -141,6 +141,7 @@ void FFluxTrajectoryList::init()
     dwellTimes[0] = 0;
     finishedTrajectoriesCounts[0] = 0;
 
+    // TOMOVE: move setLimits() to FFluxSupervisor
     setLimits();
 }
 
@@ -240,7 +241,9 @@ void FFluxTrajectoryList::initFFluxOutput()
 
 void FFluxTrajectoryList::initReversed() // TODO: need to verify that reactionModel has a reversed_initial_species_count field before running this method
 {
+    // TOMOVE: move setLimits() to FFluxSupervisor
     setLimits();
+
     initTrajectories(simultaneousTrajectoryCount, true);
 }
 
@@ -305,7 +308,7 @@ void FFluxTrajectoryList::workUnitPartFinished(const message::WorkUnitStatus& wu
     lm::fflux::FFluxTrajectory* ffluxTraj = static_cast<lm::fflux::FFluxTrajectory*>(traj);
 
     double prevTime = ffluxTraj->getSimTime();
-    uint prevFinalLimitID = ffluxTraj->getLimitReached().id();
+    int prevFinalLimitID = ffluxTraj->getLimitReached().id();
 
     // Call the base class method.
     TrajectoryList::workUnitPartFinished(wusMsg, static_cast<lm::trajectory::Trajectory*>(ffluxTraj));
@@ -331,7 +334,7 @@ void FFluxTrajectoryList::workUnitPartFinished(const message::WorkUnitStatus& wu
     PROF_END(PROF_FFLUX_WORK_UNIT_FINISHED);
 }
 
-void FFluxTrajectoryList::workUnitPartFinishedPhaseZero(const message::WorkUnitStatus& wusMsg, lm::fflux::FFluxTrajectory* traj, uint prevFinalLimitID, double prevTime)
+void FFluxTrajectoryList::workUnitPartFinishedPhaseZero(const message::WorkUnitStatus& wusMsg, lm::fflux::FFluxTrajectory* traj, int prevFinalLimitID, double prevTime)
 {
     PROF_BEGIN(PROF_FFLUX_WORK_UNIT_FINISHED_PHASE_ZERO);
     // ...and if the crossing event was a forward flux...
@@ -341,11 +344,13 @@ void FFluxTrajectoryList::workUnitPartFinishedPhaseZero(const message::WorkUnitS
         Print::printf(Print::DEBUG,"Crossing %d added to phase %d list", crossings[ffluxPhase].size(), ffluxPhase);
         addCrossing(wusMsg);
         dwellTimes[-1]+=traj->getSimTime() - traj->getLastLimitTime();
+        dwellTimes[0]+=traj->getSimTime() - traj->getLastLimitTime();
     }
-    if (prevFinalLimitID==0)
+    else if (prevFinalLimitID==0)
     {
-        dwellTimes[ffluxPhase]+=traj->getSimTime() - traj->getLastLimitTime();
+        dwellTimes[0]+=traj->getSimTime() - traj->getLastLimitTime();
     }
+
     // Regardless of whether this crossing was a forward or backwards flux, increment this phase's finished trajectories counter and dwell time, and delete the finished trajectory
     if (intermediateOutputFlag) {ffluxOutputAddTrajectory(traj, lm::io::FFluxOutput::FINAL);}
 //        Print::printf(Print::INFO, "ffluxPhase: %d, crossings[fflux].size(): %d, finishedTrajectoriesCount %d, time: %f, oparam: %f", ffluxPhase, crossings[ffluxPhase].size(), finishedTrajectoriesCounts[ffluxPhase], crossings[ffluxPhase].back()->cme_state().species_counts().time(crossings[ffluxPhase].back()->cme_state().species_counts().number_entries() - 1), calcTestCaseOParam(finishedWorkUnitMsg.final_state()));
@@ -380,6 +385,9 @@ void FFluxTrajectoryList::workUnitPartFinishedPhaseZero(const message::WorkUnitS
         Print::printf(Print::INFO,"Forward flux phase %d:%s starting now", ffluxPhase, directionStrings[direction].c_str());
         if (!isFFluxDone())
         {
+            // TOMOVE: move setLimits() to FFluxSupervisor
+            setLimits();
+
             // ...start up a new set of trajectories and make room to store their data
             dwellTimes[ffluxPhase] = 0;
             finishedTrajectoriesCounts[ffluxPhase] = 0;
@@ -400,7 +408,7 @@ void FFluxTrajectoryList::workUnitPartFinishedPhaseZero(const message::WorkUnitS
     PROF_END(PROF_FFLUX_WORK_UNIT_FINISHED_PHASE_ZERO);
 }
 
-void FFluxTrajectoryList::workUnitPartFinishedPhaseN(const message::WorkUnitStatus& wusMsg, lm::fflux::FFluxTrajectory* traj, uint prevFinalLimitID, double prevTime)
+void FFluxTrajectoryList::workUnitPartFinishedPhaseN(const message::WorkUnitStatus& wusMsg, lm::fflux::FFluxTrajectory* traj, int prevFinalLimitID, double prevTime)
 {
     PROF_BEGIN(PROF_FFLUX_WORK_UNIT_FINISHED_PHASE_N);
     // ...and if the crossing event was a forward flux...
@@ -420,11 +428,14 @@ void FFluxTrajectoryList::workUnitPartFinishedPhaseN(const message::WorkUnitStat
     {
         deleteTrajectory(traj->getID());
         // ...delete any trajectories that have yet to start and mark the currently running set of trajectories as finished
-        deleteAllNotStarted(); setAllFinished();
+        deleteAllNotStarted();
         // Next, increment the fflux phase counter. If there are still more phases to run...
         incrementFFluxPhase();
         if (!isFFluxDone())
         {
+            // TOMOVE: move setLimits() to FFluxSupervisor
+            setLimits();
+
             // ...and start up a new set of trajectories
             dwellTimes[ffluxPhase] = 0;
             finishedTrajectoriesCounts[ffluxPhase] = 0;
@@ -444,6 +455,7 @@ void FFluxTrajectoryList::workUnitPartFinishedPhaseN(const message::WorkUnitStat
             // If we have to run fflux sampling in both directions, check if we're on the forward phase...
             if (direction==FORWARD) // if (direction==FORWARD && bothDirections==TRUE)
             {
+                setAllFinished();
                 // ...and if we are, reverse the arrangement of the edges and restart the simulation
                 reverse();
                 restart();
@@ -498,13 +510,30 @@ lm::io::TrajectoryState* FFluxTrajectoryList::getRandomCrossing(uint64_t ffluxPh
 
 lm::trajectory::Trajectory* FFluxTrajectoryList::getRunningTrajectory(uint64_t id)
 {
+    // first, make sure that the trajectory is still somewhere in the trajectory list
     if (exists(id))
     {
-        // if the trajectory still exists, call the parent method and return from it
-        return TrajectoryList::getRunningTrajectory(id);
+        lm::trajectory::Trajectory* t = trajectories[id];
+        // if the trajectory is already marked finished, delete it and return null
+        if (isTrajectoryFinished(t))
+        {
+            deleteTrajectory(id);
+            return NULL;
+        }
+        // if the trajectory is still running, return it
+        else if (isTrajectoryRunning(t))
+        {
+            return t;
+        }
+        // otherwise, we're at an error state
+        else
+        {
+            throw Exception("In fflux simulation, a trajectory returned from a work unit didn't have a FINISHED or RUNNING status: id, status", id, t->getStatus());
+        }
     }
     else
     {
+        Print::printf(Print::INFO,"A work unit with info from trajectory %d was sent to the supervisor, but this trajectory is not currently in the trajectory list", id);
         // otherwise, the phase has been incremented and this trajectory has already been deleted, so return NULL
         return NULL;
     }
@@ -525,7 +554,6 @@ void FFluxTrajectoryList::addCrossing(const message::WorkUnitStatus& wusMsg)
 void FFluxTrajectoryList::incrementFFluxPhase()
 {
     ffluxPhase++;
-    setLimits();
 }
 
 bool FFluxTrajectoryList::isFFluxDone()
@@ -568,7 +596,6 @@ void FFluxTrajectoryList::reduceTilingHist(const lm::io::TilingHist& tHist)
 
 void FFluxTrajectoryList::restart()
 {
-    deleteAllTrajectories();
     crossings.clear();
     dwellTimes.clear(); dwellTimes[0] = 0;
     finishedTrajectoriesCounts.clear(); finishedTrajectoriesCounts[0] = 0;
@@ -581,7 +608,7 @@ void FFluxTrajectoryList::restart()
 void FFluxTrajectoryList::reverse()
 {
     direction = direction==FORWARD ? BACKWARD : FORWARD;
-    const_cast<lm::input::Input&>(input).mutableTilings()->reverse();
+    input.mutableTilings()->reverse();
 }
 
 void FFluxTrajectoryList::saveCrossings()
@@ -1008,17 +1035,16 @@ void FFluxTrajectoryList::setAllFinished()
 {
     for (TrajectoryMap::iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
     {
-        it->second->setStatus(Trajectory::FINISHED);
+        it->second->setStatus(lm::trajectory::Trajectory::FINISHED);
         finishedTrajectories[it->first] = it->second;
     }
     waitingTrajectories.clear();
     for (TrajectoryMap::iterator it=runningTrajectories.begin(); it!=runningTrajectories.end(); it++)
     {
-        it->second->setStatus(Trajectory::FINISHED);
+        it->second->setStatus(lm::trajectory::Trajectory::FINISHED);
         finishedTrajectories[it->first] = it->second;
     }
     runningTrajectories.clear();
-    workUnitsRunning.clear();
 }
 
 }

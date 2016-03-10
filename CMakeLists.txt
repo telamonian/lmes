@@ -6,6 +6,9 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 endif(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 set(ENV{HDF5_ROOT} ${HDF5_ROOT})
 
+# convert the build type string to lower case for easy comparison
+string(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_LOWER)
+
 ################
 project(lm)
 ################
@@ -25,19 +28,25 @@ set(LM_FLAGS_OPTIMIZED "-O3 -DNDEBUG -march=${ARCH_FLAG} -fPIC -Wall -fmessage-l
 set(LM_FLAGS_DEBUG "-g -march=${ARCH_FLAG} -fPIC -Wall -fmessage-length=0")
 
 # Set compiler flags for c and c++ for the various builds.
-if(NOT CMAKE_BUILD_TYPE)
-    # Will be replaced by the CUSTOM_C_FLAGS and CUSTOM_CXX_FLAGS variables from CMakeConfig.txt if set
+# Will be replaced by the CUSTOM_C_FLAGS<_build-name> and CUSTOM_CXX_FLAGS<_build-name> variables from CMakeConfig.txt if set
+if(NOT CMAKE_BUILD_TYPE_LOWER)
     SetConfigDefault(CMAKE_C_FLAGS      CUSTOM_C_FLAGS      ${LM_FLAGS_DEBUG})
     SetConfigDefault(CMAKE_CXX_FLAGS    CUSTOM_CXX_FLAGS    ${LM_FLAGS_DEBUG})
-elseif(CMAKE_BUILD_TYPE STREQUAL DEBUG)
-    # Will be replaced by the CUSTOM_C_FLAGS_DEBUG and CUSTOM_CXX_FLAGS_DEBUG variables from CMakeConfig.txt if set
-    SetConfigDefault(CMAKE_C_FLAGS_DEBUG     CUSTOM_C_FLAGS_DEBUG     ${LM_FLAGS_DEBUG})
-    SetConfigDefault(CMAKE_CXX_FLAGS_DEBUG   CUSTOM_CXX_FLAGS_DEBUG   ${LM_FLAGS_DEBUG})
-elseif(CMAKE_BUILD_TYPE STREQUAL RELEASE)
-    # Will be replaced by the CUSTOM_C_FLAGS_RELEASE and CUSTOM_CXX_FLAGS_RELEASE variables from CMakeConfig.txt if set
+elseif(CMAKE_BUILD_TYPE_LOWER STREQUAL debug)
+    SetConfigDefault(CMAKE_C_FLAGS_DEBUG      CUSTOM_C_FLAGS_DEBUG      ${LM_FLAGS_DEBUG})
+    SetConfigDefault(CMAKE_CXX_FLAGS_DEBUG    CUSTOM_CXX_FLAGS_DEBUG    ${LM_FLAGS_DEBUG})
+elseif(CMAKE_BUILD_TYPE_LOWER STREQUAL release)
     SetConfigDefault(CMAKE_C_FLAGS_RELEASE      CUSTOM_C_FLAGS_RELEASE      ${LM_FLAGS_OPTIMIZED})
     SetConfigDefault(CMAKE_CXX_FLAGS_RELEASE    CUSTOM_CXX_FLAGS_RELEASE    ${LM_FLAGS_OPTIMIZED})
-endif(NOT CMAKE_BUILD_TYPE)
+elseif(CMAKE_BUILD_TYPE_LOWER STREQUAL relwithdebinfo)
+    SetConfigDefault(CMAKE_C_FLAGS_RELWITHDEBINFO      CUSTOM_C_FLAGS_RELWITHDEBINFO      ${LM_FLAGS_DEBUG})
+    SetConfigDefault(CMAKE_CXX_FLAGS_RELWITHDEBINFO    CUSTOM_CXX_FLAGS_RELWITHDEBINFO    ${LM_FLAGS_DEBUG})
+elseif(CMAKE_BUILD_TYPE_LOWER STREQUAL minsizerel)
+    SetConfigDefault(CMAKE_C_FLAGS_MINSIZEREL      CUSTOM_C_FLAGS_MINSIZEREL      ${LM_FLAGS_OPTIMIZED})
+    SetConfigDefault(CMAKE_CXX_FLAGS_MINSIZEREL    CUSTOM_CXX_FLAGS_MINSIZEREL    ${LM_FLAGS_OPTIMIZED})
+else(NOT CMAKE_BUILD_TYPE_LOWER)
+    message(WARNING "No support for specified build type: ${CMAKE_BUILD_TYPE}. Compiler flags may be incorrectly set.")
+endif(NOT CMAKE_BUILD_TYPE_LOWER)
 
 # for now, no c++11 support
 #SET(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
