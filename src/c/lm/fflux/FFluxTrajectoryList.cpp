@@ -379,7 +379,7 @@ void FFluxTrajectoryList::workUnitPartFinishedPhaseZero(const message::WorkUnitS
 //        phaseZeroCrossings.clear(); phaseZeroTimes.clear();
 //        Print::printf(Print::INFO,"The careful flux is: %.10f", carefulFlux);
         // ...delete any trajectories that have yet to start and mark the currently running set of trajectories as finished
-        deleteAllNotStarted(); setAllFinished();
+        deleteAllNotStarted(); setAll(FFluxTrajectory::RUNNING, FFluxTrajectory::ABORTED); setAll(FFluxTrajectory::WAITING, FFluxTrajectory::ABORTED);
         // Next, increment the fflux phase counter. If there are still more phases to run...
         incrementFFluxPhase();
         Print::printf(Print::INFO,"Forward flux phase %d:%s starting now", ffluxPhase, directionStrings[direction].c_str());
@@ -427,8 +427,8 @@ void FFluxTrajectoryList::workUnitPartFinishedPhaseN(const message::WorkUnitStat
     if (isPhaseDoneN(traj->getSimTime()))
     {
         deleteTrajectory(traj->getID());
-        // ...delete any trajectories that have yet to start and mark the currently running set of trajectories as finished
-        deleteAllNotStarted();
+        // ...delete any trajectories that have yet to start and mark the currently running set of trajectories as aborted
+        deleteAllNotStarted(); setAll(FFluxTrajectory::RUNNING, FFluxTrajectory::ABORTED); setAll(FFluxTrajectory::WAITING, FFluxTrajectory::ABORTED);
         // Next, increment the fflux phase counter. If there are still more phases to run...
         incrementFFluxPhase();
         if (!isFFluxDone())
@@ -455,7 +455,6 @@ void FFluxTrajectoryList::workUnitPartFinishedPhaseN(const message::WorkUnitStat
             // If we have to run fflux sampling in both directions, check if we're on the forward phase...
             if (direction==FORWARD) // if (direction==FORWARD && bothDirections==TRUE)
             {
-                setAllFinished();
                 // ...and if we are, reverse the arrangement of the edges and restart the simulation
                 reverse();
                 restart();
@@ -508,36 +507,36 @@ lm::io::TrajectoryState* FFluxTrajectoryList::getRandomCrossing(uint64_t ffluxPh
     return crossings[ffluxPhase][i];
 }
 
-lm::trajectory::Trajectory* FFluxTrajectoryList::getRunningTrajectory(uint64_t id)
-{
-    // first, make sure that the trajectory is still somewhere in the trajectory list
-    if (exists(id))
-    {
-        lm::trajectory::Trajectory* t = trajectories[id];
-        // if the trajectory is already marked finished, delete it and return null
-        if (isTrajectoryFinished(t))
-        {
-            deleteTrajectory(id);
-            return NULL;
-        }
-        // if the trajectory is still running, return it
-        else if (isTrajectoryRunning(t))
-        {
-            return t;
-        }
-        // otherwise, we're at an error state
-        else
-        {
-            throw Exception("In fflux simulation, a trajectory returned from a work unit didn't have a FINISHED or RUNNING status: id, status", id, t->getStatus());
-        }
-    }
-    else
-    {
-        Print::printf(Print::INFO,"A work unit with info from trajectory %d was sent to the supervisor, but this trajectory is not currently in the trajectory list", id);
-        // otherwise, the phase has been incremented and this trajectory has already been deleted, so return NULL
-        return NULL;
-    }
-}
+//lm::trajectory::Trajectory* FFluxTrajectoryList::getTrajectoryForFinishedWorkUnit(uint64_t id)
+//{
+//    // first, make sure that the trajectory is still somewhere in the trajectory list
+//    if (exists(id))
+//    {
+//        lm::trajectory::Trajectory* t = trajectories[id];
+//        // if the trajectory is already marked finished, delete it and return null
+//        if (isTrajectoryFinished(t))
+//        {
+//            deleteTrajectory(id);
+//            return NULL;
+//        }
+//        // if the trajectory is still running, return it
+//        else if (isTrajectoryRunning(t))
+//        {
+//            return t;
+//        }
+//        // otherwise, we're at an error state
+//        else
+//        {
+//            throw Exception("In fflux simulation, a trajectory returned from a work unit didn't have a FINISHED or RUNNING status: id, status", id, t->getStatus());
+//        }
+//    }
+//    else
+//    {
+//        Print::printf(Print::INFO,"A work unit with info from trajectory %d was sent to the supervisor, but this trajectory is not currently in the trajectory list", id);
+//        // otherwise, the phase has been incremented and this trajectory has already been deleted, so return NULL
+//        return NULL;
+//    }
+//}
 
 CrossingsMap FFluxTrajectoryList::getSavedCrossings(lm::fflux::FFluxTrajectoryList::Direction dir)
 {
@@ -1029,22 +1028,6 @@ void FFluxTrajectoryList::ffluxOutputSetFinal_DinnerMethod(SavedCrossings& saved
     // add or remove some things from finalOutput depending on the status of intermediateOutputFlag
     if (intermediateOutputFlag) {finalOut->set_probability_i_weight(probabilityIWeight);}
     if (!(intermediateOutputFlag)) {normalizedProbabilityI->clear_tile_indices();}
-}
-
-void FFluxTrajectoryList::setAllFinished()
-{
-    for (TrajectoryMap::iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
-    {
-        it->second->setStatus(lm::trajectory::Trajectory::FINISHED);
-        finishedTrajectories[it->first] = it->second;
-    }
-    waitingTrajectories.clear();
-    for (TrajectoryMap::iterator it=runningTrajectories.begin(); it!=runningTrajectories.end(); it++)
-    {
-        it->second->setStatus(lm::trajectory::Trajectory::FINISHED);
-        finishedTrajectories[it->first] = it->second;
-    }
-    runningTrajectories.clear();
 }
 
 }

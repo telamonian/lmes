@@ -54,7 +54,11 @@ namespace trajectory {
 class Trajectory
 {
 public:
-    enum status_t {NOT_STARTED, RUNNING, WAITING, FINISHED};
+    enum status_t {ABORTED,
+                   FINISHED,
+                   NOT_STARTED,
+                   RUNNING,
+                   WAITING};
 
     Trajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryState& initialState);
     Trajectory(uint64_t id, uint64_t phase, const lm::input::Input& input, bool reversed=false);

@@ -65,8 +65,8 @@ void Tilings::clearTilingMap()
     for (TilingMap::iterator m_it=begin();m_it!=end();++m_it)
     {
         if (m_it->second!=NULL) delete m_it->second; m_it->second = NULL;
-        tilingMap.erase(m_it);
     }
+    tilingMap.clear();
 }
 
 bool Tilings::init(const lm::io::hdf5::Hdf5File* file)

@@ -75,6 +75,7 @@ public:
     virtual bool areAllFinished() const;
     virtual bool exists(uint64_t id) const {return trajectories.count(id)==1;}
     virtual uint64_t getSimulationPhase() const {return simulationPhase;}
+    virtual bool isTrajectoryAborted(lm::trajectory::Trajectory* traj);
     virtual bool isTrajectoryFinished(lm::trajectory::Trajectory* traj);
     virtual bool isTrajectoryRunning(lm::trajectory::Trajectory* traj);
     virtual bool isTrajectoryWaiting(lm::trajectory::Trajectory* traj);
@@ -82,15 +83,16 @@ public:
 
 // mutators
     virtual int addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUnit* msg, uint numberParts);
-    virtual Trajectory* getRunningTrajectory(uint64_t id);
+    virtual Trajectory* getTrajectoryForFinishedWorkUnit(uint64_t id);
     virtual void incrementSimulationPhase();
+    virtual TrajectoryMap* mutableTrajectoryMapFromStatus(Trajectory::status_t status);
     virtual void setSimulationPhase(uint64_t newPhase) {simulationPhase = newPhase;}
-    virtual void setAllFinished();
+    virtual void setAll(Trajectory::status_t oldStatus, Trajectory::status_t newStatus);
+    virtual void setTrajectoryAborted(lm::trajectory::Trajectory* traj);
     virtual void setTrajectoryFinished(lm::trajectory::Trajectory* traj);
     virtual void setTrajectoryRunning(lm::trajectory::Trajectory* traj);
     virtual void setTrajectoryWaiting(lm::trajectory::Trajectory* traj);
     virtual void workUnitFinished(const lm::message::FinishedWorkUnit& fwuMsg);
-    virtual void workUnitPartFinished(const lm::message::WorkUnitStatus& wusBuf);
     virtual void workUnitPartFinished(const lm::message::WorkUnitStatus& wusBuf, lm::trajectory::Trajectory* traj);
 
 protected:
@@ -100,9 +102,10 @@ protected:
 protected:
     uint64_t simulationPhase;
     TrajectoryMap trajectories;
-    TrajectoryMap waitingTrajectories;
-    TrajectoryMap runningTrajectories;
+    TrajectoryMap abortedTrajectories;
     TrajectoryMap finishedTrajectories;
+    TrajectoryMap runningTrajectories;
+    TrajectoryMap waitingTrajectories;
     map<uint64_t,list<uint64_t> > workUnitsRunning;
 };
 
