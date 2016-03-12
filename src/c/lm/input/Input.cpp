@@ -138,10 +138,10 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
     {
         if (simulationParameters.count("degreeAdvancementWriteInterval"))
         {
-            degreeAdvancementPresent = parseAndSet(outputOptions, &OutputOptions::set_degree_advancement_write_interval, "degreeAdvancementWriteInterval");
-            outputOptionsPresent = true;
 //            outputOptions.set_degree_advancement_write_interval(simulationParameters.parse<double>("degreeAdvancementWriteInterval"));
 //            outputOptionsPresent = degreeAdvancementPresent = true;
+            parseAndSet(outputOptions, &OutputOptions::set_degree_advancement_write_interval, "degreeAdvancementWriteInterval");
+            outputOptionsPresent = degreeAdvancementPresent = true;
         }
 
         // Get the first passage times.

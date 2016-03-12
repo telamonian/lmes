@@ -61,8 +61,8 @@ void OParams::clearOPMap()
     for (OPMap::iterator m_it=begin();m_it!=end();++m_it)
     {
         if (m_it->second!=NULL) delete m_it->second; m_it->second = NULL;
-        opMap.erase(m_it);
     }
+    opMap.clear();
 }
 
 bool OParams::init(const lm::io::hdf5::Hdf5File* file)
