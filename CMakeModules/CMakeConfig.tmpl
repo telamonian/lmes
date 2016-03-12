@@ -8,9 +8,6 @@ SET(CMAKE_INSTALL_PREFIX "/usr/local")
 # USE_CUDA can be set to yes, no, or optional, in which case CUDA will be used if cmake can find it on your system.
 SET(USE_CUDA no)
 
-# USE_AVX can be set to yes, no, or optional, in which case AVX will be used if cmake can build a test AVX program with your compiler.
-SET(USE_AVX optional)
-
 # Set the verbosity level, as described in the lm::Print function. 10 is complete, 4 is normal-ish.
 SET(VERBOSITY_LEVEL 4)
 
@@ -20,15 +17,37 @@ SET(VERBOSITY_LEVEL 4)
 # Uncomment and change the last part of the next line if some of your libraries/header files are on a nonstandard path.
 #SET(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" "/usr/local/custom/path")
 
+######################
+# cpu feature flags
+######################
+
+# USE_AVX can be set to yes, no, or optional, in which case AVX will be used if cmake can build a test AVX program with your compiler.
+SET(USE_AVX optional)
+
+# USE_FMA can be set to yes, no, or optional, in which case FMA will be used if cmake can build a test FMA program with your compiler.
+SET(USE_FMA optional)
+
+# USE_SVML can be set to yes, no, or optional, in which case SVML will be used if cmake can build a test SVML program with your compiler.
+SET(USE_SVML optional)
+
 ############################
 # compiler flags
 ############################
-# uncomment to set any custom compiler flags.
 
-#SET(CUSTOM_C_FLAGS "-g -march=native -fPIC -Wall -fmessage-length=0")
-#SET(CUSTOM_CXX_FLAGS "-g -march=native -fPIC -Wall -fmessage-length=0")
-#SET(CUSTOM_C_FLAGS "-march=native -O3 -fPIC -Wall -fmessage-length=0")
-#SET(CUSTOM_CXX_FLAGS "-march=native -O3 -fPIC -Wall -fmessage-length=0")
+# uncomment to set a custom machine architecture flag. Defaults to "-march=native" for clang and gcc, and to "-xHost" for icc
+#SET(CUSTOM_ARCH_FLAG "-march=native")
+
+# uncomment to set any custom compiler flags.
+#SET(CUSTOM_C_FLAGS "-g -fPIC -Wall -fmessage-length=0")
+#SET(CUSTOM_CXX_FLAGS "-g -fPIC -Wall -fmessage-length=0")
+#SET(CUSTOM_C_FLAGS "-O3 -DNDEBUG -fPIC -Wall -fmessage-length=0")
+#SET(CUSTOM_CXX_FLAGS "-O3 -DNDEBUG -fPIC -Wall -fmessage-length=0")
+
+# uncomment to set any named-build specific (ie Debug, Release, etc) compiler flags.
+#SET(CUSTOM_C_FLAGS_DEBUG "-g -fPIC -Wall -fmessage-length=0")
+#SET(CUSTOM_CXX_FLAGS_DEBUG "-g -fPIC -Wall -fmessage-length=0")
+#SET(CUSTOM_C_FLAGS_RELEASE "-O3 -DNDEBUG -fPIC -Wall -fmessage-length=0")
+#SET(CUSTOM_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -fPIC -Wall -fmessage-length=0")
 
 ############################
 # paths to libraries
