@@ -1,14 +1,15 @@
-#in order to commit future changes to this file, first run
-#:$$ git update-index --no-assume-unchanged CMakeConfig.txt
-#then commit normally, then run
-#:$$ git update-index --assume-unchanged CMakeConfig.txt
-#and commit again
+############################
+# general options
+############################
 
 # Set the prefix dir for installation of lmes (i.e. when running "make install").
 SET(CMAKE_INSTALL_PREFIX "/usr/local")
 
 # USE_CUDA can be set to yes, no, or optional, in which case CUDA will be used if cmake can find it on your system.
 SET(USE_CUDA no)
+
+# USE_AVX can be set to yes, no, or optional, in which case AVX will be used if cmake can build a test AVX program with your compiler.
+SET(USE_AVX optional)
 
 # Set the verbosity level, as described in the lm::Print function. 10 is complete, 4 is normal-ish.
 SET(VERBOSITY_LEVEL 4)
@@ -23,14 +24,16 @@ SET(VERBOSITY_LEVEL 4)
 # compiler flags
 ############################
 # uncomment to set any custom compiler flags.
-#SET(CUSTOM_C_FLAGS "-g -m64 -fPIC -Wall -fmessage-length=0")
-#SET(CUSTOM_CXX_FLAGS "-g -m64 -fPIC -Wall -fmessage-length=0")
-SET(CUSTOM_C_FLAGS "-march=native -O3 -fPIC -Wall -fmessage-length=0")
-SET(CUSTOM_CXX_FLAGS "-march=native -O3 -fPIC -Wall -fmessage-length=0")
+
+#SET(CUSTOM_C_FLAGS "-g -march=native -fPIC -Wall -fmessage-length=0")
+#SET(CUSTOM_CXX_FLAGS "-g -march=native -fPIC -Wall -fmessage-length=0")
+#SET(CUSTOM_C_FLAGS "-march=native -O3 -fPIC -Wall -fmessage-length=0")
+#SET(CUSTOM_CXX_FLAGS "-march=native -O3 -fPIC -Wall -fmessage-length=0")
 
 ############################
-# library specific path settings, uncomment and set if you need to adjust specific library settings.
+# paths to libraries
 ############################
+# uncomment and set if CMake is having trouble finding one of your libraries during building.
 
 #SET(CUDA_TOOLKIT_ROOT_DIR $CUDA_TOOLKIT_ROOT_DIR)
 #SET(CUDA_SDK_ROOT_DIR $CUDA_SDK_ROOT_DIR)
@@ -54,5 +57,4 @@ SET(CUSTOM_CXX_FLAGS "-march=native -O3 -fPIC -Wall -fmessage-length=0")
 ############################
 
 #SET(BOOST_ROOT $BOOST_ROOT)
-
 #SET(SWIG_EXECUTABLE $SWIG_EXECUTABLE)

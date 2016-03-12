@@ -12,12 +12,14 @@ string(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_LOWER)
 ################
 project(lm)
 ################
-SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules)
 enable_testing()
-# if certain packages cannot be found, the end-user (you) can change the variables in CMakeConfig.txt to point to package paths
-include(CMakeConfig.txt)
+SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules)
 include(ConfigFunctions)
 include(TestAVX)
+
+# if certain packages cannot be found, the end-user (you) can change the variables in CMakeConfig.txt to point to package paths
+initializeCMakeConfig()
+include(CMakeConfig.txt)
 
 # Set architecture flag, used in c and c++ flags.
 # Will be replaced by the CUSTOM_ARCH_FLAG variable from CMakeConfig.txt if set
