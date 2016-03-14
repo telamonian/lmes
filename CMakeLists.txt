@@ -9,6 +9,10 @@ set(ENV{HDF5_ROOT} ${HDF5_ROOT})
 # convert the build type string to upper case for easy comparison
 string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UPPER)
 
+# fix some rpath zanyness with cmake install
+set(CMAKE_MACOSX_RPATH ON)
+#set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
 ################
 project(lm)
 ################
@@ -22,11 +26,11 @@ initializeCMakeConfig()
 include(CMakeConfig.txt)
 
 # Lattice Microbes standard architecture flag
-if(${CMAKE_CXX_COMPILER_ID} MATCHES "icc")
+if(${CMAKE_CXX_COMPILER_ID} MATCHES "Intel")
     set(LM_ARCH_FLAG "-xHost")
-else(${CMAKE_CXX_COMPILER_ID} MATCHES "icc")
+else(${CMAKE_CXX_COMPILER_ID} MATCHES "Intel")
     set(LM_ARCH_FLAG "-march=native")
-endif(${CMAKE_CXX_COMPILER_ID} MATCHES "icc")
+endif(${CMAKE_CXX_COMPILER_ID} MATCHES "Intel")
 
 # Lattice Microbes standard compiler flags
 set(LM_FLAGS_OPTIMIZED "-O3 -DNDEBUG -fPIC -Wall -fmessage-length=0")
