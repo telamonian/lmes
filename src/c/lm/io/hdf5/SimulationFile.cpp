@@ -793,7 +793,7 @@ void Hdf5File::setFFluxTrajectoryOutput_Count(lm::io::FFluxOutput* ffluxOutput, 
     lm::io::FFluxOutput::TrajectoryOutput* trajOut = ffluxOutput->mutable_trajectory_outputs(outIndex);
     hsize_t dims[1];
     dims[0] = ffluxOutput->trajectory_outputs(outIndex).count_size();
-    _setFFluxTrajectoryOutput<double>(trajOut->count(), dims, "Count", H5T_IEEE_F64LE, lifecycleGroup, 1);
+    _setFFluxTrajectoryOutput(trajOut->count(), dims, "Count", H5T_IEEE_F64LE, lifecycleGroup, 1);
 }
 
 void Hdf5File::setFFluxTrajectoryOutput_EdgeID(lm::io::FFluxOutput* ffluxOutput, int outIndex, hid_t lifecycleGroup)
@@ -801,7 +801,7 @@ void Hdf5File::setFFluxTrajectoryOutput_EdgeID(lm::io::FFluxOutput* ffluxOutput,
     lm::io::FFluxOutput::TrajectoryOutput* trajOut = ffluxOutput->mutable_trajectory_outputs(outIndex);
     hsize_t dims[1];
     dims[0] = ffluxOutput->trajectory_outputs(outIndex).edge_id_size();
-    _setFFluxTrajectoryOutput<uint64_t>(trajOut->edge_id(), dims, "EdgeID", H5T_STD_U64LE, lifecycleGroup, 1);
+    _setFFluxTrajectoryOutput(trajOut->edge_id(), dims, "EdgeID", H5T_STD_U64LE, lifecycleGroup, 1);
 }
 
 void Hdf5File::setFFluxTrajectoryOutput_SpeciesCount(lm::io::FFluxOutput* ffluxOutput, int outIndex, hid_t lifecycleGroup)
@@ -810,7 +810,7 @@ void Hdf5File::setFFluxTrajectoryOutput_SpeciesCount(lm::io::FFluxOutput* ffluxO
     hsize_t dims[2];
     dims[0] = trajOut->species_count_size()/ffluxOutput->number_species();
     dims[1] = ffluxOutput->number_species();
-    _setFFluxTrajectoryOutput<int32_t>(trajOut->species_count(), dims, "SpeciesCount", H5T_STD_I32LE, lifecycleGroup, 2);
+    _setFFluxTrajectoryOutput(trajOut->species_count(), dims, "SpeciesCount", H5T_STD_I32LE, lifecycleGroup, 2);
 }
 
 void Hdf5File::setFFluxTrajectoryOutput_Time(lm::io::FFluxOutput* ffluxOutput, int outIndex, hid_t lifecycleGroup)
@@ -818,7 +818,7 @@ void Hdf5File::setFFluxTrajectoryOutput_Time(lm::io::FFluxOutput* ffluxOutput, i
     lm::io::FFluxOutput::TrajectoryOutput* trajOut = ffluxOutput->mutable_trajectory_outputs(outIndex);
     hsize_t dims[1];
     dims[0] = ffluxOutput->trajectory_outputs(outIndex).time_size();
-    _setFFluxTrajectoryOutput<double>(trajOut->time(), dims, "Time", H5T_IEEE_F64LE, lifecycleGroup, 1);
+    _setFFluxTrajectoryOutput(trajOut->time(), dims, "Time", H5T_IEEE_F64LE, lifecycleGroup, 1);
 }
 
 void Hdf5File::setFFluxTrajectoryOutput_TrajectoryID(lm::io::FFluxOutput* ffluxOutput, int outIndex, hid_t lifecycleGroup)
@@ -826,7 +826,7 @@ void Hdf5File::setFFluxTrajectoryOutput_TrajectoryID(lm::io::FFluxOutput* ffluxO
     lm::io::FFluxOutput::TrajectoryOutput* trajOut = ffluxOutput->mutable_trajectory_outputs(outIndex);
     hsize_t dims[1];
     dims[0] = ffluxOutput->trajectory_outputs(outIndex).trajectory_id_size();
-    _setFFluxTrajectoryOutput<uint64_t>(trajOut->trajectory_id(), dims, "TrajectoryID", H5T_STD_U64LE, lifecycleGroup, 1);
+    _setFFluxTrajectoryOutput(trajOut->trajectory_id(), dims, "TrajectoryID", H5T_STD_U64LE, lifecycleGroup, 1);
 }
 
 template <typename T>

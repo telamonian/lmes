@@ -46,13 +46,13 @@
 #define TYPES_H_
 
 #include <cstring>
+#include <limits>
 #include <list>
 #include <utility>
 #include <vector>
 
 #include <stdint.h>
 #define __STDC_LIMIT_MACROS
-#include <limits.h>
 
 #include "lm/Exceptions.h"
 

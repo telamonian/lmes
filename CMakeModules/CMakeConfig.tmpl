@@ -37,17 +37,22 @@ SET(USE_SVML optional)
 # uncomment to set a custom machine architecture flag. Defaults to "-march=native" for clang and gcc, and to "-xHost" for icc
 #SET(CUSTOM_ARCH_FLAG "-march=native")
 
-# uncomment to set any custom compiler flags.
+# uncomment to set any custom compiler flags for the default build
 #SET(CUSTOM_C_FLAGS "-g -fPIC -Wall -fmessage-length=0")
 #SET(CUSTOM_CXX_FLAGS "-g -fPIC -Wall -fmessage-length=0")
-#SET(CUSTOM_C_FLAGS "-O3 -DNDEBUG -fPIC -Wall -fmessage-length=0")
-#SET(CUSTOM_CXX_FLAGS "-O3 -DNDEBUG -fPIC -Wall -fmessage-length=0")
 
 # uncomment to set any named-build specific (ie Debug, Release, etc) compiler flags.
 #SET(CUSTOM_C_FLAGS_DEBUG "-g -fPIC -Wall -fmessage-length=0")
 #SET(CUSTOM_CXX_FLAGS_DEBUG "-g -fPIC -Wall -fmessage-length=0")
+
 #SET(CUSTOM_C_FLAGS_RELEASE "-O3 -DNDEBUG -fPIC -Wall -fmessage-length=0")
 #SET(CUSTOM_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -fPIC -Wall -fmessage-length=0")
+
+#SET(CUSTOM_C_FLAGS_RELWITHDEBINFO "-g -fPIC -Wall -fmessage-length=0")
+#SET(CUSTOM_CXX_FLAGS_RELWITHDEBINFO "-g -fPIC -Wall -fmessage-length=0")
+
+#SET(CUSTOM_C_FLAGS_MINSIZEREL "-O3 -DNDEBUG -fPIC -Wall -fmessage-length=0")
+#SET(CUSTOM_CXX_FLAGS_MINSIZEREL "-O3 -DNDEBUG -fPIC -Wall -fmessage-length=0")
 
 ############################
 # paths to libraries
