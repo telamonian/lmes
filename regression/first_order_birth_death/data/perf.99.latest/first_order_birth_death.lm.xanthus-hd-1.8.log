@@ -1,0 +1,22 @@
+Lattice Microbe ES v2016.01.20 build 1 in 64-bit mode with options MPI AVX.
+Copyright (C) 2008-2012 Luthey-Schulten Group, University of Illinois at Urbana-Champaign.
+Copyright (C) 2012-2016 Roberts Group, Johns Hopkins University.
+
+MPI version 3.0 with thread support MPI_THREAD_MULTIPLE.
+Running with 1 process(es).
+
+2016-01-05 17:19:48) Resource controller 0:1 started.
+2016-01-05 17:19:48) Supervisor 0:2 started.
+2016-01-05 17:19:48) Resource controller 0:1 on xanthus-hd-1 registered with 8 cpu core(s) and 0 gpu device(s).
+2016-01-05 17:19:48) Registered resources for host xanthus-hd-1 (defaults=1): 2 cpu cores, 0 gpu devices
+2016-01-05 17:19:48) All resources registered with supervisor, starting workers.
+2016-01-05 17:19:48) Reserved core 0 on 0:1 for the output writer.
+2016-01-05 17:19:48) Creating slot 0 on process (0:1) using resources: xanthus-hd-1; cpu core list:1; gpu device list:<none>.
+2016-01-05 17:19:48) OutputWriter 0:3 started.
+2016-01-05 17:19:48) Work Unit runner 0:4 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-01-05 17:19:48) OutputWriter::HelperThread 0:5 started.
+2016-01-05 17:19:48) Output writer started: 0:3.
+2016-01-05 17:19:48) Work unit runner started: 0:4.
+2016-01-05 17:19:48) All supervisor workers have started, beginning simulation.
+2016-01-05 17:19:48) Replicate supervisor starting simulation.
+2016-01-05 17:19:48) Simulation started.
