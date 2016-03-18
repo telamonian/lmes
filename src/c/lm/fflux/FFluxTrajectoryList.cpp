@@ -462,7 +462,7 @@ void FFluxTrajectoryList::workUnitPartFinishedPhaseN(const message::WorkUnitStat
             // If we're completely done with sampling in both directions, do the probability calculations
             else
             {
-                ffluxOutputSetFinal_DinnerMethod(savedCrossings, savedDwellTimes, savedFinishedTrajectoriesCounts, savedHists);
+                ffluxOutputSetFinal(savedCrossings, savedDwellTimes, savedFinishedTrajectoriesCounts, savedHists);
                 // if intermediateOutputFlag is not set, remove the basinOutputs from the final output message
                 if (!(intermediateOutputFlag)) {getFFluxOutput()->clear_basin_outputs();}
 //                // TODO this call to deleteAllTrajectories should not be necessary here, but there do seem to be a significant quantity of hangovers that stick around. Look into this
@@ -669,7 +669,7 @@ void FFluxTrajectoryList::ffluxOutputAddBasin(CrossingsMap& crossings, DwellTime
     probabilityIToIPlusOne->set_tiling_id(getFFluxOutput()->tiling_id());
 
     probabilityIToIPlusOne->add_tile_indices(0);
-    probabilityIToIPlusOne->add_tile_vals(0.0);
+    probabilityIToIPlusOne->add_tile_vals(1.0);
     for (int i=1;i<maxFFluxPhase;i++)
     {
         probabilityIToIPlusOne->add_tile_indices(i);
@@ -684,10 +684,8 @@ void FFluxTrajectoryList::ffluxOutputAddBasin(CrossingsMap& crossings, DwellTime
     probabilityOneToIPlusOne->set_tiling_id(getFFluxOutput()->tiling_id());
 
     probabilityOneToIPlusOne->add_tile_indices(0);
-    probabilityOneToIPlusOne->add_tile_vals(0.0);
-    probabilityOneToIPlusOne->add_tile_indices(1);
-    probabilityOneToIPlusOne->add_tile_vals(probabilityIToIPlusOne->tile_vals(1));
-    for (int i=2;i<maxFFluxPhase;i++)
+    probabilityOneToIPlusOne->add_tile_vals(1.0);
+    for (int i=1;i<maxFFluxPhase;i++)
     {
         probabilityOneToIPlusOne->add_tile_indices(i);
         probabilityOneToIPlusOne->add_tile_vals(probabilityOneToIPlusOne->tile_vals(i-1)*probabilityIToIPlusOne->tile_vals(i));
@@ -888,7 +886,7 @@ void FFluxTrajectoryList::ffluxOutputPrintBasin(CrossingsMap& crossings, Finishe
     Print::printf(Print::INFO, "Switching rate constant: %.10f", Kab);
 }
 
-void FFluxTrajectoryList::ffluxOutputPrintFinal_DinnerMethod(SavedCrossings& savedCrossings, SavedDwellTimes& savedDwellTimes, SavedFinishedTrajectoriesCounts& savedFinishedTrajectoriesCounts, SavedHists& savedHists)
+void FFluxTrajectoryList::ffluxOutputPrintFinal(SavedCrossings& savedCrossings, SavedDwellTimes& savedDwellTimes, SavedFinishedTrajectoriesCounts& savedFinishedTrajectoriesCounts, SavedHists& savedHists)
 {
     // This version of the probability calculation is taken from Dinner, 2010
     double phaseZeroFluxA = (double)savedCrossings[FORWARD][0].size()/(maxTimeZero*simultaneousTrajectoryCount);
@@ -936,7 +934,7 @@ void FFluxTrajectoryList::ffluxOutputPrintFinal_DinnerMethod(SavedCrossings& sav
     Print::printf(Print::INFO, "Pb: %.10f", Pb);
 }
 
-void FFluxTrajectoryList::ffluxOutputSetFinal_DinnerMethod(SavedCrossings& savedCrossings, SavedDwellTimes& savedDwellTimes, SavedFinishedTrajectoriesCounts& savedFinishedTrajectoriesCounts, SavedHists& savedHists)
+void FFluxTrajectoryList::ffluxOutputSetFinal(SavedCrossings& savedCrossings, SavedDwellTimes& savedDwellTimes, SavedFinishedTrajectoriesCounts& savedFinishedTrajectoriesCounts, SavedHists& savedHists)
 {
     // This version of the probability calculation is taken from Dinner, 2010
     // And then modified by me to be in terms of the tiles rather than the edges in between them

@@ -8,9 +8,12 @@ set(ENV{HDF5_ROOT} ${HDF5_ROOT})
 
 # convert the build type string to upper case for easy comparison
 string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UPPER)
+if(CMAKE_BUILD_TYPE_UPPER)
+    set(_CMAKE_BUILD_TYPE_UPPER "_${CMAKE_BUILD_TYPE_UPPER}")
+endif(CMAKE_BUILD_TYPE_UPPER)
 
 # fix some rpath zanyness with cmake install
-set(CMAKE_MACOSX_RPATH ON)
+#set(CMAKE_MACOSX_RPATH ON)
 #set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 ################
@@ -33,8 +36,8 @@ else(${CMAKE_CXX_COMPILER_ID} MATCHES "Intel")
 endif(${CMAKE_CXX_COMPILER_ID} MATCHES "Intel")
 
 # Lattice Microbes standard compiler flags
-set(LM_FLAGS_OPTIMIZED "-O3 -DNDEBUG -fPIC -Wall -fmessage-length=0")
-set(LM_FLAGS_DEBUG "-g -fPIC -Wall -fmessage-length=0")
+set(LM_FLAGS_OPTIMIZED "-m64 -O3 -DNDEBUG -fPIC -Wall -fmessage-length=0")
+set(LM_FLAGS_DEBUG "-m64 -g -fPIC -Wall -fmessage-length=0")
 
 # Set architecture flag, used in c and c++ flags.
 # Will be replaced by the CUSTOM_ARCH_FLAG variable from CMakeConfig.txt if set
@@ -61,12 +64,10 @@ else(NOT CMAKE_BUILD_TYPE_UPPER)
     message(WARNING "No support for specified build type: ${CMAKE_BUILD_TYPE}. Compiler flags may be incorrectly set.")
 endif(NOT CMAKE_BUILD_TYPE_UPPER)
 
-# prepend the architecture flag to the rest of the flags
-if(CMAKE_BUILD_TYPE_UPPER)
-    set(_CMAKE_BUILD_TYPE_UPPER "_${CMAKE_BUILD_TYPE_UPPER}")
-endif(CMAKE_BUILD_TYPE_UPPER)
+# prepend the architecture flag to the rest of the flags, and append any troubleshooting flags if set
 foreach(lang C;CXX)
     set(CMAKE_${lang}_FLAGS${_CMAKE_BUILD_TYPE_UPPER} "${ARCH_FLAG} ${CMAKE_${lang}_FLAGS${_CMAKE_BUILD_TYPE_UPPER}}")
+    set(CMAKE_${lang}_FLAGS${_CMAKE_BUILD_TYPE_UPPER} "${CMAKE_${lang}_FLAGS${_CMAKE_BUILD_TYPE_UPPER}} ${TROUBLESHOOTING_FLAGS}")
 endforeach(lang)
 
 # for now, no c++11 support
@@ -122,6 +123,10 @@ testFMA(BUILD_WITH_FMA ${USE_FMA})
 testSVML(BUILD_WITH_SVML ${USE_SVML})
 if(BUILD_WITH_AVX)
     add_definitions(-DOPT_AVX)
+    # add the explicit AVX support flag
+    foreach(lang C;CXX)
+        set(CMAKE_${lang}_FLAGS${_CMAKE_BUILD_TYPE_UPPER} "-mavx ${CMAKE_${lang}_FLAGS${_CMAKE_BUILD_TYPE_UPPER}}")
+    endforeach(lang)
 endif(BUILD_WITH_AVX)
 if(BUILD_WITH_FMA)
     add_definitions(-DOPT_FMA)
@@ -214,15 +219,15 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 IF(BUILD_WITH_CUDA)
     target_link_libraries(lmes lm_cuda_lib
-                             ${CUDA_LIBRARIES})
+                               ${CUDA_LIBRARIES})
 ENDIF(BUILD_WITH_CUDA)
 
 target_link_libraries(lmes ${CMAKE_THREAD_LIBS_INIT}
-                         ${PROTOBUF_LIBRARIES}
-                         ${HDF5_LIBRARIES}
-                         ${HDF5_HL_LIBRARIES}
-                         ${ZLIB_LIBRARIES}
-                         ${MPI_C_LIBRARIES})
+                           ${PROTOBUF_LIBRARIES}
+                           ${HDF5_LIBRARIES}
+                           ${HDF5_HL_LIBRARIES}
+                           ${ZLIB_LIBRARIES}
+                           ${MPI_C_LIBRARIES})
 
 install(TARGETS lmes DESTINATION bin COMPONENT lmes)
 

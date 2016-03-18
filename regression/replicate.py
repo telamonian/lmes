@@ -10,7 +10,7 @@ from lmFile import Input,Dependency,DependencyMatrix,InitialSpeciesCounts,Initia
 from regression import Regression
 
 class ReplicateRegression(Regression):
-    defaultLMArgs = ['-r', '1-10'] + Regression.defaultLMArgs
+    defaultLMArgs = ['-r', '1-100'] + Regression.defaultLMArgs
     helpMessage = 'script to test out a complete Replicate Lattice Microbes run'
 
     def BuildInput(self, **kwargs):
@@ -39,7 +39,7 @@ class ReplicateRegression(Regression):
         #                speciesCoefficients=[1,2,2])]
 
         simParams = [SimulationParameter(key='maxSteps',val=str(int(1e10))),
-                     SimulationParameter(key='maxTime',val=str(int(1e5))),
+                     SimulationParameter(key='maxTime',val=str(int(1e3))),
                      SimulationParameter(key='maxWorkUnitSteps',val=str(int(1e6))),
                      SimulationParameter(key='writeInterval',val=str(int(1e1)))]
 

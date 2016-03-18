@@ -46,13 +46,13 @@
 #define TYPES_H_
 
 #include <cstring>
-#include <limits>
 #include <list>
 #include <utility>
 #include <vector>
 
-#include <stdint.h>
 #define __STDC_LIMIT_MACROS
+#include <stdint.h>
+#include <limits>
 
 #include "lm/Exceptions.h"
 
@@ -156,13 +156,45 @@ template <typename T> struct tuple
             values[i] = valuesVector[i];
     }
 
-    tuple& operator=(const tuple& t)
+    tuple& operator=(const tuple<T>& t)
     {
         if (len != t.len)
            throw lm::InvalidArgException("t","both tuples during assigment must be of the same length");
         memcpy(values, t.values, sizeof(T)*len);
         return *this;
     }
+
+    bool operator!=(const tuple<T>& t) const
+    {
+        if (len!=t.len)
+        {
+            return false;
+        }
+        for (uint i=0; i<len; i++)
+        {
+            if (values[i]!=t.values[i])
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+//    bool operator!=(const tuple<T>& t1, const tuple<T>& t2) const
+//    {
+//        if (t1.len!=t2.len)
+//        {
+//            return false;
+//        }
+//        for (uint i=0; i<t1.len; i++)
+//        {
+//            if (t1.values[i]!=t2.values[i])
+//            {
+//                return false;
+//            }
+//        }
+//        return true;
+//    }
 
     virtual ~tuple()
     {

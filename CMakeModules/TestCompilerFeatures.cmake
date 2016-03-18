@@ -87,9 +87,10 @@ endfunction()
 function(setTestCompileFlags)
     # convert the build type string to lower case for easy comparison
     string(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_LOWER)
-    # set some flags for the test compilation
+
+    # forward some flags from the enclosing project to the test compilation
     if(NOT CMAKE_BUILD_TYPE_LOWER)
-        set(CMAKE_REQUIRED_FLAGS ${CMAKE_CXX_FLAGS} PARENT_SCOPE)
+#        set(CMAKE_REQUIRED_FLAGS ${CMAKE_CXX_FLAGS} PARENT_SCOPE)
     elseif(CMAKE_BUILD_TYPE_LOWER STREQUAL debug)
         set(CMAKE_REQUIRED_FLAGS ${CMAKE_CXX_FLAGS_DEBUG} PARENT_SCOPE)
     elseif(CMAKE_BUILD_TYPE_LOWER STREQUAL release)
@@ -101,4 +102,7 @@ function(setTestCompileFlags)
     else(NOT CMAKE_BUILD_TYPE_LOWER)
         message(WARNING "No AVX testing support for specified build type: ${CMAKE_BUILD_TYPE}. Test results may be incorrect.")
     endif(NOT CMAKE_BUILD_TYPE_LOWER)
+
+    # add the explicit AVX support flag
+    set(CMAKE_REQUIRED_FLAGS "-mavx ${CMAKE_REQUIRED_FLAGS}" PARENT_SCOPE)
 endfunction()

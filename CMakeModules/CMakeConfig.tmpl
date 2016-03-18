@@ -77,7 +77,21 @@ SET(USE_SVML optional)
 #SET(SBML_ROOT $SBML_ROOT)
 
 ############################
-#deprecated library specific path settings
+# trouble-shooting options
+############################
+# if you're having trouble compiling or running Lattice Microbes, you can try tweaking one of the options below
+
+# if you're using GCC to compile...
+
+# ...and you get an error at link time that includes the phrase "cxx11:abi" somewhere, try uncommenting the following line
+#add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
+
+# ...and you're having trouble getting AVX support to work or get an error message durring compilation like "no such instruction: `vmovd %xmm0, %eax'", try uncommenting the following line
+# on a mac, this will tell GCC to use the built-in clang assembler rather than the gnu as
+#set(TROUBLESHOOTING_FLAGS "-Wa,-q ${TROUBLESHOOTING_FLAGS}")
+
+############################
+# deprecated library specific path settings
 ############################
 
 #SET(BOOST_ROOT $BOOST_ROOT)

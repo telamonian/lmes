@@ -101,7 +101,8 @@ GillespieDSolverAVX::GillespieDSolverAVX()
 :GillespieDSolver(),timeLimit(_mm256_set1_pd(std::numeric_limits<double>::infinity())),limitValues(NULL),numberFptValues(0),fptMinValuesAchieved(NULL),fptMaxValuesAchieved(NULL),fptValues(NULL),speciesCounts(NULL),propensities(NULL),time(_mm256_set1_pd(0.0)),timeStep(_mm256_set1_pd(0.0)),orderParameterValues(NULL),orderParameterPreviousValues(NULL)
 {
     // Initialize any array variables.
-    for (int i=0; i<DOUBLES_PER_AVX; i++)
+    int i=0;
+    for (; i<DOUBLES_PER_AVX; i++)
     {
         initialized[i] = false;
         status[i] = lm::message::WorkUnitStatus::NONE;

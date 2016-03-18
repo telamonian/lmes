@@ -219,18 +219,18 @@ int TrajectoryList::addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUn
 Trajectory* TrajectoryList::getTrajectoryForFinishedWorkUnit(uint64_t id)
 {
     Trajectory* t;
-    if (abortedTrajectories.count(id) == 1)
+    if (runningTrajectories.count(id) == 1)
     {
-        t = abortedTrajectories[id];
-        if (t->getStatus() != Trajectory::ABORTED)
+        t = runningTrajectories[id];
+        if (t->getStatus() != Trajectory::RUNNING)
         {
             throw Exception("Consistency error in trajectory list, expected trajectory did not have a running status", id);
         }
     }
-    else if (runningTrajectories.count(id) == 1)
+    else if (abortedTrajectories.count(id) == 1)
     {
-        t = runningTrajectories[id];
-        if (t->getStatus() != Trajectory::RUNNING)
+        t = abortedTrajectories[id];
+        if (t->getStatus() != Trajectory::ABORTED)
         {
             throw Exception("Consistency error in trajectory list, expected trajectory did not have a running status", id);
         }
@@ -344,7 +344,6 @@ void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& fwuMs
         Trajectory* t = getTrajectoryForFinishedWorkUnit(id);
         if (t->getStatus()==Trajectory::ABORTED)
         {
-            deleteTrajectory(id);
             continue;
         }
 
@@ -362,35 +361,15 @@ void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& fwuMs
             throw Exception("Consistency error in trajectory list, could not find trajectory id in work units finished",id);
 
         workUnitPartFinished(fwuMsg.part_status(partIndex), t);
+    }
 
-//        // Update the state of the trajectory.
-//        t->setState(fwuBuf.part_status(partIndex).final_state());
-//        t->incrementWorkUnitsPerformed();
-//
-//        // Update the status of the trajectory and move to the appropriate list.
-//        if (fwuBuf.part_status(partIndex).status() == lm::message::WorkUnitStatus::STEPS_FINISHED)
-//        {
-//            t->setStatus(Trajectory::WAITING);
-//            runningTrajectories.erase(id);
-//            waitingTrajectories[id] = t;
-//        }
-//        else if (fwuBuf.part_status(partIndex).status() == lm::message::WorkUnitStatus::LIMIT_REACHED)
-//        {
-//            t->setStatus(Trajectory::FINISHED);
-//            runningTrajectories.erase(id);
-//            finishedTrajectories[id] = t;
-//        }
-//        else if (fwuBuf.part_status(partIndex).status() == lm::message::WorkUnitStatus::ERROR)
-//        {
-//            if (fwuBuf.part_status(partIndex).has_error_message())
-//                throw Exception("Error received in work unit status",fwuBuf.part_status(partIndex).error_message().c_str());
-//            else
-//                throw Exception("Error received in work unit status","<no error message specified");
-//        }
-//        else
-//        {
-//            throw Exception("Unknown work unit status", fwuBuf.part_status(partIndex).status());
-//        }
+    // check to see if any of the trajectories involved in this work unit have been aborted in the previous loop
+    for (list<uint64_t>::iterator it=involvedTrajectories.begin(); it != involvedTrajectories.end(); it++)
+    {
+        if (abortedTrajectories.count(*it) == 1)
+        {
+            deleteTrajectory(*it);
+        }
     }
 }
 
