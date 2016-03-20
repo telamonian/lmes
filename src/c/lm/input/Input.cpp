@@ -312,8 +312,7 @@ template <EH::LimitType LT> bool Input::parseLimits(string key, string debugStri
 {
     if (simulationParameters.count(key))
     {
-        typename pairVector<uint, typename LimitValueT<LT>::type>::type idLimitVec(
-                simulationParameters.parsePairVector<uint, typename LimitValueT<LT>::type>(key, debugString));
+        typename pairVector<uint, typename LimitValueT<LT>::type>::type idLimitVec(simulationParameters.parsePairVector<uint, typename LimitValueT<LT>::type>(key, debugString));
         for (typename pairVector<uint, typename LimitValueT<LT>::type>::iterator it(idLimitVec.begin());
              it != idLimitVec.end(); it++)
         {

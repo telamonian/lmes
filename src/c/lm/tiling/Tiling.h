@@ -62,7 +62,7 @@ public:
 
 // accessors
     TrajectoryLimitBuf* addLimitBuf(lm::trajectory::TrajectoryLimits& tls, uint edgeIndex,
-                                    EH::StoppingCondition stoppingCondition, bool openClosed = true) const;
+                                    EH::StoppingCondition stoppingCondition, bool rightOpenBins = true) const;
 //    double getAscendingLimit(uint edgeIndex);
 //    double getDescendingLimit(uint edgeIndex);
     EdgeIterator begin() const {return tilingBuf->edges().begin();}

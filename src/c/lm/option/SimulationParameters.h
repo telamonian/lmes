@@ -88,7 +88,7 @@ public:
 
         typename pairVector<T1, T2>::type parsedPairVector;
         std::string pairString;
-        while (getline(pairVecSS, pairString, ':'))
+        while (getline(pairVecSS, pairString, ','))
         {
             std::pair<T1, T2> p;
             std::stringstream pairSS(pairString);
@@ -96,8 +96,8 @@ public:
             pairSS >> p.first;
             // strip any white space in between the last number parsed and the next delimiter
             pairSS >> std::ws;
-            if (pairVecSS.peek() == ',')
-                pairVecSS.ignore();
+            if (pairSS.peek() == ':')
+                pairSS.ignore();
             pairSS >> p.second;
 
             parsedPairVector.push_back(p);
