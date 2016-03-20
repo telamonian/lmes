@@ -1,8 +1,13 @@
 # cuda src directory
 
+#set(CUDA_SEPARABLE_COMPILATION ON)
+#set(CUDA_HOST_COMPILER "")
+
 ####################
 #TARGET: lm_cuda_lib
 ####################
+# static linking currently does not seem to work with some of the functions from the cuda
+
 # set the NVCC specific flags
 set(CUDA_NVCC_FLAGS --ptxas-options=-v;--gpu-architecture;compute_30;--gpu-code;sm_30;-DCUDA_3D_GRID_LAUNCH;-DCUDA_DOUBLE_PRECISION;-DTUNE_MPD_Y_BLOCK_Y_SIZE=16;-DTUNE_MPD_Z_BLOCK_Z_SIZE=8)   #;${CUDA_NVCC_FLAGS})
 
@@ -22,8 +27,8 @@ set_property(DIRECTORY PROPERTY COMPILE_DEFINITIONS ${nvcc_definitions})
 # handle hateful libstdc++/libc++ string handling bug that always seems to crop up with Clang
 #if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 #    if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-#        set(CUDA_NVCC_FLAGS --compiler-options;-stdlib=libstdc++;--linker-options;-stdlib=libstdc++;${CUDA_NVCC_FLAGS})
-##        set(CUDA_NVCC_FLAGS -ccbin;/usr/bin/clang;${CUDA_NVCC_FLAGS})
+##        set(CUDA_NVCC_FLAGS --compiler-options;-stdlib=libstdc++;--linker-options;-stdlib=libstdc++;${CUDA_NVCC_FLAGS})
+#        set(CUDA_NVCC_FLAGS -ccbin;clang++;${CUDA_NVCC_FLAGS})
 #    endif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
 #endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 

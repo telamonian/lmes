@@ -16,6 +16,8 @@ endif(CMAKE_BUILD_TYPE_UPPER)
 #set(CMAKE_MACOSX_RPATH ON)
 #set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
+option(CUDA_USE_STATIC_CUDA_RUNTIME "" OFF)
+
 ################
 project(lm)
 ################
@@ -219,6 +221,9 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 IF(BUILD_WITH_CUDA)
     target_link_libraries(lmes lm_cuda_lib
+                               # general cuda libraries
+                               ${CUDA_CUDA_LIBRARY}
+                               # cuda runtime library
                                ${CUDA_LIBRARIES})
 ENDIF(BUILD_WITH_CUDA)
 

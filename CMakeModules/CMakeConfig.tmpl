@@ -38,21 +38,21 @@ SET(USE_SVML optional)
 #SET(CUSTOM_ARCH_FLAG "-march=native")
 
 # uncomment to set any custom compiler flags for the default build
-#SET(CUSTOM_C_FLAGS "-g -fPIC -Wall -fmessage-length=0")
-#SET(CUSTOM_CXX_FLAGS "-g -fPIC -Wall -fmessage-length=0")
+#SET(CUSTOM_C_FLAGS "-m64 -g -fPIC -Wall -fmessage-length=0")
+#SET(CUSTOM_CXX_FLAGS "-m64 -g -fPIC -Wall -fmessage-length=0")
 
 # uncomment to set any named-build specific (ie Debug, Release, etc) compiler flags.
-#SET(CUSTOM_C_FLAGS_DEBUG "-g -fPIC -Wall -fmessage-length=0")
-#SET(CUSTOM_CXX_FLAGS_DEBUG "-g -fPIC -Wall -fmessage-length=0")
+#SET(CUSTOM_C_FLAGS_DEBUG "-m64 -g -fPIC -Wall -fmessage-length=0")
+#SET(CUSTOM_CXX_FLAGS_DEBUG "-m64 -g -fPIC -Wall -fmessage-length=0")
 
-#SET(CUSTOM_C_FLAGS_RELEASE "-O3 -DNDEBUG -fPIC -Wall -fmessage-length=0")
-#SET(CUSTOM_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -fPIC -Wall -fmessage-length=0")
+#SET(CUSTOM_C_FLAGS_RELEASE "-m64 -O3 -DNDEBUG -fPIC -Wall -fmessage-length=0")
+#SET(CUSTOM_CXX_FLAGS_RELEASE "-m64 -O3 -DNDEBUG -fPIC -Wall -fmessage-length=0")
 
-#SET(CUSTOM_C_FLAGS_RELWITHDEBINFO "-g -fPIC -Wall -fmessage-length=0")
-#SET(CUSTOM_CXX_FLAGS_RELWITHDEBINFO "-g -fPIC -Wall -fmessage-length=0")
+#SET(CUSTOM_C_FLAGS_RELWITHDEBINFO "-m64 -g -fPIC -Wall -fmessage-length=0")
+#SET(CUSTOM_CXX_FLAGS_RELWITHDEBINFO "-m64 -g -fPIC -Wall -fmessage-length=0")
 
-#SET(CUSTOM_C_FLAGS_MINSIZEREL "-O3 -DNDEBUG -fPIC -Wall -fmessage-length=0")
-#SET(CUSTOM_CXX_FLAGS_MINSIZEREL "-O3 -DNDEBUG -fPIC -Wall -fmessage-length=0")
+#SET(CUSTOM_C_FLAGS_MINSIZEREL "-m64 -O3 -DNDEBUG -fPIC -Wall -fmessage-length=0")
+#SET(CUSTOM_CXX_FLAGS_MINSIZEREL "-m64 -O3 -DNDEBUG -fPIC -Wall -fmessage-length=0")
 
 ############################
 # paths to libraries
@@ -79,9 +79,12 @@ SET(USE_SVML optional)
 ############################
 # trouble-shooting options
 ############################
-# if you're having trouble compiling or running Lattice Microbes, you can try tweaking one of the options below
+# if you're having trouble compiling or running Lattice Microbes, you can try tweaking one of the options in this section
 
-# if you're using GCC to compile...
+############################
+# trouble-shooting options - GCC
+############################
+# if you're using GCC to compile Lattice Microbes and you're having trouble, you can try tweaking one of the options in this section
 
 # ...and you get an error at link time that includes the phrase "cxx11:abi" somewhere, try uncommenting the following line
 #add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
