@@ -292,7 +292,7 @@ public:
     void changeVolume(double volumeMultiplier) {}
     double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
-        double quadTimeDepPropensity = k * pow( (double(speciesCounts[s]) - v * double(time)), (double)2 );
+        double quadTimeDepPropensity = k * pow( (double(speciesCounts[s]) - v * double(time)), 2 );
     	//printf ("species = %d speciesCounts = %f time = %f k = %f d = %f quadTimeDepPropensity = %f.\n", s,double(speciesCounts[s]),time,k,v,quadTimeDepPropensity);
     	return quadTimeDepPropensity;
     }
@@ -312,6 +312,7 @@ public:
         // Find the rate costant.
         if (k.len < 2)  throw InvalidArgException("k", "quadratic time dependent potential propensity needs two rate constant",k.len);
         
+        //printf("propensity = %f.\n", new QuadraticTimeDependentPotentialPropensity(dependencies[0],k[0],k[1]));
         return new QuadraticTimeDependentPotentialPropensity(dependencies[0],k[0],k[1]);
     }
 
