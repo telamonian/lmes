@@ -1,0 +1,7 @@
+- Regression tests that also have performance tests:
+  - bimolecular_with_fpt
+  - bimolecular_with_limits
+  - bimolecular_with_order_parameter
+  - first_order_birth_death
+  - multiple_species_reactions
+  - rdme_bimolecular

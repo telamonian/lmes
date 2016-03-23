@@ -191,20 +191,40 @@ protected:
     vectorType _vec;
 };
 
-// the main checkLimit template. Call this function when checking any values against any limits
-template <EH::StoppingCondition sc, bool includeEndpoint> struct checkLimit;
+//// the main checkLimit template. Call this function when checking any values against any limits
+//template <EH::StoppingCondition sc, bool includeEndpoint> struct checkLimit;
+//
+//// specializations of checkLimit with regards to stoppingCondition and includeEndpoint for the basic min/max limits
+//template <> struct checkLimit<EH::MIN, false> {template <typename T> static bool call(T val, T limitVal) {return (val < limitVal);}};
+//template <> struct checkLimit<EH::MIN, true> {template <typename T> static bool call(T val, T limitVal) {return (val <= limitVal);}};
+//template <> struct checkLimit<EH::MAX, false> {template <typename T> static bool call(T val, T limitVal) {return (val > limitVal);}};
+//template <> struct checkLimit<EH::MAX, true> {template <typename T> static bool call(T val, T limitVal) {return (val >= limitVal);}};
+//
+//// specializations of checkLimit with regards to stoppingCondition and includeEndpoint for the slightly more complex decreasing/increasing limits
+//template <> struct checkLimit<EH::DECREASING, false> {template <typename T> static bool call(T prevVal, T val, T limitVal) {return (prevVal > limitVal && val <= limitVal);}};
+//template <> struct checkLimit<EH::DECREASING, true> {template <typename T> static bool call(T prevVal, T val, T limitVal) {return (prevVal >= limitVal && val < limitVal);}};
+//template <> struct checkLimit<EH::INCREASING, false> {template <typename T> static bool call(T prevVal, T val, T limitVal) {return (prevVal < limitVal && val >= limitVal);}};
+//template <> struct checkLimit<EH::INCREASING, true> {template <typename T> static bool call(T prevVal, T val, T limitVal) {return (prevVal <= limitVal && val > limitVal);}};
 
-// specializations of checkLimit with regards to stoppingCondition and includeEndpoint for the basic min/max limits
-template <> struct checkLimit<EH::MIN, false> {template <typename T> static bool call(T val, T limitVal) {return (val < limitVal);}};
-template <> struct checkLimit<EH::MIN, true> {template <typename T> static bool call(T val, T limitVal) {return (val <= limitVal);}};
-template <> struct checkLimit<EH::MAX, false> {template <typename T> static bool call(T val, T limitVal) {return (val > limitVal);}};
-template <> struct checkLimit<EH::MAX, true> {template <typename T> static bool call(T val, T limitVal) {return (val >= limitVal);}};
+// template conversion regexes
+// template <> struct checkLimit<EH::(\w+), (\w+)>.+return (\(.+\);).+
+// define check_limit_$1_$2(val, limitVal, checkBool) checkBool = $3
+// define check_limit_$1_$2(prevVal, val, limitVal, checkBool) checkBool = $3
 
-// specializations of checkLimit with regards to stoppingCondition and includeEndpoint for the slightly more complex decreasing/increasing limits
-template <> struct checkLimit<EH::DECREASING, false> {template <typename T> static bool call(T prevVal, T val, T limitVal) {return (prevVal > limitVal && val <= limitVal);}};
-template <> struct checkLimit<EH::DECREASING, true> {template <typename T> static bool call(T prevVal, T val, T limitVal) {return (prevVal >= limitVal && val < limitVal);}};
-template <> struct checkLimit<EH::INCREASING, false> {template <typename T> static bool call(T prevVal, T val, T limitVal) {return (prevVal < limitVal && val >= limitVal);}};
-template <> struct checkLimit<EH::INCREASING, true> {template <typename T> static bool call(T prevVal, T val, T limitVal) {return (prevVal <= limitVal && val > limitVal);}};
+// non-standard compliant check macro, similar to the avx check macros
+//define check_limit_MIN_false(val, limitVal) __extension__ ({ (val < limitVal); })
+
+// specializations of check_limit with regards to stoppingCondition and includeEndpoint for the basic min/max limits
+#define check_limit_MIN_false(val, limitVal, checkBool) checkBool = (val < limitVal);
+#define check_limit_MIN_true(val, limitVal, checkBool) checkBool = (val <= limitVal);
+#define check_limit_MAX_false(val, limitVal, checkBool) checkBool = (val > limitVal);
+#define check_limit_MAX_true(val, limitVal, checkBool) checkBool = (val >= limitVal);
+
+// specializations of check_limit with regards to stoppingCondition and includeEndpoint for the slightly more complex decreasing/increasing limits
+#define check_limit_DECREASING_false(prevVal, val, limitVal, checkBool) checkBool = (prevVal > limitVal && val <= limitVal);
+#define check_limit_DECREASING_true(prevVal, val, limitVal, checkBool) checkBool = (prevVal >= limitVal && val < limitVal);
+#define check_limit_INCREASING_false(prevVal, val, limitVal, checkBool) checkBool = (prevVal < limitVal && val >= limitVal);
+#define check_limit_INCREASING_true(prevVal, val, limitVal, checkBool) checkBool = (prevVal <= limitVal && val > limitVal);
 
 }
 }

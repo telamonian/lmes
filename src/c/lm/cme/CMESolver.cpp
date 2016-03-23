@@ -78,7 +78,7 @@
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
 
-using lm::trajectory::checkLimit;
+//using lm::trajectory::checkLimit;
 using std::list;
 using std::map;
 using std::string;
@@ -481,6 +481,121 @@ bool CMESolver::isTrajectoryOutsideLimits()
         TrajectoryLimit& l = limits[i];
         bool limitReached = false;
 
+//        switch (l.type)
+//        {
+//        case EH::NONE: throw Exception("CMESolver tried to check a limit that did not have an associated LimitType"); break;
+//        case EH::TIME: throw Exception("CMESolver reached a time limit that was mixed in with the other limits"); break;
+//
+//        case EH::SPECIES:
+//            switch (l.stoppingCondition)
+//            {
+//            case EH::MIN:
+//                if (l.includeEndpoint)
+//                {
+//                    limitReached = checkLimit<EH::MIN, true>::call(speciesCounts[l.valueID], l.ivalue);
+//                }
+//                else
+//                {
+//                    limitReached = checkLimit<EH::MIN, false>::call(speciesCounts[l.valueID], l.ivalue);
+//                }
+//                break;
+//            case EH::MAX:
+//                if (l.includeEndpoint)
+//                {
+//                    limitReached = checkLimit<EH::MAX, true>::call(speciesCounts[l.valueID], l.ivalue);
+//                }
+//                else
+//                {
+//                    limitReached = checkLimit<EH::MAX, false>::call(speciesCounts[l.valueID], l.ivalue);
+//                }
+//                break;
+//            case EH::INCREASING: throw Exception("unimplemented"); break;
+//            case EH::DECREASING: throw Exception("unimplemented"); break;
+//            } break;
+//
+//        case EH::ORDER_PARAMETER:
+//            switch (l.stoppingCondition)
+//            {
+//            case EH::MIN:
+//                if (l.includeEndpoint)
+//                {
+//                    limitReached = checkLimit<EH::MIN, true>::call(orderParameterValues[l.valueID], l.dvalue);
+//                }
+//                else
+//                {
+//                    limitReached = checkLimit<EH::MIN, false>::call(orderParameterValues[l.valueID], l.dvalue);
+//                }
+//                break;
+//            case EH::MAX:
+//                if (l.includeEndpoint)
+//                {
+//                    limitReached = checkLimit<EH::MAX, true>::call(orderParameterValues[l.valueID], l.dvalue);
+//                }
+//                else
+//                {
+//                    limitReached = checkLimit<EH::MAX, false>::call(orderParameterValues[l.valueID], l.dvalue);
+//                }
+//                break;
+//            case EH::DECREASING:
+//                if (l.includeEndpoint)
+//                {
+//                    limitReached = checkLimit<EH::DECREASING, true>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
+//                }
+//                else
+//                {
+//                    limitReached = checkLimit<EH::DECREASING, false>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
+//                }
+//                break;
+//            case EH::INCREASING:
+//                if (l.includeEndpoint)
+//                {
+//                    limitReached = checkLimit<EH::INCREASING, true>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
+//                }
+//                else
+//                {
+//                    limitReached = checkLimit<EH::INCREASING, false>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
+//                }
+//                break;
+//            }
+//            break;
+//
+//        case EH::DEGREE_ADVANCEMENT:
+//            switch (l.stoppingCondition)
+//            {
+//            case EH::MIN:
+//                if (l.includeEndpoint)
+//                {
+//                    limitReached = checkLimit<EH::MIN, true>::call(degreeAdvancements[l.valueID], l.uvalue);
+//                }
+//                else
+//                {
+//                    limitReached = checkLimit<EH::MIN, false>::call(degreeAdvancements[l.valueID], l.uvalue);
+//                }
+//                break;
+//            case EH::MAX:
+//                if (l.includeEndpoint)
+//                {
+//                    limitReached = checkLimit<EH::MAX, true>::call(degreeAdvancements[l.valueID], l.uvalue);
+//                }
+//                else
+//                {
+//                    limitReached = checkLimit<EH::MAX, false>::call(degreeAdvancements[l.valueID], l.uvalue);
+//                }
+//                break;
+//            case EH::INCREASING: throw Exception("unimplemented"); break;
+//            case EH::DECREASING: throw Exception("unimplemented"); break;
+//            }
+//            break;
+//
+//        default:
+//            break;
+//        }
+        // template conversion regexes
+        // (\w+) = checkLimit<EH::(\w+), (\w+)>::call\((\S+), (\S+)\);
+        // check_limit_$2_$3($4, $5, $1)
+        // (\w+) = checkLimit<EH::(\w+), (\w+)>::call\((\S+), (\S+), (\S+)\);
+        // check_limit_$2_$3($4, $5, $6, $1)
+        
         switch (l.type)
         {
         case EH::NONE: throw Exception("CMESolver tried to check a limit that did not have an associated LimitType"); break;
@@ -492,21 +607,21 @@ bool CMESolver::isTrajectoryOutsideLimits()
             case EH::MIN:
                 if (l.includeEndpoint)
                 {
-                    limitReached = checkLimit<EH::MIN, true>::call(speciesCounts[l.valueID], l.ivalue);
+                    check_limit_MIN_true(speciesCounts[l.valueID], l.ivalue, limitReached)
                 }
                 else
                 {
-                    limitReached = checkLimit<EH::MIN, false>::call(speciesCounts[l.valueID], l.ivalue);
+                    check_limit_MIN_false(speciesCounts[l.valueID], l.ivalue, limitReached)
                 }
                 break;
             case EH::MAX:
                 if (l.includeEndpoint)
                 {
-                    limitReached = checkLimit<EH::MAX, true>::call(speciesCounts[l.valueID], l.ivalue);
+                    check_limit_MAX_true(speciesCounts[l.valueID], l.ivalue, limitReached)
                 }
                 else
                 {
-                    limitReached = checkLimit<EH::MAX, false>::call(speciesCounts[l.valueID], l.ivalue);
+                    check_limit_MAX_false(speciesCounts[l.valueID], l.ivalue, limitReached)
                 }
                 break;
             case EH::INCREASING: throw Exception("unimplemented"); break;
@@ -519,41 +634,41 @@ bool CMESolver::isTrajectoryOutsideLimits()
             case EH::MIN:
                 if (l.includeEndpoint)
                 {
-                    limitReached = checkLimit<EH::MIN, true>::call(orderParameterValues[l.valueID], l.dvalue);
+                    check_limit_MIN_true(orderParameterValues[l.valueID], l.dvalue, limitReached)
                 }
                 else
                 {
-                    limitReached = checkLimit<EH::MIN, false>::call(orderParameterValues[l.valueID], l.dvalue);
+                    check_limit_MIN_false(orderParameterValues[l.valueID], l.dvalue, limitReached)
                 }
                 break;
             case EH::MAX:
                 if (l.includeEndpoint)
                 {
-                    limitReached = checkLimit<EH::MAX, true>::call(orderParameterValues[l.valueID], l.dvalue);
+                    check_limit_MAX_true(orderParameterValues[l.valueID], l.dvalue, limitReached)
                 }
                 else
                 {
-                    limitReached = checkLimit<EH::MAX, false>::call(orderParameterValues[l.valueID], l.dvalue);
+                    check_limit_MAX_false(orderParameterValues[l.valueID], l.dvalue, limitReached)
                 }
                 break;
             case EH::DECREASING:
                 if (l.includeEndpoint)
                 {
-                    limitReached = checkLimit<EH::DECREASING, true>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
+                    check_limit_DECREASING_true(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue, limitReached)
                 }
                 else
                 {
-                    limitReached = checkLimit<EH::DECREASING, false>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
+                    check_limit_DECREASING_false(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue, limitReached)
                 }
                 break;
             case EH::INCREASING:
                 if (l.includeEndpoint)
                 {
-                    limitReached = checkLimit<EH::INCREASING, true>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
+                    check_limit_INCREASING_true(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue, limitReached)
                 }
                 else
                 {
-                    limitReached = checkLimit<EH::INCREASING, false>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
+                    check_limit_INCREASING_false(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue, limitReached)
                 }
                 break;
             }
@@ -565,21 +680,21 @@ bool CMESolver::isTrajectoryOutsideLimits()
             case EH::MIN:
                 if (l.includeEndpoint)
                 {
-                    limitReached = checkLimit<EH::MIN, true>::call(degreeAdvancements[l.valueID], l.uvalue);
+                    check_limit_MIN_true(degreeAdvancements[l.valueID], l.uvalue, limitReached)
                 }
                 else
                 {
-                    limitReached = checkLimit<EH::MIN, false>::call(degreeAdvancements[l.valueID], l.uvalue);
+                    check_limit_MIN_false(degreeAdvancements[l.valueID], l.uvalue, limitReached)
                 }
                 break;
             case EH::MAX:
                 if (l.includeEndpoint)
                 {
-                    limitReached = checkLimit<EH::MAX, true>::call(degreeAdvancements[l.valueID], l.uvalue);
+                    check_limit_MAX_true(degreeAdvancements[l.valueID], l.uvalue, limitReached)
                 }
                 else
                 {
-                    limitReached = checkLimit<EH::MAX, false>::call(degreeAdvancements[l.valueID], l.uvalue);
+                    check_limit_MAX_false(degreeAdvancements[l.valueID], l.uvalue, limitReached)
                 }
                 break;
             case EH::INCREASING: throw Exception("unimplemented"); break;
@@ -590,7 +705,7 @@ bool CMESolver::isTrajectoryOutsideLimits()
         default:
             break;
         }
-
+        
         if (limitReached)
         {
             status = lm::message::WorkUnitStatus::LIMIT_REACHED;
