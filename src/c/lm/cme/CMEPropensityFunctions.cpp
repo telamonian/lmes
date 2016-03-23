@@ -41,6 +41,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include "math.h"
 
 #include "lm/ClassFactory.h"
 #include "lm/cme/CMEPropensityFunctions.h"
@@ -236,6 +237,139 @@ public:
     }
 };
 
+class QuadraticPotentialPropensity : public lm::me::PropensityFunction
+{
+public:
+    static const uint REACTION_TYPE = 2000;
+
+    QuadraticPotentialPropensity(uint s, double k) :PropensityFunction(REACTION_TYPE,2),s(s),k(k) {}
+    uint s;
+    double k;
+
+    void changeVolume(double volumeMultiplier) {}
+    double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
+    {
+        double quadPropensity = k * double(speciesCounts[s]) * double(speciesCounts[s]);
+    	//printf ("species = %d speciesCounts = %f k = %f quadPropensity = %f.\n", s,double(speciesCounts[s]),k,quadPropensity);
+    	return quadPropensity;
+    }
+#ifdef OPT_AVX
+    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
+    {
+        return _mm256_mul_pd(_mm256_set1_pd(k), _mm256_load_pd(&speciesCounts[s*DOUBLES_PER_AVX]));
+    }
+#endif
+
+    static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+    {
+        // Find the species dependencies.
+        utuple dependencies = getDependencies(reactionIndex, D);
+        if (dependencies.len != 1) throw InvalidArgException("D", "quadratic potential propensity had invalid number of dependencies",dependencies.len);
+
+        // Find the rate costant.
+        if (k.len < 1)  throw InvalidArgException("k", "quadratic potential propensity needs one rate constant",k.len);
+
+        return new QuadraticPotentialPropensity(dependencies[0],k[0]);
+    }
+
+    static lm::me::PropensityFunctionDefinition registerFunction()
+    {
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
+    }
+};
+
+class QuadraticTimeDependentPotentialPropensity : public lm::me::PropensityFunction
+{
+public:
+    static const uint REACTION_TYPE = 2001;
+
+    QuadraticTimeDependentPotentialPropensity(uint s, double k, double v) :PropensityFunction(REACTION_TYPE,2),s(s),k(k), v(v) {}
+    uint s;
+    double k;
+    double v;
+    
+
+    void changeVolume(double volumeMultiplier) {}
+    double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
+    {
+        double quadTimeDepPropensity = k * pow( (double(speciesCounts[s]) - v * double(time)), 2 );
+    	//printf ("species = %d speciesCounts = %f time = %f k = %f d = %f quadTimeDepPropensity = %f.\n", s,double(speciesCounts[s]),time,k,v,quadTimeDepPropensity);
+    	return quadTimeDepPropensity;
+    }
+#ifdef OPT_AVX
+    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
+    {
+        return _mm256_mul_pd(_mm256_set1_pd(k), _mm256_load_pd(&speciesCounts[s*DOUBLES_PER_AVX]));
+    }
+#endif
+
+    static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+    {
+        // Find the species dependencies.
+        utuple dependencies = getDependencies(reactionIndex, D);
+        if (dependencies.len != 1) throw InvalidArgException("D", "quadratic time dependent potential propensity had invalid number of dependencies",dependencies.len);
+
+        // Find the rate costant.
+        if (k.len < 2)  throw InvalidArgException("k", "quadratic time dependent potential propensity needs two rate constant",k.len);
+        
+        //printf("propensity = %f.\n", new QuadraticTimeDependentPotentialPropensity(dependencies[0],k[0],k[1]));
+        return new QuadraticTimeDependentPotentialPropensity(dependencies[0],k[0],k[1]);
+    }
+
+    static lm::me::PropensityFunctionDefinition registerFunction()
+    {
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
+    }
+};
+
+class ZerothOrderKHillPropensity : public lm::me::PropensityFunction
+{
+public:
+    static const uint REACTION_TYPE = 8007;
+
+    ZerothOrderKHillPropensity(uint s, uint x0, double k0, double k1, double h) :PropensityFunction(REACTION_TYPE,0),s(s),x0h(pow(x0,h)),k0(k0),dk(k1-k0),h(h) {}
+    uint s;
+    double x0h;
+    double k0;
+    double dk;
+    double h;
+
+    void changeVolume(double volumeMultiplier) {}
+    double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
+    {
+        double xh = pow(double(speciesCounts[s]),double(h));
+    	double zeroKHillProp = k0 + dk * xh/(x0h+xh);
+    	//printf ("species = %d speciesCounts = %f k0 = %f dk = %f h = %f zeroKHillProp = %f.\n", s,double(speciesCounts[s]),k0,dk,h,zeroKHillProp);
+    	return zeroKHillProp;
+    }
+
+#ifdef OPT_AVX
+    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
+    {
+        avxd c = _mm256_load_pd(&speciesCounts[s*DOUBLES_PER_AVX]);
+        avxd cm1 = _mm256_sub_pd(c, _mm256_set1_pd(1.0));
+        return _mm256_mul_pd(_mm256_set1_pd(k0), _mm256_mul_pd(c,cm1));
+    }
+#endif
+
+    static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+    {
+        // Find the species dependencies.
+        utuple dependencies = getDependencies(reactionIndex, D);
+        if (dependencies.len != 1) throw InvalidArgException("D", "second order self propensity had invalid number of dependencies",dependencies.len);
+
+        // Find the rate costant.
+        if (k.len < 4)  throw InvalidArgException("k", "second order self propensity needs four rate constants",k.len);
+
+        return new ZerothOrderKHillPropensity(dependencies[0],k[0],k[1],k[2],k[3]);
+    }
+
+    static lm::me::PropensityFunctionDefinition registerFunction()
+    {
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
+    }
+};
+
 list<lm::me::PropensityFunctionDefinition> CMEPropensityFunctions::getPropensityFunctionDefinitions()
 {
     list<lm::me::PropensityFunctionDefinition> defs;
@@ -243,6 +377,9 @@ list<lm::me::PropensityFunctionDefinition> CMEPropensityFunctions::getPropensity
     defs.push_back(FirstOrderPropensity::registerFunction());
     defs.push_back(SecondOrderPropensity::registerFunction());
     defs.push_back(SecondOrderSelfPropensity::registerFunction());
+    defs.push_back(QuadraticPotentialPropensity::registerFunction());
+    defs.push_back(QuadraticTimeDependentPotentialPropensity::registerFunction());
+    defs.push_back(ZerothOrderKHillPropensity::registerFunction());
     return defs;
 }
 

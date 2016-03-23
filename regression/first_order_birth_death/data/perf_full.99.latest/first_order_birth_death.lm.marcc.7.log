@@ -1,0 +1,546 @@
+Lattice Microbe ES v2016.01.20 build 1 in 64-bit mode with options MPI AVX FMA SVML.
+Copyright (C) 2008-2012 Luthey-Schulten Group, University of Illinois at Urbana-Champaign.
+Copyright (C) 2012-2016 Roberts Group, Johns Hopkins University.
+
+MPI version 3.0 with thread support MPI_THREAD_MULTIPLE.
+Running with 1 process(es).
+
+2016-01-08 15:20:51) Resource controller 0:1 started.
+2016-01-08 15:20:51) Supervisor 0:2 started.
+2016-01-08 15:20:51) Resource controller 0:1 on compute0581 registered with 24 cpu core(s) and 0 gpu device(s).
+2016-01-08 15:20:51) Registered resources for host compute0581 (defaults=1): 24 cpu cores, 0 gpu devices
+2016-01-08 15:20:51) All resources registered with supervisor, starting workers.
+2016-01-08 15:20:51) Reserved core 0 on 0:1 for the output writer.
+2016-01-08 15:20:51) Creating slot 0 on process (0:1) using resources: compute0581; cpu core list:1; gpu device list:<none>.
+2016-01-08 15:20:51) Creating slot 1 on process (0:1) using resources: compute0581; cpu core list:2; gpu device list:<none>.
+2016-01-08 15:20:51) OutputWriter 0:3 started.
+2016-01-08 15:20:51) 2016-01-08 15:20:51) 2016-01-08 15:20:51) Creating slot 2 on process (0:1) using resources: compute0581; cpu core list:3; gpu device list:<none>.Work Unit runner 0:5 started with 1 cpu cores (affinity=0) and 0 gpus.
+
+OutputWriter::HelperThread 0:4 started.
+2016-01-08 15:20:51) 2016-01-08 15:20:51) Work Unit runner 0:6 started with 1 cpu cores (affinity=0) and 0 gpus.
+Creating slot 3 on process (0:1) using resources: compute0581; cpu core list:4; gpu device list:<none>.
+2016-01-08 15:20:51) Work Unit runner 0:7 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-01-08 15:20:51) Creating slot 4 on process (0:1) using resources: compute0581; cpu core list:5; gpu device list:<none>.
+2016-01-08 15:20:51) Work Unit runner 0:8 started with 1 cpu cores (affinity=0) and 0 gpus.2016-01-08 15:20:51) Creating slot 5 on process (0:1) using resources: compute0581; cpu core list:6; gpu device list:<none>.
+
+2016-01-08 15:20:51) Work Unit runner 0:9 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-01-08 15:20:51) Creating slot 6 on process (0:1) using resources: compute0581; cpu core list:7; gpu device list:<none>.
+2016-01-08 15:20:51) Work Unit runner 0:10 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-01-08 15:20:51) Creating slot 7 on process (0:1) using resources: compute0581; cpu core list:8; gpu device list:<none>.
+2016-01-08 15:20:51) Work Unit runner 0:11 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-01-08 15:20:51) Work Unit runner 0:12 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-01-08 15:20:51) Creating slot 8 on process (0:1) using resources: compute0581; cpu core list:9; gpu device list:<none>.
+2016-01-08 15:20:51) Creating slot 9 on process (0:1) using resources: compute0581; cpu core list:10; gpu device list:<none>.
+2016-01-08 15:20:51) Work Unit runner 0:13 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-01-08 15:20:51) Creating slot 10 on process (0:1) using resources: compute0581; cpu core list:11; gpu device list:<none>.
+2016-01-08 15:20:51) Work Unit runner 0:14 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-01-08 15:20:51) Work Unit runner 0:15 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-01-08 15:20:51) Creating slot 11 on process (0:1) using resources: compute0581; cpu core list:12; gpu device list:<none>.
+2016-01-08 15:20:51) Creating slot 12 on process (0:1) using resources: compute0581; cpu core list:13; gpu device list:<none>.
+2016-01-08 15:20:51) Work Unit runner 0:16 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-01-08 15:20:51) Creating slot 13 on process (0:1) using resources: compute0581; cpu core list:14; gpu device list:<none>.
+2016-01-08 15:20:51) Work Unit runner 0:17 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-01-08 15:20:51) Creating slot 14 on process (0:1) using resources: compute0581; cpu core list:15; gpu device list:<none>.
+2016-01-08 15:20:51) Work Unit runner 0:18 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-01-08 15:20:51) Creating slot 15 on process (0:1) using resources: compute0581; cpu core list:16; gpu device list:<none>.
+2016-01-08 15:20:51) Work Unit runner 0:19 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-01-08 15:20:51) Creating slot 16 on process (0:1) using resources: compute0581; cpu core list:17; gpu device list:<none>.
+2016-01-08 15:20:51) Work Unit runner 0:20 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-01-08 15:20:51) Creating slot 17 on process (0:1) using resources: compute0581; cpu core list:18; gpu device list:<none>.
+2016-01-08 15:20:51) Work Unit runner 0:21 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-01-08 15:20:51) Creating slot 18 on process (0:1) using resources: compute0581; cpu core list:19; gpu device list:<none>.
+2016-01-08 15:20:51) Work Unit runner 0:22 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-01-08 15:20:51) Creating slot 19 on process (0:1) using resources: compute0581; cpu core list:20; gpu device list:<none>.
+2016-01-08 15:20:51) Work Unit runner 0:23 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-01-08 15:20:51) Work Unit runner 0:24 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-01-08 15:20:51) Creating slot 20 on process (0:1) using resources: compute0581; cpu core list:21; gpu device list:<none>.
+2016-01-08 15:20:51) Creating slot 21 on process (0:1) using resources: compute0581; cpu core list:22; gpu device list:<none>.
+2016-01-08 15:20:51) Work Unit runner 0:25 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-01-08 15:20:51) Creating slot 22 on process (0:1) using resources: compute0581; cpu core list:23; gpu device list:<none>.
+2016-01-08 15:20:51) Work Unit runner 0:26 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-01-08 15:20:51) Output writer started: 0:3.
+2016-01-08 15:20:51) Work Unit runner 0:27 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-01-08 15:20:51) Work unit runner started: 0:5.
+2016-01-08 15:20:51) Work unit runner started: 0:6.
+2016-01-08 15:20:51) Work unit runner started: 0:7.
+2016-01-08 15:20:51) Work unit runner started: 0:8.
+2016-01-08 15:20:51) Work unit runner started: 0:9.
+2016-01-08 15:20:51) Work unit runner started: 0:10.
+2016-01-08 15:20:51) Work unit runner started: 0:11.
+2016-01-08 15:20:51) Work unit runner started: 0:12.
+2016-01-08 15:20:51) Work unit runner started: 0:13.
+2016-01-08 15:20:51) Work unit runner started: 0:14.
+2016-01-08 15:20:51) Work unit runner started: 0:15.
+2016-01-08 15:20:51) Work unit runner started: 0:16.
+2016-01-08 15:20:51) Work unit runner started: 0:18.
+2016-01-08 15:20:51) Work unit runner started: 0:17.
+2016-01-08 15:20:51) Work unit runner started: 0:19.
+2016-01-08 15:20:51) Work unit runner started: 0:21.
+2016-01-08 15:20:51) Work unit runner started: 0:20.
+2016-01-08 15:20:51) Work unit runner started: 0:23.
+2016-01-08 15:20:51) Work unit runner started: 0:22.
+2016-01-08 15:20:51) Work unit runner started: 0:24.
+2016-01-08 15:20:51) Work unit runner started: 0:25.
+2016-01-08 15:20:51) Work unit runner started: 0:26.
+2016-01-08 15:20:51) Work unit runner started: 0:27.
+2016-01-08 15:20:51) All supervisor workers have started, beginning simulation.
+2016-01-08 15:20:51) Replicate supervisor starting simulation.
+2016-01-08 15:20:51) Simulation started.
+2016-01-08 15:21:51) Finished 1128 work units (ids in range 0 to 1127) with 4512 parts in the last 60.0 seconds. 45120000000 steps in 1.352e+03 seconds (3.337e+07 steps/second).
+2016-01-08 15:21:55) Wrote 721 messages (147954 bytes) in the last 63.6 seconds (0.003519 seconds writing). 0 messages (0 bytes) queued. Flushing.
+2016-01-08 15:22:22) Replicate 10 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:23) Replicate 272 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:23) Replicate 115 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:23) Replicate 73 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:23) Replicate 249 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:23) Replicate 282 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:23) Replicate 45 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:23) Replicate 326 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:23) Replicate 217 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:23) Replicate 159 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:23) Replicate 311 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:23) Replicate 188 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:23) Replicate 235 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:24) Replicate 253 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:24) Replicate 158 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:24) Replicate 261 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:24) Replicate 80 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:24) Replicate 230 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:24) Replicate 267 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:24) Replicate 323 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:24) Replicate 222 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:24) Replicate 145 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:24) Replicate 95 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:25) Replicate 339 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:25) Replicate 89 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:25) Replicate 109 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:25) Replicate 205 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:25) Replicate 168 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:25) Replicate 348 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:25) Replicate 183 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:25) Replicate 322 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:25) Replicate 328 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 56 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 106 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 22 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:25) Replicate 131 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 314 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 223 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 232 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 39 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 310 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 3 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 312 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:25) Replicate 70 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 289 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 288 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 27 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:25) Replicate 101 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:25) Replicate 352 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 1 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 41 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 197 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 349 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 104 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 32 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 67 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 64 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 200 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 2 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 299 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 304 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 237 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 264 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 99 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 202 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 313 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 291 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 297 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 126 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 74 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 236 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 173 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 125 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 108 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 140 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 119 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 293 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 269 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 117 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 330 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 69 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 340 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 149 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 13 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 189 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:25) Replicate 127 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 24 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 353 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 7 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 68 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 306 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 105 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 182 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 52 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 329 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 300 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 55 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 142 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 14 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 97 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 341 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 170 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 254 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 134 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 6 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 133 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 260 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 49 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 179 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 81 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 165 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 44 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 129 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 66 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 9 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 318 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 207 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 227 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 71 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 121 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 287 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 16 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 166 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 198 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 178 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 141 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 77 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 244 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 17 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:25) Replicate 180 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 114 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 240 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 122 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 76 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 146 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 276 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 87 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 294 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 91 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 11 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 118 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 46 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 286 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 5 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 63 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 83 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 123 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:25) Replicate 42 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 120 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 346 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 302 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 270 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 201 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 265 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 185 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 242 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 23 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 124 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 347 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 258 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 132 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 175 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 29 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 152 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 213 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 88 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 309 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 214 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 195 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 226 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 157 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 290 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 153 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 359 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 19 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 154 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 155 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 204 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 337 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 239 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 130 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 351 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 245 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 279 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 277 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 248 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 167 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 275 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 43 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 278 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 85 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 344 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 171 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 15:22:25) Replicate 228 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 211 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 15:22:25) Replicate 336 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 316 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 186 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 247 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 243 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 59 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 48 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 75 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 102 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 40 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 255 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 98 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 246 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 172 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 15:22:25) Replicate 34 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 30 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 298 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 268 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 15:22:25) Replicate 174 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 285 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 147 completed with 1.00e+05 of simulation time using 26 work units.
+2016-01-08 15:22:25) Replicate 320 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 47 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 161 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 263 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 15:22:25) Replicate 12 completed with 1.00e+05 of simulation time using 26 work units.
+2016-01-08 15:22:25) Replicate 356 completed with 1.00e+05 of simulation time using 26 work units.
+2016-01-08 15:22:25) Replicate 164 completed with 1.00e+05 of simulation time using 26 work units.
+2016-01-08 15:22:25) Replicate 238 completed with 1.00e+05 of simulation time using 26 work units.
+2016-01-08 15:22:25) Replicate 33 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 15:22:25) Replicate 94 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 350 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 4 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 15:22:25) Replicate 156 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 169 completed with 1.00e+05 of simulation time using 26 work units.
+2016-01-08 15:22:25) Replicate 92 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 100 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 15:22:25) Replicate 216 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 144 completed with 1.00e+05 of simulation time using 26 work units.
+2016-01-08 15:22:25) Replicate 259 completed with 1.00e+05 of simulation time using 26 work units.
+2016-01-08 15:22:25) Replicate 241 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 137 completed with 1.00e+05 of simulation time using 26 work units.
+2016-01-08 15:22:25) Replicate 187 completed with 1.00e+05 of simulation time using 28 work units.
+2016-01-08 15:22:25) Replicate 111 completed with 1.00e+05 of simulation time using 26 work units.
+2016-01-08 15:22:25) Replicate 225 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 327 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 15:22:25) Replicate 35 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 26 completed with 1.00e+05 of simulation time using 26 work units.
+2016-01-08 15:22:25) Replicate 224 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 15:22:25) Replicate 219 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 78 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 15:22:25) Replicate 138 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 15:22:25) Replicate 148 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 103 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 15:22:25) Replicate 332 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 191 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 25 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 15:22:25) Replicate 220 completed with 1.00e+05 of simulation time using 26 work units.
+2016-01-08 15:22:25) Replicate 315 completed with 1.00e+05 of simulation time using 26 work units.
+2016-01-08 15:22:25) Replicate 303 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 15:22:25) Replicate 192 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 20 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 271 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 229 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 257 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 15:22:25) Replicate 93 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 15:22:25) Replicate 266 completed with 1.00e+05 of simulation time using 28 work units.
+2016-01-08 15:22:25) Replicate 96 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 15:22:25) Replicate 176 completed with 1.00e+05 of simulation time using 27 work units.
+2016-01-08 15:22:25) Replicate 65 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 15:22:25) Replicate 57 completed with 1.00e+05 of simulation time using 28 work units.
+2016-01-08 15:22:25) Replicate 210 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 15:22:25) Replicate 307 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 15:22:25) Replicate 194 completed with 1.00e+05 of simulation time using 28 work units.
+2016-01-08 15:22:25) Replicate 231 completed with 1.00e+05 of simulation time using 26 work units.
+2016-01-08 15:22:25) Replicate 8 completed with 1.00e+05 of simulation time using 26 work units.
+2016-01-08 15:22:25) Replicate 206 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 209 with the GillespieDSolver.
+2016-01-08 15:22:25) Replicate 62 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 355 with the GillespieDSolver.
+2016-01-08 15:22:25) Replicate 135 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 15:22:25) Replicate 250 completed with 1.00e+05 of simulation time using 26 work units.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 333 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 324 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 112 with the GillespieDSolver.
+2016-01-08 15:22:25) Replicate 233 completed with 1.00e+05 of simulation time using 27 work units.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 256 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 50 with the GillespieDSolver.
+2016-01-08 15:22:25) Replicate 84 completed with 1.00e+05 of simulation time using 30 work units.
+2016-01-08 15:22:25) Replicate 252 completed with 1.00e+05 of simulation time using 27 work units.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 317 with the GillespieDSolver.
+2016-01-08 15:22:25) Replicate 193 completed with 1.00e+05 of simulation time using 26 work units.
+2016-01-08 15:22:25) Replicate 335 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) Replicate 37 completed with 1.00e+05 of simulation time using 26 work units.
+2016-01-08 15:22:25) Replicate 358 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 15:22:25) Replicate 160 completed with 1.00e+05 of simulation time using 24 work units.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 342 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 190 with the GillespieDSolver.
+2016-01-08 15:22:25) Replicate 209 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 15:22:25) Replicate 333 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 150 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 86 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 280 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 177 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 296 with the GillespieDSolver.
+2016-01-08 15:22:25) Replicate 355 completed with 1.00e+05 of simulation time using 29 work units.
+2016-01-08 15:22:25) Replicate 112 completed with 1.00e+05 of simulation time using 27 work units.
+2016-01-08 15:22:25) Replicate 256 completed with 1.00e+05 of simulation time using 26 work units.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 334 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 53 with the GillespieDSolver.
+2016-01-08 15:22:25) Replicate 324 completed with 1.00e+05 of simulation time using 36 work units.
+2016-01-08 15:22:25) Replicate 317 completed with 1.00e+05 of simulation time using 26 work units.
+2016-01-08 15:22:25) Replicate 342 completed with 1.00e+05 of simulation time using 28 work units.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 331 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 292 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 143 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 208 with the GillespieDSolver.
+2016-01-08 15:22:25) Replicate 190 completed with 1.00e+05 of simulation time using 28 work units.
+2016-01-08 15:22:25) Replicate 296 completed with 1.00e+05 of simulation time using 26 work units.
+2016-01-08 15:22:25) Replicate 50 completed with 1.00e+05 of simulation time using 27 work units.
+2016-01-08 15:22:25) Replicate 150 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 15:22:25) Replicate 334 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 15:22:25) Replicate 53 completed with 1.00e+05 of simulation time using 26 work units.
+2016-01-08 15:22:25) Replicate 280 completed with 1.00e+05 of simulation time using 42 work units.
+2016-01-08 15:22:25) Replicate 292 completed with 1.00e+05 of simulation time using 27 work units.
+2016-01-08 15:22:25) Replicate 177 completed with 1.00e+05 of simulation time using 26 work units.
+2016-01-08 15:22:25) Replicate 331 completed with 1.00e+05 of simulation time using 28 work units.
+2016-01-08 15:22:25) Replicate 86 completed with 1.00e+05 of simulation time using 34 work units.
+2016-01-08 15:22:25) Replicate 143 completed with 1.00e+05 of simulation time using 34 work units.
+2016-01-08 15:22:25) Replicate 208 completed with 1.00e+05 of simulation time using 34 work units.
+2016-01-08 15:22:25) Replicate 360 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 36 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 325 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 295 with the GillespieDSolver.
+2016-01-08 15:22:25) Replicate 36 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 325 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 295 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 357 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 136 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 184 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 18 with the GillespieDSolver.
+2016-01-08 15:22:25) Replicate 136 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 184 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 18 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 58 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 38 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 181 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 218 with the GillespieDSolver.
+2016-01-08 15:22:25) Replicate 38 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 181 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 218 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 79 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 21 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 128 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 338 with the GillespieDSolver.
+2016-01-08 15:22:25) Replicate 21 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 128 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 338 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 113 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 354 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 51 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 262 with the GillespieDSolver.
+2016-01-08 15:22:25) Replicate 354 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 51 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 262 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 301 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 212 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 107 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 203 with the GillespieDSolver.
+2016-01-08 15:22:25) Replicate 212 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 107 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 203 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 162 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 110 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 90 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 31 with the GillespieDSolver.
+2016-01-08 15:22:25) Replicate 110 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 90 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 31 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 281 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 82 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 274 with the GillespieDSolver.
+2016-01-08 15:22:25) GillespieDSolverAVX started without a full set of trajectories, running trajectory 72 with the GillespieDSolver.
+2016-01-08 15:22:25) Replicate 82 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 274 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:25) Replicate 72 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:26) Replicate 283 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:26) GillespieDSolverAVX started without a full set of trajectories, running trajectory 54 with the GillespieDSolver.
+2016-01-08 15:22:26) GillespieDSolverAVX started without a full set of trajectories, running trajectory 196 with the GillespieDSolver.
+2016-01-08 15:22:26) GillespieDSolverAVX started without a full set of trajectories, running trajectory 234 with the GillespieDSolver.
+2016-01-08 15:22:26) Replicate 54 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:26) Replicate 196 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:26) Replicate 234 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:26) Replicate 60 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:26) GillespieDSolverAVX started without a full set of trajectories, running trajectory 251 with the GillespieDSolver.
+2016-01-08 15:22:26) GillespieDSolverAVX started without a full set of trajectories, running trajectory 284 with the GillespieDSolver.
+2016-01-08 15:22:26) GillespieDSolverAVX started without a full set of trajectories, running trajectory 345 with the GillespieDSolver.
+2016-01-08 15:22:26) Replicate 251 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:26) Replicate 284 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:26) Replicate 345 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:26) Replicate 163 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:26) GillespieDSolverAVX started without a full set of trajectories, running trajectory 15 with the GillespieDSolver.
+2016-01-08 15:22:26) GillespieDSolverAVX started without a full set of trajectories, running trajectory 199 with the GillespieDSolver.
+2016-01-08 15:22:26) GillespieDSolverAVX started without a full set of trajectories, running trajectory 343 with the GillespieDSolver.
+2016-01-08 15:22:26) Replicate 15 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:26) Replicate 199 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:26) Replicate 343 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:26) Replicate 273 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:26) GillespieDSolverAVX started without a full set of trajectories, running trajectory 221 with the GillespieDSolver.
+2016-01-08 15:22:26) GillespieDSolverAVX started without a full set of trajectories, running trajectory 151 with the GillespieDSolver.
+2016-01-08 15:22:26) GillespieDSolverAVX started without a full set of trajectories, running trajectory 305 with the GillespieDSolver.
+2016-01-08 15:22:26) Replicate 221 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:26) Replicate 151 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:26) Replicate 305 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:26) Replicate 319 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:26) Replicate 308 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 15:22:26) GillespieDSolverAVX started without a full set of trajectories, running trajectory 139 with the GillespieDSolver.
+2016-01-08 15:22:26) GillespieDSolverAVX started without a full set of trajectories, running trajectory 116 with the GillespieDSolver.
+2016-01-08 15:22:26) GillespieDSolverAVX started without a full set of trajectories, running trajectory 215 with the GillespieDSolver.
+2016-01-08 15:22:26) GillespieDSolverAVX started without a full set of trajectories, running trajectory 28 with the GillespieDSolver.
+2016-01-08 15:22:26) GillespieDSolverAVX started without a full set of trajectories, running trajectory 61 with the GillespieDSolver.
+2016-01-08 15:22:26) GillespieDSolverAVX started without a full set of trajectories, running trajectory 321 with the GillespieDSolver.
+2016-01-08 15:22:26) Replicate 116 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:26) Replicate 215 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:26) Replicate 61 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:26) Replicate 139 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:26) Replicate 28 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:26) Replicate 321 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 15:22:26) Replicate supervisor finished 360 replicates in 94.75 seconds.
+2016-01-08 15:22:26) Simulation finished.
+2016-01-08 15:22:26) Finished 917 work units (ids in range 1128 to 2078) with 3639 parts in the last 34.8 seconds. 26879868902 steps in 8.044e+02 seconds (3.342e+07 steps/second).
+2016-01-08 15:22:26) Supervisor 0:2 finished.
+2016-01-08 15:22:26) Wrote 643 messages (89840 bytes) in the last 31.2 seconds (0.002233 seconds writing). 0 messages (0 bytes) queued. Flushing.
+2016-01-08 15:22:26) OutputWriter::HelperThread 0:4 finished.
+2016-01-08 15:22:26) OutputWriter 0:3 finished.
+2016-01-08 15:22:26) Work unit runner 0:5 finished.
+2016-01-08 15:22:26) Work unit runner 0:6 finished.
+2016-01-08 15:22:26) Work unit runner 0:7 finished.
+2016-01-08 15:22:26) Work unit runner 0:8 finished.
+2016-01-08 15:22:26) Work unit runner 0:9 finished.
+2016-01-08 15:22:26) Work unit runner 0:10 finished.
+2016-01-08 15:22:26) Work unit runner 0:11 finished.
+2016-01-08 15:22:26) Work unit runner 0:12 finished.
+2016-01-08 15:22:26) Work unit runner 0:13 finished.
+2016-01-08 15:22:26) Work unit runner 0:14 finished.
+2016-01-08 15:22:26) Work unit runner 0:15 finished.
+2016-01-08 15:22:26) Work unit runner 0:16 finished.
+2016-01-08 15:22:26) Work unit runner 0:17 finished.
+2016-01-08 15:22:26) Work unit runner 0:18 finished.
+2016-01-08 15:22:26) Work unit runner 0:19 finished.
+2016-01-08 15:22:26) Work unit runner 0:20 finished.
+2016-01-08 15:22:26) Work unit runner 0:21 finished.
+2016-01-08 15:22:26) Work unit runner 0:22 finished.
+2016-01-08 15:22:26) Work unit runner 0:23 finished.
+2016-01-08 15:22:26) Work unit runner 0:24 finished.
+2016-01-08 15:22:26) Work unit runner 0:25 finished.
+2016-01-08 15:22:26) Work unit runner 0:26 finished.
+2016-01-08 15:22:26) Work unit runner 0:27 finished.
+2016-01-08 15:22:26) Resource controller 0:1 finished.
+2016-01-08 15:22:26) Closing MPI library.
+2016-01-08 15:22:26) Program execution finished.

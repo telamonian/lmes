@@ -1,0 +1,46 @@
+Lattice Microbe ES v2016.01.20 build 1 in 64-bit mode with options MPI AVX FMA SVML.
+Copyright (C) 2008-2012 Luthey-Schulten Group, University of Illinois at Urbana-Champaign.
+Copyright (C) 2012-2016 Roberts Group, Johns Hopkins University.
+
+MPI version 3.0 with thread support MPI_THREAD_MULTIPLE.
+Running with 1 process(es).
+
+2016-01-08 13:45:53) Resource controller 0:1 started.
+2016-01-08 13:45:53) Supervisor 0:2 started.
+2016-01-08 13:45:53) Resource controller 0:1 on compute0158 registered with 24 cpu core(s) and 0 gpu device(s).
+2016-01-08 13:45:53) Registered resources for host compute0158 (defaults=1): 2 cpu cores, 0 gpu devices
+2016-01-08 13:45:53) All resources registered with supervisor, starting workers.
+2016-01-08 13:45:53) Reserved core 0 on 0:1 for the output writer.
+2016-01-08 13:45:53) Creating slot 0 on process (0:1) using resources: compute0158; cpu core list:1; gpu device list:<none>.
+2016-01-08 13:45:53) OutputWriter 0:3 started.
+2016-01-08 13:45:53) OutputWriter::HelperThread 0:4 started.
+2016-01-08 13:45:53) Work Unit runner 0:5 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-01-08 13:45:53) Output writer started: 0:3.
+2016-01-08 13:45:53) Work unit runner started: 0:5.
+2016-01-08 13:45:53) All supervisor workers have started, beginning simulation.
+2016-01-08 13:45:53) Replicate supervisor starting simulation.
+2016-01-08 13:45:53) Simulation started.
+2016-01-08 13:46:53) Replicate 3 completed with 1.00e+05 of simulation time using 20 work units.
+2016-01-08 13:46:53) Replicate 2 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 13:46:53) Replicate 6 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 13:46:53) Replicate 10 completed with 1.00e+05 of simulation time using 23 work units.
+2016-01-08 13:46:53) Replicate 5 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 13:46:53) Replicate 7 completed with 1.00e+05 of simulation time using 22 work units.
+2016-01-08 13:46:53) Replicate 4 completed with 1.00e+05 of simulation time using 21 work units.
+2016-01-08 13:46:53) GillespieDSolverAVX started without a full set of trajectories, running trajectory 9 with the GillespieDSolver.
+2016-01-08 13:46:53) GillespieDSolverAVX started without a full set of trajectories, running trajectory 1 with the GillespieDSolver.
+2016-01-08 13:46:53) GillespieDSolverAVX started without a full set of trajectories, running trajectory 8 with the GillespieDSolver.
+2016-01-08 13:46:53) Replicate 9 completed with 1.00e+05 of simulation time using 26 work units.
+2016-01-08 13:46:53) Replicate 1 completed with 1.00e+05 of simulation time using 26 work units.
+2016-01-08 13:46:53) Replicate 8 completed with 1.00e+05 of simulation time using 25 work units.
+2016-01-08 13:46:53) Replicate supervisor finished 10 replicates in 59.90 seconds.
+2016-01-08 13:46:53) Simulation finished.
+2016-01-08 13:46:53) Finished 57 work units (ids in range 0 to 56) with 227 parts in the last 59.9 seconds. 2000107919 steps in 5.977e+01 seconds (3.346e+07 steps/second).
+2016-01-08 13:46:53) Supervisor 0:2 finished.
+2016-01-08 13:46:53) Wrote 42 messages (6577 bytes) in the last 59.9 seconds (0.000284 seconds writing). 0 messages (0 bytes) queued. Flushing.
+2016-01-08 13:46:53) OutputWriter::HelperThread 0:4 finished.
+2016-01-08 13:46:53) OutputWriter 0:3 finished.
+2016-01-08 13:46:53) Work unit runner 0:5 finished.
+2016-01-08 13:46:53) Resource controller 0:1 finished.
+2016-01-08 13:46:53) Closing MPI library.
+2016-01-08 13:46:53) Program execution finished.

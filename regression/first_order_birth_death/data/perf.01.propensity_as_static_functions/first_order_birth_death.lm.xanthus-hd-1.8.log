@@ -1,0 +1,46 @@
+Lattice Microbe ES v2016.01.20 build 1 in 64-bit mode with options MPI.
+Copyright (C) 2008-2012 Luthey-Schulten Group, University of Illinois at Urbana-Champaign.
+Copyright (C) 2012-2016 Roberts Group, Johns Hopkins University.
+
+MPI version 3.0 with thread support MPI_THREAD_MULTIPLE.
+Running with 1 process(es).
+
+2016-00-26 13:58:28) Resource controller 0:1 started.
+2016-00-26 13:58:28) Supervisor 0:2 started.
+2016-00-26 13:58:28) Resource controller 0:1 on xanthus-hd-1 registered with 8 cpu core(s) and 0 gpu device(s).
+2016-00-26 13:58:28) Registered resources for host xanthus-hd-1 (defaults=1): 2 cpu cores, 0 gpu devices
+2016-00-26 13:58:28) All resources registered with supervisor, starting workers.
+2016-00-26 13:58:28) Reserved core 0 on 0:1 for the output writer.
+2016-00-26 13:58:28) Creating slot 0 on process (0:1) using resources: xanthus-hd-1; cpu core list:1; gpu device list:<none>.
+2016-00-26 13:58:28) OutputWriter 0:3 started.
+2016-00-26 13:58:28) OutputWriter::HelperThread 0:4 started.
+2016-00-26 13:58:28) Work Unit runner 0:5 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-00-26 13:58:28) Output writer started: 0:3.
+2016-00-26 13:58:28) Work unit runner started: 0:5.
+2016-00-26 13:58:28) All supervisor workers have started, beginning simulation.
+2016-00-26 13:58:28) Replicate supervisor starting simulation.
+2016-00-26 13:59:28) Wrote 55 messages (3545 bytes) in the last 60.2 seconds (0.000007 seconds writing). 0 messages (0 bytes) queued. Flushing.
+2016-00-26 13:59:28) Finished 98 work units (ids in range 0 to 97) in the last 60.2 seconds. 980000000 steps in 5.985e+01 seconds (1.638e+07 steps/second).
+2016-00-26 14:00:26) Replicate 1 completed with 1.00e+05 of simulation time using 20 work units.
+2016-00-26 14:00:27) Replicate 10 completed with 1.00e+05 of simulation time using 20 work units.
+2016-00-26 14:00:28) Replicate 6 completed with 1.00e+05 of simulation time using 20 work units.
+2016-00-26 14:00:28) Wrote 48 messages (3153 bytes) in the last 60.2 seconds (0.000005 seconds writing). 0 messages (0 bytes) queued. Flushing.
+2016-00-26 14:00:28) Replicate 9 completed with 1.00e+05 of simulation time using 20 work units.
+2016-00-26 14:00:28) Finished 98 work units (ids in range 98 to 195) in the last 60.2 seconds. 979968052 steps in 5.984e+01 seconds (1.638e+07 steps/second).
+2016-00-26 14:00:29) Replicate 5 completed with 1.00e+05 of simulation time using 20 work units.
+2016-00-26 14:00:30) Replicate 4 completed with 1.00e+05 of simulation time using 20 work units.
+2016-00-26 14:00:30) Replicate 2 completed with 1.00e+05 of simulation time using 20 work units.
+2016-00-26 14:00:31) Replicate 7 completed with 1.00e+05 of simulation time using 20 work units.
+2016-00-26 14:00:31) Replicate 3 completed with 1.00e+05 of simulation time using 21 work units.
+2016-00-26 14:00:31) Replicate 8 completed with 1.00e+05 of simulation time using 21 work units.
+2016-00-26 14:00:31) Simulation finished.
+2016-00-26 14:00:31) Replicate supervisor finished 10 replicates in 122.87 seconds.
+2016-00-26 14:00:31) Finished 6 work units (ids in range 196 to 201) in the last 2.5 seconds. 39926027 steps in 2.437e+00 seconds (1.639e+07 steps/second).
+2016-00-26 14:00:31) Supervisor 0:2 finished.
+2016-00-26 14:00:31) Wrote 7 messages (462 bytes) in the last 2.5 seconds (0.000001 seconds writing). 0 messages (0 bytes) queued. Flushing.
+2016-00-26 14:00:31) OutputWriter::HelperThread 0:4 finished.
+2016-00-26 14:00:31) OutputWriter 0:3 finished.
+2016-00-26 14:00:31) Work unit runner 0:5 finished.
+2016-00-26 14:00:31) Resource controller 0:1 finished.
+2016-00-26 14:00:31) Closing MPI library.
+2016-00-26 14:00:31) Program execution finished.
