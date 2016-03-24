@@ -1,0 +1,51 @@
+Lattice Microbe ES v2016.02.12 build 1 in 64-bit mode with options MPI AVX.
+Copyright (C) 2008-2012 Luthey-Schulten Group, University of Illinois at Urbana-Champaign.
+Copyright (C) 2012-2016 Roberts Group, Johns Hopkins University.
+
+MPI version 3.0 with thread support MPI_THREAD_MULTIPLE.
+Running with 1 process(es).
+
+2016-02-23 15:36:06) Resource controller 0:1 started.
+2016-02-23 15:36:06) Supervisor 0:2 started.
+2016-02-23 15:36:06) Resource controller 0:1 on tels_macbook registered with 8 cpu core(s) and 0 gpu device(s).
+2016-02-23 15:36:06) Registered resources for host tels_macbook (defaults=1): 2 cpu cores, 0 gpu devices
+2016-02-23 15:36:06) All resources registered with supervisor, starting workers.
+2016-02-23 15:36:06) Reserved core 0 on 0:1 for the output writer.
+2016-02-23 15:36:06) Creating slot 0 on process (0:1) using resources: tels_macbook; cpu core list:1; gpu device list:<none>.
+2016-02-23 15:36:06) OutputWriter 0:3 started.
+2016-02-23 15:36:06) OutputWriter::HelperThread 0:4 started.
+2016-02-23 15:36:06) Output writer started: 0:3.
+2016-02-23 15:36:06) Work Unit runner 0:5 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-02-23 15:36:06) Work unit runner started: 0:5.
+2016-02-23 15:36:06) All supervisor workers have started, beginning simulation.
+2016-02-23 15:36:06) Replicate supervisor starting simulation.
+2016-02-23 15:36:06) Simulation started.
+2016-02-23 15:37:06) Wrote 90 messages (6901 bytes) in the last 60.2 seconds (0.000453 seconds writing). 0 messages (0 bytes) queued. Flushing.
+2016-02-23 15:37:06) Finished 91 work units (ids in range 0 to 90) with 91 parts in the last 60.3 seconds. 910000000 steps in 5.977e+01 seconds (1.522e+07 steps/second).
+2016-02-23 15:38:03) Replicate 9 completed with 1.00e+05 of simulation time using 12 work units.
+2016-02-23 15:38:03) Replicate 2 completed with 1.00e+05 of simulation time using 12 work units.
+2016-02-23 15:38:03) Replicate 6 completed with 1.00e+05 of simulation time using 12 work units.
+2016-02-23 15:38:03) Replicate 15 completed with 1.00e+05 of simulation time using 12 work units.
+2016-02-23 15:38:03) Replicate 5 completed with 1.00e+05 of simulation time using 12 work units.
+2016-02-23 15:38:03) Replicate 10 completed with 1.00e+05 of simulation time using 12 work units.
+2016-02-23 15:38:03) Replicate 8 completed with 1.00e+05 of simulation time using 12 work units.
+2016-02-23 15:38:03) Replicate 12 completed with 1.00e+05 of simulation time using 12 work units.
+2016-02-23 15:38:03) Replicate 3 completed with 1.00e+05 of simulation time using 12 work units.
+2016-02-23 15:38:03) Replicate 11 completed with 1.00e+05 of simulation time using 12 work units.
+2016-02-23 15:38:03) Replicate 1 completed with 1.00e+05 of simulation time using 12 work units.
+2016-02-23 15:38:03) Replicate 7 completed with 1.00e+05 of simulation time using 12 work units.
+2016-02-23 15:38:03) Replicate 4 completed with 1.00e+05 of simulation time using 12 work units.
+2016-02-23 15:38:03) Replicate 16 completed with 1.00e+05 of simulation time using 12 work units.
+2016-02-23 15:38:03) Replicate 14 completed with 1.00e+05 of simulation time using 12 work units.
+2016-02-23 15:38:03) Replicate 13 completed with 1.00e+05 of simulation time using 12 work units.
+2016-02-23 15:38:03) Replicate supervisor finished 16 replicates in 116.61 seconds.
+2016-02-23 15:38:03) Simulation finished.
+2016-02-23 15:38:03) Finished 101 work units (ids in range 91 to 191) with 101 parts in the last 56.4 seconds. 850701919 steps in 5.597e+01 seconds (1.520e+07 steps/second).
+2016-02-23 15:38:03) Supervisor 0:2 finished.
+2016-02-23 15:38:03) Wrote 86 messages (6763 bytes) in the last 56.4 seconds (0.000459 seconds writing). 0 messages (0 bytes) queued. Flushing.
+2016-02-23 15:38:03) OutputWriter::HelperThread 0:4 finished.
+2016-02-23 15:38:03) OutputWriter 0:3 finished.
+2016-02-23 15:38:03) Work unit runner 0:5 finished.
+2016-02-23 15:38:03) Resource controller 0:1 finished.
+2016-02-23 15:38:03) Closing MPI library.
+2016-02-23 15:38:03) Program execution finished.
