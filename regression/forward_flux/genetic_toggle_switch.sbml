@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created by COPASI version 4.9.45 (Development) on 2013-08-05 17:55 with libSBML version 5.4.1. -->
+<!-- and then torn down and rebuilt by hand to work with lm -->
+<!-- to prep for lm:
+rm -f biphasic_switch*.lm
+lm_sbml_import biphasic_switch.lm biphasic_switch.sbml
+lm_setdm biphasic_switch.lm numberReactions=14 numberSpecies=7 numberSiteTypes=1 "latticeSize=[32,32,32]" latticeSpacing=31.25e-9 particlesPerSite=8 "DiffusionMatrix=[8.15e-14]" "ReactionLocationMatrix=[1]";
+to run for lm: 
+cp biphasic_switch.lm data/biphasic_switch_direct.lm
+lm_setp data/biphasic_switch_direct.lm writeInterval=1e2 maxTime=5e9
+lm -r 1-10 -sl lm::cme::GillespieDSolver -c 4 -cr 1 -gr 1/4 -f data/biphasic_switch_direct.lm -->
+<!-- for xanthus lm -r 1-31 -sl lm::cme::GillespieDSolver -cr 1 -gr 1/16 -f data/biphasic_switch_direct.lm -->
+<sbml xmlns="http://www.sbml.org/sbml/level3/version1/core" level="3" version="1">
+  <model metaid="COPASI1" id="biphasic_swtich_stoch" substanceUnits="substance" timeUnits="time" volumeUnits="volume" areaUnits="area" lengthUnits="length" extentUnits="substance">
+    <listOfCompartments>
+      <compartment metaid="COPASI2" id="cell" spatialDimensions="3" size="1" units="litre" constant="true"/>
+    </listOfCompartments>
+    <listOfSpecies>
+      <species metaid="COPASI3" id="A" compartment="cell" initialAmount="4" substanceUnits="item" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species metaid="COPASI4" id="A2" compartment="cell" initialAmount="16" substanceUnits="item" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species metaid="COPASI5" id="OA2" compartment="cell" initialAmount="0" substanceUnits="item" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species metaid="COPASI6" id="B" compartment="cell" initialAmount="1" substanceUnits="item" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species metaid="COPASI7" id="B2" compartment="cell" initialAmount="1" substanceUnits="item" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species metaid="COPASI8" id="OB2" compartment="cell" initialAmount="0" substanceUnits="item" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species metaid="COPASI9" id="O" compartment="cell" initialAmount="1" substanceUnits="item" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+    </listOfSpecies>
+    <listOfParameters>
+      <parameter metaid="COPASI10" id="c" value="1" constant="true"/>
+    </listOfParameters>
+    <listOfReactions>
+      <reaction metaid="COPASI11" id="dimerization_A" reversible="false" fast="false">
+        <listOfReactants>
+          <speciesReference species="A" stoichiometry="2" constant="true"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="A2" stoichiometry="1" constant="true"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cell </ci>
+              <apply>
+                <divide/>
+                <cn> 5 </cn>
+                <cn> 2 </cn>
+              </apply>
+              <cn> 2 </cn>
+              <ci> c </ci>
+              <ci> A </ci>
+              <apply>
+                <minus/>
+                <ci> A </ci>
+                <cn> 1 </cn>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction metaid="COPASI12" id="dedimerization_A" reversible="false" fast="false">
+        <listOfReactants>
+          <speciesReference species="A2" stoichiometry="1" constant="true"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="A" stoichiometry="2" constant="true"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cell </ci>
+              <cn type="integer"> 5 </cn>
+              <ci> c </ci>
+              <ci> A2 </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction metaid="COPASI13" id="operon_binding_A" reversible="false" fast="false">
+        <listOfReactants>
+          <speciesReference species="O" stoichiometry="1" constant="true"/>
+          <speciesReference species="A2" stoichiometry="1" constant="true"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="OA2" stoichiometry="1" constant="true"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cell </ci>
+              <cn type="integer"> 5 </cn>
+              <ci> c </ci>
+              <ci> O </ci>
+              <ci> A2 </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction metaid="COPASI14" id="operon_unbinding_A" reversible="false" fast="false">
+        <listOfReactants>
+          <speciesReference species="OA2" stoichiometry="1" constant="true"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="O" stoichiometry="1" constant="true"/>
+          <speciesReference species="A2" stoichiometry="1" constant="true"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cell </ci>
+              <ci> c </ci>
+              <ci> OA2 </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction metaid="COPASI15" id="unbound_translation_A" reversible="false" fast="false">
+        <listOfReactants>
+          <speciesReference species="O" stoichiometry="1" constant="true"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="O" stoichiometry="1" constant="true"/>
+          <speciesReference species="A" stoichiometry="1" constant="true"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cell </ci>
+              <ci> c </ci>
+              <ci> O </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction metaid="COPASI16" id="bound_translation_A" reversible="false" fast="false">
+        <listOfReactants>
+          <speciesReference species="OA2" stoichiometry="1" constant="true"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="OA2" stoichiometry="1" constant="true"/>
+          <speciesReference species="A" stoichiometry="1" constant="true"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cell </ci>
+              <ci> c </ci>
+              <ci> OA2 </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction metaid="COPASI17" id="decay_A" reversible="false" fast="false">
+        <listOfReactants>
+          <speciesReference species="A" stoichiometry="1" constant="true"/>
+        </listOfReactants>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cell </ci>
+              <cn type="real"> .25 </cn>
+              <ci> c </ci>
+              <ci> A </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction metaid="COPASI18" id="dimerization_B" reversible="false" fast="false">
+        <listOfReactants>
+          <speciesReference species="B" stoichiometry="2" constant="true"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="B2" stoichiometry="1" constant="true"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cell </ci>
+              <apply>
+                <divide/>
+                <cn type="integer"> 5 </cn>
+                <cn type="integer"> 2 </cn>
+              </apply>
+              <cn> 2 </cn>
+              <ci> c </ci>
+              <ci> B </ci>
+              <apply>
+                <minus/>
+                <ci> B </ci>
+                <cn type="integer"> 1 </cn>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction metaid="COPASI19" id="dedimerization_B" reversible="false" fast="false">
+        <listOfReactants>
+          <speciesReference species="B2" stoichiometry="1" constant="true"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="B" stoichiometry="2" constant="true"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cell </ci>
+              <cn type="integer"> 5 </cn>
+              <ci> c </ci>
+              <ci> B2 </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction metaid="COPASI20" id="operon_binding_B" reversible="false" fast="false">
+        <listOfReactants>
+          <speciesReference species="B2" stoichiometry="1" constant="true"/>
+          <speciesReference species="O" stoichiometry="1" constant="true"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="OB2" stoichiometry="1" constant="true"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cell </ci>
+              <cn type="integer"> 5 </cn>
+              <ci> c </ci>
+              <ci> O </ci>
+              <ci> B2 </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction metaid="COPASI21" id="operon_unbinding_B" reversible="false" fast="false">
+        <listOfReactants>
+          <speciesReference species="OB2" stoichiometry="1" constant="true"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="O" stoichiometry="1" constant="true"/>
+          <speciesReference species="B2" stoichiometry="1" constant="true"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cell </ci>
+              <ci> c </ci>
+              <ci> OB2 </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction metaid="COPASI22" id="unbound_translation_B" reversible="false" fast="false">
+        <listOfReactants>
+          <speciesReference species="O" stoichiometry="1" constant="true"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="O" stoichiometry="1" constant="true"/>
+          <speciesReference species="B" stoichiometry="1" constant="true"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cell </ci>
+              <ci> c </ci>
+              <ci> O </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction metaid="COPASI23" id="bound_translation_B" reversible="false" fast="false">
+        <listOfReactants>
+          <speciesReference species="OB2" stoichiometry="1" constant="true"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="OB2" stoichiometry="1" constant="true"/>
+          <speciesReference species="B" stoichiometry="1" constant="true"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cell </ci>
+              <ci> c </ci>
+              <ci> OB2 </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction metaid="COPASI24" id="decay_B" reversible="false" fast="false">
+        <listOfReactants>
+          <speciesReference species="B" stoichiometry="1" constant="true"/>
+        </listOfReactants>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> cell </ci>
+              <cn type="real"> .25 </cn>
+              <ci> c </ci>
+              <ci> B </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+    </listOfReactions>
+  </model>
+</sbml>

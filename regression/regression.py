@@ -1,4 +1,4 @@
-from argparse import ArgumentParser
+from argparse import ArgumentParser, SUPPRESS
 import os,sys
 from six import print_
 import subprocess
@@ -7,15 +7,15 @@ class Regression(object):
     defaultLMArgs = ['-sl', 'lm::avx::GillespieDSolverAVX', '-f', 'biphasic_switch.lm']
     helpMessage = 'base class for doing regression testing on Lattice Microbes'
 
-    # def BuildInput(self, **kwargs):
-    #     unimplemented in base class
+    def BuildInput(self, **kwargs):
+        raise TypeError('unimplemented in base class')
 
     def BuildLMArgs(self, kwargs):
         lmFlags = ('fflux', 'intout')
         lmOptions = ('c', 'cr', 'gr', 'ff', 'fo')
 
         kwargs['lmArgs'] = ['-%s' % flag for flag in lmFlags if kwargs[flag]]
-        kwargs['lmArgs']+= [tok for tup in ((option,val) for option,val in (('-%s' % option, kwargs[option]) for option in lmOptions) if val is not None) for tok in tup]
+        kwargs['lmArgs']+=[tok for tup in ((option,val) for option,val in (('-%s' % option, kwargs[option]) for option in lmOptions) if val is not None) for tok in tup]
 
     def CleanSFileOutput(self, **kwargs):
         if kwargs['ff']=='sfile' and kwargs['fo']=='biphasic_switch.sfile':
@@ -48,14 +48,24 @@ class Regression(object):
         parser.add_argument('-intout', '--intermediate-output',
                             action='store_true', dest='intout',                          help='output some extra data during certain kinds of simulations')
 
+        # general simulation parameters
         parser.add_argument('-t', '--theta', default=1,                                  help='scaling factor for the rates of protein production and degradation in the test Genetic Toggle Switch system.')
+        parser.add_argument('--maxWorkUnitSteps', default=SUPPRESS,                                        help='max number of steps in a single work unit')
+        parser.add_argument('--writeInterval', default=SUPPRESS,                                          help='the period at which every trajectory will write out the state of its species counts')
 
-        parser.add_argument('-mcz', '--maxCrossingsZero',                                help='max crossing to record for phase zero')
-        parser.add_argument('-mtz', '--maxTimeZero',                                     help='max time to run phase zero for')
-        parser.add_argument('-mcn', '--maxCrossingsN',                                   help='max crossing to record for phase N')
-        parser.add_argument('-mtn', '--maxTimeN',                                        help='max time to run phase N for')
+        # forward flux specific simulation parameters
+        parser.add_argument('-mcz', '--maxCrossingsZero', default=SUPPRESS,                               help='max crossing to record for phase zero')
+        parser.add_argument('-mtz', '--maxTimeZero', default=SUPPRESS,                                    help='max time to run phase zero for')
+        parser.add_argument('-mcn', '--maxCrossingsN', default=SUPPRESS,                                  help='max crossing to record for phase N')
+        parser.add_argument('-mtn', '--maxTimeN', default=SUPPRESS,                                       help='max time to run phase N for')
 
+        # replicate specific simulation parameters
+        parser.add_argument('--maxSteps', default=SUPPRESS,                                               help='max number of steps to run for a single replicate')
+        parser.add_argument('--maxTime', default=SUPPRESS,                                                help='max time to run for a single replicate')
+
+        parser.add_argument('--extra-input', action='store_true',                        help="add some extra order parameters and tilings to the .lm input file. Meant for use in analysis only (ie, don't use in conjunction with execPath)")
         parser.add_argument('--fflux', action='store_true',                              help='set this flag to do a Forward Flux simulation instead of the deafult Replicate simulation')
+        parser.add_argument('--quick-test', action='store_true',                         help='use presets for simulation parameters, etc that will result in roughly the quickest possible simulation that will still give useful results for testing purposes')
         parser.add_argument('--sfile', action='store_true',                              help='set this flag to use SFile output. Equivalent to -ff sfile -fo biphasic_switch.sfile')
 
         kwargs = vars(parser.parse_args())

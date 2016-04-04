@@ -16,8 +16,6 @@ endif(CMAKE_BUILD_TYPE_UPPER)
 #set(CMAKE_MACOSX_RPATH ON)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-option(CUDA_USE_STATIC_CUDA_RUNTIME "" OFF)
-
 ################
 project(lm)
 ################
@@ -32,36 +30,36 @@ include(CMakeConfig.txt)
 
 # Lattice Microbes standard architecture flag
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "Intel")
-    set(LM_ARCH_FLAG "-xHost")
+    set(DEFAULT_ARCH_FLAG "-xHost")
 else(${CMAKE_CXX_COMPILER_ID} MATCHES "Intel")
-    set(LM_ARCH_FLAG "-march=native")
+    set(DEFAULT_ARCH_FLAG "-march=native")
 endif(${CMAKE_CXX_COMPILER_ID} MATCHES "Intel")
 
 # Lattice Microbes standard compiler flags
-set(LM_FLAGS_OPTIMIZED "-m64 -O3 -DNDEBUG -fPIC -Wall -fmessage-length=0")
-set(LM_FLAGS_DEBUG "-m64 -g -fPIC -Wall -fmessage-length=0")
+set(DEFAULT_FLAGS_OPTIMIZED "-m64 -O3 -DNDEBUG -fPIC -Wall -fmessage-length=0")
+set(DEFAULT_FLAGS_DEBUG "-m64 -g -fPIC -Wall -fmessage-length=0")
 
 # Set architecture flag, used in c and c++ flags.
 # Will be replaced by the CUSTOM_ARCH_FLAG variable from CMakeConfig.txt if set
-SetConfigDefault(ARCH_FLAG CUSTOM_ARCH_FLAG ${LM_ARCH_FLAG})
+SetConfigDefault(ARCH_FLAG CUSTOM_ARCH_FLAG ${DEFAULT_ARCH_FLAG})
 
 # Set compiler flags for c and c++ for the various builds.
 # Will be replaced by the CUSTOM_C_FLAGS<_build-name> and CUSTOM_CXX_FLAGS<_build-name> variables from CMakeConfig.txt if set
 if(NOT CMAKE_BUILD_TYPE_UPPER)
-    SetConfigDefault(CMAKE_C_FLAGS      CUSTOM_C_FLAGS      ${LM_FLAGS_DEBUG})
-    SetConfigDefault(CMAKE_CXX_FLAGS    CUSTOM_CXX_FLAGS    ${LM_FLAGS_DEBUG})
+    SetConfigDefault(CMAKE_C_FLAGS      CUSTOM_C_FLAGS      ${DEFAULT_FLAGS_OPTIMIZED})
+    SetConfigDefault(CMAKE_CXX_FLAGS    CUSTOM_CXX_FLAGS    ${DEFAULT_FLAGS_OPTIMIZED})
 elseif(CMAKE_BUILD_TYPE_UPPER STREQUAL DEBUG)
-    SetConfigDefault(CMAKE_C_FLAGS_DEBUG      CUSTOM_C_FLAGS_DEBUG      ${LM_FLAGS_DEBUG})
-    SetConfigDefault(CMAKE_CXX_FLAGS_DEBUG    CUSTOM_CXX_FLAGS_DEBUG    ${LM_FLAGS_DEBUG})
+    SetConfigDefault(CMAKE_C_FLAGS_DEBUG      CUSTOM_C_FLAGS_DEBUG      ${DEFAULT_FLAGS_DEBUG})
+    SetConfigDefault(CMAKE_CXX_FLAGS_DEBUG    CUSTOM_CXX_FLAGS_DEBUG    ${DEFAULT_FLAGS_DEBUG})
 elseif(CMAKE_BUILD_TYPE_UPPER STREQUAL RELEASE)
-    SetConfigDefault(CMAKE_C_FLAGS_RELEASE      CUSTOM_C_FLAGS_RELEASE      ${LM_FLAGS_OPTIMIZED})
-    SetConfigDefault(CMAKE_CXX_FLAGS_RELEASE    CUSTOM_CXX_FLAGS_RELEASE    ${LM_FLAGS_OPTIMIZED})
+    SetConfigDefault(CMAKE_C_FLAGS_RELEASE      CUSTOM_C_FLAGS_RELEASE      ${DEFAULT_FLAGS_OPTIMIZED})
+    SetConfigDefault(CMAKE_CXX_FLAGS_RELEASE    CUSTOM_CXX_FLAGS_RELEASE    ${DEFAULT_FLAGS_OPTIMIZED})
 elseif(CMAKE_BUILD_TYPE_UPPER STREQUAL RELWITHDEBINFO)
-    SetConfigDefault(CMAKE_C_FLAGS_RELWITHDEBINFO      CUSTOM_C_FLAGS_RELWITHDEBINFO      ${LM_FLAGS_DEBUG})
-    SetConfigDefault(CMAKE_CXX_FLAGS_RELWITHDEBINFO    CUSTOM_CXX_FLAGS_RELWITHDEBINFO    ${LM_FLAGS_DEBUG})
+    SetConfigDefault(CMAKE_C_FLAGS_RELWITHDEBINFO      CUSTOM_C_FLAGS_RELWITHDEBINFO      ${DEFAULT_FLAGS_DEBUG})
+    SetConfigDefault(CMAKE_CXX_FLAGS_RELWITHDEBINFO    CUSTOM_CXX_FLAGS_RELWITHDEBINFO    ${DEFAULT_FLAGS_DEBUG})
 elseif(CMAKE_BUILD_TYPE_UPPER STREQUAL MINSIZEREL)
-    SetConfigDefault(CMAKE_C_FLAGS_MINSIZEREL      CUSTOM_C_FLAGS_MINSIZEREL      ${LM_FLAGS_OPTIMIZED})
-    SetConfigDefault(CMAKE_CXX_FLAGS_MINSIZEREL    CUSTOM_CXX_FLAGS_MINSIZEREL    ${LM_FLAGS_OPTIMIZED})
+    SetConfigDefault(CMAKE_C_FLAGS_MINSIZEREL      CUSTOM_C_FLAGS_MINSIZEREL      ${DEFAULT_FLAGS_OPTIMIZED})
+    SetConfigDefault(CMAKE_CXX_FLAGS_MINSIZEREL    CUSTOM_CXX_FLAGS_MINSIZEREL    ${DEFAULT_FLAGS_OPTIMIZED})
 else(NOT CMAKE_BUILD_TYPE_UPPER)
     message(WARNING "No support for specified build type: ${CMAKE_BUILD_TYPE}. Compiler flags may be incorrectly set.")
 endif(NOT CMAKE_BUILD_TYPE_UPPER)
@@ -109,7 +107,7 @@ endif(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
 
 find_package(Threads REQUIRED)
 find_package(libsbml)
-find_package(protobuf REQUIRED)
+find_package(protobuf 2.6.0 REQUIRED)
 find_package(HDF5 COMPONENTS C HL REQUIRED)
 find_package(ZLIB REQUIRED)
 #find_package(Boost)
@@ -228,6 +226,7 @@ IF(BUILD_WITH_CUDA)
 ENDIF(BUILD_WITH_CUDA)
 
 target_link_libraries(lmes ${CMAKE_THREAD_LIBS_INIT}
+                           ${CMAKE_DL_LIBS}
                            ${PROTOBUF_LIBRARIES}
                            ${HDF5_LIBRARIES}
                            ${HDF5_HL_LIBRARIES}

@@ -230,3 +230,139 @@ protected:
 }
 
 #endif /* LM_TRAJECTORY_TRAJECTORYLIMITS */
+
+//// standalone version of the limit checking code
+//// for investigating the assembly produced by various compilers
+
+//#include <exception>
+//using std::exception;
+//
+//enum LimitType {NONE,
+//    SPECIES,
+//    ORDER_PARAMETER};
+//
+//enum StoppingCondition {MIN,
+//    MAX};
+//
+//enum Endpoint {EXCLUDED,
+//    INCLUDED};
+//
+//// specializations of check_limit with regards to stoppingCondition and includeEndpoint for the basic min/max limits
+//#define check_limit_MIN_false(val, limitVal, checkBool) checkBool = (val < limitVal);
+//#define check_limit_MIN_true(val, limitVal, checkBool) checkBool = (val <= limitVal);
+//#define check_limit_MAX_false(val, limitVal, checkBool) checkBool = (val > limitVal);
+//#define check_limit_MAX_true(val, limitVal, checkBool) checkBool = (val >= limitVal);
+//
+//struct TrajectoryLimit
+//{
+//    LimitType type;
+//    StoppingCondition stoppingCondition;
+//    bool includeEndpoint;
+//    int limitID;
+//
+//    int valueID;
+//    int ivalue;
+//    double dvalue;
+//    int uvalue;
+//};
+//
+//// globals
+//TrajectoryLimit* tl;
+//int* speciesCounts;
+//double* orderParameterValues;
+//
+//TrajectoryLimit* setup()
+//{
+//    TrajectoryLimit* tl = new TrajectoryLimit[2];
+//
+//    tl[0].type = SPECIES;
+//    tl[0].stoppingCondition = MIN;
+//    tl[0].includeEndpoint = true;
+//    tl[0].limitID = 0;
+//    tl[0].valueID = 0;
+//    tl[0].ivalue = 19;
+//
+//    tl[1].type = ORDER_PARAMETER;
+//    tl[1].stoppingCondition = MAX;
+//    tl[1].includeEndpoint = false;
+//    tl[1].limitID = 1;
+//    tl[1].valueID = 0;
+//    tl[1].dvalue = 2.9;
+//
+//    speciesCounts = new int[2];
+//    speciesCounts[0] = 234;
+//    speciesCounts[1] = 4;
+//
+//    orderParameterValues = new double[1];
+//    orderParameterValues[0] = 1.23;
+//}
+//
+//bool isTrajectoryOutsideLimits()
+//{
+//    bool limitReached;
+//    for (int i=0; i<2; i++)
+//    {
+//        TrajectoryLimit* limits = setup();
+//        TrajectoryLimit& l = limits[i];
+//        limitReached = false;
+//
+//        switch (l.type)
+//        {
+//        case NONE: throw exception(); break;
+//
+//        case SPECIES:
+//            switch (l.stoppingCondition)
+//            {
+//            case MIN:
+//                if (l.includeEndpoint)
+//                {
+//                    check_limit_MIN_true(speciesCounts[l.valueID], l.ivalue, limitReached)
+//                }
+//                else
+//                {
+//                    check_limit_MIN_false(speciesCounts[l.valueID], l.ivalue, limitReached)
+//                }
+//                break;
+//            case MAX:
+//                if (l.includeEndpoint)
+//                {
+//                    check_limit_MAX_true(speciesCounts[l.valueID], l.ivalue, limitReached)
+//                }
+//                else
+//                {
+//                    check_limit_MAX_false(speciesCounts[l.valueID], l.ivalue, limitReached)
+//                }
+//                break;
+//            } break;
+//
+//        case ORDER_PARAMETER:
+//            switch (l.stoppingCondition)
+//            {
+//            case MIN:
+//                if (l.includeEndpoint)
+//                {
+//                    check_limit_MIN_true(orderParameterValues[l.valueID], l.dvalue, limitReached)
+//                }
+//                else
+//                {
+//                    check_limit_MIN_false(orderParameterValues[l.valueID], l.dvalue, limitReached)
+//                }
+//                break;
+//            case MAX:
+//                if (l.includeEndpoint)
+//                {
+//                    check_limit_MAX_true(orderParameterValues[l.valueID], l.dvalue, limitReached)
+//                }
+//                else
+//                {
+//                    check_limit_MAX_false(orderParameterValues[l.valueID], l.dvalue, limitReached)
+//                }
+//                break;
+//            }
+//            break;
+//        default:
+//            break;
+//        }
+//    }
+//    return limitReached;
+//}

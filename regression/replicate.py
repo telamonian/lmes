@@ -5,8 +5,7 @@ import os,sys
 import shutil
 import sys
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'utils', 'python', 'runner'))
-from lmFile import Input,Dependency,DependencyMatrix,InitialSpeciesCounts,InitialSpeciesCountsBackward,OrderParameter,ReactionRateConstant,SimulationParameter,Tiling
+from lma.src.script.lmFile import Input,Dependency,DependencyMatrix,InitialSpeciesCounts,InitialSpeciesCountsBackward,OrderParameter,ReactionRateConstant,SimulationParameter,Tiling
 from regression import Regression
 
 class ReplicateRegression(Regression):
@@ -14,6 +13,19 @@ class ReplicateRegression(Regression):
     helpMessage = 'script to test out a complete Replicate Lattice Microbes run'
 
     def BuildInput(self, **kwargs):
+        if kwargs['quick_test']:
+            defaultSimulationParameters = {'maxSteps': str(int(1e10)),
+                                           'maxTime': str(int(1e1)),
+                                           'maxWorkUnitSteps': str(int(1e6)),
+                                           'writeInterval': str(int(1e0))}
+            theta = 10
+        else:
+            defaultSimulationParameters = {'maxSteps': str(int(1e10)),
+                                           'maxTime': str(int(1e4)),
+                                           'maxWorkUnitSteps': str(int(1e6)),
+                                           'writeInterval': str(int(1e1))}
+            theta = kwargs['theta']
+
         try:
             os.remove('biphasic_switch.lm')
         except OSError:
@@ -29,21 +41,20 @@ class ReplicateRegression(Regression):
                            id=0,
                            speciesIDs=[0,1,2,3,4,5],
                            speciesCoefficients=[-1,-2,-2,1,2,2])]
-        # OrderParameter(type=0,
-        #                id=1,
-        #                speciesIDs=[0,1,2],
-        #                speciesCoefficients=[1,2,2]),
-        # OrderParameter(type=0,
-        #                id=2,
-        #                speciesIDs=[3,4,5],
-        #                speciesCoefficients=[1,2,2])]
 
-        simParams = [SimulationParameter(key='maxSteps',val=str(int(1e10))),
-                     SimulationParameter(key='maxTime',val=str(int(1e4))),
-                     SimulationParameter(key='maxWorkUnitSteps',val=str(int(1e6))),
-                     SimulationParameter(key='writeInterval',val=str(int(1e1)))]
+        if kwargs['extra_input']:
+            ops+=[
+                OrderParameter(type=0,
+                               id=1,
+                               speciesIDs=[0,1,2],
+                               speciesCoefficients=[1,2,2]),
+                OrderParameter(type=0,
+                               id=2,
+                               speciesIDs=[3,4,5],
+                               speciesCoefficients=[1,2,2])]
 
-        theta = kwargs['theta']
+        simParams = [SimulationParameter(key=key, val=kwargs.get(key, defaultSimulationParameters[key])) for key in defaultSimulationParameters.keys()]
+
         productionConstants = [ReactionRateConstant(reactionID=4, rateConstant=1.0*theta),
                                ReactionRateConstant(reactionID=5, rateConstant=1.0*theta),
                                ReactionRateConstant(reactionID=11, rateConstant=1.0*theta),

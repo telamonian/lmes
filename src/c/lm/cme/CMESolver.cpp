@@ -212,41 +212,6 @@ void CMESolver::setLimits(const lm::io::TrajectoryLimits& lm)
         hasDegreeAdvancementListener = true;
         hasUpdateSpeciesCountsListeners = true;
     }
-
-//    // Set the time limit.
-//    if (lm.has_time_limit())
-//        timeLimit = lm.time_limit().dvalue();
-//    else
-//        timeLimit = std::numeric_limits<double>::infinity();
-//
-//    // Count the non-time limits.
-//    numberLimits =  lm.trajectory_limits_size();
-//
-//    if (numberLimits > 0)
-//    {
-//        limits = new TrajectoryLimit[numberLimits];
-//        for (int i = 0; i < numberLimits; i++)
-//        {
-//            limits[i].type = lm.trajectory_limits(i).limit_type();
-//            limits[i].stoppingCondition = lm.trajectory_limits(i).stopping_condition();
-//            limits[i].valueID = lm.trajectory_limits(i).value_id();
-//            switch(lm.trajectory_limits(i).value_oneof_case())
-//            {
-//            case lm::io::TrajectoryLimits::TrajectoryLimit::kDvalue :
-//                limits[i].dvalue = lm.trajectory_limits(i).dvalue();
-//                break;
-//            case lm::io::TrajectoryLimits::TrajectoryLimit::kIvalue :
-//                limits[i].ivalue = lm.trajectory_limits(i).ivalue();
-//                break;
-//            case lm::io::TrajectoryLimits::TrajectoryLimit::kUvalue :
-//                limits[i].uvalue = lm.trajectory_limits(i).uvalue();
-//                break;
-//            default:
-//                throw Exception("In CMESolver, a limit did not have an associated value", limits[i].type, limits[i].stoppingCondition);
-//                break;
-//            }
-//        }
-//    }
 }
 
 void CMESolver::reset()

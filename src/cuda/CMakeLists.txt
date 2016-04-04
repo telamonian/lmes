@@ -2,6 +2,7 @@
 
 #set(CUDA_SEPARABLE_COMPILATION ON)
 #set(CUDA_HOST_COMPILER "")
+#option(CUDA_USE_STATIC_CUDA_RUNTIME "" OFF)
 
 ####################
 #TARGET: lm_cuda_lib
@@ -18,7 +19,7 @@ set(CUDA_NVCC_FLAGS --ptxas-options=-v;--gpu-architecture;compute_30;--gpu-code;
 set(wno_unused_flags "-Wno-unused-const-variable,-Wno-unused-function")
 set(CUDA_NVCC_FLAGS --compiler-options;${wno_unused_flags};--linker-options;${wno_unused_flags};${CUDA_NVCC_FLAGS})
 
-# turn off the flags for fancy CPU-based vector math
+# turn off the flags for fancy CPU-based vector math, since they involve built-ins that NVCC doesn't know about
 set(fancy_math_definitions OPT_AVX;OPT_FMA;OPT_SVML)
 get_property(nvcc_definitions DIRECTORY PROPERTY COMPILE_DEFINITIONS)
 list(REMOVE_ITEM nvcc_definitions ${fancy_math_definitions})
