@@ -46,6 +46,9 @@
 #include <cstdio>
 #include <cstring>
 #include <sys/stat.h>
+#include <sbml/conversion/ConversionProperties.h>
+#include <sbml/math/FormulaFormatter.h>
+#include <sbml/SBMLDocument.h>
 #include <sbml/SBMLTypes.h>
 #include "lm/Exceptions.h"
 #include "lm/Version.h"
@@ -80,6 +83,11 @@ string outputFilename = "";
  * The sbml file to import the model from.
  */
 string inputFilename = "";
+
+/**
+ * Copasi always sets species concentrations (instead of amount) in exported sbml, so fix that
+ */
+bool isCopasi = false;
 
 /**
  * Parameters specified by the user.
@@ -180,6 +188,15 @@ void importSBMLModel(Hdf5File * lmFile, string sbmlFilename) throw(Exception)
     // Make sure we know how to process the document.
     if (sbmlDocument->getLevel() == 3 && sbmlDocument->getVersion() == 1)
     {
+        // expand any user-defined functions in the reaction kinetic laws
+        ConversionProperties props;
+        props.addOption("expandFunctionDefinitions");
+
+        if (sbmlDocument->convert(props) != LIBSBML_OPERATION_SUCCESS)
+        {
+            throw Exception("Unable to expand user-defined functions in the reaction kinetic laws due to the following: ", sbmlDocument->getErrorLog()->toString().c_str());
+        }
+
         // Build the reaction model from the SBML model.
         ReactionModel lmModel;
         Model * sbmlModel = sbmlDocument->getModel();
@@ -223,11 +240,16 @@ void importSBMLModelL3V1(ReactionModel * lmModel, Model * sbmlModel) throw(Excep
 
         // Get the units for the amount.
         string substanceUnits = modelSubstanceUnits;
-        if (species->isSetSubstanceUnits()) substanceUnits = species->getSubstanceUnits();
-        if (substanceUnits != "item") throw Exception("Unsupported species substance units", substanceUnits.c_str());
+        if (!isCopasi)
+        {
+            if (species->isSetSubstanceUnits()) substanceUnits = species->getSubstanceUnits();
+            if (substanceUnits != "item")
+                throw Exception("Unsupported species substance units", substanceUnits.c_str());
 
+            // Make sure we can process the species.
+            if (!species->getHasOnlySubstanceUnits()) throw Exception("Unsupported species property", "hasOnlySubstanceUnits must be true");
+        }
         // Make sure we can process the species.
-        if (!species->getHasOnlySubstanceUnits()) throw Exception("Unsupported species property", "hasOnlySubstanceUnits must be true");
         if (species->getBoundaryCondition()) throw Exception("Unsupported species property", "boundaryCondition must be false");
         if (species->getConstant()) throw Exception("Unsupported species property", "constant must be false");
         if (species->isSetConversionFactor()) throw Exception("Unsupported species property", "conversionFactor must not be set");
@@ -239,7 +261,14 @@ void importSBMLModelL3V1(ReactionModel * lmModel, Model * sbmlModel) throw(Excep
         }
         else if (species->isSetInitialConcentration())
         {
-            throw Exception("Unsupported species property", "initialConcentration must not be set");
+            if (isCopasi)
+            {
+                lmModel->add_initial_species_count((uint)lround(species->getInitialConcentration()));
+            }
+            else
+            {
+                throw Exception("Unsupported species property", "initialConcentration must not be set");
+            }
         }
         else
             throw Exception("Unsupported species property", "initialAmount or initialConcentration must be set");
@@ -348,7 +377,7 @@ void importSBMLModelL3V1Kinetics(uint reactionIndex, KineticLaw * kinetics, Reac
     else if (isSecondOrderSelfReaction(math, localParameters, speciesIndices))
         importSecondOrderSelfReaction(math, localParameters, localParameterValues, reactionIndex, numberReactions, lmModel, D, speciesIndices);
     else
-        throw Exception("Unsupported kinetic law", kinetics->getFormula().c_str());
+        throw Exception("Unsupported kinetic law", SBML_formulaToString(math));
 }
 
 void getSpeciesUsedInExpression(vector<string> & speciesUsed, const ASTNode * node, vector<string> & parameters, map<string,uint> & speciesIndices)
@@ -680,7 +709,7 @@ void parseArguments(int argc, char** argv)
         	function = "version";
         	break;
         }
-            
+
         // See if the user is trying to specify an output filename.
         else if (i == 1)
         {
@@ -694,7 +723,12 @@ void parseArguments(int argc, char** argv)
             inputFilename = option;
         }
 
-        //See if the user is trying to specify a key value pair.
+        // See if the user is trying to import a sbml file that was originally exported by Copasi
+        else if (strcmp(option, "--copasi") == 0) {
+            isCopasi = true;
+        }
+
+        // See if the user is trying to specify a key value pair.
         else if (strstr(option, "=") != NULL)
         {
             char * separator=strstr(option, "=");
@@ -720,6 +754,9 @@ void printUsage(int argc, char** argv)
 {
 	std::cout << "Usage: " << argv[0] << " (-h|--help)" << std::endl;
 	std::cout << "Usage: " << argv[0] << " (-v|--version)" << std::endl;
-	std::cout << "Usage: " << argv[0] << " lm_filename sbml_filename (key=value)+" << std::endl;
+	std::cout << "Usage: " << argv[0] << " lm_filename sbml_filename [OPTIONS] (key=value)+" << std::endl;
 	std::cout << std::endl;
+    std::cout << "OPTIONS" << std::endl;
+    std::cout << "  --copasi    (EXPERIMENTAL) Use this option if you're trying to import a sbml file that was originally exported by Copasi" << std::endl;
+    std::cout << std::endl;
 }

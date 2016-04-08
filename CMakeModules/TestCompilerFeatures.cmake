@@ -1,16 +1,14 @@
 # a set of functions to test if the fully configured compiler supports various features
-#
-# All the functions named test<some-feature> take two arguments, varName and required
-# The result of the test will be stored at the parent scope in a variable named varName
-# If required is yes, set varName to true.
-# If required is no, set varName to false.
-# If required is optional, directly check if the compiler can build avx code and set varName to the test result
-
 INCLUDE(CheckCXXSourceCompiles)
 
 ########################
 # test functions
 ########################
+# All the functions named test<some-feature> take two arguments, varName and required
+# The result of the test will be stored at the parent scope in a variable named varName
+# If required is yes, set varName to true.
+# If required is no, set varName to false.
+# If required is optional, directly check if the compiler can build avx code and set varName to the test result
 
 # test if the compiler supports avx
 function(testAVX varName required)
