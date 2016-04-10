@@ -150,21 +150,6 @@ extern bool ffluxFlag;
 extern bool intermediateOutputFlag;
 
 /*
- * Flag that determines whether or not to track degree advancement in addition to species count
- */
-extern bool daFlag;
-
-/*
- * Flag to indicate that we need to initialize the order parameters and update them at every simulation step
- */
-extern bool opActivatedFlag;
-
-/*
- * Flag that determines whether or not to track order parameter values in addition to species counts
- */
-extern bool opTrackingFlag;
-
-/*
  * Flag to indicate that we're running a test of the program's input and output
  */
 extern bool ioTestFlag;

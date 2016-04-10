@@ -1,0 +1,88 @@
+- First, run the Lattice Microbes SBML importer to create a .lm file from your starting .sbml file.
+    - Run the following command in the same directory as your .sbml file:
+        - <pre><code>lm_sbml_import <your_model_file_name>.lm <your_model_file_name>.sbml</code></pre>
+    - If you're trying to import a .sbml file that was originally exported by Copasi, add the `--copasi` flag to the end of your arguments:
+        - <pre><code>lm_sbml_import <your_model_file_name>.lm <your_model_file_name>.sbml --copasi</code></pre>
+        - Explanation: Lattice Microbes expects species units to be in terms of amounts, but Copasi only exports species units in terms of concentrations, so adding the `--copasi` flag will cause the importer to convert concentrations to amounts. Without the flag the presence of concentration units is treated as an error.
+
+- Once you've created a .lm file, it's always a good idea to open it up in HDFView and do a basic sanity check. This will help to ensure that you don't fall prey to any easily recognized bugs. It will also give you a better sense of the kinds of information that Lattice Microbes requires in order to carry out a simulation.
+
+- Sanity checking protocol:
+    - Start HDFView and open your newly created .lm file. It should show up in the left hand pane of the application.
+    - Under your model, double click on the Model folder, then the Reaction folder. You should see 5 datasets. We'll go through them one-by-one, in roughly the order you should check them:
+        - InitialSpeciesCounts
+            - Expected size:
+                - (number of species rows) X (1 column)
+            - Expected values:
+                - Non-negative integers (0 is okay).
+            - How to sanity check:
+                - This is an easy one. This dataset contains a single column, with each row corresponding to one of your species. They will be in the same order as they were defined in the .sbml file.
+                - All you have to do is make sure that the values correspond to what you expect for the initial amounts of each of your species.
+            - Extra notes:
+                - If the values are much smaller or much larger than what you expected, and if your .sbml was first exported from another program, this may be due a conversion you made at some point between concentration and amount (ie particle number).
+
+        - ReactionTypes
+            - Expected size:
+                - (number of reactions rows) X (1 column)
+            - Expected values:
+                - Every entry in this dataset will be one of 0, 1, 2, or 3
+            - How to sanity check:
+                - Each row in this dataset corresponds to one of the reactions in your model, defined in the same order as in your .sbml file.
+                - Each of the 4 possible values represents one of the reaction types that Lattice Microbes will import from a .sbml file:
+                    - 0 is a zeroth-order reaction
+                        - Example reaction formula: `0 -> A`
+                    - 1 is a first-order reaction
+                        - Example reaction formula: `A -> B`
+                    - 2 is a second-order reaction
+                        - Example reaction formula: `A + B -> C`
+                    - 3 is a second-order self reaction
+                        - Example reaction formula: `A + A -> B`
+                - Go through each row and make sure that all of the reaction types have been correctly identified.
+            - Extra notes:
+                - Lattice Microbes supports a number of other reaction types in addition to the four described above. Currently they have to be manually added to the .lm file by the user through the use of an external hdf5 tool such as HDFView or the Python library h5py.
+                - The complete listing of supported reaction types can be found in the source code in src/c/cme/CMEPropensityFunctions.
+
+        - ReactionRateConstants
+            - Expected size:
+                - (number of reactions rows) X (10 columns)
+            - Expected values:
+                - Floats or NaNs (which stands for Not a Number)
+            - How to sanity check:
+                - This is another easy one. Each row in this dataset corresponds to one of your reactions. They will be in the same order as they were defined in the .sbml file.
+                - Every entry in the first column should contain a float. Every other entry should be a NaN.
+                - Check over the entries in the first column to make sure that they are in fact the rate constants that you expect for each reaction.
+            - Extra notes:
+                - The extra columns with all of the NaNs are there in order to accommodate the more complex reaction types that can be manually added to the simulation input file by the user. This is described above in a bit more detail in the ReactionTypes section.
+
+        - DependencyMatrix
+            - Expected size:
+                - (number of species rows) X (number of reactions columns)
+            - Expected values:
+                - Every entry in this matrix will be either 0 or 1.
+            - How to sanity check:
+                - Each row correspond to one of your model's species, and each column corresponds to one of your model's reactions. The order is the same as defined in your .sbml file.
+                - Start at the first column (reaction) and work your way down it.
+                    - Only the rows (species) that correspond to that reaction's reactants should be marked with a 1.
+                    - All other rows in that column should be 0.
+                - Repeat for the rest of the columns (reactions).
+            - Extra notes:
+                - The above sanity checking rule only applies to models that have simple reaction types (0th, 1st, and 2nd order mass action). Fortunately, Lattice Microbes only supports importing simple reaction types from .sbml, so the above rule is good enough.
+                - For any given species, this matrix tells Lattice Microbes which reactions have rates that will be affected by a change in that species' population.
+
+        - StoichiometryMatrix
+            - Expected size:
+                - (number of species rows) X (number of reactions columns)
+            - Expected values:
+                - Every entry in this dataset will be one of -2, -1, 0, 1, or 2
+            - How to sanity check:
+                - Each row correspond to one of your model's species, and each column corresponds to one of your model's reactions. The order is the same as defined in your .sbml file.
+                - Start at the first column (reaction) and work your way down it.
+                    - Every row corresponding to one of that reaction's products will contain a positive number.
+                    - Every row corresponding to one of that reaction's reactants will contain a negative number.
+                        - The magnitude of the number will be equal to the quantity of the given species consumed or produced by a single "firing" of the reaction.
+                    - All other rows in that column will contain 0.
+                - Repeat for the rest of the columns (reactions).
+                - Example:
+                    - Given a column in the StoichiometryMatrix corresponding to the following formula:
+                        - `A + A -> B`
+                    - The row corresponding to species A will have a -2 in it, the row corresponding to species B will have a 1 in it, and all other rows in that column will be 0.

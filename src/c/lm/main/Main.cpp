@@ -224,7 +224,11 @@ void parseArguments(int argc, char** argv)
     cpuCoresPerRunner = 1.0;
     useCPUAffinity = false;
     gpuDevices = -1;
+#ifdef OPT_CUDA
     gpuDevicesPerRunner = 1.0;
+#else
+    gpuDevicesPerRunner = 0.0;
+#endif
     shouldPrintGPUCapabilities = true;
 
     simulationInputFilename = "";
@@ -241,9 +245,6 @@ void parseArguments(int argc, char** argv)
     shouldReserveOutputCore = true;
     ffluxFlag = false;
     intermediateOutputFlag = false;
-    daFlag = false;
-    opActivatedFlag = false;
-    opTrackingFlag = false;
     ioTestFlag = false;
 
     // Parse any arguments.
@@ -463,7 +464,6 @@ void parseArguments(int argc, char** argv)
         else if ((strcmp(option, "-fflux") == 0 || strcmp(option, "--use-forward-flux") == 0))
 		{
         	 ffluxFlag = true;
-        	 opActivatedFlag = true;
         	 supervisorClassName = "lm::fflux::FFluxSupervisor";
 		}
 
@@ -662,28 +662,28 @@ void printUsage(int argc, char** argv)
 void mainDebug(int argc, char** argv)
 {
     /*
-    tuple<uint> t3(10,5,1);
-    ndarray<double> a1(t3);
+    Tuple<uint> t3(10,5,1);
+    NDArray<double> a1(t3);
     for (uint r=0; r<a1.shape[0]; r++)
         for (uint c=0; c<a1.shape[1]; c++)
-            a1[tuple<uint>(r,c,0)] = (double)r;
+            a1[Tuple<uint>(r,c,0)] = (double)r;
     a1.print("\n");
     for (uint r=0; r<a1.shape[0]; r++)
         for (uint c=0; c<a1.shape[1]; c++)
-            a1[tuple<uint>(r,c,0)] = (double)c;
+            a1[Tuple<uint>(r,c,0)] = (double)c;
     a1.print("\n");
 
     uint numberSpecies=2;
     uint numberReactions=1;
-    ndarray<int> S(tuple<uint>(numberSpecies,numberReactions));
-    ndarray<uint> D(tuple<uint>(numberSpecies,numberReactions));
+    NDArray<int> S(Tuple<uint>(numberSpecies,numberReactions));
+    NDArray<uint> D(Tuple<uint>(numberSpecies,numberReactions));
 
     uint reactionIndex=0;
-    S[tuple<uint>(0,reactionIndex)] = -1;
-    S[tuple<uint>(1,reactionIndex)] = 1;
-    D[tuple<uint>(0,reactionIndex)] = 1;
-    D[tuple<uint>(1,reactionIndex)] = 0;
-    tuple<double> k(0.1);
+    S[Tuple<uint>(0,reactionIndex)] = -1;
+    S[Tuple<uint>(1,reactionIndex)] = 1;
+    D[Tuple<uint>(0,reactionIndex)] = 1;
+    D[Tuple<uint>(1,reactionIndex)] = 0;
+    Tuple<double> k(0.1);
     S.print("\n");
     D.print("\n");
     k.print("\n");

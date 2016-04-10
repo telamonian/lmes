@@ -1,5 +1,5 @@
 # a set of functions to test if the fully configured compiler supports various features
-INCLUDE(CheckCXXSourceCompiles)
+INCLUDE(CheckCXXSourceRuns)
 
 ########################
 # test functions
@@ -70,7 +70,7 @@ function(featureTest varName required featureName testSnippet)
     else(required STREQUAL yes)
         setTestCompileFlags()
 
-        CHECK_CXX_SOURCE_COMPILES("${testSnippet}" ${varName})
+        CHECK_CXX_SOURCE_RUNS("${testSnippet}" ${varName})
 
         if(${varName})
             message(STATUS "${featureName} is supported by the compiler, setting ${varName} to true")

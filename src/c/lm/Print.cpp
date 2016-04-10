@@ -34,17 +34,40 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
-
 #include <string>
 #include <iostream>
 #include <sstream>
 #include <cstdio>
 #include <cstdarg>
-#include "lm/Print.h"
 
-void lm::Print::printf(int verbosity, const char * fmt, ...)
+#include "lm/Print.h"
+#include "lm/Types.h"
+
+namespace lm {
+
+std::string Print::getDateTimeString()
+{
+    time_t now;
+    time(&now);
+    struct tm nowParts;
+    localtime_r(&now, &nowParts);
+    std::ostringstream s;
+    s << nowParts.tm_year+1900 << "-" << nowParts.tm_mon << "-" << nowParts.tm_mday << " " << nowParts.tm_hour << ":" << nowParts.tm_min << ":"  << nowParts.tm_sec;
+    return s.str();
+}
+
+void Print::printDateTimeString()
+{
+    time_t now;
+    time(&now);
+    struct tm nowParts;
+    localtime_r(&now, &nowParts);
+    ::printf("%04d-%02d-%02d %02d:%02d:%02d) ", nowParts.tm_year+1900, nowParts.tm_mon, nowParts.tm_mday, nowParts.tm_hour, nowParts.tm_min, nowParts.tm_sec);
+}
+
+void Print::printf(int verbosity, const char * fmt, ...)
 {
     if (verbosity <= VERBOSITY_LEVEL)
     {
@@ -65,24 +88,8 @@ void lm::Print::printf(int verbosity, const char * fmt, ...)
     }
 }
 
-void lm::Print::printDateTimeString()
-{
-    time_t now;
-    time(&now);
-    struct tm nowParts;
-    localtime_r(&now, &nowParts);
-    ::printf("%04d-%02d-%02d %02d:%02d:%02d) ", nowParts.tm_year+1900, nowParts.tm_mon, nowParts.tm_mday, nowParts.tm_hour, nowParts.tm_min, nowParts.tm_sec);
+template<> const char* Print::printf_format_string<int>() {return "%d";}
+template<> const char* Print::printf_format_string<uint>() {return "%u";}
+template<> const char* Print::printf_format_string<double>() {return "%f";}
+
 }
-
-std::string lm::Print::getDateTimeString()
-{
-    time_t now;
-    time(&now);
-    struct tm nowParts;
-    localtime_r(&now, &nowParts);
-    std::ostringstream s;
-    s << nowParts.tm_year+1900 << "-" << nowParts.tm_mon << "-" << nowParts.tm_mday << " " << nowParts.tm_hour << ":" << nowParts.tm_min << ":"  << nowParts.tm_sec;
-    return s.str();
-}
-
-

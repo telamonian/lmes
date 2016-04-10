@@ -40,6 +40,7 @@
 #include <limits>
 #include <list>
 
+
 #include "lm/cme/ReactionModel.h"
 #include "lm/io/ReactionModel.pb.h"
 
@@ -49,7 +50,7 @@ namespace lm {
 namespace cme {
 
 ReactionModel::ReactionModel(const uint numberSpecies, const uint numberReactions)
-:numberSpecies(numberSpecies),numberSpeciesToTrack(numberSpecies),numberReactions(numberReactions),S(ndarray<int>(utuple(numberSpecies,numberReactions))),D(ndarray<uint>(utuple(numberSpecies,numberReactions))),propensityFunctions(NULL),numberDependentSpecies(NULL),dependentSpecies(NULL),dependentSpeciesChange(NULL),numberDependentReactions(NULL),dependentReactions(NULL)
+:numberSpecies(numberSpecies),numberSpeciesToTrack(numberSpecies),numberReactions(numberReactions),S(NDArray<int>(UTuple(numberSpecies,numberReactions))),D(NDArray<uint>(UTuple(numberSpecies,numberReactions))),propensityFunctions(NULL),numberDependentSpecies(NULL),dependentSpecies(NULL),dependentSpeciesChange(NULL),numberDependentReactions(NULL),dependentReactions(NULL)
 {
     // Allocate propensity function tables.
     propensityFunctions = new lm::me::PropensityFunction*[numberReactions];
@@ -71,7 +72,7 @@ ReactionModel::ReactionModel(const uint numberSpecies, const uint numberReaction
 }
 
 ReactionModel::ReactionModel(const lm::io::ReactionModel& rm)
-:numberSpecies(rm.number_species()),numberSpeciesToTrack(rm.number_species()),numberReactions((uint)rm.number_reactions()),S(ndarray<int>(utuple(numberSpecies,numberReactions),rm.stoichiometric_matrix().data())),D(ndarray<uint>(utuple(numberSpecies,numberReactions),rm.dependency_matrix().data())),propensityFunctions(NULL),numberDependentSpecies(NULL),dependentSpecies(NULL),dependentSpeciesChange(NULL),numberDependentReactions(NULL),dependentReactions(NULL)
+:numberSpecies(rm.number_species()),numberSpeciesToTrack(rm.number_species()),numberReactions((uint)rm.number_reactions()),S(NDArray<int>(UTuple(numberSpecies,numberReactions),rm.stoichiometric_matrix().data())),D(NDArray<uint>(UTuple(numberSpecies,numberReactions),rm.dependency_matrix().data())),propensityFunctions(NULL),numberDependentSpecies(NULL),dependentSpecies(NULL),dependentSpeciesChange(NULL),numberDependentReactions(NULL),dependentReactions(NULL)
 {
     // Allocate propensity function tables.
     propensityFunctions = new lm::me::PropensityFunction*[numberReactions];
@@ -81,8 +82,8 @@ ReactionModel::ReactionModel(const lm::io::ReactionModel& rm)
     lm::me::PropensityFunctionFactory fs;
     for (uint i=0; i<numberReactions; i++)
     {
-        // Create the rate constant tuple.
-        tuple<double> k(rm.reaction(i).rate_constant_size(), rm.reaction(i).rate_constant().data());
+        // Create the rate constant Tuple.
+        Tuple<double> k(rm.reaction(i).rate_constant_size(), rm.reaction(i).rate_constant().data());
 
         // Get the propensity function.
         propensityFunctions[i] = fs.createPropensityFunction(rm.reaction(i).type(), i, S, D, k);
@@ -101,16 +102,16 @@ ReactionModel::ReactionModel(const lm::io::ReactionModel& rm)
     {
         numberDependentSpecies[col]=0;
         for (uint row=0; row<numberSpecies; row++)
-            if (S[utuple(row,col)] != 0)
+            if (S[UTuple(row,col)] != 0)
                 numberDependentSpecies[col]++;
         dependentSpecies[col] = new uint[numberDependentSpecies[col]];
         dependentSpeciesChange[col] = new int[numberDependentSpecies[col]];
         for (uint row=0, k=0; row<numberSpecies; row++)
         {
-            if (S[utuple(row,col)] != 0 && k < numberDependentSpecies[col])
+            if (S[UTuple(row,col)] != 0 && k < numberDependentSpecies[col])
             {
                 dependentSpecies[col][k] = row;
-                dependentSpeciesChange[col][k] = S[utuple(row,col)];
+                dependentSpeciesChange[col][k] = S[UTuple(row,col)];
                 k++;
             }
         }
@@ -135,7 +136,7 @@ ReactionModel::ReactionModel(const lm::io::ReactionModel& rm)
             // Find all of the reactions that depend on this species.
             for (uint col=0; col<numberReactions; col++)
             {
-                if (D[utuple(s,col)] > 0) dependentReactionList.push_back(col);
+                if (D[UTuple(s,col)] > 0) dependentReactionList.push_back(col);
             }
         }
 

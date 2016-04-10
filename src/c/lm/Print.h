@@ -34,12 +34,13 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #ifndef LM_DEBUG_H_
 #define LM_DEBUG_H_
 
+#include <cstdio>
 #include <string>
 
 namespace lm {
@@ -57,11 +58,18 @@ public:
     static const int ERROR                      =  2;
     static const int FATAL                      =  1;
 
-    static void printf(int level, const char * fmt, ...);
-    static void printDateTimeString();
     static std::string getDateTimeString();
+    static void printDateTimeString();
+    static void printf(int level, const char * fmt, ...);
+    template <typename T> static const char* printf_format_string();
 };
 
+}
+
+// put printNumeric in the top-level namespace
+template <typename T> static void printNumeric(T num)
+{
+    std::printf(lm::Print::printf_format_string<T>(), num);
 }
 
 #endif

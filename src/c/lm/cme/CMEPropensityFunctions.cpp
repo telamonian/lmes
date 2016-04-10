@@ -97,10 +97,10 @@ public:
     }
 #endif
 
-    static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+    static PropensityFunction* create(const uint reactionIndex, const NDArray<int> S, const NDArray<uint> D, const Tuple<double>k)
     {
         // Find the species dependencies.
-        utuple dependencies = getDependencies(reactionIndex, D);
+        UTuple dependencies = getDependencies(reactionIndex, D);
         if (dependencies.len != 0) throw InvalidArgException("D", "zeroth order propensity had invalid number of dependencies",dependencies.len);
 
         // Find the rate costant.
@@ -137,10 +137,10 @@ public:
     }
 #endif
 
-    static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+    static PropensityFunction* create(const uint reactionIndex, const NDArray<int> S, const NDArray<uint> D, const Tuple<double>k)
     {
         // Find the species dependencies.
-        utuple dependencies = getDependencies(reactionIndex, D);
+        UTuple dependencies = getDependencies(reactionIndex, D);
         if (dependencies.len != 1) throw InvalidArgException("D", "first order propensity had invalid number of dependencies",dependencies.len);
 
         // Find the rate costant.
@@ -177,10 +177,10 @@ public:
     }
 #endif
 
-    static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+    static PropensityFunction* create(const uint reactionIndex, const NDArray<int> S, const NDArray<uint> D, const Tuple<double>k)
     {
         // Find the species dependencies.
-        utuple dependencies = getDependencies(reactionIndex, D);
+        UTuple dependencies = getDependencies(reactionIndex, D);
         if (dependencies.len != 2) throw InvalidArgException("D", "second order propensity had invalid number of dependencies",dependencies.len);
 
         // Find the rate costant.
@@ -219,10 +219,10 @@ public:
     }
 #endif
 
-    static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+    static PropensityFunction* create(const uint reactionIndex, const NDArray<int> S, const NDArray<uint> D, const Tuple<double>k)
     {
         // Find the species dependencies.
-        utuple dependencies = getDependencies(reactionIndex, D);
+        UTuple dependencies = getDependencies(reactionIndex, D);
         if (dependencies.len != 1) throw InvalidArgException("D", "second order self propensity had invalid number of dependencies",dependencies.len);
 
         // Find the rate costant.
@@ -260,10 +260,10 @@ public:
     }
 #endif
 
-    static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+    static PropensityFunction* create(const uint reactionIndex, const NDArray<int> S, const NDArray<uint> D, const Tuple<double>k)
     {
         // Find the species dependencies.
-        utuple dependencies = getDependencies(reactionIndex, D);
+        UTuple dependencies = getDependencies(reactionIndex, D);
         if (dependencies.len != 1) throw InvalidArgException("D", "quadratic potential propensity had invalid number of dependencies",dependencies.len);
 
         // Find the rate costant.
@@ -303,10 +303,10 @@ public:
     }
 #endif
 
-    static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+    static PropensityFunction* create(const uint reactionIndex, const NDArray<int> S, const NDArray<uint> D, const Tuple<double>k)
     {
         // Find the species dependencies.
-        utuple dependencies = getDependencies(reactionIndex, D);
+        UTuple dependencies = getDependencies(reactionIndex, D);
         if (dependencies.len != 1) throw InvalidArgException("D", "quadratic time dependent potential propensity had invalid number of dependencies",dependencies.len);
 
         // Find the rate costant.
@@ -352,10 +352,10 @@ public:
     }
 #endif
 
-    static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+    static PropensityFunction* create(const uint reactionIndex, const NDArray<int> S, const NDArray<uint> D, const Tuple<double>k)
     {
         // Find the species dependencies.
-        utuple dependencies = getDependencies(reactionIndex, D);
+        UTuple dependencies = getDependencies(reactionIndex, D);
         if (dependencies.len != 1) throw InvalidArgException("D", "second order self propensity had invalid number of dependencies",dependencies.len);
 
         // Find the rate costant.

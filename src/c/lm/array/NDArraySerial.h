@@ -1,11 +1,11 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2016 Roberts Group,
+ * Copyright 2012-2014 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
- * 			     Johns Hopkins University
- * 			     http://biophysics.jhu.edu/roberts/
+ *               Johns Hopkins University
+ *               http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -36,8 +36,14 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+#ifndef LM_ARRAY_NDARRAYSERIAL_H
+#define LM_ARRAY_NDARRAYSERIAL_H
 
-#include "lm/Types.h"
+namespace lm {
+namespace array {
 
 
+}
+}
 
+#endif /* LM_ARRAY_NDARRAYSERIAL_H */

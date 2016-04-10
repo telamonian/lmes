@@ -84,7 +84,7 @@ PropensityFunctionFactory::~PropensityFunctionFactory()
 {
 }
 
-PropensityFunction* PropensityFunctionFactory::createPropensityFunction(uint type, int reactionIndex, ndarray<int> S, ndarray<uint> D, tuple<double>K)
+PropensityFunction* PropensityFunctionFactory::createPropensityFunction(uint type, int reactionIndex, NDArray<int> S, NDArray<uint> D, Tuple<double>K)
 {
     if (functions.count(type) == 0)
         throw lm::InvalidArgException("type","the specified propensity function was not found",type);

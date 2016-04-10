@@ -441,7 +441,6 @@ const ASTNode * getFirstExpressionOfType(const ASTNode * node, ASTNodeType_t typ
     return NULL;
 }
 
-
 double calculateMultiplierInExpression(const ASTNode * node, map<string,double> & parameterValues, map<string,uint> & speciesIndices, bool ignoreSpeciesMinusOne=false)
 {
     if (node->getType() == AST_TIMES)
@@ -754,9 +753,14 @@ void printUsage(int argc, char** argv)
 {
 	std::cout << "Usage: " << argv[0] << " (-h|--help)" << std::endl;
 	std::cout << "Usage: " << argv[0] << " (-v|--version)" << std::endl;
-	std::cout << "Usage: " << argv[0] << " lm_filename sbml_filename [OPTIONS] (key=value)+" << std::endl;
+	std::cout << "Usage: " << argv[0] << " lm_filename sbml_filename [OPTIONS]" << std::endl; // TODO: uncomment rest of line when userParameterValues is implemented (see below) // (simulation_parameter_key=value)+" << std::endl;
 	std::cout << std::endl;
     std::cout << "OPTIONS" << std::endl;
     std::cout << "  --copasi    (EXPERIMENTAL) Use this option if you're trying to import a sbml file that was originally exported by Copasi" << std::endl;
     std::cout << std::endl;
+    // TODO: the userParameterValues stuff seems to be currently unimplemented, uncomment help section below once it is
+//    std::cout << "Setting simulation parameters" << std::endl;
+//    std::cout << "    This program can also be used to set simulation parameters on your newly imported model. You can do this by adding \"simulation_parameter_key=value\" pairs to the end of your arguments." << std::endl;
+//    std::cout << "        EXAMPLE: " << argv[0] << " genetic_toggle_switch.lm genetic_toggle_swithc.sbml writeInterval=1e-2 maxTime=1e-1" << std::endl;
+//    std::cout << std::endl;
 }
