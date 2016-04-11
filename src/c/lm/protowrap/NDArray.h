@@ -43,12 +43,12 @@
 #include <vector>
 #include <zlib.h>
 
-#include "lm/pwrap/Repeated.h"
+#include "lm/protowrap/Repeated.h"
 #include "lm/Types.h"
 #include "robertslab/pbuf/NDArray.pb.h"
 
 namespace lm {
-namespace pwrap {
+namespace protowrap {
 
 typedef robertslab::pbuf::NDArray_ArrayOrder ArrayOrder;
 typedef robertslab::pbuf::NDArray_ByteOrder ByteOrder;

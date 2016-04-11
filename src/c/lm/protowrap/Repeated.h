@@ -47,7 +47,7 @@
 #include "lm/Types.h"
 
 namespace lm {
-namespace pwrap {
+namespace protowrap {
 
 // main template for type generator struct that will return google::protobuf::RepeatedField<T> for a numeric T and google::protobuf::RepeatedPtrField<T> otherwise
 template <typename T, bool> struct _RepeatedTypedef;

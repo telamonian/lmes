@@ -36,12 +36,33 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+
 #ifndef LM_ARRAY_NDARRAYSERIAL_H
 #define LM_ARRAY_NDARRAYSERIAL_H
+
+#include <cstring>
+
+#include "lm/array/NDArray.h"
+#include "lm/array/Tuple.h"
+#include "lm/Types.h"
 
 namespace lm {
 namespace array {
 
+template <typename T>
+class NDArraySerial : public NDArray<T>
+{
+public:
+    NDArraySerial(const Tuple<uint>& shape)
+    :NDArray()
+    {
+    }
+
+    virtual ~NDArray()
+    {
+    }
+
+};
 
 }
 }

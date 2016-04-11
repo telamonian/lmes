@@ -50,7 +50,7 @@
 #include "lm/io/SimulationParameters.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/option/SimulationParameters.h"
-#include "lm/pwrap/Repeated.h"
+#include "lm/protowrap/Repeated.h"
 #include "lm/Types.h"
 
 namespace lm {
@@ -105,7 +105,7 @@ public:
     static const int32_t DEFAULT_LIMIT_ID = -2;
 
 // typedefs
-    typedef lm::pwrap::Repeated<TrajectoryLimitBuf> repeatedType;
+    typedef lm::protowrap::Repeated<TrajectoryLimitBuf> repeatedType;
     typedef vector<TrajectoryLimit> vectorType;
     typedef vectorType::iterator iterator;
     typedef vectorType::const_iterator const_iterator;

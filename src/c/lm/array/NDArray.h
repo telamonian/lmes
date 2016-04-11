@@ -39,6 +39,8 @@
 #ifndef LM_ARRAY_NDARRAY_H
 #define LM_ARRAY_NDARRAY_H
 
+#include <stdlib.h>
+
 #include "lm/array/Tuple.h"
 #include "lm/Exceptions.h"
 #include "lm/Print.h"
@@ -47,42 +49,53 @@
 namespace lm {
 namespace array {
 
+// names of these functions taken from the numpy equivalents
+uint ravelMultiIndex(const UTuple& multiIndex, const UTuple& shape);
+UTuple unravelIndex(uint index, const UTuple& shape);
+
 template <typename T> struct NDArray
 {
 public:
+    NDArray()
+    :_shape(),_data(NULL)
+    {
+    }
+    
     NDArray(const Tuple<uint>& shape)
-    :shape(shape),numberValues(calculateNumberValues(shape)),values(new T[numberValues]())
+    :_shape(shape),_size(calculateNumberValues(shape)),_data(new T[_size]())
     {
     }
 
     NDArray(const Tuple<uint>& shape, const T* valuesArray)
-    :shape(shape),numberValues(calculateNumberValues(shape)),values(new T[numberValues]())
+    :_shape(shape),_size(calculateNumberValues(shape)),_data(new T[_size]())
     {
-        memcpy(values, valuesArray, sizeof(T)*numberValues);
+        memcpy(_data, valuesArray, sizeof(T)*_size);
     }
 
     NDArray(const NDArray& a)
-    :shape(a.shape),numberValues(a.numberValues),values(new T[numberValues]())
+    :_shape(a._shape),_size(a._size),_data(new T[_size]())
     {
-        memcpy(values, a.values, sizeof(T)*numberValues);
-    }
-
-    NDArray& operator=(const NDArray& a)
-    {
-        if (shape != a.shape || numberValues != a.numberValues)
-            throw lm::InvalidArgException("t","both ndarrays during assigment must be of the same shape");
-        memcpy(values, a.values, sizeof(T)*numberValues);
-        return *this;
+        memcpy(_data, a._data, sizeof(T)*_size);
     }
 
     virtual ~NDArray()
     {
-        if (values != NULL) delete[] values; values = NULL;
+        if (_data != NULL) delete[] _data; _data = NULL;
     }
 
+// operators
+    NDArray& operator=(const NDArray& a)
+    {
+        if (_shape != a._shape || _size != a._size)
+            throw lm::InvalidArgException("t","both ndarrays during assigment must be of the same shape");
+        memcpy(_data, a._data, sizeof(T)*_size);
+        return *this;
+    }
+
+    // NDArray can be indexed with a Tuple of the appropriate length..
     const T& operator[](const Tuple<uint>& index) const
     {
-        return const_cast<NDArray *>(this)->get(index);
+        return get(index);
     }
 
     T& operator[](const Tuple<uint>& index)
@@ -90,33 +103,50 @@ public:
         return get(index);
     }
 
-    T& get(const Tuple<uint>& index)
+    // ...or with a single index (this version flattens the array)...
+    const T& operator[](uint i1) const {return _data[i1];}
+    T& operator[](uint i1) {return _data[i1];}
+
+    // ...or with multiple indices (although now we have to use operator() because operator[] complains about too many arguments)
+    const T& operator()(uint i1, uint i2) const {return get(i1, i2);}
+    const T& operator()(uint i1, uint i2, uint i3) const {return get(i1, i2, i3);}
+
+    T& operator()(uint i1, uint i2) {return get(i1, i2);}
+    T& operator()(uint i1, uint i2, uint i3) {return get(i1, i2, i3);}
+
+// accessors
+    const T* data() {return _data;}
+
+    const T& get(const Tuple<uint>& index) const
     {
         // Validate the index.
-        if (index.len != shape.len) throw lm::InvalidArgException("index","index Tuple must have the same length as the shape of an NDArray");
-        for (uint i=0; i<shape.len; i++)
-            if (index[i] >= shape[i]) throw lm::InvalidArgException("index","value of index exceeded ndarry length for dimension",i,index[i],shape[i]);
+        if (index.len != _shape.len) throw lm::InvalidArgException("index","index Tuple must have the same length as the shape of an NDArray");
+        for (uint i=0; i<_shape.len; i++)
+            if (index[i] >= _shape[i]) throw lm::InvalidArgException("index","value of index exceeded ndarry length for dimension",i,index[i],_shape[i]);
 
         // Calculate the position.
         uint position=0;
-        for (uint i=0; i<shape.len; i++)
+        for (uint i=0; i<_shape.len; i++)
         {
             uint offset=1;
-            for (uint j=i+1; j<shape.len; j++)
-                offset *= shape[j];
+            for (uint j=i+1; j<_shape.len; j++)
+                offset *= _shape[j];
             position += index[i]*offset;
         }
 
         // Return a reference to the element.
-        return values[position];
+        return _data[position];
     }
+    const T& get(uint i1) const {return get(Tup(i1));}
+    const T& get(uint i1, uint i2) const {return get(Tup(i1,i2));}
+    const T& get(uint i1, uint i2, uint i3) const {return get(Tup(i1,i2,i3));}
 
     void print(const char* suffix="") const
     {
-        if (shape.len == 1)
+        if (_shape.len == 1)
         {
             printf("[");
-            for (uint i=0; i<shape[0]; i++)
+            for (uint i=0; i<_shape[0]; i++)
             {
                 if (i > 0) printf (",");
                 printNumeric((*this)[Tup(i)]);
@@ -124,13 +154,13 @@ public:
             }
             printf("]%s",suffix);
         }
-        else if (shape.len == 2)
+        else if (_shape.len == 2)
         {
             printf("[[");
-            for (uint i=0; i<shape[0]; i++)
+            for (uint i=0; i<_shape[0]; i++)
             {
                 if (i > 0) printf (" [");
-                for (uint j=0; j<shape[1]; j++)
+                for (uint j=0; j<_shape[1]; j++)
                 {
                     if (j > 0) printf (",");
                     printNumeric((*this)[Tup(i,j)]);
@@ -140,16 +170,16 @@ public:
             }
             printf("]%s",suffix);
         }
-        else if (shape.len == 3)
+        else if (_shape.len == 3)
         {
             printf("[[[");
-            for (uint k=0; k<shape[2]; k++)
+            for (uint k=0; k<_shape[2]; k++)
             {
                 if (k > 0) printf (" [[");
-                for (uint i=0; i<shape[0]; i++)
+                for (uint i=0; i<_shape[0]; i++)
                 {
                     if (i > 0) printf ("  [");
-                    for (uint j=0; j<shape[1]; j++)
+                    for (uint j=0; j<_shape[1]; j++)
                     {
                         if (j > 0) printf (",");
                         printNumeric((*this)[Tup(i,j,k)]);
@@ -163,11 +193,40 @@ public:
         }
         else
         {
-            printf("[%d dimensional NDArray: %d entries]%s",shape.len,numberValues,suffix);
+            printf("[%d dimensional NDArray: %d entries]%s",_shape.len,_size,suffix);
         }
     }
 
-private:
+    uint ravelMultiIndex(const UTuple& multiIndex) const
+    {
+        return lm::array::ravelMultiIndex(multiIndex, _shape);
+    }
+
+    const UTuple& shape() const {
+        return _shape;
+    }
+
+    uint shape(uint index) const {
+        return _shape[index];
+    }
+
+    UTuple unravelIndex(uint index) const
+    {
+        return lm::array::unravelIndex(index, _shape);
+    }
+
+// mutators
+    T& get(const Tuple<uint>& index)
+    {
+        return const_cast<T&>(const_cast<const NDArray*>(this)->get(index));
+    }
+    T& get(uint i1) {return get(Tup(i1));}
+    T& get(uint i1, uint i2) {return get(Tup(i1,i2));}
+    T& get(uint i1, uint i2, uint i3) {return get(Tup(i1,i2,i3));}
+
+    T* mutable_data() {return _data;}
+
+protected:
     uint calculateNumberValues(Tuple<uint> s)
     {
         uint r = 1U;
@@ -176,12 +235,10 @@ private:
         return r;
     }
 
-public:
-    const Tuple<uint> shape;
-
-private:
-    uint numberValues;
-    T* values;
+protected:
+    Tuple<uint> _shape;
+    uint _size;
+    T* _data;
 };
 
 }

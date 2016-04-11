@@ -52,59 +52,70 @@ namespace array {
 template <typename T> struct Tuple
 {
 public:
-    Tuple(const Tuple& t)
-    :len(t.len),values(new T[t.len]())
+    Tuple()
+    :len(0),_data(NULL)
     {
-        memcpy(values, t.values, sizeof(T)*len);
+    }
+
+    Tuple(const Tuple& t)
+    :len(t.len),_data(new T[t.len]())
+    {
+        memcpy(_data, t._data, sizeof(T)*len);
     }
 
     Tuple(const T v1)
-    :len(1),values(new T[len]())
+    :len(1),_data(new T[len]())
     {
-        values[0] = v1;
+        _data[0] = v1;
     }
 
     Tuple(const T v1, const T v2)
-    :len(2),values(new T[len]())
+    :len(2),_data(new T[len]())
     {
-        values[0] = v1;
-        values[1] = v2;
+        _data[0] = v1;
+        _data[1] = v2;
     }
 
     Tuple(const T v1, const T v2, const T v3)
-    :len(3),values(new T[len]())
+    :len(3),_data(new T[len]())
     {
-        values[0] = v1;
-        values[1] = v2;
-        values[2] = v3;
+        _data[0] = v1;
+        _data[1] = v2;
+        _data[2] = v3;
     }
 
-    Tuple(uint len, const T* valuesArray)
-    :len(len),values(new T[len]())
+    Tuple(uint len, const T* dataArray)
+    :len(len),_data(new T[len]())
     {
-        memcpy(values, valuesArray, sizeof(T)*len);
+        memcpy(_data, dataArray, sizeof(T)*len);
     }
 
-    Tuple(const std::list<T>& valuesList)
-    :len(valuesList.size()),values(new T[len]())
+    Tuple(const std::list<T>& dataList)
+    :len(dataList.size()),_data(new T[len]())
     {
         int i=0;
-        for (typename std::list<T>::const_iterator it = valuesList.begin(); it != valuesList.end(); it++)
-            values[i++] = *it;
+        for (typename std::list<T>::const_iterator it = dataList.begin(); it != dataList.end(); it++)
+            _data[i++] = *it;
     }
 
-    Tuple(const std::vector<T>& valuesVector)
-    :len(valuesVector.size()),values(new T[len]())
+    Tuple(const std::vector<T>& dataVector)
+    :len(dataVector.size()),_data(new T[len]())
     {
-        for (uint i=0; i<valuesVector.size(); i++)
-            values[i] = valuesVector[i];
+        for (uint i=0; i<dataVector.size(); i++)
+            _data[i] = dataVector[i];
     }
 
+    virtual ~Tuple()
+    {
+        if (_data != NULL) delete[] _data; _data = NULL;
+    }
+    
+// operators
     Tuple& operator=(const Tuple<T>& t)
     {
         if (len != t.len)
             throw lm::InvalidArgException("t","both tuples during assigment must be of the same length");
-        memcpy(values, t.values, sizeof(T)*len);
+        memcpy(_data, t._data, sizeof(T)*len);
         return *this;
     }
 
@@ -116,7 +127,7 @@ public:
         }
         for (uint i=0; i<len; i++)
         {
-            if (values[i]!=t.values[i])
+            if (_data[i]!=t._data[i])
             {
                 return false;
             }
@@ -124,10 +135,8 @@ public:
         return true;
     }
 
-    virtual ~Tuple()
-    {
-        if (values != NULL) delete[] values; values = NULL;
-    }
+// accessors
+    const T* data() const {return _data;}
 
     const T operator[](const uint index) const
     {
@@ -136,7 +145,7 @@ public:
 
     const T get(const uint index) const
     {
-        if (index < len) return values[index];
+        if (index < len) return _data[index];
         else throw lm::InvalidArgException("index","index exceeded length of Tuple");
     }
 
@@ -146,8 +155,8 @@ public:
         for (uint i=0; i<len; i++)
         {
             if (i > 0) printf(",");
-            printNumeric(values[i]);
-//            printf(printf_format_string<T>(),values[i]);
+            printNumeric(_data[i]);
+//            printf(printf_format_string<T>(),_data[i]);
         }
         printf(")%s",suffix);
     }
@@ -156,7 +165,7 @@ public:
     const uint len;
 
 private:
-    T* values;
+    T* _data;
 };
 
 // Unlike the Tuple constructor, the Tup class factories can use type inference.

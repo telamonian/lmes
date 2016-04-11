@@ -36,16 +36,49 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_ARRAY_RECARRAY_H
-#define LM_ARRAY_RECARRAY_H
+#include <cstdlib>
+#include <functional>
+#include <numeric>
 
-#include "lm"
+#include "lm/array/NDArray.h"
+#include "lm/array/Tuple.h"
 
 namespace lm {
 namespace array {
 
+// names of these functions taken from the numpy equivalents
+uint ravelMultiIndex(const UTuple& multiIndex, const UTuple& shape)
+{
+    uint position=0;
+    for (uint i=0; i<shape.len; i++)
+    {
+        uint offset=1;
+        for (uint j=i+1; j<shape.len; j++)
+            offset *= shape[j];
+        position += multiIndex[i]*offset;
+    }
 
+    return position;
+}
+
+UTuple unravelIndex(uint index, const UTuple& shape)
+{
+    std::vector<uint> multiIndex(shape.len, 0);
+    std::vector<uint> minorShapes(shape.data() + 1, shape.data() + shape.len + 1);
+    // for shape->(x, y, z), the partial_sum will store (y*z, z, 0) in multiIndex
+    std::partial_sum (minorShapes.rbegin(), minorShapes.rend(), multiIndex.rbegin() + 1, std::multiplies<int>());
+
+    div_t divmod;
+    for (uint i=0; i<shape.len - 1; i++)
+    {
+        // need static_cast<int> or else the compiler confuses the int and long versions of div
+        divmod = std::div(static_cast<int>(index), static_cast<int>(multiIndex[i]));
+        index = divmod.rem;
+        multiIndex[i] = divmod.quot;
+    }
+    multiIndex.back() = index;
+
+    return UTuple(multiIndex);
 }
 }
-
-#endif /* LM_ARRAY_RECARRAY_H */
+}

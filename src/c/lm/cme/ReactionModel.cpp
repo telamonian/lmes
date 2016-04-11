@@ -40,7 +40,8 @@
 #include <limits>
 #include <list>
 
-
+#include "lm/array/NDArray.h"
+#include "lm/array/Tuple.h"
 #include "lm/cme/ReactionModel.h"
 #include "lm/io/ReactionModel.pb.h"
 
