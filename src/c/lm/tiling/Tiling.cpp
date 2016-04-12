@@ -85,11 +85,11 @@ Tiling::TrajectoryLimitBuf* Tiling::addLimitBuf(lm::trajectory::TrajectoryLimits
     bool includeEndpoint;
     switch (stoppingCondition)
     {
-        case EH::MIN: includeEndpoint = rightOpenBins; break;
-        case EH::MAX: includeEndpoint = !rightOpenBins; break;
-        case EH::DECREASING: includeEndpoint = rightOpenBins; break;
-        case EH::INCREASING: includeEndpoint = !rightOpenBins; break;
-        default: break;
+    case EH::MIN: includeEndpoint = rightOpenBins; break;
+    case EH::MAX: includeEndpoint = !rightOpenBins; break;
+    case EH::DECREASING: includeEndpoint = rightOpenBins; break;
+    case EH::INCREASING: includeEndpoint = !rightOpenBins; break;
+    default: break;
     }
 
     return tls.addLimitBuf<EH::ORDER_PARAMETER>(getOrderParameterID(), getEdge(edgeIndex), stoppingCondition, includeEndpoint);
@@ -102,6 +102,7 @@ io::Tilings::SortOrder Tiling::getSortOrder() const
 
 void Tiling::setSortOrder(io::Tilings::SortOrder newArr)
 {
+    // for a 1D tiling there are only two possible sort orders, so either leave things alone or call .reverse()
     if (tilingBuf->sort_order(0)!=newArr)
     {
         reverse();
