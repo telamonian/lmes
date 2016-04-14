@@ -66,7 +66,7 @@ void Tiling::init(const lm::io::Tilings::Tiling& tilingRef)
 }
 
 // flips the stopping condition of the added limits around depending on whether the tiling's edges currently sort ascending or descending
-Tiling::TrajectoryLimitBuf* Tiling::addLimitBuf(lm::trajectory::TrajectoryLimits& tls, uint edgeIndex, EH::StoppingCondition stoppingCondition, bool rightOpenBins) const
+Tiling::TrajectoryLimitBuf* Tiling::addLimitBuf(lm::trajectory::TrajectoryLimits& tls, uint edgeIndex, EH::StoppingCondition stoppingCondition, bool rightOpenBins, int32_t limitID) const
 {
     // if the tiling sorts descending, flip the stopping condition around
     if (getSortOrder()==EH::DESCENDING)
@@ -85,14 +85,14 @@ Tiling::TrajectoryLimitBuf* Tiling::addLimitBuf(lm::trajectory::TrajectoryLimits
     bool includeEndpoint;
     switch (stoppingCondition)
     {
-        case EH::MIN: includeEndpoint = rightOpenBins; break;
-        case EH::MAX: includeEndpoint = !rightOpenBins; break;
-        case EH::DECREASING: includeEndpoint = rightOpenBins; break;
-        case EH::INCREASING: includeEndpoint = !rightOpenBins; break;
-        default: break;
+    case EH::MIN: includeEndpoint = rightOpenBins; break;
+    case EH::MAX: includeEndpoint = !rightOpenBins; break;
+    case EH::DECREASING: includeEndpoint = rightOpenBins; break;
+    case EH::INCREASING: includeEndpoint = !rightOpenBins; break;
+    default: break;
     }
 
-    return tls.addLimitBuf<EH::ORDER_PARAMETER>(getOrderParameterID(), getEdge(edgeIndex), stoppingCondition, includeEndpoint);
+    return tls.addLimitBuf<EH::ORDER_PARAMETER>(getOrderParameterID(), getEdge(edgeIndex), stoppingCondition, includeEndpoint, limitID);
 }
 
 io::Tilings::SortOrder Tiling::getSortOrder() const
@@ -102,6 +102,7 @@ io::Tilings::SortOrder Tiling::getSortOrder() const
 
 void Tiling::setSortOrder(io::Tilings::SortOrder newArr)
 {
+    // for a 1D tiling there are only two possible sort orders, so either leave things alone or call .reverse()
     if (tilingBuf->sort_order(0)!=newArr)
     {
         reverse();

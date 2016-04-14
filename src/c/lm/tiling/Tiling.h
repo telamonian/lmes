@@ -61,8 +61,8 @@ public:
     virtual void init(const lm::io::Tilings::Tiling& tilingRef);
 
 // accessors
-    TrajectoryLimitBuf* addLimitBuf(lm::trajectory::TrajectoryLimits& tls, uint edgeIndex,
-                                    EH::StoppingCondition stoppingCondition, bool rightOpenBins = true) const;
+    TrajectoryLimitBuf* addLimitBuf(lm::trajectory::TrajectoryLimits& tls, uint edgeIndex, EH::StoppingCondition stoppingCondition,
+                                    bool rightOpenBins = true, int32_t limitID=lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID) const;
 //    double getAscendingLimit(uint edgeIndex);
 //    double getDescendingLimit(uint edgeIndex);
     EdgeIterator begin() const {return tilingBuf->edges().begin();}

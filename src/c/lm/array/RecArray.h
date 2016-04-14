@@ -39,7 +39,7 @@
 #ifndef LM_ARRAY_RECARRAY_H
 #define LM_ARRAY_RECARRAY_H
 
-#include "lm"
+#include "lm/Types.h"
 
 namespace lm {
 namespace array {

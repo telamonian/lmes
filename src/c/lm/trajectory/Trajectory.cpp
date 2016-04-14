@@ -286,6 +286,11 @@ void Trajectory::printStatus() const
 }
 
 // mutators
+void Trajectory::clearLimitReached()
+{
+    state.clear_limit_reached();
+}
+
 double* Trajectory::getLastOrderParameterValuesMutable()
 {
     lm::io::OrderParametersValues* opv(state.mutable_cme_state()->mutable_order_parameter_values());

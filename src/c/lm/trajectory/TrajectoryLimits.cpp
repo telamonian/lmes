@@ -50,7 +50,13 @@ TrajectoryLimits::repeatedType::const_iterator TrajectoryLimits::findBuf(int32_t
 {
     TrajectoryLimits::repeatedType::const_iterator it=repeated().begin();
     // if the .id() of a TrajectoryLimit buf matches, return it
-    for (;it!=repeated().end();it++) if (it->id()==id) return it;
+    for (;it!=repeated().end();it++)
+    {
+        if (it->id()==id)
+        {
+            return it;
+        }
+    }
     // otherwise, return .end()
     return it;
 }
@@ -59,7 +65,13 @@ TrajectoryLimits::repeatedType::const_iterator TrajectoryLimits::findBuf(EH::Lim
 {
     TrajectoryLimits::repeatedType::const_iterator it=repeated().begin();
     // if the .limit_type() of a TrajectoryLimit buf matches, return it
-    for (;it!=repeated().end();it++) if (it->limit_type()==lt) return it;
+    for (;it!=repeated().end();it++)
+    {
+        if (it->limit_type()==lt)
+        {
+            return it;
+        }
+    }
     // otherwise, return .end()
     return it;
 }

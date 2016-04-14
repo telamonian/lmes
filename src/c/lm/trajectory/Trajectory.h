@@ -80,6 +80,7 @@ public:
     virtual void printStatus() const;
 
     // mutators
+    virtual void clearLimitReached();
     virtual double* getLastOrderParameterValuesMutable();
     virtual int32_t* getLastSpeciesCountsMutable();
     virtual void incrementWorkUnitsPerformed();

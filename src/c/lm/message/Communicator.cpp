@@ -204,7 +204,10 @@ void Communicator::receiveMessage(lm::message::Message* msg, int sleepMillisecon
 
     // Deserialize the message.
     PROF_BEGIN(PROF_MESSAGE_PARSE);
-    if (!msg->ParseFromArray(inputBuffer, messageLength)) throw lm::Exception("Unable to deserialize message");
+    if (!msg->ParseFromArray(inputBuffer, messageLength))
+    {
+        throw lm::Exception("Unable to deserialize message");
+    }
     PROF_END(PROF_MESSAGE_PARSE);
 
     //lm::Print::printf(lm::Print::DEBUG, "Received message %d:%d->%d:%d %d bytes: {\n%s}",msg->source_process(),msg->source_thread(),msg->dest_process(),msg->dest_thread(),msg->ByteSize(), msg->DebugString().c_str());

@@ -264,7 +264,8 @@ void FFluxTrajectoryList::initTrajectories(uint64_t trajectoriesToStart, lm::io:
     for (long long i=0; i<trajectoriesToStart; i++)
     {
     	lm::fflux::FFluxTrajectory* newTraj = new lm::fflux::FFluxTrajectory(trajectoryCount, simulationPhase, *oldTraj, ffluxPhase, input);
-    	if (intermediateOutputFlag) {ffluxOutputAddTrajectory(newTraj, lm::io::FFluxOutput::INITIAL);}
+    	newTraj->clearLimitReached();
+        if (intermediateOutputFlag) {ffluxOutputAddTrajectory(newTraj, lm::io::FFluxOutput::INITIAL);}
         trajectories[trajectoryCount] = newTraj;
         waitingTrajectories[trajectoryCount] = trajectories[trajectoryCount];
         trajectoryCount++;
@@ -288,16 +289,16 @@ void FFluxTrajectoryList::setLimits()
 
     if (ffluxPhase==0)
     {
-        tiling.addLimitBuf(*input.mutableTrajectoryLimits(), 0, EH::INCREASING);
-        tiling.addLimitBuf(*input.mutableTrajectoryLimits(), 0, EH::DECREASING);
+        tiling.addLimitBuf(*input.mutableTrajectoryLimits(), 0, EH::INCREASING, true, 0);
+        tiling.addLimitBuf(*input.mutableTrajectoryLimits(), 0, EH::DECREASING, true, 1);
 
-        tiling.addLimitBuf(*input.mutableTrajectoryLimits(), tiling.getLastEdgeIndex(), EH::INCREASING);
+        tiling.addLimitBuf(*input.mutableTrajectoryLimits(), tiling.getLastEdgeIndex(), EH::INCREASING, true, 2);
     }
     else
     {
-        tiling.addLimitBuf(*input.mutableTrajectoryLimits(), 0, EH::DECREASING);
+        tiling.addLimitBuf(*input.mutableTrajectoryLimits(), 0, EH::DECREASING, true, 0);
 
-        tiling.addLimitBuf(*input.mutableTrajectoryLimits(), ffluxPhase, EH::INCREASING);
+        tiling.addLimitBuf(*input.mutableTrajectoryLimits(), ffluxPhase, EH::INCREASING, true, ffluxPhase);
     }
 }
 
@@ -342,6 +343,7 @@ void FFluxTrajectoryList::workUnitPartFinishedPhaseZero(const message::WorkUnitS
     {
         // ...add the work unit's final state to the appropriate list of crossings
         Print::printf(Print::DEBUG,"Crossing %d added to phase %d list", crossings[ffluxPhase].size(), ffluxPhase);
+        if (intermediateOutputFlag) {ffluxOutputAddTrajectory(traj, lm::io::FFluxOutput::FINAL);}
         addCrossing(wusMsg);
         dwellTimes[-1]+=traj->getSimTime() - traj->getLastLimitTime();
         dwellTimes[0]+=traj->getSimTime() - traj->getLastLimitTime();
@@ -350,12 +352,7 @@ void FFluxTrajectoryList::workUnitPartFinishedPhaseZero(const message::WorkUnitS
     {
         dwellTimes[0]+=traj->getSimTime() - traj->getLastLimitTime();
     }
-
-    // Regardless of whether this crossing was a forward or backwards flux, increment this phase's finished trajectories counter and dwell time, and delete the finished trajectory
-    if (intermediateOutputFlag) {ffluxOutputAddTrajectory(traj, lm::io::FFluxOutput::FINAL);}
-//        Print::printf(Print::INFO, "ffluxPhase: %d, crossings[fflux].size(): %d, finishedTrajectoriesCount %d, time: %f, oparam: %f", ffluxPhase, crossings[ffluxPhase].size(), finishedTrajectoriesCounts[ffluxPhase], crossings[ffluxPhase].back()->cme_state().species_counts().time(crossings[ffluxPhase].back()->cme_state().species_counts().number_entries() - 1), calcTestCaseOParam(finishedWorkUnitMsg.final_state()));
-    // ...and if enough time has passed for phase zero to be complete...
-//    if (isPhaseDone())
+    // ...and if enough time has passed or runs have been collected for phase zero to be complete...
     if (isPhaseDoneZero(traj->getSimTime()))
 //    if (isZerothPhaseDone(dwellTimes[ffluxPhase]))
     {
@@ -419,8 +416,9 @@ void FFluxTrajectoryList::workUnitPartFinishedPhaseN(const message::WorkUnitStat
         addCrossing(wusMsg);
     }
     // Regardless of whether this crossing was a forward or backwards flux, increment this phase's finished trajectories counter and dwell time, and delete the finished trajectory
-    dwellTimes[ffluxPhase] += traj->getSimTime() - traj->getLastLimitTime();
+    dwellTimes[ffluxPhase]+=traj->getSimTime() - traj->getLastLimitTime();
     ++finishedTrajectoriesCounts[ffluxPhase];
+
     if (intermediateOutputFlag) {ffluxOutputAddTrajectory(traj, lm::io::FFluxOutput::FINAL);}
 //        Print::printf(Print::INFO, "ffluxPhase: %d, crossings[fflux].size(): %d, finishedTrajectoriesCount %d, time: %f, oparam: %f", ffluxPhase, crossings[ffluxPhase].size(), finishedTrajectoriesCounts[ffluxPhase], crossings[ffluxPhase].back()->cme_state().species_counts().time(crossings[ffluxPhase].back()->cme_state().species_counts().number_entries() - 1), calcTestCaseOParam(finishedWorkUnitMsg.final_state()));
     // ...and if enough crossing events have been detected for this phase of forward flux sampling...
@@ -635,6 +633,8 @@ void FFluxTrajectoryList::ffluxOutputAddBasin(CrossingsMap& crossings, DwellTime
     basOut->set_flux_out_of_tile_zero((double)crossings[0].size()/dwellTimes[0]);
 //    basOut->set_flux_out_of_tile_zero((double)crossings[0].size()/(maxTimeZero*simultaneousTrajectoryCount));
 
+
+    // set runs_per_phase for this basin
     basOut->clear_runs_per_phase();
     lm::io::TilingHist* runsPerPhase = basOut->mutable_runs_per_phase();
     runsPerPhase->set_number_tiles(getFFluxOutput()->number_tiles());
@@ -650,12 +650,15 @@ void FFluxTrajectoryList::ffluxOutputAddBasin(CrossingsMap& crossings, DwellTime
     runsPerPhase->add_tile_indices(maxFFluxPhase);
     runsPerPhase->add_tile_vals(0.0);
 
+
+    // set time_per_phase for this basin
     basOut->clear_time_per_phase();
     lm::io::TilingHist* timePerPhase = basOut->mutable_time_per_phase();
     timePerPhase->set_number_tiles(getFFluxOutput()->number_tiles());
     timePerPhase->set_tiling_id(getFFluxOutput()->tiling_id());
 
-    for (int i=-1;i<maxFFluxPhase;i++)
+    // need a static_cast<int> here or else -1 ends up being cast to the largest uint
+    for (int i=-1; i < static_cast<int>(maxFFluxPhase); i++)
     {
         timePerPhase->add_tile_indices(i);
         timePerPhase->add_tile_vals(dwellTimes[i]);
@@ -663,6 +666,8 @@ void FFluxTrajectoryList::ffluxOutputAddBasin(CrossingsMap& crossings, DwellTime
     timePerPhase->add_tile_indices(maxFFluxPhase);
     timePerPhase->add_tile_vals(0.0);
 
+
+    // set probability_i_to_i_plus_one for this basin
     basOut->clear_probability_i_to_i_plus_one();
     lm::io::TilingHist* probabilityIToIPlusOne = basOut->mutable_probability_i_to_i_plus_one();
     probabilityIToIPlusOne->set_number_tiles(getFFluxOutput()->number_tiles());
@@ -678,6 +683,8 @@ void FFluxTrajectoryList::ffluxOutputAddBasin(CrossingsMap& crossings, DwellTime
     probabilityIToIPlusOne->add_tile_indices(maxFFluxPhase);
     probabilityIToIPlusOne->add_tile_vals(0.0);
 
+
+    // set probability_one_to_i_plus_one for this basin
     basOut->clear_probability_one_to_i_plus_one();
     lm::io::TilingHist* probabilityOneToIPlusOne = basOut->mutable_probability_one_to_i_plus_one();
     probabilityOneToIPlusOne->set_number_tiles(getFFluxOutput()->number_tiles());

@@ -325,6 +325,7 @@ void GillespieDSolverAVX::copyTrajectoryStateFromBaseSolver(uint trajectoryNumbe
     status[trajectoryNumber] = CMESolver::status;
 
     // Set the limit reached.
+
     limitIDReached[trajectoryNumber] = CMESolver::limitIDReached;
     limitTypeReached[trajectoryNumber] = CMESolver::limitTypeReached;
 

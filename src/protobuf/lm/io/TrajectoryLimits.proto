@@ -58,7 +58,7 @@ message TrajectoryLimits {
     message TrajectoryLimit {
         required LimitType limit_type                   = 1;
         required StoppingCondition stopping_condition   = 2;
-        optional int32 id                               = 3 [default=-1];
+        optional int32 id                               = 3 [default=-2];
         optional bool include_endpoint                  = 4 [default=true];
 
         optional uint32 value_id                        = 5;

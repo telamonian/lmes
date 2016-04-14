@@ -240,6 +240,7 @@ protected:
     double timeLimit;
     size_t numberLimits;
     TrajectoryLimit* limits;
+    TrajectoryLimit* limitReached;
     int32_t limitIDReached;
     lm::io::TrajectoryLimits::LimitType limitTypeReached;
 

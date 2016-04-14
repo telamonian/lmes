@@ -50,6 +50,7 @@
 #include <sbml/math/FormulaFormatter.h>
 #include <sbml/SBMLDocument.h>
 #include <sbml/SBMLTypes.h>
+#include <sbml/xml/XMLErrorLog.h>
 #include "lm/Exceptions.h"
 #include "lm/Version.h"
 #include "lm/io/ReactionModel.pb.h"
@@ -105,6 +106,7 @@ bool isSecondOrderReaction(const ASTNode * root, vector<string> & parameters, ma
 void importSecondOrderReaction(const ASTNode * root, vector<string> & parameters, map<string,double> & parameterValues, uint reactionIndex, uint numberReactions, ReactionModel * lmModel, uint * D, map<string,uint> & speciesIndices);
 bool isSecondOrderSelfReaction(const ASTNode * root, vector<string> & parameters, map<string,uint> & speciesIndices);
 void importSecondOrderSelfReaction(const ASTNode * root, vector<string> & parameters, map<string,double> & parameterValues, uint reactionIndex, uint numberReactions, ReactionModel * lmModel, uint * D, map<string,uint> & speciesIndices);
+void importUnsupportedReaction(const ASTNode * root, vector<string> & parameters, map<string,double> & parameterValues, uint reactionIndex, uint numberReactions, ReactionModel * lmModel, uint * D, map<string,uint> & speciesIndices);
 
 // Allocate the profile space.
 PROF_ALLOC;
@@ -192,9 +194,27 @@ void importSBMLModel(Hdf5File * lmFile, string sbmlFilename) throw(Exception)
         ConversionProperties props;
         props.addOption("expandFunctionDefinitions");
 
-        if (sbmlDocument->convert(props) != LIBSBML_OPERATION_SUCCESS)
+        try
         {
-            throw Exception("Unable to expand user-defined functions in the reaction kinetic laws due to the following: ", sbmlDocument->getErrorLog()->toString().c_str());
+            if (sbmlDocument->convert(props) != LIBSBML_OPERATION_SUCCESS)
+            {
+                if (sbmlDocument->getNumErrors() > 0) sbmlDocument->printErrors();
+                throw Exception("Unable to expand user-defined functions in the reaction kinetic laws. Error log (if any) printed above.");
+            }
+        }
+        catch (std::logic_error e)
+        {
+            std::cerr << "std::logic exception during expansion of user-defined functions, continuing execution" << std::endl;
+            std::cerr << "Error infodump: " << e.what() << std::endl << std::endl;
+        }
+        catch (std::exception e)
+        {
+            std::cerr << "std::exception during expansion of user-defined functions, continuing execution" << std::endl;
+            std::cerr << "Error infodump: " << e.what() << std::endl << std::endl;
+        }
+        catch (...)
+        {
+            std::cerr << "Unknown exception during expansion of user-defined functions, continuing execution" << std::endl << std::endl;
         }
 
         // Build the reaction model from the SBML model.
@@ -230,6 +250,8 @@ void importSBMLModelL3V1(ReactionModel * lmModel, Model * sbmlModel) throw(Excep
     }
 
     // Process the species.
+    printf("Setting initial concentrations:\n");
+
     map<string,uint> speciesIndices;
     uint numberSpecies = sbmlModel->getNumSpecies();
     lmModel->set_number_species(numberSpecies);
@@ -248,9 +270,9 @@ void importSBMLModelL3V1(ReactionModel * lmModel, Model * sbmlModel) throw(Excep
 
             // Make sure we can process the species.
             if (!species->getHasOnlySubstanceUnits()) throw Exception("Unsupported species property", "hasOnlySubstanceUnits must be true");
+            if (species->getBoundaryCondition()) throw Exception("Unsupported species property", "boundaryCondition must be false");
         }
         // Make sure we can process the species.
-        if (species->getBoundaryCondition()) throw Exception("Unsupported species property", "boundaryCondition must be false");
         if (species->getConstant()) throw Exception("Unsupported species property", "constant must be false");
         if (species->isSetConversionFactor()) throw Exception("Unsupported species property", "conversionFactor must not be set");
 
@@ -263,7 +285,9 @@ void importSBMLModelL3V1(ReactionModel * lmModel, Model * sbmlModel) throw(Excep
         {
             if (isCopasi)
             {
-                lmModel->add_initial_species_count((uint)lround(species->getInitialConcentration()));
+                uint initialConcentration = (uint)lround(sbmlModel->getCompartment(0)->getVolume() * species->getInitialConcentration());
+                printf("%s -> %d\n", species->getName().c_str(), initialConcentration);
+                lmModel->add_initial_species_count(initialConcentration);
             }
             else
             {
@@ -273,8 +297,11 @@ void importSBMLModelL3V1(ReactionModel * lmModel, Model * sbmlModel) throw(Excep
         else
             throw Exception("Unsupported species property", "initialAmount or initialConcentration must be set");
     }
+    printf("\n");
 
     // Process the reactions.
+    printf("Setting rate laws:\n");
+
     uint numberReactions = sbmlModel->getNumReactions();
     lmModel->set_number_reactions(numberReactions);
     int * S = new int[numberSpecies*numberReactions];
@@ -368,16 +395,42 @@ void importSBMLModelL3V1Kinetics(uint reactionIndex, KineticLaw * kinetics, Reac
 
     // Figure out the reaction type.
     const ASTNode * math = kinetics->getMath();
+    string reactionTypeString;
+    char formattedOutput[100];
+
+    sprintf(formattedOutput, "%s -> %s", kinetics->getParentSBMLObject()->getName().c_str(), SBML_formulaToString(math));
+    printf("%-100s", formattedOutput);
     if (isZerothOrderReaction(math, localParameters, speciesIndices))
+    {
         importZerothOrderReaction(math, localParameters, localParameterValues, reactionIndex, numberReactions, lmModel, D, speciesIndices);
+        reactionTypeString = "ZEROTH ORDER";
+    }
     else if (isFirstOrderReaction(math, localParameters, speciesIndices))
+    {
         importFirstOrderReaction(math, localParameters, localParameterValues, reactionIndex, numberReactions, lmModel, D, speciesIndices);
+        reactionTypeString = "FIRST ORDER";
+    }
     else if (isSecondOrderReaction(math, localParameters, speciesIndices))
+    {
         importSecondOrderReaction(math, localParameters, localParameterValues, reactionIndex, numberReactions, lmModel, D, speciesIndices);
+        reactionTypeString = "SECOND ORDER";
+    }
     else if (isSecondOrderSelfReaction(math, localParameters, speciesIndices))
+    {
         importSecondOrderSelfReaction(math, localParameters, localParameterValues, reactionIndex, numberReactions, lmModel, D, speciesIndices);
+        reactionTypeString = "SECOND ORDER SELF";
+    }
     else
-        throw Exception("Unsupported kinetic law", SBML_formulaToString(math));
+        if (isCopasi)
+        {
+            importUnsupportedReaction(math, localParameters, localParameterValues, reactionIndex, numberReactions, lmModel, D, speciesIndices);
+            reactionTypeString = "UNSUPPORTED KINETIC LAW";
+        }
+        else
+        {
+            throw Exception("Unsupported kinetic law", SBML_formulaToString(math));
+        }
+    printf("[%s]\n", reactionTypeString.c_str());
 }
 
 void getSpeciesUsedInExpression(vector<string> & speciesUsed, const ASTNode * node, vector<string> & parameters, map<string,uint> & speciesIndices)
@@ -674,6 +727,17 @@ void importSecondOrderSelfReaction(const ASTNode * root, vector<string> & parame
     lmModel->mutable_reaction(reactionIndex)->add_rate_constant(k);
 }
 
+void importUnsupportedReaction(const ASTNode * root, vector<string> & parameters, map<string,double> & parameterValues, uint reactionIndex, uint numberReactions, ReactionModel * lmModel, uint * D, map<string,uint> & speciesIndices)
+{
+    // Set the reaction type to 9999 to mark that it needs to be manually updated by the user
+    lmModel->mutable_reaction(reactionIndex)->set_type(9999);
+
+    // Set all possible dependencies to 9999 to mark that it needs to be manually updated by the user
+    for (map<string,uint>::const_iterator it=speciesIndices.begin(); it!=speciesIndices.end(); it++)
+    {
+        D[(it->second)*numberReactions+reactionIndex]=9999;
+    }
+}
 
 /**
  * This function prints the copyright notice.
