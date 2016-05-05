@@ -44,7 +44,9 @@
 #include "lm/array/Tuple.h"
 #include "lm/Exceptions.h"
 #include "lm/Print.h"
+#include "lm/protowrap/NDArray.h"
 #include "lm/Types.h"
+#include "robertslab/pbuf/NDArray.pb.h"
 
 namespace lm {
 namespace array {
@@ -57,7 +59,7 @@ template <typename T> struct NDArray
 {
 public:
     NDArray()
-    :_shape(),_data(NULL)
+    :_shape(),_size(0),_data(NULL)
     {
     }
     
@@ -108,9 +110,11 @@ public:
     T& operator[](uint i1) {return _data[i1];}
 
     // ...or with multiple indices (although now we have to use operator() because operator[] complains about too many arguments)
+    const T& operator()(uint i1) const {return get(i1);}
     const T& operator()(uint i1, uint i2) const {return get(i1, i2);}
     const T& operator()(uint i1, uint i2, uint i3) const {return get(i1, i2, i3);}
 
+    T& operator()(uint i1) {return get(i1);}
     T& operator()(uint i1, uint i2) {return get(i1, i2);}
     T& operator()(uint i1, uint i2, uint i3) {return get(i1, i2, i3);}
 
@@ -140,6 +144,11 @@ public:
     const T& get(uint i1) const {return get(Tup(i1));}
     const T& get(uint i1, uint i2) const {return get(Tup(i1,i2));}
     const T& get(uint i1, uint i2, uint i3) const {return get(Tup(i1,i2,i3));}
+
+    robertslab::pbuf::NDArray_DataType inferDType() const
+    {
+        return lm::protowrap::NPDType<T>::T;
+    }
 
     void print(const char* suffix="") const
     {
@@ -202,6 +211,12 @@ public:
         return lm::array::ravelMultiIndex(multiIndex, _shape);
     }
 
+    void serialize(robertslab::pbuf::NDArray* ndArrMsg, bool compressed=true) const
+    {
+        lm::protowrap::NDArray<T> ndArrWrap(ndArrMsg);
+        ndArrWrap.set_array(_shape, _data, inferDType(), compressed);
+    }
+
     const UTuple& shape() const {
         return _shape;
     }
@@ -216,6 +231,23 @@ public:
     }
 
 // mutators
+    void deserialize(robertslab::pbuf::NDArray* ndArrMsg)
+    {
+        // set new shape
+        _shape.fromRepeated(&ndArrMsg->shape());
+        _size = calculateNumberValues(_shape);
+
+        // deallocate main array memory, if set
+        if (_data != NULL) delete[] _data; _data = NULL;
+
+        // reallocate main array according to new shape
+        _data(new T[_size]());
+
+        // actual deserialization step
+        lm::protowrap::NDArray<T> ndArrWrap(ndArrMsg);
+        ndArrWrap.get_data(_data);
+    }
+
     T& get(const Tuple<uint>& index)
     {
         return const_cast<T&>(const_cast<const NDArray*>(this)->get(index));

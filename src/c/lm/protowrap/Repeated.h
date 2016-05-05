@@ -41,6 +41,7 @@
 
 #include <google/protobuf/repeated_field.h>
 #include <numeric>
+#include <sstream>
 #include <string>
 
 #include "lm/Math.h"
@@ -71,6 +72,17 @@ public:
 
 // accessors
     inline T product() const {return ProductFunctor<T>::call(begin(), end());}
+    std::string repr(const char* suffix="") const
+    {
+        std::stringstream reprStream("(");
+        for (uint i=0; i<size(); i++)
+        {
+            if (i > 0) reprStream << ',';
+            reprStream << Get(i);
+        }
+        reprStream << ")" << suffix;
+        return reprStream.str();
+    }
 
 // mutators
     inline Repeated<T>& operator<<(T val) {repFieldPtr->Add(val); return *this;}
@@ -80,7 +92,9 @@ public:
 // accessors
     const_iterator begin() const {return repFieldPtr->begin();}
     const_iterator end() const {return repFieldPtr->end();}
+    bool empty() const {return repFieldPtr->empty();}
     const T& Get(int index) const {return repFieldPtr->Get(index);}
+    int size() const {return repFieldPtr->size();}
 
 // mutators
     iterator begin() {return repFieldPtr->begin();}

@@ -40,7 +40,10 @@
 #define LM_ARRAY_TUPLE_H
 
 #include <list>
+#include <sstream>
+#include <string>
 #include <vector>
+#include <google/protobuf/repeated_field.h>
 
 #include "lm/Exceptions.h"
 #include "lm/Print.h"
@@ -105,6 +108,12 @@ public:
             _data[i] = dataVector[i];
     }
 
+    Tuple(const google::protobuf::RepeatedField<T>* repFieldPtr)
+    :len(repFieldPtr->size()),_data(new T[repFieldPtr->size()]())
+    {
+        memcpy(_data, repFieldPtr->data(), sizeof(T)*len);
+    }
+
     virtual ~Tuple()
     {
         if (_data != NULL) delete[] _data; _data = NULL;
@@ -117,6 +126,14 @@ public:
             throw lm::InvalidArgException("t","both tuples during assigment must be of the same length");
         memcpy(_data, t._data, sizeof(T)*len);
         return *this;
+    }
+
+// const operators
+    const T* data() const {return _data;}
+
+    const T operator[](const uint index) const
+    {
+        return get(index);
     }
 
     bool operator!=(const Tuple<T>& t) const
@@ -136,19 +153,13 @@ public:
     }
 
 // accessors
-    const T* data() const {return _data;}
-
-    const T operator[](const uint index) const
-    {
-        return get(index);
-    }
-
     const T get(const uint index) const
     {
         if (index < len) return _data[index];
         else throw lm::InvalidArgException("index","index exceeded length of Tuple");
     }
 
+    // print contents to stdout
     void print(const char* suffix="") const
     {
         printf("(");
@@ -159,6 +170,41 @@ public:
 //            printf(printf_format_string<T>(),_data[i]);
         }
         printf(")%s",suffix);
+    }
+
+    // print contents to a string
+    std::string repr(const char* suffix="") const
+    {
+        std::stringstream reprStream("(");
+        for (uint i=0; i<len; i++)
+        {
+            if (i > 0) reprStream << ',';
+            reprStream << _data[i];
+        }
+        reprStream << ")" << suffix;
+        return reprStream.str();
+    }
+
+// mutators
+    // copy data from a protobuf RepeatedField to a tuple
+//    template <typename RepT>
+    void fromRepeated(const google::protobuf::RepeatedField<T>* repFieldPtr)
+    {
+        // if _data exists, deallocate it
+        if (_data != NULL) delete[] _data; _data = NULL;
+
+        // allocate _data according to the size of repFieldPtr
+        _data(new T[repFieldPtr->size()]());
+
+        // reassign .len (via a const_cast)
+        const_cast<uint&>(len) = repFieldPtr->size();
+
+        // copy the data over (using a loop instead of memcpy allows for implicit conversion of numerical types (ie int -> uint))
+        for (int i=0;i<len;i++)
+        {
+            _data[i] = repFieldPtr->Get(i);
+        }
+        //memcpy(_data, repFieldPtr->data(), sizeof(T)*len);
     }
 
 public:

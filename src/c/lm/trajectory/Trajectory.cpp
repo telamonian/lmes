@@ -36,6 +36,7 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+#include <cmath>
 #include <list>
 #include <map>
 #include <string>
@@ -43,7 +44,9 @@
 
 #include "lm/Print.h"
 #include "lm/Types.h"
+#include "lm/array/Tuple.h"
 #include "lm/input/Input.h"
+#include "lm/protowrap/NDArray.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
@@ -62,13 +65,11 @@ using std::vector;
 namespace lm {
 namespace trajectory {
 
-char *trajectoryStatusStrings[] =
-{
-    "NOT_STARTED",
-    "RUNNING",
-    "WAITING",
-    "FINISHED"
-};
+const std::string Trajectory::status_t_strings[] = {"ABORTED",
+                                                    "FINISHED",
+                                                    "NOT_STARTED",
+                                                    "RUNNING",
+                                                    "WAITING"};
 
 Trajectory::Trajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryState& initialState)
 :id(static_cast<uint>(-1)),simulationPhase(phase),status(NOT_STARTED),state(initialState),numberWorkUnitsPerformed(0)
@@ -143,6 +144,12 @@ void Trajectory::initializeState(const lm::input::Input& input, bool reversed)
                 fpt->add_first_passage_time(0.0);
             }
         }
+
+        // Initialize the order parameter first passage times in the cme state.
+        if (input.getOutputOptionsMsg().fpt_order_parameter_to_track_size())
+        {
+            initializeOrderParameterFirstPassageTimes(input);
+        }
     }
 
     // Initialize the rdme state from the diffusion model.
@@ -208,6 +215,26 @@ void Trajectory::initializeOrderParameters(const lm::input::Input& input)
         opv->add_order_parameter_values(oparams.at(i)->calc(state));
     }
     opv->add_time(0.0);
+}
+
+void Trajectory::initializeOrderParameterFirstPassageTimes(const lm::input::Input& input)
+{
+    for (int i=0; i< input.getOutputOptionsMsg().fpt_order_parameter_to_track_size(); i++)
+    {
+        uint oparamID = input.getOutputOptionsMsg().fpt_order_parameter_to_track(i);
+        const lm::oparam::OParam* oparam = input.getOrderParameters().at(oparamID);
+        lm::io::OrderParameterFirstPassageTimes* opFPT = state.mutable_cme_state()->add_order_parameter_first_passage_times();
+        opFPT->set_trajectory_id(id);
+        opFPT->set_order_parameter_id(oparamID);
+
+        // TODO: improve the syntax of .set_array()
+        lm::protowrap::NDArray<int> fptValueWrap(opFPT->mutable_order_parameter_value());
+        fptValueWrap.set_array(UTuple(1), std::vector<int>(1, (int)round(oparam->calc(state))), false);
+
+        // TODO: improve the syntax of .set_array()
+        lm::protowrap::NDArray<double> timeWrap(opFPT->mutable_first_passage_time());
+        timeWrap.set_array(UTuple(1), std::vector<double>(1, 0.0), false);
+    }
 }
 
 // accessors
@@ -282,7 +309,7 @@ int64_t Trajectory::getWorkUnitsPerformed() const
 // debug helper function for printing trajectory status to stdout
 void Trajectory::printStatus() const
 {
-    printf("trajectory ID: %d has status: %s\n", id, trajectoryStatusStrings[getStatus()]);
+    printf("trajectory ID: %d has status: %s\n", id, status_t_strings[getStatus()].c_str());
 }
 
 // mutators

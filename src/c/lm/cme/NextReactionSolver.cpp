@@ -127,7 +127,7 @@ void NextReactionSolver::generateTrajectory()
     for (uint i=0; i<numberSpeciesToTrack; i++) speciesCountsDataSet.add_species_count(speciesCounts[i]);
 
     // Initialize tracking of the first passage times.
-    for (uint i=0; i<numberFptTrackedSpecies; i++)
+    for (uint i=0; i<numberFPTTrackedSpecies; i++)
     {
         fptTrackedSpecies[i].minValueAchieved = speciesCounts[fptTrackedSpecies[i].species];
         fptTrackedSpecies[i].maxValueAchieved = speciesCounts[fptTrackedSpecies[i].species];
@@ -243,7 +243,7 @@ void NextReactionSolver::generateTrajectory()
         }
 
         // Update the first passage time tables.
-        for (uint i=0; i<numberFptTrackedSpecies; i++)
+        for (uint i=0; i<numberFPTTrackedSpecies; i++)
         {
             uint speciesCount = speciesCounts[fptTrackedSpecies[i].species];
             while (fptTrackedSpecies[i].minValueAchieved > speciesCount)
@@ -344,7 +344,7 @@ void NextReactionSolver::generateTrajectory()
     }
 
     // Send any remaining first passage times to the queue.
-    for (uint i=0; i<numberFptTrackedSpecies; i++)
+    for (uint i=0; i<numberFPTTrackedSpecies; i++)
     {
         if (fptTrackedSpecies[i].dataSet.first_passage_time_size() > 0)
         {

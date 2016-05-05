@@ -91,7 +91,7 @@ CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
  orderParameterFunctions(NULL),status(lm::message::WorkUnitStatus::NONE),timeLimit(std::numeric_limits<double>::infinity()),
  numberLimits(0),limits(NULL),limitReached(NULL),limitIDReached(lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID),limitTypeReached(lm::io::TrajectoryLimits::NONE),
  writeDegreeAdvancementTimeSeries(false),writeOrderParameterTimeSeries(false),writeSpeciesTimeSeries(false),
- degreeAdvancementWriteInterval(0.0), orderParameterWriteInterval(0.0),speciesWriteInterval(0.0),numberFptTrackedSpecies(0),
+ degreeAdvancementWriteInterval(0.0), orderParameterWriteInterval(0.0),speciesWriteInterval(0.0),numberFPTTrackedSpecies(0),
  fptTrackedSpecies(NULL),trajectoryStarted(false),speciesCounts(NULL),time(0.0),timeStep(0.0),degreeAdvancements(NULL),
  orderParameterValues(NULL),orderParameterPreviousValues(NULL),tilingHists(NULL)
 {
@@ -226,8 +226,12 @@ void CMESolver::reset()
         degreeAdvancements[i] = 0;
 
     // Reset the fpt tracking list.
-    numberFptTrackedSpecies = 0;
+    numberFPTTrackedSpecies = 0;
     if (fptTrackedSpecies != NULL) delete[] fptTrackedSpecies; fptTrackedSpecies = NULL;
+
+    // Reset the fpt tracking list.
+    numberFPTTrackedOrderParameters = 0;
+    if (fptTrackedOrderParameters != NULL) delete[] fptTrackedOrderParameters; fptTrackedOrderParameters = NULL;
 
     // Reset the limits reached.
     limitIDReached = lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID;
@@ -277,9 +281,15 @@ void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
     }
 
     // Get the first passage times.
-    for (int i=0; i<numberFptTrackedSpecies; i++)
+    for (int i=0; i<numberFPTTrackedSpecies; i++)
     {
         fptTrackedSpecies[i].serializeTo(trajectoryId, state->mutable_cme_state()->add_first_passage_times());
+    }
+
+    // Get the order parameter first passage times.
+    for (int i=0; i<numberFPTTrackedOrderParameters; i++)
+    {
+        fptTrackedOrderParameters[i].serializeTo(trajectoryId, state->mutable_cme_state()->add_order_parameter_first_passage_times());
     }
 
     // Get the limit reached during the simulation.
@@ -345,11 +355,11 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
     }
 
     // Set the first passage times.
-    numberFptTrackedSpecies = state.cme_state().first_passage_times_size();
-    if (numberFptTrackedSpecies > 0)
+    numberFPTTrackedSpecies = state.cme_state().first_passage_times_size();
+    if (numberFPTTrackedSpecies > 0)
     {
-        fptTrackedSpecies = new FPTTracking[numberFptTrackedSpecies];
-        for (int i=0; i<numberFptTrackedSpecies; i++)
+        fptTrackedSpecies = new FPTTracking[numberFPTTrackedSpecies];
+        for (int i=0; i<numberFPTTrackedSpecies; i++)
         {
             fptTrackedSpecies[i].species = state.cme_state().first_passage_times(i).species();
             fptTrackedSpecies[i].minValueAchieved = state.cme_state().first_passage_times(i).species_count(0);
@@ -358,6 +368,18 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
             {
                 fptTrackedSpecies[i].fptValues.push_back(std::pair<int,double>(state.cme_state().first_passage_times(i).species_count(j),state.cme_state().first_passage_times(i).first_passage_time(j)));
             }
+        }
+        hasUpdateSpeciesCountsListeners = true;
+    }
+
+    // Set the order parameter first passage times.
+    numberFPTTrackedOrderParameters = state.cme_state().order_parameter_first_passage_times_size();
+    if (numberFPTTrackedOrderParameters > 0)
+    {
+        fptTrackedOrderParameters = new OParamFPTTracking[numberFPTTrackedOrderParameters];
+        for (int i=0; i<numberFPTTrackedOrderParameters; i++)
+        {
+            fptTrackedOrderParameters[i].deserializeFrom(state.cme_state().order_parameter_first_passage_times(i));
         }
         hasUpdateSpeciesCountsListeners = true;
     }

@@ -46,6 +46,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <numeric>
 
 #include "lm/Types.h"
@@ -103,6 +104,14 @@ inline unsigned int log2(unsigned long long x)
     return r;
 }
 
+//#include <cmath>
+//// simple rounding function
+//// for interesting corner cases where this function won't work, see http://stackoverflow.com/a/4572677/425458
+//double round(double d)
+//{
+//    return (d >= 0.0) ? floor(d + 0.5) : ceil(d - 0.5);
+//}
+
 /*
  * binary operations
  */
@@ -122,7 +131,7 @@ template <typename T1, typename T2> inline T1 mul(T1 val1, T2 val2)
  */
 // product functor. ProductFunctor<T>::call(first, last) will return the product of an iterator range if T is a numeric type, and the first value in the range otherwise
 template <typename T, bool> struct _ProductFunctor;
-template <typename T> struct _ProductFunctor<T, true> {template <typename iterT> static T call(iterT first, iterT last) {return std::accumulate(first, last, static_cast<T>(1), mul);}};
+template <typename T> struct _ProductFunctor<T, true> {template <typename iterT> static T call(iterT first, iterT last) {return std::accumulate(first, last, static_cast<T>(1), std::multiplies<T>());}};   //mul);}};
 template <typename T> struct _ProductFunctor<T, false> {template <typename iterT> static T call(iterT first, iterT last) {return *first;}};
 template <typename T> struct ProductFunctor {template <typename iterT> static T call(iterT first, iterT last) {return _ProductFunctor<T, IsNumeric<T>::value>::call(first, last);}};
 

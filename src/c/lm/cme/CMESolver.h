@@ -54,11 +54,13 @@
 #include <utility>
 #include <vector>
 
+#include "lm/array/Tuple.h"
 #include "lm/EnumHelper.h"
 #include "lm/Math.h"
 #include "lm/Types.h"
 #include "lm/cme/ReactionModel.h"
 #include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/io/OrderParameterFirstPassageTimes.pb.h"
 #include "lm/io/ParameterValues.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
@@ -68,6 +70,7 @@
 #include "lm/me/PropensityFunction.h"
 #include "lm/message/WorkUnitStatus.pb.h"
 #include "lm/oparam/OrderParameterFunction.h"
+#include "lm/protowrap/NDArray.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/thread/Thread.h"
 #include "lm/tiling/Tilings.h"
@@ -110,6 +113,53 @@ protected:
                 fpt->add_species_count(it->first);
                 fpt->add_first_passage_time(it->second);
             }
+        }
+    };
+
+    class OParamFPTTracking
+    {
+    public:
+        typedef lm::io::OrderParameterFirstPassageTimes MsgT;
+
+        uint oparamID;
+        int minValueAchieved;
+        int maxValueAchieved;
+        std::deque<int> fptValue;
+        std::deque<double> fptTime;
+
+        lm::protowrap::NDArray<int> fptValueWrap;
+        lm::protowrap::NDArray<double> fptTimeWrap;
+
+        void deserializeFrom(const MsgT& opFPTMsgRef)
+        {
+            oparamID = opFPTMsgRef.order_parameter_id();
+
+            // TODO: refactor various things so that we don't need this const_cast
+            MsgT* opFPTMsg(const_cast<MsgT*>(&opFPTMsgRef));
+
+            fptValueWrap.setMsgPtr(opFPTMsg->mutable_order_parameter_value());
+            fptValueWrap.get_data(fptValue);
+
+            fptTimeWrap.setMsgPtr(opFPTMsg->mutable_first_passage_time());
+            fptTimeWrap.get_data(fptTime);
+        }
+        
+        void serializeTo(uint64_t trajectoryId, MsgT* opFPTMsg)
+        {
+            opFPTMsg->set_trajectory_id(trajectoryId);
+            opFPTMsg->set_order_parameter_id(oparamID);
+
+//            lm::protowrap::NDArray<int> fptValueWrap(opFPTMsg->mutable_order_parameter_value());
+//            fptValueWrap.set_array(UTuple(fptValue.size()), fptValue, false);
+//            fptValueWrap.set_array(UTuple(fptValue.size()), std::vector<int>(fptValue.begin(), fptValue.end()), false);
+            fptValueWrap.setMsgPtr(opFPTMsg->mutable_order_parameter_value());
+            fptValueWrap.set_array(UTuple(fptValue.size()), fptValue, false);
+
+//            lm::protowrap::NDArray<double> fptTimeWrap(opFPTMsg->mutable_first_passage_fptTime());
+//            fptTimeWrap.set_array(UTuple(fptTime.size()), fptTime, false);
+
+            fptTimeWrap.setMsgPtr(opFPTMsg->mutable_first_passage_time());
+            fptTimeWrap.set_array(UTuple(fptTime.size()), fptTime, false);
         }
     };
 
@@ -187,7 +237,7 @@ protected:
         }
 
         // Update the first passage time tables.
-        for (int i=0; i<numberFptTrackedSpecies; i++)
+        for (int i=0; i<numberFPTTrackedSpecies; i++)
         {
             int speciesCount = speciesCounts[fptTrackedSpecies[i].species];
             while (speciesCount < fptTrackedSpecies[i].minValueAchieved)
@@ -207,6 +257,22 @@ protected:
             orderParameterValues[i] = orderParameterFunctions[i]->calculate(time, speciesCounts, reactionModel->numberSpecies);
         }
 
+        // Update the order parameter first passage time tables.
+        for (int i=0; i<numberFPTTrackedOrderParameters; i++)
+        {
+            int opVal = (int)round(orderParameterValues[fptTrackedOrderParameters[i].oparamID]);
+            while (opVal < fptTrackedOrderParameters[i].minValueAchieved)
+            {
+                fptTrackedOrderParameters[i].fptValue.push_front(--fptTrackedOrderParameters[i].minValueAchieved);
+                fptTrackedOrderParameters[i].fptTime.push_front(time);
+            }
+            while (opVal > fptTrackedOrderParameters[i].maxValueAchieved)
+            {
+                fptTrackedOrderParameters[i].fptValue.push_back(++fptTrackedOrderParameters[i].maxValueAchieved);
+                fptTrackedOrderParameters[i].fptTime.push_back(time);
+            }
+        }
+        
 //        // Update any tilingHists.
 //        if (tilings != NULL)
 //        {
@@ -249,8 +315,9 @@ protected:
     double degreeAdvancementWriteInterval, orderParameterWriteInterval, speciesWriteInterval;
 
     //First passage time variables.
-    int numberFptTrackedSpecies;
+    int numberFPTTrackedSpecies, numberFPTTrackedOrderParameters;
     FPTTracking* fptTrackedSpecies;
+    OParamFPTTracking* fptTrackedOrderParameters;
 
     // The current state.
     uint64_t* degreeAdvancements;

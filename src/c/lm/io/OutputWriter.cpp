@@ -323,6 +323,11 @@ int OutputWriter::HelperThread::run()
                         for (int j=0; j<output.first_passage_times_size(); j++)
                             p->processFirstPassageTimes(output.first_passage_times(j));
                     }
+                    if (output.order_parameter_first_passage_times_size() > 0)
+                    {
+                        for (int j=0; j<output.order_parameter_first_passage_times_size(); j++)
+                            p->processOrderParameterFirstPassageTimes(output.order_parameter_first_passage_times(j));
+                    }
                     if (output.has_lattice_time_series())
                     {
                         p->processLatticeTimeSeries(output.lattice_time_series());

@@ -38,6 +38,7 @@
  */
 #include <map>
 #include <string>
+#include <vector>
 
 #include "lm/EnumHelper.h"
 #include "lm/Print.h"
@@ -160,6 +161,18 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
                     outputOptions.add_fpt_species_to_track((uint)atoi(trackedSpecies.c_str()));
                 }
                 start = end+1;
+            }
+            outputOptionsPresent = true;
+        }
+
+        // Get the order parameter first passage times.
+        if (simulationParameters.count("opFPTTrackingList"))
+        {
+            // Initialize the first passage times in the cme state.
+            std::vector<int> opFPTTrackingVector = simulationParameters.parseVector<int>("opFPTTrackingList");
+            for (std::vector<int>::const_iterator it=opFPTTrackingVector.begin(); it==opFPTTrackingVector.end(); it++)
+            {
+                outputOptions.add_fpt_order_parameter_to_track(*it);
             }
             outputOptionsPresent = true;
         }

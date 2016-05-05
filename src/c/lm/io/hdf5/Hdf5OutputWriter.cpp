@@ -91,9 +91,24 @@ void Hdf5OutputWriter::initialize()
     file = new Hdf5File(outputFilename);
 }
 
+void Hdf5OutputWriter::processFFluxOutput(const lm::io::FFluxOutput& data)
+{
+    file->setFFluxOutput(const_cast<lm::io::FFluxOutput*>(&data));
+}
+
 void Hdf5OutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
 {
     file->setFirstPassageTimes(data.trajectory_id(), (lm::io::FirstPassageTimes*)&data);
+}
+
+void Hdf5OutputWriter::processOrderParameterFirstPassageTimes(const lm::io::OrderParameterFirstPassageTimes& data)
+{
+//    file->setOrderParameterFirstPassageTimes(data.trajectory_id(), data);
+}
+
+void Hdf5OutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)
+{
+    file->appendLatticeTimeSeries(data.trajectory_id(), data);
 }
 
 void Hdf5OutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
@@ -106,15 +121,6 @@ void Hdf5OutputWriter::processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries&
     file->appendSpeciesTimeSeries(data.trajectory_id(), data);
 }
 
-void Hdf5OutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)
-{
-    file->appendLatticeTimeSeries(data.trajectory_id(), data);
-}
-
-void Hdf5OutputWriter::processFFluxOutput(const lm::io::FFluxOutput& data)
-{
-    file->setFFluxOutput(const_cast<lm::io::FFluxOutput*>(&data));
-}
 
 void Hdf5OutputWriter::flush()
 {

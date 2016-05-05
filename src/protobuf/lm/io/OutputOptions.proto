@@ -45,8 +45,9 @@ message OutputOptions {
     optional double order_parameter_write_interval      = 3;
     optional double species_write_interval              = 4;
 
-    repeated uint32 da_reactions_to_track               = 5;
-    repeated uint32 fpt_species_to_track                = 6;
+    repeated uint32 da_reactions_to_track                = 5;
+    repeated uint32 fpt_species_to_track                 = 6;
+    repeated uint32 fpt_order_parameter_to_track         = 7;
 
     optional bool output_initial_state                  = 101 [default=true];
     optional bool output_final_state                    = 102 [default=true];

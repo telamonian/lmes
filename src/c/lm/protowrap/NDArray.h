@@ -39,10 +39,12 @@
 #ifndef LM_PWRAP_NDARRAY
 #define LM_PWRAP_NDARRAY
 
+#include <deque>
 #include <string>
 #include <vector>
 #include <zlib.h>
 
+#include "lm/array/Tuple.h"
 #include "lm/protowrap/Repeated.h"
 #include "lm/Types.h"
 #include "robertslab/pbuf/NDArray.pb.h"
@@ -54,6 +56,27 @@ typedef robertslab::pbuf::NDArray_ArrayOrder ArrayOrder;
 typedef robertslab::pbuf::NDArray_ByteOrder ByteOrder;
 typedef robertslab::pbuf::NDArray_DataType DataType;
 
+// template based mappings to handle NumPy <-> C++ DataType conversions
+template <DataType NPDType> struct CPPDType;
+// NB: the various NPDTypes correspond to the DataType enum in robertslab::pbuf::NDArray
+template <> struct CPPDType<robertslab::pbuf::NDArray::float32> {typedef float T;};
+template <> struct CPPDType<robertslab::pbuf::NDArray::float64> {typedef double T;};
+template <> struct CPPDType<robertslab::pbuf::NDArray::int32> {typedef int32_t T;};
+template <> struct CPPDType<robertslab::pbuf::NDArray::int64> {typedef int64_t T;};
+template <> struct CPPDType<robertslab::pbuf::NDArray::uint32> {typedef uint32_t T;};
+template <> struct CPPDType<robertslab::pbuf::NDArray::uint64> {typedef uint64_t T;};
+// handling strings with NDArray is going to be... complicated. I'm putting implementation on indefinite hold
+//template <> struct CPPDType<robertslab::pbuf::NDArray::S128> {typedef char* T;};
+
+template <typename CPPDType> struct NPDType;
+// NB: the various NPDTypes correspond to the DataType enum in robertslab::pbuf::NDArray
+template <> struct NPDType<float> {static const DataType T = robertslab::pbuf::NDArray::float32;};
+template <> struct NPDType<double> {static const DataType T = robertslab::pbuf::NDArray::float64;};
+template <> struct NPDType<int32_t> {static const DataType T = robertslab::pbuf::NDArray::int32;};
+template <> struct NPDType<int64_t> {static const DataType T = robertslab::pbuf::NDArray::int64;};
+template <> struct NPDType<uint32_t> {static const DataType T = robertslab::pbuf::NDArray::uint32;};
+template <> struct NPDType<uint64_t> {static const DataType T = robertslab::pbuf::NDArray::uint64;};
+
 template <typename T>
 class NDArray
 {
@@ -63,76 +86,159 @@ public:
     ~NDArray() {}
 
 // accessors
-    int32_t size() const {return shape().product();}
+    uint32_t size() const {return shape().product();}
     size_t sizeBytes() const {return size()*sizeof(T);}
 
 // mutators
-    inline void get_data(T* valPtr)
+    // array version
+    inline void get_data(T* outputArray)
     {
         if (compressed_deflate())
         {
             size_t countsSize = sizeBytes();
-            ZLIB_EXCEPTION_CHECK(uncompress((unsigned char *)valPtr, &countsSize, (unsigned char*)&(data()[0]), data().size()));
+            ZLIB_EXCEPTION_CHECK(uncompress((unsigned char *)outputArray, &countsSize, (unsigned char*)&(data()[0]), data().size()));
             if (countsSize != sizeBytes())
                 throw Exception("Error during data decompression, wrong number of bytes returned.");
         }
         else
         {
-            memcpy(valPtr, (T*)&(data()[0]), data().size());
+            memcpy(outputArray, (T*)&(data()[0]), data().size());
         }
     }
 
-    inline void set_data(const std::vector<T>& value)
+    // general STL container version
+    // TODO: refactor to remove the (probably) unnecessary copy-to-vector
+    template <typename ContainerT>
+    inline void get_data(ContainerT& outputContainer)
+    {
+        outputContainer.clear();
+        std::vector<T> outputVector(outputContainer.begin(), outputContainer.end());
+        get_data(outputVector);
+        outputContainer.insert(outputContainer.begin(), outputVector.begin(), outputVector.end());
+    }
+
+    // vector version
+    inline void get_data(std::vector<T>& outputVector)
+    {
+        outputVector.clear(); outputVector.resize(sizeBytes());
+        get_data(outputVector.data());
+    }
+
+    inline void _set_props(const UTuple& shape, DataType dtype, bool compressed)
+    {
+        set_shape(shape);
+        set_data_type(dtype);
+        set_compressed_deflate(compressed);
+    }
+
+    // array version
+    inline void set_array(const UTuple& shape, const T* inputArray, bool compressed=true)
+    {
+        _set_props(shape, NPDType<T>::T, compressed);
+        set_data(inputArray);
+    }
+
+    // general STL container version
+    // TODO: refactor to remove the (probably) unnecessary copy-to-vector
+    template <typename ContainerT>
+    inline void set_array(const UTuple& shape, const ContainerT& inputContainer, bool compressed=true)
+    {
+        _set_props(shape, NPDType<T>::T, compressed);
+        if (size()!=inputContainer.size())
+        {
+            throw Exception("When serializing NDArray, size of data container and specified shape did not match: %d, %s", (int)inputContainer.size(), _shape.repr().c_str());
+        }
+        set_data(std::vector<T>(inputContainer.begin(), inputContainer.end()).data());
+    }
+
+    // vector version
+    inline void set_array(const UTuple& shape, const std::vector<T>& inputVector, bool compressed=true)
+    {
+        _set_props(shape, NPDType<T>::T, compressed);
+        if (size()!=inputVector.size())
+        {
+            throw Exception("When serializing NDArray, size of data vector and specified shape did not match: %d, %s", (int)inputVector.size(), _shape.repr().c_str());
+        }
+        set_data(inputVector.data());
+    }
+
+    // array version
+    inline void set_data(const T* inputArray)
     {
         if (compressed_deflate())
         {
-            size_t dataSizeEstimate=compressBound(value.size()*sizeof(T));
+            size_t dataSizeEstimate=compressBound(size()*sizeof(T));
             mutable_data()->resize(dataSizeEstimate);
-            ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*mutable_data())[0]), &dataSizeEstimate, (unsigned char*)value.data(), value.size()*sizeof(T)));
+            ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*mutable_data())[0]), &dataSizeEstimate, (unsigned char*)inputArray, size()*sizeof(T)));
             mutable_data()->resize(dataSizeEstimate);
         }
         else
         {
-            mutable_data()->resize(value.size()*sizeof(T));
-            memcpy((unsigned char*)&((*mutable_data())[0]), (unsigned char*)value.data(), value.size()*sizeof(T));
+            mutable_data()->resize(size()*sizeof(T));
+            memcpy((unsigned char*)&((*mutable_data())[0]), (unsigned char*)inputArray, size()*sizeof(T));
         }
     }
 
-    inline void set_data(std::vector<T>& value, DataType dtype, bool compressed)
-    {
-        set_data_type(dtype);
-        set_compressed_deflate(compressed);
-        set_data(value);
-    }
+//    template <template <typename, typename=std::allocator<T> > class ContainerT>  // possibly will need template <typename=T, typename=std::allocator<T>> class ContainerT
+//    inline void set_data(const ContainerT& valueCont)
+//    {
+//        if (compressed_deflate())
+//        {
+//            size_t dataSizeEstimate=compressBound(valueCont.size()*sizeof(T));
+//            mutable_data()->resize(dataSizeEstimate);
+//            ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*mutable_data())[0]), &dataSizeEstimate, (unsigned char*)valueCont.data(), valueCont.size()*sizeof(T)));
+//            mutable_data()->resize(dataSizeEstimate);
+//        }
+//        else
+//        {
+//            mutable_data()->resize(valueCont.size()*sizeof(T));
+//            memcpy((unsigned char*)&((*mutable_data())[0]), (unsigned char*)valueCont.data(), valueCont.size()*sizeof(T));
+//        }
+//    }
 
-    void setMsgPtr(robertslab::pbuf::NDArray* newArrMsg) {arrMsg=newArrMsg; shape_.setRepFieldPtr(arrMsg->mutable_shape());}
+    NDArray* setMsgPtr(robertslab::pbuf::NDArray* newArrMsg)
+    {
+        arrMsg=newArrMsg;
+        _shape.setRepFieldPtr(arrMsg->mutable_shape());
+        return this;
+    }
 
 // pass throughs
 // accessors
     ArrayOrder array_order() const {return arrMsg->array_order();}
     ByteOrder byte_order() const {return arrMsg->byte_order();}
     DataType data_type() const {return arrMsg->data_type();}
-    const Repeated<int32_t>& shape() const {return shape_;}
-    int32_t shape(int index) const {return shape_.Get(index);}
+    const Repeated<uint32_t>& shape() const {return _shape;}
+    uint32_t shape(int index) const {return _shape.Get(index);}
 
     const std::string& data() const {return arrMsg->data();}
     bool compressed_deflate() const {return arrMsg->compressed_deflate();}
 
 // mutators
-    Repeated<int32_t>* mutable_shape() {return &shape_;}
+    Repeated<uint32_t>* mutable_shape() {return &_shape;}
     std::string* mutable_data() {return arrMsg->mutable_data();}
-    Repeated<int32_t>& shape() {return shape_;}
+    Repeated<uint32_t>& shape() {return _shape;}
 
     void set_array_order(ArrayOrder value) {arrMsg->set_array_order(value);}
     void set_byte_order(ByteOrder value) {arrMsg->set_byte_order(value);}
     void set_data_type(DataType value) {arrMsg->set_data_type(value);}
-    void set_shape(int index, const int32_t& value) {shape_.Set(index, value);}
+    void set_shape(int index, const uint32_t& value) {_shape.Set(index, value);}
+
+    void set_shape(const UTuple& shape)
+    {
+        _shape.Clear();
+        for (int i=0;i<shape.len;i++)
+        {
+            _shape.Add(shape[i]);
+        }
+    }
+
     void set_compressed_deflate(bool value) {arrMsg->set_compressed_deflate(value);}
 
 public:
     robertslab::pbuf::NDArray* arrMsg;
 protected:
-    Repeated<int32_t> shape_;
+    Repeated<uint32_t> _shape;
 };
 
 }

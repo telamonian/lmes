@@ -105,9 +105,11 @@ template<typename T1, typename T2> struct pairVector
 };
 
 /*
- * type testing utilities
+ * type inference functions, etc.
  */
 // template for IsNumeric type testing utility. For numeric types, IsNumeric<T>::value will be true
 template <typename T> struct IsNumeric {static const bool value = std::numeric_limits<T>::is_specialized;};
+
+
 
 #endif

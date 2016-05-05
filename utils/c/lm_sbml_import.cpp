@@ -190,32 +190,33 @@ void importSBMLModel(Hdf5File * lmFile, string sbmlFilename) throw(Exception)
     // Make sure we know how to process the document.
     if (sbmlDocument->getLevel() == 3 && sbmlDocument->getVersion() == 1)
     {
-        // expand any user-defined functions in the reaction kinetic laws
-        ConversionProperties props;
-        props.addOption("expandFunctionDefinitions");
-
-        try
-        {
-            if (sbmlDocument->convert(props) != LIBSBML_OPERATION_SUCCESS)
-            {
-                if (sbmlDocument->getNumErrors() > 0) sbmlDocument->printErrors();
-                throw Exception("Unable to expand user-defined functions in the reaction kinetic laws. Error log (if any) printed above.");
-            }
-        }
-        catch (std::logic_error e)
-        {
-            std::cerr << "std::logic exception during expansion of user-defined functions, continuing execution" << std::endl;
-            std::cerr << "Error infodump: " << e.what() << std::endl << std::endl;
-        }
-        catch (std::exception e)
-        {
-            std::cerr << "std::exception during expansion of user-defined functions, continuing execution" << std::endl;
-            std::cerr << "Error infodump: " << e.what() << std::endl << std::endl;
-        }
-        catch (...)
-        {
-            std::cerr << "Unknown exception during expansion of user-defined functions, continuing execution" << std::endl << std::endl;
-        }
+//        // expand any user-defined functions in the reaction kinetic laws
+//        ConversionProperties props;
+//        props.addOption("expandFunctionDefinitions");
+//
+//        try
+//        {
+//            if (sbmlDocument->convert(props) != LIBSBML_OPERATION_SUCCESS)
+//            {
+//                if (sbmlDocument->getNumErrors() > 0) sbmlDocument->printErrors();
+//                throw Exception("Unable to expand user-defined functions in the reaction kinetic laws. Error log (if any) printed above.");
+//            }
+//        }
+//        catch (std::logic_error e)
+//        {
+//            std::cerr << "std::logic_error exception during expansion of user-defined functions, continuing execution" << std::endl;
+//            std::cerr << "Error infodump: " << e.what() << std::endl << std::endl;
+//        }
+//        catch (std::exception e)
+//        {
+//            std::cerr << "std::exception during expansion of user-defined functions, continuing execution" << std::endl;
+//            std::cerr << "Error infodump: " << e.what() << std::endl << std::endl;
+//        }
+//        catch (...)
+//        {
+//            std::cerr << "Unknown exception during expansion of user-defined functions, continuing execution" << std::endl << std::endl;
+//        }
+        sbmlDocument->expandFunctionDefinitions();
 
         // Build the reaction model from the SBML model.
         ReactionModel lmModel;

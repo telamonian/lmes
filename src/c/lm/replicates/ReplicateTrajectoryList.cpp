@@ -129,7 +129,7 @@ void ReplicateTrajectoryList::printTrajectoryStatistics() const
     hrtime currentTime = getHrTime();
     if (convertHrToSeconds(currentTime-stats_lastPrintTime) > 700.0)
     {
-        const std::string statusStrings[] = {"NOT_STARTED", "RUNNING", "WAITING", "FINISHED"};
+//        const std::string statusStrings[] = {"NOT_STARTED", "RUNNING", "WAITING", "FINISHED"};
         Print::printf(Print::INFO, "Trajectory status");
         Print::printf(Print::INFO, "        ID State       Time     Work Units");
         Print::printf(Print::INFO, "------------------------------------------");
@@ -137,7 +137,7 @@ void ReplicateTrajectoryList::printTrajectoryStatistics() const
         {
             uint64_t id = it->first;
             lm::trajectory::Trajectory* t = it->second;
-            Print::printf(Print::INFO, "%10lld %-11s %8.2e %10d", id, statusStrings[(int)t->getStatus()].c_str(), t->getState().cme_state().species_counts().time(0), t->getWorkUnitsPerformed());
+            Print::printf(Print::INFO, "%10lld %-11s %8.2e %10d", id, lm::trajectory::Trajectory::status_t_strings[(int)t->getStatus()].c_str(), t->getState().cme_state().species_counts().time(0), t->getWorkUnitsPerformed());
         }
         stats_lastPrintTime = getHrTime();
     }

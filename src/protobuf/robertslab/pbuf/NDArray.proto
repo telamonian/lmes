@@ -72,7 +72,7 @@ message NDArray {
     optional ArrayOrder array_order                 = 1 [default = ROW_MAJOR];
     optional ByteOrder byte_order                   = 2 [default = LITTLE_ENDIAN_ORDER];
     required DataType data_type                     = 3;
-    repeated int32 shape                            = 4;
+    repeated uint32 shape                           = 4;
     required bytes data                             = 5;
     optional bool compressed_deflate                = 6 [default = false];
 }

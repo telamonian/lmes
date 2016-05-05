@@ -348,7 +348,7 @@ void FFluxTrajectoryList::workUnitPartFinishedPhaseZero(const message::WorkUnitS
         dwellTimes[-1]+=traj->getSimTime() - traj->getLastLimitTime();
         dwellTimes[0]+=traj->getSimTime() - traj->getLastLimitTime();
     }
-    else if (prevFinalLimitID==0)
+    else if (prevFinalLimitID==0 || prevFinalLimitID==1)
     {
         dwellTimes[0]+=traj->getSimTime() - traj->getLastLimitTime();
     }

@@ -51,17 +51,17 @@
 #include <vector>
 #include <zlib.h>
 
+#include "lm/array/Tuple.h"
 #include "lm/ClassFactory.h"
-#include "lm/Tune.h"
-#include "lm/Math.h"
-#include "lm/Print.h"
 #include "lm/cme/CMESolver.h"
 #include "lm/cme/GillespieDSolver.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
+#include "lm/Math.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/ProcessWorkUnitOutput.pb.h"
 #include "lm/message/WorkUnitOutput.pb.h"
+#include "lm/Print.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/rng/XORShift.h"
 #ifdef OPT_CUDA
@@ -69,6 +69,8 @@
 #endif
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
+#include "lm/Tune.h"
+#include "lm/Types.h"
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
 #include "robertslab/pbuf/NDArray.pb.h"
@@ -420,12 +422,13 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
             orderParameterTimeSeriesDataSet->set_trajectory_id(trajectoryId);
 
             opCounts.setMsgPtr(orderParameterTimeSeriesDataSet->mutable_values());
-            opCounts.shape() << orderParameterTimeSeriesTimes.size() << numberOrderParameters;
-            opCounts.set_data(orderParameterTimeSeriesCounts, robertslab::pbuf::NDArray::float64, true);
+//            opCounts.shape() << orderParameterTimeSeriesTimes.size() << numberOrderParameters;
+            opCounts.set_array(UTuple(orderParameterTimeSeriesTimes.size(), numberOrderParameters), orderParameterTimeSeriesCounts);
 
             opTimes.setMsgPtr(orderParameterTimeSeriesDataSet->mutable_times());
-            opTimes.shape() << orderParameterTimeSeriesTimes.size();
-            opTimes.set_data(orderParameterTimeSeriesTimes, robertslab::pbuf::NDArray::float64, true);
+//            opTimes.shape() << orderParameterTimeSeriesTimes.size();
+            opTimes.set_array(UTuple(orderParameterTimeSeriesTimes.size()), orderParameterTimeSeriesTimes);
+            createdOutput = true;
         }
         else
         {
@@ -434,11 +437,21 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     }
 
     // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
-    if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFptTrackedSpecies > 0)
+    if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFPTTrackedSpecies > 0)
     {
-        for (int i=0; i<numberFptTrackedSpecies; i++)
+        for (int i=0; i<numberFPTTrackedSpecies; i++)
         {
             fptTrackedSpecies[i].serializeTo(trajectoryId, msg->add_first_passage_times());
+        }
+        createdOutput = true;
+    }
+
+    // If the simulation reached a limit and we are tracking order parameter first passage times, add them to the output message.
+    if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFPTTrackedOrderParameters > 0)
+    {
+        for (int i=0; i<numberFPTTrackedOrderParameters; i++)
+        {
+            fptTrackedOrderParameters[i].serializeTo(trajectoryId, msg->add_order_parameter_first_passage_times());
         }
         createdOutput = true;
     }

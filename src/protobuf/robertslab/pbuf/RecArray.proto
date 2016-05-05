@@ -40,14 +40,14 @@ import "robertslab/pbuf/NDArray.proto";
 message RecArray {
     message dtype {
         optional robertslab.pbuf.NDArray.ByteOrder byte_order   = 1 [default = LITTLE_ENDIAN_ORDER];
-        required robertslab.pbuf.NDArray.DataType data_type     = 2;
+        optional robertslab.pbuf.NDArray.DataType data_type     = 2;
         optional string name                            = 3;
-        repeated int32 shape                            = 4;
+        repeated uint32 shape                            = 4;
     }
 
     optional robertslab.pbuf.NDArray.ArrayOrder array_order     = 1 [default = ROW_MAJOR];
     repeated dtype dtypes                               = 2;
-    repeated int32 shape                                = 3;
-    required bytes data                                 = 4;
+    repeated uint32 shape                                = 3;
+    optional bytes data                                 = 4;
     optional bool compressed_deflate                    = 5 [default = false];
 }

@@ -41,6 +41,7 @@
 #define LM_ARRAY_NDARRAYSERIAL_H
 
 #include <cstring>
+#include <vector>
 
 #include "lm/array/NDArray.h"
 #include "lm/array/Tuple.h"
@@ -50,18 +51,55 @@ namespace lm {
 namespace array {
 
 template <typename T>
-class NDArraySerial : public NDArray<T>
+class NDArrayResizable : public NDArray<T>
 {
 public:
-    NDArraySerial(const Tuple<uint>& shape)
-    :NDArray()
+    NDArrayResizable()
+    :NDArray<T>()
     {
     }
 
-    virtual ~NDArray()
+    NDArrayResizable(const UTuple& shape)
+    :NDArray<T>(),_vector(calculateNumberValues(shape))
+    {
+        initBaseNDArray(shape);
+    }
+
+    NDArrayResizable(const UTuple& shape, const T* valuesArray)
+    :NDArray<T>(),_vector(valuesArray, valuesArray + calculateNumberValues(shape))
+    {
+        initBaseNDArray(shape);
+    }
+
+    NDArrayResizable(const NDArrayResizable& other)
+    :NDArray<T>(),_vector(other.vector())
+    {
+        initBaseNDArray(other.shape(););
+    }
+
+    virtual ~NDArrayResizable()
     {
     }
 
+    void initBaseNDArray(const UTuple& shape)
+    {
+        _shape = shape;
+        _size = _vector.size();
+        _data = _vector.data();
+    }
+
+    void reshape(const UTuple& shape)
+    {
+
+    }
+
+    const std::vector<T>& vector() const
+    {
+        return _vector;
+    }
+
+protected:
+    std::vector<T> _vector;
 };
 
 }

@@ -1,11 +1,11 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
- * 			     Johns Hopkins University
- * 			     http://biophysics.jhu.edu/roberts/
+ *               Johns Hopkins University
+ *               http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -36,51 +36,23 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+package lm.io;
 
-#ifndef LM_IO_Hdf5OutputWriter
-#define LM_IO_Hdf5OutputWriter
+//import "google/protobuf/descriptor.proto";
+import "robertslab/pbuf/NDArray.proto";
+//import "robertslab/pbuf/RecArray.proto";
 
-#include "lm/io/FirstPassageTimes.pb.h"
-#include "lm/io/FFluxOutput.pb.h"
-#include "lm/io/OutputWriter.h"
-#include "lm/io/SpeciesCounts.pb.h"
-#include "lm/io/SpeciesTimeSeries.pb.h"
-#include "lm/io/hdf5/SimulationFile.h"
+//extend google.protobuf.FieldOptions {
+//   optional robertslab.pbuf.RecArray opFPTPoints = 99999;
+//}
 
-namespace lm {
-namespace io {
-namespace hdf5 {
+//message OrderParameterFirstPassageTimes {
+//    optional robertslab.pbuf.RecArray points = 1; //[(opFPTPoints) = {dtypes: [{data_type: float64}, {data_type: float64}]}];
+//}
 
-class Hdf5OutputWriter : public OutputWriter
-{
-public:
-    static bool registered;
-    static bool registerClass();
-    static void* allocateObject();
-
-public:
-    Hdf5OutputWriter();
-    virtual ~Hdf5OutputWriter();
-    virtual void initialize();
-    virtual void finalize();
-
-protected:
-    virtual void processFFluxOutput(const lm::io::FFluxOutput& data);
-    virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
-    virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data);
-    virtual void processOrderParameterFirstPassageTimes(const lm::io::OrderParameterFirstPassageTimes& data);
-    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
-    virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data);
-    virtual void flush();
-    virtual void checkpoint();
-
-private:
-    Hdf5File* file;
-};
-
+message OrderParameterFirstPassageTimes {
+    required uint64 trajectory_id                          = 1;
+    required uint32 order_parameter_id                     = 2;
+    required robertslab.pbuf.NDArray order_parameter_value = 3;
+    required robertslab.pbuf.NDArray first_passage_time    = 4;
 }
-}
-}
-
-
-#endif

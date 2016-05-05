@@ -54,11 +54,13 @@ namespace trajectory {
 class Trajectory
 {
 public:
+    // NB: any changes made to the enum status_t *must* be made also to the array status_t_strings
     enum status_t {ABORTED,
                    FINISHED,
                    NOT_STARTED,
                    RUNNING,
                    WAITING};
+    static const std::string status_t_strings[];
 
     Trajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryState& initialState);
     Trajectory(uint64_t id, uint64_t phase, const lm::input::Input& input, bool reversed=false);
@@ -94,6 +96,7 @@ protected:
     virtual void initializeDegreeAdvancements(const lm::input::Input& input);
     virtual void inititializeHists(const lm::input::Input& input);
     virtual void initializeOrderParameters(const lm::input::Input& input);
+    virtual void initializeOrderParameterFirstPassageTimes(const lm::input::Input& input);
     virtual void initializeState(const lm::input::Input& input, bool reversed=false);
 
 protected:
