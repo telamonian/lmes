@@ -62,11 +62,9 @@ message TrajectoryLimits {
         optional bool include_endpoint                  = 4 [default=true];
 
         optional uint32 value_id                        = 5;
-        oneof value_oneof {
-            double dvalue                               = 6;
-            int32 ivalue                                = 7;
-            uint64 uvalue                               = 8;
-        }
+        optional double dvalue                          = 6 [default=0.0];
+        optional int32 ivalue                           = 7 [default=0];
+        optional uint64 uvalue                          = 8 [default=0];
     }
 
     repeated TrajectoryLimit trajectory_limits          = 1;

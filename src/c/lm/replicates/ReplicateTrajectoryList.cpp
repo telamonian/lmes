@@ -127,11 +127,11 @@ void ReplicateTrajectoryList::printTrajectoryStatistics() const
 {
     // Print some performance statistics, if it has been a while.
     hrtime currentTime = getHrTime();
-    if (convertHrToSeconds(currentTime-stats_lastPrintTime) > 700.0)
+    if (convertHrToSeconds(currentTime-stats_lastPrintTime) > 700.0)        
     {
-        const std::string statusStrings[] = {"NOT_STARTED", "RUNNING", "WAITING", "FINISHED"};
+        const std::string statusStrings[] = {"ABORTED", "FINISHED", "NOT_STARTED", "RUNNING", "WAITING"};
         Print::printf(Print::INFO, "Trajectory status");
-        Print::printf(Print::INFO, "        ID State       Time     Work Units");
+        Print::printf(Print::INFO, "        ID State       Time     Work_Units");
         Print::printf(Print::INFO, "------------------------------------------");
         for (TrajectoryMap::const_iterator it=trajectories.begin(); it!=trajectories.end(); it++)
         {

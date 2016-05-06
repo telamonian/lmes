@@ -1,16 +1,10 @@
 # the following commands are wrapped to prevent errors when this CMakeLists.txt is included as a subdirectory in another CMakeLists.txt
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-    cmake_minimum_REQUIRED(VERSION 3.0.0)
+    cmake_minimum_REQUIRED(VERSION 2.8.0)
     SET(CMAKE_C_COMPILER gcc)
     SET(CMAKE_CXX_COMPILER g++)
 endif(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 set(ENV{HDF5_ROOT} ${HDF5_ROOT})
-
-# convert the build type string to upper case for easy comparison
-string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UPPER)
-if(CMAKE_BUILD_TYPE_UPPER)
-    set(_CMAKE_BUILD_TYPE_UPPER "_${CMAKE_BUILD_TYPE_UPPER}")
-endif(CMAKE_BUILD_TYPE_UPPER)
 
 # fix some rpath zanyness with cmake install
 #set(CMAKE_MACOSX_RPATH ON)
@@ -27,6 +21,12 @@ include(TestCompilerFeatures)
 # if certain packages cannot be found, the end-user (you) can change the variables in CMakeConfig.txt to point to package paths
 initializeCMakeConfig()
 include(CMakeConfig.txt)
+
+# convert the build type string to upper case for easy comparison
+string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UPPER)
+if(CMAKE_BUILD_TYPE_UPPER)
+    set(_CMAKE_BUILD_TYPE_UPPER "_${CMAKE_BUILD_TYPE_UPPER}")
+endif(CMAKE_BUILD_TYPE_UPPER)
 
 # Lattice Microbes standard architecture flag
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "Intel")

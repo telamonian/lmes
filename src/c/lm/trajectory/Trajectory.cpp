@@ -173,7 +173,10 @@ void Trajectory::initializeDegreeAdvancements(const lm::input::Input& input)
     da->set_trajectory_id(id);
     da->set_number_entries(1);
     da->set_number_reactions(reactionModel.number_reactions());
-    da->mutable_degree_advancements()->Resize(da->number_reactions(), 0);
+    for (uint j=0; j<reactionModel.number_reactions(); j++)
+    {
+        da->add_degree_advancements(0);
+    }
     da->add_time(0.0);
 }
 
