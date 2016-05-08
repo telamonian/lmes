@@ -301,7 +301,12 @@ public:
 #ifdef OPT_AVX
     avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
     {
-        return naiveCalculateAvx(this, time, speciesCounts, numberSpecies);
+        avxd x = _mm256_load_pd(&speciesCounts[xi*DOUBLES_PER_AVX]);
+        avxd xt = _mm256_mul_pd(_mm256_set1_pd(v),time);
+        avxd dx = _mm256_sub_pd(xt,x);
+        avxd p = _mm256_mul_pd(_mm256_mul_pd(_mm256_set1_pd(k),dx),dx);
+        avxd comp = _mm256_cmp_pd(dx, _mm256_setzero_pd(), _CMP_GT_OQ);
+        return _mm256_blendv_pd(_mm256_setzero_pd(),p,comp);
     }
 #endif
 
@@ -346,7 +351,12 @@ public:
 #ifdef OPT_AVX
     avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
     {
-        return naiveCalculateAvx(this, time, speciesCounts, numberSpecies);
+        avxd x = _mm256_load_pd(&speciesCounts[xi*DOUBLES_PER_AVX]);
+        avxd xt = _mm256_mul_pd(_mm256_set1_pd(v),time);
+        avxd dx = _mm256_sub_pd(xt,x);
+        avxd p = _mm256_mul_pd(_mm256_mul_pd(_mm256_set1_pd(k),dx),dx);
+        avxd comp = _mm256_cmp_pd(dx, _mm256_setzero_pd(), _CMP_LT_OQ);
+        return _mm256_blendv_pd(_mm256_setzero_pd(),p,comp);
     }
 #endif
 
@@ -383,15 +393,29 @@ public:
     void changeVolume(double volumeMultiplier) {}
     double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
-        double xh = pow(double(speciesCounts[xi]),h);
+        double x = double(speciesCounts[xi]);
+        double xh = pow(x,h);
         double propensity = k0+((dk*xh)/(x0h+xh));
         return propensity;
     }
 
-#ifdef OPT_AVX
+#if defined(OPT_AVX) && !defined(OPT_SVML)
     avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
     {
-        return naiveCalculateAvx(this, time, speciesCounts, numberSpecies);
+        double x0 = speciesCounts[xi*DOUBLES_PER_AVX];
+        double x1 = speciesCounts[xi*DOUBLES_PER_AVX+1];
+        double x2 = speciesCounts[xi*DOUBLES_PER_AVX+2];
+        double x3 = speciesCounts[xi*DOUBLES_PER_AVX+3];
+        avxd xh = _mm256_set_pd(pow(x0,h),pow(x1,h),pow(x2,h),pow(x3,h));
+        return _mm256_add_pd(_mm256_set1_pd(k0),_mm256_div_pd(_mm256_mul_pd(_mm256_set1_pd(dk),xh),_mm256_add_pd(_mm256_set1_pd(x0h),xh)));
+    }
+#endif
+#if defined(OPT_AVX) && defined(OPT_SVML)
+    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
+    {
+        avxd x = _mm256_load_pd(&speciesCounts[xi*DOUBLES_PER_AVX]);
+        avxd xh = _mm256_pow_pd(x, _mm256_set1_pd(h));
+        return _mm256_add_pd(_mm256_set1_pd(k0),_mm256_div_pd(_mm256_mul_pd(_mm256_set1_pd(dk),xh),_mm256_add_pd(_mm256_set1_pd(x0h),xh)));
     }
 #endif
 
