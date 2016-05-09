@@ -256,7 +256,9 @@ int OutputWriter::HelperThread::run()
         hrtime lastUpdateTime = getHrTime();
         hrtime writingTime = 0;
         long long int bytesWritten = 0;
+        long long int totalBytesWritten = 0;
         int messagesWritten = 0;
+        long long int totalMessagesWritten = 0;
         int messagesQueued;
         int bytesQueued;
 
@@ -359,10 +361,17 @@ int OutputWriter::HelperThread::run()
                 p->flush();
                 lastUpdateTime = currentTime;
                 writingTime = 0;
+                totalMessagesWritten += messagesWritten;
                 messagesWritten = 0;
+                totalBytesWritten += bytesWritten;
                 bytesWritten = 0;
             }
         }
+
+        // Add any remaining bytes and messages to the total.
+        totalMessagesWritten += messagesWritten;
+        totalBytesWritten += bytesWritten;
+        Print::printf(Print::INFO, "OutputWriter wrote %lld messages (%lld bytes) total.", totalMessagesWritten, threadNumber, totalBytesWritten);
     }
     catch (lm::Exception e)
     {
