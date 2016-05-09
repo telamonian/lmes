@@ -201,10 +201,9 @@ int OutputWriter::run()
         // Stop the helper thread.
         helperThread.stop();
 
-        // Flush the data.
-        flush();
-
         // Let the output writer close any resources.
+        Print::printf(Print::INFO, "OutputWriter %d:%d flushing and closing.", communicator.getSourceProcess(), communicator.getSourceThread());
+        flush();
         finalize();
 
         Print::printf(Print::INFO, "OutputWriter %d:%d finished.", communicator.getSourceProcess(), communicator.getSourceThread());
@@ -374,7 +373,7 @@ int OutputWriter::HelperThread::run()
         // Add any remaining bytes and messages to the total.
         totalMessagesWritten += messagesWritten;
         totalBytesWritten += bytesWritten;
-        Print::printf(Print::INFO, "OutputWriter wrote %lld messages (%lld bytes) total.", totalMessagesWritten, threadNumber, totalBytesWritten);
+        Print::printf(Print::INFO, "OutputWriter wrote %lld messages and %lld bytes total.", totalMessagesWritten, totalBytesWritten);
     }
     catch (lm::Exception e)
     {
