@@ -219,17 +219,17 @@ void Trajectory::initializeOrderParameters(const lm::input::Input& input)
 
 void Trajectory::initializeOrderParameterFirstPassageTimes(const lm::input::Input& input)
 {
-    for (int i=0; i< input.getOutputOptionsMsg().fpt_order_parameter_to_track_size(); i++)
+    for (int i=0; i<input.getOutputOptionsMsg().fpt_order_parameter_to_track_size(); i++)
     {
         uint oparamID = input.getOutputOptionsMsg().fpt_order_parameter_to_track(i);
-        const lm::oparam::OParam* oparam = input.getOrderParameters().at(oparamID);
+        const lm::oparam::OParam* op = input.getOrderParameters().at(oparamID);
         lm::io::OrderParameterFirstPassageTimes* opFPT = state.mutable_cme_state()->add_order_parameter_first_passage_times();
         opFPT->set_trajectory_id(id);
         opFPT->set_order_parameter_id(oparamID);
 
         // TODO: improve the syntax of .set_array()
-        lm::protowrap::NDArray<int> fptValueWrap(opFPT->mutable_order_parameter_value());
-        fptValueWrap.set_array(UTuple(1), std::vector<int>(1, (int)round(oparam->calc(state))), false);
+        lm::protowrap::NDArray<int32_t> fptValueWrap(opFPT->mutable_order_parameter_value());
+        fptValueWrap.set_array(UTuple(1), std::vector<int32_t>(1, (int32_t)round(op->calc(state))), false);
 
         // TODO: improve the syntax of .set_array()
         lm::protowrap::NDArray<double> timeWrap(opFPT->mutable_first_passage_time());

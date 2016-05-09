@@ -51,6 +51,7 @@
 #include <sys/stat.h>
 #include <vector>
 #include <zlib.h>
+#include <lm/array/NDArray.h>
 
 #include "lm/Exceptions.h"
 #include "lm/Math.h"
@@ -78,6 +79,7 @@
 
 using std::list;
 using std::map;
+using std::stringstream;
 using std::string;
 using std::vector;
 using lm::IOException;
@@ -150,6 +152,34 @@ void Hdf5File::open() throw(IOException,HDF5Exception,Exception)
 
     // Loaded the parameters.
     loadParameters();
+}
+
+hid_t Hdf5File::initGroup(vector<string>& groupPathVector, hid_t rootGroup)
+{
+    hid_t currentGroup, nextGroup;
+    currentGroup = rootGroup>=0 ? rootGroup : file;
+    for (vector<string>::const_iterator it = groupPathVector.begin(); it!=groupPathVector.end(); it++)
+    {
+        if ((nextGroup = H5Gopen2(currentGroup, it->c_str(), H5P_DEFAULT)) < 0)
+        {
+            HDF5_EXCEPTION_CALL(nextGroup, H5Gcreate2(currentGroup, it->c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+        }
+        currentGroup = nextGroup;
+    }
+    return currentGroup;
+}
+
+hid_t Hdf5File::initGroup(string& groupPath, hid_t rootGroup)
+{
+    vector<string> groupPathVector;
+    std::stringstream ss(groupPath);
+    std::string item;
+    while (std::getline(ss, item, '/'))
+    {
+        groupPathVector.push_back(item);
+    }
+
+    return initGroup(groupPathVector, rootGroup);
 }
 
 void Hdf5File::openGroups() throw(HDF5Exception)
@@ -2613,7 +2643,111 @@ void Hdf5File::closeReplicateHandles(ReplicateHandles * handles) throw(HDF5Excep
     handles->speciesCountTimesDataset = H5I_INVALID_HID;
 }
 
+//template <typename T>
+//void Hdf5File::setNDArray(string groupPath, string datasetName, robertslab::pbuf::NDArray* ndarray)
+//{
+//    // declare the HDF5 boilerplate variable
+//    hid_t group;
+//
+//    // Open the group the NDArray dataset is going to be stored in
+//    if ((group = H5Gopen2(file, groupPath.c_str(), H5P_DEFAULT)) < 0)
+//    {
+//        HDF5_EXCEPTION_CALL(group, H5Gcreate2(file, groupPath.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+//    }
+//
+//    setNDArray<T>(group, datasetName, ndarray);
+//}
 
+//template <typename T>
+//void Hdf5File::setNDArray(hid_t group, string datasetName, robertslab::pbuf::NDArray* ndarray)
+//{
+//    // extract the data for the dataset from the NDArray
+//    lm::protowrap::NDArray<T> ndarrayWrap(ndarray);
+//    T* data = ndarrayWrap.get_data();
+//
+//    // declare the HDF5 boilerplate variables
+//    uint RANK(ndarrayWrap.rank());
+//    hid_t dataspace, dataset, filespace, memspace, prop;
+//    hsize_t chunkdims[RANK], dims[RANK], dimsr[RANK], dimstotal[RANK], maxdims[RANK], offset[RANK];
+//
+////    // If the NDArray's dataset already exists, delete it
+////    if (H5Lexists(group, groupName.c_str(), H5P_DEFAULT))
+////    {
+////        HDF5_EXCEPTION_CHECK(H5Ldelete(group, groupName.c_str(), H5P_DEFAULT));
+////    }
+//
+//    // write or extend the NDArray dataset
+//    dims[0] = RANK > 0 ? ndarrayWrap.shape(0) : 0;
+//    chunkdims[0] = 1000;
+//    maxdims[0] = H5S_UNLIMITED;
+//    for (int i=1; i<RANK; i++)
+//    {
+//        dims[i] = ndarrayWrap.shape(i);
+//        chunkdims[i] = dims[i];
+//        maxdims[i] = dims[i];
+//    }
+//
+//    // if the dataset exists, extend it
+//    if ((dataset = H5Dopen2(group, datasetName.c_str(), H5P_DEFAULT))>=0)
+//    {
+//        HDF5_EXCEPTION_CALL(prop, H5Dget_create_plist(dataset));
+//
+//        HDF5_EXCEPTION_CALL(filespace, H5Dget_space(dataset));
+//        HDF5_EXCEPTION_CHECK(H5Sget_simple_extent_dims(filespace, dimsr, NULL));
+//        /* Extend the dataset */
+//        dimstotal[0] = dimsr[0] + dims[0];
+//        if (RANK==2) {dimstotal[1] = dimsr[1];}
+//        HDF5_EXCEPTION_CHECK(H5Dset_extent(dataset, dimstotal));
+//        // reopen the now-extended dataset's filespace
+//        HDF5_EXCEPTION_CALL(filespace, H5Dget_space(dataset));
+//        /* Select a hyperslab in extended portion of dataset  */
+//        offset[0] = dimsr[0];
+//        if (RANK==2) {offset[1] = 0;}
+//        HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset, NULL, dims, NULL));
+//        /* Define memory space */
+//        HDF5_EXCEPTION_CALL(memspace, H5Screate_simple(RANK, dims, NULL));
+//        HDF5_EXCEPTION_CHECK(H5Dwrite(dataset, HDF5Type<T>::T(), memspace, filespace, H5P_DEFAULT, data));
+//
+//        HDF5_EXCEPTION_CHECK(H5Dclose(dataset));
+//        HDF5_EXCEPTION_CHECK(H5Sclose(memspace));
+//        HDF5_EXCEPTION_CHECK(H5Sclose(filespace));
+//    }
+//        // otherwise, create the dataset
+//    else
+//    {
+//        /* Create the dataField space with unlimited dimensions. */
+//        HDF5_EXCEPTION_CALL(dataspace, H5Screate_simple(RANK, dims, maxdims));
+//        /* Modify dataset creation properties, i.e. enable chunking  */
+//        HDF5_EXCEPTION_CALL(prop, H5Pcreate(H5P_DATASET_CREATE));
+//        HDF5_EXCEPTION_CHECK(H5Pset_chunk(prop, RANK, chunkdims));
+//        /* Create a new dataset within the file using chunk creation properties.  */
+//        dataset = H5Dcreate2(group, datasetName.c_str(), HDF5Type<T>::T(), dataspace, H5P_DEFAULT, prop, H5P_DEFAULT);
+//        /* Write dataField to dataset */
+//        HDF5_EXCEPTION_CHECK(H5Dwrite(dataset, HDF5Type<T>::T(), H5S_ALL, H5S_ALL, H5P_DEFAULT, data));
+//
+//        HDF5_EXCEPTION_CHECK(H5Dclose(dataset));
+//        HDF5_EXCEPTION_CHECK(H5Pclose(prop));
+//        HDF5_EXCEPTION_CHECK(H5Sclose(dataspace));
+//    }
+//
+//    // clean up, if required
+//    if (ndarrayWrap.compressed_deflate()) delete[] data;
+//}
+
+//template <typename T>
+//void Hdf5File::setNDArrayReplicate(uint64_t replicate, std::string groupRelativePath, std::string datasetName, robertslab::pbuf::NDArray* ndarray)
+//{
+//    ReplicateHandles * replicateHandles = openReplicateHandles(replicate);
+//
+//    // Open the group relative to the replicate group
+//    hid_t group;
+//    if ((group=H5Gopen2(replicateHandles->group, groupRelativePath.c_str(), H5P_DEFAULT)) < 0)
+//    {
+//        HDF5_EXCEPTION_CALL(group,H5Gcreate2(replicateHandles->group, groupRelativePath.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+//    }
+//
+//    setNDArray<T>(group, datasetName, ndarray);
+//}
 
 }
 }

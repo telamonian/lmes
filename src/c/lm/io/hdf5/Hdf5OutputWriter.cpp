@@ -36,7 +36,9 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
+#include <iomanip>
+#include <sstream>
+#include <string>
 #include <sys/stat.h>
 
 #include <lm/ClassFactory.h>
@@ -44,11 +46,12 @@
 #include "lm/io/OutputWriter.h"
 #include "lm/io/hdf5/Hdf5OutputWriter.h"
 
-
 namespace lm {
 namespace io {
 namespace hdf5 {
 
+using std::stringstream;
+using std::string;
 
 bool Hdf5OutputWriter::registered=Hdf5OutputWriter::registerClass();
 
@@ -103,7 +106,15 @@ void Hdf5OutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes&
 
 void Hdf5OutputWriter::processOrderParameterFirstPassageTimes(const lm::io::OrderParameterFirstPassageTimes& data)
 {
-//    file->setOrderParameterFirstPassageTimes(data.trajectory_id(), data);
+    // construct the relative path to the group we're storing the opfpt datasets in
+    std::stringstream ss;
+    ss << "OrderParameterFirstPassageTime" << "/";
+    ss << std::setfill('0') << std::setw(2) << data.order_parameter_id();
+
+    std::string groupRelativePath(ss.str()), valuesDatasetName("Values"), timesDatasetName("Times");
+
+    file->setNDArrayReplicate<int32_t>(data.trajectory_id(), groupRelativePath, valuesDatasetName, const_cast<robertslab::pbuf::NDArray*>(&data.order_parameter_value()));
+    file->setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, timesDatasetName, const_cast<robertslab::pbuf::NDArray*>(&data.first_passage_time()));
 }
 
 void Hdf5OutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)
@@ -120,7 +131,6 @@ void Hdf5OutputWriter::processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries&
 {
     file->appendSpeciesTimeSeries(data.trajectory_id(), data);
 }
-
 
 void Hdf5OutputWriter::flush()
 {

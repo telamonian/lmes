@@ -187,7 +187,6 @@ public:
 
 // mutators
     // copy data from a protobuf RepeatedField to a tuple
-//    template <typename RepT>
     void fromRepeated(const google::protobuf::RepeatedField<T>* repFieldPtr)
     {
         // if _data exists, deallocate it

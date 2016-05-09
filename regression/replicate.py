@@ -3,6 +3,7 @@ from __future__ import absolute_import
 
 import os,sys
 import shutil
+from six import print_
 import sys
 
 from lma.src.script.lmFile import Input,Dependency,DependencyMatrix,InitialSpeciesCounts,InitialSpeciesCountsBackward,OrderParameter,ReactionRateConstant,SimulationParameter,Tiling
@@ -67,6 +68,13 @@ class ReplicateRegression(Regression):
         replicateInput.SetOrderParameters(ops=ops)
         replicateInput.SetReactionRateConstants(rRates=reactionRateConstants)
         replicateInput.SetSimulationParameters(simParams=simParams)
+        print_(kwargs)
+        if kwargs['firstPassageTimeSpecies']:
+            replicateInput.SetFirstPassageTimeTracking(fptTrackedSpecies=[0,1,2,3,4,5,6])
+
+        if kwargs['firstPassageTimeOrderParameters']:
+            replicateInput.SetFirstPassageTimeTracking(fptTrackedOrderParameters=[0])
+
         replicateInput.Close()
 
 if __name__=='__main__':

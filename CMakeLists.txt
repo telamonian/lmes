@@ -1,9 +1,23 @@
 # the following commands are wrapped to prevent errors when this CMakeLists.txt is included as a subdirectory in another CMakeLists.txt
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     cmake_minimum_REQUIRED(VERSION 2.8.8)
-    SET(CMAKE_C_COMPILER gcc)
-    SET(CMAKE_CXX_COMPILER g++)
 endif(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+
+# initialize custom modules
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules)
+include(ConfigFunctions)
+include(TestCompilerFeatures)
+
+# if certain packages cannot be found, the end-user (you) can change the variables in CMakeConfig.txt to point to package paths
+initializeCMakeConfig()
+include(CMakeConfig.txt)
+
+# the following commands are wrapped to prevent errors when this CMakeLists.txt is included as a subdirectory in another CMakeLists.txt
+if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    SetConfigDefault(CMAKE_TOOLCHAIN CMAKE_TOOLCHAIN gnu)
+    chooseToolchain()
+endif(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+
 set(ENV{HDF5_ROOT} ${HDF5_ROOT})
 
 # convert the build type string to upper case for easy comparison
@@ -29,13 +43,6 @@ endif()
 project(lm)
 ################
 enable_testing()
-SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules)
-include(ConfigFunctions)
-include(TestCompilerFeatures)
-
-# if certain packages cannot be found, the end-user (you) can change the variables in CMakeConfig.txt to point to package paths
-initializeCMakeConfig()
-include(CMakeConfig.txt)
 
 # Lattice Microbes standard architecture flag
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "Intel")

@@ -40,11 +40,13 @@
 #define LM_PWRAP_NDARRAY
 
 #include <deque>
+#include <memory>
 #include <string>
 #include <vector>
 #include <zlib.h>
 
 #include "lm/array/Tuple.h"
+#include "lm/io/hdf5/HDF5.h"
 #include "lm/protowrap/Repeated.h"
 #include "lm/Types.h"
 #include "robertslab/pbuf/NDArray.pb.h"
@@ -56,26 +58,43 @@ typedef robertslab::pbuf::NDArray_ArrayOrder ArrayOrder;
 typedef robertslab::pbuf::NDArray_ByteOrder ByteOrder;
 typedef robertslab::pbuf::NDArray_DataType DataType;
 
-// template based mappings to handle NumPy <-> C++ DataType conversions
-template <DataType NPDType> struct CPPDType;
+// template based mapping to handle NumPy -> C++ Type conversions
+template <DataType NPDType> struct CPPType;
 // NB: the various NPDTypes correspond to the DataType enum in robertslab::pbuf::NDArray
-template <> struct CPPDType<robertslab::pbuf::NDArray::float32> {typedef float T;};
-template <> struct CPPDType<robertslab::pbuf::NDArray::float64> {typedef double T;};
-template <> struct CPPDType<robertslab::pbuf::NDArray::int32> {typedef int32_t T;};
-template <> struct CPPDType<robertslab::pbuf::NDArray::int64> {typedef int64_t T;};
-template <> struct CPPDType<robertslab::pbuf::NDArray::uint32> {typedef uint32_t T;};
-template <> struct CPPDType<robertslab::pbuf::NDArray::uint64> {typedef uint64_t T;};
-// handling strings with NDArray is going to be... complicated. I'm putting implementation on indefinite hold
-//template <> struct CPPDType<robertslab::pbuf::NDArray::S128> {typedef char* T;};
+template <> struct CPPType<robertslab::pbuf::NDArray::float32> {typedef float T;};
+template <> struct CPPType<robertslab::pbuf::NDArray::float64> {typedef double T;};
+template <> struct CPPType<robertslab::pbuf::NDArray::int32> {typedef int32_t T;};
+template <> struct CPPType<robertslab::pbuf::NDArray::int64> {typedef int64_t T;};
+template <> struct CPPType<robertslab::pbuf::NDArray::uint32> {typedef uint32_t T;};
+template <> struct CPPType<robertslab::pbuf::NDArray::uint64> {typedef uint64_t T;};
 
-template <typename CPPDType> struct NPDType;
+// handling strings with NDArray is going to be... complicated. I'm putting implementation on indefinite hold
+//template <> struct CPPType<robertslab::pbuf::NDArray::S128> {typedef char* T;};
+
+// template based mapping to handle C++ -> NumPy Type conversions
+template <typename CPPDType> struct NDType;
 // NB: the various NPDTypes correspond to the DataType enum in robertslab::pbuf::NDArray
-template <> struct NPDType<float> {static const DataType T = robertslab::pbuf::NDArray::float32;};
-template <> struct NPDType<double> {static const DataType T = robertslab::pbuf::NDArray::float64;};
-template <> struct NPDType<int32_t> {static const DataType T = robertslab::pbuf::NDArray::int32;};
-template <> struct NPDType<int64_t> {static const DataType T = robertslab::pbuf::NDArray::int64;};
-template <> struct NPDType<uint32_t> {static const DataType T = robertslab::pbuf::NDArray::uint32;};
-template <> struct NPDType<uint64_t> {static const DataType T = robertslab::pbuf::NDArray::uint64;};
+template <> struct NDType<float> {static const DataType T = robertslab::pbuf::NDArray::float32;};
+template <> struct NDType<double> {static const DataType T = robertslab::pbuf::NDArray::float64;};
+template <> struct NDType<int32_t> {static const DataType T = robertslab::pbuf::NDArray::int32;};
+template <> struct NDType<int64_t> {static const DataType T = robertslab::pbuf::NDArray::int64;};
+template <> struct NDType<uint32_t> {static const DataType T = robertslab::pbuf::NDArray::uint32;};
+template <> struct NDType<uint64_t> {static const DataType T = robertslab::pbuf::NDArray::uint64;};
+
+//template <DataType NDType> struct HDF5Type {static const hid_t T = lm::io::hdf5::HDF5Type<CPPType<NDType>>::T;};
+//
+//hid_t ndTypeToHDF5Type(const DataType NDType)
+//{
+//    switch (NDType)
+//    {
+//    case robertslab::pbuf::NDArray::float32: return HDF5Type<robertslab::pbuf::NDArray::float32>::T;
+//    case robertslab::pbuf::NDArray::float64: return HDF5Type<robertslab::pbuf::NDArray::float64>::T;
+//    case robertslab::pbuf::NDArray::int32:   return HDF5Type<robertslab::pbuf::NDArray::int32>::T;
+//    case robertslab::pbuf::NDArray::int64:   return HDF5Type<robertslab::pbuf::NDArray::int64>::T;
+//    case robertslab::pbuf::NDArray::uint32:  return HDF5Type<robertslab::pbuf::NDArray::uint32>::T;
+//    case robertslab::pbuf::NDArray::uint64:  return HDF5Type<robertslab::pbuf::NDArray::uint64>::T;
+//    }
+//}
 
 template <typename T>
 class NDArray
@@ -86,11 +105,17 @@ public:
     ~NDArray() {}
 
 // accessors
+    uint rank() const {return shape().size();}
     uint32_t size() const {return shape().product();}
     size_t sizeBytes() const {return size()*sizeof(T);}
 
 // mutators
     // array version
+    // call this method like this
+        // data = new T[ndarray.size()];
+        // ndarray.get_data(data);
+        // ...
+        // delete[] data;
     inline void get_data(T* outputArray)
     {
         if (compressed_deflate())
@@ -102,8 +127,28 @@ public:
         }
         else
         {
-            memcpy(outputArray, (T*)&(data()[0]), data().size());
+            memcpy(outputArray, (T*) &(data()[0]), data().size());
         }
+    }
+
+    // array version (empty argument)
+    // if noCopy, call this method like this
+        // ndarray.get_data(data);
+        // ...
+        // if (ndarray.compressed_deflate()) delete[] data;
+    inline T* get_data(bool noCopy=false)
+    {
+        T* outputArray = NULL;
+        if (!noCopy || compressed_deflate())
+        {
+            outputArray = new T[size()];
+            get_data(outputArray);
+        }
+        else
+        {
+            outputArray = (T*) &(data()[0]);
+        }
+        return outputArray;
     }
 
     // general STL container version
@@ -112,15 +157,22 @@ public:
     inline void get_data(ContainerT& outputContainer)
     {
         outputContainer.clear();
-        std::vector<T> outputVector(outputContainer.begin(), outputContainer.end());
+        std::vector<T> outputVector;
         get_data(outputVector);
-        outputContainer.insert(outputContainer.begin(), outputVector.begin(), outputVector.end());
+        for (typename std::vector<T>::iterator it=outputVector.begin(); it!=outputVector.end(); it++)
+        {
+            outputContainer.push_back(*it);
+        }
+        // alternative version using insert that doesn't work for some reason
+//        typename ContainerT::iterator it = outputContainer.begin();
+//        outputContainer.insert(it, outputVector.begin(), outputVector.end());
     }
 
     // vector version
     inline void get_data(std::vector<T>& outputVector)
     {
-        outputVector.clear(); outputVector.resize(sizeBytes());
+        outputVector.clear();
+        outputVector.resize(size());
         get_data(outputVector.data());
     }
 
@@ -134,7 +186,7 @@ public:
     // array version
     inline void set_array(const UTuple& shape, const T* inputArray, bool compressed=true)
     {
-        _set_props(shape, NPDType<T>::T, compressed);
+        _set_props(shape, NDType<T>::T, compressed);
         set_data(inputArray);
     }
 
@@ -143,7 +195,7 @@ public:
     template <typename ContainerT>
     inline void set_array(const UTuple& shape, const ContainerT& inputContainer, bool compressed=true)
     {
-        _set_props(shape, NPDType<T>::T, compressed);
+        _set_props(shape, NDType<T>::T, compressed);
         if (size()!=inputContainer.size())
         {
             throw Exception("When serializing NDArray, size of data container and specified shape did not match: %d, %s", (int)inputContainer.size(), _shape.repr().c_str());
@@ -154,7 +206,7 @@ public:
     // vector version
     inline void set_array(const UTuple& shape, const std::vector<T>& inputVector, bool compressed=true)
     {
-        _set_props(shape, NPDType<T>::T, compressed);
+        _set_props(shape, NDType<T>::T, compressed);
         if (size()!=inputVector.size())
         {
             throw Exception("When serializing NDArray, size of data vector and specified shape did not match: %d, %s", (int)inputVector.size(), _shape.repr().c_str());

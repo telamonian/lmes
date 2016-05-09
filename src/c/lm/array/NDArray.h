@@ -147,7 +147,7 @@ public:
 
     robertslab::pbuf::NDArray_DataType inferDType() const
     {
-        return lm::protowrap::NPDType<T>::T;
+        return lm::protowrap::NDType<T>::T;
     }
 
     void print(const char* suffix="") const
@@ -206,6 +206,11 @@ public:
         }
     }
 
+    uint rank() const
+    {
+        return _shape.len;
+    }
+
     uint ravelMultiIndex(const UTuple& multiIndex) const
     {
         return lm::array::ravelMultiIndex(multiIndex, _shape);
@@ -236,6 +241,10 @@ public:
         // set new shape
         _shape.fromRepeated(&ndArrMsg->shape());
         _size = calculateNumberValues(_shape);
+
+        // deallocate main array memory, if set
+
+        // reallocate main array memory
 
         // deallocate main array memory, if set
         if (_data != NULL) delete[] _data; _data = NULL;

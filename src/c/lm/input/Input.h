@@ -71,7 +71,8 @@ public:
     virtual ~Input();
 
     // accessors
-    const lm::tiling::Tiling& getCurrentTiling() const {return getTilings().getCurrentTiling();}
+//    const lm::tiling::Tiling& getCurrentTiling() const {return getTilings().getCurrentTiling();}
+    const lm::tiling::Tiling& getCurrentTiling() const;
     const lm::io::DiffusionModel& getDiffusionModelMsg() const {return diffusionModel;}
     const lm::oparam::OParams& getOrderParameters() const {return orderParameters;}
     const lm::io::OrderParameters& getOrderParametersMsg() const {return orderParametersMsg;}

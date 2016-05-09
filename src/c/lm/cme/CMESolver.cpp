@@ -92,7 +92,7 @@ CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
  numberLimits(0),limits(NULL),limitReached(NULL),limitIDReached(lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID),limitTypeReached(lm::io::TrajectoryLimits::NONE),
  writeDegreeAdvancementTimeSeries(false),writeOrderParameterTimeSeries(false),writeSpeciesTimeSeries(false),
  degreeAdvancementWriteInterval(0.0), orderParameterWriteInterval(0.0),speciesWriteInterval(0.0),numberFPTTrackedSpecies(0),
- fptTrackedSpecies(NULL),trajectoryStarted(false),speciesCounts(NULL),time(0.0),timeStep(0.0),degreeAdvancements(NULL),
+ fptTrackedSpecies(NULL),fptTrackedOrderParameters(NULL),trajectoryStarted(false),speciesCounts(NULL),time(0.0),timeStep(0.0),degreeAdvancements(NULL),
  orderParameterValues(NULL),orderParameterPreviousValues(NULL),tilingHists(NULL)
 {
 }

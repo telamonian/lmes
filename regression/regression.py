@@ -4,7 +4,7 @@ from six import print_
 import subprocess
 
 class Regression(object):
-    defaultLMArgs = ['-sl', 'lm::avx::GillespieDSolverAVX', '-f', 'biphasic_switch.lm']
+    defaultLMArgs = ['-sl', 'lm::cme::GillespieDSolver', '-f', 'biphasic_switch.lm']
     helpMessage = 'base class for doing regression testing on Lattice Microbes'
 
     def BuildInput(self, **kwargs):
@@ -50,23 +50,24 @@ class Regression(object):
 
         # general simulation parameters
         parser.add_argument('-t', '--theta', default=1,                                  help='scaling factor for the rates of protein production and degradation in the test Genetic Toggle Switch system.')
-        parser.add_argument('--maxWorkUnitSteps', default=SUPPRESS,                                        help='max number of steps in a single work unit')
-        parser.add_argument('--writeInterval', default=SUPPRESS,                                          help='the period at which every trajectory will write out the state of its species counts')
-
-        # forward flux specific simulation parameters
-        parser.add_argument('-mcz', '--maxCrossingsZero', default=SUPPRESS,                               help='max crossing to record for phase zero')
-        parser.add_argument('-mtz', '--maxTimeZero', default=SUPPRESS,                                    help='max time to run phase zero for')
-        parser.add_argument('-mcn', '--maxCrossingsN', default=SUPPRESS,                                  help='max crossing to record for phase N')
-        parser.add_argument('-mtn', '--maxTimeN', default=SUPPRESS,                                       help='max time to run phase N for')
-
-        # replicate specific simulation parameters
-        parser.add_argument('--maxSteps', default=SUPPRESS,                                               help='max number of steps to run for a single replicate')
-        parser.add_argument('--maxTime', default=SUPPRESS,                                                help='max time to run for a single replicate')
-
+        parser.add_argument('--maxWorkUnitSteps', default=SUPPRESS,                      help='max number of steps in a single work unit')
+        parser.add_argument('--writeInterval', default=SUPPRESS,                         help='the period at which every trajectory will write out the state of its species counts')
         parser.add_argument('--extra-input', action='store_true',                        help="add some extra order parameters and tilings to the .lm input file. Meant for use in analysis only (ie, don't use in conjunction with execPath)")
-        parser.add_argument('--fflux', action='store_true',                              help='set this flag to do a Forward Flux simulation instead of the deafult Replicate simulation')
         parser.add_argument('--quick-test', action='store_true',                         help='use presets for simulation parameters, etc that will result in roughly the quickest possible simulation that will still give useful results for testing purposes')
         parser.add_argument('--sfile', action='store_true',                              help='set this flag to use SFile output. Equivalent to -ff sfile -fo biphasic_switch.sfile')
+
+        # forward flux specific simulation parameters
+        parser.add_argument('--fflux', action='store_true',                              help='set this flag to do a Forward Flux simulation instead of the deafult Replicate simulation')
+        parser.add_argument('-mcz', '--maxCrossingsZero', default=SUPPRESS,              help='max crossing to record for phase zero')
+        parser.add_argument('-mtz', '--maxTimeZero', default=SUPPRESS,                   help='max time to run phase zero for')
+        parser.add_argument('-mcn', '--maxCrossingsN', default=SUPPRESS,                 help='max crossing to record for phase N')
+        parser.add_argument('-mtn', '--maxTimeN', default=SUPPRESS,                      help='max time to run phase N for')
+
+        # replicate specific simulation parameters
+        parser.add_argument('-fpt', '--firstPassageTimeSpecies', action='store_true',    help='set this flag to track species first passage times')
+        parser.add_argument('-fptop', '--firstPassageTimeOrderParameters', action='store_true', help='set this flag to track order parameter first passage times')
+        parser.add_argument('--maxSteps', default=SUPPRESS,                              help='max number of steps to run for a single replicate')
+        parser.add_argument('--maxTime', default=SUPPRESS,                               help='max time to run for a single replicate')
 
         kwargs = vars(parser.parse_args())
         print_(kwargs)

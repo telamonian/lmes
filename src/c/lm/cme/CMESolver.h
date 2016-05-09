@@ -122,12 +122,12 @@ protected:
         typedef lm::io::OrderParameterFirstPassageTimes MsgT;
 
         uint oparamID;
-        int minValueAchieved;
-        int maxValueAchieved;
-        std::deque<int> fptValue;
+        int32_t minValueAchieved;
+        int32_t maxValueAchieved;
+        std::deque<int32_t> fptValue;
         std::deque<double> fptTime;
 
-        lm::protowrap::NDArray<int> fptValueWrap;
+        lm::protowrap::NDArray<int32_t> fptValueWrap;
         lm::protowrap::NDArray<double> fptTimeWrap;
 
         void deserializeFrom(const MsgT& opFPTMsgRef)
@@ -142,6 +142,9 @@ protected:
 
             fptTimeWrap.setMsgPtr(opFPTMsg->mutable_first_passage_time());
             fptTimeWrap.get_data(fptTime);
+
+            minValueAchieved = fptValue.front();
+            maxValueAchieved = fptValue.back();
         }
         
         void serializeTo(uint64_t trajectoryId, MsgT* opFPTMsg)

@@ -41,7 +41,6 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #ifndef LM_IO_HDF5_SIMULATIONFILE_H_
 #define LM_IO_HDF5_SIMULATIONFILE_H_
 
@@ -49,10 +48,13 @@
 #include <map>
 #include <string>
 #include <vector>
+
+#include "lm/protowrap/NDArray.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/io/hdf5/HDF5.h"
 #include "lm/Exceptions.h"
 #include "lm/Types.h"
+#include "robertslab/pbuf/NDArray.pb.h"
 
 namespace lm {
 
@@ -68,6 +70,7 @@ class FirstPassageTimes;
 class FFluxOutput;
 class Lattice;
 class LatticeTimeSeries;
+class OrderParameterFirstPassageTimes;
 class OrderParameters;
 class ReactionModel;
 class ParameterValues;
@@ -131,8 +134,10 @@ public:
     Hdf5File(const char* filename) throw(IOException,HDF5Exception,Exception);
 	virtual ~Hdf5File();
     virtual void close() throw(IOException,HDF5Exception);
-    virtual void flush() throw(HDF5Exception);
     virtual string checkpoint() throw(IOException,HDF5Exception);
+    virtual void flush() throw(HDF5Exception);
+    virtual hid_t initGroup(std::vector<std::string>& groupPathVector, hid_t rootGroup=-1);
+    virtual hid_t initGroup(std::string& groupPath, hid_t rootGroup=-1);
 
     // Methods for working with parameters.
     virtual void getParameters(lm::io::SimulationParameters* parameters) const;
@@ -162,16 +167,16 @@ public:
     // Methods for working with a replicate.
     virtual bool replicateExists(uint64_t replicate);
     virtual void openReplicate(uint64_t replicate) throw(HDF5Exception);
-    virtual void appendSpeciesCounts(uint64_t replicate, lm::io::SpeciesCounts * speciesCounts) throw(HDF5Exception);
+    virtual void appendSpeciesCounts(uint64_t replicate, lm::io::SpeciesCounts* speciesCounts) throw(HDF5Exception);
     static int32_t* dumpSpeciesCounts(const lm::io::SpeciesTimeSeries& speciesTimeSeries);
     static double* dumpSpeciesTimes(const lm::io::SpeciesTimeSeries& speciesTimeSeries);
     virtual void appendSpeciesTimeSeries(uint64_t replicate, const lm::io::SpeciesTimeSeries& speciesCounts);
     virtual void appendSpeciesTimeSeries(uint64_t replicate, int numberEntries, int numberSpecies, const int32_t* counts, const double* times);
     virtual void appendLatticeTimeSeries(uint64_t replicate, const lm::io::LatticeTimeSeries& data);
-    virtual void appendParameterValues(uint64_t replicate, lm::io::ParameterValues * parameterValues) throw(HDF5Exception,InvalidArgException);
-    virtual void setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTimes * speciesCounts) throw(HDF5Exception,InvalidArgException);
+    virtual void appendParameterValues(uint64_t replicate, lm::io::ParameterValues* parameterValues) throw(HDF5Exception,InvalidArgException);
+    virtual void setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTimes* speciesCounts) throw(HDF5Exception,InvalidArgException);
     virtual vector<double> getLatticeTimes(uint64_t replicate) throw(HDF5Exception,InvalidArgException);
-    virtual void getLattice(uint64_t replicate, unsigned int latticeIndex, lm::rdme::Lattice * lattice) throw(HDF5Exception,InvalidArgException);
+    virtual void getLattice(uint64_t replicate, unsigned int latticeIndex, lm::rdme::Lattice* lattice) throw(HDF5Exception,InvalidArgException);
     virtual void closeReplicate(uint64_t replicate) throw(HDF5Exception);
     virtual void closeAllReplicates() throw(HDF5Exception);
 
@@ -184,8 +189,7 @@ public:
     virtual void setFFluxTrajectoryOutput_SpeciesCount(lm::io::FFluxOutput* ffluxOutput, int outIndex, hid_t lifecycleGroup);
     virtual void setFFluxTrajectoryOutput_Time(lm::io::FFluxOutput* ffluxOutput, int outIndex, hid_t lifecycleGroup);
     virtual void setFFluxTrajectoryOutput_TrajectoryID(lm::io::FFluxOutput* ffluxOutput, int outIndex, hid_t lifecycleGroup);
-    template <typename T>
-    void _setFFluxTrajectoryOutput(::google::protobuf::RepeatedField<T> data, hsize_t* dims, string dsetName, hid_t dsetType, hid_t lifecycleGroup, uint RANK);
+    template <typename T> void _setFFluxTrajectoryOutput(::google::protobuf::RepeatedField<T> data, hsize_t* dims, string dsetName, hid_t dsetType, hid_t lifecycleGroup, uint RANK);
     virtual void setTilingHist(lm::io::TilingHist* tilingHist, std::string datasetName, hid_t superGroup);
 
     //virtual void appendSpatialModelObjects(uint64_t replicate, lm::io::SpatialModel * model) throw(HDF5Exception,InvalidArgException);
@@ -206,7 +210,113 @@ public:
 	virtual uint64 getNumberLatticeConfigurations() const;
 	virtual const std::vector<nstime_t> getLatticeConfigurationTimes() const;
 	virtual void loadLatticeConfiguration(uint64 latticeIndex, Lattice* lattice, nstime_t* time=NULL) const throw(HDF5Exception);*/
-	
+
+	// Methods for working with NDArrays
+//    template <typename T> void setNDArray(std::string& groupPath, std::string& datasetName, robertslab::pbuf::NDArray* ndarray)
+//    {
+//        // declare the HDF5 boilerplate variable
+//        hid_t group;
+//
+//        // Open the group the NDArray dataset is going to be stored in
+//        if ((group = H5Gopen2(file, groupPath.c_str(), H5P_DEFAULT)) < 0)
+//        {
+//            HDF5_EXCEPTION_CALL(group, H5Gcreate2(file, groupPath.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+//        }
+//
+//        setNDArray<T>(group, datasetName, ndarray);
+//    }
+
+    template <typename T> void setNDArray(std::string& groupPath, std::string& datasetName, robertslab::pbuf::NDArray* ndarray, hid_t rootGroup=-1)
+    {
+        // initialize the group we'll be storing the NDArray dataset in
+        hid_t group = initGroup(groupPath, rootGroup);
+
+        // extract the data for the dataset from the NDArray
+        lm::protowrap::NDArray<T> ndarrayWrap(ndarray);
+        T* data = ndarrayWrap.get_data();
+
+        // declare the HDF5 boilerplate variables
+        uint RANK(ndarrayWrap.rank());
+        hid_t dataspace, dataset, filespace, memspace, prop;
+        hsize_t chunkdims[RANK], dims[RANK], dimsr[RANK], dimstotal[RANK], maxdims[RANK], offset[RANK];
+
+//    // If the NDArray's dataset already exists, delete it
+//    if (H5Lexists(group, groupName.c_str(), H5P_DEFAULT))
+//    {
+//        HDF5_EXCEPTION_CHECK(H5Ldelete(group, groupName.c_str(), H5P_DEFAULT));
+//    }
+
+        // write or extend the NDArray dataset
+        dims[0] = RANK > 0 ? ndarrayWrap.shape(0) : 0;
+        chunkdims[0] = 1000;
+        maxdims[0] = H5S_UNLIMITED;
+        for (int i=1; i<RANK; i++)
+        {
+            dims[i] = ndarrayWrap.shape(i);
+            chunkdims[i] = dims[i];
+            maxdims[i] = dims[i];
+        }
+
+        // if the dataset exists, extend it
+        if ((dataset = H5Dopen2(group, datasetName.c_str(), H5P_DEFAULT))>=0)
+        {
+            HDF5_EXCEPTION_CALL(prop, H5Dget_create_plist(dataset));
+
+            HDF5_EXCEPTION_CALL(filespace, H5Dget_space(dataset));
+            HDF5_EXCEPTION_CHECK(H5Sget_simple_extent_dims(filespace, dimsr, NULL));
+            /* Extend the dataset */
+            dimstotal[0] = dimsr[0] + dims[0];
+            if (RANK==2) {dimstotal[1] = dimsr[1];}
+            HDF5_EXCEPTION_CHECK(H5Dset_extent(dataset, dimstotal));
+            // reopen the now-extended dataset's filespace
+            HDF5_EXCEPTION_CALL(filespace, H5Dget_space(dataset));
+            /* Select a hyperslab in extended portion of dataset  */
+            offset[0] = dimsr[0];
+            if (RANK==2) {offset[1] = 0;}
+            HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset, NULL, dims, NULL));
+            /* Define memory space */
+            HDF5_EXCEPTION_CALL(memspace, H5Screate_simple(RANK, dims, NULL));
+            HDF5_EXCEPTION_CHECK(H5Dwrite(dataset, HDF5Type<T>::T(), memspace, filespace, H5P_DEFAULT, data));
+
+            HDF5_EXCEPTION_CHECK(H5Dclose(dataset));
+            HDF5_EXCEPTION_CHECK(H5Sclose(memspace));
+            HDF5_EXCEPTION_CHECK(H5Sclose(filespace));
+        }
+            // otherwise, create the dataset
+        else
+        {
+            /* Create the dataField space with unlimited dimensions. */
+            HDF5_EXCEPTION_CALL(dataspace, H5Screate_simple(RANK, dims, maxdims));
+            /* Modify dataset creation properties, i.e. enable chunking  */
+            HDF5_EXCEPTION_CALL(prop, H5Pcreate(H5P_DATASET_CREATE));
+            HDF5_EXCEPTION_CHECK(H5Pset_chunk(prop, RANK, chunkdims));
+            /* Create a new dataset within the file using chunk creation properties.  */
+            dataset = H5Dcreate2(group, datasetName.c_str(), HDF5Type<T>::T(), dataspace, H5P_DEFAULT, prop, H5P_DEFAULT);
+            /* Write dataField to dataset */
+            HDF5_EXCEPTION_CHECK(H5Dwrite(dataset, HDF5Type<T>::T(), H5S_ALL, H5S_ALL, H5P_DEFAULT, data));
+
+            HDF5_EXCEPTION_CHECK(H5Dclose(dataset));
+            HDF5_EXCEPTION_CHECK(H5Pclose(prop));
+            HDF5_EXCEPTION_CHECK(H5Sclose(dataspace));
+        }
+
+        // clean up, if required
+        if (ndarrayWrap.compressed_deflate()) delete[] data;
+    }
+    template <typename T> void setNDArrayReplicate(uint64_t replicate, std::string& groupRelativePath, std::string datasetName, robertslab::pbuf::NDArray* ndarray)
+    {
+        ReplicateHandles * replicateHandles = openReplicateHandles(replicate);
+
+        // Open the group relative to the replicate group
+//        hid_t group = initGroup(groupRelativePath, replicateHandles->group);
+//        if ((group=H5Gopen2(replicateHandles->group, groupRelativePath.c_str(), H5P_DEFAULT)) < 0)
+//        {
+//            HDF5_EXCEPTION_CALL(group,H5Gcreate2(replicateHandles->group, groupRelativePath.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+//        }
+
+        setNDArray<T>(groupRelativePath, datasetName, ndarray, replicateHandles->group);
+    }
+
 public:
 
     struct ReplicateHandles

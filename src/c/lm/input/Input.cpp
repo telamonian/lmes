@@ -166,11 +166,11 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         }
 
         // Get the order parameter first passage times.
-        if (simulationParameters.count("opFPTTrackingList"))
+        if (simulationParameters.count("fptOrderParameterTrackingList"))
         {
             // Initialize the first passage times in the cme state.
-            std::vector<int> opFPTTrackingVector = simulationParameters.parseVector<int>("opFPTTrackingList");
-            for (std::vector<int>::const_iterator it=opFPTTrackingVector.begin(); it==opFPTTrackingVector.end(); it++)
+            std::vector<int> opFPTTrackingVector = simulationParameters.parseVector<int>("fptOrderParameterTrackingList");
+            for (std::vector<int>::const_iterator it=opFPTTrackingVector.begin(); it!=opFPTTrackingVector.end(); it++)
             {
                 outputOptions.add_fpt_order_parameter_to_track(*it);
             }
@@ -208,6 +208,14 @@ Input::~Input()
 {
 }
 
+const lm::tiling::Tiling& Input::getCurrentTiling() const
+{
+    if (!tilingsPresent)
+    {
+        throw Exception("Tiling requested by simulation, but no tilings are set in the input file");
+    }
+    return getTilings().getCurrentTiling();
+}
 bool Input::parseBoundaryConditions(lm::io::BoundaryConditions* bc, string arg)
 {
     lm::io::BoundaryConditions::BoundaryConditionsType type;
@@ -326,8 +334,7 @@ template <EH::LimitType LT> bool Input::parseLimits(string key, string debugStri
     if (simulationParameters.count(key))
     {
         typename pairVector<uint, typename LimitValueT<LT>::type>::type idLimitVec(simulationParameters.parsePairVector<uint, typename LimitValueT<LT>::type>(key, debugString));
-        for (typename pairVector<uint, typename LimitValueT<LT>::type>::iterator it(idLimitVec.begin());
-             it != idLimitVec.end(); it++)
+        for (typename pairVector<uint, typename LimitValueT<LT>::type>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
         {
             trajectoryLimits.addLimitBuf<LT>(it->first, it->second, sc, includeEndpoint);
         }
