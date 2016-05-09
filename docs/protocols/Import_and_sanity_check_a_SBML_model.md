@@ -1,4 +1,4 @@
-- first, run the Lattice Microbes SBML importer to create a .lm file from your starting .sbml file.
+- First, run the Lattice Microbes SBML importer to create a .lm file from your starting .sbml file.
     - Run the following command in the same directory as your .sbml file:
         - <pre><code>lm_sbml_import <your_model_file_name>.lm <your_model_file_name>.sbml</code></pre>
     - If you're trying to import a .sbml file that was originally exported by Copasi, add the `--copasi` flag to the end of your arguments:
