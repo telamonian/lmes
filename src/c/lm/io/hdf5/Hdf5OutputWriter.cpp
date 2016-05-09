@@ -104,6 +104,18 @@ void Hdf5OutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes&
     file->setFirstPassageTimes(data.trajectory_id(), (lm::io::FirstPassageTimes*)&data);
 }
 
+void Hdf5OutputWriter::processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data)
+{
+    std::stringstream ss;
+    ss << "OrderParameterTimeSeries" << "/";
+    ss << std::setfill('0') << std::setw(2) << '0'; //data.id();
+
+    std::string groupRelativePath(ss.str()), valuesDatasetName("Values"), timesDatasetName("Times");
+
+    file->setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, valuesDatasetName, data.values());
+    file->setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, timesDatasetName, data.times());
+}
+
 void Hdf5OutputWriter::processOrderParameterFirstPassageTimes(const lm::io::OrderParameterFirstPassageTimes& data)
 {
     // construct the relative path to the group we're storing the opfpt datasets in
@@ -113,8 +125,8 @@ void Hdf5OutputWriter::processOrderParameterFirstPassageTimes(const lm::io::Orde
 
     std::string groupRelativePath(ss.str()), valuesDatasetName("Values"), timesDatasetName("Times");
 
-    file->setNDArrayReplicate<int32_t>(data.trajectory_id(), groupRelativePath, valuesDatasetName, const_cast<robertslab::pbuf::NDArray*>(&data.order_parameter_value()));
-    file->setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, timesDatasetName, const_cast<robertslab::pbuf::NDArray*>(&data.first_passage_time()));
+    file->setNDArrayReplicate<int32_t>(data.trajectory_id(), groupRelativePath, valuesDatasetName, data.order_parameter_value());    //const_cast<robertslab::pbuf::NDArray*>(&data.order_parameter_value()));
+    file->setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, timesDatasetName, data.first_passage_time());   //const_cast<robertslab::pbuf::NDArray*>(&data.first_passage_time()));
 }
 
 void Hdf5OutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)

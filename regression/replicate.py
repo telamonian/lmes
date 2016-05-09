@@ -18,13 +18,15 @@ class ReplicateRegression(Regression):
             defaultSimulationParameters = {'maxSteps': str(int(1e10)),
                                            'maxTime': str(int(1e1)),
                                            'maxWorkUnitSteps': str(int(1e6)),
-                                           'writeInterval': str(int(1e0))}
+                                           'writeInterval': str(int(1e0)),
+                                           'orderParameterWriteInterval': str(int(1e0))}
             theta = 10
         else:
             defaultSimulationParameters = {'maxSteps': str(int(1e10)),
                                            'maxTime': str(int(1e4)),
                                            'maxWorkUnitSteps': str(int(1e6)),
-                                           'writeInterval': str(int(1e1))}
+                                           'writeInterval': str(int(1e1)),
+                                           'orderParameterWriteInterval': str(int(1e1))}
             theta = kwargs['theta']
 
         try:

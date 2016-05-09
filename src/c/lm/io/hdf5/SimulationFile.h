@@ -212,22 +212,11 @@ public:
 	virtual void loadLatticeConfiguration(uint64 latticeIndex, Lattice* lattice, nstime_t* time=NULL) const throw(HDF5Exception);*/
 
 	// Methods for working with NDArrays
-//    template <typename T> void setNDArray(std::string& groupPath, std::string& datasetName, robertslab::pbuf::NDArray* ndarray)
-//    {
-//        // declare the HDF5 boilerplate variable
-//        hid_t group;
-//
-//        // Open the group the NDArray dataset is going to be stored in
-//        if ((group = H5Gopen2(file, groupPath.c_str(), H5P_DEFAULT)) < 0)
-//        {
-//            HDF5_EXCEPTION_CALL(group, H5Gcreate2(file, groupPath.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
-//        }
-//
-//        setNDArray<T>(group, datasetName, ndarray);
-//    }
-
-    template <typename T> void setNDArray(std::string& groupPath, std::string& datasetName, robertslab::pbuf::NDArray* ndarray, hid_t rootGroup=-1)
+    template <typename T> void setNDArray(std::string& groupPath, std::string& datasetName, const robertslab::pbuf::NDArray& ndarrayRef, hid_t rootGroup=-1)
     {
+        // TODO: refactor things so this cast to mutable isn't neccessary
+        robertslab::pbuf::NDArray* ndarray = const_cast<robertslab::pbuf::NDArray*>(&ndarrayRef);
+
         // initialize the group we'll be storing the NDArray dataset in
         hid_t group = initGroup(groupPath, rootGroup);
 
@@ -303,22 +292,13 @@ public:
         // clean up, if required
         if (ndarrayWrap.compressed_deflate()) delete[] data;
     }
-    template <typename T> void setNDArrayReplicate(uint64_t replicate, std::string& groupRelativePath, std::string datasetName, robertslab::pbuf::NDArray* ndarray)
+    template <typename T> void setNDArrayReplicate(uint64_t replicate, std::string& groupRelativePath, std::string& datasetName, const robertslab::pbuf::NDArray& ndarray)
     {
         ReplicateHandles * replicateHandles = openReplicateHandles(replicate);
-
-        // Open the group relative to the replicate group
-//        hid_t group = initGroup(groupRelativePath, replicateHandles->group);
-//        if ((group=H5Gopen2(replicateHandles->group, groupRelativePath.c_str(), H5P_DEFAULT)) < 0)
-//        {
-//            HDF5_EXCEPTION_CALL(group,H5Gcreate2(replicateHandles->group, groupRelativePath.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
-//        }
-
         setNDArray<T>(groupRelativePath, datasetName, ndarray, replicateHandles->group);
     }
 
 public:
-
     struct ReplicateHandles
     {
         hid_t group;

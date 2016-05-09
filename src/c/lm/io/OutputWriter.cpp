@@ -344,8 +344,6 @@ int OutputWriter::HelperThread::run()
                     {
                         p->processSpeciesTimeSeries(output.species_time_series());
                     }
-
-
                 }
                 writingTime += getHrTime()-startWriting;
                 bytesWritten += messageSize;
