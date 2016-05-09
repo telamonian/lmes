@@ -201,6 +201,9 @@ int OutputWriter::run()
         // Stop the helper thread.
         helperThread.stop();
 
+        // Flush the data.
+        flush();
+
         // Let the output writer close any resources.
         finalize();
 
