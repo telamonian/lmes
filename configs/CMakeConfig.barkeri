@@ -34,13 +34,13 @@ SET(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" "/Users/eroberts/usr/local")
 ############################
 
 # USE_AVX can be set to yes, no, or optional, in which case AVX will be used if cmake can build a test AVX program with your compiler.
-SET(USE_AVX no)
+SET(USE_AVX optional)
 
 # USE_FMA can be set to yes, no, or optional, in which case FMA will be used if cmake can build a test FMA program with your compiler.
-SET(USE_FMA no)
+SET(USE_FMA optional)
 
 # USE_SVML can be set to yes, no, or optional, in which case SVML will be used if cmake can build a test SVML program with your compiler.
-SET(USE_SVML no)
+SET(USE_SVML optional)
 
 ############################
 # compiler flags

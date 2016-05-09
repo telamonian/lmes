@@ -156,9 +156,10 @@ avxd PropensityFunction::naiveCalculateAvx(const PropensityFunction* fn, const a
         for (uint j=0; j<numberSpecies; j++)
         {
             intSpeciesCounts[j] = (int)(speciesCounts[j*DOUBLES_PER_AVX+i]+0.5);
-            ((double*)&results)[i] = fn->calculate(((double*)&time)[i], intSpeciesCounts, numberSpecies);
         }
+        ((double*)&results)[i] = fn->calculate(((double*)&time)[i], intSpeciesCounts, numberSpecies);
     }
+    delete[] intSpeciesCounts;
     return results;
 }
 #endif
