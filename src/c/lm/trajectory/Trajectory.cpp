@@ -47,6 +47,8 @@
 #include "lm/array/Tuple.h"
 #include "lm/input/Input.h"
 #include "lm/protowrap/NDArray.h"
+#include "lm/io/OrderParameterFirstPassageTimes.pb.h"
+#include "lm/io/OrderParametersValues.pb.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
@@ -232,7 +234,7 @@ void Trajectory::initializeOrderParameterFirstPassageTimes(const lm::input::Inpu
 
         // TODO: improve the syntax of .set_array()
         lm::protowrap::NDArray<double> fptValueWrap(opFPT->mutable_order_parameter_value());
-        fptValueWrap.set_array(utuple(1), std::vector<double>(1, round(op->calc(state))), false);
+        fptValueWrap.set_array(utuple(1), std::vector<double>(1, trunc(op->calc(state))), false);
 
         // TODO: improve the syntax of .set_array()
         lm::protowrap::NDArray<double> timeWrap(opFPT->mutable_first_passage_time());

@@ -121,15 +121,18 @@ protected:
     public:
         typedef lm::io::OrderParameterFirstPassageTimes MsgT;
         typedef double ValueT;
+        typedef std::deque<ValueT> ValueContainerT;
+        typedef double TimeT;
+        typedef std::deque<TimeT> TimeContainerT;
 
         uint oparamID;
         ValueT minValueAchieved;
         ValueT maxValueAchieved;
-        std::deque<ValueT> fptValue;
-        std::deque<double> fptTime;
+        ValueContainerT fptValues;
+        TimeContainerT fptTimes;
 
-        lm::protowrap::NDArray<ValueT> fptValueWrap;
-        lm::protowrap::NDArray<double> fptTimeWrap;
+        lm::protowrap::NDArray<ValueT> fptValuesWrap;
+        lm::protowrap::NDArray<TimeT> fptTimesWrap;
 
         void deserializeFrom(const MsgT& opFPTMsgRef)
         {
@@ -138,14 +141,14 @@ protected:
             // TODO: refactor various things so that we don't need this const_cast
             MsgT* opFPTMsg(const_cast<MsgT*>(&opFPTMsgRef));
 
-            fptValueWrap.setMsgPtr(opFPTMsg->mutable_order_parameter_value());
-            fptValueWrap.get_data(fptValue);
+            fptValuesWrap.setMsgPtr(opFPTMsg->mutable_order_parameter_value());
+            fptValuesWrap.get_data(fptValues);
 
-            fptTimeWrap.setMsgPtr(opFPTMsg->mutable_first_passage_time());
-            fptTimeWrap.get_data(fptTime);
+            fptTimesWrap.setMsgPtr(opFPTMsg->mutable_first_passage_time());
+            fptTimesWrap.get_data(fptTimes);
 
-            minValueAchieved = fptValue.front();
-            maxValueAchieved = fptValue.back();
+            minValueAchieved = fptValues.front();
+            maxValueAchieved = fptValues.back();
         }
         
         void serializeTo(uint64_t trajectoryId, MsgT* opFPTMsg)
@@ -153,11 +156,23 @@ protected:
             opFPTMsg->set_trajectory_id(trajectoryId);
             opFPTMsg->set_order_parameter_id(oparamID);
 
-            fptValueWrap.setMsgPtr(opFPTMsg->mutable_order_parameter_value());
-            fptValueWrap.set_array(utuple(fptValue.size()), fptValue, false);
+            fptValuesWrap.setMsgPtr(opFPTMsg->mutable_order_parameter_value());
+            fptValuesWrap.set_array(utuple(fptValues.size()), fptValues, false);
 
-            fptTimeWrap.setMsgPtr(opFPTMsg->mutable_first_passage_time());
-            fptTimeWrap.set_array(utuple(fptTime.size()), fptTime, false);
+            fptTimesWrap.setMsgPtr(opFPTMsg->mutable_first_passage_time());
+            fptTimesWrap.set_array(utuple(fptTimes.size()), fptTimes, false);
+        }
+
+        void serializeTo(uint64_t trajectoryId, MsgT* opFPTMsg, ValueContainerT& fptValuesRef, TimeContainerT& fptTimesRef)
+        {
+            opFPTMsg->set_trajectory_id(trajectoryId);
+            opFPTMsg->set_order_parameter_id(oparamID);
+
+            fptValuesWrap.setMsgPtr(opFPTMsg->mutable_order_parameter_value());
+            fptValuesWrap.set_array(utuple(fptValuesRef.size()), fptValuesRef, false);
+
+            fptTimesWrap.setMsgPtr(opFPTMsg->mutable_first_passage_time());
+            fptTimesWrap.set_array(utuple(fptTimesRef.size()), fptTimesRef, false);
         }
     };
 
@@ -258,16 +273,16 @@ protected:
         // Update the order parameter first passage time tables.
         for (int i=0; i<numberFptTrackedOrderParameters; i++)
         {
-            double opVal = round(orderParameterValues[fptTrackedOrderParameters[i].oparamID]);
+            double opVal = trunc(orderParameterValues[fptTrackedOrderParameters[i].oparamID]);
             while (opVal < fptTrackedOrderParameters[i].minValueAchieved)
             {
-                fptTrackedOrderParameters[i].fptValue.push_front(--fptTrackedOrderParameters[i].minValueAchieved);
-                fptTrackedOrderParameters[i].fptTime.push_front(time);
+                fptTrackedOrderParameters[i].fptValues.push_front(--fptTrackedOrderParameters[i].minValueAchieved);
+                fptTrackedOrderParameters[i].fptTimes.push_front(time);
             }
             while (opVal > fptTrackedOrderParameters[i].maxValueAchieved)
             {
-                fptTrackedOrderParameters[i].fptValue.push_back(++fptTrackedOrderParameters[i].maxValueAchieved);
-                fptTrackedOrderParameters[i].fptTime.push_back(time);
+                fptTrackedOrderParameters[i].fptValues.push_back(++fptTrackedOrderParameters[i].maxValueAchieved);
+                fptTrackedOrderParameters[i].fptTimes.push_back(time);
             }
         }
         
@@ -312,7 +327,7 @@ protected:
     bool writeDegreeAdvancementTimeSeries, writeOrderParameterTimeSeries, writeSpeciesTimeSeries;
     double degreeAdvancementWriteInterval, orderParameterWriteInterval, speciesWriteInterval;
 
-    //First passage time variables.
+    // First passage time variables.
     int numberFptTrackedSpecies, numberFptTrackedOrderParameters;
     FPTTracking* fptTrackedSpecies;
     OParamFPTTracking* fptTrackedOrderParameters;

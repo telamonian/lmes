@@ -129,7 +129,6 @@ void ReplicateTrajectoryList::printTrajectoryStatistics() const
     hrtime currentTime = getHrTime();
     if (convertHrToSeconds(currentTime-stats_lastPrintTime) > 700.0)
     {
-//        const std::string statusStrings[] = {"NOT_STARTED", "RUNNING", "WAITING", "FINISHED"};
         Print::printf(Print::INFO, "Trajectory status");
         Print::printf(Print::INFO, "        ID State       Time     Work_Units");
         Print::printf(Print::INFO, "------------------------------------------");

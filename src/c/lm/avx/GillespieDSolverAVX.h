@@ -105,11 +105,18 @@ protected:
     lm::io::TrajectoryLimits::LimitType limitTypeReached[DOUBLES_PER_AVX];
     double* limitValues;
 
-    //First passage time variables.
+    // First passage time species variables.
     uint numberFptValues;
     double* fptMinValuesAchieved;
     double* fptMaxValuesAchieved;
     deque<pair<int,double> >* fptValues;
+
+    // First passage time order parameter variables.
+    uint numberFptOPValues;
+    double* fptOPMinValuesAchieved;
+    double* fptOPMaxValuesAchieved;
+    deque<double>* fptOPValues;
+    deque<double>* fptOPTimes;
 
     // The current state.
     uint64_t trajectoryId[DOUBLES_PER_AVX];

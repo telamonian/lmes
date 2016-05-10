@@ -34,7 +34,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #ifdef OPT_AVX
@@ -98,7 +98,10 @@ void* GillespieDSolverAVX::allocateObject()
 }
 
 GillespieDSolverAVX::GillespieDSolverAVX()
-:GillespieDSolver(),timeLimit(_mm256_set1_pd(std::numeric_limits<double>::infinity())),limitValues(NULL),numberFptValues(0),fptMinValuesAchieved(NULL),fptMaxValuesAchieved(NULL),fptValues(NULL),speciesCounts(NULL),propensities(NULL),time(_mm256_set1_pd(0.0)),timeStep(_mm256_set1_pd(0.0)),orderParameterValues(NULL),orderParameterPreviousValues(NULL)
+:GillespieDSolver(),timeLimit(_mm256_set1_pd(std::numeric_limits<double>::infinity())),limitValues(NULL),numberFptValues(0),
+ fptMinValuesAchieved(NULL),fptMaxValuesAchieved(NULL),fptValues(NULL),numberFptOPValues(0),fptOPMinValuesAchieved(NULL),
+ fptOPMaxValuesAchieved(NULL),fptOPValues(NULL),fptOPTimes(NULL),speciesCounts(NULL),propensities(NULL),time(_mm256_set1_pd(0.0)),
+ timeStep(_mm256_set1_pd(0.0)),orderParameterValues(NULL),orderParameterPreviousValues(NULL)
 {
     // Initialize any array variables.
     int i=0;
@@ -117,13 +120,21 @@ GillespieDSolverAVX::~GillespieDSolverAVX()
 {
     // Free any memory.
     if (limitValues != NULL) free(limitValues); limitValues = NULL;
-    if (fptMinValuesAchieved != NULL) free(fptMinValuesAchieved); fptMinValuesAchieved = NULL;
-    if (fptMaxValuesAchieved != NULL) free(fptMaxValuesAchieved); fptMaxValuesAchieved = NULL;
-    if (fptValues != NULL) delete[] fptValues; fptValues = NULL;
     if (speciesCounts != NULL) free(speciesCounts); speciesCounts = NULL;
     if (propensities != NULL) free(propensities); propensities = NULL;
     if (orderParameterValues != NULL) free(orderParameterValues); orderParameterValues = NULL;
     if (orderParameterPreviousValues != NULL) free(orderParameterPreviousValues); orderParameterPreviousValues = NULL;
+
+    // Free any memory associated with the species first passage times.
+    if (fptMinValuesAchieved != NULL) free(fptMinValuesAchieved); fptMinValuesAchieved = NULL;
+    if (fptMaxValuesAchieved != NULL) free(fptMaxValuesAchieved); fptMaxValuesAchieved = NULL;
+    if (fptValues != NULL) delete[] fptValues; fptValues = NULL;
+
+    // Free any memory associated with the order parameter first passage times.
+    if (fptOPMinValuesAchieved != NULL) free(fptOPMinValuesAchieved); fptOPMinValuesAchieved = NULL;
+    if (fptOPMaxValuesAchieved != NULL) free(fptOPMaxValuesAchieved); fptOPMaxValuesAchieved = NULL;
+    if (fptOPValues != NULL) delete[] fptOPValues; fptOPValues = NULL;
+    if (fptOPTimes != NULL) delete[] fptOPTimes; fptOPTimes = NULL;
 }
 
 uint GillespieDSolverAVX::getSimultaneousTrajectories()
@@ -232,6 +243,13 @@ void GillespieDSolverAVX::reset()
     if (fptMaxValuesAchieved != NULL) free(fptMaxValuesAchieved); fptMaxValuesAchieved = NULL;
     if (fptValues != NULL) delete[] fptValues; fptValues = NULL;
     numberFptValues = 0;
+
+    // Reset the fpt order parameter values
+    if (fptOPMinValuesAchieved != NULL) free(fptOPMinValuesAchieved); fptOPMinValuesAchieved = NULL;
+    if (fptOPMaxValuesAchieved != NULL) free(fptOPMaxValuesAchieved); fptOPMaxValuesAchieved = NULL;
+    if (fptOPValues != NULL) delete[] fptOPValues; fptOPValues = NULL;
+    if (fptOPTimes != NULL) delete[] fptOPTimes; fptOPTimes = NULL;
+    numberFptOPValues = 0;
 }
 
 void GillespieDSolverAVX::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
@@ -265,6 +283,25 @@ void GillespieDSolverAVX::setState(const lm::io::TrajectoryState& state, uint tr
         else if (numberFptValues != numberFptTrackedSpecies)
         {
             throw Exception("Mismatch between the number of fpt tracked values between trajectories",numberFptValues,numberFptTrackedSpecies);
+        }
+    }
+
+    // Allocate space for the fpt order parameter values, if necessary.
+    if (numberFptTrackedOrderParameters > 0)
+    {
+        // See if we have not yet allocated space.
+        if (numberFptOPValues == 0)
+        {
+            numberFptOPValues = numberFptTrackedOrderParameters;
+            POSIX_EXCEPTION_CHECK(posix_memalign((void**)&fptOPMinValuesAchieved, DOUBLES_PER_AVX*sizeof(double), numberFptOPValues*DOUBLES_PER_AVX*sizeof(double)));
+            POSIX_EXCEPTION_CHECK(posix_memalign((void**)&fptOPMaxValuesAchieved, DOUBLES_PER_AVX*sizeof(double), numberFptOPValues*DOUBLES_PER_AVX*sizeof(double)));
+            fptOPValues = new deque<double>[numberFptOPValues*DOUBLES_PER_AVX];
+            fptOPTimes = new deque<double>[numberFptOPValues*DOUBLES_PER_AVX];
+        }
+            //Otherwise, make sure the sizes match.
+        else if (numberFptOPValues != numberFptTrackedOrderParameters)
+        {
+            throw Exception("Mismatch between the number of fpt tracked order parameter values between trajectories",numberFptOPValues,numberFptTrackedOrderParameters);
         }
     }
 
@@ -315,6 +352,15 @@ void GillespieDSolverAVX::copyTrajectoryStateToBaseSolver(uint trajectoryNumber)
         fptTrackedSpecies[i].fptValues = fptValues[i*DOUBLES_PER_AVX+trajectoryNumber];
     }
 
+    // Set the order parameter first passage times.
+    for (uint i=0; i<numberFptOPValues; i++)
+    {
+        fptTrackedOrderParameters[i].minValueAchieved = lround(fptOPMinValuesAchieved[i*DOUBLES_PER_AVX+trajectoryNumber]);
+        fptTrackedOrderParameters[i].maxValueAchieved = lround(fptOPMaxValuesAchieved[i*DOUBLES_PER_AVX+trajectoryNumber]);
+        fptTrackedOrderParameters[i].fptValues = fptOPValues[i*DOUBLES_PER_AVX+trajectoryNumber];
+        fptTrackedOrderParameters[i].fptTimes = fptOPTimes[i*DOUBLES_PER_AVX+trajectoryNumber];
+    }
+    
     // Set the histogram bin values.
     //TODO: implement
 }
@@ -358,6 +404,15 @@ void GillespieDSolverAVX::copyTrajectoryStateFromBaseSolver(uint trajectoryNumbe
         fptMinValuesAchieved[i*DOUBLES_PER_AVX+trajectoryNumber] = double(fptTrackedSpecies[i].minValueAchieved);
         fptMaxValuesAchieved[i*DOUBLES_PER_AVX+trajectoryNumber] = double(fptTrackedSpecies[i].maxValueAchieved);
         fptValues[i*DOUBLES_PER_AVX+trajectoryNumber] = fptTrackedSpecies[i].fptValues;
+    }
+
+    // Set the order parameter first passage times.
+    for (uint i=0; i<numberFptOPValues; i++)
+    {
+        fptOPMinValuesAchieved[i*DOUBLES_PER_AVX+trajectoryNumber] = double(fptTrackedOrderParameters[i].minValueAchieved);
+        fptOPMaxValuesAchieved[i*DOUBLES_PER_AVX+trajectoryNumber] = double(fptTrackedOrderParameters[i].maxValueAchieved);
+        fptOPValues[i*DOUBLES_PER_AVX+trajectoryNumber] = fptTrackedOrderParameters[i].fptValues;
+        fptOPTimes[i*DOUBLES_PER_AVX+trajectoryNumber] = fptTrackedOrderParameters[i].fptTimes;
     }
 
     // Set the histogram bin values.
@@ -810,15 +865,25 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
         {
             for (int j=0; j<numberFptValues; j++)
             {
-                lm::io::FirstPassageTimes* fpt = output[i]->add_first_passage_times();
-                fpt->set_trajectory_id(trajectoryId[i]);
-                fpt->set_species(fptTrackedSpecies[j].species);
-                fpt->set_number_entries(fptValues[j*DOUBLES_PER_AVX+i].size());
+                lm::io::FirstPassageTimes* fptMsg = output[i]->add_first_passage_times();
+                fptMsg->set_trajectory_id(trajectoryId[i]);
+                fptMsg->set_species(fptTrackedSpecies[j].species);
+                fptMsg->set_number_entries(fptValues[j*DOUBLES_PER_AVX+i].size());
                 for (std::deque<std::pair<int,double> >::iterator it=fptValues[j*DOUBLES_PER_AVX+i].begin(); it != fptValues[j*DOUBLES_PER_AVX+i].end(); it++)
                 {
-                    fpt->add_species_count(it->first);
-                    fpt->add_first_passage_time(it->second);
+                    fptMsg->add_species_count(it->first);
+                    fptMsg->add_first_passage_time(it->second);
                 }
+            }
+            createdOutput = true;
+        }
+
+        if (status[i] == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFptTrackedOrderParameters > 0)
+        {
+            for (int j=0; j<numberFptOPValues; j++)
+            {
+                int dataIndex = j*DOUBLES_PER_AVX+i;
+                fptTrackedOrderParameters[j].serializeTo(trajectoryId[i], output[i]->add_order_parameter_first_passage_times(), fptOPValues[dataIndex], fptOPTimes[dataIndex]);
             }
             createdOutput = true;
         }
@@ -947,6 +1012,74 @@ void GillespieDSolverAVX::callUpdateSpeciesCountsListenersAVX()
         {
             avxd value = orderParameterFunctions[i]->calculateAvx(time, speciesCounts, reactionModel->numberSpecies);
             _mm256_store_pd(&orderParameterValues[i*DOUBLES_PER_AVX], value);
+        }
+    }
+
+    // Update the order parameter first passage time tables.
+    for (int i=0; i<numberFptOPValues; i++)
+    {
+        uint opValIndex = fptTrackedOrderParameters[i].oparamID*DOUBLES_PER_AVX;
+        uint fptopIndex = i*DOUBLES_PER_AVX;
+        // TODO: implement alternatives to tracking opfpts based on rounded values (eg tracking by tiling, etc)
+        avxd counts = _mm256_round_pd(_mm256_load_pd(&orderParameterValues[opValIndex]), _MM_FROUND_TO_ZERO);
+        avxd comp;
+        int allFalse;
+        int trueMask;
+
+        // Check if we went below the previous min.
+        while (true)
+        {
+            comp = _mm256_cmp_pd(counts, _mm256_load_pd(&fptOPMinValuesAchieved[fptopIndex]), _CMP_LT_OQ);
+            allFalse = _mm256_testz_pd(comp,comp);
+            if (allFalse)
+            {
+                break;
+            }
+            else
+            {
+                // Get a bitmask of all values that were true.
+                trueMask = _mm256_movemask_pd(comp);
+
+                // Go through the mask.
+                for (int j=0; j<DOUBLES_PER_AVX; j++)
+                {
+                    // If this element was true, update the fpt tables.
+                    if (trueMask&(1<<j))
+                    {
+                        fptOPMinValuesAchieved[i*DOUBLES_PER_AVX+j] -= 1.0;
+                        fptOPValues[i*DOUBLES_PER_AVX+j].push_front(fptOPMinValuesAchieved[i*DOUBLES_PER_AVX+j]);
+                        fptOPTimes[i*DOUBLES_PER_AVX+j].push_front(((double*)&time)[j]);
+                    }
+                }
+            }
+        }
+
+        // Check if we went above the previous max.
+        while (true)
+        {
+            comp = _mm256_cmp_pd(counts, _mm256_load_pd(&fptOPMaxValuesAchieved[fptopIndex]), _CMP_GT_OQ);
+            allFalse = _mm256_testz_pd(comp,comp);
+            if (allFalse)
+            {
+                break;
+            }
+            else
+            {
+                // Go through the mask.
+                for (int j=0; j<DOUBLES_PER_AVX; j++)
+                {
+                    // Get a bitmask of all values that were true.
+                    trueMask = _mm256_movemask_pd(comp);
+
+                    // If this element was true, update the fpt tables.
+                    if (trueMask&(1<<j))
+                    {
+                        fptOPMaxValuesAchieved[i*DOUBLES_PER_AVX+j] += 1;
+                        fptOPValues[i*DOUBLES_PER_AVX+j].push_back(fptOPMaxValuesAchieved[i*DOUBLES_PER_AVX+j]);
+                        fptOPTimes[i*DOUBLES_PER_AVX+j].push_back(((double*)&time)[j]);
+                    }
+                }
+            }
         }
     }
 

@@ -52,6 +52,7 @@ class Regression(object):
         parser.add_argument('-t', '--theta', default=1,                                  help='scaling factor for the rates of protein production and degradation in the test Genetic Toggle Switch system.')
         parser.add_argument('--maxWorkUnitSteps', default=SUPPRESS,                      help='max number of steps in a single work unit')
         parser.add_argument('--writeInterval', default=SUPPRESS,                         help='the period at which every trajectory will write out the state of its species counts')
+        parser.add_argument('--orderParameterWriteInterval', default=SUPPRESS,           help='the period at which every trajectory will write out the state of its order parameter values')
         parser.add_argument('--extra-input', action='store_true',                        help="add some extra order parameters and tilings to the .lm input file. Meant for use in analysis only (ie, don't use in conjunction with execPath)")
         parser.add_argument('--quick-test', action='store_true',                         help='use presets for simulation parameters, etc that will result in roughly the quickest possible simulation that will still give useful results for testing purposes')
         parser.add_argument('--sfile', action='store_true',                              help='set this flag to use SFile output. Equivalent to -ff sfile -fo biphasic_switch.sfile')
