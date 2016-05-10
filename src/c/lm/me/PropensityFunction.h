@@ -120,11 +120,11 @@ public:
 
 utuple PropensityFunction::getDependencies(const uint reactionIndex, const ndarray<uint> D)
 {
-    if (reactionIndex >= D.shape(1)) throw InvalidArgException("reactionIndex", "index was too large for the dependency matrix",reactionIndex,D.shape(1));
+    if (reactionIndex >= D.shape[1]) throw InvalidArgException("reactionIndex", "index was too large for the dependency matrix",reactionIndex,D.shape[1]);
 
     // Find the dependencies.
     vector<uint> dependencyVector;
-    for (uint i=0; i<D.shape(0); i++)
+    for (uint i=0; i<D.shape[0]; i++)
     {
         uint d = D[utuple(i,reactionIndex)];
         if (d != 0)
@@ -135,11 +135,11 @@ utuple PropensityFunction::getDependencies(const uint reactionIndex, const ndarr
 
 utuple PropensityFunction::getSpecificDependencies(const uint reactionIndex, const ndarray<uint> D, const uint dependencyType)
 {
-    if (reactionIndex >= D.shape(1)) throw InvalidArgException("reactionIndex", "index was too large for the dependency matrix",reactionIndex,D.shape(1));
+    if (reactionIndex >= D.shape[1]) throw InvalidArgException("reactionIndex", "index was too large for the dependency matrix",reactionIndex,D.shape[1]);
 
     // Find the dependencies.
     vector<uint> dependencyVector;
-    for (uint i=0; i<D.shape(0); i++)
+    for (uint i=0; i<D.shape[0]; i++)
     {
         uint d = D[utuple(i,reactionIndex)];
         if (d == dependencyType)

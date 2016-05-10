@@ -59,23 +59,23 @@ template <typename T> struct ndarray
 {
 public:
     ndarray()
-    :_shape(),_size(0),_data(NULL)
+    :_shape(),shape(_shape),_size(0),_data(NULL)
     {
     }
     
     ndarray(const tuple<uint>& shape)
-    :_shape(shape),_size(calculateNumberValues(shape)),_data(new T[_size]())
+    :_shape(shape),shape(_shape),_size(calculateNumberValues(shape)),_data(new T[_size]())
     {
     }
 
     ndarray(const tuple<uint>& shape, const T* valuesArray)
-    :_shape(shape),_size(calculateNumberValues(shape)),_data(new T[_size]())
+    :_shape(shape),shape(_shape),_size(calculateNumberValues(shape)),_data(new T[_size]())
     {
         memcpy(_data, valuesArray, sizeof(T)*_size);
     }
 
     ndarray(const ndarray& a)
-    :_shape(a._shape),_size(a._size),_data(new T[_size]())
+    :_shape(a._shape),shape(_shape),_size(a._size),_data(new T[_size]())
     {
         memcpy(_data, a._data, sizeof(T)*_size);
     }
@@ -222,14 +222,6 @@ public:
         ndArrWrap.set_array(_shape, _data, compressed);
     }
 
-    const utuple& shape() const {
-        return _shape;
-    }
-
-    uint shape(uint index) const {
-        return _shape[index];
-    }
-
     utuple unravelIndex(uint index) const
     {
         return lm::array::unravelIndex(index, _shape);
@@ -275,6 +267,9 @@ protected:
             r *= s[i];
         return r;
     }
+
+public:
+    const tuple<uint>& shape;
 
 protected:
     tuple<uint> _shape;
