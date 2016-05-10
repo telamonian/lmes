@@ -219,7 +219,7 @@ public:
     void serialize(robertslab::pbuf::NDArray* ndArrMsg, bool compressed=true) const
     {
         lm::protowrap::NDArray<T> ndArrWrap(ndArrMsg);
-        ndArrWrap.set_array(_shape, _data, inferDType(), compressed);
+        ndArrWrap.set_array(_shape, _data, compressed);
     }
 
     const UTuple& shape() const {

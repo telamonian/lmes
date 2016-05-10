@@ -34,21 +34,25 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
-
+#include <sstream>
 #include <string>
 #include <sys/stat.h>
 
 #include <lm/ClassFactory.h>
 #include <lm/Print.h>
 #include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/io/FFluxOutput.pb.h"
+#include "lm/io/OrderParameterFirstPassageTimes.pb.h"
+#include "lm/io/OrderParameterTimeSeries.pb.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/io/sfile/LocalSFile.h"
 #include "lm/io/sfile/SFileOutputWriter.h"
 #include "lm/io/sfile/SFile.h"
 
+using std::stringstream;
 using std::string;
 
 namespace lm {
@@ -91,6 +95,21 @@ void SFileOutputWriter::initialize()
     file->openAppend();
 }
 
+void SFileOutputWriter::processMessage(const google::protobuf::Message& data, std::string& nameString, std::string& typeString)
+{
+    SFileRecord record(nameString, typeString, data.ByteSize());
+    file->writeSFileRecord(record);
+    file->writeMessage(data);
+}
+
+void SFileOutputWriter::processFFluxOutput(const lm::io::FFluxOutput& data)
+{
+    stringstream ss;
+    ss << "/FFluxOutput";
+    string nameString(ss.str()), typeString("protobuf:lm.io.FFluxOutput");
+    processMessage(data, nameString, typeString);
+}
+
 void SFileOutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
 {
     const int MAX_BUFFER_SIZE=128;
@@ -113,13 +132,21 @@ void SFileOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries
     file->writeMessage(data);
 }
 
+void SFileOutputWriter::processOrderParameterFirstPassageTimes(const lm::io::OrderParameterFirstPassageTimes& data)
+{
+    stringstream ss;
+    ss << "/Simulations/" << data.trajectory_id() << "/OrderParameterFirstPassageTimes";
+    string nameString(ss.str()), typeString("protobuf:lm.io.OrderParameterFirstPassageTimes");
+    processMessage(data, nameString, typeString);
+}
+
 void SFileOutputWriter::processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data)
 {
     const int MAX_BUFFER_SIZE=128;
     char buffer[MAX_BUFFER_SIZE+1];
     memset(buffer, 0, MAX_BUFFER_SIZE+1);
-    snprintf(buffer,MAX_BUFFER_SIZE,"/Simulations/%llu/orderParameterTimeSeries",data.trajectory_id());
-    SFileRecord record(string(buffer), string("protobuf:lm.io.SpeciesTimeSeries"), data.ByteSize());
+    snprintf(buffer,MAX_BUFFER_SIZE,"/Simulations/%llu/OrderParameterTimeSeries",data.trajectory_id());
+    SFileRecord record(string(buffer), string("protobuf:lm.io.OrderParameterTimeSeries"), data.ByteSize());
     file->writeSFileRecord(record);
     file->writeMessage(data);
 }

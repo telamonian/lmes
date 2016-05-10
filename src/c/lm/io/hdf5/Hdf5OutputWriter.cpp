@@ -125,7 +125,7 @@ void Hdf5OutputWriter::processOrderParameterFirstPassageTimes(const lm::io::Orde
 
     std::string groupRelativePath(ss.str()), valuesDatasetName("Values"), timesDatasetName("Times");
 
-    file->setNDArrayReplicate<int32_t>(data.trajectory_id(), groupRelativePath, valuesDatasetName, data.order_parameter_value());    //const_cast<robertslab::pbuf::NDArray*>(&data.order_parameter_value()));
+    file->setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, valuesDatasetName, data.order_parameter_value());    //const_cast<robertslab::pbuf::NDArray*>(&data.order_parameter_value()));
     file->setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, timesDatasetName, data.first_passage_time());   //const_cast<robertslab::pbuf::NDArray*>(&data.first_passage_time()));
 }
 

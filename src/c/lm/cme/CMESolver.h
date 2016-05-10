@@ -120,14 +120,15 @@ protected:
     {
     public:
         typedef lm::io::OrderParameterFirstPassageTimes MsgT;
+        typedef double ValueT;
 
         uint oparamID;
-        int32_t minValueAchieved;
-        int32_t maxValueAchieved;
-        std::deque<int32_t> fptValue;
+        ValueT minValueAchieved;
+        ValueT maxValueAchieved;
+        std::deque<ValueT> fptValue;
         std::deque<double> fptTime;
 
-        lm::protowrap::NDArray<int32_t> fptValueWrap;
+        lm::protowrap::NDArray<ValueT> fptValueWrap;
         lm::protowrap::NDArray<double> fptTimeWrap;
 
         void deserializeFrom(const MsgT& opFPTMsgRef)
@@ -152,14 +153,8 @@ protected:
             opFPTMsg->set_trajectory_id(trajectoryId);
             opFPTMsg->set_order_parameter_id(oparamID);
 
-//            lm::protowrap::NDArray<int> fptValueWrap(opFPTMsg->mutable_order_parameter_value());
-//            fptValueWrap.set_array(UTuple(fptValue.size()), fptValue, false);
-//            fptValueWrap.set_array(UTuple(fptValue.size()), std::vector<int>(fptValue.begin(), fptValue.end()), false);
             fptValueWrap.setMsgPtr(opFPTMsg->mutable_order_parameter_value());
             fptValueWrap.set_array(UTuple(fptValue.size()), fptValue, false);
-
-//            lm::protowrap::NDArray<double> fptTimeWrap(opFPTMsg->mutable_first_passage_fptTime());
-//            fptTimeWrap.set_array(UTuple(fptTime.size()), fptTime, false);
 
             fptTimeWrap.setMsgPtr(opFPTMsg->mutable_first_passage_time());
             fptTimeWrap.set_array(UTuple(fptTime.size()), fptTime, false);
@@ -240,7 +235,7 @@ protected:
         }
 
         // Update the first passage time tables.
-        for (int i=0; i<numberFPTTrackedSpecies; i++)
+        for (int i=0; i<numberFptTrackedSpecies; i++)
         {
             int speciesCount = speciesCounts[fptTrackedSpecies[i].species];
             while (speciesCount < fptTrackedSpecies[i].minValueAchieved)
@@ -261,9 +256,9 @@ protected:
         }
 
         // Update the order parameter first passage time tables.
-        for (int i=0; i<numberFPTTrackedOrderParameters; i++)
+        for (int i=0; i<numberFptTrackedOrderParameters; i++)
         {
-            int opVal = (int)round(orderParameterValues[fptTrackedOrderParameters[i].oparamID]);
+            double opVal = round(orderParameterValues[fptTrackedOrderParameters[i].oparamID]);
             while (opVal < fptTrackedOrderParameters[i].minValueAchieved)
             {
                 fptTrackedOrderParameters[i].fptValue.push_front(--fptTrackedOrderParameters[i].minValueAchieved);
@@ -318,7 +313,7 @@ protected:
     double degreeAdvancementWriteInterval, orderParameterWriteInterval, speciesWriteInterval;
 
     //First passage time variables.
-    int numberFPTTrackedSpecies, numberFPTTrackedOrderParameters;
+    int numberFptTrackedSpecies, numberFptTrackedOrderParameters;
     FPTTracking* fptTrackedSpecies;
     OParamFPTTracking* fptTrackedOrderParameters;
 

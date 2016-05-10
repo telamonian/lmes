@@ -251,20 +251,20 @@ void GillespieDSolverAVX::setState(const lm::io::TrajectoryState& state, uint tr
     CMESolver::setState(state, trajectoryNumber);
 
     // Allocate space for the fpt values, if necessary.
-    if (numberFPTTrackedSpecies > 0)
+    if (numberFptTrackedSpecies > 0)
     {
         // See if we have not yet allocated space.
         if (numberFptValues == 0)
         {
-            numberFptValues = numberFPTTrackedSpecies;
+            numberFptValues = numberFptTrackedSpecies;
             POSIX_EXCEPTION_CHECK(posix_memalign((void**)&fptMinValuesAchieved, DOUBLES_PER_AVX*sizeof(double), numberFptValues*DOUBLES_PER_AVX*sizeof(double)));
             POSIX_EXCEPTION_CHECK(posix_memalign((void**)&fptMaxValuesAchieved, DOUBLES_PER_AVX*sizeof(double), numberFptValues*DOUBLES_PER_AVX*sizeof(double)));
             fptValues = new deque<pair<int,double> >[numberFptValues*DOUBLES_PER_AVX];
         }
         //Otherwise, make sure the sizes match.
-        else if (numberFptValues != numberFPTTrackedSpecies)
+        else if (numberFptValues != numberFptTrackedSpecies)
         {
-            throw Exception("Mismatch between the number of fpt tracked values between trajectories",numberFptValues,numberFPTTrackedSpecies);
+            throw Exception("Mismatch between the number of fpt tracked values between trajectories",numberFptValues,numberFptTrackedSpecies);
         }
     }
 
@@ -806,7 +806,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
         }
 
         // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
-        if (status[i] == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFPTTrackedSpecies > 0)
+        if (status[i] == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFptTrackedSpecies > 0)
         {
             for (int j=0; j<numberFptValues; j++)
             {

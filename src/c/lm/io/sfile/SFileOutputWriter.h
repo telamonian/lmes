@@ -34,13 +34,18 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
-
 #ifndef LM_IO_SFILEOutputWriter
 #define LM_IO_SFILEOutputWriter
 
+#include <google/protobuf/message.h>
+#include <string>
+
 #include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/io/FFluxOutput.pb.h"
+#include "lm/io/OrderParameterFirstPassageTimes.pb.h"
+#include "lm/io/OrderParameterTimeSeries.pb.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
@@ -64,8 +69,12 @@ public:
     virtual void finalize();
 
 protected:
+    virtual void processMessage(const google::protobuf::Message& data, std::string& nameString, std::string& typeString);
+
+    virtual void processFFluxOutput(const lm::io::FFluxOutput& data);
     virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
     virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data);
+    virtual void processOrderParameterFirstPassageTimes(const lm::io::OrderParameterFirstPassageTimes& data);
     virtual void processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data);
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
     virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data);

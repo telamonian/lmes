@@ -437,9 +437,9 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     }
 
     // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
-    if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFPTTrackedSpecies > 0)
+    if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFptTrackedSpecies > 0)
     {
-        for (int i=0; i<numberFPTTrackedSpecies; i++)
+        for (int i=0; i<numberFptTrackedSpecies; i++)
         {
             fptTrackedSpecies[i].serializeTo(trajectoryId, msg->add_first_passage_times());
         }
