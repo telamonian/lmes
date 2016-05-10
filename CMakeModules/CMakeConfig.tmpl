@@ -31,10 +31,23 @@ SET(USE_FMA optional)
 SET(USE_SVML optional)
 
 ############################
+# compiler choice
+############################
+
+# which compiler toolchain to use. Can be one of clang, gnu, or intel. Defaults to gnu.
+# note: currently this cannot be used to reliably choose between clang or gnu. If this is important, don't use this variable, set the C and CXX compiler paths directly using the compiler path variables below.
+#SET(CMAKE_TOOLCHAIN gnu)
+
+# uncomment to explicitly set the paths to your c and c++ compiler executables. Overrides CMAKE_TOOLCHAIN.
+# note: can also just be the executables' names if they're on the $PATH
+#SET(CUSTOM_C_COMPILER gcc)
+#SET(CUSTOM_CXX_COMPILER g++)
+
+############################
 # compiler flags
 ############################
 
-# uncomment to set a custom machine architecture flag. Defaults to "-march=native" for clang and gcc, and to "-xHost" for icc
+# uncomment to set a custom machine architecture flag. Defaults to "-march=native" for clang and gnu, and to "-xHost" for intel.
 #SET(CUSTOM_ARCH_FLAG "-march=native")
 
 # uncomment to set any custom compiler flags for the default build

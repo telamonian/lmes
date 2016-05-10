@@ -1,20 +1,10 @@
 # the following commands are wrapped to prevent errors when this CMakeLists.txt is included as a subdirectory in another CMakeLists.txt
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-    cmake_minimum_REQUIRED(VERSION 2.8.0)
-    SET(CMAKE_C_COMPILER gcc)
-    SET(CMAKE_CXX_COMPILER g++)
+    cmake_minimum_REQUIRED(VERSION 2.8.8)
 endif(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-set(ENV{HDF5_ROOT} ${HDF5_ROOT})
 
-# fix some rpath zanyness with cmake install
-#set(CMAKE_MACOSX_RPATH ON)
-set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-
-################
-project(lm)
-################
-enable_testing()
-SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules)
+# initialize custom modules
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules)
 include(ConfigFunctions)
 include(TestCompilerFeatures)
 
@@ -22,11 +12,37 @@ include(TestCompilerFeatures)
 initializeCMakeConfig()
 include(CMakeConfig.txt)
 
+# the following commands are wrapped to prevent errors when this CMakeLists.txt is included as a subdirectory in another CMakeLists.txt
+if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    SetConfigDefault(CMAKE_TOOLCHAIN CMAKE_TOOLCHAIN gnu)
+    chooseToolchain()
+endif(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+
+set(ENV{HDF5_ROOT} ${HDF5_ROOT})
+
 # convert the build type string to upper case for easy comparison
 string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UPPER)
 if(CMAKE_BUILD_TYPE_UPPER)
     set(_CMAKE_BUILD_TYPE_UPPER "_${CMAKE_BUILD_TYPE_UPPER}")
 endif(CMAKE_BUILD_TYPE_UPPER)
+
+# fix some rpath zanyness with cmake install
+if(APPLE)
+    set(CMAKE_MACOSX_RPATH ON)
+    set(CMAKE_SKIP_BUILD_RPATH FALSE)
+    set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+    list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
+    if("${isSystemDir}" STREQUAL "-1")
+        set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+    endif()
+endif()
+
+################
+project(lm)
+################
+enable_testing()
 
 # Lattice Microbes standard architecture flag
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "Intel")
@@ -87,11 +103,11 @@ ENDIF(MPICH_LOWER MATCHES "mpich" OR MPICH_UPPER MATCHES "MPICH")
 
 # conditionals for dealing with CUDA
 IF (USE_CUDA STREQUAL yes)
-    find_package(cuda REQUIRED)
+    find_package(CUDA REQUIRED)
 ENDIF(USE_CUDA STREQUAL yes)
 
 IF (USE_CUDA STREQUAL optional)
-    find_package(cuda)
+    find_package(CUDA)
     # protects against using CUDA when the headers are present without the libraries and USE_CUDA is set to optional
     IF(CUDA_FOUND AND NOT CUDA_CUDA_LIBRARY)
         set(CUDA_FOUND false)
@@ -178,6 +194,9 @@ endif(libsbml_FOUND)
 string(REGEX MATCH "[Cc][Ll]ion" BUILT_WITH_CLION "${lm_BINARY_DIR}")
 if(BUILT_WITH_CLION)
     include_directories(${CMAKE_BINARY_DIR}/../Debug/src/c/
+                        ${CMAKE_BINARY_DIR}/../Debug/src/c/lm/
+                        ${CMAKE_BINARY_DIR}/../Debug/src/c/lm/io/
+                        ${CMAKE_BINARY_DIR}/../Debug/src/c/lm/message/
                         ${CMAKE_BINARY_DIR}/../MinSizeRel/src/c/
                         ${CMAKE_BINARY_DIR}/../Release/src/c/
                         ${CMAKE_BINARY_DIR}/../RelWithDebInfo/src/c/)
@@ -189,10 +208,9 @@ IF(BUILD_WITH_CUDA)
     add_subdirectory(src/cuda)
     add_dependencies(lm_cuda_lib lm_c_lib)
 ENDIF(BUILD_WITH_CUDA)
-
-#add_subdirectory(gtest/c)
-
 add_subdirectory(utils/c)
+add_subdirectory(utils/python)
+#add_subdirectory(gtest/c)
 
 #set_source_files_properties(${proto_hdrs} PROPERTIES GENERATED TRUE)
 #get_directory_property(proto_vars DIRECTORY src/protobuf DEFINITION proto_srcs)
