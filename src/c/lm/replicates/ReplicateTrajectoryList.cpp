@@ -131,7 +131,7 @@ void ReplicateTrajectoryList::printTrajectoryStatistics() const
     {
 //        const std::string statusStrings[] = {"NOT_STARTED", "RUNNING", "WAITING", "FINISHED"};
         Print::printf(Print::INFO, "Trajectory status");
-        Print::printf(Print::INFO, "        ID State       Time     Work Units");
+        Print::printf(Print::INFO, "        ID State       Time     Work_Units");
         Print::printf(Print::INFO, "------------------------------------------");
         for (TrajectoryMap::const_iterator it=trajectories.begin(); it!=trajectories.end(); it++)
         {

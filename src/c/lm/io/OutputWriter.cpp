@@ -202,6 +202,8 @@ int OutputWriter::run()
         helperThread.stop();
 
         // Let the output writer close any resources.
+        Print::printf(Print::INFO, "OutputWriter %d:%d flushing and closing.", communicator.getSourceProcess(), communicator.getSourceThread());
+        flush();
         finalize();
 
         Print::printf(Print::INFO, "OutputWriter %d:%d finished.", communicator.getSourceProcess(), communicator.getSourceThread());
@@ -256,7 +258,9 @@ int OutputWriter::HelperThread::run()
         hrtime lastUpdateTime = getHrTime();
         hrtime writingTime = 0;
         long long int bytesWritten = 0;
+        long long int totalBytesWritten = 0;
         int messagesWritten = 0;
+        long long int totalMessagesWritten = 0;
         int messagesQueued;
         int bytesQueued;
 
@@ -362,10 +366,17 @@ int OutputWriter::HelperThread::run()
                 p->flush();
                 lastUpdateTime = currentTime;
                 writingTime = 0;
+                totalMessagesWritten += messagesWritten;
                 messagesWritten = 0;
+                totalBytesWritten += bytesWritten;
                 bytesWritten = 0;
             }
         }
+
+        // Add any remaining bytes and messages to the total.
+        totalMessagesWritten += messagesWritten;
+        totalBytesWritten += bytesWritten;
+        Print::printf(Print::INFO, "OutputWriter wrote %lld messages and %lld bytes total.", totalMessagesWritten, totalBytesWritten);
     }
     catch (lm::Exception e)
     {

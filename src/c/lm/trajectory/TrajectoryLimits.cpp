@@ -114,21 +114,10 @@ TrajectoryLimit TrajectoryLimits::bufToStruct(const lm::io::TrajectoryLimits::Tr
     limit.includeEndpoint = inBuf.include_endpoint();
 
     limit.valueID = inBuf.value_id();
-    switch(inBuf.value_oneof_case())
-    {
-        case TrajectoryLimitBuf::kDvalue:
-            limit.dvalue = inBuf.dvalue();
-            break;
-        case TrajectoryLimitBuf::kIvalue:
-            limit.ivalue = inBuf.ivalue();
-            break;
-        case TrajectoryLimitBuf::kUvalue:
-            limit.uvalue = inBuf.uvalue();
-            break;
-        default:
-            throw Exception("When converting a TrajectoryLimit buf to a TrajectoryLimit struct, the TrajectoryLimit buf did not have an associated value", inBuf.limit_type(), inBuf.stopping_condition());
-            break;
-    }
+    limit.dvalue = inBuf.dvalue();
+    limit.ivalue = inBuf.ivalue();
+    limit.uvalue = inBuf.uvalue();
+
     return limit;
 }
     
