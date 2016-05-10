@@ -62,8 +62,8 @@ namespace me {
 class PropensityFunction
 {
 public:
-    inline static UTuple getDependencies(const uint reactionIndex, const NDArray<uint> D);
-    inline static UTuple getSpecificDependencies(const uint reactionIndex, const NDArray<uint> D, const uint dependencyType);
+    inline static utuple getDependencies(const uint reactionIndex, const ndarray<uint> D);
+    inline static utuple getSpecificDependencies(const uint reactionIndex, const ndarray<uint> D, const uint dependencyType);
 #ifdef OPT_AVX
     inline static avxd naiveCalculateAvx(const PropensityFunction* fn, const avxd time, const double* speciesCounts, const uint numberSpecies);
 #endif
@@ -85,7 +85,7 @@ protected:
 };
 
 // The type definition for a function to create the propensity function.
-typedef PropensityFunction* (*PropensityFunctionCreator)(const uint reactionIndex, const NDArray<int> S, const NDArray<uint> D, const Tuple<double>k);
+typedef PropensityFunction* (*PropensityFunctionCreator)(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k);
 
 struct PropensityFunctionDefinition
 {
@@ -101,7 +101,7 @@ class PropensityFunctionFactory
 public:
     PropensityFunctionFactory();
     ~PropensityFunctionFactory();
-    PropensityFunction* createPropensityFunction(uint type, int reactionIndex, NDArray<int> S, NDArray<uint> D, Tuple<double>k);
+    PropensityFunction* createPropensityFunction(uint type, int reactionIndex, ndarray<int> S, ndarray<uint> D, tuple<double>k);
     void printRegisteredFunctions();
 
 private:
@@ -118,7 +118,7 @@ public:
     virtual list<PropensityFunctionDefinition> getPropensityFunctionDefinitions()=0;
 };
 
-UTuple PropensityFunction::getDependencies(const uint reactionIndex, const NDArray<uint> D)
+utuple PropensityFunction::getDependencies(const uint reactionIndex, const ndarray<uint> D)
 {
     if (reactionIndex >= D.shape(1)) throw InvalidArgException("reactionIndex", "index was too large for the dependency matrix",reactionIndex,D.shape(1));
 
@@ -126,14 +126,14 @@ UTuple PropensityFunction::getDependencies(const uint reactionIndex, const NDArr
     vector<uint> dependencyVector;
     for (uint i=0; i<D.shape(0); i++)
     {
-        uint d = D[UTuple(i,reactionIndex)];
+        uint d = D[utuple(i,reactionIndex)];
         if (d != 0)
             dependencyVector.push_back(i);
     }
-    return UTuple(dependencyVector);
+    return utuple(dependencyVector);
 }
 
-UTuple PropensityFunction::getSpecificDependencies(const uint reactionIndex, const NDArray<uint> D, const uint dependencyType)
+utuple PropensityFunction::getSpecificDependencies(const uint reactionIndex, const ndarray<uint> D, const uint dependencyType)
 {
     if (reactionIndex >= D.shape(1)) throw InvalidArgException("reactionIndex", "index was too large for the dependency matrix",reactionIndex,D.shape(1));
 
@@ -141,11 +141,11 @@ UTuple PropensityFunction::getSpecificDependencies(const uint reactionIndex, con
     vector<uint> dependencyVector;
     for (uint i=0; i<D.shape(0); i++)
     {
-        uint d = D[UTuple(i,reactionIndex)];
+        uint d = D[utuple(i,reactionIndex)];
         if (d == dependencyType)
             dependencyVector.push_back(i);
     }
-    return UTuple(dependencyVector);
+    return utuple(dependencyVector);
 }
 
 #ifdef OPT_AVX

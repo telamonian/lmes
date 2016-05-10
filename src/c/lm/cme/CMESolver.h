@@ -154,10 +154,10 @@ protected:
             opFPTMsg->set_order_parameter_id(oparamID);
 
             fptValueWrap.setMsgPtr(opFPTMsg->mutable_order_parameter_value());
-            fptValueWrap.set_array(UTuple(fptValue.size()), fptValue, false);
+            fptValueWrap.set_array(utuple(fptValue.size()), fptValue, false);
 
             fptTimeWrap.setMsgPtr(opFPTMsg->mutable_first_passage_time());
-            fptTimeWrap.set_array(UTuple(fptTime.size()), fptTime, false);
+            fptTimeWrap.set_array(utuple(fptTime.size()), fptTime, false);
         }
     };
 

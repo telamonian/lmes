@@ -176,7 +176,7 @@ public:
         get_data(outputVector.data());
     }
 
-    inline void _set_props(const UTuple& shape, DataType dtype, bool compressed)
+    inline void _set_props(const utuple& shape, DataType dtype, bool compressed)
     {
         set_shape(shape);
         set_data_type(dtype);
@@ -184,7 +184,7 @@ public:
     }
 
     // array version
-    inline void set_array(const UTuple& shape, const T* inputArray, bool compressed=true)
+    inline void set_array(const utuple& shape, const T* inputArray, bool compressed=true)
     {
         _set_props(shape, NDType<T>::T, compressed);
         set_data(inputArray);
@@ -193,7 +193,7 @@ public:
     // general STL container version
     // TODO: refactor to remove the (probably) unnecessary copy-to-vector
     template <typename ContainerT>
-    inline void set_array(const UTuple& shape, const ContainerT& inputContainer, bool compressed=true)
+    inline void set_array(const utuple& shape, const ContainerT& inputContainer, bool compressed=true)
     {
         _set_props(shape, NDType<T>::T, compressed);
         if (size()!=inputContainer.size())
@@ -204,7 +204,7 @@ public:
     }
 
     // vector version
-    inline void set_array(const UTuple& shape, const std::vector<T>& inputVector, bool compressed=true)
+    inline void set_array(const utuple& shape, const std::vector<T>& inputVector, bool compressed=true)
     {
         _set_props(shape, NDType<T>::T, compressed);
         if (size()!=inputVector.size())
@@ -276,7 +276,7 @@ public:
     void set_data_type(DataType value) {arrMsg->set_data_type(value);}
     void set_shape(int index, const uint32_t& value) {_shape.Set(index, value);}
 
-    void set_shape(const UTuple& shape)
+    void set_shape(const utuple& shape)
     {
         _shape.Clear();
         for (int i=0;i<shape.len;i++)

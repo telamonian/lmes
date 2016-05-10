@@ -662,28 +662,28 @@ void printUsage(int argc, char** argv)
 void mainDebug(int argc, char** argv)
 {
     /*
-    Tuple<uint> t3(10,5,1);
-    NDArray<double> a1(t3);
+    tuple<uint> t3(10,5,1);
+    ndarray<double> a1(t3);
     for (uint r=0; r<a1.shape[0]; r++)
         for (uint c=0; c<a1.shape[1]; c++)
-            a1[Tuple<uint>(r,c,0)] = (double)r;
+            a1[tuple<uint>(r,c,0)] = (double)r;
     a1.print("\n");
     for (uint r=0; r<a1.shape[0]; r++)
         for (uint c=0; c<a1.shape[1]; c++)
-            a1[Tuple<uint>(r,c,0)] = (double)c;
+            a1[tuple<uint>(r,c,0)] = (double)c;
     a1.print("\n");
 
     uint numberSpecies=2;
     uint numberReactions=1;
-    NDArray<int> S(Tuple<uint>(numberSpecies,numberReactions));
-    NDArray<uint> D(Tuple<uint>(numberSpecies,numberReactions));
+    ndarray<int> S(tuple<uint>(numberSpecies,numberReactions));
+    ndarray<uint> D(tuple<uint>(numberSpecies,numberReactions));
 
     uint reactionIndex=0;
-    S[Tuple<uint>(0,reactionIndex)] = -1;
-    S[Tuple<uint>(1,reactionIndex)] = 1;
-    D[Tuple<uint>(0,reactionIndex)] = 1;
-    D[Tuple<uint>(1,reactionIndex)] = 0;
-    Tuple<double> k(0.1);
+    S[tuple<uint>(0,reactionIndex)] = -1;
+    S[tuple<uint>(1,reactionIndex)] = 1;
+    D[tuple<uint>(0,reactionIndex)] = 1;
+    D[tuple<uint>(1,reactionIndex)] = 0;
+    tuple<double> k(0.1);
     S.print("\n");
     D.print("\n");
     k.print("\n");

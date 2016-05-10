@@ -52,41 +52,41 @@ namespace lm {
 namespace array {
 
 // names of these functions taken from the numpy equivalents
-uint ravelMultiIndex(const UTuple& multiIndex, const UTuple& shape);
-UTuple unravelIndex(uint index, const UTuple& shape);
+uint ravelMultiIndex(const utuple& multiIndex, const utuple& shape);
+utuple unravelIndex(uint index, const utuple& shape);
 
-template <typename T> struct NDArray
+template <typename T> struct ndarray
 {
 public:
-    NDArray()
+    ndarray()
     :_shape(),_size(0),_data(NULL)
     {
     }
     
-    NDArray(const Tuple<uint>& shape)
+    ndarray(const tuple<uint>& shape)
     :_shape(shape),_size(calculateNumberValues(shape)),_data(new T[_size]())
     {
     }
 
-    NDArray(const Tuple<uint>& shape, const T* valuesArray)
+    ndarray(const tuple<uint>& shape, const T* valuesArray)
     :_shape(shape),_size(calculateNumberValues(shape)),_data(new T[_size]())
     {
         memcpy(_data, valuesArray, sizeof(T)*_size);
     }
 
-    NDArray(const NDArray& a)
+    ndarray(const ndarray& a)
     :_shape(a._shape),_size(a._size),_data(new T[_size]())
     {
         memcpy(_data, a._data, sizeof(T)*_size);
     }
 
-    virtual ~NDArray()
+    virtual ~ndarray()
     {
         if (_data != NULL) delete[] _data; _data = NULL;
     }
 
 // operators
-    NDArray& operator=(const NDArray& a)
+    ndarray& operator=(const ndarray& a)
     {
         if (_shape != a._shape || _size != a._size)
             throw lm::InvalidArgException("t","both ndarrays during assigment must be of the same shape");
@@ -94,13 +94,13 @@ public:
         return *this;
     }
 
-    // NDArray can be indexed with a Tuple of the appropriate length..
-    const T& operator[](const Tuple<uint>& index) const
+    // ndarray can be indexed with a tuple of the appropriate length..
+    const T& operator[](const tuple<uint>& index) const
     {
         return get(index);
     }
 
-    T& operator[](const Tuple<uint>& index)
+    T& operator[](const tuple<uint>& index)
     {
         return get(index);
     }
@@ -121,10 +121,10 @@ public:
 // accessors
     const T* data() {return _data;}
 
-    const T& get(const Tuple<uint>& index) const
+    const T& get(const tuple<uint>& index) const
     {
         // Validate the index.
-        if (index.len != _shape.len) throw lm::InvalidArgException("index","index Tuple must have the same length as the shape of an NDArray");
+        if (index.len != _shape.len) throw lm::InvalidArgException("index","index tuple must have the same length as the shape of an ndarray");
         for (uint i=0; i<_shape.len; i++)
             if (index[i] >= _shape[i]) throw lm::InvalidArgException("index","value of index exceeded ndarry length for dimension",i,index[i],_shape[i]);
 
@@ -141,9 +141,9 @@ public:
         // Return a reference to the element.
         return _data[position];
     }
-    const T& get(uint i1) const {return get(Tup(i1));}
-    const T& get(uint i1, uint i2) const {return get(Tup(i1,i2));}
-    const T& get(uint i1, uint i2, uint i3) const {return get(Tup(i1,i2,i3));}
+    const T& get(uint i1) const {return get(tup(i1));}
+    const T& get(uint i1, uint i2) const {return get(tup(i1,i2));}
+    const T& get(uint i1, uint i2, uint i3) const {return get(tup(i1,i2,i3));}
 
     robertslab::pbuf::NDArray_DataType inferDType() const
     {
@@ -158,8 +158,8 @@ public:
             for (uint i=0; i<_shape[0]; i++)
             {
                 if (i > 0) printf (",");
-                printNumeric((*this)[Tup(i)]);
-//                printf(printf_format_string<T>(),(*this)[Tuple<uint>(i)]);
+                printNumeric((*this)[tup(i)]);
+//                printf(printf_format_string<T>(),(*this)[tuple<uint>(i)]);
             }
             printf("]%s",suffix);
         }
@@ -172,8 +172,8 @@ public:
                 for (uint j=0; j<_shape[1]; j++)
                 {
                     if (j > 0) printf (",");
-                    printNumeric((*this)[Tup(i,j)]);
-//                    printf(printf_format_string<T>(),(*this)[Tuple<uint>(i,j)]);
+                    printNumeric((*this)[tup(i,j)]);
+//                    printf(printf_format_string<T>(),(*this)[tuple<uint>(i,j)]);
                 }
                 printf("]\n");
             }
@@ -191,8 +191,8 @@ public:
                     for (uint j=0; j<_shape[1]; j++)
                     {
                         if (j > 0) printf (",");
-                        printNumeric((*this)[Tup(i,j,k)]);
-//                        printf(printf_format_string<T>(),(*this)[Tuple<uint>(i,j,k)]);
+                        printNumeric((*this)[tup(i,j,k)]);
+//                        printf(printf_format_string<T>(),(*this)[tuple<uint>(i,j,k)]);
                     }
                     printf("]\n");
                 }
@@ -202,7 +202,7 @@ public:
         }
         else
         {
-            printf("[%d dimensional NDArray: %d entries]%s",_shape.len,_size,suffix);
+            printf("[%d dimensional ndarray: %d entries]%s",_shape.len,_size,suffix);
         }
     }
 
@@ -211,7 +211,7 @@ public:
         return _shape.len;
     }
 
-    uint ravelMultiIndex(const UTuple& multiIndex) const
+    uint ravelMultiIndex(const utuple& multiIndex) const
     {
         return lm::array::ravelMultiIndex(multiIndex, _shape);
     }
@@ -222,7 +222,7 @@ public:
         ndArrWrap.set_array(_shape, _data, compressed);
     }
 
-    const UTuple& shape() const {
+    const utuple& shape() const {
         return _shape;
     }
 
@@ -230,7 +230,7 @@ public:
         return _shape[index];
     }
 
-    UTuple unravelIndex(uint index) const
+    utuple unravelIndex(uint index) const
     {
         return lm::array::unravelIndex(index, _shape);
     }
@@ -257,18 +257,18 @@ public:
         ndArrWrap.get_data(_data);
     }
 
-    T& get(const Tuple<uint>& index)
+    T& get(const tuple<uint>& index)
     {
-        return const_cast<T&>(const_cast<const NDArray*>(this)->get(index));
+        return const_cast<T&>(const_cast<const ndarray*>(this)->get(index));
     }
-    T& get(uint i1) {return get(Tup(i1));}
-    T& get(uint i1, uint i2) {return get(Tup(i1,i2));}
-    T& get(uint i1, uint i2, uint i3) {return get(Tup(i1,i2,i3));}
+    T& get(uint i1) {return get(tup(i1));}
+    T& get(uint i1, uint i2) {return get(tup(i1,i2));}
+    T& get(uint i1, uint i2, uint i3) {return get(tup(i1,i2,i3));}
 
     T* mutable_data() {return _data;}
 
 protected:
-    uint calculateNumberValues(Tuple<uint> s)
+    uint calculateNumberValues(tuple<uint> s)
     {
         uint r = 1U;
         for (uint i=0; i<s.len; i++)
@@ -277,7 +277,7 @@ protected:
     }
 
 protected:
-    Tuple<uint> _shape;
+    tuple<uint> _shape;
     uint _size;
     T* _data;
 };
@@ -286,6 +286,6 @@ protected:
 }
 
 // export to top-level namespace
-using lm::array::NDArray;
+using lm::array::ndarray;
 
 #endif /* LM_ARRAY_NDARRAY */

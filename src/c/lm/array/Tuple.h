@@ -52,34 +52,34 @@
 namespace lm {
 namespace array {
 
-template <typename T> struct Tuple
+template <typename T> struct tuple
 {
 public:
-    Tuple()
+    tuple()
     :len(0),_data(NULL)
     {
     }
 
-    Tuple(const Tuple& t)
+    tuple(const tuple& t)
     :len(t.len),_data(new T[t.len]())
     {
         memcpy(_data, t._data, sizeof(T)*len);
     }
 
-    Tuple(const T v1)
+    tuple(const T v1)
     :len(1),_data(new T[len]())
     {
         _data[0] = v1;
     }
 
-    Tuple(const T v1, const T v2)
+    tuple(const T v1, const T v2)
     :len(2),_data(new T[len]())
     {
         _data[0] = v1;
         _data[1] = v2;
     }
 
-    Tuple(const T v1, const T v2, const T v3)
+    tuple(const T v1, const T v2, const T v3)
     :len(3),_data(new T[len]())
     {
         _data[0] = v1;
@@ -87,13 +87,13 @@ public:
         _data[2] = v3;
     }
 
-    Tuple(uint len, const T* dataArray)
+    tuple(uint len, const T* dataArray)
     :len(len),_data(new T[len]())
     {
         memcpy(_data, dataArray, sizeof(T)*len);
     }
 
-    Tuple(const std::list<T>& dataList)
+    tuple(const std::list<T>& dataList)
     :len(dataList.size()),_data(new T[len]())
     {
         int i=0;
@@ -101,26 +101,26 @@ public:
             _data[i++] = *it;
     }
 
-    Tuple(const std::vector<T>& dataVector)
+    tuple(const std::vector<T>& dataVector)
     :len(dataVector.size()),_data(new T[len]())
     {
         for (uint i=0; i<dataVector.size(); i++)
             _data[i] = dataVector[i];
     }
 
-    Tuple(const google::protobuf::RepeatedField<T>* repFieldPtr)
+    tuple(const google::protobuf::RepeatedField<T>* repFieldPtr)
     :len(repFieldPtr->size()),_data(new T[repFieldPtr->size()]())
     {
         memcpy(_data, repFieldPtr->data(), sizeof(T)*len);
     }
 
-    virtual ~Tuple()
+    virtual ~tuple()
     {
         if (_data != NULL) delete[] _data; _data = NULL;
     }
     
 // operators
-    Tuple& operator=(const Tuple<T>& t)
+    tuple& operator=(const tuple<T>& t)
     {
         if (len != t.len)
             throw lm::InvalidArgException("t","both tuples during assigment must be of the same length");
@@ -136,7 +136,7 @@ public:
         return get(index);
     }
 
-    bool operator!=(const Tuple<T>& t) const
+    bool operator!=(const tuple<T>& t) const
     {
         if (len!=t.len)
         {
@@ -156,7 +156,7 @@ public:
     const T get(const uint index) const
     {
         if (index < len) return _data[index];
-        else throw lm::InvalidArgException("index","index exceeded length of Tuple");
+        else throw lm::InvalidArgException("index","index exceeded length of tuple");
     }
 
     // print contents to stdout
@@ -213,17 +213,17 @@ private:
     T* _data;
 };
 
-// Unlike the Tuple constructor, the Tup class factories can use type inference.
-// For example, if x and y are uints, instead of Tuple<uint>(x,y) you can write Tup(x,y)
-template <typename T> Tuple<T> Tup(T v1) {return Tuple<T>(v1);}
-template <typename T> Tuple<T> Tup(T v1, T v2) {return Tuple<T>(v1, v2);}
-template <typename T> Tuple<T> Tup(T v1, T v2, T v3) {return Tuple<T>(v1, v2, v3);}
+// Unlike the tuple constructor, the tup class factories can use type inference.
+// For example, if x and y are uints, instead of tuple<uint>(x,y) you can write tup(x,y)
+template <typename T> tuple<T> tup(T v1) {return tuple<T>(v1);}
+template <typename T> tuple<T> tup(T v1, T v2) {return tuple<T>(v1, v2);}
+template <typename T> tuple<T> tup(T v1, T v2, T v3) {return tuple<T>(v1, v2, v3);}
 
 }
 }
 
 // export to top-level namespace
-using lm::array::Tuple;
-typedef Tuple<uint> UTuple;
+using lm::array::tuple;
+typedef tuple<uint> utuple;
 
 #endif /* LM_ARRAY_TUPLE_H */

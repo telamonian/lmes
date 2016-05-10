@@ -59,8 +59,8 @@ public:
     const uint numberSpecies;
     uint numberSpeciesToTrack;
     const uint numberReactions;
-    NDArray<int> S;                                // Stoichiometric matrix: numberSpecies x numberReactions
-    NDArray<uint> D;                               // Dependency matrix: numberSpecies x numberReactions
+    ndarray<int> S;                                // Stoichiometric matrix: numberSpecies x numberReactions
+    ndarray<uint> D;                               // Dependency matrix: numberSpecies x numberReactions
     lm::me::PropensityFunction** propensityFunctions;
 
     // Dependency tables.

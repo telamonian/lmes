@@ -43,6 +43,7 @@
 #include <string>
 #include <vector>
 
+#include "lm/array/NDArray.h"
 #include "lm/ClassFactory.h"
 #include "lm/Print.h"
 #include "lm/Types.h"
@@ -84,7 +85,7 @@ PropensityFunctionFactory::~PropensityFunctionFactory()
 {
 }
 
-PropensityFunction* PropensityFunctionFactory::createPropensityFunction(uint type, int reactionIndex, NDArray<int> S, NDArray<uint> D, Tuple<double>K)
+PropensityFunction* PropensityFunctionFactory::createPropensityFunction(uint type, int reactionIndex, ndarray<int> S, ndarray<uint> D, tuple<double>K)
 {
     if (functions.count(type) == 0)
         throw lm::InvalidArgException("type","the specified propensity function was not found",type);

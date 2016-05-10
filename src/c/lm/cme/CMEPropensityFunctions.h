@@ -36,10 +36,10 @@
  *
  * Author(s): Elijah Roberts
  */
-
 #ifndef LM_CME_CMEPROPENSITYFUNCTIONS_H
 #define LM_CME_CMEPROPENSITYFUNCTIONS_H
 
+#include "lm/array/NDArray.h"
 #include "lm/me/PropensityFunction.h"
 
 namespace lm {

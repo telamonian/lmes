@@ -47,7 +47,7 @@ namespace lm {
 namespace array {
 
 // names of these functions taken from the numpy equivalents
-uint ravelMultiIndex(const UTuple& multiIndex, const UTuple& shape)
+uint ravelMultiIndex(const utuple& multiIndex, const utuple& shape)
 {
     uint position=0;
     for (uint i=0; i<shape.len; i++)
@@ -61,7 +61,7 @@ uint ravelMultiIndex(const UTuple& multiIndex, const UTuple& shape)
     return position;
 }
 
-UTuple unravelIndex(uint index, const UTuple& shape)
+utuple unravelIndex(uint index, const utuple& shape)
 {
     std::vector<uint> multiIndex(shape.len, 0);
     std::vector<uint> minorShapes(shape.data() + 1, shape.data() + shape.len + 1);
@@ -78,7 +78,7 @@ UTuple unravelIndex(uint index, const UTuple& shape)
     }
     multiIndex.back() = index;
 
-    return UTuple(multiIndex);
+    return utuple(multiIndex);
 }
 }
 }
