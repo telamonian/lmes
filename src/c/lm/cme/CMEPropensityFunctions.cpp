@@ -111,19 +111,21 @@ public:
 
     static lm::me::PropensityFunctionDefinition registerFunction()
     {
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "ZerothOrderPropensity", "k0", &create);
     }
 };
 
+/*
 class FirstOrderPropensity : public lm::me::PropensityFunction
 {
 public:
     static const uint REACTION_TYPE = 1;
 
-    FirstOrderPropensity(uint s, double k) :PropensityFunction(REACTION_TYPE,1),s(s),k(k) {}
+    FirstOrderPropensity(uint s, double k) :PropensityFunction("FirstOrderPropensity",REACTION_TYPE,1),s(s),k(k) {}
     uint s;
     double k;
 
+    string getExpression() {return "k0 * x0";}
     void changeVolume(double volumeMultiplier) {}
     double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
@@ -164,6 +166,7 @@ public:
     uint s1,s2;
     double k;
 
+    string getExpression() {return "k0 * x0 * x1";}
     void changeVolume(double volumeMultiplier) {k/=volumeMultiplier;}
     double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
@@ -191,7 +194,7 @@ public:
 
     static lm::me::PropensityFunctionDefinition registerFunction()
     {
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
+        return lm::me::PropensityFunctionDefinition("SecondOrderPropensity",REACTION_TYPE, &create);
     }
 };
 
@@ -200,10 +203,11 @@ class SecondOrderSelfPropensity : public lm::me::PropensityFunction
 public:
     static const uint REACTION_TYPE = 3;
 
-    SecondOrderSelfPropensity(uint s, double k) :PropensityFunction(REACTION_TYPE,2),s(s),k(k) {}
+    SecondOrderSelfPropensity(uint s, double k) :PropensityFunction("SecondOrderSelfPropensity",REACTION_TYPE,2),s(s),k(k) {}
     uint s;
     double k;
 
+    string getExpression() {return "k0 * x0 * (x0 - 1)";}
     void changeVolume(double volumeMultiplier) {k/=volumeMultiplier;}
     double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
@@ -237,57 +241,17 @@ public:
     }
 };
 
-class QuadraticPotentialPropensity : public lm::me::PropensityFunction
-{
-public:
-    static const uint REACTION_TYPE = 2000;
-
-    QuadraticPotentialPropensity(uint s, double k) :PropensityFunction(REACTION_TYPE,2),s(s),k(k) {}
-    uint s;
-    double k;
-
-    void changeVolume(double volumeMultiplier) {}
-    double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
-    {
-        double quadPropensity = k * double(speciesCounts[s]) * double(speciesCounts[s]);
-    	//printf ("species = %d speciesCounts = %f k = %f quadPropensity = %f.\n", s,double(speciesCounts[s]),k,quadPropensity);
-    	return quadPropensity;
-    }
-#ifdef OPT_AVX
-    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
-    {
-        return _mm256_mul_pd(_mm256_set1_pd(k), _mm256_load_pd(&speciesCounts[s*DOUBLES_PER_AVX]));
-    }
-#endif
-
-    static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
-    {
-        // Find the species dependencies.
-        utuple dependencies = getDependencies(reactionIndex, D);
-        if (dependencies.len != 1) throw InvalidArgException("D", "quadratic potential propensity had invalid number of dependencies",dependencies.len);
-
-        // Find the rate costant.
-        if (k.len < 1)  throw InvalidArgException("k", "quadratic potential propensity needs one rate constant",k.len);
-
-        return new QuadraticPotentialPropensity(dependencies[0],k[0]);
-    }
-
-    static lm::me::PropensityFunctionDefinition registerFunction()
-    {
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
-    }
-};
-
 class TimeDependentQuaraticBirthPropensity : public lm::me::PropensityFunction
 {
 public:
     static const uint REACTION_TYPE = 2001;
 
-    TimeDependentQuaraticBirthPropensity(uint xi, double k, double v) :PropensityFunction(REACTION_TYPE,0),xi(xi),k(k),v(v) {}
+    TimeDependentQuaraticBirthPropensity(uint xi, double k, double v) :PropensityFunction("TimeDependentQuaraticBirthPropensity",REACTION_TYPE,0),xi(xi),k(k),v(v) {}
     uint xi;
     double k;
     double v;
 
+    string getExpression() {return "";}
     void changeVolume(double volumeMultiplier) {}
     double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
@@ -333,11 +297,12 @@ class TimeDependentQuaraticDeathPropensity : public lm::me::PropensityFunction
 public:
     static const uint REACTION_TYPE = 2002;
 
-    TimeDependentQuaraticDeathPropensity(uint xi, double k, double v) :PropensityFunction(REACTION_TYPE,0),xi(xi),k(k),v(v) {}
+    TimeDependentQuaraticDeathPropensity(uint xi, double k, double v) :PropensityFunction("TimeDependentQuaraticDeathPropensity",REACTION_TYPE,0),xi(xi),k(k),v(v) {}
     uint xi;
     double k;
     double v;
 
+    string getExpression() {return "";}
     void changeVolume(double volumeMultiplier) {}
     double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
@@ -383,7 +348,7 @@ class ZerothOrderKHillPropensity : public lm::me::PropensityFunction
 public:
     static const uint REACTION_TYPE = 8007;
 
-    ZerothOrderKHillPropensity(uint xi, double x0, double k0, double k1, double h) :PropensityFunction(REACTION_TYPE,0),xi(xi),x0h(pow(x0,h)),k0(k0),dk(k1-k0),h(h) {}
+    ZerothOrderKHillPropensity(uint xi, double x0, double k0, double k1, double h) :PropensityFunction("ZerothOrderKHillPropensity",REACTION_TYPE,0),xi(xi),x0h(pow(x0,h)),k0(k0),dk(k1-k0),h(h) {}
     uint xi;
     double x0h;
     double k0;
@@ -391,6 +356,7 @@ public:
     double h;
 
     void changeVolume(double volumeMultiplier) {}
+    string getExpression() {return "k1 + (k2 - k1) * (x0^2 / (k0^2 + x0^2))";}
     double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
         double x = double(speciesCounts[xi]);
@@ -436,18 +402,17 @@ public:
         return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
     }
 };
-
+*/
 list<lm::me::PropensityFunctionDefinition> CMEPropensityFunctions::getPropensityFunctionDefinitions()
 {
     list<lm::me::PropensityFunctionDefinition> defs;
     defs.push_back(ZerothOrderPropensity::registerFunction());
-    defs.push_back(FirstOrderPropensity::registerFunction());
+    /*defs.push_back(FirstOrderPropensity::registerFunction());
     defs.push_back(SecondOrderPropensity::registerFunction());
     defs.push_back(SecondOrderSelfPropensity::registerFunction());
-    defs.push_back(QuadraticPotentialPropensity::registerFunction());
     defs.push_back(TimeDependentQuaraticBirthPropensity::registerFunction());
     defs.push_back(TimeDependentQuaraticDeathPropensity::registerFunction());
-    defs.push_back(ZerothOrderKHillPropensity::registerFunction());
+    defs.push_back(ZerothOrderKHillPropensity::registerFunction());*/
     return defs;
 }
 

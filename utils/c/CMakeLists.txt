@@ -5,7 +5,8 @@ set(lm_utils_libs lm_c_lib
                   ${PROTOBUF_LIBRARIES}
                   ${HDF5_LIBRARIES}
                   ${HDF5_HL_LIBRARIES}
-                  ${ZLIB_LIBRARIES})
+                  ${ZLIB_LIBRARIES}
+                  ${MPI_C_LIBRARIES})
 
 ################
 #TARGET: utils
@@ -35,8 +36,15 @@ set(util_targets lm_setp
 if(libsbml_FOUND)
     file(GLOB lm_sbml_import_source lm_sbml_import.cpp)
     add_executable(lm_sbml_import ${lm_sbml_import_source})
-    target_link_libraries(lm_sbml_import ${lm_utils_libs}
-                                         ${libsbml_LIBRARIES})
+    target_link_libraries(lm_sbml_import ${libsbml_LIBRARIES})
+     IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+         target_link_libraries(lm_sbml_import -Wl,--whole-archive)
+         target_link_libraries(lm_sbml_import ${lm_utils_libs})
+         target_link_libraries(lm_sbml_import -Wl,--no-whole-archive)
+     ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+         target_link_libraries(lm_sbml_import -Wl,-force_load)
+         target_link_libraries(lm_sbml_import ${lm_utils_libs})
+     ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
     list(APPEND util_targets lm_sbml_import)
 endif(libsbml_FOUND)

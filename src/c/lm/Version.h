@@ -43,7 +43,7 @@
  */
 
 #ifndef VERSION_NUM
-#define VERSION_NUM "2016.02.12"
+#define VERSION_NUM "2016.05.10"
 #endif
 
 #ifndef COPYRIGHT_DATE

@@ -88,9 +88,11 @@ typedef PropensityFunction* (*PropensityFunctionCreator)(const uint reactionInde
 struct PropensityFunctionDefinition
 {
     PropensityFunctionDefinition():type(std::numeric_limits<uint>::max()),create(NULL){}
-    PropensityFunctionDefinition(uint type, PropensityFunctionCreator create):type(type),create(create){}
+    PropensityFunctionDefinition(uint type, string name, string expression, PropensityFunctionCreator create):type(type),name(name),expression(expression),create(create){}
     PropensityFunctionDefinition(const PropensityFunctionDefinition& p):type(p.type),create(p.create){}
     uint type;
+    string name;
+    string expression;
     PropensityFunctionCreator create;
 };
 
