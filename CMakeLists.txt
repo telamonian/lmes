@@ -9,7 +9,7 @@ include(ConfigFunctions)
 include(TestCompilerFeatures)
 initializeCMakeConfig()
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/PreProjectConfig)
 # the following commands are wrapped to prevent errors when this CMakeLists.txt is included as a subdirectory in another CMakeLists.txt
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     SetConfigDefault(CMAKE_TOOLCHAIN CMAKE_TOOLCHAIN gnu)
