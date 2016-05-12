@@ -231,14 +231,15 @@ void Trajectory::initializeOrderParameterFirstPassageTimes(const lm::input::Inpu
         lm::io::OrderParameterFirstPassageTimes* opFPT = state.mutable_cme_state()->add_order_parameter_first_passage_times();
         opFPT->set_trajectory_id(id);
         opFPT->set_order_parameter_id(oparamID);
+        // rounding version
+        //double initialOPVal = trunc(op->calc(state));
+        double initialOPVal = op->calc(state);
 
-        // TODO: improve the syntax of .set_array()
         lm::protowrap::NDArray<double> fptValueWrap(opFPT->mutable_order_parameter_value());
-        fptValueWrap.set_array(utuple(1), std::vector<double>(1, trunc(op->calc(state))), false);
+        fptValueWrap.set_array(std::vector<double>(1, initialOPVal));
 
-        // TODO: improve the syntax of .set_array()
         lm::protowrap::NDArray<double> timeWrap(opFPT->mutable_first_passage_time());
-        timeWrap.set_array(utuple(1), std::vector<double>(1, 0.0), false);
+        timeWrap.set_array(std::vector<double>(1, 0.0));
     }
 }
 

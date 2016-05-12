@@ -157,10 +157,10 @@ protected:
             opFPTMsg->set_order_parameter_id(oparamID);
 
             fptValuesWrap.setMsgPtr(opFPTMsg->mutable_order_parameter_value());
-            fptValuesWrap.set_array(utuple(fptValues.size()), fptValues, false);
+            fptValuesWrap.set_array(fptValues, utuple(fptValues.size()), false);
 
             fptTimesWrap.setMsgPtr(opFPTMsg->mutable_first_passage_time());
-            fptTimesWrap.set_array(utuple(fptTimes.size()), fptTimes, false);
+            fptTimesWrap.set_array(fptTimes, utuple(fptTimes.size()), false);
         }
 
         void serializeTo(uint64_t trajectoryId, MsgT* opFPTMsg, ValueContainerT& fptValuesRef, TimeContainerT& fptTimesRef)
@@ -169,10 +169,10 @@ protected:
             opFPTMsg->set_order_parameter_id(oparamID);
 
             fptValuesWrap.setMsgPtr(opFPTMsg->mutable_order_parameter_value());
-            fptValuesWrap.set_array(utuple(fptValuesRef.size()), fptValuesRef, false);
+            fptValuesWrap.set_array(fptValuesRef, utuple(fptValuesRef.size()), false);
 
             fptTimesWrap.setMsgPtr(opFPTMsg->mutable_first_passage_time());
-            fptTimesWrap.set_array(utuple(fptTimesRef.size()), fptTimesRef, false);
+            fptTimesWrap.set_array(fptTimesRef, utuple(fptTimesRef.size()), false);
         }
     };
 
@@ -273,15 +273,32 @@ protected:
         // Update the order parameter first passage time tables.
         for (int i=0; i<numberFptTrackedOrderParameters; i++)
         {
-            double opVal = trunc(orderParameterValues[fptTrackedOrderParameters[i].oparamID]);
-            while (opVal < fptTrackedOrderParameters[i].minValueAchieved)
+            // rounding version
+            //double opVal = trunc(orderParameterValues[fptTrackedOrderParameters[i].oparamID]);
+            double opVal = orderParameterValues[fptTrackedOrderParameters[i].oparamID];
+
+            if (opVal < fptTrackedOrderParameters[i].minValueAchieved)
             {
-                fptTrackedOrderParameters[i].fptValues.push_front(--fptTrackedOrderParameters[i].minValueAchieved);
+                double stepDown = floor(fptTrackedOrderParameters[i].minValueAchieved);
+                while (opVal < stepDown)
+                {
+                    fptTrackedOrderParameters[i].fptValues.push_front(--stepDown);
+                    fptTrackedOrderParameters[i].fptTimes.push_front(time);
+                }
+                fptTrackedOrderParameters[i].minValueAchieved = opVal;
+                fptTrackedOrderParameters[i].fptValues.push_front(opVal);
                 fptTrackedOrderParameters[i].fptTimes.push_front(time);
             }
-            while (opVal > fptTrackedOrderParameters[i].maxValueAchieved)
+            if (opVal > fptTrackedOrderParameters[i].maxValueAchieved)
             {
-                fptTrackedOrderParameters[i].fptValues.push_back(++fptTrackedOrderParameters[i].maxValueAchieved);
+                double stepUp = ceil(fptTrackedOrderParameters[i].minValueAchieved);
+                while (opVal > stepUp)
+                {
+                    fptTrackedOrderParameters[i].fptValues.push_front(++stepUp);
+                    fptTrackedOrderParameters[i].fptTimes.push_front(time);
+                }
+                fptTrackedOrderParameters[i].maxValueAchieved = opVal;
+                fptTrackedOrderParameters[i].fptValues.push_back(opVal);
                 fptTrackedOrderParameters[i].fptTimes.push_back(time);
             }
         }

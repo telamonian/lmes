@@ -216,10 +216,10 @@ public:
         return lm::array::ravelMultiIndex(multiIndex, _shape);
     }
 
-    void serialize(robertslab::pbuf::NDArray* ndArrMsg, bool compressed=true) const
+    void serialize(robertslab::pbuf::NDArray* ndArrMsg, bool compressed=false) const
     {
         lm::protowrap::NDArray<T> ndArrWrap(ndArrMsg);
-        ndArrWrap.set_array(_shape, _data, compressed);
+        ndArrWrap.set_array(_data, _shape, compressed);
     }
 
     utuple unravelIndex(uint index) const

@@ -1020,8 +1020,9 @@ void GillespieDSolverAVX::callUpdateSpeciesCountsListenersAVX()
     {
         uint opValIndex = fptTrackedOrderParameters[i].oparamID*DOUBLES_PER_AVX;
         uint fptopIndex = i*DOUBLES_PER_AVX;
-        // TODO: implement alternatives to tracking opfpts based on rounded values (eg tracking by tiling, etc)
-        avxd counts = _mm256_round_pd(_mm256_load_pd(&orderParameterValues[opValIndex]), _MM_FROUND_TO_ZERO);
+        // rounding version
+        //avxd counts = _mm256_round_pd(_mm256_load_pd(&orderParameterValues[opValIndex]), _MM_FROUND_TO_ZERO);
+        avxd counts = _mm256_load_pd(&orderParameterValues[opValIndex]);
         avxd comp;
         int allFalse;
         int trueMask;

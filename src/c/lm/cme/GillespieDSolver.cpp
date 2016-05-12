@@ -422,12 +422,10 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
             orderParameterTimeSeriesDataSet->set_trajectory_id(trajectoryId);
 
             opCounts.setMsgPtr(orderParameterTimeSeriesDataSet->mutable_values());
-//            opCounts.shape() << orderParameterTimeSeriesTimes.size() << numberOrderParameters;
-            opCounts.set_array(utuple(orderParameterTimeSeriesTimes.size(), numberOrderParameters), orderParameterTimeSeriesCounts);
+            opCounts.set_array(orderParameterTimeSeriesCounts, utuple(orderParameterTimeSeriesTimes.size(), numberOrderParameters), true);
 
             opTimes.setMsgPtr(orderParameterTimeSeriesDataSet->mutable_times());
-//            opTimes.shape() << orderParameterTimeSeriesTimes.size();
-            opTimes.set_array(utuple(orderParameterTimeSeriesTimes.size()), orderParameterTimeSeriesTimes);
+            opTimes.set_array(orderParameterTimeSeriesTimes, true);
             createdOutput = true;
         }
         else

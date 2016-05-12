@@ -184,7 +184,7 @@ public:
     }
 
     // array version
-    inline void set_array(const utuple& shape, const T* inputArray, bool compressed=true)
+    inline void set_array(const T* inputArray, const utuple& shape, bool compressed)
     {
         _set_props(shape, NDType<T>::T, compressed);
         set_data(inputArray);
@@ -192,8 +192,21 @@ public:
 
     // general STL container version
     // TODO: refactor to remove the (probably) unnecessary copy-to-vector
+//    template <template <typename, typename=std::allocator<T> > class ContainerT>
+//    inline void set_array(const ContainerT<T>& inputContainer, bool compressed=false)
     template <typename ContainerT>
-    inline void set_array(const utuple& shape, const ContainerT& inputContainer, bool compressed=true)
+    inline void set_array(const ContainerT& inputContainer, bool compressed=false)
+    {
+        utuple shape(inputContainer.size());
+        _set_props(shape, NDType<T>::T, compressed);
+        set_data(std::vector<T>(inputContainer.begin(), inputContainer.end()).data());
+    }
+
+    // TODO: refactor to remove the (probably) unnecessary copy-to-vector
+//    template <template <typename, typename=std::allocator<T> > class ContainerT>
+//    inline void set_array(const ContainerT<T>& inputContainer, const utuple& shape, bool compressed=false)
+    template <typename ContainerT>
+    inline void set_array(const ContainerT& inputContainer, const utuple& shape, bool compressed=false)
     {
         _set_props(shape, NDType<T>::T, compressed);
         if (size()!=inputContainer.size())
@@ -204,7 +217,14 @@ public:
     }
 
     // vector version
-    inline void set_array(const utuple& shape, const std::vector<T>& inputVector, bool compressed=true)
+    inline void set_array(const std::vector<T>& inputVector, bool compressed=false)
+    {
+        utuple shape(inputVector.size());
+        _set_props(shape, NDType<T>::T, compressed);
+        set_data(inputVector.data());
+    }
+
+    inline void set_array(const std::vector<T>& inputVector, const utuple& shape, bool compressed=false)
     {
         _set_props(shape, NDType<T>::T, compressed);
         if (size()!=inputVector.size())
