@@ -69,14 +69,22 @@ function(SetConfigDefault varName configVarName default)
         message(STATUS "Using default value for ${varName}: ${${varName}}")
     endif(DEFINED ${configVarName})
     set(${varName} ${${varName}} PARENT_SCOPE)
+
+    # if requested, set the var in the CMakeCache as well
+    if(ARGV3 STREQUAL "CACHE")
+        # wrap setting the cache to prevent unnecessary updates to cmake build
+        get_property(cache_var CACHE ${varName} PROPERTY VALUE)
+        get_property(cache_docstring CACHE ${varName} PROPERTY HELPSTRING)
+        if(NOT ${varName} STREQUAL cache_var)
+            set(${varName} ${${varName}} CACHE STRING "${cache_docstring}" FORCE)
+        endif(NOT ${varName} STREQUAL cache_var)
+    endif(ARGV3 STREQUAL "CACHE")
 endfunction()
 
 # a version of SetConfigDefault that considers the empty string to be the same as an undefined value. Useful for variables that default to "", e.g. CMAKE_BUILD_TYPE
 function(SetConfigDefaultIgnoreEmpty varName configVarName default)
     if(${configVarName} STREQUAL "")
-        string(RANDOM LENGTH 16 undefined_var)
-        SetConfigDefault(${varName} ${undefined_var} ${default})
-    else(${configVarName} STREQUAL "")
-        SetConfigDefault(${varName} ${configVarName} ${default})
+        string(RANDOM LENGTH 16 configVarName)
     endif(${configVarName} STREQUAL "")
+    SetConfigDefault(${varName} ${configVarName} ${default} ${ARGV3})
 endfunction()
