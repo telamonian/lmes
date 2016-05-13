@@ -191,17 +191,22 @@ void importSBMLModel(Hdf5File * lmFile, string sbmlFilename) throw(Exception)
     if (sbmlDocument->getLevel() == 3 && sbmlDocument->getVersion() == 1)
     {
         // expand any user-defined functions in the reaction kinetic laws
-        ConversionProperties props;
-        props.addOption("expandFunctionDefinitions");
-
         try
         {
-            if (sbmlDocument->convert(props) != LIBSBML_OPERATION_SUCCESS)
-            {
-                if (sbmlDocument->getNumErrors() > 0) sbmlDocument->printErrors();
-                throw Exception("Unable to expand user-defined functions in the reaction kinetic laws. Error log (if any) printed above.");
-            }
+            sbmlDocument->expandFunctionDefinitions();
         }
+        // addOption and printErrors take std::strings as arguments, which can cause problems when various libraries are built against different c++ std libs (ie libstdc++ vs libc++)
+//        ConversionProperties props;
+//        props.addOption("expandFunctionDefinitions");
+//
+//        try
+//        {
+//            if (sbmlDocument->convert(props) != LIBSBML_OPERATION_SUCCESS)
+//            {
+//                if (sbmlDocument->getNumErrors() > 0) sbmlDocument->printErrors();
+//                throw Exception("Unable to expand user-defined functions in the reaction kinetic laws. Error log (if any) printed above.");
+//            }
+//        }
         catch (std::logic_error e)
         {
             std::cerr << "std::logic exception during expansion of user-defined functions, continuing execution" << std::endl;
@@ -216,6 +221,7 @@ void importSBMLModel(Hdf5File * lmFile, string sbmlFilename) throw(Exception)
         {
             std::cerr << "Unknown exception during expansion of user-defined functions, continuing execution" << std::endl << std::endl;
         }
+
 
         // Build the reaction model from the SBML model.
         ReactionModel lmModel;
