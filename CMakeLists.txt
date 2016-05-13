@@ -7,18 +7,25 @@ endif(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules)
 include(ConfigFunctions)
 include(TestCompilerFeatures)
-
-# if certain packages cannot be found, the end-user (you) can change the variables in CMakeConfig.txt to point to package paths
 initializeCMakeConfig()
-include(CMakeConfig.txt)
 
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/PreProjectConfig)
 # the following commands are wrapped to prevent errors when this CMakeLists.txt is included as a subdirectory in another CMakeLists.txt
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     SetConfigDefault(CMAKE_TOOLCHAIN CMAKE_TOOLCHAIN gnu)
     chooseToolchain()
 endif(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 
+################
+project(lm)
+################
+# if certain packages cannot be found, the end-user (you) can change the variables in CMakeConfig.txt to point to package paths
+include(CMakeConfig.txt)
 set(ENV{HDF5_ROOT} ${HDF5_ROOT})
+enable_testing()
+
+# set build type from the config file, if present
+SetConfigDefault(CMAKE_BUILD_TYPE CMAKE_BUILD_TYPE Release)
 
 # convert the build type string to upper case for easy comparison
 string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UPPER)
@@ -38,11 +45,6 @@ if(APPLE)
         set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
     endif()
 endif()
-
-################
-project(lm)
-################
-enable_testing()
 
 # Lattice Microbes standard architecture flag
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "Intel")
