@@ -2,7 +2,7 @@
 # general options
 ############################
 
-# Uncomment and change to set the build type.
+# Uncomment to set the build type. Can be one of Debug, Release, RelWithDebInfo or MinSizeRel
 SET(CMAKE_BUILD_TYPE "Release")
 
 # Set the prefix dir for installation of lmes (i.e. when running "make install").
@@ -115,5 +115,3 @@ SET(CMAKE_TOOLCHAIN intel)
 
 #SET(BOOST_ROOT $BOOST_ROOT)
 #SET(SWIG_EXECUTABLE $SWIG_EXECUTABLE)
-
-
