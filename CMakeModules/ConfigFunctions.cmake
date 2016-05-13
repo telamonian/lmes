@@ -71,3 +71,12 @@ function(SetConfigDefault varName configVarName default)
     set(${varName} ${${varName}} PARENT_SCOPE)
 endfunction()
 
+# a version of SetConfigDefault that considers the empty string to be the same as an undefined value. Useful for variables that default to "", e.g. CMAKE_BUILD_TYPE
+function(SetConfigDefaultIgnoreEmpty varName configVarName default)
+    if(${configVarName} STREQUAL "")
+        string(RANDOM LENGTH 16 undefined_var)
+        SetConfigDefault(${varName} ${undefined_var} ${default})
+    else(${configVarName} STREQUAL "")
+        SetConfigDefault(${varName} ${configVarName} ${default})
+    endif(${configVarName} STREQUAL "")
+endfunction()

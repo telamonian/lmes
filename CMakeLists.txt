@@ -24,8 +24,8 @@ include(CMakeConfig.txt)
 set(ENV{HDF5_ROOT} ${HDF5_ROOT})
 enable_testing()
 
-# set build type from the config file, if present
-SetConfigDefault(CMAKE_BUILD_TYPE CMAKE_BUILD_TYPE Release)
+# set build type from the config file, if present. Special handling required since unlike many variables this is defined as "" by default
+SetConfigDefaultIgnoreEmpty(CMAKE_BUILD_TYPE CMAKE_BUILD_TYPE Release)
 
 # convert the build type string to upper case for easy comparison
 string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UPPER)
