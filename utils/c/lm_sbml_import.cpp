@@ -51,6 +51,7 @@
 #include <sbml/SBMLDocument.h>
 #include <sbml/SBMLTypes.h>
 #include <sbml/xml/XMLErrorLog.h>
+
 #include "lm/Exceptions.h"
 #include "lm/Version.h"
 #include "lm/io/ReactionModel.pb.h"
@@ -210,7 +211,10 @@ void importSBMLModel(Hdf5File * lmFile, string sbmlFilename) throw(Exception)
         catch (std::logic_error e)
         {
             std::cerr << "std::logic exception during expansion of user-defined functions, continuing execution" << std::endl;
-            std::cerr << "Error infodump: " << e.what() << std::endl << std::endl;
+            std::cerr << "Error infodump: " << e.what() << std::endl;
+            if (strstr("basic_string::_S_construct NULL not valid", e.what())!=NULL)
+                std::cerr << "Non-ASCII characters (such as greek letters) in model component names (species names, parameter names, etc.) can cause this error. Try substituting them for something else" << std::endl;
+            std::cerr << std::endl;
         }
         catch (std::exception e)
         {
@@ -467,11 +471,11 @@ void getSpeciesUsedInExpression(vector<string> & speciesUsed, const ASTNode * no
     }
 }
 
-void getOperatorsUsedInExpression(vector<string> & speciesUsed, const ASTNode * node)
+void getOperatorsUsedInExpression(vector<string> & operatorsUsed, const ASTNode * node)
 {
     if (node->isOperator())
     {
-        speciesUsed.push_back(string(1,node->getCharacter()));
+        operatorsUsed.push_back(string(1,node->getCharacter()));
     }
     else if (node->isName())
     {
@@ -481,11 +485,11 @@ void getOperatorsUsedInExpression(vector<string> & speciesUsed, const ASTNode * 
     }
     else
     {
-        speciesUsed.push_back(string("?"));
+        operatorsUsed.push_back(string("?"));
     }
     for (uint i=0; i<node->getNumChildren(); i++)
     {
-        getOperatorsUsedInExpression(speciesUsed, node->getChild(i));
+        getOperatorsUsedInExpression(operatorsUsed, node->getChild(i));
     }
 }
 
@@ -735,14 +739,18 @@ void importSecondOrderSelfReaction(const ASTNode * root, vector<string> & parame
 
 void importUnsupportedReaction(const ASTNode * root, vector<string> & parameters, map<string,double> & parameterValues, uint reactionIndex, uint numberReactions, ReactionModel * lmModel, uint * D, map<string,uint> & speciesIndices)
 {
-    // Set the reaction type to 9999 to mark that it needs to be manually updated by the user
-    lmModel->mutable_reaction(reactionIndex)->set_type(9999);
+    // Get the species used.
+    vector<string> speciesUsed;
+    getSpeciesUsedInExpression(speciesUsed, root, parameters, speciesIndices);
 
     // Set all possible dependencies to 9999 to mark that it needs to be manually updated by the user
-    for (map<string,uint>::const_iterator it=speciesIndices.begin(); it!=speciesIndices.end(); it++)
+    for (vector<string>::const_iterator it=speciesUsed.begin(); it!=speciesUsed.end(); it++)
     {
-        D[(it->second)*numberReactions+reactionIndex]=9999;
+        D[speciesIndices[*it]*numberReactions+reactionIndex] = 1;
     }
+
+    // Set the reaction type to 9999 to mark that it needs to be manually updated by the user
+    lmModel->mutable_reaction(reactionIndex)->set_type(9999);
 }
 
 /**
