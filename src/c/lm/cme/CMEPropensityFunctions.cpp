@@ -111,7 +111,7 @@ public:
 
     static lm::me::PropensityFunctionDefinition registerFunction()
     {
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "ZerothOrderPropensity", "k1", &create);
     }
 };
 
@@ -151,7 +151,7 @@ public:
 
     static lm::me::PropensityFunctionDefinition registerFunction()
     {
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderPropensity", "k1 * x1", &create);
     }
 };
 

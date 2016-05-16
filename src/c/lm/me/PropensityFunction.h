@@ -46,6 +46,7 @@
 #include <string>
 #include <vector>
 
+#include "lm/Print.h"
 #include "lm/Types.h"
 
 using std::list;
@@ -87,9 +88,10 @@ typedef PropensityFunction* (*PropensityFunctionCreator)(const uint reactionInde
 
 struct PropensityFunctionDefinition
 {
-    PropensityFunctionDefinition():type(std::numeric_limits<uint>::max()),create(NULL){}
+    PropensityFunctionDefinition():type(std::numeric_limits<uint>::max()),name("undefined"),expression(""),create(NULL){}
+    PropensityFunctionDefinition(uint type, PropensityFunctionCreator create):type(type),name("unknown"),expression(""),create(create){}
     PropensityFunctionDefinition(uint type, string name, string expression, PropensityFunctionCreator create):type(type),name(name),expression(expression),create(create){}
-    PropensityFunctionDefinition(const PropensityFunctionDefinition& p):type(p.type),create(p.create){}
+    PropensityFunctionDefinition(const PropensityFunctionDefinition& p):type(p.type),name(p.name),expression(p.expression),create(p.create){}
     uint type;
     string name;
     string expression;
@@ -102,7 +104,8 @@ public:
     PropensityFunctionFactory();
     ~PropensityFunctionFactory();
     PropensityFunction* createPropensityFunction(uint type, int reactionIndex, ndarray<int> S, ndarray<uint> D, tuple<double>k);
-    void printRegisteredFunctions();
+    void printRegisteredFunctions(int verbosity=Print::DEBUG);
+    map<uint,PropensityFunctionDefinition> getFunctions();
 
 private:
     map<uint,PropensityFunctionDefinition> functions;

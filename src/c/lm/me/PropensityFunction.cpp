@@ -92,14 +92,19 @@ PropensityFunction* PropensityFunctionFactory::createPropensityFunction(uint typ
     return (*f)(reactionIndex, S, D, K);
 }
 
-void PropensityFunctionFactory::printRegisteredFunctions()
+void PropensityFunctionFactory::printRegisteredFunctions(int verbosity)
 {
-    Print::printf(Print::DEBUG, "The following propensity functions were registered during initialization:");
+    Print::printf(verbosity, "The following propensity functions are registered:");
     for (map<uint,PropensityFunctionDefinition>::iterator it=functions.begin(); it != functions.end(); it++)
     {
         PropensityFunctionDefinition def = it->second;
-        Print::printf(Print::DEBUG, "%s -> %d", functionSources[it->first].c_str(), def.type);
+        Print::printf(verbosity, "% 4d,\t%s,\tp=\"%s\",\tsource=%s", def.type, def.name.c_str(), def.expression.c_str(), functionSources[it->first].c_str());
     }
+}
+
+map<uint,PropensityFunctionDefinition> PropensityFunctionFactory::getFunctions()
+{
+    return functions;
 }
 
 }

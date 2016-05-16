@@ -54,6 +54,7 @@
 #include <sbml/conversion/ConversionProperties.h>
 #include <sbml/math/FormulaFormatter.h>
 #include <sbml/SBMLDocument.h>
+#include <sbml/SBMLReader.h>
 #include <sbml/SBMLTypes.h>
 #include <sbml/xml/XMLErrorLog.h>
 #include "lm/ClassFactory.h"
@@ -94,6 +95,11 @@ string outputFilename = "";
 string inputFilename = "";
 
 /**
+ * Whether to ignore errors in the SBML file.
+ */
+bool ignoreErrors = false;
+
+/**
  * Copasi always sets species concentrations (instead of amount) in exported sbml, so fix that
  */
 bool isCopasi = false;
@@ -106,6 +112,7 @@ map<string, double> userParameterValues;
 void importSBMLModel(Hdf5File * lmFile, string sbmlFilename) throw(Exception);
 void importSBMLModelL3V1(ReactionModel * lmModel, Model * sbmlModel) throw(Exception);
 void importSBMLModelL3V1Kinetics(uint reactionIndex, KineticLaw * kinetics, ReactionModel * lmModel, uint * D, map<string,uint> & speciesIndices, uint numberReactions, vector<string> & globalParameters, map<string,double> & globalParameterValues) throw(Exception);
+void matchKineticsWithPropensityFunction(KineticLaw * kinetics, map<string,double>& parameterValues);
 bool isZerothOrderReaction(const ASTNode * root, vector<string> & parameters, map<string,uint> & speciesIndices);
 void importZerothOrderReaction(const ASTNode * root, vector<string> & parameters, map<string,double> & parameterValues, uint reactionIndex, uint numberReactions, ReactionModel * lmModel, uint * D, map<string,uint> & speciesIndices);
 bool isFirstOrderReaction(const ASTNode * root, vector<string> & parameters, map<string,uint> & speciesIndices);
@@ -169,33 +176,53 @@ int main(int argc, char** argv)
 	}
     catch (lm::CommandLineArgumentException e)
     {
-    	std::cerr << "Invalid command line argument: " << e.what() << std::endl << std::endl;
+        std::cout << "Invalid command line argument: " << e.what() << std::endl << std::endl;
         printUsage(argc, argv);
     }
     catch (Exception e)
     {
-    	std::cerr << "Exception during execution: " << e.what() << std::endl;
+        std::cout << "Exception during execution: " << e.what() << std::endl;
     }
     catch (std::exception e)
     {
-    	std::cerr << "Exception during execution: " << e.what() << std::endl;
+        std::cout << "Exception during execution: " << e.what() << std::endl;
     }
     catch (...)
     {
-    	std::cerr << "Unknown Exception during execution." << std::endl;
+        std::cout << "Unknown Exception during execution." << std::endl;
     }
     return -1;
 }
 
+lm::me::PropensityFunctionFactory *factory;
+
 void importSBMLModel(Hdf5File * lmFile, string sbmlFilename) throw(Exception)
 {
+    // Print the propensity functions that are registered.
+    factory = new lm::me::PropensityFunctionFactory();
+    factory->printRegisteredFunctions(Print::INFO);
+
     // Read in the SBML document.
-    std::auto_ptr<SBMLDocument> sbmlDocument(readSBML(sbmlFilename.c_str()));
-//    if (sbmlDocument->getNumErrors() > 0)
-//    {
-//        sbmlDocument->printErrors();
-//        throw Exception("Error reading SBML file");
-//    }
+    SBMLReader reader;
+    std::auto_ptr<SBMLDocument> sbmlDocument(reader.readSBML(sbmlFilename));
+    if (sbmlDocument->getNumErrors() > 0)
+    {
+        printf("\nProblems detected while parsing the SBML file %s\n",sbmlFilename.c_str());
+        printf("-----------------------------------\n");
+        sbmlDocument->printErrors(std::cout);
+        printf("-----------------------------------\n");
+
+        bool criticalErrrors = false;
+        for (int i=0; i<sbmlDocument->getNumErrors(); i++)
+        {
+            const SBMLError* error = sbmlDocument->getError(i);
+            if (error->getSeverity() >= LIBSBML_SEV_ERROR)
+                criticalErrrors = true;
+        }
+
+        if (criticalErrrors && !ignoreErrors)
+            throw Exception("There were critical errors detected while parsing the SBML file. Either fix the errors or execute the command again with the --ignore-errors flag set.");
+    }
 
     // Make sure we know how to process the document.
     if (sbmlDocument->getLevel() == 3 && sbmlDocument->getVersion() == 1)
@@ -204,28 +231,27 @@ void importSBMLModel(Hdf5File * lmFile, string sbmlFilename) throw(Exception)
         ConversionProperties props;
         props.addOption("expandFunctionDefinitions");
 
-        try
-        {
+//        try
+//        {
             if (sbmlDocument->convert(props) != LIBSBML_OPERATION_SUCCESS)
             {
-                if (sbmlDocument->getNumErrors() > 0) sbmlDocument->printErrors();
-                throw Exception("Unable to expand user-defined functions in the reaction kinetic laws. Error log (if any) printed above.");
+                printf("Expansion failed\n");
             }
-        }
-        catch (std::logic_error e)
-        {
-            std::cerr << "std::logic exception during expansion of user-defined functions, continuing execution" << std::endl;
-            std::cerr << "Error infodump: " << e.what() << std::endl << std::endl;
-        }
-        catch (std::exception e)
-        {
-            std::cerr << "std::exception during expansion of user-defined functions, continuing execution" << std::endl;
-            std::cerr << "Error infodump: " << e.what() << std::endl << std::endl;
-        }
-        catch (...)
-        {
-            std::cerr << "Unknown exception during expansion of user-defined functions, continuing execution" << std::endl << std::endl;
-        }
+//        }
+//        catch (std::logic_error e)
+//        {
+//            std::cout << "std::logic exception during expansion of user-defined functions, continuing execution" << std::endl;
+//            std::cout << "Error infodump: " << e.what() << std::endl << std::endl;
+//        }
+//        catch (std::exception e)
+//        {
+//            std::cout << "std::exception during expansion of user-defined functions, continuing execution" << std::endl;
+//            std::cout << "Error infodump: " << e.what() << std::endl << std::endl;
+//        }
+//        catch (...)
+//        {
+//            std::cout << "Unknown exception during expansion of user-defined functions, continuing execution" << std::endl << std::endl;
+//        }
 
         // Build the reaction model from the SBML model.
         ReactionModel lmModel;
@@ -403,17 +429,12 @@ void importSBMLModelL3V1Kinetics(uint reactionIndex, KineticLaw * kinetics, Reac
         //}
     }
 
-    // Get the kinetic expression.
-    const ASTNode * math = kinetics->getMath();
-
     // Go through all of the propensity functions and see if we can find a match.
-    lm::me::PropensityFunctionFactory factory;
-    printf("Known\n");
-    factory.printRegisteredFunctions();
+    matchKineticsWithPropensityFunction(kinetics, localParameterValues);
 
 
 
-
+/*
     string reactionTypeString;
     char formattedOutput[100];
 
@@ -450,6 +471,164 @@ void importSBMLModelL3V1Kinetics(uint reactionIndex, KineticLaw * kinetics, Reac
             throw Exception("Unsupported kinetic law", SBML_formulaToString(math));
         }
     printf("[%s]\n", reactionTypeString.c_str());
+    */
+}
+
+void printASTNode(const ASTNode_t* node, int depth=0);
+void simplifyASTExpression(ASTNode_t* node, map<string,double>& parameterValues);
+bool areAllASTChildrenNumeric(ASTNode_t* node);
+double evaluateASTOperator(const ASTNode_t * node);
+
+void printASTNode(const ASTNode_t* node, int depth)
+{
+    if (depth == 0) printf("------------------------\n");
+    for (int i=0; i<depth; i++) printf("  ");
+    if (node->getType() == AST_NAME)
+        printf("%s\n", node->getName());
+    else if (node->getType() == AST_TIMES)
+        printf("%s\n", "TIMES");
+    else if (node->getType() == AST_DIVIDE)
+        printf("%s\n", "DIVIDE");
+    else if (node->getType() == AST_PLUS)
+        printf("%s\n", "PLUS");
+    else if (node->getType() == AST_MINUS)
+        printf("%s\n", "MINUS");
+    else if (node->getType() == AST_INTEGER)
+        printf("%ld\n", node->getInteger());
+    else if (node->getType() == AST_REAL)
+        printf("%0.4e\n", node->getReal());
+    else
+        printf("AST Type:%d\n", node->getType());
+    for (int i=0; i<node->getNumChildren(); i++)
+        printASTNode(node->getChild(i), depth+1);
+    if (depth == 0) printf("------------------------\n");
+}
+
+void simplifyASTExpression(ASTNode_t* node, map<string,double>& parameterValues)
+{
+    // Simplify the child nodes.
+    for (int i=0; i<node->getNumChildren(); i++)
+        simplifyASTExpression(node->getChild(i), parameterValues);
+
+    // Simplfy this node.
+    if (node->isOperator() && areAllASTChildrenNumeric(node))
+    {
+        node->setValue(evaluateASTOperator(node));
+        while (node->getNumChildren())
+            node->removeChild(0);
+    }
+    if (node->getType() == AST_TIMES)
+    {
+        // If a child is times, remove it and bring its children up a level.
+        for (int i=0; i<node->getNumChildren(); i++)
+        {
+            ASTNode_t* child = node->getChild(i);
+            if (child->getType() == AST_TIMES)
+            {
+                for (int j=0; j<child->getNumChildren(); j++)
+                    node->addChild(child->getChild(j));
+                while (child->getNumChildren())
+                    child->removeChild(0);
+                node->removeChild(i);
+            }
+        }
+    }
+    else if (node->getType() == AST_NAME)
+    {
+        if (parameterValues.count(node->getName()) == 1)
+        {
+            string name = node->getName();
+            node->setValue(parameterValues[name]);
+            printf("substituting %s -> %0.4e\n",name.c_str(), node->getReal());
+        }
+    }
+    else if (node->getType() == AST_NAME_AVOGADRO)
+    {
+        node->setValue(6.02214179e23);
+    }
+}
+
+bool areAllASTChildrenNumeric(ASTNode_t* node)
+{
+    for (int i=0; i<node->getNumChildren(); i++)
+        if (node->getChild(i)->getType() != AST_INTEGER && node->getChild(i)->getType() != AST_REAL)
+            return false;
+    return true;
+}
+
+double evaluateASTOperator(const ASTNode_t * node)
+{
+    if (node->getType() == AST_TIMES)
+    {
+        double value=1.0;
+        for (uint i=0; i<node->getNumChildren(); i++)
+        {
+            value *= evaluateASTOperator(node->getChild(i));
+        }
+        return value;
+    }
+    else if (node->getType() == AST_DIVIDE)
+    {
+        if (node->getNumChildren() != 2) throw Exception("Unsupported division operator format.");
+        return evaluateASTOperator(node->getChild(0))/evaluateASTOperator(node->getChild(1));
+    }
+    if (node->getType() == AST_PLUS)
+    {
+        double value=0.0;
+        for (uint i=0; i<node->getNumChildren(); i++)
+        {
+            value += evaluateASTOperator(node->getChild(i));
+        }
+        return value;
+    }
+    else if (node->getType() == AST_MINUS)
+    {
+        if (node->getNumChildren() != 2) throw Exception("Unsupported subtraction operator format.");
+        return evaluateASTOperator(node->getChild(0)) - evaluateASTOperator(node->getChild(1));
+    }
+    else if (node->getType() == AST_INTEGER)
+    {
+        return (double)node->getInteger();
+    }
+    else if (node->getType() == AST_REAL)
+    {
+        return node->getReal();
+    }
+    else
+        throw Exception("Unsupported operator type.", node->getType());
+}
+
+void matchKineticsWithPropensityFunction(KineticLaw * kinetics, map<string,double>& parameterValues)
+{
+    // Get the kinetic expression.
+    const ASTNode_t* originalFormula = SBML_parseL3Formula(SBML_formulaToL3String(kinetics->getMath()));
+    printf("original: %s\n", SBML_formulaToL3String(kinetics->getMath()));
+    printf("formula: %s\n", SBML_formulaToL3String(originalFormula));
+    printASTNode(originalFormula);
+    ASTNode_t* simplifiedFormula = originalFormula->deepCopy();
+    simplifyASTExpression(simplifiedFormula, parameterValues);
+    printf("simplified: %s\n", SBML_formulaToL3String(simplifiedFormula));
+    printASTNode(simplifiedFormula);
+
+    // Simplify the formula.
+
+    // Put the formula into normal form.
+
+    // Iterate through each propensity function and see if it matches.
+    map<uint,lm::me::PropensityFunctionDefinition> functions = factory->getFunctions();
+    for (std::map<uint,lm::me::PropensityFunctionDefinition>::const_iterator it=functions.begin(); it != functions.end(); it++)
+    {
+        uint id = it->first;
+        lm::me::PropensityFunctionDefinition p = it->second;
+        if (p.expression.length() > 0)
+        {
+            //printf("%d,%s,%s\n",p.type,p.name.c_str(),p.expression.c_str());
+            ASTNode_t* pFormula = SBML_parseL3Formula(p.expression.c_str());
+            //printASTNode(pFormula);
+        }
+    }
+
+    delete simplifiedFormula;
 }
 
 void getSpeciesUsedInExpression(vector<string> & speciesUsed, const ASTNode * node, vector<string> & parameters, map<string,uint> & speciesIndices)
@@ -513,56 +692,8 @@ const ASTNode * getFirstExpressionOfType(const ASTNode * node, ASTNodeType_t typ
     return NULL;
 }
 
-double calculateMultiplierInExpression(const ASTNode * node, map<string,double> & parameterValues, map<string,uint> & speciesIndices, bool ignoreSpeciesMinusOne=false)
-{
-    if (node->getType() == AST_TIMES)
-    {
-        double value=1.0;
-        for (uint i=0; i<node->getNumChildren(); i++)
-        {
-            value *= calculateMultiplierInExpression(node->getChild(i), parameterValues, speciesIndices, ignoreSpeciesMinusOne);
-        }
-        return value;
-    }
-    else if (node->getType() == AST_DIVIDE && node->getNumChildren() == 2)
-    {
-        return calculateMultiplierInExpression(node->getChild(0), parameterValues, speciesIndices, ignoreSpeciesMinusOne)/calculateMultiplierInExpression(node->getChild(1), parameterValues, speciesIndices, ignoreSpeciesMinusOne);
-    }
-    else if (ignoreSpeciesMinusOne && node->getType() == AST_MINUS)
-    {
 
-        if (node->getNumChildren() != 2) throw Exception("Unsupported expression 1");
-        if (!node->getChild(0)->isName()) throw Exception("Unsupported expression 2");
-        if (parameterValues.count(node->getChild(0)->getName()) == 1) throw Exception("Unsupported expression 3");
-        if (!(node->getChild(1)->isInteger() || node->getChild(1)->isReal())) throw Exception("Unsupported expression 4");
-        if (node->getChild(1)->getInteger() != 1 && node->getChild(1)->getReal() != 1) throw Exception("Unsupported expression 5");
-        return 1.0;
-    }
-    else if (node->getType() == AST_INTEGER)
-    {
-        return (double)node->getInteger();
-    }
-    else if (node->getType() == AST_REAL)
-    {
-        return node->getReal();
-    }
-    else if (node->getType() == AST_NAME)
-    {
-        if (parameterValues.count(node->getName()) == 1)
-            return parameterValues[node->getName()];
-        else if (speciesIndices.find(string(node->getName())) != speciesIndices.end())
-            return 1.0;
-        else
-    		throw Exception("Unknown identifier in expression", node->getName());
-    }
-    else if (node->getType() == AST_NAME_AVOGADRO)
-    {
-    	return 6.02214179e23;
-    }
-    else
-        throw Exception("Unsupported ast type", node->getType());
-}
-
+/*
 bool isZerothOrderReaction(const ASTNode * root, vector<string> & parameters, map<string,uint> & speciesIndices)
 {
     // Make sure the rate only depends on only one species.
@@ -757,6 +888,7 @@ void importUnsupportedReaction(const ASTNode * root, vector<string> & parameters
         D[(it->second)*numberReactions+reactionIndex]=9999;
     }
 }
+*/
 
 /**
  * This function prints the copyright notice.
@@ -805,8 +937,16 @@ void parseArguments(int argc, char** argv)
             inputFilename = option;
         }
 
+
         // See if the user is trying to import a sbml file that was originally exported by Copasi
-        else if (strcmp(option, "--copasi") == 0) {
+        else if (strcmp(option, "--ignore-errors") == 0)
+        {
+            ignoreErrors = true;
+        }
+
+        // See if the user is trying to import a sbml file that was originally exported by Copasi
+        else if (strcmp(option, "--copasi") == 0)
+        {
             isCopasi = true;
         }
 
@@ -839,7 +979,8 @@ void printUsage(int argc, char** argv)
 	std::cout << "Usage: " << argv[0] << " lm_filename sbml_filename [OPTIONS]" << std::endl; // TODO: uncomment rest of line when userParameterValues is implemented (see below) // (simulation_parameter_key=value)+" << std::endl;
 	std::cout << std::endl;
     std::cout << "OPTIONS" << std::endl;
-    std::cout << "  --copasi    (EXPERIMENTAL) Use this option if you're trying to import a sbml file that was originally exported by Copasi" << std::endl;
+    std::cout << "  --ignore-errors     Use this option to ignore any errors in the SBML file and attempt to import it." << std::endl;
+    std::cout << "  --copasi            (EXPERIMENTAL) Use this option if you're trying to import a sbml file that was originally exported by Copasi" << std::endl;
     std::cout << std::endl;
     // TODO: the userParameterValues stuff seems to be currently unimplemented, uncomment help section below once it is
 //    std::cout << "Setting simulation parameters" << std::endl;
@@ -847,3 +988,56 @@ void printUsage(int argc, char** argv)
 //    std::cout << "        EXAMPLE: " << argv[0] << " genetic_toggle_switch.lm genetic_toggle_swithc.sbml writeInterval=1e-2 maxTime=1e-1" << std::endl;
 //    std::cout << std::endl;
 }
+
+
+/**
+ * double evaluateASTExpression(const ASTNode_t * node, map<string,double> & parameterValues, map<string,uint> & speciesIndices, bool ignoreSpeciesMinusOne=false)
+{
+    if (node->getType() == AST_TIMES)
+    {
+        double value=1.0;
+        for (uint i=0; i<node->getNumChildren(); i++)
+        {
+            value *= calculateMultiplierInExpression(node->getChild(i), parameterValues, speciesIndices, ignoreSpeciesMinusOne);
+        }
+        return value;
+    }
+    else if (node->getType() == AST_DIVIDE && node->getNumChildren() == 2)
+    {
+        return calculateMultiplierInExpression(node->getChild(0), parameterValues, speciesIndices, ignoreSpeciesMinusOne)/calculateMultiplierInExpression(node->getChild(1), parameterValues, speciesIndices, ignoreSpeciesMinusOne);
+    }
+    else if (ignoreSpeciesMinusOne && node->getType() == AST_MINUS)
+    {
+
+        if (node->getNumChildren() != 2) throw Exception("Unsupported expression 1");
+        if (!node->getChild(0)->isName()) throw Exception("Unsupported expression 2");
+        if (parameterValues.count(node->getChild(0)->getName()) == 1) throw Exception("Unsupported expression 3");
+        if (!(node->getChild(1)->isInteger() || node->getChild(1)->isReal())) throw Exception("Unsupported expression 4");
+        if (node->getChild(1)->getInteger() != 1 && node->getChild(1)->getReal() != 1) throw Exception("Unsupported expression 5");
+        return 1.0;
+    }
+    else if (node->getType() == AST_INTEGER)
+    {
+        return (double)node->getInteger();
+    }
+    else if (node->getType() == AST_REAL)
+    {
+        return node->getReal();
+    }
+    else if (node->getType() == AST_NAME)
+    {
+        if (parameterValues.count(node->getName()) == 1)
+            return parameterValues[node->getName()];
+        else if (speciesIndices.find(string(node->getName())) != speciesIndices.end())
+            return 1.0;
+        else
+            throw Exception("Unknown identifier in expression", node->getName());
+    }
+    else if (node->getType() == AST_NAME_AVOGADRO)
+    {
+        return 6.02214179e23;
+    }
+    else
+        throw Exception("Unsupported ast type", node->getType());
+}
+*/
