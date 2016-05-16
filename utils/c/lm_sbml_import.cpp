@@ -111,8 +111,8 @@ map<string, double> userParameterValues;
 
 void importSBMLModel(Hdf5File * lmFile, string sbmlFilename) throw(Exception);
 void importSBMLModelL3V1(ReactionModel * lmModel, Model * sbmlModel) throw(Exception);
-void importSBMLModelL3V1Kinetics(uint reactionIndex, KineticLaw * kinetics, ReactionModel * lmModel, uint * D, map<string,uint> & speciesIndices, uint numberReactions, vector<string> & globalParameters, map<string,double> & globalParameterValues) throw(Exception);
-int matchKineticsWithPropensityFunction(KineticLaw * kinetics, map<string,double>& parameterValues);
+void importSBMLModelL3V1Kinetics(Reaction * reaction, uint reactionIndex, KineticLaw * kinetics, ReactionModel * lmModel, uint * D, map<string,uint> & speciesIndices, uint numberReactions, vector<string> & globalParameters, map<string,double> & globalParameterValues) throw(Exception);
+int matchKineticsWithPropensityFunction(Reaction * reaction, uint reactionIndex, KineticLaw * kinetics, map<string,double>& parameterValues);
 bool isZerothOrderReaction(const ASTNode * root, vector<string> & parameters, map<string,uint> & speciesIndices);
 void importZerothOrderReaction(const ASTNode * root, vector<string> & parameters, map<string,double> & parameterValues, uint reactionIndex, uint numberReactions, ReactionModel * lmModel, uint * D, map<string,uint> & speciesIndices);
 bool isFirstOrderReaction(const ASTNode * root, vector<string> & parameters, map<string,uint> & speciesIndices);
@@ -375,7 +375,7 @@ void importSBMLModelL3V1(ReactionModel * lmModel, Model * sbmlModel) throw(Excep
         // Process the kinetic law.
         lmModel->add_reaction();
         KineticLaw * kinetics = reaction->getKineticLaw();
-        importSBMLModelL3V1Kinetics(i, kinetics, lmModel, D, speciesIndices, numberReactions, globalParameters, globalParameterValues);
+        importSBMLModelL3V1Kinetics(reaction, i, kinetics, lmModel, D, speciesIndices, numberReactions, globalParameters, globalParameterValues);
     }
 
     // Fill in the S and D matrices.
@@ -386,7 +386,7 @@ void importSBMLModelL3V1(ReactionModel * lmModel, Model * sbmlModel) throw(Excep
     }
 }
 
-void importSBMLModelL3V1Kinetics(uint reactionIndex, KineticLaw * kinetics, ReactionModel * lmModel, uint * D, map<string,uint> & speciesIndices, uint numberReactions, vector<string> & globalParameters, map<string,double> & globalParameterValues) throw(Exception)
+void importSBMLModelL3V1Kinetics(Reaction * reaction, uint reactionIndex, KineticLaw * kinetics, ReactionModel * lmModel, uint * D, map<string,uint> & speciesIndices, uint numberReactions, vector<string> & globalParameters, map<string,double> & globalParameterValues) throw(Exception)
 {
     vector<string> localParameters;
     map<string,double> localParameterValues;
@@ -419,7 +419,11 @@ void importSBMLModelL3V1Kinetics(uint reactionIndex, KineticLaw * kinetics, Reac
     }
 
     // Go through all of the propensity functions and see if we can find a match.
-    matchKineticsWithPropensityFunction(kinetics, localParameterValues);
+    int propensityFunctionId = matchKineticsWithPropensityFunction(reaction, reactionIndex, kinetics, localParameterValues);
+
+    if (propensityFunctionId != -1)
+    {
+    }
 
 
 
@@ -470,7 +474,7 @@ bool areAllASTChildrenNumeric(ASTNode_t* node);
 double evaluateASTOperator(const ASTNode_t * node);
 bool compareASTNodes(ASTNode_t* formula, ASTNode_t* propensityFormula);
 
-int matchKineticsWithPropensityFunction(KineticLaw * kinetics, map<string,double>& parameterValues)
+int matchKineticsWithPropensityFunction(Reaction * reaction, uint reactionIndex, KineticLaw * kinetics, map<string,double>& parameterValues)
 {
     // Get the kinetic expression.
     const ASTNode_t* originalFormula = SBML_parseL3Formula(SBML_formulaToL3String(kinetics->getMath()));
@@ -505,7 +509,7 @@ int matchKineticsWithPropensityFunction(KineticLaw * kinetics, map<string,double
             normalizeASTExpression(normalizedPropensityFormula);
             if (compareASTNodes(simplifiedFormula, normalizedPropensityFormula))
             {
-                Print::printf(Print::INFO, "Matched kinetic formula to %s: [%s] == [%s]", p.name.c_str(), SBML_formulaToL3String(simplifiedFormula), SBML_formulaToL3String(normalizedPropensityFormula));
+                Print::printf(Print::INFO, "Matched kinetic formula in %s to %s: [%s] == [%s]", reaction->getName().c_str(), p.name.c_str(), SBML_formulaToL3String(simplifiedFormula), SBML_formulaToL3String(normalizedPropensityFormula));
                 Print::printf(Print::DEBUG, "                                         Original form:   [%s]", SBML_formulaToL3String(kinetics->getMath()));
                 Print::printf(Print::DEBUG, "                                         Normalized form: [%s]", SBML_formulaToL3String(normalizedFormula));
                 return id;
@@ -517,9 +521,11 @@ int matchKineticsWithPropensityFunction(KineticLaw * kinetics, map<string,double
         }
     }
 
-    Print::printf(Print::ERROR, "FAILED to match kinetic formula to a propensity function: [%s] ", SBML_formulaToL3String(kinetics->getMath()));
+    // Print out some messages to help the user figure out why there wasn't a match.
+    Print::printf(Print::ERROR, "FAILED to match kinetic formula in %s at line %d to a propensity function: [%s] ", reaction->getName().c_str(), kinetics->getLine(), SBML_formulaToL3String(kinetics->getMath()));
     Print::printf(Print::ERROR, "                                         Normalized form: [%s]", SBML_formulaToL3String(normalizedFormula));
     Print::printf(Print::ERROR, "                                         Simplified form: [%s]", SBML_formulaToL3String(simplifiedFormula));
+
     delete simplifiedFormula;
     return -1;
 }

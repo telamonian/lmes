@@ -191,7 +191,7 @@ public:
 
     static lm::me::PropensityFunctionDefinition registerFunction()
     {
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "SecondOrderPropensity", "k1 * x1 * x2", &create);
     }
 };
 
@@ -233,7 +233,7 @@ public:
 
     static lm::me::PropensityFunctionDefinition registerFunction()
     {
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "SecondOrderSelfPropensity", "k1 * x1 * x1", &create);
     }
 };
 
