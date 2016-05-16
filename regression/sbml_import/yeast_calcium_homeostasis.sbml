@@ -1284,7 +1284,7 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI76" name="λ" value="5" constant="true">
+      <parameter metaid="COPASI76" id="ER" name="lambda" value="5" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
@@ -1314,7 +1314,7 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI78" id="_0" name="ɸ" value="0.999999683772334" constant="false">
+      <parameter metaid="COPASI78" id="_0" name="phi" value="0.999999683772334" constant="false">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
@@ -1374,7 +1374,7 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI82" id="_1" name="θ" value="0.999999683772334" constant="false">
+      <parameter metaid="COPASI82" id="_1" name="theta" value="0.999999683772334" constant="false">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
@@ -1910,7 +1910,7 @@
                         <power/>
                         <apply>
                           <times/>
-                          <ci>  </ci>
+                          <cn> 1 </cn>
                           <ci> x </ci>
                         </apply>
                         <apply>
@@ -1933,7 +1933,7 @@
                       <minus/>
                       <apply>
                         <times/>
-                        <ci>  </ci>
+                        <cn> 1 </cn>
                         <ci> x </ci>
                       </apply>
                       <cn> 1 </cn>
@@ -2010,7 +2010,7 @@
                       <power/>
                       <apply>
                         <times/>
-                        <ci>  </ci>
+                        <cn> 1 </cn>
                         <ci> x </ci>
                       </apply>
                       <apply>
@@ -2025,7 +2025,7 @@
                     <minus/>
                     <apply>
                       <times/>
-                      <ci>  </ci>
+                      <cn> 1 </cn>
                       <ci> x </ci>
                     </apply>
                     <cn> 1 </cn>

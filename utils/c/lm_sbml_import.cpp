@@ -112,7 +112,7 @@ map<string, double> userParameterValues;
 void importSBMLModel(Hdf5File * lmFile, string sbmlFilename) throw(Exception);
 void importSBMLModelL3V1(ReactionModel * lmModel, Model * sbmlModel) throw(Exception);
 void importSBMLModelL3V1Kinetics(uint reactionIndex, KineticLaw * kinetics, ReactionModel * lmModel, uint * D, map<string,uint> & speciesIndices, uint numberReactions, vector<string> & globalParameters, map<string,double> & globalParameterValues) throw(Exception);
-void matchKineticsWithPropensityFunction(KineticLaw * kinetics, map<string,double>& parameterValues);
+int matchKineticsWithPropensityFunction(KineticLaw * kinetics, map<string,double>& parameterValues);
 bool isZerothOrderReaction(const ASTNode * root, vector<string> & parameters, map<string,uint> & speciesIndices);
 void importZerothOrderReaction(const ASTNode * root, vector<string> & parameters, map<string,double> & parameterValues, uint reactionIndex, uint numberReactions, ReactionModel * lmModel, uint * D, map<string,uint> & speciesIndices);
 bool isFirstOrderReaction(const ASTNode * root, vector<string> & parameters, map<string,uint> & speciesIndices);
@@ -231,27 +231,16 @@ void importSBMLModel(Hdf5File * lmFile, string sbmlFilename) throw(Exception)
         ConversionProperties props;
         props.addOption("expandFunctionDefinitions");
 
-//        try
-//        {
-            if (sbmlDocument->convert(props) != LIBSBML_OPERATION_SUCCESS)
-            {
-                printf("Expansion failed\n");
-            }
-//        }
-//        catch (std::logic_error e)
-//        {
-//            std::cout << "std::logic exception during expansion of user-defined functions, continuing execution" << std::endl;
-//            std::cout << "Error infodump: " << e.what() << std::endl << std::endl;
-//        }
-//        catch (std::exception e)
-//        {
-//            std::cout << "std::exception during expansion of user-defined functions, continuing execution" << std::endl;
-//            std::cout << "Error infodump: " << e.what() << std::endl << std::endl;
-//        }
-//        catch (...)
-//        {
-//            std::cout << "Unknown exception during expansion of user-defined functions, continuing execution" << std::endl << std::endl;
-//        }
+        if (sbmlDocument->convert(props) != LIBSBML_OPERATION_SUCCESS)
+        {
+            printf("\nProblems detected while expanding function definitions in the SBML file %s\n",sbmlFilename.c_str());
+            printf("-----------------------------------\n");
+            sbmlDocument->printErrors(std::cout);
+            printf("-----------------------------------\n");
+
+            if (!ignoreErrors)
+                throw Exception("There were critical errors detected while expanding function definitions in the SBML file. Either fix the errors or execute the command again with the --ignore-errors flag set.");
+        }
 
         // Build the reaction model from the SBML model.
         ReactionModel lmModel;
@@ -475,9 +464,65 @@ void importSBMLModelL3V1Kinetics(uint reactionIndex, KineticLaw * kinetics, Reac
 }
 
 void printASTNode(const ASTNode_t* node, int depth=0);
+void normalizeASTExpression(ASTNode_t* node);
 void simplifyASTExpression(ASTNode_t* node, map<string,double>& parameterValues);
 bool areAllASTChildrenNumeric(ASTNode_t* node);
 double evaluateASTOperator(const ASTNode_t * node);
+bool compareASTNodes(ASTNode_t* formula, ASTNode_t* propensityFormula);
+
+int matchKineticsWithPropensityFunction(KineticLaw * kinetics, map<string,double>& parameterValues)
+{
+    // Get the kinetic expression.
+    const ASTNode_t* originalFormula = SBML_parseL3Formula(SBML_formulaToL3String(kinetics->getMath()));
+//    printf("original: %s\n", SBML_formulaToL3String(kinetics->getMath()));
+//    printf("formula: %s\n", SBML_formulaToL3String(originalFormula));
+//    printASTNode(originalFormula);
+
+    // Put the formula into normal form.
+    ASTNode_t* normalizedFormula = originalFormula->deepCopy();
+    normalizeASTExpression(normalizedFormula);
+//    printf("normalized: %s\n", SBML_formulaToL3String(normalizedFormula));
+//    printASTNode(normalizedFormula);
+
+    // Simplify the formula by substituting parameters.
+    ASTNode_t* simplifiedFormula = normalizedFormula->deepCopy();
+    simplifyASTExpression(simplifiedFormula, parameterValues);
+//    printf("simplified: %s\n", SBML_formulaToL3String(simplifiedFormula));
+//    printASTNode(simplifiedFormula);
+
+
+
+    // Iterate through each propensity function and see if it matches.
+    map<uint,lm::me::PropensityFunctionDefinition> functions = factory->getFunctions();
+    for (std::map<uint,lm::me::PropensityFunctionDefinition>::const_iterator it=functions.begin(); it != functions.end(); it++)
+    {
+        uint id = it->first;
+        lm::me::PropensityFunctionDefinition p = it->second;
+        if (p.expression.length() > 0)
+        {
+            ASTNode_t* propensityFormula = SBML_parseL3Formula(p.expression.c_str());
+            ASTNode_t* normalizedPropensityFormula = propensityFormula->deepCopy();
+            normalizeASTExpression(normalizedPropensityFormula);
+            if (compareASTNodes(simplifiedFormula, normalizedPropensityFormula))
+            {
+                Print::printf(Print::INFO, "Matched kinetic formula to %s: [%s] == [%s]", p.name.c_str(), SBML_formulaToL3String(simplifiedFormula), SBML_formulaToL3String(normalizedPropensityFormula));
+                Print::printf(Print::DEBUG, "                                         Original form:   [%s]", SBML_formulaToL3String(kinetics->getMath()));
+                Print::printf(Print::DEBUG, "                                         Normalized form: [%s]", SBML_formulaToL3String(normalizedFormula));
+                return id;
+            }
+            else
+            {
+                Print::printf(Print::DEBUG, "No match [%s] to [%s]: %s", SBML_formulaToL3String(simplifiedFormula), SBML_formulaToL3String(normalizedPropensityFormula), p.name.c_str());
+            }
+        }
+    }
+
+    Print::printf(Print::ERROR, "FAILED to match kinetic formula to a propensity function: [%s] ", SBML_formulaToL3String(kinetics->getMath()));
+    Print::printf(Print::ERROR, "                                         Normalized form: [%s]", SBML_formulaToL3String(normalizedFormula));
+    Print::printf(Print::ERROR, "                                         Simplified form: [%s]", SBML_formulaToL3String(simplifiedFormula));
+    delete simplifiedFormula;
+    return -1;
+}
 
 void printASTNode(const ASTNode_t* node, int depth)
 {
@@ -504,19 +549,12 @@ void printASTNode(const ASTNode_t* node, int depth)
     if (depth == 0) printf("------------------------\n");
 }
 
-void simplifyASTExpression(ASTNode_t* node, map<string,double>& parameterValues)
+void normalizeASTExpression(ASTNode_t* node)
 {
-    // Simplify the child nodes.
+    // Normalize the child nodes.
     for (int i=0; i<node->getNumChildren(); i++)
-        simplifyASTExpression(node->getChild(i), parameterValues);
+        normalizeASTExpression(node->getChild(i));
 
-    // Simplfy this node.
-    if (node->isOperator() && areAllASTChildrenNumeric(node))
-    {
-        node->setValue(evaluateASTOperator(node));
-        while (node->getNumChildren())
-            node->removeChild(0);
-    }
     if (node->getType() == AST_TIMES)
     {
         // If a child is times, remove it and bring its children up a level.
@@ -533,16 +571,94 @@ void simplifyASTExpression(ASTNode_t* node, map<string,double>& parameterValues)
             }
         }
     }
-    else if (node->getType() == AST_NAME)
+    if (node->getType() == AST_TIMES)
+    {
+        // If a child is divide and its first child is times, merge the child values.
+        ASTNode_t* divisionChild = NULL;
+        for (int i=0; i<node->getNumChildren(); i++)
+        {
+            if (node->getChild(i)->getType() == AST_DIVIDE && node->getChild(i)->getNumChildren() == 2 && node->getChild(i)->getChild(0)->getType() == AST_TIMES)
+                divisionChild = node->getChild(i);
+        }
+        if (divisionChild != NULL)
+        {
+            // Move the children to the division node.
+            for (int i=node->getNumChildren()-1; i>=0; i--)
+            {
+                ASTNode_t* child = node->getChild(i);
+                if (child != divisionChild)
+                {
+                    divisionChild->getChild(0)->insertChild(0,child);
+                }
+            }
+
+            // Remove all the children.
+            while (node->getNumChildren())
+                node->removeChild(0);
+
+            // Set ourselves as the division node, with the original divsion nodes' two child lsits.
+            node->setType(AST_DIVIDE);
+            node->addChild(divisionChild->getChild(0));
+            node->addChild(divisionChild->getChild(1));
+        }
+    }
+}
+
+void simplifyASTExpression(ASTNode_t* node, map<string,double>& parameterValues)
+{
+    // Simplify the child nodes.
+    for (int i=0; i<node->getNumChildren(); i++)
+        simplifyASTExpression(node->getChild(i), parameterValues);
+
+    // If this is an operator and all children are numbers, evaluate it.
+    if (node->isOperator() && areAllASTChildrenNumeric(node))
+    {
+        node->setValue(evaluateASTOperator(node));
+        while (node->getNumChildren())
+            node->removeChild(0);
+    }
+    if (node->getType() == AST_TIMES)
+    {
+        // If we are multiplying, combine all numeric values into a single value.
+        ASTNode_t* numericChild = NULL;
+        double value=1.0;
+        for (uint i=0; i<node->getNumChildren(); i++)
+        {
+            if (node->getChild(i)->getType() == AST_INTEGER)
+            {
+                value *= (double)node->getChild(i)->getInteger();
+                if (numericChild == NULL)
+                    numericChild = node->getChild(i);
+                else
+                    node->removeChild(i--);
+            }
+            else if (node->getChild(i)->getType() == AST_REAL)
+            {
+                value *= node->getChild(i)->getReal();
+                if (numericChild == NULL)
+                    numericChild = node->getChild(i);
+                else
+                    node->removeChild(i--);
+            }
+        }
+        if (numericChild != NULL)
+        {
+            numericChild->setValue(value);
+        }
+    }
+
+    // Substitute any parameter values.
+    if (node->getType() == AST_NAME)
     {
         if (parameterValues.count(node->getName()) == 1)
         {
             string name = node->getName();
             node->setValue(parameterValues[name]);
-            printf("substituting %s -> %0.4e\n",name.c_str(), node->getReal());
+            //printf("substituting %s -> %0.4e\n",name.c_str(), node->getReal());
         }
     }
-    else if (node->getType() == AST_NAME_AVOGADRO)
+
+    if (node->getType() == AST_NAME_AVOGADRO)
     {
         node->setValue(6.02214179e23);
     }
@@ -598,37 +714,20 @@ double evaluateASTOperator(const ASTNode_t * node)
         throw Exception("Unsupported operator type.", node->getType());
 }
 
-void matchKineticsWithPropensityFunction(KineticLaw * kinetics, map<string,double>& parameterValues)
+bool compareASTNodes(ASTNode_t* formula, ASTNode_t* propensityFormula)
 {
-    // Get the kinetic expression.
-    const ASTNode_t* originalFormula = SBML_parseL3Formula(SBML_formulaToL3String(kinetics->getMath()));
-    printf("original: %s\n", SBML_formulaToL3String(kinetics->getMath()));
-    printf("formula: %s\n", SBML_formulaToL3String(originalFormula));
-    printASTNode(originalFormula);
-    ASTNode_t* simplifiedFormula = originalFormula->deepCopy();
-    simplifyASTExpression(simplifiedFormula, parameterValues);
-    printf("simplified: %s\n", SBML_formulaToL3String(simplifiedFormula));
-    printASTNode(simplifiedFormula);
+    // If this is a number and it matches to a k, accept the match.
+    if (formula->isNumber() && propensityFormula->isName() && propensityFormula->getName()[0] == 'k')
+        return true;
 
-    // Simplify the formula.
-
-    // Put the formula into normal form.
-
-    // Iterate through each propensity function and see if it matches.
-    map<uint,lm::me::PropensityFunctionDefinition> functions = factory->getFunctions();
-    for (std::map<uint,lm::me::PropensityFunctionDefinition>::const_iterator it=functions.begin(); it != functions.end(); it++)
+    if (formula->getType() == propensityFormula->getType() && formula->getNumChildren() == propensityFormula->getNumChildren())
     {
-        uint id = it->first;
-        lm::me::PropensityFunctionDefinition p = it->second;
-        if (p.expression.length() > 0)
-        {
-            //printf("%d,%s,%s\n",p.type,p.name.c_str(),p.expression.c_str());
-            ASTNode_t* pFormula = SBML_parseL3Formula(p.expression.c_str());
-            //printASTNode(pFormula);
-        }
+        for (int i=0; i<formula->getNumChildren(); i++)
+            if (!compareASTNodes(formula->getChild(i), propensityFormula->getChild(i)))
+                return false;
+        return true;
     }
-
-    delete simplifiedFormula;
+    return false;
 }
 
 void getSpeciesUsedInExpression(vector<string> & speciesUsed, const ASTNode * node, vector<string> & parameters, map<string,uint> & speciesIndices)
