@@ -5,7 +5,7 @@ import os
 import sys
 
 setup(
-    name = "testyytest",
+    name = "testytest",
     package_dir = {'': 'src/cython'},
     data_files = [(get_python_lib(), glob.glob('src/cython/*.so'))],
     author = 'Max Klein',
