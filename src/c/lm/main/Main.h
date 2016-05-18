@@ -1,7 +1,7 @@
 /*
  * University of Illinois Open Source License
  * Copyright 2008-2011 Luthey-Schulten Group,
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Luthey-Schulten Group
@@ -48,154 +48,12 @@
 #include <list>
 #include <string>
 #include <vector>
-#include "lm/Types.h"
 #include "hrtime.h"
+#include "lm/Types.h"
+#include "lm/main/Globals.h"
 
 using std::string;
 using std::vector;
-
-/**
- * The function being performed.
- */
-extern string functionOption;
-
-/**
- * The name of the file containing the simulation input.
- */
-extern string simulationInputFilename;
-
-/**
- * The name of the file containing the simulation output.
- */
-extern string simulationOutputFilename;
-
-/**
- * The output writer to use for the simulations.
- */
-extern string outputWriterClassName;
-
-/**
- * The number of replicates of the simulation that should be performed.
- */
-extern vector<uint64_t> replicates;
-
-/**
- * The interval at which the results file should be checkpointed.
- */
-extern time_t checkpointInterval;
-
-/**
- * If a global abort signal has been received.
- */
-extern volatile bool globalAbort;
-
-/**
- * The supervisor to use for the simulations.
- */
-extern string supervisorClassName;
-
-/**
- * The solver to use for the simulations.
- */
-extern string solverClassName;
-
-/**
- * The filename for the resource list.
- */
-extern string resourceFilename;
-
-/**
- * The number of cpu cores assigned to each process.
- */
-extern int cpuCores;
-
-/**
- * The number of cpu cores to assign per runner (can be a fraction, e.g., 1/2, 1/4, etc).
- */
-extern double cpuCoresPerRunner;
-
-/**
- * Whether we should use CPU affinity.
- */
-extern bool useCPUAffinity;
-
-/**
- * The number gpu devices assigned to each process.
- */
-extern int gpuDevices;
-
-/**
- * The number of gpu devices to assign per runner (can be a fraction, e.g., 1/2, 1/4, etc).
- */
-extern double gpuDevicesPerRunner;
-
-/**
- * Whether we should print the cuda device capabilities on startup.
- */
-extern bool shouldPrintGPUCapabilities;
-
-/**
- * Whether we should reserve a core for the output thread.
- */
-extern bool shouldReserveOutputCore;
-
-/**
- * Flag to indicate that forward flux simulation is in use.
- */
-extern bool ffluxFlag;
-
-/*
- * Flag to indicate that we want intermediate output related to simulation results
- */
-extern bool intermediateOutputFlag;
-
-/*
- * Flag that determines whether or not to track degree advancement in addition to species count
- */
-extern bool daFlag;
-
-/*
- * Flag to indicate that we need to initialize the order parameters and update them at every simulation step
- */
-extern bool opActivatedFlag;
-
-/*
- * Flag that determines whether or not to track order parameter values in addition to species counts
- */
-extern bool opTrackingFlag;
-
-/*
- * Flag to indicate that we're running a test of the program's input and output
- */
-extern bool ioTestFlag;
-
-#ifdef OPT_PYTHON
-/**
- * The directory containing the supporting files.
- */
-extern string libDir;
-
-/**
- * The directory containing the supporting files.
- */
-extern string userLibDir;
-
-/**
- * The path of directories containing user scripts to execute at startup.
- */
-extern string scriptPath;
-
-/**
- * The script filename being executed, if applicable.
- */
-extern string scriptFilename;
-
-/**
- * The arguments for the script, if applicable.
- */
-extern vector<string> scriptArguments;
-
-#endif
 
 void printCopyright(int argc, char** argv);
 int getPhysicalCpuCores();

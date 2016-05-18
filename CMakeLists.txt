@@ -124,7 +124,13 @@ else(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
 endif(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
 
 find_package(Threads REQUIRED)
+
+# see if we have libSBML and set a flag, if we do
 find_package(libsbml)
+if(libsbml_FOUND)
+    add_definitions(-DOPT_SBML)
+endif(libsbml_FOUND)
+
 find_package(protobuf 2.6.0 REQUIRED)
 find_package(HDF5 COMPONENTS C HL REQUIRED)
 find_package(ZLIB REQUIRED)
@@ -220,7 +226,7 @@ add_subdirectory(utils/python)
 ################
 #TARGET: lmes
 ################
-set(lm_main_src src/c/lm/main/MainMPI.cpp)
+set(lm_main_src src/c/lm/main/MainMPI.cpp src/c/lm/main/Main.cpp)
 
 add_executable(lmes ${lm_main_src})
 

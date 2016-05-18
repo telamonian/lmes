@@ -71,124 +71,6 @@
 using std::string;
 using std::vector;
 
-/**
- * The function being performed.
- */
-string functionOption = "interpreter";
-
-/**
- * The name of the file containing the simulation input.
- */
-string simulationInputFilename;
-
-/**
- * The name of the file containing the simulation output.
- */
-string simulationOutputFilename;
-
-/**
- * The output writer to use for the simulations.
- */
-string outputWriterClassName;
-
-/**
- * The number of replicates of the simulation that should be performed.
- */
-vector<uint64_t> replicates;
-
-/**
- * The interval at which the results file should be checkpointed.
- */
-time_t checkpointInterval = 0;
-
-/**
- * If a global abort signal has been received.
- */
-volatile bool globalAbort = false;
-
-/**
- * The supervisor to use for the simulations.
- */
-string supervisorClassName;
-
-/**
- * The solver to use for the simulations.
- */
-string solverClassName;
-
-/**
- * The filename for the resource list.
- */
-string resourceFilename;
-
-/**
- * The number of cpu cores assigned to each process.
- */
-int cpuCores;
-
-/**
- * The number of cpu cores to assign per runner (can be a fraction, e.g., 1/2, 1/4, etc).
- */
-double cpuCoresPerRunner;
-
-/**
- * Whether we should use CPU affinity.
- */
-bool useCPUAffinity;
-
-/**
- * The number gpu devices assigned to each process.
- */
-int gpuDevices;
-
-/**
- * The number of gpu devices to assign per runner (can be a fraction, e.g., 1/2, 1/4, etc).
- */
-double gpuDevicesPerRunner;
-
-/**
- * Whether we should print the cuda device capabilities on startup.
- */
-bool shouldPrintGPUCapabilities;
-
-/**
- * Whether we should reserve a core for the output thread.
- */
-bool shouldReserveOutputCore;
-
-/**
- * Flag to indicate that forward flux simulation is in use.
- */
-bool ffluxFlag;
-
-/*
- * Flag to indicate that we want intermediate output related to simulation results
- */
-bool intermediateOutputFlag;
-
-/*
- * Flag that determines whether or not to track degree advancement in addition to species count
- */
-bool daFlag;
-
-/*
- * Flag to indicate that we need to initialize the order parameters and update them at every simulation step
- */
-bool opActivatedFlag;
-
-/*
- * Flag that determines whether or not to track order parameter values in addition to species counts
- */
-bool opTrackingFlag;
-
-/**
- * Flag to run input output testing
- */
-bool ioTestFlag;
-
-/**
- * Prints the copyright notice.
- */
 
 void printCopyright(int argc, char** argv)
 {
@@ -205,6 +87,9 @@ void printCopyright(int argc, char** argv)
 #endif
 #ifdef OPT_SVML
     std::cout << " SVML";
+#endif
+#ifdef OPT_SBML
+    std::cout << " SBML";
 #endif
     std::cout << "." << std::endl;
     std::cout << "Copyright (C) " << COPYRIGHT_DATE << " Luthey-Schulten Group, University of Illinois at Urbana-Champaign." << std::endl;

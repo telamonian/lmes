@@ -4,8 +4,8 @@
  * All rights reserved.
  *
  * Developed by: Roberts Group
- * 			     Johns Hopkins University
- * 			     http://biophysics.jhu.edu/roberts/
+ *               Johns Hopkins University
+ * 		 http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -34,12 +34,30 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts, Max Klein
+ * Author(s): Elijah Roberts
  */
 
-#include "lm/Types.h"
+#ifndef GENETICCIRCUITPROPENSITYFUNCTIONS_H
+#define GENETICCIRCUITPROPENSITYFUNCTIONS_H
 
-template<> const char* printf_format_string<int>() {return "% 2d";}
-template<> const char* printf_format_string<uint>() {return "%u";}
-template<> const char* printf_format_string<double>() {return "%e";}
+#include "lm/me/PropensityFunction.h"
 
+namespace lm {
+namespace propensities {
+
+class GeneticCircuitPropensityFunctions : public lm::me::PropensityFunctionCollection
+{
+public:
+    static bool registered;
+    static bool registerClass();
+    static void* allocateObject();
+
+public:
+    GeneticCircuitPropensityFunctions();
+    virtual ~GeneticCircuitPropensityFunctions();
+    virtual list<lm::me::PropensityFunctionDefinition> getPropensityFunctionDefinitions();
+};
+
+}
+}
+#endif // GENETICCIRCUITPROPENSITYFUNCTIONS_H

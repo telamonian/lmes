@@ -62,7 +62,7 @@ using std::vector;
 namespace lm {
 namespace trajectory {
 
-char *trajectoryStatusStrings[] =
+const char *trajectoryStatusStrings[] =
 {
     "NOT_STARTED",
     "RUNNING",
