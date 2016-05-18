@@ -88,13 +88,19 @@ typedef PropensityFunction* (*PropensityFunctionCreator)(const uint reactionInde
 
 struct PropensityFunctionDefinition
 {
-    PropensityFunctionDefinition():type(std::numeric_limits<uint>::max()),name("undefined"),expression(""),create(NULL){}
-    PropensityFunctionDefinition(uint type, PropensityFunctionCreator create):type(type),name("unknown"),expression(""),create(create){}
-    PropensityFunctionDefinition(uint type, string name, string expression, PropensityFunctionCreator create):type(type),name(name),expression(expression),create(create){}
-    PropensityFunctionDefinition(const PropensityFunctionDefinition& p):type(p.type),name(p.name),expression(p.expression),create(p.create){}
+    PropensityFunctionDefinition():type(std::numeric_limits<uint>::max()),name("undefined"),expressions(),create(NULL){}
+    PropensityFunctionDefinition(uint type, PropensityFunctionCreator create):type(type),name("unknown"),expressions(),create(create){}
+    PropensityFunctionDefinition(uint type, string name, string expression, PropensityFunctionCreator create):type(type),name(name),expressions(1,expression),create(create){}
+    PropensityFunctionDefinition(uint type, string name, const char** expressionsArray, PropensityFunctionCreator create):type(type),name(name),expressions(),create(create)
+    {
+        int i=0;
+        while (expressionsArray[i] != NULL)
+            expressions.push_back(expressionsArray[i++]);
+    }
+    PropensityFunctionDefinition(const PropensityFunctionDefinition& p):type(p.type),name(p.name),expressions(p.expressions),create(p.create){}
     uint type;
     string name;
-    string expression;
+    list<string> expressions;
     PropensityFunctionCreator create;
 };
 

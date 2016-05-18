@@ -261,6 +261,13 @@ public:
         return *this;
     }
 
+    ndarray& operator=(const T& v)
+    {
+        for (uint i=0; i<numberValues; i++)
+            values[i] = v;
+        return *this;
+    }
+
     virtual ~ndarray()
     {
         if (values != NULL) delete[] values; values = NULL;

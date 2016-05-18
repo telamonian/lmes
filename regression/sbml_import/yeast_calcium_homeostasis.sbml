@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Created by COPASI version 4.15 (Build 95) on 2016-05-16 16:12 with libSBML version 5.11.1. -->
+<!-- Created by COPASI version 4.15 (Build 95) on 2016-05-17 12:08 with libSBML version 5.11.1. -->
 <sbml xmlns="http://www.sbml.org/sbml/level3/version1/core" xmlns:layout="http://www.sbml.org/sbml/level3/version1/layout/version1" xmlns:render="http://www.sbml.org/sbml/level3/version1/render/version1" level="3" version="1" layout:required="false" render:required="false">
   <model metaid="COPASI0" id="New_Model" name="New Model" substanceUnits="substance" timeUnits="time" volumeUnits="volume" areaUnits="area" lengthUnits="length" extentUnits="substance">
     <annotation>
@@ -16,21 +16,11 @@
       </COPASI>
     </annotation>
     <listOfFunctionDefinitions>
-      <functionDefinition metaid="COPASI185" id="Constant_flux__irreversible" name="Constant flux (irreversible)">
-        <math xmlns="http://www.w3.org/1998/Math/MathML">
-          <lambda>
-            <bvar>
-              <ci> v </ci>
-            </bvar>
-            <ci> v </ci>
-          </lambda>
-        </math>
-      </functionDefinition>
-      <functionDefinition metaid="COPASI186" id="Henri_Michaelis_Menten__irreversible" name="Henri-Michaelis-Menten (irreversible)">
+      <functionDefinition metaid="COPASI185" id="Henri_Michaelis_Menten__irreversible" name="Henri-Michaelis-Menten (irreversible)">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI186">
+              <rdf:Description rdf:about="#COPASI185">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2015-07-23T15:23:51Z</dcterms:W3CDTF>
@@ -67,79 +57,21 @@
           </lambda>
         </math>
       </functionDefinition>
-      <functionDefinition metaid="COPASI187" id="Mass_Action_M_dependent" name="Mass Action M dependent">
+      <functionDefinition metaid="COPASI186" id="Constant_flux__irreversible" name="Constant flux (irreversible)">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <lambda>
+            <bvar>
+              <ci> v </ci>
+            </bvar>
+            <ci> v </ci>
+          </lambda>
+        </math>
+      </functionDefinition>
+      <functionDefinition metaid="COPASI187" id="Mass_Action_Product_Substrate_Dependent" name="Mass Action Product/Substrate Dependent">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
               <rdf:Description rdf:about="#COPASI187">
-                <dcterms:created>
-                  <rdf:Description>
-                    <dcterms:W3CDTF>2015-07-23T14:55:24Z</dcterms:W3CDTF>
-                  </rdf:Description>
-                </dcterms:created>
-              </rdf:Description>
-            </rdf:RDF>
-          </COPASI>
-        </annotation>
-        <math xmlns="http://www.w3.org/1998/Math/MathML">
-          <lambda>
-            <bvar>
-              <ci> p </ci>
-            </bvar>
-            <bvar>
-              <ci> substrate </ci>
-            </bvar>
-            <apply>
-              <times/>
-              <ci> p </ci>
-              <ci> substrate </ci>
-            </apply>
-          </lambda>
-        </math>
-      </functionDefinition>
-      <functionDefinition metaid="COPASI188" id="Mass_Action_Two_rate_constants" name="Mass Action Two rate constants">
-        <annotation>
-          <COPASI xmlns="http://www.copasi.org/static/sbml">
-            <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI188">
-                <dcterms:created>
-                  <rdf:Description>
-                    <dcterms:W3CDTF>2015-07-09T15:37:50Z</dcterms:W3CDTF>
-                  </rdf:Description>
-                </dcterms:created>
-              </rdf:Description>
-            </rdf:RDF>
-          </COPASI>
-        </annotation>
-        <math xmlns="http://www.w3.org/1998/Math/MathML">
-          <lambda>
-            <bvar>
-              <ci> k1 </ci>
-            </bvar>
-            <bvar>
-              <ci> k2 </ci>
-            </bvar>
-            <bvar>
-              <ci> u </ci>
-            </bvar>
-            <bvar>
-              <ci> substrate </ci>
-            </bvar>
-            <apply>
-              <times/>
-              <ci> k1 </ci>
-              <ci> k2 </ci>
-              <ci> u </ci>
-              <ci> substrate </ci>
-            </apply>
-          </lambda>
-        </math>
-      </functionDefinition>
-      <functionDefinition metaid="COPASI189" id="Mass_Action_Product_Substrate_Dependent" name="Mass Action Product/Substrate Dependent">
-        <annotation>
-          <COPASI xmlns="http://www.copasi.org/static/sbml">
-            <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI189">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2015-07-09T14:40:14Z</dcterms:W3CDTF>
@@ -180,60 +112,11 @@
           </lambda>
         </math>
       </functionDefinition>
-      <functionDefinition metaid="COPASI190" id="Michaelis_Menten_FeedbackController" name="Michaelis-Menten-FeedbackController">
+      <functionDefinition metaid="COPASI188" id="Mass_Action_FeedbackController" name="Mass Action FeedbackController">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI190">
-                <dcterms:created>
-                  <rdf:Description>
-                    <dcterms:W3CDTF>2015-07-08T14:04:35Z</dcterms:W3CDTF>
-                  </rdf:Description>
-                </dcterms:created>
-              </rdf:Description>
-            </rdf:RDF>
-          </COPASI>
-        </annotation>
-        <math xmlns="http://www.w3.org/1998/Math/MathML">
-          <lambda>
-            <bvar>
-              <ci> u </ci>
-            </bvar>
-            <bvar>
-              <ci> S </ci>
-            </bvar>
-            <bvar>
-              <ci> substrate </ci>
-            </bvar>
-            <bvar>
-              <ci> Km </ci>
-            </bvar>
-            <bvar>
-              <ci> Rmax </ci>
-            </bvar>
-            <apply>
-              <divide/>
-              <apply>
-                <times/>
-                <ci> u </ci>
-                <ci> S </ci>
-                <ci> Rmax </ci>
-                <ci> substrate </ci>
-              </apply>
-              <apply>
-                <plus/>
-                <ci> Km </ci>
-                <ci> substrate </ci>
-              </apply>
-            </apply>
-          </lambda>
-        </math>
-      </functionDefinition>
-      <functionDefinition metaid="COPASI191" id="Mass_Action_FeedbackController" name="Mass Action FeedbackController">
-        <annotation>
-          <COPASI xmlns="http://www.copasi.org/static/sbml">
-            <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI191">
+              <rdf:Description rdf:about="#COPASI188">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2015-07-09T16:35:26Z</dcterms:W3CDTF>
@@ -263,11 +146,11 @@
           </lambda>
         </math>
       </functionDefinition>
-      <functionDefinition metaid="COPASI192" id="Double_Michaelis_Menten" name="Double Michaelis-Menten">
+      <functionDefinition metaid="COPASI189" id="Double_Michaelis_Menten" name="Double Michaelis-Menten">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI192">
+              <rdf:Description rdf:about="#COPASI189">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2015-07-23T15:55:23Z</dcterms:W3CDTF>
@@ -317,6 +200,123 @@
                   <ci> k3 </ci>
                   <ci> substrate2 </ci>
                 </apply>
+              </apply>
+            </apply>
+          </lambda>
+        </math>
+      </functionDefinition>
+      <functionDefinition metaid="COPASI190" id="Mass_Action_M_dependent" name="Mass Action M dependent">
+        <annotation>
+          <COPASI xmlns="http://www.copasi.org/static/sbml">
+            <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+              <rdf:Description rdf:about="#COPASI190">
+                <dcterms:created>
+                  <rdf:Description>
+                    <dcterms:W3CDTF>2015-07-23T14:55:24Z</dcterms:W3CDTF>
+                  </rdf:Description>
+                </dcterms:created>
+              </rdf:Description>
+            </rdf:RDF>
+          </COPASI>
+        </annotation>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <lambda>
+            <bvar>
+              <ci> p </ci>
+            </bvar>
+            <bvar>
+              <ci> substrate </ci>
+            </bvar>
+            <apply>
+              <times/>
+              <ci> p </ci>
+              <ci> substrate </ci>
+            </apply>
+          </lambda>
+        </math>
+      </functionDefinition>
+      <functionDefinition metaid="COPASI191" id="Mass_Action_Two_rate_constants" name="Mass Action Two rate constants">
+        <annotation>
+          <COPASI xmlns="http://www.copasi.org/static/sbml">
+            <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+              <rdf:Description rdf:about="#COPASI191">
+                <dcterms:created>
+                  <rdf:Description>
+                    <dcterms:W3CDTF>2015-07-09T15:37:50Z</dcterms:W3CDTF>
+                  </rdf:Description>
+                </dcterms:created>
+              </rdf:Description>
+            </rdf:RDF>
+          </COPASI>
+        </annotation>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <lambda>
+            <bvar>
+              <ci> k1 </ci>
+            </bvar>
+            <bvar>
+              <ci> k2 </ci>
+            </bvar>
+            <bvar>
+              <ci> u </ci>
+            </bvar>
+            <bvar>
+              <ci> substrate </ci>
+            </bvar>
+            <apply>
+              <times/>
+              <ci> k1 </ci>
+              <ci> k2 </ci>
+              <ci> u </ci>
+              <ci> substrate </ci>
+            </apply>
+          </lambda>
+        </math>
+      </functionDefinition>
+      <functionDefinition metaid="COPASI192" id="Michaelis_Menten_FeedbackController" name="Michaelis-Menten-FeedbackController">
+        <annotation>
+          <COPASI xmlns="http://www.copasi.org/static/sbml">
+            <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+              <rdf:Description rdf:about="#COPASI192">
+                <dcterms:created>
+                  <rdf:Description>
+                    <dcterms:W3CDTF>2015-07-08T14:04:35Z</dcterms:W3CDTF>
+                  </rdf:Description>
+                </dcterms:created>
+              </rdf:Description>
+            </rdf:RDF>
+          </COPASI>
+        </annotation>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <lambda>
+            <bvar>
+              <ci> u </ci>
+            </bvar>
+            <bvar>
+              <ci> S </ci>
+            </bvar>
+            <bvar>
+              <ci> substrate </ci>
+            </bvar>
+            <bvar>
+              <ci> Km </ci>
+            </bvar>
+            <bvar>
+              <ci> Rmax </ci>
+            </bvar>
+            <apply>
+              <divide/>
+              <apply>
+                <times/>
+                <ci> u </ci>
+                <ci> S </ci>
+                <ci> Rmax </ci>
+                <ci> substrate </ci>
+              </apply>
+              <apply>
+                <plus/>
+                <ci> Km </ci>
+                <ci> substrate </ci>
               </apply>
             </apply>
           </lambda>
@@ -428,7 +428,7 @@
           </COPASI>
         </annotation>
       </species>
-      <species metaid="COPASI6" id="Ca2ex" name="Ca2ex" compartment="compartment" initialConcentration="1.8069e+20" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="true" constant="false"><!--ER change from true to false-->
+      <species metaid="COPASI6" id="Ca2ex" name="Ca2ex" compartment="compartment" initialConcentration="1.8069e+20" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="true" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
@@ -1519,7 +1519,7 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI87" id="pi" name="pi" value="2.16828e+16" constant="false">
+      <parameter metaid="COPASI87" id="pi" name="pxi" value="2.16828e+16" constant="false">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
@@ -2151,40 +2151,16 @@
       </parameter>
     </listOfParameters>
     <listOfRules>
-      <assignmentRule variable="u6">
+      <assignmentRule variable="u5">
         <math xmlns="http://www.w3.org/1998/Math/MathML">
           <apply>
             <divide/>
-            <cn> 1 </cn>
+            <ci> X </ci>
             <apply>
               <plus/>
-              <cn> 1 </cn>
-              <apply>
-                <times/>
-                <ci> a1 </ci>
-                <apply>
-                  <exp/>
-                  <apply>
-                    <times/>
-                    <ci> a2 </ci>
-                    <apply>
-                      <minus/>
-                      <ci> Ca2gsteady </ci>
-                      <ci> Ca2g </ci>
-                    </apply>
-                  </apply>
-                </apply>
-              </apply>
+              <ci> Kx </ci>
+              <ci> X </ci>
             </apply>
-          </apply>
-        </math>
-      </assignmentRule>
-      <assignmentRule variable="pk13">
-        <math xmlns="http://www.w3.org/1998/Math/MathML">
-          <apply>
-            <times/>
-            <ci> p </ci>
-            <ci> k13 </ci>
           </apply>
         </math>
       </assignmentRule>
@@ -2216,7 +2192,7 @@
           </apply>
         </math>
       </assignmentRule>
-      <assignmentRule variable="u1">
+      <assignmentRule variable="u3">
         <math xmlns="http://www.w3.org/1998/Math/MathML">
           <apply>
             <divide/>
@@ -2226,32 +2202,38 @@
               <cn> 1 </cn>
               <apply>
                 <times/>
-                <ci> Iex </ci>
-                <ci> CaM </ci>
+                <ci> k5 </ci>
+                <ci> CaN </ci>
               </apply>
             </apply>
           </apply>
         </math>
       </assignmentRule>
-      <assignmentRule variable="u5">
+      <assignmentRule variable="u6">
         <math xmlns="http://www.w3.org/1998/Math/MathML">
           <apply>
             <divide/>
-            <ci> X </ci>
+            <cn> 1 </cn>
             <apply>
               <plus/>
-              <ci> Kx </ci>
-              <ci> X </ci>
+              <cn> 1 </cn>
+              <apply>
+                <times/>
+                <ci> a1 </ci>
+                <apply>
+                  <exp/>
+                  <apply>
+                    <times/>
+                    <ci> a2 </ci>
+                    <apply>
+                      <minus/>
+                      <ci> Ca2gsteady </ci>
+                      <ci> Ca2g </ci>
+                    </apply>
+                  </apply>
+                </apply>
+              </apply>
             </apply>
-          </apply>
-        </math>
-      </assignmentRule>
-      <assignmentRule variable="k1">
-        <math xmlns="http://www.w3.org/1998/Math/MathML">
-          <apply>
-            <times/>
-            <cn type="e-notation"> 1.373 <sep/> -52 </cn>
-            <ci> S </ci>
           </apply>
         </math>
       </assignmentRule>
@@ -2277,32 +2259,16 @@
           </apply>
         </math>
       </assignmentRule>
-      <assignmentRule variable="L0">
+      <assignmentRule variable="pk11">
         <math xmlns="http://www.w3.org/1998/Math/MathML">
           <apply>
-            <power/>
-            <cn> 10 </cn>
-            <apply>
-              <divide/>
-              <apply>
-                <minus/>
-                <ci> N </ci>
-              </apply>
-              <cn> 2 </cn>
-            </apply>
+            <times/>
+            <ci> p </ci>
+            <ci> k11 </ci>
           </apply>
         </math>
       </assignmentRule>
-      <assignmentRule variable="calc">
-        <math xmlns="http://www.w3.org/1998/Math/MathML">
-          <apply>
-            <minus/>
-            <ci> CaN0 </ci>
-            <ci> CaN </ci>
-          </apply>
-        </math>
-      </assignmentRule>
-      <assignmentRule variable="u3">
+      <assignmentRule variable="u1">
         <math xmlns="http://www.w3.org/1998/Math/MathML">
           <apply>
             <divide/>
@@ -2312,10 +2278,19 @@
               <cn> 1 </cn>
               <apply>
                 <times/>
-                <ci> k5 </ci>
-                <ci> CaN </ci>
+                <ci> Iex </ci>
+                <ci> CaM </ci>
               </apply>
             </apply>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="k1">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <times/>
+            <cn type="e-notation"> 1.373 <sep/> -52 </cn>
+            <ci> S </ci>
           </apply>
         </math>
       </assignmentRule>
@@ -2332,34 +2307,19 @@
           </apply>
         </math>
       </assignmentRule>
-      <assignmentRule variable="pi">
+      <assignmentRule variable="L0">
         <math xmlns="http://www.w3.org/1998/Math/MathML">
           <apply>
-            <times/>
-            <ci> p </ci>
-            <ci> i </ci>
-          </apply>
-        </math>
-      </assignmentRule>
-      <assignmentRule variable="calm">
-        <math xmlns="http://www.w3.org/1998/Math/MathML">
-          <apply>
-            <minus/>
+            <power/>
+            <cn> 10 </cn>
             <apply>
-              <minus/>
-              <ci> CaM0 </ci>
-              <ci> CaM </ci>
+              <divide/>
+              <apply>
+                <minus/>
+                <ci> N </ci>
+              </apply>
+              <cn> 2 </cn>
             </apply>
-            <ci> CaN </ci>
-          </apply>
-        </math>
-      </assignmentRule>
-      <assignmentRule variable="pk11">
-        <math xmlns="http://www.w3.org/1998/Math/MathML">
-          <apply>
-            <times/>
-            <ci> p </ci>
-            <ci> k11 </ci>
           </apply>
         </math>
       </assignmentRule>
@@ -2507,15 +2467,6 @@
           </apply>
         </math>
       </assignmentRule>
-      <assignmentRule variable="u2">
-        <math xmlns="http://www.w3.org/1998/Math/MathML">
-          <apply>
-            <times/>
-            <ci> h </ci>
-            <ci> theta </ci>
-          </apply>
-        </math>
-      </assignmentRule>
       <assignmentRule variable="rho">
         <math xmlns="http://www.w3.org/1998/Math/MathML">
           <apply>
@@ -2585,12 +2536,39 @@
           </apply>
         </math>
       </assignmentRule>
+      <assignmentRule variable="u2">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <times/>
+            <ci> h </ci>
+            <ci> theta </ci>
+          </apply>
+        </math>
+      </assignmentRule>
       <assignmentRule variable="k3rho">
         <math xmlns="http://www.w3.org/1998/Math/MathML">
           <apply>
             <times/>
             <ci> k3 </ci>
             <ci> rho </ci>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="pk13">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <times/>
+            <ci> p </ci>
+            <ci> k13 </ci>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="pi">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <times/>
+            <ci> p </ci>
+            <ci> i </ci>
           </apply>
         </math>
       </assignmentRule>
@@ -2604,6 +2582,28 @@
               <cn> 1 </cn>
               <ci> rho </ci>
             </apply>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="calm">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <minus/>
+            <apply>
+              <minus/>
+              <ci> CaM0 </ci>
+              <ci> CaM </ci>
+            </apply>
+            <ci> CaN </ci>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="calc">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <minus/>
+            <ci> CaN0 </ci>
+            <ci> CaN </ci>
           </apply>
         </math>
       </assignmentRule>

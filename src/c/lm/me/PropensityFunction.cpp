@@ -98,9 +98,20 @@ void PropensityFunctionFactory::printRegisteredFunctions(int verbosity)
     for (map<uint,PropensityFunctionDefinition>::iterator it=functions.begin(); it != functions.end(); it++)
     {
         PropensityFunctionDefinition def = it->second;
-        Print::printf(verbosity, "% 4d,\t%s,\tp=\"%s\",\tsource=%s", def.type, def.name.c_str(), def.expression.c_str(), functionSources[it->first].c_str());
+        if (def.expressions.size() == 0)
+            Print::printf(verbosity, "% 5d\t%-40s\t  %-30s\tsource=%s", def.type, def.name.c_str(), "", functionSources[it->first].c_str());
+        else if (def.expressions.size() == 1)
+            Print::printf(verbosity, "% 5d\t%-40s\tp=%-30s\tsource=%s", def.type, def.name.c_str(), def.expressions.front().c_str(), functionSources[it->first].c_str());
+        else
+        {
+            list<string>::iterator it2=def.expressions.begin();
+            Print::printf(verbosity, "% 5d\t%-40s\tp=%-30s\tsource=%s", def.type, def.name.c_str(), it2->c_str(), functionSources[it->first].c_str());
+            for (it2++; it2 != def.expressions.end(); it2++)
+                Print::printf(verbosity, "                                                           p=%-30s", it2->c_str());
+        }
     }
 }
+
 
 map<uint,PropensityFunctionDefinition> PropensityFunctionFactory::getFunctions()
 {
