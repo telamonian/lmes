@@ -619,7 +619,12 @@ bool matchL3V1KineticsWithPropensityFunction(Reaction * reaction, uint reactionI
                 }
                 else
                 {
-                    Print::printf(Print::DEBUG, "No match [%s] to [%s]: %s", SBML_formulaToL3String(simplifiedFormula), SBML_formulaToL3String(normalizedPropensityFormula), p.name.c_str());
+		    if (verbose)
+		    {
+                    	Print::printf(Print::INFO, "No match [%s] to [%s]: %s", SBML_formulaToL3String(simplifiedFormula), SBML_formulaToL3String(normalizedPropensityFormula), p.name.c_str());
+			printASTNode(simplifiedFormula);
+		    	printASTNode(normalizedPropensityFormula);
+		    }
                 }
             }
         }
@@ -913,8 +918,10 @@ bool compareASTNodes(ASTNode_t* formula, ASTNode_t* propensityFormula)
     if (formula->isNumber() && propensityFormula->isName() && propensityFormula->getName()[0] == 'k')
         return true;
 
-    if (formula->getType() == AST_INTEGER && propensityFormula->getType() == AST_INTEGER)
-        return (formula->getInteger() == propensityFormula->getInteger());
+    if (formula->isNumber() && propensityFormula->isNumber())
+    {
+	return evaluateASTOperator(formula) == evaluateASTOperator(propensityFormula);
+    }
 
     if (formula->getType() == propensityFormula->getType() && formula->getNumChildren() == propensityFormula->getNumChildren())
     {

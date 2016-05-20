@@ -217,12 +217,297 @@ public:
     }
 };
 
+
+class FirstOrderMichaelisMentenU1 : public lm::me::PropensityFunction
+{
+public:
+	static const uint REACTION_TYPE = 4003;
+
+	FirstOrderMichaelisMentenU1(uint s1, uint s2, double k, double Rm, double Km) :PropensityFunction(REACTION_TYPE,1),s1(s1),s2(s2),k(k),Rm(Rm),Km(Km) {}
+	uint s1;
+	uint s2;
+	double k;
+	double Rm;
+	double Km;
+
+	void changeVolume(double volumeMultiplier) {}
+	double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
+	{
+		double u1 = 1/(1+(k*double(speciesCounts[s1])));
+		double MM = (Rm*double(speciesCounts[s2]))/(Km + double(speciesCounts[s2]));
+		return u1*MM;
+	}
+ 
+#ifdef OPT_AVX
+	avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
+	{
+		return naiveCalculateAvx(this, time, speciesCounts, numberSpecies);
+	}
+#endif
+
+	static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+	{
+		// Find the species dependencies.
+		utuple sd1 = getSpecificDependencies(reactionIndex, D, 1);
+		if (sd1.len != 1) throw InvalidArgException("D", "FirstOrderMichaelisMentenU1 needs one species dependencies, had", sd1.len);
+		utuple sd2 = getSpecificDependencies(reactionIndex, D, 2);
+		if (sd2.len != 1) throw InvalidArgException("D", "FirstOrderMichaelisMentenU1 needs one species dependencies, had", sd2.len);
+
+		// Find the rate constant. 
+		if (k.len < 3) throw InvalidArgException("k", "FirstOrderMichaelisMentenU1 needs three parameters, had", k.len);
+
+		return new FirstOrderMichaelisMentenU1(sd1[0], sd2[0], k[0], k[1], k[2]);
+	}
+
+	static lm::me::PropensityFunctionDefinition registerFunction()
+	{
+		const char* expressions[] = {"(1 / (1 + k1 * x1)) * ((k2 * x2) / (k3 +  x2))", "k2 * x2 * (1 / (1 + k1 * x1)) / (k3 + x2)", NULL};
+		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderMichaelisMentenU1", expressions, &create);
+	}
+};
+
+class FirstOrderDoubleMichaelisMenten : public lm::me::PropensityFunction
+{
+public:
+	static const uint REACTION_TYPE = 4004;
+
+	FirstOrderDoubleMichaelisMenten(uint s1, uint s2, double k1, double k2, double k3) :PropensityFunction(REACTION_TYPE,1),s1(s1),s2(s2),k1(k1),k2(k2),k3(k3)	{}
+	uint s1;
+	uint s2;
+	double k1;
+	double k2;
+	double k3;
+
+	void changeVolume(double volumeMultiplier) {}
+	double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
+	{
+		return k1*(double(speciesCounts[s1])/(k2 + double(speciesCounts[s1])))*(double(speciesCounts[s2])/(k3 + double(speciesCounts[s2])));
+	}
+
+#ifdef OPT_AVX
+	avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
+	{
+		return naiveCalculateAvx(this, time, speciesCounts, numberSpecies);
+	}
+#endif
+
+	static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+	{
+		// Find the species dependencies.
+		utuple sd1 = getSpecificDependencies(reactionIndex, D, 1);
+		if (sd1.len != 1) throw InvalidArgException("D", "FirstOrderDoubleMichaelisMenten needs one species dependencies, had", sd1.len);
+		utuple sd2 = getSpecificDependencies(reactionIndex, D, 2);
+		if (sd2.len != 1) throw InvalidArgException("D", "FirstOrderDoubleMichaelisMenten needs one species dependencies, had", sd2.len);
+
+		// Find the rate constant.
+		if (k.len < 3) throw InvalidArgException("k", "FirstOrderDoubleMichaelisMenten needs three parameters, had", k.len);
+
+		return new FirstOrderDoubleMichaelisMenten(sd1[0], sd2[0], k[0], k[1], k[2]);
+	}
+
+	static lm::me::PropensityFunctionDefinition registerFunction()
+	{
+		const char* expressions[] = {"((k1 * x1) / (k2 + x1)) * (x2 / (k3 + x2))", "k1 * (x2 / (k3 + x2)) * (x1 / (k2 + x1))", "(k1 * (x2 / (k3 + x2))) * (x1) / (k2 + x1)", NULL};
+		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderDoubleMichaelisMenten", expressions, &create);
+	}
+};
+
+class FirstOrderProductSubstrateDependent2Species : public lm::me::PropensityFunction
+{
+public:
+	static const uint REACTION_TYPE = 4005;
+
+	FirstOrderProductSubstrateDependent2Species(uint s1, uint s2, double Km, double Rm) :PropensityFunction(REACTION_TYPE,1),s1(s1),s2(s2),Km(Km),Rm(Rm) {}
+	uint s1;
+	uint s2;
+	double Km;
+	double Rm;
+
+	void changeVolume(double volumeMultiplier) {}
+	double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
+	{
+		double u4 = double(speciesCounts[s1])/(Km + double(speciesCounts[s1]));
+		return u4*Rm*(double(speciesCounts[s2]) - double(speciesCounts[s1]));
+	}
+
+#ifdef OPT_AVX
+	avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
+	{
+		return naiveCalculateAvx(this, time, speciesCounts, numberSpecies);
+	}
+#endif
+
+	static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+	{
+		// Find the species dependencies.
+		utuple sd1 = getSpecificDependencies(reactionIndex, D, 1);
+		if (sd1.len != 1) throw InvalidArgException("D", "FirstOrderProductSubstrateDependent2Species needs one species dependencies, had", sd1.len);
+		utuple sd2 = getSpecificDependencies(reactionIndex, D, 2);
+		if (sd2.len != 1) throw InvalidArgException("D", "FirstOrderProductSubstrateDependent2Species needs one species dependencies, had", sd2.len);
+
+		// Find the rate constant.
+		if (k.len < 2) throw InvalidArgException("k", "FirstOrderProductSubstrateDependent2Species needs two parameters, had", k.len);
+
+		return new FirstOrderProductSubstrateDependent2Species(sd1[0], sd2[0], k[0], k[1]);
+	}
+
+	static lm::me::PropensityFunctionDefinition registerFunction()
+	{
+		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderProductSubstrateDependent2Species", "(x1 / (k1 + x1)) * k2 * (x2 - x1)", &create);
+	}
+};
+
+class FirstOrderProductSubstrateDependent3Species : public lm::me::PropensityFunction
+{
+public:
+	static const uint REACTION_TYPE = 4006;
+
+	FirstOrderProductSubstrateDependent3Species(uint s1, uint s2, uint s3, double Km, double Rm) :PropensityFunction(REACTION_TYPE,1),s1(s1),s2(s2),s3(s3),Km(Km),Rm(Rm) {}
+	uint s1;
+	uint s2;
+	uint s3;
+	double Km;
+	double Rm;
+
+	void changeVolume(double volumeMultiplier) {}
+	double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
+	{
+		double u5 = double(speciesCounts[s1])/(Km + double(speciesCounts[s1]));
+		return u5*Rm*(double(speciesCounts[s2]) - double(speciesCounts[s3]));
+	}
+
+#ifdef OPT_AVX
+	avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
+	{
+		return naiveCalculateAvx(this, time, speciesCounts, numberSpecies);
+	}
+#endif
+
+	static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+	{
+		// Find the species dependencies.
+		utuple sd1 = getSpecificDependencies(reactionIndex, D, 1);
+		if (sd1.len != 1) throw InvalidArgException("D", "FirstOrderProductSubstrateDependent3Species needs one species dependencies, had", sd1.len);
+		utuple sd2 = getSpecificDependencies(reactionIndex, D, 2);
+		if (sd2.len != 1) throw InvalidArgException("D", "FirstOrderProductSubstrateDependent3Species needs one species dependencies, had", sd2.len);
+		utuple sd3 = getSpecificDependencies(reactionIndex, D, 3);
+		if (sd3.len != 1) throw InvalidArgException("D", "FirstOrderProductSubstrateDependent3Species needs one species dependencies, had", sd3.len);
+
+		// Find the rate constant.
+		if (k.len < 2) throw InvalidArgException("k", "FirstOrderProductSubstrateDependent3Species needs two parameters, had", k.len);
+
+		return new FirstOrderProductSubstrateDependent3Species(sd1[0], sd2[0], sd3[0], k[0], k[1]);
+	}
+
+	static lm::me::PropensityFunctionDefinition registerFunction()
+	{
+		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderProductSubstrateDependent3Species", "(x1 / (k1 + x1)) * k2 * (x2 - x3)", &create);
+	}
+};
+
+class FirstOrderU6 : public lm::me::PropensityFunction
+{
+public:
+	static const uint REACTION_TYPE = 4007;
+
+	FirstOrderU6(uint s1, double a1, double a2, double sc, double k1, double k2) :PropensityFunction(REACTION_TYPE,1),s1(s1),a1(a1),a2(a2),sc(sc),k1(k1),k2(k2) {}
+	uint s1;
+	double a1;
+	double a2;
+	double sc;
+	double k1;
+	double k2;
+
+	void changeVolume(double volumeMultiplier) {}
+	double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
+	{
+		double u6 = 1/(1 + a1*exp(a2*(sc - double(speciesCounts[s1]))));
+		return u6*k1*k2*double(speciesCounts[s1]);
+	}
+
+#ifdef OPT_AVX
+	avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
+	{
+		return naiveCalculateAvx(this, time, speciesCounts, numberSpecies);
+	}
+#endif
+
+	static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+	{
+		// Find the species dependencies.
+		utuple sd1 = getSpecificDependencies(reactionIndex, D, 1);
+		if (sd1.len != 1) throw InvalidArgException("D", "FirstOrderU6 needs one species dependencies, had", sd1.len);
+		
+		// Find the rate constant.
+		if (k.len < 5) throw InvalidArgException("k", "FirstOrderU6 needs five parameters, had", k.len);
+
+		return new FirstOrderU6(sd1[0], k[0], k[1], k[2], k[3], k[4]);
+	}
+
+	static lm::me::PropensityFunctionDefinition registerFunction()
+	{
+		const char* expressions[] = {"(1 / (1 + k1 * exp(k2 * (k3 - x1)))) * k4 * k5 * x1", "k4 * k5 * x1 * (1 / (1 + k1 * exp(k2 * (k3 - x1))))", NULL};
+		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderU6", expressions, &create);
+	}
+};
+
+class FirstOrderU7 : public lm::me::PropensityFunction
+{
+public:
+	static const uint REACTION_TYPE = 4008;
+
+	FirstOrderU7(uint s1, double a1, double a2, double sc, double k1):PropensityFunction(REACTION_TYPE,1),s1(s1),a1(a1),a2(a2),sc(sc),k1(k1) {}
+	uint s1;
+	double a1;
+	double a2;
+	double sc;
+	double k1;
+
+	void changeVolume(double volumeMultiplier) {}
+	double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
+	{
+		double u7 = 1/(1 + a1*exp(a2*(sc - double(speciesCounts[s1]))));
+		return u7*k1*double(speciesCounts[s1]);
+	}
+
+#ifdef OPT_AVX
+	avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
+	{
+		return naiveCalculateAvx(this, time, speciesCounts, numberSpecies);
+	}
+#endif
+
+	static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+	{
+		// Find the species dependencies.
+		utuple sd1 = getSpecificDependencies(reactionIndex, D, 1);
+		if (sd1.len != 1) throw InvalidArgException("D", "FirstOrderU7 needs one species dependencies, had", sd1.len);
+		
+		// Find the rate constant.
+		if (k.len < 4) throw InvalidArgException("k", "FirstOrderU7 needs four parameters, had", k.len);
+
+		return new FirstOrderU7(sd1[0], k[0], k[1], k[2], k[3]);
+	}
+
+	static lm::me::PropensityFunctionDefinition registerFunction()
+	{
+		const char* expressions[] = {"(1 / (1 + k1 * exp(k2 * (k3 - x1)))) * k4 * x1", "k4 * x1 * (1 / (1 + k1 * exp(k2 * (k3 - x1))))", NULL};
+		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderU7", expressions, &create);
+	}
+};
+
 list<lm::me::PropensityFunctionDefinition> EnzymePropensityFunctions::getPropensityFunctionDefinitions()
 {
     list<lm::me::PropensityFunctionDefinition> defs;
     defs.push_back(TwoSubstrateBindingPropensity::registerFunction());
     defs.push_back(ThreeSubstrateBindingPropensity::registerFunction());
     defs.push_back(FirstOrderMichaelisMenten::registerFunction());
+    defs.push_back(FirstOrderMichaelisMentenU1::registerFunction());
+    defs.push_back(FirstOrderDoubleMichaelisMenten::registerFunction());
+    defs.push_back(FirstOrderProductSubstrateDependent2Species::registerFunction());
+    defs.push_back(FirstOrderProductSubstrateDependent3Species::registerFunction());
+    defs.push_back(FirstOrderU6::registerFunction());
+    defs.push_back(FirstOrderU7::registerFunction());
     return defs;
 }
 
