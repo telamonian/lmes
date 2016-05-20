@@ -184,6 +184,16 @@ void parseArguments(int argc, char** argv)
                 throw lm::CommandLineArgumentException("missing simulation input file.");
         }
 
+        //See if the user is trying to set the output format.
+        else if ((strcmp(option, "-ff") == 0 || strcmp(option, "--output-format") == 0) && i < (argc-1))
+        {
+            outputWriterClassName=parseOutputFormatArg(argv[++i]);
+        }
+        else if (strncmp(option, "--output-format=", strlen("--output-format=")) == 0)
+        {
+            outputWriterClassName=parseOutputFormatArg(option+strlen("--output-format="));
+        }
+
         //See if the user is trying to set the output filename.
         else if ((strcmp(option, "-fo") == 0 || strcmp(option, "--output-file") == 0) && i < (argc-1))
         {
@@ -194,14 +204,14 @@ void parseArguments(int argc, char** argv)
             simulationOutputFilename=option+strlen("--output-file=");
         }
 
-        //See if the user is trying to set the output format.
-        else if ((strcmp(option, "-ff") == 0 || strcmp(option, "--output-format") == 0) && i < (argc-1))
+        //See if the user is trying to set the output record prefix.
+        else if ((strcmp(option, "-fp") == 0 || strcmp(option, "--output-prefix") == 0) && i < (argc-1))
         {
-            outputWriterClassName=parseOutputFormatArg(argv[++i]);
+            sfileRecordNamePrefix=argv[++i];
         }
-        else if (strncmp(option, "--output-format=", strlen("--output-format=")) == 0)
+        else if (strncmp(option, "--output-prefix=", strlen("--output-prefix=")) == 0)
         {
-            outputWriterClassName=parseOutputFormatArg(option+strlen("--output-format="));
+            sfileRecordNamePrefix=option+strlen("--output-prefix=");
         }
 
         //See if the user is trying to set the replicates.
@@ -510,8 +520,9 @@ void printUsage(int argc, char** argv)
     std::cout << "Usage: mpirun lm [OPTIONS] [SIM_OPTIONS] (-f|--file) input_filename" << std::endl;
     std::cout << std::endl;
     std::cout << "OPTIONS" << std::endl;
-    std::cout << "  -fo output_file   --output-file=output_filename The file for the simulation output, if different than the input file. Required for sfile, invalid for hdf5." << std::endl;
     std::cout << "  -ff format        --output-format=format        The file format for the simulation output. Valid values are \"hdf5\" (default)|\"sfile\"|\"log\"|\"null\"." << std::endl;
+    std::cout << "  -fo output_file   --output-file=output_filename The file for the simulation output, if different than the input file. Required for sfile, invalid for hdf5." << std::endl;
+    std::cout << "  -fp record_prefix --output-prefix=record_prefix The prefix to use for the record names. Optional for sfile output, invalid for hdf5." << std::endl;
     std::cout << "  -n node_file      --nodelist=node_file          A file containing the list of nodes on which to run, one line per available CPU core." << std::endl;
     std::cout << "  -m map_file       --resource-map=map_file       A file containing the map of resources to use: hostname processor_id_list gpu_id_list." << std::endl;
     std::cout << "  -c num_cpus       --cpu=num_cpus                The number of CPUs on which to execute (default all)." << std::endl;

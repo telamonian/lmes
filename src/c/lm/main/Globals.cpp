@@ -88,6 +88,11 @@ string simulationOutputFilename;
 string outputWriterClassName;
 
 /**
+ * The prefix to use in sfile record names.
+ */
+string sfileRecordNamePrefix;
+
+/**
  * The number of replicates of the simulation that should be performed.
  */
 vector<uint64_t> replicates;
