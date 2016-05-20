@@ -70,6 +70,11 @@ extern string simulationOutputFilename;
 extern string outputWriterClassName;
 
 /**
+ * The prefix to use in sfile record names.
+ */
+extern string sfileRecordNamePrefix;
+
+/**
  * The number of replicates of the simulation that should be performed.
  */
 extern vector<uint64_t> replicates;

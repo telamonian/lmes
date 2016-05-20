@@ -40,11 +40,15 @@
 #ifndef LM_IO_SFILEOutputWriter
 #define LM_IO_SFILEOutputWriter
 
+#include <string>
+
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/io/sfile/SFile.h"
+
+using std::string;
 
 namespace lm {
 namespace io {
@@ -58,10 +62,13 @@ public:
     static void* allocateObject();
 
 public:
-    SFileOutputWriter();
+    SFileOutputWriter(string recordNamePrefix=string(""));
     virtual ~SFileOutputWriter();
     virtual void initialize();
     virtual void finalize();
+
+protected:
+    static const int RECORD_NAME_BUFFER_MAX_SIZE=256;
 
 protected:
     virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
@@ -73,6 +80,7 @@ protected:
     virtual void checkpoint();
 
 private:
+    string recordNamePrefix;
     SFile* file;
 };
 
