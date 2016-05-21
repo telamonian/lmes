@@ -142,7 +142,7 @@ public:
         double x = double(speciesCounts[xi]);
         double xt = x0+v*time;
         double dx = xt-x;
-        double p = (dx<0)?(k*dx):(0.0);
+        double p = (dx<0)?(-k*dx):(0.0);
         return p;
     }
 
@@ -152,8 +152,8 @@ public:
         avxd x = _mm256_load_pd(&speciesCounts[xi*DOUBLES_PER_AVX]);
         avxd xt = _mm256_add_pd(_mm256_set1_pd(x0),_mm256_mul_pd(_mm256_set1_pd(v),time));
         avxd dx = _mm256_sub_pd(xt,x);
-        avxd p = _mm256_mul_pd(_mm256_set1_pd(k),dx);
         avxd comp = _mm256_cmp_pd(dx, _mm256_setzero_pd(), _CMP_LT_OQ);
+        avxd p = _mm256_mul_pd(_mm256_set1_pd(-k),dx);
         avxd p2 = _mm256_blendv_pd(_mm256_setzero_pd(),p,comp);
         //printf("death avx t=%0.2f, x=%0.2f, xt=%0.2f, dx=%0.2f, p=%0.2e\n",((double*)&time)[0],((double*)&x)[0],((double*)&xt)[0],((double*)&dx)[0],((double*)&p2)[0]);
         return p2;
