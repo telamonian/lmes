@@ -181,7 +181,7 @@ protected:
     inline void callUpdateSpeciesCountsListeners(uint r)
     {
         // Update the degree advancement
-        if (hasDegreeAdvancementListener)
+        if (trackingDegreeAdvancements)
         {
             degreeAdvancements[r]++;
         }
@@ -226,7 +226,7 @@ protected:
     lm::tiling::Tilings* tilings;
 
     // Degree advancement tracking
-    bool hasDegreeAdvancementListener;
+    bool trackingDegreeAdvancements;
 
     // Order parameter function.
     int32_t numberOrderParameters;
