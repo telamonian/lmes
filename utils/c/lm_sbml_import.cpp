@@ -103,6 +103,7 @@ bool ignoreErrors = false;
  * Whether to print out more verbose messages.
  */
 bool verbose = false;
+bool reallyVerbose = false;
 
 /**
  * Copasi always sets species concentrations (instead of amount) in exported sbml, so fix that
@@ -126,6 +127,7 @@ bool matchL3V1KineticsWithPropensityFunction(Reaction * reaction, uint reactionI
 void printASTNode(const ASTNode_t* node, int depth=0);
 bool substituteASTExpression(ASTNode_t* node, map<string,ASTNode_t*>& globalExpressions);
 void normalizeASTExpression(ASTNode_t* node);
+void sortASTExpression(ASTNode_t* node);
 void simplifyASTExpression(ASTNode_t* node, map<string,double>& parameterValues);
 bool areAllASTChildrenNumeric(ASTNode_t* node);
 double evaluateASTOperator(const ASTNode_t * node);
@@ -570,6 +572,9 @@ bool importSBMLModelL3V1Kinetics(Reaction * reaction, uint reactionIndex, Kineti
 
 bool matchL3V1KineticsWithPropensityFunction(Reaction * reaction, uint reactionIndex, KineticLaw * kinetics, ndarray<uint>& T, ndarray<double>& K, ndarray<uint>& D, map<string,uint>& speciesIndices, map<string,double>& parameterValues, map<string,ASTNode_t*>& globalExpressions)
 {
+    if (verbose)
+        Print::printf(Print::INFO, "Matching kinetic formula in reaction (%d) %s at line %d to a propensity function: [%s] ", reactionIndex, reaction->getName().c_str(), kinetics->getLine(), SBML_formulaToL3String(kinetics->getMath()));
+
     // Get the kinetic expression.
     const ASTNode_t* originalFormula = SBML_parseL3Formula(SBML_formulaToL3String(kinetics->getMath()));
 //    printf("original: %s\n", SBML_formulaToL3String(kinetics->getMath()));
@@ -579,20 +584,29 @@ bool matchL3V1KineticsWithPropensityFunction(Reaction * reaction, uint reactionI
     // Recursively substitute expressions until we don't have any.
     ASTNode_t* substitutedFormula = originalFormula->deepCopy();
     while (substituteASTExpression(substitutedFormula, globalExpressions));
-//    printf("substituted: %s\n", SBML_formulaToL3String(substitutedFormula));
-//    printASTNode(substitutedFormula);
+    if (reallyVerbose)
+    {
+        printf("substituted: %s\n", SBML_formulaToL3String(substitutedFormula));
+        printASTNode(substitutedFormula);
+    }
 
     // Put the formula into normal form.
     ASTNode_t* normalizedFormula = substitutedFormula->deepCopy();
     normalizeASTExpression(normalizedFormula);
-//    printf("normalized: %s\n", SBML_formulaToL3String(normalizedFormula));
-//    printASTNode(normalizedFormula);
+    if (reallyVerbose)
+    {
+        printf("normalized: %s\n", SBML_formulaToL3String(normalizedFormula));
+        printASTNode(normalizedFormula);
+    }
 
     // Simplify the formula by substituting parameters.
     ASTNode_t* simplifiedFormula = normalizedFormula->deepCopy();
     simplifyASTExpression(simplifiedFormula, parameterValues);
-//    printf("simplified: %s\n", SBML_formulaToL3String(simplifiedFormula));
-//    printASTNode(simplifiedFormula);
+    if (reallyVerbose)
+    {
+        printf("simplified: %s\n", SBML_formulaToL3String(simplifiedFormula));
+        printASTNode(simplifiedFormula);
+    }
 
     // Iterate through each propensity function and see if it matches.
     map<uint,lm::me::PropensityFunctionDefinition> functions = factory->getFunctions();
@@ -619,12 +633,15 @@ bool matchL3V1KineticsWithPropensityFunction(Reaction * reaction, uint reactionI
                 }
                 else
                 {
-		    if (verbose)
-		    {
-                    	Print::printf(Print::INFO, "No match [%s] to [%s]: %s", SBML_formulaToL3String(simplifiedFormula), SBML_formulaToL3String(normalizedPropensityFormula), p.name.c_str());
-			printASTNode(simplifiedFormula);
-		    	printASTNode(normalizedPropensityFormula);
-		    }
+                    if (verbose)
+                    {
+                        Print::printf(Print::INFO, "No match [%s] to [%s]: %s", SBML_formulaToL3String(simplifiedFormula), SBML_formulaToL3String(normalizedPropensityFormula), p.name.c_str());
+                        if (reallyVerbose)
+                        {
+                            printASTNode(simplifiedFormula);
+                            printASTNode(normalizedPropensityFormula);
+                        }
+                    }
                 }
             }
         }
@@ -753,6 +770,15 @@ void normalizeASTExpression(ASTNode_t* node)
             node->addChild(divisionChild->getChild(1));
         }
     }
+
+    sortASTExpression(node);
+}
+
+void sortASTExpression(ASTNode_t* node)
+{
+    // Sort the child nodes.
+    for (int i=0; i<node->getNumChildren(); i++)
+        sortASTExpression(node->getChild(i));
 
     // If this node is times or add sort the children by the number of their children.
     if (node->getType() == AST_TIMES || node->getType() == AST_PLUS)
@@ -1039,7 +1065,10 @@ void parseArguments(int argc, char** argv)
         // See if the user wants verbose messages.
         else if (strcmp(option, "--verbose") == 0)
         {
-            verbose = true;
+            if (!verbose)
+                verbose = true;
+            else
+                reallyVerbose = true;
         }
 
         // See if the user is trying to import a sbml file that was originally exported by Copasi
