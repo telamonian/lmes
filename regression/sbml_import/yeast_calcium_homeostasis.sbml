@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Created by COPASI version 4.15 (Build 95) on 2016-05-17 12:08 with libSBML version 5.11.1. -->
+<!-- Created by COPASI version 4.15 (Build 95) on 2016-05-18 14:57 with libSBML version 5.11.1. -->
 <sbml xmlns="http://www.sbml.org/sbml/level3/version1/core" xmlns:layout="http://www.sbml.org/sbml/level3/version1/layout/version1" xmlns:render="http://www.sbml.org/sbml/level3/version1/render/version1" level="3" version="1" layout:required="false" render:required="false">
   <model metaid="COPASI0" id="New_Model" name="New Model" substanceUnits="substance" timeUnits="time" volumeUnits="volume" areaUnits="area" lengthUnits="length" extentUnits="substance">
     <annotation>
@@ -67,90 +67,11 @@
           </lambda>
         </math>
       </functionDefinition>
-      <functionDefinition metaid="COPASI187" id="Mass_Action_Product_Substrate_Dependent" name="Mass Action Product/Substrate Dependent">
+      <functionDefinition metaid="COPASI187" id="Double_Michaelis_Menten" name="Double Michaelis-Menten">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
               <rdf:Description rdf:about="#COPASI187">
-                <dcterms:created>
-                  <rdf:Description>
-                    <dcterms:W3CDTF>2015-07-09T14:40:14Z</dcterms:W3CDTF>
-                  </rdf:Description>
-                </dcterms:created>
-              </rdf:Description>
-            </rdf:RDF>
-          </COPASI>
-        </annotation>
-        <math xmlns="http://www.w3.org/1998/Math/MathML">
-          <lambda>
-            <bvar>
-              <ci> u </ci>
-            </bvar>
-            <bvar>
-              <ci> S </ci>
-            </bvar>
-            <bvar>
-              <ci> Rmax </ci>
-            </bvar>
-            <bvar>
-              <ci> substrate </ci>
-            </bvar>
-            <bvar>
-              <ci> product </ci>
-            </bvar>
-            <apply>
-              <times/>
-              <ci> u </ci>
-              <ci> S </ci>
-              <ci> Rmax </ci>
-              <apply>
-                <minus/>
-                <ci> substrate </ci>
-                <ci> product </ci>
-              </apply>
-            </apply>
-          </lambda>
-        </math>
-      </functionDefinition>
-      <functionDefinition metaid="COPASI188" id="Mass_Action_FeedbackController" name="Mass Action FeedbackController">
-        <annotation>
-          <COPASI xmlns="http://www.copasi.org/static/sbml">
-            <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI188">
-                <dcterms:created>
-                  <rdf:Description>
-                    <dcterms:W3CDTF>2015-07-09T16:35:26Z</dcterms:W3CDTF>
-                  </rdf:Description>
-                </dcterms:created>
-              </rdf:Description>
-            </rdf:RDF>
-          </COPASI>
-        </annotation>
-        <math xmlns="http://www.w3.org/1998/Math/MathML">
-          <lambda>
-            <bvar>
-              <ci> k1 </ci>
-            </bvar>
-            <bvar>
-              <ci> u </ci>
-            </bvar>
-            <bvar>
-              <ci> substrate </ci>
-            </bvar>
-            <apply>
-              <times/>
-              <ci> k1 </ci>
-              <ci> u </ci>
-              <ci> substrate </ci>
-            </apply>
-          </lambda>
-        </math>
-      </functionDefinition>
-      <functionDefinition metaid="COPASI189" id="Double_Michaelis_Menten" name="Double Michaelis-Menten">
-        <annotation>
-          <COPASI xmlns="http://www.copasi.org/static/sbml">
-            <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI189">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2015-07-23T15:55:23Z</dcterms:W3CDTF>
@@ -205,11 +126,11 @@
           </lambda>
         </math>
       </functionDefinition>
-      <functionDefinition metaid="COPASI190" id="Mass_Action_M_dependent" name="Mass Action M dependent">
+      <functionDefinition metaid="COPASI188" id="Mass_Action_M_dependent" name="Mass Action M dependent">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI190">
+              <rdf:Description rdf:about="#COPASI188">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2015-07-23T14:55:24Z</dcterms:W3CDTF>
@@ -235,11 +156,11 @@
           </lambda>
         </math>
       </functionDefinition>
-      <functionDefinition metaid="COPASI191" id="Mass_Action_Two_rate_constants" name="Mass Action Two rate constants">
+      <functionDefinition metaid="COPASI189" id="Mass_Action_Two_rate_constants" name="Mass Action Two rate constants">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI191">
+              <rdf:Description rdf:about="#COPASI189">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2015-07-09T15:37:50Z</dcterms:W3CDTF>
@@ -267,6 +188,85 @@
               <times/>
               <ci> k1 </ci>
               <ci> k2 </ci>
+              <ci> u </ci>
+              <ci> substrate </ci>
+            </apply>
+          </lambda>
+        </math>
+      </functionDefinition>
+      <functionDefinition metaid="COPASI190" id="Mass_Action_Product_Substrate_Dependent" name="Mass Action Product/Substrate Dependent">
+        <annotation>
+          <COPASI xmlns="http://www.copasi.org/static/sbml">
+            <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+              <rdf:Description rdf:about="#COPASI190">
+                <dcterms:created>
+                  <rdf:Description>
+                    <dcterms:W3CDTF>2015-07-09T14:40:14Z</dcterms:W3CDTF>
+                  </rdf:Description>
+                </dcterms:created>
+              </rdf:Description>
+            </rdf:RDF>
+          </COPASI>
+        </annotation>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <lambda>
+            <bvar>
+              <ci> u </ci>
+            </bvar>
+            <bvar>
+              <ci> S </ci>
+            </bvar>
+            <bvar>
+              <ci> Rmax </ci>
+            </bvar>
+            <bvar>
+              <ci> substrate </ci>
+            </bvar>
+            <bvar>
+              <ci> product </ci>
+            </bvar>
+            <apply>
+              <times/>
+              <ci> u </ci>
+              <ci> S </ci>
+              <ci> Rmax </ci>
+              <apply>
+                <minus/>
+                <ci> substrate </ci>
+                <ci> product </ci>
+              </apply>
+            </apply>
+          </lambda>
+        </math>
+      </functionDefinition>
+      <functionDefinition metaid="COPASI191" id="Mass_Action_FeedbackController" name="Mass Action FeedbackController">
+        <annotation>
+          <COPASI xmlns="http://www.copasi.org/static/sbml">
+            <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+              <rdf:Description rdf:about="#COPASI191">
+                <dcterms:created>
+                  <rdf:Description>
+                    <dcterms:W3CDTF>2015-07-09T16:35:26Z</dcterms:W3CDTF>
+                  </rdf:Description>
+                </dcterms:created>
+              </rdf:Description>
+            </rdf:RDF>
+          </COPASI>
+        </annotation>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <lambda>
+            <bvar>
+              <ci> k1 </ci>
+            </bvar>
+            <bvar>
+              <ci> u </ci>
+            </bvar>
+            <bvar>
+              <ci> substrate </ci>
+            </bvar>
+            <apply>
+              <times/>
+              <ci> k1 </ci>
               <ci> u </ci>
               <ci> substrate </ci>
             </apply>
@@ -1519,26 +1519,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI87" id="pi" name="pxi" value="2.16828e+16" constant="false">
+      <parameter metaid="COPASI87" id="k11" name="k11" value="3.5" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
               <rdf:Description rdf:about="#COPASI87">
-                <dcterms:created>
-                  <rdf:Description>
-                    <dcterms:W3CDTF>2015-07-23T16:44:29Z</dcterms:W3CDTF>
-                  </rdf:Description>
-                </dcterms:created>
-              </rdf:Description>
-            </rdf:RDF>
-          </COPASI>
-        </annotation>
-      </parameter>
-      <parameter metaid="COPASI88" id="k11" name="k11" value="3.5" constant="true">
-        <annotation>
-          <COPASI xmlns="http://www.copasi.org/static/sbml">
-            <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI88">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-05-16T15:40:47Z</dcterms:W3CDTF>
@@ -1549,11 +1534,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI89" id="pk11" name="pk11" value="0.105" constant="false">
+      <parameter metaid="COPASI88" id="pk11" name="pk11" value="0.105" constant="false">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI89">
+              <rdf:Description rdf:about="#COPASI88">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2015-07-23T16:47:14Z</dcterms:W3CDTF>
@@ -1564,11 +1549,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI90" id="k12" name="k12" value="2.7566e-36" constant="true">
+      <parameter metaid="COPASI89" id="k12" name="k12" value="2.7566e-36" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI90">
+              <rdf:Description rdf:about="#COPASI89">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2015-07-23T16:47:45Z</dcterms:W3CDTF>
@@ -1579,11 +1564,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI91" id="pk12" name="pk12" value="8.2698e-38" constant="false">
+      <parameter metaid="COPASI90" id="pk12" name="pk12" value="8.2698e-38" constant="false">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI91">
+              <rdf:Description rdf:about="#COPASI90">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2015-07-23T16:48:04Z</dcterms:W3CDTF>
@@ -1594,11 +1579,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI92" id="k13" name="k13" value="6.023e+18" constant="true">
+      <parameter metaid="COPASI91" id="k13" name="k13" value="6.023e+18" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI92">
+              <rdf:Description rdf:about="#COPASI91">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-05-16T15:40:50Z</dcterms:W3CDTF>
@@ -1609,11 +1594,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI93" id="k19" name="k19" value="6.023e+17" constant="true">
+      <parameter metaid="COPASI92" id="k19" name="k19" value="6.023e+17" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI93">
+              <rdf:Description rdf:about="#COPASI92">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2015-10-15T16:12:06Z</dcterms:W3CDTF>
@@ -1624,11 +1609,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI94" id="k14" name="k14" value="3.0115e+22" constant="true">
+      <parameter metaid="COPASI93" id="k14" name="k14" value="3.0115e+22" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI94">
+              <rdf:Description rdf:about="#COPASI93">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T16:53:07Z</dcterms:W3CDTF>
@@ -1639,11 +1624,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI95" id="k15" name="k15" value="6.023e+19" constant="true">
+      <parameter metaid="COPASI94" id="k15" name="k15" value="6.023e+19" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI95">
+              <rdf:Description rdf:about="#COPASI94">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T16:53:10Z</dcterms:W3CDTF>
@@ -1654,11 +1639,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI96" id="k16" name="k16" value="6.023e+19" constant="true">
+      <parameter metaid="COPASI95" id="k16" name="k16" value="6.023e+19" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI96">
+              <rdf:Description rdf:about="#COPASI95">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T16:53:11Z</dcterms:W3CDTF>
@@ -1669,11 +1654,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI97" id="k17" name="k17" value="0.3" constant="true">
+      <parameter metaid="COPASI96" id="k17" name="k17" value="0.3" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI97">
+              <rdf:Description rdf:about="#COPASI96">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-03-02T10:51:07Z</dcterms:W3CDTF>
@@ -1684,11 +1669,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI98" id="Kx" name="Kx" value="2.4092e+17" constant="true">
+      <parameter metaid="COPASI97" id="Kx" name="Kx" value="2.4092e+17" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI98">
+              <rdf:Description rdf:about="#COPASI97">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2015-07-24T14:30:31Z</dcterms:W3CDTF>
@@ -1699,11 +1684,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI99" id="pk13" name="pk13" value="1.8069e+17" constant="false">
+      <parameter metaid="COPASI98" id="pk13" name="pk13" value="1.8069e+17" constant="false">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI99">
+              <rdf:Description rdf:about="#COPASI98">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2015-07-24T14:27:01Z</dcterms:W3CDTF>
@@ -1714,11 +1699,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI100" id="a101" name="a101" value="9.9618e-17" constant="true">
+      <parameter metaid="COPASI99" id="a101" name="a101" value="9.9618e-17" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI100">
+              <rdf:Description rdf:about="#COPASI99">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T16:50:51Z</dcterms:W3CDTF>
@@ -1729,11 +1714,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI101" id="k101" name="k101" value="6" constant="true">
+      <parameter metaid="COPASI100" id="k101" name="k101" value="6" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI101">
+              <rdf:Description rdf:about="#COPASI100">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T16:50:37Z</dcterms:W3CDTF>
@@ -1744,11 +1729,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI102" id="d101" name="d101" value="24" constant="true">
+      <parameter metaid="COPASI101" id="d101" name="d101" value="24" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI102">
+              <rdf:Description rdf:about="#COPASI101">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T16:50:20Z</dcterms:W3CDTF>
@@ -1759,11 +1744,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI103" id="a102" name="a102" value="4.9809e-17" constant="true">
+      <parameter metaid="COPASI102" id="a102" name="a102" value="4.9809e-17" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI103">
+              <rdf:Description rdf:about="#COPASI102">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-02-29T14:30:48Z</dcterms:W3CDTF>
@@ -1774,11 +1759,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI104" id="k102" name="k102" value="6" constant="true">
+      <parameter metaid="COPASI103" id="k102" name="k102" value="6" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI104">
+              <rdf:Description rdf:about="#COPASI103">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T16:49:13Z</dcterms:W3CDTF>
@@ -1789,11 +1774,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI105" id="d102" name="d102" value="30" constant="true">
+      <parameter metaid="COPASI104" id="d102" name="d102" value="30" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI105">
+              <rdf:Description rdf:about="#COPASI104">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T16:48:45Z</dcterms:W3CDTF>
@@ -1804,11 +1789,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI106" id="a104" name="a104" value="4.9809e-17" constant="true">
+      <parameter metaid="COPASI105" id="a104" name="a104" value="4.9809e-17" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI106">
+              <rdf:Description rdf:about="#COPASI105">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T16:48:32Z</dcterms:W3CDTF>
@@ -1819,11 +1804,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI107" id="k104" name="k104" value="1.2" constant="true">
+      <parameter metaid="COPASI106" id="k104" name="k104" value="1.2" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI107">
+              <rdf:Description rdf:about="#COPASI106">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T16:48:20Z</dcterms:W3CDTF>
@@ -1834,11 +1819,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI108" id="d104" name="d104" value="30" constant="true">
+      <parameter metaid="COPASI107" id="d104" name="d104" value="30" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI108">
+              <rdf:Description rdf:about="#COPASI107">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T16:48:09Z</dcterms:W3CDTF>
@@ -1849,11 +1834,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI109" id="a106" name="a106" value="4.9809e-17" constant="true">
+      <parameter metaid="COPASI108" id="a106" name="a106" value="4.9809e-17" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI109">
+              <rdf:Description rdf:about="#COPASI108">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T16:43:25Z</dcterms:W3CDTF>
@@ -1864,11 +1849,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI110" id="k106" name="k106" value="18" constant="true">
+      <parameter metaid="COPASI109" id="k106" name="k106" value="18" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI110">
+              <rdf:Description rdf:about="#COPASI109">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T16:43:10Z</dcterms:W3CDTF>
@@ -1879,11 +1864,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI111" id="d106" name="d106" value="30" constant="true">
+      <parameter metaid="COPASI110" id="d106" name="d106" value="30" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI111">
+              <rdf:Description rdf:about="#COPASI110">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T16:42:55Z</dcterms:W3CDTF>
@@ -1894,11 +1879,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI112" id="a107" name="a107" value="2.9885e-17" constant="true">
+      <parameter metaid="COPASI111" id="a107" name="a107" value="2.9885e-17" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI112">
+              <rdf:Description rdf:about="#COPASI111">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-02-29T14:30:47Z</dcterms:W3CDTF>
@@ -1909,11 +1894,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI113" id="d107" name="d107" value="7.2" constant="true">
+      <parameter metaid="COPASI112" id="d107" name="d107" value="7.2" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI113">
+              <rdf:Description rdf:about="#COPASI112">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T16:41:45Z</dcterms:W3CDTF>
@@ -1924,11 +1909,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI114" id="k107" name="k107" value="0.3" constant="true">
+      <parameter metaid="COPASI113" id="k107" name="k107" value="0.3" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI114">
+              <rdf:Description rdf:about="#COPASI113">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T16:41:05Z</dcterms:W3CDTF>
@@ -1939,11 +1924,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI115" id="a108" name="a108" value="4.9809e-18" constant="true">
+      <parameter metaid="COPASI114" id="a108" name="a108" value="4.9809e-18" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI115">
+              <rdf:Description rdf:about="#COPASI114">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-02-19T16:09:57Z</dcterms:W3CDTF>
@@ -1954,11 +1939,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI116" id="k108" name="k108" value="0.6" constant="true">
+      <parameter metaid="COPASI115" id="k108" name="k108" value="0.6" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI116">
+              <rdf:Description rdf:about="#COPASI115">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T16:37:53Z</dcterms:W3CDTF>
@@ -1969,11 +1954,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI117" id="d108" name="d108" value="3" constant="true">
+      <parameter metaid="COPASI116" id="d108" name="d108" value="3" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI117">
+              <rdf:Description rdf:about="#COPASI116">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T16:36:03Z</dcterms:W3CDTF>
@@ -1984,11 +1969,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI118" id="k109" name="k109" value="1.2" constant="true">
+      <parameter metaid="COPASI117" id="k109" name="k109" value="1.2" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI118">
+              <rdf:Description rdf:about="#COPASI117">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T16:35:50Z</dcterms:W3CDTF>
@@ -1999,11 +1984,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI119" id="a110" name="a110" value="4.9809e-18" constant="true">
+      <parameter metaid="COPASI118" id="a110" name="a110" value="4.9809e-18" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI119">
+              <rdf:Description rdf:about="#COPASI118">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T16:34:42Z</dcterms:W3CDTF>
@@ -2014,11 +1999,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI120" id="k110" name="k110" value="0.18" constant="true">
+      <parameter metaid="COPASI119" id="k110" name="k110" value="0.18" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI120">
+              <rdf:Description rdf:about="#COPASI119">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-02-19T16:21:57Z</dcterms:W3CDTF>
@@ -2029,11 +2014,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI121" id="d110" name="d110" value="3" constant="true">
+      <parameter metaid="COPASI120" id="d110" name="d110" value="3" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI121">
+              <rdf:Description rdf:about="#COPASI120">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T16:34:12Z</dcterms:W3CDTF>
@@ -2044,11 +2029,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI122" id="a112" name="a112" value="4.9809e-18" constant="true">
+      <parameter metaid="COPASI121" id="a112" name="a112" value="4.9809e-18" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI122">
+              <rdf:Description rdf:about="#COPASI121">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-05-16T15:38:58Z</dcterms:W3CDTF>
@@ -2059,11 +2044,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI123" id="k112" name="k112" value="0.9" constant="true">
+      <parameter metaid="COPASI122" id="k112" name="k112" value="0.9" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI123">
+              <rdf:Description rdf:about="#COPASI122">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T16:33:02Z</dcterms:W3CDTF>
@@ -2074,11 +2059,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI124" id="d112" name="d112" value="3" constant="true">
+      <parameter metaid="COPASI123" id="d112" name="d112" value="3" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI124">
+              <rdf:Description rdf:about="#COPASI123">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-02-19T16:27:19Z</dcterms:W3CDTF>
@@ -2089,11 +2074,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI125" id="a113" name="a113" value="9.9618e-16" constant="true">
+      <parameter metaid="COPASI124" id="a113" name="a113" value="9.9618e-16" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI125">
+              <rdf:Description rdf:about="#COPASI124">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T16:27:31Z</dcterms:W3CDTF>
@@ -2104,11 +2089,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI126" id="d113" name="d113" value="3" constant="true">
+      <parameter metaid="COPASI125" id="d113" name="d113" value="3" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI126">
+              <rdf:Description rdf:about="#COPASI125">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T16:27:01Z</dcterms:W3CDTF>
@@ -2119,11 +2104,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI127" id="a114" name="a114" value="4.9809e-16" constant="true">
+      <parameter metaid="COPASI126" id="a114" name="a114" value="4.9809e-16" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI127">
+              <rdf:Description rdf:about="#COPASI126">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T16:26:01Z</dcterms:W3CDTF>
@@ -2134,11 +2119,11 @@
           </COPASI>
         </annotation>
       </parameter>
-      <parameter metaid="COPASI128" id="d114" name="d114" value="3" constant="true">
+      <parameter metaid="COPASI127" id="d114" name="d114" value="3" constant="true">
         <annotation>
           <COPASI xmlns="http://www.copasi.org/static/sbml">
             <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-              <rdf:Description rdf:about="#COPASI128">
+              <rdf:Description rdf:about="#COPASI127">
                 <dcterms:created>
                   <rdf:Description>
                     <dcterms:W3CDTF>2016-04-14T15:32:18Z</dcterms:W3CDTF>
@@ -2149,104 +2134,29 @@
           </COPASI>
         </annotation>
       </parameter>
+      <parameter metaid="COPASI128" id="pxi" name="pxi" value="2.16828e+16" constant="false">
+        <annotation>
+          <COPASI xmlns="http://www.copasi.org/static/sbml">
+            <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+              <rdf:Description rdf:about="#COPASI128">
+                <dcterms:created>
+                  <rdf:Description>
+                    <dcterms:W3CDTF>2016-05-18T14:56:29Z</dcterms:W3CDTF>
+                  </rdf:Description>
+                </dcterms:created>
+              </rdf:Description>
+            </rdf:RDF>
+          </COPASI>
+        </annotation>
+      </parameter>
     </listOfParameters>
     <listOfRules>
-      <assignmentRule variable="u5">
+      <assignmentRule variable="pk11">
         <math xmlns="http://www.w3.org/1998/Math/MathML">
           <apply>
-            <divide/>
-            <ci> X </ci>
-            <apply>
-              <plus/>
-              <ci> Kx </ci>
-              <ci> X </ci>
-            </apply>
-          </apply>
-        </math>
-      </assignmentRule>
-      <assignmentRule variable="u7">
-        <math xmlns="http://www.w3.org/1998/Math/MathML">
-          <apply>
-            <divide/>
-            <cn> 1 </cn>
-            <apply>
-              <plus/>
-              <cn> 1 </cn>
-              <apply>
-                <times/>
-                <ci> a3 </ci>
-                <apply>
-                  <exp/>
-                  <apply>
-                    <times/>
-                    <ci> a4 </ci>
-                    <apply>
-                      <minus/>
-                      <ci> Ca2ersteady </ci>
-                      <ci> Ca2er </ci>
-                    </apply>
-                  </apply>
-                </apply>
-              </apply>
-            </apply>
-          </apply>
-        </math>
-      </assignmentRule>
-      <assignmentRule variable="u3">
-        <math xmlns="http://www.w3.org/1998/Math/MathML">
-          <apply>
-            <divide/>
-            <cn> 1 </cn>
-            <apply>
-              <plus/>
-              <cn> 1 </cn>
-              <apply>
-                <times/>
-                <ci> k5 </ci>
-                <ci> CaN </ci>
-              </apply>
-            </apply>
-          </apply>
-        </math>
-      </assignmentRule>
-      <assignmentRule variable="u6">
-        <math xmlns="http://www.w3.org/1998/Math/MathML">
-          <apply>
-            <divide/>
-            <cn> 1 </cn>
-            <apply>
-              <plus/>
-              <cn> 1 </cn>
-              <apply>
-                <times/>
-                <ci> a1 </ci>
-                <apply>
-                  <exp/>
-                  <apply>
-                    <times/>
-                    <ci> a2 </ci>
-                    <apply>
-                      <minus/>
-                      <ci> Ca2gsteady </ci>
-                      <ci> Ca2g </ci>
-                    </apply>
-                  </apply>
-                </apply>
-              </apply>
-            </apply>
-          </apply>
-        </math>
-      </assignmentRule>
-      <assignmentRule variable="h">
-        <math xmlns="http://www.w3.org/1998/Math/MathML">
-          <apply>
-            <divide/>
-            <apply>
-              <times/>
-              <ci> Cn </ci>
-              <ci> compartment </ci>
-            </apply>
-            <cn> 1000 </cn>
+            <times/>
+            <ci> p </ci>
+            <ci> k11 </ci>
           </apply>
         </math>
       </assignmentRule>
@@ -2259,12 +2169,12 @@
           </apply>
         </math>
       </assignmentRule>
-      <assignmentRule variable="pk11">
+      <assignmentRule variable="calc">
         <math xmlns="http://www.w3.org/1998/Math/MathML">
           <apply>
-            <times/>
-            <ci> p </ci>
-            <ci> k11 </ci>
+            <minus/>
+            <ci> CaN0 </ci>
+            <ci> CaN </ci>
           </apply>
         </math>
       </assignmentRule>
@@ -2285,25 +2195,12 @@
           </apply>
         </math>
       </assignmentRule>
-      <assignmentRule variable="k1">
+      <assignmentRule variable="pxi">
         <math xmlns="http://www.w3.org/1998/Math/MathML">
           <apply>
             <times/>
-            <cn type="e-notation"> 1.373 <sep/> -52 </cn>
-            <ci> S </ci>
-          </apply>
-        </math>
-      </assignmentRule>
-      <assignmentRule variable="u4">
-        <math xmlns="http://www.w3.org/1998/Math/MathML">
-          <apply>
-            <divide/>
-            <ci> Ca2i </ci>
-            <apply>
-              <plus/>
-              <ci> Kyvc </ci>
-              <ci> Ca2i </ci>
-            </apply>
+            <ci> i </ci>
+            <ci> p </ci>
           </apply>
         </math>
       </assignmentRule>
@@ -2402,71 +2299,6 @@
           </apply>
         </math>
       </assignmentRule>
-      <assignmentRule variable="theta">
-        <math xmlns="http://www.w3.org/1998/Math/MathML">
-          <apply>
-            <divide/>
-            <cn> 1 </cn>
-            <apply>
-              <plus/>
-              <apply>
-                <divide/>
-                <apply>
-                  <minus/>
-                  <apply>
-                    <power/>
-                    <ci> x </ci>
-                    <apply>
-                      <plus/>
-                      <ci> N </ci>
-                      <cn> 1 </cn>
-                    </apply>
-                  </apply>
-                  <cn> 1 </cn>
-                </apply>
-                <apply>
-                  <minus/>
-                  <ci> x </ci>
-                  <cn> 1 </cn>
-                </apply>
-              </apply>
-              <apply>
-                <times/>
-                <ci> L0 </ci>
-                <apply>
-                  <divide/>
-                  <apply>
-                    <minus/>
-                    <apply>
-                      <power/>
-                      <apply>
-                        <times/>
-                        <ci> lamda </ci>
-                        <ci> x </ci>
-                      </apply>
-                      <apply>
-                        <plus/>
-                        <ci> N </ci>
-                        <cn> 1 </cn>
-                      </apply>
-                    </apply>
-                    <cn> 1 </cn>
-                  </apply>
-                  <apply>
-                    <minus/>
-                    <apply>
-                      <times/>
-                      <ci> lamda </ci>
-                      <ci> x </ci>
-                    </apply>
-                    <cn> 1 </cn>
-                  </apply>
-                </apply>
-              </apply>
-            </apply>
-          </apply>
-        </math>
-      </assignmentRule>
       <assignmentRule variable="rho">
         <math xmlns="http://www.w3.org/1998/Math/MathML">
           <apply>
@@ -2536,12 +2368,16 @@
           </apply>
         </math>
       </assignmentRule>
-      <assignmentRule variable="u2">
+      <assignmentRule variable="k4rho">
         <math xmlns="http://www.w3.org/1998/Math/MathML">
           <apply>
             <times/>
-            <ci> h </ci>
-            <ci> theta </ci>
+            <ci> k4 </ci>
+            <apply>
+              <minus/>
+              <cn> 1 </cn>
+              <ci> rho </ci>
+            </apply>
           </apply>
         </math>
       </assignmentRule>
@@ -2554,33 +2390,121 @@
           </apply>
         </math>
       </assignmentRule>
-      <assignmentRule variable="pk13">
+      <assignmentRule variable="u7">
         <math xmlns="http://www.w3.org/1998/Math/MathML">
           <apply>
-            <times/>
-            <ci> p </ci>
-            <ci> k13 </ci>
-          </apply>
-        </math>
-      </assignmentRule>
-      <assignmentRule variable="pi">
-        <math xmlns="http://www.w3.org/1998/Math/MathML">
-          <apply>
-            <times/>
-            <ci> p </ci>
-            <ci> i </ci>
-          </apply>
-        </math>
-      </assignmentRule>
-      <assignmentRule variable="k4rho">
-        <math xmlns="http://www.w3.org/1998/Math/MathML">
-          <apply>
-            <times/>
-            <ci> k4 </ci>
+            <divide/>
+            <cn> 1 </cn>
             <apply>
-              <minus/>
+              <plus/>
               <cn> 1 </cn>
-              <ci> rho </ci>
+              <apply>
+                <times/>
+                <ci> a3 </ci>
+                <apply>
+                  <exp/>
+                  <apply>
+                    <times/>
+                    <ci> a4 </ci>
+                    <apply>
+                      <minus/>
+                      <ci> Ca2ersteady </ci>
+                      <ci> Ca2er </ci>
+                    </apply>
+                  </apply>
+                </apply>
+              </apply>
+            </apply>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="theta">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <divide/>
+            <cn> 1 </cn>
+            <apply>
+              <plus/>
+              <apply>
+                <divide/>
+                <apply>
+                  <minus/>
+                  <apply>
+                    <power/>
+                    <ci> x </ci>
+                    <apply>
+                      <plus/>
+                      <ci> N </ci>
+                      <cn> 1 </cn>
+                    </apply>
+                  </apply>
+                  <cn> 1 </cn>
+                </apply>
+                <apply>
+                  <minus/>
+                  <ci> x </ci>
+                  <cn> 1 </cn>
+                </apply>
+              </apply>
+              <apply>
+                <times/>
+                <ci> L0 </ci>
+                <apply>
+                  <divide/>
+                  <apply>
+                    <minus/>
+                    <apply>
+                      <power/>
+                      <apply>
+                        <times/>
+                        <ci> lamda </ci>
+                        <ci> x </ci>
+                      </apply>
+                      <apply>
+                        <plus/>
+                        <ci> N </ci>
+                        <cn> 1 </cn>
+                      </apply>
+                    </apply>
+                    <cn> 1 </cn>
+                  </apply>
+                  <apply>
+                    <minus/>
+                    <apply>
+                      <times/>
+                      <ci> lamda </ci>
+                      <ci> x </ci>
+                    </apply>
+                    <cn> 1 </cn>
+                  </apply>
+                </apply>
+              </apply>
+            </apply>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="u5">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <divide/>
+            <ci> X </ci>
+            <apply>
+              <plus/>
+              <ci> Kx </ci>
+              <ci> X </ci>
+            </apply>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="u4">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <divide/>
+            <ci> Ca2i </ci>
+            <apply>
+              <plus/>
+              <ci> Kyvc </ci>
+              <ci> Ca2i </ci>
             </apply>
           </apply>
         </math>
@@ -2598,12 +2522,88 @@
           </apply>
         </math>
       </assignmentRule>
-      <assignmentRule variable="calc">
+      <assignmentRule variable="u3">
         <math xmlns="http://www.w3.org/1998/Math/MathML">
           <apply>
-            <minus/>
-            <ci> CaN0 </ci>
-            <ci> CaN </ci>
+            <divide/>
+            <cn> 1 </cn>
+            <apply>
+              <plus/>
+              <cn> 1 </cn>
+              <apply>
+                <times/>
+                <ci> k5 </ci>
+                <ci> CaN </ci>
+              </apply>
+            </apply>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="pk13">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <times/>
+            <ci> p </ci>
+            <ci> k13 </ci>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="h">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <divide/>
+            <apply>
+              <times/>
+              <ci> Cn </ci>
+              <ci> compartment </ci>
+            </apply>
+            <cn> 1000 </cn>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="u2">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <times/>
+            <ci> h </ci>
+            <ci> theta </ci>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="u6">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <divide/>
+            <cn> 1 </cn>
+            <apply>
+              <plus/>
+              <cn> 1 </cn>
+              <apply>
+                <times/>
+                <ci> a1 </ci>
+                <apply>
+                  <exp/>
+                  <apply>
+                    <times/>
+                    <ci> a2 </ci>
+                    <apply>
+                      <minus/>
+                      <ci> Ca2gsteady </ci>
+                      <ci> Ca2g </ci>
+                    </apply>
+                  </apply>
+                </apply>
+              </apply>
+            </apply>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="k1">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <times/>
+            <cn type="e-notation"> 1.373 <sep/> -52 </cn>
+            <ci> S </ci>
           </apply>
         </math>
       </assignmentRule>
@@ -3341,7 +3341,7 @@
               <ci> compartment </ci>
               <apply>
                 <ci> Constant_flux__irreversible </ci>
-                <ci> pi </ci>
+                <ci> pxi </ci>
               </apply>
             </apply>
           </math>

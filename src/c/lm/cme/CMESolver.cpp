@@ -87,7 +87,7 @@ namespace lm {
 namespace cme {
 
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
-:neededDists(neededDists),rng(NULL),reactionModel(NULL),hasUpdateSpeciesCountsListeners(false),tilings(NULL),numberOrderParameters(0),
+:neededDists(neededDists),rng(NULL),reactionModel(NULL),hasUpdateSpeciesCountsListeners(false),tilings(NULL),trackingDegreeAdvancements(false),numberOrderParameters(0),
  orderParameterFunctions(NULL),status(lm::message::WorkUnitStatus::NONE),timeLimit(std::numeric_limits<double>::infinity()),
  numberLimits(0),limits(NULL),limitIDReached(lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID),limitTypeReached(lm::io::TrajectoryLimits::NONE),
  writeDegreeAdvancementTimeSeries(false),writeOrderParameterTimeSeries(false),writeSpeciesTimeSeries(false),
@@ -209,7 +209,7 @@ void CMESolver::setLimits(const lm::io::TrajectoryLimits& lm)
     // if any of the limits are degree advancement limits, make sure that we're tracking them
     if (trajectoryLimits.hasDegreeAdvancementLimit())
     {
-        hasDegreeAdvancementListener = true;
+        trackingDegreeAdvancements = true;
         hasUpdateSpeciesCountsListeners = true;
     }
 }
@@ -422,7 +422,7 @@ void CMESolver::setOutputOptions(const lm::io::OutputOptions& outputOptions)
         writeDegreeAdvancementTimeSeries = true;
         degreeAdvancementWriteInterval = outputOptions.degree_advancement_write_interval();
 
-        hasDegreeAdvancementListener = true;
+        trackingDegreeAdvancements = true;
         hasUpdateSpeciesCountsListeners = true;
     }
     if (outputOptions.has_order_parameter_write_interval())
