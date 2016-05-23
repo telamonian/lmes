@@ -422,7 +422,7 @@ void CMESolver::setOutputOptions(const lm::io::OutputOptions& outputOptions)
         writeDegreeAdvancementTimeSeries = true;
         degreeAdvancementWriteInterval = outputOptions.degree_advancement_write_interval();
 
-        hasDegreeAdvancementListener = true;
+        trackingDegreeAdvancements = true;
         hasUpdateSpeciesCountsListeners = true;
     }
     if (outputOptions.has_order_parameter_write_interval())
