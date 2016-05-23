@@ -496,6 +496,102 @@ public:
 	}
 };
 
+class SecondOrdercalc : public lm::me::PropensityFunction
+{
+public:
+	static const uint REACTION_TYPE = 4009;
+
+	SecondOrdercalc(uint s1, uint s2, double k1, double k2):PropensityFunction(REACTION_TYPE,2),s1(s1),s2(s2),k1(k1),k2(k2) {}
+	uint s1;
+	uint s2;
+	double k1;
+	double k2;
+
+	void changeVolume(double volumeMultiplier) {k1/=volumeMultiplier;}
+	double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
+	{
+		return k1*double(speciesCounts[s1])*(k2 - double(speciesCounts[s2]));
+	}
+
+#ifdef OPT_AVX
+        avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
+        {
+                return naiveCalculateAvx(this, time, speciesCounts, numberSpecies);
+        }
+#endif
+
+        static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+        {
+                // Find the species dependencies.
+                utuple sd1 = getSpecificDependencies(reactionIndex, D, 1);
+                if (sd1.len != 1) throw InvalidArgException("D", "SecondOrdercalc needs one species dependencies, had", sd1.len);
+		utuple sd2 = getSpecificDependencies(reactionIndex, D, 2);
+		if (sd2.len != 1) throw InvalidArgException("D", "SecondOrdercalc needs one species dependencies, had", sd2.len);
+
+		// Find the rate constant.
+		if (k.len < 2) throw InvalidArgException("k", "SecondOrdercalc needs two parameters, had", k.len);
+
+		return new SecondOrdercalc(sd1[0], sd2[0], k[0], k[1]);
+	}
+
+	static lm::me::PropensityFunctionDefinition registerFunction()
+	{
+		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "SecondOrdercalc", "k1 * x1 * (k2 - x2)", &create);
+	}
+};
+
+class FourthOrdercalm : public lm::me::PropensityFunction
+{
+public:
+	static const uint REACTION_TYPE = 4010;
+
+	FourthOrdercalm(uint s1, uint s2, uint s3, double k1, double k2) :PropensityFunction(REACTION_TYPE,4),s1(s1),s2(s2),s3(s3),k1(k1),k2(k2) {}
+	uint s1;
+	uint s2;
+	uint s3;
+	double k1;
+	double k2;
+
+	void changeVolume(double volumeMultiplier) {k1/=(volumeMultiplier*volumeMultiplier*volumeMultiplier);}
+
+	double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
+	{
+		int s11 = speciesCounts[s1];
+		int s22 = speciesCounts[s2];
+		int s33 = speciesCounts[s3];		
+		return k1 * double(s11*(s11-1)*(s11-2)) * (k2 - s22 - s33);
+	}
+
+#ifdef OPT_AVX
+        avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
+        {
+                return naiveCalculateAvx(this, time, speciesCounts, numberSpecies);
+        }
+#endif
+
+	static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+	{
+		// Find the species dependency.
+		utuple sd1 = getSpecificDependencies(reactionIndex, D, 1);
+		if (sd1.len != 1) throw InvalidArgException("D", "FourthOrdercalm had invalid number of s1 dependencies", sd1.len);
+		utuple sd2 = getSpecificDependencies(reactionIndex, D, 2);
+		if (sd2.len != 1) throw InvalidArgException("D", "FourthOrdercalm had invalid number of s2 dependencies", sd2.len);
+		utuple sd3 = getSpecificDependencies(reactionIndex, D, 3);
+		if (sd3.len != 1) throw InvalidArgException("D", "FourthOrdercalm had invalid number of s3 dependencies", sd3.len);
+
+		// Find the rate constants.
+		if (k.len < 2) throw InvalidArgException("k", "FourthOrdercalm needs two parameters, had", k.len);
+
+		return new FourthOrdercalm(sd1[0], sd2[0], sd3[0], k[0], k[1]);
+	}
+
+	static lm::me::PropensityFunctionDefinition registerFunction()
+	{
+		const char* expressions[] = {"k1 * x1^3 * (k2 - x2 - x3)", "k1 * x1 * x1 * x1 * (k2 - x2 - x3)", "k1 * x1 * (x1 - 1) * (x1 - 2) * (k2 - x2 - x3)", NULL};
+		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FourthOrdercalm", expressions, &create);
+	}
+};
+
 list<lm::me::PropensityFunctionDefinition> EnzymePropensityFunctions::getPropensityFunctionDefinitions()
 {
     list<lm::me::PropensityFunctionDefinition> defs;
@@ -508,6 +604,8 @@ list<lm::me::PropensityFunctionDefinition> EnzymePropensityFunctions::getPropens
     defs.push_back(FirstOrderProductSubstrateDependent3Species::registerFunction());
     defs.push_back(FirstOrderU6::registerFunction());
     defs.push_back(FirstOrderU7::registerFunction());
+    defs.push_back(SecondOrdercalc::registerFunction());
+    defs.push_back(FourthOrdercalm::registerFunction());
     return defs;
 }
 
