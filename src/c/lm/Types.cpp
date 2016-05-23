@@ -38,8 +38,3 @@
  */
 
 #include "lm/Types.h"
-
-template<> const char* printf_format_string<int>() {return "% 2d";}
-template<> const char* printf_format_string<uint>() {return "%u";}
-template<> const char* printf_format_string<double>() {return "%e";}
-

@@ -75,4 +75,5 @@ message NDArray {
     repeated int32 shape                            = 4;
     required bytes data                             = 5;
     optional bool compressed_deflate                = 6 [default = false];
+    optional bool compressed_snappy                 = 7 [default = false];
 }
