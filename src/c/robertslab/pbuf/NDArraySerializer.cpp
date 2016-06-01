@@ -74,7 +74,9 @@ template <typename T> void NDArraySerializer::serializeInto(robertslab::pbuf::ND
     }
     else
     {
-
+        std::string* data = msg->mutable_data();
+        data->resize(array.size*sizeof(T));
+        memcpy((unsigned char*)&((*data)[0]), (const unsigned char*)array.values, array.size*sizeof(T));
     }
 }
 
