@@ -39,10 +39,9 @@
 #ifndef LM_MAIN_SUPERVISOR_H
 #define LM_MAIN_SUPERVISOR_H
 
+#include <google/protobuf/message.h>
 #include <map>
 #include <string>
-
-#include <google/protobuf/message.h>
 
 #include "hrtime.h"
 #include "lm/Exceptions.h"
@@ -113,6 +112,7 @@ protected:
     virtual void startSimulation();
     virtual void startSimulationPhase();
     virtual void buildTrajectoryList()=0;
+    virtual void setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList);
 
     virtual void receivedStartedWorkUnit(const lm::message::StartedWorkUnit& msg);
 

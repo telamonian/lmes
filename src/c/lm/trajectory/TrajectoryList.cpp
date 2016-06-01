@@ -256,6 +256,7 @@ TrajectoryMap* TrajectoryList::mutableTrajectoryMapFromStatus(Trajectory::status
     case Trajectory::RUNNING: return &runningTrajectories;
     case Trajectory::WAITING: return &waitingTrajectories;
     }
+    throw Exception("Unknown Trajectory status_t", status);
 }
 
 void TrajectoryList::setAll(Trajectory::status_t oldStatus, Trajectory::status_t newStatus)

@@ -53,6 +53,7 @@
 #include "lm/Exceptions.h"
 #include "lm/Tune.h"
 #include "lm/Math.h"
+#include "lm/MathAVX.h"
 #include "lm/Print.h"
 #include "lm/Types.h"
 #include "lm/avx/GillespieDSolverAVX.h"
@@ -1018,67 +1019,46 @@ void GillespieDSolverAVX::callUpdateSpeciesCountsListenersAVX()
     // Update the order parameter first passage time tables.
     for (int i=0; i<numberFptOPValues; i++)
     {
-        uint opValIndex = fptTrackedOrderParameters[i].oparamID*DOUBLES_PER_AVX;
-        uint fptopIndex = i*DOUBLES_PER_AVX;
-        // rounding version
-        //avxd counts = _mm256_round_pd(_mm256_load_pd(&orderParameterValues[opValIndex]), _MM_FROUND_TO_ZERO);
-        avxd counts = _mm256_load_pd(&orderParameterValues[opValIndex]);
-        avxd comp;
         int allFalse;
         int trueMask;
+        uint opValIndex = fptTrackedOrderParameters[i].oparamID*DOUBLES_PER_AVX;
+        uint fptopIndex = i*DOUBLES_PER_AVX;
+
+        // rounding version
+        //avxd counts = _mm256_round_pd(_mm256_load_pd(&orderParameterValues[opValIndex]), _MM_FROUND_TO_ZERO);
 
         // Check if we went below the previous min.
-        while (true)
+//        avxGetCompareMask<_CMP_LT_OQ>(&orderParameterValues[opValIndex], &fptOPMinValuesAchieved[fptopIndex], &trueMask, &allFalse);
+        AVX_COMP_MASK_ALLFALSE(_CMP_LT_OQ, &orderParameterValues[opValIndex], &fptOPMinValuesAchieved[fptopIndex], &trueMask, &allFalse)
+        if (!allFalse)
         {
-            comp = _mm256_cmp_pd(counts, _mm256_load_pd(&fptOPMinValuesAchieved[fptopIndex]), _CMP_LT_OQ);
-            allFalse = _mm256_testz_pd(comp,comp);
-            if (allFalse)
+            // Go through the mask.
+            for (int j=0; j<DOUBLES_PER_AVX; j++)
             {
-                break;
-            }
-            else
-            {
-                // Get a bitmask of all values that were true.
-                trueMask = _mm256_movemask_pd(comp);
-
-                // Go through the mask.
-                for (int j=0; j<DOUBLES_PER_AVX; j++)
+                // If this element was true, update the fpt tables.
+                if (trueMask&(1<<j))
                 {
-                    // If this element was true, update the fpt tables.
-                    if (trueMask&(1<<j))
-                    {
-                        fptOPMinValuesAchieved[i*DOUBLES_PER_AVX+j] -= 1.0;
-                        fptOPValues[i*DOUBLES_PER_AVX+j].push_front(fptOPMinValuesAchieved[i*DOUBLES_PER_AVX+j]);
-                        fptOPTimes[i*DOUBLES_PER_AVX+j].push_front(((double*)&time)[j]);
-                    }
+                    fptOPMinValuesAchieved[fptopIndex + j] = orderParameterValues[opValIndex + j];
+                    fptOPValues[fptopIndex + j].push_front(fptOPMinValuesAchieved[fptopIndex + j]);
+                    fptOPTimes[fptopIndex + j].push_front(((double*)&time)[j]);
                 }
             }
         }
 
         // Check if we went above the previous max.
-        while (true)
+//        avxGetCompareMask<_CMP_GT_OQ>(&orderParameterValues[opValIndex], &fptOPMaxValuesAchieved[fptopIndex], &trueMask, &allFalse);
+        AVX_COMP_MASK_ALLFALSE(_CMP_GT_OQ, &orderParameterValues[opValIndex], &fptOPMaxValuesAchieved[fptopIndex], &trueMask, &allFalse)
+        if (!allFalse)
         {
-            comp = _mm256_cmp_pd(counts, _mm256_load_pd(&fptOPMaxValuesAchieved[fptopIndex]), _CMP_GT_OQ);
-            allFalse = _mm256_testz_pd(comp,comp);
-            if (allFalse)
+            // Go through the mask.
+            for (int j=0; j<DOUBLES_PER_AVX; j++)
             {
-                break;
-            }
-            else
-            {
-                // Go through the mask.
-                for (int j=0; j<DOUBLES_PER_AVX; j++)
+                // If this element was true, update the fpt tables.
+                if (trueMask&(1<<j))
                 {
-                    // Get a bitmask of all values that were true.
-                    trueMask = _mm256_movemask_pd(comp);
-
-                    // If this element was true, update the fpt tables.
-                    if (trueMask&(1<<j))
-                    {
-                        fptOPMaxValuesAchieved[i*DOUBLES_PER_AVX+j] += 1;
-                        fptOPValues[i*DOUBLES_PER_AVX+j].push_back(fptOPMaxValuesAchieved[i*DOUBLES_PER_AVX+j]);
-                        fptOPTimes[i*DOUBLES_PER_AVX+j].push_back(((double*)&time)[j]);
-                    }
+                    fptOPMaxValuesAchieved[fptopIndex + j] = orderParameterValues[opValIndex + j];
+                    fptOPValues[fptopIndex + j].push_back(fptOPMaxValuesAchieved[fptopIndex + j]);
+                    fptOPTimes[fptopIndex + j].push_back(((double*)&time)[j]);
                 }
             }
         }

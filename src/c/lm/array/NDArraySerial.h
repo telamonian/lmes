@@ -51,33 +51,33 @@ namespace lm {
 namespace array {
 
 template <typename T>
-class NDArrayResizable : public NDArray<T>
+class NDArraySTL : public NDArray<T>
 {
 public:
-    NDArrayResizable()
+    NDArraySTL()
     :NDArray<T>()
     {
     }
 
-    NDArrayResizable(const UTuple& shape)
+    NDArraySTL(const UTuple& shape)
     :NDArray<T>(),_vector(calculateNumberValues(shape))
     {
         initBaseNDArray(shape);
     }
 
-    NDArrayResizable(const UTuple& shape, const T* valuesArray)
+    NDArraySTL(const UTuple& shape, const T* valuesArray)
     :NDArray<T>(),_vector(valuesArray, valuesArray + calculateNumberValues(shape))
     {
         initBaseNDArray(shape);
     }
 
-    NDArrayResizable(const NDArrayResizable& other)
+    NDArraySTL(const NDArraySTL& other)
     :NDArray<T>(),_vector(other.vector())
     {
         initBaseNDArray(other.shape(););
     }
 
-    virtual ~NDArrayResizable()
+    virtual ~NDArraySTL()
     {
     }
 

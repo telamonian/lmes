@@ -101,7 +101,7 @@ void ReplicateSupervisor::startSimulation()
 void ReplicateSupervisor::buildTrajectoryList()
 {
     // Create the new trajectory list.
-    trajectoryList = new ReplicateTrajectoryList(*input, ::replicates.front(), ::replicates.back());
+    setTrajectoryList(new ReplicateTrajectoryList(*input, ::replicates.front(), ::replicates.back()));
     numberReplicates += trajectoryList->size();
 }
 

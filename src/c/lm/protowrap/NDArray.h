@@ -110,12 +110,14 @@ public:
     size_t sizeBytes() const {return size()*sizeof(T);}
 
 // mutators
-    // array version
-    // call this method like this
-        // data = new T[ndarray.size()];
-        // ndarray.get_data(data);
-        // ...
-        // delete[] data;
+    /*
+     * array version
+     * call this method like this
+     *     data = new T[ndarray.size()];
+     *     ndarray.get_data(data);
+     *     ...
+     *     delete[] data;
+     */
     inline void get_data(T* outputArray)
     {
         if (compressed_deflate())
@@ -131,11 +133,17 @@ public:
         }
     }
 
-    // array version (empty argument)
-    // if noCopy, call this method like this
-        // ndarray.get_data(data);
-        // ...
-        // if (ndarray.compressed_deflate()) delete[] data;
+    /*
+     * array version (empty argument)
+     * if noCopy, call this method like this
+     *     T* data = ndarray.get_data(true);
+     *     ...
+     *     if (ndarray.compressed_deflate()) delete[] data;
+     * else call this method like this
+     *     T* data = ndarray.get_data();
+     *     ...
+     *     delete[] data;
+     */
     inline T* get_data(bool noCopy=false)
     {
         T* outputArray = NULL;
@@ -153,8 +161,10 @@ public:
 
     // general STL container version
     // TODO: refactor to remove the (probably) unnecessary copy-to-vector
-    template <typename ContainerT>
-    inline void get_data(ContainerT& outputContainer)
+    template <template <typename, typename=std::allocator<T> > class ContainerT>
+    inline void get_data(ContainerT<T>& outputContainer)
+//    template <typename ContainerT>
+//    inline void get_data(ContainerT& outputContainer)
     {
         outputContainer.clear();
         std::vector<T> outputVector;
@@ -192,10 +202,10 @@ public:
 
     // general STL container version
     // TODO: refactor to remove the (probably) unnecessary copy-to-vector
-//    template <template <typename, typename=std::allocator<T> > class ContainerT>
-//    inline void set_array(const ContainerT<T>& inputContainer, bool compressed=false)
-    template <typename ContainerT>
-    inline void set_array(const ContainerT& inputContainer, bool compressed=false)
+    template <template <typename, typename=std::allocator<T> > class ContainerT>
+    inline void set_array(const ContainerT<T>& inputContainer, bool compressed=false)
+//    template <typename ContainerT>
+//    inline void set_array(const ContainerT& inputContainer, bool compressed=false)
     {
         utuple shape(inputContainer.size());
         _set_props(shape, NDType<T>::T, compressed);
@@ -203,10 +213,10 @@ public:
     }
 
     // TODO: refactor to remove the (probably) unnecessary copy-to-vector
-//    template <template <typename, typename=std::allocator<T> > class ContainerT>
-//    inline void set_array(const ContainerT<T>& inputContainer, const utuple& shape, bool compressed=false)
-    template <typename ContainerT>
-    inline void set_array(const ContainerT& inputContainer, const utuple& shape, bool compressed=false)
+    template <template <typename, typename=std::allocator<T> > class ContainerT>
+    inline void set_array(const ContainerT<T>& inputContainer, const utuple& shape, bool compressed=false)
+//    template <typename ContainerT>
+//    inline void set_array(const ContainerT& inputContainer, const utuple& shape, bool compressed=false)
     {
         _set_props(shape, NDType<T>::T, compressed);
         if (size()!=inputContainer.size())

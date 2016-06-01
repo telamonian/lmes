@@ -334,6 +334,11 @@ void SimulationSupervisor::startSimulationPhase()
     }
 }
 
+void SimulationSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList)
+{
+    trajectoryList = newTrajectoryList;
+}
+
 void SimulationSupervisor::receivedStartedWorkUnit(const lm::message::StartedWorkUnit& msg)
 {
     Print::printf(Print::VERBOSE_DEBUG, "Work unit %d started.",msg.work_unit_id());

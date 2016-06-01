@@ -167,7 +167,6 @@ public:
         {
             if (i > 0) printf(",");
             printNumeric(_data[i]);
-//            printf(printf_format_string<T>(),_data[i]);
         }
         printf(")%s",suffix);
     }
@@ -186,7 +185,7 @@ public:
     }
 
 // mutators
-    // copy data from a protobuf RepeatedField to a tuple
+    // copy data from a protobuf RepeatedField to a TupleResizable
     void fromRepeated(const google::protobuf::RepeatedField<T>* repFieldPtr)
     {
         // if _data exists, deallocate it
@@ -198,12 +197,13 @@ public:
         // reassign .len (via a const_cast)
         const_cast<uint&>(len) = repFieldPtr->size();
 
+        //memcpy(_data, repFieldPtr->data(), sizeof(T)*len);
+
         // copy the data over (using a loop instead of memcpy allows for implicit conversion of numerical types (ie int -> uint))
         for (int i=0;i<len;i++)
         {
             _data[i] = repFieldPtr->Get(i);
         }
-        //memcpy(_data, repFieldPtr->data(), sizeof(T)*len);
     }
 
 public:

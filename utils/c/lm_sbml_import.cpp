@@ -735,14 +735,18 @@ void importSecondOrderSelfReaction(const ASTNode * root, vector<string> & parame
 
 void importUnsupportedReaction(const ASTNode * root, vector<string> & parameters, map<string,double> & parameterValues, uint reactionIndex, uint numberReactions, ReactionModel * lmModel, uint * D, map<string,uint> & speciesIndices)
 {
-    // Set the reaction type to 9999 to mark that it needs to be manually updated by the user
-    lmModel->mutable_reaction(reactionIndex)->set_type(9999);
+    // Get the species used.
+    vector<string> speciesUsed;
+    getSpeciesUsedInExpression(speciesUsed, root, parameters, speciesIndices);
 
     // Set all possible dependencies to 9999 to mark that it needs to be manually updated by the user
-    for (map<string,uint>::const_iterator it=speciesIndices.begin(); it!=speciesIndices.end(); it++)
+    for (vector<string>::const_iterator it=speciesUsed.begin(); it!=speciesUsed.end(); it++)
     {
-        D[(it->second)*numberReactions+reactionIndex]=9999;
+        D[speciesIndices[*it]*numberReactions+reactionIndex] = 1;
     }
+
+    // Set the reaction type to 9999 to mark that it needs to be manually updated by the user
+    lmModel->mutable_reaction(reactionIndex)->set_type(9999);
 }
 
 /**

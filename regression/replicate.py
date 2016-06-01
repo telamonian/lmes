@@ -45,8 +45,8 @@ class ReplicateRegression(Regression):
             OrderParameter(type=0,
                            id=0,
                            speciesIDs=[0,1,2,3,4,5],
-                           speciesCoefficients=[-1,-8,-8,1,8,8])]
-                           # speciesCoefficients=[-1,-2,-2,1,2,2])]
+                           # speciesCoefficients=[-1,-8,-8,1,8,8])]
+                           speciesCoefficients=[-1,-2,-2,1,2,2])]
 
         if kwargs['extra_input']:
             ops+=[

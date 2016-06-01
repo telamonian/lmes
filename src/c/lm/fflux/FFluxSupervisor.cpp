@@ -245,6 +245,8 @@ void FFluxSupervisor::finishSimulation()
 void FFluxSupervisor::incrementFFluxPhase()
 {
     ffluxPhase++;
+
+
     static_cast<lm::fflux::FFluxTrajectoryList*>(trajectoryList)->incrementFFluxPhase();
 }
 
@@ -299,8 +301,13 @@ void FFluxSupervisor::startSimulation()
 
 void FFluxSupervisor::buildTrajectoryList()
 {
-    //TODO: uncomment following line
-    trajectoryList = new FFluxTrajectoryList(simulationPhase, *input, communicator, slots.getSimultaneousWorkUnits());
+    setTrajectoryList(new FFluxTrajectoryList(simulationPhase, *input, communicator, slots.getSimultaneousWorkUnits()));
+}
+
+void FFluxSupervisor::setTrajectoryList(lm::fflux::FFluxTrajectoryList* newTrajectoryList)
+{
+    lm::main::SimulationSupervisor::setTrajectoryList(newTrajectoryList);
+    trajectoryList = static_cast<lm::fflux::FFluxTrajectoryList*>(lm::main::SimulationSupervisor::trajectoryList);
 }
 
 }

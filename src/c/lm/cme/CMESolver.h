@@ -279,24 +279,24 @@ protected:
 
             if (opVal < fptTrackedOrderParameters[i].minValueAchieved)
             {
-                double stepDown = floor(fptTrackedOrderParameters[i].minValueAchieved);
-                while (opVal < stepDown)
-                {
-                    fptTrackedOrderParameters[i].fptValues.push_front(--stepDown);
-                    fptTrackedOrderParameters[i].fptTimes.push_front(time);
-                }
+//                double stepDown = floor(fptTrackedOrderParameters[i].minValueAchieved);
+//                while (opVal < stepDown)
+//                {
+//                    fptTrackedOrderParameters[i].fptValues.push_front(--stepDown);
+//                    fptTrackedOrderParameters[i].fptTimes.push_front(time);
+//                }
                 fptTrackedOrderParameters[i].minValueAchieved = opVal;
                 fptTrackedOrderParameters[i].fptValues.push_front(opVal);
                 fptTrackedOrderParameters[i].fptTimes.push_front(time);
             }
             if (opVal > fptTrackedOrderParameters[i].maxValueAchieved)
             {
-                double stepUp = ceil(fptTrackedOrderParameters[i].minValueAchieved);
-                while (opVal > stepUp)
-                {
-                    fptTrackedOrderParameters[i].fptValues.push_front(++stepUp);
-                    fptTrackedOrderParameters[i].fptTimes.push_front(time);
-                }
+//                double stepUp = ceil(fptTrackedOrderParameters[i].minValueAchieved);
+//                while (opVal > stepUp)
+//                {
+//                    fptTrackedOrderParameters[i].fptValues.push_front(++stepUp);
+//                    fptTrackedOrderParameters[i].fptTimes.push_front(time);
+//                }
                 fptTrackedOrderParameters[i].maxValueAchieved = opVal;
                 fptTrackedOrderParameters[i].fptValues.push_back(opVal);
                 fptTrackedOrderParameters[i].fptTimes.push_back(time);

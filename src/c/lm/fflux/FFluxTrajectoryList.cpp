@@ -108,6 +108,48 @@ FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simulationPhase, lm::input::In
     initChecks(input);
 }
 
+//FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simulationPhase, uint64_t ffluxPhase, lm::input::Input& input, uint64_t simultaneousTrajectoryCount, lm::fflux::FFluxTrajectory& initialTrajectory)
+//:TrajectoryList(simulationPhase),
+// communicator(communicator),
+// direction(FORWARD),
+// dwellTimes(),
+// ffluxPhase(0),
+// ffluxOutputQueueSize((int)1e4),
+// finishedTrajectoriesCounts(),
+// input(input),
+// maxFFluxPhase(input.getCurrentTiling().getEdgesCount()),
+// maxCrossingsZero(0),
+// maxTimeZero(0),
+// maxCrossingsN(0),
+// maxTimeN(0),
+// simultaneousTrajectoryCount(simultaneousTrajectoryCount),
+// xorShift(0,0)  //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
+//{
+//    init();
+//    initChecks(input);
+//}
+//
+//FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simulationPhase, uint64_t ffluxPhase, lm::input::Input& input, uint64_t simultaneousTrajectoryCount, FFluxTrajectoryList& previousTrajectoryList)
+//:TrajectoryList(simulationPhase),
+// communicator(communicator),
+// direction(FORWARD),
+// dwellTimes(),
+// ffluxPhase(0),
+// ffluxOutputQueueSize((int)1e4),
+// finishedTrajectoriesCounts(),
+// input(input),
+// maxFFluxPhase(input.getCurrentTiling().getEdgesCount()),
+// maxCrossingsZero(0),
+// maxTimeZero(0),
+// maxCrossingsN(0),
+// maxTimeN(0),
+// simultaneousTrajectoryCount(simultaneousTrajectoryCount),
+// xorShift(0,0)  //the rng object xorShift uses the current time as a seed when given 0,0 as constructor arguments
+//{
+//    init();
+//    initChecks(input);
+//}
+
 FFluxTrajectoryList::~FFluxTrajectoryList()
 {
     // TODO: for the sake of this damn destructor, if for nothing else, I'm going to tear down the CrossingsMapMap stuff and replace it with something less obstinate

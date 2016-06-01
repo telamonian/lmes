@@ -1,11 +1,11 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
- * 			     Johns Hopkins University
- * 			     http://biophysics.jhu.edu/roberts/
+ *               Johns Hopkins University
+ *               http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -36,63 +36,27 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef FFLUXSUPERVISOR_H_
-#define FFLUXSUPERVISOR_H_
+#include <map>
+#include <string>
+#include <vector>
 
-#include "lm/fflux/FFluxTrajectoryList.h"
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/FFluxOutput.pb.h"
-#include "lm/io/ReactionModel.pb.h"
-#include "lm/io/TrajectoryLimits.pb.h"
-#include "lm/main/SimulationSupervisor.h"
-#include "lm/message/FinishedWorkUnit.pb.h"
-#include "lm/message/StartedWorkUnit.pb.h"
-#include "lm/trajectory/TrajectoryLimits.h"
-#include "lm/trajectory/TrajectoryList.h"
-#include "lm/MPI.h"
+#include "lm/EnumHelper.h"
 #include "lm/Print.h"
-#include "lm/thread/Worker.h"
+#include "lm/input/Input.h"
+#include "lm/io/OutputOptions.pb.h"
+#include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/option/SimulationParameters.h"
+#include "lm/trajectory/TrajectoryLimits.h"
+#include "lm/Types.h"
+
+using lm::io::OutputOptions;
+using lm::trajectory::LimitValueT;
+using std::map;
+using std::string;
 
 namespace lm {
 namespace fflux {
 
-class FFluxSupervisor : public lm::main::SimulationSupervisor
-{
-public:
-    static bool registered;
-    static bool registerClass();
-    static void* allocateObject();
-
-    virtual int getRecvSleepMilliseconds();
-
-public:
-    FFluxSupervisor();
-    virtual ~FFluxSupervisor();
-
-protected:
-//mutators
-//    virtual void buildRunWorkUnitLimits(lm::message::RunWorkUnit* msg);
-    virtual void buildTrajectoryList();
-    virtual void finishSimulation();
-    virtual void incrementFFluxPhase();
-    virtual void receivedProcessWorkUnitOutput(lm::message::Message& msg);
-    virtual void receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg);
-    virtual void resetFFluxPhase();
-//    virtual void setLimits();
-    virtual void setTrajectoryList(lm::fflux::FFluxTrajectoryList* newTrajectoryList);
-    virtual void startSimulation();
-
-protected:
-    uint64_t ffluxPhase;
-    // shadow trajectoryList from base class with a trajectoryList with a fflux appropriate type
-    lm::fflux::FFluxTrajectoryList* trajectoryList;
-//    lm::trajectory::TrajectoryLimits trajectoryLimits;
-
-    //    int realOutputWriterProcess;
-    //    int realOutputWriterThread;
-};
 
 }
 }
-
-#endif /* FFLUXSUPERVISOR_H_ */

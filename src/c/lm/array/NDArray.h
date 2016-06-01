@@ -145,11 +145,6 @@ public:
     const T& get(uint i1, uint i2) const {return get(tup(i1,i2));}
     const T& get(uint i1, uint i2, uint i3) const {return get(tup(i1,i2,i3));}
 
-    robertslab::pbuf::NDArray_DataType inferDType() const
-    {
-        return lm::protowrap::NDType<T>::T;
-    }
-
     void print(const char* suffix="") const
     {
         if (_shape.len == 1)
@@ -158,8 +153,7 @@ public:
             for (uint i=0; i<_shape[0]; i++)
             {
                 if (i > 0) printf (",");
-                printNumeric((*this)[tup(i)]);
-//                printf(printf_format_string<T>(),(*this)[tuple<uint>(i)]);
+                printNumeric(get(i));
             }
             printf("]%s",suffix);
         }
@@ -172,8 +166,7 @@ public:
                 for (uint j=0; j<_shape[1]; j++)
                 {
                     if (j > 0) printf (",");
-                    printNumeric((*this)[tup(i,j)]);
-//                    printf(printf_format_string<T>(),(*this)[tuple<uint>(i,j)]);
+                    printNumeric(get(i,j));
                 }
                 printf("]\n");
             }
@@ -191,8 +184,7 @@ public:
                     for (uint j=0; j<_shape[1]; j++)
                     {
                         if (j > 0) printf (",");
-                        printNumeric((*this)[tup(i,j,k)]);
-//                        printf(printf_format_string<T>(),(*this)[tuple<uint>(i,j,k)]);
+                        printNumeric(get(i,j,k));
                     }
                     printf("]\n");
                 }
@@ -206,47 +198,14 @@ public:
         }
     }
 
-    uint rank() const
-    {
-        return _shape.len;
-    }
-
     uint ravelMultiIndex(const utuple& multiIndex) const
     {
         return lm::array::ravelMultiIndex(multiIndex, _shape);
     }
 
-    void serialize(robertslab::pbuf::NDArray* ndArrMsg, bool compressed=false) const
-    {
-        lm::protowrap::NDArray<T> ndArrWrap(ndArrMsg);
-        ndArrWrap.set_array(_data, _shape, compressed);
-    }
-
     utuple unravelIndex(uint index) const
     {
         return lm::array::unravelIndex(index, _shape);
-    }
-
-// mutators
-    void deserialize(robertslab::pbuf::NDArray* ndArrMsg)
-    {
-        // set new shape
-        _shape.fromRepeated(&ndArrMsg->shape());
-        _size = calculateNumberValues(_shape);
-
-        // deallocate main array memory, if set
-
-        // reallocate main array memory
-
-        // deallocate main array memory, if set
-        if (_data != NULL) delete[] _data; _data = NULL;
-
-        // reallocate main array according to new shape
-        _data(new T[_size]());
-
-        // actual deserialization step
-        lm::protowrap::NDArray<T> ndArrWrap(ndArrMsg);
-        ndArrWrap.get_data(_data);
     }
 
     T& get(const tuple<uint>& index)
