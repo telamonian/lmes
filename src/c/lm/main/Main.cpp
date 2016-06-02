@@ -555,8 +555,8 @@ void printUsage(int argc, char** argv)
 #include "lm/cme/GillespieDSolver.h"
 #include "lm/avx/GillespieDSolverAVX.h"
 
-void mainDebug(int argc, char** argv)
-{
+//void mainDebug(int argc, char** argv)
+//{
     /*
     tuple<uint> t3(10,5,1);
     ndarray<double> a1(t3);
@@ -759,106 +759,133 @@ void mainDebug(int argc, char** argv)
       * Write out a bunch of random numbers.
       */
     /**/
+//    {
+//        lm::rng::XORShift rng(0,0);
+//        double* rngValues = NULL;
+//        double* expRngValues = NULL;
+//        int rngCount=10000000;
+
+//#ifdef OPT_AVX
+//        POSIX_EXCEPTION_CHECK(posix_memalign((void**)&rngValues, DOUBLES_PER_AVX*sizeof(double), rngCount*sizeof(double)));
+//        POSIX_EXCEPTION_CHECK(posix_memalign((void**)&expRngValues, DOUBLES_PER_AVX*sizeof(double), rngCount*sizeof(double)));
+//#endif
+
+//        // Warmup.
+//        rng.getRandomDoubles(rngValues,rngCount);
+//        rng.getExpRandomDoubles(expRngValues,rngCount);
+//        rng.getRandomDoubles(rngValues,rngCount, true);
+//        rng.getExpRandomDoubles(expRngValues,rngCount, true);
+
+//#ifdef OPT_AVX
+//        // Test with avx.
+//        {
+//        hrtime start = getHrTime();
+//        rng.getRandomDoubles(rngValues,rngCount, true);
+//        hrtime stop = getHrTime();
+//        printf("Calculated %d norm rngs with avx in %0.3f seconds (%0.4e rngs/second)\n",rngCount,convertHrToSeconds(stop-start),double(rngCount)/convertHrToSeconds(stop-start));
+//        start = getHrTime();
+//        rng.getExpRandomDoubles(expRngValues,rngCount, true);
+//        stop = getHrTime();
+//        printf("Calculated %d exp rngs with avx in %0.3f seconds (%0.4e rngs/second)\n",rngCount,convertHrToSeconds(stop-start),double(rngCount)/convertHrToSeconds(stop-start));
+//        FILE* f = fopen("rng-avx.txt", "w");
+//        for (int i=0; i<rngCount; i++)
+//            fprintf(f, "%e %e\n", rngValues[i], expRngValues[i]);
+//        fclose(f);
+//        }
+//#endif
+
+
+//        // Test without avx.
+//        hrtime start = getHrTime();
+//        rng.getRandomDoubles(rngValues,rngCount);
+//        hrtime stop = getHrTime();
+//        printf("Calculated %d norm rngs in %0.3f seconds (%0.4e rngs/second)\n",rngCount,convertHrToSeconds(stop-start),double(rngCount)/convertHrToSeconds(stop-start));
+//        start = getHrTime();
+//        rng.getExpRandomDoubles(expRngValues,rngCount);
+//        stop = getHrTime();
+//        printf("Calculated %d exp rngs in %0.3f seconds (%0.4e rngs/second)\n",rngCount,convertHrToSeconds(stop-start),double(rngCount)/convertHrToSeconds(stop-start));
+//        FILE* f = fopen("rng.txt", "w");
+//        for (int i=0; i<rngCount; i++)
+//            fprintf(f, "%e %e\n", rngValues[i], expRngValues[i]);
+//        fclose(f);
+
+//        free(rngValues);
+//        rngValues = NULL;
+//        free(expRngValues);
+//        expRngValues = NULL;
+//    }
+//    /**/
+
+//#ifdef OPT_AVX
+//    /**
+//      * Test the RNG limits using avx.
+//      */
+//    /**/
+//    {
+//        // Convert to double and normalize using avx.
+//        //long long denom = std::numeric_limits<uint32_t>::max();
+//        //denom += 2;
+//        //double newNorm = 1.0/double(denom);
+//        //const avxd norm = _mm256_set1_pd(newNorm);
+//        const avxd norm1 = _mm256_set1_pd(2.328306436538696289062500000000e-10); // 1/(2^32)
+//        const avxd norm2 = _mm256_set1_pd(2.328306435996595202819747782996e-10);// 1/(2^32+1)
+//        const avxd half = _mm256_set1_pd(0.5);
+//        avxi irng;
+//        for (int j=0; j<INT32S_PER_AVX; j++)
+//            if (j%2 == 0)
+//                ((int32_t*)&irng)[j] = std::numeric_limits<int32_t>::min();
+//            else
+//                ((int32_t*)&irng)[j] = std::numeric_limits<int32_t>::max();
+//        printf("Min: %d, Max: %d, Norm %0.30e\n",std::numeric_limits<int32_t>::min(),std::numeric_limits<int32_t>::max(), ((double*)&norm1)[0]);
+
+//        // Process the four lo rngs.
+//        __m128i irngHalf = _mm256_extractf128_si256(irng, 0);
+//        avxd rng = _mm256_fmadd_pd(_mm256_cvtepi32_pd(irngHalf), norm1, half);    // Range (-0.5-0.5)+0.5
+
+//        double* res = (double*)&rng;
+//        printf("RNG: %18.12e %18.12e %18.12e %18.12e\n", res[0], res[1], res[2], res[3]);
+//        printf("CMP: %d %d %d %d\n", res[0]==0.0, res[1]==1.0, res[2]>0.0, res[3]<1.0);
+
+//        // Process the four hi rngs.
+//        irngHalf = _mm256_extractf128_si256(irng, 1);
+//        rng = _mm256_fmadd_pd(_mm256_cvtepi32_pd(irngHalf), norm2, half);    // Range (-0.5-0.5)+0.5
+//        res = (double*)&rng;
+//        printf("RNG: %18.12e %18.12e %18.12e %18.12e\n", res[0], res[1], res[2], res[3]);
+//        printf("CMP: %d %d %d %d\n", res[0]==0.0, res[1]==1.0, res[2]>0.0, res[3]<1.0);
+//    }
+//    /**/
+//#endif
+
+//}
+
+#include "hrtime.h"
+#include "lm/Types.h"
+#include "lm/pde/ExplicitFiniteDifferenceSolver.h"
+#include "lm/avx/ExplicitFiniteDifferenceSolverAVX.h"
+
+void mainDebug(int argc, char** argv)
+{
+    printf("Debugging PDE solver.\n");
+
+    ndarray<double> grid(utuple(250,250,252), DOUBLES_PER_AVX);
+    grid[utuple(grid.shape[0]/2,grid.shape[1]/2,grid.shape[2]/2)] = 1.0e-6;
+    //grid.print("\n");
+
+    //lm::avx::ExplicitFiniteDifferenceSolverAVX s(1000.0e-12, 4.0e-6);
+    lm::pde::ExplicitFiniteDifferenceSolver s(1667.0e-12, 20.0e-6);
+    //lm::avx::ExplicitFiniteDifferenceSolverAVX s(1667.0e-12, 20.0e-6);
+    for (int i=0; i<80; i++)
     {
-        lm::rng::XORShift rng(0,0);
-        double* rngValues = NULL;
-        double* expRngValues = NULL;
-        int rngCount=10000000;
-
-#ifdef OPT_AVX
-        POSIX_EXCEPTION_CHECK(posix_memalign((void**)&rngValues, DOUBLES_PER_AVX*sizeof(double), rngCount*sizeof(double)));
-        POSIX_EXCEPTION_CHECK(posix_memalign((void**)&expRngValues, DOUBLES_PER_AVX*sizeof(double), rngCount*sizeof(double)));
-#endif
-
-        // Warmup.
-        rng.getRandomDoubles(rngValues,rngCount);
-        rng.getExpRandomDoubles(expRngValues,rngCount);
-        rng.getRandomDoubles(rngValues,rngCount, true);
-        rng.getExpRandomDoubles(expRngValues,rngCount, true);
-
-#ifdef OPT_AVX
-        // Test with avx.
-        {
-        hrtime start = getHrTime();
-        rng.getRandomDoubles(rngValues,rngCount, true);
-        hrtime stop = getHrTime();
-        printf("Calculated %d norm rngs with avx in %0.3f seconds (%0.4e rngs/second)\n",rngCount,convertHrToSeconds(stop-start),double(rngCount)/convertHrToSeconds(stop-start));
-        start = getHrTime();
-        rng.getExpRandomDoubles(expRngValues,rngCount, true);
-        stop = getHrTime();
-        printf("Calculated %d exp rngs with avx in %0.3f seconds (%0.4e rngs/second)\n",rngCount,convertHrToSeconds(stop-start),double(rngCount)/convertHrToSeconds(stop-start));
-        FILE* f = fopen("rng-avx.txt", "w");
-        for (int i=0; i<rngCount; i++)
-            fprintf(f, "%e %e\n", rngValues[i], expRngValues[i]);
-        fclose(f);
-        }
-#endif
-
-
-        // Test without avx.
-        hrtime start = getHrTime();
-        rng.getRandomDoubles(rngValues,rngCount);
-        hrtime stop = getHrTime();
-        printf("Calculated %d norm rngs in %0.3f seconds (%0.4e rngs/second)\n",rngCount,convertHrToSeconds(stop-start),double(rngCount)/convertHrToSeconds(stop-start));
-        start = getHrTime();
-        rng.getExpRandomDoubles(expRngValues,rngCount);
-        stop = getHrTime();
-        printf("Calculated %d exp rngs in %0.3f seconds (%0.4e rngs/second)\n",rngCount,convertHrToSeconds(stop-start),double(rngCount)/convertHrToSeconds(stop-start));
-        FILE* f = fopen("rng.txt", "w");
-        for (int i=0; i<rngCount; i++)
-            fprintf(f, "%e %e\n", rngValues[i], expRngValues[i]);
-        fclose(f);
-
-        free(rngValues);
-        rngValues = NULL;
-        free(expRngValues);
-        expRngValues = NULL;
+        hrtime t1=getHrTime();
+        s.calculate(grid, 10*s.getDT());
+        printf("Calculate took %0.6f s\n",convertHrToSeconds(getHrTime()-t1)); fflush(stdout);
+        double sum=0.0;
+        for (int j=0; j<grid.numberValues; j++) sum+=grid.values[j];
+        printf("%d: sum=%0.6e loss=%0.20e\n",i,sum,1e-6-sum);
+        //grid.print("\n");
     }
-    /**/
-
-#ifdef OPT_AVX
-    /**
-      * Test the RNG limits using avx.
-      */
-    /**/
-    {
-        // Convert to double and normalize using avx.
-        //long long denom = std::numeric_limits<uint32_t>::max();
-        //denom += 2;
-        //double newNorm = 1.0/double(denom);
-        //const avxd norm = _mm256_set1_pd(newNorm);
-        const avxd norm1 = _mm256_set1_pd(2.328306436538696289062500000000e-10); // 1/(2^32)
-        const avxd norm2 = _mm256_set1_pd(2.328306435996595202819747782996e-10);// 1/(2^32+1)
-        const avxd half = _mm256_set1_pd(0.5);
-        avxi irng;
-        for (int j=0; j<INT32S_PER_AVX; j++)
-            if (j%2 == 0)
-                ((int32_t*)&irng)[j] = std::numeric_limits<int32_t>::min();
-            else
-                ((int32_t*)&irng)[j] = std::numeric_limits<int32_t>::max();
-        printf("Min: %d, Max: %d, Norm %0.30e\n",std::numeric_limits<int32_t>::min(),std::numeric_limits<int32_t>::max(), ((double*)&norm1)[0]);
-
-        // Process the four lo rngs.
-        __m128i irngHalf = _mm256_extractf128_si256(irng, 0);
-        avxd rng = _mm256_fmadd_pd(_mm256_cvtepi32_pd(irngHalf), norm1, half);    // Range (-0.5-0.5)+0.5
-
-        double* res = (double*)&rng;
-        printf("RNG: %18.12e %18.12e %18.12e %18.12e\n", res[0], res[1], res[2], res[3]);
-        printf("CMP: %d %d %d %d\n", res[0]==0.0, res[1]==1.0, res[2]>0.0, res[3]<1.0);
-
-        // Process the four hi rngs.
-        irngHalf = _mm256_extractf128_si256(irng, 1);
-        rng = _mm256_fmadd_pd(_mm256_cvtepi32_pd(irngHalf), norm2, half);    // Range (-0.5-0.5)+0.5
-        res = (double*)&rng;
-        printf("RNG: %18.12e %18.12e %18.12e %18.12e\n", res[0], res[1], res[2], res[3]);
-        printf("CMP: %d %d %d %d\n", res[0]==0.0, res[1]==1.0, res[2]>0.0, res[3]<1.0);
-    }
-    /**/
-#endif
-
+    //grid.print("\n");
 }
-
-
 
 
 
