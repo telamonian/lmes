@@ -242,12 +242,12 @@ typedef tuple<uint> utuple;
 template <typename T> struct ndarray
 {
 public:
-    ndarray(const tuple<uint>& shape, size_t alignment=1)
+    ndarray(const tuple<uint>& shape, size_t alignment=0)
     :shape(shape),numberValues(calculateNumberValues(shape)),alignment(alignment),values(allocateMemory(numberValues,alignment))
     {
     }
 
-    ndarray(const tuple<uint>& shape, const T* valuesArray, size_t alignment=1)
+    ndarray(const tuple<uint>& shape, const T* valuesArray, size_t alignment=0)
     :shape(shape),numberValues(calculateNumberValues(shape)),alignment(alignment),values(allocateMemory(numberValues,alignment))
     {
         memcpy(values, valuesArray, sizeof(T)*numberValues);
@@ -374,9 +374,13 @@ private:
 
     T* allocateMemory(uint numberValues, size_t alignment)
     {
-        T* tmp;
-        POSIX_EXCEPTION_CHECK(posix_memalign((void**)&tmp, alignment*sizeof(T), numberValues*sizeof(T)));
-        return tmp;
+        if (alignment > 0)
+        {
+            T* tmp;
+            POSIX_EXCEPTION_CHECK(posix_memalign((void**)&tmp, alignment*sizeof(T), numberValues*sizeof(T)));
+            return tmp;
+        }
+        return (T*)malloc(numberValues*sizeof(T));
     }
 
 public:

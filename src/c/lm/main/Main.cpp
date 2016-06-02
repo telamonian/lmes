@@ -354,19 +354,45 @@ void parseArguments(int argc, char** argv)
         	 shouldReserveOutputCore = false;
          }
 
-        //See if the user is trying to use forward flux sampling.
+        //
+        // Simulation type arguments.
+        //
+
+        //See if the user is trying to perform a replicate sampling simulation.
+        else if ((strcmp(option, "-rs") == 0 || strcmp(option, "--replicate-sampling") == 0))
+        {
+             supervisorClassName = "lm::replicates::ReplicateSupervisor";
+        }
+
+        //See if the user is trying to performs a forward-flux simulation.
         else if ((strcmp(option, "-fflux") == 0 || strcmp(option, "--use-forward-flux") == 0))
 		{
         	 ffluxFlag = true;
         	 opActivatedFlag = true;
         	 supervisorClassName = "lm::fflux::FFluxSupervisor";
 		}
-
-        //See if the user is trying to use forward flux sampling.
+        //See if the user is trying to use set a forward-flux option.
         else if ((strcmp(option, "-intout") == 0 || strcmp(option, "--intermediate-output") == 0))
         {
              intermediateOutputFlag = true;
         }
+
+        //See if the user is trying to perform a microenvironment simulation.
+        else if ((strcmp(option, "-me") == 0 || strcmp(option, "--microenvironment") == 0))
+        {
+             supervisorClassName = "lm::microenv::MicroenvironmentSupervisor";
+        }
+
+        //See if the user is trying to set the supervisor directly.
+        else if ((strcmp(option, "-su") == 0 || strcmp(option, "--supervisor") == 0) && i < (argc-1))
+        {
+            supervisorClassName = argv[++i];
+        }
+        else if (strncmp(option, "--supervisor=", strlen("--supervisor=")) == 0)
+        {
+            supervisorClassName = option+strlen("--supervisor=");
+        }
+
 
         //See if the user is trying to do an input output test.
         else if ((strcmp(option, "-ioflag") == 0 || strcmp(option, "--do-io-test") == 0))
@@ -538,9 +564,12 @@ void printUsage(int argc, char** argv)
     std::cout << "  -r replicates     --replicates=replicates       A list of replicates to run, e.g. \"0-9\", \"0,11,21\" (default 0)." << std::endl;
     std::cout << "  -sp               --spatially-resolved          The simulations should use the spatially resolved reaction model (default)." << std::endl;
     std::cout << "  -ws               --well-stirred                The simulations should use the well-stirred reaction model." << std::endl;
-    std::cout << "  -sl solver        --solver=solver               The specific solver class to use for the simulations." << std::endl;
+    std::cout << "  -sl solver        --solver=classname            The master equation solver class to use for the simulations." << std::endl;
+    std::cout << "  -rs               --replicate-sampling          Perform a replicate sampling simulation (default)." << std::endl;
+    std::cout << "  -fflux            --use-forward-flux            Perform a forward-flux simulation." << std::endl;
+    std::cout << "  -me               --microenvironment            Perform a microenvironment simulation." << std::endl;
+    std::cout << "  -su supervisor    --supervisor=classname        Perform a simulation using the specified supervisor." << std::endl;
     std::cout << "  -ck               --checkpoint=interval         Enable checkpointing with the given interval as hh:mm:ss (default 00:00:00 -- disabled)." << std::endl;
-    std::cout << "  -fflux            --use-forward-flux			Enable forward flux sampling (default disabled)." << std::endl;
     std::cout << "  -intout           --intermediate-output         More verbose output. Consists of intermediate values used to calculate standard output.";
 }
 
@@ -867,17 +896,18 @@ void mainDebug(int argc, char** argv)
 {
     printf("Debugging PDE solver.\n");
 
-    ndarray<double> grid(utuple(250,250,252), DOUBLES_PER_AVX);
+    ndarray<double> grid(utuple(100,100,100), DOUBLES_PER_AVX);
     grid[utuple(grid.shape[0]/2,grid.shape[1]/2,grid.shape[2]/2)] = 1.0e-6;
     //grid.print("\n");
 
     //lm::avx::ExplicitFiniteDifferenceSolverAVX s(1000.0e-12, 4.0e-6);
     //lm::pde::ExplicitFiniteDifferenceSolver s(1667.0e-12, 20.0e-6);
-    lm::avx::ExplicitFiniteDifferenceSolverAVX s(1667.0e-12, 20.0e-6);
+    //lm::avx::ExplicitFiniteDifferenceSolverAVX s(1667.0e-12, 20.0e-6);
+    lm::avx::ExplicitFiniteDifferenceSolverAVX s(200.0e-12, 50.0e-9);
     for (int i=0; i<800; i++)
     {
         hrtime t1=getHrTime();
-        s.calculate(grid, 10*s.getDT());
+        s.calculate(grid, 100*s.getDT());
         printf("Calculate took %0.6f s\n",convertHrToSeconds(getHrTime()-t1)); fflush(stdout);
         double sum=0.0;
         for (int j=0; j<grid.numberValues; j++) sum+=grid.values[j];
