@@ -64,13 +64,14 @@ public:
 protected:
     virtual void startSimulation();
     virtual void buildTrajectoryList();
-    //virtual void startSimulationPhase();
+    virtual void startSimulationPhase();
     //virtual void finishSimulationPhase();
     virtual bool performAnotherSimulationPhase();
     virtual void incrementSimulationPhase();
     virtual void finishSimulation();
 
-    virtual void incrementTrajectoryListTimestep();
+    virtual void startNewReplicate();
+    virtual void continueCurrentReplicate();
 
 private:
     hrtime simulationStartTime;

@@ -59,7 +59,7 @@ void* MicroenvironmentSupervisor::allocateObject()
 }
 
 MicroenvironmentSupervisor::MicroenvironmentSupervisor()
-    :simulationStartTime(0),numberReplicates(replicates.size())
+:simulationStartTime(0),numberReplicates(replicates.size()),currentReplicateIndex(0),numberTimesteps(10),currentTimestep(0)
 {
 }
 
@@ -81,24 +81,51 @@ void MicroenvironmentSupervisor::startSimulation()
     SimulationSupervisor::startSimulation();
 }
 
-void MicroenvironmentSupervisor::buildTrajectoryList()
+void MicroenvironmentSupervisor::startSimulationPhase()
 {
-    // If this is the start of a new replicate, build a new trajectory list.
+    // See if we should start of a new replicate or continue with the current one.
     if (currentTimestep == 0)
-        trajectoryList = new MicroenvironmentTrajectoryList(*input, replicates[currentReplicateIndex]);
+        startNewReplicate();
     else
-        incrementTrajectoryListTimestep();
+        continueCurrentReplicate();
+
+    // Assign the first batch of work.
+    if (assignWork())
+    {
+        finishSimulationPhase();
+    }
 }
 
-void MicroenvironmentSupervisor::incrementTrajectoryListTimestep()
+void MicroenvironmentSupervisor::startNewReplicate()
 {
+    // Create a new trajectory list.
+    buildTrajectoryList();
 
+    // Create a new diffusion grid.
+
+    // Run the diffusion solver for a timestep.
+}
+
+void MicroenvironmentSupervisor::continueCurrentReplicate()
+{
+    printf("Updating to timestep %d\n",currentTimestep);
+
+    // Reconcile the cells and the diffusion grid.
+
+    // Update the trajectory list to run for another timestep.
+
+    // Run the diffusion solver for another timestep.
+}
+
+void MicroenvironmentSupervisor::buildTrajectoryList()
+{
+    trajectoryList = new MicroenvironmentTrajectoryList(*input, replicates[currentReplicateIndex]);
 }
 
 bool MicroenvironmentSupervisor::performAnotherSimulationPhase()
 {
     // Return true if we have either another timestep or another replicate to run.
-    return ((currentTimestep+1) < numberTimesteps && (currentReplicateIndex+1) < numberReplicates);
+    return ((currentTimestep+1) < numberTimesteps || (currentReplicateIndex+1) < numberReplicates);
 }
 
 void MicroenvironmentSupervisor::incrementSimulationPhase()
