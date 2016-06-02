@@ -102,8 +102,9 @@ void ExplicitFiniteDifferenceSolverAVX::calculate(ndarray<double>& grid, double 
                         avxd iflux = _mm256_add_pd(c_im,c_ip);
                         avxd jflux = _mm256_add_pd(c_jm,c_jp);
                         avxd kflux = _mm256_add_pd(c_km,c_kp);
-                        avxd flux = _mm256_add_pd(_mm256_mul_pd(m6v,c_index), _mm256_add_pd(iflux, _mm256_add_pd(jflux,kflux)));
-                        avxd cfi = _mm256_add_pd(c_index, _mm256_mul_pd(k_diffv, flux));
+                        avxd flux = _mm256_add_pd(iflux, _mm256_add_pd(jflux,kflux));
+                        flux = _mm256_fmadd_pd(m6v, c_index, flux);
+                        avxd cfi = _mm256_fmadd_pd(k_diffv, flux, c_index);
                         _mm256_store_pd(&cFuture[index], cfi);
                     }
         }

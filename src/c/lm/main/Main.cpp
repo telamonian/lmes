@@ -872,9 +872,9 @@ void mainDebug(int argc, char** argv)
     //grid.print("\n");
 
     //lm::avx::ExplicitFiniteDifferenceSolverAVX s(1000.0e-12, 4.0e-6);
-    lm::pde::ExplicitFiniteDifferenceSolver s(1667.0e-12, 20.0e-6);
-    //lm::avx::ExplicitFiniteDifferenceSolverAVX s(1667.0e-12, 20.0e-6);
-    for (int i=0; i<80; i++)
+    //lm::pde::ExplicitFiniteDifferenceSolver s(1667.0e-12, 20.0e-6);
+    lm::avx::ExplicitFiniteDifferenceSolverAVX s(1667.0e-12, 20.0e-6);
+    for (int i=0; i<800; i++)
     {
         hrtime t1=getHrTime();
         s.calculate(grid, 10*s.getDT());
