@@ -189,6 +189,26 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
 
     if (simulationParameters.count("maxWorkUnitSteps"))
         stepsPerWorkUnit = atoll(simulationParameters["maxWorkUnitSteps"].c_str());
+
+    // TODO: adding a MicroenvironmentModel here, remove once the proper import code has been written.
+    {
+        microenvironmentModelPresent = true;
+        microenvironmentModel.add_grid_shape(1);
+        microenvironmentModel.add_grid_shape(1);
+        microenvironmentModel.add_grid_shape(10000);
+        microenvironmentModel.set_grid_spacing(4.0e-6);
+        microenvironmentModel.boundaries().set_axis_specific_boundaries(true);
+        microenvironmentModel.boundaries().set_x_plus(lm::io::BoundaryConditions::REFLECTING);
+        microenvironmentModel.boundaries().set_x_minus(lm::io::BoundaryConditions::REFLECTING);
+        microenvironmentModel.boundaries().set_y_plus(lm::io::BoundaryConditions::REFLECTING);
+        microenvironmentModel.boundaries().set_y_minus(lm::io::BoundaryConditions::REFLECTING);
+        microenvironmentModel.boundaries().set_z_plus(lm::io::BoundaryConditions::ABSORBING);
+        microenvironmentModel.boundaries().set_z_minus(lm::io::BoundaryConditions::ABSORBING);
+        microenvironmentModel.add_species_ids(0);
+        microenvironmentModel.add_diffusion_coefficients(1000e-12);
+
+    }
+
 }
 
 Input::~Input()

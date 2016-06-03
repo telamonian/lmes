@@ -44,6 +44,7 @@
 #include <string>
 
 #include "lm/EnumHelper.h"
+#include "lm/input/MicroenvironmentModel.pb.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/BoundaryConditions.pb.h"
 #include "lm/io/DiffusionModel.pb.h"
@@ -81,6 +82,7 @@ public:
     const lm::tiling::Tilings& getTilings() const {return tilings;}
     const lm::io::Tilings& getTilingsMsg() const {return tilingsMsg;}
     const lm::io::TrajectoryLimits& getTrajectoryLimitsMsg() const {return trajectoryLimits.buf();}
+    const lm::input::MicroenvironmentModel& getMicroenvironmentModel() const {return microenvironmentModel;}
 
     uint64_t getPartsPerWorkUnit() const {return partsPerWorkUnit;}
     uint64_t getStepsPerWorkUnit() const {return stepsPerWorkUnit;}
@@ -92,6 +94,7 @@ public:
     bool hasTilings() const {return tilingsPresent;}
     bool hasTrajectoryLimits() const {return trajectoryLimitsPresent;}
     bool hasOutputOptions() const {return outputOptionsPresent;}
+    bool hasMicroenvironmentModel() const {return microenvironmentModelPresent;}
 
     lm::oparam::OParams* mutableOrderParameters() {return &orderParameters;}
     lm::tiling::Tilings* mutableTilings() {return &tilings;}
@@ -110,6 +113,7 @@ protected:
     bool outputOptionsPresent;
     bool tilingsPresent;
     bool trajectoryLimitsPresent;
+    bool microenvironmentModelPresent;
 
     lm::io::DiffusionModel diffusionModel;
     lm::io::OrderParameters orderParametersMsg;
@@ -120,6 +124,7 @@ protected:
     lm::tiling::Tilings tilings;
     lm::trajectory::TrajectoryLimits trajectoryLimits;
     lm::option::SimulationParameters simulationParameters;
+    lm::input::MicroenvironmentModel microenvironmentModel;
 
     uint64_t partsPerWorkUnit;
     uint64_t stepsPerWorkUnit;

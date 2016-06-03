@@ -896,13 +896,13 @@ void mainDebug(int argc, char** argv)
 {
     printf("Debugging PDE solver.\n");
 
-    ndarray<double> grid(utuple(250,250,252), DOUBLES_PER_AVX*sizeof(double));
+    ndarray<double> grid(utuple(1,5000,5000), DOUBLES_PER_AVX*sizeof(double));
     grid[utuple(grid.shape[0]/2,grid.shape[1]/2,grid.shape[2]/2)] = 1.0e-6;
     //grid.print("\n");
 
-    //lm::avx::ExplicitFiniteDifferenceSolverAVX s(1000.0e-12, 4.0e-6);
+    lm::avx::ExplicitFiniteDifferenceSolverAVX s(1000.0e-12, 4.0e-6);
     //lm::pde::ExplicitFiniteDifferenceSolver s(1667.0e-12, 20.0e-6);
-    lm::avx::ExplicitFiniteDifferenceSolverAVX s(1667.0e-12, 20.0e-6);
+    //lm::avx::ExplicitFiniteDifferenceSolverAVX s(1667.0e-12, 20.0e-6);
     //lm::avx::ExplicitFiniteDifferenceSolverAVX s(200.0e-12, 50.0e-9);
     for (int i=0; i<100; i++)
     {
