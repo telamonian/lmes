@@ -69,21 +69,13 @@ void ExplicitFiniteDifferenceSolverAVX::calculate(ndarray<double>& grid, double 
     const int jmax=jlen-1;
     const int kmax=klen-1;
 
-    // Allocate space for two copies of the grid in aligned memory, with an extra DOUPLES_PER_AVX layer in both -z and +z.
-    size_t gridSizeWithZBoundary = (grid.numberValues+2*jklen*DOUBLES_PER_AVX);
-    double* grid1=NULL;
-    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&grid1, DOUBLES_PER_AVX*sizeof(double), gridSizeWithZBoundary*sizeof(double)));
-    memset(grid1, 0, gridSizeWithZBoundary*sizeof(double));
+    // Allocate space for a second copy of the grid in aligned memory.
     double* grid2=NULL;
-    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&grid2, DOUBLES_PER_AVX*sizeof(double), gridSizeWithZBoundary*sizeof(double)));
-    memset(grid2, 0, gridSizeWithZBoundary*sizeof(double));
+    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&grid2, DOUBLES_PER_AVX*sizeof(double), grid.numberValues*sizeof(double)));
 
     // Save pointers to the actual grid locations, excluding the z boundaries.
-    double* c = &grid1[jklen*DOUBLES_PER_AVX];
-    double* cFuture = &grid2[jklen*DOUBLES_PER_AVX];
-
-    // Copy the grid into the initial c buffer.
-    memcpy(c, grid.values, grid.numberValues*sizeof(double));
+    double* c = grid.values;
+    double* cFuture = grid2;
 
     // Go through the requested steps.
     const double k_diff = (D*dt)/(dx*dx);
@@ -91,87 +83,31 @@ void ExplicitFiniteDifferenceSolverAVX::calculate(ndarray<double>& grid, double 
     const avxd m6v = _mm256_set1_pd(-6.0);
     while (steps > 0)
     {
-        // Process the interior of the grid using avx.
-        {
-            int index;
-            avxd c_index, c_im, c_ip, c_jm, c_jp, c_km, c_kp;
-            for (int i=1; i<ilen-1; i++)
-                for (int j=1; j<jlen-1; j++)
-                    for (int k=DOUBLES_PER_AVX; k<klen-DOUBLES_PER_AVX; k+=DOUBLES_PER_AVX)
-                    {
-                        index = i*jklen + j*klen + k;
+        int index;
+        avxd c_index, c_im, c_ip, c_jm, c_jp, c_km, c_kp;
+        for (int i=0; i<ilen; i++)
+            for (int j=0; j<jlen; j++)
+                for (int k=0; k<klen; k+=DOUBLES_PER_AVX)
+                {
+                    index = i*jklen + j*klen + k;
 
-                        c_index = _mm256_load_pd(&c[index]);
-                        c_im = _mm256_load_pd(&c[index-jklen]);
-                        c_ip = _mm256_load_pd(&c[index+jklen]);
-                        c_jm = _mm256_load_pd(&c[index-klen]);
-                        c_jp = _mm256_load_pd(&c[index+klen]);
-                        c_km = _mm256_loadu_pd(&c[index-1]);
-                        c_kp = _mm256_loadu_pd(&c[index+1]);
+                    c_index = _mm256_load_pd(&c[index]);
 
-                        avxd iflux = _mm256_add_pd(c_im,c_ip);
-                        avxd jflux = _mm256_add_pd(c_jm,c_jp);
-                        avxd kflux = _mm256_add_pd(c_km,c_kp);
-                        avxd flux = _mm256_add_pd(iflux, _mm256_add_pd(jflux,kflux));
-                        flux = _mm256_fmadd_pd(m6v, c_index, flux);
-                        avxd cfi = _mm256_fmadd_pd(k_diffv, flux, c_index);
-                        _mm256_store_pd(&cFuture[index], cfi);
-                    }
-        }
+                    c_im = (i>0)?(_mm256_load_pd(&c[index-jklen])):(c_index);
+                    c_ip = (i<imax)?(_mm256_load_pd(&c[index+jklen])):(c_index);
+                    c_jm = (j>0)?(_mm256_load_pd(&c[index-klen])):(c_index);
+                    c_jp = (j<jmax)?(_mm256_load_pd(&c[index+klen])):(c_index);
+                    c_km = (k>0)?(_mm256_loadu_pd(&c[index-1])):(_mm256_set_pd(c[index],c[index],c[index+1],c[index+2]));
+                    c_kp = (k<klen-DOUBLES_PER_AVX)?(_mm256_loadu_pd(&c[index+1])):(_mm256_set_pd(c[index+1],c[index+2],c[index+3],c[index+3]));
 
-        // Process the boundary layer of the grid outside of avx.
-        {
-            int index;
-            double c_im, c_ip, c_jm, c_jp, c_km, c_kp;
-
-            // Process the -z and +z faces.
-            for (int i=0; i<ilen; i++)
-                for (int j=0; j<jlen; j++)
-                    for (int k=0; k<klen; k++)
-                    {
-                        // If we are finished with the -z layer, skip to the +z.
-                        if (k == DOUBLES_PER_AVX) k = klen-DOUBLES_PER_AVX;
-
-                        index = i*jklen + j*klen + k;
-                        c_im = (i>0)?(c[index-jklen]):(c[index]);
-                        c_ip = (i<imax)?(c[index+jklen]):(c[index]);
-                        c_jm = (j>0)?(c[index-klen]):(c[index]);
-                        c_jp = (j<jmax)?(c[index+klen]):(c[index]);
-                        c_km = (k>0)?(c[index-1]):(c[index]);
-                        c_kp = (k<kmax)?(c[index+1]):(c[index]);
-                        cFuture[index] = c[index] + k_diff*(-6.0*c[index]+c_im+c_ip+c_jm+c_jp+c_km+c_kp);
-                    }
-
-            // Process the -y and +y faces.
-            for (int i=0; i<ilen; i+=ilen-1)
-                for (int j=0; j<jlen; j++)
-                    for (int k=DOUBLES_PER_AVX; k<klen-DOUBLES_PER_AVX; k++)
-                    {
-                        index = i*jklen + j*klen + k;
-                        c_im = (i>0)?(c[index-jklen]):(c[index]);
-                        c_ip = (i<imax)?(c[index+jklen]):(c[index]);
-                        c_jm = (j>0)?(c[index-klen]):(c[index]);
-                        c_jp = (j<jmax)?(c[index+klen]):(c[index]);
-                        c_km = (k>0)?(c[index-1]):(c[index]);
-                        c_kp = (k<kmax)?(c[index+1]):(c[index]);
-                        cFuture[index] = c[index] + k_diff*(-6.0*c[index]+c_im+c_ip+c_jm+c_jp+c_km+c_kp);
-                    }
-
-            // Process the -x and +x faces.
-            for (int i=1; i<ilen-1; i++)
-                for (int j=0; j<jlen; j+=jlen-1)
-                    for (int k=DOUBLES_PER_AVX; k<klen-DOUBLES_PER_AVX; k++)
-                    {
-                        index = i*jklen + j*klen + k;
-                        c_im = (i>0)?(c[index-jklen]):(c[index]);
-                        c_ip = (i<imax)?(c[index+jklen]):(c[index]);
-                        c_jm = (j>0)?(c[index-klen]):(c[index]);
-                        c_jp = (j<jmax)?(c[index+klen]):(c[index]);
-                        c_km = (k>0)?(c[index-1]):(c[index]);
-                        c_kp = (k<kmax)?(c[index+1]):(c[index]);
-                        cFuture[index] = c[index] + k_diff*(-6.0*c[index]+c_im+c_ip+c_jm+c_jp+c_km+c_kp);
-                    }
-        }
+                    avxd iflux = _mm256_add_pd(c_im,c_ip);
+                    avxd jflux = _mm256_add_pd(c_jm,c_jp);
+                    avxd kflux = _mm256_add_pd(c_km,c_kp);
+                    avxd flux = _mm256_add_pd(iflux, _mm256_add_pd(jflux,kflux));
+                    flux = _mm256_fmadd_pd(m6v, c_index, flux);
+                    avxd cfi = _mm256_fmadd_pd(k_diffv, flux, c_index);
+                    _mm256_store_pd(&cFuture[index], cfi);
+                }
 
         // Update the step counter.
         steps--;
@@ -185,11 +121,11 @@ void ExplicitFiniteDifferenceSolverAVX::calculate(ndarray<double>& grid, double 
         }
     }
 
-    // Save the final results.
-    memcpy(grid.values, cFuture, grid.numberValues*sizeof(double));
+    // Save the final results, if it is not already in the grid.
+    if (grid.values != cFuture)
+        memcpy(grid.values, cFuture, grid.numberValues*sizeof(double));
 
     // Free the grid memory.
-    free(grid1);
     free(grid2);
 }
 
