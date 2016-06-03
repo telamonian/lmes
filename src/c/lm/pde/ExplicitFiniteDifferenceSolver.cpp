@@ -62,7 +62,7 @@ void ExplicitFiniteDifferenceSolver::calculate(ndarray<double>& grid, double run
 
     // Allocate space for a second copy in aligned memory.
     double* grid2=NULL;
-    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&grid2, sizeof(double), grid.numberValues*sizeof(double)));
+    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&grid2, sizeof(double), grid.size*sizeof(double)));
 
     const int ilen=(int)grid.shape[0];
     const int jlen=(int)grid.shape[1];
@@ -108,7 +108,7 @@ void ExplicitFiniteDifferenceSolver::calculate(ndarray<double>& grid, double run
 
     // Save the final results, if it is not already in the grid.
     if (grid.values != cFuture)
-        memcpy(grid.values, cFuture, grid.numberValues*sizeof(double));
+        memcpy(grid.values, cFuture, grid.size*sizeof(double));
 
     // Free the second grid memory.
     free(grid2);

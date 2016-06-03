@@ -63,7 +63,7 @@ void ExplicitFiniteDifferenceSolverAVX::calculate(ndarray<double>& grid, double 
 
     // Allocate space for a second copy of the grid in aligned memory.
     double* grid2=NULL;
-    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&grid2, DOUBLES_PER_AVX*sizeof(double), grid.numberValues*sizeof(double)));
+    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&grid2, DOUBLES_PER_AVX*sizeof(double), grid.size*sizeof(double)));
 
     // Save pointers to the actual grid locations, excluding the z boundaries.
     double* c = grid.values;
@@ -115,7 +115,7 @@ void ExplicitFiniteDifferenceSolverAVX::calculate(ndarray<double>& grid, double 
 
     // Save the final results, if it is not already in the grid.
     if (grid.values != cFuture)
-        memcpy(grid.values, cFuture, grid.numberValues*sizeof(double));
+        memcpy(grid.values, cFuture, grid.size*sizeof(double));
 
     // Free the grid memory.
     free(grid2);

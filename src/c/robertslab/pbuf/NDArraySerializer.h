@@ -36,25 +36,61 @@ template <typename T> robertslab::pbuf::NDArray_DataType NDArray_datatype_code()
 
 class NDArraySerializer
 {
-    template <typename T> static robertslab::pbuf::NDArray* serialize(ndarray<T> array, bool compressDeflate=false, bool compressSnappy=false);
-    template <typename T> static void serializeInto(robertslab::pbuf::NDArray* msg, T* data, utuple shape, bool compressDeflate=false, bool compressSnappy=false);
-    template <typename T> static void serializeInto(robertslab::pbuf::NDArray* msg, ndarray<T> array, bool compressDeflate=false, bool compressSnappy=false);
+public:
+    template <typename T> static robertslab::pbuf::NDArray* serialize(const ndarray<T>& array, bool compressData=true)
+    {
+        robertslab::pbuf::NDArray* msg = new robertslab::pbuf::NDArray();
+        serializeInto(msg, array, compress);
+        return msg;
+    }
+
+    template <typename T> static void serializeInto(robertslab::pbuf::NDArray* msg, const T* data, utuple shape, bool compressData=true)
+    {
+        serializeInto(msg, ndarray<T>(data, shape, false), compress);
+    }
+
+    template <typename T> static void serializeInto(robertslab::pbuf::NDArray* msg, const ndarray<T>& array, bool compressData=true)
+    {
+        // Set the data type.
+        msg->set_data_type(NDArray_datatype_code<T>());
+
+        // Set the shape.
+        for (uint i=0; i<array.shape.len; i++)
+            msg->add_shape(array.shape[i]);
+
+        // See if we need to compress the data.
+        if (compressData)
+        {
+#ifdef OPT_SNAPPY
+            // Store with snappy compression.
+            msg->set_compressed_deflate(false);
+            msg->set_compressed_snappy(true);
+#else
+            // Store deflated.
+            msg->set_compressed_deflate(true);
+            msg->set_compressed_snappy(false);
+            std::string* data = msg->mutable_data();
+            size_t dataSizeEstimate=compressBound(array.size*sizeof(T));
+            data->resize(dataSizeEstimate);
+            RL_ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (const unsigned char*)array.values, array.size*sizeof(T)));
+            data->resize(dataSizeEstimate);
+#endif
+        }
+        else
+        {
+            // Store without compression.
+            msg->set_compressed_deflate(false);
+            msg->set_compressed_snappy(false);
+            std::string* data = msg->mutable_data();
+            data->resize(array.size*sizeof(T));
+            memcpy((unsigned char*)&((*data)[0]), (const unsigned char*)array.values, array.size*sizeof(T));
+        }
+    }
+
     template <typename T> static ndarray<T> deserialize(const robertslab::pbuf::NDArray& msg);
 };
 
 }
-}
-
-namespace robertslab {
-
-class ZlibException : public Exception
-{
-public:
-    ZlibException(const int errorNumber) : Exception("ZLib exception", errorNumber) {}
-};
-
-#define ZLIB_EXCEPTION_CHECK(zlib_call) {int _zlib_ret_=zlib_call; if (_zlib_ret_ != Z_OK) throw robertslab::ZlibException(_zlib_ret_);}
-
 }
 
 #endif // NDARRAYSERIALIZER_H

@@ -47,6 +47,8 @@
 #include "lm/option/SimulationParameters.h"
 #include "lm/trajectory/TrajectoryLimits.h"
 #include "lm/Types.h"
+#include "robertslab/pbuf/NDArray.pb.h"
+#include "robertslab/pbuf/NDArraySerializer.h"
 
 using lm::io::OutputOptions;
 using lm::trajectory::LimitValueT;
@@ -197,15 +199,20 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         microenvironmentModel.add_grid_shape(1);
         microenvironmentModel.add_grid_shape(10000);
         microenvironmentModel.set_grid_spacing(4.0e-6);
-        microenvironmentModel.boundaries().set_axis_specific_boundaries(true);
-        microenvironmentModel.boundaries().set_x_plus(lm::io::BoundaryConditions::REFLECTING);
-        microenvironmentModel.boundaries().set_x_minus(lm::io::BoundaryConditions::REFLECTING);
-        microenvironmentModel.boundaries().set_y_plus(lm::io::BoundaryConditions::REFLECTING);
-        microenvironmentModel.boundaries().set_y_minus(lm::io::BoundaryConditions::REFLECTING);
-        microenvironmentModel.boundaries().set_z_plus(lm::io::BoundaryConditions::ABSORBING);
-        microenvironmentModel.boundaries().set_z_minus(lm::io::BoundaryConditions::ABSORBING);
+        microenvironmentModel.mutable_boundaries()->set_axis_specific_boundaries(true);
+        microenvironmentModel.mutable_boundaries()->set_x_plus(lm::io::BoundaryConditions::REFLECTING);
+        microenvironmentModel.mutable_boundaries()->set_x_minus(lm::io::BoundaryConditions::REFLECTING);
+        microenvironmentModel.mutable_boundaries()->set_y_plus(lm::io::BoundaryConditions::REFLECTING);
+        microenvironmentModel.mutable_boundaries()->set_y_minus(lm::io::BoundaryConditions::REFLECTING);
+        microenvironmentModel.mutable_boundaries()->set_z_plus(lm::io::BoundaryConditions::ABSORBING);
+        microenvironmentModel.mutable_boundaries()->set_z_minus(lm::io::BoundaryConditions::ABSORBING);
         microenvironmentModel.add_species_ids(0);
         microenvironmentModel.add_diffusion_coefficients(1000e-12);
+        robertslab::pbuf::NDArray* c = microenvironmentModel.add_initial_concentrations();
+
+        ndarray<double> grid(utuple(1,5000,5000), DOUBLES_PER_AVX*sizeof(double));
+        grid[utuple(grid.shape[0]/2,grid.shape[1]/2,grid.shape[2]/2)] = 1.0e-6;
+        robertslab::pbuf::NDArraySerializer::serializeInto<double>(c, grid, true);
 
     }
 

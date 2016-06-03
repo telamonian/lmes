@@ -910,7 +910,7 @@ void mainDebug(int argc, char** argv)
         s.calculate(grid, 10*s.getDT());
         printf("Calculate took %0.6f s\n",convertHrToSeconds(getHrTime()-t1)); fflush(stdout);
         double sum=0.0;
-        for (int j=0; j<grid.numberValues; j++) sum+=grid.values[j];
+        for (int j=0; j<grid.size; j++) sum+=grid.values[j];
         printf("%d: sum=%0.6e loss=%0.20e\n",i,sum,1e-6-sum);
         //grid.print("\n");
     }

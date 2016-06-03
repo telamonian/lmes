@@ -34,55 +34,5 @@ template<> robertslab::pbuf::NDArray_DataType NDArray_datatype_code<int64_t>() {
 template<> robertslab::pbuf::NDArray_DataType NDArray_datatype_code<float>() {return robertslab::pbuf::NDArray_DataType_float32;}
 template<> robertslab::pbuf::NDArray_DataType NDArray_datatype_code<double>() {return robertslab::pbuf::NDArray_DataType_float64;}
 
-
-template <typename T> robertslab::pbuf::NDArray* NDArraySerializer::serialize(ndarray<T> array, bool compressDeflate, bool compressSnappy)
-{
-    robertslab::pbuf::NDArray* msg = new robertslab::pbuf::NDArray();
-    serializeInto(msg, array, compressDeflate, compressSnappy);
-    return msg;
-}
-
-template <typename T> void NDArraySerializer::serializeInto(robertslab::pbuf::NDArray* msg, T* data, utuple shape, bool compressDeflate, bool compressSnappy)
-{
-    serializeInto(msg, ndarray<T>(data, shape, false), compressDeflate, compressSnappy);
-}
-
-template <typename T> void NDArraySerializer::serializeInto(robertslab::pbuf::NDArray* msg, ndarray<T> array, bool compressDeflate, bool compressSnappy)
-{
-    // Set the data type.
-    msg->set_data_type(NDArray_datatype_code<T>());
-
-    // Set the shape.
-    for (uint i=0; i<array.shape.len; i++)
-        msg->add_shape(array.shape[i]);
-
-    // See if we need to compress the data.
-    if (compressDeflate)
-    {
-        // Set the deflate flag.
-        msg->set_compressed_deflate(true);
-
-        std::string* data = msg->mutable_data();
-        size_t dataSizeEstimate=compressBound(array.size*sizeof(T));
-        data->resize(dataSizeEstimate);
-        ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (const unsigned char*)array.values, array.size*sizeof(T)));
-        data->resize(dataSizeEstimate);
-    }
-    if (compressSnappy)
-    {
-        msg->set_compressed_snappy(true);
-    }
-    else
-    {
-        std::string* data = msg->mutable_data();
-        data->resize(array.size*sizeof(T));
-        memcpy((unsigned char*)&((*data)[0]), (const unsigned char*)array.values, array.size*sizeof(T));
-    }
-}
-
-
-
-
-
 }
 }

@@ -36,10 +36,6 @@ using std::vector;
 
 typedef unsigned int uint;
 
-
-
-
-
 /*
  *  Array types.
  */
@@ -49,26 +45,26 @@ template <typename T> const char* printf_format_string();
 template <typename T> struct tuple
 {
     tuple(const tuple& t)
-    :len(t.len),values(new T[t.len]())
+    :len(t.len),values(new T[t.len])
     {
         memcpy(values, t.values, sizeof(T)*len);
     }
 
     tuple(const T v1)
-    :len(1),values(new T[len]())
+    :len(1),values(new T[len])
     {
         values[0] = v1;
     }
 
     tuple(const T v1, const T v2)
-    :len(2),values(new T[len]())
+    :len(2),values(new T[len])
     {
         values[0] = v1;
         values[1] = v2;
     }
 
     tuple(const T v1, const T v2, const T v3)
-    :len(3),values(new T[len]())
+    :len(3),values(new T[len])
     {
         values[0] = v1;
         values[1] = v2;
@@ -76,13 +72,13 @@ template <typename T> struct tuple
     }
 
     tuple(uint len, const T* valuesArray)
-    :len(len),values(new T[len]())
+    :len(len),values(new T[len])
     {
         memcpy(values, valuesArray, sizeof(T)*len);
     }
 
     tuple(const list<T>& valuesList)
-    :len(valuesList.size()),values(new T[len]())
+    :len(valuesList.size()),values(new T[len])
     {
         int i=0;
         for (typename std::list<T>::iterator it = valuesList.begin(); it != valuesList.end(); it++)
@@ -90,7 +86,7 @@ template <typename T> struct tuple
     }
 
     tuple(const vector<T>& valuesVector)
-    :len(valuesVector.size()),values(new T[len]())
+    :len(valuesVector.size()),values(new T[len])
     {
         for (uint i=0; i<valuesVector.size(); i++)
             values[i] = valuesVector[i];
@@ -104,15 +100,15 @@ template <typename T> struct tuple
         return *this;
     }
 
-    bool operator!=(const tuple<T>& t) const
+    bool operator==(const tuple<T>& t) const
     {
-        if (len!=t.len)
+        if (len != t.len)
         {
             return false;
         }
         for (uint i=0; i<len; i++)
         {
-            if (values[i]!=t.values[i])
+            if (values[i] != t.values[i])
             {
                 return false;
             }
@@ -120,21 +116,10 @@ template <typename T> struct tuple
         return true;
     }
 
-//    bool operator!=(const tuple<T>& t1, const tuple<T>& t2) const
-//    {
-//        if (t1.len!=t2.len)
-//        {
-//            return false;
-//        }
-//        for (uint i=0; i<t1.len; i++)
-//        {
-//            if (t1.values[i]!=t2.values[i])
-//            {
-//                return false;
-//            }
-//        }
-//        return true;
-//    }
+    bool operator!=(const tuple<T>& t) const
+    {
+        return !(*this== t);
+    }
 
     virtual ~tuple()
     {
@@ -174,35 +159,35 @@ typedef tuple<uint> utuple;
 template <typename T> struct ndarray
 {
 public:
-    ndarray(const tuple<uint>& shape)
-    :shape(shape),size(calculateSize(shape)),values(new T[size]()),allocatedValues(true)
+    ndarray(const tuple<uint>& shape, size_t alignment=0)
+    :shape(shape),size(calculateSize(shape)),alignment(alignment),values(allocateMemory(size,alignment)),allocatedValues(true)
     {
+        memset(values, 0, sizeof(T)*size);
     }
 
-    ndarray(const tuple<uint>& shape, const T* valuesArray)
-    :shape(shape),size(calculateSize(shape)),values(new T[size]()),allocatedValues(true)
+    ndarray(const tuple<uint>& shape, const T* valuesArray, size_t alignment=0)
+    :shape(shape),size(calculateSize(shape)),alignment(alignment),values(allocateMemory(size,alignment)),allocatedValues(true)
     {
-        if (allocatedValues)
-            memcpy(values, valuesArray, sizeof(T)*size);
+        memcpy(values, valuesArray, sizeof(T)*size);
     }
 
-    ndarray(const tuple<uint>& shape, T* valuesArray, bool copyValues=true)
-    :shape(shape),size(calculateSize(shape)),values(copyValues?new T[size]():valuesArray),allocatedValues(copyValues)
+    ndarray(const tuple<uint>& shape, T* valuesArray, size_t alignment=0, bool copyValues=true)
+    :shape(shape),size(calculateSize(shape)),alignment(alignment),values(copyValues?allocateMemory(size,alignment):valuesArray),allocatedValues(copyValues)
     {
         if (allocatedValues)
             memcpy(values, valuesArray, sizeof(T)*size);
     }
 
     ndarray(const ndarray& a)
-    :shape(a.shape),size(a.size),values(new T[size]()),allocatedValues(true)
+    :shape(a.shape),size(a.size),alignment(a.alignment),values(allocateMemory(size,alignment)),allocatedValues(true)
     {
         memcpy(values, a.values, sizeof(T)*size);
     }
 
     ndarray& operator=(const ndarray& a)
     {
-        if (shape != a.shape || size != a.size)
-           throw invalid_argument("t: both ndarrays during assigment must be of the same shape");
+        if (shape != a.shape) invalid_argument("a: both ndarrays during assigment must be of the same shape");
+        if (size != a.size) invalid_argument("a: both ndarrays during assigment must have the same size");
         memcpy(values, a.values, sizeof(T)*size);
         return *this;
     }
@@ -216,7 +201,7 @@ public:
 
     virtual ~ndarray()
     {
-        if (allocatedValues && values != NULL) delete[] values;
+        if (allocatedValues && values != NULL) free(values);
     }
 
     const T& operator[](const tuple<uint>& index) const
@@ -312,9 +297,22 @@ private:
         return r;
     }
 
+    T* allocateMemory(uint size, size_t alignment)
+    {
+        if (alignment > 0)
+        {
+            T* tmp;
+            int _posix_ret_=posix_memalign((void**)&tmp, alignment*sizeof(T), size*sizeof(T));
+            if (_posix_ret_ != 0) throw invalid_argument("alignment: could not allocate aligned memory");
+            return tmp;
+        }
+        return (T*)malloc(size*sizeof(T));
+    }
+
 public:
     const tuple<uint> shape;
     const size_t size;
+    const size_t alignment;
     T* const values;
 
 private:
@@ -322,4 +320,5 @@ private:
 };
 
 #endif // ROBERTSLAB_TYPES_H
+
 
