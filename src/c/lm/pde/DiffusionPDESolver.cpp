@@ -27,6 +27,7 @@ namespace pde {
 
 
 DiffusionPDESolver::DiffusionPDESolver()
+:boundaries(REFLECTING)
 {
 }
 

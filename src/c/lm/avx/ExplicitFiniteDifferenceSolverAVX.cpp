@@ -44,7 +44,7 @@ void ExplicitFiniteDifferenceSolverAVX::calculate(ndarray<double>& grid, double 
 {
     if (grid.shape.len != 3) throw lm::InvalidArgException("grid", "the grid was not three-dimensional for ExplicitFiniteDifferenceSolverAVX", runtime);
     if (grid.shape[2]%DOUBLES_PER_AVX != 0) throw lm::InvalidArgException("grid", "the grid z dimension was not evenly divisible by the AVX register size for ExplicitFiniteDifferenceSolverAVX", grid.shape[2]);
-    if (grid.alignment != DOUBLES_PER_AVX) throw lm::InvalidArgException("grid", "the grid memory was not aligned correctly for ExplicitFiniteDifferenceSolverAVX", grid.alignment);
+    if (grid.alignment != DOUBLES_PER_AVX*sizeof(double)) throw lm::InvalidArgException("grid", "the grid memory was not aligned correctly for ExplicitFiniteDifferenceSolverAVX", grid.alignment);
 
     // If the grid is too small, run using the base solver.
     if (grid.shape[0] < 3 || grid.shape[1] < 3 || grid.shape[2] < 3*DOUBLES_PER_AVX)
@@ -60,27 +60,37 @@ void ExplicitFiniteDifferenceSolverAVX::calculate(ndarray<double>& grid, double 
     // Make sure that runtime is an interval of dt.
     if (fabs(runtime-double(steps)*dt) > 1e-9) throw lm::InvalidArgException("runtime", "the runtime was not a multiple of the timestep for ExplicitFiniteDifferenceSolverAVX", runtime);
 
-    // Allocate space for a second copy in aligned memory.
+    // Get the grid dimensions in various forms.
+    const int ilen=(int)grid.shape[0];
+    const int jlen=(int)grid.shape[1];
+    const int klen=(int)grid.shape[2];
+    const int jklen=jlen*klen;
+    const int imax=ilen-1;
+    const int jmax=jlen-1;
+    const int kmax=klen-1;
+
+    // Allocate space for two copies of the grid in aligned memory, with an extra DOUPLES_PER_AVX layer in both -z and +z.
+    size_t gridSizeWithZBoundary = (grid.numberValues+2*jklen*DOUBLES_PER_AVX);
+    double* grid1=NULL;
+    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&grid1, DOUBLES_PER_AVX*sizeof(double), gridSizeWithZBoundary*sizeof(double)));
+    memset(grid1, 0, gridSizeWithZBoundary*sizeof(double));
     double* grid2=NULL;
-    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&grid2, DOUBLES_PER_AVX*sizeof(double), grid.numberValues*sizeof(double)));
+    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&grid2, DOUBLES_PER_AVX*sizeof(double), gridSizeWithZBoundary*sizeof(double)));
+    memset(grid2, 0, gridSizeWithZBoundary*sizeof(double));
+
+    // Save pointers to the actual grid locations, excluding the z boundaries.
+    double* c = &grid1[jklen*DOUBLES_PER_AVX];
+    double* cFuture = &grid2[jklen*DOUBLES_PER_AVX];
+
+    // Copy the grid into the initial c buffer.
+    memcpy(c, grid.values, grid.numberValues*sizeof(double));
 
     // Go through the requested steps.
-    double* c = grid.values;
-    double* cFuture = grid2;
-    double k_diff = (D*dt)/(dx*dx);
-    avxd k_diffv = _mm256_set1_pd(k_diff);
-    avxd m6v = _mm256_set1_pd(-6.0);
+    const double k_diff = (D*dt)/(dx*dx);
+    const avxd k_diffv = _mm256_set1_pd(k_diff);
+    const avxd m6v = _mm256_set1_pd(-6.0);
     while (steps > 0)
     {
-
-        const int ilen=(int)grid.shape[0];
-        const int jlen=(int)grid.shape[1];
-        const int klen=(int)grid.shape[2];
-        const int jklen=jlen*klen;
-        const int imax=ilen-1;
-        const int jmax=jlen-1;
-        const int kmax=klen-1;
-
         // Process the interior of the grid using avx.
         {
             int index;
@@ -175,11 +185,11 @@ void ExplicitFiniteDifferenceSolverAVX::calculate(ndarray<double>& grid, double 
         }
     }
 
-    // Save the final results, if it is not already in the grid.
-    if (grid.values != cFuture)
-        memcpy(grid.values, cFuture, grid.numberValues*sizeof(double));
+    // Save the final results.
+    memcpy(grid.values, cFuture, grid.numberValues*sizeof(double));
 
-    // Free the second grid memory.
+    // Free the grid memory.
+    free(grid1);
     free(grid2);
 }
 

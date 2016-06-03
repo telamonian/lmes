@@ -896,18 +896,18 @@ void mainDebug(int argc, char** argv)
 {
     printf("Debugging PDE solver.\n");
 
-    ndarray<double> grid(utuple(100,100,100), DOUBLES_PER_AVX);
+    ndarray<double> grid(utuple(250,250,252), DOUBLES_PER_AVX*sizeof(double));
     grid[utuple(grid.shape[0]/2,grid.shape[1]/2,grid.shape[2]/2)] = 1.0e-6;
     //grid.print("\n");
 
     //lm::avx::ExplicitFiniteDifferenceSolverAVX s(1000.0e-12, 4.0e-6);
     //lm::pde::ExplicitFiniteDifferenceSolver s(1667.0e-12, 20.0e-6);
-    //lm::avx::ExplicitFiniteDifferenceSolverAVX s(1667.0e-12, 20.0e-6);
-    lm::avx::ExplicitFiniteDifferenceSolverAVX s(200.0e-12, 50.0e-9);
+    lm::avx::ExplicitFiniteDifferenceSolverAVX s(1667.0e-12, 20.0e-6);
+    //lm::avx::ExplicitFiniteDifferenceSolverAVX s(200.0e-12, 50.0e-9);
     for (int i=0; i<800; i++)
     {
         hrtime t1=getHrTime();
-        s.calculate(grid, 100*s.getDT());
+        s.calculate(grid, 10*s.getDT());
         printf("Calculate took %0.6f s\n",convertHrToSeconds(getHrTime()-t1)); fflush(stdout);
         double sum=0.0;
         for (int j=0; j<grid.numberValues; j++) sum+=grid.values[j];

@@ -31,9 +31,22 @@ namespace pde {
 class DiffusionPDESolver
 {
 public:
+    enum BoundaryConditions {REFLECTING              = 0,
+                             ABSORBING               = 1,
+                             PERIODIC                = 2,
+                             FIXED_CONCENTRATION     = 3,
+                             FIXED_GRADIENT          = 4,
+                             LINEAR_GRADIENT         = 5};
+public:
     DiffusionPDESolver();
     virtual ~DiffusionPDESolver();
     virtual void calculate(ndarray<double>& domain, double time)=0;
+
+    virtual BoundaryConditions getBoundaryConditions() {return boundaries;}
+    virtual void setBoundaryConditions(BoundaryConditions boundaries) {this->boundaries = boundaries;}
+
+protected:
+    BoundaryConditions boundaries;
 };
 
 }
