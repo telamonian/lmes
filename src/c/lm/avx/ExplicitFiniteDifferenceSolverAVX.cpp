@@ -46,14 +46,6 @@ void ExplicitFiniteDifferenceSolverAVX::calculate(ndarray<double>& grid, double 
     if (grid.shape[2]%DOUBLES_PER_AVX != 0) throw lm::InvalidArgException("grid", "the grid z dimension was not evenly divisible by the AVX register size for ExplicitFiniteDifferenceSolverAVX", grid.shape[2]);
     if (grid.alignment != DOUBLES_PER_AVX*sizeof(double)) throw lm::InvalidArgException("grid", "the grid memory was not aligned correctly for ExplicitFiniteDifferenceSolverAVX", grid.alignment);
 
-    // If the grid is too small, run using the base solver.
-    if (grid.shape[0] < 3 || grid.shape[1] < 3 || grid.shape[2] < 3*DOUBLES_PER_AVX)
-    {
-        lm::Print::printf(lm::Print::INFO, "The specified grid shape (%d,%d,%d) was too small for the ExplicitFiniteDifferenceSolverAVX solver, using the non-avx version instead.",grid.shape[0],grid.shape[1],grid.shape[2]);
-        ExplicitFiniteDifferenceSolver::calculate(grid, runtime);
-        return;
-    }
-
     // Figure out how many time steps to run.
     int steps = int(floor((runtime/dt)+0.5));
 
@@ -67,7 +59,7 @@ void ExplicitFiniteDifferenceSolverAVX::calculate(ndarray<double>& grid, double 
     const int jklen=jlen*klen;
     const int imax=ilen-1;
     const int jmax=jlen-1;
-    const int kmax=klen-1;
+    const int kmax=klen-DOUBLES_PER_AVX;
 
     // Allocate space for a second copy of the grid in aligned memory.
     double* grid2=NULL;
@@ -98,7 +90,7 @@ void ExplicitFiniteDifferenceSolverAVX::calculate(ndarray<double>& grid, double 
                     c_jm = (j>0)?(_mm256_load_pd(&c[index-klen])):(c_index);
                     c_jp = (j<jmax)?(_mm256_load_pd(&c[index+klen])):(c_index);
                     c_km = (k>0)?(_mm256_loadu_pd(&c[index-1])):(_mm256_set_pd(c[index],c[index],c[index+1],c[index+2]));
-                    c_kp = (k<klen-DOUBLES_PER_AVX)?(_mm256_loadu_pd(&c[index+1])):(_mm256_set_pd(c[index+1],c[index+2],c[index+3],c[index+3]));
+                    c_kp = (k<kmax)?(_mm256_loadu_pd(&c[index+1])):(_mm256_set_pd(c[index+1],c[index+2],c[index+3],c[index+3]));
 
                     avxd iflux = _mm256_add_pd(c_im,c_ip);
                     avxd jflux = _mm256_add_pd(c_jm,c_jp);

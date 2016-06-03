@@ -904,7 +904,7 @@ void mainDebug(int argc, char** argv)
     //lm::pde::ExplicitFiniteDifferenceSolver s(1667.0e-12, 20.0e-6);
     lm::avx::ExplicitFiniteDifferenceSolverAVX s(1667.0e-12, 20.0e-6);
     //lm::avx::ExplicitFiniteDifferenceSolverAVX s(200.0e-12, 50.0e-9);
-    for (int i=0; i<10; i++)
+    for (int i=0; i<100; i++)
     {
         hrtime t1=getHrTime();
         s.calculate(grid, 10*s.getDT());
@@ -914,7 +914,7 @@ void mainDebug(int argc, char** argv)
         printf("%d: sum=%0.6e loss=%0.20e\n",i,sum,1e-6-sum);
         //grid.print("\n");
     }
-    grid.print("\n");
+    //grid.print("\n");
 }
 
 
