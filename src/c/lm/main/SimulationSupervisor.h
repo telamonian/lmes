@@ -117,6 +117,7 @@ protected:
     virtual void receivedStartedWorkUnit(const lm::message::StartedWorkUnit& msg);
 
     virtual void receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg);
+    virtual bool isPhaseDone();
     virtual bool assignWork();
     virtual void buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg);
     virtual void buildRunWorkUnitLimits(lm::message::RunWorkUnit* msg);
@@ -154,6 +155,8 @@ protected:
     lm::slot::SlotList slots;
     std::string solverClassName;
     lm::trajectory::TrajectoryList* trajectoryList;
+    // extra trajectory list for keeping track of trajectories that weren't finished at the end of a simulation phase
+    lm::trajectory::TrajectoryList* holdoverTrajectoryList;
     bool useCPUAffinity;
     long long workUnitCount;
 

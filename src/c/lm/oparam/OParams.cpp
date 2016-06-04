@@ -96,7 +96,7 @@ void OParams::init()
     }
 }
 
-void OParams::initOParam(const lm::io::OrderParameters::OrderParameter& oparam)
+void OParams::initOParam(const lm::io::OrderParameter& oparam)
 {
     opMap[oparam.id()] = (static_cast<lm::oparam::OParam*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::oparam::OParam",lm::oparam::OParams::opClassMap[oparam.type()])));
     opMap[oparam.id()]->init(oparam);

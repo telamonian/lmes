@@ -84,7 +84,7 @@ int FFluxSupervisor::getRecvSleepMilliseconds()
     return -1;
 }
 
-FFluxSupervisor::FFluxSupervisor(): ffluxPhase(0)
+FFluxSupervisor::FFluxSupervisor(): ffluxPhase(0), trajectoryList(NULL)
 {
 }
 
@@ -304,7 +304,7 @@ void FFluxSupervisor::buildTrajectoryList()
     setTrajectoryList(new FFluxTrajectoryList(simulationPhase, *input, communicator, slots.getSimultaneousWorkUnits()));
 }
 
-void FFluxSupervisor::setTrajectoryList(lm::fflux::FFluxTrajectoryList* newTrajectoryList)
+void FFluxSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList)
 {
     lm::main::SimulationSupervisor::setTrajectoryList(newTrajectoryList);
     trajectoryList = static_cast<lm::fflux::FFluxTrajectoryList*>(lm::main::SimulationSupervisor::trajectoryList);

@@ -52,7 +52,7 @@ namespace lm {
 namespace tiling {
 
 typedef std::map<uint,std::string> TilingClassMap;
-typedef google::protobuf::RepeatedPtrField<lm::io::Tilings::Tiling>::const_iterator TilingIterator;
+typedef google::protobuf::RepeatedPtrField<lm::io::Tiling>::const_iterator TilingIterator;
 typedef std::map<uint,lm::tiling::Tiling*> TilingMap;
 
 class Tilings
@@ -66,7 +66,7 @@ public:
     bool init(const lm::io::hdf5::Hdf5File* file);
     void init(const lm::io::Tilings& tilings);
     void init();
-    void initTiling(const lm::io::Tilings::Tiling& tiling);
+    void initTiling(const lm::io::Tiling& tiling);
 
     // accessors
     TilingMap::const_iterator begin() const {return tilingMap.begin();}

@@ -41,45 +41,58 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_ENUMHELPER
-#define LM_ENUMHELPER
+#ifndef ENUMHELPER_H
+#define ENUMHELPER_H
 
+#include "lm/io/SimulationPhases.pb.h"
 #include "lm/io/Tilings.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 
-// a helper class to make accessing the types and values of various enums easier
-struct EH
-{
-// from Tilings.proto
+// helper classes allowing for more direct access to the types and values of various enums
+
+//from lm/io/SimulationPhases.proto
+struct SimPhaseEnums {
     // enum typedefs
-    typedef lm::io::Tilings::SortOrder SortOrder;
-    typedef lm::io::Tilings::TilingType TilingType;
+    typedef lm::io::SimulationPhase::TrajectorySource TrajectorySource;
 
-    // SortOrder enum values
-    static const SortOrder ASCENDING = lm::io::Tilings::ASCENDING;
-    static const SortOrder DESCENDING = lm::io::Tilings::DESCENDING;
-
-    // TilingType enum values
-    static const TilingType LATTICE = lm::io::Tilings::LATTICE;
-    static const TilingType VORONOI = lm::io::Tilings::VORONOI;
-
-// from TrajectoryLimits.proto
-    // enum typedefs
-    typedef lm::io::TrajectoryLimits::LimitType LimitType;
-    typedef lm::io::TrajectoryLimits::StoppingCondition StoppingCondition;
-
-    // LimitType enum values
-    static const LimitType NONE = lm::io::TrajectoryLimits::NONE;
-    static const LimitType TIME = lm::io::TrajectoryLimits::TIME;
-    static const LimitType SPECIES = lm::io::TrajectoryLimits::SPECIES;
-    static const LimitType ORDER_PARAMETER = lm::io::TrajectoryLimits::ORDER_PARAMETER;
-    static const LimitType DEGREE_ADVANCEMENT = lm::io::TrajectoryLimits::DEGREE_ADVANCEMENT;
-
-    // StoppingCondition enum values
-    static const StoppingCondition MIN = lm::io::TrajectoryLimits::MIN;
-    static const StoppingCondition MAX = lm::io::TrajectoryLimits::MAX;
-    static const StoppingCondition INCREASING = lm::io::TrajectoryLimits::INCREASING;
-    static const StoppingCondition DECREASING = lm::io::TrajectoryLimits::DECREASING;
+    // TrajectorySource enum values
+    static const TrajectorySource TRAJECTORY_STATES = lm::io::SimulationPhase::TRAJECTORY_STATES;
+    static const TrajectorySource PREVIOUS_PHASE = lm::io::SimulationPhase::PREVIOUS_PHASE;
 };
 
-#endif /* LM_ENUMHELPER */
+// from lm/io/Tilings.proto
+struct TilingEnums {
+    // enum typedefs
+    typedef lm::io::Tiling::SortOrder SortOrder;
+    typedef lm::io::Tiling::TilingType TilingType;
+
+    // SortOrder enum values
+    static const SortOrder ASCENDING = lm::io::Tiling::ASCENDING;
+    static const SortOrder DESCENDING = lm::io::Tiling::DESCENDING;
+
+    // TilingType enum values
+    static const TilingType LATTICE = lm::io::Tiling::LATTICE;
+    static const TilingType VORONOI = lm::io::Tiling::VORONOI;
+};
+
+// from lm/io/TrajectoryLimits.proto
+struct TrajLimEnums {
+    // enum typedefs
+    typedef lm::io::TrajectoryLimit::LimitType LimitType;
+    typedef lm::io::TrajectoryLimit::StoppingCondition StoppingCondition;
+
+    // LimitType enum values
+    static const LimitType NONE = lm::io::TrajectoryLimit::NONE;
+    static const LimitType TIME = lm::io::TrajectoryLimit::TIME;
+    static const LimitType SPECIES = lm::io::TrajectoryLimit::SPECIES;
+    static const LimitType ORDER_PARAMETER = lm::io::TrajectoryLimit::ORDER_PARAMETER;
+    static const LimitType DEGREE_ADVANCEMENT = lm::io::TrajectoryLimit::DEGREE_ADVANCEMENT;
+
+    // StoppingCondition enum values
+    static const StoppingCondition MIN = lm::io::TrajectoryLimit::MIN;
+    static const StoppingCondition MAX = lm::io::TrajectoryLimit::MAX;
+    static const StoppingCondition INCREASING = lm::io::TrajectoryLimit::INCREASING;
+    static const StoppingCondition DECREASING = lm::io::TrajectoryLimit::DECREASING;
+};
+
+#endif /* ENUMHELPER_H */

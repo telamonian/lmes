@@ -38,6 +38,7 @@
  */
 #include "lm/EnumHelper.h"
 #include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/tiling/Tiling.h"
 #include "lm/trajectory/TrajectoryLimits.h"
 #include "lm/Types.h"
 
@@ -45,6 +46,35 @@ using lm::trajectory::LimitValueT;
 
 namespace lm {
 namespace trajectory {
+
+//TrajectoryLimitBuf* TrajectoryLimits::addLimitBufFromTiling(lm::tiling::Tiling& tiling, uint edgeIndex, TrajLimEnums::StoppingCondition sc, bool rightOpenBins=true, int32_t limitID=DEFAULT_LIMIT_ID)
+//{
+//    // if the tiling sorts descending, flip the stopping condition around
+//    if (tiling.getSortOrder()==TilingEnums::DESCENDING)
+//    {
+//        switch (sc)
+//        {
+//        case TrajLimEnums::MIN: sc = TrajLimEnums::MAX; break;
+//        case TrajLimEnums::MAX: sc = TrajLimEnums::MIN; break;
+//        case TrajLimEnums::DECREASING: sc = TrajLimEnums::INCREASING; break;
+//        case TrajLimEnums::INCREASING: sc = TrajLimEnums::DECREASING; break;
+//        default: Exception("Unknown TrajectoryLimit StoppingCondition", sc);
+//        }
+//    }
+//
+//    // keep the includeEndpoint property of the added limit consistent with right-open bins on this tiling, or with left-open bins if rightOpenBins is false
+//    bool includeEndpoint;
+//    switch (sc)
+//    {
+//    case TrajLimEnums::MIN: includeEndpoint = rightOpenBins; break;
+//    case TrajLimEnums::MAX: includeEndpoint = !rightOpenBins; break;
+//    case TrajLimEnums::DECREASING: includeEndpoint = rightOpenBins; break;
+//    case TrajLimEnums::INCREASING: includeEndpoint = !rightOpenBins; break;
+//    default: Exception("Unknown TrajectoryLimit StoppingCondition", sc);
+//    }
+//
+//    return addLimitBuf<TrajLimEnums::ORDER_PARAMETER>(tiling.getOrderParameterID(), tiling.getEdge(edgeIndex), sc, includeEndpoint, limitID);
+//}
 
 TrajectoryLimits::repeatedType::const_iterator TrajectoryLimits::findBuf(int32_t id) const
 {
@@ -61,7 +91,7 @@ TrajectoryLimits::repeatedType::const_iterator TrajectoryLimits::findBuf(int32_t
     return it;
 }
 
-TrajectoryLimits::repeatedType::const_iterator TrajectoryLimits::findBuf(EH::LimitType lt) const
+TrajectoryLimits::repeatedType::const_iterator TrajectoryLimits::findBuf(TrajLimEnums::LimitType lt) const
 {
     TrajectoryLimits::repeatedType::const_iterator it=repeated().begin();
     // if the .limit_type() of a TrajectoryLimit buf matches, return it
@@ -105,7 +135,7 @@ void TrajectoryLimits::wTV(vectorType& outVec)
     }
 }
 
-TrajectoryLimit TrajectoryLimits::bufToStruct(const lm::io::TrajectoryLimits::TrajectoryLimit& inBuf)
+TrajectoryLimit TrajectoryLimits::bufToStruct(const lm::io::TrajectoryLimit& inBuf)
 {
     TrajectoryLimit limit;
     limit.type = inBuf.limit_type();
@@ -133,17 +163,17 @@ TrajectoryLimitBuf TrajectoryLimits::structToBuf(const TrajectoryLimit& inStruct
 
     switch(inStruct.type)
     {
-    case EH::TIME:
-        setLimitValue(limitBuf, getLimitValue<EH::TIME>(inStruct));
+    case TrajLimEnums::TIME:
+        setLimitValue(limitBuf, getLimitValue<TrajLimEnums::TIME>(inStruct));
         break;
-    case EH::SPECIES:
-        setLimitValue(limitBuf, getLimitValue<EH::SPECIES>(inStruct));
+    case TrajLimEnums::SPECIES:
+        setLimitValue(limitBuf, getLimitValue<TrajLimEnums::SPECIES>(inStruct));
         break;
-    case EH::ORDER_PARAMETER:
-        setLimitValue(limitBuf, getLimitValue<EH::ORDER_PARAMETER>(inStruct));
+    case TrajLimEnums::ORDER_PARAMETER:
+        setLimitValue(limitBuf, getLimitValue<TrajLimEnums::ORDER_PARAMETER>(inStruct));
         break;
-    case EH::DEGREE_ADVANCEMENT:
-        setLimitValue(limitBuf, getLimitValue<EH::DEGREE_ADVANCEMENT>(inStruct));
+    case TrajLimEnums::DEGREE_ADVANCEMENT:
+        setLimitValue(limitBuf, getLimitValue<TrajLimEnums::DEGREE_ADVANCEMENT>(inStruct));
         break;
     default:
         throw Exception("When converting a TrajectoryLimit struct to a TrajectoryLimit buf, the TrajectoryLimit struct did not have a recognized type", inStruct.type, inStruct.stoppingCondition);

@@ -113,7 +113,7 @@ public:
     }
 #endif
 
-    static OrderParameterFunction* create(const lm::io::OrderParameters::OrderParameter& op)
+    static OrderParameterFunction* create(const lm::io::OrderParameter& op)
     {
         if (op.type() != OPARAM_TYPE)
             throw lm::InvalidArgException("op.type", "Mismatch of types during creation of linear order parameter function",op.type(), OPARAM_TYPE);
@@ -160,7 +160,7 @@ public:
     }
 #endif
 
-    static OrderParameterFunction* create(const lm::io::OrderParameters::OrderParameter& op)
+    static OrderParameterFunction* create(const lm::io::OrderParameter& op)
     {
         if (op.type() != OPARAM_TYPE)
             throw lm::InvalidArgException("op.type", "Mismatch of types during creation of two species order parameter function",op.type(), OPARAM_TYPE);

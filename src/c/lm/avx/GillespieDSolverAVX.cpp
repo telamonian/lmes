@@ -111,7 +111,7 @@ GillespieDSolverAVX::GillespieDSolverAVX()
         initialized[i] = false;
         status[i] = lm::message::WorkUnitStatus::NONE;
         limitIDReached[i] = lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID;
-        limitTypeReached[i] = lm::io::TrajectoryLimits::NONE;
+        limitTypeReached[i] = lm::io::TrajectoryLimit::NONE;
         trajectoryId[i] = 0;
         trajectoryStarted[i] = false;
     }
@@ -191,9 +191,9 @@ void GillespieDSolverAVX::setLimits(const lm::io::TrajectoryLimits& lm)
         for (int i=0; i<numberLimits; i++)
         {
             for (int j=0; j<DOUBLES_PER_AVX; j++)
-                if (limits[i].type == lm::io::TrajectoryLimits::SPECIES)
+                if (limits[i].type == lm::io::TrajectoryLimit::SPECIES)
                     limitValues[i*DOUBLES_PER_AVX+j] = double(limits[i].ivalue);
-                else if (limits[i].type == lm::io::TrajectoryLimits::DEGREE_ADVANCEMENT)
+                else if (limits[i].type == lm::io::TrajectoryLimit::DEGREE_ADVANCEMENT)
                     limitValues[i*DOUBLES_PER_AVX+j] = double(limits[i].uvalue);
                 else
                     limitValues[i*DOUBLES_PER_AVX+j] = limits[i].dvalue;
@@ -223,7 +223,7 @@ void GillespieDSolverAVX::reset()
         initialized[i] = false;
         status[i] = lm::message::WorkUnitStatus::NONE;
         limitIDReached[i] = lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID;
-        limitTypeReached[i] = lm::io::TrajectoryLimits::NONE;
+        limitTypeReached[i] = lm::io::TrajectoryLimit::NONE;
         trajectoryId[i] = 0;
         trajectoryStarted[i] = false;
     }
@@ -582,7 +582,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
                 {
                     status[i] = lm::message::WorkUnitStatus::LIMIT_REACHED;
                     limitIDReached[i] = lm::trajectory::TrajectoryLimits::TIME_LIMIT_ID;
-                    limitTypeReached[i] = lm::io::TrajectoryLimits::TIME;
+                    limitTypeReached[i] = lm::io::TrajectoryLimit::TIME;
                 }
                 else
                 {
@@ -735,7 +735,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
                         ((double*)&time)[i] = ((double*)&timeLimit)[i];
                         status[i] = lm::message::WorkUnitStatus::LIMIT_REACHED;
                         limitIDReached[i] = lm::trajectory::TrajectoryLimits::TIME_LIMIT_ID;
-                        limitTypeReached[i] = lm::io::TrajectoryLimits::TIME;
+                        limitTypeReached[i] = lm::io::TrajectoryLimit::TIME;
                     }
 
                     // Otherwise, zero propensity is an error.
@@ -795,7 +795,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
         }
 
         // If we finished the total time, write out the remaining time steps.
-        else if (status[i] == lm::message::WorkUnitStatus::LIMIT_REACHED && limitTypeReached[i] == lm::io::TrajectoryLimits::TIME)
+        else if (status[i] == lm::message::WorkUnitStatus::LIMIT_REACHED && limitTypeReached[i] == lm::io::TrajectoryLimit::TIME)
         {
             ((double*)&time)[i] = ((double*)&timeLimit)[i];
             Print::printf(Print::DEBUG, "Generated trajectory %llu through time %e.", trajectoryId[i], ((double*)&time)[i]);
@@ -1080,13 +1080,13 @@ bool GillespieDSolverAVX::isTrajectoryOutsideLimitsAVX()
 
         switch (l.type)
         {
-        case EH::NONE: throw Exception("GillespieDSolverAVX tried to check a limit that did not have an associated LimitType"); break;
-        case EH::TIME: throw Exception("GillespieDSolverAVX reached a time limit that was mixed in with the other limits"); break;
+        case TrajLimEnums::NONE: throw Exception("GillespieDSolverAVX tried to check a limit that did not have an associated LimitType"); break;
+        case TrajLimEnums::TIME: throw Exception("GillespieDSolverAVX reached a time limit that was mixed in with the other limits"); break;
 
-        case EH::SPECIES:
+        case TrajLimEnums::SPECIES:
             switch (l.stoppingCondition)
             {
-            case EH::MIN:
+            case TrajLimEnums::MIN:
                 if (l.includeEndpoint)
                 {
                     comp1 = _mm256_cmp_pd(_mm256_load_pd(&speciesCounts[l.valueID * DOUBLES_PER_AVX]), limitValue, _CMP_LE_OQ);
@@ -1098,7 +1098,7 @@ bool GillespieDSolverAVX::isTrajectoryOutsideLimitsAVX()
                     outsideLimitMask = _mm256_movemask_pd(comp1);
                 } 
                 break;
-            case EH::MAX:
+            case TrajLimEnums::MAX:
                 if (l.includeEndpoint)
                 {
                     comp1 = _mm256_cmp_pd(_mm256_load_pd(&speciesCounts[l.valueID*DOUBLES_PER_AVX]), limitValue, _CMP_GE_OQ);
@@ -1110,15 +1110,15 @@ bool GillespieDSolverAVX::isTrajectoryOutsideLimitsAVX()
                     outsideLimitMask = _mm256_movemask_pd(comp1);
                 } 
                 break;
-            case EH::INCREASING: throw Exception("unimplemented"); break;
-            case EH::DECREASING: throw Exception("unimplemented"); break;
+            case TrajLimEnums::INCREASING: throw Exception("unimplemented"); break;
+            case TrajLimEnums::DECREASING: throw Exception("unimplemented"); break;
             } 
             break;
 
-        case EH::ORDER_PARAMETER:
+        case TrajLimEnums::ORDER_PARAMETER:
             switch (l.stoppingCondition)
             {
-            case EH::MIN:
+            case TrajLimEnums::MIN:
                 if (l.includeEndpoint)
                 {
                     comp1 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterValues[l.valueID * DOUBLES_PER_AVX]), limitValue, _CMP_LE_OQ);
@@ -1130,7 +1130,7 @@ bool GillespieDSolverAVX::isTrajectoryOutsideLimitsAVX()
                     outsideLimitMask = _mm256_movemask_pd(comp1);
                 }
                 break;
-            case EH::MAX:
+            case TrajLimEnums::MAX:
                 if (l.includeEndpoint)
                 {
                     comp1 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterValues[l.valueID*DOUBLES_PER_AVX]), limitValue, _CMP_GE_OQ);
@@ -1142,7 +1142,7 @@ bool GillespieDSolverAVX::isTrajectoryOutsideLimitsAVX()
                     outsideLimitMask = _mm256_movemask_pd(comp1);
                 }
                 break;
-            case EH::DECREASING:
+            case TrajLimEnums::DECREASING:
                 if (l.includeEndpoint)
                 {
                     comp1 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterPreviousValues[l.valueID*DOUBLES_PER_AVX]), limitValue, _CMP_GE_OQ);
@@ -1156,7 +1156,7 @@ bool GillespieDSolverAVX::isTrajectoryOutsideLimitsAVX()
                     outsideLimitMask = _mm256_movemask_pd(comp1)&_mm256_movemask_pd(comp2);
                 }
                 break;
-            case EH::INCREASING:
+            case TrajLimEnums::INCREASING:
                 if (l.includeEndpoint)
                 {
                     comp1 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterPreviousValues[l.valueID*DOUBLES_PER_AVX]), limitValue, _CMP_LE_OQ);
@@ -1173,13 +1173,13 @@ bool GillespieDSolverAVX::isTrajectoryOutsideLimitsAVX()
             } 
             break;
 
-        case EH::DEGREE_ADVANCEMENT:
+        case TrajLimEnums::DEGREE_ADVANCEMENT:
             switch (l.stoppingCondition)
             {
-            case EH::MIN: throw Exception("unimplemented"); break;
-            case EH::MAX: throw Exception("unimplemented"); break;
-            case EH::INCREASING: throw Exception("unimplemented"); break;
-            case EH::DECREASING: throw Exception("unimplemented"); break;
+            case TrajLimEnums::MIN: throw Exception("unimplemented"); break;
+            case TrajLimEnums::MAX: throw Exception("unimplemented"); break;
+            case TrajLimEnums::INCREASING: throw Exception("unimplemented"); break;
+            case TrajLimEnums::DECREASING: throw Exception("unimplemented"); break;
             }
             break;
             

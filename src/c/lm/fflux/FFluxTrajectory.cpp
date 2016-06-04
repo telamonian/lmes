@@ -42,6 +42,7 @@
 #include <map>
 #include <string>
 
+#include "lm/EnumHelper.h"
 #include "lm/fflux/FFluxTrajectory.h"
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/ReactionModel.pb.h"
@@ -77,25 +78,25 @@ FFluxTrajectory::~FFluxTrajectory()
 
 bool FFluxTrajectory::fluxedBackward()
 {
-    if (input.getCurrentTiling().getSortOrder()==lm::io::Tilings::ASCENDING)
+    if (input.getCurrentTiling().getSortOrder()==TilingEnums::ASCENDING)
     {
-        return (getLastLimitStoppingCondition()==lm::io::TrajectoryLimits::DECREASING);
+        return (getLastLimitStoppingCondition()==TrajLimEnums::DECREASING);
     }
     else
     {
-        return (getLastLimitStoppingCondition()==lm::io::TrajectoryLimits::INCREASING);
+        return (getLastLimitStoppingCondition()==TrajLimEnums::INCREASING);
     }
 }
 
 bool FFluxTrajectory::fluxedForward()
 {
-    if (input.getCurrentTiling().getSortOrder()==lm::io::Tilings::ASCENDING)
+    if (input.getCurrentTiling().getSortOrder()==TilingEnums::ASCENDING)
     {
-        return (getLastLimitStoppingCondition()==lm::io::TrajectoryLimits::INCREASING);
+        return (getLastLimitStoppingCondition()==TrajLimEnums::INCREASING);
     }
     else
     {
-        return (getLastLimitStoppingCondition()==lm::io::TrajectoryLimits::DECREASING);
+        return (getLastLimitStoppingCondition()==TrajLimEnums::DECREASING);
     }
 }
 
@@ -105,7 +106,7 @@ uint FFluxTrajectory::getFFluxPhase()
     return ffluxPhase;
 }
 
-io::TrajectoryLimits::StoppingCondition FFluxTrajectory::getLastLimitStoppingCondition()
+TrajLimEnums::StoppingCondition FFluxTrajectory::getLastLimitStoppingCondition()
 {
     return getState().limit_reached().stopping_condition();
 }

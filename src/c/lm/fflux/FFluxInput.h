@@ -56,6 +56,7 @@
 #include "lm/option/SimulationParameters.h"
 #include "lm/tiling/Tilings.h"
 #include "lm/trajectory/TrajectoryLimits.h"
+#include "lm/Types.h"
 
 namespace lm {
 namespace fflux {
@@ -66,9 +67,25 @@ public:
     FFluxInput(const lm::io::hdf5::Hdf5File& file);
     virtual ~FFluxInput();
 
-    std::vector<double> timeLimits;
-    std::vector<uint64_t> sucessfulTrajectoryCountLimits;
-    std::vector<uint64_t> trajectoryCountLimits;
+protected:
+    optional double precision_goal = 1;
+
+    /*
+     * - confidence level that is associated with the precision goal
+     */
+    optional double precision_goal_confidence = 2 [default=0.95];
+
+    /*
+     * - Stopping conditions for each forward flux phase. Can be specified one of two ways (an error will be raised if more than one way is used)
+     *     - (default) If precisionGoal is specified, the phase limits are determined automatically
+     *     - A list of phase limits of length equal to the total number of phases in the simulation (ie the number of interfaces in all the tilings used)
+     */
+    repeated lm.io.FFluxPhaseLimits fflux_phase_limits = 3;
+
+    /*
+     * - if true, after performing the forward simulation on each tiling, flip the tiling around and run the simulation again in order to perform the reverse simulation as well
+     */
+    optional bool do_reverse_simulations = 4 [default=false];
 
 
 };

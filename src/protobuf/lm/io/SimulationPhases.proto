@@ -4,8 +4,8 @@
  * All rights reserved.
  *
  * Developed by: Roberts Group
- *               Johns Hopkins University
- *               http://biophysics.jhu.edu/roberts/
+ *                  Johns Hopkins University
+ *                  http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -39,34 +39,24 @@
 
 package lm.io;
 
-message TrajectoryLimit {
-    enum LimitType {
-        NONE=0;
-        TIME=1;
-        SPECIES=2;
-        ORDER_PARAMETER=3;
-        DEGREE_ADVANCEMENT=4;
+import "lm/io/OutputOptions.proto";
+import "lm/io/TrajectoryLimits.proto";
+import "lm/io/TrajectoryState.proto";
+
+message SimulationPhase {
+    enum TrajectorySource {
+        TRAJECTORY_STATES=0;
+        PREVIOUS_PHASE=1;
     }
 
-    enum StoppingCondition {
-        MIN=0;
-        MAX=1;
-        DECREASING=2;
-        INCREASING=3;
-    }
+    optional TrajectorySource trajectory_source      = 1 [default=TRAJECTORY_STATES];
+    repeated lm.io.TrajectoryState trajectory_states = 2;
 
-    required LimitType limit_type                   = 1;
-    required StoppingCondition stopping_condition   = 2;
-    optional int32 id                               = 3 [default=-2];
-    optional bool include_endpoint                  = 4 [default=true];
+    optional lm.io.TrajectoryLimits trajectory_limits = 3;
 
-    optional uint32 value_id                        = 5;
-    optional double dvalue                          = 6 [default=0.0];
-    optional int32 ivalue                           = 7 [default=0];
-    optional uint64 uvalue                          = 8 [default=0];
+    optional lm.io.OutputOptions output_options      = 4;
 }
 
-message TrajectoryLimits {
-    repeated TrajectoryLimit trajectory_limits          = 1;
-    optional TrajectoryLimit time_limit                 = 2;
+message SimulationPhases {
+    repeated SimulationPhase simulation_phases = 1;
 }

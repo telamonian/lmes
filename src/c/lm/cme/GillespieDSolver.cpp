@@ -237,7 +237,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         {
             status = lm::message::WorkUnitStatus::LIMIT_REACHED;
             limitIDReached = lm::trajectory::TrajectoryLimits::TIME_LIMIT_ID;
-            limitTypeReached = lm::io::TrajectoryLimits::TIME;
+            limitTypeReached = lm::io::TrajectoryLimit::TIME;
             break;
         }
 
@@ -301,7 +301,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
                 time = timeLimit;
                 status = lm::message::WorkUnitStatus::LIMIT_REACHED;
                 limitIDReached = lm::trajectory::TrajectoryLimits::TIME_LIMIT_ID;
-                limitTypeReached = lm::io::TrajectoryLimits::TIME;
+                limitTypeReached = lm::io::TrajectoryLimit::TIME;
             }
 
             // Otherwise, zero propensity is an error.
@@ -329,7 +329,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     }
 
     // If we finished the total time, write out the remaining time steps.
-    else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && limitTypeReached == lm::io::TrajectoryLimits::TIME)
+    else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && limitTypeReached == lm::io::TrajectoryLimit::TIME)
     {
         time = timeLimit;
         Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);

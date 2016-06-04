@@ -53,21 +53,21 @@ class Tiling
 {
 public:
 // typedefs
-    typedef lm::io::TrajectoryLimits::TrajectoryLimit TrajectoryLimitBuf;
+    typedef lm::io::TrajectoryLimit TrajectoryLimitBuf;
 
 // initializers
     Tiling();
     virtual ~Tiling();
-    virtual void init(const lm::io::Tilings::Tiling& tilingRef);
+    virtual void init(const lm::io::Tiling& tilingRef);
 
 // accessors
-    TrajectoryLimitBuf* addLimitBuf(lm::trajectory::TrajectoryLimits& tls, uint edgeIndex, EH::StoppingCondition stoppingCondition,
-                                    bool rightOpenBins = true, int32_t limitID=lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID) const;
+    TrajectoryLimitBuf* addLimitBuf(lm::trajectory::TrajectoryLimits& tls, uint edgeIndex, TrajLimEnums::StoppingCondition stoppingCondition,
+                                    bool rightOpenBins=true, int32_t limitID=lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID) const;
 //    double getAscendingLimit(uint edgeIndex);
 //    double getDescendingLimit(uint edgeIndex);
     EdgeIterator begin() const {return tilingBuf->edges().begin();}
     EdgeIterator end() const {return tilingBuf->edges().end();}
-    io::Tilings::SortOrder getSortOrder() const;
+    TilingEnums::SortOrder getSortOrder() const;
     uint64_t getDim(uint dimIndex) const {return tilingBuf->dims(dimIndex);}
     double getEdge(uint edgeIndex) const {return tilingBuf->edges(edgeIndex);}
     int getEdgesCount() const {return tilingBuf->edges_size();}
@@ -80,11 +80,11 @@ public:
 
 // mutators
     void reverse();
-    void setSortOrder(io::Tilings::SortOrder sortOrder);
+    void setSortOrder(TilingEnums::SortOrder sortOrder);
     void setOrderParameterID(uint opID) {tilingBuf->set_order_parameter_id(opID);}
 
 protected:
-    lm::io::Tilings::Tiling* tilingBuf;
+    lm::io::Tiling* tilingBuf;
 };
 
 class TilingLattice : public Tiling
@@ -96,7 +96,7 @@ public:
 
     TilingLattice();
     virtual ~TilingLattice() {}
-    virtual void init(const lm::io::Tilings::Tiling& tilingRef);
+    virtual void init(const lm::io::Tiling& tilingRef);
 };
 
 }

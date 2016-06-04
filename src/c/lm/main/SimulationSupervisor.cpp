@@ -80,8 +80,8 @@ int SimulationSupervisor::getRecvSleepMilliseconds()
 
 SimulationSupervisor::SimulationSupervisor()
 :communicator(lm::MPI::worldRank,THREAD_ID),hasCheckpointSignalerStarted(false),hasOutputWriterStarted(false),haveAllWorkUnitRunnersStarted(false),
- input(NULL),outputWriterClassName(""),outputWriterProcess(-1),outputWriterThread(-1),performingCheckpoint(false),resourceMap(NULL),
- simulationInputFilename(""),simulationOutputFilename(""),simulationPhase(0),simulationRunning(true),slots(&communicator),
+ holdoverTrajectoryList(NULL),input(NULL),outputWriterClassName(""),outputWriterProcess(-1),outputWriterThread(-1),performingCheckpoint(false),
+ resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),simulationPhase(0),simulationRunning(true),slots(&communicator),
  solverClassName(""),trajectoryList(NULL),useCPUAffinity(false),workUnitCount(0)
 {
     resetPerformanceStatistics();
@@ -326,9 +326,9 @@ void SimulationSupervisor::startSimulationPhase()
     buildTrajectoryList();
 
     // Assign the first batch of work.
-    if (assignWork())
+    if (isPhaseDone() || assignWork())
     {
-        // If assign work returned true, there was nothing to be done.
+        // If .isPhaseDone() or .assignWork() returned true, there was nothing to be done.
         Print::printf(Print::INFO, "No work to be performed.");
         finishSimulationPhase();
     }
@@ -377,7 +377,7 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
     if (!performingCheckpoint)
     {
         // Fill the newly freed slot with a work unit. If there are more trajectories than slots, this is guaranteed to use the slot we just freed. Otherwise it will be the "coldest" (longest unoccupied) slot
-        if (assignWork())
+        if (isPhaseDone() || assignWork())
         {
             finishSimulationPhase();
         }
@@ -393,6 +393,12 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
         lm::message::PerformCheckpointing* msg = msgp.mutable_perform_checkpointing();
         communicator.sendMessage(outputWriterProcess, outputWriterThread, &msgp);
     }
+}
+
+//.isPhaseDone() serves as a hook for more complex phase-ending behavior in subclassed Supervisors
+bool SimulationSupervisor::isPhaseDone()
+{
+    return false;
 }
 
 bool SimulationSupervisor::assignWork()
@@ -473,12 +479,13 @@ void SimulationSupervisor::buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, 
 
 void SimulationSupervisor::finishSimulationPhase()
 {
-    // If we need to perform another phase, do so, otherwsise stop th simulation.
+    // If we need to perform another phase, do so, otherwise stop the simulation.
     if (performAnotherSimulationPhase())
     {
-        // destroying the trajectory list causes problems, may be unneccessary
+        // destroying the trajectory list causes problems, may be unnecessary
 //        // Delete the list of trajectories.
 //        destroyTrajectoryList();
+
         incrementSimulationPhase();
         startSimulationPhase();
     }
@@ -542,7 +549,7 @@ void SimulationSupervisor::receivedFinishedCheckpointing(const lm::message::Fini
     performingCheckpoint = false;
 
     // Resume distribution of work.
-    if (assignWork())
+    if (isPhaseDone() || assignWork())
     {
         Print::printf(Print::INFO, "Simulation finished.");
         finishSimulation();

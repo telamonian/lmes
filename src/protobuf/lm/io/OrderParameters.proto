@@ -39,14 +39,13 @@
 
 package lm.io;
 
+message OrderParameter {
+    required uint32 type                     = 1;
+    required uint32 id                       = 2;
+    repeated uint32 species_ids              = 3 [packed=true];
+    repeated double species_coefficients     = 4 [packed=true];
+}
+
 message OrderParameters {
-
-    message OrderParameter {
-        required uint32 type                     = 1;
-        required uint32 id                       = 2;
-        repeated uint32 species_ids              = 3 [packed=true];
-        repeated double species_coefficients     = 4 [packed=true];
-    }
-
     repeated OrderParameter order_parameters     = 1;
 }

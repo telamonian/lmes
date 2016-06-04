@@ -122,17 +122,17 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         // See if we have a max time limit.
         if (simulationParameters.count("maxTime"))
         {
-            trajectoryLimits.addLimitBuf<EH::TIME>(0, simulationParameters.parse<double>("maxTime"), EH::MAX);
+            trajectoryLimits.addLimitBuf<TrajLimEnums::TIME>(0, simulationParameters.parse<double>("maxTime"), TrajLimEnums::MAX);
             trajectoryLimitsPresent = true;
         }
 
         // set the other limits, if present in the simulation parameters
-        trajectoryLimitsPresent = degreeAdvancementPresent = parseLimits<EH::DEGREE_ADVANCEMENT>("degreeAdvancementLowerLimitList", "degree advancement lower limit", EH::MIN);
-        trajectoryLimitsPresent = degreeAdvancementPresent = parseLimits<EH::DEGREE_ADVANCEMENT>("degreeAdvancementUpperLimitList", "degree advancement upper limit", EH::MAX);
-        trajectoryLimitsPresent = parseLimits<EH::ORDER_PARAMETER>("orderParameterLowerLimitList", "order parameter lower limit", EH::MIN);
-        trajectoryLimitsPresent = parseLimits<EH::ORDER_PARAMETER>("orderParameterUpperLimitList", "order parameter upper limit", EH::MAX);
-        trajectoryLimitsPresent = parseLimits<EH::SPECIES>("speciesLowerLimitList", "species lower limit", EH::MIN);
-        trajectoryLimitsPresent = parseLimits<EH::SPECIES>("speciesUpperLimitList", "species upper limit", EH::MAX);
+        trajectoryLimitsPresent = degreeAdvancementPresent = parseLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementLowerLimitList", "degree advancement lower limit", TrajLimEnums::MIN);
+        trajectoryLimitsPresent = degreeAdvancementPresent = parseLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementUpperLimitList", "degree advancement upper limit", TrajLimEnums::MAX);
+        trajectoryLimitsPresent = parseLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterLowerLimitList", "order parameter lower limit", TrajLimEnums::MIN);
+        trajectoryLimitsPresent = parseLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterUpperLimitList", "order parameter upper limit", TrajLimEnums::MAX);
+        trajectoryLimitsPresent = parseLimits<TrajLimEnums::SPECIES>("speciesLowerLimitList", "species lower limit", TrajLimEnums::MIN);
+        trajectoryLimitsPresent = parseLimits<TrajLimEnums::SPECIES>("speciesUpperLimitList", "species upper limit", TrajLimEnums::MAX);
     }
 
     // Get the output options.
@@ -329,7 +329,7 @@ bool Input::parseBoundaryConditions(lm::io::BoundaryConditions* bc, string arg)
     return bc->axis_specific_boundaries();
 }
 
-template <EH::LimitType LT> bool Input::parseLimits(string key, string debugString, EH::StoppingCondition sc, bool includeEndpoint)
+template <TrajLimEnums::LimitType LT> bool Input::parseLimits(string key, string debugString, TrajLimEnums::StoppingCondition sc, bool includeEndpoint)
 {
     if (simulationParameters.count(key))
     {

@@ -75,7 +75,7 @@ protected:
 };
 
 // The type definition for a function to create the propensity function.
-typedef OrderParameterFunction* (*OrderParameterFunctionCreator)(const lm::io::OrderParameters::OrderParameter& msg);
+typedef OrderParameterFunction* (*OrderParameterFunctionCreator)(const lm::io::OrderParameter& msg);
 
 struct OrderParameterFunctionDefinition
 {
@@ -91,7 +91,7 @@ class OrderParameterFunctionFactory
 public:
     OrderParameterFunctionFactory();
     ~OrderParameterFunctionFactory();
-    OrderParameterFunction* createOrderParameterFunction(const lm::io::OrderParameters::OrderParameter& msg);
+    OrderParameterFunction* createOrderParameterFunction(const lm::io::OrderParameter& msg);
 
 private:
     map<uint,OrderParameterFunctionDefinition> functions;

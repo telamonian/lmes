@@ -54,9 +54,9 @@ OParam::~OParam()
     if (op!=NULL) delete op; op = NULL;
 }
 
-void OParam::init(const lm::io::OrderParameters::OrderParameter& opRef)
+void OParam::init(const lm::io::OrderParameter& opRef)
 {
-    op = new lm::io::OrderParameters::OrderParameter(opRef);
+    op = new lm::io::OrderParameter(opRef);
 }
 
 void OParam::initValues(uint* speciesCounts, double time)
@@ -95,7 +95,7 @@ void* OParamLinear::allocateObject()
 
 OParamLinear::OParamLinear(): OParam(), size(), speciesID(), speciesCoefficient() {}
 
-void OParamLinear::init(const lm::io::OrderParameters::OrderParameter& opRef)
+void OParamLinear::init(const lm::io::OrderParameter& opRef)
 {
     // call parent method
     OParam::init(opRef);
@@ -127,7 +127,7 @@ void* OParamTwoSpecies::allocateObject()
 
 OParamTwoSpecies::OParamTwoSpecies(): OParam() {}
 
-void OParamTwoSpecies::init(const lm::io::OrderParameters::OrderParameter& opRef)
+void OParamTwoSpecies::init(const lm::io::OrderParameter& opRef)
 {
     // call parent method
     OParam::init(opRef);

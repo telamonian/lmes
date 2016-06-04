@@ -51,18 +51,19 @@
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/option/SimulationParameters.h"
 #include "lm/protowrap/Repeated.h"
+//#include "lm/tiling/Tiling.h"
 #include "lm/Types.h"
 
 namespace lm {
 namespace trajectory {
 
 typedef lm::io::TrajectoryLimits TrajectoryLimitsBuf;
-typedef lm::io::TrajectoryLimits::TrajectoryLimit TrajectoryLimitBuf;
+typedef lm::io::TrajectoryLimit TrajectoryLimitBuf;
 
 struct TrajectoryLimit
 {
-    EH::LimitType type;
-    EH::StoppingCondition stoppingCondition;
+    TrajLimEnums::LimitType type;
+    TrajLimEnums::StoppingCondition stoppingCondition;
     bool includeEndpoint;
     int32_t limitID;
 
@@ -73,12 +74,12 @@ struct TrajectoryLimit
 };
 
 // main template for LimitType->ValueType type generator
-template <EH::LimitType LT> struct LimitValueT;
+template <TrajLimEnums::LimitType LT> struct LimitValueT;
 // NB: if any new LimitType enum values are added in the future, add a template specialization below
-template <> struct LimitValueT<EH::TIME> {typedef double type;};
-template <> struct LimitValueT<EH::DEGREE_ADVANCEMENT> {typedef uint64_t type;};
-template <> struct LimitValueT<EH::ORDER_PARAMETER> {typedef double type;};
-template <> struct LimitValueT<EH::SPECIES> {typedef int32_t type;};
+template <> struct LimitValueT<TrajLimEnums::TIME> {typedef double type;};
+template <> struct LimitValueT<TrajLimEnums::DEGREE_ADVANCEMENT> {typedef uint64_t type;};
+template <> struct LimitValueT<TrajLimEnums::ORDER_PARAMETER> {typedef double type;};
+template <> struct LimitValueT<TrajLimEnums::SPECIES> {typedef int32_t type;};
 
 template <typename ValueT, typename ContainerT> inline ValueT _getLimitValue(const ContainerT& tl);
 template <> inline double _getLimitValue<double, TrajectoryLimitBuf>(const TrajectoryLimitBuf& tl) {return tl.dvalue();}
@@ -87,7 +88,7 @@ template <> inline uint64_t _getLimitValue<uint64_t, TrajectoryLimitBuf>(const T
 template <> inline double _getLimitValue<double, TrajectoryLimit>(const TrajectoryLimit& tl) {return tl.dvalue;}
 template <> inline int32_t _getLimitValue<int32_t, TrajectoryLimit>(const TrajectoryLimit& tl) {return tl.ivalue;}
 template <> inline uint64_t _getLimitValue<uint64_t, TrajectoryLimit>(const TrajectoryLimit& tl) {return tl.uvalue;}
-template <EH::LimitType LT, typename ContainerT> inline typename LimitValueT<LT>::type getLimitValue(const ContainerT& tl) {return _getLimitValue<typename LimitValueT<LT>::type, ContainerT>(tl);}
+template <TrajLimEnums::LimitType LT, typename ContainerT> inline typename LimitValueT<LT>::type getLimitValue(const ContainerT& tl) {return _getLimitValue<typename LimitValueT<LT>::type, ContainerT>(tl);}
 
 template <typename ContainerT, typename ValueT> inline void setLimitValue(ContainerT& tl, ValueT val);
 template <> inline void setLimitValue<TrajectoryLimitBuf, double>(TrajectoryLimitBuf& tl, double val) {tl.set_dvalue(val);}
@@ -118,21 +119,21 @@ public:
 
 // accessors
     repeatedType::const_iterator findBuf(int32_t id) const;
-    repeatedType::const_iterator findBuf(EH::LimitType lt) const;
+    repeatedType::const_iterator findBuf(TrajLimEnums::LimitType lt) const;
     const TrajectoryLimitBuf& getTimeBuf() const {return _buf.time_limit();}
     double getTimeLimitValue() const {return _buf.has_time_limit() ? _buf.time_limit().dvalue() : std::numeric_limits<double>::infinity();}
-    bool hasDegreeAdvancementLimit() const {return (findBuf(EH::DEGREE_ADVANCEMENT)!=repeated().end());}
+    bool hasDegreeAdvancementLimit() const {return (findBuf(TrajLimEnums::DEGREE_ADVANCEMENT)!=repeated().end());}
 
     const TrajectoryLimitsBuf& buf() const {return _buf;}
     const repeatedType& repeated() const {return _repeated;}
     const vectorType& vec() const {return _vec;}
 
 // mutators
-    template <EH::LimitType LT>
-    inline TrajectoryLimitBuf* addLimitBuf(uint32_t valID, typename LimitValueT<LT>::type val, EH::StoppingCondition sc, bool includeEndpoint=true, int32_t id=DEFAULT_LIMIT_ID)
+    // general addLimitBuf
+    template <TrajLimEnums::LimitType LT> inline TrajectoryLimitBuf* addLimitBuf(uint32_t valID, typename LimitValueT<LT>::type val, TrajLimEnums::StoppingCondition sc, bool includeEndpoint=true, int32_t id=DEFAULT_LIMIT_ID)
     {
-        lm::io::TrajectoryLimits::TrajectoryLimit* tlBuf;
-        if (LT==lm::io::TrajectoryLimits::TIME)
+        lm::io::TrajectoryLimit* tlBuf;
+        if (LT==TrajLimEnums::TIME)
         {
             tlBuf = _buf.mutable_time_limit();
             // for now, the expected behavior is that the id of the time limit will default to -1
@@ -154,6 +155,9 @@ public:
 
         return tlBuf;
     }
+
+//    // addLimitBuf version for tilings. note that the boundary condition is specified differently from the vanilla addLimitBuf (rightOpenBins vs includeEndpoints)
+//    TrajectoryLimitBuf* addLimitBufFromTiling(lm::tiling::Tiling& tiling, uint edgeIndex, TrajLimEnums::StoppingCondition sc, bool rightOpenBins=true, int32_t limitID=DEFAULT_LIMIT_ID);
 
     void clear(bool resetNextID=true) {_buf.Clear(); _vec.clear(); seatRepeated(); if (resetNextID) nextID=0;}
     void seatRepeated(TrajectoryLimitsBuf& inBuf) {_repeated.setRepFieldPtr(inBuf.mutable_trajectory_limits());}

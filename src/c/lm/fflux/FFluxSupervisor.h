@@ -79,7 +79,7 @@ protected:
     virtual void receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg);
     virtual void resetFFluxPhase();
 //    virtual void setLimits();
-    virtual void setTrajectoryList(lm::fflux::FFluxTrajectoryList* newTrajectoryList);
+    virtual void setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList);
     virtual void startSimulation();
 
 protected:

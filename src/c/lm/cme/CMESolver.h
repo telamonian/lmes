@@ -338,7 +338,7 @@ protected:
     TrajectoryLimit* limits;
     TrajectoryLimit* limitReached;
     int32_t limitIDReached;
-    lm::io::TrajectoryLimits::LimitType limitTypeReached;
+    lm::io::TrajectoryLimit::LimitType limitTypeReached;
 
     // Output options.
     bool writeDegreeAdvancementTimeSeries, writeOrderParameterTimeSeries, writeSpeciesTimeSeries;

@@ -52,7 +52,7 @@ class OParam
 public:
     OParam();
     virtual ~OParam();
-    virtual void init(const lm::io::OrderParameters::OrderParameter& opRef);
+    virtual void init(const lm::io::OrderParameter& opRef);
     virtual void initValues(uint* speciesCounts, double time);
     virtual double calc(const uint* speciesCounts, double time) const = 0;
     virtual double calc(const lm::io::TrajectoryState& state) const;
@@ -62,7 +62,7 @@ public:
     void set(double newVal) {val = newVal;}
 
 protected:
-    lm::io::OrderParameters::OrderParameter* op;
+    lm::io::OrderParameter* op;
     double val;
     double prevVal;
 };
@@ -76,7 +76,7 @@ public:
 
     OParamLinear();
     virtual ~OParamLinear() {}
-    virtual void init(const lm::io::OrderParameters::OrderParameter& opRef);
+    virtual void init(const lm::io::OrderParameter& opRef);
     virtual double calc(const uint* speciesCounts, double time) const;
 public:
     uint size;
@@ -93,7 +93,7 @@ public:
 
     OParamTwoSpecies();
     virtual ~OParamTwoSpecies() {}
-    virtual void init(const lm::io::OrderParameters::OrderParameter& opRef);
+    virtual void init(const lm::io::OrderParameter& opRef);
     virtual double calc(const uint* speciesCounts, double time) const;
 public:
     uint s1, s2;

@@ -99,7 +99,7 @@ void Tilings::init()
     for (TilingIterator t_it=getTilingsBuf()->tilings().begin();t_it!=getTilingsBuf()->tilings().end();++t_it) initTiling(*t_it);
 }
 
-void Tilings::initTiling(const lm::io::Tilings::Tiling& tiling)
+void Tilings::initTiling(const lm::io::Tiling& tiling)
 {
     tilingMap[tiling.id()] = (static_cast<lm::tiling::Tiling*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::tiling::Tiling",lm::tiling::Tilings::tilingClassMap[tiling.type()])));
     tilingMap[tiling.id()]->init(tiling);

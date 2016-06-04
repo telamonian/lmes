@@ -89,7 +89,7 @@ namespace cme {
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
 :neededDists(neededDists),rng(NULL),reactionModel(NULL),hasUpdateSpeciesCountsListeners(false),tilings(NULL),numberOrderParameters(0),
  orderParameterFunctions(NULL),status(lm::message::WorkUnitStatus::NONE),timeLimit(std::numeric_limits<double>::infinity()),
- numberLimits(0),limits(NULL),limitReached(NULL),limitIDReached(lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID),limitTypeReached(lm::io::TrajectoryLimits::NONE),
+ numberLimits(0),limits(NULL),limitReached(NULL),limitIDReached(lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID),limitTypeReached(lm::io::TrajectoryLimit::NONE),
  writeDegreeAdvancementTimeSeries(false),writeOrderParameterTimeSeries(false),writeSpeciesTimeSeries(false),
  degreeAdvancementWriteInterval(0.0), orderParameterWriteInterval(0.0),speciesWriteInterval(0.0),numberFptTrackedSpecies(0),
  numberFptTrackedOrderParameters(0),fptTrackedSpecies(NULL),fptTrackedOrderParameters(NULL),trajectoryStarted(false),speciesCounts(NULL),
@@ -235,7 +235,7 @@ void CMESolver::reset()
 
     // Reset the limits reached.
     limitIDReached = lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID;
-    limitTypeReached = lm::io::TrajectoryLimits::NONE;
+    limitTypeReached = lm::io::TrajectoryLimit::NONE;
 
     // Reset the order parameters.
     for (size_t i=0; i<numberOrderParameters; i++)
@@ -293,11 +293,11 @@ void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
     }
 
     // Get the limit reached during the simulation.
-    if (limitTypeReached==lm::io::TrajectoryLimits::TIME)
+    if (limitTypeReached==lm::io::TrajectoryLimit::TIME)
     {
         state->mutable_limit_reached()->CopyFrom(trajectoryLimits.getTimeBuf());
     }
-    else if (limitTypeReached!=lm::io::TrajectoryLimits::NONE)
+    else if (limitTypeReached!=lm::io::TrajectoryLimit::NONE)
     {
         state->mutable_limit_reached()->CopyFrom(*trajectoryLimits.findBuf(limitIDReached));
     }
@@ -585,13 +585,13 @@ bool CMESolver::isTrajectoryOutsideLimits()
         
         switch (l.type)
         {
-        case EH::NONE: throw Exception("CMESolver tried to check a limit that did not have an associated LimitType"); break;
-        case EH::TIME: throw Exception("CMESolver reached a time limit that was mixed in with the other limits"); break;
+        case TrajLimEnums::NONE: throw Exception("CMESolver tried to check a limit that did not have an associated LimitType"); break;
+        case TrajLimEnums::TIME: throw Exception("CMESolver reached a time limit that was mixed in with the other limits"); break;
 
-        case EH::SPECIES:
+        case TrajLimEnums::SPECIES:
             switch (l.stoppingCondition)
             {
-            case EH::MIN:
+            case TrajLimEnums::MIN:
                 if (l.includeEndpoint)
                 {
                     check_limit_MIN_true(speciesCounts[l.valueID], l.ivalue, limitReached)
@@ -601,7 +601,7 @@ bool CMESolver::isTrajectoryOutsideLimits()
                     check_limit_MIN_false(speciesCounts[l.valueID], l.ivalue, limitReached)
                 }
                 break;
-            case EH::MAX:
+            case TrajLimEnums::MAX:
                 if (l.includeEndpoint)
                 {
                     check_limit_MAX_true(speciesCounts[l.valueID], l.ivalue, limitReached)
@@ -611,14 +611,14 @@ bool CMESolver::isTrajectoryOutsideLimits()
                     check_limit_MAX_false(speciesCounts[l.valueID], l.ivalue, limitReached)
                 }
                 break;
-            case EH::INCREASING: throw Exception("unimplemented"); break;
-            case EH::DECREASING: throw Exception("unimplemented"); break;
+            case TrajLimEnums::INCREASING: throw Exception("unimplemented"); break;
+            case TrajLimEnums::DECREASING: throw Exception("unimplemented"); break;
             } break;
 
-        case EH::ORDER_PARAMETER:
+        case TrajLimEnums::ORDER_PARAMETER:
             switch (l.stoppingCondition)
             {
-            case EH::MIN:
+            case TrajLimEnums::MIN:
                 if (l.includeEndpoint)
                 {
                     check_limit_MIN_true(orderParameterValues[l.valueID], l.dvalue, limitReached)
@@ -628,7 +628,7 @@ bool CMESolver::isTrajectoryOutsideLimits()
                     check_limit_MIN_false(orderParameterValues[l.valueID], l.dvalue, limitReached)
                 }
                 break;
-            case EH::MAX:
+            case TrajLimEnums::MAX:
                 if (l.includeEndpoint)
                 {
                     check_limit_MAX_true(orderParameterValues[l.valueID], l.dvalue, limitReached)
@@ -638,7 +638,7 @@ bool CMESolver::isTrajectoryOutsideLimits()
                     check_limit_MAX_false(orderParameterValues[l.valueID], l.dvalue, limitReached)
                 }
                 break;
-            case EH::DECREASING:
+            case TrajLimEnums::DECREASING:
                 if (l.includeEndpoint)
                 {
                     check_limit_DECREASING_true(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue, limitReached)
@@ -648,7 +648,7 @@ bool CMESolver::isTrajectoryOutsideLimits()
                     check_limit_DECREASING_false(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue, limitReached)
                 }
                 break;
-            case EH::INCREASING:
+            case TrajLimEnums::INCREASING:
                 if (l.includeEndpoint)
                 {
                     check_limit_INCREASING_true(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue, limitReached)
@@ -661,10 +661,10 @@ bool CMESolver::isTrajectoryOutsideLimits()
             }
             break;
 
-        case EH::DEGREE_ADVANCEMENT:
+        case TrajLimEnums::DEGREE_ADVANCEMENT:
             switch (l.stoppingCondition)
             {
-            case EH::MIN:
+            case TrajLimEnums::MIN:
                 if (l.includeEndpoint)
                 {
                     check_limit_MIN_true(degreeAdvancements[l.valueID], l.uvalue, limitReached)
@@ -674,7 +674,7 @@ bool CMESolver::isTrajectoryOutsideLimits()
                     check_limit_MIN_false(degreeAdvancements[l.valueID], l.uvalue, limitReached)
                 }
                 break;
-            case EH::MAX:
+            case TrajLimEnums::MAX:
                 if (l.includeEndpoint)
                 {
                     check_limit_MAX_true(degreeAdvancements[l.valueID], l.uvalue, limitReached)
@@ -684,8 +684,8 @@ bool CMESolver::isTrajectoryOutsideLimits()
                     check_limit_MAX_false(degreeAdvancements[l.valueID], l.uvalue, limitReached)
                 }
                 break;
-            case EH::INCREASING: throw Exception("unimplemented"); break;
-            case EH::DECREASING: throw Exception("unimplemented"); break;
+            case TrajLimEnums::INCREASING: throw Exception("unimplemented"); break;
+            case TrajLimEnums::DECREASING: throw Exception("unimplemented"); break;
             }
             break;
 

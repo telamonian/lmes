@@ -70,7 +70,7 @@ public:
     virtual uint64_t getID() const;
     virtual std::vector<double> getLastOrderParameterValues() const;
     virtual std::vector<int32_t> getLastSpeciesCounts() const;
-    virtual const lm::io::TrajectoryLimits::TrajectoryLimit& getLimitReached() const;
+    virtual const lm::io::TrajectoryLimit& getLimitReached() const;
     virtual const lm::io::OrderParametersValues& getOrderParameterValues() const;
     virtual uint64_t getSimulationPhase() const;
     virtual int32_t getSimSteps() const;
@@ -88,7 +88,7 @@ public:
     virtual void incrementWorkUnitsPerformed();
     virtual void resetSimTime();
     virtual void setID(uint64_t trajectoryID);
-    virtual void setLimitReached(const lm::io::TrajectoryLimits::TrajectoryLimit& limitBuf);
+    virtual void setLimitReached(const lm::io::TrajectoryLimit& limitBuf);
     virtual void setState(const lm::io::TrajectoryState& newState);
     virtual void setStatus(status_t newStatus);
 

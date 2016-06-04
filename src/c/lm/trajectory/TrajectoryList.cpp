@@ -253,6 +253,7 @@ TrajectoryMap* TrajectoryList::mutableTrajectoryMapFromStatus(Trajectory::status
     {
     case Trajectory::ABORTED: return &abortedTrajectories;
     case Trajectory::FINISHED: return &finishedTrajectories;
+    case Trajectory::NOT_STARTED: throw Exception("unimplemented");
     case Trajectory::RUNNING: return &runningTrajectories;
     case Trajectory::WAITING: return &waitingTrajectories;
     }

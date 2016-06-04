@@ -262,7 +262,7 @@ vector<int32_t> Trajectory::getLastSpeciesCounts() const
     return vector<int32_t>(speciesCounts.species_count().begin()+offset, speciesCounts.species_count().end());
 }
 
-const lm::io::TrajectoryLimits::TrajectoryLimit& Trajectory::getLimitReached() const
+const lm::io::TrajectoryLimit& Trajectory::getLimitReached() const
 {
     return state.limit_reached();
 }
@@ -362,7 +362,7 @@ void Trajectory::setID(uint64_t newID)
     if (state.mutable_cme_state()->has_order_parameter_values()) state.mutable_cme_state()->mutable_order_parameter_values()->set_trajectory_id(newID);
 }
 
-void Trajectory::setLimitReached(const lm::io::TrajectoryLimits::TrajectoryLimit& limitBuf)
+void Trajectory::setLimitReached(const lm::io::TrajectoryLimit& limitBuf)
 {
     state.mutable_limit_reached()->CopyFrom(limitBuf);
 }

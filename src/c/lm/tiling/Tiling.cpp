@@ -59,24 +59,24 @@ Tiling::~Tiling()
     if (tilingBuf!=NULL) delete tilingBuf; tilingBuf = NULL;
 }
 
-void Tiling::init(const lm::io::Tilings::Tiling& tilingRef)
+void Tiling::init(const lm::io::Tiling& tilingRef)
 {
-    tilingBuf = new lm::io::Tilings::Tiling(tilingRef);
+    tilingBuf = new lm::io::Tiling(tilingRef);
     setSortOrder(tilingBuf->sort_order(0));
 }
 
 // flips the stopping condition of the added limits around depending on whether the tiling's edges currently sort ascending or descending
-Tiling::TrajectoryLimitBuf* Tiling::addLimitBuf(lm::trajectory::TrajectoryLimits& tls, uint edgeIndex, EH::StoppingCondition stoppingCondition, bool rightOpenBins, int32_t limitID) const
+Tiling::TrajectoryLimitBuf* Tiling::addLimitBuf(lm::trajectory::TrajectoryLimits& tls, uint edgeIndex, TrajLimEnums::StoppingCondition stoppingCondition, bool rightOpenBins, int32_t limitID) const
 {
     // if the tiling sorts descending, flip the stopping condition around
-    if (getSortOrder()==EH::DESCENDING)
+    if (getSortOrder()==TilingEnums::DESCENDING)
     {
         switch (stoppingCondition)
         {
-        case EH::MIN: stoppingCondition = EH::MAX; break;
-        case EH::MAX: stoppingCondition = EH::MIN; break;
-        case EH::DECREASING: stoppingCondition = EH::INCREASING; break;
-        case EH::INCREASING: stoppingCondition = EH::DECREASING; break;
+        case TrajLimEnums::MIN: stoppingCondition = TrajLimEnums::MAX; break;
+        case TrajLimEnums::MAX: stoppingCondition = TrajLimEnums::MIN; break;
+        case TrajLimEnums::DECREASING: stoppingCondition = TrajLimEnums::INCREASING; break;
+        case TrajLimEnums::INCREASING: stoppingCondition = TrajLimEnums::DECREASING; break;
         default: break;
         }
     }
@@ -85,22 +85,22 @@ Tiling::TrajectoryLimitBuf* Tiling::addLimitBuf(lm::trajectory::TrajectoryLimits
     bool includeEndpoint;
     switch (stoppingCondition)
     {
-    case EH::MIN: includeEndpoint = rightOpenBins; break;
-    case EH::MAX: includeEndpoint = !rightOpenBins; break;
-    case EH::DECREASING: includeEndpoint = rightOpenBins; break;
-    case EH::INCREASING: includeEndpoint = !rightOpenBins; break;
+    case TrajLimEnums::MIN: includeEndpoint = rightOpenBins; break;
+    case TrajLimEnums::MAX: includeEndpoint = !rightOpenBins; break;
+    case TrajLimEnums::DECREASING: includeEndpoint = rightOpenBins; break;
+    case TrajLimEnums::INCREASING: includeEndpoint = !rightOpenBins; break;
     default: break;
     }
 
-    return tls.addLimitBuf<EH::ORDER_PARAMETER>(getOrderParameterID(), getEdge(edgeIndex), stoppingCondition, includeEndpoint, limitID);
+    return tls.addLimitBuf<TrajLimEnums::ORDER_PARAMETER>(getOrderParameterID(), getEdge(edgeIndex), stoppingCondition, includeEndpoint, limitID);
 }
 
-io::Tilings::SortOrder Tiling::getSortOrder() const
+TilingEnums::SortOrder Tiling::getSortOrder() const
 {
     return tilingBuf->sort_order(0);
 }
 
-void Tiling::setSortOrder(io::Tilings::SortOrder newArr)
+void Tiling::setSortOrder(TilingEnums::SortOrder newArr)
 {
     // for a 1D tiling there are only two possible sort orders, so either leave things alone or call .reverse()
     if (tilingBuf->sort_order(0)!=newArr)
@@ -111,7 +111,7 @@ void Tiling::setSortOrder(io::Tilings::SortOrder newArr)
 
 void Tiling::reverse()
 {
-    tilingBuf->set_sort_order(0, tilingBuf->sort_order(0)==lm::io::Tilings::ASCENDING ? lm::io::Tilings::DESCENDING : lm::io::Tilings::ASCENDING);
+    tilingBuf->set_sort_order(0, tilingBuf->sort_order(0)==TilingEnums::ASCENDING ? TilingEnums::DESCENDING : TilingEnums::ASCENDING);
     int revLoops = tilingBuf->edges_size()/2;
     for (int i=0;i<revLoops;++i)
     {
@@ -141,7 +141,7 @@ void* TilingLattice::allocateObject()
 
 TilingLattice::TilingLattice(): Tiling() {}
 
-void TilingLattice::init(const lm::io::Tilings::Tiling& tilingRef)
+void TilingLattice::init(const lm::io::Tiling& tilingRef)
 {
     // call parent method
     Tiling::init(tilingRef);

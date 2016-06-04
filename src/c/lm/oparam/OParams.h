@@ -53,7 +53,7 @@ namespace lm {
 namespace oparam {
 
 typedef std::map<uint,std::string> OPClassMap;
-typedef google::protobuf::RepeatedPtrField<lm::io::OrderParameters::OrderParameter>::const_iterator OPIterator;
+typedef google::protobuf::RepeatedPtrField<lm::io::OrderParameter>::const_iterator OPIterator;
 typedef std::map<uint,lm::oparam::OParam*> OPMap;
 
 class OParams
@@ -66,7 +66,7 @@ public:
     bool init(const lm::io::hdf5::Hdf5File* file);
     void init(const lm::io::OrderParameters& oparams);
     void init();
-    void initOParam(const lm::io::OrderParameters::OrderParameter& oparam);
+    void initOParam(const lm::io::OrderParameter& oparam);
     void initValues(uint* speciesCounts, double time);
 
     // operators

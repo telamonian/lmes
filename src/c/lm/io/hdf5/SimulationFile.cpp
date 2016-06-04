@@ -53,6 +53,7 @@
 #include <zlib.h>
 #include <lm/array/NDArray.h>
 
+#include "lm/EnumHelper.h"
 #include "lm/Exceptions.h"
 #include "lm/Math.h"
 #include "lm/Print.h"
@@ -91,7 +92,7 @@ namespace hdf5 {
 const uint Hdf5File::MIN_VERSION                   = 2;
 const uint Hdf5File::CURRENT_VERSION               = 4;
 const uint Hdf5File::MAX_REACTION_RATE_CONSTANTS   = 10;
-const uint Hdf5File::MAX_SHAPE_PARAMETERS           = 10;
+const uint Hdf5File::MAX_SHAPE_PARAMETERS          = 10;
 
 
 Hdf5File::Hdf5File(const string filename) throw(IOException,HDF5Exception,Exception)
@@ -960,7 +961,7 @@ herr_t Hdf5File::getOrderParametersCallback(hid_t loc_id, const char * name, con
     CallbackDataOrderParameters* cdOP = (CallbackDataOrderParameters*)callbackDataOrderParameters;
 
     // create a new order parameter in the ffluxParameters protobuf
-    lm::io::OrderParameters::OrderParameter* newOP = cdOP->orderParameters->add_order_parameters();
+    lm::io::OrderParameter* newOP = cdOP->orderParameters->add_order_parameters();
 
     // get the order parameter type and ID
     uint type, id;
@@ -1501,7 +1502,7 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
     CallbackDataTilings* cdT = (CallbackDataTilings *)callbackDataTilings;
 
     // create a new interface in the tilings protobuf
-    lm::io::Tilings::Tiling* newTiling = cdT->tilings->add_tilings();
+    lm::io::Tiling* newTiling = cdT->tilings->add_tilings();
 
     // get the ID and Type of the tiling and the ID of the order parameter associated with this tiling
     uint id, type, opID;
@@ -1526,11 +1527,11 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
     }
 
     // infer whether edges is sorted ascending or descending
-    lm::io::Tilings::SortOrder sortOrder = newTiling->edges(newTiling->edges_size()-1)>=newTiling->edges(0) ? lm::io::Tilings::ASCENDING : lm::io::Tilings::DESCENDING;
+    TilingEnums::SortOrder sortOrder = newTiling->edges(newTiling->edges_size()-1)>=newTiling->edges(0) ? TilingEnums::ASCENDING : TilingEnums::DESCENDING;
     newTiling->add_sort_order(sortOrder);
 
     // ensure that edges is actually sorted the way we guessed
-    if (sortOrder==lm::io::Tilings::ASCENDING)
+    if (sortOrder==TilingEnums::ASCENDING)
     {
         for (int i=0;i<newTiling->edges_size()-1;i++)
         {
@@ -1607,7 +1608,7 @@ void Hdf5File::setTilings(lm::io::Tilings * tilings)
     for (int i=0;i<tilings->tilings_size();i++)
     {
         // get a pointer to the right tiling buf
-        lm::io::Tilings::Tiling* tilingBuf = tilings->mutable_tilings(i);
+        lm::io::Tiling* tilingBuf = tilings->mutable_tilings(i);
 
         // get the tiling's attribute data from the corresponding protobuf
         id = tilingBuf->id();

@@ -331,16 +331,16 @@ void FFluxTrajectoryList::setLimits()
 
     if (ffluxPhase==0)
     {
-        tiling.addLimitBuf(*input.mutableTrajectoryLimits(), 0, EH::INCREASING, true, 0);
-        tiling.addLimitBuf(*input.mutableTrajectoryLimits(), 0, EH::DECREASING, true, 1);
+        tiling.addLimitBuf(*input.mutableTrajectoryLimits(), 0, TrajLimEnums::INCREASING, true, 0);
+        tiling.addLimitBuf(*input.mutableTrajectoryLimits(), 0, TrajLimEnums::DECREASING, true, 1);
 
-        tiling.addLimitBuf(*input.mutableTrajectoryLimits(), tiling.getLastEdgeIndex(), EH::INCREASING, true, 2);
+        tiling.addLimitBuf(*input.mutableTrajectoryLimits(), tiling.getLastEdgeIndex(), TrajLimEnums::INCREASING, true, 2);
     }
     else
     {
-        tiling.addLimitBuf(*input.mutableTrajectoryLimits(), 0, EH::DECREASING, true, 0);
+        tiling.addLimitBuf(*input.mutableTrajectoryLimits(), 0, TrajLimEnums::DECREASING, true, 0);
 
-        tiling.addLimitBuf(*input.mutableTrajectoryLimits(), ffluxPhase, EH::INCREASING, true, ffluxPhase);
+        tiling.addLimitBuf(*input.mutableTrajectoryLimits(), ffluxPhase, TrajLimEnums::INCREASING, true, ffluxPhase);
     }
 }
 

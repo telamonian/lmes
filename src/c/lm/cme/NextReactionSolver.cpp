@@ -278,7 +278,7 @@ void NextReactionSolver::generateTrajectory()
         {
             // Push it to the output queue.
             PROF_BEGIN(PROF_SERIALIZE_COUNTS);
-            lm::main::DataOutputQueue::getInstance()->pushDataSet(lm::main::DataOutputQueue::SPECIES_COUNTS, replicate, &speciesCountsDataSet);
+            lm::main::DataOutputQueue::getInstance()->pushDataSet(lm::main::DataOutputQueuTrajLimEnums::SPECIES_COUNTS, replicate, &speciesCountsDataSet);
             PROF_END(PROF_SERIALIZE_COUNTS);
 
             // Reset the data set.
@@ -339,7 +339,7 @@ void NextReactionSolver::generateTrajectory()
     if (speciesCountsDataSet.number_entries() > 0)
     {
         PROF_BEGIN(PROF_SERIALIZE_COUNTS);
-        lm::main::DataOutputQueue::getInstance()->pushDataSet(lm::main::DataOutputQueue::SPECIES_COUNTS, replicate, &speciesCountsDataSet);
+        lm::main::DataOutputQueue::getInstance()->pushDataSet(lm::main::DataOutputQueuTrajLimEnums::SPECIES_COUNTS, replicate, &speciesCountsDataSet);
         PROF_END(PROF_SERIALIZE_COUNTS);
     }
 

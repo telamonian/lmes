@@ -39,12 +39,13 @@
 #ifndef LM_FFLUX_FFLUXTRAJECTORY_H_
 #define LM_FFLUX_FFLUXTRAJECTORY_H_
 
-#include "lm/Types.h"
+#include "lm/EnumHelper.h"
 #include "lm/io/FFluxOutput.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/input/Input.h"
 #include "lm/trajectory/Trajectory.h"
 #include "lm/tiling/Tilings.h"
+#include "lm/Types.h"
 
 namespace lm {
 namespace fflux {
@@ -62,7 +63,7 @@ public:
 
     // accessors
     virtual uint getFFluxPhase();
-    virtual io::TrajectoryLimits::StoppingCondition getLastLimitStoppingCondition();
+    virtual TrajLimEnums::StoppingCondition getLastLimitStoppingCondition();
     virtual double getLastLimitTime();
 //    virtual void getLastSpeciesCounts(lm::io::FFluxOutput::TrajectoryOutput* trajectoryOutputBuf);
     virtual bool hasElapsed(double time);
