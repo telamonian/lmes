@@ -7,18 +7,25 @@ endif(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules)
 include(ConfigFunctions)
 include(TestCompilerFeatures)
-
-# if certain packages cannot be found, the end-user (you) can change the variables in CMakeConfig.txt to point to package paths
 initializeCMakeConfig()
-include(CMakeConfig.txt)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/PreProjectConfig)
 
 # the following commands are wrapped to prevent errors when this CMakeLists.txt is included as a subdirectory in another CMakeLists.txt
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    # set build type from the config file, if present. Special handling required since unlike many variables this is defined as "" by default
+    SetConfigDefaultIgnoreEmpty(CMAKE_BUILD_TYPE CMAKE_BUILD_TYPE Release CACHE)
+    
     SetConfigDefault(CMAKE_TOOLCHAIN CMAKE_TOOLCHAIN gnu)
     chooseToolchain()
 endif(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 
+################
+project(lm)
+################
+# if certain packages cannot be found, the end-user (you) can change the variables in CMakeConfig.txt to point to package paths
+include(CMakeConfig.txt)
 set(ENV{HDF5_ROOT} ${HDF5_ROOT})
+enable_testing()
 
 # convert the build type string to upper case for easy comparison
 string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UPPER)
@@ -38,11 +45,6 @@ if(APPLE)
         set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
     endif()
 endif()
-
-################
-project(lm)
-################
-enable_testing()
 
 # Lattice Microbes standard architecture flag
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "Intel")
@@ -122,7 +124,13 @@ else(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
 endif(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
 
 find_package(Threads REQUIRED)
+
+# see if we have libSBML and set a flag, if we do
 find_package(libsbml)
+if(libsbml_FOUND)
+    add_definitions(-DOPT_SBML)
+endif(libsbml_FOUND)
+
 find_package(protobuf 2.6.0 REQUIRED)
 find_package(HDF5 COMPONENTS C HL REQUIRED)
 find_package(ZLIB REQUIRED)
@@ -218,7 +226,7 @@ add_subdirectory(utils/python)
 ################
 #TARGET: lmes
 ################
-set(lm_main_src src/c/lm/main/MainMPI.cpp)
+set(lm_main_src src/c/lm/main/MainMPI.cpp src/c/lm/main/Main.cpp)
 
 add_executable(lmes ${lm_main_src})
 

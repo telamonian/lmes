@@ -71,124 +71,6 @@
 using std::string;
 using std::vector;
 
-/**
- * The function being performed.
- */
-string functionOption = "interpreter";
-
-/**
- * The name of the file containing the simulation input.
- */
-string simulationInputFilename;
-
-/**
- * The name of the file containing the simulation output.
- */
-string simulationOutputFilename;
-
-/**
- * The output writer to use for the simulations.
- */
-string outputWriterClassName;
-
-/**
- * The number of replicates of the simulation that should be performed.
- */
-vector<uint64_t> replicates;
-
-/**
- * The interval at which the results file should be checkpointed.
- */
-time_t checkpointInterval = 0;
-
-/**
- * If a global abort signal has been received.
- */
-volatile bool globalAbort = false;
-
-/**
- * The supervisor to use for the simulations.
- */
-string supervisorClassName;
-
-/**
- * The solver to use for the simulations.
- */
-string solverClassName;
-
-/**
- * The filename for the resource list.
- */
-string resourceFilename;
-
-/**
- * The number of cpu cores assigned to each process.
- */
-int cpuCores;
-
-/**
- * The number of cpu cores to assign per runner (can be a fraction, e.g., 1/2, 1/4, etc).
- */
-double cpuCoresPerRunner;
-
-/**
- * Whether we should use CPU affinity.
- */
-bool useCPUAffinity;
-
-/**
- * The number gpu devices assigned to each process.
- */
-int gpuDevices;
-
-/**
- * The number of gpu devices to assign per runner (can be a fraction, e.g., 1/2, 1/4, etc).
- */
-double gpuDevicesPerRunner;
-
-/**
- * Whether we should print the cuda device capabilities on startup.
- */
-bool shouldPrintGPUCapabilities;
-
-/**
- * Whether we should reserve a core for the output thread.
- */
-bool shouldReserveOutputCore;
-
-/**
- * Flag to indicate that forward flux simulation is in use.
- */
-bool ffluxFlag;
-
-/*
- * Flag to indicate that we want intermediate output related to simulation results
- */
-bool intermediateOutputFlag;
-
-/*
- * Flag that determines whether or not to track degree advancement in addition to species count
- */
-bool daFlag;
-
-/*
- * Flag to indicate that we need to initialize the order parameters and update them at every simulation step
- */
-bool opActivatedFlag;
-
-/*
- * Flag that determines whether or not to track order parameter values in addition to species counts
- */
-bool opTrackingFlag;
-
-/**
- * Flag to run input output testing
- */
-bool ioTestFlag;
-
-/**
- * Prints the copyright notice.
- */
 
 void printCopyright(int argc, char** argv)
 {
@@ -205,6 +87,9 @@ void printCopyright(int argc, char** argv)
 #endif
 #ifdef OPT_SVML
     std::cout << " SVML";
+#endif
+#ifdef OPT_SBML
+    std::cout << " SBML";
 #endif
     std::cout << "." << std::endl;
     std::cout << "Copyright (C) " << COPYRIGHT_DATE << " Luthey-Schulten Group, University of Illinois at Urbana-Champaign." << std::endl;
@@ -300,6 +185,16 @@ void parseArguments(int argc, char** argv)
                 throw lm::CommandLineArgumentException("missing simulation input file.");
         }
 
+        //See if the user is trying to set the output format.
+        else if ((strcmp(option, "-ff") == 0 || strcmp(option, "--output-format") == 0) && i < (argc-1))
+        {
+            outputWriterClassName=parseOutputFormatArg(argv[++i]);
+        }
+        else if (strncmp(option, "--output-format=", strlen("--output-format=")) == 0)
+        {
+            outputWriterClassName=parseOutputFormatArg(option+strlen("--output-format="));
+        }
+
         //See if the user is trying to set the output filename.
         else if ((strcmp(option, "-fo") == 0 || strcmp(option, "--output-file") == 0) && i < (argc-1))
         {
@@ -310,14 +205,14 @@ void parseArguments(int argc, char** argv)
             simulationOutputFilename=option+strlen("--output-file=");
         }
 
-        //See if the user is trying to set the output format.
-        else if ((strcmp(option, "-ff") == 0 || strcmp(option, "--output-format") == 0) && i < (argc-1))
+        //See if the user is trying to set the output record prefix.
+        else if ((strcmp(option, "-fp") == 0 || strcmp(option, "--output-prefix") == 0) && i < (argc-1))
         {
-            outputWriterClassName=parseOutputFormatArg(argv[++i]);
+            sfileRecordNamePrefix=argv[++i];
         }
-        else if (strncmp(option, "--output-format=", strlen("--output-format=")) == 0)
+        else if (strncmp(option, "--output-prefix=", strlen("--output-prefix=")) == 0)
         {
-            outputWriterClassName=parseOutputFormatArg(option+strlen("--output-format="));
+            sfileRecordNamePrefix=option+strlen("--output-prefix=");
         }
 
         //See if the user is trying to set the replicates.
@@ -625,8 +520,9 @@ void printUsage(int argc, char** argv)
     std::cout << "Usage: mpirun lm [OPTIONS] [SIM_OPTIONS] (-f|--file) input_filename" << std::endl;
     std::cout << std::endl;
     std::cout << "OPTIONS" << std::endl;
-    std::cout << "  -fo output_file   --output-file=output_filename The file for the simulation output, if different than the input file. Required for sfile, invalid for hdf5." << std::endl;
     std::cout << "  -ff format        --output-format=format        The file format for the simulation output. Valid values are \"hdf5\" (default)|\"sfile\"|\"log\"|\"null\"." << std::endl;
+    std::cout << "  -fo output_file   --output-file=output_filename The file for the simulation output, if different than the input file. Required for sfile, invalid for hdf5." << std::endl;
+    std::cout << "  -fp record_prefix --output-prefix=record_prefix The prefix to use for the record names. Optional for sfile output, invalid for hdf5." << std::endl;
     std::cout << "  -n node_file      --nodelist=node_file          A file containing the list of nodes on which to run, one line per available CPU core." << std::endl;
     std::cout << "  -m map_file       --resource-map=map_file       A file containing the map of resources to use: hostname processor_id_list gpu_id_list." << std::endl;
     std::cout << "  -c num_cpus       --cpu=num_cpus                The number of CPUs on which to execute (default all)." << std::endl;

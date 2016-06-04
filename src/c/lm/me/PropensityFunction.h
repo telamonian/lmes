@@ -48,6 +48,7 @@
 
 #include "lm/array/NDArray.h"
 #include "lm/array/Tuple.h"
+#include "lm/Print.h"
 #include "lm/Types.h"
 
 using std::list;
@@ -89,10 +90,19 @@ typedef PropensityFunction* (*PropensityFunctionCreator)(const uint reactionInde
 
 struct PropensityFunctionDefinition
 {
-    PropensityFunctionDefinition():type(std::numeric_limits<uint>::max()),create(NULL){}
-    PropensityFunctionDefinition(uint type, PropensityFunctionCreator create):type(type),create(create){}
-    PropensityFunctionDefinition(const PropensityFunctionDefinition& p):type(p.type),create(p.create){}
+    PropensityFunctionDefinition():type(std::numeric_limits<uint>::max()),name("undefined"),expressions(),create(NULL){}
+    PropensityFunctionDefinition(uint type, PropensityFunctionCreator create):type(type),name("unknown"),expressions(),create(create){}
+    PropensityFunctionDefinition(uint type, string name, string expression, PropensityFunctionCreator create):type(type),name(name),expressions(1,expression),create(create){}
+    PropensityFunctionDefinition(uint type, string name, const char** expressionsArray, PropensityFunctionCreator create):type(type),name(name),expressions(),create(create)
+    {
+        int i=0;
+        while (expressionsArray[i] != NULL)
+            expressions.push_back(expressionsArray[i++]);
+    }
+    PropensityFunctionDefinition(const PropensityFunctionDefinition& p):type(p.type),name(p.name),expressions(p.expressions),create(p.create){}
     uint type;
+    string name;
+    list<string> expressions;
     PropensityFunctionCreator create;
 };
 
@@ -102,7 +112,8 @@ public:
     PropensityFunctionFactory();
     ~PropensityFunctionFactory();
     PropensityFunction* createPropensityFunction(uint type, int reactionIndex, ndarray<int> S, ndarray<uint> D, tuple<double>k);
-    void printRegisteredFunctions();
+    void printRegisteredFunctions(int verbosity=Print::DEBUG);
+    map<uint,PropensityFunctionDefinition> getFunctions();
 
 private:
     map<uint,PropensityFunctionDefinition> functions;

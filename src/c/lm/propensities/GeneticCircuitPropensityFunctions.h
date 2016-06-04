@@ -1,11 +1,11 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
- * 			     Johns Hopkins University
- * 			     http://biophysics.jhu.edu/roberts/
+ *               Johns Hopkins University
+ * 		 http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -34,28 +34,18 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts, Max Klein
+ * Author(s): Elijah Roberts
  */
-#ifndef LM_IO_SFILEOutputWriter
-#define LM_IO_SFILEOutputWriter
 
-#include <google/protobuf/message.h>
-#include <string>
+#ifndef GENETICCIRCUITPROPENSITYFUNCTIONS_H
+#define GENETICCIRCUITPROPENSITYFUNCTIONS_H
 
-#include "lm/io/FirstPassageTimes.pb.h"
-#include "lm/io/FFluxOutput.pb.h"
-#include "lm/io/OrderParameterFirstPassageTimes.pb.h"
-#include "lm/io/OrderParameterTimeSeries.pb.h"
-#include "lm/io/OutputWriter.h"
-#include "lm/io/SpeciesCounts.pb.h"
-#include "lm/io/SpeciesTimeSeries.pb.h"
-#include "lm/io/sfile/SFile.h"
+#include "lm/me/PropensityFunction.h"
 
 namespace lm {
-namespace io {
-namespace sfile {
+namespace propensities {
 
-class SFileOutputWriter : public OutputWriter
+class GeneticCircuitPropensityFunctions : public lm::me::PropensityFunctionCollection
 {
 public:
     static bool registered;
@@ -63,35 +53,11 @@ public:
     static void* allocateObject();
 
 public:
-    SFileOutputWriter(std::string recordNamePrefix=std::string(""));
-    virtual ~SFileOutputWriter();
-    virtual void initialize();
-    virtual void finalize();
-
-protected:
-    static const int RECORD_NAME_BUFFER_MAX_SIZE=256;
-
-protected:
-    virtual void processMessage(const google::protobuf::Message& data, std::string& nameString, std::string& typeString);
-
-    virtual void processFFluxOutput(const lm::io::FFluxOutput& data);
-    virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
-    virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data);
-    virtual void processOrderParameterFirstPassageTimes(const lm::io::OrderParameterFirstPassageTimes& data);
-    virtual void processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data);
-    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
-    virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data);
-    virtual void flush();
-    virtual void checkpoint();
-
-private:
-    string recordNamePrefix;
-    SFile* file;
+    GeneticCircuitPropensityFunctions();
+    virtual ~GeneticCircuitPropensityFunctions();
+    virtual list<lm::me::PropensityFunctionDefinition> getPropensityFunctionDefinitions();
 };
 
 }
 }
-}
-
-
-#endif
+#endif // GENETICCIRCUITPROPENSITYFUNCTIONS_H
