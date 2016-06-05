@@ -195,9 +195,15 @@ int main(int argc, char** argv)
     {
         std::cout << "Exception during execution: " << e.what() << std::endl;
     }
+    catch (std::logic_error e)
+    {
+        std::cout << "std::logic_error exception during execution: " << e.what() << std::endl;
+        if (strstr("basic_string::_S_construct NULL not valid", e.what())!=NULL)
+            std::cout << "Non-ASCII characters (such as greek letters) in model component names (species names, parameter names, etc.) can cause this error. Try substituting them for something else" << std::endl;
+    }
     catch (std::exception e)
     {
-        std::cout << "Exception during execution: " << e.what() << std::endl;
+        std::cout << "std::exception during execution: " << e.what() << std::endl;
     }
     catch (...)
     {
@@ -241,10 +247,7 @@ void importSBMLModel(Hdf5File * lmFile, string sbmlFilename) throw(Exception)
     if (sbmlDocument->getLevel() == 3 && sbmlDocument->getVersion() == 1)
     {
         // expand any user-defined functions in the reaction kinetic laws
-        ConversionProperties props;
-        props.addOption("expandFunctionDefinitions");
-
-        if (sbmlDocument->convert(props) != LIBSBML_OPERATION_SUCCESS)
+        if (sbmlDocument->expandFunctionDefinitions() != LIBSBML_OPERATION_SUCCESS)
         {
             Print::printf(Print::ERROR,"Problems detected while expanding function definitions in the SBML file %s\n",sbmlFilename.c_str());
             Print::printf(Print::ERROR,"-----------------------------------");
@@ -432,19 +435,15 @@ bool importSBMLModelL3V1(ReactionModel * lmModel, Model * sbmlModel) throw(Excep
 
     // Initialize the stoichiometry matrix.
     ndarray<int> S(utuple(numberSpecies, numberReactions));
-    S=0;
 
     // Initialize the reaction type matrix.
     ndarray<uint> T((utuple(numberReactions)));
-    T=9999;
 
     // Initialize the rate constant matrix.
     ndarray<double> K(utuple(numberReactions,10));
-    K=NAN;
 
     // Initialize the dependency matrix.
     ndarray<uint> D(utuple(numberSpecies, numberReactions));
-    D=0;
 
     for (uint i=0; i<numberReactions; i++)
     {
@@ -1114,7 +1113,7 @@ void printUsage(int argc, char** argv)
 {
 	std::cout << "Usage: " << argv[0] << " (-h|--help)" << std::endl;
 	std::cout << "Usage: " << argv[0] << " (-v|--version)" << std::endl;
-	std::cout << "Usage: " << argv[0] << " lm_filename sbml_filename [OPTIONS]" << std::endl; // TODO: uncomment rest of line when userParameterValues is implemented (see below) // (simulation_parameter_key=value)+" << std::endl;
+	std::cout << "Usage: " << argv[0] << " lm_filename sbml_filename [OPTIONS] [parameter_key=double_value]+" << std::endl;
 	std::cout << std::endl;
     std::cout << "OPTIONS" << std::endl;
     std::cout << "  key=double_value            Specify a new or override an existing global parameter in the SBML file." << std::endl;
