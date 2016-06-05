@@ -47,6 +47,7 @@
 #include <vector>
 #include <map>
 #include <memory>
+#include <cmath>
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
@@ -529,7 +530,7 @@ bool importSBMLModelL3V1(ReactionModel * lmModel, Model * sbmlModel) throw(Excep
     {
         lm::io::ReactionModel_Reaction* reaction = lmModel->add_reaction();
         reaction->set_type(T[utuple(j)]);
-        for (int k=0; k<10 && !isnan(K[utuple(j,k)]); k++)
+        for (int k=0; k<10 && !std::isnan(K[utuple(j,k)]); k++)
             reaction->add_rate_constant(K[utuple(j,k)]);
     }
 
