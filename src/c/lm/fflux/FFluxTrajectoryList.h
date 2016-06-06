@@ -47,7 +47,7 @@
 #include "lm/fflux/FFluxTrajectory.h"
 #include "lm/input/Input.h"
 #include "lm/io/FFluxOutput.pb.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Communicator.h"
@@ -79,7 +79,7 @@ public:
     // enumerated type used for picking which phase termination check to use
     enum PhaseCheck {CROSSINGS, TIME};
 
-//    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters, lm::tiling::Tilings& tilings);
+//    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,const lm::input::ReactionModel& reactionModel,const lm::input::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters, lm::tiling::Tilings& tilings);
     FFluxTrajectoryList(uint64_t simulationPhase, lm::input::Input& input, lm::message::Communicator& communicator, uint64_t simultaneousTrajectoryCount);
     virtual ~FFluxTrajectoryList();
     virtual void init();

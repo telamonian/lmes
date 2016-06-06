@@ -49,14 +49,14 @@
 #include "lm/protowrap/NDArray.h"
 #include "lm/io/OrderParameterFirstPassageTimes.pb.h"
 #include "lm/io/OrderParametersValues.pb.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/tiling/Tilings.h"
 #include "lm/trajectory/Trajectory.h"
 
-using lm::io::DiffusionModel;
-using lm::io::ReactionModel;
+using lm::input::DiffusionModel;
+using lm::input::ReactionModel;
 using lm::io::TrajectoryState;
 using lm::tiling::Tilings;
 using std::list;
@@ -105,7 +105,7 @@ void Trajectory::initializeState(const lm::input::Input& input, bool reversed)
         }
 
         // Initialize the species counts
-        const lm::io::ReactionModel& reactionModel = input.getReactionModelMsg();
+        const lm::input::ReactionModel& reactionModel = input.getReactionModelMsg();
         lm::io::SpeciesCounts* sc = state.mutable_cme_state()->mutable_species_counts();
         sc->set_trajectory_id(id);
         sc->set_number_entries(1);
@@ -157,7 +157,7 @@ void Trajectory::initializeState(const lm::input::Input& input, bool reversed)
     // Initialize the rdme state from the diffusion model.
     if (input.hasDiffusionModel())
     {
-        const lm::io::DiffusionModel& diffusionModel = input.getDiffusionModelMsg();
+        const lm::input::DiffusionModel& diffusionModel = input.getDiffusionModelMsg();
         lm::io::RDMEState* rdmeState = state.mutable_rdme_state();
         lm::io::Lattice* initialLattice = rdmeState->mutable_species_positions();
         initialLattice->set_lattice_x_size(diffusionModel.initial_lattice().lattice_x_size());
@@ -177,7 +177,7 @@ void Trajectory::initializeState(const lm::input::Input& input, bool reversed)
 
 void Trajectory::initializeDegreeAdvancements(const lm::input::Input& input)
 {
-    const lm::io::ReactionModel& reactionModel = input.getReactionModelMsg();
+    const lm::input::ReactionModel& reactionModel = input.getReactionModelMsg();
     lm::io::DegreeAdvancements* da = state.mutable_cme_state()->mutable_degree_advancements();
     da->set_trajectory_id(id);
     da->set_number_entries(1);
@@ -262,7 +262,7 @@ vector<int32_t> Trajectory::getLastSpeciesCounts() const
     return vector<int32_t>(speciesCounts.species_count().begin()+offset, speciesCounts.species_count().end());
 }
 
-const lm::io::TrajectoryLimit& Trajectory::getLimitReached() const
+const lm::input::TrajectoryLimit& Trajectory::getLimitReached() const
 {
     return state.limit_reached();
 }
@@ -367,7 +367,7 @@ void Trajectory::setID(uint64_t newID)
     if (state.mutable_cme_state()->has_order_parameter_values()) state.mutable_cme_state()->mutable_order_parameter_values()->set_trajectory_id(newID);
 }
 
-void Trajectory::setLimitReached(const lm::io::TrajectoryLimit& limitBuf)
+void Trajectory::setLimitReached(const lm::input::TrajectoryLimit& limitBuf)
 {
     state.mutable_limit_reached()->CopyFrom(limitBuf);
 }

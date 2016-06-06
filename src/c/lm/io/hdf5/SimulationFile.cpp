@@ -60,16 +60,16 @@
 #include "lm/Tune.h"
 #include "lm/Types.h"
 #include "lm/io/ArrayOrdering.pb.h"
-#include "lm/io/DiffusionModel.pb.h"
+#include "lm/input/DiffusionModel.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/FFluxOutput.pb.h"
 #include "lm/io/Lattice.pb.h"
 #include "lm/io/LatticeTimeSeries.pb.h"
 #include "lm/io/OrderParameters.pb.h"
 #include "lm/io/ParameterValues.pb.h"
-#include "lm/io/ReactionModel.pb.h"
-#include "lm/io/SimulationParameters.pb.h"
-#include "lm/io/SpatialModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
+#include "lm/input/SimulationParameters.pb.h"
+#include "lm/input/SpatialModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/io/TilingHist.pb.h"
@@ -349,7 +349,7 @@ herr_t Hdf5File::parseParameter(hid_t location_id, const char *attr_name, const 
     return 0;
 }
 
-void Hdf5File::getParameters(lm::io::SimulationParameters* parameters) const
+void Hdf5File::getParameters(lm::input::SimulationParameters* parameters) const
 {
     parameters->Clear();
     for (map<string,string>::const_iterator it=parameterMap.begin(); it != parameterMap.end(); it++)
@@ -424,7 +424,7 @@ bool Hdf5File::hasDiffusionModel() const
     return (H5Lexists(file, "/Model/Diffusion", H5P_DEFAULT) != 0);
 }
 
-void Hdf5File::getDiffusionModel(lm::io::DiffusionModel* diffusionModel) const
+void Hdf5File::getDiffusionModel(lm::input::DiffusionModel* diffusionModel) const
 {
     // Make sure the model is not null and then clear it.
     if (diffusionModel == NULL) throw InvalidArgException("diffusionModel", "cannot be null");
@@ -503,7 +503,7 @@ void Hdf5File::getDiffusionModel(lm::io::DiffusionModel* diffusionModel) const
     }
 }
 
-void Hdf5File::setDiffusionModel(lm::io::DiffusionModel * diffusionModel)
+void Hdf5File::setDiffusionModel(lm::input::DiffusionModel * diffusionModel)
 {
     // Validate that the model is consistent.
     if (diffusionModel == NULL) throw InvalidArgException("diffusionModel", "cannot be NULL");
@@ -1072,7 +1072,7 @@ bool Hdf5File::hasReactionModel() const
     return (H5Lexists(file, "/Model/Reaction", H5P_DEFAULT) != 0);
 }
 
-void Hdf5File::getReactionModel(lm::io::ReactionModel * reactionModel) const
+void Hdf5File::getReactionModel(lm::input::ReactionModel * reactionModel) const
 {
     // Make sure the model is not null and then clear it.
     if (reactionModel == NULL) throw InvalidArgException("reactionModel", "cannot be null");
@@ -1194,7 +1194,7 @@ void Hdf5File::getReactionModel(lm::io::ReactionModel * reactionModel) const
     }
 }
 
-void Hdf5File::setReactionModel(lm::io::ReactionModel * reactionModel)
+void Hdf5File::setReactionModel(lm::input::ReactionModel * reactionModel)
 {
     // Validate that the model is consistent.
     if (reactionModel == NULL) throw InvalidArgException("reactionModel", "cannot be NULL");
@@ -1285,7 +1285,7 @@ void Hdf5File::setReactionModel(lm::io::ReactionModel * reactionModel)
     }
 }
 
-void Hdf5File::getSpatialModel(lm::io::SpatialModel * spatialModel) const
+void Hdf5File::getSpatialModel(lm::input::SpatialModel * spatialModel) const
 {
     // Make sure the model is not null and then clear it.
     if (spatialModel == NULL) throw InvalidArgException("spatialModel", "cannot be null");
@@ -1380,7 +1380,7 @@ void Hdf5File::getSpatialModel(lm::io::SpatialModel * spatialModel) const
     }
 }
 
-void Hdf5File::setSpatialModel(lm::io::SpatialModel * spatialModel)
+void Hdf5File::setSpatialModel(lm::input::SpatialModel * spatialModel)
 {
     // Validate that the model is consistent.
     if (spatialModel == NULL) throw InvalidArgException("spatialModel", "cannot be NULL");
@@ -1643,7 +1643,7 @@ bool Hdf5File::hasBoundaryGradient() const
     return (H5Lexists(file, "/Model/Diffusion/Gradient", H5P_DEFAULT) != 0);
 }
 
-void Hdf5File::getBoundaryGradient(lm::io::BoundaryConditions* bc) const
+void Hdf5File::getBoundaryGradient(lm::input::BoundaryConditions* bc) const
 {
     // Make sure the model is not null and then clear it.
     if (bc == NULL) throw InvalidArgException("bc", "cannot be null");
@@ -2297,7 +2297,7 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTime
     HDF5_EXCEPTION_CHECK(H5Gclose(fptGroupHandle));
 }
 
-/*void SimulationFile::appendSpatialModelObjects(unsigned int replicate, lm::io::SpatialModel * model) throw(HDF5Exception,InvalidArgException)
+/*void SimulationFile::appendSpatialModelObjects(unsigned int replicate, lm::input::SpatialModel * model) throw(HDF5Exception,InvalidArgException)
 {
     if (model->sphere_xc_size() != model->sphere_type_size()) throw InvalidArgException("model", "inconsistent number of sphere entries");
     if (model->sphere_yc_size() != model->sphere_type_size()) throw InvalidArgException("model", "inconsistent number of sphere entries");
@@ -2389,7 +2389,7 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTime
     HDF5_EXCEPTION_CHECK(H5Gclose(spatialHandle));
 }
 
-void SimulationFile::getSpatialModelObjects(unsigned int replicate, lm::io::SpatialModel * model) throw(HDF5Exception)
+void SimulationFile::getSpatialModelObjects(unsigned int replicate, lm::input::SpatialModel * model) throw(HDF5Exception)
 {
     ReplicateHandles * replicateHandles = openReplicateHandles(replicate);
 

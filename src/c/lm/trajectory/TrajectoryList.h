@@ -43,8 +43,8 @@
 #include <string>
 
 #include "lm/input/Input.h"
-#include "lm/io/ReactionModel.pb.h"
-#include "lm/io/SimulationPhase.pb.h"
+#include "lm/input/ReactionModel.pb.h"
+#include "lm/input/SimulationPhase.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/RunWorkUnit.pb.h"
@@ -95,8 +95,8 @@ class TrajectoryList
 public:
     
     TrajectoryList();
-    TrajectoryList(const lm::io::SimulationPhase& phase);
-    TrajectoryList(const lm::io::SimulationPhase& phase, const TrajectoryList& previousList);
+    TrajectoryList(const lm::input::SimulationPhase& phase);
+    TrajectoryList(const lm::input::SimulationPhase& phase, const TrajectoryList& previousList);
     virtual ~TrajectoryList();
 
 // initializer

@@ -49,7 +49,7 @@
 #include "lm/Math.h"
 #include "lm/Print.h"
 #include "lm/cme/FluctuatingNRSolver.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
@@ -75,7 +75,7 @@ FluctuatingNRSolver::~FluctuatingNRSolver()
 {
 }
 
-void FluctuatingNRSolver::setReactionModel(lm::io::ReactionModel * rm)
+void FluctuatingNRSolver::setReactionModel(lm::input::ReactionModel * rm)
 {
     if (rm->number_reactions() != (uint)rm->reaction_size()) throw InvalidArgException("rm", "number of reaction does not agree with reaction list size");
 

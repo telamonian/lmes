@@ -36,10 +36,8 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
-package lm.io;
-
-import "lm/io/SpeciesTimeSeries.proto";
+syntax = "proto2";
+package lm.input;
 
 message TrajectoryLimit {
     enum LimitType {
@@ -62,7 +60,15 @@ message TrajectoryLimit {
     optional int32 id                               = 3 [default=-2];
     optional bool include_endpoint                  = 4 [default=true];
 
+    /*
+     * - value_id is used in conjunction with limit_type to determine what simulation value will be checked when the limit is invoked
+     *     - limit_type==TIME: value_id is not used for time limits
+     *     - limit_type==SPECIES: value_id is the index of the species count checked
+     *     - limit_type==ORDER_PARAMETER: value_id is the id of the order parameter value checked
+     *     - limit_type==DEGREE_ADVANCEMENT: value_id is the index of the reaction count checked
+     */
     optional uint32 value_id                        = 5;
+
     optional double dvalue                          = 6 [default=0.0];
     optional int32 ivalue                           = 7 [default=0];
     optional uint64 uvalue                          = 8 [default=0];
@@ -80,9 +86,7 @@ message TrajectoryLimit {
     /*
      * - If any of the track_x options are set, the limit will record the relevant portion of the state every time it is crossed
      */
-    optional bool track_species_counts              = 11 [default=false];
-    optional bool track_time                        = 12 [default=false];
-    optional SpeciesTimeSeries species_time_series  = 13;
+    optional bool track_species_times_series        = 11 [default=false];
 }
 
 message TrajectoryLimits {

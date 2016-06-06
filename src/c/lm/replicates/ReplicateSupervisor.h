@@ -46,9 +46,9 @@
 #include <vector>
 
 #include "hrtime.h"
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/ReactionModel.pb.h"
-#include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/input/DiffusionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
+#include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
@@ -81,8 +81,8 @@ public:
 protected:
     virtual void startSimulation();
     virtual void buildSimulationPhaseList();
-    virtual lm::trajectory::TrajectoryList* initTrajectoryList(const lm::io::SimulationPhase& phase);
-    virtual lm::trajectory::TrajectoryList* initTrajectoryList(const lm::io::SimulationPhase& phase, const lm::trajectory::TrajectoryList& previousList);
+    virtual lm::trajectory::TrajectoryList* initTrajectoryList(const lm::input::SimulationPhase& phase);
+    virtual lm::trajectory::TrajectoryList* initTrajectoryList(const lm::input::SimulationPhase& phase, const lm::trajectory::TrajectoryList& previousList);
     virtual void buildTrajectoryList();
     virtual void finishSimulation();
 

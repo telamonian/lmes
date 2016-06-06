@@ -45,10 +45,10 @@
 #include <vector>
 
 #include "lm/Types.h"
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/OutputOptions.pb.h"
-#include "lm/io/ReactionModel.pb.h"
-#include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/input/DiffusionModel.pb.h"
+#include "lm/input/OutputOptions.pb.h"
+#include "lm/input/ReactionModel.pb.h"
+#include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Communicator.h"
 #include "lm/message/RunWorkUnit.pb.h"
@@ -70,13 +70,13 @@ public:
     virtual uint getSimultaneousTrajectories();
     virtual void setCommunicator(lm::message::Communicator* communicator, int outputProcess, int outputThread, int64_t workUnitId);
     virtual bool needsReactionModel()=0;
-    virtual void setReactionModel(const lm::io::ReactionModel& rm)=0;
+    virtual void setReactionModel(const lm::input::ReactionModel& rm)=0;
     virtual bool needsDiffusionModel()=0;
-    virtual void setDiffusionModel(const lm::io::DiffusionModel& dm)=0;
+    virtual void setDiffusionModel(const lm::input::DiffusionModel& dm)=0;
     virtual void setOrderParameters(const lm::io::OrderParameters& ops)=0;
     virtual void setTilings(const lm::io::Tilings& tilings)=0;
-    virtual void setLimits(const lm::io::TrajectoryLimits& limits)=0;
-    virtual void setOutputOptions(const lm::io::OutputOptions& outputOptions)=0;
+    virtual void setLimits(const lm::input::TrajectoryLimits& limits)=0;
+    virtual void setOutputOptions(const lm::input::OutputOptions& outputOptions)=0;
     virtual void reset();
     virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0)=0;
     virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0)=0;

@@ -44,7 +44,7 @@
 #include "lm/ClassFactory.h"
 #include "lm/Print.h"
 #include "lm/io/OutputWriter.h"
-#include "lm/io/SimulationPhases.pb.h"
+#include "lm/input/SimulationPhases.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/main/Main.h"
 #include "lm/main/SimulationSupervisor.h"
@@ -101,8 +101,8 @@ void ReplicateSupervisor::startSimulation()
 
 void ReplicateSupervisor::buildSimulationPhaseList()
 {
-    simulationPhaseList.push_back(new lm::io::SimulationPhase);
-    lm::io::SimulationPhase* phase = simulationPhaseList.back();
+    simulationPhaseList.push_back(new lm::input::SimulationPhase);
+    lm::input::SimulationPhase* phase = simulationPhaseList.back();
 
     phase->set_id(0);
     lm::trajectory::Trajectory initialTrajectory(0, phase->id(), *input);
@@ -114,12 +114,12 @@ void ReplicateSupervisor::buildSimulationPhaseList()
     phase->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());
 }
 
-lm::trajectory::TrajectoryList* ReplicateSupervisor::initTrajectoryList(const lm::io::SimulationPhase& phase)
+lm::trajectory::TrajectoryList* ReplicateSupervisor::initTrajectoryList(const lm::input::SimulationPhase& phase)
 {
     return new lm::replicates::ReplicateTrajectoryList(phase);
 }
 
-lm::trajectory::TrajectoryList* ReplicateSupervisor::initTrajectoryList(const lm::io::SimulationPhase& phase, const lm::trajectory::TrajectoryList& previousList)
+lm::trajectory::TrajectoryList* ReplicateSupervisor::initTrajectoryList(const lm::input::SimulationPhase& phase, const lm::trajectory::TrajectoryList& previousList)
 {
     return new lm::replicates::ReplicateTrajectoryList(phase, previousList);
 }

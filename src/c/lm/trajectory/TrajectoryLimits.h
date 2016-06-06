@@ -47,8 +47,8 @@
 
 #include "lm/EnumHelper.h"
 #include "lm/io/hdf5/SimulationFile.h"
-#include "lm/io/SimulationParameters.pb.h"
-#include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/input/SimulationParameters.pb.h"
+#include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/option/SimulationParameters.h"
 #include "lm/protowrap/Repeated.h"
 //#include "lm/tiling/Tiling.h"
@@ -57,8 +57,8 @@
 namespace lm {
 namespace trajectory {
 
-typedef lm::io::TrajectoryLimits TrajectoryLimitsMsg;
-typedef lm::io::TrajectoryLimit TrajectoryLimitMsg;
+typedef lm::input::TrajectoryLimits TrajectoryLimitsMsg;
+typedef lm::input::TrajectoryLimit TrajectoryLimitMsg;
 
 struct TrajectoryLimit
 {
@@ -132,7 +132,7 @@ public:
     // general addLimitMsg
     template <TrajLimEnums::LimitType LT> inline TrajectoryLimitMsg* addLimitMsg(uint32_t valID, typename LimitValueT<LT>::type val, TrajLimEnums::StoppingCondition sc, bool includeEndpoint = true, int32_t id = DEFAULT_LIMIT_ID)
     {
-        lm::io::TrajectoryLimit* tlMsg;
+        lm::input::TrajectoryLimit* tlMsg;
         if (LT==TrajLimEnums::TIME)
         {
             tlMsg = _buf.mutable_time_limit();

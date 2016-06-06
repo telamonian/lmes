@@ -38,7 +38,7 @@
  */
 
 #include "lm/me/MESolver.h"
-#include "lm/io/SimulationParameters.pb.h"
+#include "lm/input/SimulationParameters.pb.h"
 
 namespace lm {
 namespace me {

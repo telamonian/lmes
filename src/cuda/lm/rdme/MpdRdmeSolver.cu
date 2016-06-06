@@ -55,7 +55,7 @@
 #include "lm/Tune.h"
 #include "lm/Print.h"
 #include "lm/cme/CMESolver.h"
-#include "lm/io/DiffusionModel.pb.h"
+#include "lm/input/DiffusionModel.pb.h"
 #include "lm/io/Lattice.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/rdme/ByteLattice.h"

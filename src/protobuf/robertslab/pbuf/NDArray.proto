@@ -31,9 +31,9 @@
  *               Johns Hopkins University
  *               http://biophysics.jhu.edu/roberts/
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
-
+syntax = "proto2";
 package robertslab.pbuf;
 
 message NDArray {

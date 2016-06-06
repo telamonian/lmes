@@ -97,7 +97,7 @@ NextSubvolumeSolver::~NextSubvolumeSolver()
     if (reactionQueue != NULL) delete reactionQueue; reactionQueue = NULL;
 }
 
-void NextSubvolumeSolver::setDiffusionModel(const lm::io::DiffusionModel& dm)
+void NextSubvolumeSolver::setDiffusionModel(const lm::input::DiffusionModel& dm)
 {
     RDMESolver::setDiffusionModel(dm);
 
@@ -244,7 +244,7 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
         if (time >= timeLimit)
         {
             status = lm::message::WorkUnitStatus::LIMIT_REACHED;
-            limitTypeReached = lm::io::TrajectoryLimit::TIME;
+            limitTypeReached = lm::input::TrajectoryLimit::TIME;
             break;
         }
 
@@ -323,7 +323,7 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     }
 
     // If we finished the total time, write out the remaining time steps.
-    else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && limitTypeReached == lm::io::TrajectoryLimit::MAX)
+    else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && limitTypeReached == lm::input::TrajectoryLimit::MAX)
     {
         time = timeLimit;
         Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);
@@ -550,7 +550,7 @@ double NextSubvolumeSolver::calculateSubvolumeDiffusionPropensity(si_time_t time
     lattice->getNeighboringSites(subvolume, neighboringSubvolumes, false);
 
     // Fill in the boundary conditions.
-    lm::io::BoundaryConditions::BoundaryConditionsType bc[NUM_NEIGHBORS];
+    lm::input::BoundaryConditions::BoundaryConditionsType bc[NUM_NEIGHBORS];
     if (diffusionModel->boundaryConditions.axis_specific_boundaries())
     {
         bc[0]=diffusionModel->boundaryConditions.x_minus();
@@ -577,14 +577,14 @@ double NextSubvolumeSolver::calculateSubvolumeDiffusionPropensity(si_time_t time
                 int neighborIndex=neighboringSubvolumes[j];
                 if (neighborIndex == LATTICE_SIZE_MAX)
                 {
-                    if (bc[j] == lm::io::BoundaryConditions::REFLECTING)
+                    if (bc[j] == lm::input::BoundaryConditions::REFLECTING)
                     {
                     }
-                    else if (bc[j] == lm::io::BoundaryConditions::ABSORBING || bc[j] == lm::io::BoundaryConditions::FIXED_CONCENTRATION || bc[j] == lm::io::BoundaryConditions::FIXED_GRADIENT)
+                    else if (bc[j] == lm::input::BoundaryConditions::ABSORBING || bc[j] == lm::input::BoundaryConditions::FIXED_CONCENTRATION || bc[j] == lm::input::BoundaryConditions::FIXED_GRADIENT)
                     {
                         subvolumePropensity += ((double)currentSubvolumeSpeciesCounts[i]) * (diffusionModel->DF[sourceSite*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + sourceSite*reactionModel->numberSpecies + i]/latticeSpacingSquared);
                     }
-                    else if (bc[j] == lm::io::BoundaryConditions::PERIODIC)
+                    else if (bc[j] == lm::input::BoundaryConditions::PERIODIC)
                     {
                         lattice_size_t neighboringSubvolumesPeriodic[NUM_NEIGHBORS];
                         lattice->getNeighboringSites(subvolume, neighboringSubvolumesPeriodic, true);
@@ -694,7 +694,7 @@ bool NextSubvolumeSolver::performSubvolumeDiffusionEvent(si_time_t time, lattice
     lattice->getNeighboringSites(subvolume, neighboringSubvolumes, false);
 
     // Fill in the boundary conditions.
-    lm::io::BoundaryConditions::BoundaryConditionsType bc[NUM_NEIGHBORS];
+    lm::input::BoundaryConditions::BoundaryConditionsType bc[NUM_NEIGHBORS];
     if (diffusionModel->boundaryConditions.axis_specific_boundaries())
     {
         bc[0]=diffusionModel->boundaryConditions.x_minus();
@@ -721,10 +721,10 @@ bool NextSubvolumeSolver::performSubvolumeDiffusionEvent(si_time_t time, lattice
                 int neighborIndex=neighboringSubvolumes[j];
                 if (neighborIndex == LATTICE_SIZE_MAX)
                 {
-                    if (bc[j] == lm::io::BoundaryConditions::REFLECTING)
+                    if (bc[j] == lm::input::BoundaryConditions::REFLECTING)
                     {
                     }
-                    else if (bc[j] == lm::io::BoundaryConditions::ABSORBING ||bc[j] == lm::io::BoundaryConditions::FIXED_CONCENTRATION || bc[j] == lm::io::BoundaryConditions::FIXED_GRADIENT)
+                    else if (bc[j] == lm::input::BoundaryConditions::ABSORBING ||bc[j] == lm::input::BoundaryConditions::FIXED_CONCENTRATION || bc[j] == lm::input::BoundaryConditions::FIXED_GRADIENT)
                     {
                         double diffusionPropensity = ((double)currentSubvolumeSpeciesCounts[i]) * (diffusionModel->DF[sourceSite*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + sourceSite*reactionModel->numberSpecies + i]/latticeSpacingSquared);
 
@@ -745,7 +745,7 @@ bool NextSubvolumeSolver::performSubvolumeDiffusionEvent(si_time_t time, lattice
                             rngValue -= diffusionPropensity;
                         }
                     }
-                    else if (bc[j] == lm::io::BoundaryConditions::PERIODIC)
+                    else if (bc[j] == lm::input::BoundaryConditions::PERIODIC)
                     {
                         lattice_size_t neighboringSubvolumesPeriodic[NUM_NEIGHBORS];
                         lattice->getNeighboringSites(subvolume, neighboringSubvolumesPeriodic, true);
@@ -838,7 +838,7 @@ void NextSubvolumeSolver::addParticles(lattice_size_t subvolume, particle_t part
 			// We need to perform some overflow processing.
 			const uint NUM_NEIGHBORS=6;
 			lattice_size_t neighboringSubvolumes[NUM_NEIGHBORS];
-            lattice->getNeighboringSites(subvolume, neighboringSubvolumes, diffusionModel->boundaryConditions.global() == lm::io::BoundaryConditions::PERIODIC);
+            lattice->getNeighboringSites(subvolume, neighboringSubvolumes, diffusionModel->boundaryConditions.global() == lm::input::BoundaryConditions::PERIODIC);
 			bool handled = false;
 			for (uint i=0; i<NUM_NEIGHBORS && !handled; i++)
 			{

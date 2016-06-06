@@ -46,8 +46,8 @@
 #define LM_RDME_RDMESOLVER_H_
 
 #include "lm/cme/CMESolver.h"
-#include "lm/io/BoundaryConditions.pb.h"
-#include "lm/io/DiffusionModel.pb.h"
+#include "lm/input/BoundaryConditions.pb.h"
+#include "lm/input/DiffusionModel.pb.h"
 #include "lm/rdme/DiffusionModel.h"
 #include "lm/rdme/Lattice.h"
 
@@ -63,11 +63,11 @@ public:
     RDMESolver(RandomGenerator::Distributions neededDists);
     virtual ~RDMESolver();
     virtual bool needsDiffusionModel() {return true;}
-    virtual void setDiffusionModel(const lm::io::DiffusionModel& dm);
+    virtual void setDiffusionModel(const lm::input::DiffusionModel& dm);
     virtual void reset();
     virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0);
     virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0);
-    virtual void setOutputOptions(const lm::io::OutputOptions& outputOptions);
+    virtual void setOutputOptions(const lm::input::OutputOptions& outputOptions);
 
 protected:
     virtual void allocateLattice(lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing);

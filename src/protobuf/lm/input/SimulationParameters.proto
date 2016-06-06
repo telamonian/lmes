@@ -39,10 +39,10 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
-
-package lm.io;
+syntax = "proto2";
+package lm.input;
 
 message SimulationParameters {
   repeated string key                                 = 1;

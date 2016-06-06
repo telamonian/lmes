@@ -44,7 +44,7 @@
 #include <utility>
 #include <vector>
 
-#include "lm/io/SimulationParameters.pb.h"
+#include "lm/input/SimulationParameters.pb.h"
 #include "lm/option/SimulationParameters.h"
 #include "lm/Print.h"
 #include "lm/Types.h"
@@ -93,7 +93,7 @@ SimParamMap::iterator SimulationParameters::findFirst(const vector<string>& keys
 }
 
 // mutators
-void SimulationParameters::bufToMap(const lm::io::SimulationParameters& inBuf, SimParamMap& outMap)
+void SimulationParameters::bufToMap(const lm::input::SimulationParameters& inBuf, SimParamMap& outMap)
 {
     for (int i=0; i<inBuf.key_size() && i<inBuf.value_size(); i++)
     {
@@ -101,7 +101,7 @@ void SimulationParameters::bufToMap(const lm::io::SimulationParameters& inBuf, S
     }
 }
 
-void SimulationParameters::mapToBuf(const SimParamMap& inMap, lm::io::SimulationParameters& outBuf)
+void SimulationParameters::mapToBuf(const SimParamMap& inMap, lm::input::SimulationParameters& outBuf)
 {
     outBuf.Clear();
     for (SimParamMap::const_iterator it=inMap.begin(); it!=inMap.end(); it++) {
@@ -110,7 +110,7 @@ void SimulationParameters::mapToBuf(const SimParamMap& inMap, lm::io::Simulation
     }
 }
 
-bool SimulationParameters::rFB(const lm::io::SimulationParameters& inBuf) // rFB = read From Buf
+bool SimulationParameters::rFB(const lm::input::SimulationParameters& inBuf) // rFB = read From Buf
 {
     setBuf(inBuf);
     bufToMap();

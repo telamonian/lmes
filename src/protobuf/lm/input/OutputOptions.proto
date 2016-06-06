@@ -36,8 +36,8 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
-package lm.io;
+syntax = "proto2";
+package lm.input;
 
 message OutputOptions {
     optional double degree_advancement_write_interval   = 1;

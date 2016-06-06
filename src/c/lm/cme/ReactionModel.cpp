@@ -43,7 +43,7 @@
 #include "lm/array/NDArray.h"
 #include "lm/array/Tuple.h"
 #include "lm/cme/ReactionModel.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 
 using std::list;
 
@@ -72,7 +72,7 @@ ReactionModel::ReactionModel(const uint numberSpecies, const uint numberReaction
     memset(dependentReactions, 0, numberReactions*sizeof(*dependentReactions));
 }
 
-ReactionModel::ReactionModel(const lm::io::ReactionModel& rm)
+ReactionModel::ReactionModel(const lm::input::ReactionModel& rm)
 :numberSpecies(rm.number_species()),numberSpeciesToTrack(rm.number_species()),numberReactions((uint)rm.number_reactions()),S(ndarray<int>(utuple(numberSpecies,numberReactions),rm.stoichiometric_matrix().data())),D(ndarray<uint>(utuple(numberSpecies,numberReactions),rm.dependency_matrix().data())),propensityFunctions(NULL),numberDependentSpecies(NULL),dependentSpecies(NULL),dependentSpeciesChange(NULL),numberDependentReactions(NULL),dependentReactions(NULL)
 {
     // Allocate propensity function tables.

@@ -53,7 +53,7 @@ class Tiling
 {
 public:
 // typedefs
-    typedef lm::io::TrajectoryLimit TrajectoryLimitBuf;
+    typedef lm::input::TrajectoryLimit TrajectoryLimitBuf;
 
 // initializers
     Tiling();

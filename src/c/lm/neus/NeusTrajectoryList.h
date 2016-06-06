@@ -47,7 +47,7 @@
 #include "lm/neus/NeusTrajectory.h"
 #include "lm/input/Input.h"
 #include "lm/io/FFluxOutput.pb.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/Message.pb.h"
@@ -63,8 +63,8 @@ typedef std::vector<lm::io::TrajectoryState*> CrossingVector;
 typedef std::map<long long, CrossingVector> CrossingsMap;
 typedef std::map<long long, double> DwellTimeMap;
 typedef std::map<long long, long long> FinishedTrajectoriesCountMap;
-typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::DecreasingOrderParameterLimit>::iterator decrLimitIterator;
-typedef google::protobuf::RepeatedPtrField<lm::io::TrajectoryLimits::IncreasingOrderParameterLimit>::iterator incrLimitIterator;
+typedef google::protobuf::RepeatedPtrField<lm::input::TrajectoryLimits::DecreasingOrderParameterLimit>::iterator decrLimitIterator;
+typedef google::protobuf::RepeatedPtrField<lm::input::TrajectoryLimits::IncreasingOrderParameterLimit>::iterator incrLimitIterator;
 typedef std::vector<lm::io::TilingHist*> TilingVector;
 
 class NeusTrajectoryList : public lm::trajectory::TrajectoryList
@@ -73,7 +73,7 @@ public:
     // enumerated type used for describing the direction of the current fflux simulation relative to the arrangements (low-to-high or high-to-low) of the individual interfaces
     enum Direction {FORWARD, BACKWARD};
 
-//    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters, lm::tiling::Tilings& tilings);
+//    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,const lm::input::ReactionModel& reactionModel,const lm::input::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters, lm::tiling::Tilings& tilings);
     NeusTrajectoryList(uint64_t simultaneousTrajectoryCount,lm::input::Input& input);
     virtual ~NeusTrajectoryList();
     virtual void init();

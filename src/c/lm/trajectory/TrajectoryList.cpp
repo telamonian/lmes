@@ -42,7 +42,7 @@
 #include <string>
 
 #include "lm/EnumHelper.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
@@ -55,8 +55,8 @@
 #include "lm/trajectory/TrajectoryList.h"
 #include "lm/Types.h"
 
-using lm::io::DiffusionModel;
-using lm::io::ReactionModel;
+using lm::input::DiffusionModel;
+using lm::input::ReactionModel;
 using lm::protowrap::Repeated;
 using std::map;
 using std::string;
@@ -68,12 +68,12 @@ TrajectoryList::TrajectoryList(): count(0), simulationPhase(0)
 {
 }
 
-TrajectoryList::TrajectoryList(const lm::io::SimulationPhase& phase): count(0), simulationPhase(phase.id())
+TrajectoryList::TrajectoryList(const lm::input::SimulationPhase& phase): count(0), simulationPhase(phase.id())
 {
     init(phase.trajectory_states());
 }
 
-TrajectoryList::TrajectoryList(const lm::io::SimulationPhase& phase, const TrajectoryList& previousList): count(previousList.count), simulationPhase(phase.id())
+TrajectoryList::TrajectoryList(const lm::input::SimulationPhase& phase, const TrajectoryList& previousList): count(previousList.count), simulationPhase(phase.id())
 {
 //    switch(phase.trajectory_source())
 //    {

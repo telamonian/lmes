@@ -111,7 +111,7 @@ GillespieDSolverAVX::GillespieDSolverAVX()
         initialized[i] = false;
         status[i] = lm::message::WorkUnitStatus::NONE;
         limitIDReached[i] = lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID;
-        limitTypeReached[i] = lm::io::TrajectoryLimit::NONE;
+        limitTypeReached[i] = lm::input::TrajectoryLimit::NONE;
         trajectoryId[i] = 0;
         trajectoryStarted[i] = false;
     }
@@ -143,7 +143,7 @@ uint GillespieDSolverAVX::getSimultaneousTrajectories()
     return DOUBLES_PER_AVX;
 }
 
-void GillespieDSolverAVX::setReactionModel(const lm::io::ReactionModel& rm)
+void GillespieDSolverAVX::setReactionModel(const lm::input::ReactionModel& rm)
 {
     GillespieDSolver::setReactionModel(rm);
 
@@ -172,7 +172,7 @@ void GillespieDSolverAVX::setOrderParameters(const lm::io::OrderParameters& ops)
     POSIX_EXCEPTION_CHECK(posix_memalign((void**)&orderParameterPreviousValues, DOUBLES_PER_AVX*sizeof(double), numberOrderParameters*DOUBLES_PER_AVX*sizeof(double)));
 }
 
-void GillespieDSolverAVX::setLimits(const lm::io::TrajectoryLimits& lm)
+void GillespieDSolverAVX::setLimits(const lm::input::TrajectoryLimits& lm)
 {
     GillespieDSolver::setLimits(lm);
 
@@ -191,9 +191,9 @@ void GillespieDSolverAVX::setLimits(const lm::io::TrajectoryLimits& lm)
         for (int i=0; i<numberLimits; i++)
         {
             for (int j=0; j<DOUBLES_PER_AVX; j++)
-                if (limits[i].type == lm::io::TrajectoryLimit::SPECIES)
+                if (limits[i].type == lm::input::TrajectoryLimit::SPECIES)
                     limitValues[i*DOUBLES_PER_AVX+j] = double(limits[i].ivalue);
-                else if (limits[i].type == lm::io::TrajectoryLimit::DEGREE_ADVANCEMENT)
+                else if (limits[i].type == lm::input::TrajectoryLimit::DEGREE_ADVANCEMENT)
                     limitValues[i*DOUBLES_PER_AVX+j] = double(limits[i].uvalue);
                 else
                     limitValues[i*DOUBLES_PER_AVX+j] = limits[i].dvalue;
@@ -223,7 +223,7 @@ void GillespieDSolverAVX::reset()
         initialized[i] = false;
         status[i] = lm::message::WorkUnitStatus::NONE;
         limitIDReached[i] = lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID;
-        limitTypeReached[i] = lm::io::TrajectoryLimit::NONE;
+        limitTypeReached[i] = lm::input::TrajectoryLimit::NONE;
         trajectoryId[i] = 0;
         trajectoryStarted[i] = false;
     }
@@ -582,7 +582,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
                 {
                     status[i] = lm::message::WorkUnitStatus::LIMIT_REACHED;
                     limitIDReached[i] = lm::trajectory::TrajectoryLimits::TIME_LIMIT_ID;
-                    limitTypeReached[i] = lm::io::TrajectoryLimit::TIME;
+                    limitTypeReached[i] = lm::input::TrajectoryLimit::TIME;
                 }
                 else
                 {
@@ -735,7 +735,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
                         ((double*)&time)[i] = ((double*)&timeLimit)[i];
                         status[i] = lm::message::WorkUnitStatus::LIMIT_REACHED;
                         limitIDReached[i] = lm::trajectory::TrajectoryLimits::TIME_LIMIT_ID;
-                        limitTypeReached[i] = lm::io::TrajectoryLimit::TIME;
+                        limitTypeReached[i] = lm::input::TrajectoryLimit::TIME;
                     }
 
                     // Otherwise, zero propensity is an error.
@@ -795,7 +795,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
         }
 
         // If we finished the total time, write out the remaining time steps.
-        else if (status[i] == lm::message::WorkUnitStatus::LIMIT_REACHED && limitTypeReached[i] == lm::io::TrajectoryLimit::TIME)
+        else if (status[i] == lm::message::WorkUnitStatus::LIMIT_REACHED && limitTypeReached[i] == lm::input::TrajectoryLimit::TIME)
         {
             ((double*)&time)[i] = ((double*)&timeLimit)[i];
             Print::printf(Print::DEBUG, "Generated trajectory %llu through time %e.", trajectoryId[i], ((double*)&time)[i]);

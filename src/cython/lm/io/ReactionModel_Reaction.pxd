@@ -1,4 +1,4 @@
-cdef extern from "lm/io/ReactionModel.pb.h" namespace "lm::io":
+cdef extern from "lm/input/ReactionModel.pb.h" namespace "lm::io":
     cdef cppclass CppReactionModel_Reaction "lm::io::ReactionModel_Reaction":
         CppReactionModel_Reaction()
         bool has_type()

@@ -36,18 +36,18 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
+syntax = "proto2";
 package lm.io;
 
 import "lm/io/CMEState.proto";
 import "lm/io/RDMEState.proto";
-import "lm/io/TrajectoryLimits.proto";
+import "lm/input/TrajectoryLimits.proto";
 
 message TrajectoryState {
     required uint64 trajectory_id                                 = 1;
     optional bool trajectory_started                              = 2 [default = false];
     optional lm.io.CMEState cme_state                             = 3;
     optional lm.io.RDMEState rdme_state                           = 4;
-    optional lm.io.TrajectoryLimit limit_reached                  = 5;
+    optional lm.input.TrajectoryLimit limit_reached               = 5;
     optional bytes solver_state                                   = 100;
 }

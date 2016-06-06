@@ -36,6 +36,7 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+syntax = "proto2";
 package lm.io;
 
 import "lm/io/DegreeAdvancements.proto";

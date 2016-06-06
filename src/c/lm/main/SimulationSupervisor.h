@@ -47,11 +47,11 @@
 #include "hrtime.h"
 #include "lm/Exceptions.h"
 #include "lm/input/Input.h"
-#include "lm/io/BoundaryConditions.pb.h"
-#include "lm/io/DiffusionModel.pb.h"
+#include "lm/input/BoundaryConditions.pb.h"
+#include "lm/input/DiffusionModel.pb.h"
 #include "lm/io/OrderParameters.pb.h"
-#include "lm/io/ReactionModel.pb.h"
-#include "lm/io/SimulationPhase.pb.h"
+#include "lm/input/ReactionModel.pb.h"
+#include "lm/input/SimulationPhase.pb.h"
 #include "lm/io/Tilings.pb.h"
 #include "lm/message/Communicator.h"
 #include "lm/message/FinishedCheckpointing.pb.h"
@@ -80,7 +80,7 @@ namespace lm {
 namespace main {
 
 typedef map<string,string> SimulationParametersMap;
-typedef std::deque<lm::io::SimulationPhase*> SimulationPhaseList;
+typedef std::deque<lm::input::SimulationPhase*> SimulationPhaseList;
 
 class SimulationSupervisor : public lm::thread::Worker
 {
@@ -92,7 +92,7 @@ public:
     SimulationSupervisor();
     virtual ~SimulationSupervisor();
     virtual void init();
-    lm::io::SimulationPhase* getCurrentPhase() {return simulationPhaseList.front();}
+    lm::input::SimulationPhase* getCurrentPhase() {return simulationPhaseList.front();}
     void setOutputWriterClassName(string outputWriterClassName) {this->outputWriterClassName = outputWriterClassName;}
     void setResourceMap(lm::resource::ResourceMap* resourceMap) {this->resourceMap = resourceMap;}
     void setSimulationFilename(string simulationInputFilename, string simulationOutputFilename) {this->simulationInputFilename = simulationInputFilename; this->simulationOutputFilename = simulationOutputFilename;}
@@ -116,8 +116,8 @@ protected:
     virtual void startSimulation();
     virtual void buildSimulationPhaseList()=0;
     virtual void startSimulationPhase();
-    virtual lm::trajectory::TrajectoryList* initTrajectoryList(const lm::io::SimulationPhase& phase)=0;
-    virtual lm::trajectory::TrajectoryList* initTrajectoryList(const lm::io::SimulationPhase& phase, const lm::trajectory::TrajectoryList& previousList)=0;
+    virtual lm::trajectory::TrajectoryList* initTrajectoryList(const lm::input::SimulationPhase& phase)=0;
+    virtual lm::trajectory::TrajectoryList* initTrajectoryList(const lm::input::SimulationPhase& phase, const lm::trajectory::TrajectoryList& previousList)=0;
     virtual void setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList);
     virtual void buildTrajectoryList();
 

@@ -43,13 +43,13 @@
 #include "lm/EnumHelper.h"
 #include "lm/Print.h"
 #include "lm/input/Input.h"
-#include "lm/io/OutputOptions.pb.h"
-#include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/input/OutputOptions.pb.h"
+#include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/option/SimulationParameters.h"
 #include "lm/trajectory/TrajectoryLimits.h"
 #include "lm/Types.h"
 
-using lm::io::OutputOptions;
+using lm::input::OutputOptions;
 using lm::trajectory::LimitValueT;
 using std::map;
 using std::string;

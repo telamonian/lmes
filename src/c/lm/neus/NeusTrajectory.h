@@ -39,7 +39,7 @@
 #ifndef LM_NEUS_NEUSTRAJECTORY_H_
 #define LM_NEUS_NEUSTRAJECTORY_H_
 
-#include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/trajectory/Trajectory.h"
 #include "lm/tiling/Tilings.h"
 #include "lm/Types.h"
@@ -50,8 +50,8 @@ namespace neus {
 class NeusTrajectory : public lm::trajectory::Trajectory
 {
 public:
-//    FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings& tilings,bool reversed=false);
-//    FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings& tilings,lm::io::TrajectoryState* state);
+//    FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::input::ReactionModel& reactionModel,const lm::input::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings& tilings,bool reversed=false);
+//    FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::input::ReactionModel& reactionModel,const lm::input::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings& tilings,lm::io::TrajectoryState* state);
     NeusTrajectory(uint64_t id,uint ffluxPhase,lm::input::Input& input,bool reversed=false);
     NeusTrajectory(uint64_t id,uint ffluxPhase,lm::input::Input& input,lm::io::TrajectoryState* state);
     virtual ~NeusTrajectory();
@@ -63,7 +63,7 @@ public:
     virtual bool fluxedForward();
 
     // accessors
-    virtual lm::io::TrajectoryLimits::LimitType getFinalLimitType();
+    virtual lm::input::TrajectoryLimits::LimitType getFinalLimitType();
     virtual uint getSimSteps();
     virtual double getSimTime();
     virtual bool hasElapsed(double time);

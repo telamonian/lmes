@@ -41,7 +41,7 @@
 #define LM_CME_REACTIONMODEL_H_
 
 #include "lm/Types.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/me/PropensityFunction.h"
 
 namespace lm {
@@ -52,7 +52,7 @@ class ReactionModel
 {
 public:
     ReactionModel(const uint numberSpecies, const uint numberReactions);
-    ReactionModel(const lm::io::ReactionModel& rm);
+    ReactionModel(const lm::input::ReactionModel& rm);
     virtual ~ReactionModel();
     virtual void setPropensityFunction(uint reaction, lm::me::PropensityFunction* propensityFunction);
 

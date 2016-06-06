@@ -74,9 +74,9 @@ public:
     GillespieDSolverAVX();
     virtual ~GillespieDSolverAVX();
     virtual uint getSimultaneousTrajectories();
-    virtual void setReactionModel(const lm::io::ReactionModel& rm);
+    virtual void setReactionModel(const lm::input::ReactionModel& rm);
     virtual void setOrderParameters(const lm::io::OrderParameters& opsBuf);
-    virtual void setLimits(const lm::io::TrajectoryLimits& limits);
+    virtual void setLimits(const lm::input::TrajectoryLimits& limits);
     virtual void reset();
     virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0);
     virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0);
@@ -102,7 +102,7 @@ protected:
     // Limits for the trajectory.
     avxd timeLimit;
     int32_t limitIDReached[DOUBLES_PER_AVX];
-    lm::io::TrajectoryLimit::LimitType limitTypeReached[DOUBLES_PER_AVX];
+    lm::input::TrajectoryLimit::LimitType limitTypeReached[DOUBLES_PER_AVX];
     double* limitValues;
 
     // First passage time species variables.

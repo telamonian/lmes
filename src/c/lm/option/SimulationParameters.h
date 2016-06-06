@@ -47,7 +47,7 @@
 #include <vector>
 
 #include "lm/io/hdf5/SimulationFile.h"
-#include "lm/io/SimulationParameters.pb.h"
+#include "lm/input/SimulationParameters.pb.h"
 #include "lm/Print.h"
 #include "lm/Types.h"
 
@@ -60,14 +60,14 @@ class SimulationParameters
 {
 public:
     SimulationParameters() {}
-    SimulationParameters(const lm::io::SimulationParameters& newBuf) {rFB(newBuf);}
+    SimulationParameters(const lm::input::SimulationParameters& newBuf) {rFB(newBuf);}
     SimulationParameters(const lm::io::hdf5::Hdf5File& file) {rFF(file);}
     SimulationParameters(const SimParamMap& newMap) {rFM(newMap);}
     ~SimulationParameters() {}
 
 // accessors
     SimParamMap::const_iterator findFirst(const std::vector<std::string>& keys) const;
-    const io::SimulationParameters& buf() {return _buf;}
+    const lm::input::SimulationParameters& buf() {return _buf;}
     const SimParamMap& map() const {return _map;}
     bool isEnd(SimParamMap::const_iterator it) const {return it==_map.end();}
 
@@ -129,22 +129,22 @@ public:
 // mutators
     // for the buf <-> map conversion methods, if you drop an arg it'll use the internal map and/or buf
     void bufToMap() {bufToMap(_buf, _map);}
-    void bufToMap(const lm::io::SimulationParameters& inBuf) {bufToMap(inBuf, _map);}
+    void bufToMap(const lm::input::SimulationParameters& inBuf) {bufToMap(inBuf, _map);}
     void bufToMap(SimParamMap& outMap) {bufToMap(_buf, outMap);}
-    void bufToMap(const lm::io::SimulationParameters& inBuf, SimParamMap& outMap);
+    void bufToMap(const lm::input::SimulationParameters& inBuf, SimParamMap& outMap);
 
     SimParamMap::iterator findFirst(const std::vector<std::string>& keys);
 
     void mapToBuf() {mapToBuf(_map, _buf);}
     void mapToBuf(const SimParamMap& inMap) {mapToBuf(inMap, _buf);}
-    void mapToBuf(lm::io::SimulationParameters& outBuf) {mapToBuf(_map, outBuf);}
-    void mapToBuf(const SimParamMap& inMap, lm::io::SimulationParameters& outBuf);
+    void mapToBuf(lm::input::SimulationParameters& outBuf) {mapToBuf(_map, outBuf);}
+    void mapToBuf(const SimParamMap& inMap, lm::input::SimulationParameters& outBuf);
 
-    bool rFB(const lm::io::SimulationParameters& inBuf); // rFB = read From Buf
+    bool rFB(const lm::input::SimulationParameters& inBuf); // rFB = read From Buf
     bool rFF(const lm::io::hdf5::Hdf5File& file); // rFF = read From File
     bool rFM(const SimParamMap& inMap); // rFM = read From Map
 
-    void setBuf(const lm::io::SimulationParameters& newBuf) {_buf.CopyFrom(newBuf);}
+    void setBuf(const lm::input::SimulationParameters& newBuf) {_buf.CopyFrom(newBuf);}
     void setMap(const SimParamMap& newMap) {_map = newMap;}
 
 // const qualified pass-throughs to the underlying SimulationParameters buf and SimParamMap
@@ -158,7 +158,7 @@ public:
     SimParamMap::iterator end() {return _map.end();}
 
 protected:
-    lm::io::SimulationParameters _buf;
+    lm::input::SimulationParameters _buf;
     SimParamMap _map;
 };
 

@@ -45,7 +45,7 @@
 #include "lm/Exceptions.h"
 #include "lm/MPI.h"
 #include "lm/Print.h"
-#include "lm/io/DiffusionModel.pb.h"
+#include "lm/input/DiffusionModel.pb.h"
 #include "lm/io/hdf5/HDF5.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/main/Main.h"

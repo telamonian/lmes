@@ -34,10 +34,10 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
-
-package lm.io;
+syntax = "proto2";
+package lm.input;
 
 import "lm/io/ArrayOrdering.proto";
 
@@ -68,6 +68,6 @@ message BoundaryConditions {
     optional double boundary_concentration              = 21;
     
     // Parameters for FIXED_GRADIENT.
-    optional ArrayOrdering boundary_gradient_ordering   = 30;
+    optional lm.io.ArrayOrdering boundary_gradient_ordering   = 30;
     repeated double boundary_gradient                   = 31 [packed=true];
 }

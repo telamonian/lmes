@@ -46,7 +46,7 @@
 #include "lm/Types.h"
 #include "lm/input/Input.h"
 #include "lm/io/FirstPassageTimes.pb.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Message.pb.h"
@@ -74,8 +74,8 @@ namespace replicates {
 //    }
 //}
 
-ReplicateTrajectoryList::ReplicateTrajectoryList(const lm::io::SimulationPhase& phase): TrajectoryList(phase) {}
-ReplicateTrajectoryList::ReplicateTrajectoryList(const lm::io::SimulationPhase& phase, const TrajectoryList& previousList): TrajectoryList(phase, previousList) {}
+ReplicateTrajectoryList::ReplicateTrajectoryList(const lm::input::SimulationPhase& phase): TrajectoryList(phase) {}
+ReplicateTrajectoryList::ReplicateTrajectoryList(const lm::input::SimulationPhase& phase, const TrajectoryList& previousList): TrajectoryList(phase, previousList) {}
 
 ReplicateTrajectoryList::~ReplicateTrajectoryList()
 {

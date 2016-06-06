@@ -41,8 +41,8 @@
  *
  * Author(s): Max Klein
  */
-
-package lm.io;
+syntax = "proto2";
+package lm.input;
 
 import "lm/io/FFluxPhaseLimits.proto";
 

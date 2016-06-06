@@ -56,9 +56,9 @@
 #include "lm/cme/ReactionModel.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/OrderParameters.pb.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
-#include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/Math.h"
 #include "lm/me/PropensityFunction.h"
@@ -89,7 +89,7 @@ namespace cme {
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
 :neededDists(neededDists),rng(NULL),reactionModel(NULL),hasUpdateSpeciesCountsListeners(false),tilings(NULL),trackingDegreeAdvancements(false),numberOrderParameters(0),
  orderParameterFunctions(NULL),status(lm::message::WorkUnitStatus::NONE),timeLimit(std::numeric_limits<double>::infinity()),
- numberLimits(0),limits(NULL),limitReached(NULL),limitIDReached(lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID),limitTypeReached(lm::io::TrajectoryLimit::NONE),
+ numberLimits(0),limits(NULL),limitReached(NULL),limitIDReached(lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID),limitTypeReached(lm::input::TrajectoryLimit::NONE),
  writeDegreeAdvancementTimeSeries(false),writeOrderParameterTimeSeries(false),writeSpeciesTimeSeries(false),
  degreeAdvancementWriteInterval(0.0), orderParameterWriteInterval(0.0),speciesWriteInterval(0.0),numberFptTrackedSpecies(0),
  numberFptTrackedOrderParameters(0),fptTrackedSpecies(NULL),fptTrackedOrderParameters(NULL),trajectoryStarted(false),speciesCounts(NULL),
@@ -139,7 +139,7 @@ void CMESolver::setComputeResources(vector<int> cpus, vector<int> gpus)
     }
 }
 
-void CMESolver::setReactionModel(const lm::io::ReactionModel& rm)
+void CMESolver::setReactionModel(const lm::input::ReactionModel& rm)
 {
     if (rm.number_reactions() != (uint)rm.reaction_size()) throw InvalidArgException("rm", "number of reaction does not agree with reaction list size");
 
@@ -185,7 +185,7 @@ void CMESolver::setTilings(const lm::io::Tilings& tilingsBuf)
     hasUpdateSpeciesCountsListeners = true;
 }
 
-void CMESolver::setLimits(const lm::io::TrajectoryLimits& lm)
+void CMESolver::setLimits(const lm::input::TrajectoryLimits& lm)
 {
     // Free any previous limits;
     if (limits != NULL) delete[] limits; limits = NULL;
@@ -235,7 +235,7 @@ void CMESolver::reset()
 
     // Reset the limits reached.
     limitIDReached = lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID;
-    limitTypeReached = lm::io::TrajectoryLimit::NONE;
+    limitTypeReached = lm::input::TrajectoryLimit::NONE;
 
     // Reset the order parameters.
     for (size_t i=0; i<numberOrderParameters; i++)
@@ -293,11 +293,11 @@ void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
     }
 
     // Get the limit reached during the simulation.
-    if (limitTypeReached==lm::io::TrajectoryLimit::TIME)
+    if (limitTypeReached==lm::input::TrajectoryLimit::TIME)
     {
         state->mutable_limit_reached()->CopyFrom(trajectoryLimits.getTimeBuf());
     }
-    else if (limitTypeReached!=lm::io::TrajectoryLimit::NONE)
+    else if (limitTypeReached!=lm::input::TrajectoryLimit::NONE)
     {
         state->mutable_limit_reached()->CopyFrom(*trajectoryLimits.findMsg(limitIDReached));
     }
@@ -437,7 +437,7 @@ lm::message::WorkUnitStatus::Status CMESolver::getStatus(uint trajectoryNumber)
     return status;
 }
 
-void CMESolver::setOutputOptions(const lm::io::OutputOptions& outputOptions)
+void CMESolver::setOutputOptions(const lm::input::OutputOptions& outputOptions)
 {
     if (outputOptions.has_degree_advancement_write_interval())
     {

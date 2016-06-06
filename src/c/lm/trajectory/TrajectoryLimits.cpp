@@ -37,7 +37,7 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 #include "lm/EnumHelper.h"
-#include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/tiling/Tiling.h"
 #include "lm/trajectory/TrajectoryLimits.h"
 #include "lm/Types.h"
@@ -135,7 +135,7 @@ void TrajectoryLimits::wTV(vectorType& outVec)
     }
 }
 
-TrajectoryLimit TrajectoryLimits::bufToStruct(const lm::io::TrajectoryLimit& inBuf)
+TrajectoryLimit TrajectoryLimits::bufToStruct(const lm::input::TrajectoryLimit& inBuf)
 {
     TrajectoryLimit limit;
     limit.type = inBuf.limit_type();

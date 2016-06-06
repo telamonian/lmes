@@ -41,7 +41,7 @@
 
 #include "lm/EnumHelper.h"
 #include "lm/io/FFluxOutput.pb.h"
-#include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/input/Input.h"
 #include "lm/trajectory/Trajectory.h"
 #include "lm/tiling/Tilings.h"

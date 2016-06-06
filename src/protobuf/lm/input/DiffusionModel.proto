@@ -39,13 +39,13 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
-
-package lm.io;
+syntax = "proto2";
+package lm.input;
 
 import "lm/io/Lattice.proto";
-import "lm/io/BoundaryConditions.proto";
+import "lm/input/BoundaryConditions.proto";
 
 message DiffusionModel {
   required int32 number_species                     = 1;
@@ -54,6 +54,6 @@ message DiffusionModel {
   repeated double diffusion_matrix                  = 4 [packed=true];
   repeated bool reaction_location_matrix            = 5 [packed=true];
   required double lattice_spacing                   = 6;
-  required Lattice initial_lattice                  = 7;
+  required lm.io.Lattice initial_lattice            = 7;
   optional BoundaryConditions boundary_conditions   = 8;
 }

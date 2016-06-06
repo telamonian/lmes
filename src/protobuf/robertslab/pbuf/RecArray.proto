@@ -33,6 +33,7 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+syntax = "proto2";
 package robertslab.pbuf;
 
 import "robertslab/pbuf/NDArray.proto";

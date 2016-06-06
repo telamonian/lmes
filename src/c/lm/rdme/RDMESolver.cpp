@@ -46,8 +46,8 @@
 #include "lm/Tune.h"
 #include "lm/Print.h"
 #include "lm/cme/CMESolver.h"
-#include "lm/io/BoundaryConditions.pb.h"
-#include "lm/io/DiffusionModel.pb.h"
+#include "lm/input/BoundaryConditions.pb.h"
+#include "lm/input/DiffusionModel.pb.h"
 #include "lm/io/Lattice.pb.h"
 #include "lm/me/PropensityFunction.h"
 #include "lm/rdme/Lattice.h"
@@ -58,7 +58,7 @@
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
 
-using lm::io::DiffusionModel;
+using lm::input::DiffusionModel;
 using lm::rdme::Lattice;
 using lm::rng::RandomGenerator;
 
@@ -79,7 +79,7 @@ RDMESolver::~RDMESolver()
     if (lattice != NULL) delete lattice; lattice = NULL;
 }
 
-void RDMESolver::setDiffusionModel(const lm::io::DiffusionModel& dm)
+void RDMESolver::setDiffusionModel(const lm::input::DiffusionModel& dm)
 {
     CMESolver::setDiffusionModel(dm);
 
@@ -166,7 +166,7 @@ void RDMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryN
     lattice->deserializeParticlesFrom(particles.data(), particles.size(), (Lattice::SerializationDataOrder)state.rdme_state().species_positions().particles_ordering(), state.rdme_state().species_positions().particles_compressed_deflate());
 }
 
-void RDMESolver::setOutputOptions(const lm::io::OutputOptions& outputOptions)
+void RDMESolver::setOutputOptions(const lm::input::OutputOptions& outputOptions)
 {
     CMESolver::setOutputOptions(outputOptions);
 

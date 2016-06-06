@@ -36,11 +36,11 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+syntax = "proto2";
+package lm.input;
 
-package lm.io;
-
-import "lm/io/OutputOptions.proto";
-import "lm/io/TrajectoryLimits.proto";
+import "lm/input/OutputOptions.proto";
+import "lm/input/TrajectoryLimits.proto";
 import "lm/io/TrajectoryState.proto";
 
 message SimulationPhase {
@@ -55,16 +55,16 @@ message SimulationPhase {
         PREVIOUS_PHASE=1;
     }
 
-    required uint64 id                                = 1;
+    required uint64 id                                   = 1;
 
-    optional TrajectorySource trajectory_source       = 2 [default=LIST];
-    repeated lm.io.TrajectoryState trajectory_states  = 3;
+    optional TrajectorySource trajectory_source          = 2 [default=LIST];
+    repeated lm.io.TrajectoryState trajectory_states     = 3;
 
-    optional lm.io.TrajectoryLimits trajectory_limits = 4;
-    optional lm.io.TrajectoryLimit phase_limit        = 6;
+    optional lm.input.TrajectoryLimits trajectory_limits = 4;
+    optional lm.input.TrajectoryLimit phase_limit        = 6;
 
-    optional lm.io.OutputOptions output_options       = 7;
+    optional lm.input.OutputOptions output_options       = 7;
 
-    optional uint64 batch_size                        = 8;
-    optional bool keep_slots_full                     = 9 [default=false];
+    optional uint64 batch_size                           = 8;
+    optional bool keep_slots_full                        = 9 [default=false];
 }

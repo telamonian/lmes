@@ -49,7 +49,7 @@
 #include "lm/neus/NeusTrajectoryList.h"
 #include "lm/io/CMEState.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/main/Main.h"
@@ -57,8 +57,8 @@
 #include "lm/trajectory/Trajectory.h"
 #include "lm/tiling/Tilings.h"
 
-using lm::io::DiffusionModel;
-using lm::io::ReactionModel;
+using lm::input::DiffusionModel;
+using lm::input::ReactionModel;
 using std::map;
 using std::string;
 using std::vector;

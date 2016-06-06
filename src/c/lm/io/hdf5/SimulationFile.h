@@ -50,6 +50,10 @@
 #include <vector>
 
 #include "lm/protowrap/NDArray.h"
+#include "lm/input/DiffusionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
+#include "lm/input/SimulationParameters.pb.h"
+#include "lm/input/SpatialModel.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/io/hdf5/HDF5.h"
 #include "lm/Exceptions.h"
@@ -140,7 +144,7 @@ public:
     virtual hid_t initGroup(std::string& groupPath, hid_t rootGroup=-1);
 
     // Methods for working with parameters.
-    virtual void getParameters(lm::io::SimulationParameters* parameters) const;
+    virtual void getParameters(lm::input::SimulationParameters* parameters) const;
     virtual const map<string,string>& getParameters() const;
     virtual map<string,string>& getParameters();
     virtual string getParameter(string key, string defaultValue="");
@@ -148,21 +152,21 @@ public:
 
     // Methods for working with the model.
     virtual bool hasDiffusionModel() const;
-    virtual void getDiffusionModel(lm::io::DiffusionModel* diffusionModel) const;
-    virtual void setDiffusionModel(lm::io::DiffusionModel* diffusionModel);
+    virtual void getDiffusionModel(lm::input::DiffusionModel* diffusionModel) const;
+    virtual void setDiffusionModel(lm::input::DiffusionModel* diffusionModel);
     virtual bool hasOrderParameters() const;
     virtual void getOrderParameters(lm::io::OrderParameters* orderParameters) const;
     virtual void setOrderParameters(lm::io::OrderParameters* orderParameters);
     virtual bool hasReactionModel() const;
-    virtual void getReactionModel(lm::io::ReactionModel* reactionModel) const;
-    virtual void setReactionModel(lm::io::ReactionModel* reactionModel);
-    virtual void setSpatialModel(lm::io::SpatialModel* model);
-    virtual void getSpatialModel(lm::io::SpatialModel* model) const;
+    virtual void getReactionModel(lm::input::ReactionModel* reactionModel) const;
+    virtual void setReactionModel(lm::input::ReactionModel* reactionModel);
+    virtual void setSpatialModel(lm::input::SpatialModel* model);
+    virtual void getSpatialModel(lm::input::SpatialModel* model) const;
     virtual bool hasTilings() const;
     virtual void getTilings(lm::io::Tilings* tilings) const;
     virtual void setTilings(lm::io::Tilings* tilings);
     virtual bool hasBoundaryGradient() const;
-    virtual void getBoundaryGradient(lm::io::BoundaryConditions* bc) const;
+    virtual void getBoundaryGradient(lm::input::BoundaryConditions* bc) const;
 
     // Methods for working with a replicate.
     virtual bool replicateExists(uint64_t replicate);
@@ -192,8 +196,8 @@ public:
     template <typename T> void _setFFluxTrajectoryOutput(::google::protobuf::RepeatedField<T> data, hsize_t* dims, string dsetName, hid_t dsetType, hid_t lifecycleGroup, uint RANK);
     virtual void setTilingHist(lm::io::TilingHist* tilingHist, std::string datasetName, hid_t superGroup);
 
-    //virtual void appendSpatialModelObjects(uint64_t replicate, lm::io::SpatialModel * model) throw(HDF5Exception,InvalidArgException);
-    //virtual void getSpatialModelObjects(uint64_t replicate, lm::io::SpatialModel * model) throw(HDF5Exception);
+    //virtual void appendSpatialModelObjects(uint64_t replicate, lm::input::SpatialModel * model) throw(HDF5Exception,InvalidArgException);
+    //virtual void getSpatialModelObjects(uint64_t replicate, lm::input::SpatialModel * model) throw(HDF5Exception);
 
 	/*virtual lattice_coord_t getLatticeSize() const;
 	virtual nmdist_t getLatticeSpacing() const;

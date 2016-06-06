@@ -65,7 +65,7 @@ public:
     NextSubvolumeSolver();
     NextSubvolumeSolver(RandomGenerator::Distributions neededDists);
     virtual ~NextSubvolumeSolver();
-    virtual void setDiffusionModel(const lm::io::DiffusionModel& dm);
+    virtual void setDiffusionModel(const lm::input::DiffusionModel& dm);
     virtual void reset();
     virtual long long generateTrajectory(long long maxSteps);
 
