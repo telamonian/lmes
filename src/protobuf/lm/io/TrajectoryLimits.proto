@@ -39,6 +39,8 @@
 
 package lm.io;
 
+import "lm/io/SpeciesTimeSeries.proto";
+
 message TrajectoryLimit {
     enum LimitType {
         NONE=0;
@@ -64,6 +66,23 @@ message TrajectoryLimit {
     optional double dvalue                          = 6 [default=0.0];
     optional int32 ivalue                           = 7 [default=0];
     optional uint64 uvalue                          = 8 [default=0];
+
+    /*
+     * - If terminating is false, the limit will never signal for termination (overrides other options, such as count)
+     */
+    optional bool terminating                       = 9 [default=true];
+
+    /*
+     * - If count is set, the limit won't signal for termination until it has been crossed a number of times equal to count
+     */
+    optional uint64 count                           = 10;
+
+    /*
+     * - If any of the track_x options are set, the limit will record the relevant portion of the state every time it is crossed
+     */
+    optional bool track_species_counts              = 11 [default=false];
+    optional bool track_time                        = 12 [default=false];
+    optional SpeciesTimeSeries species_time_series  = 13;
 }
 
 message TrajectoryLimits {

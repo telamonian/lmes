@@ -44,17 +44,27 @@ import "lm/io/TrajectoryLimits.proto";
 import "lm/io/TrajectoryState.proto";
 
 message SimulationPhase {
+    enum TrajectoryGeneration {
+        NONE=0;
+        DUPLICATE=1;
+        RANDOM=2;
+    }
+
     enum TrajectorySource {
-        TRAJECTORY_STATES=0;
+        LIST=0;
         PREVIOUS_PHASE=1;
     }
 
     required uint64 id                                = 1;
 
-    optional TrajectorySource trajectory_source       = 2 [default=TRAJECTORY_STATES];
+    optional TrajectorySource trajectory_source       = 2 [default=LIST];
     repeated lm.io.TrajectoryState trajectory_states  = 3;
 
     optional lm.io.TrajectoryLimits trajectory_limits = 4;
+    optional lm.io.TrajectoryLimit phase_limit        = 6;
 
-    optional lm.io.OutputOptions output_options       = 5;
+    optional lm.io.OutputOptions output_options       = 7;
+
+    optional uint64 batch_size                        = 8;
+    optional bool keep_slots_full                     = 9 [default=false];
 }

@@ -56,7 +56,7 @@ struct SimPhaseEnums {
     typedef lm::io::SimulationPhase::TrajectorySource TrajectorySource;
 
     // TrajectorySource enum values
-    static const TrajectorySource TRAJECTORY_STATES = lm::io::SimulationPhase::TRAJECTORY_STATES;
+    static const TrajectorySource LIST = lm::io::SimulationPhase::LIST;
     static const TrajectorySource PREVIOUS_PHASE = lm::io::SimulationPhase::PREVIOUS_PHASE;
 };
 

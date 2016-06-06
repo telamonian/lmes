@@ -299,7 +299,7 @@ void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
     }
     else if (limitTypeReached!=lm::io::TrajectoryLimit::NONE)
     {
-        state->mutable_limit_reached()->CopyFrom(*trajectoryLimits.findBuf(limitIDReached));
+        state->mutable_limit_reached()->CopyFrom(*trajectoryLimits.findMsg(limitIDReached));
     }
 
     // Get the order parameter values.

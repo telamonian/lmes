@@ -122,7 +122,7 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         // See if we have a max time limit.
         if (simulationParameters.count("maxTime"))
         {
-            trajectoryLimits.addLimitBuf<TrajLimEnums::TIME>(0, simulationParameters.parse<double>("maxTime"), TrajLimEnums::MAX);
+            trajectoryLimits.addLimitMsg<TrajLimEnums::TIME>(0, simulationParameters.parse<double>("maxTime"), TrajLimEnums::MAX);
             trajectoryLimitsPresent = true;
         }
 
@@ -336,7 +336,7 @@ template <TrajLimEnums::LimitType LT> bool Input::parseLimits(string key, string
         typename pairVector<uint, typename LimitValueT<LT>::type>::type idLimitVec(simulationParameters.parsePairVector<uint, typename LimitValueT<LT>::type>(key, debugString));
         for (typename pairVector<uint, typename LimitValueT<LT>::type>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
         {
-            trajectoryLimits.addLimitBuf<LT>(it->first, it->second, sc, includeEndpoint);
+            trajectoryLimits.addLimitMsg<LT>(it->first, it->second, sc, includeEndpoint);
         }
         return idLimitVec.size() > 0;
     }

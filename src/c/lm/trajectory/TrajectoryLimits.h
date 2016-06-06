@@ -57,8 +57,8 @@
 namespace lm {
 namespace trajectory {
 
-typedef lm::io::TrajectoryLimits TrajectoryLimitsBuf;
-typedef lm::io::TrajectoryLimit TrajectoryLimitBuf;
+typedef lm::io::TrajectoryLimits TrajectoryLimitsMsg;
+typedef lm::io::TrajectoryLimit TrajectoryLimitMsg;
 
 struct TrajectoryLimit
 {
@@ -82,18 +82,18 @@ template <> struct LimitValueT<TrajLimEnums::ORDER_PARAMETER> {typedef double ty
 template <> struct LimitValueT<TrajLimEnums::SPECIES> {typedef int32_t type;};
 
 template <typename ValueT, typename ContainerT> inline ValueT _getLimitValue(const ContainerT& tl);
-template <> inline double _getLimitValue<double, TrajectoryLimitBuf>(const TrajectoryLimitBuf& tl) {return tl.dvalue();}
-template <> inline int32_t _getLimitValue<int32_t, TrajectoryLimitBuf>(const TrajectoryLimitBuf& tl) {return tl.ivalue();}
-template <> inline uint64_t _getLimitValue<uint64_t, TrajectoryLimitBuf>(const TrajectoryLimitBuf& tl) {return tl.uvalue();}
+template <> inline double _getLimitValue<double, TrajectoryLimitMsg>(const TrajectoryLimitMsg& tl) {return tl.dvalue();}
+template <> inline int32_t _getLimitValue<int32_t, TrajectoryLimitMsg>(const TrajectoryLimitMsg& tl) {return tl.ivalue();}
+template <> inline uint64_t _getLimitValue<uint64_t, TrajectoryLimitMsg>(const TrajectoryLimitMsg& tl) {return tl.uvalue();}
 template <> inline double _getLimitValue<double, TrajectoryLimit>(const TrajectoryLimit& tl) {return tl.dvalue;}
 template <> inline int32_t _getLimitValue<int32_t, TrajectoryLimit>(const TrajectoryLimit& tl) {return tl.ivalue;}
 template <> inline uint64_t _getLimitValue<uint64_t, TrajectoryLimit>(const TrajectoryLimit& tl) {return tl.uvalue;}
 template <TrajLimEnums::LimitType LT, typename ContainerT> inline typename LimitValueT<LT>::type getLimitValue(const ContainerT& tl) {return _getLimitValue<typename LimitValueT<LT>::type, ContainerT>(tl);}
 
 template <typename ContainerT, typename ValueT> inline void setLimitValue(ContainerT& tl, ValueT val);
-template <> inline void setLimitValue<TrajectoryLimitBuf, double>(TrajectoryLimitBuf& tl, double val) {tl.set_dvalue(val);}
-template <> inline void setLimitValue<TrajectoryLimitBuf, int32_t>(TrajectoryLimitBuf& tl, int32_t val) {tl.set_ivalue(val);}
-template <> inline void setLimitValue<TrajectoryLimitBuf, uint64_t>(TrajectoryLimitBuf& tl, uint64_t val) {tl.set_uvalue(val);}
+template <> inline void setLimitValue<TrajectoryLimitMsg, double>(TrajectoryLimitMsg& tl, double val) {tl.set_dvalue(val);}
+template <> inline void setLimitValue<TrajectoryLimitMsg, int32_t>(TrajectoryLimitMsg& tl, int32_t val) {tl.set_ivalue(val);}
+template <> inline void setLimitValue<TrajectoryLimitMsg, uint64_t>(TrajectoryLimitMsg& tl, uint64_t val) {tl.set_uvalue(val);}
 template <> inline void setLimitValue<TrajectoryLimit, double>(TrajectoryLimit& tl, double val) {tl.dvalue = val;}
 template <> inline void setLimitValue<TrajectoryLimit, int32_t>(TrajectoryLimit& tl, int32_t val) {tl.ivalue = val;}
 template <> inline void setLimitValue<TrajectoryLimit, uint64_t>(TrajectoryLimit& tl, uint64_t val) {tl.uvalue = val;}
@@ -106,73 +106,73 @@ public:
     static const int32_t DEFAULT_LIMIT_ID = -2;
 
 // typedefs
-    typedef lm::protowrap::Repeated<TrajectoryLimitBuf> repeatedType;
+    typedef lm::protowrap::Repeated<TrajectoryLimitMsg> repeatedType;
     typedef vector<TrajectoryLimit> vectorType;
     typedef vectorType::iterator iterator;
     typedef vectorType::const_iterator const_iterator;
     
 // constructors/destructors
     TrajectoryLimits(): nextID(0) {seatRepeated(_buf);}
-    TrajectoryLimits(const TrajectoryLimitsBuf& inBuf): nextID(0) {rFB(inBuf);}
+    TrajectoryLimits(const TrajectoryLimitsMsg& inBuf): nextID(0) {rFB(inBuf);}
     //    TrajectoryLimits(const lm::io::hdf5::Hdf5File& file) {rFF(file);}
     ~TrajectoryLimits() {}
 
 // accessors
-    repeatedType::const_iterator findBuf(int32_t id) const;
-    repeatedType::const_iterator findBuf(TrajLimEnums::LimitType lt) const;
-    const TrajectoryLimitBuf& getTimeBuf() const {return _buf.time_limit();}
+    repeatedType::const_iterator findMsg(int32_t id) const;
+    repeatedType::const_iterator findMsg(TrajLimEnums::LimitType lt) const;
+    const TrajectoryLimitMsg& getTimeBuf() const {return _buf.time_limit();}
     double getTimeLimitValue() const {return _buf.has_time_limit() ? _buf.time_limit().dvalue() : std::numeric_limits<double>::infinity();}
-    bool hasDegreeAdvancementLimit() const {return (findBuf(TrajLimEnums::DEGREE_ADVANCEMENT)!=repeated().end());}
+    bool hasDegreeAdvancementLimit() const {return (findMsg(TrajLimEnums::DEGREE_ADVANCEMENT)!=repeated().end());}
 
-    const TrajectoryLimitsBuf& buf() const {return _buf;}
+    const TrajectoryLimitsMsg& buf() const {return _buf;}
     const repeatedType& repeated() const {return _repeated;}
     const vectorType& vec() const {return _vec;}
 
 // mutators
-    // general addLimitBuf
-    template <TrajLimEnums::LimitType LT> inline TrajectoryLimitBuf* addLimitBuf(uint32_t valID, typename LimitValueT<LT>::type val, TrajLimEnums::StoppingCondition sc, bool includeEndpoint=true, int32_t id=DEFAULT_LIMIT_ID)
+    // general addLimitMsg
+    template <TrajLimEnums::LimitType LT> inline TrajectoryLimitMsg* addLimitMsg(uint32_t valID, typename LimitValueT<LT>::type val, TrajLimEnums::StoppingCondition sc, bool includeEndpoint = true, int32_t id = DEFAULT_LIMIT_ID)
     {
-        lm::io::TrajectoryLimit* tlBuf;
+        lm::io::TrajectoryLimit* tlMsg;
         if (LT==TrajLimEnums::TIME)
         {
-            tlBuf = _buf.mutable_time_limit();
+            tlMsg = _buf.mutable_time_limit();
             // for now, the expected behavior is that the id of the time limit will default to -1
-            tlBuf->set_id(id==DEFAULT_LIMIT_ID ? -1 : id);
+            tlMsg->set_id(id==DEFAULT_LIMIT_ID ? -1 : id);
         }
         else
         {
-            tlBuf = _repeated.Add();
+            tlMsg = _repeated.Add();
             // for now, the expected behavior is that the id of most limits (ie not TIME) will default to an incrementing counter
-            tlBuf->set_id(id==DEFAULT_LIMIT_ID ? nextID++ : id);
+            tlMsg->set_id(id==DEFAULT_LIMIT_ID ? nextID++ : id);
         }
 
-        tlBuf->set_limit_type(LT);
-        tlBuf->set_stopping_condition(sc);
-        tlBuf->set_include_endpoint(includeEndpoint);
+        tlMsg->set_limit_type(LT);
+        tlMsg->set_stopping_condition(sc);
+        tlMsg->set_include_endpoint(includeEndpoint);
 
-        tlBuf->set_value_id(valID);
-        setLimitBufValue(tlBuf, val);
+        tlMsg->set_value_id(valID);
+        setLimitBufValue(tlMsg, val);
 
-        return tlBuf;
+        return tlMsg;
     }
 
-//    // addLimitBuf version for tilings. note that the boundary condition is specified differently from the vanilla addLimitBuf (rightOpenBins vs includeEndpoints)
-//    TrajectoryLimitBuf* addLimitBufFromTiling(lm::tiling::Tiling& tiling, uint edgeIndex, TrajLimEnums::StoppingCondition sc, bool rightOpenBins=true, int32_t limitID=DEFAULT_LIMIT_ID);
+//    // addLimitBuf version for tilings. note that the boundary condition is specified differently from the vanilla addLimitMsg (rightOpenBins vs includeEndpoints)
+//    TrajectoryLimitMsg* addLimitBufFromTiling(lm::tiling::Tiling& tiling, uint edgeIndex, TrajLimEnums::StoppingCondition sc, bool rightOpenBins=true, int32_t limitID=DEFAULT_LIMIT_ID);
 
     void clear(bool resetNextID=true) {_buf.Clear(); _vec.clear(); seatRepeated(); if (resetNextID) nextID=0;}
-    void seatRepeated(TrajectoryLimitsBuf& inBuf) {_repeated.setRepFieldPtr(inBuf.mutable_trajectory_limits());}
+    void seatRepeated(TrajectoryLimitsMsg& inBuf) {_repeated.setRepFieldPtr(inBuf.mutable_trajectory_limits());}
     void seatRepeated() {seatRepeated(_buf);}
-    void setBuf(const TrajectoryLimitsBuf& inBuf) {_buf.CopyFrom(inBuf);}
+    void setBuf(const TrajectoryLimitsMsg& inBuf) {_buf.CopyFrom(inBuf);}
     void setVector(vectorType& inVec) {_vec = inVec;}
 
     // specializing assignment to the TrajectoryLimit buffer oneof_value field via polymorphism
-    TrajectoryLimitBuf* setLimitBufValue(TrajectoryLimitBuf* limitBuf, double val) {limitBuf->set_dvalue(val); return limitBuf;}
-    TrajectoryLimitBuf* setLimitBufValue(TrajectoryLimitBuf* limitBuf, int32_t val) {limitBuf->set_ivalue(val); return limitBuf;}
-    TrajectoryLimitBuf* setLimitBufValue(TrajectoryLimitBuf* limitBuf, uint64_t val) {limitBuf->set_uvalue(val); return limitBuf;}
+    TrajectoryLimitMsg* setLimitBufValue(TrajectoryLimitMsg* limitBuf, double val) {limitBuf->set_dvalue(val); return limitBuf;}
+    TrajectoryLimitMsg* setLimitBufValue(TrajectoryLimitMsg* limitBuf, int32_t val) {limitBuf->set_ivalue(val); return limitBuf;}
+    TrajectoryLimitMsg* setLimitBufValue(TrajectoryLimitMsg* limitBuf, uint64_t val) {limitBuf->set_uvalue(val); return limitBuf;}
 
 // protobuf and stl container IO
-    void rFB(const TrajectoryLimitsBuf& inBuf);     // rFB = read From Buf
-    void wTB(TrajectoryLimitsBuf& outBuf);          // wTB = write To Buf
+    void rFB(const TrajectoryLimitsMsg& inBuf);     // rFB = read From Buf
+    void wTB(TrajectoryLimitsMsg& outBuf);          // wTB = write To Buf
     void wTV(vectorType& outVec);                   // wTV = write To Vec
     //void rFF(const lm::io::hdf5::Hdf5File& file); // rFF = read From File
 
@@ -184,13 +184,13 @@ public:
     vectorType::size_type size() const {return _vec.size();}
 
 // static functions to do TrajectoryLimit buf <-> TrajectoryLimit struct conversion
-    static TrajectoryLimit bufToStruct(const TrajectoryLimitBuf& inBuf);
-    static TrajectoryLimitBuf structToBuf(const TrajectoryLimit& inStruct);
+    static TrajectoryLimit bufToStruct(const TrajectoryLimitMsg& inBuf);
+    static TrajectoryLimitMsg structToBuf(const TrajectoryLimit& inStruct);
 
 protected:
     int32_t nextID;
 
-    TrajectoryLimitsBuf _buf;
+    TrajectoryLimitsMsg _buf;
     repeatedType _repeated;
     vectorType _vec;
 };

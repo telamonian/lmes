@@ -105,16 +105,16 @@ FFluxSupervisor::~FFluxSupervisor()
 //
 //    if (ffluxPhase==0)
 //    {
-//        tiling.addLimitBuf(trajectoryLimits, 0, EH::INCREASING);
-//        tiling.addLimitBuf(trajectoryLimits, 0, EH::DECREASING);
+//        tiling.addLimitMsg(trajectoryLimits, 0, EH::INCREASING);
+//        tiling.addLimitMsg(trajectoryLimits, 0, EH::DECREASING);
 //
-//        tiling.addLimitBuf(trajectoryLimits, tiling.getLastEdgeIndex(), EH::INCREASING);
+//        tiling.addLimitMsg(trajectoryLimits, tiling.getLastEdgeIndex(), EH::INCREASING);
 //    }
 //    else
 //    {
-//        tiling.addLimitBuf(trajectoryLimits, 0, EH::DECREASING);
+//        tiling.addLimitMsg(trajectoryLimits, 0, EH::DECREASING);
 //
-//        tiling.addLimitBuf(trajectoryLimits, ffluxPhase, EH::INCREASING);
+//        tiling.addLimitMsg(trajectoryLimits, ffluxPhase, EH::INCREASING);
 //    }
 //
 ////    switch ((ffluxPhase!=0)<<1|input.tilings.getCurrentTiling()->getSortOrder()!=lm::io::Tilings::ASCENDING)
@@ -224,9 +224,19 @@ FFluxSupervisor::~FFluxSupervisor()
 //	SimulationSupervisor::finishSimulation();
 //}
 
-void FFluxSupervisorbuildSimulationPhaseList()
+void FFluxSupervisor::buildSimulationPhaseList()
 {
+    simulationPhaseList.push_back(new lm::io::SimulationPhase);
+    lm::io::SimulationPhase* phase = simulationPhaseList.back();
 
+    phase->set_id(0);
+    lm::trajectory::Trajectory initialTrajectory(0, phase->id(), *input);
+    for (uint64_t i=::replicates.front(); i<=::replicates.back(); i++)
+    {
+        phase->add_trajectory_states()->CopyFrom(initialTrajectory.getState());
+    }
+    phase->mutable_trajectory_limits()->CopyFrom(input->getTrajectoryLimitsMsg());
+    phase->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());
 }
 
 void FFluxSupervisor::buildTrajectoryList()

@@ -92,7 +92,7 @@ Tiling::TrajectoryLimitBuf* Tiling::addLimitBuf(lm::trajectory::TrajectoryLimits
     default: break;
     }
 
-    return tls.addLimitBuf<TrajLimEnums::ORDER_PARAMETER>(getOrderParameterID(), getEdge(edgeIndex), stoppingCondition, includeEndpoint, limitID);
+    return tls.addLimitMsg<TrajLimEnums::ORDER_PARAMETER>(getOrderParameterID(), getEdge(edgeIndex), stoppingCondition, includeEndpoint, limitID);
 }
 
 TilingEnums::SortOrder Tiling::getSortOrder() const

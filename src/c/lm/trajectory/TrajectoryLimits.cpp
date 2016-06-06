@@ -47,7 +47,7 @@ using lm::trajectory::LimitValueT;
 namespace lm {
 namespace trajectory {
 
-//TrajectoryLimitBuf* TrajectoryLimits::addLimitBufFromTiling(lm::tiling::Tiling& tiling, uint edgeIndex, TrajLimEnums::StoppingCondition sc, bool rightOpenBins=true, int32_t limitID=DEFAULT_LIMIT_ID)
+//TrajectoryLimitMsg* TrajectoryLimits::addLimitBufFromTiling(lm::tiling::Tiling& tiling, uint edgeIndex, TrajLimEnums::StoppingCondition sc, bool rightOpenBins=true, int32_t limitID=DEFAULT_LIMIT_ID)
 //{
 //    // if the tiling sorts descending, flip the stopping condition around
 //    if (tiling.getSortOrder()==TilingEnums::DESCENDING)
@@ -73,10 +73,10 @@ namespace trajectory {
 //    default: Exception("Unknown TrajectoryLimit StoppingCondition", sc);
 //    }
 //
-//    return addLimitBuf<TrajLimEnums::ORDER_PARAMETER>(tiling.getOrderParameterID(), tiling.getEdge(edgeIndex), sc, includeEndpoint, limitID);
+//    return addLimitMsg<TrajLimEnums::ORDER_PARAMETER>(tiling.getOrderParameterID(), tiling.getEdge(edgeIndex), sc, includeEndpoint, limitID);
 //}
 
-TrajectoryLimits::repeatedType::const_iterator TrajectoryLimits::findBuf(int32_t id) const
+TrajectoryLimits::repeatedType::const_iterator TrajectoryLimits::findMsg(int32_t id) const
 {
     TrajectoryLimits::repeatedType::const_iterator it=repeated().begin();
     // if the .id() of a TrajectoryLimit buf matches, return it
@@ -91,7 +91,7 @@ TrajectoryLimits::repeatedType::const_iterator TrajectoryLimits::findBuf(int32_t
     return it;
 }
 
-TrajectoryLimits::repeatedType::const_iterator TrajectoryLimits::findBuf(TrajLimEnums::LimitType lt) const
+TrajectoryLimits::repeatedType::const_iterator TrajectoryLimits::findMsg(TrajLimEnums::LimitType lt) const
 {
     TrajectoryLimits::repeatedType::const_iterator it=repeated().begin();
     // if the .limit_type() of a TrajectoryLimit buf matches, return it
@@ -107,7 +107,7 @@ TrajectoryLimits::repeatedType::const_iterator TrajectoryLimits::findBuf(TrajLim
 }
 
 // rFB = read From Buf
-void TrajectoryLimits::rFB(const TrajectoryLimitsBuf& inBuf)
+void TrajectoryLimits::rFB(const TrajectoryLimitsMsg& inBuf)
 {
     if (&inBuf!=&_buf) _buf.CopyFrom(inBuf);
     seatRepeated();
@@ -115,12 +115,12 @@ void TrajectoryLimits::rFB(const TrajectoryLimitsBuf& inBuf)
 }
 
 // rFB = write To Buf
-void TrajectoryLimits::wTB(TrajectoryLimitsBuf& outBuf)
+void TrajectoryLimits::wTB(TrajectoryLimitsMsg& outBuf)
 {
     outBuf.clear_trajectory_limits();
     for (TrajectoryLimits::const_iterator it=vec().begin(); it!=vec().end(); it++)
     {
-        TrajectoryLimitBuf* limitBuf = outBuf.add_trajectory_limits();
+        TrajectoryLimitMsg* limitBuf = outBuf.add_trajectory_limits();
         limitBuf->CopyFrom(structToBuf(*it));
     }
 }
@@ -151,9 +151,9 @@ TrajectoryLimit TrajectoryLimits::bufToStruct(const lm::io::TrajectoryLimit& inB
     return limit;
 }
     
-TrajectoryLimitBuf TrajectoryLimits::structToBuf(const TrajectoryLimit& inStruct)
+TrajectoryLimitMsg TrajectoryLimits::structToBuf(const TrajectoryLimit& inStruct)
 {
-    TrajectoryLimitBuf limitBuf;
+    TrajectoryLimitMsg limitBuf;
     limitBuf.set_limit_type(inStruct.type);
     limitBuf.set_stopping_condition(inStruct.stoppingCondition);
     limitBuf.set_id(inStruct.limitID);
