@@ -64,15 +64,18 @@ using std::string;
 namespace lm {
 namespace replicates {
 
-ReplicateTrajectoryList::ReplicateTrajectoryList(const lm::input::Input& input, uint64_t firstTrajectory, uint64_t lastTrajectory)
-:firstTrajectory(firstTrajectory), lastTrajectory(lastTrajectory), stats_lastPrintTime(getHrTime())
-{
-    for (uint64_t i=firstTrajectory; i<=lastTrajectory; i++)
-    {
-        trajectories[i] = new lm::trajectory::Trajectory(i, getSimulationPhase(), input);
-        waitingTrajectories[i] = trajectories[i];
-    }
-}
+//ReplicateTrajectoryList::ReplicateTrajectoryList(const lm::input::Input& input, uint64_t firstTrajectory, uint64_t lastTrajectory)
+//:firstTrajectory(firstTrajectory), lastTrajectory(lastTrajectory), stats_lastPrintTime(getHrTime())
+//{
+//    for (uint64_t i=firstTrajectory; i<=lastTrajectory; i++)
+//    {
+//        trajectories[i] = new lm::trajectory::Trajectory(i, getSimulationPhase(), input);
+//        waitingTrajectories[i] = trajectories[i];
+//    }
+//}
+
+ReplicateTrajectoryList::ReplicateTrajectoryList(const lm::io::SimulationPhase& phase): TrajectoryList(phase) {}
+ReplicateTrajectoryList::ReplicateTrajectoryList(const lm::io::SimulationPhase& phase, const TrajectoryList& previousList): TrajectoryList(phase, previousList) {}
 
 ReplicateTrajectoryList::~ReplicateTrajectoryList()
 {

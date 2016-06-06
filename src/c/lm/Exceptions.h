@@ -63,6 +63,7 @@ public:
 	Exception(const char * message, const int arg)                                          {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %d", message, arg);}
     Exception(const char * message, const int arg1,    const int arg2)                      {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %d, %d", message, arg1, arg2);}
 	Exception(const char * message, const int arg1,    const char * arg2)                   {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %d, %s", message, arg1, arg2);}
+	Exception(const char * message, const int arg1,    const char* arg2,  const char* arg3) {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %d, %s, %s", message, arg1, arg2, arg3);}
 	Exception(const char * message, const int arg1,    const int arg2,    const int arg3)   {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %d, %d, %d", message, arg1, arg2, arg3);}
 	Exception(const char * message, const char * arg)                                       {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s", message, arg);}
 	Exception(const char * message, const char * arg1, const char* arg2)                    {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s, %s", message, arg1, arg2);}
@@ -81,6 +82,16 @@ public:
 	CommandLineArgumentException(const char* message) : Exception(message) {}
     CommandLineArgumentException(const char* message, const char* arg1) : Exception(message, arg1) {}
 //    virtual ~CommandLineArgumentException() throw() {}
+};
+
+class ConsistencyException : public Exception
+{
+public:
+	ConsistencyException(const char* message) : Exception(message) {}
+	ConsistencyException(const char* message, const char* arg1) : Exception(message, arg1) {}
+	ConsistencyException(const char* message, const int arg1,   const char* arg2, const char* arg3) : Exception(message, arg1, arg2, arg3) {}
+	ConsistencyException(const char* message, const char* arg1, const char* arg2, const char* arg3) : Exception(message, arg1, arg2, arg3) {}
+//    virtual ~ConsistencyException() throw() {}
 };
 
 class InvalidArgException : public Exception

@@ -36,35 +36,73 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_TRAJECTORY_TRAJECTORYLIST_H_
-#define LM_TRAJECTORY_TRAJECTORYLIST_H_
+#ifndef LM_TRAJECTORY_TRAJECTORYLIST_H
+#define LM_TRAJECTORY_TRAJECTORYLIST_H
 
 #include <map>
 #include <string>
 
 #include "lm/input/Input.h"
 #include "lm/io/ReactionModel.pb.h"
+#include "lm/io/SimulationPhase.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/RunWorkUnit.pb.h"
 #include "lm/message/WorkUnitStatus.pb.h"
+#include "lm/protowrap/Repeated.h"
 #include "lm/trajectory/Trajectory.h"
 #include "lm/Types.h"
 
 using std::map;
 using std::string;
 
-typedef std::map<uint64_t,lm::trajectory::Trajectory*> TrajectoryMap;
-
 namespace lm {
 namespace trajectory {
+
+typedef std::map<uint64_t,lm::trajectory::Trajectory*> TrajectoryMap;
+
+//template <typename T> class _TrajectoryStateIteratorBase : public std::iterator<std::forward_iterator_tag, lm::io::TrajectoryState>
+//{
+//public:
+//    _TrajectoryStateIteratorBase(T tmit): tmit(tmit) {}
+//    _TrajectoryStateIteratorBase(const _TrajectoryStateIteratorBase& tsit): tmit(tsit.tmit) {}
+//    _TrajectoryStateIteratorBase& operator++() {++tmit;return *this;}
+//    _TrajectoryStateIteratorBase operator++(int) {_TrajectoryStateIteratorBase tmp(*this); operator++(); return tmp;}
+//    bool operator==(const _TrajectoryStateIteratorBase& rhs) {return tmit==rhs.tmit;}
+//    bool operator!=(const _TrajectoryStateIteratorBase& rhs) {return tmit!=rhs.tmit;}
+//protected:
+//    T tmit;
+//};
+//template <typename T> class _TrajectoryStateIterator : public _TrajectoryStateIteratorBase<T>
+//{
+//public:
+//    _TrajectoryStateIterator(T tmit): _TrajectoryStateIteratorBase(tmit) {}
+//    _TrajectoryStateIterator(const _TrajectoryStateIterator& tsit): _TrajectoryStateIteratorBase(tsit.tmit) {}
+//    lm::io::TrajectoryState& operator*() {return *tmit->second->getStateMutable();}
+//};
+//template <typename T> class _TrajectoryStateConstIterator : public _TrajectoryStateIteratorBase<T>
+//{
+//public:
+//    _TrajectoryStateConstIterator(T tmit): _TrajectoryStateIteratorBase(tmit) {}
+//    _TrajectoryStateConstIterator(const _TrajectoryStateConstIterator& tsit): _TrajectoryStateIteratorBase(tsit.tmit) {}
+//    lm::io::TrajectoryState& operator*() {return tmit->second->getState();}
+//};
+//typedef _TrajectoryStateIterator<TrajectoryMap::iterator> TrajectoryStateIterator;
+//typedef _TrajectoryStateConstIterator<TrajectoryMap::const_iterator> TrajectoryStateConstIterator;
 
 class TrajectoryList
 {
 public:
+    
     TrajectoryList();
-    TrajectoryList(uint64_t simulationPhase);
+    TrajectoryList(const lm::io::SimulationPhase& phase);
+    TrajectoryList(const lm::io::SimulationPhase& phase, const TrajectoryList& previousList);
     virtual ~TrajectoryList();
+
+// initializer
+    virtual void init(const lm::protowrap::Repeated<lm::io::TrajectoryState>::type& initialStates);
+    virtual void init(const TrajectoryList& previousList);
+    virtual Trajectory* initTrajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryState& initialState);
 
 // destroyer
     virtual void deleteAllNotStarted();
@@ -75,10 +113,10 @@ public:
     virtual bool areAllFinished() const;
     virtual bool exists(uint64_t id) const {return trajectories.count(id)==1;}
     virtual uint64_t getSimulationPhase() const {return simulationPhase;}
-    virtual bool isTrajectoryAborted(lm::trajectory::Trajectory* traj);
-    virtual bool isTrajectoryFinished(lm::trajectory::Trajectory* traj);
-    virtual bool isTrajectoryRunning(lm::trajectory::Trajectory* traj);
-    virtual bool isTrajectoryWaiting(lm::trajectory::Trajectory* traj);
+    virtual bool isTrajectoryAborted(lm::trajectory::Trajectory* traj) const {return isTrajectoryInMap(traj, abortedTrajectories, Trajectory::ABORTED);}
+    virtual bool isTrajectoryFinished(lm::trajectory::Trajectory* traj) const {return isTrajectoryInMap(traj, finishedTrajectories, Trajectory::FINISHED);}
+    virtual bool isTrajectoryRunning(lm::trajectory::Trajectory* traj) const {return isTrajectoryInMap(traj, runningTrajectories, Trajectory::RUNNING);}
+    virtual bool isTrajectoryWaiting(lm::trajectory::Trajectory* traj) const {return isTrajectoryInMap(traj, waitingTrajectories, Trajectory::WAITING);}
     virtual size_t size() const {return trajectories.size();}
 
 // mutators
@@ -88,18 +126,24 @@ public:
     virtual TrajectoryMap* mutableTrajectoryMapFromStatus(Trajectory::status_t status);
     virtual void setSimulationPhase(uint64_t newPhase) {simulationPhase = newPhase;}
     virtual void setAll(Trajectory::status_t oldStatus, Trajectory::status_t newStatus);
-    virtual void setTrajectoryAborted(lm::trajectory::Trajectory* traj);
-    virtual void setTrajectoryFinished(lm::trajectory::Trajectory* traj);
-    virtual void setTrajectoryRunning(lm::trajectory::Trajectory* traj);
-    virtual void setTrajectoryWaiting(lm::trajectory::Trajectory* traj);
+    virtual void setTrajectoryAborted(lm::trajectory::Trajectory* traj) {setTrajectoryStatus(traj, abortedTrajectories, Trajectory::ABORTED);}
+    virtual void setTrajectoryFinished(lm::trajectory::Trajectory* traj) {setTrajectoryStatus(traj, finishedTrajectories, Trajectory::FINISHED);}
+    virtual void setTrajectoryRunning(lm::trajectory::Trajectory* traj) {setTrajectoryStatus(traj, runningTrajectories, Trajectory::RUNNING);}
+    virtual void setTrajectoryWaiting(lm::trajectory::Trajectory* traj) {setTrajectoryStatus(traj, waitingTrajectories, Trajectory::WAITING);}
     virtual void workUnitFinished(const lm::message::FinishedWorkUnit& fwuMsg);
     virtual void workUnitPartFinished(const lm::message::WorkUnitStatus& wusBuf, lm::trajectory::Trajectory* traj);
 
 protected:
+// accessors
+    virtual bool isTrajectoryInMap(lm::trajectory::Trajectory* traj, const TrajectoryMap& trajMap, Trajectory::status_t expectedStatus) const;
     virtual uint64_t findNextTrajectoryToRun() const;
     virtual void printTrajectoryStatistics() const {};
 
+// mutators
+    virtual void setTrajectoryStatus(lm::trajectory::Trajectory* traj, TrajectoryMap& trajMap, Trajectory::status_t newStatus);
+
 protected:
+    uint64_t count;
     uint64_t simulationPhase;
     TrajectoryMap trajectories;
     TrajectoryMap abortedTrajectories;

@@ -85,6 +85,7 @@ public:
     virtual void clearLimitReached();
     virtual double* getLastOrderParameterValuesMutable();
     virtual int32_t* getLastSpeciesCountsMutable();
+    virtual lm::io::TrajectoryState* getStateMutable();
     virtual void incrementWorkUnitsPerformed();
     virtual void resetSimTime();
     virtual void setID(uint64_t trajectoryID);

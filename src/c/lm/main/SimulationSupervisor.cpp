@@ -90,6 +90,7 @@ SimulationSupervisor::SimulationSupervisor()
 SimulationSupervisor::~SimulationSupervisor()
 {
     if (input != NULL) delete input; input = NULL;
+    for (SimulationPhaseList::iterator it=simulationPhaseList.begin();it!=simulationPhaseList.end();++it) {if (*it!=NULL) delete *it; *it=NULL;}
     if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL; // since Supervisors call new to allocate their TrajectoryLists, this needs to be here
 }
 
@@ -317,6 +318,7 @@ void SimulationSupervisor::startSimulationIfAllWorkersStarted()
 void SimulationSupervisor::startSimulation()
 {
     Print::printf(Print::INFO, "Simulation started.");
+    buildSimulationPhaseList();
     startSimulationPhase();
 }
 
@@ -334,8 +336,18 @@ void SimulationSupervisor::startSimulationPhase()
     }
 }
 
+void SimulationSupervisor::buildTrajectoryList()
+{
+    switch(simulationPhaseList.front()->trajectory_source())
+    {
+    case SimPhaseEnums::TRAJECTORY_STATES: setTrajectoryList(initTrajectoryList(*simulationPhaseList.front())); break;
+    case SimPhaseEnums::PREVIOUS_PHASE: setTrajectoryList(initTrajectoryList(*simulationPhaseList.front(), *trajectoryList)); break;
+    }
+}
+
 void SimulationSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList)
 {
+    destroyTrajectoryList();
     trajectoryList = newTrajectoryList;
 }
 
@@ -357,7 +369,7 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
     for (int i=0; i<msg.part_status_size(); i++)
         stats_workUnitsParts++;
 
-// TODO: decide if the exists() check code is necessary, and if so fold it into FFluxTrajectoryList
+//    TODO: decide if the exists() check code is necessary, and if so fold it into FFluxTrajectoryList
 //    // If the trajectory associated with the finished work unit exists...
 //    if (trajectoryList->exists(msg.final_state().trajectory_id()))
 //    {

@@ -224,6 +224,16 @@ FFluxSupervisor::~FFluxSupervisor()
 //	SimulationSupervisor::finishSimulation();
 //}
 
+void FFluxSupervisorbuildSimulationPhaseList()
+{
+
+}
+
+void FFluxSupervisor::buildTrajectoryList()
+{
+    setTrajectoryList(new FFluxTrajectoryList(simulationPhase, *input, communicator, slots.getSimultaneousWorkUnits()));
+}
+
 void FFluxSupervisor::finishSimulation()
 {
     // Create the output message.
@@ -297,11 +307,6 @@ void FFluxSupervisor::startSimulation()
 
     // Call the base class method.
     SimulationSupervisor::startSimulation();
-}
-
-void FFluxSupervisor::buildTrajectoryList()
-{
-    setTrajectoryList(new FFluxTrajectoryList(simulationPhase, *input, communicator, slots.getSimultaneousWorkUnits()));
 }
 
 void FFluxSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList)

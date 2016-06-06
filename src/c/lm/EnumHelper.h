@@ -44,13 +44,13 @@
 #ifndef ENUMHELPER_H
 #define ENUMHELPER_H
 
-#include "lm/io/SimulationPhases.pb.h"
+#include "lm/io/SimulationPhase.pb.h"
 #include "lm/io/Tilings.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 
 // helper classes allowing for more direct access to the types and values of various enums
 
-//from lm/io/SimulationPhases.proto
+//from lm/io/SimulationPhase.proto
 struct SimPhaseEnums {
     // enum typedefs
     typedef lm::io::SimulationPhase::TrajectorySource TrajectorySource;

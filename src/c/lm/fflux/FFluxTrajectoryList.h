@@ -36,8 +36,8 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_FFLUX_FFLUXTRAJECTORYLIST_H_
-#define LM_FFLUX_FFLUXTRAJECTORYLIST_H_
+#ifndef LM_FFLUX_FFLUXTRAJECTORYLIST_H
+#define LM_FFLUX_FFLUXTRAJECTORYLIST_H
 
 #include <google/protobuf/repeated_field.h>
 #include <map>

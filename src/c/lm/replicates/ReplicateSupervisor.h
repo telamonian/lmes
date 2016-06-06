@@ -36,7 +36,6 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #ifndef REPLICATESUPERVISOR_H_
 #define REPLICATESUPERVISOR_H_
 
@@ -54,6 +53,7 @@
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
+
 #include "lm/MPI.h"
 #include "lm/Print.h"
 #include "lm/thread/Worker.h"
@@ -80,6 +80,9 @@ public:
 
 protected:
     virtual void startSimulation();
+    virtual void buildSimulationPhaseList();
+    virtual lm::trajectory::TrajectoryList* initTrajectoryList(const lm::io::SimulationPhase& phase);
+    virtual lm::trajectory::TrajectoryList* initTrajectoryList(const lm::io::SimulationPhase& phase, const lm::trajectory::TrajectoryList& previousList);
     virtual void buildTrajectoryList();
     virtual void finishSimulation();
 

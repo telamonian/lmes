@@ -44,13 +44,14 @@
 #include "lm/ClassFactory.h"
 #include "lm/Print.h"
 #include "lm/io/OutputWriter.h"
+#include "lm/io/SimulationPhases.pb.h"
+#include "lm/io/TrajectoryState.pb.h"
 #include "lm/main/Main.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/RunWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
-#include "lm/io/TrajectoryState.pb.h"
 #include "lm/replicates/ReplicateSupervisor.h"
 #include "lm/replicates/ReplicateTrajectoryList.h"
 #include "lm/resource/ResourceMap.h"
@@ -98,10 +99,40 @@ void ReplicateSupervisor::startSimulation()
     SimulationSupervisor::startSimulation();
 }
 
+void ReplicateSupervisor::buildSimulationPhaseList()
+{
+    simulationPhaseList.push_back(new lm::io::SimulationPhase);
+    lm::io::SimulationPhase* phase = simulationPhaseList.back();
+
+    phase->set_id(0);
+    lm::trajectory::Trajectory initialTrajectory(0, phase->id(), *input);
+    for (uint64_t i=::replicates.front(); i<=::replicates.back(); i++)
+    {
+        phase->add_trajectory_states()->CopyFrom(initialTrajectory.getState());
+    }
+    phase->mutable_trajectory_limits()->CopyFrom(input->getTrajectoryLimitsMsg());
+    phase->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());
+}
+
+lm::trajectory::TrajectoryList* ReplicateSupervisor::initTrajectoryList(const lm::io::SimulationPhase& phase)
+{
+    return new lm::replicates::ReplicateTrajectoryList(phase);
+}
+
+lm::trajectory::TrajectoryList* ReplicateSupervisor::initTrajectoryList(const lm::io::SimulationPhase& phase, const lm::trajectory::TrajectoryList& previousList)
+{
+    return new lm::replicates::ReplicateTrajectoryList(phase, previousList);
+}
+
 void ReplicateSupervisor::buildTrajectoryList()
 {
-    // Create the new trajectory list.
-    setTrajectoryList(new ReplicateTrajectoryList(*input, ::replicates.front(), ::replicates.back()));
+//    // Create the new trajectory list.
+//    setTrajectoryList(new ReplicateTrajectoryList(*input, ::replicates.front(), ::replicates.back()));
+
+    // call the parent class method
+    SimulationSupervisor::buildTrajectoryList();
+
+    // grab some extra info
     numberReplicates += trajectoryList->size();
 }
 

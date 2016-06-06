@@ -39,6 +39,7 @@
 #ifndef LM_MAIN_SUPERVISOR_H
 #define LM_MAIN_SUPERVISOR_H
 
+#include <deque>
 #include <google/protobuf/message.h>
 #include <map>
 #include <string>
@@ -50,6 +51,7 @@
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/OrderParameters.pb.h"
 #include "lm/io/ReactionModel.pb.h"
+#include "lm/io/SimulationPhase.pb.h"
 #include "lm/io/Tilings.pb.h"
 #include "lm/message/Communicator.h"
 #include "lm/message/FinishedCheckpointing.pb.h"
@@ -78,6 +80,7 @@ namespace lm {
 namespace main {
 
 typedef map<string,string> SimulationParametersMap;
+typedef std::deque<lm::io::SimulationPhase*> SimulationPhaseList;
 
 class SimulationSupervisor : public lm::thread::Worker
 {
@@ -89,6 +92,7 @@ public:
     SimulationSupervisor();
     virtual ~SimulationSupervisor();
     virtual void init();
+    lm::io::SimulationPhase* getCurrentPhase() {return simulationPhaseList.front();}
     void setOutputWriterClassName(string outputWriterClassName) {this->outputWriterClassName = outputWriterClassName;}
     void setResourceMap(lm::resource::ResourceMap* resourceMap) {this->resourceMap = resourceMap;}
     void setSimulationFilename(string simulationInputFilename, string simulationOutputFilename) {this->simulationInputFilename = simulationInputFilename; this->simulationOutputFilename = simulationOutputFilename;}
@@ -110,9 +114,12 @@ protected:
     virtual void receivedStartedWorkUnitRunner(const lm::message::StartedWorkUnitRunner & msg);
     virtual void startSimulationIfAllWorkersStarted();
     virtual void startSimulation();
+    virtual void buildSimulationPhaseList()=0;
     virtual void startSimulationPhase();
-    virtual void buildTrajectoryList()=0;
+    virtual lm::trajectory::TrajectoryList* initTrajectoryList(const lm::io::SimulationPhase& phase)=0;
+    virtual lm::trajectory::TrajectoryList* initTrajectoryList(const lm::io::SimulationPhase& phase, const lm::trajectory::TrajectoryList& previousList)=0;
     virtual void setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList);
+    virtual void buildTrajectoryList();
 
     virtual void receivedStartedWorkUnit(const lm::message::StartedWorkUnit& msg);
 
@@ -150,7 +157,7 @@ protected:
     lm::resource::ResourceMap* resourceMap;
     std::string simulationInputFilename;
     std::string simulationOutputFilename;
-    uint64_t simulationPhase;
+    SimulationPhaseList simulationPhaseList;
     bool simulationRunning;
     lm::slot::SlotList slots;
     std::string solverClassName;

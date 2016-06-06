@@ -342,6 +342,11 @@ int32_t* Trajectory::getLastSpeciesCountsMutable()
     return sc->mutable_species_count()->mutable_data() + offset;
 }
 
+lm::io::TrajectoryState* Trajectory::getStateMutable()
+{
+    return &state;
+}
+
 void Trajectory::incrementWorkUnitsPerformed()
 {
     numberWorkUnitsPerformed++;

@@ -49,14 +49,12 @@ message SimulationPhase {
         PREVIOUS_PHASE=1;
     }
 
-    optional TrajectorySource trajectory_source      = 1 [default=TRAJECTORY_STATES];
-    repeated lm.io.TrajectoryState trajectory_states = 2;
+    required uint64 id                                = 1;
 
-    optional lm.io.TrajectoryLimits trajectory_limits = 3;
+    optional TrajectorySource trajectory_source       = 2 [default=TRAJECTORY_STATES];
+    repeated lm.io.TrajectoryState trajectory_states  = 3;
 
-    optional lm.io.OutputOptions output_options      = 4;
-}
+    optional lm.io.TrajectoryLimits trajectory_limits = 4;
 
-message SimulationPhases {
-    repeated SimulationPhase simulation_phases = 1;
+    optional lm.io.OutputOptions output_options       = 5;
 }
