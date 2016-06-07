@@ -37,38 +37,47 @@
  * Author(s): Elijah Roberts
  */
 
-#ifndef LM_ME_MESOLVER_H
-#define LM_ME_MESOLVER_H
+#ifndef LM_MAIN_SOLVER_H
+#define LM_MAIN_SOLVER_H
 
-#include <map>
 #include <string>
 #include <vector>
 
 #include "lm/Types.h"
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/OrderParameters.pb.h"
-#include "lm/io/ReactionModel.pb.h"
-#include "lm/io/Tilings.pb.h"
-#include "lm/main/Solver.h"
+#include "lm/io/OutputOptions.pb.h"
+#include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/io/TrajectoryState.pb.h"
+#include "lm/message/WorkUnitOutput.pb.h"
+#include "lm/message/WorkUnitStatus.pb.h"
 
-using std::map;
 using std::string;
 using std::vector;
 
 namespace lm {
-namespace me {
+namespace main {
 
-class MESolver : public lm::main::Solver
+class Solver
 {
 public:
-    MESolver();
-    virtual ~MESolver();
-    virtual bool needsReactionModel()=0;
-    virtual void setReactionModel(const lm::io::ReactionModel& rm)=0;
-    virtual bool needsDiffusionModel()=0;
-    virtual void setDiffusionModel(const lm::io::DiffusionModel& dm)=0;
-    virtual void setOrderParameters(const lm::io::OrderParameters& ops)=0;
-    virtual void setTilings(const lm::io::Tilings& tilings)=0;
+    Solver();
+    virtual ~Solver();
+    virtual uint getSimultaneousTrajectories();
+    virtual void setComputeResources(vector<int> cpus, vector<int> gpus);
+    virtual void reset();
+    virtual void setLimits(const lm::io::TrajectoryLimits& limits)=0;
+    virtual void setOutputOptions(const lm::io::OutputOptions& outputOptions)=0;
+    virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0)=0;
+    virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0)=0;
+    virtual lm::message::WorkUnitOutput* getOutput(uint trajectoryNumber=0)=0;
+    virtual lm::message::WorkUnitStatus::Status getStatus(uint trajectoryNumber=0)=0;
+    virtual long long generateTrajectory(long long maxSteps)=0;
+
+protected:
+    bool isTrajectoryOutsideLimits();
+
+protected:
+    vector<int> cpus;
+    vector<int> gpus;
 };
 
 }

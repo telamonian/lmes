@@ -61,7 +61,6 @@
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/message/Message.pb.h"
-#include "lm/message/ProcessWorkUnitOutput.pb.h"
 #include "lm/message/WorkUnitOutput.pb.h"
 #include "lm/message/WorkUnitStatus.pb.h"
 #include "lm/rng/RandomGenerator.h"
@@ -101,10 +100,10 @@ GillespieDSolverAVX::GillespieDSolverAVX()
 :GillespieDSolver(),timeLimit(_mm256_set1_pd(std::numeric_limits<double>::infinity())),limitValues(NULL),numberFptValues(0),fptMinValuesAchieved(NULL),fptMaxValuesAchieved(NULL),fptValues(NULL),speciesCounts(NULL),propensities(NULL),time(_mm256_set1_pd(0.0)),timeStep(_mm256_set1_pd(0.0)),orderParameterValues(NULL),orderParameterPreviousValues(NULL)
 {
     // Initialize any array variables.
-    int i=0;
-    for (; i<DOUBLES_PER_AVX; i++)
+    for (int i=0; i<DOUBLES_PER_AVX; i++)
     {
         initialized[i] = false;
+        output[i] = new lm::message::WorkUnitOutput();
         status[i] = lm::message::WorkUnitStatus::NONE;
         limitIDReached[i] = lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID;
         limitTypeReached[i] = lm::io::TrajectoryLimits::NONE;
@@ -115,6 +114,12 @@ GillespieDSolverAVX::GillespieDSolverAVX()
 
 GillespieDSolverAVX::~GillespieDSolverAVX()
 {
+    // Free any array memory.
+    for (int i=0; i<DOUBLES_PER_AVX; i++)
+    {
+        if (output[i] != NULL) delete output[i]; output[i] = NULL;
+    }
+
     // Free any memory.
     if (limitValues != NULL) free(limitValues); limitValues = NULL;
     if (fptMinValuesAchieved != NULL) free(fptMinValuesAchieved); fptMinValuesAchieved = NULL;
@@ -209,6 +214,8 @@ void GillespieDSolverAVX::reset()
     for (int i=0; i<DOUBLES_PER_AVX; i++)
     {
         initialized[i] = false;
+        if (output[i] != NULL) delete output[i];
+        output[i] = new lm::message::WorkUnitOutput();
         status[i] = lm::message::WorkUnitStatus::NONE;
         limitIDReached[i] = lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID;
         limitTypeReached[i] = lm::io::TrajectoryLimits::NONE;
@@ -363,6 +370,20 @@ void GillespieDSolverAVX::copyTrajectoryStateFromBaseSolver(uint trajectoryNumbe
     //TODO: implement
 }
 
+lm::message::WorkUnitOutput* GillespieDSolverAVX::getOutput(uint trajectoryNumber)
+{
+    if (trajectoryNumber >= getSimultaneousTrajectories()) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
+
+    // Get the output pointer.
+    lm::message::WorkUnitOutput* ret = output[trajectoryNumber];
+
+    // Forget about the pointer, since the caller is now responsible for it.
+    output[trajectoryNumber] = NULL;
+
+    return ret;
+
+}
+
 lm::message::WorkUnitStatus::Status GillespieDSolverAVX::getStatus(uint trajectoryNumber)
 {
     if (trajectoryNumber >= getSimultaneousTrajectories()) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
@@ -416,14 +437,6 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
         avxd propensity = _mm256_load_pd(&propensities[i*DOUBLES_PER_AVX]);
         totalPropensity = _mm256_add_pd(totalPropensity,propensity);
     }
-
-    // Create the output message.
-    lm::message::Message msgp;
-    lm::message::ProcessWorkUnitOutput* msg = msgp.mutable_process_work_unit_output();
-    msg->set_work_unit_id(workUnitId);
-    lm::message::WorkUnitOutput* output[DOUBLES_PER_AVX];
-    for (int i=0; i<DOUBLES_PER_AVX; i++)
-        output[i] = msg->add_part_output();
 
     // Get the interval for writing species counts.
     avxd eps = _mm256_set1_pd(EPS);
@@ -725,9 +738,6 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
     free(expRngValues);
     expRngValues = NULL;
 
-    // Track if we added any output to the message.
-    bool createdOutput = false;
-
     // Finalize each of the trajectories.
     for (int i=0; i<DOUBLES_PER_AVX; i++)
     {
@@ -769,6 +779,9 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
         // If we have any species time series data, add them to the output message.
         if (speciesTimeSeriesCounts[i].size() > 0 || speciesTimeSeriesTimes[i].size() > 0)
         {
+            // Mark that the message does contain some data.
+            output[i]->set_has_output(true);
+
             // Make sure the arrays are of a consistent size.
             if (speciesTimeSeriesCounts[i].size() == speciesTimeSeriesTimes[i].size()*reactionModel->numberSpeciesToTrack)
             {
@@ -795,8 +808,6 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
                 data->resize(dataSizeEstimate);
                 ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)speciesTimeSeriesTimes[i].data(), speciesTimeSeriesTimes[i].size()*sizeof(double)));
                 data->resize(dataSizeEstimate);
-
-                createdOutput = true;
             }
             else
             {
@@ -807,6 +818,9 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
         // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
         if (status[i] == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFptTrackedSpecies > 0)
         {
+            // Mark that the message does contain some data.
+            output[i]->set_has_output(true);
+
             for (int j=0; j<numberFptValues; j++)
             {
                 lm::io::FirstPassageTimes* fpt = output[i]->add_first_passage_times();
@@ -819,16 +833,8 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
                     fpt->add_first_passage_time(it->second);
                 }
             }
-            createdOutput = true;
         }
     }
-
-    // If the output message has any data, send it.
-    if (createdOutput)
-    {
-        communicator->sendMessage(outputProcess, outputThread, &msgp);
-    }
-
 
     return steps*DOUBLES_PER_AVX;
 }

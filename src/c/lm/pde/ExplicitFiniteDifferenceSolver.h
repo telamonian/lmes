@@ -31,6 +31,11 @@ namespace pde {
 class ExplicitFiniteDifferenceSolver : public lm::pde::DiffusionPDESolver
 {
 public:
+    static bool registered;
+    static bool registerClass();
+    static void* allocateObject();
+
+public:
     ExplicitFiniteDifferenceSolver(double D, double dx, double dt=0.0);
     virtual ~ExplicitFiniteDifferenceSolver();
     virtual void calculate(ndarray<double>& domain, double runtime);

@@ -51,6 +51,8 @@
 
 #include "lm/ClassFactory.h"
 #include "lm/cme/GillespieDSolver.h"
+#include "lm/message/WorkUnitOutput.pb.h"
+#include "lm/message/WorkUnitStatus.pb.h"
 #include "lm/rng/RandomGenerator.h"
 
 using std::deque;
@@ -81,6 +83,7 @@ public:
     virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0);
     virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0);
     virtual long long generateTrajectory(long long maxSteps);
+    virtual lm::message::WorkUnitOutput* getOutput(uint trajectoryNumber=0);
     virtual lm::message::WorkUnitStatus::Status getStatus(uint trajectoryNumber=0);
 
 protected:
@@ -95,6 +98,9 @@ protected:
 protected:
     // If the trajectory has been initialized.
     bool initialized[DOUBLES_PER_AVX];
+
+    // Trajectory output.
+    lm::message::WorkUnitOutput* output[DOUBLES_PER_AVX];
 
     // Trajectory status.
     lm::message::WorkUnitStatus::Status status[DOUBLES_PER_AVX];

@@ -19,25 +19,11 @@
  *
  * Author(s): Elijah Roberts
  */
+package lm.io;
 
-#ifndef LM_PDE_DIFFUSIONPDESOLVER_H
-#define LM_PDE_DIFFUSIONPDESOLVER_H
+import "robertslab/pbuf/NDArray.proto";
 
-#include "lm/Types.h"
-#include "lm/input/MicroenvironmentModel.pb.h"
-#include "lm/main/Solver.h"
-
-namespace lm {
-namespace pde {
-
-class DiffusionPDESolver : public lm::main::Solver
-{
-public:
-    DiffusionPDESolver();
-    virtual ~DiffusionPDESolver();
-    virtual void setMicroenvironmentModel(const lm::input::MicroenvironmentModel& model)=0;
-};
-
+message PDEState {
+    required double time                                        = 1;
+    repeated robertslab.pbuf.NDArray concentrations             = 2;    //3D; 1=x, 2=y, 3=z; type=double
 }
-}
-#endif // LM_PDE_DIFFUSIONPDESOLVER_H

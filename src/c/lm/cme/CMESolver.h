@@ -165,6 +165,7 @@ public:
     virtual void reset();
     virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0);
     virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0);
+    virtual lm::message::WorkUnitOutput* getOutput(uint trajectoryNumber=0);
     virtual lm::message::WorkUnitStatus::Status getStatus(uint trajectoryNumber=0);
 
 protected:
@@ -231,6 +232,9 @@ protected:
     // Order parameter function.
     int32_t numberOrderParameters;
     lm::oparam::OrderParameterFunction** orderParameterFunctions;
+
+    // Trajectory output.
+    lm::message::WorkUnitOutput* output;
 
     // Trajectory status.
     lm::message::WorkUnitStatus::Status status;

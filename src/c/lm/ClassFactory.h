@@ -77,6 +77,7 @@ public:
     ~ClassFactory() {}
     void registerClass(string baseClassName, string className, ClassAllocator allocator);
     void registerClassesFromExternalLibrary(string filename);
+    string getBaseClass(string className);
     void* allocateObjectOfClass(string baseClassName, string className);
     list<string> getAllSubclasses(string baseClassName);
     void printRegisteredClasses();

@@ -49,6 +49,7 @@
 
 using std::list;
 using std::map;
+using std::pair;
 using std::string;
 using std::vector;
 
@@ -61,6 +62,7 @@ public:
     ResourceMap(list<string>hostnames, int defaultCPUCores, int defaultGPUDevices, string resourceFilename);
     virtual ~ResourceMap();
     bool registerResources(const lm::message::ResourcesAvailable& msg);
+    ComputeResources reserveCPUCores(int numberCPUCores);
     ComputeResources reserveCPUCores(int process, int numberCPUCores);
     ComputeResources getController(int process);
     map<int,ComputeResources> getAvailableResources();

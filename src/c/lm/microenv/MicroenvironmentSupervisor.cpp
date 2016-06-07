@@ -59,12 +59,30 @@ void* MicroenvironmentSupervisor::allocateObject()
 }
 
 MicroenvironmentSupervisor::MicroenvironmentSupervisor()
-:simulationStartTime(0),numberReplicates(replicates.size()),currentReplicateIndex(0),numberTimesteps(10),currentTimestep(0)
+:simulationStartTime(0),numberReplicates(replicates.size()),currentReplicateIndex(0),numberTimesteps(10),currentTimestep(0),
+pdeSlots(&communicator),pdeSolverClassName(""),pdeTrajectoryList(NULL)
 {
+#ifdef OPT_AVX
+    pdeSolverClassName = "lm::avx::ExplicitFiniteDifferenceSolverAVX";
+#else
+    pdeSolverClassName = "lm::pde::ExplicitFiniteDifferenceSolver";
+#endif
 }
 
 MicroenvironmentSupervisor::~MicroenvironmentSupervisor()
 {
+    if (pdeTrajectoryList != NULL) delete pdeTrajectoryList; pdeTrajectoryList = NULL;
+    if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL;
+}
+
+void MicroenvironmentSupervisor::startWorkUnitRunners()
+{
+    // Start the work unit runners for the PDE solvers.
+    ComputeResources pdeResources = resourceMap->reserveCPUCores(1);
+    slots.createAllSlots(pdeResources, 1, 0, useCPUAffinity, pdeSolverClassName, *input);
+
+    // Start the work unit runners for the ME solvers using the base supervisor.
+    SimulationSupervisor::startWorkUnitRunners();
 }
 
 void MicroenvironmentSupervisor::startSimulation()
@@ -119,6 +137,12 @@ void MicroenvironmentSupervisor::continueCurrentReplicate()
 
 void MicroenvironmentSupervisor::buildTrajectoryList()
 {
+    // Free the old trajectory lists, if they exist.
+    if (pdeTrajectoryList != NULL) delete pdeTrajectoryList; pdeTrajectoryList = NULL;
+    if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL;
+
+    // Allocate the new lists.
+    pdeTrajectoryList = new MicroenvironmentTrajectoryList(*input, replicates[currentReplicateIndex]);
     trajectoryList = new MicroenvironmentTrajectoryList(*input, replicates[currentReplicateIndex]);
 }
 

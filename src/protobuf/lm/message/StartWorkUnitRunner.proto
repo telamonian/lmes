@@ -38,6 +38,7 @@
  */
 package lm.message;
 
+import "lm/input/MicroenvironmentModel.proto";
 import "lm/io/DiffusionModel.proto";
 import "lm/io/OrderParameters.proto";
 import "lm/io/ReactionModel.proto";
@@ -53,4 +54,5 @@ message StartWorkUnitRunner {
     optional lm.io.DiffusionModel diffusion_model                   = 8;
     optional lm.io.OrderParameters order_parameters                 = 9;
     optional lm.io.Tilings tilings                                  = 10;
+    optional lm.input.MicroenvironmentModel microenv_model          = 11;
 }

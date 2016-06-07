@@ -20,24 +20,39 @@
  * Author(s): Elijah Roberts
  */
 
-#ifndef LM_PDE_DIFFUSIONPDESOLVER_H
-#define LM_PDE_DIFFUSIONPDESOLVER_H
+#include <string>
+#include <vector>
 
-#include "lm/Types.h"
-#include "lm/input/MicroenvironmentModel.pb.h"
 #include "lm/main/Solver.h"
 
 namespace lm {
-namespace pde {
+namespace main {
 
-class DiffusionPDESolver : public lm::main::Solver
+using std::string;
+using std::vector;
+
+Solver::Solver()
 {
-public:
-    DiffusionPDESolver();
-    virtual ~DiffusionPDESolver();
-    virtual void setMicroenvironmentModel(const lm::input::MicroenvironmentModel& model)=0;
-};
+}
+
+Solver::~Solver()
+{
+}
+
+void Solver::setComputeResources(vector<int> cpus, vector<int> gpus)
+{
+    this->cpus = cpus;
+    this->gpus = gpus;
+}
+
+uint Solver::getSimultaneousTrajectories()
+{
+    return 1;
+}
+
+void Solver::reset()
+{
+}
 
 }
 }
-#endif // LM_PDE_DIFFUSIONPDESOLVER_H

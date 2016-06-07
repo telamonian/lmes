@@ -120,6 +120,21 @@ void ClassFactory::registerClassesFromExternalLibrary(string filename)
     }
 }
 
+string ClassFactory::getBaseClass(string className)
+{
+    for (map<string,map<string,ClassAllocator> >::iterator it=knownClasses.begin(); it != knownClasses.end(); it++)
+    {
+        string baseClassName = it->first.c_str();
+        map<string,ClassAllocator> knownSubclasses = it->second;
+        for (map<string,ClassAllocator>::iterator it2=knownSubclasses.begin(); it2 != knownSubclasses.end(); it2++)
+        {
+            if (it2->first.c_str() == className)
+                return baseClassName;
+        }
+    }
+    throw Exception("No allocator found for class", className.c_str());
+}
+
 void* ClassFactory::allocateObjectOfClass(string baseClassName, string className)
 {
     if (knownClasses.count(baseClassName) == 1)

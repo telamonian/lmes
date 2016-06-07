@@ -34,22 +34,36 @@ namespace pbuf {
 
 template <typename T> robertslab::pbuf::NDArray_DataType NDArray_datatype_code();
 
+// Configure the default compression algorithm.
+#ifdef OPT_SNAPPY
+#define DEFAULT_COMPRESSION SNAPPY
+#else
+#define DEFAULT_COMPRESSION DEFLATE
+#endif
+
 class NDArraySerializer
 {
 public:
-    template <typename T> static robertslab::pbuf::NDArray* serialize(const ndarray<T>& array, bool compressData=true)
+    enum CompressionType {DEFLATE,
+#ifdef OPT_SNAPPY
+                          SNAPPY,
+#endif
+                          NONE};
+
+public:
+    template <typename T> static robertslab::pbuf::NDArray* serialize(const ndarray<T>& array, CompressionType compressionType=DEFAULT_COMPRESSION)
     {
         robertslab::pbuf::NDArray* msg = new robertslab::pbuf::NDArray();
-        serializeInto(msg, array, compress);
+        serializeInto(msg, array, compressionType);
         return msg;
     }
 
-    template <typename T> static void serializeInto(robertslab::pbuf::NDArray* msg, const T* data, utuple shape, bool compressData=true)
+    template <typename T> static void serializeInto(robertslab::pbuf::NDArray* msg, const T* data, utuple shape, CompressionType compressionType=DEFAULT_COMPRESSION)
     {
-        serializeInto(msg, ndarray<T>(data, shape, false), compress);
+        serializeInto(msg, ndarray<T>(shape, data, false), compressionType);
     }
 
-    template <typename T> static void serializeInto(robertslab::pbuf::NDArray* msg, const ndarray<T>& array, bool compressData=true)
+    template <typename T> static void serializeInto(robertslab::pbuf::NDArray* msg, const ndarray<T>& array, CompressionType compressionType=DEFAULT_COMPRESSION)
     {
         // Set the data type.
         msg->set_data_type(NDArray_datatype_code<T>());
@@ -59,13 +73,8 @@ public:
             msg->add_shape(array.shape[i]);
 
         // See if we need to compress the data.
-        if (compressData)
+        if (compressionType == DEFLATE)
         {
-#ifdef OPT_SNAPPY
-            // Store with snappy compression.
-            msg->set_compressed_deflate(false);
-            msg->set_compressed_snappy(true);
-#else
             // Store deflated.
             msg->set_compressed_deflate(true);
             msg->set_compressed_snappy(false);
@@ -74,8 +83,15 @@ public:
             data->resize(dataSizeEstimate);
             RL_ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (const unsigned char*)array.values, array.size*sizeof(T)));
             data->resize(dataSizeEstimate);
-#endif
         }
+#ifdef OPT_SNAPPY
+        else if (compressionType == SNAPPY)
+        {
+                // Store with snappy compression.
+                msg->set_compressed_deflate(false);
+                msg->set_compressed_snappy(true);
+        }
+#endif
         else
         {
             // Store without compression.
@@ -87,7 +103,42 @@ public:
         }
     }
 
-    template <typename T> static ndarray<T> deserialize(const robertslab::pbuf::NDArray& msg);
+    template <typename T> static ndarray<T>* deserialize(const robertslab::pbuf::NDArray& msg, size_t alignment=0)
+    {
+        // Check that the datatype matches.
+        if (msg.data_type() != NDArray_datatype_code<double>()) throw robertslab::InvalidArgException("msg", "the array was of the wrong data type", msg.data_type());
+
+        // Get the shape of the ndarray.
+        tuple<uint> shape(msg.shape().size(), (const uint*)msg.shape().data());
+
+        // Allocate the ndarray.
+        ndarray<T> array = new ndarray<T>(shape, alignment);
+
+        // See if we need to decompress the data.
+        if (msg.compressed_deflate())
+        {
+            size_t tmpBufferSize = array->size*sizeof(T)*sizeof(T);
+            RL_ZLIB_EXCEPTION_CHECK(uncompress((unsigned char *)array->values, &tmpBufferSize, (unsigned char*)&(msg.data()[0]), msg.data().size()));
+            if (tmpBufferSize != array->size*sizeof(T)*sizeof(T))
+                throw robertslab::Exception("error during ndarray inflate deserialization, wrong number of bytes decompressed", tmpBufferSize, array->size*sizeof(T)*sizeof(T));
+
+        }
+        else if (msg.compressed_snappy())
+        {
+#ifdef OPT_SNAPPY
+            throw robertslab::InvalidArgException("msg", "support for snappy decompression is not available");
+#else
+            throw robertslab::InvalidArgException("msg", "support for snappy decompression is not available");
+#endif
+        }
+        else
+        {
+            if (msg.data().size() != array->size*sizeof(double)) throw robertslab::InvalidArgException("msg", "inconsistent size during ndarray deserialization", msg.data().size(), array->size);
+            memcpy(array->values, (const unsigned char*)&(msg.data()[0]), array->size*sizeof(T));
+        }
+
+        return array;
+    }
 };
 
 }

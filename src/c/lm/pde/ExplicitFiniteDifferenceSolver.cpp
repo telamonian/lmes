@@ -24,6 +24,7 @@
 #include <cmath>
 
 #include "hrtime.h"
+#include "lm/ClassFactory.h"
 #include "lm/Exceptions.h"
 #include "lm/Types.h"
 #include "lm/pde/ExplicitFiniteDifferenceSolver.h"
@@ -31,24 +32,49 @@
 namespace lm {
 namespace pde {
 
-ExplicitFiniteDifferenceSolver::ExplicitFiniteDifferenceSolver(double D, double dx, double dt_arg)
-:D(D),dx(dx),dt(dt_arg)
+bool ExplicitFiniteDifferenceSolver::registered=ExplicitFiniteDifferenceSolver::registerClass();
+
+bool ExplicitFiniteDifferenceSolver::registerClass()
 {
-    // Validate the arguments.
+    lm::ClassFactory::getInstance().registerClass("lm::pde::DiffusionPDESolver","lm::pde::ExplicitFiniteDifferenceSolver",&ExplicitFiniteDifferenceSolver::allocateObject);
+    return true;
+}
+
+void* ExplicitFiniteDifferenceSolver::allocateObject()
+{
+    return new ExplicitFiniteDifferenceSolver();
+}
+
+ExplicitFiniteDifferenceSolver::ExplicitFiniteDifferenceSolver()
+:D(0.0),dx(0.0),dt(0.0)
+{
+}
+
+ExplicitFiniteDifferenceSolver::~ExplicitFiniteDifferenceSolver()
+{
+}
+
+
+void ExplicitFiniteDifferenceSolver::setMicroenvironmentModel(const lm::input::MicroenvironmentModel& model)
+{
+    if (model.diffusion_coefficientsients_size() <= 0) throw lm::InvalidArgException("model", "the model did not have enough diffusion_coefficient values");
+
+    // Extract the needed parameters.
+    D = model.diffusion_coefficients(0);
+    dx = model.grid_spacing();
+
+    // Validate the parameters.
     if (D <= 0.0) throw lm::InvalidArgException("dx", "The diffusion coefficient must be positive.", dt);
     if (dx <= 0.0) throw lm::InvalidArgException("dx", "The grid length must be positive.", dt);
     if (dt < 0.0) throw lm::InvalidArgException("dt", "The timestep was negative.", dt);
 
-    // If the user didn't specify a dt, figure it out.
+    // Figure out the dt to use.
     if (dt == 0.0) dt = (dx*dx)/(6*D*2);
 
     // Make sure the stability criteria holds.
     if (dt > (dx*dx)/(6*D)) throw lm::InvalidArgException("dt", "The timestep did not follow obey stability criteria for the ExplicitFiniteDifferenceSolver.", dt);
 }
 
-ExplicitFiniteDifferenceSolver::~ExplicitFiniteDifferenceSolver()
-{
-}
 
 void ExplicitFiniteDifferenceSolver::calculate(ndarray<double>& grid, double runtime)
 {

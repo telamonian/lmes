@@ -60,7 +60,6 @@
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/message/Message.pb.h"
-#include "lm/message/ProcessWorkUnitOutput.pb.h"
 #include "lm/message/WorkUnitOutput.pb.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/rng/XORShift.h"
@@ -151,12 +150,6 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     // Initialize the total propensity.
     double totalPropensity = 0.0;
     for (uint i=0; i<numberReactions; i++) totalPropensity += propensities[i];
-
-    // Create the output message.
-    lm::message::Message msgpp;
-    lm::message::ProcessWorkUnitOutput* msgp = msgpp.mutable_process_work_unit_output();
-    msgp->set_work_unit_id(workUnitId);
-    lm::message::WorkUnitOutput* msg = msgp->add_part_output();
 
     // Get the interval for writing degree advancements.
     double nextDegreeAdvancementWriteTime;
@@ -317,9 +310,6 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     }
     PROF_END(PROF_SIM_EXECUTE);
 
-    // Track if we added any output to the message.
-    bool createdOutput = false;
-
     // See if we finished all of the steps.
     if (status == lm::message::WorkUnitStatus::STEPS_FINISHED)
     {
@@ -376,10 +366,13 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     // If we have any species time series data, add them to the output message.
     if (speciesTimeSeriesCounts.size() > 0 || speciesTimeSeriesTimes.size() > 0)
     {
+        // Mark that the message does contain some data.
+        output->set_has_output(true);
+
         // Make sure the arrays are of a consistent size.
         if (speciesTimeSeriesCounts.size() == speciesTimeSeriesTimes.size()*reactionModel->numberSpeciesToTrack)
         {
-            lm::io::SpeciesTimeSeries* speciesTimeSeriesDataSet = msg->mutable_species_time_series();
+            lm::io::SpeciesTimeSeries* speciesTimeSeriesDataSet = output->mutable_species_time_series();
             speciesTimeSeriesDataSet->set_trajectory_id(trajectoryId);
 
             robertslab::pbuf::NDArray* counts = speciesTimeSeriesDataSet->mutable_counts();
@@ -402,7 +395,6 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
             data->resize(dataSizeEstimate);
             ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)speciesTimeSeriesTimes.data(), speciesTimeSeriesTimes.size()*sizeof(double)));
             data->resize(dataSizeEstimate);
-            createdOutput = true;
         }
         else
         {
@@ -413,10 +405,13 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     // If we have any order parameter time series data, add them to the output message.
     if (orderParameterTimeSeriesCounts.size() > 0 || orderParameterTimeSeriesTimes.size() > 0)
     {
+        // Mark that the message does contain some data.
+        output->set_has_output(true);
+
         // Make sure the arrays are of a consistent size.
         if (orderParameterTimeSeriesCounts.size() == orderParameterTimeSeriesTimes.size()*numberOrderParameters)
         {
-            lm::io::OrderParameterTimeSeries* orderParameterTimeSeriesDataSet = msg->mutable_order_parameter_time_series();
+            lm::io::OrderParameterTimeSeries* orderParameterTimeSeriesDataSet = output->mutable_order_parameter_time_series();
             orderParameterTimeSeriesDataSet->set_trajectory_id(trajectoryId);
 
             opCounts.setMsgPtr(orderParameterTimeSeriesDataSet->mutable_values());
@@ -436,23 +431,14 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
     if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFptTrackedSpecies > 0)
     {
+        // Mark that the message does contain some data.
+        output->set_has_output(true);
+
         for (int i=0; i<numberFptTrackedSpecies; i++)
         {
-            fptTrackedSpecies[i].serializeTo(trajectoryId, msg->add_first_passage_times());
+            fptTrackedSpecies[i].serializeTo(trajectoryId, output->add_first_passage_times());
         }
-        createdOutput = true;
     }
-
-    // If the output message has any data, send it.
-    if (createdOutput)
-    {
-        communicator->sendMessage(outputProcess, outputThread, &msgpp);
-    }
-
-//    if (reachedLimit && steps>=maxSteps)
-//    {
-//        steps = maxSteps - 1;
-//    }
 
     return steps;
 }

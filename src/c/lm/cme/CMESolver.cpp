@@ -88,7 +88,7 @@ namespace cme {
 
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
 :neededDists(neededDists),rng(NULL),reactionModel(NULL),hasUpdateSpeciesCountsListeners(false),tilings(NULL),trackingDegreeAdvancements(false),numberOrderParameters(0),
- orderParameterFunctions(NULL),status(lm::message::WorkUnitStatus::NONE),timeLimit(std::numeric_limits<double>::infinity()),
+ orderParameterFunctions(NULL),output(new lm::message::WorkUnitOutput()),status(lm::message::WorkUnitStatus::NONE),timeLimit(std::numeric_limits<double>::infinity()),
  numberLimits(0),limits(NULL),limitIDReached(lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID),limitTypeReached(lm::io::TrajectoryLimits::NONE),
  writeDegreeAdvancementTimeSeries(false),writeOrderParameterTimeSeries(false),writeSpeciesTimeSeries(false),
  degreeAdvancementWriteInterval(0.0), orderParameterWriteInterval(0.0),speciesWriteInterval(0.0),numberFptTrackedSpecies(0),
@@ -101,6 +101,9 @@ CMESolver::~CMESolver()
 {
     // Free any model memory.
     if (reactionModel != NULL) delete reactionModel; reactionModel = NULL;
+
+    // Free any output memory.
+    if (output != NULL) delete output; output = NULL;
 
     // Free any memory associated with the state.
     if (degreeAdvancements != NULL) delete[] degreeAdvancements; degreeAdvancements = NULL;
@@ -119,7 +122,7 @@ CMESolver::~CMESolver()
 
 void CMESolver::setComputeResources(vector<int> cpus, vector<int> gpus)
 {
-    MESolver::setComputeResources(cpus, gpus);
+    lm::me::MESolver::setComputeResources(cpus, gpus);
 
     // Create the appropriate RNG.
     if (neededDists != RandomGenerator::NONE)
@@ -216,7 +219,7 @@ void CMESolver::setLimits(const lm::io::TrajectoryLimits& lm)
 
 void CMESolver::reset()
 {
-    MESolver::reset();
+    lm::me::MESolver::reset();
 
     // Make sure we have a reaction model.
     if (reactionModel == NULL) throw Exception("Tried to reset state of CMESolver with no reaction model.");
@@ -244,6 +247,10 @@ void CMESolver::reset()
     for (uint i=0; i<reactionModel->numberSpecies; i++)
         speciesCounts[i] = 0;
 
+    // Reset the output.
+    if (output != NULL) delete output;
+    output = new lm::message::WorkUnitOutput();
+
     // Reset the status.
     status = lm::message::WorkUnitStatus::NONE;
 
@@ -256,7 +263,7 @@ void CMESolver::reset()
     timeStep = 0.0;
 
     // Reset trajectory started.
-    trajectoryStarted = false;
+    trajectoryStarted = false;    
 }
 
 void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
@@ -407,12 +414,6 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
 
     // Set the trajectory id.
     trajectoryId = state.trajectory_id();
-}
-
-lm::message::WorkUnitStatus::Status CMESolver::getStatus(uint trajectoryNumber)
-{
-    if (trajectoryNumber >= getSimultaneousTrajectories()) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
-    return status;
 }
 
 void CMESolver::setOutputOptions(const lm::io::OutputOptions& outputOptions)
@@ -680,6 +681,25 @@ bool CMESolver::isTrajectoryOutsideLimits()
         }
     }
     return false;
+}
+
+lm::message::WorkUnitOutput* CMESolver::getOutput(uint trajectoryNumber)
+{
+    if (trajectoryNumber > 0) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
+
+    // Get the output pointer.
+    lm::message::WorkUnitOutput* ret = output;
+
+    // Forget about the pointer, since the caller is now responsible for it.
+    output = NULL;
+
+    return ret;
+}
+
+lm::message::WorkUnitStatus::Status CMESolver::getStatus(uint trajectoryNumber)
+{
+    if (trajectoryNumber > 0) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
+    return status;
 }
 
 }

@@ -171,8 +171,8 @@ public:
         memcpy(values, valuesArray, sizeof(T)*size);
     }
 
-    ndarray(const tuple<uint>& shape, T* valuesArray, size_t alignment=0, bool copyValues=true)
-    :shape(shape),size(calculateSize(shape)),alignment(alignment),values(copyValues?allocateMemory(size,alignment):valuesArray),allocatedValues(copyValues)
+    ndarray(const tuple<uint>& shape, T* valuesArray, bool copyValues=true, size_t alignment=0)
+    :shape(shape),size(calculateSize(shape)),alignment(copyValues?alignment:0),values(copyValues?allocateMemory(size,alignment):valuesArray),allocatedValues(copyValues)
     {
         if (allocatedValues)
             memcpy(values, valuesArray, sizeof(T)*size);
@@ -284,7 +284,7 @@ public:
         }
         else
         {
-            printf("[%d dimensional ndarray: %d entries]%s",shape.len,size,suffix);
+            printf("[%d dimensional ndarray: %d entries]%s",shape.len,(int)size,suffix);
         }
     }
 

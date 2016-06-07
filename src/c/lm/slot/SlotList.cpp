@@ -74,6 +74,12 @@ SlotList::~SlotList()
 {
 }
 
+void SlotList::createAllSlots(ComputeResources resources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input)
+{
+    int nextSlotId = 0;
+    createProcessSlots(nextSlotId, resources.controller_process, resources, cpusPerSlot, gpusPerSlot, useCPUAffinity, solver, input);
+}
+
 void SlotList::createAllSlots(map<int,ComputeResources> & allResources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input)
 {
     int nextSlotId = 0;

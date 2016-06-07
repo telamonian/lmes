@@ -40,6 +40,7 @@
 package lm.io;
 
 import "lm/io/CMEState.proto";
+import "lm/io/PDEState.proto";
 import "lm/io/RDMEState.proto";
 import "lm/io/TrajectoryLimits.proto";
 
@@ -48,6 +49,7 @@ message TrajectoryState {
     optional bool trajectory_started                              = 2 [default = false];
     optional lm.io.CMEState cme_state                             = 3;
     optional lm.io.RDMEState rdme_state                           = 4;
+    optional lm.io.PDEState pde_state                             = 6;
     optional lm.io.TrajectoryLimits.TrajectoryLimit limit_reached = 5;
     optional bytes solver_state                                   = 100;
 }

@@ -42,10 +42,12 @@
 
 #include <string>
 #include <vector>
+#include "lm/main/Solver.h"
 #include "lm/me/MESolver.h"
 #include "lm/message/Communicator.h"
 #include "lm/message/RunWorkUnit.pb.h"
 #include "lm/message/StartWorkUnitRunner.pb.h"
+#include "lm/pde/DiffusionPDESolver.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 #include "lm/Types.h"
@@ -73,10 +75,14 @@ public:
     virtual int getID() {return id;}
 
 protected:
+    virtual Solver* createMESolver();
+    virtual Solver* createDiffusionPDESolver();
+
+protected:
     int id;
     lm::message::Communicator communicator;
     lm::message::StartWorkUnitRunner properties;
-    lm::me::MESolver* solver;
+    lm::main::Solver* solver;
 };
 
 }

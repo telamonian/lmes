@@ -62,6 +62,7 @@ public:
     virtual ~MicroenvironmentSupervisor();
 
 protected:
+    virtual void startWorkUnitRunners();
     virtual void startSimulation();
     virtual void buildTrajectoryList();
     virtual void startSimulationPhase();
@@ -79,6 +80,10 @@ private:
     uint currentReplicateIndex;
     uint numberTimesteps;
     uint currentTimestep;
+
+    lm::slot::SlotList pdeSlots;
+    std::string pdeSolverClassName;
+    lm::trajectory::TrajectoryList* pdeTrajectoryList;
 };
 
 }
