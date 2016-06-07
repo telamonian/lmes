@@ -40,7 +40,7 @@
 #ifndef LM_OPARAM_OPARAM
 #define LM_OPARAM_OPARAM
 
-#include "lm/io/OrderParameters.pb.h"
+#include "lm/input/OrderParameters.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/Types.h"
 
@@ -52,7 +52,7 @@ class OParam
 public:
     OParam();
     virtual ~OParam();
-    virtual void init(const lm::io::OrderParameter& opRef);
+    virtual void init(const lm::input::OrderParameter& opRef);
     virtual void initValues(uint* speciesCounts, double time);
     virtual double calc(const uint* speciesCounts, double time) const = 0;
     virtual double calc(const lm::io::TrajectoryState& state) const;
@@ -62,7 +62,7 @@ public:
     void set(double newVal) {val = newVal;}
 
 protected:
-    lm::io::OrderParameter* op;
+    lm::input::OrderParameter* op;
     double val;
     double prevVal;
 };
@@ -76,7 +76,7 @@ public:
 
     OParamLinear();
     virtual ~OParamLinear() {}
-    virtual void init(const lm::io::OrderParameter& opRef);
+    virtual void init(const lm::input::OrderParameter& opRef);
     virtual double calc(const uint* speciesCounts, double time) const;
 public:
     uint size;
@@ -93,7 +93,7 @@ public:
 
     OParamTwoSpecies();
     virtual ~OParamTwoSpecies() {}
-    virtual void init(const lm::io::OrderParameter& opRef);
+    virtual void init(const lm::input::OrderParameter& opRef);
     virtual double calc(const uint* speciesCounts, double time) const;
 public:
     uint s1, s2;

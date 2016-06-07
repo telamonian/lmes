@@ -47,7 +47,7 @@
 #include <vector>
 
 #include "lm/Types.h"
-#include "lm/io/OrderParameters.pb.h"
+#include "lm/input/OrderParameters.pb.h"
 
 using std::list;
 using std::map;
@@ -75,7 +75,7 @@ protected:
 };
 
 // The type definition for a function to create the propensity function.
-typedef OrderParameterFunction* (*OrderParameterFunctionCreator)(const lm::io::OrderParameter& msg);
+typedef OrderParameterFunction* (*OrderParameterFunctionCreator)(const lm::input::OrderParameter& msg);
 
 struct OrderParameterFunctionDefinition
 {
@@ -91,7 +91,7 @@ class OrderParameterFunctionFactory
 public:
     OrderParameterFunctionFactory();
     ~OrderParameterFunctionFactory();
-    OrderParameterFunction* createOrderParameterFunction(const lm::io::OrderParameter& msg);
+    OrderParameterFunction* createOrderParameterFunction(const lm::input::OrderParameter& msg);
 
 private:
     map<uint,OrderParameterFunctionDefinition> functions;

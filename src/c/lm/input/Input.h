@@ -47,7 +47,7 @@
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/input/BoundaryConditions.pb.h"
 #include "lm/input/DiffusionModel.pb.h"
-#include "lm/io/OrderParameters.pb.h"
+#include "lm/input/OrderParameters.pb.h"
 #include "lm/input/OutputOptions.pb.h"
 #include "lm/input/ReactionModel.pb.h"
 #include "lm/input/SimulationParameters.pb.h"
@@ -75,12 +75,12 @@ public:
     const lm::tiling::Tiling& getCurrentTiling() const;
     const lm::input::DiffusionModel& getDiffusionModelMsg() const {return diffusionModel;}
     const lm::oparam::OParams& getOrderParameters() const {return orderParameters;}
-    const lm::io::OrderParameters& getOrderParametersMsg() const {return orderParametersMsg;}
+    const lm::input::OrderParameters& getOrderParametersMsg() const {return orderParametersMsg;}
     const lm::input::OutputOptions& getOutputOptionsMsg() const {return outputOptions;}
     const lm::input::ReactionModel& getReactionModelMsg() const {return reactionModel;}
     const lm::option::SimulationParameters& getSimulationParameters() const {return simulationParameters;}
     const lm::tiling::Tilings& getTilings() const {return tilings;}
-    const lm::io::Tilings& getTilingsMsg() const {return tilingsMsg;}
+    const lm::input::Tilings& getTilingsMsg() const {return tilingsMsg;}
     const lm::input::TrajectoryLimits& getTrajectoryLimitsMsg() const {return trajectoryLimits.buf();}
 
     uint64_t getPartsPerWorkUnit() const {return partsPerWorkUnit;}
@@ -113,11 +113,11 @@ protected:
     bool trajectoryLimitsPresent;
 
     lm::input::DiffusionModel diffusionModel;
-    lm::io::OrderParameters orderParametersMsg;
+    lm::input::OrderParameters orderParametersMsg;
     lm::oparam::OParams orderParameters;
     lm::input::OutputOptions outputOptions;
     lm::input::ReactionModel reactionModel;
-    lm::io::Tilings tilingsMsg;
+    lm::input::Tilings tilingsMsg;
     lm::tiling::Tilings tilings;
     lm::trajectory::TrajectoryLimits trajectoryLimits;
     lm::option::SimulationParameters simulationParameters;
@@ -144,19 +144,19 @@ protected:
 //    virtual lm::input::BoundaryConditions* getBoundaryGradientBuf();
 //    virtual lm::input::DiffusionModel* getDiffusionModelBuf();
 //    virtual lm::input::SimulationParameters* getParametersBuf();
-//    virtual lm::io::OrderParameters* getOrderParametersBuf();
+//    virtual lm::input::OrderParameters* getOrderParametersBuf();
 //    virtual lm::input::ReactionModel* getReactionModelBuf();
 //    virtual lm::input::SpatialModel* getSpatialModelBuf();
-//    virtual lm::io::Tilings* getTilingsBuf();
+//    virtual lm::input::Tilings* getTilingsBuf();
 //
 //    // get protobuf methods (load-into-pointer style)
 //    virtual void getBoundaryGradientBuf(lm::input::BoundaryConditions* bcBuf);
 //    virtual void getDiffusionModelBuf(lm::input::DiffusionModel* diffusionModelBuf);
 //    virtual void getParametersBuf(lm::input::SimulationParameters* parametersBuf);
-//    virtual void getOrderParametersBuf(lm::io::OrderParameters* orderParametersBuf);
+//    virtual void getOrderParametersBuf(lm::input::OrderParameters* orderParametersBuf);
 //    virtual void getReactionModelBuf(lm::input::ReactionModel* reactionModelBuf);
 //    virtual void getSpatialModelBuf(lm::input::SpatialModel* modelBuf);
-//    virtual void getTilingsBuf(lm::io::Tilings* tilingsBuf);
+//    virtual void getTilingsBuf(lm::input::Tilings* tilingsBuf);
 //
 //    // get wrapper methods
 //    virtual map<string,string> getParameters();
@@ -167,11 +167,11 @@ protected:
 //    // set protobuf methods
 //    virtual void getBoundaryGradientBuf(lm::input::BoundaryConditions* bcBuf);
 //    virtual void setDiffusionModelBuf(lm::input::DiffusionModel& diffusionModelBuf);
-//    virtual void setOrderParametersBuf(lm::io::OrderParameters& orderParametersBuf);
+//    virtual void setOrderParametersBuf(lm::input::OrderParameters& orderParametersBuf);
 //    virtual void setParametersBuf(lm::input::SimulationParameters& parametersBuf);
 //    virtual void setReactionModelBuf(lm::input::ReactionModel& reactionModelBuf);
 //    virtual void setSpatialModelBuf(lm::input::SpatialModel& modelBuf);
-//    virtual void setTilingsBuf(lm::io::Tilings& tilingsBuf);
+//    virtual void setTilingsBuf(lm::input::Tilings& tilingsBuf);
 //
 //    // set wrapper methods
 //    virtual void setParameter(string key, string value);
@@ -181,10 +181,10 @@ protected:
 //    virtual void _loadBoundaryGradientBuf(lm::input::BoundaryConditions* bcBuf);
 //    virtual void _loadDiffusionModelBuf(lm::input::DiffusionModel* diffusionModelBuf);
 //    virtual void _loadParametersBuf(lm::input::SimulationParameters* parametersBuf);
-//    virtual void _loadOrderParametersBuf(lm::io::OrderParameters* orderParametersBuf);
+//    virtual void _loadOrderParametersBuf(lm::input::OrderParameters* orderParametersBuf);
 //    virtual void _loadReactionModelBuf(lm::input::ReactionModel* reactionModelBuf);
 //    virtual void _loadSpatialModelBuf(lm::input::SpatialModel* modelBuf);
-//    virtual void _loadTilingsBuf(lm::io::Tilings* tilingsBuf);
+//    virtual void _loadTilingsBuf(lm::input::Tilings* tilingsBuf);
 //
 //private:
 //    lm::io::hdf5::Hdf5File& file;

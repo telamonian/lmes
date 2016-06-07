@@ -47,7 +47,7 @@
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/input/BoundaryConditions.pb.h"
 #include "lm/input/DiffusionModel.pb.h"
-#include "lm/io/OrderParameters.pb.h"
+#include "lm/input/OrderParameters.pb.h"
 #include "lm/input/OutputOptions.pb.h"
 #include "lm/input/ReactionModel.pb.h"
 #include "lm/input/SimulationParameters.pb.h"

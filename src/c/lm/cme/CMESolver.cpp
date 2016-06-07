@@ -55,7 +55,7 @@
 #include "lm/cme/CMESolver.h"
 #include "lm/cme/ReactionModel.h"
 #include "lm/io/FirstPassageTimes.pb.h"
-#include "lm/io/OrderParameters.pb.h"
+#include "lm/input/OrderParameters.pb.h"
 #include "lm/input/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
@@ -156,7 +156,7 @@ void CMESolver::setReactionModel(const lm::input::ReactionModel& rm)
     speciesCounts = new int[reactionModel->numberSpecies];
 }
 
-void CMESolver::setOrderParameters(const lm::io::OrderParameters& ops)
+void CMESolver::setOrderParameters(const lm::input::OrderParameters& ops)
 {
     if (orderParameterFunctions != NULL) delete orderParameterFunctions; orderParameterFunctions = NULL;
     if (orderParameterValues != NULL) delete orderParameterValues; orderParameterValues = NULL;
@@ -177,7 +177,7 @@ void CMESolver::setOrderParameters(const lm::io::OrderParameters& ops)
     hasUpdateSpeciesCountsListeners = true;
 }
 
-void CMESolver::setTilings(const lm::io::Tilings& tilingsBuf)
+void CMESolver::setTilings(const lm::input::Tilings& tilingsBuf)
 {
     if (tilings != NULL) delete tilings; tilings = NULL;
     tilings = new lm::tiling::Tilings();

@@ -40,9 +40,9 @@ syntax = "proto2";
 package lm.message;
 
 import "lm/input/DiffusionModel.proto";
-import "lm/io/OrderParameters.proto";
+import "lm/input/OrderParameters.proto";
 import "lm/input/ReactionModel.proto";
-import "lm/io/Tilings.proto";
+import "lm/input/Tilings.proto";
 
 message StartWorkUnitRunner {
     required int32 work_unit_runner_id                              = 1;
@@ -52,6 +52,6 @@ message StartWorkUnitRunner {
     required string solver                                          = 5;
     optional lm.input.ReactionModel reaction_model                  = 7;
     optional lm.input.DiffusionModel diffusion_model                = 8;
-    optional lm.io.OrderParameters order_parameters                 = 9;
-    optional lm.io.Tilings tilings                                  = 10;
+    optional lm.input.OrderParameters order_parameters              = 9;
+    optional lm.input.Tilings tilings                               = 10;
 }

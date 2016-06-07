@@ -63,9 +63,9 @@
 #endif
 #include "lm/input/DiffusionModel.pb.h"
 #include "lm/io/hdf5/SimulationFile.h"
-#include "lm/io/OrderParameters.pb.h"
+#include "lm/input/OrderParameters.pb.h"
 #include "lm/input/ReactionModel.pb.h"
-#include "lm/io/Tilings.pb.h"
+#include "lm/input/Tilings.pb.h"
 #include "lm/main/CheckpointSignaler.h"
 #include "lm/main/Main.h"
 #include "lm/main/ResourceController.h"
@@ -221,9 +221,9 @@ int main(int argc, char** argv)
 void ioTest()
 {
     lm::input::DiffusionModel diffusionModel;
-    lm::io::OrderParameters orderParameters;
+    lm::input::OrderParameters orderParameters;
     lm::input::ReactionModel reactionModel;
-    lm::io::Tilings tilings;
+    lm::input::Tilings tilings;
 
     // Open the simulation file.
     lm::io::hdf5::Hdf5File * file = new lm::io::hdf5::Hdf5File(simulationInputFilename);

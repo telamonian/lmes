@@ -37,7 +37,7 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 //#include <algorithm>
-#include "lm/io/OrderParameters.pb.h"
+#include "lm/input/OrderParameters.pb.h"
 #include "lm/ClassFactory.h"
 #include "lm/oparam/OParam.h"
 #include "lm/oparam/OParams.h"
@@ -78,7 +78,7 @@ bool OParams::init(const lm::io::hdf5::Hdf5File* file)
     }
 }
 
-void OParams::init(const lm::io::OrderParameters& newOParamsBuf)
+void OParams::init(const lm::input::OrderParameters& newOParamsBuf)
 {
     setOParamsBuf(newOParamsBuf);
     init();
@@ -96,7 +96,7 @@ void OParams::init()
     }
 }
 
-void OParams::initOParam(const lm::io::OrderParameter& oparam)
+void OParams::initOParam(const lm::input::OrderParameter& oparam)
 {
     opMap[oparam.id()] = (static_cast<lm::oparam::OParam*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::oparam::OParam",lm::oparam::OParams::opClassMap[oparam.type()])));
     opMap[oparam.id()]->init(oparam);

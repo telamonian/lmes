@@ -45,7 +45,7 @@
 #define ENUMHELPER_H
 
 #include "lm/input/SimulationPhase.pb.h"
-#include "lm/io/Tilings.pb.h"
+#include "lm/input/Tilings.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
 
 // helper classes allowing for more direct access to the types and values of various enums
@@ -63,16 +63,16 @@ struct SimPhaseEnums {
 // from lm/io/Tilings.proto
 struct TilingEnums {
     // enum typedefs
-    typedef lm::io::Tiling::SortOrder SortOrder;
-    typedef lm::io::Tiling::TilingType TilingType;
+    typedef lm::input::Tiling::SortOrder SortOrder;
+    typedef lm::input::Tiling::TilingType TilingType;
 
     // SortOrder enum values
-    static const SortOrder ASCENDING = lm::io::Tiling::ASCENDING;
-    static const SortOrder DESCENDING = lm::io::Tiling::DESCENDING;
+    static const SortOrder ASCENDING = lm::input::Tiling::ASCENDING;
+    static const SortOrder DESCENDING = lm::input::Tiling::DESCENDING;
 
     // TilingType enum values
-    static const TilingType LATTICE = lm::io::Tiling::LATTICE;
-    static const TilingType VORONOI = lm::io::Tiling::VORONOI;
+    static const TilingType LATTICE = lm::input::Tiling::LATTICE;
+    static const TilingType VORONOI = lm::input::Tiling::VORONOI;
 };
 
 // from lm/input/TrajectoryLimits.proto

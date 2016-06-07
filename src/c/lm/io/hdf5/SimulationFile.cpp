@@ -65,7 +65,7 @@
 #include "lm/io/FFluxOutput.pb.h"
 #include "lm/io/Lattice.pb.h"
 #include "lm/io/LatticeTimeSeries.pb.h"
-#include "lm/io/OrderParameters.pb.h"
+#include "lm/input/OrderParameters.pb.h"
 #include "lm/io/ParameterValues.pb.h"
 #include "lm/input/ReactionModel.pb.h"
 #include "lm/input/SimulationParameters.pb.h"
@@ -73,7 +73,7 @@
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/io/TilingHist.pb.h"
-#include "lm/io/Tilings.pb.h"
+#include "lm/input/Tilings.pb.h"
 #include "lm/io/hdf5/HDF5.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/rdme/Lattice.h"
@@ -961,7 +961,7 @@ herr_t Hdf5File::getOrderParametersCallback(hid_t loc_id, const char * name, con
     CallbackDataOrderParameters* cdOP = (CallbackDataOrderParameters*)callbackDataOrderParameters;
 
     // create a new order parameter in the ffluxParameters protobuf
-    lm::io::OrderParameter* newOP = cdOP->orderParameters->add_order_parameters();
+    lm::input::OrderParameter* newOP = cdOP->orderParameters->add_order_parameters();
 
     // get the order parameter type and ID
     uint type, id;
@@ -1001,7 +1001,7 @@ herr_t Hdf5File::getOrderParametersCallback(hid_t loc_id, const char * name, con
     return 0;
 }
 
-void Hdf5File::getOrderParameters(lm::io::OrderParameters* orderParameters) const
+void Hdf5File::getOrderParameters(lm::input::OrderParameters* orderParameters) const
 {
     // Make sure the orderParameters protobuf is not null and then clear it
     if (orderParameters == NULL) throw InvalidArgException("orderParameters", "cannot be null");
@@ -1017,7 +1017,7 @@ void Hdf5File::getOrderParameters(lm::io::OrderParameters* orderParameters) cons
     }
 }
 
-void Hdf5File::setOrderParameters(lm::io::OrderParameters * orderParameters)
+void Hdf5File::setOrderParameters(lm::input::OrderParameters * orderParameters)
 {
     // Validate the set of order parameters
     if (orderParameters==NULL) throw InvalidArgException("orderParameters", "cannot be NULL");
@@ -1502,7 +1502,7 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
     CallbackDataTilings* cdT = (CallbackDataTilings *)callbackDataTilings;
 
     // create a new interface in the tilings protobuf
-    lm::io::Tiling* newTiling = cdT->tilings->add_tilings();
+    lm::input::Tiling* newTiling = cdT->tilings->add_tilings();
 
     // get the ID and Type of the tiling and the ID of the order parameter associated with this tiling
     uint id, type, opID;
@@ -1538,7 +1538,7 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
             if (newTiling->edges(i) > newTiling->edges(i+1)) throw Exception("A set of Edges in one of your Tilings is improperly sorted (guessed ASCENDING)", cdT->filename.c_str(), "/Tilings/xxxxxxx/Edges");
         }
     }
-    else // (sortOrder==lm::io::Tilings::DESCENDING)
+    else // (sortOrder==lm::input::Tilings::DESCENDING)
     {
         for (int i=0;i<newTiling->edges_size()-1;i++)
         {
@@ -1555,7 +1555,7 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
     return 0;
 }
 
-void Hdf5File::getTilings(lm::io::Tilings* tilings) const
+void Hdf5File::getTilings(lm::input::Tilings* tilings) const
 {
     // Make sure the tilings protobuf is not null and then clear it
     if (tilings == NULL) throw InvalidArgException("tilings", "cannot be null");
@@ -1579,7 +1579,7 @@ void Hdf5File::getTilings(lm::io::Tilings* tilings) const
     }
 }
 
-void Hdf5File::setTilings(lm::io::Tilings * tilings)
+void Hdf5File::setTilings(lm::input::Tilings * tilings)
 {
     // Validate the set of tililngs
     if (tilings==NULL) throw InvalidArgException("tilings", "cannot be NULL");
@@ -1608,7 +1608,7 @@ void Hdf5File::setTilings(lm::io::Tilings * tilings)
     for (int i=0;i<tilings->tilings_size();i++)
     {
         // get a pointer to the right tiling buf
-        lm::io::Tiling* tilingBuf = tilings->mutable_tilings(i);
+        lm::input::Tiling* tilingBuf = tilings->mutable_tilings(i);
 
         // get the tiling's attribute data from the corresponding protobuf
         id = tilingBuf->id();

@@ -40,7 +40,7 @@
 
 #include "lm/ClassFactory.h"
 #include "lm/EnumHelper.h"
-#include "lm/io/Tilings.pb.h"
+#include "lm/input/Tilings.pb.h"
 #include "lm/tiling/Tiling.h"
 #include "lm/tiling/Tilings.h"
 #include "lm/trajectory/TrajectoryLimits.h"
@@ -59,9 +59,9 @@ Tiling::~Tiling()
     if (tilingBuf!=NULL) delete tilingBuf; tilingBuf = NULL;
 }
 
-void Tiling::init(const lm::io::Tiling& tilingRef)
+void Tiling::init(const lm::input::Tiling& tilingRef)
 {
-    tilingBuf = new lm::io::Tiling(tilingRef);
+    tilingBuf = new lm::input::Tiling(tilingRef);
     setSortOrder(tilingBuf->sort_order(0));
 }
 
@@ -141,7 +141,7 @@ void* TilingLattice::allocateObject()
 
 TilingLattice::TilingLattice(): Tiling() {}
 
-void TilingLattice::init(const lm::io::Tiling& tilingRef)
+void TilingLattice::init(const lm::input::Tiling& tilingRef)
 {
     // call parent method
     Tiling::init(tilingRef);

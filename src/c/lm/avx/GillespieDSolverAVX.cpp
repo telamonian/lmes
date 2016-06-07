@@ -159,7 +159,7 @@ void GillespieDSolverAVX::setReactionModel(const lm::input::ReactionModel& rm)
 
 }
 
-void GillespieDSolverAVX::setOrderParameters(const lm::io::OrderParameters& ops)
+void GillespieDSolverAVX::setOrderParameters(const lm::input::OrderParameters& ops)
 {
     GillespieDSolver::setOrderParameters(ops);
 

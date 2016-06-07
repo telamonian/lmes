@@ -50,11 +50,6 @@
 #include <vector>
 
 #include "lm/protowrap/NDArray.h"
-#include "lm/input/DiffusionModel.pb.h"
-#include "lm/input/ReactionModel.pb.h"
-#include "lm/input/SimulationParameters.pb.h"
-#include "lm/input/SpatialModel.pb.h"
-#include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/io/hdf5/HDF5.h"
 #include "lm/Exceptions.h"
 #include "lm/Types.h"
@@ -66,23 +61,26 @@ namespace rdme{
 class Lattice;
 }
 
-namespace io {
-
+namespace input {
 class BoundaryConditions;
 class DiffusionModel;
+class OrderParameters;
+class ReactionModel;
+class SimulationParameters;
+class SpatialModel;
+class Tilings;
+}
+
+namespace io {
 class FirstPassageTimes;
 class FFluxOutput;
 class Lattice;
 class LatticeTimeSeries;
 class OrderParameterFirstPassageTimes;
-class OrderParameters;
-class ReactionModel;
 class ParameterValues;
-class SimulationParameters;
 class SpeciesCounts;
-class SpatialModel;
+class SpeciesTimeSeries;
 class TilingHist;
-class Tilings;
 
 namespace hdf5 {
 
@@ -94,11 +92,11 @@ using lm::IOException;
 //class IOException;
 
 typedef struct {
-    lm::io::OrderParameters * orderParameters;
+    lm::input::OrderParameters * orderParameters;
 } CallbackDataOrderParameters;
 
 typedef struct {
-    lm::io::Tilings * tilings;
+    lm::input::Tilings * tilings;
     string filename;
 } CallbackDataTilings;
 
@@ -155,16 +153,16 @@ public:
     virtual void getDiffusionModel(lm::input::DiffusionModel* diffusionModel) const;
     virtual void setDiffusionModel(lm::input::DiffusionModel* diffusionModel);
     virtual bool hasOrderParameters() const;
-    virtual void getOrderParameters(lm::io::OrderParameters* orderParameters) const;
-    virtual void setOrderParameters(lm::io::OrderParameters* orderParameters);
+    virtual void getOrderParameters(lm::input::OrderParameters* orderParameters) const;
+    virtual void setOrderParameters(lm::input::OrderParameters* orderParameters);
     virtual bool hasReactionModel() const;
     virtual void getReactionModel(lm::input::ReactionModel* reactionModel) const;
     virtual void setReactionModel(lm::input::ReactionModel* reactionModel);
     virtual void setSpatialModel(lm::input::SpatialModel* model);
     virtual void getSpatialModel(lm::input::SpatialModel* model) const;
     virtual bool hasTilings() const;
-    virtual void getTilings(lm::io::Tilings* tilings) const;
-    virtual void setTilings(lm::io::Tilings* tilings);
+    virtual void getTilings(lm::input::Tilings* tilings) const;
+    virtual void setTilings(lm::input::Tilings* tilings);
     virtual bool hasBoundaryGradient() const;
     virtual void getBoundaryGradient(lm::input::BoundaryConditions* bc) const;
 

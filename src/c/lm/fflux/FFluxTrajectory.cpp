@@ -46,7 +46,7 @@
 #include "lm/fflux/FFluxTrajectory.h"
 #include "lm/input/DiffusionModel.pb.h"
 #include "lm/input/ReactionModel.pb.h"
-#include "lm/io/Tilings.pb.h"
+#include "lm/input/Tilings.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/tiling/Tilings.h"

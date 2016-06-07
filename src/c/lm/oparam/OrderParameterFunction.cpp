@@ -99,7 +99,7 @@ OrderParameterFunctionFactory::~OrderParameterFunctionFactory()
 {
 }
 
-OrderParameterFunction* OrderParameterFunctionFactory::createOrderParameterFunction(const lm::io::OrderParameter& op)
+OrderParameterFunction* OrderParameterFunctionFactory::createOrderParameterFunction(const lm::input::OrderParameter& op)
 {
     if (functions.count(op.type()) == 0)
         throw lm::InvalidArgException("op.type","the specified order parameter function was not found",op.type());

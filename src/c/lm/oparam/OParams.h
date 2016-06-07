@@ -46,14 +46,14 @@
 #include <vector>
 
 #include "lm/io/hdf5/SimulationFile.h"
-#include "lm/io/OrderParameters.pb.h"
+#include "lm/input/OrderParameters.pb.h"
 #include "lm/oparam/OParam.h"
 
 namespace lm {
 namespace oparam {
 
 typedef std::map<uint,std::string> OPClassMap;
-typedef google::protobuf::RepeatedPtrField<lm::io::OrderParameter>::const_iterator OPIterator;
+typedef google::protobuf::RepeatedPtrField<lm::input::OrderParameter>::const_iterator OPIterator;
 typedef std::map<uint,lm::oparam::OParam*> OPMap;
 
 class OParams
@@ -64,9 +64,9 @@ public:
     ~OParams();
     void clearOPMap();
     bool init(const lm::io::hdf5::Hdf5File* file);
-    void init(const lm::io::OrderParameters& oparams);
+    void init(const lm::input::OrderParameters& oparams);
     void init();
-    void initOParam(const lm::io::OrderParameter& oparam);
+    void initOParam(const lm::input::OrderParameter& oparam);
     void initValues(uint* speciesCounts, double time);
 
     // operators
@@ -80,8 +80,8 @@ public:
 
     // mutators
     void calcAndStore(uint* speciesCounts, double time);
-    lm::io::OrderParameters* getOParamsBuf() {return &oparamsBuf;}
-    void setOParamsBuf(const lm::io::OrderParameters& newOParamsBuf) {*getOParamsBuf() = newOParamsBuf;}
+    lm::input::OrderParameters* getOParamsBuf() {return &oparamsBuf;}
+    void setOParamsBuf(const lm::input::OrderParameters& newOParamsBuf) {*getOParamsBuf() = newOParamsBuf;}
     bool rFFOParamsBuf(const lm::io::hdf5::Hdf5File* file); // rFF = read From File
 
     // static methods
@@ -95,7 +95,7 @@ public:
         return m;
     }
 protected:
-    lm::io::OrderParameters oparamsBuf;
+    lm::input::OrderParameters oparamsBuf;
     OPMap opMap;
 };
 

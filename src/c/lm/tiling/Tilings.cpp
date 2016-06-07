@@ -37,7 +37,7 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 #include "lm/ClassFactory.h"
-#include "lm/io/Tilings.pb.h"
+#include "lm/input/Tilings.pb.h"
 #include "lm/tiling/Tiling.h"
 #include "lm/tiling/Tilings.h"
 
@@ -50,7 +50,7 @@ Tilings::Tilings(): currentTilingID(-1)
 {
 }
 
-Tilings::Tilings(const lm::io::Tilings& newTilingsBuf): currentTilingID(-1)
+Tilings::Tilings(const lm::input::Tilings& newTilingsBuf): currentTilingID(-1)
 {
     init(newTilingsBuf);
 }
@@ -82,7 +82,7 @@ bool Tilings::init(const lm::io::hdf5::Hdf5File* file)
     }
 }
 
-void Tilings::init(const lm::io::Tilings& newTilingsBuf)
+void Tilings::init(const lm::input::Tilings& newTilingsBuf)
 {
     setTilingsBuf(newTilingsBuf);
     if (getTilingsBuf()->has_current_tiling_id())
@@ -99,7 +99,7 @@ void Tilings::init()
     for (TilingIterator t_it=getTilingsBuf()->tilings().begin();t_it!=getTilingsBuf()->tilings().end();++t_it) initTiling(*t_it);
 }
 
-void Tilings::initTiling(const lm::io::Tiling& tiling)
+void Tilings::initTiling(const lm::input::Tiling& tiling)
 {
     tilingMap[tiling.id()] = (static_cast<lm::tiling::Tiling*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::tiling::Tiling",lm::tiling::Tilings::tilingClassMap[tiling.type()])));
     tilingMap[tiling.id()]->init(tiling);

@@ -37,7 +37,7 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 syntax = "proto2";
-package lm.io;
+package lm.input;
 
 message Tiling {
     // enumerated type that represent whether an interface is ordered ("arranged") highest-to-lowest or lowest-to-highest.

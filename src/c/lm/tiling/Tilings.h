@@ -45,14 +45,14 @@
 #include <vector>
 
 #include "lm/io/hdf5/SimulationFile.h"
-#include "lm/io/Tilings.pb.h"
+#include "lm/input/Tilings.pb.h"
 #include "lm/tiling/Tiling.h"
 
 namespace lm {
 namespace tiling {
 
 typedef std::map<uint,std::string> TilingClassMap;
-typedef google::protobuf::RepeatedPtrField<lm::io::Tiling>::const_iterator TilingIterator;
+typedef google::protobuf::RepeatedPtrField<lm::input::Tiling>::const_iterator TilingIterator;
 typedef std::map<uint,lm::tiling::Tiling*> TilingMap;
 
 class Tilings
@@ -60,13 +60,13 @@ class Tilings
 public:
     // constructors/destructors/initializers
     Tilings();
-    Tilings(const lm::io::Tilings& tilings);
+    Tilings(const lm::input::Tilings& tilings);
     ~Tilings();
     void clearTilingMap();
     bool init(const lm::io::hdf5::Hdf5File* file);
-    void init(const lm::io::Tilings& tilings);
+    void init(const lm::input::Tilings& tilings);
     void init();
-    void initTiling(const lm::io::Tiling& tiling);
+    void initTiling(const lm::input::Tiling& tiling);
 
     // accessors
     TilingMap::const_iterator begin() const {return tilingMap.begin();}
@@ -74,7 +74,7 @@ public:
     bool hasCurrentTilingID() const {return tilingsBuf.has_current_tiling_id();}
     const lm::tiling::Tiling& getCurrentTiling() const {return *tilingMap.at(getCurrentTilingID());}
     uint getCurrentTilingID() const;
-    lm::io::Tilings* getTilingsBuf() {return &tilingsBuf;}
+    lm::input::Tilings* getTilingsBuf() {return &tilingsBuf;}
 
     // mutators
     TilingMap::iterator begin() {return tilingMap.begin();}
@@ -82,7 +82,7 @@ public:
     void reverse(); // reverse order of list of edges
     bool rFFTilingsBuf(const lm::io::hdf5::Hdf5File* file); // rFF = read From File
     void setCurrentTilingID(uint newCurrentTilingID) {currentTilingID = newCurrentTilingID;}
-    void setTilingsBuf(const lm::io::Tilings& newTilingsBuf) {*getTilingsBuf() = newTilingsBuf;}
+    void setTilingsBuf(const lm::input::Tilings& newTilingsBuf) {*getTilingsBuf() = newTilingsBuf;}
 
     // operators
     lm::tiling::Tiling* operator[](uint i) {return tilingMap[i];}
@@ -101,7 +101,7 @@ protected:
 
 private:
     TilingMap tilingMap;
-    lm::io::Tilings tilingsBuf;
+    lm::input::Tilings tilingsBuf;
 };
 
 }

@@ -40,7 +40,7 @@
 #define LM_TILING_TILING
 
 #include "lm/EnumHelper.h"
-#include "lm/io/Tilings.pb.h"
+#include "lm/input/Tilings.pb.h"
 #include "lm/trajectory/TrajectoryLimits.h"
 #include "lm/Types.h"
 
@@ -58,7 +58,7 @@ public:
 // initializers
     Tiling();
     virtual ~Tiling();
-    virtual void init(const lm::io::Tiling& tilingRef);
+    virtual void init(const lm::input::Tiling& tilingRef);
 
 // accessors
     TrajectoryLimitBuf* addLimitBuf(lm::trajectory::TrajectoryLimits& tls, uint edgeIndex, TrajLimEnums::StoppingCondition stoppingCondition,
@@ -84,7 +84,7 @@ public:
     void setOrderParameterID(uint opID) {tilingBuf->set_order_parameter_id(opID);}
 
 protected:
-    lm::io::Tiling* tilingBuf;
+    lm::input::Tiling* tilingBuf;
 };
 
 class TilingLattice : public Tiling
@@ -96,7 +96,7 @@ public:
 
     TilingLattice();
     virtual ~TilingLattice() {}
-    virtual void init(const lm::io::Tiling& tilingRef);
+    virtual void init(const lm::input::Tiling& tilingRef);
 };
 
 }

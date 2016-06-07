@@ -45,7 +45,7 @@
 #include "lm/ClassFactory.h"
 #include "lm/Types.h"
 #include "lm/cme/CMEOrderParameters.h"
-#include "lm/io/OrderParameters.pb.h"
+#include "lm/input/OrderParameters.pb.h"
 #include "lm/oparam/OrderParameterFunction.h"
 
 using std::list;
@@ -113,7 +113,7 @@ public:
     }
 #endif
 
-    static OrderParameterFunction* create(const lm::io::OrderParameter& op)
+    static OrderParameterFunction* create(const lm::input::OrderParameter& op)
     {
         if (op.type() != OPARAM_TYPE)
             throw lm::InvalidArgException("op.type", "Mismatch of types during creation of linear order parameter function",op.type(), OPARAM_TYPE);
@@ -160,7 +160,7 @@ public:
     }
 #endif
 
-    static OrderParameterFunction* create(const lm::io::OrderParameter& op)
+    static OrderParameterFunction* create(const lm::input::OrderParameter& op)
     {
         if (op.type() != OPARAM_TYPE)
             throw lm::InvalidArgException("op.type", "Mismatch of types during creation of two species order parameter function",op.type(), OPARAM_TYPE);

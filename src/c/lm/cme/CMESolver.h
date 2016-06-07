@@ -221,8 +221,8 @@ public:
     virtual void setReactionModel(const lm::input::ReactionModel& rm);
     virtual bool needsDiffusionModel() {return false;}
     virtual void setDiffusionModel(const lm::input::DiffusionModel& dm) {}
-    virtual void setOrderParameters(const lm::io::OrderParameters& opsBuf);
-    virtual void setTilings(const lm::io::Tilings& tilingsBuf);
+    virtual void setOrderParameters(const lm::input::OrderParameters& opsBuf);
+    virtual void setTilings(const lm::input::Tilings& tilingsBuf);
     virtual void setLimits(const lm::input::TrajectoryLimits& limits);
     virtual void setOutputOptions(const lm::input::OutputOptions& outputOptions);
     virtual void reset();

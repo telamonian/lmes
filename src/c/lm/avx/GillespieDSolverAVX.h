@@ -75,7 +75,7 @@ public:
     virtual ~GillespieDSolverAVX();
     virtual uint getSimultaneousTrajectories();
     virtual void setReactionModel(const lm::input::ReactionModel& rm);
-    virtual void setOrderParameters(const lm::io::OrderParameters& opsBuf);
+    virtual void setOrderParameters(const lm::input::OrderParameters& opsBuf);
     virtual void setLimits(const lm::input::TrajectoryLimits& limits);
     virtual void reset();
     virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0);

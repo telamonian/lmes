@@ -45,7 +45,7 @@
 #include "lm/neus/NeusTrajectory.h"
 #include "lm/input/DiffusionModel.pb.h"
 #include "lm/input/ReactionModel.pb.h"
-#include "lm/io/Tilings.pb.h"
+#include "lm/input/Tilings.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/tiling/Tilings.h"
@@ -92,7 +92,7 @@ NeusTrajectory::~NeusTrajectory()
 
 bool NeusTrajectory::fluxedBackward()
 {
-    if (input.tilings[0]->getArrangement()==lm::io::Tilings::ASCENDING)
+    if (input.tilings[0]->getArrangement()==lm::input::Tilings::ASCENDING)
     {
         return (getFinalLimitType()==lm::input::TrajectoryLimits::DECREASINGORDERPARAMETER);
     }
@@ -104,7 +104,7 @@ bool NeusTrajectory::fluxedBackward()
 
 bool NeusTrajectory::fluxedForward()
 {
-    if (input.tilings[0]->getArrangement()==lm::io::Tilings::ASCENDING)
+    if (input.tilings[0]->getArrangement()==lm::input::Tilings::ASCENDING)
     {
         return (getFinalLimitType()==lm::input::TrajectoryLimits::INCREASINGORDERPARAMETER);
     }
@@ -137,9 +137,9 @@ bool NeusTrajectory::hasElapsed(double time)
 void NeusTrajectory::initLimits()
 {
     getRunMsg()->mutable_limits()->Clear();
-    switch ((ffluxPhase!=0)<<1|input.tilings[0]->getArrangement()!=lm::io::Tilings::ASCENDING) // each of the 4 sets of possible pairs of true/false values corresponds to one of the numbers 0-3
+    switch ((ffluxPhase!=0)<<1|input.tilings[0]->getArrangement()!=lm::input::Tilings::ASCENDING) // each of the 4 sets of possible pairs of true/false values corresponds to one of the numbers 0-3
     {
-    case 0: // ffluxphase==0 and tilings[0].getArrangement()==lm::io::Tilings::ASCENDING
+    case 0: // ffluxphase==0 and tilings[0].getArrangement()==lm::input::Tilings::ASCENDING
     {
         lm::input::TrajectoryLimits::IncreasingOrderParameterLimit* iopl = getRunMsg()->mutable_limits()->add_increasing_order_parameter_limit();
         iopl->set_arrangement(lm::input::TrajectoryLimits::ASCENDING);
@@ -147,7 +147,7 @@ void NeusTrajectory::initLimits()
         iopl->add_value(input.tilings[0]->getEdge(0));
         break;
     }
-    case 1: // ffluxphase==0 and tilings[0].getArrangement()==lm::io::Tilings::DESCENDING
+    case 1: // ffluxphase==0 and tilings[0].getArrangement()==lm::input::Tilings::DESCENDING
     {
         lm::input::TrajectoryLimits::DecreasingOrderParameterLimit* dopl = getRunMsg()->mutable_limits()->add_decreasing_order_parameter_limit();
         dopl->set_arrangement(lm::input::TrajectoryLimits::DESCENDING);
@@ -155,7 +155,7 @@ void NeusTrajectory::initLimits()
         dopl->add_value(input.tilings[0]->getEdge(0));
         break;
     }
-    case 2: // ffluxphase!=0 and tilings[0].getArrangement()==lm::io::Tilings::ASCENDING
+    case 2: // ffluxphase!=0 and tilings[0].getArrangement()==lm::input::Tilings::ASCENDING
     {
         lm::input::TrajectoryLimits::DecreasingOrderParameterLimit* dopl = getRunMsg()->mutable_limits()->add_decreasing_order_parameter_limit();
         dopl->set_order_parameter_id(input.tilings[0]->getOrderParameterID());
@@ -167,7 +167,7 @@ void NeusTrajectory::initLimits()
         iopl->add_value(input.tilings[0]->getEdge(ffluxPhase));
         break;
     }
-    case 3: // ffluxphase!=0 and tilings[0].getArrangement()==lm::io::Tilings::DESCENDING
+    case 3: // ffluxphase!=0 and tilings[0].getArrangement()==lm::input::Tilings::DESCENDING
     {
         lm::input::TrajectoryLimits::IncreasingOrderParameterLimit* iopl = getRunMsg()->mutable_limits()->add_increasing_order_parameter_limit();
         iopl->set_arrangement(lm::input::TrajectoryLimits::DESCENDING);
