@@ -34,13 +34,15 @@ namespace avx {
 class ExplicitFiniteDifferenceSolverAVX : public lm::pde::ExplicitFiniteDifferenceSolver
 {
 public:
-    ExplicitFiniteDifferenceSolverAVX(double D, double dx, double dt=0.0);
-    virtual ~ExplicitFiniteDifferenceSolverAVX();
-    virtual void calculate(ndarray<double>& domain, double runtime);
+    static bool registered;
+    static bool registerClass();
+    static void* allocateObject();
 
-protected:
-    //void calculateWithReflectingBoundary(ndarray<double>& grid, double runtime);
-    //virtual void calculateAbsorbingBoundary(ndarray<double>& grid, double time, double value);
+public:
+    ExplicitFiniteDifferenceSolverAVX();
+    virtual ~ExplicitFiniteDifferenceSolverAVX();
+    virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0);
+    virtual long long generateTrajectory(long long maxSteps);
 };
 
 }

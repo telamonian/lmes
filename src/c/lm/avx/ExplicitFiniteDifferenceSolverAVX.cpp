@@ -23,16 +23,32 @@
 #include <cassert>
 #include <cmath>
 
+#include "lm/ClassFactory.h"
 #include "lm/Exceptions.h"
 #include "lm/Print.h"
 #include "lm/Types.h"
 #include "lm/avx/ExplicitFiniteDifferenceSolverAVX.h"
+#include "robertslab/Types.h"
+#include "robertslab/pbuf/NDArraySerializer.h"
 
 namespace lm {
 namespace avx {
 
-ExplicitFiniteDifferenceSolverAVX::ExplicitFiniteDifferenceSolverAVX(double D, double dx, double dt_arg)
-:ExplicitFiniteDifferenceSolver(D,dx,dt_arg)
+bool ExplicitFiniteDifferenceSolverAVX::registered=ExplicitFiniteDifferenceSolverAVX::registerClass();
+
+bool ExplicitFiniteDifferenceSolverAVX::registerClass()
+{
+    lm::ClassFactory::getInstance().registerClass("lm::pde::DiffusionPDESolver","lm::avx::ExplicitFiniteDifferenceSolverAVX",&ExplicitFiniteDifferenceSolverAVX::allocateObject);
+    return true;
+}
+
+void* ExplicitFiniteDifferenceSolverAVX::allocateObject()
+{
+    return new ExplicitFiniteDifferenceSolverAVX();
+}
+
+ExplicitFiniteDifferenceSolverAVX::ExplicitFiniteDifferenceSolverAVX()
+:ExplicitFiniteDifferenceSolver()
 {
 }
 
@@ -40,22 +56,24 @@ ExplicitFiniteDifferenceSolverAVX::~ExplicitFiniteDifferenceSolverAVX()
 {
 }
 
-void ExplicitFiniteDifferenceSolverAVX::calculate(ndarray<double>& grid, double runtime)
+void ExplicitFiniteDifferenceSolverAVX::setState(const lm::io::TrajectoryState& state, uint trajectoryNumber)
 {
-    if (grid.shape.len != 3) throw lm::InvalidArgException("grid", "the grid was not three-dimensional for ExplicitFiniteDifferenceSolverAVX", runtime);
-    if (grid.shape[2]%DOUBLES_PER_AVX != 0) throw lm::InvalidArgException("grid", "the grid z dimension was not evenly divisible by the AVX register size for ExplicitFiniteDifferenceSolverAVX", grid.shape[2]);
-    if (grid.alignment != DOUBLES_PER_AVX*sizeof(double)) throw lm::InvalidArgException("grid", "the grid memory was not aligned correctly for ExplicitFiniteDifferenceSolverAVX", grid.alignment);
+    if (trajectoryNumber > 0) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
 
-    // Figure out how many time steps to run.
-    int steps = int(floor((runtime/dt)+0.5));
+    time = state.pde_state().time();
+    grid = robertslab::pbuf::NDArraySerializer::deserialize<double>(state.pde_state().concentrations(0), DOUBLES_PER_AVX*sizeof(double));
+    if (grid->shape.len != 3) throw lm::InvalidArgException("grid", "the grid must be three-dimensional for ExplicitFiniteDifferenceSolver");
+    if (grid->shape[2]%DOUBLES_PER_AVX != 0) throw lm::InvalidArgException("grid", "the grid z dimension was not evenly divisible by the AVX register size for ExplicitFiniteDifferenceSolverAVX", grid->shape[2]);
+}
 
-    // Make sure that runtime is an interval of dt.
-    if (fabs(runtime-double(steps)*dt) > 1e-9) throw lm::InvalidArgException("runtime", "the runtime was not a multiple of the timestep for ExplicitFiniteDifferenceSolverAVX", runtime);
+long long ExplicitFiniteDifferenceSolverAVX::generateTrajectory(long long maxSteps)
+{
+    if (grid->alignment != DOUBLES_PER_AVX*sizeof(double)) throw lm::InvalidArgException("grid", "the grid memory was not aligned correctly for ExplicitFiniteDifferenceSolverAVX", grid->alignment);
 
     // Get the grid dimensions in various forms.
-    const int ilen=(int)grid.shape[0];
-    const int jlen=(int)grid.shape[1];
-    const int klen=(int)grid.shape[2];
+    const int ilen=(int)grid->shape[0];
+    const int jlen=(int)grid->shape[1];
+    const int klen=(int)grid->shape[2];
     const int jklen=jlen*klen;
     const int imax=ilen-1;
     const int jmax=jlen-1;
@@ -63,18 +81,26 @@ void ExplicitFiniteDifferenceSolverAVX::calculate(ndarray<double>& grid, double 
 
     // Allocate space for a second copy of the grid in aligned memory.
     double* grid2=NULL;
-    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&grid2, DOUBLES_PER_AVX*sizeof(double), grid.size*sizeof(double)));
+    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&grid2, DOUBLES_PER_AVX*sizeof(double), grid->size*sizeof(double)));
 
-    // Save pointers to the actual grid locations, excluding the z boundaries.
-    double* c = grid.values;
+    // Save pointers to the actual grid locations.
+    double* c = grid->values;
     double* cFuture = grid2;
 
     // Go through the requested steps.
-    const double k_diff = (D*dt)/(dx*dx);
-    const avxd k_diffv = _mm256_set1_pd(k_diff);
+    long long steps=0;
+    status = lm::message::WorkUnitStatus::STEPS_FINISHED;
     const avxd m6v = _mm256_set1_pd(-6.0);
-    while (steps > 0)
+    while (steps < maxSteps)
     {
+        // If we have less than a full dt left, adjust tau.
+        double tau = (time+dt<=timeLimit)?(dt):(timeLimit-time);
+
+        // Calculate the diffusion constant.
+        double k_diff = (D*tau)/(dx*dx);
+        const avxd k_diffv = _mm256_set1_pd(k_diff);
+
+        // Go through the grid and update each point.
         int index;
         avxd c_index, c_im, c_ip, c_jm, c_jp, c_km, c_kp;
         for (int i=0; i<ilen; i++)
@@ -102,10 +128,18 @@ void ExplicitFiniteDifferenceSolverAVX::calculate(ndarray<double>& grid, double 
                 }
 
         // Update the step counter.
-        steps--;
+        steps++;
+        time += tau;
+
+        // See if we are done with the time.
+        if (time >= timeLimit)
+        {
+            status = lm::message::WorkUnitStatus::LIMIT_REACHED;
+            break;
+        }
 
         // If we have another step, swap the concentration pointers.
-        if (steps > 0)
+        if (steps < maxSteps)
         {
             double* tmp=c;
             c = cFuture;
@@ -114,11 +148,13 @@ void ExplicitFiniteDifferenceSolverAVX::calculate(ndarray<double>& grid, double 
     }
 
     // Save the final results, if it is not already in the grid.
-    if (grid.values != cFuture)
-        memcpy(grid.values, cFuture, grid.size*sizeof(double));
+    if (grid->values != cFuture)
+        memcpy(grid->values, cFuture, grid->size*sizeof(double));
 
     // Free the grid memory.
     free(grid2);
+
+    return steps;
 }
 
 }

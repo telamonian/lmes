@@ -90,6 +90,7 @@ public:
                 // Store with snappy compression.
                 msg->set_compressed_deflate(false);
                 msg->set_compressed_snappy(true);
+                throw robertslab::InvalidArgException("msg", "support for snappy decompression is not available");
         }
 #endif
         else
@@ -112,7 +113,7 @@ public:
         tuple<uint> shape(msg.shape().size(), (const uint*)msg.shape().data());
 
         // Allocate the ndarray.
-        ndarray<T> array = new ndarray<T>(shape, alignment);
+        ndarray<T>* array = new ndarray<T>(shape, alignment);
 
         // See if we need to decompress the data.
         if (msg.compressed_deflate())

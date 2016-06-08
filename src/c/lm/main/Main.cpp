@@ -900,20 +900,20 @@ void mainDebug(int argc, char** argv)
     grid[utuple(grid.shape[0]/2,grid.shape[1]/2,grid.shape[2]/2)] = 1.0e-6;
     //grid.print("\n");
 
-    lm::avx::ExplicitFiniteDifferenceSolverAVX s(1000.0e-12, 4.0e-6);
+    lm::avx::ExplicitFiniteDifferenceSolverAVX s;
     //lm::pde::ExplicitFiniteDifferenceSolver s(1667.0e-12, 20.0e-6);
     //lm::avx::ExplicitFiniteDifferenceSolverAVX s(1667.0e-12, 20.0e-6);
     //lm::avx::ExplicitFiniteDifferenceSolverAVX s(200.0e-12, 50.0e-9);
-    for (int i=0; i<100; i++)
-    {
-        hrtime t1=getHrTime();
-        s.calculate(grid, 10*s.getDT());
-        printf("Calculate took %0.6f s\n",convertHrToSeconds(getHrTime()-t1)); fflush(stdout);
-        double sum=0.0;
-        for (int j=0; j<grid.size; j++) sum+=grid.values[j];
-        printf("%d: sum=%0.6e loss=%0.20e\n",i,sum,1e-6-sum);
-        //grid.print("\n");
-    }
+//    for (int i=0; i<100; i++)
+//    {
+//        hrtime t1=getHrTime();
+//        s.calculate(grid, 10*s.getDT());
+//        printf("Calculate took %0.6f s\n",convertHrToSeconds(getHrTime()-t1)); fflush(stdout);
+//        double sum=0.0;
+//        for (int j=0; j<grid.size; j++) sum+=grid.values[j];
+//        printf("%d: sum=%0.6e loss=%0.20e\n",i,sum,1e-6-sum);
+//        //grid.print("\n");
+//    }
     //grid.print("\n");
 }
 

@@ -23,6 +23,13 @@
 #ifndef LM_PDE_EXPLICITFINITEDIFFERENCESOLVER_H
 #define LM_PDE_EXPLICITFINITEDIFFERENCESOLVER_H
 
+#include "lm/Types.h"
+#include "lm/input/MicroenvironmentModel.pb.h"
+#include "lm/io/OutputOptions.pb.h"
+#include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/io/TrajectoryState.pb.h"
+#include "lm/message/WorkUnitOutput.pb.h"
+#include "lm/message/WorkUnitStatus.pb.h"
 #include "lm/pde/DiffusionPDESolver.h"
 
 namespace lm {
@@ -36,10 +43,17 @@ public:
     static void* allocateObject();
 
 public:
-    ExplicitFiniteDifferenceSolver(double D, double dx, double dt=0.0);
+    ExplicitFiniteDifferenceSolver();
     virtual ~ExplicitFiniteDifferenceSolver();
-    virtual void calculate(ndarray<double>& domain, double runtime);
-    virtual double getDT() {return dt;}
+    virtual void setMicroenvironmentModel(const lm::input::MicroenvironmentModel& model);
+    virtual void setLimits(const lm::io::TrajectoryLimits& limits);
+    virtual void setOutputOptions(const lm::io::OutputOptions& outputOptions);
+    virtual void reset();
+    virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0);
+    virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0);
+    virtual lm::message::WorkUnitOutput* getOutput(uint trajectoryNumber=0);
+    virtual lm::message::WorkUnitStatus::Status getStatus(uint trajectoryNumber=0);
+    virtual long long generateTrajectory(long long maxSteps);
 
 protected:
     //void calculateWithReflectingBoundary(ndarray<double>& grid, double runtime);
@@ -49,6 +63,16 @@ protected:
     double D;
     double dx;
     double dt;
+
+    // Trajectory output.
+    lm::message::WorkUnitOutput* output;
+
+    // Trajectory status.
+    lm::message::WorkUnitStatus::Status status;
+
+    // The PDE state.
+    double time, timeLimit;
+    ndarray<double>* grid;
 };
 
 }
