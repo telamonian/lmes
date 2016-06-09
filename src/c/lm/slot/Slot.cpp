@@ -75,7 +75,13 @@ ColumnMap statsColumnMap(rawData, rawData + numElems);
 namespace lm {
 namespace slot {
 
-Slot::Slot(int32_t id, lm::resource::ComputeResources resources)
+Slot::Slot()
+:id(-1),status(NOT_STARTED),resources(),simultaneousWorkUnits(0)
+{
+    resetSlotStatistics();
+}
+
+Slot::Slot(int id, lm::resource::ComputeResources resources)
 :id(id),status(NOT_STARTED),resources(resources),simultaneousWorkUnits(0)
 {
     resetSlotStatistics();

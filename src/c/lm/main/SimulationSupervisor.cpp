@@ -295,7 +295,7 @@ void SimulationSupervisor::receivedStartedCheckpointSignaler(const lm::message::
 
 void SimulationSupervisor::receivedStartedWorkUnitRunner(const lm::message::StartedWorkUnitRunner & msg)
 {
-    Print::printf(Print::INFO, "Work unit runner started: %d:%d.",msg.process(),msg.thread());
+    Print::printf(Print::INFO, "Work unit runner %d on process (%d:%d) reported to supervisor.",msg.work_unit_runner_id(),msg.process(),msg.thread());
 
     slots.markSlotStarted(msg);
     if (!slots.hasUnstartedSlots())

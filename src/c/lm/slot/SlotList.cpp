@@ -65,6 +65,8 @@ using std::vector;
 namespace lm {
 namespace slot {
 
+int SlotList::nextSlotId=0;
+
 SlotList::SlotList(lm::message::Communicator * communicator): communicator(communicator)
 {
     resetSlotsStatistics();
@@ -76,13 +78,11 @@ SlotList::~SlotList()
 
 void SlotList::createAllSlots(ComputeResources resources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input)
 {
-    int nextSlotId = 0;
-    createProcessSlots(nextSlotId, resources.controller_process, resources, cpusPerSlot, gpusPerSlot, useCPUAffinity, solver, input);
+    nextSlotId += createProcessSlots(nextSlotId, resources.controller_process, resources, cpusPerSlot, gpusPerSlot, useCPUAffinity, solver, input);
 }
 
 void SlotList::createAllSlots(map<int,ComputeResources> & allResources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input)
 {
-    int nextSlotId = 0;
     for (map<int,ComputeResources>::iterator it=allResources.begin(); it != allResources.end(); it++)
 	{
         nextSlotId += createProcessSlots(nextSlotId, it->first, it->second, cpusPerSlot, gpusPerSlot, useCPUAffinity, solver, input);
@@ -165,7 +165,7 @@ void SlotList::createSlot(int slotId, ComputeResources resources, bool useCPUAff
     Print::printf(Print::INFO, "Creating slot %d on process (%d:%d) using resources: %s.", slotId, resources.controller_process, resources.controller_thread, resources.toString().c_str());
 
     // Add the slots to our list.
-    slots.push_back(Slot(slotId,resources));
+    slotMap[slotId] = Slot(slotId, resources);
 
     // Add the start work unit runner message for the slot.
     lm::message::StartWorkUnitRunner* s = msg->add_start_work_unit_runner();
@@ -184,25 +184,32 @@ void SlotList::createSlot(int slotId, ComputeResources resources, bool useCPUAff
         s->mutable_order_parameters()->CopyFrom(input.getOrderParametersMsg());
     if (input.hasTilings())
         s->mutable_tilings()->CopyFrom(input.getTilingsMsg());
+    if (input.hasMicroenvironmentModel())
+        s->mutable_microenv_model()->CopyFrom(input.getMicroenvironmentModel());
+}
+
+bool SlotList::isManagingSlot(int slotId) const
+{
+    return (slotMap.count(slotId) != 0);
 }
 
 void SlotList::markSlotStarted(const lm::message::StartedWorkUnitRunner& msg)
 {
     // Mark the work unit runner as started.
-    if (msg.work_unit_runner_id() < 0 || msg.work_unit_runner_id() >= (int)slots.size()) throw Exception("Invalid work unit runner id received in started work unit runner message",msg.work_unit_runner_id());
-    if (slots[msg.work_unit_runner_id()].status != Slot::NOT_STARTED) throw Exception("Work unit runner was previosuly started",msg.work_unit_runner_id());
-    slots[msg.work_unit_runner_id()].status = Slot::FREE;
-    slots[msg.work_unit_runner_id()].workUnitRunnerEndpoint.process = msg.process();
-    slots[msg.work_unit_runner_id()].workUnitRunnerEndpoint.thread = msg.thread();
-    slots[msg.work_unit_runner_id()].simultaneousWorkUnits = msg.simultaneous_work_units();
+    if (slotMap.count(msg.work_unit_runner_id()) == 0) throw Exception("Invalid work unit runner id received in started work unit runner message", msg.work_unit_runner_id());
+    if (slotMap[msg.work_unit_runner_id()].status != Slot::NOT_STARTED) throw Exception("Work unit runner was previosuly started", msg.work_unit_runner_id());
+    slotMap[msg.work_unit_runner_id()].status = Slot::FREE;
+    slotMap[msg.work_unit_runner_id()].workUnitRunnerEndpoint.process = msg.process();
+    slotMap[msg.work_unit_runner_id()].workUnitRunnerEndpoint.thread = msg.thread();
+    slotMap[msg.work_unit_runner_id()].simultaneousWorkUnits = msg.simultaneous_work_units();
 }
 
 bool SlotList::hasUnstartedSlots()
 {
     // Check all of the slots to see if anything is unstarted.
-    for (size_t i=0; i<slots.size(); i++)
+    for (map<int,Slot>::const_iterator it=slotMap.begin(); it!=slotMap.end(); it++)
     {
-        if (slots[i].status == Slot::NOT_STARTED)
+        if (it->second.status == Slot::NOT_STARTED)
             return true;
     }
     return false;
@@ -211,9 +218,9 @@ bool SlotList::hasUnstartedSlots()
 bool SlotList::hasFreeSlots()
 {
     // Check all of the slots to see if anything is free.
-    for (size_t i=0; i<slots.size(); i++)
+    for (map<int,Slot>::const_iterator it=slotMap.begin(); it!=slotMap.end(); it++)
     {
-        if (slots[i].status == Slot::FREE)
+        if (it->second.status == Slot::FREE)
             return true;
     }
     return false;
@@ -222,10 +229,10 @@ bool SlotList::hasFreeSlots()
 const Slot& SlotList::getFreeSlot()
 {
     // Find the first free slot.
-    for (size_t i=0; i<slots.size(); i++)
+    for (map<int,Slot>::iterator it=slotMap.begin(); it!=slotMap.end(); it++)
     {
-        if (slots[i].status == Slot::FREE)
-            return slots[i];
+        if (it->second.status == Slot::FREE)
+            return it->second;
     }
     throw Exception("No free slots available.");
 }
@@ -233,9 +240,9 @@ const Slot& SlotList::getFreeSlot()
 bool SlotList::hasBusySlots()
 {
     // Check all of the slots to see if anything is free.
-    for (size_t i=0; i<slots.size(); i++)
+    for (map<int,Slot>::const_iterator it=slotMap.begin(); it!=slotMap.end(); it++)
     {
-        if (slots[i].status == Slot::BUSY)
+        if (it->second.status == Slot::BUSY)
             return true;
     }
     return false;
@@ -250,18 +257,18 @@ void SlotList::runWorkUnit(lm::message::Message* runWorkUnitMsg)
         throw new Exception("The work unit is already assigned to a work unit runner",workUnitId,workUnitToSlotMap[workUnitId]);
 
     // Find a free slot.
-    for (size_t i=0; i<slots.size(); i++)
+    for (map<int,Slot>::iterator it=slotMap.begin(); it!=slotMap.end(); it++)
     {
-        if (slots[i].status == Slot::FREE)
+        if (it->second.status == Slot::FREE)
         {
             // Mark the slot as busy.
-            slots[i].status = Slot::BUSY;
+            it->second.status = Slot::BUSY;
 
             // Track the association between the work unit and the slot.
-            workUnitToSlotMap[workUnitId] = i;
+            workUnitToSlotMap[workUnitId] = it->first;
 
             // Send the message to start the work unit.
-            communicator->sendMessage(slots[i].workUnitRunnerEndpoint.process, slots[i].workUnitRunnerEndpoint.thread, runWorkUnitMsg);
+            communicator->sendMessage(it->second.workUnitRunnerEndpoint.process, it->second.workUnitRunnerEndpoint.thread, runWorkUnitMsg);
             return;
         }
     }
@@ -279,13 +286,13 @@ void SlotList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
     int slotId = workUnitToSlotMap[workUnitId];
 
     // Make sure the slot process and thread match with that on the message.
-    if (slots[slotId].workUnitRunnerEndpoint.process != msg.process() || slots[slotId].workUnitRunnerEndpoint.thread != msg.thread()) throw Exception("Mismatch between slot endpoint and work unit runner endpoint");
+    if (slotMap[slotId].workUnitRunnerEndpoint.process != msg.process() || slotMap[slotId].workUnitRunnerEndpoint.thread != msg.thread()) throw Exception("Mismatch between slot endpoint and work unit runner endpoint");
 
     // Make sure the slot was correctly marked as busy.
-    if (slots[slotId].status != Slot::BUSY) throw Exception("Work unit runner was not marked as busy while running work unit",slotId,workUnitId);
+    if (slotMap[slotId].status != Slot::BUSY) throw Exception("Work unit runner was not marked as busy while running work unit",slotId,workUnitId);
 
     // store some info for later use by printSlotsStatistics
-    slots[slotId].getStatsFromFinishedWorkUnit(msg);
+    slotMap[slotId].getStatsFromFinishedWorkUnit(msg);
 
     // Print some performance statistics, if it has been a while.
     printSlotsStatistics();
@@ -294,7 +301,7 @@ void SlotList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
     workUnitToSlotMap.erase(workUnitId);
 
     // Mark the slot as free.
-    slots[slotId].status = Slot::FREE;
+    slotMap[slotId].status = Slot::FREE;
 }
 
 void SlotList::printSlotsStatistics() const
@@ -306,9 +313,9 @@ void SlotList::printSlotsStatistics() const
         Print::printf(Print::INFO, "Slots status");
         Print::printf(Print::INFO, Slot::getSlotStatisticsHeader().c_str());
         Print::printf(Print::INFO, Slot::getSlotStatisticsHeaderBreak().c_str());
-        for (SlotVector::const_iterator it=slots.begin(); it!=slots.end(); it++)
+        for (map<int,Slot>::const_iterator it=slotMap.begin(); it!=slotMap.end(); it++)
         {
-            Print::printf(Print::INFO, it->getSlotStatistics().c_str());
+            Print::printf(Print::INFO, it->second.getSlotStatistics().c_str());
         }
         stats_lastPrintTime = getHrTime();
     }

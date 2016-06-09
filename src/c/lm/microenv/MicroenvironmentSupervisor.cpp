@@ -37,6 +37,7 @@
 #include "lm/microenv/MicroenvironmentSupervisor.h"
 #include "lm/microenv/MicroenvironmentTrajectoryList.h"
 #include "lm/resource/ResourceMap.h"
+#include "lm/slot/SlotList.h"
 
 using std::map;
 using std::string;
@@ -79,10 +80,26 @@ void MicroenvironmentSupervisor::startWorkUnitRunners()
 {
     // Start the work unit runners for the PDE solvers.
     ComputeResources pdeResources = resourceMap->reserveCPUCores(1);
-    slots.createAllSlots(pdeResources, 1, 0, useCPUAffinity, pdeSolverClassName, *input);
+    pdeSlots.createAllSlots(pdeResources, 1, 0, useCPUAffinity, pdeSolverClassName, *input);
 
     // Start the work unit runners for the ME solvers using the base supervisor.
     SimulationSupervisor::startWorkUnitRunners();
+}
+
+void MicroenvironmentSupervisor::receivedStartedWorkUnitRunner(const lm::message::StartedWorkUnitRunner & msg)
+{
+    Print::printf(Print::INFO, "Work unit runner %d on process (%d:%d) reported to supervisor.",msg.work_unit_runner_id(),msg.process(),msg.thread());
+
+    if (pdeSlots.isManagingSlot(msg.work_unit_runner_id()))
+        pdeSlots.markSlotStarted(msg);
+    else
+        slots.markSlotStarted(msg);
+
+    if (!slots.hasUnstartedSlots() && !pdeSlots.hasUnstartedSlots())
+    {
+        haveAllWorkUnitRunnersStarted = true;
+        startSimulationIfAllWorkersStarted();
+    }
 }
 
 void MicroenvironmentSupervisor::startSimulation()

@@ -63,6 +63,7 @@ public:
 
 protected:
     virtual void startWorkUnitRunners();
+    virtual void receivedStartedWorkUnitRunner(const lm::message::StartedWorkUnitRunner & msg);
     virtual void startSimulation();
     virtual void buildTrajectoryList();
     virtual void startSimulationPhase();

@@ -95,12 +95,12 @@ int WorkUnitRunner::run()
 {
     try
     {
-        Print::printf(Print::INFO, "Work Unit runner %d:%d started with %d cpu cores (affinity=%d) and %d gpus.", lm::MPI::worldRank, threadNumber, properties.cpu_size(), properties.use_cpu_affinity(), properties.gpu_size());
+        Print::printf(Print::INFO, "Work unit runner %d on process (%d:%d) started with %d cpu cores (affinity=%d) and %d gpus.", properties.work_unit_runner_id(), lm::MPI::worldRank, threadNumber, properties.cpu_size(), properties.use_cpu_affinity(), properties.gpu_size());
 
         // Set the processor affinity.
         if (properties.use_cpu_affinity() && properties.cpu_size() > 0)
         {
-            Print::printf(Print::INFO, "Work Unit runner %d:%d using cpu core %d.", lm::MPI::worldRank, threadNumber, properties.cpu(0));
+            Print::printf(Print::INFO, "Work unit runner %d process (%d:%d using cpu core %d.", properties.work_unit_runner_id(), lm::MPI::worldRank, threadNumber, properties.cpu(0));
             setAffinity(properties.cpu(0));
         }
 
@@ -108,7 +108,7 @@ int WorkUnitRunner::run()
         #if defined(OPT_CUDA)
         if (properties.gpu_size() > 0)
         {
-            Print::printf(Print::INFO, "Work Unit runner %d:%d using gpu device %d.", lm::MPI::worldRank, threadNumber, properties.gpu(0));
+            Print::printf(Print::INFO, "Work unit runner %d process (%d:%d) using gpu device %d.", properties.work_unit_runner_id(), lm::MPI::worldRank, threadNumber, properties.gpu(0));
             lm::CUDA::setCurrentDevice(properties.gpu(0));
         }
         #endif
@@ -117,9 +117,17 @@ int WorkUnitRunner::run()
             solver = createMESolver();
         else if (lm::ClassFactory::getInstance().getBaseClass(properties.solver()) == "lm::pde::DiffusionPDESolver")
             solver = createDiffusionPDESolver();
+        else
+            throw Exception("Unknown solver type:", properties.solver().c_str(), lm::ClassFactory::getInstance().getBaseClass(properties.solver()).c_str());
 
+        // Set the solver resources.
+        vector<int> cpus;
+        vector<int> gpus;
+        for (int i=0; i<properties.cpu_size(); i++) cpus.push_back(properties.cpu(i));
+        for (int i=0; i<properties.gpu_size(); i++) gpus.push_back(properties.gpu(i));
+        solver->setComputeResources(cpus, gpus);
 
-        // Tell the supervisor the runner was started.
+        // Tell the supervisor the runner has started.
         lm::message::Message msgp;
         lm::message::StartedWorkUnitRunner* msg = msgp.mutable_started_work_unit_runner();
         msg->set_work_unit_runner_id(id);
@@ -157,7 +165,7 @@ int WorkUnitRunner::run()
         //Delete the solver.
         if (solver != NULL) delete solver; solver = NULL;
 
-        Print::printf(Print::INFO, "Work unit runner %d:%d finished.", lm::MPI::worldRank, threadNumber);
+        Print::printf(Print::INFO, "Work unit runner %d at %d:%d finished.", properties.work_unit_runner_id(), lm::MPI::worldRank, threadNumber);
         return 0;
     }
     catch (lm::Exception e)
@@ -179,13 +187,6 @@ Solver* WorkUnitRunner::createMESolver()
 {
     // Instantiate the solver.
     lm::me::MESolver* solver = static_cast<lm::me::MESolver*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::me::MESolver",properties.solver()));
-
-    // Set the solver resources.
-    vector<int> cpus;
-    vector<int> gpus;
-    for (int i=0; i<properties.cpu_size(); i++) cpus.push_back(properties.cpu(i));
-    for (int i=0; i<properties.gpu_size(); i++) gpus.push_back(properties.gpu(i));
-    solver->setComputeResources(cpus, gpus);
 
     // Set the model for the solver.
     if (solver->needsReactionModel())
@@ -220,7 +221,15 @@ Solver* WorkUnitRunner::createMESolver()
 
 Solver* WorkUnitRunner::createDiffusionPDESolver()
 {
-    return NULL;
+    // Instantiate the solver.
+    lm::pde::DiffusionPDESolver* solver = static_cast<lm::pde::DiffusionPDESolver*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::pde::DiffusionPDESolver", properties.solver()));
+
+    if (properties.has_microenv_model())
+        solver->setMicroenvironmentModel(properties.microenv_model());
+    else
+        throw Exception("Work Unit runner terminating, solver requires a microenvironment model but none was specified", properties.solver().c_str());
+
+    return solver;
 }
 
 void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
