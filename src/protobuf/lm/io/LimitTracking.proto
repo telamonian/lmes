@@ -37,19 +37,25 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 syntax = "proto2";
-package lm.input;
+package lm.io;
 
-message OutputOptions {
-    optional double degree_advancement_write_interval = 1;
-    optional double lattice_write_interval = 2;
-    optional double order_parameter_write_interval = 3;
-    optional double species_write_interval = 4;
+import "robertslab/pbuf/NDArray.proto";
 
-    //    repeated uint32 da_reactions_to_track                = 5;
-    repeated uint32 fpt_species_to_track = 6;
-    repeated uint32 fpt_order_parameter_to_track = 7;
-    repeated int32 limits_to_track = 8;
+message LimitTracking {
+    required uint64 trajectory_id                           = 1;
+    required int32 limit_id                                 = 2;
 
-    optional bool output_initial_state = 101 [default = true];
-    optional bool output_final_state = 102 [default = true];
+    /*
+     * add_to_cme_state controls whether the limit tracking information is recorded in the
+     */
+    optional bool add_to_cme_state                          = 3 [default=true];
+    /*
+     * add_to_output controls whether
+     */
+    optional bool add_to_output                             = 4 [default=false];
+
+    optional robertslab.pbuf.NDArray degree_advancements    = 3;
+    optional robertslab.pbuf.NDArray order_parameter_values = 4;
+    optional robertslab.pbuf.NDArray species_counts         = 5;
+    optional robertslab.pbuf.NDArray times                  = 6;
 }

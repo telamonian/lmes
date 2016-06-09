@@ -72,6 +72,9 @@ public:
 protected:
 //mutators
 //    virtual void buildRunWorkUnitLimits(lm::message::RunWorkUnit* msg);
+    virtual void buildSimulationStageList();
+    virtual void buildPilotStage();
+    virtual void buildProductionStage();
     virtual void buildSimulationPhaseList();
     virtual void buildPilotPhaseList();
     virtual void buildProductionPhaseList();

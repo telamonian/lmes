@@ -65,6 +65,7 @@
 #include "lm/message/WorkUnitStatus.pb.h"
 #include "lm/oparam/OrderParameterFunction.h"
 #include "lm/Print.h"
+#include "lm/protowrap/Repeated.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/rng/XORShift.h"
 #ifdef OPT_CUDA
@@ -78,6 +79,7 @@
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
 
+using lm::protowrap::Repeated;
 //using lm::trajectory::checkLimit;
 using std::list;
 using std::map;
@@ -237,6 +239,9 @@ void CMESolver::reset()
     limitIDReached = lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID;
     limitTypeReached = lm::input::TrajectoryLimit::NONE;
 
+    // Reset the limit tracking.
+    trackedLimits.clear();
+
     // Reset the order parameters.
     for (size_t i=0; i<numberOrderParameters; i++)
     {
@@ -389,6 +394,12 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
     {
         limitIDReached = state.limit_reached().id();
         limitTypeReached = state.limit_reached().limit_type();
+    }
+
+    // if we're tracking any limits, set up the solver to output state information when the limit is reached
+    for (Repeated<lm::input::LimitTrackingOption>::const_iterator it=outputOptions.limits_to_track().begin(); it!=outputOptions.limits_to_track().end(); ++it)
+    {
+        trackedLimits[]
     }
 
 //    // Set the order parameter values.
@@ -611,8 +622,8 @@ bool CMESolver::isTrajectoryOutsideLimits()
                     check_limit_MAX_false(speciesCounts[l.valueID], l.ivalue, limitReached)
                 }
                 break;
-            case TrajLimEnums::INCREASING: throw Exception("unimplemented"); break;
             case TrajLimEnums::DECREASING: throw Exception("unimplemented"); break;
+            case TrajLimEnums::INCREASING: throw Exception("unimplemented"); break;
             } break;
 
         case TrajLimEnums::ORDER_PARAMETER:
@@ -684,8 +695,8 @@ bool CMESolver::isTrajectoryOutsideLimits()
                     check_limit_MAX_false(degreeAdvancements[l.valueID], l.uvalue, limitReached)
                 }
                 break;
-            case TrajLimEnums::INCREASING: throw Exception("unimplemented"); break;
             case TrajLimEnums::DECREASING: throw Exception("unimplemented"); break;
+            case TrajLimEnums::INCREASING: throw Exception("unimplemented"); break;
             }
             break;
 
@@ -693,12 +704,27 @@ bool CMESolver::isTrajectoryOutsideLimits()
             break;
         }
         
-        if (limitReached)
+        if (limitReached) && (!l.has_count || --l.count>=1))
         {
-            status = lm::message::WorkUnitStatus::LIMIT_REACHED;
-            limitIDReached = l.limitID;
-            limitTypeReached = l.type;
-            return true;
+            if (l.track_degree_advancements)
+            {
+
+            }
+            if (l.track_order_parameter_time_series)
+            {
+
+            }
+            if (l.track_species_time_series)
+            {
+
+            }
+            if (l.terminating && --l.count < 1)
+            {
+                status = lm::message::WorkUnitStatus::LIMIT_REACHED;
+                limitIDReached = l.limitID;
+                limitTypeReached = l.type;
+                return true;
+            }
         }
     }
     return false;

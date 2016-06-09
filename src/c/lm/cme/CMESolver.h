@@ -60,6 +60,7 @@
 #include "lm/Types.h"
 #include "lm/cme/ReactionModel.h"
 #include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/io/LimitTracking.pb.h"
 #include "lm/io/OrderParameterFirstPassageTimes.pb.h"
 #include "lm/io/ParameterValues.pb.h"
 #include "lm/input/ReactionModel.pb.h"
@@ -153,14 +154,7 @@ protected:
         
         void serializeTo(uint64_t trajectoryId, MsgT* opFPTMsg)
         {
-            opFPTMsg->set_trajectory_id(trajectoryId);
-            opFPTMsg->set_order_parameter_id(oparamID);
-
-            fptValuesWrap.setMsgPtr(opFPTMsg->mutable_order_parameter_value());
-            fptValuesWrap.set_array(fptValues, utuple(fptValues.size()), false);
-
-            fptTimesWrap.setMsgPtr(opFPTMsg->mutable_first_passage_time());
-            fptTimesWrap.set_array(fptTimes, utuple(fptTimes.size()), false);
+            serializeTo(trajectoryId, opFPTMsg, fptValues, fptTimes);
         }
 
         void serializeTo(uint64_t trajectoryId, MsgT* opFPTMsg, ValueContainerT& fptValuesRef, TimeContainerT& fptTimesRef)
@@ -175,6 +169,79 @@ protected:
             fptTimesWrap.set_array(fptTimesRef, utuple(fptTimesRef.size()), false);
         }
     };
+
+    class LimitTracking
+    {
+    public:
+        typedef lm::io::LimitTracking MsgT;
+        typedef uint64_t DegreeAdvancementT;
+        typedef double OParamT;
+        typedef int SpeciesT;
+        typedef double TimeT;
+
+        typedef std::deque<DegreeAdvancementT> DegreeAdvancementContainerT;
+        typedef std::deque<OParamT> OParamContainerT;
+        typedef std::deque<SpeciesT> SpeciesContainerT;
+        typedef std::deque<TimeT> TimeContainerT;
+
+        int limitID;
+        bool trackDegreeAdvancements;
+        DegreeAdvancementContainerT degreeAdvancements;
+        bool trackOparamValues;
+        OParamContainerT oparamValues;
+        bool trackSpeciesCounts;
+        SpeciesContainerT speciesCounts;
+        TimeContainerT times;
+
+        lm::protowrap::NDArray<DegreeAdvancementT> degreeAdvancmentsWrap;
+        lm::protowrap::NDArray<OParamT> oparamWrap;
+        lm::protowrap::NDArray<SpeciesT> speciesWrap;
+        lm::protowrap::NDArray<TimeT> timesWrap;
+
+        void deserializeFrom(const MsgT& msgRef)
+        {
+            limitID = msgRef.limit_id();
+
+            // TODO: refactor various things so that we don't need this const_cast
+            MsgT* msg(const_cast<MsgT*>(&msgRef));
+
+            degreeAdvancmentsWrap.setMsgPtr(msg->mutable_degree_advancements());
+            degreeAdvancmentsWrap.get_data(degreeAdvancements);
+
+            oparamWrap.setMsgPtr(msg->mutable_order_parameter_values());
+            oparamWrap.get_data(oparamValues);
+
+            speciesWrap.setMsgPtr(msg->mutable_species_counts());
+            speciesWrap.get_data(speciesCounts);
+
+            timesWrap.setMsgPtr(msg->mutable_times());
+            timesWrap.get_data(times);
+        }
+
+        void serializeTo(uint64_t trajectoryId, MsgT* msg)
+        {
+            serializeTo(trajectoryId, msg, degreeAdvancements, oparamValues, speciesCounts, times);
+        }
+
+        void serializeTo(uint64_t trajectoryId, MsgT* msg, DegreeAdvancementContainerT& degreeAdvancementsRef, OParamContainerT& oparamValuesRef, SpeciesContainerT& speciesCountsRef, TimeContainerT& timesRef)
+        {
+            msg->set_trajectory_id(trajectoryId);
+            msg->set_limit_id(limitID);
+
+            degreeAdvancmentsWrap.setMsgPtr(msg->mutable_degree_advancements());
+            degreeAdvancmentsWrap.set_array(degreeAdvancementsRef, utuple(degreeAdvancementsRef.size()), false);
+
+            oparamWrap.setMsgPtr(msg->mutable_order_parameter_values());
+            oparamWrap.set_array(oparamValuesRef, utuple(oparamValuesRef.size()), false);
+
+            speciesWrap.setMsgPtr(msg->mutable_species_counts());
+            speciesWrap.set_array(speciesCountsRef, utuple(speciesCountsRef.size()), false);
+
+            timesWrap.setMsgPtr(msg->mutable_times());
+            timesWrap.set_array(timesRef, utuple(timesRef.size()), false);
+        }
+    };
+
 
     class TilingHist
     {
@@ -348,6 +415,9 @@ protected:
     int numberFptTrackedSpecies, numberFptTrackedOrderParameters;
     FPTTracking* fptTrackedSpecies;
     OParamFPTTracking* fptTrackedOrderParameters;
+
+    // limit tracking variables
+    std::map<int, LimitTracking> trackedLimits;
 
     // The current state.
     uint64_t* degreeAdvancements;

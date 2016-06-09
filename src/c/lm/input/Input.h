@@ -101,7 +101,8 @@ public:
 protected:
     bool parseBoundaryConditions(lm::input::BoundaryConditions* bc, std::string arg);
     template <TrajLimEnums::LimitType LT> inline bool parseLimits(std::string key, std::string debugString, TrajLimEnums::StoppingCondition sc, bool includeEndpoint=true);
-    template <typename T, typename MF, typename valT> inline bool parseAndSet(T& obj, MF (T::*mf)(valT), std::string key);
+    template <typename T, typename SetterFuncT, typename ValT> inline bool parseAndSet(T& obj, SetterFuncT (T::*setterFunc)(ValT), std::string key);
+    template <typename T, typename AdderFuncT, typename ValT> inline bool parseAndSetList(T& obj, AdderFuncT (T::*adderFunc)(ValT), std::string key);
 
 protected:
     bool degreeAdvancementPresent;

@@ -55,18 +55,30 @@ message TrajectoryLimit {
         INCREASING=3;
     }
 
-    required LimitType limit_type                   = 1;
-    required StoppingCondition stopping_condition   = 2;
-    optional int32 id                               = 3 [default=-2];
+    optional int32 id                               = 2 [default=-2];
+
+    /*
+     * - stopping_condition is used in conjunction with include_endpoint to determine the function that is evaluated when this limit is checked
+     *     - The function is chosen according to the table below:
+     *
+     *         | stopping_condition |                include_endpoint==false               |                include_endpoint==true                |
+     *         |--------------------|:----------------------------------------------------:|:----------------------------------------------------:|
+     *         | MIN                |                  value < limit_value                 |                 value <= limit_value                 |
+     *         | MAX                |                  value > limit_value                 |                 value >= limit_value                 |
+     *         | DECREASING         | previous_value > limit_value && value <= limit_value | previous_value >= limit_value && value < limit_value |
+     *         | INCREASING         | previous_value < limit_value && value >= limit_value | previous_value <= limit_value && value > limit_value |
+     */
+    required StoppingCondition stopping_condition   = 3;
     optional bool include_endpoint                  = 4 [default=true];
 
     /*
-     * - value_id is used in conjunction with limit_type to determine what simulation value will be checked when the limit is invoked
+     * - limit_type is used in conjunction with value_id to determine what simulation value will be checked when the limit is invoked
      *     - limit_type==TIME: value_id is not used for time limits
      *     - limit_type==SPECIES: value_id is the index of the species count checked
      *     - limit_type==ORDER_PARAMETER: value_id is the id of the order parameter value checked
      *     - limit_type==DEGREE_ADVANCEMENT: value_id is the index of the reaction count checked
      */
+    required LimitType limit_type                   = 1;
     optional uint32 value_id                        = 5;
 
     optional double dvalue                          = 6 [default=0.0];
@@ -84,9 +96,10 @@ message TrajectoryLimit {
     optional uint64 count                           = 10;
 
     /*
-     * - If any of the track_x options are set, the limit will record the relevant portion of the state every time it is crossed
+     * - If track, the limit will record the system state every time it is crossed
+     *     - The track option makes the limit states available to Lattice Microbes internally. There is a separate output_at_limits option in OutputOptions.proto to control writing the limit states to a file
      */
-    optional bool track_species_times_series        = 11 [default=false];
+    optional bool track                             = 11 [default=false];
 }
 
 message TrajectoryLimits {

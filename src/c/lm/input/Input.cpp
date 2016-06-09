@@ -127,28 +127,32 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         }
 
         // set the other limits, if present in the simulation parameters
-        trajectoryLimitsPresent = degreeAdvancementPresent = parseLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementLowerLimitList", "degree advancement lower limit", TrajLimEnums::MIN);
-        trajectoryLimitsPresent = degreeAdvancementPresent = parseLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementUpperLimitList", "degree advancement upper limit", TrajLimEnums::MAX);
-        trajectoryLimitsPresent = parseLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterLowerLimitList", "order parameter lower limit", TrajLimEnums::MIN);
-        trajectoryLimitsPresent = parseLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterUpperLimitList", "order parameter upper limit", TrajLimEnums::MAX);
-        trajectoryLimitsPresent = parseLimits<TrajLimEnums::SPECIES>("speciesLowerLimitList", "species lower limit", TrajLimEnums::MIN);
-        trajectoryLimitsPresent = parseLimits<TrajLimEnums::SPECIES>("speciesUpperLimitList", "species upper limit", TrajLimEnums::MAX);
+        if (parseLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementLowerLimitList", "degree advancement lower limit", TrajLimEnums::MIN) ||
+            parseLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementUpperLimitList", "degree advancement upper limit", TrajLimEnums::MAX))
+        {
+            trajectoryLimitsPresent = true;
+            degreeAdvancementPresent = true;
+        }
+        if (parseLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterLowerLimitList", "order parameter lower limit", TrajLimEnums::MIN) ||
+            parseLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterUpperLimitList", "order parameter upper limit", TrajLimEnums::MAX) ||
+            parseLimits<TrajLimEnums::SPECIES>("speciesLowerLimitList", "species lower limit", TrajLimEnums::MIN) ||
+            parseLimits<TrajLimEnums::SPECIES>("speciesUpperLimitList", "species upper limit", TrajLimEnums::MAX))
+        {
+            trajectoryLimitsPresent = true;
+        }
     }
 
     // Get the output options.
     {
-        if (simulationParameters.count("degreeAdvancementWriteInterval"))
+        if (parseAndSet(outputOptions, &OutputOptions::set_degree_advancement_write_interval, "degreeAdvancementWriteInterval"))
         {
-//            outputOptions.set_degree_advancement_write_interval(simulationParameters.parse<double>("degreeAdvancementWriteInterval"));
-//            outputOptionsPresent = degreeAdvancementPresent = true;
-            parseAndSet(outputOptions, &OutputOptions::set_degree_advancement_write_interval, "degreeAdvancementWriteInterval");
-            outputOptionsPresent = degreeAdvancementPresent = true;
+            degreeAdvancementPresent = true;
+            outputOptionsPresent = true;
         }
 
-        // Get the first passage times.
+        // Initialize the species counts first passage times in the output options
         if (simulationParameters.count("fptTrackingList"))
         {
-            // Initialize the first passage times in the cme state.
             const string listString = simulationParameters["fptTrackingList"];
             std::list<int> fptList;
             size_t start=0, end=0;
@@ -165,15 +169,9 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
             outputOptionsPresent = true;
         }
 
-        // Get the order parameter first passage times.
-        if (simulationParameters.count("fptOrderParameterTrackingList"))
+        // Initialize the order parameter values first passage times in the output options
+        if (parseAndSetList(outputOptions, &OutputOptions::add_fpt_order_parameter_to_track, "fptOrderParameterTrackingList"))
         {
-            // Initialize the first passage times in the cme state.
-            std::vector<int> opFPTTrackingVector = simulationParameters.parseVector<int>("fptOrderParameterTrackingList");
-            for (std::vector<int>::const_iterator it=opFPTTrackingVector.begin(); it!=opFPTTrackingVector.end(); it++)
-            {
-                outputOptions.add_fpt_order_parameter_to_track(*it);
-            }
             outputOptionsPresent = true;
         }
 
@@ -183,9 +181,8 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
             outputOptionsPresent = true;
         }
 
-        if (simulationParameters.count("orderParameterWriteInterval"))
+        if (parseAndSet(outputOptions, &OutputOptions::set_order_parameter_write_interval, "orderParameterWriteInterval"))
         {
-            outputOptions.set_order_parameter_write_interval(simulationParameters.parse<double>("orderParameterWriteInterval"));
             outputOptionsPresent = true;
         }
         
@@ -346,12 +343,37 @@ template <TrajLimEnums::LimitType LT> bool Input::parseLimits(string key, string
     }
 }
 
-// by using template parameter inference on the setter (passed as a function pointer), this template automatically figures out what type to parse from simulationParameters
-template <typename T, typename MF, typename valT> bool Input::parseAndSet(T& obj, MF (T::*mf)(valT), string key)
+// By using template parameter inference on the setter (passed as a function pointer), this template automatically figures out what type to parse from simulationParameters
+template <typename T, typename SetterFuncT, typename ValT> bool Input::parseAndSet(T& obj, SetterFuncT (T::*setterFunc)(ValT), string key)
 {
-    (obj.*mf)(simulationParameters.parse<valT>(key));
-    return true;
+    if (simulationParameters.count(key))
+    {
+        (obj.*setterFunc)(simulationParameters.parse<ValT>(key));
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
-}
+// Same as parse and set, but for options specified as lists
+template <typename T, typename AdderFuncT, typename ValT> bool Input::parseAndSetList(T& obj, AdderFuncT (T::*adderFunc)(ValT), std::string key)
+{
+    if (simulationParameters.count(key))
+    {
+        std::vector<ValT> parsedVector(simulationParameters.parseVector<ValT>(key));
+        for (std::vector<ValT>::const_iterator it=parsedVector.begin(); it!=parsedVector.end(); it++)
+        {
+            (obj.*adderFunc)(*it);
+        }
+        return parsedVector.size() > 0;
+    }
+    else
+    {
+        return false;
+    }
+};
+
+};
 }
