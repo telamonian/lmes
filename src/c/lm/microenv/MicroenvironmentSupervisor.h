@@ -65,26 +65,36 @@ protected:
     virtual void startWorkUnitRunners();
     virtual void receivedStartedWorkUnitRunner(const lm::message::StartedWorkUnitRunner & msg);
     virtual void startSimulation();
-    virtual void buildTrajectoryList();
     virtual void startSimulationPhase();
+    virtual void buildTrajectoryList();
+    virtual void receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg);
+    virtual bool assignWork();
     //virtual void finishSimulationPhase();
     virtual bool performAnotherSimulationPhase();
     virtual void incrementSimulationPhase();
     virtual void finishSimulation();
 
+protected:
     virtual void startNewReplicate();
     virtual void continueCurrentReplicate();
 
-private:
+protected:
+    virtual void printPerformanceStatistics(bool flush=false);
+    virtual void resetPerformanceStatistics();
+
+protected:
     hrtime simulationStartTime;
     uint numberReplicates;
     uint currentReplicateIndex;
     uint numberTimesteps;
     uint currentTimestep;
-
     lm::slot::SlotList pdeSlots;
     std::string pdeSolverClassName;
     lm::trajectory::TrajectoryList* pdeTrajectoryList;
+
+private:
+    long long stats_pdeWorkUnitsSteps;
+    double stats_pdeWorkUnitsTime;
 };
 
 }

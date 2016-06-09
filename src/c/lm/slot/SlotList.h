@@ -81,6 +81,7 @@ public:
     void createSlot(int slotId, ComputeResources resources, bool useCPUAffinity, lm::message::Message* msg, string solver, const lm::input::Input& input);
 
     bool isManagingSlot(int slotId) const;
+    bool isRunningWorkUnit(int64_t workUnitId) const;
     uint getNumberSlots() const {return slotMap.size();}
     uint getSimultaneousWorkUnits() const {uint count=0; for (map<int,Slot>::const_iterator it=slotMap.begin(); it!=slotMap.end(); it++) count+=it->second.simultaneousWorkUnits; return count;}
     void markSlotStarted(const lm::message::StartedWorkUnitRunner & msg);

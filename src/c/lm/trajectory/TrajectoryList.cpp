@@ -117,14 +117,19 @@ void TrajectoryList::deleteTrajectory(uint64_t id)
 // accessors
 bool TrajectoryList::areAllFinished() const
 {
-    return abortedTrajectories.size() == 0 && runningTrajectories.size() == 0 && waitingTrajectories.size() == 0;
+    return (runningTrajectories.size() == 0 && waitingTrajectories.size() == 0);
+}
+
+bool TrajectoryList::areAnyWaiting() const
+{
+    return (waitingTrajectories.size() > 0);
 }
 
 bool TrajectoryList::isTrajectoryAborted(lm::trajectory::Trajectory* traj)
 {
     if (abortedTrajectories.count(traj->getID())==1)
     {
-        if (traj->getStatus()!=Trajectory::WAITING)
+        if (traj->getStatus()!=Trajectory::ABORTED)
             throw Exception("Consistency error, trajectory was in aborted list but did not have waiting status: id, status", traj->getID(), traj->getStatus());
         return true;
     }
@@ -255,7 +260,9 @@ TrajectoryMap* TrajectoryList::mutableTrajectoryMapFromStatus(Trajectory::status
     case Trajectory::FINISHED: return &finishedTrajectories;
     case Trajectory::RUNNING: return &runningTrajectories;
     case Trajectory::WAITING: return &waitingTrajectories;
+    default: ;
     }
+    throw Exception("unknown trajectory status code", status);
 }
 
 void TrajectoryList::setAll(Trajectory::status_t oldStatus, Trajectory::status_t newStatus)

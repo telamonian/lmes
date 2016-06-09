@@ -73,6 +73,7 @@ public:
 
 // accessors
     virtual bool areAllFinished() const;
+    virtual bool areAnyWaiting() const;
     virtual bool exists(uint64_t id) const {return trajectories.count(id)==1;}
     virtual uint64_t getSimulationPhase() const {return simulationPhase;}
     virtual bool isTrajectoryAborted(lm::trajectory::Trajectory* traj);

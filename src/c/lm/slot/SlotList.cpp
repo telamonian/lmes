@@ -193,6 +193,11 @@ bool SlotList::isManagingSlot(int slotId) const
     return (slotMap.count(slotId) != 0);
 }
 
+bool SlotList::isRunningWorkUnit(int64_t workUnitId) const
+{
+    return (workUnitToSlotMap.count(workUnitId) != 0);
+}
+
 void SlotList::markSlotStarted(const lm::message::StartedWorkUnitRunner& msg)
 {
     // Mark the work unit runner as started.
