@@ -119,8 +119,7 @@ protected:
     virtual void buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint minWorkUnits);
     virtual void finishSimulationPhase();
     virtual void destroyTrajectoryList();
-    virtual bool performAnotherSimulationPhase();
-    virtual void incrementSimulationPhase();
+    virtual bool incrementSimulationPhase();
     virtual void finishSimulation();
     virtual void receivedPerformCheckpointing(const lm::message::PerformCheckpointing& msg);
     virtual void receivedFinishedCheckpointing(const lm::message::FinishedCheckpointing& msg);

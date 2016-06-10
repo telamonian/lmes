@@ -119,8 +119,8 @@ void ExplicitFiniteDifferenceSolver::getState(lm::io::TrajectoryState* state, ui
     if (trajectoryNumber > 0) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
 
     // Save the state into the message.
-    state->mutable_pde_state()->set_time(time);
-    robertslab::pbuf::NDArraySerializer::serializeInto<double>(state->mutable_pde_state()->mutable_concentrations(0), *grid);
+    state->mutable_diffusion_pde_state()->set_time(time);
+    robertslab::pbuf::NDArraySerializer::serializeInto<double>(state->mutable_diffusion_pde_state()->mutable_concentrations(0), *grid);
 }
 
 void ExplicitFiniteDifferenceSolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNumber)
@@ -128,8 +128,8 @@ void ExplicitFiniteDifferenceSolver::setState(const lm::io::TrajectoryState& sta
     if (trajectoryNumber > 0) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
 
     // Load the state from the message.
-    time = state.pde_state().time();
-    grid = robertslab::pbuf::NDArraySerializer::deserialize<double>(state.pde_state().concentrations(0), sizeof(double));
+    time = state.diffusion_pde_state().time();
+    grid = robertslab::pbuf::NDArraySerializer::deserialize<double>(state.diffusion_pde_state().concentrations(0), sizeof(double));
     if (grid->shape.len != 3) throw lm::InvalidArgException("grid", "the grid must be three-dimensional for ExplicitFiniteDifferenceSolver");
 }
 

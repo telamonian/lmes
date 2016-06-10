@@ -103,6 +103,14 @@ public:
 //    virtual ~IOException() throw() {}
 };
 
+class RuntimeException : public Exception
+{
+public:
+    RuntimeException(const std::string message) : Exception("Runtime exception", message.c_str()) {}
+    RuntimeException(const char* message, const char* arg) : Exception("Runtime exception", message, arg) {}
+    RuntimeException(const char* message, const int arg) : Exception("Runtime exception", message, arg) {}
+};
+
 class ZlibException : public Exception
 {
 public:

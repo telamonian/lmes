@@ -61,7 +61,7 @@ public:
                    WAITING};
 
     Trajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryState& initialState);
-    Trajectory(uint64_t id, uint64_t phase, const lm::input::Input& input, bool reversed=false);
+    Trajectory(uint64_t id, uint64_t phase, const lm::input::Input& input, bool reversed=false, bool useCMEState=true, bool useRDMEState=true, bool useDiffusionPDEState=true);
     virtual ~Trajectory();
 
     // accessors
@@ -90,10 +90,13 @@ public:
     virtual void setStatus(status_t newStatus);
 
 protected:
+    virtual void initializeState(const lm::input::Input& input, bool reversed, bool useCMEState, bool useRDMEState, bool useDiffusionPDEState);
+    virtual void initializeCMEState(const lm::input::Input& input, bool reversed);
     virtual void initializeDegreeAdvancements(const lm::input::Input& input);
     virtual void inititializeHists(const lm::input::Input& input);
     virtual void initializeOrderParameters(const lm::input::Input& input);
-    virtual void initializeState(const lm::input::Input& input, bool reversed=false);
+    virtual void initializeRDMEState(const lm::input::Input& input);
+    virtual void initializeDiffusionPDEState(const lm::input::Input& input);
 
 protected:
     uint64_t id;

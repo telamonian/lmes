@@ -469,18 +469,10 @@ void SimulationSupervisor::buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, 
 void SimulationSupervisor::finishSimulationPhase()
 {
     // If we need to perform another phase, do so, otherwsise stop th simulation.
-    if (performAnotherSimulationPhase())
-    {
-        // destroying the trajectory list causes problems, may be unneccessary
-//        // Delete the list of trajectories.
-//        destroyTrajectoryList();
-        incrementSimulationPhase();
+    if (incrementSimulationPhase())
         startSimulationPhase();
-    }
     else
-    {
         finishSimulation();
-    }
 }
 
 void SimulationSupervisor::destroyTrajectoryList()
@@ -488,15 +480,11 @@ void SimulationSupervisor::destroyTrajectoryList()
     if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL;
 }
 
-bool SimulationSupervisor::performAnotherSimulationPhase()
-{
-    return false;
-}
-
-void SimulationSupervisor::incrementSimulationPhase()
+bool SimulationSupervisor::incrementSimulationPhase()
 {
     simulationPhase++;
     trajectoryList->incrementSimulationPhase();
+    return false;
 }
 
 void SimulationSupervisor::finishSimulation()

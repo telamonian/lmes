@@ -60,8 +60,8 @@ void ExplicitFiniteDifferenceSolverAVX::setState(const lm::io::TrajectoryState& 
 {
     if (trajectoryNumber > 0) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
 
-    time = state.pde_state().time();
-    grid = robertslab::pbuf::NDArraySerializer::deserialize<double>(state.pde_state().concentrations(0), DOUBLES_PER_AVX*sizeof(double));
+    time = state.diffusion_pde_state().time();
+    grid = robertslab::pbuf::NDArraySerializer::deserialize<double>(state.diffusion_pde_state().concentrations(0), DOUBLES_PER_AVX*sizeof(double));
     if (grid->shape.len != 3) throw lm::InvalidArgException("grid", "the grid must be three-dimensional for ExplicitFiniteDifferenceSolver");
     if (grid->shape[2]%DOUBLES_PER_AVX != 0) throw lm::InvalidArgException("grid", "the grid z dimension was not evenly divisible by the AVX register size for ExplicitFiniteDifferenceSolverAVX", grid->shape[2]);
 }

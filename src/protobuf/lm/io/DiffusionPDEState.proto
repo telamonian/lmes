@@ -23,7 +23,7 @@ package lm.io;
 
 import "robertslab/pbuf/NDArray.proto";
 
-message PDEState {
+message DiffusionPDEState {
     required double time                                        = 1;
     repeated robertslab.pbuf.NDArray concentrations             = 2;    //3D; 1=x, 2=y, 3=z; type=double
 }

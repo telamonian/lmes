@@ -27,6 +27,7 @@
 #include "lm/ClassFactory.h"
 #include "lm/Print.h"
 #include "lm/io/OutputWriter.h"
+#include "lm/main/Globals.h"
 #include "lm/main/Main.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Message.pb.h"
@@ -34,8 +35,9 @@
 #include "lm/message/RunWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
+#include "lm/microenv/METrajectoryList.h"
 #include "lm/microenv/MicroenvironmentSupervisor.h"
-#include "lm/microenv/MicroenvironmentTrajectoryList.h"
+#include "lm/microenv/PDETrajectoryList.h"
 #include "lm/resource/ResourceMap.h"
 #include "lm/slot/SlotList.h"
 
@@ -60,7 +62,7 @@ void* MicroenvironmentSupervisor::allocateObject()
 }
 
 MicroenvironmentSupervisor::MicroenvironmentSupervisor()
-:simulationStartTime(0),numberReplicates(replicates.size()),currentReplicateIndex(0),numberTimesteps(10),currentTimestep(0),
+:simulationStartTime(0),numberReplicates(::replicates.size()),currentReplicateIndex(0),numberTimesteps(0),currentTimestep(0),
 pdeSlots(&communicator),pdeSolverClassName(""),pdeTrajectoryList(NULL),
 stats_pdeWorkUnitsSteps(0),stats_pdeWorkUnitsTime(0.0)
 {
@@ -111,7 +113,9 @@ void MicroenvironmentSupervisor::startSimulation()
     if (outputWriterProcess == -1 || outputWriterThread == -1)
         throw new Exception("MicroenvironmentSupervisor could not start the simulation, no output writer available.");
 
-    Print::printf(Print::INFO, "Microenvironment supervisor starting simulation.");
+    numberTimesteps = 10;
+
+    Print::printf(Print::INFO, "Microenvironment supervisor starting simulation: %d replicates", numberReplicates);
 
     // Call the base class method
     SimulationSupervisor::startSimulation();
@@ -134,7 +138,7 @@ void MicroenvironmentSupervisor::startSimulationPhase()
 
 void MicroenvironmentSupervisor::startNewReplicate()
 {
-    // Create a new trajectory list.
+    // Create the new trajectory lists.
     buildTrajectoryList();
 
     // Create a new diffusion grid.
@@ -160,8 +164,8 @@ void MicroenvironmentSupervisor::buildTrajectoryList()
     if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL;
 
     // Allocate the new lists.
-    pdeTrajectoryList = new MicroenvironmentTrajectoryList(*input, replicates[currentReplicateIndex]);
-    trajectoryList = new MicroenvironmentTrajectoryList(*input, replicates[currentReplicateIndex]);
+    pdeTrajectoryList = new PDETrajectoryList(*input, ::replicates[currentReplicateIndex]);
+    trajectoryList = new METrajectoryList(*input, ::replicates[currentReplicateIndex]);
 }
 
 void MicroenvironmentSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg)
@@ -229,7 +233,7 @@ bool MicroenvironmentSupervisor::assignWork()
         // Assign any work, if we can.
         if (pdeSlots.hasFreeSlots() && pdeTrajectoryList->areAnyWaiting())
         {
-
+            printf("Running pde work unit\n");
         }
         else if (slots.hasFreeSlots() && trajectoryList->areAnyWaiting())
         {
@@ -258,13 +262,7 @@ bool MicroenvironmentSupervisor::assignWork()
     }
 }
 
-bool MicroenvironmentSupervisor::performAnotherSimulationPhase()
-{
-    // Return true if we have either another timestep or another replicate to run.
-    return ((currentTimestep+1) < numberTimesteps || (currentReplicateIndex+1) < numberReplicates);
-}
-
-void MicroenvironmentSupervisor::incrementSimulationPhase()
+bool MicroenvironmentSupervisor::incrementSimulationPhase()
 {
     SimulationSupervisor::incrementSimulationPhase();
 
@@ -277,6 +275,9 @@ void MicroenvironmentSupervisor::incrementSimulationPhase()
         currentTimestep = 0;
         currentReplicateIndex++;
     }
+
+    // Return true if we have still have more to do.
+    return (currentReplicateIndex < numberReplicates);
 }
 
 void MicroenvironmentSupervisor::finishSimulation()

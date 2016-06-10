@@ -70,8 +70,7 @@ protected:
     virtual void receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg);
     virtual bool assignWork();
     //virtual void finishSimulationPhase();
-    virtual bool performAnotherSimulationPhase();
-    virtual void incrementSimulationPhase();
+    virtual bool incrementSimulationPhase();
     virtual void finishSimulation();
 
 protected:

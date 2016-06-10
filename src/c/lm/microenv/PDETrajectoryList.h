@@ -20,8 +20,8 @@
  * Author(s): Elijah Roberts
  */
 
-#ifndef LM_MICROENV_MICROENVIRONMENTTRAJECTORYLIST_H_
-#define LM_MICROENV_MICROENVIRONMENTTRAJECTORYLIST_H_
+#ifndef LM_MICROENV_PDETrajectoryList_H_
+#define LM_MICROENV_PDETrajectoryList_H_
 
 #include <map>
 #include <string>
@@ -30,7 +30,7 @@
 #include "lm/input/Input.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Message.pb.h"
-#include "lm/trajectory/TrajectoryList.h"
+#include "lm/replicates/ReplicateTrajectoryList.h"
 #include "lm/Types.h"
 
 using std::map;
@@ -39,23 +39,15 @@ using lm::trajectory::TrajectoryList;
 namespace lm {
 namespace microenv {
 
-class MicroenvironmentTrajectoryList : public lm::trajectory::TrajectoryList
+class PDETrajectoryList : public lm::replicates::ReplicateTrajectoryList
 {
 
 public:
-    MicroenvironmentTrajectoryList(const lm::input::Input& input, uint64_t replicate);
-    virtual ~MicroenvironmentTrajectoryList();
-    virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg);
-
-protected:
-    virtual void printTrajectoryStatistics() const;
-    virtual uint64_t findNextTrajectoryToRun() const;
+    PDETrajectoryList(const lm::input::Input& input, uint64_t replicate);
+    virtual ~PDETrajectoryList();
 
 protected:
     uint64_t replicate;
-
-private:
-    mutable hrtime stats_lastPrintTime;
 };
 
 }

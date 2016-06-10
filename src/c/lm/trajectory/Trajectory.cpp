@@ -76,22 +76,27 @@ Trajectory::Trajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryStat
     setID(id);
 }
 
-Trajectory::Trajectory(uint64_t id, uint64_t phase, const lm::input::Input& input, bool reversed)
+Trajectory::Trajectory(uint64_t id, uint64_t phase, const lm::input::Input& input, bool reversed, bool useCMEState, bool useRDMEState, bool useDiffusionPDEState)
 :id(id),simulationPhase(phase),status(NOT_STARTED),state(),numberWorkUnitsPerformed(0)
 {
-    initializeState(input, reversed);
+    initializeState(input, reversed, useCMEState, useRDMEState, useDiffusionPDEState);
 }
 
 Trajectory::~Trajectory()
 {
 }
 
-void Trajectory::initializeState(const lm::input::Input& input, bool reversed)
+void Trajectory::initializeState(const lm::input::Input& input, bool reversed, bool useCMEState, bool useRDMEState, bool useDiffusionPDEState)
 {
     state.Clear();
-
     state.set_trajectory_id(id);
+    if (useCMEState) initializeCMEState(input, reversed);
+    if (useRDMEState) initializeRDMEState(input);
+    if (useDiffusionPDEState) initializeDiffusionPDEState(input);
+}
 
+void Trajectory::initializeCMEState(const lm::input::Input& input, bool reversed)
+{
     // Set cme state from the reaction model.
     if (input.hasReactionModel())
     {
@@ -144,19 +149,9 @@ void Trajectory::initializeState(const lm::input::Input& input, bool reversed)
             }
         }
     }
-
-    // Initialize the rdme state from the diffusion model.
-    if (input.hasDiffusionModel())
+    else
     {
-        const lm::io::DiffusionModel& diffusionModel = input.getDiffusionModelMsg();
-        lm::io::RDMEState* rdmeState = state.mutable_rdme_state();
-        lm::io::Lattice* initialLattice = rdmeState->mutable_species_positions();
-        initialLattice->set_lattice_x_size(diffusionModel.initial_lattice().lattice_x_size());
-        initialLattice->set_lattice_y_size(diffusionModel.initial_lattice().lattice_y_size());
-        initialLattice->set_lattice_z_size(diffusionModel.initial_lattice().lattice_z_size());
-        initialLattice->set_particles_per_site(diffusionModel.initial_lattice().particles_per_site());
-        initialLattice->set_particles_ordering(diffusionModel.initial_lattice().particles_ordering());
-        initialLattice->set_particles(diffusionModel.initial_lattice().particles());
+        throw RuntimeException("Trajectory::initializeCMEState requires a reaction model.");
     }
 
     // Initialize the tiling hists
@@ -212,6 +207,43 @@ void Trajectory::initializeOrderParameters(const lm::input::Input& input)
     }
     opv->add_time(0.0);
 }
+
+void Trajectory::initializeRDMEState(const lm::input::Input& input)
+{
+    // Initialize the rdme state from the diffusion model.
+    if (input.hasDiffusionModel())
+    {
+        const lm::io::DiffusionModel& diffusionModel = input.getDiffusionModelMsg();
+        lm::io::RDMEState* rdmeState = state.mutable_rdme_state();
+        lm::io::Lattice* initialLattice = rdmeState->mutable_species_positions();
+        initialLattice->set_lattice_x_size(diffusionModel.initial_lattice().lattice_x_size());
+        initialLattice->set_lattice_y_size(diffusionModel.initial_lattice().lattice_y_size());
+        initialLattice->set_lattice_z_size(diffusionModel.initial_lattice().lattice_z_size());
+        initialLattice->set_particles_per_site(diffusionModel.initial_lattice().particles_per_site());
+        initialLattice->set_particles_ordering(diffusionModel.initial_lattice().particles_ordering());
+        initialLattice->set_particles(diffusionModel.initial_lattice().particles());
+    }
+    else
+    {
+        throw RuntimeException("Trajectory::initializeRDMEState requires a diffusion model.");
+    }
+}
+
+void Trajectory::initializeDiffusionPDEState(const lm::input::Input& input)
+{
+    // Initialize the diffusion pde state from the input.
+    if (input.hasMicroenvironmentModel())
+    {
+        lm::io::DiffusionPDEState* pdeState = state.mutable_diffusion_pde_state();
+        pdeState->set_time(0.0);
+        pdeState->mutable_concentrations()->CopyFrom(input.getMicroenvironmentModel().initial_concentrations());
+    }
+    else
+    {
+        throw RuntimeException("Trajectory::initializeDiffusionPDEState requires a microenvironment model.");
+    }
+}
+
 
 // accessors
 vector<double> Trajectory::getLastOrderParameterValues() const
