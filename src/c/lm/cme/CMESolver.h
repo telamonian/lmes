@@ -175,32 +175,41 @@ protected:
     public:
         typedef lm::io::LimitTracking MsgT;
         typedef uint64_t DegreeAdvancementT;
-        typedef double OParamT;
+        typedef double OrderParameterT;
         typedef int SpeciesT;
         typedef double TimeT;
 
-        typedef std::deque<DegreeAdvancementT> DegreeAdvancementContainerT;
-        typedef std::deque<OParamT> OParamContainerT;
-        typedef std::deque<SpeciesT> SpeciesContainerT;
-        typedef std::deque<TimeT> TimeContainerT;
+        typedef std::vector<DegreeAdvancementT> DegreeAdvancementContainerT;
+        typedef std::vector<OrderParameterT> OrderParameterContainerT;
+        typedef std::vector<SpeciesT> SpeciesContainerT;
+        typedef std::vector<TimeT> TimeContainerT;
 
         int limitID;
-        bool trackDegreeAdvancements;
+        MsgT::RecordingOption recordingOption;
+
         DegreeAdvancementContainerT degreeAdvancements;
-        bool trackOparamValues;
-        OParamContainerT oparamValues;
-        bool trackSpeciesCounts;
+        OrderParameterContainerT orderParameterValues;
         SpeciesContainerT speciesCounts;
         TimeContainerT times;
 
         lm::protowrap::NDArray<DegreeAdvancementT> degreeAdvancmentsWrap;
-        lm::protowrap::NDArray<OParamT> oparamWrap;
+        lm::protowrap::NDArray<OrderParameterT> orderParameterWrap;
         lm::protowrap::NDArray<SpeciesT> speciesWrap;
         lm::protowrap::NDArray<TimeT> timesWrap;
 
+    private:
+        bool nonterminating;
+        bool hasCountdown;
+        uint64_t countdown;
+
+    public:
         void deserializeFrom(const MsgT& msgRef)
         {
             limitID = msgRef.limit_id();
+            recordingOption = msgRef.recording_option();
+            nonterminating = msgRef.nonterminating();
+            hasCountdown = msgRef.has_countdown();
+            countdown = msgRef.countdown();
 
             // TODO: refactor various things so that we don't need this const_cast
             MsgT* msg(const_cast<MsgT*>(&msgRef));
@@ -208,8 +217,8 @@ protected:
             degreeAdvancmentsWrap.setMsgPtr(msg->mutable_degree_advancements());
             degreeAdvancmentsWrap.get_data(degreeAdvancements);
 
-            oparamWrap.setMsgPtr(msg->mutable_order_parameter_values());
-            oparamWrap.get_data(oparamValues);
+            orderParameterWrap.setMsgPtr(msg->mutable_order_parameter_values());
+            orderParameterWrap.get_data(orderParameterValues);
 
             speciesWrap.setMsgPtr(msg->mutable_species_counts());
             speciesWrap.get_data(speciesCounts);
@@ -218,21 +227,70 @@ protected:
             timesWrap.get_data(times);
         }
 
-        void serializeTo(uint64_t trajectoryId, MsgT* msg)
+        bool getEnabled()
         {
-            serializeTo(trajectoryId, msg, degreeAdvancements, oparamValues, speciesCounts, times);
+            // if the limit tracking has a countdown, use this to determine if tracking is currently enabled
+            if (hasCountdown)
+            {
+                // there are 3 cases for the value of countdown that we consider important
+                if      (countdown > 0)  return true;     // case one: if countdown is greater than zero, enable tracking
+                else if (countdown == 0) return true;     // case two: if countdown is exactly zero, enable tracking
+                else                     return false;    // case three: if countdown is less than zero, disable tracking
+            }
+            // if the limit tracking has no countdown, by default tracking is enabled
+            else
+            {
+                return true;
+            }
         }
 
-        void serializeTo(uint64_t trajectoryId, MsgT* msg, DegreeAdvancementContainerT& degreeAdvancementsRef, OParamContainerT& oparamValuesRef, SpeciesContainerT& speciesCountsRef, TimeContainerT& timesRef)
+        bool getSignalTermination()
+        {
+            bool doSignal;
+            // if the limit tracking has a countdown, use this to determinate if we should signal for termination of the trajectory
+            if (hasCountdown)
+            {
+                // there are 3 cases for the value of countdown that we consider important
+                if      (countdown > 0)  doSignal = false;    // case one: if countdown is greater than zero, don't signal for termination
+                else if (countdown == 0) doSignal = true;     // case two: if countdown is exactly zero, signal for termination
+                else                     doSignal = true;     // case three: if countdown is less than zero, signal for termination
+            }
+            // if the limit tracking does not have a countdown, by default we  signal for termination
+            else
+            {
+                doSignal = true;
+            }
+
+            // skip signaling for termination if the limit tracking is marked nonterminating
+            return doSignal and nonterminating;
+        }
+
+        // handle necessary tasks when the associated limit is triggered (eg decrement countdown)
+        void limitTriggered()
+        {
+            if (hasCountdown)
+            {
+                // decrement countdown
+                --countdown;
+            }
+        }
+
+        void serializeTo(uint64_t trajectoryId, MsgT* msg)
+        {
+            serializeTo(trajectoryId, msg, degreeAdvancements, orderParameterValues, speciesCounts, times);
+        }
+
+        void serializeTo(uint64_t trajectoryId, MsgT* msg, DegreeAdvancementContainerT& degreeAdvancementsRef, OrderParameterContainerT& orderParameterValuesRef, SpeciesContainerT& speciesCountsRef, TimeContainerT& timesRef)
         {
             msg->set_trajectory_id(trajectoryId);
             msg->set_limit_id(limitID);
+            if (hasCountdown) msg->set_countdown(countdown);
 
             degreeAdvancmentsWrap.setMsgPtr(msg->mutable_degree_advancements());
             degreeAdvancmentsWrap.set_array(degreeAdvancementsRef, utuple(degreeAdvancementsRef.size()), false);
 
-            oparamWrap.setMsgPtr(msg->mutable_order_parameter_values());
-            oparamWrap.set_array(oparamValuesRef, utuple(oparamValuesRef.size()), false);
+            orderParameterWrap.setMsgPtr(msg->mutable_order_parameter_values());
+            orderParameterWrap.set_array(orderParameterValuesRef, utuple(orderParameterValuesRef.size()), false);
 
             speciesWrap.setMsgPtr(msg->mutable_species_counts());
             speciesWrap.set_array(speciesCountsRef, utuple(speciesCountsRef.size()), false);
@@ -241,7 +299,6 @@ protected:
             timesWrap.set_array(timesRef, utuple(timesRef.size()), false);
         }
     };
-
 
     class TilingHist
     {

@@ -307,6 +307,18 @@ void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
         state->mutable_limit_reached()->CopyFrom(*trajectoryLimits.findMsg(limitIDReached));
     }
 
+    // if we're recording any limit tracking data to the trajectory state, get it
+    for (Repeated<lm::io::LimitTracking>::iterator it=state->limit_tracking().begin(); it!=state->limit_tracking().end(); ++it)
+    {
+        if (not trackedLimits.count(it->limit_id())) throw Exception("LimitTracking instance for limit %d expected but never initialized at end of work unit", it->limit_id());
+
+        LimitTracking& limitTracking(trackedLimits[it->limit_id()]);
+        if (limitTracking.recordingOption==LimTrackEnums::TRAJECTORY_STATE or limitTracking.recordingOption==LimTrackEnums::BOTH)
+        {
+            limitTracking.serializeTo(trajectoryId, &*it);
+        }
+    }
+
     // Get the order parameter values.
     if (numberOrderParameters > 0)
     {
@@ -397,9 +409,9 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
     }
 
     // if we're tracking any limits, set up the solver to output state information when the limit is reached
-    for (Repeated<lm::input::LimitTrackingOption>::const_iterator it=outputOptions.limits_to_track().begin(); it!=outputOptions.limits_to_track().end(); ++it)
+    for (Repeated<lm::io::LimitTracking>::const_iterator it=state.limit_tracking().begin(); it!=state.limit_tracking().end(); ++it)
     {
-        trackedLimits[]
+        trackedLimits[it->limit_id()].deserializeFrom(*it);
     }
 
 //    // Set the order parameter values.
@@ -703,22 +715,33 @@ bool CMESolver::isTrajectoryOutsideLimits()
         default:
             break;
         }
-        
-        if (limitReached) && (!l.has_count || --l.count>=1))
+
+        if (limitReached)
         {
-            if (l.track_degree_advancements)
+            bool signalTermination;
+            // if this limit is being tracked, handle that
+            if (trackedLimits.count(l.limitID))
             {
+                LimitTracking& limitTracking = trackedLimits[l.limitID];
+                limitTracking.limitTriggered();
+                signalTermination = limitTracking.getSignalTermination();
 
+                // track the state if limitTracking is enabled
+                if (limitTracking.getEnabled())
+                {
+                    if (trackingDegreeAdvancements) {for (int i=0;i<reactionModel->numberReactions;i++) limitTracking.degreeAdvancements.push_back(degreeAdvancements[i]);}
+                    if (numberOrderParameters>0) {for (int i=0;i<numberOrderParameters;i++) limitTracking.orderParameterValues.push_back(orderParameterValues[i]);}
+                    for (int i=0;i<reactionModel->numberSpecies;i++) limitTracking.speciesCounts.push_back(speciesCounts[i]);
+                    limitTracking.times.push_back(time);
+                }
             }
-            if (l.track_order_parameter_time_series)
+            // if this limit is not being tracked, just signal for termination of the trajectory
+            else
             {
-
+                signalTermination = true;
             }
-            if (l.track_species_time_series)
-            {
 
-            }
-            if (l.terminating && --l.count < 1)
+            if (signalTermination)
             {
                 status = lm::message::WorkUnitStatus::LIMIT_REACHED;
                 limitIDReached = l.limitID;

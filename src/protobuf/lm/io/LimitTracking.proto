@@ -42,20 +42,37 @@ package lm.io;
 import "robertslab/pbuf/NDArray.proto";
 
 message LimitTracking {
+    enum RecordingOption {
+        TRAJECTORY_STATE = 0;
+        OUTPUT_TO_DISK = 1;
+        BOTH = 2;
+    }
+
     required uint64 trajectory_id                           = 1;
     required int32 limit_id                                 = 2;
 
     /*
-     * add_to_cme_state controls whether the limit tracking information is recorded in the
+     * recording_option controls whether the limit tracking information is recorded internally in the trajectory state, written out to disk, or both
      */
-    optional bool add_to_cme_state                          = 3 [default=true];
-    /*
-     * add_to_output controls whether
-     */
-    optional bool add_to_output                             = 4 [default=false];
+    optional RecordingOption recording_option               = 3 [default=TRAJECTORY_STATE];
 
-    optional robertslab.pbuf.NDArray degree_advancements    = 3;
-    optional robertslab.pbuf.NDArray order_parameter_values = 4;
-    optional robertslab.pbuf.NDArray species_counts         = 5;
-    optional robertslab.pbuf.NDArray times                  = 6;
+    /*
+     * - If nonterminating is true, the tracked limit will never signal for termination (overrides other options, such as countdown in LimitTracking)
+     */
+    optional bool nonterminating                            = 4 [default=false];
+
+    /*
+     * - if set, countdown is decremented every time the tracked limit is triggered. Once decremented, there are three possible cases
+     *     - case one: if countdown is greater than zero, don't signal for termination and track the current state
+     *     - case two: if countdown is exactly zero, signal for termination and track the current state
+     *     - case three: if countdown is less than zero, signal for termination and don't track the current state
+     *         - If the limit is being tracked and is non-terminating, when countdown <= 0 all tracking will stop
+     *             - The non-terminating behavior of countdown is useful for limiting the quantity of simulation output or for collecting limit first passage times
+     */
+    optional int64 countdown                               = 5;
+
+    optional robertslab.pbuf.NDArray degree_advancements    = 6;
+    optional robertslab.pbuf.NDArray order_parameter_values = 7;
+    optional robertslab.pbuf.NDArray species_counts         = 8;
+    optional robertslab.pbuf.NDArray times                  = 9;
 }

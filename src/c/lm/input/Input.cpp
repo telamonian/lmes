@@ -144,7 +144,7 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
 
     // Get the output options.
     {
-        if (parseAndSet(outputOptions, &OutputOptions::set_degree_advancement_write_interval, "degreeAdvancementWriteInterval"))
+        if (parseAndSet("degreeAdvancementWriteInterval", &OutputOptions::set_degree_advancement_write_interval, outputOptions))
         {
             degreeAdvancementPresent = true;
             outputOptionsPresent = true;
@@ -170,7 +170,7 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         }
 
         // Initialize the order parameter values first passage times in the output options
-        if (parseAndSetList(outputOptions, &OutputOptions::add_fpt_order_parameter_to_track, "fptOrderParameterTrackingList"))
+        if (parseAndSetList("fptOrderParameterTrackingList", &OutputOptions::add_fpt_order_parameter_to_track, outputOptions))
         {
             outputOptionsPresent = true;
         }
@@ -181,7 +181,7 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
             outputOptionsPresent = true;
         }
 
-        if (parseAndSet(outputOptions, &OutputOptions::set_order_parameter_write_interval, "orderParameterWriteInterval"))
+        if (parseAndSet("orderParameterWriteInterval", &OutputOptions::set_order_parameter_write_interval, outputOptions))
         {
             outputOptionsPresent = true;
         }
@@ -194,8 +194,7 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
     }
 
     // Get some generic input options.
-    if (simulationParameters.count("partsPerWorkUnit"))
-        partsPerWorkUnit = simulationParameters.parse<uint64_t>("partsPerWorkUnit");
+    parseAndSet("partsPerWorkUnit", &this->partsPerWorkUnit);
 
     if (simulationParameters.count("maxWorkUnitSteps"))
         stepsPerWorkUnit = atoll(simulationParameters["maxWorkUnitSteps"].c_str());
@@ -326,7 +325,7 @@ bool Input::parseBoundaryConditions(lm::input::BoundaryConditions* bc, string ar
     return bc->axis_specific_boundaries();
 }
 
-template <TrajLimEnums::LimitType LT> bool Input::parseLimits(string key, string debugString, TrajLimEnums::StoppingCondition sc, bool includeEndpoint)
+template <TrajLimEnums::LimitType LT> bool Input::parseLimits(const string key, const string debugString, TrajLimEnums::StoppingCondition sc, bool includeEndpoint)
 {
     if (simulationParameters.count(key))
     {
@@ -343,8 +342,24 @@ template <TrajLimEnums::LimitType LT> bool Input::parseLimits(string key, string
     }
 }
 
+// Version of parseAndSet for fields that can be passed in as mutable pointers
+// By using template parameter inference on the pointer, this template automatically figures out what type to parse from simulationParameters
+template <typename ValT> bool Input::parseAndSet(const string key, ValT* fieldPtr)
+{
+    if (simulationParameters.count(key))
+    {
+        *fieldPtr = simulationParameters.parse<ValT>(key);
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+// Version of parseAndSet for fields that have setters
 // By using template parameter inference on the setter (passed as a function pointer), this template automatically figures out what type to parse from simulationParameters
-template <typename T, typename SetterFuncT, typename ValT> bool Input::parseAndSet(T& obj, SetterFuncT (T::*setterFunc)(ValT), string key)
+template <typename T, typename SetterFuncT, typename ValT> bool Input::parseAndSet(const string key, SetterFuncT (T::*setterFunc)(ValT), T& obj)
 {
     if (simulationParameters.count(key))
     {
@@ -357,8 +372,8 @@ template <typename T, typename SetterFuncT, typename ValT> bool Input::parseAndS
     }
 }
 
-// Same as parse and set, but for options specified as lists
-template <typename T, typename AdderFuncT, typename ValT> bool Input::parseAndSetList(T& obj, AdderFuncT (T::*adderFunc)(ValT), std::string key)
+// Same as parseAndSet, but for options specified as lists
+template <typename T, typename AdderFuncT, typename ValT> bool Input::parseAndSetList(const string key, AdderFuncT (T::*adderFunc)(ValT), T& obj)
 {
     if (simulationParameters.count(key))
     {

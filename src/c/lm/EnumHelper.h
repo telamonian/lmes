@@ -44,11 +44,23 @@
 #ifndef ENUMHELPER_H
 #define ENUMHELPER_H
 
+#include "lm/io/LimitTracking.pb.h"
 #include "lm/input/SimulationPhase.pb.h"
 #include "lm/input/Tilings.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
 
 // helper classes allowing for more direct access to the types and values of various enums
+
+//from lm/io/LimitTracking.proto
+struct LimTrackEnums {
+    // enum typedefs
+    typedef lm::io::LimitTracking::RecordingOption RecordingOption;
+
+    // RecordingOption enum values
+    static const RecordingOption TRAJECTORY_STATE = lm::io::LimitTracking::TRAJECTORY_STATE;
+    static const RecordingOption OUTPUT_TO_DISK = lm::io::LimitTracking::OUTPUT_TO_DISK;
+    static const RecordingOption BOTH = lm::io::LimitTracking::BOTH;
+};
 
 //from lm/input/SimulationPhase.proto
 struct SimPhaseEnums {
