@@ -53,6 +53,7 @@ using lm::input::OutputOptions;
 using lm::trajectory::LimitValueT;
 using std::map;
 using std::string;
+using std::vector;
 
 namespace lm {
 namespace input {
@@ -359,11 +360,11 @@ template <typename ValT> bool Input::parseAndSet(const string key, ValT* fieldPt
 
 // Version of parseAndSet for fields that have setters
 // By using template parameter inference on the setter (passed as a function pointer), this template automatically figures out what type to parse from simulationParameters
-template <typename T, typename SetterFuncT, typename ValT> bool Input::parseAndSet(const string key, SetterFuncT (T::*setterFunc)(ValT), T& obj)
+template <typename T, typename SetterReturnT, typename ValT> bool Input::parseAndSet(const string key, SetterReturnT (T::*setterFunc)(ValT), T& obj)
 {
     if (simulationParameters.count(key))
     {
-        (obj.*setterFunc)(simulationParameters.parse<ValT>(key));
+        obj.(*setterFunc)(simulationParameters.parse<ValT>(key));
         return true;
     }
     else
@@ -373,14 +374,14 @@ template <typename T, typename SetterFuncT, typename ValT> bool Input::parseAndS
 }
 
 // Same as parseAndSet, but for options specified as lists
-template <typename T, typename AdderFuncT, typename ValT> bool Input::parseAndSetList(const string key, AdderFuncT (T::*adderFunc)(ValT), T& obj)
+template <typename T, typename AdderReturnT, typename ValT> bool Input::parseAndSetList(const string key, AdderReturnT (T::*adderFunc)(ValT), T& obj)
 {
     if (simulationParameters.count(key))
     {
         std::vector<ValT> parsedVector(simulationParameters.parseVector<ValT>(key));
-        for (std::vector<ValT>::const_iterator it=parsedVector.begin(); it!=parsedVector.end(); it++)
+        for (typename vector<ValT>::const_iterator it=parsedVector.begin(); it!=parsedVector.end(); it++)
         {
-            (obj.*adderFunc)(*it);
+            obj.(*adderFunc)(*it);
         }
         return parsedVector.size() > 0;
     }

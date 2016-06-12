@@ -69,9 +69,11 @@
 #include "lm/main/Main.h"
 #include "lm/me/MESolver.h"
 #include "lm/me/PropensityFunction.h"
+#include "lm/message/WorkUnitOutput.pb.h"
 #include "lm/message/WorkUnitStatus.pb.h"
 #include "lm/oparam/OrderParameterFunction.h"
 #include "lm/protowrap/NDArray.h"
+#include "lm/protowrap/TimeSeries.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/thread/Thread.h"
 #include "lm/tiling/Tilings.h"
@@ -132,40 +134,37 @@ protected:
         ValueContainerT fptValues;
         TimeContainerT fptTimes;
 
-        lm::protowrap::NDArray<ValueT> fptValuesWrap;
-        lm::protowrap::NDArray<TimeT> fptTimesWrap;
+        mutable lm::protowrap::NDArray<ValueT> fptValuesWrap;
+        mutable lm::protowrap::NDArray<TimeT> fptTimesWrap;
 
         void deserializeFrom(const MsgT& opFPTMsgRef)
         {
             oparamID = opFPTMsgRef.order_parameter_id();
 
-            // TODO: refactor various things so that we don't need this const_cast
-            MsgT* opFPTMsg(const_cast<MsgT*>(&opFPTMsgRef));
-
-            fptValuesWrap.setMsgPtr(opFPTMsg->mutable_order_parameter_value());
+            fptValuesWrap.setMsg(opFPTMsgRef.order_parameter_value());
             fptValuesWrap.get_data(fptValues);
 
-            fptTimesWrap.setMsgPtr(opFPTMsg->mutable_first_passage_time());
+            fptTimesWrap.setMsg(opFPTMsgRef.first_passage_time());
             fptTimesWrap.get_data(fptTimes);
 
             minValueAchieved = fptValues.front();
             maxValueAchieved = fptValues.back();
         }
         
-        void serializeTo(uint64_t trajectoryId, MsgT* opFPTMsg)
+        void serializeTo(MsgT* opFPTMsg, uint64_t trajectoryId) const
         {
-            serializeTo(trajectoryId, opFPTMsg, fptValues, fptTimes);
+            serializeTo(opFPTMsg, trajectoryId, fptValues, fptTimes);
         }
 
-        void serializeTo(uint64_t trajectoryId, MsgT* opFPTMsg, ValueContainerT& fptValuesRef, TimeContainerT& fptTimesRef)
+        void serializeTo(MsgT* opFPTMsg, uint64_t trajectoryId, const ValueContainerT& fptValuesRef, const TimeContainerT& fptTimesRef) const
         {
             opFPTMsg->set_trajectory_id(trajectoryId);
             opFPTMsg->set_order_parameter_id(oparamID);
 
-            fptValuesWrap.setMsgPtr(opFPTMsg->mutable_order_parameter_value());
+            fptValuesWrap.setMsg(opFPTMsg->mutable_order_parameter_value());
             fptValuesWrap.set_array(fptValuesRef, utuple(fptValuesRef.size()), false);
 
-            fptTimesWrap.setMsgPtr(opFPTMsg->mutable_first_passage_time());
+            fptTimesWrap.setMsg(opFPTMsg->mutable_first_passage_time());
             fptTimesWrap.set_array(fptTimesRef, utuple(fptTimesRef.size()), false);
         }
     };
@@ -192,15 +191,15 @@ protected:
         SpeciesContainerT speciesCounts;
         TimeContainerT times;
 
-        lm::protowrap::NDArray<DegreeAdvancementT> degreeAdvancmentsWrap;
-        lm::protowrap::NDArray<OrderParameterT> orderParameterWrap;
-        lm::protowrap::NDArray<SpeciesT> speciesWrap;
-        lm::protowrap::NDArray<TimeT> timesWrap;
+        mutable lm::protowrap::NDArray<DegreeAdvancementT> degreeAdvancmentsWrap;
+        mutable lm::protowrap::NDArray<OrderParameterT> orderParameterWrap;
+        mutable lm::protowrap::NDArray<SpeciesT> speciesWrap;
+        mutable lm::protowrap::NDArray<TimeT> timesWrap;
 
     private:
         bool nonterminating;
         bool hasCountdown;
-        uint64_t countdown;
+        int64_t countdown;
 
     public:
         void deserializeFrom(const MsgT& msgRef)
@@ -211,19 +210,16 @@ protected:
             hasCountdown = msgRef.has_countdown();
             countdown = msgRef.countdown();
 
-            // TODO: refactor various things so that we don't need this const_cast
-            MsgT* msg(const_cast<MsgT*>(&msgRef));
-
-            degreeAdvancmentsWrap.setMsgPtr(msg->mutable_degree_advancements());
+            degreeAdvancmentsWrap.setMsg(msgRef.degree_advancements());
             degreeAdvancmentsWrap.get_data(degreeAdvancements);
 
-            orderParameterWrap.setMsgPtr(msg->mutable_order_parameter_values());
+            orderParameterWrap.setMsg(msgRef.order_parameter_values());
             orderParameterWrap.get_data(orderParameterValues);
 
-            speciesWrap.setMsgPtr(msg->mutable_species_counts());
+            speciesWrap.setMsg(msgRef.species_counts());
             speciesWrap.get_data(speciesCounts);
 
-            timesWrap.setMsgPtr(msg->mutable_times());
+            timesWrap.setMsg(msgRef.times());
             timesWrap.get_data(times);
         }
 
@@ -275,30 +271,33 @@ protected:
             }
         }
 
-        void serializeTo(uint64_t trajectoryId, MsgT* msg)
+        void serializeTo(MsgT* msg, uint64_t trajectoryId) const
         {
-            serializeTo(trajectoryId, msg, degreeAdvancements, orderParameterValues, speciesCounts, times);
+            serializeTo(msg, trajectoryId, degreeAdvancements, orderParameterValues, speciesCounts, times);
         }
 
-        void serializeTo(uint64_t trajectoryId, MsgT* msg, DegreeAdvancementContainerT& degreeAdvancementsRef, OrderParameterContainerT& orderParameterValuesRef, SpeciesContainerT& speciesCountsRef, TimeContainerT& timesRef)
+        void serializeTo(MsgT* msg, uint64_t trajectoryId, const DegreeAdvancementContainerT& degreeAdvancementsRef,
+                         const OrderParameterContainerT& orderParameterValuesRef, const SpeciesContainerT& speciesCountsRef,
+                         const TimeContainerT& timesRef) const
         {
             msg->set_trajectory_id(trajectoryId);
             msg->set_limit_id(limitID);
             if (hasCountdown) msg->set_countdown(countdown);
 
-            degreeAdvancmentsWrap.setMsgPtr(msg->mutable_degree_advancements());
+            degreeAdvancmentsWrap.setMsg(msg->mutable_degree_advancements());
             degreeAdvancmentsWrap.set_array(degreeAdvancementsRef, utuple(degreeAdvancementsRef.size()), false);
 
-            orderParameterWrap.setMsgPtr(msg->mutable_order_parameter_values());
+            orderParameterWrap.setMsg(msg->mutable_order_parameter_values());
             orderParameterWrap.set_array(orderParameterValuesRef, utuple(orderParameterValuesRef.size()), false);
 
-            speciesWrap.setMsgPtr(msg->mutable_species_counts());
+            speciesWrap.setMsg(msg->mutable_species_counts());
             speciesWrap.set_array(speciesCountsRef, utuple(speciesCountsRef.size()), false);
 
-            timesWrap.setMsgPtr(msg->mutable_times());
+            timesWrap.setMsg(msg->mutable_times());
             timesWrap.set_array(timesRef, utuple(timesRef.size()), false);
         }
     };
+    typedef std::map<int, LimitTracking> TrackingMapT;
 
     class TilingHist
     {
@@ -337,6 +336,57 @@ protected:
         double* tileVals;
     };
 
+    template <typename MsgT>
+    class TimeSeries
+    {
+    public:
+        typedef lm::protowrap::TimeSeries<MsgT>::ValT ValT;
+        typedef double TimeT;
+
+        typedef std::vector<ValT> ValContainerT;
+        typedef std::vector<TimeT> TimeContainerT;
+
+        ValContainerT values;
+        TimeContainerT times;
+
+        mutable lm::protowrap::TimeSeries<MsgT> timeSeriesWrap;
+
+    public:
+        void deserializeFrom(const MsgT& msgRef)
+        {
+            timeSeriesWrap.setMsg(msgRef);
+            timeSeriesWrap.get_arrays(values, times);
+        }
+
+        void serializeTo(MsgT* msg, uint64_t trajectoryId, uint numberOfColumns, bool compress) const
+        {
+            serializeTo(msg, trajectoryId, numberOfColumns, compress, values, times);
+        }
+
+        void serializeTo(MsgT* msg, uint64_t trajectoryId, uint numberOfColumns, bool compress, const ValContainerT& valuesRef, const TimeContainerT& timesRef) const
+        {
+            timeSeriesWrap.setMsg(msg);
+            timeSeriesWrap.set_arrays(valuesRef, timesRef, trajectoryId, numberOfColumns, compress);
+        }
+
+    // versions of the above functions overloaded to work directly with a WorkUnitOutput msg
+        void deserializeFrom(const lm::message::WorkUnitOutput& outputMsgRef)
+        {
+            timeSeriesWrap.setMsg(outputMsgRef);
+            timeSeriesWrap.get_arrays(values, times);
+        }
+
+        void serializeTo(lm::message::WorkUnitOutput* outputMsg, uint64_t trajectoryId, uint numberOfColumns, bool compress) const
+        {
+            serializeTo(outputMsg, trajectoryId, numberOfColumns, compress, values, times);
+        }
+
+        void serializeTo(lm::message::WorkUnitOutput* outputMsg, uint64_t trajectoryId, uint numberOfColumns, bool compress, const ValContainerT& valuesRef, const TimeContainerT& timesRef) const
+        {
+            timeSeriesWrap.set_arrays_in_output_msg(outputMsg, valuesRef, timesRef, trajectoryId, numberOfColumns, compress);
+        }
+    };
+
 public:
     CMESolver(RandomGenerator::Distributions neededDists);
     virtual ~CMESolver();
@@ -367,8 +417,8 @@ protected:
 
     inline void callUpdateSpeciesCountsListeners(uint r)
     {
-        // Update the degree advancement
-        if (trackingDegreeAdvancements)
+        // Update the degree advancement, if enabled
+        if (numberDegreeAdvancements > 0)
         {
             degreeAdvancements[r]++;
         }
@@ -446,7 +496,7 @@ protected:
     lm::tiling::Tilings* tilings;
 
     // Degree advancement tracking
-    bool trackingDegreeAdvancements;
+    int32_t numberDegreeAdvancements;
 
     // Order parameter function.
     int32_t numberOrderParameters;
@@ -474,7 +524,7 @@ protected:
     OParamFPTTracking* fptTrackedOrderParameters;
 
     // limit tracking variables
-    std::map<int, LimitTracking> trackedLimits;
+    TrackingMapT trackedLimits;
 
     // The current state.
     uint64_t* degreeAdvancements;

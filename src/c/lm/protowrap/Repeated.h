@@ -51,27 +51,29 @@ namespace lm {
 namespace protowrap {
 
 // main template for type generator struct that will return google::protobuf::RepeatedField<T> for a numeric T and google::protobuf::RepeatedPtrField<T> otherwise
-template <typename T, bool> struct _RepeatedTypedef;
-template <typename T> struct _RepeatedTypedef<T, false> {typedef google::protobuf::RepeatedPtrField<T> type;};
-template <typename T> struct _RepeatedTypedef<T, true> {typedef google::protobuf::RepeatedField<T> type;};
-template <typename T> struct RepeatedTypedef {typedef typename _RepeatedTypedef<T, IsNumeric<T>::value>::type type;};
+template <typename ValT, bool> struct _RepeatedTypedef;
+template <typename ValT> struct _RepeatedTypedef<ValT, false> {typedef google::protobuf::RepeatedPtrField<ValT> RepT;};
+template <typename ValT> struct _RepeatedTypedef<ValT, true> {typedef google::protobuf::RepeatedField<ValT> RepT;};
+template <typename ValT> struct RepeatedTypedef {typedef typename _RepeatedTypedef<ValT, IsNumeric<ValT>::value>::RepT RepT;};
 
-template <typename T>
+template <typename ValT>
 class Repeated
 {
 public:
 // typedefs
-    typedef typename RepeatedTypedef<T>::type type;
-    typedef typename type::iterator iterator;
-    typedef typename type::const_iterator const_iterator;
+    typedef typename RepeatedTypedef<ValT>::RepT RepT;
+    typedef typename RepT::iterator iterator;
+    typedef typename RepT::const_iterator const_iterator;
 
 // constructors/destructors
-    Repeated(): repFieldPtr(NULL) {}
-    Repeated(type* repFieldPtr): repFieldPtr(repFieldPtr) {}
+    Repeated(): repFieldPtr(NULL),repFieldConstPtr(NULL) {}
+    Repeated(RepT* repFieldPtr): repFieldPtr(NULL),repFieldConstPtr(NULL) {setRepFieldPtr(repFieldPtr);}
+    Repeated(const RepT& repFieldConstRef): repFieldPtr(NULL),repFieldConstPtr(NULL) {setRepFieldPtr(repFieldConstRef);}
     ~Repeated() {}
 
 // accessors
-    inline T product() const {return ProductFunctor<T>::call(begin(), end());}
+    inline const RepT* getRepFieldPtr() const {return repFieldConstPtr;}
+    inline ValT product() const {return ProductFunctor<ValT>::call(begin(), end());}
     std::string repr(const char* suffix="") const
     {
         std::stringstream reprStream("(");
@@ -85,28 +87,43 @@ public:
     }
 
 // mutators
-    inline Repeated<T>& operator<<(T val) {repFieldPtr->Add(val); return *this;}
-    inline void setRepFieldPtr(type* newRepFieldPtr) {repFieldPtr = newRepFieldPtr;}
+    inline Repeated<ValT>& operator<<(ValT val) {getRepFieldPtr()->Add(val); return *this;}
+    inline RepT* getRepFieldPtr()
+    {
+        if (repFieldPtr==NULL) throw Exception("Pointer to internal repeated field (repFieldPtr) set to NULL in lm::protowrap::Repeated instance");
+        return repFieldPtr;
+    }
+    inline void setRepFieldPtr(RepT* newRepFieldPtr)
+    {
+        repFieldPtr = newRepFieldPtr;
+        repFieldConstPtr = newRepFieldPtr;
+    }
+    inline void setRepFieldPtr(const RepT& newRepFieldConstRef)
+    {
+        repFieldPtr = NULL;
+        repFieldConstPtr = &newRepFieldConstRef;
+    }
 
 // pass throughs
 // accessors
-    const_iterator begin() const {return repFieldPtr->begin();}
-    const_iterator end() const {return repFieldPtr->end();}
-    bool empty() const {return repFieldPtr->empty();}
-    const T& Get(int index) const {return repFieldPtr->Get(index);}
-    int size() const {return repFieldPtr->size();}
+    const_iterator begin() const {return getRepFieldPtr()->begin();}
+    const_iterator end() const {return getRepFieldPtr()->end();}
+    bool empty() const {return getRepFieldPtr()->empty();}
+    const ValT& Get(int index) const {return getRepFieldPtr()->Get(index);}
+    int size() const {return getRepFieldPtr()->size();}
 
 // mutators
-    iterator begin() {return repFieldPtr->begin();}
-    iterator end() {return repFieldPtr->end();}
-    T* Add() {return repFieldPtr->Add();}
-    void Add(const T& value) {repFieldPtr->Add(value);}
-    void Clear() {repFieldPtr->Clear();}
-    T* Mutable(int index) {return repFieldPtr->Mutable(index);}
-    void Set(int index, const T& value) {repFieldPtr->Set(index, value);}
+    iterator begin() {return getRepFieldPtr()->begin();}
+    iterator end() {return getRepFieldPtr()->end();}
+    ValT* Add() {return getRepFieldPtr()->Add();}
+    void Add(const ValT& value) {getRepFieldPtr()->Add(value);}
+    void Clear() {getRepFieldPtr()->Clear();}
+    ValT* Mutable(int index) {return getRepFieldPtr()->Mutable(index);}
+    void Set(int index, const ValT& value) {getRepFieldPtr()->Set(index, value);}
 
 protected:
-    type* repFieldPtr;
+    RepT* repFieldPtr;
+    const RepT* repFieldConstPtr;
 
 };
 

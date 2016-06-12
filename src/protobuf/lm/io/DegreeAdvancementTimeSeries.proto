@@ -37,35 +37,12 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 syntax = "proto2";
-package lm.message;
+package lm.io;
 
-import "lm/io/DegreeAdvancementTimeSeries.proto";
-import "lm/io/FFluxOutput.proto";
-import "lm/io/FirstPassageTimes.proto";
-import "lm/io/OrderParameterFirstPassageTimes.proto";
-import "lm/io/LatticeTimeSeries.proto";
-import "lm/io/LimitTracking.proto";
-import "lm/io/OrderParameterTimeSeries.proto";
-import "lm/io/SpeciesCounts.proto";
-import "lm/io/SpeciesTimeSeries.proto";
+import "robertslab/pbuf/NDArray.proto";
 
-message WorkUnitOutput {
-    // trajectory state outputs
-    optional lm.io.DegreeAdvancementTimeSeries degree_advancement_time_series          = 10;
-
-    optional lm.io.LatticeTimeSeries lattice_time_series                               = 4;
-
-    optional lm.io.OrderParameterTimeSeries order_parameter_time_series                = 7;
-
-    optional lm.io.SpeciesCounts species_counts                                        = 2;
-    optional lm.io.SpeciesTimeSeries species_time_series                               = 6;
-
-    // event-tracking output
-    repeated lm.io.FirstPassageTimes first_passage_times                               = 3;
-    repeated lm.io.OrderParameterFirstPassageTimes order_parameter_first_passage_times = 8;
-
-    repeated lm.io.LimitTracking limit_tracking                                        = 9;
-
-    // forward flux specific output
-    optional lm.io.FFluxOutput fflux_output                                            = 5;
+message DegreeAdvancementTimeSeries {
+    required uint64 trajectory_id                             = 1;
+    required robertslab.pbuf.NDArray counts                   = 2;    //2D; rows=times,cols=degree_advancements; type=uint64
+    required robertslab.pbuf.NDArray times                    = 3;    //1D; rows=times; type=float64
 }

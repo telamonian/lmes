@@ -48,6 +48,7 @@
 #include "lm/input/SimulationPhase.pb.h"
 #include "lm/input/Tilings.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
+#include "lm/message/WorkUnitStatus.pb.h"
 
 // helper classes allowing for more direct access to the types and values of various enums
 
@@ -105,6 +106,18 @@ struct TrajLimEnums {
     static const StoppingCondition MAX = lm::input::TrajectoryLimit::MAX;
     static const StoppingCondition INCREASING = lm::input::TrajectoryLimit::INCREASING;
     static const StoppingCondition DECREASING = lm::input::TrajectoryLimit::DECREASING;
+};
+
+// from lm/message/WorkUnitStatus.proto
+struct WUStatEnums {
+    // enum typedefs
+    typedef lm::message::WorkUnitStatus::Status Status;
+
+    // RecordingOption enum values
+    static const Status NONE = lm::message::WorkUnitStatus::NONE;
+    static const Status STEPS_FINISHED = lm::message::WorkUnitStatus::STEPS_FINISHED;
+    static const Status LIMIT_REACHED = lm::message::WorkUnitStatus::LIMIT_REACHED;
+    static const Status ERROR = lm::message::WorkUnitStatus::ERROR;
 };
 
 #endif /* ENUMHELPER_H */

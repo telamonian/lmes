@@ -162,8 +162,8 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
 
     // Get the interval for writing degree advancements.
     double nextDegreeAdvancementWriteTime;
-    vector<int32_t> degreeAdvancementTimeSeriesCounts;
-    vector<double> degreeAdvancementTimeSeriesTimes;
+    vector<uint64_t> degreeAdvancementsCounts;
+    vector<double> degreeAdvancementsTimes;
     if (writeDegreeAdvancementTimeSeries)
     {
         nextDegreeAdvancementWriteTime = ceil(time/degreeAdvancementWriteInterval)*degreeAdvancementWriteInterval;
@@ -239,6 +239,19 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
             limitIDReached = lm::trajectory::TrajectoryLimits::TIME_LIMIT_ID;
             limitTypeReached = lm::input::TrajectoryLimit::TIME;
             break;
+        }
+
+        // If we are writing degree advancement time steps, write out any degree advancement time steps before this event occurred.
+        if (writeDegreeAdvancementTimeSeries)
+        {
+            // Write degree advancement time steps until the next write time is past the current time.
+            while (nextDegreeAdvancementWriteTime <= (time+EPS))
+            {
+                // Record the degree advancements.
+                for (uint i=0; i<reactionModel->numberReactions; i++) degreeAdvancementsCounts.push_back(degreeAdvancements[i]);
+                degreeAdvancementsTimes.push_back(nextDegreeAdvancementWriteTime);
+                nextDegreeAdvancementWriteTime += degreeAdvancementWriteInterval;
+            }
         }
 
         // If we are writing order parameter time steps, write out any order parameter time steps before this event occurred.
@@ -333,6 +346,19 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     {
         time = timeLimit;
         Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);
+
+        if (writeDegreeAdvancementTimeSeries && !ffluxFlag)
+        {
+            // Write degree advancement time steps until the next write time is past the current time.
+            while (nextDegreeAdvancementWriteTime <= (time+EPS))
+            {
+                // Record the degree advancements.
+                for (uint i=0; i<reactionModel->numberReactions; i++) degreeAdvancementsCounts.push_back(degreeAdvancements[i]);
+                degreeAdvancementsTimes.push_back(nextDegreeAdvancementWriteTime);
+                nextDegreeAdvancementWriteTime += degreeAdvancementWriteInterval;
+            }
+        }
+
         if (writeOrderParameterTimeSeries && !ffluxFlag)
         {
             // Write order parameter time steps until the next write time is past the current time.
@@ -357,14 +383,21 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         }
     }
 
-    // Otherwise we must have finished because of a species/order parameter limit, so just write out the last time.
+    // Otherwise we must have finished because of a state (eg species, order parameter, etc) limit, so just write out the last time.
     else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED)
     {
+        // Record the degree advancement counts.
+        if (writeDegreeAdvancementTimeSeries && !ffluxFlag)
+        {
+            for (uint i=0; i<numberDegreeAdvancements; i++) degreeAdvancementsCounts.push_back(degreeAdvancements[i]);
+            degreeAdvancementsTimes.push_back(time);
+        }
+
         // Record the order parameter counts.
         if (writeOrderParameterTimeSeries && !ffluxFlag)
         {
             for (uint i=0; i<numberOrderParameters; i++) orderParameterTimeSeriesCounts.push_back(orderParameterValues[i]);
-            orderParameterTimeSeriesTimes.push_back(nextOrderParameterWriteTime);
+            orderParameterTimeSeriesTimes.push_back(time);
         }
 
         // Record the species counts.
@@ -375,6 +408,50 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         }
     }
 
+    // If we have any degree advancement time series data, add them to the output message.
+    if (degreeAdvancementsCounts.size() > 0 || degreeAdvancementsTimes.size() > 0)
+    {
+        // Make sure the arrays are of a consistent size.
+        if (degreeAdvancementsCounts.size() == degreeAdvancementsTimes.size()*numberDegreeAdvancements)
+        {
+            lm::io::DegreeAdvancementTimeSeries* degAdvTSMsg = msg->mutable_degree_advancement_time_series();
+            degAdvTSMsg->set_trajectory_id(trajectoryId);
+
+            opCounts.setMsg(degAdvTSMsg->mutable_counts());
+            opCounts.set_array(degreeAdvancementsCounts, utuple(degreeAdvancementsTimes.size(), numberDegreeAdvancements), true);
+
+            opTimes.setMsg(degAdvTSMsg->mutable_times());
+            opTimes.set_array(degreeAdvancementsTimes, true);
+            createdOutput = true;
+        }
+        else
+        {
+            Print::printf(Print::ERROR, "Order parameter time series counts and time mismatch %d,%d,%d", degreeAdvancementsCounts.size(), numberDegreeAdvancements, degreeAdvancementsTimes.size());
+        }
+    }
+    
+//    // If we have any order parameter time series data, add them to the output message.
+//    if (orderParameterTimeSeriesCounts.size() > 0 || orderParameterTimeSeriesTimes.size() > 0)
+//    {
+//        // Make sure the arrays are of a consistent size.
+//        if (orderParameterTimeSeriesCounts.size() == orderParameterTimeSeriesTimes.size()*numberOrderParameters)
+//        {
+//            lm::io::OrderParameterTimeSeries* orderParameterTimeSeriesDataSet = msg->mutable_order_parameter_time_series();
+//            orderParameterTimeSeriesDataSet->set_trajectory_id(trajectoryId);
+//
+//            opCounts.setMsg(orderParameterTimeSeriesDataSet->mutable_values());
+//            opCounts.set_array(orderParameterTimeSeriesCounts, utuple(orderParameterTimeSeriesTimes.size(), numberOrderParameters), true);
+//
+//            opTimes.setMsg(orderParameterTimeSeriesDataSet->mutable_times());
+//            opTimes.set_array(orderParameterTimeSeriesTimes, true);
+//            createdOutput = true;
+//        }
+//        else
+//        {
+//            Print::printf(Print::ERROR, "Order parameter time series counts and time mismatch %d,%d,%d", orderParameterTimeSeriesCounts.size(), numberOrderParameters, orderParameterTimeSeriesTimes.size());
+//        }
+//    }
+    
     // If we have any species time series data, add them to the output message.
     if (speciesTimeSeriesCounts.size() > 0 || speciesTimeSeriesTimes.size() > 0)
     {
@@ -412,28 +489,6 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         }
     }
 
-    // If we have any order parameter time series data, add them to the output message.
-    if (orderParameterTimeSeriesCounts.size() > 0 || orderParameterTimeSeriesTimes.size() > 0)
-    {
-        // Make sure the arrays are of a consistent size.
-        if (orderParameterTimeSeriesCounts.size() == orderParameterTimeSeriesTimes.size()*numberOrderParameters)
-        {
-            lm::io::OrderParameterTimeSeries* orderParameterTimeSeriesDataSet = msg->mutable_order_parameter_time_series();
-            orderParameterTimeSeriesDataSet->set_trajectory_id(trajectoryId);
-
-            opCounts.setMsgPtr(orderParameterTimeSeriesDataSet->mutable_values());
-            opCounts.set_array(orderParameterTimeSeriesCounts, utuple(orderParameterTimeSeriesTimes.size(), numberOrderParameters), true);
-
-            opTimes.setMsgPtr(orderParameterTimeSeriesDataSet->mutable_times());
-            opTimes.set_array(orderParameterTimeSeriesTimes, true);
-            createdOutput = true;
-        }
-        else
-        {
-            Print::printf(Print::ERROR, "Order parameter time series counts and time mismatch %d,%d,%d", orderParameterTimeSeriesCounts.size(), numberOrderParameters, orderParameterTimeSeriesTimes.size());
-        }
-    }
-
     // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
     if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFptTrackedSpecies > 0)
     {
@@ -449,9 +504,22 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     {
         for (int i=0; i<numberFptTrackedOrderParameters; i++)
         {
-            fptTrackedOrderParameters[i].serializeTo(trajectoryId, msg->add_order_parameter_first_passage_times());
+            fptTrackedOrderParameters[i].serializeTo(msg->add_order_parameter_first_passage_times(), trajectoryId);
         }
         createdOutput = true;
+    }
+
+    // If any limit tracking is set up to write out to disk, add them to the output message.
+    if (trackedLimits.size() > 0)
+    {
+        for (TrackingMapT::const_iterator it=trackedLimits.begin();it!=trackedLimits.end();it++)
+        {
+            if (it->second.recordingOption==LimTrackEnums::OUTPUT_TO_DISK or it->second.recordingOption==LimTrackEnums::BOTH)
+            {
+                it->second.serializeTo(trajectoryId, msg->add_limit_tracking());
+                createdOutput = true;
+            }
+        }
     }
 
     // If the output message has any data, send it.

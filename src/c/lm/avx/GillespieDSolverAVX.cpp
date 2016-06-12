@@ -884,7 +884,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
             for (int j=0; j<numberFptOPValues; j++)
             {
                 int dataIndex = j*DOUBLES_PER_AVX+i;
-                fptTrackedOrderParameters[j].serializeTo(trajectoryId[i], output[i]->add_order_parameter_first_passage_times(), fptOPValues[dataIndex], fptOPTimes[dataIndex]);
+                fptTrackedOrderParameters[j].serializeTo(output[i]->add_order_parameter_first_passage_times(), trajectoryId[i], fptOPValues[dataIndex], fptOPTimes[dataIndex]);
             }
             createdOutput = true;
         }
