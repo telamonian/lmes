@@ -20,6 +20,7 @@
  * Author(s): Elijah Roberts
  */
 
+#include <limits>
 #include <map>
 #include <string>
 
@@ -62,15 +63,15 @@ void* MicroenvironmentSupervisor::allocateObject()
 }
 
 MicroenvironmentSupervisor::MicroenvironmentSupervisor()
-:simulationStartTime(0),numberReplicates(::replicates.size()),currentReplicateIndex(0),numberTimesteps(0),currentTimestep(0),
+:simulationStartTime(0),numberReplicates(::replicates.size()),currentReplicateIndex(0),numberTimesteps(0),currentTimestep(0),tau(0.01),
 pdeSlots(&communicator),pdeSolverClassName(""),pdeTrajectoryList(NULL),
 stats_pdeWorkUnitsSteps(0),stats_pdeWorkUnitsTime(0.0)
 {
-#ifdef OPT_AVX
-    pdeSolverClassName = "lm::avx::ExplicitFiniteDifferenceSolverAVX";
-#else
+//#ifdef OPT_AVX
+//    pdeSolverClassName = "lm::avx::ExplicitFiniteDifferenceSolverAVX";
+//#else
     pdeSolverClassName = "lm::pde::ExplicitFiniteDifferenceSolver";
-#endif
+//#endif
 }
 
 MicroenvironmentSupervisor::~MicroenvironmentSupervisor()
@@ -140,10 +141,6 @@ void MicroenvironmentSupervisor::startNewReplicate()
 {
     // Create the new trajectory lists.
     buildTrajectoryList();
-
-    // Create a new diffusion grid.
-
-    // Run the diffusion solver for a timestep.
 }
 
 void MicroenvironmentSupervisor::continueCurrentReplicate()
@@ -153,8 +150,7 @@ void MicroenvironmentSupervisor::continueCurrentReplicate()
     // Reconcile the cells and the diffusion grid.
 
     // Update the trajectory list to run for another timestep.
-
-    // Run the diffusion solver for another timestep.
+    pdeTrajectoryList->restartFinishedTrajectories();
 }
 
 void MicroenvironmentSupervisor::buildTrajectoryList()
@@ -230,26 +226,22 @@ bool MicroenvironmentSupervisor::assignWork()
     // Go though the available slots and fill them with work units.
     while (true)
     {
+        // Create the run work unit message.
+        lm::message::Message msg;
+
         // Assign any work, if we can.
         if (pdeSlots.hasFreeSlots() && pdeTrajectoryList->areAnyWaiting())
         {
-            printf("Running pde work unit\n");
+            // Build the run work units message.
+            buildRunWorkUnit(msg.mutable_run_work_unit(), false);
+
+            // Run the work unit.
+            pdeSlots.runWorkUnit(&msg);
         }
         else if (slots.hasFreeSlots() && trajectoryList->areAnyWaiting())
         {
-            // Create the run work unit message.
-            lm::message::Message msg;
-            lm::message::RunWorkUnit* rwuMsg = msg.mutable_run_work_unit();
-
             // Build the run work units message.
-            buildRunWorkUnitHeader(rwuMsg);
-
-            // Get the free slot.
-            const lm::slot::Slot slot = slots.getFreeSlot();
-
-            // Build the work unit parts.
-            buildRunWorkUnitParts(rwuMsg, slot.getSimultaneousWorkUnits());
-            if (rwuMsg->part_size() == 0) throw Exception("consistency error in MicroenvironmentSupervisor::assignWork, the work unit had no parts");
+            buildRunWorkUnit(msg.mutable_run_work_unit(), true);
 
             // Run the work unit.
             slots.runWorkUnit(&msg);
@@ -259,6 +251,40 @@ bool MicroenvironmentSupervisor::assignWork()
             // Return if we are done with all the work yet.
             return (pdeTrajectoryList->areAllFinished() && trajectoryList->areAllFinished());
         }
+    }
+}
+
+void MicroenvironmentSupervisor::buildRunWorkUnit(lm::message::RunWorkUnit* msg, bool me)
+{
+    // Set the work unit id.
+    msg->set_work_unit_id(workUnitCount++);
+
+    // Set the source process/thread.
+    msg->set_supervisor_process(communicator.getSourceProcess());
+    msg->set_supervisor_thread(communicator.getSourceThread());
+
+    // Set the writer process/thread.
+    msg->set_output_process(outputWriterProcess);
+    msg->set_output_thread(outputWriterThread);
+
+    // Set the output options.
+    msg->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());
+
+    if (me)
+    {
+    }
+    else
+    {
+        // Set the limits.
+        msg->mutable_trajectory_limits()->mutable_time_limit()->set_limit_type(lm::io::TrajectoryLimits::TIME);
+        msg->mutable_trajectory_limits()->mutable_time_limit()->set_stopping_condition(lm::io::TrajectoryLimits::MAX);
+        msg->mutable_trajectory_limits()->mutable_time_limit()->set_dvalue((currentTimestep+1)*tau);
+
+        // Set the maximum number of steps for the work unit.
+        msg->set_max_steps(1000);
+
+        // Add the parts.
+        pdeTrajectoryList->addWorkUnitParts(msg->work_unit_id(), msg, 1);
     }
 }
 
@@ -290,13 +316,13 @@ void MicroenvironmentSupervisor::printPerformanceStatistics(bool flush)
 {
     // See if we should display and reset the performance stats.
     hrtime currentTime = getHrTime();
-    if (flush || convertHrToSeconds(currentTime-stats_lastPrintTime) > 60.0)
+    if (flush || convertHrToSeconds(currentTime-stats_lastPrintTime) > 0.0)
     {
         if (stats_workUnits > 0)
         {
             Print::printf(Print::INFO, "Finished %lld work units (ids in range %lld to %lld) with %lld parts in the last %0.1f seconds.",stats_workUnits,stats_minWorkUnitId,stats_maxWorkUnitId,stats_workUnitsParts,convertHrToSeconds(currentTime-stats_lastPrintTime));
             if (stats_workUnitsSteps > 0) Print::printf(Print::INFO, "ME solvers performed %lld steps in %0.3e seconds (%0.3e steps/second).", stats_workUnitsSteps, stats_workUnitTime, double(stats_workUnitsSteps)/stats_workUnitTime);
-            if (stats_pdeWorkUnitsSteps > 0) Print::printf(Print::INFO, "PDEE solvers performed %lld steps in %0.3e seconds (%0.3e steps/second).", stats_pdeWorkUnitsSteps, stats_pdeWorkUnitsTime, double(stats_pdeWorkUnitsSteps)/stats_pdeWorkUnitsTime);
+            if (stats_pdeWorkUnitsSteps > 0) Print::printf(Print::INFO, "PDE solvers performed %lld steps in %0.3e seconds (%0.3e steps/second).", stats_pdeWorkUnitsSteps, stats_pdeWorkUnitsTime, double(stats_pdeWorkUnitsSteps)/stats_pdeWorkUnitsTime);
         }
         stats_lastPrintTime = currentTime;
         resetPerformanceStatistics();

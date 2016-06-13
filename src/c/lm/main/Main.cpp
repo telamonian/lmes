@@ -778,7 +778,7 @@ void printUsage(int argc, char** argv)
     s.setState(state);
 
     hrtime start = getHrTime();
-    long long steps = s.generateTrajectory(100000000);
+    uint64_t steps = s.generateTrajectory(100000000ULL);
     hrtime stop = getHrTime();
     printf("Performed %lld steps in %0.3f seconds (%0.4e steps/second)\n",steps,convertHrToSeconds(stop-start),double(steps)/convertHrToSeconds(stop-start));
    */

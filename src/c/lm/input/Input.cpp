@@ -213,6 +213,10 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         ndarray<double> grid(utuple(1,5000,5000), DOUBLES_PER_AVX*sizeof(double));
         grid[utuple(grid.shape[0]/2,grid.shape[1]/2,grid.shape[2]/2)] = 1.0e-6;
         robertslab::pbuf::NDArraySerializer::serializeInto<double>(c, grid);
+
+        // TODO: Set some concentrations output also for testing purposes, remove later.
+        outputOptionsPresent = true;
+        outputOptions.set_concentrations_write_interval(0.1);
     }
 }
 

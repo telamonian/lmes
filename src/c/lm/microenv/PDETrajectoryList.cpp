@@ -40,13 +40,13 @@
 using std::map;
 using std::string;
 
-
+using lm::trajectory::Trajectory;
 
 namespace lm {
 namespace microenv {
 
 PDETrajectoryList::PDETrajectoryList(const lm::input::Input& input, uint64_t replicate)
-:replicate(replicate)
+:replicate(replicate),stats_lastPrintTime(getHrTime())
 {
     trajectories[replicate] = new lm::trajectory::Trajectory(replicate, getSimulationPhase(), input, false, false, false, true);
     waitingTrajectories[replicate] = trajectories[replicate];
@@ -54,6 +54,53 @@ PDETrajectoryList::PDETrajectoryList(const lm::input::Input& input, uint64_t rep
 
 PDETrajectoryList::~PDETrajectoryList()
 {
+}
+
+uint64_t PDETrajectoryList::findNextTrajectoryToRun() const
+{
+    uint64_t minId=std::numeric_limits<uint64_t>::max();
+    double minTime=std::numeric_limits<double>::infinity();
+    for (TrajectoryMap::const_iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
+    {
+        lm::trajectory::Trajectory* t = it->second;
+        double time = t->getState().diffusion_pde_state().time();
+        if (time < minTime)
+        {
+            minTime = time;
+            minId = it->first;
+        }
+    }
+
+    if (minId == std::numeric_limits<uint64_t>::max())
+    {
+        for (TrajectoryMap::const_iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
+        {
+            it->second->getState().PrintDebugString();
+        }
+        throw Exception("Consistency error in PDETrajectoryList, no next trajectory found",minId,waitingTrajectories.size());
+    }
+
+    return minId;
+}
+
+void PDETrajectoryList::printTrajectoryStatistics() const
+{
+    // Print some performance statistics, if it has been a while.
+    hrtime currentTime = getHrTime();
+    if (convertHrToSeconds(currentTime-stats_lastPrintTime) > 0.0)
+    {
+        const std::string statusStrings[] = {"ABORTED", "FINISHED", "NOT_STARTED", "RUNNING", "WAITING"};
+        Print::printf(Print::INFO, "Trajectory status");
+        Print::printf(Print::INFO, "        ID State       Time     Work_Units");
+        Print::printf(Print::INFO, "------------------------------------------");
+        for (TrajectoryMap::const_iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+        {
+            uint64_t id = it->first;
+            lm::trajectory::Trajectory* t = it->second;
+            Print::printf(Print::INFO, "%10lld %-11s %8.2e %10d", id, statusStrings[(int)t->getStatus()].c_str(), t->getState().diffusion_pde_state().time(), t->getWorkUnitsPerformed());
+        }
+        stats_lastPrintTime = getHrTime();
+    }
 }
 
 }

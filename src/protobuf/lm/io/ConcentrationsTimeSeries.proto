@@ -20,33 +20,13 @@
  * Author(s): Elijah Roberts
  */
 
-#ifdef OPT_AVX
+package lm.io;
 
-#ifndef LM_AVX_EXPLICITFINITEDIFFERENCESOLVERAVX_H
-#define LM_AVX_EXPLICITFINITEDIFFERENCESOLVERAVX_H
+import "robertslab/pbuf/NDArray.proto";
 
-#include "lm/pde/DiffusionPDESolver.h"
-#include "lm/pde/ExplicitFiniteDifferenceSolver.h"
-
-namespace lm {
-namespace avx {
-
-class ExplicitFiniteDifferenceSolverAVX : public lm::pde::ExplicitFiniteDifferenceSolver
-{
-public:
-    static bool registered;
-    static bool registerClass();
-    static void* allocateObject();
-
-public:
-    ExplicitFiniteDifferenceSolverAVX();
-    virtual ~ExplicitFiniteDifferenceSolverAVX();
-    virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0);
-    virtual uint64_t generateTrajectory(uint64_t maxSteps);
-};
-
+message ConcentrationsTimeSeries {
+    required uint64 trajectory_id                             = 1;
+    repeated int32 species_ids                                = 2;
+    repeated robertslab.pbuf.NDArray concentrations           = 3;    //3D; i=x,j=y,k=z; type=float64
+    required robertslab.pbuf.NDArray times                    = 4;    //1D; rows=times; type=float64
 }
-}
-
-#endif // LM_AVX_EXPLICITFINITEDIFFERENCESOLVERAVX_H
-#endif

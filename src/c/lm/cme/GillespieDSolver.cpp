@@ -134,7 +134,7 @@ void GillespieDSolver::setState(const lm::io::TrajectoryState& state, uint traje
     updateAllPropensities();
 }
 
-long long GillespieDSolver::generateTrajectory(long long maxSteps)
+uint64_t GillespieDSolver::generateTrajectory(uint64_t maxSteps)
 {
     if (reactionModel == NULL) throw Exception("GillespieDSolver did not have a reaction model.");
     if (propensities == NULL) throw Exception("GillespieDSolver state was not initialized.");
@@ -197,7 +197,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     // Run the direct method.
     Print::printf(Print::DEBUG, "Running Gillespie direct simulation for %d steps with %d species, %d reactions, %d species limits\n", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberLimits);
     PROF_BEGIN(PROF_SIM_EXECUTE);
-    long long steps=0;
+    uint64_t steps=0;
     while (true)
     {
         // See if we have finished the steps.

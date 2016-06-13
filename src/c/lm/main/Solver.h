@@ -70,7 +70,7 @@ public:
     virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0)=0;
     virtual lm::message::WorkUnitOutput* getOutput(uint trajectoryNumber=0)=0;
     virtual lm::message::WorkUnitStatus::Status getStatus(uint trajectoryNumber=0)=0;
-    virtual long long generateTrajectory(long long maxSteps)=0;
+    virtual uint64_t generateTrajectory(uint64_t maxSteps)=0;
 
 protected:
     bool isTrajectoryOutsideLimits();

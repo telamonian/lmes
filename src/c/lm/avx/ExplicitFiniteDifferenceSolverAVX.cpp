@@ -66,7 +66,7 @@ void ExplicitFiniteDifferenceSolverAVX::setState(const lm::io::TrajectoryState& 
     if (grid->shape[2]%DOUBLES_PER_AVX != 0) throw lm::InvalidArgException("grid", "the grid z dimension was not evenly divisible by the AVX register size for ExplicitFiniteDifferenceSolverAVX", grid->shape[2]);
 }
 
-long long ExplicitFiniteDifferenceSolverAVX::generateTrajectory(long long maxSteps)
+uint64_t ExplicitFiniteDifferenceSolverAVX::generateTrajectory(uint64_t maxSteps)
 {
     if (grid->alignment != DOUBLES_PER_AVX*sizeof(double)) throw lm::InvalidArgException("grid", "the grid memory was not aligned correctly for ExplicitFiniteDifferenceSolverAVX", grid->alignment);
 
@@ -88,7 +88,7 @@ long long ExplicitFiniteDifferenceSolverAVX::generateTrajectory(long long maxSte
     double* cFuture = grid2;
 
     // Go through the requested steps.
-    long long steps=0;
+    uint64_t steps=0;
     status = lm::message::WorkUnitStatus::STEPS_FINISHED;
     const avxd m6v = _mm256_set1_pd(-6.0);
     while (steps < maxSteps)

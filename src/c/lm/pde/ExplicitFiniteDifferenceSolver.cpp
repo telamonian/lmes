@@ -23,16 +23,21 @@
 #include <cassert>
 #include <cmath>
 #include <limits>
+#include <vector>
 
 #include "hrtime.h"
 #include "lm/ClassFactory.h"
 #include "lm/Exceptions.h"
+#include "lm/Math.h"
 #include "lm/Types.h"
+#include "lm/io/ConcentrationsTimeSeries.pb.h"
 #include "lm/message/WorkUnitOutput.pb.h"
 #include "lm/message/WorkUnitStatus.pb.h"
 #include "lm/pde/ExplicitFiniteDifferenceSolver.h"
 #include "robertslab/Types.h"
 #include "robertslab/pbuf/NDArraySerializer.h"
+
+using std::vector;
 
 namespace lm {
 namespace pde {
@@ -51,7 +56,9 @@ void* ExplicitFiniteDifferenceSolver::allocateObject()
 }
 
 ExplicitFiniteDifferenceSolver::ExplicitFiniteDifferenceSolver()
-:D(0.0),dx(0.0),dt(0.0),output(new lm::message::WorkUnitOutput()),status(lm::message::WorkUnitStatus::NONE),
+:D(0.0),dx(0.0),dt(0.0),
+output(new lm::message::WorkUnitOutput()),writeConcentrationsTimeSeries(false),concentrationsWriteInterval(0.0),
+status(lm::message::WorkUnitStatus::NONE),trajectoryId(std::numeric_limits<uint64_t>::max()),previouslyStarted(false),
 time(0.0),timeLimit(std::numeric_limits<double>::infinity()),grid(NULL)
 {
 }
@@ -95,6 +102,11 @@ void ExplicitFiniteDifferenceSolver::setLimits(const lm::io::TrajectoryLimits& l
 
 void ExplicitFiniteDifferenceSolver::setOutputOptions(const lm::io::OutputOptions& outputOptions)
 {
+    if (outputOptions.has_concentrations_write_interval())
+    {
+        writeConcentrationsTimeSeries = true;
+        concentrationsWriteInterval = outputOptions.concentrations_write_interval();
+    }
 }
 
 void ExplicitFiniteDifferenceSolver::reset()
@@ -105,6 +117,8 @@ void ExplicitFiniteDifferenceSolver::reset()
 
     // Reset the status.
     status = lm::message::WorkUnitStatus::NONE;
+    trajectoryId = std::numeric_limits<uint64_t>::max();
+    previouslyStarted = false;
 
     // Reset the time and time limit.
     time = 0.0;
@@ -120,12 +134,18 @@ void ExplicitFiniteDifferenceSolver::getState(lm::io::TrajectoryState* state, ui
 
     // Save the state into the message.
     state->mutable_diffusion_pde_state()->set_time(time);
-    robertslab::pbuf::NDArraySerializer::serializeInto<double>(state->mutable_diffusion_pde_state()->mutable_concentrations(0), *grid);
+    robertslab::pbuf::NDArraySerializer::serializeInto<double>(state->mutable_diffusion_pde_state()->add_concentrations(), *grid);
 }
 
 void ExplicitFiniteDifferenceSolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNumber)
 {
     if (trajectoryNumber > 0) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
+
+    // Load the trajectory id.
+    trajectoryId = state.trajectory_id();
+
+    // Load the previously started flag.
+    previouslyStarted = state.trajectory_started();
 
     // Load the state from the message.
     time = state.diffusion_pde_state().time();
@@ -152,7 +172,7 @@ lm::message::WorkUnitStatus::Status ExplicitFiniteDifferenceSolver::getStatus(ui
     return status;
 }
 
-long long ExplicitFiniteDifferenceSolver::generateTrajectory(long long maxSteps)
+uint64_t ExplicitFiniteDifferenceSolver::generateTrajectory(uint64_t maxSteps)
 {
     // Get the grid dimensions in various forms.
     const int ilen=(int)grid->shape[0];
@@ -171,11 +191,32 @@ long long ExplicitFiniteDifferenceSolver::generateTrajectory(long long maxSteps)
     double* c = grid->values;
     double* cFuture = grid2;
 
+    // If we are writing time steps, create the data set.
+    vector<ndarray<double> > concentrationsTimeSeriesGrids;
+    vector<double> concentrationsTimeSeriesTimes;
+    double nextConcentrationsWriteTime=std::numeric_limits<double>::infinity();
+    if (writeConcentrationsTimeSeries)
+    {
+        // If this is the start of the trajectory, add the initial counts.
+        if (!previouslyStarted)
+        {
+            nextConcentrationsWriteTime=time+concentrationsWriteInterval;
+            concentrationsTimeSeriesGrids.push_back(*grid);
+            concentrationsTimeSeriesTimes.push_back(time);
+        }
+        else
+        {
+            nextConcentrationsWriteTime = ceil(time/concentrationsWriteInterval)*concentrationsWriteInterval;
+        }
+    }
+
     // Go through the requested steps.
-    long long steps=0;
+    uint64_t steps=0;
     status = lm::message::WorkUnitStatus::STEPS_FINISHED;
     while (steps < maxSteps)
     {
+        printf("Solving PDE step %lld of max %lld, time %e of %e\n",steps,maxSteps,time,timeLimit);
+
         // If we have less than a full dt left, adjust tau.
         double tau = (time+dt<=timeLimit)?(dt):(timeLimit-time);
 
@@ -202,6 +243,19 @@ long long ExplicitFiniteDifferenceSolver::generateTrajectory(long long maxSteps)
         steps++;
         time += tau;
 
+        // If we are writing  time steps, write out any time steps that occurred during this step.
+        if (writeConcentrationsTimeSeries)
+        {
+            // Write time steps until the next write time is past the current time.
+            while (nextConcentrationsWriteTime <= (time+EPS))
+            {
+                // Record the concentrations.
+                concentrationsTimeSeriesGrids.push_back(*grid);
+                concentrationsTimeSeriesTimes.push_back(nextConcentrationsWriteTime);
+                nextConcentrationsWriteTime += concentrationsWriteInterval;
+            }
+        }
+
         // See if we are done with the time.
         if (time >= timeLimit)
         {
@@ -221,6 +275,29 @@ long long ExplicitFiniteDifferenceSolver::generateTrajectory(long long maxSteps)
     // Save the final results, if it is not already in the grid.
     if (grid->values != cFuture)
         memcpy(grid->values, cFuture, grid->size*sizeof(double));
+
+    // If we have any time series data, add them to the output message.
+    if (concentrationsTimeSeriesGrids.size() > 0 || concentrationsTimeSeriesTimes.size() > 0)
+    {
+        // Mark that the message does contain some data.
+        output->set_has_output(true);
+
+        // Make sure the arrays are of a consistent size.
+        int numberSpecies=1;
+        if (concentrationsTimeSeriesGrids.size() == concentrationsTimeSeriesTimes.size()*numberSpecies)
+        {
+            lm::io::ConcentrationsTimeSeries* c = output->mutable_concentrations_time_series();
+            c->set_trajectory_id(trajectoryId);
+            c->add_species_ids(0);
+            for (int i=0; i<concentrationsTimeSeriesGrids.size(); i++)
+                robertslab::pbuf::NDArraySerializer::serializeInto<double>(c->add_concentrations(), concentrationsTimeSeriesGrids[i]);
+            robertslab::pbuf::NDArraySerializer::serializeInto<double>(c->mutable_times(), concentrationsTimeSeriesTimes.data(), utuple(concentrationsTimeSeriesTimes.size()));
+        }
+        else
+        {
+            throw lm::RuntimeException("mismiatch between number of times and number of concentration grids");
+        }
+    }
 
     // Free the second grid memory.
     free(grid2);

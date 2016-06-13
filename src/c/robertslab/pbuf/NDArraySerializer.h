@@ -118,9 +118,9 @@ public:
         // See if we need to decompress the data.
         if (msg.compressed_deflate())
         {
-            size_t tmpBufferSize = array->size*sizeof(T)*sizeof(T);
+            size_t tmpBufferSize = array->size*sizeof(T);
             RL_ZLIB_EXCEPTION_CHECK(uncompress((unsigned char *)array->values, &tmpBufferSize, (unsigned char*)&(msg.data()[0]), msg.data().size()));
-            if (tmpBufferSize != array->size*sizeof(T)*sizeof(T))
+            if (tmpBufferSize != array->size*sizeof(T))
                 throw robertslab::Exception("error during ndarray inflate deserialization, wrong number of bytes decompressed", tmpBufferSize, array->size*sizeof(T)*sizeof(T));
 
         }

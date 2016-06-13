@@ -45,6 +45,8 @@
 #include "lm/io/ConsoleOutputWriter.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
+#include "robertslab/Types.h"
+#include "robertslab/pbuf/NDArraySerializer.h"
 
 
 namespace lm {
@@ -222,6 +224,27 @@ void ConsoleOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeri
     // Print the output to stdout.
     Print::printf(Print::INFO, "ConsoleOutputWriter received lattice time series for trajectory %d:\n%s",data.trajectory_id(),buffer);
 }
+
+void ConsoleOutputWriter::processConcentrationsTimeSeries(const lm::io::ConcentrationsTimeSeries& data)
+{
+    // Print the output into the buffer.
+    memset(buffer, 0, BUFFER_SIZE+1);
+    int offset=snprintf(buffer,BUFFER_SIZE,"--------------------------------------------------------------------------------\n");
+    ndarray<double>* times=robertslab::pbuf::NDArraySerializer::deserialize<double>(data.times());
+    for (int i=0, index=0; i<(*times).shape[0]; i++)
+    {
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%10.3f:",(*times)[utuple(i)]);
+        for (int j=0; j<data.species_ids().size(); j++, index++)
+            offset+=snprintf(buffer+offset,BUFFER_SIZE-offset," ndarray<%d,%d,%d>=%lu bytes",data.concentrations(index).shape(0),data.concentrations(index).shape(1),data.concentrations(index).shape(2),data.concentrations(index).data().size());
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"\n");
+    }
+    delete times;
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"--------------------------------------------------------------------------------");
+
+    // Print the output to stdout.
+    Print::printf(Print::INFO, "ConsoleOutputWriter received concentration time series for trajectory %d:\n%s",data.trajectory_id(),buffer);
+}
+
 
 void ConsoleOutputWriter::flush()
 {

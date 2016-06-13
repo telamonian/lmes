@@ -62,22 +62,14 @@ using std::vector;
 namespace lm {
 namespace trajectory {
 
-const char *trajectoryStatusStrings[] =
-{
-    "NOT_STARTED",
-    "RUNNING",
-    "WAITING",
-    "FINISHED"
-};
-
 Trajectory::Trajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryState& initialState)
-:id(static_cast<uint>(-1)),simulationPhase(phase),status(NOT_STARTED),state(initialState),numberWorkUnitsPerformed(0)
+:id(static_cast<uint>(-1)),numberWorkUnitsPerformed(0),simulationPhase(phase),state(initialState),status(NOT_STARTED)
 {
     setID(id);
 }
 
 Trajectory::Trajectory(uint64_t id, uint64_t phase, const lm::input::Input& input, bool reversed, bool useCMEState, bool useRDMEState, bool useDiffusionPDEState)
-:id(id),simulationPhase(phase),status(NOT_STARTED),state(),numberWorkUnitsPerformed(0)
+:id(id),numberWorkUnitsPerformed(0),simulationPhase(phase),state(),status(NOT_STARTED)
 {
     initializeState(input, reversed, useCMEState, useRDMEState, useDiffusionPDEState);
 }
@@ -312,12 +304,6 @@ const lm::io::TrajectoryState& Trajectory::getState() const
 int64_t Trajectory::getWorkUnitsPerformed() const
 {
     return numberWorkUnitsPerformed;
-}
-
-// debug helper function for printing trajectory status to stdout
-void Trajectory::printStatus() const
-{
-    printf("trajectory ID: %d has status: %s\n", id, trajectoryStatusStrings[getStatus()]);
 }
 
 // mutators

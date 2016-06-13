@@ -390,7 +390,7 @@ lm::message::WorkUnitStatus::Status GillespieDSolverAVX::getStatus(uint trajecto
     return status[trajectoryNumber];
 }
 
-long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
+uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
 {
     // See how many trajectories were initialized.
     uint numberInitialized=0;
@@ -401,7 +401,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
     // If any trajectories were not initialized, run them all with the base Gillespie solver.
     if (numberInitialized != DOUBLES_PER_AVX)
     {
-        long long steps=0;
+        uint64_t steps=0;
         for (int i=0; i<DOUBLES_PER_AVX; i++)
         {
             if (initialized[i])
@@ -474,7 +474,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
     // Run the direct method.
     Print::printf(Print::DEBUG, "Running Gillespie direct AVX simulation for %d steps with %d species, %d reactions, %d species limits\n", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberLimits);
     PROF_BEGIN(PROF_SIM_EXECUTE);
-    long long steps=0;
+    uint64_t steps=0;
     int allFalse;
     int trueMask;
     avxd comp;

@@ -89,6 +89,7 @@ public:
     virtual TrajectoryMap* mutableTrajectoryMapFromStatus(Trajectory::status_t status);
     virtual void setSimulationPhase(uint64_t newPhase) {simulationPhase = newPhase;}
     virtual void setAll(Trajectory::status_t oldStatus, Trajectory::status_t newStatus);
+    virtual void restartFinishedTrajectories();
     virtual void setTrajectoryAborted(lm::trajectory::Trajectory* traj);
     virtual void setTrajectoryFinished(lm::trajectory::Trajectory* traj);
     virtual void setTrajectoryRunning(lm::trajectory::Trajectory* traj);

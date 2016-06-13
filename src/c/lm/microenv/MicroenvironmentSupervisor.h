@@ -76,6 +76,7 @@ protected:
 protected:
     virtual void startNewReplicate();
     virtual void continueCurrentReplicate();
+    virtual void buildRunWorkUnit(lm::message::RunWorkUnit* msg, bool me=true);
 
 protected:
     virtual void printPerformanceStatistics(bool flush=false);
@@ -87,6 +88,7 @@ protected:
     uint currentReplicateIndex;
     uint numberTimesteps;
     uint currentTimestep;
+    double tau;
     lm::slot::SlotList pdeSlots;
     std::string pdeSolverClassName;
     lm::trajectory::TrajectoryList* pdeTrajectoryList;

@@ -77,7 +77,6 @@ public:
     virtual const lm::io::TrajectoryState& getState() const;
     virtual status_t getStatus() const;
     virtual int64_t getWorkUnitsPerformed() const;
-    virtual void printStatus() const;
 
     // mutators
     virtual double* getLastOrderParameterValuesMutable();

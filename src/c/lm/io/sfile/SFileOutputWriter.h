@@ -76,6 +76,7 @@ protected:
     virtual void processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data);
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
     virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data);
+    virtual void processConcentrationsTimeSeries(const lm::io::ConcentrationsTimeSeries& data);
     virtual void flush();
     virtual void checkpoint();
 

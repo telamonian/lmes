@@ -27,11 +27,11 @@
 #include <string>
 
 #include "hrtime.h"
+#include "lm/Types.h"
 #include "lm/input/Input.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Message.pb.h"
-#include "lm/replicates/ReplicateTrajectoryList.h"
-#include "lm/Types.h"
+#include "lm/trajectory/TrajectoryList.h"
 
 using std::map;
 using lm::trajectory::TrajectoryList;
@@ -39,7 +39,7 @@ using lm::trajectory::TrajectoryList;
 namespace lm {
 namespace microenv {
 
-class PDETrajectoryList : public lm::replicates::ReplicateTrajectoryList
+class PDETrajectoryList : public lm::trajectory::TrajectoryList
 {
 
 public:
@@ -47,7 +47,14 @@ public:
     virtual ~PDETrajectoryList();
 
 protected:
+    virtual void printTrajectoryStatistics() const;
+    virtual uint64_t findNextTrajectoryToRun() const;
+
+protected:
     uint64_t replicate;
+
+private:
+    mutable hrtime stats_lastPrintTime;
 };
 
 }

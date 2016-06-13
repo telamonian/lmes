@@ -74,7 +74,7 @@ public:
     virtual void reset();
     virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0);
     virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0);
-    virtual long long generateTrajectory(long long maxSteps);
+    virtual uint64_t generateTrajectory(uint64_t maxSteps);
 
 protected:
     virtual void updateAllPropensities();

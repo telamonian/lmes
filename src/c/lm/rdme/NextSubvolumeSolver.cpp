@@ -125,7 +125,7 @@ void NextSubvolumeSolver::reset()
     PROF_END(PROF_NSM_INIT_QUEUE);
 }
 
-long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
+uint64_t NextSubvolumeSolver::generateTrajectory(uint64_t maxSteps)
 {
     if (reactionModel == NULL) throw Exception("NextSubvolumeSolver did not have a reaction model.");
     if (diffusionModel == NULL) throw Exception("NextSubvolumeSolver did not have a diffusion model.");
@@ -214,7 +214,7 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     // Run the next subvolume method.
     Print::printf(Print::DEBUG, "Running next subvolume simulation for %d steps with %d species, %d reactions, %d subvolumes, %d site types with %d limits.", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberSubvolumes, diffusionModel->numberSiteTypes, numberLimits);
     PROF_BEGIN(PROF_SIM_EXECUTE);
-    long long steps=0;
+    uint64_t steps=0;
     bool affectedNeighbor;
     lattice_size_t subvolume;
     double nextTime;

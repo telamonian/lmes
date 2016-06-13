@@ -31,5 +31,5 @@ message MicroenvironmentModel {
     required lm.io.BoundaryConditions boundaries                        = 3;
     repeated int32 species_ids                                          = 4;
     repeated double diffusion_coefficients                              = 5;
-    repeated robertslab.pbuf.NDArray initial_concentrations             = 6;    //3D; 1=x, 2=y, 3=z; type=double
+    repeated robertslab.pbuf.NDArray initial_concentrations             = 6;    //3D; i=x,j=y,k=z; type=float64
 }

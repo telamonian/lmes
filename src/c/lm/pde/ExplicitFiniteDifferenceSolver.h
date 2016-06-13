@@ -53,7 +53,7 @@ public:
     virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0);
     virtual lm::message::WorkUnitOutput* getOutput(uint trajectoryNumber=0);
     virtual lm::message::WorkUnitStatus::Status getStatus(uint trajectoryNumber=0);
-    virtual long long generateTrajectory(long long maxSteps);
+    virtual uint64_t generateTrajectory(uint64_t maxSteps);
 
 protected:
     //void calculateWithReflectingBoundary(ndarray<double>& grid, double runtime);
@@ -66,9 +66,13 @@ protected:
 
     // Trajectory output.
     lm::message::WorkUnitOutput* output;
+    bool writeConcentrationsTimeSeries;
+    double concentrationsWriteInterval;
 
     // Trajectory status.
     lm::message::WorkUnitStatus::Status status;
+    uint64_t trajectoryId;
+    bool previouslyStarted;
 
     // The PDE state.
     double time, timeLimit;

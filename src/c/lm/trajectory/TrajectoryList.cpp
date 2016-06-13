@@ -277,6 +277,16 @@ void TrajectoryList::setAll(Trajectory::status_t oldStatus, Trajectory::status_t
     oldMap.clear();
 }
 
+void TrajectoryList::restartFinishedTrajectories()
+{
+    for (TrajectoryMap::iterator it=finishedTrajectories.begin(); it!=finishedTrajectories.end(); it++)
+    {
+        it->second->setStatus(Trajectory::WAITING);
+        waitingTrajectories[it->first] = it->second;
+    }
+    finishedTrajectories.clear();
+}
+
 void TrajectoryList::setTrajectoryAborted(lm::trajectory::Trajectory* traj)
 {
     traj->setStatus(Trajectory::ABORTED);
