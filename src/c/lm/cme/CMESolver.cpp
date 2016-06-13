@@ -308,15 +308,19 @@ void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
         state->mutable_limit_reached()->CopyFrom(*trajectoryLimits.findMsg(limitIDReached));
     }
 
-    // if we're recording any limit tracking data to the trajectory state, get it
+    // if we're recording any limit tracking data to the trajectory state, get it. Otherwise, just get any changes to the limit tracking countdowns
     for (Repeated<lm::io::LimitTracking>::iterator it=state->limit_tracking().begin(); it!=state->limit_tracking().end(); ++it)
     {
         if (not trackedLimits.count(it->limit_id())) throw Exception("LimitTracking instance for limit %d expected but never initialized at end of work unit", it->limit_id());
 
         LimitTracking& limitTracking(trackedLimits[it->limit_id()]);
-        if (limitTracking.recordingOption==LimTrackEnums::TRAJECTORY_STATE or limitTracking.recordingOption==LimTrackEnums::BOTH)
+        if (limitTracking.addToCMEState)
         {
-            limitTracking.serializeTo(trajectoryId, &*it);
+            limitTracking.serializeTo(&*it, trajectoryId);
+        }
+        else
+        {
+            limitTracking.serializeMetadataTo(&*it, trajectoryId);
         }
     }
 
@@ -719,30 +723,32 @@ bool CMESolver::isTrajectoryOutsideLimits()
 
         if (limitReached)
         {
-            bool signalTermination;
+            bool terminationSignaled;
             // if this limit is being tracked, handle that
             if (trackedLimits.count(l.limitID))
             {
                 LimitTracking& limitTracking = trackedLimits[l.limitID];
                 limitTracking.limitTriggered();
-                signalTermination = limitTracking.getSignalTermination();
 
                 // track the state if limitTracking is enabled
-                if (limitTracking.getEnabled())
+                if (limitTracking.getTrackingEnabled())
                 {
                     if (numberDegreeAdvancements>0) {for (int i=0;i<numberDegreeAdvancements;i++) limitTracking.degreeAdvancements.push_back(degreeAdvancements[i]);}
                     if (numberOrderParameters>0) {for (int i=0;i<numberOrderParameters;i++) limitTracking.orderParameterValues.push_back(orderParameterValues[i]);}
                     for (int i=0;i<reactionModel->numberSpecies;i++) limitTracking.speciesCounts.push_back(speciesCounts[i]);
                     limitTracking.times.push_back(time);
                 }
+
+                // if we are done with tracking, terminate the trajectory
+                terminationSignaled = limitTracking.getTerminationSignaled();
             }
             // if this limit is not being tracked, just signal for termination of the trajectory
             else
             {
-                signalTermination = true;
+                terminationSignaled = true;
             }
 
-            if (signalTermination)
+            if (terminationSignaled)
             {
                 status = lm::message::WorkUnitStatus::LIMIT_REACHED;
                 limitIDReached = l.limitID;

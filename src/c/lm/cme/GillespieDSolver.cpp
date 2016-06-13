@@ -39,7 +39,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #include <cmath>
@@ -409,49 +409,11 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     }
 
     // If we have any degree advancement time series data, add them to the output message.
-    if (degreeAdvancementsCounts.size() > 0 || degreeAdvancementsTimes.size() > 0)
-    {
-        // Make sure the arrays are of a consistent size.
-        if (degreeAdvancementsCounts.size() == degreeAdvancementsTimes.size()*numberDegreeAdvancements)
-        {
-            lm::io::DegreeAdvancementTimeSeries* degAdvTSMsg = msg->mutable_degree_advancement_time_series();
-            degAdvTSMsg->set_trajectory_id(trajectoryId);
+    daTimeSeriesWrap.set_arrays_in_output_msg(msg, degreeAdvancementsCounts, degreeAdvancementsTimes, trajectoryId, numberDegreeAdvancements, true);
 
-            opCounts.setMsg(degAdvTSMsg->mutable_counts());
-            opCounts.set_array(degreeAdvancementsCounts, utuple(degreeAdvancementsTimes.size(), numberDegreeAdvancements), true);
+    // If we have any order parameter time series data, add them to the output message.
+    opTimeSeriesWrap.set_arrays_in_output_msg(msg, orderParameterTimeSeriesCounts, orderParameterTimeSeriesTimes, trajectoryId, numberOrderParameters, true);
 
-            opTimes.setMsg(degAdvTSMsg->mutable_times());
-            opTimes.set_array(degreeAdvancementsTimes, true);
-            createdOutput = true;
-        }
-        else
-        {
-            Print::printf(Print::ERROR, "Order parameter time series counts and time mismatch %d,%d,%d", degreeAdvancementsCounts.size(), numberDegreeAdvancements, degreeAdvancementsTimes.size());
-        }
-    }
-    
-//    // If we have any order parameter time series data, add them to the output message.
-//    if (orderParameterTimeSeriesCounts.size() > 0 || orderParameterTimeSeriesTimes.size() > 0)
-//    {
-//        // Make sure the arrays are of a consistent size.
-//        if (orderParameterTimeSeriesCounts.size() == orderParameterTimeSeriesTimes.size()*numberOrderParameters)
-//        {
-//            lm::io::OrderParameterTimeSeries* orderParameterTimeSeriesDataSet = msg->mutable_order_parameter_time_series();
-//            orderParameterTimeSeriesDataSet->set_trajectory_id(trajectoryId);
-//
-//            opCounts.setMsg(orderParameterTimeSeriesDataSet->mutable_values());
-//            opCounts.set_array(orderParameterTimeSeriesCounts, utuple(orderParameterTimeSeriesTimes.size(), numberOrderParameters), true);
-//
-//            opTimes.setMsg(orderParameterTimeSeriesDataSet->mutable_times());
-//            opTimes.set_array(orderParameterTimeSeriesTimes, true);
-//            createdOutput = true;
-//        }
-//        else
-//        {
-//            Print::printf(Print::ERROR, "Order parameter time series counts and time mismatch %d,%d,%d", orderParameterTimeSeriesCounts.size(), numberOrderParameters, orderParameterTimeSeriesTimes.size());
-//        }
-//    }
-    
     // If we have any species time series data, add them to the output message.
     if (speciesTimeSeriesCounts.size() > 0 || speciesTimeSeriesTimes.size() > 0)
     {
@@ -514,9 +476,9 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     {
         for (TrackingMapT::const_iterator it=trackedLimits.begin();it!=trackedLimits.end();it++)
         {
-            if (it->second.recordingOption==LimTrackEnums::OUTPUT_TO_DISK or it->second.recordingOption==LimTrackEnums::BOTH)
+            if (it->second.addToOutput)
             {
-                it->second.serializeTo(trajectoryId, msg->add_limit_tracking());
+                it->second.serializeTo(msg->add_limit_tracking(), trajectoryId);
                 createdOutput = true;
             }
         }

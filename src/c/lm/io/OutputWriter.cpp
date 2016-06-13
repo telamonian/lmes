@@ -318,6 +318,10 @@ int OutputWriter::HelperThread::run()
                 for (int i=0; i<pwu.part_output_size(); i++)
                 {
                     lm::message::WorkUnitOutput output = pwu.part_output(i);
+                    if (output.has_degree_advancement_time_series())
+                    {
+                        p->processDegreeAdvancementTimeSeries(output.degree_advancement_time_series());
+                    }
                     if (output.has_fflux_output())
                     {
                         p->processFFluxOutput(output.fflux_output());
@@ -327,14 +331,19 @@ int OutputWriter::HelperThread::run()
                         for (int j=0; j<output.first_passage_times_size(); j++)
                             p->processFirstPassageTimes(output.first_passage_times(j));
                     }
+                    if (output.has_lattice_time_series())
+                    {
+                        p->processLatticeTimeSeries(output.lattice_time_series());
+                    }
+                    if (output.limit_tracking_size() > 0)
+                    {
+                        for (int j=0; j<output.limit_tracking_size(); j++)
+                            p->processLimitTracking(output.limit_tracking(j));
+                    }
                     if (output.order_parameter_first_passage_times_size() > 0)
                     {
                         for (int j=0; j<output.order_parameter_first_passage_times_size(); j++)
                             p->processOrderParameterFirstPassageTimes(output.order_parameter_first_passage_times(j));
-                    }
-                    if (output.has_lattice_time_series())
-                    {
-                        p->processLatticeTimeSeries(output.lattice_time_series());
                     }
                     if (output.has_order_parameter_time_series())
                     {

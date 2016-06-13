@@ -184,7 +184,8 @@ protected:
         typedef std::vector<TimeT> TimeContainerT;
 
         int limitID;
-        MsgT::RecordingOption recordingOption;
+        bool addToOutput;
+        bool addToCMEState;
 
         DegreeAdvancementContainerT degreeAdvancements;
         OrderParameterContainerT orderParameterValues;
@@ -197,18 +198,24 @@ protected:
         mutable lm::protowrap::NDArray<TimeT> timesWrap;
 
     private:
-        bool nonterminating;
-        bool hasCountdown;
-        int64_t countdown;
+        bool hasCountdownTermination;
+        uint64_t countdownTermination;
+
+        bool hasCountdownTracking;
+        uint64_t countdownTracking;
 
     public:
         void deserializeFrom(const MsgT& msgRef)
         {
             limitID = msgRef.limit_id();
-            recordingOption = msgRef.recording_option();
-            nonterminating = msgRef.nonterminating();
-            hasCountdown = msgRef.has_countdown();
-            countdown = msgRef.countdown();
+
+            addToCMEState = msgRef.add_to_cme_state();
+            addToOutput = msgRef.add_to_output();
+
+            hasCountdownTermination = msgRef.has_countdown_termination();
+            countdownTermination = msgRef.countdown_termination();
+            hasCountdownTracking = msgRef.has_countdown_tracking();
+            countdownTracking = msgRef.countdown_tracking();
 
             degreeAdvancmentsWrap.setMsg(msgRef.degree_advancements());
             degreeAdvancmentsWrap.get_data(degreeAdvancements);
@@ -223,52 +230,59 @@ protected:
             timesWrap.get_data(times);
         }
 
-        bool getEnabled()
+        bool getTrackingEnabled()
         {
-            // if the limit tracking has a countdown, use this to determine if tracking is currently enabled
-            if (hasCountdown)
+            // if the limit tracking has a countdownTracking, use this to determine if tracking is currently enabled
+            if (hasCountdownTracking)
             {
-                // there are 3 cases for the value of countdown that we consider important
-                if      (countdown > 0)  return true;     // case one: if countdown is greater than zero, enable tracking
-                else if (countdown == 0) return true;     // case two: if countdown is exactly zero, enable tracking
-                else                     return false;    // case three: if countdown is less than zero, disable tracking
+                // return true if countdownTracking >= 1, false otherwise
+                return (countdownTracking>=1);
             }
-            // if the limit tracking has no countdown, by default tracking is enabled
+            // if the limit tracking has no countdownTracking, by default tracking is enabled
             else
             {
                 return true;
             }
         }
 
-        bool getSignalTermination()
+        bool getTerminationSignaled()
         {
-            bool doSignal;
-            // if the limit tracking has a countdown, use this to determinate if we should signal for termination of the trajectory
-            if (hasCountdown)
+            // if the limit tracking has a countdownTermination, use this to determinate if we should signal for termination of the trajectory
+            if (hasCountdownTermination)
             {
-                // there are 3 cases for the value of countdown that we consider important
-                if      (countdown > 0)  doSignal = false;    // case one: if countdown is greater than zero, don't signal for termination
-                else if (countdown == 0) doSignal = true;     // case two: if countdown is exactly zero, signal for termination
-                else                     doSignal = true;     // case three: if countdown is less than zero, signal for termination
+                // return true if countdownTermination < 1, false otherwise
+                return (countdownTracking<1);
             }
-            // if the limit tracking does not have a countdown, by default we  signal for termination
+            // if the limit tracking does not have a countdown, by default we never terminate
             else
             {
-                doSignal = true;
+                return false;
             }
-
-            // skip signaling for termination if the limit tracking is marked nonterminating
-            return doSignal and nonterminating;
         }
 
         // handle necessary tasks when the associated limit is triggered (eg decrement countdown)
         void limitTriggered()
         {
-            if (hasCountdown)
+            if (hasCountdownTermination and countdownTermination>0)
             {
-                // decrement countdown
-                --countdown;
+                --countdownTermination;
             }
+            if (hasCountdownTracking and countdownTracking>0)
+            {
+                --countdownTracking;
+            }
+        }
+
+        void serializeMetadataTo(MsgT* msg, uint64_t trajectoryID) const
+        {
+            msg->set_trajectory_id(trajectoryID);
+            msg->set_limit_id(limitID);
+
+            msg->set_add_to_cme_state(addToCMEState);
+            msg->set_add_to_output(addToOutput);
+
+            if (hasCountdownTermination) msg->set_countdown_termination(countdownTermination);
+            if (hasCountdownTracking) msg->set_countdown_tracking(countdownTracking);
         }
 
         void serializeTo(MsgT* msg, uint64_t trajectoryId) const
@@ -276,13 +290,11 @@ protected:
             serializeTo(msg, trajectoryId, degreeAdvancements, orderParameterValues, speciesCounts, times);
         }
 
-        void serializeTo(MsgT* msg, uint64_t trajectoryId, const DegreeAdvancementContainerT& degreeAdvancementsRef,
+        void serializeTo(MsgT* msg, uint64_t trajectoryID, const DegreeAdvancementContainerT& degreeAdvancementsRef,
                          const OrderParameterContainerT& orderParameterValuesRef, const SpeciesContainerT& speciesCountsRef,
                          const TimeContainerT& timesRef) const
         {
-            msg->set_trajectory_id(trajectoryId);
-            msg->set_limit_id(limitID);
-            if (hasCountdown) msg->set_countdown(countdown);
+            serializeMetadataTo(msg, trajectoryID);
 
             degreeAdvancmentsWrap.setMsg(msg->mutable_degree_advancements());
             degreeAdvancmentsWrap.set_array(degreeAdvancementsRef, utuple(degreeAdvancementsRef.size()), false);
@@ -334,57 +346,6 @@ protected:
         uint numberTileVals;
         uint tilingID;
         double* tileVals;
-    };
-
-    template <typename MsgT>
-    class TimeSeries
-    {
-    public:
-        typedef lm::protowrap::TimeSeries<MsgT>::ValT ValT;
-        typedef double TimeT;
-
-        typedef std::vector<ValT> ValContainerT;
-        typedef std::vector<TimeT> TimeContainerT;
-
-        ValContainerT values;
-        TimeContainerT times;
-
-        mutable lm::protowrap::TimeSeries<MsgT> timeSeriesWrap;
-
-    public:
-        void deserializeFrom(const MsgT& msgRef)
-        {
-            timeSeriesWrap.setMsg(msgRef);
-            timeSeriesWrap.get_arrays(values, times);
-        }
-
-        void serializeTo(MsgT* msg, uint64_t trajectoryId, uint numberOfColumns, bool compress) const
-        {
-            serializeTo(msg, trajectoryId, numberOfColumns, compress, values, times);
-        }
-
-        void serializeTo(MsgT* msg, uint64_t trajectoryId, uint numberOfColumns, bool compress, const ValContainerT& valuesRef, const TimeContainerT& timesRef) const
-        {
-            timeSeriesWrap.setMsg(msg);
-            timeSeriesWrap.set_arrays(valuesRef, timesRef, trajectoryId, numberOfColumns, compress);
-        }
-
-    // versions of the above functions overloaded to work directly with a WorkUnitOutput msg
-        void deserializeFrom(const lm::message::WorkUnitOutput& outputMsgRef)
-        {
-            timeSeriesWrap.setMsg(outputMsgRef);
-            timeSeriesWrap.get_arrays(values, times);
-        }
-
-        void serializeTo(lm::message::WorkUnitOutput* outputMsg, uint64_t trajectoryId, uint numberOfColumns, bool compress) const
-        {
-            serializeTo(outputMsg, trajectoryId, numberOfColumns, compress, values, times);
-        }
-
-        void serializeTo(lm::message::WorkUnitOutput* outputMsg, uint64_t trajectoryId, uint numberOfColumns, bool compress, const ValContainerT& valuesRef, const TimeContainerT& timesRef) const
-        {
-            timeSeriesWrap.set_arrays_in_output_msg(outputMsg, valuesRef, timesRef, trajectoryId, numberOfColumns, compress);
-        }
     };
 
 public:
@@ -453,24 +414,12 @@ protected:
 
             if (opVal < fptTrackedOrderParameters[i].minValueAchieved)
             {
-//                double stepDown = floor(fptTrackedOrderParameters[i].minValueAchieved);
-//                while (opVal < stepDown)
-//                {
-//                    fptTrackedOrderParameters[i].fptValues.push_front(--stepDown);
-//                    fptTrackedOrderParameters[i].fptTimes.push_front(time);
-//                }
                 fptTrackedOrderParameters[i].minValueAchieved = opVal;
                 fptTrackedOrderParameters[i].fptValues.push_front(opVal);
                 fptTrackedOrderParameters[i].fptTimes.push_front(time);
             }
             if (opVal > fptTrackedOrderParameters[i].maxValueAchieved)
             {
-//                double stepUp = ceil(fptTrackedOrderParameters[i].minValueAchieved);
-//                while (opVal > stepUp)
-//                {
-//                    fptTrackedOrderParameters[i].fptValues.push_front(++stepUp);
-//                    fptTrackedOrderParameters[i].fptTimes.push_front(time);
-//                }
                 fptTrackedOrderParameters[i].maxValueAchieved = opVal;
                 fptTrackedOrderParameters[i].fptValues.push_back(opVal);
                 fptTrackedOrderParameters[i].fptTimes.push_back(time);

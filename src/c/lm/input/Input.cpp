@@ -364,7 +364,7 @@ template <typename T, typename SetterReturnT, typename ValT> bool Input::parseAn
 {
     if (simulationParameters.count(key))
     {
-        obj.(*setterFunc)(simulationParameters.parse<ValT>(key));
+        (obj.*setterFunc)(simulationParameters.parse<ValT>(key));
         return true;
     }
     else
@@ -381,7 +381,7 @@ template <typename T, typename AdderReturnT, typename ValT> bool Input::parseAnd
         std::vector<ValT> parsedVector(simulationParameters.parseVector<ValT>(key));
         for (typename vector<ValT>::const_iterator it=parsedVector.begin(); it!=parsedVector.end(); it++)
         {
-            obj.(*adderFunc)(*it);
+            (obj.*adderFunc)(*it);
         }
         return parsedVector.size() > 0;
     }

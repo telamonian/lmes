@@ -216,14 +216,11 @@ public:
 	// Methods for working with NDArrays
     template <typename T> void setNDArray(std::string& groupPath, std::string& datasetName, const robertslab::pbuf::NDArray& ndarrayRef, hid_t rootGroup=-1)
     {
-        // TODO: refactor things so this cast to mutable isn't neccessary
-        robertslab::pbuf::NDArray* ndarray = const_cast<robertslab::pbuf::NDArray*>(&ndarrayRef);
-
         // initialize the group we'll be storing the NDArray dataset in
         hid_t group = initGroup(groupPath, rootGroup);
 
         // extract the data for the dataset from the NDArray
-        lm::protowrap::NDArray<T> ndarrayWrap(ndarray);
+        lm::protowrap::NDArray<T> ndarrayWrap(ndarrayRef);
         T* data = ndarrayWrap.get_data();
 
         // declare the HDF5 boilerplate variables

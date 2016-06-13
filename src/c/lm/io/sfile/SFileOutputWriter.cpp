@@ -36,6 +36,7 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+#include <iomanip>
 #include <sstream>
 #include <string>
 #include <sys/stat.h>
@@ -97,19 +98,29 @@ void SFileOutputWriter::initialize()
     file->openAppend();
 }
 
-void SFileOutputWriter::processMessage(const google::protobuf::Message& data, std::string& nameString, std::string& typeString)
+void SFileOutputWriter::processMessage(string& nameString, string& typeString, const google::protobuf::Message& data)
 {
+    nameString.insert(0, recordNamePrefix);
+    if (nameString.size() > RECORD_NAME_BUFFER_MAX_SIZE) nameString.resize(RECORD_NAME_BUFFER_MAX_SIZE);
+
     SFileRecord record(nameString, typeString, data.ByteSize());
     file->writeSFileRecord(record);
     file->writeMessage(data);
 }
 
-void SFileOutputWriter::processFFluxOutput(const lm::io::FFluxOutput& data)
+void SFileOutputWriter::processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data)
 {
     stringstream ss;
-    ss << "/FFluxOutput";
-    string nameString(ss.str()), typeString("protobuf:lm.io.FFluxOutput");
-    processMessage(data, nameString, typeString);
+    ss << "/Simulations/" << data.trajectory_id() << "/DegreeAdvancementTimeSeries";
+
+    string nameString(ss.str()), typeString("protobuf:lm.io.DegreeAdvancementTimeSeries");
+    processMessage(nameString, typeString, data);
+}
+
+void SFileOutputWriter::processFFluxOutput(const lm::io::FFluxOutput& data)
+{
+    string nameString("/FFluxOutput"), typeString("protobuf:lm.io.FFluxOutput");
+    processMessage(nameString, typeString, data);
 }
 
 void SFileOutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
@@ -132,12 +143,24 @@ void SFileOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries
     file->writeMessage(data);
 }
 
+void SFileOutputWriter::processLimitTracking(const lm::io::LimitTracking& data)
+{
+    stringstream ss;
+    ss << "/Simulations/" << data.trajectory_id() << "/LimitTracking/";
+    ss << std::setfill('0') << std::setw(2) << data.limit_id();
+
+    string nameString(ss.str()), typeString("protobuf:lm.io.LimitTracking");
+    processMessage(nameString, typeString, data);
+}
+
 void SFileOutputWriter::processOrderParameterFirstPassageTimes(const lm::io::OrderParameterFirstPassageTimes& data)
 {
     stringstream ss;
-    ss << "/Simulations/" << data.trajectory_id() << "/OrderParameterFirstPassageTimes";
+    ss << "/Simulations/" << data.trajectory_id() << "/OrderParameterFirstPassageTimes/";
+    ss << std::setfill('0') << std::setw(2) << data.order_parameter_id();
+
     string nameString(ss.str()), typeString("protobuf:lm.io.OrderParameterFirstPassageTimes");
-    processMessage(data, nameString, typeString);
+    processMessage(nameString, typeString, data);
 }
 
 void SFileOutputWriter::processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data)

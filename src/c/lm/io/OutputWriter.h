@@ -36,17 +36,17 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #ifndef LM_IO_OUTPUTWRITER
 #define LM_IO_OUTPUTWRITER
 
+#include <pthread.h>
 #include <queue>
 #include <string>
 
-#include <pthread.h>
-
+#include "lm/io/DegreeAdvancementTimeSeries.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/LatticeTimeSeries.pb.h"
+#include "lm/io/LimitTracking.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/message/Communicator.h"
@@ -75,9 +75,11 @@ protected:
     virtual void checkpoint()=0;
     virtual void flush()=0;
 
+    virtual void processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data) {}
     virtual void processFFluxOutput(const lm::io::FFluxOutput& data) {}
     virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data)=0;
     virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)=0;
+    virtual void processLimitTracking(const lm::io::LimitTracking& data) {}
     virtual void processOrderParameterFirstPassageTimes(const lm::io::OrderParameterFirstPassageTimes& data) {}
     virtual void processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data) {}
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data)=0;

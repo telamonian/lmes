@@ -42,37 +42,38 @@ package lm.io;
 import "robertslab/pbuf/NDArray.proto";
 
 message LimitTracking {
-    enum RecordingOption {
-        TRAJECTORY_STATE = 0;
-        OUTPUT_TO_DISK = 1;
-        BOTH = 2;
-    }
-
     required uint64 trajectory_id                           = 1;
     required int32 limit_id                                 = 2;
 
     /*
-     * recording_option controls whether the limit tracking information is recorded internally in the trajectory state, written out to disk, or both
+     * - if add_to_output==true, the state information collected by the limit tracking is saved to the simulation output file
      */
-    optional RecordingOption recording_option               = 3 [default=TRAJECTORY_STATE];
+    optional bool add_to_output                             = 3 [default=true];
 
     /*
-     * - If nonterminating is true, the tracked limit will never signal for termination (overrides other options, such as countdown in LimitTracking)
+     * - if add_to_cme_state==true, the state information collected by the limit tracking is saved internally to the simulation state at the end of a work unit
      */
-    optional bool nonterminating                            = 4 [default=false];
+    optional bool add_to_cme_state                          = 4 [default=false];
 
     /*
-     * - if set, countdown is decremented every time the tracked limit is triggered. Once decremented, there are three possible cases
-     *     - case one: if countdown is greater than zero, don't signal for termination and track the current state
-     *     - case two: if countdown is exactly zero, signal for termination and track the current state
-     *     - case three: if countdown is less than zero, signal for termination and don't track the current state
-     *         - If the limit is being tracked and is non-terminating, when countdown <= 0 all tracking will stop
-     *             - The non-terminating behavior of countdown is useful for limiting the quantity of simulation output or for collecting limit first passage times
+     * - If the countdown_termination field is set, countdown_termination is decremented every time the tracked limit is triggered. Following this
+     *     - if countdown_termination < 1, the trajectory is terminated and the work unit is marked as having reached a limit (ie the standard limit behavior)
+     *     - if countdown_termination >=1, the trajectory continues as though the limit was never reached
+     * - If the countdown_termination field is cleared, the tracked limit will never cause the trajectory to terminate
+     *     - Clearing countdown_termination allows for the use of limits purely for state tracking purposes
      */
-    optional int64 countdown                               = 5;
+    optional int64 countdown_termination                    = 5 [default=1];
 
-    optional robertslab.pbuf.NDArray degree_advancements    = 6;
-    optional robertslab.pbuf.NDArray order_parameter_values = 7;
-    optional robertslab.pbuf.NDArray species_counts         = 8;
-    optional robertslab.pbuf.NDArray times                  = 9;
+    /*
+     * - If the countdown_tracking field is set, countdown_tracking is decremented every time the tracked limit is triggered. Following this
+     *     - if countdown_tracking < 1, no state information is recorded
+     *     - if countdown_tracking >=1, all available state information is recorded
+     * - If the countdown_tracking field is cleared, the available state information will be recorded every time the limit is triggered
+     */
+    optional int64 countdown_tracking                       = 6 [default=1];
+
+    optional robertslab.pbuf.NDArray degree_advancements    = 7;
+    optional robertslab.pbuf.NDArray order_parameter_values = 8;
+    optional robertslab.pbuf.NDArray species_counts         = 9;
+    optional robertslab.pbuf.NDArray times                  = 10;
 }

@@ -39,7 +39,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #ifndef LM_CME_GILLESPIEDSOLVER_H_
@@ -50,7 +50,9 @@
 #include <string>
 #include "lm/ClassFactory.h"
 #include "lm/cme/CMESolver.h"
-#include "lm/protowrap/NDArray.h"
+#include "lm/io/DegreeAdvancementTimeSeries.pb.h"
+#include "lm/io/OrderParameterTimeSeries.pb.h"
+#include "lm/protowrap/TimeSeries.h"
 #include "lm/rng/RandomGenerator.h"
 
 using std::map;
@@ -81,7 +83,8 @@ protected:
     inline void updatePropensities(uint r);
 
 protected:
-    lm::protowrap::NDArray<double> opCounts, opTimes;
+    lm::protowrap::TimeSeries<lm::io::DegreeAdvancementTimeSeries> daTimeSeriesWrap;
+    lm::protowrap::TimeSeries<lm::io::DegreeAdvancementTimeSeries> opTimeSeriesWrap;
     double * propensities;
 };
 

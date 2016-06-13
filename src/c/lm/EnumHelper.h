@@ -52,17 +52,6 @@
 
 // helper classes allowing for more direct access to the types and values of various enums
 
-//from lm/io/LimitTracking.proto
-struct LimTrackEnums {
-    // enum typedefs
-    typedef lm::io::LimitTracking::RecordingOption RecordingOption;
-
-    // RecordingOption enum values
-    static const RecordingOption TRAJECTORY_STATE = lm::io::LimitTracking::TRAJECTORY_STATE;
-    static const RecordingOption OUTPUT_TO_DISK = lm::io::LimitTracking::OUTPUT_TO_DISK;
-    static const RecordingOption BOTH = lm::io::LimitTracking::BOTH;
-};
-
 //from lm/input/SimulationPhase.proto
 struct SimPhaseEnums {
     // enum typedefs
@@ -73,7 +62,7 @@ struct SimPhaseEnums {
     static const TrajectorySource PREVIOUS_PHASE = lm::input::SimulationPhase::PREVIOUS_PHASE;
 };
 
-// from lm/io/Tilings.proto
+// from lm/input/Tilings.proto
 struct TilingEnums {
     // enum typedefs
     typedef lm::input::Tiling::SortOrder SortOrder;
@@ -118,6 +107,19 @@ struct WUStatEnums {
     static const Status STEPS_FINISHED = lm::message::WorkUnitStatus::STEPS_FINISHED;
     static const Status LIMIT_REACHED = lm::message::WorkUnitStatus::LIMIT_REACHED;
     static const Status ERROR = lm::message::WorkUnitStatus::ERROR;
+};
+
+// from robertslab/pbuf/NDArray.proto
+struct NDArrEnums {
+    // enum typedefs
+    typedef robertslab::pbuf::NDArray::ArrayOrder ArrayOrder;
+    typedef robertslab::pbuf::NDArray::ByteOrder ByteOrder;
+    typedef robertslab::pbuf::NDArray::DataType DataType;
+
+    // ArrayOrder enum values
+    static const ArrayOrder ROW_MAJOR = robertslab::pbuf::NDArray::ROW_MAJOR;
+    static const ArrayOrder COLUMN_MAJOR = robertslab::pbuf::NDArray::COLUMN_MAJOR;
+    static const ArrayOrder IMPL_ORDER = robertslab::pbuf::NDArray::IMPL_ORDER;
 };
 
 #endif /* ENUMHELPER_H */

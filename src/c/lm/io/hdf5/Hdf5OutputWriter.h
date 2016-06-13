@@ -36,12 +36,13 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #ifndef LM_IO_Hdf5OutputWriter
 #define LM_IO_Hdf5OutputWriter
 
+#include "lm/io/DegreeAdvancementTimeSeries.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/FFluxOutput.pb.h"
+#include "lm/io/LimitTracking.pb.h"
 #include "lm/io/OrderParameterFirstPassageTimes.pb.h"
 #include "lm/io/OrderParameterTimeSeries.pb.h"
 #include "lm/io/OutputWriter.h"
@@ -67,9 +68,11 @@ public:
     virtual void finalize();
 
 protected:
+    virtual void processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data);
     virtual void processFFluxOutput(const lm::io::FFluxOutput& data);
     virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
     virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data);
+    virtual void processLimitTracking(const lm::io::LimitTracking& data);
     virtual void processOrderParameterFirstPassageTimes(const lm::io::OrderParameterFirstPassageTimes& data);
     virtual void processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data);
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);

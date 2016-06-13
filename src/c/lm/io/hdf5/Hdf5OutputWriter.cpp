@@ -94,6 +94,18 @@ void Hdf5OutputWriter::initialize()
     file = new Hdf5File(outputFilename);
 }
 
+void Hdf5OutputWriter::processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data)
+{
+    // construct the relative path to the group we're storing the degree advancement time series dataset in
+    std::stringstream ss;
+    ss << "DegreeAdvancementTimeSeries";
+
+    std::string groupRelativePath(ss.str()), valuesDatasetName("Counts"), timesDatasetName("Times");
+
+    file->setNDArrayReplicate<uint64_t>(data.trajectory_id(), groupRelativePath, valuesDatasetName, data.counts());
+    file->setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, timesDatasetName, data.times());
+}
+
 void Hdf5OutputWriter::processFFluxOutput(const lm::io::FFluxOutput& data)
 {
     file->setFFluxOutput(const_cast<lm::io::FFluxOutput*>(&data));
@@ -125,13 +137,37 @@ void Hdf5OutputWriter::processOrderParameterFirstPassageTimes(const lm::io::Orde
 
     std::string groupRelativePath(ss.str()), valuesDatasetName("Values"), timesDatasetName("Times");
 
-    file->setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, valuesDatasetName, data.order_parameter_value());    //const_cast<robertslab::pbuf::NDArray*>(&data.order_parameter_value()));
-    file->setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, timesDatasetName, data.first_passage_time());   //const_cast<robertslab::pbuf::NDArray*>(&data.first_passage_time()));
+    file->setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, valuesDatasetName, data.order_parameter_value());
+    file->setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, timesDatasetName, data.first_passage_time());
 }
 
 void Hdf5OutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)
 {
     file->appendLatticeTimeSeries(data.trajectory_id(), data);
+}
+
+void Hdf5OutputWriter::processLimitTracking(const lm::io::LimitTracking& data)
+{
+    // construct the relative path to the group we're storing the limit tracking datasets in
+    std::stringstream ss;
+    ss << "LimitTracking" << "/";
+    ss << std::setfill('0') << std::setw(2) << data.limit_id();
+
+    std::string groupRelativePath(ss.str());
+    std::string degreeAdvancementsDatasetName("DegreeAdvancements"), orderParameterValuesDatasetName("OrderParameterValues"), speciesCountsDatasetName("SpeciesCounts"), timesDatasetName("Times");
+
+    if (data.has_degree_advancements())
+    {
+        file->setNDArrayReplicate<uint64_t>(data.trajectory_id(), groupRelativePath, degreeAdvancementsDatasetName, data.degree_advancements());
+    }
+
+    if (data.has_order_parameter_values())
+    {
+        file->setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, orderParameterValuesDatasetName, data.order_parameter_values());
+    }
+
+    file->setNDArrayReplicate<int32_t>(data.trajectory_id(), groupRelativePath, speciesCountsDatasetName, data.species_counts());
+    file->setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, timesDatasetName, data.times());
 }
 
 void Hdf5OutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
