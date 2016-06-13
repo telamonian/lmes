@@ -92,6 +92,11 @@ FFluxSupervisor::~FFluxSupervisor()
 {
 }
 
+virtual void buildPilotStage()
+{
+
+}
+
 //void FFluxSupervisor::buildRunWorkUnitLimits(lm::message::RunWorkUnit* msg)
 //{
 //    // Set the limits in the RunWorkUnit header.

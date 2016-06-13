@@ -4,8 +4,8 @@
  * All rights reserved.
  *
  * Developed by: Roberts Group
- *                  Johns Hopkins University
- *                  http://biophysics.jhu.edu/roberts/
+ *               Johns Hopkins University
+ *               http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -37,37 +37,7 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 syntax = "proto2";
-package lm.input;
+package lm.io;
 
-import "lm/input/OutputOptions.proto";
-import "lm/input/TrajectoryLimits.proto";
-import "lm/io/LimitTracking.proto";
-import "lm/io/TrajectoryState.proto";
-
-message SimulationPhase {
-    enum TrajectoryGeneration {
-        NONE=0;
-        DUPLICATE=1;
-        RANDOM=2;
-    }
-
-    enum TrajectorySource {
-        LIST=0;
-        PREVIOUS_PHASE=1;
-    }
-
-    optional uint64 id                                   = 1;
-    optional uint64 first_trajectory_id                  = 2;
-
-    optional TrajectorySource trajectory_source          = 3 [default=LIST];
-    repeated lm.io.TrajectoryState trajectory_states     = 4;
-
-    optional lm.input.TrajectoryLimits trajectory_limits = 5;
-    optional lm.input.TrajectoryLimit phase_limit        = 6;
-    repeated lm.io.LimitTracking limit_tracking          = 7;
-
-    optional lm.input.OutputOptions output_options       = 8;
-
-    optional uint64 batch_size                           = 9;
-    optional bool keep_slots_full                        = 10 [default=false];
+message LimitFlux {
 }

@@ -105,9 +105,12 @@ void ReplicateSupervisor::buildSimulationPhaseList()
     lm::input::SimulationPhase* phase = simulationPhaseList.back();
 
     phase->set_id(0);
+    phase->set_first_trajectory_id(0);
+
     lm::trajectory::Trajectory initialTrajectory(0, phase->id(), *input);
     for (uint64_t i=::replicates.front(); i<=::replicates.back(); i++)
     {
+        initialTrajectory.setID(i);
         phase->add_trajectory_states()->CopyFrom(initialTrajectory.getState());
     }
     phase->mutable_trajectory_limits()->CopyFrom(input->getTrajectoryLimitsMsg());

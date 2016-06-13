@@ -1,11 +1,16 @@
 /*
  * University of Illinois Open Source License
+ * Copyright 2008-2012 Luthey-Schulten Group,
  * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
+ * Developed by: Luthey-Schulten Group
+ * 			     University of Illinois at Urbana-Champaign
+ * 			     http://www.scs.uiuc.edu/~schulten
+ *
  * Developed by: Roberts Group
- *                  Johns Hopkins University
- *                  http://biophysics.jhu.edu/roberts/
+ * 			     Johns Hopkins University
+ * 			     http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -21,10 +26,10 @@
  * this list of conditions and the following disclaimers in the documentation
  * and/or other materials provided with the distribution.
  *
- * - Neither the names of the Roberts Group, Johns Hopkins University,
- * nor the names of its contributors may be used to endorse or
- * promote products derived from this Software without specific prior written
- * permission.
+ * - Neither the names of the Luthey-Schulten Group, University of Illinois at
+ * Urbana-Champaign, the Roberts Group, Johns Hopkins University, nor the names
+ * of its contributors may be used to endorse or promote products derived from
+ * this Software without specific prior written permission.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -34,40 +39,23 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts, Max Klein
+ * Author(s): Max Klein
  */
 syntax = "proto2";
 package lm.input;
 
-import "lm/input/OutputOptions.proto";
-import "lm/input/TrajectoryLimits.proto";
-import "lm/io/LimitTracking.proto";
-import "lm/io/TrajectoryState.proto";
-
-message SimulationPhase {
-    enum TrajectoryGeneration {
-        NONE=0;
-        DUPLICATE=1;
-        RANDOM=2;
+message FFluxPhaseLimit {
+    enum StopCondition {
+        TRAJECTORY_COUNT=0;
+        FORWARD_FLUXES=1;
+        TIME=2;
     }
 
-    enum TrajectorySource {
-        LIST=0;
-        PREVIOUS_PHASE=1;
-    }
+    required StopCondition fflux_phase_limit_type       = 1;
+    optional double dvalue                              = 2 [default=0.0];
+    optional uint64 uvalue                              = 3 [default=0];
+}
 
-    optional uint64 id                                   = 1;
-    optional uint64 first_trajectory_id                  = 2;
-
-    optional TrajectorySource trajectory_source          = 3 [default=LIST];
-    repeated lm.io.TrajectoryState trajectory_states     = 4;
-
-    optional lm.input.TrajectoryLimits trajectory_limits = 5;
-    optional lm.input.TrajectoryLimit phase_limit        = 6;
-    repeated lm.io.LimitTracking limit_tracking          = 7;
-
-    optional lm.input.OutputOptions output_options       = 8;
-
-    optional uint64 batch_size                           = 9;
-    optional bool keep_slots_full                        = 10 [default=false];
+message FFluxPhaseLimits {
+    repeated FFluxPhaseLimit fflux_phase_limits = 1;
 }

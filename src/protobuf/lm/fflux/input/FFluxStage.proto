@@ -40,34 +40,26 @@ syntax = "proto2";
 package lm.input;
 
 import "lm/input/OutputOptions.proto";
-import "lm/input/TrajectoryLimits.proto";
-import "lm/io/LimitTracking.proto";
-import "lm/io/TrajectoryState.proto";
+import "lm/input/Tiling.proto";
 
-message SimulationPhase {
-    enum TrajectoryGeneration {
-        NONE=0;
-        DUPLICATE=1;
-        RANDOM=2;
+message FFluxStage {
+    enum StopCondition {
+        TRAJECTORY_COUNT=0;
+        FORWARD_FLUXES=1;
+        TIME=2;
     }
 
-    enum TrajectorySource {
-        LIST=0;
-        PREVIOUS_PHASE=1;
-    }
+    optional lm.input.tiling tiling = 1;
+    optional bool reversed          = 2 [default=false];
 
-    optional uint64 id                                   = 1;
-    optional uint64 first_trajectory_id                  = 2;
+    /*
+     * - Stopping conditions for each forward flux phase. Can be specified one of two ways (an error will be raised if more than one way is used)
+     *     - (default) If precisionGoal is specified, the phase limits are determined automatically
+     *     - A list of phase limits of length equal to the total number of phases in the simulation (ie the number of interfaces in all the tilings used)
+     */
+    repeated lm.input.FFluxPhaseLimits fflux_phase_limits = 3;
 
-    optional TrajectorySource trajectory_source          = 3 [default=LIST];
-    repeated lm.io.TrajectoryState trajectory_states     = 4;
+    optional FFluxStage pilot_stage = 7;
 
-    optional lm.input.TrajectoryLimits trajectory_limits = 5;
-    optional lm.input.TrajectoryLimit phase_limit        = 6;
-    repeated lm.io.LimitTracking limit_tracking          = 7;
-
-    optional lm.input.OutputOptions output_options       = 8;
-
-    optional uint64 batch_size                           = 9;
-    optional bool keep_slots_full                        = 10 [default=false];
+    optional lm.input.OutputOptions output_options = 100;
 }
