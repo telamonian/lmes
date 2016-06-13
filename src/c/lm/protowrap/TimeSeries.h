@@ -65,14 +65,6 @@ public:
     // typedefs for pointers to getter functions in the time series protobuf
     typedef robertslab::pbuf::NDArray* (MsgT::*getValMsgT)();
     typedef const robertslab::pbuf::NDArray& (MsgT::*getValMsgConstT)() const;
-
-    static const getTimeSeriesMsgT getTimeSeriesMsgFunc;
-    static const getTimeSeriesMsgConstT getTimeSeriesMsgConstFunc;
-
-    static const getValMsgT getValMsgFunc;
-    static const getValMsgConstT getValMsgConstFunc;
-
-    static const char* mismatchErrorString;
 };
 
 // specializations to take care of the small differences between DegreeAdvancementTimesSeries, OrderParameterTimeSeries, etc
@@ -83,22 +75,41 @@ template <> struct TimeSeriesSpecialization<lm::io::DegreeAdvancementTimeSeries>
 public:
     typedef uint64_t ValT;
 
-    getTimeSeriesMsgT getTimeSeriesMsgFuncGetter()
-    {
-        return &OutMsgT::mutable_degree_advancement_time_series;
-    }
+    static const getTimeSeriesMsgT getTimeSeriesMsgFunc;
+    static const getTimeSeriesMsgConstT getTimeSeriesMsgConstFunc;
+
+    static const getValMsgT getValMsgFunc;
+    static const getValMsgConstT getValMsgConstFunc;
+
+    static const char* mismatchErrorString;
 };
 
 template <> struct TimeSeriesSpecialization<lm::io::OrderParameterTimeSeries>: public TimeSeriesSpecializationBase<lm::io::OrderParameterTimeSeries>
 {
 public:
     typedef double ValT;
+
+    static const getTimeSeriesMsgT getTimeSeriesMsgFunc;
+    static const getTimeSeriesMsgConstT getTimeSeriesMsgConstFunc;
+
+    static const getValMsgT getValMsgFunc;
+    static const getValMsgConstT getValMsgConstFunc;
+
+    static const char* mismatchErrorString;
 };
 
 template <> struct TimeSeriesSpecialization<lm::io::SpeciesTimeSeries>: public TimeSeriesSpecializationBase<lm::io::SpeciesTimeSeries>
 {
 public:
     typedef int32_t ValT;
+
+    static const getTimeSeriesMsgT getTimeSeriesMsgFunc;
+    static const getTimeSeriesMsgConstT getTimeSeriesMsgConstFunc;
+
+    static const getValMsgT getValMsgFunc;
+    static const getValMsgConstT getValMsgConstFunc;
+
+    static const char* mismatchErrorString;
 };
 
 template <typename MsgT>

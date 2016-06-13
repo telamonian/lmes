@@ -72,12 +72,13 @@ public:
 protected:
 //mutators
 //    virtual void buildRunWorkUnitLimits(lm::message::RunWorkUnit* msg);
-    virtual void buildSimulationStageList();
-    virtual void buildPilotStage();
-    virtual void buildProductionStage();
+//    virtual void buildSimulationStageList();
+//    virtual void buildPilotStage();
+//    virtual void buildProductionStage();
     virtual void buildSimulationPhaseList();
-    virtual void buildPilotPhaseList();
-    virtual void buildProductionPhaseList();
+//    virtual void buildPilotPhaseList();
+//    virtual void buildProductionPhaseList();
+
     virtual void buildTrajectoryList();
     virtual void finishSimulation();
     virtual void incrementFFluxPhase();
@@ -87,6 +88,9 @@ protected:
 //    virtual void setLimits();
     virtual void setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList);
     virtual void startSimulation();
+
+    virtual lm::trajectory::TrajectoryList* initTrajectoryList(const lm::input::SimulationPhase& phase);
+    virtual lm::trajectory::TrajectoryList* initTrajectoryList(const lm::input::SimulationPhase& phase, const lm::trajectory::TrajectoryList& previousList);
 
 protected:
     uint64_t ffluxPhase;

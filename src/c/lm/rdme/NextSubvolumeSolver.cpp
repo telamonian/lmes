@@ -323,7 +323,7 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     }
 
     // If we finished the total time, write out the remaining time steps.
-    else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && limitTypeReached == lm::input::TrajectoryLimit::MAX)
+    else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && limitTypeReached == lm::input::TrajectoryLimit::TIME)
     {
         time = timeLimit;
         Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);

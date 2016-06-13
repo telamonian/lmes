@@ -88,7 +88,7 @@ typedef map<lm::fflux::FFluxTrajectoryList::Direction, DwellTimeMap> DwellTimeMa
 typedef map<lm::fflux::FFluxTrajectoryList::Direction, FinishedTrajectoriesCountMap> FinishedTrajectoriesCountMapMap;
 
 FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simulationPhase, lm::input::Input& input, lm::message::Communicator& communicator, uint64_t simultaneousTrajectoryCount)
-:TrajectoryList(simulationPhase),
+:TrajectoryList(),
  communicator(communicator),
  direction(FORWARD),
  dwellTimes(),

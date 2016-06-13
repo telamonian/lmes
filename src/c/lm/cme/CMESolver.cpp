@@ -309,7 +309,7 @@ void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
     }
 
     // if we're recording any limit tracking data to the trajectory state, get it. Otherwise, just get any changes to the limit tracking countdowns
-    for (Repeated<lm::io::LimitTracking>::iterator it=state->limit_tracking().begin(); it!=state->limit_tracking().end(); ++it)
+    for (Repeated<lm::io::LimitTracking>::iterator it=state->mutable_limit_tracking()->begin(); it!=state->mutable_limit_tracking()->end(); ++it)
     {
         if (not trackedLimits.count(it->limit_id())) throw Exception("LimitTracking instance for limit %d expected but never initialized at end of work unit", it->limit_id());
 

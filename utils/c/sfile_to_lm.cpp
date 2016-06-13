@@ -55,7 +55,6 @@
 #include "lm/io/sfile/SFileRecord.h"
 #include "lptf/Profile.h"
 
-
 void printCopyright(int argc, char** argv);
 void parseArguments(int argc, char** argv);
 void printUsage(int argc, char** argv);

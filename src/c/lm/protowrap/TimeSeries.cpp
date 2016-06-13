@@ -78,3 +78,6 @@ const STSS::getValMsgT STSS::getValMsgFunc = &lm::io::SpeciesTimeSeries::mutable
 const STSS::getValMsgConstT STSS::getValMsgConstFunc = &lm::io::SpeciesTimeSeries::counts;
 
 const char* STSS::mismatchErrorString = "Array shape mismatch when serializing a species time series (check counts.size==times.size*numberOfColumns failed, %d,%d,%d)";
+
+}
+}

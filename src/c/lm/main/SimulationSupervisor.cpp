@@ -340,7 +340,7 @@ void SimulationSupervisor::buildTrajectoryList()
 {
     switch(simulationPhaseList.front()->trajectory_source())
     {
-    case SimPhaseEnums::TRAJECTORY_STATES: setTrajectoryList(initTrajectoryList(*simulationPhaseList.front())); break;
+    case SimPhaseEnums::LIST: setTrajectoryList(initTrajectoryList(*simulationPhaseList.front())); break;
     case SimPhaseEnums::PREVIOUS_PHASE: setTrajectoryList(initTrajectoryList(*simulationPhaseList.front(), *trajectoryList)); break;
     }
 }

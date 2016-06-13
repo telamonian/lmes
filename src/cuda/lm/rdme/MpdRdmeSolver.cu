@@ -39,9 +39,8 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
-
 #include <map>
 #include <string>
 #include <cstdlib>
@@ -75,7 +74,7 @@
 #include "lm/rdme/dev/byte_reaction_dev.cu"
 
 using std::map;
-using lm::io::DiffusionModel;
+using lm::input::DiffusionModel;
 using lm::rdme::Lattice;
 using lm::rng::RandomGenerator;
 

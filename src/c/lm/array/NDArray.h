@@ -227,13 +227,14 @@ protected:
         return r;
     }
 
-public:
-    const tuple<uint>& shape;
-
 protected:
     tuple<uint> _shape;
+public:
+    const tuple<uint>& shape;
+protected:
     uint _size;
     T* _data;
+
 };
 
 }

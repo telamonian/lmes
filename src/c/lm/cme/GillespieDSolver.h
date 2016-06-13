@@ -84,7 +84,7 @@ protected:
 
 protected:
     lm::protowrap::TimeSeries<lm::io::DegreeAdvancementTimeSeries> daTimeSeriesWrap;
-    lm::protowrap::TimeSeries<lm::io::DegreeAdvancementTimeSeries> opTimeSeriesWrap;
+    lm::protowrap::TimeSeries<lm::io::OrderParameterTimeSeries> opTimeSeriesWrap;
     double * propensities;
 };
 

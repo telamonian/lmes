@@ -89,7 +89,7 @@ TrajectoryList::~TrajectoryList()
 }
 
 // initializer
-void TrajectoryList::init(const Repeated<lm::io::TrajectoryState>::type& initialStates)
+void TrajectoryList::init(const Repeated<lm::io::TrajectoryState>::RepT& initialStates)
 {
     for (Repeated<lm::io::TrajectoryState>::const_iterator it=initialStates.begin(); it!=initialStates.end(); it++)
     {

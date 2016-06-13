@@ -36,7 +36,6 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #include <limits>
 #include <list>
 #include <map>
@@ -58,6 +57,7 @@
 #define UINT64_MAX        18446744073709551615ULL
 #endif
 
+using lm::trajectory::TrajectoryMap;
 using std::map;
 using std::string;
 

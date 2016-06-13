@@ -64,7 +64,7 @@
 #include "lm/Version.h"
 #include "lm/cme/CMEPropensityFunctions.h"
 #include "lm/me/PropensityFunction.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lptf/Profile.h"
 
@@ -76,7 +76,7 @@ using std::map;
 using std::vector;
 using std::string;
 using lm::Exception;
-using lm::io::ReactionModel;
+using lm::input::ReactionModel;
 using lm::io::hdf5::Hdf5File;
 using lm::Print;
 
@@ -528,7 +528,7 @@ bool importSBMLModelL3V1(ReactionModel * lmModel, Model * sbmlModel) throw(Excep
     }
     for (int j=0; j<numberReactions; j++)
     {
-        lm::io::ReactionModel_Reaction* reaction = lmModel->add_reaction();
+        lm::input::ReactionModel::Reaction* reaction = lmModel->add_reaction();
         reaction->set_type(T[utuple(j)]);
         for (int k=0; k<10 && !std::isnan(K[utuple(j,k)]); k++)
             reaction->add_rate_constant(K[utuple(j,k)]);

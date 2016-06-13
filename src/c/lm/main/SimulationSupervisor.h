@@ -157,6 +157,7 @@ protected:
     lm::resource::ResourceMap* resourceMap;
     std::string simulationInputFilename;
     std::string simulationOutputFilename;
+    uint64_t simulationPhase;
     SimulationPhaseList simulationPhaseList;
     bool simulationRunning;
     lm::slot::SlotList slots;

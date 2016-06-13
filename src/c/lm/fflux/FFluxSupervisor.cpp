@@ -325,5 +325,15 @@ void FFluxSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* newTraje
     trajectoryList = static_cast<lm::fflux::FFluxTrajectoryList*>(lm::main::SimulationSupervisor::trajectoryList);
 }
 
+lm::trajectory::TrajectoryList* FFluxSupervisor::initTrajectoryList(const lm::input::SimulationPhase& phase)
+{
+    return new FFluxTrajectoryList(simulationPhase, *input, communicator, slots.getSimultaneousWorkUnits());
+}
+
+lm::trajectory::TrajectoryList* FFluxSupervisor::initTrajectoryList(const lm::input::SimulationPhase& phase, const lm::trajectory::TrajectoryList& previousList)
+{
+    return new FFluxTrajectoryList(simulationPhase, *input, communicator, slots.getSimultaneousWorkUnits());
+}
+
 }
 }

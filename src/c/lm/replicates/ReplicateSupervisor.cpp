@@ -44,7 +44,7 @@
 #include "lm/ClassFactory.h"
 #include "lm/Print.h"
 #include "lm/io/OutputWriter.h"
-#include "lm/input/SimulationPhases.pb.h"
+#include "lm/input/SimulationPhase.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/main/Main.h"
 #include "lm/main/SimulationSupervisor.h"
