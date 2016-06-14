@@ -28,6 +28,7 @@
 #include "lm/ClassFactory.h"
 #include "lm/Print.h"
 #include "lm/io/OutputWriter.h"
+#include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/main/Globals.h"
 #include "lm/main/Main.h"
 #include "lm/main/SimulationSupervisor.h"
@@ -63,7 +64,7 @@ void* MicroenvironmentSupervisor::allocateObject()
 }
 
 MicroenvironmentSupervisor::MicroenvironmentSupervisor()
-:simulationStartTime(0),numberReplicates(::replicates.size()),currentReplicateIndex(0),numberTimesteps(0),currentTimestep(0),tau(0.01),
+:simulationStartTime(0),numberReplicates(::replicates.size()),currentReplicateIndex(0),numberTimesteps(0),currentTimestep(0),tau(0.0),maxTime(0.0),
 pdeSlots(&communicator),pdeSolverClassName(""),pdeTrajectoryList(NULL),
 stats_pdeWorkUnitsSteps(0),stats_pdeWorkUnitsTime(0.0)
 {
@@ -78,6 +79,22 @@ MicroenvironmentSupervisor::~MicroenvironmentSupervisor()
 {
     if (pdeTrajectoryList != NULL) delete pdeTrajectoryList; pdeTrajectoryList = NULL;
     if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL;
+}
+
+void MicroenvironmentSupervisor::init()
+{
+    SimulationSupervisor::init();
+
+    // Get the tau.
+    if (!input->hasMicroenvironmentModel()) throw RuntimeException("MicroenvironmentSupervisor requires a MicroenvironmentModel as input");
+    tau = input->getMicroenvironmentModel().synchronization_timestep();
+
+    // Figure out how many timesteps we need to perform.
+    if (!input->hasTrajectoryLimits()) throw RuntimeException("MicroenvironmentSupervisor requires a TrajectoryLimit as input");
+    lm::io::TrajectoryLimits limits = input->getTrajectoryLimits();
+    if (!limits.has_time_limit() || limits.time_limit().limit_type() != lm::io::TrajectoryLimits::TIME || limits.time_limit().stopping_condition() != lm::io::TrajectoryLimits::MAX || !limits.time_limit().has_dvalue()) throw RuntimeException("MicroenvironmentSupervisor requires a maximum time limit as input");
+    maxTime = limits.time_limit().dvalue();
+    numberTimesteps = uint(ceil((maxTime/tau)-EPS));
 }
 
 void MicroenvironmentSupervisor::startWorkUnitRunners()
@@ -114,7 +131,6 @@ void MicroenvironmentSupervisor::startSimulation()
     if (outputWriterProcess == -1 || outputWriterThread == -1)
         throw new Exception("MicroenvironmentSupervisor could not start the simulation, no output writer available.");
 
-    numberTimesteps = 10;
 
     Print::printf(Print::INFO, "Microenvironment supervisor starting simulation: %d replicates", numberReplicates);
 
@@ -149,8 +165,9 @@ void MicroenvironmentSupervisor::continueCurrentReplicate()
 
     // Reconcile the cells and the diffusion grid.
 
-    // Update the trajectory list to run for another timestep.
+    // Update the trajectory lists to run for another timestep.
     pdeTrajectoryList->restartFinishedTrajectories();
+    trajectoryList->restartFinishedTrajectories();
 }
 
 void MicroenvironmentSupervisor::buildTrajectoryList()
@@ -270,16 +287,16 @@ void MicroenvironmentSupervisor::buildRunWorkUnit(lm::message::RunWorkUnit* msg,
     // Set the output options.
     msg->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());
 
+    // Set the limits.
+    msg->mutable_trajectory_limits()->mutable_time_limit()->set_limit_type(lm::io::TrajectoryLimits::TIME);
+    msg->mutable_trajectory_limits()->mutable_time_limit()->set_stopping_condition(lm::io::TrajectoryLimits::MAX);
+    msg->mutable_trajectory_limits()->mutable_time_limit()->set_dvalue((currentTimestep+1)*tau);
+
     if (me)
     {
     }
     else
     {
-        // Set the limits.
-        msg->mutable_trajectory_limits()->mutable_time_limit()->set_limit_type(lm::io::TrajectoryLimits::TIME);
-        msg->mutable_trajectory_limits()->mutable_time_limit()->set_stopping_condition(lm::io::TrajectoryLimits::MAX);
-        msg->mutable_trajectory_limits()->mutable_time_limit()->set_dvalue((currentTimestep+1)*tau);
-
         // Set the maximum number of steps for the work unit.
         msg->set_max_steps(1000);
 

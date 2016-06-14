@@ -124,16 +124,16 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         if (simulationParameters.count("maxTime"))
         {
             trajectoryLimits.addLimitBuf<EH::TIME>(0, simulationParameters.parse<double>("maxTime"), EH::MAX);
-            trajectoryLimitsPresent = true;
+            trajectoryLimitsPresent |= true;
         }
 
         // set the other limits, if present in the simulation parameters
-        trajectoryLimitsPresent = degreeAdvancementPresent = parseLimits<EH::DEGREE_ADVANCEMENT>("degreeAdvancementLowerLimitList", "degree advancement lower limit", EH::MIN);
-        trajectoryLimitsPresent = degreeAdvancementPresent = parseLimits<EH::DEGREE_ADVANCEMENT>("degreeAdvancementUpperLimitList", "degree advancement upper limit", EH::MAX);
-        trajectoryLimitsPresent = parseLimits<EH::ORDER_PARAMETER>("orderParameterLowerLimitList", "order parameter lower limit", EH::MIN);
-        trajectoryLimitsPresent = parseLimits<EH::ORDER_PARAMETER>("orderParameterUpperLimitList", "order parameter upper limit", EH::MAX);
-        trajectoryLimitsPresent = parseLimits<EH::SPECIES>("speciesLowerLimitList", "species lower limit", EH::MIN);
-        trajectoryLimitsPresent = parseLimits<EH::SPECIES>("speciesUpperLimitList", "species upper limit", EH::MAX);
+        trajectoryLimitsPresent |= degreeAdvancementPresent = parseLimits<EH::DEGREE_ADVANCEMENT>("degreeAdvancementLowerLimitList", "degree advancement lower limit", EH::MIN);
+        trajectoryLimitsPresent |= degreeAdvancementPresent = parseLimits<EH::DEGREE_ADVANCEMENT>("degreeAdvancementUpperLimitList", "degree advancement upper limit", EH::MAX);
+        trajectoryLimitsPresent |= parseLimits<EH::ORDER_PARAMETER>("orderParameterLowerLimitList", "order parameter lower limit", EH::MIN);
+        trajectoryLimitsPresent |= parseLimits<EH::ORDER_PARAMETER>("orderParameterUpperLimitList", "order parameter upper limit", EH::MAX);
+        trajectoryLimitsPresent |= parseLimits<EH::SPECIES>("speciesLowerLimitList", "species lower limit", EH::MIN);
+        trajectoryLimitsPresent |= parseLimits<EH::SPECIES>("speciesUpperLimitList", "species upper limit", EH::MAX);
     }
 
     // Get the output options.
@@ -210,9 +210,11 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         microenvironmentModel.add_diffusion_coefficients(1000e-12);
         robertslab::pbuf::NDArray* c = microenvironmentModel.add_initial_concentrations();
 
-        ndarray<double> grid(utuple(1,5000,5000), DOUBLES_PER_AVX*sizeof(double));
+        ndarray<double> grid(utuple(1,1,10000), DOUBLES_PER_AVX*sizeof(double));
         grid[utuple(grid.shape[0]/2,grid.shape[1]/2,grid.shape[2]/2)] = 1.0e-6;
         robertslab::pbuf::NDArraySerializer::serializeInto<double>(c, grid);
+
+        microenvironmentModel.set_synchronization_timestep(0.01);
 
         // TODO: Set some concentrations output also for testing purposes, remove later.
         outputOptionsPresent = true;

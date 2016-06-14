@@ -32,4 +32,6 @@ message MicroenvironmentModel {
     repeated int32 species_ids                                          = 4;
     repeated double diffusion_coefficients                              = 5;
     repeated robertslab.pbuf.NDArray initial_concentrations             = 6;    //3D; i=x,j=y,k=z; type=float64
+
+    required double synchronization_timestep                            = 7;
 }

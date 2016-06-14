@@ -458,7 +458,7 @@ void SimulationSupervisor::buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg)
 void SimulationSupervisor::buildRunWorkUnitLimits(lm::message::RunWorkUnit* msg)
 {
     // Set the limits.
-    msg->mutable_trajectory_limits()->CopyFrom(input->getTrajectoryLimitsMsg());
+    msg->mutable_trajectory_limits()->CopyFrom(input->getTrajectoryLimits());
 }
 
 void SimulationSupervisor::buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint minWorkUnits)

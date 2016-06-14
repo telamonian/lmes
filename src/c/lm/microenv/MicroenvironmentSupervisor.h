@@ -60,6 +60,7 @@ public:
 public:
     MicroenvironmentSupervisor();
     virtual ~MicroenvironmentSupervisor();
+    virtual void init();
 
 protected:
     virtual void startWorkUnitRunners();
@@ -89,6 +90,7 @@ protected:
     uint numberTimesteps;
     uint currentTimestep;
     double tau;
+    double maxTime;
     lm::slot::SlotList pdeSlots;
     std::string pdeSolverClassName;
     lm::trajectory::TrajectoryList* pdeTrajectoryList;

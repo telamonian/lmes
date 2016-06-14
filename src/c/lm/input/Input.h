@@ -81,7 +81,7 @@ public:
     const lm::option::SimulationParameters& getSimulationParameters() const {return simulationParameters;}
     const lm::tiling::Tilings& getTilings() const {return tilings;}
     const lm::io::Tilings& getTilingsMsg() const {return tilingsMsg;}
-    const lm::io::TrajectoryLimits& getTrajectoryLimitsMsg() const {return trajectoryLimits.buf();}
+    const lm::io::TrajectoryLimits& getTrajectoryLimits() const {return trajectoryLimits.buf();}
     const lm::input::MicroenvironmentModel& getMicroenvironmentModel() const {return microenvironmentModel;}
 
     uint64_t getPartsPerWorkUnit() const {return partsPerWorkUnit;}
