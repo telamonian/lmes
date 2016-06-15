@@ -68,8 +68,8 @@ message TrajectoryLimit {
      *         | DECREASING         | previous_value > limit_value && value <= limit_value | previous_value >= limit_value && value < limit_value |
      *         | INCREASING         | previous_value < limit_value && value >= limit_value | previous_value <= limit_value && value > limit_value |
      */
-    required StoppingCondition stopping_condition   = 2;
-    optional bool include_endpoint                  = 3 [default=true];
+    required StoppingCondition stopping_condition   = 11;
+    optional bool include_endpoint                  = 12 [default=true];
 
     /*
      * - limit_type is used in conjunction with value_id to determine what simulation value will be checked when the limit is invoked
@@ -78,12 +78,12 @@ message TrajectoryLimit {
      *     - limit_type==ORDER_PARAMETER: value_id is the id of the order parameter value checked
      *     - limit_type==DEGREE_ADVANCEMENT: value_id is the index of the reaction count checked
      */
-    required LimitType limit_type                   = 4;
-    optional uint32 value_id                        = 5;
+    required LimitType limit_type                   = 21;
+    optional uint32 value_id                        = 22;
 
-    optional double dvalue                          = 6 [default=0.0];
-    optional int32 ivalue                           = 7 [default=0];
-    optional uint64 uvalue                          = 8 [default=0];
+    optional double dvalue                          = 31 [default=0.0];
+    optional int32 ivalue                           = 32 [default=0];
+    optional uint64 uvalue                          = 33 [default=0];
 }
 
 message TrajectoryLimits {

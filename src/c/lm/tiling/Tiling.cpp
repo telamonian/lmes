@@ -62,7 +62,7 @@ Tiling::~Tiling()
 void Tiling::init(const lm::input::Tiling& tilingRef)
 {
     tilingBuf = new lm::input::Tiling(tilingRef);
-    setSortOrder(tilingBuf->sort_order(0));
+    setSortOrder(tilingBuf->sort_orders(0));
 }
 
 // flips the stopping condition of the added limits around depending on whether the tiling's edges currently sort ascending or descending
@@ -97,13 +97,13 @@ Tiling::TrajectoryLimitBuf* Tiling::addLimitBuf(lm::trajectory::TrajectoryLimits
 
 TilingEnums::SortOrder Tiling::getSortOrder() const
 {
-    return tilingBuf->sort_order(0);
+    return tilingBuf->sort_orders(0);
 }
 
 void Tiling::setSortOrder(TilingEnums::SortOrder newArr)
 {
     // for a 1D tiling there are only two possible sort orders, so either leave things alone or call .reverse()
-    if (tilingBuf->sort_order(0)!=newArr)
+    if (tilingBuf->sort_orders(0)!=newArr)
     {
         reverse();
     }
@@ -111,7 +111,7 @@ void Tiling::setSortOrder(TilingEnums::SortOrder newArr)
 
 void Tiling::reverse()
 {
-    tilingBuf->set_sort_order(0, tilingBuf->sort_order(0)==TilingEnums::ASCENDING ? TilingEnums::DESCENDING : TilingEnums::ASCENDING);
+    tilingBuf->set_sort_orders(0, tilingBuf->sort_orders(0)==TilingEnums::ASCENDING ? TilingEnums::DESCENDING : TilingEnums::ASCENDING);
     int revLoops = tilingBuf->edges_size()/2;
     for (int i=0;i<revLoops;++i)
     {

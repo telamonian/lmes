@@ -68,20 +68,24 @@ public:
     EdgeIterator begin() const {return tilingBuf->edges().begin();}
     EdgeIterator end() const {return tilingBuf->edges().end();}
     TilingEnums::SortOrder getSortOrder() const;
-    uint64_t getDim(uint dimIndex) const {return tilingBuf->dims(dimIndex);}
+    uint64_t getEdgeDims(uint dimIndex) const {return tilingBuf->edge_dims(dimIndex);}
     double getEdge(uint edgeIndex) const {return tilingBuf->edges(edgeIndex);}
     int getEdgesCount() const {return tilingBuf->edges_size();}
     double getLastEdge() const {return getEdge(getLastEdgeIndex());}
     uint getLastEdgeIndex() const {return getEdgesCount() - 1;}
     uint getID() const {return tilingBuf->id();}
-    uint getOrderParameterID() const {return tilingBuf->order_parameter_id();}
+    uint getOrderParameterID() const {return getOrderParameterIDs(0);}    // 1D version of getOrderParameterIDs, for backwards compatibility
+    uint getOrderParameterIDs(uint opIndex) const {return tilingBuf->order_parameter_ids(opIndex);}
     uint64_t getRank() const {return tilingBuf->rank();}
     uint getTileIndex(double opVal);    // get the index of the tile for making a histogram based on the tiling
 
 // mutators
+    void addOrderParameterIDs(uint opID) {tilingBuf->add_order_parameter_ids(opID);}
+    void clearOrderParameterIDs() {tilingBuf->clear_order_parameter_ids();}
     void reverse();
     void setSortOrder(TilingEnums::SortOrder sortOrder);
-    void setOrderParameterID(uint opID) {tilingBuf->set_order_parameter_id(opID);}
+    void setOrderParameterID(uint opID) {clearOrderParameterIDs(); addOrderParameterIDs(opID);} // 1D version of setOrderParameterIDs, for backwards compatibility
+
 
 protected:
     lm::input::Tiling* tilingBuf;

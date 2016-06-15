@@ -37,29 +37,33 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 syntax = "proto2";
-package lm.input;
+package lm.fflux.input;
 
+import "lm/fflux/input/FFluxPhaseLimit.proto";
 import "lm/input/OutputOptions.proto";
-import "lm/input/Tiling.proto";
+import "lm/input/Tilings.proto";
 
 message FFluxStage {
-    enum StopCondition {
-        TRAJECTORY_COUNT=0;
-        FORWARD_FLUXES=1;
-        TIME=2;
-    }
+    required uint64 id                                         = 1;
 
-    optional lm.input.tiling tiling = 1;
-    optional bool reversed          = 2 [default=false];
+    optional lm.input.Tiling tiling                            = 11;
+    optional uint32 basin_index                                = 12 [default=0];
 
     /*
      * - Stopping conditions for each forward flux phase. Can be specified one of two ways (an error will be raised if more than one way is used)
-     *     - (default) If precisionGoal is specified, the phase limits are determined automatically
-     *     - A list of phase limits of length equal to the total number of phases in the simulation (ie the number of interfaces in all the tilings used)
+     *     - If a pilot_stage has been set, the phase limits will be set dynamically based on the results of the pilot stage and precision_goal from FFluxSimulationParameters
+     *     - A manually specified list of phase limits, one per interfaces in this stage's tiling
+     *         - If there are fewer limits than interfaces, the last limit will be repeated to make up the difference
+     *             - This is useful for specifying one limit for phase zero and another limit for the rest of the phases
+     *         - If there are more limits than interfaces, an error will be raised
      */
-    repeated lm.input.FFluxPhaseLimits fflux_phase_limits = 3;
+    repeated lm.fflux.input.FFluxPhaseLimit fflux_phase_limits = 21;
 
-    optional FFluxStage pilot_stage = 7;
+    optional FFluxStage pilot_stage                            = 31;
 
-    optional lm.input.OutputOptions output_options = 100;
+    optional lm.input.OutputOptions output_options             = 101;
+}
+
+message FFluxStageList {
+    repeated lm.fflux.input.FFluxStage fflux_stages = 1;
 }

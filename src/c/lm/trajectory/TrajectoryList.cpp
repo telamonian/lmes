@@ -64,22 +64,17 @@ using std::string;
 namespace lm {
 namespace trajectory {
 
-TrajectoryList::TrajectoryList(): count(0), simulationPhase(0)
+TrajectoryList::TrajectoryList(): count(0), simulationPhaseIndex(0)
 {
 }
 
-TrajectoryList::TrajectoryList(const lm::input::SimulationPhase& phase): count(0), simulationPhase(phase.id())
+TrajectoryList::TrajectoryList(const lm::input::SimulationPhase& phase): count(0), simulationPhaseIndex(phase.id())
 {
     init(phase.trajectory_states());
 }
 
-TrajectoryList::TrajectoryList(const lm::input::SimulationPhase& phase, const TrajectoryList& previousList): count(previousList.count), simulationPhase(phase.id())
+TrajectoryList::TrajectoryList(const lm::input::SimulationPhase& phase, const TrajectoryList& previousList): count(previousList.count), simulationPhaseIndex(phase.id())
 {
-//    switch(phase.trajectory_source())
-//    {
-//    case SimPhaseEnums::PREVIOUS_PHASE: init(previousList); break;
-//    case SimPhaseEnums::TRAJECTORY_STATES: init(phase.trajectory_states()); break;
-//    }
     init(previousList);
 }
 
@@ -94,7 +89,7 @@ void TrajectoryList::init(const Repeated<lm::io::TrajectoryState>::RepT& initial
     for (Repeated<lm::io::TrajectoryState>::const_iterator it=initialStates.begin(); it!=initialStates.end(); it++)
     {
         uint64_t id = count++;
-        trajectories[id] = initTrajectory(id, getSimulationPhase(), *it);
+        trajectories[id] = initTrajectory(id, getSimulationPhaseIndex(), *it);
         waitingTrajectories[id] = trajectories[id];
     }
 }
@@ -104,7 +99,7 @@ void TrajectoryList::init(const TrajectoryList& previousList)
     for (TrajectoryMap::const_iterator it=previousList.finishedTrajectories.begin(); it!=previousList.finishedTrajectories.end(); it++)
     {
         uint64_t id = count++;
-        trajectories[id] = initTrajectory(id, getSimulationPhase(), it->second->getState());
+        trajectories[id] = initTrajectory(id, getSimulationPhaseIndex(), it->second->getState());
         waitingTrajectories[id] = trajectories[id];
     }
 }
@@ -160,6 +155,19 @@ bool TrajectoryList::areAllFinished() const
     return abortedTrajectories.size() == 0 && runningTrajectories.size() == 0 && waitingTrajectories.size() == 0;
 }
 
+const TrajectoryMap& TrajectoryList::getTrajectoryMap(Trajectory::Status status) const
+{
+    switch (status)
+    {
+    case Trajectory::ABORTED: return abortedTrajectories;
+    case Trajectory::FINISHED: return finishedTrajectories;
+    case Trajectory::NOT_STARTED: throw Exception("unimplemented");
+    case Trajectory::RUNNING: return runningTrajectories;
+    case Trajectory::WAITING: return waitingTrajectories;
+    }
+    throw Exception("Unknown Trajectory Status", status);
+}
+
 // mutators
 int TrajectoryList::addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUnit* msg, uint numberParts)
 {
@@ -198,6 +206,17 @@ int TrajectoryList::addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUn
     return trajectoriesAdded.size();
 }
 
+void TrajectoryList::copyTrajectories(const TrajectoryList& srcTrajList, Trajectory::Status status)
+{
+    TrajectoryMap* dstMap = getTrajectoryMap(status);
+    const TrajectoryMap& srcMap = srcTrajList.getTrajectoryMap(status);
+
+    for (TrajectoryMap::const_iterator it=srcMap.begin();it!=srcMap.end();it++)
+    {
+        dstMap[it->first] = it->second;
+    }
+}
+
 Trajectory* TrajectoryList::getTrajectoryForFinishedWorkUnit(uint64_t id)
 {
     Trajectory* t;
@@ -226,26 +245,18 @@ Trajectory* TrajectoryList::getTrajectoryForFinishedWorkUnit(uint64_t id)
 
 void TrajectoryList::incrementSimulationPhase()
 {
-    simulationPhase++;
+    simulationPhaseIndex++;
 }
 
-TrajectoryMap* TrajectoryList::mutableTrajectoryMapFromStatus(Trajectory::status_t status)
+TrajectoryMap* TrajectoryList::getTrajectoryMap(Trajectory::Status status)
 {
-    switch (status)
-    {
-    case Trajectory::ABORTED: return &abortedTrajectories;
-    case Trajectory::FINISHED: return &finishedTrajectories;
-    case Trajectory::NOT_STARTED: throw Exception("unimplemented");
-    case Trajectory::RUNNING: return &runningTrajectories;
-    case Trajectory::WAITING: return &waitingTrajectories;
-    }
-    throw Exception("Unknown Trajectory status_t", status);
+    return const_cast<TrajectoryMap*>(const_cast<const TrajectoryList*>(this)->getTrajectoryMap(status));
 }
 
-void TrajectoryList::setAll(Trajectory::status_t oldStatus, Trajectory::status_t newStatus)
+void TrajectoryList::setAll(Trajectory::Status oldStatus, Trajectory::Status newStatus)
 {
-    TrajectoryMap& oldMap = *mutableTrajectoryMapFromStatus(oldStatus);
-    TrajectoryMap& newMap = *mutableTrajectoryMapFromStatus(newStatus);
+    TrajectoryMap& oldMap = *getTrajectoryMap(oldStatus);
+    TrajectoryMap& newMap = *getTrajectoryMap(newStatus);
     for (TrajectoryMap::iterator it=oldMap.begin(); it!=oldMap.end(); it++)
     {
         it->second->setStatus(newStatus);
@@ -350,15 +361,15 @@ uint64_t TrajectoryList::findNextTrajectoryToRun() const
     return it->first;
 }
 
-bool TrajectoryList::isTrajectoryInMap(lm::trajectory::Trajectory* traj, const TrajectoryMap& trajMap, Trajectory::status_t expectedStatus) const
+bool TrajectoryList::isTrajectoryInMap(lm::trajectory::Trajectory* traj, const TrajectoryMap& trajMap, Trajectory::Status expectedStatus) const
 {
     bool exists(trajMap.count(traj->getID())==1);
-    if (exists && traj->getStatus()!=expectedStatus) throw ConsistencyException("trajectory found in list that does not match its status: id, status, list_status", traj->getID(), Trajectory::status_t_strings[traj->getStatus()].c_str(), Trajectory::status_t_strings[expectedStatus].c_str());
+    if (exists && traj->getStatus()!=expectedStatus) throw ConsistencyException("trajectory found in list that does not match its status: id, status, list_status", traj->getID(), Trajectory::status_strings[traj->getStatus()].c_str(), Trajectory::status_strings[expectedStatus].c_str());
     return exists;
 }
 
 // protected mutators
-void TrajectoryList::setTrajectoryStatus(lm::trajectory::Trajectory* traj, TrajectoryMap& trajMap, Trajectory::status_t newStatus)
+void TrajectoryList::setTrajectoryStatus(lm::trajectory::Trajectory* traj, TrajectoryMap& trajMap, Trajectory::Status newStatus)
 {
     traj->setStatus(newStatus);
 

@@ -99,6 +99,15 @@ public:
     lm::trajectory::TrajectoryLimits* mutableTrajectoryLimits() {return &trajectoryLimits;}
 
 protected:
+    virtual void init(const lm::io::hdf5::Hdf5File& file);
+    virtual void initReactionModel(const lm::io::hdf5::Hdf5File& file);
+    virtual void initDiffusionModel(const lm::io::hdf5::Hdf5File& file);
+    virtual void initOrderParameters(const lm::io::hdf5::Hdf5File& file);
+    virtual void initTilings(const lm::io::hdf5::Hdf5File& file);
+    virtual void initTrajectoryLimits(const lm::io::hdf5::Hdf5File& file);
+    virtual void initOutputOptions(const lm::io::hdf5::Hdf5File& file);
+    virtual void initWorkUnitParameters(const lm::io::hdf5::Hdf5File& file);
+
     bool parseBoundaryConditions(lm::input::BoundaryConditions* bc, std::string arg);
     template <TrajLimEnums::LimitType LT> inline bool parseLimits(const std::string key, const std::string debugString, TrajLimEnums::StoppingCondition sc, bool includeEndpoint=true);
     template <typename ValT> inline bool parseAndSet(const std::string key, ValT* fieldPtr);

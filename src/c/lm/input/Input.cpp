@@ -41,11 +41,12 @@
 #include <vector>
 
 #include "lm/EnumHelper.h"
-#include "lm/Print.h"
+#include "lm/io/hdf5/SimulationFile.h"
 #include "lm/input/Input.h"
 #include "lm/input/OutputOptions.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/option/SimulationParameters.h"
+#include "lm/Print.h"
 #include "lm/trajectory/TrajectoryLimits.h"
 #include "lm/Types.h"
 
@@ -62,14 +63,37 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
 :reactionModelPresent(false),diffusionModelPresent(false),orderParametersPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),
  outputOptionsPresent(false),simulationParameters(file),partsPerWorkUnit(1),stepsPerWorkUnit(10000000)
 {
-    // Get the reaction model.
+    init(file);
+}
+
+Input::~Input()
+{
+}
+
+void Input::init(const lm::io::hdf5::Hdf5File& file)
+{
+    initReactionModel(file);
+    initDiffusionModel(file);
+    initOrderParameters(file);
+    initTilings(file);
+    initTrajectoryLimits(file);
+    initOutputOptions(file);
+    initWorkUnitParameters(file);
+}
+
+// Get the reaction model.
+void Input::initReactionModel(const lm::io::hdf5::Hdf5File& file)
+{
     if (file.hasReactionModel())
     {
         file.getReactionModel(&reactionModel);
         reactionModelPresent = true;
     }
+}
 
-    // Get the diffusion model.
+// Get the diffusion model.
+void Input::initDiffusionModel(const lm::io::hdf5::Hdf5File& file)
+{
     if (file.hasDiffusionModel())
     {
         file.getDiffusionModel(&diffusionModel);
@@ -78,10 +102,10 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         // See if we need to fill in the boundary conditions from the simulation parameters.
         if (simulationParameters.count("boundaryConditions") == 1 && !diffusionModel.has_boundary_conditions())
         {
-            lm::input::BoundaryConditions* bc=diffusionModel.mutable_boundary_conditions();
+            lm::input::BoundaryConditions* bc = diffusionModel.mutable_boundary_conditions();
             if (!parseBoundaryConditions(bc, simulationParameters["boundaryConditions"].c_str()))
             {
-                throw Exception("Could not parse boundaryConditions parameter",simulationParameters["boundaryConditions"].c_str());
+                throw Exception("Could not parse boundaryConditions parameter", simulationParameters["boundaryConditions"].c_str());
             }
             if (simulationParameters.count("boundarySite") == 1)
             {
@@ -101,108 +125,113 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
             }
         }
     }
+}
 
-    // Get the order parameters.
+// Get the order parameters.
+void Input::initOrderParameters(const lm::io::hdf5::Hdf5File& file)
+{
     if (file.hasOrderParameters())
     {
         file.getOrderParameters(&orderParametersMsg);
         orderParameters.init(&file);
         orderParametersPresent = true;
     }
+}
 
-    // Get the tilings.
+// Get the tilings.
+void Input::initTilings(const lm::io::hdf5::Hdf5File& file)
+{
     if (file.hasTilings())
     {
         file.getTilings(&tilingsMsg);
         tilings.init(&file);
         tilingsPresent = true;
     }
-
-    // Get the limits.
-    {
-        // See if we have a max time limit.
-        if (simulationParameters.count("maxTime"))
-        {
-            trajectoryLimits.addLimitMsg<TrajLimEnums::TIME>(0, simulationParameters.parse<double>("maxTime"), TrajLimEnums::MAX);
-            trajectoryLimitsPresent = true;
-        }
-
-        // set the other limits, if present in the simulation parameters
-        if (parseLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementLowerLimitList", "degree advancement lower limit", TrajLimEnums::MIN) ||
-            parseLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementUpperLimitList", "degree advancement upper limit", TrajLimEnums::MAX))
-        {
-            trajectoryLimitsPresent = true;
-            degreeAdvancementPresent = true;
-        }
-        if (parseLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterLowerLimitList", "order parameter lower limit", TrajLimEnums::MIN) ||
-            parseLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterUpperLimitList", "order parameter upper limit", TrajLimEnums::MAX) ||
-            parseLimits<TrajLimEnums::SPECIES>("speciesLowerLimitList", "species lower limit", TrajLimEnums::MIN) ||
-            parseLimits<TrajLimEnums::SPECIES>("speciesUpperLimitList", "species upper limit", TrajLimEnums::MAX))
-        {
-            trajectoryLimitsPresent = true;
-        }
-    }
-
-    // Get the output options.
-    {
-        if (parseAndSet("degreeAdvancementWriteInterval", &OutputOptions::set_degree_advancement_write_interval, outputOptions))
-        {
-            degreeAdvancementPresent = true;
-            outputOptionsPresent = true;
-        }
-
-        // Initialize the species counts first passage times in the output options
-        if (simulationParameters.count("fptTrackingList"))
-        {
-            const string listString = simulationParameters["fptTrackingList"];
-            std::list<int> fptList;
-            size_t start=0, end=0;
-            while (end != string::npos)
-            {
-                end = listString.find(',', start);
-                string trackedSpecies = listString.substr(start, (end == string::npos) ? string::npos : end - start);
-                if (trackedSpecies.length() > 0)
-                {
-                    outputOptions.add_fpt_species_to_track((uint)atoi(trackedSpecies.c_str()));
-                }
-                start = end+1;
-            }
-            outputOptionsPresent = true;
-        }
-
-        // Initialize the order parameter values first passage times in the output options
-        if (parseAndSetList("fptOrderParameterTrackingList", &OutputOptions::add_fpt_order_parameter_to_track, outputOptions))
-        {
-            outputOptionsPresent = true;
-        }
-
-        if (simulationParameters.count("latticeWriteInterval"))
-        {
-            outputOptions.set_lattice_write_interval(atof(simulationParameters["latticeWriteInterval"].c_str()));
-            outputOptionsPresent = true;
-        }
-
-        if (parseAndSet("orderParameterWriteInterval", &OutputOptions::set_order_parameter_write_interval, outputOptions))
-        {
-            outputOptionsPresent = true;
-        }
-        
-        if (simulationParameters.count("writeInterval"))
-        {
-            outputOptions.set_species_write_interval(atof(simulationParameters["writeInterval"].c_str()));
-            outputOptionsPresent = true;
-        }
-    }
-
-    // Get some generic input options.
-    parseAndSet("partsPerWorkUnit", &this->partsPerWorkUnit);
-
-    if (simulationParameters.count("maxWorkUnitSteps"))
-        stepsPerWorkUnit = atoll(simulationParameters["maxWorkUnitSteps"].c_str());
 }
 
-Input::~Input()
+// Get the limits.
+void Input::initTrajectoryLimits(const lm::io::hdf5::Hdf5File& file)
 {
+    // See if we have a max time limit.
+    if (simulationParameters.count("maxTime"))
+    {
+        trajectoryLimits.addLimitMsg<TrajLimEnums::TIME>(0, simulationParameters.parse<double>("maxTime"), TrajLimEnums::MAX);
+        trajectoryLimitsPresent = true;
+    }
+
+    // set the other limits, if present in the simulation parameters
+    if (parseLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementLowerLimitList", "degree advancement lower limit", TrajLimEnums::MIN) ||
+        parseLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementUpperLimitList", "degree advancement upper limit", TrajLimEnums::MAX))
+    {
+        trajectoryLimitsPresent = true;
+        degreeAdvancementPresent = true;
+    }
+    if (parseLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterLowerLimitList", "order parameter lower limit", TrajLimEnums::MIN) ||
+        parseLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterUpperLimitList", "order parameter upper limit", TrajLimEnums::MAX) ||
+        parseLimits<TrajLimEnums::SPECIES>("speciesLowerLimitList", "species lower limit", TrajLimEnums::MIN) ||
+        parseLimits<TrajLimEnums::SPECIES>("speciesUpperLimitList", "species upper limit", TrajLimEnums::MAX))
+    {
+        trajectoryLimitsPresent = true;
+    }
+}
+
+// Get the output options.
+void Input::initOutputOptions(const lm::io::hdf5::Hdf5File& file)
+{
+    if (parseAndSet("degreeAdvancementWriteInterval", &OutputOptions::set_degree_advancement_write_interval, outputOptions))
+    {
+        degreeAdvancementPresent = true;
+        outputOptionsPresent = true;
+    }
+
+    // Initialize the species counts first passage times in the output options
+    if (simulationParameters.count("fptTrackingList"))
+    {
+        const string listString = simulationParameters["fptTrackingList"];
+        std::list<int> fptList;
+        size_t start=0, end=0;
+        while (end != string::npos)
+        {
+            end = listString.find(',', start);
+            string trackedSpecies = listString.substr(start, (end == string::npos) ? string::npos : end - start);
+            if (trackedSpecies.length() > 0)
+            {
+                outputOptions.add_fpt_species_to_track((uint)atoi(trackedSpecies.c_str()));
+            }
+            start = end+1;
+        }
+        outputOptionsPresent = true;
+    }
+
+    // Initialize the order parameter values first passage times in the output options
+    if (parseAndSetList("fptOrderParameterTrackingList", &OutputOptions::add_fpt_order_parameter_to_track, outputOptions))
+    {
+        outputOptionsPresent = true;
+    }
+
+    if (simulationParameters.count("latticeWriteInterval"))
+    {
+        outputOptions.set_lattice_write_interval(atof(simulationParameters["latticeWriteInterval"].c_str()));
+        outputOptionsPresent = true;
+    }
+
+    if (parseAndSet("orderParameterWriteInterval", &OutputOptions::set_order_parameter_write_interval, outputOptions))
+    {
+        outputOptionsPresent = true;
+    }
+
+    if (simulationParameters.count("writeInterval"))
+    {
+        outputOptions.set_species_write_interval(atof(simulationParameters["writeInterval"].c_str()));
+        outputOptionsPresent = true;
+    }
+}
+
+// Get some parameters that tweak how work units are run
+void Input::initWorkUnitParameters(const lm::io::hdf5::Hdf5File& file)
+{
+    parseAndSet("partsPerWorkUnit", &this->partsPerWorkUnit);
+    parseAndSet("maxWorkUnitSteps", &this->stepsPerWorkUnit);
 }
 
 const lm::tiling::Tiling& Input::getCurrentTiling() const

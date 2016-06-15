@@ -101,7 +101,7 @@ public:
     virtual uint getCrossingsPerPhase();
     virtual lm::io::FFluxOutput* getFFluxOutput();
     virtual lm::io::FFluxOutput* getFFluxOutputStreaming();
-    virtual lm::io::TrajectoryState* getRandomCrossing(uint64_t ffluxPhase);        // Returns a randomly chosen crossing event (in the form of a TrajectoryState) collected durring forward flux phase ffluxPhase
+    virtual lm::io::TrajectoryState* getRandomCrossing(uint64_t ffluxPhase);        // Returns a randomly chosen crossing event (in the form of a TrajectoryState) collected durring forward flux phase ffluxPhaseIndex
 //    virtual lm::trajectory::Trajectory* getTrajectoryForFinishedWorkUnit(uint64_t id);          // same as the parent class method but does an exists check to handle the case that we're trying to get a trajectory from a finished phase
     virtual CrossingsMap getSavedCrossings(lm::fflux::FFluxTrajectoryList::Direction dir);
 

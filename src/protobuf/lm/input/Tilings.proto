@@ -54,15 +54,44 @@ message Tiling {
 
     required uint32 type                    = 1;
     required uint32 id                      = 2;
-    required uint32 order_parameter_id      = 3;
+
+    /*
+     * - multi-order parameter tilings (ie an n-dimensional tiling) can be specified in the following way
+     *     - one order_parameter_id per dimension
+     *         - rank = order_parameter_id.size()
+     *         - edge_dims.size() == order_parameter_id.size()
+     *     - one entry per order parameter in edge_dims, each entry specifying the number of edges for that order parameter
+     *     - edges is a jagged list of edge coordinates for each order parameter laid out in a 1D list according to edge_dims
+     *         - edges.size() == sum(edge_dims)
+     */
+    repeated uint32 order_parameter_ids     = 3 [packed=true];
     repeated double edges                   = 4 [packed=true];
-    repeated SortOrder sort_order           = 5;
 
     optional uint64 rank					= 100;
-    repeated uint64 dims					= 101 [packed=true];
+    repeated uint64 edge_dims				= 101 [packed=true];
+
+    /*
+     * - In general, sort_orders and reversed will be determined dynamically by the simulations that need them
+     *     - In a multi-order parameter tiling, each of these fields has one entry per order parameter
+     */
+    repeated SortOrder sort_orders          = 5;
+    repeated bool reversed                  = 6;
+
+    /*
+     * - A list of basin locations, specified as complete species counts
+     * - When used by a forward flux simulation, several consistency checks will be run
+     *     - The number of species counts in each basin should equal the number of species in the model (ie basin.size()==reactionModel.number_species)
+     *     - In order parameter space, each basin should be located either in front of the first interface of the tiling or past the last interface of the tiling
+     *         - If a basin is located past the last interface, the tiling will be reversed before it is used in the simulation
+     */
+    repeated Basin basins = 1000;
 }
 
 message Tilings {
     repeated Tiling tilings                 = 1;
     optional uint32 current_tiling_id		= 2;
+}
+
+message Basin {
+    repeated uint32 species_count = 1 [packed=true];
 }

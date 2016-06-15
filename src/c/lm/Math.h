@@ -63,6 +63,12 @@
 #define EPS         1e-9
 
 /*
+ * prefix definitions
+ */
+#define KIBI        1024
+#define MEBI        1048576
+
+/*
  * unary operations
  */
 inline bool isPower2(unsigned int x)

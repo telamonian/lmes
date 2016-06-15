@@ -39,5 +39,20 @@
 syntax = "proto2";
 package lm.io;
 
+import "lm/input/TrajectoryLimits.proto";
+
 message LimitFlux {
+    optional lm.input.TrajectoryLimit limit = 1;
+    optional uint64 count                   = 2;
+    optional double time                    = 3;
+
+    /*
+     * flux = (double)count/time
+     */
+    optional double flux                    = 4;
+}
+
+message FluxesFromStartingLimit {
+    optional lm.input.TrajectoryLimit starting_limit = 1;
+    repeated LimitFlux limit_fluxes                  = 2;
 }

@@ -69,7 +69,7 @@ namespace replicates {
 //{
 //    for (uint64_t i=firstTrajectory; i<=lastTrajectory; i++)
 //    {
-//        trajectories[i] = new lm::trajectory::Trajectory(i, getSimulationPhase(), input);
+//        trajectories[i] = new lm::trajectory::Trajectory(i, getSimulationPhaseIndex(), input);
 //        waitingTrajectories[i] = trajectories[i];
 //    }
 //}
@@ -139,7 +139,7 @@ void ReplicateTrajectoryList::printTrajectoryStatistics() const
         {
             uint64_t id = it->first;
             lm::trajectory::Trajectory* t = it->second;
-            Print::printf(Print::INFO, "%10lld %-11s %8.2e %10d", id, lm::trajectory::Trajectory::status_t_strings[(int)t->getStatus()].c_str(), t->getState().cme_state().species_counts().time(0), t->getWorkUnitsPerformed());
+            Print::printf(Print::INFO, "%10lld %-11s %8.2e %10d", id, lm::trajectory::Trajectory::status_strings[(int)t->getStatus()].c_str(), t->getState().cme_state().species_counts().time(0), t->getWorkUnitsPerformed());
         }
         stats_lastPrintTime = getHrTime();
     }

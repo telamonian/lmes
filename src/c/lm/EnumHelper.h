@@ -44,6 +44,8 @@
 #ifndef ENUMHELPER_H
 #define ENUMHELPER_H
 
+#include <lm/trajectory/Trajectory.h>
+#include "lm/fflux/input/FFluxPhaseLimit.pb.h"
 #include "lm/io/LimitTracking.pb.h"
 #include "lm/input/SimulationPhase.pb.h"
 #include "lm/input/Tilings.pb.h"
@@ -52,7 +54,18 @@
 
 // helper classes allowing for more direct access to the types and values of various enums
 
-//from lm/input/SimulationPhase.proto
+// from lm/fflux/input/FFluxPhaseLimit.proto
+struct FFPhaseLimEnums {
+    // enum typedefs
+    typedef lm::fflux::input::FFluxPhaseLimit::StopCondition StopCondition;
+
+    // StopCondition enum values
+    static const StopCondition FORWARD_FLUXES = lm::fflux::input::FFluxPhaseLimit::FORWARD_FLUXES;
+    static const StopCondition TRAJECTORY_COUNT = lm::fflux::input::FFluxPhaseLimit::TRAJECTORY_COUNT;
+    static const StopCondition TIME = lm::fflux::input::FFluxPhaseLimit::TIME;
+};
+
+// from lm/input/SimulationPhase.proto
 struct SimPhaseEnums {
     // enum typedefs
     typedef lm::input::SimulationPhase::TrajectorySource TrajectorySource;
@@ -102,11 +115,24 @@ struct WUStatEnums {
     // enum typedefs
     typedef lm::message::WorkUnitStatus::Status Status;
 
-    // RecordingOption enum values
+    // Status enum values
     static const Status NONE = lm::message::WorkUnitStatus::NONE;
     static const Status STEPS_FINISHED = lm::message::WorkUnitStatus::STEPS_FINISHED;
     static const Status LIMIT_REACHED = lm::message::WorkUnitStatus::LIMIT_REACHED;
     static const Status ERROR = lm::message::WorkUnitStatus::ERROR;
+};
+
+// from lm/trajectory/Trajectory.h
+struct TrajEnums {
+    // enum typedefs
+    typedef lm::trajectory::Trajectory::Status Status;
+
+    // Status enum values
+    static const Status ABORTED = lm::trajectory::Trajectory::ABORTED;
+    static const Status FINISHED = lm::trajectory::Trajectory::FINISHED;
+    static const Status NOT_STARTED = lm::trajectory::Trajectory::NOT_STARTED;
+    static const Status RUNNING = lm::trajectory::Trajectory::RUNNING;
+    static const Status WAITING = lm::trajectory::Trajectory::WAITING;
 };
 
 // from robertslab/pbuf/NDArray.proto

@@ -58,6 +58,9 @@ typedef std::map<uint,lm::tiling::Tiling*> TilingMap;
 class Tilings
 {
 public:
+    typedef TilingMap::iterator iterator;
+    typedef TilingMap::const_iterator const_iterator;
+
     // constructors/destructors/initializers
     Tilings();
     Tilings(const lm::input::Tilings& tilings);
@@ -69,16 +72,16 @@ public:
     void initTiling(const lm::input::Tiling& tiling);
 
     // accessors
-    TilingMap::const_iterator begin() const {return tilingMap.begin();}
-    TilingMap::const_iterator end() const {return tilingMap.end();}
+    const_iterator begin() const {return tilingMap.begin();}
+    const_iterator end() const {return tilingMap.end();}
     bool hasCurrentTilingID() const {return tilingsBuf.has_current_tiling_id();}
     const lm::tiling::Tiling& getCurrentTiling() const {return *tilingMap.at(getCurrentTilingID());}
     uint getCurrentTilingID() const;
     lm::input::Tilings* getTilingsBuf() {return &tilingsBuf;}
 
     // mutators
-    TilingMap::iterator begin() {return tilingMap.begin();}
-    TilingMap::iterator end() {return tilingMap.end();}
+    iterator begin() {return tilingMap.begin();}
+    iterator end() {return tilingMap.end();}
     void reverse(); // reverse order of list of edges
     bool rFFTilingsBuf(const lm::io::hdf5::Hdf5File* file); // rFF = read From File
     void setCurrentTilingID(uint newCurrentTilingID) {currentTilingID = newCurrentTilingID;}

@@ -42,6 +42,7 @@
 #include <string>
 
 #include "hrtime.h"
+#include "lm/EnumHelper.h"
 #include "lm/Exceptions.h"
 #include "lm/MPI.h"
 #include "lm/Print.h"
@@ -80,8 +81,8 @@ int SimulationSupervisor::getRecvSleepMilliseconds()
 
 SimulationSupervisor::SimulationSupervisor()
 :communicator(lm::MPI::worldRank,THREAD_ID),hasCheckpointSignalerStarted(false),hasOutputWriterStarted(false),haveAllWorkUnitRunnersStarted(false),
- holdoverTrajectoryList(NULL),input(NULL),outputWriterClassName(""),outputWriterProcess(-1),outputWriterThread(-1),performingCheckpoint(false),
- resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),simulationPhase(0),simulationRunning(true),slots(&communicator),
+ outstandingTrajectoryList(NULL),input(NULL),outputWriterClassName(""),outputWriterProcess(-1),outputWriterThread(-1),performingCheckpoint(false),
+ resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),simulationPhaseIndex(0),simulationRunning(true),slots(&communicator),
  solverClassName(""),trajectoryList(NULL),useCPUAffinity(false),workUnitCount(0)
 {
     resetPerformanceStatistics();
@@ -327,10 +328,13 @@ void SimulationSupervisor::startSimulationPhase()
     // Build the list of trajectories to simulate.
     buildTrajectoryList();
 
+    // If there are any outstanding aborted trajectories from the previous phase, have the new trajectoryList take ownership of them
+    trajectoryList.takeTrajectories(outstandingTrajectoryList, TrajEnums::ABORTED);
+
     // Assign the first batch of work.
-    if (isPhaseDone() || assignWork())
+    if (terminatePhase() || assignWork())
     {
-        // If .isPhaseDone() or .assignWork() returned true, there was nothing to be done.
+        // If .terminatePhase() or .assignWork() returned true, there was nothing to be done.
         Print::printf(Print::INFO, "No work to be performed.");
         finishSimulationPhase();
     }
@@ -347,7 +351,7 @@ void SimulationSupervisor::buildTrajectoryList()
 
 void SimulationSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList)
 {
-    destroyTrajectoryList();
+    if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL;
     trajectoryList = newTrajectoryList;
 }
 
@@ -389,13 +393,12 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
     if (!performingCheckpoint)
     {
         // Fill the newly freed slot with a work unit. If there are more trajectories than slots, this is guaranteed to use the slot we just freed. Otherwise it will be the "coldest" (longest unoccupied) slot
-        if (isPhaseDone() || assignWork())
+        if (terminatePhase() || assignWork())
         {
             finishSimulationPhase();
         }
     }
-
-        // Otherwise, see if all outstanding work units have finished.
+    // Otherwise, see if all outstanding work units have finished.
     else if (!slots.hasBusySlots())
     {
         Print::printf(Print::INFO, "Creating a checkpoint, pausing work.");
@@ -407,8 +410,8 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
     }
 }
 
-//.isPhaseDone() serves as a hook for more complex phase-ending behavior in subclassed Supervisors
-bool SimulationSupervisor::isPhaseDone()
+//.terminatePhase() serves as a hook for more complex phase-ending behavior in subclassed Supervisors
+bool SimulationSupervisor::terminatePhase()
 {
     return false;
 }
@@ -491,13 +494,12 @@ void SimulationSupervisor::buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, 
 
 void SimulationSupervisor::finishSimulationPhase()
 {
+    // Do any necessary cleanup of the now finished simulation phase
+    cleanUpSimulationPhase();
+
     // If we need to perform another phase, do so, otherwise stop the simulation.
     if (performAnotherSimulationPhase())
     {
-        // destroying the trajectory list causes problems, may be unnecessary
-//        // Delete the list of trajectories.
-//        destroyTrajectoryList();
-
         incrementSimulationPhase();
         startSimulationPhase();
     }
@@ -507,9 +509,23 @@ void SimulationSupervisor::finishSimulationPhase()
     }
 }
 
-void SimulationSupervisor::destroyTrajectoryList()
+void SimulationSupervisor::cleanUpSimulationPhase()
 {
-    if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL;
+    if (trajectoryList->getTrajectoryMap(TrajEnums::RUNNING)->size() > 0)
+    {
+        // If the simulation phase was forcibly terminated, make sure we clean up any running trajectories appropriately
+        if (terminatePhase())
+        {
+            // Keep track of any outstanding work units. Important for coordinating clean program termination across all nodes
+            outstandingTrajectoryList->copyTrajectories(*trajectoryList, TrajEnums::RUNNING);
+            outstandingTrajectoryList->setAll(TrajEnums::RUNNING, TrajEnums::ABORTED);
+        }
+        // Otherwise, the default supervisor behavior is to throw an exception if there are trajectories still running at the end of a phase
+        else
+        {
+            throw Exception("At end of simulation phase, there were %d trajectories still running (should be 0)", trajectoryList->getTrajectoryMap(TrajEnums::RUNNING)->size());
+        }
+    }
 }
 
 bool SimulationSupervisor::performAnotherSimulationPhase()
@@ -519,7 +535,7 @@ bool SimulationSupervisor::performAnotherSimulationPhase()
 
 void SimulationSupervisor::incrementSimulationPhase()
 {
-    simulationPhase++;
+    simulationPhaseIndex++;
     trajectoryList->incrementSimulationPhase();
 }
 
@@ -539,9 +555,6 @@ void SimulationSupervisor::finishSimulation()
         msg.mutable_stop_resource_controller()->set_abort(false);
         communicator.sendMessage(it->second.controller_process, it->second.controller_thread, &msg);
     }
-
-    // Delete the list of trajectories.
-    destroyTrajectoryList();
 }
 
 void SimulationSupervisor::receivedPerformCheckpointing(const lm::message::PerformCheckpointing& msg)
@@ -561,7 +574,7 @@ void SimulationSupervisor::receivedFinishedCheckpointing(const lm::message::Fini
     performingCheckpoint = false;
 
     // Resume distribution of work.
-    if (isPhaseDone() || assignWork())
+    if (terminatePhase() || assignWork())
     {
         Print::printf(Print::INFO, "Simulation finished.");
         finishSimulation();

@@ -1510,7 +1510,7 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
     HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(loc_id, name, "OrderParameterID", &opID));
     HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(loc_id, name, "Type", &type));
     newTiling->set_id(id);
-    newTiling->set_order_parameter_id(opID);
+    newTiling->add_order_parameter_ids(opID);
     newTiling->set_type(type);
 
     // read in the values of the tiling's edges
@@ -1528,7 +1528,7 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
 
     // infer whether edges is sorted ascending or descending
     TilingEnums::SortOrder sortOrder = newTiling->edges(newTiling->edges_size()-1)>=newTiling->edges(0) ? TilingEnums::ASCENDING : TilingEnums::DESCENDING;
-    newTiling->add_sort_order(sortOrder);
+    newTiling->add_sort_orders(sortOrder);
 
     // ensure that edges is actually sorted the way we guessed
     if (sortOrder==TilingEnums::ASCENDING)
@@ -1612,7 +1612,7 @@ void Hdf5File::setTilings(lm::input::Tilings * tilings)
 
         // get the tiling's attribute data from the corresponding protobuf
         id = tilingBuf->id();
-        opID = tilingBuf->order_parameter_id();
+        opID = tilingBuf->order_parameter_ids(0);
         type = tilingBuf->type();
 
         // clear the stringstream with the tiling's group name

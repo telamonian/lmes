@@ -36,7 +36,6 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #ifndef COMMUNICATOR_H
 #define COMMUNICATOR_H
 
@@ -65,11 +64,21 @@ public:
     int getMasterOutputProcess() const {return masterOutput.process;}
     int getMasterOutputThread() const {return masterOutput.thread;}
 
+    // serialize/deserialize messages
+    void deserialize(lm::message::Message* msg) const;
+    void serialize(Endpoint dest, lm::message::Message* msg) const;
+
     // send and receive messages
     void sendMessage(int destProcess, int destThread, lm::message::Message* msg, int sleepMilliseconds=-1) const;
     void sendMessage(Endpoint dest, lm::message::Message* msg, int sleepMilliseconds=-1) const;
     void sendMessageToMasterOutput(lm::message::Message* msg, int sleepMilliseconds=-1) const {sendMessage(masterOutput, msg, sleepMilliseconds);}
     void receiveMessage(lm::message::Message* msg, int sleepMilliseconds=0) const;
+
+    // non-blocking send and receive messages
+    int isendMessage(Endpoint dest, lm::message::Message* msg) const;
+    int testSendMessage() const;
+    int ireceiveMessage(lm::message::Message* msg) const;
+    int testReceiveMessage(lm::message::Message* msg) const;
 
     // mutators
     void setMasterOutputEndpoint(int moProcess, int moThread);
@@ -90,6 +99,15 @@ protected:
     Endpoint masterOutput;
     Endpoint source;
     Endpoint supervisor;
+
+    // variables for non-blocking operations
+    mutable int sendFinished;
+    mutable int receiveFinished;
+
+    mutable MPI_Request lastSendRequest;
+    mutable MPI_Status lastSendStatus;
+    mutable MPI_Request lastReceiveRequest;
+    mutable MPI_Status lastReceiveStatus;
 };
 
 }

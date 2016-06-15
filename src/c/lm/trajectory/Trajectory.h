@@ -54,13 +54,13 @@ namespace trajectory {
 class Trajectory
 {
 public:
-    // NB: any changes made to the enum status_t *must* be made also to the array status_t_strings
-    enum status_t {ABORTED,
-                   FINISHED,
-                   NOT_STARTED,
-                   RUNNING,
-                   WAITING};
-    static const std::string status_t_strings[];
+    // NB: any changes made to the enum Status *must* be made also to the array status_strings
+    enum Status {ABORTED,
+                 FINISHED,
+                 NOT_STARTED,
+                 RUNNING,
+                 WAITING};
+    static const std::string status_strings[];
 
     Trajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryState& initialState);
     Trajectory(uint64_t id, uint64_t phase, const lm::input::Input& input, bool reversed=false);
@@ -77,7 +77,7 @@ public:
     virtual double getSimTime() const;
     virtual const lm::io::SpeciesCounts& getSpeciesCounts() const;
     virtual const lm::io::TrajectoryState& getState() const;
-    virtual status_t getStatus() const;
+    virtual Status getStatus() const;
     virtual int64_t getWorkUnitsPerformed() const;
     virtual void printStatus() const;
 
@@ -91,7 +91,7 @@ public:
     virtual void setID(uint64_t trajectoryID);
     virtual void setLimitReached(const lm::input::TrajectoryLimit& limitBuf);
     virtual void setState(const lm::io::TrajectoryState& newState);
-    virtual void setStatus(status_t newStatus);
+    virtual void setStatus(Status newStatus);
 
 protected:
     virtual void initializeDegreeAdvancements(const lm::input::Input& input);
@@ -105,7 +105,7 @@ protected:
     int64_t numberWorkUnitsPerformed;
     uint64_t simulationPhase;
     lm::io::TrajectoryState state;
-    status_t status;
+    Status status;
 };
 
 }

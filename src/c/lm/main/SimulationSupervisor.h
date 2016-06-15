@@ -114,23 +114,23 @@ protected:
     virtual void receivedStartedWorkUnitRunner(const lm::message::StartedWorkUnitRunner & msg);
     virtual void startSimulationIfAllWorkersStarted();
     virtual void startSimulation();
-    virtual void buildSimulationPhaseList()=0;
+    virtual void buildSimulationPhaseList() {};
     virtual void startSimulationPhase();
     virtual lm::trajectory::TrajectoryList* initTrajectoryList(const lm::input::SimulationPhase& phase)=0;
     virtual lm::trajectory::TrajectoryList* initTrajectoryList(const lm::input::SimulationPhase& phase, const lm::trajectory::TrajectoryList& previousList)=0;
-    virtual void setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList);
     virtual void buildTrajectoryList();
+    virtual void setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList);
 
     virtual void receivedStartedWorkUnit(const lm::message::StartedWorkUnit& msg);
 
     virtual void receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg);
-    virtual bool isPhaseDone();
+    virtual bool terminatePhase();
     virtual bool assignWork();
     virtual void buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg);
     virtual void buildRunWorkUnitLimits(lm::message::RunWorkUnit* msg);
     virtual void buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint minWorkUnits);
     virtual void finishSimulationPhase();
-    virtual void destroyTrajectoryList();
+    virtual void cleanUpSimulationPhase();
     virtual bool performAnotherSimulationPhase();
     virtual void incrementSimulationPhase();
     virtual void finishSimulation();
@@ -157,14 +157,14 @@ protected:
     lm::resource::ResourceMap* resourceMap;
     std::string simulationInputFilename;
     std::string simulationOutputFilename;
-    uint64_t simulationPhase;
+    uint64_t simulationPhaseIndex;
     SimulationPhaseList simulationPhaseList;
     bool simulationRunning;
     lm::slot::SlotList slots;
     std::string solverClassName;
     lm::trajectory::TrajectoryList* trajectoryList;
     // extra trajectory list for keeping track of trajectories that weren't finished at the end of a simulation phase
-    lm::trajectory::TrajectoryList* holdoverTrajectoryList;
+    lm::trajectory::TrajectoryList* outstandingTrajectoryList;
     bool useCPUAffinity;
     long long workUnitCount;
 

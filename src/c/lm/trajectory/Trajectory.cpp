@@ -67,7 +67,7 @@ using std::vector;
 namespace lm {
 namespace trajectory {
 
-const std::string Trajectory::status_t_strings[] = {"ABORTED",
+const std::string Trajectory::status_strings[] = {"ABORTED",
                                                     "FINISHED",
                                                     "NOT_STARTED",
                                                     "RUNNING",
@@ -297,7 +297,7 @@ const lm::io::SpeciesCounts& Trajectory::getSpeciesCounts() const
     return state.cme_state().species_counts();
 }
 
-Trajectory::status_t Trajectory::getStatus() const
+Trajectory::Status Trajectory::getStatus() const
 {
     return status;
 }
@@ -315,7 +315,7 @@ int64_t Trajectory::getWorkUnitsPerformed() const
 // debug helper function for printing trajectory status to stdout
 void Trajectory::printStatus() const
 {
-    printf("trajectory ID: %d has status: %s\n", id, status_t_strings[getStatus()].c_str());
+    printf("trajectory ID: %d has status: %s\n", id, status_strings[getStatus()].c_str());
 }
 
 // mutators
@@ -377,7 +377,7 @@ void Trajectory::setState(const lm::io::TrajectoryState& newState)
     state.CopyFrom(newState);
 }
 
-void Trajectory::setStatus(status_t newStatus)
+void Trajectory::setStatus(Status newStatus)
 {
     status = newStatus;
 }

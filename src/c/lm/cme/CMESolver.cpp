@@ -602,8 +602,7 @@ bool CMESolver::isTrajectoryOutsideLimits()
 //            }
 //            break;
 //
-//        default:
-//            break;
+//        default: throw Exception("CMESolver tried to check a limit with an unknown LimitType"); break;
 //        }
         // template conversion regexes
         // (\w+) = checkLimit<EH::(\w+), (\w+)>::call\((\S+), (\S+)\);
@@ -614,7 +613,7 @@ bool CMESolver::isTrajectoryOutsideLimits()
         switch (l.type)
         {
         case TrajLimEnums::NONE: throw Exception("CMESolver tried to check a limit that did not have an associated LimitType"); break;
-        case TrajLimEnums::TIME: throw Exception("CMESolver reached a time limit that was mixed in with the other limits"); break;
+        case TrajLimEnums::TIME: throw Exception("When checking limits, CMESolver reached a time limit that was mixed in with the other limits"); break;
 
         case TrajLimEnums::SPECIES:
             switch (l.stoppingCondition)
@@ -641,7 +640,8 @@ bool CMESolver::isTrajectoryOutsideLimits()
                 break;
             case TrajLimEnums::DECREASING: throw Exception("unimplemented"); break;
             case TrajLimEnums::INCREASING: throw Exception("unimplemented"); break;
-            } break;
+            }
+            break;
 
         case TrajLimEnums::ORDER_PARAMETER:
             switch (l.stoppingCondition)
@@ -717,8 +717,7 @@ bool CMESolver::isTrajectoryOutsideLimits()
             }
             break;
 
-        default:
-            break;
+        default: throw Exception("CMESolver tried to check a limit with an unknown LimitType"); break;
         }
 
         if (limitReached)

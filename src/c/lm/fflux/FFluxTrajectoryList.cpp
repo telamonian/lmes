@@ -108,12 +108,12 @@ FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simulationPhase, lm::input::In
     initChecks(input);
 }
 
-//FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simulationPhase, uint64_t ffluxPhase, lm::input::Input& input, uint64_t simultaneousTrajectoryCount, lm::fflux::FFluxTrajectory& initialTrajectory)
-//:TrajectoryList(simulationPhase),
+//FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simulationPhaseIndex, uint64_t ffluxPhaseIndex, lm::input::Input& input, uint64_t simultaneousTrajectoryCount, lm::fflux::FFluxTrajectory& initialTrajectory)
+//:TrajectoryList(simulationPhaseIndex),
 // communicator(communicator),
 // direction(FORWARD),
 // dwellTimes(),
-// ffluxPhase(0),
+// ffluxPhaseIndex(0),
 // ffluxOutputQueueSize((int)1e4),
 // finishedTrajectoriesCounts(),
 // input(input),
@@ -129,12 +129,12 @@ FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simulationPhase, lm::input::In
 //    initChecks(input);
 //}
 //
-//FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simulationPhase, uint64_t ffluxPhase, lm::input::Input& input, uint64_t simultaneousTrajectoryCount, FFluxTrajectoryList& previousTrajectoryList)
-//:TrajectoryList(simulationPhase),
+//FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simulationPhaseIndex, uint64_t ffluxPhaseIndex, lm::input::Input& input, uint64_t simultaneousTrajectoryCount, FFluxTrajectoryList& previousTrajectoryList)
+//:TrajectoryList(simulationPhaseIndex),
 // communicator(communicator),
 // direction(FORWARD),
 // dwellTimes(),
-// ffluxPhase(0),
+// ffluxPhaseIndex(0),
 // ffluxOutputQueueSize((int)1e4),
 // finishedTrajectoriesCounts(),
 // input(input),
@@ -293,7 +293,7 @@ void FFluxTrajectoryList::initTrajectories(uint64_t trajectoriesToStart,bool rev
 {
     for (long long i=0; i<trajectoriesToStart; i++)
     {
-    	lm::fflux::FFluxTrajectory* newTraj = new lm::fflux::FFluxTrajectory(trajectoryCount, simulationPhase, input, reversed, ffluxPhase);
+    	lm::fflux::FFluxTrajectory* newTraj = new lm::fflux::FFluxTrajectory(trajectoryCount, simulationPhaseIndex, input, reversed, ffluxPhase);
     	if (intermediateOutputFlag) {ffluxOutputAddTrajectory(newTraj, lm::io::FFluxOutput::INITIAL);}
     	trajectories[trajectoryCount] = newTraj;
         waitingTrajectories[trajectoryCount] = trajectories[trajectoryCount];
@@ -305,7 +305,7 @@ void FFluxTrajectoryList::initTrajectories(uint64_t trajectoriesToStart, lm::io:
 {
     for (long long i=0; i<trajectoriesToStart; i++)
     {
-    	lm::fflux::FFluxTrajectory* newTraj = new lm::fflux::FFluxTrajectory(trajectoryCount, simulationPhase, *oldTraj, ffluxPhase, input);
+    	lm::fflux::FFluxTrajectory* newTraj = new lm::fflux::FFluxTrajectory(trajectoryCount, simulationPhaseIndex, *oldTraj, ffluxPhase, input);
     	newTraj->clearLimitReached();
         if (intermediateOutputFlag) {ffluxOutputAddTrajectory(newTraj, lm::io::FFluxOutput::INITIAL);}
         trajectories[trajectoryCount] = newTraj;
@@ -368,7 +368,7 @@ void FFluxTrajectoryList::workUnitPartFinished(const message::WorkUnitStatus& wu
         {
             workUnitPartFinishedPhaseZero(wusMsg, ffluxTraj, prevFinalLimitID, prevTime);
         }
-        // ...otherwise if ffluxPhase > 0...
+        // ...otherwise if ffluxPhaseIndex > 0...
         else
         {
             workUnitPartFinishedPhaseN(wusMsg, ffluxTraj, prevFinalLimitID, prevTime);
@@ -396,7 +396,7 @@ void FFluxTrajectoryList::workUnitPartFinishedPhaseZero(const message::WorkUnitS
     }
     // ...and if enough time has passed or runs have been collected for phase zero to be complete...
     if (isPhaseDoneZero(traj->getSimTime()))
-//    if (isZerothPhaseDone(dwellTimes[ffluxPhase]))
+//    if (isZerothPhaseDone(dwellTimes[ffluxPhaseIndex]))
     {
         // increment the finished trajectory count by the total number of phase zero trajectories (i.e. workUnitRunnerCount)
         finishedTrajectoriesCounts[0]+=simultaneousTrajectoryCount;
@@ -441,7 +441,7 @@ void FFluxTrajectoryList::workUnitPartFinishedPhaseZero(const message::WorkUnitS
 //        setTrajectoryStatus(wusMsg.final_state().trajectory_id(), lm::trajectory::Trajectory::WAITING);
 //        deleteTrajectory(traj->getID());
 //        // ...so start one phase zero trajectory.
-//        initTrajectories(1, const_cast<lm::message::FinishedWorkUnit&>(finishedWorkUnitMsg).mutable_final_state()); // crossings[ffluxPhase].back());
+//        initTrajectories(1, const_cast<lm::message::FinishedWorkUnit&>(finishedWorkUnitMsg).mutable_final_state()); // crossings[ffluxPhaseIndex].back());
 //        initTrajectories(1, direction==FORWARD ? false : true);
     }
     PROF_END(PROF_FFLUX_WORK_UNIT_FINISHED_PHASE_ZERO);
@@ -462,7 +462,7 @@ void FFluxTrajectoryList::workUnitPartFinishedPhaseN(const message::WorkUnitStat
     ++finishedTrajectoriesCounts[ffluxPhase];
 
     if (intermediateOutputFlag) {ffluxOutputAddTrajectory(traj, lm::io::FFluxOutput::FINAL);}
-//        Print::printf(Print::INFO, "ffluxPhase: %d, crossings[fflux].size(): %d, finishedTrajectoriesCount %d, time: %f, oparam: %f", ffluxPhase, crossings[ffluxPhase].size(), finishedTrajectoriesCounts[ffluxPhase], crossings[ffluxPhase].back()->cme_state().species_counts().time(crossings[ffluxPhase].back()->cme_state().species_counts().number_entries() - 1), calcTestCaseOParam(finishedWorkUnitMsg.final_state()));
+//        Print::printf(Print::INFO, "ffluxPhaseIndex: %d, crossings[fflux].size(): %d, finishedTrajectoriesCount %d, time: %f, oparam: %f", ffluxPhaseIndex, crossings[ffluxPhaseIndex].size(), finishedTrajectoriesCounts[ffluxPhaseIndex], crossings[ffluxPhaseIndex].back()->cme_state().species_counts().time(crossings[ffluxPhaseIndex].back()->cme_state().species_counts().number_entries() - 1), calcTestCaseOParam(finishedWorkUnitMsg.final_state()));
     // ...and if enough crossing events have been detected for this phase of forward flux sampling...
     if (isPhaseDoneN(traj->getSimTime()))
     {
