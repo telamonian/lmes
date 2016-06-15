@@ -161,8 +161,6 @@ void MicroenvironmentSupervisor::startNewReplicate()
 
 void MicroenvironmentSupervisor::continueCurrentReplicate()
 {
-    printf("Updating to timestep %d\n",currentTimestep);
-
     // Reconcile the cells and the diffusion grid.
 
     // Update the trajectory lists to run for another timestep.
@@ -333,7 +331,7 @@ void MicroenvironmentSupervisor::printPerformanceStatistics(bool flush)
 {
     // See if we should display and reset the performance stats.
     hrtime currentTime = getHrTime();
-    if (flush || convertHrToSeconds(currentTime-stats_lastPrintTime) > 0.0)
+    if (flush || convertHrToSeconds(currentTime-stats_lastPrintTime) > 10.0)
     {
         if (stats_workUnits > 0)
         {

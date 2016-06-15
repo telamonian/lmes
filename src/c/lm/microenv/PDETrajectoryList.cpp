@@ -87,7 +87,7 @@ void PDETrajectoryList::printTrajectoryStatistics() const
 {
     // Print some performance statistics, if it has been a while.
     hrtime currentTime = getHrTime();
-    if (convertHrToSeconds(currentTime-stats_lastPrintTime) > 0.0)
+    if (convertHrToSeconds(currentTime-stats_lastPrintTime) > 10.0)
     {
         const std::string statusStrings[] = {"ABORTED", "FINISHED", "NOT_STARTED", "RUNNING", "WAITING"};
         Print::printf(Print::INFO, "Trajectory status");

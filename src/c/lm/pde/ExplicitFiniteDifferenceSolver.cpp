@@ -200,13 +200,13 @@ uint64_t ExplicitFiniteDifferenceSolver::generateTrajectory(uint64_t maxSteps)
         // If this is the start of the trajectory, add the initial counts.
         if (!previouslyStarted)
         {
-            nextConcentrationsWriteTime=time+concentrationsWriteInterval;
             concentrationsTimeSeriesGrids.push_back(*grid);
             concentrationsTimeSeriesTimes.push_back(time);
+            nextConcentrationsWriteTime=time+concentrationsWriteInterval;
         }
         else
         {
-            nextConcentrationsWriteTime = ceil(time/concentrationsWriteInterval)*concentrationsWriteInterval;
+            nextConcentrationsWriteTime = ceil((time+EPS)/concentrationsWriteInterval)*concentrationsWriteInterval;
         }
     }
 
@@ -215,8 +215,6 @@ uint64_t ExplicitFiniteDifferenceSolver::generateTrajectory(uint64_t maxSteps)
     status = lm::message::WorkUnitStatus::STEPS_FINISHED;
     while (steps < maxSteps)
     {
-        printf("Solving PDE step %lld of max %lld, time %e of %e\n",steps,maxSteps,time,timeLimit);
-
         // If we have less than a full dt left, adjust tau.
         double tau = (time+dt<=timeLimit)?(dt):(timeLimit-time);
 

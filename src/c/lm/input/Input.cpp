@@ -180,8 +180,9 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         
         if (simulationParameters.count("writeInterval"))
         {
-            outputOptions.set_species_write_interval(atof(simulationParameters["writeInterval"].c_str()));
             outputOptionsPresent = true;
+            outputOptions.set_species_write_interval(atof(simulationParameters["writeInterval"].c_str()));
+            outputOptions.set_concentrations_write_interval(atof(simulationParameters["writeInterval"].c_str()));
         }
     }
 
@@ -194,31 +195,28 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
 
     // TODO: adding a MicroenvironmentModel here, remove once the proper import code has been written.
     {
+        int x=200, y=200,z=200;
         microenvironmentModelPresent = true;
-        microenvironmentModel.add_grid_shape(1);
-        microenvironmentModel.add_grid_shape(1);
-        microenvironmentModel.add_grid_shape(10000);
+        microenvironmentModel.add_grid_shape(x);
+        microenvironmentModel.add_grid_shape(y);
+        microenvironmentModel.add_grid_shape(z);
         microenvironmentModel.set_grid_spacing(4.0e-6);
         microenvironmentModel.mutable_boundaries()->set_axis_specific_boundaries(true);
         microenvironmentModel.mutable_boundaries()->set_x_plus(lm::io::BoundaryConditions::REFLECTING);
         microenvironmentModel.mutable_boundaries()->set_x_minus(lm::io::BoundaryConditions::REFLECTING);
         microenvironmentModel.mutable_boundaries()->set_y_plus(lm::io::BoundaryConditions::REFLECTING);
         microenvironmentModel.mutable_boundaries()->set_y_minus(lm::io::BoundaryConditions::REFLECTING);
-        microenvironmentModel.mutable_boundaries()->set_z_plus(lm::io::BoundaryConditions::ABSORBING);
-        microenvironmentModel.mutable_boundaries()->set_z_minus(lm::io::BoundaryConditions::ABSORBING);
+        microenvironmentModel.mutable_boundaries()->set_z_plus(lm::io::BoundaryConditions::REFLECTING);
+        microenvironmentModel.mutable_boundaries()->set_z_minus(lm::io::BoundaryConditions::REFLECTING);
         microenvironmentModel.add_species_ids(0);
         microenvironmentModel.add_diffusion_coefficients(1000e-12);
         robertslab::pbuf::NDArray* c = microenvironmentModel.add_initial_concentrations();
 
-        ndarray<double> grid(utuple(1,1,10000), DOUBLES_PER_AVX*sizeof(double));
+        ndarray<double> grid(utuple(x,y,z), DOUBLES_PER_AVX*sizeof(double));
         grid[utuple(grid.shape[0]/2,grid.shape[1]/2,grid.shape[2]/2)] = 1.0e-6;
         robertslab::pbuf::NDArraySerializer::serializeInto<double>(c, grid);
 
         microenvironmentModel.set_synchronization_timestep(0.01);
-
-        // TODO: Set some concentrations output also for testing purposes, remove later.
-        outputOptionsPresent = true;
-        outputOptions.set_concentrations_write_interval(0.1);
     }
 }
 
