@@ -148,7 +148,7 @@ uint64_t NextSubvolumeSolver::generateTrajectory(uint64_t maxSteps)
     if (writeSpeciesTimeSeries)
     {
         // If this is the start of the trajectory, add the initial counts.
-        if (time == 0.0 || trajectoryStarted==false)
+        if (time == 0.0 || previouslyStarted==false)
         {
             nextSpeciesWriteTime=speciesWriteInterval;
             for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
@@ -173,7 +173,7 @@ uint64_t NextSubvolumeSolver::generateTrajectory(uint64_t maxSteps)
         latticeDataSet->set_number_entries(0);
 
         // If this is the start of the trajectory, add the initial counts.
-        if (time == 0.0 || trajectoryStarted==false)
+        if (time == 0.0 || previouslyStarted==false)
         {
             // Mark that the message does contain some data.
             output->set_has_output(true);

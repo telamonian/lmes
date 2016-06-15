@@ -215,10 +215,6 @@ void Trajectory::initializeRDMEState(const lm::input::Input& input)
         initialLattice->set_particles_ordering(diffusionModel.initial_lattice().particles_ordering());
         initialLattice->set_particles(diffusionModel.initial_lattice().particles());
     }
-    else
-    {
-        throw RuntimeException("Trajectory::initializeRDMEState requires a diffusion model.");
-    }
 }
 
 void Trajectory::initializeDiffusionPDEState(const lm::input::Input& input)
@@ -299,6 +295,11 @@ Trajectory::status_t Trajectory::getStatus() const
 const lm::io::TrajectoryState& Trajectory::getState() const
 {
     return state;
+}
+
+lm::io::TrajectoryState* Trajectory::getMutableState()
+{
+    return &state;
 }
 
 int64_t Trajectory::getWorkUnitsPerformed() const

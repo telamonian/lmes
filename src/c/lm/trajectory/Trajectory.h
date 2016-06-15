@@ -75,6 +75,7 @@ public:
     virtual double getSimTime() const;
     virtual const lm::io::SpeciesCounts& getSpeciesCounts() const;
     virtual const lm::io::TrajectoryState& getState() const;
+    virtual lm::io::TrajectoryState* getMutableState();
     virtual status_t getStatus() const;
     virtual int64_t getWorkUnitsPerformed() const;
 

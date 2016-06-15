@@ -107,8 +107,8 @@ GillespieDSolverAVX::GillespieDSolverAVX()
         status[i] = lm::message::WorkUnitStatus::NONE;
         limitIDReached[i] = lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID;
         limitTypeReached[i] = lm::io::TrajectoryLimits::NONE;
-        trajectoryId[i] = 0;
-        trajectoryStarted[i] = false;
+        trajectoryId[i] = std::numeric_limits<uint64_t>::max();
+        previouslyStarted[i] = false;
     }
 }
 
@@ -219,8 +219,8 @@ void GillespieDSolverAVX::reset()
         status[i] = lm::message::WorkUnitStatus::NONE;
         limitIDReached[i] = lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID;
         limitTypeReached[i] = lm::io::TrajectoryLimits::NONE;
-        trajectoryId[i] = 0;
-        trajectoryStarted[i] = false;
+        trajectoryId[i] = std::numeric_limits<uint64_t>::max();
+        previouslyStarted[i] = false;
     }
 
     // Reset the time.
@@ -295,7 +295,7 @@ void GillespieDSolverAVX::copyTrajectoryStateToBaseSolver(uint trajectoryNumber)
     CMESolver::trajectoryId = trajectoryId[trajectoryNumber];
 
     // Set the trajectory started flag.
-    CMESolver::trajectoryStarted = trajectoryStarted[trajectoryNumber];
+    CMESolver::previouslyStarted = previouslyStarted[trajectoryNumber];
 
     // Set the species counts.
     for (uint i=0; i<reactionModel->numberSpecies; i++)
@@ -339,7 +339,7 @@ void GillespieDSolverAVX::copyTrajectoryStateFromBaseSolver(uint trajectoryNumbe
     trajectoryId[trajectoryNumber] = CMESolver::trajectoryId;
 
     // Set the trajectory started flag.
-    trajectoryStarted[trajectoryNumber] = CMESolver::trajectoryStarted;
+    previouslyStarted[trajectoryNumber] = CMESolver::previouslyStarted;
 
     // Set the species counts.
     for (uint i=0; i<reactionModel->numberSpecies; i++)
@@ -406,7 +406,7 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
         {
             if (initialized[i])
             {
-                Print::printf(Print::INFO, "GillespieDSolverAVX started without a full set of trajectories, running trajectory %llu with the GillespieDSolver.", trajectoryId[i]);
+                Print::printf(Print::DEBUG, "GillespieDSolverAVX started without a full set of trajectories, running trajectory %llu with the GillespieDSolver.", trajectoryId[i]);
                 copyTrajectoryStateToBaseSolver(i);
                 GillespieDSolver::updateAllPropensities();
                 steps += GillespieDSolver::generateTrajectory(maxSteps);
@@ -447,19 +447,17 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
     // If we are writing time steps, create the data set.
     if (writeSpeciesTimeSeries)
     {
-        // See if this is the start of the trajectory.
         for (int i=0; i<DOUBLES_PER_AVX; i++)
         {
-            // If this element was true, save the reaction and set the random propensity to inf.
-            if (((double*)&time)[i] == 0.0 || trajectoryStarted[i]==false)
+            if (!previouslyStarted[i])
             {
-                ((double*)&nextSpeciesWriteTime)[i] = speciesWriteInterval;
                 for (uint j=0; j<reactionModel->numberSpeciesToTrack; j++) speciesTimeSeriesCounts[i].push_back(lround(speciesCounts[j*DOUBLES_PER_AVX+i]));
-                speciesTimeSeriesTimes[i].push_back(0.0);
+                speciesTimeSeriesTimes[i].push_back(((double*)&time)[i]);
+                ((double*)&nextSpeciesWriteTime)[i] = ((double*)&time)[i]+speciesWriteInterval;
             }
             else
             {
-                ((double*)&nextSpeciesWriteTime)[i] = ceil(((double*)&time)[i]/speciesWriteInterval)*speciesWriteInterval;
+                ((double*)&nextSpeciesWriteTime)[i] = ceil((((double*)&time)[i]+EPS)/speciesWriteInterval)*speciesWriteInterval;
             }
         }
     }

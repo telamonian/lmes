@@ -109,6 +109,7 @@ public:
     RuntimeException(const std::string message) : Exception("Runtime exception", message.c_str()) {}
     RuntimeException(const char* message, const char* arg) : Exception("Runtime exception", message, arg) {}
     RuntimeException(const char* message, const int arg) : Exception("Runtime exception", message, arg) {}
+    RuntimeException(const char* message, const int arg1, const int arg2) : Exception("Runtime exception", message, arg1, arg2) {}
 };
 
 class ZlibException : public Exception

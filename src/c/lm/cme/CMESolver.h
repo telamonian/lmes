@@ -238,6 +238,8 @@ protected:
 
     // Trajectory status.
     lm::message::WorkUnitStatus::Status status;
+    uint64_t trajectoryId;
+    bool previouslyStarted;
 
     // Limits for the trajectory.
     lm::trajectory::TrajectoryLimits trajectoryLimits;
@@ -262,8 +264,6 @@ protected:
     int32_t* speciesCounts;
     double time;
     double timeStep;    // stores last time step calculated, used for building histogram
-    uint64_t trajectoryId;
-    bool trajectoryStarted;
 
     uint numberTilingHists;
     TilingHist* tilingHists;

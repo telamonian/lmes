@@ -88,11 +88,13 @@ namespace cme {
 
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
 :neededDists(neededDists),rng(NULL),reactionModel(NULL),hasUpdateSpeciesCountsListeners(false),tilings(NULL),trackingDegreeAdvancements(false),numberOrderParameters(0),
- orderParameterFunctions(NULL),output(new lm::message::WorkUnitOutput()),status(lm::message::WorkUnitStatus::NONE),timeLimit(std::numeric_limits<double>::infinity()),
+ orderParameterFunctions(NULL),output(new lm::message::WorkUnitOutput()),
+ status(lm::message::WorkUnitStatus::NONE),trajectoryId(std::numeric_limits<uint64_t>::max()),previouslyStarted(false),
+ timeLimit(std::numeric_limits<double>::infinity()),
  numberLimits(0),limits(NULL),limitIDReached(lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID),limitTypeReached(lm::io::TrajectoryLimits::NONE),
  writeDegreeAdvancementTimeSeries(false),writeOrderParameterTimeSeries(false),writeSpeciesTimeSeries(false),
  degreeAdvancementWriteInterval(0.0), orderParameterWriteInterval(0.0),speciesWriteInterval(0.0),numberFptTrackedSpecies(0),
- fptTrackedSpecies(NULL),trajectoryStarted(false),speciesCounts(NULL),time(0.0),timeStep(0.0),degreeAdvancements(NULL),
+ fptTrackedSpecies(NULL),speciesCounts(NULL),time(0.0),timeStep(0.0),degreeAdvancements(NULL),
  orderParameterValues(NULL),orderParameterPreviousValues(NULL),tilingHists(NULL)
 {
 }
@@ -253,6 +255,8 @@ void CMESolver::reset()
 
     // Reset the status.
     status = lm::message::WorkUnitStatus::NONE;
+    trajectoryId = std::numeric_limits<uint64_t>::max();
+    previouslyStarted = false;
 
     // Reset the tiling histograms list.
     numberTilingHists = 0;
@@ -261,9 +265,6 @@ void CMESolver::reset()
     // Reset the time.
     time = 0.0;
     timeStep = 0.0;
-
-    // Reset trajectory started.
-    trajectoryStarted = false;    
 }
 
 void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
@@ -410,10 +411,13 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
 
     // Set the time.
     time = state.cme_state().species_counts().time(0);
-    trajectoryStarted = state.trajectory_started();
 
-    // Set the trajectory id.
+    // Load the trajectory id.
     trajectoryId = state.trajectory_id();
+
+    // Load the previously started flag.
+    previouslyStarted = state.trajectory_started();
+
 }
 
 void CMESolver::setOutputOptions(const lm::io::OutputOptions& outputOptions)

@@ -119,7 +119,7 @@ protected:
 
     // The current state.
     uint64_t trajectoryId[DOUBLES_PER_AVX];
-    bool trajectoryStarted[DOUBLES_PER_AVX];
+    bool previouslyStarted[DOUBLES_PER_AVX];
     double* speciesCounts;
     double* propensities;
     avxd time;

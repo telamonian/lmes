@@ -26,6 +26,9 @@ import "lm/io/BoundaryConditions.proto";
 import "robertslab/pbuf/NDArray.proto";
 
 message MicroenvironmentModel {
+
+    optional double initial_time                                        = 12 [default=0.0];
+
     repeated int32 grid_shape                                           = 1;
     required double grid_spacing                                        = 2;
     required lm.io.BoundaryConditions boundaries                        = 3;
@@ -34,4 +37,10 @@ message MicroenvironmentModel {
     repeated robertslab.pbuf.NDArray initial_concentrations             = 6;    //3D; i=x,j=y,k=z; type=float64
 
     required double synchronization_timestep                            = 7;
+
+    optional uint32 number_cells                                        = 8 [default=0];
+    optional robertslab.pbuf.NDArray cell_initial_species_counts        = 9;    //2D; rows=cells,cols=species; type=uint32
+    optional robertslab.pbuf.NDArray cell_coordinates                   = 10;   //2D; rows=cells,cols=x-y-z-coordinates; type=double
+    optional robertslab.pbuf.NDArray cell_volume                        = 11;   //1D; rows=cells; type=double
+
 }

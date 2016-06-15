@@ -292,6 +292,12 @@ void MicroenvironmentSupervisor::buildRunWorkUnit(lm::message::RunWorkUnit* msg,
 
     if (me)
     {
+        // Set the maximum number of steps for the work unit.
+        msg->set_max_steps(input->getStepsPerWorkUnit());
+
+        // Add the parts.
+        const lm::slot::Slot slot = slots.getFreeSlot();
+        trajectoryList->addWorkUnitParts(msg->work_unit_id(), msg, slot.getSimultaneousWorkUnits());
     }
     else
     {

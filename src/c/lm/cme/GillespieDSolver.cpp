@@ -168,25 +168,22 @@ uint64_t GillespieDSolver::generateTrajectory(uint64_t maxSteps)
         nextOrderParameterWriteTime = ceil(time/orderParameterWriteInterval)*orderParameterWriteInterval;
     }
 
-    // Get the interval for writing species counts.
+    // If we are writing time steps, create the data set.
     double nextSpeciesWriteTime;
     vector<int32_t> speciesTimeSeriesCounts;
     vector<double> speciesTimeSeriesTimes;
-    // If we are writing time steps, create the data set.
     if (writeSpeciesTimeSeries)
     {
-        nextSpeciesWriteTime = ceil(time/speciesWriteInterval)*speciesWriteInterval;
-//        // If this is the start of the trajectory, add the initial counts.
-//        if ((time == 0.0 || trajectoryStarted==false) && !ffluxFlag)
-//        {
-//            nextSpeciesWriteTime=speciesWriteInterval;
-//            for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
-//            speciesTimeSeriesTimes.push_back(time);
-//        }
-//        else
-//        {
-//            nextSpeciesWriteTime = ceil(time/speciesWriteInterval)*speciesWriteInterval;
-//        }
+        if (!previouslyStarted)
+        {
+            for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
+            speciesTimeSeriesTimes.push_back(time);
+            nextSpeciesWriteTime = time+speciesWriteInterval;
+        }
+        else
+        {
+            nextSpeciesWriteTime = ceil((time+EPS)/speciesWriteInterval)*speciesWriteInterval;
+        }
     }
 
     // Local cache of random numbers.
