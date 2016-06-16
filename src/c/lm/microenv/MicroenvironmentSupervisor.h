@@ -37,9 +37,8 @@
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
-#include "lm/MPI.h"
-#include "lm/Print.h"
-#include "lm/thread/Worker.h"
+#include "lm/microenv/PDETrajectoryList.h"
+#include "robertslab/Types.h"
 
 namespace lm {
 namespace microenv {
@@ -93,7 +92,15 @@ protected:
     double maxTime;
     lm::slot::SlotList pdeSlots;
     std::string pdeSolverClassName;
-    lm::trajectory::TrajectoryList* pdeTrajectoryList;
+    lm::microenv::PDETrajectoryList* pdeTrajectoryList;
+    double gridSpacing;
+    uint32_t numberCells;
+    ndarray<double>* cellCoordinates;
+    ndarray<uint32_t>* cellGridPoints;
+    ndarray<double>* cellVolumes;
+    ndarray<int32_t>* cellPreviousCounts;
+    ndarray<int32_t>* cellCurrentCounts;
+    ndarray<int32_t>* cellFlux;
 
 private:
     long long stats_pdeWorkUnitsSteps;

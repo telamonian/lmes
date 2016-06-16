@@ -32,6 +32,7 @@
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/trajectory/TrajectoryList.h"
+#include "robertslab/Types.h"
 
 using std::map;
 using lm::trajectory::TrajectoryList;
@@ -46,12 +47,16 @@ public:
     PDETrajectoryList(const lm::input::Input& input, uint64_t replicate);
     virtual ~PDETrajectoryList();
 
+    virtual void reconcileDiffusionGrid(ndarray<uint32_t>* cellGridPoints, ndarray<double>* cellVolumes, ndarray<int32_t>* cellCurrentCounts, ndarray<int32_t>* cellFlux, uint column);
+
 protected:
     virtual void printTrajectoryStatistics() const;
     virtual uint64_t findNextTrajectoryToRun() const;
 
 protected:
     uint64_t replicate;
+    ndarray<double>* grid;
+    double gridElementVolume;
 
 private:
     mutable hrtime stats_lastPrintTime;

@@ -65,6 +65,9 @@ public:
 
     template <typename T> static void serializeInto(robertslab::pbuf::NDArray* msg, const ndarray<T>& array, CompressionType compressionType=DEFAULT_COMPRESSION)
     {
+        // Clear the message.
+        msg->Clear();
+
         // Set the data type.
         msg->set_data_type(NDArray_datatype_code<T>());
 
@@ -106,14 +109,26 @@ public:
 
     template <typename T> static ndarray<T>* deserialize(const robertslab::pbuf::NDArray& msg, size_t alignment=0)
     {
-        // Check that the datatype matches.
-        if (msg.data_type() != NDArray_datatype_code<T>()) throw robertslab::InvalidArgException("msg", "the array was of the wrong data type", msg.data_type());
-
         // Get the shape of the ndarray.
         tuple<uint> shape(msg.shape().size(), (const uint*)msg.shape().data());
 
         // Allocate the ndarray.
         ndarray<T>* array = new ndarray<T>(shape, alignment);
+
+        // Deserialize the message.
+        deserializeInto(array, msg, alignment);
+
+        return array;
+    }
+
+    template <typename T> static void deserializeInto(ndarray<T>* array, const robertslab::pbuf::NDArray& msg, size_t alignment=0)
+    {
+        // Check that the datatype matches.
+        if (msg.data_type() != NDArray_datatype_code<T>()) throw robertslab::InvalidArgException("msg", "the array was of the wrong data type", msg.data_type());
+
+        // Check that the shapes match.
+        tuple<uint> shape(msg.shape().size(), (const uint*)msg.shape().data());
+        if (shape != array->shape) throw robertslab::InvalidArgException("array", "the array must have the same size as the message", msg.data_type());
 
         // See if we need to decompress the data.
         if (msg.compressed_deflate())
@@ -137,8 +152,6 @@ public:
             if (msg.data().size() != array->size*sizeof(double)) throw robertslab::InvalidArgException("msg", "inconsistent size during ndarray deserialization", msg.data().size(), array->size);
             memcpy(array->values, (const unsigned char*)&(msg.data()[0]), array->size*sizeof(T));
         }
-
-        return array;
     }
 };
 

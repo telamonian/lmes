@@ -46,12 +46,16 @@ public:
     METrajectoryList(const lm::input::Input& input, uint64_t replicate);
     virtual ~METrajectoryList();
 
+    virtual void copySpeciesCountInto(ndarray<int32_t>* counts, uint32_t column, uint32_t speciesId);
+    virtual void copySpeciesCountFrom(const ndarray<int32_t>& counts, uint32_t column, uint32_t speciesId);
+
 protected:
     virtual void printTrajectoryStatistics() const;
     virtual uint64_t findNextTrajectoryToRun() const;
 
 protected:
     uint64_t replicate;
+    uint32_t numberCells;
 
 private:
     mutable hrtime stats_lastPrintTime;

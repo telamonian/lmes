@@ -42,6 +42,8 @@
 #include "lm/microenv/PDETrajectoryList.h"
 #include "lm/resource/ResourceMap.h"
 #include "lm/slot/SlotList.h"
+#include "robertslab/Types.h"
+#include "robertslab/pbuf/NDArraySerializer.h"
 
 using std::map;
 using std::string;
@@ -66,6 +68,7 @@ void* MicroenvironmentSupervisor::allocateObject()
 MicroenvironmentSupervisor::MicroenvironmentSupervisor()
 :simulationStartTime(0),numberReplicates(::replicates.size()),currentReplicateIndex(0),numberTimesteps(0),currentTimestep(0),tau(0.0),maxTime(0.0),
 pdeSlots(&communicator),pdeSolverClassName(""),pdeTrajectoryList(NULL),
+gridSpacing(0.0),numberCells(0),cellCoordinates(NULL),cellGridPoints(NULL),cellVolumes(NULL),cellPreviousCounts(NULL),cellCurrentCounts(NULL),cellFlux(NULL),
 stats_pdeWorkUnitsSteps(0),stats_pdeWorkUnitsTime(0.0)
 {
 //#ifdef OPT_AVX
@@ -79,6 +82,12 @@ MicroenvironmentSupervisor::~MicroenvironmentSupervisor()
 {
     if (pdeTrajectoryList != NULL) delete pdeTrajectoryList; pdeTrajectoryList = NULL;
     if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL;
+    if (cellCoordinates != NULL) delete cellCoordinates; cellCoordinates = NULL;
+    if (cellGridPoints != NULL) delete cellGridPoints; cellGridPoints = NULL;
+    if (cellVolumes != NULL) delete cellVolumes; cellVolumes = NULL;
+    if (cellPreviousCounts != NULL) delete cellPreviousCounts; cellPreviousCounts = NULL;
+    if (cellCurrentCounts != NULL) delete cellCurrentCounts; cellCurrentCounts = NULL;
+    if (cellFlux != NULL) delete cellFlux; cellFlux = NULL;
 }
 
 void MicroenvironmentSupervisor::init()
@@ -88,6 +97,29 @@ void MicroenvironmentSupervisor::init()
     // Get the tau.
     if (!input->hasMicroenvironmentModel()) throw RuntimeException("MicroenvironmentSupervisor requires a MicroenvironmentModel as input");
     tau = input->getMicroenvironmentModel().synchronization_timestep();
+
+    // Get the grid properties.
+    gridSpacing = input->getMicroenvironmentModel().grid_spacing();
+
+    // Get the cell coordinates and volume.
+    numberCells = input->getMicroenvironmentModel().number_cells();
+    if (numberCells > 0)
+    {
+        cellCoordinates = robertslab::pbuf::NDArraySerializer::deserialize<double>(input->getMicroenvironmentModel().cell_coordinates());
+        cellGridPoints = new ndarray<uint32_t>(utuple(numberCells,3));
+        cellVolumes = robertslab::pbuf::NDArraySerializer::deserialize<double>(input->getMicroenvironmentModel().cell_volume());
+        cellPreviousCounts = new ndarray<int32_t>(utuple(numberCells,1));
+        cellCurrentCounts = new ndarray<int32_t>(utuple(numberCells,1));
+        cellFlux = new ndarray<int32_t>(utuple(numberCells,1));
+
+        // Calculate the cell grid points.
+        for (uint32_t i=0; i<numberCells; i++)
+        {
+            (*cellGridPoints)[utuple(i,0U)] = uint32_t(round((*cellCoordinates)[utuple(i,0U)]/gridSpacing));
+            (*cellGridPoints)[utuple(i,1U)] = uint32_t(round((*cellCoordinates)[utuple(i,1U)]/gridSpacing));
+            (*cellGridPoints)[utuple(i,2U)] = uint32_t(round((*cellCoordinates)[utuple(i,2U)]/gridSpacing));
+        }
+    }
 
     // Figure out how many timesteps we need to perform.
     if (!input->hasTrajectoryLimits()) throw RuntimeException("MicroenvironmentSupervisor requires a TrajectoryLimit as input");
@@ -157,11 +189,33 @@ void MicroenvironmentSupervisor::startNewReplicate()
 {
     // Create the new trajectory lists.
     buildTrajectoryList();
+
+    // Initialize the diffusing species counts from the diffusion grid.
+    (*cellFlux) = 0;
+    pdeTrajectoryList->reconcileDiffusionGrid(cellGridPoints, cellVolumes, cellPreviousCounts, cellFlux, 0);
+
+    // Copy the current counts of the diffusing species.
+    ((METrajectoryList*)trajectoryList)->copySpeciesCountFrom(*cellPreviousCounts, 0, 0);
 }
 
 void MicroenvironmentSupervisor::continueCurrentReplicate()
 {
-    // Reconcile the cells and the diffusion grid.
+    // Copy the current counts of the diffusing species.
+    ((METrajectoryList*)trajectoryList)->copySpeciesCountInto(cellCurrentCounts, 0, 0);
+
+    // Calculate the flux into or out of the diffusion grid over the last timestep.
+    cellFlux->equalsDifference(*cellCurrentCounts, *cellPreviousCounts);
+
+    // Go through each cell and reconcile it with the diffusion grid.
+    pdeTrajectoryList->reconcileDiffusionGrid(cellGridPoints, cellVolumes, cellCurrentCounts, cellFlux, 0);
+
+    // Set the new counts of the difusing species.
+    ((METrajectoryList*)trajectoryList)->copySpeciesCountFrom(*cellCurrentCounts, 0, 0);
+
+    // Swap the current and previous counts.
+    ndarray<int32_t>* tmp = cellPreviousCounts;
+    cellPreviousCounts = cellCurrentCounts;
+    cellCurrentCounts = tmp;
 
     // Update the trajectory lists to run for another timestep.
     pdeTrajectoryList->restartFinishedTrajectories();

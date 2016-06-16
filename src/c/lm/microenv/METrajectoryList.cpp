@@ -45,12 +45,12 @@ namespace lm {
 namespace microenv {
 
 METrajectoryList::METrajectoryList(const lm::input::Input& input, uint64_t replicate)
-:replicate(replicate)
+:replicate(replicate),numberCells(0)
 {
     if (!input.hasMicroenvironmentModel()) throw RuntimeException("METrajectoryList requires a MicroenvironmentModel as input");
 
     // Go through each cell in the microenvironment.
-    uint numberCells = input.getMicroenvironmentModel().number_cells();
+    numberCells = input.getMicroenvironmentModel().number_cells();
     ndarray<uint32_t>* initialCounts = robertslab::pbuf::NDArraySerializer::deserialize<uint32_t>(input.getMicroenvironmentModel().cell_initial_species_counts());
     uint numberSpecies = initialCounts->shape[1];
     for (uint i=0; i<numberCells; i++)
@@ -67,12 +67,28 @@ METrajectoryList::METrajectoryList(const lm::input::Input& input, uint64_t repli
             state->mutable_cme_state()->mutable_species_counts()->set_species_count(j, (*initialCounts)[utuple(i,j)]);
     }
     delete initialCounts;
-
 }
 
 METrajectoryList::~METrajectoryList()
 {
 }
+
+void METrajectoryList::copySpeciesCountInto(ndarray<int32_t>* counts, uint32_t column, uint32_t speciesId)
+{
+    for (TrajectoryMap::const_iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+    {
+        (*counts)[utuple(it->first-numberCells*replicate,column)] = it->second->getState().cme_state().species_counts().species_count(speciesId);
+    }
+}
+
+void METrajectoryList::copySpeciesCountFrom(const ndarray<int32_t>& counts, uint32_t column, uint32_t speciesId)
+{
+    for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+    {
+        it->second->getMutableState()->mutable_cme_state()->mutable_species_counts()->set_species_count(speciesId, counts[utuple(it->first-numberCells*replicate,column)]);
+    }
+}
+
 
 uint64_t METrajectoryList::findNextTrajectoryToRun() const
 {

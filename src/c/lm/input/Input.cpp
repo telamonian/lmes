@@ -236,16 +236,22 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         microenvironmentModel.add_diffusion_coefficients(1000e-12);
         robertslab::pbuf::NDArray* c = microenvironmentModel.add_initial_concentrations();
         ndarray<double> grid(utuple(x,y,z));
+        //grid[utuple(grid.shape[0]/2,grid.shape[1]/2,grid.shape[2]/2)] = 1.0e-6;
         robertslab::pbuf::NDArraySerializer::serializeInto<double>(c, grid);
         microenvironmentModel.set_number_cells(16);
-        int yi[16]={ 70, 90,110,140,  70, 90,110,140,  70, 90,110,140,  70, 90,110,140};
-        int zi[16]={ 70, 70, 70, 70,  90, 90, 90, 90, 110,110,110,110, 140,140,140,140};
+        int yi[16]={ 70, 90,110,130,  70, 90,110,130,  70, 90,110,130,  70, 90,110,130};
+        int zi[16]={ 70, 70, 70, 70,  90, 90, 90, 90, 110,110,110,110, 130,130,130,130};
+//        int r1[16]={  0,  0,  0,  0,   0,  0,  0,  0,   0,  0,  0,  0,   0,  0,  0,  0};
+//        int r2[16]={  1,  1,  1,  1,   1,  1,  1,  1,   1,  1,  1,  1,   1,  1,  1,  1};
+        int r1[16]={  1,  0,  1,  0,   0,  1,  0,  1,   1,  0,  1,  0,   0,  1,  0,  1};
+        int r2[16]={  0,  1,  0,  1,   1,  0,  1,  0,   0,  1,  0,  1,   1,  0,  1,  0};
         ndarray<uint32_t> counts(utuple(16,3));
         ndarray<double> coords(utuple(16,3));
         ndarray<double> volumes(utuple(16));
         for (int i=0; i<16; i++)
         {
-            counts[utuple(i,1+(i%2))] = 1;
+            counts[utuple(i,1U)] = r1[i];
+            counts[utuple(i,2U)] = r2[i];
             coords[utuple(i,0U)] = 0.0;
             coords[utuple(i,1U)] = yi[i]*4.0e-6;
             coords[utuple(i,2U)] = zi[i]*4.0e-6;

@@ -235,6 +235,17 @@ public:
         return values[position];
     }
 
+    ndarray& equalsDifference(const ndarray& a1, const ndarray& a2)
+    {
+        if (shape != a1.shape) invalid_argument("a1: all ndarrays during equals difference must be of the same shape");
+        if (shape != a2.shape) invalid_argument("a2: all ndarrays during equals difference must be of the same shape");
+        if (size != a1.size) invalid_argument("a1: all ndarrays during equals difference must have the same size");
+        if (size != a2.size) invalid_argument("a2: all ndarrays during equals difference must have the same size");
+        for (uint i=0; i<size; i++)
+            values[i] = a1.values[i]-a2.values[i];
+        return *this;
+    }
+
     void print(const char* suffix="") const
     {
         if (shape.len == 1)
