@@ -45,7 +45,7 @@ namespace lm {
 namespace microenv {
 
 PDETrajectoryList::PDETrajectoryList(const lm::input::Input& input, uint64_t replicate)
-:replicate(replicate),grid(NULL),gridElementVolume(0.0),stats_lastPrintTime(getHrTime())
+:replicate(replicate),grid(NULL),gridElementVolume(0.0)
 {
     if (!input.hasMicroenvironmentModel()) throw RuntimeException("PDETrajectoryList requires a MicroenvironmentModel as input");
     tuple<uint> gridShape(input.getMicroenvironmentModel().grid_shape().size(), (const uint*)input.getMicroenvironmentModel().grid_shape().data());
@@ -114,26 +114,6 @@ uint64_t PDETrajectoryList::findNextTrajectoryToRun() const
     }
 
     return minId;
-}
-
-void PDETrajectoryList::printTrajectoryStatistics() const
-{
-    // Print some performance statistics, if it has been a while.
-    hrtime currentTime = getHrTime();
-    if (convertHrToSeconds(currentTime-stats_lastPrintTime) > 10.0)
-    {
-        const std::string statusStrings[] = {"ABORTED", "FINISHED", "NOT_STARTED", "RUNNING", "WAITING"};
-        Print::printf(Print::INFO, "Trajectory status");
-        Print::printf(Print::INFO, "        ID State       Time     Work_Units");
-        Print::printf(Print::INFO, "------------------------------------------");
-        for (TrajectoryMap::const_iterator it=trajectories.begin(); it!=trajectories.end(); it++)
-        {
-            uint64_t id = it->first;
-            lm::trajectory::Trajectory* t = it->second;
-            Print::printf(Print::INFO, "%10lld %-11s %8.2e %10d", id, statusStrings[(int)t->getStatus()].c_str(), t->getState().diffusion_pde_state().time(), t->getWorkUnitsPerformed());
-        }
-        stats_lastPrintTime = getHrTime();
-    }
 }
 
 }

@@ -105,6 +105,10 @@ protected:
 private:
     long long stats_pdeWorkUnitsSteps;
     double stats_pdeWorkUnitsTime;
+    long long stats_timesteps;
+    hrtime stats_timestepStartTime;
+    hrtime stats_timestepTotalTime;
+    hrtime stats_timestepReconcileTime;
 };
 
 }

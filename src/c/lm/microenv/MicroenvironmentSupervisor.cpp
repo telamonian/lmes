@@ -69,7 +69,7 @@ MicroenvironmentSupervisor::MicroenvironmentSupervisor()
 :simulationStartTime(0),numberReplicates(::replicates.size()),currentReplicateIndex(0),numberTimesteps(0),currentTimestep(0),tau(0.0),maxTime(0.0),
 pdeSlots(&communicator),pdeSolverClassName(""),pdeTrajectoryList(NULL),
 gridSpacing(0.0),numberCells(0),cellCoordinates(NULL),cellGridPoints(NULL),cellVolumes(NULL),cellPreviousCounts(NULL),cellCurrentCounts(NULL),cellFlux(NULL),
-stats_pdeWorkUnitsSteps(0),stats_pdeWorkUnitsTime(0.0)
+stats_pdeWorkUnitsSteps(0),stats_pdeWorkUnitsTime(0.0),stats_timesteps(0),stats_timestepStartTime(0),stats_timestepTotalTime(0),stats_timestepReconcileTime(0)
 {
 //#ifdef OPT_AVX
 //    pdeSolverClassName = "lm::avx::ExplicitFiniteDifferenceSolverAVX";
@@ -172,6 +172,14 @@ void MicroenvironmentSupervisor::startSimulation()
 
 void MicroenvironmentSupervisor::startSimulationPhase()
 {
+    // Record some performance stats.
+    if (stats_timestepStartTime > 0)
+    {
+        stats_timesteps++;
+        stats_timestepTotalTime += getHrTime()-stats_timestepStartTime;
+    }
+    stats_timestepStartTime = getHrTime();
+
     // See if we should start of a new replicate or continue with the current one.
     if (currentTimestep == 0)
         startNewReplicate();
@@ -200,6 +208,8 @@ void MicroenvironmentSupervisor::startNewReplicate()
 
 void MicroenvironmentSupervisor::continueCurrentReplicate()
 {
+    hrtime t0 = getHrTime();
+
     // Copy the current counts of the diffusing species.
     ((METrajectoryList*)trajectoryList)->copySpeciesCountInto(cellCurrentCounts, 0, 0);
 
@@ -220,6 +230,9 @@ void MicroenvironmentSupervisor::continueCurrentReplicate()
     // Update the trajectory lists to run for another timestep.
     pdeTrajectoryList->restartFinishedTrajectories();
     trajectoryList->restartFinishedTrajectories();
+
+    // Record how long it took to reconcile.
+    stats_timestepReconcileTime += getHrTime()-t0;
 }
 
 void MicroenvironmentSupervisor::buildTrajectoryList()
@@ -391,14 +404,15 @@ void MicroenvironmentSupervisor::printPerformanceStatistics(bool flush)
 {
     // See if we should display and reset the performance stats.
     hrtime currentTime = getHrTime();
-    if (flush || convertHrToSeconds(currentTime-stats_lastPrintTime) > 10.0)
+    if (flush || convertHrToSeconds(currentTime-stats_lastPrintTime) > 30.0)
     {
-        if (stats_workUnits > 0)
-        {
-            Print::printf(Print::INFO, "Finished %lld work units (ids in range %lld to %lld) with %lld parts in the last %0.1f seconds.",stats_workUnits,stats_minWorkUnitId,stats_maxWorkUnitId,stats_workUnitsParts,convertHrToSeconds(currentTime-stats_lastPrintTime));
-            if (stats_workUnitsSteps > 0) Print::printf(Print::INFO, "ME solvers performed %lld steps in %0.3e seconds (%0.3e steps/second).", stats_workUnitsSteps, stats_workUnitTime, double(stats_workUnitsSteps)/stats_workUnitTime);
-            if (stats_pdeWorkUnitsSteps > 0) Print::printf(Print::INFO, "PDE solvers performed %lld steps in %0.3e seconds (%0.3e steps/second).", stats_pdeWorkUnitsSteps, stats_pdeWorkUnitsTime, double(stats_pdeWorkUnitsSteps)/stats_pdeWorkUnitsTime);
-        }
+
+        Print::printf(Print::INFO, "MicroenvironmentSupervisor working on replicate %d/%d and timestep %d/%d. Performance in the last %0.1f seconds:", currentReplicateIndex, numberReplicates, currentTimestep, numberTimesteps, convertHrToSeconds(currentTime-stats_lastPrintTime));
+        if (stats_timesteps > 0) Print::printf(Print::INFO, "  Performed %lld timesteps in %0.3e seconds (%0.3e timesteps/second) including an average reconcile time of %0.4e seconds.",stats_timesteps,convertHrToSeconds(stats_timestepTotalTime),double(stats_timesteps)/convertHrToSeconds(stats_timestepTotalTime), convertHrToSeconds(stats_timestepReconcileTime)/double(stats_timesteps));
+        if (stats_workUnits > 0) Print::printf(Print::INFO, "  Performed %lld work units (ids in range %lld to %lld) with %lld parts ",stats_workUnits,stats_minWorkUnitId,stats_maxWorkUnitId,stats_workUnitsParts);
+        if (stats_workUnitsSteps > 0) Print::printf(Print::INFO, "  ME solvers performed %lld steps in %0.3e seconds (%0.3e steps/second).", stats_workUnitsSteps, stats_workUnitTime, double(stats_workUnitsSteps)/stats_workUnitTime);
+        if (stats_pdeWorkUnitsSteps > 0) Print::printf(Print::INFO, "  PDE solvers performed %lld steps in %0.3e seconds (%0.3e steps/second).", stats_pdeWorkUnitsSteps, stats_pdeWorkUnitsTime, double(stats_pdeWorkUnitsSteps)/stats_pdeWorkUnitsTime);
+
         stats_lastPrintTime = currentTime;
         resetPerformanceStatistics();
     }
@@ -410,6 +424,9 @@ void MicroenvironmentSupervisor::resetPerformanceStatistics()
 
     stats_pdeWorkUnitsSteps = 0LL;
     stats_pdeWorkUnitsTime = 0.0;
+    stats_timesteps = 0LL;
+    stats_timestepTotalTime = 0;
+    stats_timestepReconcileTime = 0;
 }
 
 }
