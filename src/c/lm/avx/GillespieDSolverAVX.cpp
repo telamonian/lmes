@@ -1145,28 +1145,28 @@ bool GillespieDSolverAVX::isTrajectoryOutsideLimitsAVX()
             case TrajLimEnums::DECREASING:
                 if (l.includeEndpoint)
                 {
-                    comp1 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterPreviousValues[l.valueID*DOUBLES_PER_AVX]), limitValue, _CMP_GE_OQ);
-                    comp2 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterValues[l.valueID*DOUBLES_PER_AVX]), limitValue, _CMP_LT_OQ);
+                    comp1 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterPreviousValues[l.valueID*DOUBLES_PER_AVX]), limitValue, _CMP_GT_OQ);
+                    comp2 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterValues[l.valueID*DOUBLES_PER_AVX]), limitValue, _CMP_LE_OQ);
                     outsideLimitMask = _mm256_movemask_pd(comp1)&_mm256_movemask_pd(comp2);
                 }
                 else
                 {
-                    comp1 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterPreviousValues[l.valueID*DOUBLES_PER_AVX]), limitValue, _CMP_GT_OQ);
-                    comp2 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterValues[l.valueID*DOUBLES_PER_AVX]), limitValue, _CMP_LE_OQ);
+                    comp1 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterPreviousValues[l.valueID*DOUBLES_PER_AVX]), limitValue, _CMP_GE_OQ);
+                    comp2 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterValues[l.valueID*DOUBLES_PER_AVX]), limitValue, _CMP_LT_OQ);
                     outsideLimitMask = _mm256_movemask_pd(comp1)&_mm256_movemask_pd(comp2);
                 }
                 break;
             case TrajLimEnums::INCREASING:
                 if (l.includeEndpoint)
                 {
-                    comp1 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterPreviousValues[l.valueID*DOUBLES_PER_AVX]), limitValue, _CMP_LE_OQ);
-                    comp2 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterValues[l.valueID*DOUBLES_PER_AVX]), limitValue, _CMP_GT_OQ);
+                    comp1 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterPreviousValues[l.valueID*DOUBLES_PER_AVX]), limitValue, _CMP_LT_OQ);
+                    comp2 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterValues[l.valueID*DOUBLES_PER_AVX]), limitValue, _CMP_GE_OQ);
                     outsideLimitMask = _mm256_movemask_pd(comp1)&_mm256_movemask_pd(comp2);
                 }
                 else
                 {
-                    comp1 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterPreviousValues[l.valueID*DOUBLES_PER_AVX]), limitValue, _CMP_LT_OQ);
-                    comp2 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterValues[l.valueID*DOUBLES_PER_AVX]), limitValue, _CMP_GE_OQ);
+                    comp1 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterPreviousValues[l.valueID*DOUBLES_PER_AVX]), limitValue, _CMP_LE_OQ);
+                    comp2 = _mm256_cmp_pd(_mm256_load_pd(&orderParameterValues[l.valueID*DOUBLES_PER_AVX]), limitValue, _CMP_GT_OQ);
                     outsideLimitMask = _mm256_movemask_pd(comp1)&_mm256_movemask_pd(comp2);
                 }
                 break;

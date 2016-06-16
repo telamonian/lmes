@@ -45,35 +45,27 @@ message LimitTracking {
     required uint64 trajectory_id                           = 1;
     required int32 limit_id                                 = 2;
 
-    /*
-     * - if add_to_output==true, the state information collected by the limit tracking is saved to the simulation output file
-     */
-    optional bool add_to_output                             = 3 [default=true];
+    optional uint64 count                                   = 11;
 
-    /*
-     * - if add_to_cme_state==true, the state information collected by the limit tracking is saved internally to the simulation state at the end of a work unit
-     */
-    optional bool add_to_cme_state                          = 4 [default=false];
+//    /*
+//     * - If the countdown_termination field is set, countdown_termination is decremented every time the tracked limit is triggered. Following this
+//     *     - if countdown_termination < 1, the trajectory is terminated and the work unit is marked as having reached a limit (ie the standard limit behavior)
+//     *     - if countdown_termination >=1, the trajectory continues as though the limit was never reached
+//     * - If the countdown_termination field is cleared, the tracked limit will never cause the trajectory to terminate
+//     *     - Clearing countdown_termination allows for the use of limits purely for state tracking purposes
+//     */
+//    optional int64 countdown_termination                    = 5 [default=1];
+//
+//    /*
+//     * - If the countdown_tracking field is set, countdown_tracking is decremented every time the tracked limit is triggered. Following this
+//     *     - if countdown_tracking < 1, no state information is recorded
+//     *     - if countdown_tracking >=1, all available state information is recorded
+//     * - If the countdown_tracking field is cleared, the available state information will be recorded every time the limit is triggered
+//     */
+//    optional int64 countdown_tracking                       = 6 [default=1];
 
-    /*
-     * - If the countdown_termination field is set, countdown_termination is decremented every time the tracked limit is triggered. Following this
-     *     - if countdown_termination < 1, the trajectory is terminated and the work unit is marked as having reached a limit (ie the standard limit behavior)
-     *     - if countdown_termination >=1, the trajectory continues as though the limit was never reached
-     * - If the countdown_termination field is cleared, the tracked limit will never cause the trajectory to terminate
-     *     - Clearing countdown_termination allows for the use of limits purely for state tracking purposes
-     */
-    optional int64 countdown_termination                    = 5 [default=1];
-
-    /*
-     * - If the countdown_tracking field is set, countdown_tracking is decremented every time the tracked limit is triggered. Following this
-     *     - if countdown_tracking < 1, no state information is recorded
-     *     - if countdown_tracking >=1, all available state information is recorded
-     * - If the countdown_tracking field is cleared, the available state information will be recorded every time the limit is triggered
-     */
-    optional int64 countdown_tracking                       = 6 [default=1];
-
-    optional robertslab.pbuf.NDArray degree_advancements    = 7;
-    optional robertslab.pbuf.NDArray order_parameter_values = 8;
-    optional robertslab.pbuf.NDArray species_counts         = 9;
-    optional robertslab.pbuf.NDArray times                  = 10;
+    optional robertslab.pbuf.NDArray degree_advancements    = 21;
+    optional robertslab.pbuf.NDArray order_parameter_values = 22;
+    optional robertslab.pbuf.NDArray species_counts         = 23;
+    optional robertslab.pbuf.NDArray times                  = 24;
 }

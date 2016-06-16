@@ -1,0 +1,71 @@
+/*
+ * University of Illinois Open Source License
+ * Copyright 2012-2016 Roberts Group,
+ * All rights reserved.
+ *
+ * Developed by: Roberts Group
+ *                  Johns Hopkins University
+ *                  http://biophysics.jhu.edu/roberts/
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the Software), to deal with
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to
+ * do so, subject to the following conditions:
+ *
+ * - Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimers.
+ *
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimers in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * - Neither the names of the Roberts Group, Johns Hopkins University,
+ * nor the names of its contributors may be used to endorse or
+ * promote products derived from this Software without specific prior written
+ * permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS WITH THE SOFTWARE.
+ *
+ * Author(s): Elijah Roberts, Max Klein
+ */
+syntax = "proto2";
+package lm.fflux.io;
+
+import "lm/fflux/input/FFluxStage.proto";
+import "lm/io/LimitFlux.proto";
+
+message FFluxStageOutput {
+    /*
+     * - fflux_stage is need for metadata purposes
+     */
+    required lm.fflux.input.FFluxStage fflux_stage          = 1;
+
+    /*
+     * - if fluxes is set, there should be as many entries in fluxes as there are interfaces in fflux_stage's tiling
+     */
+    repeated double fluxes                                  = 11 [packed=true];
+
+    /*
+     * - if set, output the raw data used to calculate fluxes
+     */
+    optional FFluxStageRawFluxesOuput raw_fluxes_output     = 21;
+}
+
+message FFluxStageRawFluxesOuput {
+    optional uint64 phase_zero_flux_count                   = 1;
+    optional double phase_zero_total_time                   = 2;
+
+    repeated uint64 phase_n_sucessful_trajectory_count      = 3 [packed=true];
+    repeated uint64 phase_n_sucessful_trajectory_total_time = 4 [packed=true];
+
+    repeated uint64 phase_n_failed_trajectory_count         = 5 [packed=true];
+    repeated uint64 phase_n_failed_trajectory_total_time    = 6 [packed=true];
+}

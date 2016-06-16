@@ -44,7 +44,7 @@
 #ifndef ENUMHELPER_H
 #define ENUMHELPER_H
 
-#include <lm/trajectory/Trajectory.h>
+#include "lm/trajectory/Trajectory.h"
 #include "lm/fflux/input/FFluxPhaseLimit.pb.h"
 #include "lm/io/LimitTracking.pb.h"
 #include "lm/input/SimulationPhase.pb.h"

@@ -65,8 +65,8 @@ message TrajectoryLimit {
      *         |--------------------|:----------------------------------------------------:|:----------------------------------------------------:|
      *         | MIN                |                  value < limit_value                 |                 value <= limit_value                 |
      *         | MAX                |                  value > limit_value                 |                 value >= limit_value                 |
-     *         | DECREASING         | previous_value > limit_value && value <= limit_value | previous_value >= limit_value && value < limit_value |
-     *         | INCREASING         | previous_value < limit_value && value >= limit_value | previous_value <= limit_value && value > limit_value |
+     *         | DECREASING         | previous_value >= limit_value && value < limit_value | previous_value > limit_value && value <= limit_value |
+     *         | INCREASING         | previous_value <= limit_value && value > limit_value | previous_value < limit_value && value >= limit_value |
      */
     required StoppingCondition stopping_condition   = 11;
     optional bool include_endpoint                  = 12 [default=true];
@@ -84,6 +84,30 @@ message TrajectoryLimit {
     optional double dvalue                          = 31 [default=0.0];
     optional int32 ivalue                           = 32 [default=0];
     optional uint64 uvalue                          = 33 [default=0];
+
+    /*
+     * - options that control what the solver does when this limit is triggered
+     */
+
+    /*
+     * - if false, when triggered this limit will never signal for termination
+     */
+    optional bool terminate                         = 41 [default=true];
+
+    /*
+     * - if add_tracking_to_output==true, the state information collected by the limit tracking is saved to the simulation output file
+     */
+    optional bool add_tracking_to_output            = 42 [default=false];
+
+    /*
+     * - if add_tracking_to_cme_state==true, the state information collected by the limit tracking is saved internally to the simulation state at the end of a work unit
+     */
+    optional bool add_tracking_to_cme_state         = 43 [default=false];
+
+    /*
+     * -
+     */
+    optional uint64 track_count                     = 44 [default=1];
 }
 
 message TrajectoryLimits {

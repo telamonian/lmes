@@ -51,7 +51,7 @@
 #include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/option/SimulationParameters.h"
 #include "lm/protowrap/Repeated.h"
-//#include "lm/tiling/Tiling.h"
+#include "lm/tiling/Tiling.h"
 #include "lm/Types.h"
 
 namespace lm {
@@ -156,6 +156,55 @@ public:
         return tlMsg;
     }
 
+    // version of addLimitMsg that adds the limits appropriate for tracking when a trajectory exits a bin (it helps to think of it as a bin on a histogram)
+    template <TrajLimEnums::LimitType LT> inline TrajectoryLimitMsg*
+    addBinExitLimitsMsg(uint32_t valID, typename LimitValueT<LT>::type edge0Val, typename LimitValueT<LT>::type edge1Val,
+                        bool edge0Exists=true, bool edge1Exists=true, bool rightOpenBins=true,
+                        int32_t edge0LimitID=DEFAULT_LIMIT_ID, int32_t edge1LimitID=DEFAULT_LIMIT_ID)
+    {
+        // declare positional variables
+        typename LimitValueT<LT>::type leftEdgeVal,rightEdgeVal;
+        bool leftEdgeExists, rightEdgeExists;
+        int32_t leftEdgeLimitID, rightEdgeLimitID;
+        
+        // determine the position of the bin edges relative to one another wrt a 1D number line
+        bool edgesIncreasing = (edge1Val>=edge0Val);
+
+        // based on this relative position, assign edge parameters to positional variables
+        leftEdgeVal     = (edgesIncreasing ? edge0Val     : edge1Val);
+        leftEdgeExists  = (edgesIncreasing ? edge0Exists  : edge1Exists);
+        leftEdgeLimitID = (edgesIncreasing ? edge0LimitID : edge1LimitID);
+
+        rightEdgeVal     = (edgesIncreasing ? edge1Val     : edge0Val);
+        rightEdgeExists  = (edgesIncreasing ? edge1Exists  : edge0Exists);
+        rightEdgeLimitID = (edgesIncreasing ? edge1LimitID : edge0LimitID);
+
+        // add left and right limits. Skip if not EdgeExists (this gives a half-infinite bin)
+        if (leftEdgeExists) addLimitMsg<LT>(valID, leftEdgeVal, TrajLimEnums::DECREASING, includeEndpoint, limitID);
+        
+        if (LT==TrajLimEnums::TIME)
+        {
+            tlMsg = _buf.mutable_time_limit();
+            // for now, the expected behavior is that the id of the time limit will default to -1
+            tlMsg->set_id(id==DEFAULT_LIMIT_ID ? -1 : id);
+        }
+        else
+        {
+            tlMsg = _repeated.Add();
+            // for now, the expected behavior is that the id of most limits (ie not TIME) will default to an incrementing counter
+            tlMsg->set_id(id==DEFAULT_LIMIT_ID ? nextID++ : id);
+        }
+
+        tlMsg->set_limit_type(LT);
+        tlMsg->set_stopping_condition(sc);
+        tlMsg->set_include_endpoint(includeEndpoint);
+
+        tlMsg->set_value_id(valID);
+        setLimitBufValue(tlMsg, val);
+
+        return tlMsg;
+    }
+
 //    // addLimitBuf version for tilings. note that the boundary condition is specified differently from the vanilla addLimitMsg (rightOpenBins vs includeEndpoints)
 //    TrajectoryLimitMsg* addLimitBufFromTiling(lm::tiling::Tiling& tiling, uint edgeIndex, TrajLimEnums::StoppingCondition sc, bool rightOpenBins=true, int32_t limitID=DEFAULT_LIMIT_ID);
 
@@ -225,10 +274,10 @@ protected:
 #define check_limit_MAX_true(val, limitVal, checkBool) checkBool = (val >= limitVal);
 
 // specializations of check_limit with regards to stoppingCondition and includeEndpoint for the slightly more complex decreasing/increasing limits
-#define check_limit_DECREASING_false(prevVal, val, limitVal, checkBool) checkBool = (prevVal > limitVal && val <= limitVal);
-#define check_limit_DECREASING_true(prevVal, val, limitVal, checkBool) checkBool = (prevVal >= limitVal && val < limitVal);
-#define check_limit_INCREASING_false(prevVal, val, limitVal, checkBool) checkBool = (prevVal < limitVal && val >= limitVal);
-#define check_limit_INCREASING_true(prevVal, val, limitVal, checkBool) checkBool = (prevVal <= limitVal && val > limitVal);
+#define check_limit_DECREASING_false(prevVal, val, limitVal, checkBool) checkBool = (prevVal >= limitVal && val < limitVal);
+#define check_limit_DECREASING_true(prevVal, val, limitVal, checkBool) checkBool = (prevVal > limitVal && val <= limitVal);
+#define check_limit_INCREASING_false(prevVal, val, limitVal, checkBool) checkBool = (prevVal <= limitVal && val > limitVal);
+#define check_limit_INCREASING_true(prevVal, val, limitVal, checkBool) checkBool = (prevVal < limitVal && val >= limitVal);
 
 }
 }

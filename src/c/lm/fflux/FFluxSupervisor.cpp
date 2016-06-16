@@ -40,7 +40,7 @@
 #include <map>
 #include <string>
 
-#include "lm/ClassFactory.h""
+#include "lm/ClassFactory.h"
 #include "lm/EnumHelper.h"
 #include "lm/fflux/FFluxSupervisor.h"
 #include "lm/fflux/FFluxTrajectoryList.h"

@@ -41,7 +41,7 @@
 
 #include "lm/EnumHelper.h"
 #include "lm/input/Tilings.pb.h"
-#include "lm/trajectory/TrajectoryLimits.h"
+//#include "lm/trajectory/TrajectoryLimits.h"
 #include "lm/Types.h"
 
 namespace lm {
