@@ -92,28 +92,11 @@ SimParamMap::iterator SimulationParameters::findFirst(const vector<string>& keys
 #endif
 }
 
-// mutators
-void SimulationParameters::bufToMap(const lm::io::SimulationParameters& inBuf, SimParamMap& outMap)
-{
-    for (int i=0; i<inBuf.key_size() && i<inBuf.value_size(); i++)
-    {
-        outMap[inBuf.key(i)] = inBuf.value(i);
-    }
-}
-
-void SimulationParameters::mapToBuf(const SimParamMap& inMap, lm::io::SimulationParameters& outBuf)
-{
-    outBuf.Clear();
-    for (SimParamMap::const_iterator it=inMap.begin(); it!=inMap.end(); it++) {
-        outBuf.add_key(it->first);
-        outBuf.add_value(it->second);
-    }
-}
-
 void SimulationParameters::set(const lm::io::SimulationParameters& parameters)
 {
     _buf.CopyFrom(parameters);
-    bufToMap();
+    for (int i=0; i<parameters.key_size() && i<parameters.value_size(); i++)
+        _map[parameters.key(i)] = parameters.value(i);
 }
 
 

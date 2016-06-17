@@ -126,19 +126,7 @@ public:
 
     void set(const lm::io::SimulationParameters& parameters);
 
-    // for the buf <-> map conversion methods, if you drop an arg it'll use the internal map and/or buf
-    void bufToMap() {bufToMap(_buf, _map);}
-    void bufToMap(const lm::io::SimulationParameters& inBuf) {bufToMap(inBuf, _map);}
-    void bufToMap(SimParamMap& outMap) {bufToMap(_buf, outMap);}
-    void bufToMap(const lm::io::SimulationParameters& inBuf, SimParamMap& outMap);
-
     SimParamMap::iterator findFirst(const std::vector<std::string>& keys);
-
-    void mapToBuf() {mapToBuf(_map, _buf);}
-    void mapToBuf(const SimParamMap& inMap) {mapToBuf(inMap, _buf);}
-    void mapToBuf(lm::io::SimulationParameters& outBuf) {mapToBuf(_map, outBuf);}
-    void mapToBuf(const SimParamMap& inMap, lm::io::SimulationParameters& outBuf);
-
 
 // const qualified pass-throughs to the underlying SimulationParameters buf and SimParamMap
     SimParamMap::const_iterator find(const std::string& key) const {return _map.find(key);}
