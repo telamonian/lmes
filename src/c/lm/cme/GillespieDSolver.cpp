@@ -472,15 +472,12 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     }
 
     // If any limit tracking is set up to write out to disk, add them to the output message.
-    if (trackedLimits.size() > 0)
+    for (lm::limit::TrackingMapT::const_iterator it=trackedLimits.begin();it!=trackedLimits.end();it++)
     {
-        for (TrackingMapT::const_iterator it=trackedLimits.begin();it!=trackedLimits.end();it++)
+        if (limits[it->second.limitID].addTrackingToOutput)
         {
-            if (it->second.addToOutput)
-            {
-                it->second.serializeTo(msg->add_limit_tracking(), trajectoryId);
-                createdOutput = true;
-            }
+            it->second.serializeTo(msg->add_limit_tracking(), trajectoryId);
+            createdOutput = true;
         }
     }
 

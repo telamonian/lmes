@@ -39,6 +39,7 @@
 #include "lm/EnumHelper.h"
 #include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/tiling/Tiling.h"
+#include "lm/limit/TrajectoryLimit.h"
 #include "lm/limit/TrajectoryLimits.h"
 #include "lm/Types.h"
 

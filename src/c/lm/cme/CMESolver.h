@@ -66,6 +66,7 @@
 #include "lm/input/ReactionModel.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
+#include "lm/limit/TrajectoryLimits.h"
 #include "lm/main/Main.h"
 #include "lm/me/MESolver.h"
 #include "lm/me/PropensityFunction.h"
@@ -77,7 +78,6 @@
 #include "lm/rng/RandomGenerator.h"
 #include "lm/thread/Thread.h"
 #include "lm/tiling/Tilings.h"
-#include "lm/limit/TrajectoryLimits.h"
 
 using std::list;
 using std::map;
@@ -86,7 +86,6 @@ using std::string;
 using std::vector;
 using lm::me::MESolver;
 using lm::rng::RandomGenerator;
-using lm::limit::TrajectoryLimit;
 
 namespace lm {
 
@@ -168,129 +167,6 @@ protected:
             fptTimesWrap.set_array(fptTimesRef, utuple(fptTimesRef.size()), false);
         }
     };
-
-    class LimitTracking
-    {
-    public:
-        typedef lm::io::LimitTracking MsgT;
-        typedef uint64_t DegreeAdvancementT;
-        typedef double OrderParameterT;
-        typedef int SpeciesT;
-        typedef double TimeT;
-
-        typedef std::vector<DegreeAdvancementT> DegreeAdvancementContainerT;
-        typedef std::vector<OrderParameterT> OrderParameterContainerT;
-        typedef std::vector<SpeciesT> SpeciesContainerT;
-        typedef std::vector<TimeT> TimeContainerT;
-
-        int limitID;
-        bool hasCount;
-        uint64_t count;
-
-        DegreeAdvancementContainerT degreeAdvancements;
-        OrderParameterContainerT orderParameterValues;
-        SpeciesContainerT speciesCounts;
-        TimeContainerT times;
-
-        mutable lm::protowrap::NDArray<DegreeAdvancementT> degreeAdvancmentsWrap;
-        mutable lm::protowrap::NDArray<OrderParameterT> orderParameterWrap;
-        mutable lm::protowrap::NDArray<SpeciesT> speciesWrap;
-        mutable lm::protowrap::NDArray<TimeT> timesWrap;
-
-    public:
-        void deserializeFrom(const MsgT& msgRef)
-        {
-            limitID = msgRef.limit_id();
-            hasCount = msgRef.has_count();
-            if (hasCount) count = msgRef.count();
-
-            degreeAdvancmentsWrap.setMsg(msgRef.degree_advancements());
-            degreeAdvancmentsWrap.get_data(degreeAdvancements);
-
-            orderParameterWrap.setMsg(msgRef.order_parameter_values());
-            orderParameterWrap.get_data(orderParameterValues);
-
-            speciesWrap.setMsg(msgRef.species_counts());
-            speciesWrap.get_data(speciesCounts);
-
-            timesWrap.setMsg(msgRef.times());
-            timesWrap.get_data(times);
-        }
-
-        bool trackingEnabled(uint64_t maxCount)
-        {
-            // if the limit tracking has a count, use this to determine if tracking is currently enabled
-            if (hasCount)
-            {
-                // return true if count less than or equal to maxCount (passed in from the associated limit), false otherwise
-                return (count <= maxCount);
-            }
-            // if the limit tracking has no count, by default tracking is enabled
-            else
-            {
-                return true;
-            }
-        }
-
-        bool terminationSignaled(uint64_t maxCount)
-        {
-            // if the limit tracking has a count, use this to determinate if we should signal for termination of the trajectory
-            if (hasCount)
-            {
-                // return true if count greater than or equal to maxCount, false otherwise
-                return (count >= maxCount);
-            }
-            // if the limit tracking does not have a countdown, by default we never terminate
-            else
-            {
-                return false;
-            }
-        }
-
-        // handle necessary tasks when the associated limit is triggered (eg decrement countdown, record state, etc)
-        bool trackLimit(uint64_t maxCount)
-        {
-            count++;
-            if (trackingEnabled(maxCount))
-            {
-
-            }
-            return terminationSignaled(maxCount);
-        }
-
-        void serializeMetadataTo(MsgT* msg, uint64_t trajectoryID) const
-        {
-            msg->set_trajectory_id(trajectoryID);
-            msg->set_limit_id(limitID);
-
-            if (hasCount) msg->set_count(count);
-        }
-
-        void serializeTo(MsgT* msg, uint64_t trajectoryId) const
-        {
-            serializeTo(msg, trajectoryId, degreeAdvancements, orderParameterValues, speciesCounts, times);
-        }
-
-        void serializeTo(MsgT* msg, uint64_t trajectoryID, const DegreeAdvancementContainerT& degreeAdvancementsRef,
-                         const OrderParameterContainerT& orderParameterValuesRef, const SpeciesContainerT& speciesCountsRef,
-                         const TimeContainerT& timesRef) const
-        {
-            serializeMetadataTo(msg, trajectoryID);
-
-            degreeAdvancmentsWrap.setMsg(msg->mutable_degree_advancements());
-            degreeAdvancmentsWrap.set_array(degreeAdvancementsRef, utuple(degreeAdvancementsRef.size()), false);
-
-            orderParameterWrap.setMsg(msg->mutable_order_parameter_values());
-            orderParameterWrap.set_array(orderParameterValuesRef, utuple(orderParameterValuesRef.size()), false);
-
-            speciesWrap.setMsg(msg->mutable_species_counts());
-            speciesWrap.set_array(speciesCountsRef, utuple(speciesCountsRef.size()), false);
-
-            timesWrap.setMsg(msg->mutable_times());
-            timesWrap.set_array(timesRef, utuple(timesRef.size()), false);
-        }
-    };
-    typedef std::map<int, LimitTracking> TrackingMapT;
 
     class TilingHist
     {
@@ -439,8 +315,8 @@ protected:
     lm::limit::TrajectoryLimits trajectoryLimits;
     double timeLimit;
     size_t numberLimits;
-    TrajectoryLimit* limits;
-    TrajectoryLimit* limitReached;
+    lm::limit::TrajectoryLimit* limits;
+    lm::limit::TrajectoryLimit* limitReached;
     int32_t limitIDReached;
     lm::input::TrajectoryLimit::LimitType limitTypeReached;
 
@@ -454,7 +330,7 @@ protected:
     OParamFPTTracking* fptTrackedOrderParameters;
 
     // limit tracking variables
-    TrackingMapT trackedLimits;
+    lm::limit::TrackingMapT trackedLimits;
 
     // The current state.
     uint64_t* degreeAdvancements;

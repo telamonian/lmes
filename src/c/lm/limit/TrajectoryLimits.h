@@ -36,8 +36,8 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_TRAJECTORY_TRAJECTORYLIMITS
-#define LM_TRAJECTORY_TRAJECTORYLIMITS
+#ifndef LM_LIMIT_TRAJECTORYLIMITS
+#define LM_LIMIT_TRAJECTORYLIMITS
 
 #include <limits>
 #include <map>
@@ -49,6 +49,9 @@
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/input/SimulationParameters.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
+#include "lm/limit/LimitCheckMacros.h"
+#include "lm/limit/LimitTracking.h"
+#include "lm/limit/TrajectoryLimit.h"
 #include "lm/option/SimulationParameters.h"
 #include "lm/protowrap/Repeated.h"
 #include "lm/tiling/Tiling.h"
@@ -59,25 +62,6 @@ namespace limit {
 
 typedef lm::input::TrajectoryLimits TrajectoryLimitsMsg;
 typedef lm::input::TrajectoryLimit TrajectoryLimitMsg;
-
-struct TrajectoryLimit
-{
-    TrajLimEnums::LimitType type;
-    TrajLimEnums::StoppingCondition stoppingCondition;
-    bool includeEndpoint;
-    int32_t limitID;
-
-    uint32_t valueID;
-    int32_t ivalue;
-    double dvalue;
-    uint64_t uvalue;
-
-    // variables related to limit tracking
-    bool terminate;
-    bool addTrackingToCMEState;
-    bool addTrackingToOutput;
-    uint64_t trackCount;
-};
 
 // main template for LimitType->ValueType type generator
 template <TrajLimEnums::LimitType LT> struct LimitValueT;
@@ -246,200 +230,7 @@ protected:
     vectorType _vec;
 };
 
-//// the main checkLimit template. Call this function when checking any values against any limits
-//template <EH::StoppingCondition sc, bool includeEndpoint> struct checkLimit;
-//
-//// specializations of checkLimit with regards to stoppingCondition and includeEndpoint for the basic min/max limits
-//template <> struct checkLimit<EH::MIN, false> {template <typename T> static bool call(T val, T limitVal) {return (val < limitVal);}};
-//template <> struct checkLimit<EH::MIN, true> {template <typename T> static bool call(T val, T limitVal) {return (val <= limitVal);}};
-//template <> struct checkLimit<EH::MAX, false> {template <typename T> static bool call(T val, T limitVal) {return (val > limitVal);}};
-//template <> struct checkLimit<EH::MAX, true> {template <typename T> static bool call(T val, T limitVal) {return (val >= limitVal);}};
-//
-//// specializations of checkLimit with regards to stoppingCondition and includeEndpoint for the slightly more complex decreasing/increasing limits
-//template <> struct checkLimit<EH::DECREASING, false> {template <typename T> static bool call(T prevVal, T val, T limitVal) {return (prevVal > limitVal && val <= limitVal);}};
-//template <> struct checkLimit<EH::DECREASING, true> {template <typename T> static bool call(T prevVal, T val, T limitVal) {return (prevVal >= limitVal && val < limitVal);}};
-//template <> struct checkLimit<EH::INCREASING, false> {template <typename T> static bool call(T prevVal, T val, T limitVal) {return (prevVal < limitVal && val >= limitVal);}};
-//template <> struct checkLimit<EH::INCREASING, true> {template <typename T> static bool call(T prevVal, T val, T limitVal) {return (prevVal <= limitVal && val > limitVal);}};
-
-// template conversion regexes
-// template <> struct checkLimit<EH::(\w+), (\w+)>.+return (\(.+\);).+
-// define check_limit_$1_$2(val, limitVal, checkBool) checkBool = $3
-// define check_limit_$1_$2(prevVal, val, limitVal, checkBool) checkBool = $3
-
-// non-standard compliant check macro, similar to the avx check macros
-//define check_limit_MIN_false(val, limitVal) __extension__ ({ (val < limitVal); })
-
-// specializations of check_limit with regards to stoppingCondition and includeEndpoint for the basic min/max limits
-#define check_limit_MIN_false(val, limitVal, checkBool) checkBool = (val <  limitVal);
-#define check_limit_MIN_true( val, limitVal, checkBool) checkBool = (val <= limitVal);
-#define check_limit_MAX_false(val, limitVal, checkBool) checkBool = (val >  limitVal);
-#define check_limit_MAX_true( val, limitVal, checkBool) checkBool = (val >= limitVal);
-
-// specializations of check_limit with regards to stoppingCondition and includeEndpoint for second degree limits (limits that depend on both previous and present value)
-#define check_limit_DECREASING_false(prevVal, val, limitVal, checkBool) checkBool = (prevVal >= limitVal && val <  limitVal);
-#define check_limit_DECREASING_true( prevVal, val, limitVal, checkBool) checkBool = (prevVal >  limitVal && val <= limitVal);
-#define check_limit_INCREASING_false(prevVal, val, limitVal, checkBool) checkBool = (prevVal <= limitVal && val >  limitVal);
-#define check_limit_INCREASING_true( prevVal, val, limitVal, checkBool) checkBool = (prevVal <  limitVal && val >= limitVal);
-
-// AVX versions
-// specializations of check_limit with regards to stoppingCondition and includeEndpoint for the basic min/max limits
-#define check_simple_limit_avx(valueArr, valueID, limitValue, tmpBool, checkBool, opCode) \
-    tmpBool = _mm256_cmp_pd(_mm256_load_pd(&valueArr[valueID*DOUBLES_PER_AVX]), limitValue, opCode); \
-    checkBool = _mm256_movemask_pd(tmpBool);
-
-#define check_limit_avx_MIN_false(valueArr, valueID, limitValue, tmpBool, checkBool) check_simple_limit_avx(valueArr, valueID, limitValue, tmpBool, checkBool, _CMP_LT_OQ)
-#define check_limit_avx_MIN_true( valueArr, valueID, limitValue, tmpBool, checkBool) check_simple_limit_avx(valueArr, valueID, limitValue, tmpBool, checkBool, _CMP_LE_OQ)
-#define check_limit_avx_MAX_false(valueArr, valueID, limitValue, tmpBool, checkBool) check_simple_limit_avx(valueArr, valueID, limitValue, tmpBool, checkBool, _CMP_GT_OQ)
-#define check_limit_avx_MAX_true( valueArr, valueID, limitValue, tmpBool, checkBool) check_simple_limit_avx(valueArr, valueID, limitValue, tmpBool, checkBool, _CMP_GE_OQ)
-
-// specializations of check_limit with regards to stoppingCondition and includeEndpoint for second degree limits (limits that depend on both previous and present value)
-#define check_second_degree_limit_avx(previousValueArr, valueArr, valueID, limitValue, previousTmpBool, tmpBool, checkBool, previousOpCode, opCode) \
-    previousTmpBool = _mm256_cmp_pd(_mm256_load_pd(&previousValueArr[valueID*DOUBLES_PER_AVX]), limitValue, previousOpCode); \
-    tmpBool         = _mm256_cmp_pd(_mm256_load_pd(&valueArr[valueID*DOUBLES_PER_AVX]), limitValue, opCode); \
-    checkBool = _mm256_movemask_pd(previousTmpBool)&_mm256_movemask_pd(tmpBool);
-
-#define check_limit_avx_DECREASING_false(previousValueArr, valueArr, valueID, limitValue, previousTmpBool, tmpBool, checkBool) check_second_degree_limit_avx(previousValueArr, valueArr, valueID, limitValue, previousTmpBool, tmpBool, checkBool, _CMP_GE_OQ, _CMP_LT_OQ)
-#define check_limit_avx_DECREASING_true( previousValueArr, valueArr, valueID, limitValue, previousTmpBool, tmpBool, checkBool) check_second_degree_limit_avx(previousValueArr, valueArr, valueID, limitValue, previousTmpBool, tmpBool, checkBool, _CMP_GT_OQ, _CMP_LE_OQ)
-#define check_limit_avx_INCREASING_false(previousValueArr, valueArr, valueID, limitValue, previousTmpBool, tmpBool, checkBool) check_second_degree_limit_avx(previousValueArr, valueArr, valueID, limitValue, previousTmpBool, tmpBool, checkBool, _CMP_LE_OQ, _CMP_GT_OQ)
-#define check_limit_avx_INCREASING_true( previousValueArr, valueArr, valueID, limitValue, previousTmpBool, tmpBool, checkBool) check_second_degree_limit_avx(previousValueArr, valueArr, valueID, limitValue, previousTmpBool, tmpBool, checkBool, _CMP_LT_OQ, _CMP_GE_OQ)
-
 }
 }
 
-#endif /* LM_TRAJECTORY_TRAJECTORYLIMITS */
-
-//// standalone version of the limit checking code
-//// for investigating the assembly produced by various compilers
-
-//#include <exception>
-//using std::exception;
-//
-//enum LimitType {NONE,
-//    SPECIES,
-//    ORDER_PARAMETER};
-//
-//enum StoppingCondition {MIN,
-//    MAX};
-//
-//enum Endpoint {EXCLUDED,
-//    INCLUDED};
-//
-//// specializations of check_limit with regards to stoppingCondition and includeEndpoint for the basic min/max limits
-//#define check_limit_MIN_false(val, limitVal, checkBool) checkBool = (val < limitVal);
-//#define check_limit_MIN_true(val, limitVal, checkBool) checkBool = (val <= limitVal);
-//#define check_limit_MAX_false(val, limitVal, checkBool) checkBool = (val > limitVal);
-//#define check_limit_MAX_true(val, limitVal, checkBool) checkBool = (val >= limitVal);
-//
-//struct TrajectoryLimit
-//{
-//    LimitType type;
-//    StoppingCondition stoppingCondition;
-//    bool includeEndpoint;
-//    int limitID;
-//
-//    int valueID;
-//    int ivalue;
-//    double dvalue;
-//    int uvalue;
-//};
-//
-//// globals
-//TrajectoryLimit* tl;
-//int* speciesCounts;
-//double* orderParameterValues;
-//
-//TrajectoryLimit* setup()
-//{
-//    TrajectoryLimit* tl = new TrajectoryLimit[2];
-//
-//    tl[0].type = SPECIES;
-//    tl[0].stoppingCondition = MIN;
-//    tl[0].includeEndpoint = true;
-//    tl[0].limitID = 0;
-//    tl[0].valueID = 0;
-//    tl[0].ivalue = 19;
-//
-//    tl[1].type = ORDER_PARAMETER;
-//    tl[1].stoppingCondition = MAX;
-//    tl[1].includeEndpoint = false;
-//    tl[1].limitID = 1;
-//    tl[1].valueID = 0;
-//    tl[1].dvalue = 2.9;
-//
-//    speciesCounts = new int[2];
-//    speciesCounts[0] = 234;
-//    speciesCounts[1] = 4;
-//
-//    orderParameterValues = new double[1];
-//    orderParameterValues[0] = 1.23;
-//}
-//
-//bool isTrajectoryOutsideLimits()
-//{
-//    bool limitReached;
-//    for (int i=0; i<2; i++)
-//    {
-//        TrajectoryLimit* limits = setup();
-//        TrajectoryLimit& l = limits[i];
-//        limitReached = false;
-//
-//        switch (l.type)
-//        {
-//        case NONE: throw exception(); break;
-//
-//        case SPECIES:
-//            switch (l.stoppingCondition)
-//            {
-//            case MIN:
-//                if (l.includeEndpoint)
-//                {
-//                    check_limit_MIN_true(speciesCounts[l.valueID], l.ivalue, limitReached)
-//                }
-//                else
-//                {
-//                    check_limit_MIN_false(speciesCounts[l.valueID], l.ivalue, limitReached)
-//                }
-//                break;
-//            case MAX:
-//                if (l.includeEndpoint)
-//                {
-//                    check_limit_MAX_true(speciesCounts[l.valueID], l.ivalue, limitReached)
-//                }
-//                else
-//                {
-//                    check_limit_MAX_false(speciesCounts[l.valueID], l.ivalue, limitReached)
-//                }
-//                break;
-//            } break;
-//
-//        case ORDER_PARAMETER:
-//            switch (l.stoppingCondition)
-//            {
-//            case MIN:
-//                if (l.includeEndpoint)
-//                {
-//                    check_limit_MIN_true(orderParameterValues[l.valueID], l.dvalue, limitReached)
-//                }
-//                else
-//                {
-//                    check_limit_MIN_false(orderParameterValues[l.valueID], l.dvalue, limitReached)
-//                }
-//                break;
-//            case MAX:
-//                if (l.includeEndpoint)
-//                {
-//                    check_limit_MAX_true(orderParameterValues[l.valueID], l.dvalue, limitReached)
-//                }
-//                else
-//                {
-//                    check_limit_MAX_false(orderParameterValues[l.valueID], l.dvalue, limitReached)
-//                }
-//                break;
-//            }
-//            break;
-//        default:
-//            break;
-//        }
-//    }
-//    return limitReached;
-//}
+#endif /* LM_LIMIT_TRAJECTORYLIMITS */

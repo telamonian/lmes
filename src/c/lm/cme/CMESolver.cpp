@@ -47,10 +47,6 @@
 #include <list>
 #include <map>
 #include <string>
-#if defined(MACOSX)
-#elif defined(LINUX)
-#include <time.h>
-#endif
 
 #include "lm/cme/CMESolver.h"
 #include "lm/cme/ReactionModel.h"
@@ -60,6 +56,7 @@
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
+#include "lm/limit/TrajectoryLimits.h"
 #include "lm/Math.h"
 #include "lm/me/PropensityFunction.h"
 #include "lm/message/WorkUnitStatus.pb.h"
@@ -68,19 +65,23 @@
 #include "lm/protowrap/Repeated.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/rng/XORShift.h"
-#ifdef OPT_CUDA
-#include "lm/rng/XORWow.h"
-#endif
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
-#include "lm/limit/TrajectoryLimits.h"
 #include "lm/Tune.h"
 #include "lm/Types.h"
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
 
+#if defined(MACOSX)
+#elif defined(LINUX)
+#include <time.h>
+#endif
+#ifdef OPT_CUDA
+#include "lm/rng/XORWow.h"
+#endif
+
+using lm::limit::TrackingMapT;
 using lm::protowrap::Repeated;
-//using lm::trajectory::checkLimit;
 using std::list;
 using std::map;
 using std::string;
@@ -213,7 +214,7 @@ void CMESolver::setLimits(const lm::input::TrajectoryLimits& lm)
     // If we have any limits, copy them over to a simple array
     if (numberLimits > 0)
     {
-        limits = new TrajectoryLimit[numberLimits];
+        limits = new lm::limit::TrajectoryLimit[numberLimits];
         std::copy(trajectoryLimits.vec().begin(), trajectoryLimits.vec().end(), limits);
     }
 
@@ -317,18 +318,19 @@ void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
     }
 
     // if we're recording any limit tracking data to the trajectory state, get it. Otherwise, just get any changes to the limit tracking countdowns
-    for (Repeated<lm::io::LimitTracking>::iterator it=state->mutable_limit_tracking()->begin(); it!=state->mutable_limit_tracking()->end(); ++it)
+    for (TrackingMapT::const_iterator it=trackedLimits.begin(); it!=trackedLimits.end(); ++it)
     {
-        if (not trackedLimits.count(it->limit_id())) throw Exception("LimitTracking instance for limit %d expected but never initialized at end of work unit", it->limit_id());
+        lm::limit::TrajectoryLimit& l = limits[it->second.limitID];
+        if (l.addTrackingToCMEState or l.addTrackingToOutput) throw Exception("LimitTracking instance created for limit %d, but no tracking was requested for this limit", l.limitID);
 
-        LimitTracking& limitTracking(trackedLimits[it->limit_id()]);
-        if (limitTracking.addToCMEState)
+        lm::io::LimitTracking* trackingMsg = state->add_limit_tracking();
+        if (l.addTrackingToCMEState)
         {
-            limitTracking.serializeTo(&*it, trajectoryId);
+            it->second.serializeTo(trackingMsg, trajectoryId);
         }
         else
         {
-            limitTracking.serializeMetadataTo(&*it, trajectoryId);
+            it->second.serializeMetadataTo(trackingMsg, trajectoryId);
         }
     }
 
@@ -501,122 +503,8 @@ bool CMESolver::isTrajectoryOutsideLimits()
 {
     for (uint i=0; i<numberLimits; i++)
     {
-        TrajectoryLimit& l = limits[i];
+        lm::limit::TrajectoryLimit& l = limits[i];
         bool limitReached = false;
-
-//        switch (l.type)
-//        {
-//        case EH::NONE: throw Exception("CMESolver tried to check a limit that did not have an associated LimitType"); break;
-//        case EH::TIME: throw Exception("CMESolver reached a time limit that was mixed in with the other limits"); break;
-//
-//        case EH::SPECIES:
-//            switch (l.stoppingCondition)
-//            {
-//            case EH::MIN:
-//                if (l.includeEndpoint)
-//                {
-//                    limitReached = checkLimit<EH::MIN, true>::call(speciesCounts[l.valueID], l.ivalue);
-//                }
-//                else
-//                {
-//                    limitReached = checkLimit<EH::MIN, false>::call(speciesCounts[l.valueID], l.ivalue);
-//                }
-//                break;
-//            case EH::MAX:
-//                if (l.includeEndpoint)
-//                {
-//                    limitReached = checkLimit<EH::MAX, true>::call(speciesCounts[l.valueID], l.ivalue);
-//                }
-//                else
-//                {
-//                    limitReached = checkLimit<EH::MAX, false>::call(speciesCounts[l.valueID], l.ivalue);
-//                }
-//                break;
-//            case EH::INCREASING: throw Exception("unimplemented"); break;
-//            case EH::DECREASING: throw Exception("unimplemented"); break;
-//            } break;
-//
-//        case EH::ORDER_PARAMETER:
-//            switch (l.stoppingCondition)
-//            {
-//            case EH::MIN:
-//                if (l.includeEndpoint)
-//                {
-//                    limitReached = checkLimit<EH::MIN, true>::call(orderParameterValues[l.valueID], l.dvalue);
-//                }
-//                else
-//                {
-//                    limitReached = checkLimit<EH::MIN, false>::call(orderParameterValues[l.valueID], l.dvalue);
-//                }
-//                break;
-//            case EH::MAX:
-//                if (l.includeEndpoint)
-//                {
-//                    limitReached = checkLimit<EH::MAX, true>::call(orderParameterValues[l.valueID], l.dvalue);
-//                }
-//                else
-//                {
-//                    limitReached = checkLimit<EH::MAX, false>::call(orderParameterValues[l.valueID], l.dvalue);
-//                }
-//                break;
-//            case EH::DECREASING:
-//                if (l.includeEndpoint)
-//                {
-//                    limitReached = checkLimit<EH::DECREASING, true>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
-//                }
-//                else
-//                {
-//                    limitReached = checkLimit<EH::DECREASING, false>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
-//                }
-//                break;
-//            case EH::INCREASING:
-//                if (l.includeEndpoint)
-//                {
-//                    limitReached = checkLimit<EH::INCREASING, true>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
-//                }
-//                else
-//                {
-//                    limitReached = checkLimit<EH::INCREASING, false>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
-//                }
-//                break;
-//            }
-//            break;
-//
-//        case EH::DEGREE_ADVANCEMENT:
-//            switch (l.stoppingCondition)
-//            {
-//            case EH::MIN:
-//                if (l.includeEndpoint)
-//                {
-//                    limitReached = checkLimit<EH::MIN, true>::call(degreeAdvancements[l.valueID], l.uvalue);
-//                }
-//                else
-//                {
-//                    limitReached = checkLimit<EH::MIN, false>::call(degreeAdvancements[l.valueID], l.uvalue);
-//                }
-//                break;
-//            case EH::MAX:
-//                if (l.includeEndpoint)
-//                {
-//                    limitReached = checkLimit<EH::MAX, true>::call(degreeAdvancements[l.valueID], l.uvalue);
-//                }
-//                else
-//                {
-//                    limitReached = checkLimit<EH::MAX, false>::call(degreeAdvancements[l.valueID], l.uvalue);
-//                }
-//                break;
-//            case EH::INCREASING: throw Exception("unimplemented"); break;
-//            case EH::DECREASING: throw Exception("unimplemented"); break;
-//            }
-//            break;
-//
-//        default: throw Exception("CMESolver tried to check a limit with an unknown LimitType"); break;
-//        }
-        // template conversion regexes
-        // (\w+) = checkLimit<EH::(\w+), (\w+)>::call\((\S+), (\S+)\);
-        // check_limit_$2_$3($4, $5, $1)
-        // (\w+) = checkLimit<EH::(\w+), (\w+)>::call\((\S+), (\S+), (\S+)\);
-        // check_limit_$2_$3($4, $5, $6, $1)
         
         switch (l.type)
         {
