@@ -184,8 +184,8 @@ protected:
         typedef std::vector<TimeT> TimeContainerT;
 
         int limitID;
-        bool addToOutput;
-        bool addToCMEState;
+        bool hasCount;
+        uint64_t count;
 
         DegreeAdvancementContainerT degreeAdvancements;
         OrderParameterContainerT orderParameterValues;
@@ -197,25 +197,12 @@ protected:
         mutable lm::protowrap::NDArray<SpeciesT> speciesWrap;
         mutable lm::protowrap::NDArray<TimeT> timesWrap;
 
-    private:
-        bool hasCountdownTermination;
-        uint64_t countdownTermination;
-
-        bool hasCountdownTracking;
-        uint64_t countdownTracking;
-
     public:
         void deserializeFrom(const MsgT& msgRef)
         {
             limitID = msgRef.limit_id();
-
-            addToCMEState = msgRef.add_to_cme_state();
-            addToOutput = msgRef.add_to_output();
-
-            hasCountdownTermination = msgRef.has_countdown_termination();
-            countdownTermination = msgRef.countdown_termination();
-            hasCountdownTracking = msgRef.has_countdown_tracking();
-            countdownTracking = msgRef.countdown_tracking();
+            hasCount = msgRef.has_count();
+            if (hasCount) count = msgRef.count();
 
             degreeAdvancmentsWrap.setMsg(msgRef.degree_advancements());
             degreeAdvancmentsWrap.get_data(degreeAdvancements);
@@ -230,28 +217,28 @@ protected:
             timesWrap.get_data(times);
         }
 
-        bool getTrackingEnabled()
+        bool trackingEnabled(uint64_t maxCount)
         {
-            // if the limit tracking has a countdownTracking, use this to determine if tracking is currently enabled
-            if (hasCountdownTracking)
+            // if the limit tracking has a count, use this to determine if tracking is currently enabled
+            if (hasCount)
             {
-                // return true if countdownTracking >= 1, false otherwise
-                return (countdownTracking>=1);
+                // return true if count less than or equal to maxCount (passed in from the associated limit), false otherwise
+                return (count <= maxCount);
             }
-            // if the limit tracking has no countdownTracking, by default tracking is enabled
+            // if the limit tracking has no count, by default tracking is enabled
             else
             {
                 return true;
             }
         }
 
-        bool getTerminationSignaled()
+        bool terminationSignaled(uint64_t maxCount)
         {
-            // if the limit tracking has a countdownTermination, use this to determinate if we should signal for termination of the trajectory
-            if (hasCountdownTermination)
+            // if the limit tracking has a count, use this to determinate if we should signal for termination of the trajectory
+            if (hasCount)
             {
-                // return true if countdownTermination < 1, false otherwise
-                return (countdownTracking<1);
+                // return true if count greater than or equal to maxCount, false otherwise
+                return (count >= maxCount);
             }
             // if the limit tracking does not have a countdown, by default we never terminate
             else
@@ -260,17 +247,15 @@ protected:
             }
         }
 
-        // handle necessary tasks when the associated limit is triggered (eg decrement countdown)
-        void limitTriggered()
+        // handle necessary tasks when the associated limit is triggered (eg decrement countdown, record state, etc)
+        bool trackLimit(uint64_t maxCount)
         {
-            if (hasCountdownTermination and countdownTermination>0)
+            count++;
+            if (trackingEnabled(maxCount))
             {
-                --countdownTermination;
+
             }
-            if (hasCountdownTracking and countdownTracking>0)
-            {
-                --countdownTracking;
-            }
+            return terminationSignaled(maxCount);
         }
 
         void serializeMetadataTo(MsgT* msg, uint64_t trajectoryID) const
@@ -278,11 +263,7 @@ protected:
             msg->set_trajectory_id(trajectoryID);
             msg->set_limit_id(limitID);
 
-            msg->set_add_to_cme_state(addToCMEState);
-            msg->set_add_to_output(addToOutput);
-
-            if (hasCountdownTermination) msg->set_countdown_termination(countdownTermination);
-            if (hasCountdownTracking) msg->set_countdown_tracking(countdownTracking);
+            if (hasCount) msg->set_count(count);
         }
 
         void serializeTo(MsgT* msg, uint64_t trajectoryId) const

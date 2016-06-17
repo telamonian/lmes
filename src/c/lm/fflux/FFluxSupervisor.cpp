@@ -346,7 +346,38 @@ void FFluxSupervisor::buildSimulationPhase()
 //	SimulationSupervisor::finishSimulation();
 //}
 
-void FFluxSupervisor::buildSimulationPhaseList()
+void FFluxSupervisor::setLimits()
+{
+    if (ffluxPhaseIndex==0)
+    {
+        setLimitsPhaseZero();
+    }
+    else
+    {
+        setLimitsPhaseN();
+    }
+}
+
+void FFluxSupervisor::setLimitsPhaseZero()
+{
+    // - first we set a limit with id==0
+    //     - this limit is the important one. a triggering of this limit corresponds to one of the flux events that we're trying to sample during phase 0
+    trajectoryLimits.addTileExitLimitsMsg(getCurrentTiling(), -1, 0, false, true);
+
+    // - next, we set two more limits with id==1 and id==2
+    //     - these limits are used to help track which basin was last visited by a trajectory
+    trajectoryLimits.addTileExitLimitsMsg(getCurrentTiling(), 0, getCurrentTiling().edges().lastIndex());
+}
+
+void FFluxSupervisor::setLimitsPhaseN()
+{
+    // - for the phaseIndex > 0, we can use addTileExitLimitsMsg() in a straightforward way to set the needed limits. Two limits are set:
+    //     - if limit id==0 is triggered, this indicates that the trajectory fluxed backwards
+    //     - if limit id==1 is triggered, this indicates that the trajectory fluxed forwards
+    trajectoryLimits.addTileExitLimitsMsg(getCurrentTiling(), 0, ffluxPhaseIndex);
+}
+
+void FFluxSupervisor::buildSimulationPhase()
 {
     simulationPhaseList.push_back(new lm::input::SimulationPhase);
     lm::input::SimulationPhase* phase = simulationPhaseList.back();
@@ -363,7 +394,7 @@ void FFluxSupervisor::buildSimulationPhaseList()
 
 void FFluxSupervisor::buildTrajectoryList()
 {
-    if (getFFluxPhaseIndex()==0)
+    if (ffluxPhaseIndex==0)
     {
         buildTrajectoryListPhaseZero();
     }

@@ -48,7 +48,7 @@ message ReactionModel {
   message Reaction {
     required uint32 type                        = 1;
     repeated double rate_constant               = 2 [packed=true];
-    optional bool rate_has_noise                = 3 [default = false];
+    optional bool rate_has_noise                = 3 [default=false];
     optional double rate_noise_variance         = 4;
     optional double rate_noise_tau              = 5;
   }

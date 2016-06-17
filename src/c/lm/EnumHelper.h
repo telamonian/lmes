@@ -44,7 +44,7 @@
 #ifndef ENUMHELPER_H
 #define ENUMHELPER_H
 
-#include "lm/trajectory/Trajectory.h"
+//#include "lm/trajectory/Trajectory.h"
 #include "lm/fflux/input/FFluxPhaseLimit.pb.h"
 #include "lm/io/LimitTracking.pb.h"
 #include "lm/input/SimulationPhase.pb.h"
@@ -122,18 +122,19 @@ struct WUStatEnums {
     static const Status ERROR = lm::message::WorkUnitStatus::ERROR;
 };
 
+// including stuff from Trajectory causes circular import nightmares. Maybe there's a way to deal with this?
 // from lm/trajectory/Trajectory.h
-struct TrajEnums {
-    // enum typedefs
-    typedef lm::trajectory::Trajectory::Status Status;
-
-    // Status enum values
-    static const Status ABORTED = lm::trajectory::Trajectory::ABORTED;
-    static const Status FINISHED = lm::trajectory::Trajectory::FINISHED;
-    static const Status NOT_STARTED = lm::trajectory::Trajectory::NOT_STARTED;
-    static const Status RUNNING = lm::trajectory::Trajectory::RUNNING;
-    static const Status WAITING = lm::trajectory::Trajectory::WAITING;
-};
+//struct TrajEnums {
+//    // enum typedefs
+//    typedef lm::trajectory::Trajectory::Status Status;
+//
+//    // Status enum values
+//    static const Status ABORTED = lm::trajectory::Trajectory::ABORTED;
+//    static const Status FINISHED = lm::trajectory::Trajectory::FINISHED;
+//    static const Status NOT_STARTED = lm::trajectory::Trajectory::NOT_STARTED;
+//    static const Status RUNNING = lm::trajectory::Trajectory::RUNNING;
+//    static const Status WAITING = lm::trajectory::Trajectory::WAITING;
+//};
 
 // from robertslab/pbuf/NDArray.proto
 struct NDArrEnums {

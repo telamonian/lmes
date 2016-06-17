@@ -36,7 +36,6 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #ifndef LM_OPARAM_OPARAM
 #define LM_OPARAM_OPARAM
 
@@ -53,10 +52,10 @@ public:
     OParam();
     virtual ~OParam();
     virtual void init(const lm::input::OrderParameter& opRef);
-    virtual void initValues(uint* speciesCounts, double time);
-    virtual double calc(const uint* speciesCounts, double time) const = 0;
+    virtual void initValues(int* speciesCounts, double time);
+    virtual double calc(const int* speciesCounts, double time) const = 0;
     virtual double calc(const lm::io::TrajectoryState& state) const;
-    virtual double calcAndStore(uint* speciesCounts, double time);
+    virtual double calcAndStore(int* speciesCounts, double time);
     double get() {return val;}
     double getPrev() {return prevVal;}
     void set(double newVal) {val = newVal;}
@@ -77,7 +76,7 @@ public:
     OParamLinear();
     virtual ~OParamLinear() {}
     virtual void init(const lm::input::OrderParameter& opRef);
-    virtual double calc(const uint* speciesCounts, double time) const;
+    virtual double calc(const int* speciesCounts, double time) const;
 public:
     uint size;
     const uint* speciesID;
@@ -94,7 +93,7 @@ public:
     OParamTwoSpecies();
     virtual ~OParamTwoSpecies() {}
     virtual void init(const lm::input::OrderParameter& opRef);
-    virtual double calc(const uint* speciesCounts, double time) const;
+    virtual double calc(const int* speciesCounts, double time) const;
 public:
     uint s1, s2;
     double k1, k2;

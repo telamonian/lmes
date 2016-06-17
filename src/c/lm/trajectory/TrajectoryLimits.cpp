@@ -47,35 +47,6 @@ using lm::trajectory::LimitValueT;
 namespace lm {
 namespace trajectory {
 
-//TrajectoryLimitMsg* TrajectoryLimits::addLimitBufFromTiling(lm::tiling::Tiling& tiling, uint edgeIndex, TrajLimEnums::StoppingCondition sc, bool rightOpenBins=true, int32_t limitID=DEFAULT_LIMIT_ID)
-//{
-//    // if the tiling sorts descending, flip the stopping condition around
-//    if (tiling.getSortOrder()==TilingEnums::DESCENDING)
-//    {
-//        switch (sc)
-//        {
-//        case TrajLimEnums::MIN: sc = TrajLimEnums::MAX; break;
-//        case TrajLimEnums::MAX: sc = TrajLimEnums::MIN; break;
-//        case TrajLimEnums::DECREASING: sc = TrajLimEnums::INCREASING; break;
-//        case TrajLimEnums::INCREASING: sc = TrajLimEnums::DECREASING; break;
-//        default: Exception("Unknown TrajectoryLimit StoppingCondition", sc);
-//        }
-//    }
-//
-//    // keep the includeEndpoint property of the added limit consistent with right-open bins on this tiling, or with left-open bins if rightOpenBins is false
-//    bool includeEndpoint;
-//    switch (sc)
-//    {
-//    case TrajLimEnums::MIN: includeEndpoint = rightOpenBins; break;
-//    case TrajLimEnums::MAX: includeEndpoint = !rightOpenBins; break;
-//    case TrajLimEnums::DECREASING: includeEndpoint = rightOpenBins; break;
-//    case TrajLimEnums::INCREASING: includeEndpoint = !rightOpenBins; break;
-//    default: Exception("Unknown TrajectoryLimit StoppingCondition", sc);
-//    }
-//
-//    return addLimitMsg<TrajLimEnums::ORDER_PARAMETER>(tiling.getOrderParameterID(), tiling.getEdge(edgeIndex), sc, includeEndpoint, limitID);
-//}
-
 TrajectoryLimits::repeatedType::const_iterator TrajectoryLimits::findMsg(int32_t id) const
 {
     TrajectoryLimits::repeatedType::const_iterator it=repeated().begin();
@@ -106,10 +77,20 @@ TrajectoryLimits::repeatedType::const_iterator TrajectoryLimits::findMsg(TrajLim
     return it;
 }
 
+void TrajectoryLimits::addTileExitLimitsMsg(lm::tiling::Tiling& tiling, int edge0Index, int edge1Index, bool edge0Exists=true, bool edge1Exists=true,
+                                            bool rightOpenBins=true, int32_t edge0LimitID=DEFAULT_LIMIT_ID, int32_t edge1LimitID=DEFAULT_LIMIT_ID)
+{
+    // if an edgeIndex is less than 0 or greater than tiling.edges().lastIndex(), pretend that it's an extra edge one unit past the last edge (useful in conjunction with edgeExists for setting half-infinite bins)
+    double edge0Value = tiling.getEdgeFixBounds(edge0Index);
+    double edge1Value = tiling.getEdgeFixBounds(edge1Index);
+
+    addBinExitLimitsMsg<TrajLimEnums::ORDER_PARAMETER>(tiling.getOrderParameterID(), edge0Value, edge1Value, edge0Exists, edge1Exists, rightOpenBins, edge0LimitID, edge1LimitID);
+}
+
 // rFB = read From Buf
 void TrajectoryLimits::rFB(const TrajectoryLimitsMsg& inBuf)
 {
-    if (&inBuf!=&_buf) _buf.CopyFrom(inBuf);
+    if (&inBuf!=&_msg) _msg.CopyFrom(inBuf);
     seatRepeated();
     wTV();
 }
@@ -148,6 +129,11 @@ TrajectoryLimit TrajectoryLimits::bufToStruct(const lm::input::TrajectoryLimit& 
     limit.ivalue = inBuf.ivalue();
     limit.uvalue = inBuf.uvalue();
 
+    limit.terminate = inBuf.terminate();
+    limit.addTrackingToCMEState = inBuf.add_tracking_to_cme_state();
+    limit.addTrackingToOutput = inBuf.add_tracking_to_output();
+    limit.trackCount = inBuf.track_count();
+
     return limit;
 }
     
@@ -160,7 +146,6 @@ TrajectoryLimitMsg TrajectoryLimits::structToBuf(const TrajectoryLimit& inStruct
     limitBuf.set_include_endpoint(inStruct.includeEndpoint);
 
     limitBuf.set_value_id(inStruct.valueID);
-
     switch(inStruct.type)
     {
     case TrajLimEnums::TIME:
@@ -179,6 +164,12 @@ TrajectoryLimitMsg TrajectoryLimits::structToBuf(const TrajectoryLimit& inStruct
         throw Exception("When converting a TrajectoryLimit struct to a TrajectoryLimit buf, the TrajectoryLimit struct did not have a recognized type", inStruct.type, inStruct.stoppingCondition);
         break;
     }
+
+    limitBuf.set_terminate(inStruct.terminate);
+    limitBuf.set_add_tracking_to_cme_state(inStruct.addTrackingToCMEState);
+    limitBuf.set_add_tracking_to_output(inStruct.addTrackingToOutput);
+    limitBuf.set_track_count(inStruct.trackCount);
+
     return limitBuf;
 }
     

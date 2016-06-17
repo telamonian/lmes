@@ -144,7 +144,10 @@ void Input::initTilings(const lm::io::hdf5::Hdf5File& file)
     if (file.hasTilings())
     {
         file.getTilings(&tilingsMsg);
-        tilings.init(&file);
+        tilings.init(&file, orderParameters);
+        // run a consistency check on the basins in the tiling (if any)
+        tilings.testBasinsPosition();
+        tilings.testBasinsSize(reactionModel);
         tilingsPresent = true;
     }
 }

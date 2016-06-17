@@ -265,6 +265,17 @@ void TrajectoryList::setAll(Trajectory::Status oldStatus, Trajectory::Status new
     oldMap.clear();
 }
 
+void TrajectoryList::takeTrajectories(TrajectoryList* srcTrajList, Trajectory::Status status)
+{
+    copyTrajectories(*srcTrajList, status);
+    TrajectoryMap* srcMap = srcTrajList->getTrajectoryMap(status);
+
+    for (TrajectoryMap::iterator it=srcMap->begin();it!=srcMap->end();it++)
+    {
+        srcMap->erase(it);
+    }
+}
+
 void TrajectoryList::workUnitPartFinished(const lm::message::WorkUnitStatus& wusBuf, lm::trajectory::Trajectory* traj)
 {
     uint64_t id = wusBuf.final_state().trajectory_id();

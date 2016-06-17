@@ -107,7 +107,11 @@ CMESolver::~CMESolver()
 
     // Free any memory associated with the state.
     if (degreeAdvancements != NULL) delete[] degreeAdvancements; degreeAdvancements = NULL;
-    if (orderParameterFunctions != NULL) delete orderParameterFunctions; orderParameterFunctions = NULL;
+    if (orderParameterFunctions != NULL)
+    {
+        for (int i=0;i<numberOrderParameters;i++) delete orderParameterFunctions[i];
+        delete[] orderParameterFunctions; orderParameterFunctions = NULL;
+    }
     if (orderParameterValues != NULL) delete orderParameterValues; orderParameterValues = NULL;
     if (orderParameterPreviousValues != NULL) delete orderParameterPreviousValues; orderParameterPreviousValues = NULL;
     if (speciesCounts != NULL) delete[] speciesCounts; speciesCounts = NULL;
@@ -161,7 +165,11 @@ void CMESolver::setReactionModel(const lm::input::ReactionModel& rm)
 
 void CMESolver::setOrderParameters(const lm::input::OrderParameters& ops)
 {
-    if (orderParameterFunctions != NULL) delete orderParameterFunctions; orderParameterFunctions = NULL;
+    if (orderParameterFunctions != NULL)
+    {
+        for (int i=0;i<numberOrderParameters;i++) delete orderParameterFunctions[i];
+        delete[] orderParameterFunctions; orderParameterFunctions = NULL;
+    }
     if (orderParameterValues != NULL) delete orderParameterValues; orderParameterValues = NULL;
     if (orderParameterPreviousValues != NULL) delete orderParameterPreviousValues; orderParameterPreviousValues = NULL;
 

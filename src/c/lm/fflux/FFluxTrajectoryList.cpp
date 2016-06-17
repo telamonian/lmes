@@ -174,8 +174,8 @@ void FFluxTrajectoryList::init()
 {
 	initFFluxOutput();
     initTrajectories(simultaneousTrajectoryCount);
-    averageTilingHist.set_tiling_id(input.getTilings().getCurrentTiling().getID());
-    for (lm::tiling::EdgeIterator e_it=input.getTilings().getCurrentTiling().begin();e_it!=input.getTilings().getCurrentTiling().end();e_it++)
+    averageTilingHist.set_tiling_id(input.getTilings().getCurrentTiling().id());
+    for (lm::tiling::EdgesT::const_iterator e_it=input.getTilings().getCurrentTiling().edges().begin();e_it!=input.getTilings().getCurrentTiling().edges().end();e_it++)
     {
         averageTilingHist.add_tile_vals(0);
     }
@@ -439,7 +439,7 @@ void FFluxTrajectoryList::workUnitPartFinishedPhaseZero(const message::WorkUnitS
         traj->setLastLimitTime(traj->getSimTime());
         setTrajectoryWaiting(traj);
 //        setTrajectoryStatus(wusMsg.final_state().trajectory_id(), lm::trajectory::Trajectory::WAITING);
-//        deleteTrajectory(traj->getID());
+//        deleteTrajectory(traj->id());
 //        // ...so start one phase zero trajectory.
 //        initTrajectories(1, const_cast<lm::message::FinishedWorkUnit&>(finishedWorkUnitMsg).mutable_final_state()); // crossings[ffluxPhaseIndex].back());
 //        initTrajectories(1, direction==FORWARD ? false : true);
@@ -925,7 +925,7 @@ void FFluxTrajectoryList::ffluxOutputPrintBasin(CrossingsMap& crossings, Finishe
     Print::printf(Print::INFO, "Phase 0 probability flux: %.10f", (double)crossings[0].size()/(maxTimeZero*simultaneousTrajectoryCount));
     for (int i=1;i<maxFFluxPhase;i++)
     {
-        Print::printf(Print::INFO, "Probability of crossing from tile %d:%f to tile %d:%f : %.10f", i, input.getCurrentTiling().getEdge(i), i+1, input.getCurrentTiling().getEdge(i+1), (double)crossings[i].size()/finishedTrajectoriesCounts[i]);
+        Print::printf(Print::INFO, "Probability of crossing from tile %d:%f to tile %d:%f : %.10f", i, input.getCurrentTiling().edges(i), i+1, input.getCurrentTiling().edges(i+1), (double)crossings[i].size()/finishedTrajectoriesCounts[i]);
     }
     double Kab = (double)crossings[0].size()/(maxTimeZero*simultaneousTrajectoryCount);
     for (int i=1;i<maxFFluxPhase;i++)

@@ -71,6 +71,12 @@ struct TrajectoryLimit
     int32_t ivalue;
     double dvalue;
     uint64_t uvalue;
+
+    // variables related to limit tracking
+    bool terminate;
+    bool addTrackingToCMEState;
+    bool addTrackingToOutput;
+    uint64_t trackCount;
 };
 
 // main template for LimitType->ValueType type generator
@@ -112,7 +118,7 @@ public:
     typedef vectorType::const_iterator const_iterator;
     
 // constructors/destructors
-    TrajectoryLimits(): nextID(0) {seatRepeated(_buf);}
+    TrajectoryLimits(): nextID(0) {seatRepeated(_msg);}
     TrajectoryLimits(const TrajectoryLimitsMsg& inBuf): nextID(0) {rFB(inBuf);}
     //    TrajectoryLimits(const lm::io::hdf5::Hdf5File& file) {rFF(file);}
     ~TrajectoryLimits() {}
@@ -120,30 +126,31 @@ public:
 // accessors
     repeatedType::const_iterator findMsg(int32_t id) const;
     repeatedType::const_iterator findMsg(TrajLimEnums::LimitType lt) const;
-    const TrajectoryLimitMsg& getTimeBuf() const {return _buf.time_limit();}
-    double getTimeLimitValue() const {return _buf.has_time_limit() ? _buf.time_limit().dvalue() : std::numeric_limits<double>::infinity();}
+    const TrajectoryLimitMsg& getTimeBuf() const {return _msg.time_limit();}
+    double getTimeLimitValue() const {return _msg.has_time_limit() ? _msg.time_limit().dvalue() : std::numeric_limits<double>::infinity();}
     bool hasDegreeAdvancementLimit() const {return (findMsg(TrajLimEnums::DEGREE_ADVANCEMENT)!=repeated().end());}
 
-    const TrajectoryLimitsMsg& buf() const {return _buf;}
+    const TrajectoryLimitsMsg& buf() const {return _msg;}
     const repeatedType& repeated() const {return _repeated;}
     const vectorType& vec() const {return _vec;}
 
 // mutators
     // general addLimitMsg
-    template <TrajLimEnums::LimitType LT> inline TrajectoryLimitMsg* addLimitMsg(uint32_t valID, typename LimitValueT<LT>::type val, TrajLimEnums::StoppingCondition sc, bool includeEndpoint = true, int32_t id = DEFAULT_LIMIT_ID)
+    template <TrajLimEnums::LimitType LT> inline TrajectoryLimitMsg*
+    addLimitMsg(uint32_t valID, typename LimitValueT<LT>::type val, TrajLimEnums::StoppingCondition sc, bool includeEndpoint = true, int32_t id = DEFAULT_LIMIT_ID)
     {
         lm::input::TrajectoryLimit* tlMsg;
         if (LT==TrajLimEnums::TIME)
         {
-            tlMsg = _buf.mutable_time_limit();
+            tlMsg = _msg.mutable_time_limit();
             // for now, the expected behavior is that the id of the time limit will default to -1
-            tlMsg->set_id(id==DEFAULT_LIMIT_ID ? -1 : id);
+            tlMsg->set_id(applyDefaultTimeLimitID(id));
         }
         else
         {
             tlMsg = _repeated.Add();
             // for now, the expected behavior is that the id of most limits (ie not TIME) will default to an incrementing counter
-            tlMsg->set_id(id==DEFAULT_LIMIT_ID ? nextID++ : id);
+            tlMsg->set_id(applyDefaultID(id));
         }
 
         tlMsg->set_limit_type(LT);
@@ -151,20 +158,24 @@ public:
         tlMsg->set_include_endpoint(includeEndpoint);
 
         tlMsg->set_value_id(valID);
-        setLimitBufValue(tlMsg, val);
+        setLimitMsgValue(tlMsg, val);
 
         return tlMsg;
     }
 
     // version of addLimitMsg that adds the limits appropriate for tracking when a trajectory exits a bin (it helps to think of it as a bin on a histogram)
-    template <TrajLimEnums::LimitType LT> inline TrajectoryLimitMsg*
+    template <TrajLimEnums::LimitType LT> inline void
     addBinExitLimitsMsg(uint32_t valID, typename LimitValueT<LT>::type edge0Val, typename LimitValueT<LT>::type edge1Val,
                         bool edge0Exists=true, bool edge1Exists=true, bool rightOpenBins=true,
                         int32_t edge0LimitID=DEFAULT_LIMIT_ID, int32_t edge1LimitID=DEFAULT_LIMIT_ID)
     {
+        // if DEFAULT_LIMIT_ID is used for the ids, set the limitIDs using an incrementing counter. Skip if not edgeExists
+        if (edge0Exists) edge0LimitID = applyDefaultID(edge0LimitID);
+        if (edge1Exists) edge1LimitID = applyDefaultID(edge1LimitID);
+
         // declare positional variables
         typename LimitValueT<LT>::type leftEdgeVal,rightEdgeVal;
-        bool leftEdgeExists, rightEdgeExists;
+        bool leftEdgeExists, rightEdgeExists, leftIncludeEndpoint, rightIncludeEndpoint;
         int32_t leftEdgeLimitID, rightEdgeLimitID;
         
         // determine the position of the bin edges relative to one another wrt a 1D number line
@@ -179,45 +190,32 @@ public:
         rightEdgeExists  = (edgesIncreasing ? edge1Exists  : edge0Exists);
         rightEdgeLimitID = (edgesIncreasing ? edge1LimitID : edge0LimitID);
 
-        // add left and right limits. Skip if not EdgeExists (this gives a half-infinite bin)
-        if (leftEdgeExists) addLimitMsg<LT>(valID, leftEdgeVal, TrajLimEnums::DECREASING, includeEndpoint, limitID);
-        
-        if (LT==TrajLimEnums::TIME)
-        {
-            tlMsg = _buf.mutable_time_limit();
-            // for now, the expected behavior is that the id of the time limit will default to -1
-            tlMsg->set_id(id==DEFAULT_LIMIT_ID ? -1 : id);
-        }
-        else
-        {
-            tlMsg = _repeated.Add();
-            // for now, the expected behavior is that the id of most limits (ie not TIME) will default to an incrementing counter
-            tlMsg->set_id(id==DEFAULT_LIMIT_ID ? nextID++ : id);
-        }
+        // - if rightOpenBins,
+        //     - set a closed boundary condition (includeEndpoint==false) on the left edge
+        //     - set an open boundary boundary condition (includeEndpoint==true) on the right edge
+        // - otherwise, do the opposite
+        leftIncludeEndpoint  = (rightOpenBins ? false : true);
+        rightIncludeEndpoint = (rightOpenBins ? true  : false);
 
-        tlMsg->set_limit_type(LT);
-        tlMsg->set_stopping_condition(sc);
-        tlMsg->set_include_endpoint(includeEndpoint);
-
-        tlMsg->set_value_id(valID);
-        setLimitBufValue(tlMsg, val);
-
-        return tlMsg;
+        // add left and right limits. Skip if not edgeExists (this gives a half-infinite bin)
+        if (leftEdgeExists)  addLimitMsg<LT>(valID, leftEdgeVal,  TrajLimEnums::DECREASING, leftIncludeEndpoint,  leftEdgeLimitID);
+        if (rightEdgeExists) addLimitMsg<LT>(valID, rightEdgeVal, TrajLimEnums::INCREASING, rightIncludeEndpoint, rightEdgeLimitID);
     }
 
-//    // addLimitBuf version for tilings. note that the boundary condition is specified differently from the vanilla addLimitMsg (rightOpenBins vs includeEndpoints)
-//    TrajectoryLimitMsg* addLimitBufFromTiling(lm::tiling::Tiling& tiling, uint edgeIndex, TrajLimEnums::StoppingCondition sc, bool rightOpenBins=true, int32_t limitID=DEFAULT_LIMIT_ID);
+    // addLimitMsg version for tilings.
+    void addTileExitLimitsMsg(lm::tiling::Tiling& tiling, int edge0Index, int edge1Index, bool edge0Exists=true, bool edge1Exists=true,
+                              bool rightOpenBins=true, int32_t edge0LimitID=DEFAULT_LIMIT_ID, int32_t edge1LimitID=DEFAULT_LIMIT_ID);
 
-    void clear(bool resetNextID=true) {_buf.Clear(); _vec.clear(); seatRepeated(); if (resetNextID) nextID=0;}
-    void seatRepeated(TrajectoryLimitsMsg& inBuf) {_repeated.setRepFieldPtr(inBuf.mutable_trajectory_limits());}
-    void seatRepeated() {seatRepeated(_buf);}
-    void setBuf(const TrajectoryLimitsMsg& inBuf) {_buf.CopyFrom(inBuf);}
+    void clear(bool resetNextID=true) {_msg.Clear(); _vec.clear(); seatRepeated(); if (resetNextID) nextID=0;}
+    void seatRepeated(TrajectoryLimitsMsg& inMsg) {_repeated.setRepFieldPtr(inMsg.mutable_trajectory_limits());}
+    void seatRepeated() {seatRepeated(_msg);}
+    void setMsg(const TrajectoryLimitsMsg& inMsg) {_msg.CopyFrom(inMsg);}
     void setVector(vectorType& inVec) {_vec = inVec;}
 
     // specializing assignment to the TrajectoryLimit buffer oneof_value field via polymorphism
-    TrajectoryLimitMsg* setLimitBufValue(TrajectoryLimitMsg* limitBuf, double val) {limitBuf->set_dvalue(val); return limitBuf;}
-    TrajectoryLimitMsg* setLimitBufValue(TrajectoryLimitMsg* limitBuf, int32_t val) {limitBuf->set_ivalue(val); return limitBuf;}
-    TrajectoryLimitMsg* setLimitBufValue(TrajectoryLimitMsg* limitBuf, uint64_t val) {limitBuf->set_uvalue(val); return limitBuf;}
+    TrajectoryLimitMsg* setLimitMsgValue(TrajectoryLimitMsg* limitMsg, double val) {limitMsg->set_dvalue(val); return limitMsg;}
+    TrajectoryLimitMsg* setLimitMsgValue(TrajectoryLimitMsg* limitMsg, int32_t val) {limitMsg->set_ivalue(val); return limitMsg;}
+    TrajectoryLimitMsg* setLimitMsgValue(TrajectoryLimitMsg* limitMsg, uint64_t val) {limitMsg->set_uvalue(val); return limitMsg;}
 
 // protobuf and stl container IO
     void rFB(const TrajectoryLimitsMsg& inBuf);     // rFB = read From Buf
@@ -225,8 +223,8 @@ public:
     void wTV(vectorType& outVec);                   // wTV = write To Vec
     //void rFF(const lm::io::hdf5::Hdf5File& file); // rFF = read From File
 
-    void rFB() {return rFB(_buf);}
-    void wTB() {return wTB(_buf);}
+    void rFB() {return rFB(_msg);}
+    void wTB() {return wTB(_msg);}
     void wTV() {return wTV(_vec);}
 
 // const qualified pass-throughs to the underlying buf and stl container
@@ -237,9 +235,13 @@ public:
     static TrajectoryLimitMsg structToBuf(const TrajectoryLimit& inStruct);
 
 protected:
+    int32_t applyDefaultID(int32_t id) {return (id==DEFAULT_LIMIT_ID ? nextID++ : id);}
+    int32_t applyDefaultTimeLimitID(int32_t id) {return (id==DEFAULT_LIMIT_ID ? TIME_LIMIT_ID : id);}
+
+protected:
     int32_t nextID;
 
-    TrajectoryLimitsMsg _buf;
+    TrajectoryLimitsMsg _msg;
     repeatedType _repeated;
     vectorType _vec;
 };
@@ -268,16 +270,38 @@ protected:
 //define check_limit_MIN_false(val, limitVal) __extension__ ({ (val < limitVal); })
 
 // specializations of check_limit with regards to stoppingCondition and includeEndpoint for the basic min/max limits
-#define check_limit_MIN_false(val, limitVal, checkBool) checkBool = (val < limitVal);
-#define check_limit_MIN_true(val, limitVal, checkBool) checkBool = (val <= limitVal);
-#define check_limit_MAX_false(val, limitVal, checkBool) checkBool = (val > limitVal);
-#define check_limit_MAX_true(val, limitVal, checkBool) checkBool = (val >= limitVal);
+#define check_limit_MIN_false(val, limitVal, checkBool) checkBool = (val <  limitVal);
+#define check_limit_MIN_true( val, limitVal, checkBool) checkBool = (val <= limitVal);
+#define check_limit_MAX_false(val, limitVal, checkBool) checkBool = (val >  limitVal);
+#define check_limit_MAX_true( val, limitVal, checkBool) checkBool = (val >= limitVal);
 
-// specializations of check_limit with regards to stoppingCondition and includeEndpoint for the slightly more complex decreasing/increasing limits
-#define check_limit_DECREASING_false(prevVal, val, limitVal, checkBool) checkBool = (prevVal >= limitVal && val < limitVal);
-#define check_limit_DECREASING_true(prevVal, val, limitVal, checkBool) checkBool = (prevVal > limitVal && val <= limitVal);
-#define check_limit_INCREASING_false(prevVal, val, limitVal, checkBool) checkBool = (prevVal <= limitVal && val > limitVal);
-#define check_limit_INCREASING_true(prevVal, val, limitVal, checkBool) checkBool = (prevVal < limitVal && val >= limitVal);
+// specializations of check_limit with regards to stoppingCondition and includeEndpoint for second degree limits (limits that depend on both previous and present value)
+#define check_limit_DECREASING_false(prevVal, val, limitVal, checkBool) checkBool = (prevVal >= limitVal && val <  limitVal);
+#define check_limit_DECREASING_true( prevVal, val, limitVal, checkBool) checkBool = (prevVal >  limitVal && val <= limitVal);
+#define check_limit_INCREASING_false(prevVal, val, limitVal, checkBool) checkBool = (prevVal <= limitVal && val >  limitVal);
+#define check_limit_INCREASING_true( prevVal, val, limitVal, checkBool) checkBool = (prevVal <  limitVal && val >= limitVal);
+
+// AVX versions
+// specializations of check_limit with regards to stoppingCondition and includeEndpoint for the basic min/max limits
+#define check_simple_limit_avx(valueArr, valueID, limitValue, tmpBool, checkBool, opCode) \
+    tmpBool = _mm256_cmp_pd(_mm256_load_pd(&valueArr[valueID*DOUBLES_PER_AVX]), limitValue, opCode); \
+    checkBool = _mm256_movemask_pd(tmpBool);
+
+#define check_limit_avx_MIN_false(valueArr, valueID, limitValue, tmpBool, checkBool) check_simple_limit_avx(valueArr, valueID, limitValue, tmpBool, checkBool, _CMP_LT_OQ)
+#define check_limit_avx_MIN_true( valueArr, valueID, limitValue, tmpBool, checkBool) check_simple_limit_avx(valueArr, valueID, limitValue, tmpBool, checkBool, _CMP_LE_OQ)
+#define check_limit_avx_MAX_false(valueArr, valueID, limitValue, tmpBool, checkBool) check_simple_limit_avx(valueArr, valueID, limitValue, tmpBool, checkBool, _CMP_GT_OQ)
+#define check_limit_avx_MAX_true( valueArr, valueID, limitValue, tmpBool, checkBool) check_simple_limit_avx(valueArr, valueID, limitValue, tmpBool, checkBool, _CMP_GE_OQ)
+
+// specializations of check_limit with regards to stoppingCondition and includeEndpoint for second degree limits (limits that depend on both previous and present value)
+#define check_second_degree_limit_avx(previousValueArr, valueArr, valueID, limitValue, previousTmpBool, tmpBool, checkBool, previousOpCode, opCode) \
+    previousTmpBool = _mm256_cmp_pd(_mm256_load_pd(&previousValueArr[valueID*DOUBLES_PER_AVX]), limitValue, previousOpCode); \
+    tmpBool         = _mm256_cmp_pd(_mm256_load_pd(&valueArr[valueID*DOUBLES_PER_AVX]), limitValue, opCode); \
+    checkBool = _mm256_movemask_pd(previousTmpBool)&_mm256_movemask_pd(tmpBool);
+
+#define check_limit_avx_DECREASING_false(previousValueArr, valueArr, valueID, limitValue, previousTmpBool, tmpBool, checkBool) check_second_degree_limit_avx(previousValueArr, valueArr, valueID, limitValue, previousTmpBool, tmpBool, checkBool, _CMP_GE_OQ, _CMP_LT_OQ)
+#define check_limit_avx_DECREASING_true( previousValueArr, valueArr, valueID, limitValue, previousTmpBool, tmpBool, checkBool) check_second_degree_limit_avx(previousValueArr, valueArr, valueID, limitValue, previousTmpBool, tmpBool, checkBool, _CMP_GT_OQ, _CMP_LE_OQ)
+#define check_limit_avx_INCREASING_false(previousValueArr, valueArr, valueID, limitValue, previousTmpBool, tmpBool, checkBool) check_second_degree_limit_avx(previousValueArr, valueArr, valueID, limitValue, previousTmpBool, tmpBool, checkBool, _CMP_LE_OQ, _CMP_GT_OQ)
+#define check_limit_avx_INCREASING_true( previousValueArr, valueArr, valueID, limitValue, previousTmpBool, tmpBool, checkBool) check_second_degree_limit_avx(previousValueArr, valueArr, valueID, limitValue, previousTmpBool, tmpBool, checkBool, _CMP_LT_OQ, _CMP_GE_OQ)
 
 }
 }

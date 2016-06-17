@@ -329,7 +329,7 @@ void SimulationSupervisor::startSimulationPhase()
     buildTrajectoryList();
 
     // If there are any outstanding aborted trajectories from the previous phase, have the new trajectoryList take ownership of them
-    trajectoryList.takeTrajectories(outstandingTrajectoryList, TrajEnums::ABORTED);
+    trajectoryList->takeTrajectories(outstandingTrajectoryList, TrajEnums::ABORTED);
 
     // Assign the first batch of work.
     if (terminatePhase() || assignWork())

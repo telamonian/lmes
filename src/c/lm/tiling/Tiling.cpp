@@ -50,80 +50,168 @@ namespace lm {
 namespace tiling {
 
 // base class Tiling methods
-Tiling::Tiling(): tilingBuf(NULL)
+Tiling::Tiling(): oparam(NULL), oparams(NULL), tilingMsg(NULL)
 {
 }
 
 Tiling::~Tiling()
 {
-    if (tilingBuf!=NULL) delete tilingBuf; tilingBuf = NULL;
 }
 
-void Tiling::init(const lm::input::Tiling& tilingRef)
+void Tiling::init(lm::input::Tiling* newTilingMsg, const lm::oparam::OParams& newOParams)
 {
-    tilingBuf = new lm::input::Tiling(tilingRef);
-    setSortOrder(tilingBuf->sort_orders(0));
+    setTilingMsg(newTilingMsg);
+    setOrderParameters(newOParams);
 }
 
-// flips the stopping condition of the added limits around depending on whether the tiling's edges currently sort ascending or descending
-Tiling::TrajectoryLimitBuf* Tiling::addLimitBuf(lm::trajectory::TrajectoryLimits& tls, uint edgeIndex, TrajLimEnums::StoppingCondition stoppingCondition, bool rightOpenBins, int32_t limitID) const
-{
-    // if the tiling sorts descending, flip the stopping condition around
-    if (getSortOrder()==TilingEnums::DESCENDING)
-    {
-        switch (stoppingCondition)
-        {
-        case TrajLimEnums::MIN: stoppingCondition = TrajLimEnums::MAX; break;
-        case TrajLimEnums::MAX: stoppingCondition = TrajLimEnums::MIN; break;
-        case TrajLimEnums::DECREASING: stoppingCondition = TrajLimEnums::INCREASING; break;
-        case TrajLimEnums::INCREASING: stoppingCondition = TrajLimEnums::DECREASING; break;
-        default: break;
-        }
-    }
-    
-    // keep the includeEndpoint property of the added limit consistent with right-open bins on this tiling, or with left-open bins if rightOpenBins is false
-    bool includeEndpoint;
-    switch (stoppingCondition)
-    {
-    case TrajLimEnums::MIN: includeEndpoint = rightOpenBins; break;
-    case TrajLimEnums::MAX: includeEndpoint = !rightOpenBins; break;
-    case TrajLimEnums::DECREASING: includeEndpoint = rightOpenBins; break;
-    case TrajLimEnums::INCREASING: includeEndpoint = !rightOpenBins; break;
-    default: break;
-    }
+//// flips the stopping condition of the added limits around depending on whether the tiling's edges currently sort ascending or descending
+//Tiling::TrajectoryLimitBuf* Tiling::addLimitBuf(lm::trajectory::TrajectoryLimits& tls, uint edgeIndex, TrajLimEnums::StoppingCondition stoppingCondition, bool rightOpenBins, int32_t limitID) const
+//{
+//    // if the tiling sorts descending, flip the stopping condition around
+//    if (getSortOrder()==TilingEnums::DESCENDING)
+//    {
+//        switch (stoppingCondition)
+//        {
+//        case TrajLimEnums::MIN: stoppingCondition = TrajLimEnums::MAX; break;
+//        case TrajLimEnums::MAX: stoppingCondition = TrajLimEnums::MIN; break;
+//        case TrajLimEnums::DECREASING: stoppingCondition = TrajLimEnums::INCREASING; break;
+//        case TrajLimEnums::INCREASING: stoppingCondition = TrajLimEnums::DECREASING; break;
+//        default: break;
+//        }
+//    }
+//
+//    // keep the includeEndpoint property of the added limit consistent with right-open bins on this tiling, or with left-open bins if rightOpenBins is false
+//    bool includeEndpoint;
+//    switch (stoppingCondition)
+//    {
+//    case TrajLimEnums::MIN: includeEndpoint = rightOpenBins; break;
+//    case TrajLimEnums::MAX: includeEndpoint = !rightOpenBins; break;
+//    case TrajLimEnums::DECREASING: includeEndpoint = rightOpenBins; break;
+//    case TrajLimEnums::INCREASING: includeEndpoint = !rightOpenBins; break;
+//    default: break;
+//    }
+//
+//    return tls.addLimitMsg<TrajLimEnums::ORDER_PARAMETER>(getOrderParameterID(), edges(edgeIndex), stoppingCondition, includeEndpoint, limitID);
+//}
 
-    return tls.addLimitMsg<TrajLimEnums::ORDER_PARAMETER>(getOrderParameterID(), getEdge(edgeIndex), stoppingCondition, includeEndpoint, limitID);
+TilingEnums::SortOrder Tiling::calcSortOrder(bool reverseSort) const
+{
+    if (edges().last()>=edges().first()) return (reverseSort ? TilingEnums::DESCENDING : TilingEnums::ASCENDING);
+    else                                 return (reverseSort ? TilingEnums::ASCENDING  : TilingEnums::DESCENDING);
 }
 
 TilingEnums::SortOrder Tiling::getSortOrder() const
 {
-    return tilingBuf->sort_orders(0);
+    return tilingMsg->sort_orders(0);
 }
 
-void Tiling::setSortOrder(TilingEnums::SortOrder newArr)
+double Tiling::getEdgeFixBounds(int edgeIndex) const
 {
-    // for a 1D tiling there are only two possible sort orders, so either leave things alone or call .reverse()
-    if (tilingBuf->sort_orders(0)!=newArr)
+    // if edgeIndex is outside of the bounds of the edges() list, return a "pretend" edge shifted one unit out from the nearest actual edge
+    // useful for certain calculations
+    if      (edgeIndex < 0)                   return edges().first() + (getSortOrder()==TilingEnums::ASCENDING ? -1.0 :  1.0);
+    else if (edgeIndex > edges().lastIndex()) return edges().last()  + (getSortOrder()==TilingEnums::ASCENDING ?  1.0 : -1.0);
+    else                                      return edges(edgeIndex);
+}
+
+void Tiling::reverse()
+{
+//    tilingMsg->set_sort_orders(0, tilingMsg->sort_orders(0)==TilingEnums::ASCENDING ? TilingEnums::DESCENDING : TilingEnums::ASCENDING);
+
+    tilingMsg->set_sort_orders(0, calcSortOrder(true));
+    int revLoops = tilingMsg->edges_size()/2;
+    for (int i=0;i<revLoops;++i)
+    {
+        tilingMsg->mutable_edges()->SwapElements(i, tilingMsg->edges_size()-(i+1));
+    }
+
+    set_reversed(!reversed());
+}
+
+uint Tiling::getTileIndex(double opVal) const
+{
+    EdgesT::const_iterator upper;
+    upper = std::upper_bound(tilingMsg->edges().begin(), tilingMsg->edges().end(), opVal);
+    return upper - tilingMsg->edges().begin();
+}
+
+void Tiling::setBasin(int basinIndex)
+{
+    set_current_basin(basinIndex);
+    if (getTileIndexFromBasin(basinIndex)!=0)
     {
         reverse();
     }
 }
 
-void Tiling::reverse()
+void Tiling::setOrderParameters(const lm::oparam::OParams& newOParams)
 {
-    tilingBuf->set_sort_orders(0, tilingBuf->sort_orders(0)==TilingEnums::ASCENDING ? TilingEnums::DESCENDING : TilingEnums::ASCENDING);
-    int revLoops = tilingBuf->edges_size()/2;
-    for (int i=0;i<revLoops;++i)
+    oparams = &newOParams;
+    setOrderParameter();
+}
+
+void Tiling::setOrderParameter()
+{
+    oparam = oparams->at(getOrderParameterID());
+}
+
+void Tiling::setSortOrder(TilingEnums::SortOrder newOrder)
+{
+    // for a 1D tiling there are only two possible sort orders, so either leave things alone or call .reverse()
+    if (tilingMsg->sort_orders(0)!=newOrder)
     {
-        tilingBuf->mutable_edges()->SwapElements(i, tilingBuf->edges_size()-(i+1));
+        reverse();
     }
 }
 
-uint Tiling::getTileIndex(double opVal)
+void Tiling::setTilingMsg(lm::input::Tiling* newTilingMsg)
 {
-    EdgeIterator up;
-    up = std::upper_bound(tilingBuf->edges().begin(), tilingBuf->edges().end(), opVal);
-    return up - tilingBuf->edges().begin();
+    tilingMsg = newTilingMsg;
+    tilingMsg->set_sort_orders(0, calcSortOrder());
+
+    _basins = tilingMsg->mutable_basins();
+    _edges = tilingMsg->mutable_edges();
+}
+
+bool Tiling::testBasinsPosition() const
+{
+    for (int i=0;i<basins().size();i++)
+    {
+        if (not testBasinPosition(i)) return false;
+    }
+    return true;
+}
+
+bool Tiling::testBasinPosition(int basinIndex) const
+{
+    int basinTileIndex = getTileIndexFromBasin(basinIndex);
+    if (not basinTileIndex==0 and not basinTileIndex==getLastTileIndex())
+    {
+        throw Exception("Basin %d in tiling ID %d located in tile with index %d. Should be in first or last tile", basinIndex, id(), basinTileIndex);
+        // unreachable. Pro forma?
+        return false;
+    }
+    return true;
+}
+
+bool Tiling::testBasinsSize(lm::input::ReactionModel& reactionModel) const
+{
+    for (int i=0;i<basins().size();i++)
+    {
+        if (not testBasinSize(i, reactionModel)) return false;
+    }
+    return true;
+}
+
+bool Tiling::testBasinSize(int basinIndex, lm::input::ReactionModel& reactionModel) const
+{
+    if (basins(basinIndex).species_count_size()!=reactionModel.number_reactions())
+    {
+        throw Exception("Basin %d in tiling ID %d has %d species count entries. Should have %d", basinIndex, id(), basins(basinIndex).species_count_size(), reactionModel.number_reactions());
+        // unreachable. Pro forma?
+        return false;
+    }
+    return true;
 }
 
 // derived class methods
@@ -141,10 +229,10 @@ void* TilingLattice::allocateObject()
 
 TilingLattice::TilingLattice(): Tiling() {}
 
-void TilingLattice::init(const lm::input::Tiling& tilingRef)
+void TilingLattice::init(lm::input::Tiling* newTilingMsg, const lm::oparam::OParams& oparams)
 {
     // call parent method
-    Tiling::init(tilingRef);
+    Tiling::init(newTilingMsg, oparams);
 }
 
 }

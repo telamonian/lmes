@@ -63,13 +63,13 @@ public:
 
     // constructors/destructors/initializers
     Tilings();
-    Tilings(const lm::input::Tilings& tilings);
+    Tilings(const lm::input::Tilings& tilings, const lm::oparam::OParams& newOParams);
     ~Tilings();
     void clearTilingMap();
-    bool init(const lm::io::hdf5::Hdf5File* file);
-    void init(const lm::input::Tilings& tilings);
+    bool init(const lm::io::hdf5::Hdf5File* file, const lm::oparam::OParams& newOParams);
+    void init(const lm::input::Tilings& tilings, const lm::oparam::OParams& newOParams);
     void init();
-    void initTiling(const lm::input::Tiling& tiling);
+    void initTiling(lm::input::Tiling* tiling);
 
     // accessors
     const_iterator begin() const {return tilingMap.begin();}
@@ -79,12 +79,17 @@ public:
     uint getCurrentTilingID() const;
     lm::input::Tilings* getTilingsBuf() {return &tilingsBuf;}
 
+    // method that work with basins
+    bool testBasinsPosition() const;
+    bool testBasinsSize(lm::input::ReactionModel& reactionModel) const;
+
     // mutators
     iterator begin() {return tilingMap.begin();}
     iterator end() {return tilingMap.end();}
     void reverse(); // reverse order of list of edges
     bool rFFTilingsBuf(const lm::io::hdf5::Hdf5File* file); // rFF = read From File
     void setCurrentTilingID(uint newCurrentTilingID) {currentTilingID = newCurrentTilingID;}
+    void setOParams(const lm::oparam::OParams& newOParams) {oparams = &newOParams;}
     void setTilingsBuf(const lm::input::Tilings& newTilingsBuf) {*getTilingsBuf() = newTilingsBuf;}
 
     // operators
@@ -101,6 +106,7 @@ public:
     }
 protected:
     uint currentTilingID;
+    const lm::oparam::OParams* oparams;
 
 private:
     TilingMap tilingMap;

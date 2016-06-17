@@ -71,8 +71,14 @@ public:
     Repeated(const RepT& repFieldConstRef): repFieldPtr(NULL),repFieldConstPtr(NULL) {setRepFieldPtr(repFieldConstRef);}
     ~Repeated() {}
 
+// operators
+    const ValT& operator()(int i) const {return Get(i);}
+
 // accessors
+    inline const ValT& first() const {return Get(0);}
     inline const RepT* getRepFieldPtr() const {return repFieldConstPtr;}
+    inline const ValT& last() const {return Get(lastIndex());}
+    inline const ValT& lastIndex() const {return size() - 1;}
     inline ValT product() const {return ProductFunctor<ValT>::call(begin(), end());}
     std::string repr(const char* suffix="") const
     {
@@ -124,7 +130,6 @@ public:
 protected:
     RepT* repFieldPtr;
     const RepT* repFieldConstPtr;
-
 };
 
 }

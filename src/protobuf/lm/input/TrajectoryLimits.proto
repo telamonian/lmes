@@ -95,14 +95,14 @@ message TrajectoryLimit {
     optional bool terminate                         = 41 [default=true];
 
     /*
-     * - if add_tracking_to_output==true, the state information collected by the limit tracking is saved to the simulation output file
-     */
-    optional bool add_tracking_to_output            = 42 [default=false];
-
-    /*
      * - if add_tracking_to_cme_state==true, the state information collected by the limit tracking is saved internally to the simulation state at the end of a work unit
      */
-    optional bool add_tracking_to_cme_state         = 43 [default=false];
+    optional bool add_tracking_to_cme_state         = 42 [default=false];
+
+    /*
+     * - if add_tracking_to_output==true, the state information collected by the limit tracking is saved to the simulation output file
+     */
+    optional bool add_tracking_to_output            = 43 [default=false];
 
     /*
      * -
