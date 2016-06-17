@@ -211,7 +211,8 @@ std::vector<uint64_t> FFluxSupervisor::calcTrajectoryCountMinimizeCost(const lm:
 
 void FFluxSupervisor::buildSimulationPhase()
 {
-
+    currentTiling.setTilingMsg(getCurrentStage()->mutable_tiling());
+    currentTiling.setBasin(getCurrentStage()->basin_index());
 }
 
 //void FFluxSupervisor::buildRunWorkUnitLimits(lm::message::RunWorkUnit* msg)

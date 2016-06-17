@@ -110,8 +110,8 @@ protected:
     virtual lm::trajectory::TrajectoryList* initTrajectoryList(const lm::input::SimulationPhase& phase, const lm::trajectory::TrajectoryList& previousList);
 
     // getters
+    virtual lm::fflux::input::FFluxStage* getCurrentStage() {return ffluxStageList.mutable_fflux_stages(stageIndex);}
     virtual const lm::fflux::input::FFluxStage& getCurrentStage() const {return ffluxStageList.fflux_stages(stageIndex);}
-    virtual lm::tiling::Tiling*
     virtual int getStageCount() const {return ffluxStageList.fflux_stages_size();}
 
     // deprecated
@@ -128,7 +128,7 @@ protected:
     // shadow trajectoryList from base class with a trajectoryList with a fflux appropriate type
     lm::fflux::FFluxTrajectoryList* trajectoryList;
     lm::trajectory::TrajectoryLimits trajectoryLimits;
-
+    lm::tiling::Tiling currentTiling;
 
     //    int realOutputWriterProcess;
     //    int realOutputWriterThread;
