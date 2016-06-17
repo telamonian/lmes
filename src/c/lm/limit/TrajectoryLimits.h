@@ -55,7 +55,7 @@
 #include "lm/Types.h"
 
 namespace lm {
-namespace trajectory {
+namespace limit {
 
 typedef lm::input::TrajectoryLimits TrajectoryLimitsMsg;
 typedef lm::input::TrajectoryLimit TrajectoryLimitMsg;

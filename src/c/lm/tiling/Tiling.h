@@ -67,8 +67,8 @@ public:
     virtual void init(lm::input::Tiling* tilingMsg, const lm::oparam::OParams& oparams);
 
 // accessors
-//    TrajectoryLimitBuf* addLimitBuf(lm::trajectory::TrajectoryLimits& tls, uint edgeIndex, TrajLimEnums::StoppingCondition stoppingCondition,
-//                                    bool rightOpenBins=true, int32_t limitID=lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID) const;
+//    TrajectoryLimitBuf* addLimitBuf(lm::limit::TrajectoryLimits& tls, uint edgeIndex, TrajLimEnums::StoppingCondition stoppingCondition,
+//                                    bool rightOpenBins=true, int32_t limitID=lm::limit::TrajectoryLimits::DEFAULT_LIMIT_ID) const;
     TilingEnums::SortOrder calcSortOrder(bool reverseSort=false) const;
     TilingEnums::SortOrder getSortOrder() const;
     uint64_t getEdgeDims(uint dimIndex) const {return tilingMsg->edge_dims(dimIndex);}

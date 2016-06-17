@@ -236,7 +236,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         if (time >= timeLimit)
         {
             status = lm::message::WorkUnitStatus::LIMIT_REACHED;
-            limitIDReached = lm::trajectory::TrajectoryLimits::TIME_LIMIT_ID;
+            limitIDReached = lm::limit::TrajectoryLimits::TIME_LIMIT_ID;
             limitTypeReached = lm::input::TrajectoryLimit::TIME;
             break;
         }
@@ -313,7 +313,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
                 timeStep = timeLimit-time;
                 time = timeLimit;
                 status = lm::message::WorkUnitStatus::LIMIT_REACHED;
-                limitIDReached = lm::trajectory::TrajectoryLimits::TIME_LIMIT_ID;
+                limitIDReached = lm::limit::TrajectoryLimits::TIME_LIMIT_ID;
                 limitTypeReached = lm::input::TrajectoryLimit::TIME;
             }
 

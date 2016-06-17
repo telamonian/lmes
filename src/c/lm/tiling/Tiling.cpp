@@ -43,7 +43,7 @@
 #include "lm/input/Tilings.pb.h"
 #include "lm/tiling/Tiling.h"
 #include "lm/tiling/Tilings.h"
-#include "lm/trajectory/TrajectoryLimits.h"
+#include "lm/limit/TrajectoryLimits.h"
 #include "lm/Types.h"
 
 namespace lm {
@@ -65,7 +65,7 @@ void Tiling::init(lm::input::Tiling* newTilingMsg, const lm::oparam::OParams& ne
 }
 
 //// flips the stopping condition of the added limits around depending on whether the tiling's edges currently sort ascending or descending
-//Tiling::TrajectoryLimitBuf* Tiling::addLimitBuf(lm::trajectory::TrajectoryLimits& tls, uint edgeIndex, TrajLimEnums::StoppingCondition stoppingCondition, bool rightOpenBins, int32_t limitID) const
+//Tiling::TrajectoryLimitBuf* Tiling::addLimitBuf(lm::limit::TrajectoryLimits& tls, uint edgeIndex, TrajLimEnums::StoppingCondition stoppingCondition, bool rightOpenBins, int32_t limitID) const
 //{
 //    // if the tiling sorts descending, flip the stopping condition around
 //    if (getSortOrder()==TilingEnums::DESCENDING)

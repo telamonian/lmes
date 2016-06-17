@@ -73,7 +73,7 @@
 #endif
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
-#include "lm/trajectory/TrajectoryLimits.h"
+#include "lm/limit/TrajectoryLimits.h"
 #include "lm/Tune.h"
 #include "lm/Types.h"
 #include "lptf/Profile.h"
@@ -91,7 +91,7 @@ namespace cme {
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
 :neededDists(neededDists),rng(NULL),reactionModel(NULL),hasUpdateSpeciesCountsListeners(false),tilings(NULL),numberDegreeAdvancements(0),
  numberOrderParameters(0),orderParameterFunctions(NULL),status(lm::message::WorkUnitStatus::NONE),timeLimit(std::numeric_limits<double>::infinity()),
- numberLimits(0),limits(NULL),limitReached(NULL),limitIDReached(lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID),
+ numberLimits(0),limits(NULL),limitReached(NULL),limitIDReached(lm::limit::TrajectoryLimits::DEFAULT_LIMIT_ID),
  limitTypeReached(lm::input::TrajectoryLimit::NONE),writeDegreeAdvancementTimeSeries(false),writeOrderParameterTimeSeries(false),
  writeSpeciesTimeSeries(false),degreeAdvancementWriteInterval(0.0), orderParameterWriteInterval(0.0),speciesWriteInterval(0.0),
  numberFptTrackedSpecies(0),numberFptTrackedOrderParameters(0),fptTrackedSpecies(NULL),fptTrackedOrderParameters(NULL),
@@ -245,7 +245,7 @@ void CMESolver::reset()
     if (fptTrackedOrderParameters != NULL) delete[] fptTrackedOrderParameters; fptTrackedOrderParameters = NULL;
 
     // Reset the limits reached.
-    limitIDReached = lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID;
+    limitIDReached = lm::limit::TrajectoryLimits::DEFAULT_LIMIT_ID;
     limitTypeReached = lm::input::TrajectoryLimit::NONE;
 
     // Reset the limit tracking.

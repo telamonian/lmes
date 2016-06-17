@@ -55,7 +55,7 @@
 #include "lm/oparam/OParams.h"
 #include "lm/option/SimulationParameters.h"
 #include "lm/tiling/Tilings.h"
-#include "lm/trajectory/TrajectoryLimits.h"
+#include "lm/limit/TrajectoryLimits.h"
 #include "lm/Types.h"
 
 namespace lm {

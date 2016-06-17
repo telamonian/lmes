@@ -110,7 +110,7 @@ GillespieDSolverAVX::GillespieDSolverAVX()
     {
         initialized[i] = false;
         status[i] = lm::message::WorkUnitStatus::NONE;
-        limitIDReached[i] = lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID;
+        limitIDReached[i] = lm::limit::TrajectoryLimits::DEFAULT_LIMIT_ID;
         limitTypeReached[i] = lm::input::TrajectoryLimit::NONE;
         trajectoryId[i] = 0;
         trajectoryStarted[i] = false;
@@ -222,7 +222,7 @@ void GillespieDSolverAVX::reset()
     {
         initialized[i] = false;
         status[i] = lm::message::WorkUnitStatus::NONE;
-        limitIDReached[i] = lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID;
+        limitIDReached[i] = lm::limit::TrajectoryLimits::DEFAULT_LIMIT_ID;
         limitTypeReached[i] = lm::input::TrajectoryLimit::NONE;
         trajectoryId[i] = 0;
         trajectoryStarted[i] = false;
@@ -581,7 +581,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
                 if (trueMask&(1<<i))
                 {
                     status[i] = lm::message::WorkUnitStatus::LIMIT_REACHED;
-                    limitIDReached[i] = lm::trajectory::TrajectoryLimits::TIME_LIMIT_ID;
+                    limitIDReached[i] = lm::limit::TrajectoryLimits::TIME_LIMIT_ID;
                     limitTypeReached[i] = lm::input::TrajectoryLimit::TIME;
                 }
                 else
@@ -734,7 +734,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
                         ((double*)&timeStep)[i] = ((double*)&timeLimit)[i]-((double*)&time)[i];
                         ((double*)&time)[i] = ((double*)&timeLimit)[i];
                         status[i] = lm::message::WorkUnitStatus::LIMIT_REACHED;
-                        limitIDReached[i] = lm::trajectory::TrajectoryLimits::TIME_LIMIT_ID;
+                        limitIDReached[i] = lm::limit::TrajectoryLimits::TIME_LIMIT_ID;
                         limitTypeReached[i] = lm::input::TrajectoryLimit::TIME;
                     }
 

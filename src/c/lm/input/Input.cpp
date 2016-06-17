@@ -47,7 +47,7 @@
 #include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/option/SimulationParameters.h"
 #include "lm/Print.h"
-#include "lm/trajectory/TrajectoryLimits.h"
+#include "lm/limit/TrajectoryLimits.h"
 #include "lm/Types.h"
 
 using lm::input::OutputOptions;

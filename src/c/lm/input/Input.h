@@ -55,7 +55,7 @@
 #include "lm/oparam/OParams.h"
 #include "lm/option/SimulationParameters.h"
 #include "lm/tiling/Tilings.h"
-#include "lm/trajectory/TrajectoryLimits.h"
+#include "lm/limit/TrajectoryLimits.h"
 
 using std::list;
 using std::map;
@@ -96,7 +96,7 @@ public:
 
     lm::oparam::OParams* mutableOrderParameters() {return &orderParameters;}
     lm::tiling::Tilings* mutableTilings() {return &tilings;}
-    lm::trajectory::TrajectoryLimits* mutableTrajectoryLimits() {return &trajectoryLimits;}
+    lm::limit::TrajectoryLimits* mutableTrajectoryLimits() {return &trajectoryLimits;}
 
 protected:
     virtual void init(const lm::io::hdf5::Hdf5File& file);
@@ -130,7 +130,7 @@ protected:
     lm::input::ReactionModel reactionModel;
     lm::input::Tilings tilingsMsg;
     lm::tiling::Tilings tilings;
-    lm::trajectory::TrajectoryLimits trajectoryLimits;
+    lm::limit::TrajectoryLimits trajectoryLimits;
     lm::option::SimulationParameters simulationParameters;
 
     uint64_t partsPerWorkUnit;

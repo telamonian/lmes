@@ -77,7 +77,7 @@
 #include "lm/rng/RandomGenerator.h"
 #include "lm/thread/Thread.h"
 #include "lm/tiling/Tilings.h"
-#include "lm/trajectory/TrajectoryLimits.h"
+#include "lm/limit/TrajectoryLimits.h"
 
 using std::list;
 using std::map;
@@ -86,7 +86,7 @@ using std::string;
 using std::vector;
 using lm::me::MESolver;
 using lm::rng::RandomGenerator;
-using lm::trajectory::TrajectoryLimit;
+using lm::limit::TrajectoryLimit;
 
 namespace lm {
 
@@ -436,7 +436,7 @@ protected:
     lm::message::WorkUnitStatus::Status status;
 
     // Limits for the trajectory.
-    lm::trajectory::TrajectoryLimits trajectoryLimits;
+    lm::limit::TrajectoryLimits trajectoryLimits;
     double timeLimit;
     size_t numberLimits;
     TrajectoryLimit* limits;

@@ -39,13 +39,13 @@
 #include "lm/EnumHelper.h"
 #include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/tiling/Tiling.h"
-#include "lm/trajectory/TrajectoryLimits.h"
+#include "lm/limit/TrajectoryLimits.h"
 #include "lm/Types.h"
 
-using lm::trajectory::LimitValueT;
+using lm::limit::LimitValueT;
 
 namespace lm {
-namespace trajectory {
+namespace limit {
 
 TrajectoryLimits::repeatedType::const_iterator TrajectoryLimits::findMsg(int32_t id) const
 {

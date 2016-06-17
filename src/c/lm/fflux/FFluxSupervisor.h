@@ -49,10 +49,10 @@
 #include "lm/io/FFluxOutput.pb.h"
 #include "lm/input/ReactionModel.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
+#include "lm/limit/TrajectoryLimits.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
-#include "lm/trajectory/TrajectoryLimits.h"
 #include "lm/trajectory/TrajectoryList.h"
 #include "lm/MPI.h"
 #include "lm/Print.h"
@@ -81,6 +81,7 @@ protected:
     virtual void buildSimulationStageList();
     virtual void addProductionStage(lm::fflux::input::FFluxStage* productionStage, const input::Tiling& tiling, uint basinIndex);
     virtual void addPilotStage(lm::fflux::input::FFluxStage* productionStage);
+    virtual void buildSimulationStage();
 
     template <typename ValT> virtual void addFFluxPhaseLimit(lm::fflux::input::FFluxStage* stage, FFPhaseLimEnums::StopCondition stopCondition, ValT value);
     template <typename ValT> virtual void addFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage, FFPhaseLimEnums::StopCondition stopCondition, ValT value);
@@ -127,7 +128,7 @@ protected:
     uint64_t ffluxPhaseIndex;
     // shadow trajectoryList from base class with a trajectoryList with a fflux appropriate type
     lm::fflux::FFluxTrajectoryList* trajectoryList;
-    lm::trajectory::TrajectoryLimits trajectoryLimits;
+    lm::limit::TrajectoryLimits trajectoryLimits;
     lm::tiling::Tiling currentTiling;
 
     //    int realOutputWriterProcess;
