@@ -86,7 +86,6 @@ using lm::Exception;
 using lm::resource::ResourceMap;
 using lm::thread::PthreadException;
 
-void ioTest();
 void listDevicesMPI();
 void executeSimulationMPI();
 void executeSimulationMPISingleMaster(ResourceMap* resourceMap);
@@ -135,10 +134,6 @@ int main(int argc, char** argv)
                 else if (functionOption == "version")
                 {
                     // Handle version on the master process.
-                }
-                else if (functionOption == "iotest")
-                {
-                    ioTest();
                 }
                 else if (functionOption == "devices" || functionOption == "simulation")
                 {
@@ -216,40 +211,6 @@ int main(int argc, char** argv)
     lm::MPI::finalize();
     google::protobuf::ShutdownProtobufLibrary();
     return -1;
-}
-
-void ioTest()
-{
-    lm::io::DiffusionModel diffusionModel;
-    lm::io::OrderParameters orderParameters;
-    lm::io::ReactionModel reactionModel;
-    lm::io::Tilings tilings;
-
-    // Open the simulation file.
-    lm::io::hdf5::Hdf5File * file = new lm::io::hdf5::Hdf5File(simulationInputFilename);
-
-    // Read in, and then write out, any extant sections of the simulation file
-    if (file->hasDiffusionModel())
-    {
-        file->getDiffusionModel(&diffusionModel);
-        file->setDiffusionModel(&diffusionModel);
-    }
-    if (file->hasOrderParameters())
-    {
-        file->getOrderParameters(&orderParameters);
-        file->setOrderParameters(&orderParameters);
-    }
-    if (file->hasReactionModel())
-    {
-        file->getReactionModel(&reactionModel);
-        file->setReactionModel(&reactionModel);
-    }
-    if (file->hasTilings())
-    {
-        file->getTilings(&tilings);
-        file->setTilings(&tilings);
-    }
-    file->close();
 }
 
 void listDevicesMPI()
@@ -332,7 +293,7 @@ void executeSimulationMPISingleMaster(ResourceMap* resourceMap)
     // Create the supervisor.
     lm::main::SimulationSupervisor* supervisor = static_cast<lm::main::SimulationSupervisor*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::main::SimulationSupervisor",supervisorClassName));
     supervisor->setUseCPUAffinity(useCPUAffinity);
-    supervisor->setSimulationFilename(simulationInputFilename, simulationOutputFilename);
+    supervisor->setSimulationFilename(simulationInputFilenames, simulationOutputFilename);
     supervisor->setOutputWriterClassName(outputWriterClassName);
     supervisor->setSolverClassName(solverClassName);
     supervisor->setResourceMap(resourceMap);

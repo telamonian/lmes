@@ -75,7 +75,7 @@ string functionOption = "interpreter";
 /**
  * The name of the file containing the simulation input.
  */
-string simulationInputFilename;
+vector<string> simulationInputFilenames;
 
 /**
  * The name of the file containing the simulation output.
@@ -181,19 +181,5 @@ bool opActivatedFlag;
  * Flag that determines whether or not to track order parameter values in addition to species counts
  */
 bool opTrackingFlag;
-
-/**
- * Flag to run input output testing
- */
-bool ioTestFlag;
-
-
-
-
-
-
-
-
-
 
 

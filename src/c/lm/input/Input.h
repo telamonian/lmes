@@ -42,6 +42,7 @@
 #include <list>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "lm/EnumHelper.h"
 #include "lm/input/MicroenvironmentModel.pb.h"
@@ -54,13 +55,14 @@
 #include "lm/io/SimulationParameters.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/oparam/OParams.h"
-#include "lm/option/SimulationParameters.h"
+#include "lm/input/SimulationParameters.h"
 #include "lm/tiling/Tilings.h"
 #include "lm/trajectory/TrajectoryLimits.h"
 
 using std::list;
 using std::map;
 using std::string;
+using std::vector;
 
 namespace lm {
 namespace input {
@@ -68,7 +70,7 @@ namespace input {
 class Input
 {
 public:
-    Input(const lm::io::hdf5::Hdf5File& file);
+    Input(vector<string> inputFilenames);
     virtual ~Input();
 
     // accessors
@@ -78,7 +80,7 @@ public:
     const lm::io::OrderParameters& getOrderParametersMsg() const {return orderParametersMsg;}
     const lm::io::OutputOptions& getOutputOptionsMsg() const {return outputOptions;}
     const lm::io::ReactionModel& getReactionModelMsg() const {return reactionModel;}
-    const lm::option::SimulationParameters& getSimulationParameters() const {return simulationParameters;}
+    const lm::input::SimulationParameters& getSimulationParameters() const {return simulationParameters;}
     const lm::tiling::Tilings& getTilings() const {return tilings;}
     const lm::io::Tilings& getTilingsMsg() const {return tilingsMsg;}
     const lm::io::TrajectoryLimits& getTrajectoryLimits() const {return trajectoryLimits.buf();}
@@ -101,6 +103,7 @@ public:
     lm::trajectory::TrajectoryLimits* mutableTrajectoryLimits() {return &trajectoryLimits;}
 
 protected:
+    void readHDF5InputFile(lm::io::hdf5::Hdf5File& file);
     bool parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg);
     template <EH::LimitType LT> inline bool parseLimits(std::string key, std::string debugString, EH::StoppingCondition sc, bool includeEndpoint=true);
     template <typename T, typename MF, typename valT> inline bool parseAndSet(T& obj, MF (T::*mf)(valT), std::string key);
@@ -123,7 +126,7 @@ protected:
     lm::io::Tilings tilingsMsg;
     lm::tiling::Tilings tilings;
     lm::trajectory::TrajectoryLimits trajectoryLimits;
-    lm::option::SimulationParameters simulationParameters;
+    lm::input::SimulationParameters simulationParameters;
     lm::input::MicroenvironmentModel microenvironmentModel;
 
     uint64_t partsPerWorkUnit;

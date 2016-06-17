@@ -69,7 +69,7 @@ MicroenvironmentSupervisor::MicroenvironmentSupervisor()
 :simulationStartTime(0),numberReplicates(::replicates.size()),currentReplicateIndex(0),numberTimesteps(0),currentTimestep(0),tau(0.0),maxTime(0.0),
 pdeSlots(&communicator),pdeSolverClassName(""),pdeTrajectoryList(NULL),
 gridSpacing(0.0),numberCells(0),cellCoordinates(NULL),cellGridPoints(NULL),cellVolumes(NULL),cellPreviousCounts(NULL),cellCurrentCounts(NULL),cellFlux(NULL),
-stats_pdeWorkUnitsSteps(0),stats_pdeWorkUnitsTime(0.0),stats_timesteps(0),stats_timestepStartTime(0),stats_timestepTotalTime(0),stats_timestepReconcileTime(0)
+stats_pdeWorkUnitsSteps(0),stats_pdeWorkUnitsTime(0.0),stats_timesteps(0),stats_timestepStartTime(0),stats_timestepTotalTime(0),stats_timestepPDETime(0),stats_timestepMETime(0),stats_timestepReconcileTime(0)
 {
 //#ifdef OPT_AVX
 //    pdeSolverClassName = "lm::avx::ExplicitFiniteDifferenceSolverAVX";
@@ -267,6 +267,9 @@ void MicroenvironmentSupervisor::receivedFinishedWorkUnit(const lm::message::Fin
 
         // Update the slots list.
         pdeSlots.workUnitFinished(msg);
+
+        // Track some stats.
+        if (!pdeTrajectoryList->areAnyWaiting()) stats_timestepPDETime += getHrTime()-stats_timestepStartTime;
     }
     else
     {
@@ -279,6 +282,9 @@ void MicroenvironmentSupervisor::receivedFinishedWorkUnit(const lm::message::Fin
 
         // Update the slots list.
         slots.workUnitFinished(msg);
+
+        // Track some stats.
+        if (!trajectoryList->areAnyWaiting()) stats_timestepMETime += getHrTime()-stats_timestepStartTime;
     }
 
     // If we are not performing a checkpoint, distribute more work.
@@ -408,7 +414,7 @@ void MicroenvironmentSupervisor::printPerformanceStatistics(bool flush)
     {
 
         Print::printf(Print::INFO, "MicroenvironmentSupervisor working on replicate %d/%d and timestep %d/%d. Performance in the last %0.1f seconds:", currentReplicateIndex, numberReplicates, currentTimestep, numberTimesteps, convertHrToSeconds(currentTime-stats_lastPrintTime));
-        if (stats_timesteps > 0) Print::printf(Print::INFO, "  Performed %lld timesteps in %0.3e seconds (%0.3e timesteps/second) including an average reconcile time of %0.4e seconds.",stats_timesteps,convertHrToSeconds(stats_timestepTotalTime),double(stats_timesteps)/convertHrToSeconds(stats_timestepTotalTime), convertHrToSeconds(stats_timestepReconcileTime)/double(stats_timesteps));
+        if (stats_timesteps > 0) Print::printf(Print::INFO, "  Performed %lld timesteps in %0.3e seconds (%0.3e timesteps/second), average PDE: %0.4e s, ME: %0.4e s, reconcile: %0.4e s.",stats_timesteps,convertHrToSeconds(stats_timestepTotalTime),double(stats_timesteps)/convertHrToSeconds(stats_timestepTotalTime), convertHrToSeconds(stats_timestepPDETime)/double(stats_timesteps), convertHrToSeconds(stats_timestepMETime)/double(stats_timesteps), convertHrToSeconds(stats_timestepReconcileTime)/double(stats_timesteps));
         if (stats_workUnits > 0) Print::printf(Print::INFO, "  Performed %lld work units (ids in range %lld to %lld) with %lld parts ",stats_workUnits,stats_minWorkUnitId,stats_maxWorkUnitId,stats_workUnitsParts);
         if (stats_workUnitsSteps > 0) Print::printf(Print::INFO, "  ME solvers performed %lld steps in %0.3e seconds (%0.3e steps/second).", stats_workUnitsSteps, stats_workUnitTime, double(stats_workUnitsSteps)/stats_workUnitTime);
         if (stats_pdeWorkUnitsSteps > 0) Print::printf(Print::INFO, "  PDE solvers performed %lld steps in %0.3e seconds (%0.3e steps/second).", stats_pdeWorkUnitsSteps, stats_pdeWorkUnitsTime, double(stats_pdeWorkUnitsSteps)/stats_pdeWorkUnitsTime);
@@ -426,6 +432,8 @@ void MicroenvironmentSupervisor::resetPerformanceStatistics()
     stats_pdeWorkUnitsTime = 0.0;
     stats_timesteps = 0LL;
     stats_timestepTotalTime = 0;
+    stats_timestepPDETime = 0;
+    stats_timestepMETime = 0;
     stats_timestepReconcileTime = 0;
 }
 

@@ -55,9 +55,9 @@ using std::vector;
 extern string functionOption;
 
 /**
- * The name of the file containing the simulation input.
+ * The names of the file containing the simulation input.
  */
-extern string simulationInputFilename;
+extern vector<string> simulationInputFilenames;
 
 /**
  * The name of the file containing the simulation output.
@@ -163,11 +163,6 @@ extern bool opActivatedFlag;
  * Flag that determines whether or not to track order parameter values in addition to species counts
  */
 extern bool opTrackingFlag;
-
-/*
- * Flag to indicate that we're running a test of the program's input and output
- */
-extern bool ioTestFlag;
 
 #ifdef OPT_PYTHON
 /**

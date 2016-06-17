@@ -41,6 +41,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 #include <google/protobuf/message.h>
 
@@ -74,6 +75,7 @@
 
 using std::map;
 using std::string;
+using std::vector;
 
 namespace lm {
 namespace main {
@@ -92,7 +94,7 @@ public:
     virtual void init();
     void setOutputWriterClassName(string outputWriterClassName) {this->outputWriterClassName = outputWriterClassName;}
     void setResourceMap(lm::resource::ResourceMap* resourceMap) {this->resourceMap = resourceMap;}
-    void setSimulationFilename(string simulationInputFilename, string simulationOutputFilename) {this->simulationInputFilename = simulationInputFilename; this->simulationOutputFilename = simulationOutputFilename;}
+    void setSimulationFilename(vector<string> simulationInputFilenames, string simulationOutputFilename) {this->simulationInputFilenames = simulationInputFilenames; this->simulationOutputFilename = simulationOutputFilename;}
     void setSolverClassName(string solverClassName) {this->solverClassName = solverClassName;}
     void setUseCPUAffinity(bool useCPUAffinity) {this->useCPUAffinity = useCPUAffinity;}
     void wake() throw(lm::thread::PthreadException);
@@ -141,8 +143,8 @@ protected:
     int outputWriterThread;
     bool performingCheckpoint;
     lm::resource::ResourceMap* resourceMap;
-    std::string simulationInputFilename;
-    std::string simulationOutputFilename;
+    vector<string> simulationInputFilenames;
+    string simulationOutputFilename;
     uint64_t simulationPhase;
     bool simulationRunning;
     lm::slot::SlotList slots;

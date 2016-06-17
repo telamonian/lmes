@@ -45,7 +45,7 @@
 #include <vector>
 
 #include "lm/io/SimulationParameters.pb.h"
-#include "lm/option/SimulationParameters.h"
+#include "lm/input/SimulationParameters.h"
 #include "lm/Print.h"
 #include "lm/Types.h"
 
@@ -58,7 +58,7 @@ using std::vector;
 using std::ws;
 
 namespace lm {
-namespace option {
+namespace input {
 
 // accessors
 SimParamMap::const_iterator SimulationParameters::findFirst(const vector<string>& keys) const
@@ -110,26 +110,12 @@ void SimulationParameters::mapToBuf(const SimParamMap& inMap, lm::io::Simulation
     }
 }
 
-bool SimulationParameters::rFB(const lm::io::SimulationParameters& inBuf) // rFB = read From Buf
+void SimulationParameters::set(const lm::io::SimulationParameters& parameters)
 {
-    setBuf(inBuf);
+    _buf.CopyFrom(parameters);
     bufToMap();
-    return true;
 }
 
-bool SimulationParameters::rFF(const lm::io::hdf5::Hdf5File& file) // rFF = read From File
-{
-    setMap(file.getParameters());
-    mapToBuf();
-    return true;
-}
-
-bool SimulationParameters::rFM(const SimParamMap& inMap) // rFM = read From Map
-{
-    setMap(inMap);
-    mapToBuf();
-    return true;
-}
 
 }
 }

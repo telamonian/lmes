@@ -40,6 +40,7 @@
 #include <algorithm>
 #include <limits>
 #include <string>
+#include <vector>
 
 #include "hrtime.h"
 #include "lm/Exceptions.h"
@@ -68,6 +69,7 @@
 using lm::resource::ComputeResources;
 using lm::resource::ResourceMap;
 using std::string;
+using std::vector;
 
 namespace lm {
 namespace main {
@@ -81,7 +83,7 @@ int SimulationSupervisor::getRecvSleepMilliseconds()
 SimulationSupervisor::SimulationSupervisor()
 :communicator(lm::MPI::worldRank,THREAD_ID),hasCheckpointSignalerStarted(false),hasOutputWriterStarted(false),haveAllWorkUnitRunnersStarted(false),
  input(NULL),outputWriterClassName(""),outputWriterProcess(-1),outputWriterThread(-1),performingCheckpoint(false),resourceMap(NULL),
- simulationInputFilename(""),simulationOutputFilename(""),simulationPhase(0),simulationRunning(true),slots(&communicator),
+ simulationInputFilenames(),simulationOutputFilename(""),simulationPhase(0),simulationRunning(true),slots(&communicator),
  solverClassName(""),trajectoryList(NULL),useCPUAffinity(false),workUnitCount(0)
 {
     resetPerformanceStatistics();
@@ -95,8 +97,8 @@ SimulationSupervisor::~SimulationSupervisor()
 
 void SimulationSupervisor::init()
 {
-    // Initialize the input object with the input file.
-    input = new lm::input::Input(lm::io::hdf5::Hdf5File(simulationInputFilename));
+    // Initialize the input object with the input filenames.
+    input = new lm::input::Input(simulationInputFilenames);
 }
 
 void SimulationSupervisor::wake() throw(lm::thread::PthreadException)

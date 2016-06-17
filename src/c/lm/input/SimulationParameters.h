@@ -36,8 +36,8 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_OPTION_SIMULATIONPARAMETERS
-#define LM_OPTION_SIMULATIONPARAMETERS
+#ifndef LM_INPUT_SIMULATIONPARAMETERS
+#define LM_INPUT_SIMULATIONPARAMETERS
 
 #include <map>
 #include <sstream>
@@ -46,13 +46,12 @@
 #include <utility>
 #include <vector>
 
-#include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/SimulationParameters.pb.h"
 #include "lm/Print.h"
 #include "lm/Types.h"
 
 namespace lm {
-namespace option {
+namespace input {
 
 typedef std::map<std::string,std::string> SimParamMap;
 
@@ -60,9 +59,6 @@ class SimulationParameters
 {
 public:
     SimulationParameters() {}
-    SimulationParameters(const lm::io::SimulationParameters& newBuf) {rFB(newBuf);}
-    SimulationParameters(const lm::io::hdf5::Hdf5File& file) {rFF(file);}
-    SimulationParameters(const SimParamMap& newMap) {rFM(newMap);}
     ~SimulationParameters() {}
 
 // accessors
@@ -127,6 +123,9 @@ public:
     }
 
 // mutators
+
+    void set(const lm::io::SimulationParameters& parameters);
+
     // for the buf <-> map conversion methods, if you drop an arg it'll use the internal map and/or buf
     void bufToMap() {bufToMap(_buf, _map);}
     void bufToMap(const lm::io::SimulationParameters& inBuf) {bufToMap(inBuf, _map);}
@@ -140,12 +139,6 @@ public:
     void mapToBuf(lm::io::SimulationParameters& outBuf) {mapToBuf(_map, outBuf);}
     void mapToBuf(const SimParamMap& inMap, lm::io::SimulationParameters& outBuf);
 
-    bool rFB(const lm::io::SimulationParameters& inBuf); // rFB = read From Buf
-    bool rFF(const lm::io::hdf5::Hdf5File& file); // rFF = read From File
-    bool rFM(const SimParamMap& inMap); // rFM = read From Map
-
-    void setBuf(const lm::io::SimulationParameters& newBuf) {_buf.CopyFrom(newBuf);}
-    void setMap(const SimParamMap& newMap) {_map = newMap;}
 
 // const qualified pass-throughs to the underlying SimulationParameters buf and SimParamMap
     SimParamMap::const_iterator find(const std::string& key) const {return _map.find(key);}
@@ -165,4 +158,4 @@ protected:
 }
 }
 
-#endif /* LM_OPTION_SIMULATIONPARAMETERS */
+#endif /* LM_INPUT_SIMULATIONPARAMETERS */

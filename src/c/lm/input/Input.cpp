@@ -42,9 +42,9 @@
 #include "lm/EnumHelper.h"
 #include "lm/Print.h"
 #include "lm/input/Input.h"
+#include "lm/input/SimulationParameters.h"
 #include "lm/io/OutputOptions.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
-#include "lm/option/SimulationParameters.h"
 #include "lm/trajectory/TrajectoryLimits.h"
 #include "lm/Types.h"
 #include "robertslab/pbuf/NDArray.pb.h"
@@ -58,10 +58,29 @@ using std::string;
 namespace lm {
 namespace input {
 
-Input::Input(const lm::io::hdf5::Hdf5File& file)
+Input::Input(vector<string> inputFilenames)
 :reactionModelPresent(false),diffusionModelPresent(false),orderParametersPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),
- outputOptionsPresent(false),simulationParameters(file),partsPerWorkUnit(1),stepsPerWorkUnit(10000000)
+ outputOptionsPresent(false),simulationParameters(),partsPerWorkUnit(1),stepsPerWorkUnit(10000000)
 {
+    for (int i=0; i<inputFilenames.size(); i++)
+    {
+        if (lm::io::hdf5::Hdf5File::isValidFile(inputFilenames[i]))
+        {
+            lm::io::hdf5::Hdf5File file = lm::io::hdf5::Hdf5File(inputFilenames[i]);
+            readHDF5InputFile(file);
+        }
+    }
+}
+
+void Input::readHDF5InputFile(lm::io::hdf5::Hdf5File& file)
+{
+    // Get any generic simulation parameters.
+    {
+        lm::io::SimulationParameters p;
+        file.getParameters(&p);
+        simulationParameters.set(p);
+    }
+
     // Get the reaction model.
     if (file.hasReactionModel())
     {

@@ -108,6 +108,8 @@ private:
     long long stats_timesteps;
     hrtime stats_timestepStartTime;
     hrtime stats_timestepTotalTime;
+    hrtime stats_timestepPDETime;
+    hrtime stats_timestepMETime;
     hrtime stats_timestepReconcileTime;
 };
 
