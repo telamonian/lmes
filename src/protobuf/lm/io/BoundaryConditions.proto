@@ -49,6 +49,7 @@ message BoundaryConditions {
         PERIODIC                = 2;
         FIXED_CONCENTRATION     = 3;        // Fixed concentration at the boundary.
         FIXED_GRADIENT          = 4;        // Fixed and unique concentration at each boundary site.
+        LINEAR_GRADIENT         = 5;        // A linear gradient across the boundary.
     }    
     
     optional BoundaryConditionsType global              = 1;

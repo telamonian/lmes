@@ -198,34 +198,42 @@ void MicroenvironmentSupervisor::startNewReplicate()
     // Create the new trajectory lists.
     buildTrajectoryList();
 
-    // Initialize the diffusing species counts from the diffusion grid.
-    (*cellFlux) = 0;
-    pdeTrajectoryList->reconcileDiffusionGrid(cellGridPoints, cellVolumes, cellPreviousCounts, cellFlux, 0);
+    // If we have cells, initialize them from the diffusion grid.
+    if (numberCells > 0)
+    {
+        // Initialize the diffusing species counts from the diffusion grid.
+        (*cellFlux) = 0;
+        pdeTrajectoryList->reconcileDiffusionGrid(cellGridPoints, cellVolumes, cellPreviousCounts, cellFlux, 0);
 
-    // Copy the current counts of the diffusing species.
-    ((METrajectoryList*)trajectoryList)->copySpeciesCountFrom(*cellPreviousCounts, 0, 0);
+        // Copy the current counts of the diffusing species.
+        ((METrajectoryList*)trajectoryList)->copySpeciesCountFrom(*cellPreviousCounts, 0, 0);
+    }
 }
 
 void MicroenvironmentSupervisor::continueCurrentReplicate()
 {
     hrtime t0 = getHrTime();
 
-    // Copy the current counts of the diffusing species.
-    ((METrajectoryList*)trajectoryList)->copySpeciesCountInto(cellCurrentCounts, 0, 0);
+    // If we have cells, reconcile them with the diffusion grid.
+    if (numberCells > 0)
+    {
+        // Copy the current counts of the diffusing species.
+        ((METrajectoryList*)trajectoryList)->copySpeciesCountInto(cellCurrentCounts, 0, 0);
 
-    // Calculate the flux into or out of the diffusion grid over the last timestep.
-    cellFlux->equalsDifference(*cellCurrentCounts, *cellPreviousCounts);
+        // Calculate the flux into or out of the diffusion grid over the last timestep.
+        cellFlux->equalsDifference(*cellCurrentCounts, *cellPreviousCounts);
 
-    // Go through each cell and reconcile it with the diffusion grid.
-    pdeTrajectoryList->reconcileDiffusionGrid(cellGridPoints, cellVolumes, cellCurrentCounts, cellFlux, 0);
+        // Go through each cell and reconcile it with the diffusion grid.
+        pdeTrajectoryList->reconcileDiffusionGrid(cellGridPoints, cellVolumes, cellCurrentCounts, cellFlux, 0);
 
-    // Set the new counts of the difusing species.
-    ((METrajectoryList*)trajectoryList)->copySpeciesCountFrom(*cellCurrentCounts, 0, 0);
+        // Set the new counts of the difusing species.
+        ((METrajectoryList*)trajectoryList)->copySpeciesCountFrom(*cellCurrentCounts, 0, 0);
 
-    // Swap the current and previous counts.
-    ndarray<int32_t>* tmp = cellPreviousCounts;
-    cellPreviousCounts = cellCurrentCounts;
-    cellCurrentCounts = tmp;
+        // Swap the current and previous counts.
+        ndarray<int32_t>* tmp = cellPreviousCounts;
+        cellPreviousCounts = cellCurrentCounts;
+        cellCurrentCounts = tmp;
+    }
 
     // Update the trajectory lists to run for another timestep.
     pdeTrajectoryList->restartFinishedTrajectories();

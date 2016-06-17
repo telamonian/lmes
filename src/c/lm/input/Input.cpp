@@ -40,11 +40,16 @@
 #include <string>
 
 #include "lm/EnumHelper.h"
+#include "lm/Exceptions.h"
 #include "lm/Print.h"
 #include "lm/input/Input.h"
 #include "lm/input/SimulationParameters.h"
 #include "lm/io/OutputOptions.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/io/hdf5/SimulationFile.h"
+#include "lm/io/sfile/LocalSFile.h"
+#include "lm/io/sfile/SFile.h"
+#include "lm/io/sfile/SFileRecord.h"
 #include "lm/trajectory/TrajectoryLimits.h"
 #include "lm/Types.h"
 #include "robertslab/pbuf/NDArray.pb.h"
@@ -64,15 +69,30 @@ Input::Input(vector<string> inputFilenames)
 {
     for (int i=0; i<inputFilenames.size(); i++)
     {
+        // See if the file is an HDF5 file.
         if (lm::io::hdf5::Hdf5File::isValidFile(inputFilenames[i]))
         {
             lm::io::hdf5::Hdf5File file = lm::io::hdf5::Hdf5File(inputFilenames[i]);
-            readHDF5InputFile(file);
+            readHDF5Input(file);
+        }
+
+        // See if the file is an SFile.
+        lm::io::sfile::LocalSFile sfile(inputFilenames[i]);
+        if(sfile.exists() && sfile.isFile() && sfile.isSFile())
+        {
+            // Read the input from the sfile.
+            sfile.openRead();
+            readSFileInput(sfile);
+            sfile.close();
         }
     }
 }
 
-void Input::readHDF5InputFile(lm::io::hdf5::Hdf5File& file)
+Input::~Input()
+{
+}
+
+void Input::readHDF5Input(lm::io::hdf5::Hdf5File& file)
 {
     // Get any generic simulation parameters.
     {
@@ -211,80 +231,40 @@ void Input::readHDF5InputFile(lm::io::hdf5::Hdf5File& file)
 
     if (simulationParameters.count("maxWorkUnitSteps"))
         stepsPerWorkUnit = atoll(simulationParameters["maxWorkUnitSteps"].c_str());
-
-    // TODO: adding a MicroenvironmentModel here, remove once the proper import code has been written.
-    {
-        microenvironmentModelPresent = true;
-
-        microenvironmentModel.set_synchronization_timestep(0.01);
-
-        // Diffusion test.
-//        int x=1, y=200,z=200;
-//        microenvironmentModel.add_grid_shape(x);
-//        microenvironmentModel.add_grid_shape(y);
-//        microenvironmentModel.add_grid_shape(z);
-//        microenvironmentModel.set_grid_spacing(4.0e-6);
-//        microenvironmentModel.mutable_boundaries()->set_axis_specific_boundaries(true);
-//        microenvironmentModel.mutable_boundaries()->set_x_plus(lm::io::BoundaryConditions::REFLECTING);
-//        microenvironmentModel.mutable_boundaries()->set_x_minus(lm::io::BoundaryConditions::REFLECTING);
-//        microenvironmentModel.mutable_boundaries()->set_y_plus(lm::io::BoundaryConditions::REFLECTING);
-//        microenvironmentModel.mutable_boundaries()->set_y_minus(lm::io::BoundaryConditions::REFLECTING);
-//        microenvironmentModel.mutable_boundaries()->set_z_plus(lm::io::BoundaryConditions::REFLECTING);
-//        microenvironmentModel.mutable_boundaries()->set_z_minus(lm::io::BoundaryConditions::REFLECTING);
-//        microenvironmentModel.add_species_ids(0);
-//        microenvironmentModel.add_diffusion_coefficients(1000e-12);
-//        robertslab::pbuf::NDArray* c = microenvironmentModel.add_initial_concentrations();
-//        ndarray<double> grid(utuple(x,y,z));
-//        grid[utuple(grid.shape[0]/2,grid.shape[1]/2,grid.shape[2]/2)] = 1.0e-6;
-//        robertslab::pbuf::NDArraySerializer::serializeInto<double>(c, grid);
-
-        // Source/sink test.
-        int x=1, y=200,z=200;
-        microenvironmentModel.add_grid_shape(x);
-        microenvironmentModel.add_grid_shape(y);
-        microenvironmentModel.add_grid_shape(z);
-        microenvironmentModel.set_grid_spacing(4.0e-6);
-        microenvironmentModel.mutable_boundaries()->set_axis_specific_boundaries(true);
-        microenvironmentModel.mutable_boundaries()->set_x_plus(lm::io::BoundaryConditions::REFLECTING);
-        microenvironmentModel.mutable_boundaries()->set_x_minus(lm::io::BoundaryConditions::REFLECTING);
-        microenvironmentModel.mutable_boundaries()->set_y_plus(lm::io::BoundaryConditions::REFLECTING);
-        microenvironmentModel.mutable_boundaries()->set_y_minus(lm::io::BoundaryConditions::REFLECTING);
-        microenvironmentModel.mutable_boundaries()->set_z_plus(lm::io::BoundaryConditions::REFLECTING);
-        microenvironmentModel.mutable_boundaries()->set_z_minus(lm::io::BoundaryConditions::REFLECTING);
-        microenvironmentModel.add_species_ids(0);
-        microenvironmentModel.add_diffusion_coefficients(1000e-12);
-        robertslab::pbuf::NDArray* c = microenvironmentModel.add_initial_concentrations();
-        ndarray<double> grid(utuple(x,y,z));
-        //grid[utuple(grid.shape[0]/2,grid.shape[1]/2,grid.shape[2]/2)] = 1.0e-6;
-        robertslab::pbuf::NDArraySerializer::serializeInto<double>(c, grid);
-        microenvironmentModel.set_number_cells(16);
-        int yi[16]={ 70, 90,110,130,  70, 90,110,130,  70, 90,110,130,  70, 90,110,130};
-        int zi[16]={ 70, 70, 70, 70,  90, 90, 90, 90, 110,110,110,110, 130,130,130,130};
-//        int r1[16]={  0,  0,  0,  0,   0,  0,  0,  0,   0,  0,  0,  0,   0,  0,  0,  0};
-//        int r2[16]={  1,  1,  1,  1,   1,  1,  1,  1,   1,  1,  1,  1,   1,  1,  1,  1};
-        int r1[16]={  1,  0,  1,  0,   0,  1,  0,  1,   1,  0,  1,  0,   0,  1,  0,  1};
-        int r2[16]={  0,  1,  0,  1,   1,  0,  1,  0,   0,  1,  0,  1,   1,  0,  1,  0};
-        ndarray<uint32_t> counts(utuple(16,3));
-        ndarray<double> coords(utuple(16,3));
-        ndarray<double> volumes(utuple(16));
-        for (int i=0; i<16; i++)
-        {
-            counts[utuple(i,1U)] = r1[i];
-            counts[utuple(i,2U)] = r2[i];
-            coords[utuple(i,0U)] = 0.0;
-            coords[utuple(i,1U)] = yi[i]*4.0e-6;
-            coords[utuple(i,2U)] = zi[i]*4.0e-6;
-            volumes[utuple(i)] = 3.35e-14;
-        }
-        robertslab::pbuf::NDArraySerializer::serializeInto<uint32_t>(microenvironmentModel.mutable_cell_initial_species_counts(), counts);
-        robertslab::pbuf::NDArraySerializer::serializeInto<double>(microenvironmentModel.mutable_cell_coordinates(), coords);
-        robertslab::pbuf::NDArraySerializer::serializeInto<double>(microenvironmentModel.mutable_cell_volume(), volumes);
-
-    }
 }
 
-Input::~Input()
+void Input::readSFileInput(lm::io::sfile::SFile& file)
 {
+    // Read all of the records.
+    while (!file.isEof())
+    {
+        lm::io::sfile::SFileRecord r = file.readNextSFileRecord();
+
+        // See if this is an input record.
+        if (r.type == "protobuf:lm.input.SimulationInput")
+        {
+            // Allocate a buffer.
+            char* buffer = new char[r.dataSize];
+
+            // Read the record.
+            file.readFully(buffer, r.dataSize);
+
+            // Parse the record.
+            lm::input::SimulationInput newInput;
+            if (!newInput.ParseFromArray(buffer, r.dataSize)) throw RuntimeException("unable to deserialize simulation input");
+
+            // Merge this record into the global input record.
+            input.MergeFrom(newInput);
+
+            // Release the buffer.
+            delete[] buffer;
+        }
+        else
+        {
+            // Skip the record.
+            file.skip(r.dataSize);
+        }
+    }
 }
 
 bool Input::parseBoundaryConditions(lm::io::BoundaryConditions* bc, string arg)

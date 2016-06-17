@@ -46,7 +46,7 @@
 
 #include "lm/EnumHelper.h"
 #include "lm/input/MicroenvironmentModel.pb.h"
-#include "lm/io/hdf5/SimulationFile.h"
+#include "lm/input/SimulationInput.pb.h"
 #include "lm/io/BoundaryConditions.pb.h"
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/OrderParameters.pb.h"
@@ -54,6 +54,8 @@
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SimulationParameters.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/io/hdf5/SimulationFile.h"
+#include "lm/io/sfile/SFile.h"
 #include "lm/oparam/OParams.h"
 #include "lm/input/SimulationParameters.h"
 #include "lm/tiling/Tilings.h"
@@ -84,7 +86,7 @@ public:
     const lm::tiling::Tilings& getTilings() const {return tilings;}
     const lm::io::Tilings& getTilingsMsg() const {return tilingsMsg;}
     const lm::io::TrajectoryLimits& getTrajectoryLimits() const {return trajectoryLimits.buf();}
-    const lm::input::MicroenvironmentModel& getMicroenvironmentModel() const {return microenvironmentModel;}
+    const lm::input::MicroenvironmentModel& getMicroenvironmentModel() const {return input.microenv_model();}
 
     uint64_t getPartsPerWorkUnit() const {return partsPerWorkUnit;}
     uint64_t getStepsPerWorkUnit() const {return stepsPerWorkUnit;}
@@ -96,27 +98,31 @@ public:
     bool hasTilings() const {return tilingsPresent;}
     bool hasTrajectoryLimits() const {return trajectoryLimitsPresent;}
     bool hasOutputOptions() const {return outputOptionsPresent;}
-    bool hasMicroenvironmentModel() const {return microenvironmentModelPresent;}
+    bool hasMicroenvironmentModel() const {return input.has_microenv_model();}
 
     lm::oparam::OParams* mutableOrderParameters() {return &orderParameters;}
     lm::tiling::Tilings* mutableTilings() {return &tilings;}
     lm::trajectory::TrajectoryLimits* mutableTrajectoryLimits() {return &trajectoryLimits;}
 
 protected:
-    void readHDF5InputFile(lm::io::hdf5::Hdf5File& file);
+    void readHDF5Input(lm::io::hdf5::Hdf5File& file);
+    void readSFileInput(lm::io::sfile::SFile& file);
+
     bool parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg);
     template <EH::LimitType LT> inline bool parseLimits(std::string key, std::string debugString, EH::StoppingCondition sc, bool includeEndpoint=true);
     template <typename T, typename MF, typename valT> inline bool parseAndSet(T& obj, MF (T::*mf)(valT), std::string key);
 
 protected:
+
+    lm::input::SimulationInput input;
+
     bool degreeAdvancementPresent;
-    bool diffusionModelPresent;
     bool reactionModelPresent;
+    bool diffusionModelPresent;
     bool orderParametersPresent;
-    bool outputOptionsPresent;
     bool tilingsPresent;
     bool trajectoryLimitsPresent;
-    bool microenvironmentModelPresent;
+    bool outputOptionsPresent;
 
     lm::io::DiffusionModel diffusionModel;
     lm::io::OrderParameters orderParametersMsg;
@@ -127,7 +133,6 @@ protected:
     lm::tiling::Tilings tilings;
     lm::trajectory::TrajectoryLimits trajectoryLimits;
     lm::input::SimulationParameters simulationParameters;
-    lm::input::MicroenvironmentModel microenvironmentModel;
 
     uint64_t partsPerWorkUnit;
     uint64_t stepsPerWorkUnit;

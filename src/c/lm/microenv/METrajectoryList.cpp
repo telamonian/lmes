@@ -51,22 +51,25 @@ METrajectoryList::METrajectoryList(const lm::input::Input& input, uint64_t repli
 
     // Go through each cell in the microenvironment.
     numberCells = input.getMicroenvironmentModel().number_cells();
-    ndarray<uint32_t>* initialCounts = robertslab::pbuf::NDArraySerializer::deserialize<uint32_t>(input.getMicroenvironmentModel().cell_initial_species_counts());
-    uint numberSpecies = initialCounts->shape[1];
-    for (uint i=0; i<numberCells; i++)
+    if (numberCells > 0)
     {
-        // Create a new trajectory for the cell.
-        uint64_t id = replicate*numberCells+i;
-        trajectories[id] = new lm::trajectory::Trajectory(id, getSimulationPhase(), input, false, true, true, false);
-        waitingTrajectories[id] = trajectories[id];
+        ndarray<uint32_t>* initialCounts = robertslab::pbuf::NDArraySerializer::deserialize<uint32_t>(input.getMicroenvironmentModel().cell_initial_species_counts());
+        uint numberSpecies = initialCounts->shape[1];
+        for (uint i=0; i<numberCells; i++)
+        {
+            // Create a new trajectory for the cell.
+            uint64_t id = replicate*numberCells+i;
+            trajectories[id] = new lm::trajectory::Trajectory(id, getSimulationPhase(), input, false, true, true, false);
+            waitingTrajectories[id] = trajectories[id];
 
-        // Set the initial species counts for the cell.
-        lm::io::TrajectoryState* state = trajectories[id]->getMutableState();
-        if (state->cme_state().species_counts().number_species() != numberSpecies) throw RuntimeException("inconsistent number of species", state->cme_state().species_counts().number_species(), numberSpecies);
-        for (uint j=0; j<numberSpecies; j++)
-            state->mutable_cme_state()->mutable_species_counts()->set_species_count(j, (*initialCounts)[utuple(i,j)]);
+            // Set the initial species counts for the cell.
+            lm::io::TrajectoryState* state = trajectories[id]->getMutableState();
+            if (state->cme_state().species_counts().number_species() != numberSpecies) throw RuntimeException("inconsistent number of species", state->cme_state().species_counts().number_species(), numberSpecies);
+            for (uint j=0; j<numberSpecies; j++)
+                state->mutable_cme_state()->mutable_species_counts()->set_species_count(j, (*initialCounts)[utuple(i,j)]);
+        }
+        delete initialCounts;
     }
-    delete initialCounts;
 }
 
 METrajectoryList::~METrajectoryList()
