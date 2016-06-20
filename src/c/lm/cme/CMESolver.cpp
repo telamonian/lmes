@@ -192,9 +192,11 @@ void CMESolver::setOrderParameters(const lm::input::OrderParameters& ops)
 void CMESolver::setTilings(const lm::input::Tilings& tilingsBuf)
 {
     if (tilings != NULL) delete tilings; tilings = NULL;
-    tilings = new lm::tiling::Tilings();
-    tilings->init(tilingsBuf);
-    hasUpdateSpeciesCountsListeners = true;
+
+    // TODO: reimplement?
+//    tilings = new lm::tiling::Tilings();
+//    tilings->init(tilingsBuf);
+//    hasUpdateSpeciesCountsListeners = true;
 }
 
 void CMESolver::setLimits(const lm::input::TrajectoryLimits& lm)
@@ -310,7 +312,7 @@ void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
     // Get the limit reached during the simulation.
     if (limitTypeReached==lm::input::TrajectoryLimit::TIME)
     {
-        state->mutable_limit_reached()->CopyFrom(trajectoryLimits.getTimeBuf());
+        state->mutable_limit_reached()->CopyFrom(trajectoryLimits.getTimeLimitMsg());
     }
     else if (limitTypeReached!=lm::input::TrajectoryLimit::NONE)
     {
@@ -323,7 +325,7 @@ void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
         lm::limit::TrajectoryLimit& l = limits[it->second.limitID];
         if (l.addTrackingToCMEState or l.addTrackingToOutput) throw Exception("LimitTracking instance created for limit %d, but no tracking was requested for this limit", l.limitID);
 
-        lm::io::LimitTracking* trackingMsg = state->add_limit_tracking();
+        lm::io::LimitTracking* trackingMsg = state->add_limit_trackings();
         if (l.addTrackingToCMEState)
         {
             it->second.serializeTo(trackingMsg, trajectoryId);
@@ -424,7 +426,7 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
     }
 
     // if we're tracking any limits, set up the solver to output state information when the limit is reached
-    for (Repeated<lm::io::LimitTracking>::const_iterator it=state.limit_tracking().begin(); it!=state.limit_tracking().end(); ++it)
+    for (Repeated<lm::io::LimitTracking>::const_iterator it=state.limit_trackings().begin(); it!=state.limit_trackings().end(); ++it)
     {
         trackedLimits[it->limit_id()].deserializeFrom(*it);
     }
@@ -622,11 +624,11 @@ bool CMESolver::isTrajectoryOutsideLimits()
             // if this limit is being tracked, handle that
             if (trackedLimits.count(l.limitID))
             {
-                LimitTracking& limitTracking = trackedLimits[l.limitID];
-                limitTracking.limitTriggered();
+                lm::limit::LimitTracking& limitTracking = trackedLimits[l.limitID];
+                limitTracking.trackLimit();
 
                 // track the state if limitTracking is enabled
-                if (limitTracking.getTrackingEnabled())
+                if (limitTracking.trackingEnabled(l.trackCount))
                 {
                     if (numberDegreeAdvancements>0) {for (int i=0;i<numberDegreeAdvancements;i++) limitTracking.degreeAdvancements.push_back(degreeAdvancements[i]);}
                     if (numberOrderParameters>0) {for (int i=0;i<numberOrderParameters;i++) limitTracking.orderParameterValues.push_back(orderParameterValues[i]);}
@@ -635,7 +637,7 @@ bool CMESolver::isTrajectoryOutsideLimits()
                 }
 
                 // if we are done with tracking, terminate the trajectory
-                terminationSignaled = limitTracking.getTerminationSignaled();
+                terminationSignaled = limitTracking.terminationSignaled(l.trackCount);
             }
             // if this limit is not being tracked, just signal for termination of the trajectory
             else

@@ -78,7 +78,7 @@ double OParam::calc(const lm::io::TrajectoryState& state) const
 
     // offset the species_count pointer to ensure that we only get the last "row" of values
     int offset = (sc.number_entries() - 1)*(sc.number_species());
-    return calc((uint*)(sc.species_count().data() + offset), sc.time(sc.number_entries() - 1));
+    return calc(sc.species_count().data() + offset, sc.time(sc.number_entries() - 1));
 }
 
 // derived class methods

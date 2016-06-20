@@ -5,13 +5,18 @@
 #################
 # list of files/dirs to exclude from the build of lm_c_lib
 set(to_remove_globs lm/main/MainMPI.cpp lm/main/Main.cpp lm/neus/*)
+set(to_remove_recurse_globs old_*)
 
 # get the source files
 file(GLOB_RECURSE lm_c_source *.cpp *.cc *.h)
 
-# remove files from the sources list as appropriate
+# find any files we need to remove from the sources
 file(GLOB to_remove_srcs ${to_remove_globs})
-list(REMOVE_ITEM lm_c_source ${to_remove_srcs})
+file(GLOB_RECURSE to_remove_recurse_srcs ${to_remove_recurse_globs})
+
+# remove files from the sources as appropriate
+list(REMOVE_ITEM lm_c_source ${to_remove_srcs} ${to_remove_recurse_srcs})
+message(${lm_c_source})
 
 file(GLOB_RECURSE lm_proto_src ../protobuf/*.proto)
 

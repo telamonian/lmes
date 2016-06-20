@@ -62,9 +62,8 @@ class ReplicateTrajectoryList : public lm::trajectory::TrajectoryList
 {
 
 public:
-//    ReplicateTrajectoryList(const lm::input::Input& input, uint64_t firstTrajectory, uint64_t lastTrajectory);
-    ReplicateTrajectoryList(const lm::input::SimulationPhase& phase);
-    ReplicateTrajectoryList(const lm::input::SimulationPhase& phase, const TrajectoryList& previousList);
+//    ReplicateTrajectoryList(const lm::io::ReactionModel& reactionModel, const lm::io::DiffusionModel& diffusionModel, map<std::string,std::string>& simulationParameters, uint64_t firstTrajectory, uint64_t lastTrajectory);
+    ReplicateTrajectoryList(const lm::input::Input& input, uint64_t firstTrajectory, uint64_t lastTrajectory);
     virtual ~ReplicateTrajectoryList();
     virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg);
 

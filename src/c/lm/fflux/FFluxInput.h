@@ -43,6 +43,8 @@
 #include <map>
 #include <string>
 
+#include "lm/fflux/input/FFluxOptions.pb.h"
+#include "lm/fflux/input/FFluxPhaseLimit.pb.h"
 #include "lm/input/Input.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/input/BoundaryConditions.pb.h"
@@ -67,7 +69,28 @@ public:
     FFluxInput(const lm::io::hdf5::Hdf5File& file): Input(file) {};
     virtual ~FFluxInput() {};
 
-    virtual void initTrajectoryLimits(const lm::io::hdf5::Hdf5File& file) {};
+// initializers
+    virtual void init(const lm::io::hdf5::Hdf5File& file);
+    virtual void initFFluxOptions(const lm::io::hdf5::Hdf5File& file);
+
+// accessors
+    bool hasPrecisionGoal() {return precisionGoalPresent;}
+    bool hasUserDefinedFFluxPhaseLimits() {return userDefinedFFluxPhaseLimitsPresent;}
+
+protected:
+//    bool parseAndSetFFluxPhaseLimit(const std::string key, const std::string debugString);
+
+protected:
+    int currentTilingIndex;
+
+    bool precisionGoalPresent;
+    bool userDefinedFFluxPhaseLimitsPresent;
+
+    lm::fflux::input::FFluxOptions ffluxOptions;
+    lm::fflux::input::FFluxPhaseLimitList ffluxPhaseLimitList;
+
+    uint64_t precisionGoal;
+    uint64_t precisionGoalConfidence;
 };
 
 }

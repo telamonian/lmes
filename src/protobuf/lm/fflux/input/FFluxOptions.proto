@@ -46,7 +46,7 @@ package lm.fflux.input;
 
 import "lm/fflux/input/FFluxPhaseLimit.proto";
 
-message FFluxSimulationParameters {
+message FFluxOptions {
     /*
      * - global precision goal for the fflux simulation
      */

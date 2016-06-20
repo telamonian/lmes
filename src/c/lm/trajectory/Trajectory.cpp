@@ -68,10 +68,10 @@ namespace lm {
 namespace trajectory {
 
 const std::string Trajectory::status_strings[] = {"ABORTED",
-                                                    "FINISHED",
-                                                    "NOT_STARTED",
-                                                    "RUNNING",
-                                                    "WAITING"};
+                                                  "FINISHED",
+                                                  "NOT_STARTED",
+                                                  "RUNNING",
+                                                  "WAITING"};
 
 Trajectory::Trajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryState& initialState)
 :id(static_cast<uint>(-1)),simulationPhase(phase),status(NOT_STARTED),state(initialState),numberWorkUnitsPerformed(0)

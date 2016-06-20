@@ -52,6 +52,7 @@
 #include "lm/input/ReactionModel.pb.h"
 #include "lm/input/SimulationParameters.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
+#include "lm/message/RunWorkUnit.pb.h"
 #include "lm/oparam/OParams.h"
 #include "lm/option/SimulationParameters.h"
 #include "lm/tiling/Tilings.h"
@@ -71,8 +72,10 @@ public:
     virtual ~Input();
 
     // accessors
-//    const lm::tiling::Tiling& getCurrentTiling() const {return getTilings().getCurrentTiling();}
-    const lm::tiling::Tiling& getCurrentTiling() const;
+    void copyLimitsTo(lm::message::RunWorkUnit* rwuMsg);
+    void copyLimitTrackingsTo(lm::message::RunWorkUnit* rwuMsg);
+    const lm::tiling::Tiling& getCurrentTiling() const {return getTilings().getCurrentTiling();}
+
     const lm::input::DiffusionModel& getDiffusionModelMsg() const {return diffusionModel;}
     const lm::oparam::OParams& getOrderParameters() const {return orderParameters;}
     const lm::input::OrderParameters& getOrderParametersMsg() const {return orderParametersMsg;}

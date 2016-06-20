@@ -61,6 +61,7 @@
 #include "lm/message/StartedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnitRunner.pb.h"
 #include "lm/message/WorkUnit.pb.h"
+#include "lm/protowrap/Repeated.h"
 #include "lm/resource/ComputeResources.h"
 #include "lm/resource/ResourceMap.h"
 #include "lm/slot/Slot.h"
@@ -91,7 +92,6 @@ SimulationSupervisor::SimulationSupervisor()
 SimulationSupervisor::~SimulationSupervisor()
 {
     if (input != NULL) delete input; input = NULL;
-    for (SimulationPhaseList::iterator it=simulationPhaseList.begin();it!=simulationPhaseList.end();++it) {if (*it!=NULL) delete *it; *it=NULL;}
     if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL; // since Supervisors call new to allocate their TrajectoryLists, this needs to be here
 }
 
@@ -319,7 +319,6 @@ void SimulationSupervisor::startSimulationIfAllWorkersStarted()
 void SimulationSupervisor::startSimulation()
 {
     Print::printf(Print::INFO, "Simulation started.");
-    buildSimulationPhaseList();
     startSimulationPhase();
 }
 
@@ -329,7 +328,7 @@ void SimulationSupervisor::startSimulationPhase()
     buildTrajectoryList();
 
     // If there are any outstanding aborted trajectories from the previous phase, have the new trajectoryList take ownership of them
-    trajectoryList->takeTrajectories(outstandingTrajectoryList, TrajEnums::ABORTED);
+    trajectoryList->takeTrajectories(outstandingTrajectoryList, lm::trajectory::Trajectory::ABORTED);
 
     // Assign the first batch of work.
     if (terminatePhase() || assignWork())
@@ -337,15 +336,6 @@ void SimulationSupervisor::startSimulationPhase()
         // If .terminatePhase() or .assignWork() returned true, there was nothing to be done.
         Print::printf(Print::INFO, "No work to be performed.");
         finishSimulationPhase();
-    }
-}
-
-void SimulationSupervisor::buildTrajectoryList()
-{
-    switch(simulationPhaseList.front()->trajectory_source())
-    {
-    case SimPhaseEnums::LIST: setTrajectoryList(initTrajectoryList(*simulationPhaseList.front())); break;
-    case SimPhaseEnums::PREVIOUS_PHASE: setTrajectoryList(initTrajectoryList(*simulationPhaseList.front(), *trajectoryList)); break;
     }
 }
 
@@ -372,16 +362,6 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
     stats_workUnitTime += msg.run_time();
     for (int i=0; i<msg.part_status_size(); i++)
         stats_workUnitsParts++;
-
-//    TODO: decide if the exists() check code is necessary, and if so fold it into FFluxTrajectoryList
-//    // If the trajectory associated with the finished work unit exists...
-//    if (trajectoryList->exists(msg.final_state().trajectory_id()))
-//    {
-//        // ...update the trajectory based on the results of the work unit
-//        trajectoryList->workUnitFinished(msg);
-//    }
-//    // Otherwise, assume that the associated trajectory has already been deleted and so skip reading in this result
-//    // The exists() check ensures that hangover results from older fflux phases aren't recorded as belonging to a newer phase
 
     // Update the trajectory list.
     trajectoryList->workUnitFinished(msg);
@@ -472,7 +452,7 @@ void SimulationSupervisor::buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg)
     msg->set_output_thread(outputWriterThread);
 
     // Set the limits.
-    buildRunWorkUnitLimits(msg);
+    input->copyLimitsTo(msg);
 
     // Set the output options.
     msg->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());
@@ -481,15 +461,12 @@ void SimulationSupervisor::buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg)
     msg->set_max_steps(input->getStepsPerWorkUnit());
 }
 
-void SimulationSupervisor::buildRunWorkUnitLimits(lm::message::RunWorkUnit* msg)
-{
-    // Set the limits.
-    msg->mutable_trajectory_limits()->CopyFrom(input->getTrajectoryLimitsMsg());
-}
-
 void SimulationSupervisor::buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint minWorkUnits)
 {
     trajectoryList->addWorkUnitParts(msg->work_unit_id(), msg, minWorkUnits);
+
+    // Set the limit tracking messages, if any
+    input->copyLimitTrackingsTo(msg);
 }
 
 void SimulationSupervisor::finishSimulationPhase()
@@ -511,19 +488,19 @@ void SimulationSupervisor::finishSimulationPhase()
 
 void SimulationSupervisor::cleanUpSimulationPhase()
 {
-    if (trajectoryList->getTrajectoryMap(TrajEnums::RUNNING)->size() > 0)
+    if (trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::RUNNING)->size() > 0)
     {
         // If the simulation phase was forcibly terminated, make sure we clean up any running trajectories appropriately
         if (terminatePhase())
         {
             // Keep track of any outstanding work units. Important for coordinating clean program termination across all nodes
-            outstandingTrajectoryList->copyTrajectories(*trajectoryList, TrajEnums::RUNNING);
-            outstandingTrajectoryList->setAll(TrajEnums::RUNNING, TrajEnums::ABORTED);
+            outstandingTrajectoryList->copyTrajectories(*trajectoryList, lm::trajectory::Trajectory::RUNNING);
+            outstandingTrajectoryList->setAll(lm::trajectory::Trajectory::RUNNING, lm::trajectory::Trajectory::ABORTED);
         }
         // Otherwise, the default supervisor behavior is to throw an exception if there are trajectories still running at the end of a phase
         else
         {
-            throw Exception("At end of simulation phase, there were %d trajectories still running (should be 0)", trajectoryList->getTrajectoryMap(TrajEnums::RUNNING)->size());
+            throw Exception("At end of simulation phase, there were %d trajectories still running (should be 0)", trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::RUNNING)->size());
         }
     }
 }

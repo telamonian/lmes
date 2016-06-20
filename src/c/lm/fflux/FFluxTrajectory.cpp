@@ -61,6 +61,10 @@ using std::string;
 namespace lm {
 namespace fflux {
 
+FFluxTrajectory::FFluxTrajectory(uint64_t id, uint64_t phaseIndex, const lm::io::TrajectoryState& initialState)
+:Trajectory(id,phaseIndex,initialState),ffluxPhase(ffluxPhase),input(input),lastLimitTime(0.0)
+{
+}
 
 FFluxTrajectory::FFluxTrajectory(uint64_t id, uint64_t phase, const lm::input::Input& input, bool reversed, uint64_t ffluxPhase):
 Trajectory(id,phase,input,reversed),ffluxPhase(ffluxPhase),input(input),lastLimitTime(0.0)
@@ -78,26 +82,26 @@ FFluxTrajectory::~FFluxTrajectory()
 
 bool FFluxTrajectory::fluxedBackward()
 {
-    if (input.getCurrentTiling().getSortOrder()==TilingEnums::ASCENDING)
-    {
-        return (getLastLimitStoppingCondition()==TrajLimEnums::DECREASING);
-    }
-    else
-    {
-        return (getLastLimitStoppingCondition()==TrajLimEnums::INCREASING);
-    }
+//    if (input.getCurrentTiling().getSortOrder()==TilingEnums::ASCENDING)
+//    {
+//        return (getLastLimitStoppingCondition()==TrajLimEnums::DECREASING);
+//    }
+//    else
+//    {
+//        return (getLastLimitStoppingCondition()==TrajLimEnums::INCREASING);
+//    }
 }
 
 bool FFluxTrajectory::fluxedForward()
 {
-    if (input.getCurrentTiling().getSortOrder()==TilingEnums::ASCENDING)
-    {
-        return (getLastLimitStoppingCondition()==TrajLimEnums::INCREASING);
-    }
-    else
-    {
-        return (getLastLimitStoppingCondition()==TrajLimEnums::DECREASING);
-    }
+//    if (input.getCurrentTiling().getSortOrder()==TilingEnums::ASCENDING)
+//    {
+//        return (getLastLimitStoppingCondition()==TrajLimEnums::INCREASING);
+//    }
+//    else
+//    {
+//        return (getLastLimitStoppingCondition()==TrajLimEnums::DECREASING);
+//    }
 }
 
 // accessor definitions

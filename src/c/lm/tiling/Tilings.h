@@ -52,7 +52,7 @@ namespace lm {
 namespace tiling {
 
 typedef std::map<uint,std::string> TilingClassMap;
-typedef google::protobuf::RepeatedPtrField<lm::input::Tiling>::const_iterator TilingIterator;
+typedef google::protobuf::RepeatedPtrField<lm::input::Tiling>::iterator TilingIterator;
 typedef std::map<uint,lm::tiling::Tiling*> TilingMap;
 
 class Tilings
@@ -60,6 +60,9 @@ class Tilings
 public:
     typedef TilingMap::iterator iterator;
     typedef TilingMap::const_iterator const_iterator;
+
+    // operators
+    lm::tiling::Tiling* operator[](uint i) {return tilingMap[i];}
 
     // constructors/destructors/initializers
     Tilings();
@@ -91,10 +94,6 @@ public:
     void setCurrentTilingID(uint newCurrentTilingID) {currentTilingID = newCurrentTilingID;}
     void setOParams(const lm::oparam::OParams& newOParams) {oparams = &newOParams;}
     void setTilingsBuf(const lm::input::Tilings& newTilingsBuf) {*getTilingsBuf() = newTilingsBuf;}
-
-    // operators
-    lm::tiling::Tiling* operator[](uint i) {return tilingMap[i];}
-
 
     // static methods
     static TilingClassMap tilingClassMap;

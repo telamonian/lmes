@@ -43,6 +43,7 @@
 #include <lm/fflux/io/FFluxStageOutput.pb.h>
 
 #include "lm/fflux/input/FFluxStage.pb.h"
+#include "lm/fflux/io/FFluxPhaseOutput.pb.h"
 #include "lm/fflux/FFluxInput.h"
 #include "lm/fflux/FFluxTrajectoryList.h"
 #include "lm/input/DiffusionModel.pb.h"
@@ -53,6 +54,8 @@
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
+#include "lm/protowrap/FFluxPhaseOutput.h"
+#include "lm/protowrap/Repeated.h"
 #include "lm/trajectory/TrajectoryList.h"
 #include "lm/MPI.h"
 #include "lm/Print.h"
@@ -79,12 +82,12 @@ protected:
     virtual void startSimulation();
 
     virtual void buildSimulationStageList();
-    virtual void addProductionStage(lm::fflux::input::FFluxStage* productionStage, const input::Tiling& tiling, uint basinIndex);
+    virtual void addProductionStage(lm::fflux::input::FFluxStage* productionStage, const lm::input::Tiling& tiling, uint basinIndex);
     virtual void addPilotStage(lm::fflux::input::FFluxStage* productionStage);
     virtual void buildSimulationStage();
 
-    template <typename ValT> virtual void addFFluxPhaseLimit(lm::fflux::input::FFluxStage* stage, FFPhaseLimEnums::StopCondition stopCondition, ValT value);
-    template <typename ValT> virtual void addFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage, FFPhaseLimEnums::StopCondition stopCondition, ValT value);
+    template <typename ValT> void addFFluxPhaseLimit(lm::fflux::input::FFluxStage* stage, FFPhaseLimEnums::StopCondition stopCondition, ValT value);
+    template <typename ValT> void addFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage, FFPhaseLimEnums::StopCondition stopCondition, ValT value);
     virtual void addFFluxPhaseLimitsFromInput(lm::fflux::input::FFluxStage* productionStage);
     virtual void addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::fflux::io::FFluxStageOutput& stageOutput, bool minimizeCost=true);
 
@@ -122,14 +125,17 @@ protected:
 
 protected:
     lm::fflux::input::FFluxStageList ffluxStageList;
-    lm::fflux::FFluxInput* ffluxInput;
+    lm::fflux::FFluxInput* input;
 
     int stageIndex;
     uint64_t ffluxPhaseIndex;
     // shadow trajectoryList from base class with a trajectoryList with a fflux appropriate type
     lm::fflux::FFluxTrajectoryList* trajectoryList;
     lm::limit::TrajectoryLimits trajectoryLimits;
-    lm::tiling::Tiling currentTiling;
+    lm::tiling::Tiling* currentTiling;
+
+    lm::protowrap::Repeated<lm::fflux::io::FFluxPhaseOutput> ffluxPhaseOutputs;
+    lm::protowrap::FFluxPhaseOutput* currentFFluxPhaseOutput;
 
     //    int realOutputWriterProcess;
     //    int realOutputWriterThread;

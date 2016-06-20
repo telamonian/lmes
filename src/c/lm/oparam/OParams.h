@@ -67,7 +67,7 @@ public:
     void init(const lm::input::OrderParameters& oparams);
     void init();
     void initOParam(const lm::input::OrderParameter& oparam);
-    void initValues(uint* speciesCounts, double time);
+    void initValues(int* speciesCounts, double time);
 
     // operators
     lm::oparam::OParam* operator[](uint i) {return opMap[i];}
@@ -79,7 +79,7 @@ public:
     uint64_t size() const {return opMap.size();}
 
     // mutators
-    void calcAndStore(uint* speciesCounts, double time);
+    void calcAndStore(int* speciesCounts, double time);
     lm::input::OrderParameters* getOParamsBuf() {return &oparamsBuf;}
     void setOParamsBuf(const lm::input::OrderParameters& newOParamsBuf) {*getOParamsBuf() = newOParamsBuf;}
     bool rFFOParamsBuf(const lm::io::hdf5::Hdf5File* file); // rFF = read From File

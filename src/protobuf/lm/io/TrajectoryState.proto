@@ -50,6 +50,6 @@ message TrajectoryState {
     optional lm.io.CMEState cme_state                             = 3;
     optional lm.io.RDMEState rdme_state                           = 4;
     optional lm.input.TrajectoryLimit limit_reached               = 5;
-    repeated lm.io.LimitTracking limit_tracking                   = 6;
+    repeated lm.io.LimitTracking limit_trackings                  = 6;
     optional bytes solver_state                                   = 100;
 }

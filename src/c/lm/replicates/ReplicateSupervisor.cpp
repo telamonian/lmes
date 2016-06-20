@@ -44,7 +44,6 @@
 #include "lm/ClassFactory.h"
 #include "lm/Print.h"
 #include "lm/io/OutputWriter.h"
-#include "lm/input/SimulationPhase.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/main/Main.h"
 #include "lm/main/SimulationSupervisor.h"
@@ -99,43 +98,10 @@ void ReplicateSupervisor::startSimulation()
     SimulationSupervisor::startSimulation();
 }
 
-void ReplicateSupervisor::buildSimulationPhaseList()
-{
-    simulationPhaseList.push_back(new lm::input::SimulationPhase);
-    lm::input::SimulationPhase* phase = simulationPhaseList.back();
-
-    phase->set_id(0);
-    phase->set_first_trajectory_id(0);
-
-    lm::trajectory::Trajectory initialTrajectory(0, phase->id(), *input);
-    for (uint64_t i=::replicates.front(); i<=::replicates.back(); i++)
-    {
-        initialTrajectory.setID(i);
-        phase->add_trajectory_states()->CopyFrom(initialTrajectory.getState());
-    }
-    phase->mutable_trajectory_limits()->CopyFrom(input->getTrajectoryLimitsMsg());
-    phase->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());
-}
-
-lm::trajectory::TrajectoryList* ReplicateSupervisor::initTrajectoryList(const lm::input::SimulationPhase& phase)
-{
-    return new lm::replicates::ReplicateTrajectoryList(phase);
-}
-
-lm::trajectory::TrajectoryList* ReplicateSupervisor::initTrajectoryList(const lm::input::SimulationPhase& phase, const lm::trajectory::TrajectoryList& previousList)
-{
-    return new lm::replicates::ReplicateTrajectoryList(phase, previousList);
-}
-
 void ReplicateSupervisor::buildTrajectoryList()
 {
-//    // Create the new trajectory list.
-//    setTrajectoryList(new ReplicateTrajectoryList(*input, ::replicates.front(), ::replicates.back()));
-
-    // call the parent class method
-    SimulationSupervisor::buildTrajectoryList();
-
-    // grab some extra info
+    // Create the new trajectory list.
+    trajectoryList = new ReplicateTrajectoryList(*input, ::replicates.front(), ::replicates.back());
     numberReplicates += trajectoryList->size();
 }
 

@@ -96,10 +96,10 @@ public:
     static const int32_t DEFAULT_LIMIT_ID = -2;
 
 // typedefs
-    typedef lm::protowrap::Repeated<TrajectoryLimitMsg> repeatedType;
-    typedef vector<TrajectoryLimit> vectorType;
-    typedef vectorType::iterator iterator;
-    typedef vectorType::const_iterator const_iterator;
+    typedef lm::protowrap::Repeated<TrajectoryLimitMsg> RepeatedType;
+    typedef vector<TrajectoryLimit> VectorType;
+    typedef VectorType::iterator iterator;
+    typedef VectorType::const_iterator const_iterator;
     
 // constructors/destructors
     TrajectoryLimits(): nextID(0) {seatRepeated(_msg);}
@@ -108,15 +108,18 @@ public:
     ~TrajectoryLimits() {}
 
 // accessors
-    repeatedType::const_iterator findMsg(int32_t id) const;
-    repeatedType::const_iterator findMsg(TrajLimEnums::LimitType lt) const;
-    const TrajectoryLimitMsg& getTimeBuf() const {return _msg.time_limit();}
+    bool hasMsg(int32_t id) const;
+    bool hasMsg(TrajLimEnums::LimitType lt) const;
+    const TrajectoryLimitMsg& findMsg(int32_t id) const;
+    const TrajectoryLimitMsg& findMsg(TrajLimEnums::LimitType lt) const;
+    const TrajectoryLimitMsg& getTimeLimitMsg() const {return _msg.time_limit();}
     double getTimeLimitValue() const {return _msg.has_time_limit() ? _msg.time_limit().dvalue() : std::numeric_limits<double>::infinity();}
-    bool hasDegreeAdvancementLimit() const {return (findMsg(TrajLimEnums::DEGREE_ADVANCEMENT)!=repeated().end());}
+    const LimitTrackingRepeated& getTrackingRepeated() {return _trackingLimits;}
+    bool hasDegreeAdvancementLimit() const {return hasMsg(TrajLimEnums::DEGREE_ADVANCEMENT);}
 
     const TrajectoryLimitsMsg& buf() const {return _msg;}
-    const repeatedType& repeated() const {return _repeated;}
-    const vectorType& vec() const {return _vec;}
+    const RepeatedType& repeated() const {return _repeated;}
+    const VectorType& vec() const {return _vec;}
 
 // mutators
     // general addLimitMsg
@@ -190,21 +193,28 @@ public:
     void addTileExitLimitsMsg(lm::tiling::Tiling& tiling, int edge0Index, int edge1Index, bool edge0Exists=true, bool edge1Exists=true,
                               bool rightOpenBins=true, int32_t edge0LimitID=DEFAULT_LIMIT_ID, int32_t edge1LimitID=DEFAULT_LIMIT_ID);
 
-    void clear(bool resetNextID=true) {_msg.Clear(); _vec.clear(); seatRepeated(); if (resetNextID) nextID=0;}
+    TrajectoryLimitMsg* findMsg(int32_t id) {return const_cast<TrajectoryLimitMsg*>(&const_cast<const TrajectoryLimits*>(this)->findMsg(id));}
+    TrajectoryLimitMsg* findMsg(TrajLimEnums::LimitType lt) {return const_cast<TrajectoryLimitMsg*>(&const_cast<const TrajectoryLimits*>(this)->findMsg(lt));}
+    void clear(bool resetNextID=true) {_msg.Clear(); _trackingLimits.Clear(); _vec.clear(); seatRepeated(); if (resetNextID) nextID=0;}
     void seatRepeated(TrajectoryLimitsMsg& inMsg) {_repeated.setRepFieldPtr(inMsg.mutable_trajectory_limits());}
     void seatRepeated() {seatRepeated(_msg);}
     void setMsg(const TrajectoryLimitsMsg& inMsg) {_msg.CopyFrom(inMsg);}
-    void setVector(vectorType& inVec) {_vec = inVec;}
+    void setVector(VectorType& inVec) {_vec = inVec;}
 
     // specializing assignment to the TrajectoryLimit buffer oneof_value field via polymorphism
     TrajectoryLimitMsg* setLimitMsgValue(TrajectoryLimitMsg* limitMsg, double val) {limitMsg->set_dvalue(val); return limitMsg;}
     TrajectoryLimitMsg* setLimitMsgValue(TrajectoryLimitMsg* limitMsg, int32_t val) {limitMsg->set_ivalue(val); return limitMsg;}
     TrajectoryLimitMsg* setLimitMsgValue(TrajectoryLimitMsg* limitMsg, uint64_t val) {limitMsg->set_uvalue(val); return limitMsg;}
 
+    // methods for working with the tracking messages associated with the limit messages
+    LimitTrackingMsg* addTrackingMsg(int32_t limitID, bool addToOutput=true, bool addToCMEState=false, int64_t count=1, bool terminate=true);
+    LimitTrackingMsg* addTrackingMsgNonterminating(int32_t limitID, bool addToOutput=true, bool addToCMEState=false, int64_t count=-1);
+    void setTrackingTrajectoryID(uint64_t trajectoryID) {_trackingLimits.SetAll(trajectoryID, &lm::io::LimitTracking::set_trajectory_id);}
+
 // protobuf and stl container IO
     void rFB(const TrajectoryLimitsMsg& inBuf);     // rFB = read From Buf
     void wTB(TrajectoryLimitsMsg& outBuf);          // wTB = write To Buf
-    void wTV(vectorType& outVec);                   // wTV = write To Vec
+    void wTV(VectorType& outVec);                   // wTV = write To Vec
     //void rFF(const lm::io::hdf5::Hdf5File& file); // rFF = read From File
 
     void rFB() {return rFB(_msg);}
@@ -212,7 +222,7 @@ public:
     void wTV() {return wTV(_vec);}
 
 // const qualified pass-throughs to the underlying buf and stl container
-    vectorType::size_type size() const {return _vec.size();}
+    VectorType::size_type size() const {return _vec.size();}
 
 // static functions to do TrajectoryLimit buf <-> TrajectoryLimit struct conversion
     static TrajectoryLimit bufToStruct(const TrajectoryLimitMsg& inBuf);
@@ -226,8 +236,9 @@ protected:
     int32_t nextID;
 
     TrajectoryLimitsMsg _msg;
-    repeatedType _repeated;
-    vectorType _vec;
+    lm::limit::LimitTrackingRepeated _trackingLimits;
+    RepeatedType _repeated;
+    VectorType _vec;
 };
 
 }

@@ -42,6 +42,7 @@
 
 #include "lm/EnumHelper.h"
 #include "lm/fflux/FFluxInput.h"
+#include "lm/fflux/input/FFluxOptions.pb.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/input/OutputOptions.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
@@ -50,15 +51,55 @@
 #include "lm/limit/TrajectoryLimits.h"
 #include "lm/Types.h"
 
-using lm::input::OutputOptions;
-using lm::trajectory::LimitValueT;
-using std::map;
-using std::string;
+using lm::fflux::input::FFluxOptions;
+using lm::limit::LimitValueT;
 
 namespace lm {
 namespace fflux {
 
+void FFluxInput::init(const lm::io::hdf5::Hdf5File& file)
+{
+    // run some initializers from the base class (but skip Limits and OutputOptions, as these need to be set every phase rather than just once)
+    initReactionModel(file);
+    initDiffusionModel(file);
+    initOrderParameters(file);
+    initTilings(file);
+    initOutputOptions(file);
+    initWorkUnitParameters(file);
 
+    // run some fflux specific intializers
+    initFFluxOptions(file);
+}
+
+// Get the output options.
+void FFluxInput::initFFluxOptions(const lm::io::hdf5::Hdf5File& file)
+{
+    precisionGoalPresent = parseAndSet("precisionGoal", &FFluxOptions::set_precision_goal, ffluxOptions);
+    parseAndSet("precisionGoalConfidence", &FFluxOptions::set_precision_goal_confidence, ffluxOptions);
+
+    // set a default precision
+    if (not hasPrecisionGoal() and not hasUserDefinedFFluxPhaseLimits())
+    {
+        ffluxOptions.set_precision_goal(.05);
+    }
+}
+
+//bool FFluxInput::parseAndSetFFluxPhaseLimit(const std::string key, const std::string debugString)
+//{
+//    if (simulationParameters.count(key))
+//    {
+//        typename pairVector<uint, typename LimitValueT<LT>::type>::type idLimitVec(simulationParameters.parsePairVector<uint, typename LimitValueT<LT>::type>(key, debugString));
+//        for (typename pairVector<uint, typename LimitValueT<LT>::type>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
+//        {
+//            trajectoryLimits.addLimitMsg<LT>(it->first, it->second, sc, includeEndpoint);
+//        }
+//        return idLimitVec.size() > 0;
+//    }
+//    else
+//    {
+//        return false;
+//    }
+//}
 
 }
 }

@@ -90,7 +90,7 @@ int FFluxSupervisor::getRecvSleepMilliseconds()
     return -1;
 }
 
-FFluxSupervisor::FFluxSupervisor(): ffluxPhaseIndex(0), stageCount(0), trajectoryList(NULL)
+FFluxSupervisor::FFluxSupervisor(): ffluxPhaseIndex(0), stageIndex(0), trajectoryList(NULL)
 {
 }
 
@@ -110,11 +110,11 @@ void FFluxSupervisor::startSimulation()
 
 void FFluxSupervisor::buildSimulationStageList()
 {
-    if (ffluxInput->hasPrecisionGoal() and ffluxInput->hasFFluxPhaseLimits)
+    if (input->hasPrecisionGoal() and input->hasUserDefinedFFluxPhaseLimits)
         throw Exception("precisionGoal and an explicit set of ffluxPhaseLimits cannot both be set in forward flux simulation input");
 
     // build the stage list
-    for (Repeated<lm::input::Tiling>::const_iterator tilingIt=ffluxInput->getTilingsMsg().tilings().begin();tilingIt!=ffluxInput->getTilingsMsg().tilings().end();++tilingIt)
+    for (Repeated<lm::input::Tiling>::const_iterator tilingIt=input->getTilingsMsg().tilings().begin();tilingIt!=input->getTilingsMsg().tilings().end();++tilingIt)
     {
         for (int basinIndex=0;basinIndex<tilingIt->basins_size();basinIndex++)
         {
@@ -130,16 +130,16 @@ void FFluxSupervisor::addProductionStage(lm::fflux::input::FFluxStage* productio
     productionStage->mutable_tiling()->CopyFrom(tiling);
     productionStage->set_basin_index(basinIndex);
 
-    productionStage->mutable_output_options()->CopyFrom(ffluxInput->getOutputOptionsMsg());
+    productionStage->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());
 
-    if (ffluxInput->hasPrecisionGoal())
+    if (input->hasPrecisionGoal())
     {
         addPilotStage(productionStage);
-        productionStage->set_id(stageCount++);
+        productionStage->set_id(stageIndex++);
     }
     else
     {
-        productionStage->set_id(stageCount++);
+        productionStage->set_id(stageIndex++);
         addFFluxPhaseLimitsFromInput(productionStage);
     }
 }
@@ -154,7 +154,7 @@ void FFluxSupervisor::addPilotStage(lm::fflux::input::FFluxStage* productionStag
 
     addFFluxPhaseLimits(pilotStage, FFPhaseLimEnums::FORWARD_FLUXES, 1000);
 
-    pilotStage->set_id(stageCount++);
+    pilotStage->set_id(stageIndex++);
 }
 
 template <typename ValT>
@@ -180,7 +180,7 @@ void FFluxSupervisor::addFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage, F
 
 void FFluxSupervisor::addFFluxPhaseLimitsFromInput(lm::fflux::input::FFluxStage* productionStage)
 {
-    productionStage->mutable_fflux_phase_limits()->CopyFrom(ffluxInput->getFFluxPhaseLimits(productionStage->id()));
+    productionStage->mutable_fflux_phase_limits()->CopyFrom(input->getFFluxPhaseLimits(productionStage->id()));
 }
 
 void FFluxSupervisor::addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::fflux::io::FFluxStageOutput& stageOutput, bool minimizeCost=true)
@@ -366,10 +366,12 @@ void FFluxSupervisor::setLimitsPhaseZero()
     // - first we set a limit with id==0
     //     - this limit is the important one. a triggering of this limit corresponds to one of the flux events that we're trying to sample during phase 0
     trajectoryLimits.addTileExitLimitsMsg(currentTiling, -1, 0, false, true);
+    trajectoryLimits.addTrackingMsg(0, );
 
     // - next, we set two more limits with id==1 and id==2
     //     - these limits are used to help track which basin was last visited by a trajectory
     trajectoryLimits.addTileExitLimitsMsg(currentTiling, 0, currentTiling.edges().lastIndex());
+    trajectoryLimits.addTrackingMsg();
 }
 
 void FFluxSupervisor::setLimitsPhaseN()
@@ -378,6 +380,7 @@ void FFluxSupervisor::setLimitsPhaseN()
     //     - if limit id==0 is triggered, this indicates that the trajectory fluxed backwards
     //     - if limit id==1 is triggered, this indicates that the trajectory fluxed forwards
     trajectoryLimits.addTileExitLimitsMsg(currentTiling, 0, ffluxPhaseIndex);
+    trajectoryLimits.addTrackingMsg();
 }
 
 void FFluxSupervisor::buildSimulationPhase()

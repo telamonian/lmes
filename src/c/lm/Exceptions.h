@@ -87,11 +87,14 @@ public:
 class ConsistencyException : public Exception
 {
 public:
-	ConsistencyException(const char* message) : Exception(message) {}
-	ConsistencyException(const char* message, const char* arg1) : Exception(message, arg1) {}
-	ConsistencyException(const char* message, const int arg1,   const char* arg2, const char* arg3) : Exception(message, arg1, arg2, arg3) {}
-	ConsistencyException(const char* message, const char* arg1, const char* arg2, const char* arg3) : Exception(message, arg1, arg2, arg3) {}
-//    virtual ~ConsistencyException() throw() {}
+	ConsistencyException(const char * format, ...): Exception()
+	{
+		int offset = snprintf(messageBuffer, MAX_MESSAGE_SIZE, "%s: ", "Consistency exception");
+		va_list args;
+		va_start (args, format);
+		vsnprintf(messageBuffer + offset, MAX_MESSAGE_SIZE - offset, format, args);
+		va_end (args);
+	}
 };
 
 class InvalidArgException : public Exception
@@ -113,6 +116,32 @@ public:
     IOException(const char* message, const char* arg) : Exception("IO exception", message, arg) {}
     IOException(const char* message, const int arg) : Exception("IO exception", message, arg) {}
 //    virtual ~IOException() throw() {}
+};
+
+class NotFoundException : public Exception
+{
+public:
+	NotFoundException(const char * format, ...): Exception()
+	{
+		int offset = snprintf(messageBuffer, MAX_MESSAGE_SIZE, "%s: ", "NotFound exception");
+		va_list args;
+		va_start (args, format);
+	    vsnprintf(messageBuffer + offset, MAX_MESSAGE_SIZE - offset, format, args);
+		va_end (args);
+	}
+};
+
+class UnimplementedException : public Exception
+{
+public:
+    UnimplementedException(const char * format, ...): Exception()
+    {
+        int offset = snprintf(messageBuffer, MAX_MESSAGE_SIZE, "%s: ", "Unimplemented exception");
+        va_list args;
+        va_start (args, format);
+        vsnprintf(messageBuffer + offset, MAX_MESSAGE_SIZE - offset, format, args);
+        va_end (args);
+    }
 };
 
 class ZlibException : public Exception

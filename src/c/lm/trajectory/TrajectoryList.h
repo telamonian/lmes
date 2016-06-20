@@ -61,35 +61,6 @@ namespace trajectory {
 
 typedef std::map<uint64_t,lm::trajectory::Trajectory*> TrajectoryMap;
 
-//template <typename T> class _TrajectoryStateIteratorBase : public std::iterator<std::forward_iterator_tag, lm::io::TrajectoryState>
-//{
-//public:
-//    _TrajectoryStateIteratorBase(T tmit): tmit(tmit) {}
-//    _TrajectoryStateIteratorBase(const _TrajectoryStateIteratorBase& tsit): tmit(tsit.tmit) {}
-//    _TrajectoryStateIteratorBase& operator++() {++tmit;return *this;}
-//    _TrajectoryStateIteratorBase operator++(int) {_TrajectoryStateIteratorBase tmp(*this); operator++(); return tmp;}
-//    bool operator==(const _TrajectoryStateIteratorBase& rhs) {return tmit==rhs.tmit;}
-//    bool operator!=(const _TrajectoryStateIteratorBase& rhs) {return tmit!=rhs.tmit;}
-//protected:
-//    T tmit;
-//};
-//template <typename T> class _TrajectoryStateIterator : public _TrajectoryStateIteratorBase<T>
-//{
-//public:
-//    _TrajectoryStateIterator(T tmit): _TrajectoryStateIteratorBase(tmit) {}
-//    _TrajectoryStateIterator(const _TrajectoryStateIterator& tsit): _TrajectoryStateIteratorBase(tsit.tmit) {}
-//    lm::io::TrajectoryState& operator*() {return *tmit->second->getStateMutable();}
-//};
-//template <typename T> class _TrajectoryStateConstIterator : public _TrajectoryStateIteratorBase<T>
-//{
-//public:
-//    _TrajectoryStateConstIterator(T tmit): _TrajectoryStateIteratorBase(tmit) {}
-//    _TrajectoryStateConstIterator(const _TrajectoryStateConstIterator& tsit): _TrajectoryStateIteratorBase(tsit.tmit) {}
-//    lm::io::TrajectoryState& operator*() {return tmit->second->getState();}
-//};
-//typedef _TrajectoryStateIterator<TrajectoryMap::iterator> TrajectoryStateIterator;
-//typedef _TrajectoryStateConstIterator<TrajectoryMap::const_iterator> TrajectoryStateConstIterator;
-
 class TrajectoryList
 {
 public:

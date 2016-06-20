@@ -51,7 +51,7 @@
 #include "lm/Types.h"
 
 using lm::input::OutputOptions;
-using lm::trajectory::LimitValueT;
+using lm::limit::LimitValueT;
 using std::map;
 using std::string;
 using std::vector;
@@ -237,14 +237,20 @@ void Input::initWorkUnitParameters(const lm::io::hdf5::Hdf5File& file)
     parseAndSet("maxWorkUnitSteps", &this->stepsPerWorkUnit);
 }
 
-const lm::tiling::Tiling& Input::getCurrentTiling() const
+void Input::copyLimitsTo(lm::message::RunWorkUnit* rwuMsg)
 {
-    if (!tilingsPresent)
-    {
-        throw Exception("Tiling requested by simulation, but no tilings are set in the input file");
-    }
-    return getTilings().getCurrentTiling();
+    rwuMsg->mutable_trajectory_limits()->CopyFrom(getTrajectoryLimitsMsg());
 }
+
+void Input::copyLimitTrackingsTo(lm::message::RunWorkUnit* rwuMsg)
+{
+    for (lm::protowrap::Repeated<lm::message::WorkUnit>::iterator it=rwuMsg->mutable_part()->begin();it!=rwuMsg->mutable_part()->end();it++)
+    {
+        trajectoryLimits.setTrackingTrajectoryID(it->initial_state().trajectory_id());
+        it->mutable_initial_state()->mutable_limit_trackings()->CopyFrom(trajectoryLimits.getTrackingRepeated());
+    }
+}
+
 bool Input::parseBoundaryConditions(lm::input::BoundaryConditions* bc, string arg)
 {
     lm::input::BoundaryConditions::BoundaryConditionsType type;

@@ -108,6 +108,12 @@ struct TrajLimEnums {
     static const StoppingCondition MAX = lm::input::TrajectoryLimit::MAX;
     static const StoppingCondition INCREASING = lm::input::TrajectoryLimit::INCREASING;
     static const StoppingCondition DECREASING = lm::input::TrajectoryLimit::DECREASING;
+
+    // Functions for getting enum values as strings
+    static inline const ::std::string& LimitType_Name(LimitType value)
+    {
+        return lm::input::TrajectoryLimit_LimitType_Name(value);
+    }
 };
 
 // from lm/message/WorkUnitStatus.proto

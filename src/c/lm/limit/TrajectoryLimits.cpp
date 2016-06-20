@@ -48,44 +48,86 @@ using lm::limit::LimitValueT;
 namespace lm {
 namespace limit {
 
-TrajectoryLimits::repeatedType::const_iterator TrajectoryLimits::findMsg(int32_t id) const
+bool TrajectoryLimits::hasMsg(int32_t id) const
 {
-    TrajectoryLimits::repeatedType::const_iterator it=repeated().begin();
-    // if the .id() of a TrajectoryLimit buf matches, return it
-    for (;it!=repeated().end();it++)
+    // if a TrajectoryLimitMsg with a matching id is found, return true
+    for (TrajectoryLimits::RepeatedType::const_iterator it=repeated().begin();it!=repeated().end();it++)
     {
-        if (it->id()==id)
-        {
-            return it;
-        }
+        if (it->id()==id) return true;
     }
-    // otherwise, return .end()
-    return it;
+    // otherwise, return false
+    return false;
 }
 
-TrajectoryLimits::repeatedType::const_iterator TrajectoryLimits::findMsg(TrajLimEnums::LimitType lt) const
+bool TrajectoryLimits::hasMsg(TrajLimEnums::LimitType lt) const
 {
-    TrajectoryLimits::repeatedType::const_iterator it=repeated().begin();
-    // if the .limit_type() of a TrajectoryLimit buf matches, return it
-    for (;it!=repeated().end();it++)
+    // if a TrajectoryLimitMsg with a matching limit type is found, return true
+    for (TrajectoryLimits::RepeatedType::const_iterator it=repeated().begin();it!=repeated().end();it++)
     {
-        if (it->limit_type()==lt)
-        {
-            return it;
-        }
+        if (it->limit_type()==lt) return true;
     }
-    // otherwise, return .end()
-    return it;
+    // otherwise, return false
+    return false;
 }
 
-void TrajectoryLimits::addTileExitLimitsMsg(lm::tiling::Tiling& tiling, int edge0Index, int edge1Index, bool edge0Exists=true, bool edge1Exists=true,
-                                            bool rightOpenBins=true, int32_t edge0LimitID=DEFAULT_LIMIT_ID, int32_t edge1LimitID=DEFAULT_LIMIT_ID)
+const TrajectoryLimitMsg& TrajectoryLimits::findMsg(int32_t id) const
+{
+    // return the first TrajectoryLimitMsg with a matching id
+    for (TrajectoryLimits::RepeatedType::const_iterator it=repeated().begin();it!=repeated().end();it++)
+    {
+        if (it->id()==id) return *it;
+    }
+
+    // in no TrajectoryLimitMsgs are found with a matching id, throw an exception
+    throw NotFoundException("limit with id %d was not found in TrajectoryLimits instance", id);
+}
+
+const TrajectoryLimitMsg& TrajectoryLimits::findMsg(TrajLimEnums::LimitType lt) const
+{
+    // return the first TrajectoryLimitMsg with a matching limit type
+    for (TrajectoryLimits::RepeatedType::const_iterator it=repeated().begin();it!=repeated().end();it++)
+    {
+        if (it->limit_type()==lt) return *it;
+    }
+
+    // if no TrajectoryLimitMsgs are found with the appropriate limit type, throw an exception
+    throw NotFoundException("no limits with LimitType %s found in TrajectoryLimits instance", TrajLimEnums::LimitType_Name(lt).c_str());
+}
+
+void TrajectoryLimits::addTileExitLimitsMsg(lm::tiling::Tiling& tiling, int edge0Index, int edge1Index, bool edge0Exists, bool edge1Exists,
+                                            bool rightOpenBins, int32_t edge0LimitID, int32_t edge1LimitID)
 {
     // if an edgeIndex is less than 0 or greater than tiling.edges().lastIndex(), pretend that it's an extra edge one unit past the last edge (useful in conjunction with edgeExists for setting half-infinite bins)
     double edge0Value = tiling.getEdgeFixBounds(edge0Index);
     double edge1Value = tiling.getEdgeFixBounds(edge1Index);
 
     addBinExitLimitsMsg<TrajLimEnums::ORDER_PARAMETER>(tiling.getOrderParameterID(), edge0Value, edge1Value, edge0Exists, edge1Exists, rightOpenBins, edge0LimitID, edge1LimitID);
+}
+
+LimitTrackingMsg* TrajectoryLimits::addTrackingMsg(int32_t limitID, bool addToOutput, bool addToCMEState, int64_t count, bool terminate)
+{
+    // set the tracking options on the limit of interest
+    TrajectoryLimitMsg* trackedLimitMsg = findMsg(limitID);
+
+    trackedLimitMsg->set_terminate(terminate);
+
+    trackedLimitMsg->set_add_tracking_to_output(addToOutput);
+    trackedLimitMsg->set_add_tracking_to_cme_state(addToCMEState);
+
+    // if count < 0, unset track_count. When unset, tracking data will be collected every time the limit is triggered and the limit will never trigger trajectory termination
+    if (count < 0) trackedLimitMsg->clear_track_count();
+    else           trackedLimitMsg->set_track_count(static_cast<uint>(count));
+
+    // initialize the actual tracking message
+    LimitTrackingMsg* trackingMsg= _trackingLimits.Add();
+    trackingMsg->set_limit_id(limitID);
+    return trackingMsg;
+}
+
+// version of addTracking message that allow for setting non terminating tracking without necessarily filling in every default value in the signature
+LimitTrackingMsg* TrajectoryLimits::addTrackingMsgNonterminating(int32_t limitID, bool addToOutput, bool addToCMEState, int64_t count)
+{
+    return addTrackingMsg(limitID, addToOutput, addToCMEState, count, false);
 }
 
 // rFB = read From Buf
@@ -108,10 +150,10 @@ void TrajectoryLimits::wTB(TrajectoryLimitsMsg& outBuf)
 }
 
 // wTV = write To Vec
-void TrajectoryLimits::wTV(vectorType& outVec)
+void TrajectoryLimits::wTV(VectorType& outVec)
 {
     outVec.clear();
-    for (TrajectoryLimits::repeatedType::const_iterator it=repeated().begin(); it!=repeated().end(); it++)
+    for (TrajectoryLimits::RepeatedType::const_iterator it=repeated().begin(); it!=repeated().end(); it++)
     {
         outVec.push_back(bufToStruct(*it));
     }

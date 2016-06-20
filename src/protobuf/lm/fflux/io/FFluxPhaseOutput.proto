@@ -42,31 +42,31 @@ package lm.fflux.io;
 message FFluxPhaseOutput {
     repeated StartPoint start_points                           = 1;
 
-    optional uint64 sucessful_trajectories_launched_count      = 11;
-    optional double sucessful_trajectories_launched_total_time = 12;
-    optional uint64 failed_trajectories_launched_count         = 13;
-    optional double failed_trajectories_launched_total_time    = 14;
+    optional uint64 sucessful_trajectories_launched_count      = 11 [default=0];
+    optional double sucessful_trajectories_launched_total_time = 12 [default=0.0];
+    optional uint64 failed_trajectories_launched_count         = 13 [default=0];
+    optional double failed_trajectories_launched_total_time    = 14 [default=0.0];
+
+    repeated EndPoint sucessful_trajectory_end_points          = 21;
 }
 
 message StartPoint {
-    required SpeciesCoordinates species_coordinates            = 1;
-    optional uint64 count                                      = 2;
+    repeated int32 species_coordinates                         = 1 [packed=true];
+    optional uint64 count                                      = 2 [default=0];
+    optional double time                                       = 3 [default=0.0];
 
-    optional uint64 sucessful_trajectories_launched_count      = 11;
-    optional double sucessful_trajectories_launched_total_time = 12;
-    optional uint64 failed_trajectories_launched_count         = 13;
-    optional double failed_trajectories_launched_total_time    = 14;
+    optional uint64 sucessful_trajectories_launched_count      = 11 [default=0];
+    optional double sucessful_trajectories_launched_total_time = 12 [default=0.0];
+    optional uint64 failed_trajectories_launched_count         = 13 [default=0];
+    optional double failed_trajectories_launched_total_time    = 14 [default=0.0];
 
-    repeated EndPoint sucessful_trajectory_endpoints           = 21;
-    repeated EndPoint failed_trajectory_endpoints              = 22;
+    repeated EndPoint sucessful_trajectory_end_points          = 21;
+    repeated EndPoint failed_trajectory_end_points             = 22;
 }
 
 message EndPoint {
-    required SpeciesCoordinates species_coordinates = 1;
-    optional uint64 count                           = 2;
-    optional double total_time                      = 3;
-}
-
-message SpeciesCoordinates {
-    repeated uint32 species_count = 1 [packed=true];
+    repeated int32 species_coordinates              = 1 [packed=true];
+    optional uint64 count                           = 2 [default=0];
+    repeated double times                           = 3 [packed=true];
+    optional bool success                           = 4 [default=false];
 }

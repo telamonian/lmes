@@ -84,21 +84,29 @@ public:
     template <typename T1, typename T2>
     typename pairVector<T1, T2>::type parsePairVector(const std::string &key, const std::string& debugMessage="") const
     {
-        std::stringstream pairVecSS(_map.at(key));
-
         typename pairVector<T1, T2>::type parsedPairVector;
-        std::string pairString;
+        std::stringstream pairVecSS(_map.at(key));
+        std::string pairString, tokenString;
+
         while (getline(pairVecSS, pairString, ','))
         {
             std::pair<T1, T2> p;
             std::stringstream pairSS(pairString);
 
-            pairSS >> p.first;
-            // strip any white space in between the last number parsed and the next delimiter
-            pairSS >> std::ws;
-            if (pairSS.peek() == ':')
-                pairSS.ignore();
-            pairSS >> p.second;
+            getline(pairSS, tokenString, ':');
+            std::stringstream firstSS(tokenString);
+            firstSS >> p.first;
+
+            getline(pairSS, tokenString, ':');
+            std::stringstream secondSS(tokenString);
+            secondSS >> p.second;
+
+//            pairSS >> p.first;
+//            // strip any white space in between the last number parsed and the next delimiter
+//            pairSS >> std::ws;
+//            if (pairSS.peek() == ':')
+//                pairSS.ignore();
+//            pairSS >> p.second;
 
             parsedPairVector.push_back(p);
 

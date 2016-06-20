@@ -51,17 +51,35 @@ namespace lm {
 namespace protowrap {
 
 // main template for type generator struct that will return google::protobuf::RepeatedField<T> for a numeric T and google::protobuf::RepeatedPtrField<T> otherwise
-template <typename ValT, bool> struct _RepeatedTypedef;
-template <typename ValT> struct _RepeatedTypedef<ValT, false> {typedef google::protobuf::RepeatedPtrField<ValT> RepT;};
-template <typename ValT> struct _RepeatedTypedef<ValT, true> {typedef google::protobuf::RepeatedField<ValT> RepT;};
-template <typename ValT> struct RepeatedTypedef {typedef typename _RepeatedTypedef<ValT, IsNumeric<ValT>::value>::RepT RepT;};
+template <typename ValT, bool> struct _RepeatedSpecialization;
+template <typename ValT> struct _RepeatedSpecialization<ValT, false>
+{
+    typedef google::protobuf::RepeatedPtrField<ValT> RepT;
+
+    // for complex types stored in a RepeatedPtrField, SetAll is a real function that sets a field in every contained instance to a single value
+    template <typename FieldValT, typename SetterReturnT> static void SetAll(FieldValT newFieldVal, SetterReturnT (ValT::*setterFunc)(FieldValT), RepT* repFieldPtr)
+    {
+        for (typename RepT::iterator it=repFieldPtr->begin();it!=repFieldPtr->end();it++)
+        {
+            (*it.*setterFunc)(newFieldVal);
+        }
+    }
+};
+template <typename ValT> struct _RepeatedSpecialization<ValT, true>
+{
+    typedef google::protobuf::RepeatedField<ValT> RepT;
+
+    // for simple types stored in a RepeatedField, SetAll is a dummy function
+    template <typename T> static void SetAll(T, void*, void*) {};
+};
+template <typename ValT> struct RepeatedSpecialization : public _RepeatedSpecialization<ValT, IsNumeric<ValT>::value> {}; //{typedef typename _RepeatedSpecialization<ValT, IsNumeric<ValT>::value>::RepT RepT;};
 
 template <typename ValT>
 class Repeated
 {
 public:
 // typedefs
-    typedef typename RepeatedTypedef<ValT>::RepT RepT;
+    typedef typename RepeatedSpecialization<ValT>::RepT RepT;
     typedef typename RepT::iterator iterator;
     typedef typename RepT::const_iterator const_iterator;
 
@@ -69,10 +87,13 @@ public:
     Repeated(): repFieldPtr(NULL),repFieldConstPtr(NULL) {}
     Repeated(RepT* repFieldPtr): repFieldPtr(NULL),repFieldConstPtr(NULL) {setRepFieldPtr(repFieldPtr);}
     Repeated(const RepT& repFieldConstRef): repFieldPtr(NULL),repFieldConstPtr(NULL) {setRepFieldPtr(repFieldConstRef);}
-    ~Repeated() {}
+    virtual ~Repeated() {}
 
 // operators
     const ValT& operator()(int i) const {return Get(i);}
+    // conversion operators allow this wrapper to be used wherever google::protobuf::RepeatedField/RepeatedPtrField could be
+    operator RepT*() {return repFieldPtr;}
+    operator RepT&() const {return *repFieldPtr;}
 
 // accessors
     inline const ValT& first() const {return Get(0);}
@@ -93,21 +114,26 @@ public:
     }
 
 // mutators
-    inline Repeated<ValT>& operator<<(ValT val) {getRepFieldPtr()->Add(val); return *this;}
+    inline Repeated<ValT>& operator<<(ValT val) {Add(val); return *this;}
     inline RepT* getRepFieldPtr()
     {
         if (repFieldPtr==NULL) throw Exception("Pointer to internal repeated field (repFieldPtr) set to NULL in lm::protowrap::Repeated instance");
         return repFieldPtr;
     }
-    inline void setRepFieldPtr(RepT* newRepFieldPtr)
+    inline virtual void setRepFieldPtr(RepT* newRepFieldPtr)
     {
         repFieldPtr = newRepFieldPtr;
         repFieldConstPtr = newRepFieldPtr;
     }
-    inline void setRepFieldPtr(const RepT& newRepFieldConstRef)
+    inline virtual void setRepFieldPtr(const RepT& newRepFieldConstRef)
     {
         repFieldPtr = NULL;
         repFieldConstPtr = &newRepFieldConstRef;
+    }
+
+    template <typename SetValT, typename SetterReturnT> void SetAll(SetValT setVal, SetterReturnT setterFuncPtr)
+    {
+        RepeatedSpecialization<ValT>::SetAll(setVal, setterFuncPtr, getRepFieldPtr());
     }
 
 // pass throughs

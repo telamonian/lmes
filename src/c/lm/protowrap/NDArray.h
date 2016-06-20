@@ -110,6 +110,9 @@ public:
 // accessors
     const MsgT* getMsg() const {return msgConstPtr;}
     uint rank() const {return shape().size();}
+    uint getIndex(uint i) {return i;}
+    uint getIndex(uint i, uint j) {return i*shape(1) + j;}
+    uint getIndex(uint i, uint j, uint k) {return i*shape(2)*shape(1) + j*shape(1) + k;}
     uint32_t size() const {return shape().product();}
     size_t sizeBytes() const {return size()*sizeof(T);}
 

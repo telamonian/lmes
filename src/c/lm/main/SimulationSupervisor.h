@@ -39,7 +39,6 @@
 #ifndef LM_MAIN_SUPERVISOR_H
 #define LM_MAIN_SUPERVISOR_H
 
-#include <deque>
 #include <google/protobuf/message.h>
 #include <map>
 #include <string>
@@ -51,7 +50,6 @@
 #include "lm/input/DiffusionModel.pb.h"
 #include "lm/input/OrderParameters.pb.h"
 #include "lm/input/ReactionModel.pb.h"
-#include "lm/input/SimulationPhase.pb.h"
 #include "lm/input/Tilings.pb.h"
 #include "lm/message/Communicator.h"
 #include "lm/message/FinishedCheckpointing.pb.h"
@@ -80,7 +78,6 @@ namespace lm {
 namespace main {
 
 typedef map<string,string> SimulationParametersMap;
-typedef std::deque<lm::input::SimulationPhase*> SimulationPhaseList;
 
 class SimulationSupervisor : public lm::thread::Worker
 {
@@ -92,7 +89,6 @@ public:
     SimulationSupervisor();
     virtual ~SimulationSupervisor();
     virtual void init();
-    lm::input::SimulationPhase* getCurrentPhase() {return simulationPhaseList.front();}
     void setOutputWriterClassName(string outputWriterClassName) {this->outputWriterClassName = outputWriterClassName;}
     void setResourceMap(lm::resource::ResourceMap* resourceMap) {this->resourceMap = resourceMap;}
     void setSimulationFilename(string simulationInputFilename, string simulationOutputFilename) {this->simulationInputFilename = simulationInputFilename; this->simulationOutputFilename = simulationOutputFilename;}
@@ -114,11 +110,8 @@ protected:
     virtual void receivedStartedWorkUnitRunner(const lm::message::StartedWorkUnitRunner & msg);
     virtual void startSimulationIfAllWorkersStarted();
     virtual void startSimulation();
-    virtual void buildSimulationPhaseList() {};
     virtual void startSimulationPhase();
-    virtual lm::trajectory::TrajectoryList* initTrajectoryList(const lm::input::SimulationPhase& phase)=0;
-    virtual lm::trajectory::TrajectoryList* initTrajectoryList(const lm::input::SimulationPhase& phase, const lm::trajectory::TrajectoryList& previousList)=0;
-    virtual void buildTrajectoryList();
+    virtual void buildTrajectoryList()=0;
     virtual void setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList);
 
     virtual void receivedStartedWorkUnit(const lm::message::StartedWorkUnit& msg);
@@ -127,7 +120,6 @@ protected:
     virtual bool terminatePhase();
     virtual bool assignWork();
     virtual void buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg);
-    virtual void buildRunWorkUnitLimits(lm::message::RunWorkUnit* msg);
     virtual void buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint minWorkUnits);
     virtual void finishSimulationPhase();
     virtual void cleanUpSimulationPhase();
@@ -158,7 +150,6 @@ protected:
     std::string simulationInputFilename;
     std::string simulationOutputFilename;
     uint64_t simulationPhaseIndex;
-    SimulationPhaseList simulationPhaseList;
     bool simulationRunning;
     lm::slot::SlotList slots;
     std::string solverClassName;

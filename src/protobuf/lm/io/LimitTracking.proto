@@ -45,24 +45,7 @@ message LimitTracking {
     required uint64 trajectory_id                           = 1;
     required int32 limit_id                                 = 2;
 
-    optional uint64 count                                   = 11;
-
-//    /*
-//     * - If the countdown_termination field is set, countdown_termination is decremented every time the tracked limit is triggered. Following this
-//     *     - if countdown_termination < 1, the trajectory is terminated and the work unit is marked as having reached a limit (ie the standard limit behavior)
-//     *     - if countdown_termination >=1, the trajectory continues as though the limit was never reached
-//     * - If the countdown_termination field is cleared, the tracked limit will never cause the trajectory to terminate
-//     *     - Clearing countdown_termination allows for the use of limits purely for state tracking purposes
-//     */
-//    optional int64 countdown_termination                    = 5 [default=1];
-//
-//    /*
-//     * - If the countdown_tracking field is set, countdown_tracking is decremented every time the tracked limit is triggered. Following this
-//     *     - if countdown_tracking < 1, no state information is recorded
-//     *     - if countdown_tracking >=1, all available state information is recorded
-//     * - If the countdown_tracking field is cleared, the available state information will be recorded every time the limit is triggered
-//     */
-//    optional int64 countdown_tracking                       = 6 [default=1];
+    optional uint64 count                                   = 11 [default=0];
 
     optional robertslab.pbuf.NDArray degree_advancements    = 21;
     optional robertslab.pbuf.NDArray order_parameter_values = 22;

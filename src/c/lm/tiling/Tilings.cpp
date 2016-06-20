@@ -52,8 +52,7 @@ Tilings::Tilings(): currentTilingID(-1), oparams(NULL)
 
 Tilings::Tilings(const lm::input::Tilings& newTilingsBuf, const lm::oparam::OParams& newOParams) : currentTilingID(-1), oparams(NULL)
 {
-    setOParams(newOParams);
-    init(newTilingsBuf);
+    init(newTilingsBuf, newOParams);
 }
 
 Tilings::~Tilings()
@@ -99,7 +98,7 @@ void Tilings::init(const lm::input::Tilings& newTilingsBuf, const lm::oparam::OP
 void Tilings::init()
 {
     clearTilingMap();
-    for (TilingIterator t_it=getTilingsBuf()->tilings().begin();t_it!=getTilingsBuf()->tilings().end();++t_it) initTiling(*t_it);
+    for (TilingIterator t_it=getTilingsBuf()->tilings().begin();t_it!=getTilingsBuf()->tilings().end();++t_it) initTiling(&*t_it);
 }
 
 void Tilings::initTiling(lm::input::Tiling* tiling)
