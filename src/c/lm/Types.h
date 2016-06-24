@@ -45,6 +45,7 @@
 #ifndef TYPES_H_
 #define TYPES_H_
 
+#include <cstdlib>
 #include <cstring>
 #include <list>
 #include <utility>
