@@ -630,9 +630,9 @@ bool CMESolver::isTrajectoryOutsideLimits()
                 // track the state if limitTracking is enabled
                 if (limitTracking.trackingEnabled(l.trackCount))
                 {
-                    if (numberDegreeAdvancements>0) {for (int i=0;i<numberDegreeAdvancements;i++) limitTracking.degreeAdvancements.push_back(degreeAdvancements[i]);}
-                    if (numberOrderParameters>0) {for (int i=0;i<numberOrderParameters;i++) limitTracking.orderParameterValues.push_back(orderParameterValues[i]);}
-                    for (int i=0;i<reactionModel->numberSpecies;i++) limitTracking.speciesCounts.push_back(speciesCounts[i]);
+                    if (numberDegreeAdvancements>0) {for (int j=0;j<numberDegreeAdvancements;j++) limitTracking.degreeAdvancements.push_back(degreeAdvancements[j]);}
+                    if (numberOrderParameters>0) {for (int j=0;j<numberOrderParameters;j++) limitTracking.orderParameterValues.push_back(orderParameterValues[j]);}
+                    for (int j=0;j<reactionModel->numberSpecies;j++) limitTracking.speciesCounts.push_back(speciesCounts[j]);
                     limitTracking.times.push_back(time);
                 }
 

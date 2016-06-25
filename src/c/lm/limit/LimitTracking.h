@@ -162,6 +162,19 @@ public:
         timesWrap.set_array(timesRef, utuple(timesRef.size()), false);
     }
 
+//    /*
+//     * - method for getting the total time spent after the tracked limit had been triggered but before the limit tracked by otherLimitTracking had been triggered
+//     *     - example:
+//     *         - if the times when this limit tracking saw its limit triggered look like this
+//     *             - {0.0, 1.1, 1.2, 19.0}
+//     *         - and the times when otherTrackingLimit saw its limit triggered look like this
+//     *             - {.5, 5.2, 12.9, 21.3}
+//     *         - then the return value will be
+//     *             - (.5 - 0.0) + (5.2 - 1.1) + (21.3 - 19.0) = 6.9
+//     */
+//    double sumTimeIntervalsBetweenLimits(LimitTracking& otherLimitTracking, double startTime=0.0, double endTime=NAN)
+//    {}
+
 public:
     int limitID;
     bool hasCount;

@@ -71,7 +71,7 @@ public:
     virtual ~TrajectoryList();
 
 // initializer
-    virtual void init(const lm::protowrap::Repeated<lm::io::TrajectoryState>::RepT& initialStates);
+    virtual void init(const lm::protowrap::Repeated<lm::io::TrajectoryState>::GoogleT& initialStates);
     virtual void init(const TrajectoryList& previousList);
     virtual Trajectory* initTrajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryState& initialState);
 

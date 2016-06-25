@@ -106,12 +106,14 @@ protected:
 
     virtual bool performAnotherSimulationPhase();
 
-
 //    virtual void setLimits();
     virtual void setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList);
 
     virtual lm::trajectory::TrajectoryList* initTrajectoryList(const lm::input::SimulationPhase& phase);
     virtual lm::trajectory::TrajectoryList* initTrajectoryList(const lm::input::SimulationPhase& phase, const lm::trajectory::TrajectoryList& previousList);
+
+    virtual void receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg);
+    virtual void receivedFinishedWorkUnitPart(const lm::message::WorkUnitStatus& wusMsg);
 
     // getters
     virtual lm::fflux::input::FFluxStage* getCurrentStage() {return ffluxStageList.mutable_fflux_stages(stageIndex);}

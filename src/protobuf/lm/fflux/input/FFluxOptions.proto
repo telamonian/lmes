@@ -50,12 +50,12 @@ message FFluxOptions {
     /*
      * - global precision goal for the fflux simulation
      */
-    optional double precision_goal                                  = 1;
+    optional double precision_goal            = 1;
 
     /*
      * - confidence level that is associated with the precision goal
      */
-    optional double precision_goal_confidence                       = 2 [default=0.95];
+    optional double precision_goal_confidence = 2 [default=0.95];
 
     /*
      * - Stopping conditions for each forward flux phase. Can be specified one of two ways (an error will be raised if more than one way is used)
@@ -66,5 +66,10 @@ message FFluxOptions {
      *                 - This is useful for specifying one limit for phase zero and another limit for the rest of the phases
      *             - If there are more limits than interfaces, an error will be raised
      */
-    repeated lm.fflux.input.FFluxPhaseLimitList fflux_phase_limit_lists = 3;
+    repeated lm.fflux.input.FFluxPhaseLimitList fflux_phase_limit_lists = 11;
+
+    /*
+     * - number of samples (ie edge 0 crossings) to throw out from each phase zero trajectory before starting to collect production data
+     */
+    optional uint32 phase_zero_burn_in = 21 [default=10];
 }

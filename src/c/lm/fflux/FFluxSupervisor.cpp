@@ -217,6 +217,23 @@ void FFluxSupervisor::buildSimulationStage()
     currentTiling.setBasin(getCurrentStage()->basin_index());
 }
 
+void FFluxSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg)
+{
+    // deal with the individual parts of the work unit at the fflux supervisor level
+    for (int i=0;i<msg.part_status_size();i++)
+    {
+        receivedFinishedWorkUnitPart(msg.part_status(i));
+    }
+
+    // call the base class function
+    SimulationSupervisor::receivedFinishedWorkUnit(msg);
+}
+
+void FFluxSupervisor::receivedFinishedWorkUnitPart(const lm::message::WorkUnitStatus& wusMsg)
+{
+
+}
+
 //void FFluxSupervisor::buildRunWorkUnitLimits(lm::message::RunWorkUnit* msg)
 //{
 //    // Set the limits in the RunWorkUnit header.
