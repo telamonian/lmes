@@ -72,8 +72,8 @@ bool SFileOutputWriter::registerClass()
 
 void* SFileOutputWriter::allocateObject()
 {
-    lm::Print::printf(Print::INFO, "Using sfile record prefix: %s",sfileRecordNamePrefix.c_str());
-    return new SFileOutputWriter(sfileRecordNamePrefix);
+    lm::Print::printf(Print::INFO, "Using sfile record prefix: %s",outputPrefix.c_str());
+    return new SFileOutputWriter(outputPrefix);
 }
 
 SFileOutputWriter::SFileOutputWriter(string recordNamePrefix)

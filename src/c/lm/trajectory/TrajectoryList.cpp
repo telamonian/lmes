@@ -334,10 +334,7 @@ void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& fwuMs
 
         // normally the trajectory associated with the id has to still exist at this point or an exception is thrown. The two lines below are a hook that allows subclasses to override this behavior.
         Trajectory* t = getTrajectoryForFinishedWorkUnit(id);
-        if (t->getStatus()==Trajectory::ABORTED)
-        {
-            continue;
-        }
+        if (t->getStatus()==Trajectory::ABORTED) continue;
 
         // Find the trajectory in the message.
         int partIndex=-1;

@@ -90,7 +90,7 @@ string outputWriterClassName;
 /**
  * The prefix to use in sfile record names.
  */
-string sfileRecordNamePrefix;
+string outputPrefix;
 
 /**
  * The number of replicates of the simulation that should be performed.

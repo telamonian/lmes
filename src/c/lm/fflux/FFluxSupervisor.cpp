@@ -101,7 +101,6 @@ FFluxSupervisor::~FFluxSupervisor()
 void FFluxSupervisor::startSimulation()
 {
     buildSimulationStageList();
-    buildSimulationStage();
     buildSimulationPhase();
 
     // Call parent method
@@ -125,8 +124,6 @@ void FFluxSupervisor::buildSimulationStageList()
 
 void FFluxSupervisor::addProductionStage(lm::fflux::input::FFluxStage* productionStage, const input::Tiling& tiling, uint basinIndex)
 {
-    productionStage->set_fflux_phase_index(0);
-
     productionStage->mutable_tiling()->CopyFrom(tiling);
     productionStage->set_basin_index(basinIndex);
 
@@ -147,7 +144,6 @@ void FFluxSupervisor::addProductionStage(lm::fflux::input::FFluxStage* productio
 void FFluxSupervisor::addPilotStage(lm::fflux::input::FFluxStage* productionStage)
 {
     lm::fflux::input::FFluxStage* pilotStage = productionStage->mutable_pilot_stage();
-    pilotStage->set_fflux_phase_index(0);
 
     pilotStage->mutable_tiling()->CopyFrom(productionStage->tiling());
     pilotStage->set_basin_index(productionStage->basin_index());
@@ -162,7 +158,7 @@ void FFluxSupervisor::addFFluxPhaseLimit(lm::fflux::input::FFluxStage* stage, FF
 {
     lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit = stage->add_fflux_phase_limits();
 
-    ffluxPhaseLimit->set_fflux_phase_stop_condition(stopCondition);
+    ffluxPhaseLimit->set_stop_condition(stopCondition);
     switch (stopCondition)
     {
     case FFPhaseLimEnums::FORWARD_FLUXES: ffluxPhaseLimit->set_uvalue(value); break;
@@ -211,12 +207,6 @@ std::vector<uint64_t> FFluxSupervisor::calcTrajectoryCountMinimizeCost(const lm:
 
 }
 
-void FFluxSupervisor::buildSimulationStage()
-{
-    currentTiling.setTilingMsg(getCurrentStage()->mutable_tiling());
-    currentTiling.setBasin(getCurrentStage()->basin_index());
-}
-
 void FFluxSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg)
 {
     // deal with the individual parts of the work unit at the fflux supervisor level
@@ -231,8 +221,196 @@ void FFluxSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedWorkUn
 
 void FFluxSupervisor::receivedFinishedWorkUnitPart(const lm::message::WorkUnitStatus& wusMsg)
 {
+    if (wusMsg.status()==lm::message::WorkUnitStatus::LIMIT_REACHED)
+    {
+        if (ffluxPhaseIndex==0)
+        {
+            receivedFinishedWorkUnitPartPhaseZero(wusMsg);
+        }
+        else
+        {
+            currentFFluxPhaseOutput->addEndPoint(wusMsg.final_state());
+        }
+    }
+}
+
+void FFluxSupervisor::receivedFinishedWorkUnitPartPhaseZero(const lm::message::WorkUnitStatus& wusMsg)
+{
+    currentFFluxPhaseOutput->addEndPointPhaseZero(wusMsg.final_state(), input->getFFluxOptionsMsg().phase_zero_burn_in_count());
+}
+
+void FFluxSupervisor::setLimits()
+{
+    if (ffluxPhaseIndex==0)
+    {
+        setLimitsPhaseZero();
+    }
+    else
+    {
+        // - if ffluxPhaseIndex > 0, we can use addTileExitLimitsMsg() in a straightforward way to set the needed limits. Two limits are set:
+        //     - if limit id==0 is triggered, this indicates that the trajectory fluxed backwards
+        //     - if limit id==1 is triggered, this indicates that the trajectory fluxed forwards
+        trajectoryLimits.addTileExitLimitsMsg(currentTiling, 0, ffluxPhaseIndex);
+        trajectoryLimits.addTrackingMsg();
+    }
+}
+
+void FFluxSupervisor::setLimitsPhaseZero()
+{
+    // - first we set a limit with id==0
+    //     - this limit is the important one. a triggering of this limit corresponds to one of the flux events that we're trying to sample during phase 0
+    trajectoryLimits.addTileExitLimitsMsg(currentTiling, -1, 0, false, true);
+    trajectoryLimits.addTrackingMsg(0, );
+
+    // - next, we set two more limits with id==1 and id==2
+    //     - these limits are used to help track which basin was last visited by a trajectory
+    //     - limit_id==1: tracks flux back into the starting basin
+    //     - limit_id==2: tracks flux into the basin opposite from the starting basin
+    trajectoryLimits.addTileExitLimitsMsg(currentTiling, 0, currentTiling.edges().lastIndex());
+    trajectoryLimits.addTrackingMsg();
+}
+
+void FFluxSupervisor::buildSimulationPhase()
+{
+    simulationPhaseList.push_back(new lm::input::SimulationPhase);
+    lm::input::SimulationPhase* phase = simulationPhaseList.back();
+
+    phase->set_id(0);
+    lm::trajectory::Trajectory initialTrajectory(0, phase->id(), *input);
+    for (uint64_t i=::replicates.front(); i<=::replicates.back(); i++)
+    {
+        phase->add_trajectory_states()->CopyFrom(initialTrajectory.getState());
+    }
+    phase->mutable_trajectory_limits()->CopyFrom(input->getTrajectoryLimitsMsg());
+    phase->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());
+}
+
+void FFluxSupervisor::buildTrajectoryList()
+{
+    if (ffluxPhaseIndex==0)
+    {
+        buildTrajectoryListPhaseZero();
+    }
+    else
+    {
+        setTrajectoryList(new FFluxTrajectoryList(simulationPhaseIndex, *input, communicator, slots.getSimultaneousWorkUnits()));
+    }
+}
+
+void FFluxSupervisor::buildTrajectoryListPhaseZero()
+{
 
 }
+
+bool FFluxSupervisor::terminateSimulationPhase()
+{
+    switch(getCurrentFFluxPhaseLimit()->stop_condition())
+    {
+    case FFPhaseLimEnums::FORWARD_FLUXES:
+        return (currentFFluxPhaseOutput->getMsg()->sucessful_trajectories_launched_count() >= getCurrentFFluxPhaseLimit()->uvalue());
+    case FFPhaseLimEnums::TRAJECTORY_COUNT:
+        return (currentFFluxPhaseOutput->getMsg()->sucessful_trajectories_launched_count() + currentFFluxPhaseOutput->getMsg()->failed_trajectories_launched_count() >= getCurrentFFluxPhaseLimit()->uvalue());
+    case FFPhaseLimEnums::TIME:
+        return (currentFFluxPhaseOutput->getMsg()->sucessful_trajectories_launched_total_time() + currentFFluxPhaseOutput->getMsg()->failed_trajectories_launched_total_time() >= getCurrentFFluxPhaseLimit()->dvalue());
+    }
+}
+
+bool FFluxSupervisor::performAnotherSimulationPhase()
+{
+
+}
+
+void FFluxSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList)
+{
+    lm::main::SimulationSupervisor::setTrajectoryList(newTrajectoryList);
+    trajectoryList = static_cast<lm::fflux::FFluxTrajectoryList*>(lm::main::SimulationSupervisor::trajectoryList);
+}
+
+lm::trajectory::TrajectoryList* FFluxSupervisor::initTrajectoryList(const lm::input::SimulationPhase& phase)
+{
+    return new FFluxTrajectoryList(simulationPhaseIndex, *input, communicator, slots.getSimultaneousWorkUnits());
+}
+
+lm::trajectory::TrajectoryList* FFluxSupervisor::initTrajectoryList(const lm::input::SimulationPhase& phase, const lm::trajectory::TrajectoryList& previousList)
+{
+    return new FFluxTrajectoryList(simulationPhaseIndex, *input, communicator, slots.getSimultaneousWorkUnits());
+}
+
+//void FFluxSupervisor::incrementFFluxPhase()
+//{
+//    ffluxPhaseIndex++;
+//
+//
+//    static_cast<lm::fflux::FFluxTrajectoryList*>(trajectoryList)->incrementFFluxPhase();
+//}
+
+//void FFluxSupervisor::finishSimulation()
+//{
+//    // Create the output message.
+//    lm::message::Message msg;
+//    lm::message::ProcessWorkUnitOutput* pwoMsg = msg.mutable_process_work_unit_output();
+//    pwoMsg->set_work_unit_id(std::numeric_limits<int64_t>::max());
+//    lm::message::WorkUnitOutput* wuoMsg = pwoMsg->add_part_output();
+//
+//    // Initialize/assign the fflux output data
+//    lm::io::FFluxOutput* ffluxOutputBuf = wuoMsg->mutable_fflux_output();
+//    ffluxOutputBuf->CopyFrom(*(static_cast<lm::fflux::FFluxTrajectoryList*>(trajectoryList)->getFFluxOutput()));
+//
+//    // Send the message
+//    communicator.sendMessageToMasterOutput(&msg);
+//
+//    SimulationSupervisor::finishSimulation();
+//}
+
+//void FFluxSupervisor::receivedProcessWorkUnitOutput(lm::message::Message& msg)
+//{
+//    // Loop over every output in the message.
+//    lm::message::ProcessWorkUnitOutput pwuMsg = msg.process_work_unit_output();
+//    for (int i=0; i<pwuMsg.part_output_size(); i++)
+//    {
+//        lm::message::WorkUnitOutput wuoMsg = pwuMsg.part_output(i);
+//        if (wuoMsg.has_species_counts())
+//        {
+//            (static_cast<FFluxTrajectoryList*>(trajectoryList))->ffluxOutputAddTrajectory(wuoMsg.species_counts(), lm::io::FFluxOutput::RUNNING);
+//        }
+//        else if (wuoMsg.has_species_time_series())
+//        {
+//            (static_cast<FFluxTrajectoryList*>(trajectoryList))->ffluxOutputAddTrajectory(wuoMsg.species_time_series(), lm::io::FFluxOutput::RUNNING);
+//        }
+//    }
+//}
+
+//void FFluxSupervisor::receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg)
+//{
+//    Print::printf(Print::INFO, "Output writer started: %d:%d.",msg.process(),msg.thread());
+//    hasOutputWriterStarted = true;
+//
+//    // set output process/thread to that of this supervisor, while keeping track of the real values
+//    outputWriterProcess = communicator.getSourceProcess();
+//    outputWriterThread = communicator.getSourceThread();
+////    outputWriterProcess = msg.process();
+////    outputWriterThread = msg.thread();
+//    communicator.setMasterOutputEndpoint(msg.process(), msg.thread());
+//    startSimulationIfAllWorkersStarted();
+//}
+
+//void FFluxSupervisor::resetFFluxPhase()
+//{
+//    ffluxPhaseIndex = 0;
+//}
+
+//void FFluxSupervisor::startSimulation()
+//{
+//    // Check for some error conditions.
+//    if (outputWriterProcess == -1 || outputWriterThread == -1)
+//        throw new Exception("Forward flux supervisor could not start the simulation, no output writer available.");
+//
+//    Print::printf(Print::INFO, "Forward flux supervisor starting simulation.");
+//
+//    // Call the base class method.
+//    SimulationSupervisor::startSimulation();
+//}
+
 
 //void FFluxSupervisor::buildRunWorkUnitLimits(lm::message::RunWorkUnit* msg)
 //{
@@ -364,175 +542,6 @@ void FFluxSupervisor::receivedFinishedWorkUnitPart(const lm::message::WorkUnitSt
 //	communicator.sendMessageToMasterOutput(&msgp);
 //
 //	SimulationSupervisor::finishSimulation();
-//}
-
-void FFluxSupervisor::setLimits()
-{
-    if (ffluxPhaseIndex==0)
-    {
-        setLimitsPhaseZero();
-    }
-    else
-    {
-        setLimitsPhaseN();
-    }
-}
-
-void FFluxSupervisor::setLimitsPhaseZero()
-{
-    // - first we set a limit with id==0
-    //     - this limit is the important one. a triggering of this limit corresponds to one of the flux events that we're trying to sample during phase 0
-    trajectoryLimits.addTileExitLimitsMsg(currentTiling, -1, 0, false, true);
-    trajectoryLimits.addTrackingMsg(0, );
-
-    // - next, we set two more limits with id==1 and id==2
-    //     - these limits are used to help track which basin was last visited by a trajectory
-    //     - limit_id==1: tracks flux back into the starting basin
-    //     - limit_id==2: tracks flux into the basin opposite from the starting basin
-    trajectoryLimits.addTileExitLimitsMsg(currentTiling, 0, currentTiling.edges().lastIndex());
-    trajectoryLimits.addTrackingMsg();
-}
-
-void FFluxSupervisor::setLimitsPhaseN()
-{
-    // - for the phaseIndex > 0, we can use addTileExitLimitsMsg() in a straightforward way to set the needed limits. Two limits are set:
-    //     - if limit id==0 is triggered, this indicates that the trajectory fluxed backwards
-    //     - if limit id==1 is triggered, this indicates that the trajectory fluxed forwards
-    trajectoryLimits.addTileExitLimitsMsg(currentTiling, 0, ffluxPhaseIndex);
-    trajectoryLimits.addTrackingMsg();
-}
-
-void FFluxSupervisor::buildSimulationPhase()
-{
-    simulationPhaseList.push_back(new lm::input::SimulationPhase);
-    lm::input::SimulationPhase* phase = simulationPhaseList.back();
-
-    phase->set_id(0);
-    lm::trajectory::Trajectory initialTrajectory(0, phase->id(), *input);
-    for (uint64_t i=::replicates.front(); i<=::replicates.back(); i++)
-    {
-        phase->add_trajectory_states()->CopyFrom(initialTrajectory.getState());
-    }
-    phase->mutable_trajectory_limits()->CopyFrom(input->getTrajectoryLimitsMsg());
-    phase->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());
-}
-
-void FFluxSupervisor::buildTrajectoryList()
-{
-    if (ffluxPhaseIndex==0)
-    {
-        buildTrajectoryListPhaseZero();
-    }
-    else
-    {
-        buildTrajectoryListPhaseN();
-    }
-}
-
-void FFluxSupervisor::buildTrajectoryListPhaseZero()
-{
-
-}
-
-void FFluxSupervisor::buildTrajectoryListPhaseN()
-{
-    setTrajectoryList(new FFluxTrajectoryList(simulationPhaseIndex, *input, communicator, slots.getSimultaneousWorkUnits()));
-}
-
-bool FFluxSupervisor::performAnotherSimulationPhase()
-{
-
-}
-
-void FFluxSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList)
-{
-    lm::main::SimulationSupervisor::setTrajectoryList(newTrajectoryList);
-    trajectoryList = static_cast<lm::fflux::FFluxTrajectoryList*>(lm::main::SimulationSupervisor::trajectoryList);
-}
-
-lm::trajectory::TrajectoryList* FFluxSupervisor::initTrajectoryList(const lm::input::SimulationPhase& phase)
-{
-    return new FFluxTrajectoryList(simulationPhaseIndex, *input, communicator, slots.getSimultaneousWorkUnits());
-}
-
-lm::trajectory::TrajectoryList* FFluxSupervisor::initTrajectoryList(const lm::input::SimulationPhase& phase, const lm::trajectory::TrajectoryList& previousList)
-{
-    return new FFluxTrajectoryList(simulationPhaseIndex, *input, communicator, slots.getSimultaneousWorkUnits());
-}
-
-//void FFluxSupervisor::incrementFFluxPhase()
-//{
-//    ffluxPhaseIndex++;
-//
-//
-//    static_cast<lm::fflux::FFluxTrajectoryList*>(trajectoryList)->incrementFFluxPhase();
-//}
-
-//void FFluxSupervisor::finishSimulation()
-//{
-//    // Create the output message.
-//    lm::message::Message msg;
-//    lm::message::ProcessWorkUnitOutput* pwoMsg = msg.mutable_process_work_unit_output();
-//    pwoMsg->set_work_unit_id(std::numeric_limits<int64_t>::max());
-//    lm::message::WorkUnitOutput* wuoMsg = pwoMsg->add_part_output();
-//
-//    // Initialize/assign the fflux output data
-//    lm::io::FFluxOutput* ffluxOutputBuf = wuoMsg->mutable_fflux_output();
-//    ffluxOutputBuf->CopyFrom(*(static_cast<lm::fflux::FFluxTrajectoryList*>(trajectoryList)->getFFluxOutput()));
-//
-//    // Send the message
-//    communicator.sendMessageToMasterOutput(&msg);
-//
-//    SimulationSupervisor::finishSimulation();
-//}
-
-//void FFluxSupervisor::receivedProcessWorkUnitOutput(lm::message::Message& msg)
-//{
-//    // Loop over every output in the message.
-//    lm::message::ProcessWorkUnitOutput pwuMsg = msg.process_work_unit_output();
-//    for (int i=0; i<pwuMsg.part_output_size(); i++)
-//    {
-//        lm::message::WorkUnitOutput wuoMsg = pwuMsg.part_output(i);
-//        if (wuoMsg.has_species_counts())
-//        {
-//            (static_cast<FFluxTrajectoryList*>(trajectoryList))->ffluxOutputAddTrajectory(wuoMsg.species_counts(), lm::io::FFluxOutput::RUNNING);
-//        }
-//        else if (wuoMsg.has_species_time_series())
-//        {
-//            (static_cast<FFluxTrajectoryList*>(trajectoryList))->ffluxOutputAddTrajectory(wuoMsg.species_time_series(), lm::io::FFluxOutput::RUNNING);
-//        }
-//    }
-//}
-
-//void FFluxSupervisor::receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg)
-//{
-//    Print::printf(Print::INFO, "Output writer started: %d:%d.",msg.process(),msg.thread());
-//    hasOutputWriterStarted = true;
-//
-//    // set output process/thread to that of this supervisor, while keeping track of the real values
-//    outputWriterProcess = communicator.getSourceProcess();
-//    outputWriterThread = communicator.getSourceThread();
-////    outputWriterProcess = msg.process();
-////    outputWriterThread = msg.thread();
-//    communicator.setMasterOutputEndpoint(msg.process(), msg.thread());
-//    startSimulationIfAllWorkersStarted();
-//}
-
-//void FFluxSupervisor::resetFFluxPhase()
-//{
-//    ffluxPhaseIndex = 0;
-//}
-
-//void FFluxSupervisor::startSimulation()
-//{
-//    // Check for some error conditions.
-//    if (outputWriterProcess == -1 || outputWriterThread == -1)
-//        throw new Exception("Forward flux supervisor could not start the simulation, no output writer available.");
-//
-//    Print::printf(Print::INFO, "Forward flux supervisor starting simulation.");
-//
-//    // Call the base class method.
-//    SimulationSupervisor::startSimulation();
 //}
 
 }

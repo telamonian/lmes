@@ -91,7 +91,7 @@ public:
 //
 //    virtual void setLimits();
 //
-//    virtual void workUnitPartFinished(const lm::message::WorkUnitStatus& wusMsg, lm::trajectory::Trajectory* traj);
+    virtual void workUnitPartFinished(const lm::message::WorkUnitStatus& wusMsg, lm::trajectory::Trajectory* traj);
 //    virtual void workUnitPartFinishedPhaseZero(const message::WorkUnitStatus& wusMsg, lm::fflux::FFluxTrajectory* traj, int prevFinalLimitID, double prevTime);
 //    virtual void workUnitPartFinishedPhaseN(const message::WorkUnitStatus& wusMsg, lm::fflux::FFluxTrajectory* traj, int prevFinalLimitID, double prevTime);
 //
@@ -167,7 +167,7 @@ public:
 //    unsigned maxCrossingsN; //the count of crossing events that should be collected for every fflux sampling phase
 //    double maxTimeN;
 //
-    lm::limit::TrajectoryLimit* phaseLimit;
+    lm::limit::TrajectoryLimit phaseLimit, limitCounter;
 //    lm::limit::
 
 };

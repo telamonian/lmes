@@ -59,9 +59,6 @@ message SimulationPhase {
     optional uint64 id                                   = 1;
     optional uint64 first_trajectory_id                  = 2;
 
-    optional TrajectorySource trajectory_source          = 11 [default=LIST];
-    repeated lm.io.TrajectoryState trajectory_states     = 12;
-
     optional lm.input.TrajectoryLimits trajectory_limits = 21;
     optional lm.input.TrajectoryLimit phase_limit        = 22;
     repeated lm.io.LimitTracking limit_tracking          = 23;

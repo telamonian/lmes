@@ -34,36 +34,27 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts, Max Klein
+ * Author(s): Max Klein
  */
-syntax = "proto2";
-package lm.message;
+// standalone version of the option parsing code
+// for investigating the output of experimental parsers
+#include "standaloneOptionParsing.h"
 
-import "lm/io/DegreeAdvancementTimeSeries.proto";
-import "lm/io/FFluxOutput.proto";
-import "lm/io/FirstPassageTimes.proto";
-import "lm/io/OrderParameterFirstPassageTimes.proto";
-import "lm/io/LatticeTimeSeries.proto";
-import "lm/io/LimitTracking.proto";
-import "lm/io/OrderParameterTimeSeries.proto";
-import "lm/io/SpeciesCounts.proto";
-import "lm/io/SpeciesTimeSeries.proto";
+int main()
+{
+    {
+        pairVector<std::string, double>::type pairs(parsePairVector<std::string, double>("  bob :   13  , rodney:8,lucash:928"));
+        for (pairVector<std::string, double>::const_iterator it=pairs.begin();it!=pairs.end();it++)
+        {
+            std::cout << it->first << " " << it->second << std::endl;
+        }
+    }
 
-message WorkUnitOutput {
-    optional string output_prefix                                                      = 11;
-
-    // trajectory state/time series outputs
-    optional lm.io.DegreeAdvancementTimeSeries degree_advancement_time_series          = 10;
-    optional lm.io.LatticeTimeSeries lattice_time_series                               = 4;
-    optional lm.io.OrderParameterTimeSeries order_parameter_time_series                = 7;
-    optional lm.io.SpeciesCounts species_counts                                        = 2;
-    optional lm.io.SpeciesTimeSeries species_time_series                               = 6;
-
-    // event-tracking outputs
-    repeated lm.io.FirstPassageTimes first_passage_times                               = 3;
-    repeated lm.io.OrderParameterFirstPassageTimes order_parameter_first_passage_times = 8;
-    repeated lm.io.LimitTracking limit_tracking                                        = 9;
-
-    // forward flux specific outputs
-    optional lm.io.FFluxOutput fflux_output                                            = 5;
+    {
+        pairVector<double, double>::type pairs(parsePairVector<double, double>("9:13,10.9:18,28:928.8"));
+        for (pairVector<double, double>::const_iterator it=pairs.begin();it!=pairs.end();it++)
+        {
+            std::cout << it->first << " " << it->second << std::endl;
+        }
+    }
 }

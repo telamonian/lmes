@@ -117,7 +117,7 @@ protected:
     virtual void receivedStartedWorkUnit(const lm::message::StartedWorkUnit& msg);
 
     virtual void receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg);
-    virtual bool terminatePhase();
+    virtual bool terminateSimulationPhase();
     virtual bool assignWork();
     virtual void buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg);
     virtual void buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint minWorkUnits);

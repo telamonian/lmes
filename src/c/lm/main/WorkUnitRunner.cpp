@@ -210,10 +210,10 @@ int WorkUnitRunner::run()
 void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
 {
     // Tell the supervisor the work unit is started.
-    lm::message::Message msgp1;
-    lm::message::StartedWorkUnit* msg1 = msgp1.mutable_started_work_unit();
-    msg1->set_work_unit_id(rwuMsg.work_unit_id());
-    communicator.sendMessage(rwuMsg.supervisor_process(), rwuMsg.supervisor_thread(), &msgp1);
+    lm::message::Message handshakeMsg;
+    lm::message::StartedWorkUnit* swuMsg = handshakeMsg.mutable_started_work_unit();
+    swuMsg->set_work_unit_id(rwuMsg.work_unit_id());
+    communicator.sendMessage(rwuMsg.supervisor_process(), rwuMsg.supervisor_thread(), &handshakeMsg);
 
     // Set the communicator.
     solver->setCommunicator(&communicator, rwuMsg.output_process(), rwuMsg.output_thread(), rwuMsg.work_unit_id());
@@ -227,8 +227,8 @@ void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
         solver->setOutputOptions(rwuMsg.output_options());
 
     // Create the finished work units message.
-    lm::message::Message msg2;
-    lm::message::FinishedWorkUnit* fwuMsg = msg2.mutable_finished_work_unit();
+    lm::message::Message finalStateMsg;
+    lm::message::FinishedWorkUnit* fwuMsg = finalStateMsg.mutable_finished_work_unit();
     fwuMsg->set_work_unit_id(rwuMsg.work_unit_id());
     fwuMsg->set_process(lm::MPI::worldRank);
     fwuMsg->set_thread(getThreadNumber());
@@ -254,9 +254,9 @@ void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
         // Create the status for this part.
         for (int j=0; j<solver->getSimultaneousTrajectories() && (i+j)<rwuMsg.part_size(); j++)
         {
-            lm::message::WorkUnitStatus* status = fwuMsg->add_part_status();
-            status->set_status(solver->getStatus(j));
-            solver->getState(status->mutable_final_state(),j);
+            lm::message::WorkUnitStatus* wusMsg = fwuMsg->add_part_status();
+            wusMsg->set_status(solver->getStatus(j));
+            solver->getState(wusMsg->mutable_final_state(),j);
         }
     }
 
@@ -264,7 +264,7 @@ void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
     fwuMsg->set_run_time(totalTime);
     fwuMsg->set_steps(totalSteps);
     fwuMsg->set_run_time(convertHrToSeconds(totalTime));
-    communicator.sendMessage(rwuMsg.supervisor_process(), rwuMsg.supervisor_thread(), &msg2);
+    communicator.sendMessage(rwuMsg.supervisor_process(), rwuMsg.supervisor_thread(), &finalStateMsg);
 }
 
 }

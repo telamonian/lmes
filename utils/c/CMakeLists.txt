@@ -7,6 +7,10 @@ set(lm_utils_libs  ${PROTOBUF_LIBRARIES}
                    ${ZLIB_LIBRARIES}
                    ${MPI_C_LIBRARIES})
 
+#foreach(lib_name ${lm_utils_libs})
+#    message(${lib_name})
+#endforeach(lib_name)
+
 ################
 #TARGET: utils
 ################

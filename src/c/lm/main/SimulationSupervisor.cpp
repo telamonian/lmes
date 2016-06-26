@@ -331,9 +331,9 @@ void SimulationSupervisor::startSimulationPhase()
     trajectoryList->takeTrajectories(outstandingTrajectoryList, lm::trajectory::Trajectory::ABORTED);
 
     // Assign the first batch of work.
-    if (terminatePhase() || assignWork())
+    if (terminateSimulationPhase() || assignWork())
     {
-        // If .terminatePhase() or .assignWork() returned true, there was nothing to be done.
+        // If .terminateSimulationPhase() or .assignWork() returned true, there was nothing to be done.
         Print::printf(Print::INFO, "No work to be performed.");
         finishSimulationPhase();
     }
@@ -373,7 +373,7 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
     if (!performingCheckpoint)
     {
         // Fill the newly freed slot with a work unit. If there are more trajectories than slots, this is guaranteed to use the slot we just freed. Otherwise it will be the "coldest" (longest unoccupied) slot
-        if (terminatePhase() || assignWork())
+        if (terminateSimulationPhase() || assignWork())
         {
             finishSimulationPhase();
         }
@@ -390,8 +390,8 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
     }
 }
 
-//.terminatePhase() serves as a hook for more complex phase-ending behavior in subclassed Supervisors
-bool SimulationSupervisor::terminatePhase()
+//.terminateSimulationPhase() serves as a hook for more complex phase-ending behavior in subclassed Supervisors
+bool SimulationSupervisor::terminateSimulationPhase()
 {
     return false;
 }
@@ -491,10 +491,11 @@ void SimulationSupervisor::cleanUpSimulationPhase()
     if (trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::RUNNING)->size() > 0)
     {
         // If the simulation phase was forcibly terminated, make sure we clean up any running trajectories appropriately
-        if (terminatePhase())
+        if (terminateSimulationPhase())
         {
             // Keep track of any outstanding work units. Important for coordinating clean program termination across all nodes
             outstandingTrajectoryList->copyTrajectories(*trajectoryList, lm::trajectory::Trajectory::RUNNING);
+            outstandingTrajectoryList->setAll(lm::trajectory::Trajectory::RUNNING, lm::trajectory::Trajectory::ABORTED);
             outstandingTrajectoryList->setAll(lm::trajectory::Trajectory::RUNNING, lm::trajectory::Trajectory::ABORTED);
         }
         // Otherwise, the default supervisor behavior is to throw an exception if there are trajectories still running at the end of a phase
@@ -551,7 +552,7 @@ void SimulationSupervisor::receivedFinishedCheckpointing(const lm::message::Fini
     performingCheckpoint = false;
 
     // Resume distribution of work.
-    if (terminatePhase() || assignWork())
+    if (terminateSimulationPhase() || assignWork())
     {
         Print::printf(Print::INFO, "Simulation finished.");
         finishSimulation();

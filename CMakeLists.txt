@@ -142,6 +142,7 @@ if(BUILD_WITH_CUDA)
     add_definitions(-DOPT_CUDA)
 endif(BUILD_WITH_CUDA)
 
+# test for CPU features and set compiler definitions as appropriate
 testAVX(BUILD_WITH_AVX ${USE_AVX})
 testFMA(BUILD_WITH_FMA ${USE_FMA})
 testSVML(BUILD_WITH_SVML ${USE_SVML})
@@ -210,15 +211,31 @@ if(BUILT_WITH_CLION)
                         ${CMAKE_BINARY_DIR}/../RelWithDebInfo/src/c/)
 endif(BUILT_WITH_CLION)
 
+# set the list of libraries used in various lm targets
+set(lm_dependency_libs      ${CMAKE_THREAD_LIBS_INIT}
+                            ${CMAKE_DL_LIBS}
+                            ${PROTOBUF_LIBRARIES}
+                            ${HDF5_LIBRARIES}
+                            ${HDF5_HL_LIBRARIES}
+                            ${ZLIB_LIBRARIES}
+                            ${MPI_C_LIBRARIES})
+# add the cuda libs to lm_dependency_libs, if needed
+IF(BUILD_WITH_CUDA)
+    set (lm_dependency_libs ${lm_dependency_libs}
+                            ${CUDA_CUDA_LIBRARY}  # general cuda libraries
+                            ${CUDA_LIBRARIES})    # cuda runtime library
+ENDIF(BUILD_WITH_CUDA)
+
 # add subdirectories
 add_subdirectory(src/c)
+add_subdirectory(utils/c)
+add_subdirectory(utils/python)
+add_subdirectory(docs/experimental_code)
+#add_subdirectory(gtest/c)
 IF(BUILD_WITH_CUDA)
     add_subdirectory(src/cuda)
     add_dependencies(lm_cuda_lib lm_c_lib)
 ENDIF(BUILD_WITH_CUDA)
-add_subdirectory(utils/c)
-add_subdirectory(utils/python)
-#add_subdirectory(gtest/c)
 
 #set_source_files_properties(${proto_hdrs} PROPERTIES GENERATED TRUE)
 #get_directory_property(proto_vars DIRECTORY src/protobuf DEFINITION proto_srcs)
@@ -244,20 +261,25 @@ ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 IF(BUILD_WITH_CUDA)
-    target_link_libraries(lmes lm_cuda_lib
-                               # general cuda libraries
-                               ${CUDA_CUDA_LIBRARY}
-                               # cuda runtime library
-                               ${CUDA_LIBRARIES})
+    target_link_libraries(lmes lm_cuda_lib)
 ENDIF(BUILD_WITH_CUDA)
+target_link_libraries(lmes ${lm_dependency_libs})
 
-target_link_libraries(lmes ${CMAKE_THREAD_LIBS_INIT}
-                           ${CMAKE_DL_LIBS}
-                           ${PROTOBUF_LIBRARIES}
-                           ${HDF5_LIBRARIES}
-                           ${HDF5_HL_LIBRARIES}
-                           ${ZLIB_LIBRARIES}
-                           ${MPI_C_LIBRARIES})
+#IF(BUILD_WITH_CUDA)
+#    target_link_libraries(lmes lm_cuda_lib
+#                               # general cuda libraries
+#                               ${CUDA_CUDA_LIBRARY}
+#                               # cuda runtime library
+#                               ${CUDA_LIBRARIES})
+#ENDIF(BUILD_WITH_CUDA)
+#
+#target_link_libraries(lmes ${CMAKE_THREAD_LIBS_INIT}
+#                           ${CMAKE_DL_LIBS}
+#                           ${PROTOBUF_LIBRARIES}
+#                           ${HDF5_LIBRARIES}
+#                           ${HDF5_HL_LIBRARIES}
+#                           ${ZLIB_LIBRARIES}
+#                           ${MPI_C_LIBRARIES})
 
 install(TARGETS lmes DESTINATION bin COMPONENT lmes)
 

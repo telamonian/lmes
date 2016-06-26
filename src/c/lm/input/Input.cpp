@@ -45,6 +45,7 @@
 #include "lm/input/Input.h"
 #include "lm/input/OutputOptions.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
+#include "lm/main/Globals.h"
 #include "lm/option/SimulationParameters.h"
 #include "lm/Print.h"
 #include "lm/limit/TrajectoryLimits.h"
@@ -181,6 +182,9 @@ void Input::initTrajectoryLimits(const lm::io::hdf5::Hdf5File& file)
 // Get the output options.
 void Input::initOutputOptions(const lm::io::hdf5::Hdf5File& file)
 {
+    parseAndSet("outputPrefix", &OutputOptions::set_output_prefix, outputOptions);
+    if (outputPrefix.size() > 0) outputOptions.set_output_prefix(outputPrefix);
+
     if (parseAndSet("degreeAdvancementWriteInterval", &OutputOptions::set_degree_advancement_write_interval, outputOptions))
     {
         degreeAdvancementPresent = true;

@@ -84,7 +84,6 @@ protected:
     virtual void buildSimulationStageList();
     virtual void addProductionStage(lm::fflux::input::FFluxStage* productionStage, const lm::input::Tiling& tiling, uint basinIndex);
     virtual void addPilotStage(lm::fflux::input::FFluxStage* productionStage);
-    virtual void buildSimulationStage();
 
     template <typename ValT> void addFFluxPhaseLimit(lm::fflux::input::FFluxStage* stage, FFPhaseLimEnums::StopCondition stopCondition, ValT value);
     template <typename ValT> void addFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage, FFPhaseLimEnums::StopCondition stopCondition, ValT value);
@@ -98,11 +97,9 @@ protected:
 
     virtual void setLimits();
     virtual void setLimitsPhaseZero();
-    virtual void setLimitsPhaseN();
 
     virtual void buildTrajectoryList();
     virtual void buildTrajectoryListPhaseZero();
-    virtual void buildTrajectoryListPhaseN();
 
     virtual bool performAnotherSimulationPhase();
 
@@ -114,8 +111,12 @@ protected:
 
     virtual void receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg);
     virtual void receivedFinishedWorkUnitPart(const lm::message::WorkUnitStatus& wusMsg);
+    virtual void receivedFinishedWorkUnitPartPhaseZero(const lm::message::WorkUnitStatus& wusMsg);
+
+    virtual bool terminateSimulationPhase();
 
     // getters
+    virtual lm::fflux::input::FFluxPhaseLimit* getCurrentFFluxPhaseLimit() {return getCurrentStage()->mutable_fflux_phase_limits(ffluxPhaseIndex);}
     virtual lm::fflux::input::FFluxStage* getCurrentStage() {return ffluxStageList.mutable_fflux_stages(stageIndex);}
     virtual const lm::fflux::input::FFluxStage& getCurrentStage() const {return ffluxStageList.fflux_stages(stageIndex);}
     virtual int getStageCount() const {return ffluxStageList.fflux_stages_size();}

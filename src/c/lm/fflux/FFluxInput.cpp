@@ -77,11 +77,10 @@ void FFluxInput::initFFluxOptions(const lm::io::hdf5::Hdf5File& file)
     precisionGoalPresent = parseAndSet("precisionGoal", &FFluxOptions::set_precision_goal, ffluxOptions);
     parseAndSet("precisionGoalConfidence", &FFluxOptions::set_precision_goal_confidence, ffluxOptions);
 
+    parseAndSet("phaseZeroBurnInCount", &FFluxOptions::set_phase_zero_burn_in_count, ffluxOptions);
+
     // set a default precision
-    if (not hasPrecisionGoal() and not hasUserDefinedFFluxPhaseLimits())
-    {
-        ffluxOptions.set_precision_goal(.05);
-    }
+    if (not hasPrecisionGoal() and not hasUserDefinedFFluxPhaseLimits()) ffluxOptions.set_precision_goal(.05);
 }
 
 //bool FFluxInput::parseAndSetFFluxPhaseLimit(const std::string key, const std::string debugString)

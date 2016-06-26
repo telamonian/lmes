@@ -74,8 +74,9 @@ public:
     virtual void initFFluxOptions(const lm::io::hdf5::Hdf5File& file);
 
 // accessors
-    bool hasPrecisionGoal() {return precisionGoalPresent;}
-    bool hasUserDefinedFFluxPhaseLimits() {return userDefinedFFluxPhaseLimitsPresent;}
+    const lm::fflux::input::FFluxOptions& getFFluxOptionsMsg() const {return ffluxOptions;}
+    bool hasPrecisionGoal() const {return precisionGoalPresent;}
+    bool hasUserDefinedFFluxPhaseLimits() const {return userDefinedFFluxPhaseLimitsPresent;}
 
 protected:
 //    bool parseAndSetFFluxPhaseLimit(const std::string key, const std::string debugString);
@@ -89,6 +90,7 @@ protected:
     lm::fflux::input::FFluxOptions ffluxOptions;
     lm::fflux::input::FFluxPhaseLimitList ffluxPhaseLimitList;
 
+    uint32_t phaseZeroBurnInCount;
     uint64_t precisionGoal;
     uint64_t precisionGoalConfidence;
 };

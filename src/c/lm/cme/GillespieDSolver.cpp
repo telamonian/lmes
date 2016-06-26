@@ -155,10 +155,10 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     for (uint i=0; i<numberReactions; i++) totalPropensity += propensities[i];
 
     // Create the output message.
-    lm::message::Message msgpp;
-    lm::message::ProcessWorkUnitOutput* msgp = msgpp.mutable_process_work_unit_output();
-    msgp->set_work_unit_id(workUnitId);
-    lm::message::WorkUnitOutput* msg = msgp->add_part_output();
+    lm::message::Message msg;
+    lm::message::ProcessWorkUnitOutput* pwuoMsg = msg.mutable_process_work_unit_output();
+    pwuoMsg->set_work_unit_id(workUnitId);
+    lm::message::WorkUnitOutput* wuoMsg = pwuoMsg->add_part_output();
 
     // Get the interval for writing degree advancements.
     double nextDegreeAdvancementWriteTime;
@@ -409,10 +409,10 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     }
 
     // If we have any degree advancement time series data, add them to the output message.
-    daTimeSeriesWrap.set_arrays_in_output_msg(msg, degreeAdvancementsCounts, degreeAdvancementsTimes, trajectoryId, numberDegreeAdvancements, true);
+    daTimeSeriesWrap.set_arrays_in_output_msg(wuoMsg, degreeAdvancementsCounts, degreeAdvancementsTimes, trajectoryId, numberDegreeAdvancements, true);
 
     // If we have any order parameter time series data, add them to the output message.
-    opTimeSeriesWrap.set_arrays_in_output_msg(msg, orderParameterTimeSeriesCounts, orderParameterTimeSeriesTimes, trajectoryId, numberOrderParameters, true);
+    opTimeSeriesWrap.set_arrays_in_output_msg(wuoMsg, orderParameterTimeSeriesCounts, orderParameterTimeSeriesTimes, trajectoryId, numberOrderParameters, true);
 
     // If we have any species time series data, add them to the output message.
     if (speciesTimeSeriesCounts.size() > 0 || speciesTimeSeriesTimes.size() > 0)
@@ -420,7 +420,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         // Make sure the arrays are of a consistent size.
         if (speciesTimeSeriesCounts.size() == speciesTimeSeriesTimes.size()*reactionModel->numberSpeciesToTrack)
         {
-            lm::io::SpeciesTimeSeries* speciesTimeSeriesDataSet = msg->mutable_species_time_series();
+            lm::io::SpeciesTimeSeries* speciesTimeSeriesDataSet = wuoMsg->mutable_species_time_series();
             speciesTimeSeriesDataSet->set_trajectory_id(trajectoryId);
 
             robertslab::pbuf::NDArray* counts = speciesTimeSeriesDataSet->mutable_counts();
@@ -456,7 +456,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     {
         for (int i=0; i<numberFptTrackedSpecies; i++)
         {
-            fptTrackedSpecies[i].serializeTo(trajectoryId, msg->add_first_passage_times());
+            fptTrackedSpecies[i].serializeTo(trajectoryId, wuoMsg->add_first_passage_times());
         }
         createdOutput = true;
     }
@@ -466,7 +466,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     {
         for (int i=0; i<numberFptTrackedOrderParameters; i++)
         {
-            fptTrackedOrderParameters[i].serializeTo(msg->add_order_parameter_first_passage_times(), trajectoryId);
+            fptTrackedOrderParameters[i].serializeTo(wuoMsg->add_order_parameter_first_passage_times(), trajectoryId);
         }
         createdOutput = true;
     }
@@ -476,7 +476,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     {
         if (limits[it->second.limitID].addTrackingToOutput)
         {
-            it->second.serializeTo(msg->add_limit_tracking(), trajectoryId);
+            it->second.serializeTo(wuoMsg->add_limit_tracking(), trajectoryId);
             createdOutput = true;
         }
     }
@@ -484,7 +484,8 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     // If the output message has any data, send it.
     if (createdOutput)
     {
-        communicator->sendMessage(outputProcess, outputThread, &msgpp);
+        if (outputOption)
+        communicator->sendMessage(outputProcess, outputThread, &msg);
     }
 
 //    if (reachedLimit && steps>=maxSteps)

@@ -208,11 +208,11 @@ void parseArguments(int argc, char** argv)
         //See if the user is trying to set the output record prefix.
         else if ((strcmp(option, "-fp") == 0 || strcmp(option, "--output-prefix") == 0) && i < (argc-1))
         {
-            sfileRecordNamePrefix=argv[++i];
+            outputPrefix=argv[++i];
         }
         else if (strncmp(option, "--output-prefix=", strlen("--output-prefix=")) == 0)
         {
-            sfileRecordNamePrefix=option+strlen("--output-prefix=");
+            outputPrefix=option+strlen("--output-prefix=");
         }
 
         //See if the user is trying to set the replicates.

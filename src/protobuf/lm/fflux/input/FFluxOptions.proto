@@ -71,5 +71,5 @@ message FFluxOptions {
     /*
      * - number of samples (ie edge 0 crossings) to throw out from each phase zero trajectory before starting to collect production data
      */
-    optional uint32 phase_zero_burn_in = 21 [default=10];
+    optional uint32 phase_zero_burn_in_count = 21 [default=0];
 }

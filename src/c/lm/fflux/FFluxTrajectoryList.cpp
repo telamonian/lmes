@@ -88,6 +88,26 @@ lm::trajectory::Trajectory* FFluxTrajectoryList::initTrajectory(uint64_t id, uin
     return new FFluxTrajectory(id, phase, initialState);
 }
 
+void FFluxTrajectoryList::workUnitPartFinished(const message::WorkUnitStatus& wusMsg, lm::trajectory::Trajectory* traj)
+{
+    PROF_BEGIN(PROF_FFLUX_WORK_UNIT_FINISHED);
+    // downcast traj from Trajectory* to FFluxTrajectory*
+//    lm::fflux::FFluxTrajectory* ffluxTraj = static_cast<lm::fflux::FFluxTrajectory*>(traj);
+//
+//    double prevTime = ffluxTraj->getSimTime();
+//    int prevFinalLimitID = ffluxTraj->getLimitReached().id();
+
+    // Call the base class method.
+    TrajectoryList::workUnitPartFinished(wusMsg, static_cast<lm::trajectory::Trajectory*>(ffluxTraj));
+
+    // If the work unit stopped because it detected a crossing event...]
+    if (wusMsg.status()==lm::message::WorkUnitStatus::LIMIT_REACHED)
+    {
+        limitCounter.
+    }
+    PROF_END(PROF_FFLUX_WORK_UNIT_FINISHED);
+}
+
 //void FFluxTrajectoryList::init()
 //{
 //	initFFluxOutput();
@@ -262,38 +282,7 @@ lm::trajectory::Trajectory* FFluxTrajectoryList::initTrajectory(uint64_t id, uin
 ////    }
 //}
 //
-//void FFluxTrajectoryList::workUnitPartFinished(const message::WorkUnitStatus& wusMsg, lm::trajectory::Trajectory* traj)
-//{
-//    PROF_BEGIN(PROF_FFLUX_WORK_UNIT_FINISHED);
-//    // downcast traj from Trajectory* to FFluxTrajectory*
-//    lm::fflux::FFluxTrajectory* ffluxTraj = static_cast<lm::fflux::FFluxTrajectory*>(traj);
-//
-//    double prevTime = ffluxTraj->getSimTime();
-//    int prevFinalLimitID = ffluxTraj->getLimitReached().id();
-//
-//    // Call the base class method.
-//    TrajectoryList::workUnitPartFinished(wusMsg, static_cast<lm::trajectory::Trajectory*>(ffluxTraj));
-//    // If the work unit was from a previous phase of the fflux simulation, delete the associated trajectory and move on
-//    if (ffluxTraj->getFFluxPhase() < ffluxPhase)
-//    {
-//    	deleteTrajectory(ffluxTraj->getID());
-//    }
-//    // If the work unit stopped because it detected a crossing event...]
-//    else if (wusMsg.status()==lm::message::WorkUnitStatus::LIMIT_REACHED)
-//    {
-//        // If the forward flux sampling is still in its 0th (ie initial) phase...
-//        if (isPhaseZero())
-//        {
-//            workUnitPartFinishedPhaseZero(wusMsg, ffluxTraj, prevFinalLimitID, prevTime);
-//        }
-//        // ...otherwise if ffluxPhaseIndex > 0...
-//        else
-//        {
-//            workUnitPartFinishedPhaseN(wusMsg, ffluxTraj, prevFinalLimitID, prevTime);
-//        }
-//    }
-//    PROF_END(PROF_FFLUX_WORK_UNIT_FINISHED);
-//}
+
 //
 //void FFluxTrajectoryList::workUnitPartFinishedPhaseZero(const message::WorkUnitStatus& wusMsg, lm::fflux::FFluxTrajectory* traj, int prevFinalLimitID, double prevTime)
 //{

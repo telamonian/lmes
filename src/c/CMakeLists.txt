@@ -16,7 +16,6 @@ file(GLOB_RECURSE to_remove_recurse_srcs ${to_remove_recurse_globs})
 
 # remove files from the sources as appropriate
 list(REMOVE_ITEM lm_c_source ${to_remove_srcs} ${to_remove_recurse_srcs})
-message(${lm_c_source})
 
 file(GLOB_RECURSE lm_proto_src ../protobuf/*.proto)
 
