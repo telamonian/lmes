@@ -105,19 +105,7 @@ public:
     FFluxPhaseOutput(Msg* msgMutablePtr): msgPtr(NULL) {setMsg(msgMutablePtr);}
 
 // mutators
-    Msg* getMsg()
-    {
-        return msgPtr;
-    }
-
-    void setMsg(Msg* newMsgMutablePtr)
-    {
-        msgPtr = newMsgMutablePtr;
-
-        sucessfulEndPointMap.setRepFieldPtr(getMsg()->mutable_sucessful_trajectory_end_points());
-    }
-
-    void addEndPointFromLimitTrackingsPhaseZero(const lm::io::TrajectoryState& trajectoryState, int burnInCount)
+    void addEndPointPhaseZero(const lm::io::TrajectoryState& trajectoryState, int burnInCount)
     {
         // TODO: include consistency check constraining (phaseZeroSamples > burnInCount) somewhere
 
@@ -126,10 +114,7 @@ public:
 
         // consistency checks
         if (trackingWrap.size()!=3) throw ConsistencyException("Finished Forward Flux phase zero trajectories should have 3 tracked limits in their outputs; trajectory id %llu has %d", trajectoryState.trajectory_id(), trackingWrap.size());
-        for (int i=0;i<3;i++)
-        {
-            if (trackingWrap.Get(i).limit_id()!=i) throw ConsistencyException("Finished Forward Flux phase zero trajectories should have 3 tracked limits in their outputs with limit_ids {0, 1, 2}; trajectory id %llu has limit tracking index %d with limit_id %d", trajectoryState.trajectory_id(), i, trackingWrap.Get(i).limit_id();
-        }
+        for (int i=0;i<3;i++) {if (trackingWrap.Get(i).limit_id()!=i) throw ConsistencyException("Finished Forward Flux phase zero trajectories should have 3 tracked limits in their outputs with limit_ids {0, 1, 2}; trajectory id %llu has limit tracking index %d with limit_id %d", trajectoryState.trajectory_id(), i, trackingWrap.Get(i).limit_id();}
 
         // fetch forth some data from limit 0 (ie forward flux) tracking
         speciesCountWrap.setMsg(trackingWrap.Get(0).species_counts());
@@ -146,7 +131,7 @@ public:
         uint columns = speciesCountWrap.shape(1);
         for (int i=burnInCount;i<rows;i++)
         {
-            pointKey.assign(speciesCountDataForwardFlux[i*columns], speciesCountDataForwardFlux[i*columns+rows]);
+            pointKey.assign(speciesCountDataForwardFlux[i*columns], speciesCountDataForwardFlux[(i + 1)*columns]);
             EndPointMsg* endPointMsg = sucessfulEndPointMap[pointKey];
             endPointMsg->set_count(endPointMsg->count() + 1);
             endPointMsg->add_times(timeDataForwardFlux[i]);
@@ -193,14 +178,14 @@ public:
         double sumTime = 0.0;
 
         // find the first interval entry time after the start time
-        entryTimes = checkLimitSTDAdapter<TrajLimEnums::MAX, false, double>(std::find_if, entryTimes, entryTimesEnd, startTime);
+        entryTimes = checkLimitRangeAdapter<TrajLimEnums::MAX, false, double>(std::find_if, entryTimes, entryTimesEnd, startTime);
         // if we didn't find an appropriate entry time, just return 0.0
         if (entryTimes==entryTimesEnd) return sumTime;
 
         while (true)
         {
             // try to find the next interval exit time
-            exitTimes = checkLimitSTDAdapter<TrajLimEnums::MAX, false, double>(std::find_if, exitTimes, exitTimesEnd, *entryTimes);
+            exitTimes = checkLimitRangeAdapter<TrajLimEnums::MAX, false, double>(std::find_if, exitTimes, exitTimesEnd, *entryTimes);
             if (exitTimes==exitTimesEnd)               // If have an entryTime with no exitTime, add the difference between the last entryTime and the endTime, and then break
             {
                 if (not endTime==std::numeric_limits<double>::infinity()) sumTime += (endTime - *entryTimes);
@@ -212,7 +197,7 @@ public:
             }
 
             // try to find the next interval entry time
-            entryTimes = checkLimitSTDAdapter<TrajLimEnums::MAX, false, double>(std::find_if, entryTimes, entryTimesEnd, *exitTimes);
+            entryTimes = checkLimitRangeAdapter<TrajLimEnums::MAX, false, double>(std::find_if, entryTimes, entryTimesEnd, *exitTimes);
             if (entryTimes==entryTimesEnd)            // If we can't find another entryTime, there are no more intervals so break
             {
                 return sumTime;
@@ -220,26 +205,61 @@ public:
         }
     }
 
-    void addEndPointFromLimitTracking(const TrackingsWrap::GoogleT& limitTrackings)
+    void addEndPoint(const lm::io::TrajectoryState& trajectoryState)
     {
-        speciesCountWrap.setMsg(limitTracking.species_counts());
-        timeWrap.setMsg(limitTracking.times());
-        int32_t* speciesCountData = speciesCountWrap.get_data(true);
-        double* timeData = timeWrap.get_data(true);
+        // set wrapper on the limit_trackings field
+        trackingWrap.setRepFieldPtr(trajectoryState.limit_trackings());
 
-        uint rows = speciesCountWrap.shape(0);
-        uint columns = speciesCountWrap.shape(1);
-        for (int i=0;i<rows;i++)
+        // consistency checks
+        if (trackingWrap.size()!=2) throw ConsistencyException("Finished Forward Flux phase n>0 trajectories should have 2 tracked limits in their outputs; trajectory id %llu has %d", trajectoryState.trajectory_id(), trackingWrap.size());
+        for (int i=0;i<2;i++) {if (trackingWrap.Get(i).limit_id()!=i) throw ConsistencyException("Finished Forward Flux phase n>0 trajectories should have 2 tracked limits in their outputs with limit_ids {0, 1}; trajectory id %llu has limit tracking index %d with limit_id %d", trajectoryState.trajectory_id(), i, trackingWrap.Get(i).limit_id();}
+
+        // fetch forth some time data from limit 0 (ie backward flux) and limit 1 (ie forward flux) tracking
+        timeWrapBackwardFlux.setMsg(trackingWrap.Get(0).times());
+        double* timeDataBackwardFlux = timeWrapBackwardFlux.get_data(true);
+        timeWrapForwardFlux.setMsg(trackingWrap.Get(1).times());
+        double* timeDataForwardFlux = timeWrapForwardFlux.get_data(true);
+
+        // check if this trajectory fluxed backwards or forwards (and make sure it didn't somehow do both)
+        if (timeWrapBackwardFlux.size()==1 and timeWrapForwardFlux.size()==0)       // branch for "failed" trajectories (ie ones that fluxed backward)
         {
-            pointKey.assign(speciesCountData[i*columns], speciesCountData[i*columns+rows]);
+            msgPtr->set_failed_trajectories_launched_count(msgPtr->failed_trajectories_launched_count() + 1);
+            msgPtr->set_failed_trajectories_launched_total_time(msgPtr->failed_trajectories_launched_total_time() + timeDataBackwardFlux[0]);
+        }
+        else if (timeWrapBackwardFlux.size()==0 and timeWrapForwardFlux.size()==1)  // branch for "sucessful" trajectories (ie ones that fluxed forward)
+        {
+            msgPtr->set_sucessful_trajectories_launched_count(msgPtr->sucessful_trajectories_launched_count() + 1);
+            msgPtr->set_sucessful_trajectories_launched_total_time(msgPtr->sucessful_trajectories_launched_total_time() + timeDataForwardFlux[0]);
+
+            // since this is data from a "sucessful" trajectory (ie one that fluxed forward), add its endpoint to the list used to initialize the next phase
+            speciesCountWrap.setMsg(trackingWrap.Get(1).species_counts());
+            int32_t* speciesCountData = speciesCountWrap.get_data(true);
+
+            uint columns = speciesCountWrap.shape(1);
+            pointKey.assign(speciesCountData[0], speciesCountData[columns]);
             EndPointMsg* endPointMsg = sucessfulEndPointMap[pointKey];
             endPointMsg->set_count(endPointMsg->count() + 1);
-            endPointMsg->add_times(timeData[i]);
-            endPointMsg->set_success(isSucessfulEndPoint);
-        }
+            endPointMsg->add_times(timeDataForwardFlux[0]);
+            endPointMsg->set_success(true);
 
-        if (speciesCountWrap.compressed_deflate()) delete[] speciesCountData;
-        if (timeWrap.compressed_deflate()) delete[] timeData;
+            if (speciesCountWrap.compressed_deflate()) delete[] speciesCountData;
+        }
+        else throw ConsistencyException("Finished Forward Flux phase n>0 trajectory %llu has recorded %d backward flux events and %d forward flux events; it should have either 1 forward or 1 backward flux event, and not both", trajectoryState.trajectory_id(), timeWrapBackwardFlux.size(), timeWrapForwardFlux.size());
+
+        if (timeWrapBackwardFlux.compressed_deflate()) delete[] timeWrapBackwardFlux;
+        if (timeWrapForwardFlux.compressed_deflate()) delete[] timeDataForwardFlux;
+    }
+
+    Msg* getMsg()
+    {
+        return msgPtr;
+    }
+
+    void setMsg(Msg* newMsgMutablePtr)
+    {
+        msgPtr = newMsgMutablePtr;
+
+        sucessfulEndPointMap.setRepFieldPtr(getMsg()->mutable_sucessful_trajectory_end_points());
     }
 
 public:

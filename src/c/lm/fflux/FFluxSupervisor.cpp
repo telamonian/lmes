@@ -387,6 +387,8 @@ void FFluxSupervisor::setLimitsPhaseZero()
 
     // - next, we set two more limits with id==1 and id==2
     //     - these limits are used to help track which basin was last visited by a trajectory
+    //     - limit_id==1: tracks flux back into the starting basin
+    //     - limit_id==2: tracks flux into the basin opposite from the starting basin
     trajectoryLimits.addTileExitLimitsMsg(currentTiling, 0, currentTiling.edges().lastIndex());
     trajectoryLimits.addTrackingMsg();
 }

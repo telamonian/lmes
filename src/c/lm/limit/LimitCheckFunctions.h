@@ -57,7 +57,7 @@ template <> struct checkLimit<TrajLimEnums::INCREASING, false> {template <typena
 template <> struct checkLimit<TrajLimEnums::INCREASING, true>  {template <typename T> static bool call(T prevVal, T val, T limitVal) {return (prevVal <  limitVal && val >= limitVal);}};
 
 template <TrajLimEnums::StoppingCondition sc, bool includeEndpoint, typename T, typename TIterator>
-TIterator checkLimitSTDAdapter (TIterator (*rangeBasedFuncWithPredicate)(TIterator, TIterator, bool (*predicate)(T)), TIterator start, TIterator end, T limitVal)
+TIterator checkLimitRangeAdapter(TIterator (* rangeBasedFuncWithPredicate)(TIterator, TIterator, bool (* predicate)(T)), TIterator start, TIterator end, T limitVal)
 {
     // closure that allows for presetting the limitVal and calling the check with a single argument
     struct checkLimitClosureLocal: public checkLimit<sc, includeEndpoint>
