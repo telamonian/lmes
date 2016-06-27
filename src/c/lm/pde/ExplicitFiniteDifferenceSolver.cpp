@@ -75,7 +75,35 @@ ExplicitFiniteDifferenceSolver::~ExplicitFiniteDifferenceSolver()
 
 void ExplicitFiniteDifferenceSolver::setMicroenvironmentModel(const lm::input::MicroenvironmentModel& model)
 {
-    if (model.diffusion_coefficients_size() <= 0) throw lm::InvalidArgException("model", "the model did not have enough diffusion_coefficient values");
+    if (model.grid_shape().size() != 3) throw lm::InvalidArgException("model.grid_shape", "the grid must be three-dimensional for ExplicitFiniteDifferenceSolver");
+    if (model.diffusion_coefficients().size() <= 0) throw lm::InvalidArgException("model.diffusion_coefficients", "the model did not have enough diffusion_coefficient values");
+
+    // Extract the boundary conditions.
+    if (model.boundaries().axis_specific_boundaries())
+    {
+        // Axis specific boundary conditions.
+        boundaries[0] = model.boundaries().x_plus();
+        boundaries[1] = model.boundaries().x_minus();
+        boundaries[2] = model.boundaries().y_plus();
+        boundaries[3] = model.boundaries().y_minus();
+        boundaries[4] = model.boundaries().z_plus();
+        boundaries[5] = model.boundaries().z_minus();
+    }
+    else
+    {
+        // Global boundary conditions.
+        for (int i=0; i<6; i++)
+            boundaries[i] = model.boundaries().global();
+    }
+
+    // Validate the boundary conditions.
+    for (int i=0; i<6; i++)
+    {
+        if (boundaries[i] != lm::io::BoundaryConditions::REFLECTING && boundaries[i] != lm::io::BoundaryConditions::ABSORBING && boundaries[i] != lm::io::BoundaryConditions::LINEAR_GRADIENT)
+            throw lm::InvalidArgException("model.boundaries", "ExplicitFiniteDifferenceSolver does not support the specified boundary condition", i, boundaries[i]);
+        else if (boundaries[i] == lm::io::BoundaryConditions::LINEAR_GRADIENT && model.grid_shape(i/2) < 2)
+            throw lm::InvalidArgException("model.boundaries", "A grid dimension must be >=2 to use linear gradient boundary conditions", i, boundaries[i]);
+    }
 
     // Extract the needed parameters.
     D = model.diffusion_coefficients(0);
@@ -90,7 +118,7 @@ void ExplicitFiniteDifferenceSolver::setMicroenvironmentModel(const lm::input::M
     if (dt == 0.0) dt = (dx*dx)/(6*D*2);
 
     // Make sure the stability criteria holds.
-    if (dt > (dx*dx)/(6*D)) throw lm::InvalidArgException("dt", "The timestep did not follow obey stability criteria for the ExplicitFiniteDifferenceSolver.", dt);
+    if (dt > (dx*dx)/(6*D)) throw lm::InvalidArgException("dt", "The timestep did not follow the stability criteria for the ExplicitFiniteDifferenceSolver.", dt);
 }
 
 void ExplicitFiniteDifferenceSolver::setLimits(const lm::io::TrajectoryLimits& limits)
@@ -172,6 +200,11 @@ lm::message::WorkUnitStatus::Status ExplicitFiniteDifferenceSolver::getStatus(ui
     return status;
 }
 
+
+#define CALCULATE_BOUNDARY_CONCENTRATION(BC,C,INDEX,INDEXM1) (BC==lm::io::BoundaryConditions::ABSORBING) ? 0.0 :\
+                                                     (BC==lm::io::BoundaryConditions::LINEAR_GRADIENT)   ? (2*C[INDEX]>C[INDEXM1])?(2*C[INDEX]-C[INDEXM1]):(0.0) :\
+                                                     C[INDEX]
+
 uint64_t ExplicitFiniteDifferenceSolver::generateTrajectory(uint64_t maxSteps)
 {
     // Get the grid dimensions in various forms.
@@ -228,13 +261,18 @@ uint64_t ExplicitFiniteDifferenceSolver::generateTrajectory(uint64_t maxSteps)
             for (int j=0; j<jlen; j++)
                 for (int k=0; k<klen; k++, index++)
                 {
-                    c_im = (i>0)?(c[index-jklen]):(c[index]);
-                    c_ip = (i<imax)?(c[index+jklen]):(c[index]);
-                    c_jm = (j>0)?(c[index-klen]):(c[index]);
-                    c_jp = (j<jmax)?(c[index+klen]):(c[index]);
-                    c_km = (k>0)?(c[index-1]):(c[index]);
-                    c_kp = (k<kmax)?(c[index+1]):(c[index]);
+                    c_ip = (i<imax)?(c[index+jklen]):(CALCULATE_BOUNDARY_CONCENTRATION(boundaries[0],c,index,index-jklen));
+                    c_im = (i>0)?(c[index-jklen]):(CALCULATE_BOUNDARY_CONCENTRATION(boundaries[1],c,index,index+jklen));
+                    c_jp = (j<jmax)?(c[index+klen]):(CALCULATE_BOUNDARY_CONCENTRATION(boundaries[2],c,index,index-klen));
+                    c_jm = (j>0)?(c[index-klen]):(CALCULATE_BOUNDARY_CONCENTRATION(boundaries[3],c,index,index+klen));
+                    c_kp = (k<kmax)?(c[index+1]):(CALCULATE_BOUNDARY_CONCENTRATION(boundaries[4],c,index,index-1));
+                    c_km = (k>0)?(c[index-1]):(CALCULATE_BOUNDARY_CONCENTRATION(boundaries[5],c,index,index+1));
                     cFuture[index] = c[index] + k_diff*(-6.0*c[index]+c_im+c_ip+c_jm+c_jp+c_km+c_kp);
+//                    if (k==kmax)
+//                    {
+//                        printf("end of domain %0.4e  %0.4e  %0.4e | %0.4e\n",c[index-2],c[index-1],c[index],CALCULATE_BOUNDARY_CONCENTRATION(boundaries[4],c,index,index-1));
+//                        printf("              %0.4e  %0.4e  %0.4e\n",(-2.0*c[index-2]+c[index-3]+c[index-1]),(-2.0*c[index-1]+c[index-2]+c[index]),(0.0));
+//                    }
                 }
 
         // Update the step counter.

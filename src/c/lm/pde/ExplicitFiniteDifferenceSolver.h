@@ -25,6 +25,7 @@
 
 #include "lm/Types.h"
 #include "lm/input/MicroenvironmentModel.pb.h"
+#include "lm/io/BoundaryConditions.pb.h"
 #include "lm/io/OutputOptions.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
@@ -60,6 +61,7 @@ protected:
     //virtual void calculateAbsorbingBoundary(ndarray<double>& grid, double time, double value);
 
 protected:
+    lm::io::BoundaryConditions::BoundaryConditionsType boundaries[6];
     double D;
     double dx;
     double dt;
