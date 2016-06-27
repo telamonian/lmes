@@ -55,6 +55,7 @@
 #include "lm/message/Message.pb.h"
 #include "lm/message/WorkUnitOutput.pb.h"
 #include "lm/message/WorkUnitStatus.pb.h"
+#include "lm/protowrap/FFluxPhaseOutput.h"
 #include "lm/rng/XORShift.h"
 #include "lm/tiling/Tilings.h"
 #include "lm/trajectory/Trajectory.h"
@@ -64,17 +65,13 @@
 namespace lm {
 namespace fflux {
 
-typedef std::vector<lm::io::TrajectoryState*> CrossingVector;
-typedef std::map<long long, CrossingVector> CrossingsMap;
-typedef std::map<long long, double> DwellTimeMap;
-typedef std::map<long long, long long> FinishedTrajectoriesCountMap;
 typedef std::vector<lm::io::TilingHist*> TilingVector;
 
 class FFluxTrajectoryList : public lm::trajectory::TrajectoryList
 {
 public:
-    FFluxTrajectoryList(const lm::input::SimulationPhase& phase);
-    FFluxTrajectoryList(const lm::input::SimulationPhase& phase, const FFluxTrajectoryList& previousList);
+    FFluxTrajectoryList();
+    FFluxTrajectoryList(const lm::protowrap::FFluxPhaseOutput& previousPhaseOutput);
 //    FFluxTrajectoryList(uint64_t simulationPhase, lm::input::Input& input, lm::message::Communicator& communicator, uint64_t simultaneousTrajectoryCount);
     virtual ~FFluxTrajectoryList() {}
 

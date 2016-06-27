@@ -48,7 +48,7 @@
 #include <utility>
 #include <vector>
 
-template<typename T1, typename T2> struct pairVector
+template<typename T1, typename T2> struct PairVector
 {
     typedef std::vector<std::pair<T1, T2> > type;
     typedef typename type::iterator iterator;
@@ -56,9 +56,9 @@ template<typename T1, typename T2> struct pairVector
 };
 
 template <typename T1, typename T2>
-typename pairVector<T1, T2>::type parsePairVector(const std::string& inString, const std::string& debugMessage="")
+typename PairVector<T1, T2>::type parsePairVector(const std::string& inString, const std::string& debugMessage="")
 {
-    typename pairVector<T1, T2>::type parsedPairVector;
+    typename PairVector<T1, T2>::type parsedPairVector;
 
     std::stringstream pairVecSS(inString);
     std::string pairString, tokenString;

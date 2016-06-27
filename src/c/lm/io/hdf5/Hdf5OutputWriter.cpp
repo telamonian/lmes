@@ -43,6 +43,7 @@
 
 #include <lm/ClassFactory.h>
 #include <lm/Print.h>
+#include <lm/main/Globals.h>
 #include "lm/io/OutputWriter.h"
 #include "lm/io/hdf5/Hdf5OutputWriter.h"
 
@@ -197,6 +198,24 @@ void Hdf5OutputWriter::finalize()
     file->close();
     delete file;
     file = NULL;
+}
+
+void Hdf5OutputWriter::setRecordNamePrefix()
+{
+    // call the parent class method
+    OutputWriter::setRecordNamePrefix();
+
+    // call the hdf5 file class method
+    file->setRecordNamePrefix(recordNamePrefixGlobal);
+}
+
+void Hdf5OutputWriter::setRecordNamePrefix(const std::string& newRecordNamePrefix)
+{
+    // call the parent class method
+    OutputWriter::setRecordNamePrefix(newRecordNamePrefix);
+
+    // call the hdf5 file class method
+    file->setRecordNamePrefix(newRecordNamePrefix);
 }
 
 }

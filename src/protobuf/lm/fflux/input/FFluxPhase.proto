@@ -39,9 +39,8 @@
 syntax = "proto2";
 package lm.fflux.input;
 
+import "lm/fflux/input/FFluxPhaseLimit.proto";
 import "lm/input/OutputOptions.proto";
-import "lm/input/TrajectoryLimits.proto";
-import "lm/io/TrajectoryState.proto";
 
 message SimulationPhase {
     enum TrajectoryGeneration {
@@ -50,18 +49,15 @@ message SimulationPhase {
         RANDOM=2;
     }
 
-    enum TrajectorySource {
-        LIST=0;
-        PREVIOUS_PHASE=1;
-    }
-
-    required uint64 fflux_stage_id                       = 1;
-    required uint64 fflux_phase_index                    = 2;
+    required uint64 fflux_phase_index                    = 1;
+    required uint64 tiling_id                            = 2;
+    required uint64 basin_index                          = 3;
 
     required uint64 first_trajectory_id                  = 21;
     optional uint64 last_trajectory_id                   = 22;
+    optional TrajectoryGeneration trajectory_generation  = 23;
 
-    optional lm.input.TrajectoryLimit phase_limit        = 31;
+    optional lm.fflux.input.PhaseLimit phase_limit       = 31;
 
     optional lm.input.OutputOptions output_options       = 41;
 

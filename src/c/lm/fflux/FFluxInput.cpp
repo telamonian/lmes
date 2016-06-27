@@ -87,8 +87,8 @@ void FFluxInput::initFFluxOptions(const lm::io::hdf5::Hdf5File& file)
 //{
 //    if (simulationParameters.count(key))
 //    {
-//        typename pairVector<uint, typename LimitValueT<LT>::type>::type idLimitVec(simulationParameters.parsePairVector<uint, typename LimitValueT<LT>::type>(key, debugString));
-//        for (typename pairVector<uint, typename LimitValueT<LT>::type>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
+//        typename PairVector<uint, typename LimitValueT<LT>::type>::T idLimitVec(simulationParameters.parsePairVector<uint, typename LimitValueT<LT>::type>(key, debugString));
+//        for (typename PairVector<uint, typename LimitValueT<LT>::type>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
 //        {
 //            trajectoryLimits.addLimitMsg<LT>(it->first, it->second, sc, includeEndpoint);
 //        }

@@ -276,7 +276,7 @@ void FFluxSupervisor::buildSimulationPhase()
     lm::input::SimulationPhase* phase = simulationPhaseList.back();
 
     phase->set_id(0);
-    lm::trajectory::Trajectory initialTrajectory(0, phase->id(), *input);
+    lm::trajectory::Trajectory initialTrajectory(*input, 0, phase->id(), false);
     for (uint64_t i=::replicates.front(); i<=::replicates.back(); i++)
     {
         phase->add_trajectory_states()->CopyFrom(initialTrajectory.getState());

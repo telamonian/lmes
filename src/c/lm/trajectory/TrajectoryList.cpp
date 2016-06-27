@@ -106,7 +106,7 @@ void TrajectoryList::init(const TrajectoryList& previousList)
 
 Trajectory* TrajectoryList::initTrajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryState& initialState)
 {
-    return new Trajectory(id, phase, initialState);
+    return new Trajectory(initialState, id, phase);
 }
 
 // destroyer

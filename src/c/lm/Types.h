@@ -41,12 +41,12 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
-#ifndef TYPES_H
-#define TYPES_H
+#ifndef TYPES_H_
+#define TYPES_H_
 
 #include <cstring>
 #include <list>
+#include <map>
 #include <utility>
 #include <vector>
 
@@ -57,6 +57,7 @@
 #include "lm/Exceptions.h"
 
 using std::list;
+using std::map;
 using std::vector;
 
 /*
@@ -97,11 +98,23 @@ typedef double              si_time_t;
  *  Array types.
  */
 
-template<typename T1, typename T2> struct pairVector
+template<typename T0, typename T1> struct PairVector
 {
-    typedef vector<std::pair<T1, T2> > type;
-    typedef typename type::iterator iterator;
-    typedef typename type::const_iterator const_iterator;
+    typedef vector<std::pair<T0, T1> > T;
+    typedef typename T::iterator iterator;
+    typedef typename T::const_iterator const_iterator;
+
+    T vec;
+};
+
+template<typename Key0, typename Key1, typename Value> struct PairMap
+{
+    typedef std::pair<Key0, Key1> Key;
+    typedef map<Key, Value> T;
+    typedef typename T::iterator iterator;
+    typedef typename T::const_iterator const_iterator;
+
+    T map;
 };
 
 /*

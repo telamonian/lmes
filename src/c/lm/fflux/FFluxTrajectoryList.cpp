@@ -75,7 +75,7 @@ namespace lm {
 namespace fflux {
 
 
-FFluxTrajectoryList::FFluxTrajectoryList(const lm::input::SimulationPhase& phase): TrajectoryList(phase)
+FFluxTrajectoryList::FFluxTrajectoryList():
 {
 }
 

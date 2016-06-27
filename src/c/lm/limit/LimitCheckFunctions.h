@@ -36,8 +36,8 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_LIMIT_LIMITCHECKFUNCTIONS
-#define LM_LIMIT_LIMITCHECKFUNCTIONS
+#ifndef LM_LIMIT_LIMITCHECKFUNCTIONS_H_
+#define LM_LIMIT_LIMITCHECKFUNCTIONS_H_
 
 #include "lm/EnumHelper.h"
 
@@ -57,7 +57,7 @@ template <> struct checkLimit<TrajLimEnums::INCREASING, false> {template <typena
 template <> struct checkLimit<TrajLimEnums::INCREASING, true>  {template <typename T> static bool call(T prevVal, T val, T limitVal) {return (prevVal <  limitVal && val >= limitVal);}};
 
 template <TrajLimEnums::StoppingCondition sc, bool includeEndpoint, typename T, typename TIterator>
-TIterator checkLimitRangeAdapter(TIterator (* rangeBasedFuncWithPredicate)(TIterator, TIterator, bool (* predicate)(T)), TIterator start, TIterator end, T limitVal)
+TIterator checkLimitRangeAdapter(TIterator (*rangeBasedFuncWithPredicate)(TIterator, TIterator, bool (*predicate)(T)), TIterator start, TIterator end, T limitVal)
 {
     // closure that allows for presetting the limitVal and calling the check with a single argument
     struct checkLimitClosureLocal: public checkLimit<sc, includeEndpoint>
@@ -65,7 +65,7 @@ TIterator checkLimitRangeAdapter(TIterator (* rangeBasedFuncWithPredicate)(TIter
         static bool closure(T val) {return call(val, limitVal);}
     };
 
-    return rangeBasedFuncWithPredicate(start, end, checkLimitClosureLocal::closure);
+    return (*rangeBasedFuncWithPredicate)(start, end, checkLimitClosureLocal::closure);
 };
 
 // closure that allows for presetting the limitVal and calling the check with a single argument
@@ -87,4 +87,4 @@ template <TrajLimEnums::StoppingCondition sc, bool includeEndpoint, typename T> 
 // define check_limit_$1_$2(val, limitVal, checkBool) checkBool = $3
 // define check_limit_$1_$2(prevVal, val, limitVal, checkBool) checkBool = $3
 
-#endif /* LM_LIMIT_LIMITCHECKFUNCTIONS */
+#endif /* LM_LIMIT_LIMITCHECKFUNCTIONS_H_ */

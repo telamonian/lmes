@@ -62,8 +62,17 @@ public:
                  WAITING};
     static const std::string status_strings[];
 
-    Trajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryState& initialState);
-    Trajectory(uint64_t id, uint64_t phase, const lm::input::Input& input, bool reversed=false);
+    Trajectory(const lm::io::TrajectoryState& initialState, uint64_t id, uint64_t phase);
+    Trajectory(const lm::input::Input& input, uint64_t id, uint64_t phase, bool reversed=false);
+    template <typename InputIterator> Trajectory::Trajectory(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd, uint64_t id, uint64_t phase)
+    :id(id),simulationPhase(phase),status(NOT_STARTED),state(),numberWorkUnitsPerformed(0)
+    {
+        initializeState();
+        // Initialize the species counts
+        initializeSpeciesCounts(input, speciesStart, speciesEnd);
+
+        init(input);
+    }
     virtual ~Trajectory();
 
     // accessors
@@ -94,11 +103,36 @@ public:
     virtual void setStatus(Status newStatus);
 
 protected:
+    // initializers
+    virtual void initializeState();
+    virtual void initializeSpeciesCounts(const lm::input::Input& input, bool reversed=false);
+    template <typename InputIterator> virtual void initializeSpeciesCounts(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd)
+    {
+        lm::io::SpeciesCounts* sc = state.mutable_cme_state()->mutable_species_counts();
+        sc->set_trajectory_id(id);
+        sc->set_number_entries(1);
+        for (;speciesStart!=speciesEnd;speciesStart++)
+        {
+            sc->add_species_count(*speciesStart);
+        }
+        sc->set_number_species(sc->species_count_size());
+        sc->add_time(0.0);
+
+        // if we have a reactionModel, check that it's consistent with the size of the range we used for the species counts
+        if (input.hasReactionModel())
+        {
+            const lm::input::ReactionModel& reactionModel = input.getReactionModelMsg();
+            if (sc->number_species()!=reactionModel.number_species()) throw ConsistencyException("Assigned %d species to initial state of trajectory %llu via a range, but there are only %d species in the reaction model", sc->number_species(), id, reactionModel.number_species());
+        }
+    }
+    virtual void init(const lm::input::Input& input);
+
     virtual void initializeDegreeAdvancements(const lm::input::Input& input);
-    virtual void inititializeHists(const lm::input::Input& input);
     virtual void initializeOrderParameters(const lm::input::Input& input);
+    virtual void initializeSpeciesFirstPassageTimes(const lm::input::Input& input);
     virtual void initializeOrderParameterFirstPassageTimes(const lm::input::Input& input);
-    virtual void initializeState(const lm::input::Input& input, bool reversed=false);
+    virtual void initializeDiffusionModel(const lm::input::Input& input);
+    virtual void inititializeHists(const lm::input::Input& input);
 
 protected:
     uint64_t id;

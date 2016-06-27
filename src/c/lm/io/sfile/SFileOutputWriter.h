@@ -90,7 +90,6 @@ protected:
     virtual void checkpoint();
 
 private:
-    string recordNamePrefix;
     SFile* file;
 };
 

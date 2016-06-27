@@ -112,10 +112,14 @@ protected:
     virtual void initWorkUnitParameters(const lm::io::hdf5::Hdf5File& file);
 
     bool parseBoundaryConditions(lm::input::BoundaryConditions* bc, std::string arg);
-    template <TrajLimEnums::LimitType LT> inline bool parseLimits(const std::string key, const std::string debugString, TrajLimEnums::StoppingCondition sc, bool includeEndpoint=true);
-    template <typename ValT> inline bool parseAndSet(const std::string key, ValT* fieldPtr);
-    template <typename T, typename SetterReturnT, typename ValT> inline bool parseAndSet(const std::string key, SetterReturnT (T::*setterFunc)(ValT), T& obj);
-    template <typename T, typename AdderReturnT, typename ValT> inline bool parseAndSetList(const std::string key, AdderReturnT (T::*adderFunc)(ValT), T& obj);
+    template <TrajLimEnums::LimitType LT> inline bool parseLimits(const std::string key, const std::string debugString, TrajLimEnums::StoppingCondition sc, bool includeEndpoint, bool* resultFlag0=NULL, bool* resultFlag1=NULL);
+    template <typename ValT> inline bool parseAndSet(const std::string key, ValT* fieldPtr, bool* resultFlag0=NULL, bool* resultFlag1=NULL);
+    template <typename T, typename SetterReturnT, typename ValT> inline bool parseAndSet(const std::string key, SetterReturnT (T::*setterFunc)(ValT), T& obj, bool* resultFlag0=NULL, bool* resultFlag1=NULL);
+    template <typename T> inline bool parseAndSetFlag(const std::string key, void (T::*setterFunc)(bool), T& obj, bool* resultFlag0=NULL, bool* resultFlag1=NULL);
+    inline bool parseAndSetFlag(const std::string key, bool* flagPtr, bool* resultFlag0=NULL, bool* resultFlag1=NULL);
+    template <typename T, typename AdderReturnT, typename ValT> inline bool parseAndSetList(const std::string key, AdderReturnT (T::*adderFunc)(ValT), T& obj, bool* resultFlag0=NULL, bool* resultFlag1=NULL);
+
+    virtual void setFlagsOnSucess(bool result, bool* resultFlag0, bool* resultFlag1);
 
 protected:
     bool degreeAdvancementPresent;
@@ -135,6 +139,8 @@ protected:
     lm::tiling::Tilings tilings;
     lm::limit::TrajectoryLimits trajectoryLimits;
     lm::option::SimulationParameters simulationParameters;
+
+    bool includeEndpointInLimits;
 
     uint64_t partsPerWorkUnit;
     uint64_t stepsPerWorkUnit;

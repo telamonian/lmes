@@ -110,6 +110,8 @@ public:
 class Hdf5File : public SimulationFile
 {
 public:
+    typedef PairMap<string, uint64_t, ReplicateHandles *> ReplicateHandleMap;
+
     static const uint MIN_VERSION;
     static const uint CURRENT_VERSION;
     static const uint MAX_REACTION_RATE_CONSTANTS;
@@ -194,6 +196,8 @@ public:
     template <typename T> void _setFFluxTrajectoryOutput(::google::protobuf::RepeatedField<T> data, hsize_t* dims, string dsetName, hid_t dsetType, hid_t lifecycleGroup, uint RANK);
     virtual void setTilingHist(lm::io::TilingHist* tilingHist, std::string datasetName, hid_t superGroup);
 
+    virtual void setRecordNamePrefix(const string& newRecordNamePrefix);
+
     //virtual void appendSpatialModelObjects(uint64_t replicate, lm::input::SpatialModel * model) throw(HDF5Exception,InvalidArgException);
     //virtual void getSpatialModelObjects(uint64_t replicate, lm::input::SpatialModel * model) throw(HDF5Exception);
 
@@ -216,31 +220,54 @@ public:
 	// Methods for working with NDArrays
     template <typename T> void setNDArray(std::string& groupPath, std::string& datasetName, const robertslab::pbuf::NDArray& ndarrayRef, hid_t rootGroup=-1)
     {
-        // initialize the group we'll be storing the NDArray dataset in
-        hid_t group = initGroup(groupPath, rootGroup);
-
         // extract the data for the dataset from the NDArray
         lm::protowrap::NDArray<T> ndarrayWrap(ndarrayRef);
         T* data = ndarrayWrap.get_data();
+        utuple shape(ndarrayWrap.shape());
+
+        // now that we have the data and the shape, call the generalized dataset writing function
+        setDataset(groupPath, datasetName, data, shape, rootGroup);
+
+        // clean up, if required
+        if (ndarrayWrap.compressed_deflate()) delete[] data;
+    }
+    template <typename T> void setNDArrayReplicate(uint64_t replicate, std::string& groupRelativePath, std::string& datasetName, const robertslab::pbuf::NDArray& ndarray)
+    {
+        ReplicateHandles * replicateHandles = openReplicateHandles(replicate);
+        setNDArray<T>(groupRelativePath, datasetName, ndarray, replicateHandles->group);
+    }
+
+    // condensed versions of the generalized NDArray hdf5 output. Condensed in the sense that it shoves all of the data into as few separate groups and datasets as possible
+    template <typename T> void setNDArrayReplicateCondensed(uint64_t replicate, std::string& groupRelativePath, std::string& datasetName, const robertslab::pbuf::NDArray& ndarray)
+    {
+        ReplicateHandles * replicateHandles = openReplicateHandles(replicate);
+        setNDArray<T>(groupRelativePath, datasetName, ndarray, replicateHandles->group);
+    }
+
+    // method for outputing abstract multi-dimensional array (ie a pointer plus a shape) as a dataset
+    template <typename T> void setDataset(std::string& groupPath, std::string& datasetName, T* data, utuple& shape, hid_t rootGroup=-1)
+    {
+        // initialize the group we'll be storing the NDArray dataset in
+        hid_t group = initGroup(groupPath, rootGroup);
 
         // declare the HDF5 boilerplate variables
-        uint RANK(ndarrayWrap.rank());
+        uint RANK(shape.len);
         hid_t dataspace, dataset, filespace, memspace, prop;
         hsize_t chunkdims[RANK], dims[RANK], dimsr[RANK], dimstotal[RANK], maxdims[RANK], offset[RANK];
 
-//    // If the NDArray's dataset already exists, delete it
+    // We'd like to have the option to delete NDArray's dataset if it already exists, but HDF5 apparently can't really delete anything so leave it commented for now.
 //    if (H5Lexists(group, groupName.c_str(), H5P_DEFAULT))
 //    {
 //        HDF5_EXCEPTION_CHECK(H5Ldelete(group, groupName.c_str(), H5P_DEFAULT));
 //    }
 
         // write or extend the NDArray dataset
-        dims[0] = RANK > 0 ? ndarrayWrap.shape(0) : 0;
+        dims[0] = RANK > 0 ? shape[0] : 0;
         chunkdims[0] = 1000;
         maxdims[0] = H5S_UNLIMITED;
         for (int i=1; i<RANK; i++)
         {
-            dims[i] = ndarrayWrap.shape(i);
+            dims[i] = shape[i];
             chunkdims[i] = dims[i];
             maxdims[i] = dims[i];
         }
@@ -287,14 +314,6 @@ public:
             HDF5_EXCEPTION_CHECK(H5Pclose(prop));
             HDF5_EXCEPTION_CHECK(H5Sclose(dataspace));
         }
-
-        // clean up, if required
-        if (ndarrayWrap.compressed_deflate()) delete[] data;
-    }
-    template <typename T> void setNDArrayReplicate(uint64_t replicate, std::string& groupRelativePath, std::string& datasetName, const robertslab::pbuf::NDArray& ndarray)
-    {
-        ReplicateHandles * replicateHandles = openReplicateHandles(replicate);
-        setNDArray<T>(groupRelativePath, datasetName, ndarray, replicateHandles->group);
     }
 
 public:
@@ -311,8 +330,8 @@ protected:
     virtual void openGroups() throw(HDF5Exception);
     virtual void loadParameters() throw(HDF5Exception);
     virtual void loadModel() throw(Exception,HDF5Exception);
-    virtual ReplicateHandles * openReplicateHandles(uint64_t replicate) throw(HDF5Exception);
-    virtual ReplicateHandles * createReplicateHandles(string replicateString) throw(Exception,HDF5Exception);
+    virtual Hdf5File::ReplicateHandles* openReplicateHandles(uint64_t replicate) throw(HDF5Exception);
+    virtual Hdf5File::ReplicateHandles* createReplicateHandles(string replicateString) throw(Exception,HDF5Exception);
     virtual void closeReplicateHandles(ReplicateHandles * handles) throw(HDF5Exception);
 	
 protected:
@@ -323,6 +342,9 @@ protected:
     // Main group handles.
     hid_t           parametersGroup, modelGroup, simulationsGroup;
 
+    // for HDF5 output files, recordNamePrefix is used to
+    string recordNamePrefix;
+
     // The parameters.
     map<string,string> parameterMap;
 
@@ -331,7 +353,8 @@ protected:
     unsigned int    numberSpecies;
 
     // Handles for each replicate that is open.
-    map<uint64_t,ReplicateHandles *> openReplicates;
+    ReplicateHandleMap::T openReplicates;
+//    map<uint64_t,ReplicateHandles *> openReplicates;
 
 };
 

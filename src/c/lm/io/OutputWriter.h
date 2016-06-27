@@ -87,11 +87,16 @@ protected:
 
     virtual int run();
 
+    virtual void setRecordNamePrefix();
+    virtual void setRecordNamePrefix(const std::string& newRecordNamePrefix);
+
 private:
     static const int MESSAGE_QUEUE_MAX_SIZE=50*1024*1024;
 
 protected:
+    bool condenseOutput;
     string outputFilename;
+    string recordNamePrefix;
 
 private:
     lm::message::Communicator communicator;

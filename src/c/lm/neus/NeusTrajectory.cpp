@@ -74,13 +74,13 @@ namespace neus {
 //}
 
 NeusTrajectory::NeusTrajectory(uint64_t id,uint ffluxPhase,lm::input::Input& input,bool reversed):
-Trajectory(id,input,reversed),ffluxPhase(ffluxPhase)
+    Trajectory(input, reversed, id, false),ffluxPhase(ffluxPhase)
 {
     initLimits();
 }
 
 NeusTrajectory::NeusTrajectory(uint64_t id,uint ffluxPhase,lm::input::Input& input,TrajectoryState* zerothState):
-Trajectory(id,input,zerothState),ffluxPhase(ffluxPhase)
+    Trajectory(zerothState, id, input),ffluxPhase(ffluxPhase)
 {
     // Limit setting code
     initLimits();

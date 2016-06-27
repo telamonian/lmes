@@ -40,7 +40,7 @@ syntax = "proto2";
 package lm.input;
 
 message OutputOptions {
-    optional string output_prefix = 1;
+    optional string record_name_prefix = 1;
     optional bool condense_output = 2 [default=false];
 
     optional double degree_advancement_write_interval = 11;

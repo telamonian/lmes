@@ -73,106 +73,79 @@ const std::string Trajectory::status_strings[] = {"ABORTED",
                                                   "RUNNING",
                                                   "WAITING"};
 
-Trajectory::Trajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryState& initialState)
+Trajectory::Trajectory(const lm::io::TrajectoryState& initialState, uint64_t id, uint64_t phase)
 :id(static_cast<uint>(-1)),simulationPhase(phase),status(NOT_STARTED),state(initialState),numberWorkUnitsPerformed(0)
 {
     setID(id);
 }
 
-Trajectory::Trajectory(uint64_t id, uint64_t phase, const lm::input::Input& input, bool reversed)
+Trajectory::Trajectory(const lm::input::Input& input, uint64_t id, uint64_t phase, bool reversed)
 :id(id),simulationPhase(phase),status(NOT_STARTED),state(),numberWorkUnitsPerformed(0)
 {
-    initializeState(input, reversed);
+    initializeState();
+    // Initialize the species counts. This has been separated from the rest of init for ease of overriding
+    if (input.hasReactionModel()) initializeSpeciesCounts(input, reversed);
+
+    init(input);
 }
 
 Trajectory::~Trajectory()
 {
 }
 
-void Trajectory::initializeState(const lm::input::Input& input, bool reversed)
+void Trajectory::initializeState()
 {
     state.Clear();
-
     state.set_trajectory_id(id);
+}
 
+void Trajectory::initializeSpeciesCounts(const lm::input::Input& input, bool reversed)
+{
+    const lm::input::ReactionModel& reactionModel = input.getReactionModelMsg();
+    lm::io::SpeciesCounts* sc = state.mutable_cme_state()->mutable_species_counts();
+    sc->set_trajectory_id(id);
+    sc->set_number_entries(1);
+    sc->set_number_species(reactionModel.number_species());
+    if (!reversed)
+    {
+        for (uint j=0; j<reactionModel.number_species(); j++)
+        {
+            sc->add_species_count(reactionModel.initial_species_count(j));
+        }
+    }
+    else
+    {
+        for (uint j=0; j<reactionModel.number_species(); j++)
+        {
+            sc->add_species_count(reactionModel.initial_species_count_backward(j));  // reversed_initial_species_count is set in the input file
+        }
+    }
+    sc->add_time(0.0);
+}
+
+void Trajectory::init(const lm::input::Input& input)
+{
     // Set cme state from the reaction model.
     if (input.hasReactionModel())
     {
         // Initialize the degree advancements
-        if (input.hasDegreeAdvancement())
-        {
-            initializeDegreeAdvancements(input);
-        }
+        if (input.hasDegreeAdvancement()) initializeDegreeAdvancements(input);
 
-        // Initialize the species counts
-        const lm::input::ReactionModel& reactionModel = input.getReactionModelMsg();
-        lm::io::SpeciesCounts* sc = state.mutable_cme_state()->mutable_species_counts();
-        sc->set_trajectory_id(id);
-        sc->set_number_entries(1);
-        sc->set_number_species(reactionModel.number_species());
-        if (!reversed)
-        {
-            for (uint j=0; j<reactionModel.number_species(); j++)
-            {
-                sc->add_species_count(reactionModel.initial_species_count(j));
-            }
-        }
-        else
-        {
-            for (uint j=0; j<reactionModel.number_species(); j++)
-            {
-                sc->add_species_count(reactionModel.initial_species_count_backward(j));  // reversed_initial_species_count is set in the input file
-            }
-        }
-        sc->add_time(0.0);
-        
         // Initialize the order parameters values
-        if (input.hasOrderParameters())
-        {
-            initializeOrderParameters(input);
-        }
-        
+        if (input.hasOrderParameters()) initializeOrderParameters(input);
+
         // Initialize the first passage times in the cme state.
-        if (input.getOutputOptionsMsg().fpt_species_to_track_size())
-        {
-            for (int i=0; i< input.getOutputOptionsMsg().fpt_species_to_track_size(); i++)
-            {
-                uint speciesIndex = input.getOutputOptionsMsg().fpt_species_to_track(i);
-                lm::io::FirstPassageTimes* fpt = state.mutable_cme_state()->add_first_passage_times();
-                fpt->set_trajectory_id(id);
-                fpt->set_species(speciesIndex);
-                fpt->set_number_entries(1);
-                fpt->add_species_count(reactionModel.initial_species_count(speciesIndex));
-                fpt->add_first_passage_time(0.0);
-            }
-        }
+        if (input.getOutputOptionsMsg().fpt_species_to_track_size()) initializeSpeciesFirstPassageTimes(input);
 
         // Initialize the order parameter first passage times in the cme state.
-        if (input.getOutputOptionsMsg().fpt_order_parameter_to_track_size())
-        {
-            initializeOrderParameterFirstPassageTimes(input);
-        }
+        if (input.getOutputOptionsMsg().fpt_order_parameter_to_track_size()) initializeOrderParameterFirstPassageTimes(input);
     }
 
     // Initialize the rdme state from the diffusion model.
-    if (input.hasDiffusionModel())
-    {
-        const lm::input::DiffusionModel& diffusionModel = input.getDiffusionModelMsg();
-        lm::io::RDMEState* rdmeState = state.mutable_rdme_state();
-        lm::io::Lattice* initialLattice = rdmeState->mutable_species_positions();
-        initialLattice->set_lattice_x_size(diffusionModel.initial_lattice().lattice_x_size());
-        initialLattice->set_lattice_y_size(diffusionModel.initial_lattice().lattice_y_size());
-        initialLattice->set_lattice_z_size(diffusionModel.initial_lattice().lattice_z_size());
-        initialLattice->set_particles_per_site(diffusionModel.initial_lattice().particles_per_site());
-        initialLattice->set_particles_ordering(diffusionModel.initial_lattice().particles_ordering());
-        initialLattice->set_particles(diffusionModel.initial_lattice().particles());
-    }
+    if (input.hasDiffusionModel()) initializeDiffusionModel(input);
 
     // Initialize the tiling hists
-    if (input.hasTilings())
-    {
-        inititializeHists(input);
-    }
+    if (input.hasTilings()) inititializeHists(input);
 }
 
 void Trajectory::initializeDegreeAdvancements(const lm::input::Input& input)
@@ -189,25 +162,6 @@ void Trajectory::initializeDegreeAdvancements(const lm::input::Input& input)
     da->add_time(0.0);
 }
 
-void Trajectory::inititializeHists(const lm::input::Input& input)
-{
-    lm::io::TilingHist* tHist = state.mutable_cme_state()->add_tiling_hists();
-    tHist->set_tiling_id(input.getTilings().getCurrentTilingID());
-    for (lm::tiling::EdgesT::const_iterator e_it=input.getCurrentTiling().edges().begin();e_it!=input.getCurrentTiling().edges().end();e_it++)
-    {
-        tHist->add_tile_vals(0);
-    }
-//    for (lm::tiling::TilingMap::iterator t_it=input.getTilings().begin();t_it!=input.getTilings().end();t_it++)
-//    {
-//        lm::io::TilingHist* tHist = getState()->mutable_cme_state()->add_tiling_hists();
-//        tHist->set_tiling_id(t_it->second->id());
-//        for (lm::tiling::EdgeIterator e_it=t_it->second->begin();e_it!=t_it->second->end();e_it++)
-//        {
-//            tHist->add_tile_vals(0);
-//        }
-//    }
-}
-
 void Trajectory::initializeOrderParameters(const lm::input::Input& input)
 {
     const lm::oparam::OParams& oparams = input.getOrderParameters();
@@ -220,6 +174,21 @@ void Trajectory::initializeOrderParameters(const lm::input::Input& input)
         opv->add_order_parameter_values(oparams.at(i)->calc(state));
     }
     opv->add_time(0.0);
+}
+
+void Trajectory::initializeSpeciesFirstPassageTimes(const lm::input::Input& input)
+{
+    const lm::input::ReactionModel& reactionModel = input.getReactionModelMsg();
+    for (int i=0; i< input.getOutputOptionsMsg().fpt_species_to_track_size(); i++)
+    {
+        uint speciesIndex = input.getOutputOptionsMsg().fpt_species_to_track(i);
+        lm::io::FirstPassageTimes* fpt = state.mutable_cme_state()->add_first_passage_times();
+        fpt->set_trajectory_id(id);
+        fpt->set_species(speciesIndex);
+        fpt->set_number_entries(1);
+        fpt->add_species_count(reactionModel.initial_species_count(speciesIndex));
+        fpt->add_first_passage_time(0.0);
+    }
 }
 
 void Trajectory::initializeOrderParameterFirstPassageTimes(const lm::input::Input& input)
@@ -241,6 +210,38 @@ void Trajectory::initializeOrderParameterFirstPassageTimes(const lm::input::Inpu
         lm::protowrap::NDArray<double> timeWrap(opFPT->mutable_first_passage_time());
         timeWrap.set_array(std::vector<double>(1, 0.0));
     }
+}
+
+void Trajectory::initializeDiffusionModel(const lm::input::Input& input)
+{
+    const lm::input::DiffusionModel& diffusionModel = input.getDiffusionModelMsg();
+    lm::io::RDMEState* rdmeState = state.mutable_rdme_state();
+    lm::io::Lattice* initialLattice = rdmeState->mutable_species_positions();
+    initialLattice->set_lattice_x_size(diffusionModel.initial_lattice().lattice_x_size());
+    initialLattice->set_lattice_y_size(diffusionModel.initial_lattice().lattice_y_size());
+    initialLattice->set_lattice_z_size(diffusionModel.initial_lattice().lattice_z_size());
+    initialLattice->set_particles_per_site(diffusionModel.initial_lattice().particles_per_site());
+    initialLattice->set_particles_ordering(diffusionModel.initial_lattice().particles_ordering());
+    initialLattice->set_particles(diffusionModel.initial_lattice().particles());
+}
+
+void Trajectory::inititializeHists(const lm::input::Input& input)
+{
+    lm::io::TilingHist* tHist = state.mutable_cme_state()->add_tiling_hists();
+    tHist->set_tiling_id(input.getTilings().getCurrentTilingID());
+    for (lm::tiling::EdgesT::const_iterator e_it=input.getCurrentTiling().edges().begin();e_it!=input.getCurrentTiling().edges().end();e_it++)
+    {
+        tHist->add_tile_vals(0);
+    }
+//    for (lm::tiling::TilingMap::iterator t_it=input.getTilings().begin();t_it!=input.getTilings().end();t_it++)
+//    {
+//        lm::io::TilingHist* tHist = getState()->mutable_cme_state()->add_tiling_hists();
+//        tHist->set_tiling_id(t_it->second->id());
+//        for (lm::tiling::EdgeIterator e_it=t_it->second->begin();e_it!=t_it->second->end();e_it++)
+//        {
+//            tHist->add_tile_vals(0);
+//        }
+//    }
 }
 
 // accessors

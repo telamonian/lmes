@@ -72,7 +72,7 @@ extern string outputWriterClassName;
 /**
  * The prefix to use in sfile record names.
  */
-extern string outputPrefix;
+extern string recordNamePrefixGlobal;
 
 /**
  * The number of replicates of the simulation that should be performed.

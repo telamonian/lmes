@@ -80,6 +80,9 @@ protected:
     virtual void flush();
     virtual void checkpoint();
 
+    virtual void setRecordNamePrefix();
+    virtual void setRecordNamePrefix(const std::string& newRecordNamePrefix);
+
 private:
     Hdf5File* file;
 };

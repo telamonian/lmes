@@ -69,7 +69,7 @@ ReplicateTrajectoryList::ReplicateTrajectoryList(const lm::input::Input& input, 
 {
     for (uint64_t i=firstTrajectory; i<=lastTrajectory; i++)
     {
-        trajectories[i] = new lm::trajectory::Trajectory(i, getSimulationPhaseIndex(), input);
+        trajectories[i] = new lm::trajectory::Trajectory(input, i, getSimulationPhaseIndex());
         waitingTrajectories[i] = trajectories[i];
     }
 }
@@ -80,7 +80,7 @@ ReplicateTrajectoryList::~ReplicateTrajectoryList()
 
 void ReplicateTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
 {
-    //Call the base class method.
+    // Call the base class method.
     TrajectoryList::workUnitFinished(msg);
 
     // Print out a message for any trajectories that finished.
@@ -98,8 +98,8 @@ void ReplicateTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUn
 
 uint64_t ReplicateTrajectoryList::findNextTrajectoryToRun() const
 {
-    uint64_t minId=UINT64_MAX;
-    double minTime=std::numeric_limits<double>::infinity();
+    uint64_t minId = UINT64_MAX;
+    double minTime = std::numeric_limits<double>::infinity();
     for (TrajectoryMap::const_iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
     {
         lm::trajectory::Trajectory* t = it->second;

@@ -321,6 +321,8 @@ protected:
     lm::input::TrajectoryLimit::LimitType limitTypeReached;
 
     // Output options.
+    std::string workUnitOutputPrefix;
+    bool workUnitCondenseOutput;
     bool writeDegreeAdvancementTimeSeries, writeOrderParameterTimeSeries, writeSpeciesTimeSeries;
     double degreeAdvancementWriteInterval, orderParameterWriteInterval, speciesWriteInterval;
 

@@ -62,7 +62,7 @@ namespace input {
 
 Input::Input(const lm::io::hdf5::Hdf5File& file)
 :reactionModelPresent(false),diffusionModelPresent(false),orderParametersPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),
- outputOptionsPresent(false),simulationParameters(file),partsPerWorkUnit(1),stepsPerWorkUnit(10000000)
+ outputOptionsPresent(false),simulationParameters(file),includeEndpointInLimits(true),partsPerWorkUnit(1),stepsPerWorkUnit(10000000)
 {
     init(file);
 }
@@ -156,82 +156,49 @@ void Input::initTilings(const lm::io::hdf5::Hdf5File& file)
 // Get the limits.
 void Input::initTrajectoryLimits(const lm::io::hdf5::Hdf5File& file)
 {
+    // By default, we include endpoints when checking limits (eg if limitType==MAX and limitVal==2, then the limit will be triggered when currentVal >= 2, as opposed to being triggered only when currentVal > 2)
+    // The user can override this behavior with the following (advanced) option
+    parseAndSetFlag("includeEnpointInLimits", &this->includeEndpointInLimits);
+
     // See if we have a max time limit.
     if (simulationParameters.count("maxTime"))
     {
-        trajectoryLimits.addLimitMsg<TrajLimEnums::TIME>(0, simulationParameters.parse<double>("maxTime"), TrajLimEnums::MAX);
+        trajectoryLimits.addLimitMsg<TrajLimEnums::TIME>(0, simulationParameters.parse<double>("maxTime"), TrajLimEnums::MAX, includeEndpointInLimits);
         trajectoryLimitsPresent = true;
     }
 
     // set the other limits, if present in the simulation parameters
-    if (parseLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementLowerLimitList", "degree advancement lower limit", TrajLimEnums::MIN) ||
-        parseLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementUpperLimitList", "degree advancement upper limit", TrajLimEnums::MAX))
-    {
-        trajectoryLimitsPresent = true;
-        degreeAdvancementPresent = true;
-    }
-    if (parseLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterLowerLimitList", "order parameter lower limit", TrajLimEnums::MIN) ||
-        parseLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterUpperLimitList", "order parameter upper limit", TrajLimEnums::MAX) ||
-        parseLimits<TrajLimEnums::SPECIES>("speciesLowerLimitList", "species lower limit", TrajLimEnums::MIN) ||
-        parseLimits<TrajLimEnums::SPECIES>("speciesUpperLimitList", "species upper limit", TrajLimEnums::MAX))
-    {
-        trajectoryLimitsPresent = true;
-    }
+    parseLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementLowerLimitList", "degree advancement lower limit", TrajLimEnums::MIN, includeEndpointInLimits, &trajectoryLimitsPresent, &degreeAdvancementPresent);
+    parseLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementUpperLimitList", "degree advancement upper limit", TrajLimEnums::MAX, includeEndpointInLimits, &trajectoryLimitsPresent, &degreeAdvancementPresent);
+
+    parseLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterLowerLimitList", "order parameter lower limit", TrajLimEnums::MIN, includeEndpointInLimits, &trajectoryLimitsPresent);
+    parseLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterUpperLimitList", "order parameter upper limit", TrajLimEnums::MAX, includeEndpointInLimits, &trajectoryLimitsPresent);
+
+    parseLimits<TrajLimEnums::SPECIES>("speciesLowerLimitList", "species lower limit", TrajLimEnums::MIN, includeEndpointInLimits, &trajectoryLimitsPresent);
+    parseLimits<TrajLimEnums::SPECIES>("speciesUpperLimitList", "species upper limit", TrajLimEnums::MAX, includeEndpointInLimits, &trajectoryLimitsPresent);
 }
 
 // Get the output options.
 void Input::initOutputOptions(const lm::io::hdf5::Hdf5File& file)
 {
-    parseAndSet("outputPrefix", &OutputOptions::set_output_prefix, outputOptions);
-    if (outputPrefix.size() > 0) outputOptions.set_output_prefix(outputPrefix);
+    // Specify how often the species counts should be written to output
+    parseAndSet("writeInterval", &OutputOptions::set_species_write_interval, outputOptions, &outputOptionsPresent);
 
-    if (parseAndSet("degreeAdvancementWriteInterval", &OutputOptions::set_degree_advancement_write_interval, outputOptions))
-    {
-        degreeAdvancementPresent = true;
-        outputOptionsPresent = true;
-    }
+    // Specify how often the species counts at all of the lattice points should be written out during an RDME simulation
+    parseAndSet("latticeWriteInterval", &OutputOptions::set_lattice_write_interval, outputOptions, &outputOptionsPresent);
+
+    // Specify how often various (optional) specialized simulation outputs should be written out. Leave unset to supress these outputs completely.
+    parseAndSet("degreeAdvancementWriteInterval", &OutputOptions::set_degree_advancement_write_interval, outputOptions, &outputOptionsPresent, &degreeAdvancementPresent);
+    parseAndSet("orderParameterWriteInterval", &OutputOptions::set_order_parameter_write_interval, outputOptions, &outputOptionsPresent);
 
     // Initialize the species counts first passage times in the output options
-    if (simulationParameters.count("fptTrackingList"))
-    {
-        const string listString = simulationParameters["fptTrackingList"];
-        std::list<int> fptList;
-        size_t start=0, end=0;
-        while (end != string::npos)
-        {
-            end = listString.find(',', start);
-            string trackedSpecies = listString.substr(start, (end == string::npos) ? string::npos : end - start);
-            if (trackedSpecies.length() > 0)
-            {
-                outputOptions.add_fpt_species_to_track((uint)atoi(trackedSpecies.c_str()));
-            }
-            start = end+1;
-        }
-        outputOptionsPresent = true;
-    }
+    parseAndSetList("fptTrackingList", &OutputOptions::add_fpt_species_to_track, outputOptions, &outputOptionsPresent);
 
     // Initialize the order parameter values first passage times in the output options
-    if (parseAndSetList("fptOrderParameterTrackingList", &OutputOptions::add_fpt_order_parameter_to_track, outputOptions))
-    {
-        outputOptionsPresent = true;
-    }
+    parseAndSetList("fptOrderParameterTrackingList", &OutputOptions::add_fpt_order_parameter_to_track, outputOptions, &outputOptionsPresent);
 
-    if (simulationParameters.count("latticeWriteInterval"))
-    {
-        outputOptions.set_lattice_write_interval(atof(simulationParameters["latticeWriteInterval"].c_str()));
-        outputOptionsPresent = true;
-    }
-
-    if (parseAndSet("orderParameterWriteInterval", &OutputOptions::set_order_parameter_write_interval, outputOptions))
-    {
-        outputOptionsPresent = true;
-    }
-
-    if (simulationParameters.count("writeInterval"))
-    {
-        outputOptions.set_species_write_interval(atof(simulationParameters["writeInterval"].c_str()));
-        outputOptionsPresent = true;
-    }
+    // This flag changes the organization of the output such that the total number of groups and datasets is minimized. Currently only implemented (partially) for HDF5, no effect otherwise
+    parseAndSetFlag("condenseOutput", &OutputOptions::set_condense_output, outputOptions, &outputOptionsPresent);
 }
 
 // Get some parameters that tweak how work units are run
@@ -368,70 +335,117 @@ bool Input::parseBoundaryConditions(lm::input::BoundaryConditions* bc, string ar
     return bc->axis_specific_boundaries();
 }
 
-template <TrajLimEnums::LimitType LT> bool Input::parseLimits(const string key, const string debugString, TrajLimEnums::StoppingCondition sc, bool includeEndpoint)
+template <TrajLimEnums::LimitType LT> 
+bool Input::parseLimits(const string key, const string debugString, TrajLimEnums::StoppingCondition sc, bool includeEndpoint, bool* resultFlag0, bool* resultFlag1)
 {
-    if (simulationParameters.count(key))
+    bool result;
+    if (simulationParameters.count(key)!=0)
     {
-        typename pairVector<uint, typename LimitValueT<LT>::type>::type idLimitVec(simulationParameters.parsePairVector<uint, typename LimitValueT<LT>::type>(key, debugString));
-        for (typename pairVector<uint, typename LimitValueT<LT>::type>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
+        typename PairVector<uint, typename LimitValueT<LT>::type>::T idLimitVec(simulationParameters.parsePairVector<uint, typename LimitValueT<LT>::type>(key, debugString));
+        for (typename PairVector<uint, typename LimitValueT<LT>::type>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
         {
             trajectoryLimits.addLimitMsg<LT>(it->first, it->second, sc, includeEndpoint);
         }
-        return idLimitVec.size() > 0;
+        result = (idLimitVec.size() > 0);
     }
     else
     {
-        return false;
+        result = false;
     }
+
+    setFlagsOnSucess(result, resultFlag0, resultFlag1);
+    return result;
 }
 
-// Version of parseAndSet for fields that can be passed in as mutable pointers
+// Version of parseAndSet that works with options that can directly accessed through a mutable pointer
 // By using template parameter inference on the pointer, this template automatically figures out what type to parse from simulationParameters
-template <typename ValT> bool Input::parseAndSet(const string key, ValT* fieldPtr)
+template <typename ValT> 
+bool Input::parseAndSet(const string key, ValT* fieldPtr, bool* resultFlag0, bool* resultFlag1)
 {
-    if (simulationParameters.count(key))
+    bool result;
+    if (simulationParameters.count(key)!=0)
     {
         *fieldPtr = simulationParameters.parse<ValT>(key);
-        return true;
+        result = true;
     }
     else
     {
-        return false;
+        result = false;
     }
+
+    setFlagsOnSucess(result, resultFlag0, resultFlag1);
+    return result;
 }
 
-// Version of parseAndSet for fields that have setters
+// Version of parseAndSet that works with options that need to be set via a setter function
 // By using template parameter inference on the setter (passed as a function pointer), this template automatically figures out what type to parse from simulationParameters
-template <typename T, typename SetterReturnT, typename ValT> bool Input::parseAndSet(const string key, SetterReturnT (T::*setterFunc)(ValT), T& obj)
+template <typename T, typename SetterReturnT, typename ValT> 
+bool Input::parseAndSet(const string key, SetterReturnT (T::*setterFunc)(ValT), T& obj, bool* resultFlag0, bool* resultFlag1)
 {
-    if (simulationParameters.count(key))
+    bool result;
+    if (simulationParameters.count(key)!=0)
     {
         (obj.*setterFunc)(simulationParameters.parse<ValT>(key));
-        return true;
+        result = true;
     }
     else
     {
-        return false;
+        result = false;
     }
+
+    setFlagsOnSucess(result, resultFlag0, resultFlag1);
+    return result;
+}
+
+// specialized version of parseAndSet for flag options (ie options that can be only true or false). If the flag key is present in simulationParameters then the flag is set to true (regardless of its value in simulationParameters), otherwise the flag is set to false
+inline bool Input::parseAndSetFlag(const std::string key, bool* flagPtr, bool* resultFlag0=NULL, bool* resultFlag1=NULL)
+{
+    bool result = (simulationParameters.count(key)!=0);
+    *flagPtr = result;
+
+    setFlagsOnSucess(result, resultFlag0, resultFlag1);
+    return result;
+}
+
+// same as parseAndSetFlag, but this version works with options that need to be set via a setter function
+template <typename T> 
+bool Input::parseAndSetFlag(const std::string key, void (T::*setterFunc)(bool), T& obj, bool* resultFlag0, bool* resultFlag1)
+{
+    bool result = (simulationParameters.count(key)!=0);
+    (obj.*setterFunc)(result);
+
+    setFlagsOnSucess(result, resultFlag0, resultFlag1);
+    return result;
 }
 
 // Same as parseAndSet, but for options specified as lists
-template <typename T, typename AdderReturnT, typename ValT> bool Input::parseAndSetList(const string key, AdderReturnT (T::*adderFunc)(ValT), T& obj)
+template <typename T, typename AdderReturnT, typename ValT> 
+bool Input::parseAndSetList(const string key, AdderReturnT (T::*adderFunc)(ValT), T& obj, bool* resultFlag0, bool* resultFlag1)
 {
-    if (simulationParameters.count(key))
+    bool result;
+    if (simulationParameters.count(key)!=0)
     {
         std::vector<ValT> parsedVector(simulationParameters.parseVector<ValT>(key));
         for (typename vector<ValT>::const_iterator it=parsedVector.begin(); it!=parsedVector.end(); it++)
         {
             (obj.*adderFunc)(*it);
         }
-        return parsedVector.size() > 0;
+        result = (parsedVector.size() > 0);
     }
     else
     {
-        return false;
+        result = false;
     }
-};
 
-};
+    setFlagsOnSucess(result, resultFlag0, resultFlag1);
+    return result;
+}
+
+void Input::setFlagsOnSucess(bool result, bool* resultFlag0, bool* resultFlag1)
+{
+    if (resultFlag0!=NULL and result) *resultFlag0 = result;
+    if (resultFlag1!=NULL and result) *resultFlag1 = result;
+}
+
+}
 }

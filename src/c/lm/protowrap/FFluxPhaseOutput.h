@@ -135,7 +135,6 @@ public:
             EndPointMsg* endPointMsg = sucessfulEndPointMap[pointKey];
             endPointMsg->set_count(endPointMsg->count() + 1);
             endPointMsg->add_times(timeDataForwardFlux[i]);
-            endPointMsg->set_success(true);
         }
 
         if (speciesCountWrap.compressed_deflate()) delete[] speciesCountDataForwardFlux;
@@ -240,7 +239,6 @@ public:
             EndPointMsg* endPointMsg = sucessfulEndPointMap[pointKey];
             endPointMsg->set_count(endPointMsg->count() + 1);
             endPointMsg->add_times(timeDataForwardFlux[0]);
-            endPointMsg->set_success(true);
 
             if (speciesCountWrap.compressed_deflate()) delete[] speciesCountData;
         }

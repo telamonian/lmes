@@ -82,9 +82,9 @@ public:
     }
 
     template <typename T1, typename T2>
-    typename pairVector<T1, T2>::type parsePairVector(const std::string &key, const std::string& debugMessage="") const
+    typename PairVector<T1, T2>::T parsePairVector(const std::string &key, const std::string& debugMessage="") const
     {
-        typename pairVector<T1, T2>::type parsedPairVector;
+        typename PairVector<T1, T2>::T parsedPairVector;
         std::stringstream pairVecSS(_map.at(key));
         std::string pairString, tokenString;
 

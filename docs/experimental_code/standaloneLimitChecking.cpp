@@ -34,37 +34,16 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts, Max Klein
+ * Author(s): Max Klein
  */
-syntax = "proto2";
-package lm.message;
 
-import "lm/io/DegreeAdvancementTimeSeries.proto";
-import "lm/io/FFluxOutput.proto";
-import "lm/io/FirstPassageTimes.proto";
-import "lm/io/OrderParameterFirstPassageTimes.proto";
-import "lm/io/LatticeTimeSeries.proto";
-import "lm/io/LimitTracking.proto";
-import "lm/io/OrderParameterTimeSeries.proto";
-import "lm/io/SpeciesCounts.proto";
-import "lm/io/SpeciesTimeSeries.proto";
+// standalone version of the limit checking code
+// for investigating the assembly produced by various compilers
+#include <iostream>
 
-message WorkUnitOutput {
-    optional string output_prefix                                                      = 1;
-    optional bool condense_output                                                      = 2 [default=false];
+#include "standaloneLimitChecking.h"
 
-    // trajectory state/time series outputs
-    optional lm.io.DegreeAdvancementTimeSeries degree_advancement_time_series          = 11;
-    optional lm.io.LatticeTimeSeries lattice_time_series                               = 12;
-    optional lm.io.OrderParameterTimeSeries order_parameter_time_series                = 13;
-    optional lm.io.SpeciesCounts species_counts                                        = 14;
-    optional lm.io.SpeciesTimeSeries species_time_series                               = 15;
-
-    // event-tracking outputs
-    repeated lm.io.FirstPassageTimes first_passage_times                               = 21;
-    repeated lm.io.OrderParameterFirstPassageTimes order_parameter_first_passage_times = 22;
-    repeated lm.io.LimitTracking limit_tracking                                        = 23;
-
-    // forward flux specific outputs
-    optional lm.io.FFluxOutput fflux_output                                            = 31;
+void main()
+{
+    std::cout << isTrajectoryOutsideLimits();
 }

@@ -96,7 +96,8 @@ const uint Hdf5File::MAX_SHAPE_PARAMETERS          = 10;
 
 
 Hdf5File::Hdf5File(const string filename) throw(IOException,HDF5Exception,Exception)
-:filename(filename),file(H5I_INVALID_HID),version(0),parametersGroup(H5I_INVALID_HID),modelGroup(H5I_INVALID_HID),simulationsGroup(H5I_INVALID_HID),modelLoaded(false),numberSpecies(0)
+:filename(filename),file(H5I_INVALID_HID),version(0),parametersGroup(H5I_INVALID_HID),modelGroup(H5I_INVALID_HID),recordNamePrefix(""),
+ simulationsGroup(H5I_INVALID_HID),modelLoaded(false),numberSpecies(0)
 {
     open();
 }
@@ -2540,10 +2541,12 @@ void Hdf5File::closeAllReplicates() throw(HDF5Exception)
 }
 
 
-Hdf5File::ReplicateHandles * Hdf5File::openReplicateHandles(uint64_t replicate) throw(HDF5Exception)
+Hdf5File::ReplicateHandles* Hdf5File::openReplicateHandles(uint64_t replicate) throw(HDF5Exception)
 {
     // See if the replicate is already open.
-    map<uint64_t,ReplicateHandles *>::iterator it = openReplicates.find(replicate);
+//    map<uint64_t,ReplicateHandles *>::iterator it = openReplicates.find(replicate);
+    ReplicateHandleMap::Key replicateKey(recordNamePrefix, replicate);
+    ReplicateHandleMap::iterator it = openReplicates.find(replicateKey);
     if (it == openReplicates.end())
     {
         ReplicateHandles * handles;
@@ -2575,7 +2578,7 @@ Hdf5File::ReplicateHandles * Hdf5File::openReplicateHandles(uint64_t replicate) 
         }
 
         // Add it to the map.
-        openReplicates[replicate] = handles;
+        openReplicates[replicateKey] = handles;
         return handles;
     }
     else
@@ -2586,7 +2589,7 @@ Hdf5File::ReplicateHandles * Hdf5File::openReplicateHandles(uint64_t replicate) 
 
 }
 
-Hdf5File::ReplicateHandles * Hdf5File::createReplicateHandles(string replicateString) throw(Exception,HDF5Exception)
+Hdf5File::ReplicateHandles* Hdf5File::createReplicateHandles(string replicateString) throw(Exception,HDF5Exception)
 {
     // Make sure the model is loaded, since need the number of species.
     loadModel();
@@ -2642,6 +2645,19 @@ void Hdf5File::closeReplicateHandles(ReplicateHandles * handles) throw(HDF5Excep
     handles->group = H5I_INVALID_HID;
     handles->speciesCountsDataset = H5I_INVALID_HID;
     handles->speciesCountTimesDataset = H5I_INVALID_HID;
+}
+
+void Hdf5File::setRecordNamePrefix(const string& newRecordNamePrefix)
+{
+    if (newRecordNamePrefix!=recordNamePrefix)
+    {
+        recordNamePrefix.assign(newRecordNamePrefix);
+
+        vector<string> simulationsParts;
+        simulationsParts.push_back(recordNamePrefix);
+        simulationsParts.push_back("Simulations");
+        simulationsGroup = initGroup(simulationsParts);
+    }
 }
 
 }

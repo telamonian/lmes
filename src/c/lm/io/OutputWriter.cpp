@@ -41,6 +41,7 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include <time.h>
+#include <lm/main/Globals.h>
 
 #include "hrtime.h"
 #include "lm/Print.h"
@@ -66,8 +67,11 @@ namespace io {
 
 
 OutputWriter::OutputWriter()
-    :outputFilename(""),communicator(lm::MPI::worldRank, threadNumber),messageQueueSize(0)
+:condenseOutput(false),outputFilename(""),recordNamePrefix(""),communicator(lm::MPI::worldRank, threadNumber),messageQueueSize(0)
 {
+    // set the record name prefix
+    setRecordNamePrefix();
+
     // Create the queue mutex.
     pthread_mutexattr_t attr;
     PTHREAD_EXCEPTION_CHECK(pthread_mutexattr_init(&attr));
@@ -318,6 +322,11 @@ int OutputWriter::HelperThread::run()
                 for (int i=0; i<pwu.part_output_size(); i++)
                 {
                     lm::message::WorkUnitOutput output = pwu.part_output(i);
+                    // set the output options
+                    if (output.has_condense_output()) p->condenseOutput = output.condense_output();
+                    if (output.has_record_name_prefix()) p->setRecordNamePrefix(output.record_name_prefix());
+
+                    // process the actual output
                     if (output.has_degree_advancement_time_series())
                     {
                         p->processDegreeAdvancementTimeSeries(output.degree_advancement_time_series());
@@ -402,6 +411,21 @@ int OutputWriter::HelperThread::run()
 
     Print::printf(Print::INFO, "OutputWriter::HelperThread %d:%d finished.", p->communicator.getSourceProcess(), threadNumber);
     return 0;
+}
+
+void OutputWriter::setRecordNamePrefix()
+{
+    recordNamePrefix.assign(recordNamePrefixGlobal);
+    lm::Print::printf(Print::INFO, "Using record name prefix: %s", recordNamePrefix.c_str());
+}
+
+void OutputWriter::setRecordNamePrefix(const std::string& newRecordNamePrefix)
+{
+    if (newRecordNamePrefix!=recordNamePrefix)
+    {
+        recordNamePrefix.assign(newRecordNamePrefix);
+        lm::Print::printf(Print::INFO, "Using record name prefix: %s", recordNamePrefix.c_str());
+    }
 }
 
 }

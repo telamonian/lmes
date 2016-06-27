@@ -72,13 +72,13 @@ bool SFileOutputWriter::registerClass()
 
 void* SFileOutputWriter::allocateObject()
 {
-    lm::Print::printf(Print::INFO, "Using sfile record prefix: %s",outputPrefix.c_str());
-    return new SFileOutputWriter(outputPrefix);
+    return new SFileOutputWriter(recordNamePrefixGlobal);
 }
 
 SFileOutputWriter::SFileOutputWriter(string recordNamePrefix)
-:recordNamePrefix(recordNamePrefix),file(NULL)
+:recordNamePrefix("NULLNULLNULL"),file(NULL)
 {
+    setRecordNamePrefix(recordNamePrefix);
 }
 
 SFileOutputWriter::~SFileOutputWriter()

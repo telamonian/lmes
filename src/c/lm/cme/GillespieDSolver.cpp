@@ -484,7 +484,10 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     // If the output message has any data, send it.
     if (createdOutput)
     {
-        if (outputOption)
+        // set the output options for this work unit
+        if (workUnitOutputPrefix.size() > 0) wuoMsg->set_record_name_prefix(workUnitOutputPrefix);
+        wuoMsg->set_condense_output(workUnitCondenseOutput);
+
         communicator->sendMessage(outputProcess, outputThread, &msg);
     }
 

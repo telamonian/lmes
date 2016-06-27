@@ -161,7 +161,7 @@ public:
      *     ...
      *     delete[] data;
      */
-    inline T* get_data(bool noCopy=false) const
+    inline T* get_data(bool noCopy=true) const
     {
         T* outputArray = NULL;
         if (!noCopy || compressed_deflate())

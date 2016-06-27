@@ -36,23 +36,26 @@
  *
  * Author(s): Max Klein
  */
+
 // standalone version of the option parsing code
 // for investigating the output of experimental parsers
+#include <iostream>
+
 #include "standaloneOptionParsing.h"
 
 int main()
 {
     {
-        pairVector<std::string, double>::type pairs(parsePairVector<std::string, double>("  bob :   13  , rodney:8,lucash:928"));
-        for (pairVector<std::string, double>::const_iterator it=pairs.begin();it!=pairs.end();it++)
+        PairVector<std::string, double>::type pairs(parsePairVector<std::string, double>("  bob :   13  , rodney:8,lucash:928"));
+        for (PairVector<std::string, double>::const_iterator it=pairs.begin();it!=pairs.end();it++)
         {
             std::cout << it->first << " " << it->second << std::endl;
         }
     }
 
     {
-        pairVector<double, double>::type pairs(parsePairVector<double, double>("9:13,10.9:18,28:928.8"));
-        for (pairVector<double, double>::const_iterator it=pairs.begin();it!=pairs.end();it++)
+        PairVector<double, double>::type pairs(parsePairVector<double, double>("9:13,10.9:18,28:928.8"));
+        for (PairVector<double, double>::const_iterator it=pairs.begin();it!=pairs.end();it++)
         {
             std::cout << it->first << " " << it->second << std::endl;
         }

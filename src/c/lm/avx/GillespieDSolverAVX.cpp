@@ -888,6 +888,13 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
             }
             createdOutput = true;
         }
+
+        // if we created an output for this work unit part, set its work unit output options
+        if (createdOutput)
+        {
+            if (workUnitOutputPrefix.size() > 0) output[i]->set_record_name_prefix(workUnitOutputPrefix);
+            output[i]->set_condense_output(workUnitCondenseOutput);
+        }
     }
 
     // If the output message has any data, send it.
