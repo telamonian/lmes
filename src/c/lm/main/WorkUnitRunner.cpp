@@ -74,7 +74,7 @@ namespace lm {
 namespace main {
 
 WorkUnitRunner::WorkUnitRunner(const lm::message::StartWorkUnitRunner& msg)
-    :communicator(lm::MPI::worldRank,threadNumber),properties(msg),solver(NULL)
+:communicator(lm::MPI::worldRank,threadNumber),properties(msg),solver(NULL)
 {
     id = msg.work_unit_runner_id();
 }

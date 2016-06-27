@@ -62,7 +62,6 @@ public:
                  WAITING};
     static const std::string status_strings[];
 
-    Trajectory(const lm::io::TrajectoryState& initialState, uint64_t id, uint64_t phase);
     Trajectory(const lm::input::Input& input, uint64_t id, uint64_t phase, bool reversed=false);
     template <typename InputIterator> Trajectory::Trajectory(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd, uint64_t id, uint64_t phase)
     :id(id),simulationPhase(phase),status(NOT_STARTED),state(),numberWorkUnitsPerformed(0)
@@ -73,6 +72,7 @@ public:
 
         init(input);
     }
+    Trajectory(const lm::io::TrajectoryState& initialState, uint64_t id, uint64_t phase);
     virtual ~Trajectory();
 
     // accessors

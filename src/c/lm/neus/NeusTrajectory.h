@@ -52,8 +52,8 @@ class NeusTrajectory : public lm::trajectory::Trajectory
 public:
 //    FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::input::ReactionModel& reactionModel,const lm::input::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings& tilings,bool reversed=false);
 //    FFluxTrajectory(uint64_t id,uint ffluxPhase,const lm::input::ReactionModel& reactionModel,const lm::input::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters,lm::tiling::Tilings& tilings,lm::io::TrajectoryState* state);
-    NeusTrajectory(uint64_t id,uint ffluxPhase,lm::input::Input& input,bool reversed=false);
-    NeusTrajectory(uint64_t id,uint ffluxPhase,lm::input::Input& input,lm::io::TrajectoryState* state);
+    NeusTrajectory(const lm::input::Input& input, uint64_t id, uint ffluxPhase, bool reversed=false);
+    NeusTrajectory(const lm::io::TrajectoryState& state, uint64_t id,uint ffluxPhase);
     virtual ~NeusTrajectory();
     //virtual void initZerothTrajectory();
     virtual void initLimits();

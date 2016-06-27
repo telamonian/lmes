@@ -100,7 +100,8 @@ typedef double              si_time_t;
 
 template<typename T0, typename T1> struct PairVector
 {
-    typedef vector<std::pair<T0, T1> > T;
+    typedef std::pair<T0, T1> Pair;
+    typedef vector<Pair> T;
     typedef typename T::iterator iterator;
     typedef typename T::const_iterator const_iterator;
 

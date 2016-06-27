@@ -50,7 +50,13 @@
 #include "lm/io/LimitTracking.pb.h"
 #include "lm/protowrap/NDArray.h"
 #include "lm/protowrap/RepeatedMap.h"
+#include "lm/rng/RandomGenerator.h"
+#include "lm/rng/XORShift.h"
 #include "lm/Types.h"
+
+#ifdef OPT_CUDA
+#include "lm/rng/XORWow.h"
+#endif
 
 using lm::protowrap::RepeatedMap;
 
@@ -79,7 +85,7 @@ void setPointKey(PointMsg* pointMsg, const PointKey& pointKey)
     }
 }
 typedef RepeatedMap<EndPointMsg, PointKey, &getPointKey, &setPointKey> EndPointMap;
-typedef std::map<PointKey, EndPointMap> EndPointMapMap;
+typedef PairVector<double, lm::fflux::io::EndPoint*> EndPointVector;
 
 //class EndPoint
 //{
@@ -90,7 +96,7 @@ typedef std::map<PointKey, EndPointMap> EndPointMapMap;
 //{
 //public:
 //    StartPointMsg* msgPtr;
-//    EndPointMap sucessfulEndPointMap;
+//    EndPointMap successfulEndPointMap;
 //    EndPointMap failedEndPointMap;
 //};
 //typedef std::map<PointKey, StartPoint> StartPointMap;
@@ -101,8 +107,20 @@ public:
     typedef FFluxPhaseOutputMsg Msg;
     typedef lm::protowrap::Repeated<lm::io::LimitTracking> TrackingsWrap;
 
-    FFluxPhaseOutput(): msgPtr(NULL) {}
-    FFluxPhaseOutput(Msg* msgMutablePtr): msgPtr(NULL) {setMsg(msgMutablePtr);}
+    FFluxPhaseOutput(size_t randomCacheSize=10*KIBI)
+    :msgPtr(NULL),rng(NULL),randomDoublesStart(NULL),randomDoubles(NULL),randomDoublesEnd(NULL),randomIndexStart(NULL),
+     randomIndex(NULL),randomIndexEnd(NULL),randomCacheSize(randomCacheSize)
+    {
+        initRandomIndex(randomCacheSize);
+    }
+    FFluxPhaseOutput(Msg* msgMutablePtr, size_t randomCacheSize=10*KIBI)
+    :msgPtr(NULL),rng(NULL),randomDoublesStart(NULL),randomDoubles(NULL),randomDoublesEnd(NULL),randomIndexStart(NULL),
+     randomIndex(NULL),randomIndexEnd(NULL),randomCacheSize(randomCacheSize)
+    {
+        initRandomIndex(randomCacheSize);
+        setMsg(msgMutablePtr);
+    }
+    ~FFluxPhaseOutput() {destructRng(); destructRandomIndex();}
 
 // mutators
     void addEndPointPhaseZero(const lm::io::TrajectoryState& trajectoryState, int burnInCount)
@@ -132,9 +150,11 @@ public:
         for (int i=burnInCount;i<rows;i++)
         {
             pointKey.assign(speciesCountDataForwardFlux[i*columns], speciesCountDataForwardFlux[(i + 1)*columns]);
-            EndPointMsg* endPointMsg = sucessfulEndPointMap[pointKey];
+            EndPointMsg* endPointMsg = successfulEndPointMap[pointKey];
             endPointMsg->set_count(endPointMsg->count() + 1);
             endPointMsg->add_times(timeDataForwardFlux[i]);
+
+            endPointVector.push_back(std::make_pair(timeDataForwardFlux[i], endPointMsg));
         }
 
         if (speciesCountWrap.compressed_deflate()) delete[] speciesCountDataForwardFlux;
@@ -236,9 +256,11 @@ public:
 
             uint columns = speciesCountWrap.shape(1);
             pointKey.assign(speciesCountData[0], speciesCountData[columns]);
-            EndPointMsg* endPointMsg = sucessfulEndPointMap[pointKey];
+            EndPointMsg* endPointMsg = successfulEndPointMap[pointKey];
             endPointMsg->set_count(endPointMsg->count() + 1);
             endPointMsg->add_times(timeDataForwardFlux[0]);
+
+            endPointVector.push_back(std::make_pair(timeDataForwardFlux[0], endPointMsg));
 
             if (speciesCountWrap.compressed_deflate()) delete[] speciesCountData;
         }
@@ -246,6 +268,16 @@ public:
 
         if (timeWrapBackwardFlux.compressed_deflate()) delete[] timeWrapBackwardFlux;
         if (timeWrapForwardFlux.compressed_deflate()) delete[] timeDataForwardFlux;
+    }
+
+    const EndPointVector::Pair& getRandomEndPoint()
+    {
+        // refill the cache of random numbers, if needed
+        if (randomIndex==randomIndexEnd) fillRandomIndex();
+
+        uint32_t i = *randomIndex;
+        randomIndex++;
+        return endPointVector[i];
     }
 
     Msg* getMsg()
@@ -257,11 +289,90 @@ public:
     {
         msgPtr = newMsgMutablePtr;
 
-        sucessfulEndPointMap.setRepFieldPtr(getMsg()->mutable_sucessful_trajectory_end_points());
+        successfulEndPointMap.setRepFieldPtr(getMsg()->mutable_sucessful_trajectory_end_points());
+        rebuildEndPointVector();
+    }
+
+protected:
+    void initRng() {destructRng(); rng = new lm::rng::XORShift(0, 0);}
+    void initRng(int cudaDevice)
+    {
+        destructRng();
+
+        #ifdef OPT_CUDA
+        // Create the cuda based rng.
+        rng = new lm::rng::XORWow(cudaDevice, 0, 0, lm::rng::RandomGenerator::UNIFORM);
+        #endif
+
+        if (rng == NULL)
+        {
+            rng = new lm::rng::XORShift(0, 0);
+        }
+    }
+    void initRandomIndex(size_t size)
+    {
+        initRng();
+        destructRandomIndex();
+
+        randomCacheSize = size;
+        randomIndexStart = new uint32_t[randomCacheSize];
+        randomDoublesStart = new double[randomCacheSize];
+        
+        // set range pointers to the ends of the arrays, to match the start pointers
+        randomIndexEnd = randomIndexStart + randomCacheSize;
+        randomDoublesEnd = randomDoublesStart + randomCacheSize;
+    }
+
+    void fillRandomIndex()
+    {
+        // get a large quantity of random doubles
+        rng->getExpRandomDoubles(randomDoublesStart, randomCacheSize);
+
+        // set both randomIndex and randomDoubles to the front of their arrays
+        randomIndex = randomIndexStart;
+        randomDoubles = randomDoublesStart;
+        
+        // convert the random doubles into random uints that can be used to randomly lookup values in our table of sucessful trajectory endpoints
+        for (;randomIndex!=randomIndexEnd and randomDoubles!=randomDoublesEnd;randomIndex++,randomDoubles++)
+        {
+            *randomIndex = (uint32_t)floor(*randomDoubles*endPointVector.size());
+        }
+        
+        // reset the randomIndex ptr to the start of the array (randomDoubles is "used up", so don't reset that)
+        randomIndex = randomIndexStart;
+    }
+
+    void rebuildEndPointVector()
+    {
+        endPointVector.clear();
+
+        // iterate over all of the endpoints in the sucessful_trajectory_end_point repeated field
+        for (EndPointMap::const_iterator epit=successfulEndPointMap.begin();epit!=successfulEndPointMap.end();epit++)
+        {
+            // iterate over all of the times in the given endpoint
+            for (lm::protowrap::Repeated<double>::const_iterator tit=epit->times().begin();tit!=epit->times().end();tit++)
+            {
+                endPointVector.push_back(std::make_pair(*tit, &*epit));
+            }
+        }
+    }
+
+    void destructRng() {if (rng!=NULL) delete rng; rng=NULL;}
+    void destructRandomIndex()
+    {
+        if (randomIndexStart!=NULL) delete[] randomIndexStart; randomIndexStart = NULL;
+        randomIndex = NULL;
+        randomIndexEnd = NULL;
+
+        if (randomDoublesStart!=NULL) delete[] randomDoublesStart; randomDoublesStart = NULL;
+        randomDoubles = NULL;
+        randomDoublesEnd = NULL;
+
+        randomCacheSize = 0;
     }
 
 public:
-    EndPointMap sucessfulEndPointMap;
+    EndPointMap successfulEndPointMap;
 
 protected:
     Msg* msgPtr;
@@ -269,6 +380,15 @@ protected:
     lm::protowrap::NDArray<int32_t> speciesCountWrap;
     lm::protowrap::NDArray<double> timeWrapForwardFlux, timeWrapBackwardFlux, timeWrapOtherBasinEntry;
     TrackingsWrap trackingWrap;
+
+    // list of pointers into the sucessful_trajectory_end_points field. Part of the system used to randomly choose some of them
+    EndPointVector::T endPointVector;
+
+    // rng used for randomly choosing points from one of the point lists
+    lm::rng::RandomGenerator * rng;
+    uint32_t *randomIndexStart, *randomIndex, *randomIndexEnd;
+    double *randomDoublesStart, *randomDoubles, *randomDoublesEnd;
+    size_t randomCacheSize;
 };
 
 }

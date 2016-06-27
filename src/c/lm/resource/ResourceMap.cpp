@@ -53,7 +53,7 @@ namespace lm {
 namespace resource {
 
 ResourceMap::ResourceMap(list<string>hostnames, int defaultCPUCores, int defaultGPUDevices, string resourceFilename)
-    :defaultCPUCores(defaultCPUCores),defaultGPUDevices(defaultGPUDevices)
+:defaultCPUCores(defaultCPUCores),defaultGPUDevices(defaultGPUDevices)
 {
     // Create the initial allocation map from the hostnames.
     int i=0;
