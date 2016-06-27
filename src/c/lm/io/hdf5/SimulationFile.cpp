@@ -2519,7 +2519,8 @@ void Hdf5File::getLattice(uint64_t replicate, unsigned int latticeIndex, lm::rdm
 
 void Hdf5File::closeReplicate(uint64_t replicate) throw(HDF5Exception)
 {
-    map<uint64_t,ReplicateHandles *>::iterator it = openReplicates.find(replicate);
+    ReplicateHandleMap::Key replicateKey(recordNamePrefix, replicate);
+    ReplicateHandleMap::iterator it = openReplicates.find(replicateKey);
     if (it != openReplicates.end())
     {
         ReplicateHandles * handles = it->second;
@@ -2531,7 +2532,7 @@ void Hdf5File::closeReplicate(uint64_t replicate) throw(HDF5Exception)
 
 void Hdf5File::closeAllReplicates() throw(HDF5Exception)
 {
-    for (map<uint64_t,ReplicateHandles *>::iterator it=openReplicates.begin(); it != openReplicates.end(); it++)
+    for (ReplicateHandleMap::iterator it=openReplicates.begin(); it != openReplicates.end(); it++)
     {
         ReplicateHandles * handles = it->second;
         closeReplicateHandles(handles);

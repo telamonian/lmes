@@ -98,7 +98,10 @@ void Tilings::init(const lm::input::Tilings& newTilingsBuf, const lm::oparam::OP
 void Tilings::init()
 {
     clearTilingMap();
-    for (TilingIterator t_it=getTilingsBuf()->tilings().begin();t_it!=getTilingsBuf()->tilings().end();++t_it) initTiling(&*t_it);
+    for (TilingIterator t_it=getTilingsBuf()->mutable_tilings()->begin();t_it!=getTilingsBuf()->mutable_tilings()->end();++t_it)
+    {
+        initTiling(&*t_it);
+    }
 }
 
 void Tilings::initTiling(lm::input::Tiling* tiling)

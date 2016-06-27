@@ -63,15 +63,18 @@ public:
     static const std::string status_strings[];
 
     Trajectory(const lm::input::Input& input, uint64_t id, uint64_t phase, bool reversed=false);
-    template <typename InputIterator> Trajectory::Trajectory(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd, uint64_t id, uint64_t phase)
+
+    template <typename InputIterator>
+    Trajectory(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd, uint64_t id, uint64_t phase, double startTime=0.0)
     :id(id),simulationPhase(phase),status(NOT_STARTED),state(),numberWorkUnitsPerformed(0)
     {
         initializeState();
         // Initialize the species counts
-        initializeSpeciesCounts(input, speciesStart, speciesEnd);
+        initializeSpeciesCounts(input, speciesStart, speciesEnd, startTime);
 
         init(input);
     }
+
     Trajectory(const lm::io::TrajectoryState& initialState, uint64_t id, uint64_t phase);
     virtual ~Trajectory();
 
@@ -106,7 +109,7 @@ protected:
     // initializers
     virtual void initializeState();
     virtual void initializeSpeciesCounts(const lm::input::Input& input, bool reversed=false);
-    template <typename InputIterator> virtual void initializeSpeciesCounts(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd)
+    template <typename InputIterator> void initializeSpeciesCounts(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd, double startTime=0.0)
     {
         lm::io::SpeciesCounts* sc = state.mutable_cme_state()->mutable_species_counts();
         sc->set_trajectory_id(id);
@@ -116,7 +119,7 @@ protected:
             sc->add_species_count(*speciesStart);
         }
         sc->set_number_species(sc->species_count_size());
-        sc->add_time(0.0);
+        sc->add_time(startTime);
 
         // if we have a reactionModel, check that it's consistent with the size of the range we used for the species counts
         if (input.hasReactionModel())

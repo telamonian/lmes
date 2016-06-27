@@ -44,6 +44,8 @@
 #include <map>
 #include <string>
 
+#include "lm/Exceptions.h"
+
 using std::list;
 using std::map;
 using std::string;
@@ -78,6 +80,27 @@ public:
     void registerClass(string baseClassName, string className, ClassAllocator allocator);
     void registerClassesFromExternalLibrary(string filename);
     void* allocateObjectOfClass(string baseClassName, string className);
+
+    // TODO: right now this is a reasonable hack, but opens up many ways for a person to shoot themselves in the foot at runtime. Can probably be improved
+    template <typename Arg0>
+    void* allocateObjectOfClass(string baseClassName, string className, Arg0 arg0)
+    {
+        if (knownClasses.count(baseClassName) == 1)
+        {
+            map<string,ClassAllocator> knownSubclasses = knownClasses[baseClassName];
+            if (knownSubclasses.count(className) == 1)
+            {
+                void* (*allocator)(Arg0) = (void* (*)(Arg0))knownSubclasses[className];
+                return allocator(arg0);
+            }
+        }
+        throw Exception("No allocator found for baseclass/class", baseClassName.c_str(), className.c_str());
+    }
+
+#if __cplusplus > 199711L
+    // TODO: variadic template implementation of allocateObjectOfClass goes here. fun project for another day
+#endif
+
     list<string> getAllSubclasses(string baseClassName);
     void printRegisteredClasses();
 

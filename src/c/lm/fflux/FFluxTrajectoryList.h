@@ -36,8 +36,8 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_FFLUX_FFLUXTRAJECTORYLIST_H
-#define LM_FFLUX_FFLUXTRAJECTORYLIST_H
+#ifndef LM_FFLUX_FFLUXTRAJECTORYLIST_H_
+#define LM_FFLUX_FFLUXTRAJECTORYLIST_H_
 
 #include <google/protobuf/repeated_field.h>
 #include <map>
@@ -45,6 +45,7 @@
 #include <vector>
 
 #include "lm/fflux/FFluxTrajectory.h"
+#include "lm/fflux/input/FFluxPhase.pb.h"
 #include "lm/input/Input.h"
 #include "lm/io/FFluxOutput.pb.h"
 #include "lm/input/ReactionModel.pb.h"
@@ -71,7 +72,7 @@ class FFluxTrajectoryList : public lm::trajectory::TrajectoryList
 {
 public:
     FFluxTrajectoryList();
-    FFluxTrajectoryList(const lm::protowrap::FFluxPhaseOutput& previousPhaseOutput);
+    FFluxTrajectoryList(const lm::fflux::input::FFluxPhase& ffluxPhase, const lm::protowrap::FFluxPhaseOutput& previousPhaseOutput);
 //    FFluxTrajectoryList(uint64_t simulationPhase, lm::input::Input& input, lm::message::Communicator& communicator, uint64_t simultaneousTrajectoryCount);
     virtual ~FFluxTrajectoryList() {}
 

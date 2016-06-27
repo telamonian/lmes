@@ -68,15 +68,15 @@ TrajectoryList::TrajectoryList(): count(0), simulationPhaseIndex(0)
 {
 }
 
-TrajectoryList::TrajectoryList(const lm::input::SimulationPhase& phase): count(0), simulationPhaseIndex(phase.id())
-{
-    init(phase.trajectory_states());
-}
-
-TrajectoryList::TrajectoryList(const lm::input::SimulationPhase& phase, const TrajectoryList& previousList): count(previousList.count), simulationPhaseIndex(phase.id())
-{
-    init(previousList);
-}
+//TrajectoryList::TrajectoryList(const lm::input::SimulationPhase& phase): count(0), simulationPhaseIndex(phase.id())
+//{
+//    init(phase.trajectory_states());
+//}
+//
+//TrajectoryList::TrajectoryList(const lm::input::SimulationPhase& phase, const TrajectoryList& previousList): count(previousList.count), simulationPhaseIndex(phase.id())
+//{
+//    init(previousList);
+//}
 
 TrajectoryList::~TrajectoryList()
 {
@@ -84,25 +84,25 @@ TrajectoryList::~TrajectoryList()
 }
 
 // initializer
-void TrajectoryList::init(const Repeated<lm::io::TrajectoryState>::GoogleT& initialStates)
-{
-    for (Repeated<lm::io::TrajectoryState>::const_iterator it=initialStates.begin(); it!=initialStates.end(); it++)
-    {
-        uint64_t id = count++;
-        trajectories[id] = initTrajectory(id, getSimulationPhaseIndex(), *it);
-        waitingTrajectories[id] = trajectories[id];
-    }
-}
-
-void TrajectoryList::init(const TrajectoryList& previousList)
-{
-    for (TrajectoryMap::const_iterator it=previousList.finishedTrajectories.begin(); it!=previousList.finishedTrajectories.end(); it++)
-    {
-        uint64_t id = count++;
-        trajectories[id] = initTrajectory(id, getSimulationPhaseIndex(), it->second->getState());
-        waitingTrajectories[id] = trajectories[id];
-    }
-}
+//void TrajectoryList::init(const Repeated<lm::io::TrajectoryState>::GoogleT& initialStates)
+//{
+//    for (Repeated<lm::io::TrajectoryState>::const_iterator it=initialStates.begin(); it!=initialStates.end(); it++)
+//    {
+//        uint64_t id = count++;
+//        trajectories[id] = initTrajectory(id, getSimulationPhaseIndex(), *it);
+//        waitingTrajectories[id] = trajectories[id];
+//    }
+//}
+//
+//void TrajectoryList::init(const TrajectoryList& previousList)
+//{
+//    for (TrajectoryMap::const_iterator it=previousList.finishedTrajectories.begin(); it!=previousList.finishedTrajectories.end(); it++)
+//    {
+//        uint64_t id = count++;
+//        trajectories[id] = initTrajectory(id, getSimulationPhaseIndex(), it->second->getState());
+//        waitingTrajectories[id] = trajectories[id];
+//    }
+//}
 
 Trajectory* TrajectoryList::initTrajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryState& initialState)
 {
@@ -250,7 +250,7 @@ void TrajectoryList::incrementSimulationPhase()
 
 TrajectoryMap* TrajectoryList::getTrajectoryMap(Trajectory::Status status)
 {
-    return const_cast<TrajectoryMap*>(const_cast<const TrajectoryList*>(this)->getTrajectoryMap(status));
+    return const_cast<TrajectoryMap*>(&const_cast<const TrajectoryList*>(this)->getTrajectoryMap(status));
 }
 
 void TrajectoryList::setAll(Trajectory::Status oldStatus, Trajectory::Status newStatus)

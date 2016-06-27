@@ -68,6 +68,11 @@ namespace input {
 class Input
 {
 public:
+    static bool registered;
+    static bool registerClass();
+    static void* allocateObject(const lm::io::hdf5::Hdf5File& file);
+
+public:
     Input(const lm::io::hdf5::Hdf5File& file);
     virtual ~Input();
 

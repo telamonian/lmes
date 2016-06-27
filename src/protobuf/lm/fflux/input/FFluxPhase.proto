@@ -42,24 +42,24 @@ package lm.fflux.input;
 import "lm/fflux/input/FFluxPhaseLimit.proto";
 import "lm/input/OutputOptions.proto";
 
-message SimulationPhase {
+message FFluxPhase {
     enum TrajectoryGeneration {
         NONE=0;
         DUPLICATE=1;
         RANDOM=2;
     }
 
-    required uint64 fflux_phase_index                    = 1;
-    required uint64 tiling_id                            = 2;
-    required uint64 basin_index                          = 3;
+    required uint64 fflux_phase_index                   = 1;
+    required uint64 tiling_id                           = 2;
+    required uint64 basin_index                         = 3;
 
-    required uint64 first_trajectory_id                  = 21;
-    optional uint64 last_trajectory_id                   = 22;
-    optional TrajectoryGeneration trajectory_generation  = 23;
+    required uint64 first_trajectory_id                 = 21;
+    optional uint64 last_trajectory_id                  = 22;
+    optional TrajectoryGeneration trajectory_generation = 23;
 
-    optional lm.fflux.input.PhaseLimit phase_limit       = 31;
+    optional lm.fflux.input.FFluxPhaseLimit phase_limit = 31;
 
-    optional lm.input.OutputOptions output_options       = 41;
+    optional lm.input.OutputOptions output_options      = 41;
 
-    optional uint64 batch_size                           = 51;
+    optional uint64 batch_size                          = 51;
 }

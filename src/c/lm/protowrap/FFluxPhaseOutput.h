@@ -108,19 +108,20 @@ public:
     typedef lm::protowrap::Repeated<lm::io::LimitTracking> TrackingsWrap;
 
     FFluxPhaseOutput(size_t randomCacheSize=10*KIBI)
-    :msgPtr(NULL),rng(NULL),randomDoublesStart(NULL),randomDoubles(NULL),randomDoublesEnd(NULL),randomIndexStart(NULL),
-     randomIndex(NULL),randomIndexEnd(NULL),randomCacheSize(randomCacheSize)
+    :msgPtr(NULL),rng(NULL),randomDoublesStart(NULL),randomDoubles(NULL),randomDoublesEnd(NULL),randomIndexesStart(NULL),
+     randomIndexes(NULL),randomIndexesEnd(NULL),randomCacheSize(randomCacheSize),endPointVectorDirty(true)
     {
-        initRandomIndex(randomCacheSize);
+        initRandomIndexes(randomCacheSize);
     }
     FFluxPhaseOutput(Msg* msgMutablePtr, size_t randomCacheSize=10*KIBI)
-    :msgPtr(NULL),rng(NULL),randomDoublesStart(NULL),randomDoubles(NULL),randomDoublesEnd(NULL),randomIndexStart(NULL),
-     randomIndex(NULL),randomIndexEnd(NULL),randomCacheSize(randomCacheSize)
+    :msgPtr(NULL),rng(NULL),randomDoublesStart(NULL),randomDoubles(NULL),randomDoublesEnd(NULL),randomIndexesStart(NULL),
+     randomIndexes(NULL),randomIndexesEnd(NULL),randomCacheSize(randomCacheSize),endPointVectorDirty(true)
     {
-        initRandomIndex(randomCacheSize);
+        initRandomIndexes(randomCacheSize);
         setMsg(msgMutablePtr);
     }
-    ~FFluxPhaseOutput() {destructRng(); destructRandomIndex();}
+    ~FFluxPhaseOutput() {destructRng();
+        destructRandomIndexes();}
 
 // mutators
     void addEndPointPhaseZero(const lm::io::TrajectoryState& trajectoryState, int burnInCount)
@@ -132,7 +133,7 @@ public:
 
         // consistency checks
         if (trackingWrap.size()!=3) throw ConsistencyException("Finished Forward Flux phase zero trajectories should have 3 tracked limits in their outputs; trajectory id %llu has %d", trajectoryState.trajectory_id(), trackingWrap.size());
-        for (int i=0;i<3;i++) {if (trackingWrap.Get(i).limit_id()!=i) throw ConsistencyException("Finished Forward Flux phase zero trajectories should have 3 tracked limits in their outputs with limit_ids {0, 1, 2}; trajectory id %llu has limit tracking index %d with limit_id %d", trajectoryState.trajectory_id(), i, trackingWrap.Get(i).limit_id();}
+        for (int i=0;i<3;i++) {if (trackingWrap.Get(i).limit_id()!=i) throw ConsistencyException("Finished Forward Flux phase zero trajectories should have 3 tracked limits in their outputs with limit_ids {0, 1, 2}; trajectory id %llu has limit tracking index %d with limit_id %d", trajectoryState.trajectory_id(), i, trackingWrap.Get(i).limit_id());}
 
         // fetch forth some data from limit 0 (ie forward flux) tracking
         speciesCountWrap.setMsg(trackingWrap.Get(0).species_counts());
@@ -231,7 +232,7 @@ public:
 
         // consistency checks
         if (trackingWrap.size()!=2) throw ConsistencyException("Finished Forward Flux phase n>0 trajectories should have 2 tracked limits in their outputs; trajectory id %llu has %d", trajectoryState.trajectory_id(), trackingWrap.size());
-        for (int i=0;i<2;i++) {if (trackingWrap.Get(i).limit_id()!=i) throw ConsistencyException("Finished Forward Flux phase n>0 trajectories should have 2 tracked limits in their outputs with limit_ids {0, 1}; trajectory id %llu has limit tracking index %d with limit_id %d", trajectoryState.trajectory_id(), i, trackingWrap.Get(i).limit_id();}
+        for (int i=0;i<2;i++) {if (trackingWrap.Get(i).limit_id()!=i) throw ConsistencyException("Finished Forward Flux phase n>0 trajectories should have 2 tracked limits in their outputs with limit_ids {0, 1}; trajectory id %llu has limit tracking index %d with limit_id %d", trajectoryState.trajectory_id(), i, trackingWrap.Get(i).limit_id());}
 
         // fetch forth some time data from limit 0 (ie backward flux) and limit 1 (ie forward flux) tracking
         timeWrapBackwardFlux.setMsg(trackingWrap.Get(0).times());
@@ -266,17 +267,15 @@ public:
         }
         else throw ConsistencyException("Finished Forward Flux phase n>0 trajectory %llu has recorded %d backward flux events and %d forward flux events; it should have either 1 forward or 1 backward flux event, and not both", trajectoryState.trajectory_id(), timeWrapBackwardFlux.size(), timeWrapForwardFlux.size());
 
-        if (timeWrapBackwardFlux.compressed_deflate()) delete[] timeWrapBackwardFlux;
+        if (timeWrapBackwardFlux.compressed_deflate()) delete[] timeDataBackwardFlux;
         if (timeWrapForwardFlux.compressed_deflate()) delete[] timeDataForwardFlux;
     }
 
     const EndPointVector::Pair& getRandomEndPoint()
     {
-        // refill the cache of random numbers, if needed
-        if (randomIndex==randomIndexEnd) fillRandomIndex();
 
-        uint32_t i = *randomIndex;
-        randomIndex++;
+        uint32_t i = *randomIndexes;
+        randomIndexes++;
         return endPointVector[i];
     }
 
@@ -309,18 +308,42 @@ protected:
             rng = new lm::rng::XORShift(0, 0);
         }
     }
-    void initRandomIndex(size_t size)
+    void initRandomIndexes(size_t size)
     {
         initRng();
-        destructRandomIndex();
+        destructRandomIndexes();
 
         randomCacheSize = size;
-        randomIndexStart = new uint32_t[randomCacheSize];
+        randomIndexesStart = new uint32_t[randomCacheSize];
         randomDoublesStart = new double[randomCacheSize];
         
         // set range pointers to the ends of the arrays, to match the start pointers
-        randomIndexEnd = randomIndexStart + randomCacheSize;
+        randomIndexesEnd = randomIndexesStart + randomCacheSize;
         randomDoublesEnd = randomDoublesStart + randomCacheSize;
+    }
+
+    uint32_t getRandomIndex()
+    {
+        // refill the cache of random numbers, if needed
+        if (randomIndexes==randomIndexesEnd) fillRandomIndex();
+
+        // if endPointVector has changed in size since the last time we ran .fillRandomIndex(), rescale a randomDouble on the fly to get a randomIndex
+        if (endPointVectorDirty)
+        {
+            randomIndexes++;
+            return getIndexFromDouble(*randomDoubles++);
+        }
+            // otherwise, our cache of randomIndexes is still good, so just take from that
+        else
+        {
+            randomDoubles++;
+            return *randomIndexes++;
+        }
+    }
+
+    inline uint32_t getIndexFromDouble(double d)
+    {
+        return static_cast<uint32_t>(floor(*randomDoubles*endPointVector.size()));
     }
 
     void fillRandomIndex()
@@ -328,22 +351,24 @@ protected:
         // get a large quantity of random doubles
         rng->getExpRandomDoubles(randomDoublesStart, randomCacheSize);
 
-        // set both randomIndex and randomDoubles to the front of their arrays
-        randomIndex = randomIndexStart;
+        // set both randomIndexes and randomDoubles to the front of their arrays
+        randomIndexes = randomIndexesStart;
         randomDoubles = randomDoublesStart;
         
         // convert the random doubles into random uints that can be used to randomly lookup values in our table of sucessful trajectory endpoints
-        for (;randomIndex!=randomIndexEnd and randomDoubles!=randomDoublesEnd;randomIndex++,randomDoubles++)
+        for (;randomIndexes!=randomIndexesEnd and randomDoubles!=randomDoublesEnd;randomIndexes++,randomDoubles++)
         {
-            *randomIndex = (uint32_t)floor(*randomDoubles*endPointVector.size());
+            *randomIndexes = getIndexFromDouble(*randomDoubles);
         }
         
-        // reset the randomIndex ptr to the start of the array (randomDoubles is "used up", so don't reset that)
-        randomIndex = randomIndexStart;
+        // reset the ptrs
+        randomIndexes = randomIndexesStart;
+        randomDoubles = randomDoublesStart;
     }
 
     void rebuildEndPointVector()
     {
+        size_t oldSize = endPointVector.size();
         endPointVector.clear();
 
         // iterate over all of the endpoints in the sucessful_trajectory_end_point repeated field
@@ -355,14 +380,16 @@ protected:
                 endPointVector.push_back(std::make_pair(*tit, &*epit));
             }
         }
+
+        if (endPointVector.size()!=oldSize) endPointVectorDirty = true;
     }
 
     void destructRng() {if (rng!=NULL) delete rng; rng=NULL;}
-    void destructRandomIndex()
+    void destructRandomIndexes()
     {
-        if (randomIndexStart!=NULL) delete[] randomIndexStart; randomIndexStart = NULL;
-        randomIndex = NULL;
-        randomIndexEnd = NULL;
+        if (randomIndexesStart!=NULL) delete[] randomIndexesStart; randomIndexesStart = NULL;
+        randomIndexes = NULL;
+        randomIndexesEnd = NULL;
 
         if (randomDoublesStart!=NULL) delete[] randomDoublesStart; randomDoublesStart = NULL;
         randomDoubles = NULL;
@@ -384,11 +411,14 @@ protected:
     // list of pointers into the sucessful_trajectory_end_points field. Part of the system used to randomly choose some of them
     EndPointVector::T endPointVector;
 
-    // rng used for randomly choosing points from one of the point lists
+    // rng used for randomly choosing points from one of the point lists. Caches large quantities of random numbers in an attempt to reduce the turnaround time of WorkUnitFinished messages on the supervisor
     lm::rng::RandomGenerator * rng;
-    uint32_t *randomIndexStart, *randomIndex, *randomIndexEnd;
+    uint32_t *randomIndexesStart, *randomIndexes, *randomIndexesEnd;
     double *randomDoublesStart, *randomDoubles, *randomDoublesEnd;
     size_t randomCacheSize;
+
+    // flag that indicates if the length of endPointVector has changed since we last refilled randomIndexes
+    bool endPointVectorDirty;
 };
 
 }

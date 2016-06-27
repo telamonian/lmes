@@ -82,7 +82,7 @@ template <TrajLimEnums::StoppingCondition sc, bool includeEndpoint, typename T> 
 
 /*
  * some regexes to help convert the check template function to check macros
- * /
+ */
 // template <> struct checkLimit<EH::(\w+), (\w+)>.+return (\(.+\);).+
 // define check_limit_$1_$2(val, limitVal, checkBool) checkBool = $3
 // define check_limit_$1_$2(prevVal, val, limitVal, checkBool) checkBool = $3

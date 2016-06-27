@@ -110,8 +110,6 @@ public:
 class Hdf5File : public SimulationFile
 {
 public:
-    typedef PairMap<string, uint64_t, ReplicateHandles *> ReplicateHandleMap;
-
     static const uint MIN_VERSION;
     static const uint CURRENT_VERSION;
     static const uint MAX_REACTION_RATE_CONSTANTS;
@@ -323,7 +321,7 @@ public:
         hid_t speciesCountsDataset, speciesCountTimesDataset;
         ReplicateHandles():group(H5I_INVALID_HID),speciesCountsDataset(H5I_INVALID_HID),speciesCountTimesDataset(H5I_INVALID_HID) {}
     };
-
+    typedef PairMap<string, uint64_t, ReplicateHandles *> ReplicateHandleMap;
 	
 protected:
     virtual void open() throw(IOException,HDF5Exception,Exception);

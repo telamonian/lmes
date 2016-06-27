@@ -1080,7 +1080,7 @@ bool GillespieDSolverAVX::isTrajectoryOutsideLimitsAVX()
     for (uint i=0; i<numberLimits; i++)
     {
         int outsideLimitMask=0;
-        TrajectoryLimit& l = limits[i];
+        lm::limit::TrajectoryLimit& l = limits[i];
         avxd limitValue = _mm256_load_pd(&limitValues[i*DOUBLES_PER_AVX]);
         avxd comp1;
         avxd comp2;

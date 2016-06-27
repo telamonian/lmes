@@ -50,7 +50,7 @@ import "lm/io/SpeciesCounts.proto";
 import "lm/io/SpeciesTimeSeries.proto";
 
 message WorkUnitOutput {
-    optional string output_prefix                                                      = 1;
+    optional string record_name_prefix                                                 = 1;
     optional bool condense_output                                                      = 2 [default=false];
 
     // trajectory state/time series outputs

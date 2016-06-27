@@ -40,6 +40,7 @@
 #include <string>
 #include <vector>
 
+#include "lm/ClassFactory.h"
 #include "lm/EnumHelper.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/input/Input.h"
@@ -59,6 +60,19 @@ using std::vector;
 
 namespace lm {
 namespace input {
+
+bool Input::registered=Input::registerClass();
+
+bool Input::registerClass()
+{
+    lm::ClassFactory::getInstance().registerClass("lm::io::OutputWriter","lm::io::sfile::Input",(ClassAllocator)&Input::allocateObject);
+    return true;
+}
+
+void* Input::allocateObject(const lm::io::hdf5::Hdf5File& file)
+{
+    return new Input(file);
+}
 
 Input::Input(const lm::io::hdf5::Hdf5File& file)
 :reactionModelPresent(false),diffusionModelPresent(false),orderParametersPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),
@@ -398,7 +412,7 @@ bool Input::parseAndSet(const string key, SetterReturnT (T::*setterFunc)(ValT), 
 }
 
 // specialized version of parseAndSet for flag options (ie options that can be only true or false). If the flag key is present in simulationParameters then the flag is set to true (regardless of its value in simulationParameters), otherwise the flag is set to false
-inline bool Input::parseAndSetFlag(const std::string key, bool* flagPtr, bool* resultFlag0=NULL, bool* resultFlag1=NULL)
+inline bool Input::parseAndSetFlag(const std::string key, bool* flagPtr, bool* resultFlag0, bool* resultFlag1)
 {
     bool result = (simulationParameters.count(key)!=0);
     *flagPtr = result;

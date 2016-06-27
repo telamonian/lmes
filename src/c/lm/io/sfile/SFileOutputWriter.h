@@ -66,7 +66,7 @@ public:
     static void* allocateObject();
 
 public:
-    SFileOutputWriter(std::string recordNamePrefix=std::string(""));
+    SFileOutputWriter();
     virtual ~SFileOutputWriter();
     virtual void initialize();
     virtual void finalize();

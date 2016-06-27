@@ -57,6 +57,8 @@ using lm::limit::LimitValueT;
 namespace lm {
 namespace fflux {
 
+FFluxInput::FFluxInput(const lm::io::hdf5::Hdf5File& file): Input(file),ffluxPhaseLimitLists(_ffluxOptions.mutable_fflux_phase_limit_lists()) {}
+
 void FFluxInput::init(const lm::io::hdf5::Hdf5File& file)
 {
     // run some initializers from the base class (but skip Limits and OutputOptions, as these need to be set every phase rather than just once)
@@ -74,13 +76,16 @@ void FFluxInput::init(const lm::io::hdf5::Hdf5File& file)
 // Get the output options.
 void FFluxInput::initFFluxOptions(const lm::io::hdf5::Hdf5File& file)
 {
-    precisionGoalPresent = parseAndSet("precisionGoal", &FFluxOptions::set_precision_goal, ffluxOptions);
-    parseAndSet("precisionGoalConfidence", &FFluxOptions::set_precision_goal_confidence, ffluxOptions);
+    parseAndSet("precisionGoal", &FFluxOptions::set_precision_goal, _ffluxOptions);
+    parseAndSet("precisionGoalConfidence", &FFluxOptions::set_precision_goal_confidence, _ffluxOptions);
 
-    parseAndSet("phaseZeroBurnInCount", &FFluxOptions::set_phase_zero_burn_in_count, ffluxOptions);
+    parseAndSet("phaseZeroBurnInCount", &FFluxOptions::set_phase_zero_burn_in_count, _ffluxOptions);
 
     // set a default precision
-    if (not hasPrecisionGoal() and not hasUserDefinedFFluxPhaseLimits()) ffluxOptions.set_precision_goal(.05);
+    if (not hasPrecisionGoal() and not hasUserDefinedFFluxPhaseLimitLists()) _ffluxOptions.set_precision_goal(.05);
+
+    // check the fflux options we just parsed for consistency
+    if (hasPrecisionGoal() and hasUserDefinedFFluxPhaseLimitLists()) throw ConsistencyException("precisionGoal and an explicit set of ffluxPhaseLimits cannot both be set in forward flux simulation input");
 }
 
 //bool FFluxInput::parseAndSetFFluxPhaseLimit(const std::string key, const std::string debugString)

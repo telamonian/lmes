@@ -58,7 +58,7 @@ template <typename ValT> struct _RepeatedSpecialization<ValT, false>
 
     // Returns the index of the first element of the wrapped RepeatedPtrField for which fieldVal==getterFunc(element), or -1 otherwise
     template <typename FieldValT>
-    static int Index(const FieldValT& fieldVal, FieldValT (ValT::*getterFunc)(), const RepT* repFieldConstPtr) const
+    static int Index(const FieldValT& fieldVal, FieldValT (ValT::*getterFunc)(), const RepT* repFieldConstPtr)
     {
         for (int index=0;index<repFieldConstPtr->size();index++)
         {
@@ -87,7 +87,7 @@ template <typename ValT> struct _RepeatedSpecialization<ValT, true>
     typedef google::protobuf::RepeatedField<ValT> RepT;
 
     // for numeric types stored in a RepeatedField, the getterFunc version of Index is a dummy function
-    template <typename T> static int Index(const T&, void*, void*) const {throw UnimplementedException("Index called with a getterFunc is unimplemented for the Repeated wrapper templated on a numeric type.");}
+    template <typename T> static int Index(const T&, void*, void*) {throw UnimplementedException("Index called with a getterFunc is unimplemented for the Repeated wrapper templated on a numeric type.");}
 
     // for numeric types stored in a RepeatedField, SetAll is a dummy function
     template <typename T> static void SetAll(const T&, void*, void*) {throw UnimplementedException("SetAll is unimplemented for the Repeated wrapper templated on a numeric type.");}
@@ -160,10 +160,10 @@ public:
 
     inline void reverse()
     {
-        int lastIndex = lastIndex();
+        int lastI = lastIndex();
         for (int i=0;i<size()/2;++i)
         {
-            SwapElements(i, lastIndex - i);
+            SwapElements(i, lastI - i);
         }
     }
 

@@ -76,10 +76,6 @@ public:
     //    void setFFluxPhase(uint newPhase) {ffluxPhase = newPhase;}
 
 protected:
-    // initializers
-    virtual void initializeState(const lm::input::Input& input, bool reversed=false);
-
-protected:
     uint64_t ffluxPhase;
     const lm::input::Input& input;
     // the simulation time when the trajectory last hit a limit (or 0.0)

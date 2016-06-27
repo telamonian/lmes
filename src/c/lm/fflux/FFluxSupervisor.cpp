@@ -98,10 +98,18 @@ FFluxSupervisor::~FFluxSupervisor()
 {
 }
 
+void FFluxSupervisor::init()
+{
+    // Initialize the FFluxInput pointer with the input file.
+    input = new lm::fflux::FFluxInput(lm::io::hdf5::Hdf5File(simulationInputFilename));
+
+    // Initialize the shadowed base class Input pointer
+    SimulationSupervisor::input = input;
+}
+
 void FFluxSupervisor::startSimulation()
 {
     buildSimulationStageList();
-    buildSimulationPhase();
 
     // Call parent method
     SimulationSupervisor::startSimulation();
@@ -109,9 +117,6 @@ void FFluxSupervisor::startSimulation()
 
 void FFluxSupervisor::buildSimulationStageList()
 {
-    if (input->hasPrecisionGoal() and input->hasUserDefinedFFluxPhaseLimits)
-        throw Exception("precisionGoal and an explicit set of ffluxPhaseLimits cannot both be set in forward flux simulation input");
-
     // build the stage list
     for (Repeated<lm::input::Tiling>::const_iterator tilingIt=input->getTilingsMsg().tilings().begin();tilingIt!=input->getTilingsMsg().tilings().end();++tilingIt)
     {
@@ -153,10 +158,15 @@ void FFluxSupervisor::addPilotStage(lm::fflux::input::FFluxStage* productionStag
     pilotStage->set_id(stageIndex++);
 }
 
-template <typename ValT>
-void FFluxSupervisor::addFFluxPhaseLimit(lm::fflux::input::FFluxStage* stage, FFPhaseLimEnums::StopCondition stopCondition, ValT value)
+virtual void FFluxSupervisor::addFFluxPhases(lm::fflux::input::FFluxStage* stage)
 {
-    lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit = stage->add_fflux_phase_limits();
+
+}
+
+template <typename ValT>
+void FFluxSupervisor::addFFluxPhaseLimit(lm::fflux::input::FFluxPhase* phase, FFPhaseLimEnums::StopCondition stopCondition, ValT value)
+{
+    lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit = phase->add_fflux_phase_limits();
 
     ffluxPhaseLimit->set_stop_condition(stopCondition);
     switch (stopCondition)

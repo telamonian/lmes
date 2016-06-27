@@ -44,7 +44,10 @@
 #include <string>
 
 #include "lm/fflux/input/FFluxOptions.pb.h"
+#include "lm/fflux/input/FFluxPhase.pb.h"
 #include "lm/fflux/input/FFluxPhaseLimit.pb.h"
+#include "lm/fflux/input/FFluxStage.pb.h"
+#include "lm/fflux/io/FFluxStageOutput.pb.h"
 #include "lm/input/Input.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/input/BoundaryConditions.pb.h"
@@ -74,9 +77,16 @@ public:
     virtual void initFFluxOptions(const lm::io::hdf5::Hdf5File& file);
 
 // accessors
-    const lm::fflux::input::FFluxOptions& getFFluxOptionsMsg() const {return ffluxOptions;}
-    bool hasPrecisionGoal() const {return precisionGoalPresent;}
-    bool hasUserDefinedFFluxPhaseLimits() const {return userDefinedFFluxPhaseLimitsPresent;}
+    const lm::fflux::input::FFluxOptions& ffluxOptions() const {return _ffluxOptions;}
+    double precisionGoal() const {return ffluxOptions().precision_goal();}
+    double precisionGoalConfidence() const {return ffluxOptions().precision_goal_confidence();}
+    const lm::protowrap::Repeated<lm::fflux::input::FFluxPhaseLimitList>& userDefinedFFluxPhaseLimitLists() const {return _ffluxPhaseLimitLists;}
+    uint32_t phaseZeroBurnInCount() const {return ffluxOptions().phase_zero_burn_in_count();}
+
+    bool hasPrecisionGoal() const {return ffluxOptions().has_precision_goal();}
+    bool hasPrecisionGoalConfidence() const {return ffluxOptions().has_precision_goal_confidence();}
+    bool hasUserDefinedFFluxPhaseLimitLists() const {return (ffluxOptions().fflux_phase_limit_lists_size() > 0);}
+    bool hasPhaseZeroBurnInCount() const {return ffluxOptions().has_phase_zero_burn_in_count();}
 
 protected:
 //    bool parseAndSetFFluxPhaseLimit(const std::string key, const std::string debugString);
@@ -84,15 +94,8 @@ protected:
 protected:
     int currentTilingIndex;
 
-    bool precisionGoalPresent;
-    bool userDefinedFFluxPhaseLimitsPresent;
-
-    lm::fflux::input::FFluxOptions ffluxOptions;
-    lm::fflux::input::FFluxPhaseLimitList ffluxPhaseLimitList;
-
-    uint32_t phaseZeroBurnInCount;
-    uint64_t precisionGoal;
-    uint64_t precisionGoalConfidence;
+    lm::fflux::input::FFluxOptions _ffluxOptions;
+    lm::protowrap::Repeated<lm::fflux::input::FFluxPhaseLimitList> _ffluxPhaseLimitLists;
 };
 
 }

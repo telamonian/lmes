@@ -72,14 +72,10 @@ bool SFileOutputWriter::registerClass()
 
 void* SFileOutputWriter::allocateObject()
 {
-    return new SFileOutputWriter(recordNamePrefixGlobal);
+    return new SFileOutputWriter();
 }
 
-SFileOutputWriter::SFileOutputWriter(string recordNamePrefix)
-:recordNamePrefix("NULLNULLNULL"),file(NULL)
-{
-    setRecordNamePrefix(recordNamePrefix);
-}
+SFileOutputWriter::SFileOutputWriter(): file(NULL) {}
 
 SFileOutputWriter::~SFileOutputWriter()
 {

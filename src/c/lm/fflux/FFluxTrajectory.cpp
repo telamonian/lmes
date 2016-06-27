@@ -80,12 +80,6 @@ FFluxTrajectory::~FFluxTrajectory()
 {
 }
 
-// initializers
-void FFluxTrajectory::initializeState(const lm::input::Input& input, bool reversed=false)
-{
-
-}
-
 bool FFluxTrajectory::fluxedBackward()
 {
 //    if (input.getCurrentTiling().getSortOrder()==TilingEnums::ASCENDING)

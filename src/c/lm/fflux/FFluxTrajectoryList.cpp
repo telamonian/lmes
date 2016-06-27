@@ -47,6 +47,7 @@
 
 #include "lm/Exceptions.h"
 #include "lm/fflux/FFluxTrajectoryList.h"
+#include "lm/fflux/input/FFluxPhase.pb.h"
 #include "lm/io/CMEState.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/FFluxOutput.pb.h"
@@ -75,7 +76,7 @@ namespace lm {
 namespace fflux {
 
 
-FFluxTrajectoryList::FFluxTrajectoryList():
+FFluxTrajectoryList::FFluxTrajectoryList()
 {
 }
 
