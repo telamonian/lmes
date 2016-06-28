@@ -99,38 +99,57 @@ public:
 protected:
     virtual int run();
 
+// the functions below are listed in (very) roughly the order they are first called during simulation execution
+    // resource setup
     virtual void receivedResourceAvailable(const lm::message::ResourcesAvailable& msg);
     virtual void allResourcesRegistered();
-    virtual void startOutputWriter();
-    virtual void startCheckpointSignaler();
-    virtual void startWorkUnitRunners();
 
+    // output setup
+    virtual void startOutputWriter();
+
+    // checkpointing setup
+    virtual void startCheckpointSignaler();
+
+    // work unit runner setup
+    virtual void startWorkUnitRunners();
     virtual void receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg);
     virtual void receivedStartedCheckpointSignaler(const lm::message::StartedCheckpointSignaler& msg);
     virtual void receivedStartedWorkUnitRunner(const lm::message::StartedWorkUnitRunner & msg);
+
+    // simulation kickoff
     virtual void startSimulationIfAllWorkersStarted();
     virtual void startSimulation();
+
+    // simulation phase setup
     virtual void startSimulationPhase();
     virtual void buildTrajectoryList()=0;
-    virtual void setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList);
 
+    // work unit setup/finalization
     virtual void receivedStartedWorkUnit(const lm::message::StartedWorkUnit& msg);
-
     virtual void receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg);
-    virtual bool terminateSimulationPhase();
     virtual bool assignWork();
     virtual void buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg);
     virtual void buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint minWorkUnits);
+
+    // simulation phase finalization
+    virtual bool terminateSimulationPhase();
     virtual void finishSimulationPhase();
     virtual void cleanUpSimulationPhase();
     virtual bool performAnotherSimulationPhase();
     virtual void incrementSimulationPhase();
+
+    // simulation finalization
     virtual void finishSimulation();
 
     virtual void receivedPerformCheckpointing(const lm::message::PerformCheckpointing& msg);
     virtual void receivedFinishedCheckpointing(const lm::message::FinishedCheckpointing& msg);
     virtual void receivedProcessWorkUnitOutput(lm::message::Message& msg);
     virtual bool receivedOther(lm::message::Message& msg);
+
+    // setters
+    virtual void setInput(lm::input::Input* newInput);
+    virtual void setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList);
+
 
 private:
     void printPerformanceStatistics(bool flush=false);
@@ -151,6 +170,7 @@ protected:
     std::string simulationOutputFilename;
     uint64_t simulationPhaseIndex;
     bool simulationRunning;
+    bool simulationPhaseTerminated;
     lm::slot::SlotList slots;
     std::string solverClassName;
     lm::trajectory::TrajectoryList* trajectoryList;

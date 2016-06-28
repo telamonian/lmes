@@ -40,9 +40,9 @@ syntax = "proto2";
 package lm.fflux.io;
 
 message FFluxPhaseOutput {
-    required uint64 fflux_phase_index                          = 1;
-    required uint64 tiling_id                                  = 2;
-    required uint64 basin_index                                = 3;
+    optional int64 fflux_phase_index                           = 1;
+    optional int64 basin_index                                 = 2;
+    optional uint64 tiling_id                                  = 3;
 
     repeated StartPoint start_points                           = 11;
 

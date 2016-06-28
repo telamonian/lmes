@@ -52,7 +52,7 @@
 namespace lm {
 namespace trajectory {
 
-typedef lm::protowrap::Repeated<lm::io::TrajectoryState>::Repeated_Google TrajectoryStates;
+typedef lm::protowrap::Repeated<lm::io::TrajectoryState>::RepeatedField TrajectoryStates;
 
 class Trajectory
 {

@@ -68,12 +68,17 @@ struct FFPhaseLimEnums {
 // from lm/input/SimulationPhase.proto
 struct FFluxPhaseEnums {
     // enum typedefs
+    typedef lm::fflux::input::FFluxPhase::TrajectoryDuplication TrajectoryDuplication;
     typedef lm::fflux::input::FFluxPhase::TrajectoryGeneration TrajectoryGeneration;
 
+    // TrajectoryDuplication enum values
+    static const TrajectoryDuplication NONE = lm::fflux::input::FFluxPhase::NONE;
+    static const TrajectoryDuplication SIMPLE = lm::fflux::input::FFluxPhase::SIMPLE;
+    static const TrajectoryDuplication UNIFORM_RANDOM = lm::fflux::input::FFluxPhase::UNIFORM_RANDOM;
+    
     // TrajectoryGeneration enum values
-    static const TrajectoryGeneration NONE = lm::fflux::input::FFluxPhase::NONE;
-    static const TrajectoryGeneration DUPLICATE = lm::fflux::input::FFluxPhase::DUPLICATE;
-    static const TrajectoryGeneration RANDOM = lm::fflux::input::FFluxPhase::RANDOM;
+    static const TrajectoryGeneration EAGER = lm::fflux::input::FFluxPhase::EAGER;
+    static const TrajectoryGeneration LAZY = lm::fflux::input::FFluxPhase::LAZY;
 };
 
 // from lm/input/Tilings.proto

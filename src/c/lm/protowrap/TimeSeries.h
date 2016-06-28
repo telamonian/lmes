@@ -263,10 +263,10 @@ public:
 //class TimeSeries
 //{
 //public:
-//    typedef lm::protowrap::TimeSeries<MsgT>::ValT ValT;
+//    typedef lm::protowrap::TimeSeries<MsgT>::Element Element;
 //    typedef double TimeT;
 //
-//    typedef std::vector<ValT> ValContainerT;
+//    typedef std::vector<Element> ValContainerT;
 //    typedef std::vector<TimeT> TimeContainerT;
 //
 //    ValContainerT values;

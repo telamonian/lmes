@@ -54,39 +54,39 @@ namespace protowrap {
 
 // version of Repeated<complex_type> with operator[] that allows for accessing entries based on a map to an attribute of complex_type
 // TODO: iron out the const version of this class
-template <typename ValT, typename KeyT, KeyT (*getKeyFunc)(const ValT&), void (*setKeyFunc)(ValT*, const KeyT&)>
-class RepeatedMap: public Repeated<ValT>
+template <typename Element, typename Key, Key (*getKeyFunc)(const Element&), void (*setKeyFunc)(Element*, const Key&)>
+class RepeatedMap: public Repeated<Element>
 {
 public:
 // typedefs
-    typedef typename Repeated<ValT>::Repeated_Google RepT;
-    typedef std::map<KeyT, ValT*> MapT;
-    typedef std::map<KeyT, const ValT*> MapConstT;
+//    typedef typename Repeated<Element>::RepeatedField RepeatedField;
+    typedef std::map<Key, Element*> ElementPtrMap;
+    typedef std::map<Key, const Element*> ElementConstPtrMap;
 
 // constructors/destructors
     RepeatedMap() {}
-    RepeatedMap(RepT* repFieldPtr): Repeated<ValT>(repFieldPtr) {}
-    RepeatedMap(const RepT& repFieldConstRef): Repeated<ValT>(repFieldConstRef) {}
+    RepeatedMap(RepeatedField* repFieldPtr): Repeated<Element>(repFieldPtr) {}
+    RepeatedMap(const RepeatedField& repFieldConstRef): Repeated<Element>(repFieldConstRef) {}
     virtual ~RepeatedMap() {}
 
 // operators
-    ValT* operator[](const KeyT& key) const {return map[key];}
+    Element* operator[](const Key& key) const {return map[key];}
 
 // mutators
-    void addMemberValPtrToMap(ValT* memberValPtr) {map[(*getKeyFunc)(memberValPtr)] = memberValPtr;}
+    void addMemberValPtrToMap(Element* memberValPtr) {map[(*getKeyFunc)(memberValPtr)] = memberValPtr;}
 
-    inline virtual void setRepFieldPtr(RepT* newRepFieldPtr)
+    inline virtual void setRepFieldPtr(RepeatedField* newRepFieldPtr)
     {
         // call the base class method
-        Repeated<ValT>::setRepFieldPtr(newRepFieldPtr);
+        Repeated<Element>::setRepFieldPtr(newRepFieldPtr);
 
         map.clear();
-        for (typename Repeated<ValT>::iterator it=Repeated<ValT>::begin();it!=Repeated<ValT>::end();it++)
+        for (typename Repeated<Element>::iterator it=Repeated<Element>::begin();it!=Repeated<Element>::end();it++)
         {
             addMemberValPtrToMap(&*it);
         }
     }
-    inline virtual void setRepFieldPtr(const RepT& newRepFieldConstRef)
+    inline virtual void setRepFieldPtr(const RepeatedField& newRepFieldConstRef)
     {
         throw UnimplementedException("Const version of RepeatedMap not yet implemented");
 //        // call the base class method
@@ -99,19 +99,19 @@ public:
 //        }
     }
 
-    ValT* Add(const KeyT& newKey)
+    Element* Add(const Key& newKey)
     {
-        ValT* newVal=Repeated<ValT>::getRepFieldPtr()->Add();
+        Element* newVal=Repeated<Element>::getRepFieldPtr()->Add();
         (*setKeyFunc)(newVal, newKey);
         addMemberValPtrToMap(newVal);
 
         return newVal;
     }
-    void Clear() {Repeated<ValT>::getRepFieldPtr()->Clear(); map.clear();}
+    void Clear() {Repeated<Element>::getRepFieldPtr()->Clear(); map.clear();}
 
 protected:
-    MapT map;
-    MapConstT mapConst;
+    ElementPtrMap map;
+    ElementConstPtrMap mapConst;
 };
 
 

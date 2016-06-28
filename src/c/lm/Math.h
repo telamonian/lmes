@@ -118,6 +118,54 @@ inline unsigned int log2(unsigned long long x)
 //    return (d >= 0.0) ? floor(d + 0.5) : ceil(d - 0.5);
 //}
 
+// constants used in erfinv
+static double erfinv_a3 = -0.140543331, erfinv_a2 = 0.914624893, erfinv_a1 = -1.645349621, erfinv_a0 = 0.886226899;
+static double erfinv_b4 = 0.012229801, erfinv_b3 = -0.329097515, erfinv_b2 = 1.442710462, erfinv_b1 = -2.118377725, erfinv_b0 = 1;
+static double erfinv_c3 = 1.641345311, erfinv_c2 = 3.429567803, erfinv_c1 = -1.62490649, erfinv_c0 = -1.970840454;
+static double erfinv_d2 = 1.637067800, erfinv_d1 = 3.543889200, erfinv_d0 = 1;
+
+// inverse error function. useful for calculating certain values related to the normal distribution
+// code modified from libit, found at http://libit.sourceforge.net/math_8c-source.html. I believe it uses a Taylor series approximation?
+double erfinv (double x)
+{
+    double x2, r, y;
+    int  sign_x;
+
+    if (x < -1 || x > 1) return NAN;
+
+    if (x == 0) return 0;
+
+    if (x > 0) sign_x = 1;
+    else {sign_x = -1; x = -x;}
+
+    if (x <= 0.7)
+    {
+        x2 = x * x;
+        r = x * (((erfinv_a3 * x2 + erfinv_a2) * x2 + erfinv_a1) * x2 + erfinv_a0);
+        r /= (((erfinv_b4 * x2 + erfinv_b3) * x2 + erfinv_b2) * x2 + erfinv_b1) * x2 + erfinv_b0;
+    }
+    else {
+        y = sqrt (-log ((1 - x) / 2));
+        r = (((erfinv_c3 * y + erfinv_c2) * y + erfinv_c1) * y + erfinv_c0);
+        r /= ((erfinv_d2 * y + erfinv_d1) * y + erfinv_d0);
+    }
+
+    r = r * sign_x;
+    x = x * sign_x;
+
+    r -= (erf(r) - x) / (2 / sqrt(PI) * exp (-r * r));
+    r -= (erf(r) - x) / (2 / sqrt(PI) * exp (-r * r));
+
+    return r;
+}
+
+// calculates how many standard deviations from the mean the cut-lines are for a given percentile (also centered on the mean) of the normal distribution.
+// used in calculating confidence intervals. Signature based on scipy.stats.norm.ppf, see http://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.norm.html for more details
+double normalZ(double percentile, double mean=0.0, double std=1.0)
+{
+    return sqrt(2)*erfinv(percentile)*std + mean;
+}
+
 /*
  * binary operations
  */

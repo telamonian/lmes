@@ -80,7 +80,6 @@ public:
     void registerClass(string baseClassName, string className, ClassAllocator allocator);
     void registerClassesFromExternalLibrary(string filename);
     void* allocateObjectOfClass(string baseClassName, string className);
-
     list<string> getAllSubclasses(string baseClassName);
     void printRegisteredClasses();
 

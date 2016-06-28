@@ -44,8 +44,8 @@ import "lm/fflux/input/FFluxPhaseLimit.proto";
 import "lm/input/Tilings.proto";
 
 message FFluxStage {
-    optional lm.input.Tiling tiling                            = 1;
-    optional uint32 basin_index                                = 2 [default=0];
+    optional int64 basin_index                                 = 1;
+    optional lm.input.Tiling tiling                            = 2;
 
     /*
      * - an optional stage to be run before this one. output data from pilot_stage will be used to help set up this stage

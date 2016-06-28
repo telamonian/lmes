@@ -42,21 +42,27 @@ package lm.fflux.input;
 import "lm/input/OutputOptions.proto";
 
 message FFluxPhase {
-    enum TrajectoryGeneration {
+    enum TrajectoryDuplication {
         NONE=0;
-        DUPLICATE=1;
-        RANDOM=2;
+        SIMPLE=1;
+        UNIFORM_RANDOM=2;
     }
 
-    required uint64 fflux_phase_index                   = 1;
-    required uint64 tiling_id                           = 2;
-    required uint64 basin_index                         = 3;
+    enum TrajectoryGeneration {
+        EAGER=0;
+        LAZY=1;
+    }
 
-    required uint64 first_trajectory_id                 = 21;
-    optional uint64 last_trajectory_id                  = 22;
-    optional TrajectoryGeneration trajectory_generation = 23;
+    optional int64 fflux_phase_index                      = 1;
+    optional int64 basin_index                            = 2;
+    optional uint64 tiling_id                             = 3;
 
-    optional lm.input.OutputOptions output_options      = 31;
+    optional uint64 first_trajectory_id                   = 11;
+    optional uint64 last_trajectory_id                    = 12;
+    optional TrajectoryDuplication trajectory_duplication = 13 [default=SIMPLE];
+    optional TrajectoryGeneration trajectory_generation   = 14 [default=EAGER];
 
-    optional uint64 batch_size                          = 51;
+    optional lm.input.OutputOptions output_options        = 21;
+
+    optional uint64 batch_size                            = 31;
 }

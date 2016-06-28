@@ -83,8 +83,8 @@ int SimulationSupervisor::getRecvSleepMilliseconds()
 SimulationSupervisor::SimulationSupervisor()
 :communicator(lm::MPI::worldRank,THREAD_ID),hasCheckpointSignalerStarted(false),hasOutputWriterStarted(false),haveAllWorkUnitRunnersStarted(false),
  outstandingTrajectoryList(NULL),input(NULL),outputWriterClassName(""),outputWriterProcess(-1),outputWriterThread(-1),performingCheckpoint(false),
- resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),simulationPhaseIndex(0),simulationRunning(true),slots(&communicator),
- solverClassName(""),trajectoryList(NULL),useCPUAffinity(false),workUnitCount(0)
+ resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),simulationPhaseIndex(0),simulationRunning(true),
+ simulationPhaseTerminated(false),slots(&communicator),solverClassName(""),trajectoryList(NULL),useCPUAffinity(false),workUnitCount(0)
 {
     resetPerformanceStatistics();
 }
@@ -92,13 +92,13 @@ SimulationSupervisor::SimulationSupervisor()
 SimulationSupervisor::~SimulationSupervisor()
 {
     if (input != NULL) delete input; input = NULL;
-    if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL; // since Supervisors call new to allocate their TrajectoryLists, this needs to be here
+    if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL;
 }
 
 void SimulationSupervisor::init()
 {
     // Initialize the input object with the input file.
-    input = new lm::input::Input(lm::io::hdf5::Hdf5File(simulationInputFilename));
+    setInput(new lm::input::Input(lm::io::hdf5::Hdf5File(simulationInputFilename)));
 }
 
 void SimulationSupervisor::wake() throw(lm::thread::PthreadException)
@@ -339,12 +339,6 @@ void SimulationSupervisor::startSimulationPhase()
     }
 }
 
-void SimulationSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList)
-{
-    if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL;
-    trajectoryList = newTrajectoryList;
-}
-
 void SimulationSupervisor::receivedStartedWorkUnit(const lm::message::StartedWorkUnit& msg)
 {
     Print::printf(Print::VERBOSE_DEBUG, "Work unit %d started.",msg.work_unit_id());
@@ -388,12 +382,6 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
         lm::message::PerformCheckpointing* msg = msgp.mutable_perform_checkpointing();
         communicator.sendMessage(outputWriterProcess, outputWriterThread, &msgp);
     }
-}
-
-//.terminateSimulationPhase() serves as a hook for more complex phase-ending behavior in subclassed Supervisors
-bool SimulationSupervisor::terminateSimulationPhase()
-{
-    return false;
 }
 
 bool SimulationSupervisor::assignWork()
@@ -469,6 +457,13 @@ void SimulationSupervisor::buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, 
     input->copyLimitTrackingsTo(msg);
 }
 
+//.terminateSimulationPhase() serves as a hook for more complex phase-ending behavior in subclassed Supervisors. All versions should set the simulationPhaseTerminated flag and return it
+bool SimulationSupervisor::terminateSimulationPhase()
+{
+    simulationPhaseTerminated = false;
+    return simulationPhaseTerminated;
+}
+
 void SimulationSupervisor::finishSimulationPhase()
 {
     // Do any necessary cleanup of the now finished simulation phase
@@ -491,12 +486,15 @@ void SimulationSupervisor::cleanUpSimulationPhase()
     if (trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::RUNNING)->size() > 0)
     {
         // If the simulation phase was forcibly terminated, make sure we clean up any running trajectories appropriately
-        if (terminateSimulationPhase())
+        if (simulationPhaseTerminated)
         {
             // Keep track of any outstanding work units. Important for coordinating clean program termination across all nodes
             outstandingTrajectoryList->copyTrajectories(*trajectoryList, lm::trajectory::Trajectory::RUNNING);
             outstandingTrajectoryList->setAll(lm::trajectory::Trajectory::RUNNING, lm::trajectory::Trajectory::ABORTED);
             outstandingTrajectoryList->setAll(lm::trajectory::Trajectory::RUNNING, lm::trajectory::Trajectory::ABORTED);
+
+            // reset the simulationPhaseTerminated flag
+            simulationPhaseTerminated = false;
         }
         // Otherwise, the default supervisor behavior is to throw an exception if there are trajectories still running at the end of a phase
         else
@@ -568,6 +566,20 @@ bool SimulationSupervisor::receivedOther(lm::message::Message& msg)
     return false;
 }
 
+// setters
+void SimulationSupervisor::setInput(lm::input::Input* newInput)
+{
+    if (input != NULL) delete input; input = NULL;
+    input = newInput;
+}
+
+void SimulationSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList)
+{
+    if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL;
+    trajectoryList = newTrajectoryList;
+}
+
+// private
 void SimulationSupervisor::printPerformanceStatistics(bool flush)
 {
     // See if we should display and reset the performance stats.
