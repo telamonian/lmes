@@ -39,15 +39,23 @@
 syntax = "proto2";
 package lm.fflux.input;
 
+import "lm/fflux/input/FFluxPhase.proto";
 import "lm/fflux/input/FFluxPhaseLimit.proto";
-import "lm/input/OutputOptions.proto";
 import "lm/input/Tilings.proto";
 
 message FFluxStage {
-    required uint64 id                                         = 1;
+    optional lm.input.Tiling tiling                            = 1;
+    optional uint32 basin_index                                = 2 [default=0];
 
-    optional lm.input.Tiling tiling                            = 11;
-    optional uint32 basin_index                                = 12 [default=0];
+    /*
+     * - an optional stage to be run before this one. output data from pilot_stage will be used to help set up this stage
+     */
+    optional FFluxStage pilot_stage                            = 11;
+
+    /*
+     * - each element of fflux_phases contains settings/metadata for each individual FFluxPhase to be run as part of this stage
+     */
+    repeated lm.fflux.input.FFluxPhase fflux_phases            = 21;
 
     /*
      * - Stopping conditions for each forward flux phase. Can be specified one of two ways (an error will be raised if more than one way is used)
@@ -56,12 +64,9 @@ message FFluxStage {
      *         - If there are fewer limits than interfaces, the last limit will be repeated to make up the difference
      *             - This is useful for specifying one limit for phase zero and another limit for the rest of the phases
      *         - If there are more limits than interfaces, an error will be raised
+     * - The code for the above described initialization can be found in lm::fflux::FFluxSupervisor::buildFFluxPhaseLimits
      */
-    repeated lm.fflux.input.FFluxPhaseLimit fflux_phase_limits = 21;
-
-    optional FFluxStage pilot_stage                            = 31;
-
-    optional lm.input.OutputOptions output_options             = 101;
+    repeated lm.fflux.input.FFluxPhaseLimit fflux_phase_limits = 31;
 }
 
 message FFluxStageList {

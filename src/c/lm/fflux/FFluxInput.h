@@ -69,12 +69,11 @@ namespace fflux {
 class FFluxInput : public lm::input::Input
 {
 public:
-    FFluxInput(const lm::io::hdf5::Hdf5File& file): Input(file) {};
+    FFluxInput(const lm::io::hdf5::Hdf5File& file);
     virtual ~FFluxInput() {};
 
 // initializers
-    virtual void init(const lm::io::hdf5::Hdf5File& file);
-    virtual void initFFluxOptions(const lm::io::hdf5::Hdf5File& file);
+    virtual void reinitOutputOptions(std::string& recordNamePrefix);
 
 // accessors
     const lm::fflux::input::FFluxOptions& ffluxOptions() const {return _ffluxOptions;}
@@ -89,11 +88,11 @@ public:
     bool hasPhaseZeroBurnInCount() const {return ffluxOptions().has_phase_zero_burn_in_count();}
 
 protected:
+    virtual void init(const lm::io::hdf5::Hdf5File& file);
+    virtual void initFFluxOptions(const lm::io::hdf5::Hdf5File& file);
 //    bool parseAndSetFFluxPhaseLimit(const std::string key, const std::string debugString);
 
 protected:
-    int currentTilingIndex;
-
     lm::fflux::input::FFluxOptions _ffluxOptions;
     lm::protowrap::Repeated<lm::fflux::input::FFluxPhaseLimitList> _ffluxPhaseLimitLists;
 };

@@ -39,12 +39,12 @@
 #ifndef LM_TRAJECTORY_TRAJECTORYLIST_H
 #define LM_TRAJECTORY_TRAJECTORYLIST_H
 
+#include <limits>
 #include <map>
 #include <string>
 
 #include "lm/input/Input.h"
 #include "lm/input/ReactionModel.pb.h"
-#include "lm/input/SimulationPhase.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/RunWorkUnit.pb.h"
@@ -64,16 +64,17 @@ typedef std::map<uint64_t,lm::trajectory::Trajectory*> TrajectoryMap;
 class TrajectoryList
 {
 public:
-    
+// constants
+    static const uint64_t DEFAULT_TRAJECTORY_ID = std::numeric_limits<uint64_t>::infinity();
+
     TrajectoryList();
-    TrajectoryList(const lm::input::SimulationPhase& phase);
-    TrajectoryList(const lm::input::SimulationPhase& phase, const TrajectoryList& previousList);
     virtual ~TrajectoryList();
 
 // initializer
-    virtual void init(const lm::protowrap::Repeated<lm::io::TrajectoryState>::GoogleT& initialStates);
+    virtual void init(const TrajectoryStates& initialStates);
     virtual void init(const TrajectoryList& previousList);
-    virtual Trajectory* initTrajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryState& initialState);
+    virtual Trajectory* initTrajectory(Trajectory* allocatedTrajectory);
+    virtual Trajectory* initTrajectory(const lm::io::TrajectoryState& initialState, uint64_t phase, uint64_t id=DEFAULT_TRAJECTORY_ID);
 
 // destroyer
     virtual void deleteAllNotStarted();

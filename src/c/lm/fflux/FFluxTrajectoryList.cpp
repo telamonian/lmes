@@ -84,7 +84,7 @@ FFluxTrajectoryList::FFluxTrajectoryList(const lm::input::SimulationPhase& phase
 {
 }
 
-lm::trajectory::Trajectory* FFluxTrajectoryList::initTrajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryState& initialState)
+trajectory::Trajectory* FFluxTrajectoryList::initTrajectory(const lm::io::TrajectoryState& initialState, uint64_t phase, uint64_t id)
 {
     return new FFluxTrajectory(id, phase, initialState);
 }

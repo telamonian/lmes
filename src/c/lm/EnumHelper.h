@@ -47,7 +47,7 @@
 //#include "lm/trajectory/Trajectory.h"
 #include "lm/fflux/input/FFluxPhaseLimit.pb.h"
 #include "lm/io/LimitTracking.pb.h"
-#include "lm/input/SimulationPhase.pb.h"
+#include "lm/fflux/input/FFluxPhase.pb.h"
 #include "lm/input/Tilings.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/message/WorkUnitStatus.pb.h"
@@ -66,13 +66,14 @@ struct FFPhaseLimEnums {
 };
 
 // from lm/input/SimulationPhase.proto
-struct SimPhaseEnums {
+struct FFluxPhaseEnums {
     // enum typedefs
-    typedef lm::input::SimulationPhase::TrajectorySource TrajectorySource;
+    typedef lm::fflux::input::FFluxPhase::TrajectoryGeneration TrajectoryGeneration;
 
-    // TrajectorySource enum values
-    static const TrajectorySource LIST = lm::input::SimulationPhase::LIST;
-    static const TrajectorySource PREVIOUS_PHASE = lm::input::SimulationPhase::PREVIOUS_PHASE;
+    // TrajectoryGeneration enum values
+    static const TrajectoryGeneration NONE = lm::fflux::input::FFluxPhase::NONE;
+    static const TrajectoryGeneration DUPLICATE = lm::fflux::input::FFluxPhase::DUPLICATE;
+    static const TrajectoryGeneration RANDOM = lm::fflux::input::FFluxPhase::RANDOM;
 };
 
 // from lm/input/Tilings.proto

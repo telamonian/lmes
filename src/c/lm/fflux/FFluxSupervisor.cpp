@@ -36,9 +36,12 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+#include <cmath>
 #include <limits>
 #include <map>
 #include <string>
+#include <valarray>
+#include <vector>
 
 #include "lm/ClassFactory.h"
 #include "lm/EnumHelper.h"
@@ -67,6 +70,8 @@ using lm::protowrap::Repeated;
 using lm::resource::ResourceMap;
 using std::map;
 using std::string;
+using std::valarray;
+using std::vector;
 
 namespace lm {
 namespace fflux {
@@ -90,7 +95,7 @@ int FFluxSupervisor::getRecvSleepMilliseconds()
     return -1;
 }
 
-FFluxSupervisor::FFluxSupervisor(): ffluxPhaseIndex(0), stageIndex(0), trajectoryList(NULL)
+FFluxSupervisor::FFluxSupervisor(): ffluxPhaseIndex(0),  trajectoryList(NULL)
 {
 }
 
@@ -109,13 +114,13 @@ void FFluxSupervisor::init()
 
 void FFluxSupervisor::startSimulation()
 {
-    buildSimulationStageList();
+    initSimulationStageList();
 
     // Call parent method
     SimulationSupervisor::startSimulation();
 }
 
-void FFluxSupervisor::buildSimulationStageList()
+void FFluxSupervisor::initSimulationStageList()
 {
     // build the stage list
     for (Repeated<lm::input::Tiling>::const_iterator tilingIt=input->getTilingsMsg().tilings().begin();tilingIt!=input->getTilingsMsg().tilings().end();++tilingIt)
@@ -132,17 +137,14 @@ void FFluxSupervisor::addProductionStage(lm::fflux::input::FFluxStage* productio
     productionStage->mutable_tiling()->CopyFrom(tiling);
     productionStage->set_basin_index(basinIndex);
 
-    productionStage->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());
 
     if (input->hasPrecisionGoal())
     {
         addPilotStage(productionStage);
-        productionStage->set_id(stageIndex++);
     }
     else
     {
-        productionStage->set_id(stageIndex++);
-        addFFluxPhaseLimitsFromInput(productionStage);
+        buildFFluxPhaseLimitsFromInput(productionStage);
     }
 }
 
@@ -153,9 +155,7 @@ void FFluxSupervisor::addPilotStage(lm::fflux::input::FFluxStage* productionStag
     pilotStage->mutable_tiling()->CopyFrom(productionStage->tiling());
     pilotStage->set_basin_index(productionStage->basin_index());
 
-    addFFluxPhaseLimits(pilotStage, FFPhaseLimEnums::FORWARD_FLUXES, 1000);
-
-    pilotStage->set_id(stageIndex++);
+    buildFFluxPhaseLimits(pilotStage, FFPhaseLimEnums::FORWARD_FLUXES, 1000);
 }
 
 virtual void FFluxSupervisor::addFFluxPhases(lm::fflux::input::FFluxStage* stage)
@@ -164,7 +164,7 @@ virtual void FFluxSupervisor::addFFluxPhases(lm::fflux::input::FFluxStage* stage
 }
 
 template <typename ValT>
-void FFluxSupervisor::addFFluxPhaseLimit(lm::fflux::input::FFluxPhase* phase, FFPhaseLimEnums::StopCondition stopCondition, ValT value)
+void FFluxSupervisor::buildFFluxPhaseLimit(lm::fflux::input::FFluxPhase* phase, FFPhaseLimEnums::StopCondition stopCondition, ValT value)
 {
     lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit = phase->add_fflux_phase_limits();
 
@@ -178,43 +178,90 @@ void FFluxSupervisor::addFFluxPhaseLimit(lm::fflux::input::FFluxPhase* phase, FF
 }
 
 template <typename ValT>
-void FFluxSupervisor::addFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage, FFPhaseLimEnums::StopCondition stopCondition, ValT value)
+void FFluxSupervisor::buildFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage, FFPhaseLimEnums::StopCondition stopCondition, ValT value)
 {
     for (int i=0;i<stage->tiling().edges_size();i++)
-        addFFluxPhaseLimit(stage, stopCondition, value);
+    {
+        buildFFluxPhaseLimit(stage, stopCondition, value);
+    }
 }
 
-void FFluxSupervisor::addFFluxPhaseLimitsFromInput(lm::fflux::input::FFluxStage* productionStage)
+void FFluxSupervisor::buildFFluxPhaseLimitsFromInput(lm::fflux::input::FFluxStage* productionStage)
 {
     productionStage->mutable_fflux_phase_limits()->CopyFrom(input->getFFluxPhaseLimits(productionStage->id()));
 }
 
-void FFluxSupervisor::addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::fflux::io::FFluxStageOutput& stageOutput, bool minimizeCost=true)
+void FFluxSupervisor::buildFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::fflux::io::FFluxStageOutput& stageOutput, bool minimizeCost = true)
 {
-    vector<uint64_t> trajectoryCounts;
-    if (minimizeCost)
-    {
-        trajectoryCounts = calcTrajectoryCountMinimizeCost(stageOutput);
-    }
-    else
-    {
-        trajectoryCounts = calcTrajectoryCountMinimizeRuns(stageOutput);
-    }
+    vector<uint64_t> trajectoryCounts(optimizeTrajectoryCounts(stageOutput, minimizeCost));
 
     for (vector<uint64_t>::const_iterator it=trajectoryCounts.begin();it!=trajectoryCounts.end();it++)
     {
-        addFFluxPhaseLimit(productionStage, FFPhaseLimEnums::TRAJECTORY_COUNT, *it);
+        buildFFluxPhaseLimit(productionStage, FFPhaseLimEnums::TRAJECTORY_COUNT, *it);
     }
 }
 
-std::vector<uint64_t> FFluxSupervisor::calcTrajectoryCountMinimizeRuns(const lm::fflux::io::FFluxStageOutput& stageOutput)
+vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const lm::fflux::io::FFluxStageOutput& stageOutput, bool minimizeCost)
 {
+    vector<double> probabilities(stageOutput.probabilities().begin(), stageOutput.probabilities().end());
 
+    if (minimizeCost)
+    {
+        vector<double> costVector(stageOutput.fluxes().begin(), stageOutput.fluxes().end());
+        return minimizeCostTrajectoryCounts(precisionGoal, precisionGoalConfidence, probabilities, costVector);
+    }
+    else
+    {
+        return minimizeCountTrajectoryCounts(precisionGoal, precisionGoalConfidence, probabilities);
+    }
 }
 
-std::vector<uint64_t> FFluxSupervisor::calcTrajectoryCountMinimizeCost(const lm::fflux::io::FFluxStageOutput& stageOutput)
+// TODO: work out a way to dynamically calculate zscore from confidence. For now, it's fixed at .95 -> 1.96
+vector<uint64_t> FFluxSupervisor::minimizeCostTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const vector<double>& probabilities, const vector<double>& costVector)
 {
+    valarray<double> constantFactors(getConstantFactors(probabilities));
+    valarray<double> costs(costVector.data(), costVector.size());
+    costs = sqrt(costs);
 
+    double coeff = pow(1.96/precisionGoal, 2)*((costs*constantFactors).sum());
+    constantFactors /= costs;
+    constantFactors *= coeff;
+
+    vector<uint64_t> trajectoryCounts;
+    for (int i=0;i<constantFactors.size();i++)
+    {
+        trajectoryCounts.push_back(static_cast<uint64_t>(ceil(constantFactors[i])));
+    }
+    return trajectoryCounts;
+}
+
+// TODO: work out a way to dynamically calculate zscore from confidence. For now, it's fixed at .95 -> 1.96
+vector<uint64_t> FFluxSupervisor::minimizeCountTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const vector<double>& probabilities)
+{
+    valarray<double> constantFactors(getConstantFactors(probabilities));
+
+    constantFactors *= pow(1.96/precisionGoal, 2)*(constantFactors.sum());
+
+    vector<uint64_t> trajectoryCounts;
+    for (int i=0;i<constantFactors.size();i++)
+    {
+        trajectoryCounts.push_back(static_cast<uint64_t>(ceil(constantFactors[i])));
+    }
+    return trajectoryCounts;
+}
+
+valarray<double> FFluxSupervisor::getConstantFactors(const vector<double>& probabilities)
+{
+    valarray<double> constantFactors(probabilities.data(), probabilities.size());
+    constantFactors = (1.0 - constantFactors)/constantFactors;
+
+    // ignore the probability from phase zero, store 1.0
+    constantFactors[0] = 1.0;
+
+    // take the square root
+    constantFactors = sqrt(constantFactors);
+
+    return constantFactors;
 }
 
 void FFluxSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg)
@@ -334,16 +381,6 @@ void FFluxSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* newTraje
 {
     lm::main::SimulationSupervisor::setTrajectoryList(newTrajectoryList);
     trajectoryList = static_cast<lm::fflux::FFluxTrajectoryList*>(lm::main::SimulationSupervisor::trajectoryList);
-}
-
-lm::trajectory::TrajectoryList* FFluxSupervisor::initTrajectoryList(const lm::input::SimulationPhase& phase)
-{
-    return new FFluxTrajectoryList(simulationPhaseIndex, *input, communicator, slots.getSimultaneousWorkUnits());
-}
-
-lm::trajectory::TrajectoryList* FFluxSupervisor::initTrajectoryList(const lm::input::SimulationPhase& phase, const lm::trajectory::TrajectoryList& previousList)
-{
-    return new FFluxTrajectoryList(simulationPhaseIndex, *input, communicator, slots.getSimultaneousWorkUnits());
 }
 
 //void FFluxSupervisor::incrementFFluxPhase()

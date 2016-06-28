@@ -78,7 +78,7 @@ public:
 
 // initializer
     virtual void init();
-    virtual lm::trajectory::Trajectory* initTrajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryState& initialState);
+    virtual trajectory::Trajectory* initTrajectory(const lm::io::TrajectoryState& initialState, uint64_t phase, uint64_t id);
 
 //    virtual void initChecks(lm::input::Input& input);
 //    virtual void initFFluxOutput();

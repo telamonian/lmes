@@ -59,7 +59,7 @@ class RepeatedMap: public Repeated<ValT>
 {
 public:
 // typedefs
-    typedef typename Repeated<ValT>::GoogleT RepT;
+    typedef typename Repeated<ValT>::Repeated_Google RepT;
     typedef std::map<KeyT, ValT*> MapT;
     typedef std::map<KeyT, const ValT*> MapConstT;
 

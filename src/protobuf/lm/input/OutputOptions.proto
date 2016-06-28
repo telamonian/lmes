@@ -52,6 +52,6 @@ message OutputOptions {
     repeated uint32 fpt_species_to_track         = 22;
     repeated uint32 fpt_order_parameter_to_track = 23;
 
-    optional bool output_initial_state = 31 [default = true];
-    optional bool output_final_state   = 32 [default = true];
+//    optional bool output_initial_state = 31 [default = true];
+//    optional bool output_final_state   = 32 [default = true];
 }

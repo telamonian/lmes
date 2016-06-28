@@ -40,7 +40,6 @@ syntax = "proto2";
 package lm.fflux.io;
 
 import "lm/fflux/input/FFluxStage.proto";
-import "lm/io/LimitFlux.proto";
 
 message FFluxStageOutput {
     /*
@@ -48,24 +47,24 @@ message FFluxStageOutput {
      */
     required lm.fflux.input.FFluxStage fflux_stage          = 1;
 
+    repeated double first_passage_times                     = 11 [packed=true];
+
     /*
      * - if fluxes is set, there should be as many entries in fluxes as there are interfaces in fflux_stage's tiling
      */
-    repeated double fluxes                                  = 11 [packed=true];
+    repeated double fluxes                                  = 21 [packed=true];
+    repeated double probabilities                           = 22 [packed=true];
 
     /*
-     * - if set, output the raw data used to calculate fluxes
+     * - if set, output the raw data used to calculate fluxes and proabilities
      */
-    optional FFluxStageRawFluxesOuput raw_fluxes_output     = 21;
+    optional FFluxStageRawFluxesOuput raw_fluxes_output     = 101;
 }
 
 message FFluxStageRawFluxesOuput {
-    optional uint64 phase_zero_flux_count                   = 1;
-    optional double phase_zero_total_time                   = 2;
+    repeated uint64 sucessful_trajectory_counts      = 1 [packed=true];
+    repeated double sucessful_trajectory_total_times = 2 [packed=true];
 
-    repeated uint64 phase_n_sucessful_trajectory_count      = 3 [packed=true];
-    repeated uint64 phase_n_sucessful_trajectory_total_time = 4 [packed=true];
-
-    repeated uint64 phase_n_failed_trajectory_count         = 5 [packed=true];
-    repeated uint64 phase_n_failed_trajectory_total_time    = 6 [packed=true];
+    repeated uint64 failed_trajectory_counts         = 11 [packed=true];
+    repeated double failed_trajectory_total_times    = 12 [packed=true];
 }

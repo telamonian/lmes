@@ -39,7 +39,6 @@
 syntax = "proto2";
 package lm.fflux.input;
 
-import "lm/fflux/input/FFluxPhaseLimit.proto";
 import "lm/input/OutputOptions.proto";
 
 message FFluxPhase {
@@ -57,9 +56,7 @@ message FFluxPhase {
     optional uint64 last_trajectory_id                  = 22;
     optional TrajectoryGeneration trajectory_generation = 23;
 
-    optional lm.fflux.input.FFluxPhaseLimit phase_limit = 31;
-
-    optional lm.input.OutputOptions output_options      = 41;
+    optional lm.input.OutputOptions output_options      = 31;
 
     optional uint64 batch_size                          = 51;
 }

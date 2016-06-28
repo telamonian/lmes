@@ -40,11 +40,12 @@
 #define FFLUXSUPERVISOR_H_
 
 #include <deque>
-#include <lm/fflux/io/FFluxStageOutput.pb.h>
+#include <valarray>
 
 #include "lm/fflux/input/FFluxPhase.pb.h"
 #include "lm/fflux/input/FFluxStage.pb.h"
 #include "lm/fflux/io/FFluxPhaseOutput.pb.h"
+#include "lm/fflux/io/FFluxStageOutput.pb.h"
 #include "lm/fflux/FFluxInput.h"
 #include "lm/fflux/FFluxTrajectoryList.h"
 #include "lm/input/DiffusionModel.pb.h"
@@ -80,48 +81,49 @@ public:
     virtual void init();
 
 protected:
-// overides of parent class methods and related methods
+    // setup methods run once at the beginning of the simulation
     virtual void startSimulation();
-
-    virtual void buildSimulationStageList();
+    virtual void initSimulationStageList();
     virtual void addProductionStage(lm::fflux::input::FFluxStage* productionStage, const lm::input::Tiling& tiling, uint basinIndex);
     virtual void addPilotStage(lm::fflux::input::FFluxStage* productionStage);
-
     virtual void addFFluxPhases(lm::fflux::input::FFluxStage* stage);
 
-    template <typename ValT> void addFFluxPhaseLimit(lm::fflux::input::FFluxPhase* phase, FFPhaseLimEnums::StopCondition stopCondition, ValT value);
-    template <typename ValT> void addFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage, FFPhaseLimEnums::StopCondition stopCondition, ValT value);
-    virtual void addFFluxPhaseLimitsFromInput(lm::fflux::input::FFluxStage* productionStage);
-    virtual void addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::fflux::io::FFluxStageOutput& stageOutput, bool minimizeCost=true);
+    // setup methods run at the start of every fflux stage
+    virtual void startSimulationStage();
+    template <typename ValT> void buildFFluxPhaseLimit(lm::fflux::input::FFluxPhase* phase, FFPhaseLimEnums::StopCondition stopCondition, ValT value);
+    template <typename ValT> void buildFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage, FFPhaseLimEnums::StopCondition stopCondition, ValT value);
+    virtual void buildFFluxPhaseLimitsFromInput(lm::fflux::input::FFluxStage* productionStage);
+    virtual void buildFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::fflux::io::FFluxStageOutput& stageOutput, bool minimizeCost=true);
 
-    virtual std::vector<uint64_t> calcTrajectoryCountMinimizeRuns(const lm::fflux::io::FFluxStageOutput& stageOutput);
-    virtual std::vector<uint64_t> calcTrajectoryCountMinimizeCost(const lm::fflux::io::FFluxStageOutput& stageOutput);
+    // the functions where all the computational cost minimization magic happens
+    inline static std::vector<uint64_t> optimizeTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const lm::fflux::io::FFluxStageOutput& stageOutput, bool minimizeCost = true);
+    inline static std::vector<uint64_t> minimizeCostTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const std::vector<double>& probabilities, const std::vector<double>& costs);
+    inline static std::vector<uint64_t> minimizeCountTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const std::vector<double>& probabilities);
+    inline static std::valarray<double> getConstantFactors(const std::vector<double>& probabilities);
 
+    // setup methods run at the start of every fflux phase
+    virtual void startSimulationPhase();
     virtual void setLimits();
     virtual void setLimitsPhaseZero();
-
     virtual void buildTrajectoryList();
     virtual void buildTrajectoryListPhaseZero();
 
+    // methods that control what happens at the end of a phase/stage
     virtual bool performAnotherSimulationPhase();
-
-//    virtual void setLimits();
-    virtual void setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList);
-
-    virtual lm::trajectory::TrajectoryList* initTrajectoryList(const lm::input::SimulationPhase& phase);
-    virtual lm::trajectory::TrajectoryList* initTrajectoryList(const lm::input::SimulationPhase& phase, const lm::trajectory::TrajectoryList& previousList);
+    virtual bool terminateSimulationPhase();
+    virtual bool performAnotherSimulationStage();
 
     virtual void receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg);
     virtual void receivedFinishedWorkUnitPart(const lm::message::WorkUnitStatus& wusMsg);
     virtual void receivedFinishedWorkUnitPartPhaseZero(const lm::message::WorkUnitStatus& wusMsg);
 
-    virtual bool terminateSimulationPhase();
+    virtual void setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList);
 
     // getters
     virtual lm::fflux::input::FFluxPhaseLimit* getCurrentFFluxPhaseLimit() {return getCurrentStage()->mutable_fflux_phase_limits(ffluxPhaseIndex);}
-    virtual lm::fflux::input::FFluxStage* getCurrentStage() {return ffluxStageList.mutable_fflux_stages(stageIndex);}
-    virtual const lm::fflux::input::FFluxStage& getCurrentStage() const {return ffluxStageList.fflux_stages(stageIndex);}
-    virtual int getStageCount() const {return ffluxStageList.fflux_stages_size();}
+    virtual lm::fflux::input::FFluxStage* getCurrentStage() {return *currentFFluxStage;}
+    virtual const lm::fflux::input::FFluxStage& getCurrentStage() const {return **currentFFluxStage;}
+    virtual int getStageCount() const {return ffluxStageExecutionOrder.size();}
 
     // deprecated
 //    virtual void finishSimulation();
@@ -130,10 +132,12 @@ protected:
 
 protected:
     lm::fflux::input::FFluxStageList ffluxStageList;
+    std::vector<lm::fflux::input::FFluxStage*> ffluxStageExecutionOrder;
+    std::vector<lm::fflux::input::FFluxStage*>::iterator currentFFluxStage;
+    uint64_t ffluxPhaseIndex;
+
     lm::fflux::FFluxInput* input;
 
-    int stageIndex;
-    uint64_t ffluxPhaseIndex;
     // shadow trajectoryList from base class with a trajectoryList with a fflux appropriate type
     lm::fflux::FFluxTrajectoryList* trajectoryList;
     lm::limit::TrajectoryLimits trajectoryLimits;

@@ -57,7 +57,7 @@ using lm::limit::LimitValueT;
 namespace lm {
 namespace fflux {
 
-FFluxInput::FFluxInput(const lm::io::hdf5::Hdf5File& file): Input(file),ffluxPhaseLimitLists(_ffluxOptions.mutable_fflux_phase_limit_lists()) {}
+FFluxInput::FFluxInput(const lm::io::hdf5::Hdf5File& file): Input(file),_ffluxPhaseLimitLists(_ffluxOptions.mutable_fflux_phase_limit_lists()) {}
 
 void FFluxInput::init(const lm::io::hdf5::Hdf5File& file)
 {
@@ -66,14 +66,13 @@ void FFluxInput::init(const lm::io::hdf5::Hdf5File& file)
     initDiffusionModel(file);
     initOrderParameters(file);
     initTilings(file);
-    initOutputOptions(file);
     initWorkUnitParameters(file);
 
     // run some fflux specific intializers
     initFFluxOptions(file);
 }
 
-// Get the output options.
+// Get the Forward Flux specific options.
 void FFluxInput::initFFluxOptions(const lm::io::hdf5::Hdf5File& file)
 {
     parseAndSet("precisionGoal", &FFluxOptions::set_precision_goal, _ffluxOptions);
@@ -86,6 +85,14 @@ void FFluxInput::initFFluxOptions(const lm::io::hdf5::Hdf5File& file)
 
     // check the fflux options we just parsed for consistency
     if (hasPrecisionGoal() and hasUserDefinedFFluxPhaseLimitLists()) throw ConsistencyException("precisionGoal and an explicit set of ffluxPhaseLimits cannot both be set in forward flux simulation input");
+}
+
+void FFluxInput::reinitOutputOptions(std::string& recordNamePrefix)
+{
+    outputOptions.Clear();
+
+    outputOptions.set_record_name_prefix(recordNamePrefix);
+    outputOptions.set_condense_output(true);
 }
 
 //bool FFluxInput::parseAndSetFFluxPhaseLimit(const std::string key, const std::string debugString)

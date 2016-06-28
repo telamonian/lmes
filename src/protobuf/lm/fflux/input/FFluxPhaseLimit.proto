@@ -51,9 +51,9 @@ message FFluxPhaseLimit {
         TIME=2;
     }
 
-    optional StopCondition stop_condition = 1 [default=FORWARD_FLUXES];
-    optional double dvalue                = 2 [default=0.0];
-    optional uint64 uvalue                = 3 [default=0];
+    required StopCondition stop_condition = 1 [default=FORWARD_FLUXES];
+    optional double dvalue                = 2;
+    optional uint64 uvalue                = 3;
 }
 
 message FFluxPhaseLimitList {
