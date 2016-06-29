@@ -196,7 +196,7 @@ void FFluxSupervisor::startSimulationStage()
 {
     if (getCurrentStage()->has_pilot_stage() and getCurrentStage()->fflux_phase_limits_size()==0)
     {
-
+        addFFluxPhaseLimitsFromStageOutput(getCurrentStage(), getCurrentStageOutput());
     }
 
     currentFFluxPhase = getCurrentStage()->fflux_phases().begin();
@@ -241,7 +241,7 @@ void FFluxSupervisor::addFFluxPhaseLimitsFromInput(lm::fflux::input::FFluxStage*
     addFFluxPhaseLimits(productionStage, FFPhaseLimEnums::FORWARD_FLUXES, 1000);
 }
 
-void FFluxSupervisor::addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::fflux::io::FFluxStageOutput& stageOutput, bool minimizeCost)
+void FFluxSupervisor::addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::protowrap::FFluxStageOutput& stageOutput, bool minimizeCost)
 {
     vector<uint64_t> trajectoryCounts(optimizeTrajectoryCounts(input->precisionGoal(), input->precisionGoalConfidence(), stageOutput, minimizeCost));
 
@@ -251,7 +251,7 @@ void FFluxSupervisor::addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFlux
     }
 }
 
-vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const lm::fflux::io::FFluxStageOutput& stageOutput, bool minimizeCost)
+vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const lm::protowrap::FFluxStageOutput& stageOutput, bool minimizeCost)
 {
     vector<double> probabilities(stageOutput.probabilities().begin(), stageOutput.probabilities().end());
 
@@ -321,14 +321,14 @@ void FFluxSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedWorkUn
     }
 
     // call the base class function
-    SimulationSupervisor::receivedFinishedWorkUnit(msg);
+    lm::main::SimulationSupervisor::receivedFinishedWorkUnit(msg);
 }
 
 void FFluxSupervisor::receivedFinishedWorkUnitPart(const lm::message::WorkUnitStatus& wusMsg)
 {
     if (wusMsg.status()==lm::message::WorkUnitStatus::LIMIT_REACHED)
     {
-        if (getCurrentFFluxPhaseIndex()==0)
+        if (getCurrentPhaseIndex()==0)
         {
             receivedFinishedWorkUnitPartPhaseZero(wusMsg);
         }
@@ -346,16 +346,16 @@ void FFluxSupervisor::receivedFinishedWorkUnitPartPhaseZero(const lm::message::W
 
 void FFluxSupervisor::setLimits()
 {
-    if (getCurrentFFluxPhaseIndex()==0)
+    if (getCurrentPhaseIndex()==0)
     {
         setLimitsPhaseZero();
     }
     else
     {
-        // - if getCurrentFFluxPhaseIndex() > 0, we can use addTileExitLimitsMsg() in a straightforward way to set the needed limits. Two limits are set:
+        // - if getCurrentPhaseIndex() > 0, we can use addTileExitLimitsMsg() in a straightforward way to set the needed limits. Two limits are set:
         //     - if limit id==0 is triggered, this indicates that the trajectory fluxed backwards
         //     - if limit id==1 is triggered, this indicates that the trajectory fluxed forwards
-        trajectoryLimits.addTileExitLimitsMsg(currentTiling, 0, getCurrentFFluxPhaseIndex());
+        trajectoryLimits.addTileExitLimitsMsg(currentTiling, 0, getCurrentPhaseIndex());
         trajectoryLimits.addTrackingMsg();
     }
 }
@@ -392,7 +392,7 @@ void FFluxSupervisor::buildSimulationPhase()
 
 void FFluxSupervisor::buildTrajectoryList()
 {
-    if (getCurrentFFluxPhaseIndex()==0)
+    if (getCurrentPhaseIndex()==0)
     {
         buildTrajectoryListPhaseZero();
     }
@@ -478,7 +478,7 @@ void FFluxSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* newTraje
 
 //void FFluxSupervisor::incrementFFluxPhase()
 //{
-//    getCurrentFFluxPhaseIndex()++;
+//    getCurrentPhaseIndex()++;
 //
 //
 //    static_cast<lm::fflux::FFluxTrajectoryList*>(trajectoryList)->incrementFFluxPhase();
@@ -536,7 +536,7 @@ void FFluxSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* newTraje
 
 //void FFluxSupervisor::resetFFluxPhase()
 //{
-//    getCurrentFFluxPhaseIndex() = 0;
+//    getCurrentPhaseIndex() = 0;
 //}
 
 //void FFluxSupervisor::startSimulation()
@@ -563,7 +563,7 @@ void FFluxSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* newTraje
 //    trajectoryLimits.clear();
 //    const lm::tiling::Tiling& tiling = input->getTilings().getCurrentTiling();
 //
-//    if (getCurrentFFluxPhaseIndex()==0)
+//    if (getCurrentPhaseIndex()==0)
 //    {
 //        tiling.addLimitMsg(trajectoryLimits, 0, EH::INCREASING);
 //        tiling.addLimitMsg(trajectoryLimits, 0, EH::DECREASING);
@@ -574,7 +574,7 @@ void FFluxSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* newTraje
 //    {
 //        tiling.addLimitMsg(trajectoryLimits, 0, EH::DECREASING);
 //
-//        tiling.addLimitMsg(trajectoryLimits, getCurrentFFluxPhaseIndex(), EH::INCREASING);
+//        tiling.addLimitMsg(trajectoryLimits, getCurrentPhaseIndex(), EH::INCREASING);
 //    }
 //
 ////    switch ((ffluxPhase!=0)<<1|input.tilings.getCurrentTiling()->getSortOrder()!=lm::input::Tilings::ASCENDING)

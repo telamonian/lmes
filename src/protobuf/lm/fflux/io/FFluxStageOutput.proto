@@ -47,7 +47,7 @@ message FFluxStageOutput {
      */
     required lm.fflux.input.FFluxStage fflux_stage          = 1;
 
-    repeated double first_passage_times                     = 11 [packed=true];
+    repeated double switching_time_per_tile                 = 11 [packed=true];
 
     /*
      * - if fluxes is set, there should be as many entries in fluxes as there are interfaces in fflux_stage's tiling
@@ -58,10 +58,10 @@ message FFluxStageOutput {
     /*
      * - if set, output the raw data used to calculate fluxes and proabilities
      */
-    optional FFluxStageRawFluxesOuput raw_fluxes_output     = 101;
+    optional FFluxStageOuputRaw fflux_stage_output_raw     = 101;
 }
 
-message FFluxStageRawFluxesOuput {
+message FFluxStageOuputRaw {
     repeated uint64 sucessful_trajectory_counts      = 1 [packed=true];
     repeated double sucessful_trajectory_total_times = 2 [packed=true];
 

@@ -59,7 +59,7 @@ class RepeatedMap: public Repeated<Element>
 {
 public:
 // typedefs
-//    typedef typename Repeated<Element>::RepeatedField RepeatedField;
+    typedef typename Repeated<Element>::RepeatedField RepeatedField;
     typedef std::map<Key, Element*> ElementPtrMap;
     typedef std::map<Key, const Element*> ElementConstPtrMap;
 

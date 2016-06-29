@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -34,66 +34,39 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts, Max Klein
+ * Author(s): Max Klein
  */
-#ifndef LM_PROTWRAP_FFLUXSTAGEOUTPUT_H_
-#define LM_PROTWRAP_FFLUXSTAGEOUTPUT_H_
-
-#include <algorithm>
-#include <limits>
-#include <map>
-#include <vector>
-
-#include "lm/EnumHelper.h"
-#include "lm/fflux/io/FFluxPhaseOutput.pb.h"
-#include "lm/fflux/io/FFluxStageOutput.pb.h"
-#include "lm/limit/LimitCheckFunctions.h"
-#include "lm/io/LimitTracking.pb.h"
-#include "lm/protowrap/MessageWrap.h"
-#include "lm/protowrap/NDArray.h"
-#include "lm/protowrap/Repeated.h"
-#include "lm/Types.h"
-
-using lm::protowrap::MessageWrap;
-using lm::protowrap::Repeated;
+#ifndef LM_PROTOWRAP_MSG_H_
+#define LM_PROTOWRAP_MSG_H_
 
 namespace lm {
 namespace protowrap {
 
-class FFluxStageOutputRaw : public MessageWrap<lm::fflux::io::FFluxStageOuputRaw>
+template<typename Message_GOOGLE>
+class MessageWrap
 {
 public:
-    typedef MessageWrap::Msg Msg;
+    typedef Message_GOOGLE Msg;
 
-    Repeated<uint64_t>* _sucessful_trajectory_counts;
-    Repeated<double>* _sucessful_trajectory_total_times;
+    MessageWrap(): msgPtr(NULL) {}
 
-    Repeated<uint64_t>* _failed_trajectory_counts;
-    Repeated<double>* _failed_trajectory_total_times;
-};
+    MessageWrap(Msg* newMsgMutablePtr): msgPtr(NULL) {setMsg(newMsgMutablePtr);}
 
-class FFluxStageOutput : public MessageWrap<lm::fflux::io::FFluxStageOutput>
-{
-public:
-    typedef MessageWrap::Msg Msg;
-    typedef FFluxStageOutputRaw::Msg MsgRaw;
+    virtual Msg* getMsg()
+    {
+        return msgPtr;
+    }
 
     virtual void setMsg(Msg* newMsgMutablePtr)
     {
         msgPtr = newMsgMutablePtr;
     }
 
-// pass throughs
-
 protected:
-    Repeated<double>* _switching_time_per_tile;
-    Repeated<double>* _fluxes;
-    Repeated<double>* _probabilities;
-    FFluxStageOutputRaw* _fflux_stage_output_raw;
+    Msg* msgPtr;
 };
 
 }
 }
 
-
-#endif /* LM_PROTOWRAP_FFLUXSTAGEOUTPUT_H_ */
+#endif //LM_PROTOWRAP_MSG_H_
