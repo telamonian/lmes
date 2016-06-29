@@ -112,9 +112,10 @@ void FFluxSupervisor::init()
 void FFluxSupervisor::startSimulation()
 {
     initSimulationStageList();
+    startSimulationStage();
 
     // Call parent method
-    SimulationSupervisor::startSimulation();
+    lm::main::SimulationSupervisor::startSimulation();
 }
 
 void FFluxSupervisor::initSimulationStageList()
@@ -124,47 +125,86 @@ void FFluxSupervisor::initSimulationStageList()
     {
         for (int basinIndex=0;basinIndex<tilingIt->basins_size();basinIndex++)
         {
-            addProductionStage(ffluxStageList.add_fflux_stages(), *tilingIt, basinIndex);
+            // initialize a stage (and possibly also its pilot stage)
+            lm::fflux::input::FFluxStage* productionStage = buildProductionStage(ffluxStageList.add_fflux_stages(), *tilingIt, basinIndex);
+
+            // place a ptr to the stage in the execution order (the pilot stage ptr, if any, will be placed before the production stage pointer)
+            ffluxStageExecutionOrder.push_back(productionStage);
         }
     }
+
+    currentFFluxStage = ffluxStageExecutionOrder.begin();
 }
 
-void FFluxSupervisor::addProductionStage(lm::fflux::input::FFluxStage* productionStage, const input::Tiling& tiling, uint basinIndex)
+lm::fflux::input::FFluxStage* FFluxSupervisor::buildProductionStage(lm::fflux::input::FFluxStage* productionStage, const input::Tiling& tiling, int basinIndex)
 {
     productionStage->mutable_tiling()->CopyFrom(tiling);
     productionStage->set_basin_index(basinIndex);
 
+    addFFluxPhases(productionStage, FFluxPhaseEnums::LAZY, FFluxPhaseEnums::UNIFORM_RANDOM);
 
     if (input->hasPrecisionGoal())
     {
-        addPilotStage(productionStage);
+        // initialize the pilot stage
+        lm::fflux::input::FFluxStage* pilotStage = addPilotStage(productionStage);
+
+        // add the pilot stage to the execution order
+        ffluxStageExecutionOrder.push_back(pilotStage);
     }
     else
     {
-        buildFFluxPhaseLimitsFromInput(productionStage);
+        addFFluxPhaseLimitsFromInput(productionStage);
     }
+
+    return productionStage;
 }
 
-void FFluxSupervisor::addPilotStage(lm::fflux::input::FFluxStage* productionStage)
+lm::fflux::input::FFluxStage* FFluxSupervisor::addPilotStage(lm::fflux::input::FFluxStage* productionStage)
 {
     lm::fflux::input::FFluxStage* pilotStage = productionStage->mutable_pilot_stage();
 
     pilotStage->mutable_tiling()->CopyFrom(productionStage->tiling());
     pilotStage->set_basin_index(productionStage->basin_index());
 
-    buildFFluxPhaseLimits(pilotStage, FFPhaseLimEnums::FORWARD_FLUXES, 1000);
+    addFFluxPhases(pilotStage, FFluxPhaseEnums::LAZY, FFluxPhaseEnums::SIMPLE);
+
+    addFFluxPhaseLimits(pilotStage, FFPhaseLimEnums::FORWARD_FLUXES, 1000);
+
+    return pilotStage;
 }
 
-virtual void FFluxSupervisor::addFFluxPhases(lm::fflux::input::FFluxStage* stage)
+virtual void FFluxSupervisor::addFFluxPhases(lm::fflux::input::FFluxStage* stage, FFluxPhaseEnums::TrajectoryGeneration trajGeneration, FFluxPhaseEnums::TrajectoryDuplication trajDuplication)
 {
+    input->reinitOutputOptions("");
 
+    for (int i=0;i<stage->tiling().edges_size();i++)
+    {
+        lm::fflux::input::FFluxPhase* ffluxPhase = stage->add_fflux_phases();
+
+        ffluxPhase->set_fflux_phase_index(i);
+        ffluxPhase->set_basin_index(stage->basin_index());
+        ffluxPhase->set_tiling_id(stage->tiling().id());
+
+        ffluxPhase->set_trajectory_duplication(trajDuplication);
+        ffluxPhase->set_trajectory_generation(trajGeneration);
+
+        ffluxPhase->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());
+    }
 }
 
-template <typename ValT>
-void FFluxSupervisor::buildFFluxPhaseLimit(lm::fflux::input::FFluxPhase* phase, FFPhaseLimEnums::StopCondition stopCondition, ValT value)
+void FFluxSupervisor::startSimulationStage()
 {
-    lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit = phase->add_fflux_phase_limits();
+    if (getCurrentStage()->has_pilot_stage() and getCurrentStage()->fflux_phase_limits_size()==0)
+    {
+        
+    }
 
+    currentFFluxPhase = getCurrentStage()->fflux_phases().begin();
+}
+
+template <typename T>
+void FFluxSupervisor::buildFFluxPhaseLimit(lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit, FFPhaseLimEnums::StopCondition stopCondition, T value)
+{
     ffluxPhaseLimit->set_stop_condition(stopCondition);
     switch (stopCondition)
     {
@@ -174,33 +214,40 @@ void FFluxSupervisor::buildFFluxPhaseLimit(lm::fflux::input::FFluxPhase* phase, 
     }
 }
 
-template <typename ValT>
-void FFluxSupervisor::buildFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage, FFPhaseLimEnums::StopCondition stopCondition, ValT value)
+template <typename T>
+void FFluxSupervisor::addFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage, FFPhaseLimEnums::StopCondition stopCondition, T value)
 {
-    for (int i=0;i<stage->tiling().edges_size();i++)
+    for (int i=0;i<stage->fflux_phases_size();i++)
     {
-        buildFFluxPhaseLimit(stage, stopCondition, value);
+        buildFFluxPhaseLimit(stage->add_fflux_phase_limits(), stopCondition, value);
     }
 }
 
-template <typename ValT>
 void FFluxSupervisor::repeatFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage, const lm::fflux::input::FFluxPhaseLimit& limitToRepeat)
 {
-
+    // add copies of limitToRepeat for every ffluxPhase that's missing a corresponding ffluxPhaseLimit
+    for (int i=stage->fflux_phase_limits_size();i<stage->fflux_phases_size();i++)
+    {
+        stage->add_fflux_phase_limits()->CopyFrom(limitToRepeat);
+    }
 }
 
-void FFluxSupervisor::buildFFluxPhaseLimitsFromInput(lm::fflux::input::FFluxStage* productionStage)
+void FFluxSupervisor::addFFluxPhaseLimitsFromInput(lm::fflux::input::FFluxStage* productionStage)
 {
-    productionStage->mutable_fflux_phase_limits()->CopyFrom(input->getFFluxPhaseLimits(productionStage->tiling().id(), productionStage->basin_index()));
+    // TODO: implement manually specified ffluxPhaseLimits
+    //productionStage->mutable_fflux_phase_limits()->CopyFrom(input->getFFluxPhaseLimits(productionStage->tiling().id(), productionStage->basin_index()));
+
+    // temporary placeholder
+    addFFluxPhaseLimits(productionStage, FFPhaseLimEnums::FORWARD_FLUXES, 1000);
 }
 
-void FFluxSupervisor::buildFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::fflux::io::FFluxStageOutput& stageOutput, bool minimizeCost)
+void FFluxSupervisor::addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::fflux::io::FFluxStageOutput& stageOutput, bool minimizeCost)
 {
     vector<uint64_t> trajectoryCounts(optimizeTrajectoryCounts(input->precisionGoal(), input->precisionGoalConfidence(), stageOutput, minimizeCost));
 
     for (vector<uint64_t>::const_iterator it=trajectoryCounts.begin();it!=trajectoryCounts.end();it++)
     {
-        buildFFluxPhaseLimit(productionStage, FFPhaseLimEnums::TRAJECTORY_COUNT, *it);
+        buildFFluxPhaseLimit(productionStage->add_fflux_phase_limits(), FFPhaseLimEnums::TRAJECTORY_COUNT, *it);
     }
 }
 

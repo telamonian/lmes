@@ -39,18 +39,16 @@
 #ifndef FFLUXSUPERVISOR_H_
 #define FFLUXSUPERVISOR_H_
 
-#include <deque>
 #include <valarray>
 
+#include "lm/EnumHelper.h"
 #include "lm/fflux/input/FFluxPhase.pb.h"
 #include "lm/fflux/input/FFluxStage.pb.h"
 #include "lm/fflux/io/FFluxPhaseOutput.pb.h"
 #include "lm/fflux/io/FFluxStageOutput.pb.h"
 #include "lm/fflux/FFluxInput.h"
 #include "lm/fflux/FFluxTrajectoryList.h"
-#include "lm/input/DiffusionModel.pb.h"
 #include "lm/io/FFluxOutput.pb.h"
-#include "lm/input/ReactionModel.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/limit/TrajectoryLimits.h"
 #include "lm/main/SimulationSupervisor.h"
@@ -59,9 +57,6 @@
 #include "lm/protowrap/FFluxPhaseOutput.h"
 #include "lm/protowrap/Repeated.h"
 #include "lm/trajectory/TrajectoryList.h"
-#include "lm/MPI.h"
-#include "lm/Print.h"
-#include "lm/thread/Worker.h"
 
 namespace lm {
 namespace fflux {
@@ -90,18 +85,18 @@ protected:
     // setup methods that run once at the beginning of the simulation
     virtual void startSimulation();
     virtual void initSimulationStageList();
-    virtual void addProductionStage(lm::fflux::input::FFluxStage* productionStage, const lm::input::Tiling& tiling, uint basinIndex);
-    virtual void addPilotStage(lm::fflux::input::FFluxStage* productionStage);
-    virtual void addFFluxPhases(lm::fflux::input::FFluxStage* stage);
+    virtual lm::fflux::input::FFluxStage* buildProductionStage(lm::fflux::input::FFluxStage* productionStage, const lm::input::Tiling& tiling, int basinIndex);
+    virtual lm::fflux::input::FFluxStage* addPilotStage(lm::fflux::input::FFluxStage* productionStage);
+    virtual void addFFluxPhases(lm::fflux::input::FFluxStage* stage, FFluxPhaseEnums::TrajectoryGeneration trajGeneration, FFluxPhaseEnums::TrajectoryDuplication trajDuplication);
 
     // setup methods that run at the start of every fflux stage
     virtual void startSimulationStage();
-    template <typename ValT> void buildFFluxPhaseLimit(lm::fflux::input::FFluxPhase* phase, FFPhaseLimEnums::StopCondition stopCondition, ValT value);
-    template <typename ValT> void buildFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage, FFPhaseLimEnums::StopCondition stopCondition, ValT value);
+    template <typename ValT> void buildFFluxPhaseLimit(lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit, FFPhaseLimEnums::StopCondition stopCondition, ValT value);
+    template <typename ValT> void addFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage, FFPhaseLimEnums::StopCondition stopCondition, ValT value);
     template <typename ValT> void repeatFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage, const lm::fflux::input::FFluxPhaseLimit& limitToRepeat);
-    template <typename ValT> void repeatFFluxPhaseLimits(lm::protowrap::Repeated<lm::fflux::input::FFluxPhaseLimit>::iterator begin, const lm::fflux::input::FFluxPhaseLimit& limitToRepeat);
-    virtual void buildFFluxPhaseLimitsFromInput(lm::fflux::input::FFluxStage* productionStage);
-    virtual void buildFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::fflux::io::FFluxStageOutput& stageOutput, bool minimizeCost=true);
+//    template <typename ValT> void repeatFFluxPhaseLimits(lm::protowrap::Repeated<lm::fflux::input::FFluxPhaseLimit>::iterator begin, const lm::fflux::input::FFluxPhaseLimit& limitToRepeat);
+    virtual void addFFluxPhaseLimitsFromInput(lm::fflux::input::FFluxStage* productionStage);
+    virtual void addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::fflux::io::FFluxStageOutput& stageOutput, bool minimizeCost = true);
 
     // the functions where all the computational cost minimization magic happens
     inline static std::vector<uint64_t> optimizeTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const lm::fflux::io::FFluxStageOutput& stageOutput, bool minimizeCost = true);

@@ -64,5 +64,5 @@ message FFluxPhase {
 
     optional lm.input.OutputOptions output_options        = 21;
 
-    optional uint64 batch_size                            = 31;
+    optional uint64 batch_size                            = 31 [default=1];
 }

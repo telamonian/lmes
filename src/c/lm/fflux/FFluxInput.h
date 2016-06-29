@@ -73,7 +73,7 @@ public:
     virtual ~FFluxInput() {};
 
 // initializers
-    virtual void reinitOutputOptions(std::string& recordNamePrefix);
+    virtual void reinitOutputOptions(const std::string& recordNamePrefix);
 
 // accessors
     const lm::fflux::input::FFluxOptions& ffluxOptions() const {return _ffluxOptions;}

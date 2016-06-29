@@ -87,7 +87,7 @@ void FFluxInput::initFFluxOptions(const lm::io::hdf5::Hdf5File& file)
     if (hasPrecisionGoal() and hasUserDefinedFFluxPhaseLimitLists()) throw ConsistencyException("precisionGoal and an explicit set of ffluxPhaseLimits cannot both be set in forward flux simulation input");
 }
 
-void FFluxInput::reinitOutputOptions(std::string& recordNamePrefix)
+void FFluxInput::reinitOutputOptions(const std::string& recordNamePrefix)
 {
     outputOptions.Clear();
 
