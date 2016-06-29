@@ -196,7 +196,7 @@ void FFluxSupervisor::startSimulationStage()
 {
     if (getCurrentStage()->has_pilot_stage() and getCurrentStage()->fflux_phase_limits_size()==0)
     {
-        
+
     }
 
     currentFFluxPhase = getCurrentStage()->fflux_phases().begin();
