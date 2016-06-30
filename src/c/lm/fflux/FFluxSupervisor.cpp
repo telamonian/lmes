@@ -47,6 +47,7 @@
 #include "lm/EnumHelper.h"
 #include "lm/fflux/FFluxSupervisor.h"
 #include "lm/fflux/FFluxTrajectoryList.h"
+#include "lm/fflux/input/FFluxInput.h"
 #include "lm/fflux/input/FFluxStage.pb.h"
 #include "lm/fflux/input/FFluxPhaseLimit.pb.h"
 #include "lm/io/OutputWriter.h"
@@ -65,7 +66,6 @@
 #include "lm/resource/ResourceMap.h"
 #include "lm/tiling/Tiling.h"
 
-using lm::fflux::input::FFluxStage;
 using lm::protowrap::Repeated;
 using lm::resource::ResourceMap;
 using std::map;
@@ -106,7 +106,7 @@ FFluxSupervisor::~FFluxSupervisor()
 void FFluxSupervisor::init()
 {
     // Initialize the FFluxInput pointer with the input file.
-    setInput(new lm::fflux::FFluxInput(lm::io::hdf5::Hdf5File(simulationInputFilename)));
+    setInput(new lm::fflux::input::FFluxInput(lm::io::hdf5::Hdf5File(simulationInputFilename)));
 }
 
 void FFluxSupervisor::startSimulation()
@@ -381,7 +381,7 @@ void FFluxSupervisor::buildSimulationPhase()
     lm::input::SimulationPhase* phase = simulationPhaseList.back();
 
     phase->set_id(0);
-    lm::trajectory::Trajectory initialTrajectory(*input, 0, phase->id(), false);
+    lm::trajectory::Trajectory initialTrajectory(*input, phase->id(), 0, false);
     for (uint64_t i=::replicates.front(); i<=::replicates.back(); i++)
     {
         phase->add_trajectory_states()->CopyFrom(initialTrajectory.getState());

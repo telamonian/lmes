@@ -46,7 +46,7 @@
 #include "lm/fflux/input/FFluxStage.pb.h"
 #include "lm/fflux/io/FFluxPhaseOutput.pb.h"
 #include "lm/fflux/io/FFluxStageOutput.pb.h"
-#include "lm/fflux/FFluxInput.h"
+#include "lm/fflux/input/FFluxInput.h"
 #include "lm/fflux/FFluxTrajectoryList.h"
 #include "lm/io/FFluxOutput.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
@@ -170,7 +170,7 @@ protected:
     lm::protowrap::FFluxStageOutput currentFFluxStageOutput;
 
     // shadowing ptrs from the base class
-    lm::fflux::FFluxInput* input;
+    lm::fflux::input::FFluxInput* input;
     lm::fflux::FFluxTrajectoryList* trajectoryList;
 };
 

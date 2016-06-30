@@ -65,7 +65,7 @@ class TrajectoryList
 {
 public:
 // constants
-    static const uint64_t DEFAULT_TRAJECTORY_ID = std::numeric_limits<uint64_t>::infinity();
+    static const uint64_t DEFAULT_TRAJECTORY_ID = std::numeric_limits<uint64_t>::max();
 
     TrajectoryList();
     virtual ~TrajectoryList();
@@ -74,7 +74,13 @@ public:
     virtual void init(const TrajectoryStates& initialStates);
     virtual void init(const TrajectoryList& previousList);
     virtual Trajectory* initTrajectory(Trajectory* allocatedTrajectory);
+    virtual Trajectory* initTrajectory(const lm::input::Input&, uint64_t phase, uint64_t id=DEFAULT_TRAJECTORY_ID);
     virtual Trajectory* initTrajectory(const lm::io::TrajectoryState& initialState, uint64_t phase, uint64_t id=DEFAULT_TRAJECTORY_ID);
+    // construct Trajectory from a range of species count values (and optionally a starting time)
+    template <typename InputIterator> Trajectory* initTrajectory(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd, double startTime, uint64_t phase, uint64_t id=DEFAULT_TRAJECTORY_ID)
+    {
+        initTrajectory(new Trajectory(input, speciesEnd, speciesStart, startTime, phase, id));
+    }
 
 // destroyer
     virtual void deleteAllNotStarted();

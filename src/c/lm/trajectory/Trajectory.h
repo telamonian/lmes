@@ -66,11 +66,10 @@ public:
     static const std::string status_strings[];
 
     // construct Trajectory from simulation input (ie from data in your input file)
-    Trajectory(const lm::input::Input& input, uint64_t id, uint64_t phase, bool reversed=false);
+    Trajectory(const lm::input::Input& input, uint64_t phase, uint64_t id, bool reversed=false);
 
     // construct Trajectory from a range of species count values (and optionally a starting time)
-    template <typename InputIterator>
-    Trajectory(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd, uint64_t id, uint64_t phase, double startTime=0.0)
+    template <typename InputIterator> Trajectory(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd, double startTime, uint64_t phase, uint64_t id)
     :id(id),simulationPhase(phase),status(NOT_STARTED),state(),numberWorkUnitsPerformed(0)
     {
         initializeState();
@@ -81,7 +80,7 @@ public:
     }
 
     // construct Trajectory from a preexisting TrajectoryState message
-    Trajectory(const lm::io::TrajectoryState& initialState, uint64_t id, uint64_t phase);
+    Trajectory(const lm::io::TrajectoryState& initialState, uint64_t phase, uint64_t id);
     virtual ~Trajectory();
 
     // accessors

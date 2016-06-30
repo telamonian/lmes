@@ -49,8 +49,12 @@ public:
     typedef Message_GOOGLE Msg;
 
     MessageWrap(): msgPtr(NULL) {}
-
     MessageWrap(Msg* newMsgMutablePtr): msgPtr(NULL) {setMsg(newMsgMutablePtr);}
+    virtual ~MessageWrap() {}
+
+    // conversion operators allow this wrapper to be used wherever google::protobuf::Message could be
+    operator Msg*() {return msgPtr;}
+    explicit operator Msg&() const {return *msgPtr;}
 
     virtual Msg* getMsg()
     {

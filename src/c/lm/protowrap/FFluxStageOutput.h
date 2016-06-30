@@ -65,6 +65,21 @@ class FFluxStageOutputRaw : public MessageWrap<lm::fflux::io::FFluxStageOuputRaw
 public:
     typedef MessageWrap::Msg Msg;
 
+    // accessors
+    const Repeated<uint64_t>& sucessful_trajectory_counts() const {return *_sucessful_trajectory_counts;}
+    const Repeated<double>& sucessful_trajectory_total_times() const {return *_sucessful_trajectory_total_times;}
+    const Repeated<uint64_t>& failed_trajectory_counts() const {return *_failed_trajectory_counts;}
+    const Repeated<double>& failed_trajectory_total_times() const {return *_failed_trajectory_total_times;}
+
+    // mutators
+    Repeated<uint64_t>* sucessful_trajectory_counts() {return _sucessful_trajectory_counts;}
+    Repeated<double>* sucessful_trajectory_total_times() {return _sucessful_trajectory_total_times;}
+    Repeated<uint64_t>* failed_trajectory_counts() {return _failed_trajectory_counts;}
+    Repeated<double>* failed_trajectory_total_times() {return _failed_trajectory_total_times;}
+
+    // pass through accessors
+    // pass through mutators
+
     Repeated<uint64_t>* _sucessful_trajectory_counts;
     Repeated<double>* _sucessful_trajectory_total_times;
 
@@ -83,7 +98,20 @@ public:
         msgPtr = newMsgMutablePtr;
     }
 
-// pass throughs
+    // accessors
+    const Repeated<double>& switching_time_per_tile() const {return *_switching_time_per_tile;}
+    const Repeated<double>& fluxes() const {return *_fluxes;}
+    const Repeated<double>& probabilities() const {return *_probabilities;}
+    const FFluxStageOutputRaw& fflux_stage_output_raw() const {return *_fflux_stage_output_raw;}
+
+    // mutators
+    Repeated<double>* mutable_switching_time_per_tile() {return _switching_time_per_tile;}
+    Repeated<double>* mutable_fluxes() {return _fluxes;}
+    Repeated<double>* mutable_probabilities() {return _probabilities;}
+    FFluxStageOutputRaw* mutable_fflux_stage_output_raw() {return _fflux_stage_output_raw;}
+
+    // pass through accessors
+    // pass through mutators
 
 protected:
     Repeated<double>* _switching_time_per_tile;

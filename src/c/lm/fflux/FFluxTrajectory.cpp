@@ -62,17 +62,17 @@ namespace lm {
 namespace fflux {
 
 FFluxTrajectory::FFluxTrajectory(uint64_t id, uint64_t phaseIndex, const lm::io::TrajectoryState& initialState)
-: Trajectory(initialState, id, phaseIndex),ffluxPhase(ffluxPhase),input(input),lastLimitTime(0.0)
+: Trajectory(initialState, phaseIndex, id),ffluxPhase(ffluxPhase),input(input),lastLimitTime(0.0)
 {
 }
 
 FFluxTrajectory::FFluxTrajectory(uint64_t id, uint64_t phase, const lm::input::Input& input, bool reversed, uint64_t ffluxPhase):
-    Trajectory(input, id, phase, reversed),ffluxPhase(ffluxPhase),input(input),lastLimitTime(0.0)
+    Trajectory(input, phase, id, reversed),ffluxPhase(ffluxPhase),input(input),lastLimitTime(0.0)
 {
 }
 
 FFluxTrajectory::FFluxTrajectory(uint64_t id, uint64_t phase, const TrajectoryState& initialState, uint64_t ffluxPhase, const lm::input::Input& input):
-    Trajectory(initialState, id, phase),ffluxPhase(ffluxPhase),input(input),lastLimitTime(getSimTime())
+    Trajectory(initialState, phase, id),ffluxPhase(ffluxPhase),input(input),lastLimitTime(getSimTime())
 {
 }
 

@@ -65,6 +65,7 @@
 
 namespace lm {
 namespace fflux {
+namespace input {
 
 class FFluxInput : public lm::input::Input
 {
@@ -99,4 +100,6 @@ protected:
 
 }
 }
+}
+
 #endif // LM_FFLUX_FFLUXINPUT_H_

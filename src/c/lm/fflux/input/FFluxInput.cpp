@@ -41,7 +41,7 @@
 #include <vector>
 
 #include "lm/EnumHelper.h"
-#include "lm/fflux/FFluxInput.h"
+#include "lm/fflux/input/FFluxInput.h"
 #include "lm/fflux/input/FFluxOptions.pb.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/input/OutputOptions.pb.h"
@@ -56,6 +56,7 @@ using lm::limit::LimitValueT;
 
 namespace lm {
 namespace fflux {
+namespace input {
 
 FFluxInput::FFluxInput(const lm::io::hdf5::Hdf5File& file): Input(file),_ffluxPhaseLimitLists(_ffluxOptions.mutable_fflux_phase_limit_lists()) {}
 
@@ -112,5 +113,6 @@ void FFluxInput::reinitOutputOptions(const std::string& recordNamePrefix)
 //    }
 //}
 
+}
 }
 }

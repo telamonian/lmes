@@ -46,7 +46,6 @@
 #include "lm/input/Input.h"
 #include "lm/input/DiffusionModel.pb.h"
 #include "lm/input/ReactionModel.pb.h"
-#include "lm/input/SimulationPhase.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/trajectory/TrajectoryList.h"
@@ -62,7 +61,6 @@ class ReplicateTrajectoryList : public lm::trajectory::TrajectoryList
 {
 
 public:
-//    ReplicateTrajectoryList(const lm::io::ReactionModel& reactionModel, const lm::io::DiffusionModel& diffusionModel, map<std::string,std::string>& simulationParameters, uint64_t firstTrajectory, uint64_t lastTrajectory);
     ReplicateTrajectoryList(const lm::input::Input& input, uint64_t firstTrajectory, uint64_t lastTrajectory);
     virtual ~ReplicateTrajectoryList();
     virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg);

@@ -74,7 +74,7 @@ const std::string Trajectory::status_strings[] = {"ABORTED",
                                                   "RUNNING",
                                                   "WAITING"};
 
-Trajectory::Trajectory(const lm::input::Input& input, uint64_t id, uint64_t phase, bool reversed)
+Trajectory::Trajectory(const lm::input::Input& input, uint64_t phase, uint64_t id, bool reversed)
 :id(id),simulationPhase(phase),status(NOT_STARTED),state(),numberWorkUnitsPerformed(0)
 {
     initializeState();
@@ -84,7 +84,7 @@ Trajectory::Trajectory(const lm::input::Input& input, uint64_t id, uint64_t phas
     init(input);
 }
 
-Trajectory::Trajectory(const lm::io::TrajectoryState& initialState, uint64_t id, uint64_t phase)
+Trajectory::Trajectory(const lm::io::TrajectoryState& initialState, uint64_t phase, uint64_t id)
 :id(std::numeric_limits<uint64_t>::infinity()),simulationPhase(phase),status(NOT_STARTED),state(initialState),numberWorkUnitsPerformed(0)
 {
     setID(id);

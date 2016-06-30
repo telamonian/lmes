@@ -512,7 +512,6 @@ bool SimulationSupervisor::performAnotherSimulationPhase()
 void SimulationSupervisor::incrementSimulationPhase()
 {
     simulationPhaseIndex++;
-    trajectoryList->incrementSimulationPhase();
 }
 
 void SimulationSupervisor::finishSimulation()
