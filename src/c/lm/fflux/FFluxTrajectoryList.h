@@ -72,17 +72,33 @@ typedef std::vector<lm::io::TilingHist*> TilingVector;
 class FFluxTrajectoryList : public lm::trajectory::TrajectoryList
 {
 public:
-    FFluxTrajectoryList(const lm::fflux::input::FFluxInput& input, const lm::fflux::input::FFluxPhase& ffluxPhase, const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit, uint64_t totalSlots);
-    FFluxTrajectoryList(const lm::fflux::input::FFluxInput& input, const lm::fflux::input::FFluxPhase& ffluxPhase, const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit, uint64_t totalSlots, const lm::protowrap::FFluxPhaseOutput& previousPhaseOutput);
-//    FFluxTrajectoryList(uint64_t simulationPhase, lm::input::Input& input, lm::message::Communicator& communicator, uint64_t simultaneousTrajectoryCount);
+    // ffluxPhase n==0 constructor
+    FFluxTrajectoryList(uint64_t count, uint64_t simulationPhaseIndex, const lm::fflux::input::FFluxPhase& ffluxPhase,
+                        const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousWorkUnits,
+                        const lm::fflux::input::FFluxInput& input);
+
+    // ffluxPhase n>0 constructor
+    FFluxTrajectoryList(uint64_t count, uint64_t simulationPhaseIndex, const lm::fflux::input::FFluxPhase& ffluxPhase,
+                        const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousWorkUnits,
+                        const lm::fflux::input::FFluxInput& input, const lm::protowrap::FFluxPhaseOutput& previousPhaseOutput);
     virtual ~FFluxTrajectoryList() {}
 
-// initializer
-    virtual void init();
     virtual void workUnitPartFinished(const lm::message::WorkUnitStatus& wusMsg, lm::trajectory::Trajectory* traj);
 
 // accessors
-    virtual uint64_t getTrajectoriesToStart(const lm::fflux::input::FFluxPhase& ffluxPhase, const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit, uint64_t totalSlots);
+    static uint64_t getTrajectoriesToStart(const lm::fflux::input::FFluxPhase& ffluxPhase, const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousWorkUnits);
+
+protected:
+// initializers
+    virtual lm::trajectory::Trajectory* initTrajectoriesUniformRandom(uint64_t trajectoriesToStart);
+
+protected:
+    const lm::fflux::input::FFluxInput& input;
+    const lm::fflux::input::FFluxPhase& ffluxPhase;
+    const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit;
+
+
+    const lm::protowrap::FFluxPhaseOutput* previousPhaseOutputPtr;
 
 };
 

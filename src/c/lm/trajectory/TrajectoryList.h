@@ -68,6 +68,7 @@ public:
     static const uint64_t DEFAULT_TRAJECTORY_ID = std::numeric_limits<uint64_t>::max();
 
     TrajectoryList();
+    TrajectoryList(uint64_t count, uint64_t simulationPhaseIndex);
     virtual ~TrajectoryList();
 
 // initializer
@@ -89,13 +90,14 @@ public:
 
 // accessors
     virtual bool areAllFinished() const;
+    virtual uint64_t count() const {return _count;}
     virtual bool exists(uint64_t id) const {return trajectories.count(id)==1;}
     virtual const TrajectoryMap& getTrajectoryMap(Trajectory::Status status) const;
-    virtual uint64_t getSimulationPhaseIndex() const {return simulationPhaseIndex;}
     virtual bool isTrajectoryAborted(lm::trajectory::Trajectory* traj) const {return isTrajectoryInMap(traj, abortedTrajectories, Trajectory::ABORTED);}
     virtual bool isTrajectoryFinished(lm::trajectory::Trajectory* traj) const {return isTrajectoryInMap(traj, finishedTrajectories, Trajectory::FINISHED);}
     virtual bool isTrajectoryRunning(lm::trajectory::Trajectory* traj) const {return isTrajectoryInMap(traj, runningTrajectories, Trajectory::RUNNING);}
     virtual bool isTrajectoryWaiting(lm::trajectory::Trajectory* traj) const {return isTrajectoryInMap(traj, waitingTrajectories, Trajectory::WAITING);}
+    virtual uint64_t simulationPhaseIndex() const {return _simulationPhaseIndex;}
     virtual size_t size() const {return trajectories.size();}
 
 // mutators
@@ -103,8 +105,7 @@ public:
     virtual void copyTrajectories(const TrajectoryList& srcTrajList, Trajectory::Status status);
     virtual Trajectory* getTrajectoryForFinishedWorkUnit(uint64_t id);
     virtual TrajectoryMap* getTrajectoryMap(Trajectory::Status status);
-    virtual void incrementSimulationPhase();
-    virtual void setSimulationPhaseIndex(uint64_t newPhaseIx) {simulationPhaseIndex = newPhaseIx;}
+    virtual void setSimulationPhaseIndex(uint64_t newPhaseIx) {_simulationPhaseIndex = newPhaseIx;}
     virtual void setAll(Trajectory::Status oldStatus, Trajectory::Status newStatus);
     virtual void setTrajectoryAborted(lm::trajectory::Trajectory* traj) {setTrajectoryStatus(traj, abortedTrajectories, Trajectory::ABORTED);}
     virtual void setTrajectoryFinished(lm::trajectory::Trajectory* traj) {setTrajectoryStatus(traj, finishedTrajectories, Trajectory::FINISHED);}
@@ -124,8 +125,8 @@ protected:
     virtual void setTrajectoryStatus(lm::trajectory::Trajectory* traj, TrajectoryMap& trajMap, Trajectory::Status newStatus);
 
 protected:
-    uint64_t count;
-    uint64_t simulationPhaseIndex;
+    uint64_t _count;
+    uint64_t _simulationPhaseIndex;
     TrajectoryMap trajectories;
     TrajectoryMap abortedTrajectories;
     TrajectoryMap finishedTrajectories;

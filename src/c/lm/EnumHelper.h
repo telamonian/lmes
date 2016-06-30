@@ -63,10 +63,16 @@ struct FFPhaseLimEnums {
     static const StopCondition FORWARD_FLUXES = lm::fflux::input::FFluxPhaseLimit::FORWARD_FLUXES;
     static const StopCondition TRAJECTORY_COUNT = lm::fflux::input::FFluxPhaseLimit::TRAJECTORY_COUNT;
     static const StopCondition TIME = lm::fflux::input::FFluxPhaseLimit::TIME;
+
+    // Functions for getting enum values as strings
+    static inline const ::std::string& StopCondition_Name(StopCondition value)
+    {
+        return lm::fflux::input::FFluxPhaseLimit_StopCondition_Name(value);
+    }
 };
 
 // from lm/input/SimulationPhase.proto
-struct FFluxPhaseEnums {
+struct FFPhaseEnums {
     // enum typedefs
     typedef lm::fflux::input::FFluxPhase::TrajectoryDuplication TrajectoryDuplication;
     typedef lm::fflux::input::FFluxPhase::TrajectoryGeneration TrajectoryGeneration;

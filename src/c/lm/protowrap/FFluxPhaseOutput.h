@@ -85,7 +85,7 @@ void setPointKey(PointMsg* pointMsg, const PointKey& pointKey)
     }
 }
 typedef RepeatedMap<EndPointMsg, PointKey, &getPointKey, &setPointKey> EndPointMap;
-typedef PairVector<double, lm::fflux::io::EndPoint*> EndPointVector;
+typedef PairVector<lm::fflux::io::EndPoint*, int> EndPointVector;
 
 //class EndPoint
 //{
@@ -109,19 +109,18 @@ public:
 
     FFluxPhaseOutput(size_t randomCacheSize=10*KIBI)
     :msgPtr(NULL),rng(NULL),randomDoublesStart(NULL),randomDoubles(NULL),randomDoublesEnd(NULL),randomIndexesStart(NULL),
-     randomIndexes(NULL),randomIndexesEnd(NULL),randomCacheSize(randomCacheSize),endPointVectorDirty(true)
+     randomIndexes(NULL),randomIndexesEnd(NULL),randomCacheSize(randomCacheSize),randomIndexesDirty(true)
     {
-        initRandomIndexes(randomCacheSize);
     }
+
     FFluxPhaseOutput(Msg* msgMutablePtr, size_t randomCacheSize=10*KIBI)
     :msgPtr(NULL),rng(NULL),randomDoublesStart(NULL),randomDoubles(NULL),randomDoublesEnd(NULL),randomIndexesStart(NULL),
-     randomIndexes(NULL),randomIndexesEnd(NULL),randomCacheSize(randomCacheSize),endPointVectorDirty(true)
+     randomIndexes(NULL),randomIndexesEnd(NULL),randomCacheSize(randomCacheSize),randomIndexesDirty(true)
     {
-        initRandomIndexes(randomCacheSize);
         setMsg(msgMutablePtr);
     }
-    ~FFluxPhaseOutput() {destructRng();
-        destructRandomIndexes();}
+
+    ~FFluxPhaseOutput() {destructRng(); destructRandomIndexes();}
 
 // mutators
     void addEndPointPhaseZero(const lm::io::TrajectoryState& trajectoryState, int burnInCount)
@@ -155,7 +154,8 @@ public:
             endPointMsg->set_count(endPointMsg->count() + 1);
             endPointMsg->add_times(timeDataForwardFlux[i]);
 
-            endPointVector.push_back(std::make_pair(timeDataForwardFlux[i], endPointMsg));
+            // TODO: decide if the creation of endPointVector should be done one at a time (as below) or all at once
+            endPointVector.push_back(std::make_pair(endPointMsg, endPointMsg->count() - 1));
         }
 
         if (speciesCountWrap.compressed_deflate()) delete[] speciesCountDataForwardFlux;
@@ -261,7 +261,8 @@ public:
             endPointMsg->set_count(endPointMsg->count() + 1);
             endPointMsg->add_times(timeDataForwardFlux[0]);
 
-            endPointVector.push_back(std::make_pair(timeDataForwardFlux[0], endPointMsg));
+            // TODO: decide if the creation of endPointVector should be done one at a time (as below) or all at once
+            endPointVector.push_back(std::make_pair(endPointMsg, endPointMsg->count() - 1));
 
             if (speciesCountWrap.compressed_deflate()) delete[] speciesCountData;
         }
@@ -271,9 +272,8 @@ public:
         if (timeWrapForwardFlux.compressed_deflate()) delete[] timeDataForwardFlux;
     }
 
-    const EndPointVector::Pair& getRandomEndPoint()
+    const EndPointVector::Pair& const getEndPointUniformRandom() const
     {
-
         uint32_t i = *randomIndexes;
         randomIndexes++;
         return endPointVector[i];
@@ -293,8 +293,8 @@ public:
     }
 
 protected:
-    void initRng() {destructRng(); rng = new lm::rng::XORShift(0, 0);}
-    void initRng(int cudaDevice)
+    void initRng() const {destructRng(); rng = new lm::rng::XORShift(0, 0);}
+    void initRng(int cudaDevice) const
     {
         destructRng();
 
@@ -308,7 +308,7 @@ protected:
             rng = new lm::rng::XORShift(0, 0);
         }
     }
-    void initRandomIndexes(size_t size)
+    void initRandomIndexes(size_t size) const
     {
         initRng();
         destructRandomIndexes();
@@ -322,13 +322,13 @@ protected:
         randomDoublesEnd = randomDoublesStart + randomCacheSize;
     }
 
-    uint32_t getRandomIndex()
+    uint32_t getRandomIndex() const
     {
         // refill the cache of random numbers, if needed
         if (randomIndexes==randomIndexesEnd) fillRandomIndex();
 
         // if endPointVector has changed in size since the last time we ran .fillRandomIndex(), rescale a randomDouble on the fly to get a randomIndex
-        if (endPointVectorDirty)
+        if (randomIndexesDirty)
         {
             randomIndexes++;
             return getIndexFromDouble(*randomDoubles++);
@@ -341,13 +341,16 @@ protected:
         }
     }
 
-    inline uint32_t getIndexFromDouble(double d)
+    inline uint32_t getIndexFromDouble(double d) const
     {
         return static_cast<uint32_t>(floor(*randomDoubles*endPointVector.size()));
     }
 
-    void fillRandomIndex()
+    void fillRandomIndex() const
     {
+        // initialize the rng stuff for this instance of FFluxPhaseOutput, if needed
+        if (randomIndexes==NULL) {initRandomIndexes(randomCacheSize);}
+
         // get a large quantity of random doubles
         rng->getExpRandomDoubles(randomDoublesStart, randomCacheSize);
 
@@ -360,7 +363,10 @@ protected:
         {
             *randomIndexes = getIndexFromDouble(*randomDoubles);
         }
-        
+
+        // randomIndexes has been rebuilt according the current endPointVector.size(), so mark that they match
+        randomIndexesDirty = false;
+
         // reset the ptrs
         randomIndexes = randomIndexesStart;
         randomDoubles = randomDoublesStart;
@@ -374,18 +380,18 @@ protected:
         // iterate over all of the endpoints in the sucessful_trajectory_end_point repeated field
         for (EndPointMap::const_iterator epit=successfulEndPointMap.begin();epit!=successfulEndPointMap.end();epit++)
         {
-            // iterate over all of the times in the given endpoint
-            for (lm::protowrap::Repeated<double>::const_iterator tit=epit->times().begin();tit!=epit->times().end();tit++)
+            // add an entry to endPointVector for every time a particular endpoint was "seen"
+            for (int i=0;i<epit->count();i++)
             {
-                endPointVector.push_back(std::make_pair(*tit, &*epit));
+                endPointVector.push_back(std::make_pair(&*epit, i));
             }
         }
 
-        if (endPointVector.size()!=oldSize) endPointVectorDirty = true;
+        if (endPointVector.size()!=oldSize) randomIndexesDirty = true;
     }
 
-    void destructRng() {if (rng!=NULL) delete rng; rng=NULL;}
-    void destructRandomIndexes()
+    void destructRng() const {if (rng!=NULL) delete rng; rng=NULL;}
+    void destructRandomIndexes() const
     {
         if (randomIndexesStart!=NULL) delete[] randomIndexesStart; randomIndexesStart = NULL;
         randomIndexes = NULL;
@@ -412,13 +418,13 @@ protected:
     EndPointVector::T endPointVector;
 
     // rng used for randomly choosing points from one of the point lists. Caches large quantities of random numbers in an attempt to reduce the turnaround time of WorkUnitFinished messages on the supervisor
-    lm::rng::RandomGenerator * rng;
-    uint32_t *randomIndexesStart, *randomIndexes, *randomIndexesEnd;
-    double *randomDoublesStart, *randomDoubles, *randomDoublesEnd;
-    size_t randomCacheSize;
+    mutable lm::rng::RandomGenerator * rng;
+    mutable uint32_t *randomIndexesStart, *randomIndexes, *randomIndexesEnd;
+    mutable double *randomDoublesStart, *randomDoubles, *randomDoublesEnd;
+    mutable size_t randomCacheSize;
 
     // flag that indicates if the length of endPointVector has changed since we last refilled randomIndexes
-    bool endPointVectorDirty;
+    mutable bool randomIndexesDirty;
 };
 
 }

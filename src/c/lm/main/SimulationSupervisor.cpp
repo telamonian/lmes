@@ -82,7 +82,7 @@ int SimulationSupervisor::getRecvSleepMilliseconds()
 
 SimulationSupervisor::SimulationSupervisor()
 :communicator(lm::MPI::worldRank,THREAD_ID),hasCheckpointSignalerStarted(false),hasOutputWriterStarted(false),haveAllWorkUnitRunnersStarted(false),
- outstandingTrajectoryList(NULL),input(NULL),outputWriterClassName(""),outputWriterProcess(-1),outputWriterThread(-1),performingCheckpoint(false),
+ input(NULL),outstandingTrajectoryList(NULL),outputWriterClassName(""),outputWriterProcess(-1),outputWriterThread(-1),performingCheckpoint(false),
  resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),simulationPhaseIndex(0),simulationRunning(true),
  simulationPhaseTerminated(false),slots(&communicator),solverClassName(""),trajectoryList(NULL),useCPUAffinity(false),workUnitCount(0)
 {
@@ -491,7 +491,6 @@ void SimulationSupervisor::cleanUpSimulationPhase()
             // Keep track of any outstanding work units. Important for coordinating clean program termination across all nodes
             outstandingTrajectoryList->copyTrajectories(*trajectoryList, lm::trajectory::Trajectory::RUNNING);
             outstandingTrajectoryList->setAll(lm::trajectory::Trajectory::RUNNING, lm::trajectory::Trajectory::ABORTED);
-            outstandingTrajectoryList->setAll(lm::trajectory::Trajectory::RUNNING, lm::trajectory::Trajectory::ABORTED);
 
             // reset the simulationPhaseTerminated flag
             simulationPhaseTerminated = false;
@@ -499,7 +498,7 @@ void SimulationSupervisor::cleanUpSimulationPhase()
         // Otherwise, the default supervisor behavior is to throw an exception if there are trajectories still running at the end of a phase
         else
         {
-            throw Exception("At end of simulation phase, there were %d trajectories still running (should be 0)", trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::RUNNING)->size());
+            throw ConsistencyException("At end of simulation phase, there were %d trajectories still running (should be 0)", trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::RUNNING)->size());
         }
     }
 }

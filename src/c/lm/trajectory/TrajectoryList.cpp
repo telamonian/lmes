@@ -64,7 +64,11 @@ using std::string;
 namespace lm {
 namespace trajectory {
 
-TrajectoryList::TrajectoryList(): count(0), simulationPhaseIndex(0)
+TrajectoryList::TrajectoryList(): _count(0), _simulationPhaseIndex(0)
+{
+}
+
+TrajectoryList::TrajectoryList(uint64_t count, uint64_t simulationPhaseIndex): _count(count), _simulationPhaseIndex(simulationPhaseIndex)
 {
 }
 
@@ -82,7 +86,7 @@ void TrajectoryList::init(const TrajectoryStates& initialStates)
     {
         if (previousMaxCount < it->trajectory_id()) previousMaxCount = it->trajectory_id();
     }
-    count = previousMaxCount + 1;
+    _count = previousMaxCount + 1;
 
     for (Repeated<lm::io::TrajectoryState>::const_iterator it=initialStates.begin(); it!=initialStates.end(); it++)
     {
@@ -93,7 +97,7 @@ void TrajectoryList::init(const TrajectoryStates& initialStates)
 void TrajectoryList::init(const TrajectoryList& previousList)
 {
     // set the count of this list to one past the count of the previousList
-    count = previousList.count + 1;
+    _count = previousList._count + 1;
 
     for (TrajectoryMap::const_iterator it=previousList.finishedTrajectories.begin(); it!=previousList.finishedTrajectories.end(); it++)
     {
@@ -103,7 +107,7 @@ void TrajectoryList::init(const TrajectoryList& previousList)
 
 Trajectory* TrajectoryList::initTrajectory(Trajectory* allocatedTrajectory)
 {
-    uint64_t id = (allocatedTrajectory->getID()!=DEFAULT_TRAJECTORY_ID) ? allocatedTrajectory->getID() : count++;
+    uint64_t id = (allocatedTrajectory->getID()!=DEFAULT_TRAJECTORY_ID) ? allocatedTrajectory->getID() : _count++;
     trajectories[id] = allocatedTrajectory;
     waitingTrajectories[id] = trajectories[id];
 

@@ -131,6 +131,20 @@ public:
 	}
 };
 
+class NullPointerException : public Exception
+{
+public:
+    NullPointerException(const char* format, ...): Exception()
+    {
+        int offset = snprintf(messageBuffer, MAX_MESSAGE_SIZE, "%s: ", "Exception-> attempted to derefrence a pointer to NULL");
+        va_list args;
+        va_start (args, format);
+        vsnprintf(messageBuffer + offset, MAX_MESSAGE_SIZE - offset, format, args);
+        va_end (args);
+    }
+};
+
+
 class UnimplementedException : public Exception
 {
 public:

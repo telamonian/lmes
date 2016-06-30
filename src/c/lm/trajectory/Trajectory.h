@@ -73,9 +73,9 @@ public:
     :id(id),simulationPhase(phase),status(NOT_STARTED),state(),numberWorkUnitsPerformed(0)
     {
         initializeState();
+
         // Initialize the species counts
         initializeSpeciesCounts(input, speciesStart, speciesEnd, startTime);
-
         init(input);
     }
 

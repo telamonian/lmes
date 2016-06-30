@@ -78,9 +78,9 @@ Trajectory::Trajectory(const lm::input::Input& input, uint64_t phase, uint64_t i
 :id(id),simulationPhase(phase),status(NOT_STARTED),state(),numberWorkUnitsPerformed(0)
 {
     initializeState();
+
     // Initialize the species counts. This has been separated from the rest of init for ease of overriding
     if (input.hasReactionModel()) initializeSpeciesCounts(input, reversed);
-
     init(input);
 }
 

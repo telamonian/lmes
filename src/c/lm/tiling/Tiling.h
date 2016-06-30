@@ -55,6 +55,7 @@ typedef lm::protowrap::Repeated<int32_t> BasinT;
 typedef lm::protowrap::Repeated<lm::input::Basin> BasinsT;
 typedef lm::protowrap::Repeated<double> EdgesT;
 
+// TODO: fix many CV qualifier problems in Tiling
 class Tiling
 {
 public:
