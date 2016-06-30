@@ -110,13 +110,14 @@ void FFluxSupervisor::init()
     setInput(new lm::fflux::input::FFluxInput(lm::io::hdf5::Hdf5File(simulationInputFilename)));
 }
 
+// overrides parent method completely
 void FFluxSupervisor::startSimulation()
 {
     initSimulationStageList();
-    startSimulationStage();
+    Print::printf(Print::INFO, "Simulation started.");
 
-    // Call parent method
-    lm::main::SimulationSupervisor::startSimulation();
+    // call the function which starts the simulation stage (which will then call startSimulationPhase())
+    startSimulationStage();
 }
 
 void FFluxSupervisor::initSimulationStageList()
@@ -195,12 +196,23 @@ virtual void FFluxSupervisor::addFFluxPhases(lm::fflux::input::FFluxStage* stage
 
 void FFluxSupervisor::startSimulationStage()
 {
+    // set the ffluxPhaseLimits for this stage, if it hasn't already been taken care of somehow
     if (mutableCurrentStage()->has_pilot_stage() and mutableCurrentStage()->fflux_phase_limits_size()==0)
     {
-        addFFluxPhaseLimitsFromStageOutput(mutableCurrentStage(), mutableCurrentStageOutput());
+        addFFluxPhaseLimitsFromStageOutput(mutableCurrentStage(), currentStageOutput());
     }
 
+    // add a new stage output
+    addFFluxStageOutput();
+
+    // set the first phase of the new stage as the currentFFluxPhase
     currentFFluxPhaseIter = mutableCurrentStage()->fflux_phases().begin();
+
+    // add a new phase output
+    addFFluxPhaseOutput();
+
+    // start the new phase
+    startSimulationPhase();
 }
 
 template <typename T>
@@ -459,17 +471,19 @@ void FFluxSupervisor::incrementSimulationPhase()
     // increment the currentFFluxPhase iterator
     currentFFluxPhaseIter++;
 
-    // increment the phase output
-    incrementSimulationPhaseOutput();
+    // add a new phase output
+    addFFluxPhaseOutput();
 
     // run the base class method
     lm::main::SimulationSupervisor::incrementSimulationPhase();
 }
 
-void FFluxSupervisor::incrementSimulationPhaseOutput()
+void FFluxSupervisor::addFFluxPhaseOutput()
 {
-    // rotate the current output to the previous output
+    // swap the subjects of the current and previous phase output pointers
+    lm::protowrap::FFluxPhaseOutput* tmpFFluxPhaseOutputPtr = previousFFluxPhaseOutputPtr;
     previousFFluxPhaseOutputPtr = currentFFluxPhaseOutputPtr;
+    currentFFluxPhaseOutputPtr = tmpFFluxPhaseOutputPtr;
 
     // add a new phase output
     lm::fflux::io::FFluxPhaseOutput* newPhaseOutputMsg = ffluxPhaseOutputs.Add();
@@ -497,6 +511,24 @@ void FFluxSupervisor::finishSimulationStage()
     {
         finishSimulation();
     }
+}
+
+void FFluxSupervisor::incrementSimulationStage()
+{
+    // increment the currentFFluxPhase iterator
+    currentFFluxStageIter++;
+
+    // increment the stage output
+    addFFluxStageOutput();
+}
+
+void FFluxSupervisor::addFFluxStageOutput()
+{
+    // add a new phase output
+    lm::fflux::io::FFluxStageOutput* newStageOutputMsg = ffluxStageOutputs.Add();
+
+    // set the new phase output to be the current phase output
+    currentFFluxStageOutput.setMsg(newStageOutputMsg);
 }
 
 // setters

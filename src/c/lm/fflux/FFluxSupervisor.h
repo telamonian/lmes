@@ -116,13 +116,13 @@ protected:
     virtual void finishSimulationPhase();
     virtual bool performAnotherSimulationPhase() {return isCurrentPhaseLast();}
     virtual void incrementSimulationPhase();
-    virtual void incrementSimulationPhaseOutput();
+    virtual void addFFluxPhaseOutput();
 
     // methods that control what happens at the end of a ffluxStage
     virtual void finishSimulationStage();
     virtual bool performAnotherSimulationStage() {return isCurrentStageLast();}
     virtual void incrementSimulationStage();
-    virtual void incrementSimulationStageOutput();
+    virtual void addFFluxStageOutput();
 
     // methods that handle FinishedWorkUnit messages
     virtual void receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg);
