@@ -64,12 +64,12 @@ typedef lm::input::TrajectoryLimits TrajectoryLimitsMsg;
 typedef lm::input::TrajectoryLimit TrajectoryLimitMsg;
 
 // main template for LimitType->ValueType type generator
-template <TrajLimEnums::LimitType LT> struct LimitValueT;
+template <TrajLimEnums::LimitType LT> struct LimitElement;
 // NB: if any new LimitType enum values are added in the future, add a template specialization below
-template <> struct LimitValueT<TrajLimEnums::TIME> {typedef double type;};
-template <> struct LimitValueT<TrajLimEnums::DEGREE_ADVANCEMENT> {typedef uint64_t type;};
-template <> struct LimitValueT<TrajLimEnums::ORDER_PARAMETER> {typedef double type;};
-template <> struct LimitValueT<TrajLimEnums::SPECIES> {typedef int32_t type;};
+template <> struct LimitElement<TrajLimEnums::TIME> {typedef double type;};
+template <> struct LimitElement<TrajLimEnums::DEGREE_ADVANCEMENT> {typedef uint64_t type;};
+template <> struct LimitElement<TrajLimEnums::ORDER_PARAMETER> {typedef double type;};
+template <> struct LimitElement<TrajLimEnums::SPECIES> {typedef int32_t type;};
 
 template <typename ValueT, typename ContainerT> inline ValueT _getLimitValue(const ContainerT& tl);
 template <> inline double _getLimitValue<double, TrajectoryLimitMsg>(const TrajectoryLimitMsg& tl) {return tl.dvalue();}
@@ -78,7 +78,7 @@ template <> inline uint64_t _getLimitValue<uint64_t, TrajectoryLimitMsg>(const T
 template <> inline double _getLimitValue<double, TrajectoryLimit>(const TrajectoryLimit& tl) {return tl.dvalue;}
 template <> inline int32_t _getLimitValue<int32_t, TrajectoryLimit>(const TrajectoryLimit& tl) {return tl.ivalue;}
 template <> inline uint64_t _getLimitValue<uint64_t, TrajectoryLimit>(const TrajectoryLimit& tl) {return tl.uvalue;}
-template <TrajLimEnums::LimitType LT, typename ContainerT> inline typename LimitValueT<LT>::type getLimitValue(const ContainerT& tl) {return _getLimitValue<typename LimitValueT<LT>::type, ContainerT>(tl);}
+template <TrajLimEnums::LimitType LT, typename ContainerT> inline typename LimitElement<LT>::type getLimitValue(const ContainerT& tl) {return _getLimitValue<typename LimitElement<LT>::type, ContainerT>(tl);}
 
 template <typename ContainerT, typename ValueT> inline void setLimitValue(ContainerT& tl, ValueT val);
 template <> inline void setLimitValue<TrajectoryLimitMsg, double>(TrajectoryLimitMsg& tl, double val) {tl.set_dvalue(val);}
@@ -124,7 +124,7 @@ public:
 // mutators
     // general addLimitMsg
     template <TrajLimEnums::LimitType LT> inline TrajectoryLimitMsg*
-    addLimitMsg(uint32_t valID, typename LimitValueT<LT>::type val, TrajLimEnums::StoppingCondition sc, bool includeEndpoint = true, int32_t id = DEFAULT_LIMIT_ID)
+    addLimitMsg(uint32_t valID, typename LimitElement<LT>::type val, TrajLimEnums::StoppingCondition sc, bool includeEndpoint = true, int32_t id = DEFAULT_LIMIT_ID)
     {
         lm::input::TrajectoryLimit* tlMsg;
         if (LT==TrajLimEnums::TIME)
@@ -152,7 +152,7 @@ public:
 
     // version of addLimitMsg that adds the limits appropriate for tracking when a trajectory exits a bin (it helps to think of it as a bin on a histogram)
     template <TrajLimEnums::LimitType LT> inline void
-    addBinExitLimitsMsg(uint32_t valID, typename LimitValueT<LT>::type edge0Val, typename LimitValueT<LT>::type edge1Val,
+    addBinExitLimitsMsg(uint32_t valID, typename LimitElement<LT>::type edge0Val, typename LimitElement<LT>::type edge1Val,
                         bool edge0Exists=true, bool edge1Exists=true, bool rightOpenBins=true,
                         int32_t edge0LimitID=DEFAULT_LIMIT_ID, int32_t edge1LimitID=DEFAULT_LIMIT_ID)
     {
@@ -161,7 +161,7 @@ public:
         if (edge1Exists) edge1LimitID = applyDefaultID(edge1LimitID);
 
         // declare positional variables
-        typename LimitValueT<LT>::type leftEdgeVal,rightEdgeVal;
+        typename LimitElement<LT>::type leftEdgeVal,rightEdgeVal;
         bool leftEdgeExists, rightEdgeExists, leftIncludeEndpoint, rightIncludeEndpoint;
         int32_t leftEdgeLimitID, rightEdgeLimitID;
         

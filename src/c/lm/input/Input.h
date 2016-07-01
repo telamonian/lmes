@@ -117,12 +117,6 @@ protected:
     virtual void initWorkUnitParameters(const lm::io::hdf5::Hdf5File& file);
 
     bool parseBoundaryConditions(lm::input::BoundaryConditions* bc, std::string arg);
-    template <TrajLimEnums::LimitType LT> inline bool parseLimits(const std::string key, const std::string debugString, TrajLimEnums::StoppingCondition sc, bool includeEndpoint, bool* resultFlag0=NULL, bool* resultFlag1=NULL);
-    template <typename ValT> inline bool parseAndSet(const std::string key, ValT* fieldPtr, bool* resultFlag0=NULL, bool* resultFlag1=NULL);
-    template <typename T, typename SetterReturnT, typename ValT> inline bool parseAndSet(const std::string key, SetterReturnT (T::*setterFunc)(ValT), T& obj, bool* resultFlag0=NULL, bool* resultFlag1=NULL);
-    template <typename T> inline bool parseAndSetFlag(const std::string key, void (T::*setterFunc)(bool), T& obj, bool* resultFlag0=NULL, bool* resultFlag1=NULL);
-    inline bool parseAndSetFlag(const std::string key, bool* flagPtr, bool* resultFlag0=NULL, bool* resultFlag1=NULL);
-    template <typename T, typename AdderReturnT, typename ValT> inline bool parseAndSetList(const std::string key, AdderReturnT (T::*adderFunc)(ValT), T& obj, bool* resultFlag0=NULL, bool* resultFlag1=NULL);
 
     virtual void setFlagsOnSucess(bool result, bool* resultFlag0, bool* resultFlag1);
 
@@ -149,72 +143,116 @@ protected:
 
     uint64_t partsPerWorkUnit;
     uint64_t stepsPerWorkUnit;
-};
 
-//class Input
-//{
-//public:
-//    Input();
-//    Input(lm::io::hdf5::Hdf5File& file);
-//    virtual ~Input();
-//
-//    // has methods
-//    virtual bool hasBoundaryGradient();
-//    virtual bool hasDiffusionModel();
-//    virtual bool hasOrderParameters();
-//    virtual bool hasReactionModel();
-//    virtual bool hasTilings();
-//
-//    // get protobuf methods
-//    virtual lm::input::BoundaryConditions* getBoundaryGradientBuf();
-//    virtual lm::input::DiffusionModel* getDiffusionModelBuf();
-//    virtual lm::input::SimulationParameters* getParametersBuf();
-//    virtual lm::input::OrderParameters* getOrderParametersBuf();
-//    virtual lm::input::ReactionModel* getReactionModelBuf();
-//    virtual lm::input::SpatialModel* getSpatialModelBuf();
-//    virtual lm::input::Tilings* getTilingsBuf();
-//
-//    // get protobuf methods (load-into-pointer style)
-//    virtual void getBoundaryGradientBuf(lm::input::BoundaryConditions* bcBuf);
-//    virtual void getDiffusionModelBuf(lm::input::DiffusionModel* diffusionModelBuf);
-//    virtual void getParametersBuf(lm::input::SimulationParameters* parametersBuf);
-//    virtual void getOrderParametersBuf(lm::input::OrderParameters* orderParametersBuf);
-//    virtual void getReactionModelBuf(lm::input::ReactionModel* reactionModelBuf);
-//    virtual void getSpatialModelBuf(lm::input::SpatialModel* modelBuf);
-//    virtual void getTilingsBuf(lm::input::Tilings* tilingsBuf);
-//
-//    // get wrapper methods
-//    virtual map<string,string> getParameters();
-//    virtual string getParameter(string key, string defaultValue="");
-//    virtual lm::oparam::OParam* getOrderParameter(uint id);
-//    virtual lm::tiling::Tiling* getTiling(uint id)
-//
-//    // set protobuf methods
-//    virtual void getBoundaryGradientBuf(lm::input::BoundaryConditions* bcBuf);
-//    virtual void setDiffusionModelBuf(lm::input::DiffusionModel& diffusionModelBuf);
-//    virtual void setOrderParametersBuf(lm::input::OrderParameters& orderParametersBuf);
-//    virtual void setParametersBuf(lm::input::SimulationParameters& parametersBuf);
-//    virtual void setReactionModelBuf(lm::input::ReactionModel& reactionModelBuf);
-//    virtual void setSpatialModelBuf(lm::input::SpatialModel& modelBuf);
-//    virtual void setTilingsBuf(lm::input::Tilings& tilingsBuf);
-//
-//    // set wrapper methods
-//    virtual void setParameter(string key, string value);
-//
-//protected:
-//    // load from file methods
-//    virtual void _loadBoundaryGradientBuf(lm::input::BoundaryConditions* bcBuf);
-//    virtual void _loadDiffusionModelBuf(lm::input::DiffusionModel* diffusionModelBuf);
-//    virtual void _loadParametersBuf(lm::input::SimulationParameters* parametersBuf);
-//    virtual void _loadOrderParametersBuf(lm::input::OrderParameters* orderParametersBuf);
-//    virtual void _loadReactionModelBuf(lm::input::ReactionModel* reactionModelBuf);
-//    virtual void _loadSpatialModelBuf(lm::input::SpatialModel* modelBuf);
-//    virtual void _loadTilingsBuf(lm::input::Tilings* tilingsBuf);
-//
-//private:
-//    lm::io::hdf5::Hdf5File& file;
-//    lm::message::Message msgBuf;
-//};
+// template methods for parsing user input
+protected:
+    template <TrajLimEnums::LimitType LT>
+    bool parseLimits(const string key, const string debugString, TrajLimEnums::StoppingCondition sc, bool includeEndpoint, bool* resultFlag0=NULL, bool* resultFlag1=NULL)
+    {
+        bool result;
+        if (simulationParameters.count(key)!=0)
+        {
+            typename PairVector<uint, typename lm::limit::LimitElement<LT>::type>::T idLimitVec(simulationParameters.parsePairVector<uint, typename lm::limit::LimitElement<LT>::type>(key, debugString));
+            for (typename PairVector<uint, typename lm::limit::LimitElement<LT>::type>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
+            {
+                trajectoryLimits.addLimitMsg<LT>(it->first, it->second, sc, includeEndpoint);
+            }
+            result = (idLimitVec.size() > 0);
+        }
+        else
+        {
+            result = false;
+        }
+
+        setFlagsOnSucess(result, resultFlag0, resultFlag1);
+        return result;
+    }
+
+// Version of parseAndSet that works with options that can directly accessed through a mutable pointer
+// By using template parameter inference on the pointer, this template automatically figures out what type to parse from simulationParameters
+    template <typename ValT>
+    bool parseAndSet(const string key, ValT* fieldPtr, bool* resultFlag0=NULL, bool* resultFlag1=NULL)
+    {
+        bool result;
+        if (simulationParameters.count(key)!=0)
+        {
+            *fieldPtr = simulationParameters.parse<ValT>(key);
+            result = true;
+        }
+        else
+        {
+            result = false;
+        }
+
+        setFlagsOnSucess(result, resultFlag0, resultFlag1);
+        return result;
+    }
+
+// Version of parseAndSet that works with options that need to be set via a setter function
+// By using template parameter inference on the setter (passed as a function pointer), this template automatically figures out what type to parse from simulationParameters
+    template <typename T, typename SetterReturnT, typename ValT>
+    bool parseAndSet(const string key, SetterReturnT (T::*setterFunc)(ValT), T& obj, bool* resultFlag0=NULL, bool* resultFlag1=NULL)
+    {
+        bool result;
+        if (simulationParameters.count(key)!=0)
+        {
+            (obj.*setterFunc)(simulationParameters.parse<ValT>(key));
+            result = true;
+        }
+        else
+        {
+            result = false;
+        }
+
+        setFlagsOnSucess(result, resultFlag0, resultFlag1);
+        return result;
+    }
+
+// specialized version of parseAndSet for flag options (ie options that can be only true or false). If the flag key is present in simulationParameters then the flag is set to true (regardless of its value in simulationParameters), otherwise the flag is set to false
+    inline bool parseAndSetFlag(const std::string key, bool* flagPtr, bool* resultFlag0=NULL, bool* resultFlag1=NULL)
+    {
+        bool result = (simulationParameters.count(key)!=0);
+        *flagPtr = result;
+
+        setFlagsOnSucess(result, resultFlag0, resultFlag1);
+        return result;
+    }
+
+// same as parseAndSetFlag, but this version works with options that need to be set via a setter function
+    template <typename T>
+    bool parseAndSetFlag(const std::string key, void (T::*setterFunc)(bool), T& obj, bool* resultFlag0=NULL, bool* resultFlag1=NULL)
+    {
+        bool result = (simulationParameters.count(key)!=0);
+        (obj.*setterFunc)(result);
+
+        setFlagsOnSucess(result, resultFlag0, resultFlag1);
+        return result;
+    }
+
+// Same as parseAndSet, but for options specified as lists
+    template <typename T, typename AdderReturnT, typename ValT>
+    bool parseAndSetList(const string key, AdderReturnT (T::*adderFunc)(ValT), T& obj, bool* resultFlag0=NULL, bool* resultFlag1=NULL)
+    {
+        bool result;
+        if (simulationParameters.count(key)!=0)
+        {
+            std::vector<ValT> parsedVector(simulationParameters.parseVector<ValT>(key));
+            for (typename vector<ValT>::const_iterator it=parsedVector.begin(); it!=parsedVector.end(); it++)
+            {
+                (obj.*adderFunc)(*it);
+            }
+            result = (parsedVector.size() > 0);
+        }
+        else
+        {
+            result = false;
+        }
+
+        setFlagsOnSucess(result, resultFlag0, resultFlag1);
+        return result;
+    }
+    
+};
 
 }
 }

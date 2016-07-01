@@ -53,7 +53,7 @@
 #include "lm/Types.h"
 
 using lm::fflux::input::FFluxOptions;
-using lm::limit::LimitValueT;
+using lm::limit::LimitElement;
 
 namespace lm {
 namespace fflux {
@@ -101,8 +101,8 @@ void FFluxInput::reinitOutputOptions(const std::string& recordNamePrefix)
 //{
 //    if (simulationParameters.count(key))
 //    {
-//        typename PairVector<uint, typename LimitValueT<LT>::type>::T idLimitVec(simulationParameters.parsePairVector<uint, typename LimitValueT<LT>::type>(key, debugString));
-//        for (typename PairVector<uint, typename LimitValueT<LT>::type>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
+//        typename PairVector<uint, typename LimitElement<LT>::type>::T idLimitVec(simulationParameters.parsePairVector<uint, typename LimitElement<LT>::type>(key, debugString));
+//        for (typename PairVector<uint, typename LimitElement<LT>::type>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
 //        {
 //            trajectoryLimits.addLimitMsg<LT>(it->first, it->second, sc, includeEndpoint);
 //        }

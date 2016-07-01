@@ -43,7 +43,7 @@
 #include "lm/limit/TrajectoryLimits.h"
 #include "lm/Types.h"
 
-using lm::limit::LimitValueT;
+using lm::limit::LimitElement;
 
 namespace lm {
 namespace limit {

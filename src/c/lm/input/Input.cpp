@@ -53,7 +53,6 @@
 #include "lm/Types.h"
 
 using lm::input::OutputOptions;
-using lm::limit::LimitValueT;
 using std::map;
 using std::string;
 using std::vector;
@@ -347,112 +346,6 @@ bool Input::parseBoundaryConditions(lm::input::BoundaryConditions* bc, string ar
     }
     delete[] argbuf;
     return bc->axis_specific_boundaries();
-}
-
-template <TrajLimEnums::LimitType LT> 
-bool Input::parseLimits(const string key, const string debugString, TrajLimEnums::StoppingCondition sc, bool includeEndpoint, bool* resultFlag0, bool* resultFlag1)
-{
-    bool result;
-    if (simulationParameters.count(key)!=0)
-    {
-        typename PairVector<uint, typename LimitValueT<LT>::type>::T idLimitVec(simulationParameters.parsePairVector<uint, typename LimitValueT<LT>::type>(key, debugString));
-        for (typename PairVector<uint, typename LimitValueT<LT>::type>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
-        {
-            trajectoryLimits.addLimitMsg<LT>(it->first, it->second, sc, includeEndpoint);
-        }
-        result = (idLimitVec.size() > 0);
-    }
-    else
-    {
-        result = false;
-    }
-
-    setFlagsOnSucess(result, resultFlag0, resultFlag1);
-    return result;
-}
-
-// Version of parseAndSet that works with options that can directly accessed through a mutable pointer
-// By using template parameter inference on the pointer, this template automatically figures out what type to parse from simulationParameters
-template <typename ValT> 
-bool Input::parseAndSet(const string key, ValT* fieldPtr, bool* resultFlag0, bool* resultFlag1)
-{
-    bool result;
-    if (simulationParameters.count(key)!=0)
-    {
-        *fieldPtr = simulationParameters.parse<ValT>(key);
-        result = true;
-    }
-    else
-    {
-        result = false;
-    }
-
-    setFlagsOnSucess(result, resultFlag0, resultFlag1);
-    return result;
-}
-
-// Version of parseAndSet that works with options that need to be set via a setter function
-// By using template parameter inference on the setter (passed as a function pointer), this template automatically figures out what type to parse from simulationParameters
-template <typename T, typename SetterReturnT, typename ValT> 
-bool Input::parseAndSet(const string key, SetterReturnT (T::*setterFunc)(ValT), T& obj, bool* resultFlag0, bool* resultFlag1)
-{
-    bool result;
-    if (simulationParameters.count(key)!=0)
-    {
-        (obj.*setterFunc)(simulationParameters.parse<ValT>(key));
-        result = true;
-    }
-    else
-    {
-        result = false;
-    }
-
-    setFlagsOnSucess(result, resultFlag0, resultFlag1);
-    return result;
-}
-
-// specialized version of parseAndSet for flag options (ie options that can be only true or false). If the flag key is present in simulationParameters then the flag is set to true (regardless of its value in simulationParameters), otherwise the flag is set to false
-inline bool Input::parseAndSetFlag(const std::string key, bool* flagPtr, bool* resultFlag0, bool* resultFlag1)
-{
-    bool result = (simulationParameters.count(key)!=0);
-    *flagPtr = result;
-
-    setFlagsOnSucess(result, resultFlag0, resultFlag1);
-    return result;
-}
-
-// same as parseAndSetFlag, but this version works with options that need to be set via a setter function
-template <typename T> 
-bool Input::parseAndSetFlag(const std::string key, void (T::*setterFunc)(bool), T& obj, bool* resultFlag0, bool* resultFlag1)
-{
-    bool result = (simulationParameters.count(key)!=0);
-    (obj.*setterFunc)(result);
-
-    setFlagsOnSucess(result, resultFlag0, resultFlag1);
-    return result;
-}
-
-// Same as parseAndSet, but for options specified as lists
-template <typename T, typename AdderReturnT, typename ValT> 
-bool Input::parseAndSetList(const string key, AdderReturnT (T::*adderFunc)(ValT), T& obj, bool* resultFlag0, bool* resultFlag1)
-{
-    bool result;
-    if (simulationParameters.count(key)!=0)
-    {
-        std::vector<ValT> parsedVector(simulationParameters.parseVector<ValT>(key));
-        for (typename vector<ValT>::const_iterator it=parsedVector.begin(); it!=parsedVector.end(); it++)
-        {
-            (obj.*adderFunc)(*it);
-        }
-        result = (parsedVector.size() > 0);
-    }
-    else
-    {
-        result = false;
-    }
-
-    setFlagsOnSucess(result, resultFlag0, resultFlag1);
-    return result;
 }
 
 void Input::setFlagsOnSucess(bool result, bool* resultFlag0, bool* resultFlag1)
