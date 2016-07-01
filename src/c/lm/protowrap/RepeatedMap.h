@@ -70,10 +70,13 @@ public:
     virtual ~RepeatedMap() {}
 
 // operators
-    Element* operator[](const Key& key) const {return map[key];}
+    Element* operator[](const Key& key) const {return at(key);}
+
+// accessors
+    Element* at(const Key& key) const {return map.at(key);}
 
 // mutators
-    void addMemberValPtrToMap(Element* memberValPtr) {map[(*getKeyFunc)(memberValPtr)] = memberValPtr;}
+    void addMemberValPtrToMap(Element* memberValPtr) {map[(*getKeyFunc)(*memberValPtr)] = memberValPtr;}
 
     inline virtual void setRepFieldPtr(RepeatedField* newRepFieldPtr)
     {

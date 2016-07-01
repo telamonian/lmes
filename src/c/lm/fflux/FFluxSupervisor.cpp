@@ -50,6 +50,7 @@
 #include "lm/fflux/input/FFluxInput.h"
 #include "lm/fflux/input/FFluxStage.pb.h"
 #include "lm/fflux/input/FFluxPhaseLimit.pb.h"
+#include "lm/input/Tilings.pb.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/main/Main.h"
@@ -138,7 +139,7 @@ void FFluxSupervisor::initSimulationStageList()
     currentFFluxStageIter = ffluxStageExecutionOrder.begin();
 }
 
-lm::fflux::input::FFluxStage* FFluxSupervisor::buildProductionStage(lm::fflux::input::FFluxStage* productionStage, const input::Tiling& tiling, int basinIndex)
+lm::fflux::input::FFluxStage* FFluxSupervisor::buildProductionStage(lm::fflux::input::FFluxStage* productionStage, const lm::input::Tiling& tiling, int basinIndex)
 {
     productionStage->mutable_tiling()->CopyFrom(tiling);
     productionStage->set_basin_index(basinIndex);
@@ -175,7 +176,7 @@ lm::fflux::input::FFluxStage* FFluxSupervisor::addPilotStage(lm::fflux::input::F
     return pilotStage;
 }
 
-virtual void FFluxSupervisor::addFFluxPhases(lm::fflux::input::FFluxStage* stage, FFPhaseEnums::TrajectoryGeneration trajGeneration, FFPhaseEnums::TrajectoryDuplication trajDuplication)
+void FFluxSupervisor::addFFluxPhases(lm::fflux::input::FFluxStage* stage, FFPhaseEnums::TrajectoryGeneration trajGeneration, FFPhaseEnums::TrajectoryDuplication trajDuplication)
 {
     input->reinitOutputOptions("");
 
@@ -206,7 +207,7 @@ void FFluxSupervisor::startSimulationStage()
     addFFluxStageOutput();
 
     // set the first phase of the new stage as the currentFFluxPhase
-    currentFFluxPhaseIter = mutableCurrentStage()->fflux_phases().begin();
+    currentFFluxPhaseIter = mutableCurrentStage()->mutable_fflux_phases()->begin();
 
     // start the new phase
     startSimulationPhase();
@@ -386,12 +387,12 @@ void FFluxSupervisor::setTrajectoryLimits()
 void FFluxSupervisor::setTrajectoryLimitsPhaseZero()
 {
     // figure out how many flux events we need to observe per trajectory
-    lm::fflux::FFluxTrajectoryList::getTrajectoriesToStart(currentPhase(), currentPhaseLimit(), slots.getSimultaneousWorkUnits());
+    uint fluxesPerTrajectory = (uint)(ceil((double)(currentPhaseLimit().uvalue())/lm::fflux::FFluxTrajectoryList::getTrajectoriesToStart(currentPhase(), currentPhaseLimit(), slots.getSimultaneousWorkUnits())));
 
     // - first we set a limit with id==0
     //     - this limit is the important one. a triggering of this limit corresponds to one of the flux events that we're trying to sample during phase 0
     trajectoryLimits.addTileExitLimitsMsg(*currentTilingPtr, -1, 0, false, true);
-    trajectoryLimits.addTrackingMsg(0, false, true, , true);
+    trajectoryLimits.addTrackingMsg(0, false, true, fluxesPerTrajectory, true);
 
     // - next, we set two more limits with id==1 and id==2
     //     - these limits are used to help track which basin was last visited by a trajectory

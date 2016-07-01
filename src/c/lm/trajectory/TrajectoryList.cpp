@@ -230,7 +230,7 @@ void TrajectoryList::copyTrajectories(const TrajectoryList& srcTrajList, Traject
 
     for (TrajectoryMap::const_iterator it=srcMap.begin();it!=srcMap.end();it++)
     {
-        dstMap[it->first] = it->second;
+        (*dstMap)[it->first] = it->second;
     }
 }
 

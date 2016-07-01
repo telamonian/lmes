@@ -196,16 +196,20 @@ public:
     static double sumTimeIntervals(double* entryTimes, double* entryTimesEnd, double* exitTimes, double* exitTimesEnd, double startTime=0.0, double endTime=std::numeric_limits<double>::infinity())
     {
         double sumTime = 0.0;
+        checkLimitCurry<TrajLimEnums::MAX, false, double> greaterThanCurry(0.0);
 
         // find the first interval entry time after the start time
-        entryTimes = checkLimitRangeAdapter<TrajLimEnums::MAX, false, double>(std::find_if, entryTimes, entryTimesEnd, startTime);
+//        entryTimes = checkLimitRangeAdapter<TrajLimEnums::MAX, false, double>(std::find_if, entryTimes, entryTimesEnd, startTime);
+        entryTimes = std::find_if(entryTimes, entryTimesEnd, greaterThanCurry.setLimitVal(startTime));
+
         // if we didn't find an appropriate entry time, just return 0.0
         if (entryTimes==entryTimesEnd) return sumTime;
 
         while (true)
         {
             // try to find the next interval exit time
-            exitTimes = checkLimitRangeAdapter<TrajLimEnums::MAX, false, double>(std::find_if, exitTimes, exitTimesEnd, *entryTimes);
+//            exitTimes = checkLimitRangeAdapter<TrajLimEnums::MAX, false, double>(std::find_if, exitTimes, exitTimesEnd, *entryTimes);
+            exitTimes = std::find_if(exitTimes, exitTimesEnd, greaterThanCurry.setLimitVal(*entryTimes));
             if (exitTimes==exitTimesEnd)               // If have an entryTime with no exitTime, add the difference between the last entryTime and the endTime, and then break
             {
                 if (not endTime==std::numeric_limits<double>::infinity()) sumTime += (endTime - *entryTimes);
@@ -217,7 +221,8 @@ public:
             }
 
             // try to find the next interval entry time
-            entryTimes = checkLimitRangeAdapter<TrajLimEnums::MAX, false, double>(std::find_if, entryTimes, entryTimesEnd, *exitTimes);
+//            entryTimes = checkLimitRangeAdapter<TrajLimEnums::MAX, false, double>(std::find_if, entryTimes, entryTimesEnd, *exitTimes);
+            entryTimes = std::find_if(entryTimes, entryTimesEnd, greaterThanCurry.setLimitVal(*exitTimes));
             if (entryTimes==entryTimesEnd)            // If we can't find another entryTime, there are no more intervals so break
             {
                 return sumTime;
@@ -378,7 +383,7 @@ protected:
         endPointVector.clear();
 
         // iterate over all of the endpoints in the sucessful_trajectory_end_point repeated field
-        for (EndPointMap::const_iterator epit=successfulEndPointMap.begin();epit!=successfulEndPointMap.end();epit++)
+        for (EndPointMap::iterator epit=successfulEndPointMap.begin();epit!=successfulEndPointMap.end();epit++)
         {
             // add an entry to endPointVector for every time a particular endpoint was "seen"
             for (int i=0;i<epit->count();i++)

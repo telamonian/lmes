@@ -39,7 +39,23 @@
 #ifndef LM_LIMIT_LIMITCHECKFUNCTIONS_H_
 #define LM_LIMIT_LIMITCHECKFUNCTIONS_H_
 
+#include <functional>
+
 #include "lm/EnumHelper.h"
+
+namespace lm {
+namespace limit {
+
+template <TrajLimEnums::StoppingCondition sc> struct isStoppingConditionFirstOrder {static const bool value = false;};
+template <> struct isStoppingConditionFirstOrder<TrajLimEnums::MIN> {static const bool value = true;};
+template <> struct isStoppingConditionFirstOrder<TrajLimEnums::MAX> {static const bool value = true;};
+
+template <TrajLimEnums::StoppingCondition sc> struct isStoppingConditionSecondOrder {static const bool value = false;};
+template <> struct isStoppingConditionSecondOrder<TrajLimEnums::DECREASING> {static const bool value = true;};
+template <> struct isStoppingConditionSecondOrder<TrajLimEnums::INCREASING> {static const bool value = true;};
+
+}
+}
 
 // the main checkLimit template. Call this function when checking any values against any limits
 template <TrajLimEnums::StoppingCondition sc, bool includeEndpoint> struct checkLimit;
@@ -56,27 +72,66 @@ template <> struct checkLimit<TrajLimEnums::DECREASING, true>  {template <typena
 template <> struct checkLimit<TrajLimEnums::INCREASING, false> {template <typename T> static bool call(T prevVal, T val, T limitVal) {return (prevVal <= limitVal && val >  limitVal);}};
 template <> struct checkLimit<TrajLimEnums::INCREASING, true>  {template <typename T> static bool call(T prevVal, T val, T limitVal) {return (prevVal <  limitVal && val >= limitVal);}};
 
-template <TrajLimEnums::StoppingCondition sc, bool includeEndpoint, typename T, typename TIterator>
-TIterator checkLimitRangeAdapter(TIterator (*rangeBasedFuncWithPredicate)(TIterator, TIterator, bool (*predicate)(T)), TIterator start, TIterator end, T limitVal)
+template <TrajLimEnums::StoppingCondition sc, bool includeEndpoint, typename T,
+          bool isFirstOrder=lm::limit::isStoppingConditionFirstOrder<sc>::value,
+          bool isSecondOrder=lm::limit::isStoppingConditionSecondOrder<sc>::value> class checkLimitCurry;
+
+template <TrajLimEnums::StoppingCondition sc, bool includeEndpoint, typename T> class checkLimitCurry<sc, includeEndpoint, T, true, false>
 {
-    // closure that allows for presetting the limitVal and calling the check with a single argument
-    struct checkLimitClosureLocal: public checkLimit<sc, includeEndpoint>
-    {
-        static bool closure(T val) {return call(val, limitVal);}
-    };
+public:
+    checkLimitCurry(T limitVal): limitVal(limitVal) {}
+    bool operator()(T val) {return checkLimit<sc, includeEndpoint>::call(val, limitVal);}
 
-    return (*rangeBasedFuncWithPredicate)(start, end, checkLimitClosureLocal::closure);
-};
+    checkLimitCurry<sc, includeEndpoint, T, true, false>& setLimitVal(T newLimitVal) {limitVal = newLimitVal; return *this;}
 
-// closure that allows for presetting the limitVal and calling the check with a single argument
-template <TrajLimEnums::StoppingCondition sc, bool includeEndpoint, typename T> struct checkLimitClosure: public checkLimit<sc, includeEndpoint>
-{
-    checkLimitClosure() {}
-    checkLimitClosure(T limitVal): limitVal(limitVal) {}
-
-    bool closure(T val) {return call(val, limitVal);}
+protected:
     T limitVal;
 };
+
+template <TrajLimEnums::StoppingCondition sc, bool includeEndpoint, typename T> class checkLimitCurry<sc, includeEndpoint, T, false, true>
+{
+public:
+    checkLimitCurry(T limitVal): limitVal(limitVal) {}
+    bool operator()(T prevVal, T val) {return checkLimit<sc, includeEndpoint>::call(prevVal, val, limitVal);}
+
+    checkLimitCurry<sc, includeEndpoint, T, false, true>& setLimitVal(T newLimitVal) {limitVal = newLimitVal; return *this;}
+
+protected:
+    T limitVal;
+};
+
+template <TrajLimEnums::StoppingCondition sc, bool includeEndpoint, typename T>
+std::binder2nd<bool(T, T)> _checkLimitCurry(T limitVal)
+{
+    return std::bind2nd(checkLimit<sc, includeEndpoint>::call, limitVal);
+};
+
+//template <TrajLimEnums::StoppingCondition sc, bool includeEndpoint, typename T, typename TIterator>
+//TIterator checkLimitRangeAdapter(TIterator (*rangeBasedFuncWithPredicate)(TIterator, TIterator, bool (*predicate)(T)), TIterator start, TIterator end, T limitVal)
+//{
+//    // closure that allows for presetting the limitVal and calling the check with a single argument
+////    struct CheckLimitClosureLocal: public checkLimit<sc, includeEndpoint>
+////    {
+////        static T staticLimitVal;
+////
+////        static bool closure(T val) {return call(val, staticLimitVal);}
+////    };
+////    CheckLimitClosureLocal::staticLimitVal = limitVal;
+//
+//    static bool localClosure(T val) {return checkLimit<sc, includeEndpoint>::call(val, limitVal);}
+//
+//    return (*rangeBasedFuncWithPredicate)(start, end, localClosure);
+//};
+//
+//// closure that allows for presetting the limitVal and calling the check with a single argument
+//template <TrajLimEnums::StoppingCondition sc, bool includeEndpoint, typename T> struct checkLimitClosure: public checkLimit<sc, includeEndpoint>
+//{
+//    checkLimitClosure() {}
+//    checkLimitClosure(T limitVal): limitVal(limitVal) {}
+//
+//    bool closure(T val) {return call(val, limitVal);}
+//    T limitVal;
+//};
 
 
 
