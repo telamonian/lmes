@@ -65,7 +65,7 @@ class TrajectoryList
 {
 public:
 // constants
-    static const uint64_t DEFAULT_TRAJECTORY_ID = std::numeric_limits<uint64_t>::max();
+    static const uint64_t DEFAULT_TRAJECTORY_ID;
 
     TrajectoryList();
     TrajectoryList(uint64_t count, uint64_t simulationPhaseIndex);

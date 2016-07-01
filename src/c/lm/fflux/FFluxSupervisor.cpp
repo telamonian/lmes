@@ -208,9 +208,6 @@ void FFluxSupervisor::startSimulationStage()
     // set the first phase of the new stage as the currentFFluxPhase
     currentFFluxPhaseIter = mutableCurrentStage()->fflux_phases().begin();
 
-    // add a new phase output
-    addFFluxPhaseOutput();
-
     // start the new phase
     startSimulationPhase();
 }
@@ -359,6 +356,10 @@ void FFluxSupervisor::receivedFinishedWorkUnitPartPhaseZero(const lm::message::W
 
 void FFluxSupervisor::startSimulationPhase()
 {
+    // add a new phase output
+    addFFluxPhaseOutput();
+
+    // set the trajectory limits/tracking for this phase
     setTrajectoryLimits();
 
     // call the base class method
@@ -471,10 +472,7 @@ void FFluxSupervisor::incrementSimulationPhase()
     // increment the currentFFluxPhase iterator
     currentFFluxPhaseIter++;
 
-    // add a new phase output
-    addFFluxPhaseOutput();
-
-    // run the base class method
+    // call the base class method
     lm::main::SimulationSupervisor::incrementSimulationPhase();
 }
 
@@ -500,11 +498,11 @@ void FFluxSupervisor::finishSimulationStage()
     // if we need to perform another stage, do so
     if (performAnotherSimulationStage())
     {
-        // initialize the next stage and switch over to it
+        // increment the stage-related iterators
         incrementSimulationStage();
 
-        // the next phase will have been initialized by .incrementSimulationStage(), so just run it
-        startSimulationPhase();
+        // start the new stage
+        startSimulationStage();
     }
     // otherwise, stop the simulation
     else

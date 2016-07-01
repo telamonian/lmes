@@ -78,7 +78,7 @@ PointKey getPointKey(const PointMsg& pointMsgConst)
 template <typename PointMsg>
 void setPointKey(PointMsg* pointMsg, const PointKey& pointKey)
 {
-    pointMsg->mutable_species_coordinates()->clear();
+    pointMsg->mutable_species_coordinates()->Clear();
     for (PointKey::const_iterator it=pointKey.begin();it!=pointKey.end();it++)
     {
         pointMsg->add_species_coordinates(*it);
@@ -272,7 +272,7 @@ public:
         if (timeWrapForwardFlux.compressed_deflate()) delete[] timeDataForwardFlux;
     }
 
-    const EndPointVector::Pair& const getEndPointUniformRandom() const
+    const EndPointVector::Pair& getEndPointUniformRandom() const
     {
         uint32_t i = *randomIndexes;
         randomIndexes++;

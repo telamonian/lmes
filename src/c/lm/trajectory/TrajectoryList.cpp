@@ -64,6 +64,8 @@ using std::string;
 namespace lm {
 namespace trajectory {
 
+const uint64_t TrajectoryList::DEFAULT_TRAJECTORY_ID = std::numeric_limits<uint64_t>::max();
+
 TrajectoryList::TrajectoryList(): _count(0), _simulationPhaseIndex(0)
 {
 }
@@ -90,7 +92,7 @@ void TrajectoryList::init(const TrajectoryStates& initialStates)
 
     for (Repeated<lm::io::TrajectoryState>::const_iterator it=initialStates.begin(); it!=initialStates.end(); it++)
     {
-        initTrajectory(*it, getSimulationPhaseIndex());
+        initTrajectory(*it, simulationPhaseIndex());
     }
 }
 
@@ -101,7 +103,7 @@ void TrajectoryList::init(const TrajectoryList& previousList)
 
     for (TrajectoryMap::const_iterator it=previousList.finishedTrajectories.begin(); it!=previousList.finishedTrajectories.end(); it++)
     {
-        initTrajectory(it->second->getState(), getSimulationPhaseIndex());
+        initTrajectory(it->second->getState(), simulationPhaseIndex());
     }
 }
 

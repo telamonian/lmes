@@ -114,7 +114,7 @@ public:
     const Element& operator()(int i) const {return Get(i);}
     // conversion operators allow this wrapper to be used wherever google::protobuf::RepeatedField/RepeatedPtrField could be
     operator RepeatedField*() {return repFieldPtr;}
-    explicit operator const RepeatedField&() const {return *repFieldPtr;}
+    operator const RepeatedField&() const {return *repFieldPtr;}
 
 // accessors
     inline const Element& first() const {return Get(0);}
