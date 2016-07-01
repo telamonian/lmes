@@ -138,8 +138,8 @@ public:
     virtual void close() throw(IOException,HDF5Exception);
     virtual string checkpoint() throw(IOException,HDF5Exception);
     virtual void flush() throw(HDF5Exception);
-    virtual hid_t initGroup(std::vector<std::string>& groupPathVector, hid_t rootGroup=-1);
-    virtual hid_t initGroup(std::string& groupPath, hid_t rootGroup=-1);
+    virtual hid_t initGroup(const std::vector<std::string>& groupPathVector, hid_t rootGroup=-1);
+    virtual hid_t initGroup(const std::string& groupPath, hid_t rootGroup=-1);
 
     // Methods for working with parameters.
     virtual void getParameters(lm::input::SimulationParameters* parameters) const;

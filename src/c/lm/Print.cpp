@@ -36,14 +36,20 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#include <string>
+#include <algorithm>
+#include <cstdarg>
+#include <cstdio>
 #include <iostream>
 #include <sstream>
-#include <cstdio>
-#include <cstdarg>
+#include <string>
+#include <vector>
 
 #include "lm/Print.h"
 #include "lm/Types.h"
+
+using std::string;
+using std::stringstream;
+using std::vector;
 
 namespace lm {
 
@@ -91,5 +97,38 @@ void Print::printf(int verbosity, const char * fmt, ...)
 template<> const char* Print::printf_format_string<int>() {return "%d";}
 template<> const char* Print::printf_format_string<uint>() {return "%u";}
 template<> const char* Print::printf_format_string<double>() {return "%f";}
+
+// "lambda" function needed for pathJoin
+bool isNotSlash(const char& c) {return c!='/';}
+
+string pathJoin(const vector<string>& pathElements, bool absolute)
+{
+    stringstream ss;
+    for (vector<string>::const_iterator it=pathElements.begin();it!=pathElements.end();it++)
+    {
+        // see http://stackoverflow.com/a/9359324/425458
+        // By ending at the right iterator, we will do the equivalent of the rstrip operation...
+        string::const_iterator right = std::find_if(it->rbegin(), it->rend(), isNotSlash).base();
+
+        // ...and by starting at the left iterator, we will do the equivalent of the lstrip operation.
+        string::const_iterator left = std::find_if(it->begin(), right, isNotSlash);
+
+        ss << string(left, right) << "/";
+    }
+
+    // the strip ops will have removed any leading "/", so if we want one add it back now
+    string joinedPath(ss.str());
+    if (absolute) joinedPath.insert(0, "/");
+    return joinedPath;
+}
+
+string pathJoin(const string& elem0, const string& elem1, bool absolute)
+{
+    std::vector<std::string> elems;
+    elems.push_back(elem0);
+    elems.push_back(elem1);
+
+    return pathJoin(elems, absolute);
+}
 
 }

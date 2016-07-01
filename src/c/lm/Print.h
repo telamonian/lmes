@@ -36,12 +36,12 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
-#ifndef LM_DEBUG_H_
-#define LM_DEBUG_H_
+#ifndef LM_PRINT_H_
+#define LM_PRINT_H_
 
 #include <cstdio>
 #include <string>
+#include <vector>
 
 namespace lm {
 
@@ -64,6 +64,13 @@ public:
     template <typename T> static const char* printf_format_string();
 };
 
+// join a vector of path elements into a "/" delineated path.
+// If absolute, ensures that there is exactly one "/" at the beginning of the path, otherwise any leading "/" are stripped
+std::string pathJoin(const std::vector<std::string>& pathElements, bool absolute=true);
+
+// convenience overloads for pathJoin
+std::string pathJoin(const std::string& elem0, const std::string& elem1, bool absolute=true);// {std::vector<std::string> elems; elems.push_back(elem0); elems.push_back(elem1); return pathJoin(elems, absolute);}
+
 }
 
 // put printNumeric in the top-level namespace
@@ -72,5 +79,5 @@ template <typename T> static void printNumeric(T num)
     std::printf(lm::Print::printf_format_string<T>(), num);
 }
 
-#endif
+#endif /* LM_PRINT_H_ */
 

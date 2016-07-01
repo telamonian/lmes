@@ -107,7 +107,7 @@ void SFileOutputWriter::processMessage(string& nameString, string& typeString, c
 void SFileOutputWriter::processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data)
 {
     stringstream ss;
-    ss << "/Simulations/" << data.trajectory_id() << "/DegreeAdvancementTimeSeries";
+    ss << "/Simulations" << "/" << data.trajectory_id() << "/DegreeAdvancementTimeSeries";
 
     string nameString(ss.str()), typeString("protobuf:lm.io.DegreeAdvancementTimeSeries");
     processMessage(nameString, typeString, data);

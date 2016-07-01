@@ -55,8 +55,6 @@
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 
-using std::string;
-
 namespace lm {
 namespace io {
 
@@ -65,7 +63,7 @@ class OutputWriter : public lm::thread::Worker
 public:
     OutputWriter();
     virtual ~OutputWriter();
-    void setOutputFilename(string outputFilename) {this->outputFilename = outputFilename;}
+    void setOutputFilename(std::string outputFilename) {this->outputFilename = outputFilename;}
     virtual void initialize();
     virtual void finalize();
 
@@ -95,8 +93,8 @@ private:
 
 protected:
     bool condenseOutput;
-    string outputFilename;
-    string recordNamePrefix;
+    std::string outputFilename;
+    std::string recordNamePrefix;
 
 private:
     lm::message::Communicator communicator;

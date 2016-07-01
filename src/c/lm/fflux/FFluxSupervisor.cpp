@@ -50,6 +50,7 @@
 #include "lm/fflux/input/FFluxInput.h"
 #include "lm/fflux/input/FFluxStage.pb.h"
 #include "lm/fflux/input/FFluxPhaseLimit.pb.h"
+#include "lm/fflux/FFluxMath.h"
 #include "lm/input/Tilings.pb.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/io/TrajectoryState.pb.h"

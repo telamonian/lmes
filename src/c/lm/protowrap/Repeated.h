@@ -62,10 +62,10 @@ template <typename Element> struct _RepeatedSpecialization<Element, false>
     {
         for (int index=0;index<repFieldConstPtr->size();index++)
         {
-            if (*(repFieldConstPtr->Get(index)).*getterFunc()==valToFind) return index;
+            if ((repFieldConstPtr->Get(index).*getterFunc)()==valToFind) return index;
         }
         return -1;
-    };
+    }
 
     // sets a field in every element of the wrapped RepeatedPtrField to the same, specified value
     template <typename FieldElement, typename SetterReturn>

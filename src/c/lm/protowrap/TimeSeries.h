@@ -138,7 +138,6 @@ public:
     template <typename ValContainerT, typename TimeContainerT>
     inline bool inputCheck(const ValContainerT& valuesInput, const TimeContainerT& timesInput, uint numberOfColumns) const
     {
-
         // If we have any time series data, add them to the wrapped message.
         if (valuesInput.size() > 0 || timesInput.size() > 0)
         {
@@ -174,7 +173,7 @@ public:
     }
 
     template <typename ValContainerT, typename TimeContainerT>
-    inline bool _set_arrays(const ValContainerT& valuesInput, const TimeContainerT& timesInput, uint64_t trajectoryId, uint numberOfColumns, bool compress=false)
+    inline void _set_arrays(const ValContainerT& valuesInput, const TimeContainerT& timesInput, uint64_t trajectoryId, uint numberOfColumns, bool compress=false)
     {
         getMsg()->set_trajectory_id(trajectoryId);
 

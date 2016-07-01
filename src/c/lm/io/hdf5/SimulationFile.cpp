@@ -156,7 +156,7 @@ void Hdf5File::open() throw(IOException,HDF5Exception,Exception)
     loadParameters();
 }
 
-hid_t Hdf5File::initGroup(vector<string>& groupPathVector, hid_t rootGroup)
+hid_t Hdf5File::initGroup(const vector<string>& groupPathVector, hid_t rootGroup)
 {
     hid_t currentGroup, nextGroup;
     currentGroup = rootGroup>=0 ? rootGroup : file;
@@ -171,7 +171,7 @@ hid_t Hdf5File::initGroup(vector<string>& groupPathVector, hid_t rootGroup)
     return currentGroup;
 }
 
-hid_t Hdf5File::initGroup(string& groupPath, hid_t rootGroup)
+hid_t Hdf5File::initGroup(const string& groupPath, hid_t rootGroup)
 {
     vector<string> groupPathVector;
     std::stringstream ss(groupPath);

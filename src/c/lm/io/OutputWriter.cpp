@@ -36,14 +36,15 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
+#include <algorithm>
 #include <queue>
 #include <pthread.h>
+#include <sstream>
 #include <sys/time.h>
 #include <time.h>
-#include <lm/main/Globals.h>
 
 #include "hrtime.h"
+#include "lm/main/Globals.h"
 #include "lm/Print.h"
 #include "lm/MPI.h"
 #include "lm/io/OutputWriter.h"
@@ -58,13 +59,15 @@
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 #include "lm/Types.h"
-
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
 
+using std::string;
+using std::stringstream;
+using std::vector;
+
 namespace lm {
 namespace io {
-
 
 OutputWriter::OutputWriter()
 :condenseOutput(false),outputFilename(""),recordNamePrefix(""),communicator(lm::MPI::worldRank, threadNumber),messageQueueSize(0)

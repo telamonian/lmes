@@ -46,6 +46,7 @@
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/input/OutputOptions.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
+#include "lm/main/Globals.h"
 #include "lm/option/SimulationParameters.h"
 #include "lm/Print.h"
 #include "lm/limit/TrajectoryLimits.h"
@@ -92,7 +93,7 @@ void FFluxInput::reinitOutputOptions(const std::string& recordNamePrefix)
 {
     outputOptions.Clear();
 
-    outputOptions.set_record_name_prefix(recordNamePrefix);
+    outputOptions.set_record_name_prefix(pathJoin(recordNamePrefixGlobal, recordNamePrefix));
     outputOptions.set_condense_output(true);
 }
 
