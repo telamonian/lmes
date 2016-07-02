@@ -228,10 +228,13 @@ void Input::copyLimitsTo(lm::message::RunWorkUnit* rwuMsg)
 
 void Input::copyLimitTrackingsTo(lm::message::RunWorkUnit* rwuMsg)
 {
-    for (lm::protowrap::Repeated<lm::message::WorkUnit>::iterator it=rwuMsg->mutable_part()->begin();it!=rwuMsg->mutable_part()->end();it++)
+    if (trajectoryLimits.getTrackingRepeated().size() > 1)
     {
-        trajectoryLimits.setTrackingTrajectoryID(it->initial_state().trajectory_id());
-        it->mutable_initial_state()->mutable_limit_trackings()->CopyFrom(trajectoryLimits.getTrackingRepeated());
+        for (lm::protowrap::Repeated<lm::message::WorkUnit>::iterator it=rwuMsg->mutable_part()->begin();it!=rwuMsg->mutable_part()->end();it++)
+        {
+            trajectoryLimits.setTrackingTrajectoryID(it->initial_state().trajectory_id());
+            it->mutable_initial_state()->mutable_limit_trackings()->CopyFrom(trajectoryLimits.getTrackingRepeated());
+        }
     }
 }
 

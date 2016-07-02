@@ -49,33 +49,33 @@ namespace protowrap {
 // initialization for Degree Advancment specializations
 typedef TimeSeriesSpecialization<lm::io::DegreeAdvancementTimeSeries> DATSS;
 
-const DATSS::getTimeSeriesMsgT DATSS::getTimeSeriesMsgFunc = &DATSS::OutMsgT::mutable_degree_advancement_time_series;
-const DATSS::getTimeSeriesMsgConstT DATSS::getTimeSeriesMsgConstFunc = &DATSS::OutMsgT::degree_advancement_time_series;
+const DATSS::TimeArrayMsgGetter DATSS::timeArrayMsgGetter = &DATSS::WorkUnitOutputMsg::mutable_degree_advancement_time_series;
+const DATSS::TimeArrayMsgConstGetter DATSS::timeArrayMsgConstGetter = &DATSS::WorkUnitOutputMsg::degree_advancement_time_series;
 
-const DATSS::getValMsgT DATSS::getValMsgFunc = &lm::io::DegreeAdvancementTimeSeries::mutable_counts;
-const DATSS::getValMsgConstT DATSS::getValMsgConstFunc = &lm::io::DegreeAdvancementTimeSeries::counts;
+const DATSS::ValueArrayMsgGetter DATSS::valueArrayMsgGetter = &lm::io::DegreeAdvancementTimeSeries::mutable_counts;
+const DATSS::ValueArrayMsgConstGetter DATSS::valueArrayMsgConstGetter = &lm::io::DegreeAdvancementTimeSeries::counts;
 
 const char* DATSS::mismatchErrorString = "Array shape mismatch when serializing a degree advancements time series (check counts.size==times.size*numberOfColumns failed, %d,%d,%d)";
 
 // initialization for Order Parameter specializations
 typedef TimeSeriesSpecialization<lm::io::OrderParameterTimeSeries> OPTSS;
 
-const OPTSS::getTimeSeriesMsgT OPTSS::getTimeSeriesMsgFunc = &OPTSS::OutMsgT::mutable_order_parameter_time_series;
-const OPTSS::getTimeSeriesMsgConstT OPTSS::getTimeSeriesMsgConstFunc = &OPTSS::OutMsgT::order_parameter_time_series;
+const OPTSS::TimeArrayMsgGetter OPTSS::timeArrayMsgGetter = &OPTSS::WorkUnitOutputMsg::mutable_order_parameter_time_series;
+const OPTSS::TimeArrayMsgConstGetter OPTSS::timeArrayMsgConstGetter = &OPTSS::WorkUnitOutputMsg::order_parameter_time_series;
 
-const OPTSS::getValMsgT OPTSS::getValMsgFunc = &lm::io::OrderParameterTimeSeries::mutable_values;
-const OPTSS::getValMsgConstT OPTSS::getValMsgConstFunc = &lm::io::OrderParameterTimeSeries::values;
+const OPTSS::ValueArrayMsgGetter OPTSS::valueArrayMsgGetter = &lm::io::OrderParameterTimeSeries::mutable_values;
+const OPTSS::ValueArrayMsgConstGetter OPTSS::valueArrayMsgConstGetter = &lm::io::OrderParameterTimeSeries::values;
 
 const char* OPTSS::mismatchErrorString = "Array shape mismatch when serializing an order parameters time series (check values.size==times.size*numberOfColumns failed, %d,%d,%d)";
 
 // initialization for Species specializations
 typedef TimeSeriesSpecialization<lm::io::SpeciesTimeSeries> STSS;
 
-const STSS::getTimeSeriesMsgT STSS::getTimeSeriesMsgFunc = &STSS::OutMsgT::mutable_species_time_series;
-const STSS::getTimeSeriesMsgConstT STSS::getTimeSeriesMsgConstFunc = &STSS::OutMsgT::species_time_series;
+const STSS::TimeArrayMsgGetter STSS::timeArrayMsgGetter = &STSS::WorkUnitOutputMsg::mutable_species_time_series;
+const STSS::TimeArrayMsgConstGetter STSS::timeArrayMsgConstGetter = &STSS::WorkUnitOutputMsg::species_time_series;
 
-const STSS::getValMsgT STSS::getValMsgFunc = &lm::io::SpeciesTimeSeries::mutable_counts;
-const STSS::getValMsgConstT STSS::getValMsgConstFunc = &lm::io::SpeciesTimeSeries::counts;
+const STSS::ValueArrayMsgGetter STSS::valueArrayMsgGetter = &lm::io::SpeciesTimeSeries::mutable_counts;
+const STSS::ValueArrayMsgConstGetter STSS::valueArrayMsgConstGetter = &lm::io::SpeciesTimeSeries::counts;
 
 const char* STSS::mismatchErrorString = "Array shape mismatch when serializing a species time series (check counts.size==times.size*numberOfColumns failed, %d,%d,%d)";
 

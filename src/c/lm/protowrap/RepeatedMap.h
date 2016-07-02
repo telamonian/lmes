@@ -59,14 +59,14 @@ class RepeatedMap: public Repeated<Element>
 {
 public:
 // typedefs
-    typedef typename Repeated<Element>::RepeatedField RepeatedField;
+    typedef typename Repeated<Element>::WrappedField WrappedField;
     typedef std::map<Key, Element*> ElementPtrMap;
     typedef std::map<Key, const Element*> ElementConstPtrMap;
 
 // constructors/destructors
     RepeatedMap() {}
-    RepeatedMap(RepeatedField* repFieldPtr): Repeated<Element>(repFieldPtr) {}
-    RepeatedMap(const RepeatedField& repFieldConstRef): Repeated<Element>(repFieldConstRef) {}
+    RepeatedMap(WrappedField* repFieldPtr): Repeated<Element>(repFieldPtr) {}
+    RepeatedMap(const WrappedField& repFieldConstRef): Repeated<Element>(repFieldConstRef) {}
     virtual ~RepeatedMap() {}
 
 // operators
@@ -78,7 +78,7 @@ public:
 // mutators
     void addMemberValPtrToMap(Element* memberValPtr) {map[(*getKeyFunc)(*memberValPtr)] = memberValPtr;}
 
-    inline virtual void setRepFieldPtr(RepeatedField* newRepFieldPtr)
+    inline virtual void setRepFieldPtr(WrappedField* newRepFieldPtr)
     {
         // call the base class method
         Repeated<Element>::setRepFieldPtr(newRepFieldPtr);
@@ -89,7 +89,7 @@ public:
             addMemberValPtrToMap(&*it);
         }
     }
-    inline virtual void setRepFieldPtr(const RepeatedField& newRepFieldConstRef)
+    inline virtual void setRepFieldPtr(const WrappedField& newRepFieldConstRef)
     {
         throw UnimplementedException("Const version of RepeatedMap not yet implemented");
 //        // call the base class method

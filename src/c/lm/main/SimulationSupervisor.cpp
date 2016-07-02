@@ -328,7 +328,7 @@ void SimulationSupervisor::startSimulationPhase()
     buildTrajectoryList();
 
     // If there are any outstanding aborted trajectories from the previous phase, have the new trajectoryList take ownership of them
-    trajectoryList->takeTrajectories(outstandingTrajectoryList, lm::trajectory::Trajectory::ABORTED);
+    if (outstandingTrajectoryList!=NULL) trajectoryList->takeTrajectories(outstandingTrajectoryList, lm::trajectory::Trajectory::ABORTED);
 
     // Assign the first batch of work.
     if (terminateSimulationPhase() || assignWork())

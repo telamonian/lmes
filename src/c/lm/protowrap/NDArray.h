@@ -100,15 +100,15 @@ template <typename T>
 class NDArray
 {
 public:
-    typedef robertslab::pbuf::NDArray MsgT;
+    typedef robertslab::pbuf::NDArray WrappedMsg;
 
     NDArray(): msgPtr(NULL),msgConstPtr(NULL) {}
-    NDArray(const MsgT& msgConstRef): msgPtr(NULL),msgConstPtr(NULL) {setMsg(msgConstRef);}
-    NDArray(MsgT* msgMutablePtr): msgPtr(NULL),msgConstPtr(NULL) {setMsg(msgMutablePtr);}
+    NDArray(const WrappedMsg& msgConstRef): msgPtr(NULL),msgConstPtr(NULL) {setMsg(msgConstRef);}
+    NDArray(WrappedMsg* msgMutablePtr): msgPtr(NULL),msgConstPtr(NULL) {setMsg(msgMutablePtr);}
     ~NDArray() {}
 
 // accessors
-    const MsgT* getMsg() const {return msgConstPtr;}
+    const WrappedMsg* getMsg() const {return msgConstPtr;}
     uint rank() const {return shape().size();}
     uint getIndex(uint i) {return i;}
     uint getIndex(uint i, uint j) {return i*shape(1) + j;}
@@ -117,7 +117,7 @@ public:
     size_t sizeBytes() const {return size()*sizeof(T);}
 
 // mutators
-    MsgT* getMsg()
+    WrappedMsg* getMsg()
     {
         if (msgPtr==NULL) throw Exception("Pointer to internal message (msgPtr) set to NULL in lm::protowrap::NDArray instance");
         return msgPtr;
@@ -186,21 +186,14 @@ public:
     template <template <typename, typename=std::allocator<T> > class ContainerT>
     inline void get_data(ContainerT<T>& outputContainer) const
     {
-        outputContainer.clear();
-
         // TODO: refactor compression/decompression to remove the (probably) unnecessary copy-to-vector
         // if we need decompression, we have to copy the data over into a contiguous block of memory (ie a std::vector). Otherwise we can do something more optimized
         if (compressed_deflate())
         {
             std::vector<T> outputVector;
             get_data(outputVector);
-            for (typename std::vector<T>::iterator it=outputVector.begin(); it!=outputVector.end(); it++)
-            {
-                outputContainer.push_back(*it);
-            }
-            // alternative version using insert that doesn't work for some reason
-                // typename ContainerT::iterator it = outputContainer.begin();
-                // outputContainer.insert(it, outputVector.begin(), outputVector.end());
+
+            outputContainer.assign(outputVector.begin(), outputVector.end());
         }
         else
         {
@@ -317,7 +310,7 @@ public:
         }
     }
 
-    NDArray* setMsg(MsgT* newMsgMutablePtr)
+    NDArray* setMsg(WrappedMsg* newMsgMutablePtr)
     {
         msgPtr = newMsgMutablePtr;
         msgConstPtr = newMsgMutablePtr;
@@ -325,7 +318,7 @@ public:
         return this;
     }
 
-    NDArray* setMsg(const MsgT& newArrMsgConstRef)
+    NDArray* setMsg(const WrappedMsg& newArrMsgConstRef)
     {
         msgPtr = NULL;
         msgConstPtr = &newArrMsgConstRef;

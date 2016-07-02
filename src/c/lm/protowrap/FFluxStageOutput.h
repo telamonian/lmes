@@ -49,21 +49,21 @@
 #include "lm/fflux/io/FFluxStageOutput.pb.h"
 #include "lm/limit/LimitCheckFunctions.h"
 #include "lm/io/LimitTracking.pb.h"
-#include "lm/protowrap/MessageWrap.h"
+#include "lm/protowrap/msg.h"
 #include "lm/protowrap/NDArray.h"
 #include "lm/protowrap/Repeated.h"
 #include "lm/Types.h"
 
-using lm::protowrap::MessageWrap;
+using lm::protowrap::Msg;
 using lm::protowrap::Repeated;
 
 namespace lm {
 namespace protowrap {
 
-class FFluxStageOutputRaw : public MessageWrap<lm::fflux::io::FFluxStageOuputRaw>
+class FFluxStageOutputRaw : public Msg<lm::fflux::io::FFluxStageOuputRaw>
 {
 public:
-    typedef MessageWrap::Msg Msg;
+    typedef Msg::WrappedMsg Msg;
 
     // accessors
     const Repeated<uint64_t>& sucessful_trajectory_counts() const {return *_sucessful_trajectory_counts;}
@@ -87,10 +87,10 @@ public:
     Repeated<double>* _failed_trajectory_total_times;
 };
 
-class FFluxStageOutput : public MessageWrap<lm::fflux::io::FFluxStageOutput>
+class FFluxStageOutput : public Msg<lm::fflux::io::FFluxStageOutput>
 {
 public:
-    typedef MessageWrap::Msg Msg;
+    typedef Msg::WrappedMsg Msg;
     typedef FFluxStageOutputRaw::Msg MsgRaw;
 
     virtual void setMsg(Msg* newMsgMutablePtr)

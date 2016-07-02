@@ -42,32 +42,32 @@
 namespace lm {
 namespace protowrap {
 
-template<typename Message_GOOGLE>
-class MessageWrap
+template<typename _Msg>
+class Msg
 {
 public:
-    typedef Message_GOOGLE Msg;
+    typedef _Msg WrappedMsg;
 
-    MessageWrap(): msgPtr(NULL) {}
-    MessageWrap(Msg* newMsgMutablePtr): msgPtr(NULL) {setMsg(newMsgMutablePtr);}
-    virtual ~MessageWrap() {}
+    Msg(): msgPtr(NULL) {}
+    Msg(WrappedMsg* newMsgPtr): msgPtr(NULL) {setMsg(newMsgPtr);}
+    virtual ~Msg() {}
 
     // conversion operators allow this wrapper to be used wherever google::protobuf::Message could be
-    operator Msg*() {return msgPtr;}
-    explicit operator Msg&() const {return *msgPtr;}
+    operator WrappedMsg*() {return msgPtr;}
+    explicit operator WrappedMsg&() const {return *msgPtr;}
 
-    virtual Msg* getMsg()
+    virtual WrappedMsg* getMsg()
     {
         return msgPtr;
     }
 
-    virtual void setMsg(Msg* newMsgMutablePtr)
+    virtual void setMsg(WrappedMsg* newMsgPtr)
     {
-        msgPtr = newMsgMutablePtr;
+        msgPtr = newMsgPtr;
     }
 
 protected:
-    Msg* msgPtr;
+    WrappedMsg* msgPtr;
 };
 
 }

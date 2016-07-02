@@ -36,8 +36,8 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_PROTOWRAP_TIMESERIES
-#define LM_PROTOWRAP_TIMESERIES
+#ifndef LM_PROTOWRAP_TIMESERIES_H_
+#define LM_PROTOWRAP_TIMESERIES_H_
 
 #include <numeric>
 #include <sstream>
@@ -53,33 +53,33 @@
 namespace lm {
 namespace protowrap {
 
-template <typename MsgT> struct TimeSeriesSpecializationBase
+template <typename WrappedMsg> struct TimeSeriesSpecializationBase
 {
 public:
-    typedef lm::message::WorkUnitOutput OutMsgT;
+    typedef lm::message::WorkUnitOutput WorkUnitOutputMsg;
 
     // typedefs for pointers to functions to get the time series message from the containing WorkUnitOutput message
-    typedef MsgT* (OutMsgT::*getTimeSeriesMsgT)();
-    typedef const MsgT& (OutMsgT::*getTimeSeriesMsgConstT)() const;
+    typedef WrappedMsg* (WorkUnitOutputMsg::*TimeArrayMsgGetter)();
+    typedef const WrappedMsg& (WorkUnitOutputMsg::*TimeArrayMsgConstGetter)() const;
 
     // typedefs for pointers to getter functions in the time series protobuf
-    typedef robertslab::pbuf::NDArray* (MsgT::*getValMsgT)();
-    typedef const robertslab::pbuf::NDArray& (MsgT::*getValMsgConstT)() const;
+    typedef robertslab::pbuf::NDArray* (WrappedMsg::*ValueArrayMsgGetter)();
+    typedef const robertslab::pbuf::NDArray& (WrappedMsg::*ValueArrayMsgConstGetter)() const;
 };
 
 // specializations to take care of the small differences between DegreeAdvancementTimesSeries, OrderParameterTimeSeries, etc
-template <typename MsgT> struct TimeSeriesSpecialization: public TimeSeriesSpecializationBase<MsgT> {};
+template <typename WrappedMsg> struct TimeSeriesSpecialization: public TimeSeriesSpecializationBase<WrappedMsg> {};
 
 template <> struct TimeSeriesSpecialization<lm::io::DegreeAdvancementTimeSeries>: public TimeSeriesSpecializationBase<lm::io::DegreeAdvancementTimeSeries>
 {
 public:
-    typedef uint64_t ValT;
+    typedef uint64_t ValueT;
 
-    static const getTimeSeriesMsgT getTimeSeriesMsgFunc;
-    static const getTimeSeriesMsgConstT getTimeSeriesMsgConstFunc;
+    static const TimeArrayMsgGetter timeArrayMsgGetter;
+    static const TimeArrayMsgConstGetter timeArrayMsgConstGetter;
 
-    static const getValMsgT getValMsgFunc;
-    static const getValMsgConstT getValMsgConstFunc;
+    static const ValueArrayMsgGetter valueArrayMsgGetter;
+    static const ValueArrayMsgConstGetter valueArrayMsgConstGetter;
 
     static const char* mismatchErrorString;
 };
@@ -87,13 +87,13 @@ public:
 template <> struct TimeSeriesSpecialization<lm::io::OrderParameterTimeSeries>: public TimeSeriesSpecializationBase<lm::io::OrderParameterTimeSeries>
 {
 public:
-    typedef double ValT;
+    typedef double ValueT;
 
-    static const getTimeSeriesMsgT getTimeSeriesMsgFunc;
-    static const getTimeSeriesMsgConstT getTimeSeriesMsgConstFunc;
+    static const TimeArrayMsgGetter timeArrayMsgGetter;
+    static const TimeArrayMsgConstGetter timeArrayMsgConstGetter;
 
-    static const getValMsgT getValMsgFunc;
-    static const getValMsgConstT getValMsgConstFunc;
+    static const ValueArrayMsgGetter valueArrayMsgGetter;
+    static const ValueArrayMsgConstGetter valueArrayMsgConstGetter;
 
     static const char* mismatchErrorString;
 };
@@ -101,42 +101,42 @@ public:
 template <> struct TimeSeriesSpecialization<lm::io::SpeciesTimeSeries>: public TimeSeriesSpecializationBase<lm::io::SpeciesTimeSeries>
 {
 public:
-    typedef int32_t ValT;
+    typedef int32_t ValueT;
 
-    static const getTimeSeriesMsgT getTimeSeriesMsgFunc;
-    static const getTimeSeriesMsgConstT getTimeSeriesMsgConstFunc;
+    static const TimeArrayMsgGetter timeArrayMsgGetter;
+    static const TimeArrayMsgConstGetter timeArrayMsgConstGetter;
 
-    static const getValMsgT getValMsgFunc;
-    static const getValMsgConstT getValMsgConstFunc;
+    static const ValueArrayMsgGetter valueArrayMsgGetter;
+    static const ValueArrayMsgConstGetter valueArrayMsgConstGetter;
 
     static const char* mismatchErrorString;
 };
 
-template <typename MsgT>
+template <typename WrappedMsg>
 class TimeSeries
 {
 public:
-    typedef TimeSeriesSpecialization<MsgT> TSS;
-    typedef typename TSS::OutMsgT OutMsgT;
-    typedef typename TSS::ValT ValT;
+    typedef TimeSeriesSpecialization<WrappedMsg> TSS;
+    typedef typename TSS::WorkUnitOutputMsg OutMsgT;
+    typedef typename TSS::ValueT ValueT;
     typedef double TimeT;
 
-//    static const TSS::getTimeSeriesMsgT getTimeSeriesMsgFunc = TSS::getTimeSeriesMsgFunc;
-//    static const TSS::getTimeSeriesMsgConstT getTimeSeriesMsgConstFunc = TSS::getTimeSeriesMsgConstFunc;
+//    static const TSS::TimeArrayMsgGetter timeArrayMsgGetter = TSS::timeArrayMsgGetter;
+//    static const TSS::TimeArrayMsgConstGetter timeArrayMsgConstGetter = TSS::timeArrayMsgConstGetter;
 //
-//    static const TSS::getValMsgT getValMsgFunc = TSS::getValMsgFunc;
-//    static const TSS::getValMsgConstT getValMsgConstFunc = TSS::getValMsgConstFunc;
+//    static const TSS::ValueArrayMsgGetter valueArrayMsgGetter = TSS::valueArrayMsgGetter;
+//    static const TSS::ValueArrayMsgConstGetter valueArrayMsgConstGetter = TSS::valueArrayMsgConstGetter;
 
     TimeSeries(): msgPtr(NULL),msgConstPtr(NULL) {};
-    TimeSeries(const MsgT& msgConstRef): msgPtr(NULL),msgConstPtr(NULL) {setMsg(msgConstRef);}
-    TimeSeries(MsgT* msgMutablePtr): msgPtr(NULL),msgConstPtr(NULL) {setMsg(msgMutablePtr);}
+    TimeSeries(const WrappedMsg& msgConstRef): msgPtr(NULL),msgConstPtr(NULL) {setMsg(msgConstRef);}
+    TimeSeries(WrappedMsg* msgMutablePtr): msgPtr(NULL),msgConstPtr(NULL) {setMsg(msgMutablePtr);}
     ~TimeSeries() {}
 
 // accessors
-    inline const MsgT* getMsg() const {return msgConstPtr;}
+    inline const WrappedMsg* getMsg() const {return msgConstPtr;}
 
-    template <typename ValContainerT, typename TimeContainerT>
-    inline bool inputCheck(const ValContainerT& valuesInput, const TimeContainerT& timesInput, uint numberOfColumns) const
+    template <typename ValueContainer, typename TimeContainer>
+    inline bool inputCheck(const ValueContainer& valuesInput, const TimeContainer& timesInput, uint numberOfColumns) const
     {
         // If we have any time series data, add them to the wrapped message.
         if (valuesInput.size() > 0 || timesInput.size() > 0)
@@ -159,21 +159,21 @@ public:
     }
 
 // mutators
-    template <typename ValContainerT, typename TimeContainerT>
-    inline void get_arrays(ValContainerT& outputValueContainer, TimeContainerT& outputTimeContainer) const
+    template <typename ValueContainer, typename TimeContainer>
+    inline void get_arrays(ValueContainer& outputValueContainer, TimeContainer& outputTimeContainer) const
     {
         valuesWrap.get_data(outputValueContainer);
         timesWrap.get_data(outputTimeContainer);
     }
 
-    MsgT* getMsg()
+    WrappedMsg* getMsg()
     {
         if (msgPtr==NULL) throw Exception("Pointer to internal message (msgPtr) set to NULL in lm::protowrap::TimeSeries instance");
         return msgPtr;
     }
 
-    template <typename ValContainerT, typename TimeContainerT>
-    inline void _set_arrays(const ValContainerT& valuesInput, const TimeContainerT& timesInput, uint64_t trajectoryId, uint numberOfColumns, bool compress=false)
+    template <typename ValueContainer, typename TimeContainer>
+    inline void _set_arrays(const ValueContainer& valuesInput, const TimeContainer& timesInput, uint64_t trajectoryId, uint numberOfColumns, bool compress=false)
     {
         getMsg()->set_trajectory_id(trajectoryId);
 
@@ -181,8 +181,8 @@ public:
         timesWrap.set_array(timesInput, utuple(timesInput.size()), compress);
     }
 
-    template <typename ValContainerT, typename TimeContainerT>
-    inline bool set_arrays(const ValContainerT& valuesInput, const TimeContainerT& timesInput, uint64_t trajectoryId, uint numberOfColumns, bool compress=false)
+    template <typename ValueContainer, typename TimeContainer>
+    inline bool set_arrays(const ValueContainer& valuesInput, const TimeContainer& timesInput, uint64_t trajectoryId, uint numberOfColumns, bool compress=false)
     {
         if (inputCheck(valuesInput, timesInput, numberOfColumns))
         {
@@ -195,8 +195,8 @@ public:
         }
     }
 
-    template <typename ValContainerT, typename TimeContainerT>
-    inline bool set_arrays_in_output_msg(OutMsgT* outMsg, const ValContainerT& valuesInput, const TimeContainerT& timesInput, uint64_t trajectoryId, uint numberOfColumns, bool compress=false)
+    template <typename ValueContainer, typename TimeContainer>
+    inline bool set_arrays_in_output_msg(OutMsgT* outMsg, const ValueContainer& valuesInput, const TimeContainer& timesInput, uint64_t trajectoryId, uint numberOfColumns, bool compress=false)
     {
         if (inputCheck(valuesInput, timesInput, numberOfColumns))
         {
@@ -210,22 +210,22 @@ public:
         }
     }
 
-    inline TimeSeries* setMsg(MsgT* newMsgMutablePtr)
+    inline TimeSeries* setMsg(WrappedMsg* newMsgMutablePtr)
     {
         msgPtr = newMsgMutablePtr;
         msgConstPtr = newMsgMutablePtr;
 
-        valuesWrap.setMsg((msgPtr->*TSS::getValMsgFunc)());
+        valuesWrap.setMsg((msgPtr->*TSS::valueArrayMsgGetter)());
         timesWrap.setMsg(msgPtr->mutable_times());
         return this;
     }
 
-    inline TimeSeries* setMsg(const MsgT& newMsgConstRef)
+    inline TimeSeries* setMsg(const WrappedMsg& newMsgConstRef)
     {
         msgPtr = NULL;
         msgConstPtr = &newMsgConstRef;
 
-        valuesWrap.setMsg((msgConstPtr->*TSS::getValMsgConstFunc)());
+        valuesWrap.setMsg((msgConstPtr->*TSS::valueArrayMsgConstGetter)());
         timesWrap.setMsg(msgConstPtr->times());
         return this;
     }
@@ -233,21 +233,21 @@ public:
     // versions of setMsg that work directly with the containing WorkUnitOutput msg
     inline TimeSeries* setMsg(OutMsgT* outMsg)
     {
-        setMsg((outMsg->*TSS::getTimeSeriesMsgFunc)());
+        setMsg((outMsg->*TSS::timeArrayMsgGetter)());
         return this;
     }
 
     inline TimeSeries* setMsg(const OutMsgT& outMsgRef)
     {
-        setMsg((outMsgRef.*TSS::getTimeSeriesMsgConstFunc)());
+        setMsg((outMsgRef.*TSS::timeArrayMsgConstGetter)());
         return this;
     }
 
 public:
-    MsgT* msgPtr;
-    const MsgT* msgConstPtr;
+    WrappedMsg* msgPtr;
+    const WrappedMsg* msgConstPtr;
 
-    mutable lm::protowrap::NDArray<ValT> valuesWrap;
+    mutable lm::protowrap::NDArray<ValueT> valuesWrap;
     mutable lm::protowrap::NDArray<TimeT> timesWrap;
     
 };
@@ -258,34 +258,34 @@ public:
 // version of TimeSeries with both local container storage and an associated protobuf
 // originally lived in CMESolver.h, not sure what to do with it now
 
-//template <typename MsgT>
+//template <typename WrappedMsg>
 //class TimeSeries
 //{
 //public:
-//    typedef lm::protowrap::TimeSeries<MsgT>::Element Element;
+//    typedef lm::protowrap::TimeSeries<WrappedMsg>::Element Element;
 //    typedef double TimeT;
 //
-//    typedef std::vector<Element> ValContainerT;
-//    typedef std::vector<TimeT> TimeContainerT;
+//    typedef std::vector<Element> ValueContainer;
+//    typedef std::vector<TimeT> TimeContainer;
 //
-//    ValContainerT values;
-//    TimeContainerT times;
+//    ValueContainer values;
+//    TimeContainer times;
 //
-//    mutable lm::protowrap::TimeSeries<MsgT> timeSeriesWrap;
+//    mutable lm::protowrap::TimeSeries<WrappedMsg> timeSeriesWrap;
 //
 //public:
-//    void deserializeFrom(const MsgT& msgRef)
+//    void deserializeFrom(const WrappedMsg& msgRef)
 //    {
 //        timeSeriesWrap.setMsg(msgRef);
 //        timeSeriesWrap.get_arrays(values, times);
 //    }
 //
-//    void serializeTo(MsgT* msg, uint64_t trajectoryId, uint numberOfColumns, bool compress) const
+//    void serializeTo(WrappedMsg* msg, uint64_t trajectoryId, uint numberOfColumns, bool compress) const
 //    {
 //        serializeTo(msg, trajectoryId, numberOfColumns, compress, values, times);
 //    }
 //
-//    void serializeTo(MsgT* msg, uint64_t trajectoryId, uint numberOfColumns, bool compress, const ValContainerT& valuesRef, const TimeContainerT& timesRef) const
+//    void serializeTo(WrappedMsg* msg, uint64_t trajectoryId, uint numberOfColumns, bool compress, const ValueContainer& valuesRef, const TimeContainer& timesRef) const
 //    {
 //        timeSeriesWrap.setMsg(msg);
 //        timeSeriesWrap.set_arrays(valuesRef, timesRef, trajectoryId, numberOfColumns, compress);
@@ -303,11 +303,11 @@ public:
 //        serializeTo(outputMsg, trajectoryId, numberOfColumns, compress, values, times);
 //    }
 //
-//    void serializeTo(lm::message::WorkUnitOutput* outputMsg, uint64_t trajectoryId, uint numberOfColumns, bool compress, const ValContainerT& valuesRef, const TimeContainerT& timesRef) const
+//    void serializeTo(lm::message::WorkUnitOutput* outputMsg, uint64_t trajectoryId, uint numberOfColumns, bool compress, const ValueContainer& valuesRef, const TimeContainer& timesRef) const
 //    {
 //        timeSeriesWrap.set_arrays_in_output_msg(outputMsg, valuesRef, timesRef, trajectoryId, numberOfColumns, compress);
 //    }
 //};
 
 
-#endif /* LM_PROTOWRAP_TIMESERIES */
+#endif /* LM_PROTOWRAP_TIMESERIES_H_ */

@@ -195,7 +195,7 @@ public:
 
     TrajectoryLimitMsg* findMsg(int32_t id) {return const_cast<TrajectoryLimitMsg*>(&const_cast<const TrajectoryLimits*>(this)->findMsg(id));}
     TrajectoryLimitMsg* findMsg(TrajLimEnums::LimitType lt) {return const_cast<TrajectoryLimitMsg*>(&const_cast<const TrajectoryLimits*>(this)->findMsg(lt));}
-    void clear(bool resetNextID=true) {_msg.Clear(); _trackingLimits.Clear(); _vec.clear(); seatRepeated(); if (resetNextID) nextID=0;}
+    void Clear(bool resetNextID=true) {_msg.Clear(); _trackingLimits.Clear(); _vec.clear(); seatRepeated(); if (resetNextID) nextID=0;}
     void seatRepeated(TrajectoryLimitsMsg& inMsg) {_repeated.setRepFieldPtr(inMsg.mutable_trajectory_limits());}
     void seatRepeated() {seatRepeated(_msg);}
     void setMsg(const TrajectoryLimitsMsg& inMsg) {_msg.CopyFrom(inMsg);}
@@ -236,7 +236,8 @@ protected:
     int32_t nextID;
 
     TrajectoryLimitsMsg _msg;
-    lm::limit::LimitTrackingRepeated _trackingLimits;
+
+    lm::limit::LimitTracking::LimitTrackings _trackingLimits;
     RepeatedType _repeated;
     VectorType _vec;
 };

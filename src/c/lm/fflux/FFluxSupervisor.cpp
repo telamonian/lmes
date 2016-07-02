@@ -376,6 +376,8 @@ void FFluxSupervisor::setTrajectoryLimits()
     }
     else
     {
+        trajectoryLimits.Clear();
+
         // - if currentFFluxPhaseIndex() > 0, we can use addTileExitLimitsMsg() in a straightforward way to set the needed limits. Two limits are set:
         //     - if limit id==0 is triggered, this indicates that the trajectory fluxed backwards
         //     - if limit id==1 is triggered, this indicates that the trajectory fluxed forwards
@@ -387,6 +389,8 @@ void FFluxSupervisor::setTrajectoryLimits()
 
 void FFluxSupervisor::setTrajectoryLimitsPhaseZero()
 {
+    trajectoryLimits.Clear();
+
     // figure out how many flux events we need to observe per trajectory
     uint fluxesPerTrajectory = (uint)(ceil((double)(currentPhaseLimit().uvalue())/lm::fflux::FFluxTrajectoryList::getTrajectoriesToStart(currentPhase(), currentPhaseLimit(), slots.getSimultaneousWorkUnits())));
 
