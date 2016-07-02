@@ -50,10 +50,11 @@
 namespace lm {
 namespace limit {
 
-class LimitTrackingWrapper : public lm::protowrap::Msg<lm::io::LimitTracking> {};
-class LimitTracking : public LimitTrackingWrapper
+class LimitTracking : public lm::protowrap::Msg<LimitTracking, lm::io::LimitTracking>
 {
 public:
+//    typedef lm::io::LimitTracking WrappedMsg;
+
     typedef uint64_t DegreeAdvancementT;
     typedef double OrderParameterT;
     typedef int SpeciesT;

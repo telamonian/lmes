@@ -532,7 +532,7 @@ void FFluxSupervisor::addFFluxStageOutput()
     lm::fflux::io::FFluxStageOutput* newStageOutputMsg = ffluxStageOutputs.Add();
 
     // set the new phase output to be the current phase output
-    currentFFluxStageOutput.setMsg(newStageOutputMsg);
+    currentFFluxStageOutput.setWrappedMsg(newStageOutputMsg);
 }
 
 // setters

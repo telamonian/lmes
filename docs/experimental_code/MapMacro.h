@@ -36,14 +36,40 @@
  *
  * Author(s): Max Klein
  */
+#ifndef MAPMACRO
+#define MAPMACRO
 
-// standalone version of the limit checking code
-// for investigating the assembly produced by various compilers
 #include <iostream>
 
-#include "standaloneLimitChecking.h"
+// MAP macro modified from https://github.com/swansontec/map-macro
+// EVAL has been configured for a max recursion depth of 64
+#define EVAL0(...) __VA_ARGS__
+#define EVAL1(...) EVAL0 (EVAL0 (__VA_ARGS__))
+#define EVAL2(...) EVAL1 (EVAL1 (__VA_ARGS__))
+#define EVAL3(...) EVAL2 (EVAL2 (__VA_ARGS__))
+#define EVAL4(...) EVAL3 (EVAL3 (__VA_ARGS__))
+#define EVAL(...)  EVAL4 (EVAL4 (__VA_ARGS__))
 
-int main()
-{
-    std::cout << isTrajectoryOutsideLimits();
-}
+#define MAP_END(...)
+#define MAP_OUT
+
+#define MAP_GET_END() 0, MAP_END
+#define MAP_NEXT0(test, next, ...) next MAP_OUT
+#define MAP_NEXT1(test, next) MAP_NEXT0 (test, next, 0)
+#define MAP_NEXT(test, next)  MAP_NEXT1 (MAP_GET_END test, next)
+
+#define MAP0(f, x, peek, ...) f(x) MAP_NEXT (peek, MAP1) (f, peek, __VA_ARGS__)
+#define MAP1(f, x, peek, ...) f(x) MAP_NEXT (peek, MAP0) (f, peek, __VA_ARGS__)
+#define MAP(f, ...) EVAL (MAP1 (f, __VA_ARGS__, (), 0))
+
+#define MAP_PAIRS0(f, x, y, peek, ...) f(x, y) MAP_NEXT (peek, MAP_PAIRS1) (f, peek, __VA_ARGS__)
+#define MAP_PAIRS1(f, x, y, peek, ...) f(x, y) MAP_NEXT (peek, MAP_PAIRS0) (f, peek, __VA_ARGS__)
+#define MAP_PAIRS(f, ...) EVAL (MAP_PAIRS1 (f, __VA_ARGS__, (), 0))
+
+#define _PRINT_PAIR(str0, str1) \
+    std::cout << str0 << ", " << str1 << '\n';
+
+#define PRINT_PAIRS(...) \
+    MAP_PAIRS(_PRINT_PAIR, __VA_ARGS__)
+
+#endif /* MAPMACRO */

@@ -56,10 +56,6 @@
 
 #include "lm/Exceptions.h"
 
-using std::list;
-using std::map;
-using std::vector;
-
 /*
  * General types.
  */
@@ -101,7 +97,7 @@ typedef double              si_time_t;
 template<typename T0, typename T1> struct PairVector
 {
     typedef std::pair<T0, T1> Pair;
-    typedef vector<Pair> T;
+    typedef std::vector<Pair> T;
     typedef typename T::iterator iterator;
     typedef typename T::const_iterator const_iterator;
 
@@ -111,7 +107,7 @@ template<typename T0, typename T1> struct PairVector
 template<typename Key0, typename Key1, typename Value> struct PairMap
 {
     typedef std::pair<Key0, Key1> Key;
-    typedef map<Key, Value> T;
+    typedef std::map<Key, Value> T;
     typedef typename T::iterator iterator;
     typedef typename T::const_iterator const_iterator;
 

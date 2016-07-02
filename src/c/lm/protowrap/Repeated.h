@@ -106,16 +106,16 @@ public:
     typedef typename WrappedField::const_iterator const_iterator;
 
 // constructors/destructors
-    Repeated(): fieldPtr(NULL),fieldConstPtr(NULL) {}
-    Repeated(WrappedField* fieldPtr): fieldPtr(NULL),fieldConstPtr(NULL) {setFieldPtr(fieldPtr);}
-    Repeated(const WrappedField& fieldConstRef): fieldPtr(NULL),fieldConstPtr(NULL) {setFieldPtr(fieldConstRef);}
+    Repeated(): wrappedFieldPtr(NULL),wrappedFieldConstPtr(NULL) {}
+    Repeated(WrappedField* fieldPtr): wrappedFieldPtr(NULL),wrappedFieldConstPtr(NULL) {setWrappedField(fieldPtr);}
+    Repeated(const WrappedField& fieldConstRef): wrappedFieldPtr(NULL),wrappedFieldConstPtr(NULL) {setWrappedField(fieldConstRef);}
     virtual ~Repeated() {}
 
 // operators
     const Element& operator()(int i) const {return Get(i);}
     // conversion operators allow this wrapper to be used wherever google::protobuf::RepeatedField/RepeatedPtrField could be
-    operator WrappedField*() {return fieldPtr;}
-    operator const WrappedField&() const {return *fieldPtr;}
+    operator WrappedField*() {return wrappedFieldPtr;}
+    operator const WrappedField&() const {return *wrappedFieldPtr;}
 
 // accessors
     inline const Element& first() const {return Get(0);}
@@ -125,9 +125,9 @@ public:
     // Returns the index of the first element of the wrapped field for which element==val, or -1 otherwise
     int Index(const Element& val) const
     {
-        for (int index=0;index< getFieldPtr()->size();index++)
+        for (int index=0;index< wrappedField()->size();index++)
         {
-            if (getFieldPtr()->Get(index)==val) return index;
+            if (wrappedField()->Get(index)==val) return index;
         }
         return -1;
     };
@@ -135,7 +135,7 @@ public:
     // Returns the index of the first element of the wrapped field for which fieldVal==getterFunc(element), or -1 otherwise. Unimplemented if Element is a numeric type
     template <typename SubfieldElement> int Index(const SubfieldElement& valToFind, SubfieldElement getterFuncPtr) const
     {
-        return RepeatedSpecialization<Element>::Index(valToFind, getterFuncPtr, getFieldPtr());
+        return RepeatedSpecialization<Element>::Index(valToFind, getterFuncPtr, wrappedField());
     }
 
     inline Element product() const {return ProductFunctor<Element>::call(begin(), end());}
@@ -156,7 +156,7 @@ public:
 
     template <typename SubfieldElement, typename SetterReturn> void SetAll(const SubfieldElement& newFieldVal, SetterReturn setterFuncPtr)
     {
-        RepeatedSpecialization<Element>::SetAll(newFieldVal, setterFuncPtr, getFieldPtr());
+        RepeatedSpecialization<Element>::SetAll(newFieldVal, setterFuncPtr, wrappedField());
     }
 
     inline void reverse()
@@ -169,48 +169,48 @@ public:
     }
 
 // virtual funcs
-    inline const WrappedField* getFieldPtr() const {return fieldConstPtr;}
-    inline WrappedField* getFieldPtr()
+    inline const WrappedField* wrappedField() const {return wrappedFieldConstPtr;}
+    inline WrappedField* wrappedField()
     {
-        if (fieldPtr==NULL)
+        if (wrappedFieldPtr==NULL)
         {
-            throw Exception("Pointer to internal repeated field (fieldPtr) set to NULL in lm::protowrap::Repeated instance");
+            throw Exception("Pointer to internal repeated field (wrappedFieldPtr) set to NULL in lm::protowrap::Repeated instance");
         }
-        return fieldPtr;
+        return wrappedFieldPtr;
     }
-    inline virtual void setFieldPtr(WrappedField* newRepFieldPtr)
+    inline virtual void setWrappedField(WrappedField* newFieldPtr)
     {
-        fieldPtr = newRepFieldPtr;
-        fieldConstPtr = newRepFieldPtr;
+        wrappedFieldPtr = newFieldPtr;
+        wrappedFieldConstPtr = newFieldPtr;
     }
-    inline virtual void setRepFieldPtr(const WrappedField& newRepFieldConstRef)
+    inline virtual void setWrappedField(const WrappedField& newFieldConstRef)
     {
-        fieldPtr = NULL;
-        fieldConstPtr = &newRepFieldConstRef;
+        wrappedFieldPtr = NULL;
+        wrappedFieldConstPtr = &newFieldConstRef;
     }
 
 // pass throughs
 // accessors
-    const_iterator begin() const {return getFieldPtr()->begin();}
-    const_iterator end() const {return getFieldPtr()->end();}
-    bool empty() const {return getFieldPtr()->empty();}
-    const Element& Get(int index) const {return getFieldPtr()->Get(index);}
-    const google::protobuf::Descriptor* GetDescriptor() const {getFieldPtr()->GetDescriptor();}
-    int size() const {return getFieldPtr()->size();}
+    const_iterator begin() const {return wrappedField()->begin();}
+    const_iterator end() const {return wrappedField()->end();}
+    bool empty() const {return wrappedField()->empty();}
+    const Element& Get(int index) const {return wrappedField()->Get(index);}
+    const google::protobuf::Descriptor* GetDescriptor() const {wrappedField()->GetDescriptor();}
+    int size() const {return wrappedField()->size();}
 
 // mutators
-    iterator begin() {return getFieldPtr()->begin();}
-    iterator end() {return getFieldPtr()->end();}
-    Element* Add() {return getFieldPtr()->Add();}
-    void Add(const Element& value) {getFieldPtr()->Add(value);}
-    void Clear() {getFieldPtr()->Clear();}
-    Element* Mutable(int index) {return getFieldPtr()->Mutable(index);}
-    void Set(int index, const Element& value) {getFieldPtr()->Set(index, value);}
-    void SwapElements(int index1, int index2) {getFieldPtr()->SwapElements(index1, index2);}
+    iterator begin() {return wrappedField()->begin();}
+    iterator end() {return wrappedField()->end();}
+    Element* Add() {return wrappedField()->Add();}
+    void Add(const Element& value) {wrappedField()->Add(value);}
+    void Clear() {wrappedField()->Clear();}
+    Element* Mutable(int index) {return wrappedField()->Mutable(index);}
+    void Set(int index, const Element& value) {wrappedField()->Set(index, value);}
+    void SwapElements(int index1, int index2) {wrappedField()->SwapElements(index1, index2);}
 
 protected:
-    WrappedField* fieldPtr;
-    const WrappedField* fieldConstPtr;
+    WrappedField* wrappedFieldPtr;
+    const WrappedField* wrappedFieldConstPtr;
 };
 
 }

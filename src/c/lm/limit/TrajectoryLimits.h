@@ -97,7 +97,7 @@ public:
 
 // typedefs
     typedef lm::protowrap::Repeated<TrajectoryLimitMsg> RepeatedType;
-    typedef vector<TrajectoryLimit> VectorType;
+    typedef std::vector<TrajectoryLimit> VectorType;
     typedef VectorType::iterator iterator;
     typedef VectorType::const_iterator const_iterator;
     
@@ -196,7 +196,7 @@ public:
     TrajectoryLimitMsg* findMsg(int32_t id) {return const_cast<TrajectoryLimitMsg*>(&const_cast<const TrajectoryLimits*>(this)->findMsg(id));}
     TrajectoryLimitMsg* findMsg(TrajLimEnums::LimitType lt) {return const_cast<TrajectoryLimitMsg*>(&const_cast<const TrajectoryLimits*>(this)->findMsg(lt));}
     void Clear(bool resetNextID=true) {_msg.Clear(); _trackingLimits.Clear(); _vec.clear(); seatRepeated(); if (resetNextID) nextID=0;}
-    void seatRepeated(TrajectoryLimitsMsg& inMsg) {_repeated.setFieldPtr(inMsg.mutable_trajectory_limits());}
+    void seatRepeated(TrajectoryLimitsMsg& inMsg) {_repeated.setWrappedField(inMsg.mutable_trajectory_limits());}
     void seatRepeated() {seatRepeated(_msg);}
     void setMsg(const TrajectoryLimitsMsg& inMsg) {_msg.CopyFrom(inMsg);}
     void setVector(VectorType& inVec) {_vec = inVec;}

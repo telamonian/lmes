@@ -314,7 +314,7 @@ public:
     {
         msgPtr = newMsgMutablePtr;
         msgConstPtr = newMsgMutablePtr;
-        _shape.setFieldPtr(msgPtr->mutable_shape());
+        _shape.setWrappedField(msgPtr->mutable_shape());
         return this;
     }
 
@@ -322,7 +322,7 @@ public:
     {
         msgPtr = NULL;
         msgConstPtr = &newArrMsgConstRef;
-        _shape.setRepFieldPtr(msgConstPtr->shape());
+        _shape.setWrappedField(msgConstPtr->shape());
         return this;
     }
 

@@ -237,7 +237,7 @@ protected:
         if (simulationParameters.count(key)!=0)
         {
             std::vector<ValT> parsedVector(simulationParameters.parseVector<ValT>(key));
-            for (typename vector<ValT>::const_iterator it=parsedVector.begin(); it!=parsedVector.end(); it++)
+            for (typename std::vector<ValT>::const_iterator it=parsedVector.begin(); it!=parsedVector.end(); it++)
             {
                 (obj.*adderFunc)(*it);
             }

@@ -37,13 +37,15 @@
  * Author(s): Max Klein
  */
 
-// standalone version of the limit checking code
-// for investigating the assembly produced by various compilers
-#include <iostream>
+// for exploring the inner workings of the MAP macro
 
-#include "standaloneLimitChecking.h"
+#include "MapMacro.h"
 
 int main()
 {
-    std::cout << isTrajectoryOutsideLimits();
+    PRINT_PAIRS("one",   "two",
+                "three", "four",
+                "five",  "six",
+                "seven", "eight",
+                "nine",  "ten")
 }

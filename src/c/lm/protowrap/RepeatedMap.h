@@ -76,41 +76,41 @@ public:
     Element* at(const Key& key) const {return map.at(key);}
 
 // mutators
-    void addMemberValPtrToMap(Element* memberValPtr) {map[(*getKeyFunc)(*memberValPtr)] = memberValPtr;}
+    void addMemberElementPtrToMap(Element* memberValPtr) {map[(*getKeyFunc)(*memberValPtr)] = memberValPtr;}
 
-    inline virtual void setRepFieldPtr(WrappedField* newRepFieldPtr)
+    inline virtual void setWrappedField(WrappedField* newWrappedFieldPtr)
     {
         // call the base class method
-        Repeated<Element>::setFieldPtr(newRepFieldPtr);
+        Repeated<Element>::setWrappedField(newWrappedFieldPtr);
 
         map.clear();
         for (typename Repeated<Element>::iterator it=Repeated<Element>::begin();it!=Repeated<Element>::end();it++)
         {
-            addMemberValPtrToMap(&*it);
+            addMemberElementPtrToMap(&*it);
         }
     }
-    inline virtual void setRepFieldPtr(const WrappedField& newRepFieldConstRef)
+    inline virtual void setWrappedField(const WrappedField& newWrappedFieldConstRef)
     {
         throw UnimplementedException("Const version of RepeatedMap not yet implemented");
 //        // call the base class method
-//        Repeated::setFieldPtr(newRepFieldConstRef);
+//        Repeated::setWrappedField(newWrappedFieldConstRef);
 //
 //        map.clear();
 //        for (const_iterator it=begin();it!=end();it++)
 //        {
-//            addMemberValPtrToMap()
+//            addMemberElementPtrToMap()
 //        }
     }
 
     Element* Add(const Key& newKey)
     {
-        Element* newVal= Repeated<Element>::getFieldPtr()->Add();
+        Element* newVal= Repeated<Element>::wrappedField()->Add();
         (*setKeyFunc)(newVal, newKey);
-        addMemberValPtrToMap(newVal);
+        addMemberElementPtrToMap(newVal);
 
         return newVal;
     }
-    void Clear() {Repeated<Element>::getFieldPtr()->Clear(); map.clear();}
+    void Clear() {Repeated<Element>::wrappedField()->Clear(); map.clear();}
 
 protected:
     ElementPtrMap map;

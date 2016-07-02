@@ -128,7 +128,7 @@ public:
         // TODO: include consistency check constraining (phaseZeroSamples > burnInCount) somewhere
 
         // set wrapper on the limit_trackings field
-        trackingWrap.setRepFieldPtr(trajectoryState.limit_trackings());
+        trackingWrap.setWrappedField(trajectoryState.limit_trackings());
 
         // consistency checks
         if (trackingWrap.size()!=3) throw ConsistencyException("Finished Forward Flux phase zero trajectories should have 3 tracked limits in their outputs; trajectory id %llu has %d", trajectoryState.trajectory_id(), trackingWrap.size());
@@ -233,7 +233,7 @@ public:
     void addEndPoint(const lm::io::TrajectoryState& trajectoryState)
     {
         // set wrapper on the limit_trackings field
-        trackingWrap.setRepFieldPtr(trajectoryState.limit_trackings());
+        trackingWrap.setWrappedField(trajectoryState.limit_trackings());
 
         // consistency checks
         if (trackingWrap.size()!=2) throw ConsistencyException("Finished Forward Flux phase n>0 trajectories should have 2 tracked limits in their outputs; trajectory id %llu has %d", trajectoryState.trajectory_id(), trackingWrap.size());
@@ -293,7 +293,7 @@ public:
     {
         msgPtr = newMsgMutablePtr;
 
-        successfulEndPointMap.setRepFieldPtr(getMsg()->mutable_sucessful_trajectory_end_points());
+        successfulEndPointMap.setWrappedField(getMsg()->mutable_sucessful_trajectory_end_points());
         rebuildEndPointVector();
     }
 

@@ -115,12 +115,12 @@ public:
         return parsedPairVector;
     }
 
-    template <typename T> vector<T>
+    template <typename T> std::vector<T>
     parseVector(const std::string &key) const
     {
         std::stringstream vecSS(_map.at(key));
 
-        vector<T> parsedVector;
+        std::vector<T> parsedVector;
         T i;
         while (vecSS >> i)
         {
