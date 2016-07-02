@@ -314,7 +314,7 @@ public:
     {
         msgPtr = newMsgMutablePtr;
         msgConstPtr = newMsgMutablePtr;
-        _shape.setRepFieldPtr(msgPtr->mutable_shape());
+        _shape.setFieldPtr(msgPtr->mutable_shape());
         return this;
     }
 

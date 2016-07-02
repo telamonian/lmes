@@ -104,7 +104,7 @@ void TrajectoryLimits::addTileExitLimitsMsg(lm::tiling::Tiling& tiling, int edge
     addBinExitLimitsMsg<TrajLimEnums::ORDER_PARAMETER>(tiling.getOrderParameterID(), edge0Value, edge1Value, edge0Exists, edge1Exists, rightOpenBins, edge0LimitID, edge1LimitID);
 }
 
-LimitTrackingMsg* TrajectoryLimits::addTrackingMsg(int32_t limitID, bool addToOutput, bool addToCMEState, int64_t count, bool terminate)
+LimitTracking::WrappedMsg* TrajectoryLimits::addTrackingMsg(int32_t limitID, bool addToOutput, bool addToCMEState, int64_t count, bool terminate)
 {
     // set the tracking options on the limit of interest
     TrajectoryLimitMsg* trackedLimitMsg = findMsg(limitID);
@@ -119,13 +119,13 @@ LimitTrackingMsg* TrajectoryLimits::addTrackingMsg(int32_t limitID, bool addToOu
     else           trackedLimitMsg->set_track_count(static_cast<uint>(count));
 
     // initialize the actual tracking message
-    LimitTrackingMsg* trackingMsg= _trackingLimits.Add();
+    LimitTracking::WrappedMsg* trackingMsg = _trackingLimits.Add();
     trackingMsg->set_limit_id(limitID);
     return trackingMsg;
 }
 
 // version of addTracking message that allow for setting non terminating tracking without necessarily filling in every default value in the signature
-LimitTrackingMsg* TrajectoryLimits::addTrackingMsgNonterminating(int32_t limitID, bool addToOutput, bool addToCMEState, int64_t count)
+LimitTracking::WrappedMsg* TrajectoryLimits::addTrackingMsgNonterminating(int32_t limitID, bool addToOutput, bool addToCMEState, int64_t count)
 {
     return addTrackingMsg(limitID, addToOutput, addToCMEState, count, false);
 }

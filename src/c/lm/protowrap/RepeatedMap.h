@@ -81,7 +81,7 @@ public:
     inline virtual void setRepFieldPtr(WrappedField* newRepFieldPtr)
     {
         // call the base class method
-        Repeated<Element>::setRepFieldPtr(newRepFieldPtr);
+        Repeated<Element>::setFieldPtr(newRepFieldPtr);
 
         map.clear();
         for (typename Repeated<Element>::iterator it=Repeated<Element>::begin();it!=Repeated<Element>::end();it++)
@@ -93,7 +93,7 @@ public:
     {
         throw UnimplementedException("Const version of RepeatedMap not yet implemented");
 //        // call the base class method
-//        Repeated::setRepFieldPtr(newRepFieldConstRef);
+//        Repeated::setFieldPtr(newRepFieldConstRef);
 //
 //        map.clear();
 //        for (const_iterator it=begin();it!=end();it++)
@@ -104,13 +104,13 @@ public:
 
     Element* Add(const Key& newKey)
     {
-        Element* newVal=Repeated<Element>::getRepFieldPtr()->Add();
+        Element* newVal= Repeated<Element>::getFieldPtr()->Add();
         (*setKeyFunc)(newVal, newKey);
         addMemberValPtrToMap(newVal);
 
         return newVal;
     }
-    void Clear() {Repeated<Element>::getRepFieldPtr()->Clear(); map.clear();}
+    void Clear() {Repeated<Element>::getFieldPtr()->Clear(); map.clear();}
 
 protected:
     ElementPtrMap map;

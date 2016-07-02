@@ -43,22 +43,21 @@
 #include <vector>
 
 #include "lm/input/TrajectoryLimits.pb.h"
+#include "lm/protowrap/Msg.h"
 #include "lm/protowrap/Repeated.h"
 #include "lm/Types.h"
 
 namespace lm {
 namespace limit {
 
-class LimitTracking
+class LimitTrackingWrapper : public lm::protowrap::Msg<lm::io::LimitTracking> {};
+class LimitTracking : public LimitTrackingWrapper
 {
 public:
     typedef uint64_t DegreeAdvancementT;
     typedef double OrderParameterT;
     typedef int SpeciesT;
     typedef double TimeT;
-
-    typedef lm::io::LimitTracking Msg;
-    typedef lm::protowrap::Repeated<Msg> LimitTrackings;
 
     typedef std::vector<DegreeAdvancementT> DegreeAdvancementContainerT;
     typedef std::vector<OrderParameterT> OrderParameterContainerT;
@@ -70,7 +69,7 @@ public:
 //    :degreeAdvancmentsWrapConst(degreeAdvancmentsWrap), orderParameterWrapConst(orderParameterWrap),
 //     speciesWrapConst(speciesWrap), timesWrapConst(timesWrap) {}
 
-    void deserializeFrom(const Msg& msgRef)
+    void deserializeFrom(const WrappedMsg& msgRef)
     {
         limitID = msgRef.limit_id();
         hasCount = msgRef.has_count();
@@ -130,7 +129,7 @@ public:
 //        return terminationSignaled(maxCount);
     }
 
-    void serializeMetadataTo(Msg* msg, uint64_t trajectoryID) const
+    void serializeMetadataTo(WrappedMsg* msg, uint64_t trajectoryID) const
     {
         msg->set_trajectory_id(trajectoryID);
         msg->set_limit_id(limitID);
@@ -138,12 +137,12 @@ public:
         if (hasCount) msg->set_count(count);
     }
 
-    void serializeTo(Msg* msg, uint64_t trajectoryId) const
+    void serializeTo(WrappedMsg* msg, uint64_t trajectoryId) const
     {
         serializeTo(msg, trajectoryId, degreeAdvancements, orderParameterValues, speciesCounts, times);
     }
 
-    void serializeTo(Msg* msg, uint64_t trajectoryID, const DegreeAdvancementContainerT& degreeAdvancementsRef,
+    void serializeTo(WrappedMsg* msg, uint64_t trajectoryID, const DegreeAdvancementContainerT& degreeAdvancementsRef,
                      const OrderParameterContainerT& orderParameterValuesRef, const SpeciesContainerT& speciesCountsRef,
                      const TimeContainerT& timesRef) const
     {
@@ -197,6 +196,7 @@ public:
 };
 
 typedef std::map<int, LimitTracking> TrackingMapT;
+typedef lm::protowrap::Repeated<LimitTracking::WrappedMsg> LimitTrackingRepeated;
 
 }
 }

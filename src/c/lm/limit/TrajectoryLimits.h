@@ -196,7 +196,7 @@ public:
     TrajectoryLimitMsg* findMsg(int32_t id) {return const_cast<TrajectoryLimitMsg*>(&const_cast<const TrajectoryLimits*>(this)->findMsg(id));}
     TrajectoryLimitMsg* findMsg(TrajLimEnums::LimitType lt) {return const_cast<TrajectoryLimitMsg*>(&const_cast<const TrajectoryLimits*>(this)->findMsg(lt));}
     void Clear(bool resetNextID=true) {_msg.Clear(); _trackingLimits.Clear(); _vec.clear(); seatRepeated(); if (resetNextID) nextID=0;}
-    void seatRepeated(TrajectoryLimitsMsg& inMsg) {_repeated.setRepFieldPtr(inMsg.mutable_trajectory_limits());}
+    void seatRepeated(TrajectoryLimitsMsg& inMsg) {_repeated.setFieldPtr(inMsg.mutable_trajectory_limits());}
     void seatRepeated() {seatRepeated(_msg);}
     void setMsg(const TrajectoryLimitsMsg& inMsg) {_msg.CopyFrom(inMsg);}
     void setVector(VectorType& inVec) {_vec = inVec;}
@@ -207,8 +207,8 @@ public:
     TrajectoryLimitMsg* setLimitMsgValue(TrajectoryLimitMsg* limitMsg, uint64_t val) {limitMsg->set_uvalue(val); return limitMsg;}
 
     // methods for working with the tracking messages associated with the limit messages
-    LimitTrackingMsg* addTrackingMsg(int32_t limitID, bool addToOutput=true, bool addToCMEState=false, int64_t count=1, bool terminate=true);
-    LimitTrackingMsg* addTrackingMsgNonterminating(int32_t limitID, bool addToOutput=true, bool addToCMEState=false, int64_t count=-1);
+    LimitTracking::WrappedMsg* addTrackingMsg(int32_t limitID, bool addToOutput=true, bool addToCMEState=false, int64_t count=1, bool terminate=true);
+    LimitTracking::WrappedMsg* addTrackingMsgNonterminating(int32_t limitID, bool addToOutput=true, bool addToCMEState=false, int64_t count=-1);
     void setTrackingTrajectoryID(uint64_t trajectoryID) {_trackingLimits.SetAll(trajectoryID, &lm::io::LimitTracking::set_trajectory_id);}
 
 // protobuf and stl container IO
@@ -237,7 +237,7 @@ protected:
 
     TrajectoryLimitsMsg _msg;
 
-    lm::limit::LimitTracking::LimitTrackings _trackingLimits;
+    LimitTrackingRepeated _trackingLimits;
     RepeatedType _repeated;
     VectorType _vec;
 };

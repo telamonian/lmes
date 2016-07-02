@@ -191,13 +191,13 @@ public:
         // if _data exists, deallocate it
         if (_data != NULL) delete[] _data; _data = NULL;
 
-        // allocate _data according to the size of repFieldPtr
+        // allocate _data according to the size of fieldPtr
         _data(new T[repFieldPtr->size()]());
 
         // reassign .len (via a const_cast)
         const_cast<uint&>(len) = repFieldPtr->size();
 
-        //memcpy(_data, repFieldPtr->data(), sizeof(T)*len);
+        //memcpy(_data, fieldPtr->data(), sizeof(T)*len);
 
         // copy the data over (using a loop instead of memcpy allows for implicit conversion of numerical types (ie int -> uint))
         for (int i=0;i<len;i++)

@@ -49,75 +49,67 @@
 #include "lm/fflux/io/FFluxStageOutput.pb.h"
 #include "lm/limit/LimitCheckFunctions.h"
 #include "lm/io/LimitTracking.pb.h"
-#include "lm/protowrap/msg.h"
+#include "lm/protowrap/Msg.h"
 #include "lm/protowrap/NDArray.h"
 #include "lm/protowrap/Repeated.h"
 #include "lm/Types.h"
 
-using lm::protowrap::Msg;
-using lm::protowrap::Repeated;
-
 namespace lm {
 namespace protowrap {
 
-class FFluxStageOutputRaw : public Msg<lm::fflux::io::FFluxStageOuputRaw>
+class FFluxStageOutputRaw : public lm::protowrap::Msg<lm::fflux::io::FFluxStageOuputRaw>
 {
 public:
-    typedef Msg::WrappedMsg Msg;
+    typedef Msg::WrappedMsg WrappedMsg;
 
     // accessors
-    const Repeated<uint64_t>& sucessful_trajectory_counts() const {return *_sucessful_trajectory_counts;}
-    const Repeated<double>& sucessful_trajectory_total_times() const {return *_sucessful_trajectory_total_times;}
-    const Repeated<uint64_t>& failed_trajectory_counts() const {return *_failed_trajectory_counts;}
-    const Repeated<double>& failed_trajectory_total_times() const {return *_failed_trajectory_total_times;}
+    const lm::protowrap::Repeated<uint64_t>& sucessful_trajectory_counts() const {return _sucessful_trajectory_counts;}
+    const lm::protowrap::Repeated<double>& sucessful_trajectory_total_times() const {return _sucessful_trajectory_total_times;}
+    const lm::protowrap::Repeated<uint64_t>& failed_trajectory_counts() const {return _failed_trajectory_counts;}
+    const lm::protowrap::Repeated<double>& failed_trajectory_total_times() const {return _failed_trajectory_total_times;}
 
     // mutators
-    Repeated<uint64_t>* sucessful_trajectory_counts() {return _sucessful_trajectory_counts;}
-    Repeated<double>* sucessful_trajectory_total_times() {return _sucessful_trajectory_total_times;}
-    Repeated<uint64_t>* failed_trajectory_counts() {return _failed_trajectory_counts;}
-    Repeated<double>* failed_trajectory_total_times() {return _failed_trajectory_total_times;}
+    lm::protowrap::Repeated<uint64_t>* sucessful_trajectory_counts() {return &_sucessful_trajectory_counts;}
+    lm::protowrap::Repeated<double>* sucessful_trajectory_total_times() {return &_sucessful_trajectory_total_times;}
+    lm::protowrap::Repeated<uint64_t>* failed_trajectory_counts() {return &_failed_trajectory_counts;}
+    lm::protowrap::Repeated<double>* failed_trajectory_total_times() {return &_failed_trajectory_total_times;}
 
     // pass through accessors
     // pass through mutators
 
-    Repeated<uint64_t>* _sucessful_trajectory_counts;
-    Repeated<double>* _sucessful_trajectory_total_times;
+    lm::protowrap::Repeated<uint64_t> _sucessful_trajectory_counts;
+    lm::protowrap::Repeated<double> _sucessful_trajectory_total_times;
 
-    Repeated<uint64_t>* _failed_trajectory_counts;
-    Repeated<double>* _failed_trajectory_total_times;
+    lm::protowrap::Repeated<uint64_t> _failed_trajectory_counts;
+    lm::protowrap::Repeated<double> _failed_trajectory_total_times;
 };
 
-class FFluxStageOutput : public Msg<lm::fflux::io::FFluxStageOutput>
+class FFluxStageOutput : public lm::protowrap::Msg<lm::fflux::io::FFluxStageOutput>
 {
 public:
-    typedef Msg::WrappedMsg Msg;
-    typedef FFluxStageOutputRaw::Msg MsgRaw;
-
-    virtual void setMsg(Msg* newMsgMutablePtr)
-    {
-        msgPtr = newMsgMutablePtr;
-    }
+    typedef Msg::WrappedMsg WrappedMsg;
+    typedef FFluxStageOutputRaw::WrappedMsg RawMsg;
 
     // accessors
-    const Repeated<double>& switching_time_per_tile() const {return *_switching_time_per_tile;}
-    const Repeated<double>& fluxes() const {return *_fluxes;}
-    const Repeated<double>& probabilities() const {return *_probabilities;}
-    const FFluxStageOutputRaw& fflux_stage_output_raw() const {return *_fflux_stage_output_raw;}
+    const lm::protowrap::Repeated<double>& switching_time_per_tile() const {return _switching_time_per_tile;}
+    const lm::protowrap::Repeated<double>& fluxes() const {return _fluxes;}
+    const lm::protowrap::Repeated<double>& probabilities() const {return _probabilities;}
+    const FFluxStageOutputRaw& fflux_stage_output_raw() const {return _fflux_stage_output_raw;}
 
     // mutators
-    Repeated<double>* mutable_switching_time_per_tile() {return _switching_time_per_tile;}
-    Repeated<double>* mutable_fluxes() {return _fluxes;}
-    Repeated<double>* mutable_probabilities() {return _probabilities;}
-    FFluxStageOutputRaw* mutable_fflux_stage_output_raw() {return _fflux_stage_output_raw;}
+    lm::protowrap::Repeated<double>* mutable_switching_time_per_tile() {return &_switching_time_per_tile;}
+    lm::protowrap::Repeated<double>* mutable_fluxes() {return &_fluxes;}
+    lm::protowrap::Repeated<double>* mutable_probabilities() {return &_probabilities;}
+    FFluxStageOutputRaw* mutable_fflux_stage_output_raw() {return &_fflux_stage_output_raw;}
 
     // pass through accessors
     // pass through mutators
 
 protected:
-    Repeated<double>* _switching_time_per_tile;
-    Repeated<double>* _fluxes;
-    Repeated<double>* _probabilities;
-    FFluxStageOutputRaw* _fflux_stage_output_raw;
+    lm::protowrap::Repeated<double> _switching_time_per_tile;
+    lm::protowrap::Repeated<double> _fluxes;
+    lm::protowrap::Repeated<double> _probabilities;
+    FFluxStageOutputRaw _fflux_stage_output_raw;
 };
 
 }
