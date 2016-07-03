@@ -39,19 +39,9 @@
 #ifndef LM_PROTWRAP_FFLUXSTAGEOUTPUT_H_
 #define LM_PROTWRAP_FFLUXSTAGEOUTPUT_H_
 
-#include <algorithm>
-#include <limits>
-#include <map>
-#include <vector>
-
-#include "lm/EnumHelper.h"
 #include "lm/fflux/io/FFluxPhaseOutput.pb.h"
 #include "lm/fflux/io/FFluxStageOutput.pb.h"
-#include "lm/limit/LimitCheckFunctions.h"
-#include "lm/io/LimitTracking.pb.h"
 #include "lm/protowrap/Msg.h"
-#include "lm/protowrap/NDArray.h"
-#include "lm/protowrap/Repeated.h"
 #include "lm/Types.h"
 
 namespace lm {

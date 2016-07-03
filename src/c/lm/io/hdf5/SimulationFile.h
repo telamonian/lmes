@@ -110,12 +110,35 @@ public:
 class Hdf5File : public SimulationFile
 {
 public:
+    struct DatasetDescriptor
+    {
+        DatasetDescriptor(const std::string& groupPath, const std::string& datasetName, const utuple& shape, hid_t hdf5Type, void* data, hid_t rootGroup=-1)
+        :rootGroup(rootGroup),groupPath(groupPath),datasetName(datasetName),shape(shape),startingColumn(0),hdf5Type(hdf5Type),data(data) {}
+
+        hid_t rootGroup;
+        const std::string& groupPath;
+        const std::string& datasetName;
+
+        const utuple& shape;
+        uint startingColumn;
+
+        hid_t hdf5Type;
+        void* data;
+    };
+
+    struct ReplicateHandles
+    {
+        hid_t group;
+        hid_t speciesCountsDataset, speciesCountTimesDataset;
+        ReplicateHandles():group(H5I_INVALID_HID),speciesCountsDataset(H5I_INVALID_HID),speciesCountTimesDataset(H5I_INVALID_HID) {}
+    };
+    typedef PairMap<string, uint64_t, ReplicateHandles *> ReplicateHandleMap;
+
     static const uint MIN_VERSION;
     static const uint CURRENT_VERSION;
     static const uint MAX_REACTION_RATE_CONSTANTS;
     static const uint MAX_SHAPE_PARAMETERS;
 
-public:
     static bool isValidFile(const string filename) throw(IOException,HDF5Exception);
     static bool isValidFile(const char * filename) throw(IOException,HDF5Exception);
     static void create(const string filename) throw(IOException,HDF5Exception);
@@ -124,14 +147,6 @@ public:
     static void create(const char *  filename, unsigned int numberSpecies) throw(IOException,HDF5Exception);
     static void create(const char * filename, bool initializeModel, unsigned int numberSpecies=0) throw(IOException,HDF5Exception);
 
-protected:
-    static herr_t parseParameter(hid_t location_id, const char *attr_name, const H5A_info_t *ainfo, void *op_data);
-//    static herr_t getFFluxParametersInterfaceCallback (hid_t loc_id, const char *name, const H5L_info_t *info, void *operator_data);
-//    static herr_t getFFluxParametersOrderParameterCallback (hid_t loc_id, const char *name, const H5L_info_t *info, void *operator_data);
-    static herr_t getOrderParametersCallback (hid_t loc_id, const char *name, const H5L_info_t *info, void *callbackDataOrderParameters);
-    static herr_t getTilingsCallback (hid_t loc_id, const char *name, const H5L_info_t *info, void *callbackDataTilings);
-
-public:
     Hdf5File(const string filename) throw(IOException,HDF5Exception,Exception);
     Hdf5File(const char* filename) throw(IOException,HDF5Exception,Exception);
 	virtual ~Hdf5File();
@@ -216,114 +231,63 @@ public:
 	virtual void loadLatticeConfiguration(uint64 latticeIndex, Lattice* lattice, nstime_t* time=NULL) const throw(HDF5Exception);*/
 
 	// Methods for working with NDArrays
-    template <typename T> void setNDArray(std::string& groupPath, std::string& datasetName, const robertslab::pbuf::NDArray& ndarrayRef, hid_t rootGroup=-1)
+    // TODO: factor out the need for templates and move the implementation to the .cpp file
+    template <typename T> hsize_t setNDArray(const std::string& groupPath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarrayRef, hid_t rootGroup=-1)
     {
         // extract the data for the dataset from the NDArray
         lm::protowrap::NDArray<T> ndarrayWrap(ndarrayRef);
         T* data = ndarrayWrap.get_data();
         utuple shape(ndarrayWrap.shape());
 
+        // get the HDF5Type for the data
+        hid_t hdf5Type = lm::protowrap::hdf5TypeGetter(ndarrayWrap.data_type());
+
+        // a descriptor that we'll pass to the lower level output function
+        DatasetDescriptor datasetDescriptor(groupPath, datasetName, shape, hdf5Type, data, rootGroup);
+
         // now that we have the data and the shape, call the generalized dataset writing function
-        setDataset(groupPath, datasetName, data, shape, rootGroup);
+        hsize_t rows = setDataset(datasetDescriptor);
 
         // clean up, if required
         if (ndarrayWrap.compressed_deflate()) delete[] data;
+
+        // return the number of rows written out
+        return rows;
     }
-    template <typename T> void setNDArrayReplicate(uint64_t replicate, std::string& groupRelativePath, std::string& datasetName, const robertslab::pbuf::NDArray& ndarray)
+    template <typename T> void setNDArrayReplicate(uint64_t replicate, const std::string& groupRelativePath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarray)
     {
         ReplicateHandles * replicateHandles = openReplicateHandles(replicate);
         setNDArray<T>(groupRelativePath, datasetName, ndarray, replicateHandles->group);
     }
-
     // condensed versions of the generalized NDArray hdf5 output. Condensed in the sense that it shoves all of the data into as few separate groups and datasets as possible
-    template <typename T> void setNDArrayReplicateCondensed(uint64_t replicate, std::string& groupRelativePath, std::string& datasetName, const robertslab::pbuf::NDArray& ndarray)
+    template <typename T> void setNDArrayReplicateCondensed(uint64_t replicate, const std::string& groupRelativePath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarray)
     {
-        ReplicateHandles * replicateHandles = openReplicateHandles(replicate);
-        setNDArray<T>(groupRelativePath, datasetName, ndarray, replicateHandles->group);
+        // write out the dataset directly to prefix/Simulations/groupRelativePath and get the number of rows written
+        hsize_t rows = setNDArray<T>(groupRelativePath, datasetName, ndarray, simulationsGroup);
+
+        // create a 1D array containing one repition of the trajectoryID for each row in ndarray
+        std::vector<uint64_t> trajectoryIDs(rows, replicate);
+
+        // write out the trajectoryID dataset we just created
+        setContainer(groupRelativePath, datasetName, trajectoryIDs, simulationsGroup);
+    }
+    template <typename Container> hsize_t setContainer(const std::string& groupPath, const std::string& datasetName, const Container& container, hid_t rootGroup=-1)
+    {
+        utuple shape(container.size());
+        hid_t hdf5Type = HDF5Type<typename Container::value_type>::T();
+
+        return setDataset(DatasetDescriptor(groupPath, datasetName, shape, hdf5Type, (void*)container.data(), rootGroup));
     }
 
-    // method for outputing abstract multi-dimensional array (ie a pointer plus a shape) as a dataset
-    template <typename T> void setDataset(std::string& groupPath, std::string& datasetName, T* data, utuple& shape, hid_t rootGroup=-1)
-    {
-        // initialize the group we'll be storing the NDArray dataset in
-        hid_t group = initGroup(groupPath, rootGroup);
+    // low(ish)-level method for outputing abstract multi-dimensional array (ie a pointer plus a shape) as a dataset
+    hsize_t setDataset(const DatasetDescriptor& dd);
+//    void setDatasets(std::vector<DatasetDescriptor>* ddVector);
 
-        // declare the HDF5 boilerplate variables
-        uint RANK(shape.len);
-        hid_t dataspace, dataset, filespace, memspace, prop;
-        hsize_t chunkdims[RANK], dims[RANK], dimsr[RANK], dimstotal[RANK], maxdims[RANK], offset[RANK];
-
-    // We'd like to have the option to delete NDArray's dataset if it already exists, but HDF5 apparently can't really delete anything so leave it commented for now.
-//    if (H5Lexists(group, groupName.c_str(), H5P_DEFAULT))
-//    {
-//        HDF5_EXCEPTION_CHECK(H5Ldelete(group, groupName.c_str(), H5P_DEFAULT));
-//    }
-
-        // write or extend the NDArray dataset
-        dims[0] = RANK > 0 ? shape[0] : 0;
-        chunkdims[0] = 1000;
-        maxdims[0] = H5S_UNLIMITED;
-        for (int i=1; i<RANK; i++)
-        {
-            dims[i] = shape[i];
-            chunkdims[i] = dims[i];
-            maxdims[i] = dims[i];
-        }
-
-        // if the dataset exists, extend it
-        if ((dataset = H5Dopen2(group, datasetName.c_str(), H5P_DEFAULT))>=0)
-        {
-            HDF5_EXCEPTION_CALL(prop, H5Dget_create_plist(dataset));
-
-            HDF5_EXCEPTION_CALL(filespace, H5Dget_space(dataset));
-            HDF5_EXCEPTION_CHECK(H5Sget_simple_extent_dims(filespace, dimsr, NULL));
-            /* Extend the dataset */
-            dimstotal[0] = dimsr[0] + dims[0];
-            if (RANK==2) {dimstotal[1] = dimsr[1];}
-            HDF5_EXCEPTION_CHECK(H5Dset_extent(dataset, dimstotal));
-            // reopen the now-extended dataset's filespace
-            HDF5_EXCEPTION_CALL(filespace, H5Dget_space(dataset));
-            /* Select a hyperslab in extended portion of dataset  */
-            offset[0] = dimsr[0];
-            if (RANK==2) {offset[1] = 0;}
-            HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset, NULL, dims, NULL));
-            /* Define memory space */
-            HDF5_EXCEPTION_CALL(memspace, H5Screate_simple(RANK, dims, NULL));
-            HDF5_EXCEPTION_CHECK(H5Dwrite(dataset, HDF5Type<T>::T(), memspace, filespace, H5P_DEFAULT, data));
-
-            HDF5_EXCEPTION_CHECK(H5Dclose(dataset));
-            HDF5_EXCEPTION_CHECK(H5Sclose(memspace));
-            HDF5_EXCEPTION_CHECK(H5Sclose(filespace));
-        }
-            // otherwise, create the dataset
-        else
-        {
-            /* Create the dataField space with unlimited dimensions. */
-            HDF5_EXCEPTION_CALL(dataspace, H5Screate_simple(RANK, dims, maxdims));
-            /* Modify dataset creation properties, i.e. enable chunking  */
-            HDF5_EXCEPTION_CALL(prop, H5Pcreate(H5P_DATASET_CREATE));
-            HDF5_EXCEPTION_CHECK(H5Pset_chunk(prop, RANK, chunkdims));
-            /* Create a new dataset within the file using chunk creation properties.  */
-            dataset = H5Dcreate2(group, datasetName.c_str(), HDF5Type<T>::T(), dataspace, H5P_DEFAULT, prop, H5P_DEFAULT);
-            /* Write dataField to dataset */
-            HDF5_EXCEPTION_CHECK(H5Dwrite(dataset, HDF5Type<T>::T(), H5S_ALL, H5S_ALL, H5P_DEFAULT, data));
-
-            HDF5_EXCEPTION_CHECK(H5Dclose(dataset));
-            HDF5_EXCEPTION_CHECK(H5Pclose(prop));
-            HDF5_EXCEPTION_CHECK(H5Sclose(dataspace));
-        }
-    }
-
-public:
-    struct ReplicateHandles
-    {
-        hid_t group;
-        hid_t speciesCountsDataset, speciesCountTimesDataset;
-        ReplicateHandles():group(H5I_INVALID_HID),speciesCountsDataset(H5I_INVALID_HID),speciesCountTimesDataset(H5I_INVALID_HID) {}
-    };
-    typedef PairMap<string, uint64_t, ReplicateHandles *> ReplicateHandleMap;
-	
 protected:
+    static herr_t parseParameter(hid_t location_id, const char *attr_name, const H5A_info_t *ainfo, void *op_data);
+    static herr_t getOrderParametersCallback (hid_t loc_id, const char *name, const H5L_info_t *info, void *callbackDataOrderParameters);
+    static herr_t getTilingsCallback (hid_t loc_id, const char *name, const H5L_info_t *info, void *callbackDataTilings);
+
     virtual void open() throw(IOException,HDF5Exception,Exception);
     virtual void openGroups() throw(HDF5Exception);
     virtual void loadParameters() throw(HDF5Exception);

@@ -1570,7 +1570,8 @@ void Hdf5File::getTilings(lm::input::Tilings* tilings) const
     uint32_t currentTilingID;
     if (H5Lexists(file, "/Tilings", H5P_DEFAULT))
     {
-        bool HDF5_EXCEPTION_CALL(currentTilingIDExists, H5Aexists_by_name(file, "/Tilings", "CurrentTilingID", H5P_DEFAULT))
+        bool currentTilingIDExists;
+        HDF5_EXCEPTION_CALL(currentTilingIDExists, H5Aexists_by_name(file, "/Tilings", "CurrentTilingID", H5P_DEFAULT))
         if (currentTilingIDExists)
         {
             HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Tilings", "CurrentTilingID", &currentTilingID));
@@ -2659,6 +2660,79 @@ void Hdf5File::setRecordNamePrefix(const string& newRecordNamePrefix)
         simulationsParts.push_back("Simulations");
         simulationsGroup = initGroup(simulationsParts);
     }
+}
+
+hsize_t Hdf5File::setDataset(const DatasetDescriptor& dd)
+{
+    // initialize the group we'll be storing the NDArray dataset in
+    hid_t group = initGroup(dd.groupPath, dd.rootGroup);
+
+    // declare the HDF5 boilerplate variables
+    uint RANK(dd.shape.len);
+    hid_t dataspace, dataset, filespace, memspace, prop;
+    hsize_t chunkdims[RANK], dims[RANK], dimsr[RANK], dimstotal[RANK], maxdims[RANK], offset[RANK];
+
+    // We'd like to have the option to delete NDArray's dataset if it already exists, but HDF5 apparently can't really delete anything so leave it commented for now.
+    /* if (H5Lexists(group, groupName.c_str(), H5P_DEFAULT))
+    {
+        HDF5_EXCEPTION_CHECK(H5Ldelete(group, groupName.c_str(), H5P_DEFAULT));
+    } */
+
+    // write or extend the NDArray dataset
+    dims[0] = RANK > 0 ? dd.shape[0] : 0;
+    chunkdims[0] = 1000;
+    maxdims[0] = H5S_UNLIMITED;
+    for (int i=1; i<RANK; i++)
+    {
+        dims[i] = dd.shape[i];
+        chunkdims[i] = dims[i];
+        maxdims[i] = dims[i];
+    }
+
+    // if the dataset exists, extend it
+    if ((dataset = H5Dopen2(group, dd.datasetName.c_str(), H5P_DEFAULT))>=0)
+    {
+        HDF5_EXCEPTION_CALL(prop, H5Dget_create_plist(dataset));
+
+        HDF5_EXCEPTION_CALL(filespace, H5Dget_space(dataset));
+        HDF5_EXCEPTION_CHECK(H5Sget_simple_extent_dims(filespace, dimsr, NULL));
+        /* Extend the dataset */
+        dimstotal[0] = dimsr[0] + dims[0];
+        if (RANK==2) {dimstotal[1] = dimsr[1];}
+        HDF5_EXCEPTION_CHECK(H5Dset_extent(dataset, dimstotal));
+        // reopen the now-extended dataset's filespace
+        HDF5_EXCEPTION_CALL(filespace, H5Dget_space(dataset));
+        /* Select a hyperslab in extended portion of dataset  */
+        offset[0] = dimsr[0];
+        if (RANK==2) {offset[1] = 0;}
+        HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset, NULL, dims, NULL));
+        /* Define memory space */
+        HDF5_EXCEPTION_CALL(memspace, H5Screate_simple(RANK, dims, NULL));
+        HDF5_EXCEPTION_CHECK(H5Dwrite(dataset, dd.hdf5Type, memspace, filespace, H5P_DEFAULT, dd.data));
+
+        HDF5_EXCEPTION_CHECK(H5Dclose(dataset));
+        HDF5_EXCEPTION_CHECK(H5Sclose(memspace));
+        HDF5_EXCEPTION_CHECK(H5Sclose(filespace));
+    }
+        // otherwise, create the dataset
+    else
+    {
+        /* Create the dataField space with unlimited dimensions. */
+        HDF5_EXCEPTION_CALL(dataspace, H5Screate_simple(RANK, dims, maxdims));
+        /* Modify dataset creation properties, i.e. enable chunking  */
+        HDF5_EXCEPTION_CALL(prop, H5Pcreate(H5P_DATASET_CREATE));
+        HDF5_EXCEPTION_CHECK(H5Pset_chunk(prop, RANK, chunkdims));
+        /* Create a new dataset within the file using chunk creation properties.  */
+        dataset = H5Dcreate2(group, dd.datasetName.c_str(), dd.hdf5Type, dataspace, H5P_DEFAULT, prop, H5P_DEFAULT);
+        /* Write dataField to dataset */
+        HDF5_EXCEPTION_CHECK(H5Dwrite(dataset, dd.hdf5Type, H5S_ALL, H5S_ALL, H5P_DEFAULT, dd.data));
+
+        HDF5_EXCEPTION_CHECK(H5Dclose(dataset));
+        HDF5_EXCEPTION_CHECK(H5Pclose(prop));
+        HDF5_EXCEPTION_CHECK(H5Sclose(dataspace));
+    }
+
+    return dims[0];
 }
 
 }

@@ -46,6 +46,7 @@
 #include <zlib.h>
 
 #include "lm/array/Tuple.h"
+#include "lm/EnumHelper.h"
 #include "lm/io/hdf5/HDF5.h"
 #include "lm/protowrap/Repeated.h"
 #include "lm/Types.h"
@@ -54,9 +55,9 @@
 namespace lm {
 namespace protowrap {
 
-typedef robertslab::pbuf::NDArray_ArrayOrder ArrayOrder;
-typedef robertslab::pbuf::NDArray_ByteOrder ByteOrder;
-typedef robertslab::pbuf::NDArray_DataType DataType;
+typedef NDArrEnums::ArrayOrder ArrayOrder;
+typedef NDArrEnums::ByteOrder ByteOrder;
+typedef NDArrEnums::DataType DataType;
 
 // template based mapping to handle NumPy -> C++ Type conversions
 template <DataType NPDType> struct CPPType;
@@ -81,20 +82,7 @@ template <> struct NDType<int64_t> {static const DataType T = robertslab::pbuf::
 template <> struct NDType<uint32_t> {static const DataType T = robertslab::pbuf::NDArray::uint32;};
 template <> struct NDType<uint64_t> {static const DataType T = robertslab::pbuf::NDArray::uint64;};
 
-//template <DataType NDType> struct HDF5Type {static const hid_t T = lm::io::hdf5::HDF5Type<CPPType<NDType>>::T;};
-//
-//hid_t ndTypeToHDF5Type(const DataType NDType)
-//{
-//    switch (NDType)
-//    {
-//    case robertslab::pbuf::NDArray::float32: return HDF5Type<robertslab::pbuf::NDArray::float32>::T;
-//    case robertslab::pbuf::NDArray::float64: return HDF5Type<robertslab::pbuf::NDArray::float64>::T;
-//    case robertslab::pbuf::NDArray::int32:   return HDF5Type<robertslab::pbuf::NDArray::int32>::T;
-//    case robertslab::pbuf::NDArray::int64:   return HDF5Type<robertslab::pbuf::NDArray::int64>::T;
-//    case robertslab::pbuf::NDArray::uint32:  return HDF5Type<robertslab::pbuf::NDArray::uint32>::T;
-//    case robertslab::pbuf::NDArray::uint64:  return HDF5Type<robertslab::pbuf::NDArray::uint64>::T;
-//    }
-//}
+template <DataType NDType> struct HDF5Type {static const hid_t T() {return lm::io::hdf5::HDF5Type<typename CPPType<NDType>::T>::T();}};
 
 template <typename T>
 class NDArray
@@ -364,6 +352,23 @@ public:
 protected:
     Repeated<uint32_t> _shape;
 };
+
+// static func
+static inline hid_t hdf5TypeGetter(const DataType NDType)
+{
+    switch (NDType)
+    {
+    case robertslab::pbuf::NDArray::float32: return HDF5Type<robertslab::pbuf::NDArray::float32>::T();
+    case robertslab::pbuf::NDArray::float64: return HDF5Type<robertslab::pbuf::NDArray::float64>::T();
+    case robertslab::pbuf::NDArray::int32:   return HDF5Type<robertslab::pbuf::NDArray::int32>::T();
+    case robertslab::pbuf::NDArray::int64:   return HDF5Type<robertslab::pbuf::NDArray::int64>::T();
+    case robertslab::pbuf::NDArray::uint32:  return HDF5Type<robertslab::pbuf::NDArray::uint32>::T();
+    case robertslab::pbuf::NDArray::uint64:  return HDF5Type<robertslab::pbuf::NDArray::uint64>::T();
+
+    default:
+        throw UnimplementedException("Unimplemented");
+    }
+}
 
 }
 }

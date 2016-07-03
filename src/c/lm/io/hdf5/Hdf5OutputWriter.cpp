@@ -103,8 +103,8 @@ void Hdf5OutputWriter::processDegreeAdvancementTimeSeries(const lm::io::DegreeAd
 
     std::string groupRelativePath(ss.str()), valuesDatasetName("Counts"), timesDatasetName("Times");
 
-    file->setNDArrayReplicate<uint64_t>(data.trajectory_id(), groupRelativePath, valuesDatasetName, data.counts());
-    file->setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, timesDatasetName, data.times());
+    setNDArrayReplicate<uint64_t>(data.trajectory_id(), groupRelativePath, valuesDatasetName, data.counts());
+    setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, timesDatasetName, data.times());
 }
 
 void Hdf5OutputWriter::processFFluxOutput(const lm::io::FFluxOutput& data)
@@ -125,8 +125,8 @@ void Hdf5OutputWriter::processOrderParameterTimeSeries(const lm::io::OrderParame
 
     std::string groupRelativePath(ss.str()), valuesDatasetName("Values"), timesDatasetName("Times");
 
-    file->setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, valuesDatasetName, data.values());
-    file->setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, timesDatasetName, data.times());
+    setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, valuesDatasetName, data.values());
+    setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, timesDatasetName, data.times());
 }
 
 void Hdf5OutputWriter::processOrderParameterFirstPassageTimes(const lm::io::OrderParameterFirstPassageTimes& data)
@@ -138,8 +138,8 @@ void Hdf5OutputWriter::processOrderParameterFirstPassageTimes(const lm::io::Orde
 
     std::string groupRelativePath(ss.str()), valuesDatasetName("Values"), timesDatasetName("Times");
 
-    file->setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, valuesDatasetName, data.order_parameter_value());
-    file->setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, timesDatasetName, data.first_passage_time());
+    setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, valuesDatasetName, data.order_parameter_value());
+    setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, timesDatasetName, data.first_passage_time());
 }
 
 void Hdf5OutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)
@@ -167,8 +167,8 @@ void Hdf5OutputWriter::processLimitTracking(const lm::io::LimitTracking& data)
         file->setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, orderParameterValuesDatasetName, data.order_parameter_values());
     }
 
-    file->setNDArrayReplicate<int32_t>(data.trajectory_id(), groupRelativePath, speciesCountsDatasetName, data.species_counts());
-    file->setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, timesDatasetName, data.times());
+    setNDArrayReplicate<int32_t>(data.trajectory_id(), groupRelativePath, speciesCountsDatasetName, data.species_counts());
+    setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, timesDatasetName, data.times());
 }
 
 void Hdf5OutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)

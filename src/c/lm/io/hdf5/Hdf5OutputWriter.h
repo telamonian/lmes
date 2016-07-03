@@ -83,6 +83,18 @@ protected:
     virtual void setRecordNamePrefix();
     virtual void setRecordNamePrefix(const std::string& newRecordNamePrefix);
 
+    template <typename T> void setNDArrayReplicate(uint64_t replicate, const std::string& groupRelativePath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarray)
+    {
+        if (condenseOutput)
+        {
+            file->setNDArrayReplicateCondensed<T>(replicate, groupRelativePath, datasetName, ndarray);
+        }
+        else
+        {
+            file->setNDArrayReplicate<T>(replicate, groupRelativePath, datasetName, ndarray);
+        }
+    }
+
 private:
     Hdf5File* file;
 };
