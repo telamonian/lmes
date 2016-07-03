@@ -43,9 +43,9 @@
 
 int main()
 {
-    PRINT_PAIRS("one",   "two",
-                "three", "four",
-                "five",  "six",
-                "seven", "eight",
-                "nine",  "ten")
+    PRINT_PAIRS(SUB(foo), SUB(bar),
+                CATEGORY_TYPE(uint64_t), CATEGORY_TYPE(blah),
+                five, six,
+                PASTER(foo, bar, re), eight,
+                nine, ten)
 }

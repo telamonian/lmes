@@ -50,7 +50,7 @@
 #include "lm/input/SimulationParameters.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/limit/LimitCheckMacros.h"
-#include "lm/limit/LimitTracking.h"
+#include "lm/limit/LimitTrackingWrap.h"
 #include "lm/limit/TrajectoryLimit.h"
 #include "lm/option/SimulationParameters.h"
 #include "lm/protowrap/Repeated.h"
@@ -114,7 +114,7 @@ public:
     const TrajectoryLimitMsg& findMsg(TrajLimEnums::LimitType lt) const;
     const TrajectoryLimitMsg& getTimeLimitMsg() const {return _msg.time_limit();}
     double getTimeLimitValue() const {return _msg.has_time_limit() ? _msg.time_limit().dvalue() : std::numeric_limits<double>::infinity();}
-    const LimitTrackingRepeated& getTrackingRepeated() {return _trackingLimits;}
+    const LimitTrackingRepeated& getTrackingRepeated() {return _limitTrackings;}
     bool hasDegreeAdvancementLimit() const {return hasMsg(TrajLimEnums::DEGREE_ADVANCEMENT);}
 
     const TrajectoryLimitsMsg& buf() const {return _msg;}
@@ -195,7 +195,7 @@ public:
 
     TrajectoryLimitMsg* findMsg(int32_t id) {return const_cast<TrajectoryLimitMsg*>(&const_cast<const TrajectoryLimits*>(this)->findMsg(id));}
     TrajectoryLimitMsg* findMsg(TrajLimEnums::LimitType lt) {return const_cast<TrajectoryLimitMsg*>(&const_cast<const TrajectoryLimits*>(this)->findMsg(lt));}
-    void Clear(bool resetNextID=true) {_msg.Clear(); _trackingLimits.Clear(); _vec.clear(); seatRepeated(); if (resetNextID) nextID=0;}
+    void Clear(bool resetNextID=true) {_msg.Clear(); _limitTrackings.Clear(); _vec.clear(); seatRepeated(); if (resetNextID) nextID=0;}
     void seatRepeated(TrajectoryLimitsMsg& inMsg) {_repeated.setWrappedField(inMsg.mutable_trajectory_limits());}
     void seatRepeated() {seatRepeated(_msg);}
     void setMsg(const TrajectoryLimitsMsg& inMsg) {_msg.CopyFrom(inMsg);}
@@ -207,9 +207,9 @@ public:
     TrajectoryLimitMsg* setLimitMsgValue(TrajectoryLimitMsg* limitMsg, uint64_t val) {limitMsg->set_uvalue(val); return limitMsg;}
 
     // methods for working with the tracking messages associated with the limit messages
-    LimitTracking::WrappedMsg* addTrackingMsg(int32_t limitID, bool addToOutput=true, bool addToCMEState=false, int64_t count=1, bool terminate=true);
-    LimitTracking::WrappedMsg* addTrackingMsgNonterminating(int32_t limitID, bool addToOutput=true, bool addToCMEState=false, int64_t count=-1);
-    void setTrackingTrajectoryID(uint64_t trajectoryID) {_trackingLimits.SetAll(trajectoryID, &lm::io::LimitTracking::set_trajectory_id);}
+    LimitTrackingWrap::WrappedMsg* addTrackingMsg(int32_t limitID, bool addToOutput=true, bool addToCMEState=false, int64_t count=1, bool terminate=true);
+    LimitTrackingWrap::WrappedMsg* addTrackingMsgNonterminating(int32_t limitID, bool addToOutput=true, bool addToCMEState=false, int64_t count=-1);
+    void setTrackingTrajectoryID(uint64_t trajectoryID) {_limitTrackings.SetAll(trajectoryID, &lm::io::LimitTracking::set_trajectory_id);}
 
 // protobuf and stl container IO
     void rFB(const TrajectoryLimitsMsg& inBuf);     // rFB = read From Buf
@@ -237,7 +237,9 @@ protected:
 
     TrajectoryLimitsMsg _msg;
 
-    LimitTrackingRepeated _trackingLimits;
+    LimitTrackingRepeated _limitTrackings;
+
+
     RepeatedType _repeated;
     VectorType _vec;
 };

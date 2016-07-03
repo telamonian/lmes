@@ -110,20 +110,24 @@ public:
 class Hdf5File : public SimulationFile
 {
 public:
+    // struct that handles the set of arguments required to write out a dataset
     struct DatasetDescriptor
     {
-        DatasetDescriptor(const std::string& groupPath, const std::string& datasetName, const utuple& shape, hid_t hdf5Type, void* data, hid_t rootGroup=-1)
-        :rootGroup(rootGroup),groupPath(groupPath),datasetName(datasetName),shape(shape),startingColumn(0),hdf5Type(hdf5Type),data(data) {}
+        DatasetDescriptor(const std::string& groupPath, const std::string& datasetName, const utuple& shape, hid_t hdf5Type, void* data, hid_t rootGroup=-1);
+        DatasetDescriptor(const std::string& groupPath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarrayMsg, hid_t rootGroup=-1);
+        ~DatasetDescriptor();
 
         hid_t rootGroup;
         const std::string& groupPath;
         const std::string& datasetName;
 
-        const utuple& shape;
+        utuple shape;
         uint startingColumn;
 
         hid_t hdf5Type;
         void* data;
+        bool compressed_deflate;
+        bool isNDArray;
     };
 
     struct ReplicateHandles
@@ -231,46 +235,9 @@ public:
 	virtual void loadLatticeConfiguration(uint64 latticeIndex, Lattice* lattice, nstime_t* time=NULL) const throw(HDF5Exception);*/
 
 	// Methods for working with NDArrays
-    // TODO: factor out the need for templates and move the implementation to the .cpp file
-    template <typename T> hsize_t setNDArray(const std::string& groupPath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarrayRef, hid_t rootGroup=-1)
-    {
-        // extract the data for the dataset from the NDArray
-        lm::protowrap::NDArray<T> ndarrayWrap(ndarrayRef);
-        T* data = ndarrayWrap.get_data();
-        utuple shape(ndarrayWrap.shape());
-
-        // get the HDF5Type for the data
-        hid_t hdf5Type = lm::protowrap::hdf5TypeGetter(ndarrayWrap.data_type());
-
-        // a descriptor that we'll pass to the lower level output function
-        DatasetDescriptor datasetDescriptor(groupPath, datasetName, shape, hdf5Type, data, rootGroup);
-
-        // now that we have the data and the shape, call the generalized dataset writing function
-        hsize_t rows = setDataset(datasetDescriptor);
-
-        // clean up, if required
-        if (ndarrayWrap.compressed_deflate()) delete[] data;
-
-        // return the number of rows written out
-        return rows;
-    }
-    template <typename T> void setNDArrayReplicate(uint64_t replicate, const std::string& groupRelativePath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarray)
-    {
-        ReplicateHandles * replicateHandles = openReplicateHandles(replicate);
-        setNDArray<T>(groupRelativePath, datasetName, ndarray, replicateHandles->group);
-    }
-    // condensed versions of the generalized NDArray hdf5 output. Condensed in the sense that it shoves all of the data into as few separate groups and datasets as possible
-    template <typename T> void setNDArrayReplicateCondensed(uint64_t replicate, const std::string& groupRelativePath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarray)
-    {
-        // write out the dataset directly to prefix/Simulations/groupRelativePath and get the number of rows written
-        hsize_t rows = setNDArray<T>(groupRelativePath, datasetName, ndarray, simulationsGroup);
-
-        // create a 1D array containing one repition of the trajectoryID for each row in ndarray
-        std::vector<uint64_t> trajectoryIDs(rows, replicate);
-
-        // write out the trajectoryID dataset we just created
-        setContainer(groupRelativePath, datasetName, trajectoryIDs, simulationsGroup);
-    }
+    hsize_t setNDArray(const std::string& groupPath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarrayRef, hid_t rootGroup=-1);
+    void setNDArrayReplicate(uint64_t replicate, const std::string& groupRelativePath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarray);
+    void setNDArrayReplicateCondensed(uint64_t replicate, const std::string& groupRelativePath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarray);
     template <typename Container> hsize_t setContainer(const std::string& groupPath, const std::string& datasetName, const Container& container, hid_t rootGroup=-1)
     {
         utuple shape(container.size());
@@ -279,7 +246,7 @@ public:
         return setDataset(DatasetDescriptor(groupPath, datasetName, shape, hdf5Type, (void*)container.data(), rootGroup));
     }
 
-    // low(ish)-level method for outputing abstract multi-dimensional array (ie a pointer plus a shape) as a dataset
+    // low(ish)-level methods for outputing abstract multi-dimensional array (ie a pointer plus a shape) as a dataset
     hsize_t setDataset(const DatasetDescriptor& dd);
 //    void setDatasets(std::vector<DatasetDescriptor>* ddVector);
 

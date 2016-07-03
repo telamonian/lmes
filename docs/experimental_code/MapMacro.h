@@ -66,10 +66,46 @@
 #define MAP_PAIRS1(f, x, y, peek, ...) f(x, y) MAP_NEXT (peek, MAP_PAIRS0) (f, peek, __VA_ARGS__)
 #define MAP_PAIRS(f, ...) EVAL (MAP_PAIRS1 (f, __VA_ARGS__, (), 0))
 
-#define _PRINT_PAIR(str0, str1) \
-    std::cout << str0 << ", " << str1 << '\n';
+#define ACCUMULATE_GET_END() 0, MAP_END
+#define ACCUMULATE_NEXT0(test, next, ...) next MAP_OUT
+#define ACCUMULATE_NEXT1(test, next) ACCUMULATE_NEXT0 (test, next, 0)
+#define ACCUMULATE_NEXT(test, next)  ACCUMULATE_NEXT1 (ACCUMULATE_GET_END test, next)
+
+#define ACCUMULATE0(f, x, y, peek, ...) ACCUMULATE_NEXT (peek, ACCUMULATE1) (f, f(x, y), peek, __VA_ARGS__) f(x, y)
+#define ACCUMULATE1(f, x, y, peek, ...) ACCUMULATE_NEXT (peek, ACCUMULATE0) (f, f(x, y), peek, __VA_ARGS__) f(x, y)
+#define ACCUMULATE(f, ...) EVAL (ACCUMULATE1 (f, __VA_ARGS__, (), 0))
+
+// paster
+#define _PASTER(part0, part1) part0 ## part1
+#define PASTER(...) ACCUMULATE(_PASTER, __VA_ARGS__)
+
+// stringify
+#define STRINGIFY2(X) #X
+#define STRINGIFY(X) STRINGIFY2(X)
+
+// token substitution
+#define NOSUB
+#define GET_SUB_foo 0, subbedfoo
+#define SUB0(test, sub, ...) sub
+#define SUB1(test, sub) SUB0 (test, sub, 0)
+#define SUB(tosub) SUB1 (GET_SUB_##tosub, NOSUB)
+
+// helper macros for deducing information about wrapped fields
+#define CATEGORY_float 0, numeric
+#define CATEGORY_double 0, numeric
+#define CATEGORY_int32_t 0, numeric
+#define CATEGORY_int64_t 0, numeric
+#define CATEGORY_uint32_t 0, numeric
+#define CATEGORY_uint64_t 0, numeric
+#define CATEGORY_TYPE0(test, sub, ...) sub
+#define CATEGORY_TYPE1(test, sub) CATEGORY_TYPE0 (test, sub, 0)
+#define CATEGORY_TYPE(type) CATEGORY_TYPE1 (CATEGORY_##type, embedded)
+
+// print pair
+#define PRINT_PAIR(str0, str1) \
+    std::cout << STRINGIFY(str0) << ", " << STRINGIFY(str1) << '\n';
 
 #define PRINT_PAIRS(...) \
-    MAP_PAIRS(_PRINT_PAIR, __VA_ARGS__)
+    MAP_PAIRS(PRINT_PAIR, __VA_ARGS__)
 
 #endif /* MAPMACRO */

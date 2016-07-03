@@ -84,7 +84,7 @@ template <> struct NDType<uint64_t> {static const DataType T = robertslab::pbuf:
 
 template <DataType NDType> struct HDF5Type {static const hid_t T() {return lm::io::hdf5::HDF5Type<typename CPPType<NDType>::T>::T();}};
 
-template <typename T>
+template <typename T=void>
 class NDArray
 {
 public:
@@ -96,6 +96,7 @@ public:
     ~NDArray() {}
 
 // accessors
+    hid_t hdf5_type() const {return hdf5TypeGetter(data_type());}
     const WrappedMsg* getMsg() const {return msgConstPtr;}
     uint rank() const {return shape().size();}
     uint getIndex(uint i) {return i;}
@@ -346,29 +347,29 @@ public:
 
     void set_compressed_deflate(bool value) {getMsg()->set_compressed_deflate(value);}
 
+// static functions
+    static inline hid_t hdf5TypeGetter(const DataType NDType)
+    {
+        switch (NDType)
+        {
+        case robertslab::pbuf::NDArray::float32: return HDF5Type<robertslab::pbuf::NDArray::float32>::T();
+        case robertslab::pbuf::NDArray::float64: return HDF5Type<robertslab::pbuf::NDArray::float64>::T();
+        case robertslab::pbuf::NDArray::int32:   return HDF5Type<robertslab::pbuf::NDArray::int32>::T();
+        case robertslab::pbuf::NDArray::int64:   return HDF5Type<robertslab::pbuf::NDArray::int64>::T();
+        case robertslab::pbuf::NDArray::uint32:  return HDF5Type<robertslab::pbuf::NDArray::uint32>::T();
+        case robertslab::pbuf::NDArray::uint64:  return HDF5Type<robertslab::pbuf::NDArray::uint64>::T();
+
+        default:
+            throw UnimplementedException("Unimplemented");
+        }
+    }
+
 public:
     robertslab::pbuf::NDArray* msgPtr;
     const robertslab::pbuf::NDArray* msgConstPtr;
 protected:
     Repeated<uint32_t> _shape;
 };
-
-// static func
-static inline hid_t hdf5TypeGetter(const DataType NDType)
-{
-    switch (NDType)
-    {
-    case robertslab::pbuf::NDArray::float32: return HDF5Type<robertslab::pbuf::NDArray::float32>::T();
-    case robertslab::pbuf::NDArray::float64: return HDF5Type<robertslab::pbuf::NDArray::float64>::T();
-    case robertslab::pbuf::NDArray::int32:   return HDF5Type<robertslab::pbuf::NDArray::int32>::T();
-    case robertslab::pbuf::NDArray::int64:   return HDF5Type<robertslab::pbuf::NDArray::int64>::T();
-    case robertslab::pbuf::NDArray::uint32:  return HDF5Type<robertslab::pbuf::NDArray::uint32>::T();
-    case robertslab::pbuf::NDArray::uint64:  return HDF5Type<robertslab::pbuf::NDArray::uint64>::T();
-
-    default:
-        throw UnimplementedException("Unimplemented");
-    }
-}
 
 }
 }

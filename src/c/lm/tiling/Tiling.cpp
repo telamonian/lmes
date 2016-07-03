@@ -65,36 +65,6 @@ void Tiling::init(lm::input::Tiling* newTilingMsg, const lm::oparam::OParams& ne
     setOrderParameters(newOParams);
 }
 
-//// flips the stopping condition of the added limits around depending on whether the tiling's edges currently sort ascending or descending
-//Tiling::TrajectoryLimitBuf* Tiling::addLimitBuf(lm::limit::TrajectoryLimits& tls, uint edgeIndex, TrajLimEnums::StoppingCondition stoppingCondition, bool rightOpenBins, int32_t limitID) const
-//{
-//    // if the tiling sorts descending, flip the stopping condition around
-//    if (getSortOrder()==TilingEnums::DESCENDING)
-//    {
-//        switch (stoppingCondition)
-//        {
-//        case TrajLimEnums::MIN: stoppingCondition = TrajLimEnums::MAX; break;
-//        case TrajLimEnums::MAX: stoppingCondition = TrajLimEnums::MIN; break;
-//        case TrajLimEnums::DECREASING: stoppingCondition = TrajLimEnums::INCREASING; break;
-//        case TrajLimEnums::INCREASING: stoppingCondition = TrajLimEnums::DECREASING; break;
-//        default: break;
-//        }
-//    }
-//
-//    // keep the includeEndpoint property of the added limit consistent with right-open bins on this tiling, or with left-open bins if rightOpenBins is false
-//    bool includeEndpoint;
-//    switch (stoppingCondition)
-//    {
-//    case TrajLimEnums::MIN: includeEndpoint = rightOpenBins; break;
-//    case TrajLimEnums::MAX: includeEndpoint = !rightOpenBins; break;
-//    case TrajLimEnums::DECREASING: includeEndpoint = rightOpenBins; break;
-//    case TrajLimEnums::INCREASING: includeEndpoint = !rightOpenBins; break;
-//    default: break;
-//    }
-//
-//    return tls.addLimitMsg<TrajLimEnums::ORDER_PARAMETER>(getOrderParameterID(), edges(edgeIndex), stoppingCondition, includeEndpoint, limitID);
-//}
-
 TilingEnums::SortOrder Tiling::calcSortOrder(bool reverseSort) const
 {
     if (edges().last()>=edges().first()) return (reverseSort ? TilingEnums::DESCENDING : TilingEnums::ASCENDING);

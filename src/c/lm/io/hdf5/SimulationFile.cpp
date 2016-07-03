@@ -89,11 +89,30 @@ namespace lm {
 namespace io {
 namespace hdf5 {
 
+Hdf5File::DatasetDescriptor::DatasetDescriptor(const std::string& groupPath, const std::string& datasetName, const utuple& shape, hid_t hdf5Type, void* data, hid_t rootGroup=-1)
+:rootGroup(rootGroup),groupPath(groupPath),datasetName(datasetName),shape(shape),startingColumn(0),hdf5Type(hdf5Type),data(data),compressed_deflate(false),isNDArray(false)
+{
+}
+
+Hdf5File::DatasetDescriptor::DatasetDescriptor(const std::string& groupPath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarrayMsg, hid_t rootGroup=-1)
+:rootGroup(rootGroup),groupPath(groupPath),datasetName(datasetName),shape(),startingColumn(0),hdf5Type(-1),data(NULL),compressed_deflate(false),isNDArray(false)
+{
+    isNDArray = true;
+    lm::protowrap::NDArray<void> ndarrayWrap(ndarrayMsg);
+
+    shape = utuple(ndarrayWrap.shape());
+
+    hdf5Type = ndarrayWrap.hdf5_type();
+    data = ndarrayWrap.get_data();
+    compressed_deflate = ndarrayWrap.compressed_deflate();
+}
+
+Hdf5File::DatasetDescriptor::~DatasetDescriptor() {if (isNDArray and compressed_deflate) {if (data!=NULL) {delete[] data; data=NULL;}}}
+
 const uint Hdf5File::MIN_VERSION                   = 2;
 const uint Hdf5File::CURRENT_VERSION               = 4;
 const uint Hdf5File::MAX_REACTION_RATE_CONSTANTS   = 10;
 const uint Hdf5File::MAX_SHAPE_PARAMETERS          = 10;
-
 
 Hdf5File::Hdf5File(const string filename) throw(IOException,HDF5Exception,Exception)
 :filename(filename),file(H5I_INVALID_HID),version(0),parametersGroup(H5I_INVALID_HID),modelGroup(H5I_INVALID_HID),recordNamePrefix(""),
@@ -2660,6 +2679,38 @@ void Hdf5File::setRecordNamePrefix(const string& newRecordNamePrefix)
         simulationsParts.push_back("Simulations");
         simulationsGroup = initGroup(simulationsParts);
     }
+}
+
+hsize_t Hdf5File::setNDArray(const std::string& groupPath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarrayRef, hid_t rootGroup=-1)
+{
+    // a descriptor that we'll pass to the lower level output function
+    DatasetDescriptor datasetDescriptor(groupPath, datasetName, ndarrayRef, rootGroup);
+
+    // now that we have the data and the shape, call the generalized dataset writing function
+    hsize_t rows = setDataset(datasetDescriptor);
+
+    // return the number of rows written out
+    return rows;
+}
+
+void Hdf5File::setNDArrayReplicate(uint64_t replicate, const std::string& groupRelativePath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarray)
+{
+    ReplicateHandles * replicateHandles = openReplicateHandles(replicate);
+    setNDArray(groupRelativePath, datasetName, ndarray, replicateHandles->group);
+}
+
+// condensed version of the generalized NDArray hdf5 output. Condensed in the sense that it shoves all of the data into as few separate groups and datasets as possible
+void Hdf5File::setNDArrayReplicateCondensed(uint64_t replicate, const std::string& groupRelativePath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarray)
+{
+    // write out the dataset directly to prefix/Simulations/groupRelativePath and get the number of rows written
+    hsize_t rows = setNDArray(groupRelativePath, datasetName, ndarray, simulationsGroup);
+
+    // create a 1D array containing one repition of the trajectoryID for each row in ndarray
+    std::vector<uint64_t> trajectoryIDs(rows, replicate);
+
+    // write out the trajectoryID dataset we just created
+    std::string trajectoryIDDatasetName = datasetName + "_-_TrajectoryIDs";
+    setContainer(groupRelativePath, datasetName, trajectoryIDs, simulationsGroup);
 }
 
 hsize_t Hdf5File::setDataset(const DatasetDescriptor& dd)

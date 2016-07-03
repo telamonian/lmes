@@ -323,7 +323,7 @@ void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
     for (TrackingMapT::const_iterator it=trackedLimits.begin(); it!=trackedLimits.end(); ++it)
     {
         lm::limit::TrajectoryLimit& l = limits[it->second.limitID];
-        if (l.addTrackingToCMEState or l.addTrackingToOutput) throw Exception("LimitTracking instance created for limit %d, but no tracking was requested for this limit", l.limitID);
+        if (l.addTrackingToCMEState or l.addTrackingToOutput) throw Exception("LimitTrackingWrap instance created for limit %d, but no tracking was requested for this limit", l.limitID);
 
         lm::io::LimitTracking* trackingMsg = state->add_limit_trackings();
         if (l.addTrackingToCMEState)

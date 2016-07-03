@@ -50,49 +50,23 @@
 namespace lm {
 namespace limit {
 
-class LimitTracking : public lm::protowrap::Msg<LimitTracking, lm::io::LimitTracking>
+class LimitTracking
 {
 public:
-//    typedef lm::io::LimitTracking WrappedMsg;
-
     typedef uint64_t DegreeAdvancementT;
     typedef double OrderParameterT;
     typedef int SpeciesT;
     typedef double TimeT;
 
-    typedef std::vector<DegreeAdvancementT> DegreeAdvancementContainerT;
-    typedef std::vector<OrderParameterT> OrderParameterContainerT;
-    typedef std::vector<SpeciesT> SpeciesContainerT;
-    typedef std::vector<TimeT> TimeContainerT;
-
-public:
-//    LimitTracking()
-//    :degreeAdvancmentsWrapConst(degreeAdvancmentsWrap), orderParameterWrapConst(orderParameterWrap),
-//     speciesWrapConst(speciesWrap), timesWrapConst(timesWrap) {}
-
-    void deserializeFrom(const WrappedMsg& msgRef)
-    {
-        limitID = msgRef.limit_id();
-        hasCount = msgRef.has_count();
-        if (hasCount) count = msgRef.count();
-
-        degreeAdvancmentsWrap.setMsg(msgRef.degree_advancements());
-        degreeAdvancmentsWrap.get_data(degreeAdvancements);
-
-        orderParameterWrap.setMsg(msgRef.order_parameter_values());
-        orderParameterWrap.get_data(orderParameterValues);
-
-        speciesWrap.setMsg(msgRef.species_counts());
-        speciesWrap.get_data(speciesCounts);
-
-        timesWrap.setMsg(msgRef.times());
-        timesWrap.get_data(times);
-    }
+    typedef std::vector<DegreeAdvancementT> DegreeAdvancementContainer;
+    typedef std::vector<OrderParameterT> OrderParameterContainer;
+    typedef std::vector<SpeciesT> SpeciesContainer;
+    typedef std::vector<TimeT> TimeContainer;
 
     bool trackingEnabled(uint64_t maxCount)
     {
         // if the limit tracking has a count, use this to determine if tracking is currently enabled
-        if (hasCount)
+        if (has_count)
         {
             // return true if count less than or equal to maxCount (passed in from the associated limit), false otherwise
             return (count <= maxCount);
@@ -107,7 +81,7 @@ public:
     bool terminationSignaled(uint64_t maxCount)
     {
         // if the limit tracking has a count, use this to determinate if we should signal for termination of the trajectory
-        if (hasCount)
+        if (has_count)
         {
             // return true if count greater than or equal to maxCount, false otherwise
             return (count >= maxCount);
@@ -130,6 +104,50 @@ public:
 //        return terminationSignaled(maxCount);
     }
 
+public:
+    int limit_id;
+    bool has_count;
+    uint64_t count;
+
+    DegreeAdvancementContainer degree_advancements;
+    OrderParameterContainer order_parameter_values;
+    SpeciesContainer species_counts;
+    TimeContainer times;
+};
+
+class LimitTrackingWrap : public lm::protowrap::Msg<LimitTrackingWrap, lm::io::LimitTracking>
+{
+public:
+    typedef uint64_t DegreeAdvancementT;
+    typedef double OrderParameterT;
+    typedef int SpeciesT;
+    typedef double TimeT;
+
+    typedef std::vector<DegreeAdvancementT> DegreeAdvancementContainer;
+    typedef std::vector<OrderParameterT> OrderParameterContainer;
+    typedef std::vector<SpeciesT> SpeciesContainer;
+    typedef std::vector<TimeT> TimeContainer;
+
+public:
+    void deserializeFrom(const WrappedMsg& msgRef)
+    {
+        limitID = msgRef.limit_id();
+        hasCount = msgRef.has_count();
+        if (hasCount) count = msgRef.count();
+
+        degreeAdvancmentsWrap.setMsg(msgRef.degree_advancements());
+        degreeAdvancmentsWrap.get_data(degreeAdvancements);
+
+        orderParameterWrap.setMsg(msgRef.order_parameter_values());
+        orderParameterWrap.get_data(orderParameterValues);
+
+        speciesWrap.setMsg(msgRef.species_counts());
+        speciesWrap.get_data(speciesCounts);
+
+        timesWrap.setMsg(msgRef.times());
+        timesWrap.get_data(times);
+    }
+
     void serializeMetadataTo(WrappedMsg* msg, uint64_t trajectoryID) const
     {
         msg->set_trajectory_id(trajectoryID);
@@ -143,9 +161,9 @@ public:
         serializeTo(msg, trajectoryId, degreeAdvancements, orderParameterValues, speciesCounts, times);
     }
 
-    void serializeTo(WrappedMsg* msg, uint64_t trajectoryID, const DegreeAdvancementContainerT& degreeAdvancementsRef,
-                     const OrderParameterContainerT& orderParameterValuesRef, const SpeciesContainerT& speciesCountsRef,
-                     const TimeContainerT& timesRef) const
+    void serializeTo(WrappedMsg* msg, uint64_t trajectoryID, const DegreeAdvancementContainer& degreeAdvancementsRef,
+                     const OrderParameterContainer& orderParameterValuesRef, const SpeciesContainer& speciesCountsRef,
+                     const TimeContainer& timesRef) const
     {
         serializeMetadataTo(msg, trajectoryID);
 
@@ -176,19 +194,11 @@ public:
 //    {}
 
 public:
-    int limitID;
-    bool hasCount;
-    uint64_t count;
 
-    DegreeAdvancementContainerT degreeAdvancements;
-    OrderParameterContainerT orderParameterValues;
-    SpeciesContainerT speciesCounts;
-    TimeContainerT times;
-
-    mutable lm::protowrap::NDArray<DegreeAdvancementT> degreeAdvancmentsWrap;
-    mutable lm::protowrap::NDArray<OrderParameterT> orderParameterWrap;
-    mutable lm::protowrap::NDArray<SpeciesT> speciesWrap;
-    mutable lm::protowrap::NDArray<TimeT> timesWrap;
+//    mutable lm::protowrap::NDArray<DegreeAdvancementT> degreeAdvancmentsWrap;
+//    mutable lm::protowrap::NDArray<OrderParameterT> orderParameterWrap;
+//    mutable lm::protowrap::NDArray<SpeciesT> speciesWrap;
+//    mutable lm::protowrap::NDArray<TimeT> timesWrap;
 
 //    const lm::protowrap::NDArray<DegreeAdvancementT>& degreeAdvancmentsWrapConst;
 //    const lm::protowrap::NDArray<OrderParameterT>& orderParameterWrapConst;
@@ -197,7 +207,7 @@ public:
 };
 
 typedef std::map<int, LimitTracking> TrackingMapT;
-typedef lm::protowrap::Repeated<LimitTracking::WrappedMsg> LimitTrackingRepeated;
+typedef lm::protowrap::Repeated<LimitTrackingWrap::WrappedMsg> LimitTrackingRepeated;
 
 }
 }
