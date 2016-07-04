@@ -46,6 +46,7 @@
 #include <string>
 
 #include "lm/Math.h"
+#include "lm/protowrap/WrappedFields.h"
 #include "lm/Types.h"
 
 namespace lm {

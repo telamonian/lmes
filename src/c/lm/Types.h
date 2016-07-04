@@ -115,9 +115,28 @@ template<typename Key0, typename Key1, typename Value> struct PairMap
 };
 
 /*
- * type inference functions, etc.
+ * type traits
  */
 // template for IsNumeric type testing utility. For numeric types, IsNumeric<T>::value will be true
 template <typename T> struct IsNumeric {static const bool value = std::numeric_limits<T>::is_specialized;};
+
+/*
+template<typename B, typename D>
+struct IsBaseOf {
+    typedef char (&yes)[1];
+    typedef char (&no)[2];
+
+    #if defined(MACOSX)
+    #undef check
+    #endif
+
+    static yes check(const B*);
+    static no check(const void*);
+
+    enum {
+        value = sizeof(check(static_cast<const D*>(NULL))) == sizeof(yes),
+    };
+};
+*/
 
 #endif

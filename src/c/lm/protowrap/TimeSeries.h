@@ -215,8 +215,8 @@ public:
         msgPtr = newMsgMutablePtr;
         msgConstPtr = newMsgMutablePtr;
 
-        valuesWrap.setMsg((msgPtr->*TSS::valueArrayMsgGetter)());
-        timesWrap.setMsg(msgPtr->mutable_times());
+        valuesWrap.setWrappedMsg((msgPtr->*TSS::valueArrayMsgGetter)());
+        timesWrap.setWrappedMsg(msgPtr->mutable_times());
         return this;
     }
 
@@ -225,12 +225,12 @@ public:
         msgPtr = NULL;
         msgConstPtr = &newMsgConstRef;
 
-        valuesWrap.setMsg((msgConstPtr->*TSS::valueArrayMsgConstGetter)());
-        timesWrap.setMsg(msgConstPtr->times());
+        valuesWrap.setWrappedMsg((msgConstPtr->*TSS::valueArrayMsgConstGetter)());
+        timesWrap.setWrappedMsg(msgConstPtr->times());
         return this;
     }
 
-    // versions of setMsg that work directly with the containing WorkUnitOutput msg
+    // versions of setWrappedMsg that work directly with the containing WorkUnitOutput msg
     inline TimeSeries* setMsg(OutMsgT* outMsg)
     {
         setMsg((outMsg->*TSS::timeArrayMsgGetter)());
@@ -276,7 +276,7 @@ public:
 //public:
 //    void deserializeFrom(const WrappedMsg& msgRef)
 //    {
-//        timeSeriesWrap.setMsg(msgRef);
+//        timeSeriesWrap.setWrappedMsg(msgRef);
 //        timeSeriesWrap.get_arrays(values, times);
 //    }
 //
@@ -287,14 +287,14 @@ public:
 //
 //    void serializeTo(WrappedMsg* msg, uint64_t trajectoryId, uint numberOfColumns, bool compress, const ValueContainer& valuesRef, const TimeContainer& timesRef) const
 //    {
-//        timeSeriesWrap.setMsg(msg);
+//        timeSeriesWrap.setWrappedMsg(msg);
 //        timeSeriesWrap.set_arrays(valuesRef, timesRef, trajectoryId, numberOfColumns, compress);
 //    }
 //
 //    // versions of the above functions overloaded to work directly with a WorkUnitOutput msg
 //    void deserializeFrom(const lm::message::WorkUnitOutput& outputMsgRef)
 //    {
-//        timeSeriesWrap.setMsg(outputMsgRef);
+//        timeSeriesWrap.setWrappedMsg(outputMsgRef);
 //        timeSeriesWrap.get_arrays(values, times);
 //    }
 //

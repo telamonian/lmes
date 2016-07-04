@@ -52,17 +52,15 @@ class FFluxStageOutputRaw : public lm::protowrap::Msg<FFluxStageOutputRaw, lm::f
     WRAPPED_FIELDS(repeated, uint64_t, sucessful_trajectory_counts,
                    repeated, double,   sucessful_trajectory_total_times,
                    repeated, uint64_t, failed_trajectory_counts,
-                   repeated, double,   failed_trajectory_total_times);
+                   repeated, double,   failed_trajectory_total_times)
 };
 
 class FFluxStageOutput : public lm::protowrap::Msg<FFluxStageOutput, lm::fflux::io::FFluxStageOutput>
 {
-    /*
-    WRAPPED_REPEATED(switching_time_per_tile, double,
-                     fluxes,                  double,
-                     probabilities,           double);
-    WRAPPED_EMBEDDED(fflux_stage_output_raw,  FFluxStageOutputRaw);
-    */
+    WRAPPED_FIELDS(repeated, double,              switching_time_per_tile,
+                   repeated, double,              fluxes,
+                   repeated, double,              probabilities,
+                   optional, FFluxStageOutputRaw, fflux_stage_output_raw)
 };
 
 }

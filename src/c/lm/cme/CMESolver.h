@@ -140,11 +140,11 @@ protected:
         {
             oparamID = opFPTMsgRef.order_parameter_id();
 
-            fptValuesWrap.setMsg(opFPTMsgRef.order_parameter_value());
-            fptValuesWrap.get_data(fptValues);
+            fptValuesWrap.setWrappedMsg(opFPTMsgRef.order_parameter_value());
+            fptValuesWrap.get_data(&fptValues);
 
-            fptTimesWrap.setMsg(opFPTMsgRef.first_passage_time());
-            fptTimesWrap.get_data(fptTimes);
+            fptTimesWrap.setWrappedMsg(opFPTMsgRef.first_passage_time());
+            fptTimesWrap.get_data(&fptTimes);
 
             minValueAchieved = fptValues.front();
             maxValueAchieved = fptValues.back();
@@ -160,10 +160,10 @@ protected:
             opFPTMsg->set_trajectory_id(trajectoryId);
             opFPTMsg->set_order_parameter_id(oparamID);
 
-            fptValuesWrap.setMsg(opFPTMsg->mutable_order_parameter_value());
+            fptValuesWrap.setWrappedMsg(opFPTMsg->mutable_order_parameter_value());
             fptValuesWrap.set_array(fptValuesRef, utuple(fptValuesRef.size()), false);
 
-            fptTimesWrap.setMsg(opFPTMsg->mutable_first_passage_time());
+            fptTimesWrap.setWrappedMsg(opFPTMsg->mutable_first_passage_time());
             fptTimesWrap.set_array(fptTimesRef, utuple(fptTimesRef.size()), false);
         }
     };
@@ -333,6 +333,7 @@ protected:
 
     // limit tracking variables
     lm::limit::TrackingMapT trackedLimits;
+    lm::limit::LimitTrackingWrap limitTrackingWrap;
 
     // The current state.
     uint64_t* degreeAdvancements;

@@ -52,6 +52,7 @@
 #include "lm/cme/CMESolver.h"
 #include "lm/io/DegreeAdvancementTimeSeries.pb.h"
 #include "lm/io/OrderParameterTimeSeries.pb.h"
+#include "lm/limit/LimitTracking.h"
 #include "lm/protowrap/TimeSeries.h"
 #include "lm/rng/RandomGenerator.h"
 

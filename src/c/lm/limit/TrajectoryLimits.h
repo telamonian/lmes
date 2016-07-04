@@ -50,7 +50,7 @@
 #include "lm/input/SimulationParameters.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/limit/LimitCheckMacros.h"
-#include "lm/limit/LimitTrackingWrap.h"
+#include "lm/limit/LimitTracking.h"
 #include "lm/limit/TrajectoryLimit.h"
 #include "lm/option/SimulationParameters.h"
 #include "lm/protowrap/Repeated.h"

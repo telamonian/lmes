@@ -418,8 +418,7 @@ int OutputWriter::HelperThread::run()
 
 void OutputWriter::setRecordNamePrefix()
 {
-    recordNamePrefix.assign(recordNamePrefixGlobal);
-    lm::Print::printf(Print::INFO, "Using record name prefix: %s", recordNamePrefix.c_str());
+    setRecordNamePrefix(recordNamePrefixGlobal);
 }
 
 void OutputWriter::setRecordNamePrefix(const std::string& newRecordNamePrefix)

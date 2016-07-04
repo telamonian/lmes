@@ -103,8 +103,8 @@ void Hdf5OutputWriter::processDegreeAdvancementTimeSeries(const lm::io::DegreeAd
 
     std::string groupRelativePath(ss.str()), valuesDatasetName("Counts"), timesDatasetName("Times");
 
-    setNDArrayReplicate<uint64_t>(data.trajectory_id(), groupRelativePath, valuesDatasetName, data.counts());
-    setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, timesDatasetName, data.times());
+    setNDArrayReplicate(data.trajectory_id(), groupRelativePath, valuesDatasetName, data.counts());
+    setNDArrayReplicate(data.trajectory_id(), groupRelativePath, timesDatasetName, data.times());
 }
 
 void Hdf5OutputWriter::processFFluxOutput(const lm::io::FFluxOutput& data)
@@ -125,8 +125,8 @@ void Hdf5OutputWriter::processOrderParameterTimeSeries(const lm::io::OrderParame
 
     std::string groupRelativePath(ss.str()), valuesDatasetName("Values"), timesDatasetName("Times");
 
-    setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, valuesDatasetName, data.values());
-    setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, timesDatasetName, data.times());
+    setNDArrayReplicate(data.trajectory_id(), groupRelativePath, valuesDatasetName, data.values());
+    setNDArrayReplicate(data.trajectory_id(), groupRelativePath, timesDatasetName, data.times());
 }
 
 void Hdf5OutputWriter::processOrderParameterFirstPassageTimes(const lm::io::OrderParameterFirstPassageTimes& data)
@@ -138,8 +138,8 @@ void Hdf5OutputWriter::processOrderParameterFirstPassageTimes(const lm::io::Orde
 
     std::string groupRelativePath(ss.str()), valuesDatasetName("Values"), timesDatasetName("Times");
 
-    setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, valuesDatasetName, data.order_parameter_value());
-    setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, timesDatasetName, data.first_passage_time());
+    setNDArrayReplicate(data.trajectory_id(), groupRelativePath, valuesDatasetName, data.order_parameter_value());
+    setNDArrayReplicate(data.trajectory_id(), groupRelativePath, timesDatasetName, data.first_passage_time());
 }
 
 void Hdf5OutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)
@@ -159,16 +159,16 @@ void Hdf5OutputWriter::processLimitTracking(const lm::io::LimitTracking& data)
 
     if (data.has_degree_advancements())
     {
-        file->setNDArrayReplicate<uint64_t>(data.trajectory_id(), groupRelativePath, degreeAdvancementsDatasetName, data.degree_advancements());
+        setNDArrayReplicate(data.trajectory_id(), groupRelativePath, degreeAdvancementsDatasetName, data.degree_advancements());
     }
 
     if (data.has_order_parameter_values())
     {
-        file->setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, orderParameterValuesDatasetName, data.order_parameter_values());
+        setNDArrayReplicate(data.trajectory_id(), groupRelativePath, orderParameterValuesDatasetName, data.order_parameter_values());
     }
 
-    setNDArrayReplicate<int32_t>(data.trajectory_id(), groupRelativePath, speciesCountsDatasetName, data.species_counts());
-    setNDArrayReplicate<double>(data.trajectory_id(), groupRelativePath, timesDatasetName, data.times());
+    setNDArrayReplicate(data.trajectory_id(), groupRelativePath, speciesCountsDatasetName, data.species_counts());
+    setNDArrayReplicate(data.trajectory_id(), groupRelativePath, timesDatasetName, data.times());
 }
 
 void Hdf5OutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
@@ -200,13 +200,16 @@ void Hdf5OutputWriter::finalize()
     file = NULL;
 }
 
-void Hdf5OutputWriter::setRecordNamePrefix()
+void Hdf5OutputWriter::setNDArrayReplicate(uint64_t replicate, const string& groupRelativePath, const string& datasetName, const robertslab::pbuf::NDArray& ndarray)
 {
-    // call the parent class method
-    OutputWriter::setRecordNamePrefix();
-
-    // call the hdf5 file class method
-    file->setRecordNamePrefix(recordNamePrefixGlobal);
+    if (condenseOutput)
+    {
+        file->setNDArrayReplicateCondensed(replicate, groupRelativePath, datasetName, ndarray);
+    }
+    else
+    {
+        file->setNDArrayReplicate(replicate, groupRelativePath, datasetName, ndarray);
+    }
 }
 
 void Hdf5OutputWriter::setRecordNamePrefix(const std::string& newRecordNamePrefix)

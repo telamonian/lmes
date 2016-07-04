@@ -322,17 +322,17 @@ void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
     // if we're recording any limit tracking data to the trajectory state, get it. Otherwise, just get any changes to the limit tracking countdowns
     for (TrackingMapT::const_iterator it=trackedLimits.begin(); it!=trackedLimits.end(); ++it)
     {
-        lm::limit::TrajectoryLimit& l = limits[it->second.limitID];
+        lm::limit::TrajectoryLimit& l = limits[it->second.limit_id];
         if (l.addTrackingToCMEState or l.addTrackingToOutput) throw Exception("LimitTrackingWrap instance created for limit %d, but no tracking was requested for this limit", l.limitID);
 
-        lm::io::LimitTracking* trackingMsg = state->add_limit_trackings();
+        limitTrackingWrap.setWrappedMsg(state->add_limit_trackings());
         if (l.addTrackingToCMEState)
         {
-            it->second.serializeTo(trackingMsg, trajectoryId);
+            limitTrackingWrap.serializeFrom(trajectoryId, it->second);
         }
         else
         {
-            it->second.serializeMetadataTo(trackingMsg, trajectoryId);
+            limitTrackingWrap.serializeMetadataFrom(trajectoryId, it->second);
         }
     }
 
@@ -428,7 +428,9 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
     // if we're tracking any limits, set up the solver to output state information when the limit is reached
     for (Repeated<lm::io::LimitTracking>::const_iterator it=state.limit_trackings().begin(); it!=state.limit_trackings().end(); ++it)
     {
-        trackedLimits[it->limit_id()].deserializeFrom(*it);
+        // TODO: CV! my nemesis. Fix the need for the const_cast here
+        limitTrackingWrap.setWrappedMsg(const_cast<lm::io::LimitTracking*>(&*it));
+        limitTrackingWrap.deserializeTo(&trackedLimits[it->limit_id()]);
     }
 
 //    // Set the order parameter values.
@@ -632,9 +634,9 @@ bool CMESolver::isTrajectoryOutsideLimits()
                 // track the state if limitTracking is enabled
                 if (limitTracking.trackingEnabled(l.trackCount))
                 {
-                    if (numberDegreeAdvancements>0) {for (int j=0;j<numberDegreeAdvancements;j++) limitTracking.degreeAdvancements.push_back(degreeAdvancements[j]);}
-                    if (numberOrderParameters>0) {for (int j=0;j<numberOrderParameters;j++) limitTracking.orderParameterValues.push_back(orderParameterValues[j]);}
-                    for (int j=0;j<reactionModel->numberSpecies;j++) limitTracking.speciesCounts.push_back(speciesCounts[j]);
+                    if (numberDegreeAdvancements>0) {for (int j=0;j<numberDegreeAdvancements;j++) limitTracking.degree_advancements.push_back(degreeAdvancements[j]);}
+                    if (numberOrderParameters>0) {for (int j=0;j<numberOrderParameters;j++) limitTracking.order_parameter_values.push_back(orderParameterValues[j]);}
+                    for (int j=0;j<reactionModel->numberSpecies;j++) limitTracking.species_counts.push_back(speciesCounts[j]);
                     limitTracking.times.push_back(time);
                 }
 

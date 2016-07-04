@@ -89,12 +89,12 @@ namespace lm {
 namespace io {
 namespace hdf5 {
 
-Hdf5File::DatasetDescriptor::DatasetDescriptor(const std::string& groupPath, const std::string& datasetName, const utuple& shape, hid_t hdf5Type, void* data, hid_t rootGroup=-1)
+Hdf5File::DatasetDescriptor::DatasetDescriptor(const std::string& groupPath, const std::string& datasetName, const utuple& shape, hid_t hdf5Type, void* data, hid_t rootGroup)
 :rootGroup(rootGroup),groupPath(groupPath),datasetName(datasetName),shape(shape),startingColumn(0),hdf5Type(hdf5Type),data(data),compressed_deflate(false),isNDArray(false)
 {
 }
 
-Hdf5File::DatasetDescriptor::DatasetDescriptor(const std::string& groupPath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarrayMsg, hid_t rootGroup=-1)
+Hdf5File::DatasetDescriptor::DatasetDescriptor(const std::string& groupPath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarrayMsg, hid_t rootGroup)
 :rootGroup(rootGroup),groupPath(groupPath),datasetName(datasetName),shape(),startingColumn(0),hdf5Type(-1),data(NULL),compressed_deflate(false),isNDArray(false)
 {
     isNDArray = true;
@@ -2681,7 +2681,7 @@ void Hdf5File::setRecordNamePrefix(const string& newRecordNamePrefix)
     }
 }
 
-hsize_t Hdf5File::setNDArray(const std::string& groupPath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarrayRef, hid_t rootGroup=-1)
+hsize_t Hdf5File::setNDArray(const std::string& groupPath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarrayRef, hid_t rootGroup)
 {
     // a descriptor that we'll pass to the lower level output function
     DatasetDescriptor datasetDescriptor(groupPath, datasetName, ndarrayRef, rootGroup);

@@ -135,8 +135,8 @@ public:
         for (int i=0;i<3;i++) {if (trackingWrap.Get(i).limit_id()!=i) throw ConsistencyException("Finished Forward Flux phase zero trajectories should have 3 tracked limits in their outputs with limit_ids {0, 1, 2}; trajectory id %llu has limit tracking index %d with limit_id %d", trajectoryState.trajectory_id(), i, trackingWrap.Get(i).limit_id());}
 
         // fetch forth some data from limit 0 (ie forward flux) tracking
-        speciesCountWrap.setMsg(trackingWrap.Get(0).species_counts());
-        timeWrapForwardFlux.setMsg(trackingWrap.Get(0).times());
+        speciesCountWrap.setWrappedMsg(trackingWrap.Get(0).species_counts());
+        timeWrapForwardFlux.setWrappedMsg(trackingWrap.Get(0).times());
         int32_t* speciesCountDataForwardFlux = speciesCountWrap.get_data(true);
         double* timeDataForwardFlux = timeWrapForwardFlux.get_data(true);
 
@@ -171,8 +171,8 @@ public:
     {
         double timeCorrection = 0.0;
 
-        timeWrapBackwardFlux.setMsg(trackingWrap.Get(1).times());
-        timeWrapOtherBasinEntry.setMsg(trackingWrap.Get(2).times());
+        timeWrapBackwardFlux.setWrappedMsg(trackingWrap.Get(1).times());
+        timeWrapOtherBasinEntry.setWrappedMsg(trackingWrap.Get(2).times());
 
         // If the trajectory ever passed into another basin, get the sum time of the intervals between entry into another basin and reentry into the starting basin
         if (timeWrapOtherBasinEntry.size() > 0)
@@ -240,9 +240,9 @@ public:
         for (int i=0;i<2;i++) {if (trackingWrap.Get(i).limit_id()!=i) throw ConsistencyException("Finished Forward Flux phase n>0 trajectories should have 2 tracked limits in their outputs with limit_ids {0, 1}; trajectory id %llu has limit tracking index %d with limit_id %d", trajectoryState.trajectory_id(), i, trackingWrap.Get(i).limit_id());}
 
         // fetch forth some time data from limit 0 (ie backward flux) and limit 1 (ie forward flux) tracking
-        timeWrapBackwardFlux.setMsg(trackingWrap.Get(0).times());
+        timeWrapBackwardFlux.setWrappedMsg(trackingWrap.Get(0).times());
         double* timeDataBackwardFlux = timeWrapBackwardFlux.get_data(true);
-        timeWrapForwardFlux.setMsg(trackingWrap.Get(1).times());
+        timeWrapForwardFlux.setWrappedMsg(trackingWrap.Get(1).times());
         double* timeDataForwardFlux = timeWrapForwardFlux.get_data(true);
 
         // check if this trajectory fluxed backwards or forwards (and make sure it didn't somehow do both)
@@ -257,7 +257,7 @@ public:
             msgPtr->set_sucessful_trajectories_launched_total_time(msgPtr->sucessful_trajectories_launched_total_time() + timeDataForwardFlux[0]);
 
             // since this is data from a "sucessful" trajectory (ie one that fluxed forward), add its endpoint to the list used to initialize the next phase
-            speciesCountWrap.setMsg(trackingWrap.Get(1).species_counts());
+            speciesCountWrap.setWrappedMsg(trackingWrap.Get(1).species_counts());
             int32_t* speciesCountData = speciesCountWrap.get_data(true);
 
             uint columns = speciesCountWrap.shape(1);

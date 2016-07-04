@@ -48,6 +48,7 @@
 #include "lm/array/Tuple.h"
 #include "lm/EnumHelper.h"
 #include "lm/io/hdf5/HDF5.h"
+#include "lm/protowrap/Msg.h"
 #include "lm/protowrap/Repeated.h"
 #include "lm/Types.h"
 #include "robertslab/pbuf/NDArray.pb.h"
@@ -84,20 +85,45 @@ template <> struct NDType<uint64_t> {static const DataType T = robertslab::pbuf:
 
 template <DataType NDType> struct HDF5Type {static const hid_t T() {return lm::io::hdf5::HDF5Type<typename CPPType<NDType>::T>::T();}};
 
+//template<typename T, typename U> struct is_same {static const bool value = false;};
+//template<typename T> struct is_same<T, T> {static const bool value = true;};
+//template<> struct disable_new_if<void> {static void* call(uint32_t size) {throw Exception("NDArray of void type (ie NDArray<void>) cannot initialize new arrays");;}};
+
+//template<typename T> struct disable_if_void {template <typename This, typename Func> static T* call(This* _this, Func func) {return (*_this.*func)();}};
+//template<> struct disable_if_void<void> {template <typename This, typename Func> static void* call(This* _this, Func func) {return NULL;}};
+
+template <typename T> struct get_copy_of_data
+{
+    template <typename This> static T* call(This* _this)
+    {
+        T* outputArray = new T[_this->size()];
+        _this->get_data(outputArray);
+        return outputArray;
+    }
+};
+
+template <> struct get_copy_of_data<void>
+{
+    template <typename This> static void* call(This* _this)
+    {
+        return NULL;
+    }
+};
+
 template <typename T=void>
-class NDArray
+class NDArray //: public NDArrayGetDataPolicy<T, NDArray<T> >
 {
 public:
     typedef robertslab::pbuf::NDArray WrappedMsg;
 
     NDArray(): msgPtr(NULL),msgConstPtr(NULL) {}
-    NDArray(const WrappedMsg& msgConstRef): msgPtr(NULL),msgConstPtr(NULL) {setMsg(msgConstRef);}
-    NDArray(WrappedMsg* msgMutablePtr): msgPtr(NULL),msgConstPtr(NULL) {setMsg(msgMutablePtr);}
+    NDArray(const WrappedMsg& msgConstRef): msgPtr(NULL),msgConstPtr(NULL) {setWrappedMsg(msgConstRef);}
+    NDArray(WrappedMsg* msgMutablePtr): msgPtr(NULL),msgConstPtr(NULL) {setWrappedMsg(msgMutablePtr);}
     ~NDArray() {}
 
 // accessors
     hid_t hdf5_type() const {return hdf5TypeGetter(data_type());}
-    const WrappedMsg* getMsg() const {return msgConstPtr;}
+    const WrappedMsg* wrappedMsg() const {return msgConstPtr;}
     uint rank() const {return shape().size();}
     uint getIndex(uint i) {return i;}
     uint getIndex(uint i, uint j) {return i*shape(1) + j;}
@@ -106,7 +132,7 @@ public:
     size_t sizeBytes() const {return size()*sizeof(T);}
 
 // mutators
-    WrappedMsg* getMsg()
+    WrappedMsg* wrappedMsg()
     {
         if (msgPtr==NULL) throw Exception("Pointer to internal message (msgPtr) set to NULL in lm::protowrap::NDArray instance");
         return msgPtr;
@@ -150,19 +176,18 @@ public:
      *     ...
      *     delete[] data;
      */
-    inline T* get_data(bool noCopy=true) const
+    T* get_data(bool noCopy=true) const
     {
-        T* outputArray = NULL;
         if (!noCopy || compressed_deflate())
         {
-            outputArray = new T[size()];
-            get_data(outputArray);
+            // only call `new T[size()]` if T is not void
+            //disable_if_void<T>::call(this, &NDArray<T>::get_copy_of_data);
+            get_copy_of_data<T>::call(this);
         }
         else
         {
-            outputArray = (T*) &(data()[0]);
+            return (T*) &(data()[0]);
         }
-        return outputArray;
     }
 
     /*
@@ -173,16 +198,16 @@ public:
      *     ndarray.get_data(data);
      */
     template <template <typename, typename=std::allocator<T> > class ContainerT>
-    inline void get_data(ContainerT<T>& outputContainer) const
+    inline void get_data(ContainerT<T>* outputContainer) const
     {
         // TODO: refactor compression/decompression to remove the (probably) unnecessary copy-to-vector
         // if we need decompression, we have to copy the data over into a contiguous block of memory (ie a std::vector). Otherwise we can do something more optimized
         if (compressed_deflate())
         {
             std::vector<T> outputVector;
-            get_data(outputVector);
+            get_data(&outputVector);
 
-            outputContainer.assign(outputVector.begin(), outputVector.end());
+            outputContainer->assign(outputVector.begin(), outputVector.end());
         }
         else
         {
@@ -190,7 +215,7 @@ public:
             T* outputArray = (T*) &(data()[0]);
             for (int i=0;i<size();i++)
             {
-                outputContainer.push_back(outputArray[i]);
+                outputContainer->push_back(outputArray[i]);
             }
         }
     }
@@ -203,11 +228,11 @@ public:
      *     std::vector<T> data;
      *     ndarray.get_data(data);
      */
-    inline void get_data(std::vector<T>& outputVector) const
+    inline void get_data(std::vector<T>* outputVector) const
     {
-        outputVector.clear();
-        outputVector.resize(size());
-        get_data(outputVector.data());
+        outputVector->clear();
+        outputVector->resize(size());
+        get_data(outputVector->data());
     }
 
     inline void _set_props(const utuple& shape, DataType dtype, bool compressed)
@@ -299,7 +324,7 @@ public:
         }
     }
 
-    NDArray* setMsg(WrappedMsg* newMsgMutablePtr)
+    NDArray* setWrappedMsg(WrappedMsg* newMsgMutablePtr)
     {
         msgPtr = newMsgMutablePtr;
         msgConstPtr = newMsgMutablePtr;
@@ -307,7 +332,7 @@ public:
         return this;
     }
 
-    NDArray* setMsg(const WrappedMsg& newArrMsgConstRef)
+    NDArray* setWrappedMsg(const WrappedMsg& newArrMsgConstRef)
     {
         msgPtr = NULL;
         msgConstPtr = &newArrMsgConstRef;
@@ -317,23 +342,24 @@ public:
 
 // pass throughs
 // accessors
-    ArrayOrder array_order() const {return getMsg()->array_order();}
-    ByteOrder byte_order() const {return getMsg()->byte_order();}
-    DataType data_type() const {return getMsg()->data_type();}
+    ArrayOrder array_order() const {return wrappedMsg()->array_order();}
+    ByteOrder byte_order() const {return wrappedMsg()->byte_order();}
+    DataType data_type() const {return wrappedMsg()->data_type();}
     const Repeated<uint32_t>& shape() const {return _shape;}
     uint32_t shape(int index) const {return _shape.Get(index);}
 
-    const std::string& data() const {return getMsg()->data();}
-    bool compressed_deflate() const {return getMsg()->compressed_deflate();}
+    const std::string& data() const {return wrappedMsg()->data();}
+    bool compressed_deflate() const {return wrappedMsg()->compressed_deflate();}
 
 // mutators
+    void Clear() {wrappedMsg()->Clear();}
     Repeated<uint32_t>* mutable_shape() {return &_shape;}
-    std::string* mutable_data() {return getMsg()->mutable_data();}
+    std::string* mutable_data() {return wrappedMsg()->mutable_data();}
     Repeated<uint32_t>& shape() {return _shape;}
 
-    void set_array_order(ArrayOrder value) {getMsg()->set_array_order(value);}
-    void set_byte_order(ByteOrder value) {getMsg()->set_byte_order(value);}
-    void set_data_type(DataType value) {getMsg()->set_data_type(value);}
+    void set_array_order(ArrayOrder value) {wrappedMsg()->set_array_order(value);}
+    void set_byte_order(ByteOrder value) {wrappedMsg()->set_byte_order(value);}
+    void set_data_type(DataType value) {wrappedMsg()->set_data_type(value);}
     void set_shape(int index, const uint32_t& value) {_shape.Set(index, value);}
 
     void set_shape(const utuple& shape)
@@ -345,7 +371,7 @@ public:
         }
     }
 
-    void set_compressed_deflate(bool value) {getMsg()->set_compressed_deflate(value);}
+    void set_compressed_deflate(bool value) {wrappedMsg()->set_compressed_deflate(value);}
 
 // static functions
     static inline hid_t hdf5TypeGetter(const DataType NDType)
