@@ -86,7 +86,7 @@ protected:
     // setup methods that run once at the beginning of the simulation
     virtual void startSimulation();
     virtual void initSimulationStageList();
-    virtual lm::fflux::input::FFluxStage* buildProductionStage(lm::fflux::input::FFluxStage* productionStage, const lm::input::Tiling& tiling, int basinIndex);
+    virtual lm::fflux::input::FFluxStage* buildProductionStage(lm::fflux::input::FFluxStage* productionStage, const lm::tiling::Tiling& tiling, int basinIndex);
     virtual lm::fflux::input::FFluxStage* addPilotStage(lm::fflux::input::FFluxStage* productionStage);
     virtual void addFFluxPhases(lm::fflux::input::FFluxStage* stage, FFPhaseEnums::TrajectoryGeneration trajGeneration, FFPhaseEnums::TrajectoryDuplication trajDuplication);
 
@@ -134,25 +134,28 @@ protected:
     virtual const lm::fflux::input::FFluxPhase& currentPhase() const {return *currentFFluxPhaseIter;}
     virtual int64_t currentFFluxPhaseIndex() const {return currentPhase().fflux_phase_index();}
     virtual const lm::fflux::input::FFluxPhaseLimit& currentPhaseLimit() const {return currentStage().fflux_phase_limits(currentFFluxPhaseIndex());}
-    virtual const lm::protowrap::FFluxPhaseOutput& currentPhaseOutput() const {return *currentFFluxPhaseOutputPtr;}
+    virtual const lm::protowrap::FFluxPhaseOutput& currentPhaseOutput() const {return *currentFFluxPhaseOutputWrapPtr;}
     virtual int64_t finalFFluxPhaseIndex() const {return currentStage().fflux_phases_size() - 1;}
     virtual bool isCurrentPhaseLast() const {return currentStage().fflux_phases().end()==currentFFluxPhaseIter;}
-    virtual const lm::protowrap::FFluxPhaseOutput& previousPhaseOutput() const {return *previousFFluxPhaseOutputPtr;}
+    virtual const lm::protowrap::FFluxPhaseOutput& previousPhaseOutput() const {return *previousFFluxPhaseOutputWrapPtr;}
 
     virtual const lm::fflux::input::FFluxStage& currentStage() const {return **currentFFluxStageIter;}
-    virtual const lm::protowrap::FFluxStageOutput& currentStageOutput() const {return currentFFluxStageOutput;}
+    virtual const lm::protowrap::FFluxStageOutput& currentStageOutput() const {return currentFFluxStageOutputWrap;}
     virtual int getStageCount() const {return ffluxStageExecutionOrder.size();}
     virtual bool isCurrentStageLast() const {return currentFFluxStageIter==ffluxStageExecutionOrder.end();}
 
-    virtual const lm::tiling::Tiling& currentTiling() const {return *currentTilingPtr;}
+    virtual const lm::tiling::Tiling& currentTiling() const {return currentTilingWrap;}
 
     // mutators
     virtual lm::fflux::input::FFluxPhase* mutableCurrentPhase() {return &*currentFFluxPhaseIter;}
     virtual lm::fflux::input::FFluxPhaseLimit* mutableCurrentPhaseLimit() {return mutableCurrentStage()->mutable_fflux_phase_limits(currentFFluxPhaseIndex());}
-    virtual lm::protowrap::FFluxPhaseOutput* mutableCurrentPhaseOutput() {return currentFFluxPhaseOutputPtr;}
+    virtual lm::protowrap::FFluxPhaseOutput* mutableCurrentPhaseOutput() {return currentFFluxPhaseOutputWrapPtr;}
 
     virtual lm::fflux::input::FFluxStage* mutableCurrentStage() {return *currentFFluxStageIter;}
-    virtual lm::protowrap::FFluxStageOutput* mutableCurrentStageOutput() {return &currentFFluxStageOutput;}
+    virtual lm::protowrap::FFluxStageOutput* mutableCurrentStageOutput() {return &currentFFluxStageOutputWrap;}
+
+    virtual lm::tiling::Tiling* mutableCurrentTiling() {return &currentTilingWrap;}
+    virtual void setCurrentTiling(lm::input::Tiling* newCurrentTilingMsg) {currentTilingWrap.init(newCurrentTilingMsg, input->getOrderParameters());}
 
     // setters to help with shadowing pointers in the base class
     virtual void setInput(lm::input::Input* newInput);
@@ -169,16 +172,18 @@ protected:
     FFluxStageVector::iterator currentFFluxStageIter;
     FFluxPhases::iterator currentFFluxPhaseIter;
 
-    lm::tiling::Tiling* currentTilingPtr;
+    lm::tiling::Tiling currentTilingWrap;
 
-    FFluxPhaseOutputs ffluxPhaseOutputs;
-    lm::protowrap::FFluxPhaseOutput _ffluxPhaseOutput_0;
-    lm::protowrap::FFluxPhaseOutput _ffluxPhaseOutput_1;
-    lm::protowrap::FFluxPhaseOutput* currentFFluxPhaseOutputPtr;
-    lm::protowrap::FFluxPhaseOutput* previousFFluxPhaseOutputPtr;
+    FFluxPhaseOutputs::WrappedField ffluxPhaseOutputMsgs;
+    FFluxPhaseOutputs ffluxPhaseOutputsWrap;
+    lm::protowrap::FFluxPhaseOutput _ffluxPhaseOutputWrap_0;
+    lm::protowrap::FFluxPhaseOutput _ffluxPhaseOutputWrap_1;
+    lm::protowrap::FFluxPhaseOutput* currentFFluxPhaseOutputWrapPtr;
+    lm::protowrap::FFluxPhaseOutput* previousFFluxPhaseOutputWrapPtr;
 
-    FFluxStageOutputs ffluxStageOutputs;
-    lm::protowrap::FFluxStageOutput currentFFluxStageOutput;
+    FFluxStageOutputs::WrappedField ffluxStageOutputMsgs;
+    FFluxStageOutputs ffluxStageOutputsWrap;
+    lm::protowrap::FFluxStageOutput currentFFluxStageOutputWrap;
 
     // shadowing ptrs from the base class
     lm::fflux::input::FFluxInput* input;

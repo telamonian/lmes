@@ -109,7 +109,11 @@ void TrajectoryList::init(const TrajectoryList& previousList)
 
 Trajectory* TrajectoryList::initTrajectory(Trajectory* allocatedTrajectory)
 {
-    uint64_t id = (allocatedTrajectory->getID()!=DEFAULT_TRAJECTORY_ID) ? allocatedTrajectory->getID() : _count++;
+    uint64_t id = allocatedTrajectory->getID();
+
+    // if the new Trajectory's id has been left as the default, initialize the id via count
+    if (id==DEFAULT_TRAJECTORY_ID) {id = _count++; allocatedTrajectory->setID(id);}
+
     trajectories[id] = allocatedTrajectory;
     waitingTrajectories[id] = trajectories[id];
 

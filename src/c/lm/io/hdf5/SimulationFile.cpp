@@ -1564,7 +1564,7 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
             lm::input::Basin* newBasin = newTiling->add_basins();
             for (uint j=0; j<dims[1]; j++)
             {
-                newBasin->add_species_count(i*dims[1]+j);
+                newBasin->add_species_count(basinsBuffer[i*dims[1]+j]);
             }
         }
 

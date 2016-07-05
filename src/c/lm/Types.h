@@ -148,4 +148,15 @@ template<typename T, typename U> struct IsSame {static const bool value = false;
 template<typename T> struct IsSame<T, T> {static const bool value = true;};
  */
 
+/*
+ * misc
+ */
+#ifndef CPP98
+#define CPP98 __cplusplus <= 199711L
+#endif
+
+#ifndef CPP11
+#define CPP11 __cplusplus > 199711L
+#endif
+
 #endif

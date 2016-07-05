@@ -53,11 +53,3 @@
 #ifndef COPYRIGHT_DATE_JHU
 #define COPYRIGHT_DATE_JHU "2012-2016"
 #endif
-
-#ifndef CPP98
-#define CPP98 __cplusplus <= 199711L
-#endif
-
-#ifndef CPP11
-#define CPP11 __cplusplus > 199711L
-#endif

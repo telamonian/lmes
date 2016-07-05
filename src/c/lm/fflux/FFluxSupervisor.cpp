@@ -98,8 +98,8 @@ int FFluxSupervisor::getRecvSleepMilliseconds()
 }
 
 FFluxSupervisor::FFluxSupervisor()
-:currentTilingPtr(NULL),previousFFluxPhaseOutputPtr(&_ffluxPhaseOutput_0),currentFFluxPhaseOutputPtr(&_ffluxPhaseOutput_1),
- input(NULL),trajectoryList(NULL)
+:ffluxPhaseOutputsWrap(&ffluxPhaseOutputMsgs),previousFFluxPhaseOutputWrapPtr(&_ffluxPhaseOutputWrap_0),currentFFluxPhaseOutputWrapPtr(&_ffluxPhaseOutputWrap_1),
+ ffluxStageOutputsWrap(&ffluxStageOutputMsgs),input(NULL),trajectoryList(NULL)
 {
 }
 
@@ -126,12 +126,12 @@ void FFluxSupervisor::startSimulation()
 void FFluxSupervisor::initSimulationStageList()
 {
     // build the stage list
-    for (Repeated<lm::input::Tiling>::const_iterator tilingIt=input->getTilingsMsg().tilings().begin();tilingIt!=input->getTilingsMsg().tilings().end();++tilingIt)
+    for (lm::tiling::Tilings::const_iterator tilingIt=input->getTilings().begin();tilingIt!=input->getTilings().end();++tilingIt)
     {
-        for (int basinIndex=0;basinIndex<tilingIt->basins_size();basinIndex++)
+        for (int basinIndex=0;basinIndex<tilingIt->second->basins().size();basinIndex++)
         {
             // initialize a stage (and possibly also its pilot stage)
-            lm::fflux::input::FFluxStage* productionStage = buildProductionStage(ffluxStageList.add_fflux_stages(), *tilingIt, basinIndex);
+            lm::fflux::input::FFluxStage* productionStage = buildProductionStage(ffluxStageList.add_fflux_stages(), *tilingIt->second, basinIndex);
 
             // place a ptr to the stage in the execution order (the pilot stage ptr, if any, will be placed before the production stage pointer)
             ffluxStageExecutionOrder.push_back(productionStage);
@@ -141,9 +141,21 @@ void FFluxSupervisor::initSimulationStageList()
     currentFFluxStageIter = ffluxStageExecutionOrder.begin();
 }
 
-lm::fflux::input::FFluxStage* FFluxSupervisor::buildProductionStage(lm::fflux::input::FFluxStage* productionStage, const lm::input::Tiling& tiling, int basinIndex)
+lm::fflux::input::FFluxStage* FFluxSupervisor::buildProductionStage(lm::fflux::input::FFluxStage* productionStage, const lm::tiling::Tiling& tiling, int basinIndex)
 {
-    productionStage->mutable_tiling()->CopyFrom(tiling);
+    // TODO: encapsulate this mess in a FFluxStage wrapper
+    // shallow copy the tiling wrapper. We're done with the passed in tiling wrapper
+    lm::tiling::Tiling tilingWrapCopy = tiling;
+
+    // copy the actual tiling message over to the production stage message
+    productionStage->mutable_tiling()->CopyFrom(tilingWrapCopy.getTilingMsg());
+
+    // reseat the tiling wrapper copy around the tiling message copy
+    tilingWrapCopy.setTilingMsg(productionStage->mutable_tiling());
+
+    // use the tiling wrapper copy to set the appropriate basin_index in the tiling. This will also reverse the tiling, if needed
+    tilingWrapCopy.setBasin(basinIndex);
+
     productionStage->set_basin_index(basinIndex);
 
     addFFluxPhases(productionStage, FFPhaseEnums::LAZY, FFPhaseEnums::UNIFORM_RANDOM);
@@ -199,6 +211,9 @@ void FFluxSupervisor::addFFluxPhases(lm::fflux::input::FFluxStage* stage, FFPhas
 
 void FFluxSupervisor::startSimulationStage()
 {
+    // set the current tiling to wrap the current stage's tiling msg
+    setCurrentTiling(mutableCurrentStage()->mutable_tiling());
+
     // set the ffluxPhaseLimits for this stage, if it hasn't already been taken care of somehow
     if (mutableCurrentStage()->has_pilot_stage() and mutableCurrentStage()->fflux_phase_limits_size()==0)
     {
@@ -347,14 +362,14 @@ void FFluxSupervisor::receivedFinishedWorkUnitPart(const lm::message::WorkUnitSt
         }
         else
         {
-            currentFFluxPhaseOutputPtr->addEndPoint(wusMsg.final_state());
+            currentFFluxPhaseOutputWrapPtr->addEndPoint(wusMsg.final_state());
         }
     }
 }
 
 void FFluxSupervisor::receivedFinishedWorkUnitPartPhaseZero(const lm::message::WorkUnitStatus& wusMsg)
 {
-    currentFFluxPhaseOutputPtr->addEndPointPhaseZero(wusMsg.final_state(), input->ffluxOptions().phase_zero_burn_in_count());
+    currentFFluxPhaseOutputWrapPtr->addEndPointPhaseZero(wusMsg.final_state(), input->ffluxOptions().phase_zero_burn_in_count());
 }
 
 void FFluxSupervisor::startSimulationPhase()
@@ -384,7 +399,7 @@ void FFluxSupervisor::buildTrajectoryList()
 
     if (currentFFluxPhaseIndex()==0)
     {
-        setTrajectoryList(new FFluxTrajectoryList(currentTrajectoryCount, currentFFluxPhaseIndex(), currentPhase(), currentPhaseLimit(), slots.getSimultaneousWorkUnits(), *input));
+        setTrajectoryList(new FFluxTrajectoryList(currentTrajectoryCount, currentFFluxPhaseIndex(), currentPhase(), currentPhaseLimit(), slots.getSimultaneousWorkUnits(), *input, currentTiling().currentBasin()));
     }
     else
     {
@@ -397,16 +412,13 @@ bool FFluxSupervisor::terminateSimulationPhase()
     switch(mutableCurrentPhaseLimit()->stop_condition())
     {
     case FFPhaseLimEnums::FORWARD_FLUXES:
-        simulationPhaseTerminated = (currentFFluxPhaseOutputPtr->getMsg()->sucessful_trajectories_launched_count() >=
-            mutableCurrentPhaseLimit()->uvalue());
+        simulationPhaseTerminated = (currentFFluxPhaseOutputWrapPtr->getMsg()->sucessful_trajectories_launched_count()>=mutableCurrentPhaseLimit()->uvalue());
         break;
     case FFPhaseLimEnums::TRAJECTORY_COUNT:
-        simulationPhaseTerminated = (currentFFluxPhaseOutputPtr->getMsg()->sucessful_trajectories_launched_count() + currentFFluxPhaseOutputPtr->getMsg()->failed_trajectories_launched_count() >=
-            mutableCurrentPhaseLimit()->uvalue());
+        simulationPhaseTerminated = (currentFFluxPhaseOutputWrapPtr->getMsg()->sucessful_trajectories_launched_count() + currentFFluxPhaseOutputWrapPtr->getMsg()->failed_trajectories_launched_count()>=mutableCurrentPhaseLimit()->uvalue());
         break;
     case FFPhaseLimEnums::TIME:
-        simulationPhaseTerminated = (currentFFluxPhaseOutputPtr->getMsg()->sucessful_trajectories_launched_total_time() + currentFFluxPhaseOutputPtr->getMsg()->failed_trajectories_launched_total_time() >=
-            mutableCurrentPhaseLimit()->dvalue());
+        simulationPhaseTerminated = (currentFFluxPhaseOutputWrapPtr->getMsg()->sucessful_trajectories_launched_total_time() + currentFFluxPhaseOutputWrapPtr->getMsg()->failed_trajectories_launched_total_time()>=mutableCurrentPhaseLimit()->dvalue());
         break;
     }
     return simulationPhaseTerminated;
@@ -446,15 +458,15 @@ void FFluxSupervisor::incrementSimulationPhase()
 void FFluxSupervisor::addFFluxPhaseOutput()
 {
     // swap the subjects of the current and previous phase output pointers
-    lm::protowrap::FFluxPhaseOutput* tmpFFluxPhaseOutputPtr = previousFFluxPhaseOutputPtr;
-    previousFFluxPhaseOutputPtr = currentFFluxPhaseOutputPtr;
-    currentFFluxPhaseOutputPtr = tmpFFluxPhaseOutputPtr;
+    lm::protowrap::FFluxPhaseOutput* tmpFFluxPhaseOutputPtr = previousFFluxPhaseOutputWrapPtr;
+    previousFFluxPhaseOutputWrapPtr = currentFFluxPhaseOutputWrapPtr;
+    currentFFluxPhaseOutputWrapPtr = tmpFFluxPhaseOutputPtr;
 
     // add a new phase output
-    lm::fflux::io::FFluxPhaseOutput* newPhaseOutputMsg = ffluxPhaseOutputs.Add();
+    lm::fflux::io::FFluxPhaseOutput* newPhaseOutputMsg = ffluxPhaseOutputsWrap.Add();
 
     // set the new phase output to be the current phase output
-    currentFFluxPhaseOutputPtr->setMsg(newPhaseOutputMsg);
+    currentFFluxPhaseOutputWrapPtr->setMsg(newPhaseOutputMsg);
 }
 
 void FFluxSupervisor::finishSimulationStage()
@@ -490,10 +502,10 @@ void FFluxSupervisor::incrementSimulationStage()
 void FFluxSupervisor::addFFluxStageOutput()
 {
     // add a new phase output
-    lm::fflux::io::FFluxStageOutput* newStageOutputMsg = ffluxStageOutputs.Add();
+    lm::fflux::io::FFluxStageOutput* newStageOutputMsg = ffluxStageOutputsWrap.Add();
 
     // set the new phase output to be the current phase output
-    currentFFluxStageOutput.setWrappedMsg(newStageOutputMsg);
+    currentFFluxStageOutputWrap.setWrappedMsg(newStageOutputMsg);
 }
 
 // setters

@@ -51,7 +51,7 @@ namespace lm {
 namespace tiling {
 
 // base class Tiling methods
-Tiling::Tiling(): oparam(NULL), oparams(NULL), tilingMsg(NULL)
+Tiling::Tiling(): oparam(NULL),tilingMsg(NULL)
 {
 }
 
@@ -62,7 +62,7 @@ Tiling::~Tiling()
 void Tiling::init(lm::input::Tiling* newTilingMsg, const lm::oparam::OParams& newOParams)
 {
     setTilingMsg(newTilingMsg);
-    setOrderParameters(newOParams);
+    setOrderParameter(*newOParams.at(getOrderParameterID()));
 }
 
 TilingEnums::SortOrder Tiling::calcSortOrder(bool reverseSort) const
@@ -96,7 +96,7 @@ void Tiling::reverse()
         tilingMsg->mutable_edges()->SwapElements(i, tilingMsg->edges_size()-(i+1));
     }
 
-    set_reversed(!reversed());
+    set_is_reversed(!is_reversed());
 }
 
 uint Tiling::getTileIndex(double opVal) const
@@ -108,22 +108,17 @@ uint Tiling::getTileIndex(double opVal) const
 
 void Tiling::setBasin(int basinIndex)
 {
-    set_current_basin(basinIndex);
+    set_current_basin_index(basinIndex);
     if (getTileIndexFromBasin(basinIndex)!=0)
     {
         reverse();
     }
 }
 
-void Tiling::setOrderParameters(const lm::oparam::OParams& newOParams)
+void Tiling::setOrderParameter(const lm::oparam::OParam& newOParam)
 {
-    oparams = &newOParams;
-    setOrderParameter();
-}
-
-void Tiling::setOrderParameter()
-{
-    oparam = oparams->at(getOrderParameterID());
+    oparam = &newOParam;
+    setOrderParameterID(oparam->id());
 }
 
 void Tiling::setSortOrder(TilingEnums::SortOrder newOrder)
@@ -143,6 +138,7 @@ void Tiling::setTilingMsg(lm::input::Tiling* newTilingMsg)
     _edges.setWrappedField(tilingMsg->mutable_edges());
 
     tilingMsg->set_sort_orders(0, calcSortOrder());
+    if (tilingMsg->is_reversed_size()==0) set_is_reversed(false);
 }
 
 bool Tiling::testBasinsPosition() const

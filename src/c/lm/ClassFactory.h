@@ -80,11 +80,32 @@ public:
     void registerClass(string baseClassName, string className, ClassAllocator allocator);
     void registerClassesFromExternalLibrary(string filename);
     void* allocateObjectOfClass(string baseClassName, string className);
+
+#if __cplusplus <= 199711L
+    template <typename Arg0>
+    void* allocateObjectOfClass(string baseClassName, string className, Arg0 arg0)
+    {
+        if (knownClasses.count(baseClassName) == 1)
+        {
+            map<string,ClassAllocator> knownSubclasses = knownClasses[baseClassName];
+            if (knownSubclasses.count(className) == 1)
+            {
+                void* (*allocator)(Arg0) = (void* (*)(Arg0))knownSubclasses[className];
+                return allocator(arg0);
+            }
+        }
+        throw Exception("No allocator found for baseclass/class", baseClassName.c_str(), className.c_str());
+    }
+#else
+    // TODO: variadic template implementation of allocateObjectOfClass goes here. fun project for another day
+#endif
+
     list<string> getAllSubclasses(string baseClassName);
     void printRegisteredClasses();
 
 private:
     map<string,map<string,ClassAllocator> > knownClasses;
+
     map<string,void*> loadedExternalLibraries;
 };
 

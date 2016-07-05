@@ -58,6 +58,7 @@ public:
     virtual double calcAndStore(int* speciesCounts, double time);
     double get() {return val;}
     double getPrev() {return prevVal;}
+    uint id() const {return op->id();}
     void set(double newVal) {val = newVal;}
 
 protected:

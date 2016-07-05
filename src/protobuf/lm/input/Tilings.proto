@@ -75,7 +75,7 @@ message Tiling {
      *     - In a multi-order parameter tiling, each of these fields has one entry per order parameter
      */
     repeated SortOrder sort_orders          = 5;
-    repeated bool reversed                  = 6;
+    repeated bool is_reversed               = 6;
 
     /*
      * - A list of basin locations, specified as complete species counts
@@ -85,7 +85,7 @@ message Tiling {
      *         - If a basin is located past the last interface, the tiling will be reversed before it is used in the simulation
      */
     repeated Basin basins                   = 1000;
-    optional int32 current_basin            = 1001;
+    optional int32 current_basin_index      = 1001;
 }
 
 message Tilings {

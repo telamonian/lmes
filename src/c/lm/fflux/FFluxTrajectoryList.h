@@ -75,7 +75,7 @@ public:
     // ffluxPhase n==0 constructor
     FFluxTrajectoryList(uint64_t count, uint64_t simulationPhaseIndex, const lm::fflux::input::FFluxPhase& ffluxPhase,
                         const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousWorkUnits,
-                        const lm::fflux::input::FFluxInput& input);
+                        const lm::fflux::input::FFluxInput& input, const lm::input::Basin& basin);
 
     // ffluxPhase n>0 constructor
     FFluxTrajectoryList(uint64_t count, uint64_t simulationPhaseIndex, const lm::fflux::input::FFluxPhase& ffluxPhase,

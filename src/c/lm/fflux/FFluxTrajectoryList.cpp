@@ -82,7 +82,7 @@ namespace lm {
 namespace fflux {
 
 // ffluxPhase n==0 constructor
-FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationPhaseIndex, const FFluxPhase& ffluxPhase, const FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousTrajectoryCount, const FFluxInput& input)
+FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationPhaseIndex, const FFluxPhase& ffluxPhase, const FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousTrajectoryCount, const FFluxInput& input, const lm::input::Basin& basin)
 :TrajectoryList(count, newSimulationPhaseIndex),input(input),ffluxPhase(ffluxPhase),ffluxPhaseLimit(ffluxPhaseLimit),previousPhaseOutputPtr(NULL)
 {
     // consistency check
@@ -94,7 +94,8 @@ FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationP
     // initialize trajectories based on simulation input files
     for (uint64_t i=0;i<trajectoriesToStart;i++)
     {
-        initTrajectory(input, simulationPhaseIndex(), DEFAULT_TRAJECTORY_ID);
+        //initTrajectory(input, simulationPhaseIndex(), DEFAULT_TRAJECTORY_ID);
+        initTrajectory(input, basin.species_count().begin(), basin.species_count().end(), 0.0, simulationPhaseIndex(), DEFAULT_TRAJECTORY_ID);
     }
 }
 
