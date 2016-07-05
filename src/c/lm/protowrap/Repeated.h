@@ -185,9 +185,11 @@ public:
     const Element& operator()(int i) const {return Get(i);}
     // conversion operators allow this wrapper to be used wherever google::protobuf::RepeatedField/RepeatedPtrField could be
     operator WrappedField*() {return wrappedFieldPtr;}
-    operator const WrappedField&() const {return *wrappedFieldPtr;}
+    operator const WrappedField*() const {return wrappedFieldConstPtr;}
+    operator WrappedField&() {return *wrappedFieldPtr;}
+    operator const WrappedField&() const {return *wrappedFieldConstPtr;}
 
-// accessors
+    // accessors
     inline const Element& first() const {return Get(0);}
     inline const Element& last() const {return Get(lastIndex());}
     inline const int lastIndex() const {return size() - 1;}

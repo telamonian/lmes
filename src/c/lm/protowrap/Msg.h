@@ -51,8 +51,6 @@ public:
     typedef _WrappedMsg WrappedMsg;
     typedef DerivedMsg This;
 
-    Msg(): wrappedMsgPtr(NULL) {}
-    Msg(WrappedMsg* newMsgPtr): wrappedMsgPtr(NULL) {setWrappedMsg(newMsgPtr);}
     virtual ~Msg() {}
 
     // conversion operators allow this wrapper to be used wherever google::protobuf::Message could be
@@ -63,16 +61,17 @@ public:
     virtual const WrappedMsg& wrappedMsg() const {return *wrappedMsgPtr;}
     virtual WrappedMsg* mutableWrappedMsg() {return wrappedMsgPtr;}
 
-    virtual void setWrappedMsg(WrappedMsg* newMsgPtr)
+    void setWrappedMsg(WrappedMsg* newMsgPtr)
     {
         wrappedMsgPtr = newMsgPtr;
 
-        ((*static_cast<This*>(this)).DerivedMsg::setMacroWrapped)();
+        static_cast<This*>(this)->setMacroWrapped();
+//        This* _this(static_cast<This*>(this));
+//        ((*_this).This::setMacroWrapped)();
     }
 
-    static void setMacroWrapped() {}
-
 protected:
+    Msg(): wrappedMsgPtr(NULL) {}
     WrappedMsg* wrappedMsgPtr;
 };
 

@@ -205,10 +205,12 @@ public: \
 #define WRAPPED_ENUMS(...) \
     MAPTRIPLES(_WRAPPED_ENUM, __VA_ARGS__)
 
+/*
 #define MSG_WRAP_CONSTRUCTORS(MsgWrapperClass) \
 public: \
     MsgWrapperClass() {}; \
     MsgWrapperClass(WrappedMsg* newMsgPtr): Msg(newMsgPtr) {}; \
     virtual ~MsgWrapperClass() {};
+*/
 
 #endif /* LM_PROTOWRAP_WRAPPEDFIELDS_H_ */

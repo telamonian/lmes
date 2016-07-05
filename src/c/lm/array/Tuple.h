@@ -108,10 +108,10 @@ public:
             _data[i] = dataVector[i];
     }
 
-    tuple(const google::protobuf::RepeatedField<T>* repFieldPtr)
-    :len(repFieldPtr->size()),_data(new T[repFieldPtr->size()]())
+    tuple(const google::protobuf::RepeatedField<T>& repFieldRef)
+    :len(repFieldRef.size()),_data(new T[repFieldRef.size()]())
     {
-        memcpy(_data, repFieldPtr->data(), sizeof(T)*len);
+        memcpy(_data, repFieldRef.data(), sizeof(T)*len);
     }
 
     virtual ~tuple()

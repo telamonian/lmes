@@ -55,10 +55,14 @@ namespace limit {
 
 class LimitTrackingListWrap : public lm::protowrap::Msg<LimitTrackingListWrap, lm::io::LimitTrackingList>
 {
-    MSG_WRAP_CONSTRUCTORS(LimitTrackingListWrap)
+    /*MSG_WRAP_CONSTRUCTORS(LimitTrackingListWrap)*/
     WRAPPED_FIELDS(repeated, lm::io::LimitTracking, limit_trackings)
 
 public:
+    LimitTrackingListWrap() {}
+    LimitTrackingListWrap(WrappedMsg* newMsgPtr) {setWrappedMsg(newMsgPtr);}
+    virtual ~LimitTrackingListWrap() {};
+
     inline void deserializeMetadataTo(TrackingMap* ltMap) const
     {
         for (lm::protowrap::Repeated<lm::io::LimitTracking>::const_iterator it=limit_trackings().begin(); it!=limit_trackings().end(); ++it)

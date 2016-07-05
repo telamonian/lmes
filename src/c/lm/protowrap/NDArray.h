@@ -339,7 +339,6 @@ public:
     DataType data_type() const {return wrappedMsg()->data_type();}
     const Repeated<uint32_t>& shape() const {return _shape;}
     uint32_t shape(int index) const {return _shape.Get(index);}
-
     const std::string& data() const {return wrappedMsg()->data();}
     bool compressed_deflate() const {return wrappedMsg()->compressed_deflate();}
 
@@ -347,7 +346,6 @@ public:
     void Clear() {wrappedMsg()->Clear();}
     Repeated<uint32_t>* mutable_shape() {return &_shape;}
     std::string* mutable_data() {return wrappedMsg()->mutable_data();}
-    Repeated<uint32_t>& shape() {return _shape;}
 
     void set_array_order(ArrayOrder value) {wrappedMsg()->set_array_order(value);}
     void set_byte_order(ByteOrder value) {wrappedMsg()->set_byte_order(value);}

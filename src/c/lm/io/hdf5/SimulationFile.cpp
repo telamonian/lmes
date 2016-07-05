@@ -95,12 +95,10 @@ Hdf5File::DatasetDescriptor::DatasetDescriptor(const std::string& groupPath, con
 }
 
 Hdf5File::DatasetDescriptor::DatasetDescriptor(const std::string& groupPath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarrayMsg, hid_t rootGroup)
-:rootGroup(rootGroup),groupPath(groupPath),datasetName(datasetName),shape(),startingColumn(0),hdf5Type(-1),data(NULL),compressed_deflate(false),isNDArray(false)
+:rootGroup(rootGroup),groupPath(groupPath),datasetName(datasetName),shape(ndarrayMsg.shape()),startingColumn(0),hdf5Type(-1),data(NULL),compressed_deflate(false),isNDArray(false)
 {
     isNDArray = true;
     lm::protowrap::NDArray<void> ndarrayWrap(ndarrayMsg);
-
-    shape = utuple(ndarrayWrap.shape());
 
     hdf5Type = ndarrayWrap.hdf5_type();
     data = ndarrayWrap.get_data();
