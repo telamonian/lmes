@@ -266,8 +266,8 @@ public:
             T* dataAsTypedArray = (T*) &(data()[0]);
 
             // we use i for the array and an iterator for the container in case the container is not optimized for random access (eg deque)
-            int i=0;
-            for (typename ContainerT<T>::const_iterator it=inputContainer.begin();it!=inputContainer.end();it++)
+            int i; typename ContainerT<T>::const_iterator it;
+            for (i=0,it=inputContainer.begin();it!=inputContainer.end();it++,i++)
             {
                 dataAsTypedArray[i] = *it;
             }
