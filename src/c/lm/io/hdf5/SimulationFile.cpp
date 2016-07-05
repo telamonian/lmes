@@ -1532,16 +1532,44 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
     newTiling->set_type(type);
 
     // read in the values of the tiling's edges
-    hsize_t dims[1];
-    H5T_class_t hdf5Type;
-    size_t size;
-
-    H5LTget_dataset_info(tilingGroup, "Edges", dims, &hdf5Type, &size);
-    double * edgeBuffer = new double[dims[0]];
-    H5LTread_dataset_double(tilingGroup, "Edges", edgeBuffer);
-    for (int i=0;i<dims[0];i++)
     {
-        newTiling->add_edges(edgeBuffer[i]);
+        hsize_t dims[1];
+        H5T_class_t hdf5Type;
+        size_t size;
+
+        H5LTget_dataset_info(tilingGroup, "Edges", dims, &hdf5Type, &size);
+        double* edgeBuffer = new double[dims[0]];
+        H5LTread_dataset_double(tilingGroup, "Edges", edgeBuffer);
+        for (int i = 0; i < dims[0]; i++)
+        {
+            newTiling->add_edges(edgeBuffer[i]);
+        }
+
+        // free the buffer
+        delete[] edgeBuffer;
+    }
+
+    // read in the values of the tiling's basins
+    {
+        hsize_t dims[2];
+        H5T_class_t hdf5Type;
+        size_t size;
+
+        H5LTget_dataset_info(tilingGroup, "Basins", dims, &hdf5Type, &size);
+        double* basinsBuffer = new double[dims[0]*dims[1]];
+        H5LTread_dataset_double(tilingGroup, "Basins", basinsBuffer);
+
+        for (uint i=0; i<dims[0]; i++)
+        {
+            lm::input::Basin* newBasin = newTiling->add_basins();
+            for (uint j=0; j<dims[1]; j++)
+            {
+                newBasin->add_species_count(i*dims[1]+j);
+            }
+        }
+
+        // free the buffers
+        delete[] basinsBuffer;
     }
 
     // infer whether edges is sorted ascending or descending
@@ -1564,8 +1592,6 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
         }
     }
 
-    // free the buffer
-    delete[] edgeBuffer;
 
     // free the group handle
     HDF5_EXCEPTION_CHECK(H5Gclose(tilingGroup));

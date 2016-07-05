@@ -138,10 +138,11 @@ void Tiling::setSortOrder(TilingEnums::SortOrder newOrder)
 void Tiling::setTilingMsg(lm::input::Tiling* newTilingMsg)
 {
     tilingMsg = newTilingMsg;
-    tilingMsg->set_sort_orders(0, calcSortOrder());
 
-    _basins = tilingMsg->mutable_basins();
-    _edges = tilingMsg->mutable_edges();
+    _basins.setWrappedField(tilingMsg->mutable_basins());
+    _edges.setWrappedField(tilingMsg->mutable_edges());
+
+    tilingMsg->set_sort_orders(0, calcSortOrder());
 }
 
 bool Tiling::testBasinsPosition() const
@@ -176,7 +177,7 @@ bool Tiling::testBasinsSize(lm::input::ReactionModel& reactionModel) const
 
 bool Tiling::testBasinSize(int basinIndex, lm::input::ReactionModel& reactionModel) const
 {
-    if (basins(basinIndex).species_count_size()!=reactionModel.number_reactions())
+    if (basins(basinIndex).species_count_size()!=reactionModel.number_species())
     {
         throw ConsistencyException("Basin %d in tiling ID %d has %d species count entries. Should have %d", basinIndex, id(), basins(basinIndex).species_count_size(), reactionModel.number_reactions());
         // unreachable. Pro forma?

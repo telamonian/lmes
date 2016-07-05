@@ -5,7 +5,7 @@ import os,sys
 import numpy as np
 import sys
 
-from lma.src.script.lmFile import Input,Dependency,DependencyMatrix,InitialSpeciesCounts,InitialSpeciesCountsBackward,OrderParameter,ReactionRateConstant,SimulationParameter,Tiling
+from lma.src.script.lmFile import Input,Basin,Dependency,DependencyMatrix,InitialSpeciesCounts,InitialSpeciesCountsBackward,OrderParameter,ReactionRateConstant,SimulationParameter,Tiling
 from regression import Regression
 from replicate import ReplicateRegression
 
@@ -44,6 +44,11 @@ class FFluxRegression(ReplicateRegression):
                    type=0,
                    edges=np.linspace(-27,27,13))]
 
+        basins = [
+            Basin(tilingID=0,
+                  speciesCountArray=np.array(([4,16,1,0,0,0,0],
+                                              [0,0,0,4,16,1,0]), dtype=np.dtype('uint32')))]
+
         if kwargs['extra_input']:
             tilings+=[
                 Tiling(id=19,
@@ -77,6 +82,7 @@ class FFluxRegression(ReplicateRegression):
                                       edges=np.linspace(-27, 27, numEdges)))
 
         ffluxInput.AddTilings(tilings=tilings, currentTilingID=0)
+        ffluxInput.AddBasins(basins=basins)
         ffluxInput.SetInitialSpeciesCountsBackward(iSCBs=iSCBs)
         ffluxInput.SetSimulationParameters(simParams=simParams)
         ffluxInput.Close()
