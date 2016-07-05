@@ -107,8 +107,6 @@ protected:
 
     // setup methods that run at the start of every fflux phase
     virtual void startSimulationPhase();
-    virtual void setTrajectoryLimits();
-    virtual void setTrajectoryLimitsPhaseZero();
     virtual void buildTrajectoryList();
 
     // methods that control what happens at the end of a ffluxPhase
@@ -130,6 +128,9 @@ protected:
     virtual void receivedFinishedWorkUnitPartPhaseZero(const lm::message::WorkUnitStatus& wusMsg);
 
     // accessors
+    // figure out how many flux events we need to observe per trajectory. Useful only during phase zero
+    virtual uint requiredFluxesPerTrajectory() const {return (uint)(ceil((double)(currentPhaseLimit().uvalue())/lm::fflux::FFluxTrajectoryList::getTrajectoriesToStart(currentPhase(), currentPhaseLimit(), slots.getSimultaneousWorkUnits())));}
+
     virtual const lm::fflux::input::FFluxPhase& currentPhase() const {return *currentFFluxPhaseIter;}
     virtual int64_t currentFFluxPhaseIndex() const {return currentPhase().fflux_phase_index();}
     virtual const lm::fflux::input::FFluxPhaseLimit& currentPhaseLimit() const {return currentStage().fflux_phase_limits(currentFFluxPhaseIndex());}
@@ -168,7 +169,6 @@ protected:
     FFluxStageVector::iterator currentFFluxStageIter;
     FFluxPhases::iterator currentFFluxPhaseIter;
 
-    lm::limit::TrajectoryLimits trajectoryLimits;
     lm::tiling::Tiling* currentTilingPtr;
 
     FFluxPhaseOutputs ffluxPhaseOutputs;

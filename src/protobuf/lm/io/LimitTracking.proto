@@ -52,3 +52,7 @@ message LimitTracking {
     optional robertslab.pbuf.NDArray species_counts         = 23;
     optional robertslab.pbuf.NDArray times                  = 24;
 }
+
+message LimitTrackingList {
+    repeated LimitTracking limit_trackings                   = 1;
+}

@@ -58,7 +58,6 @@
 namespace lm {
 namespace limit {
 
-
 struct TrajectoryLimit
 {
     TrajLimEnums::LimitType type;

@@ -73,8 +73,10 @@ public:
     FFluxInput(const lm::io::hdf5::Hdf5File& file);
     virtual ~FFluxInput() {};
 
-// initializers
+// (re)initializers
     virtual void reinitOutputOptions(const std::string& recordNamePrefix);
+    virtual void reinitTrajectoryLimits(int64_t ffluxPhaseIndex, const lm::tiling::Tiling& tiling, uint requiredFluxesPerTrajectory);
+    virtual void reinitTrajectoryLimitsPhaseZero(int64_t ffluxPhaseIndex, const lm::tiling::Tiling& tiling, uint requiredFluxesPerTrajectory);
 
 // accessors
     const lm::fflux::input::FFluxOptions& ffluxOptions() const {return _ffluxOptions;}

@@ -75,7 +75,8 @@ void* Input::allocateObject(const lm::io::hdf5::Hdf5File& file)
 
 Input::Input(const lm::io::hdf5::Hdf5File& file)
 :reactionModelPresent(false),diffusionModelPresent(false),orderParametersPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),
- outputOptionsPresent(false),simulationParameters(file),includeEndpointInLimits(true),partsPerWorkUnit(1),stepsPerWorkUnit(10000000)
+ outputOptionsPresent(false),simulationParameters(file),includeEndpointInLimits(true),limitTrackingListWrap(&limitTrackingListMsg),
+ partsPerWorkUnit(1),stepsPerWorkUnit(10000000)
 {
     init(file);
 }
@@ -100,7 +101,7 @@ void Input::initReactionModel(const lm::io::hdf5::Hdf5File& file)
 {
     if (file.hasReactionModel())
     {
-        file.getReactionModel(&reactionModel);
+        file.getReactionModel(&reactionModelMsg);
         reactionModelPresent = true;
     }
 }
@@ -161,7 +162,7 @@ void Input::initTilings(const lm::io::hdf5::Hdf5File& file)
         tilings.init(&file, orderParameters);
         // run a consistency check on the basins in the tiling (if any)
         tilings.testBasinsPosition();
-        tilings.testBasinsSize(reactionModel);
+        tilings.testBasinsSize(reactionModelMsg);
         tilingsPresent = true;
     }
 }
@@ -195,23 +196,23 @@ void Input::initTrajectoryLimits(const lm::io::hdf5::Hdf5File& file)
 void Input::initOutputOptions(const lm::io::hdf5::Hdf5File& file)
 {
     // Specify how often the species counts should be written to output
-    parseAndSet("writeInterval", &OutputOptions::set_species_write_interval, outputOptions, &outputOptionsPresent);
+    parseAndSet("writeInterval", &OutputOptions::set_species_write_interval, outputOptionsMsg, &outputOptionsPresent);
 
     // Specify how often the species counts at all of the lattice points should be written out during an RDME simulation
-    parseAndSet("latticeWriteInterval", &OutputOptions::set_lattice_write_interval, outputOptions, &outputOptionsPresent);
+    parseAndSet("latticeWriteInterval", &OutputOptions::set_lattice_write_interval, outputOptionsMsg, &outputOptionsPresent);
 
     // Specify how often various (optional) specialized simulation outputs should be written out. Leave unset to supress these outputs completely.
-    parseAndSet("degreeAdvancementWriteInterval", &OutputOptions::set_degree_advancement_write_interval, outputOptions, &outputOptionsPresent, &degreeAdvancementPresent);
-    parseAndSet("orderParameterWriteInterval", &OutputOptions::set_order_parameter_write_interval, outputOptions, &outputOptionsPresent);
+    parseAndSet("degreeAdvancementWriteInterval", &OutputOptions::set_degree_advancement_write_interval, outputOptionsMsg, &outputOptionsPresent, &degreeAdvancementPresent);
+    parseAndSet("orderParameterWriteInterval", &OutputOptions::set_order_parameter_write_interval, outputOptionsMsg, &outputOptionsPresent);
 
     // Initialize the species counts first passage times in the output options
-    parseAndSetList("fptTrackingList", &OutputOptions::add_fpt_species_to_track, outputOptions, &outputOptionsPresent);
+    parseAndSetList("fptTrackingList", &OutputOptions::add_fpt_species_to_track, outputOptionsMsg, &outputOptionsPresent);
 
     // Initialize the order parameter values first passage times in the output options
-    parseAndSetList("fptOrderParameterTrackingList", &OutputOptions::add_fpt_order_parameter_to_track, outputOptions, &outputOptionsPresent);
+    parseAndSetList("fptOrderParameterTrackingList", &OutputOptions::add_fpt_order_parameter_to_track, outputOptionsMsg, &outputOptionsPresent);
 
     // This flag changes the organization of the output such that the total number of groups and datasets is minimized. Currently only implemented (partially) for HDF5, no effect otherwise
-    parseAndSetFlag("condenseOutput", &OutputOptions::set_condense_output, outputOptions, &outputOptionsPresent);
+    parseAndSetFlag("condenseOutput", &OutputOptions::set_condense_output, outputOptionsMsg, &outputOptionsPresent);
 }
 
 // Get some parameters that tweak how work units are run
@@ -228,12 +229,12 @@ void Input::copyLimitsTo(lm::message::RunWorkUnit* rwuMsg)
 
 void Input::copyLimitTrackingsTo(lm::message::RunWorkUnit* rwuMsg)
 {
-    if (trajectoryLimits.getTrackingRepeated().size() > 1)
+    if (limitTrackingListWrap.limit_trackings_size() > 1)
     {
         for (lm::protowrap::Repeated<lm::message::WorkUnit>::iterator it=rwuMsg->mutable_part()->begin();it!=rwuMsg->mutable_part()->end();it++)
         {
-            trajectoryLimits.setTrackingTrajectoryID(it->initial_state().trajectory_id());
-            it->mutable_initial_state()->mutable_limit_trackings()->CopyFrom(trajectoryLimits.getTrackingRepeated());
+            limitTrackingListWrap.set_all_trajectory_id(it->initial_state().trajectory_id());
+            it->mutable_initial_state()->mutable_limit_tracking_list()->CopyFrom(limitTrackingListWrap.wrappedMsg());
         }
     }
 }

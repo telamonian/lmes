@@ -41,6 +41,7 @@
 
 #include "lm/fflux/io/FFluxPhaseOutput.pb.h"
 #include "lm/fflux/io/FFluxStageOutput.pb.h"
+#include "lm/protowrap/Repeated.h"
 #include "lm/protowrap/Msg.h"
 #include "lm/Types.h"
 

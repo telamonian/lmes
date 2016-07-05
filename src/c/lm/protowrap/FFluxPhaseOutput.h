@@ -47,6 +47,7 @@
 #include "lm/EnumHelper.h"
 #include "lm/fflux/io/FFluxPhaseOutput.pb.h"
 #include "lm/limit/LimitCheckFunctions.h"
+#include "lm/limit/LimitTrackingWrap.h"
 #include "lm/io/LimitTracking.pb.h"
 #include "lm/protowrap/NDArray.h"
 #include "lm/protowrap/RepeatedMap.h"
@@ -105,7 +106,6 @@ class FFluxPhaseOutput
 {
 public:
     typedef FFluxPhaseOutputMsg Msg;
-    typedef lm::protowrap::Repeated<lm::io::LimitTracking> TrackingsWrap;
 
     FFluxPhaseOutput(size_t randomCacheSize=10*KIBI)
     :msgPtr(NULL),rng(NULL),randomDoublesStart(NULL),randomDoubles(NULL),randomDoublesEnd(NULL),randomIndexesStart(NULL),
@@ -128,15 +128,15 @@ public:
         // TODO: include consistency check constraining (phaseZeroSamples > burnInCount) somewhere
 
         // set wrapper on the limit_trackings field
-        trackingWrap.setWrappedField(trajectoryState.limit_trackings());
+        limitTrackingsWrap.setWrappedField(trajectoryState.limit_tracking_list().limit_trackings());
 
         // consistency checks
-        if (trackingWrap.size()!=3) throw ConsistencyException("Finished Forward Flux phase zero trajectories should have 3 tracked limits in their outputs; trajectory id %llu has %d", trajectoryState.trajectory_id(), trackingWrap.size());
-        for (int i=0;i<3;i++) {if (trackingWrap.Get(i).limit_id()!=i) throw ConsistencyException("Finished Forward Flux phase zero trajectories should have 3 tracked limits in their outputs with limit_ids {0, 1, 2}; trajectory id %llu has limit tracking index %d with limit_id %d", trajectoryState.trajectory_id(), i, trackingWrap.Get(i).limit_id());}
+        if (limitTrackingsWrap.size()!=3) throw ConsistencyException("Finished Forward Flux phase zero trajectories should have 3 tracked limits in their outputs; trajectory id %llu has %d", trajectoryState.trajectory_id(), limitTrackingsWrap.size());
+        for (int i=0;i<3;i++) {if (limitTrackingsWrap.Get(i).limit_id()!=i) throw ConsistencyException("Finished Forward Flux phase zero trajectories should have 3 tracked limits in their outputs with limit_ids {0, 1, 2}; trajectory id %llu has limit tracking index %d with limit_id %d", trajectoryState.trajectory_id(), i, limitTrackingsWrap.Get(i).limit_id());}
 
         // fetch forth some data from limit 0 (ie forward flux) tracking
-        speciesCountWrap.setWrappedMsg(trackingWrap.Get(0).species_counts());
-        timeWrapForwardFlux.setWrappedMsg(trackingWrap.Get(0).times());
+        speciesCountWrap.setWrappedMsg(limitTrackingsWrap.Get(0).species_counts());
+        timeWrapForwardFlux.setWrappedMsg(limitTrackingsWrap.Get(0).times());
         int32_t* speciesCountDataForwardFlux = speciesCountWrap.get_data(true);
         double* timeDataForwardFlux = timeWrapForwardFlux.get_data(true);
 
@@ -171,8 +171,8 @@ public:
     {
         double timeCorrection = 0.0;
 
-        timeWrapBackwardFlux.setWrappedMsg(trackingWrap.Get(1).times());
-        timeWrapOtherBasinEntry.setWrappedMsg(trackingWrap.Get(2).times());
+        timeWrapBackwardFlux.setWrappedMsg(limitTrackingsWrap.Get(1).times());
+        timeWrapOtherBasinEntry.setWrappedMsg(limitTrackingsWrap.Get(2).times());
 
         // If the trajectory ever passed into another basin, get the sum time of the intervals between entry into another basin and reentry into the starting basin
         if (timeWrapOtherBasinEntry.size() > 0)
@@ -233,16 +233,16 @@ public:
     void addEndPoint(const lm::io::TrajectoryState& trajectoryState)
     {
         // set wrapper on the limit_trackings field
-        trackingWrap.setWrappedField(trajectoryState.limit_trackings());
+        limitTrackingsWrap.setWrappedField(trajectoryState.limit_tracking_list().limit_trackings());
 
         // consistency checks
-        if (trackingWrap.size()!=2) throw ConsistencyException("Finished Forward Flux phase n>0 trajectories should have 2 tracked limits in their outputs; trajectory id %llu has %d", trajectoryState.trajectory_id(), trackingWrap.size());
-        for (int i=0;i<2;i++) {if (trackingWrap.Get(i).limit_id()!=i) throw ConsistencyException("Finished Forward Flux phase n>0 trajectories should have 2 tracked limits in their outputs with limit_ids {0, 1}; trajectory id %llu has limit tracking index %d with limit_id %d", trajectoryState.trajectory_id(), i, trackingWrap.Get(i).limit_id());}
+        if (limitTrackingsWrap.size()!=2) throw ConsistencyException("Finished Forward Flux phase n>0 trajectories should have 2 tracked limits in their outputs; trajectory id %llu has %d", trajectoryState.trajectory_id(), limitTrackingsWrap.size());
+        for (int i=0;i<2;i++) {if (limitTrackingsWrap.Get(i).limit_id()!=i) throw ConsistencyException("Finished Forward Flux phase n>0 trajectories should have 2 tracked limits in their outputs with limit_ids {0, 1}; trajectory id %llu has limit tracking index %d with limit_id %d", trajectoryState.trajectory_id(), i, limitTrackingsWrap.Get(i).limit_id());}
 
         // fetch forth some time data from limit 0 (ie backward flux) and limit 1 (ie forward flux) tracking
-        timeWrapBackwardFlux.setWrappedMsg(trackingWrap.Get(0).times());
+        timeWrapBackwardFlux.setWrappedMsg(limitTrackingsWrap.Get(0).times());
         double* timeDataBackwardFlux = timeWrapBackwardFlux.get_data(true);
-        timeWrapForwardFlux.setWrappedMsg(trackingWrap.Get(1).times());
+        timeWrapForwardFlux.setWrappedMsg(limitTrackingsWrap.Get(1).times());
         double* timeDataForwardFlux = timeWrapForwardFlux.get_data(true);
 
         // check if this trajectory fluxed backwards or forwards (and make sure it didn't somehow do both)
@@ -257,7 +257,7 @@ public:
             msgPtr->set_sucessful_trajectories_launched_total_time(msgPtr->sucessful_trajectories_launched_total_time() + timeDataForwardFlux[0]);
 
             // since this is data from a "sucessful" trajectory (ie one that fluxed forward), add its endpoint to the list used to initialize the next phase
-            speciesCountWrap.setWrappedMsg(trackingWrap.Get(1).species_counts());
+            speciesCountWrap.setWrappedMsg(limitTrackingsWrap.Get(1).species_counts());
             int32_t* speciesCountData = speciesCountWrap.get_data(true);
 
             uint columns = speciesCountWrap.shape(1);
@@ -417,7 +417,7 @@ protected:
     PointKey pointKey;
     lm::protowrap::NDArray<int32_t> speciesCountWrap;
     lm::protowrap::NDArray<double> timeWrapForwardFlux, timeWrapBackwardFlux, timeWrapOtherBasinEntry;
-    TrackingsWrap trackingWrap;
+    lm::protowrap::Repeated<lm::io::LimitTracking> limitTrackingsWrap;
 
     // list of pointers into the sucessful_trajectory_end_points field. Part of the system used to randomly choose some of them
     EndPointVector::T endPointVector;

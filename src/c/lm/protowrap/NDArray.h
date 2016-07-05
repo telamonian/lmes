@@ -85,16 +85,9 @@ template <> struct NDType<uint64_t> {static const DataType T = robertslab::pbuf:
 
 template <DataType NDType> struct HDF5Type {static const hid_t T() {return lm::io::hdf5::HDF5Type<typename CPPType<NDType>::T>::T();}};
 
-//template<typename T, typename U> struct is_same {static const bool value = false;};
-//template<typename T> struct is_same<T, T> {static const bool value = true;};
-//template<> struct disable_new_if<void> {static void* call(uint32_t size) {throw Exception("NDArray of void type (ie NDArray<void>) cannot initialize new arrays");;}};
-
-//template<typename T> struct disable_if_void {template <typename This, typename Func> static T* call(This* _this, Func func) {return (*_this.*func)();}};
-//template<> struct disable_if_void<void> {template <typename This, typename Func> static void* call(This* _this, Func func) {return NULL;}};
-
-template <typename T> struct get_copy_of_data
+template <typename T> struct specialize_ndarray_for_void
 {
-    template <typename This> static T* call(This* _this)
+    template <typename This> static T* get_copy_of_data(This* _this)
     {
         T* outputArray = new T[_this->size()];
         _this->get_data(outputArray);
@@ -102,16 +95,16 @@ template <typename T> struct get_copy_of_data
     }
 };
 
-template <> struct get_copy_of_data<void>
+template <> struct specialize_ndarray_for_void<void>
 {
-    template <typename This> static void* call(This* _this)
+    template <typename This> static void* get_copy_of_data(This* _this)
     {
-        return NULL;
+        throw Exception("NDArray of void type (ie NDArray<void>) cannot initialize new arrays");
     }
 };
 
 template <typename T=void>
-class NDArray //: public NDArrayGetDataPolicy<T, NDArray<T> >
+class NDArray
 {
 public:
     typedef robertslab::pbuf::NDArray WrappedMsg;
@@ -181,8 +174,7 @@ public:
         if (!noCopy || compressed_deflate())
         {
             // only call `new T[size()]` if T is not void
-            //disable_if_void<T>::call(this, &NDArray<T>::get_copy_of_data);
-            get_copy_of_data<T>::call(this);
+            specialize_ndarray_for_void<T>::get_copy_of_data(this);
         }
         else
         {

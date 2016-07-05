@@ -84,8 +84,8 @@ public:
     const lm::input::DiffusionModel& getDiffusionModelMsg() const {return diffusionModel;}
     const lm::oparam::OParams& getOrderParameters() const {return orderParameters;}
     const lm::input::OrderParameters& getOrderParametersMsg() const {return orderParametersMsg;}
-    const lm::input::OutputOptions& getOutputOptionsMsg() const {return outputOptions;}
-    const lm::input::ReactionModel& getReactionModelMsg() const {return reactionModel;}
+    const lm::input::OutputOptions& getOutputOptionsMsg() const {return outputOptionsMsg;}
+    const lm::input::ReactionModel& getReactionModelMsg() const {return reactionModelMsg;}
     const lm::option::SimulationParameters& getSimulationParameters() const {return simulationParameters;}
     const lm::tiling::Tilings& getTilings() const {return tilings;}
     const lm::input::Tilings& getTilingsMsg() const {return tilingsMsg;}
@@ -130,10 +130,12 @@ protected:
     bool trajectoryLimitsPresent;
 
     lm::input::DiffusionModel diffusionModel;
+    lm::io::LimitTrackingList limitTrackingListMsg;
+    lm::limit::LimitTrackingListWrap limitTrackingListWrap;
     lm::input::OrderParameters orderParametersMsg;
     lm::oparam::OParams orderParameters;
-    lm::input::OutputOptions outputOptions;
-    lm::input::ReactionModel reactionModel;
+    lm::input::OutputOptions outputOptionsMsg;
+    lm::input::ReactionModel reactionModelMsg;
     lm::input::Tilings tilingsMsg;
     lm::tiling::Tilings tilings;
     lm::limit::TrajectoryLimits trajectoryLimits;

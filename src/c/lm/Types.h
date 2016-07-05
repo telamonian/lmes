@@ -120,15 +120,17 @@ template<typename Key0, typename Key1, typename Value> struct PairMap
 // template for IsNumeric type testing utility. For numeric types, IsNumeric<T>::value will be true
 template <typename T> struct IsNumeric {static const bool value = std::numeric_limits<T>::is_specialized;};
 
-/*
+template<bool cond, class T=int> struct EnableIf { typedef T type; };
+template<class T> struct EnableIf<false, T> {};
+
 template<typename B, typename D>
 struct IsBaseOf {
     typedef char (&yes)[1];
     typedef char (&no)[2];
 
-    #if defined(MACOSX)
-    #undef check
-    #endif
+#if defined(MACOSX)
+#undef check
+#endif
 
     static yes check(const B*);
     static no check(const void*);
@@ -137,6 +139,13 @@ struct IsBaseOf {
         value = sizeof(check(static_cast<const D*>(NULL))) == sizeof(yes),
     };
 };
-*/
+
+/*
+template<typename T> struct disable_if_void {template <typename This, typename Func> static T* call(This* _this, Func func) {return (*_this.*func)();}};
+template<> struct disable_if_void<void> {template <typename This, typename Func> static void* call(This* _this, Func func) {return NULL;}};
+
+template<typename T, typename U> struct IsSame {static const bool value = false;};
+template<typename T> struct IsSame<T, T> {static const bool value = true;};
+ */
 
 #endif

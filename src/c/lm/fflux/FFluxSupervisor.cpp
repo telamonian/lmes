@@ -97,8 +97,9 @@ int FFluxSupervisor::getRecvSleepMilliseconds()
     return -1;
 }
 
-FFluxSupervisor::FFluxSupervisor(): currentTilingPtr(NULL),previousFFluxPhaseOutputPtr(&_ffluxPhaseOutput_0),currentFFluxPhaseOutputPtr(&_ffluxPhaseOutput_1),
-                                    input(NULL),trajectoryList(NULL)
+FFluxSupervisor::FFluxSupervisor()
+:currentTilingPtr(NULL),previousFFluxPhaseOutputPtr(&_ffluxPhaseOutput_0),currentFFluxPhaseOutputPtr(&_ffluxPhaseOutput_1),
+ input(NULL),trajectoryList(NULL)
 {
 }
 
@@ -362,50 +363,10 @@ void FFluxSupervisor::startSimulationPhase()
     addFFluxPhaseOutput();
 
     // set the trajectory limits/tracking for this phase
-    setTrajectoryLimits();
+    input->reinitTrajectoryLimits(currentFFluxPhaseIndex(), currentTiling(), requiredFluxesPerTrajectory());
 
     // call the base class method
     lm::main::SimulationSupervisor::startSimulationPhase();
-}
-
-void FFluxSupervisor::setTrajectoryLimits()
-{
-    if (currentFFluxPhaseIndex()==0)
-    {
-        setTrajectoryLimitsPhaseZero();
-    }
-    else
-    {
-        trajectoryLimits.Clear();
-
-        // - if currentFFluxPhaseIndex() > 0, we can use addTileExitLimitsMsg() in a straightforward way to set the needed limits. Two limits are set:
-        //     - if limit id==0 is triggered, this indicates that the trajectory fluxed backwards
-        //     - if limit id==1 is triggered, this indicates that the trajectory fluxed forwards
-        trajectoryLimits.addTileExitLimitsMsg(*currentTilingPtr, 0, currentFFluxPhaseIndex());
-        trajectoryLimits.addTrackingMsg(0, false, true, 1, true);
-        trajectoryLimits.addTrackingMsg(1, false, true, 1, true);
-    }
-}
-
-void FFluxSupervisor::setTrajectoryLimitsPhaseZero()
-{
-    trajectoryLimits.Clear();
-
-    // figure out how many flux events we need to observe per trajectory
-    uint fluxesPerTrajectory = (uint)(ceil((double)(currentPhaseLimit().uvalue())/lm::fflux::FFluxTrajectoryList::getTrajectoriesToStart(currentPhase(), currentPhaseLimit(), slots.getSimultaneousWorkUnits())));
-
-    // - first we set a limit with id==0
-    //     - this limit is the important one. a triggering of this limit corresponds to one of the flux events that we're trying to sample during phase 0
-    trajectoryLimits.addTileExitLimitsMsg(*currentTilingPtr, -1, 0, false, true);
-    trajectoryLimits.addTrackingMsg(0, false, true, fluxesPerTrajectory, true);
-
-    // - next, we set two more limits with id==1 and id==2
-    //     - these limits are used to help track which basin was last visited by a trajectory
-    //     - limit_id==1: tracks flux back into the starting basin
-    //     - limit_id==2: tracks flux into the basin opposite from the starting basin
-    trajectoryLimits.addTileExitLimitsMsg(*currentTilingPtr, 0, currentTiling().edges().lastIndex());
-    trajectoryLimits.addTrackingMsgNonterminating(1, false, true);
-    trajectoryLimits.addTrackingMsgNonterminating(2, false, true);
 }
 
 void FFluxSupervisor::buildTrajectoryList()

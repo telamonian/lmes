@@ -160,7 +160,7 @@ public: \
 
 #define _WRAPPED_repeated_embedded(Element, name) \
     _WRAPPED_repeated_base(Element, name) \
-    Element* add_##name() {_##name.Add();}
+    Element* add_##name() {return _##name.Add();}
 
 #define _WRAPPED_repeated_numeric_SEATER(Element, name) \
     mutable_##name()->setWrappedField(wrappedMsgPtr->mutable_##name());
@@ -192,7 +192,7 @@ public: \
     GET_SEATER_MACRO(rule, Element)(Element, name)
 
 /*
- * - the implementation macro
+ * - the implementation macros
  */
 #define WRAPPED_FIELDS(...) \
     MAPTRIPLES(_WRAPPED_FIELD, __VA_ARGS__) \
@@ -204,5 +204,11 @@ public: \
 // TODO: figure out how to fold WRAPPED_ENUMS into WRAPPED_FIELDS
 #define WRAPPED_ENUMS(...) \
     MAPTRIPLES(_WRAPPED_ENUM, __VA_ARGS__)
+
+#define MSG_WRAP_CONSTRUCTORS(MsgWrapperClass) \
+public: \
+    MsgWrapperClass() {}; \
+    MsgWrapperClass(WrappedMsg* newMsgPtr): Msg(newMsgPtr) {}; \
+    virtual ~MsgWrapperClass() {};
 
 #endif /* LM_PROTOWRAP_WRAPPEDFIELDS_H_ */

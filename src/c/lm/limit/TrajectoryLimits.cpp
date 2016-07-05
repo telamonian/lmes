@@ -94,7 +94,7 @@ const TrajectoryLimitMsg& TrajectoryLimits::findMsg(TrajLimEnums::LimitType lt) 
     throw NotFoundException("no limits with LimitType %s found in TrajectoryLimits instance", TrajLimEnums::LimitType_Name(lt).c_str());
 }
 
-void TrajectoryLimits::addTileExitLimitsMsg(lm::tiling::Tiling& tiling, int edge0Index, int edge1Index, bool edge0Exists, bool edge1Exists,
+void TrajectoryLimits::addTileExitLimitsMsg(const lm::tiling::Tiling& tiling, int edge0Index, int edge1Index, bool edge0Exists, bool edge1Exists,
                                             bool rightOpenBins, int32_t edge0LimitID, int32_t edge1LimitID)
 {
     // if an edgeIndex is less than 0 or greater than tiling.edges().lastIndex(), pretend that it's an extra edge one unit past the last edge (useful in conjunction with edgeExists for setting half-infinite bins)
@@ -104,31 +104,31 @@ void TrajectoryLimits::addTileExitLimitsMsg(lm::tiling::Tiling& tiling, int edge
     addBinExitLimitsMsg<TrajLimEnums::ORDER_PARAMETER>(tiling.getOrderParameterID(), edge0Value, edge1Value, edge0Exists, edge1Exists, rightOpenBins, edge0LimitID, edge1LimitID);
 }
 
-LimitTrackingWrap::WrappedMsg* TrajectoryLimits::addTrackingMsg(int32_t limitID, bool addToOutput, bool addToCMEState, int64_t count, bool terminate)
-{
-    // set the tracking options on the limit of interest
-    TrajectoryLimitMsg* trackedLimitMsg = findMsg(limitID);
-
-    trackedLimitMsg->set_terminate(terminate);
-
-    trackedLimitMsg->set_add_tracking_to_output(addToOutput);
-    trackedLimitMsg->set_add_tracking_to_cme_state(addToCMEState);
-
-    // if count < 0, unset track_count. When unset, tracking data will be collected every time the limit is triggered and the limit will never trigger trajectory termination
-    if (count < 0) trackedLimitMsg->clear_track_count();
-    else           trackedLimitMsg->set_track_count(static_cast<uint>(count));
-
-    // initialize the actual tracking message
-    LimitTrackingWrap::WrappedMsg* trackingMsg = _limitTrackings.Add();
-    trackingMsg->set_limit_id(limitID);
-    return trackingMsg;
-}
-
-// version of addTracking message that allow for setting non terminating tracking without necessarily filling in every default value in the signature
-LimitTrackingWrap::WrappedMsg* TrajectoryLimits::addTrackingMsgNonterminating(int32_t limitID, bool addToOutput, bool addToCMEState, int64_t count)
-{
-    return addTrackingMsg(limitID, addToOutput, addToCMEState, count, false);
-}
+//LimitTrackingWrap::WrappedMsg* TrajectoryLimits::addTrackingMsg(int32_t limitID, bool addToOutput, bool addToCMEState, int64_t count, bool terminate)
+//{
+//    // set the tracking options on the limit of interest
+//    TrajectoryLimitMsg* trackedLimitMsg = findMsg(limitID);
+//
+//    trackedLimitMsg->set_terminate(terminate);
+//
+//    trackedLimitMsg->set_add_tracking_to_output(addToOutput);
+//    trackedLimitMsg->set_add_tracking_to_cme_state(addToCMEState);
+//
+//    // if count < 0, unset track_count. When unset, tracking data will be collected every time the limit is triggered and the limit will never trigger trajectory termination
+//    if (count < 0) trackedLimitMsg->clear_track_count();
+//    else           trackedLimitMsg->set_track_count(static_cast<uint>(count));
+//
+//    // initialize the actual tracking message
+//    LimitTrackingWrap::WrappedMsg* trackingMsg = _limitTrackings.Add();
+//    trackingMsg->set_limit_id(limitID);
+//    return trackingMsg;
+//}
+//
+//// version of addTracking message that allow for setting non terminating tracking without necessarily filling in every default value in the signature
+//LimitTrackingWrap::WrappedMsg* TrajectoryLimits::addTrackingMsgNonterminating(int32_t limitID, bool addToOutput, bool addToCMEState, int64_t count)
+//{
+//    return addTrackingMsg(limitID, addToOutput, addToCMEState, count, false);
+//}
 
 // rFB = read From Buf
 void TrajectoryLimits::rFB(const TrajectoryLimitsMsg& inBuf)

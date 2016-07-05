@@ -12,14 +12,14 @@ INCLUDE(CheckCXXSourceRuns)
 
 # test if the compiler supports avx
 function(testAVX varName required)
-    file(READ ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/TestCompilerSnippets/avxTestSnippet.cpp avxTestSnippet)
+    file(READ ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/TestExecutionSnippets/avxTestSnippet.cpp avxTestSnippet)
     featureTest(${varName} ${required} AVX "${avxTestSnippet}")
     set(${varName} ${${varName}} PARENT_SCOPE)
 endfunction()
 
 # test if the compiler supports fma
 function(testFMA varName required)
-    file(READ ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/TestCompilerSnippets/fmaTestSnippet.cpp fmaTestSnippet)
+    file(READ ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/TestExecutionSnippets/fmaTestSnippet.cpp fmaTestSnippet)
     featureTest(${varName} ${required} FMA "${fmaTestSnippet}")
     set(${varName} ${${varName}} PARENT_SCOPE)
 endfunction()

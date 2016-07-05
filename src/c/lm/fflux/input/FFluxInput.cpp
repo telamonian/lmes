@@ -91,10 +91,47 @@ void FFluxInput::initFFluxOptions(const lm::io::hdf5::Hdf5File& file)
 
 void FFluxInput::reinitOutputOptions(const std::string& recordNamePrefix)
 {
-    outputOptions.Clear();
+    outputOptionsMsg.Clear();
 
-    outputOptions.set_record_name_prefix(pathJoin(recordNamePrefixGlobal, recordNamePrefix));
-    outputOptions.set_condense_output(true);
+    outputOptionsMsg.set_record_name_prefix(pathJoin(recordNamePrefixGlobal, recordNamePrefix));
+    outputOptionsMsg.set_condense_output(true);
+}
+
+void FFluxInput::reinitTrajectoryLimits(int64_t ffluxPhaseIndex, const lm::tiling::Tiling& tiling, uint requiredFluxesPerTrajectory)
+{
+    if (ffluxPhaseIndex==0)
+    {
+        reinitTrajectoryLimitsPhaseZero(ffluxPhaseIndex, tiling, requiredFluxesPerTrajectory);
+    }
+    else
+    {
+        trajectoryLimits.Clear();
+
+        // - if currentFFluxPhaseIndex() > 0, we can use addTileExitLimitsMsg() in a straightforward way to set the needed limits. Two limits are set:
+        //     - if limit id==0 is triggered, this indicates that the trajectory fluxed backwards
+        //     - if limit id==1 is triggered, this indicates that the trajectory fluxed forwards
+        trajectoryLimits.addTileExitLimitsMsg(tiling, 0, ffluxPhaseIndex);
+        limitTrackingListWrap.addTrackingMsg(trajectoryLimits.findMsg(0), false, true, 1, true);
+        limitTrackingListWrap.addTrackingMsg(trajectoryLimits.findMsg(1), false, true, 1, true);
+    }
+}
+
+void FFluxInput::reinitTrajectoryLimitsPhaseZero(int64_t ffluxPhaseIndex, const lm::tiling::Tiling& tiling, uint requiredFluxesPerTrajectory)
+{
+    trajectoryLimits.Clear();
+
+    // - first we set a limit with id==0
+    //     - this limit is the important one. a triggering of this limit corresponds to one of the flux events that we're trying to sample during phase 0
+    trajectoryLimits.addTileExitLimitsMsg(tiling, -1, 0, false, true);
+    limitTrackingListWrap.addTrackingMsg(trajectoryLimits.findMsg(0), false, true, requiredFluxesPerTrajectory, true);
+
+    // - next, we set two more limits with id==1 and id==2
+    //     - these limits are used to help track which basin was last visited by a trajectory
+    //     - limit_id==1: tracks flux back into the starting basin
+    //     - limit_id==2: tracks flux into the basin opposite from the starting basin
+    trajectoryLimits.addTileExitLimitsMsg(tiling, 0, tiling.edges().lastIndex());
+    limitTrackingListWrap.addTrackingMsgNonterminating(trajectoryLimits.findMsg(1), false, true);
+    limitTrackingListWrap.addTrackingMsgNonterminating(trajectoryLimits.findMsg(2), false, true);
 }
 
 //bool FFluxInput::parseAndSetFFluxPhaseLimit(const std::string key, const std::string debugString)

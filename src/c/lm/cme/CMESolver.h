@@ -332,7 +332,7 @@ protected:
     OParamFPTTracking* fptTrackedOrderParameters;
 
     // limit tracking variables
-    lm::limit::TrackingMapT trackedLimits;
+    lm::limit::TrackingMap trackedLimits;
     lm::limit::LimitTrackingWrap limitTrackingWrap;
 
     // The current state.

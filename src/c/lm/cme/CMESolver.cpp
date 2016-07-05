@@ -80,7 +80,7 @@
 #include "lm/rng/XORWow.h"
 #endif
 
-using lm::limit::TrackingMapT;
+using lm::limit::TrackingMap;
 using lm::protowrap::Repeated;
 using std::list;
 using std::map;
@@ -320,12 +320,11 @@ void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
     }
 
     // if we're recording any limit tracking data to the trajectory state, get it. Otherwise, just get any changes to the limit tracking countdowns
-    for (TrackingMapT::const_iterator it=trackedLimits.begin(); it!=trackedLimits.end(); ++it)
+    for (TrackingMap::const_iterator it=trackedLimits.begin(); it!=trackedLimits.end(); ++it)
     {
         lm::limit::TrajectoryLimit& l = limits[it->second.limit_id];
-        if (l.addTrackingToCMEState or l.addTrackingToOutput) throw Exception("LimitTrackingWrap instance created for limit %d, but no tracking was requested for this limit", l.limitID);
+        limitTrackingWrap.setWrappedMsg(state->mutable_limit_tracking_list()->add_limit_trackings());
 
-        limitTrackingWrap.setWrappedMsg(state->add_limit_trackings());
         if (l.addTrackingToCMEState)
         {
             limitTrackingWrap.serializeFrom(trajectoryId, it->second);
@@ -426,7 +425,7 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
     }
 
     // if we're tracking any limits, set up the solver to output state information when the limit is reached
-    for (Repeated<lm::io::LimitTracking>::const_iterator it=state.limit_trackings().begin(); it!=state.limit_trackings().end(); ++it)
+    for (Repeated<lm::io::LimitTracking>::const_iterator it=state.limit_tracking_list().limit_trackings().begin(); it!=state.limit_tracking_list().limit_trackings().end(); ++it)
     {
         // TODO: CV! my nemesis. Fix the need for the const_cast here
         limitTrackingWrap.setWrappedMsg(const_cast<lm::io::LimitTracking*>(&*it));

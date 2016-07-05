@@ -46,21 +46,25 @@
 #include <string>
 
 #include "lm/Math.h"
+#include "lm/protowrap/Msg.h"
 #include "lm/protowrap/WrappedFields.h"
 #include "lm/Types.h"
+#include "lm/Version.h"
 
 namespace lm {
 namespace protowrap {
 
+/*
 // template that specializes to google::protobuf::RepeatedField<Element> for a numeric Element and google::protobuf::RepeatedPtrField<Element> otherwise
-template <typename Element, bool> struct _RepeatedSpecialization;
-template <typename Element> struct _RepeatedSpecialization<Element, false>
+template <typename Element, bool=IsNumeric<Element>::value> struct RepeatedGoogleTypePolicy
 {
-    typedef google::protobuf::RepeatedPtrField<Element> WrappedField;
+    typedef google::protobuf::RepeatedPtrField<Element> GoogleFieldType;
 
+
+#if CPP98
     // Returns the index of the first element of the wrapped RepeatedPtrField for which fieldVal==getterFunc(element), or -1 otherwise
     template <typename SubfieldElement>
-    static int Index(const SubfieldElement& valToFind, SubfieldElement (Element::*fieldGetter)(), const WrappedField* fieldConstPtr)
+    static int Index(const SubfieldElement& valToFind, SubfieldElement (Element::*fieldGetter)(), const GoogleFieldType* fieldConstPtr)
     {
         for (int index=0;index<fieldConstPtr->size();index++)
         {
@@ -71,38 +75,103 @@ template <typename Element> struct _RepeatedSpecialization<Element, false>
 
     // sets a field in every element of the wrapped RepeatedPtrField to the same, specified value
     template <typename SubfieldElement, typename SetterReturn>
-    static void SetAll(const SubfieldElement& newFieldVal, SetterReturn (Element::*fieldSetter)(SubfieldElement), WrappedField* fieldPtr)
+    static void SetAll(const SubfieldElement& newFieldVal, SetterReturn (Element::*fieldSetter)(SubfieldElement), GoogleFieldType* fieldPtr)
     {
-        for (typename WrappedField::iterator it=fieldPtr->begin();it!=fieldPtr->end();it++)
+        for (typename GoogleFieldType::iterator it=fieldPtr->begin();it!=fieldPtr->end();it++)
         {
             (*it.*fieldSetter)(newFieldVal);
         }
     }
-
-protected:
-    WrappedField* fieldPtr;
-    const WrappedField* fieldConstPtr;
+#endif
 };
 
-template <typename Element> struct _RepeatedSpecialization<Element, true>
+template <typename Element> struct RepeatedGoogleTypePolicy<Element, true>
 {
-    typedef google::protobuf::RepeatedField<Element> WrappedField;
+    typedef google::protobuf::RepeatedField<Element> GoogleFieldType;
 
+#if CPP98
     // for numeric types stored in a RepeatedField, the getterFunc version of Index is a dummy function
     template <typename T> static int Index(T, void*, void*) {throw UnimplementedException("Index called with a getterFunc is unimplemented for the Repeated wrapper templated on a numeric type.");}
 
     // for numeric types stored in a RepeatedField, SetAll is a dummy function
     template <typename T0, typename T1> static void SetAll(T0, T1, void*) {throw UnimplementedException("SetAll is unimplemented for the Repeated wrapper templated on a numeric type.");}
+#endif
+};
+*/
+
+// templates that deal with necessary specializations if Element is a numeric type
+
+/*
+ * - template that specializes to google::protobuf::RepeatedField<Element> for a numeric Element and google::protobuf::RepeatedPtrField<Element> otherwise
+ */
+template <typename Element, bool=IsNumeric<Element>::value> struct RepeatedGoogleTypePolicy
+{
+    typedef google::protobuf::RepeatedPtrField<Element> type;
+};
+template <typename Element> struct RepeatedGoogleTypePolicy<Element, true>
+{
+    typedef google::protobuf::RepeatedField<Element> type;
 };
 
-template <typename Element> struct RepeatedSpecialization : public _RepeatedSpecialization<Element, IsNumeric<Element>::value> {}; //{typedef typename _RepeatedSpecialization<Element, IsNumeric<Element>::value>::RepeatedField RepeatedField;};
+#if CPP98
+/*
+ * - returns the index of the first element of the wrapped field for which fieldVal==getterFunc(element) , or -1 otherwise.
+ *     - disabled (ie causes a compile-time error) if Element is a numeric type
+ */
+template <typename Element, bool=IsNumeric<Element>::value> struct IndexPolicy
+{
+    template <typename SubfieldElement>
+    static int Index(const SubfieldElement& valToFind, SubfieldElement (Element::*fieldGetter)(), const typename RepeatedGoogleTypePolicy<Element>::type* fieldConstPtr)
+    {
+        for (int index=0;index<fieldConstPtr->size();index++)
+        {
+            if ((fieldConstPtr->Get(index).*fieldGetter)()==valToFind) return index;
+        }
+        return -1;
+    }
+};
+template <typename Element> struct IndexPolicy<Element, true> {};
+
+/*
+ * - sets a subfield in every element of the wrapped field to a single value, valToSet
+ *     - disabled (ie causes a compile-time error) if Element is a numeric type
+ */
+template <typename Element, bool=IsNumeric<Element>::value> struct SetAllPolicy
+{
+    template <typename SubfieldElement, typename SetterReturn>
+    static void SetAll(const SubfieldElement& valToSet, SetterReturn (Element::*fieldSetter)(SubfieldElement), typename RepeatedGoogleTypePolicy<Element>::type* fieldPtr)
+    {
+        for (typename RepeatedGoogleTypePolicy<Element>::type::iterator it=fieldPtr->begin();it!=fieldPtr->end();it++)
+        {
+            (*it.*fieldSetter)(valToSet);
+        }
+    }
+};
+template <typename Element> struct SetAllPolicy<Element, true> {};
+#endif
+
+//// templates that deal with necessary specializations if Element is derived from MsgWrap
+//template <typename Element, bool=IsBaseOf<lm::protowrap::Msg<Element, typename Element::WrappedMsg>, Element>::value> struct RepeatedAttributePolicy
+//{
+//public:
+//    typedef typename Element::WrappedField WrappedMsg;
+//protected:
+//    typename RepeatedGoogleTypePolicy<WrappedMsg>::type* wrappedFieldPtr;
+//    const typename RepeatedGoogleTypePolicy<WrappedMsg>::type* wrappedFieldConstPtr;
+//};
+//template <typename Element> struct RepeatedAttributePolicy<Element, true>
+//{
+//protected:
+//    typename RepeatedGoogleTypePolicy<Element>::type* wrappedFieldPtr;
+//    const typename RepeatedGoogleTypePolicy<Element>::type* wrappedFieldConstPtr;
+//};
 
 template <typename Element>
-class Repeated
+class Repeated //: public RepeatedAttributePolicy<Element>
 {
 public:
 // typedefs
-    typedef typename RepeatedSpecialization<Element>::WrappedField WrappedField;
+    typedef typename RepeatedGoogleTypePolicy<Element>::type WrappedField;
     typedef typename WrappedField::iterator iterator;
     typedef typename WrappedField::const_iterator const_iterator;
 
@@ -133,12 +202,6 @@ public:
         return -1;
     };
 
-    // Returns the index of the first element of the wrapped field for which fieldVal==getterFunc(element), or -1 otherwise. Unimplemented if Element is a numeric type
-    template <typename SubfieldElement> int Index(const SubfieldElement& valToFind, SubfieldElement getterFuncPtr) const
-    {
-        return RepeatedSpecialization<Element>::Index(valToFind, getterFuncPtr, wrappedField());
-    }
-
     inline Element product() const {return ProductFunctor<Element>::call(begin(), end());}
     std::string repr(const char* suffix="") const
     {
@@ -154,11 +217,6 @@ public:
 
 // mutators
     inline Repeated<Element>& operator<<(Element val) {Add(val); return *this;}
-
-    template <typename SubfieldElement, typename SetterReturn> void SetAll(const SubfieldElement& newFieldVal, SetterReturn setterFuncPtr)
-    {
-        RepeatedSpecialization<Element>::SetAll(newFieldVal, setterFuncPtr, wrappedField());
-    }
 
     inline void reverse()
     {
@@ -208,6 +266,43 @@ public:
     Element* Mutable(int index) {return wrappedField()->Mutable(index);}
     void Set(int index, const Element& value) {wrappedField()->Set(index, value);}
     void SwapElements(int index1, int index2) {wrappedField()->SwapElements(index1, index2);}
+
+/*
+ * function that need to be disabled if Element is a numeric type
+ */
+#if CPP98
+    // Returns the index of the first element of the wrapped field for which fieldVal==getterFunc(element), or -1 otherwise. Unimplemented if Element is a numeric type
+    template <typename SubfieldElement> int Index(const SubfieldElement& valToFind, SubfieldElement getterFuncPtr) const
+    {
+        return IndexPolicy<Element>::Index(valToFind, getterFuncPtr, wrappedField());
+    }
+
+    template <typename SubfieldElement, typename SetterReturn> void SetAll(const SubfieldElement& newFieldVal, SetterReturn setterFuncPtr)
+    {
+        SetAllPolicy<Element>::SetAll(newFieldVal, setterFuncPtr, wrappedField());
+    }
+#else
+    // sets a subfield in every element of the wrapped field to a single value, valToSet. Enabled only if Element is not numeric
+    template <typename SubfieldElement, typename SubfieldSetter, typename U=Element, typename=typename EnableIf<!IsNumeric<U>::value>::type>
+    static void SetAll(const SubfieldElement& valToSet, SubfieldSetter subfieldSetter, WrappedField* fieldPtr)
+    {
+        for (typename WrappedField::iterator it=fieldPtr->begin();it!=fieldPtr->end();it++)
+        {
+            (*it.*subfieldSetter)(valToSet);
+        }
+    }
+
+    // Returns the index of the first element of the wrapped RepeatedPtrField for which fieldVal==getterFunc(element), or -1 otherwise. Enabled only if Element is not a numeric type
+    template <typename SubfieldElement, typename SubfieldGetter, typename U=Element, typename=typename EnableIf<!IsNumeric<U>::value>::type>
+    int Index(const SubfieldElement& valToFind, SubfieldGetter subfieldGetter, const WrappedField* fieldConstPtr)
+    {
+        for (int index=0;index<fieldConstPtr->size();index++)
+        {
+            if ((wrappedField()->Get(index).*subfieldGetter)()==valToFind) return index;
+        }
+        return -1;
+    }
+#endif
 
 protected:
     WrappedField* wrappedFieldPtr;

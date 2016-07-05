@@ -39,7 +39,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #ifndef VERSION_NUM
@@ -52,4 +52,12 @@
 
 #ifndef COPYRIGHT_DATE_JHU
 #define COPYRIGHT_DATE_JHU "2012-2016"
+#endif
+
+#ifndef CPP98
+#define CPP98 __cplusplus <= 199711L
+#endif
+
+#ifndef CPP11
+#define CPP11 __cplusplus > 199711L
 #endif

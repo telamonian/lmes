@@ -50,20 +50,19 @@
 namespace lm {
 namespace limit {
 
-typedef uint64_t DegreeAdvancementT;
-typedef double   OrderParameterT;
-typedef int      SpeciesT;
-typedef double   TimeT;
-
-typedef std::vector<DegreeAdvancementT> DegreeAdvancementContainer;
-typedef std::vector<OrderParameterT> OrderParameterContainer;
-typedef std::vector<SpeciesT> SpeciesContainer;
-typedef std::vector<TimeT> TimeContainer;
-
-
 class LimitTracking
 {
 public:
+    typedef uint64_t DegreeAdvancementT;
+    typedef double   OrderParameterT;
+    typedef int      SpeciesT;
+    typedef double   TimeT;
+
+    typedef std::vector<DegreeAdvancementT> DegreeAdvancementContainer;
+    typedef std::vector<OrderParameterT> OrderParameterContainer;
+    typedef std::vector<SpeciesT> SpeciesContainer;
+    typedef std::vector<TimeT> TimeContainer;
+
     bool trackingEnabled(uint64_t maxCount)
     {
         // if the limit tracking has a count, use this to determine if tracking is currently enabled
@@ -115,96 +114,7 @@ public:
     SpeciesContainer species_counts;
     TimeContainer times;
 };
-
-class LimitTrackingWrap : public lm::protowrap::Msg<LimitTrackingWrap, lm::io::LimitTracking>
-{
-    WRAPPED_FIELDS(required, uint64_t,                                   trajectory_id,
-                   required, int32_t,                                    limit_id,
-                   optional, uint64_t,                                   count,
-                   optional, lm::protowrap::NDArray<DegreeAdvancementT>, degree_advancements,
-                   optional, lm::protowrap::NDArray<OrderParameterT>,    order_parameter_values,
-                   optional, lm::protowrap::NDArray<SpeciesT>,           species_counts,
-                   optional, lm::protowrap::NDArray<TimeT>,              times)
-
-public:
-    void deserializeMetadataTo(int32_t* limitID_writeto, bool* hasCount_writeto, uint64_t* count_writeto) const
-    {
-        *limitID_writeto = limit_id();
-        *hasCount_writeto = has_count();
-        if (*hasCount_writeto) *count_writeto = count();
-    }
-
-    void deserializeMetadataTo(LimitTracking* lt) const
-    {
-        deserializeMetadataTo(&lt->limit_id, &lt->has_count, &lt->count);
-    }
-
-    void deserializeTo(DegreeAdvancementContainer* degreeAdvancements_writeto, OrderParameterContainer* orderParameterValues_writeto,
-                       SpeciesContainer* speciesCounts_writeto, TimeContainer* times_writeto) const
-    {
-        degree_advancements().get_data(degreeAdvancements_writeto);
-
-        order_parameter_values().get_data(orderParameterValues_writeto);
-
-        species_counts().get_data(speciesCounts_writeto);
-
-        times().get_data(times_writeto);
-    }
-
-    void deserializeTo(LimitTracking* lt) const
-    {
-        deserializeMetadataTo(lt);
-        deserializeTo(&lt->degree_advancements, &lt->order_parameter_values, &lt->species_counts, &lt->times);
-    }
-
-    void serializeMetadataFrom(uint64_t trajectoryID_readfrom, int32_t limitID_readfrom, bool hasCount_readfrom, uint64_t count_readfrom)
-    {
-        set_trajectory_id(trajectoryID_readfrom);
-        set_limit_id(limitID_readfrom);
-
-        if (hasCount_readfrom) set_count(count_readfrom);
-    }
-
-    void serializeMetadataFrom(uint64_t trajectoryID_readfrom, const LimitTracking& lt)
-    {
-        serializeMetadataFrom(trajectoryID_readfrom, lt.limit_id, lt.has_count, lt.count);
-    }
-
-    void serializeFrom(const DegreeAdvancementContainer& degreeAdvancements_readfrom, const OrderParameterContainer& orderParameterValues_readfrom,
-                     const SpeciesContainer& speciesCounts_readfrom, const TimeContainer& times_readfrom, bool compress=false)
-    {
-        mutable_degree_advancements()->set_array(degreeAdvancements_readfrom, utuple(degreeAdvancements_readfrom.size()), compress);
-
-        mutable_order_parameter_values()->set_array(orderParameterValues_readfrom, utuple(orderParameterValues_readfrom.size()), compress);
-
-        mutable_species_counts()->set_array(speciesCounts_readfrom, utuple(speciesCounts_readfrom.size()), compress);
-
-        mutable_times()->set_array(times_readfrom, utuple(times_readfrom.size()), compress);
-    }
-
-    void serializeFrom(uint64_t trajectoryID_readfrom, const LimitTracking& lt)
-    {
-        serializeMetadataFrom(trajectoryID_readfrom, lt);
-        serializeFrom(lt.degree_advancements, lt.order_parameter_values, lt.species_counts, lt.times);
-    }
-
-//    /*
-//     * - method for getting the total time spent after the tracked limit had been triggered but before the limit tracked by otherLimitTracking had been triggered
-//     *     - example:
-//     *         - if the times when this limit tracking saw its limit triggered look like this
-//     *             - {0.0, 1.1, 1.2, 19.0}
-//     *         - and the times when otherTrackingLimit saw its limit triggered look like this
-//     *             - {.5, 5.2, 12.9, 21.3}
-//     *         - then the return value will be
-//     *             - (.5 - 0.0) + (5.2 - 1.1) + (21.3 - 19.0) = 6.9
-//     */
-//    double sumTimeIntervalsBetweenLimits(LimitTracking& otherLimitTracking, double startTime=0.0, double endTime=NAN)
-//    {}
-
-};
-
-typedef std::map<int, LimitTracking> TrackingMapT;
-typedef lm::protowrap::Repeated<LimitTrackingWrap::WrappedMsg> LimitTrackingRepeated;
+typedef std::map<int, LimitTracking> TrackingMap;
 
 }
 }
