@@ -93,6 +93,10 @@ public:
     virtual uint64_t count() const {return _count;}
     virtual bool exists(uint64_t id) const {return trajectories.count(id)==1;}
     virtual const TrajectoryMap& getTrajectoryMap(Trajectory::Status status) const;
+    virtual bool isTrajectoryAborted(uint64_t trajID) const {return isTrajectoryInMap(trajID, abortedTrajectories, Trajectory::ABORTED);}
+    virtual bool isTrajectoryFinished(uint64_t trajID) const {return isTrajectoryInMap(trajID, finishedTrajectories, Trajectory::FINISHED);}
+    virtual bool isTrajectoryRunning(uint64_t trajID) const {return isTrajectoryInMap(trajID, runningTrajectories, Trajectory::RUNNING);}
+    virtual bool isTrajectoryWaiting(uint64_t trajID) const {return isTrajectoryInMap(trajID, waitingTrajectories, Trajectory::WAITING);}
     virtual bool isTrajectoryAborted(lm::trajectory::Trajectory* traj) const {return isTrajectoryInMap(traj, abortedTrajectories, Trajectory::ABORTED);}
     virtual bool isTrajectoryFinished(lm::trajectory::Trajectory* traj) const {return isTrajectoryInMap(traj, finishedTrajectories, Trajectory::FINISHED);}
     virtual bool isTrajectoryRunning(lm::trajectory::Trajectory* traj) const {return isTrajectoryInMap(traj, runningTrajectories, Trajectory::RUNNING);}
@@ -119,6 +123,7 @@ public:
 
 protected:
 // accessors
+    virtual bool isTrajectoryInMap(uint64_t trajID, const TrajectoryMap& trajMap, Trajectory::Status expectedStatus) const;
     virtual bool isTrajectoryInMap(lm::trajectory::Trajectory* traj, const TrajectoryMap& trajMap, Trajectory::Status expectedStatus) const;
     virtual uint64_t findNextTrajectoryToRun() const;
     virtual void printTrajectoryStatistics() const {};

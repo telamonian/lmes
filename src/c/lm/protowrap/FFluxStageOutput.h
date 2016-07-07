@@ -58,10 +58,13 @@ class FFluxStageOutputRaw : public lm::protowrap::Msg<FFluxStageOutputRaw, lm::f
 
 class FFluxStageOutput : public lm::protowrap::Msg<FFluxStageOutput, lm::fflux::io::FFluxStageOutput>
 {
+    typedef lm::protowrap::Repeated<lm::fflux::io::FFluxPhaseOutput> FFluxPhaseOutputs;
+
     WRAPPED_FIELDS(repeated, double,              switching_time_per_tile,
                    repeated, double,              fluxes,
                    repeated, double,              probabilities,
                    optional, FFluxStageOutputRaw, fflux_stage_output_raw)
+
 };
 
 }

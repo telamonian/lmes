@@ -131,8 +131,17 @@ public:
         limitTrackingsWrap.setWrappedField(trajectoryState.limit_tracking_list().limit_trackings());
 
         // consistency checks
-        if (limitTrackingsWrap.size()!=3) throw ConsistencyException("Finished Forward Flux phase zero trajectories should have 3 tracked limits in their outputs; trajectory id %llu has %d", trajectoryState.trajectory_id(), limitTrackingsWrap.size());
-        for (int i=0;i<3;i++) {if (limitTrackingsWrap.Get(i).limit_id()!=i) throw ConsistencyException("Finished Forward Flux phase zero trajectories should have 3 tracked limits in their outputs with limit_ids {0, 1, 2}; trajectory id %llu has limit tracking index %d with limit_id %d", trajectoryState.trajectory_id(), i, limitTrackingsWrap.Get(i).limit_id());}
+        if (limitTrackingsWrap.size()!=3)
+        {
+            throw ConsistencyException("Finished Forward Flux phase zero trajectories should have 3 tracked limits in their outputs; trajectory id %llu has %d", trajectoryState.trajectory_id(), limitTrackingsWrap.size());
+        }
+        for (int i=0;i<3;i++)
+        {
+            if (limitTrackingsWrap.Get(i).limit_id()!=i)
+            {
+                throw ConsistencyException("Finished Forward Flux phase zero trajectories should have 3 tracked limits in their outputs with limit_ids {0, 1, 2}; trajectory id %llu has limit tracking index %d with limit_id %d", trajectoryState.trajectory_id(), i, limitTrackingsWrap.Get(i).limit_id());
+            }
+        }
 
         // fetch forth some data from limit 0 (ie forward flux) tracking
         speciesCountWrap.setWrappedMsg(limitTrackingsWrap.Get(0).species_counts());

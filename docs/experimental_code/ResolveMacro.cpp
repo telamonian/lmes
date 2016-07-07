@@ -36,44 +36,32 @@
  *
  * Author(s): Max Klein
  */
-#ifndef LM_PROTOWRAP_MSG_H_
-#define LM_PROTOWRAP_MSG_H_
 
-#include "lm/protowrap/WrappedFields.h"
+/*
+### how `RESOLVE` works
+    The basic idea is that while the preprocessor cannot distinguish between defined and undefined tokens (since it doesn't distinguish between undefined tokens and regular text), it can distinguish between single tokens and tuples.
+*/
 
-namespace lm {
-namespace protowrap {
+    #include <stdio.h>
 
-// this is a base class for the CRTP pattern, and is to be used in derived classes as so -> class derivedMsg: public Msg<derivedMsg>
-template<typename DerivedMsg, typename _WrappedMsg> class Msg
-{
-public:
-    typedef _WrappedMsg WrappedMsg;
-    typedef DerivedMsg This;
+    #define BLANK
 
-    virtual ~Msg() {}
+    #define RESOLVE(token, default_token, ...) default_token
 
-    // conversion operators allow this wrapper to be used wherever google::protobuf::Message could be
-    operator WrappedMsg*() {return wrappedMsgPtr;}
-    operator WrappedMsg&() const {return *wrappedMsgPtr;}
+    #define QUOTE(str) #str
+    #define QUOTE0(str) QUOTE(str) // need the intermediate QUOTE0 function here or else you get output like `RESOLVE(0, HelloWorld, , )` instead of `HelloWorld`
+    #define EXPAND_AND_QUOTE(str, ...) QUOTE0(RESOLVE(str, BLANK, __VA_ARGS__)) // the BLANK token is optional here, can also be a literal blank
 
-    void Clear() {wrappedMsgPtr->Clear();}
-    virtual const WrappedMsg& wrappedMsg() const {return *wrappedMsgPtr;}
-    virtual WrappedMsg* mutableWrappedMsg() {return wrappedMsgPtr;}
+    #define MACRO 0, HelloWorld
 
-    void setWrappedMsg(WrappedMsg* newMsgPtr)
-    {
-        wrappedMsgPtr = newMsgPtr;
+    int main() {
+        printf("%s\n", EXPAND_AND_QUOTE(MACRO));
+        printf("%s\n", QUOTE(MACRO));
 
-        static_cast<This*>(this)->_macro_setWrapped();
+    #undef MACRO
+        printf("%s\n", EXPAND_AND_QUOTE(MACRO));
+        printf("%s\n", QUOTE(MACRO));
+
+        printf("%s\n", EXPAND_AND_QUOTE(BLANK));
+        printf("%s\n", QUOTE(BLANK));
     }
-
-protected:
-    Msg(): wrappedMsgPtr(NULL) {}
-    WrappedMsg* wrappedMsgPtr;
-};
-
-}
-}
-
-#endif //LM_PROTOWRAP_MSG_H_

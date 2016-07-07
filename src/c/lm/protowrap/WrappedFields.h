@@ -53,7 +53,7 @@
  *             WRAPPED_FIELDS(repeated, double,         field1,
  *                            optional, BarMessageWrap, field2)
  *         public:
- *             // whatever custom wrapper code you'd like to add
+ *             //// whatever custom wrapper code you'd like to add ////
  *         };
  *         '''
  *     - some notes
@@ -86,6 +86,22 @@
 #define MAPTRIPLES1(f, x, y, z, peek, ...) f(x, y, z) MAP_NEXT (peek, MAPTRIPLES0) (f, peek, __VA_ARGS__)
 #define MAPTRIPLES(f, ...) EVAL (MAPTRIPLES1 (f, __VA_ARGS__, (), 0))
 
+
+#define MAPTRIPLES_WSEP0(f, separator, x, y, z, peek, ...) f(x, y, z)separator MAP_NEXT (peek, MAPTRIPLES_WSEP1) (f, separator, peek, __VA_ARGS__)
+#define MAPTRIPLES_WSEP1(f, separator, x, y, z, peek, ...) f(x, y, z)separator MAP_NEXT (peek, MAPTRIPLES_WSEP0) (f, separator, peek, __VA_ARGS__)
+#define MAPTRIPLES_WSEP(f, separator, ...) EVAL (MAPTRIPLES_WSEP1 (f, separator, __VA_ARGS__, (), 0))
+
+/*
+#define MAP_WSEP_GET_END() 0, MAP_WSEP_END
+#define MAP_WSEP_NEXT0(test, next, ...) next MAP_WSEP_OUT
+#define MAP_WSEP_NEXT1(test, next) MAP_WSEP_NEXT0 (test, next, 0)
+#define MAP_WSEP_NEXT(test, next)  MAP_WSEP_NEXT1 (MAP_WSEP_GET_END test, next)
+
+#define MAPTRIPLES_WSEP0(f, x, y, z, peek, ...) f(x, y, z) MAP_WSEP_NEXT (peek, MAPTRIPLES_WSEP1) (f, peek, __VA_ARGS__)
+#define MAPTRIPLES_WSEP1(f, x, y, z, peek, ...) f(x, y, z) MAP_WSEP_NEXT (peek, MAPTRIPLES_WSEP0) (f, peek, __VA_ARGS__)
+#define MAPTRIPLES_WSEP(f, ...) EVAL (MAPTRIPLES_WSEP1 (f, __VA_ARGS__, (), 0))
+ */
+
 /*
  * - helper macros for deducing information about wrapped fields
  *     - CATEGORY_TYPE(x) returns numeric is x is a numeric type, and embedded otherwise
@@ -98,26 +114,59 @@
 #define CATEGORY_uint32_t 0, numeric
 #define CATEGORY_uint64_t 0, numeric
 
-#define CATEGORY_TYPE0(test, sub, ...) sub
-#define CATEGORY_TYPE1(test, sub) CATEGORY_TYPE0 (test, sub, 0)
-#define CATEGORY_TYPE(type) CATEGORY_TYPE1 (CATEGORY_##type, embedded)
+/*
+ * - The RESOLVE macro resolves a macro token to its defined value, or to a default value (passed in as a second arg) if the token is undefined
+ *     - The catch is that the token has to be defined as `0, value` instead of the simpler `value`
+ */
+#define RESOLVE0(token, default_token, ...) sub
+#define RESOLVE(token, default_token) RESOLVE0(token, default_token, 0)
+#define CATEGORY_TYPE(type) RESOLVE(CATEGORY_##type, embedded)
+*/
 
 /*
  * - macros for wrapping singular fields of numeric type in protobuf msgs
  */
-#define _WRAPPED_required_numeric(Element, name) \
-public: \
-    void clear_##name() {wrappedMsgPtr->clear_##name();} \
-    const Element name() const {return wrappedMsgPtr->name();} \
-    void set_##name(const Element& newVal) {wrappedMsgPtr->set_##name(newVal);} \
+#define _WRAPPED_required_numeric(Element, name)                                   \
+public:                                                                            \
+    void clear_##name() {wrappedMsgPtr->clear_##name();}                           \
+    const Element name() const {return wrappedMsgPtr->name();}                     \
+    void set_##name(const Element& newVal) {wrappedMsgPtr->set_##name(newVal);}    \
     bool has_##name() const {return wrappedMsgPtr->has_##name();}
 
-#define _WRAPPED_optional_numeric(Element, name) \
+#define _WRAPPED_optional_numeric(Element, name)    \
     _WRAPPED_required_numeric(Element, name)
 
 #define _WRAPPED_required_numeric_SEATER(Element, name)
 
 #define _WRAPPED_optional_numeric_SEATER(Element, name)
+
+ 
+#define _WRAPPED_required_numeric_DESERIALIZETO_SIGNATURE(Element, name)    \
+    Element* name##_writeto
+
+ #define _WRAPPED_optional_numeric_DESERIALIZETO_SIGNATURE(Element, name)    \
+    *bool has_##name##_writeto, Element* name##_writeto
+ 
+#define _WRAPPED_required_numeric_DESERIALIZETO(Element, name)     \
+    *name##_writeto = name();
+
+#define _WRAPPED_optional_numeric_DESERIALIZETO(Element, name)     \
+    *has_##name##_writeto = has_##name()                           \
+    if (*has_##name##_writeto) *name##_writeto = name();
+
+ 
+#define _WRAPPED_required_numeric_SERIALIZEFROM_SIGNATURE(Element, name)    \
+    Element name##_readfrom
+
+#define _WRAPPED_optional_numeric_SERIALIZEFROM_SIGNATURE(Element, name)    \
+    bool has_##name##_readfrom, Element name##_readfrom
+ 
+#define _WRAPPED_required_numeric_SERIALIZEFROM(Element, name)    \
+    set_##name(name##_readfrom);
+
+#define _WRAPPED_optional_numeric_SERIALIZEFROM(Element, name)    \
+    if (has_##name##_readfrom) set_##name(name##_readfrom);
+
 
 /*
  * - macros for wrapping singular fields of embedded type (ie msg type) in protobuf msgs
@@ -185,32 +234,36 @@ public: \
 #define _WRAPPED_FIELD(rule, Element, name) \
     GET_WRAPPER_MACRO(rule, Element)(Element, name)
 
-#define _WRAPPED_ENUM(rule, Element, name) \
-    GET_WRAPPER_MACRO(rule, int32_t)(Element, name)
-
 #define _WRAPPED_SEATER(rule, Element, name) \
     GET_SEATER_MACRO(rule, Element)(Element, name)
+
+/*
+#define _WRAPPED_DESERIALIZETO(rule, Element, name)         \
+    GET_SEATER_MACRO(rule, Element)(Element, name)
+ */
 
 /*
  * - the implementation macros
  */
 #define WRAPPED_FIELDS(...) \
     MAPTRIPLES(_WRAPPED_FIELD, __VA_ARGS__) \
-    void setMacroWrapped() \
+    void _macro_setWrapped() \
     { \
         MAPTRIPLES(_WRAPPED_SEATER, __VA_ARGS__) \
     }
 
-// TODO: figure out how to fold WRAPPED_ENUMS into WRAPPED_FIELDS
-#define WRAPPED_ENUMS(...) \
-    MAPTRIPLES(_WRAPPED_ENUM, __VA_ARGS__)
 
 /*
-#define MSG_WRAP_CONSTRUCTORS(MsgWrapperClass) \
-public: \
-    MsgWrapperClass() {}; \
-    MsgWrapperClass(WrappedMsg* newMsgPtr): Msg(newMsgPtr) {}; \
-    virtual ~MsgWrapperClass() {};
+#define WRAPPED_FIELDS_W_SERIALIZERS(...)   \
+    WRAPPED_FIELDS(__VA_ARGS__)             \
+    void deserializeTo(MAPTRIPLES_WSEP(_))
 */
+
+#define MSG_WRAP_CONSTRUCTORS(MsgWrapperClass)                            \
+public:                                                                   \
+    MsgWrapperClass() {};                                                 \
+    MsgWrapperClass(WrappedMsg* newMsgPtr) {setWrappedMsg(newMsgPtr);}    \
+    virtual ~MsgWrapperClass() {}
+
 
 #endif /* LM_PROTOWRAP_WRAPPEDFIELDS_H_ */

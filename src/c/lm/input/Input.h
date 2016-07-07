@@ -73,6 +73,7 @@ public:
     static void* allocateObject(const lm::io::hdf5::Hdf5File& file);
 
 public:
+    Input();
     Input(const lm::io::hdf5::Hdf5File& file);
     virtual ~Input();
 

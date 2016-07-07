@@ -404,6 +404,13 @@ uint64_t TrajectoryList::findNextTrajectoryToRun() const
     return it->first;
 }
 
+bool TrajectoryList::isTrajectoryInMap(uint64_t trajID, const TrajectoryMap& trajMap, Trajectory::Status expectedStatus) const
+{
+    bool exists(trajMap.count(trajID)==1);
+    if (exists && trajMap.at(trajID)->getStatus()!=expectedStatus) throw ConsistencyException("trajectory found in list that does not match its status: id, status, list_status", trajID, Trajectory::status_strings[trajMap.at(trajID)->getStatus()].c_str(), Trajectory::status_strings[expectedStatus].c_str());
+    return exists;
+}
+
 bool TrajectoryList::isTrajectoryInMap(lm::trajectory::Trajectory* traj, const TrajectoryMap& trajMap, Trajectory::Status expectedStatus) const
 {
     bool exists(trajMap.count(traj->getID())==1);

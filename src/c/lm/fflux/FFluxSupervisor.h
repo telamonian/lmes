@@ -138,14 +138,14 @@ protected:
     virtual const lm::fflux::input::FFluxPhaseLimit& currentPhaseLimit() const {return currentStage().fflux_phase_limits(currentFFluxPhaseIndex());}
     virtual const lm::protowrap::FFluxPhaseOutput& currentPhaseOutput() const {return *currentFFluxPhaseOutputWrapPtr;}
     virtual int64_t finalFFluxPhaseIndex() const {return currentStage().fflux_phases_size() - 1;}
-    virtual bool isCurrentPhaseLast() const {return currentStage().fflux_phases().end()==currentFFluxPhaseIter;}
+    virtual bool isCurrentPhaseLast() const {return is_last(currentFFluxPhaseIter, currentStage().fflux_phases());} //{return currentStage().fflux_phases().end()==currentFFluxPhaseIter;}
     virtual const lm::protowrap::FFluxPhaseOutput& previousPhaseOutput() const {return *previousFFluxPhaseOutputWrapPtr;}
 
     virtual const lm::fflux::input::FFluxStage& currentStage() const {return **currentFFluxStageIter;}
     virtual int64_t currentStageIndex() const {return currentFFluxStageIter - ffluxStageExecutionOrder.begin();}
     virtual const lm::protowrap::FFluxStageOutput& currentStageOutput() const {return currentFFluxStageOutputWrap;}
     virtual int getStageCount() const {return ffluxStageExecutionOrder.size();}
-    virtual bool isCurrentStageLast() const {return currentFFluxStageIter==ffluxStageExecutionOrder.end();}
+    virtual bool isCurrentStageLast() const {return is_last(currentFFluxStageIter, ffluxStageExecutionOrder);}  //{return currentFFluxStageIter==ffluxStageExecutionOrder.end();}
 
     virtual const lm::tiling::Tiling& currentTiling() const {return currentTilingWrap;}
 

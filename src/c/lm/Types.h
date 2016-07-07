@@ -149,14 +149,28 @@ template<typename T> struct IsSame<T, T> {static const bool value = true;};
  */
 
 /*
- * misc
+ * - function to check if an iterator points to the last element in a container
+ *     - modified from http://stackoverflow.com/a/3516224/425458
  */
-#ifndef CPP98
-#define CPP98 __cplusplus <= 199711L
-#endif
+template <typename Iter>
+Iter next(Iter iter)
+{
+    return ++iter;
+}
 
-#ifndef CPP11
-#define CPP11 __cplusplus > 199711L
-#endif
+template <typename Iter, typename Cont>
+bool is_last(Iter iter, const Cont& cont)
+{
+    // if the iterator points to the end, then return true only if the container is zero sized
+    if (cont.end()==iter)
+    {
+        return (cont.size()==0);
+    }
+    // otherwise, check if the next iterator value brings us to the container end
+    else
+    {
+        return (cont.end()==next(iter));
+    }
+}
 
-#endif
+#endif /* TYPES_H_ */

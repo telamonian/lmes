@@ -70,6 +70,7 @@ namespace input {
 class FFluxInput : public lm::input::Input
 {
 public:
+    FFluxInput();
     FFluxInput(const lm::io::hdf5::Hdf5File& file);
     virtual ~FFluxInput() {};
 

@@ -189,7 +189,7 @@ lm::fflux::input::FFluxStage* FFluxSupervisor::addPilotStage(lm::fflux::input::F
 
     addFFluxPhases(pilotStage, FFPhaseEnums::LAZY, FFPhaseEnums::SIMPLE);
 
-    addFFluxPhaseLimits(pilotStage, FFPhaseLimEnums::FORWARD_FLUXES, 1000);
+    addFFluxPhaseLimits(pilotStage, FFPhaseLimEnums::FORWARD_FLUXES, 10);
 
     return pilotStage;
 }
@@ -234,7 +234,7 @@ void FFluxSupervisor::startSimulationStage()
     setCurrentTiling(mutableCurrentStage()->mutable_tiling());
 
     // set the ffluxPhaseLimits for this stage, if it hasn't already been taken care of somehow
-    if (mutableCurrentStage()->has_pilot_stage() and mutableCurrentStage()->fflux_phase_limits_size()==0)
+    if (currentStage().has_pilot_stage() and currentStage().fflux_phase_limits_size()==0)
     {
         addFFluxPhaseLimitsFromStageOutput(mutableCurrentStage(), currentStageOutput());
     }
@@ -433,7 +433,10 @@ void FFluxSupervisor::receivedFinishedWorkUnitPart(const lm::message::WorkUnitSt
 
 void FFluxSupervisor::receivedFinishedWorkUnitPartPhaseZero(const lm::message::WorkUnitStatus& wusMsg)
 {
-    currentFFluxPhaseOutputWrapPtr->addEndPointPhaseZero(wusMsg.final_state(), input->ffluxOptions().phase_zero_burn_in_count());
+    if (not trajectoryList->isTrajectoryAborted(wusMsg.final_state().trajectory_id()))
+    {
+        currentFFluxPhaseOutputWrapPtr->addEndPointPhaseZero(wusMsg.final_state(), input->ffluxOptions().phase_zero_burn_in_count());
+    }
 }
 
 void FFluxSupervisor::startSimulationPhase()
@@ -470,6 +473,9 @@ void FFluxSupervisor::buildTrajectoryList()
 //        else printf("trajectory list is not NULL\n");
 //    }
 
+    // set the trajectory limits/tracking for this phase
+    input->reinitTrajectoryLimits(currentPhase(), currentPhaseLimit(), currentTiling());
+
     if (currentFFluxPhaseIndex()==0)
     {
         setTrajectoryList(new FFluxTrajectoryList(currentTrajectoryCount, currentFFluxPhaseIndex(), currentPhase(), currentPhaseLimit(), slots.getSimultaneousWorkUnits(), *input, currentTiling().currentBasin()));
@@ -478,9 +484,6 @@ void FFluxSupervisor::buildTrajectoryList()
     {
         setTrajectoryList(new FFluxTrajectoryList(currentTrajectoryCount, currentFFluxPhaseIndex(), currentPhase(), currentPhaseLimit(), slots.getSimultaneousWorkUnits(), *input, previousPhaseOutput()));
     }
-
-    // set the trajectory limits/tracking for this phase
-    input->reinitTrajectoryLimits(currentPhase(), currentPhaseLimit(), currentTiling());
 }
 
 bool FFluxSupervisor::terminateSimulationPhase()
@@ -575,9 +578,6 @@ void FFluxSupervisor::incrementSimulationStage()
 {
     // increment the currentFFluxPhase iterator
     currentFFluxStageIter++;
-
-    // increment the stage output
-    addFFluxStageOutput();
 }
 
 void FFluxSupervisor::addFFluxStageOutput()

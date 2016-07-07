@@ -61,7 +61,7 @@ template <typename Element, bool=IsNumeric<Element>::value> struct RepeatedGoogl
     typedef google::protobuf::RepeatedPtrField<Element> GoogleFieldType;
 
 
-#if CPP98
+#if __cplusplus <= 199711L
     // Returns the index of the first element of the wrapped RepeatedPtrField for which fieldVal==getterFunc(element), or -1 otherwise
     template <typename SubfieldElement>
     static int Index(const SubfieldElement& valToFind, SubfieldElement (Element::*fieldGetter)(), const GoogleFieldType* fieldConstPtr)
@@ -89,7 +89,7 @@ template <typename Element> struct RepeatedGoogleTypePolicy<Element, true>
 {
     typedef google::protobuf::RepeatedField<Element> GoogleFieldType;
 
-#if CPP98
+#if __cplusplus <= 199711L
     // for numeric types stored in a RepeatedField, the getterFunc version of Index is a dummy function
     template <typename T> static int Index(T, void*, void*) {throw UnimplementedException("Index called with a getterFunc is unimplemented for the Repeated wrapper templated on a numeric type.");}
 
@@ -113,7 +113,7 @@ template <typename Element> struct RepeatedGoogleTypePolicy<Element, true>
     typedef google::protobuf::RepeatedField<Element> type;
 };
 
-#if CPP98
+#if __cplusplus <= 199711L
 /*
  * - returns the index of the first element of the wrapped field for which fieldVal==getterFunc(element) , or -1 otherwise.
  *     - disabled (ie causes a compile-time error) if Element is a numeric type
@@ -279,7 +279,7 @@ public:
         wrappedField()->AddAllocated(value);
     }
 
-#if CPP98
+#if __cplusplus <= 199711L
     // Returns the index of the first element of the wrapped field for which fieldVal==getterFunc(element), or -1 otherwise. Unimplemented if Element is a numeric type
     template <typename SubfieldElement> int Index(const SubfieldElement& valToFind, SubfieldElement getterFuncPtr) const
     {
