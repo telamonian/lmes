@@ -129,6 +129,8 @@ public:
         // initialize the actual tracking message
         LimitTrackingWrap::WrappedMsg* trackingMsg = add_limit_trackings();
         trackingMsg->set_limit_id(limitToTrack->id());
+        // if the limit has a track_count, set the corresponding field in trackingMsg (to 0)
+        if (limitToTrack->has_track_count()) trackingMsg->set_count(0);
         return trackingMsg;
     }
 

@@ -177,7 +177,8 @@ public:
     {
         getMsg()->set_trajectory_id(trajectoryId);
 
-        valuesWrap.set_array(valuesInput, utuple(valuesInput.size(), numberOfColumns), compress);
+        // timesInput.size() is the number of "rows" in this time series
+        valuesWrap.set_array(valuesInput, utuple(timesInput.size(), numberOfColumns), compress);
         timesWrap.set_array(timesInput, utuple(timesInput.size()), compress);
     }
 

@@ -70,10 +70,14 @@ public:
     virtual ~RepeatedMap() {}
 
 // operators
-    Element* operator[](const Key& key) const {return at(key);}
+    Element* operator[](const Key& key)
+    {
+        if (map.count(key)==0) return Add(key);
+        else                   return map[key];
+    }
 
 // accessors
-    Element* at(const Key& key) const {return map.at(key);}
+    const Element* at(const Key& key) const {return map.at(key);}
 
 // mutators
     void addMemberElementPtrToMap(Element* memberValPtr) {map[(*getKeyFunc)(*memberValPtr)] = memberValPtr;}

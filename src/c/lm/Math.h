@@ -132,14 +132,27 @@ template <typename T1, typename T2> inline T1 mul(T1 val1, T2 val2)
     return val1 * val2;
 };
 
+template <typename IntType> inline IntType ceilDiv(IntType val0, IntType val1)
+{
+    return (IntType)ceil(val0/(double)val1);
+}
+
 /*
  * operations on containers
  */
-// product functor. ProductFunctor<T>::call(first, last) will return the product of an iterator range if T is a numeric type, and the first value in the range otherwise
-template <typename T, bool> struct _ProductFunctor;
-template <typename T> struct _ProductFunctor<T, true> {template <typename iterT> static T call(iterT first, iterT last) {return std::accumulate(first, last, static_cast<T>(1), std::multiplies<T>());}};   //mul);}};
-template <typename T> struct _ProductFunctor<T, false> {template <typename iterT> static T call(iterT first, iterT last) {return *first;}};
-template <typename T> struct ProductFunctor {template <typename iterT> static T call(iterT first, iterT last) {return _ProductFunctor<T, IsNumeric<T>::value>::call(first, last);}};
+// product functor. ProductFunctor<T>::call(first, last) will return the product of an iterator range if T is a numeric type (returns 0 if the range is empty)
+template <typename T, typename=typename EnableIf<IsNumeric<T>::value>::type> struct ProductFunctor
+{
+    template <typename iterT> static T call(iterT first, iterT last)
+    {
+        if (first==last) return static_cast<T>(0);
+        else             return std::accumulate(first, last, static_cast<T>(1), std::multiplies<T>());
+    }
+};
+
+//template <typename T> struct _ProductFunctor<T, true> {template <typename iterT> static T call(iterT first, iterT last) {return std::accumulate(first, last, static_cast<T>(1), std::multiplies<T>());}};   //mul);}};
+//template <typename T> struct _ProductFunctor<T, false> {template <typename iterT> static T call(iterT first, iterT last) {return *first;}};
+//template <typename T> struct ProductFunctor {template <typename iterT> static T call(iterT first, iterT last) {return _ProductFunctor<T, IsNumeric<T>::value>::call(first, last);}};
 
 #ifndef __cuda_cuda_h__
 using std::min;

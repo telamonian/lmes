@@ -82,7 +82,7 @@ int SimulationSupervisor::getRecvSleepMilliseconds()
 
 SimulationSupervisor::SimulationSupervisor()
 :communicator(lm::MPI::worldRank,THREAD_ID),hasCheckpointSignalerStarted(false),hasOutputWriterStarted(false),haveAllWorkUnitRunnersStarted(false),
- input(NULL),outstandingTrajectoryList(NULL),outputWriterClassName(""),outputWriterProcess(-1),outputWriterThread(-1),performingCheckpoint(false),
+ input(NULL),outputWriterClassName(""),outputWriterProcess(-1),outputWriterThread(-1),performingCheckpoint(false),
  resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),simulationPhaseIndex(0),simulationRunning(true),
  simulationPhaseTerminated(false),slots(&communicator),solverClassName(""),trajectoryList(NULL),useCPUAffinity(false),workUnitCount(0)
 {
@@ -91,8 +91,8 @@ SimulationSupervisor::SimulationSupervisor()
 
 SimulationSupervisor::~SimulationSupervisor()
 {
-    if (input != NULL) delete input; input = NULL;
-    if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL;
+    destructInput();
+    destructTrajectory();
 }
 
 void SimulationSupervisor::init()
@@ -489,8 +489,8 @@ void SimulationSupervisor::cleanUpSimulationPhase()
         if (simulationPhaseTerminated)
         {
             // Keep track of any outstanding work units. Important for coordinating clean program termination across all nodes
-            outstandingTrajectoryList->copyTrajectories(*trajectoryList, lm::trajectory::Trajectory::RUNNING);
-            outstandingTrajectoryList->setAll(lm::trajectory::Trajectory::RUNNING, lm::trajectory::Trajectory::ABORTED);
+            outstandingTrajectoryList.copyTrajectories(*trajectoryList, lm::trajectory::Trajectory::RUNNING);
+            outstandingTrajectoryList.setAll(lm::trajectory::Trajectory::RUNNING, lm::trajectory::Trajectory::ABORTED);
 
             // reset the simulationPhaseTerminated flag
             simulationPhaseTerminated = false;
@@ -564,16 +564,16 @@ bool SimulationSupervisor::receivedOther(lm::message::Message& msg)
     return false;
 }
 
-// setters
+// setters/destructors for attributes that may be shadowed by derived class attributes
 void SimulationSupervisor::setInput(lm::input::Input* newInput)
 {
-    if (input != NULL) delete input; input = NULL;
+    destructInput();
     input = newInput;
 }
 
 void SimulationSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList)
 {
-    if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL;
+    destructTrajectory();
     trajectoryList = newTrajectoryList;
 }
 

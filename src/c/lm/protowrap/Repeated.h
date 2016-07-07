@@ -205,6 +205,7 @@ public:
     };
 
     inline Element product() const {return ProductFunctor<Element>::call(begin(), end());}
+
     std::string repr(const char* suffix="") const
     {
         std::stringstream reprStream("(");
@@ -272,6 +273,12 @@ public:
 /*
  * function that need to be disabled if Element is a numeric type
  */
+    template <typename U>  //, typename EnableIf<!IsNumeric<U>::value>::type>
+    void AddAllocated(U* value)
+    {
+        wrappedField()->AddAllocated(value);
+    }
+
 #if CPP98
     // Returns the index of the first element of the wrapped field for which fieldVal==getterFunc(element), or -1 otherwise. Unimplemented if Element is a numeric type
     template <typename SubfieldElement> int Index(const SubfieldElement& valToFind, SubfieldElement getterFuncPtr) const
@@ -283,6 +290,7 @@ public:
     {
         SetAllPolicy<Element>::SetAll(newFieldVal, setterFuncPtr, wrappedField());
     }
+
 #else
     // sets a subfield in every element of the wrapped field to a single value, valToSet. Enabled only if Element is not numeric
     template <typename SubfieldElement, typename SubfieldSetter, typename U=Element, typename=typename EnableIf<!IsNumeric<U>::value>::type>

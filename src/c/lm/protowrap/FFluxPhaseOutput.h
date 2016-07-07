@@ -149,7 +149,7 @@ public:
         uint columns = speciesCountWrap.shape(1);
         for (int i=burnInCount;i<rows;i++)
         {
-            pointKey.assign(speciesCountDataForwardFlux[i*columns], speciesCountDataForwardFlux[(i + 1)*columns]);
+            pointKey.assign(speciesCountDataForwardFlux + i*columns, speciesCountDataForwardFlux + (i + 1)*columns);
             EndPointMsg* endPointMsg = successfulEndPointMap[pointKey];
             endPointMsg->set_count(endPointMsg->count() + 1);
             endPointMsg->add_times(timeDataForwardFlux[i]);
@@ -261,7 +261,7 @@ public:
             int32_t* speciesCountData = speciesCountWrap.get_data(true);
 
             uint columns = speciesCountWrap.shape(1);
-            pointKey.assign(speciesCountData[0], speciesCountData[columns]);
+            pointKey.assign(speciesCountData, speciesCountData + columns);
             EndPointMsg* endPointMsg = successfulEndPointMap[pointKey];
             endPointMsg->set_count(endPointMsg->count() + 1);
             endPointMsg->add_times(timeDataForwardFlux[0]);
@@ -279,9 +279,8 @@ public:
 
     const EndPointVector::Pair& getEndPointUniformRandom() const
     {
-        uint32_t i = *randomIndexes;
-        randomIndexes++;
-        return endPointVector[i];
+        uint32_t ri = getRandomIndex();
+        return endPointVector[ri];
     }
 
     Msg* getMsg()
@@ -357,7 +356,7 @@ protected:
         if (randomIndexes==NULL) {initRandomIndexes(randomCacheSize);}
 
         // get a large quantity of random doubles
-        rng->getExpRandomDoubles(randomDoublesStart, randomCacheSize);
+        rng->getRandomDoubles(randomDoublesStart, randomCacheSize);
 
         // set both randomIndexes and randomDoubles to the front of their arrays
         randomIndexes = randomIndexesStart;

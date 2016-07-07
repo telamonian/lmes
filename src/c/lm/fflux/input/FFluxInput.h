@@ -75,8 +75,8 @@ public:
 
 // (re)initializers
     virtual void reinitOutputOptions(const std::string& recordNamePrefix);
-    virtual void reinitTrajectoryLimits(int64_t ffluxPhaseIndex, const lm::tiling::Tiling& tiling, uint requiredFluxesPerTrajectory);
-    virtual void reinitTrajectoryLimitsPhaseZero(int64_t ffluxPhaseIndex, const lm::tiling::Tiling& tiling, uint requiredFluxesPerTrajectory);
+    virtual void reinitTrajectoryLimits(const lm::fflux::input::FFluxPhase& ffluxPhase, const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit, const lm::tiling::Tiling& tiling);
+    virtual void reinitTrajectoryLimitsPhaseZero(const lm::fflux::input::FFluxPhase& ffluxPhase, const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit, const lm::tiling::Tiling& tiling);
 
 // accessors
     const lm::fflux::input::FFluxOptions& ffluxOptions() const {return _ffluxOptions;}

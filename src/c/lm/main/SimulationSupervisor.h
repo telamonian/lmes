@@ -146,10 +146,11 @@ protected:
     virtual void receivedProcessWorkUnitOutput(lm::message::Message& msg);
     virtual bool receivedOther(lm::message::Message& msg);
 
-    // setters
+    // setters/destructors for attributes that may be shadowed by derived class attributes
     virtual void setInput(lm::input::Input* newInput);
     virtual void setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList);
-
+    virtual void destructInput() {if (input != NULL) delete input; input = NULL;}
+    virtual void destructTrajectory() {if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL;}
 
 private:
     void printPerformanceStatistics(bool flush=false);
@@ -175,7 +176,7 @@ protected:
     std::string solverClassName;
     lm::trajectory::TrajectoryList* trajectoryList;
     // extra trajectory list for keeping track of trajectories that weren't finished at the end of a simulation phase
-    lm::trajectory::TrajectoryList* outstandingTrajectoryList;
+    lm::trajectory::TrajectoryList outstandingTrajectoryList;
     bool useCPUAffinity;
     long long workUnitCount;
 

@@ -80,7 +80,7 @@ public:
     // construct Trajectory from a range of species count values (and optionally a starting time)
     template <typename InputIterator> Trajectory* initTrajectory(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd, double startTime, uint64_t phase, uint64_t id=DEFAULT_TRAJECTORY_ID)
     {
-        initTrajectory(new Trajectory(input, speciesStart, speciesEnd, startTime, phase, id));
+        return initTrajectory(new Trajectory(input, speciesStart, speciesEnd, startTime, phase, id));
     }
 
 // destroyer

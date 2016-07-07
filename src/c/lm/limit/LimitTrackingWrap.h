@@ -111,10 +111,22 @@ public:
     void serializeFrom(const lm::limit::LimitTracking::DegreeAdvancementContainer& degreeAdvancements_readfrom, const lm::limit::LimitTracking::OrderParameterContainer& orderParameterValues_readfrom,
                        const lm::limit::LimitTracking::SpeciesContainer& speciesCounts_readfrom, const lm::limit::LimitTracking::TimeContainer& times_readfrom, bool compress=false)
     {
-        mutable_degree_advancements()->set_array(degreeAdvancements_readfrom, utuple(degreeAdvancements_readfrom.size()), compress);
-        mutable_order_parameter_values()->set_array(orderParameterValues_readfrom, utuple(orderParameterValues_readfrom.size()), compress);
-        mutable_species_counts()->set_array(speciesCounts_readfrom, utuple(speciesCounts_readfrom.size()), compress);
-        mutable_times()->set_array(times_readfrom, utuple(times_readfrom.size()), compress);
+        // prevent any divide-by-zeros
+        if (times_readfrom.size() > 0)
+        {
+            // times_readfrom.size() is the number of "rows" in this dataset
+            _degree_advancements.set_array(degreeAdvancements_readfrom, utuple(times_readfrom.size(), degreeAdvancements_readfrom.size()/times_readfrom.size()), compress);
+            _order_parameter_values.set_array(orderParameterValues_readfrom, utuple(times_readfrom.size(), orderParameterValues_readfrom.size()/times_readfrom.size()), compress);
+            _species_counts.set_array(speciesCounts_readfrom, utuple(times_readfrom.size(), speciesCounts_readfrom.size()/times_readfrom.size()), compress);
+            _times.set_array(times_readfrom, utuple(times_readfrom.size()), compress);
+        }
+        else
+        {
+            _degree_advancements.set_array(degreeAdvancements_readfrom, utuple(0), compress);
+            _order_parameter_values.set_array(orderParameterValues_readfrom, utuple(0), compress);
+            _species_counts.set_array(speciesCounts_readfrom, utuple(0), compress);
+            _times.set_array(times_readfrom, utuple(0), compress);
+        }
     }
 
     void serializeFrom(uint64_t trajectoryID_readfrom, const LimitTracking& lt)

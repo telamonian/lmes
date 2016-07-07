@@ -92,8 +92,10 @@ protected:
 
     // setup methods that run at the start of every fflux stage
     virtual void startSimulationStage();
-    template <typename ValT> void buildFFluxPhaseLimit(lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit, FFPhaseLimEnums::StopCondition stopCondition, ValT value);
+    template <typename ValT> lm::fflux::input::FFluxPhaseLimit* buildFFluxPhaseLimit(lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit, FFPhaseLimEnums::StopCondition stopCondition, ValT value);
     template <typename ValT> void addFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage, FFPhaseLimEnums::StopCondition stopCondition, ValT value);
+    // TODO: spin this function off as part of an FFluxPhase wrapper
+    static void buildFFluxPhaseLimitTrajectoriesToRun(lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit, const lm::fflux::input::FFluxPhase& ffluxPhase, uint simultaneousWorkUnits);
     void repeatFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage, const lm::fflux::input::FFluxPhaseLimit& limitToRepeat);
 //    template <typename ValueT> void repeatFFluxPhaseLimits(lm::protowrap::Repeated<lm::fflux::input::FFluxPhaseLimit>::iterator begin, const lm::fflux::input::FFluxPhaseLimit& limitToRepeat);
     virtual void addFFluxPhaseLimitsFromInput(lm::fflux::input::FFluxStage* productionStage);
@@ -112,13 +114,13 @@ protected:
     // methods that control what happens at the end of a ffluxPhase
     virtual bool terminateSimulationPhase();
     virtual void finishSimulationPhase();
-    virtual bool performAnotherSimulationPhase() {return isCurrentPhaseLast();}
+    virtual bool performAnotherSimulationPhase() {return not isCurrentPhaseLast();}
     virtual void incrementSimulationPhase();
     virtual void addFFluxPhaseOutput();
 
     // methods that control what happens at the end of a ffluxStage
     virtual void finishSimulationStage();
-    virtual bool performAnotherSimulationStage() {return isCurrentStageLast();}
+    virtual bool performAnotherSimulationStage() {return not isCurrentStageLast();}
     virtual void incrementSimulationStage();
     virtual void addFFluxStageOutput();
 
@@ -129,7 +131,7 @@ protected:
 
     // accessors
     // figure out how many flux events we need to observe per trajectory. Useful only during phase zero
-    virtual uint requiredFluxesPerTrajectory() const {return (uint)(ceil((double)(currentPhaseLimit().uvalue())/lm::fflux::FFluxTrajectoryList::getTrajectoriesToStart(currentPhase(), currentPhaseLimit(), slots.getSimultaneousWorkUnits())));}
+//    virtual uint requiredFluxesPerTrajectory() const {return (uint)(ceil((double)(currentPhaseLimit().uvalue())/lm::fflux::FFluxTrajectoryList::getTrajectoriesToStart(currentPhase(), currentPhaseLimit(), slots.getSimultaneousWorkUnits())));}
 
     virtual const lm::fflux::input::FFluxPhase& currentPhase() const {return *currentFFluxPhaseIter;}
     virtual int64_t currentFFluxPhaseIndex() const {return currentPhase().fflux_phase_index();}
@@ -140,6 +142,7 @@ protected:
     virtual const lm::protowrap::FFluxPhaseOutput& previousPhaseOutput() const {return *previousFFluxPhaseOutputWrapPtr;}
 
     virtual const lm::fflux::input::FFluxStage& currentStage() const {return **currentFFluxStageIter;}
+    virtual int64_t currentStageIndex() const {return currentFFluxStageIter - ffluxStageExecutionOrder.begin();}
     virtual const lm::protowrap::FFluxStageOutput& currentStageOutput() const {return currentFFluxStageOutputWrap;}
     virtual int getStageCount() const {return ffluxStageExecutionOrder.size();}
     virtual bool isCurrentStageLast() const {return currentFFluxStageIter==ffluxStageExecutionOrder.end();}
@@ -157,9 +160,11 @@ protected:
     virtual lm::tiling::Tiling* mutableCurrentTiling() {return &currentTilingWrap;}
     virtual void setCurrentTiling(lm::input::Tiling* newCurrentTilingMsg) {currentTilingWrap.init(newCurrentTilingMsg, input->getOrderParameters());}
 
-    // setters to help with shadowing pointers in the base class
+    // setters/destructors to help with shadowing pointers in the base class
     virtual void setInput(lm::input::Input* newInput);
     virtual void setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList);
+    virtual void destructInput() {SimulationSupervisor::destructInput(); input = NULL;}
+    virtual void destructTrajectory() {SimulationSupervisor::destructTrajectory(); trajectoryList = NULL;}
 
     // deprecated
 //    virtual void finishSimulation();
@@ -167,7 +172,7 @@ protected:
 //    virtual void receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg);
 
 protected:
-    lm::fflux::input::FFluxStageList ffluxStageList;
+    lm::fflux::input::FFluxStageList ffluxStageListMsg;
     FFluxStageVector ffluxStageExecutionOrder;
     FFluxStageVector::iterator currentFFluxStageIter;
     FFluxPhases::iterator currentFFluxPhaseIter;

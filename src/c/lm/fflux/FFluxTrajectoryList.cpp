@@ -118,9 +118,18 @@ uint64_t FFluxTrajectoryList::getTrajectoriesToStart(const FFluxPhase& ffluxPhas
     if (ffluxPhase.trajectory_generation()==FFPhaseEnums::EAGER)
     {
         // EAGER is only implemented for certain ffluxPhaseLimit.stop_condition() values
-        if (ffluxPhaseLimit.stop_condition()==FFPhaseLimEnums::TRAJECTORY_COUNT and ffluxPhase.fflux_phase_index()!=0)
+        if (ffluxPhaseLimit.stop_condition()==FFPhaseLimEnums::TRAJECTORY_COUNT or (ffluxPhaseLimit.stop_condition()==FFPhaseLimEnums::FORWARD_FLUXES and ffluxPhase.fflux_phase_index()==0))
         {
-            return ffluxPhaseLimit.uvalue();
+            if (ffluxPhaseLimit.has_events_per_trajectory())
+            {
+                // given that our trajectory limits are set up to observe x events per trajectory, run ceil(y/x) trajectories to ensure that we observe at least y events total
+                return (uint64_t)ceil(ffluxPhaseLimit.uvalue()/(double)ffluxPhaseLimit.events_per_trajectory());
+            }
+            else
+            {
+                // in this case assume that we want to observe the maximum number of events per trajectory, so just run enough trajectories for one "round" (ie one trajectory per work unit runner)
+                return simultaneousWorkUnits*ffluxPhase.batch_size();
+            }
         }
         else throw UnimplementedException("In Forward Flux phase %d, ffluxPhase.trajectory_generation()==EAGER is only implemented for certain ffluxPhaseLimit.stop_condition() values (ie those that let us calculate the necessary trajectory count up front). Attempting to use unimplemented ffluxPhaseLimit.stop_condition(): %s", ffluxPhase.fflux_phase_index(), FFPhaseLimEnums::StopCondition_Name(ffluxPhaseLimit.stop_condition()).c_str());
     }
