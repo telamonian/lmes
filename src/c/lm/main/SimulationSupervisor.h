@@ -134,7 +134,6 @@ protected:
     // simulation phase finalization
     virtual bool terminateSimulationPhase();
     virtual void finishSimulationPhase();
-    virtual void cleanUpSimulationPhase();
     virtual bool performAnotherSimulationPhase();
     virtual void incrementSimulationPhase();
 
@@ -171,12 +170,10 @@ protected:
     std::string simulationOutputFilename;
     uint64_t simulationPhaseIndex;
     bool simulationRunning;
-    bool simulationPhaseTerminated;
+    bool simulationPhaseEverTerminated;
     lm::slot::SlotList slots;
     std::string solverClassName;
     lm::trajectory::TrajectoryList* trajectoryList;
-    // extra trajectory list for keeping track of trajectories that weren't finished at the end of a simulation phase
-    lm::trajectory::TrajectoryList outstandingTrajectoryList;
     bool useCPUAffinity;
     long long workUnitCount;
 

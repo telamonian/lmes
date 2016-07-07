@@ -485,6 +485,7 @@ void FFluxSupervisor::buildTrajectoryList()
 
 bool FFluxSupervisor::terminateSimulationPhase()
 {
+    bool simulationPhaseTerminated;
     switch(mutableCurrentPhaseLimit()->stop_condition())
     {
     case FFPhaseLimEnums::FORWARD_FLUXES:
@@ -496,7 +497,10 @@ bool FFluxSupervisor::terminateSimulationPhase()
     case FFPhaseLimEnums::TIME:
         simulationPhaseTerminated = (currentFFluxPhaseOutputWrapPtr->getMsg()->sucessful_trajectories_launched_total_time() + currentFFluxPhaseOutputWrapPtr->getMsg()->failed_trajectories_launched_total_time()>=mutableCurrentPhaseLimit()->dvalue());
         break;
+    default: throw UnimplementedException("unimplemented");
     }
+
+    if (simulationPhaseTerminated) simulationPhaseEverTerminated = true;
     return simulationPhaseTerminated;
 }
 
@@ -504,9 +508,6 @@ void FFluxSupervisor::finishSimulationPhase()
 {
     // send the phase output to the output writer
     // TODO: implement sending FFluxPhaseOutput to output writer
-
-    // do any necessary cleanup of the now finished simulation phase
-    cleanUpSimulationPhase();
 
     // if we need to perform another phase, do so
     if (performAnotherSimulationPhase())

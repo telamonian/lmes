@@ -102,7 +102,8 @@ public:
 
 // mutators
     virtual int addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUnit* msg, uint numberParts);
-    virtual void copyTrajectories(const TrajectoryList& srcTrajList, Trajectory::Status status);
+    virtual void copyTrajectoriesWeakly(const TrajectoryList& srcTrajList, Trajectory::Status status);
+    virtual void copyWorkUnitsRunning(const TrajectoryList& srcTrajList);
     virtual Trajectory* getTrajectoryForFinishedWorkUnit(uint64_t id);
     virtual TrajectoryMap* getTrajectoryMap(Trajectory::Status status);
     virtual void setSimulationPhaseIndex(uint64_t newPhaseIx) {_simulationPhaseIndex = newPhaseIx;}
@@ -111,7 +112,8 @@ public:
     virtual void setTrajectoryFinished(lm::trajectory::Trajectory* traj) {setTrajectoryStatus(traj, finishedTrajectories, Trajectory::FINISHED);}
     virtual void setTrajectoryRunning(lm::trajectory::Trajectory* traj) {setTrajectoryStatus(traj, runningTrajectories, Trajectory::RUNNING);}
     virtual void setTrajectoryWaiting(lm::trajectory::Trajectory* traj) {setTrajectoryStatus(traj, waitingTrajectories, Trajectory::WAITING);}
-    virtual void takeTrajectories(TrajectoryList* srcTrajList, Trajectory::Status status);
+    virtual void takeTrajectories(TrajectoryList* srcTrajList, Trajectory::Status status, Trajectory::Status newStatus);
+    virtual void takeWorkUnitsRunning(TrajectoryList* srcTrajList);
     virtual void workUnitFinished(const lm::message::FinishedWorkUnit& fwuMsg);
     virtual void workUnitPartFinished(const lm::message::WorkUnitStatus& wusBuf, lm::trajectory::Trajectory* traj);
 

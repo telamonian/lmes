@@ -84,7 +84,7 @@ SimulationSupervisor::SimulationSupervisor()
 :communicator(lm::MPI::worldRank,THREAD_ID),hasCheckpointSignalerStarted(false),hasOutputWriterStarted(false),haveAllWorkUnitRunnersStarted(false),
  input(NULL),outputWriterClassName(""),outputWriterProcess(-1),outputWriterThread(-1),performingCheckpoint(false),
  resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),simulationPhaseIndex(0),simulationRunning(true),
- simulationPhaseTerminated(false),slots(&communicator),solverClassName(""),trajectoryList(NULL),useCPUAffinity(false),workUnitCount(0)
+ simulationPhaseEverTerminated(false),slots(&communicator),solverClassName(""),trajectoryList(NULL),useCPUAffinity(false),workUnitCount(0)
 {
     resetPerformanceStatistics();
 }
@@ -327,9 +327,6 @@ void SimulationSupervisor::startSimulationPhase()
     // Build the list of trajectories to simulate.
     buildTrajectoryList();
 
-    // If there are any outstanding aborted trajectories from the previous phase, have the new trajectoryList take ownership of them
-    if (outstandingTrajectoryList!=NULL) trajectoryList->takeTrajectories(outstandingTrajectoryList, lm::trajectory::Trajectory::ABORTED);
-
     // Assign the first batch of work.
     if (terminateSimulationPhase() || assignWork())
     {
@@ -457,18 +454,18 @@ void SimulationSupervisor::buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, 
     input->copyLimitTrackingsTo(msg);
 }
 
-//.terminateSimulationPhase() serves as a hook for more complex phase-ending behavior in subclassed Supervisors. All versions should set the simulationPhaseTerminated flag and return it
+/*
+ * - terminateSimulationPhase() serves as a hook for more complex phase-ending behavior in subclassed Supervisors.
+ *     - All non-trivial versions should set the simulationPhaseEverTerminated (see FFluxSupervisor for an example)
+ */
 bool SimulationSupervisor::terminateSimulationPhase()
 {
-    simulationPhaseTerminated = false;
-    return simulationPhaseTerminated;
+    // simulationPhaseEverTerminated = false;
+    return false;
 }
 
 void SimulationSupervisor::finishSimulationPhase()
 {
-    // Do any necessary cleanup of the now finished simulation phase
-    cleanUpSimulationPhase();
-
     // If we need to perform another phase, do so, otherwise stop the simulation.
     if (performAnotherSimulationPhase())
     {
@@ -478,28 +475,6 @@ void SimulationSupervisor::finishSimulationPhase()
     else
     {
         finishSimulation();
-    }
-}
-
-void SimulationSupervisor::cleanUpSimulationPhase()
-{
-    if (trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::RUNNING)->size() > 0)
-    {
-        // If the simulation phase was forcibly terminated, make sure we clean up any running trajectories appropriately
-        if (simulationPhaseTerminated)
-        {
-            // Keep track of any outstanding work units. Important for coordinating clean program termination across all nodes
-            outstandingTrajectoryList.copyTrajectories(*trajectoryList, lm::trajectory::Trajectory::RUNNING);
-            outstandingTrajectoryList.setAll(lm::trajectory::Trajectory::RUNNING, lm::trajectory::Trajectory::ABORTED);
-
-            // reset the simulationPhaseTerminated flag
-            simulationPhaseTerminated = false;
-        }
-        // Otherwise, the default supervisor behavior is to throw an exception if there are trajectories still running at the end of a phase
-        else
-        {
-            throw ConsistencyException("At end of simulation phase, there were %d trajectories still running (should be 0)", trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::RUNNING)->size());
-        }
     }
 }
 
@@ -573,6 +548,25 @@ void SimulationSupervisor::setInput(lm::input::Input* newInput)
 
 void SimulationSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList)
 {
+    if (trajectoryList != NULL)
+    {
+        if (trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::RUNNING)->size() > 0)
+        {
+            // If the simulation phase was ever forcibly terminated, make sure we clean up any running trajectories appropriately
+            if (simulationPhaseEverTerminated)
+            {
+                // Keep track of any outstanding work units. Important for coordinating clean program termination across all nodes
+                newTrajectoryList->takeTrajectories(trajectoryList, lm::trajectory::Trajectory::RUNNING, lm::trajectory::Trajectory::ABORTED);
+                newTrajectoryList->takeWorkUnitsRunning(trajectoryList);
+            }
+                // Otherwise, the default supervisor behavior is to throw an exception if there are trajectories still running at the end of a phase
+            else
+            {
+                throw ConsistencyException("At end of simulation phase, there were %d trajectories still running (should be 0)", trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::RUNNING)->size());
+            }
+        }
+    }
+
     destructTrajectory();
     trajectoryList = newTrajectoryList;
 }

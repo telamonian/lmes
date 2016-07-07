@@ -227,7 +227,7 @@ int TrajectoryList::addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUn
     return trajectoriesAdded.size();
 }
 
-void TrajectoryList::copyTrajectories(const TrajectoryList& srcTrajList, Trajectory::Status status)
+void TrajectoryList::copyTrajectoriesWeakly(const TrajectoryList& srcTrajList, Trajectory::Status status)
 {
     TrajectoryMap* dstMap = getTrajectoryMap(status);
     const TrajectoryMap& srcMap = srcTrajList.getTrajectoryMap(status);
@@ -235,6 +235,14 @@ void TrajectoryList::copyTrajectories(const TrajectoryList& srcTrajList, Traject
     for (TrajectoryMap::const_iterator it=srcMap.begin();it!=srcMap.end();it++)
     {
         (*dstMap)[it->first] = it->second;
+    }
+}
+
+void TrajectoryList::copyWorkUnitsRunning(const TrajectoryList& srcTrajList)
+{
+    for (map<uint64_t,list<uint64_t> >::const_iterator it=srcTrajList.workUnitsRunning.begin();it!=srcTrajList.workUnitsRunning.end();it++)
+    {
+        workUnitsRunning[it->first] = it->second;
     }
 }
 
@@ -246,20 +254,20 @@ Trajectory* TrajectoryList::getTrajectoryForFinishedWorkUnit(uint64_t id)
         t = runningTrajectories[id];
         if (t->getStatus() != Trajectory::RUNNING)
         {
-            throw ConsistencyException("Consistency error in trajectory list, expected trajectory did not have a running status", id);
+            throw ConsistencyException("Consistency error in trajectory list, trajectory %d found in runningTrajectories map but did not have a running status", id);
         }
     }
     else if (abortedTrajectories.count(id) == 1)
     {
         t = abortedTrajectories[id];
-        if (t->getStatus() != Trajectory::ABORTED)
+        if (t != NULL and t->getStatus() != Trajectory::ABORTED)
         {
-            throw ConsistencyException("Consistency error in trajectory list, expected trajectory did not have a running status", id);
+            throw ConsistencyException("Consistency error in trajectory list, trajectory %d found in abortedTrajectories map but did not have an aborted status", id);
         }
     }
     else
     {
-        throw ConsistencyException("Consistency error in trajectory list, expected trajectory not in the aborted or running list", id);
+        throw ConsistencyException("Consistency error in trajectory list, trajectory %d not in the aborted or running maps", id);
     }
     return t;
 }
@@ -281,15 +289,26 @@ void TrajectoryList::setAll(Trajectory::Status oldStatus, Trajectory::Status new
     oldMap.clear();
 }
 
-void TrajectoryList::takeTrajectories(TrajectoryList* srcTrajList, Trajectory::Status status)
+void TrajectoryList::takeTrajectories(TrajectoryList* srcTrajList, Trajectory::Status srcStatus, Trajectory::Status newStatus)
 {
-    copyTrajectories(*srcTrajList, status);
-    TrajectoryMap* srcMap = srcTrajList->getTrajectoryMap(status);
+    TrajectoryMap* dstMap = getTrajectoryMap(newStatus);
+    TrajectoryMap* srcMap = srcTrajList->getTrajectoryMap(srcStatus);
 
+    // By copying the trajectory pointers into this instance's primary trajectories map (and by erasing it from the src's trajectories) we have taken ownership of the pointed-to-trajectories' memory
     for (TrajectoryMap::iterator it=srcMap->begin();it!=srcMap->end();it++)
     {
+        trajectories[it->first] = it->second;
+        (*dstMap)[it->first] = it->second;
+        it->second->setStatus(newStatus);
+
+        srcTrajList->trajectories.erase(it->first);
         srcMap->erase(it);
     }
+}
+
+void TrajectoryList::takeWorkUnitsRunning(TrajectoryList* srcTrajList){
+    copyWorkUnitsRunning(*srcTrajList);
+    srcTrajList->workUnitsRunning.clear();
 }
 
 void TrajectoryList::workUnitPartFinished(const lm::message::WorkUnitStatus& wusBuf, lm::trajectory::Trajectory* traj)
