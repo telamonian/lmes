@@ -40,19 +40,19 @@ syntax = "proto2";
 package lm.fflux.io;
 
 message FFluxPhaseOutput {
-    optional int64 fflux_phase_index                           = 1;
-    optional int64 basin_index                                 = 2;
-    optional uint64 tiling_id                                  = 3;
+    optional int64 fflux_phase_index                            = 1;
+    optional int64 basin_index                                  = 2;
+    optional uint64 tiling_id                                   = 3;
 
-    repeated StartPoint start_points                           = 11;
+    repeated StartPoint start_points                            = 11;
 
-    optional uint64 sucessful_trajectories_launched_count      = 21 [default=0];
-    optional double sucessful_trajectories_launched_total_time = 22 [default=0.0];
-    optional uint64 failed_trajectories_launched_count         = 23 [default=0];
-    optional double failed_trajectories_launched_total_time    = 24 [default=0.0];
+    optional uint64 successful_trajectories_launched_count      = 21 [default=0];
+    optional double successful_trajectories_launched_total_time = 22 [default=0.0];
+    optional uint64 failed_trajectories_launched_count          = 23 [default=0];
+    optional double failed_trajectories_launched_total_time     = 24 [default=0.0];
 
     // TODO: currently start_points is uniplemented, so we're using successful_trajectory_end_points as a kludge in the meantime. eventually this field will be removed
-    repeated EndPoint sucessful_trajectory_end_points          = 101;
+    repeated EndPoint successful_trajectory_end_points          = 101;
 }
 
 message StartPoint {
@@ -61,13 +61,13 @@ message StartPoint {
     optional double time                                       = 3 [default=0.0];
     repeated uint64 degree_advancements                        = 4 [packed=true];
 
-    optional uint64 sucessful_trajectories_launched_count      = 11 [default=0];
-    optional double sucessful_trajectories_launched_total_time = 12 [default=0.0];
-    optional uint64 failed_trajectories_launched_count         = 13 [default=0];
-    optional double failed_trajectories_launched_total_time    = 14 [default=0.0];
+    optional uint64 successful_trajectories_launched_count      = 11 [default=0];
+    optional double successful_trajectories_launched_total_time = 12 [default=0.0];
+    optional uint64 failed_trajectories_launched_count          = 13 [default=0];
+    optional double failed_trajectories_launched_total_time     = 14 [default=0.0];
 
-    repeated EndPoint sucessful_trajectory_end_points          = 21;
-    repeated EndPoint failed_trajectory_end_points             = 22;
+    repeated EndPoint successful_trajectory_end_points          = 21;
+    repeated EndPoint failed_trajectory_end_points              = 22;
 }
 
 message EndPoint {

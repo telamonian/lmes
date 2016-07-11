@@ -157,7 +157,7 @@ public:
         uint rows = speciesCountWrap.shape(0);
         uint columns = speciesCountWrap.shape(1);
 
-        // load points from forward flux events into sucessful endpoints
+        // load points from forward flux events into successful endpoints
         for (int i=burnInCount;i<rows;i++)
         {
             pointKey.assign(speciesCountDataForwardFlux + i*columns, speciesCountDataForwardFlux + (i + 1)*columns);
@@ -174,11 +174,11 @@ public:
         if (timeWrapForwardFlux.compressed_deflate()) delete[] timeDataForwardFlux;
 
         // add to the summary metrics
-        msgPtr->set_sucessful_trajectories_launched_count(msgPtr->sucessful_trajectories_launched_count() + rows);
+        msgPtr->set_successful_trajectories_launched_count(msgPtr->successful_trajectories_launched_count() + rows);
 
         // correct totalTime for burn in and for time spent outside of the region of the starting basin (see Valeriani 2007)
         totalTime -= (getOtherBasinTimeCorrection(trajectoryState, burnInTime, totalTime) + burnInTime);
-        msgPtr->set_sucessful_trajectories_launched_total_time(msgPtr->sucessful_trajectories_launched_total_time() + totalTime);
+        msgPtr->set_successful_trajectories_launched_total_time(msgPtr->successful_trajectories_launched_total_time() + totalTime);
     }
 
     // this function encapsulates part of addEndPointFromLimitTrackingsPhaseZero, and so relies on the consistency checks run at the begininng of that function
@@ -266,12 +266,12 @@ public:
             msgPtr->set_failed_trajectories_launched_count(msgPtr->failed_trajectories_launched_count() + 1);
             msgPtr->set_failed_trajectories_launched_total_time(msgPtr->failed_trajectories_launched_total_time() + timeDataBackwardFlux[0]);
         }
-        else if (timeWrapBackwardFlux.size()==0 and timeWrapForwardFlux.size()==1)  // branch for "sucessful" trajectories (ie ones that fluxed forward)
+        else if (timeWrapBackwardFlux.size()==0 and timeWrapForwardFlux.size()==1)  // branch for "successful" trajectories (ie ones that fluxed forward)
         {
-            msgPtr->set_sucessful_trajectories_launched_count(msgPtr->sucessful_trajectories_launched_count() + 1);
-            msgPtr->set_sucessful_trajectories_launched_total_time(msgPtr->sucessful_trajectories_launched_total_time() + timeDataForwardFlux[0]);
+            msgPtr->set_successful_trajectories_launched_count(msgPtr->successful_trajectories_launched_count() + 1);
+            msgPtr->set_successful_trajectories_launched_total_time(msgPtr->successful_trajectories_launched_total_time() + timeDataForwardFlux[0]);
 
-            // since this is data from a "sucessful" trajectory (ie one that fluxed forward), add its endpoint to the list used to initialize the next phase
+            // since this is data from a "successful" trajectory (ie one that fluxed forward), add its endpoint to the list used to initialize the next phase
             speciesCountWrap.setWrappedMsg(limitTrackingsWrap.Get(1).species_counts());
             int32_t* speciesCountData = speciesCountWrap.get_data(true);
 
@@ -296,11 +296,6 @@ public:
     const EndPointVector::Pair& getEndPointUniformRandom() const
     {
         uint32_t ri = getRandomIndex();
-        if (ri >= endPointVector.size())
-        {
-            throw ConsistencyException("FFluxPhaseOutputWrap generated a random index outside the bounds of its endPointVector. ri: %d, endPointVector.size(): %d", ri, endPointVector.size());
-        }
-
         return endPointVector[ri];
     }
 
@@ -313,7 +308,7 @@ public:
     {
         msgPtr = newMsgMutablePtr;
 
-        successfulEndPointMap.setWrappedField(getMsg()->mutable_sucessful_trajectory_end_points());
+        successfulEndPointMap.setWrappedField(getMsg()->mutable_successful_trajectory_end_points());
         rebuildEndPointVector();
     }
 
@@ -364,10 +359,6 @@ protected:
         if (randomIndexesDirty)
         {
             randomIndexes++;
-            if (randomIndexes==randomIndexesEnd)
-            {
-                printf("hey!");
-            }
             return getIndexFromDouble(*randomDoubles++);
         }
             // otherwise, our cache of randomIndexes is still good, so just take from that
@@ -380,7 +371,12 @@ protected:
 
     inline uint32_t getIndexFromDouble(double d) const
     {
-        return static_cast<uint32_t>(floor(*randomDoubles*endPointVector.size()));
+        uint32_t ri = static_cast<uint32_t>(floor(d*endPointVector.size()));
+        if (ri >= endPointVector.size())
+        {
+            throw ConsistencyException("FFluxPhaseOutputWrap generated a random index outside the bounds of its endPointVector. ri: %d, endPointVector.size(): %d", ri, endPointVector.size());
+        }
+        return ri;
     }
 
     void fillRandomIndex() const
@@ -395,7 +391,7 @@ protected:
         randomIndexes = randomIndexesStart;
         randomDoubles = randomDoublesStart;
         
-        // convert the random doubles into random uints that can be used to randomly lookup values in our table of sucessful trajectory endpoints
+        // convert the random doubles into random uints that can be used to randomly lookup values in our table of successful trajectory endpoints
         for (;randomIndexes!=randomIndexesEnd and randomDoubles!=randomDoublesEnd;randomIndexes++,randomDoubles++)
         {
             *randomIndexes = getIndexFromDouble(*randomDoubles);
@@ -414,7 +410,7 @@ protected:
         size_t oldSize = endPointVector.size();
         endPointVector.clear();
 
-        // iterate over all of the endpoints in the sucessful_trajectory_end_point repeated field
+        // iterate over all of the endpoints in the successful_trajectory_end_point repeated field
         for (EndPointMap::iterator epit=successfulEndPointMap.begin();epit!=successfulEndPointMap.end();epit++)
         {
             // add an entry to endPointVector for every time a particular endpoint was "seen"
@@ -451,7 +447,7 @@ protected:
     lm::protowrap::NDArray<double> timeWrapForwardFlux, timeWrapBackwardFlux, timeWrapOtherBasinEntry;
     lm::protowrap::Repeated<lm::io::LimitTracking> limitTrackingsWrap;
 
-    // list of pointers into the sucessful_trajectory_end_points field. Part of the system used to randomly choose some of them
+    // list of pointers into the successful_trajectory_end_points field. Part of the system used to randomly choose some of them
     EndPointVector::T endPointVector;
 
     // rng used for randomly choosing points from one of the point lists. Caches large quantities of random numbers in an attempt to reduce the turnaround time of WorkUnitFinished messages on the supervisor

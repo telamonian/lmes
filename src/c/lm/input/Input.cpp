@@ -361,7 +361,7 @@ bool Input::parseBoundaryConditions(lm::input::BoundaryConditions* bc, string ar
     return bc->axis_specific_boundaries();
 }
 
-void Input::setFlagsOnSucess(bool result, bool* resultFlag0, bool* resultFlag1)
+void Input::setFlagsOnsuccess(bool result, bool* resultFlag0, bool* resultFlag1)
 {
     if (resultFlag0!=NULL and result) *resultFlag0 = result;
     if (resultFlag1!=NULL and result) *resultFlag1 = result;

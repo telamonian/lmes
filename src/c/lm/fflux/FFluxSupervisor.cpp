@@ -244,19 +244,8 @@ void FFluxSupervisor::startSimulationStage()
     // set the first phase of the new stage as the currentFFluxPhase
     currentFFluxPhaseIter = mutableCurrentStage()->mutable_fflux_phases()->begin();
 
-    stringstream stageInfo;
-    stageInfo << "tiling_id: " << currentStage().tiling().id();
-    stageInfo << ", basin_index: " << currentStage().tiling().current_basin_index();
-    if (currentStage().is_pilot_stage())
-    {
-        stageInfo << ", stage_type: " << "pilot";
-    }
-    else if (currentStage().has_pilot_stage())
-    {
-        stageInfo << ", stage_type: " << "production";
-    }
-
-    Print::printf(Print::INFO, "Forward Flux stage %3d (%s) started.", currentStageIndex(), stageInfo.str().c_str());
+    // print an info message about the stage we're starting up
+    Print::printf(Print::INFO, "Forward Flux stage %3d started (%s)", currentStageIndex(), currentStageInfo().c_str());
 
     // start the new phase
     startSimulationPhase();
@@ -428,38 +417,6 @@ valarray<double> FFluxSupervisor::getConstantFactors(const vector<double>& proba
     return constantFactors;
 }
 
-void FFluxSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg)
-{
-    // deal with the individual parts of the work unit at the fflux supervisor level
-    for (int i=0;i<msg.part_status_size();i++)
-    {
-        receivedFinishedWorkUnitPart(msg.part_status(i));
-    }
-
-    // call the base class function
-    lm::main::SimulationSupervisor::receivedFinishedWorkUnit(msg);
-}
-
-void FFluxSupervisor::receivedFinishedWorkUnitPart(const lm::message::WorkUnitStatus& wusMsg)
-{
-    if (not trajectoryList->isTrajectoryAborted(wusMsg.final_state().trajectory_id()) and wusMsg.status()==lm::message::WorkUnitStatus::LIMIT_REACHED)
-    {
-        if (currentFFluxPhaseIndex()==0)
-        {
-            receivedFinishedWorkUnitPartPhaseZero(wusMsg);
-        }
-        else
-        {
-            currentFFluxPhaseOutputWrapPtr->addEndPoint(wusMsg.final_state());
-        }
-    }
-}
-
-void FFluxSupervisor::receivedFinishedWorkUnitPartPhaseZero(const lm::message::WorkUnitStatus& wusMsg)
-{
-    currentFFluxPhaseOutputWrapPtr->addEndPointPhaseZero(wusMsg.final_state(), input->ffluxOptions().phase_zero_burn_in_count());
-}
-
 void FFluxSupervisor::startSimulationPhase()
 {
     // add a new phase output
@@ -472,20 +429,7 @@ void FFluxSupervisor::startSimulationPhase()
     simulationPhaseTerminated = false;
 
     // print an info message about the phase we're starting up
-    stringstream phaseInfo;
-    if (currentFFluxPhaseIndex()==0)
-    {
-        phaseInfo << "first_edge_value: " << currentStage().tiling().edges(0);
-    }
-    else
-    {
-        phaseInfo << "starting_edge_value: " << currentStage().tiling().edges(currentFFluxPhaseIndex() - 1);
-        phaseInfo << ", final_edge_value: " << currentStage().tiling().edges(currentFFluxPhaseIndex());
-    }
-    phaseInfo << ", phase_limit: " << FFPhaseLimEnums::StopCondition_Name(currentPhaseLimit().stop_condition());
-    phaseInfo << ">=" << (currentPhaseLimit().stop_condition()==FFPhaseLimEnums::TIME ? currentPhaseLimit().dvalue() : currentPhaseLimit().uvalue());
-
-    Print::printf(Print::INFO, "Forward Flux phase %3d (%s) started.", currentFFluxPhaseIndex(), phaseInfo.str().c_str());
+    Print::printf(Print::INFO, "Forward Flux phase %3d started (%s)", currentFFluxPhaseIndex(), currentPhaseInfo().c_str());
 
     // Assign the first batch of work.
     if (terminateSimulationPhase() || assignWork())
@@ -521,13 +465,13 @@ bool FFluxSupervisor::terminateSimulationPhase()
         switch(mutableCurrentPhaseLimit()->stop_condition())
         {
         case FFPhaseLimEnums::FORWARD_FLUXES:
-            simulationPhaseTerminated = (currentFFluxPhaseOutputWrapPtr->getMsg()->sucessful_trajectories_launched_count()>=mutableCurrentPhaseLimit()->uvalue());
+            simulationPhaseTerminated = (currentFFluxPhaseOutputWrapPtr->getMsg()->successful_trajectories_launched_count()>=mutableCurrentPhaseLimit()->uvalue());
             break;
         case FFPhaseLimEnums::TRAJECTORY_COUNT:
-            simulationPhaseTerminated = (currentFFluxPhaseOutputWrapPtr->getMsg()->sucessful_trajectories_launched_count() + currentFFluxPhaseOutputWrapPtr->getMsg()->failed_trajectories_launched_count()>=mutableCurrentPhaseLimit()->uvalue());
+            simulationPhaseTerminated = (currentFFluxPhaseOutputWrapPtr->getMsg()->successful_trajectories_launched_count() + currentFFluxPhaseOutputWrapPtr->getMsg()->failed_trajectories_launched_count()>=mutableCurrentPhaseLimit()->uvalue());
             break;
         case FFPhaseLimEnums::TIME:
-            simulationPhaseTerminated = (currentFFluxPhaseOutputWrapPtr->getMsg()->sucessful_trajectories_launched_total_time() + currentFFluxPhaseOutputWrapPtr->getMsg()->failed_trajectories_launched_total_time()>=mutableCurrentPhaseLimit()->dvalue());
+            simulationPhaseTerminated = (currentFFluxPhaseOutputWrapPtr->getMsg()->successful_trajectories_launched_total_time() + currentFFluxPhaseOutputWrapPtr->getMsg()->failed_trajectories_launched_total_time()>=mutableCurrentPhaseLimit()->dvalue());
             break;
         default: throw UnimplementedException("unimplemented");
         }
@@ -645,6 +589,84 @@ void FFluxSupervisor::addFFluxStageOutput()
 
     // set the new phase output to be the current phase output
     currentFFluxStageOutputWrap.setWrappedMsg(newStageOutputMsg);
+}
+
+// methods that handle FinishedWorkUnit messages
+void FFluxSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg)
+{
+    // deal with the individual parts of the work unit at the fflux supervisor level
+    for (int i=0;i<msg.part_status_size();i++)
+    {
+        receivedFinishedWorkUnitPart(msg.part_status(i));
+    }
+
+    // call the base class function
+    lm::main::SimulationSupervisor::receivedFinishedWorkUnit(msg);
+}
+
+void FFluxSupervisor::receivedFinishedWorkUnitPart(const lm::message::WorkUnitStatus& wusMsg)
+{
+    if (not trajectoryList->isTrajectoryAborted(wusMsg.final_state().trajectory_id()) and wusMsg.status()==lm::message::WorkUnitStatus::LIMIT_REACHED)
+    {
+        if (currentFFluxPhaseIndex()==0)
+        {
+            receivedFinishedWorkUnitPartPhaseZero(wusMsg);
+        }
+        else
+        {
+            currentFFluxPhaseOutputWrapPtr->addEndPoint(wusMsg.final_state());
+        }
+    }
+}
+
+void FFluxSupervisor::receivedFinishedWorkUnitPartPhaseZero(const lm::message::WorkUnitStatus& wusMsg)
+{
+    currentFFluxPhaseOutputWrapPtr->addEndPointPhaseZero(wusMsg.final_state(), input->ffluxOptions().phase_zero_burn_in_count());
+}
+
+// accessors
+/*
+ * a short string with some info about the current phase
+ */
+std::string FFluxSupervisor::currentPhaseInfo() const
+{
+
+    stringstream phaseInfo;
+    phaseInfo.setf(std::ios::fixed, std::ios::floatfield);
+    phaseInfo.precision(2);
+    if (currentFFluxPhaseIndex()==0)
+    {
+        phaseInfo << "first_edge_value: " << setw(7) << currentStage().tiling().edges(0);
+    }
+    else
+    {
+        phaseInfo << "starting_edge_value: " << setw(7) << currentStage().tiling().edges(currentFFluxPhaseIndex() - 1);
+        phaseInfo << ", final_edge_value: " << setw(7) << currentStage().tiling().edges(currentFFluxPhaseIndex());
+    }
+    phaseInfo << ", phase_limit: " << FFPhaseLimEnums::StopCondition_Name(currentPhaseLimit().stop_condition());
+    phaseInfo << " >= " << (currentPhaseLimit().stop_condition()==FFPhaseLimEnums::TIME ? currentPhaseLimit().dvalue() : currentPhaseLimit().uvalue());
+
+    return phaseInfo.str();
+}
+
+/*
+ * a short string with some info about the current stage
+ */
+std::string FFluxSupervisor::currentStageInfo() const
+{
+    stringstream stageInfo;
+    stageInfo << "tiling_id: " << currentStage().tiling().id();
+    stageInfo << ", basin_index: " << currentStage().tiling().current_basin_index();
+    if (currentStage().is_pilot_stage())
+    {
+        stageInfo << ", stage_type: " << "pilot";
+    }
+    else if (currentStage().has_pilot_stage())
+    {
+        stageInfo << ", stage_type: " << "production";
+    }
+
+    return stageInfo.str();
 }
 
 // setters

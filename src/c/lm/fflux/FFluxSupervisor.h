@@ -131,11 +131,9 @@ protected:
     virtual void receivedFinishedWorkUnitPartPhaseZero(const lm::message::WorkUnitStatus& wusMsg);
 
     // accessors
-    // figure out how many flux events we need to observe per trajectory. Useful only during phase zero
-//    virtual uint requiredFluxesPerTrajectory() const {return (uint)(ceil((double)(currentPhaseLimit().uvalue())/lm::fflux::FFluxTrajectoryList::getTrajectoriesToStart(currentPhase(), currentPhaseLimit(), slots.getSimultaneousWorkUnits())));}
-
     virtual const lm::fflux::input::FFluxPhase& currentPhase() const {return *currentFFluxPhaseIter;}
     virtual int64_t currentFFluxPhaseIndex() const {return currentPhase().fflux_phase_index();}
+    virtual std::string currentPhaseInfo() const;
     virtual const lm::fflux::input::FFluxPhaseLimit& currentPhaseLimit() const {return currentStage().fflux_phase_limits(currentFFluxPhaseIndex());}
     virtual const lm::protowrap::FFluxPhaseOutputWrap& currentPhaseOutput() const {return *currentFFluxPhaseOutputWrapPtr;}
     virtual int64_t finalFFluxPhaseIndex() const {return currentStage().fflux_phases_size() - 1;}
@@ -144,6 +142,7 @@ protected:
 
     virtual const lm::fflux::input::FFluxStage& currentStage() const {return **currentFFluxStageIter;}
     virtual int64_t currentStageIndex() const {return currentFFluxStageIter - ffluxStageExecutionOrder.begin();}
+    virtual std::string currentStageInfo() const;
     virtual const lm::protowrap::FFluxStageOutputWrap& currentStageOutput() const {return currentFFluxStageOutputWrap;}
     virtual int getStageCount() const {return ffluxStageExecutionOrder.size();}
     virtual bool isCurrentStageLast() const {return is_last(currentFFluxStageIter, ffluxStageExecutionOrder);}  //{return currentFFluxStageIter==ffluxStageExecutionOrder.end();}

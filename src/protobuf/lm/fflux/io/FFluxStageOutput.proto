@@ -62,9 +62,9 @@ message FFluxStageOutput {
 }
 
 message FFluxStageOuputRaw {
-    repeated uint64 sucessful_trajectory_counts      = 1 [packed=true];
-    repeated double sucessful_trajectory_total_times = 2 [packed=true];
+    repeated uint64 successful_trajectory_counts      = 1 [packed=true];
+    repeated double successful_trajectory_total_times = 2 [packed=true];
 
-    repeated uint64 failed_trajectory_counts         = 11 [packed=true];
-    repeated double failed_trajectory_total_times    = 12 [packed=true];
+    repeated uint64 failed_trajectory_counts          = 11 [packed=true];
+    repeated double failed_trajectory_total_times     = 12 [packed=true];
 }

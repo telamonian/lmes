@@ -119,7 +119,7 @@ protected:
 
     bool parseBoundaryConditions(lm::input::BoundaryConditions* bc, std::string arg);
 
-    virtual void setFlagsOnSucess(bool result, bool* resultFlag0, bool* resultFlag1);
+    virtual void setFlagsOnsuccess(bool result, bool* resultFlag0, bool* resultFlag1);
 
 protected:
     bool degreeAdvancementPresent;
@@ -167,7 +167,7 @@ protected:
             result = false;
         }
 
-        setFlagsOnSucess(result, resultFlag0, resultFlag1);
+        setFlagsOnsuccess(result, resultFlag0, resultFlag1);
         return result;
     }
 
@@ -187,7 +187,7 @@ protected:
             result = false;
         }
 
-        setFlagsOnSucess(result, resultFlag0, resultFlag1);
+        setFlagsOnsuccess(result, resultFlag0, resultFlag1);
         return result;
     }
 
@@ -207,7 +207,7 @@ protected:
             result = false;
         }
 
-        setFlagsOnSucess(result, resultFlag0, resultFlag1);
+        setFlagsOnsuccess(result, resultFlag0, resultFlag1);
         return result;
     }
 
@@ -217,7 +217,7 @@ protected:
         bool result = (simulationParameters.count(key)!=0);
         *flagPtr = result;
 
-        setFlagsOnSucess(result, resultFlag0, resultFlag1);
+        setFlagsOnsuccess(result, resultFlag0, resultFlag1);
         return result;
     }
 
@@ -228,7 +228,7 @@ protected:
         bool result = (simulationParameters.count(key)!=0);
         (obj.*setterFunc)(result);
 
-        setFlagsOnSucess(result, resultFlag0, resultFlag1);
+        setFlagsOnsuccess(result, resultFlag0, resultFlag1);
         return result;
     }
 
@@ -251,7 +251,7 @@ protected:
             result = false;
         }
 
-        setFlagsOnSucess(result, resultFlag0, resultFlag1);
+        setFlagsOnsuccess(result, resultFlag0, resultFlag1);
         return result;
     }
     

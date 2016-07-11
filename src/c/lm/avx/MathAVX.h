@@ -41,8 +41,8 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_MATHAVX
-#define LM_MATHAVX
+#ifndef LM_AVX_AVXMath
+#define LM_AVX_AVXMath
 
 #include <immintrin.h>
 #include "lm/Types.h"

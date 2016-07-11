@@ -57,16 +57,16 @@ class FFluxStageOutputRawWrap : public lm::protowrap::Msg<FFluxStageOutputRawWra
     typedef lm::fflux::io::FFluxPhaseOutput FFluxPhaseOutputMsg;
     typedef lm::protowrap::Repeated<FFluxPhaseOutputMsg> FFluxPhaseOutputsWrap;
     
-    WRAPPED_FIELDS_W_SERIALIZERS(repeated, uint64_t, sucessful_trajectory_counts,
-                                 repeated, double,   sucessful_trajectory_total_times,
+    WRAPPED_FIELDS_W_SERIALIZERS(repeated, uint64_t, successful_trajectory_counts,
+                                 repeated, double,   successful_trajectory_total_times,
                                  repeated, uint64_t, failed_trajectory_counts,
                                  repeated, double,   failed_trajectory_total_times)
 
     void buildFromFFluxPhaseOutputs(const FFluxPhaseOutputsWrap& ffluxPhaseOutputsWrap)
     {
         // store data from every phase output message in a set of repeated fields in the raw stage output
-        ffluxPhaseOutputsWrap.GetAll(&FFluxPhaseOutputMsg::sucessful_trajectories_launched_count, mutable_sucessful_trajectory_counts()->back_inserter());
-        ffluxPhaseOutputsWrap.GetAll(&FFluxPhaseOutputMsg::sucessful_trajectories_launched_total_time, mutable_sucessful_trajectory_total_times()->back_inserter());
+        ffluxPhaseOutputsWrap.GetAll(&FFluxPhaseOutputMsg::successful_trajectories_launched_count, mutable_successful_trajectory_counts()->back_inserter());
+        ffluxPhaseOutputsWrap.GetAll(&FFluxPhaseOutputMsg::successful_trajectories_launched_total_time, mutable_successful_trajectory_total_times()->back_inserter());
 
         ffluxPhaseOutputsWrap.GetAll(&FFluxPhaseOutputMsg::failed_trajectories_launched_count, mutable_failed_trajectory_counts()->back_inserter());
         ffluxPhaseOutputsWrap.GetAll(&FFluxPhaseOutputMsg::failed_trajectories_launched_total_time, mutable_failed_trajectory_total_times()->back_inserter());
@@ -95,17 +95,17 @@ class FFluxStageOutputWrap : public lm::protowrap::Msg<FFluxStageOutputWrap, lm:
     void buildFluxes()
     {
         // load some data from the raw stage output into a few valarrays
-        std::valarray<double> sucessfulTrajectoryCounts(lm::protowrap::make_valarray<double>::call(fflux_stage_output_raw().sucessful_trajectory_counts()));
-        std::valarray<double> sucessfulTrajectoryTotalTimes(lm::protowrap::make_valarray<double>::call(fflux_stage_output_raw().sucessful_trajectory_total_times()));
+        std::valarray<double> successfulTrajectoryCounts(lm::protowrap::make_valarray<double>::call(fflux_stage_output_raw().successful_trajectory_counts()));
+        std::valarray<double> successfulTrajectoryTotalTimes(lm::protowrap::make_valarray<double>::call(fflux_stage_output_raw().successful_trajectory_total_times()));
         std::valarray<double> failedTrajectoryTotalTimes(lm::protowrap::make_valarray<double>::call(fflux_stage_output_raw().failed_trajectory_total_times()));
 
 
-//        std::valarray<double> sucessfulTrajectoryCounts(static_cast<const double*>(fflux_stage_output_raw().sucessful_trajectory_counts().data()), fflux_stage_output_raw().sucessful_trajectory_counts().size());
-//        std::valarray<double> sucessfulTrajectoryTotalTimes(fflux_stage_output_raw().sucessful_trajectory_total_times().begin(), fflux_stage_output_raw().sucessful_trajectory_total_times().size());
+//        std::valarray<double> successfulTrajectoryCounts(static_cast<const double*>(fflux_stage_output_raw().successful_trajectory_counts().data()), fflux_stage_output_raw().successful_trajectory_counts().size());
+//        std::valarray<double> successfulTrajectoryTotalTimes(fflux_stage_output_raw().successful_trajectory_total_times().begin(), fflux_stage_output_raw().successful_trajectory_total_times().size());
 //        std::valarray<double> failedTrajectoryTotalTimes(fflux_stage_output_raw().failed_trajectory_total_times().begin(), fflux_stage_output_raw().failed_trajectory_total_times().size());
         
         // calculate the fluxes
-        std::valarray<double> newFluxes(sucessfulTrajectoryCounts/(sucessfulTrajectoryTotalTimes + failedTrajectoryTotalTimes));
+        std::valarray<double> newFluxes(successfulTrajectoryCounts/(successfulTrajectoryTotalTimes + failedTrajectoryTotalTimes));
         
         // set the fluxes
         mutable_fluxes()->serializeFrom(&newFluxes[0], &newFluxes[0] + newFluxes.size());
@@ -114,14 +114,14 @@ class FFluxStageOutputWrap : public lm::protowrap::Msg<FFluxStageOutputWrap, lm:
     void buildProbabilites()
     {
         // load some data from the raw stage output into a few valarrays
-        std::valarray<double> sucessfulTrajectoryCounts(lm::protowrap::make_valarray<double>::call(fflux_stage_output_raw().sucessful_trajectory_counts()));
+        std::valarray<double> successfulTrajectoryCounts(lm::protowrap::make_valarray<double>::call(fflux_stage_output_raw().successful_trajectory_counts()));
         std::valarray<double> failedTrajectoryCounts(lm::protowrap::make_valarray<double>::call(fflux_stage_output_raw().failed_trajectory_counts()));
 
-//        std::valarray<double> sucessfulTrajectoryCounts(static_cast<const double*>(fflux_stage_output_raw().sucessful_trajectory_counts().data()), fflux_stage_output_raw().sucessful_trajectory_counts().size());
+//        std::valarray<double> successfulTrajectoryCounts(static_cast<const double*>(fflux_stage_output_raw().successful_trajectory_counts().data()), fflux_stage_output_raw().successful_trajectory_counts().size());
 //        std::valarray<double> failedTrajectoryCounts(static_cast<const double*>(fflux_stage_output_raw().failed_trajectory_counts().data()), fflux_stage_output_raw().failed_trajectory_counts().size());
         
         // calculate the probabilities
-        std::valarray<double> newProbabilities(sucessfulTrajectoryCounts/(sucessfulTrajectoryCounts + failedTrajectoryCounts));
+        std::valarray<double> newProbabilities(successfulTrajectoryCounts/(successfulTrajectoryCounts + failedTrajectoryCounts));
 
         // set the probabilities
         mutable_probabilities()->serializeFrom(&newProbabilities[0], &newProbabilities[0] + newProbabilities.size());
