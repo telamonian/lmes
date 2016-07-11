@@ -152,10 +152,12 @@ public:
         // set total time, subtract out burn in time, and mark that we have "blocked" (ie accounted for) trajectory time up to the burn in time
         double burnInTime = burnInCount > 0 ? timeDataForwardFlux[burnInCount - 1] : 0.0;
         double totalTime = timeDataForwardFlux[timeWrapForwardFlux.size() - 1];
-        
-        // load points from forward flux events into sucessful endpoints
+
+        // get some metadata about the species counts
         uint rows = speciesCountWrap.shape(0);
         uint columns = speciesCountWrap.shape(1);
+
+        // load points from forward flux events into sucessful endpoints
         for (int i=burnInCount;i<rows;i++)
         {
             pointKey.assign(speciesCountDataForwardFlux + i*columns, speciesCountDataForwardFlux + (i + 1)*columns);
@@ -170,9 +172,12 @@ public:
         if (speciesCountWrap.compressed_deflate()) delete[] speciesCountDataForwardFlux;
         if (timeWrapForwardFlux.compressed_deflate()) delete[] timeDataForwardFlux;
 
+        // add to the summary metrics
+        msgPtr->set_sucessful_trajectories_launched_count(msgPtr->sucessful_trajectories_launched_count() + rows);
+
         // correct totalTime for burn in and for time spent outside of the region of the starting basin (see Valeriani 2007)
         totalTime -= (getOtherBasinTimeCorrection(trajectoryState, burnInTime, totalTime) + burnInTime);
-        msgPtr->set_sucessful_trajectories_launched_total_time(totalTime);
+        msgPtr->set_sucessful_trajectories_launched_total_time(msgPtr->sucessful_trajectories_launched_total_time() + totalTime);
     }
 
     // this function encapsulates part of addEndPointFromLimitTrackingsPhaseZero, and so relies on the consistency checks run at the begininng of that function

@@ -50,12 +50,13 @@
 #include "lm/fflux/FFluxTrajectoryList.h"
 #include "lm/io/FFluxOutput.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
+#include "lm/Iterator.h"
 #include "lm/limit/TrajectoryLimits.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
 #include "lm/protowrap/FFluxPhaseOutput.h"
-#include "lm/protowrap/FFluxStageOutput.h"
+#include "lm/protowrap/FFluxStageOutputWrap.h"
 #include "lm/protowrap/Repeated.h"
 #include "lm/trajectory/TrajectoryList.h"
 
@@ -99,10 +100,10 @@ protected:
     void repeatFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage, const lm::fflux::input::FFluxPhaseLimit& limitToRepeat);
 //    template <typename ValueT> void repeatFFluxPhaseLimits(lm::protowrap::Repeated<lm::fflux::input::FFluxPhaseLimit>::iterator begin, const lm::fflux::input::FFluxPhaseLimit& limitToRepeat);
     virtual void addFFluxPhaseLimitsFromInput(lm::fflux::input::FFluxStage* productionStage);
-    virtual void addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::protowrap::FFluxStageOutput& stageOutput, bool minimizeCost = true);
+    virtual void addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::protowrap::FFluxStageOutputWrap& stageOutput, bool minimizeCost = true);
 
     // the functions where all the computational cost minimization magic happens
-    inline static std::vector<uint64_t> optimizeTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const lm::protowrap::FFluxStageOutput& stageOutput, bool minimizeCost = true);
+    inline static std::vector<uint64_t> optimizeTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const lm::protowrap::FFluxStageOutputWrap& stageOutput, bool minimizeCost = true);
     inline static std::vector<uint64_t> minimizeCostTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const std::vector<double>& probabilities, const std::vector<double>& costs);
     inline static std::vector<uint64_t> minimizeCountTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const std::vector<double>& probabilities);
     inline static std::valarray<double> getConstantFactors(const std::vector<double>& probabilities);
@@ -143,7 +144,7 @@ protected:
 
     virtual const lm::fflux::input::FFluxStage& currentStage() const {return **currentFFluxStageIter;}
     virtual int64_t currentStageIndex() const {return currentFFluxStageIter - ffluxStageExecutionOrder.begin();}
-    virtual const lm::protowrap::FFluxStageOutput& currentStageOutput() const {return currentFFluxStageOutputWrap;}
+    virtual const lm::protowrap::FFluxStageOutputWrap& currentStageOutput() const {return currentFFluxStageOutputWrap;}
     virtual int getStageCount() const {return ffluxStageExecutionOrder.size();}
     virtual bool isCurrentStageLast() const {return is_last(currentFFluxStageIter, ffluxStageExecutionOrder);}  //{return currentFFluxStageIter==ffluxStageExecutionOrder.end();}
 
@@ -155,7 +156,7 @@ protected:
     virtual lm::protowrap::FFluxPhaseOutput* mutableCurrentPhaseOutput() {return currentFFluxPhaseOutputWrapPtr;}
 
     virtual lm::fflux::input::FFluxStage* mutableCurrentStage() {return *currentFFluxStageIter;}
-    virtual lm::protowrap::FFluxStageOutput* mutableCurrentStageOutput() {return &currentFFluxStageOutputWrap;}
+    virtual lm::protowrap::FFluxStageOutputWrap* mutableCurrentStageOutput() {return &currentFFluxStageOutputWrap;}
 
     virtual lm::tiling::Tiling* mutableCurrentTiling() {return &currentTilingWrap;}
     virtual void setCurrentTiling(lm::input::Tiling* newCurrentTilingMsg) {currentTilingWrap.init(newCurrentTilingMsg, input->getOrderParameters());}
@@ -188,7 +189,7 @@ protected:
 
     FFluxStageOutputs::WrappedField ffluxStageOutputMsgs;
     FFluxStageOutputs ffluxStageOutputsWrap;
-    lm::protowrap::FFluxStageOutput currentFFluxStageOutputWrap;
+    lm::protowrap::FFluxStageOutputWrap currentFFluxStageOutputWrap;
 
     // shadowing ptrs from the base class
     lm::fflux::input::FFluxInput* input;

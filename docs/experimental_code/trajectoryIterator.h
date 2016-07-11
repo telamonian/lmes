@@ -42,6 +42,7 @@
 // example of a custom iterator
 // iterator over map of lm::trajectory::Trajectory objects that reaches inside the Trajectory instances and returns lm::io::TrajectoryState
 
+#include <iterator>
 #include <map>
 #include <string>
 

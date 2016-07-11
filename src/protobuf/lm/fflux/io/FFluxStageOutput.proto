@@ -45,7 +45,7 @@ message FFluxStageOutput {
     /*
      * - fflux_stage is need for metadata purposes
      */
-    required lm.fflux.input.FFluxStage fflux_stage          = 1;
+    optional lm.fflux.input.FFluxStage fflux_stage          = 1;
 
     repeated double switching_time_per_tile                 = 11 [packed=true];
 

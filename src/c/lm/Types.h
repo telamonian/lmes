@@ -117,12 +117,20 @@ template<typename Key0, typename Key1, typename Value> struct PairMap
 /*
  * type traits
  */
-// template for IsNumeric type testing utility. For numeric types, IsNumeric<T>::value will be true
-template <typename T> struct IsNumeric {static const bool value = std::numeric_limits<T>::is_specialized;};
+template< class T> struct AddConst { typedef const T type; };
 
-template<bool cond, class T=int> struct EnableIf { typedef T type; };
+template<bool cond, class T=int> struct EnableIf {typedef T type;};
 template<class T> struct EnableIf<false, T> {};
 
+template <typename T> struct IsNumeric {static const bool value = std::numeric_limits<T>::is_specialized;};
+
+template<typename T, typename U> struct IsSame {static const bool value = false;};
+template<typename T> struct IsSame<T, T> {static const bool value = true;};
+
+template<typename, template <typename> class> struct IsSameTemplate {static const bool value = false;};
+template<template <typename> class T, template <typename> class U, typename Param> struct IsSameTemplate<T<Param>, U> {static const bool value = IsSame<T<Param>, U<Param> >::value;};
+
+/*
 template<typename B, typename D>
 struct IsBaseOf {
     typedef char (&yes)[1];
@@ -140,37 +148,14 @@ struct IsBaseOf {
     };
 };
 
-/*
+template<typename T> struct remove_const { typedef T type; };
+template<typename T> struct remove_const<T const> { typedef T type; };
+
 template<typename T> struct disable_if_void {template <typename This, typename Func> static T* call(This* _this, Func func) {return (*_this.*func)();}};
 template<> struct disable_if_void<void> {template <typename This, typename Func> static void* call(This* _this, Func func) {return NULL;}};
 
-template<typename T, typename U> struct IsSame {static const bool value = false;};
-template<typename T> struct IsSame<T, T> {static const bool value = true;};
- */
 
-/*
- * - function to check if an iterator points to the last element in a container
- *     - modified from http://stackoverflow.com/a/3516224/425458
- */
-template <typename Iter>
-Iter next(Iter iter)
-{
-    return ++iter;
-}
 
-template <typename Iter, typename Cont>
-bool is_last(Iter iter, const Cont& cont)
-{
-    // if the iterator points to the end, then return true only if the container is zero sized
-    if (cont.end()==iter)
-    {
-        return (cont.size()==0);
-    }
-    // otherwise, check if the next iterator value brings us to the container end
-    else
-    {
-        return (cont.end()==next(iter));
-    }
-}
+ */
 
 #endif /* TYPES_H_ */

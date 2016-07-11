@@ -140,6 +140,18 @@ template <typename IntType> inline IntType ceilDiv(IntType val0, IntType val1)
 /*
  * operations on containers
  */
+template <typename InputIterator, typename OutputIterator>
+void cumprod(InputIterator begin, InputIterator end, OutputIterator outputIt)
+{
+    std::partial_sum(begin, end, outputIt, std::multiplies<double>());
+}
+
+template <typename InputIterator, typename OutputIterator, typename PODType>
+void pairwiseMul(InputIterator begin, InputIterator end, OutputIterator outputIt, PODType coeff)
+{
+    std::transform(begin, end, outputIt, std::bind1st(std::multiplies<double>(), coeff));
+}
+
 // product functor. ProductFunctor<T>::call(first, last) will return the product of an iterator range if T is a numeric type (returns 0 if the range is empty)
 template <typename T, typename=typename EnableIf<IsNumeric<T>::value>::type> struct ProductFunctor
 {

@@ -94,7 +94,7 @@ void FFluxInput::initFFluxOptions(const lm::io::hdf5::Hdf5File& file)
     // set a default precision
     if (not hasPrecisionGoal() and not hasUserDefinedFFluxPhaseLimitLists())
     {
-        _ffluxOptions.set_precision_goal(.05);
+        _ffluxOptions.set_precision_goal(.25);
     }
 
     // check the fflux options we just parsed for consistency

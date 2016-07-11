@@ -86,65 +86,88 @@
 #define MAPTRIPLES1(f, x, y, z, peek, ...) f(x, y, z) MAP_NEXT (peek, MAPTRIPLES0) (f, peek, __VA_ARGS__)
 #define MAPTRIPLES(f, ...) EVAL (MAPTRIPLES1 (f, __VA_ARGS__, (), 0))
 
+#define MAPQUADS0(f, x, y, z, w, peek, ...) f(x, y, z, w) MAP_NEXT (peek, MAPQUADS1) (f, peek, __VA_ARGS__)
+#define MAPQUADS1(f, x, y, z, w, peek, ...) f(x, y, z, w) MAP_NEXT (peek, MAPQUADS0) (f, peek, __VA_ARGS__)
+#define MAPQUADS(f, ...) EVAL (MAPQUADS1 (f, __VA_ARGS__, (), 0))
 
-#define MAPTRIPLES_WSEP0(f, separator, x, y, z, peek, ...) f(x, y, z)separator MAP_NEXT (peek, MAPTRIPLES_WSEP1) (f, separator, peek, __VA_ARGS__)
-#define MAPTRIPLES_WSEP1(f, separator, x, y, z, peek, ...) f(x, y, z)separator MAP_NEXT (peek, MAPTRIPLES_WSEP0) (f, separator, peek, __VA_ARGS__)
-#define MAPTRIPLES_WSEP(f, separator, ...) EVAL (MAPTRIPLES_WSEP1 (f, separator, __VA_ARGS__, (), 0))
+#define PREPEND_COMMA1(...) ,##__VA_ARGS__
+#define PREPEND_COMMA(...) PREPEND_COMMA1(__VA_ARGS__)
+
+#define MAPTRIPLES_WCOMMA0(f, x, y, z, peek, ...) PREPEND_COMMA(f(x, y, z)) MAP_NEXT (peek, MAPTRIPLES_WCOMMA1) (f, peek, __VA_ARGS__)
+#define MAPTRIPLES_WCOMMA1(f, x, y, z, peek, ...) PREPEND_COMMA(f(x, y, z)) MAP_NEXT (peek, MAPTRIPLES_WCOMMA0) (f, peek, __VA_ARGS__)
+#define MAPTRIPLES_WCOMMA2(f, x, y, z, peek, ...) f(x, y, z) MAP_NEXT (peek, MAPTRIPLES_WCOMMA0) (f, peek, __VA_ARGS__)
+#define MAPTRIPLES_WCOMMA(f, ...) EVAL (MAPTRIPLES_WCOMMA2 (f, __VA_ARGS__, (), 0))
+
+#define MAPQUADS_WCOMMA0(f, x, y, z, w, peek, ...) PREPEND_COMMA(f(x, y, z, w)) MAP_NEXT (peek, MAPQUADS_WCOMMA1) (f, peek, __VA_ARGS__)
+#define MAPQUADS_WCOMMA1(f, x, y, z, w, peek, ...) PREPEND_COMMA(f(x, y, z, w)) MAP_NEXT (peek, MAPQUADS_WCOMMA0) (f, peek, __VA_ARGS__)
+#define MAPQUADS_WCOMMA2(f, x, y, z, w, peek, ...) f(x, y, z, w) MAP_NEXT (peek, MAPQUADS_WCOMMA0) (f, peek, __VA_ARGS__)
+#define MAPQUADS_WCOMMA(f, ...) EVAL (MAPQUADS_WCOMMA2 (f, __VA_ARGS__, (), 0))
+
+#define APPEND1(...) ,##__VA_ARGS__
+#define APPEND(x) x APPEND1
+#define TRIPLES_TO_QUADS(w, ...) MAPTRIPLES_WCOMMA(APPEND(w), __VA_ARGS__)
 
 /*
-#define MAP_WSEP_GET_END() 0, MAP_WSEP_END
-#define MAP_WSEP_NEXT0(test, next, ...) next MAP_WSEP_OUT
-#define MAP_WSEP_NEXT1(test, next) MAP_WSEP_NEXT0 (test, next, 0)
-#define MAP_WSEP_NEXT(test, next)  MAP_WSEP_NEXT1 (MAP_WSEP_GET_END test, next)
-
-#define MAPTRIPLES_WSEP0(f, x, y, z, peek, ...) f(x, y, z) MAP_WSEP_NEXT (peek, MAPTRIPLES_WSEP1) (f, peek, __VA_ARGS__)
-#define MAPTRIPLES_WSEP1(f, x, y, z, peek, ...) f(x, y, z) MAP_WSEP_NEXT (peek, MAPTRIPLES_WSEP0) (f, peek, __VA_ARGS__)
-#define MAPTRIPLES_WSEP(f, ...) EVAL (MAPTRIPLES_WSEP1 (f, __VA_ARGS__, (), 0))
+ * - The RESOLVE macro resolves a macro token to its defined value, or to a default value (passed in as a second arg) if the token is undefined
+ *     - The catch is that the token has to be defined as `#define TOKEN 0, value` instead of the simpler `#define TOKEN value`
  */
+#define RESOLVE0(token, default_token, ...) default_token
+#define RESOLVE(token, default_token) RESOLVE0(token, default_token, 0)
+ 
+#define EXPAND_AND_EVAL(f, ...) f(__VA_ARGS__)
 
 /*
  * - helper macros for deducing information about wrapped fields
  *     - CATEGORY_TYPE(x) returns numeric is x is a numeric type, and embedded otherwise
  */
-#define CATEGORY_bool     0, numeric
-#define CATEGORY_float    0, numeric
-#define CATEGORY_double   0, numeric
-#define CATEGORY_int32_t  0, numeric
-#define CATEGORY_int64_t  0, numeric
-#define CATEGORY_uint32_t 0, numeric
-#define CATEGORY_uint64_t 0, numeric
+#define CATEGORY_TYPE_bool     0, numeric
+#define CATEGORY_TYPE_float    0, numeric
+#define CATEGORY_TYPE_double   0, numeric
+#define CATEGORY_TYPE_int32_t  0, numeric
+#define CATEGORY_TYPE_int64_t  0, numeric
+#define CATEGORY_TYPE_uint32_t 0, numeric
+#define CATEGORY_TYPE_uint64_t 0, numeric
 
-/*
- * - The RESOLVE macro resolves a macro token to its defined value, or to a default value (passed in as a second arg) if the token is undefined
- *     - The catch is that the token has to be defined as `0, value` instead of the simpler `value`
- */
-#define RESOLVE0(token, default_token, ...) sub
-#define RESOLVE(token, default_token) RESOLVE0(token, default_token, 0)
-#define CATEGORY_TYPE(type) RESOLVE(CATEGORY_##type, embedded)
-*/
+#define CATEGORY_RULE_required_enum 0, numeric
+#define CATEGORY_RULE_optional_enum 0, numeric
+#define CATEGORY_RULE_repeated_enum 0, numeric
+
+#define GET_CATEGORY(rule, type) RESOLVE(CATEGORY_TYPE_##type, RESOLVE(CATEGORY_RULE_##rule, embedded))
+
+#define RULE_required_enum 0, required
+#define RULE_optional_enum 0, optional
+#define RULE_repeated_enum 0, repeated
+
+#define GET_RULE(rule) RESOLVE(RULE_##rule, rule)
 
 /*
  * - macros for wrapping singular fields of numeric type in protobuf msgs
  */
-#define _WRAPPED_required_numeric(Element, name)                                   \
+#define _WRAPPED_required_numeric_ATTR(Element, name)                                   \
 public:                                                                            \
-    void clear_##name() {wrappedMsgPtr->clear_##name();}                           \
-    const Element name() const {return wrappedMsgPtr->name();}                     \
-    void set_##name(const Element& newVal) {wrappedMsgPtr->set_##name(newVal);}    \
-    bool has_##name() const {return wrappedMsgPtr->has_##name();}
+    inline void clear_##name() {wrappedMsgPtr->clear_##name();}                           \
+    inline const Element name() const {return wrappedMsgPtr->name();}                     \
+    inline void set_##name(const Element& newVal) {wrappedMsgPtr->set_##name(newVal);}    \
+    inline bool has_##name() const {return wrappedMsgPtr->has_##name();}
 
-#define _WRAPPED_optional_numeric(Element, name)    \
-    _WRAPPED_required_numeric(Element, name)
+#define _WRAPPED_optional_numeric_ATTR(Element, name)    \
+    _WRAPPED_required_numeric_ATTR(Element, name)
 
 #define _WRAPPED_required_numeric_SEATER(Element, name)
 
 #define _WRAPPED_optional_numeric_SEATER(Element, name)
 
- 
+
+#define _WRAPPED_required_numeric_DESERIALIZETO_TEMPLATE_SIGNATURE(Element, name)    \
+    typename
+
+#define _WRAPPED_optional_numeric_DESERIALIZETO_TEMPLATE_SIGNATURE(Element, name)    \
+    typename
+
 #define _WRAPPED_required_numeric_DESERIALIZETO_SIGNATURE(Element, name)    \
     Element* name##_writeto
 
- #define _WRAPPED_optional_numeric_DESERIALIZETO_SIGNATURE(Element, name)    \
+#define _WRAPPED_optional_numeric_DESERIALIZETO_SIGNATURE(Element, name)    \
     *bool has_##name##_writeto, Element* name##_writeto
  
 #define _WRAPPED_required_numeric_DESERIALIZETO(Element, name)     \
@@ -154,7 +177,13 @@ public:                                                                         
     *has_##name##_writeto = has_##name()                           \
     if (*has_##name##_writeto) *name##_writeto = name();
 
- 
+
+#define _WRAPPED_required_numeric_SERIALIZEFROM_TEMPLATE_SIGNATURE(Element, name)    \
+    typename
+
+#define _WRAPPED_optional_numeric_SERIALIZEFROM_TEMPLATE_SIGNATURE(Element, name)    \
+    typename
+
 #define _WRAPPED_required_numeric_SERIALIZEFROM_SIGNATURE(Element, name)    \
     Element name##_readfrom
 
@@ -171,17 +200,17 @@ public:                                                                         
 /*
  * - macros for wrapping singular fields of embedded type (ie msg type) in protobuf msgs
  */
-#define _WRAPPED_required_embedded(Element, name) \
+#define _WRAPPED_required_embedded_ATTR(Element, name) \
 protected: \
     mutable Element _##name; \
 public: \
-    const Element& name() const {return _##name;} \
-    Element* mutable_##name() {return &_##name;} \
-    void clear_##name() {_##name.Clear();} \
-    bool has_##name() const {return wrappedMsgPtr->has_##name();}
+    inline const Element& name() const {return _##name;} \
+    inline Element* mutable_##name() {return &_##name;} \
+    inline void clear_##name() {_##name.Clear();} \
+    inline bool has_##name() const {return wrappedMsgPtr->has_##name();}
 
-#define _WRAPPED_optional_embedded(Element, name) \
-    _WRAPPED_required_embedded(Element, name)
+#define _WRAPPED_optional_embedded_ATTR(Element, name) \
+    _WRAPPED_required_embedded_ATTR(Element, name)
 
 #define _WRAPPED_required_embedded_SEATER(Element, name) \
     mutable_##name()->setWrappedMsg(wrappedMsgPtr->mutable_##name());
@@ -189,27 +218,51 @@ public: \
 #define _WRAPPED_optional_embedded_SEATER(Element, name) \
     _WRAPPED_required_embedded_SEATER(Element, name)
 
+
+#define _WRAPPED_required_embedded_DESERIALIZETO_TEMPLATE_SIGNATURE(Element, name)    \
+    typename
+
+#define _WRAPPED_optional_embedded_DESERIALIZETO_TEMPLATE_SIGNATURE(Element, name)    \
+    typename
+    
+#define _WRAPPED_required_embedded_DESERIALIZETO_SIGNATURE(Element, name)
+#define _WRAPPED_optional_embedded_DESERIALIZETO_SIGNATURE(Element, name)
+#define _WRAPPED_required_embedded_DESERIALIZETO(Element, name)
+#define _WRAPPED_optional_embedded_DESERIALIZETO(Element, name)
+
+ 
+#define _WRAPPED_required_embedded_SERIALIZEFROM_TEMPLATE_SIGNATURE(Element, name)    \
+    typename
+
+#define _WRAPPED_optional_embedded_SERIALIZEFROM_TEMPLATE_SIGNATURE(Element, name)    \
+    typename 
+    
+#define _WRAPPED_required_embedded_SERIALIZEFROM_SIGNATURE(Element, name)
+#define _WRAPPED_optional_embedded_SERIALIZEFROM_SIGNATURE(Element, name)
+#define _WRAPPED_required_embedded_SERIALIZEFROM(Element, name)
+#define _WRAPPED_optional_embedded_SERIALIZEFROM(Element, name)
+
 /*
  * - macros for repeated fields in protobuf msgs
  */
-#define _WRAPPED_repeated_base(Element, name) \
+#define _WRAPPED_repeated_base_ATTR(Element, name) \
 protected: \
     mutable lm::protowrap::Repeated<Element> _##name; \
 public: \
-    void clear_##name() {_##name.Clear();} \
-    const lm::protowrap::Repeated<Element>& name() const {return _##name;} \
-    lm::protowrap::Repeated<Element>* mutable_##name() {return &_##name;} \
-    Element name(int index) const {return _##name(index);} \
-    int name##_size() const {return _##name.size();}
+    inline void clear_##name() {_##name.Clear();} \
+    inline const lm::protowrap::Repeated<Element>& name() const {return _##name;} \
+    inline lm::protowrap::Repeated<Element>* mutable_##name() {return &_##name;} \
+    inline Element name(int index) const {return _##name(index);} \
+    inline int name##_size() const {return _##name.size();}
 
-#define _WRAPPED_repeated_numeric(Element, name) \
-    _WRAPPED_repeated_base(Element, name) \
-    void add_##name(Element value) {_##name.Add(value);} \
-    void set_##name(int index, Element value) {_##name.Set(index, value);}
+#define _WRAPPED_repeated_numeric_ATTR(Element, name) \
+    _WRAPPED_repeated_base_ATTR(Element, name) \
+    inline void add_##name(Element value) {_##name.Add(value);} \
+    inline void set_##name(int index, Element value) {_##name.Set(index, value);}
 
-#define _WRAPPED_repeated_embedded(Element, name) \
-    _WRAPPED_repeated_base(Element, name) \
-    Element* add_##name() {return _##name.Add();}
+#define _WRAPPED_repeated_embedded_ATTR(Element, name) \
+    _WRAPPED_repeated_base_ATTR(Element, name) \
+    inline Element* add_##name() {return _##name.Add();}
 
 #define _WRAPPED_repeated_numeric_SEATER(Element, name) \
     mutable_##name()->setWrappedField(wrappedMsgPtr->mutable_##name());
@@ -217,47 +270,107 @@ public: \
 #define _WRAPPED_repeated_embedded_SEATER(Element, name) \
     _WRAPPED_repeated_numeric_SEATER(Element, name)
 
+
+#define _WRAPPED_repeated_numeric_DESERIALIZETO_TEMPLATE_SIGNATURE(Element, name)     \
+    typename name##_Container
+#define _WRAPPED_repeated_numeric_DESERIALIZETO_SIGNATURE(Element, name)              \
+    name##_Container* name##_writeto
+#define _WRAPPED_repeated_numeric_DESERIALIZETO(Element, name)                        \
+    name().deserializeTo(name##_writeto);
+
+#define _WRAPPED_repeated_numeric_SERIALIZEFROM_TEMPLATE_SIGNATURE(Element, name)     \
+    typename name##_Container
+#define _WRAPPED_repeated_numeric_SERIALIZEFROM_SIGNATURE(Element, name)              \
+    const name##_Container& name##_readfrom    
+#define _WRAPPED_repeated_numeric_SERIALIZEFROM(Element, name)                        \
+    mutable_##name()->serializeFrom(name##_readfrom);
+
+#define _WRAPPED_repeated_embedded_DESERIALIZETO_TEMPLATE_SIGNATURE(Element, name)
+#define _WRAPPED_repeated_embedded_DESERIALIZETO_SIGNATURE(Element, name)
+#define _WRAPPED_repeated_embedded_DESERIALIZETO(Element, name)
+
+#define _WRAPPED_repeated_embedded_SERIALIZEFROM_TEMPLATE_SIGNATURE(Element, name)
+#define _WRAPPED_repeated_embedded_SERIALIZEFROM_SIGNATURE(Element, name)
+#define _WRAPPED_repeated_embedded_SERIALIZEFROM(Element, name)
+
 /*
  * - these macros allow us to "lookup" the wrapper macros defined above as needed
  */
-#define GET_WRAPPER_MACRO0(rule, Category) _WRAPPED_##rule##_##Category
-#define GET_WRAPPER_MACRO1(rule, Category) GET_WRAPPER_MACRO0(rule, Category)
-#define GET_WRAPPER_MACRO(rule, Element) GET_WRAPPER_MACRO1(rule, CATEGORY_TYPE(Element))
+#define _GET_MACRO0(rule, Category, kind)    \
+    _WRAPPED_##rule##_##Category##_##kind
 
-#define GET_SEATER_MACRO0(rule, Category) _WRAPPED_##rule##_##Category##_SEATER
-#define GET_SEATER_MACRO1(rule, Category) GET_SEATER_MACRO0(rule, Category)
-#define GET_SEATER_MACRO(rule, Element) GET_SEATER_MACRO1(rule, CATEGORY_TYPE(Element))
+#define _GET_MACRO(rule, Element, kind)    \
+    EXPAND_AND_EVAL(_GET_MACRO0, GET_RULE(rule), GET_CATEGORY(rule, Element), kind)
+
+#define _MAKE_WRAPPER_FOR(kind, rule, Element, name)     \
+    _GET_MACRO(rule, Element, kind)(Element, name)
 
 /*
  * - the macros that will be called directly by MAPTRIPLES
  */
-#define _WRAPPED_FIELD(rule, Element, name) \
-    GET_WRAPPER_MACRO(rule, Element)(Element, name)
 
-#define _WRAPPED_SEATER(rule, Element, name) \
-    GET_SEATER_MACRO(rule, Element)(Element, name)
+#define _MAP_WRAPPERS(kind, ...)    \
+    MAPQUADS(_MAKE_WRAPPER_FOR, TRIPLES_TO_QUADS(kind, __VA_ARGS__))
+
+#define _MAP_WRAPPERS_WCOMMA(kind, ...)    \
+    MAPQUADS_WCOMMA(_MAKE_WRAPPER_FOR, TRIPLES_TO_QUADS(kind, __VA_ARGS__))
 
 /*
-#define _WRAPPED_DESERIALIZETO(rule, Element, name)         \
-    GET_SEATER_MACRO(rule, Element)(Element, name)
- */
+#define _WRAPPED_SEATER(rule, Element, name)           \
+    _GET_MACRO(rule, Element, SEATER)(Element, name)
+
+#define _WRAPPED_DESERIALIZETO_TEMPLATE_SIGNATURE(rule, Element, name)            \
+    _GET_MACRO(rule, Element, DESERIALIZETO_TEMPLATE_SIGNATURE)(Element, name)
+
+#define _WRAPPED_DESERIALIZETO_SIGNATURE(rule, Element, name)            \
+    _GET_MACRO(rule, Element, DESERIALIZETO_SIGNATURE)(Element, name)
+
+#define _WRAPPED_DESERIALIZETO(rule, Element, name)            \
+    _GET_MACRO(rule, Element, DESERIALIZETO)(Element, name)
+
+#define _WRAPPED_SERIALIZEFROM_TEMPLATE_SIGNATURE(rule, Element, name)            \
+    _GET_MACRO(rule, Element, SERIALIZEFROM_TEMPLATE_SIGNATURE)(Element, name)
+ 
+#define _WRAPPED_SERIALIZEFROM_SIGNATURE(rule, Element, name)            \
+    _GET_MACRO(rule, Element, SERIALIZEFROM_SIGNATURE)(Element, name)
+
+#define _WRAPPED_SERIALIZEFROM(rule, Element, name)            \
+    _GET_MACRO(rule, Element, SERIALIZEFROM)(Element, name)
+
 
 /*
  * - the implementation macros
  */
-#define WRAPPED_FIELDS(...) \
-    MAPTRIPLES(_WRAPPED_FIELD, __VA_ARGS__) \
-    void _macro_setWrapped() \
-    { \
-        MAPTRIPLES(_WRAPPED_SEATER, __VA_ARGS__) \
+#define WRAPPED_FIELDS(...)                         \
+    _MAP_WRAPPERS(ATTR, __VA_ARGS__)                \
+                                                    \
+    void _macro_setWrapped()                        \
+    {                                               \
+        _MAP_WRAPPERS(SEATER, __VA_ARGS__)          \
     }
 
+//#define WRAPPED_FIELDS(...)                         \
+//    MAPQUADS(_MAKE_WRAPPER_FOR, __VA_ARGS__)          \
+//                                                    \
+//    void _macro_setWrapped()                        \
+//    {                                               \
+//        MAPTRIPLES(_WRAPPED_SEATER, __VA_ARGS__)    \
+//    }
 
-/*
-#define WRAPPED_FIELDS_W_SERIALIZERS(...)   \
-    WRAPPED_FIELDS(__VA_ARGS__)             \
-    void deserializeTo(MAPTRIPLES_WSEP(_))
-*/
+#define WRAPPED_FIELDS_W_SERIALIZERS(...)                                                 \
+    WRAPPED_FIELDS(__VA_ARGS__)                                                           \
+                                                                                          \
+    template <_MAP_WRAPPERS_WCOMMA(DESERIALIZETO_TEMPLATE_SIGNATURE, __VA_ARGS__)>    \
+    void deserializeTo(_MAP_WRAPPERS_WCOMMA(DESERIALIZETO_SIGNATURE, __VA_ARGS__))    \
+    {                                                                                     \
+        _MAP_WRAPPERS(DESERIALIZETO, __VA_ARGS__)                                   \
+    }                                                                                     \
+                                                                                          \
+    template <_MAP_WRAPPERS_WCOMMA(SERIALIZEFROM_TEMPLATE_SIGNATURE, __VA_ARGS__)>    \
+    void serializeFrom(_MAP_WRAPPERS_WCOMMA(SERIALIZEFROM_SIGNATURE, __VA_ARGS__))    \
+    {                                                                                     \
+        _MAP_WRAPPERS(SERIALIZEFROM, __VA_ARGS__)                                   \
+    }                                                                                     \
 
 #define MSG_WRAP_CONSTRUCTORS(MsgWrapperClass)                            \
 public:                                                                   \

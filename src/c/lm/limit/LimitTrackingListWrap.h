@@ -48,6 +48,7 @@
 #include "lm/limit/TrajectoryLimit.h"
 #include "lm/protowrap/Msg.h"
 #include "lm/protowrap/Repeated.h"
+#include "lm/protowrap/WrappedFields.h"
 #include "lm/Types.h"
 
 namespace lm {

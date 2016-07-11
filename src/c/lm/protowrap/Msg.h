@@ -39,7 +39,7 @@
 #ifndef LM_PROTOWRAP_MSG_H_
 #define LM_PROTOWRAP_MSG_H_
 
-#include "lm/protowrap/WrappedFields.h"
+#include "lm/protowrap/Repeated.h"
 
 namespace lm {
 namespace protowrap {
@@ -57,11 +57,11 @@ public:
     operator WrappedMsg*() {return wrappedMsgPtr;}
     operator WrappedMsg&() const {return *wrappedMsgPtr;}
 
-    void Clear() {wrappedMsgPtr->Clear();}
-    virtual const WrappedMsg& wrappedMsg() const {return *wrappedMsgPtr;}
-    virtual WrappedMsg* mutableWrappedMsg() {return wrappedMsgPtr;}
+    inline void Clear() {wrappedMsgPtr->Clear();}
+    inline const WrappedMsg& wrappedMsg() const {return *wrappedMsgPtr;}
+    inline WrappedMsg* mutableWrappedMsg() {return wrappedMsgPtr;}
 
-    void setWrappedMsg(WrappedMsg* newMsgPtr)
+    inline void setWrappedMsg(WrappedMsg* newMsgPtr)
     {
         wrappedMsgPtr = newMsgPtr;
 
