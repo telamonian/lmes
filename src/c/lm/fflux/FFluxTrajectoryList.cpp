@@ -62,7 +62,7 @@
 #include "lm/main/Main.h"
 #include "lm/message/WorkUnitStatus.pb.h"
 #include "lm/Print.h"
-#include "lm/protowrap/FFluxPhaseOutput.h"
+#include "lm/protowrap/FFluxPhaseOutputWrap.h"
 #include "lm/protowrap/Repeated.h"
 #include "lm/trajectory/Trajectory.h"
 #include "lm/tiling/Tilings.h"
@@ -72,7 +72,7 @@
 using lm::fflux::input::FFluxInput;
 using lm::fflux::input::FFluxPhase;
 using lm::fflux::input::FFluxPhaseLimit;
-using lm::protowrap::FFluxPhaseOutput;
+using lm::protowrap::FFluxPhaseOutputWrap;
 using lm::protowrap::Repeated;
 using std::map;
 using std::string;
@@ -100,7 +100,7 @@ FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationP
 }
 
 // ffluxPhase n>0 constructor
-FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationPhaseIndex, const FFluxPhase& ffluxPhase, const FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousTrajectoryCount, const FFluxInput& input, const FFluxPhaseOutput& previousPhaseOutput)
+FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationPhaseIndex, const FFluxPhase& ffluxPhase, const FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousTrajectoryCount, const FFluxInput& input, const FFluxPhaseOutputWrap& previousPhaseOutput)
 :TrajectoryList(count, newSimulationPhaseIndex),input(input),ffluxPhase(ffluxPhase),ffluxPhaseLimit(ffluxPhaseLimit),previousPhaseOutputPtr(&previousPhaseOutput)
 {
     // consistency check

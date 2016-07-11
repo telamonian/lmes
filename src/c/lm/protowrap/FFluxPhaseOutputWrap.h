@@ -102,25 +102,25 @@ typedef PairVector<lm::fflux::io::EndPoint*, int> EndPointVector;
 //};
 //typedef std::map<PointKey, StartPoint> StartPointMap;
 
-class FFluxPhaseOutput
+class FFluxPhaseOutputWrap
 {
 public:
     typedef FFluxPhaseOutputMsg Msg;
 
-    FFluxPhaseOutput(size_t randomCacheSize=10*KIBI)
+    FFluxPhaseOutputWrap(size_t randomCacheSize=10*KIBI)
     :msgPtr(NULL),rng(NULL),randomDoublesStart(NULL),randomDoubles(NULL),randomDoublesEnd(NULL),randomIndexesStart(NULL),
      randomIndexes(NULL),randomIndexesEnd(NULL),randomCacheSize(randomCacheSize),randomIndexesDirty(true)
     {
     }
 
-    FFluxPhaseOutput(Msg* msgMutablePtr, size_t randomCacheSize=10*KIBI)
+    FFluxPhaseOutputWrap(Msg* msgMutablePtr, size_t randomCacheSize=10*KIBI)
     :msgPtr(NULL),rng(NULL),randomDoublesStart(NULL),randomDoubles(NULL),randomDoublesEnd(NULL),randomIndexesStart(NULL),
      randomIndexes(NULL),randomIndexesEnd(NULL),randomCacheSize(randomCacheSize),randomIndexesDirty(true)
     {
         setMsg(msgMutablePtr);
     }
 
-    ~FFluxPhaseOutput() {destructRng(); destructRandomIndexes();}
+    ~FFluxPhaseOutputWrap() {destructRng(); destructRandomIndexes();}
 
 // mutators
     void addEndPointPhaseZero(const lm::io::TrajectoryState& trajectoryState, int burnInCount)
@@ -167,6 +167,7 @@ public:
 
             // TODO: decide if the creation of endPointVector should be done one at a time (as below) or all at once
             endPointVector.push_back(std::make_pair(endPointMsg, endPointMsg->count() - 1));
+            randomIndexesDirty = true;
         }
 
         if (speciesCountWrap.compressed_deflate()) delete[] speciesCountDataForwardFlux;
@@ -282,6 +283,7 @@ public:
 
             // TODO: decide if the creation of endPointVector should be done one at a time (as below) or all at once
             endPointVector.push_back(std::make_pair(endPointMsg, endPointMsg->count() - 1));
+            randomIndexesDirty = true;
 
             if (speciesCountWrap.compressed_deflate()) delete[] speciesCountData;
         }
@@ -294,6 +296,11 @@ public:
     const EndPointVector::Pair& getEndPointUniformRandom() const
     {
         uint32_t ri = getRandomIndex();
+        if (ri >= endPointVector.size())
+        {
+            throw ConsistencyException("FFluxPhaseOutputWrap generated a random index outside the bounds of its endPointVector. ri: %d, endPointVector.size(): %d", ri, endPointVector.size());
+        }
+
         return endPointVector[ri];
     }
 
@@ -308,6 +315,14 @@ public:
 
         successfulEndPointMap.setWrappedField(getMsg()->mutable_sucessful_trajectory_end_points());
         rebuildEndPointVector();
+    }
+
+    void setMsgNull()
+    {
+        msgPtr = NULL;
+
+        successfulEndPointMap.setWrappedFieldNull();
+        endPointVector.clear();
     }
 
 protected:
@@ -349,6 +364,10 @@ protected:
         if (randomIndexesDirty)
         {
             randomIndexes++;
+            if (randomIndexes==randomIndexesEnd)
+            {
+                printf("hey!");
+            }
             return getIndexFromDouble(*randomDoubles++);
         }
             // otherwise, our cache of randomIndexes is still good, so just take from that
@@ -366,7 +385,7 @@ protected:
 
     void fillRandomIndex() const
     {
-        // initialize the rng stuff for this instance of FFluxPhaseOutput, if needed
+        // initialize the rng stuff for this instance of FFluxPhaseOutputWrap, if needed
         if (randomIndexes==NULL) {initRandomIndexes(randomCacheSize);}
 
         // get a large quantity of random doubles

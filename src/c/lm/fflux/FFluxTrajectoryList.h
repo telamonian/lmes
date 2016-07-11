@@ -57,7 +57,7 @@
 #include "lm/message/Message.pb.h"
 #include "lm/message/WorkUnitOutput.pb.h"
 #include "lm/message/WorkUnitStatus.pb.h"
-#include "lm/protowrap/FFluxPhaseOutput.h"
+#include "lm/protowrap/FFluxPhaseOutputWrap.h"
 #include "lm/rng/XORShift.h"
 #include "lm/tiling/Tilings.h"
 #include "lm/trajectory/Trajectory.h"
@@ -80,7 +80,7 @@ public:
     // ffluxPhase n>0 constructor
     FFluxTrajectoryList(uint64_t count, uint64_t simulationPhaseIndex, const lm::fflux::input::FFluxPhase& ffluxPhase,
                         const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousWorkUnits,
-                        const lm::fflux::input::FFluxInput& input, const lm::protowrap::FFluxPhaseOutput& previousPhaseOutput);
+                        const lm::fflux::input::FFluxInput& input, const lm::protowrap::FFluxPhaseOutputWrap& previousPhaseOutput);
     virtual ~FFluxTrajectoryList() {}
 
     virtual void workUnitPartFinished(const lm::message::WorkUnitStatus& wusMsg, lm::trajectory::Trajectory* traj);
@@ -98,7 +98,7 @@ protected:
     const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit;
 
 
-    const lm::protowrap::FFluxPhaseOutput* previousPhaseOutputPtr;
+    const lm::protowrap::FFluxPhaseOutputWrap* previousPhaseOutputPtr;
 
 };
 

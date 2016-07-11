@@ -51,6 +51,7 @@ message FFluxStage {
      * - an optional stage to be run before this one. output data from pilot_stage will be used to help set up this stage
      */
     optional FFluxStage pilot_stage                            = 11;
+    optional bool is_pilot_stage                               = 12 [default=false];
 
     /*
      * - each element of fflux_phases contains settings/metadata for each individual FFluxPhase to be run as part of this stage

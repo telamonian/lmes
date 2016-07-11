@@ -272,6 +272,11 @@ public:
         wrappedFieldPtr = NULL;
         wrappedFieldConstPtr = &newFieldConstRef;
     }
+    inline virtual void setWrappedFieldNull()
+    {
+        wrappedFieldPtr = NULL;
+        wrappedFieldConstPtr = NULL;
+    }
 
 // pass throughs
 // accessors

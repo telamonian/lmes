@@ -55,7 +55,7 @@
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
-#include "lm/protowrap/FFluxPhaseOutput.h"
+#include "lm/protowrap/FFluxPhaseOutputWrap.h"
 #include "lm/protowrap/FFluxStageOutputWrap.h"
 #include "lm/protowrap/Repeated.h"
 #include "lm/trajectory/TrajectoryList.h"
@@ -137,10 +137,10 @@ protected:
     virtual const lm::fflux::input::FFluxPhase& currentPhase() const {return *currentFFluxPhaseIter;}
     virtual int64_t currentFFluxPhaseIndex() const {return currentPhase().fflux_phase_index();}
     virtual const lm::fflux::input::FFluxPhaseLimit& currentPhaseLimit() const {return currentStage().fflux_phase_limits(currentFFluxPhaseIndex());}
-    virtual const lm::protowrap::FFluxPhaseOutput& currentPhaseOutput() const {return *currentFFluxPhaseOutputWrapPtr;}
+    virtual const lm::protowrap::FFluxPhaseOutputWrap& currentPhaseOutput() const {return *currentFFluxPhaseOutputWrapPtr;}
     virtual int64_t finalFFluxPhaseIndex() const {return currentStage().fflux_phases_size() - 1;}
     virtual bool isCurrentPhaseLast() const {return is_last(currentFFluxPhaseIter, currentStage().fflux_phases());} //{return currentStage().fflux_phases().end()==currentFFluxPhaseIter;}
-    virtual const lm::protowrap::FFluxPhaseOutput& previousPhaseOutput() const {return *previousFFluxPhaseOutputWrapPtr;}
+    virtual const lm::protowrap::FFluxPhaseOutputWrap& previousPhaseOutput() const {return *previousFFluxPhaseOutputWrapPtr;}
 
     virtual const lm::fflux::input::FFluxStage& currentStage() const {return **currentFFluxStageIter;}
     virtual int64_t currentStageIndex() const {return currentFFluxStageIter - ffluxStageExecutionOrder.begin();}
@@ -153,7 +153,7 @@ protected:
     // mutators
     virtual lm::fflux::input::FFluxPhase* mutableCurrentPhase() {return &*currentFFluxPhaseIter;}
     virtual lm::fflux::input::FFluxPhaseLimit* mutableCurrentPhaseLimit() {return mutableCurrentStage()->mutable_fflux_phase_limits(currentFFluxPhaseIndex());}
-    virtual lm::protowrap::FFluxPhaseOutput* mutableCurrentPhaseOutput() {return currentFFluxPhaseOutputWrapPtr;}
+    virtual lm::protowrap::FFluxPhaseOutputWrap* mutableCurrentPhaseOutput() {return currentFFluxPhaseOutputWrapPtr;}
 
     virtual lm::fflux::input::FFluxStage* mutableCurrentStage() {return *currentFFluxStageIter;}
     virtual lm::protowrap::FFluxStageOutputWrap* mutableCurrentStageOutput() {return &currentFFluxStageOutputWrap;}
@@ -182,14 +182,16 @@ protected:
 
     FFluxPhaseOutputs::WrappedField ffluxPhaseOutputMsgs;
     FFluxPhaseOutputs ffluxPhaseOutputsWrap;
-    lm::protowrap::FFluxPhaseOutput _ffluxPhaseOutputWrap_0;
-    lm::protowrap::FFluxPhaseOutput _ffluxPhaseOutputWrap_1;
-    lm::protowrap::FFluxPhaseOutput* currentFFluxPhaseOutputWrapPtr;
-    lm::protowrap::FFluxPhaseOutput* previousFFluxPhaseOutputWrapPtr;
+    lm::protowrap::FFluxPhaseOutputWrap _ffluxPhaseOutputWrap_0;
+    lm::protowrap::FFluxPhaseOutputWrap _ffluxPhaseOutputWrap_1;
+    lm::protowrap::FFluxPhaseOutputWrap* currentFFluxPhaseOutputWrapPtr;
+    lm::protowrap::FFluxPhaseOutputWrap* previousFFluxPhaseOutputWrapPtr;
 
     FFluxStageOutputs::WrappedField ffluxStageOutputMsgs;
     FFluxStageOutputs ffluxStageOutputsWrap;
     lm::protowrap::FFluxStageOutputWrap currentFFluxStageOutputWrap;
+
+    bool simulationPhaseTerminated;
 
     // shadowing ptrs from the base class
     lm::fflux::input::FFluxInput* input;

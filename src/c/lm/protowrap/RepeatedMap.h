@@ -105,6 +105,13 @@ public:
 //            addMemberElementPtrToMap()
 //        }
     }
+    inline virtual void setWrappedFieldNull()
+    {
+        // call the base class method
+        Repeated<Element>::setWrappedFieldNull();
+
+        map.clear();
+    }
 
     Element* Add(const Key& newKey)
     {
