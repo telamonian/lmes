@@ -96,8 +96,8 @@ class FFluxStageOutputWrap : public lm::protowrap::Msg<FFluxStageOutputWrap, lm:
     {
         // load some data from the raw stage output into a few valarrays
         std::valarray<double> successfulTrajectoryCounts(lm::protowrap::make_valarray<double>::call(fflux_stage_output_raw().successful_trajectory_counts()));
-        std::valarray<double> successfulTrajectoryTotalTimes(lm::protowrap::make_valarray<double>::call(fflux_stage_output_raw().successful_trajectory_total_times()));
-        std::valarray<double> failedTrajectoryTotalTimes(lm::protowrap::make_valarray<double>::call(fflux_stage_output_raw().failed_trajectory_total_times()));
+        std::valarray<double> successfulTrajectoryTotalTimes(lm::protowrap::make_valarray<>::call(fflux_stage_output_raw().successful_trajectory_total_times()));
+        std::valarray<double> failedTrajectoryTotalTimes(lm::protowrap::make_valarray<>::call(fflux_stage_output_raw().failed_trajectory_total_times()));
 
 
 //        std::valarray<double> successfulTrajectoryCounts(static_cast<const double*>(fflux_stage_output_raw().successful_trajectory_counts().data()), fflux_stage_output_raw().successful_trajectory_counts().size());

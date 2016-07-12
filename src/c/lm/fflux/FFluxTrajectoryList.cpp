@@ -62,7 +62,7 @@
 #include "lm/main/Main.h"
 #include "lm/message/WorkUnitStatus.pb.h"
 #include "lm/Print.h"
-#include "lm/protowrap/FFluxPhaseOutputWrap.h"
+#include "lm/fflux/io/FFluxPhaseOutputWrap.h"
 #include "lm/protowrap/Repeated.h"
 #include "lm/trajectory/Trajectory.h"
 #include "lm/tiling/Tilings.h"

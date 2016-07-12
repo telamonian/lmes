@@ -36,8 +36,8 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef FFLUXSUPERVISOR_H_
-#define FFLUXSUPERVISOR_H_
+#ifndef LM_FFLUX_FFLUXSUPERVISOR_H_
+#define LM_FFLUX_FFLUXSUPERVISOR_H_
 
 #include <valarray>
 
@@ -45,18 +45,14 @@
 #include "lm/fflux/input/FFluxPhase.pb.h"
 #include "lm/fflux/input/FFluxStage.pb.h"
 #include "lm/fflux/io/FFluxPhaseOutput.pb.h"
+#include "lm/fflux/io/FFluxPhaseOutputWrap.h"
 #include "lm/fflux/io/FFluxStageOutput.pb.h"
+#include "lm/fflux/io/FFluxStageOutputWrap.h"
 #include "lm/fflux/input/FFluxInput.h"
 #include "lm/fflux/FFluxTrajectoryList.h"
-#include "lm/io/FFluxOutput.pb.h"
-#include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/Iterator.h"
-#include "lm/limit/TrajectoryLimits.h"
 #include "lm/main/SimulationSupervisor.h"
-#include "lm/message/FinishedWorkUnit.pb.h"
-#include "lm/message/StartedWorkUnit.pb.h"
-#include "lm/protowrap/FFluxPhaseOutputWrap.h"
-#include "lm/protowrap/FFluxStageOutputWrap.h"
+#include "lm/message/message.pb.h"
 #include "lm/protowrap/Repeated.h"
 #include "lm/trajectory/TrajectoryList.h"
 
@@ -66,10 +62,10 @@ namespace fflux {
 class FFluxSupervisor : public lm::main::SimulationSupervisor
 {
 public:
-    typedef lm::protowrap::Repeated<lm::fflux::input::FFluxPhase> FFluxPhases;
-    typedef lm::protowrap::Repeated<lm::fflux::input::FFluxPhaseLimit> FFluxPhaseLimits;
-    typedef lm::protowrap::Repeated<lm::fflux::io::FFluxPhaseOutput> FFluxPhaseOutputs;
-    typedef lm::protowrap::Repeated<lm::fflux::io::FFluxStageOutput> FFluxStageOutputs;
+    typedef lm::protowrap::Repeated<lm::fflux::input::FFluxPhase> FFluxPhasesWrap;
+    typedef lm::protowrap::Repeated<lm::fflux::input::FFluxPhaseLimit> FFluxPhaseLimitsWrap;
+    typedef lm::protowrap::Repeated<lm::fflux::io::FFluxPhaseOutput> FFluxPhaseOutputsWrap;
+    typedef lm::protowrap::Repeated<lm::fflux::io::FFluxStageOutput> FFluxStageOutputsWrap;
     typedef std::vector<lm::fflux::input::FFluxStage*> FFluxStageVector;
 
     static bool registered;
@@ -175,19 +171,23 @@ protected:
     lm::fflux::input::FFluxStageList ffluxStageListMsg;
     FFluxStageVector ffluxStageExecutionOrder;
     FFluxStageVector::iterator currentFFluxStageIter;
-    FFluxPhases::iterator currentFFluxPhaseIter;
+    FFluxPhasesWrap::iterator currentFFluxPhaseIter;
 
     lm::tiling::Tiling currentTilingWrap;
 
-    FFluxPhaseOutputs::WrappedField ffluxPhaseOutputMsgs;
-    FFluxPhaseOutputs ffluxPhaseOutputsWrap;
+    // phase output messages
+    lm::message::Message ffluxPhaseOutputContainingMsg;
+    FFluxPhaseOutputsWrap::WrappedField ffluxPhaseOutputsMsg;
+    FFluxPhaseOutputsWrap ffluxPhaseOutputsWrap;
     lm::protowrap::FFluxPhaseOutputWrap _ffluxPhaseOutputWrap_0;
     lm::protowrap::FFluxPhaseOutputWrap _ffluxPhaseOutputWrap_1;
     lm::protowrap::FFluxPhaseOutputWrap* currentFFluxPhaseOutputWrapPtr;
     lm::protowrap::FFluxPhaseOutputWrap* previousFFluxPhaseOutputWrapPtr;
 
-    FFluxStageOutputs::WrappedField ffluxStageOutputMsgs;
-    FFluxStageOutputs ffluxStageOutputsWrap;
+    // stage output messages
+    lm::message::Message ffluxStageOutputContainingMsg;
+    FFluxStageOutputsWrap::WrappedField ffluxStageOutputsMsg;
+    FFluxStageOutputsWrap ffluxStageOutputsWrap;
     lm::protowrap::FFluxStageOutputWrap currentFFluxStageOutputWrap;
 
     bool simulationPhaseTerminated;
@@ -200,4 +200,4 @@ protected:
 }
 }
 
-#endif /* FFLUXSUPERVISOR_H_ */
+#endif /* LM_FFLUX_FFLUXSUPERVISOR_H_ */

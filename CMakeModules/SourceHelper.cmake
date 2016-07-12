@@ -7,8 +7,6 @@ function(add_executable_standalone)
     set(multiValueArgs SRCS PASS_THROUGHS)
     cmake_parse_arguments("" "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-
-
     # set up the srcFiles and add the executable target
     file(GLOB srcFiles ${_SRCS})
     add_executable(${_TARGET} ${_PASS_THROUGHS} ${srcFiles})

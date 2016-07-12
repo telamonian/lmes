@@ -45,6 +45,7 @@
 #include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/limit/LimitTracking.h"
 #include "lm/protowrap/Msg.h"
+#include "lm/protowrap/NDArray.h"
 #include "lm/protowrap/Repeated.h"
 #include "lm/protowrap/WrappedFields.h"
 #include "lm/Types.h"

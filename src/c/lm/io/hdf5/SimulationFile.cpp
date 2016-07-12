@@ -2705,7 +2705,7 @@ void Hdf5File::setRecordNamePrefix(const string& newRecordNamePrefix)
     }
 }
 
-hsize_t Hdf5File::setNDArray(const std::string& groupPath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarrayRef, hid_t rootGroup)
+hsize_t Hdf5File::setDatasetFromNDArray(const std::string& groupPath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarrayRef, hid_t rootGroup)
 {
     // a descriptor that we'll pass to the lower level output function
     DatasetDescriptor datasetDescriptor(groupPath, datasetName, ndarrayRef, rootGroup);
@@ -2717,24 +2717,24 @@ hsize_t Hdf5File::setNDArray(const std::string& groupPath, const std::string& da
     return rows;
 }
 
-void Hdf5File::setNDArrayReplicate(uint64_t replicate, const std::string& groupRelativePath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarray)
+void Hdf5File::setDatasetFromNDArrayReplicate(uint64_t replicate, const std::string& groupRelativePath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarray)
 {
     ReplicateHandles * replicateHandles = openReplicateHandles(replicate);
-    setNDArray(groupRelativePath, datasetName, ndarray, replicateHandles->group);
+    setDatasetFromNDArray(groupRelativePath, datasetName, ndarray, replicateHandles->group);
 }
 
 // condensed version of the generalized NDArray hdf5 output. Condensed in the sense that it shoves all of the data into as few separate groups and datasets as possible
-void Hdf5File::setNDArrayReplicateCondensed(uint64_t replicate, const std::string& groupRelativePath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarray)
+void Hdf5File::setDatasetFromNDArrayReplicateCondensed(uint64_t replicate, const std::string& groupRelativePath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarray)
 {
     // write out the dataset directly to prefix/Simulations/groupRelativePath and get the number of rows written
-    hsize_t rows = setNDArray(groupRelativePath, datasetName, ndarray, simulationsGroup);
+    hsize_t rows = setDatasetFromNDArray(groupRelativePath, datasetName, ndarray, simulationsGroup);
 
     // create a 1D array containing one repition of the trajectoryID for each row in ndarray
     std::vector<uint64_t> trajectoryIDs(rows, replicate);
 
     // write out the trajectoryID dataset we just created
     std::string trajectoryIDDatasetName = datasetName + "_-_TrajectoryIDs";
-    setContainer(groupRelativePath, datasetName, trajectoryIDs, simulationsGroup);
+    setDatasetFromContainer(groupRelativePath, datasetName, trajectoryIDs, simulationsGroup);
 }
 
 hsize_t Hdf5File::setDataset(const DatasetDescriptor& dd)

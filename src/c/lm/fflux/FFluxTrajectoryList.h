@@ -57,7 +57,7 @@
 #include "lm/message/Message.pb.h"
 #include "lm/message/WorkUnitOutput.pb.h"
 #include "lm/message/WorkUnitStatus.pb.h"
-#include "lm/protowrap/FFluxPhaseOutputWrap.h"
+#include "lm/fflux/io/FFluxPhaseOutputWrap.h"
 #include "lm/rng/XORShift.h"
 #include "lm/tiling/Tilings.h"
 #include "lm/trajectory/Trajectory.h"

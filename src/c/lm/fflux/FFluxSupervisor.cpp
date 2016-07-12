@@ -103,9 +103,15 @@ int FFluxSupervisor::getRecvSleepMilliseconds()
 }
 
 FFluxSupervisor::FFluxSupervisor()
-:ffluxPhaseOutputsWrap(&ffluxPhaseOutputMsgs),previousFFluxPhaseOutputWrapPtr(&_ffluxPhaseOutputWrap_0),currentFFluxPhaseOutputWrapPtr(&_ffluxPhaseOutputWrap_1),
- ffluxStageOutputsWrap(&ffluxStageOutputMsgs),input(NULL),trajectoryList(NULL)
+:ffluxPhaseOutputsWrap(&ffluxPhaseOutputsMsg),ffluxStageOutputsWrap(&ffluxStageOutputsMsg),
+ previousFFluxPhaseOutputWrapPtr(&_ffluxPhaseOutputWrap_0),currentFFluxPhaseOutputWrapPtr(&_ffluxPhaseOutputWrap_1),
+ simulationPhaseTerminated(false),input(NULL),trajectoryList(NULL)
 {
+    ffluxPhaseOutputContainingMsg.mutable_process_work_unit_output()->set_work_unit_id(0);
+    ffluxPhaseOutputContainingMsg.mutable_process_work_unit_output()->add_part_output();
+
+    ffluxStageOutputContainingMsg.mutable_process_work_unit_output()->set_work_unit_id(0);
+    ffluxStageOutputContainingMsg.mutable_process_work_unit_output()->add_part_output();
 }
 
 FFluxSupervisor::~FFluxSupervisor()
@@ -197,9 +203,9 @@ lm::fflux::input::FFluxStage* FFluxSupervisor::addPilotStage(lm::fflux::input::F
 
 void FFluxSupervisor::addFFluxPhases(lm::fflux::input::FFluxStage* stage, FFPhaseEnums::TrajectoryGeneration trajGeneration, FFPhaseEnums::TrajectoryDuplication trajDuplication)
 {
-    stringstream ss;
-    ss << "/FFluxOutput/Tilings/" << setfill('0') << setw(7) << stage->tiling().id() << "/Basins/" << setfill('0') << setw(7) << stage->tiling().current_basin_index();
-    input->reinitOutputOptions(ss.str());
+    stringstream outputPrefixSS;
+    outputPrefixSS << "/FFluxOutput/Tilings/" << setfill('0') << setw(7) << stage->tiling().id() << "/Basins/" << setfill('0') << setw(7) << stage->tiling().current_basin_index();
+    input->reinitOutputOptions(outputPrefixSS.str());
 
     for (int i=0;i<stage->tiling().edges_size();i++)
     {
@@ -307,7 +313,7 @@ void FFluxSupervisor::buildFFluxPhaseLimitTrajectoriesToRun(lm::fflux::input::FF
 template <typename T>
 void FFluxSupervisor::addFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage, FFPhaseLimEnums::StopCondition stopCondition, T value)
 {
-    for (FFluxPhases::const_iterator it=stage->fflux_phases().begin();it!=stage->fflux_phases().end();it++)
+    for (FFluxPhasesWrap::const_iterator it=stage->fflux_phases().begin();it!=stage->fflux_phases().end();it++)
     {
         lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit = buildFFluxPhaseLimit(stage->add_fflux_phase_limits(), stopCondition, value);
         buildFFluxPhaseLimitTrajectoriesToRun(ffluxPhaseLimit, *it, slots.getSimultaneousWorkUnits());
@@ -328,7 +334,7 @@ void FFluxSupervisor::addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFlux
     vector<uint64_t> trajectoryCounts(optimizeTrajectoryCounts(input->precisionGoal(), input->precisionGoalConfidence(), stageOutput, minimizeCost));
 
     vector<uint64_t>::const_iterator tc_it=trajectoryCounts.begin();
-    FFluxPhases::const_iterator ph_it=productionStage->fflux_phases().begin();
+    FFluxPhasesWrap::const_iterator ph_it=productionStage->fflux_phases().begin();
 
     // special treatment for phase zero
     lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit = buildFFluxPhaseLimit(productionStage->add_fflux_phase_limits(), FFPhaseLimEnums::FORWARD_FLUXES, *tc_it);
@@ -484,6 +490,7 @@ bool FFluxSupervisor::terminateSimulationPhase()
 void FFluxSupervisor::finishSimulationPhase()
 {
     // send the phase output to the output writer
+    ffluxPhaseOutputContainingMsg.
     // TODO: implement sending FFluxPhaseOutput to output writer
 
     // if we need to perform another phase, do so
@@ -514,11 +521,14 @@ void FFluxSupervisor::addFFluxPhaseOutput()
     // hand the previous FFluxPhaseOutput message off to the storage list (if this isn't the first or second phase of a simulation stage)
     if (previousFFluxPhaseOutputWrapPtr->getMsg()!=NULL)
     {
-//        ffluxPhaseOutputsWrap.AddAllocated(previousFFluxPhaseOutputWrapPtr->getMsg());
-        lm::fflux::io::FFluxPhaseOutput* newFFluxPhaseOutputMsgPtr = ffluxPhaseOutputsWrap.Add();
-        newFFluxPhaseOutputMsgPtr->CopyFrom(*previousFFluxPhaseOutputWrapPtr->getMsg());
-        delete previousFFluxPhaseOutputWrapPtr->getMsg();
+        ffluxPhaseOutputsWrap.AddAllocated(previousFFluxPhaseOutputWrapPtr->getMsg());
         previousFFluxPhaseOutputWrapPtr->setMsgNull();
+
+//        lm::fflux::io::FFluxPhaseOutput* newFFluxPhaseOutputMsgPtr = ffluxPhaseOutputsWrap.Add();
+//        newFFluxPhaseOutputMsgPtr->CopyFrom(*previousFFluxPhaseOutputWrapPtr->getMsg());
+//        delete previousFFluxPhaseOutputWrapPtr->getMsg();
+//        previousFFluxPhaseOutputWrapPtr->setMsgNull();
+
     }
 
     // swap the subjects of the current and previous phase output wrapper pointers
@@ -527,7 +537,10 @@ void FFluxSupervisor::addFFluxPhaseOutput()
     currentFFluxPhaseOutputWrapPtr = tmpFFluxPhaseOutputWrapPtr;
 
     // add a new phase output and set it to be the current phase output
-    currentFFluxPhaseOutputWrapPtr->setMsg(new lm::fflux::io::FFluxPhaseOutput);
+    ffluxPhaseOutputsWrap.Add();
+    currentFFluxPhaseOutputWrapPtr->setMsg(ffluxPhaseOutputsWrap.ReleaseLast());
+//    currentFFluxPhaseOutputWrapPtr->setMsg(new lm::fflux::io::FFluxPhaseOutput);
+
 //    * newPhaseOutputMsg = ffluxPhaseOutputsWrap.Add();
 //
 //    // set the new phase output to be the current phase output
@@ -539,19 +552,23 @@ void FFluxSupervisor::finishSimulationStage()
     // hand off the final ffluxPhaseOutputs to the repeated field wrapped by ffluxPhaseOutputsWrap
     if (previousFFluxPhaseOutputWrapPtr->getMsg()!=NULL)
     {
-//        ffluxPhaseOutputsWrap.AddAllocated(previousFFluxPhaseOutputWrapPtr->getMsg());
-        lm::fflux::io::FFluxPhaseOutput* newFFluxPhaseOutputMsgPtr = ffluxPhaseOutputsWrap.Add();
-        newFFluxPhaseOutputMsgPtr->CopyFrom(*previousFFluxPhaseOutputWrapPtr->getMsg());
-        delete previousFFluxPhaseOutputWrapPtr->getMsg();
+        ffluxPhaseOutputsWrap.AddAllocated(previousFFluxPhaseOutputWrapPtr->getMsg());
         previousFFluxPhaseOutputWrapPtr->setMsgNull();
+
+//        lm::fflux::io::FFluxPhaseOutput* newFFluxPhaseOutputMsgPtr = ffluxPhaseOutputsWrap.Add();
+//        newFFluxPhaseOutputMsgPtr->CopyFrom(*previousFFluxPhaseOutputWrapPtr->getMsg());
+//        delete previousFFluxPhaseOutputWrapPtr->getMsg();
+//        previousFFluxPhaseOutputWrapPtr->setMsgNull();
     }
     if (currentFFluxPhaseOutputWrapPtr->getMsg()!=NULL)
     {
-//        ffluxPhaseOutputsWrap.AddAllocated(currentFFluxPhaseOutputWrapPtr->getMsg());
-        lm::fflux::io::FFluxPhaseOutput* newFFluxPhaseOutputMsgPtr = ffluxPhaseOutputsWrap.Add();
-        newFFluxPhaseOutputMsgPtr->CopyFrom(*currentFFluxPhaseOutputWrapPtr->getMsg());
-        delete currentFFluxPhaseOutputWrapPtr->getMsg();
+        ffluxPhaseOutputsWrap.AddAllocated(currentFFluxPhaseOutputWrapPtr->getMsg());
         currentFFluxPhaseOutputWrapPtr->setMsgNull();
+
+//        lm::fflux::io::FFluxPhaseOutput* newFFluxPhaseOutputMsgPtr = ffluxPhaseOutputsWrap.Add();
+//        newFFluxPhaseOutputMsgPtr->CopyFrom(*currentFFluxPhaseOutputWrapPtr->getMsg());
+//        delete currentFFluxPhaseOutputWrapPtr->getMsg();
+//        currentFFluxPhaseOutputWrapPtr->setMsgNull();
     }
 
     // build the stage output from the phase outputs

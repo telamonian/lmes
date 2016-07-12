@@ -302,10 +302,15 @@ public:
 /*
  * function that need to be disabled if Element is a numeric type
  */
-    template <typename U>  //, typename EnableIf<!IsNumeric<U>::value>::type>
-    void AddAllocated(U* value)
+    // template <typename U>  //, typename EnableIf<!IsNumeric<U>::value>::type>
+    void AddAllocated(Element* value) //(U* value)
     {
         wrappedField()->AddAllocated(value);
+    }
+
+    Element* ReleaseLast()
+    {
+        return wrappedField()->ReleaseLast();
     }
 
 #if __cplusplus <= 199711L
@@ -432,13 +437,13 @@ template <typename Element=void> struct make_valarray
     }
 };
 
-// this specialization allows for Element to be deduced implicitly from the passed-in repeated
+// this specialization allows for Element to be deduced implicitly from the passed-in repeated object
 template <> struct make_valarray<void>
 {
     template <typename T>
-    inline static std::valarray<typename T::Element> call(const T& repeated)
+    inline static std::valarray<typename T::WrappedField::value_type> call(const T& repeated)
     {
-        return std::valarray<typename T::Element>(repeated.data(), repeated.size());
+        return std::valarray<typename T::WrappedField::value_type>(repeated.data(), repeated.size());
     }
 };
 

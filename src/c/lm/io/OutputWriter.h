@@ -39,6 +39,7 @@
 #ifndef LM_IO_OUTPUTWRITER
 #define LM_IO_OUTPUTWRITER
 
+#include <google/protobuf/message.h>
 #include <pthread.h>
 #include <queue>
 #include <string>
@@ -57,6 +58,8 @@
 
 namespace lm {
 namespace io {
+
+typedef vector<const google::protobuf::FieldDescriptor*> FieldDescriptors;
 
 class OutputWriter : public lm::thread::Worker
 {
@@ -82,6 +85,8 @@ protected:
     virtual void processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data) {}
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data)=0;
     virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data)=0;
+
+    virtual void processGenericMessage(const google::protobuf::Message& data) {};
 
     virtual int run();
 

@@ -41,8 +41,10 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_AVX_AVXMath
-#define LM_AVX_AVXMath
+#ifdef OPT_AVX
+
+#ifndef LM_AVX_AVXMATH_H_
+#define LM_AVX_AVXMATH_H_
 
 #include <immintrin.h>
 #include "lm/Types.h"
@@ -109,4 +111,5 @@ template <int comparisonOp> inline void avxGetCompareMask(double* leftPtr, doubl
     *trueMask=_mm256_movemask_pd(comp); \
 }
 
-#endif
+#endif /* LM_AVX_AVXMATH_H_ */
+#endif /* OPT_AVX */

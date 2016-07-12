@@ -37,6 +37,7 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 #include <algorithm>
+#include <google/protobuf/message.h>
 #include <queue>
 #include <pthread.h>
 #include <sstream>
@@ -321,10 +322,11 @@ int OutputWriter::HelperThread::run()
             {
                 // Loop over every output in the message.
                 hrtime startWriting = getHrTime();
-                lm::message::ProcessWorkUnitOutput pwu = message->process_work_unit_output();
+                // TODO: figure out if this message actual needs to be copied here
+                const lm::message::ProcessWorkUnitOutput& pwu = message->process_work_unit_output();
                 for (int i=0; i<pwu.part_output_size(); i++)
                 {
-                    lm::message::WorkUnitOutput output = pwu.part_output(i);
+                    const lm::message::WorkUnitOutput& output = pwu.part_output(i);
                     // set the output options
                     if (output.has_condense_output()) p->condenseOutput = output.condense_output();
                     if (output.has_record_name_prefix()) p->setRecordNamePrefix(output.record_name_prefix());
@@ -368,6 +370,31 @@ int OutputWriter::HelperThread::run()
                     if (output.has_species_time_series())
                     {
                         p->processSpeciesTimeSeries(output.species_time_series());
+                    }
+                    if (output.has_work_unit_output_generic())
+                    {
+                        const lm::message::WorkUnitOutputGeneric& outputGeneric = output.work_unit_output_generic();
+                        const google::protobuf::Reflection* reflection = outputGeneric.GetReflection();
+                        FieldDescriptors fields;
+                        reflection->ListFields(outputGeneric, &fields);
+
+                        for (FieldDescriptors::const_iterator it=fields.begin();it!=fields.end();it++)
+                        {
+                            if ((*it)->label()==google::protobuf::FieldDescriptor::LABEL_OPTIONAL and (*it)->type()==google::protobuf::FieldDescriptor::TYPE_MESSAGE)
+                            {
+                                if (reflection->HasField(outputGeneric, *it))
+                                {
+                                    p->processGenericMessage(reflection->GetMessage(outputGeneric, *it));
+                                }
+                            }
+                            else if ((*it)->label()==google::protobuf::FieldDescriptor::LABEL_REPEATED and (*it)->type()==google::protobuf::FieldDescriptor::TYPE_MESSAGE)
+                            {
+                                for (int j=0;j<reflection->GetRepeatedPtrField(outputGeneric, *it).size();j++)
+                                {
+                                    p->processGenericMessage(reflection->GetRepeatedPtrField(outputGeneric, *it).Get(j));
+                                }
+                            }
+                        }
                     }
                 }
                 writingTime += getHrTime()-startWriting;

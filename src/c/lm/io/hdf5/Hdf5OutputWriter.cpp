@@ -204,11 +204,11 @@ void Hdf5OutputWriter::setNDArrayReplicate(uint64_t replicate, const string& gro
 {
     if (condenseOutput)
     {
-        file->setNDArrayReplicateCondensed(replicate, groupRelativePath, datasetName, ndarray);
+        file->setDatasetFromNDArrayReplicateCondensed(replicate, groupRelativePath, datasetName, ndarray);
     }
     else
     {
-        file->setNDArrayReplicate(replicate, groupRelativePath, datasetName, ndarray);
+        file->setDatasetFromNDArrayReplicate(replicate, groupRelativePath, datasetName, ndarray);
     }
 }
 

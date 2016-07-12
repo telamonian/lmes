@@ -53,7 +53,7 @@
 #include "lm/Exceptions.h"
 #include "lm/Tune.h"
 #include "lm/Math.h"
-#include "lm/avx/MathAVX.h"
+#include "lm/avx/AVXMath.h"
 #include "lm/Print.h"
 #include "lm/Types.h"
 #include "lm/avx/GillespieDSolverAVX.h"

@@ -39,6 +39,8 @@
 syntax = "proto2";
 package lm.message;
 
+import "lm/fflux/io/FFluxPhaseOutput.proto";
+import "lm/fflux/io/FFluxStageOutput.proto";
 import "lm/io/DegreeAdvancementTimeSeries.proto";
 import "lm/io/FFluxOutput.proto";
 import "lm/io/FirstPassageTimes.proto";
@@ -67,4 +69,12 @@ message WorkUnitOutput {
 
     // forward flux specific outputs
     optional lm.io.FFluxOutput fflux_output                                            = 31;
+
+    // submessage that contains submessages destined for generic output
+    optional WorkUnitOutputGeneric work_unit_output_generic                            = 101;
+}
+
+message WorkUnitOutputGeneric {
+    repeated lm.fflux.io.FFluxPhaseOutput fflux_phase_outputs = 1;
+    repeated lm.fflux.io.FFluxStageOutput fflux_stage_outputs = 2;
 }

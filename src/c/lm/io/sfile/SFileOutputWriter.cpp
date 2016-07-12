@@ -36,14 +36,13 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+#include <google/protobuf/message.h>
 #include <iomanip>
 #include <sstream>
 #include <string>
 #include <sys/stat.h>
 
-#include <lm/ClassFactory.h>
-#include <lm/main/Globals.h>
-#include <lm/Print.h>
+#include "lm/ClassFactory.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/FFluxOutput.pb.h"
 #include "lm/io/OrderParameterFirstPassageTimes.pb.h"
@@ -53,6 +52,8 @@
 #include "lm/io/sfile/LocalSFile.h"
 #include "lm/io/sfile/SFileOutputWriter.h"
 #include "lm/io/sfile/SFile.h"
+#include "lm/main/Globals.h"
+#include "lm/Print.h"
 
 using std::stringstream;
 using std::string;
@@ -94,29 +95,59 @@ void SFileOutputWriter::initialize()
     file->openAppend();
 }
 
-void SFileOutputWriter::processMessage(string& nameString, string& typeString, const google::protobuf::Message& data)
+void SFileOutputWriter::checkpoint()
 {
-    nameString.insert(0, recordNamePrefix);
-    if (nameString.size() > RECORD_NAME_BUFFER_MAX_SIZE) nameString.resize(RECORD_NAME_BUFFER_MAX_SIZE);
+}
 
-    SFileRecord record(nameString, typeString, data.ByteSize());
+void SFileOutputWriter::flush()
+{
+    file->flush();
+}
+
+void SFileOutputWriter::processMessage(const string& nameString, const string& typeString, const google::protobuf::Message& data)
+{
+    // copy namestring from the const ref to a new mutable string
+    string prefixedNameString(nameString);
+    prefixedNameString.insert(0, recordNamePrefix);
+    if (prefixedNameString.size() > RECORD_NAME_BUFFER_MAX_SIZE) prefixedNameString.resize(RECORD_NAME_BUFFER_MAX_SIZE);
+
+    SFileRecord record(prefixedNameString, typeString, data.ByteSize());
     file->writeSFileRecord(record);
     file->writeMessage(data);
 }
 
+void SFileOutputWriter::processGenericMessage(const google::protobuf::Message& data)
+{
+    const google::protobuf::Reflection* reflection = data.GetReflection();
+    const google::protobuf::Descriptor* descriptor = data.GetDescriptor();
+
+    stringstream nameSS;
+    // if your message has a trajectory_id, file it away under "Simulations"
+    const google::protobuf::FieldDescriptor* trajIDDescriptor = descriptor->FindFieldByName("trajectory_id");
+    if (trajIDDescriptor!=NULL and (trajIDDescriptor->label()!=google::protobuf::FieldDescriptor::LABEL_OPTIONAL or reflection->HasField(data, trajIDDescriptor)))
+    {
+        // this will cause a runtime error if your trajectory_id field is not of type uint64. Alternatively, you could check, ie if (trajIDDescriptor->type()==google::protobuf::FieldDescriptor::TYPE_UINT64)
+        nameSS << "/Simulations" << "/" << reflection->GetUInt64(data, trajIDDescriptor);
+    }
+    nameSS << "/" << descriptor->name();
+
+    stringstream typeSS;
+    typeSS << "protobuf:" << descriptor->full_name();
+
+    processMessage(nameSS.str(), typeSS.str(), data);
+}
+
 void SFileOutputWriter::processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data)
 {
-    stringstream ss;
-    ss << "/Simulations" << "/" << data.trajectory_id() << "/DegreeAdvancementTimeSeries";
+    stringstream nameSS;
+    nameSS << "/Simulations" << "/" << data.trajectory_id() << "/DegreeAdvancementTimeSeries";
 
-    string nameString(ss.str()), typeString("protobuf:lm.io.DegreeAdvancementTimeSeries");
-    processMessage(nameString, typeString, data);
+    processMessage(nameSS.str(), "protobuf:lm.io.DegreeAdvancementTimeSeries", data);
 }
 
 void SFileOutputWriter::processFFluxOutput(const lm::io::FFluxOutput& data)
 {
-    string nameString("/FFluxOutput"), typeString("protobuf:lm.io.FFluxOutput");
-    processMessage(nameString, typeString, data);
+    processMessage("/FFluxOutput", "protobuf:lm.io.FFluxOutput", data);
 }
 
 void SFileOutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
@@ -141,22 +172,20 @@ void SFileOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries
 
 void SFileOutputWriter::processLimitTracking(const lm::io::LimitTracking& data)
 {
-    stringstream ss;
-    ss << "/Simulations/" << data.trajectory_id() << "/LimitTracking/";
-    ss << std::setfill('0') << std::setw(2) << data.limit_id();
+    stringstream nameSS;
+    nameSS << "/Simulations/" << data.trajectory_id() << "/LimitTracking/";
+    nameSS << std::setfill('0') << std::setw(2) << data.limit_id();
 
-    string nameString(ss.str()), typeString("protobuf:lm.io.LimitTracking");
-    processMessage(nameString, typeString, data);
+    processMessage(nameSS.str(), "protobuf:lm.io.LimitTracking", data);
 }
 
 void SFileOutputWriter::processOrderParameterFirstPassageTimes(const lm::io::OrderParameterFirstPassageTimes& data)
 {
-    stringstream ss;
-    ss << "/Simulations/" << data.trajectory_id() << "/OrderParameterFirstPassageTimes/";
-    ss << std::setfill('0') << std::setw(2) << data.order_parameter_id();
+    stringstream nameSS;
+    nameSS << "/Simulations/" << data.trajectory_id() << "/OrderParameterFirstPassageTimes/";
+    nameSS << std::setfill('0') << std::setw(2) << data.order_parameter_id();
 
-    string nameString(ss.str()), typeString("protobuf:lm.io.OrderParameterFirstPassageTimes");
-    processMessage(nameString, typeString, data);
+    processMessage(nameSS.str(), "protobuf:lm.io.OrderParameterFirstPassageTimes", data);
 }
 
 void SFileOutputWriter::processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data)
@@ -187,15 +216,6 @@ void SFileOutputWriter::processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries
     SFileRecord record(string(buffer), string("protobuf:lm.io.SpeciesTimeSeries"), data.ByteSize());
     file->writeSFileRecord(record);
     file->writeMessage(data);
-}
-
-void SFileOutputWriter::flush()
-{
-    file->flush();
-}
-
-void SFileOutputWriter::checkpoint()
-{
 }
 
 void SFileOutputWriter::finalize()

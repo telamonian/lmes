@@ -70,7 +70,7 @@ public:
 
     // construct Trajectory from a range of species count values (and optionally a starting time)
     template <typename InputIterator> Trajectory(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd, double startTime, uint64_t phase, uint64_t id)
-    :id(id),simulationPhase(phase),status(NOT_STARTED),state(),numberWorkUnitsPerformed(0)
+    :id(id),numberWorkUnitsPerformed(0),simulationPhase(phase),state(),status(NOT_STARTED)
     {
         initializeState();
 
