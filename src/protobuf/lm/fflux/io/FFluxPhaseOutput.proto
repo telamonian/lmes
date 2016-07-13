@@ -55,6 +55,10 @@ message FFluxPhaseOutput {
     repeated EndPoint successful_trajectory_end_points          = 101;
 }
 
+message FFluxPhaseOutputList {
+    repeated FFluxPhaseOutput fflux_phase_outputs               = 1;
+}
+
 message StartPoint {
     repeated int32 species_coordinates                         = 1 [packed=true];
     optional uint64 count                                      = 2 [default=0];

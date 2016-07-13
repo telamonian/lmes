@@ -65,6 +65,7 @@ public:
     typedef lm::protowrap::Repeated<lm::fflux::input::FFluxPhase> FFluxPhasesWrap;
     typedef lm::protowrap::Repeated<lm::fflux::input::FFluxPhaseLimit> FFluxPhaseLimitsWrap;
     typedef lm::protowrap::Repeated<lm::fflux::io::FFluxPhaseOutput> FFluxPhaseOutputsWrap;
+    typedef lm::protowrap::Repeated<lm::fflux::io::FFluxPhaseOutputList> FFluxPhaseOutputListsWrap;
     typedef lm::protowrap::Repeated<lm::fflux::io::FFluxStageOutput> FFluxStageOutputsWrap;
     typedef std::vector<lm::fflux::input::FFluxStage*> FFluxStageVector;
 
@@ -176,8 +177,10 @@ protected:
     lm::tiling::Tiling currentTilingWrap;
 
     // phase output messages
+    FFluxPhaseOutputListsWrap::WrappedField ffluxPhaseOutputListsMsg;
+    FFluxPhaseOutputListsWrap ffluxPhaseOutputListsWrap;
+    FFluxPhaseOutputsWrap ffluxPhaseOutputsWrap;
     lm::message::Message ffluxPhaseOutputContainingMsg;
-    FFluxPhaseOutputsWrap* ffluxPhaseOutputsWrapPtr;
     lm::protowrap::FFluxPhaseOutputWrap _ffluxPhaseOutputWrap_0;
     lm::protowrap::FFluxPhaseOutputWrap _ffluxPhaseOutputWrap_1;
     lm::protowrap::FFluxPhaseOutputWrap* currentFFluxPhaseOutputWrapPtr;

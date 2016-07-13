@@ -147,9 +147,16 @@ void cumprod(InputIterator begin, InputIterator end, OutputIterator outputIt)
 }
 
 template <typename InputIterator, typename OutputIterator, typename PODType>
-void pairwiseMul(InputIterator begin, InputIterator end, OutputIterator outputIt, PODType coeff)
+void pairwiseMul(InputIterator begin, InputIterator end, PODType coeff, OutputIterator outputIt)
 {
     std::transform(begin, end, outputIt, std::bind1st(std::multiplies<double>(), coeff));
+}
+
+// end1 is here purely for overloading diasmbiguation. need a c++11-style enable-if to do better
+template <typename InputIterator, typename OutputIterator>
+void pairwiseMul(InputIterator begin0, InputIterator end0, InputIterator begin1, InputIterator end1, OutputIterator outputIt)
+{
+    std::transform(begin0, end0, begin1, outputIt, std::multiplies<double>());
 }
 
 // product functor. ProductFunctor<T>::call(first, last) will return the product of an iterator range if T is a numeric type (returns 0 if the range is empty)

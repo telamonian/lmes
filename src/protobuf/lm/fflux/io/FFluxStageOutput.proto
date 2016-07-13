@@ -60,8 +60,6 @@ message FFluxStageOutput {
      * - if set, output the raw data used to calculate fluxes and proabilities
      */
     optional FFluxStageOuputRaw fflux_stage_output_raw        = 101;
-
-    repeated lm.fflux.io.FFluxPhaseOutput fflux_phase_outputs = 201;
 }
 
 message FFluxStageOuputRaw {
