@@ -105,7 +105,7 @@ int FFluxSupervisor::getRecvSleepMilliseconds()
 FFluxSupervisor::FFluxSupervisor()
 :ffluxPhaseOutputsWrap(&ffluxPhaseOutputsMsg),ffluxStageOutputsWrap(&ffluxStageOutputsMsg),
  previousFFluxPhaseOutputWrapPtr(&_ffluxPhaseOutputWrap_0),currentFFluxPhaseOutputWrapPtr(&_ffluxPhaseOutputWrap_1),
- simulationPhaseTerminated(false),input(NULL),trajectoryList(NULL)
+ simulationPhaseOutputSent(false),simulationPhaseTerminated(false),simulationStageOutputSent(false),input(NULL),trajectoryList(NULL)
 {
     ffluxPhaseOutputContainingMsg.mutable_process_work_unit_output()->set_work_unit_id(0);
     ffluxPhaseOutputContainingMsg.mutable_process_work_unit_output()->add_part_output();
@@ -250,11 +250,23 @@ void FFluxSupervisor::startSimulationStage()
     // set the first phase of the new stage as the currentFFluxPhase
     currentFFluxPhaseIter = mutableCurrentStage()->mutable_fflux_phases()->begin();
 
+    // set the stage output flag
+    simulationStageOutputSent = false;
+
     // print an info message about the stage we're starting up
     Print::printf(Print::INFO, "Forward Flux stage %3d started (%s)", currentStageIndex(), currentStageInfo().c_str());
 
     // start the new phase
     startSimulationPhase();
+}
+
+void FFluxSupervisor::addFFluxStageOutput()
+{
+    // add a new phase output
+    lm::fflux::io::FFluxStageOutput* newStageOutputMsg = ffluxStageOutputsWrap.Add();
+
+    // set the new phase output to be the current phase output
+    currentFFluxStageOutputWrap.setWrappedMsg(newStageOutputMsg);
 }
 
 template <typename T>
@@ -431,7 +443,8 @@ void FFluxSupervisor::startSimulationPhase()
     // Build the list of trajectories to simulate.
     buildTrajectoryList();
 
-    // reset the phase termination flag
+    // reset the phase output and termination flag
+    simulationPhaseOutputSent = false;
     simulationPhaseTerminated = false;
 
     // print an info message about the phase we're starting up
@@ -444,6 +457,37 @@ void FFluxSupervisor::startSimulationPhase()
         Print::printf(Print::INFO, "No work to be performed.");
         finishSimulationPhase();
     }
+}
+
+void FFluxSupervisor::addFFluxPhaseOutput()
+{
+    // hand the previous FFluxPhaseOutput message off to the storage list (if this isn't the first or second phase of a simulation stage)
+    if (previousFFluxPhaseOutputWrapPtr->wrappedMsg()!=NULL)
+    {
+        ffluxPhaseOutputsWrap.AddAllocated(previousFFluxPhaseOutputWrapPtr->wrappedMsg());
+        previousFFluxPhaseOutputWrapPtr->setWrappedMsgNull();
+
+//        lm::fflux::io::FFluxPhaseOutput* newFFluxPhaseOutputMsgPtr = ffluxPhaseOutputsWrap.Add();
+//        newFFluxPhaseOutputMsgPtr->CopyFrom(*previousFFluxPhaseOutputWrapPtr->wrappedMsg());
+//        delete previousFFluxPhaseOutputWrapPtr->wrappedMsg();
+//        previousFFluxPhaseOutputWrapPtr->setWrappedMsgNull();
+
+    }
+
+    // swap the subjects of the current and previous phase output wrapper pointers
+    lm::protowrap::FFluxPhaseOutputWrap* tmpFFluxPhaseOutputWrapPtr = previousFFluxPhaseOutputWrapPtr;
+    previousFFluxPhaseOutputWrapPtr = currentFFluxPhaseOutputWrapPtr;
+    currentFFluxPhaseOutputWrapPtr = tmpFFluxPhaseOutputWrapPtr;
+
+    // add a new phase output and set it to be the current phase output
+    ffluxPhaseOutputsWrap.Add();
+    currentFFluxPhaseOutputWrapPtr->setWrappedMsg(ffluxPhaseOutputsWrap.ReleaseLast());
+//    currentFFluxPhaseOutputWrapPtr->setWrappedMsg(new lm::fflux::io::FFluxPhaseOutput);
+
+//    * newPhaseOutputMsg = ffluxPhaseOutputsWrap.Add();
+//
+//    // set the new phase output to be the current phase output
+//    currentFFluxPhaseOutputWrapPtr->setWrappedMsg(newPhaseOutputMsg);
 }
 
 void FFluxSupervisor::buildTrajectoryList()
@@ -471,13 +515,13 @@ bool FFluxSupervisor::terminateSimulationPhase()
         switch(mutableCurrentPhaseLimit()->stop_condition())
         {
         case FFPhaseLimEnums::FORWARD_FLUXES:
-            simulationPhaseTerminated = (currentFFluxPhaseOutputWrapPtr->getMsg()->successful_trajectories_launched_count()>=mutableCurrentPhaseLimit()->uvalue());
+            simulationPhaseTerminated = (currentFFluxPhaseOutputWrapPtr->wrappedMsg()->successful_trajectories_launched_count()>=mutableCurrentPhaseLimit()->uvalue());
             break;
         case FFPhaseLimEnums::TRAJECTORY_COUNT:
-            simulationPhaseTerminated = (currentFFluxPhaseOutputWrapPtr->getMsg()->successful_trajectories_launched_count() + currentFFluxPhaseOutputWrapPtr->getMsg()->failed_trajectories_launched_count()>=mutableCurrentPhaseLimit()->uvalue());
+            simulationPhaseTerminated = (currentFFluxPhaseOutputWrapPtr->wrappedMsg()->successful_trajectories_launched_count() + currentFFluxPhaseOutputWrapPtr->wrappedMsg()->failed_trajectories_launched_count()>=mutableCurrentPhaseLimit()->uvalue());
             break;
         case FFPhaseLimEnums::TIME:
-            simulationPhaseTerminated = (currentFFluxPhaseOutputWrapPtr->getMsg()->successful_trajectories_launched_total_time() + currentFFluxPhaseOutputWrapPtr->getMsg()->failed_trajectories_launched_total_time()>=mutableCurrentPhaseLimit()->dvalue());
+            simulationPhaseTerminated = (currentFFluxPhaseOutputWrapPtr->wrappedMsg()->successful_trajectories_launched_total_time() + currentFFluxPhaseOutputWrapPtr->wrappedMsg()->failed_trajectories_launched_total_time()>=mutableCurrentPhaseLimit()->dvalue());
             break;
         default: throw UnimplementedException("unimplemented");
         }
@@ -489,9 +533,15 @@ bool FFluxSupervisor::terminateSimulationPhase()
 
 void FFluxSupervisor::finishSimulationPhase()
 {
-    // send the phase output to the output writer
-    ffluxPhaseOutputContainingMsg.
-    // TODO: implement sending FFluxPhaseOutput to output writer
+    if (not simulationPhaseOutputSent)
+    {
+        // send the phase output to the output writer
+        ffluxPhaseOutputContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0)->mutable_work_unit_output_generic()->mutable_fflux_phase_outputs()->AddAllocated(currentFFluxPhaseOutputWrapPtr->wrappedMsg());
+        communicator.sendMessage(outputWriterProcess, outputWriterThread, &ffluxPhaseOutputContainingMsg);
+        ffluxPhaseOutputContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0)->mutable_work_unit_output_generic()->mutable_fflux_phase_outputs()->ReleaseLast();
+
+        simulationPhaseOutputSent = true;
+    }
 
     // if we need to perform another phase, do so
     if (performAnotherSimulationPhase())
@@ -516,66 +566,42 @@ void FFluxSupervisor::incrementSimulationPhase()
     lm::main::SimulationSupervisor::incrementSimulationPhase();
 }
 
-void FFluxSupervisor::addFFluxPhaseOutput()
-{
-    // hand the previous FFluxPhaseOutput message off to the storage list (if this isn't the first or second phase of a simulation stage)
-    if (previousFFluxPhaseOutputWrapPtr->getMsg()!=NULL)
-    {
-        ffluxPhaseOutputsWrap.AddAllocated(previousFFluxPhaseOutputWrapPtr->getMsg());
-        previousFFluxPhaseOutputWrapPtr->setMsgNull();
-
-//        lm::fflux::io::FFluxPhaseOutput* newFFluxPhaseOutputMsgPtr = ffluxPhaseOutputsWrap.Add();
-//        newFFluxPhaseOutputMsgPtr->CopyFrom(*previousFFluxPhaseOutputWrapPtr->getMsg());
-//        delete previousFFluxPhaseOutputWrapPtr->getMsg();
-//        previousFFluxPhaseOutputWrapPtr->setMsgNull();
-
-    }
-
-    // swap the subjects of the current and previous phase output wrapper pointers
-    lm::protowrap::FFluxPhaseOutputWrap* tmpFFluxPhaseOutputWrapPtr = previousFFluxPhaseOutputWrapPtr;
-    previousFFluxPhaseOutputWrapPtr = currentFFluxPhaseOutputWrapPtr;
-    currentFFluxPhaseOutputWrapPtr = tmpFFluxPhaseOutputWrapPtr;
-
-    // add a new phase output and set it to be the current phase output
-    ffluxPhaseOutputsWrap.Add();
-    currentFFluxPhaseOutputWrapPtr->setMsg(ffluxPhaseOutputsWrap.ReleaseLast());
-//    currentFFluxPhaseOutputWrapPtr->setMsg(new lm::fflux::io::FFluxPhaseOutput);
-
-//    * newPhaseOutputMsg = ffluxPhaseOutputsWrap.Add();
-//
-//    // set the new phase output to be the current phase output
-//    currentFFluxPhaseOutputWrapPtr->setMsg(newPhaseOutputMsg);
-}
-
 void FFluxSupervisor::finishSimulationStage()
 {
-    // hand off the final ffluxPhaseOutputs to the repeated field wrapped by ffluxPhaseOutputsWrap
-    if (previousFFluxPhaseOutputWrapPtr->getMsg()!=NULL)
+    if (not simulationStageOutputSent)
     {
-        ffluxPhaseOutputsWrap.AddAllocated(previousFFluxPhaseOutputWrapPtr->getMsg());
-        previousFFluxPhaseOutputWrapPtr->setMsgNull();
+        // hand off the final ffluxPhaseOutputs to the repeated field wrapped by ffluxPhaseOutputsWrap
+        if (previousFFluxPhaseOutputWrapPtr->wrappedMsg()!=NULL)
+        {
+            ffluxPhaseOutputsWrap.AddAllocated(previousFFluxPhaseOutputWrapPtr->wrappedMsg());
+            previousFFluxPhaseOutputWrapPtr->setWrappedMsgNull();
 
-//        lm::fflux::io::FFluxPhaseOutput* newFFluxPhaseOutputMsgPtr = ffluxPhaseOutputsWrap.Add();
-//        newFFluxPhaseOutputMsgPtr->CopyFrom(*previousFFluxPhaseOutputWrapPtr->getMsg());
-//        delete previousFFluxPhaseOutputWrapPtr->getMsg();
-//        previousFFluxPhaseOutputWrapPtr->setMsgNull();
+    //        lm::fflux::io::FFluxPhaseOutput* newFFluxPhaseOutputMsgPtr = ffluxPhaseOutputsWrap.Add();
+    //        newFFluxPhaseOutputMsgPtr->CopyFrom(*previousFFluxPhaseOutputWrapPtr->wrappedMsg());
+    //        delete previousFFluxPhaseOutputWrapPtr->wrappedMsg();
+    //        previousFFluxPhaseOutputWrapPtr->setWrappedMsgNull();
+        }
+        if (currentFFluxPhaseOutputWrapPtr->wrappedMsg()!=NULL)
+        {
+            ffluxPhaseOutputsWrap.AddAllocated(currentFFluxPhaseOutputWrapPtr->wrappedMsg());
+            currentFFluxPhaseOutputWrapPtr->setWrappedMsgNull();
+
+    //        lm::fflux::io::FFluxPhaseOutput* newFFluxPhaseOutputMsgPtr = ffluxPhaseOutputsWrap.Add();
+    //        newFFluxPhaseOutputMsgPtr->CopyFrom(*currentFFluxPhaseOutputWrapPtr->wrappedMsg());
+    //        delete currentFFluxPhaseOutputWrapPtr->wrappedMsg();
+    //        currentFFluxPhaseOutputWrapPtr->setWrappedMsgNull();
+        }
+
+        // build the stage output from the phase outputs
+        currentFFluxStageOutputWrap.buildFromFFluxPhaseOutputs(ffluxPhaseOutputsWrap);
+
+        // send the stage output to the output writer
+        ffluxStageOutputContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0)->mutable_work_unit_output_generic()->mutable_fflux_stage_outputs()->AddAllocated(currentFFluxStageOutputWrap.mutableWrappedMsg());
+        communicator.sendMessage(outputWriterProcess, outputWriterThread, &ffluxStageOutputContainingMsg);
+        ffluxStageOutputContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0)->mutable_work_unit_output_generic()->mutable_fflux_stage_outputs()->ReleaseLast();
+
+        simulationStageOutputSent = true;
     }
-    if (currentFFluxPhaseOutputWrapPtr->getMsg()!=NULL)
-    {
-        ffluxPhaseOutputsWrap.AddAllocated(currentFFluxPhaseOutputWrapPtr->getMsg());
-        currentFFluxPhaseOutputWrapPtr->setMsgNull();
-
-//        lm::fflux::io::FFluxPhaseOutput* newFFluxPhaseOutputMsgPtr = ffluxPhaseOutputsWrap.Add();
-//        newFFluxPhaseOutputMsgPtr->CopyFrom(*currentFFluxPhaseOutputWrapPtr->getMsg());
-//        delete currentFFluxPhaseOutputWrapPtr->getMsg();
-//        currentFFluxPhaseOutputWrapPtr->setMsgNull();
-    }
-
-    // build the stage output from the phase outputs
-    currentFFluxStageOutputWrap.buildFromFFluxPhaseOutputs(ffluxPhaseOutputsWrap);
-
-    // send the stage output to the output writer
-    // TODO: implement sending FFluxPhaseOutput to output writer
 
     // if we need to perform another stage, do so
     if (performAnotherSimulationStage())
@@ -597,15 +623,6 @@ void FFluxSupervisor::incrementSimulationStage()
 {
     // increment the currentFFluxPhase iterator
     currentFFluxStageIter++;
-}
-
-void FFluxSupervisor::addFFluxStageOutput()
-{
-    // add a new phase output
-    lm::fflux::io::FFluxStageOutput* newStageOutputMsg = ffluxStageOutputsWrap.Add();
-
-    // set the new phase output to be the current phase output
-    currentFFluxStageOutputWrap.setWrappedMsg(newStageOutputMsg);
 }
 
 // methods that handle FinishedWorkUnit messages

@@ -389,9 +389,9 @@ int OutputWriter::HelperThread::run()
                             }
                             else if ((*it)->label()==google::protobuf::FieldDescriptor::LABEL_REPEATED and (*it)->type()==google::protobuf::FieldDescriptor::TYPE_MESSAGE)
                             {
-                                for (int j=0;j<reflection->GetRepeatedPtrField(outputGeneric, *it).size();j++)
+                                for (int j=0;j<reflection->FieldSize(outputGeneric, *it);j++)
                                 {
-                                    p->processGenericMessage(reflection->GetRepeatedPtrField(outputGeneric, *it).Get(j));
+                                    p->processGenericMessage(reflection->GetRepeatedMessage(outputGeneric, *it, j));
                                 }
                             }
                         }

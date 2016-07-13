@@ -43,6 +43,7 @@
 #include <pthread.h>
 #include <queue>
 #include <string>
+#include <vector>
 
 #include "lm/io/DegreeAdvancementTimeSeries.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
@@ -59,7 +60,7 @@
 namespace lm {
 namespace io {
 
-typedef vector<const google::protobuf::FieldDescriptor*> FieldDescriptors;
+typedef std::vector<const google::protobuf::FieldDescriptor*> FieldDescriptors;
 
 class OutputWriter : public lm::thread::Worker
 {

@@ -117,7 +117,7 @@ public:
     :msgPtr(NULL),rng(NULL),randomDoublesStart(NULL),randomDoubles(NULL),randomDoublesEnd(NULL),randomIndexesStart(NULL),
      randomIndexes(NULL),randomIndexesEnd(NULL),randomCacheSize(randomCacheSize),randomIndexesDirty(true)
     {
-        setMsg(msgMutablePtr);
+        setWrappedMsg(msgMutablePtr);
     }
 
     ~FFluxPhaseOutputWrap() {destructRng(); destructRandomIndexes();}
@@ -299,20 +299,20 @@ public:
         return endPointVector[ri];
     }
 
-    Msg* getMsg()
+    Msg* wrappedMsg()
     {
         return msgPtr;
     }
 
-    void setMsg(Msg* newMsgMutablePtr)
+    void setWrappedMsg(Msg* newMsgMutablePtr)
     {
         msgPtr = newMsgMutablePtr;
 
-        successfulEndPointMap.setWrappedField(getMsg()->mutable_successful_trajectory_end_points());
+        successfulEndPointMap.setWrappedField(wrappedMsg()->mutable_successful_trajectory_end_points());
         rebuildEndPointVector();
     }
 
-    void setMsgNull()
+    void setWrappedMsgNull()
     {
         msgPtr = NULL;
 

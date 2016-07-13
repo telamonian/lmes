@@ -490,13 +490,15 @@ void SimulationSupervisor::incrementSimulationPhase()
 
 void SimulationSupervisor::finishSimulation()
 {
-    bool anyStillRunning;
-    if ((anyStillRunning = trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::RUNNING)->size() > 0) or trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::ABORTED)->size() > 0)
+    if (trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::RUNNING)->size() > 0)
+    {
+        trajectoryList->setAll(lm::trajectory::Trajectory::RUNNING, lm::trajectory::Trajectory::ABORTED);
+    }
+    if (trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::ABORTED)->size() > 0)
     {
         // If the simulation phase was ever forcibly terminated, make sure we clean up any running trajectories appropriately
         if (simulationPhaseEverTerminated)
         {
-            if (anyStillRunning) trajectoryList->setAll(lm::trajectory::Trajectory::RUNNING, lm::trajectory::Trajectory::ABORTED);
             return (void)0;
         }
             // Otherwise, the default supervisor behavior is to throw an exception if there are trajectories still running at the end of a phase

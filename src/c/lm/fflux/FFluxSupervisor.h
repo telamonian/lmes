@@ -89,6 +89,7 @@ protected:
 
     // setup methods that run at the start of every fflux stage
     virtual void startSimulationStage();
+    virtual void addFFluxStageOutput();
     template <typename ValT> lm::fflux::input::FFluxPhaseLimit* buildFFluxPhaseLimit(lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit, FFPhaseLimEnums::StopCondition stopCondition, ValT value);
     template <typename ValT> void addFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage, FFPhaseLimEnums::StopCondition stopCondition, ValT value);
     // TODO: spin this function off as part of an FFluxPhase wrapper
@@ -106,6 +107,7 @@ protected:
 
     // setup methods that run at the start of every fflux phase
     virtual void startSimulationPhase();
+    virtual void addFFluxPhaseOutput();
     virtual void buildTrajectoryList();
 
     // methods that control what happens at the end of a ffluxPhase
@@ -113,13 +115,11 @@ protected:
     virtual void finishSimulationPhase();
     virtual bool performAnotherSimulationPhase() {return not isCurrentPhaseLast();}
     virtual void incrementSimulationPhase();
-    virtual void addFFluxPhaseOutput();
 
     // methods that control what happens at the end of a ffluxStage
     virtual void finishSimulationStage();
     virtual bool performAnotherSimulationStage() {return not isCurrentStageLast();}
     virtual void incrementSimulationStage();
-    virtual void addFFluxStageOutput();
 
     // methods that handle FinishedWorkUnit messages
     virtual void receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg);
@@ -190,7 +190,9 @@ protected:
     FFluxStageOutputsWrap ffluxStageOutputsWrap;
     lm::protowrap::FFluxStageOutputWrap currentFFluxStageOutputWrap;
 
+    bool simulationPhaseOutputSent;
     bool simulationPhaseTerminated;
+    bool simulationStageOutputSent;
 
     // shadowing ptrs from the base class
     lm::fflux::input::FFluxInput* input;
