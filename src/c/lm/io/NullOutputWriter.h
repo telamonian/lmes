@@ -37,8 +37,8 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-#ifndef LM_IO_NullOutputWriter
-#define LM_IO_NullOutputWriter
+#ifndef LM_IO_NULLOUTPUTWRITER_H_
+#define LM_IO_NULLOUTPUTWRITER_H_
 
 #include <queue>
 #include <cstring>
@@ -64,12 +64,15 @@ public:
     virtual ~NullOutputWriter();
 
 protected:
+    virtual void flush();
+    virtual void checkpoint();
+
     virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
     virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data);
     virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data);
-    virtual void flush();
-    virtual void checkpoint();
+
+    virtual void processGenericMessage(const google::protobuf::Message& data);
 
 private:
     int secondsToDelay;
@@ -79,4 +82,4 @@ private:
 }
 
 
-#endif
+#endif /* LM_IO_NULLOUTPUTWRITER_H_ */

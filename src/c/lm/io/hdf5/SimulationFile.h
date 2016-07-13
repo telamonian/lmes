@@ -236,7 +236,7 @@ public:
 
 	// Methods for working with NDArrays
     hsize_t setDatasetFromNDArray(const std::string& groupPath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarrayRef, hid_t rootGroup = -1);
-    void setDatasetFromNDArrayReplicate(uint64_t replicate, const std::string& groupRelativePath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarray);
+    void setDatasetFromNDArrayReplicate(uint64_t replicate, const std::string& groupRelativePath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarray, bool condensed=false);
     void setDatasetFromNDArrayReplicateCondensed(uint64_t replicate, const std::string& groupRelativePath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarray);
     template <typename Container> hsize_t setDatasetFromContainer(const std::string& groupPath, const std::string& datasetName, const Container& container, hid_t rootGroup = -1)
     {

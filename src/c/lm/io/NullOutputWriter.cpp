@@ -90,6 +90,14 @@ NullOutputWriter::~NullOutputWriter()
 {
 }
 
+void NullOutputWriter::checkpoint()
+{
+}
+
+void NullOutputWriter::flush()
+{
+}
+
 void NullOutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
 {
     if (secondsToDelay > 0)
@@ -114,13 +122,10 @@ void NullOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries&
         sleep(secondsToDelay);
 }
 
-void NullOutputWriter::flush()
+void NullOutputWriter::processGenericMessage(const google::protobuf::Message& data)
 {
-
-}
-
-void NullOutputWriter::checkpoint()
-{
+    if (secondsToDelay > 0)
+        sleep(secondsToDelay);
 }
 
 }

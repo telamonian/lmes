@@ -2717,10 +2717,17 @@ hsize_t Hdf5File::setDatasetFromNDArray(const std::string& groupPath, const std:
     return rows;
 }
 
-void Hdf5File::setDatasetFromNDArrayReplicate(uint64_t replicate, const std::string& groupRelativePath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarray)
+void Hdf5File::setDatasetFromNDArrayReplicate(uint64_t replicate, const std::string& groupRelativePath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarray, bool condensed)
 {
-    ReplicateHandles * replicateHandles = openReplicateHandles(replicate);
-    setDatasetFromNDArray(groupRelativePath, datasetName, ndarray, replicateHandles->group);
+    if (condensed)
+    {
+        setDatasetFromNDArrayReplicateCondensed(replicate, groupRelativePath, datasetName, ndarray);
+    }
+    else
+    {
+        ReplicateHandles * replicateHandles = openReplicateHandles(replicate);
+        setDatasetFromNDArray(groupRelativePath, datasetName, ndarray, replicateHandles->group);
+    }
 }
 
 // condensed version of the generalized NDArray hdf5 output. Condensed in the sense that it shoves all of the data into as few separate groups and datasets as possible

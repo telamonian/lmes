@@ -95,6 +95,15 @@ void SFileOutputWriter::initialize()
     file->openAppend();
 }
 
+void SFileOutputWriter::finalize()
+{
+    OutputWriter::finalize();
+
+    file->close();
+    delete file;
+    file = NULL;
+}
+
 void SFileOutputWriter::checkpoint()
 {
 }
@@ -102,39 +111,6 @@ void SFileOutputWriter::checkpoint()
 void SFileOutputWriter::flush()
 {
     file->flush();
-}
-
-void SFileOutputWriter::processMessage(const string& nameString, const string& typeString, const google::protobuf::Message& data)
-{
-    // copy namestring from the const ref to a new mutable string
-    string prefixedNameString(nameString);
-    prefixedNameString.insert(0, recordNamePrefix);
-    if (prefixedNameString.size() > RECORD_NAME_BUFFER_MAX_SIZE) prefixedNameString.resize(RECORD_NAME_BUFFER_MAX_SIZE);
-
-    SFileRecord record(prefixedNameString, typeString, data.ByteSize());
-    file->writeSFileRecord(record);
-    file->writeMessage(data);
-}
-
-void SFileOutputWriter::processGenericMessage(const google::protobuf::Message& data)
-{
-    const google::protobuf::Reflection* reflection = data.GetReflection();
-    const google::protobuf::Descriptor* descriptor = data.GetDescriptor();
-
-    stringstream nameSS;
-    // if your message has a trajectory_id, file it away under "Simulations"
-    const google::protobuf::FieldDescriptor* trajIDDescriptor = descriptor->FindFieldByName("trajectory_id");
-    if (trajIDDescriptor!=NULL and (trajIDDescriptor->label()!=google::protobuf::FieldDescriptor::LABEL_OPTIONAL or reflection->HasField(data, trajIDDescriptor)))
-    {
-        // this will cause a runtime error if your trajectory_id field is not of type uint64. Alternatively, you could check, ie if (trajIDDescriptor->type()==google::protobuf::FieldDescriptor::TYPE_UINT64)
-        nameSS << "/Simulations" << "/" << reflection->GetUInt64(data, trajIDDescriptor);
-    }
-    nameSS << "/" << descriptor->name();
-
-    stringstream typeSS;
-    typeSS << "protobuf:" << descriptor->full_name();
-
-    processMessage(nameSS.str(), typeSS.str(), data);
 }
 
 void SFileOutputWriter::processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data)
@@ -218,13 +194,37 @@ void SFileOutputWriter::processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries
     file->writeMessage(data);
 }
 
-void SFileOutputWriter::finalize()
+void SFileOutputWriter::processGenericMessage(const google::protobuf::Message& data)
 {
-    OutputWriter::finalize();
+    const google::protobuf::Reflection* reflection = data.GetReflection();
+    const google::protobuf::Descriptor* descriptor = data.GetDescriptor();
 
-    file->close();
-    delete file;
-    file = NULL;
+    stringstream nameSS;
+    // if your message has a trajectory_id, file it away under "Simulations"
+    const google::protobuf::FieldDescriptor* trajIDDescriptor = descriptor->FindFieldByName("trajectory_id");
+    if (trajIDDescriptor!=NULL and (trajIDDescriptor->label()!=google::protobuf::FieldDescriptor::LABEL_OPTIONAL or reflection->HasField(data, trajIDDescriptor)))
+    {
+        // this will cause a runtime error if your trajectory_id field is not of type uint64. Alternatively, you could check, ie if (trajIDDescriptor->type()==google::protobuf::FieldDescriptor::TYPE_UINT64)
+        nameSS << "/Simulations" << "/" << reflection->GetUInt64(data, trajIDDescriptor);
+    }
+    nameSS << "/" << descriptor->name();
+
+    stringstream typeSS;
+    typeSS << "protobuf:" << descriptor->full_name();
+
+    processMessage(nameSS.str(), typeSS.str(), data);
+}
+
+void SFileOutputWriter::processMessage(const string& nameString, const string& typeString, const google::protobuf::Message& data)
+{
+    // copy namestring from the const ref to a new mutable string
+    string prefixedNameString(nameString);
+    prefixedNameString.insert(0, recordNamePrefix);
+    if (prefixedNameString.size() > RECORD_NAME_BUFFER_MAX_SIZE) prefixedNameString.resize(RECORD_NAME_BUFFER_MAX_SIZE);
+
+    SFileRecord record(prefixedNameString, typeString, data.ByteSize());
+    file->writeSFileRecord(record);
+    file->writeMessage(data);
 }
 
 }

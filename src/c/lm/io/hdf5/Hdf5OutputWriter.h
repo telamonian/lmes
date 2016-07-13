@@ -68,6 +68,9 @@ public:
     virtual void finalize();
 
 protected:
+    virtual void checkpoint();
+    virtual void flush();
+
     virtual void processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data);
     virtual void processFFluxOutput(const lm::io::FFluxOutput& data);
     virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
@@ -77,10 +80,7 @@ protected:
     virtual void processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data);
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
     virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data);
-    virtual void flush();
-    virtual void checkpoint();
 
-    virtual void setNDArrayReplicate(uint64_t replicate, const std::string& groupRelativePath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarray);
     virtual void setRecordNamePrefix(const std::string& newRecordNamePrefix);
 
 private:

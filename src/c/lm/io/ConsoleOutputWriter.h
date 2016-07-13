@@ -68,12 +68,15 @@ public:
     virtual void initialize();
 
 protected:
+    virtual void checkpoint();
+    virtual void flush();
+
     virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
     virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data);
     virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data);
-    virtual void flush();
-    virtual void checkpoint();
+
+    virtual void processGenericMessage(const google::protobuf::Message& data);
 
 private:
     char* buffer;

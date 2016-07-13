@@ -42,6 +42,7 @@
 #include <vector>
 
 #include "lm/fflux/io/FFluxPhaseOutput.pb.h"
+#include "lm/fflux/io/FFluxPhaseOutputWrap.h"
 #include "lm/fflux/io/FFluxStageOutput.pb.h"
 #include "lm/Math.h"
 #include "lm/protowrap/Repeated.h"
@@ -81,7 +82,8 @@ class FFluxStageOutputWrap : public lm::protowrap::Msg<FFluxStageOutputWrap, lm:
     WRAPPED_FIELDS_W_SERIALIZERS(repeated, double,                  switching_time_per_tile,
                                  repeated, double,                  fluxes,
                                  repeated, double,                  probabilities,
-                                 optional, FFluxStageOutputRawWrap, fflux_stage_output_raw)
+                                 optional, FFluxStageOutputRawWrap, fflux_stage_output_raw,
+                                 repeated, FFluxPhaseOutputMsg,     fflux_phase_outputs)
 
     void buildFromFFluxPhaseOutputs(const FFluxPhaseOutputsWrap& ffluxPhaseOutputsWrap)
     {

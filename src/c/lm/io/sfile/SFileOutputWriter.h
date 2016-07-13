@@ -78,9 +78,6 @@ protected:
     virtual void checkpoint();
     virtual void flush();
 
-    virtual void processMessage(const string& prefixedNameString, const string& typeString, const google::protobuf::Message& data);
-    virtual void processGenericMessage(const google::protobuf::Message& data);
-
     virtual void processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data);
     virtual void processFFluxOutput(const lm::io::FFluxOutput& data);
     virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
@@ -90,6 +87,9 @@ protected:
     virtual void processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data);
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
     virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data);
+
+    virtual void processMessage(const string& prefixedNameString, const string& typeString, const google::protobuf::Message& data);
+    virtual void processGenericMessage(const google::protobuf::Message& data);
 
 private:
     SFile* file;

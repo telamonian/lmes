@@ -39,26 +39,29 @@
 syntax = "proto2";
 package lm.fflux.io;
 
+import "lm/fflux/io/FFluxPhaseOutput.proto";
 import "lm/fflux/input/FFluxStage.proto";
 
 message FFluxStageOutput {
     /*
      * - fflux_stage is need for metadata purposes
      */
-    optional lm.fflux.input.FFluxStage fflux_stage          = 1;
+    optional lm.fflux.input.FFluxStage fflux_stage            = 1;
 
-    repeated double switching_time_per_tile                 = 11 [packed=true];
+    repeated double switching_time_per_tile                   = 11 [packed=true];
 
     /*
      * - if fluxes is set, there should be as many entries in fluxes as there are interfaces in fflux_stage's tiling
      */
-    repeated double fluxes                                  = 21 [packed=true];
-    repeated double probabilities                           = 22 [packed=true];
+    repeated double fluxes                                    = 21 [packed=true];
+    repeated double probabilities                             = 22 [packed=true];
 
     /*
      * - if set, output the raw data used to calculate fluxes and proabilities
      */
-    optional FFluxStageOuputRaw fflux_stage_output_raw     = 101;
+    optional FFluxStageOuputRaw fflux_stage_output_raw        = 101;
+
+    repeated lm.fflux.io.FFluxPhaseOutput fflux_phase_outputs = 201;
 }
 
 message FFluxStageOuputRaw {

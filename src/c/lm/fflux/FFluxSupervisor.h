@@ -177,8 +177,7 @@ protected:
 
     // phase output messages
     lm::message::Message ffluxPhaseOutputContainingMsg;
-    FFluxPhaseOutputsWrap::WrappedField ffluxPhaseOutputsMsg;
-    FFluxPhaseOutputsWrap ffluxPhaseOutputsWrap;
+    FFluxPhaseOutputsWrap* ffluxPhaseOutputsWrapPtr;
     lm::protowrap::FFluxPhaseOutputWrap _ffluxPhaseOutputWrap_0;
     lm::protowrap::FFluxPhaseOutputWrap _ffluxPhaseOutputWrap_1;
     lm::protowrap::FFluxPhaseOutputWrap* currentFFluxPhaseOutputWrapPtr;
