@@ -181,7 +181,7 @@ void Input::initTrajectoryLimits(const lm::io::hdf5::Hdf5File& file)
 {
     // By default, we include endpoints when checking limits (eg if limitType==MAX and limitVal==2, then the limit will be triggered when currentVal >= 2, as opposed to being triggered only when currentVal > 2)
     // The user can override this behavior with the following (advanced) option
-    parseAndSetFlag("includeEnpointInLimits", &this->includeEndpointInLimits);
+    parseAndSetFlagTrue("includeEnpointInLimits", &this->includeEndpointInLimits);
 
     // See if we have a max time limit.
     if (simulationParameters.count("maxTime"))
@@ -221,7 +221,7 @@ void Input::initOutputOptions(const lm::io::hdf5::Hdf5File& file)
     parseAndSetList("fptOrderParameterTrackingList", &OutputOptions::add_fpt_order_parameter_to_track, outputOptionsMsg, &outputOptionsPresent);
 
     // This flag changes the organization of the output such that the total number of groups and datasets is minimized. Currently only implemented (partially) for HDF5, no effect otherwise
-    parseAndSetFlag("condenseOutput", &OutputOptions::set_condense_output, outputOptionsMsg, &outputOptionsPresent);
+    parseAndSetFlagTrue("condenseOutput", &OutputOptions::set_condense_output, outputOptionsMsg, &outputOptionsPresent);
 }
 
 // Get some parameters that tweak how work units are run

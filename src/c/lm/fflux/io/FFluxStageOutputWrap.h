@@ -53,7 +53,7 @@
 namespace lm {
 namespace protowrap {
 
-class FFluxStageOutputRawWrap : public lm::protowrap::Msg<FFluxStageOutputRawWrap, lm::fflux::io::FFluxStageOuputRaw>
+class FFluxStageOutputRawWrap : public lm::protowrap::Msg<FFluxStageOutputRawWrap, lm::fflux::io::FFluxStageOutputRaw>
 {
     typedef lm::fflux::io::FFluxPhaseOutput FFluxPhaseOutputMsg;
     typedef lm::protowrap::Repeated<FFluxPhaseOutputMsg> FFluxPhaseOutputsWrap;
@@ -74,31 +74,25 @@ class FFluxStageOutputRawWrap : public lm::protowrap::Msg<FFluxStageOutputRawWra
     }
 };
 
-class FFluxStageOutputWrap : public lm::protowrap::Msg<FFluxStageOutputWrap, lm::fflux::io::FFluxStageOutput>
+class FFluxStageOutputSummaryWrap : public lm::protowrap::Msg<FFluxStageOutputSummaryWrap, lm::fflux::io::FFluxStageOutputSummary>
 {
-    typedef lm::fflux::io::FFluxPhaseOutput FFluxPhaseOutputMsg;
-    typedef lm::protowrap::Repeated<FFluxPhaseOutputMsg> FFluxPhaseOutputsWrap;
+    WRAPPED_FIELDS_W_SERIALIZERS(repeated, double, first_passage_times,
+                                 repeated, double, fluxes,
+                                 repeated, double, probabilities)
 
-    WRAPPED_FIELDS_W_SERIALIZERS(repeated, double,                  switching_time_per_tile,
-                                 repeated, double,                  fluxes,
-                                 repeated, double,                  probabilities,
-                                 optional, FFluxStageOutputRawWrap, fflux_stage_output_raw)
-
-    void buildFromFFluxPhaseOutputs(const FFluxPhaseOutputsWrap& ffluxPhaseOutputsWrap)
+    void buildFromFFluxStageOutputRaw(const FFluxStageOutputRawWrap& outputRaw)
     {
-        mutable_fflux_stage_output_raw()->buildFromFFluxPhaseOutputs(ffluxPhaseOutputsWrap);
-
-        buildFluxes();
-        buildProbabilites();
+        buildFluxes(outputRaw);
+        buildProbabilites(outputRaw);
         buildSwitchingTimePerTile();
     }
 
-    void buildFluxes()
+    void buildFluxes(const FFluxStageOutputRawWrap& outputRaw)
     {
         // load some data from the raw stage output into a few valarrays
-        std::valarray<double> successfulTrajectoryCounts(lm::protowrap::make_valarray<double>::call(fflux_stage_output_raw().successful_trajectory_counts()));
-        std::valarray<double> successfulTrajectoryTotalTimes(lm::protowrap::make_valarray<>::call(fflux_stage_output_raw().successful_trajectory_total_times()));
-        std::valarray<double> failedTrajectoryTotalTimes(lm::protowrap::make_valarray<>::call(fflux_stage_output_raw().failed_trajectory_total_times()));
+        std::valarray<double> successfulTrajectoryCounts(lm::protowrap::make_valarray<double>::call(outputRaw.successful_trajectory_counts()));
+        std::valarray<double> successfulTrajectoryTotalTimes(lm::protowrap::make_valarray<>::call(outputRaw.successful_trajectory_total_times()));
+        std::valarray<double> failedTrajectoryTotalTimes(lm::protowrap::make_valarray<>::call(outputRaw.failed_trajectory_total_times()));
         
         // calculate the fluxes
         std::valarray<double> newFluxes(successfulTrajectoryCounts/(successfulTrajectoryTotalTimes + failedTrajectoryTotalTimes));
@@ -107,11 +101,11 @@ class FFluxStageOutputWrap : public lm::protowrap::Msg<FFluxStageOutputWrap, lm:
         mutable_fluxes()->serializeFrom(&newFluxes[0], &newFluxes[0] + newFluxes.size());
     }
 
-    void buildProbabilites()
+    void buildProbabilites(const FFluxStageOutputRawWrap& outputRaw)
     {
         // load some data from the raw stage output into a few valarrays
-        std::valarray<double> successfulTrajectoryCounts(lm::protowrap::make_valarray<double>::call(fflux_stage_output_raw().successful_trajectory_counts()));
-        std::valarray<double> failedTrajectoryCounts(lm::protowrap::make_valarray<double>::call(fflux_stage_output_raw().failed_trajectory_counts()));
+        std::valarray<double> successfulTrajectoryCounts(lm::protowrap::make_valarray<double>::call(outputRaw.successful_trajectory_counts()));
+        std::valarray<double> failedTrajectoryCounts(lm::protowrap::make_valarray<double>::call(outputRaw.failed_trajectory_counts()));
         
         // calculate the probabilities
         std::valarray<double> newProbabilities(successfulTrajectoryCounts/(successfulTrajectoryCounts + failedTrajectoryCounts));
@@ -125,12 +119,27 @@ class FFluxStageOutputWrap : public lm::protowrap::Msg<FFluxStageOutputWrap, lm:
         std::vector<double> newSwitchingTimePerTile;
 
         cumprod(probabilities().begin(), probabilities().end(), std::back_inserter(newSwitchingTimePerTile));
-        pairwiseMul(newSwitchingTimePerTile.begin(), newSwitchingTimePerTile.end(), fluxes(0), newSwitchingTimePerTile.begin());
+        pairwiseMul(fluxes(0), newSwitchingTimePerTile.begin(), newSwitchingTimePerTile.end(), newSwitchingTimePerTile.begin());
+        pairwiseDiv(1.0, newSwitchingTimePerTile.begin(), newSwitchingTimePerTile.end(), newSwitchingTimePerTile.begin());
 
         // set the switching time per tile
-        mutable_switching_time_per_tile()->serializeFrom(newSwitchingTimePerTile.begin(), newSwitchingTimePerTile.end());
+        mutable_first_passage_times()->serializeFrom(newSwitchingTimePerTile.begin(), newSwitchingTimePerTile.end());
     }
+};
 
+class FFluxStageOutputWrap : public lm::protowrap::Msg<FFluxStageOutputWrap, lm::fflux::io::FFluxStageOutput>
+{
+    typedef lm::fflux::io::FFluxPhaseOutput FFluxPhaseOutputMsg;
+    typedef lm::protowrap::Repeated<FFluxPhaseOutputMsg> FFluxPhaseOutputsWrap;
+
+    WRAPPED_FIELDS(optional, FFluxStageOutputSummaryWrap, fflux_stage_output_summary,
+                   optional, FFluxStageOutputRawWrap,     fflux_stage_output_raw)
+
+    void buildFromFFluxPhaseOutputs(const FFluxPhaseOutputsWrap& ffluxPhaseOutputsWrap)
+    {
+        mutable_fflux_stage_output_raw()->buildFromFFluxPhaseOutputs(ffluxPhaseOutputsWrap);
+        mutable_fflux_stage_output_summary()->buildFromFFluxStageOutputRaw(fflux_stage_output_raw());
+    }
 };
 
 }

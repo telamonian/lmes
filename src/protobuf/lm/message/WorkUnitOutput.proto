@@ -75,6 +75,7 @@ message WorkUnitOutput {
 }
 
 message WorkUnitOutputGeneric {
-    repeated lm.fflux.io.FFluxPhaseOutput fflux_phase_outputs = 1;
-    repeated lm.fflux.io.FFluxStageOutput fflux_stage_outputs = 2;
+    repeated lm.fflux.io.FFluxPhaseOutput fflux_phase_outputs                 = 1;
+    repeated lm.fflux.io.FFluxStageOutputRaw fflux_stage_output_raws          = 2;
+    repeated lm.fflux.io.FFluxStageOutputSummary fflux_stage_output_summaries = 3;
 }

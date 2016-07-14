@@ -109,8 +109,11 @@ FFluxSupervisor::FFluxSupervisor()
     ffluxPhaseOutputContainingMsg.mutable_process_work_unit_output()->set_work_unit_id(0);
     ffluxPhaseOutputContainingMsg.mutable_process_work_unit_output()->add_part_output();
 
-    ffluxStageOutputContainingMsg.mutable_process_work_unit_output()->set_work_unit_id(0);
-    ffluxStageOutputContainingMsg.mutable_process_work_unit_output()->add_part_output();
+    ffluxStageOutputRawContainingMsg.mutable_process_work_unit_output()->set_work_unit_id(0);
+    ffluxStageOutputRawContainingMsg.mutable_process_work_unit_output()->add_part_output();
+
+    ffluxStageOutputSummaryContainingMsg.mutable_process_work_unit_output()->set_work_unit_id(0);
+    ffluxStageOutputSummaryContainingMsg.mutable_process_work_unit_output()->add_part_output();
 }
 
 FFluxSupervisor::~FFluxSupervisor()
@@ -345,20 +348,22 @@ void FFluxSupervisor::addFFluxPhaseLimitsFromInput(lm::fflux::input::FFluxStage*
 
 void FFluxSupervisor::addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::protowrap::FFluxStageOutputWrap& stageOutput, bool minimizeCost)
 {
-    vector<uint64_t> trajectoryCounts(optimizeTrajectoryCounts(input->precisionGoal(), input->precisionGoalConfidence(), stageOutput, minimizeCost));
+    vector<uint64_t> trajectoryCounts(optimizeTrajectoryCounts(input->precisionGoal(), input->precisionGoalConfidence(), stageOutput.fflux_stage_output_summary(), minimizeCost));
 
     vector<uint64_t>::const_iterator tc_it=trajectoryCounts.begin();
     FFluxPhasesWrap::const_iterator ph_it=productionStage->fflux_phases().begin();
 
+    lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit;
+
     // special treatment for phase zero
-    lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit = buildFFluxPhaseLimit(productionStage->add_fflux_phase_limits(), FFPhaseLimEnums::FORWARD_FLUXES, *tc_it);
+    ffluxPhaseLimit = buildFFluxPhaseLimit(productionStage->add_fflux_phase_limits(), FFPhaseLimEnums::FORWARD_FLUXES, *tc_it);
     buildFFluxPhaseLimitTrajectoriesToRun(ffluxPhaseLimit, *ph_it, slots.getSimultaneousWorkUnits());
     tc_it++, ph_it++;
 
     // all phases n>0
     for (;tc_it!=trajectoryCounts.end() and ph_it!=productionStage->fflux_phases().end();tc_it++, ph_it++)
     {
-        lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit = buildFFluxPhaseLimit(productionStage->add_fflux_phase_limits(), FFPhaseLimEnums::TRAJECTORY_COUNT, *tc_it);
+        ffluxPhaseLimit = buildFFluxPhaseLimit(productionStage->add_fflux_phase_limits(), FFPhaseLimEnums::TRAJECTORY_COUNT, *tc_it);
         buildFFluxPhaseLimitTrajectoriesToRun(ffluxPhaseLimit, *ph_it, slots.getSimultaneousWorkUnits());
     }
 }
@@ -372,14 +377,14 @@ void FFluxSupervisor::repeatFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage
     }
 }
 
-vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const lm::protowrap::FFluxStageOutputWrap& stageOutput, bool minimizeCost)
+vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const lm::protowrap::FFluxStageOutputSummaryWrap& stageOutputSummary, bool minimizeCost)
 {
-    vector<double> probabilities(stageOutput.probabilities().begin(), stageOutput.probabilities().end());
+    vector<double> probabilities(stageOutputSummary.probabilities().begin(), stageOutputSummary.probabilities().end());
 
     vector<uint64_t> trajectoryCounts;
     if (minimizeCost)
     {
-        vector<double> costVector(stageOutput.fluxes().begin(), stageOutput.fluxes().end());
+        vector<double> costVector(stageOutputSummary.fluxes().begin(), stageOutputSummary.fluxes().end());
         trajectoryCounts = minimizeCostTrajectoryCounts(precisionGoal, precisionGoalConfidence, probabilities, costVector);
     }
     else
@@ -539,11 +544,16 @@ void FFluxSupervisor::finishSimulationPhase()
     if (not simulationPhaseOutputSent)
     {
         // send the phase output to the output writer
-//        ffluxPhaseOutputContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0)->mutable_work_unit_output_generic()->mutable_fflux_phase_outputs()->AddAllocated(currentFFluxPhaseOutputWrapPtr->wrappedMsg());
-//        communicator.sendMessage(outputWriterProcess, outputWriterThread, &ffluxPhaseOutputContainingMsg);
-//        ffluxPhaseOutputContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0)->mutable_work_unit_output_generic()->mutable_fflux_phase_outputs()->ReleaseLast();
-
-        simulationPhaseOutputSent = true;
+        if ((not currentStage().is_pilot_stage()) or input->ffluxOptions().pilot_stage_output())
+        {
+            if (input->ffluxOptions().phase_output())
+            {
+                ffluxPhaseOutputContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0)->mutable_work_unit_output_generic()->mutable_fflux_phase_outputs()->AddAllocated(currentFFluxPhaseOutputWrapPtr->wrappedMsg());
+                communicator.sendMessage(outputWriterProcess, outputWriterThread, &ffluxPhaseOutputContainingMsg);
+                ffluxPhaseOutputContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0)->mutable_work_unit_output_generic()->mutable_fflux_phase_outputs()->ReleaseLast();
+                simulationPhaseOutputSent = true;
+            }
+        }
     }
 
     // if we need to perform another phase, do so
@@ -599,11 +609,23 @@ void FFluxSupervisor::finishSimulationStage()
         currentFFluxStageOutputWrap.buildFromFFluxPhaseOutputs(ffluxPhaseOutputsWrap);
 
         // send the stage output to the output writer
-        ffluxStageOutputContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0)->mutable_work_unit_output_generic()->mutable_fflux_stage_outputs()->AddAllocated(currentFFluxStageOutputWrap.mutableWrappedMsg());
-        communicator.sendMessage(outputWriterProcess, outputWriterThread, &ffluxStageOutputContainingMsg);
-        ffluxStageOutputContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0)->mutable_work_unit_output_generic()->mutable_fflux_stage_outputs()->ReleaseLast();
-
-        simulationStageOutputSent = true;
+        if ((not currentStage().is_pilot_stage()) or input->ffluxOptions().pilot_stage_output())
+        {
+            if (input->ffluxOptions().stage_output_raw())
+            {
+                ffluxStageOutputRawContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0)->mutable_work_unit_output_generic()->mutable_fflux_stage_output_raws()->AddAllocated(currentFFluxStageOutputWrap.mutable_fflux_stage_output_raw()->mutableWrappedMsg());
+                communicator.sendMessage(outputWriterProcess, outputWriterThread, &ffluxStageOutputRawContainingMsg);
+                ffluxStageOutputRawContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0)->mutable_work_unit_output_generic()->mutable_fflux_stage_output_raws()->ReleaseLast();
+                simulationStageOutputSent = true;
+            }
+            if (input->ffluxOptions().stage_output_summary())
+            {
+                ffluxStageOutputSummaryContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0)->mutable_work_unit_output_generic()->mutable_fflux_stage_output_summaries()->AddAllocated(currentFFluxStageOutputWrap.mutable_fflux_stage_output_summary()->mutableWrappedMsg());
+                communicator.sendMessage(outputWriterProcess, outputWriterThread, &ffluxStageOutputSummaryContainingMsg);
+                ffluxStageOutputSummaryContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0)->mutable_work_unit_output_generic()->mutable_fflux_stage_output_summaries()->ReleaseLast();
+                simulationStageOutputSent = true;
+            }
+        }
     }
 
     // if we need to perform another stage, do so

@@ -91,6 +91,11 @@ void FFluxInput::initFFluxOptions(const lm::io::hdf5::Hdf5File& file)
 
     parseAndSet("phaseZeroBurnInCount", &FFluxOptions::set_phase_zero_burn_in_count, _ffluxOptions);
 
+    parseAndSetFlagTrue("ffluxPilotOutput", &FFluxOptions::set_pilot_stage_output, _ffluxOptions);
+    parseAndSetFlagTrue("ffluxPhaseOutput", &FFluxOptions::set_phase_output, _ffluxOptions);
+    parseAndSetFlagTrue("ffluxStageOutputRaw", &FFluxOptions::set_stage_output_raw, _ffluxOptions);
+    parseAndSetFlagFalse("ffluxStageOutputSummary", &FFluxOptions::set_stage_output_summary, _ffluxOptions);
+
     // set a default precision
     if (not hasPrecisionGoal() and not hasUserDefinedFFluxPhaseLimitLists())
     {

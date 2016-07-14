@@ -101,7 +101,7 @@ protected:
     virtual void addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::protowrap::FFluxStageOutputWrap& stageOutput, bool minimizeCost = true);
 
     // the functions where all the computational cost minimization magic happens
-    inline static std::vector<uint64_t> optimizeTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const lm::protowrap::FFluxStageOutputWrap& stageOutput, bool minimizeCost = true);
+    inline static std::vector<uint64_t> optimizeTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const lm::protowrap::FFluxStageOutputSummaryWrap& stageOutputSummary, bool minimizeCost = true);
     inline static std::vector<uint64_t> minimizeCostTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const std::vector<double>& probabilities, const std::vector<double>& costs);
     inline static std::vector<uint64_t> minimizeCountTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const std::vector<double>& probabilities);
     inline static std::valarray<double> getConstantFactors(const std::vector<double>& probabilities);
@@ -180,6 +180,7 @@ protected:
     FFluxPhaseOutputListsWrap::WrappedField ffluxPhaseOutputListsMsg;
     FFluxPhaseOutputListsWrap ffluxPhaseOutputListsWrap;
     FFluxPhaseOutputsWrap ffluxPhaseOutputsWrap;
+
     lm::message::Message ffluxPhaseOutputContainingMsg;
     lm::protowrap::FFluxPhaseOutputWrap _ffluxPhaseOutputWrap_0;
     lm::protowrap::FFluxPhaseOutputWrap _ffluxPhaseOutputWrap_1;
@@ -187,13 +188,20 @@ protected:
     lm::protowrap::FFluxPhaseOutputWrap* previousFFluxPhaseOutputWrapPtr;
 
     // stage output messages
-    lm::message::Message ffluxStageOutputContainingMsg;
+    lm::message::Message ffluxStageOutputRawContainingMsg;
+    lm::message::Message ffluxStageOutputSummaryContainingMsg;
     FFluxStageOutputsWrap::WrappedField ffluxStageOutputsMsg;
     FFluxStageOutputsWrap ffluxStageOutputsWrap;
     lm::protowrap::FFluxStageOutputWrap currentFFluxStageOutputWrap;
 
-    bool simulationPhaseOutputSent;
+    // flag that indicates that a phase has ended
     bool simulationPhaseTerminated;
+
+    /*
+     * - flags that prevent output from being sent multiple times
+     *     - this is important when the supervisor has to cycle through the finishSimulationPhase() and finishSimulationStage multiple times, as at program end
+     */
+    bool simulationPhaseOutputSent;
     bool simulationStageOutputSent;
 
     // shadowing ptrs from the base class

@@ -227,7 +227,7 @@ public:
             exitTimes = std::find_if(exitTimes, exitTimesEnd, greaterThanCurry.setLimitVal(*entryTimes));
             if (exitTimes==exitTimesEnd)               // If have an entryTime with no exitTime, add the difference between the last entryTime and the endTime, and then break
             {
-                if (not endTime==std::numeric_limits<double>::infinity()) sumTime += (endTime - *entryTimes);
+                if (endTime!=std::numeric_limits<double>::infinity()) sumTime += (endTime - *entryTimes);
                 return sumTime;
             }
             else                                       // Otherwise, we have found the next exit time. Add the length of this interval to the sumTime

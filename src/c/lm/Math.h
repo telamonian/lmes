@@ -147,9 +147,21 @@ void cumprod(InputIterator begin, InputIterator end, OutputIterator outputIt)
 }
 
 template <typename InputIterator, typename OutputIterator, typename PODType>
-void pairwiseMul(InputIterator begin, InputIterator end, PODType coeff, OutputIterator outputIt)
+void pairwiseDiv(PODType coeff, InputIterator begin, InputIterator end, OutputIterator outputIt)
+{
+    std::transform(begin, end, outputIt, std::bind1st(std::divides<double>(), coeff));
+}
+
+template <typename InputIterator, typename OutputIterator, typename PODType>
+void pairwiseMul(PODType coeff, InputIterator begin, InputIterator end, OutputIterator outputIt)
 {
     std::transform(begin, end, outputIt, std::bind1st(std::multiplies<double>(), coeff));
+}
+
+template <typename InputIterator, typename OutputIterator, typename PODType>
+void pairwiseMul(InputIterator begin, InputIterator end, PODType coeff, OutputIterator outputIt)
+{
+    std::transform(begin, end, outputIt, std::bind2nd(std::multiplies<double>(), coeff));
 }
 
 // end1 is here purely for overloading diasmbiguation. need a c++11-style enable-if to do better
@@ -160,7 +172,7 @@ void pairwiseMul(InputIterator begin0, InputIterator end0, InputIterator begin1,
 }
 
 // product functor. ProductFunctor<T>::call(first, last) will return the product of an iterator range if T is a numeric type (returns 0 if the range is empty)
-template <typename T, typename=typename EnableIf<IsNumeric<T>::value>::type> struct ProductFunctor
+template <typename T> struct ProductFunctor //, typename=typename EnableIf<IsNumeric<T>::value>::type
 {
     template <typename iterT> static T call(iterT first, iterT last)
     {

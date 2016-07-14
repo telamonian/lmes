@@ -39,30 +39,40 @@
 syntax = "proto2";
 package lm.fflux.io;
 
-import "lm/fflux/io/FFluxPhaseOutput.proto";
 import "lm/fflux/input/FFluxStage.proto";
 
 message FFluxStageOutput {
     /*
      * - fflux_stage is need for metadata purposes
      */
-    optional lm.fflux.input.FFluxStage fflux_stage            = 1;
-
-    repeated double switching_time_per_tile                   = 11 [packed=true];
+    optional lm.fflux.input.FFluxStage fflux_stage              = 1;
 
     /*
-     * - if fluxes is set, there should be as many entries in fluxes as there are interfaces in fflux_stage's tiling
+     * - Relatively simple version of the stage output with all of the most important results
      */
-    repeated double fluxes                                    = 21 [packed=true];
-    repeated double probabilities                             = 22 [packed=true];
+    optional FFluxStageOutputSummary fflux_stage_output_summary = 11;
 
     /*
-     * - if set, output the raw data used to calculate fluxes and proabilities
+     * - If set, output the raw data used to calculate fluxes and proabilities
      */
-    optional FFluxStageOuputRaw fflux_stage_output_raw        = 101;
+    optional FFluxStageOutputRaw fflux_stage_output_raw         = 101;
 }
 
-message FFluxStageOuputRaw {
+message FFluxStageOutputSummary {
+    /*
+     * - First passage times with respect to tiling edge i
+     *     - If your tiling sorts descending (ie edge[i] < edge[i+1]), these results may be slightly different from those obtained from replicate sampling due to boundary conditions
+     */
+    repeated double first_passage_times = 1 [packed=true];
+
+    /*
+     * - If fluxes is set, there should be as many entries in fluxes as there are interfaces in fflux_stage's tiling
+     */
+    repeated double fluxes              = 11 [packed=true];
+    repeated double probabilities       = 12 [packed=true];
+}
+
+message FFluxStageOutputRaw {
     repeated uint64 successful_trajectory_counts      = 1 [packed=true];
     repeated double successful_trajectory_total_times = 2 [packed=true];
 
