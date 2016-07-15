@@ -198,7 +198,7 @@ lm::fflux::input::FFluxStage* FFluxSupervisor::addPilotStage(lm::fflux::input::F
 
     addFFluxPhases(pilotStage, FFPhaseEnums::LAZY, FFPhaseEnums::SIMPLE);
 
-    addFFluxPhaseLimits(pilotStage, FFPhaseLimEnums::FORWARD_FLUXES, 10);
+    addFFluxPhaseLimits(pilotStage, FFPhaseLimEnums::FORWARD_FLUXES, input->ffluxOptions().pilot_stage_count());
 
     return pilotStage;
 }
@@ -343,7 +343,7 @@ void FFluxSupervisor::addFFluxPhaseLimitsFromInput(lm::fflux::input::FFluxStage*
     //productionStage->mutable_fflux_phase_limits()->CopyFrom(input->getFFluxPhaseLimits(productionStage->tiling().id(), productionStage->basin_index()));
 
     // temporary placeholder
-    addFFluxPhaseLimits(productionStage, FFPhaseLimEnums::FORWARD_FLUXES, 1000);
+    addFFluxPhaseLimits(productionStage, FFPhaseLimEnums::FORWARD_FLUXES, input->ffluxOptions().pilot_stage_count());
 }
 
 void FFluxSupervisor::addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::protowrap::FFluxStageOutputWrap& stageOutput, bool minimizeCost)

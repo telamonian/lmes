@@ -89,6 +89,7 @@ void FFluxInput::initFFluxOptions(const lm::io::hdf5::Hdf5File& file)
     parseAndSet("precisionGoal", &FFluxOptions::set_precision_goal, _ffluxOptions);
     parseAndSet("precisionGoalConfidence", &FFluxOptions::set_precision_goal_confidence, _ffluxOptions);
 
+    parseAndSet("pilotStageCount", &FFluxOptions::set_pilot_stage_count, _ffluxOptions);
     parseAndSet("phaseZeroBurnInCount", &FFluxOptions::set_phase_zero_burn_in_count, _ffluxOptions);
 
     parseAndSetFlagTrue("ffluxPilotOutput", &FFluxOptions::set_pilot_stage_output, _ffluxOptions);
@@ -97,9 +98,15 @@ void FFluxInput::initFFluxOptions(const lm::io::hdf5::Hdf5File& file)
     parseAndSetFlagFalse("ffluxStageOutputSummary", &FFluxOptions::set_stage_output_summary, _ffluxOptions);
 
     // set a default precision
-    if (not hasPrecisionGoal() and not hasUserDefinedFFluxPhaseLimitLists())
+    if ((not hasPrecisionGoal()) and (not hasUserDefinedFFluxPhaseLimitLists()))
     {
-        _ffluxOptions.set_precision_goal(.25);
+        _ffluxOptions.set_precision_goal(.05);
+    }
+
+    // if we're doing pilot stages but haven't gotten a pilotStageCount, set a default value
+    if (hasPrecisionGoal() and (not hasPilotStageCount()))
+    {
+        _ffluxOptions.set_pilot_stage_count(1000);
     }
 
     // check the fflux options we just parsed for consistency

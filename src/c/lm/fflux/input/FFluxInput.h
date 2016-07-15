@@ -89,6 +89,7 @@ public:
     bool hasPrecisionGoal() const {return ffluxOptions().has_precision_goal();}
     bool hasPrecisionGoalConfidence() const {return ffluxOptions().has_precision_goal_confidence();}
     bool hasUserDefinedFFluxPhaseLimitLists() const {return (ffluxOptions().fflux_phase_limit_lists_size() > 0);}
+    bool hasPilotStageCount() const {return ffluxOptions().has_pilot_stage_count();}
     bool hasPhaseZeroBurnInCount() const {return ffluxOptions().has_phase_zero_burn_in_count();}
 
 protected:

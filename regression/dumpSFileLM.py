@@ -5,7 +5,7 @@ import sys
 import zlib
 
 from lm.io.SpeciesTimeSeries_pb2 import SpeciesTimeSeries as SpeciesTimeSeriesBuf
-from lm_anal.src.datum.trajectory import SpeciesTrajectories
+from lma.src.datum.trajectory import SpeciesTrajectories
 from robertslab.sfile import *
 
 np.set_printoptions(edgeitems=int(1e4), threshold=int(1e4), linewidth=int(1e3))
