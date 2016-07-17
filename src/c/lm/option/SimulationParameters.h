@@ -39,6 +39,7 @@
 #ifndef LM_OPTION_SIMULATIONPARAMETERS
 #define LM_OPTION_SIMULATIONPARAMETERS
 
+#include <limits>
 #include <map>
 #include <sstream>
 #include <stdlib.h>
@@ -54,11 +55,59 @@
 namespace lm {
 namespace option {
 
-typedef std::map<std::string,std::string> SimParamMap;
+template <typename T>
+inline void _parseNextToken(const std::string& tokenString, T* destination)
+{
+    std::stringstream tokenSS(tokenString);
+    tokenSS >> *destination;
+}
+
+// specialization to allow for any of the "1", "true", and "True" tokens to convert to true boolean values
+template <>
+inline void _parseNextToken<bool>(const std::string& tokenString, bool* destination)
+{
+    *destination = (tokenString=="1" or tokenString=="true" or tokenString=="True");
+
+//    bool test0, test1;
+//    std::stringstream testSS0(tokenString), testSS1(tokenString);
+//    testSS1.setf(std::ios::boolalpha);
+//
+//    if (!(testSS0 >> test0)) return false;
+//    if (!(testSS1 >> test1)) return false;
+//
+//    *destination = (test0 or test1);
+//    return true;
+}
+
+// pops the next token from the tokensSS stream and converts it to the appropriate type using the overloads of the >> operator
+// if delimiter is set, get everything up to the next delimiter or the EOL and treat that as the next token
+template <typename T>
+inline bool parseNextToken(std::stringstream* tokensSS, T* destination, char delimiter)
+{
+    std::string tokenString;
+    if (not std::getline(*tokensSS, tokenString, delimiter)) return false;
+
+    _parseNextToken(tokenString, destination);
+    return true;
+}
+
+// we have no token separator so the next token is everything left in the tokens stream
+template <typename T>
+inline bool parseNextToken(std::stringstream* tokensSS, T* destination)
+{
+    std::string tokenString;
+    if (not std::getline(*tokensSS, tokenString)) return false;
+
+    _parseNextToken(tokenString, destination);
+    return true;
+}
+
 
 class SimulationParameters
 {
 public:
+    typedef std::map<std::string,std::string> SimParamMap;
+
     SimulationParameters() {}
     SimulationParameters(const lm::input::SimulationParameters& newBuf) {rFB(newBuf);}
     SimulationParameters(const lm::io::hdf5::Hdf5File& file) {rFF(file);}
@@ -77,7 +126,8 @@ public:
         T retVal;
         std::stringstream ss(_map.at(key));
 
-        ss >> retVal;
+        parseNextToken(&ss, &retVal);
+//        ss >> retVal;
         return retVal;
     }
 
@@ -93,20 +143,16 @@ public:
             std::pair<T1, T2> p;
             std::stringstream pairSS(pairString);
 
-            getline(pairSS, tokenString, ':');
-            std::stringstream firstSS(tokenString);
-            firstSS >> p.first;
+            parseNextToken(&pairSS, &p.first, ':');
+            parseNextToken(&pairSS, &p.second, ':');
 
-            getline(pairSS, tokenString, ':');
-            std::stringstream secondSS(tokenString);
-            secondSS >> p.second;
-
-//            pairSS >> p.first;
-//            // strip any white space in between the last number parsed and the next delimiter
-//            pairSS >> std::ws;
-//            if (pairSS.peek() == ':')
-//                pairSS.ignore();
-//            pairSS >> p.second;
+//            getline(pairSS, tokenString, ':');
+//            std::stringstream firstSS(tokenString);
+//            firstSS >> p.first;
+//
+//            getline(pairSS, tokenString, ':');
+//            std::stringstream secondSS(tokenString);
+//            secondSS >> p.second;
 
             parsedPairVector.push_back(p);
 
@@ -118,21 +164,27 @@ public:
     template <typename T> std::vector<T>
     parseVector(const std::string &key) const
     {
-        std::stringstream vecSS(_map.at(key));
+        std::stringstream vectorSS(_map.at(key));
 
         std::vector<T> parsedVector;
-        T i;
-        while (vecSS >> i)
+        T token;
+        while (parseNextToken(&vectorSS, &token, ','))
         {
-            parsedVector.push_back(i);
-
-            // strip any white space in between the last number parsed and the next delimiter
-            vecSS >> std::ws;
-            if (vecSS.peek() == ',')
-                vecSS.ignore();
+            parsedVector.push_back(token);
         }
+//        T i;
+//        while (tokensSS >> i)
+//        {
+//            parsedVector.push_back(i);
+//
+//            // strip any white space in between the last number parsed and the next delimiter
+//            tokensSS >> std::ws;
+//            if (tokensSS.peek() == ',')
+//                tokensSS.ignore();
+//        }
         return parsedVector;
     }
+
 
 // mutators
     // for the buf <-> map conversion methods, if you drop an arg it'll use the internal map and/or buf

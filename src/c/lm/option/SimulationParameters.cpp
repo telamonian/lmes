@@ -51,7 +51,6 @@
 
 using std::getline;
 using std::pair;
-
 using std::stringstream;
 using std::string;
 using std::vector;
@@ -61,7 +60,7 @@ namespace lm {
 namespace option {
 
 // accessors
-SimParamMap::const_iterator SimulationParameters::findFirst(const vector<string>& keys) const
+SimulationParameters::SimParamMap::const_iterator SimulationParameters::findFirst(const vector<string>& keys) const
 {
     SimParamMap::const_iterator findCIt;
     for (vector<string>::const_iterator keyCIt=keys.begin(); keyCIt!=keys.end(); keyCIt++) {
@@ -73,7 +72,7 @@ SimParamMap::const_iterator SimulationParameters::findFirst(const vector<string>
     return findCIt;
 }
 
-SimParamMap::iterator SimulationParameters::findFirst(const vector<string>& keys)
+SimulationParameters::SimParamMap::iterator SimulationParameters::findFirst(const vector<string>& keys)
 {
     // an attempt to recycle the code from a const qualified method into a non-const version of the same method
     // return const_cast<SimParamMap::iterator>(static_cast<const SimulationParameters*>(this)->findFirst(keys));

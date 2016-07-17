@@ -179,49 +179,49 @@ void Input::initTilings(const lm::io::hdf5::Hdf5File& file)
 // Get the limits.
 void Input::initTrajectoryLimits(const lm::io::hdf5::Hdf5File& file)
 {
-    // By default, we include endpoints when checking limits (eg if limitType==MAX and limitVal==2, then the limit will be triggered when currentVal >= 2, as opposed to being triggered only when currentVal > 2)
-    // The user can override this behavior with the following (advanced) option
-    parseAndSetFlagTrue("includeEnpointInLimits", &this->includeEndpointInLimits);
+    // - By default, we include endpoints when checking limits 
+    //     - eg if limitType==MAX and limitVal==2, then the limit will be triggered when currentVal >= 2, as opposed to being triggered only when currentVal > 2
+    // - The user can override this behavior with the following (advanced) option
+    parseAndSet("includeEnpointInLimits", &this->includeEndpointInLimits);
 
     // See if we have a max time limit.
     if (simulationParameters.count("maxTime"))
     {
         trajectoryLimits.addLimitMsg<TrajLimEnums::TIME>(0, simulationParameters.parse<double>("maxTime"), TrajLimEnums::MAX, includeEndpointInLimits);
-        trajectoryLimitsPresent = true;
     }
 
     // set the other limits, if present in the simulation parameters
-    parseLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementLowerLimitList", "degree advancement lower limit", TrajLimEnums::MIN, includeEndpointInLimits, &trajectoryLimitsPresent, &degreeAdvancementPresent);
-    parseLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementUpperLimitList", "degree advancement upper limit", TrajLimEnums::MAX, includeEndpointInLimits, &trajectoryLimitsPresent, &degreeAdvancementPresent);
+    degreeAdvancementPresent = parseLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementLowerLimitList", "degree advancement lower limit", TrajLimEnums::MIN, includeEndpointInLimits);
+    degreeAdvancementPresent = parseLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementUpperLimitList", "degree advancement upper limit", TrajLimEnums::MAX, includeEndpointInLimits);
 
-    parseLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterLowerLimitList", "order parameter lower limit", TrajLimEnums::MIN, includeEndpointInLimits, &trajectoryLimitsPresent);
-    parseLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterUpperLimitList", "order parameter upper limit", TrajLimEnums::MAX, includeEndpointInLimits, &trajectoryLimitsPresent);
+    parseLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterLowerLimitList", "order parameter lower limit", TrajLimEnums::MIN, includeEndpointInLimits);
+    parseLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterUpperLimitList", "order parameter upper limit", TrajLimEnums::MAX, includeEndpointInLimits);
 
-    parseLimits<TrajLimEnums::SPECIES>("speciesLowerLimitList", "species lower limit", TrajLimEnums::MIN, includeEndpointInLimits, &trajectoryLimitsPresent);
-    parseLimits<TrajLimEnums::SPECIES>("speciesUpperLimitList", "species upper limit", TrajLimEnums::MAX, includeEndpointInLimits, &trajectoryLimitsPresent);
+    parseLimits<TrajLimEnums::SPECIES>("speciesLowerLimitList", "species lower limit", TrajLimEnums::MIN, includeEndpointInLimits);
+    parseLimits<TrajLimEnums::SPECIES>("speciesUpperLimitList", "species upper limit", TrajLimEnums::MAX, includeEndpointInLimits);
 }
 
 // Get the output options.
 void Input::initOutputOptions(const lm::io::hdf5::Hdf5File& file)
 {
     // Specify how often the species counts should be written to output
-    parseAndSet("writeInterval", &OutputOptions::set_species_write_interval, outputOptionsMsg, &outputOptionsPresent);
+    parseAndSet("writeInterval", &OutputOptions::set_species_write_interval, outputOptionsMsg);
 
     // Specify how often the species counts at all of the lattice points should be written out during an RDME simulation
-    parseAndSet("latticeWriteInterval", &OutputOptions::set_lattice_write_interval, outputOptionsMsg, &outputOptionsPresent);
+    parseAndSet("latticeWriteInterval", &OutputOptions::set_lattice_write_interval, outputOptionsMsg);
 
     // Specify how often various (optional) specialized simulation outputs should be written out. Leave unset to supress these outputs completely.
-    parseAndSet("degreeAdvancementWriteInterval", &OutputOptions::set_degree_advancement_write_interval, outputOptionsMsg, &outputOptionsPresent, &degreeAdvancementPresent);
-    parseAndSet("orderParameterWriteInterval", &OutputOptions::set_order_parameter_write_interval, outputOptionsMsg, &outputOptionsPresent);
+    degreeAdvancementPresent = parseAndSet("degreeAdvancementWriteInterval", &OutputOptions::set_degree_advancement_write_interval, outputOptionsMsg);
+    parseAndSet("orderParameterWriteInterval", &OutputOptions::set_order_parameter_write_interval, outputOptionsMsg);
 
     // Initialize the species counts first passage times in the output options
-    parseAndSetList("fptTrackingList", &OutputOptions::add_fpt_species_to_track, outputOptionsMsg, &outputOptionsPresent);
+    parseAndSetList("fptTrackingList", &OutputOptions::add_fpt_species_to_track, outputOptionsMsg);
 
     // Initialize the order parameter values first passage times in the output options
-    parseAndSetList("fptOrderParameterTrackingList", &OutputOptions::add_fpt_order_parameter_to_track, outputOptionsMsg, &outputOptionsPresent);
+    parseAndSetList("fptOrderParameterTrackingList", &OutputOptions::add_fpt_order_parameter_to_track, outputOptionsMsg);
 
     // This flag changes the organization of the output such that the total number of groups and datasets is minimized. Currently only implemented (partially) for HDF5, no effect otherwise
-    parseAndSetFlagTrue("condenseOutput", &OutputOptions::set_condense_output, outputOptionsMsg, &outputOptionsPresent);
+    parseAndSet("condenseOutput", &OutputOptions::set_condense_output, outputOptionsMsg);
 }
 
 // Get some parameters that tweak how work units are run
@@ -242,8 +242,11 @@ void Input::copyLimitTrackingsTo(lm::message::RunWorkUnit* rwuMsg)
     {
         for (lm::protowrap::Repeated<lm::message::WorkUnit>::iterator it=rwuMsg->mutable_part()->begin();it!=rwuMsg->mutable_part()->end();it++)
         {
-            limitTrackingListWrap.set_all_trajectory_id(it->initial_state().trajectory_id());
-            it->mutable_initial_state()->mutable_limit_tracking_list()->CopyFrom(limitTrackingListWrap.wrappedMsg());
+            if (not it->initial_state().trajectory_started())
+            {
+                limitTrackingListWrap.set_all_trajectory_id(it->initial_state().trajectory_id());
+                it->mutable_initial_state()->mutable_limit_tracking_list()->CopyFrom(limitTrackingListWrap.wrappedMsg());
+            }
         }
     }
 }
@@ -359,12 +362,6 @@ bool Input::parseBoundaryConditions(lm::input::BoundaryConditions* bc, string ar
     }
     delete[] argbuf;
     return bc->axis_specific_boundaries();
-}
-
-void Input::setFlagsOnsuccess(bool result, bool* resultFlag0, bool* resultFlag1)
-{
-    if (resultFlag0!=NULL and result) *resultFlag0 = result;
-    if (resultFlag1!=NULL and result) *resultFlag1 = result;
 }
 
 }

@@ -41,8 +41,8 @@
  *
  * Author(s): Max Klein
  */
-#ifndef ITERATOR_H_
-#define ITERATOR_H_
+#ifndef LM_ITERATOR_H_
+#define LM_ITERATOR_H_
 
 #include "lm/Types.h"
 
@@ -57,7 +57,7 @@ Iter next(Iter iter)
 }
 
 template <typename Iter, typename Cont>
-bool is_last(Iter iter, const Cont& cont)
+bool isLast(Iter iter, const Cont& cont)
 {
     // if the iterator points to the end, then return true only if the container is zero sized
     if (cont.end()==iter)
@@ -70,6 +70,8 @@ bool is_last(Iter iter, const Cont& cont)
         return (cont.end()==next(iter));
     }
 }
+
+
 
 /*
  * - simplified version of transform_iterator from boost
@@ -147,4 +149,4 @@ make_transform_iterator(Iterator it, Return (*fun)(Argument))
 }
 */
 
-#endif /* ITERATOR_H_ */
+#endif /* LM_ITERATOR_H_ */

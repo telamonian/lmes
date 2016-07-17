@@ -43,49 +43,86 @@
 // for investigating the output of experimental parsers
 
 #include <iostream>
+#include <locale>
 #include <string>
 #include <sstream>
 #include <utility>
 #include <vector>
 
-template<typename T1, typename T2> struct PairVector
+struct numpunct: std::numpunct<char>
 {
-    typedef std::vector<std::pair<T1, T2> > type;
+    std::string do_truename() const { return "True"; }
+    std::string do_falsename() const { return "False"; }
+};
+
+template<typename T0, typename T1> struct PairVector
+{
+    typedef std::vector<std::pair<T0, T1> > type;
     typedef typename type::iterator iterator;
     typedef typename type::const_iterator const_iterator;
 };
 
-template <typename T1, typename T2>
-typename PairVector<T1, T2>::type parsePairVector(const std::string& inString, const std::string& debugMessage="")
+template <typename T>
+void parseNextTokenTo(std::stringstream* tokensSS, T* destination, char delimiter=':')
 {
-    typename PairVector<T1, T2>::type parsedPairVector;
+    std::string tokenString;
+    std::getline(*tokensSS, tokenString, delimiter);
+    std::stringstream tokenSS(tokenString);
+    tokenSS >> *destination;
+}
+
+template <>
+void parseNextTokenTo<bool>(std::stringstream* tokensSS, bool* destination, char delimiter)
+{
+    std::string tokenString;
+    std::getline(*tokensSS, tokenString, delimiter);
+    *destination = (tokenString=="1" or tokenString=="true" or tokenString=="True");
+}
+
+//template <>
+//void parseNextTokenTo<bool>(std::stringstream* tokensSS, bool* destination, char delimiter)
+//{
+//    std::locale loc(std::cout.getloc(), new numpunct);
+//
+//    bool test0=false, test1=false, test2=false;
+//
+//    std::string tokenString;
+//    std::getline(*tokensSS, tokenString, delimiter);
+//    std::stringstream testSS0(tokenString), testSS1(tokenString), testSS2(tokenString);
+//    testSS1.setf(std::ios::boolalpha);
+//    testSS2.imbue(loc);
+//    testSS2.setf(std::ios::boolalpha);
+//
+//    testSS0 >> test0;
+//    testSS1 >> test1;
+//    testSS2 >> test2;
+//
+//    *destination = (test0 or (test1 or test2));
+//}
+
+template <typename T0, typename T1>
+typename PairVector<T0, T1>::type parsePairVector(const std::string& inString, bool setBoolAlpha=false)
+{
+    typename PairVector<T0, T1>::type parsedPairVector;
 
     std::stringstream pairVecSS(inString);
-    std::string pairString, tokenString;
+    std::string pairString;
 
-    while (getline(pairVecSS, pairString, ','))
+    while (std::getline(pairVecSS, pairString, ','))
     {
-        std::pair<T1, T2> p;
+        std::pair<T0, T1> p;
         std::stringstream pairSS(pairString);
 
-        getline(pairSS, tokenString, ':');
-        std::stringstream firstSS(tokenString);
-        firstSS >> p.first;
+        parseNextTokenTo(&pairSS, &p.first);
+        parseNextTokenTo(&pairSS, &p.second);
 
-        std::cout << p.first << std::endl;
         // strip any white space in between the last number parsed and the next delimiter
         // pairSS >> std::ws;
         // if (pairSS.peek() == ':')
         //     pairSS.ignore();
         // pairSS >> p.second;
 
-        getline(pairSS, tokenString, ':');
-        std::stringstream secondSS(tokenString);
-        secondSS >> p.second;
-
         parsedPairVector.push_back(p);
-
-//        Print::printf(Print::DEBUG, "Parsed %s %s to: %f => %f", debugMessage.c_str(), pairString.c_str(), p.first, p.second);
     }
     std::cout << std::endl;
     return parsedPairVector;

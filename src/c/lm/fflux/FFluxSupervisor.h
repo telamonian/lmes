@@ -91,17 +91,17 @@ protected:
     // setup methods that run at the start of every fflux stage
     virtual void startSimulationStage();
     virtual void addFFluxStageOutput();
-    template <typename ValT> lm::fflux::input::FFluxPhaseLimit* buildFFluxPhaseLimit(lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit, FFPhaseLimEnums::StopCondition stopCondition, ValT value);
-    template <typename ValT> void addFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage, FFPhaseLimEnums::StopCondition stopCondition, ValT value);
+    template <typename Value> lm::fflux::input::FFluxPhaseLimit* buildFFluxPhaseLimit(lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit, FFPhaseLimEnums::StopCondition stopCondition, Value value);
+    template <typename Value> void addFFluxPhaseLimitsForPilotStage(lm::fflux::input::FFluxStage* stage, FFPhaseLimEnums::StopCondition stopCondition, Value phaseZeroValue, Value value);
     // TODO: spin this function off as part of an FFluxPhase wrapper
     static void buildFFluxPhaseLimitTrajectoriesToRun(lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit, const lm::fflux::input::FFluxPhase& ffluxPhase, uint simultaneousWorkUnits);
     void repeatFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage, const lm::fflux::input::FFluxPhaseLimit& limitToRepeat);
 //    template <typename ValueT> void repeatFFluxPhaseLimits(lm::protowrap::Repeated<lm::fflux::input::FFluxPhaseLimit>::iterator begin, const lm::fflux::input::FFluxPhaseLimit& limitToRepeat);
     virtual void addFFluxPhaseLimitsFromInput(lm::fflux::input::FFluxStage* productionStage);
-    virtual void addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::protowrap::FFluxStageOutputWrap& stageOutput, bool minimizeCost = true);
+    virtual void addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::protowrap::FFluxStageOutputWrap& stageOutput, bool minimizeCost=false);
 
     // the functions where all the computational cost minimization magic happens
-    inline static std::vector<uint64_t> optimizeTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const lm::protowrap::FFluxStageOutputSummaryWrap& stageOutputSummary, bool minimizeCost = true);
+    inline static std::vector<uint64_t> optimizeTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const lm::protowrap::FFluxStageOutputSummaryWrap& stageOutputSummary, uint64_t minimumCount, bool minimizeCost=false);
     inline static std::vector<uint64_t> minimizeCostTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const std::vector<double>& probabilities, const std::vector<double>& costs);
     inline static std::vector<uint64_t> minimizeCountTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const std::vector<double>& probabilities);
     inline static std::valarray<double> getConstantFactors(const std::vector<double>& probabilities);
@@ -134,7 +134,7 @@ protected:
     virtual const lm::fflux::input::FFluxPhaseLimit& currentPhaseLimit() const {return currentStage().fflux_phase_limits(currentFFluxPhaseIndex());}
     virtual const lm::protowrap::FFluxPhaseOutputWrap& currentPhaseOutput() const {return *currentFFluxPhaseOutputWrapPtr;}
     virtual int64_t finalFFluxPhaseIndex() const {return currentStage().fflux_phases_size() - 1;}
-    virtual bool isCurrentPhaseLast() const {return is_last(currentFFluxPhaseIter, currentStage().fflux_phases());} //{return currentStage().fflux_phases().end()==currentFFluxPhaseIter;}
+    virtual bool isCurrentPhaseLast() const {return isLast(currentFFluxPhaseIter, currentStage().fflux_phases());} //{return currentStage().fflux_phases().end()==currentFFluxPhaseIter;}
     virtual const lm::protowrap::FFluxPhaseOutputWrap& previousPhaseOutput() const {return *previousFFluxPhaseOutputWrapPtr;}
 
     virtual const lm::fflux::input::FFluxStage& currentStage() const {return **currentFFluxStageIter;}
@@ -142,7 +142,7 @@ protected:
     virtual std::string currentStageInfo() const;
     virtual const lm::protowrap::FFluxStageOutputWrap& currentStageOutput() const {return currentFFluxStageOutputWrap;}
     virtual int getStageCount() const {return ffluxStageExecutionOrder.size();}
-    virtual bool isCurrentStageLast() const {return is_last(currentFFluxStageIter, ffluxStageExecutionOrder);}  //{return currentFFluxStageIter==ffluxStageExecutionOrder.end();}
+    virtual bool isCurrentStageLast() const {return isLast(currentFFluxStageIter, ffluxStageExecutionOrder);}  //{return currentFFluxStageIter==ffluxStageExecutionOrder.end();}
 
     virtual const lm::tiling::Tiling& currentTiling() const {return currentTilingWrap;}
 
@@ -162,11 +162,6 @@ protected:
     virtual void setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList);
     virtual void destructInput() {SimulationSupervisor::destructInput(); input = NULL;}
     virtual void destructTrajectory() {SimulationSupervisor::destructTrajectory(); trajectoryList = NULL;}
-
-    // deprecated
-//    virtual void finishSimulation();
-//    virtual void receivedProcessWorkUnitOutput(lm::message::Message& msg);
-//    virtual void receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg);
 
 protected:
     lm::fflux::input::FFluxStageList ffluxStageListMsg;

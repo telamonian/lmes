@@ -623,7 +623,7 @@ bool CMESolver::isTrajectoryOutsideLimits()
 
         if (limitReached)
         {
-            bool terminationSignaled;
+            bool terminationSignaled = false;
             // if this limit is being tracked, handle that
             if (trackedLimits.count(l.limitID))
             {

@@ -109,6 +109,7 @@ public:
     ~TrajectoryLimits() {}
 
 // accessors
+    int ByteSize() const {return _msg.ByteSize();}
     bool hasMsg(int32_t id) const;
     bool hasMsg(TrajLimEnums::LimitType lt) const;
     const TrajectoryLimitMsg& findMsg(int32_t id) const;

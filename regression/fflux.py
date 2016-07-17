@@ -18,25 +18,25 @@ class FFluxRegression(ReplicateRegression):
         super(FFluxRegression, self).BuildInput(**kwargs)
 
         if kwargs['quick_test']:
-            defaultSimulationParameters = {'maxSteps': str(int(1e15)),
-                                           'maxCrossingsZero': str(2),
-                                           'maxTimeZero': None,
-                                           'maxCrossingsN': str(2),
-                                           'maxTimeN': None,
-                                           'writeInterval': str(int(1e1))}
+            defaultSimulationParameters = {"precisionGoal": .10,
+                                           "precisionGoalConfidence": .99,
+                                           "pilotStageCount": 1e3,
+                                           "ffluxPilotOutput": True,
+                                           "ffluxPhaseOutput": False,
+                                           "ffluxStageOutputRaw": True,
+                                           "ffluxStageOutputSummary": True}
         else:
-            defaultSimulationParameters = {'maxSteps': str(int(1e15)),
-                                           'maxCrossingsZero': str(int(1e3)),
-                                           'maxTimeZero': None,
-                                           'maxCrossingsN': str(int(1e3)),
-                                           'maxTimeN': None,
-                                           'writeInterval': str(int(1e1))}
+            defaultSimulationParameters = {"precisionGoal": .05,
+                                           "precisionGoalConfidence": .95,
+                                           "pilotStageCount": 1e3,
+                                           "ffluxPilotOutput": False,
+                                           "ffluxPhaseOutput": False,
+                                           "ffluxStageOutputRaw": False,
+                                           "ffluxStageOutputSummary": True}
 
         ffluxInput = Input('biphasic_switch.lm')
 
-        iSCBs = InitialSpeciesCountsBackward(speciesCounts=[0,0,0,4,16,1,0])
-
-        simParams = [SimulationParameter(key=key, val=kwargs.get(key, defaultSimulationParameters[key])) for key in defaultSimulationParameters.keys()]
+        simParams = [SimulationParameter(key=key, val=str(kwargs.get(key, defaultValue))) for key,defaultValue in defaultSimulationParameters.items()]
 
         tilings = [
             Tiling(id=0,
@@ -46,8 +46,8 @@ class FFluxRegression(ReplicateRegression):
 
         basins = [
             Basin(tilingID=0,
-                  speciesCountArray=np.array(([4,16,1,0,0,0,0],
-                                              [0,0,0,4,16,1,0]), dtype=np.dtype('uint32')))]
+                  speciesCountArray=np.array(([4,16,1,0,0,0,0],), dtype=np.dtype('uint32')))]
+                                              #[0,0,0,4,16,1,0]), dtype=np.dtype('uint32')))]
 
         if kwargs['extra_input']:
             tilings+=[
@@ -83,7 +83,6 @@ class FFluxRegression(ReplicateRegression):
 
         ffluxInput.AddTilings(tilings=tilings, currentTilingID=0)
         ffluxInput.AddBasins(basins=basins)
-        ffluxInput.SetInitialSpeciesCountsBackward(iSCBs=iSCBs)
         ffluxInput.SetSimulationParameters(simParams=simParams)
         ffluxInput.Close()
 

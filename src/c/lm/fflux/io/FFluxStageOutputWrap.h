@@ -49,6 +49,7 @@
 #include "lm/protowrap/Msg.h"
 #include "lm/protowrap/WrappedFields.h"
 #include "lm/Types.h"
+#include "lm/VectorMath.h"
 
 namespace lm {
 namespace protowrap {
@@ -119,8 +120,8 @@ class FFluxStageOutputSummaryWrap : public lm::protowrap::Msg<FFluxStageOutputSu
         std::vector<double> newSwitchingTimePerTile;
 
         cumprod(probabilities().begin(), probabilities().end(), std::back_inserter(newSwitchingTimePerTile));
-        pairwiseMul(fluxes(0), newSwitchingTimePerTile.begin(), newSwitchingTimePerTile.end(), newSwitchingTimePerTile.begin());
-        pairwiseDiv(1.0, newSwitchingTimePerTile.begin(), newSwitchingTimePerTile.end(), newSwitchingTimePerTile.begin());
+        mul(fluxes(0), newSwitchingTimePerTile.begin(), newSwitchingTimePerTile.end(), newSwitchingTimePerTile.begin());
+        div(1.0, newSwitchingTimePerTile.begin(), newSwitchingTimePerTile.end(), newSwitchingTimePerTile.begin());
 
         // set the switching time per tile
         mutable_first_passage_times()->serializeFrom(newSwitchingTimePerTile.begin(), newSwitchingTimePerTile.end());

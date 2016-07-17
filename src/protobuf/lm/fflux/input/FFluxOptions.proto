@@ -50,7 +50,7 @@ message FFluxOptions {
     /*
      * - global precision goal for the fflux simulation
      */
-    optional double precision_goal            = 1;
+    optional double precision_goal            = 1 [default=.05];
 
     /*
      * - confidence level that is associated with the precision goal

@@ -92,21 +92,16 @@ void FFluxInput::initFFluxOptions(const lm::io::hdf5::Hdf5File& file)
     parseAndSet("pilotStageCount", &FFluxOptions::set_pilot_stage_count, _ffluxOptions);
     parseAndSet("phaseZeroBurnInCount", &FFluxOptions::set_phase_zero_burn_in_count, _ffluxOptions);
 
-    parseAndSetFlagTrue("ffluxPilotOutput", &FFluxOptions::set_pilot_stage_output, _ffluxOptions);
-    parseAndSetFlagTrue("ffluxPhaseOutput", &FFluxOptions::set_phase_output, _ffluxOptions);
-    parseAndSetFlagTrue("ffluxStageOutputRaw", &FFluxOptions::set_stage_output_raw, _ffluxOptions);
-    parseAndSetFlagFalse("ffluxStageOutputSummary", &FFluxOptions::set_stage_output_summary, _ffluxOptions);
+    parseAndSet("ffluxPilotOutput", &FFluxOptions::set_pilot_stage_output, _ffluxOptions);
+    parseAndSet("ffluxPhaseOutput", &FFluxOptions::set_phase_output, _ffluxOptions);
+    parseAndSet("ffluxStageOutputRaw", &FFluxOptions::set_stage_output_raw, _ffluxOptions);
+    parseAndSet("ffluxStageOutputSummary", &FFluxOptions::set_stage_output_summary, _ffluxOptions);
 
-    // set a default precision
+    // if we haven't gotten a precisionGoal or any user defined phase limits, explicitly set precisionGoal so that hasPrecisionGoal() returns true
     if ((not hasPrecisionGoal()) and (not hasUserDefinedFFluxPhaseLimitLists()))
     {
-        _ffluxOptions.set_precision_goal(.05);
-    }
-
-    // if we're doing pilot stages but haven't gotten a pilotStageCount, set a default value
-    if (hasPrecisionGoal() and (not hasPilotStageCount()))
-    {
-        _ffluxOptions.set_pilot_stage_count(1000);
+        _ffluxOptions.set_precision_goal(_ffluxOptions.default_instance().precision_goal());
+        //_ffluxOptions.set_precision_goal(_ffluxOptions.GetDescriptor()->FindFieldByName("precision_goal")->default_value_double());
     }
 
     // check the fflux options we just parsed for consistency

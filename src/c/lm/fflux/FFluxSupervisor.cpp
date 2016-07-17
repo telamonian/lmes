@@ -69,6 +69,7 @@
 #include "lm/Print.h"
 #include "lm/resource/ResourceMap.h"
 #include "lm/tiling/Tiling.h"
+#include "lm/VectorMath.h"
 
 using lm::protowrap::Repeated;
 using lm::resource::ResourceMap;
@@ -198,7 +199,7 @@ lm::fflux::input::FFluxStage* FFluxSupervisor::addPilotStage(lm::fflux::input::F
 
     addFFluxPhases(pilotStage, FFPhaseEnums::LAZY, FFPhaseEnums::SIMPLE);
 
-    addFFluxPhaseLimits(pilotStage, FFPhaseLimEnums::FORWARD_FLUXES, input->ffluxOptions().pilot_stage_count());
+    addFFluxPhaseLimitsForPilotStage(pilotStage, FFPhaseLimEnums::FORWARD_FLUXES, input->ffluxOptions().pilot_stage_count()*100, input->ffluxOptions().pilot_stage_count());
 
     return pilotStage;
 }
@@ -274,8 +275,8 @@ void FFluxSupervisor::addFFluxStageOutput()
     ffluxPhaseOutputsWrap.setWrappedField(ffluxPhaseOutputListsWrap.Add()->mutable_fflux_phase_outputs());
 }
 
-template <typename T>
-lm::fflux::input::FFluxPhaseLimit* FFluxSupervisor::buildFFluxPhaseLimit(lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit, FFPhaseLimEnums::StopCondition stopCondition, T value)
+template <typename Value>
+lm::fflux::input::FFluxPhaseLimit* FFluxSupervisor::buildFFluxPhaseLimit(lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit, FFPhaseLimEnums::StopCondition stopCondition, Value value)
 {
     ffluxPhaseLimit->set_stop_condition(stopCondition);
 
@@ -300,6 +301,7 @@ void FFluxSupervisor::buildFFluxPhaseLimitTrajectoriesToRun(lm::fflux::input::FF
         {
             if (ffluxPhaseLimit->stop_condition()==FFPhaseLimEnums::FORWARD_FLUXES)
             {
+//                ffluxPhaseLimit->set_events_per_trajectory(ffluxPhaseLimit->uvalue());
                 ffluxPhaseLimit->set_events_per_trajectory(ceilDiv(ffluxPhaseLimit->uvalue(), simulataneousActiveTrajectories));
             }
             else throw UnimplementedException("ffluxPhaseLimit->stop_condition()==TIME, ==TRAJECTORY_COUNT currently unimplemented for fflux phase 0");
@@ -327,12 +329,18 @@ void FFluxSupervisor::buildFFluxPhaseLimitTrajectoriesToRun(lm::fflux::input::FF
     else throw UnimplementedException("unimplemented");
 }
 
-template <typename T>
-void FFluxSupervisor::addFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage, FFPhaseLimEnums::StopCondition stopCondition, T value)
+template <typename Value>
+void FFluxSupervisor::addFFluxPhaseLimitsForPilotStage(lm::fflux::input::FFluxStage* stage, FFPhaseLimEnums::StopCondition stopCondition, Value phaseZeroValue, Value value)
 {
-    for (FFluxPhasesWrap::const_iterator it=stage->fflux_phases().begin();it!=stage->fflux_phases().end();it++)
+    // special handling for phase zero
+    FFluxPhasesWrap::const_iterator it=stage->fflux_phases().begin();
+    lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit = buildFFluxPhaseLimit(stage->add_fflux_phase_limits(), stopCondition, phaseZeroValue);
+    buildFFluxPhaseLimitTrajectoriesToRun(ffluxPhaseLimit, *it, slots.getSimultaneousWorkUnits());
+    it++;
+
+    for (;it!=stage->fflux_phases().end();it++)
     {
-        lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit = buildFFluxPhaseLimit(stage->add_fflux_phase_limits(), stopCondition, value);
+        ffluxPhaseLimit = buildFFluxPhaseLimit(stage->add_fflux_phase_limits(), stopCondition, value);
         buildFFluxPhaseLimitTrajectoriesToRun(ffluxPhaseLimit, *it, slots.getSimultaneousWorkUnits());
     }
 }
@@ -343,20 +351,19 @@ void FFluxSupervisor::addFFluxPhaseLimitsFromInput(lm::fflux::input::FFluxStage*
     //productionStage->mutable_fflux_phase_limits()->CopyFrom(input->getFFluxPhaseLimits(productionStage->tiling().id(), productionStage->basin_index()));
 
     // temporary placeholder
-    addFFluxPhaseLimits(productionStage, FFPhaseLimEnums::FORWARD_FLUXES, input->ffluxOptions().pilot_stage_count());
+    addFFluxPhaseLimitsForPilotStage(productionStage, FFPhaseLimEnums::FORWARD_FLUXES, input->ffluxOptions().pilot_stage_count(), input->ffluxOptions().pilot_stage_count());
 }
 
 void FFluxSupervisor::addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::protowrap::FFluxStageOutputWrap& stageOutput, bool minimizeCost)
 {
-    vector<uint64_t> trajectoryCounts(optimizeTrajectoryCounts(input->precisionGoal(), input->precisionGoalConfidence(), stageOutput.fflux_stage_output_summary(), minimizeCost));
+    vector<uint64_t> trajectoryCounts(optimizeTrajectoryCounts(input->precisionGoal(), input->precisionGoalConfidence(), stageOutput.fflux_stage_output_summary(), input->ffluxOptions().pilot_stage_count(), minimizeCost));
 
     vector<uint64_t>::const_iterator tc_it=trajectoryCounts.begin();
     FFluxPhasesWrap::const_iterator ph_it=productionStage->fflux_phases().begin();
 
-    lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit;
-
     // special treatment for phase zero
-    ffluxPhaseLimit = buildFFluxPhaseLimit(productionStage->add_fflux_phase_limits(), FFPhaseLimEnums::FORWARD_FLUXES, *tc_it);
+    // TODO: the phase zero step of the trajectory count optimization seems currently pretty fundamentaly flawed. For now we'll use a workaround.
+    lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit = buildFFluxPhaseLimit(productionStage->add_fflux_phase_limits(), FFPhaseLimEnums::FORWARD_FLUXES, input->ffluxOptions().pilot_stage_count()*100); //*tc_it);
     buildFFluxPhaseLimitTrajectoriesToRun(ffluxPhaseLimit, *ph_it, slots.getSimultaneousWorkUnits());
     tc_it++, ph_it++;
 
@@ -377,7 +384,7 @@ void FFluxSupervisor::repeatFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage
     }
 }
 
-vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const lm::protowrap::FFluxStageOutputSummaryWrap& stageOutputSummary, bool minimizeCost)
+vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const lm::protowrap::FFluxStageOutputSummaryWrap& stageOutputSummary, uint64_t minimumCount, bool minimizeCost)
 {
     vector<double> probabilities(stageOutputSummary.probabilities().begin(), stageOutputSummary.probabilities().end());
 
@@ -392,7 +399,7 @@ vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double precisionGoal,
         trajectoryCounts = minimizeCountTrajectoryCounts(precisionGoal, precisionGoalConfidence, probabilities);
     }
 
-    for (vector<uint64_t>::iterator it=trajectoryCounts.begin();it!=trajectoryCounts.end();it++) if (*it < 1000) *it=1000;
+    for (vector<uint64_t>::iterator it=trajectoryCounts.begin();it!=trajectoryCounts.end();it++) if (*it < minimumCount) *it=minimumCount;
     return trajectoryCounts;
 }
 
@@ -401,6 +408,8 @@ vector<uint64_t> FFluxSupervisor::minimizeCostTrajectoryCounts(double precisionG
     valarray<double> constantFactors(getConstantFactors(probabilities));
     valarray<double> costs(costVector.data(), costVector.size());
     costs = sqrt(costs);
+
+    constantFactors[0] = 0.0;
 
     double coeff = pow(normalZ(precisionGoalConfidence)/precisionGoal, 2)*((costs*constantFactors).sum());
     constantFactors /= costs;
@@ -417,6 +426,8 @@ vector<uint64_t> FFluxSupervisor::minimizeCostTrajectoryCounts(double precisionG
 vector<uint64_t> FFluxSupervisor::minimizeCountTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const vector<double>& probabilities)
 {
     valarray<double> constantFactors(getConstantFactors(probabilities));
+
+    constantFactors[0] = 0.0;
 
     constantFactors *= pow(normalZ(precisionGoalConfidence)/precisionGoal, 2)*(constantFactors.sum());
 
@@ -471,14 +482,8 @@ void FFluxSupervisor::addFFluxPhaseOutput()
     // hand the previous FFluxPhaseOutput message off to the storage list (if this isn't the first or second phase of a simulation stage)
     if (previousFFluxPhaseOutputWrapPtr->wrappedMsg()!=NULL)
     {
-//        ffluxPhaseOutputsWrap.AddAllocated(previousFFluxPhaseOutputWrapPtr->wrappedMsg());
         ffluxPhaseOutputsWrap.AddAllocated(previousFFluxPhaseOutputWrapPtr->wrappedMsg());
         previousFFluxPhaseOutputWrapPtr->setWrappedMsgNull();
-
-//        lm::fflux::io::FFluxPhaseOutput* newFFluxPhaseOutputMsgPtr = ffluxPhaseOutputsWrap.Add();
-//        newFFluxPhaseOutputMsgPtr->CopyFrom(*previousFFluxPhaseOutputWrapPtr->wrappedMsg());
-//        delete previousFFluxPhaseOutputWrapPtr->wrappedMsg();
-//        previousFFluxPhaseOutputWrapPtr->setWrappedMsgNull();
 
     }
 
@@ -490,12 +495,6 @@ void FFluxSupervisor::addFFluxPhaseOutput()
     // add a new phase output and set it to be the current phase output
     ffluxPhaseOutputsWrap.Add();
     currentFFluxPhaseOutputWrapPtr->setWrappedMsg(ffluxPhaseOutputsWrap.ReleaseLast());
-//    currentFFluxPhaseOutputWrapPtr->setWrappedMsg(new lm::fflux::io::FFluxPhaseOutput);
-
-//    * newPhaseOutputMsg = ffluxPhaseOutputsWrap.Add();
-//
-//    // set the new phase output to be the current phase output
-//    currentFFluxPhaseOutputWrapPtr->setWrappedMsg(newPhaseOutputMsg);
 }
 
 void FFluxSupervisor::buildTrajectoryList()
@@ -588,21 +587,11 @@ void FFluxSupervisor::finishSimulationStage()
         {
             ffluxPhaseOutputsWrap.AddAllocated(previousFFluxPhaseOutputWrapPtr->wrappedMsg());
             previousFFluxPhaseOutputWrapPtr->setWrappedMsgNull();
-
-    //        lm::fflux::io::FFluxPhaseOutput* newFFluxPhaseOutputMsgPtr = ffluxPhaseOutputsWrap.Add();
-    //        newFFluxPhaseOutputMsgPtr->CopyFrom(*previousFFluxPhaseOutputWrapPtr->wrappedMsg());
-    //        delete previousFFluxPhaseOutputWrapPtr->wrappedMsg();
-    //        previousFFluxPhaseOutputWrapPtr->setWrappedMsgNull();
         }
         if (currentFFluxPhaseOutputWrapPtr->wrappedMsg()!=NULL)
         {
             ffluxPhaseOutputsWrap.AddAllocated(currentFFluxPhaseOutputWrapPtr->wrappedMsg());
             currentFFluxPhaseOutputWrapPtr->setWrappedMsgNull();
-
-    //        lm::fflux::io::FFluxPhaseOutput* newFFluxPhaseOutputMsgPtr = ffluxPhaseOutputsWrap.Add();
-    //        newFFluxPhaseOutputMsgPtr->CopyFrom(*currentFFluxPhaseOutputWrapPtr->wrappedMsg());
-    //        delete currentFFluxPhaseOutputWrapPtr->wrappedMsg();
-    //        currentFFluxPhaseOutputWrapPtr->setWrappedMsgNull();
         }
 
         // build the stage output from the phase outputs

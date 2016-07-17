@@ -117,18 +117,60 @@ template<typename Key0, typename Key1, typename Value> struct PairMap
 /*
  * type traits
  */
-template< class T> struct AddConst { typedef const T type; };
+template< class T> struct AddConst {typedef const T type;};
 
-template<bool cond, class T=int> struct EnableIf {typedef T type;};
-template<class T> struct EnableIf<false, T> {};
+template <bool cond, class T=int>
+struct EnableIf {typedef T type;};
+template <class T>
+struct EnableIf<false, T> {};
 
-template <typename T> struct IsNumeric {static const bool value = std::numeric_limits<T>::is_specialized;};
+template <typename T>
+struct IsNumeric {static const bool value = std::numeric_limits<T>::is_specialized;};
 
-template<typename T, typename U> struct IsSame {static const bool value = false;};
-template<typename T> struct IsSame<T, T> {static const bool value = true;};
+template <typename T, typename U>
+struct IsSame {static const bool value = false;};
+template <typename T>
+struct IsSame<T, T> {static const bool value = true;};
 
-template<typename, template <typename> class> struct IsSameTemplate {static const bool value = false;};
-template<template <typename> class T, template <typename> class U, typename Param> struct IsSameTemplate<T<Param>, U> {static const bool value = IsSame<T<Param>, U<Param> >::value;};
+template <typename, template <typename> class>
+struct IsSameTemplate {static const bool value = false;};
+template <template <typename> class T, template <typename> class U, typename Param>
+struct IsSameTemplate<T<Param>, U> {static const bool value = IsSame<T<Param>, U<Param> >::value;};
+
+namespace lm {
+namespace internal {
+
+// SFINAE friendly version of iterator_traits
+template<typename Iterator, typename=void, typename=void, typename=void, typename=void, typename=void>
+struct iterator_traits
+{
+//    typedef void iterator_category;
+//    typedef void value_type;
+//    typedef void difference_type;
+//    typedef void pointer;
+//    typedef void reference;
+};
+template<typename Iterator>
+struct iterator_traits<Iterator, typename Iterator::iterator_category, typename Iterator::value_type, typename Iterator::difference_type, typename Iterator::pointer, typename Iterator::reference>
+{
+    typedef typename Iterator::iterator_category iterator_category;
+    typedef typename Iterator::value_type        value_type;
+    typedef typename Iterator::difference_type   difference_type;
+    typedef typename Iterator::pointer           pointer;
+    typedef typename Iterator::reference         reference;
+};
+
+}
+}
+
+template<typename T, typename=void>
+struct IsIterator {static const bool value = false;};
+template<typename T>
+struct IsIterator<T, typename lm::internal::iterator_traits<T>::value_type> {static const bool value = true;};
+//struct IsIterator<T, typename EnableIf<not IsSame<typename lm::internal::iterator_traits<T>::value_type, void>::value>::type> {static const bool value = true;};
+
+template <typename T>
+struct IsNumericIterator {static const bool value = IsIterator<T>::value and IsNumeric<typename lm::internal::iterator_traits<T>::value_type>::value;};
 
 /*
 template<typename B, typename D>

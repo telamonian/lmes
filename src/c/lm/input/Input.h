@@ -100,8 +100,8 @@ public:
     bool hasDiffusionModel() const {return diffusionModelPresent;}
     bool hasOrderParameters() const {return orderParametersPresent;}
     bool hasTilings() const {return tilingsPresent;}
-    bool hasTrajectoryLimits() const {return trajectoryLimitsPresent;}
-    bool hasOutputOptions() const {return outputOptionsPresent;}
+    bool hasTrajectoryLimits() const {return trajectoryLimits.ByteSize() > 0;}
+    bool hasOutputOptions() const {return outputOptionsMsg.ByteSize() > 0;}
 
     lm::oparam::OParams* mutableOrderParameters() {return &orderParameters;}
     lm::tiling::Tilings* mutableTilings() {return &tilings;}
@@ -118,8 +118,6 @@ protected:
     virtual void initWorkUnitParameters(const lm::io::hdf5::Hdf5File& file);
 
     bool parseBoundaryConditions(lm::input::BoundaryConditions* bc, std::string arg);
-
-    virtual void setFlagsOnsuccess(bool result, bool* resultFlag0, bool* resultFlag1);
 
 protected:
     bool degreeAdvancementPresent;
@@ -150,7 +148,7 @@ protected:
 // template methods for parsing user input
 protected:
     template <TrajLimEnums::LimitType LT>
-    bool parseLimits(const string key, const string debugString, TrajLimEnums::StoppingCondition sc, bool includeEndpoint, bool* resultFlag0=NULL, bool* resultFlag1=NULL)
+    bool parseLimits(const string key, const string debugString, TrajLimEnums::StoppingCondition sc, bool includeEndpoint)
     {
         bool result;
         if (simulationParameters.count(key)!=0)
@@ -167,14 +165,13 @@ protected:
             result = false;
         }
 
-        setFlagsOnsuccess(result, resultFlag0, resultFlag1);
         return result;
     }
 
     // Version of parseAndSet that works with options that can directly accessed through a mutable pointer
     // By using template parameter inference on the pointer, this template automatically figures out what type to parse from simulationParameters
     template <typename ValT>
-    bool parseAndSet(const string key, ValT* fieldPtr, bool* resultFlag0=NULL, bool* resultFlag1=NULL)
+    bool parseAndSet(const string key, ValT* fieldPtr)
     {
         bool result;
         if (simulationParameters.count(key)!=0)
@@ -187,14 +184,13 @@ protected:
             result = false;
         }
 
-        setFlagsOnsuccess(result, resultFlag0, resultFlag1);
         return result;
     }
 
     // Version of parseAndSet that works with options that need to be set via a setter function
     // By using template parameter inference on the setter (passed as a function pointer), this template automatically figures out what type to parse from simulationParameters
     template <typename T, typename SetterReturnT, typename ValT>
-    bool parseAndSet(const string key, SetterReturnT (T::*setterFunc)(ValT), T& obj, bool* resultFlag0=NULL, bool* resultFlag1=NULL)
+    bool parseAndSet(const string key, SetterReturnT (T::*setterFunc)(ValT), T& obj)
     {
         bool result;
         if (simulationParameters.count(key)!=0)
@@ -207,55 +203,12 @@ protected:
             result = false;
         }
 
-        setFlagsOnsuccess(result, resultFlag0, resultFlag1);
-        return result;
-    }
-
-    // specialized version of parseAndSet for flag options (ie options that can be only true or false). If the flag key is present in simulationParameters then the flag is set to true (regardless of its value in simulationParameters), otherwise the flag is set to false
-    inline bool parseAndSetFlagFalse(const std::string key, bool* flagPtr, bool* resultFlag0=NULL, bool* resultFlag1=NULL)
-    {
-        bool result = (simulationParameters.count(key)==0);
-        *flagPtr = result;
-
-        setFlagsOnsuccess(result, resultFlag0, resultFlag1);
-        return result;
-    }
-
-    // same as parseAndSetFlagFalse, but this version works with options that need to be set via a setter function
-    template <typename T>
-    bool parseAndSetFlagFalse(const std::string key, void (T::*setterFunc)(bool), T& obj, bool* resultFlag0=NULL, bool* resultFlag1=NULL)
-    {
-        bool result = (simulationParameters.count(key)==0);
-        (obj.*setterFunc)(result);
-
-        setFlagsOnsuccess(result, resultFlag0, resultFlag1);
-        return result;
-    }
-
-    // specialized version of parseAndSet for flag options (ie options that can be only true or false). If the flag key is present in simulationParameters then the flag is set to true (regardless of its value in simulationParameters), otherwise the flag is set to false
-    inline bool parseAndSetFlagTrue(const std::string key, bool* flagPtr, bool* resultFlag0=NULL, bool* resultFlag1=NULL)
-    {
-        bool result = (simulationParameters.count(key)!=0);
-        *flagPtr = result;
-
-        setFlagsOnsuccess(result, resultFlag0, resultFlag1);
-        return result;
-    }
-
-    // same as parseAndSetFlagTrue, but this version works with options that need to be set via a setter function
-    template <typename T>
-    bool parseAndSetFlagTrue(const std::string key, void (T::*setterFunc)(bool), T& obj, bool* resultFlag0=NULL, bool* resultFlag1=NULL)
-    {
-        bool result = (simulationParameters.count(key)!=0);
-        (obj.*setterFunc)(result);
-
-        setFlagsOnsuccess(result, resultFlag0, resultFlag1);
         return result;
     }
 
     // Same as parseAndSet, but for options specified as lists
     template <typename T, typename AdderReturnT, typename ValT>
-    bool parseAndSetList(const string key, AdderReturnT (T::*adderFunc)(ValT), T& obj, bool* resultFlag0=NULL, bool* resultFlag1=NULL)
+    bool parseAndSetList(const string key, AdderReturnT (T::*adderFunc)(ValT), T& obj)
     {
         bool result;
         if (simulationParameters.count(key)!=0)
@@ -272,7 +225,6 @@ protected:
             result = false;
         }
 
-        setFlagsOnsuccess(result, resultFlag0, resultFlag1);
         return result;
     }
     

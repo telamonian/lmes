@@ -298,62 +298,80 @@ void parseArguments(int argc, char** argv)
             cpuCores=atoi(option+strlen("--cpu="));
         }
 
-         //See if the user is trying to set the number of gpu devices per runner.
-         else if ((strcmp(option, "-cr") == 0 || strcmp(option, "--cpus-per-runner") == 0 || strcmp(option, "--cpus-per-replicate") == 0) && i < (argc-1))
-         {
+        //See if the user is trying to set the number of gpu devices per runner.
+        else if ((strcmp(option, "-cr") == 0 || strcmp(option, "--cpus-per-runner") == 0 || strcmp(option, "--cpus-per-replicate") == 0) && i < (argc-1))
+        {
              cpuCoresPerRunner=parseIntReciprocalArg(argv[++i]);
-         }
+        }
         else if (strncmp(option, "--cpus-per-runner=", strlen("--cpus-per-runner=")) == 0)
         {
             cpuCoresPerRunner=parseIntReciprocalArg(option+strlen("--cpus-per-runner="));
         }
-         else if (strncmp(option, "--cpus-per-replicate=", strlen("--cpus-per-replicate=")) == 0)
-         {
+        else if (strncmp(option, "--cpus-per-replicate=", strlen("--cpus-per-replicate=")) == 0)
+        {
              cpuCoresPerRunner=parseIntReciprocalArg(option+strlen("--cpus-per-replicate="));
-         }
+        }
 
 
         //See if the user is trying to turn on cpu affinity.
-         else if ((strcmp(option, "-ca") == 0 || strcmp(option, "--cpu-affinity") == 0))
-         {
+        else if ((strcmp(option, "-ca") == 0 || strcmp(option, "--cpu-affinity") == 0))
+        {
              useCPUAffinity = true;
-         }
+        }
 
-         //See if the user is trying to set the gpu devices.
-         else if ((strcmp(option, "-g") == 0 || strcmp(option, "--gpu") == 0) && i < (argc-1))
-         {
+        //See if the user is trying to set the gpu devices.
+        else if ((strcmp(option, "-g") == 0 || strcmp(option, "--gpu") == 0) && i < (argc-1))
+        {
              gpuDevices=atoi(argv[++i]);
-         }
-         else if (strncmp(option, "--gpu=", strlen("--gpu=")) == 0)
-         {
+        }
+        else if (strncmp(option, "--gpu=", strlen("--gpu=")) == 0)
+        {
              gpuDevices=atoi(option+strlen("--gpu="));
-         }
+        }
 
-         //See if the user is trying to set the number of gpu devices per runner.
-         else if ((strcmp(option, "-gr") == 0 || strcmp(option, "--gpus-per-runner") == 0 || strcmp(option, "--gpus-per-replicate") == 0) && i < (argc-1))
-         {
+        #ifdef OPT_CUDA
+        //See if the user is trying to set the number of gpu devices per runner.
+        else if ((strcmp(option, "-gr") == 0 || strcmp(option, "--gpus-per-runner") == 0 || strcmp(option, "--gpus-per-replicate") == 0) && i < (argc-1))
+        {
              gpuDevicesPerRunner=parseIntReciprocalArg(argv[++i]);
-         }
-         else if (strncmp(option, "--gpus-per-runner=", strlen("--gpus-per-runner=")) == 0)
-         {
+        }
+        else if (strncmp(option, "--gpus-per-runner=", strlen("--gpus-per-runner=")) == 0)
+        {
              gpuDevicesPerRunner=parseIntReciprocalArg(option+strlen("--gpus-per-runner="));
-         }
+        }
         else if (strncmp(option, "--gpus-per-replicate=", strlen("--gpus-per-replicate=")) == 0)
         {
             gpuDevicesPerRunner=parseIntReciprocalArg(option+strlen("--gpus-per-replicate="));
         }
-
+        #else /* OPT_CUDA */
+        // if cuda is off, warn the user if they try to set gpuDevicesPerRunner, but set it to 0 anyway
+        else if ((strcmp(option, "-gr") == 0 || strcmp(option, "--gpus-per-runner") == 0 || strcmp(option, "--gpus-per-replicate") == 0) && i < (argc-1))
+        {
+            gpuDevicesPerRunner=0;
+            lm::Print::printf(lm::Print::WARNING, "attempting to set gpuDevicesPerRunner=%.2f, but CUDA support is turned off", parseIntReciprocalArg(argv[++i]));
+        }
+        else if (strncmp(option, "--gpus-per-runner=", strlen("--gpus-per-runner=")) == 0)
+        {
+            gpuDevicesPerRunner=0;
+            lm::Print::printf(lm::Print::WARNING, "attempting to set gpuDevicesPerRunner=%.2f, but CUDA support is turned off", parseIntReciprocalArg(option+strlen("--gpus-per-runner=")));
+        }
+        else if (strncmp(option, "--gpus-per-replicate=", strlen("--gpus-per-replicate=")) == 0)
+        {
+            gpuDevicesPerRunner=0;
+            lm::Print::printf(lm::Print::WARNING, "attempting to set gpuDevicesPerRunner=%.2f, but CUDA support is turned off", parseIntReciprocalArg(option+strlen("--gpus-per-replicate=")));
+        }
+        #endif /* OPT_CUDA */
         //See if the user is trying to turn off cuda capability printing.
-         else if ((strcmp(option, "-nc") == 0 || strcmp(option, "--no-capabilities") == 0))
-         {
+        else if ((strcmp(option, "-nc") == 0 || strcmp(option, "--no-capabilities") == 0))
+        {
              shouldPrintGPUCapabilities = false;
-         }
+        }
 
         //See if the user is trying to turn off cuda capability printing.
-         else if ((strcmp(option, "-nr") == 0 || strcmp(option, "--no-reserve-core") == 0))
-         {
+        else if ((strcmp(option, "-nr") == 0 || strcmp(option, "--no-reserve-core") == 0))
+        {
         	 shouldReserveOutputCore = false;
-         }
+        }
 
         //See if the user is trying to use forward flux sampling.
         else if ((strcmp(option, "-fflux") == 0 || strcmp(option, "--use-forward-flux") == 0))

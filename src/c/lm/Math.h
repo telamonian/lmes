@@ -121,60 +121,26 @@ inline unsigned int log2(unsigned long long x)
 /*
  * binary operations
  */
-template <typename T1, typename T2> inline T1 add(T1 val1, T2 val2)
-{
-    return val1 + val2;
-};
-
-
-template <typename T1, typename T2> inline T1 mul(T1 val1, T2 val2)
-{
-    return val1 * val2;
-};
-
-template <typename IntType> inline IntType ceilDiv(IntType val0, IntType val1)
+template <typename IntType>
+inline IntType ceilDiv(IntType val0, IntType val1)
 {
     return (IntType)ceil(val0/(double)val1);
 }
 
 /*
- * operations on containers
+ * operations on single containers
  */
 template <typename InputIterator, typename OutputIterator>
-void cumprod(InputIterator begin, InputIterator end, OutputIterator outputIt)
+inline void cumprod(InputIterator begin, InputIterator end, OutputIterator outputIt)
 {
     std::partial_sum(begin, end, outputIt, std::multiplies<double>());
 }
 
-template <typename InputIterator, typename OutputIterator, typename PODType>
-void pairwiseDiv(PODType coeff, InputIterator begin, InputIterator end, OutputIterator outputIt)
-{
-    std::transform(begin, end, outputIt, std::bind1st(std::divides<double>(), coeff));
-}
-
-template <typename InputIterator, typename OutputIterator, typename PODType>
-void pairwiseMul(PODType coeff, InputIterator begin, InputIterator end, OutputIterator outputIt)
-{
-    std::transform(begin, end, outputIt, std::bind1st(std::multiplies<double>(), coeff));
-}
-
-template <typename InputIterator, typename OutputIterator, typename PODType>
-void pairwiseMul(InputIterator begin, InputIterator end, PODType coeff, OutputIterator outputIt)
-{
-    std::transform(begin, end, outputIt, std::bind2nd(std::multiplies<double>(), coeff));
-}
-
-// end1 is here purely for overloading diasmbiguation. need a c++11-style enable-if to do better
-template <typename InputIterator, typename OutputIterator>
-void pairwiseMul(InputIterator begin0, InputIterator end0, InputIterator begin1, InputIterator end1, OutputIterator outputIt)
-{
-    std::transform(begin0, end0, begin1, outputIt, std::multiplies<double>());
-}
-
 // product functor. ProductFunctor<T>::call(first, last) will return the product of an iterator range if T is a numeric type (returns 0 if the range is empty)
-template <typename T> struct ProductFunctor //, typename=typename EnableIf<IsNumeric<T>::value>::type
+template <typename T, typename=typename EnableIf<IsNumeric<T>::value>::type>
+struct ProductFunctor
 {
-    template <typename iterT> static T call(iterT first, iterT last)
+    template <typename iterT> static inline T call(iterT first, iterT last)
     {
         if (first==last) return static_cast<T>(0);
         else             return std::accumulate(first, last, static_cast<T>(1), std::multiplies<T>());

@@ -40,24 +40,25 @@
 // standalone version of the option parsing code
 // for investigating the output of experimental parsers
 #include <iostream>
+#include <string>
 
 #include "standaloneOptionParsing.h"
 
+template <typename T0, typename T1>
+void parsePairVectorAndPrint(const std::string& inString, bool setBoolAlpha=false)
+{
+    typename PairVector<T0, T1>::type pairs(parsePairVector<T0, T1>(inString, setBoolAlpha));
+    for (typename PairVector<T0, T1>::const_iterator it=pairs.begin();it!=pairs.end();it++)
+    {
+        std::cout << it->first << " " << it->second << std::endl;
+    }
+    std::cout << std::endl;
+}
+
 int main()
 {
-    {
-        PairVector<std::string, double>::type pairs(parsePairVector<std::string, double>("  bob :   13  , rodney:8,lucash:928"));
-        for (PairVector<std::string, double>::const_iterator it=pairs.begin();it!=pairs.end();it++)
-        {
-            std::cout << it->first << " " << it->second << std::endl;
-        }
-    }
-
-    {
-        PairVector<double, double>::type pairs(parsePairVector<double, double>("9:13,10.9:18,28:928.8"));
-        for (PairVector<double, double>::const_iterator it=pairs.begin();it!=pairs.end();it++)
-        {
-            std::cout << it->first << " " << it->second << std::endl;
-        }
-    }
+    parsePairVectorAndPrint<std::string, double>("  bob :   13  , rodney:8,lucash:928");
+    parsePairVectorAndPrint<double, double>("9:13,10.9:18,28:928.8");
+    parsePairVectorAndPrint<std::string, bool>("True:True,False:False,  bob :   bob  , rodney:rodney,true:true,false:false, 0:0, 1    :1,99:99");
+    parsePairVectorAndPrint<std::string, std::string>("  bob :   rob  ,rodney:lucash,false   :true   ,true   :    false");
 }
