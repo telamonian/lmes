@@ -125,6 +125,44 @@ template <class T>
 struct EnableIf<false, T> {};
 
 template <typename T>
+struct HasBegin
+{
+    template <typename U, typename U::iterator (U::*)()> struct Test;
+    template <typename U> static char test(Test<U, &U::begin> *);
+    template <typename U> static int test(...);
+
+    static const bool value = sizeof(test<T>(0)) == sizeof(char);
+};
+
+template <typename T>
+struct HasEnd
+{
+    template <typename U, typename U::iterator (U::*)()> struct Test;
+    template <typename U> static char test(Test<U, &U::end> *);
+    template <typename U> static int test(...);
+
+    static const bool value = sizeof(test<T>(0)) == sizeof(char);
+};
+
+template <typename T>
+struct HasBeginEnd
+{
+    static const bool value = HasBegin<T>::value and HasEnd<T>::value;
+};
+
+template <typename T>
+struct HasPushBack
+{
+    template <typename U, void (U::*)(const typename U::value_type&)> struct Test;
+    template <typename U> static char test(Test<U, &U::push_back> *);
+    template <typename U> static int test(...);
+
+    static const bool value = sizeof(test<T>(0)) == sizeof(char);
+};
+
+
+
+template <typename T>
 struct IsNumeric {static const bool value = std::numeric_limits<T>::is_specialized;};
 
 template <typename T, typename U>
@@ -136,41 +174,6 @@ template <typename, template <typename> class>
 struct IsSameTemplate {static const bool value = false;};
 template <template <typename> class T, template <typename> class U, typename Param>
 struct IsSameTemplate<T<Param>, U> {static const bool value = IsSame<T<Param>, U<Param> >::value;};
-
-namespace lm {
-namespace internal {
-
-// SFINAE friendly version of iterator_traits
-template<typename Iterator, typename=void, typename=void, typename=void, typename=void, typename=void>
-struct iterator_traits
-{
-//    typedef void iterator_category;
-//    typedef void value_type;
-//    typedef void difference_type;
-//    typedef void pointer;
-//    typedef void reference;
-};
-template<typename Iterator>
-struct iterator_traits<Iterator, typename Iterator::iterator_category, typename Iterator::value_type, typename Iterator::difference_type, typename Iterator::pointer, typename Iterator::reference>
-{
-    typedef typename Iterator::iterator_category iterator_category;
-    typedef typename Iterator::value_type        value_type;
-    typedef typename Iterator::difference_type   difference_type;
-    typedef typename Iterator::pointer           pointer;
-    typedef typename Iterator::reference         reference;
-};
-
-}
-}
-
-template<typename T, typename=void>
-struct IsIterator {static const bool value = false;};
-template<typename T>
-struct IsIterator<T, typename lm::internal::iterator_traits<T>::value_type> {static const bool value = true;};
-//struct IsIterator<T, typename EnableIf<not IsSame<typename lm::internal::iterator_traits<T>::value_type, void>::value>::type> {static const bool value = true;};
-
-template <typename T>
-struct IsNumericIterator {static const bool value = IsIterator<T>::value and IsNumeric<typename lm::internal::iterator_traits<T>::value_type>::value;};
 
 /*
 template<typename B, typename D>
@@ -196,6 +199,50 @@ template<typename T> struct remove_const<T const> { typedef T type; };
 template<typename T> struct disable_if_void {template <typename This, typename Func> static T* call(This* _this, Func func) {return (*_this.*func)();}};
 template<> struct disable_if_void<void> {template <typename This, typename Func> static void* call(This* _this, Func func) {return NULL;}};
 
+ // SFINAE friendly version of iterator_traits
+template<typename Iterator, typename=void, typename=void, typename=void, typename=void, typename=void>
+struct IteratorTraits
+{
+    static const bool is_specialized = false;
+};
+
+template<typename Iterator>
+struct IteratorTraits<Iterator, typename Iterator::iterator_category, typename Iterator::value_type, typename Iterator::difference_type, typename Iterator::pointer, typename Iterator::reference>
+{
+    static const bool is_specialized = true;
+
+    typedef typename Iterator::iterator_category iterator_category;
+    typedef typename Iterator::value_type        value_type;
+    typedef typename Iterator::difference_type   difference_type;
+    typedef typename Iterator::pointer           pointer;
+    typedef typename Iterator::reference         reference;
+
+    typedef void container_type;
+    typedef void const_reference;
+};
+
+template<typename Iterator>
+struct IteratorTraits<Iterator, typename Iterator::container_type, typename Iterator::const_reference, void, void, void>
+{
+    static const bool is_specialized = true;
+
+    typedef typename Iterator::container_type container_type;
+    typedef typename Iterator::const_reference const_reference;
+
+    typedef void iterator_category;
+    typedef void value_type;
+    typedef void difference_type;
+    typedef void pointer;
+    typedef void reference;
+};
+
+template<typename T>
+struct IsIterator {static const bool value = IteratorTraits<T>::is_specialized;};
+//struct IsIterator<T, typename EnableIf<not IsSame<typename lm::internal::iterator_traits<T>::value_type, void>::value>::type> {static const bool value = true;};
+
+
+template <typename T>
+struct IsNumericIterator {static const bool value = IsIterator<T>::value and IsNumeric<typename IteratorTraits<T>::value_type>::value;};
 
 
  */

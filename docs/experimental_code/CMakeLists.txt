@@ -10,3 +10,4 @@ add_executable_standalone(TARGET MapMacro SRCS MapMacro.cpp PASS_THROUGHS EXCLUD
 add_executable_standalone(TARGET ResolveMacro SRCS ResolveMacro.cpp PASS_THROUGHS EXCLUDE_FROM_ALL)
 add_executable_standalone(TARGET standaloneLimitChecking SRCS standaloneLimitChecking.cpp PASS_THROUGHS EXCLUDE_FROM_ALL)
 add_executable_standalone(TARGET standaloneOptionParsing SRCS standaloneOptionParsing.cpp PASS_THROUGHS EXCLUDE_FROM_ALL)
+add_executable_standalone(TARGET TypeTraits SRCS TypeTraits.cpp PASS_THROUGHS EXCLUDE_FROM_ALL)

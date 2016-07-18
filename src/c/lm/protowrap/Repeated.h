@@ -188,12 +188,12 @@ public:
 //        std::copy(begin(), end(), array_ptr_writeto);
 //    }
     template <typename OutputIterator>
-    inline void deserializeTo(OutputIterator endIt_writeto) const
+    inline void deserializeTo(OutputIterator endIt_writeto, typename EnableIf<not HasPushBack<OutputIterator>::value>::type* = 0) const
     {
         std::copy(begin(), end(), endIt_writeto);
     }
-    template <template <typename, typename=std::allocator<Element> > class Container>
-    inline void deserializeTo(Container<Element>* container_writeto) const
+    template <typename Container>
+    inline void deserializeTo(Container& container_writeto, typename EnableIf<HasPushBack<Container>::value>::type* = 0) const
     {
         std::copy(begin(), end(), std::back_inserter(container_writeto));
     }
@@ -242,12 +242,12 @@ public:
     }
 
     template <typename InputIterator>
-    inline void serializeFrom(const InputIterator& startIt, const InputIterator& endIt)
+    inline void serializeFrom(const InputIterator& startIt, const InputIterator& endIt, typename EnableIf<not HasBeginEnd<InputIterator>::value>::type* = 0)
     {
         std::copy(startIt, endIt, back_inserter());
     }
-    template <template <typename, typename=std::allocator<Element> > class Container>
-    inline void serializeFrom(const Container<Element>& container_readfrom)
+    template <typename Container>
+    inline void serializeFrom(const Container& container_readfrom, typename EnableIf<HasBeginEnd<Container>::value>::type* = 0)
     {
         std::copy(container_readfrom.begin(), container_readfrom.end(), back_inserter());
     }
