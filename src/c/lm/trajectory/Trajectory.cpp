@@ -317,7 +317,7 @@ int64_t Trajectory::getWorkUnitsPerformed() const
 // debug helper function for printing trajectory status to stdout
 void Trajectory::printStatus() const
 {
-    printf("trajectory ID: %d has status: %s\n", id, status_strings[getStatus()].c_str());
+    printf("trajectory ID: %llu has status: %s\n", id, status_strings[getStatus()].c_str());
 }
 
 // mutators

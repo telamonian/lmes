@@ -190,9 +190,9 @@ int OutputWriter::run()
                 // Perform the checkpointing.
                 checkpoint();
 
-                // Report back to the supervisor that the checkpoint is finished.
+                // Report back to the supervisor that the checkpoint is finished. Calling .mutable_finished_checkpointing() initializes the message
                 msgp.Clear();
-                lm::message::FinishedCheckpointing* msg = msgp.mutable_finished_checkpointing();
+                msgp.mutable_finished_checkpointing();
                 communicator.sendMessage(lm::MPI::MASTER, lm::main::SimulationSupervisor::THREAD_ID, &msgp);
             }
             else if (message->has_ping_target())

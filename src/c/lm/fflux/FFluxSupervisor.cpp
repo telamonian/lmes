@@ -36,7 +36,6 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#include <cmath>
 #include <iomanip>
 #include <limits>
 #include <map>
@@ -104,8 +103,8 @@ int FFluxSupervisor::getRecvSleepMilliseconds()
 }
 
 FFluxSupervisor::FFluxSupervisor()
-:ffluxStageOutputsWrap(&ffluxStageOutputsMsg),ffluxPhaseOutputListsWrap(&ffluxPhaseOutputListsMsg),previousFFluxPhaseOutputWrapPtr(&_ffluxPhaseOutputWrap_0),currentFFluxPhaseOutputWrapPtr(&_ffluxPhaseOutputWrap_1),
- simulationPhaseOutputSent(false),simulationPhaseTerminated(false),simulationStageOutputSent(false),input(NULL),trajectoryList(NULL)
+:ffluxPhaseOutputListsWrap(&ffluxPhaseOutputListsMsg),previousFFluxPhaseOutputWrapPtr(&_ffluxPhaseOutputWrap_0),currentFFluxPhaseOutputWrapPtr(&_ffluxPhaseOutputWrap_1),
+ ffluxStageOutputsWrap(&ffluxStageOutputsMsg),simulationPhaseTerminated(false),simulationPhaseOutputSent(false),simulationStageOutputSent(false),input(NULL),trajectoryList(NULL)
 {
     ffluxPhaseOutputContainingMsg.mutable_process_work_unit_output()->set_work_unit_id(0);
     ffluxPhaseOutputContainingMsg.mutable_process_work_unit_output()->add_part_output();

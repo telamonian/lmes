@@ -155,10 +155,10 @@ int CheckpointSignaler::run()
 			// See if we should perform the checkpoint.
 			if (doCheckpoint)
 			{
-                // Send a checkpoint message to the supervisor.
+                // Send a checkpoint message to the supervisor. Calling .mutable_perform_checkpointing() initializes the message
                 Print::printf(Print::DEBUG, "Signaling a checkpoint.");
                 msgp.Clear();
-                lm::message::PerformCheckpointing* msg = msgp.mutable_perform_checkpointing();
+                msgp.mutable_perform_checkpointing();
                 communicator.sendMessage(supervisorEndpoint, &msgp);
 
 				// Update the next checkpoint time.

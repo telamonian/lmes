@@ -89,6 +89,8 @@ using std::string;
 namespace lm {
 namespace cme {
 
+
+
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
 :neededDists(neededDists),rng(NULL),reactionModel(NULL),hasUpdateSpeciesCountsListeners(false),tilings(NULL),numberDegreeAdvancements(0),
  numberOrderParameters(0),orderParameterFunctions(NULL),status(lm::message::WorkUnitStatus::NONE),timeLimit(std::numeric_limits<double>::infinity()),
@@ -96,8 +98,8 @@ CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
  limitTypeReached(lm::input::TrajectoryLimit::NONE),workUnitCondenseOutput(false),writeDegreeAdvancementTimeSeries(false),
  writeOrderParameterTimeSeries(false),writeSpeciesTimeSeries(false),degreeAdvancementWriteInterval(0.0),orderParameterWriteInterval(0.0),
  speciesWriteInterval(0.0),numberFptTrackedSpecies(0),numberFptTrackedOrderParameters(0),fptTrackedSpecies(NULL),fptTrackedOrderParameters(NULL),
- trajectoryStarted(false),speciesCounts(NULL), time(0.0),timeStep(0.0),degreeAdvancements(NULL),orderParameterValues(NULL),
- orderParameterPreviousValues(NULL),tilingHists(NULL)
+ degreeAdvancements(NULL),orderParameterValues(NULL),orderParameterPreviousValues(NULL),speciesCounts(NULL),time(0.0),timeStep(0.0),
+ trajectoryStarted(false),tilingHists(NULL)
 {
 }
 

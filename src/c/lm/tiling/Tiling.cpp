@@ -153,7 +153,7 @@ bool Tiling::testBasinsPosition() const
 bool Tiling::testBasinPosition(int basinIndex) const
 {
     int basinTileIndex = getTileIndexFromBasin(basinIndex);
-    if (not basinTileIndex==0 and not basinTileIndex==getLastTileIndex())
+    if (basinTileIndex!=0 and basinTileIndex!=getLastTileIndex())
     {
         throw ConsistencyException("Basin %d in tiling ID %d located in tile with index %d. Should be in first or last tile", basinIndex, id(), basinTileIndex);
         // unreachable. Pro forma?

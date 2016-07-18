@@ -313,8 +313,6 @@ void TrajectoryList::takeWorkUnitsRunning(TrajectoryList* srcTrajList){
 
 void TrajectoryList::workUnitPartFinished(const lm::message::WorkUnitStatus& wusBuf, lm::trajectory::Trajectory* traj)
 {
-    uint64_t id = wusBuf.final_state().trajectory_id();
-
     // Update the state of the trajectory.
     traj->setState(wusBuf.final_state());
     traj->incrementWorkUnitsPerformed();

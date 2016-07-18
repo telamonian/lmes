@@ -45,7 +45,6 @@
 #include <vector>
 
 #include "lm/fflux/input/FFluxInput.h"
-#include "lm/fflux/FFluxTrajectory.h"
 #include "lm/fflux/input/FFluxPhase.pb.h"
 #include "lm/input/Input.h"
 #include "lm/io/FFluxOutput.pb.h"
@@ -90,7 +89,7 @@ public:
 
 protected:
 // initializers
-    virtual lm::trajectory::Trajectory* initTrajectoriesUniformRandom(uint64_t trajectoriesToStart);
+    virtual void initTrajectoriesUniformRandom(uint64_t trajectoriesToStart);
 
 protected:
     const lm::fflux::input::FFluxInput& input;

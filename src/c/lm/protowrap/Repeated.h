@@ -395,11 +395,7 @@ protected:
 /*
  * some type_traits
  */
-//template<typename> struct IsGoogleRepeated {static const bool value = false;};
-//template<template <typename> class T, typename Element> struct IsGoogleRepeated<T<Element> > {static const bool value = IsSame<T<Element>, google::protobuf::RepeatedField<Element> >::value | IsSame<T<Element>, google::protobuf::RepeatedPtrField<Element> >::value;};
-
 template<typename T> struct IsGoogleRepeated {static const bool value = IsSameTemplate<T, google::protobuf::RepeatedField>::value | IsSameTemplate<T, google::protobuf::RepeatedPtrField>::value;};
-
 
 //template<template <typename> class T, typename Element> struct IsGoogleRepeated {static const bool value = IsSame<T, google::protobuf::RepeatedField>::value | IsSame<T, google::protobuf::RepeatedPtrField>::value;};
 template<typename T> struct IsRepeated {static const bool value = IsSameTemplate<T, Repeated>::value;};
@@ -407,14 +403,14 @@ template<typename T> struct IsRepeated {static const bool value = IsSameTemplate
 /*
  * non-member helper functions
  */
-template <typename T, typename=typename EnableIf<IsGoogleRepeated<T>::value>::type>
-typename GoogleRepeatedTypedefPolicy<typename T::value_type>::back_insert_iterator back_inserter(T* googleRepeated)
+template <typename T>
+typename GoogleRepeatedTypedefPolicy<typename T::value_type>::back_insert_iterator back_inserter(T* googleRepeated, typename EnableIf<IsGoogleRepeated<T>::value>::type* = 0)
 {
     return google::protobuf::RepeatedFieldBackInserter(googleRepeated);
 }
 
-template <typename T, typename=typename EnableIf<IsRepeated<T>::value>::type>
-typename T::back_insert_iterator back_inserter(T* repeated)
+template <typename T>
+typename T::back_insert_iterator back_inserter(T* repeated, typename EnableIf<IsRepeated<T>::value>::type* = 0)
 {
     return repeated->back_inserter();
 }

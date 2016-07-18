@@ -179,8 +179,8 @@ protected:
     lm::message::Message ffluxPhaseOutputContainingMsg;
     lm::protowrap::FFluxPhaseOutputWrap _ffluxPhaseOutputWrap_0;
     lm::protowrap::FFluxPhaseOutputWrap _ffluxPhaseOutputWrap_1;
-    lm::protowrap::FFluxPhaseOutputWrap* currentFFluxPhaseOutputWrapPtr;
     lm::protowrap::FFluxPhaseOutputWrap* previousFFluxPhaseOutputWrapPtr;
+    lm::protowrap::FFluxPhaseOutputWrap* currentFFluxPhaseOutputWrapPtr;
 
     // stage output messages
     lm::message::Message ffluxStageOutputRawContainingMsg;

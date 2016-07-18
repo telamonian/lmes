@@ -174,7 +174,7 @@ public:
         if (!noCopy || compressed_deflate())
         {
             // only call `new T[size()]` if T is not void
-            specialize_ndarray_for_void<T>::get_copy_of_data(this);
+            return specialize_ndarray_for_void<T>::get_copy_of_data(this);
         }
         else
         {

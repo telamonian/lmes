@@ -74,16 +74,16 @@ void* Input::allocateObject(const lm::io::hdf5::Hdf5File& file)
 }
 
 Input::Input()
-:reactionModelPresent(false),diffusionModelPresent(false),orderParametersPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),
- outputOptionsPresent(false),includeEndpointInLimits(true),limitTrackingListWrap(&limitTrackingListMsg),
- partsPerWorkUnit(1),stepsPerWorkUnit(10000000)
+:degreeAdvancementPresent(false),diffusionModelPresent(false),reactionModelPresent(false),orderParametersPresent(false),
+ outputOptionsPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),limitTrackingListWrap(&limitTrackingListMsg),
+ includeEndpointInLimits(true),partsPerWorkUnit(1),stepsPerWorkUnit(10000000)
 {
 }
 
 Input::Input(const lm::io::hdf5::Hdf5File& file)
-:reactionModelPresent(false),diffusionModelPresent(false),orderParametersPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),
- outputOptionsPresent(false),includeEndpointInLimits(true),limitTrackingListWrap(&limitTrackingListMsg),
- partsPerWorkUnit(1),stepsPerWorkUnit(10000000)
+:degreeAdvancementPresent(false),diffusionModelPresent(false),reactionModelPresent(false),orderParametersPresent(false),
+ outputOptionsPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),limitTrackingListWrap(&limitTrackingListMsg),
+ includeEndpointInLimits(true),partsPerWorkUnit(1),stepsPerWorkUnit(10000000)
 {
     init(file);
 }

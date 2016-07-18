@@ -452,8 +452,8 @@ protected:
 
     // rng used for randomly choosing points from one of the point lists. Caches large quantities of random numbers in an attempt to reduce the turnaround time of WorkUnitFinished messages on the supervisor
     mutable lm::rng::RandomGenerator * rng;
-    mutable uint32_t *randomIndexesStart, *randomIndexes, *randomIndexesEnd;
     mutable double *randomDoublesStart, *randomDoubles, *randomDoublesEnd;
+    mutable uint32_t *randomIndexesStart, *randomIndexes, *randomIndexesEnd;
     mutable size_t randomCacheSize;
 
     // flag that indicates if the length of endPointVector has changed since we last refilled randomIndexes

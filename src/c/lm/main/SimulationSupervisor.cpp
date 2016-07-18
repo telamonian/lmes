@@ -374,9 +374,9 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
     {
         Print::printf(Print::INFO, "Creating a checkpoint, pausing work.");
 
-        // Send a message to the output writer to save a checkpoint.
+        // Send a message to the output writer to save a checkpoint. Calling .mutable_perform_checkpointing() initializes the message
         lm::message::Message msgp;
-        lm::message::PerformCheckpointing* msg = msgp.mutable_perform_checkpointing();
+        msgp.mutable_perform_checkpointing();
         communicator.sendMessage(outputWriterProcess, outputWriterThread, &msgp);
     }
 }

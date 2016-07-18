@@ -53,15 +53,15 @@ namespace lm {
 namespace message {
 
 Communicator::Communicator(Endpoint source)
-:source(source),lastMessageSize(0),masterOutput(source),inputBufferSize(100*MEBI),inputBuffer(NULL),
- outputBufferSize(100*MEBI),outputBuffer(NULL),sendFinished(1),receiveFinished(1)
+:inputBufferSize(100*MEBI),outputBufferSize(100*MEBI),inputBuffer(NULL),lastMessageSize(0),outputBuffer(NULL),
+ masterOutput(source),source(source),sendFinished(1),receiveFinished(1)
 {
     initBuffers();
 }
 
 Communicator::Communicator(int srcProcess, int srcThread)
-:source(srcProcess,srcThread),lastMessageSize(0),masterOutput(srcProcess,srcThread),inputBufferSize(100*MEBI),inputBuffer(NULL),
- outputBufferSize(100*MEBI),outputBuffer(NULL),sendFinished(1),receiveFinished(1)
+:inputBufferSize(100*MEBI),outputBufferSize(100*MEBI),inputBuffer(NULL),lastMessageSize(0),outputBuffer(NULL),
+ masterOutput(srcProcess,srcThread),source(srcProcess,srcThread),sendFinished(1),receiveFinished(1)
 {
     initBuffers();
 }

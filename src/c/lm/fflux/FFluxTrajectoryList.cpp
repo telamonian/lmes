@@ -158,7 +158,7 @@ void FFluxTrajectoryList::workUnitPartFinished(const message::WorkUnitStatus& wu
     }
 }
 
-lm::trajectory::Trajectory* FFluxTrajectoryList::initTrajectoriesUniformRandom(uint64_t trajectoriesToStart)
+void FFluxTrajectoryList::initTrajectoriesUniformRandom(uint64_t trajectoriesToStart)
 {
     for (uint64_t i=0;i<trajectoriesToStart;i++)
     {

@@ -95,9 +95,8 @@ Hdf5File::DatasetDescriptor::DatasetDescriptor(const std::string& groupPath, con
 }
 
 Hdf5File::DatasetDescriptor::DatasetDescriptor(const std::string& groupPath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarrayMsg, hid_t rootGroup)
-:rootGroup(rootGroup),groupPath(groupPath),datasetName(datasetName),shape(ndarrayMsg.shape()),startingColumn(0),hdf5Type(-1),data(NULL),compressed_deflate(false),isNDArray(false)
+:rootGroup(rootGroup),groupPath(groupPath),datasetName(datasetName),shape(ndarrayMsg.shape()),startingColumn(0),hdf5Type(-1),data(NULL),compressed_deflate(false),isNDArray(true)
 {
-    isNDArray = true;
     lm::protowrap::NDArray<void> ndarrayWrap(ndarrayMsg);
 
     hdf5Type = ndarrayWrap.hdf5_type();
@@ -113,14 +112,15 @@ const uint Hdf5File::MAX_REACTION_RATE_CONSTANTS   = 10;
 const uint Hdf5File::MAX_SHAPE_PARAMETERS          = 10;
 
 Hdf5File::Hdf5File(const string filename) throw(IOException,HDF5Exception,Exception)
-:filename(filename),file(H5I_INVALID_HID),version(0),parametersGroup(H5I_INVALID_HID),modelGroup(H5I_INVALID_HID),recordNamePrefix(""),
- simulationsGroup(H5I_INVALID_HID),modelLoaded(false),numberSpecies(0)
+:filename(filename),file(H5I_INVALID_HID),version(0),parametersGroup(H5I_INVALID_HID),modelGroup(H5I_INVALID_HID),
+ simulationsGroup(H5I_INVALID_HID),recordNamePrefix(""),modelLoaded(false),numberSpecies(0)
 {
     open();
 }
 
 Hdf5File::Hdf5File(const char* filename) throw(IOException,HDF5Exception,Exception)
-:filename(filename),file(H5I_INVALID_HID),version(0),parametersGroup(H5I_INVALID_HID),modelGroup(H5I_INVALID_HID),simulationsGroup(H5I_INVALID_HID),modelLoaded(false),numberSpecies(0)
+:filename(filename),file(H5I_INVALID_HID),version(0),parametersGroup(H5I_INVALID_HID),modelGroup(H5I_INVALID_HID),
+ simulationsGroup(H5I_INVALID_HID),recordNamePrefix(""),modelLoaded(false),numberSpecies(0)
 {
     open();
 }
@@ -744,7 +744,7 @@ void Hdf5File::setFFluxBasinOutput(lm::io::FFluxOutput* ffluxOutput, int basinIn
     HDF5_EXCEPTION_CHECK(H5Sclose(scalarSpace));
 
     // write the datasets for this particular BasinOutput
-    hid_t probabilityIToIPlusOneGroup, probabilityOneToIPlusOneGroup, probabilityIGroup, normalizedProbabilityIGroup;
+    hid_t probabilityIToIPlusOneGroup, probabilityOneToIPlusOneGroup, normalizedProbabilityIGroup;
     hsize_t dims[1];
     uint number_tiles, tiling_id;
 
@@ -821,7 +821,7 @@ void Hdf5File::setFFluxFinalOutput(lm::io::FFluxOutput* ffluxOutput, hid_t fflux
     HDF5_EXCEPTION_CHECK(H5Sclose(scalarSpace));
 
     // write the datasets for the FinalOutput
-    hid_t probabilityIGroup, normalizedProbabilityIGroup;
+    hid_t normalizedProbabilityIGroup;
     hsize_t dims[1];
     uint number_tiles, tiling_id;
 
@@ -1613,7 +1613,7 @@ void Hdf5File::getTilings(lm::input::Tilings* tilings) const
     uint32_t currentTilingID;
     if (H5Lexists(file, "/Tilings", H5P_DEFAULT))
     {
-        bool currentTilingIDExists;
+        hbool_t currentTilingIDExists;
         HDF5_EXCEPTION_CALL(currentTilingIDExists, H5Aexists_by_name(file, "/Tilings", "CurrentTilingID", H5P_DEFAULT))
         if (currentTilingIDExists)
         {
@@ -1772,7 +1772,6 @@ double* Hdf5File::dumpSpeciesTimes(const lm::io::SpeciesTimeSeries& speciesTimeS
 {
     // Extract the data, decompressing if necessary.
     int numberEntries = speciesTimeSeries.counts().shape(0);
-    int numberSpecies = speciesTimeSeries.counts().shape(1);
 
     double* times=NULL;
     if (speciesTimeSeries.times().compressed_deflate())
