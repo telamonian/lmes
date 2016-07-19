@@ -66,10 +66,11 @@ message FFluxStageOutputSummary {
     repeated double first_passage_times = 1 [packed=true];
 
     /*
-     * - If fluxes is set, there should be as many entries in fluxes as there are interfaces in fflux_stage's tiling
+     * - If costs, fluxes, etc are set, there should be as many entries in each as there are interfaces in fflux_stage's tiling
      */
-    repeated double fluxes              = 11 [packed=true];
-    repeated double probabilities       = 12 [packed=true];
+    repeated double costs               = 11 [packed=true];
+    repeated double fluxes              = 12 [packed=true];
+    repeated double probabilities       = 13 [packed=true];
 }
 
 message FFluxStageOutputRaw {

@@ -18,7 +18,7 @@ class FFluxRegression(ReplicateRegression):
         super(FFluxRegression, self).BuildInput(**kwargs)
 
         if kwargs['quick_test']:
-            defaultSimulationParameters = {"precisionGoal": .10,
+            defaultSimulationParameters = {"precisionGoal": .20,
                                            "precisionGoalConfidence": .99,
                                            "pilotStageCount": 1e3,
                                            "ffluxPilotOutput": True,

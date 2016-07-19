@@ -198,7 +198,7 @@ lm::fflux::input::FFluxStage* FFluxSupervisor::addPilotStage(lm::fflux::input::F
 
     addFFluxPhases(pilotStage, FFPhaseEnums::LAZY, FFPhaseEnums::SIMPLE);
 
-    addFFluxPhaseLimitsForPilotStage(pilotStage, FFPhaseLimEnums::FORWARD_FLUXES, input->ffluxOptions().pilot_stage_count()*100, input->ffluxOptions().pilot_stage_count());
+    addFFluxPhaseLimitsForPilotStage(pilotStage, FFPhaseLimEnums::FORWARD_FLUXES, input->ffluxOptions().pilot_stage_count(), input->ffluxOptions().pilot_stage_count()); //input->ffluxOptions().pilot_stage_count()*100, input->ffluxOptions().pilot_stage_count());
 
     return pilotStage;
 }
@@ -362,7 +362,7 @@ void FFluxSupervisor::addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFlux
 
     // special treatment for phase zero
     // TODO: the phase zero step of the trajectory count optimization seems currently pretty fundamentaly flawed. For now we'll use a workaround.
-    lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit = buildFFluxPhaseLimit(productionStage->add_fflux_phase_limits(), FFPhaseLimEnums::FORWARD_FLUXES, input->ffluxOptions().pilot_stage_count()*100); //*tc_it);
+    lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit = buildFFluxPhaseLimit(productionStage->add_fflux_phase_limits(), FFPhaseLimEnums::FORWARD_FLUXES, (*tc_it)*100); //input->ffluxOptions().pilot_stage_count()*100);
     buildFFluxPhaseLimitTrajectoriesToRun(ffluxPhaseLimit, *ph_it, slots.getSimultaneousWorkUnits());
     tc_it++, ph_it++;
 
@@ -390,7 +390,7 @@ vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double precisionGoal,
     vector<uint64_t> trajectoryCounts;
     if (minimizeCost)
     {
-        vector<double> costVector(stageOutputSummary.fluxes().begin(), stageOutputSummary.fluxes().end());
+        vector<double> costVector(stageOutputSummary.costs().begin(), stageOutputSummary.costs().end());
         trajectoryCounts = minimizeCostTrajectoryCounts(precisionGoal, precisionGoalConfidence, probabilities, costVector);
     }
     else
@@ -408,8 +408,6 @@ vector<uint64_t> FFluxSupervisor::minimizeCostTrajectoryCounts(double precisionG
     valarray<double> costs(costVector.data(), costVector.size());
     costs = sqrt(costs);
 
-    constantFactors[0] = 0.0;
-
     double coeff = pow(normalZ(precisionGoalConfidence)/precisionGoal, 2)*((costs*constantFactors).sum());
     constantFactors /= costs;
     constantFactors *= coeff;
@@ -425,8 +423,6 @@ vector<uint64_t> FFluxSupervisor::minimizeCostTrajectoryCounts(double precisionG
 vector<uint64_t> FFluxSupervisor::minimizeCountTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const vector<double>& probabilities)
 {
     valarray<double> constantFactors(getConstantFactors(probabilities));
-
-    constantFactors[0] = 0.0;
 
     constantFactors *= pow(normalZ(precisionGoalConfidence)/precisionGoal, 2)*(constantFactors.sum());
 
@@ -445,6 +441,9 @@ valarray<double> FFluxSupervisor::getConstantFactors(const vector<double>& proba
 
     // ignore the probability from phase zero, store 1.0
     constantFactors[0] = 1.0;
+
+////     for now, skip the phase zero part
+//    constantFactors[0] = 0.0;
 
     // take the square root
     constantFactors = sqrt(constantFactors);
@@ -661,7 +660,7 @@ void FFluxSupervisor::receivedFinishedWorkUnitPart(const lm::message::WorkUnitSt
         }
         else
         {
-            currentFFluxPhaseOutputWrapPtr->addEndPoint(wusMsg.final_state());
+            currentFFluxPhaseOutputWrapPtr->addEndPoint(wusMsg.final_state(), *trajectoryList->getTrajectoryForFinishedWorkUnit(wusMsg.final_state().trajectory_id()));
         }
     }
 }

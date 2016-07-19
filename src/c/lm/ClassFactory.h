@@ -36,7 +36,6 @@
  *
  * Author(s): Elijah Roberts
  */
-
 #ifndef CLASSFACTORY_H
 #define CLASSFACTORY_H
 

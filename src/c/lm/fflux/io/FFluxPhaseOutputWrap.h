@@ -53,6 +53,7 @@
 #include "lm/protowrap/RepeatedMap.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/rng/XORShift.h"
+#include "lm/trajectory/Trajectory.h"
 #include "lm/Types.h"
 
 #ifdef OPT_CUDA
@@ -245,7 +246,7 @@ public:
         }
     }
 
-    void addEndPoint(const lm::io::TrajectoryState& trajectoryState)
+    void addEndPoint(const lm::io::TrajectoryState& trajectoryState, const lm::trajectory::Trajectory& trajectory)
     {
         // set wrapper on the limit_trackings field
         limitTrackingsWrap.setWrappedField(trajectoryState.limit_tracking_list().limit_trackings());
@@ -264,12 +265,12 @@ public:
         if (timeWrapBackwardFlux.size()==1 and timeWrapForwardFlux.size()==0)       // branch for "failed" trajectories (ie ones that fluxed backward)
         {
             msgPtr->set_failed_trajectories_launched_count(msgPtr->failed_trajectories_launched_count() + 1);
-            msgPtr->set_failed_trajectories_launched_total_time(msgPtr->failed_trajectories_launched_total_time() + timeDataBackwardFlux[0]);
+            msgPtr->set_failed_trajectories_launched_total_time(msgPtr->failed_trajectories_launched_total_time() + timeDataBackwardFlux[0] - trajectory.getSimTime());
         }
         else if (timeWrapBackwardFlux.size()==0 and timeWrapForwardFlux.size()==1)  // branch for "successful" trajectories (ie ones that fluxed forward)
         {
             msgPtr->set_successful_trajectories_launched_count(msgPtr->successful_trajectories_launched_count() + 1);
-            msgPtr->set_successful_trajectories_launched_total_time(msgPtr->successful_trajectories_launched_total_time() + timeDataForwardFlux[0]);
+            msgPtr->set_successful_trajectories_launched_total_time(msgPtr->successful_trajectories_launched_total_time() + timeDataForwardFlux[0] - trajectory.getSimTime());
 
             // since this is data from a "successful" trajectory (ie one that fluxed forward), add its endpoint to the list used to initialize the next phase
             speciesCountWrap.setWrappedMsg(limitTrackingsWrap.Get(1).species_counts());

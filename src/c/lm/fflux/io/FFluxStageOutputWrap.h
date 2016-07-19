@@ -78,14 +78,32 @@ class FFluxStageOutputRawWrap : public lm::protowrap::Msg<FFluxStageOutputRawWra
 class FFluxStageOutputSummaryWrap : public lm::protowrap::Msg<FFluxStageOutputSummaryWrap, lm::fflux::io::FFluxStageOutputSummary>
 {
     WRAPPED_FIELDS(repeated, double, first_passage_times,
+                   repeated, double, costs,
                    repeated, double, fluxes,
                    repeated, double, probabilities)
 
     void buildFromFFluxStageOutputRaw(const FFluxStageOutputRawWrap& outputRaw)
     {
+        buildCosts(outputRaw);
         buildFluxes(outputRaw);
         buildProbabilites(outputRaw);
         buildSwitchingTimePerTile();
+    }
+
+    void buildCosts(const FFluxStageOutputRawWrap& outputRaw)
+    {
+        // load some data from the raw stage output into a few vectors
+        std::vector<double> successfulTrajectoryCounts, failedTrajectoryCounts, successfulTrajectoryTotalTimes, failedTrajectoryTotalTimes;
+        outputRaw.successful_trajectory_counts().deserializeTo(successfulTrajectoryCounts);
+        outputRaw.failed_trajectory_counts().deserializeTo(failedTrajectoryCounts);
+        outputRaw.successful_trajectory_total_times().deserializeTo(successfulTrajectoryTotalTimes);
+        outputRaw.failed_trajectory_total_times().deserializeTo(failedTrajectoryTotalTimes);
+
+        // calculate the fluxes
+        std::vector<double> newCosts = (successfulTrajectoryTotalTimes + failedTrajectoryTotalTimes) / (successfulTrajectoryCounts + failedTrajectoryCounts);
+
+        // set the fluxes
+        mutable_costs()->serializeFrom(newCosts);
     }
 
     void buildFluxes(const FFluxStageOutputRawWrap& outputRaw)
@@ -97,10 +115,10 @@ class FFluxStageOutputSummaryWrap : public lm::protowrap::Msg<FFluxStageOutputSu
         outputRaw.failed_trajectory_total_times().deserializeTo(failedTrajectoryTotalTimes);
 
         // calculate the fluxes
-        std::vector<double> fluxes = successfulTrajectoryCounts / (successfulTrajectoryTotalTimes + failedTrajectoryTotalTimes);
+        std::vector<double> newFluxes = successfulTrajectoryCounts / (successfulTrajectoryTotalTimes + failedTrajectoryTotalTimes);
 
         // set the fluxes
-        mutable_fluxes()->serializeFrom(fluxes);
+        mutable_fluxes()->serializeFrom(newFluxes);
     }
 
     void buildProbabilites(const FFluxStageOutputRawWrap& outputRaw)
@@ -114,7 +132,7 @@ class FFluxStageOutputSummaryWrap : public lm::protowrap::Msg<FFluxStageOutputSu
         std::vector<double> probabilities = successfulTrajectoryCounts / (successfulTrajectoryCounts + failedTrajectoryCounts);
 
         // set the probabilities
-        mutable_probabilities()->serializeFrom(probabilities);  //&newProbabilities[0], &newProbabilities[0] + newProbabilities.size());
+        mutable_probabilities()->serializeFrom(probabilities);
     }
 
     void buildSwitchingTimePerTile()
