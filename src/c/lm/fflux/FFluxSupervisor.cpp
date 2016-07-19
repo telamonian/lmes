@@ -271,7 +271,7 @@ void FFluxSupervisor::addFFluxStageOutput()
     currentFFluxStageOutputWrap.setWrappedMsg(newStageOutputMsg);
 
     // add a new FFluxPhaseOutputList to go with this stage
-    ffluxPhaseOutputsWrap.setWrappedField(ffluxPhaseOutputListsWrap.Add()->mutable_fflux_phase_outputs());
+    currentFFluxPhaseOutputsWrap.setWrappedField(ffluxPhaseOutputListsWrap.Add()->mutable_fflux_phase_outputs());
 }
 
 template <typename Value>
@@ -362,7 +362,7 @@ void FFluxSupervisor::addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFlux
 
     // special treatment for phase zero
     // TODO: the phase zero step of the trajectory count optimization seems currently pretty fundamentaly flawed. For now we'll use a workaround.
-    lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit = buildFFluxPhaseLimit(productionStage->add_fflux_phase_limits(), FFPhaseLimEnums::FORWARD_FLUXES, (*tc_it)*100); //input->ffluxOptions().pilot_stage_count()*100);
+    lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit = buildFFluxPhaseLimit(productionStage->add_fflux_phase_limits(), FFPhaseLimEnums::FORWARD_FLUXES, (*tc_it)); //input->ffluxOptions().pilot_stage_count()*100);
     buildFFluxPhaseLimitTrajectoriesToRun(ffluxPhaseLimit, *ph_it, slots.getSimultaneousWorkUnits());
     tc_it++, ph_it++;
 
@@ -480,7 +480,7 @@ void FFluxSupervisor::addFFluxPhaseOutput()
     // hand the previous FFluxPhaseOutput message off to the storage list (if this isn't the first or second phase of a simulation stage)
     if (previousFFluxPhaseOutputWrapPtr->wrappedMsg()!=NULL)
     {
-        ffluxPhaseOutputsWrap.AddAllocated(previousFFluxPhaseOutputWrapPtr->wrappedMsg());
+        currentFFluxPhaseOutputsWrap.AddAllocated(previousFFluxPhaseOutputWrapPtr->wrappedMsg());
         previousFFluxPhaseOutputWrapPtr->setWrappedMsgNull();
 
     }
@@ -491,8 +491,8 @@ void FFluxSupervisor::addFFluxPhaseOutput()
     currentFFluxPhaseOutputWrapPtr = tmpFFluxPhaseOutputWrapPtr;
 
     // add a new phase output and set it to be the current phase output
-    ffluxPhaseOutputsWrap.Add();
-    currentFFluxPhaseOutputWrapPtr->setWrappedMsg(ffluxPhaseOutputsWrap.ReleaseLast());
+    currentFFluxPhaseOutputsWrap.Add();
+    currentFFluxPhaseOutputWrapPtr->setWrappedMsg(currentFFluxPhaseOutputsWrap.ReleaseLast());
 }
 
 void FFluxSupervisor::buildTrajectoryList()
@@ -580,20 +580,20 @@ void FFluxSupervisor::finishSimulationStage()
 {
     if (not simulationStageOutputSent)
     {
-        // hand off the final ffluxPhaseOutputs to the repeated field wrapped by ffluxPhaseOutputsWrap
+        // hand off the final ffluxPhaseOutputs to the repeated field wrapped by currentFFluxPhaseOutputsWrap
         if (previousFFluxPhaseOutputWrapPtr->wrappedMsg()!=NULL)
         {
-            ffluxPhaseOutputsWrap.AddAllocated(previousFFluxPhaseOutputWrapPtr->wrappedMsg());
+            currentFFluxPhaseOutputsWrap.AddAllocated(previousFFluxPhaseOutputWrapPtr->wrappedMsg());
             previousFFluxPhaseOutputWrapPtr->setWrappedMsgNull();
         }
         if (currentFFluxPhaseOutputWrapPtr->wrappedMsg()!=NULL)
         {
-            ffluxPhaseOutputsWrap.AddAllocated(currentFFluxPhaseOutputWrapPtr->wrappedMsg());
+            currentFFluxPhaseOutputsWrap.AddAllocated(currentFFluxPhaseOutputWrapPtr->wrappedMsg());
             currentFFluxPhaseOutputWrapPtr->setWrappedMsgNull();
         }
 
         // build the stage output from the phase outputs
-        currentFFluxStageOutputWrap.buildFromFFluxPhaseOutputs(ffluxPhaseOutputsWrap);
+        currentFFluxStageOutputWrap.buildFromFFluxPhaseOutputs(currentFFluxPhaseOutputsWrap);
 
         // send the stage output to the output writer
         if ((not currentStage().is_pilot_stage()) or input->ffluxOptions().pilot_stage_output())

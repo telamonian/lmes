@@ -52,7 +52,7 @@
 #include "lm/fflux/FFluxTrajectoryList.h"
 #include "lm/Iterator.h"
 #include "lm/main/SimulationSupervisor.h"
-#include "lm/message/message.pb.h"
+#include "lm/message/Message.pb.h"
 #include "lm/protowrap/Repeated.h"
 #include "lm/trajectory/TrajectoryList.h"
 
@@ -174,7 +174,7 @@ protected:
     // phase output messages
     FFluxPhaseOutputListsWrap::WrappedField ffluxPhaseOutputListsMsg;
     FFluxPhaseOutputListsWrap ffluxPhaseOutputListsWrap;
-    FFluxPhaseOutputsWrap ffluxPhaseOutputsWrap;
+    FFluxPhaseOutputsWrap currentFFluxPhaseOutputsWrap;
 
     lm::message::Message ffluxPhaseOutputContainingMsg;
     lm::protowrap::FFluxPhaseOutputWrap _ffluxPhaseOutputWrap_0;

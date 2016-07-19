@@ -76,14 +76,14 @@ void* Input::allocateObject(const lm::io::hdf5::Hdf5File& file)
 Input::Input()
 :degreeAdvancementPresent(false),diffusionModelPresent(false),reactionModelPresent(false),orderParametersPresent(false),
  outputOptionsPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),limitTrackingListWrap(&limitTrackingListMsg),
- includeEndpointInLimits(true),partsPerWorkUnit(1),stepsPerWorkUnit(10000000)
+ includeEndpointInLimits(true),partsPerWorkUnit(1),stepsPerWorkUnit((int)1e8)
 {
 }
 
 Input::Input(const lm::io::hdf5::Hdf5File& file)
 :degreeAdvancementPresent(false),diffusionModelPresent(false),reactionModelPresent(false),orderParametersPresent(false),
  outputOptionsPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),limitTrackingListWrap(&limitTrackingListMsg),
- includeEndpointInLimits(true),partsPerWorkUnit(1),stepsPerWorkUnit(10000000)
+ includeEndpointInLimits(true),partsPerWorkUnit(1),stepsPerWorkUnit((int)1e8)
 {
     init(file);
 }

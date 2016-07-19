@@ -70,14 +70,14 @@ public:
 
     // send and receive messages
     void sendMessage(int destProcess, int destThread, lm::message::Message* msg, int sleepMilliseconds=-1) const;
-    void sendMessage(Endpoint dest, lm::message::Message* msg, int sleepMilliseconds=-1) const;
+//    void sendMessage(Endpoint dest, lm::message::Message* msg, int sleepMilliseconds=-1) const;
     void sendMessageToMasterOutput(lm::message::Message* msg, int sleepMilliseconds=-1) const {sendMessage(masterOutput, msg, sleepMilliseconds);}
     void receiveMessage(lm::message::Message* msg, int sleepMilliseconds=0) const;
 
     // non-blocking send and receive messages
-    int isendMessage(Endpoint dest, lm::message::Message* msg) const;
+    int sendMessage(Endpoint dest, lm::message::Message* msg, int dummy=0) const;
     int testSendMessage() const;
-    int ireceiveMessage(lm::message::Message* msg) const;
+//    int receiveMessage(lm::message::Message* msg, int dummy=0) const;
     int testReceiveMessage(lm::message::Message* msg) const;
 
     // mutators
