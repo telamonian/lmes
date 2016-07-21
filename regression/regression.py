@@ -4,7 +4,7 @@ from six import print_
 import subprocess
 
 class Regression(object):
-    defaultLMArgs = ['-sl', 'lm::cme::GillespieDSolver', '-f', 'biphasic_switch.lm']
+    defaultLMArgs = ['-sl', 'lm::avx::GillespieDSolverAVX', '-f', 'biphasic_switch.lm']
     helpMessage = 'base class for doing regression testing on Lattice Microbes'
 
     def BuildInput(self, **kwargs):

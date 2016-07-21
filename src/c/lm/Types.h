@@ -71,7 +71,7 @@ typedef uint8_t 		    byte;
 
 // this typedef is here because icpc otherwise gets uint64_t confused with unsigned long
 namespace lm {
-typedef unsigned long long  uint64;
+typedef unsigned long long  uint64_t;
 }
 
 /*

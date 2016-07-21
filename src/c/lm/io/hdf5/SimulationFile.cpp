@@ -1537,9 +1537,9 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
         H5T_class_t hdf5Type;
         size_t size;
 
-        H5LTget_dataset_info(tilingGroup, "Edges", dims, &hdf5Type, &size);
+        HDF5_EXCEPTION_CHECK(H5LTget_dataset_info(tilingGroup, "Edges", dims, &hdf5Type, &size));
         double* edgeBuffer = new double[dims[0]];
-        H5LTread_dataset_double(tilingGroup, "Edges", edgeBuffer);
+        HDF5_EXCEPTION_CHECK(H5LTread_dataset_double(tilingGroup, "Edges", edgeBuffer));
         for (int i = 0; i < dims[0]; i++)
         {
             newTiling->add_edges(edgeBuffer[i]);
@@ -1550,14 +1550,17 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
     }
 
     // read in the values of the tiling's basins
+    hbool_t basinsExists;
+    HDF5_EXCEPTION_CALL(basinsExists, H5LTfind_dataset(tilingGroup, "Basins"))
+    if (basinsExists)
     {
         hsize_t dims[2];
         H5T_class_t hdf5Type;
         size_t size;
 
-        H5LTget_dataset_info(tilingGroup, "Basins", dims, &hdf5Type, &size);
+        HDF5_EXCEPTION_CHECK(H5LTget_dataset_info(tilingGroup, "Basins", dims, &hdf5Type, &size));
         double* basinsBuffer = new double[dims[0]*dims[1]];
-        H5LTread_dataset_double(tilingGroup, "Basins", basinsBuffer);
+        HDF5_EXCEPTION_CHECK(H5LTread_dataset_double(tilingGroup, "Basins", basinsBuffer));
 
         for (uint i=0; i<dims[0]; i++)
         {
