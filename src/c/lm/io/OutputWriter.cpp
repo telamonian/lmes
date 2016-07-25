@@ -238,13 +238,28 @@ int OutputWriter::run()
     return -1;
 }
 
+void OutputWriter::setRecordNamePrefix()
+{
+    setRecordNamePrefix(recordNamePrefixGlobal);
+}
+
+void OutputWriter::setRecordNamePrefix(const std::string& newRecordNamePrefix)
+{
+    if (newRecordNamePrefix!=recordNamePrefix)
+    {
+        recordNamePrefix.assign(newRecordNamePrefix);
+        lm::Print::printf(Print::INFO, "Using record name prefix: %s", recordNamePrefix.c_str());
+    }
+}
+
 OutputWriter::HelperThread::HelperThread(OutputWriter* p)
-:p(p)
+:p(p),buffer(new char[MEBI+1])
 {
 }
 
 OutputWriter::HelperThread::~HelperThread()
 {
+    if (buffer != NULL) delete[] buffer; buffer = NULL;
 }
 
 void OutputWriter::HelperThread::wake() throw(lm::thread::PthreadException)
@@ -384,6 +399,7 @@ int OutputWriter::HelperThread::run()
                             {
                                 if (reflection->HasField(outputGeneric, *it))
                                 {
+                                    processGenericMessage(reflection->GetMessage(outputGeneric, *it));
                                     p->processGenericMessage(reflection->GetMessage(outputGeneric, *it));
                                 }
                             }
@@ -391,6 +407,7 @@ int OutputWriter::HelperThread::run()
                             {
                                 for (int j=0;j<reflection->FieldSize(outputGeneric, *it);j++)
                                 {
+                                    processGenericMessage(reflection->GetRepeatedMessage(outputGeneric, *it, j));
                                     p->processGenericMessage(reflection->GetRepeatedMessage(outputGeneric, *it, j));
                                 }
                             }
@@ -443,18 +460,15 @@ int OutputWriter::HelperThread::run()
     return 0;
 }
 
-void OutputWriter::setRecordNamePrefix()
+void OutputWriter::HelperThread::processGenericMessage(const google::protobuf::Message& data)
 {
-    setRecordNamePrefix(recordNamePrefixGlobal);
-}
+    memset(buffer, 0, MEBI+1);
 
-void OutputWriter::setRecordNamePrefix(const std::string& newRecordNamePrefix)
-{
-    if (newRecordNamePrefix!=recordNamePrefix)
-    {
-        recordNamePrefix.assign(newRecordNamePrefix);
-        lm::Print::printf(Print::INFO, "Using record name prefix: %s", recordNamePrefix.c_str());
-    }
+    int offset=snprintf(buffer,MEBI,"--------------------------------------------------------------------------------\n");
+    offset+=snprintf(buffer+offset,MEBI-offset, data.DebugString().c_str());
+    snprintf(buffer+offset,MEBI-offset,"--------------------------------------------------------------------------------");
+
+    Print::printf(Print::INFO, "ConsoleOutputWriter received %s:\n%s", data.GetDescriptor()->name().c_str(), buffer);
 }
 
 }

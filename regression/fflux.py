@@ -21,7 +21,7 @@ class FFluxRegression(ReplicateRegression):
             defaultSimulationParameters = {"precisionGoal": .05,
                                            "precisionGoalConfidence": .95,
                                            "pilotStageCount": 1e3,
-                                           "ffluxPilotOutput": True,
+                                           "ffluxPilotOutput": False,
                                            "ffluxPhaseOutput": False,
                                            "ffluxStageOutputRaw": True,
                                            "ffluxStageOutputSummary": True}

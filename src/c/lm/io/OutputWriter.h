@@ -118,8 +118,11 @@ private:
         virtual void wake() throw(lm::thread::PthreadException);
     protected:
         virtual int run();
+
+        virtual void processGenericMessage(const google::protobuf::Message& data);
     private:
         OutputWriter* p;
+        char* buffer;
     };
 };
 

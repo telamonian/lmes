@@ -45,6 +45,7 @@
 
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/LatticeTimeSeries.pb.h"
+#include "lm/Math.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
@@ -55,7 +56,7 @@ namespace io {
 class ConsoleOutputWriter : public OutputWriter
 {
 public:
-    static const int BUFFER_SIZE=1024*1024;
+    static const int BUFFER_SIZE=MEBI;
 
 public:
     static bool registered;

@@ -68,6 +68,7 @@
  */
 #define KIBI        1024
 #define MEBI        1048576
+#define GIBI        1073741824
 
 /*
  * unary operations

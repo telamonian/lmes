@@ -170,13 +170,13 @@ protected:
 
     // Version of parseAndSet that works with options that can directly accessed through a mutable pointer
     // By using template parameter inference on the pointer, this template automatically figures out what type to parse from simulationParameters
-    template <typename ValT>
-    bool parseAndSet(const string key, ValT* fieldPtr)
+    template <typename Value>
+    bool parseAndSet(const string key, Value* fieldPtr)
     {
         bool result;
         if (simulationParameters.count(key)!=0)
         {
-            *fieldPtr = simulationParameters.parse<ValT>(key);
+            *fieldPtr = simulationParameters.parse<Value>(key);
             result = true;
         }
         else
@@ -189,13 +189,13 @@ protected:
 
     // Version of parseAndSet that works with options that need to be set via a setter function
     // By using template parameter inference on the setter (passed as a function pointer), this template automatically figures out what type to parse from simulationParameters
-    template <typename T, typename SetterReturnT, typename ValT>
-    bool parseAndSet(const string key, SetterReturnT (T::*setterFunc)(ValT), T& obj)
+    template <typename T, typename SetterReturn, typename Value>
+    bool parseAndSet(const string key, SetterReturn (T::*setterFunc)(Value), T& obj)
     {
         bool result;
         if (simulationParameters.count(key)!=0)
         {
-            (obj.*setterFunc)(simulationParameters.parse<ValT>(key));
+            (obj.*setterFunc)(simulationParameters.parse<Value>(key));
             result = true;
         }
         else
@@ -207,14 +207,14 @@ protected:
     }
 
     // Same as parseAndSet, but for options specified as lists
-    template <typename T, typename AdderReturnT, typename ValT>
-    bool parseAndSetList(const string key, AdderReturnT (T::*adderFunc)(ValT), T& obj)
+    template <typename T, typename AdderReturn, typename Value>
+    bool parseAndSetList(const string key, AdderReturn (T::*adderFunc)(Value), T& obj)
     {
         bool result;
         if (simulationParameters.count(key)!=0)
         {
-            std::vector<ValT> parsedVector(simulationParameters.parseVector<ValT>(key));
-            for (typename std::vector<ValT>::const_iterator it=parsedVector.begin(); it!=parsedVector.end(); it++)
+            std::vector<Value> parsedVector(simulationParameters.parseVector<Value>(key));
+            for (typename std::vector<Value>::const_iterator it=parsedVector.begin(); it!=parsedVector.end(); it++)
             {
                 (obj.*adderFunc)(*it);
             }
