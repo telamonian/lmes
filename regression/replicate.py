@@ -13,29 +13,24 @@ class ReplicateRegression(Regression):
     defaultLMArgs = ['-r', '1-100'] + Regression.defaultLMArgs
     helpMessage = 'script to test out a complete Replicate Lattice Microbes run'
 
-    def BuildInput(self, **kwargs):
+    def _BuildInput(self, **kwargs):
         if kwargs['quick_test']:
             defaultSimulationParameters = {'maxSteps': str(int(1e10)),
                                            'maxTime': str(int(1e1)),
                                            'maxWorkUnitSteps': str(int(1e8)),
                                            'writeInterval': str(int(1e0))}
                                            # 'orderParameterWriteInterval': str(int(1e0))}
-            theta = 10
+            theta = float(kwargs.get('theta', 10))
         else:
             defaultSimulationParameters = {'maxSteps': str(int(1e10)),
                                            'maxTime': str(int(1e4)),
                                            'maxWorkUnitSteps': str(int(1e8)),
                                            'writeInterval': str(int(1e1))}
                                            # 'orderParameterWriteInterval': str(int(1e1))}
-            theta = kwargs['theta']
+            theta = kwargs.get('theta', 1)
 
         if 'orderParameterWriteInterval' in kwargs: defaultSimulationParameters['orderParameterWriteInterval'] = kwargs['orderParameterWriteInterval']
-
-        try:
-            os.remove('biphasic_switch.lm')
-        except OSError:
-            pass
-        shutil.copy('wo_fflux.biphasic_switch.lm','biphasic_switch.lm')
+        simParams = [SimulationParameter(key=key, val=kwargs.get(key, defaultSimulationParameters[key])) for key in defaultSimulationParameters.keys()]
 
         replicateInput = Input('biphasic_switch.lm')
 
@@ -58,8 +53,6 @@ class ReplicateRegression(Regression):
                                id=2,
                                speciesIDs=[3,4,5],
                                speciesCoefficients=[1,2,2])]
-
-        simParams = [SimulationParameter(key=key, val=kwargs.get(key, defaultSimulationParameters[key])) for key in defaultSimulationParameters.keys()]
 
         productionConstants = [ReactionRateConstant(reactionID=4, rateConstant=1.0*theta),
                                ReactionRateConstant(reactionID=5, rateConstant=1.0*theta),

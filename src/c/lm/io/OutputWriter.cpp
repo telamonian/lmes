@@ -328,7 +328,7 @@ int OutputWriter::HelperThread::run()
                 {
                     const lm::message::WorkUnitOutput& output = pwu.part_output(i);
                     // set the output options
-                    if (output.has_condense_output()) p->condenseOutput = output.condense_output();
+                    p->condenseOutput = output.condense_output();
                     if (output.has_record_name_prefix()) p->setRecordNamePrefix(output.record_name_prefix());
 
                     // process the actual output

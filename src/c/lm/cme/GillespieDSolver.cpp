@@ -75,9 +75,9 @@
 #include "lptf/ProfileCodes.h"
 #include "robertslab/pbuf/NDArray.pb.h"
 
-using std::string;
 using std::list;
 using std::map;
+using std::string;
 using std::vector;
 using lm::rng::RandomGenerator;
 
@@ -162,11 +162,29 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
 
     // Get the interval for writing degree advancements.
     double nextDegreeAdvancementWriteTime;
-    vector<uint64_t> degreeAdvancementsCounts;
-    vector<double> degreeAdvancementsTimes;
+    vector<uint64_t> degreeAdvancementCounts;
+    vector<double> degreeAdvancementTimes;
     if (writeDegreeAdvancementTimeSeries)
     {
-        nextDegreeAdvancementWriteTime = ceil(time/degreeAdvancementWriteInterval)*degreeAdvancementWriteInterval;
+        setInitialWriteInterval(degreeAdvancementWriteInterval, &nextDegreeAdvancementWriteTime, degreeAdvancements, reactionModel->numberReactions, &degreeAdvancementCounts, &degreeAdvancementTimes);
+//        if (not trajectoryStarted)
+//        {
+//            if (writeInitialTrajectoryState)
+//            {
+//                nextDegreeAdvancementWriteTime = (floor(time/degreeAdvancementWriteInterval) + 1)*degreeAdvancementWriteInterval;
+//                for (uint i=0; i<reactionModel->numberReactions; i++) degreeAdvancementCounts.push_back(degreeAdvancements[i]);
+//                degreeAdvancementTimes.push_back(time);
+//            }
+//            else
+//            {
+//                nextDegreeAdvancementWriteTime = ceil(time/degreeAdvancementWriteInterval)*degreeAdvancementWriteInterval;
+//            }
+//        }
+//        else
+//        {
+//            nextDegreeAdvancementWriteTime = (floor(time/degreeAdvancementWriteInterval) + 1)*degreeAdvancementWriteInterval;
+//        }
+
     }
 
     // Get the interval for writing order parameters.
@@ -174,7 +192,8 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     vector<double> orderParameterTimeSeriesCounts, orderParameterTimeSeriesTimes;
     if (writeOrderParameterTimeSeries)
     {
-        nextOrderParameterWriteTime = ceil(time/orderParameterWriteInterval)*orderParameterWriteInterval;
+        setInitialWriteInterval(orderParameterWriteInterval, &nextOrderParameterWriteTime, orderParameterValues, reactionModel->numberReactions, &orderParameterTimeSeriesCounts, &orderParameterTimeSeriesTimes);
+//        nextOrderParameterWriteTime = ceil(time/orderParameterWriteInterval)*orderParameterWriteInterval;
     }
 
     // Get the interval for writing species counts.
@@ -184,7 +203,10 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     // If we are writing time steps, create the data set.
     if (writeSpeciesTimeSeries)
     {
-        nextSpeciesWriteTime = ceil(time/speciesWriteInterval)*speciesWriteInterval;
+        setInitialWriteInterval(speciesWriteInterval, &nextSpeciesWriteTime, speciesCounts, reactionModel->numberReactions, &speciesTimeSeriesCounts, &speciesTimeSeriesTimes);
+
+//        nextSpeciesWriteTime = ceil(time/speciesWriteInterval)*speciesWriteInterval;
+        
 //        // If this is the start of the trajectory, add the initial counts.
 //        if ((time == 0.0 || trajectoryStarted==false) && !ffluxFlag)
 //        {
@@ -248,8 +270,8 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
             while (nextDegreeAdvancementWriteTime <= (time+EPS))
             {
                 // Record the degree advancements.
-                for (uint i=0; i<reactionModel->numberReactions; i++) degreeAdvancementsCounts.push_back(degreeAdvancements[i]);
-                degreeAdvancementsTimes.push_back(nextDegreeAdvancementWriteTime);
+                for (uint i=0; i<reactionModel->numberReactions; i++) degreeAdvancementCounts.push_back(degreeAdvancements[i]);
+                degreeAdvancementTimes.push_back(nextDegreeAdvancementWriteTime);
                 nextDegreeAdvancementWriteTime += degreeAdvancementWriteInterval;
             }
         }
@@ -353,8 +375,8 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
             while (nextDegreeAdvancementWriteTime <= (time+EPS))
             {
                 // Record the degree advancements.
-                for (uint i=0; i<reactionModel->numberReactions; i++) degreeAdvancementsCounts.push_back(degreeAdvancements[i]);
-                degreeAdvancementsTimes.push_back(nextDegreeAdvancementWriteTime);
+                for (uint i=0; i<reactionModel->numberReactions; i++) degreeAdvancementCounts.push_back(degreeAdvancements[i]);
+                degreeAdvancementTimes.push_back(nextDegreeAdvancementWriteTime);
                 nextDegreeAdvancementWriteTime += degreeAdvancementWriteInterval;
             }
         }
@@ -384,24 +406,24 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     }
 
     // Otherwise we must have finished because of a state (eg species, order parameter, etc) limit, so just write out the last time.
-    else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED)
+    else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED and writeFinalTrajectoryState)
     {
         // Record the degree advancement counts.
-        if (writeDegreeAdvancementTimeSeries && !ffluxFlag)
+        if (writeDegreeAdvancementTimeSeries)
         {
-            for (uint i=0; i<numberDegreeAdvancements; i++) degreeAdvancementsCounts.push_back(degreeAdvancements[i]);
-            degreeAdvancementsTimes.push_back(time);
+            for (uint i=0; i<numberDegreeAdvancements; i++) degreeAdvancementCounts.push_back(degreeAdvancements[i]);
+            degreeAdvancementTimes.push_back(time);
         }
 
         // Record the order parameter counts.
-        if (writeOrderParameterTimeSeries && !ffluxFlag)
+        if (writeOrderParameterTimeSeries)
         {
             for (uint i=0; i<numberOrderParameters; i++) orderParameterTimeSeriesCounts.push_back(orderParameterValues[i]);
             orderParameterTimeSeriesTimes.push_back(time);
         }
 
         // Record the species counts.
-        if (writeSpeciesTimeSeries && !ffluxFlag)
+        if (writeSpeciesTimeSeries)
         {
             for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
             speciesTimeSeriesTimes.push_back(time);
@@ -409,7 +431,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     }
 
     // If we have any degree advancement time series data, add them to the output message.
-    daTimeSeriesWrap.set_arrays_in_output_msg(wuoMsg, degreeAdvancementsCounts, degreeAdvancementsTimes, trajectoryId, numberDegreeAdvancements, true);
+    daTimeSeriesWrap.set_arrays_in_output_msg(wuoMsg, degreeAdvancementCounts, degreeAdvancementTimes, trajectoryId, numberDegreeAdvancements, true);
 
     // If we have any order parameter time series data, add them to the output message.
     opTimeSeriesWrap.set_arrays_in_output_msg(wuoMsg, orderParameterTimeSeriesCounts, orderParameterTimeSeriesTimes, trajectoryId, numberOrderParameters, true);

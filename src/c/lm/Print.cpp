@@ -116,9 +116,10 @@ string pathJoin(const vector<string>& pathElements, bool absolute)
         ss << string(left, right) << "/";
     }
 
-    // the strip ops will have removed any leading "/", so if we want one add it back now
     string joinedPath(ss.str());
-    if (absolute) joinedPath.insert(0, "/");
+    // the strip ops will have removed any leading "/", so if we want one add it back now
+    if (absolute and joinedPath.size() > 0 and isNotSlash(joinedPath[0])) joinedPath.insert(0, "/");
+
     return joinedPath;
 }
 

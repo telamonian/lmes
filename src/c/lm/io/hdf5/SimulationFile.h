@@ -125,7 +125,7 @@ public:
         uint startingColumn;
 
         hid_t hdf5Type;
-        void* data;
+        byte* data;
         bool compressed_deflate;
         bool isNDArray;
     };

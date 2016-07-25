@@ -90,7 +90,7 @@ namespace io {
 namespace hdf5 {
 
 Hdf5File::DatasetDescriptor::DatasetDescriptor(const std::string& groupPath, const std::string& datasetName, const utuple& shape, hid_t hdf5Type, void* data, hid_t rootGroup)
-:rootGroup(rootGroup),groupPath(groupPath),datasetName(datasetName),shape(shape),startingColumn(0),hdf5Type(hdf5Type),data(data),compressed_deflate(false),isNDArray(false)
+:rootGroup(rootGroup),groupPath(groupPath),datasetName(datasetName),shape(shape),startingColumn(0),hdf5Type(hdf5Type),data(static_cast<byte*>(data)),compressed_deflate(false),isNDArray(false)
 {
 }
 
@@ -100,7 +100,7 @@ Hdf5File::DatasetDescriptor::DatasetDescriptor(const std::string& groupPath, con
     lm::protowrap::NDArray<void> ndarrayWrap(ndarrayMsg);
 
     hdf5Type = ndarrayWrap.hdf5_type();
-    data = ndarrayWrap.get_data();
+    data = static_cast<byte*>(ndarrayWrap.get_data());
     compressed_deflate = ndarrayWrap.compressed_deflate();
 }
 
@@ -195,7 +195,10 @@ hid_t Hdf5File::initGroup(const string& groupPath, hid_t rootGroup)
     std::string item;
     while (std::getline(ss, item, '/'))
     {
-        groupPathVector.push_back(item);
+        if (item.size() > 0)
+        {
+            groupPathVector.push_back(item);
+        }
     }
 
     return initGroup(groupPathVector, rootGroup);
@@ -2700,10 +2703,7 @@ void Hdf5File::setRecordNamePrefix(const string& newRecordNamePrefix)
     {
         recordNamePrefix.assign(newRecordNamePrefix);
 
-        vector<string> simulationsParts;
-        simulationsParts.push_back(recordNamePrefix);
-        simulationsParts.push_back("Simulations");
-        simulationsGroup = initGroup(simulationsParts);
+        simulationsGroup = initGroup(pathJoin(recordNamePrefix, "Simulations"));
     }
 }
 
@@ -2743,7 +2743,7 @@ void Hdf5File::setDatasetFromNDArrayReplicateCondensed(uint64_t replicate, const
 
     // write out the trajectoryID dataset we just created
     std::string trajectoryIDDatasetName = datasetName + "_-_TrajectoryIDs";
-    setDatasetFromContainer(groupRelativePath, datasetName, trajectoryIDs, simulationsGroup);
+    setDatasetFromContainer(groupRelativePath, trajectoryIDDatasetName, trajectoryIDs, simulationsGroup);
 }
 
 hsize_t Hdf5File::setDataset(const DatasetDescriptor& dd)
@@ -2764,7 +2764,7 @@ hsize_t Hdf5File::setDataset(const DatasetDescriptor& dd)
 
     // write or extend the NDArray dataset
     dims[0] = RANK > 0 ? dd.shape[0] : 0;
-    chunkdims[0] = 1000;
+    chunkdims[0] = 10;
     maxdims[0] = H5S_UNLIMITED;
     for (int i=1; i<RANK; i++)
     {

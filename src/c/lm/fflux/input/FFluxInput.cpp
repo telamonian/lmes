@@ -114,6 +114,18 @@ void FFluxInput::reinitOutputOptions(const std::string& recordNamePrefix)
 
     outputOptionsMsg.set_record_name_prefix(pathJoin(recordNamePrefixGlobal, recordNamePrefix));
     outputOptionsMsg.set_condense_output(true);
+    outputOptionsMsg.set_write_initial_trajectory_state(false);
+    outputOptionsMsg.set_write_final_trajectory_state(false);
+
+    // Specify how often the species counts should be written to output
+    parseAndSet("writeInterval", &lm::input::OutputOptions::set_species_write_interval, outputOptionsMsg);
+
+    // Specify how often the species counts at all of the lattice points should be written out during an RDME simulation
+    parseAndSet("latticeWriteInterval", &lm::input::OutputOptions::set_lattice_write_interval, outputOptionsMsg);
+
+    // Specify how often various (optional) specialized simulation outputs should be written out. Leave unset to supress these outputs completely.
+    degreeAdvancementPresent = parseAndSet("degreeAdvancementWriteInterval", &lm::input::OutputOptions::set_degree_advancement_write_interval, outputOptionsMsg);
+    parseAndSet("orderParameterWriteInterval", &lm::input::OutputOptions::set_order_parameter_write_interval, outputOptionsMsg);
 }
 
 void FFluxInput::reinitTrajectoryLimits(const lm::fflux::input::FFluxPhase& ffluxPhase, const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit, const lm::tiling::Tiling& tiling)

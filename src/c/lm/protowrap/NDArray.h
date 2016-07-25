@@ -99,7 +99,10 @@ template <> struct specialize_ndarray_for_void<void>
 {
     template <typename This> static void* get_copy_of_data(This* _this)
     {
-        throw Exception("NDArray of void type (ie NDArray<void>) cannot initialize new arrays");
+        void* outputArray = new unsigned char[_this->sizeBytesDynamic()];
+        _this->get_data_dynamic(outputArray);
+        return outputArray;
+//        throw Exception("NDArray of void type (ie NDArray<void>) cannot initialize new arrays");
     }
 };
 
@@ -123,6 +126,7 @@ public:
     uint getIndex(uint i, uint j, uint k) {return i*shape(2)*shape(1) + j*shape(1) + k;}
     uint32_t size() const {return shape().product();}
     size_t sizeBytes() const {return size()*sizeof(T);}
+    size_t sizeBytesDynamic() const {return size()* ndTypeSizeBytes(data_type());}
 
 // mutators
     WrappedMsg* wrappedMsg()
@@ -225,6 +229,21 @@ public:
         outputVector->clear();
         outputVector->resize(size());
         get_data(outputVector->data());
+    }
+
+    inline void get_data_dynamic(void* outputArray) const
+    {
+        if (compressed_deflate())
+        {
+            size_t countsSize = sizeBytesDynamic();
+            ZLIB_EXCEPTION_CHECK(uncompress((unsigned char *)outputArray, &countsSize, (unsigned char*)&(data()[0]), data().size()));
+            if (countsSize != sizeBytesDynamic())
+                throw Exception("Error during data decompression, wrong number of bytes returned.");
+        }
+        else
+        {
+            memcpy(outputArray, (unsigned char*) &(data()[0]), data().size());
+        }
     }
 
     inline void _set_props(const utuple& shape, DataType dtype, bool compressed)
@@ -374,6 +393,22 @@ public:
         case robertslab::pbuf::NDArray::int64:   return HDF5Type<robertslab::pbuf::NDArray::int64>::T();
         case robertslab::pbuf::NDArray::uint32:  return HDF5Type<robertslab::pbuf::NDArray::uint32>::T();
         case robertslab::pbuf::NDArray::uint64:  return HDF5Type<robertslab::pbuf::NDArray::uint64>::T();
+
+        default:
+            throw UnimplementedException("Unimplemented");
+        }
+    }
+
+    static inline size_t ndTypeSizeBytes(const DataType NDType)
+    {
+        switch (NDType)
+        {
+        case robertslab::pbuf::NDArray::float32: return 4;
+        case robertslab::pbuf::NDArray::float64: return 8;
+        case robertslab::pbuf::NDArray::int32:   return 4;
+        case robertslab::pbuf::NDArray::int64:   return 8;
+        case robertslab::pbuf::NDArray::uint32:  return 4;
+        case robertslab::pbuf::NDArray::uint64:  return 8;
 
         default:
             throw UnimplementedException("Unimplemented");

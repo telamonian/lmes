@@ -13,13 +13,13 @@ class FFluxRegression(ReplicateRegression):
     defaultLMArgs = Regression.defaultLMArgs + ['-fflux', '-intout']
     helpMessage = 'script to test out a complete Forward Flux Lattice Microbes run'
 
-    def BuildInput(self, **kwargs):
+    def _BuildInput(self, **kwargs):
         # call the parent class method
-        super(FFluxRegression, self).BuildInput(**kwargs)
+        super(FFluxRegression, self)._BuildInput(**kwargs)
 
         if kwargs['quick_test']:
-            defaultSimulationParameters = {"precisionGoal": .01,
-                                           "precisionGoalConfidence": .99,
+            defaultSimulationParameters = {"precisionGoal": .05,
+                                           "precisionGoalConfidence": .95,
                                            "pilotStageCount": 1e3,
                                            "ffluxPilotOutput": True,
                                            "ffluxPhaseOutput": False,

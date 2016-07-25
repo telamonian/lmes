@@ -41,17 +41,17 @@ package lm.input;
 
 message OutputOptions {
     optional string record_name_prefix = 1;
-    optional bool condense_output = 2 [default=false];
+    optional bool condense_output      = 2 [default=false];
 
-    optional double degree_advancement_write_interval = 11;
-    optional double lattice_write_interval            = 12;
-    optional double order_parameter_write_interval    = 13;
-    optional double species_write_interval            = 14;
+    optional bool write_initial_trajectory_state = 11 [default = true];
+    optional bool write_final_trajectory_state   = 12 [default = true];
 
-    //    repeated uint32 da_reactions_to_track  = 21;
-    repeated uint32 fpt_species_to_track         = 22;
-    repeated uint32 fpt_order_parameter_to_track = 23;
+    optional double degree_advancement_write_interval = 21;
+    optional double lattice_write_interval            = 22;
+    optional double order_parameter_write_interval    = 23;
+    optional double species_write_interval            = 24;
 
-//    optional bool output_initial_state = 31 [default = true];
-//    optional bool output_final_state   = 32 [default = true];
+    //    repeated uint32 da_reactions_to_track  = 31;
+    repeated uint32 fpt_species_to_track         = 32;
+    repeated uint32 fpt_order_parameter_to_track = 33;
 }

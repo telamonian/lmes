@@ -95,11 +95,11 @@ CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
 :neededDists(neededDists),rng(NULL),reactionModel(NULL),hasUpdateSpeciesCountsListeners(false),tilings(NULL),numberDegreeAdvancements(0),
  numberOrderParameters(0),orderParameterFunctions(NULL),status(lm::message::WorkUnitStatus::NONE),timeLimit(std::numeric_limits<double>::infinity()),
  numberLimits(0),limits(NULL),limitReached(NULL),limitIDReached(lm::limit::TrajectoryLimits::DEFAULT_LIMIT_ID),
- limitTypeReached(lm::input::TrajectoryLimit::NONE),workUnitCondenseOutput(false),writeDegreeAdvancementTimeSeries(false),
- writeOrderParameterTimeSeries(false),writeSpeciesTimeSeries(false),degreeAdvancementWriteInterval(0.0),orderParameterWriteInterval(0.0),
- speciesWriteInterval(0.0),numberFptTrackedSpecies(0),numberFptTrackedOrderParameters(0),fptTrackedSpecies(NULL),fptTrackedOrderParameters(NULL),
- degreeAdvancements(NULL),orderParameterValues(NULL),orderParameterPreviousValues(NULL),speciesCounts(NULL),time(0.0),timeStep(0.0),
- trajectoryStarted(false),tilingHists(NULL)
+ limitTypeReached(lm::input::TrajectoryLimit::NONE),workUnitCondenseOutput(false),writeInitialTrajectoryState(false),writeFinalTrajectoryState(false),
+ writeDegreeAdvancementTimeSeries(false),writeOrderParameterTimeSeries(false),writeSpeciesTimeSeries(false),degreeAdvancementWriteInterval(0.0),
+ orderParameterWriteInterval(0.0),speciesWriteInterval(0.0),numberFptTrackedSpecies(0),numberFptTrackedOrderParameters(0),
+ fptTrackedSpecies(NULL),fptTrackedOrderParameters(NULL),degreeAdvancements(NULL),orderParameterValues(NULL),orderParameterPreviousValues(NULL),
+ speciesCounts(NULL),time(0.0),timeStep(0.0),trajectoryStarted(false),tilingHists(NULL)
 {
 }
 
@@ -483,7 +483,11 @@ lm::message::WorkUnitStatus::Status CMESolver::getStatus(uint trajectoryNumber)
 void CMESolver::setOutputOptions(const lm::input::OutputOptions& outputOptions)
 {
     if (outputOptions.has_record_name_prefix()) workUnitOutputPrefix.assign(outputOptions.record_name_prefix());
-    if (outputOptions.has_condense_output()) workUnitCondenseOutput = outputOptions.condense_output();
+    workUnitCondenseOutput = outputOptions.condense_output();
+    writeInitialTrajectoryState = outputOptions.write_initial_trajectory_state();
+    writeFinalTrajectoryState = outputOptions.write_final_trajectory_state();
+
+    // time series output options
     if (outputOptions.has_degree_advancement_write_interval())
     {
         writeDegreeAdvancementTimeSeries = true;

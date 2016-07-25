@@ -16,6 +16,7 @@
 /build_*
 /Build-*
 /Build_*
+/src/protobuf/build
 /local.mk
 /*.app
 *.d
@@ -31,6 +32,8 @@
 *.png
 /regression/biphasic_switch.lm
 /regression/biphasic_switch.sfile
+/regression/genetic_toggle_switch.lm
+/regression/genetic_toggle_switch.sfile
 /test_case/*
 !/test_case/clean
 !/test_case/clean/biphasic_switch*.lm

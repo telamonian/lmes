@@ -323,6 +323,8 @@ protected:
     // Output options.
     std::string workUnitOutputPrefix;
     bool workUnitCondenseOutput;
+    bool writeInitialTrajectoryState;
+    bool writeFinalTrajectoryState;
     bool writeDegreeAdvancementTimeSeries, writeOrderParameterTimeSeries, writeSpeciesTimeSeries;
     double degreeAdvancementWriteInterval, orderParameterWriteInterval, speciesWriteInterval;
 

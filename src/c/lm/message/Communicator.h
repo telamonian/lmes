@@ -75,9 +75,9 @@ public:
     void receiveMessage(lm::message::Message* msg, int sleepMilliseconds=0) const;
 
     // non-blocking send and receive messages
-//    int sendMessage(Endpoint dest, lm::message::Message* msg, int dummy=0) const;
+    int isendMessage(Endpoint dest, lm::message::Message* msg, int dummy=0) const;
     int testSendMessage() const;
-//    int receiveMessage(lm::message::Message* msg, int dummy=0) const;
+    int ireceiveMessage(lm::message::Message* msg, int dummy=0) const;
     int testReceiveMessage(lm::message::Message* msg) const;
 
     // mutators

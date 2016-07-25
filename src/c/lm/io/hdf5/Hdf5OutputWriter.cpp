@@ -197,7 +197,13 @@ void Hdf5OutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
 
 void Hdf5OutputWriter::processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data)
 {
-    file->appendSpeciesTimeSeries(data.trajectory_id(), data);
+    if (data.times().shape(0) != data.counts().shape(0))
+        InvalidArgException("speciesTimeSeries.times.shape", "Number of rows in time array incocnsistent with counts array.");
+
+    file->setDatasetFromNDArrayReplicate(data.trajectory_id(), "", "SpeciesCounts", data.counts(), condenseOutput);
+    file->setDatasetFromNDArrayReplicate(data.trajectory_id(), "", "SpeciesCountTimes", data.times(), condenseOutput);
+
+//    file->appendSpeciesTimeSeries(data.trajectory_id(), data);
 }
 
 void Hdf5OutputWriter::setRecordNamePrefix(const std::string& newRecordNamePrefix)
