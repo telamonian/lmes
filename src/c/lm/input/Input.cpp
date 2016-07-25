@@ -76,14 +76,14 @@ void* Input::allocateObject(const lm::io::hdf5::Hdf5File& file)
 Input::Input()
 :degreeAdvancementPresent(false),diffusionModelPresent(false),reactionModelPresent(false),orderParametersPresent(false),
  outputOptionsPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),limitTrackingListWrap(&limitTrackingListMsg),
- includeEndpointInLimits(true),partsPerWorkUnit(1),stepsPerWorkUnit((int)1e8)
+ includeEndpointInLimits(true),partsPerWorkUnit(1),stepsPerWorkUnit((uint64_t)1e8)
 {
 }
 
 Input::Input(const lm::io::hdf5::Hdf5File& file)
 :degreeAdvancementPresent(false),diffusionModelPresent(false),reactionModelPresent(false),orderParametersPresent(false),
  outputOptionsPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),limitTrackingListWrap(&limitTrackingListMsg),
- includeEndpointInLimits(true),partsPerWorkUnit(1),stepsPerWorkUnit((int)1e8)
+ includeEndpointInLimits(true),partsPerWorkUnit(1),stepsPerWorkUnit((uint64_t)1e8)
 {
     init(file);
 }
@@ -227,8 +227,8 @@ void Input::initOutputOptions(const lm::io::hdf5::Hdf5File& file)
 // Get some parameters that tweak how work units are run
 void Input::initWorkUnitParameters(const lm::io::hdf5::Hdf5File& file)
 {
-    parseAndSet("partsPerWorkUnit", &this->partsPerWorkUnit);
     parseAndSet("maxWorkUnitSteps", &this->stepsPerWorkUnit);
+    parseAndSet("partsPerWorkUnit", &this->partsPerWorkUnit);
 }
 
 void Input::copyLimitsTo(lm::message::RunWorkUnit* rwuMsg)

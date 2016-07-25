@@ -17,14 +17,14 @@ class ReplicateRegression(Regression):
         if kwargs['quick_test']:
             defaultSimulationParameters = {'maxSteps': str(int(1e10)),
                                            'maxTime': str(int(1e1)),
-                                           'maxWorkUnitSteps': str(int(1e8)),
+                                           # 'maxWorkUnitSteps': str(int(1e8)),
                                            'writeInterval': str(int(1e0))}
                                            # 'orderParameterWriteInterval': str(int(1e0))}
             theta = float(kwargs.get('theta', 10))
         else:
             defaultSimulationParameters = {'maxSteps': str(int(1e10)),
                                            'maxTime': str(int(1e4)),
-                                           'maxWorkUnitSteps': str(int(1e8)),
+                                           # 'maxWorkUnitSteps': str(int(1e8)),
                                            'writeInterval': str(int(1e1))}
                                            # 'orderParameterWriteInterval': str(int(1e1))}
             theta = kwargs.get('theta', 1)
