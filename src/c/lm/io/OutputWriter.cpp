@@ -248,7 +248,7 @@ void OutputWriter::setRecordNamePrefix(const std::string& newRecordNamePrefix)
     if (newRecordNamePrefix!=recordNamePrefix)
     {
         recordNamePrefix.assign(newRecordNamePrefix);
-        lm::Print::printf(Print::INFO, "Using record name prefix: %s", recordNamePrefix.c_str());
+        lm::Print::printf(Print::DEBUG, "Using record name prefix: %s", recordNamePrefix.c_str());
     }
 }
 

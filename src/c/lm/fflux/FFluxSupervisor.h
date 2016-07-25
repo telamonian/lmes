@@ -163,6 +163,8 @@ protected:
     virtual void destructInput() {SimulationSupervisor::destructInput(); input = NULL;}
     virtual void destructTrajectory() {SimulationSupervisor::destructTrajectory(); trajectoryList = NULL;}
 
+    virtual void buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg);
+
 protected:
     lm::fflux::input::FFluxStageList ffluxStageListMsg;
     FFluxStageVector ffluxStageExecutionOrder;
