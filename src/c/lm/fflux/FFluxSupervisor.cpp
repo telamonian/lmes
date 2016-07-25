@@ -670,7 +670,7 @@ void FFluxSupervisor::receivedFinishedWorkUnitPart(const lm::message::WorkUnitSt
         {
             receivedFinishedWorkUnitPartPhaseZero(wusMsg);
         }
-        else
+        else if (wusMsg.status()==lm::message::WorkUnitStatus::LIMIT_REACHED)
         {
             currentFFluxPhaseOutputWrapPtr->addEndPoint(wusMsg.final_state(), *trajectoryList->getTrajectoryForFinishedWorkUnit(wusMsg.final_state().trajectory_id()));
         }

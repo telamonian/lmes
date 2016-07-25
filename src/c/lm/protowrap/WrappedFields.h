@@ -197,7 +197,7 @@ protected:                                                                 \
 public:                                                                    \
     inline const Element& name() const {return _##name;}                   \
     inline Element* mutable_##name() {return &_##name;}                    \
-    inline void clear_##name() {_##name.Clear();}                          \
+    inline void clear_##name() {wrappedMsgPtr->clear_##name();}            \
     inline bool has_##name() const {return wrappedMsgPtr->has_##name();}
 
 #define _WRAPPED_optional_embedded_ATTR(Element, name)    \

@@ -574,6 +574,7 @@ void SimulationSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* new
             if (simulationPhaseEverTerminated)
             {
                 // Keep track of any outstanding work units. Important for coordinating clean program termination across all nodes
+                newTrajectoryList->takeTrajectories(trajectoryList, lm::trajectory::Trajectory::ABORTED, lm::trajectory::Trajectory::ABORTED);
                 newTrajectoryList->takeTrajectories(trajectoryList, lm::trajectory::Trajectory::RUNNING, lm::trajectory::Trajectory::ABORTED);
                 newTrajectoryList->takeWorkUnitsRunning(trajectoryList);
             }
