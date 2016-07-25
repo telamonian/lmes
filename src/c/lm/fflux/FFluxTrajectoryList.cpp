@@ -144,6 +144,10 @@ void FFluxTrajectoryList::workUnitPartFinished(const message::WorkUnitStatus& wu
     // Call the base class method.
     lm::trajectory::TrajectoryList::workUnitPartFinished(wusMsg, traj);
 
+    // clear out any limit tracking time series data. prevents a major slowdown on long runs
+    limitTrackingListWrap.setWrappedMsg(traj->getStateMutable()->mutable_limit_tracking_list());
+    limitTrackingListWrap.clear_limit_trackings();
+
     // If the work unit stopped because it hit a terminating limit...
     if (wusMsg.status()==lm::message::WorkUnitStatus::LIMIT_REACHED)
     {

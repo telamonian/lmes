@@ -51,6 +51,7 @@
 #include "lm/input/ReactionModel.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
+#include "lm/limit/LimitTrackingListWrap.h"
 #include "lm/message/Communicator.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/Message.pb.h"
@@ -99,6 +100,7 @@ protected:
 
     const lm::protowrap::FFluxPhaseOutputWrap* previousPhaseOutputPtr;
 
+    lm::limit::LimitTrackingListWrap limitTrackingListWrap;
 };
 
 }

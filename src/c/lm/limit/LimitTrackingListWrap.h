@@ -60,6 +60,15 @@ class LimitTrackingListWrap : public lm::protowrap::Msg<LimitTrackingListWrap, l
     WRAPPED_FIELDS(repeated, lm::io::LimitTracking, limit_trackings)
 
 public:
+    inline void clearStateData()
+    {
+        for (lm::protowrap::Repeated<lm::io::LimitTracking>::iterator it=mutable_limit_trackings()->begin();it!=mutable_limit_trackings()->end();it++)
+        {
+            limitTrackingWrap.setWrappedMsg(&*it);
+            limitTrackingWrap.clearStateData();
+        }
+    }
+
     inline void deserializeMetadataTo(TrackingMap* ltMap) const
     {
         for (lm::protowrap::Repeated<lm::io::LimitTracking>::const_iterator it=limit_trackings().begin(); it!=limit_trackings().end(); ++it)

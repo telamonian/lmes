@@ -61,12 +61,12 @@ namespace input {
 
 FFluxInput::FFluxInput(): _ffluxPhaseLimitLists(_ffluxOptions.mutable_fflux_phase_limit_lists())
 {
-    stepsPerWorkUnit = (uint64_t)1e15;
+//    stepsPerWorkUnit = (uint64_t)1e15;
 }
 
 FFluxInput::FFluxInput(const lm::io::hdf5::Hdf5File& file): _ffluxPhaseLimitLists(_ffluxOptions.mutable_fflux_phase_limit_lists())
 {
-    stepsPerWorkUnit = (uint64_t)1e15;
+//    stepsPerWorkUnit = (uint64_t)1e15;
     init(file);
 }
 

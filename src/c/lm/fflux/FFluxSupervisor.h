@@ -42,6 +42,7 @@
 #include <valarray>
 
 #include "lm/EnumHelper.h"
+#include "lm/fflux/FFluxTrajectoryList.h"
 #include "lm/fflux/input/FFluxPhase.pb.h"
 #include "lm/fflux/input/FFluxStage.pb.h"
 #include "lm/fflux/io/FFluxPhaseOutput.pb.h"
@@ -49,7 +50,6 @@
 #include "lm/fflux/io/FFluxStageOutput.pb.h"
 #include "lm/fflux/io/FFluxStageOutputWrap.h"
 #include "lm/fflux/input/FFluxInput.h"
-#include "lm/fflux/FFluxTrajectoryList.h"
 #include "lm/Iterator.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Message.pb.h"

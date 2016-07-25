@@ -664,7 +664,7 @@ void FFluxSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedWorkUn
 
 void FFluxSupervisor::receivedFinishedWorkUnitPart(const lm::message::WorkUnitStatus& wusMsg)
 {
-    if (not trajectoryList->isTrajectoryAborted(wusMsg.final_state().trajectory_id()) and wusMsg.status()==lm::message::WorkUnitStatus::LIMIT_REACHED)
+    if (not trajectoryList->isTrajectoryAborted(wusMsg.final_state().trajectory_id()))   // and wusMsg.status()==lm::message::WorkUnitStatus::LIMIT_REACHED)
     {
         if (currentFFluxPhaseIndex()==0)
         {

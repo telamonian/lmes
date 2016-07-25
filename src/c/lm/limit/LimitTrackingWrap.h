@@ -70,19 +70,27 @@ public:
                    optional, TimesWrap,                times)
 
 public:
-    void deserializeMetadataTo(int32_t* limitID_writeto, bool* hasCount_writeto, uint64_t* count_writeto) const
+    inline void clearStateData()
+    {
+        clear_degree_advancements();
+        clear_order_parameter_values();
+        clear_species_counts();
+        clear_times();
+    }
+
+    inline void deserializeMetadataTo(int32_t* limitID_writeto, bool* hasCount_writeto, uint64_t* count_writeto) const
     {
         *limitID_writeto = limit_id();
         *hasCount_writeto = has_count();
         if (*hasCount_writeto) *count_writeto = count();
     }
 
-    void deserializeMetadataTo(LimitTracking* lt) const
+    inline void deserializeMetadataTo(LimitTracking* lt) const
     {
         deserializeMetadataTo(&lt->limit_id, &lt->has_count, &lt->count);
     }
 
-    void deserializeTo(lm::limit::LimitTracking::DegreeAdvancementContainer* degreeAdvancements_writeto, lm::limit::LimitTracking::OrderParameterContainer* orderParameterValues_writeto,
+    inline void deserializeTo(lm::limit::LimitTracking::DegreeAdvancementContainer* degreeAdvancements_writeto, lm::limit::LimitTracking::OrderParameterContainer* orderParameterValues_writeto,
                        lm::limit::LimitTracking::SpeciesContainer* speciesCounts_writeto, lm::limit::LimitTracking::TimeContainer* times_writeto) const
     {
         degree_advancements().get_data(degreeAdvancements_writeto);
@@ -91,13 +99,13 @@ public:
         times().get_data(times_writeto);
     }
 
-    void deserializeTo(LimitTracking* lt) const
+    inline void deserializeTo(LimitTracking* lt) const
     {
         deserializeMetadataTo(lt);
         deserializeTo(&lt->degree_advancements, &lt->order_parameter_values, &lt->species_counts, &lt->times);
     }
 
-    void serializeMetadataFrom(uint64_t trajectoryID_readfrom, int32_t limitID_readfrom, bool hasCount_readfrom, uint64_t count_readfrom)
+    inline void serializeMetadataFrom(uint64_t trajectoryID_readfrom, int32_t limitID_readfrom, bool hasCount_readfrom, uint64_t count_readfrom)
     {
         set_trajectory_id(trajectoryID_readfrom);
         set_limit_id(limitID_readfrom);
@@ -105,12 +113,12 @@ public:
         if (hasCount_readfrom) set_count(count_readfrom);
     }
 
-    void serializeMetadataFrom(uint64_t trajectoryID_readfrom, const LimitTracking& lt)
+    inline void serializeMetadataFrom(uint64_t trajectoryID_readfrom, const LimitTracking& lt)
     {
         serializeMetadataFrom(trajectoryID_readfrom, lt.limit_id, lt.has_count, lt.count);
     }
 
-    void serializeFrom(const lm::limit::LimitTracking::DegreeAdvancementContainer& degreeAdvancements_readfrom, const lm::limit::LimitTracking::OrderParameterContainer& orderParameterValues_readfrom,
+    inline void serializeFrom(const lm::limit::LimitTracking::DegreeAdvancementContainer& degreeAdvancements_readfrom, const lm::limit::LimitTracking::OrderParameterContainer& orderParameterValues_readfrom,
                        const lm::limit::LimitTracking::SpeciesContainer& speciesCounts_readfrom, const lm::limit::LimitTracking::TimeContainer& times_readfrom, bool compress=false)
     {
         // prevent any divide-by-zeros
@@ -131,7 +139,7 @@ public:
         }
     }
 
-    void serializeFrom(uint64_t trajectoryID_readfrom, const LimitTracking& lt)
+    inline void serializeFrom(uint64_t trajectoryID_readfrom, const LimitTracking& lt)
     {
         serializeMetadataFrom(trajectoryID_readfrom, lt);
         serializeFrom(lt.degree_advancements, lt.order_parameter_values, lt.species_counts, lt.times);
