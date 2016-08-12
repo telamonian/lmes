@@ -99,7 +99,7 @@ void printCopyright(int argc, char** argv)
 /**
  * Parses the command line arguments.
  */
-void parseArguments(int argc, char** argv)
+void parseArguments(int argc, char** argv, bool warn)
 {
     // Set any default options.
     replicates.clear();
@@ -348,17 +348,18 @@ void parseArguments(int argc, char** argv)
         else if ((strcmp(option, "-gr") == 0 || strcmp(option, "--gpus-per-runner") == 0 || strcmp(option, "--gpus-per-replicate") == 0) && i < (argc-1))
         {
             gpuDevicesPerRunner=0;
-            lm::Print::printf(lm::Print::WARNING, "attempting to set gpuDevicesPerRunner=%.2f, but CUDA support is turned off", parseIntReciprocalArg(argv[++i]));
+            ++i;
+            if (warn) lm::Print::printf(lm::Print::WARNING, "attempting to set gpuDevicesPerRunner=%.2f, but CUDA support is turned off", parseIntReciprocalArg(argv[i]));
         }
         else if (strncmp(option, "--gpus-per-runner=", strlen("--gpus-per-runner=")) == 0)
         {
             gpuDevicesPerRunner=0;
-            lm::Print::printf(lm::Print::WARNING, "attempting to set gpuDevicesPerRunner=%.2f, but CUDA support is turned off", parseIntReciprocalArg(option+strlen("--gpus-per-runner=")));
+            if (warn) lm::Print::printf(lm::Print::WARNING, "attempting to set gpuDevicesPerRunner=%.2f, but CUDA support is turned off", parseIntReciprocalArg(option+strlen("--gpus-per-runner=")));
         }
         else if (strncmp(option, "--gpus-per-replicate=", strlen("--gpus-per-replicate=")) == 0)
         {
             gpuDevicesPerRunner=0;
-            lm::Print::printf(lm::Print::WARNING, "attempting to set gpuDevicesPerRunner=%.2f, but CUDA support is turned off", parseIntReciprocalArg(option+strlen("--gpus-per-replicate=")));
+            if (warn) lm::Print::printf(lm::Print::WARNING, "attempting to set gpuDevicesPerRunner=%.2f, but CUDA support is turned off", parseIntReciprocalArg(option+strlen("--gpus-per-replicate=")));
         }
         #endif /* OPT_CUDA */
         //See if the user is trying to turn off cuda capability printing.

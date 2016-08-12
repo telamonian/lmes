@@ -110,6 +110,8 @@ std::binder2nd<bool(T, T)> _checkLimitCurry(T limitVal)
 //TIterator checkLimitRangeAdapter(TIterator (*rangeBasedFuncWithPredicate)(TIterator, TIterator, bool (*predicate)(T)), TIterator start, TIterator end, T limitVal)
 //{
 //    // closure that allows for presetting the limitVal and calling the check with a single argument
+//    // example call (look through history of FFluxPhaseOutputWrap.h for more)
+//    //    entryTimes = checkLimitRangeAdapter<TrajLimEnums::MAX, false, double>(std::find_if, entryTimes, entryTimesEnd, startTime);
 ////    struct CheckLimitClosureLocal: public checkLimit<sc, includeEndpoint>
 ////    {
 ////        static T staticLimitVal;

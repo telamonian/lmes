@@ -46,6 +46,7 @@
 
 #include "lm/ClassFactory.h"
 #include "lm/EnumHelper.h"
+#include "lm/fflux/FFluxPhaseZeroTrajectory.h"
 #include "lm/fflux/FFluxSupervisor.h"
 #include "lm/fflux/FFluxTrajectoryList.h"
 #include "lm/fflux/input/FFluxInput.h"
@@ -672,6 +673,7 @@ void FFluxSupervisor::receivedFinishedWorkUnitPart(const lm::message::WorkUnitSt
         }
         else if (wusMsg.status()==lm::message::WorkUnitStatus::LIMIT_REACHED)
         {
+            // update the phase output
             currentFFluxPhaseOutputWrapPtr->addEndPoint(wusMsg.final_state(), *trajectoryList->getTrajectoryForFinishedWorkUnit(wusMsg.final_state().trajectory_id()));
         }
     }
@@ -679,7 +681,12 @@ void FFluxSupervisor::receivedFinishedWorkUnitPart(const lm::message::WorkUnitSt
 
 void FFluxSupervisor::receivedFinishedWorkUnitPartPhaseZero(const lm::message::WorkUnitStatus& wusMsg)
 {
-    currentFFluxPhaseOutputWrapPtr->addEndPointPhaseZero(wusMsg.final_state(), input->ffluxOptions().phase_zero_burn_in_count());
+    // keep track of how much time each phase 0 trajectory spent in the region of a basin other than its initial basin
+    lm::fflux::FFluxPhaseZeroTrajectory* phaseZeroTrajectory = static_cast<lm::fflux::FFluxPhaseZeroTrajectory*>(trajectoryList->getTrajectoryForFinishedWorkUnit(wusMsg.final_state().trajectory_id()));
+    phaseZeroTrajectory->accumulateTimeInOtherBasins(wusMsg.final_state());
+
+    // update the phase output
+    currentFFluxPhaseOutputWrapPtr->addEndPointPhaseZero(wusMsg.final_state(), *trajectoryList->getTrajectoryForFinishedWorkUnit(wusMsg.final_state().trajectory_id()), input->ffluxOptions().phase_zero_burn_in_count());
 }
 
 // accessors

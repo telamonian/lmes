@@ -94,7 +94,7 @@ FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationP
     // initialize trajectories based on simulation input files
     for (uint64_t i=0;i<trajectoriesToStart;i++)
     {
-        initTrajectory(input, basin.species_count().begin(), basin.species_count().end(), 0.0, simulationPhaseIndex(), DEFAULT_TRAJECTORY_ID);
+        initFFluxPhaseZeroTrajectory(input, basin.species_count().begin(), basin.species_count().end(), 0.0, simulationPhaseIndex(), DEFAULT_TRAJECTORY_ID);
     }
 }
 

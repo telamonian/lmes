@@ -57,6 +57,7 @@
 #include "lm/message/Message.pb.h"
 #include "lm/message/WorkUnitOutput.pb.h"
 #include "lm/message/WorkUnitStatus.pb.h"
+#include "lm/fflux/FFluxPhaseZeroTrajectory.h"
 #include "lm/fflux/io/FFluxPhaseOutputWrap.h"
 #include "lm/rng/XORShift.h"
 #include "lm/tiling/Tilings.h"
@@ -85,19 +86,23 @@ public:
 
     virtual void workUnitPartFinished(const lm::message::WorkUnitStatus& wusMsg, lm::trajectory::Trajectory* traj);
 
-// accessors
+    // accessors
     static uint64_t getTrajectoriesToStart(const lm::fflux::input::FFluxPhase& ffluxPhase, const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousWorkUnits);
 
 protected:
-// initializers
+    // initializers
     virtual void initTrajectoriesUniformRandom(uint64_t trajectoriesToStart);
+    template <typename InputIterator> lm::trajectory::Trajectory* initFFluxPhaseZeroTrajectory(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd, double startTime, uint64_t phase, uint64_t id=DEFAULT_TRAJECTORY_ID)
+    {
+        return initTrajectory(new lm::fflux::FFluxPhaseZeroTrajectory(input, speciesStart, speciesEnd, startTime, phase, id));
+    }
 
 protected:
     const lm::fflux::input::FFluxInput& input;
     const lm::fflux::input::FFluxPhase& ffluxPhase;
     const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit;
 
-
+    // this is a pointer (and not a ref) because in some cases it has to be set to NULL
     const lm::protowrap::FFluxPhaseOutputWrap* previousPhaseOutputPtr;
 
     lm::limit::LimitTrackingListWrap limitTrackingListWrap;

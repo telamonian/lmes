@@ -59,7 +59,7 @@
 // AVX versions
 // specializations of check_limit with regards to stoppingCondition and includeEndpoint for the basic min/max limits
 #define check_simple_limit_avx(valueArr, valueID, limitValue, tmpBool, checkBool, opCode) \
-    tmpBool = _mm256_cmp_pd(_mm256_load_pd(&valueArr[valueID*DOUBLES_PER_AVX]), limitValue, opCode); \
+    tmpBool   = _mm256_cmp_pd(_mm256_load_pd(&valueArr[valueID*DOUBLES_PER_AVX]), limitValue, opCode); \
     checkBool = _mm256_movemask_pd(tmpBool);
 
 #define check_limit_avx_MIN_false(valueArr, valueID, limitValue, tmpBool, checkBool) check_simple_limit_avx(valueArr, valueID, limitValue, tmpBool, checkBool, _CMP_LT_OQ)
@@ -71,7 +71,7 @@
 #define check_second_degree_limit_avx(previousValueArr, valueArr, valueID, limitValue, previousTmpBool, tmpBool, checkBool, previousOpCode, opCode) \
     previousTmpBool = _mm256_cmp_pd(_mm256_load_pd(&previousValueArr[valueID*DOUBLES_PER_AVX]), limitValue, previousOpCode); \
     tmpBool         = _mm256_cmp_pd(_mm256_load_pd(&valueArr[valueID*DOUBLES_PER_AVX]), limitValue, opCode); \
-    checkBool = _mm256_movemask_pd(previousTmpBool)&_mm256_movemask_pd(tmpBool);
+    checkBool       = _mm256_movemask_pd(previousTmpBool)&_mm256_movemask_pd(tmpBool);
 
 #define check_limit_avx_DECREASING_false(previousValueArr, valueArr, valueID, limitValue, previousTmpBool, tmpBool, checkBool) check_second_degree_limit_avx(previousValueArr, valueArr, valueID, limitValue, previousTmpBool, tmpBool, checkBool, _CMP_GE_OQ, _CMP_LT_OQ)
 #define check_limit_avx_DECREASING_true( previousValueArr, valueArr, valueID, limitValue, previousTmpBool, tmpBool, checkBool) check_second_degree_limit_avx(previousValueArr, valueArr, valueID, limitValue, previousTmpBool, tmpBool, checkBool, _CMP_GT_OQ, _CMP_LE_OQ)

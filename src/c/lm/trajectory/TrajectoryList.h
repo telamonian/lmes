@@ -74,10 +74,13 @@ public:
 // initializer
     virtual void init(const TrajectoryStates& initialStates);
     virtual void init(const TrajectoryList& previousList);
+    // add pre-constructed Trajectory to the internal list
     virtual Trajectory* initTrajectory(Trajectory* allocatedTrajectory);
-    virtual Trajectory* initTrajectory(const lm::input::Input&, uint64_t phase, uint64_t id=DEFAULT_TRAJECTORY_ID);
+    // construct Trajectory from Input and add it to the internal list
+    virtual Trajectory* initTrajectory(const lm::input::Input& input, uint64_t phase, uint64_t id=DEFAULT_TRAJECTORY_ID);
+    // construct Trajectory from a pre-existing TrajectoryState and add it to the internal list
     virtual Trajectory* initTrajectory(const lm::io::TrajectoryState& initialState, uint64_t phase, uint64_t id=DEFAULT_TRAJECTORY_ID);
-    // construct Trajectory from a range of species count values (and optionally a starting time)
+    // construct Trajectory from a range of species count values (and optionally a starting time) and add it to the internal list
     template <typename InputIterator> Trajectory* initTrajectory(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd, double startTime, uint64_t phase, uint64_t id=DEFAULT_TRAJECTORY_ID)
     {
         return initTrajectory(new Trajectory(input, speciesStart, speciesEnd, startTime, phase, id));

@@ -82,13 +82,9 @@ class Regression(object):
 
         # forward flux specific simulation parameters
         parser.add_argument('--fflux', action='store_true',                              help='set this flag to do a Forward Flux simulation instead of the deafult Replicate simulation')
-        # parser.add_argument('-mcz', '--maxCrossingsZero', default=SUPPRESS,              help='max crossing to record for phase zero')
-        # parser.add_argument('-mtz', '--maxTimeZero', default=SUPPRESS,                   help='max time to run phase zero for')
-        # parser.add_argument('-mcn', '--maxCrossingsN', default=SUPPRESS,                 help='max crossing to record for phase N')
-        # parser.add_argument('-mtn', '--maxTimeN', default=SUPPRESS,                      help='max time to run phase N for')
-        parser.add_argument('-psc', '--pilotStageCount', default=SUPPRESS,               help='')
-        parser.add_argument('-pg', '--precisionGoal', default=SUPPRESS,                  help='')
-        parser.add_argument('-pgc', '--precisionGoalConfidence', default=SUPPRESS,       help='')
+        parser.add_argument('-psc', '--pilotStageCount', default=SUPPRESS,               help='fixed number of trajectories to launch during each phase of the pilot stage for FFPilot')
+        parser.add_argument('-pg', '--precisionGoal', default=SUPPRESS,                  help='precision goal for FFPilot')
+        parser.add_argument('-pgc', '--precisionGoalConfidence', default=SUPPRESS,       help='confidence level for precision goal for FFPilot')
 
         # replicate specific simulation parameters
         parser.add_argument('-fpt', '--firstPassageTimeSpecies', action='store_true',    help='set this flag to track species first passage times')

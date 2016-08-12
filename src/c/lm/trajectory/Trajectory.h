@@ -91,6 +91,7 @@ public:
     virtual const lm::io::OrderParametersValues& getOrderParameterValues() const;
     virtual uint64_t getSimulationPhase() const;
     virtual int32_t getSimSteps() const;
+    // return the simulation time (determined by the time when the most recent species count was recorded)
     virtual double getSimTime() const;
     virtual const lm::io::SpeciesCounts& getSpeciesCounts() const;
     virtual const lm::io::TrajectoryState& getState() const;
