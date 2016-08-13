@@ -158,7 +158,14 @@ void FFluxInput::reinitTrajectoryLimitsPhaseZero(const lm::fflux::input::FFluxPh
     // - first we set a limit with id==0
     //     - this limit is the important one. a triggering of this limit corresponds to one of the flux events that we're trying to sample during phase 0
     trajectoryLimits.addTileExitLimitsMsg(tiling, -1, 0, false, true);
-    limitTrackingListWrap.addTrackingMsg(trajectoryLimits.findMsg(0), false, true, ffluxPhaseLimit.events_per_trajectory());
+    if (ffluxPhaseLimit.events_per_trajectory() < 0)
+    {
+        limitTrackingListWrap.addTrackingMsgNonterminating(trajectoryLimits.findMsg(0), false, true);
+    }
+    else
+    {
+        limitTrackingListWrap.addTrackingMsg(trajectoryLimits.findMsg(0), false, true, ffluxPhaseLimit.events_per_trajectory());
+    }
 
     // - next, we set two more limits with id==1 and id==2
     //     - these limits are used to help track which basin was last visited by a trajectory

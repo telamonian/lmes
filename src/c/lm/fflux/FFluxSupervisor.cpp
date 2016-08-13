@@ -228,7 +228,7 @@ void FFluxSupervisor::addFFluxPhases(lm::fflux::input::FFluxStage* stage, FFPhas
         // set ffluxPhase values that depend on whether phaseIndex==0 or phaseIndex > 0
         if (i==0)
         {
-            ffluxPhase->set_trajectory_generation(FFPhaseEnums::EAGER);
+            ffluxPhase->set_trajectory_generation(FFPhaseEnums::LAZY);
         }
         else
         {
@@ -302,8 +302,15 @@ void FFluxSupervisor::buildFFluxPhaseLimitTrajectoriesToRun(lm::fflux::input::FF
         {
             if (ffluxPhaseLimit->stop_condition()==FFPhaseLimEnums::FORWARD_FLUXES)
             {
-//                ffluxPhaseLimit->set_events_per_trajectory(ffluxPhaseLimit->uvalue());
-                ffluxPhaseLimit->set_events_per_trajectory(ceilDiv(ffluxPhaseLimit->uvalue(), simulataneousActiveTrajectories));
+                if (ffluxPhase.trajectory_generation()==FFPhaseEnums::EAGER)
+                {
+                    ffluxPhaseLimit->set_events_per_trajectory(ceilDiv(ffluxPhaseLimit->uvalue(), simulataneousActiveTrajectories));
+//                    ffluxPhaseLimit->set_events_per_trajectory(-1);
+                }
+                else if (ffluxPhase.trajectory_generation()==FFPhaseEnums::LAZY)
+                {
+                    ffluxPhaseLimit->set_events_per_trajectory(ffluxPhaseLimit->uvalue());
+                }
             }
             else throw UnimplementedException("ffluxPhaseLimit->stop_condition()==TIME, ==TRAJECTORY_COUNT currently unimplemented for fflux phase 0");
         }
@@ -771,7 +778,6 @@ void FFluxSupervisor::buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg)
     // Set the maximum number of steps for the work unit.
     msg->set_max_steps(input->getStepsPerWorkUnit());
 }
-
 
 }
 }
