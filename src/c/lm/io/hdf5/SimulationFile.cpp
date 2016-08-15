@@ -348,22 +348,53 @@ herr_t Hdf5File::parseParameter(hid_t location_id, const char *attr_name, const 
         hid_t space;
         HDF5_EXCEPTION_CALL(space,H5Aget_space(attr));
 
-        // Create the memory datatype.
+        // hdf5 requires different handling for fixed and variable length string attributes
+        htri_t is_variable_len = H5Tis_variable_str(type);
+
         hid_t memtype;
-        HDF5_EXCEPTION_CALL(memtype,H5Tcopy(H5T_C_S1));
-        HDF5_EXCEPTION_CHECK(H5Tset_size(memtype, size));
+        char * value;
+        if (is_variable_len)
+        {
+            // Create the memory datatype.
+//            HDF5_EXCEPTION_CALL(memtype, H5Tcopy(H5T_C_S1));
+            HDF5_EXCEPTION_CALL(memtype, H5Tget_native_type(type, H5T_DIR_DEFAULT));
 
-        // Read the data.
-        char * value = new char[size];
-        HDF5_EXCEPTION_CHECK(H5Aread(attr, memtype, value));
+            // set the size to variable
+//            HDF5_EXCEPTION_CHECK(H5Tset_size(memtype, H5T_VARIABLE));
 
-        // Add the parameter to the map.
-        file->parameterMap[attr_name] = value;
+            // Read the data. For variable length strings, pass the output char array as a char**. Apparently H5Aread will also take care of allocation
+            HDF5_EXCEPTION_CHECK(H5Aread(attr, memtype, &value));
 
-        // Reclaim the memory.
-        delete [] value;
+            // Add the parameter to the map.
+            file->parameterMap[attr_name] = value;
+
+            // Reclaim the memory.
+            H5free_memory(value);
+        }
+        else
+        {
+            // Create the memory datatype.
+            HDF5_EXCEPTION_CALL(memtype, H5Tcopy(H5T_C_S1));
+
+            // set the fixed size
+            HDF5_EXCEPTION_CHECK(H5Tset_size(memtype, size));
+
+            // allocate space for the fixed string
+            value = new char[size];
+
+            // Read the data.
+            HDF5_EXCEPTION_CHECK(H5Aread(attr, memtype, value));
+
+            // Add the parameter to the map.
+            file->parameterMap[attr_name] = value;
+
+            // Reclaim the memory.
+            delete [] value;
+        }
+
         HDF5_EXCEPTION_CHECK(H5Sclose(space));
         HDF5_EXCEPTION_CHECK(H5Tclose(memtype));
+
     }
     HDF5_EXCEPTION_CHECK(H5Tclose(type));
     HDF5_EXCEPTION_CHECK(H5Aclose(attr));
