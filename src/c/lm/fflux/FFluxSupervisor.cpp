@@ -197,7 +197,7 @@ lm::fflux::input::FFluxStage* FFluxSupervisor::addPilotStage(lm::fflux::input::F
     pilotStage->mutable_tiling()->CopyFrom(productionStage->tiling());
     pilotStage->set_basin_index(productionStage->basin_index());
 
-    addFFluxPhases(pilotStage, FFPhaseEnums::LAZY, FFPhaseEnums::SIMPLE);
+    addFFluxPhases(pilotStage, FFPhaseEnums::LAZY, FFPhaseEnums::UNIFORM_RANDOM);
 
     addFFluxPhaseLimitsForPilotStage(pilotStage, FFPhaseLimEnums::FORWARD_FLUXES, input->ffluxOptions().pilot_stage_count()*100, input->ffluxOptions().pilot_stage_count());    // input->ffluxOptions().pilot_stage_count(), input->ffluxOptions().pilot_stage_count());
 
@@ -214,8 +214,6 @@ void FFluxSupervisor::addFFluxPhases(lm::fflux::input::FFluxStage* stage, FFPhas
         ffluxPhase->set_basin_index(stage->basin_index());
         ffluxPhase->set_tiling_id(stage->tiling().id());
 
-        ffluxPhase->set_trajectory_duplication(trajDuplication);
-
         stringstream outputPrefixSS;
         outputPrefixSS << "/FFluxOutput/Tilings/" << setfill('0') << setw(7) << stage->tiling().id();
         outputPrefixSS << "/Basins/" << setfill('0') << setw(7) << stage->tiling().current_basin_index();
@@ -228,10 +226,12 @@ void FFluxSupervisor::addFFluxPhases(lm::fflux::input::FFluxStage* stage, FFPhas
         // set ffluxPhase values that depend on whether phaseIndex==0 or phaseIndex > 0
         if (i==0)
         {
+            ffluxPhase->set_trajectory_duplication(FFPhaseEnums::NONE);
             ffluxPhase->set_trajectory_generation(FFPhaseEnums::LAZY);
         }
         else
         {
+            ffluxPhase->set_trajectory_duplication(trajDuplication);
             ffluxPhase->set_trajectory_generation(trajGeneration);
         }
     }

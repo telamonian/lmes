@@ -468,7 +468,7 @@ void OutputWriter::HelperThread::processGenericMessage(const google::protobuf::M
     offset+=snprintf(buffer+offset,MEBI-offset, data.DebugString().c_str());
     snprintf(buffer+offset,MEBI-offset,"--------------------------------------------------------------------------------");
 
-    Print::printf(Print::INFO, "ConsoleOutputWriter received %s:\n%s", data.GetDescriptor()->name().c_str(), buffer);
+    Print::printf(Print::INFO, "OutputWriter received %s:\n%s", data.GetDescriptor()->name().c_str(), buffer);
 }
 
 }

@@ -310,6 +310,13 @@ public:
         if (timeWrapForwardFlux.compressed_deflate()) delete[] timeDataForwardFlux;
     }
 
+    const EndPointVector::Pair& getEndPointCyclic(size_t index) const
+    {
+        // take the modulus of index to wrap it back around to somewhere within the bounds of endPointVector
+        index %= endPointVector.size();
+        return endPointVector[index];
+    }
+
     const EndPointVector::Pair& getEndPointUniformRandom() const
     {
         uint32_t ri = getRandomIndex();

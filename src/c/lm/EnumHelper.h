@@ -79,7 +79,7 @@ struct FFPhaseEnums {
 
     // TrajectoryDuplication enum values
     static const TrajectoryDuplication NONE = lm::fflux::input::FFluxPhase::NONE;
-    static const TrajectoryDuplication SIMPLE = lm::fflux::input::FFluxPhase::SIMPLE;
+    static const TrajectoryDuplication CYCLIC = lm::fflux::input::FFluxPhase::CYCLIC;
     static const TrajectoryDuplication UNIFORM_RANDOM = lm::fflux::input::FFluxPhase::UNIFORM_RANDOM;
     
     // TrajectoryGeneration enum values
