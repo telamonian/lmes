@@ -541,7 +541,7 @@ void printUsage(int argc, char** argv)
     std::cout << "OPTIONS" << std::endl;
     std::cout << "  -ff format        --output-format=format        The file format for the simulation output. Valid values are \"hdf5\" (default)|\"sfile\"|\"log\"|\"null\"." << std::endl;
     std::cout << "  -fo output_file   --output-file=output_filename The file for the simulation output, if different than the input file. Required for sfile, invalid for hdf5." << std::endl;
-    std::cout << "  -fp record_prefix --output-prefix=record_prefix The prefix to use for the record names. Optional for sfile output, invalid for hdf5." << std::endl;
+    std::cout << "  -fp record_prefix --output-prefix=record_prefix The prefix to use for the record names. Optional for sfile or hdf5 output." << std::endl;
     std::cout << "  -n node_file      --nodelist=node_file          A file containing the list of nodes on which to run, one line per available CPU core." << std::endl;
     std::cout << "  -m map_file       --resource-map=map_file       A file containing the map of resources to use: hostname processor_id_list gpu_id_list." << std::endl;
     std::cout << "  -c num_cpus       --cpu=num_cpus                The number of CPUs on which to execute (default all)." << std::endl;

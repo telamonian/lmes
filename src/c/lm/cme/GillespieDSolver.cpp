@@ -166,7 +166,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     vector<double> degreeAdvancementTimes;
     if (writeDegreeAdvancementTimeSeries)
     {
-        setInitialWriteInterval(degreeAdvancementWriteInterval, &nextDegreeAdvancementWriteTime, degreeAdvancements, reactionModel->numberReactions, &degreeAdvancementCounts, &degreeAdvancementTimes);
+        setInitialWriteInterval(degreeAdvancementWriteInterval, &nextDegreeAdvancementWriteTime, degreeAdvancements, numberDegreeAdvancements, &degreeAdvancementCounts, &degreeAdvancementTimes);
 //        if (not trajectoryStarted)
 //        {
 //            if (writeInitialTrajectoryState)
@@ -192,7 +192,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     vector<double> orderParameterTimeSeriesCounts, orderParameterTimeSeriesTimes;
     if (writeOrderParameterTimeSeries)
     {
-        setInitialWriteInterval(orderParameterWriteInterval, &nextOrderParameterWriteTime, orderParameterValues, reactionModel->numberReactions, &orderParameterTimeSeriesCounts, &orderParameterTimeSeriesTimes);
+        setInitialWriteInterval(orderParameterWriteInterval, &nextOrderParameterWriteTime, orderParameterValues, numberOrderParameters, &orderParameterTimeSeriesCounts, &orderParameterTimeSeriesTimes);
 //        nextOrderParameterWriteTime = ceil(time/orderParameterWriteInterval)*orderParameterWriteInterval;
     }
 
@@ -203,7 +203,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     // If we are writing time steps, create the data set.
     if (writeSpeciesTimeSeries)
     {
-        setInitialWriteInterval(speciesWriteInterval, &nextSpeciesWriteTime, speciesCounts, reactionModel->numberReactions, &speciesTimeSeriesCounts, &speciesTimeSeriesTimes);
+        setInitialWriteInterval(speciesWriteInterval, &nextSpeciesWriteTime, speciesCounts, reactionModel->numberSpecies, &speciesTimeSeriesCounts, &speciesTimeSeriesTimes);
 
 //        nextSpeciesWriteTime = ceil(time/speciesWriteInterval)*speciesWriteInterval;
         

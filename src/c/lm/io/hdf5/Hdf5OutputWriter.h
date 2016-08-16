@@ -81,6 +81,7 @@ protected:
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
     virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data);
 
+    virtual void setRecordNamePrefix();
     virtual void setRecordNamePrefix(const std::string& newRecordNamePrefix);
 
 private:

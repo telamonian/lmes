@@ -93,6 +93,9 @@ void Hdf5OutputWriter::initialize()
 
     // Open the file.
     file = new Hdf5File(outputFilename);
+
+    // set the record name prefix
+    setRecordNamePrefix();
 }
 
 void Hdf5OutputWriter::finalize()
@@ -206,13 +209,22 @@ void Hdf5OutputWriter::processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries&
 //    file->appendSpeciesTimeSeries(data.trajectory_id(), data);
 }
 
+void Hdf5OutputWriter::setRecordNamePrefix()
+{
+    // call the parent class method
+    OutputWriter::setRecordNamePrefix();
+
+    // call the hdf5 file class method
+    file->setRecordNamePrefix(recordNamePrefix);
+}
+
 void Hdf5OutputWriter::setRecordNamePrefix(const std::string& newRecordNamePrefix)
 {
     // call the parent class method
     OutputWriter::setRecordNamePrefix(newRecordNamePrefix);
 
     // call the hdf5 file class method
-    file->setRecordNamePrefix(newRecordNamePrefix);
+    file->setRecordNamePrefix(recordNamePrefix);
 }
 
 }

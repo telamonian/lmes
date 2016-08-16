@@ -101,6 +101,7 @@ protected:
     bool condenseOutput;
     std::string outputFilename;
     std::string recordNamePrefix;
+    std::string recordNamePrefixCurrent;
 
 private:
     lm::message::Communicator communicator;

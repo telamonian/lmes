@@ -103,8 +103,17 @@ bool isNotSlash(const char& c) {return c!='/';}
 
 string pathJoin(const vector<string>& pathElements, bool absolute)
 {
+    bool isAbsolute = false;
     stringstream ss;
-    for (vector<string>::const_iterator it=pathElements.begin();it!=pathElements.end();it++)
+    vector<string>::const_iterator it=pathElements.begin();
+
+    // find the first non-zero length string in the vector
+    while ((it!=pathElements.end()) and (it->size()==0)) it++;
+
+    // check to see if the first non-zero length element is already an absolute path
+    isAbsolute = ((*it)[0]=='/');
+
+    for (;it!=pathElements.end();it++)
     {
         // see http://stackoverflow.com/a/9359324/425458
         // By ending at the right iterator, we will do the equivalent of the rstrip operation...
@@ -118,7 +127,7 @@ string pathJoin(const vector<string>& pathElements, bool absolute)
 
     string joinedPath(ss.str());
     // the strip ops will have removed any leading "/", so if we want one add it back now
-    if (absolute and joinedPath.size() > 0 and isNotSlash(joinedPath[0])) joinedPath.insert(0, "/");
+    if ((absolute or isAbsolute) and joinedPath.size() > 0 and isNotSlash(joinedPath[0])) joinedPath.insert(0, "/");
 
     return joinedPath;
 }

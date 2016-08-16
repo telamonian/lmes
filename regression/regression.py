@@ -28,7 +28,7 @@ class Regression(object):
 
     def BuildLMArgs(self, kwargs):
         lmFlags = ('fflux', 'intout')
-        lmOptions = ('c', 'cr', 'gr', 'f', 'ff', 'fo', 'sl')
+        lmOptions = ('c', 'cr', 'gr', 'f', 'ff', 'fo', 'fp', 'sl')
 
         kwargs['lmArgs'] = ['-%s' % flag for flag in lmFlags if kwargs[flag]]
         kwargs['lmArgs']+=[tok for tup in ((option,val) for option,val in (('-%s' % option, kwargs[option]) for option in lmOptions) if val is not None) for tok in tup]
@@ -44,8 +44,13 @@ class Regression(object):
         cmdToks = [str(execPath)] + self.defaultLMArgs + lmArgs
         print_('running with:')
         print_(' '.join(cmdToks))
-        p = subprocess.Popen(cmdToks)
-        p.wait()
+        # p = subprocess.Popen(cmdToks)
+        # p.wait()
+
+        with subprocess.Popen(cmdToks, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True) as p:
+            for line in p.stdout:
+                print_(line, end='')
+            print_(p.communicate()[0], end='')
 
     def Main(self):
         kwargs = self.Parse()
@@ -66,6 +71,7 @@ class Regression(object):
                             default=self.defaultFinalInputPath,                          help='simulation input file path')
         parser.add_argument('-ff', '--output-format', dest='ff', default='hdf5',         help='output file format')
         parser.add_argument('-fo', '--output-file', dest='fo',                           help='path to output file')
+        parser.add_argument('-fp', '--output-prefix', dest='fp',                         help='The prefix to use for the record names')
         parser.add_argument('-sl', '--solver', dest='sl',
                             default='lm::avx::GillespieDSolverAVX',                      help='fully qualified c++ class name of solver to use during simulation. should be one of (lm::cme::GillespieDSolver | lm::avx::GillespieDSolverAVX)')
         parser.add_argument('-intout', '--intermediate-output',

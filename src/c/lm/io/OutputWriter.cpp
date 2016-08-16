@@ -240,14 +240,20 @@ int OutputWriter::run()
 
 void OutputWriter::setRecordNamePrefix()
 {
-    setRecordNamePrefix(recordNamePrefixGlobal);
+    if (recordNamePrefixGlobal!=recordNamePrefixCurrent)
+    {
+        recordNamePrefixCurrent = "";
+        recordNamePrefix = recordNamePrefixGlobal;
+        lm::Print::printf(Print::DEBUG, "Using record name prefix: %s", recordNamePrefix.c_str());
+    }
 }
 
 void OutputWriter::setRecordNamePrefix(const std::string& newRecordNamePrefix)
 {
-    if (newRecordNamePrefix!=recordNamePrefix)
+    if (newRecordNamePrefix!=recordNamePrefixCurrent)
     {
-        recordNamePrefix.assign(newRecordNamePrefix);
+        recordNamePrefixCurrent = newRecordNamePrefix;
+        recordNamePrefix.assign(pathJoin(recordNamePrefixGlobal, newRecordNamePrefix));
         lm::Print::printf(Print::DEBUG, "Using record name prefix: %s", recordNamePrefix.c_str());
     }
 }

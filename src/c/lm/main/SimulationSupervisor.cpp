@@ -568,6 +568,7 @@ void SimulationSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* new
 {
     if (trajectoryList != NULL)
     {
+        // If several phases end quickly back to back, it is possible for a finished phase to have no RUNNING trajectories but still have ABORTED ones, so we check for both
         if ((trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::ABORTED)->size() > 0) or \
             (trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::RUNNING)->size() > 0))
         {
