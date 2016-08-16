@@ -199,7 +199,7 @@ lm::fflux::input::FFluxStage* FFluxSupervisor::addPilotStage(lm::fflux::input::F
 
     addFFluxPhases(pilotStage, FFPhaseEnums::LAZY, FFPhaseEnums::UNIFORM_RANDOM);
 
-    addFFluxPhaseLimitsForPilotStage(pilotStage, FFPhaseLimEnums::FORWARD_FLUXES, input->ffluxOptions().pilot_stage_count()*100, input->ffluxOptions().pilot_stage_count());    // input->ffluxOptions().pilot_stage_count(), input->ffluxOptions().pilot_stage_count());
+    addFFluxPhaseLimitsForPilotStage(pilotStage, FFPhaseLimEnums::FORWARD_FLUXES, input->ffluxOptions().pilot_stage_count()*input->ffluxOptions().phase_zero_sampling_multiplier(), input->ffluxOptions().pilot_stage_count());    // input->ffluxOptions().pilot_stage_count(), input->ffluxOptions().pilot_stage_count());
 
     return pilotStage;
 }
@@ -375,11 +375,11 @@ void FFluxSupervisor::addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFlux
 
     // special treatment for phase zero
     // TODO: the phase zero step of the trajectory count optimization seems currently pretty fundamentaly flawed. For now we'll use a workaround.
-    lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit = buildFFluxPhaseLimit(productionStage->add_fflux_phase_limits(), FFPhaseLimEnums::FORWARD_FLUXES, input->ffluxOptions().pilot_stage_count()*100); //(*tc_it));
+    lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit = buildFFluxPhaseLimit(productionStage->add_fflux_phase_limits(), FFPhaseLimEnums::FORWARD_FLUXES, input->ffluxOptions().pilot_stage_count()*input->ffluxOptions().phase_zero_sampling_multiplier()); //(*tc_it));
     buildFFluxPhaseLimitTrajectoriesToRun(ffluxPhaseLimit, *ph_it, slots.getSimultaneousWorkUnits());
     tc_it++, ph_it++;
 
-    optimizationStatus << input->ffluxOptions().pilot_stage_count()*100;
+    optimizationStatus << input->ffluxOptions().pilot_stage_count()*input->ffluxOptions().phase_zero_sampling_multiplier();
 
     // all phases n>0
     for (;tc_it!=trajectoryCounts.end() and ph_it!=productionStage->fflux_phases().end();tc_it++, ph_it++)
@@ -543,10 +543,14 @@ bool FFluxSupervisor::terminateSimulationPhase()
             simulationPhaseTerminated = (currentFFluxPhaseOutputWrapPtr->wrappedMsg()->successful_trajectories_launched_count()>=mutableCurrentPhaseLimit()->uvalue());
             break;
         case FFPhaseLimEnums::TRAJECTORY_COUNT:
-            simulationPhaseTerminated = (currentFFluxPhaseOutputWrapPtr->wrappedMsg()->successful_trajectories_launched_count() + currentFFluxPhaseOutputWrapPtr->wrappedMsg()->failed_trajectories_launched_count()>=mutableCurrentPhaseLimit()->uvalue());
+            // all phases during a forward flux simulation need to record at least one forward crossing or else it can't continue
+            simulationPhaseTerminated = ((currentFFluxPhaseOutputWrapPtr->wrappedMsg()->successful_trajectories_launched_count() > 0) and \
+                                         (currentFFluxPhaseOutputWrapPtr->wrappedMsg()->successful_trajectories_launched_count() + currentFFluxPhaseOutputWrapPtr->wrappedMsg()->failed_trajectories_launched_count()>=mutableCurrentPhaseLimit()->uvalue()));
             break;
         case FFPhaseLimEnums::TIME:
-            simulationPhaseTerminated = (currentFFluxPhaseOutputWrapPtr->wrappedMsg()->successful_trajectories_launched_total_time() + currentFFluxPhaseOutputWrapPtr->wrappedMsg()->failed_trajectories_launched_total_time()>=mutableCurrentPhaseLimit()->dvalue());
+            // all phases during a forward flux simulation need to record at least one forward crossing or else it can't continue
+            simulationPhaseTerminated = ((currentFFluxPhaseOutputWrapPtr->wrappedMsg()->successful_trajectories_launched_count() > 0) and \
+                                         (currentFFluxPhaseOutputWrapPtr->wrappedMsg()->successful_trajectories_launched_total_time() + currentFFluxPhaseOutputWrapPtr->wrappedMsg()->failed_trajectories_launched_total_time()>=mutableCurrentPhaseLimit()->dvalue()));
             break;
         default: throw UnimplementedException("unimplemented");
         }

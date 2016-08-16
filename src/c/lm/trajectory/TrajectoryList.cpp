@@ -297,6 +297,7 @@ void TrajectoryList::takeTrajectories(TrajectoryList* srcTrajList, Trajectory::S
     // By copying the trajectory pointers into this instance's primary trajectories map (and by erasing it from the src's trajectories) we have taken ownership of the pointed-to-trajectories' memory
     for (TrajectoryMap::iterator it=srcMap->begin();it!=srcMap->end();it++)
     {
+//        printf("trajID: %d, srcStatus: %s, newStatus: %s\n", it->first, Trajectory::status_strings[srcStatus].c_str(), Trajectory::status_strings[newStatus].c_str());
         trajectories[it->first] = it->second;
         (*dstMap)[it->first] = it->second;
         it->second->setStatus(newStatus);
@@ -391,6 +392,7 @@ void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& fwuMs
         if (abortedTrajectories.count(*it) == 1)
         {
             deleteTrajectory(*it);
+//            printf("trajID: %llu deleted\n", *it);
         }
     }
 }

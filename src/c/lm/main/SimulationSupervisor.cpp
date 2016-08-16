@@ -568,7 +568,8 @@ void SimulationSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* new
 {
     if (trajectoryList != NULL)
     {
-        if (trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::RUNNING)->size() > 0)
+        if ((trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::ABORTED)->size() > 0) or \
+            (trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::RUNNING)->size() > 0))
         {
             // If the simulation phase was ever forcibly terminated, make sure we clean up any running trajectories appropriately
             if (simulationPhaseEverTerminated)
@@ -578,7 +579,7 @@ void SimulationSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* new
                 newTrajectoryList->takeTrajectories(trajectoryList, lm::trajectory::Trajectory::RUNNING, lm::trajectory::Trajectory::ABORTED);
                 newTrajectoryList->takeWorkUnitsRunning(trajectoryList);
             }
-                // Otherwise, the default supervisor behavior is to throw an exception if there are trajectories still running at the end of a phase
+            // Otherwise, the default supervisor behavior is to throw an exception if there are trajectories still running at the end of a phase
             else
             {
                 throw ConsistencyException("At end of simulation phase, there were %d trajectories still running (should be 0)", trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::RUNNING)->size());

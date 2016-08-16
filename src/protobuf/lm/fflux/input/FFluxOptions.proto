@@ -72,6 +72,7 @@ message FFluxOptions {
      * - number of samples to take during each phase in a pilot stage
      */
     optional uint32 pilot_stage_count        = 21 [default=1000];
+
     /*
      * - number of samples (ie edge 0 crossings) to throw out from each phase zero trajectory before starting to collect production data
      */
@@ -81,4 +82,10 @@ message FFluxOptions {
     optional bool phase_output         = 32 [default=false];
     optional bool stage_output_raw     = 33 [default=false];
     optional bool stage_output_summary = 34 [default=true];
+
+    /*
+     * - temporary workaround for increasing sampling during phase zero while the details of phase zero optimization are worked out
+     */
+    optional uint32 phase_zero_sampling_multiplier        = 41 [default=100];
+
 }
