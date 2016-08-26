@@ -468,13 +468,20 @@ int OutputWriter::HelperThread::run()
 
 void OutputWriter::HelperThread::processGenericMessage(const google::protobuf::Message& data)
 {
-    memset(buffer, 0, MEBI+1);
+    stringstream debugSS;
+    debugSS << "--------------------------------------------------------------------------------\n";
+    debugSS << data.DebugString();
+    debugSS << "--------------------------------------------------------------------------------";
 
-    int offset=snprintf(buffer,MEBI,"--------------------------------------------------------------------------------\n");
-    offset+=snprintf(buffer+offset,MEBI-offset, data.DebugString().c_str());
-    snprintf(buffer+offset,MEBI-offset,"--------------------------------------------------------------------------------");
+    Print::printf(Print::INFO, "OutputWriter received %s:\n%s", data.GetDescriptor()->name().c_str(), debugSS.str().c_str());
 
-    Print::printf(Print::INFO, "OutputWriter received %s:\n%s", data.GetDescriptor()->name().c_str(), buffer);
+//    memset(buffer, 0, MEBI+1);
+//
+//    int offset=snprintf(buffer,MEBI,"--------------------------------------------------------------------------------\n");
+//    offset+=snprintf(buffer+offset,MEBI-offset, data.DebugString().c_str());
+//    snprintf(buffer+offset,MEBI-offset,"--------------------------------------------------------------------------------");
+//
+//    Print::printf(Print::INFO, "OutputWriter received %s:\n%s", data.GetDescriptor()->name().c_str(), buffer);
 }
 
 }

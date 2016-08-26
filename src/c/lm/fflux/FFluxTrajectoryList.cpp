@@ -115,6 +115,10 @@ FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationP
 
 uint64_t FFluxTrajectoryList::getTrajectoriesToStart(const FFluxPhase& ffluxPhase, const FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousWorkUnits)
 {
+    uint64_t toStart;
+    uint64_t multiplier = 1;
+    uint64_t simulataneousActiveTrajectories = simultaneousWorkUnits*ffluxPhase.batch_size();
+
     if (ffluxPhase.trajectory_generation()==FFPhaseEnums::EAGER)
     {
         // EAGER is only implemented for certain ffluxPhaseLimit.stop_condition() values
@@ -123,21 +127,23 @@ uint64_t FFluxTrajectoryList::getTrajectoriesToStart(const FFluxPhase& ffluxPhas
             if (ffluxPhaseLimit.has_events_per_trajectory())
             {
                 // given that our trajectory limits are set up to observe x events per trajectory, run ceil(y/x) trajectories to ensure that we observe at least y events total
-                return (uint64_t)ceil(ffluxPhaseLimit.uvalue()/(double)ffluxPhaseLimit.events_per_trajectory());
+                toStart = (uint64_t)ceil(ffluxPhaseLimit.uvalue()/(double)ffluxPhaseLimit.events_per_trajectory());
             }
             else
             {
                 // in this case assume that we want to observe the maximum number of events per trajectory, so just run enough trajectories for one "round" (ie one trajectory per work unit runner)
-                return simultaneousWorkUnits*ffluxPhase.batch_size();
+                toStart = simulataneousActiveTrajectories;
             }
         }
         else throw UnimplementedException("In Forward Flux phase %d, ffluxPhase.trajectory_generation()==EAGER is only implemented for certain ffluxPhaseLimit.stop_condition() values (ie those that let us calculate the necessary trajectory count up front). Attempting to use unimplemented ffluxPhaseLimit.stop_condition(): %s", ffluxPhase.fflux_phase_index(), FFPhaseLimEnums::StopCondition_Name(ffluxPhaseLimit.stop_condition()).c_str());
     }
     else if (ffluxPhase.trajectory_generation()==FFPhaseEnums::LAZY)
     {
-        return simultaneousWorkUnits*ffluxPhase.batch_size();
+        toStart = simulataneousActiveTrajectories;
     }
     else throw UnimplementedException("unimplemented");
+
+    return multiplier*toStart;
 }
 
 void FFluxTrajectoryList::workUnitPartFinished(const message::WorkUnitStatus& wusMsg, lm::trajectory::Trajectory* traj)
@@ -145,21 +151,28 @@ void FFluxTrajectoryList::workUnitPartFinished(const message::WorkUnitStatus& wu
     // Call the base class method.
     lm::trajectory::TrajectoryList::workUnitPartFinished(wusMsg, traj);
 
-    // clear out any limit tracking time series data. prevents a major slowdown on long runs
-    limitTrackingListWrap.setWrappedMsg(traj->getStateMutable()->mutable_limit_tracking_list());
-    limitTrackingListWrap.clearStateData();
-
     // If the work unit stopped because it hit a terminating limit...
     if (wusMsg.status()==lm::message::WorkUnitStatus::LIMIT_REACHED)
     {
-        // FFluxSupervisor will have already extracted the necessary information, so delete the trajectory
-        deleteTrajectory(traj->getID());
-
-        // If the phase "plan" calls for it, generate a replacement trajectory
+        // FFluxSupervisor will have already extracted the necessary information, so we need to dispose of the trajectory here
         if (ffluxPhase.trajectory_generation()==FFPhaseEnums::LAZY)
         {
-            initTrajectories(1);
+            // If the phase "plan" calls for it, generate a replacement trajectory by recycling the old one
+            recycleFFluxTrajectory(traj);
         }
+        else
+        {
+
+//            initTrajectories(1);
+            // otherwise just delete the trajectory
+            deleteTrajectory(traj->getID());
+        }
+    }
+    else if (ffluxPhase.fflux_phase_index()==0)
+    {
+        // clear out any limit tracking time series data. prevents a major slowdown on long runs
+        limitTrackingListWrap.setWrappedMsg(traj->getStateMutable()->mutable_limit_tracking_list());
+        limitTrackingListWrap.clearTimeSeriesData();
     }
 }
 
@@ -182,13 +195,36 @@ void FFluxTrajectoryList::initTrajectories(uint64_t trajectoriesToStart)
     }
 }
 
+void FFluxTrajectoryList::recycleFFluxTrajectory(lm::trajectory::Trajectory* traj)
+{
+    limitTrackingListWrap.setWrappedMsg(traj->getStateMutable()->mutable_limit_tracking_list());
+    limitTrackingListWrap.clearStateData();
+
+    traj->clearLimitReached();
+
+    switch(ffluxPhase.trajectory_duplication())
+    {
+    case FFPhaseEnums::NONE:
+        // do nothing
+        break;
+    case FFPhaseEnums::CYCLIC:
+        // initialize trajectories by cycling through EndPoints from a previous phase
+        recycleTrajectoryCyclic(traj->getID());
+        break;
+    case FFPhaseEnums::UNIFORM_RANDOM:
+        // initialize trajectories based on randomly selected EndPoints from a previous phase
+        recycleTrajectoryUniformRandom(traj->getID());
+        break;
+    default: throw UnimplementedException("Unimplemented");
+    }
+}
+
 void FFluxTrajectoryList::initTrajectoriesCyclic(uint64_t trajectoriesToStart)
 {
     for (uint64_t i=0;i<trajectoriesToStart;i++)
     {
-        const lm::protowrap::EndPointVector::Pair& endPointPair(previousPhaseOutputPtr->getEndPointCyclic(cyclicCounter));
+        const lm::protowrap::EndPointVector::Pair& endPointPair(previousPhaseOutputPtr->getEndPointCyclic(cyclicCounter++));
         initTrajectory(input, endPointPair.first->species_coordinates().begin(), endPointPair.first->species_coordinates().end(), endPointPair.first->times(endPointPair.second), simulationPhaseIndex(), DEFAULT_TRAJECTORY_ID);
-        cyclicCounter++;
     }
 }
 
@@ -196,9 +232,25 @@ void FFluxTrajectoryList::initTrajectoriesUniformRandom(uint64_t trajectoriesToS
 {
     for (uint64_t i=0;i<trajectoriesToStart;i++)
     {
+        PROF_BEGIN(PROF_TRAJECTORY_LIST_WORK_UNIT_FINISHED_ONE);
         const lm::protowrap::EndPointVector::Pair& endPointPair(previousPhaseOutputPtr->getEndPointUniformRandom());
+        PROF_END(PROF_TRAJECTORY_LIST_WORK_UNIT_FINISHED_ONE);
+
+        PROF_BEGIN(PROF_TRAJECTORY_LIST_WORK_UNIT_FINISHED_TWO);
         initTrajectory(input, endPointPair.first->species_coordinates().begin(), endPointPair.first->species_coordinates().end(), endPointPair.first->times(endPointPair.second), simulationPhaseIndex(), DEFAULT_TRAJECTORY_ID);
+        PROF_END(PROF_TRAJECTORY_LIST_WORK_UNIT_FINISHED_TWO);
     }
+}
+
+lm::trajectory::Trajectory* FFluxTrajectoryList::recycleTrajectoryCyclic(uint64_t oldID)
+{
+    const lm::protowrap::EndPointVector::Pair& endPointPair(previousPhaseOutputPtr->getEndPointCyclic(cyclicCounter++));
+    return recycleTrajectory(endPointPair.first->species_coordinates().begin(), endPointPair.first->species_coordinates().end(), endPointPair.first->times(endPointPair.second), oldID, DEFAULT_TRAJECTORY_ID);
+}
+lm::trajectory::Trajectory* FFluxTrajectoryList::recycleTrajectoryUniformRandom(uint64_t oldID)
+{
+    const lm::protowrap::EndPointVector::Pair& endPointPair(previousPhaseOutputPtr->getEndPointUniformRandom());
+    return recycleTrajectory(endPointPair.first->species_coordinates().begin(), endPointPair.first->species_coordinates().end(), endPointPair.first->times(endPointPair.second), oldID, DEFAULT_TRAJECTORY_ID);
 }
 
 }

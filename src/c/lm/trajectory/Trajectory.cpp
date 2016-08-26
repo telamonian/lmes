@@ -367,6 +367,11 @@ void Trajectory::setID(uint64_t newID)
 
     if (state.mutable_cme_state()->has_degree_advancements()) state.mutable_cme_state()->mutable_degree_advancements()->set_trajectory_id(newID);
     if (state.mutable_cme_state()->has_order_parameter_values()) state.mutable_cme_state()->mutable_order_parameter_values()->set_trajectory_id(newID);
+
+    for (int i=0; i<state.limit_tracking_list().limit_trackings_size(); i++)
+    {
+        state.mutable_limit_tracking_list()->mutable_limit_trackings(i)->set_trajectory_id(newID);
+    }
 }
 
 void Trajectory::setLimitReached(const lm::input::TrajectoryLimit& limitBuf)

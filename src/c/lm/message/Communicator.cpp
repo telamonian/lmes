@@ -140,6 +140,8 @@ void Communicator::sendMessage(int destProcess, int destThread, lm::message::Mes
 
 void Communicator::sendMessage(Endpoint dest, lm::message::Message* msg, int sleepMilliseconds) const
 {
+    sleepMilliseconds = 0;
+
     PROF_BEGIN(PROF_MESSAGE_SEND);
 
     // Set the message values.
@@ -201,6 +203,8 @@ void Communicator::setMasterOutputEndpoint(int moProcess, int moThread)
 
 void Communicator::receiveMessage(lm::message::Message* msg, int sleepMilliseconds) const
 {
+    sleepMilliseconds = 0;
+
     PROF_BEGIN(PROF_MESSAGE_RECEIVE);
 
     // Receive the data.

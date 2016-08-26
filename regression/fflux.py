@@ -24,7 +24,9 @@ class FFluxRegression(ReplicateRegression):
                                            "ffluxPilotOutput": False,
                                            "ffluxPhaseOutput": False,
                                            "ffluxStageOutputRaw": True,
-                                           "ffluxStageOutputSummary": True}
+                                           "ffluxStageOutputSummary": True,
+                                           'phaseZeroSamplingMultiplier': 1,
+                                           'ffluxMinimizeCost': False,}
         else:
             defaultSimulationParameters = {"precisionGoal": .05,
                                            "precisionGoalConfidence": .95,
@@ -32,11 +34,16 @@ class FFluxRegression(ReplicateRegression):
                                            "ffluxPilotOutput": False,
                                            "ffluxPhaseOutput": False,
                                            "ffluxStageOutputRaw": False,
-                                           "ffluxStageOutputSummary": True}
+                                           "ffluxStageOutputSummary": True,
+                                           'phaseZeroSamplingMultiplier': 1,
+                                           'ffluxMinimizeCost': False,}
 
         ffluxInput = Input('biphasic_switch.lm')
 
         simParams = [SimulationParameter(key=key, val=str(kwargs.get(key, defaultValue))) for key,defaultValue in defaultSimulationParameters.items()]
+
+        simParamKeysToUnset = ['writeInterval']
+        simParamsToUnset = [SimulationParameter(key=key, val=None) for key in simParamKeysToUnset if key not in kwargs]
 
         tilings = [
             Tiling(id=0,
@@ -84,6 +91,7 @@ class FFluxRegression(ReplicateRegression):
         ffluxInput.AddTilings(tilings=tilings, currentTilingID=0)
         ffluxInput.AddBasins(basins=basins)
         ffluxInput.SetSimulationParameters(simParams=simParams)
+        ffluxInput.UnsetSimulationParameters(simParams=simParamsToUnset)
         ffluxInput.Close()
 
 if __name__=='__main__':

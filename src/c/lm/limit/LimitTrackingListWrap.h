@@ -69,6 +69,15 @@ public:
         }
     }
 
+    inline void clearTimeSeriesData()
+    {
+        for (lm::protowrap::Repeated<lm::io::LimitTracking>::iterator it=mutable_limit_trackings()->begin();it!=mutable_limit_trackings()->end();it++)
+        {
+            limitTrackingWrap.setWrappedMsg(&*it);
+            limitTrackingWrap.clearTimeSeriesData();
+        }
+    }
+
     inline void deserializeMetadataTo(TrackingMap* ltMap) const
     {
         for (lm::protowrap::Repeated<lm::io::LimitTracking>::const_iterator it=limit_trackings().begin(); it!=limit_trackings().end(); ++it)

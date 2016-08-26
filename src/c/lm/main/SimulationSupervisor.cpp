@@ -66,6 +66,8 @@
 #include "lm/resource/ResourceMap.h"
 #include "lm/slot/Slot.h"
 #include "lm/slot/SlotList.h"
+#include "lptf/profile.h"
+#include "lptf/profileCodes.h"
 
 using lm::resource::ComputeResources;
 using lm::resource::ResourceMap;
@@ -354,11 +356,19 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
     for (int i=0; i<msg.part_status_size(); i++)
         stats_workUnitsParts++;
 
+    PROF_BEGIN(PROF_TRAJECTORY_LIST_WORK_UNIT_FINISHED);
+
     // Update the trajectory list.
     trajectoryList->workUnitFinished(msg);
 
+    PROF_END(PROF_TRAJECTORY_LIST_WORK_UNIT_FINISHED);
+
+    PROF_BEGIN(PROF_SLOTS_WORK_UNIT_FINISHED);
+
     // Update the slots list.
     slots.workUnitFinished(msg);
+
+    PROF_END(PROF_SLOTS_WORK_UNIT_FINISHED);
 
     // If we are not performing a checkpoint, distribute more work.
     if (!performingCheckpoint)

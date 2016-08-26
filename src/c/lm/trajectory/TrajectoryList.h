@@ -83,7 +83,7 @@ public:
     // construct Trajectory from a range of species count values (and optionally a starting time) and add it to the internal list
     template <typename InputIterator> Trajectory* initTrajectory(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd, double startTime, uint64_t phase, uint64_t id=DEFAULT_TRAJECTORY_ID)
     {
-        return initTrajectory(new Trajectory(input, speciesStart, speciesEnd, startTime, phase, id));
+        return initTrajectory(new Trajectory(input, speciesStart, speciesEnd, startTime, phase, resolveTrajectoryID(id)));
     }
 
 // destroyer
@@ -113,12 +113,19 @@ public:
     virtual void copyWorkUnitsRunning(const TrajectoryList& srcTrajList);
     virtual Trajectory* getTrajectoryForFinishedWorkUnit(uint64_t id);
     virtual TrajectoryMap* getTrajectoryMap(Trajectory::Status status);
+    template <typename InputIterator> Trajectory* recycleTrajectory(InputIterator speciesStart, InputIterator speciesEnd, double startTime, uint64_t oldID, uint64_t newID)
+    {
+        Trajectory* traj = trajectories[oldID];
+        newID = resolveTrajectoryID(newID);
+
+        setTrajectoryID(traj, newID, Trajectory::NOT_STARTED);
+        traj->recycle(speciesStart, speciesEnd, startTime, newID);
+
+        return traj;
+    }
+    virtual uint64_t resolveTrajectoryID(uint64_t newID);
     virtual void setSimulationPhaseIndex(uint64_t newPhaseIx) {_simulationPhaseIndex = newPhaseIx;}
     virtual void setAll(Trajectory::Status oldStatus, Trajectory::Status newStatus);
-    virtual void setTrajectoryAborted(lm::trajectory::Trajectory* traj) {setTrajectoryStatus(traj, abortedTrajectories, Trajectory::ABORTED);}
-    virtual void setTrajectoryFinished(lm::trajectory::Trajectory* traj) {setTrajectoryStatus(traj, finishedTrajectories, Trajectory::FINISHED);}
-    virtual void setTrajectoryRunning(lm::trajectory::Trajectory* traj) {setTrajectoryStatus(traj, runningTrajectories, Trajectory::RUNNING);}
-    virtual void setTrajectoryWaiting(lm::trajectory::Trajectory* traj) {setTrajectoryStatus(traj, waitingTrajectories, Trajectory::WAITING);}
     virtual void takeTrajectories(TrajectoryList* srcTrajList, Trajectory::Status status, Trajectory::Status newStatus);
     virtual void takeWorkUnitsRunning(TrajectoryList* srcTrajList);
     virtual void workUnitFinished(const lm::message::FinishedWorkUnit& fwuMsg);
@@ -132,7 +139,10 @@ protected:
     virtual void printTrajectoryStatistics() const {};
 
 // mutators
-    virtual void setTrajectoryStatus(lm::trajectory::Trajectory* traj, TrajectoryMap& trajMap, Trajectory::Status newStatus);
+    virtual Trajectory* eraseTrajectoryID(uint64_t id);
+    virtual Trajectory* eraseTrajectoryIDFromSublists(uint64_t id);
+    virtual void setTrajectoryID(lm::trajectory::Trajectory* traj, uint64_t newID, Trajectory::Status newStatus);
+    virtual void setTrajectoryStatus(lm::trajectory::Trajectory* traj, Trajectory::Status newStatus);
 
 protected:
     uint64_t _count;

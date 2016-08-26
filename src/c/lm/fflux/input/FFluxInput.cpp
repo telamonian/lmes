@@ -88,16 +88,23 @@ void FFluxInput::init(const lm::io::hdf5::Hdf5File& file)
 // Get the Forward Flux specific options.
 void FFluxInput::initFFluxOptions(const lm::io::hdf5::Hdf5File& file)
 {
+    parseAndSet("batchSize", &FFluxOptions::set_batch_size, _ffluxOptions);
+
     parseAndSet("precisionGoal", &FFluxOptions::set_precision_goal, _ffluxOptions);
     parseAndSet("precisionGoalConfidence", &FFluxOptions::set_precision_goal_confidence, _ffluxOptions);
 
     parseAndSet("pilotStageCount", &FFluxOptions::set_pilot_stage_count, _ffluxOptions);
     parseAndSet("phaseZeroBurnInCount", &FFluxOptions::set_phase_zero_burn_in_count, _ffluxOptions);
 
+    // TODO: figure out phase zero and remove this
+    parseAndSet("phaseZeroSamplingMultiplier", &FFluxOptions::set_phase_zero_sampling_multiplier, _ffluxOptions);
+
     parseAndSet("ffluxPilotOutput", &FFluxOptions::set_pilot_stage_output, _ffluxOptions);
     parseAndSet("ffluxPhaseOutput", &FFluxOptions::set_phase_output, _ffluxOptions);
     parseAndSet("ffluxStageOutputRaw", &FFluxOptions::set_stage_output_raw, _ffluxOptions);
     parseAndSet("ffluxStageOutputSummary", &FFluxOptions::set_stage_output_summary, _ffluxOptions);
+
+    parseAndSet("ffluxMinimizeCost", &FFluxOptions::set_minimize_cost, _ffluxOptions);
 
     // if we haven't gotten a precisionGoal or any user defined phase limits, explicitly set precisionGoal so that hasPrecisionGoal() returns true
     if ((not hasPrecisionGoal()) and (not hasUserDefinedFFluxPhaseLimitLists()))

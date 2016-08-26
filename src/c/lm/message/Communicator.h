@@ -87,6 +87,7 @@ protected:
     void initBuffers();
 
 protected:
+    // the protobuf message size limit (currently 64*MIBI) is set at compile time (for the protobuf lib itself) via the kDefaultTotalBytesLimit const var in google/protobuf/io/coded_stream.h.
     int inputBufferSize;
     int outputBufferSize;
 

@@ -380,7 +380,7 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
 
     // Validate the state.
     if (!state.has_cme_state()) throw Exception("State object does not contain the necessary data to initialize the solver.");
-    if (state.cme_state().species_counts().number_species() != (int)reactionModel->numberSpecies) throw Exception("State object and reaction model have differing species count",state.cme_state().species_counts().number_species(),reactionModel->numberSpecies);
+    if (state.cme_state().species_counts().number_species() != (int)reactionModel->numberSpecies) throw Exception("State object and reaction model have differing number of species",state.cme_state().species_counts().number_species(),reactionModel->numberSpecies);
     if (state.cme_state().species_counts().number_entries() != 1 || state.cme_state().species_counts().species_count_size() != (int)reactionModel->numberSpecies || state.cme_state().species_counts().time_size() != 1) throw Exception("State object has too many entries",state.cme_state().species_counts().number_entries());
 
     // Set the degree advancements.
@@ -435,18 +435,18 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
     }
 
 //    // Set the order parameter values.
-    for (int i=0; i<state.cme_state().order_parameter_values().order_parameter_values_size(); i++)
-    {
-        orderParameterValues[i] = state.cme_state().order_parameter_values().order_parameter_values(i);
-        orderParameterPreviousValues[i] = orderParameterValues[i];
-    }
-
-    // Set the order parameters.
-//    for (int i=0; i<numberOrderParameters; i++)
+//    for (int i=0; i<state.cme_state().order_parameter_values().order_parameter_values_size(); i++)
 //    {
-//        orderParameterValues[i] = orderParameterFunctions[i]->calculate(time, speciesCounts, reactionModel->numberSpecies);
+//        orderParameterValues[i] = state.cme_state().order_parameter_values().order_parameter_values(i);
 //        orderParameterPreviousValues[i] = orderParameterValues[i];
 //    }
+
+    // Set the order parameters.
+    for (int i=0; i<numberOrderParameters; i++)
+    {
+        orderParameterValues[i] = orderParameterFunctions[i]->calculate(time, speciesCounts, reactionModel->numberSpecies);
+        orderParameterPreviousValues[i] = orderParameterValues[i];
+    }
 
     // Set the species counts.
     for (int i=0; i<state.cme_state().species_counts().species_count_size(); i++)

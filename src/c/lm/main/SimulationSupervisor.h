@@ -177,7 +177,7 @@ protected:
     bool useCPUAffinity;
     long long workUnitCount;
 
-private:
+protected:
     hrtime stats_lastPrintTime;
     long long stats_workUnits;
     long long stats_workUnitsParts;

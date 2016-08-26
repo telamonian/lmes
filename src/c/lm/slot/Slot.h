@@ -78,6 +78,7 @@ protected:
     Status status;
     lm::resource::ComputeResources resources;
     lm::message::Endpoint workUnitRunnerEndpoint;
+	// the value in this attribute ultimately comes from solver->getSimultaneousTrajectories(). See WorkUnitRunner::run() for details (look for "msg->set_simultaneous_work_units(solver->getSimultaneousTrajectories());")
     uint simultaneousWorkUnits;
 
 	long long stats_workUnits;

@@ -72,6 +72,12 @@ public:
 public:
     inline void clearStateData()
     {
+        clear_count();
+        clearTimeSeriesData();
+    }
+
+    inline void clearTimeSeriesData()
+    {
         clear_degree_advancements();
         clear_order_parameter_values();
         clear_species_counts();

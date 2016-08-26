@@ -91,17 +91,18 @@ protected:
     // setup methods that run at the start of every fflux stage
     virtual void startSimulationStage();
     virtual void addFFluxStageOutput();
-    template <typename Value> lm::fflux::input::FFluxPhaseLimit* buildFFluxPhaseLimit(lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit, FFPhaseLimEnums::StopCondition stopCondition, Value value);
+    template <typename Value> lm::fflux::input::FFluxPhaseLimit* buildFFluxPhaseLimit(lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit, const lm::fflux::input::FFluxPhase& ffluxPhase, FFPhaseLimEnums::StopCondition stopCondition, Value value);
     template <typename Value> void addFFluxPhaseLimitsForPilotStage(lm::fflux::input::FFluxStage* stage, FFPhaseLimEnums::StopCondition stopCondition, Value phaseZeroValue, Value value);
     // TODO: spin this function off as part of an FFluxPhase wrapper
+    static void buildFFluxPhaseLimitEventsPerTrajectory(lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit, const lm::fflux::input::FFluxPhase& ffluxPhase, uint simultaneousWorkUnits);
     static void buildFFluxPhaseLimitTrajectoriesToRun(lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit, const lm::fflux::input::FFluxPhase& ffluxPhase, uint simultaneousWorkUnits);
     void repeatFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage, const lm::fflux::input::FFluxPhaseLimit& limitToRepeat);
 //    template <typename ValueT> void repeatFFluxPhaseLimits(lm::protowrap::Repeated<lm::fflux::input::FFluxPhaseLimit>::iterator begin, const lm::fflux::input::FFluxPhaseLimit& limitToRepeat);
     virtual void addFFluxPhaseLimitsFromInput(lm::fflux::input::FFluxStage* productionStage);
-    virtual void addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::protowrap::FFluxStageOutputWrap& stageOutput, bool minimizeCost=true);
+    virtual void addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::protowrap::FFluxStageOutputWrap& stageOutput, bool minimizeCost);
 
     // the functions where all the computational cost minimization magic happens
-    inline static std::vector<uint64_t> optimizeTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const lm::protowrap::FFluxStageOutputSummaryWrap& stageOutputSummary, uint64_t minimumCount, bool minimizeCost=true);
+    inline static std::vector<uint64_t> optimizeTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const lm::protowrap::FFluxStageOutputSummaryWrap& stageOutputSummary, uint64_t minimumCount, bool minimizeCost);
     inline static std::vector<uint64_t> minimizeCostTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const std::vector<double>& probabilities, const std::vector<double>& costs);
     inline static std::vector<uint64_t> minimizeCountTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const std::vector<double>& probabilities);
     inline static std::valarray<double> getConstantFactors(const std::vector<double>& probabilities);
@@ -121,6 +122,9 @@ protected:
     virtual void finishSimulationStage();
     virtual bool performAnotherSimulationStage() {return not isCurrentStageLast();}
     virtual void incrementSimulationStage();
+
+    // methods that handle setting up RunWorkUnit messages
+    virtual void buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint minWorkUnits);
 
     // methods that handle FinishedWorkUnit messages
     virtual void receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg);

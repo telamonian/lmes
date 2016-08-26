@@ -105,6 +105,15 @@ public:
     virtual int32_t* getLastSpeciesCountsMutable();
     virtual lm::io::TrajectoryState* getStateMutable();
     virtual void incrementWorkUnitsPerformed();
+    template <typename InputIterator> void recycle(InputIterator speciesStart, InputIterator speciesEnd, double startTime, uint64_t newID)
+    {
+        id = newID;
+        numberWorkUnitsPerformed = 0;
+        state.set_trajectory_id(id);
+        state.set_trajectory_started(false);
+
+        initializeSpeciesCounts(speciesStart, speciesEnd, startTime);
+    }
     virtual void resetSimTime();
     virtual void setID(uint64_t trajectoryID);
     virtual void setLimitReached(const lm::input::TrajectoryLimit& limitBuf);
@@ -115,23 +124,31 @@ protected:
     // initializers
     virtual void initializeState();
     virtual void initializeSpeciesCounts(const lm::input::Input& input, bool reversed=false);
-    template <typename InputIterator> void initializeSpeciesCounts(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd, double startTime=0.0)
+    template <typename InputIterator> void initializeSpeciesCounts(InputIterator speciesStart, InputIterator speciesEnd, double startTime)
     {
         lm::io::SpeciesCounts* sc = state.mutable_cme_state()->mutable_species_counts();
         sc->set_trajectory_id(id);
         sc->set_number_entries(1);
+
+        sc->clear_species_count();
         for (;speciesStart!=speciesEnd;speciesStart++)
         {
             sc->add_species_count(*speciesStart);
         }
         sc->set_number_species(sc->species_count_size());
+
+        sc->clear_time();
         sc->add_time(startTime);
+    }
+    template <typename InputIterator> void initializeSpeciesCounts(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd, double startTime)
+    {
+        initializeSpeciesCounts(speciesStart, speciesEnd, startTime);
 
         // if we have a reactionModel, check that it's consistent with the size of the range we used for the species counts
         if (input.hasReactionModel())
         {
             const lm::input::ReactionModel& reactionModel = input.getReactionModelMsg();
-            if (sc->number_species()!=reactionModel.number_species()) throw ConsistencyException("Assigned %d species to initial state of trajectory %llu via a range, but there are only %d species in the reaction model", sc->number_species(), id, reactionModel.number_species());
+            if (state.cme_state().species_counts().number_species()!=reactionModel.number_species()) throw ConsistencyException("Assigned %d species to initial state of trajectory %llu via a range, but there are %d species in the reaction model", state.cme_state().species_counts().number_species(), id, reactionModel.number_species());
         }
     }
     virtual void init(const lm::input::Input& input);

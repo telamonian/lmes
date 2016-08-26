@@ -54,6 +54,8 @@
 #include "lm/trajectory/Trajectory.h"
 #include "lm/trajectory/TrajectoryList.h"
 #include "lm/Types.h"
+#include "lptf/profile.h"
+#include "lptf/profileCodes.h"
 
 using lm::input::DiffusionModel;
 using lm::input::ReactionModel;
@@ -109,11 +111,12 @@ void TrajectoryList::init(const TrajectoryList& previousList)
 
 Trajectory* TrajectoryList::initTrajectory(Trajectory* allocatedTrajectory)
 {
+//    uint64_t oldID = allocatedTrajectory->getID();
+//    uint64_t newID = resolveTrajectoryID(oldID);
+//    if (oldID!=newID) {allocatedTrajectory->setID(newID);}
+    
     uint64_t id = allocatedTrajectory->getID();
-
-    // if the new Trajectory's id has been left as the default, initialize the id via count
-    if (id==DEFAULT_TRAJECTORY_ID) {id = _count++; allocatedTrajectory->setID(id);}
-
+    
     trajectories[id] = allocatedTrajectory;
     waitingTrajectories[id] = trajectories[id];
 
@@ -122,12 +125,12 @@ Trajectory* TrajectoryList::initTrajectory(Trajectory* allocatedTrajectory)
 
 Trajectory* TrajectoryList::initTrajectory(const lm::input::Input& input, uint64_t phase, uint64_t id)
 {
-    return initTrajectory(new Trajectory(input, phase, id));
+    return initTrajectory(new Trajectory(input, phase, resolveTrajectoryID(id)));
 }
 
 Trajectory* TrajectoryList::initTrajectory(const lm::io::TrajectoryState& initialState, uint64_t phase, uint64_t id)
 {
-    return initTrajectory(new Trajectory(initialState, phase, id));
+    return initTrajectory(new Trajectory(initialState, phase, resolveTrajectoryID(id)));
 }
 
 // destroyer
@@ -160,13 +163,16 @@ void TrajectoryList::deleteTrajectory(uint64_t id)
 {
     if (trajectories.count(id))
     {
-        delete trajectories[id];
-        trajectories[id] = NULL;
-        trajectories.erase(id);
-        abortedTrajectories.erase(id);
-        finishedTrajectories.erase(id);
-        runningTrajectories.erase(id);
-        waitingTrajectories.erase(id);
+        Trajectory* traj = eraseTrajectoryID(id);
+        delete traj;
+
+//        delete trajectories[id];
+//        trajectories[id] = NULL;
+//        trajectories.erase(id);
+//        abortedTrajectories.erase(id);
+//        finishedTrajectories.erase(id);
+//        runningTrajectories.erase(id);
+//        waitingTrajectories.erase(id);
     }
 }
 
@@ -182,7 +188,7 @@ const TrajectoryMap& TrajectoryList::getTrajectoryMap(Trajectory::Status status)
     {
     case Trajectory::ABORTED: return abortedTrajectories;
     case Trajectory::FINISHED: return finishedTrajectories;
-    case Trajectory::NOT_STARTED: throw Exception("unimplemented");
+    case Trajectory::NOT_STARTED: return waitingTrajectories;
     case Trajectory::RUNNING: return runningTrajectories;
     case Trajectory::WAITING: return waitingTrajectories;
     }
@@ -210,7 +216,7 @@ int TrajectoryList::addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUn
 
             // Move it to the running list.
             trajectoriesAdded.push_back(id);
-            setTrajectoryRunning(t);
+            setTrajectoryStatus(t, Trajectory::RUNNING);
 
             // Fill in the message.
             lm::message::WorkUnit* wu = msg->add_part();
@@ -246,6 +252,30 @@ void TrajectoryList::copyWorkUnitsRunning(const TrajectoryList& srcTrajList)
     }
 }
 
+Trajectory* TrajectoryList::eraseTrajectoryID(uint64_t id)
+{
+    Trajectory* traj = eraseTrajectoryIDFromSublists(id);
+    trajectories.erase(id);
+
+    return traj;
+}
+
+Trajectory* TrajectoryList::eraseTrajectoryIDFromSublists(uint64_t id)
+{
+    Trajectory* traj = trajectories[id];
+
+    switch (traj->getStatus())
+    {
+    case Trajectory::ABORTED: abortedTrajectories.erase(id); break;
+    case Trajectory::FINISHED: finishedTrajectories.erase(id); break;
+    case Trajectory::NOT_STARTED: waitingTrajectories.erase(id); break;
+    case Trajectory::RUNNING: runningTrajectories.erase(id); break;
+    case Trajectory::WAITING: waitingTrajectories.erase(id); break;
+    }
+
+    return traj;
+}
+
 Trajectory* TrajectoryList::getTrajectoryForFinishedWorkUnit(uint64_t id)
 {
     Trajectory* t;
@@ -275,6 +305,13 @@ Trajectory* TrajectoryList::getTrajectoryForFinishedWorkUnit(uint64_t id)
 TrajectoryMap* TrajectoryList::getTrajectoryMap(Trajectory::Status status)
 {
     return const_cast<TrajectoryMap*>(&const_cast<const TrajectoryList*>(this)->getTrajectoryMap(status));
+}
+
+uint64_t TrajectoryList::resolveTrajectoryID(uint64_t newID)
+{
+    // if the new Trajectory id has been left as the default, resolve the id to the TrajectoryList's _count attribute
+    if (newID==DEFAULT_TRAJECTORY_ID) {return _count++;}
+    else                              {return newID;}
 }
 
 void TrajectoryList::setAll(Trajectory::Status oldStatus, Trajectory::Status newStatus)
@@ -320,11 +357,11 @@ void TrajectoryList::workUnitPartFinished(const lm::message::WorkUnitStatus& wus
     // Update the status of the trajectory and move it to the appropriate internal TrajectoryMap
     if (wusBuf.status() == lm::message::WorkUnitStatus::STEPS_FINISHED)
     {
-        setTrajectoryWaiting(traj);
+        setTrajectoryStatus(traj, Trajectory::WAITING);
     }
     else if (wusBuf.status() == lm::message::WorkUnitStatus::LIMIT_REACHED)
     {
-        setTrajectoryFinished(traj);
+        setTrajectoryStatus(traj, Trajectory::FINISHED);
     }
     else if (wusBuf.status() == lm::message::WorkUnitStatus::ERROR)
     {
@@ -373,6 +410,7 @@ void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& fwuMs
         int partIndex=-1;
         for (int i=0; i<fwuMsg.part_status_size(); i++)
         {
+//            printf("id in fwu: %d\n", fwuMsg.part_status(i).final_state().trajectory_id());
             if (fwuMsg.part_status(i).final_state().trajectory_id() == id)
             {
                 partIndex = i;
@@ -380,7 +418,7 @@ void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& fwuMs
             }
         }
         if (partIndex == -1)
-            throw ConsistencyException("Consistency error in trajectory list, could not find trajectory id in work units finished",id);
+            throw ConsistencyException("Consistency error in trajectory list, trajectory id: %d was part of work unit id: %d, but was not found in corresponding FinishedWorkUnit message", id, workUnitId);
 
         workUnitPartFinished(fwuMsg.part_status(partIndex), t);
     }
@@ -417,16 +455,23 @@ bool TrajectoryList::isTrajectoryInMap(lm::trajectory::Trajectory* traj, const T
 }
 
 // protected mutators
-void TrajectoryList::setTrajectoryStatus(lm::trajectory::Trajectory* traj, TrajectoryMap& trajMap, Trajectory::Status newStatus)
+void TrajectoryList::setTrajectoryID(lm::trajectory::Trajectory* traj, uint64_t newID, Trajectory::Status newStatus)
 {
-    traj->setStatus(newStatus);
+    eraseTrajectoryID(traj->getID());
 
+    traj->setID(newID);
+    trajectories[newID] = traj;
+
+    traj->setStatus(newStatus);
+    (*getTrajectoryMap(newStatus))[newID] = traj;
+}
+
+void TrajectoryList::setTrajectoryStatus(lm::trajectory::Trajectory* traj, Trajectory::Status newStatus)
+{
     uint64_t id = traj->getID();
-    if (abortedTrajectories.count(id)) abortedTrajectories.erase(id);
-    if (finishedTrajectories.count(id)) finishedTrajectories.erase(id);
-    if (runningTrajectories.count(id)) runningTrajectories.erase(id);
-    if (waitingTrajectories.count(id)) waitingTrajectories.erase(id);
-    trajMap[id] = traj;
+    eraseTrajectoryIDFromSublists(id);
+    traj->setStatus(newStatus);
+    (*getTrajectoryMap(newStatus))[id] = traj;
 }
 
 

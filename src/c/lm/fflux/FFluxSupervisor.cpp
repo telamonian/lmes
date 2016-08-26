@@ -70,6 +70,8 @@
 #include "lm/resource/ResourceMap.h"
 #include "lm/tiling/Tiling.h"
 #include "lm/VectorMath.h"
+#include "lptf/profile.h"
+#include "lptf/profileCodes.h"
 
 using lm::protowrap::Repeated;
 using lm::resource::ResourceMap;
@@ -199,7 +201,7 @@ lm::fflux::input::FFluxStage* FFluxSupervisor::addPilotStage(lm::fflux::input::F
 
     addFFluxPhases(pilotStage, FFPhaseEnums::LAZY, FFPhaseEnums::UNIFORM_RANDOM);
 
-    addFFluxPhaseLimitsForPilotStage(pilotStage, FFPhaseLimEnums::FORWARD_FLUXES, input->ffluxOptions().pilot_stage_count()*input->ffluxOptions().phase_zero_sampling_multiplier(), input->ffluxOptions().pilot_stage_count());    // input->ffluxOptions().pilot_stage_count(), input->ffluxOptions().pilot_stage_count());
+    addFFluxPhaseLimitsForPilotStage(pilotStage, FFPhaseLimEnums::FORWARD_FLUXES, 2*input->ffluxOptions().pilot_stage_count(), input->ffluxOptions().pilot_stage_count());    //input->ffluxOptions().pilot_stage_count()*input->ffluxOptions().phase_zero_sampling_multiplier(), input->ffluxOptions().pilot_stage_count());
 
     return pilotStage;
 }
@@ -221,16 +223,18 @@ void FFluxSupervisor::addFFluxPhases(lm::fflux::input::FFluxStage* stage, FFPhas
         input->reinitOutputOptions(outputPrefixSS.str());
         ffluxPhase->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());
 
-        ffluxPhase->set_batch_size(1);
-
         // set ffluxPhase values that depend on whether phaseIndex==0 or phaseIndex > 0
         if (i==0)
         {
+            ffluxPhase->set_batch_size(1);
             ffluxPhase->set_trajectory_duplication(FFPhaseEnums::NONE);
             ffluxPhase->set_trajectory_generation(FFPhaseEnums::LAZY);
         }
         else
         {
+            ////TEMPSTART
+            ffluxPhase->set_batch_size(200); //(input->ffluxOptions().batch_size());
+            ////TEMPSTOP
             ffluxPhase->set_trajectory_duplication(trajDuplication);
             ffluxPhase->set_trajectory_generation(trajGeneration);
         }
@@ -245,7 +249,7 @@ void FFluxSupervisor::startSimulationStage()
     // set the ffluxPhaseLimits for this stage, if it hasn't already been taken care of somehow
     if (currentStage().has_pilot_stage() and currentStage().fflux_phase_limits_size()==0)
     {
-        addFFluxPhaseLimitsFromStageOutput(mutableCurrentStage(), currentStageOutput());
+        addFFluxPhaseLimitsFromStageOutput(mutableCurrentStage(), currentStageOutput(), input->ffluxOptions().minimize_cost());
     }
 
     // add a new stage output
@@ -277,9 +281,20 @@ void FFluxSupervisor::addFFluxStageOutput()
 }
 
 template <typename Value>
-lm::fflux::input::FFluxPhaseLimit* FFluxSupervisor::buildFFluxPhaseLimit(lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit, FFPhaseLimEnums::StopCondition stopCondition, Value value)
+lm::fflux::input::FFluxPhaseLimit* FFluxSupervisor::buildFFluxPhaseLimit(lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit, const lm::fflux::input::FFluxPhase& ffluxPhase, FFPhaseLimEnums::StopCondition stopCondition, Value value)
 {
     ffluxPhaseLimit->set_stop_condition(stopCondition);
+
+    ////TEMPSTART
+    if (ffluxPhase.fflux_phase_index()==1)
+    {
+        value = 10000;
+    }
+    else
+    {
+        value = 100;
+    }
+    ////TEMPSTOP
 
     switch (stopCondition)
     {
@@ -288,10 +303,12 @@ lm::fflux::input::FFluxPhaseLimit* FFluxSupervisor::buildFFluxPhaseLimit(lm::ffl
     case FFPhaseLimEnums::TIME: ffluxPhaseLimit->set_dvalue(value); break;
     }
 
+    buildFFluxPhaseLimitTrajectoriesToRun(ffluxPhaseLimit, ffluxPhase, slots.getSimultaneousWorkUnits());
+
     return ffluxPhaseLimit;
 }
 
-void FFluxSupervisor::buildFFluxPhaseLimitTrajectoriesToRun(lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit, const lm::fflux::input::FFluxPhase& ffluxPhase, uint simultaneousWorkUnits)
+void FFluxSupervisor::buildFFluxPhaseLimitEventsPerTrajectory(lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit, const lm::fflux::input::FFluxPhase& ffluxPhase, uint simultaneousWorkUnits)
 {
     uint64_t simulataneousActiveTrajectories = simultaneousWorkUnits*ffluxPhase.batch_size();
 
@@ -319,6 +336,14 @@ void FFluxSupervisor::buildFFluxPhaseLimitTrajectoriesToRun(lm::fflux::input::FF
             ffluxPhaseLimit->set_events_per_trajectory(1);
         }
     }
+}
+
+void FFluxSupervisor::buildFFluxPhaseLimitTrajectoriesToRun(lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit, const lm::fflux::input::FFluxPhase& ffluxPhase, uint simultaneousWorkUnits)
+{
+    // builds the events_per_trajectory field for this limit if it hasn't already been set
+    buildFFluxPhaseLimitEventsPerTrajectory(ffluxPhaseLimit, ffluxPhase, simultaneousWorkUnits);
+
+    uint64_t simulataneousActiveTrajectories = simultaneousWorkUnits*ffluxPhase.batch_size();
 
     if (ffluxPhase.trajectory_generation()==FFPhaseEnums::EAGER)
     {
@@ -342,14 +367,12 @@ void FFluxSupervisor::addFFluxPhaseLimitsForPilotStage(lm::fflux::input::FFluxSt
 {
     // special handling for phase zero
     FFluxPhasesWrap::const_iterator it=stage->fflux_phases().begin();
-    lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit = buildFFluxPhaseLimit(stage->add_fflux_phase_limits(), stopCondition, phaseZeroValue);
-    buildFFluxPhaseLimitTrajectoriesToRun(ffluxPhaseLimit, *it, slots.getSimultaneousWorkUnits());
+    buildFFluxPhaseLimit(stage->add_fflux_phase_limits(), *it, stopCondition, phaseZeroValue);
     it++;
 
     for (;it!=stage->fflux_phases().end();it++)
     {
-        ffluxPhaseLimit = buildFFluxPhaseLimit(stage->add_fflux_phase_limits(), stopCondition, value);
-        buildFFluxPhaseLimitTrajectoriesToRun(ffluxPhaseLimit, *it, slots.getSimultaneousWorkUnits());
+        buildFFluxPhaseLimit(stage->add_fflux_phase_limits(), *it, stopCondition, value);
     }
 }
 
@@ -375,17 +398,16 @@ void FFluxSupervisor::addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFlux
 
     // special treatment for phase zero
     // TODO: the phase zero step of the trajectory count optimization seems currently pretty fundamentaly flawed. For now we'll use a workaround.
-    lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit = buildFFluxPhaseLimit(productionStage->add_fflux_phase_limits(), FFPhaseLimEnums::FORWARD_FLUXES, input->ffluxOptions().pilot_stage_count()*input->ffluxOptions().phase_zero_sampling_multiplier()); //(*tc_it));
-    buildFFluxPhaseLimitTrajectoriesToRun(ffluxPhaseLimit, *ph_it, slots.getSimultaneousWorkUnits());
+    buildFFluxPhaseLimit(productionStage->add_fflux_phase_limits(), *ph_it, FFPhaseLimEnums::FORWARD_FLUXES, *tc_it); //input->ffluxOptions().pilot_stage_count()*input->ffluxOptions().phase_zero_sampling_multiplier());
+
+    optimizationStatus << *tc_it; //input->ffluxOptions().pilot_stage_count()*input->ffluxOptions().phase_zero_sampling_multiplier();
     tc_it++, ph_it++;
 
-    optimizationStatus << input->ffluxOptions().pilot_stage_count()*input->ffluxOptions().phase_zero_sampling_multiplier();
 
     // all phases n>0
     for (;tc_it!=trajectoryCounts.end() and ph_it!=productionStage->fflux_phases().end();tc_it++, ph_it++)
     {
-        ffluxPhaseLimit = buildFFluxPhaseLimit(productionStage->add_fflux_phase_limits(), FFPhaseLimEnums::TRAJECTORY_COUNT, *tc_it);
-        buildFFluxPhaseLimitTrajectoriesToRun(ffluxPhaseLimit, *ph_it, slots.getSimultaneousWorkUnits());
+        buildFFluxPhaseLimit(productionStage->add_fflux_phase_limits(), *ph_it, FFPhaseLimEnums::TRAJECTORY_COUNT, *tc_it);
 
         optimizationStatus << ", " << *tc_it;
     }
@@ -406,6 +428,10 @@ void FFluxSupervisor::repeatFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage
 vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const lm::protowrap::FFluxStageOutputSummaryWrap& stageOutputSummary, uint64_t minimumCount, bool minimizeCost)
 {
     vector<double> probabilities(stageOutputSummary.probabilities().begin(), stageOutputSummary.probabilities().end());
+
+    // make estimates more conservative by adjusting probabilities downward based on std err
+    probabilities = probabilities - (normalZ(.99)/1000)*((1 - probabilities)*probabilities);
+
 
     vector<uint64_t> trajectoryCounts;
     if (minimizeCost)
@@ -460,7 +486,7 @@ valarray<double> FFluxSupervisor::getConstantFactors(const vector<double>& proba
     constantFactors = (1.0 - constantFactors)/constantFactors;
 
     // ignore the probability from phase zero, store 1.0
-    constantFactors[0] = 1.0;
+    constantFactors[0] = 2.0;
 
 ////     for now, skip the phase zero part
 //    constantFactors[0] = 0.0;
@@ -661,17 +687,82 @@ void FFluxSupervisor::incrementSimulationStage()
     currentFFluxStageIter++;
 }
 
+// methods that handle setting up RunWorkUnit messages
+void FFluxSupervisor::buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint minWorkUnits)
+{
+    trajectoryList->addWorkUnitParts(msg->work_unit_id(), msg, minWorkUnits*currentPhase().batch_size());
+
+    // Set the limit tracking messages, if any
+    input->copyLimitTrackingsTo(msg);
+}
+
 // methods that handle FinishedWorkUnit messages
+//void FFluxSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg)
+//{
+//    // If we are not performing a checkpoint, distribute more work.
+//    if (!performingCheckpoint)
+//    {
+//        // Fill the newly freed slot with a work unit. If there are more trajectories than slots, this is guaranteed to use the slot we just freed. Otherwise it will be the "coldest" (longest unoccupied) slot
+//        if (terminateSimulationPhase() || assignWork())
+//        {
+//            finishSimulationPhase();
+//        }
+//    }
+//    // Otherwise, see if all outstanding work units have finished.
+//    else if (!slots.hasBusySlots())
+//    {
+//        Print::printf(Print::INFO, "Creating a checkpoint, pausing work.");
+//
+//        // Send a message to the output writer to save a checkpoint. Calling .mutable_perform_checkpointing() initializes the message
+//        lm::message::Message msgp;
+//        msgp.mutable_perform_checkpointing();
+//        communicator.sendMessage(outputWriterProcess, outputWriterThread, &msgp);
+//    }
+//
+//    Print::printf(Print::VERBOSE_DEBUG, "Work unit %d finished in %0.3f s.",msg.work_unit_id(),msg.run_time());
+//
+//    // deal with the individual parts of the work unit at the fflux supervisor level
+//    for (int i=0;i<msg.part_status_size();i++)
+//    {
+//        receivedFinishedWorkUnitPart(msg.part_status(i));
+//    }
+//
+//    // collect global performance stats for printPerformanceStatistics
+//    stats_workUnits++;
+//    stats_minWorkUnitId = std::min(stats_minWorkUnitId,(long long)msg.work_unit_id());
+//    stats_maxWorkUnitId = std::max(stats_maxWorkUnitId,(long long)msg.work_unit_id());
+//    stats_workUnitsSteps += msg.steps();
+//    stats_workUnitTime += msg.run_time();
+//    for (int i=0; i<msg.part_status_size(); i++)
+//        stats_workUnitsParts++;
+//
+//    // Update the trajectory list.
+//    trajectoryList->workUnitFinished(msg);
+//
+//    // Update the slots list.
+//    slots.workUnitFinished(msg);
+//}
+
 void FFluxSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg)
 {
+    PROF_BEGIN(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT);
+
     // deal with the individual parts of the work unit at the fflux supervisor level
     for (int i=0;i<msg.part_status_size();i++)
     {
         receivedFinishedWorkUnitPart(msg.part_status(i));
     }
 
+//    // If the phase "plan" calls for it, generate replacement trajectories
+//    if (currentFFluxPhaseIter->trajectory_generation()==FFPhaseEnums::LAZY)
+//    {
+//        trajectoryList->initTrajectories(msg.part_status_size());
+//    }
+
     // call the base class function
     lm::main::SimulationSupervisor::receivedFinishedWorkUnit(msg);
+
+    PROF_END(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT);
 }
 
 void FFluxSupervisor::receivedFinishedWorkUnitPart(const lm::message::WorkUnitStatus& wusMsg)
@@ -680,12 +771,32 @@ void FFluxSupervisor::receivedFinishedWorkUnitPart(const lm::message::WorkUnitSt
     {
         if (currentFFluxPhaseIndex()==0)
         {
+            PROF_BEGIN(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_ZERO);
+
             receivedFinishedWorkUnitPartPhaseZero(wusMsg);
+
+            PROF_END(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_ZERO);
         }
         else if (wusMsg.status()==lm::message::WorkUnitStatus::LIMIT_REACHED)
         {
-            // update the phase output
-            currentFFluxPhaseOutputWrapPtr->addEndPoint(wusMsg.final_state(), *trajectoryList->getTrajectoryForFinishedWorkUnit(wusMsg.final_state().trajectory_id()));
+            if (currentFFluxPhaseIndex()==1)
+            {
+                PROF_BEGIN(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_ONE);
+
+                // update the phase output
+                currentFFluxPhaseOutputWrapPtr->addEndPoint(wusMsg.final_state(), *trajectoryList->getTrajectoryForFinishedWorkUnit(wusMsg.final_state().trajectory_id()));
+
+                PROF_END(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_ONE);
+            }
+            else
+            {
+                PROF_BEGIN(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_N);
+
+                // update the phase output
+                currentFFluxPhaseOutputWrapPtr->addEndPoint(wusMsg.final_state(), *trajectoryList->getTrajectoryForFinishedWorkUnit(wusMsg.final_state().trajectory_id()));
+
+                PROF_END(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_N);
+            }
         }
     }
 }

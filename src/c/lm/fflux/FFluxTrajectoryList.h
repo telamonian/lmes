@@ -89,15 +89,20 @@ public:
     // accessors
     static uint64_t getTrajectoriesToStart(const lm::fflux::input::FFluxPhase& ffluxPhase, const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousWorkUnits);
 
+    // mutators
+    virtual void initTrajectories(uint64_t trajectoriesToStart);
+    virtual void recycleFFluxTrajectory(lm::trajectory::Trajectory* traj);
+
 protected:
     // initializers
     template <typename InputIterator> lm::trajectory::Trajectory* initFFluxPhaseZeroTrajectory(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd, double startTime, uint64_t phase, uint64_t id=DEFAULT_TRAJECTORY_ID)
     {
-        return initTrajectory(new lm::fflux::FFluxPhaseZeroTrajectory(input, speciesStart, speciesEnd, startTime, phase, id));
+        return initTrajectory(new lm::fflux::FFluxPhaseZeroTrajectory(input, speciesStart, speciesEnd, startTime, phase, resolveTrajectoryID(id)));
     }
-    virtual void initTrajectories(uint64_t trajectoriesToStart);
     virtual void initTrajectoriesCyclic(uint64_t trajectoriesToStart);
     virtual void initTrajectoriesUniformRandom(uint64_t trajectoriesToStart);
+    virtual lm::trajectory::Trajectory* recycleTrajectoryCyclic(uint64_t oldID);
+    virtual lm::trajectory::Trajectory* recycleTrajectoryUniformRandom(uint64_t oldID);
 
 protected:
     const lm::fflux::input::FFluxInput& input;

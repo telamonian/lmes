@@ -209,6 +209,8 @@ int WorkUnitRunner::run()
 
 void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
 {
+    PROF_BEGIN(PROF_WUR_RUN_WORK_UNITS);
+
     // Tell the supervisor the work unit is started.
     lm::message::Message handshakeMsg;
     lm::message::StartedWorkUnit* swuMsg = handshakeMsg.mutable_started_work_unit();
@@ -246,10 +248,14 @@ void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
             solver->setState(rwuMsg.part(i+j).initial_state(), j);
         }
 
+        PROF_BEGIN(PROF_WUR_GENERATE_TRAJECTORY);
+
         // Run the work unit.
         hrtime t1=getHrTime();
         totalSteps += solver->generateTrajectory(rwuMsg.max_steps());
         totalTime += getHrTime()-t1;
+
+        PROF_END(PROF_WUR_GENERATE_TRAJECTORY);
 
         // Create the status for this part.
         for (int j=0; j<solver->getSimultaneousTrajectories() && (i+j)<rwuMsg.part_size(); j++)
@@ -265,6 +271,8 @@ void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
     fwuMsg->set_steps(totalSteps);
     fwuMsg->set_run_time(convertHrToSeconds(totalTime));
     communicator.sendMessage(rwuMsg.supervisor_process(), rwuMsg.supervisor_thread(), &finalStateMsg);
+
+    PROF_END(PROF_WUR_RUN_WORK_UNITS);
 }
 
 }

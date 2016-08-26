@@ -91,11 +91,15 @@ class Regression(object):
         parser.add_argument('-psc', '--pilotStageCount', default=SUPPRESS,               help='fixed number of trajectories to launch during each phase of the pilot stage for FFPilot')
         parser.add_argument('-pg', '--precisionGoal', default=SUPPRESS,                  help='precision goal for FFPilot')
         parser.add_argument('-pgc', '--precisionGoalConfidence', default=SUPPRESS,       help='confidence level for precision goal for FFPilot')
+        parser.add_argument('--ffluxPilotOutput', action='store_true',                   help='turn on the output of data for the FFPilot pilot stage as well as the production stage')
+        parser.add_argument('--ffluxPhaseOutput', action='store_true',                   help='turn on the output of data for each phase in FFPilot')
+        parser.add_argument('--ffluxStageOutputRaw', action='store_false',               help='turn off the output of the complete detailed data from each stage in FFPilot')
+        parser.add_argument('--ffluxStageOutputSummary', action='store_false',           help='turn off the output of a summary of the data from each stage in FFPilot')
 
         # replicate specific simulation parameters
         parser.add_argument('-fpt', '--firstPassageTimeSpecies', action='store_true',    help='set this flag to track species first passage times')
         parser.add_argument('-fptop', '--firstPassageTimeOrderParameters',
-                                action='store_true',                                     help='set this flag to track order parameter first passage times')
+                            action='store_true',                                         help='set this flag to track order parameter first passage times')
         parser.add_argument('--maxSteps', default=SUPPRESS,                              help='max number of steps to run for a single replicate')
         parser.add_argument('--maxTime', default=SUPPRESS,                               help='max time to run for a single replicate')
 

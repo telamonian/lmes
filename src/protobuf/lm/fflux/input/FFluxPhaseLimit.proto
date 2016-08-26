@@ -51,13 +51,13 @@ message FFluxPhaseLimit {
         TIME=2;
     }
 
-    optional StopCondition stop_condition  = 1 [default=FORWARD_FLUXES];
+    optional StopCondition stop_condition  = 11 [default=FORWARD_FLUXES];
 
-    optional uint64 events_per_trajectory  = 11;
-    optional uint64 trajectories_per_phase = 12;
+    optional uint64 events_per_trajectory  = 21;
+    optional uint64 trajectories_per_phase = 22;
 
-    optional double dvalue                 = 21;
-    optional uint64 uvalue                 = 22;
+    optional double dvalue                 = 31;
+    optional uint64 uvalue                 = 32;
 }
 
 message FFluxPhaseLimitList {
