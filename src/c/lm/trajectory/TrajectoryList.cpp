@@ -332,14 +332,16 @@ void TrajectoryList::takeTrajectories(TrajectoryList* srcTrajList, Trajectory::S
     TrajectoryMap* srcMap = srcTrajList->getTrajectoryMap(srcStatus);
 
     // By copying the trajectory pointers into this instance's primary trajectories map (and by erasing it from the src's trajectories) we have taken ownership of the pointed-to-trajectories' memory
-    for (TrajectoryMap::iterator it=srcMap->begin();it!=srcMap->end();it++)
+    TrajectoryMap::iterator it=srcMap->begin();
+    while (it!=srcMap->end())
     {
         trajectories[it->first] = it->second;
         (*dstMap)[it->first] = it->second;
         it->second->setStatus(newStatus);
 
         srcTrajList->trajectories.erase(it->first);
-        srcMap->erase(it);
+        // erasing the map entry invalidates the iterator, so increment before erasing (via postcrement, which is confusing)
+        srcMap->erase(it++);
     }
 }
 
