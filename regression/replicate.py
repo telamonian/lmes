@@ -54,13 +54,31 @@ class ReplicateRegression(Regression):
                                speciesIDs=[3,4,5],
                                speciesCoefficients=[1,2,2])]
 
-        productionConstants = [ReactionRateConstant(reactionID=4, rateConstant=1.0*theta),
-                               ReactionRateConstant(reactionID=5, rateConstant=1.0*theta),
-                               ReactionRateConstant(reactionID=11, rateConstant=1.0*theta),
-                               ReactionRateConstant(reactionID=12, rateConstant=1.0*theta)]
-        degradationConstants = [ReactionRateConstant(reactionID=6, rateConstant=.25*theta),
-                                ReactionRateConstant(reactionID=13, rateConstant=.25*theta)]
-        reactionRateConstants = productionConstants + degradationConstants
+        psi = .03333
+        reactionDict = {'dimerization_a':      {'reactionID': 0, 'rateConstant': 5.0},
+                        'dedimerization_a':    {'reactionID': 1, 'rateConstant': 5.0},
+                        'opbinding_a':         {'reactionID': 2, 'rateConstant': 5.0*psi},
+                        'opunbinding_a':       {'reactionID': 3, 'rateConstant': 1.0*psi},
+                        'boundproduction_a':   {'reactionID': 4, 'rateConstant': 1.0*theta},
+                        'unboundproduction_a': {'reactionID': 5, 'rateConstant': 1.0*theta},
+                        'degradation_a':       {'reactionID': 6, 'rateConstant': 0.25*theta},
+                        'dimerization_b':      {'reactionID': 7, 'rateConstant': 5.0},
+                        'dedimerization_b':    {'reactionID': 8, 'rateConstant': 5.0},
+                        'opbinding_b':         {'reactionID': 9, 'rateConstant': 5.0*psi},
+                        'opunbinding_b':       {'reactionID': 10, 'rateConstant': 1.0*psi},
+                        'boundproduction_b':   {'reactionID': 11, 'rateConstant': 1.0*theta},
+                        'unboundproduction_b': {'reactionID': 12, 'rateConstant': 1.0*theta},
+                        'degradation_b':       {'reactionID': 13, 'rateConstant': 0.25*theta}}
+
+        # productionConstants = [ReactionRateConstant(reactionID=4, rateConstant=1.0*theta),
+        #                        ReactionRateConstant(reactionID=5, rateConstant=1.0*theta),
+        #                        ReactionRateConstant(reactionID=11, rateConstant=1.0*theta),
+        #                        ReactionRateConstant(reactionID=12, rateConstant=1.0*theta)]
+        # degradationConstants = [ReactionRateConstant(reactionID=6, rateConstant=.25*theta),
+        #                         ReactionRateConstant(reactionID=13, rateConstant=.25*theta)]
+        # reactionRateConstants = productionConstants + degradationConstants
+
+        reactionRateConstants = [ReactionRateConstant(**d) for d in reactionDict.values()]
 
         replicateInput.SetInitialSpeciesCounts(iSCs=iSCs)
         replicateInput.SetOrderParameters(ops=ops)

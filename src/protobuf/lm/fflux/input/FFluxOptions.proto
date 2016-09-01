@@ -71,13 +71,13 @@ message FFluxOptions {
     /*
      * - number of samples to take during each phase in a pilot stage
      */
-    optional uint32 pilot_stage_count        = 21 [default=1000];
+    optional uint32 pilot_stage_count        = 21 [default=10000];
     /*
      * - number of trajectories to load into each work unit
      *     - doesn't apply to phase 0
      *     - will be overriden by slots.getSimultaneousWorkUnits() if batch size is smaller
      */
-    optional uint32 batch_size               = 22 [default=1];
+    optional uint32 batch_size               = 22 [default=100];
 
 
     /*

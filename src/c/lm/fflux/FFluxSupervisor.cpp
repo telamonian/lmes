@@ -232,9 +232,11 @@ void FFluxSupervisor::addFFluxPhases(lm::fflux::input::FFluxStage* stage, FFPhas
         }
         else
         {
-            ////TEMPSTART
-            ffluxPhase->set_batch_size(200); //(input->ffluxOptions().batch_size());
-            ////TEMPSTOP
+            ffluxPhase->set_batch_size(input->ffluxOptions().batch_size());
+
+//            ////TEMPSTART
+//            ffluxPhase->set_batch_size(1000); //(input->ffluxOptions().batch_size());
+//            ////TEMPSTOP
             ffluxPhase->set_trajectory_duplication(trajDuplication);
             ffluxPhase->set_trajectory_generation(trajGeneration);
         }
@@ -285,16 +287,16 @@ lm::fflux::input::FFluxPhaseLimit* FFluxSupervisor::buildFFluxPhaseLimit(lm::ffl
 {
     ffluxPhaseLimit->set_stop_condition(stopCondition);
 
-    ////TEMPSTART
-    if (ffluxPhase.fflux_phase_index()==1)
-    {
-        value = 10000;
-    }
-    else
-    {
-        value = 100;
-    }
-    ////TEMPSTOP
+//    ////TEMPSTART
+//    if (ffluxPhase.fflux_phase_index()==1)
+//    {
+//        value = 10000;
+//    }
+//    else
+//    {
+//        value = 100;
+//    }
+//    ////TEMPSTOP
 
     switch (stopCondition)
     {
@@ -427,11 +429,29 @@ void FFluxSupervisor::repeatFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage
 
 vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const lm::protowrap::FFluxStageOutputSummaryWrap& stageOutputSummary, uint64_t minimumCount, bool minimizeCost)
 {
-    vector<double> probabilities(stageOutputSummary.probabilities().begin(), stageOutputSummary.probabilities().end());
+//    vector<double> probabilities(stageOutputSummary.probabilities().begin(), stageOutputSummary.probabilities().end());
+//
+//    // make estimates more conservative by adjusting probabilities downward based on std err
+//    probabilities = probabilities - (normalZ(.99)/1000)*((1 - probabilities)*probabilities);
 
-    // make estimates more conservative by adjusting probabilities downward based on std err
-    probabilities = probabilities - (normalZ(.99)/1000)*((1 - probabilities)*probabilities);
+    ////TEMPSTART
 
+    double probarr[] = {1,
+                        0.091788841786056868,
+                        0.27448083832335329,
+                        0.1359005213028652,
+                        0.15162949194547706,
+                        0.24463517433904428,
+                        0.63836902585531474,
+                        0.71211728865194213,
+                        0.85738534396809574,
+                        0.91288696210661524,
+                        0.97302793296089385,
+                        0.98923351158645279,
+                        0.99821428571428572};
+
+    vector<double> probabilities(probarr, probarr + 13);
+    ////TEMPEND
 
     vector<uint64_t> trajectoryCounts;
     if (minimizeCost)
@@ -444,7 +464,11 @@ vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double precisionGoal,
         trajectoryCounts = minimizeCountTrajectoryCounts(precisionGoal, precisionGoalConfidence, probabilities);
     }
 
-    for (vector<uint64_t>::iterator it=trajectoryCounts.begin();it!=trajectoryCounts.end();it++) if (*it < minimumCount) *it=minimumCount;
+    // "correct" undersampling durring phase zero
+    vector<uint64_t>::iterator it=trajectoryCounts.begin();
+    *it = (*it)*2;
+
+    for (;it!=trajectoryCounts.end();it++) if (*it < minimumCount) *it=minimumCount;
     return trajectoryCounts;
 }
 
@@ -485,7 +509,7 @@ valarray<double> FFluxSupervisor::getConstantFactors(const vector<double>& proba
     valarray<double> constantFactors(probabilities.data(), probabilities.size());
     constantFactors = (1.0 - constantFactors)/constantFactors;
 
-    // ignore the probability from phase zero, store 1.0
+    // ignore the probability from phase zero, store a fixed constant value
     constantFactors[0] = 2.0;
 
 ////     for now, skip the phase zero part
