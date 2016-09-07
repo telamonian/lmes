@@ -37,6 +37,7 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 #include <iomanip>
+#include <iterator>
 #include <limits>
 #include <map>
 #include <sstream>
@@ -251,7 +252,7 @@ void FFluxSupervisor::startSimulationStage()
     // set the ffluxPhaseLimits for this stage, if it hasn't already been taken care of somehow
     if (currentStage().has_pilot_stage() and currentStage().fflux_phase_limits_size()==0)
     {
-        addFFluxPhaseLimitsFromStageOutput(mutableCurrentStage(), currentStageOutput(), input->ffluxOptions().minimize_cost());
+        addFFluxPhaseLimitsFromStageOutput(mutableCurrentStage(), currentStageOutput());
     }
 
     // add a new stage output
@@ -387,9 +388,9 @@ void FFluxSupervisor::addFFluxPhaseLimitsFromInput(lm::fflux::input::FFluxStage*
     addFFluxPhaseLimitsForPilotStage(productionStage, FFPhaseLimEnums::FORWARD_FLUXES, input->ffluxOptions().pilot_stage_count(), input->ffluxOptions().pilot_stage_count());
 }
 
-void FFluxSupervisor::addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::protowrap::FFluxStageOutputWrap& stageOutput, bool minimizeCost)
+void FFluxSupervisor::addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::protowrap::FFluxStageOutputWrap& stageOutput)
 {
-    vector<uint64_t> trajectoryCounts(optimizeTrajectoryCounts(input->precisionGoal(), input->precisionGoalConfidence(), stageOutput.fflux_stage_output_summary(), input->ffluxOptions().pilot_stage_count(), minimizeCost));
+    vector<uint64_t> trajectoryCounts(optimizeTrajectoryCounts(input->precisionGoal(), input->precisionGoalConfidence(), stageOutput, input->productionStageCountMinimum(), input->minimizeCost()));
     stringstream optimizationStatus;
     optimizationStatus.setf(std::ios::fixed, std::ios::floatfield);
     optimizationStatus.precision(2);
@@ -399,7 +400,6 @@ void FFluxSupervisor::addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFlux
     FFluxPhasesWrap::const_iterator ph_it=productionStage->fflux_phases().begin();
 
     // special treatment for phase zero
-    // TODO: the phase zero step of the trajectory count optimization seems currently pretty fundamentaly flawed. For now we'll use a workaround.
     buildFFluxPhaseLimit(productionStage->add_fflux_phase_limits(), *ph_it, FFPhaseLimEnums::FORWARD_FLUXES, *tc_it); //input->ffluxOptions().pilot_stage_count()*input->ffluxOptions().phase_zero_sampling_multiplier());
 
     optimizationStatus << *tc_it; //input->ffluxOptions().pilot_stage_count()*input->ffluxOptions().phase_zero_sampling_multiplier();
@@ -427,36 +427,45 @@ void FFluxSupervisor::repeatFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage
     }
 }
 
-vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const lm::protowrap::FFluxStageOutputSummaryWrap& stageOutputSummary, uint64_t minimumCount, bool minimizeCost)
+vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const lm::protowrap::FFluxStageOutputWrap& stageOutput, uint64_t minimumCount, bool minimizeCost)
 {
-//    vector<double> probabilities(stageOutputSummary.probabilities().begin(), stageOutputSummary.probabilities().end());
+    const lm::protowrap::FFluxStageOutputRawWrap& soRaw(stageOutput.fflux_stage_output_raw());
+    const lm::protowrap::FFluxStageOutputSummaryWrap& soSummary(stageOutput.fflux_stage_output_summary());
+
+    vector<double> probabilities(soSummary.probabilities().begin(), soSummary.probabilities().end());
+    vector<double> trials;
+    typedef std::back_insert_iterator<vector<double> >::container_type mytype;
+    add(soRaw.failed_trajectory_counts().begin(), soRaw.failed_trajectory_counts().end(), soRaw.successful_trajectory_counts().begin(), std::back_inserter(trials));
+
+//    ////TEMPSTART
 //
-//    // make estimates more conservative by adjusting probabilities downward based on std err
-//    probabilities = probabilities - (normalZ(.99)/1000)*((1 - probabilities)*probabilities);
+//    double probarr[] = {1,
+//                        0.091788841786056868,
+//                        0.27448083832335329,
+//                        0.1359005213028652,
+//                        0.15162949194547706,
+//                        0.24463517433904428,
+//                        0.63836902585531474,
+//                        0.71211728865194213,
+//                        0.85738534396809574,
+//                        0.91288696210661524,
+//                        0.97302793296089385,
+//                        0.98923351158645279,
+//                        0.99821428571428572};
+//
+//    vector<double> probabilities(probarr, probarr + 13);
+//    ////TEMPEND
 
-    ////TEMPSTART
+//    // make estimates more conservative by adjusting probabilities downward based on std var (ie (std err)**2)
+//    probabilities = probabilities - (normalZ(.9975)/1000)*((1 - probabilities)*probabilities);
 
-    double probarr[] = {1,
-                        0.091788841786056868,
-                        0.27448083832335329,
-                        0.1359005213028652,
-                        0.15162949194547706,
-                        0.24463517433904428,
-                        0.63836902585531474,
-                        0.71211728865194213,
-                        0.85738534396809574,
-                        0.91288696210661524,
-                        0.97302793296089385,
-                        0.98923351158645279,
-                        0.99821428571428572};
-
-    vector<double> probabilities(probarr, probarr + 13);
-    ////TEMPEND
+    // make estimates more conservative using the lower bound of the estimator confidence interval
+    probabilities = bernouliCIAgrestiCoullLowerBound(probabilities, trials, .9999);
 
     vector<uint64_t> trajectoryCounts;
     if (minimizeCost)
     {
-        vector<double> costVector(stageOutputSummary.costs().begin(), stageOutputSummary.costs().end());
+        vector<double> costVector(soSummary.costs().begin(), soSummary.costs().end());
         trajectoryCounts = minimizeCostTrajectoryCounts(precisionGoal, precisionGoalConfidence, probabilities, costVector);
     }
     else
@@ -803,6 +812,7 @@ void FFluxSupervisor::receivedFinishedWorkUnitPart(const lm::message::WorkUnitSt
         }
         else if (wusMsg.status()==lm::message::WorkUnitStatus::LIMIT_REACHED)
         {
+            ////TEMPSTART
             if (currentFFluxPhaseIndex()==1)
             {
                 PROF_BEGIN(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_ONE);
@@ -814,6 +824,7 @@ void FFluxSupervisor::receivedFinishedWorkUnitPart(const lm::message::WorkUnitSt
             }
             else
             {
+            ////TEMPEND
                 PROF_BEGIN(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_N);
 
                 // update the phase output
@@ -827,12 +838,15 @@ void FFluxSupervisor::receivedFinishedWorkUnitPart(const lm::message::WorkUnitSt
 
 void FFluxSupervisor::receivedFinishedWorkUnitPartPhaseZero(const lm::message::WorkUnitStatus& wusMsg)
 {
+    // get the relevant Trajectory instance
+    lm::trajectory::Trajectory* trajectory = trajectoryList->getTrajectoryForFinishedWorkUnit(wusMsg.final_state().trajectory_id());
+
     // keep track of how much time each phase 0 trajectory spent in the region of a basin other than its initial basin
-    lm::fflux::FFluxPhaseZeroTrajectory* phaseZeroTrajectory = static_cast<lm::fflux::FFluxPhaseZeroTrajectory*>(trajectoryList->getTrajectoryForFinishedWorkUnit(wusMsg.final_state().trajectory_id()));
+    lm::fflux::FFluxPhaseZeroTrajectory* phaseZeroTrajectory = static_cast<lm::fflux::FFluxPhaseZeroTrajectory*>(trajectory);
     phaseZeroTrajectory->accumulateTimeInOtherBasins(wusMsg.final_state());
 
     // update the phase output
-    currentFFluxPhaseOutputWrapPtr->addEndPointPhaseZero(wusMsg.final_state(), *trajectoryList->getTrajectoryForFinishedWorkUnit(wusMsg.final_state().trajectory_id()), input->ffluxOptions().phase_zero_burn_in_count());
+    currentFFluxPhaseOutputWrapPtr->addEndPointPhaseZero(wusMsg.final_state(), *trajectory, input->ffluxOptions().phase_zero_burn_in_count());
 }
 
 // accessors

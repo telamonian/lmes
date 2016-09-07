@@ -122,15 +122,27 @@ template<typename Key0, typename Key1, typename Value> struct PairMap
 /*
  * type traits
  */
+
+// qualifier adders/removers. Used by other type traits, so listed first
 template< class T> struct AddConst {typedef const T type;};
 
-template <bool cond, class T=int>
-struct EnableIf {typedef T type;};
-template <class T>
-struct EnableIf<false, T> {};
+template<typename T> struct RemoveConst {typedef T type;};
+template<typename T> struct RemoveConst<T const> {typedef T type;};
+template<typename T> struct RemoveVolatile {typedef T type;};
+template<typename T> struct RemoveVolatile<T volatile> {typedef T type;};
+template<typename T> struct RemoveCV {typedef typename RemoveConst<typename RemoveVolatile<T>::type>::type type;};
 
-template <typename T>
-struct HasBegin
+template<typename T> struct RemovePointer {typedef T type;};
+template<typename T> struct RemovePointer<T*> {typedef T type;};
+template<typename T> struct RemovePointer<T* const> {typedef T type;};
+template<typename T> struct RemovePointer<T* volatile> {typedef T type;};
+template<typename T> struct RemovePointer<T* const volatile> {typedef T type;};
+
+// the rest of the type traits
+template <bool cond, class T=void> struct EnableIf {typedef T type;};
+template <class T> struct EnableIf<false, T> {};
+
+template <typename T> struct HasBegin
 {
     template <typename U, typename U::iterator (U::*)()> struct Test;
     template <typename U> static char test(Test<U, &U::begin> *);
@@ -139,8 +151,7 @@ struct HasBegin
     static const bool value = sizeof(test<T>(0)) == sizeof(char);
 };
 
-template <typename T>
-struct HasEnd
+template <typename T> struct HasEnd
 {
     template <typename U, typename U::iterator (U::*)()> struct Test;
     template <typename U> static char test(Test<U, &U::end> *);
@@ -149,14 +160,12 @@ struct HasEnd
     static const bool value = sizeof(test<T>(0)) == sizeof(char);
 };
 
-template <typename T>
-struct HasBeginEnd
+template <typename T> struct HasBeginEnd
 {
     static const bool value = HasBegin<T>::value and HasEnd<T>::value;
 };
 
-template <typename T>
-struct HasPushBack
+template <typename T> struct HasPushBack
 {
     template <typename U, void (U::*)(const typename U::value_type&)> struct Test;
     template <typename U> static char test(Test<U, &U::push_back> *);
@@ -165,47 +174,20 @@ struct HasPushBack
     static const bool value = sizeof(test<T>(0)) == sizeof(char);
 };
 
+template<class T> struct IsPointerHelper {static const bool value = false;};
+template<class T> struct IsPointerHelper<T*> {static const bool value = true;};
+template<class T> struct IsPointer {static const bool value = IsPointerHelper<typename RemoveCV<T>::type>::value;};
 
+template <typename T> struct IsNumeric {static const bool value = std::numeric_limits<T>::is_specialized;};
 
-template <typename T>
-struct IsNumeric {static const bool value = std::numeric_limits<T>::is_specialized;};
+template <typename T, typename U> struct IsSame {static const bool value = false;};
+template <typename T> struct IsSame<T, T> {static const bool value = true;};
 
-template <typename T, typename U>
-struct IsSame {static const bool value = false;};
-template <typename T>
-struct IsSame<T, T> {static const bool value = true;};
+template <typename, template <typename> class> struct IsSameTemplate {static const bool value = false;};
+template <template <typename> class T, template <typename> class U, typename Param> struct IsSameTemplate<T<Param>, U> {static const bool value = IsSame<T<Param>, U<Param> >::value;};
 
-template <typename, template <typename> class>
-struct IsSameTemplate {static const bool value = false;};
-template <template <typename> class T, template <typename> class U, typename Param>
-struct IsSameTemplate<T<Param>, U> {static const bool value = IsSame<T<Param>, U<Param> >::value;};
-
-/*
-template<typename B, typename D>
-struct IsBaseOf {
-    typedef char (&yes)[1];
-    typedef char (&no)[2];
-
-#if defined(MACOSX)
-#undef check
-#endif
-
-    static yes check(const B*);
-    static no check(const void*);
-
-    enum {
-        value = sizeof(check(static_cast<const D*>(NULL))) == sizeof(yes),
-    };
-};
-
-template<typename T> struct remove_const { typedef T type; };
-template<typename T> struct remove_const<T const> { typedef T type; };
-
-template<typename T> struct disable_if_void {template <typename This, typename Func> static T* call(This* _this, Func func) {return (*_this.*func)();}};
-template<> struct disable_if_void<void> {template <typename This, typename Func> static void* call(This* _this, Func func) {return NULL;}};
-
- // SFINAE friendly version of iterator_traits
-template<typename Iterator, typename=void, typename=void, typename=void, typename=void, typename=void>
+// SFINAE friendly version of iterator_traits
+template<typename Iterator, typename=void, typename=void, typename=void, typename=void, typename=void, typename=void, typename=void>
 struct IteratorTraits
 {
     static const bool is_specialized = false;
@@ -226,20 +208,58 @@ struct IteratorTraits<Iterator, typename Iterator::iterator_category, typename I
     typedef void const_reference;
 };
 
+// specialization for back_insert_iterators
 template<typename Iterator>
-struct IteratorTraits<Iterator, typename Iterator::container_type, typename Iterator::const_reference, void, void, void>
+struct IteratorTraits<Iterator, typename Iterator::container_type>
 {
     static const bool is_specialized = true;
 
-    typedef typename Iterator::container_type container_type;
-    typedef typename Iterator::const_reference const_reference;
+    typedef typename Iterator::container_type::value_type value_type;
+    typedef typename Iterator::container_type             container_type;
 
     typedef void iterator_category;
-    typedef void value_type;
     typedef void difference_type;
     typedef void pointer;
     typedef void reference;
+    typedef void const_reference;
 };
+
+// if the iterator has none of the relevant typedefs, assume that it is in fact just a c-style pointer
+template<typename Iterator>
+struct IteratorTraits<Iterator, typename EnableIf<IsPointer<Iterator>::value>::type>
+{
+    static const bool is_specialized = true;
+
+    typedef typename RemovePointer<Iterator>::type value_type;
+    typedef typename RemovePointer<Iterator>::type* pointer;
+    typedef typename RemovePointer<Iterator>::type& reference;
+    typedef const typename RemovePointer<Iterator>::type& const_reference;
+
+    typedef void container_type;
+    typedef void iterator_category;
+    typedef void difference_type;
+};
+
+/*
+template<typename B, typename D>
+struct IsBaseOf {
+    typedef char (&yes)[1];
+    typedef char (&no)[2];
+
+#if defined(MACOSX)
+#undef check
+#endif
+
+    static yes check(const B*);
+    static no check(const void*);
+
+    enum {
+        value = sizeof(check(static_cast<const D*>(NULL))) == sizeof(yes),
+    };
+};
+
+template<typename T> struct disable_if_void {template <typename This, typename Func> static T* call(This* _this, Func func) {return (*_this.*func)();}};
+template<> struct disable_if_void<void> {template <typename This, typename Func> static void* call(This* _this, Func func) {return NULL;}};
 
 template<typename T>
 struct IsIterator {static const bool value = IteratorTraits<T>::is_specialized;};
@@ -248,7 +268,6 @@ struct IsIterator {static const bool value = IteratorTraits<T>::is_specialized;}
 
 template <typename T>
 struct IsNumericIterator {static const bool value = IsIterator<T>::value and IsNumeric<typename IteratorTraits<T>::value_type>::value;};
-
 
  */
 

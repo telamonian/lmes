@@ -34,84 +34,29 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts, Max Klein
+ * Author(s): Max Klein
  */
-#undef MPI_EXCEPTION_CHECK
-#define MPI_EXCEPTION_CHECK(x) {}
-
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
-#include "lm/main/Main.h"
-#include "lm/main/ReplicateSupervisor.h"
-#include "lm/io/hdf5/SimulationFile.h"
-#include "lm/Print.h"
-#include <vector>
+#include "lm/fflux/FFluxMath.h"
 
-#define MPI_EXCEPTION_CHECK(x) {}
-
-using lm::main::ReplicateSupervisor;
-using lm::io::hdf5::SimulationFile;
-using lm::io::hdf5::Hdf5File;
-
-Hdf5File * fi = NULL;
-
-class MockSimulationFile : public SimulationFile
-{
-};
-
-
-
-class SupervisorFixture : public ::testing::Test
+class FFluxMathFixture : public ::testing::Test
 {
 public:
-    SupervisorFixture():
-    file(),
-    supervisor(NULL, fi)
+    FFluxMathFixture()
     {
-        for (int i=0;i<4;++i)
-        {
-            replicates.push_back(i);
-        }
-        for (vector<int>::iterator it=replicates.begin(); it<replicates.end(); it++)
-        {
-            supervisor.simulationStatusTable[*it] = 0;
-        }
     }
-
-    MockSimulationFile file;
-    ReplicateSupervisor supervisor;
 };
 
-//class FooFixture : public ::testing::Test {
-//    public:
-//
-//}
-
-TEST_F(SupervisorFixture, FindRep_StartsReplicateAtFirstZero)
+TEST_F(FFluxMathFixture, normalZ_test)
 {
-    supervisor.simulationStatusTable[0] = 2;
-    supervisor.simulationStatusTable[1] = 2;
-    supervisor.simulationStatusTable[3] = 2;
-    ASSERT_EQ(supervisor.FindRep(0), 2);
-}
+    double absolute_tolerance = 1e-10;
 
-//TEST(foo, bar)
-//{
-//    lm::Print::printf(0, "hey");
-//    int bob=19;
-//    int sam=18;
-//    EXPECT_EQ(sam,bob);
-//}
-//
-//TEST(foo, doh)
-//{
-//    lm::Print::printf(0, "hey");
-//    int bob=19;
-//    int sam=19;
-//    EXPECT_EQ(sam,bob);
-//}
-
-int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+    // test values all taken from equivalent Mathematica function
+    EXPECT_NEAR(normalZ(.1), 0.1256613468550741, absolute_tolerance);
+    EXPECT_NEAR(normalZ(.5), 0.6744897501960818, absolute_tolerance);
+    EXPECT_NEAR(normalZ(.90), 1.644853626951472, absolute_tolerance);
+    EXPECT_NEAR(normalZ(.95), 1.959963984540054, absolute_tolerance);
+    EXPECT_NEAR(normalZ(.99), 2.5758293035489, absolute_tolerance);
+    EXPECT_NEAR(normalZ(.9999), 3.89059188641312, absolute_tolerance);
 }

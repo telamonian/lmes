@@ -45,10 +45,13 @@
 #define LM_FFLUX_MATH_H_
 
 #include <cmath>
+#include <iterator>
 #include <limits>
+#include <vector>
 
 #include "lm/Math.h"
 #include "lm/Types.h"
+#include "lm/VectorMath.h"
 
 // constants used in erfinv (ie the inverse error function)
 #define erfinv_a3 -0.140543331
@@ -73,7 +76,7 @@
 
 // inverse error function. useful for calculating certain values related to the normal distribution
 // code modified from libit, found at http://libit.sourceforge.net/math_8c-source.html. I believe it uses a Taylor series approximation?
-double erfinv (double x)
+inline double erfinv (double x)
 {
     double x2, r, y;
     int  sign_x;
@@ -106,13 +109,6 @@ double erfinv (double x)
     return r;
 }
 
-// calculates how many standard deviations from the mean the cut-lines are for a given percentile (also centered on the mean) of the normal distribution.
-// used in calculating confidence intervals. Signature based on scipy.stats.norm.ppf, see http://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.norm.html for more details
-double normalZ(double percentile, double mean=0.0, double std=1.0)
-{
-    return sqrt(2)*erfinv(percentile)*std + mean;
-}
-
 #undef erfinv_a3
 #undef erfinv_a2
 #undef erfinv_a1
@@ -132,5 +128,42 @@ double normalZ(double percentile, double mean=0.0, double std=1.0)
 #undef erfinv_d2
 #undef erfinv_d1
 #undef erfinv_d0
+
+// calculates how many standard deviations from the mean the cut-lines are for a given percentile (also centered on the mean) of the normal distribution.
+// used in calculating confidence intervals. Signature based on scipy.stats.norm.ppf, see http://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.norm.html for more details
+inline double normalZ(double percentile, double mean=0.0, double std=1.0)
+{
+    return sqrt(2)*erfinv(percentile)*std + mean;
+}
+
+// calculates the variance of a Bernouli random variable based on its probability (ie their expected values)
+// can also take vectors
+template <typename MaybeVector>
+inline MaybeVector bernouliVariance(const MaybeVector& probability)
+{
+    return probability * (1 - probability);
+}
+
+// exact formula for calculating the variance of a product of random variables. Based on their individual expected values and variances
+inline double productVarianceExact(const std::vector<double> expected, const std::vector<double> variance)
+{
+//    std::vector<double> expectedSquared(expected*expected);
+    std::vector<double> expected2 = pow(expected, 2);
+
+    return prod(variance + expected2) - prod(expected2);
+}
+
+// see https://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval#Agresti-Coull_Interval for more details
+template <typename MaybeVector0, typename MaybeVector1>
+inline MaybeVector0 bernouliCIAgrestiCoullLowerBound(const MaybeVector0 probability, const MaybeVector1 trials, double confidence)
+{
+    double z = normalZ(confidence);
+    double z2 = pow(z, 2);
+    MaybeVector1 n = trials + z2;
+    MaybeVector0 p = (trials*probability + .5*z2)/n;
+
+    // change p - z*pow... to p + z*pow for the upper bound of the confidence interval instead
+    return p - z*pow((p*(1 - p)/n), .5);
+};
 
 #endif /* LM_FFLUX_MATH_H_ */

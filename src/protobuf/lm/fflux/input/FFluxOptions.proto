@@ -71,19 +71,23 @@ message FFluxOptions {
     /*
      * - number of samples to take during each phase in a pilot stage
      */
-    optional uint32 pilot_stage_count        = 21 [default=10000];
+    optional uint64 pilot_stage_count              = 21 [default=10000];
+    /*
+     * - minimum number of samples to take during each phase in a production stage
+     */
+    optional uint64 production_stage_count_minimum = 22 [default=10000];
     /*
      * - number of trajectories to load into each work unit
      *     - doesn't apply to phase 0
      *     - will be overriden by slots.getSimultaneousWorkUnits() if batch size is smaller
      */
-    optional uint32 batch_size               = 22 [default=100];
+    optional uint64 batch_size                     = 23 [default=100];
 
 
     /*
      * - number of samples (ie edge 0 crossings) to throw out from each phase zero trajectory before starting to collect production data
      */
-    optional uint32 phase_zero_burn_in_count = 29 [default=0];
+    optional uint64 phase_zero_burn_in_count = 29 [default=0];
 
     optional bool pilot_stage_output   = 31 [default=false];
     optional bool phase_output         = 32 [default=false];

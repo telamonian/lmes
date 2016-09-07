@@ -57,17 +57,17 @@ class FFluxPhaseZeroTrajectory : public lm::trajectory::Trajectory
 {
 public:
     FFluxPhaseZeroTrajectory(const lm::input::Input& input, uint64_t phase, uint64_t id)
-    :Trajectory(input, phase, id),hInitialBasin(true),timeInOtherBasins(0.0)
+    :Trajectory(input, phase, id),hInitialBasin(true),timeInOtherBasinsLast(0.0),timeInOtherBasins(0.0)
     {
     }
 
     template <typename InputIterator> FFluxPhaseZeroTrajectory(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd, double startTime, uint64_t phase, uint64_t id)
-    :Trajectory(input, speciesStart, speciesEnd, startTime, phase, id),hInitialBasin(true),timeInOtherBasins(0.0)
+    :Trajectory(input, speciesStart, speciesEnd, startTime, phase, id),hInitialBasin(true),timeInOtherBasinsLast(0.0),timeInOtherBasins(0.0)
     {
     }
 
     FFluxPhaseZeroTrajectory(const lm::io::TrajectoryState& initialState, uint64_t phase, uint64_t id)
-    :Trajectory(initialState, phase, id),hInitialBasin(true),timeInOtherBasins(0.0)
+    :Trajectory(initialState, phase, id),hInitialBasin(true),timeInOtherBasinsLast(0.0),timeInOtherBasins(0.0)
     {
     }
 
@@ -96,7 +96,8 @@ public:
             timeDataBackwardFlux = timeWrapBackwardFlux.get_data(true);
             timeDataBackwardFluxEnd = timeDataBackwardFlux +  timeWrapBackwardFlux.size();
 
-            timeInOtherBasins += sumTimeIntervals(timeDataOtherBasinEntry, timeDataOtherBasinEntryEnd, timeDataBackwardFlux, timeDataBackwardFluxEnd, startTime, endTime, &hInitialBasin);
+            timeInOtherBasinsLast = sumTimeIntervals(timeDataOtherBasinEntry, timeDataOtherBasinEntryEnd, timeDataBackwardFlux, timeDataBackwardFluxEnd, startTime, endTime, &hInitialBasin);
+            timeInOtherBasins += timeInOtherBasinsLast;
 
             if (timeWrapBackwardFlux.compressed_deflate()) delete[] timeDataBackwardFlux;
             if (timeWrapOtherBasinEntry.compressed_deflate()) delete[] timeDataOtherBasinEntry;
@@ -180,7 +181,10 @@ public:
     // hInitialBasin==1 if the most recent basin the trajectory was in was the initial basin, hInitialBasin==0 otherwise (see Rien Ten Wolde, 2005)
     bool hInitialBasin;
 
-    // the quantity of time the trajectory has spent in basins other than the one it started in
+    // the quantity of time the trajectory has spent during its most recent work unit in basins other than the one it started in
+    double timeInOtherBasinsLast;
+
+    // the total quantity of time the trajectory has spent in basins other than the one it started in
     double timeInOtherBasins;
 
 protected:

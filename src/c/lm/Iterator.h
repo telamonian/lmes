@@ -44,6 +44,10 @@
 #ifndef LM_ITERATOR_H_
 #define LM_ITERATOR_H_
 
+#include <iterator>
+#include <memory>
+#include <string>
+
 #include "lm/Types.h"
 
 /*
@@ -71,7 +75,42 @@ bool isLast(Iter iter, const Cont& cont)
     }
 }
 
+/*
+ * iterator traits specialized by tag (output, forward, etc). more generic than the STL version
+ */
 
+// OutputIteratorTraits modified from http://stackoverflow.com/a/29084919/425458
+template<class T>
+struct OutputIteratorTraits
+:std::iterator_traits<T> {};
+
+template< class OutputIt, class T>
+struct OutputIteratorTraits<std::raw_storage_iterator<OutputIt, T> >
+:std::iterator<std::output_iterator_tag, T> {};
+
+template<class Container>
+struct OutputIteratorTraits<std::back_insert_iterator<Container> >
+:std::iterator<std::output_iterator_tag, typename Container::value_type> {};
+
+template<class Container>
+struct OutputIteratorTraits<std::front_insert_iterator<Container> >
+:std::iterator<std::output_iterator_tag, typename Container::value_type> {};
+
+template<class Container>
+struct OutputIteratorTraits<std::insert_iterator<Container> >
+:std::iterator<std::output_iterator_tag, typename Container::value_type> {};
+
+#if __cplusplus > 199711L
+
+template <class T, class charT = char, class traits = std::char_traits<charT> >
+struct OutputIteratorTraits<std::ostream_iterator<T, charT, traits> >
+:std::iterator<std::output_iterator_tag, T> {};
+
+template <class charT, class traits = std::char_traits<charT> >
+struct OutputIteratorTraits<std::ostreambuf_iterator<charT, traits> >
+:std::iterator<std::output_iterator_tag, charT> {};
+
+#endif
 
 /*
  * - simplified version of transform_iterator from boost

@@ -81,10 +81,16 @@ public:
 
 // accessors
     const lm::fflux::input::FFluxOptions& ffluxOptions() const {return _ffluxOptions;}
+
+    uint64_t batchSize() const {return ffluxOptions().batch_size();}
+    bool minimizeCost() const {return ffluxOptions().minimize_cost();}
+    uint64_t phaseZeroBurnInCount() const {return ffluxOptions().phase_zero_burn_in_count();}
+    uint64_t pilotStageCount() const {return ffluxOptions().pilot_stage_count();}
     double precisionGoal() const {return ffluxOptions().precision_goal();}
     double precisionGoalConfidence() const {return ffluxOptions().precision_goal_confidence();}
+    uint64_t productionStageCountMinimum() const {return ffluxOptions().production_stage_count_minimum();}
     const lm::protowrap::Repeated<lm::fflux::input::FFluxPhaseLimitList>& userDefinedFFluxPhaseLimitLists() const {return _ffluxPhaseLimitLists;}
-    uint32_t phaseZeroBurnInCount() const {return ffluxOptions().phase_zero_burn_in_count();}
+
 
     bool hasPrecisionGoal() const {return ffluxOptions().has_precision_goal();}
     bool hasPrecisionGoalConfidence() const {return ffluxOptions().has_precision_goal_confidence();}

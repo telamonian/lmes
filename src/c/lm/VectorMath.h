@@ -46,8 +46,10 @@
 
 #include <algorithm>
 #include <functional>
+#include <iterator>
 #include <vector>
 
+#include "lm/Iterator.h"
 #include "lm/Types.h"
 
 //template <typename, template <typename> class>
@@ -88,13 +90,18 @@ struct PrecedentType<T, U, false> {
     typedef U type;
 };
 
+
 /*
- * - versions of the arithmetic functors from <functional> that can do type promotion
+ * - some functors, stored in a namespace to distinguish them from any STL functors
  */
 namespace lm {
 
+/*
+ * - versions of the arithmetic functors from <functional> that can do type promotion
+ */
 template <typename T, typename U=T> struct plus
 {
+    // these typedefs are for conformance with the Operation concept expected by e.g. std::bind1st
     typedef T first_argument_type;
     typedef U second_argument_type;
     typedef typename PrecedentType<T, U>::type result_type;
@@ -104,6 +111,7 @@ template <typename T, typename U=T> struct plus
 
 template <typename T, typename U=T> struct minus
 {
+    // these typedefs are for conformance with the Operation concept expected by e.g. std::bind1st
     typedef T first_argument_type;
     typedef U second_argument_type;
     typedef typename PrecedentType<T, U>::type result_type;
@@ -113,6 +121,7 @@ template <typename T, typename U=T> struct minus
 
 template <typename T, typename U=T> struct multiplies
 {
+    // these typedefs are for conformance with the Operation concept expected by e.g. std::bind1st
     typedef T first_argument_type;
     typedef U second_argument_type;
     typedef typename PrecedentType<T, U>::type result_type;
@@ -122,11 +131,27 @@ template <typename T, typename U=T> struct multiplies
 
 template <typename T, typename U=T> struct divides
 {
+    // these typedefs are for conformance with the Operation concept expected by e.g. std::bind1st
     typedef T first_argument_type;
     typedef U second_argument_type;
     typedef typename PrecedentType<T, U>::type result_type;
 
     result_type operator() (const T& x, const U& y) const {return x / y;}
+};
+
+/*
+ * - less simple math functors that aren't in STL in the first place
+ */
+
+template <typename T, typename U=T> struct exponentiates
+{
+    // these typedefs are for conformance with the Operation concept expected by e.g. std::bind1st
+    typedef T first_argument_type;
+    typedef U second_argument_type;
+    typedef double result_type;
+    //typedef typename PrecedentType<T, U>::type result_type;
+
+    result_type operator() (const T& base, const U& exponent) const {return pow(base, exponent);}
 };
 
 }
@@ -360,8 +385,63 @@ operator/= (std::vector<T>& lhs, const std::vector<U>& rhs)
     return lhs;
 }
 
+
 /*
- * - This section contains functions that are more flexible versions of the vector operators
+ * - this section container non-operator functions written specifically for vectors
+ *     - Like the operators, these functions are written so as to optimize implementation convenience, not performance
+ *     - Unless it is made explicit in the function name, the functions that return vectors are expected to allocate their own return values on their own stacks
+ */
+
+/*
+ * - scalar-vector functions
+ */
+template <typename T, typename Scalar>
+inline typename EnableIf<IsNumeric<T>::value and IsNumeric<Scalar>::value, std::vector<typename lm::exponentiates<T, Scalar>::result_type> >::type
+pow(Scalar lhs, const std::vector<T>& rhs)
+{
+    std::vector<typename lm::exponentiates<T, Scalar>::result_type> retVal;
+    std::transform(rhs.begin(), rhs.end(), std::back_inserter(retVal), std::bind1st(lm::exponentiates<Scalar, T>(), lhs));
+    return retVal;
+}
+
+/*
+ * - vector-scalar functions
+ */
+template <typename T, typename Scalar>
+inline typename EnableIf<IsNumeric<T>::value and IsNumeric<Scalar>::value, std::vector<typename lm::exponentiates<T, Scalar>::result_type> >::type
+pow(const std::vector<T>& lhs, Scalar rhs)
+{
+    std::vector<typename lm::exponentiates<T, Scalar>::result_type> retVal;
+    std::transform(lhs.begin(), lhs.end(), std::back_inserter(retVal), std::bind2nd(lm::exponentiates<T, Scalar>(), rhs));
+    return retVal;
+}
+
+/*
+ * - vector-vector functions
+ */
+template <typename T, typename U>
+inline typename EnableIf<IsNumeric<T>::value and IsNumeric<U>::value, std::vector<typename lm::exponentiates<T, U>::result_type> >::type
+pow(const std::vector<T>& lhs, const std::vector<U>& rhs)
+{
+    std::vector<typename lm::exponentiates<T, U>::result_type> retVal;
+    std::transform(lhs.begin(), lhs.end(), rhs.begin(), std::back_inserter(retVal), lm::exponentiates<T, U>());
+    return retVal;
+}
+
+/*
+ * - non-operator functions on single vectors
+ */
+template <typename T>
+inline typename EnableIf<IsNumeric<T>::value, T>::type
+prod(const std::vector<T>& lhs)
+{
+    // be careful, as this form of std::accumulate will return 1 for an empty vector
+    return std::accumulate(lhs.begin(), lhs.end(), static_cast<T>(1), std::multiplies<T>());
+};
+
+
+/*
+ * - This section contains functions that are more flexible versions of the vector operators/functions above
  *     - Instead of vectors, they'll take any possible range (ie a start and an end iterator)
  *     - They do not allocate a new range for the return value, so they may be more efficient than the operator versions
  */
@@ -370,90 +450,193 @@ operator/= (std::vector<T>& lhs, const std::vector<U>& rhs)
  * - scalar-range functions
  */
 template <typename InputIterator, typename OutputIterator, typename Scalar>
-inline void add(Scalar lhs, InputIterator rhsBegin, InputIterator rhsEnd, OutputIterator outputIt,
-                typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
+inline void 
+add(Scalar lhs, InputIterator rhsBegin, InputIterator rhsEnd, OutputIterator outputIt,
+    typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
 {
     std::transform(rhsBegin, rhsEnd, outputIt, std::bind1st(std::plus<typename OutputIterator::value_type>(), lhs));
 }
 
 template <typename InputIterator, typename OutputIterator, typename Scalar>
-inline void add(InputIterator lhsBegin, InputIterator lhsEnd, Scalar rhs, OutputIterator outputIt,
-                typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
+inline void 
+add(InputIterator lhsBegin, InputIterator lhsEnd, Scalar rhs, OutputIterator outputIt,
+    typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
 {
     std::transform(lhsBegin, lhsEnd, outputIt, std::bind2nd(std::plus<typename OutputIterator::value_type>(), rhs));
 }
 
 template <typename InputIterator, typename OutputIterator, typename Scalar>
-inline void sub(Scalar lhs, InputIterator rhsBegin, InputIterator rhsEnd, OutputIterator outputIt,
-                typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
+inline void 
+sub(Scalar lhs, InputIterator rhsBegin, InputIterator rhsEnd, OutputIterator outputIt,
+    typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
 {
     std::transform(rhsBegin, rhsEnd, outputIt, std::bind1st(std::minus<typename OutputIterator::value_type>(), lhs));
 }
 
 template <typename InputIterator, typename OutputIterator, typename Scalar>
-inline void sub(InputIterator lhsBegin, InputIterator lhsEnd, Scalar rhs, OutputIterator outputIt,
-                typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
+inline void 
+sub(InputIterator lhsBegin, InputIterator lhsEnd, Scalar rhs, OutputIterator outputIt,
+    typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
 {
     std::transform(lhsBegin, lhsEnd, outputIt, std::bind2nd(std::minus<typename OutputIterator::value_type>(), rhs));
 }
 
 template <typename InputIterator, typename OutputIterator, typename Scalar>
-inline void mul(Scalar lhs, InputIterator rhsBegin, InputIterator rhsEnd, OutputIterator outputIt,
-                typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
+inline void 
+mul(Scalar lhs, InputIterator rhsBegin, InputIterator rhsEnd, OutputIterator outputIt,
+    typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
 {
     std::transform(rhsBegin, rhsEnd, outputIt, std::bind1st(std::multiplies<typename OutputIterator::value_type>(), lhs));
 }
 
 template <typename InputIterator, typename OutputIterator, typename Scalar>
-inline void mul(InputIterator lhsBegin, InputIterator lhsEnd, Scalar rhs, OutputIterator outputIt,
-                typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
+inline void 
+mul(InputIterator lhsBegin, InputIterator lhsEnd, Scalar rhs, OutputIterator outputIt,
+    typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
 {
     std::transform(lhsBegin, lhsEnd, outputIt, std::bind2nd(std::multiplies<typename OutputIterator::value_type>(), rhs));
 }
 
 template <typename InputIterator, typename OutputIterator, typename Scalar>
-inline void div(Scalar lhs, InputIterator rhsBegin, InputIterator rhsEnd, OutputIterator outputIt,
-                typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
+inline void 
+div(Scalar lhs, InputIterator rhsBegin, InputIterator rhsEnd, OutputIterator outputIt,
+    typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
 {
     std::transform(rhsBegin, rhsEnd, outputIt, std::bind1st(std::divides<typename OutputIterator::value_type>(), lhs));
 }
 
 template <typename InputIterator, typename OutputIterator, typename Scalar>
-inline void div(InputIterator lhsBegin, InputIterator lhsEnd, Scalar rhs, OutputIterator outputIt,
-                typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
+inline void 
+div(InputIterator lhsBegin, InputIterator lhsEnd, Scalar rhs, OutputIterator outputIt,
+    typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
 {
     std::transform(lhsBegin, lhsEnd, outputIt, std::bind2nd(std::divides<typename OutputIterator::value_type>(), rhs));
 }
+
+template <typename InputIterator, typename OutputIterator, typename Scalar>
+inline void 
+pow(Scalar lhs, InputIterator rhsBegin, InputIterator rhsEnd, OutputIterator outputIt,
+    typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
+{
+    std::transform(rhsBegin, rhsEnd, outputIt, std::bind1st(lm::exponentiates<typename OutputIterator::value_type>(), lhs));
+}
+
+template <typename InputIterator, typename OutputIterator, typename Scalar>
+inline void 
+pow(InputIterator lhsBegin, InputIterator lhsEnd, Scalar rhs, OutputIterator outputIt,
+    typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
+{
+    std::transform(lhsBegin, lhsEnd, outputIt, std::bind2nd(lm::exponentiates<typename OutputIterator::value_type>(), rhs));
+}
+
+///*
+// * - scalar-range functions, 3 arg versions that store output in the input range
+// */
+//template <typename InputIterator, typename Scalar>
+//inline void add(Scalar lhs, InputIterator rhsBegin, InputIterator rhsEnd,
+//    typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
+//{
+//    InputIterator rhsOutput(rhsBegin);
+//	std::transform(rhsBegin, rhsEnd, rhsOutput, std::bind1st(std::plus<typename InputIterator::value_type>(), lhs));
+//}
+//
+//template <typename InputIterator, typename Scalar>
+//inline void add(InputIterator lhsBegin, InputIterator lhsEnd, Scalar rhs,
+//    typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
+//{
+//    InputIterator lhsOutput(lhsBegin);
+//	std::transform(lhsBegin, lhsEnd, lhsOutput, std::bind2nd(std::plus<typename InputIterator::value_type>(), rhs));
+//}
+//
+//template <typename InputIterator, typename Scalar>
+//inline void sub(Scalar lhs, InputIterator rhsBegin, InputIterator rhsEnd,
+//    typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
+//{
+//    InputIterator rhsOutput(rhsBegin);
+//	std::transform(rhsBegin, rhsEnd, rhsOutput, std::bind1st(std::minus<typename InputIterator::value_type>(), lhs));
+//}
+//
+//template <typename InputIterator, typename Scalar>
+//inline void sub(InputIterator lhsBegin, InputIterator lhsEnd, Scalar rhs,
+//    typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
+//{
+//    InputIterator lhsOutput(lhsBegin);
+//	std::transform(lhsBegin, lhsEnd, lhsOutput, std::bind2nd(std::minus<typename InputIterator::value_type>(), rhs));
+//}
+//
+//template <typename InputIterator, typename Scalar>
+//inline void mul(Scalar lhs, InputIterator rhsBegin, InputIterator rhsEnd,
+//    typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
+//{
+//    InputIterator rhsOutput(rhsBegin);
+//	std::transform(rhsBegin, rhsEnd, rhsOutput, std::bind1st(std::multiplies<typename InputIterator::value_type>(), lhs));
+//}
+//
+//template <typename InputIterator, typename Scalar>
+//inline void mul(InputIterator lhsBegin, InputIterator lhsEnd, Scalar rhs,
+//    typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
+//{
+//    InputIterator lhsOutput(lhsBegin);
+//	std::transform(lhsBegin, lhsEnd, lhsOutput, std::bind2nd(std::multiplies<typename InputIterator::value_type>(), rhs));
+//}
+//
+//template <typename InputIterator, typename Scalar>
+//inline void div(Scalar lhs, InputIterator rhsBegin, InputIterator rhsEnd,
+//    typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
+//{
+//    InputIterator rhsOutput(rhsBegin);
+//	std::transform(rhsBegin, rhsEnd, rhsOutput, std::bind1st(std::divides<typename InputIterator::value_type>(), lhs));
+//}
+//
+//template <typename InputIterator, typename Scalar>
+//inline void div(InputIterator lhsBegin, InputIterator lhsEnd, Scalar rhs,
+//    typename EnableIf<IsNumeric<Scalar>::value>::type* = 0)
+//{
+//    InputIterator lhsOutput(lhsBegin);
+//	std::transform(lhsBegin, lhsEnd, lhsOutput, std::bind2nd(std::divides<typename InputIterator::value_type>(), rhs));
+//}
 
 /*
  * - range-range functions
  */
 template <typename InputIterator, typename OutputIterator>
-inline void add(InputIterator lhsBegin, InputIterator lhsEnd, InputIterator rhsBegin, OutputIterator outputIt,
-                typename EnableIf<not IsNumeric<InputIterator>::value>::type* = 0)
+inline void 
+add(InputIterator lhsBegin, InputIterator lhsEnd, InputIterator rhsBegin, OutputIterator outputIt,
+    typename EnableIf<not IsNumeric<typename IteratorTraits<InputIterator>::value_type>::value>::type* = 0)
 {
-    std::transform(lhsBegin, lhsEnd, rhsBegin, outputIt, std::plus<typename OutputIterator::value_type>());
+    std::transform(lhsBegin, lhsEnd, rhsBegin, outputIt, std::plus<typename OutputIteratorTraits<OutputIterator>::value_type>());
 }
 
 template <typename InputIterator, typename OutputIterator>
-inline void sub(InputIterator lhsBegin, InputIterator lhsEnd, InputIterator rhsBegin, OutputIterator outputIt,
-                typename EnableIf<not IsNumeric<InputIterator>::value>::type* = 0)
+inline void 
+sub(InputIterator lhsBegin, InputIterator lhsEnd, InputIterator rhsBegin, OutputIterator outputIt,
+    typename EnableIf<not IsNumeric<InputIterator>::value>::type* = 0)
 {
     std::transform(lhsBegin, lhsEnd, rhsBegin, outputIt, std::minus<typename OutputIterator::value_type>());
 }
 
 template <typename InputIterator, typename OutputIterator>
-inline void mul(InputIterator lhsBegin, InputIterator lhsEnd, InputIterator rhsBegin, OutputIterator outputIt,
-                typename EnableIf<not IsNumeric<InputIterator>::value>::type* = 0)
+inline void 
+mul(InputIterator lhsBegin, InputIterator lhsEnd, InputIterator rhsBegin, OutputIterator outputIt,
+    typename EnableIf<not IsNumeric<InputIterator>::value>::type* = 0)
 {
     std::transform(lhsBegin, lhsEnd, rhsBegin, outputIt, std::multiplies<typename OutputIterator::value_type>());
 }
 
 template <typename InputIterator, typename OutputIterator>
-inline void div(InputIterator lhsBegin, InputIterator lhsEnd, InputIterator rhsBegin, OutputIterator outputIt,
-                typename EnableIf<not IsNumeric<InputIterator>::value>::type* = 0)
+inline void 
+div(InputIterator lhsBegin, InputIterator lhsEnd, InputIterator rhsBegin, OutputIterator outputIt,
+    typename EnableIf<not IsNumeric<InputIterator>::value>::type* = 0)
 {
     std::transform(lhsBegin, lhsEnd, rhsBegin, outputIt, std::divides<typename OutputIterator::value_type>());
+}
+
+template <typename InputIterator, typename OutputIterator>
+inline void 
+pow(InputIterator lhsBegin, InputIterator lhsEnd, InputIterator rhsBegin, OutputIterator outputIt,
+    typename EnableIf<not IsNumeric<InputIterator>::value>::type* = 0)
+{
+    std::transform(lhsBegin, lhsEnd, rhsBegin, outputIt, lm::exponentiates<typename OutputIterator::value_type>());
 }
 
 //template <typename InputContainer>

@@ -54,7 +54,7 @@ class ReplicateRegression(Regression):
                                speciesIDs=[3,4,5],
                                speciesCoefficients=[1,2,2])]
 
-        psi = .03333
+        psi = 1.0
         reactionDict = {'dimerization_a':      {'reactionID': 0, 'rateConstant': 5.0},
                         'dedimerization_a':    {'reactionID': 1, 'rateConstant': 5.0},
                         'opbinding_a':         {'reactionID': 2, 'rateConstant': 5.0*psi},
