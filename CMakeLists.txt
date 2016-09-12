@@ -5,6 +5,7 @@ endif(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 
 # initialize custom modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules)
+include(CLion)
 include(ConfigFunctions)
 include(TestCompilerFeatures)
 initializeCMakeConfig()
@@ -61,29 +62,25 @@ set(DEFAULT_FLAGS_DEBUG "-m64 -g -fPIC -Wall -fmessage-length=0")
 # Will be replaced by the CUSTOM_ARCH_FLAG variable from CMakeConfig.txt if set
 SetConfigDefault(ARCH_FLAG CUSTOM_ARCH_FLAG ${DEFAULT_ARCH_FLAG})
 
-# Set compiler flags for c and c++ for the various builds.
-# Will be replaced by the CUSTOM_C_FLAGS<_build-name> and CUSTOM_CXX_FLAGS<_build-name> variables from CMakeConfig.txt if set
-if(NOT CMAKE_BUILD_TYPE_UPPER)
-    SetConfigDefault(CMAKE_C_FLAGS      CUSTOM_C_FLAGS      ${DEFAULT_FLAGS_OPTIMIZED})
-    SetConfigDefault(CMAKE_CXX_FLAGS    CUSTOM_CXX_FLAGS    ${DEFAULT_FLAGS_OPTIMIZED})
-elseif(CMAKE_BUILD_TYPE_UPPER STREQUAL DEBUG)
-    SetConfigDefault(CMAKE_C_FLAGS_DEBUG      CUSTOM_C_FLAGS_DEBUG      ${DEFAULT_FLAGS_DEBUG})
-    SetConfigDefault(CMAKE_CXX_FLAGS_DEBUG    CUSTOM_CXX_FLAGS_DEBUG    ${DEFAULT_FLAGS_DEBUG})
-elseif(CMAKE_BUILD_TYPE_UPPER STREQUAL RELEASE)
-    SetConfigDefault(CMAKE_C_FLAGS_RELEASE      CUSTOM_C_FLAGS_RELEASE      ${DEFAULT_FLAGS_OPTIMIZED})
-    SetConfigDefault(CMAKE_CXX_FLAGS_RELEASE    CUSTOM_CXX_FLAGS_RELEASE    ${DEFAULT_FLAGS_OPTIMIZED})
-elseif(CMAKE_BUILD_TYPE_UPPER STREQUAL RELWITHDEBINFO)
-    SetConfigDefault(CMAKE_C_FLAGS_RELWITHDEBINFO      CUSTOM_C_FLAGS_RELWITHDEBINFO      ${DEFAULT_FLAGS_DEBUG})
-    SetConfigDefault(CMAKE_CXX_FLAGS_RELWITHDEBINFO    CUSTOM_CXX_FLAGS_RELWITHDEBINFO    ${DEFAULT_FLAGS_DEBUG})
-elseif(CMAKE_BUILD_TYPE_UPPER STREQUAL MINSIZEREL)
-    SetConfigDefault(CMAKE_C_FLAGS_MINSIZEREL      CUSTOM_C_FLAGS_MINSIZEREL      ${DEFAULT_FLAGS_OPTIMIZED})
-    SetConfigDefault(CMAKE_CXX_FLAGS_MINSIZEREL    CUSTOM_CXX_FLAGS_MINSIZEREL    ${DEFAULT_FLAGS_OPTIMIZED})
-else(NOT CMAKE_BUILD_TYPE_UPPER)
-    message(WARNING "No support for specified build type: ${CMAKE_BUILD_TYPE}. Compiler flags may be incorrectly set.")
-endif(NOT CMAKE_BUILD_TYPE_UPPER)
-
-# prepend the architecture flag to the rest of the flags, and append any troubleshooting flags if set
 foreach(lang C;CXX)
+    # Set compiler flags for c and c++ for the various builds.
+    # Will be replaced by the CUSTOM_C_FLAGS<_build-name> and CUSTOM_CXX_FLAGS<_build-name> variables from CMakeConfig.txt if set
+    if(NOT CMAKE_BUILD_TYPE_UPPER)
+        SetConfigDefault(CMAKE_${lang}_FLAGS                   CUSTOM_${lang}_FLAGS                   ${DEFAULT_FLAGS_OPTIMIZED})
+    elseif(CMAKE_BUILD_TYPE_UPPER STREQUAL DEBUG)
+        SetConfigDefault(CMAKE_${lang}_FLAGS_DEBUG             CUSTOM_${lang}_FLAGS_DEBUG             ${DEFAULT_FLAGS_DEBUG})
+    elseif(CMAKE_BUILD_TYPE_UPPER STREQUAL RELEASE)
+        SetConfigDefault(CMAKE_${lang}_FLAGS_RELEASE           CUSTOM_${lang}_FLAGS_RELEASE           ${DEFAULT_FLAGS_OPTIMIZED})
+    elseif(CMAKE_BUILD_TYPE_UPPER STREQUAL RELWITHDEBINFO)
+        SetConfigDefault(CMAKE_${lang}_FLAGS_RELWITHDEBINFO    CUSTOM_${lang}_FLAGS_RELWITHDEBINFO    ${DEFAULT_FLAGS_DEBUG})
+    elseif(CMAKE_BUILD_TYPE_UPPER STREQUAL MINSIZEREL)
+        SetConfigDefault(CMAKE_${lang}_FLAGS_MINSIZEREL        CUSTOM_${lang}_FLAGS_MINSIZEREL        ${DEFAULT_FLAGS_OPTIMIZED})
+    else(NOT CMAKE_BUILD_TYPE_UPPER)
+        message(WARNING "No support for specified build type: ${CMAKE_BUILD_TYPE}. ${lang} compiler flags may be incorrectly set.")
+        SetConfigDefault(CMAKE_${lang}_FLAGS${_CMAKE_BUILD_TYPE_UPPER} CUSTOM_${lang}_FLAGS${_CMAKE_BUILD_TYPE_UPPER} ${DEFAULT_FLAGS_DEBUG})
+    endif(NOT CMAKE_BUILD_TYPE_UPPER)
+
+    # prepend the architecture flag to the rest of the flags, and append any troubleshooting flags if set
     set(CMAKE_${lang}_FLAGS${_CMAKE_BUILD_TYPE_UPPER} "${ARCH_FLAG} ${CMAKE_${lang}_FLAGS${_CMAKE_BUILD_TYPE_UPPER}}")
     set(CMAKE_${lang}_FLAGS${_CMAKE_BUILD_TYPE_UPPER} "${CMAKE_${lang}_FLAGS${_CMAKE_BUILD_TYPE_UPPER}} ${TROUBLESHOOTING_FLAGS}")
 endforeach(lang)
@@ -94,14 +91,13 @@ endforeach(lang)
 # package finding stuff
 find_package(MPI REQUIRED)
 message("testing if mpi is mpich...")
-execute_process(COMMAND ${MPI_C_COMPILER} -v OUTPUT_VARIABLE MPI_VERSION_DUMP ERROR_QUIET)
-STRING(REGEX MATCH "mpich" MPICH_LOWER "${MPI_VERSION_DUMP}")
-STRING(REGEX MATCH "MPICH" MPICH_UPPER "${MPI_VERSION_DUMP}")
-IF(MPICH_LOWER MATCHES "mpich" OR MPICH_UPPER MATCHES "MPICH")
-    message("...mpi is mpich, proceeding")
-ELSE(MPICH_LOWER MATCHES "mpich" OR MPICH_UPPER MATCHES "MPICH")
+execute_process(COMMAND ${MPI_C_COMPILER} -v OUTPUT_VARIABLE MPIC_INFO_DUMP ERROR_QUIET)
+string(REGEX MATCH "([Mm][Pp][Ii][Cc][Hh]) version ([0-9+]\\.?[0-9]*\\.?[0-9]*)" MPI_VERSION_DUMP  "${MPIC_INFO_DUMP}")
+if(${CMAKE_MATCH_2} VERSION_LESS "3.0.0")
     message(FATAL_ERROR "...mpi implementation found is not mpich, stopping. Lattice Microbes only supports mpich2 >3.0 at this time. If multiple mpi implementations are installed, please specify path to mpich in CMakeConfig.txt.")
-ENDIF(MPICH_LOWER MATCHES "mpich" OR MPICH_UPPER MATCHES "MPICH")
+else(${CMAKE_MATCH_2} VERSION_LESS "3.0.0")
+    message("...mpi is mpich, proceeding")
+endif(${CMAKE_MATCH_2} VERSION_LESS "3.0.0")
 
 # conditionals for dealing with CUDA
 IF (USE_CUDA STREQUAL yes)
@@ -199,17 +195,8 @@ if(libsbml_FOUND)
     include_directories(${libsbml_INCLUDE_DIRS})
 endif(libsbml_FOUND)
 
-# to help clion find the generated protobuf code
-string(REGEX MATCH "[Cc][Ll]ion" BUILT_WITH_CLION "${lm_BINARY_DIR}")
-if(BUILT_WITH_CLION)
-    include_directories(${CMAKE_BINARY_DIR}/../Debug/src/c/
-                        ${CMAKE_BINARY_DIR}/../Debug/src/c/lm/
-                        ${CMAKE_BINARY_DIR}/../Debug/src/c/lm/io/
-                        ${CMAKE_BINARY_DIR}/../Debug/src/c/lm/message/
-                        ${CMAKE_BINARY_DIR}/../MinSizeRel/src/c/
-                        ${CMAKE_BINARY_DIR}/../Release/src/c/
-                        ${CMAKE_BINARY_DIR}/../RelWithDebInfo/src/c/)
-endif(BUILT_WITH_CLION)
+# if you're using the CLion IDE, this function let's CLion find the generated protobuf code
+include_directories_clion_generated()
 
 # set the list of libraries used in various lm targets
 set(lm_dependency_libs      ${CMAKE_THREAD_LIBS_INIT}
@@ -264,22 +251,6 @@ IF(BUILD_WITH_CUDA)
     target_link_libraries(lmes lm_cuda_lib)
 ENDIF(BUILD_WITH_CUDA)
 target_link_libraries(lmes ${lm_dependency_libs})
-
-#IF(BUILD_WITH_CUDA)
-#    target_link_libraries(lmes lm_cuda_lib
-#                               # general cuda libraries
-#                               ${CUDA_CUDA_LIBRARY}
-#                               # cuda runtime library
-#                               ${CUDA_LIBRARIES})
-#ENDIF(BUILD_WITH_CUDA)
-#
-#target_link_libraries(lmes ${CMAKE_THREAD_LIBS_INIT}
-#                           ${CMAKE_DL_LIBS}
-#                           ${PROTOBUF_LIBRARIES}
-#                           ${HDF5_LIBRARIES}
-#                           ${HDF5_HL_LIBRARIES}
-#                           ${ZLIB_LIBRARIES}
-#                           ${MPI_C_LIBRARIES})
 
 install(TARGETS lmes DESTINATION bin COMPONENT lmes)
 
