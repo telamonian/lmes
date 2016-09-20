@@ -115,11 +115,13 @@ protected:
     // methods that control what happens at the end of a ffluxPhase
     virtual bool terminateSimulationPhase();
     virtual void finishSimulationPhase();
+    virtual void sendSimulationPhaseOutput();
     virtual bool performAnotherSimulationPhase() {return not isCurrentPhaseLast();}
     virtual void incrementSimulationPhase();
 
     // methods that control what happens at the end of a ffluxStage
     virtual void finishSimulationStage();
+    virtual void sendSimulationStageOutput();
     virtual bool performAnotherSimulationStage() {return not isCurrentStageLast();}
     virtual void incrementSimulationStage();
 
@@ -134,7 +136,7 @@ protected:
     // accessors
     virtual const lm::fflux::input::FFluxPhase& currentPhase() const {return *currentFFluxPhaseIter;}
     virtual int64_t currentFFluxPhaseIndex() const {return currentPhase().fflux_phase_index();}
-    virtual std::string currentPhaseInfo() const;
+    virtual std::string currentPhaseInfo(bool path=false, const lm::fflux::input::FFluxPhase* phase=NULL, const lm::fflux::input::FFluxStage* stage=NULL) const;
     virtual const lm::fflux::input::FFluxPhaseLimit& currentPhaseLimit() const {return currentStage().fflux_phase_limits(currentFFluxPhaseIndex());}
     virtual const lm::protowrap::FFluxPhaseOutputWrap& currentPhaseOutput() const {return *currentFFluxPhaseOutputWrapPtr;}
     virtual int64_t finalFFluxPhaseIndex() const {return currentStage().fflux_phases_size() - 1;}
@@ -143,7 +145,7 @@ protected:
 
     virtual const lm::fflux::input::FFluxStage& currentStage() const {return **currentFFluxStageIter;}
     virtual int64_t currentStageIndex() const {return currentFFluxStageIter - ffluxStageExecutionOrder.begin();}
-    virtual std::string currentStageInfo() const;
+    virtual std::string currentStageInfo(bool path=false, const lm::fflux::input::FFluxStage* stage=NULL) const;
     virtual const lm::protowrap::FFluxStageOutputWrap& currentStageOutput() const {return currentFFluxStageOutputWrap;}
     virtual int getStageCount() const {return ffluxStageExecutionOrder.size();}
     virtual bool isCurrentStageLast() const {return isLast(currentFFluxStageIter, ffluxStageExecutionOrder);}  //{return currentFFluxStageIter==ffluxStageExecutionOrder.end();}

@@ -91,7 +91,6 @@ public:
     uint64_t productionStageCountMinimum() const {return ffluxOptions().production_stage_count_minimum();}
     const lm::protowrap::Repeated<lm::fflux::input::FFluxPhaseLimitList>& userDefinedFFluxPhaseLimitLists() const {return _ffluxPhaseLimitLists;}
 
-
     bool hasPrecisionGoal() const {return ffluxOptions().has_precision_goal();}
     bool hasPrecisionGoalConfidence() const {return ffluxOptions().has_precision_goal_confidence();}
     bool hasUserDefinedFFluxPhaseLimitLists() const {return (ffluxOptions().fflux_phase_limit_lists_size() > 0);}

@@ -405,7 +405,7 @@ int OutputWriter::HelperThread::run()
                             {
                                 if (reflection->HasField(outputGeneric, *it))
                                 {
-                                    processGenericMessage(reflection->GetMessage(outputGeneric, *it));
+//                                    processGenericMessage(reflection->GetMessage(outputGeneric, *it));
                                     p->processGenericMessage(reflection->GetMessage(outputGeneric, *it));
                                 }
                             }
@@ -413,7 +413,7 @@ int OutputWriter::HelperThread::run()
                             {
                                 for (int j=0;j<reflection->FieldSize(outputGeneric, *it);j++)
                                 {
-                                    processGenericMessage(reflection->GetRepeatedMessage(outputGeneric, *it, j));
+//                                    processGenericMessage(reflection->GetRepeatedMessage(outputGeneric, *it, j));
                                     p->processGenericMessage(reflection->GetRepeatedMessage(outputGeneric, *it, j));
                                 }
                             }

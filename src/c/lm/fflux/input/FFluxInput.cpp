@@ -94,9 +94,10 @@ void FFluxInput::initFFluxOptions(const lm::io::hdf5::Hdf5File& file)
     parseAndSet("precisionGoalConfidence", &FFluxOptions::set_precision_goal_confidence, _ffluxOptions);
 
     parseAndSet("pilotStageCount", &FFluxOptions::set_pilot_stage_count, _ffluxOptions);
+    parseAndSet("productionStageCountMinimum", &FFluxOptions::set_production_stage_count_minimum, _ffluxOptions);
     parseAndSet("phaseZeroBurnInCount", &FFluxOptions::set_phase_zero_burn_in_count, _ffluxOptions);
 
-    // TODO: figure out phase zero and remove this
+    // TODO: figure out how to properly control landscape error and remove this
     parseAndSet("phaseZeroSamplingMultiplier", &FFluxOptions::set_phase_zero_sampling_multiplier, _ffluxOptions);
 
     parseAndSet("ffluxPilotOutput", &FFluxOptions::set_pilot_stage_output, _ffluxOptions);
@@ -182,23 +183,6 @@ void FFluxInput::reinitTrajectoryLimitsPhaseZero(const lm::fflux::input::FFluxPh
     limitTrackingListWrap.addTrackingMsgNonterminating(trajectoryLimits.findMsg(1), false, true);
     limitTrackingListWrap.addTrackingMsgNonterminating(trajectoryLimits.findMsg(2), false, true);
 }
-
-//bool FFluxInput::parseAndSetFFluxPhaseLimit(const std::string key, const std::string debugString)
-//{
-//    if (simulationParameters.count(key))
-//    {
-//        typename PairVector<uint, typename LimitElement<LT>::type>::T idLimitVec(simulationParameters.parsePairVector<uint, typename LimitElement<LT>::type>(key, debugString));
-//        for (typename PairVector<uint, typename LimitElement<LT>::type>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
-//        {
-//            trajectoryLimits.addLimitMsg<LT>(it->first, it->second, sc, includeEndpoint);
-//        }
-//        return idLimitVec.size() > 0;
-//    }
-//    else
-//    {
-//        return false;
-//    }
-//}
 
 }
 }

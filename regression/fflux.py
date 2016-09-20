@@ -21,21 +21,23 @@ class FFluxRegression(ReplicateRegression):
             defaultSimulationParameters = {"precisionGoal": .05,
                                            "precisionGoalConfidence": .95,
                                            "pilotStageCount": 1e3,
+                                           "productionStageCountMinimum": 1e3,
                                            "ffluxPilotOutput": False,
                                            "ffluxPhaseOutput": False,
                                            "ffluxStageOutputRaw": True,
                                            "ffluxStageOutputSummary": True,
-                                           'phaseZeroSamplingMultiplier': 1,
+                                           'phaseZeroSamplingMultiplier': 10,
                                            'ffluxMinimizeCost': False,}
         else:
             defaultSimulationParameters = {"precisionGoal": .05,
                                            "precisionGoalConfidence": .95,
                                            "pilotStageCount": 1e3,
+                                           "productionStageCountMinimum": 1e3,
                                            "ffluxPilotOutput": False,
                                            "ffluxPhaseOutput": False,
-                                           "ffluxStageOutputRaw": False,
+                                           "ffluxStageOutputRaw": True,
                                            "ffluxStageOutputSummary": True,
-                                           'phaseZeroSamplingMultiplier': 1,
+                                           'phaseZeroSamplingMultiplier': 10,
                                            'ffluxMinimizeCost': False,}
 
         ffluxInput = Input('biphasic_switch.lm')

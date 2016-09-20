@@ -44,6 +44,7 @@
 #include <string>
 #include <vector>
 
+#include "lm/Iterator.h"
 #include "lm/Print.h"
 #include "lm/Types.h"
 
@@ -113,7 +114,7 @@ string pathJoin(const vector<string>& pathElements, bool absolute)
     // check to see if the first non-zero length element is already an absolute path
     isAbsolute = ((*it)[0]=='/');
 
-    for (;it!=pathElements.end();it++)
+    for (;it!=pathElements.end()--;it++)
     {
         // see http://stackoverflow.com/a/9359324/425458
         // By ending at the right iterator, we will do the equivalent of the rstrip operation...
@@ -122,7 +123,12 @@ string pathJoin(const vector<string>& pathElements, bool absolute)
         // ...and by starting at the left iterator, we will do the equivalent of the lstrip operation.
         string::const_iterator left = std::find_if(it->begin(), right, isNotSlash);
 
-        ss << string(left, right) << "/";
+        ss << string(left, right);
+
+        if (not isLast(it, pathElements))
+        {
+            ss << "/";
+        }
     }
 
     string joinedPath(ss.str());

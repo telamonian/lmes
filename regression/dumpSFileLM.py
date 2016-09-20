@@ -4,7 +4,8 @@ from six import print_
 import sys
 import zlib
 
-from lm.io.SpeciesTimeSeries_pb2 import SpeciesTimeSeries as SpeciesTimeSeriesMsg
+import lm
+# from lm.io.SpeciesTimeSeries_pb2 import SpeciesTimeSeries as SpeciesTimeSeriesMsg
 from lma.src.datum.trajectory import SpeciesTrajectories
 from robertslab.sfile import *
 
@@ -23,7 +24,7 @@ ndDtypeDict = {0: np.dtype('int8'),
               10: np.dtype('float64'),
               11: np.dtype('complex64'),
               12: np.dtype('complex128'),
-              13: np.dtype('S8 '),
+              13: np.dtype('S8'),
               14: np.dtype('S16'),
               15: np.dtype('S32'),
               16: np.dtype('S64'),
@@ -38,30 +39,34 @@ def DeserializeNDArrayAsMsg(ndarrayMsg):
 
     return nparray
 
-def DeserializeAsMsg(data):
-    msg = SpeciesTimeSeriesMsg()
+def DeserializeAsMsg(data, dataTypeFullName):
+    msgType = lm.GetMsgByFullName(dataTypeFullName)
+    msg = msgType()
+
     msg.ParseFromString(data)
-    
-    if msg.counts.shape[0] == 0:
-        species_counts = np.array([])
-        times = np.array([])
 
-    # Convert the data to a numpy array.
-    species_counts = DeserializeNDArrayAsMsg(msg.counts)
-    times = DeserializeNDArrayAsMsg(msg.times)
-    # if buf.counts.compressed_deflate:
-    #     species_counts=np.reshape(np.fromstring(zlib.decompress(buf.counts.data), dtype=np.int32), buf.counts.shape)
-    # else:
-    #     species_counts=np.reshape(np.fromstring(buf.counts.data, dtype=np.int32), buf.counts.shape)
-    # if buf.times.compressed_deflate:
-    #     times=np.reshape(np.fromstring(zlib.decompress(buf.times.data), dtype=np.float64), buf.times.shape)
-    # else:
-    #     times=np.reshape(np.fromstring(buf.times.data, dtype=np.float64), buf.times.shape)
+    return msg,msgType
     
-    print_(times.astype)
-    print_(species_counts)
+    # if msg.counts.shape[0] == 0:
+    #     species_counts = np.array([])
+    #     times = np.array([])
+    #
+    # # Convert the data to a numpy array.
+    # species_counts = DeserializeNDArrayAsMsg(msg.counts)
+    # times = DeserializeNDArrayAsMsg(msg.times)
+    # # if buf.counts.compressed_deflate:
+    # #     species_counts=np.reshape(np.fromstring(zlib.decompress(buf.counts.data), dtype=np.int32), buf.counts.shape)
+    # # else:
+    # #     species_counts=np.reshape(np.fromstring(buf.counts.data, dtype=np.int32), buf.counts.shape)
+    # # if buf.times.compressed_deflate:
+    # #     times=np.reshape(np.fromstring(zlib.decompress(buf.times.data), dtype=np.float64), buf.times.shape)
+    # # else:
+    # #     times=np.reshape(np.fromstring(buf.times.data, dtype=np.float64), buf.times.shape)
+    #
+    # print_(times.astype)
+    # print_(species_counts)
 
-def DeserializeAsData(data):
+def DeserializeAsData(data, msgTypeFullName):
     specTrajs = SpeciesTrajectories()
     specTrajs.deserialize(data)
     for tid,traj in specTrajs.items():
@@ -69,22 +74,43 @@ def DeserializeAsData(data):
         print(traj.time)
         print(traj.species_count)
 
+def DumpRecord(record, data):
+    print_(record)
+    if data is not None:
+        msg,msgType = DeserializeAsMsg(data, record.dataTypeFullName)
+        for desc,field in msg.ListFields():
+            print_(desc.name, ': ', list(field))
+
 def Main():
     # Make sure we have the correct command line arguments.
     if len(sys.argv) < 2:
-        print_("Usage: ./dumpSFileLM.py <path-to-.sfile>")
+        print_("Usage: ./dumpSFileLM.py path-to-sfile [-l]")
         quit()
     
+    try:
+        listOnly = sys.argv[2]=='-l'
+    except IndexError:
+        listOnly = False
+
     f = SFile.fromFilename(sys.argv[1], 'rb')
-    
+    for record,data in f.iterRecords(skip=listOnly):
+        DumpRecord(record, data)
+            # DeserializeAsData(data)
+            # try:
+            #
+            # except:
+            #     DeserializeAsGenericMsg(data)
+
     # Open the file.
-    while True:
-        r = f.readNextRecord()
-        if r==None:
-            break
-        print_(r)
-        data = f.readDataRaw(r.dataSize)
-        DeserializeAsData(data)
+    # while True:
+    #     record = f.readNextRecord(skip=listOnly)
+    #     if record==None:
+    #         break
+    #     print_(record)
+    #     if not listOnly:
+    #         data = f.readDataRaw(record.dataSize)
+    #         msgTypeFullName = record.dataType.split(':')[1]
+    #         DeserializeAsMsg(data, msgTypeFullName)
     f.close()
 
 if __name__=='__main__':

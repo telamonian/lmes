@@ -62,7 +62,7 @@ message FFluxPhase {
     optional TrajectoryDuplication trajectory_duplication = 13 [default=NONE];
     optional TrajectoryGeneration trajectory_generation   = 14 [default=LAZY];
 
-    optional lm.input.OutputOptions output_options        = 21;
+    optional uint64 batch_size                            = 21 [default=1];
 
-    optional uint64 batch_size                            = 31 [default=1];
+    optional lm.input.OutputOptions output_options        = 101;
 }

@@ -202,7 +202,7 @@ lm::fflux::input::FFluxStage* FFluxSupervisor::addPilotStage(lm::fflux::input::F
 
     addFFluxPhases(pilotStage, FFPhaseEnums::LAZY, FFPhaseEnums::UNIFORM_RANDOM);
 
-    addFFluxPhaseLimitsForPilotStage(pilotStage, FFPhaseLimEnums::FORWARD_FLUXES, 2*input->ffluxOptions().pilot_stage_count(), input->ffluxOptions().pilot_stage_count());    //input->ffluxOptions().pilot_stage_count()*input->ffluxOptions().phase_zero_sampling_multiplier(), input->ffluxOptions().pilot_stage_count());
+    addFFluxPhaseLimitsForPilotStage(pilotStage, FFPhaseLimEnums::FORWARD_FLUXES, 10*input->ffluxOptions().pilot_stage_count(), input->ffluxOptions().pilot_stage_count());    //input->ffluxOptions().pilot_stage_count()*input->ffluxOptions().phase_zero_sampling_multiplier(), input->ffluxOptions().pilot_stage_count());
 
     return pilotStage;
 }
@@ -216,13 +216,6 @@ void FFluxSupervisor::addFFluxPhases(lm::fflux::input::FFluxStage* stage, FFPhas
         ffluxPhase->set_fflux_phase_index(i);
         ffluxPhase->set_basin_index(stage->basin_index());
         ffluxPhase->set_tiling_id(stage->tiling().id());
-
-        stringstream outputPrefixSS;
-        outputPrefixSS << "/FFluxOutput/Tilings/" << setfill('0') << setw(7) << stage->tiling().id();
-        outputPrefixSS << "/Basins/" << setfill('0') << setw(7) << stage->tiling().current_basin_index();
-        outputPrefixSS << "/Phases/" << setfill('0') << setw(7) << i;
-        input->reinitOutputOptions(outputPrefixSS.str());
-        ffluxPhase->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());
 
         // set ffluxPhase values that depend on whether phaseIndex==0 or phaseIndex > 0
         if (i==0)
@@ -241,6 +234,18 @@ void FFluxSupervisor::addFFluxPhases(lm::fflux::input::FFluxStage* stage, FFPhas
             ffluxPhase->set_trajectory_duplication(trajDuplication);
             ffluxPhase->set_trajectory_generation(trajGeneration);
         }
+
+//        stringstream outputPrefixSS;
+//        outputPrefixSS << "/FFluxOutput/Tilings/" << setfill('0') << setw(7) << stage->tiling().id();
+//        outputPrefixSS << "/Basins/" << setfill('0') << setw(7) << stage->tiling().current_basin_index();
+//        outputPrefixSS << "/Stages/"
+//        outputPrefixSS << "/Phases/" << setfill('0') << setw(7) << i;
+
+        // (re)initialize the relevant output options
+        stringstream outputPrefixSS;
+        outputPrefixSS << "/FFluxOutput" << currentPhaseInfo(true, ffluxPhase, stage);
+        input->reinitOutputOptions(outputPrefixSS.str());
+        ffluxPhase->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());
     }
 }
 
@@ -475,7 +480,7 @@ vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double precisionGoal,
 
     // "correct" undersampling durring phase zero
     vector<uint64_t>::iterator it=trajectoryCounts.begin();
-    *it = (*it)*2;
+    *it = (*it)*10;
 
     for (;it!=trajectoryCounts.end();it++) if (*it < minimumCount) *it=minimumCount;
     return trajectoryCounts;
@@ -519,7 +524,7 @@ valarray<double> FFluxSupervisor::getConstantFactors(const vector<double>& proba
     constantFactors = (1.0 - constantFactors)/constantFactors;
 
     // ignore the probability from phase zero, store a fixed constant value
-    constantFactors[0] = 2.0;
+    constantFactors[0] = 1.0;
 
 ////     for now, skip the phase zero part
 //    constantFactors[0] = 0.0;
@@ -561,7 +566,6 @@ void FFluxSupervisor::addFFluxPhaseOutput()
     {
         currentFFluxPhaseOutputsWrap.AddAllocated(previousFFluxPhaseOutputWrapPtr->wrappedMsg());
         previousFFluxPhaseOutputWrapPtr->setWrappedMsgNull();
-
     }
 
     // swap the subjects of the current and previous phase output wrapper pointers
@@ -621,20 +625,8 @@ bool FFluxSupervisor::terminateSimulationPhase()
 
 void FFluxSupervisor::finishSimulationPhase()
 {
-    if (not simulationPhaseOutputSent)
-    {
-        // send the phase output to the output writer
-        if ((not currentStage().is_pilot_stage()) or input->ffluxOptions().pilot_stage_output())
-        {
-            if (input->ffluxOptions().phase_output())
-            {
-                ffluxPhaseOutputContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0)->mutable_work_unit_output_generic()->mutable_fflux_phase_outputs()->AddAllocated(currentFFluxPhaseOutputWrapPtr->wrappedMsg());
-                communicator.sendMessage(outputWriterProcess, outputWriterThread, &ffluxPhaseOutputContainingMsg);
-                ffluxPhaseOutputContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0)->mutable_work_unit_output_generic()->mutable_fflux_phase_outputs()->ReleaseLast();
-                simulationPhaseOutputSent = true;
-            }
-        }
-    }
+    // before anything else, send the phase output to the output writer (if needed)
+    sendSimulationPhaseOutput();
 
     // if we need to perform another phase, do so
     if (performAnotherSimulationPhase())
@@ -650,6 +642,37 @@ void FFluxSupervisor::finishSimulationPhase()
     }
 }
 
+void FFluxSupervisor::sendSimulationPhaseOutput()
+{
+    if (not simulationPhaseOutputSent)
+    {
+        // send the phase output to the output writer
+        if ((not currentStage().is_pilot_stage()) or input->ffluxOptions().pilot_stage_output())
+        {
+            if (input->ffluxOptions().phase_output())
+            {
+                // (re)initialize the relevant output options
+                stringstream outputPrefixSS;
+                outputPrefixSS << "/FFluxOutput" << currentPhaseInfo(true);
+                input->reinitOutputOptions(outputPrefixSS.str());
+
+                // create a handle to the relevant work unit output part
+                lm::message::WorkUnitOutput* wuoPart(ffluxPhaseOutputContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0));
+
+                // set the data and output options the work unit output part
+                wuoPart->set_condense_output(input->getOutputOptionsMsg().condense_output());
+                wuoPart->set_record_name_prefix(input->getOutputOptionsMsg().record_name_prefix());
+
+                // temporarily hand off the allocated phase output and send it
+                wuoPart->mutable_work_unit_output_generic()->mutable_fflux_phase_outputs()->AddAllocated(currentFFluxPhaseOutputWrapPtr->wrappedMsg());
+                communicator.sendMessage(outputWriterProcess, outputWriterThread, &ffluxPhaseOutputContainingMsg);
+                wuoPart->mutable_work_unit_output_generic()->mutable_fflux_phase_outputs()->ReleaseLast();
+                simulationPhaseOutputSent = true;
+            }
+        }
+    }
+}
+
 void FFluxSupervisor::incrementSimulationPhase()
 {
     // increment the currentFFluxPhase iterator
@@ -660,6 +683,27 @@ void FFluxSupervisor::incrementSimulationPhase()
 }
 
 void FFluxSupervisor::finishSimulationStage()
+{
+    // send the stage output to the output writer (if needed)
+    sendSimulationStageOutput();
+
+    // if we need to perform another stage, do so
+    if (performAnotherSimulationStage())
+    {
+        // increment the stage-related iterators
+        incrementSimulationStage();
+
+        // start the new stage
+        startSimulationStage();
+    }
+    // otherwise, stop the simulation
+    else
+    {
+        finishSimulation();
+    }
+}
+
+void FFluxSupervisor::sendSimulationStageOutput()
 {
     if (not simulationStageOutputSent)
     {
@@ -678,39 +722,44 @@ void FFluxSupervisor::finishSimulationStage()
         // build the stage output from the phase outputs
         currentFFluxStageOutputWrap.buildFromFFluxPhaseOutputs(currentFFluxPhaseOutputsWrap);
 
-        // send the stage output to the output writer
         if ((not currentStage().is_pilot_stage()) or input->ffluxOptions().pilot_stage_output())
         {
+            // (re)initialize the relevant output options
+            stringstream outputPrefixSS;
+            outputPrefixSS << "/FFluxOutput" << currentStageInfo(true);
+            input->reinitOutputOptions(outputPrefixSS.str());
+
             if (input->ffluxOptions().stage_output_raw())
             {
-                ffluxStageOutputRawContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0)->mutable_work_unit_output_generic()->mutable_fflux_stage_output_raws()->AddAllocated(currentFFluxStageOutputWrap.mutable_fflux_stage_output_raw()->mutableWrappedMsg());
+                // create a handle to the relevant work unit output part
+                lm::message::WorkUnitOutput* wuoPart(ffluxStageOutputRawContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0));
+
+                // set the data and output options the work unit output part
+                wuoPart->set_condense_output(input->getOutputOptionsMsg().condense_output());
+                wuoPart->set_record_name_prefix(input->getOutputOptionsMsg().record_name_prefix());
+
+                // temporarily hand off the allocated stage output and send it
+                wuoPart->mutable_work_unit_output_generic()->mutable_fflux_stage_output_raws()->AddAllocated(currentFFluxStageOutputWrap.mutable_fflux_stage_output_raw()->mutableWrappedMsg());
                 communicator.sendMessage(outputWriterProcess, outputWriterThread, &ffluxStageOutputRawContainingMsg);
-                ffluxStageOutputRawContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0)->mutable_work_unit_output_generic()->mutable_fflux_stage_output_raws()->ReleaseLast();
+                wuoPart->mutable_work_unit_output_generic()->mutable_fflux_stage_output_raws()->ReleaseLast();
                 simulationStageOutputSent = true;
             }
             if (input->ffluxOptions().stage_output_summary())
             {
-                ffluxStageOutputSummaryContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0)->mutable_work_unit_output_generic()->mutable_fflux_stage_output_summaries()->AddAllocated(currentFFluxStageOutputWrap.mutable_fflux_stage_output_summary()->mutableWrappedMsg());
+                // create a handle to the relevant work unit output part
+                lm::message::WorkUnitOutput* wuoPart(ffluxStageOutputSummaryContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0));
+
+                // set the data and output options the work unit output part
+                wuoPart->set_condense_output(input->getOutputOptionsMsg().condense_output());
+                wuoPart->set_record_name_prefix(input->getOutputOptionsMsg().record_name_prefix());
+
+                // temporarily hand off the allocated stage output and send it
+                wuoPart->mutable_work_unit_output_generic()->mutable_fflux_stage_output_summaries()->AddAllocated(currentFFluxStageOutputWrap.mutable_fflux_stage_output_summary()->mutableWrappedMsg());
                 communicator.sendMessage(outputWriterProcess, outputWriterThread, &ffluxStageOutputSummaryContainingMsg);
-                ffluxStageOutputSummaryContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0)->mutable_work_unit_output_generic()->mutable_fflux_stage_output_summaries()->ReleaseLast();
+                wuoPart->mutable_work_unit_output_generic()->mutable_fflux_stage_output_summaries()->ReleaseLast();
                 simulationStageOutputSent = true;
             }
         }
-    }
-
-    // if we need to perform another stage, do so
-    if (performAnotherSimulationStage())
-    {
-        // increment the stage-related iterators
-        incrementSimulationStage();
-
-        // start the new stage
-        startSimulationStage();
-    }
-    // otherwise, stop the simulation
-    else
-    {
-        finishSimulation();
     }
 }
 
@@ -853,42 +902,76 @@ void FFluxSupervisor::receivedFinishedWorkUnitPartPhaseZero(const lm::message::W
 /*
  * a short string with some info about the current phase
  */
-std::string FFluxSupervisor::currentPhaseInfo() const
+std::string FFluxSupervisor::currentPhaseInfo(bool path, const lm::fflux::input::FFluxPhase* phase, const lm::fflux::input::FFluxStage* stage) const
 {
-
+    // if a phase and/or a stage has not been passed, use the current ones
+    const lm::fflux::input::FFluxPhase& _phase(phase!=NULL ? *phase : currentPhase());
+    const lm::fflux::input::FFluxStage& _stage(stage!=NULL ? *stage : currentStage());
+    int64_t phaseIndex = _phase.fflux_phase_index();
+    
     stringstream phaseInfo;
-    phaseInfo.setf(std::ios::fixed, std::ios::floatfield);
-    phaseInfo.precision(2);
-    if (currentFFluxPhaseIndex()==0)
+    if (path)
     {
-        phaseInfo << "first_edge_value: " << setw(7) << currentStage().tiling().edges(0);
+        phaseInfo << currentStageInfo(true, stage);
+        phaseInfo << "/Phases/" << setfill('0') << setw(7) << phaseIndex;
     }
     else
     {
-        phaseInfo << "starting_edge_value: " << setw(7) << currentStage().tiling().edges(currentFFluxPhaseIndex() - 1);
-        phaseInfo << ", final_edge_value: " << setw(7) << currentStage().tiling().edges(currentFFluxPhaseIndex());
+        phaseInfo.setf(std::ios::fixed, std::ios::floatfield);
+        phaseInfo.precision(2);
+        if (currentFFluxPhaseIndex()==0)
+        {
+            phaseInfo << "first_edge_value: " << setw(7) << _stage.tiling().edges(0);
+        }
+        else
+        {
+            phaseInfo << "starting_edge_value: " << setw(7) << _stage.tiling().edges(phaseIndex - 1);
+            phaseInfo << ", final_edge_value: " << setw(7) << _stage.tiling().edges(phaseIndex);
+        }
+        
+        const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit(_stage.fflux_phase_limits(phaseIndex));
+        phaseInfo << ", phase_limit: " << FFPhaseLimEnums::StopCondition_Name(ffluxPhaseLimit.stop_condition());
+        phaseInfo << " >= " << (ffluxPhaseLimit.stop_condition()==FFPhaseLimEnums::TIME ? ffluxPhaseLimit.dvalue() : ffluxPhaseLimit.uvalue());
     }
-    phaseInfo << ", phase_limit: " << FFPhaseLimEnums::StopCondition_Name(currentPhaseLimit().stop_condition());
-    phaseInfo << " >= " << (currentPhaseLimit().stop_condition()==FFPhaseLimEnums::TIME ? currentPhaseLimit().dvalue() : currentPhaseLimit().uvalue());
-
+    
     return phaseInfo.str();
 }
 
 /*
  * a short string with some info about the current stage
  */
-std::string FFluxSupervisor::currentStageInfo() const
+std::string FFluxSupervisor::currentStageInfo(bool path, const lm::fflux::input::FFluxStage* stage) const
 {
+    // if a stage has not been passed, use the current one
+    const lm::fflux::input::FFluxStage& _stage(stage!=NULL ? *stage : currentStage());
+    
     stringstream stageInfo;
-    stageInfo << "tiling_id: " << currentStage().tiling().id();
-    stageInfo << ", basin_index: " << currentStage().tiling().current_basin_index();
-    if (currentStage().is_pilot_stage())
+    if (path)
     {
-        stageInfo << ", stage_type: " << "pilot";
+        stageInfo << "/Tilings/" << setfill('0') << setw(7) << _stage.tiling().id();
+        stageInfo << "/Basins/" << setfill('0') << setw(7) << _stage.tiling().current_basin_index();
+        stageInfo << "/Stages";
+        if (_stage.is_pilot_stage())
+        {
+            stageInfo << "/Pilot";
+        }
+        else if (_stage.has_pilot_stage())
+        {
+            stageInfo << "/Production";
+        }
     }
-    else if (currentStage().has_pilot_stage())
+    else 
     {
-        stageInfo << ", stage_type: " << "production";
+        stageInfo << "tiling_id: " << _stage.tiling().id();
+        stageInfo << ", basin_index: " << _stage.tiling().current_basin_index();
+        if (_stage.is_pilot_stage())
+        {
+            stageInfo << ", stage_type: " << "pilot";
+        }
+        else if (_stage.has_pilot_stage())
+        {
+            stageInfo << ", stage_type: " << "production";
+        }
     }
 
     return stageInfo.str();
