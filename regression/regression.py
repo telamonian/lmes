@@ -91,6 +91,7 @@ class Regression(object):
         parser.add_argument('-psc', '--pilotStageCount', default=SUPPRESS,               help='fixed number of trajectories to launch during each phase of the pilot stage for FFPilot')
         parser.add_argument('-pg', '--precisionGoal', default=SUPPRESS,                  help='precision goal for FFPilot')
         parser.add_argument('-pgc', '--precisionGoalConfidence', default=SUPPRESS,       help='confidence level for precision goal for FFPilot')
+        parser.add_argument('-pzsm', '--phaseZeroSamplingMultiplier', default=SUPPRESS,  help='multiplies number of trajectories launched durring any FFlux phase zero')
         parser.add_argument('--ffluxPilotOutput', action='store_true',                   help='turn on the output of data for the FFPilot pilot stage as well as the production stage')
         parser.add_argument('--ffluxPhaseOutput', action='store_true',                   help='turn on the output of data for each phase in FFPilot')
         parser.add_argument('--ffluxStageOutputRaw', action='store_false',               help='turn off the output of the complete detailed data from each stage in FFPilot')

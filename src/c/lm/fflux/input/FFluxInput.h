@@ -85,6 +85,7 @@ public:
     uint64_t batchSize() const {return ffluxOptions().batch_size();}
     bool minimizeCost() const {return ffluxOptions().minimize_cost();}
     uint64_t phaseZeroBurnInCount() const {return ffluxOptions().phase_zero_burn_in_count();}
+    uint64_t phaseZeroSamplingMultiplier() const {return ffluxOptions().phase_zero_sampling_multiplier();}
     uint64_t pilotStageCount() const {return ffluxOptions().pilot_stage_count();}
     double precisionGoal() const {return ffluxOptions().precision_goal();}
     double precisionGoalConfidence() const {return ffluxOptions().precision_goal_confidence();}
