@@ -71,7 +71,7 @@
 #include "lm/resource/ResourceMap.h"
 #include "lm/tiling/Tiling.h"
 #include "lm/VectorMath.h"
-#include "lptf/profile.h"
+#include "lptf/Profile.h"
 #include "lptf/profileCodes.h"
 
 using lm::protowrap::Repeated;
