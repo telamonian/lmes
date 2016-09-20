@@ -67,7 +67,7 @@
 #include "lm/slot/Slot.h"
 #include "lm/slot/SlotList.h"
 #include "lptf/Profile.h"
-#include "lptf/profileCodes.h"
+#include "lptf/ProfileCodes.h"
 
 using lm::resource::ComputeResources;
 using lm::resource::ResourceMap;

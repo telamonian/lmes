@@ -55,7 +55,7 @@
 #include "lm/trajectory/TrajectoryList.h"
 #include "lm/Types.h"
 #include "lptf/Profile.h"
-#include "lptf/profileCodes.h"
+#include "lptf/ProfileCodes.h"
 
 using lm::input::DiffusionModel;
 using lm::input::ReactionModel;
