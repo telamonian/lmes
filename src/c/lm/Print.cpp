@@ -95,7 +95,7 @@ void Print::printf(int verbosity, const char * fmt, ...)
     }
 }
 
-static void Print::printMsgDebug(int verbosity, const google::protobuf::Message& msg, size_t halfMaxSize)
+void Print::printMsgDebug(int verbosity, const google::protobuf::Message& msg, size_t halfMaxSize)
 {
     if (msg.DebugString().size() > 2*halfMaxSize+1)
     {
