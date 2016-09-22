@@ -54,20 +54,10 @@ std::string pathJoin(const std::vector<std::string>& pathElements, bool absolute
 std::string pathJoin(const std::string& elem0, const std::string& elem1, bool absolute=true);// {std::vector<std::string> elems; elems.push_back(elem0); elems.push_back(elem1); return pathJoin(elems, absolute);}
 
 // get the first n characters of a string in a new string
-std::string head(const std::string& source, size_t length)
-{
-    return source.substr(0, length);
-}
+std::string head(const std::string& source, size_t length);
 
 // get the last n characters of a string in a new string (see http://stackoverflow.com/a/7597469/425458)
-std::string tail(const std::string& source, size_t length)
-{
-    if (length>=source.size())
-    {
-        return source;
-    }
-    return source.substr(source.size() - length);
-}
+std::string tail(const std::string& source, size_t length);
 
 /**
  * Class for verbosity-configurable print function.

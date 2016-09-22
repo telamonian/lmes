@@ -111,6 +111,22 @@ template<> const char* Print::printf_format_string<int>() {return "%d";}
 template<> const char* Print::printf_format_string<uint>() {return "%u";}
 template<> const char* Print::printf_format_string<double>() {return "%f";}
 
+// get the first n characters of a string in a new string
+string head(const string& source, size_t length)
+{
+    return source.substr(0, length);
+}
+
+// get the last n characters of a string in a new string (see http://stackoverflow.com/a/7597469/425458)
+string tail(const string& source, size_t length)
+{
+    if (length>=source.size())
+    {
+        return source;
+    }
+    return source.substr(source.size() - length);
+}
+
 // "lambda" function needed for pathJoin
 bool isNotSlash(const char& c) {return c!='/';}
 
