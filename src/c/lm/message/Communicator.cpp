@@ -123,7 +123,11 @@ void Communicator::serialize(Endpoint dest, lm::message::Message* msg) const
     // Serialize the message into the buffer.
     int messageLength=msg->ByteSize();
     lastMessageSize = messageLength;
-    if (messageLength > outputBufferSize) throw lm::Exception("Message too large to serialize into output buffer",messageLength,outputBufferSize);
+    if (messageLength > outputBufferSize)
+    {
+        lm::Print::printMsgDebug(lm::Print::INFO, *msg);
+        throw lm::Exception("Message too large to serialize into output buffer", messageLength, outputBufferSize);
+    }
 
     PROF_BEGIN(PROF_MESSAGE_SERIALIZE);
     if (!msg->SerializeToArray(outputBuffer,messageLength)) throw lm::Exception("Unable to serialize message");
@@ -153,7 +157,11 @@ void Communicator::sendMessage(Endpoint dest, lm::message::Message* msg, int sle
     // Serialize the message into the buffer.
     int messageLength=msg->ByteSize();
     lastMessageSize = messageLength;
-    if (messageLength > outputBufferSize) throw lm::Exception("Message too large to serialize into output buffer",messageLength,outputBufferSize);
+    if (messageLength > outputBufferSize)
+    {
+        lm::Print::printMsgDebug(lm::Print::INFO, *msg);
+        throw lm::Exception("Message too large to serialize into output buffer", messageLength, outputBufferSize);
+    }
 
     PROF_BEGIN(PROF_MESSAGE_SERIALIZE);
     if (!msg->SerializeToArray(outputBuffer,messageLength)) throw lm::Exception("Unable to serialize message");
@@ -278,7 +286,11 @@ int Communicator::isendMessage(Endpoint dest, lm::message::Message* msg, int dum
     // Serialize the message into the buffer.
     int messageLength=msg->ByteSize();
     lastMessageSize = messageLength;
-    if (messageLength > outputBufferSize) throw lm::Exception("Message too large to serialize into output buffer",messageLength,outputBufferSize);
+    if (messageLength > outputBufferSize)
+    {
+        lm::Print::printMsgDebug(lm::Print::INFO, *msg);
+        throw lm::Exception("Message too large to serialize into output buffer",messageLength,outputBufferSize);
+    }
 
     PROF_BEGIN(PROF_MESSAGE_SERIALIZE);
     if (!msg->SerializeToArray(outputBuffer,messageLength)) throw lm::Exception("Unable to serialize message");

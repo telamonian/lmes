@@ -40,10 +40,34 @@
 #define LM_PRINT_H_
 
 #include <cstdio>
+#include <google/protobuf/message.h>
 #include <string>
 #include <vector>
 
 namespace lm {
+
+// join a vector of path elements into a "/" delineated path.
+// If absolute, ensures that there is exactly one "/" at the beginning of the path, otherwise any leading "/" are stripped
+std::string pathJoin(const std::vector<std::string>& pathElements, bool absolute=true);
+
+// convenience overloads for pathJoin
+std::string pathJoin(const std::string& elem0, const std::string& elem1, bool absolute=true);// {std::vector<std::string> elems; elems.push_back(elem0); elems.push_back(elem1); return pathJoin(elems, absolute);}
+
+// get the first n characters of a string in a new string
+std::string head(const std::string& source, size_t length)
+{
+    return source.substr(0, length);
+}
+
+// get the last n characters of a string in a new string (see http://stackoverflow.com/a/7597469/425458)
+std::string tail(const std::string& source, size_t length)
+{
+    if (length>=source.size())
+    {
+        return source;
+    }
+    return source.substr(source.size() - length);
+}
 
 /**
  * Class for verbosity-configurable print function.
@@ -60,16 +84,10 @@ public:
 
     static std::string getDateTimeString();
     static void printDateTimeString();
-    static void printf(int level, const char * fmt, ...);
+    static void printf(int verbosity, const char * fmt, ...);
+    static void printMsgDebug(int verbosity, const google::protobuf::Message& msg, size_t halfMaxSize=1048576);
     template <typename T> static const char* printf_format_string();
 };
-
-// join a vector of path elements into a "/" delineated path.
-// If absolute, ensures that there is exactly one "/" at the beginning of the path, otherwise any leading "/" are stripped
-std::string pathJoin(const std::vector<std::string>& pathElements, bool absolute=true);
-
-// convenience overloads for pathJoin
-std::string pathJoin(const std::string& elem0, const std::string& elem1, bool absolute=true);// {std::vector<std::string> elems; elems.push_back(elem0); elems.push_back(elem1); return pathJoin(elems, absolute);}
 
 }
 

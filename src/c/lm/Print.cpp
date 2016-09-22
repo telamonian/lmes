@@ -95,6 +95,18 @@ void Print::printf(int verbosity, const char * fmt, ...)
     }
 }
 
+static void Print::printMsgDebug(int verbosity, const google::protobuf::Message& msg, size_t halfMaxSize)
+{
+    if (msg.DebugString().size() > 2*halfMaxSize+1)
+    {
+        lm::Print::printf(verbosity, "%s...%s", lm::head(msg.DebugString(), halfMaxSize).c_str(), lm::tail(msg.DebugString(), halfMaxSize).c_str());
+    }
+    else
+    {
+        lm::Print::printf(verbosity, "%s", msg.DebugString().c_str());
+    }
+}
+
 template<> const char* Print::printf_format_string<int>() {return "%d";}
 template<> const char* Print::printf_format_string<uint>() {return "%u";}
 template<> const char* Print::printf_format_string<double>() {return "%f";}

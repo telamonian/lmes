@@ -45,6 +45,7 @@
 #include <valarray>
 #include <vector>
 
+#include "hrtime.h"
 #include "lm/ClassFactory.h"
 #include "lm/EnumHelper.h"
 #include "lm/fflux/FFluxPhaseZeroTrajectory.h"
@@ -107,7 +108,7 @@ int FFluxSupervisor::getRecvSleepMilliseconds()
 }
 
 FFluxSupervisor::FFluxSupervisor()
-:ffluxPhaseOutputListsWrap(&ffluxPhaseOutputListsMsg),previousFFluxPhaseOutputWrapPtr(&_ffluxPhaseOutputWrap_0),currentFFluxPhaseOutputWrapPtr(&_ffluxPhaseOutputWrap_1),
+:ffluxPhaseOutputListsWrap(&ffluxPhaseOutputListsMsg),ffluxProgress_lastPrintTime(getHrTime()),previousFFluxPhaseOutputWrapPtr(&_ffluxPhaseOutputWrap_0),currentFFluxPhaseOutputWrapPtr(&_ffluxPhaseOutputWrap_1),
  ffluxStageOutputsWrap(&ffluxStageOutputsMsg),simulationPhaseTerminated(false),simulationPhaseOutputSent(false),simulationStageOutputSent(false),input(NULL),trajectoryList(NULL)
 {
     ffluxPhaseOutputContainingMsg.mutable_process_work_unit_output()->set_work_unit_id(0);
@@ -620,7 +621,52 @@ bool FFluxSupervisor::terminateSimulationPhase()
     }
 
     if (simulationPhaseTerminated) simulationPhaseEverTerminated = true;
+    printFFluxLimitProgress();
+
     return simulationPhaseTerminated;
+}
+
+void FFluxSupervisor::printFFluxLimitProgress()
+{
+    if (not simulationPhaseTerminated)
+    {
+        // Print some performance statistics, if it has been a while.
+        hrtime currentTime = getHrTime();
+        if (convertHrToSeconds(currentTime-ffluxProgress_lastPrintTime) > 610.0)
+        {
+            Print::printf(Print::INFO, "Forward Flux Phase Limit Progress");
+            Print::printf(Print::INFO, "  Phase_ID Limit_Type       Progress    Limit");
+            Print::printf(Print::INFO, "----------------------------------------------------");
+
+            switch(mutableCurrentPhaseLimit()->stop_condition())
+            {
+            case FFPhaseLimEnums::FORWARD_FLUXES:
+                Print::printf(Print::INFO, "%10lld %-17s %12d %12d",
+                    currentFFluxPhaseIndex(),
+                    FFPhaseLimEnums::StopCondition_Name(mutableCurrentPhaseLimit()->stop_condition()).c_str(),
+                    currentFFluxPhaseOutputWrapPtr->wrappedMsg()->successful_trajectories_launched_count(),
+                    mutableCurrentPhaseLimit()->uvalue());
+                break;
+            case FFPhaseLimEnums::TRAJECTORY_COUNT:
+                Print::printf(Print::INFO, "%10lld %-17s %12d %12d",
+                    currentFFluxPhaseIndex(),
+                    FFPhaseLimEnums::StopCondition_Name(mutableCurrentPhaseLimit()->stop_condition()).c_str(),
+                    currentFFluxPhaseOutputWrapPtr->wrappedMsg()->successful_trajectories_launched_count() + currentFFluxPhaseOutputWrapPtr->wrappedMsg()->failed_trajectories_launched_count(),
+                    mutableCurrentPhaseLimit()->uvalue());
+                break;
+            case FFPhaseLimEnums::TIME:
+                Print::printf(Print::INFO, "%10lld %-17s %12.2e %12.2e",
+                    currentFFluxPhaseIndex(),
+                    FFPhaseLimEnums::StopCondition_Name(mutableCurrentPhaseLimit()->stop_condition()).c_str(),
+                    currentFFluxPhaseOutputWrapPtr->wrappedMsg()->successful_trajectories_launched_total_time() + currentFFluxPhaseOutputWrapPtr->wrappedMsg()->failed_trajectories_launched_total_time(),
+                    mutableCurrentPhaseLimit()->dvalue());
+                break;
+            default: throw UnimplementedException("unimplemented");
+            }
+
+            ffluxProgress_lastPrintTime = getHrTime();
+        }
+    }
 }
 
 void FFluxSupervisor::finishSimulationPhase()
@@ -824,6 +870,7 @@ void FFluxSupervisor::buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint 
 //    // Update the slots list.
 //    slots.workUnitFinished(msg);
 //}
+
 
 void FFluxSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg)
 {

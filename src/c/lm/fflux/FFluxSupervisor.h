@@ -41,6 +41,7 @@
 
 #include <valarray>
 
+#include "hrtime.h"
 #include "lm/EnumHelper.h"
 #include "lm/fflux/FFluxTrajectoryList.h"
 #include "lm/fflux/input/FFluxPhase.pb.h"
@@ -114,6 +115,7 @@ protected:
 
     // methods that control what happens at the end of a ffluxPhase
     virtual bool terminateSimulationPhase();
+    virtual void printFFluxLimitProgress();
     virtual void finishSimulationPhase();
     virtual void sendSimulationPhaseOutput();
     virtual bool performAnotherSimulationPhase() {return not isCurrentPhaseLast();}
@@ -210,6 +212,8 @@ protected:
     // shadowing ptrs from the base class
     lm::fflux::input::FFluxInput* input;
     lm::fflux::FFluxTrajectoryList* trajectoryList;
+
+    hrtime ffluxProgress_lastPrintTime;
 };
 
 }
