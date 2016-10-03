@@ -149,8 +149,9 @@ void SFileOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries
 void SFileOutputWriter::processLimitTracking(const lm::io::LimitTracking& data)
 {
     stringstream nameSS;
-    nameSS << "/Simulations/" << data.trajectory_id() << "/LimitTracking/";
-    nameSS << std::setfill('0') << std::setw(2) << data.limit_id();
+    nameSS << "/Simulations/" << data.trajectory_id();
+    nameSS << "/Limit/" << std::setfill('0') << std::setw(2) << data.limit_id();
+    nameSS << "/LimitTracking";
 
     processMessage(nameSS.str(), "protobuf:lm.io.LimitTracking", data);
 }
@@ -158,8 +159,9 @@ void SFileOutputWriter::processLimitTracking(const lm::io::LimitTracking& data)
 void SFileOutputWriter::processOrderParameterFirstPassageTimes(const lm::io::OrderParameterFirstPassageTimes& data)
 {
     stringstream nameSS;
-    nameSS << "/Simulations/" << data.trajectory_id() << "/OrderParameterFirstPassageTimes/";
-    nameSS << std::setfill('0') << std::setw(2) << data.order_parameter_id();
+    nameSS << "/Simulations/" << data.trajectory_id();
+    nameSS << "/OrderParameter/" << std::setfill('0') << std::setw(2) << data.order_parameter_id();
+    nameSS << "/OrderParameterFirstPassageTimes/";
 
     processMessage(nameSS.str(), "protobuf:lm.io.OrderParameterFirstPassageTimes", data);
 }

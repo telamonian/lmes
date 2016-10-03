@@ -7,33 +7,16 @@ import sys
 import zlib
 
 import lm
-# from lm.io.SpeciesTimeSeries_pb2 import SpeciesTimeSeries as SpeciesTimeSeriesMsg
-from lma.src.datum.trajectory import SpeciesTrajectories
+# from lma.src.datum.trajectory import SpeciesTrajectories
+from robertslab.pbuf.NDArray_pb2 import NDArray as NDArrayMsg
 from robertslab.sfile import *
 
 np.set_printoptions(edgeitems=int(1e4), threshold=int(1e4), linewidth=int(1e3))
 
+# Helper functions for easier access to Protobuf reflection
+
 cppTypeDict = {getattr(FieldDescriptor, attrName):attrName for attrName in dir(FieldDescriptor) if attrName.startswith('CPPTYPE_')}
 labelDict = {getattr(FieldDescriptor, attrName):attrName for attrName in dir(FieldDescriptor) if attrName.startswith('LABEL_')}
-
-ndDtypeDict = {0: np.dtype('int8'),
-               1: np.dtype('int16'),
-               2: np.dtype('int32'),
-               3: np.dtype('int64'),
-               4: np.dtype('uint8'),
-               5: np.dtype('uint16'),
-               6: np.dtype('uint32'),
-               7: np.dtype('uint64'),
-               8: np.dtype('float16'),
-               9: np.dtype('float32'),
-              10: np.dtype('float64'),
-              11: np.dtype('complex64'),
-              12: np.dtype('complex128'),
-              13: np.dtype('S8'),
-              14: np.dtype('S16'),
-              15: np.dtype('S32'),
-              16: np.dtype('S64'),
-              17: np.dtype('S128')}
 
 def FieldIsMsg(fieldDesc):
     return GetFieldCPPType(fieldDesc)=='CPPTYPE_MESSAGE'
@@ -44,12 +27,17 @@ def GetFieldCPPType(fieldDesc):
 def GetFieldLabel(fieldDesc):
     return labelDict[fieldDesc.label]
 
+def GetNDArrayDataType(ndarrayMsg):
+    return NDArrayMsg.DataType.Name(ndarrayMsg.data_type)
+
+# Functions for deserializing data into protobuf messages
+
 def DeserializeNDArrayAsMsg(ndarrayMsg):
     # Convert the data to a numpy array.
     if ndarrayMsg.compressed_deflate:
-        nparray = np.reshape(np.fromstring(zlib.decompress(ndarrayMsg.data), dtype=ndDtypeDict[ndarrayMsg.data_type]), ndarrayMsg.shape)
+        nparray = np.reshape(np.fromstring(zlib.decompress(ndarrayMsg.data), dtype=GetNDArrayDataType(ndarrayMsg)), ndarrayMsg.shape)
     else:
-        nparray = np.reshape(np.fromstring(ndarrayMsg.data, dtype=ndDtypeDict[ndarrayMsg.data_type]), ndarrayMsg.shape)
+        nparray = np.reshape(np.fromstring(ndarrayMsg.data, dtype=GetNDArrayDataType(ndarrayMsg)), ndarrayMsg.shape)
 
     return nparray
 
@@ -60,41 +48,32 @@ def DeserializeAsMsg(data, dataTypeFullName):
     msg.ParseFromString(data)
 
     return msg,msgType
-    
-    # if msg.counts.shape[0] == 0:
-    #     species_counts = np.array([])
-    #     times = np.array([])
-    #
-    # # Convert the data to a numpy array.
-    # species_counts = DeserializeNDArrayAsMsg(msg.counts)
-    # times = DeserializeNDArrayAsMsg(msg.times)
-    # # if buf.counts.compressed_deflate:
-    # #     species_counts=np.reshape(np.fromstring(zlib.decompress(buf.counts.data), dtype=np.int32), buf.counts.shape)
-    # # else:
-    # #     species_counts=np.reshape(np.fromstring(buf.counts.data, dtype=np.int32), buf.counts.shape)
-    # # if buf.times.compressed_deflate:
-    # #     times=np.reshape(np.fromstring(zlib.decompress(buf.times.data), dtype=np.float64), buf.times.shape)
-    # # else:
-    # #     times=np.reshape(np.fromstring(buf.times.data, dtype=np.float64), buf.times.shape)
-    #
-    # print_(times.astype)
-    # print_(species_counts)
 
-def DeserializeAsData(data, msgTypeFullName):
-    specTrajs = SpeciesTrajectories()
-    specTrajs.deserialize(data)
-    for tid,traj in specTrajs.items():
-        print_(tid)
-        print_(traj.time)
-        print_(traj.species_count)
+# def DeserializeAsLMAData(data, msgTypeFullName):
+#     specTrajs = SpeciesTrajectories()
+#     specTrajs.deserialize(data)
+#     for tid,traj in specTrajs.items():
+#         print_(tid)
+#         print_(traj.time)
+#         print_(traj.species_count)
 
-def DumpRecord(record, data):
+# Printing functions
+
+def PrintRecord(record, data):
     print_(record)
     if data is not None:
         msg,msgType = DeserializeAsMsg(data, record.dataTypeFullName)
         PrintMsg(msg)
 
 def PrintMsg(msg):
+    ''' This function recursively walks over/prints the fields of a Protobuf message instance.
+    If any fields are themselves messages, PrintMsg is recursively called on said submessage.
+
+    Unlike the built-in message __print__() method, PrintMsg correctly unpacks the multidimensional arrays in NDArray messages.
+
+    :param msg: The message to be walked over/printed
+    :return: None
+    '''
     for desc,val in msg.ListFields():
         if GetFieldLabel(desc)=='LABEL_REPEATED':
             if GetFieldCPPType(desc)=='CPPTYPE_MESSAGE':
@@ -118,6 +97,8 @@ def PrintMsg(msg):
                 # val is a single pod
                 print_(desc.name, ': ', val)
 
+# Main function
+
 def Main():
     parser = ArgumentParser()   #"Usage: ./dumpSFileLM.py path-to-sfile [-l]")
 
@@ -134,7 +115,7 @@ def Main():
             print_(record)
     else:
         for record,data in f.items():
-            DumpRecord(record, data)
+            PrintRecord(record, data)
 
     f.close()
 
