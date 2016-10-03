@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from argparse import ArgumentParser
+from google.protobuf.descriptor import FieldDescriptor
 import numpy as np
 from six import print_
 import sys
@@ -10,6 +12,9 @@ from lma.src.datum.trajectory import SpeciesTrajectories
 from robertslab.sfile import *
 
 np.set_printoptions(edgeitems=int(1e4), threshold=int(1e4), linewidth=int(1e3))
+
+cppTypeDict = {getattr(FieldDescriptor, attrName):attrName for attrName in dir(FieldDescriptor) if attrName.startswith('CPPTYPE_')}
+labelDict = {getattr(FieldDescriptor, attrName):attrName for attrName in dir(FieldDescriptor) if attrName.startswith('LABEL_')}
 
 ndDtypeDict = {0: np.dtype('int8'),
                1: np.dtype('int16'),
@@ -30,6 +35,15 @@ ndDtypeDict = {0: np.dtype('int8'),
               16: np.dtype('S64'),
               17: np.dtype('S128')}
 
+def FieldIsMsg(fieldDesc):
+    return GetFieldCPPType(fieldDesc)=='CPPTYPE_MESSAGE'
+
+def GetFieldCPPType(fieldDesc):
+    return cppTypeDict[fieldDesc.cpp_type]
+
+def GetFieldLabel(fieldDesc):
+    return labelDict[fieldDesc.label]
+
 def DeserializeNDArrayAsMsg(ndarrayMsg):
     # Convert the data to a numpy array.
     if ndarrayMsg.compressed_deflate:
@@ -40,7 +54,7 @@ def DeserializeNDArrayAsMsg(ndarrayMsg):
     return nparray
 
 def DeserializeAsMsg(data, dataTypeFullName):
-    msgType = lm.GetMsgByFullName(dataTypeFullName)
+    msgType = lm.GetMsgType(dataTypeFullName)
     msg = msgType()
 
     msg.ParseFromString(data)
@@ -70,47 +84,58 @@ def DeserializeAsData(data, msgTypeFullName):
     specTrajs = SpeciesTrajectories()
     specTrajs.deserialize(data)
     for tid,traj in specTrajs.items():
-        print(tid)
-        print(traj.time)
-        print(traj.species_count)
+        print_(tid)
+        print_(traj.time)
+        print_(traj.species_count)
 
 def DumpRecord(record, data):
     print_(record)
     if data is not None:
         msg,msgType = DeserializeAsMsg(data, record.dataTypeFullName)
-        for desc,field in msg.ListFields():
-            print_(desc.name, ': ', list(field))
+        PrintMsg(msg)
+
+def PrintMsg(msg):
+    for desc,val in msg.ListFields():
+        if GetFieldLabel(desc)=='LABEL_REPEATED':
+            if GetFieldCPPType(desc)=='CPPTYPE_MESSAGE':
+                for i,subMsg in enumerate(val):
+                    # val is repeated message
+                    print_('%s_%d: ' % (desc.name, i), end='')
+                    PrintMsg(subMsg)
+            else:
+                # val is repeated pod
+                print_(desc.name, ': ', list(val))
+        else:
+            if GetFieldCPPType(desc)=='CPPTYPE_MESSAGE':
+                print_(desc.name, ': ', end='')
+                if desc.message_type.full_name=='robertslab.pbuf.NDArray':
+                    # val is a ndarray msg
+                    print_(DeserializeNDArrayAsMsg(val))
+                else:
+                    # val is any other kind of msg
+                    PrintMsg(val)
+            else:
+                # val is a single pod
+                print_(desc.name, ': ', val)
 
 def Main():
-    # Make sure we have the correct command line arguments.
-    if len(sys.argv) < 2:
-        print_("Usage: ./dumpSFileLM.py path-to-sfile [-l]")
-        quit()
-    
-    try:
-        listOnly = sys.argv[2]=='-l'
-    except IndexError:
-        listOnly = False
+    parser = ArgumentParser()   #"Usage: ./dumpSFileLM.py path-to-sfile [-l]")
+
+    parser.add_argument('sfilePath',  help='path to sfile to dump')
+    parser.add_argument('-l', '--list-only', action='store_true', help='if the --list-only flag is set, dump only the record metadata without the actual record data')
+
+    kwargs = vars(parser.parse_args())
 
     f = SFile.fromFilename(sys.argv[1], 'rb')
-    for record,data in f.iterRecords(skip=listOnly):
-        DumpRecord(record, data)
-            # DeserializeAsData(data)
-            # try:
-            #
-            # except:
-            #     DeserializeAsGenericMsg(data)
 
-    # Open the file.
-    # while True:
-    #     record = f.readNextRecord(skip=listOnly)
-    #     if record==None:
-    #         break
-    #     print_(record)
-    #     if not listOnly:
-    #         data = f.readDataRaw(record.dataSize)
-    #         msgTypeFullName = record.dataType.split(':')[1]
-    #         DeserializeAsMsg(data, msgTypeFullName)
+    # loop over all of the records, printing out either the metadata, or the metadata and the deserialized data
+    if kwargs['list_only']:
+        for record in f.records():
+            print_(record)
+    else:
+        for record,data in f.items():
+            DumpRecord(record, data)
+
     f.close()
 
 if __name__=='__main__':

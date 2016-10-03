@@ -84,7 +84,6 @@ class ReplicateRegression(Regression):
         replicateInput.SetOrderParameters(ops=ops)
         replicateInput.SetReactionRateConstants(rRates=reactionRateConstants)
         replicateInput.SetSimulationParameters(simParams=simParams)
-        print_(kwargs)
         if kwargs['firstPassageTimeSpecies']:
             replicateInput.SetFirstPassageTimeTracking(fptTrackedSpecies=[0,1,2,3,4,5,6])
 

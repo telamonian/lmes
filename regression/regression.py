@@ -37,6 +37,7 @@ class Regression(object):
         if kwargs['ff']=='sfile' and kwargs['fo']=='biphasic_switch.sfile':
             try:
                 os.remove('biphasic_switch.sfile')
+                print('cleaned up output file %s' % 'biphasic_switch.sfile')
             except OSError:
                 pass
 
@@ -73,7 +74,7 @@ class Regression(object):
         parser.add_argument('-fo', '--output-file', dest='fo',                           help='path to output file')
         parser.add_argument('-fp', '--output-prefix', dest='fp',                         help='The prefix to use for the record names')
         parser.add_argument('-sl', '--solver', dest='sl',
-                            default='lm::avx::GillespieDSolverAVX',                      help='fully qualified c++ class name of solver to use during simulation. should be one of (lm::cme::GillespieDSolver | lm::avx::GillespieDSolverAVX)')
+                            default=SUPPRESS,                                            help='fully qualified c++ class name of solver to use during simulation. should be one of (lm::cme::GillespieDSolver | lm::avx::GillespieDSolverAVX)')
         parser.add_argument('-intout', '--intermediate-output',
                             action='store_true', dest='intout',                          help='output some extra data during certain kinds of simulations')
 
@@ -89,13 +90,14 @@ class Regression(object):
         # forward flux specific simulation parameters
         parser.add_argument('--fflux', action='store_true',                              help='set this flag to do a Forward Flux simulation instead of the deafult Replicate simulation')
         parser.add_argument('-psc', '--pilotStageCount', default=SUPPRESS,               help='fixed number of trajectories to launch during each phase of the pilot stage for FFPilot')
-        parser.add_argument('-pg', '--precisionGoal', default=SUPPRESS,                  help='precision goal for FFPilot')
-        parser.add_argument('-pgc', '--precisionGoalConfidence', default=SUPPRESS,       help='confidence level for precision goal for FFPilot')
+        parser.add_argument('-pscm', '--productionStageCountMinimum', default=SUPPRESS)
+        parser.add_argument('-eg', '--errorGoal', default=SUPPRESS,                      help='error goal for FFPilot')
+        parser.add_argument('-egc', '--errorGoalConfidence', default=SUPPRESS,           help='confidence level for error goal for FFPilot')
         parser.add_argument('-pzsm', '--phaseZeroSamplingMultiplier', default=SUPPRESS,  help='multiplies number of trajectories launched durring any FFlux phase zero')
-        parser.add_argument('--ffluxPilotOutput', action='store_true',                   help='turn on the output of data for the FFPilot pilot stage as well as the production stage')
-        parser.add_argument('--ffluxPhaseOutput', action='store_true',                   help='turn on the output of data for each phase in FFPilot')
-        parser.add_argument('--ffluxStageOutputRaw', action='store_false',               help='turn off the output of the complete detailed data from each stage in FFPilot')
-        parser.add_argument('--ffluxStageOutputSummary', action='store_false',           help='turn off the output of a summary of the data from each stage in FFPilot')
+        parser.add_argument('--ffluxPilotOutput', action='store_true', default=SUPPRESS,                   help='turn on the output of data for the FFPilot pilot stage as well as the production stage')
+        parser.add_argument('--ffluxPhaseOutput', action='store_true', default=SUPPRESS,                  help='turn on the output of data for each phase in FFPilot')
+        parser.add_argument('--ffluxStageOutputRaw', action='store_false', default=SUPPRESS,              help='turn off the output of the complete detailed data from each stage in FFPilot')
+        parser.add_argument('--ffluxStageOutputSummary', action='store_false', default=SUPPRESS,          help='turn off the output of a summary of the data from each stage in FFPilot')
 
         # replicate specific simulation parameters
         parser.add_argument('-fpt', '--firstPassageTimeSpecies', action='store_true',    help='set this flag to track species first passage times')
@@ -107,11 +109,15 @@ class Regression(object):
         kwargs = vars(parser.parse_args())
         print_(kwargs)
 
-        if kwargs['fflux']:
-            kwargs['intout'] = True
+        # if kwargs['fflux']:
+        #     kwargs['intout'] = True
+
         if kwargs.pop('sfile'):
             kwargs['ff'] = 'sfile'
             kwargs['fo'] = 'biphasic_switch.sfile'
+
+        if 'sl' not in kwargs:
+            kwargs['sl'] = 'lm::cme::GillespieDSolver' if kwargs['fflux'] or '-fflux' in self.defaultLMArgs else 'lm::avx::GillespieDSolverAVX'
 
         return kwargs
 
@@ -119,6 +125,7 @@ class Regression(object):
         if kwargs['build_input']:
             print_('Building lmes forward flux simulation input file without executing the test')
             self.BuildInput(**kwargs)
+            self.CleanSFileOutput(**kwargs)
         else:
             print_('Building lmes forward flux simulation input file and then running a test')
             if kwargs['execPath']==self.defaultExecPath:

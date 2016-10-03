@@ -130,7 +130,7 @@ public:
         }
     }
 
-    inline lm::io::LimitTracking* addTrackingMsg(lm::input::TrajectoryLimit* limitToTrack, bool addToOutput=true, bool addToCMEState=false, int64_t count=1, bool terminate=true)
+    inline lm::io::LimitTracking* addTrackingMsg(lm::input::TrajectoryLimit* limitToTrack, bool addToCMEState=false, bool addToOutput=true, int64_t count=1, bool terminate=true)
     {
         limitToTrack->set_terminate(terminate);
 
@@ -150,7 +150,7 @@ public:
     }
 
     // version of addTracking message that allow for setting non terminating tracking without necessarily filling in every default value in the signature
-    inline lm::io::LimitTracking* addTrackingMsgNonterminating(lm::input::TrajectoryLimit* limitToTrack, bool addToOutput=true, bool addToCMEState=false, int64_t count=-1)
+    inline lm::io::LimitTracking* addTrackingMsgNonterminating(lm::input::TrajectoryLimit* limitToTrack, bool addToCMEState=false, bool addToOutput=true, int64_t count=-1)
     {
         return addTrackingMsg(limitToTrack, addToOutput, addToCMEState, count, false);
     }

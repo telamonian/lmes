@@ -45,6 +45,7 @@ message OutputOptions {
 
     optional bool write_initial_trajectory_state = 11 [default = true];
     optional bool write_final_trajectory_state   = 12 [default = true];
+    optional bool write_limit_tracking           = 13 [default = false];
 
     optional double degree_advancement_write_interval = 21;
     optional double lattice_write_interval            = 22;

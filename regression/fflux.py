@@ -18,27 +18,29 @@ class FFluxRegression(ReplicateRegression):
         super(FFluxRegression, self)._BuildInput(**kwargs)
 
         if kwargs['quick_test']:
-            defaultSimulationParameters = {"precisionGoal": .05,
-                                           "precisionGoalConfidence": .95,
+            defaultSimulationParameters = {"errorGoal": .05,
+                                           "errorGoalConfidence": .95,
                                            "pilotStageCount": 1e3,
                                            "productionStageCountMinimum": 1e3,
-                                           "ffluxPilotOutput": False,
-                                           "ffluxPhaseOutput": False,
+                                           "ffluxPilotOutput": True,
+                                           "ffluxPhaseOutput": True,
                                            "ffluxStageOutputRaw": True,
                                            "ffluxStageOutputSummary": True,
                                            'phaseZeroSamplingMultiplier': 10,
-                                           'ffluxMinimizeCost': False,}
+                                           'ffluxMinimizeCost': False,
+                                           'writeLimitTracking': True,}
         else:
-            defaultSimulationParameters = {"precisionGoal": .05,
-                                           "precisionGoalConfidence": .95,
+            defaultSimulationParameters = {"errorGoal": .05,
+                                           "errorGoalConfidence": .95,
                                            "pilotStageCount": 1e3,
                                            "productionStageCountMinimum": 1e3,
-                                           "ffluxPilotOutput": False,
-                                           "ffluxPhaseOutput": False,
+                                           "ffluxPilotOutput": True,
+                                           "ffluxPhaseOutput": True,
                                            "ffluxStageOutputRaw": True,
                                            "ffluxStageOutputSummary": True,
                                            'phaseZeroSamplingMultiplier': 10,
-                                           'ffluxMinimizeCost': False,}
+                                           'ffluxMinimizeCost': False,
+                                           'writeLimitTracking': True,}
 
         ffluxInput = Input('biphasic_switch.lm')
 

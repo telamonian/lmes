@@ -46,6 +46,9 @@
 
 namespace lm {
 
+//// join a vector of strings via the specified character
+//std::string join(const std::vector<std::string>& )
+
 // join a vector of path elements into a "/" delineated path.
 // If absolute, ensures that there is exactly one "/" at the beginning of the path, otherwise any leading "/" are stripped
 std::string pathJoin(const std::vector<std::string>& pathElements, bool absolute=true);

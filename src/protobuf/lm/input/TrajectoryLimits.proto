@@ -100,9 +100,9 @@ message TrajectoryLimit {
     optional bool add_tracking_to_cme_state         = 42 [default=false];
 
     /*
-     * - if add_tracking_to_output==true, the state information collected by the limit tracking is saved to the simulation output file
+     * - if add_tracking_to_output==true and the solver is set to output limit tracking data, the state information collected by the limit tracking is saved to the simulation output file
      */
-    optional bool add_tracking_to_output            = 43 [default=false];
+    optional bool add_tracking_to_output            = 43 [default=true];
 
     /*
      * -

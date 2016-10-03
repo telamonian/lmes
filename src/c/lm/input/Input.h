@@ -171,7 +171,7 @@ protected:
     // Version of parseAndSet that works with options that can directly accessed through a mutable pointer
     // By using template parameter inference on the pointer, this template automatically figures out what type to parse from simulationParameters
     template <typename Value>
-    bool parseAndSet(const string key, Value* fieldPtr)
+    bool parseAndSet(const string key, Value* fieldPtr, Value* defaultOverride=NULL)
     {
         bool result;
         if (simulationParameters.count(key)!=0)
@@ -181,6 +181,10 @@ protected:
         }
         else
         {
+            if (defaultOverride!=NULL)
+            {
+                *fieldPtr = *defaultOverride;
+            }
             result = false;
         }
 
@@ -190,7 +194,7 @@ protected:
     // Version of parseAndSet that works with options that need to be set via a setter function
     // By using template parameter inference on the setter (passed as a function pointer), this template automatically figures out what type to parse from simulationParameters
     template <typename T, typename SetterReturn, typename Value>
-    bool parseAndSet(const string key, SetterReturn (T::*setterFunc)(Value), T& obj)
+    bool parseAndSet(const string key, SetterReturn (T::*setterFunc)(Value), T& obj, Value* defaultOverride=NULL)
     {
         bool result;
         if (simulationParameters.count(key)!=0)
@@ -200,6 +204,10 @@ protected:
         }
         else
         {
+            if (defaultOverride!=NULL)
+            {
+                (obj.*setterFunc)(*defaultOverride);
+            }
             result = false;
         }
 

@@ -167,24 +167,6 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     if (writeDegreeAdvancementTimeSeries)
     {
         setInitialWriteInterval(degreeAdvancementWriteInterval, &nextDegreeAdvancementWriteTime, degreeAdvancements, numberDegreeAdvancements, &degreeAdvancementCounts, &degreeAdvancementTimes);
-//        if (not trajectoryStarted)
-//        {
-//            if (writeInitialTrajectoryState)
-//            {
-//                nextDegreeAdvancementWriteTime = (floor(time/degreeAdvancementWriteInterval) + 1)*degreeAdvancementWriteInterval;
-//                for (uint i=0; i<reactionModel->numberReactions; i++) degreeAdvancementCounts.push_back(degreeAdvancements[i]);
-//                degreeAdvancementTimes.push_back(time);
-//            }
-//            else
-//            {
-//                nextDegreeAdvancementWriteTime = ceil(time/degreeAdvancementWriteInterval)*degreeAdvancementWriteInterval;
-//            }
-//        }
-//        else
-//        {
-//            nextDegreeAdvancementWriteTime = (floor(time/degreeAdvancementWriteInterval) + 1)*degreeAdvancementWriteInterval;
-//        }
-
     }
 
     // Get the interval for writing order parameters.
@@ -193,7 +175,6 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     if (writeOrderParameterTimeSeries)
     {
         setInitialWriteInterval(orderParameterWriteInterval, &nextOrderParameterWriteTime, orderParameterValues, numberOrderParameters, &orderParameterTimeSeriesCounts, &orderParameterTimeSeriesTimes);
-//        nextOrderParameterWriteTime = ceil(time/orderParameterWriteInterval)*orderParameterWriteInterval;
     }
 
     // Get the interval for writing species counts.
@@ -204,20 +185,6 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     if (writeSpeciesTimeSeries)
     {
         setInitialWriteInterval(speciesWriteInterval, &nextSpeciesWriteTime, speciesCounts, reactionModel->numberSpecies, &speciesTimeSeriesCounts, &speciesTimeSeriesTimes);
-
-//        nextSpeciesWriteTime = ceil(time/speciesWriteInterval)*speciesWriteInterval;
-        
-//        // If this is the start of the trajectory, add the initial counts.
-//        if ((time == 0.0 || trajectoryStarted==false) && !ffluxFlag)
-//        {
-//            nextSpeciesWriteTime=speciesWriteInterval;
-//            for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
-//            speciesTimeSeriesTimes.push_back(time);
-//        }
-//        else
-//        {
-//            nextSpeciesWriteTime = ceil(time/speciesWriteInterval)*speciesWriteInterval;
-//        }
     }
 
     // Local cache of random numbers.
@@ -496,7 +463,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     // If any limit tracking is set up to write out to disk, add them to the output message.
     for (lm::limit::TrackingMap::const_iterator it=trackedLimits.begin();it!=trackedLimits.end();it++)
     {
-        if (limits[it->second.limit_id].addTrackingToOutput)
+        if (writeLimitTracking and limits[it->second.limit_id].addTrackingToOutput)
         {
             limitTrackingWrap.setWrappedMsg(wuoMsg->add_limit_tracking());
             limitTrackingWrap.serializeFrom(trajectoryId, it->second);

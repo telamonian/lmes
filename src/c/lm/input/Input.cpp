@@ -204,15 +204,21 @@ void Input::initTrajectoryLimits(const lm::io::hdf5::Hdf5File& file)
 // Get the output options.
 void Input::initOutputOptions(const lm::io::hdf5::Hdf5File& file)
 {
-    // Specify how often the species counts should be written to output
-    parseAndSet("writeInterval", &OutputOptions::set_species_write_interval, outputOptionsMsg);
+    // This flag changes the organization of the output such that the total number of groups and datasets is minimized. Currently only implemented (partially) for HDF5, no effect otherwise
+    parseAndSet("condenseOutput", &OutputOptions::set_condense_output, outputOptionsMsg);
 
-    // Specify how often the species counts at all of the lattice points should be written out during an RDME simulation
-    parseAndSet("latticeWriteInterval", &OutputOptions::set_lattice_write_interval, outputOptionsMsg);
+    // Flags that control whether output is recorded for the initial and/or the final state of every trajectory.
+    parseAndSet("writeInitialTrajectoryState", &OutputOptions::set_write_initial_trajectory_state, outputOptionsMsg);
+    parseAndSet("writeFinalTrajectoryState", &OutputOptions::set_write_initial_trajectory_state, outputOptionsMsg);
 
-    // Specify how often various (optional) specialized simulation outputs should be written out. Leave unset to supress these outputs completely.
+    // Flag that globally controls whether any limit tracking data collected during a trajectory is written out directly to disk.
+    parseAndSet("writeLimitTracking", &OutputOptions::set_write_limit_tracking, outputOptionsMsg);
+
+    // Specify the period at which various outputs should be written out. Leave a WriteInterval unset to suppress its related output
     degreeAdvancementPresent = parseAndSet("degreeAdvancementWriteInterval", &OutputOptions::set_degree_advancement_write_interval, outputOptionsMsg);
+    parseAndSet("latticeWriteInterval", &OutputOptions::set_lattice_write_interval, outputOptionsMsg);
     parseAndSet("orderParameterWriteInterval", &OutputOptions::set_order_parameter_write_interval, outputOptionsMsg);
+    parseAndSet("writeInterval", &OutputOptions::set_species_write_interval, outputOptionsMsg);
 
     // Initialize the species counts first passage times in the output options
     parseAndSetList("fptTrackingList", &OutputOptions::add_fpt_species_to_track, outputOptionsMsg);
@@ -220,8 +226,6 @@ void Input::initOutputOptions(const lm::io::hdf5::Hdf5File& file)
     // Initialize the order parameter values first passage times in the output options
     parseAndSetList("fptOrderParameterTrackingList", &OutputOptions::add_fpt_order_parameter_to_track, outputOptionsMsg);
 
-    // This flag changes the organization of the output such that the total number of groups and datasets is minimized. Currently only implemented (partially) for HDF5, no effect otherwise
-    parseAndSet("condenseOutput", &OutputOptions::set_condense_output, outputOptionsMsg);
 }
 
 // Get some parameters that tweak how work units are run

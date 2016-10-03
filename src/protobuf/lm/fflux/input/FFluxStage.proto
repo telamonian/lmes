@@ -60,7 +60,7 @@ message FFluxStage {
 
     /*
      * - Stopping conditions for each forward flux phase. Can be specified one of two ways (an error will be raised if more than one way is used)
-     *     - If a pilot_stage has been set, the phase limits will be set dynamically based on the results of the pilot stage and precision_goal from FFluxSimulationParameters
+     *     - If a pilot_stage has been set, the phase limits will be set dynamically based on the results of the pilot stage and error_goal from FFluxSimulationParameters
      *     - A manually specified list of phase limits, one per interfaces in this stage's tiling
      *         - If there are fewer limits than interfaces, the last limit will be repeated to make up the difference
      *             - This is useful for specifying one limit for phase zero and another limit for the rest of the phases

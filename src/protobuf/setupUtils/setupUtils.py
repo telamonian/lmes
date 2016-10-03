@@ -27,23 +27,23 @@ def GetNCPUS():
     except ImportError:
         NCPUS = 1
 
-def _InitInitSingle(path, useTemplate=False):
+def _InitInitSingle(path, template=None):
     initPath = os.path.join(path, '__init__.py')
-    if useTemplate:
-        templatePath = os.path.join(thisScriptDir, 'initTemplate.py')
+    if template is not None:
+        templatePath = os.path.join(thisScriptDir, template)
         shutil.copy(templatePath, initPath)
     else:
         f = open(initPath, 'w')
         f.close()
 
-def InitInit(path, recursive=False, useTemplate=False):
+def InitInit(path, recursive=False, template=None):
     if recursive:
         for rPath,dPaths,fPaths in os.walk(path):
             print(os.path.join(rPath, '__init__'))
-            _InitInitSingle(rPath, useTemplate=useTemplate)
+            _InitInitSingle(rPath, template=template)
     else:
         print(os.path.join(path, '__init__'))
-        _InitInitSingle(path, useTemplate=useTemplate)
+        _InitInitSingle(path, template=template)
 
 def IsPython64Bit():
     return (struct.calcsize("P") == 8)

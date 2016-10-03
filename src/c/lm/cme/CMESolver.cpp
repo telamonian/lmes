@@ -95,7 +95,7 @@ CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
 :neededDists(neededDists),rng(NULL),reactionModel(NULL),hasUpdateSpeciesCountsListeners(false),tilings(NULL),numberDegreeAdvancements(0),
  numberOrderParameters(0),orderParameterFunctions(NULL),status(lm::message::WorkUnitStatus::NONE),timeLimit(std::numeric_limits<double>::infinity()),
  numberLimits(0),limits(NULL),limitReached(NULL),limitIDReached(lm::limit::TrajectoryLimits::DEFAULT_LIMIT_ID),
- limitTypeReached(lm::input::TrajectoryLimit::NONE),workUnitCondenseOutput(false),writeInitialTrajectoryState(false),writeFinalTrajectoryState(false),
+ limitTypeReached(lm::input::TrajectoryLimit::NONE),workUnitCondenseOutput(false),writeInitialTrajectoryState(false),writeFinalTrajectoryState(false),writeLimitTracking(false),
  writeDegreeAdvancementTimeSeries(false),writeOrderParameterTimeSeries(false),writeSpeciesTimeSeries(false),degreeAdvancementWriteInterval(0.0),
  orderParameterWriteInterval(0.0),speciesWriteInterval(0.0),numberFptTrackedSpecies(0),numberFptTrackedOrderParameters(0),
  fptTrackedSpecies(NULL),fptTrackedOrderParameters(NULL),degreeAdvancements(NULL),orderParameterValues(NULL),orderParameterPreviousValues(NULL),
@@ -486,6 +486,7 @@ void CMESolver::setOutputOptions(const lm::input::OutputOptions& outputOptions)
     workUnitCondenseOutput = outputOptions.condense_output();
     writeInitialTrajectoryState = outputOptions.write_initial_trajectory_state();
     writeFinalTrajectoryState = outputOptions.write_final_trajectory_state();
+    writeLimitTracking = outputOptions.write_limit_tracking();
 
     // time series output options
     if (outputOptions.has_degree_advancement_write_interval())

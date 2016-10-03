@@ -48,18 +48,18 @@ import "lm/fflux/input/FFluxPhaseLimit.proto";
 
 message FFluxOptions {
     /*
-     * - global precision goal for the fflux simulation
+     * - global error goal for the fflux simulation
      */
-    optional double precision_goal            = 1 [default=.05];
+    optional double error_goal            = 1 [default=.05];
 
     /*
-     * - confidence level that is associated with the precision goal
+     * - confidence level that is associated with the error goal
      */
-    optional double precision_goal_confidence = 2 [default=0.95];
+    optional double error_goal_confidence = 2 [default=0.95];
 
     /*
      * - Stopping conditions for each forward flux phase. Can be specified one of two ways (an error will be raised if more than one way is used)
-     *     - (default mode) If precisionGoal is specified, the phase limits are determined automatically
+     *     - (default mode) If errorGoal is specified, the phase limits are determined automatically
      *     - (debug/internal mode) A manually specified list-of-list of phase limits, one list per tiling to be used in the simulation (two per tiling if do_reverse_simulations is true)
      *         - The length of each list of limits should equal the number of interfaces in it's associated tiling
      *             - If there are fewer limits than interfaces, the last limit will be repeated to make up the difference

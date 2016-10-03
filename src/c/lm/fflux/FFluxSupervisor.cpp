@@ -177,7 +177,7 @@ lm::fflux::input::FFluxStage* FFluxSupervisor::buildProductionStage(lm::fflux::i
 
     addFFluxPhases(productionStage, FFPhaseEnums::LAZY, FFPhaseEnums::UNIFORM_RANDOM);
 
-    if (input->hasPrecisionGoal())
+    if (input->hasErrorGoal())
     {
         // initialize the pilot stage
         lm::fflux::input::FFluxStage* pilotStage = addPilotStage(productionStage);
@@ -396,11 +396,11 @@ void FFluxSupervisor::addFFluxPhaseLimitsFromInput(lm::fflux::input::FFluxStage*
 
 void FFluxSupervisor::addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::protowrap::FFluxStageOutputWrap& stageOutput)
 {
-    vector<uint64_t> trajectoryCounts(optimizeTrajectoryCounts(input->precisionGoal(), input->precisionGoalConfidence(), stageOutput, input->productionStageCountMinimum(), input->phaseZeroSamplingMultiplier(), input->minimizeCost()));
+    vector<uint64_t> trajectoryCounts(optimizeTrajectoryCounts(input->errorGoal(), input->errorGoalConfidence(), stageOutput, input->productionStageCountMinimum(), input->phaseZeroSamplingMultiplier(), input->minimizeCost()));
     stringstream optimizationStatus;
     optimizationStatus.setf(std::ios::fixed, std::ios::floatfield);
     optimizationStatus.precision(2);
-    optimizationStatus << "Attempting to acheive precision goal " << input->precisionGoal() << " (confidence level " << input->precisionGoalConfidence() << ") with the following optimized trajectory counts: [";
+    optimizationStatus << "Attempting to acheive error goal " << input->errorGoal() << " (confidence level " << input->errorGoalConfidence() << ") with the following optimized trajectory counts: [";
 
     vector<uint64_t>::const_iterator tc_it=trajectoryCounts.begin();
     FFluxPhasesWrap::const_iterator ph_it=productionStage->fflux_phases().begin();
@@ -433,7 +433,7 @@ void FFluxSupervisor::repeatFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage
     }
 }
 
-vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const lm::protowrap::FFluxStageOutputWrap& stageOutput, uint64_t minimumCount, uint64_t phaseZeroSamplingMultipiler, bool minimizeCost)
+vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double errorGoal, double errorGoalConfidence, const lm::protowrap::FFluxStageOutputWrap& stageOutput, uint64_t minimumCount, uint64_t phaseZeroSamplingMultipiler, bool minimizeCost)
 {
     const lm::protowrap::FFluxStageOutputRawWrap& soRaw(stageOutput.fflux_stage_output_raw());
     const lm::protowrap::FFluxStageOutputSummaryWrap& soSummary(stageOutput.fflux_stage_output_summary());
@@ -472,11 +472,11 @@ vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double precisionGoal,
     if (minimizeCost)
     {
         vector<double> costVector(soSummary.costs().begin(), soSummary.costs().end());
-        trajectoryCounts = minimizeCostTrajectoryCounts(precisionGoal, precisionGoalConfidence, probabilities, costVector);
+        trajectoryCounts = minimizeCostTrajectoryCounts(errorGoal, errorGoalConfidence, probabilities, costVector);
     }
     else
     {
-        trajectoryCounts = minimizeCountTrajectoryCounts(precisionGoal, precisionGoalConfidence, probabilities);
+        trajectoryCounts = minimizeCountTrajectoryCounts(errorGoal, errorGoalConfidence, probabilities);
     }
 
     // "correct" undersampling durring phase zero
@@ -487,13 +487,13 @@ vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double precisionGoal,
     return trajectoryCounts;
 }
 
-vector<uint64_t> FFluxSupervisor::minimizeCostTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const vector<double>& probabilities, const vector<double>& costVector)
+vector<uint64_t> FFluxSupervisor::minimizeCostTrajectoryCounts(double errorGoal, double errorGoalConfidence, const vector<double>& probabilities, const vector<double>& costVector)
 {
     valarray<double> constantFactors(getConstantFactors(probabilities));
     valarray<double> costs(costVector.data(), costVector.size());
     costs = sqrt(costs);
 
-    double coeff = pow(normalZ(precisionGoalConfidence)/precisionGoal, 2)*((costs*constantFactors).sum());
+    double coeff = pow(normalZ(errorGoalConfidence)/errorGoal, 2)*((costs*constantFactors).sum());
     constantFactors /= costs;
     constantFactors *= coeff;
 
@@ -505,11 +505,11 @@ vector<uint64_t> FFluxSupervisor::minimizeCostTrajectoryCounts(double precisionG
     return trajectoryCounts;
 }
 
-vector<uint64_t> FFluxSupervisor::minimizeCountTrajectoryCounts(double precisionGoal, double precisionGoalConfidence, const vector<double>& probabilities)
+vector<uint64_t> FFluxSupervisor::minimizeCountTrajectoryCounts(double errorGoal, double errorGoalConfidence, const vector<double>& probabilities)
 {
     valarray<double> constantFactors(getConstantFactors(probabilities));
 
-    constantFactors *= pow(normalZ(precisionGoalConfidence)/precisionGoal, 2)*(constantFactors.sum());
+    constantFactors *= pow(normalZ(errorGoalConfidence)/errorGoal, 2)*(constantFactors.sum());
 
     vector<uint64_t> trajectoryCounts;
     for (int i=0;i<constantFactors.size();i++)

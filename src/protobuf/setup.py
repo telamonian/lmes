@@ -27,7 +27,8 @@ protoSrcDir = thisScriptDir
 protoBuildDir = os.path.join(thisScriptDir, 'build')
 
 initInitPaths = [lmBuildDir, robertslabBuildDir]
-initInitTemplatedPaths = [lmBuildDir, robertslabBuildDir]
+initInitTemplatedPaths = [(lmBuildDir, 'initTemplateLM.py'),
+                          (robertslabBuildDir, 'initTemplateRobertslab.py')]
 
 if 'PROTOC' in os.environ:
     OPTION_PROTOC = os.environ['PROTOC']
@@ -54,7 +55,7 @@ class CustomEggInfoCommand(egg_info):
         CopyDirStructure(lmSrcDir, lmBuildDir)
         CopyDirStructure(robertslabSrcDir, robertslabBuildDir)
         [InitInit(dirPath, recursive=True) for dirPath in self.initInitPaths]
-        [InitInit(dirPath, useTemplate=True) for dirPath in self.initInitTemplatedPaths]
+        [InitInit(dirPath, template=template) for dirPath,template in self.initInitTemplatedPaths]
 
         egg_info.__init__(self, dist, **kw)
 

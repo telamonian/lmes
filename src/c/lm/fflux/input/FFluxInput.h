@@ -87,13 +87,13 @@ public:
     uint64_t phaseZeroBurnInCount() const {return ffluxOptions().phase_zero_burn_in_count();}
     uint64_t phaseZeroSamplingMultiplier() const {return ffluxOptions().phase_zero_sampling_multiplier();}
     uint64_t pilotStageCount() const {return ffluxOptions().pilot_stage_count();}
-    double precisionGoal() const {return ffluxOptions().precision_goal();}
-    double precisionGoalConfidence() const {return ffluxOptions().precision_goal_confidence();}
+    double errorGoal() const {return ffluxOptions().error_goal();}
+    double errorGoalConfidence() const {return ffluxOptions().error_goal_confidence();}
     uint64_t productionStageCountMinimum() const {return ffluxOptions().production_stage_count_minimum();}
     const lm::protowrap::Repeated<lm::fflux::input::FFluxPhaseLimitList>& userDefinedFFluxPhaseLimitLists() const {return _ffluxPhaseLimitLists;}
 
-    bool hasPrecisionGoal() const {return ffluxOptions().has_precision_goal();}
-    bool hasPrecisionGoalConfidence() const {return ffluxOptions().has_precision_goal_confidence();}
+    bool hasErrorGoal() const {return ffluxOptions().has_error_goal();}
+    bool hasErrorGoalConfidence() const {return ffluxOptions().has_error_goal_confidence();}
     bool hasUserDefinedFFluxPhaseLimitLists() const {return (ffluxOptions().fflux_phase_limit_lists_size() > 0);}
     bool hasPilotStageCount() const {return ffluxOptions().has_pilot_stage_count();}
     bool hasPhaseZeroBurnInCount() const {return ffluxOptions().has_phase_zero_burn_in_count();}

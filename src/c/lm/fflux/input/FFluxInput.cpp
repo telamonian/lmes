@@ -90,8 +90,8 @@ void FFluxInput::initFFluxOptions(const lm::io::hdf5::Hdf5File& file)
 {
     parseAndSet("batchSize", &FFluxOptions::set_batch_size, _ffluxOptions);
 
-    parseAndSet("precisionGoal", &FFluxOptions::set_precision_goal, _ffluxOptions);
-    parseAndSet("precisionGoalConfidence", &FFluxOptions::set_precision_goal_confidence, _ffluxOptions);
+    parseAndSet("errorGoal", &FFluxOptions::set_error_goal, _ffluxOptions);
+    parseAndSet("errorGoalConfidence", &FFluxOptions::set_error_goal_confidence, _ffluxOptions);
 
     parseAndSet("pilotStageCount", &FFluxOptions::set_pilot_stage_count, _ffluxOptions);
     parseAndSet("productionStageCountMinimum", &FFluxOptions::set_production_stage_count_minimum, _ffluxOptions);
@@ -107,15 +107,15 @@ void FFluxInput::initFFluxOptions(const lm::io::hdf5::Hdf5File& file)
 
     parseAndSet("ffluxMinimizeCost", &FFluxOptions::set_minimize_cost, _ffluxOptions);
 
-    // if we haven't gotten a precisionGoal or any user defined phase limits, explicitly set precisionGoal so that hasPrecisionGoal() returns true
-    if ((not hasPrecisionGoal()) and (not hasUserDefinedFFluxPhaseLimitLists()))
+    // if we haven't gotten a errorGoal or any user defined phase limits, explicitly set errorGoal so that hasErrorGoal() returns true
+    if ((not hasErrorGoal()) and (not hasUserDefinedFFluxPhaseLimitLists()))
     {
-        _ffluxOptions.set_precision_goal(_ffluxOptions.default_instance().precision_goal());
-        //_ffluxOptions.set_precision_goal(_ffluxOptions.GetDescriptor()->FindFieldByName("precision_goal")->default_value_double());
+        _ffluxOptions.set_error_goal(_ffluxOptions.default_instance().error_goal());
+        //_ffluxOptions.set_error_goal(_ffluxOptions.GetDescriptor()->FindFieldByName("error_goal")->default_value_double());
     }
 
     // check the fflux options we just parsed for consistency
-    if (hasPrecisionGoal() and hasUserDefinedFFluxPhaseLimitLists()) throw ConsistencyException("precisionGoal and an explicit set of ffluxPhaseLimits cannot both be set in forward flux simulation input");
+    if (hasErrorGoal() and hasUserDefinedFFluxPhaseLimitLists()) throw ConsistencyException("errorGoal and an explicit set of ffluxPhaseLimits cannot both be set in forward flux simulation input");
 }
 
 void FFluxInput::reinitOutputOptions(const std::string& recordNamePrefix)
@@ -124,18 +124,20 @@ void FFluxInput::reinitOutputOptions(const std::string& recordNamePrefix)
 
     outputOptionsMsg.set_record_name_prefix(pathJoin(recordNamePrefixGlobal, recordNamePrefix));
     outputOptionsMsg.set_condense_output(true);
-    outputOptionsMsg.set_write_initial_trajectory_state(false);
-    outputOptionsMsg.set_write_final_trajectory_state(false);
 
-    // Specify how often the species counts should be written to output
-    parseAndSet("writeInterval", &lm::input::OutputOptions::set_species_write_interval, outputOptionsMsg);
+    // Flags that control whether output is recorded for the initial and/or the final state of every trajectory.
+    bool defaultWriteState = false;
+    parseAndSet("writeInitialTrajectoryState", &lm::input::OutputOptions::set_write_initial_trajectory_state, outputOptionsMsg, &defaultWriteState);
+    parseAndSet("writeFinalTrajectoryState", &lm::input::OutputOptions::set_write_initial_trajectory_state, outputOptionsMsg, &defaultWriteState);
 
-    // Specify how often the species counts at all of the lattice points should be written out during an RDME simulation
-    parseAndSet("latticeWriteInterval", &lm::input::OutputOptions::set_lattice_write_interval, outputOptionsMsg);
+    // Flag that globally controls whether any limit tracking data collected during a trajectory is written out directly to disk.
+    parseAndSet("writeLimitTracking", &lm::input::OutputOptions::set_write_limit_tracking, outputOptionsMsg);
 
-    // Specify how often various (optional) specialized simulation outputs should be written out. Leave unset to supress these outputs completely.
+    // Specify the period at which various outputs should be written out. Leave a WriteInterval unset to suppress its related output
     degreeAdvancementPresent = parseAndSet("degreeAdvancementWriteInterval", &lm::input::OutputOptions::set_degree_advancement_write_interval, outputOptionsMsg);
+    parseAndSet("latticeWriteInterval", &lm::input::OutputOptions::set_lattice_write_interval, outputOptionsMsg);
     parseAndSet("orderParameterWriteInterval", &lm::input::OutputOptions::set_order_parameter_write_interval, outputOptionsMsg);
+    parseAndSet("writeInterval", &lm::input::OutputOptions::set_species_write_interval, outputOptionsMsg);
 }
 
 void FFluxInput::reinitTrajectoryLimits(const lm::fflux::input::FFluxPhase& ffluxPhase, const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit, const lm::tiling::Tiling& tiling)
@@ -153,8 +155,11 @@ void FFluxInput::reinitTrajectoryLimits(const lm::fflux::input::FFluxPhase& fflu
         //     - if limit id==0 is triggered, this indicates that the trajectory fluxed backwards
         //     - if limit id==1 is triggered, this indicates that the trajectory fluxed forwards
         trajectoryLimits.addTileExitLimitsMsg(tiling, 0, ffluxPhase.fflux_phase_index());
-        limitTrackingListWrap.addTrackingMsg(trajectoryLimits.findMsg(0), false, true, ffluxPhaseLimit.events_per_trajectory());
-        limitTrackingListWrap.addTrackingMsg(trajectoryLimits.findMsg(1), false, true, ffluxPhaseLimit.events_per_trajectory());
+        limitTrackingListWrap.addTrackingMsg(trajectoryLimits.findMsg(0), true, true, ffluxPhaseLimit.events_per_trajectory());
+        limitTrackingListWrap.addTrackingMsg(trajectoryLimits.findMsg(1), true, true, ffluxPhaseLimit.events_per_trajectory());
+
+//        printf(trajectoryLimits.findMsg(0)->DebugString().c_str());
+//        printf(trajectoryLimits.findMsg(1)->DebugString().c_str());
     }
 }
 
@@ -168,11 +173,11 @@ void FFluxInput::reinitTrajectoryLimitsPhaseZero(const lm::fflux::input::FFluxPh
     trajectoryLimits.addTileExitLimitsMsg(tiling, -1, 0, false, true);
     if (ffluxPhaseLimit.events_per_trajectory() < 0)
     {
-        limitTrackingListWrap.addTrackingMsgNonterminating(trajectoryLimits.findMsg(0), false, true);
+        limitTrackingListWrap.addTrackingMsgNonterminating(trajectoryLimits.findMsg(0), true, true);
     }
     else
     {
-        limitTrackingListWrap.addTrackingMsg(trajectoryLimits.findMsg(0), false, true, ffluxPhaseLimit.events_per_trajectory());
+        limitTrackingListWrap.addTrackingMsg(trajectoryLimits.findMsg(0), true, true, ffluxPhaseLimit.events_per_trajectory());
     }
 
     // - next, we set two more limits with id==1 and id==2
@@ -180,8 +185,12 @@ void FFluxInput::reinitTrajectoryLimitsPhaseZero(const lm::fflux::input::FFluxPh
     //     - limit_id==1: tracks flux back into the starting basin
     //     - limit_id==2: tracks flux into the basin opposite from the starting basin
     trajectoryLimits.addTileExitLimitsMsg(tiling, 0, tiling.edges().lastIndex());
-    limitTrackingListWrap.addTrackingMsgNonterminating(trajectoryLimits.findMsg(1), false, true);
-    limitTrackingListWrap.addTrackingMsgNonterminating(trajectoryLimits.findMsg(2), false, true);
+    limitTrackingListWrap.addTrackingMsgNonterminating(trajectoryLimits.findMsg(1), true, true);
+    limitTrackingListWrap.addTrackingMsgNonterminating(trajectoryLimits.findMsg(2), true, true);
+
+//    printf(trajectoryLimits.findMsg(0)->DebugString().c_str());
+//    printf(trajectoryLimits.findMsg(1)->DebugString().c_str());
+//    printf(trajectoryLimits.findMsg(2)->DebugString().c_str());
 }
 
 }
