@@ -10,21 +10,26 @@ from setuptools.command.develop import develop
 from setuptools.command.egg_info import egg_info
 from setuptools.command.install import install
 
-from setupUtils import CopyDirStructure, InitInit, OptionValue, RGlob, RunProcess, WrappedMakedirs
+from setupUtils import CopyDirStructure, GetSetupSrcDir, InitInit, OptionValue, RGlob, RunProcess, WrappedMakedirs
 
 # Globals! Hooray!
+setup_src_dir = GetSetupSrcDir()
+
 package_dir = {'': 'build',
                'lm': 'build/lm',
                'robertslab': 'build/robertslab'}
 thisScriptDir = os.path.dirname(os.path.realpath(__file__))
 
-lmSrcDir = os.path.join(thisScriptDir, 'lm')
-robertslabSrcDir = os.path.join(thisScriptDir, 'robertslab')
-lmBuildDir = os.path.join(thisScriptDir, 'build', 'lm')
-robertslabBuildDir = os.path.join(thisScriptDir, 'build', 'robertslab')
-
-protoSrcDir = thisScriptDir
+protoSrcDir = os.path.realpath(os.path.join(setup_src_dir, '../../../src/protobuf'))
 protoBuildDir = os.path.join(thisScriptDir, 'build')
+
+lmSrcDir = os.path.join(protoSrcDir, 'lm')
+lmBuildDir = os.path.join(protoBuildDir, 'lm')
+
+robertslabSrcDir = os.path.join(protoSrcDir, 'robertslab')
+robertslabBuildDir = os.path.join(protoBuildDir, 'robertslab')
+
+
 
 initInitPaths = [lmBuildDir, robertslabBuildDir]
 initInitTemplatedPaths = [(lmBuildDir, 'initTemplateLM.py'),
@@ -72,7 +77,7 @@ class CustomSetupCommand:
         print('using protoc at %s' % OPTION_PROTOC)
 
         WrappedMakedirs(buildDir)
-        protoSrcPaths = RGlob(srcDir, '*proto')
+        protoSrcPaths = RGlob(srcDir, '*.proto')
 
         # Compile protobuf files to python
         protoc_python_cmd = [

@@ -27,6 +27,20 @@ def GetNCPUS():
     except ImportError:
         NCPUS = 1
 
+def GetSetupSrcDir():
+    ''' Get the original directory in which setup.py was located, even if setup.py is run through pip.
+    "Platform-independent", though linux and windows untested.
+
+    :return: setupSrcDir as a string
+    '''
+    dirVars = ['PWD', 'CD']
+    for dirVar in dirVars:
+        if os.environ[dirVar]:
+            return os.environ[dirVar]
+
+    # if we got here something went wrong, so raise an error
+    DistutilsExecError('While looking for the original setup.py directory, os.environ did not contain relevant variable: %s' % dirVars)
+
 def _InitInitSingle(path, template=None):
     initPath = os.path.join(path, '__init__.py')
     if template is not None:
