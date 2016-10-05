@@ -12,7 +12,19 @@ import subprocess
 
 from . import popenasync
 
+__all__ = ['CopyCode', 'CopyDirStructure', 'GetNCPUS', 'GetSetupSrcDir', 'InitInit', 'IsPython64Bit', 'OptionValue',
+           'RGlob', 'RunProcess', 'WrappedMkdir', 'WrappedMakedirs']
+
 thisScriptDir = os.path.dirname(os.path.realpath(__file__))
+
+def CopyCode(srcRoot, dstRoot, symlink=False):
+    for srcPyPath in RGlob(srcRoot, pat='*.py', exclude='__init__*'):
+        dstPyPath = os.path.relpath(srcPyPath, srcRoot)
+        dstPyPath = os.path.join(dstRoot, dstPyPath)
+        if symlink:
+            os.symlink(srcPyPath, dstPyPath)
+        else:
+            shutil.copy2(srcPyPath, dstPyPath)
 
 def CopyDirStructure(srcRoot, dstRoot):
     for d in RGlob(srcRoot, '*', kind='d'):
@@ -78,8 +90,8 @@ def OptionValue(name):
     env_val = os.getenv(name.upper().replace('-', '_'))
     return env_val
 
-def RGlob(root, pat, abs=True, kind='f'):
-    matches = []
+def RGlob(root, pat, abs=True, exclude=None, kind='f'):
+    # the tup slices affect which parts of the tups returns from os.walk are used
     if kind=='f':
         tupSlice = slice(2,3)
     elif kind=='d':
@@ -87,15 +99,25 @@ def RGlob(root, pat, abs=True, kind='f'):
     elif kind=='b':
         tupSlice = slice(1,3)
 
-    if abs:
-        #for leaf, dirnames, filenames in os.walk(root):
-        for tups in os.walk(root):
-            for filename in fnmatch.filter(chain(*tups[tupSlice]), pat):
-                matches.append(os.path.join(tups[0], filename))
+    matches = []
+    if exclude is None:
+        if abs:
+            for tups in os.walk(root):
+                for filename in fnmatch.filter(chain(*tups[tupSlice]), pat):
+                    matches.append(os.path.join(tups[0], filename))
+        else:
+            for tups in os.walk(root):
+                for filename in fnmatch.filter(chain(*tups[tupSlice]), pat):
+                    matches.append(filename)
     else:
-        for tups in os.walk(root):
-            for filename in fnmatch.filter(chain(*tups[tupSlice]), pat):
-                matches.append(filename)
+        if abs:
+            for tups in os.walk(root):
+                for filename in set(fnmatch.filter(chain(*tups[tupSlice]), pat)) - set(fnmatch.filter(chain(*tups[tupSlice]), exclude)):
+                    matches.append(os.path.join(tups[0], filename))
+        else:
+            for tups in os.walk(root):
+                for filename in set(fnmatch.filter(chain(*tups[tupSlice]), pat)) - set(fnmatch.filter(chain(*tups[tupSlice]), exclude)):
+                    matches.append(filename)
     return matches
 
 def RunProcess(args, cwd=None, initial_env=None):

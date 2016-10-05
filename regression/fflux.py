@@ -6,7 +6,7 @@ import numpy as np
 import sys
 
 from lma.src.script.lmFile import Input,Basin,Dependency,DependencyMatrix,InitialSpeciesCounts,InitialSpeciesCountsBackward,OrderParameter,ReactionRateConstant,SimulationParameter,Tiling
-from regression import Regression
+from regression import StringifyNum, Regression
 from replicate import ReplicateRegression
 
 class FFluxRegression(ReplicateRegression):
@@ -21,13 +21,15 @@ class FFluxRegression(ReplicateRegression):
             defaultSimulationParameters = {"errorGoal": .05,
                                            "errorGoalConfidence": .95,
                                            "pilotStageCount": 1e3,
-                                           "productionStageCountMinimum": 1e3,
+                                           "productionStageCountMinimum": 1e4,
                                            "ffluxPilotOutput": True,
                                            "ffluxPhaseOutput": True,
                                            "ffluxStageOutputRaw": True,
                                            "ffluxStageOutputSummary": True,
-                                           'phaseZeroSamplingMultiplier': 10,
-                                           'ffluxMinimizeCost': False,
+                                           'phaseZeroSamplingMultiplier': 1,
+                                           'ffluxMinimizeCost': True,
+                                           'writeInitialTrajectoryState': True,
+                                           'writeInterval': 1e20,
                                            'writeLimitTracking': True,}
         else:
             defaultSimulationParameters = {"errorGoal": .05,
@@ -40,14 +42,15 @@ class FFluxRegression(ReplicateRegression):
                                            "ffluxStageOutputSummary": True,
                                            'phaseZeroSamplingMultiplier': 10,
                                            'ffluxMinimizeCost': False,
+                                           'writeInterval': 1e20,
                                            'writeLimitTracking': True,}
 
         ffluxInput = Input('biphasic_switch.lm')
 
-        simParams = [SimulationParameter(key=key, val=str(kwargs.get(key, defaultValue))) for key,defaultValue in defaultSimulationParameters.items()]
+        simParams = [SimulationParameter(key=key, val=StringifyNum(kwargs.get(key, defaultValue))) for key,defaultValue in defaultSimulationParameters.items()]
 
-        simParamKeysToUnset = ['writeInterval']
-        simParamsToUnset = [SimulationParameter(key=key, val=None) for key in simParamKeysToUnset if key not in kwargs]
+        simParamKeysToUnset = ['maxSteps', 'maxTime', 'writeInterval']
+        simParamsToUnset = [SimulationParameter(key=key, val=None) for key in simParamKeysToUnset if key not in kwargs and key not in defaultSimulationParameters]
 
         tilings = [
             Tiling(id=0,

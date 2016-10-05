@@ -16,7 +16,7 @@
 /build_*
 /Build-*
 /Build_*
-/src/protobuf/build
+/utils/python/protobuf/build
 /local.mk
 /*.app
 *.d

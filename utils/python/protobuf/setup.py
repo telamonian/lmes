@@ -1,16 +1,17 @@
 # aspects of this build system are based on https://github.com/PySide/pyside-setup
 from __future__ import print_function
-import os,sys
-sys.path.insert(0, '.')
 
 from distutils.errors import DistutilsSetupError
 from distutils.spawn import find_executable
+import os
 from setuptools import find_packages, setup
 from setuptools.command.develop import develop
 from setuptools.command.egg_info import egg_info
 from setuptools.command.install import install
+import sys
 
-from setupUtils import CopyDirStructure, GetSetupSrcDir, InitInit, OptionValue, RGlob, RunProcess, WrappedMakedirs
+sys.path.insert(0, '.')
+from setupUtils import CopyCode, CopyDirStructure, GetSetupSrcDir, InitInit, OptionValue, RGlob, RunProcess, WrappedMakedirs
 
 # Globals! Hooray!
 setup_src_dir = GetSetupSrcDir()
@@ -24,12 +25,11 @@ protoSrcDir = os.path.realpath(os.path.join(setup_src_dir, '../../../src/protobu
 protoBuildDir = os.path.join(thisScriptDir, 'build')
 
 lmSrcDir = os.path.join(protoSrcDir, 'lm')
+lmSupDir = os.path.join(thisScriptDir, 'lm')
 lmBuildDir = os.path.join(protoBuildDir, 'lm')
 
 robertslabSrcDir = os.path.join(protoSrcDir, 'robertslab')
 robertslabBuildDir = os.path.join(protoBuildDir, 'robertslab')
-
-
 
 initInitPaths = [lmBuildDir, robertslabBuildDir]
 initInitTemplatedPaths = [(lmBuildDir, 'initTemplateLM.py'),
@@ -79,6 +79,10 @@ class CustomSetupCommand:
         WrappedMakedirs(buildDir)
         protoSrcPaths = RGlob(srcDir, '*.proto')
 
+        if not protoSrcPaths:
+            # protoSrcPaths is empty, something went wrong with locating the .proto files
+            raise DistutilsSetupError('Error locating protobuf source (.proto) files')
+
         # Compile protobuf files to python
         protoc_python_cmd = [
             OPTION_PROTOC,
@@ -87,17 +91,19 @@ class CustomSetupCommand:
         ]
         protoc_python_cmd.extend(protoSrcPaths)
 
-        if RunProcess(protoc_python_cmd) != 0:
-            raise DistutilsSetupError("Error compiling protobuf files to Python")
+        if RunProcess(protoc_python_cmd)!=0:
+            raise DistutilsSetupError('Error compiling protobuf files to Python')
 
 class CustomDevelopCommand(CustomSetupCommand, develop):
     def run(self):
         CustomSetupCommand.run(self, protoSrcDir, protoBuildDir)
+        CopyCode(lmSupDir, lmBuildDir, symlink=True)
         develop.run(self)
 
 class CustomInstallCommand(CustomSetupCommand, install):
     def run(self):
         CustomSetupCommand.run(self, protoSrcDir, protoBuildDir)
+        CopyCode(lmSupDir, lmBuildDir)
         install.run(self)
 
 setup(

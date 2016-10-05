@@ -71,8 +71,8 @@ def PrintMsg(msg):
 
     Unlike the built-in message __print__() method, PrintMsg correctly unpacks the multidimensional arrays in NDArray messages.
 
-    :param msg: The message to be walked over/printed
-    :return: None
+    :param msg: The message to be walk over/printed
+    :return:
     '''
     for desc,val in msg.ListFields():
         if GetFieldLabel(desc)=='LABEL_REPEATED':
