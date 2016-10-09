@@ -1,5 +1,25 @@
-import importlib, pkgutil, re
-__path__ = pkgutil.extend_path(__path__, __name__)
+import pkgutil as _pkgutil
+__path__ = _pkgutil.extend_path(__path__, __name__)
+
+# #### 2-3 compatibility stuff
+# import sys as _sys
+# if _sys.version_info > (3,):
+#     def _strToBytes(s):
+#         '''
+#         2-3 compatability function. The python 3 version converts byte strings to normal strings via .decode()
+#         '''
+#         return bytes(s, 'latin-1')
+# else:
+#     def _strToBytes(s):
+#         '''
+#         2-3 compatability function. The python 2 version does nothing
+#         '''
+#         return s
+
+import importlib as _importlib
+import re as _re
+
+__all__ = ['GetMsgType']
 
 def _ShallowImport(path, name, nameFilter=None, nameFilterClusivity='include', skipModules=False, skipPkgs=False, shortNames=False, _deep=False, onerror=None):
     '''
@@ -8,8 +28,8 @@ def _ShallowImport(path, name, nameFilter=None, nameFilterClusivity='include', s
         modDict = ShallowImport(path=__path__, name=__name__, shortNames=True)
         locals().update(modDict)
     '''
-    if nameFilter is not None: nameFilter = re.compile(nameFilter)
-    iterFunc = pkgutil.walk_packages if _deep else pkgutil.iter_modules
+    if nameFilter is not None: nameFilter = _re.compile(nameFilter)
+    iterFunc = _pkgutil.walk_packages if _deep else _pkgutil.iter_modules
 
     moduleDict = {}
     for importer, modName, isPkg in iterFunc(path=path, prefix=name+'.', onerror=onerror):
@@ -31,7 +51,7 @@ def _ShallowImport(path, name, nameFilter=None, nameFilterClusivity='include', s
                 # if modName does not match a specified filter, skip this mod
                 if not nameFilter.search(modName):
                     continue
-        mod = importlib.import_module(modName)
+        mod = _importlib.import_module(modName)
 
         if shortNames:
             # strip any parent packages off of the mod's dot-name
@@ -58,13 +78,13 @@ _msgTypeDict = _GenMsgTypeDict()
 
 # get the protobufs from robertslab.pbuf, if we can
 try:
-    import robertslab
+    import robertslab as _robertslab
 
-    # function that we pass down (ultimately to pkgutil.walk_packages) so that any possible errors are skipped
+    # function that we pass down (ultimately to _pkgutil.walk_packages) so that any possible errors are skipped
     def _skipOnerror(name):
         pass
 
-    _msgTypeDict.update(_GenMsgTypeDict(name=robertslab.__name__, path=robertslab.__path__, onerror=_skipOnerror))
+    _msgTypeDict.update(_GenMsgTypeDict(name=_robertslab.__name__, path=_robertslab.__path__, onerror=_skipOnerror))
 except ImportError:
     pass
 

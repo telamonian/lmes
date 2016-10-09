@@ -22,6 +22,8 @@ def CopyCode(srcRoot, dstRoot, symlink=False):
         dstPyPath = os.path.relpath(srcPyPath, srcRoot)
         dstPyPath = os.path.join(dstRoot, dstPyPath)
         if symlink:
+            # clean up existing link
+            os.remove(dstPyPath)
             os.symlink(srcPyPath, dstPyPath)
         else:
             shutil.copy2(srcPyPath, dstPyPath)
