@@ -29,9 +29,9 @@ class FFluxRegression(ReplicateRegression):
                                            "ffluxStageOutputSummary": False,
                                            'phaseZeroSamplingMultiplier': 1,
                                            'ffluxMinimizeCost': True,
-                                           'writeInitialTrajectoryState': True,
+                                           'writeInitialTrajectoryState': False,
                                            'writeInterval': 1e20,
-                                           'writeLimitTracking': False,}
+                                           'writeLimitTracking': True,}
         else:
             defaultSimulationParameters = {'batchSize': 1,
                                            "errorGoal": .05,

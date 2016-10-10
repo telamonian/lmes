@@ -130,7 +130,7 @@ void FFluxInput::reinitOutputOptions(const std::string& recordNamePrefix, bool i
         // Flags that control whether output is recorded for the initial and/or the final state of every trajectory.
         bool defaultWriteState = false;
         parseAndSet("writeInitialTrajectoryState", &lm::input::OutputOptions::set_write_initial_trajectory_state, outputOptionsMsg, &defaultWriteState);
-        parseAndSet("writeFinalTrajectoryState", &lm::input::OutputOptions::set_write_initial_trajectory_state, outputOptionsMsg, &defaultWriteState);
+        parseAndSet("writeFinalTrajectoryState", &lm::input::OutputOptions::set_write_final_trajectory_state, outputOptionsMsg, &defaultWriteState);
 
         // Flag that globally controls whether any limit tracking data collected during a trajectory is written out directly to disk.
         parseAndSet("writeLimitTracking", &lm::input::OutputOptions::set_write_limit_tracking, outputOptionsMsg);
@@ -140,6 +140,11 @@ void FFluxInput::reinitOutputOptions(const std::string& recordNamePrefix, bool i
         parseAndSet("latticeWriteInterval", &lm::input::OutputOptions::set_lattice_write_interval, outputOptionsMsg);
         parseAndSet("orderParameterWriteInterval", &lm::input::OutputOptions::set_order_parameter_write_interval, outputOptionsMsg);
         parseAndSet("writeInterval", &lm::input::OutputOptions::set_species_write_interval, outputOptionsMsg);
+    }
+    else
+    {
+        outputOptionsMsg.set_write_initial_trajectory_state(false);
+        outputOptionsMsg.set_write_final_trajectory_state(false);
     }
 }
 

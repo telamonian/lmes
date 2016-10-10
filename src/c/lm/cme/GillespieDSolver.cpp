@@ -336,7 +336,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         time = timeLimit;
         Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);
 
-        if (writeDegreeAdvancementTimeSeries && !ffluxFlag)
+        if (writeDegreeAdvancementTimeSeries && writeFinalTrajectoryState)
         {
             // Write degree advancement time steps until the next write time is past the current time.
             while (nextDegreeAdvancementWriteTime <= (time+EPS))
@@ -348,7 +348,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
             }
         }
 
-        if (writeOrderParameterTimeSeries && !ffluxFlag)
+        if (writeOrderParameterTimeSeries && writeFinalTrajectoryState)
         {
             // Write order parameter time steps until the next write time is past the current time.
             while (nextOrderParameterWriteTime <= (time+EPS))
@@ -360,7 +360,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
             }
         }
 
-        if (writeSpeciesTimeSeries && !ffluxFlag)
+        if (writeSpeciesTimeSeries && writeFinalTrajectoryState)
         {
             while (nextSpeciesWriteTime <= (timeLimit+EPS))
             {
@@ -373,24 +373,24 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     }
 
     // Otherwise we must have finished because of a state (eg species, order parameter, etc) limit, so just write out the last time.
-    else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED and writeFinalTrajectoryState)
+    else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED)
     {
         // Record the degree advancement counts.
-        if (writeDegreeAdvancementTimeSeries)
+        if (writeDegreeAdvancementTimeSeries and writeFinalTrajectoryState)
         {
             for (uint i=0; i<numberDegreeAdvancements; i++) degreeAdvancementCounts.push_back(degreeAdvancements[i]);
             degreeAdvancementTimes.push_back(time);
         }
 
         // Record the order parameter counts.
-        if (writeOrderParameterTimeSeries)
+        if (writeOrderParameterTimeSeries and writeFinalTrajectoryState)
         {
             for (uint i=0; i<numberOrderParameters; i++) orderParameterTimeSeriesCounts.push_back(orderParameterValues[i]);
             orderParameterTimeSeriesTimes.push_back(time);
         }
 
         // Record the species counts.
-        if (writeSpeciesTimeSeries)
+        if (writeSpeciesTimeSeries and writeFinalTrajectoryState)
         {
             for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
             speciesTimeSeriesTimes.push_back(time);
