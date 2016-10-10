@@ -116,7 +116,8 @@ void SFileOutputWriter::flush()
 void SFileOutputWriter::processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data)
 {
     stringstream nameSS;
-    nameSS << "/Simulations" << "/" << data.trajectory_id() << "/DegreeAdvancementTimeSeries";
+    nameSS << "/Simulations/" << data.trajectory_id();
+    nameSS << "/DegreeAdvancementTimeSeries";
 
     processMessage(nameSS.str(), "protobuf:lm.io.DegreeAdvancementTimeSeries", data);
 }
@@ -150,7 +151,7 @@ void SFileOutputWriter::processLimitTracking(const lm::io::LimitTracking& data)
 {
     stringstream nameSS;
     nameSS << "/Simulations/" << data.trajectory_id();
-    nameSS << "/Limit/" << std::setfill('0') << std::setw(2) << data.limit_id();
+    nameSS << "/Limit/" << data.limit_id();    //std::setfill('0') << std::setw(2) << data.limit_id();
     nameSS << "/LimitTracking";
 
     processMessage(nameSS.str(), "protobuf:lm.io.LimitTracking", data);
@@ -160,7 +161,7 @@ void SFileOutputWriter::processOrderParameterFirstPassageTimes(const lm::io::Ord
 {
     stringstream nameSS;
     nameSS << "/Simulations/" << data.trajectory_id();
-    nameSS << "/OrderParameter/" << std::setfill('0') << std::setw(2) << data.order_parameter_id();
+    nameSS << "/OrderParameter/" << data.order_parameter_id();    //std::setfill('0') << std::setw(2) << data.order_parameter_id();
     nameSS << "/OrderParameterFirstPassageTimes/";
 
     processMessage(nameSS.str(), "protobuf:lm.io.OrderParameterFirstPassageTimes", data);

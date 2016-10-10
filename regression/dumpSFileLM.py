@@ -7,9 +7,9 @@ import sys
 import zlib
 
 import lm
+from lm.sfileLM import SFileLM
 # from lma.src.datum.trajectory import SpeciesTrajectories
 from robertslab.pbuf.NDArray_pb2 import NDArray as NDArrayMsg
-from robertslab.sfile import *
 
 np.set_printoptions(edgeitems=int(1e4), threshold=int(1e4), linewidth=int(1e3))
 
@@ -62,7 +62,7 @@ def DeserializeAsMsg(data, dataTypeFullName):
 def PrintRecord(record, data):
     print_(record)
     if data is not None:
-        msg,msgType = DeserializeAsMsg(data, record.dataTypeFullName)
+        msg,msgType = DeserializeAsMsg(data, record.dataTypeSuffix)
         PrintMsg(msg)
 
 def PrintMsg(msg):
@@ -87,7 +87,7 @@ def PrintMsg(msg):
         else:
             if GetFieldCPPType(desc)=='CPPTYPE_MESSAGE':
                 print_(desc.name, ': ', end='')
-                if desc.message_type.full_name=='robertslab.pbuf.NDArray':
+                if desc.message_type.name=='NDArray':
                     # val is a ndarray msg
                     print_(DeserializeNDArrayAsMsg(val))
                 else:
@@ -107,7 +107,7 @@ def Main():
 
     kwargs = vars(parser.parse_args())
 
-    f = SFile.fromFilename(sys.argv[1], 'rb')
+    f = SFileLM.fromFilename(kwargs['sfilePath'])
 
     # loop over all of the records, printing out either the metadata, or the metadata and the deserialized data
     if kwargs['list_only']:

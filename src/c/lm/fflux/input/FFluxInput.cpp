@@ -118,26 +118,29 @@ void FFluxInput::initFFluxOptions(const lm::io::hdf5::Hdf5File& file)
     if (hasErrorGoal() and hasUserDefinedFFluxPhaseLimitLists()) throw ConsistencyException("errorGoal and an explicit set of ffluxPhaseLimits cannot both be set in forward flux simulation input");
 }
 
-void FFluxInput::reinitOutputOptions(const std::string& recordNamePrefix)
+void FFluxInput::reinitOutputOptions(const std::string& recordNamePrefix, bool isPilotStage)
 {
     outputOptionsMsg.Clear();
 
     outputOptionsMsg.set_record_name_prefix(pathJoin(recordNamePrefixGlobal, recordNamePrefix));
     outputOptionsMsg.set_condense_output(true);
 
-    // Flags that control whether output is recorded for the initial and/or the final state of every trajectory.
-    bool defaultWriteState = false;
-    parseAndSet("writeInitialTrajectoryState", &lm::input::OutputOptions::set_write_initial_trajectory_state, outputOptionsMsg, &defaultWriteState);
-    parseAndSet("writeFinalTrajectoryState", &lm::input::OutputOptions::set_write_initial_trajectory_state, outputOptionsMsg, &defaultWriteState);
+    if ((not isPilotStage) or ffluxOptions().pilot_stage_output())
+    {
+        // Flags that control whether output is recorded for the initial and/or the final state of every trajectory.
+        bool defaultWriteState = false;
+        parseAndSet("writeInitialTrajectoryState", &lm::input::OutputOptions::set_write_initial_trajectory_state, outputOptionsMsg, &defaultWriteState);
+        parseAndSet("writeFinalTrajectoryState", &lm::input::OutputOptions::set_write_initial_trajectory_state, outputOptionsMsg, &defaultWriteState);
 
-    // Flag that globally controls whether any limit tracking data collected during a trajectory is written out directly to disk.
-    parseAndSet("writeLimitTracking", &lm::input::OutputOptions::set_write_limit_tracking, outputOptionsMsg);
+        // Flag that globally controls whether any limit tracking data collected during a trajectory is written out directly to disk.
+        parseAndSet("writeLimitTracking", &lm::input::OutputOptions::set_write_limit_tracking, outputOptionsMsg);
 
-    // Specify the period at which various outputs should be written out. Leave a WriteInterval unset to suppress its related output
-    degreeAdvancementPresent = parseAndSet("degreeAdvancementWriteInterval", &lm::input::OutputOptions::set_degree_advancement_write_interval, outputOptionsMsg);
-    parseAndSet("latticeWriteInterval", &lm::input::OutputOptions::set_lattice_write_interval, outputOptionsMsg);
-    parseAndSet("orderParameterWriteInterval", &lm::input::OutputOptions::set_order_parameter_write_interval, outputOptionsMsg);
-    parseAndSet("writeInterval", &lm::input::OutputOptions::set_species_write_interval, outputOptionsMsg);
+        // Specify the period at which various outputs should be written out. Leave a WriteInterval unset to suppress its related output
+        degreeAdvancementPresent = parseAndSet("degreeAdvancementWriteInterval", &lm::input::OutputOptions::set_degree_advancement_write_interval, outputOptionsMsg);
+        parseAndSet("latticeWriteInterval", &lm::input::OutputOptions::set_lattice_write_interval, outputOptionsMsg);
+        parseAndSet("orderParameterWriteInterval", &lm::input::OutputOptions::set_order_parameter_write_interval, outputOptionsMsg);
+        parseAndSet("writeInterval", &lm::input::OutputOptions::set_species_write_interval, outputOptionsMsg);
+    }
 }
 
 void FFluxInput::reinitTrajectoryLimits(const lm::fflux::input::FFluxPhase& ffluxPhase, const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit, const lm::tiling::Tiling& tiling)

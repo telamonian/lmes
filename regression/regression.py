@@ -23,10 +23,10 @@ def StringifyNum(x):
 
 class Regression(object):
     defaultExecPath = thisScriptDirPath / '../build/lmes'
-    defaultStartingInputPath = thisScriptDirPath / 'wo_fflux.biphasic_switch.lm'
-    defaultFinalInputPath = 'biphasic_switch.lm'
+    defaultStartingInputPath = thisScriptDirPath / 'wo_fflux.genetic_toggle_switch.lm'
+    defaultFinalInputPath = 'genetic_toggle_switch.lm'
 
-    defaultLMArgs = ['-f', 'biphasic_switch.lm']
+    defaultLMArgs = ['-f', 'genetic_toggle_switch.lm']
     helpMessage = 'base class for doing regression testing on Lattice Microbes'
 
     def BuildInput(self, startingInputPath, f, **kwargs):
@@ -47,10 +47,10 @@ class Regression(object):
         kwargs['lmArgs']+=[tok for tup in ((option,val) for option,val in (('-%s' % option, kwargs[option]) for option in lmOptions) if val is not None) for tok in tup]
 
     def CleanSFileOutput(self, **kwargs):
-        if kwargs['ff']=='sfile' and kwargs['fo']=='biphasic_switch.sfile':
+        if kwargs['ff']=='sfile' and kwargs['fo']=='genetic_toggle_switch.sfile':
             try:
-                os.remove('biphasic_switch.sfile')
-                print('cleaned up output file %s' % 'biphasic_switch.sfile')
+                os.remove('genetic_toggle_switch.sfile')
+                print_('cleaned up output file: %s' % 'genetic_toggle_switch.sfile')
             except OSError:
                 pass
 
@@ -58,6 +58,7 @@ class Regression(object):
         cmdToks = [str(execPath)] + self.defaultLMArgs + lmArgs
         print_('running with:')
         print_(' '.join(cmdToks))
+
         # p = subprocess.Popen(cmdToks)
         # p.wait()
 
@@ -75,7 +76,7 @@ class Regression(object):
 
         parser.add_argument('execPath', default=self.defaultExecPath, nargs='?',         help='path to lmes (the Lattice Microbes executable). If left blank, defaults to ../build/lmes')
         parser.add_argument('--starting-input-path', dest='startingInputPath',
-                            default=self.defaultStartingInputPath,                       help='path to the simulation input file that this script will build upon to get the input file for the test. Defaults to wo_fflux.biphasic_switch.lm')
+                            default=self.defaultStartingInputPath,                       help='path to the simulation input file that this script will build upon to get the input file for the test. Defaults to wo_fflux.genetic_toggle_switch.lm')
         parser.add_argument('--build-input', action='store_true',                        help='if this flag is set, the Lattice Microbes input file for the regression test will be built but the test will not be run')
 
         parser.add_argument('-c', '--cpu', dest='c', default='5',                        help='total number of cpu cores that the simulation can use')
@@ -100,7 +101,7 @@ class Regression(object):
         parser.add_argument('-wfts', '--writeFinalTrajectoryState', action='store_true', default=SUPPRESS, help='')
         parser.add_argument('--extra-input', action='store_true',                        help="add some extra order parameters and tilings to the .lm input file. Meant for use in analysis only (ie, don't use in conjunction with execPath)")
         parser.add_argument('--quick-test', action='store_true',                         help='use presets for simulation parameters, etc that will result in roughly the quickest possible simulation that will still give useful results for testing purposes')
-        parser.add_argument('--sfile', action='store_true',                              help='set this flag to use SFile output. Equivalent to -ff sfile -fo biphasic_switch.sfile')
+        parser.add_argument('--sfile', action='store_true',                              help='set this flag to use SFile output. Equivalent to -ff sfile -fo genetic_toggle_switch.sfile')
 
         # forward flux specific simulation parameters
         parser.add_argument('--fflux', action='store_true',                              help='set this flag to do a Forward Flux simulation instead of the deafult Replicate simulation')
@@ -122,14 +123,14 @@ class Regression(object):
         parser.add_argument('--maxTime', default=SUPPRESS,                               help='max time to run for a single replicate')
 
         kwargs = vars(parser.parse_args())
-        print_(kwargs)
+        print_('parsed kwargs: %s' % kwargs)
 
         # if kwargs['fflux']:
         #     kwargs['intout'] = True
 
         if kwargs.pop('sfile'):
             kwargs['ff'] = 'sfile'
-            kwargs['fo'] = 'biphasic_switch.sfile'
+            kwargs['fo'] = 'genetic_toggle_switch.sfile'
 
         if 'sl' not in kwargs:
             kwargs['sl'] = 'lm::cme::GillespieDSolver' if kwargs['fflux'] or '-fflux' in self.defaultLMArgs else 'lm::avx::GillespieDSolverAVX'

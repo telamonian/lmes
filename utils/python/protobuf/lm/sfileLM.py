@@ -1,7 +1,8 @@
 from __future__ import division
 
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 from google.protobuf.descriptor import FieldDescriptor
+from itertools import chain
 try:
     from itertools import zip_longest
 except ImportError:
@@ -13,7 +14,7 @@ import lm
 from robertslab.pbuf.NDArray_pb2 import NDArray as NDArrayMsg
 from robertslab.sfile import SFileRecordSeekable, SFileSeekable
 
-__all__=['SFileLM']
+__all__ = ['SFileLM', 'Deserialize', 'DeserializeAndMerge']
 
 # Definition of a combined default and ordered dict
 # class OrderedDefaultDict(OrderedDict, defaultdict):
@@ -35,12 +36,33 @@ def GetFieldCPPType(fieldDesc):
 def GetFieldLabel(fieldDesc):
     return labelDict[fieldDesc.label]
 
+def GetFieldNumpyType(fieldDesc):
+    ''' figures out the closest equivalent numpy dtype for any protobuf field
+
+    :param fieldDesc: the field descriptor we want to get the numpy type for
+    :return: a numpy dtype
+    '''
+    cppType = GetFieldCPPType(fieldDesc).split('_')[1]
+
+    if cppType=='MESSAGE' or cppType=='STRING':
+        return np.dtype('O')
+    elif cppType=='ENUM':
+        return np.dtype('int32')
+    else:
+        return np.dtype(cppType.lower())
+
 def GetNDArrayDataType(ndarrayMsg):
     return NDArrayMsg.DataType.Name(ndarrayMsg.data_type)
 
 # Functions for deserializing data into protobuf messages
 
 def DecompressNDArrayData(ndarrayMsg):
+    '''Decompresses the .data field in a standard NDArray message
+
+    :param ndarrayMsg: an NDArray message instance
+    :return: ndarrayMsg.data, decompressed by zlib if necessary
+    '''
+
     # return the data, decompressing if necessary
     if ndarrayMsg.compressed_deflate:
         return zlib.decompress(ndarrayMsg.data)
@@ -48,6 +70,12 @@ def DecompressNDArrayData(ndarrayMsg):
         return bytes(ndarrayMsg.data)
 
 def DecompressMergedNDArrayData(ndarrayMsg):
+    '''Decompresses the .data field in an NDArray message when .data is the result of merging .data from several NDArray message instances
+
+    :param ndarrayMsg: an NDArray message instance with a merged .data field
+    :return: ndarrayMsg.data, decompressed by zlib if necessary
+    '''
+
     # return the data, decompressing if necessary
     if ndarrayMsg.compressed_deflate:
         unused_data = ndarrayMsg.data
@@ -56,14 +84,20 @@ def DecompressMergedNDArrayData(ndarrayMsg):
         while unused_data:
             unzipper = zlib.decompressobj()
             data += unzipper.decompress(unused_data)
-            from IPython.core.debugger import Tracer; Tracer()()
             unused_data = unzipper.unused_data
 
         return data
     else:
         return bytes(ndarrayMsg.data)
 
-def DeserializeNDArray(ndarrayMsg, count=1):
+def UnpackNDArray(ndarrayMsg, count=1):
+    '''Unpacks a single NDArray message into a single numpy array
+
+    :param ndarrayMsg: an NDArray message instance
+    :param count: if ndarrayMsg (specifically its .shape and .data fields) is the result of merging several NDArray messages, indicate how many with this parameter
+    :return: a numpy array
+    '''
+
     if count > 1:
         rank = len(ndarrayMsg.shape)//count
         shape = [sum(ndarrayMsg.shape[::rank])] + ndarrayMsg.shape[1:rank]
@@ -75,7 +109,13 @@ def DeserializeNDArray(ndarrayMsg, count=1):
     # Convert the data to a numpy array.
     return np.reshape(np.fromstring(data, dtype=GetNDArrayDataType(ndarrayMsg)), shape)
 
-def DeserializeNDArrays(ndarrayMsgs):
+def UnpackAndMergeNDArrays(ndarrayMsgs):
+    '''Merges an iterable of NDArray messages into a single numpy array
+
+    :param ndarrayMsgs: the NDArray instances to be merged
+    :return: a numpy array
+    '''
+
     # initialize the composite's properties based on the first ndarrayMsg
     shape = list(ndarrayMsgs[0].shape)
     dtype = GetNDArrayDataType(ndarrayMsgs[0])
@@ -90,91 +130,119 @@ def DeserializeNDArrays(ndarrayMsgs):
 
     return np.reshape(np.fromstring(data, dtype=dtype), shape)
 
-def UnpackNDArray(msg, count=1, recursive=True):
-    ''' simple function for unpacking any NDArray fields in a protobuf msg into standard numpy arrays
+def UnpackMsg(msg, count=1, recursive=True, _prefix='', _retDict=None):
+    '''Simple function for unpacking any NDArray fields in a protobuf msg into standard numpy arrays
 
     :param msg: any protobuf msg
     :param recursive: flag that controls whether the function descends into any subMsgs
-    :return: the input msg, with additional attributes in which the unpacked numpy arrays are stored
-             for every NDArray, the function creates an attribute 'field_name' + '_np'
+    :return: the input msg. msg.nparrays contains a dict with the unpacked numpy version of any NDArrays that were found
     '''
+    if _retDict is None:
+        _retDict = msg.__dict__['nparrays'] = {}
+
     for desc,val in msg.ListFields():
         if GetFieldCPPType(desc)=='CPPTYPE_MESSAGE':
-            if desc.message_type.full_name=='robertslab.pbuf.NDArray':
+            if desc.message_type.name=='NDArray':
                 if GetFieldLabel(desc)=='LABEL_REPEATED':
                     nparrays = []
                     for ndarray in val:
-                        nparrays.append(DeserializeNDArray(ndarray, count=count))
-                    # msg.__setattr__(desc.name + '_np', nparrays)
-                    msg.__dict__['%s_np' % desc.name] = nparrays
+                        nparrays.append(UnpackNDArray(ndarray, count=count))
+                    _retDict[_prefix + desc.name] = nparrays
                 else:
-                    # msg.__setattr__(desc.name + '_np', DeserializeNDArray(val))
-                    msg.__dict__['%s_np' % desc.name] = DeserializeNDArray(val, count=count)
+                    _retDict[_prefix + desc.name] = UnpackNDArray(val, count=count)
             elif recursive:
                 if GetFieldLabel(desc)=='LABEL_REPEATED':
                     for subMsg in val:
-                        UnpackNDArray(msg=subMsg, count=count, recursive=recursive)
+                        UnpackMsg(msg=subMsg, count=count, recursive=recursive, _retDict=_retDict, _prefix=desc.name + '.',)
                 else:
-                    UnpackNDArray(msg=val, count=count, recursive=recursive)
+                    UnpackMsg(msg=val, count=count, recursive=recursive, _retDict=_retDict, _prefix=desc.name + '.',)
     return msg
 
-def MergeNDArrays(msgs, retDict=None, prefix='', recursive=True):
+def UnpackAndMergeMsgs(msgs, recursive=True, _prefix='', _retDict=None):
+    '''An NDArray aware implementation of the standard protobuf merging function
+
+    :param msgs: the protobuf messages to merge
+    :param recursive: whether to descend into subMsgs and merge those too
+    :return: the merged message. msg.nparrays contains a dict with the unpacked numpy version of any NDArrays that were found
+    '''
     if len(msgs) < 1:
         return None
 
-    if retDict is None:
-        retDict = msgs[0].__dict__['nparrays'] = {}
+    if _retDict is None:
+        _retDict = msgs[0].__dict__['nparrays'] = {}
 
     for desc in msgs[0].DESCRIPTOR.fields:
-        if GetFieldCPPType(desc)=='CPPTYPE_MESSAGE':
-            if desc.message_type.full_name=='robertslab.pbuf.NDArray':
-                if GetFieldLabel(desc)=='LABEL_REPEATED':
-                    retDict[prefix + desc.name] = [DeserializeNDArrays(ndarrays) for ndarrays in zip_longest([getattr(msg, desc.name) for msg in msgs])]
-                else:
-                    retDict[prefix + desc.name] = DeserializeNDArrays([getattr(msg, desc.name) for msg in msgs])
-            elif recursive:
-                if GetFieldLabel(desc)=='LABEL_REPEATED':
-                    MergeNDArrays(msgs=[subMsg for msg in msgs for subMsg in getattr(msg, desc.name)], retDict=retDict, prefix=desc.name + '.', recursive=recursive)
-                else:
-                    MergeNDArrays(msgs=[getattr(msg, desc.name) for msg in msgs], retDict=retDict, prefix=desc.name + '.', recursive=recursive)
+        if GetFieldLabel(desc)=='LABEL_REPEATED':
+            if GetFieldCPPType(desc)=='CPPTYPE_MESSAGE':
+                if desc.message_type.name=='NDArray':
+                    # desc describes a repeated ndarray
+                    _retDict[_prefix + desc.name] = [UnpackAndMergeNDArrays(ndarrays) for msg in msgs for ndarrays in zip_longest(getattr(msg, desc.name))]
+                elif recursive:
+                    # desc describes a repeated subMsg. This behavior is different from the protobuf standard (for now, anyway)
+                    UnpackAndMergeMsgs(msgs=[subMsgs for msg in msgs for subMsgs in zip_longest(getattr(msg, desc.name))], _retDict=_retDict, _prefix=desc.name + '.', recursive=recursive)
+            else:
+                # desc describes a repeated pod
+                getattr(msgs[0], desc.name).extend([getattr(msg, desc.name) for msg in msgs[1:]])
+        else:
+            if GetFieldCPPType(desc)=='CPPTYPE_MESSAGE':
+                if desc.message_type.name=='NDArray':
+                    # desc describes a singular ndarray
+                    _retDict[_prefix + desc.name] = UnpackAndMergeNDArrays([getattr(msg, desc.name) for msg in msgs])
+                elif recursive:
+                    # desc describes a singular subMsg
+                    UnpackAndMergeMsgs(msgs=[getattr(msg, desc.name) for msg in msgs], _retDict=_retDict, _prefix=desc.name + '.', recursive=recursive)
+            else:
+                # desc describes a singular pod
+                setattr(msgs[0], desc.name, getattr(msgs[-1], desc.name))
+    return msgs[0]
+
+def Deserialize(msgStr, msgType, unpackNDArray=True):
+    '''Deserializes a serialized protobuf message into a protobuf Python object
+
+    :param msgStr: a serialized protobuf message
+    :param msgType: the protobuf message class that corresponds to msgStr
+    :param unpackNDArray: if True, any NDArrays found in the deserialized msg are converted to numpy arrays and stored in msg.nparrays
+    :return: an instance of a protobuf message object
+    '''
+    msg = msgType()
+    msg.ParseFromString(msgStr)
+
+    if unpackNDArray:
+        UnpackMsg(msg)
+
+    return msg
+
+def DeserializeAndMerge(msgStrs, msgType, _recursive=True):
+    '''Deserializes and merges an iterable of serialized protobuf messages into a single protobuf Python object
+
+    :param msgStrs: an iterable of serialized protobuf messages
+    :param msgType: the protobuf message class that corresponds to msgStrs
+    :return: an instance of a protobuf message object
+    '''
+    msgs = [Deserialize(msgStr=msgStr, msgType=msgType, unpackNDArray=False) for msgStr in msgStrs]
+    UnpackAndMergeMsgs(msgs=msgs, recursive=_recursive)
+
     return msgs[0]
 
 class SFileRecordLM(SFileRecordSeekable):
-    def combine(self, others):
-        pass
-
     @property
     def msgType(self):
         # if .dataTypeSuffix is not a known protobuf type, this will raise a KeyError
         return lm.GetMsgType(self.dataTypeSuffix)
 
-    def msg(self, unpackNDArray=True):
-        msg = self.msgType()
-        msg.ParseFromString(self.readData())
-
-        if unpackNDArray:
-            UnpackNDArray(msg)
-
-        return msg
-
-class SFileLM(SFileSeekable):
-    @staticmethod
-    def combineRecords(records):
-        if len(records)==0:
-            return None
-
+    def deserializeAndMerge(self, others, recursive=True):
         # deserialize the records without unpacking the ndarrays
-        msgs = [record.msg(unpackNDArray=False) for record in records]
+        msgs = [record.msg(unpackNDArray=False) for record in chain([self], others)]
 
         # merge all of the ndarrays
-        msg = MergeNDArrays(msgs)
+        UnpackAndMergeMsgs(msgs=msgs, recursive=recursive)
 
-        return msg
+        return msgs[0]
 
     # more efficient version that fails because of how protobuf merges bytes fields
     #
     # @staticmethod
-    # def combineRecords(records):
+    # def deserializeAndMerge(records):
     #     if len(records)==0:
     #         return None
     #
@@ -189,18 +257,26 @@ class SFileLM(SFileSeekable):
     #
     #     return msg
 
+    def msg(self, unpackNDArray=True):
+        return Deserialize(msgStr=self.readData(), msgType=self.msgType, unpackNDArray=unpackNDArray)
+
+class SFileLM(SFileSeekable):
     recordType = SFileRecordLM
 
+    @staticmethod
+    def mergeRecordDict(recordDict, byType=False):
+        if byType:
+            for typeDict in recordDict.values():
+                for name,records in typeDict.items():
+                    typeDict[name] = records[0].deserializeAndMerge(records[1:])
+        else:
+            for name,records in recordDict.items():
+                recordDict[name] = records[0].deserializeAndMerge(records[1:])
+
+        return recordDict
+
     def msgs(self, unpackNDArray=True):
-        for record,msg in self.items(unpackNDArray=unpackNDArray):
-            yield msg
-
-    def items(self, unpackNDArray=True):
-        while True:
-            record = self.readNextRecord()
-            if record is None:
-                break
-
+        for record in self.records():
             try:
                 # if the record describes a known protobuf type, deserialize and return it
                 yield record,record.msg(unpackNDArray=unpackNDArray)
@@ -208,35 +284,38 @@ class SFileLM(SFileSeekable):
                 # if the record did not describe a known protobuf type, just return the raw data
                 yield record,self.readData(record.dataSize)
 
-
     @property
     def recordDict(self):
         try:
             return self._recordDict
         except AttributeError:
-            self._recordDict = self._genRecordDictCombined()
+            self._recordDict = self.genRecordDict()
             return self._recordDict
 
-    def _genRecordDict(self):
+    def genRecordDict(self, byType=False, merge=False):
         self.reset()
 
-        recordDict = {}
-        for record in self.records():
-            try:
-                recordDict[record.dataTypeSuffix][record.name].append(record)
-            except KeyError:
+        if byType:
+            recordDict = {}
+
+            for record in self.records():
                 try:
-                    recordDict[record.dataTypeSuffix][record.name] = [record]
+                    recordDict[record.dataTypeSuffix][record.name].append(record)
                 except KeyError:
-                    recordDict[record.dataTypeSuffix] = OrderedDict(((record.name, [record]),))
-        return recordDict
+                    try:
+                        recordDict[record.dataTypeSuffix][record.name] = [record]
+                    except KeyError:
+                        recordDict[record.dataTypeSuffix] = OrderedDict(((record.name, [record]),))
+        else:
+            recordDict = OrderedDict()
 
-    def _genRecordDictCombined(self):
-        self.reset()
+            for record in self.records():
+                try:
+                    recordDict[record.name].append(record)
+                except KeyError:
+                    recordDict[record.name] = [record]
 
-        recordDict = self._genRecordDict()
+        if merge:
+            recordDict = self.mergeRecordDict(recordDict, byType=byType)
 
-        for typeDict in recordDict.values():
-            for name,records in typeDict.items():
-                typeDict[name] = self.combineRecords(records)
         return recordDict

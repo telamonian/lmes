@@ -75,7 +75,7 @@ public:
     virtual ~FFluxInput() {};
 
 // (re)initializers
-    virtual void reinitOutputOptions(const std::string& recordNamePrefix);
+    virtual void reinitOutputOptions(const std::string& recordNamePrefix, bool isPilotStage);
     virtual void reinitTrajectoryLimits(const lm::fflux::input::FFluxPhase& ffluxPhase, const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit, const lm::tiling::Tiling& tiling);
     virtual void reinitTrajectoryLimitsPhaseZero(const lm::fflux::input::FFluxPhase& ffluxPhase, const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit, const lm::tiling::Tiling& tiling);
 

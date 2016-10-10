@@ -175,8 +175,6 @@ lm::fflux::input::FFluxStage* FFluxSupervisor::buildProductionStage(lm::fflux::i
 
     productionStage->set_basin_index(basinIndex);
 
-    addFFluxPhases(productionStage, FFPhaseEnums::LAZY, FFPhaseEnums::UNIFORM_RANDOM);
-
     if (input->hasErrorGoal())
     {
         // initialize the pilot stage
@@ -185,7 +183,10 @@ lm::fflux::input::FFluxStage* FFluxSupervisor::buildProductionStage(lm::fflux::i
         // add the pilot stage to the execution order
         ffluxStageExecutionOrder.push_back(pilotStage);
     }
-    else
+
+    addFFluxPhases(productionStage, FFPhaseEnums::LAZY, FFPhaseEnums::UNIFORM_RANDOM);
+
+    if (not productionStage->has_pilot_stage())
     {
         addFFluxPhaseLimitsFromInput(productionStage);
     }
@@ -236,16 +237,10 @@ void FFluxSupervisor::addFFluxPhases(lm::fflux::input::FFluxStage* stage, FFPhas
             ffluxPhase->set_trajectory_generation(trajGeneration);
         }
 
-//        stringstream outputPrefixSS;
-//        outputPrefixSS << "/FFluxOutput/Tilings/" << setfill('0') << setw(7) << stage->tiling().id();
-//        outputPrefixSS << "/Basins/" << setfill('0') << setw(7) << stage->tiling().current_basin_index();
-//        outputPrefixSS << "/Stages/"
-//        outputPrefixSS << "/Phases/" << setfill('0') << setw(7) << i;
-
         // (re)initialize the relevant output options
         stringstream outputPrefixSS;
         outputPrefixSS << "/FFluxOutput" << currentPhaseInfo(true, ffluxPhase, stage);
-        input->reinitOutputOptions(outputPrefixSS.str());
+        input->reinitOutputOptions(outputPrefixSS.str(), stage->is_pilot_stage());
         ffluxPhase->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());
     }
 }
@@ -700,7 +695,7 @@ void FFluxSupervisor::sendSimulationPhaseOutput()
                 // (re)initialize the relevant output options
                 stringstream outputPrefixSS;
                 outputPrefixSS << "/FFluxOutput" << currentPhaseInfo(true);
-                input->reinitOutputOptions(outputPrefixSS.str());
+                input->reinitOutputOptions(outputPrefixSS.str(), currentStage().is_pilot_stage());
 
                 // create a handle to the relevant work unit output part
                 lm::message::WorkUnitOutput* wuoPart(ffluxPhaseOutputContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0));
@@ -773,7 +768,7 @@ void FFluxSupervisor::sendSimulationStageOutput()
             // (re)initialize the relevant output options
             stringstream outputPrefixSS;
             outputPrefixSS << "/FFluxOutput" << currentStageInfo(true);
-            input->reinitOutputOptions(outputPrefixSS.str());
+            input->reinitOutputOptions(outputPrefixSS.str(), currentStage().is_pilot_stage());
 
             if (input->ffluxOptions().stage_output_raw())
             {
@@ -960,7 +955,7 @@ std::string FFluxSupervisor::currentPhaseInfo(bool path, const lm::fflux::input:
     if (path)
     {
         phaseInfo << currentStageInfo(true, stage);
-        phaseInfo << "/Phases/" << setfill('0') << setw(7) << phaseIndex;
+        phaseInfo << "/Phases/" << phaseIndex;    //setfill('0') << setw(7) << phaseIndex;
     }
     else
     {
@@ -995,8 +990,8 @@ std::string FFluxSupervisor::currentStageInfo(bool path, const lm::fflux::input:
     stringstream stageInfo;
     if (path)
     {
-        stageInfo << "/Tilings/" << setfill('0') << setw(7) << _stage.tiling().id();
-        stageInfo << "/Basins/" << setfill('0') << setw(7) << _stage.tiling().current_basin_index();
+        stageInfo << "/Tilings/" << _stage.tiling().id();     //setfill('0') << setw(7) << _stage.tiling().id();
+        stageInfo << "/Basins/" << _stage.tiling().current_basin_index();    //setfill('0') << setw(7) << _stage.tiling().current_basin_index();
         stageInfo << "/Stages";
         if (_stage.is_pilot_stage())
         {

@@ -34,7 +34,7 @@ class ReplicateRegression(Regression):
         if 'orderParameterWriteInterval' in kwargs: defaultSimulationParameters['orderParameterWriteInterval'] = kwargs['orderParameterWriteInterval']
         simParams = [SimulationParameter(key=key, val=kwargs.get(key, defaultSimulationParameters[key])) for key in defaultSimulationParameters.keys()]
 
-        replicateInput = Input('biphasic_switch.lm')
+        replicateInput = Input('genetic_toggle_switch.lm')
 
         iSCs = InitialSpeciesCounts(speciesCounts=[4,16,1,0,0,0,0])
 
@@ -98,6 +98,6 @@ if __name__=='__main__':
     regression = ReplicateRegression()
     regression.Main()
 
-# after this script sets up biphasic_switch.lm, the simulation can be rerun directly with any of the following lines:
-#../build/lmes -r 1-10 -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff hdf5 -f "biphasic_switch.lm"
-#../build/lmes -r 1-10 -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff sfile -fo biphasic_switch.sfile -f "biphasic_switch.lm"
+# after this script sets up genetic_toggle_switch.lm, the simulation can be rerun directly with any of the following lines:
+#../build/lmes -r 1-10 -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff hdf5 -f "genetic_toggle_switch.lm"
+#../build/lmes -r 1-10 -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff sfile -fo genetic_toggle_switch.sfile -f "genetic_toggle_switch.lm"

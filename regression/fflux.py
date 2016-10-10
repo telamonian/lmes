@@ -18,21 +18,23 @@ class FFluxRegression(ReplicateRegression):
         super(FFluxRegression, self)._BuildInput(**kwargs)
 
         if kwargs['quick_test']:
-            defaultSimulationParameters = {"errorGoal": .05,
+            defaultSimulationParameters = {'batchSize': 1,
+                                           "errorGoal": .05,
                                            "errorGoalConfidence": .95,
-                                           "pilotStageCount": 1e3,
-                                           "productionStageCountMinimum": 1e4,
-                                           "ffluxPilotOutput": True,
-                                           "ffluxPhaseOutput": True,
-                                           "ffluxStageOutputRaw": True,
-                                           "ffluxStageOutputSummary": True,
+                                           "pilotStageCount": 1e1,
+                                           "productionStageCountMinimum": 1e1,
+                                           "ffluxPilotOutput": False,
+                                           "ffluxPhaseOutput": False,
+                                           "ffluxStageOutputRaw": False,
+                                           "ffluxStageOutputSummary": False,
                                            'phaseZeroSamplingMultiplier': 1,
                                            'ffluxMinimizeCost': True,
                                            'writeInitialTrajectoryState': True,
                                            'writeInterval': 1e20,
-                                           'writeLimitTracking': True,}
+                                           'writeLimitTracking': False,}
         else:
-            defaultSimulationParameters = {"errorGoal": .05,
+            defaultSimulationParameters = {'batchSize': 1,
+                                           "errorGoal": .05,
                                            "errorGoalConfidence": .95,
                                            "pilotStageCount": 1e3,
                                            "productionStageCountMinimum": 1e3,
@@ -45,7 +47,7 @@ class FFluxRegression(ReplicateRegression):
                                            'writeInterval': 1e20,
                                            'writeLimitTracking': True,}
 
-        ffluxInput = Input('biphasic_switch.lm')
+        ffluxInput = Input('genetic_toggle_switch.lm')
 
         simParams = [SimulationParameter(key=key, val=StringifyNum(kwargs.get(key, defaultValue))) for key,defaultValue in defaultSimulationParameters.items()]
 
@@ -105,5 +107,5 @@ if __name__=='__main__':
     regression = FFluxRegression()
     regression.Main()
 
-# after this script sets up biphasic_switch.lm, the simulation can be rerun directly with:
-# ../build/lmes -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff hdf5 -fflux -f "biphasic_switch.lm" -intout
+# after this script sets up genetic_toggle_switch.lm, the simulation can be rerun directly with:
+# ../build/lmes -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff hdf5 -fflux -f "genetic_toggle_switch.lm" -intout
