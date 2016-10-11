@@ -185,12 +185,15 @@ def UnpackAndMergeMsgs(msgs, recursive=True, _prefix='', _retDict=None):
                 getattr(msgs[0], desc.name).extend([getattr(msg, desc.name) for msg in msgs[1:]])
         elif GetFieldLabel(desc)=='LABEL_OPTIONAL':
             if GetFieldCPPType(desc)=='CPPTYPE_MESSAGE':
-                if desc.message_type.name=='NDArray':
-                    # desc describes an optional singular ndarray
-                    _retDict[_prefix + desc.name] = UnpackAndMergeNDArrays([getattr(msg, desc.name) for msg in msgs if msg.HasField(desc.name)])
-                elif recursive:
-                    # desc describes an optional singular subMsg
-                    UnpackAndMergeMsgs(msgs=[getattr(msg, desc.name) for msg in msgs if msg.HasField(desc.name)], _retDict=_retDict, _prefix=desc.name + '.', recursive=recursive)
+                filteredVals = [getattr(msg, desc.name) for msg in msgs if msg.HasField(desc.name)]
+
+                if filteredVals:
+                    if desc.message_type.name=='NDArray':
+                        # desc describes an optional singular ndarray
+                        _retDict[_prefix + desc.name] = UnpackAndMergeNDArrays(filteredVals)
+                    elif recursive:
+                        # desc describes an optional singular subMsg
+                        UnpackAndMergeMsgs(msgs=filteredVals, _retDict=_retDict, _prefix=desc.name + '.', recursive=recursive)
             else:
                 # desc describes an optional singular pod
                 for lastMsg in reversed(msgs):

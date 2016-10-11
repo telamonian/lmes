@@ -151,7 +151,7 @@ void SFileOutputWriter::processLimitTracking(const lm::io::LimitTracking& data)
 {
     stringstream nameSS;
     nameSS << "/Simulations/" << data.trajectory_id();
-    nameSS << "/Limit/" << data.limit_id();    //std::setfill('0') << std::setw(2) << data.limit_id();
+    nameSS << "/Limits/" << data.limit_id();    //std::setfill('0') << std::setw(2) << data.limit_id();
     nameSS << "/LimitTracking";
 
     processMessage(nameSS.str(), "protobuf:lm.io.LimitTracking", data);
@@ -161,7 +161,7 @@ void SFileOutputWriter::processOrderParameterFirstPassageTimes(const lm::io::Ord
 {
     stringstream nameSS;
     nameSS << "/Simulations/" << data.trajectory_id();
-    nameSS << "/OrderParameter/" << data.order_parameter_id();    //std::setfill('0') << std::setw(2) << data.order_parameter_id();
+    nameSS << "/OrderParameters/" << data.order_parameter_id();    //std::setfill('0') << std::setw(2) << data.order_parameter_id();
     nameSS << "/OrderParameterFirstPassageTimes/";
 
     processMessage(nameSS.str(), "protobuf:lm.io.OrderParameterFirstPassageTimes", data);
