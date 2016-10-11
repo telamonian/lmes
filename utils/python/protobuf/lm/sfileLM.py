@@ -183,16 +183,30 @@ def UnpackAndMergeMsgs(msgs, recursive=True, _prefix='', _retDict=None):
             else:
                 # desc describes a repeated pod
                 getattr(msgs[0], desc.name).extend([getattr(msg, desc.name) for msg in msgs[1:]])
+        elif GetFieldLabel(desc)=='LABEL_OPTIONAL':
+            if GetFieldCPPType(desc)=='CPPTYPE_MESSAGE':
+                if desc.message_type.name=='NDArray':
+                    # desc describes an optional singular ndarray
+                    _retDict[_prefix + desc.name] = UnpackAndMergeNDArrays([getattr(msg, desc.name) for msg in msgs if msg.HasField(desc.name)])
+                elif recursive:
+                    # desc describes an optional singular subMsg
+                    UnpackAndMergeMsgs(msgs=[getattr(msg, desc.name) for msg in msgs if msg.HasField(desc.name)], _retDict=_retDict, _prefix=desc.name + '.', recursive=recursive)
+            else:
+                # desc describes an optional singular pod
+                for lastMsg in reversed(msgs):
+                    if lastMsg.HasField(desc.name):
+                        break
+                setattr(msgs[0], desc.name, getattr(lastMsg, desc.name))
         else:
             if GetFieldCPPType(desc)=='CPPTYPE_MESSAGE':
                 if desc.message_type.name=='NDArray':
-                    # desc describes a singular ndarray
+                    # desc describes a required singular ndarray
                     _retDict[_prefix + desc.name] = UnpackAndMergeNDArrays([getattr(msg, desc.name) for msg in msgs])
                 elif recursive:
-                    # desc describes a singular subMsg
+                    # desc describes a required singular subMsg
                     UnpackAndMergeMsgs(msgs=[getattr(msg, desc.name) for msg in msgs], _retDict=_retDict, _prefix=desc.name + '.', recursive=recursive)
             else:
-                # desc describes a singular pod
+                # desc describes a required singular pod
                 setattr(msgs[0], desc.name, getattr(msgs[-1], desc.name))
     return msgs[0]
 

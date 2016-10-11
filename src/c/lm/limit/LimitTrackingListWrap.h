@@ -84,8 +84,9 @@ public:
         {
             // TODO: CV! my nemesis. Fix the need for the const_cast here, probably via some kind of const_LimitTrackingWrap class
             limitTrackingWrap.setWrappedMsg(const_cast<lm::io::LimitTracking*>(&*it));
-            lm::limit::LimitTracking* limitTrackingPtr = &(*ltMap)[it->limit_id()];
 
+            // intermediate ptr variable limitTrackingPtr included for readability
+            lm::limit::LimitTracking* limitTrackingPtr = &(*ltMap)[it->limit_id()];
             limitTrackingWrap.deserializeMetadataTo(limitTrackingPtr);
         }
     }
@@ -96,8 +97,9 @@ public:
         {
             // TODO: CV! my nemesis. Fix the need for the const_cast here, probably via some kind of const_LimitTrackingWrap class
             limitTrackingWrap.setWrappedMsg(const_cast<lm::io::LimitTracking*>(&*it));
-            lm::limit::LimitTracking* limitTrackingPtr = &(*ltMap)[it->limit_id()];
 
+            // intermediate ptr variable limitTrackingPtr included for readability
+            lm::limit::LimitTracking* limitTrackingPtr = &(*ltMap)[it->limit_id()];
             limitTrackingWrap.deserializeMetadataTo(limitTrackingPtr);
             limitTrackingWrap.deserializeTo(limitTrackingPtr);
         }

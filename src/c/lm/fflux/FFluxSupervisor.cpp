@@ -435,7 +435,6 @@ vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double errorGoal, dou
 
     vector<double> probabilities(soSummary.probabilities().begin(), soSummary.probabilities().end());
     vector<double> trials;
-    typedef std::back_insert_iterator<vector<double> >::container_type mytype;
     add(soRaw.failed_trajectory_counts().begin(), soRaw.failed_trajectory_counts().end(), soRaw.successful_trajectory_counts().begin(), std::back_inserter(trials));
 
 //    ////TEMPSTART

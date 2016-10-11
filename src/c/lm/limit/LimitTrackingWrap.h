@@ -42,6 +42,7 @@
 #include <map>
 #include <vector>
 
+#include "lm/io/LimitTracking.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/limit/LimitTracking.h"
 #include "lm/protowrap/Msg.h"
@@ -96,13 +97,15 @@ public:
         deserializeMetadataTo(&lt->limit_id, &lt->has_count, &lt->count);
     }
 
-    inline void deserializeTo(lm::limit::LimitTracking::DegreeAdvancementContainer* degreeAdvancements_writeto, lm::limit::LimitTracking::OrderParameterContainer* orderParameterValues_writeto,
-                       lm::limit::LimitTracking::SpeciesContainer* speciesCounts_writeto, lm::limit::LimitTracking::TimeContainer* times_writeto) const
+    inline void deserializeTo(lm::limit::LimitTracking::DegreeAdvancementContainer* degreeAdvancements_writeto,
+                              lm::limit::LimitTracking::OrderParameterContainer* orderParameterValues_writeto,
+                              lm::limit::LimitTracking::SpeciesContainer* speciesCounts_writeto,
+                              lm::limit::LimitTracking::TimeContainer* times_writeto) const
     {
-        degree_advancements().get_data(degreeAdvancements_writeto);
-        order_parameter_values().get_data(orderParameterValues_writeto);
-        species_counts().get_data(speciesCounts_writeto);
-        times().get_data(times_writeto);
+        if (has_degree_advancements())    degree_advancements().get_data(degreeAdvancements_writeto);
+        if (has_order_parameter_values()) order_parameter_values().get_data(orderParameterValues_writeto);
+        if (has_species_counts())         species_counts().get_data(speciesCounts_writeto);
+        if (has_times())                  times().get_data(times_writeto);
     }
 
     inline void deserializeTo(LimitTracking* lt) const
@@ -125,24 +128,13 @@ public:
     }
 
     inline void serializeFrom(const lm::limit::LimitTracking::DegreeAdvancementContainer& degreeAdvancements_readfrom, const lm::limit::LimitTracking::OrderParameterContainer& orderParameterValues_readfrom,
-                       const lm::limit::LimitTracking::SpeciesContainer& speciesCounts_readfrom, const lm::limit::LimitTracking::TimeContainer& times_readfrom, bool compress=false)
+                              const lm::limit::LimitTracking::SpeciesContainer& speciesCounts_readfrom, const lm::limit::LimitTracking::TimeContainer& times_readfrom, bool compress=false)
     {
-        // prevent any divide-by-zeros
-        if (times_readfrom.size() > 0)
-        {
-            // times_readfrom.size() is the number of "rows" in this dataset
-            _degree_advancements.set_array(degreeAdvancements_readfrom, utuple(times_readfrom.size(), degreeAdvancements_readfrom.size()/times_readfrom.size()), compress);
-            _order_parameter_values.set_array(orderParameterValues_readfrom, utuple(times_readfrom.size(), orderParameterValues_readfrom.size()/times_readfrom.size()), compress);
-            _species_counts.set_array(speciesCounts_readfrom, utuple(times_readfrom.size(), speciesCounts_readfrom.size()/times_readfrom.size()), compress);
-            _times.set_array(times_readfrom, utuple(times_readfrom.size()), compress);
-        }
-        else
-        {
-            _degree_advancements.set_array(degreeAdvancements_readfrom, utuple(0), compress);
-            _order_parameter_values.set_array(orderParameterValues_readfrom, utuple(0), compress);
-            _species_counts.set_array(speciesCounts_readfrom, utuple(0), compress);
-            _times.set_array(times_readfrom, utuple(0), compress);
-        }
+        // times_readfrom.size() is the number of "rows" in this dataset
+        if (degreeAdvancements_readfrom.size() > 0)   mutable_degree_advancements()->set_array(degreeAdvancements_readfrom, utuple(times_readfrom.size(), degreeAdvancements_readfrom.size()/times_readfrom.size()), compress);
+        if (orderParameterValues_readfrom.size() > 0) mutable_order_parameter_values()->set_array(orderParameterValues_readfrom, utuple(times_readfrom.size(), orderParameterValues_readfrom.size()/times_readfrom.size()), compress);
+        if (speciesCounts_readfrom.size() > 0)        mutable_species_counts()->set_array(speciesCounts_readfrom, utuple(times_readfrom.size(), speciesCounts_readfrom.size()/times_readfrom.size()), compress);
+        if (times_readfrom.size() > 0)                mutable_times()->set_array(times_readfrom, utuple(times_readfrom.size()), compress);
     }
 
     inline void serializeFrom(uint64_t trajectoryID_readfrom, const LimitTracking& lt)

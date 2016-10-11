@@ -93,13 +93,13 @@ typedef PairVector<lm::fflux::io::EndPoint*, int> EndPointVector;
 
 //class EndPoint
 //{
-//    EndPointMsg* msgPtr;
+//    EndPointMsg* wrappedMsgPtr;
 //};
 //
 //class StartPoint
 //{
 //public:
-//    StartPointMsg* msgPtr;
+//    StartPointMsg* wrappedMsgPtr;
 //    EndPointMap successfulEndPointMap;
 //    EndPointMap failedEndPointMap;
 //};

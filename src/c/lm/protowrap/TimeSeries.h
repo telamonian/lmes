@@ -127,14 +127,12 @@ public:
 //    static const TSS::ValueArrayMsgGetter valueArrayMsgGetter = TSS::valueArrayMsgGetter;
 //    static const TSS::ValueArrayMsgConstGetter valueArrayMsgConstGetter = TSS::valueArrayMsgConstGetter;
 
-    TimeSeries(): msgPtr(NULL),msgConstPtr(NULL) {};
-    TimeSeries(const WrappedMsg& msgConstRef): msgPtr(NULL),msgConstPtr(NULL) {setMsg(msgConstRef);}
-    TimeSeries(WrappedMsg* msgMutablePtr): msgPtr(NULL),msgConstPtr(NULL) {setMsg(msgMutablePtr);}
+    TimeSeries(): wrappedMsgPtr(NULL),wrappedMsgConstPtr(NULL) {};
+    TimeSeries(const WrappedMsg& msgConstRef): wrappedMsgPtr(NULL),wrappedMsgConstPtr(NULL) {setMsg(msgConstRef);}
+    TimeSeries(WrappedMsg* msgMutablePtr): wrappedMsgPtr(NULL),wrappedMsgConstPtr(NULL) {setMsg(msgMutablePtr);}
     ~TimeSeries() {}
 
 // accessors
-    inline const WrappedMsg* getMsg() const {return msgConstPtr;}
-
     template <typename ValueContainer, typename TimeContainer>
     inline bool inputCheck(const ValueContainer& valuesInput, const TimeContainer& timesInput, uint numberOfColumns) const
     {
@@ -158,6 +156,9 @@ public:
         }
     }
 
+    inline bool wrappedIsNull() const {return wrappedMsgPtr==NULL;}
+    inline const WrappedMsg* wrappedMsg() const {return wrappedMsgConstPtr;}
+
 // mutators
     template <typename ValueContainer, typename TimeContainer>
     inline void get_arrays(ValueContainer& outputValueContainer, TimeContainer& outputTimeContainer) const
@@ -166,16 +167,16 @@ public:
         timesWrap.get_data(outputTimeContainer);
     }
 
-    WrappedMsg* getMsg()
+    WrappedMsg* wrappedMsg()
     {
-        if (msgPtr==NULL) throw Exception("Pointer to internal message (msgPtr) set to NULL in lm::protowrap::TimeSeries instance");
-        return msgPtr;
+        if (wrappedMsgPtr==NULL) throw Exception("Pointer to internal message (wrappedMsgPtr) set to NULL in lm::protowrap::TimeSeries instance");
+        return wrappedMsgPtr;
     }
 
     template <typename ValueContainer, typename TimeContainer>
     inline void _set_arrays(const ValueContainer& valuesInput, const TimeContainer& timesInput, uint64_t trajectoryId, uint numberOfColumns, bool compress=false)
     {
-        getMsg()->set_trajectory_id(trajectoryId);
+        wrappedMsg()->set_trajectory_id(trajectoryId);
 
         // timesInput.size() is the number of "rows" in this time series
         valuesWrap.set_array(valuesInput, utuple(timesInput.size(), numberOfColumns), compress);
@@ -213,21 +214,21 @@ public:
 
     inline TimeSeries* setMsg(WrappedMsg* newMsgMutablePtr)
     {
-        msgPtr = newMsgMutablePtr;
-        msgConstPtr = newMsgMutablePtr;
+        wrappedMsgPtr = newMsgMutablePtr;
+        wrappedMsgConstPtr = newMsgMutablePtr;
 
-        valuesWrap.setWrappedMsg((msgPtr->*TSS::valueArrayMsgGetter)());
-        timesWrap.setWrappedMsg(msgPtr->mutable_times());
+        valuesWrap.setWrappedMsg((wrappedMsgPtr->*TSS::valueArrayMsgGetter)());
+        timesWrap.setWrappedMsg(wrappedMsgPtr->mutable_times());
         return this;
     }
 
     inline TimeSeries* setMsg(const WrappedMsg& newMsgConstRef)
     {
-        msgPtr = NULL;
-        msgConstPtr = &newMsgConstRef;
+        wrappedMsgPtr = NULL;
+        wrappedMsgConstPtr = &newMsgConstRef;
 
-        valuesWrap.setWrappedMsg((msgConstPtr->*TSS::valueArrayMsgConstGetter)());
-        timesWrap.setWrappedMsg(msgConstPtr->times());
+        valuesWrap.setWrappedMsg((wrappedMsgConstPtr->*TSS::valueArrayMsgConstGetter)());
+        timesWrap.setWrappedMsg(wrappedMsgConstPtr->times());
         return this;
     }
 
@@ -243,14 +244,14 @@ public:
         setMsg((outMsgRef.*TSS::timeArrayMsgConstGetter)());
         return this;
     }
+    inline void setWrappedNull() {wrappedMsgPtr = NULL; wrappedMsgConstPtr = NULL;}
 
 public:
-    WrappedMsg* msgPtr;
-    const WrappedMsg* msgConstPtr;
+    WrappedMsg* wrappedMsgPtr;
+    const WrappedMsg* wrappedMsgConstPtr;
 
     mutable lm::protowrap::NDArray<ValueT> valuesWrap;
     mutable lm::protowrap::NDArray<TimeT> timesWrap;
-    
 };
 
 }

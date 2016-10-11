@@ -112,14 +112,13 @@ class NDArray
 public:
     typedef robertslab::pbuf::NDArray WrappedMsg;
 
-    NDArray(): msgPtr(NULL),msgConstPtr(NULL) {}
-    NDArray(const WrappedMsg& msgConstRef): msgPtr(NULL),msgConstPtr(NULL) {setWrappedMsg(msgConstRef);}
-    NDArray(WrappedMsg* msgMutablePtr): msgPtr(NULL),msgConstPtr(NULL) {setWrappedMsg(msgMutablePtr);}
+    NDArray(): wrappedMsgPtr(NULL),wrappedMsgConstPtr(NULL) {}
+    NDArray(const WrappedMsg& msgConstRef): wrappedMsgPtr(NULL),wrappedMsgConstPtr(NULL) {setWrappedMsg(msgConstRef);}
+    NDArray(WrappedMsg* msgMutablePtr): wrappedMsgPtr(NULL),wrappedMsgConstPtr(NULL) {setWrappedMsg(msgMutablePtr);}
     ~NDArray() {}
 
 // accessors
     hid_t hdf5_type() const {return hdf5TypeGetter(data_type());}
-    const WrappedMsg* wrappedMsg() const {return msgConstPtr;}
     uint rank() const {return shape().size();}
     uint getIndex(uint i) {return i;}
     uint getIndex(uint i, uint j) {return i*shape(1) + j;}
@@ -127,12 +126,14 @@ public:
     uint32_t size() const {return shape().product();}
     size_t sizeBytes() const {return size()*sizeof(T);}
     size_t sizeBytesDynamic() const {return size()* ndTypeSizeBytes(data_type());}
+    bool wrappedIsNull() const {return wrappedMsgPtr==NULL;}
+    const WrappedMsg* wrappedMsg() const {return wrappedMsgConstPtr;}
 
-// mutators
+    // mutators
     WrappedMsg* wrappedMsg()
     {
-        if (msgPtr==NULL) throw Exception("Pointer to internal message (msgPtr) set to NULL in lm::protowrap::NDArray instance");
-        return msgPtr;
+        if (wrappedMsgPtr==NULL) throw Exception("Pointer to internal message (wrappedMsgPtr) set to NULL in lm::protowrap::NDArray instance");
+        return wrappedMsgPtr;
     }
 
     /*
@@ -337,19 +338,21 @@ public:
 
     NDArray* setWrappedMsg(WrappedMsg* newMsgMutablePtr)
     {
-        msgPtr = newMsgMutablePtr;
-        msgConstPtr = newMsgMutablePtr;
-        _shape.setWrappedField(msgPtr->mutable_shape());
+        wrappedMsgPtr = newMsgMutablePtr;
+        wrappedMsgConstPtr = newMsgMutablePtr;
+        _shape.setWrappedField(wrappedMsgPtr->mutable_shape());
         return this;
     }
 
     NDArray* setWrappedMsg(const WrappedMsg& newArrMsgConstRef)
     {
-        msgPtr = NULL;
-        msgConstPtr = &newArrMsgConstRef;
-        _shape.setWrappedField(msgConstPtr->shape());
+        wrappedMsgPtr = NULL;
+        wrappedMsgConstPtr = &newArrMsgConstRef;
+        _shape.setWrappedField(wrappedMsgConstPtr->shape());
         return this;
     }
+
+    void setWrappedNull() {wrappedMsgPtr = NULL; wrappedMsgConstPtr = NULL;}
 
 // pass throughs
 // accessors
@@ -416,8 +419,8 @@ public:
     }
 
 public:
-    robertslab::pbuf::NDArray* msgPtr;
-    const robertslab::pbuf::NDArray* msgConstPtr;
+    robertslab::pbuf::NDArray* wrappedMsgPtr;
+    const robertslab::pbuf::NDArray* wrappedMsgConstPtr;
 protected:
     Repeated<uint32_t> _shape;
 };

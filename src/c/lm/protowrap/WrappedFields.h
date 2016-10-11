@@ -195,20 +195,20 @@ public:                                                                         
 protected:                                                                 \
     mutable Element _##name;                                               \
 public:                                                                    \
-    inline const Element& name() const {return _##name;}                   \
-    inline Element* mutable_##name() {return &_##name;}                    \
+    inline const Element& name() const {if (_##name.wrappedIsNull()) _##name.setWrappedMsg(wrappedMsgPtr->mutable_##name()); return _##name;} \
+    inline Element* mutable_##name() {if (_##name.wrappedIsNull()) _##name.setWrappedMsg(wrappedMsgPtr->mutable_##name()); return &_##name;}  \
     inline void clear_##name() {wrappedMsgPtr->clear_##name();}            \
     inline bool has_##name() const {return wrappedMsgPtr->has_##name();}
 
 #define _WRAPPED_optional_embedded_ATTR(Element, name)    \
     _WRAPPED_required_embedded_ATTR(Element, name)
 
-#define _WRAPPED_required_embedded_SEATER(Element, name)                \
-    mutable_##name()->setWrappedMsg(wrappedMsgPtr->mutable_##name());
+#define _WRAPPED_required_embedded_SEATER(Element, name) \
+    _##name.setWrappedNull();
+//    mutable_##name()->setWrappedMsg(wrappedMsgPtr->mutable_##name());
 
-#define _WRAPPED_optional_embedded_SEATER(Element, name)    \
+#define _WRAPPED_optional_embedded_SEATER(Element, name) \
     _WRAPPED_required_embedded_SEATER(Element, name)
-
 
 #define _WRAPPED_required_embedded_DESERIALIZETO_CONTAINER_TEMPLATE_SIGNATURE(Element, name)
 #define _WRAPPED_optional_embedded_DESERIALIZETO_CONTAINER_TEMPLATE_SIGNATURE(Element, name)

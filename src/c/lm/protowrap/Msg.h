@@ -58,6 +58,7 @@ public:
     operator WrappedMsg&() const {return *wrappedMsgPtr;}
 
     inline void Clear() {wrappedMsgPtr->Clear();}
+    inline bool wrappedIsNull() const {return wrappedMsgPtr==NULL;}
     inline const WrappedMsg& wrappedMsg() const {return *wrappedMsgPtr;}
     inline WrappedMsg* mutableWrappedMsg() {return wrappedMsgPtr;}
 
@@ -68,8 +69,12 @@ public:
         static_cast<This*>(this)->_macro_setWrapped();
     }
 
+    inline void setWrappedNull() {wrappedMsgPtr = NULL;}
+
 protected:
+    // protected constructor prevents the base class from being used directly
     Msg(): wrappedMsgPtr(NULL) {}
+
     WrappedMsg* wrappedMsgPtr;
 };
 
