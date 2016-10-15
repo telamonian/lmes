@@ -328,8 +328,6 @@ void parseArguments(int argc, char** argv, bool warn)
         {
              gpuDevices=atoi(option+strlen("--gpu="));
         }
-
-        #ifdef OPT_CUDA
         //See if the user is trying to set the number of gpu devices per runner.
         else if ((strcmp(option, "-gr") == 0 || strcmp(option, "--gpus-per-runner") == 0 || strcmp(option, "--gpus-per-replicate") == 0) && i < (argc-1))
         {
@@ -343,25 +341,6 @@ void parseArguments(int argc, char** argv, bool warn)
         {
             gpuDevicesPerRunner=parseIntReciprocalArg(option+strlen("--gpus-per-replicate="));
         }
-        #else /* OPT_CUDA */
-        // if cuda is off, warn the user if they try to set gpuDevicesPerRunner, but set it to 0 anyway
-        else if ((strcmp(option, "-gr") == 0 || strcmp(option, "--gpus-per-runner") == 0 || strcmp(option, "--gpus-per-replicate") == 0) && i < (argc-1))
-        {
-            gpuDevicesPerRunner=0;
-            ++i;
-            if (warn) lm::Print::printf(lm::Print::WARNING, "attempting to set gpuDevicesPerRunner=%.2f, but CUDA support is turned off", parseIntReciprocalArg(argv[i]));
-        }
-        else if (strncmp(option, "--gpus-per-runner=", strlen("--gpus-per-runner=")) == 0)
-        {
-            gpuDevicesPerRunner=0;
-            if (warn) lm::Print::printf(lm::Print::WARNING, "attempting to set gpuDevicesPerRunner=%.2f, but CUDA support is turned off", parseIntReciprocalArg(option+strlen("--gpus-per-runner=")));
-        }
-        else if (strncmp(option, "--gpus-per-replicate=", strlen("--gpus-per-replicate=")) == 0)
-        {
-            gpuDevicesPerRunner=0;
-            if (warn) lm::Print::printf(lm::Print::WARNING, "attempting to set gpuDevicesPerRunner=%.2f, but CUDA support is turned off", parseIntReciprocalArg(option+strlen("--gpus-per-replicate=")));
-        }
-        #endif /* OPT_CUDA */
         //See if the user is trying to turn off cuda capability printing.
         else if ((strcmp(option, "-nc") == 0 || strcmp(option, "--no-capabilities") == 0))
         {
@@ -425,6 +404,22 @@ void parseArguments(int argc, char** argv, bool warn)
         throw lm::CommandLineArgumentException("cannot specify separate input and output files with the hdf5 format.");
     if (outputWriterClassName == "lm::io::sfile::SFileOutputWriter" && simulationOutputFilename == "")
         throw lm::CommandLineArgumentException("missing simulation output file.");
+
+    // fix some arguments (and possibly warn about them)
+    #ifndef OPT_CUDA
+    // if cuda is off, warn the user if they try to set gpuDevices, but then set it to 0 anyway
+    if (gpuDevices > 0)
+    {
+        if (warn) lm::Print::printf(lm::Print::WARNING, "attempting to set gpuDevices=%.2f, but CUDA support is turned off", gpuDevices);
+        gpuDevices=0;
+    }
+    // if cuda is off, warn the user if they try to set gpuDevicesPerRunner, but set it to 0 anyway
+    if (gpuDevicesPerRunner > 0)
+    {
+        if (warn) lm::Print::printf(lm::Print::WARNING, "attempting to set gpuDevicesPerRunner=%.2f, but CUDA support is turned off", gpuDevicesPerRunner);
+        gpuDevicesPerRunner=0.0;
+    }
+    #endif /* OPT_CUDA */
 }
 
 string parseOutputFormatArg(char* option)

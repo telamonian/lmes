@@ -6,15 +6,15 @@ from lma.src.script.lmFile import Basin,SimulationParameter,Tiling
 from lma.regression.regression import FFluxRegressionParser
 from lma.regression.models.genetic_toggle_switch.gtsRegression import GTSRegression
 
-class FFluxRegression(GTSRegression):
+class FFluxGTSRegression(GTSRegression):
     helpMessage = 'script to test out a complete Forward Flux Lattice Microbes run'
     parserType = FFluxRegressionParser
 
     def _buildDefaultSimulationParameterDict(self):
         if self.parser['quick_test']:
             return {'batchSize': 1,
-                    "errorGoal": .05,
-                    "errorGoalConfidence": .95,
+                    "errorGoal": .9,
+                    "errorGoalConfidence": .1,
                     "pilotStageCount": 1e1,
                     "productionStageCountMinimum": 1e1,
                     "ffluxPilotOutput": False,
@@ -25,7 +25,7 @@ class FFluxRegression(GTSRegression):
                     'ffluxMinimizeCost': True,
                     'writeInitialTrajectoryState': False,
                     'writeInterval': 1e20,
-                    'writeLimitTracking': True,}
+                    'writeLimitTracking': False,}
         else:
             return {'batchSize': 1,
                     "errorGoal": .05,
@@ -43,7 +43,7 @@ class FFluxRegression(GTSRegression):
 
     def _buildInput(self, lmInput):
         # call the parent class method
-        lmInput = super(FFluxRegression, self)._buildInput(lmInput=lmInput)
+        lmInput = super(FFluxGTSRegression, self)._buildInput(lmInput=lmInput)
 
         tilings = [
             Tiling(id=0,
@@ -107,7 +107,7 @@ class FFluxRegression(GTSRegression):
         return userSimParamDict
 
 if __name__=='__main__':
-    regression = FFluxRegression()
+    regression = FFluxGTSRegression()
     regression.main()
 
 # after this script sets up genetic_toggle_switch.lm, the simulation can be rerun directly with:

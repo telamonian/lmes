@@ -290,8 +290,8 @@ int OutputWriter::HelperThread::run()
         long long int totalBytesWritten = 0;
         int messagesWritten = 0;
         long long int totalMessagesWritten = 0;
-        int messagesQueued;
-        int bytesQueued;
+        int messagesQueued = 0;
+        int bytesQueued = 0;
 
         bool finished = false;
         while (!finished)
