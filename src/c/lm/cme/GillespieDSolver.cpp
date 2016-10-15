@@ -336,10 +336,10 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         time = timeLimit;
         Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);
 
-        if (writeDegreeAdvancementTimeSeries && writeFinalTrajectoryState)
+        if (writeDegreeAdvancementTimeSeries)
         {
             // Write degree advancement time steps until the next write time is past the current time.
-            while (nextDegreeAdvancementWriteTime <= (time+EPS))
+            while (nextDegreeAdvancementWriteTime < (time+EPS))
             {
                 // Record the degree advancements.
                 for (uint i=0; i<reactionModel->numberReactions; i++) degreeAdvancementCounts.push_back(degreeAdvancements[i]);
@@ -348,10 +348,10 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
             }
         }
 
-        if (writeOrderParameterTimeSeries && writeFinalTrajectoryState)
+        if (writeOrderParameterTimeSeries)
         {
             // Write order parameter time steps until the next write time is past the current time.
-            while (nextOrderParameterWriteTime <= (time+EPS))
+            while (nextOrderParameterWriteTime < (time+EPS))
             {
                 // Record the order parameter counts.
                 for (uint i=0; i<numberOrderParameters; i++) orderParameterTimeSeriesCounts.push_back(orderParameterValues[i]);
@@ -360,9 +360,9 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
             }
         }
 
-        if (writeSpeciesTimeSeries && writeFinalTrajectoryState)
+        if (writeSpeciesTimeSeries)
         {
-            while (nextSpeciesWriteTime <= (timeLimit+EPS))
+            while (nextSpeciesWriteTime < (timeLimit+EPS))
             {
                 // Record the species counts.
                 for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
@@ -373,24 +373,24 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     }
 
     // Otherwise we must have finished because of a state (eg species, order parameter, etc) limit, so just write out the last time.
-    else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED)
+    if (status == lm::message::WorkUnitStatus::LIMIT_REACHED and writeFinalTrajectoryState)
     {
         // Record the degree advancement counts.
-        if (writeDegreeAdvancementTimeSeries and writeFinalTrajectoryState)
+        if (writeDegreeAdvancementTimeSeries)
         {
             for (uint i=0; i<numberDegreeAdvancements; i++) degreeAdvancementCounts.push_back(degreeAdvancements[i]);
             degreeAdvancementTimes.push_back(time);
         }
 
         // Record the order parameter counts.
-        if (writeOrderParameterTimeSeries and writeFinalTrajectoryState)
+        if (writeOrderParameterTimeSeries)
         {
             for (uint i=0; i<numberOrderParameters; i++) orderParameterTimeSeriesCounts.push_back(orderParameterValues[i]);
             orderParameterTimeSeriesTimes.push_back(time);
         }
 
         // Record the species counts.
-        if (writeSpeciesTimeSeries and writeFinalTrajectoryState)
+        if (writeSpeciesTimeSeries)
         {
             for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
             speciesTimeSeriesTimes.push_back(time);

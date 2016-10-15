@@ -31,8 +31,6 @@ class ReplicateGTSRegression(GTSRegression):
             if key not in userSimParamDict:
                 userSimParamDict[key] = defaultSimParamDict[key]
 
-         #key=key, val=kwargs.get(key, defaultSimulationParameters[key])) for key in defaultSimulationParameters.keys()]
-
         if 'firstPassageTimeSpecies' in userSimParamDict:
             if not userSimParamDict['firstPassageTimeSpecies']:
                 userSimParamDict['firstPassageTimeSpecies'] = [0,1,2,3,4,5,6]

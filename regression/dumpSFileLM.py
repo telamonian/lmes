@@ -102,19 +102,32 @@ def PrintMsg(msg):
 def Main():
     parser = ArgumentParser()   #"Usage: ./dumpSFileLM.py path-to-sfile [-l]")
 
-    parser.add_argument('sfilePath',  help='path to sfile to dump')
+    parser.add_argument('sfilePath',                              help='path to sfile to dump')
     parser.add_argument('-l', '--list-only', action='store_true', help='if the --list-only flag is set, dump only the record metadata without the actual record data')
+    parser.add_argument('-s', '--sort', action='store_true',      help='if set, sort the records before outputting them')
 
     kwargs = vars(parser.parse_args())
 
     f = SFileLM.fromFilename(kwargs['sfilePath'])
 
+    #
+
     # loop over all of the records, printing out either the metadata, or the metadata and the deserialized data
     if kwargs['list_only']:
-        for record in f.records():
+        if kwargs['sort']:
+            records = sorted(f.records())
+        else:
+            records = f.records()
+
+        for record in records:
             print_(record)
     else:
-        for record,data in f.items():
+        if kwargs['sort']:
+            items = sorted(f.items())
+        else:
+            items = f.items()
+
+        for record,data in items:
             PrintRecord(record, data)
 
     f.close()
