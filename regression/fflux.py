@@ -1,58 +1,49 @@
 #!/usr/bin/env python
-from __future__ import absolute_import
 
-import os,sys
 import numpy as np
-import sys
 
-from lma.src.script.lmFile import Input,Basin,Dependency,DependencyMatrix,InitialSpeciesCounts,InitialSpeciesCountsBackward,OrderParameter,ReactionRateConstant,SimulationParameter,Tiling
-from regression import StringifyNum, Regression
-from replicate import ReplicateRegression
+from lma.src.script.lmFile import Basin,SimulationParameter,Tiling
+from lma.regression.regression import FFluxRegressionParser
+from lma.regression.models.genetic_toggle_switch.gtsRegression import GTSRegression
 
-class FFluxRegression(ReplicateRegression):
-    defaultLMArgs = Regression.defaultLMArgs + ['-fflux', '-intout']
+class FFluxRegression(GTSRegression):
     helpMessage = 'script to test out a complete Forward Flux Lattice Microbes run'
+    parserType = FFluxRegressionParser
 
-    def _BuildInput(self, **kwargs):
-        # call the parent class method
-        super(FFluxRegression, self)._BuildInput(**kwargs)
-
-        if kwargs['quick_test']:
-            defaultSimulationParameters = {'batchSize': 1,
-                                           "errorGoal": .05,
-                                           "errorGoalConfidence": .95,
-                                           "pilotStageCount": 1e1,
-                                           "productionStageCountMinimum": 1e1,
-                                           "ffluxPilotOutput": False,
-                                           "ffluxPhaseOutput": False,
-                                           "ffluxStageOutputRaw": False,
-                                           "ffluxStageOutputSummary": False,
-                                           'phaseZeroSamplingMultiplier': 1,
-                                           'ffluxMinimizeCost': True,
-                                           'writeInitialTrajectoryState': False,
-                                           'writeInterval': 1e20,
-                                           'writeLimitTracking': True,}
+    def _buildDefaultSimulationParameterDict(self):
+        if self.parser['quick_test']:
+            return {'batchSize': 1,
+                    "errorGoal": .05,
+                    "errorGoalConfidence": .95,
+                    "pilotStageCount": 1e1,
+                    "productionStageCountMinimum": 1e1,
+                    "ffluxPilotOutput": False,
+                    "ffluxPhaseOutput": False,
+                    "ffluxStageOutputRaw": False,
+                    "ffluxStageOutputSummary": False,
+                    'phaseZeroSamplingMultiplier': 1,
+                    'ffluxMinimizeCost': True,
+                    'writeInitialTrajectoryState': False,
+                    'writeInterval': 1e20,
+                    'writeLimitTracking': True,}
         else:
-            defaultSimulationParameters = {'batchSize': 1,
-                                           "errorGoal": .05,
-                                           "errorGoalConfidence": .95,
-                                           "pilotStageCount": 1e3,
-                                           "productionStageCountMinimum": 1e3,
-                                           "ffluxPilotOutput": True,
-                                           "ffluxPhaseOutput": True,
-                                           "ffluxStageOutputRaw": True,
-                                           "ffluxStageOutputSummary": True,
-                                           'phaseZeroSamplingMultiplier': 10,
-                                           'ffluxMinimizeCost': False,
-                                           'writeInterval': 1e20,
-                                           'writeLimitTracking': True,}
+            return {'batchSize': 1,
+                    "errorGoal": .05,
+                    "errorGoalConfidence": .95,
+                    "pilotStageCount": 1e3,
+                    "productionStageCountMinimum": 1e3,
+                    "ffluxPilotOutput": True,
+                    "ffluxPhaseOutput": True,
+                    "ffluxStageOutputRaw": True,
+                    "ffluxStageOutputSummary": True,
+                    'phaseZeroSamplingMultiplier': 10,
+                    'ffluxMinimizeCost': False,
+                    'writeInterval': 1e20,
+                    'writeLimitTracking': True,}
 
-        ffluxInput = Input('genetic_toggle_switch.lm')
-
-        simParams = [SimulationParameter(key=key, val=StringifyNum(kwargs.get(key, defaultValue))) for key,defaultValue in defaultSimulationParameters.items()]
-
-        simParamKeysToUnset = ['maxSteps', 'maxTime', 'writeInterval']
-        simParamsToUnset = [SimulationParameter(key=key, val=None) for key in simParamKeysToUnset if key not in kwargs and key not in defaultSimulationParameters]
+    def _buildInput(self, lmInput):
+        # call the parent class method
+        lmInput = super(FFluxRegression, self)._buildInput(lmInput=lmInput)
 
         tilings = [
             Tiling(id=0,
@@ -65,7 +56,7 @@ class FFluxRegression(ReplicateRegression):
                   speciesCountArray=np.array(([4,16,1,0,0,0,0],), dtype=np.dtype('uint32')))]
                                               #[0,0,0,4,16,1,0]), dtype=np.dtype('uint32')))]
 
-        if kwargs['extra_input']:
+        if self.parser['extra_input']:
             tilings+=[
                 Tiling(id=19,
                        orderParameterID=0,
@@ -97,15 +88,27 @@ class FFluxRegression(ReplicateRegression):
                                       type=0,
                                       edges=np.linspace(-27, 27, numEdges)))
 
-        ffluxInput.AddTilings(tilings=tilings, currentTilingID=0)
-        ffluxInput.AddBasins(basins=basins)
-        ffluxInput.SetSimulationParameters(simParams=simParams)
-        ffluxInput.UnsetSimulationParameters(simParams=simParamsToUnset)
-        ffluxInput.Close()
+        lmInput.AddTilings(tilings=tilings, currentTilingID=0)
+        lmInput.AddBasins(basins=basins)
+
+        return lmInput
+
+    def _buildSimulationParameters(self, lmInput):
+        defaultSimParamDict = self.buildDefaultSimulationParameterDict()
+        userSimParamDict = self.parser.simParamDict
+        for key in defaultSimParamDict.keys():
+            if key not in userSimParamDict:
+                userSimParamDict[key] = defaultSimParamDict[key]
+
+        simParamKeysToUnset = ['maxSteps', 'maxTime', 'writeInterval']
+        simParamsToUnset = [SimulationParameter(key=key, val=None) for key in simParamKeysToUnset if key not in userSimParamDict]
+        lmInput.UnsetSimulationParameters(simParams=simParamsToUnset)
+
+        return userSimParamDict
 
 if __name__=='__main__':
     regression = FFluxRegression()
-    regression.Main()
+    regression.main()
 
 # after this script sets up genetic_toggle_switch.lm, the simulation can be rerun directly with:
 # ../build/lmes -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff hdf5 -fflux -f "genetic_toggle_switch.lm" -intout
