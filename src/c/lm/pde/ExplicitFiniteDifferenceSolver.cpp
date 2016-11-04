@@ -37,6 +37,9 @@
 #include "robertslab/Types.h"
 #include "robertslab/pbuf/NDArraySerializer.h"
 
+#include "lptf/Profile.h"
+#include "lptf/ProfileCodes.h"
+
 using std::vector;
 
 namespace lm {
@@ -207,6 +210,8 @@ lm::message::WorkUnitStatus::Status ExplicitFiniteDifferenceSolver::getStatus(ui
 
 uint64_t ExplicitFiniteDifferenceSolver::generateTrajectory(uint64_t maxSteps)
 {
+    PROF_BEGIN(PROF_PDE_EXECUTE);
+
     // Get the grid dimensions in various forms.
     const int ilen=(int)grid->shape[0];
     const int jlen=(int)grid->shape[1];
@@ -337,6 +342,8 @@ uint64_t ExplicitFiniteDifferenceSolver::generateTrajectory(uint64_t maxSteps)
 
     // Free the second grid memory.
     free(grid2);
+
+    PROF_END(PROF_PDE_EXECUTE);
 
     return steps;
 }

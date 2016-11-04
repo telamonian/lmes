@@ -161,7 +161,7 @@ endif(BUILD_WITH_SVML)
 
 # stuff for enabling the built in profiler
 if(PROF_ENABLE)
-    add_definitions(-DPROF_ENABLE -DPROF_CUDA_ENABLE=0 -DPROF_MAX_THREADS=16 -DPROF_MAX_EVENTS=10000000 -DPROF_OUT_FILE=timing.prof)
+    add_definitions(-DPROF_ENABLE -DPROF_CUDA_ENABLE=0 -DPROF_MAX_THREADS=16 -DPROF_MAX_EVENTS=1000000 -DPROF_OUT_FILE=timing.prof)
 endif(PROF_ENABLE)
 
 # automagic setup for linux, os X 10.7-8 (and lower?), and os X 10.9 (and higher)

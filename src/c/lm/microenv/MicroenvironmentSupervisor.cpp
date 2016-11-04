@@ -45,6 +45,9 @@
 #include "robertslab/Types.h"
 #include "robertslab/pbuf/NDArraySerializer.h"
 
+#include "lptf/Profile.h"
+#include "lptf/ProfileCodes.h"
+
 using std::map;
 using std::string;
 using lm::resource::ResourceMap;
@@ -157,6 +160,7 @@ void MicroenvironmentSupervisor::receivedStartedWorkUnitRunner(const lm::message
 
 void MicroenvironmentSupervisor::startSimulation()
 {
+    PROF_BEGIN(PROF_MENV_RUN_SIM);
     simulationStartTime=getHrTime();
 
     // Check for some error conditions.
@@ -172,6 +176,8 @@ void MicroenvironmentSupervisor::startSimulation()
 
 void MicroenvironmentSupervisor::startSimulationPhase()
 {
+    PROF_BEGIN(PROF_MENV_RUN_PHASE);
+
     // Record some performance stats.
     if (stats_timestepStartTime > 0)
     {
@@ -190,11 +196,14 @@ void MicroenvironmentSupervisor::startSimulationPhase()
     if (assignWork())
     {
         finishSimulationPhase();
+        PROF_END(PROF_MENV_RUN_PHASE);
     }
 }
 
 void MicroenvironmentSupervisor::startNewReplicate()
 {
+    PROF_BEGIN(PROF_MENV_START_REPLICATE);
+
     // Create the new trajectory lists.
     buildTrajectoryList();
 
@@ -208,10 +217,14 @@ void MicroenvironmentSupervisor::startNewReplicate()
         // Copy the current counts of the diffusing species.
         ((METrajectoryList*)trajectoryList)->copySpeciesCountFrom(*cellPreviousCounts, 0, 0);
     }
+
+    PROF_END(PROF_MENV_START_REPLICATE);
 }
 
 void MicroenvironmentSupervisor::continueCurrentReplicate()
 {
+    PROF_BEGIN(PROF_MENV_CONT_REPLICATE);
+
     hrtime t0 = getHrTime();
 
     // If we have cells, reconcile them with the diffusion grid.
@@ -241,6 +254,8 @@ void MicroenvironmentSupervisor::continueCurrentReplicate()
 
     // Record how long it took to reconcile.
     stats_timestepReconcileTime += getHrTime()-t0;
+
+    PROF_END(PROF_MENV_CONT_REPLICATE);
 }
 
 void MicroenvironmentSupervisor::buildTrajectoryList()
@@ -302,6 +317,7 @@ void MicroenvironmentSupervisor::receivedFinishedWorkUnit(const lm::message::Fin
         if (assignWork())
         {
             finishSimulationPhase();
+            PROF_END(PROF_MENV_RUN_PHASE);
         }
     }
 
@@ -319,6 +335,8 @@ void MicroenvironmentSupervisor::receivedFinishedWorkUnit(const lm::message::Fin
 
 bool MicroenvironmentSupervisor::assignWork()
 {
+    PROF_BEGIN(PROF_MENV_ASSIGN_WORK);
+
     // Go though the available slots and fill them with work units.
     while (true)
     {
@@ -345,6 +363,7 @@ bool MicroenvironmentSupervisor::assignWork()
         else
         {
             // Return if we are done with all the work yet.
+            PROF_END(PROF_MENV_ASSIGN_WORK);
             return (pdeTrajectoryList->areAllFinished() && trajectoryList->areAllFinished());
         }
     }
@@ -378,7 +397,7 @@ void MicroenvironmentSupervisor::buildRunWorkUnit(lm::message::RunWorkUnit* msg,
 
         // Add the parts.
         const lm::slot::Slot slot = slots.getFreeSlot();
-        trajectoryList->addWorkUnitParts(msg->work_unit_id(), msg, slot.getSimultaneousWorkUnits());
+        trajectoryList->addWorkUnitParts(msg->work_unit_id(), msg, 100);
     }
     else
     {
@@ -412,6 +431,7 @@ void MicroenvironmentSupervisor::finishSimulation()
 {
     Print::printf(Print::INFO, "MicroenvironmentSupervisor supervisor finished %u timesteps for %u replicates in %0.2f seconds.", numberTimesteps, numberReplicates, convertHrToSeconds(getHrTime()-simulationStartTime));
     SimulationSupervisor::finishSimulation();
+    PROF_END(PROF_MENV_RUN_SIM);
 }
 
 void MicroenvironmentSupervisor::printPerformanceStatistics(bool flush)
