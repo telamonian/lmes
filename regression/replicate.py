@@ -12,13 +12,13 @@ class ReplicateGTSRegression(GTSRegression):
             return {'maxSteps': 1e10,
                     'maxTime': 1e1,
                     'maxWorkUnitSteps': 1e8,
-                    'writeInterval': 1e0
+                    'writeInterval': 1e0,
                     # 'orderParameterWriteInterval': 1e0}
                     }
         else:
             return {'maxSteps': 1e10,
                     'maxTime': 1e4,
-                    'maxWorkUnitSteps': 1e4,
+                    'maxWorkUnitSteps': 1e8,
                     'writeInterval': 1e1,
                     # 'orderParameterWriteInterval': 1e1}
                     }

@@ -90,13 +90,13 @@ endforeach(lang)
 
 # package finding stuff
 find_package(MPI REQUIRED)
-message("testing if mpi is mpich...")
+message(STATUS "testing if mpi is mpich...")
 execute_process(COMMAND ${MPI_C_COMPILER} -v OUTPUT_VARIABLE MPIC_INFO_DUMP ERROR_QUIET)
 string(REGEX MATCH "([Mm][Pp][Ii][Cc][Hh]) version ([0-9+]\\.?[0-9]*\\.?[0-9]*)" MPI_VERSION_DUMP  "${MPIC_INFO_DUMP}")
 if(${CMAKE_MATCH_2} VERSION_LESS "3.0.0")
     message(FATAL_ERROR "...mpi implementation found is not mpich, stopping. Lattice Microbes only supports mpich2 >3.0 at this time. If multiple mpi implementations are installed, please specify path to mpich in CMakeConfig.txt.")
 else(${CMAKE_MATCH_2} VERSION_LESS "3.0.0")
-    message("...mpi is mpich, proceeding")
+    message(STATUS "...mpi is mpich, proceeding")
 endif(${CMAKE_MATCH_2} VERSION_LESS "3.0.0")
 
 # conditionals for dealing with CUDA

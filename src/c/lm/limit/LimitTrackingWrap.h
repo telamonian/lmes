@@ -135,6 +135,41 @@ public:
         if (orderParameterValues_readfrom.size() > 0) mutable_order_parameter_values()->set_array(orderParameterValues_readfrom, utuple(times_readfrom.size(), orderParameterValues_readfrom.size()/times_readfrom.size()), compress);
         if (speciesCounts_readfrom.size() > 0)        mutable_species_counts()->set_array(speciesCounts_readfrom, utuple(times_readfrom.size(), speciesCounts_readfrom.size()/times_readfrom.size()), compress);
         if (times_readfrom.size() > 0)                mutable_times()->set_array(times_readfrom, utuple(times_readfrom.size()), compress);
+
+//        if (count()==times_readfrom.size())
+//        {
+//            // times_readfrom.size() is the number of "rows" in this dataset
+//            if (degreeAdvancements_readfrom.size() > 0)   mutable_degree_advancements()->set_array(degreeAdvancements_readfrom, utuple(times_readfrom.size(), degreeAdvancements_readfrom.size()/times_readfrom.size()), compress);
+//            if (orderParameterValues_readfrom.size() > 0) mutable_order_parameter_values()->set_array(orderParameterValues_readfrom, utuple(times_readfrom.size(), orderParameterValues_readfrom.size()/times_readfrom.size()), compress);
+//            if (speciesCounts_readfrom.size() > 0)        mutable_species_counts()->set_array(speciesCounts_readfrom, utuple(times_readfrom.size(), speciesCounts_readfrom.size()/times_readfrom.size()), compress);
+//            if (times_readfrom.size() > 0)                mutable_times()->set_array(times_readfrom, utuple(times_readfrom.size()), compress);
+//        }
+//        else
+//        {
+//            uint64_t cols;
+//            uint64_t offset = times_readfrom.size() - count();
+//            uint64_t rows = count();
+//
+//            if (degreeAdvancements_readfrom.size() > 0)
+//            {
+//                cols = degreeAdvancements_readfrom.size()/times_readfrom.size();
+//                mutable_degree_advancements()->set_array(&degreeAdvancements_readfrom[offset*cols], utuple(rows, cols), compress);
+//            }
+//            if (orderParameterValues_readfrom.size() > 0)
+//            {
+//                cols = orderParameterValues_readfrom.size()/times_readfrom.size();
+//                mutable_order_parameter_values()->set_array(&orderParameterValues_readfrom[offset*cols], utuple(rows, cols), compress);
+//            }
+//            if (speciesCounts_readfrom.size() > 0)
+//            {
+//                cols = speciesCounts_readfrom.size()/times_readfrom.size();
+//                mutable_species_counts()->set_array(&speciesCounts_readfrom[offset*cols], utuple(rows, cols), compress);
+//            }
+//            if (times_readfrom.size() > 0)
+//            {
+//                mutable_times()->set_array(&times_readfrom[offset], utuple(rows), compress);
+//            }
+//        }
     }
 
     inline void serializeFrom(uint64_t trajectoryID_readfrom, const LimitTracking& lt)

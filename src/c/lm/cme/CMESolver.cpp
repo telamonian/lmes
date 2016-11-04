@@ -149,58 +149,6 @@ void CMESolver::setComputeResources(vector<int> cpus, vector<int> gpus)
     }
 }
 
-void CMESolver::setReactionModel(const lm::input::ReactionModel& rm)
-{
-    if (rm.number_reactions() != (uint)rm.reaction_size()) throw InvalidArgException("rm", "number of reaction does not agree with reaction list size");
-
-    // Set the new reaction model.
-    if (reactionModel != NULL) delete reactionModel;
-    reactionModel = new ReactionModel(rm);
-
-    // Allocate space for the degree advancement counts, if we're writing them.
-    if (degreeAdvancements != NULL) delete[] degreeAdvancements; degreeAdvancements = NULL;
-    degreeAdvancements = new uint64_t[reactionModel->numberReactions];
-
-    // Allocate space for the species counts.
-    if (speciesCounts != NULL) delete[] speciesCounts; speciesCounts = NULL;
-    speciesCounts = new int[reactionModel->numberSpecies];
-}
-
-void CMESolver::setOrderParameters(const lm::input::OrderParameters& ops)
-{
-    if (orderParameterFunctions != NULL)
-    {
-        for (int i=0;i<numberOrderParameters;i++) delete orderParameterFunctions[i];
-        delete[] orderParameterFunctions; orderParameterFunctions = NULL;
-    }
-    if (orderParameterValues != NULL) delete orderParameterValues; orderParameterValues = NULL;
-    if (orderParameterPreviousValues != NULL) delete orderParameterPreviousValues; orderParameterPreviousValues = NULL;
-
-    // Allocate space for the order parameters.
-    numberOrderParameters = ops.order_parameters_size();
-    orderParameterFunctions = new lm::oparam::OrderParameterFunction*[reactionModel->numberSpecies];
-    orderParameterValues = new double[numberOrderParameters];
-    orderParameterPreviousValues = new double[numberOrderParameters];
-
-    // Create the order parameter functions.
-    lm::oparam::OrderParameterFunctionFactory fs;
-    for (size_t i=0; i<numberOrderParameters; i++)
-        orderParameterFunctions[i] = fs.createOrderParameterFunction(ops.order_parameters(i));
-
-    // Mark that we have a listener to update whenever the speices counts changes.
-    hasUpdateSpeciesCountsListeners = true;
-}
-
-void CMESolver::setTilings(const lm::input::Tilings& tilingsBuf)
-{
-    if (tilings != NULL) delete tilings; tilings = NULL;
-
-    // TODO: reimplement?
-//    tilings = new lm::tiling::Tilings();
-//    tilings->init(tilingsBuf);
-//    hasUpdateSpeciesCountsListeners = true;
-}
-
 void CMESolver::setLimits(const lm::input::TrajectoryLimits& lm)
 {
     // Free any previous limits;
@@ -228,6 +176,58 @@ void CMESolver::setLimits(const lm::input::TrajectoryLimits& lm)
         numberDegreeAdvancements = reactionModel->numberReactions;
         hasUpdateSpeciesCountsListeners = true;
     }
+}
+
+void CMESolver::setOrderParameters(const lm::input::OrderParameters& ops)
+{
+    if (orderParameterFunctions != NULL)
+    {
+        for (int i=0;i<numberOrderParameters;i++) delete orderParameterFunctions[i];
+        delete[] orderParameterFunctions; orderParameterFunctions = NULL;
+    }
+    if (orderParameterValues != NULL) delete orderParameterValues; orderParameterValues = NULL;
+    if (orderParameterPreviousValues != NULL) delete orderParameterPreviousValues; orderParameterPreviousValues = NULL;
+
+    // Allocate space for the order parameters.
+    numberOrderParameters = ops.order_parameters_size();
+    orderParameterFunctions = new lm::oparam::OrderParameterFunction*[reactionModel->numberSpecies];
+    orderParameterValues = new double[numberOrderParameters];
+    orderParameterPreviousValues = new double[numberOrderParameters];
+
+    // Create the order parameter functions.
+    lm::oparam::OrderParameterFunctionFactory fs;
+    for (size_t i=0; i<numberOrderParameters; i++)
+        orderParameterFunctions[i] = fs.createOrderParameterFunction(ops.order_parameters(i));
+
+    // Mark that we have a listener to update whenever the speices counts changes.
+    hasUpdateSpeciesCountsListeners = true;
+}
+
+void CMESolver::setReactionModel(const lm::input::ReactionModel& rm)
+{
+    if (rm.number_reactions() != (uint)rm.reaction_size()) throw InvalidArgException("rm", "number of reaction does not agree with reaction list size");
+
+    // Set the new reaction model.
+    if (reactionModel != NULL) delete reactionModel;
+    reactionModel = new ReactionModel(rm);
+
+    // Allocate space for the degree advancement counts, if we're writing them.
+    if (degreeAdvancements != NULL) delete[] degreeAdvancements; degreeAdvancements = NULL;
+    degreeAdvancements = new uint64_t[reactionModel->numberReactions];
+
+    // Allocate space for the species counts.
+    if (speciesCounts != NULL) delete[] speciesCounts; speciesCounts = NULL;
+    speciesCounts = new int[reactionModel->numberSpecies];
+}
+
+void CMESolver::setTilings(const lm::input::Tilings& tilingsBuf)
+{
+    if (tilings != NULL) delete tilings; tilings = NULL;
+
+    // TODO: reimplement?
+//    tilings = new lm::tiling::Tilings();
+//    tilings->init(tilingsBuf);
+//    hasUpdateSpeciesCountsListeners = true;
 }
 
 void CMESolver::reset()
@@ -426,14 +426,6 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
         limitTypeReached = state.limit_reached().limit_type();
     }
 
-    // if we're tracking any limits, set up the solver to output state information when the limit is reached
-    for (Repeated<lm::io::LimitTracking>::const_iterator it=state.limit_tracking_list().limit_trackings().begin(); it!=state.limit_tracking_list().limit_trackings().end(); ++it)
-    {
-        // TODO: CV! my nemesis. Fix the need for the const_cast here
-        limitTrackingWrap.setWrappedMsg(const_cast<lm::io::LimitTracking*>(&*it));
-        limitTrackingWrap.deserializeTo(&trackedLimits[it->limit_id()]);
-    }
-
 //    // Set the order parameter values.
 //    for (int i=0; i<state.cme_state().order_parameter_values().order_parameter_values_size(); i++)
 //    {
@@ -472,6 +464,19 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
 
     // Set the trajectory id.
     trajectoryId = state.trajectory_id();
+
+    // if we're tracking any limits, set up the solver to output state information when the limit is reached
+    for (Repeated<lm::io::LimitTracking>::const_iterator it=state.limit_tracking_list().limit_trackings().begin(); it!=state.limit_tracking_list().limit_trackings().end(); ++it)
+    {
+        // TODO: CV! my nemesis. Fix the need for the const_cast here
+        limitTrackingWrap.setWrappedMsg(const_cast<lm::io::LimitTracking*>(&*it));
+        limitTrackingWrap.deserializeTo(&trackedLimits[it->limit_id()]);
+
+//        if (not trajectoryStarted and limits[it->limit_id()].addTrackingToOutput)
+//        {
+//            trackedLimits[it->limit_id()].addState(numberDegreeAdvancements, degreeAdvancements, numberOrderParameters, orderParameterValues, reactionModel->numberSpecies, speciesCounts, time);
+//        }
+    }
 }
 
 lm::message::WorkUnitStatus::Status CMESolver::getStatus(uint trajectoryNumber)

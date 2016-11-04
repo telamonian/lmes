@@ -362,7 +362,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
 
         if (writeSpeciesTimeSeries)
         {
-            while (nextSpeciesWriteTime < (timeLimit+EPS))
+            while (nextSpeciesWriteTime < (timeLimit))    //+EPS))
             {
                 // Record the species counts.
                 for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
@@ -372,7 +372,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         }
     }
 
-    // Otherwise we must have finished because of a state (eg species, order parameter, etc) limit, so just write out the last time.
+    // If we hit a limit, write out the final trajectory state if requested
     if (status == lm::message::WorkUnitStatus::LIMIT_REACHED and writeFinalTrajectoryState)
     {
         // Record the degree advancement counts.

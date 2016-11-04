@@ -63,7 +63,18 @@ public:
     typedef std::vector<SpeciesT> SpeciesContainer;
     typedef std::vector<TimeT> TimeContainer;
 
-    bool trackingEnabled(uint64_t maxCount)
+    inline void addState(int32_t numberDegreeAdvancements, DegreeAdvancementT* degreeAdvancements,
+                         int32_t numberOrderParameters, OrderParameterT* orderParameterValues,
+                         int32_t numberSpecies, SpeciesT* speciesCounts,
+                         TimeT time)
+    {
+        if (numberDegreeAdvancements>0) {for (int j=0;j<numberDegreeAdvancements;j++) degree_advancements.push_back(degreeAdvancements[j]);}
+        if (numberOrderParameters>0) {for (int j=0;j<numberOrderParameters;j++) order_parameter_values.push_back(orderParameterValues[j]);}
+        for (int j=0;j<numberSpecies;j++) species_counts.push_back(speciesCounts[j]);
+        times.push_back(time);
+    }
+
+    inline bool trackingEnabled(uint64_t maxCount)
     {
         // if the limit tracking has a count, use this to determine if tracking is currently enabled
         if (has_count)
@@ -78,7 +89,7 @@ public:
         }
     }
 
-    bool terminationSignaled(uint64_t maxCount)
+    inline bool terminationSignaled(uint64_t maxCount)
     {
         // if the limit tracking has a count, use this to determinate if we should signal for termination of the trajectory
         if (has_count)
@@ -94,7 +105,7 @@ public:
     }
 
     // handle necessary tasks when the associated limit is triggered (eg decrement countdown, record state, etc)
-    void trackLimit()    //(uint64_t maxCount)
+    inline void trackLimit()    //(uint64_t maxCount)
     {
         count++;
 //        if (trackingEnabled(maxCount))

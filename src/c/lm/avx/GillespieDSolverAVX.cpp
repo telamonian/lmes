@@ -494,17 +494,26 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
         // See if this is the start of the trajectory.
         for (int i=0; i<DOUBLES_PER_AVX; i++)
         {
-            // If this element was true, save the reaction and set the random propensity to inf.
-            if (((double*)&time)[i] == 0.0 || trajectoryStarted[i]==false)
+            if (not trajectoryStarted[i] and writeInitialTrajectoryState)
             {
-                ((double*)&nextSpeciesWriteTime)[i] = speciesWriteInterval;
+                // and if we're specifically writing out initial states, do that then set the next write time. If the next write time happens to be the current time, skip that since we just wrote it out
                 for (uint j=0; j<reactionModel->numberSpeciesToTrack; j++) speciesTimeSeriesCounts[i].push_back(lround(speciesCounts[j*DOUBLES_PER_AVX+i]));
-                speciesTimeSeriesTimes[i].push_back(0.0);
+                speciesTimeSeriesTimes[i].push_back(((double*)&time)[i]);
             }
-            else
-            {
-                ((double*)&nextSpeciesWriteTime)[i] = ceil(((double*)&time)[i]/speciesWriteInterval)*speciesWriteInterval;
-            }
+            // otherwise, just set the next write time. If the next write time happens to be the current time, skip that since we already wrote it out in the previous work unit
+            ((double*)&nextSpeciesWriteTime)[i] = (floor(((double*)&time)[i]/speciesWriteInterval) + 1)*speciesWriteInterval;
+
+//            // If this element was true, save the reaction and set the random propensity to inf.
+//            if (((double*)&time)[i] == 0.0 || trajectoryStarted[i]==false)
+//            {
+//                ((double*)&nextSpeciesWriteTime)[i] = speciesWriteInterval;
+//                for (uint j=0; j<reactionModel->numberSpeciesToTrack; j++) speciesTimeSeriesCounts[i].push_back(lround(speciesCounts[j*DOUBLES_PER_AVX+i]));
+//                speciesTimeSeriesTimes[i].push_back(0.0);
+//            }
+//            else
+//            {
+//                ((double*)&nextSpeciesWriteTime)[i] = ceil(((double*)&time)[i]/speciesWriteInterval)*speciesWriteInterval;
+//            }
         }
     }
 
@@ -801,7 +810,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
             Print::printf(Print::DEBUG, "Generated trajectory %llu through time %e.", trajectoryId[i], ((double*)&time)[i]);
             if (writeSpeciesTimeSeries)
             {
-                while (((double*)&nextSpeciesWriteTime)[i] <= (((double*)&timeLimit)[i]+EPS))
+                while (((double*)&nextSpeciesWriteTime)[i] < (((double*)&timeLimit)[i]))    //+EPS))
                 {
                     // Record the species counts.
                     for (uint j=0; j<reactionModel->numberSpeciesToTrack; j++) speciesTimeSeriesCounts[i].push_back(lround(speciesCounts[j*DOUBLES_PER_AVX+i]));
@@ -811,8 +820,8 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
             }
         }
 
-        // Otherwise we must have finished because of a species/order parameter limit, so just write out the last time.
-        else if (status[i] == lm::message::WorkUnitStatus::LIMIT_REACHED)
+        // If we hit a limit, write out the final trajectory state if requested
+        if (status[i] == lm::message::WorkUnitStatus::LIMIT_REACHED and writeFinalTrajectoryState)
         {
             // Record the species counts.
             if (writeSpeciesTimeSeries)

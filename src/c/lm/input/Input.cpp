@@ -209,7 +209,7 @@ void Input::initOutputOptions(const lm::io::hdf5::Hdf5File& file)
 
     // Flags that control whether output is recorded for the initial and/or the final state of every trajectory.
     parseAndSet("writeInitialTrajectoryState", &OutputOptions::set_write_initial_trajectory_state, outputOptionsMsg);
-    parseAndSet("writeFinalTrajectoryState", &OutputOptions::set_write_initial_trajectory_state, outputOptionsMsg);
+    parseAndSet("writeFinalTrajectoryState", &OutputOptions::set_write_final_trajectory_state, outputOptionsMsg);
 
     // Flag that globally controls whether any limit tracking data collected during a trajectory is written out directly to disk.
     parseAndSet("writeLimitTracking", &OutputOptions::set_write_limit_tracking, outputOptionsMsg);
