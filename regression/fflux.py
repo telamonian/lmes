@@ -13,19 +13,19 @@ class FFluxGTSRegression(GTSRegression):
     def _buildDefaultSimulationParameterDict(self):
         if self.parser['quick_test']:
             return {'batchSize': 1,
-                    "errorGoal": .9,
-                    "errorGoalConfidence": .1,
-                    "pilotStageCount": 1e1,
-                    "productionStageCountMinimum": 1e1,
-                    "ffluxPilotOutput": False,
+                    "errorGoal": .99,
+                    "errorGoalConfidence": .01,
+                    "pilotStageCount": 1,
+                    "productionStageCountMinimum": 1,
+                    "ffluxPilotOutput": True,
                     "ffluxPhaseOutput": False,
                     "ffluxStageOutputRaw": True,
                     "ffluxStageOutputSummary": True,
-                    'phaseZeroSamplingMultiplier': 1,
+                    'phaseZeroSamplingMultiplier': 2e5,
                     'ffluxMinimizeCost': True,
-                    'writeInitialTrajectoryState': True,
-                    'writeFinalTrajectoryState': True,
-                    'writeInterval': 1e20,
+                    'writeInitialTrajectoryState': False,
+                    'writeFinalTrajectoryState': False,
+                    'writeInterval': None,
                     'writeLimitTracking': True,}
         else:
             return {'batchSize': 1,
@@ -95,13 +95,16 @@ class FFluxGTSRegression(GTSRegression):
         return lmInput
 
     def _buildSimulationParameters(self, lmInput):
+        simParamKeysToUnset = {'maxSteps', 'maxTime', 'writeInterval'}
+
         defaultSimParamDict = self.buildDefaultSimulationParameterDict()
         userSimParamDict = self.parser.simParamDict
-        for key in defaultSimParamDict.keys():
-            if key not in userSimParamDict:
+        for key,val in defaultSimParamDict.items():
+            if val is None or val=='None':
+                simParamKeysToUnset.update((key,))
+            elif key not in userSimParamDict:
                 userSimParamDict[key] = defaultSimParamDict[key]
 
-        simParamKeysToUnset = ['maxSteps', 'maxTime', 'writeInterval']
         simParamsToUnset = [SimulationParameter(key=key, val=None) for key in simParamKeysToUnset if key not in userSimParamDict]
         lmInput.UnsetSimulationParameters(simParams=simParamsToUnset)
 

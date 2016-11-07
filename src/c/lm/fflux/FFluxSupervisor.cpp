@@ -36,6 +36,7 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+#include <algorithm>
 #include <iomanip>
 #include <iterator>
 #include <limits>
@@ -461,6 +462,13 @@ vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double errorGoal, dou
 
     // make estimates more conservative using the lower bound of the estimator confidence interval
     probabilities = bernouliCIAgrestiCoullLowerBound(probabilities, trials, .9999);
+
+    // make sure that all of the probability estimates are at least a little above zero
+    double minimum = 1e-4;
+    for (vector<double>::iterator it=probabilities.begin();it!=probabilities.end();it++)
+    {
+        *it = max(*it, minimum);
+    }
 
     vector<uint64_t> trajectoryCounts;
     if (minimizeCost)

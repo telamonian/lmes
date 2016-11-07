@@ -360,6 +360,7 @@ public:
     ByteOrder byte_order() const {return wrappedMsg()->byte_order();}
     DataType data_type() const {return wrappedMsg()->data_type();}
     const Repeated<uint32_t>& shape() const {return _shape;}
+    const int shape_size() const {return _shape.size();}
     uint32_t shape(int index) const {return _shape.Get(index);}
     const std::string& data() const {return wrappedMsg()->data();}
     bool compressed_deflate() const {return wrappedMsg()->compressed_deflate();}
