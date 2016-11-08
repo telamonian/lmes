@@ -383,6 +383,12 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
     if (state.cme_state().species_counts().number_species() != (int)reactionModel->numberSpecies) throw Exception("State object and reaction model have differing number of species",state.cme_state().species_counts().number_species(),reactionModel->numberSpecies);
     if (state.cme_state().species_counts().number_entries() != 1 || state.cme_state().species_counts().species_count_size() != (int)reactionModel->numberSpecies || state.cme_state().species_counts().time_size() != 1) throw Exception("State object has too many entries",state.cme_state().species_counts().number_entries());
 
+    // Set the species counts. This has to happen first since some parts of the state (like the order parameter values) is calculated from the species counts
+    for (int i=0; i<state.cme_state().species_counts().species_count_size(); i++)
+    {
+        speciesCounts[i] = state.cme_state().species_counts().species_count(i);
+    }
+
     // Set the degree advancements.
     for (int i=0; i<state.cme_state().degree_advancements().degree_advancements_size(); i++)
     {
@@ -438,12 +444,6 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
     {
         orderParameterValues[i] = orderParameterFunctions[i]->calculate(time, speciesCounts, reactionModel->numberSpecies);
         orderParameterPreviousValues[i] = orderParameterValues[i];
-    }
-
-    // Set the species counts.
-    for (int i=0; i<state.cme_state().species_counts().species_count_size(); i++)
-    {
-        speciesCounts[i] = state.cme_state().species_counts().species_count(i);
     }
 
     // Set the histogram bin values.

@@ -21,7 +21,7 @@ class FFluxGTSRegression(GTSRegression):
                     "ffluxPhaseOutput": False,
                     "ffluxStageOutputRaw": True,
                     "ffluxStageOutputSummary": True,
-                    'phaseZeroSamplingMultiplier': 2e5,
+                    'phaseZeroSamplingMultiplier': 1e5,
                     'ffluxMinimizeCost': True,
                     'writeInitialTrajectoryState': False,
                     'writeFinalTrajectoryState': False,

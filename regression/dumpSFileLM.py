@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-from argparse import ArgumentParser
+from argparse import ArgumentParser, SUPPRESS
 from google.protobuf.descriptor import FieldDescriptor
 import numpy as np
+import re
 from six import print_
 import sys
 import zlib
@@ -59,11 +60,15 @@ def DeserializeAsMsg(data, dataTypeFullName):
 
 # Printing functions
 
-def PrintRecord(record, data):
+def PrintRecord(record, data=None):
     print_(record)
     if data is not None:
         msg,msgType = DeserializeAsMsg(data, record.dataTypeSuffix)
         PrintMsg(msg)
+
+def PrintRecordIfInclude(includeRe, record, data=None):
+    if includeRe.search(record.name):
+        PrintRecord(record=record, data=data)
 
 def PrintMsg(msg):
     ''' This function recursively walks over/prints the fields of a Protobuf message instance.
@@ -103,6 +108,7 @@ def Main():
     parser = ArgumentParser()   #"Usage: ./dumpSFileLM.py path-to-sfile [-l]")
 
     parser.add_argument('sfilePath',                              help='path to sfile to dump')
+    parser.add_argument('-i', '--include', default=SUPPRESS,      help='only show data from records that match the given regex pattern')
     parser.add_argument('-l', '--list-only', action='store_true', help='if the --list-only flag is set, dump only the record metadata without the actual record data')
     parser.add_argument('-s', '--sort', action='store_true',      help='if set, sort the records before outputting them')
 
@@ -110,25 +116,24 @@ def Main():
 
     f = SFileLM.fromFilename(kwargs['sfilePath'])
 
-    #
+    if 'include' in kwargs:
+        includeRe = re.compile(kwargs['include'])
+    else:
+        includeRe = None
+
+    items = sorted(f.items()) if kwargs['sort'] else f.items()
 
     # loop over all of the records, printing out either the metadata, or the metadata and the deserialized data
     if kwargs['list_only']:
-        if kwargs['sort']:
-            records = sorted(f.records())
+        if includeRe is not None:
+            for record,data in items: PrintRecordIfInclude(includeRe=includeRe, record=record)
         else:
-            records = f.records()
-
-        for record in records:
-            print_(record)
+            for record,data in items: PrintRecord(record=record)
     else:
-        if kwargs['sort']:
-            items = sorted(f.items())
+        if includeRe is not None:
+            for record,data in items: PrintRecordIfInclude(includeRe=includeRe, record=record, data=data)
         else:
-            items = f.items()
-
-        for record,data in items:
-            PrintRecord(record, data)
+            for record,data in items: PrintRecord(record=record, data=data)
 
     f.close()
 
