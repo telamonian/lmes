@@ -3,6 +3,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 #include <sbml/SBMLDocument.h>
 
 #include "lm/Types.h"
@@ -11,6 +12,7 @@
 
 using std::map;
 using std::string;
+using std::vector;
 
 namespace robertslab {
 namespace sbml {
@@ -34,11 +36,17 @@ protected:
     virtual void importReactions();
     virtual bool importKinetics(Reaction* reaction, int reactionIndex, KineticLaw* kinetics);
     virtual bool importPropensityFunction(Reaction* reaction, int reactionIndex, KineticLaw* kinetics, map<string,double>& parameterValues);
-    virtual bool createPropensityFunctionEntry(int reactionIndex, ASTNode_t* formula, ASTNode_t* propensityFormula);
+    virtual bool createPropensityFunctionEntry(int reactionIndex, ASTNode_t* formula, ASTNode_t* propensityFormula, lm::me::PropensityFunctionDefinition& propensityFunction);
 
 protected:
-    virtual double convertVolumeToLiters(double size, string units);
-    virtual int convertSubstanceToParticles(double value, string units);
+    virtual ASTNode_t* filterKineticExpression(ASTNode_t* expression);
+
+protected:
+    virtual double convertPropensityConstantUnits(string constant, double value, string desiredUnits);
+    virtual void convertUnits(ASTNode_t* units);
+    virtual double convertVolumeToLiters(double size, string units="");
+    virtual int convertSubstanceToParticles(double value, string units="");
+    virtual double convertTimeToSeconds(double value, string units="");
 
 protected:
     lm::me::PropensityFunctionFactory *propensityFunctions;
@@ -51,6 +59,7 @@ protected:
     bool allImportStepsSuccessful;
     map<string,double> globalParameters;
     map<string,ASTNode_t*> globalExpressions;
+    vector<string> compartments;
     map<string,double> compartmentSizes;
     lm::io::ReactionModel reactionModel;
     int numberSpecies;

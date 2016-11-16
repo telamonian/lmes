@@ -24,5 +24,16 @@ string SBMLImporterL3V1COPASI::getDescription()
     return "COPASI SBML L3V1 Importer";
 }
 
+ASTNode_t* SBMLImporterL3V1COPASI::filterKineticExpression(ASTNode_t* e)
+{
+    // If this expression start with a volume multiplier, remove it.
+    if (e->getType() == AST_TIMES && e->getNumChildren() >= 2 && e->getChild(0)->getType() == AST_NAME && e->getChild(0)->getName() == compartments[0])
+    {
+        e->removeChild(0);
+    }
+
+    return e;
+}
+
 }
 }

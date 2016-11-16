@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- generated with COPASI 4.16 (Build 104) (http://www.copasi.org) at 2016-11-15 15:53:02 UTC -->
+<!-- generated with COPASI 4.16 (Build 104) (http://www.copasi.org) at 2016-11-16 18:48:00 UTC -->
 <?oxygen RNGSchema="http://www.copasi.org/static/schema/CopasiML.rng" type="xml"?>
 <COPASI xmlns="http://www.copasi.org/static/schema" versionMajor="4" versionMinor="16" versionDevel="104" copasiSourcesModified="0">
   <ListOfFunctions>
@@ -28,7 +28,7 @@ Reaction scheme where the products are created from the reactants and the change
       </ListOfParameterDescriptions>
     </Function>
   </ListOfFunctions>
-  <Model key="Model_3" name="First Order Birth Death" simulationType="time" timeUnit="s" volumeUnit="l" areaUnit="m²" lengthUnit="m" quantityUnit="#" type="deterministic" avogadroConstant="6.02214179e+23">
+  <Model key="Model_3" name="First Order Birth Death" simulationType="time" timeUnit="min" volumeUnit="l" areaUnit="m²" lengthUnit="m" quantityUnit="mol" type="deterministic" avogadroConstant="6.02214179e+23">
     <MiriamAnnotation>
 <rdf:RDF
    xmlns:dcterms="http://purl.org/dc/terms/"
@@ -495,7 +495,7 @@ Reaction scheme where the products are created from the reactants and the change
   </ListOfReports>
   <GUI>
   </GUI>
-  <SBMLReference file="first_order_birth_death.xml">
+  <SBMLReference file="first_order_birth_death_mol_min.xml">
     <SBMLMap SBMLid="decay" COPASIkey="Reaction_0"/>
     <SBMLMap SBMLid="n" COPASIkey="Metabolite_1"/>
     <SBMLMap SBMLid="volume" COPASIkey="Compartment_1"/>

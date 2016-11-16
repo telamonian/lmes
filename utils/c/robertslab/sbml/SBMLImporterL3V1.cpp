@@ -56,7 +56,13 @@ bool SBMLImporterL3V1::import(SBMLDocument* sbmlDocument, map<string,double> use
     this->userExpressions = userExpressions;
     allImportStepsSuccessful = true;
 
-    if (verbose) propensityFunctions->printRegisteredFunctions(Print::INFO);
+    if (verbose)
+    {
+        Print::printf(Print::INFO,"-----------------------------------");
+        propensityFunctions->printRegisteredFunctions(Print::INFO);
+        Print::printf(Print::INFO,"-----------------------------------");
+    }
+
     Print::printf(Print::INFO, "%s processing document.", getDescription().c_str());
     expandFunctionDefinitions();
     importGlobalParameters();
@@ -185,6 +191,7 @@ void SBMLImporterL3V1::importCompartments()
             if (sbmlModel->getCompartment(i)->getSpatialDimensions() == 3)
             {
                 string compartmentId = sbmlModel->getCompartment(i)->getId();
+                compartments.push_back(compartmentId);
                 compartmentSizes[compartmentId] = convertVolumeToLiters(sbmlModel->getCompartment(i)->getSize(), sbmlModel->getCompartment(i)->getUnits());
                 Print::printf(Print::INFO, "Added compartment (%d) %s: %e L", i, compartmentId.c_str(), compartmentSizes[compartmentId]);
             }
@@ -377,15 +384,23 @@ bool SBMLImporterL3V1::importKinetics(Reaction* reaction, int reactionIndex, Kin
     return importPropensityFunction(reaction, reactionIndex, kinetics, localParameters);
 }
 
+ASTNode_t* SBMLImporterL3V1::filterKineticExpression(ASTNode_t* expression)
+{
+    return expression;
+}
+
 bool SBMLImporterL3V1::importPropensityFunction(Reaction* reaction, int reactionIndex, KineticLaw* kinetics, map<string,double>& parameterValues)
 {
     if (verbose) Print::printf(Print::INFO, "Matching kinetic formula in reaction %s (%d) at line %d to a propensity function: [%s] ", reaction->getId().c_str(), reactionIndex, kinetics->getLine(), SBML_formulaToL3String(kinetics->getMath()));
 
     // Get the kinetic expression.
-    const ASTNode_t* originalFormula = SBML_parseL3Formula(SBML_formulaToL3String(kinetics->getMath()));
+    ASTNode_t* originalFormula = SBML_parseL3Formula(SBML_formulaToL3String(kinetics->getMath()));
 //    printf("original: %s\n", SBML_formulaToL3String(kinetics->getMath()));
 //    printf("formula: %s\n", SBML_formulaToL3String(originalFormula));
 //    printASTNode(originalFormula);
+
+    // Apply any subclass filtering.
+    originalFormula = filterKineticExpression(originalFormula);
 
     // Recursively substitute expressions until we don't have any.
     ASTNode_t* substitutedFormula = originalFormula->deepCopy();
@@ -435,7 +450,7 @@ bool SBMLImporterL3V1::importPropensityFunction(Reaction* reaction, int reaction
                     Print::printf(Print::DEBUG, "                                         Normalized form: [%s]", SBML_formulaToL3String(normalizedFormula));
 
                     // Create the entry for this formula.
-                    return createPropensityFunctionEntry(reactionIndex,simplifiedFormula, normalizedPropensityFormula);
+                    return createPropensityFunctionEntry(reactionIndex, simplifiedFormula, normalizedPropensityFormula, p);
                 }
                 else
                 {
@@ -467,21 +482,22 @@ bool SBMLImporterL3V1::importPropensityFunction(Reaction* reaction, int reaction
     return false;
 }
 
-bool SBMLImporterL3V1::createPropensityFunctionEntry(int reactionIndex, ASTNode_t* formula, ASTNode_t* propensityFormula)
+bool SBMLImporterL3V1::createPropensityFunctionEntry(int reactionIndex, ASTNode_t* formula, ASTNode_t* propensityFormula, lm::me::PropensityFunctionDefinition& propensityFunction)
 {
     // If this is a number and it matches to a k, store the parameter.
     if (formula->isNumber() && propensityFormula->isName() && propensityFormula->getName()[0] == 'k')
     {
         uint parameterIndex = atoi(propensityFormula->getName()+1)-1;
+        printf("%s\n",propensityFunction.getConstantUnits(parameterIndex).c_str());
         if (formula->getType() == AST_INTEGER)
         {
-            (*K)[utuple(reactionIndex,parameterIndex)] = (double)formula->getInteger();
+            (*K)[utuple(reactionIndex,parameterIndex)] = convertPropensityConstantUnits(propensityFormula->getName(), (double)formula->getInteger(), propensityFunction.getConstantUnits(parameterIndex));
             if (verbose) Print::printf(Print::INFO, "    Added parameter for reaction %d: %d = %e", reactionIndex, parameterIndex, (*K)[utuple(reactionIndex,parameterIndex)]);
             return true;
         }
         else if (formula->getType() == AST_REAL || formula->getType() == AST_REAL_E)
         {
-            (*K)[utuple(reactionIndex,parameterIndex)] = formula->getReal();
+            (*K)[utuple(reactionIndex,parameterIndex)] = convertPropensityConstantUnits(propensityFormula->getName(), formula->getReal(), propensityFunction.getConstantUnits(parameterIndex));
             if (verbose) Print::printf(Print::INFO, "    Added parameter for reaction %d: %d = %e", reactionIndex, parameterIndex, (*K)[utuple(reactionIndex,parameterIndex)]);
             return true;
         }
@@ -511,10 +527,47 @@ bool SBMLImporterL3V1::createPropensityFunctionEntry(int reactionIndex, ASTNode_
     // Go through all of the children, if any failed return false.
     bool ret = true;
     for (int i=0; i<formula->getNumChildren(); i++)
-        if (!createPropensityFunctionEntry(reactionIndex,formula->getChild(i), propensityFormula->getChild(i)))
+        if (!createPropensityFunctionEntry(reactionIndex,formula->getChild(i), propensityFormula->getChild(i), propensityFunction))
             ret = false;
     return ret;
 }
+
+double SBMLImporterL3V1::convertPropensityConstantUnits(string constantName, double value, string desiredUnits)
+{
+    ASTNode_t* units = SBML_parseL3Formula(desiredUnits.c_str());
+    convertUnits(units);
+    double conversion = ASTHelper::evaluateASTOperator(units);
+    if (conversion != 1.0) Print::printf(Print::INFO, "Converted kinetic rate constant %s from %e to %e %s", constantName.c_str(), value, value*conversion, desiredUnits.c_str());
+    return value*conversion;
+}
+
+void SBMLImporterL3V1::convertUnits(ASTNode_t* units)
+{
+    // If this is a terminal node, figure out what type of unit this is.
+    if (units->isName())
+    {
+        if (string(units->getName()) == "second")
+        {
+            units->setType(AST_REAL);
+            units->setValue(convertTimeToSeconds(1.0));
+        }
+        else if (string(units->getName()) == "item")
+        {
+            units->setType(AST_REAL);
+            units->setValue(convertSubstanceToParticles(1.0));
+        }
+        else
+        {
+            throw Exception("Unsupported unit definition in propensity constant", units->getName());
+        }
+    }
+
+    // Go through all of the children, if any failed return false.
+    for (int i=0; i<units->getNumChildren(); i++)
+        convertUnits(units->getChild(i));
+}
+
+
 
 double SBMLImporterL3V1::convertVolumeToLiters(double value, string units)
 {
