@@ -5,7 +5,9 @@
 #include <string>
 #include <sbml/SBMLDocument.h>
 
+#include "lm/Types.h"
 #include "lm/io/ReactionModel.pb.h"
+#include "lm/me/PropensityFunction.h"
 
 using std::map;
 using std::string;
@@ -16,8 +18,11 @@ namespace sbml {
 class SBMLImporterL3V1
 {
 public:
-    SBMLImporterL3V1(SBMLDocument* document, bool stopOnError, map<string,double> userParameters, map<string,string> userExpressions);
-    virtual void import();
+    SBMLImporterL3V1();
+    virtual ~SBMLImporterL3V1();
+    virtual void setOptions(bool verbose, bool reallyVerbose, bool ignoreErrors, bool ignoreUnmatchedReactions);
+    virtual bool import(SBMLDocument* document, map<string,double> userParameters, map<string,string> userExpressions);
+    virtual lm::io::ReactionModel* getReactionModel();
 
 protected:
     virtual string getDescription();
@@ -26,33 +31,36 @@ protected:
     virtual void importGlobalParameters();
     virtual void importCompartments();
     virtual void importSpecies();
+    virtual void importReactions();
+    virtual bool importKinetics(Reaction* reaction, int reactionIndex, KineticLaw* kinetics);
+    virtual bool importPropensityFunction(Reaction* reaction, int reactionIndex, KineticLaw* kinetics, map<string,double>& parameterValues);
+    virtual bool createPropensityFunctionEntry(int reactionIndex, ASTNode_t* formula, ASTNode_t* propensityFormula);
 
 protected:
     virtual double convertVolumeToLiters(double size, string units);
     virtual int convertSubstanceToParticles(double value, string units);
 
 protected:
-    virtual void normalizeASTExpression(ASTNode_t* node);
-    virtual void sortASTExpression(ASTNode_t* node);
-    virtual void simplifyASTExpression(ASTNode_t* node, map<string,double>& parameterValues);
-    virtual bool areAllASTChildrenNumeric(ASTNode_t* node);
-    virtual double evaluateASTOperator(const ASTNode_t * node);
-    virtual double evaluateASTFunction(const ASTNode_t * node);
-    virtual bool compareASTNodes(ASTNode_t* formula, ASTNode_t* propensityFormula);
-
-protected:
+    lm::me::PropensityFunctionFactory *propensityFunctions;
     SBMLDocument* sbmlDocument;
     Model* sbmlModel;
-    bool stopOnError;
-    bool verbose;
+    bool verbose, reallyVerbose;
+    bool stopOnError, stopOnUnmatchedReactions;
     map<string,double> userParameters;
     map<string,string> userExpressions;
+    bool allImportStepsSuccessful;
     map<string,double> globalParameters;
     map<string,ASTNode_t*> globalExpressions;
     map<string,double> compartmentSizes;
     lm::io::ReactionModel reactionModel;
-    map<string,int> speciesIndex;
+    int numberSpecies;
+    map<string,int> speciesIndices;
     map<int,bool> isSpeciesConst;
+    int numberReactions;
+    ndarray<int> *S;
+    ndarray<int> *T;
+    ndarray<double> *K;
+    ndarray<int> *D;
 };
 
 }

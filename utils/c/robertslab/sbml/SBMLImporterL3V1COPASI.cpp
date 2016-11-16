@@ -15,8 +15,7 @@ using lm::Print;
 namespace robertslab {
 namespace sbml {
 
-SBMLImporterL3V1COPASI::SBMLImporterL3V1COPASI(SBMLDocument* sbmlDocument, bool stopOnError, map<string,double> userParameters, map<string,string> userExpressions)
-:SBMLImporterL3V1(sbmlDocument,stopOnError,userParameters,userExpressions)
+SBMLImporterL3V1COPASI::SBMLImporterL3V1COPASI()
 {
 }
 

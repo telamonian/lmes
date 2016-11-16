@@ -10,11 +10,10 @@ namespace sbml {
 class SBMLImporterL3V1COPASI : public SBMLImporterL3V1
 {
 public:
-    SBMLImporterL3V1COPASI(SBMLDocument* document, bool stopOnError, map<string,double> userParameters, map<string,string> userExpressions);
+    SBMLImporterL3V1COPASI();
 
 protected:
     virtual string getDescription();
-    //void processCompartments();
 };
 
 }
