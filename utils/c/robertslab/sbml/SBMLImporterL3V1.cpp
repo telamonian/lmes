@@ -488,7 +488,6 @@ bool SBMLImporterL3V1::createPropensityFunctionEntry(int reactionIndex, ASTNode_
     if (formula->isNumber() && propensityFormula->isName() && propensityFormula->getName()[0] == 'k')
     {
         uint parameterIndex = atoi(propensityFormula->getName()+1)-1;
-        printf("%s\n",propensityFunction.getConstantUnits(parameterIndex).c_str());
         if (formula->getType() == AST_INTEGER)
         {
             (*K)[utuple(reactionIndex,parameterIndex)] = convertPropensityConstantUnits(propensityFormula->getName(), (double)formula->getInteger(), propensityFunction.getConstantUnits(parameterIndex));

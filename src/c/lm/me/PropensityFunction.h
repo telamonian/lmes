@@ -99,14 +99,11 @@ struct PropensityFunctionDefinition
     }
     PropensityFunctionDefinition(uint type, string name, string expression, const char** constantUnitsArray, PropensityFunctionCreator create):type(type),name(name),expressions(1,expression),create(create)
     {
-        printf("JERE\n");
         int i=0;
         while (constantUnitsArray[i] != NULL)
         {
-            printf("JERE %d %s\n",i,constantUnitsArray[i]);
             constantUnits.push_back(constantUnitsArray[i++]);
         }
-        printf("%s size %d\n",name.c_str(), constantUnits.size());
     }
     PropensityFunctionDefinition(uint type, string name, const char** expressionsArray, const char** constantUnitsArray, PropensityFunctionCreator create):type(type),name(name),expressions(),create(create)
     {
@@ -120,7 +117,6 @@ struct PropensityFunctionDefinition
     PropensityFunctionDefinition(const PropensityFunctionDefinition& p):type(p.type),name(p.name),expressions(p.expressions),constantUnits(p.constantUnits),create(p.create){}
     string getConstantUnits(int i)
     {
-        printf("%s %d\n",name.c_str(), constantUnits.size());
         if (i < constantUnits.size()) return constantUnits[i];
         return "1";
     }
