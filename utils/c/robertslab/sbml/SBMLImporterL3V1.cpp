@@ -25,7 +25,7 @@ namespace robertslab {
 namespace sbml {
 
 SBMLImporterL3V1::SBMLImporterL3V1()
-:propensityFunctions(NULL),sbmlDocument(NULL),sbmlModel(NULL),verbose(false),reallyVerbose(false),allImportStepsSuccessful(true),numberSpecies(0),numberReactions(0),S(NULL),T(NULL),K(NULL),D(NULL)
+:propensityFunctions(NULL),sbmlDocument(NULL),sbmlModel(NULL),constantsUseConcentrations(false),verbose(false),reallyVerbose(false),allImportStepsSuccessful(true),numberSpecies(0),numberReactions(0),S(NULL),T(NULL),K(NULL),D(NULL)
 {
     propensityFunctions = new lm::me::PropensityFunctionFactory();
 }
@@ -39,8 +39,9 @@ SBMLImporterL3V1::~SBMLImporterL3V1()
     if (D != NULL) delete D; D = NULL;
 }
 
-void SBMLImporterL3V1::setOptions(bool verbose, bool reallyVerbose, bool ignoreErrors, bool ignoreUnmatchedReactions)
+void SBMLImporterL3V1::setOptions(bool constantsUseConcentrations, bool verbose, bool reallyVerbose, bool ignoreErrors, bool ignoreUnmatchedReactions)
 {
+    this->constantsUseConcentrations = constantsUseConcentrations;
     this->verbose = verbose;
     this->reallyVerbose = reallyVerbose;
     this->stopOnError = !ignoreErrors;
@@ -85,7 +86,7 @@ string SBMLImporterL3V1::getDescription()
 
 void SBMLImporterL3V1::expandFunctionDefinitions()
 {
-    // expand any user-defined functions in the reaction kinetic laws
+    // Expand any user-defined functions in the reaction kinetic laws.
     ConversionProperties props;
     props.addOption("expandFunctionDefinitions");
 
@@ -183,22 +184,21 @@ void SBMLImporterL3V1::importGlobalExpressions()
 
 void SBMLImporterL3V1::importCompartments()
 {
-    if (sbmlModel->getNumCompartments())
+    if (sbmlModel->getNumCompartments() != 1) throw Exception("Must specify one and only one compartment, read ",sbmlModel->getNumCompartments());
+
+    Print::printf(Print::INFO, "Processing %d compartments.", sbmlModel->getNumCompartments());
+    for (int i=0; i<sbmlModel->getNumCompartments(); i++)
     {
-        Print::printf(Print::INFO, "Processing %d compartments.", sbmlModel->getNumCompartments());
-        for (int i=0; i<sbmlModel->getNumCompartments(); i++)
+        if (sbmlModel->getCompartment(i)->getSpatialDimensions() == 3)
         {
-            if (sbmlModel->getCompartment(i)->getSpatialDimensions() == 3)
-            {
-                string compartmentId = sbmlModel->getCompartment(i)->getId();
-                compartments.push_back(compartmentId);
-                compartmentSizes[compartmentId] = convertVolumeToLiters(sbmlModel->getCompartment(i)->getSize(), sbmlModel->getCompartment(i)->getUnits());
-                Print::printf(Print::INFO, "Added compartment (%d) %s: %e L", i, compartmentId.c_str(), compartmentSizes[compartmentId]);
-            }
-            else
-            {
-                throw Exception("Unsupported compartment dimensions", sbmlModel->getCompartment(i)->getSpatialDimensions());
-            }
+            string compartmentId = sbmlModel->getCompartment(i)->getId();
+            compartments.push_back(compartmentId);
+            compartmentSizes[compartmentId] = convertVolumeToLiters(sbmlModel->getCompartment(i)->getSize(), sbmlModel->getCompartment(i)->getUnits());
+            Print::printf(Print::INFO, "Added compartment (%d) %s: %e L", i, compartmentId.c_str(), compartmentSizes[compartmentId]);
+        }
+        else
+        {
+            throw Exception("Unsupported compartment dimensions", sbmlModel->getCompartment(i)->getSpatialDimensions());
         }
     }
 }
@@ -228,11 +228,11 @@ void SBMLImporterL3V1::importSpecies()
         int initialSpeciesCount=0;
         if (species->isSetInitialAmount())
         {
-            initialSpeciesCount=convertSubstanceToParticles(species->getInitialAmount(), species->getSubstanceUnits());
+            initialSpeciesCount=lround(convertSubstanceToParticles(species->getInitialAmount(), species->getSubstanceUnits()));
         }
         else if (species->isSetInitialConcentration())
         {
-            initialSpeciesCount=convertSubstanceToParticles(species->getInitialConcentration()*compartmentSizes[species->getCompartment()], species->getSubstanceUnits());
+            initialSpeciesCount=lround(convertSubstanceToParticles(species->getInitialConcentration()*compartmentSizes[species->getCompartment()], species->getSubstanceUnits()));
         }
         else
         {
@@ -552,8 +552,19 @@ void SBMLImporterL3V1::convertUnits(ASTNode_t* units)
         }
         else if (string(units->getName()) == "item")
         {
-            units->setType(AST_REAL);
-            units->setValue(convertSubstanceToParticles(1.0));
+            // See if rate constants are given using particle counts or concentrations.
+            if (!constantsUseConcentrations)
+            {
+                // The constants is already a particle count, so no volume adjsutment needed.
+                units->setType(AST_REAL);
+                units->setValue(convertSubstanceToParticles(1.0));
+            }
+            else
+            {
+                // Otherwise, the constant is a concentration, so we need to mulpiply by the compartment volume.
+                units->setType(AST_REAL);
+                units->setValue(convertSubstanceToParticles(1.0*compartmentSizes[compartments[0]]));
+            }
         }
         else
         {
@@ -597,7 +608,7 @@ double SBMLImporterL3V1::convertVolumeToLiters(double value, string units)
     }
 }
 
-int SBMLImporterL3V1::convertSubstanceToParticles(double value, string units)
+double SBMLImporterL3V1::convertSubstanceToParticles(double value, string units)
 {
     // If we didn't get any units, use the default volume units.
     if (units == "") units = sbmlModel->getSubstanceUnits();
@@ -605,11 +616,11 @@ int SBMLImporterL3V1::convertSubstanceToParticles(double value, string units)
     // See if the units are in liters.
     if (units == "item")
     {
-        return lround(value);
+        return value;
     }
     else if (units == "mole")
     {
-        return lround(value*6.02214085774e23);
+        return value*6.02214085774e23;
     }
 
     // Otherwise, see if the units have a match in the unit definitions.
@@ -618,9 +629,9 @@ int SBMLImporterL3V1::convertSubstanceToParticles(double value, string units)
         // Get the definition for the units.
         UnitDefinition* unitDef = sbmlModel->getUnitDefinition(units);
         if (unitDef->getNumUnits() == 1 && unitDef->getUnit(0)->getKind() == UNIT_KIND_ITEM && unitDef->getUnit(0)->getExponent() == 1)
-            return lround(value*unitDef->getUnit(0)->getMultiplier()*pow(10,unitDef->getUnit(0)->getScale()));
+            return value*unitDef->getUnit(0)->getMultiplier()*pow(10,unitDef->getUnit(0)->getScale());
         else if (unitDef->getNumUnits() == 1 && unitDef->getUnit(0)->getKind() == UNIT_KIND_MOLE && unitDef->getUnit(0)->getExponent() == 1)
-            return lround(value*unitDef->getUnit(0)->getMultiplier()*pow(10,unitDef->getUnit(0)->getScale())*6.02214085774e23);
+            return value*unitDef->getUnit(0)->getMultiplier()*pow(10,unitDef->getUnit(0)->getScale())*6.02214085774e23;
         else
             throw Exception("Unsupported substance unit definition", unitDef->toSBML());
     }

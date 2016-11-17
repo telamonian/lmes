@@ -22,7 +22,7 @@ class SBMLImporterL3V1
 public:
     SBMLImporterL3V1();
     virtual ~SBMLImporterL3V1();
-    virtual void setOptions(bool verbose, bool reallyVerbose, bool ignoreErrors, bool ignoreUnmatchedReactions);
+    virtual void setOptions(bool constantsUseConcentrations, bool verbose, bool reallyVerbose, bool ignoreErrors, bool ignoreUnmatchedReactions);
     virtual bool import(SBMLDocument* document, map<string,double> userParameters, map<string,string> userExpressions);
     virtual lm::io::ReactionModel* getReactionModel();
 
@@ -45,13 +45,14 @@ protected:
     virtual double convertPropensityConstantUnits(string constant, double value, string desiredUnits);
     virtual void convertUnits(ASTNode_t* units);
     virtual double convertVolumeToLiters(double size, string units="");
-    virtual int convertSubstanceToParticles(double value, string units="");
+    virtual double convertSubstanceToParticles(double value, string units="");
     virtual double convertTimeToSeconds(double value, string units="");
 
 protected:
     lm::me::PropensityFunctionFactory *propensityFunctions;
     SBMLDocument* sbmlDocument;
     Model* sbmlModel;
+    bool constantsUseConcentrations;
     bool verbose, reallyVerbose;
     bool stopOnError, stopOnUnmatchedReactions;
     map<string,double> userParameters;

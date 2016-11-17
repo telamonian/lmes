@@ -9,10 +9,10 @@
             </unitDefinition>
         </listOfUnitDefinitions>
         <listOfCompartments>
-            <compartment id="V" size="1" spatialDimensions="3" constant="true"/>
+            <compartment id="V" size="1e-15" spatialDimensions="3" constant="true"/>
         </listOfCompartments>
         <listOfSpecies>
-            <species id="n"  compartment="V" initialAmount="2000"
+            <species id="n"  compartment="V" initialAmount="1000"
                              hasOnlySubstanceUnits="true" boundaryCondition="false"
                              constant="false"/>
         </listOfSpecies>
@@ -39,7 +39,7 @@
                     <math xmlns="http://www.w3.org/1998/Math/MathML">
                         <apply>
                             <times/>
-                            <cn> 1 </cn>
+                            <cn> 10 </cn>
                             <ci> n </ci>
                         </apply>
                     </math>
