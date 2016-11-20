@@ -210,8 +210,8 @@ public:
     void changeVolume(double volumeMultiplier) {k/=volumeMultiplier;}
     double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
-        int s = speciesCounts[si];
-        return k * double(s*(s-1));
+        double s = double(speciesCounts[si]);
+        return k * s * (s-1.0);
     }
 
 #ifdef OPT_AVX
@@ -256,8 +256,8 @@ public:
 
     double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
-        int s = speciesCounts[si];
-        return k * double(s*(s-1)*(s-2));
+        double s = double(speciesCounts[si]);
+        return k * s * (s-1.0) * (s-2.0);
     }
 
 #ifdef OPT_AVX
