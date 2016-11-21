@@ -85,7 +85,7 @@ public:
         timeWrapOtherBasinEntry.setWrappedMsg(limitTrackingsWrap.Get(2).times());
 
         // If the trajectory was previously in a non-initial basin, or if it passed into a non-initial basin during this work unit, accumulate the time the trajectory spent in a non-initial basin during its most recent work unit
-        if (hInitialBasin==0 or timeWrapOtherBasinEntry.size() > 0)
+        if ((not hInitialBasin) or timeWrapOtherBasinEntry.size() > 0)
         {
             double startTime = getSimTime();
             double endTime = trajectoryState.cme_state().species_counts().time(trajectoryState.cme_state().species_counts().time_size() - 1);

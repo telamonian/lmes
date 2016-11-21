@@ -529,6 +529,13 @@ valarray<double> FFluxSupervisor::getConstantFactors(const vector<double>& proba
     // ignore the probability from phase zero, store a fixed constant value
     constantFactors[0] = 1.0;
 
+    printf("constantFactors:\n[");
+    for (int i=0;i<constantFactors.size();i++)
+    {
+        printf("%.3f,\n", constantFactors[i]);
+    }
+    printf("]");
+
 ////     for now, skip the phase zero part
 //    constantFactors[0] = 0.0;
 

@@ -13,20 +13,21 @@ class FFluxGTSRegression(GTSRegression):
     def _buildDefaultSimulationParameterDict(self):
         if self.parser['quick_test']:
             return {'batchSize': 1,
-                    "errorGoal": .99,
-                    "errorGoalConfidence": .01,
+                    "errorGoal": .25,
+                    "errorGoalConfidence": .95,
                     "pilotStageCount": 1,
                     "productionStageCountMinimum": 1,
                     "ffluxPilotOutput": True,
                     "ffluxPhaseOutput": False,
                     "ffluxStageOutputRaw": True,
                     "ffluxStageOutputSummary": True,
-                    'phaseZeroSamplingMultiplier': 1e5,
+                    'phaseZeroSamplingMultiplier': 1e4,
                     'ffluxMinimizeCost': True,
                     'writeInitialTrajectoryState': False,
                     'writeFinalTrajectoryState': False,
                     'writeInterval': None,
-                    'writeLimitTracking': True,}
+                    'writeLimitTracking': True,
+                    'maxWorkUnitSteps': 1e5,}
         else:
             return {'batchSize': 1,
                     "errorGoal": .05,
@@ -52,9 +53,10 @@ class FFluxGTSRegression(GTSRegression):
                    type=0,
                    edges=np.linspace(-27,27,13))]
 
+        basinArray = np.array([4,16,1,0,0,0,0]*self.parser['basinReplicates'], dtype=np.dtype('uint32')).reshape(self.parser['basinReplicates'], -1)
         basins = [
             Basin(tilingID=0,
-                  speciesCountArray=np.array(([4,16,1,0,0,0,0],), dtype=np.dtype('uint32')))]
+                  speciesCountArray=basinArray)]
                                               #[0,0,0,4,16,1,0]), dtype=np.dtype('uint32')))]
 
         if self.parser['extra_input']:

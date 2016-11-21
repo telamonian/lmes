@@ -99,10 +99,10 @@ class FFluxStageOutputSummaryWrap : public lm::protowrap::Msg<FFluxStageOutputSu
         outputRaw.successful_trajectory_total_times().deserializeTo(successfulTrajectoryTotalTimes);
         outputRaw.failed_trajectory_total_times().deserializeTo(failedTrajectoryTotalTimes);
 
-        // calculate the fluxes
+        // calculate the costs
         std::vector<double> newCosts = (successfulTrajectoryTotalTimes + failedTrajectoryTotalTimes) / (successfulTrajectoryCounts + failedTrajectoryCounts);
 
-        // set the fluxes
+        // set the costs
         mutable_costs()->serializeFrom(newCosts);
     }
 

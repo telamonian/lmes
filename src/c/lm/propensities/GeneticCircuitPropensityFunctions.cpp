@@ -312,7 +312,8 @@ public:
         double x1 = speciesCounts[xi*DOUBLES_PER_AVX+1];
         double x2 = speciesCounts[xi*DOUBLES_PER_AVX+2];
         double x3 = speciesCounts[xi*DOUBLES_PER_AVX+3];
-        avxd xh = _mm256_set_pd(pow(x0,h),pow(x1,h),pow(x2,h),pow(x3,h));
+//        avxd xh = _mm256_set_pd(pow(x0,h),pow(x1,h),pow(x2,h),pow(x3,h));
+        avxd xh = _mm256_set_pd(pow(x3,h),pow(x2,h),pow(x1,h),pow(x0,h));
         return _mm256_add_pd(_mm256_set1_pd(k0),_mm256_div_pd(_mm256_mul_pd(_mm256_set1_pd(dk),xh),_mm256_add_pd(_mm256_set1_pd(x0h),xh)));
     }
 #endif
@@ -332,7 +333,7 @@ public:
         if (dependencies.len != 1) throw InvalidArgException("D", "zeroth order kinetic Hill propensity needs one species dependency, had",dependencies.len);
 
         // Find the rate costant.
-        if (k.len != 4)  throw InvalidArgException("k", "zeroth order kinetic Hill propensity needs four parameters, had",k.len);
+//        if (k.len != 4)  throw InvalidArgException("k", "zeroth order kinetic Hill propensity needs four parameters, had",k.len);
 
         return new ZerothOrderKHillPropensity(dependencies[0],k[0],k[1],k[2],k[3]);
     }
