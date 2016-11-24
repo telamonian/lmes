@@ -1,4 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+# PYTHON_ARGCOMPLETE_OK
 
 import numpy as np
 
@@ -18,10 +19,10 @@ class FFluxGTSRegression(GTSRegression):
                     "pilotStageCount": 1,
                     "productionStageCountMinimum": 1,
                     "ffluxPilotOutput": True,
-                    "ffluxPhaseOutput": False,
+                    "ffluxPhaseOutput": True,
                     "ffluxStageOutputRaw": True,
                     "ffluxStageOutputSummary": True,
-                    'phaseZeroSamplingMultiplier': 1e4,
+                    'phaseZeroSamplingMultiplier': 1e2,
                     'ffluxMinimizeCost': True,
                     'writeInitialTrajectoryState': False,
                     'writeFinalTrajectoryState': False,

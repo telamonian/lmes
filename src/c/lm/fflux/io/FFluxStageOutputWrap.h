@@ -115,7 +115,7 @@ class FFluxStageOutputSummaryWrap : public lm::protowrap::Msg<FFluxStageOutputSu
         outputRaw.failed_trajectory_total_times().deserializeTo(failedTrajectoryTotalTimes);
 
         // calculate the fluxes
-        std::vector<double> newFluxes = successfulTrajectoryCounts / (successfulTrajectoryTotalTimes + failedTrajectoryTotalTimes);
+        std::vector<double> newFluxes = successfulTrajectoryCounts / (successfulTrajectoryTotalTimes);    // + failedTrajectoryTotalTimes);
 
         // set the fluxes
         mutable_fluxes()->serializeFrom(newFluxes);
