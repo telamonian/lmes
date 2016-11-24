@@ -158,7 +158,7 @@ def UnpackMsg(msg, count=1, recursive=True, _prefix='', _retDict=None):
                     UnpackMsg(msg=val, count=count, recursive=recursive, _retDict=_retDict, _prefix=desc.name + '.',)
     return msg
 
-def UnpackAndMergeMsgs(msgs, recursive=True, _prefix='', _retDict=None):
+def UnpackAndMergeMsgs(msgs, recursive=True, _prefix='', _retDict=None, _isRepeatedSubMsg=False):
     '''An NDArray aware implementation of the standard protobuf merging function
 
     :param msgs: the protobuf messages to merge
@@ -176,24 +176,41 @@ def UnpackAndMergeMsgs(msgs, recursive=True, _prefix='', _retDict=None):
             if GetFieldCPPType(desc)=='CPPTYPE_MESSAGE':
                 if desc.message_type.name=='NDArray':
                     # desc describes a repeated ndarray
-                    _retDict[_prefix + desc.name] = [UnpackAndMergeNDArrays(ndarrays) for msg in msgs for ndarrays in zip_longest(getattr(msg, desc.name))]
-                elif recursive:
-                    # desc describes a repeated subMsg. This behavior is different from the protobuf standard (for now, anyway)
-                    UnpackAndMergeMsgs(msgs=[subMsgs for msg in msgs for subMsgs in zip_longest(getattr(msg, desc.name))], _retDict=_retDict, _prefix=desc.name + '.', recursive=recursive)
+                    unpackedNDArrays = [UnpackAndMergeNDArrays(ndarrays) for msg in msgs for ndarrays in getattr(msg, desc.name)]
+                    if _isRepeatedSubMsg:
+                        # we're unpacking ndarrays from a repeated subMsg. avoid clobbering of _retDict entries
+                        retList = _retDict.get(_prefix + desc.name, [])
+                        retList.append(unpackedNDArrays)
+                    else:
+                        _retDict[_prefix + desc.name] = unpackedNDArrays
+                else:
+                    # desc describes a repeated subMsg. This behavior is similar to the protobuf builtin merge method, but any ndarrays in the subMsgs are unpacked (if recursive is true)
+                    getattr(msgs[0], desc.name).extend(chain.from_iterable([getattr(msg, desc.name) for msg in msgs[1:]]))
+                    if recursive:
+                        for subMsg in getattr(msgs[0], desc.name):
+                            UnpackAndMergeMsgs(msgs=[subMsg], recursive=recursive, _retDict=_retDict, _prefix=desc.name + '.', _isRepeatedSubMsg=True)
             else:
                 # desc describes a repeated pod
-                getattr(msgs[0], desc.name).extend([getattr(msg, desc.name) for msg in msgs[1:]])
+                # TODO: time which version of extension is actually faster (flattening with two-level list comp vs flattening with chain)
+                # getattr(msgs[0], desc.name).extend([subVal for msg in msgs[1:] for subVal in getattr(msg, desc.name)])
+                getattr(msgs[0], desc.name).extend(chain.from_iterable([getattr(msg, desc.name) for msg in msgs[1:]]))
         elif GetFieldLabel(desc)=='LABEL_OPTIONAL':
             if GetFieldCPPType(desc)=='CPPTYPE_MESSAGE':
-                filteredVals = [getattr(msg, desc.name) for msg in msgs if msg.HasField(desc.name)]
+                singularSubMsgs = [getattr(msg, desc.name) for msg in msgs if msg.HasField(desc.name)]
 
-                if filteredVals:
+                if singularSubMsgs:
                     if desc.message_type.name=='NDArray':
                         # desc describes an optional singular ndarray
-                        _retDict[_prefix + desc.name] = UnpackAndMergeNDArrays(filteredVals)
+                        unpackedNDArray = UnpackAndMergeNDArrays(singularSubMsgs)
+                        if _isRepeatedSubMsg:
+                            # we're unpacking ndarrays from a repeated subMsg. avoid clobbering of _retDict entries
+                            retList = _retDict.get(_prefix + desc.name, [])
+                            retList.append(unpackedNDArray)
+                        else:
+                            _retDict[_prefix + desc.name] = unpackedNDArray
                     elif recursive:
                         # desc describes an optional singular subMsg
-                        UnpackAndMergeMsgs(msgs=filteredVals, _retDict=_retDict, _prefix=desc.name + '.', recursive=recursive)
+                        UnpackAndMergeMsgs(msgs=singularSubMsgs, recursive=recursive, _retDict=_retDict, _prefix=desc.name + '.', _isRepeatedSubMsg=_isRepeatedSubMsg)
             else:
                 # desc describes an optional singular pod
                 for lastMsg in reversed(msgs):
@@ -204,10 +221,16 @@ def UnpackAndMergeMsgs(msgs, recursive=True, _prefix='', _retDict=None):
             if GetFieldCPPType(desc)=='CPPTYPE_MESSAGE':
                 if desc.message_type.name=='NDArray':
                     # desc describes a required singular ndarray
-                    _retDict[_prefix + desc.name] = UnpackAndMergeNDArrays([getattr(msg, desc.name) for msg in msgs])
+                    unpackedNDArray = UnpackAndMergeNDArrays([getattr(msg, desc.name) for msg in msgs])
+                    if _isRepeatedSubMsg:
+                        # we're unpacking ndarrays from a repeated subMsg. avoid clobbering of _retDict entries
+                        retList = _retDict.get(_prefix + desc.name, [])
+                        retList.append(unpackedNDArray)
+                    else:
+                        _retDict[_prefix + desc.name] = unpackedNDArray
                 elif recursive:
                     # desc describes a required singular subMsg
-                    UnpackAndMergeMsgs(msgs=[getattr(msg, desc.name) for msg in msgs], _retDict=_retDict, _prefix=desc.name + '.', recursive=recursive)
+                    UnpackAndMergeMsgs(msgs=[getattr(msg, desc.name) for msg in msgs], recursive=recursive, _retDict=_retDict, _prefix=desc.name + '.', _isRepeatedSubMsg=_isRepeatedSubMsg)
             else:
                 # desc describes a required singular pod
                 setattr(msgs[0], desc.name, getattr(msgs[-1], desc.name))
