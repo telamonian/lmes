@@ -23,7 +23,10 @@ def CopyCode(srcRoot, dstRoot, symlink=False):
         dstPyPath = os.path.join(dstRoot, dstPyPath)
         if symlink:
             # clean up existing link
-            os.remove(dstPyPath)
+            try:
+                os.remove(dstPyPath)
+            except OSError:
+                pass
             os.symlink(srcPyPath, dstPyPath)
         else:
             shutil.copy2(srcPyPath, dstPyPath)
