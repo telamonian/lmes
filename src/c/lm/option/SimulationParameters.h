@@ -56,9 +56,20 @@ namespace lm {
 namespace option {
 
 // three different token parsers to ensure correct behavior. Statically dispatched with a combination of SFINAE and template specializaiton
-// parser for integral types. Parses first to a double in order to ensure that sci notation (e.g. "1e4") parses as expected. Dispatched by function argument SFINAE
+// parser for everything else.
 template <typename T>
-inline void _parseNextToken(const std::string& tokenString, T* destination)//, typename EnableIf<IsIntegral<T>::value>::type* = 0)
+inline typename EnableIfNot<IsIntegral<T>::value, void>::type
+_parseNextToken(const std::string& tokenString, T* destination)
+{
+    std::stringstream tokenSS(tokenString);
+
+    tokenSS >> *destination;
+}
+
+// parser for integral types. Parses first to a double in order to ensure that sci notation (e.g. "1e4") parses as expected. Dispatched by return type SFINAE
+template <typename T>
+inline typename EnableIf<IsIntegral<T>::value, void>::type
+_parseNextToken(const std::string& tokenString, T* destination)
 {
     double temp;
     std::stringstream tokenSS(tokenString);
@@ -69,19 +80,11 @@ inline void _parseNextToken(const std::string& tokenString, T* destination)//, t
 
 // parser for booleans. Any of the "1", "true", and "True" tokens convert to true boolean values, everything else converts to false. Dispatched via template specialization
 template <>
-inline void _parseNextToken<bool>(const std::string& tokenString, bool* destination)//, void*)
+inline void
+_parseNextToken<bool>(const std::string& tokenString, bool* destination)
 {
     *destination = (tokenString=="1" or tokenString=="true" or tokenString=="True");
 }
-
-// parser for everything else.
-//template <typename T>
-//inline void _parseNextToken(const std::string& tokenString, T* destination, typename EnableIfNot<IsIntegral<T>::value>::type*)
-//{
-//    std::stringstream tokenSS(tokenString);
-//
-//    tokenSS >> *destination;
-//}
 
 // pops the next token from the tokensSS stream and converts it to the appropriate type using the overloads of the >> operator
 // if delimiter is set, get everything up to the next delimiter or the EOL and treat that as the next token
