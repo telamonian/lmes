@@ -154,6 +154,8 @@ public:
         speciesCountWrap.setWrappedMsg(limitTrackingsWrap.Get(0).species_counts());
         timeWrapForwardFlux.setWrappedMsg(limitTrackingsWrap.Get(0).times());
 
+        double burnInTime = 0.0;
+        // update the count of flux events only if
         if (speciesCountWrap.size() > 0)
         {
             int32_t* speciesCountDataForwardFlux = speciesCountWrap.get_data();
@@ -169,13 +171,12 @@ public:
                 throw ConsistencyException("In FFluxPhaseOutputWrap::addEndPointPhaseZero, the number of rows in speciesCountDataForwardFlux: %d did not equal the number of rows in timeDataForwardFlux: %d.", rows, timeWrapForwardFlux.size());
             }
 
-            // set total time, subtract out burn in time, and mark that we have "blocked" (ie accounted for) trajectory time up to the burn in time
-            double burnInTime = burnInCount > 0 ? timeDataForwardFlux[burnInCount - 1] : 0.0;
-            double workUnitStartTime = phaseZeroTrajectory.getSimTime();
-            double workUnitEndTime = trajectoryState.cme_state().species_counts().time(trajectoryState.cme_state().species_counts().time_size() - 1);
+            // TODO: figure out what to do with burnInCount/burnInTime
+            // if burnInCount is greater than zero, figure out the time until the first non-burned flux event
+            // double burnInTime = burnInCount > 0 ? timeDataForwardFlux[burnInCount - 1] : 0.0;
 
             // load points from forward flux events into successful endpoints
-            for (int i=burnInCount;i<rows;i++)
+            for (int i=0;i<rows;i++)
             {
                 pointKey.assign(speciesCountDataForwardFlux + i*columns, speciesCountDataForwardFlux + (i + 1)*columns);
                 EndPointMsg* endPointMsg = successfulEndPointMap[pointKey];
@@ -192,11 +193,13 @@ public:
 
             // add to the summary metrics
             msgPtr->set_successful_trajectories_launched_count(msgPtr->successful_trajectories_launched_count() + rows);
-
-            // correct workUnitEndTime for burn in and for time spent outside of the region of the starting basin (see Valeriani 2007, Dinner 2010)
-            msgPtr->set_successful_trajectories_launched_total_time(msgPtr->successful_trajectories_launched_total_time() + (workUnitEndTime - workUnitStartTime));
-            msgPtr->set_failed_trajectories_launched_total_time(phaseZeroTrajectory.timeInOtherBasins);
         }
+        double workUnitStartTime = phaseZeroTrajectory.getSimTime();
+        double workUnitEndTime = trajectoryState.cme_state().species_counts().time(trajectoryState.cme_state().species_counts().time_size() - 1);
+
+        msgPtr->set_successful_trajectories_launched_total_time(msgPtr->successful_trajectories_launched_total_time() + (workUnitEndTime - workUnitStartTime));
+        // correct workUnitEndTime for burn in and for time spent outside of the region of the starting basin (see Valeriani 2007, Dinner 2010)
+        msgPtr->set_failed_trajectories_launched_total_time(phaseZeroTrajectory.timeInOtherBasins);
     }
 
 //    // this function encapsulates part of addEndPointFromLimitTrackingsPhaseZero, and so relies on the consistency checks run at the begininng of that function

@@ -55,29 +55,33 @@
 namespace lm {
 namespace option {
 
+// three different token parsers to ensure correct behavior. Statically dispatched with a combination of SFINAE and template specializaiton
+// parser for integral types. Parses first to a double in order to ensure that sci notation (e.g. "1e4") parses as expected. Dispatched by function argument SFINAE
 template <typename T>
-inline void _parseNextToken(const std::string& tokenString, T* destination)
+inline void _parseNextToken(const std::string& tokenString, T* destination)//, typename EnableIf<IsIntegral<T>::value>::type* = 0)
 {
+    double temp;
     std::stringstream tokenSS(tokenString);
-    tokenSS >> *destination;
+
+    tokenSS >> temp;
+    *destination = static_cast<T>(temp);
 }
 
-// specialization to allow for any of the "1", "true", and "True" tokens to convert to true boolean values
+// parser for booleans. Any of the "1", "true", and "True" tokens convert to true boolean values, everything else converts to false. Dispatched via template specialization
 template <>
-inline void _parseNextToken<bool>(const std::string& tokenString, bool* destination)
+inline void _parseNextToken<bool>(const std::string& tokenString, bool* destination)//, void*)
 {
     *destination = (tokenString=="1" or tokenString=="true" or tokenString=="True");
-
-//    bool test0, test1;
-//    std::stringstream testSS0(tokenString), testSS1(tokenString);
-//    testSS1.setf(std::ios::boolalpha);
-//
-//    if (!(testSS0 >> test0)) return false;
-//    if (!(testSS1 >> test1)) return false;
-//
-//    *destination = (test0 or test1);
-//    return true;
 }
+
+// parser for everything else.
+//template <typename T>
+//inline void _parseNextToken(const std::string& tokenString, T* destination, typename EnableIfNot<IsIntegral<T>::value>::type*)
+//{
+//    std::stringstream tokenSS(tokenString);
+//
+//    tokenSS >> *destination;
+//}
 
 // pops the next token from the tokensSS stream and converts it to the appropriate type using the overloads of the >> operator
 // if delimiter is set, get everything up to the next delimiter or the EOL and treat that as the next token

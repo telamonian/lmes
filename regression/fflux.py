@@ -14,8 +14,8 @@ class FFluxGTSRegression(GTSRegression):
     def _buildDefaultSimulationParameterDict(self):
         if self.parser['quick_test']:
             return {'batchSize': 1,
-                    "errorGoal": .25,
-                    "errorGoalConfidence": .95,
+                    "errorGoal": .99,
+                    "errorGoalConfidence": .01,
                     "pilotStageCount": 1,
                     "productionStageCountMinimum": 1,
                     "ffluxPilotOutput": True,

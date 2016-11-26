@@ -142,6 +142,9 @@ template<typename T> struct RemovePointer<T* const volatile> {typedef T type;};
 template <bool cond, class T=void> struct EnableIf {typedef T type;};
 template <class T> struct EnableIf<false, T> {};
 
+template <bool cond, class T=void> struct EnableIfNot {typedef T type;};
+template <class T> struct EnableIfNot<true, T> {};
+
 template <typename T> struct HasBegin
 {
     template <typename U, typename U::iterator (U::*)()> struct Test;
@@ -179,6 +182,7 @@ template<class T> struct IsPointerHelper<T*> {static const bool value = true;};
 template<class T> struct IsPointer {static const bool value = IsPointerHelper<typename RemoveCV<T>::type>::value;};
 
 template <typename T> struct IsNumeric {static const bool value = std::numeric_limits<T>::is_specialized;};
+template <typename T> struct IsIntegral {static const bool value = std::numeric_limits<T>::is_specialized;};
 
 template <typename T, typename U> struct IsSame {static const bool value = false;};
 template <typename T> struct IsSame<T, T> {static const bool value = true;};
