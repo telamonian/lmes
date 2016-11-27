@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -37,82 +37,65 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-#ifndef LM_IO_OUTPUTWRITER
-#define LM_IO_OUTPUTWRITER
+#ifndef LM_MESSAGE_LOCALCOMMUNICATOR_H
+#define LM_MESSAGE_LOCALCOMMUNICATOR_H
 
-#include <queue>
+#include <list>
 #include <string>
-
+#include <vector>
 #include <pthread.h>
+#include <google/protobuf/message.h>
 
-#include "lm/io/FirstPassageTimes.pb.h"
-#include "lm/io/LatticeTimeSeries.pb.h"
-#include "lm/io/SpeciesCounts.pb.h"
-#include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/message/Communicator.h"
+#include "lm/message/Endpoint.pb.h"
 #include "lm/message/Message.pb.h"
-#include "lm/message/ProcessWorkUnitOutput.pb.h"
-#include "lm/thread/Thread.h"
-#include "lm/thread/Worker.h"
 
 using std::string;
+using std::list;
+using std::vector;
 
 namespace lm {
-namespace io {
+namespace message {
 
-class OutputWriter : public lm::thread::Worker
+class LocalCommunicator : public Communicator
 {
 public:
-    OutputWriter();
-    virtual ~OutputWriter();
-    void setOutputFilename(string outputFilename) {this->outputFilename = outputFilename;}
-    virtual void initialize();
-    virtual void finalize();
-
-    virtual void wake() throw(lm::thread::PthreadException);
-
-protected:
-    virtual void checkpoint()=0;
-    virtual void flush()=0;
-
-    virtual void processFFluxOutput(const lm::io::FFluxOutput& data) {}
-    virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data)=0;
-    virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)=0;
-    virtual void processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data) {}
-    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data)=0;
-    virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data)=0;
-
-    virtual int run();
+    static bool registered;
+    static bool registerClass();
+    static void* allocateObject();
 
 private:
-    static const int MESSAGE_QUEUE_MAX_SIZE=50*1024*1024;
-
-protected:
-    string outputFilename;
-
-private:
-    lm::message::Communicator* communicator;
-    std::queue<lm::message::Message*> messageQueue;
-    volatile int messageQueueSize;
-    pthread_mutex_t messageQueueMutex;
-    pthread_cond_t messageQueueSignal;
-
-private:
-    class HelperThread : public lm::thread::Thread
+    struct AddressRecord
     {
-    public:
-        HelperThread(OutputWriter* p);
-        virtual ~HelperThread();
-        virtual void wake() throw(lm::thread::PthreadException);
-    protected:
-        virtual int run();
-    private:
-        OutputWriter* p;
+        AddressRecord();
+        ~AddressRecord();
+        pthread_mutex_t recordMutex;
+        pthread_cond_t recordSignal;
+        list<lm::message::Message*> sendingMessages;
+        lm::message::Message* receivingMessage;
     };
+    static pthread_mutex_t addressMutex;
+    static lm::message::Endpoint supervisorAddress;
+    static vector<AddressRecord*> addressRecords;
+
+
+public:
+    LocalCommunicator();
+    virtual ~LocalCommunicator();
+
+    // accessors
+    virtual lm::message::Endpoint getSupervisorAddress() const;
+
+    // send and receive messages
+    virtual void sendMessage(Endpoint dest, lm::message::Message* msg, int sleepMilliseconds=0) const;
+    virtual void receiveMessage(lm::message::Message* msg, int sleepMilliseconds=0) const;
+
+protected:
+    virtual bool initializeClass();
+    virtual void finalizeClass(bool abort);
+    virtual lm::message::Endpoint constructObject(bool isSupervisor);
 };
 
 }
 }
-
-
-#endif
+#endif // LM_MESSAGE_LOCALCOMMUNICATOR_H

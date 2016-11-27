@@ -51,6 +51,7 @@
 #include <vector>
 #include <zlib.h>
 
+#include "lm/main/Globals.h"
 #include "lm/ClassFactory.h"
 #include "lm/Tune.h"
 #include "lm/Math.h"
@@ -446,7 +447,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     // If the output message has any data, send it.
     if (createdOutput)
     {
-        communicator->sendMessage(outputProcess, outputThread, &msgpp);
+        communicator->sendMessage(outputAddress, &msgpp);
     }
 
 //    if (reachedLimit && steps>=maxSteps)

@@ -39,7 +39,8 @@
 
 package lm.message;
 
+import "lm/message/Endpoint.proto";
+
 message StartedCheckpointSignaler {
-    required int32 process                  = 1;
-    required int32 thread                   = 2;
+    required Endpoint address                   = 1;
 }

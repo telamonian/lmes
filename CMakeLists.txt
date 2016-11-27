@@ -226,7 +226,7 @@ add_subdirectory(utils/python)
 ################
 #TARGET: lmes
 ################
-set(lm_main_src src/c/lm/main/MainMPI.cpp src/c/lm/main/Main.cpp)
+set(lm_main_src src/c/lm/main/Main.cpp src/c/lm/main/MainArgs.cpp)
 
 add_executable(lmes ${lm_main_src})
 

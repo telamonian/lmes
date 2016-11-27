@@ -53,6 +53,7 @@
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/Tilings.pb.h"
 #include "lm/message/Communicator.h"
+#include "lm/message/Endpoint.pb.h"
 #include "lm/message/FinishedCheckpointing.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/Message.pb.h"
@@ -74,6 +75,8 @@
 
 using std::map;
 using std::string;
+using lm::message::Communicator;
+using lm::message::Endpoint;
 
 namespace lm {
 namespace main {
@@ -83,15 +86,11 @@ typedef map<string,string> SimulationParametersMap;
 class SimulationSupervisor : public lm::thread::Worker
 {
 public:
-    static const int THREAD_ID = 0;
-    virtual int getRecvSleepMilliseconds();
-
-public:
     SimulationSupervisor();
     virtual ~SimulationSupervisor();
     virtual void init();
     void setOutputWriterClassName(string outputWriterClassName) {this->outputWriterClassName = outputWriterClassName;}
-    void setResourceMap(lm::resource::ResourceMap* resourceMap) {this->resourceMap = resourceMap;}
+    void setResourceMap(lm::resource::ResourceMap& resourceMap) {this->resourceMap = resourceMap;}
     void setSimulationFilename(string simulationInputFilename, string simulationOutputFilename) {this->simulationInputFilename = simulationInputFilename; this->simulationOutputFilename = simulationOutputFilename;}
     void setSolverClassName(string solverClassName) {this->solverClassName = solverClassName;}
     void setUseCPUAffinity(bool useCPUAffinity) {this->useCPUAffinity = useCPUAffinity;}
@@ -137,16 +136,15 @@ private:
     void resetPerformanceStatistics();
 
 protected:
-    lm::message::Communicator communicator;
+    lm::message::Communicator* communicator;
     bool hasCheckpointSignalerStarted;
     bool hasOutputWriterStarted;
     bool haveAllWorkUnitRunnersStarted;
     lm::input::Input* input;
     std::string outputWriterClassName;
-    int outputWriterProcess;
-    int outputWriterThread;
+    Endpoint outputWriterAddress;
     bool performingCheckpoint;
-    lm::resource::ResourceMap* resourceMap;
+    lm::resource::ResourceMap resourceMap;
     std::string simulationInputFilename;
     std::string simulationOutputFilename;
     uint64_t simulationPhase;

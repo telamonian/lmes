@@ -68,13 +68,11 @@ public:
     virtual void runWorkUnits(const lm::message::RunWorkUnit& msg);
 
     //id getter methods
-    virtual int	getProcess() {return communicator.getSourceProcess();}
-    virtual int getThread() {return communicator.getSourceThread();}
     virtual int getID() {return id;}
 
 protected:
     int id;
-    lm::message::Communicator communicator;
+    lm::message::Communicator* communicator;
     lm::message::StartWorkUnitRunner properties;
     lm::me::MESolver* solver;
 };

@@ -51,6 +51,7 @@
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Communicator.h"
+#include "lm/message/Endpoint.pb.h"
 #include "lm/message/RunWorkUnit.pb.h"
 
 using std::map;
@@ -68,7 +69,7 @@ public:
     virtual ~MESolver();
     virtual void setComputeResources(vector<int> cpus, vector<int> gpus);
     virtual uint getSimultaneousTrajectories();
-    virtual void setCommunicator(lm::message::Communicator* communicator, int outputProcess, int outputThread, int64_t workUnitId);
+    virtual void setCommunicator(lm::message::Communicator* communicator, lm::message::Endpoint outputAddress, int64_t workUnitId);
     virtual bool needsReactionModel()=0;
     virtual void setReactionModel(const lm::io::ReactionModel& rm)=0;
     virtual bool needsDiffusionModel()=0;
@@ -90,8 +91,7 @@ protected:
     vector<int> cpus;
     vector<int> gpus;
     lm::message::Communicator* communicator;
-    int outputProcess;
-    int outputThread;
+    lm::message::Endpoint outputAddress;
     int64_t workUnitId;
 };
 

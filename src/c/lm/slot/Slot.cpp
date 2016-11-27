@@ -43,6 +43,7 @@
 #include <string>
 
 #include "lm/Print.h"
+#include "lm/message/Communicator.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/slot/Slot.h"
 
@@ -62,8 +63,8 @@ const string headerStrings[] = {"ID", "Host_name", "Process:Thread", "Work_units
 HeaderVector headers(headerStrings, headerStrings + 7);
 const ColumnMap::value_type rawData[] = {
     ColumnMap::value_type("ID", 5),
-    ColumnMap::value_type("Host_name", 20),
-    ColumnMap::value_type("Process:Thread", 20),
+    ColumnMap::value_type("Hostname", 20),
+    ColumnMap::value_type("Address", 20),
     ColumnMap::value_type("Work_units", 15),
     ColumnMap::value_type("Work_unit_steps", 20),
     ColumnMap::value_type("Work_unit_time", 20),
@@ -104,11 +105,10 @@ string Slot::getSlotStatisticsHeaderBreak()
 
 string Slot::getSlotStatistics() const
 {
-    ostringstream statsStream, ptStream;
+    ostringstream statsStream;
     statsStream << fixed << setprecision(0) << setw(statsColumnMap["ID"]) << id;
-    statsStream << setw(statsColumnMap["Host_name"]) << resources.hostname;
-    ptStream << resources.controller_process << ":" << resources.controller_thread;
-    statsStream << fixed << setprecision(0) << setw(statsColumnMap["Process:Thread"]) << ptStream.str();
+    statsStream << setw(statsColumnMap["Hostname"]) << resources.hostname;
+    statsStream << fixed << setprecision(0) << setw(statsColumnMap["Address"]) << lm::message::Communicator::printableAddress(resources.controllerAddress);
     statsStream << fixed << setprecision(0) << setw(statsColumnMap["Work_units"]) << stats_workUnits;
     statsStream << scientific << setprecision(3) << setw(statsColumnMap["Work_unit_steps"]) << (double)stats_workUnitsSteps;
     statsStream << scientific << setprecision(3) << setw(statsColumnMap["Work_unit_time"]) << stats_workUnitsTime;

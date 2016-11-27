@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -37,15 +37,16 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-#ifndef COMMUNICATOR_H
-#define COMMUNICATOR_H
+#ifndef LM_MESSAGE_COMMUNICATOR_H
+#define LM_MESSAGE_COMMUNICATOR_H
 
 #include <string>
 #include <google/protobuf/message.h>
 
-#include "lm/MPI.h"
-#include "lm/message/Endpoint.h"
+#include "lm/message/Endpoint.pb.h"
 #include "lm/message/Message.pb.h"
+
+using std::string;
 
 namespace lm {
 namespace message {
@@ -53,45 +54,33 @@ namespace message {
 class Communicator
 {
 public:
-    Communicator(Endpoint source);
-    Communicator(int srcProcess, int srcThread);
+    static bool initializeDefaultSubclass();
+    static void finalizeDefaultSubclass(bool abort=false);
+    static Communicator* createObjectOfDefaultSubclass(bool isSupervisor=false);
+    static string printableAddress(const lm::message::Endpoint& endpoint);
+
+public:
+    Communicator();
     virtual ~Communicator();
 
     // accessors
-    std::string getHostname() const;
-    int getLastMessageSize() const {return lastMessageSize;}
-    int getSourceProcess() const {return source.process;}
-    int getSourceThread() const {return source.thread;}
-    int getMasterOutputProcess() const {return masterOutput.process;}
-    int getMasterOutputThread() const {return masterOutput.thread;}
+    virtual string getHostname() const;
+    virtual Endpoint getSourceAddress() const;
+    virtual Endpoint getSupervisorAddress() const=0;
 
     // send and receive messages
-    void sendMessage(int destProcess, int destThread, lm::message::Message* msg, int sleepMilliseconds=-1) const;
-    void sendMessage(Endpoint dest, lm::message::Message* msg, int sleepMilliseconds=-1) const;
-    void sendMessageToMasterOutput(lm::message::Message* msg, int sleepMilliseconds=-1) const {sendMessage(masterOutput, msg, sleepMilliseconds);}
-    void receiveMessage(lm::message::Message* msg, int sleepMilliseconds=0) const;
-
-    // mutators
-    void setMasterOutputEndpoint(int moProcess, int moThread);
+    virtual void sendMessage(Endpoint dest, lm::message::Message* msg, int sleepMilliseconds=0) const=0;
+    virtual void receiveMessage(lm::message::Message* msg, int sleepMilliseconds=0) const=0;
 
 protected:
-    void initBuffers();
+    virtual bool initializeClass()=0;
+    virtual void finalizeClass(bool abort)=0;
+    virtual Endpoint constructObject(bool isSupervisor)=0;
 
 protected:
-    int inputBufferSize;
-    int outputBufferSize;
-
-    mutable char* inputBuffer;
-    mutable int lastMessageSize;
-    mutable MPI_Status messageStatus;
-    mutable char* outputBuffer;
-
-    // endpoints
-    Endpoint masterOutput;
-    Endpoint source;
-    Endpoint supervisor;
+    Endpoint sourceAddress;
 };
 
 }
 }
-#endif // COMMUNICATOR_H
+#endif // LM_MESSAGE_COMMUNICATOR_H

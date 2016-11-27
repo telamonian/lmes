@@ -47,7 +47,7 @@
 #include <mpi.h>
 #include "lm/Exceptions.h"
 #include "lm/Print.h"
-#include "lm/MPI.h"
+#include "lm/mpi/MPI.h"
 
 namespace lm {
 
@@ -105,13 +105,17 @@ throw(MPIException)
 }
 
 
-void MPI::finalize()
+void MPI::finalize(bool abort)
 throw(MPIException)
 {
 //	MPI_Status messageStatus;
 //	MPI_EXCEPTION_CHECK(MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &messageStatus));
 //	Print::printf(Print::DEBUG, "%d", messageStatus.MPI_SOURCE);
     // Close own the MPI library.
+    if (abort)
+    {
+        MPI_EXCEPTION_CHECK(MPI_Abort(MPI_COMM_WORLD,-1));
+    }
     MPI_EXCEPTION_CHECK(MPI_Finalize());
 }
 

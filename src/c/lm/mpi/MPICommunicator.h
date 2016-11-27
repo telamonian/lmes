@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -37,22 +37,47 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-#ifndef ENDPOINT_H
-#define ENDPOINT_H
+#ifndef LM_MPI_MPICOMMUNICTOR_H
+#define LM_MPI_MPICOMMUNICTOR_H
+
+#include <string>
+#include <google/protobuf/message.h>
+
+#include "lm/message/Communicator.h"
+#include "lm/message/Endpoint.pb.h"
+#include "lm/message/Message.pb.h"
+#include "lm/mpi/MPI.h"
+
+using std::string;
 
 namespace lm {
-namespace message {
+namespace mpi {
 
-class Endpoint
+class MPICommunicator : public lm::message::Communicator
 {
 public:
-    Endpoint():process(-1),thread(-1) {}
-    Endpoint(int process, int thread):process(process),thread(thread) {}
-    virtual ~Endpoint() {}
-    int process;
-    int thread;
+    static bool registered;
+    static bool registerClass();
+    static void* allocateObject();
+
+public:
+    MPICommunicator();
+    virtual ~MPICommunicator();
+
+    // accessors
+    virtual string getHostname() const;
+    virtual lm::message::Endpoint getSupervisorAddress() const;
+
+    // send and receive messages
+    virtual void sendMessage(lm::message::Endpoint dest, lm::message::Message* msg, int sleepMilliseconds=0) const;
+    virtual void receiveMessage(lm::message::Message* msg, int sleepMilliseconds=0) const;
+
+protected:
+    virtual bool initializeClass();
+    virtual void finalizeClass(bool abort);
+    virtual lm::message::Endpoint constructObject(bool isSupervisor);
 };
 
 }
 }
-#endif
+#endif // LM_MPI_MPICOMMUNICTOR_H

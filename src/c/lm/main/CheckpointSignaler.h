@@ -48,7 +48,7 @@
 #include <ctime>
 #include <pthread.h>
 #include "lm/message/Communicator.h"
-#include "lm/message/Endpoint.h"
+#include "lm/message/Endpoint.pb.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 
@@ -58,7 +58,7 @@ namespace main {
 class CheckpointSignaler : public lm::thread::Worker
 {
 public:
-    CheckpointSignaler(time_t checkpointInterval, int supervisorProcess, int supervisorThread);
+    CheckpointSignaler(time_t checkpointInterval);
     virtual ~CheckpointSignaler();
     virtual void wake() throw(lm::thread::PthreadException);
 
@@ -68,8 +68,7 @@ protected:
 
 private:
     time_t checkpointInterval;
-    lm::message::Communicator communicator;
-    lm::message::Endpoint supervisorEndpoint;
+    lm::message::Communicator* communicator;
     pthread_cond_t controlSignal;
     struct timespec nextCheckpoint;
 };

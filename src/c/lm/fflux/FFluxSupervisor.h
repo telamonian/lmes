@@ -48,7 +48,6 @@
 #include "lm/message/StartedWorkUnit.pb.h"
 #include "lm/trajectory/TrajectoryLimits.h"
 #include "lm/trajectory/TrajectoryList.h"
-#include "lm/MPI.h"
 #include "lm/Print.h"
 #include "lm/thread/Worker.h"
 
@@ -81,6 +80,7 @@ protected:
     virtual void startSimulation();
 
 protected:
+    Endpoint masterOutputWriterAddress;
     uint64_t ffluxPhase;
 //    lm::trajectory::TrajectoryLimits trajectoryLimits;
 

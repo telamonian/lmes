@@ -60,6 +60,7 @@
 #include "lm/cme/ReactionModel.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
+#include "lm/message/Endpoint.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/ProcessWorkUnitOutput.pb.h"
 #include "lm/message/WorkUnitOutput.pb.h"
@@ -826,7 +827,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
     // If the output message has any data, send it.
     if (createdOutput)
     {
-        communicator->sendMessage(outputProcess, outputThread, &msgp);
+        communicator->sendMessage(outputAddress, &msgp);
     }
 
 

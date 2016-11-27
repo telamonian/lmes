@@ -49,13 +49,12 @@
 #ifdef OPT_CUDA
 #include "lm/Cuda.h"
 #endif
-#include "lm/MPI.h"
 #include "lm/io/OutputWriter.h"
-#include "lm/main/Main.h"
 #include "lm/main/CheckpointSignaler.h"
 #include "lm/main/ResourceController.h"
-#include "lm/main/SimulationSupervisor.h"
+#include "lm/main/WorkUnitRunner.h"
 #include "lm/message/Communicator.h"
+#include "lm/message/Endpoint.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/ResourcesAvailable.pb.h"
 #include "lm/message/StartOutputWriter.pb.h"
@@ -64,28 +63,32 @@
 #include "lm/thread/WorkerManager.h"
 #include "hrtime.h"
 
+using lm::message::Communicator;
+using lm::message::Endpoint;
+
 namespace lm {
 namespace main {
 
 ResourceController::ResourceController()
-:communicator(lm::MPI::worldRank, threadNumber)
+:communicator(NULL)
 {
+    // Create the communicator.
+    communicator = lm::message::Communicator::createObjectOfDefaultSubclass(false);
 }
 
 ResourceController::~ResourceController()
 {
     for (std::list<lm::thread::Worker*>::iterator it=workers.begin(); it != workers.end(); it++)
-    {
         delete *it;
-    }
     workers.clear();
+    if (communicator != NULL) delete communicator; communicator = NULL;
 }
 
 void ResourceController::wake() throw(PthreadException)
 {
     lm::message::Message msg;
     msg.mutable_ping_target()->set_id(0);
-    communicator.sendMessage(communicator.getSourceProcess(), communicator.getSourceThread(), &msg);
+    communicator->sendMessage(communicator->getSourceAddress(), &msg);
 }
 
 /**
@@ -131,27 +134,26 @@ int ResourceController::run()
 {
     try
     {
-        Print::printf(Print::INFO, "Resource controller %d:%d started.", lm::MPI::worldRank, threadNumber);
+        Print::printf(Print::INFO, "Resource controller %s started.", Communicator::printableAddress(communicator->getSourceAddress()).c_str());
 
         // Register our info with the supervisor.
         lm::message::Message msg;
-        msg.mutable_resources_available()->set_hostname(communicator.getHostname());
-        msg.mutable_resources_available()->set_controller_process(lm::MPI::worldRank);
-        msg.mutable_resources_available()->set_controller_thread(threadNumber);
+        msg.mutable_resources_available()->set_hostname(communicator->getHostname());
+        msg.mutable_resources_available()->mutable_controller_address()->CopyFrom(communicator->getSourceAddress());
         std::vector<int> cpus=getPhysicalCPUCores();
         for (std::vector<int>::iterator it = cpus.begin() ; it != cpus.end(); ++it)
-            msg.mutable_resources_available()->add_cpu(*it);
+            msg.mutable_resources_available()->add_cpu_cores(*it);
         std::vector<int> gpus=getPhysicalGPUs();
         for (std::vector<int>::iterator it = gpus.begin() ; it != gpus.end(); ++it)
-            msg.mutable_resources_available()->add_gpu(*it);
-        communicator.sendMessage(lm::MPI::MASTER, lm::main::SimulationSupervisor::THREAD_ID, &msg);
+            msg.mutable_resources_available()->add_gpu_devices(*it);
+        communicator->sendMessage(communicator->getSupervisorAddress(), &msg);
 
         // Loop reading messages.
         lm::message::Message message;
         while (true)
         {
             // Read the next message.
-            communicator.receiveMessage(&message, 20);
+            communicator->receiveMessage(&message);
 
             // Do something with the message.
             if (message.start_work_unit_runner_size() > 0)
@@ -181,7 +183,7 @@ int ResourceController::run()
             message.Clear();
         }
 
-        Print::printf(Print::INFO, "Resource controller %d:%d finished.", lm::MPI::worldRank, threadNumber);
+        Print::printf(Print::INFO, "Resource controller %s finished.", Communicator::printableAddress(communicator->getSourceAddress()).c_str());
         return 0;
     }
     catch (lm::Exception e)
@@ -219,14 +221,14 @@ void ResourceController::startOutputWriter(const lm::message::StartOutputWriter&
 
 void ResourceController::startCheckpointSignaler(const lm::message::StartCheckpointSignaler& msg)
 {
-    lm::main::CheckpointSignaler* s = new CheckpointSignaler(msg.checkpoint_interval(), msg.supervisor_process(), msg.supervisor_thread());
+    lm::main::CheckpointSignaler* s = new CheckpointSignaler(msg.checkpoint_interval());
     s->start();
     workers.push_back(s);
 }
 
 void ResourceController::stopWorkers(bool abort)
 {
-    Print::printf(Print::DEBUG, "Resource controller %d:%d stopping workers.", lm::MPI::worldRank, threadNumber);
+    Print::printf(Print::DEBUG, "Resource controller %s stopping workers.", Communicator::printableAddress(communicator->getSourceAddress()).c_str());
     for (std::list<lm::thread::Worker*>::iterator it=workers.begin(); it!=workers.end(); it++)
 	{
         if (abort)

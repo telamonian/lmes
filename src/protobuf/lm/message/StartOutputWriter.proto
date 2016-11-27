@@ -40,8 +40,8 @@
 package lm.message;
 
 message StartOutputWriter {
-    optional bool use_cpu_affinity                              = 1;
-    required int32 cpu                                          = 2;
+    required bool use_cpu_affinity                              = 1 [default=false];
+    required int32 cpu                                          = 2 [default=0];
     required string output_filename                             = 3;
     required string output_writer_class                         = 4;
 }

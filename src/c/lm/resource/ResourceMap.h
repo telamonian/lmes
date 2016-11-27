@@ -58,12 +58,16 @@ namespace resource {
 class ResourceMap
 {
 public:
-    ResourceMap(list<string>hostnames, int defaultCPUCores, int defaultGPUDevices, string resourceFilename);
+    enum QueueingSystem {PBS};
+public:
+    ResourceMap();
+    ResourceMap(list<string>hostnames, int defaultCPUCores, int defaultGPUDevices);
+    ResourceMap(string resourceFilename, int defaultCPUCores, int defaultGPUDevices);
+    ResourceMap(QueueingSystem queueingSystem, int defaultCPUCores, int defaultGPUDevices);
     virtual ~ResourceMap();
     bool registerResources(const lm::message::ResourcesAvailable& msg);
-    ComputeResources reserveCPUCores(int process, int numberCPUCores);
-    ComputeResources getController(int process);
-    map<int,ComputeResources> getAvailableResources();
+    ComputeResources reserveCPUCores(string hostname, int numberCPUCores);
+    map<string,ComputeResources> getAvailableResources();
 
 protected:
     map<string,ComputeResources> parseResourceFile(string filename);
@@ -72,9 +76,8 @@ protected:
 protected:
     int defaultCPUCores;
     int defaultGPUDevices;
-    map<string,int> hostnameProcessMap;
-    map<int,ComputeResources> allocatedResources;
-    map<int,ComputeResources> registeredResources;
+    map<string,ComputeResources> allocatedResources;
+    map<string,ComputeResources> registeredResources;
 
 private:
     void parseIntList(vector<int>& list, string s);

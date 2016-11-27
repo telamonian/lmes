@@ -90,6 +90,11 @@ extern time_t checkpointInterval;
 extern volatile bool globalAbort;
 
 /**
+ * The communicator to use for the simulations.
+ */
+extern string communicatorClassName;
+
+/**
  * The supervisor to use for the simulations.
  */
 extern string supervisorClassName;

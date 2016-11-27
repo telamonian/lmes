@@ -449,7 +449,7 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     // If the output message has any data, send it.
     if (createdOutput || msg->has_lattice_time_series())
     {
-        communicator->sendMessage(outputProcess, outputThread, &msgpp);
+        communicator->sendMessage(outputAddress, &msgpp);
     }
 
     return steps;
