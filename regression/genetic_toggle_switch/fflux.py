@@ -22,7 +22,7 @@ class FFluxGTSRegression(GTSRegression):
                     "ffluxPhaseOutput": True,
                     "ffluxStageOutputRaw": True,
                     "ffluxStageOutputSummary": True,
-                    'phaseZeroSamplingMultiplier': 1e2,
+                    'phaseZeroSamplingMultiplier': 1,
                     'ffluxMinimizeCost': True,
                     'writeInitialTrajectoryState': False,
                     'writeFinalTrajectoryState': False,
@@ -31,17 +31,17 @@ class FFluxGTSRegression(GTSRegression):
                     'maxWorkUnitSteps': 1e5,}
         else:
             return {'batchSize': 1,
-                    "errorGoal": .05,
+                    "errorGoal": .01,
                     "errorGoalConfidence": .95,
                     "pilotStageCount": 1e3,
                     "productionStageCountMinimum": 1e3,
                     "ffluxPilotOutput": True,
-                    "ffluxPhaseOutput": True,
+                    "ffluxPhaseOutput": False,
                     "ffluxStageOutputRaw": True,
                     "ffluxStageOutputSummary": True,
                     'phaseZeroSamplingMultiplier': 10,
                     'ffluxMinimizeCost': False,
-                    'writeInterval': 1e20,
+                    'writeInterval': None,
                     'writeLimitTracking': False,}
 
     def _buildInput(self, lmInput):
