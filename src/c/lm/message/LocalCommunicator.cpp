@@ -162,7 +162,7 @@ void LocalCommunicator::sendMessage(Endpoint destinationAddress, lm::message::Me
     msg->mutable_source_address()->CopyFrom(sourceAddress);
     msg->mutable_destination_address()->CopyFrom(destinationAddress);
 
-    Print::printf(Print::INFO, "Sending message %s->%s", lm::message::Communicator::printableAddress(msg->source_address()).c_str(), lm::message::Communicator::printableAddress(msg->destination_address()).c_str());
+    //Print::printf(Print::INFO, "Sending message %s->%s", lm::message::Communicator::printableAddress(msg->source_address()).c_str(), lm::message::Communicator::printableAddress(msg->destination_address()).c_str());
 
     AddressRecord* record = NULL;
 
@@ -220,12 +220,12 @@ void LocalCommunicator::sendMessage(Endpoint destinationAddress, lm::message::Me
     PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&record->recordMutex));
     //// END CRITICAL SECTION: recordMutex
     ///
-    Print::printf(Print::INFO, "Sent message %s->%s", lm::message::Communicator::printableAddress(msg->source_address()).c_str(), lm::message::Communicator::printableAddress(msg->destination_address()).c_str());
+    //Print::printf(Print::INFO, "Sent message %s->%s", lm::message::Communicator::printableAddress(msg->source_address()).c_str(), lm::message::Communicator::printableAddress(msg->destination_address()).c_str());
 }
 
 void LocalCommunicator::receiveMessage(lm::message::Message* msg, int sleepMilliseconds) const
 {    
-    Print::printf(Print::INFO, "Receving message %s", lm::message::Communicator::printableAddress(sourceAddress).c_str());
+    //Print::printf(Print::INFO, "Receving message %s", lm::message::Communicator::printableAddress(sourceAddress).c_str());
 
     AddressRecord* record = NULL;
 
@@ -273,7 +273,7 @@ void LocalCommunicator::receiveMessage(lm::message::Message* msg, int sleepMilli
     PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&record->recordMutex));
     //// END CRITICAL SECTION: recordMutex
 
-    Print::printf(Print::INFO, "Receved message %s->%s on %s", lm::message::Communicator::printableAddress(msg->source_address()).c_str(), lm::message::Communicator::printableAddress(msg->destination_address()).c_str(), lm::message::Communicator::printableAddress(sourceAddress).c_str());
+    //Print::printf(Print::INFO, "Receved message %s->%s on %s", lm::message::Communicator::printableAddress(msg->source_address()).c_str(), lm::message::Communicator::printableAddress(msg->destination_address()).c_str(), lm::message::Communicator::printableAddress(sourceAddress).c_str());
 }
 
 }

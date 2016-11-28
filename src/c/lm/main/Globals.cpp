@@ -110,7 +110,7 @@ volatile bool globalAbort = false;
 /**
  * The communicator to use for the simulations.
  */
-string communicatorClassName = "lm::message::LocalCommunicator";
+string communicatorClassName;
 
 /**
  * The supervisor to use for the simulations.

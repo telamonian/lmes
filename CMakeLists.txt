@@ -137,7 +137,8 @@ find_package(ZLIB REQUIRED)
 #find_package(Boost)
 
 # add some definitions that will get passed on to the compiler
-add_definitions(-DBUILD_INFO -DVERBOSITY_LEVEL=${VERBOSITY_LEVEL})
+string(TIMESTAMP BUILD_INFO "%Y-%m-%d-%H-%M-%S")
+add_definitions(-DBUILD_INFO="${BUILD_INFO}" -DVERBOSITY_LEVEL=${VERBOSITY_LEVEL})
 if(BUILD_WITH_CUDA)
     add_definitions(-DOPT_CUDA)
 endif(BUILD_WITH_CUDA)

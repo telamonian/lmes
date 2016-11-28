@@ -128,6 +128,13 @@ void parseArguments(int argc, char** argv)
     solverClassName = "lm::cme::GillespieDSolver";
 #endif
 
+    // Set the default communicator.
+#ifdef OPT_MPI
+    communicatorClassName = "lm::mpi::MPICommunicator";
+#else
+    communicatorClassName = "lm::message::LocalCommunicator";
+#endif
+
     shouldReserveOutputCore = true;
     ffluxFlag = false;
     intermediateOutputFlag = false;
@@ -376,8 +383,15 @@ void parseArguments(int argc, char** argv)
                 lm::ClassFactory::getInstance().registerClassesFromExternalLibrary(*it);
         }
 
-
-
+        // See if the user is trying to set the communicator.
+        else if (strcmp(option, "--local") == 0)
+        {
+            communicatorClassName = "lm::message::LocalCommunicator";
+        }
+        else if (strcmp(option, "--mpi") == 0)
+        {
+            communicatorClassName = "lm::mpi::MPICommunicator";
+        }
 
         //This must be an invalid option.
         else {
@@ -519,6 +533,8 @@ void printUsage(int argc, char** argv)
     std::cout << "  -nc               --no-capabilities             Don't print the capabilities of the GPU devices." << std::endl;
     std::cout << "  -nr               --no-reserve-core             Don't reserve a CPU core for the output thread." << std::endl;
     std::cout << "  -so               --shared-libraries=libs       A comma delimited list of shared library to load." << std::endl;
+    std::cout << "                    --local                       Use a local communicator on only this process." << std::endl;
+    std::cout << "                    --mpi                         Use an MPI communicator across multiple processes." << std::endl;
     std::cout << std::endl;
     std::cout << "SIM_OPTIONS" << std::endl;
     std::cout << "  -r replicates     --replicates=replicates       A list of replicates to run, e.g. \"0-9\", \"0,11,21\" (default 0)." << std::endl;

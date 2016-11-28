@@ -112,15 +112,15 @@ int main(int argc, char** argv)
 
     try
     {
-        // Initialize the communicator class and see if we are the master process.
-        Print::printf(Print::INFO, "Initializing communications library.");
-        bool master = Communicator::initializeDefaultSubclass();
-
         //Print the startup messages.
         printCopyright(argc, argv);
 
         // Parse the command line arguments.
         parseArguments(argc, argv);
+
+        // Initialize the communicator class and see if we are the master process.
+        Print::printf(Print::INFO, "Initializing communications library.");
+        bool master = Communicator::initializeDefaultSubclass();
 
         if (functionOption == "help")
         {
