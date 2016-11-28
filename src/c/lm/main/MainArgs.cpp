@@ -392,6 +392,10 @@ void parseArguments(int argc, char** argv)
         {
             communicatorClassName = "lm::mpi::MPICommunicator";
         }
+        else if (strcmp(option, "--mpi-async") == 0)
+        {
+            communicatorClassName = "lm::mpi::AsyncMPICommunicator";
+        }
 
         //This must be an invalid option.
         else {
@@ -535,6 +539,7 @@ void printUsage(int argc, char** argv)
     std::cout << "  -so               --shared-libraries=libs       A comma delimited list of shared library to load." << std::endl;
     std::cout << "                    --local                       Use a local communicator on only this process." << std::endl;
     std::cout << "                    --mpi                         Use an MPI communicator across multiple processes." << std::endl;
+    std::cout << "                    --mpi-async                   Use an anstnchronous MPI communicator across multiple processes." << std::endl;
     std::cout << std::endl;
     std::cout << "SIM_OPTIONS" << std::endl;
     std::cout << "  -r replicates     --replicates=replicates       A list of replicates to run, e.g. \"0-9\", \"0,11,21\" (default 0)." << std::endl;
@@ -543,7 +548,7 @@ void printUsage(int argc, char** argv)
     std::cout << "  -sl solver        --solver=solver               The specific solver class to use for the simulations." << std::endl;
     std::cout << "  -ck               --checkpoint=interval         Enable checkpointing with the given interval as hh:mm:ss (default 00:00:00 -- disabled)." << std::endl;
     std::cout << "  -fflux            --use-forward-flux			Enable forward flux sampling (default disabled)." << std::endl;
-    std::cout << "  -intout           --intermediate-output         More verbose output. Consists of intermediate values used to calculate standard output.";
+    std::cout << "  -intout           --intermediate-output         More verbose output. Consists of intermediate values used to calculate standard output." << std::endl;
 }
 
 #include "hrtime.h"
