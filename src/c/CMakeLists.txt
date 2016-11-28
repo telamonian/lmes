@@ -7,21 +7,22 @@
 set(to_remove_globs lm/main/MainMPI.cpp lm/main/Main.cpp lm/neus/*)
 set(to_remove_recurse_globs old_*)
 
-# get the source files
+# get the cpp source files
 file(GLOB_RECURSE lm_c_source *.cpp *.cc *.h)
 
-# find any files we need to remove from the sources
+# find any files we need to remove from the cpp sources
 file(GLOB to_remove_srcs ${to_remove_globs})
 file(GLOB_RECURSE to_remove_recurse_srcs ${to_remove_recurse_globs})
 
-# remove files from the sources as appropriate
+# remove files from the cpp sources as appropriate
 list(REMOVE_ITEM lm_c_source ${to_remove_srcs} ${to_remove_recurse_srcs})
 
+# get the proto source files
 file(GLOB_RECURSE lm_proto_src ../protobuf/*.proto)
 
 #include_directories(${CMAKE_CURRENT_BINARY_DIR})
+#PROTOBUF_GENERATE_PYTHON(proto_pb2s ${lm_proto_src})
 PROTOBUF_GENERATE_CPP(proto_srcs proto_hdrs ${lm_proto_src})
-PROTOBUF_GENERATE_PYTHON(proto_pb2s ${lm_proto_src})
 
 set_source_files_properties(${proto_srcs} PROPERTIES GENERATED TRUE)
 set_source_files_properties(${proto_hdrs} PROPERTIES GENERATED TRUE)

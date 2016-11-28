@@ -952,7 +952,7 @@ void FFluxSupervisor::receivedFinishedWorkUnitPartPhaseZero(const lm::message::W
     phaseZeroTrajectory->accumulateTimeInOtherBasins(wusMsg.final_state());
 
     // update the phase output
-    currentFFluxPhaseOutputWrapPtr->addEndPointPhaseZero(wusMsg.final_state(), *trajectory, input->ffluxOptions().phase_zero_burn_in_count());
+    currentFFluxPhaseOutputWrapPtr->addEndPointPhaseZero(wusMsg.final_state(), trajectory, input->ffluxOptions().phase_zero_burn_in_count());
 }
 
 // accessors

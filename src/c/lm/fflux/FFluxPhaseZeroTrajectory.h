@@ -84,7 +84,6 @@ public:
         timeWrapBackwardFlux.setWrappedMsg(limitTrackingsWrap.Get(1).times());
         timeWrapOtherBasinEntry.setWrappedMsg(limitTrackingsWrap.Get(2).times());
 
-        timeInOtherBasinsLast = 0.0;
         // If the trajectory was previously in a non-initial basin, or if it passed into a non-initial basin during this work unit, accumulate the time the trajectory spent in a non-initial basin during its most recent work unit
         if ((not hInitialBasin) or timeWrapOtherBasinEntry.size() > 0)
         {
@@ -131,10 +130,13 @@ public:
             else
             {
                 sumTime += (*exitTimes - startTime);
-            }
 
-            // change the start time to coincide with the first exitTime
-            startTime = *exitTimes;
+                // set that we are now in an interval
+                if (notInInterval!=NULL) *notInInterval = true;
+
+                // change the start time to coincide with the first exitTime
+                startTime = *exitTimes;
+            }
         }
 
         // find the first interval entry time after the start time

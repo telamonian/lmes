@@ -126,13 +126,13 @@ public:
     ~FFluxPhaseOutputWrap() {destructRng(); destructRandomIndexes();}
 
 // mutators
-    void addEndPointPhaseZero(const lm::io::TrajectoryState& trajectoryState, const lm::trajectory::Trajectory& trajectory, int burnInCount)
+    void addEndPointPhaseZero(const lm::io::TrajectoryState& trajectoryState, lm::trajectory::Trajectory* trajectory, int burnInCount)
     {
         // TODO: fix burn in count
         // TODO: include consistency check constraining (phaseZeroSamples > burnInCount) somewhere
 
         // cast the Trajectory reference to a PhaseZeroTrajectory reference (its true type)
-        const lm::fflux::FFluxPhaseZeroTrajectory& phaseZeroTrajectory = static_cast<const lm::fflux::FFluxPhaseZeroTrajectory&>(trajectory);
+        lm::fflux::FFluxPhaseZeroTrajectory* phaseZeroTrajectory = static_cast<lm::fflux::FFluxPhaseZeroTrajectory*>(trajectory);
 
         // set wrapper on the limit_trackings field
         limitTrackingsWrap.setWrappedField(trajectoryState.limit_tracking_list().limit_trackings());
@@ -150,9 +150,77 @@ public:
             }
         }
 
-        // fetch forth some data from limit 0 (ie forward flux) tracking
+        // get the start and end times for the entire work unit part
+        double workUnitStartTime = phaseZeroTrajectory->getSimTime();
+        double workUnitEndTime = trajectoryState.cme_state().species_counts().time(trajectoryState.cme_state().species_counts().time_size() - 1);
+
+        // fetch forth some data from the limit trackings (ie forward flux, basin entry, and basin exit)
         speciesCountWrap.setWrappedMsg(limitTrackingsWrap.Get(0).species_counts());
         timeWrapForwardFlux.setWrappedMsg(limitTrackingsWrap.Get(0).times());
+
+
+//        timeWrapBackwardFlux.setWrappedMsg(limitTrackingsWrap.Get(1).times());
+//        timeWrapBasinExit.setWrappedMsg(limitTrackingsWrap.Get(2).times());
+//
+//        double lastEventTime = workUnitStartTime;
+//        double notInInitialBasinTime = 0.0;
+//        if (not phaseZeroTrajectory->hInitialBasin)
+//        {
+//            double* timeDataBackwardFlux = timeWrapBackwardFlux.get_data();
+//            double* timeDataBasinExit = timeWrapBasinExit.get_data();
+//
+//            if (timeWrapBackwardFlux.size()==0)
+//            {
+//                notInInitialBasinTime = workUnitEndTime - workUnitStartTime;
+//            }
+//            else if (timeWrapBasinExit.size()==0 or (timeDataBackwardFlux[0] > timeDataBasinExit[timeWrapBasinExit.size() - 1]))
+//            {
+//                notInInitialBasinTime = timeDataBackwardFlux[0] - workUnitStartTime;
+//
+//                phaseZeroTrajectory->hInitialBasin = true;
+//            }
+//            else
+//            {
+//
+//
+//                notInInitialBasinTime = timeDataBackwardFlux[0] - workUnitStartTime;
+//
+//                phaseZeroTrajectory->hInitialBasin = true;
+//
+//                if (timeWrapBackwardFlux.compressed_deflate()) delete[] timeDataBackwardFlux;
+//
+//                int entryI = 0;
+//                int exitI = 0;
+//                while (entryI < timeWrapBackwardFlux.size())
+//                {
+//                    double lastEntryTime = entryI[entryI];
+//
+//                    nextEventI = bisect_left(events, exitEvent, lo=nextEventI)
+//
+//                    exitEvents = [exitEvent]
+//                    exitI += 1
+//                    prog += 1
+//                    while (exitI < len(otherBasinFlux)) and (otherBasinFlux[exitI] < events[nextEventI][0]):
+//                        exitEvents.append((otherBasinFlux[exitI], 'exit'))
+//
+//                        exitI += 1
+//                        prog += 1
+//
+//                    # insert a whole slice of exit events
+//                    events[nextEventI:nextEventI] = exitEvents
+//
+//
+//                }
+//                notInInitialBasinTime = lastEventTime - ;
+//            }
+//
+//            if (timeWrapBackwardFlux.compressed_deflate()) delete[] timeDataBackwardFlux;
+//            if (timeWrapBasinExit.compressed_deflate()) delete[] timeDataBasinExit;
+//        }
+//        else if (timeWrapBasinExit.size() > 0)
+//        {
+//
+//        }
 
         double burnInTime = 0.0;
         // update the count of flux events only if
@@ -194,12 +262,10 @@ public:
             // add to the summary metrics
             msgPtr->set_successful_trajectories_launched_count(msgPtr->successful_trajectories_launched_count() + rows);
         }
-        double workUnitStartTime = phaseZeroTrajectory.getSimTime();
-        double workUnitEndTime = trajectoryState.cme_state().species_counts().time(trajectoryState.cme_state().species_counts().time_size() - 1);
 
         msgPtr->set_successful_trajectories_launched_total_time(msgPtr->successful_trajectories_launched_total_time() + (workUnitEndTime - workUnitStartTime));
         // correct workUnitEndTime for burn in and for time spent outside of the region of the starting basin (see Valeriani 2007, Dinner 2010)
-        msgPtr->set_failed_trajectories_launched_total_time(phaseZeroTrajectory.timeInOtherBasins);
+        msgPtr->set_failed_trajectories_launched_total_time(phaseZeroTrajectory->timeInOtherBasins);
     }
 
 //    // this function encapsulates part of addEndPointFromLimitTrackingsPhaseZero, and so relies on the consistency checks run at the begininng of that function
@@ -472,7 +538,7 @@ protected:
     Msg* msgPtr;
     PointKey pointKey;
     lm::protowrap::NDArray<int32_t> speciesCountWrap;
-    lm::protowrap::NDArray<double> timeWrapForwardFlux, timeWrapBackwardFlux;
+    lm::protowrap::NDArray<double> timeWrapForwardFlux, timeWrapBackwardFlux, timeWrapBasinExit;
     lm::protowrap::Repeated<lm::io::LimitTracking> limitTrackingsWrap;
 
     // list of pointers into the successful_trajectory_end_points field. Part of the system used to randomly choose some of them

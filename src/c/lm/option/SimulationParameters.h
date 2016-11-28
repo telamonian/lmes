@@ -83,6 +83,7 @@ template <>
 inline void
 _parseNextToken<bool>(const std::string& tokenString, bool* destination)
 {
+    // TODO: treat all of the equivalent representations of "1" as true (eg 1.0, 1.00, etc.)
     *destination = (tokenString=="1" or tokenString=="true" or tokenString=="True");
 }
 
