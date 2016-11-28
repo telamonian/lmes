@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2016 Roberts Group,
+ * Copyright 2016-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -34,11 +34,11 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts, Max Klein
+ * Author(s): Elijah Roberts
  */
 
-#ifndef LM_MPI_MPICOMMUNICTOR_H
-#define LM_MPI_MPICOMMUNICTOR_H
+#ifndef LM_MPI_ASYNCMPICOMMUNICTOR_H
+#define LM_MPI_ASYNCMPICOMMUNICTOR_H
 
 #include <string>
 #include <pthread.h>
@@ -48,50 +48,29 @@
 #include "lm/message/Endpoint.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/mpi/MPI.h"
+#include "lm/mpi/MPICommunicator.h"
 
 using std::string;
 
 namespace lm {
 namespace mpi {
 
-class MPICommunicator : public lm::message::Communicator
+class AsyncMPICommunicator : public MPICommunicator
 {
 public:
     static bool registered;
     static bool registerClass();
     static void* allocateObject();
 
-private:
-    static bool classInitialized;
-    static pthread_mutex_t addressMutex;
-    static lm::message::Endpoint supervisorAddress;
-    static int nextAddress;
-
 public:
-    MPICommunicator();
-    virtual ~MPICommunicator();
-
-    // accessors
-    virtual string getHostname() const;
-    virtual lm::message::Endpoint getSupervisorAddress() const;
-
-    // send and receive messages
-    virtual void sendMessage(lm::message::Endpoint dest, lm::message::Message* msg, int sleepMilliseconds=0) const;
-    virtual void receiveMessage(lm::message::Message* msg, int sleepMilliseconds=0) const;
+    AsyncMPICommunicator();
+    virtual ~AsyncMPICommunicator();
 
 protected:
-    virtual bool initializeClass();
-    virtual void finalizeClass(bool abort);
-    virtual lm::message::Endpoint constructObject(bool isSupervisor);
     virtual void mpiSend(const void* buffer, int count, lm::message::Endpoint dest, int sleepMilliseconds) const;
     virtual int mpiRecv(void* buffer, int bufferSize, lm::message::Endpoint listenAddress, int sleepMilliseconds) const;
-
-protected:
-    size_t inputBufferSize, outputBufferSize;
-    void* inputBuffer;
-    void* outputBuffer;
 };
 
 }
 }
-#endif // LM_MPI_MPICOMMUNICTOR_H
+#endif // LM_MPI_ASYNCMPICOMMUNICTOR_H

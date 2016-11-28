@@ -46,6 +46,9 @@
 #include "lm/mpi/MPICommunicator.h"
 #include "lm/message/Communicator.h"
 #include "lm/message/Endpoint.pb.h"
+#include "lm/thread/Thread.h"
+#include "lptf/Profile.h"
+#include "lptf/ProfileCodes.h"
 
 namespace lm {
 namespace mpi {
@@ -63,16 +66,34 @@ void* MPICommunicator::allocateObject()
     return new MPICommunicator();
 }
 
+bool MPICommunicator::classInitialized = false;
+pthread_mutex_t MPICommunicator::addressMutex;
+lm::message::Endpoint MPICommunicator::supervisorAddress;
+int MPICommunicator::nextAddress;
+
 MPICommunicator::MPICommunicator()
+:inputBufferSize(0),outputBufferSize(0),inputBuffer(NULL),outputBuffer(NULL)
 {
 }
 
 MPICommunicator::~MPICommunicator()
 {
+    if (inputBuffer != NULL)
+    {
+        MPI_EXCEPTION_CHECK(MPI_Free_mem(inputBuffer));
+    }
+    inputBuffer = NULL;
+    if (outputBuffer != NULL)
+    {
+        MPI_EXCEPTION_CHECK(MPI_Free_mem(outputBuffer));
+    }
+    outputBuffer = NULL;
 }
 
 bool MPICommunicator::initializeClass()
 {
+    classInitialized = true;
+
     // Initialize the MPI library.
     lm::MPI::init(0, NULL);
 
@@ -83,26 +104,46 @@ bool MPICommunicator::initializeClass()
         lm::MPI::printCapabilities();
     }
 
+    // Initialize the next address and mutex.
+    pthread_mutexattr_t attr;
+    PTHREAD_EXCEPTION_CHECK(pthread_mutexattr_init(&attr));
+    PTHREAD_EXCEPTION_CHECK(pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL));
+    PTHREAD_EXCEPTION_CHECK(pthread_mutex_init(&addressMutex, &attr));
+    PTHREAD_EXCEPTION_CHECK(pthread_mutexattr_destroy(&attr));
+    nextAddress = 1;
+
+    // Initialize the supervisor address.
+    supervisorAddress.Clear();
+    supervisorAddress.add_values(lm::MPI::MASTER);
+    supervisorAddress.add_values(0);
+
     // Return if we are the master process.
     return lm::MPI::worldRank == lm::MPI::MASTER;
 }
 
 void MPICommunicator::finalizeClass(bool abort)
 {
-    // If we are not aborting, wait for all of the processes to synchronize.
-    if (!abort)
+    if (classInitialized)
     {
-        MPI_EXCEPTION_CHECK(MPI_Barrier(MPI_COMM_WORLD));
-    }
+        // Destroy the mutex.
+        PTHREAD_EXCEPTION_CHECK(pthread_mutex_destroy(&addressMutex));
 
-    // Close the MPI library.
-    lm::MPI::finalize(abort);
+        // If we are not aborting, wait for all of the processes to synchronize.
+        if (!abort)
+        {
+            MPI_EXCEPTION_CHECK(MPI_Barrier(MPI_COMM_WORLD));
+        }
+
+        // Close the MPI library.
+        lm::MPI::finalize(abort);
+    }
 }
 
 std::string MPICommunicator::getHostname() const
 {
     // Get the MPI hostname.
-    char hostname[MPI_MAX_PROCESSOR_NAME];
+    char hostname[MPI_MAX_PROCESSOR_NAME+1];
+    memset(hostname,0,sizeof(hostname));
     int hostnameLength;
     MPI_EXCEPTION_CHECK(MPI_Get_processor_name(hostname, &hostnameLength));
     return std::string(hostname);
@@ -111,196 +152,92 @@ std::string MPICommunicator::getHostname() const
 
 lm::message::Endpoint MPICommunicator::constructObject(bool isSupervisor)
 {
-    return lm::message::Endpoint();
+    // Allocate the buffers.
+    inputBufferSize = 100*1024*1024;
+    outputBufferSize = 100*1024*1024;
+    MPI_EXCEPTION_CHECK(MPI_Alloc_mem(inputBufferSize, MPI_INFO_NULL, &inputBuffer));
+    MPI_EXCEPTION_CHECK(MPI_Alloc_mem(outputBufferSize, MPI_INFO_NULL, &outputBuffer));
+
+    // Return the source address.
+    if (isSupervisor)
+    {
+        return supervisorAddress;
+    }
+    else
+    {
+        lm::message::Endpoint sourceAddress;
+
+        //// BEGIN CRITICAL SECTION: addressMutex
+        PTHREAD_EXCEPTION_CHECK(pthread_mutex_lock(&addressMutex));
+        sourceAddress.add_values(lm::MPI::worldRank);
+        sourceAddress.add_values(nextAddress++);
+        PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&addressMutex));
+        //// END CRITICAL SECTION: addressMutex
+
+        return sourceAddress;
+    }
 }
 
 lm::message::Endpoint MPICommunicator::getSupervisorAddress() const
 {
-    return lm::message::Endpoint();
+    return supervisorAddress;
 }
 
 void MPICommunicator::sendMessage(lm::message::Endpoint destinationAddress, lm::message::Message* msg, int sleepMilliseconds) const
 {
+    PROF_BEGIN(PROF_MESSAGE_SEND);
+
     // Set the sourcre and destination addresses in the message.
     msg->mutable_source_address()->CopyFrom(sourceAddress);
     msg->mutable_destination_address()->CopyFrom(destinationAddress);
 
     Print::printf(Print::INFO, "Sending message %s->%s", lm::message::Communicator::printableAddress(msg->source_address()).c_str(), lm::message::Communicator::printableAddress(msg->destination_address()).c_str());
-}
-
-void MPICommunicator::receiveMessage(lm::message::Message* msg, int sleepMilliseconds) const
-{
-    Print::printf(Print::INFO, "Receving message %s", lm::message::Communicator::printableAddress(sourceAddress).c_str());
-
-    //Print::printf(Print::INFO, "Receved message %s->%s", lm::message::Communicator::printableAddress(msg->source_address()), lm::message::Communicator::printableAddress(msg->dest_address()));
-}
-
-/*
- *
-
-
-
-
-Communicator::Communicator(Endpoint source)
-:source(source),lastMessageSize(0),masterOutput(source),inputBufferSize(100*1024*1024),inputBuffer(NULL),outputBufferSize(100*1024*1024),outputBuffer(NULL)
-{
-    initBuffers();
-}
-
-Communicator::Communicator(int srcProcess, int srcThread)
-:source(srcProcess,srcThread),lastMessageSize(0),masterOutput(srcProcess,srcThread),inputBufferSize(100*1024*1024),inputBuffer(NULL),outputBufferSize(100*1024*1024),outputBuffer(NULL)
-{
-    initBuffers();
-}
-
-Communicator::~Communicator()
-{
-    if (inputBuffer != NULL)
-    {
-        MPI_EXCEPTION_CHECK(MPI_Free_mem(inputBuffer));
-        inputBuffer = NULL;
-    }
-    if (outputBuffer != NULL)
-    {
-        MPI_EXCEPTION_CHECK(MPI_Free_mem(outputBuffer));
-        outputBuffer = NULL;
-    }
-}
-
-void Communicator::initBuffers()
-{
-    MPI_EXCEPTION_CHECK(MPI_Alloc_mem(inputBufferSize, MPI_INFO_NULL, &inputBuffer));
-    MPI_EXCEPTION_CHECK(MPI_Alloc_mem(outputBufferSize, MPI_INFO_NULL, &outputBuffer));
-}
-
-std::string Communicator::getHostname() const
-{
-    char hostname[MPI_MAX_PROCESSOR_NAME+1];
-    memset(hostname,0,sizeof(hostname));
-    int hostnameLength;
-    MPI_EXCEPTION_CHECK(MPI_Get_processor_name(hostname, &hostnameLength));
-    return std::string(hostname);
-}
-
-void Communicator::sendMessage(int destProcess, int destThread, lm::message::Message* msg, int sleepMilliseconds) const
-{
-    sendMessage(Endpoint(destProcess,destThread), msg, sleepMilliseconds);
-}
-
-void Communicator::sendMessage(Endpoint dest, lm::message::Message* msg, int sleepMilliseconds) const
-{
-    PROF_BEGIN(PROF_MESSAGE_SEND);
-
-    // Set the message values.
-    msg->set_source_process(source.process);
-    msg->set_source_thread(source.thread);
-    msg->set_dest_process(dest.process);
-    msg->set_dest_thread(dest.thread);
 
     // Serialize the message into the buffer.
     int messageLength=msg->ByteSize();
-    lastMessageSize = messageLength;
     if (messageLength > outputBufferSize) throw lm::Exception("Message too large to serialize into output buffer",messageLength,outputBufferSize);
-
     PROF_BEGIN(PROF_MESSAGE_SERIALIZE);
     if (!msg->SerializeToArray(outputBuffer,messageLength)) throw lm::Exception("Unable to serialize message");
     PROF_END(PROF_MESSAGE_SERIALIZE);
 
-    // Send the buffer.
-    //lm::Print::printf(lm::Print::DEBUG, "Sending message %d:%d->%d:%d = %d",process,thread,destProcess,destThread,messageLength);
-    if (sleepMilliseconds==-1)
-    {
-        MPI_Request request;
-        MPI_EXCEPTION_CHECK(MPI_Isend(outputBuffer, messageLength, MPI_BYTE, dest.process, dest.thread, MPI_COMM_WORLD, &request));
-        int messageSent=0;
-        while (true)
-        {
-            MPI_EXCEPTION_CHECK(MPI_Test(&request, &messageSent, &messageStatus));
-            if (messageSent)
-                break;
-        }
-    }
-    else if (sleepMilliseconds<=0)
-    {
-        MPI_EXCEPTION_CHECK(MPI_Send(outputBuffer, messageLength, MPI_BYTE, dest.process, dest.thread, MPI_COMM_WORLD));
-    }
-    else
-    {
-        MPI_Request request;
-        MPI_EXCEPTION_CHECK(MPI_Isend(outputBuffer, messageLength, MPI_BYTE, dest.process, dest.thread, MPI_COMM_WORLD, &request));
-        int messageSent=0;
-        while (true)
-        {
-            MPI_EXCEPTION_CHECK(MPI_Test(&request, &messageSent, &messageStatus));
-            if (messageSent)
-                break;
-            usleep(sleepMilliseconds*1000);
-        }
-    }
-    //lm::Print::printf(lm::Print::DEBUG, "Sent message %d:%d->%d:%d = %d",process,thread,destProcess,destThread,messageLength);
+    mpiSend(outputBuffer, messageLength, destinationAddress, sleepMilliseconds);
 
+    Print::printf(Print::INFO, "Sent message %s->%s", lm::message::Communicator::printableAddress(msg->source_address()).c_str(), lm::message::Communicator::printableAddress(msg->destination_address()).c_str());
     PROF_END(PROF_MESSAGE_SEND);
 }
 
-void Communicator::setMasterOutputEndpoint(int moProcess, int moThread)
+void MPICommunicator::mpiSend(const void* buffer, int count, lm::message::Endpoint dest, int sleepMilliseconds) const
 {
-    masterOutput.process = moProcess;
-    masterOutput.thread = moThread;
+    MPI_EXCEPTION_CHECK(MPI_Send(buffer, count, MPI_BYTE, dest.values(0), dest.values(1), MPI_COMM_WORLD));
 }
 
-void Communicator::receiveMessage(lm::message::Message* msg, int sleepMilliseconds) const
+void MPICommunicator::receiveMessage(lm::message::Message* msg, int sleepMilliseconds) const
 {
     PROF_BEGIN(PROF_MESSAGE_RECEIVE);
+    Print::printf(Print::INFO, "Receving message %s", lm::message::Communicator::printableAddress(sourceAddress).c_str());
 
-    // Receive the data.
-    //lm::Print::printf(lm::Print::DEBUG, "Receiving message %d:%d",process,thread);
-
-    // If we shouldn't sleep while waiting, call blocking receive.
-    if (sleepMilliseconds==-1)
-    {
-        MPI_Request request;
-        MPI_EXCEPTION_CHECK(MPI_Irecv(inputBuffer, inputBufferSize, MPI_BYTE, MPI_ANY_SOURCE, source.thread, MPI_COMM_WORLD, &request));
-        int messageReceived=0;
-        while (true)
-        {
-            MPI_EXCEPTION_CHECK(MPI_Test(&request, &messageReceived, &messageStatus));
-            if (messageReceived)
-                break;
-        }
-    }
-    else if (sleepMilliseconds <= 0)
-    {
-        MPI_EXCEPTION_CHECK(MPI_Recv(inputBuffer, inputBufferSize, MPI_BYTE, MPI_ANY_SOURCE, source.thread, MPI_COMM_WORLD, &messageStatus));
-    }
-    else
-    {
-        // Otherwise, poll for the message sleeping in between.
-        MPI_Request request;
-        MPI_EXCEPTION_CHECK(MPI_Irecv(inputBuffer, inputBufferSize, MPI_BYTE, MPI_ANY_SOURCE, source.thread, MPI_COMM_WORLD, &request));
-        int messageReceived=0;
-        while (true)
-        {
-            MPI_EXCEPTION_CHECK(MPI_Test(&request, &messageReceived, &messageStatus));
-            if (messageReceived)
-                break;
-            usleep(sleepMilliseconds*1000);
-        }
-    }
-
-    // Get the length of the data.
-    int messageLength;
-    MPI_EXCEPTION_CHECK(MPI_Get_count(&messageStatus, MPI_BYTE, &messageLength));
+    int messageLength = mpiRecv(inputBuffer, inputBufferSize, sourceAddress, sleepMilliseconds);
 
     // Deserialize the message.
     PROF_BEGIN(PROF_MESSAGE_PARSE);
     if (!msg->ParseFromArray(inputBuffer, messageLength)) throw lm::Exception("Unable to deserialize message");
     PROF_END(PROF_MESSAGE_PARSE);
 
-    //lm::Print::printf(lm::Print::DEBUG, "Received message %d:%d->%d:%d %d bytes: {\n%s}",msg->source_process(),msg->source_thread(),msg->dest_process(),msg->dest_thread(),msg->ByteSize(), msg->DebugString().c_str());
-
+    Print::printf(Print::DEBUG, "Received message %s->%s on %s", lm::message::Communicator::printableAddress(msg->source_address()).c_str(), lm::message::Communicator::printableAddress(msg->destination_address()).c_str(), lm::message::Communicator::printableAddress(sourceAddress).c_str());
     PROF_END(PROF_MESSAGE_RECEIVE);
 }
-*/
+
+int MPICommunicator::mpiRecv(void* buffer, int bufferSize, lm::message::Endpoint listenAddress, int sleepMilliseconds) const
+{
+    MPI_Status messageStatus;
+    MPI_EXCEPTION_CHECK(MPI_Recv(buffer, bufferSize, MPI_BYTE, MPI_ANY_SOURCE, listenAddress.values(1), MPI_COMM_WORLD, &messageStatus));
+
+    // Get the length of the data.
+    int messageLength;
+    MPI_EXCEPTION_CHECK(MPI_Get_count(&messageStatus, MPI_BYTE, &messageLength));
+
+    return messageLength;
+}
 
 }
 }

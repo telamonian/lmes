@@ -48,6 +48,8 @@
 #include "lm/message/Endpoint.pb.h"
 #include "lm/message/LocalCommunicator.h"
 #include "lm/thread/Thread.h"
+#include "lptf/Profile.h"
+#include "lptf/ProfileCodes.h"
 
 using std::list;
 
@@ -68,6 +70,7 @@ void* LocalCommunicator::allocateObject()
 }
 
 
+bool LocalCommunicator::classInitialized = false;
 pthread_mutex_t LocalCommunicator::addressMutex;
 lm::message::Endpoint LocalCommunicator::supervisorAddress;
 vector<LocalCommunicator::AddressRecord*> LocalCommunicator::addressRecords;
@@ -83,6 +86,8 @@ LocalCommunicator::~LocalCommunicator()
 
 bool LocalCommunicator::initializeClass()
 {
+    classInitialized = true;
+
     // Initialize the next address and mutex.
     pthread_mutexattr_t attr;
     PTHREAD_EXCEPTION_CHECK(pthread_mutexattr_init(&attr));
@@ -106,7 +111,11 @@ bool LocalCommunicator::initializeClass()
 
 void LocalCommunicator::finalizeClass(bool abort)
 {
-    PTHREAD_EXCEPTION_CHECK(pthread_mutex_destroy(&addressMutex));
+    if (classInitialized)
+    {
+        // Destroy the mutex.
+        PTHREAD_EXCEPTION_CHECK(pthread_mutex_destroy(&addressMutex));
+    }
 }
 
 lm::message::Endpoint LocalCommunicator::constructObject(bool isSupervisor)
@@ -158,6 +167,8 @@ LocalCommunicator::AddressRecord::~AddressRecord()
 
 void LocalCommunicator::sendMessage(Endpoint destinationAddress, lm::message::Message* msg, int sleepMilliseconds) const
 {
+    PROF_BEGIN(PROF_MESSAGE_SEND);
+
     // Set the sourcre and destination addresses in the message.
     msg->mutable_source_address()->CopyFrom(sourceAddress);
     msg->mutable_destination_address()->CopyFrom(destinationAddress);
@@ -219,12 +230,15 @@ void LocalCommunicator::sendMessage(Endpoint destinationAddress, lm::message::Me
 
     PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&record->recordMutex));
     //// END CRITICAL SECTION: recordMutex
-    ///
+
     //Print::printf(Print::INFO, "Sent message %s->%s", lm::message::Communicator::printableAddress(msg->source_address()).c_str(), lm::message::Communicator::printableAddress(msg->destination_address()).c_str());
+    PROF_END(PROF_MESSAGE_SEND);
 }
 
 void LocalCommunicator::receiveMessage(lm::message::Message* msg, int sleepMilliseconds) const
 {    
+    PROF_BEGIN(PROF_MESSAGE_RECEIVE);
+
     //Print::printf(Print::INFO, "Receving message %s", lm::message::Communicator::printableAddress(sourceAddress).c_str());
 
     AddressRecord* record = NULL;
@@ -273,7 +287,8 @@ void LocalCommunicator::receiveMessage(lm::message::Message* msg, int sleepMilli
     PTHREAD_EXCEPTION_CHECK(pthread_mutex_unlock(&record->recordMutex));
     //// END CRITICAL SECTION: recordMutex
 
-    //Print::printf(Print::INFO, "Receved message %s->%s on %s", lm::message::Communicator::printableAddress(msg->source_address()).c_str(), lm::message::Communicator::printableAddress(msg->destination_address()).c_str(), lm::message::Communicator::printableAddress(sourceAddress).c_str());
+    //Print::printf(Print::DEBUG, "Received message %s->%s on %s", lm::message::Communicator::printableAddress(msg->source_address()).c_str(), lm::message::Communicator::printableAddress(msg->destination_address()).c_str(), lm::message::Communicator::printableAddress(sourceAddress).c_str());
+    PROF_END(PROF_MESSAGE_RECEIVE);
 }
 
 }

@@ -74,6 +74,7 @@ private:
         list<lm::message::Message*> sendingMessages;
         lm::message::Message* receivingMessage;
     };
+    static bool classInitialized;
     static pthread_mutex_t addressMutex;
     static lm::message::Endpoint supervisorAddress;
     static vector<AddressRecord*> addressRecords;
