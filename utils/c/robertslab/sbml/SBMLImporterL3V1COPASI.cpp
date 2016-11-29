@@ -7,7 +7,7 @@
 
 #include "lm/Print.h"
 #include "robertslab/sbml/SBMLImporterL3V1.h"
-#include "robertslab/sbml/SBMLImporterL3V1Copasi.h"
+#include "robertslab/sbml/SBMLImporterL3V1COPASI.h"
 
 
 using lm::Print;

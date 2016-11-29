@@ -12,7 +12,7 @@
             <compartment id="V" size="1e-15" spatialDimensions="3" constant="true"/>
         </listOfCompartments>
         <listOfSpecies>
-            <species id="m"  compartment="V" initialAmount="1000"
+            <species id="m"  compartment="V" initialAmount="300"
                              hasOnlySubstanceUnits="true" boundaryCondition="false"
                              constant="false"/>
             <species id="d"  compartment="V" initialAmount="0"
@@ -32,9 +32,12 @@
                     <math xmlns="http://www.w3.org/1998/Math/MathML">
                         <apply>
                             <times/>
-                            <cn> 0.95 </cn>
-                            <ci> m </ci>
-                            <ci> m </ci>
+                            <cn> 0.1 </cn>
+				  <apply>
+					<power/>
+					<ci> m </ci>
+					<cn> 2 </cn>
+				  </apply>
                         </apply>
                     </math>
                 </kineticLaw>
