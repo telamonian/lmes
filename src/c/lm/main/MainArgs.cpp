@@ -518,10 +518,10 @@ double parseIntReciprocalArg(char * arg)
  */
 void printUsage(int argc, char** argv)
 {
-    std::cout << "Usage: mpirun lm (-h|--help)" << std::endl;
-    std::cout << "Usage: mpirun lm (-v|--version)" << std::endl;
-    std::cout << "Usage: mpirun lm (-l|--list-devices)" << std::endl;
-    std::cout << "Usage: mpirun lm [OPTIONS] [SIM_OPTIONS] (-f|--file) input_filename" << std::endl;
+    std::cout << "Usage: lm (-h|--help)" << std::endl;
+    std::cout << "Usage: lm (-v|--version)" << std::endl;
+    std::cout << "Usage: lm (-l|--list-devices)" << std::endl;
+    std::cout << "Usage: lm [OPTIONS] [SIM_OPTIONS] (-f|--file) input_filename" << std::endl;
     std::cout << std::endl;
     std::cout << "OPTIONS" << std::endl;
     std::cout << "  -ff format        --output-format=format        The file format for the simulation output. Valid values are \"hdf5\" (default)|\"sfile\"|\"log\"|\"null\"." << std::endl;
