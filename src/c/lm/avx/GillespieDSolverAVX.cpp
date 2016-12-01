@@ -99,8 +99,13 @@ void* GillespieDSolverAVX::allocateObject()
 }
 
 GillespieDSolverAVX::GillespieDSolverAVX()
-:GillespieDSolver(),timeLimit(_mm256_set1_pd(std::numeric_limits<double>::infinity())),limitValues(NULL),numberFptValues(0),fptMinValuesAchieved(NULL),fptMaxValuesAchieved(NULL),fptValues(NULL),speciesCounts(NULL),propensities(NULL),time(_mm256_set1_pd(0.0)),timeStep(_mm256_set1_pd(0.0)),orderParameterValues(NULL),orderParameterPreviousValues(NULL)
+:GillespieDSolver(),limitValues(NULL),numberFptValues(0),fptMinValuesAchieved(NULL),fptMaxValuesAchieved(NULL),fptValues(NULL),speciesCounts(NULL),propensities(NULL),orderParameterValues(NULL),orderParameterPreviousValues(NULL)
 {
+    // Initialize any avx variables.
+    timeLimit = _mm256_set1_pd(std::numeric_limits<double>::infinity());
+    time = _mm256_set1_pd(0.0);
+    timeStep = _mm256_set1_pd(0.0);
+
     // Initialize any array variables.
     int i=0;
     for (; i<DOUBLES_PER_AVX; i++)
