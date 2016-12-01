@@ -1,4 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+# PYTHON_ARGCOMPLETE_OK
 
 from lma.regression.regression import ReplicateRegressionParser
 from lma.regression.models.genetic_toggle_switch.gtsRegression import GTSRegression

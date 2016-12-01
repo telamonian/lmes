@@ -5,11 +5,12 @@ import numpy as np
 
 from lma.src.script.lmFile import Basin,SimulationParameter,Tiling
 from lma.regression.regression import FFluxRegressionParser
-from lma.regression.models.self_regulated_gene.srgRegression import SRGRegression
+from lma.regression.models.self_regulated_gene.srgRegression import SRGRegression, SRGRegressionParserMixin
 
 class FFluxSRGRegression(SRGRegression):
     helpMessage = 'script to test out a complete Forward Flux Lattice Microbes run'
-    parserType = FFluxRegressionParser
+    # dynamically create the parser type from the normal fflux simulation parser and the self regulated gene parser mixin
+    parserType = type('FFluxSRGRegressionParser', (SRGRegressionParserMixin, FFluxRegressionParser), {})
 
     def _buildDefaultSimulationParameterDict(self):
         if self.parser['quick_test']:

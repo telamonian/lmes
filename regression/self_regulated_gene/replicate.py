@@ -1,28 +1,30 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+# PYTHON_ARGCOMPLETE_OK
 
+from lma.src.script.lmFile import OrderParameterLimit, SpeciesLimit
 from lma.regression.regression import ReplicateRegressionParser
-from lma.regression.models.genetic_toggle_switch.gtsRegression import GTSRegression
+from lma.regression.models.self_regulated_gene.srgRegression import SRGRegression, SRGRegressionParserMixin
 
-class ReplicateGTSRegression(GTSRegression):
+class ReplicateSRGRegression(SRGRegression):
     helpMessage = 'script to test out a complete Replicate Lattice Microbes run'
-    parserType = ReplicateRegressionParser
+    # dynamically create the parser type from the normal replicate simulation parser and the self regulated gene parser mixin
+    parserType = type('ReplicateSRGRegressionParser', (SRGRegressionParserMixin, ReplicateRegressionParser), {})
     
     def _buildDefaultSimulationParameterDict(self):
         if self.parser['quick_test']:
             return {'maxSteps': 1e10,
-                    'maxTime': 1e1,
+                    'maxTime': 1e6,
                     'maxWorkUnitSteps': 1e8,
                     'writeInterval': 1e0,
                     # 'orderParameterWriteInterval': 1e0}
                     }
         else:
             return {'maxSteps': 1e10,
-                    'maxTime': 1e4,
+                    'maxTime': 1e6,
                     'maxWorkUnitSteps': 1e8,
                     'writeInterval': 1e1,
                     # 'orderParameterWriteInterval': 1e1}
                     }
-
 
     def _buildSimulationParameters(self, lmInput):
         defaultSimParamDict = self.buildDefaultSimulationParameterDict()
@@ -31,24 +33,26 @@ class ReplicateGTSRegression(GTSRegression):
             if key not in userSimParamDict:
                 userSimParamDict[key] = defaultSimParamDict[key]
 
-        if 'firstPassageTimeSpecies' in userSimParamDict:
-            if not userSimParamDict['firstPassageTimeSpecies']:
-                userSimParamDict['firstPassageTimeSpecies'] = [0,1,2,3,4,5,6]
+        if 'fptTrackingList' in userSimParamDict:
+            if not userSimParamDict['fptTrackingList']: userSimParamDict['fptTrackingList'] = [0]
+            lmInput.SetFirstPassageTimeTracking(fptTrackedSpecies=userSimParamDict.pop('fptTrackingList'))
 
-            lmInput.SetFirstPassageTimeTracking(fptTrackedSpecies=userSimParamDict['firstPassageTimeSpecies'])
+            # limitTup = SpeciesLimit(**self.limitDict['a'])
+            lmInput.SetLimit(limitTup=self.limitDict['species_a'])
 
-        if 'firstPassageTimeOrderParameters' in userSimParamDict:
-            if not userSimParamDict['firstPassageTimeOrderParameters']:
-                userSimParamDict['firstPassageTimeOrderParameters'] = [0]
+        if 'fptOrderParameterTrackingList' in userSimParamDict:
+            if not userSimParamDict['fptOrderParameterTrackingList']: userSimParamDict['fptOrderParameterTrackingList'] = [0]
+            lmInput.SetFirstPassageTimeTracking(fptTrackedOrderParameters=userSimParamDict.pop('fptOrderParameterTrackingList'))
 
-            lmInput.SetFirstPassageTimeTracking(fptTrackedOrderParameters=userSimParamDict['firstPassageTimeOrderParameters'])
+            # limitTup = OrderParameterLimit(**self.limitDict['a'])
+            lmInput.SetLimit(limitTup=self.limitDict['oparam_a'])
 
         return userSimParamDict
 
 if __name__=='__main__':
-    regression = ReplicateGTSRegression()
+    regression = ReplicateSRGRegression()
     regression.main()
 
-# after this script sets up genetic_toggle_switch.lm, the simulation can be rerun directly with any of the following lines:
-#../build/lmes -r 1-10 -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff hdf5 -f "genetic_toggle_switch.lm"
-#../build/lmes -r 1-10 -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff sfile -fo genetic_toggle_switch.sfile -f "genetic_toggle_switch.lm"
+# after this script sets up self_regulated_gene.lm, the simulation can be rerun directly with any of the following lines:
+#../build/lmes -r 1-10 -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff hdf5 -f "self_regulated_gene.lm"
+#../build/lmes -r 1-10 -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff sfile -fo self_regulated_gene.sfile -f "self_regulated_gene.lm"
