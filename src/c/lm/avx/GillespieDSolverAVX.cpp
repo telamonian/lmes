@@ -95,7 +95,14 @@ bool GillespieDSolverAVX::registerClass()
 
 void* GillespieDSolverAVX::allocateObject()
 {
-    return new GillespieDSolverAVX();
+    // Allocate aligned memory for the object since it contains avxd variables.
+    GillespieDSolverAVX* obj;
+    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&obj, DOUBLES_PER_AVX*sizeof(double), sizeof(GillespieDSolverAVX)));
+
+    // Construct the object in place.
+    new (obj) GillespieDSolverAVX();
+
+    return obj;
 }
 
 GillespieDSolverAVX::GillespieDSolverAVX()
