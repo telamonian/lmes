@@ -41,10 +41,10 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
 #ifndef LM_EXCEPTIONS_H_
 #define LM_EXCEPTIONS_H_
 
+#include <cstdarg>
 #include <cstdio>
 #include <exception>
 #include <string>
