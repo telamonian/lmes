@@ -43,6 +43,9 @@
  */
 #include <cerrno>
 #include <climits>
+#if !defined(HOST_NAME_MAX) and defined(_POSIX_HOST_NAME_MAX)
+#define HOST_NAME_MAX _POSIX_HOST_NAME_MAX
+#endif
 #include <csignal>
 #include <cstdio>
 #include <cstring>
@@ -284,7 +287,7 @@ void executeSimulationSlave()
     PROF_BEGIN(PROF_SIM_RUN);
 
     // Get the hostname.
-    char hostnameBuffer[_POSIX_HOST_NAME_MAX+1];
+    char hostnameBuffer[HOST_NAME_MAX+1];
     memset(hostnameBuffer,0,sizeof(hostnameBuffer));
     if (gethostname(hostnameBuffer, sizeof(hostnameBuffer)) != 0)
         throw lm::Exception("unable to get hostname");
