@@ -222,10 +222,11 @@ void importSBMLModel(Hdf5File * lmFile, string sbmlFilename) throw(Exception)
                 criticalErrrors = true;
         }
 
-        Print::printf(criticalErrrors?Print::ERROR:Print::WARNING,"Problems detected while parsing the SBML file %s",sbmlFilename.c_str());
-        Print::printf(criticalErrrors?Print::ERROR:Print::WARNING,"-----------------------------------");
+
+        Print::printf(Print::WARNING,"Problems detected while parsing the SBML file %s",sbmlFilename.c_str());
+        Print::printf(Print::WARNING,"-----------------------------------");
         sbmlDocument->printErrors(std::cout);
-        Print::printf(criticalErrrors?Print::ERROR:Print::WARNING,"-----------------------------------");
+        Print::printf(Print::WARNING,"-----------------------------------");
 
         // If there were critical errors and we are not ignoring exceptions, stop.
         if (criticalErrrors && !ignoreErrors)
