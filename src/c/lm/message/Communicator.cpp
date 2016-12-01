@@ -37,7 +37,6 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
-#include <climits>
 #include <cstdio>
 #include <sched.h>
 #include <string>
@@ -96,7 +95,7 @@ Communicator::~Communicator()
 
 std::string Communicator::getHostname() const
 {
-    char hostname[HOST_NAME_MAX+1];
+    char hostname[_POSIX_HOST_NAME_MAX+1];
     memset(hostname,0,sizeof(hostname));
     if (gethostname(hostname, sizeof(hostname)) != 0)
         throw lm::Exception("unable to get host name");

@@ -191,8 +191,6 @@ void MPICommunicator::sendMessage(lm::message::Endpoint destinationAddress, lm::
     msg->mutable_source_address()->CopyFrom(sourceAddress);
     msg->mutable_destination_address()->CopyFrom(destinationAddress);
 
-    Print::printf(Print::INFO, "Sending message %s->%s", lm::message::Communicator::printableAddress(msg->source_address()).c_str(), lm::message::Communicator::printableAddress(msg->destination_address()).c_str());
-
     // Serialize the message into the buffer.
     int messageLength=msg->ByteSize();
     if (messageLength > outputBufferSize) throw lm::Exception("Message too large to serialize into output buffer",messageLength,outputBufferSize);
@@ -202,7 +200,7 @@ void MPICommunicator::sendMessage(lm::message::Endpoint destinationAddress, lm::
 
     mpiSend(outputBuffer, messageLength, destinationAddress, sleepMilliseconds);
 
-    Print::printf(Print::INFO, "Sent message %s->%s", lm::message::Communicator::printableAddress(msg->source_address()).c_str(), lm::message::Communicator::printableAddress(msg->destination_address()).c_str());
+    Print::printf(Print::VERBOSE_DEBUG, "Sent message %s->%s", lm::message::Communicator::printableAddress(msg->source_address()).c_str(), lm::message::Communicator::printableAddress(msg->destination_address()).c_str());
     PROF_END(PROF_MESSAGE_SEND);
 }
 
@@ -214,7 +212,6 @@ void MPICommunicator::mpiSend(const void* buffer, int count, lm::message::Endpoi
 void MPICommunicator::receiveMessage(lm::message::Message* msg, int sleepMilliseconds) const
 {
     PROF_BEGIN(PROF_MESSAGE_RECEIVE);
-    Print::printf(Print::INFO, "Receving message %s", lm::message::Communicator::printableAddress(sourceAddress).c_str());
 
     int messageLength = mpiRecv(inputBuffer, inputBufferSize, sourceAddress, sleepMilliseconds);
 
@@ -223,7 +220,7 @@ void MPICommunicator::receiveMessage(lm::message::Message* msg, int sleepMillise
     if (!msg->ParseFromArray(inputBuffer, messageLength)) throw lm::Exception("Unable to deserialize message");
     PROF_END(PROF_MESSAGE_PARSE);
 
-    Print::printf(Print::DEBUG, "Received message %s->%s on %s", lm::message::Communicator::printableAddress(msg->source_address()).c_str(), lm::message::Communicator::printableAddress(msg->destination_address()).c_str(), lm::message::Communicator::printableAddress(sourceAddress).c_str());
+    Print::printf(Print::VERBOSE_DEBUG, "Received message %s->%s on %s", lm::message::Communicator::printableAddress(msg->source_address()).c_str(), lm::message::Communicator::printableAddress(msg->destination_address()).c_str(), lm::message::Communicator::printableAddress(sourceAddress).c_str());
     PROF_END(PROF_MESSAGE_RECEIVE);
 }
 
