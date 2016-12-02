@@ -37,6 +37,8 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
+#ifdef OPT_MPI
+
 #ifndef LM_MPI_MPICOMMUNICTOR_H
 #define LM_MPI_MPICOMMUNICTOR_H
 
@@ -95,3 +97,5 @@ protected:
 }
 }
 #endif // LM_MPI_MPICOMMUNICTOR_H
+
+#endif

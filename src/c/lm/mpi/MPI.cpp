@@ -42,6 +42,8 @@
  * Author(s): Elijah Roberts
  */
 
+#ifdef OPT_MPI
+
 #include <cstdio>
 #include <iostream>
 #include <mpi.h>
@@ -139,3 +141,5 @@ void MPI::MastBcastOut(void * buf, int count, MPI_Datatype datatype, int tag, MP
 //}
 
 }
+
+#endif

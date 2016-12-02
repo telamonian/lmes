@@ -42,6 +42,8 @@
  * Author(s): Elijah Roberts
  */
 
+#ifdef OPT_MPI
+
 #ifndef LM_MPI_H_
 #define LM_MPI_H_
 
@@ -104,3 +106,5 @@ public:
 
 }
 #endif /*LM_MPI_H_*/
+
+#endif

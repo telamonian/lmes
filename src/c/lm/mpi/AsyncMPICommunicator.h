@@ -37,6 +37,8 @@
  * Author(s): Elijah Roberts
  */
 
+#ifdef OPT_MPI
+
 #ifndef LM_MPI_ASYNCMPICOMMUNICTOR_H
 #define LM_MPI_ASYNCMPICOMMUNICTOR_H
 
@@ -74,3 +76,5 @@ protected:
 }
 }
 #endif // LM_MPI_ASYNCMPICOMMUNICTOR_H
+
+#endif

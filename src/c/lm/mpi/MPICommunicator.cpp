@@ -37,6 +37,8 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
+#ifdef OPT_MPI
+
 #include <string>
 #include <google/protobuf/message.h>
 
@@ -238,3 +240,5 @@ int MPICommunicator::mpiRecv(void* buffer, int bufferSize, lm::message::Endpoint
 
 }
 }
+
+#endif
