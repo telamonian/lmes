@@ -166,7 +166,7 @@ void ASTHelper::simplifyASTExpression(ASTNode_t* node, map<string,double>& param
         simplifyASTExpression(node->getChild(i), parameterValues);
 
     // If this is an operator and all children are numbers, evaluate it.
-    if (node->isOperator() && areAllASTChildrenNumeric(node))
+    if (node->isOperator() && node->getType() != AST_POWER && areAllASTChildrenNumeric(node))
     {
         node->setValue(evaluateASTOperator(node));
         while (node->getNumChildren())
@@ -206,6 +206,18 @@ void ASTHelper::simplifyASTExpression(ASTNode_t* node, map<string,double>& param
         {
             numericChild->setValue(value);
         }
+    }
+
+    // If this node is multiplication, and it only has one operator child, remove the multiplication.
+    if (node->getType() == AST_TIMES && node->getNumChildren() == 1 && node->getChild(0)->isOperator())
+    {
+        ASTNode_t* child = node->getChild(0);
+        node->removeChild(0);
+        for (int i=0; i<child->getNumChildren(); i++)
+        {
+            node->addChild(child->getChild(i));
+        }
+        node->setType(child->getType());
     }
 
     // Substitute any parameter values.
@@ -264,6 +276,11 @@ double ASTHelper::evaluateASTOperator(const ASTNode_t * node)
         if (node->getNumChildren() == 2) return evaluateASTOperator(node->getChild(0)) - evaluateASTOperator(node->getChild(1));
         throw Exception("Unsupported subtraction operator format: ", SBML_formulaToL3String(node));
     }
+    else if (node->getType() == AST_POWER)
+    {
+        if (node->getNumChildren() != 2) throw Exception("Unsupported power operator format: ", SBML_formulaToL3String(node));
+        return pow(evaluateASTOperator(node->getChild(0)), evaluateASTOperator(node->getChild(1)));
+    }
     else if (node->getType() == AST_INTEGER)
     {
         return (double)node->getInteger();
@@ -300,7 +317,7 @@ bool ASTHelper::compareASTNodes(ASTNode_t* formula, ASTNode_t* propensityFormula
 
     if (formula->isNumber() && propensityFormula->isNumber())
     {
-    return evaluateASTOperator(formula) == evaluateASTOperator(propensityFormula);
+        return evaluateASTOperator(formula) == evaluateASTOperator(propensityFormula);
     }
 
     if (formula->getType() == propensityFormula->getType() && formula->getNumChildren() == propensityFormula->getNumChildren())

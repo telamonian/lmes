@@ -3,7 +3,7 @@
 ############################
 
 # Uncomment to set the build type. Can be one of Debug, Release, RelWithDebInfo or MinSizeRel
-SET(CMAKE_BUILD_TYPE "Release")
+SET(CMAKE_BUILD_TYPE "Debug")
 
 # Set the prefix dir for installation of lmes (i.e. when running "make install").
 SET(CMAKE_INSTALL_PREFIX "/Users/eroberts/usr/local")

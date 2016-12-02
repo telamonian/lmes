@@ -180,6 +180,8 @@ int main(int argc, char** argv)
 
 		    // Close the file.
 		    outputFile.close();
+
+            Print::printf(Print::INFO, "Import completed successfully.");
 		}
 		else
 		{

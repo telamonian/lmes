@@ -1,24 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- generated with COPASI 4.16 (Build 104) (http://www.copasi.org) at 2016-11-20 20:30:14 UTC -->
+<!-- generated with COPASI 4.16 (Build 104) (http://www.copasi.org) at 2016-12-02 20:47:24 UTC -->
 <?oxygen RNGSchema="http://www.copasi.org/static/schema/CopasiML.rng" type="xml"?>
 <COPASI xmlns="http://www.copasi.org/static/schema" versionMajor="4" versionMinor="16" versionDevel="104" copasiSourcesModified="0">
   <ListOfFunctions>
     <Function key="Function_13" name="Mass action (irreversible)" type="MassAction" reversible="false">
       <MiriamAnnotation>
-<rdf:RDF
-   xmlns:CopasiMT="http://www.copasi.org/RDF/MiriamTerms#"
-   xmlns:dcterms="http://purl.org/dc/terms/"
-   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+<rdf:RDF xmlns:CopasiMT="http://www.copasi.org/RDF/MiriamTerms#" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
   <rdf:Description rdf:about="#Function_13">
     <dcterms:created>
       <rdf:Description>
         <dcterms:W3CDTF>2016-11-20T09:14:24Z</dcterms:W3CDTF>
       </rdf:Description>
     </dcterms:created>
-    <CopasiMT:is rdf:resource="urn:miriam:obo.sbo:SBO:0000041"/>
+    <CopasiMT:is rdf:resource="urn:miriam:obo.sbo:SBO:0000041" />
   </rdf:Description>
 </rdf:RDF>
-
       </MiriamAnnotation>
       <Comment>
         <body xmlns="http://www.w3.org/1999/xhtml">
@@ -55,15 +51,15 @@ Reaction scheme where the products are created from the reactants and the change
         k0 + (k1-k0)*(x^h)/(x50^h+x^h)
       </Expression>
       <ListOfParameterDescriptions>
-        <ParameterDescription key="FunctionParameter_288" name="k0" order="0" role="constant"/>
-        <ParameterDescription key="FunctionParameter_267" name="k1" order="1" role="constant"/>
-        <ParameterDescription key="FunctionParameter_272" name="x" order="2" role="modifier"/>
-        <ParameterDescription key="FunctionParameter_265" name="h" order="3" role="constant"/>
-        <ParameterDescription key="FunctionParameter_246" name="x50" order="4" role="constant"/>
+        <ParameterDescription key="FunctionParameter_264" name="k0" order="0" role="constant"/>
+        <ParameterDescription key="FunctionParameter_254" name="k1" order="1" role="constant"/>
+        <ParameterDescription key="FunctionParameter_258" name="x" order="2" role="modifier"/>
+        <ParameterDescription key="FunctionParameter_266" name="h" order="3" role="constant"/>
+        <ParameterDescription key="FunctionParameter_268" name="x50" order="4" role="constant"/>
       </ListOfParameterDescriptions>
     </Function>
   </ListOfFunctions>
-  <Model key="Model_3" name="Self Regulating Gene" simulationType="time" timeUnit="s" volumeUnit="l" areaUnit="m²" lengthUnit="m" quantityUnit="#" type="deterministic" avogadroConstant="6.02214179e+23">
+  <Model key="Model_3" name="Self Regulating Gene" simulationType="time" timeUnit="min" volumeUnit="l" areaUnit="m²" lengthUnit="m" quantityUnit="#" type="deterministic" avogadroConstant="6.02214179e+23">
     <MiriamAnnotation>
 <rdf:RDF
    xmlns:dcterms="http://purl.org/dc/terms/"
@@ -137,27 +133,27 @@ Reaction scheme where the products are created from the reactants and the change
           <Modifier metabolite="Metabolite_1" stoichiometry="1"/>
         </ListOfModifiers>
         <ListOfConstants>
-          <Constant key="Parameter_4358" name="k0" value="50"/>
-          <Constant key="Parameter_4359" name="k1" value="1000"/>
-          <Constant key="Parameter_4360" name="h" value="2"/>
-          <Constant key="Parameter_4361" name="x50" value="50"/>
+          <Constant key="Parameter_4460" name="k0" value="3e+18"/>
+          <Constant key="Parameter_4459" name="k1" value="6e+19"/>
+          <Constant key="Parameter_4458" name="h" value="2"/>
+          <Constant key="Parameter_4457" name="x50" value="5e+16"/>
         </ListOfConstants>
         <KineticLaw function="Function_40">
           <ListOfCallParameters>
-            <CallParameter functionParameter="FunctionParameter_288">
-              <SourceParameter reference="Parameter_4358"/>
+            <CallParameter functionParameter="FunctionParameter_264">
+              <SourceParameter reference="Parameter_4460"/>
             </CallParameter>
-            <CallParameter functionParameter="FunctionParameter_267">
-              <SourceParameter reference="Parameter_4359"/>
+            <CallParameter functionParameter="FunctionParameter_254">
+              <SourceParameter reference="Parameter_4459"/>
             </CallParameter>
-            <CallParameter functionParameter="FunctionParameter_272">
+            <CallParameter functionParameter="FunctionParameter_258">
               <SourceParameter reference="Metabolite_1"/>
             </CallParameter>
-            <CallParameter functionParameter="FunctionParameter_265">
-              <SourceParameter reference="Parameter_4360"/>
+            <CallParameter functionParameter="FunctionParameter_266">
+              <SourceParameter reference="Parameter_4458"/>
             </CallParameter>
-            <CallParameter functionParameter="FunctionParameter_246">
-              <SourceParameter reference="Parameter_4361"/>
+            <CallParameter functionParameter="FunctionParameter_268">
+              <SourceParameter reference="Parameter_4457"/>
             </CallParameter>
           </ListOfCallParameters>
         </KineticLaw>
@@ -181,12 +177,12 @@ Reaction scheme where the products are created from the reactants and the change
           <Substrate metabolite="Metabolite_1" stoichiometry="1"/>
         </ListOfSubstrates>
         <ListOfConstants>
-          <Constant key="Parameter_4357" name="k1" value="10"/>
+          <Constant key="Parameter_4456" name="k1" value="600"/>
         </ListOfConstants>
         <KineticLaw function="Function_13">
           <ListOfCallParameters>
             <CallParameter functionParameter="FunctionParameter_81">
-              <SourceParameter reference="Parameter_4357"/>
+              <SourceParameter reference="Parameter_4456"/>
             </CallParameter>
             <CallParameter functionParameter="FunctionParameter_79">
               <SourceParameter reference="Metabolite_1"/>
@@ -201,7 +197,7 @@ Reaction scheme where the products are created from the reactants and the change
           <ModelParameter cn="CN=Root,Model=Self Regulating Gene" value="0" type="Model" simulationType="time"/>
         </ModelParameterGroup>
         <ModelParameterGroup cn="String=Initial Compartment Sizes" type="Group">
-          <ModelParameter cn="CN=Root,Model=Self Regulating Gene,Vector=Compartments[volume]" value="1" type="Compartment" simulationType="fixed"/>
+          <ModelParameter cn="CN=Root,Model=Self Regulating Gene,Vector=Compartments[volume]" value="1e-15" type="Compartment" simulationType="fixed"/>
         </ModelParameterGroup>
         <ModelParameterGroup cn="String=Initial Species Values" type="Group">
           <ModelParameter cn="CN=Root,Model=Self Regulating Gene,Vector=Compartments[volume],Vector=Metabolites[x]" value="100" type="Species" simulationType="reactions"/>
@@ -210,13 +206,13 @@ Reaction scheme where the products are created from the reactants and the change
         </ModelParameterGroup>
         <ModelParameterGroup cn="String=Kinetic Parameters" type="Group">
           <ModelParameterGroup cn="CN=Root,Model=Self Regulating Gene,Vector=Reactions[birth]" type="Reaction">
-            <ModelParameter cn="CN=Root,Model=Self Regulating Gene,Vector=Reactions[birth],ParameterGroup=Parameters,Parameter=k0" value="50" type="ReactionParameter" simulationType="fixed"/>
-            <ModelParameter cn="CN=Root,Model=Self Regulating Gene,Vector=Reactions[birth],ParameterGroup=Parameters,Parameter=k1" value="1000" type="ReactionParameter" simulationType="fixed"/>
+            <ModelParameter cn="CN=Root,Model=Self Regulating Gene,Vector=Reactions[birth],ParameterGroup=Parameters,Parameter=k0" value="3e+18" type="ReactionParameter" simulationType="fixed"/>
+            <ModelParameter cn="CN=Root,Model=Self Regulating Gene,Vector=Reactions[birth],ParameterGroup=Parameters,Parameter=k1" value="6e+19" type="ReactionParameter" simulationType="fixed"/>
             <ModelParameter cn="CN=Root,Model=Self Regulating Gene,Vector=Reactions[birth],ParameterGroup=Parameters,Parameter=h" value="2" type="ReactionParameter" simulationType="fixed"/>
-            <ModelParameter cn="CN=Root,Model=Self Regulating Gene,Vector=Reactions[birth],ParameterGroup=Parameters,Parameter=x50" value="50" type="ReactionParameter" simulationType="fixed"/>
+            <ModelParameter cn="CN=Root,Model=Self Regulating Gene,Vector=Reactions[birth],ParameterGroup=Parameters,Parameter=x50" value="5e+16" type="ReactionParameter" simulationType="fixed"/>
           </ModelParameterGroup>
           <ModelParameterGroup cn="CN=Root,Model=Self Regulating Gene,Vector=Reactions[death]" type="Reaction">
-            <ModelParameter cn="CN=Root,Model=Self Regulating Gene,Vector=Reactions[death],ParameterGroup=Parameters,Parameter=k1" value="10" type="ReactionParameter" simulationType="fixed"/>
+            <ModelParameter cn="CN=Root,Model=Self Regulating Gene,Vector=Reactions[death],ParameterGroup=Parameters,Parameter=k1" value="600" type="ReactionParameter" simulationType="fixed"/>
           </ModelParameterGroup>
         </ModelParameterGroup>
       </ModelParameterSet>
@@ -227,7 +223,7 @@ Reaction scheme where the products are created from the reactants and the change
       <StateTemplateVariable objectReference="Compartment_1"/>
     </StateTemplate>
     <InitialState type="initialState">
-      0 100 1 
+      0 100 1e-15 
     </InitialState>
   </Model>
   <ListOfTasks>
@@ -322,8 +318,8 @@ Reaction scheme where the products are created from the reactants and the change
         <ParameterGroup name="Experiment Set">
         </ParameterGroup>
         <ParameterGroup name="Validation Set">
-          <Parameter name="Weight" type="unsignedFloat" value="1"/>
           <Parameter name="Threshold" type="unsignedInteger" value="5"/>
+          <Parameter name="Weight" type="unsignedFloat" value="1"/>
         </ParameterGroup>
       </Problem>
       <Method name="Evolutionary Programming" type="EvolutionaryProgram">
@@ -571,12 +567,12 @@ Reaction scheme where the products are created from the reactants and the change
       <Parameter name="log Y" type="bool" value="0"/>
       <ListOfPlotItems>
         <PlotItem name="x.ParticleNumber" type="Curve2D">
-          <Parameter name="Line type" type="unsignedInteger" value="0"/>
-          <Parameter name="Line subtype" type="unsignedInteger" value="0"/>
-          <Parameter name="Line width" type="unsignedFloat" value="1"/>
-          <Parameter name="Symbol subtype" type="unsignedInteger" value="0"/>
           <Parameter name="Color" type="string" value="auto"/>
+          <Parameter name="Line subtype" type="unsignedInteger" value="0"/>
+          <Parameter name="Line type" type="unsignedInteger" value="0"/>
+          <Parameter name="Line width" type="unsignedFloat" value="1"/>
           <Parameter name="Recording Activity" type="string" value="during"/>
+          <Parameter name="Symbol subtype" type="unsignedInteger" value="0"/>
           <ListOfChannels>
             <ChannelSpec cn="CN=Root,Model=Self Regulating Gene,Reference=Time"/>
             <ChannelSpec cn="CN=Root,Model=Self Regulating Gene,Vector=Compartments[volume],Vector=Metabolites[x],Reference=ParticleNumber"/>
@@ -587,7 +583,7 @@ Reaction scheme where the products are created from the reactants and the change
   </ListOfPlots>
   <GUI>
   </GUI>
-  <SBMLReference file="self_regulating_gene_particle_sec_1.xml">
+  <SBMLReference file="self_regulating_gene_particle_sec.xml">
     <SBMLMap SBMLid="Zeroth_Order_Kinetic_Hill" COPASIkey="Function_40"/>
     <SBMLMap SBMLid="birth" COPASIkey="Reaction_0"/>
     <SBMLMap SBMLid="death" COPASIkey="Reaction_1"/>
