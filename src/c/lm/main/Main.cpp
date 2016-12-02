@@ -235,7 +235,7 @@ void executeSimulationMaster()
     // If we have a resource file, use it.
     if (resourceFilename != "")
     {
-        resourceMap = new ResourceMap(resourceFilename, cpuCores, gpuDevices);
+        resourceMap = new ResourceMap(resourceFilename, resourceFileFormat, cpuCores, gpuDevices);
     }
 
     // Othwerise, if we are running under a PBS queue manager, query it.

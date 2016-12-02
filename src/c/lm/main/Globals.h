@@ -44,6 +44,7 @@
 #include <string>
 #include <vector>
 #include "lm/Types.h"
+#include "lm/resource/ResourceMap.h"
 #include "hrtime.h"
 
 using std::string;
@@ -110,6 +111,11 @@ extern string solverClassName;
 extern string resourceFilename;
 
 /**
+ * The format for the resource file.
+ */
+extern lm::resource::ResourceMap::ResourceFileFormat resourceFileFormat;
+
+/**
  * The number of cpu cores assigned to each process.
  */
 extern int cpuCores;
@@ -169,37 +175,5 @@ extern bool opActivatedFlag;
  */
 extern bool opTrackingFlag;
 
-/*
- * Flag to indicate that we're running a test of the program's input and output
- */
-extern bool ioTestFlag;
-
-#ifdef OPT_PYTHON
-/**
- * The directory containing the supporting files.
- */
-extern string libDir;
-
-/**
- * The directory containing the supporting files.
- */
-extern string userLibDir;
-
-/**
- * The path of directories containing user scripts to execute at startup.
- */
-extern string scriptPath;
-
-/**
- * The script filename being executed, if applicable.
- */
-extern string scriptFilename;
-
-/**
- * The arguments for the script, if applicable.
- */
-extern vector<string> scriptArguments;
-
-#endif
 
 #endif

@@ -58,11 +58,12 @@ namespace resource {
 class ResourceMap
 {
 public:
+    enum ResourceFileFormat {NODELIST, RESOURCE_MAP};
     enum QueueingSystem {PBS};
 public:
     ResourceMap();
     ResourceMap(list<string>hostnames, int defaultCPUCores, int defaultGPUDevices);
-    ResourceMap(string resourceFilename, int defaultCPUCores, int defaultGPUDevices);
+    ResourceMap(string resourceFilename, ResourceFileFormat format, int defaultCPUCores, int defaultGPUDevices);
     ResourceMap(QueueingSystem queueingSystem, int defaultCPUCores, int defaultGPUDevices);
     virtual ~ResourceMap();
     bool registerResources(const lm::message::ResourcesAvailable& msg);
@@ -70,7 +71,9 @@ public:
     map<string,ComputeResources> getAvailableResources();
 
 protected:
-    map<string,ComputeResources> parseResourceFile(string filename);
+    map<string,ComputeResources> parseResourceFile(string filename, ResourceFileFormat format);
+    map<string,ComputeResources> parseResourceMapFile(string filename);
+    map<string,ComputeResources> parseNodelistFile(string filename);
     map<string,ComputeResources> parsePBSNodeFile(string filename);
 
 protected:

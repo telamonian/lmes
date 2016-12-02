@@ -63,6 +63,7 @@
 #include "lm/Types.h"
 #include "lm/Version.h"
 #include "lm/main/Globals.h"
+#include "lm/resource/ResourceMap.h"
 
 using std::string;
 using std::vector;
@@ -126,6 +127,11 @@ string solverClassName;
  * The filename for the resource list.
  */
 string resourceFilename = "";
+
+/**
+ * The format for the resource file.
+ */
+lm::resource::ResourceMap::ResourceFileFormat resourceFileFormat;
 
 /**
  * The number of cpu cores assigned to each process.

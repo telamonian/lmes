@@ -71,7 +71,7 @@ ResourceMap::ResourceMap(list<string>hostnames, int defaultCPUCores, int default
     }
 }
 
-ResourceMap::ResourceMap(string resourceFilename, int defaultCPUCores, int defaultGPUDevices)
+ResourceMap::ResourceMap(string resourceFilename, ResourceFileFormat format, int defaultCPUCores, int defaultGPUDevices)
 :defaultCPUCores(defaultCPUCores),defaultGPUDevices(defaultGPUDevices)
 {
     // If we can find the resource file, parse it.
@@ -79,7 +79,7 @@ ResourceMap::ResourceMap(string resourceFilename, int defaultCPUCores, int defau
     if (resourceFilename != "" && stat(resourceFilename.c_str(), &fileStats) == 0 && S_ISREG(fileStats.st_mode))
     {
         // Parse the resource file.
-        allocatedResources = parseResourceFile(resourceFilename);
+        allocatedResources = parseResourceFile(resourceFilename, format);
         Print::printf(Print::INFO, "Read resource allocations from file %s: %d hosts.", resourceFilename.c_str(), allocatedResources.size());
     }
 }
@@ -106,12 +106,17 @@ ResourceMap::~ResourceMap()
 {
 }
 
-/**
- * @brief ResourceMap::parsePBSNodeFile
- * @param filename
- * @return
- */
-map<string,ComputeResources> ResourceMap::parseResourceFile(string filename)
+map<string,ComputeResources> ResourceMap::parseResourceFile(string filename, ResourceFileFormat format)
+{
+    if (format == RESOURCE_MAP)
+        return  parseResourceMapFile(filename);
+    else if (format == NODELIST)
+        return  parseNodelistFile(filename);
+
+    throw Exception("unknown resource file format");
+}
+
+map<string,ComputeResources> ResourceMap::parseResourceMapFile(string filename)
 {
       map<string,ComputeResources> fileResources;
 
@@ -177,6 +182,34 @@ map<string,ComputeResources> ResourceMap::parseResourceFile(string filename)
       return fileResources;
 }
 
+map<string,ComputeResources> ResourceMap::parseNodelistFile(string filename)
+{
+      map<string,ComputeResources> fileResources;
+
+      ifstream file(filename.c_str());
+      string hostname;
+
+      while (std::getline(file, hostname))
+      {
+          if (hostname != "")
+          {
+              // See if this is the first entry for the host.
+              if (!fileResources.count(hostname))
+              {
+                  ComputeResources resources;
+                  resources.hostname = hostname;
+                  resources.useDefaultResources = true;
+                  fileResources[hostname] = resources;
+              }
+              else
+              {
+                  throw Exception("a node list may not have repeated entries");
+              }
+          }
+      }
+
+      return fileResources;
+}
 
 /**
  * @brief ResourceMap::parsePBSNodeFile

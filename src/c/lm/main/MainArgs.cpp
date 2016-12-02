@@ -272,20 +272,24 @@ void parseArguments(int argc, char** argv)
         else if ((strcmp(option, "-n") == 0 || strcmp(option, "--nodelist") == 0) && i < (argc-1))
         {
             resourceFilename=argv[++i];
+            resourceFileFormat = lm::resource::ResourceMap::NODELIST;
         }
         else if (strncmp(option, "--nodelist=", strlen("--nodelist=")) == 0)
         {
             resourceFilename=option+strlen("--nodelist=");
+            resourceFileFormat = lm::resource::ResourceMap::NODELIST;
         }
 
         //See if the user is trying to set the resource map.
         else if ((strcmp(option, "-m") == 0 || strcmp(option, "--resource-map") == 0) && i < (argc-1))
         {
             resourceFilename=argv[++i];
+            resourceFileFormat = lm::resource::ResourceMap::RESOURCE_MAP;
         }
         else if (strncmp(option, "--resource-map=", strlen("--resource-map=")) == 0)
         {
             resourceFilename=option+strlen("--resource-map=");
+            resourceFileFormat = lm::resource::ResourceMap::RESOURCE_MAP;
         }
 
         //See if the user is trying to set the number of cpus.
@@ -529,7 +533,7 @@ void printUsage(int argc, char** argv)
     std::cout << "  -ff format        --output-format=format        The file format for the simulation output. Valid values are \"hdf5\" (default)|\"sfile\"|\"log\"|\"null\"." << std::endl;
     std::cout << "  -fo output_file   --output-file=output_filename The file for the simulation output, if different than the input file. Required for sfile, invalid for hdf5." << std::endl;
     std::cout << "  -fp record_prefix --output-prefix=record_prefix The prefix to use for the record names. Optional for sfile output, invalid for hdf5." << std::endl;
-    std::cout << "  -n node_file      --nodelist=node_file          A file containing the list of nodes on which to run, one line per available CPU core." << std::endl;
+    std::cout << "  -n node_file      --nodelist=node_file          A file containing the list of nodes on which to run." << std::endl;
     std::cout << "  -m map_file       --resource-map=map_file       A file containing the map of resources to use: hostname processor_id_list gpu_id_list." << std::endl;
     std::cout << "  -c num_cpus       --cpu=num_cpus                The number of CPUs on which to execute (default all)." << std::endl;
     std::cout << "  -cr num           --cpus-per-runner=num         The number of CPUs (possibly fractional) to assign per runner, e.g. \"2\", \"1/4\" (default 1)." << std::endl;
