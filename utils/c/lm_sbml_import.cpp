@@ -65,6 +65,7 @@
 #include "lm/me/PropensityFunction.h"
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/hdf5/SimulationFile.h"
+#include "lptf/Profile.h"
 #include "robertslab/sbml/SBMLImporterL3V1.h"
 #include "robertslab/sbml/SBMLImporterL3V1COPASI.h"
 
@@ -137,6 +138,8 @@ bool importSBMLModelL3V1Kinetics(Reaction * reaction, uint reactionIndex, Kineti
 bool matchL3V1KineticsWithPropensityFunction(Reaction * reaction, uint reactionIndex, KineticLaw * kinetics, ndarray<uint>& T, ndarray<double>& K, ndarray<uint>& D, map<string,uint>& speciesIndices, map<string,double>& parameterValues, map<string,ASTNode_t*>& globalExpressions);
 bool createReactionModelEntry(ASTNode_t* sourceFormula, ASTNode_t* propensityFormula, uint reactionIndex, ndarray<double>& K, ndarray<uint>& D, map<string,uint>& speciesIndices);
 
+// Allocate the profile space.
+PROF_ALLOC;
 
 int main(int argc, char** argv)
 {	
@@ -219,10 +222,11 @@ void importSBMLModel(Hdf5File * lmFile, string sbmlFilename) throw(Exception)
                 criticalErrrors = true;
         }
 
-        Print::printf(criticalErrrors?Print::ERROR:Print::WARNING,"Problems detected while parsing the SBML file %s",sbmlFilename.c_str());
-        Print::printf(criticalErrrors?Print::ERROR:Print::WARNING,"-----------------------------------");
+
+        Print::printf(Print::WARNING,"Problems detected while parsing the SBML file %s",sbmlFilename.c_str());
+        Print::printf(Print::WARNING,"-----------------------------------");
         sbmlDocument->printErrors(std::cout);
-        Print::printf(criticalErrrors?Print::ERROR:Print::WARNING,"-----------------------------------");
+        Print::printf(Print::WARNING,"-----------------------------------");
 
         // If there were critical errors and we are not ignoring exceptions, stop.
         if (criticalErrrors && !ignoreErrors)

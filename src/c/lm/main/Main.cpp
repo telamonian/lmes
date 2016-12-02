@@ -42,6 +42,10 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 #include <cerrno>
+#include <climits>
+#if !defined(HOST_NAME_MAX) and defined(_POSIX_HOST_NAME_MAX)
+#define HOST_NAME_MAX _POSIX_HOST_NAME_MAX
+#endif
 #include <csignal>
 #include <cstdio>
 #include <cstring>
@@ -110,6 +114,8 @@ int main(int argc, char** argv)
     // Initialize the profiling library.
     PROF_INIT;
 
+    PROF_SET_THREAD(0);
+    PROF_BEGIN(PROF_MAIN_RUN);
     try
     {
         //Print the startup messages.
@@ -150,14 +156,15 @@ int main(int argc, char** argv)
             throw lm::CommandLineArgumentException("unknown function.");
         }
 
-        PROF_WRITE;
-
         // Close the communications library.
         Print::printf(Print::INFO, "Finalizing communications library.");
         Communicator::finalizeDefaultSubclass();
 
         Print::printf(Print::INFO, "Program execution finished.");
         google::protobuf::ShutdownProtobufLibrary();
+
+        PROF_END(PROF_MAIN_RUN);
+        PROF_WRITE;
         return 0;
     }
     catch (lm::CommandLineArgumentException e)
@@ -181,9 +188,10 @@ int main(int argc, char** argv)
     {
         std::cerr << "Unknown Exception during execution." << std::endl;
     }
-    PROF_WRITE;
     Communicator::finalizeDefaultSubclass(true);
     google::protobuf::ShutdownProtobufLibrary();
+    PROF_END(PROF_MAIN_RUN);
+    PROF_WRITE;
     return -1;
 }
 
@@ -212,7 +220,6 @@ void listDevices()
 
 void executeSimulationMaster()
 {
-    PROF_SET_THREAD(0);
     PROF_BEGIN(PROF_SIM_RUN);
 
     // Get the hostname.
@@ -277,11 +284,10 @@ void executeSimulationMaster()
 
 void executeSimulationSlave()
 {
-    PROF_SET_THREAD(0);
     PROF_BEGIN(PROF_SIM_RUN);
 
     // Get the hostname.
-    char hostnameBuffer[_POSIX_HOST_NAME_MAX+1];
+    char hostnameBuffer[HOST_NAME_MAX+1];
     memset(hostnameBuffer,0,sizeof(hostnameBuffer));
     if (gethostname(hostnameBuffer, sizeof(hostnameBuffer)) != 0)
         throw lm::Exception("unable to get hostname");

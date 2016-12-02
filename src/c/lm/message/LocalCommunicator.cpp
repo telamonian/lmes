@@ -281,6 +281,8 @@ void LocalCommunicator::receiveMessage(lm::message::Message* msg, int sleepMilli
             // Make sure that this was not a spurious wakeup signal.
             if (record->receivingMessage == NULL)
                 break;
+
+            PROF_EVENT(PROF_MESSAGE_RECEIVE_SPURIOUS_WAKEUP)
         }
     }
 

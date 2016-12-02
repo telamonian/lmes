@@ -89,19 +89,17 @@ throw(MPIException)
 void MPI::printCapabilities()
 throw(MPIException)
 {
-    std::cout << "MPI version " << lm::MPI::version << "." << lm::MPI::subversion << " with thread support ";
+    std::string ts = "UNKNOWN";
     if (lm::MPI::threadSupport == MPI_THREAD_SINGLE)
-        std::cout << "MPI_THREAD_SINGLE." << std::endl;
+        ts = "MPI_THREAD_SINGLE";
     else if (lm::MPI::threadSupport == MPI_THREAD_FUNNELED)
-        std::cout << "MPI_THREAD_FUNNELED." << std::endl;
+        ts = "MPI_THREAD_FUNNELED";
     else if (lm::MPI::threadSupport == MPI_THREAD_SERIALIZED)
-        std::cout << "MPI_THREAD_SERIALIZED." << std::endl;
+        ts = "MPI_THREAD_SERIALIZED";
     else if (lm::MPI::threadSupport == MPI_THREAD_MULTIPLE)
-        std::cout << "MPI_THREAD_MULTIPLE." << std::endl;
-    else
-        std::cout << "UNKNOWN." << std::endl;
-    std::cout << "Running with " << worldSize << " process(es)." << std::endl;
-    std::cout << std::endl;
+        ts = "MPI_THREAD_MULTIPLE";
+
+    Print::printf(Print::INFO, "MPI version %d.%d with thread support %s running on %d process(es).", version, subversion, ts.c_str(), worldSize);
 }
 
 
