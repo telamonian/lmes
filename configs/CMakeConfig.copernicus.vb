@@ -9,7 +9,7 @@ SET(CMAKE_BUILD_TYPE "Debug")
 SET(CMAKE_INSTALL_PREFIX "/usr/local")
 
 # USE_MPI can be set to yes, no, or optional, in which case MPI will be used if cmake can find it on your system.
-SET(USE_MPI optional)
+SET(USE_MPI no)
 
 # USE_CUDA can be set to yes, no, or optional, in which case CUDA will be used if cmake can find it on your system.
 SET(USE_CUDA no)

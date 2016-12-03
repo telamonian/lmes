@@ -39,7 +39,6 @@
 
 #include <string>
 #include <map>
-#include <mpi.h>
 #include <pthread.h>
 #include <vector>
 
