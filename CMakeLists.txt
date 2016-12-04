@@ -138,6 +138,11 @@ if(BUILD_WITH_CUDA)
     add_definitions(-DOPT_CUDA)
 endif(BUILD_WITH_CUDA)
 
+# for compatibility with HDF5 libraries older than version 1.8.13
+if(${HDF5_VERSION} VERSION_LESS 1.8.13)
+    add_definitions(-DOLD_HDFREE)
+endif(${HDF5_VERSION} VERSION_LESS 1.8.13)
+
 # test for CPU features and set compiler definitions as appropriate
 testAVX(BUILD_WITH_AVX ${USE_AVX})
 testFMA(BUILD_WITH_FMA ${USE_FMA})
@@ -178,6 +183,7 @@ ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     ENDIF(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
+# setup the header directory paths
 include_directories(src/c/
                     ${CMAKE_CURRENT_BINARY_DIR}/src/c/
                     src/protobuf/
@@ -195,7 +201,7 @@ if(libsbml_FOUND)
     include_directories(${libsbml_INCLUDE_DIRS})
 endif(libsbml_FOUND)
 
-# if you're using the CLion IDE, this function let's CLion find the generated protobuf code
+# if you're using the CLion IDE, this function shows CLion where the generated protobuf headers are (for syntax highlighting, etc)
 include_directories_clion_generated()
 
 # set the list of libraries used in various lm targets

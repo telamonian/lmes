@@ -53,9 +53,9 @@ class FFluxSRGRegression(SRGRegression):
             Tiling(id=0,
                    orderParameterID=0,
                    type=0,
-                   edges=np.linspace(20,128,13))]
+                   edges=np.linspace(self.fixedPointDict['stableLower'] + 1, self.fixedPointDict['stableUpper'], 100))]
 
-        basinArray = np.array([13]*self.parser['basinReplicates'], dtype=np.dtype('uint32')).reshape(self.parser['basinReplicates'], -1)
+        basinArray = np.array([self.speciesDict['a']['count']]*self.parser['basinReplicates'], dtype=np.dtype('uint32')).reshape(self.parser['basinReplicates'], -1)
         basins = [
             Basin(tilingID=0,
                   speciesCountArray=basinArray)]

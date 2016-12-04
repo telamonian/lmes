@@ -396,28 +396,43 @@ void FFluxSupervisor::addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFlux
     stringstream optimizationStatus;
     optimizationStatus.setf(std::ios::fixed, std::ios::floatfield);
     optimizationStatus.precision(2);
-    optimizationStatus << "Attempting to acheive error goal " << input->errorGoal() << " (confidence level " << input->errorGoalConfidence() << ") with the following optimized trajectory counts: [";
+
+    const lm::protowrap::FFluxStageOutputSummaryWrap& soSummary(stageOutput.fflux_stage_output_summary());
+    vector<double> costs(soSummary.costs().begin(), soSummary.costs().end());
+    vector<double> probabilities(estimateBernoulliProbabilities(stageOutput));
+    optimizationStatus << "Pilot stage output:\n";
+    optimizationStatus << "The phase costs are:\n" << costs << "\n";
+    optimizationStatus << "Conservative estimates of the phase probabilities are:\n" << probabilities << "\n";
+    optimizationStatus << "Attempting to acheive error goal " << input->errorGoal() << " (confidence level " << input->errorGoalConfidence() << ") with the following optimized trajectory counts:\n" << trajectoryCounts;
+
+    Print::printf(Print::INFO, optimizationStatus.str().c_str());
 
     vector<uint64_t>::const_iterator tc_it=trajectoryCounts.begin();
     FFluxPhasesWrap::const_iterator ph_it=productionStage->fflux_phases().begin();
 
     // special treatment for phase zero
     buildFFluxPhaseLimit(productionStage->add_fflux_phase_limits(), *ph_it, FFPhaseLimEnums::FORWARD_FLUXES, *tc_it); //input->ffluxOptions().pilot_stage_count()*input->ffluxOptions().phase_zero_sampling_multiplier());
-
-    optimizationStatus << *tc_it; //input->ffluxOptions().pilot_stage_count()*input->ffluxOptions().phase_zero_sampling_multiplier();
     tc_it++, ph_it++;
-
 
     // all phases n>0
     for (;tc_it!=trajectoryCounts.end() and ph_it!=productionStage->fflux_phases().end();tc_it++, ph_it++)
     {
         buildFFluxPhaseLimit(productionStage->add_fflux_phase_limits(), *ph_it, FFPhaseLimEnums::TRAJECTORY_COUNT, *tc_it);
-
-        optimizationStatus << ", " << *tc_it;
     }
 
-    optimizationStatus << "]";
-    Print::printf(Print::INFO, optimizationStatus.str().c_str());
+//    // special treatment for phase zero
+//    buildFFluxPhaseLimit(productionStage->add_fflux_phase_limits(), *ph_it, FFPhaseLimEnums::FORWARD_FLUXES, *tc_it); //input->ffluxOptions().pilot_stage_count()*input->ffluxOptions().phase_zero_sampling_multiplier());
+//
+//    optimizationStatus << *tc_it; //input->ffluxOptions().pilot_stage_count()*input->ffluxOptions().phase_zero_sampling_multiplier();
+//    tc_it++, ph_it++;
+//
+//    // all phases n>0
+//    for (;tc_it!=trajectoryCounts.end() and ph_it!=productionStage->fflux_phases().end();tc_it++, ph_it++)
+//    {
+//        buildFFluxPhaseLimit(productionStage->add_fflux_phase_limits(), *ph_it, FFPhaseLimEnums::TRAJECTORY_COUNT, *tc_it);
+//
+//        optimizationStatus << ", " << *tc_it;
+//    }
 }
 
 void FFluxSupervisor::repeatFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage, const lm::fflux::input::FFluxPhaseLimit& limitToRepeat)
@@ -429,14 +444,18 @@ void FFluxSupervisor::repeatFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage
     }
 }
 
-vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double errorGoal, double errorGoalConfidence, const lm::protowrap::FFluxStageOutputWrap& stageOutput, uint64_t minimumCount, uint64_t phaseZeroSamplingMultipiler, bool minimizeCost)
+std::vector<double> FFluxSupervisor::estimateBernoulliProbabilities(const lm::protowrap::FFluxStageOutputWrap& stageOutput, double confidence)
 {
     const lm::protowrap::FFluxStageOutputRawWrap& soRaw(stageOutput.fflux_stage_output_raw());
     const lm::protowrap::FFluxStageOutputSummaryWrap& soSummary(stageOutput.fflux_stage_output_summary());
 
     vector<double> probabilities(soSummary.probabilities().begin(), soSummary.probabilities().end());
-    vector<double> trials;
-    add(soRaw.failed_trajectory_counts().begin(), soRaw.failed_trajectory_counts().end(), soRaw.successful_trajectory_counts().begin(), std::back_inserter(trials));
+    vector<double> failedTrajectoryCounts(soRaw.failed_trajectory_counts().begin(), soRaw.failed_trajectory_counts().end());
+    vector<double> successfulTrajectoryCounts(soRaw.successful_trajectory_counts().begin(), soRaw.successful_trajectory_counts().end());
+    vector<double> trials(failedTrajectoryCounts + successfulTrajectoryCounts);
+
+//    vector<double> trials;
+//    add(soRaw.failed_trajectory_counts().begin(), soRaw.failed_trajectory_counts().end(), soRaw.successful_trajectory_counts().begin(), std::back_inserter(trials));
 
 //    ////TEMPSTART
 //
@@ -461,7 +480,13 @@ vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double errorGoal, dou
 //    probabilities = probabilities - (normalZ(.9975)/1000)*((1 - probabilities)*probabilities);
 
     // make estimates more conservative using the lower bound of the estimator confidence interval
-    probabilities = bernouliCIAgrestiCoullLowerBound(probabilities, trials, .9999);
+    return bernouliCIAgrestiCoullLowerBound(probabilities, trials, confidence);
+}
+
+vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double errorGoal, double errorGoalConfidence, const lm::protowrap::FFluxStageOutputWrap& stageOutput, uint64_t minimumCount, uint64_t phaseZeroSamplingMultipiler, bool minimizeCost)
+{
+    const lm::protowrap::FFluxStageOutputSummaryWrap& soSummary(stageOutput.fflux_stage_output_summary());
+    vector<double> probabilities(estimateBernoulliProbabilities(stageOutput));
 
     // make sure that all of the probability estimates are at least a little above zero
     double minimum = 1e-4;

@@ -41,7 +41,9 @@
 
 #include <cstdio>
 #include <google/protobuf/message.h>
+#include <ostream>
 #include <string>
+#include <sstream>
 #include <vector>
 
 namespace lm {
@@ -88,6 +90,27 @@ public:
 template <typename T> static void printNumeric(T num)
 {
     std::printf(lm::Print::printf_format_string<T>(), num);
+}
+
+// EZ printing of std::vectors
+template <class T>
+inline std::ostream& operator << (std::ostream& stream, const std::vector<T>& vec)
+{
+    typename std::vector<T>::const_iterator it = vec.begin();
+
+    stream << "[";
+    if (it!=vec.end())
+    {
+        stream << *it;
+        it++;
+    }
+    for (;it!=vec.end();++it)
+    {
+        stream << ", " << *it;
+    }
+    stream << "]";
+
+    return stream;
 }
 
 #endif /* LM_PRINT_H_ */

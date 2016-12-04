@@ -103,10 +103,22 @@ protected:
     virtual void addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::protowrap::FFluxStageOutputWrap& stageOutput);
 
     // the functions where all the computational cost minimization magic happens
+    inline static std::vector<double> estimateBernoulliProbabilities(const lm::protowrap::FFluxStageOutputWrap& stageOutput, double confidence=.99);
     inline static std::vector<uint64_t> optimizeTrajectoryCounts(double errorGoal, double errorGoalConfidence, const lm::protowrap::FFluxStageOutputWrap& stageOutput, uint64_t minimumCount, uint64_t phaseZeroSamplingMultiplier, bool minimizeCost);
     inline static std::vector<uint64_t> minimizeCostTrajectoryCounts(double errorGoal, double errorGoalConfidence, const std::vector<double>& probabilities, const std::vector<double>& costs);
     inline static std::vector<uint64_t> minimizeCountTrajectoryCounts(double errorGoal, double errorGoalConfidence, const std::vector<double>& probabilities);
     inline static std::valarray<double> getConstantFactors(const std::vector<double>& probabilities);
+
+    // TODO: refactor the static functions used to implement the optimization equation to allow for easier unit testing. Below is a first pass at new function headers
+//    // the functions where all the computational cost minimization magic happens
+//    // static encapsulations of parts of the optimization routine. Broken out this way for unit testing purposes
+//    inline static std::vector<double> estimateBernoulliProbabilities(const lm::protowrap::FFluxStageOutputWrap& stageOutput, double confidence=.9999);
+//    inline static std::vector<uint64_t> minimizeTrajectoryCounts(double errorGoal, double errorGoalConfidence, const vector<uint64_t>& floorCounts, const vector<uint64_t>& countMultipliers, const vector<double>& probabilities);
+//    inline static std::vector<uint64_t> minimizeTrajectoryCounts(double errorGoal, double errorGoalConfidence, const vector<uint64_t>& floorCounts, const vector<uint64_t>& countMultipliers, const vector<double>& probabilities, const vector<double>& costs);
+//    inline static std::vector<uint64_t> _minimizeTrajectoryCounts(double errorGoal, double errorGoalConfidence, const std::vector<double>& probabilities, const std::vector<double>& costs);
+//    inline static std::vector<uint64_t> _minimizeTrajectoryCounts(double errorGoal, double errorGoalConfidence, const std::vector<double>& probabilities);
+//    inline static std::vector<uint64_t> optimizationEquation(double errorGoal, double errorGoalConfidence, const std::vector<double>& gFactors, const std::vector<double>& costs);
+//    inline static std::valarray<double> getConstantFactors(const std::vector<double>& probabilities);
 
     // setup methods that run at the start of every fflux phase
     virtual void startSimulationPhase();
