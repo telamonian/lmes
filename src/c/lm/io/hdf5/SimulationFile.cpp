@@ -370,7 +370,7 @@ herr_t Hdf5File::parseParameter(hid_t location_id, const char *attr_name, const 
 
             // Reclaim the memory.
             #ifdef OLD_HDFREE
-                HDfree(value);
+                free(value);
             #else
                 H5free_memory(value);
             #endif
