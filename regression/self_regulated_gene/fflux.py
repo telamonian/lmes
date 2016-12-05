@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # PYTHON_ARGCOMPLETE_OK
 
+from itertools import chain
 import numpy as np
 
 from lma.src.script.lmFile import Basin,SimulationParameter,Tiling
@@ -47,23 +48,27 @@ class FFluxSRGRegression(SRGRegression):
 
     def _buildInput(self, lmInput):
         # call the parent class method
-        lmInput = super(FFluxSRGRegression, self)._buildInput(lmInput=lmInput)
+        inputTupList = super(FFluxSRGRegression, self)._buildInput(lmInput=lmInput)
 
-        tilings = [
-            Tiling(id=0,
-                   orderParameterID=0,
-                   type=0,
-                   edges=np.linspace(self.fixedPointDict['stableLower'] + 1, self.fixedPointDict['stableUpper'], 100))]
+        # tilings = [
+        #     Tiling(id=0,
+        #            orderParameterID=0,
+        #            type=0,
+        #            edges=np.linspace(self.fixedPointDict['stableLower'] + 1, self.fixedPointDict['stableUpper'], 100))]
+        #
+        # basinArray = np.array([self.speciesDict['a']['count']]*self.parser['basinReplicates'], dtype=np.dtype('uint32')).reshape(self.parser['basinReplicates'], -1)
+        # basins = [
+        #     Basin(tilingID=0,
+        #           speciesCountArray=basinArray)]
 
-        basinArray = np.array([self.speciesDict['a']['count']]*self.parser['basinReplicates'], dtype=np.dtype('uint32')).reshape(self.parser['basinReplicates'], -1)
-        basins = [
-            Basin(tilingID=0,
-                  speciesCountArray=basinArray)]
+        # lmInput.AddTilings(tilings=self.buildTilings(), currentTilingID=0)
+        # lmInput.AddBasins(basins=self.buildBasins())
 
-        lmInput.AddTilings(tilings=tilings, currentTilingID=0)
-        lmInput.AddBasins(basins=basins)
+        # since basins relies on tilings, tilings must be set first
+        tilings = self.buildTilings()
+        basins = self.buildBasins()
 
-        return lmInput
+        return list(chain(inputTupList, tilings, basins))
 
     def _buildSimulationParameters(self, lmInput):
         simParamKeysToUnset = {'maxSteps', 'maxTime', 'writeInterval'}
@@ -77,7 +82,8 @@ class FFluxSRGRegression(SRGRegression):
                 userSimParamDict[key] = defaultSimParamDict[key]
 
         simParamsToUnset = [SimulationParameter(key=key, val=None) for key in simParamKeysToUnset if key not in userSimParamDict]
-        lmInput.UnsetSimulationParameters(simParams=simParamsToUnset)
+        lmInput.Unapply(*simParamsToUnset)
+        # lmInput.UnsetSimulationParameters(simParams=simParamsToUnset)
 
         return userSimParamDict
 

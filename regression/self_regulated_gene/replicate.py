@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # PYTHON_ARGCOMPLETE_OK
 
-from lma.src.script.lmFile import OrderParameterLimit, SpeciesLimit
+from lma.src.script.lmFile import Limit
 from lma.regression.regression import ReplicateRegressionParser
 from lma.regression.models.self_regulated_gene.srgRegression import SRGRegression, SRGRegressionParserMixin
 
@@ -38,14 +38,14 @@ class ReplicateSRGRegression(SRGRegression):
             lmInput.SetFirstPassageTimeTracking(fptTrackedSpecies=userSimParamDict.pop('fptTrackingList'))
 
             # limitTup = SpeciesLimit(**self.limitDict['a'])
-            lmInput.SetLimit(limitTup=self.limitDict['species_a'])
+            lmInput.SetLimit(limit=Limit(**self.limitDict['species_a']))
 
         if 'fptOrderParameterTrackingList' in userSimParamDict:
             if not userSimParamDict['fptOrderParameterTrackingList']: userSimParamDict['fptOrderParameterTrackingList'] = [0]
             lmInput.SetFirstPassageTimeTracking(fptTrackedOrderParameters=userSimParamDict.pop('fptOrderParameterTrackingList'))
 
             # limitTup = OrderParameterLimit(**self.limitDict['a'])
-            lmInput.SetLimit(limitTup=self.limitDict['oparam_a'])
+            lmInput.SetLimit(limit=Limit(**self.limitDict['oparam_a']))
 
         return userSimParamDict
 
