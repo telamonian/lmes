@@ -243,7 +243,7 @@ IF (BUILD_WITH_MPI)
 ENDIF (BUILD_WITH_MPI)
 
 if(BUILD_WITH_CUDA)
-    include_directories(src/cuda/${CUDA_INCLUDE_DIRS})
+    include_directories(src/cuda/ ${CUDA_INCLUDE_DIRS})
 endif(BUILD_WITH_CUDA)
 
 if(libsbml_FOUND)

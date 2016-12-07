@@ -109,7 +109,7 @@ int WorkUnitRunner::run()
         #if defined(OPT_CUDA)
         if (properties.gpu_size() > 0)
         {
-            Print::printf(Print::INFO, "Work Unit runner %d:%d using gpu device %d.", lm::MPI::worldRank, threadNumber, properties.gpu(0));
+            Print::printf(Print::INFO, "Work Unit runner %s using gpu device %d.", Communicator::printableAddress(communicator->getSourceAddress()).c_str(), properties.gpu(0));
             lm::CUDA::setCurrentDevice(properties.gpu(0));
         }
         #endif
