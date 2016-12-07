@@ -212,7 +212,7 @@ void listDevices()
     {
         for (int i=0; i<lm::CUDA::getNumberDevices(); i++)
         {
-            printf("  %s: %s\n", c->getHostname().c_str(), lm::CUDA::getCapabilitiesString(i).c_str());
+            printf("  %s:%s\n", c->getHostname().c_str(), lm::CUDA::getCapabilitiesString(i).c_str());
         }
     }
     #endif

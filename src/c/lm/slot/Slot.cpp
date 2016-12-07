@@ -59,12 +59,11 @@ using std::setw;
 typedef vector<string> HeaderVector;
 typedef map<string, int> ColumnMap;
 
-const string headerStrings[] = {"ID", "Host_name", "Process:Thread", "Work_units", "Work_unit_steps", "Work_unit_time", "Steps_per_sec"};
-HeaderVector headers(headerStrings, headerStrings + 7);
+const string headerStrings[] = {"ID", "Address", "Work_units", "Work_unit_steps", "Work_unit_time", "Steps_per_sec"};
+HeaderVector headers(headerStrings, headerStrings + 6);
 const ColumnMap::value_type rawData[] = {
     ColumnMap::value_type("ID", 5),
-    ColumnMap::value_type("Hostname", 20),
-    ColumnMap::value_type("Address", 20),
+    ColumnMap::value_type("Address", 40),
     ColumnMap::value_type("Work_units", 15),
     ColumnMap::value_type("Work_unit_steps", 20),
     ColumnMap::value_type("Work_unit_time", 20),
@@ -107,8 +106,7 @@ string Slot::getSlotStatistics() const
 {
     ostringstream statsStream;
     statsStream << fixed << setprecision(0) << setw(statsColumnMap["ID"]) << id;
-    statsStream << setw(statsColumnMap["Hostname"]) << resources.hostname;
-    statsStream << fixed << setprecision(0) << setw(statsColumnMap["Address"]) << lm::message::Communicator::printableAddress(resources.controllerAddress);
+    statsStream << fixed << setprecision(0) << setw(statsColumnMap["Address"])<< resources.hostname << lm::message::Communicator::printableAddress(workUnitRunnerAddress);
     statsStream << fixed << setprecision(0) << setw(statsColumnMap["Work_units"]) << stats_workUnits;
     statsStream << scientific << setprecision(3) << setw(statsColumnMap["Work_unit_steps"]) << (double)stats_workUnitsSteps;
     statsStream << scientific << setprecision(3) << setw(statsColumnMap["Work_unit_time"]) << stats_workUnitsTime;
