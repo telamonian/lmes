@@ -85,15 +85,11 @@ typedef map<string,string> SimulationParametersMap;
 class SimulationSupervisor : public lm::thread::Worker
 {
 public:
-    static const int THREAD_ID = 0;
-    virtual int getRecvSleepMilliseconds();
-
-public:
     SimulationSupervisor();
     virtual ~SimulationSupervisor();
     virtual void init();
     void setOutputWriterClassName(string outputWriterClassName) {this->outputWriterClassName = outputWriterClassName;}
-    void setResourceMap(lm::resource::ResourceMap* resourceMap) {this->resourceMap = resourceMap;}
+    void setResourceMap(lm::resource::ResourceMap& resourceMap) {this->resourceMap = resourceMap;}
     void setSimulationFilename(vector<string> simulationInputFilenames, string simulationOutputFilename) {this->simulationInputFilenames = simulationInputFilenames; this->simulationOutputFilename = simulationOutputFilename;}
     void setSolverClassName(string solverClassName) {this->solverClassName = solverClassName;}
     void setUseCPUAffinity(bool useCPUAffinity) {this->useCPUAffinity = useCPUAffinity;}
@@ -101,11 +97,13 @@ public:
 
 protected:
     virtual int run();
+
     virtual void receivedResourceAvailable(const lm::message::ResourcesAvailable& msg);
     virtual void allResourcesRegistered();
     virtual void startOutputWriter();
     virtual void startCheckpointSignaler();
     virtual void startWorkUnitRunners();
+
     virtual void receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg);
     virtual void receivedStartedCheckpointSignaler(const lm::message::StartedCheckpointSignaler& msg);
     virtual void receivedStartedWorkUnitRunner(const lm::message::StartedWorkUnitRunner & msg);
@@ -113,7 +111,9 @@ protected:
     virtual void startSimulation();
     virtual void startSimulationPhase();
     virtual void buildTrajectoryList()=0;
+
     virtual void receivedStartedWorkUnit(const lm::message::StartedWorkUnit& msg);
+
     virtual void receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg);
     virtual bool assignWork();
     virtual void buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg);
@@ -123,6 +123,7 @@ protected:
     virtual void destroyTrajectoryList();
     virtual bool incrementSimulationPhase();
     virtual void finishSimulation();
+
     virtual void receivedPerformCheckpointing(const lm::message::PerformCheckpointing& msg);
     virtual void receivedFinishedCheckpointing(const lm::message::FinishedCheckpointing& msg);
     virtual void receivedProcessWorkUnitOutput(lm::message::Message& msg);
@@ -133,16 +134,15 @@ protected:
     virtual void resetPerformanceStatistics();
 
 protected:
-    lm::message::Communicator communicator;
+    lm::message::Communicator* communicator;
     bool hasCheckpointSignalerStarted;
     bool hasOutputWriterStarted;
     bool haveAllWorkUnitRunnersStarted;
     lm::input::Input* input;
     std::string outputWriterClassName;
-    int outputWriterProcess;
-    int outputWriterThread;
+    Endpoint outputWriterAddress;
     bool performingCheckpoint;
-    lm::resource::ResourceMap* resourceMap;
+    lm::resource::ResourceMap resourceMap;
     vector<string> simulationInputFilenames;
     string simulationOutputFilename;
     uint64_t simulationPhase;

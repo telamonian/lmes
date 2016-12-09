@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  * 
  * Developed by: Roberts Group
@@ -41,9 +41,11 @@
 
 #include <string>
 #include <vector>
+#include "lm/message/Endpoint.pb.h"
 
 using std::string;
 using std::vector;
+using lm::message::Endpoint;
 
 namespace lm {
 namespace resource {
@@ -51,13 +53,12 @@ namespace resource {
 class ComputeResources
 {
 public:
-    ComputeResources():hostname(""),controller_process(-1),controller_thread(-1),useDefaultResources(false) {}
+    ComputeResources():hostname(""),useDefaultResources(false) {}
     string toString();
 
 public:
     string hostname;
-    int controller_process;
-    int controller_thread;
+    Endpoint controllerAddress;
     bool useDefaultResources;
     vector<int> cpuCores;
     vector<int> gpuDevices;

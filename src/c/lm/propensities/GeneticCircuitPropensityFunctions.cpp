@@ -288,6 +288,7 @@ class ZerothOrderKHillPropensity : public lm::me::PropensityFunction
 {
 public:
     static const uint REACTION_TYPE = 8007;
+    static const uint REACTION_TYPE_ALTERNATE_FORMAT = 8008;
 
     ZerothOrderKHillPropensity(uint xi, double x0, double k0, double k1, double h) :PropensityFunction(REACTION_TYPE,0),xi(xi),x0h(pow(x0,h)),k0(k0),dk(k1-k0),h(h) {}
     uint xi;
@@ -312,7 +313,7 @@ public:
         double x1 = speciesCounts[xi*DOUBLES_PER_AVX+1];
         double x2 = speciesCounts[xi*DOUBLES_PER_AVX+2];
         double x3 = speciesCounts[xi*DOUBLES_PER_AVX+3];
-        avxd xh = _mm256_set_pd(pow(x0,h),pow(x1,h),pow(x2,h),pow(x3,h));
+        avxd xh = _mm256_set_pd(pow(x3,h),pow(x2,h),pow(x1,h),pow(x0,h));
         return _mm256_add_pd(_mm256_set1_pd(k0),_mm256_div_pd(_mm256_mul_pd(_mm256_set1_pd(dk),xh),_mm256_add_pd(_mm256_set1_pd(x0h),xh)));
     }
 #endif
@@ -339,7 +340,28 @@ public:
 
     static lm::me::PropensityFunctionDefinition registerFunction()
     {
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
+        const char* expressions[] = {"k2 + (k3 - k2) * x1^k4 / (k1^h + x1^h)", NULL};
+        const char* unitsForConstants[] = {"item", "item/second", "item/second", "1", NULL};
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "ZerothOrderKHillPropensity", expressions, unitsForConstants, &create);
+    }
+
+    static PropensityFunction* createAlternateFormat(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+    {
+        // Find the species dependencies.
+        utuple dependencies = getDependencies(reactionIndex, D);
+        if (dependencies.len != 1) throw InvalidArgException("D", "zeroth order kinetic Hill propensity needs one species dependency, had",dependencies.len);
+
+        // Find the rate costant.
+        if (k.len != 4)  throw InvalidArgException("k", "zeroth order kinetic Hill propensity needs four parameters, had",k.len);
+
+        return new ZerothOrderKHillPropensity(dependencies[0],k[0],k[1],k[1]+k[2],k[3]);
+    }
+
+    static lm::me::PropensityFunctionDefinition registerFunctionAlternateFormat()
+    {
+        const char* expressions[] = {"k2 + k3 * x1^k4 / (k1^k4 + x1^k4)", "k2 + k3 * (x1^k4 / (k1^k4 + x1^k4))", NULL};
+        const char* unitsForConstants[] = {"item", "item/second", "item/second", "1", NULL};
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE_ALTERNATE_FORMAT, "ZerothOrderKHillPropensity", expressions, unitsForConstants, &createAlternateFormat);
     }
 };
 
@@ -351,6 +373,7 @@ list<lm::me::PropensityFunctionDefinition> GeneticCircuitPropensityFunctions::ge
     defs.push_back(TimeDependentQuadraticBirthPropensity::registerFunction());
     defs.push_back(TimeDependentQuadraticDeathPropensity::registerFunction());
     defs.push_back(ZerothOrderKHillPropensity::registerFunction());
+    defs.push_back(ZerothOrderKHillPropensity::registerFunctionAlternateFormat());
     return defs;
 }
 

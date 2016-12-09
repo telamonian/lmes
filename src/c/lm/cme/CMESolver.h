@@ -63,7 +63,6 @@
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
-#include "lm/main/Main.h"
 #include "lm/me/MESolver.h"
 #include "lm/me/PropensityFunction.h"
 #include "lm/message/WorkUnitStatus.pb.h"

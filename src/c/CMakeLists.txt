@@ -4,7 +4,7 @@
 #TARGET: lm_c_lib
 #################
 # list of files/dirs to exclude from the build of lm_c_lib
-set(to_remove_globs lm/main/MainMPI.cpp lm/main/Main.cpp lm/neus/*)
+set(to_remove_globs lm/main/Main.cpp lm/main/MainArgs.cpp lm/neus/*)
 
 # get the source files
 file(GLOB_RECURSE lm_c_source *.cpp *.cc *.h)

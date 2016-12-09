@@ -54,7 +54,6 @@
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
-#include "lm/MPI.h"
 #include "lm/Print.h"
 #include "lm/thread/Worker.h"
 

@@ -34,7 +34,7 @@ set_property(DIRECTORY PROPERTY COMPILE_DEFINITIONS ${nvcc_definitions})
 #endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 #get the source files
-file(GLOB lm_cuda_source lm/*.cu)
-file(GLOB lm_cuda_source1 lm/*/*.cu)
+file(GLOB lm_cuda_source lm/*.cu lm/*.h)
+file(GLOB lm_cuda_source1 lm/*/*.cu lm/*/*.h)
 list(APPEND lm_cuda_source ${lm_cuda_source1})
 CUDA_ADD_LIBRARY(lm_cuda_lib STATIC ${lm_cuda_source})

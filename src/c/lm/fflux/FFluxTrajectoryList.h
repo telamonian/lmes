@@ -51,6 +51,7 @@
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Communicator.h"
+#include "lm/message/Endpoint.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/WorkUnitOutput.pb.h"
@@ -80,7 +81,7 @@ public:
     enum PhaseCheck {CROSSINGS, TIME};
 
 //    FFluxTrajectoryList(uint64_t simultaneousTrajectoryCount,const lm::io::ReactionModel& reactionModel,const lm::io::DiffusionModel& diffusionModel,std::map<std::string,std::string>& simulationParameters, lm::tiling::Tilings& tilings);
-    FFluxTrajectoryList(uint64_t simulationPhase, lm::input::Input& input, lm::message::Communicator& communicator, uint64_t simultaneousTrajectoryCount);
+    FFluxTrajectoryList(uint64_t simulationPhase, lm::input::Input& input, lm::message::Communicator* communicator, lm::message::Endpoint masterOutputAddress, uint64_t simultaneousTrajectoryCount);
     virtual ~FFluxTrajectoryList();
     virtual void init();
     virtual void initChecks(lm::input::Input& input);
@@ -136,7 +137,9 @@ protected:
     virtual void ffluxOutputSetFinal(SavedCrossings& savedCrossings, SavedDwellTimes& savedDwellTimes, SavedFinishedTrajectoriesCounts& savedFinishedTrajectoriesCounts, SavedHists& savedHists);
 
 protected:
-    const lm::message::Communicator& communicator;
+    lm::message::Communicator* communicator;
+    lm::message::Endpoint masterOutputAddress;
+
     Direction direction;
     // for printing the name of the current simulation direction
     static const std::vector<std::string> directionStrings;

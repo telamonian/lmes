@@ -106,7 +106,6 @@ protected:
     lm::message::WorkUnitStatus::Status status[DOUBLES_PER_AVX];
 
     // Limits for the trajectory.
-    avxd timeLimit;
     int32_t limitIDReached[DOUBLES_PER_AVX];
     lm::io::TrajectoryLimits::LimitType limitTypeReached[DOUBLES_PER_AVX];
     double* limitValues;
@@ -122,10 +121,12 @@ protected:
     bool previouslyStarted[DOUBLES_PER_AVX];
     double* speciesCounts;
     double* propensities;
-    avxd time;
-    avxd timeStep;
     double* orderParameterValues;
     double* orderParameterPreviousValues;
+
+    avxd timeLimit;
+    avxd time;
+    avxd timeStep;
 };
 
 }

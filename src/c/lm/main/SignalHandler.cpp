@@ -39,7 +39,7 @@
 
 #include <csignal>
 #include "lm/Print.h"
-#include "lm/main/Main.h"
+#include "lm/main/Globals.h"
 #include "lm/main/SignalHandler.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/WorkerManager.h"

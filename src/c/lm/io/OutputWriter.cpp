@@ -43,12 +43,14 @@
 #include <time.h>
 
 #include "hrtime.h"
+#include "lm/ClassFactory.h"
 #include "lm/Print.h"
-#include "lm/MPI.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/io/SpeciesCounts.pb.h"
+#include "lm/main/Globals.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Communicator.h"
+#include "lm/message/Endpoint.pb.h"
 #include "lm/message/FinishedCheckpointing.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/ProcessWorkUnitOutput.pb.h"
@@ -57,17 +59,22 @@
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 #include "lm/Types.h"
-
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
+
+using lm::message::Communicator;
+using lm::message::Endpoint;
 
 namespace lm {
 namespace io {
 
 
 OutputWriter::OutputWriter()
-    :outputFilename(""),communicator(lm::MPI::worldRank, threadNumber),messageQueueSize(0)
+:outputFilename(""),communicator(NULL),messageQueueSize(0)
 {
+    // Create the communicator.
+    communicator = lm::message::Communicator::createObjectOfDefaultSubclass(false);
+
     // Create the queue mutex.
     pthread_mutexattr_t attr;
     PTHREAD_EXCEPTION_CHECK(pthread_mutexattr_init(&attr));
@@ -81,6 +88,7 @@ OutputWriter::OutputWriter()
 
 OutputWriter::~OutputWriter()
 {
+    if (communicator != NULL) delete communicator; communicator = NULL;
     PTHREAD_EXCEPTION_CHECK(pthread_mutex_destroy(&messageQueueMutex));
     PTHREAD_EXCEPTION_CHECK(pthread_cond_destroy(&messageQueueSignal));
 }
@@ -97,7 +105,7 @@ void OutputWriter::wake() throw(lm::thread::PthreadException)
 {
     lm::message::Message msg;
     msg.mutable_ping_target()->set_id(0);
-    communicator.sendMessage(communicator.getSourceProcess(), communicator.getSourceThread(), &msg);
+    communicator->sendMessage(communicator->getSourceAddress(), &msg);
 }
 
 int OutputWriter::run()
@@ -109,7 +117,7 @@ int OutputWriter::run()
 
     try
     {
-        Print::printf(Print::INFO, "OutputWriter %d:%d started.", communicator.getSourceProcess(), communicator.getSourceThread());
+        Print::printf(Print::INFO, "OutputWriter %s started.", Communicator::printableAddress(communicator->getSourceAddress()).c_str());
 
         // Start the helper thread.
         if (cpuNumber >= 0) helperThread.setAffinity(cpuNumber);
@@ -118,16 +126,15 @@ int OutputWriter::run()
         // Register our info with the supervisor.
         lm::message::Message msgp;
         lm::message::StartedOutputWriter* msg = msgp.mutable_started_output_writer();
-        msg->set_process(communicator.getSourceProcess());
-        msg->set_thread(communicator.getSourceThread());
-        communicator.sendMessage(lm::MPI::MASTER, lm::main::SimulationSupervisor::THREAD_ID, &msgp);
+        msg->mutable_address()->CopyFrom(communicator->getSourceAddress());
+        communicator->sendMessage(communicator->getSupervisorAddress(), &msgp);
 
         // Loop reading messages.
         while (true)
         {
             // Read the next message.
             lm::message::Message* message = new lm::message::Message();
-            communicator.receiveMessage(message);
+            communicator->receiveMessage(message);
 
             if (message->has_process_work_unit_output())
             {
@@ -184,8 +191,8 @@ int OutputWriter::run()
 
                 // Report back to the supervisor that the checkpoint is finished.
                 msgp.Clear();
-                lm::message::FinishedCheckpointing* msg = msgp.mutable_finished_checkpointing();
-                communicator.sendMessage(lm::MPI::MASTER, lm::main::SimulationSupervisor::THREAD_ID, &msgp);
+                msgp.mutable_finished_checkpointing();
+                communicator->sendMessage(communicator->getSupervisorAddress(), &msgp);
             }
             else if (message->has_ping_target())
             {
@@ -202,11 +209,11 @@ int OutputWriter::run()
         helperThread.stop();
 
         // Let the output writer close any resources.
-        Print::printf(Print::INFO, "OutputWriter %d:%d flushing and closing.", communicator.getSourceProcess(), communicator.getSourceThread());
+        Print::printf(Print::INFO, "OutputWriter %s flushing and closing.", Communicator::printableAddress(communicator->getSourceAddress()).c_str());
         flush();
         finalize();
 
-        Print::printf(Print::INFO, "OutputWriter %d:%d finished.", communicator.getSourceProcess(), communicator.getSourceThread());
+        Print::printf(Print::INFO, "OutputWriter %s finished.", Communicator::printableAddress(communicator->getSourceAddress()).c_str());
         PROF_END(PROF_DATAOUTPUT_RUN);
         return 0;
     }
@@ -252,7 +259,7 @@ int OutputWriter::HelperThread::run()
 {
     try
     {
-        Print::printf(Print::INFO, "OutputWriter::HelperThread %d:%d started.", p->communicator.getSourceProcess(), threadNumber);
+        Print::printf(Print::INFO, "OutputWriter::HelperThread %s started.", Communicator::printableAddress(p->communicator->getSourceAddress()).c_str());
 
         // Performance stats.
         hrtime lastUpdateTime = getHrTime();
@@ -392,7 +399,7 @@ int OutputWriter::HelperThread::run()
         Print::printf(Print::FATAL, "Unknown Exception during execution (%s:%d)", __FILE__, __LINE__);
     }
 
-    Print::printf(Print::INFO, "OutputWriter::HelperThread %d:%d finished.", p->communicator.getSourceProcess(), threadNumber);
+    Print::printf(Print::INFO, "OutputWriter::HelperThread %s finished.", Communicator::printableAddress(p->communicator->getSourceAddress()).c_str());
     return 0;
 }
 

@@ -8,23 +8,24 @@ SET(CMAKE_BUILD_TYPE "Release")
 # Set the prefix dir for installation of lmes (i.e. when running "make install").
 SET(CMAKE_INSTALL_PREFIX "/Users/eroberts/usr/local")
 
+# USE_MPI can be set to yes, no, or optional, in which case MPI will be used if cmake can find it on your system.
+SET(USE_MPI no)
+
 # USE_CUDA can be set to yes, no, or optional, in which case CUDA will be used if cmake can find it on your system.
 SET(USE_CUDA no)
 
 # Set the verbosity level, as described in the lm::Print function. 10 is complete, 4 is normal-ish.
 SET(VERBOSITY_LEVEL 4)
 
-# Uncomment next line to enable the built in profiler
-#SET(PROF_ENABLE true)
-#add_definitions(-DPROF_ENABLE -DPROF_CUDA_ENABLE=0 -DPROF_MAX_THREADS=15 -DPROF_MAX_EVENTS=1000000 -DPROF_OUT_FILE=timing.prof)
+# Set to yes to turn on profiling.
+SET(USE_PROFILING no)
 
 # Uncomment and change the last part of the next line if some of your libraries/header files are on a nonstandard path.
 SET(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" "/Users/eroberts/usr/local")
 
-#SET(CUSTOM_C_FLAGS "-g -m64 -march=corei7-avx -fPIC -Wall -fmessage-length=0")
-#SET(CUSTOM_CXX_FLAGS "-g -m64 -march=corei7-avx -fPIC -Wall -fmessage-length=0")
-#SET(CUSTOM_C_FLAGS "-m64 -march=corei7-avx -O3 -fPIC -Wall -fmessage-length=0")
-#SET(CUSTOM_CXX_FLAGS "-m64 -march=corei7-avx -O3 -fPIC -Wall -fmessage-length=0")
+# Add any extra flags for the compiler.
+SET(EXTRA_C_FLAGS "-Wno-deprecated-declarations")
+SET(EXTRA_CXX_FLAGS "-Wno-deprecated-declarations")
 
 #SET(HDF5_LIBRARIES /Users/eroberts/usr/local/lib/libhdf5.8.dylib)
 #SET(HDF5_HL_LIBRARIES /Users/eroberts/usr/local/lib/libhdf5_hl.8.dylib)

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sbml xmlns="http://www.sbml.org/sbml/level3/version1/core" level="3" version="1">
+    <model id="self_regulating_gene" substanceUnits="item" timeUnits="second" volumeUnits="litre" extentUnits="item">
+        <listOfUnitDefinitions>
+            <unitDefinition id="per_second">
+                <listOfUnits>
+                    <unit kind="second" exponent="-1" scale="0" multiplier="1"/>
+                </listOfUnits>
+            </unitDefinition>
+        </listOfUnitDefinitions>
+        <listOfCompartments>
+            <compartment id="V" size="1e-15" spatialDimensions="3" constant="true"/>
+        </listOfCompartments>
+        <listOfSpecies>
+            <species id="n"  compartment="V" initialAmount="1000"
+                             hasOnlySubstanceUnits="true" boundaryCondition="false"
+                             constant="false"/>
+        </listOfSpecies>
+        <listOfReactions>
+        
+            <reaction id="birth" reversible="false" fast="false">
+                <listOfProducts>
+                    <speciesReference species="n" stoichiometry="1" constant="true"/>
+                </listOfProducts>
+                <kineticLaw>
+                    <math xmlns="http://www.w3.org/1998/Math/MathML">
+                        <apply>
+                            <plus/>
+                            <cn> 50 </cn>
+                            <apply>
+                                <times/>
+                                <apply>
+                                    <minus/>
+                                    <cn> 1000 </cn>
+                                    <cn> 50 </cn>
+                                </apply>
+                                <apply>
+                                    <divide/>
+                                    <apply>
+                                        <power/>
+                                        <ci> n </ci>
+                                        <cn> 2 </cn>
+                                    </apply>
+                                    <apply>
+                                        <plus/>
+                                        <apply>
+                                            <power/>
+                                            <cn> 50 </cn>
+                                            <cn> 2 </cn>
+                                        </apply>
+                                        <apply>
+                                            <power/>
+                                            <ci> n </ci>
+                                            <cn> 2 </cn>
+                                        </apply>
+                                    </apply>
+                                </apply>
+                            </apply>
+                        </apply>
+                    </math>
+                </kineticLaw>
+            </reaction>
+            
+            <reaction id="death" reversible="false" fast="false">
+                <listOfReactants>
+                    <speciesReference species="n" stoichiometry="1" constant="true"/>
+                </listOfReactants>
+                <kineticLaw>
+                    <math xmlns="http://www.w3.org/1998/Math/MathML">
+                        <apply>
+                            <times/>
+                            <cn> 10 </cn>
+                            <ci> n </ci>
+                        </apply>
+                    </math>
+                </kineticLaw>
+            </reaction>
+            
+        </listOfReactions>
+    </model>
+</sbml>

@@ -65,9 +65,6 @@
 #include "lm/message/WorkUnitStatus.pb.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/rng/XORShift.h"
-#ifdef OPT_CUDA
-#include "lm/rng/XORWow.h"
-#endif
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 #include "lptf/Profile.h"
@@ -93,12 +90,24 @@ bool GillespieDSolverAVX::registerClass()
 
 void* GillespieDSolverAVX::allocateObject()
 {
-    return new GillespieDSolverAVX();
+    // Allocate aligned memory for the object since it contains avxd variables.
+    GillespieDSolverAVX* obj;
+    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&obj, DOUBLES_PER_AVX*sizeof(double), sizeof(GillespieDSolverAVX)));
+
+    // Construct the object in place.
+    new (obj) GillespieDSolverAVX();
+
+    return obj;
 }
 
 GillespieDSolverAVX::GillespieDSolverAVX()
-:GillespieDSolver(),timeLimit(_mm256_set1_pd(std::numeric_limits<double>::infinity())),limitValues(NULL),numberFptValues(0),fptMinValuesAchieved(NULL),fptMaxValuesAchieved(NULL),fptValues(NULL),speciesCounts(NULL),propensities(NULL),time(_mm256_set1_pd(0.0)),timeStep(_mm256_set1_pd(0.0)),orderParameterValues(NULL),orderParameterPreviousValues(NULL)
+:GillespieDSolver(),limitValues(NULL),numberFptValues(0),fptMinValuesAchieved(NULL),fptMaxValuesAchieved(NULL),fptValues(NULL),speciesCounts(NULL),propensities(NULL),orderParameterValues(NULL),orderParameterPreviousValues(NULL)
 {
+    // Initialize any avx variables.
+    timeLimit = _mm256_set1_pd(std::numeric_limits<double>::infinity());
+    time = _mm256_set1_pd(0.0);
+    timeStep = _mm256_set1_pd(0.0);
+
     // Initialize any array variables.
     for (int i=0; i<DOUBLES_PER_AVX; i++)
     {

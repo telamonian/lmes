@@ -42,7 +42,7 @@
 #include <string>
 
 #include "lm/Types.h"
-#include "lm/message/Endpoint.h"
+#include "lm/message/Endpoint.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/resource/ComputeResources.h"
 
@@ -78,7 +78,7 @@ protected:
     int id;
     Status status;
     lm::resource::ComputeResources resources;
-    lm::message::Endpoint workUnitRunnerEndpoint;
+    lm::message::Endpoint workUnitRunnerAddress;
     uint simultaneousWorkUnits;
 
 	long long stats_workUnits;

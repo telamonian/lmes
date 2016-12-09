@@ -55,7 +55,7 @@
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
-#include "lm/main/Main.h"
+#include "lm/main/Globals.h"
 #include "lm/message/WorkUnitStatus.pb.h"
 #include "lm/Print.h"
 #include "lm/trajectory/Trajectory.h"
@@ -87,9 +87,10 @@ typedef map<lm::fflux::FFluxTrajectoryList::Direction, CrossingsMap> CrossingsMa
 typedef map<lm::fflux::FFluxTrajectoryList::Direction, DwellTimeMap> DwellTimeMapMap;
 typedef map<lm::fflux::FFluxTrajectoryList::Direction, FinishedTrajectoriesCountMap> FinishedTrajectoriesCountMapMap;
 
-FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simulationPhase, lm::input::Input& input, lm::message::Communicator& communicator, uint64_t simultaneousTrajectoryCount)
+FFluxTrajectoryList::FFluxTrajectoryList(uint64_t simulationPhase, lm::input::Input& input, lm::message::Communicator* communicator, lm::message::Endpoint masterOutputAddress, uint64_t simultaneousTrajectoryCount)
 :TrajectoryList(simulationPhase),
  communicator(communicator),
+ masterOutputAddress(masterOutputAddress),
  direction(FORWARD),
  dwellTimes(),
  ffluxPhase(0),
@@ -855,7 +856,7 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(const lm::io::SpeciesTimeSeri
 
 void FFluxTrajectoryList::ffluxOutputFinishTrajectory()
 {
-    communicator.sendMessageToMasterOutput(&msgStreaming);      //0,3, &msgStreaming);
+    communicator->sendMessage(masterOutputAddress, &msgStreaming);      //0,3, &msgStreaming);
 
     for (int i=0;i<3;i++)
     {

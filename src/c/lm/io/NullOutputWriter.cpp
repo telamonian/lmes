@@ -42,7 +42,6 @@
 
 #include "hrtime.h"
 #include "lm/Print.h"
-#include "lm/MPI.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/main/SimulationSupervisor.h"

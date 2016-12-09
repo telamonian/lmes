@@ -55,9 +55,6 @@
 #include "lm/reaction/ReactionQueue.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/rng/XORShift.h"
-#ifdef OPT_CUDA
-#include "lm/rng/XORWow.h"
-#endif
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 #include "lptf/Profile.h"

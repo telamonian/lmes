@@ -68,16 +68,12 @@ namespace slot {
 class SlotList
 {
 public:
-    static int nextSlotId;
-
-public:
-    SlotList(lm::message::Communicator * communicator);
+    SlotList();
     ~SlotList();
 
     //create slot methods
-    void createAllSlots(ComputeResources resources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input);
-    void createAllSlots(map<int,ComputeResources> & allResources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input);
-    int createProcessSlots(int startingSlotId, int process, ComputeResources resources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input);
+    void createAllSlots(map<string,ComputeResources> & allResources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input);
+    int createHostSlots(int startingSlotId, ComputeResources resources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input);
     void createSlot(int slotId, ComputeResources resources, bool useCPUAffinity, lm::message::Message* msg, string solver, const lm::input::Input& input);
 
     bool isManagingSlot(int slotId) const;

@@ -45,7 +45,6 @@
 #include "lm/fflux/FFluxTrajectoryList.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/io/TrajectoryState.pb.h"
-#include "lm/main/Main.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
@@ -237,7 +236,7 @@ void FFluxSupervisor::finishSimulation()
     ffluxOutputBuf->CopyFrom(*(static_cast<lm::fflux::FFluxTrajectoryList*>(trajectoryList)->getFFluxOutput()));
 
     // Send the message
-    communicator.sendMessageToMasterOutput(&msg);
+    //TODO:communicator.sendMessageToMasterOutput(&msg);
 
     SimulationSupervisor::finishSimulation();
 }
@@ -268,15 +267,12 @@ void FFluxSupervisor::receivedProcessWorkUnitOutput(lm::message::Message& msg)
 
 void FFluxSupervisor::receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg)
 {
-    Print::printf(Print::INFO, "Output writer started: %d:%d.",msg.process(),msg.thread());
+    Print::printf(Print::INFO, "Output writer started: %s.",Communicator::printableAddress(msg.address()).c_str());
     hasOutputWriterStarted = true;
 
     // set output process/thread to that of this supervisor, while keeping track of the real values
-    outputWriterProcess = communicator.getSourceProcess();
-    outputWriterThread = communicator.getSourceThread();
-//    outputWriterProcess = msg.process();
-//    outputWriterThread = msg.thread();
-    communicator.setMasterOutputEndpoint(msg.process(), msg.thread());
+    outputWriterAddress = communicator->getSourceAddress();
+    masterOutputWriterAddress = msg.address();
     startSimulationIfAllWorkersStarted();
 }
 
@@ -287,10 +283,6 @@ void FFluxSupervisor::resetFFluxPhase()
 
 void FFluxSupervisor::startSimulation()
 {
-    // Check for some error conditions.
-    if (outputWriterProcess == -1 || outputWriterThread == -1)
-        throw new Exception("Forward flux supervisor could not start the simulation, no output writer available.");
-
     Print::printf(Print::INFO, "Forward flux supervisor starting simulation.");
 
     // Call the base class method.
@@ -300,7 +292,7 @@ void FFluxSupervisor::startSimulation()
 void FFluxSupervisor::buildTrajectoryList()
 {
     //TODO: uncomment following line
-    trajectoryList = new FFluxTrajectoryList(simulationPhase, *input, communicator, slots.getSimultaneousWorkUnits());
+    trajectoryList = new FFluxTrajectoryList(simulationPhase, *input, communicator, masterOutputWriterAddress, slots.getSimultaneousWorkUnits());
 }
 
 }

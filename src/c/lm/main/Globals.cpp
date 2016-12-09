@@ -62,7 +62,8 @@
 #include "lm/Print.h"
 #include "lm/Types.h"
 #include "lm/Version.h"
-#include "lm/main/Main.h"
+#include "lm/main/Globals.h"
+#include "lm/resource/ResourceMap.h"
 
 using std::string;
 using std::vector;
@@ -108,6 +109,11 @@ time_t checkpointInterval = 0;
 volatile bool globalAbort = false;
 
 /**
+ * The communicator to use for the simulations.
+ */
+string communicatorClassName;
+
+/**
  * The supervisor to use for the simulations.
  */
 string supervisorClassName;
@@ -120,7 +126,12 @@ string solverClassName;
 /**
  * The filename for the resource list.
  */
-string resourceFilename;
+string resourceFilename = "";
+
+/**
+ * The format for the resource file.
+ */
+lm::resource::ResourceMap::ResourceFileFormat resourceFileFormat;
 
 /**
  * The number of cpu cores assigned to each process.

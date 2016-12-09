@@ -94,7 +94,7 @@ protected:
     string outputFilename;
 
 private:
-    lm::message::Communicator communicator;
+    lm::message::Communicator* communicator;
     std::queue<lm::message::Message*> messageQueue;
     volatile int messageQueueSize;
     pthread_mutex_t messageQueueMutex;

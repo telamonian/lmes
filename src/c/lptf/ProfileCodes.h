@@ -56,7 +56,7 @@
 #define PROF_MESSAGE_SERIALIZE                      51
 #define PROF_MESSAGE_RECEIVE                        55
 #define PROF_MESSAGE_PARSE                          56
-
+#define PROF_MESSAGE_RECEIVE_SPURIOUS_WAKEUP        57
 
 #define PROF_DATAOUTPUT_RUN                         100
 #define PROF_DATAOUTPUT_WRITE_DATASET               101

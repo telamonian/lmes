@@ -39,19 +39,16 @@
 
 #include <string>
 #include <map>
-#include <mpi.h>
 #include <pthread.h>
 #include <vector>
 
 #include "hrtime.h"
 #include "lm/ClassFactory.h"
 #include "lm/cme/CMESolver.h"
-#include "lm/MPI.h"
 #include "lm/Print.h"
 #if defined(OPT_CUDA)
 #include "lm/Cuda.h"
 #endif
-#include "lm/main/Main.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/main/WorkUnitRunner.h"
 #include "lm/me/MESolver.h"
@@ -74,33 +71,36 @@ namespace lm {
 namespace main {
 
 WorkUnitRunner::WorkUnitRunner(const lm::message::StartWorkUnitRunner& msg)
-    :communicator(lm::MPI::worldRank,threadNumber),properties(msg),solver(NULL)
+:id(-1),communicator(NULL),properties(msg),solver(NULL)
 {
     id = msg.work_unit_runner_id();
+
+    // Create the communicator.
+    communicator = lm::message::Communicator::createObjectOfDefaultSubclass(false);
 }
 
 WorkUnitRunner::~WorkUnitRunner()
 {
     if (solver != NULL) delete solver; solver = NULL;
+    if (communicator != NULL) delete communicator; communicator = NULL;
 }
 
 void WorkUnitRunner::wake() throw(PthreadException)
 {
     lm::message::Message msg;
     msg.mutable_ping_target()->set_id(0);
-    communicator.sendMessage(communicator.getSourceProcess(), communicator.getSourceThread(), &msg);
+    communicator->sendMessage(communicator->getSourceAddress(), &msg);
 }
 
 int WorkUnitRunner::run()
 {
     try
     {
-        Print::printf(Print::INFO, "Work unit runner %d on process (%d:%d) started with %d cpu cores (affinity=%d) and %d gpus.", properties.work_unit_runner_id(), lm::MPI::worldRank, threadNumber, properties.cpu_size(), properties.use_cpu_affinity(), properties.gpu_size());
+        Print::printf(Print::INFO, "Work Unit runner %s started with %d cpu cores (affinity=%d) and %d gpus.", Communicator::printableAddress(communicator->getSourceAddress()).c_str(), properties.cpu_size(), properties.use_cpu_affinity(), properties.gpu_size());
 
         // Set the processor affinity.
         if (properties.use_cpu_affinity() && properties.cpu_size() > 0)
         {
-            Print::printf(Print::INFO, "Work unit runner %d process (%d:%d using cpu core %d.", properties.work_unit_runner_id(), lm::MPI::worldRank, threadNumber, properties.cpu(0));
             setAffinity(properties.cpu(0));
         }
 
@@ -108,7 +108,7 @@ int WorkUnitRunner::run()
         #if defined(OPT_CUDA)
         if (properties.gpu_size() > 0)
         {
-            Print::printf(Print::INFO, "Work unit runner %d process (%d:%d) using gpu device %d.", properties.work_unit_runner_id(), lm::MPI::worldRank, threadNumber, properties.gpu(0));
+            Print::printf(Print::INFO, "Work Unit runner %s using gpu device %d.", Communicator::printableAddress(communicator->getSourceAddress()).c_str(), properties.gpu(0));
             lm::CUDA::setCurrentDevice(properties.gpu(0));
         }
         #endif
@@ -131,17 +131,16 @@ int WorkUnitRunner::run()
         lm::message::Message msgp;
         lm::message::StartedWorkUnitRunner* msg = msgp.mutable_started_work_unit_runner();
         msg->set_work_unit_runner_id(id);
-        msg->set_process(lm::MPI::worldRank);
-        msg->set_thread(getThreadNumber());
+        msg->mutable_address()->CopyFrom(communicator->getSourceAddress());
         msg->set_simultaneous_work_units(solver->getSimultaneousTrajectories());
-        communicator.sendMessage(lm::MPI::MASTER, lm::main::SimulationSupervisor::THREAD_ID, &msgp);
+        communicator->sendMessage(communicator->getSupervisorAddress(), &msgp);
 
         // Loop reading messages.
         lm::message::Message message;
         while (true)
         {
             // Read the next message.
-            communicator.receiveMessage(&message);
+            communicator->receiveMessage(&message);
 
             // Do something with the message.
             if (message.has_run_work_unit())
@@ -165,7 +164,7 @@ int WorkUnitRunner::run()
         //Delete the solver.
         if (solver != NULL) delete solver; solver = NULL;
 
-        Print::printf(Print::INFO, "Work unit runner %d at %d:%d finished.", properties.work_unit_runner_id(), lm::MPI::worldRank, threadNumber);
+        Print::printf(Print::INFO, "Work unit runner %s finished.", Communicator::printableAddress(communicator->getSourceAddress()).c_str());
         return 0;
     }
     catch (lm::Exception e)
@@ -238,14 +237,12 @@ void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
     lm::message::Message msgp1;
     lm::message::StartedWorkUnit* msg1 = msgp1.mutable_started_work_unit();
     msg1->set_work_unit_id(rwuMsg.work_unit_id());
-    communicator.sendMessage(rwuMsg.supervisor_process(), rwuMsg.supervisor_thread(), &msgp1);
+    communicator->sendMessage(communicator->getSupervisorAddress(), &msgp1);
 
     // Create the finished work units message.
     lm::message::Message msg2;
     lm::message::FinishedWorkUnit* fwuMsg = msg2.mutable_finished_work_unit();
     fwuMsg->set_work_unit_id(rwuMsg.work_unit_id());
-    fwuMsg->set_process(lm::MPI::worldRank);
-    fwuMsg->set_thread(getThreadNumber());
 
     uint64_t totalSteps=0;
     hrtime totalTime=0;
@@ -301,7 +298,7 @@ void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
     // Tell the supervisor the work unit has finished.
     fwuMsg->set_steps(totalSteps);
     fwuMsg->set_run_time(convertHrToSeconds(totalTime));
-    communicator.sendMessage(rwuMsg.supervisor_process(), rwuMsg.supervisor_thread(), &msg2);
+    communicator->sendMessage(communicator->getSupervisorAddress(), &msg2);
 }
 
 }

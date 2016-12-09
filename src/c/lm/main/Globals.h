@@ -44,6 +44,7 @@
 #include <string>
 #include <vector>
 #include "lm/Types.h"
+#include "lm/resource/ResourceMap.h"
 #include "hrtime.h"
 
 using std::string;
@@ -90,6 +91,11 @@ extern time_t checkpointInterval;
 extern volatile bool globalAbort;
 
 /**
+ * The communicator to use for the simulations.
+ */
+extern string communicatorClassName;
+
+/**
  * The supervisor to use for the simulations.
  */
 extern string supervisorClassName;
@@ -103,6 +109,11 @@ extern string solverClassName;
  * The filename for the resource list.
  */
 extern string resourceFilename;
+
+/**
+ * The format for the resource file.
+ */
+extern lm::resource::ResourceMap::ResourceFileFormat resourceFileFormat;
 
 /**
  * The number of cpu cores assigned to each process.
@@ -164,32 +175,5 @@ extern bool opActivatedFlag;
  */
 extern bool opTrackingFlag;
 
-#ifdef OPT_PYTHON
-/**
- * The directory containing the supporting files.
- */
-extern string libDir;
-
-/**
- * The directory containing the supporting files.
- */
-extern string userLibDir;
-
-/**
- * The path of directories containing user scripts to execute at startup.
- */
-extern string scriptPath;
-
-/**
- * The script filename being executed, if applicable.
- */
-extern string scriptFilename;
-
-/**
- * The arguments for the script, if applicable.
- */
-extern vector<string> scriptArguments;
-
-#endif
 
 #endif
