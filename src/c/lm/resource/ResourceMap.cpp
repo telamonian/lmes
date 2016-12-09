@@ -307,22 +307,21 @@ bool ResourceMap::registerResources(const lm::message::ResourcesAvailable& msg)
 ComputeResources ResourceMap::reserveCPUCores(int numberCPUCores)
 {
     // Go through the requested resources and look for a process that has the specified number of cores available.
-    for (map<int,ComputeResources>::iterator it=registeredResources.begin(); it != registeredResources.end(); it++)
+    for (map<string,ComputeResources>::iterator it=registeredResources.begin(); it != registeredResources.end(); it++)
     {
-        int process = it->first;
+        string hostname = it->first;
         ComputeResources resources = it->second;
-        if ((int)resources.cpuCores.size() >= numberCPUCores)
+        if (resources.cpuCores.size() >= numberCPUCores)
         {
             ComputeResources reservedResources;
             reservedResources.hostname = resources.hostname;
-            reservedResources.controller_process = resources.controller_process;
-            reservedResources.controller_thread = resources.controller_thread;
+            reservedResources.controllerAddress = resources.controllerAddress;
             for (int i=0; i<numberCPUCores; i++)
             {
                 reservedResources.cpuCores.push_back(resources.cpuCores[0]);
                 resources.cpuCores.erase(resources.cpuCores.begin());
             }
-            registeredResources[process] = resources;
+            registeredResources[hostname] = resources;
             return reservedResources;
         }
     }
@@ -345,7 +344,7 @@ ComputeResources ResourceMap::reserveCPUCores(string hostname, int numberCPUCore
         registeredResources[hostname] = resources;
         return reservedResources;
     }
-    throw lm::Exception("Insufficient resource on specified host to reserve a CPU core", hostname.c_str(), resources.cpuCores.size(), numberCPUCores);
+    throw Exception("Insufficient resource on specified host to reserve a CPU core", hostname.c_str(), resources.cpuCores.size(), numberCPUCores);
 }
 
 map<string,ComputeResources> ResourceMap::getAvailableResources()

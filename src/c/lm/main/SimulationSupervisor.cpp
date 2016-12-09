@@ -79,7 +79,7 @@ namespace main {
 SimulationSupervisor::SimulationSupervisor()
 :communicator(NULL),hasCheckpointSignalerStarted(false),hasOutputWriterStarted(false),haveAllWorkUnitRunnersStarted(false),
  input(NULL),outputWriterClassName(""),performingCheckpoint(false),
- simulationInputFilename(""),simulationOutputFilename(""),simulationPhase(0),simulationRunning(true),slots(),
+ simulationOutputFilename(""),simulationPhase(0),simulationRunning(true),slots(),
  solverClassName(""),trajectoryList(NULL),useCPUAffinity(false),workUnitCount(0)
 {
     // Create the communicator.
@@ -199,6 +199,7 @@ int SimulationSupervisor::run()
     {
         Print::printf(Print::FATAL, "Unknown Exception during execution (%s:%d)", __FILE__, __LINE__);
     }
+    exit(-1);
     return -1;
 }
 

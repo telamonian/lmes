@@ -94,6 +94,7 @@ protected:
     bool isTrajectoryOutsideLimitsAVX();
     void copyTrajectoryStateToBaseSolver(uint trajectoryNumber);
     void copyTrajectoryStateFromBaseSolver(uint trajectoryNumber);
+    void copyOutputFromBaseSolver(uint trajectoryNumber);
 
 protected:
     // If the trajectory has been initialized.

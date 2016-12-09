@@ -67,14 +67,16 @@ namespace slot {
 
 class SlotList
 {
+protected:
+    static int nextSlotId;
+
 public:
     SlotList();
     ~SlotList();
 
     //create slot methods
     void createAllSlots(map<string,ComputeResources> & allResources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input);
-    int createHostSlots(int startingSlotId, ComputeResources resources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input);
-    void createSlot(int slotId, ComputeResources resources, bool useCPUAffinity, lm::message::Message* msg, string solver, const lm::input::Input& input);
+    void createHostSlots(ComputeResources resources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input);
 
     bool isManagingSlot(int slotId) const;
     bool isRunningWorkUnit(int64_t workUnitId) const;
@@ -90,6 +92,9 @@ public:
 
     void printSlotsStatistics() const;
     void resetSlotsStatistics();
+
+protected:
+    void createSlot(int slotId, ComputeResources resources, bool useCPUAffinity, lm::message::Message* msg, string solver, const lm::input::Input& input);
 
 private:
     map<int,Slot> slotMap;

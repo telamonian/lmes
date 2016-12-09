@@ -59,6 +59,8 @@
 
 using std::map;
 using std::string;
+using lm::message::Communicator;
+using lm::message::Endpoint;
 using lm::resource::ResourceMap;
 
 namespace lm {

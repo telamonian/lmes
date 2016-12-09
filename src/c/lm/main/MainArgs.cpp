@@ -119,7 +119,7 @@ void parseArguments(int argc, char** argv)
 #endif
     shouldPrintGPUCapabilities = true;
 
-    simulationInputFilename = "";
+    simulationInputFilenames.clear();
     simulationOutputFilename = "";
     outputWriterClassName = "lm::io::hdf5::Hdf5OutputWriter";
     supervisorClassName = "lm::replicates::ReplicateSupervisor";
@@ -174,15 +174,15 @@ void parseArguments(int argc, char** argv)
         }
 
         //See if the user is trying to execute a simulation.
-        else if (strcmp(option, "-f") == 0 || strcmp(option, "--file") == 0)
+        else if ((strcmp(option, "-f") == 0 || strcmp(option, "--file") == 0) && i < (argc-1))
         {
             functionOption = "simulation";
-
-            // Get the filename.
-            if (i < argc-1)
-                simulationInputFilename = argv[++i];
-            else
-                throw lm::CommandLineArgumentException("missing simulation input file.");
+            parseStringListArg(simulationInputFilenames, argv[++i]);
+        }
+        else if (strncmp(option, "--file=", strlen("--file=")) == 0)
+        {
+            functionOption = "simulation";
+            parseStringListArg(simulationInputFilenames, option+strlen("--file="));
         }
 
         //See if the user is trying to set the output format.
@@ -356,8 +356,18 @@ void parseArguments(int argc, char** argv)
         //See if the user is trying to turn off cuda capability printing.
          else if ((strcmp(option, "-nr") == 0 || strcmp(option, "--no-reserve-core") == 0))
          {
-        	 shouldReserveOutputCore = false;
+             shouldReserveOutputCore = false;
          }
+
+        //
+        // Simulation type arguments.
+        //
+
+        //See if the user is trying to perform a replicate sampling simulation.
+        else if ((strcmp(option, "-rs") == 0 || strcmp(option, "--replicate-sampling") == 0))
+        {
+             supervisorClassName = "lm::replicates::ReplicateSupervisor";
+        }
 
         //See if the user is trying to use forward flux sampling.
         else if ((strcmp(option, "-fflux") == 0 || strcmp(option, "--use-forward-flux") == 0))
@@ -372,6 +382,23 @@ void parseArguments(int argc, char** argv)
         {
              intermediateOutputFlag = true;
         }
+
+        //See if the user is trying to perform a microenvironment simulation.
+        else if ((strcmp(option, "-me") == 0 || strcmp(option, "--microenvironment") == 0))
+        {
+             supervisorClassName = "lm::microenv::MicroenvironmentSupervisor";
+        }
+
+        //See if the user is trying to set the supervisor directly.
+        else if ((strcmp(option, "-su") == 0 || strcmp(option, "--supervisor") == 0) && i < (argc-1))
+        {
+            supervisorClassName = argv[++i];
+        }
+        else if (strncmp(option, "--supervisor=", strlen("--supervisor=")) == 0)
+        {
+            supervisorClassName = option+strlen("--supervisor=");
+        }
+
 
         //See if the user is trying to set the gpu devices.
         else if ((strcmp(option, "-so") == 0 || strcmp(option, "--shared-libraries") == 0) && i < (argc-1))
@@ -410,10 +437,14 @@ void parseArguments(int argc, char** argv)
     }
 
     // Perform some validation.
+    if (functionOption == "simulation" && simulationInputFilenames.size() == 0)
+        throw lm::CommandLineArgumentException("missing simulation input file.");
+
     if (outputWriterClassName == "lm::io::hdf5::Hdf5OutputWriter" && simulationOutputFilename == "")
-        simulationOutputFilename = simulationInputFilename;
-    else if (outputWriterClassName == "lm::io::hdf5::Hdf5OutputWriter" && simulationOutputFilename != simulationInputFilename)
+        simulationOutputFilename = simulationInputFilenames[0];
+    else if (outputWriterClassName == "lm::io::hdf5::Hdf5OutputWriter" && simulationOutputFilename != simulationInputFilenames[0])
         throw lm::CommandLineArgumentException("cannot specify separate input and output files with the hdf5 format.");
+
     if (outputWriterClassName == "lm::io::sfile::SFileOutputWriter" && simulationOutputFilename == "")
         throw lm::CommandLineArgumentException("missing simulation output file.");
 }
@@ -527,7 +558,7 @@ void printUsage(int argc, char** argv)
     std::cout << "Usage: lm (-h|--help)" << std::endl;
     std::cout << "Usage: lm (-v|--version)" << std::endl;
     std::cout << "Usage: lm (-l|--list-devices)" << std::endl;
-    std::cout << "Usage: lm [OPTIONS] [SIM_OPTIONS] (-f|--file) input_filename" << std::endl;
+    std::cout << "Usage: lm [OPTIONS] [SIM_OPTIONS] (-f input_filename_list | --file=input_filename_list)" << std::endl;
     std::cout << std::endl;
     std::cout << "OPTIONS" << std::endl;
     std::cout << "  -ff format        --output-format=format        The file format for the simulation output. Valid values are \"hdf5\" (default)|\"sfile\"|\"log\"|\"null\"." << std::endl;
@@ -552,8 +583,11 @@ void printUsage(int argc, char** argv)
     std::cout << "  -sp               --spatially-resolved          The simulations should use the spatially resolved reaction model (default)." << std::endl;
     std::cout << "  -ws               --well-stirred                The simulations should use the well-stirred reaction model." << std::endl;
     std::cout << "  -sl solver        --solver=solver               The specific solver class to use for the simulations." << std::endl;
+    std::cout << "  -rs               --replicate-sampling          Perform a replicate sampling simulation (default)." << std::endl;
+    std::cout << "  -fflux            --use-forward-flux            Perform a forward-flux simulation." << std::endl;
+    std::cout << "  -me               --microenvironment            Perform a microenvironment simulation." << std::endl;
+    std::cout << "  -su supervisor    --supervisor=classname        Perform a simulation using the specified supervisor." << std::endl;
     std::cout << "  -ck               --checkpoint=interval         Enable checkpointing with the given interval as hh:mm:ss (default 00:00:00 -- disabled)." << std::endl;
-    std::cout << "  -fflux            --use-forward-flux			Enable forward flux sampling (default disabled)." << std::endl;
     std::cout << "  -intout           --intermediate-output         More verbose output. Consists of intermediate values used to calculate standard output." << std::endl;
 }
 

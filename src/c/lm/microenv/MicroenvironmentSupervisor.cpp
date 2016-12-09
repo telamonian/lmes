@@ -30,7 +30,6 @@
 #include "lm/io/OutputWriter.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/main/Globals.h"
-#include "lm/main/Main.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
@@ -50,6 +49,8 @@
 
 using std::map;
 using std::string;
+using lm::message::Communicator;
+using lm::message::Endpoint;
 using lm::resource::ResourceMap;
 
 namespace lm {
@@ -70,7 +71,7 @@ void* MicroenvironmentSupervisor::allocateObject()
 
 MicroenvironmentSupervisor::MicroenvironmentSupervisor()
 :simulationStartTime(0),numberReplicates(::replicates.size()),currentReplicateIndex(0),numberTimesteps(0),currentTimestep(0),tau(0.0),maxTime(0.0),
-pdeSlots(&communicator),pdeSolverClassName(""),pdeTrajectoryList(NULL),
+pdeSlots(),pdeSolverClassName(""),pdeTrajectoryList(NULL),
 gridSpacing(0.0),numberCells(0),cellCoordinates(NULL),cellGridPoints(NULL),cellVolumes(NULL),cellPreviousCounts(NULL),cellCurrentCounts(NULL),cellFlux(NULL),
 stats_pdeWorkUnitsSteps(0),stats_pdeWorkUnitsTime(0.0),stats_timesteps(0),stats_timestepStartTime(0),stats_timestepTotalTime(0),stats_timestepPDETime(0),stats_timestepMETime(0),stats_timestepReconcileTime(0)
 {
@@ -135,8 +136,8 @@ void MicroenvironmentSupervisor::init()
 void MicroenvironmentSupervisor::startWorkUnitRunners()
 {
     // Start the work unit runners for the PDE solvers.
-    ComputeResources pdeResources = resourceMap->reserveCPUCores(1);
-    pdeSlots.createAllSlots(pdeResources, 1, 0, useCPUAffinity, pdeSolverClassName, *input);
+    ComputeResources pdeResources = resourceMap.reserveCPUCores(1);
+    pdeSlots.createHostSlots(pdeResources, 1, 0, useCPUAffinity, pdeSolverClassName, *input);
 
     // Start the work unit runners for the ME solvers using the base supervisor.
     SimulationSupervisor::startWorkUnitRunners();
@@ -144,7 +145,7 @@ void MicroenvironmentSupervisor::startWorkUnitRunners()
 
 void MicroenvironmentSupervisor::receivedStartedWorkUnitRunner(const lm::message::StartedWorkUnitRunner & msg)
 {
-    Print::printf(Print::INFO, "Work unit runner %d on process (%d:%d) reported to supervisor.",msg.work_unit_runner_id(),msg.process(),msg.thread());
+    Print::printf(Print::INFO, "Work unit runner started: %s.", Communicator::printableAddress(msg.address()).c_str());
 
     if (pdeSlots.isManagingSlot(msg.work_unit_runner_id()))
         pdeSlots.markSlotStarted(msg);
@@ -162,11 +163,6 @@ void MicroenvironmentSupervisor::startSimulation()
 {
     PROF_BEGIN(PROF_MENV_RUN_SIM);
     simulationStartTime=getHrTime();
-
-    // Check for some error conditions.
-    if (outputWriterProcess == -1 || outputWriterThread == -1)
-        throw new Exception("MicroenvironmentSupervisor could not start the simulation, no output writer available.");
-
 
     Print::printf(Print::INFO, "Microenvironment supervisor starting simulation: %d replicates", numberReplicates);
 
@@ -328,8 +324,8 @@ void MicroenvironmentSupervisor::receivedFinishedWorkUnit(const lm::message::Fin
 
         // Send a message to the output writer to save a checkpoint.
         lm::message::Message msgp;
-        lm::message::PerformCheckpointing* msg = msgp.mutable_perform_checkpointing();
-        communicator.sendMessage(outputWriterProcess, outputWriterThread, &msgp);
+        msgp.mutable_perform_checkpointing();
+        communicator->sendMessage(outputWriterAddress, &msgp);
     }
 }
 
@@ -374,13 +370,8 @@ void MicroenvironmentSupervisor::buildRunWorkUnit(lm::message::RunWorkUnit* msg,
     // Set the work unit id.
     msg->set_work_unit_id(workUnitCount++);
 
-    // Set the source process/thread.
-    msg->set_supervisor_process(communicator.getSourceProcess());
-    msg->set_supervisor_thread(communicator.getSourceThread());
-
-    // Set the writer process/thread.
-    msg->set_output_process(outputWriterProcess);
-    msg->set_output_thread(outputWriterThread);
+    // Set the writer address.
+    msg->mutable_output_address()->CopyFrom(outputWriterAddress);
 
     // Set the output options.
     msg->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());

@@ -49,7 +49,6 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <zlib.h>
 
 #include "lm/ClassFactory.h"
 #include "lm/Tune.h"
@@ -59,6 +58,7 @@
 #include "lm/cme/GillespieDSolver.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
+#include "lm/main/Globals.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/WorkUnitOutput.pb.h"
 #include "lm/rng/RandomGenerator.h"
@@ -67,7 +67,7 @@
 #include "lm/thread/Worker.h"
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
-#include "robertslab/pbuf/NDArray.pb.h"
+#include "robertslab/pbuf/NDArraySerializer.h"
 
 using std::string;
 using std::list;
@@ -369,26 +369,11 @@ uint64_t GillespieDSolver::generateTrajectory(uint64_t maxSteps)
             lm::io::SpeciesTimeSeries* speciesTimeSeriesDataSet = output->mutable_species_time_series();
             speciesTimeSeriesDataSet->set_trajectory_id(trajectoryId);
 
-            robertslab::pbuf::NDArray* counts = speciesTimeSeriesDataSet->mutable_counts();
-            counts->set_data_type(robertslab::pbuf::NDArray::int32);
-            counts->set_compressed_deflate(true);
-            counts->add_shape(speciesTimeSeriesTimes.size());
-            counts->add_shape(reactionModel->numberSpeciesToTrack);
-            std::string* data = counts->mutable_data();
-            size_t dataSizeEstimate=compressBound(speciesTimeSeriesCounts.size()*sizeof(int32_t));
-            data->resize(dataSizeEstimate);
-            ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)speciesTimeSeriesCounts.data(), speciesTimeSeriesCounts.size()*sizeof(int32_t)));
-            data->resize(dataSizeEstimate);
+            // Serialize the times.
+            robertslab::pbuf::NDArraySerializer::serializeInto<double>(speciesTimeSeriesDataSet->mutable_times(), speciesTimeSeriesTimes.data(), utuple(speciesTimeSeriesTimes.size()));
 
-            robertslab::pbuf::NDArray* times = speciesTimeSeriesDataSet->mutable_times();
-            times->set_data_type(robertslab::pbuf::NDArray::float64);
-            times->set_compressed_deflate(true);
-            times->add_shape(speciesTimeSeriesTimes.size());
-            data = times->mutable_data();
-            dataSizeEstimate=compressBound(speciesTimeSeriesTimes.size()*sizeof(double));
-            data->resize(dataSizeEstimate);
-            ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)speciesTimeSeriesTimes.data(), speciesTimeSeriesTimes.size()*sizeof(double)));
-            data->resize(dataSizeEstimate);
+            // Serialize the species counts.
+            robertslab::pbuf::NDArraySerializer::serializeInto<int32_t>(speciesTimeSeriesDataSet->mutable_counts(), speciesTimeSeriesCounts.data(), utuple(speciesTimeSeriesTimes.size(),reactionModel->numberSpeciesToTrack));
         }
         else
         {

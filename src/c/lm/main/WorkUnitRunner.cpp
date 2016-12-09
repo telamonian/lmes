@@ -66,6 +66,8 @@
 using std::map;
 using std::string;
 using std::vector;
+using lm::message::Communicator;
+using lm::message::Endpoint;
 
 namespace lm {
 namespace main {
@@ -292,7 +294,7 @@ void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
             parts->AddAllocated(solver->getOutput(j));
             if (msg->part_output(j).has_output()) hasOutput = true;
         }
-        if (hasOutput) communicator.sendMessage(rwuMsg.output_process(), rwuMsg.output_thread(), &msgp);
+        if (hasOutput) communicator->sendMessage(rwuMsg.output_address(), &msgp);
     }
 
     // Tell the supervisor the work unit has finished.

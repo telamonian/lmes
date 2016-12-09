@@ -61,7 +61,7 @@ public:
                    WAITING};
 
     Trajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryState& initialState);
-    Trajectory(uint64_t id, uint64_t phase, const lm::input::Input& input, bool reversed=false, bool useCMEState=true, bool useRDMEState=true, bool useDiffusionPDEState=true);
+    Trajectory(uint64_t id, uint64_t phase, const lm::input::Input& input, bool reversed=false, bool useCMEState=true, bool useRDMEState=true, bool useDiffusionPDEState=false);
     virtual ~Trajectory();
 
     // accessors

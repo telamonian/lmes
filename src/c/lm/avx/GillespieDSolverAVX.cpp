@@ -47,7 +47,6 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <zlib.h>
 
 #include "lm/ClassFactory.h"
 #include "lm/Exceptions.h"
@@ -69,7 +68,7 @@
 #include "lm/thread/Worker.h"
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
-#include "robertslab/pbuf/NDArray.pb.h"
+#include "robertslab/pbuf/NDArraySerializer.h"
 
 using std::string;
 using std::list;
@@ -379,6 +378,11 @@ void GillespieDSolverAVX::copyTrajectoryStateFromBaseSolver(uint trajectoryNumbe
     //TODO: implement
 }
 
+void GillespieDSolverAVX::copyOutputFromBaseSolver(uint trajectoryNumber)
+{
+    output[trajectoryNumber]->CopyFrom(*CMESolver::output);
+}
+
 lm::message::WorkUnitOutput* GillespieDSolverAVX::getOutput(uint trajectoryNumber)
 {
     if (trajectoryNumber >= getSimultaneousTrajectories()) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
@@ -415,11 +419,14 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
         {
             if (initialized[i])
             {
-                Print::printf(Print::DEBUG, "GillespieDSolverAVX started without a full set of trajectories, running trajectory %llu with the GillespieDSolver.", trajectoryId[i]);
+                Print::printf(Print::INFO, "GillespieDSolverAVX started without a full set of trajectories, running trajectory %llu with the GillespieDSolver.", trajectoryId[i]);
                 copyTrajectoryStateToBaseSolver(i);
                 GillespieDSolver::updateAllPropensities();
                 steps += GillespieDSolver::generateTrajectory(maxSteps);
                 copyTrajectoryStateFromBaseSolver(i);
+                copyOutputFromBaseSolver(i);
+                //printf("Output os:\n"); fflush(stdout);
+                //output[i]->PrintDebugString();
             }
         }
         return steps;
@@ -795,26 +802,11 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
                 lm::io::SpeciesTimeSeries* speciesTimeSeriesDataSet = output[i]->mutable_species_time_series();
                 speciesTimeSeriesDataSet->set_trajectory_id(trajectoryId[i]);
 
-                robertslab::pbuf::NDArray* counts = speciesTimeSeriesDataSet->mutable_counts();
-                counts->set_data_type(robertslab::pbuf::NDArray::int32);
-                counts->set_compressed_deflate(true);
-                counts->add_shape(speciesTimeSeriesTimes[i].size());
-                counts->add_shape(reactionModel->numberSpeciesToTrack);
-                std::string* data = counts->mutable_data();
-                size_t dataSizeEstimate=compressBound(speciesTimeSeriesCounts[i].size()*sizeof(int32_t));
-                data->resize(dataSizeEstimate);
-                ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)speciesTimeSeriesCounts[i].data(), speciesTimeSeriesCounts[i].size()*sizeof(int32_t)));
-                data->resize(dataSizeEstimate);
+                // Serialize the times.
+                robertslab::pbuf::NDArraySerializer::serializeInto<double>(speciesTimeSeriesDataSet->mutable_times(), speciesTimeSeriesTimes[i].data(), utuple(speciesTimeSeriesTimes[i].size()));
 
-                robertslab::pbuf::NDArray* times = speciesTimeSeriesDataSet->mutable_times();
-                times->set_data_type(robertslab::pbuf::NDArray::float64);
-                times->set_compressed_deflate(true);
-                times->add_shape(speciesTimeSeriesTimes[i].size());
-                data = times->mutable_data();
-                dataSizeEstimate=compressBound(speciesTimeSeriesTimes[i].size()*sizeof(double));
-                data->resize(dataSizeEstimate);
-                ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)speciesTimeSeriesTimes[i].data(), speciesTimeSeriesTimes[i].size()*sizeof(double)));
-                data->resize(dataSizeEstimate);
+                // Serialize the species counts.
+                robertslab::pbuf::NDArraySerializer::serializeInto<int32_t>(speciesTimeSeriesDataSet->mutable_counts(), speciesTimeSeriesCounts[i].data(), utuple(speciesTimeSeriesTimes[i].size(),reactionModel->numberSpeciesToTrack));
             }
             else
             {

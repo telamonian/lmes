@@ -64,6 +64,8 @@ using std::vector;
 namespace lm {
 namespace slot {
 
+int SlotList::nextSlotId = 0;
+
 SlotList::SlotList()
 :communicator(NULL)
 {
@@ -80,14 +82,13 @@ SlotList::~SlotList()
 
 void SlotList::createAllSlots(map<string,ComputeResources> & allResources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input)
 {
-    int nextSlotId = 0;
     for (map<string,ComputeResources>::iterator it=allResources.begin(); it != allResources.end(); it++)
 	{
-        nextSlotId += createHostSlots(nextSlotId, it->second, cpusPerSlot, gpusPerSlot, useCPUAffinity, solver, input);
+        createHostSlots(it->second, cpusPerSlot, gpusPerSlot, useCPUAffinity, solver, input);
 	}
 }
 
-int SlotList::createHostSlots(int startingSlotId, ComputeResources resources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input)
+void SlotList::createHostSlots(ComputeResources resources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input)
 {
     // Make sure that a least one compute resource was being requested, otherwise we can create infinite slots.
     if (cpusPerSlot == 0.0 && gpusPerSlot == 0.0)
@@ -142,15 +143,12 @@ int SlotList::createHostSlots(int startingSlotId, ComputeResources resources, do
         lm::message::Message msg;
 
         // Create the slot.
-        createSlot(startingSlotId+i, slotResources, useCPUAffinity, &msg, solver, input);
+        createSlot(nextSlotId++, slotResources, useCPUAffinity, &msg, solver, input);
 
         // Send the message to create all of the work units runners for this process.
         communicator->sendMessage(resources.controllerAddress, &msg);
 
     }
-
-    // Return the number of slots that were created.
-    return i;
 }
 
 void SlotList::createSlot(int slotId, ComputeResources resources, bool useCPUAffinity, lm::message::Message* msg, string solver, const lm::input::Input& input)
@@ -197,8 +195,7 @@ void SlotList::markSlotStarted(const lm::message::StartedWorkUnitRunner& msg)
     if (slotMap.count(msg.work_unit_runner_id()) == 0) throw Exception("Invalid work unit runner id received in started work unit runner message", msg.work_unit_runner_id());
     if (slotMap[msg.work_unit_runner_id()].status != Slot::NOT_STARTED) throw Exception("Work unit runner was previosuly started", msg.work_unit_runner_id());
     slotMap[msg.work_unit_runner_id()].status = Slot::FREE;
-    slotMap[msg.work_unit_runner_id()].workUnitRunnerEndpoint.process = msg.process();
-    slotMap[msg.work_unit_runner_id()].workUnitRunnerEndpoint.thread = msg.thread();
+    slotMap[msg.work_unit_runner_id()].workUnitRunnerAddress = msg.address();
     slotMap[msg.work_unit_runner_id()].simultaneousWorkUnits = msg.simultaneous_work_units();
 }
 
