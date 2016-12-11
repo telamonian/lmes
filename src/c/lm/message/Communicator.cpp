@@ -105,7 +105,15 @@ void Communicator::deserialize(lm::message::Message* msg) const
     // Deserialize the message.
     if (!msg->ParseFromArray(inputBuffer, messageLength))
     {
-        throw lm::Exception("Unable to deserialize message");
+        // try to at least partially parse the message for debugging/logging purposes
+        if (!msg->ParsePartialFromArray(inputBuffer, messageLength))
+        {
+            throw lm::Exception("Unable to deserialize message. Message debug string: ", msg->DebugString().c_str());
+        }
+        else
+        {
+            throw lm::Exception("Unable to deserialize message. msg->ParseFromArray and msg->ParsePartialFromArray both failed.");
+        }
     }
     PROF_END(PROF_MESSAGE_PARSE);
 

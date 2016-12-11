@@ -42,7 +42,7 @@ class FFluxSRGRegression(SRGRegression):
                     "ffluxStageOutputRaw": True,
                     "ffluxStageOutputSummary": True,
                     'phaseZeroSamplingMultiplier': 1,
-                    'ffluxMinimizeCost': False,
+                    'ffluxMinimizeCost': True,
                     'writeInterval': None,
                     'writeLimitTracking': False,}
 

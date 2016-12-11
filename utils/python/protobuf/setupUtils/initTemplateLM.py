@@ -34,7 +34,7 @@ def _ShallowImport(path, name, nameFilter=None, nameFilterClusivity='include', s
     moduleDict = {}
     for importer, modName, isPkg in iterFunc(path=path, prefix=name+'.', onerror=onerror):
         if modName.split('.')[-1][:4]=='old_':
-            # this is disabled code, skip it
+            # this is code marked as disabled/deprecated, skip it
             continue
         if skipPkgs and isPkg:
             # we've been told to skip packages and this is a package

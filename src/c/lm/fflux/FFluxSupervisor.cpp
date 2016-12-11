@@ -444,7 +444,7 @@ void FFluxSupervisor::repeatFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage
     }
 }
 
-std::vector<double> FFluxSupervisor::estimateBernoulliProbabilities(const lm::protowrap::FFluxStageOutputWrap& stageOutput, double confidence)
+std::vector<double> FFluxSupervisor::estimateBernoulliProbabilities(const lm::protowrap::FFluxStageOutputWrap& stageOutput, double confidence, double minimum)
 {
     const lm::protowrap::FFluxStageOutputRawWrap& soRaw(stageOutput.fflux_stage_output_raw());
     const lm::protowrap::FFluxStageOutputSummaryWrap& soSummary(stageOutput.fflux_stage_output_summary());
@@ -480,20 +480,24 @@ std::vector<double> FFluxSupervisor::estimateBernoulliProbabilities(const lm::pr
 //    probabilities = probabilities - (normalZ(.9975)/1000)*((1 - probabilities)*probabilities);
 
     // make estimates more conservative using the lower bound of the estimator confidence interval
-    return bernouliCIAgrestiCoullLowerBound(probabilities, trials, confidence);
+    vector<double> conservativeProbabilities(bernouliCIAgrestiCoullLowerBound(probabilities, trials, confidence));
+
+    // make sure that all of the probability estimates are at least a little above zero (if requested)
+    if (minimum>=0)
+    {
+        for (vector<double>::iterator it=conservativeProbabilities.begin();it!=conservativeProbabilities.end();it++)
+        {
+            *it = max(*it, minimum);
+        }
+    }
+
+    return conservativeProbabilities;
 }
 
 vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double errorGoal, double errorGoalConfidence, const lm::protowrap::FFluxStageOutputWrap& stageOutput, uint64_t minimumCount, uint64_t phaseZeroSamplingMultipiler, bool minimizeCost)
 {
     const lm::protowrap::FFluxStageOutputSummaryWrap& soSummary(stageOutput.fflux_stage_output_summary());
     vector<double> probabilities(estimateBernoulliProbabilities(stageOutput));
-
-    // make sure that all of the probability estimates are at least a little above zero
-    double minimum = 1e-4;
-    for (vector<double>::iterator it=probabilities.begin();it!=probabilities.end();it++)
-    {
-        *it = max(*it, minimum);
-    }
 
     vector<uint64_t> trajectoryCounts;
     if (minimizeCost)
