@@ -30,7 +30,7 @@ class FFluxSRGRegression(SRGRegression):
                     'writeFinalTrajectoryState': False,
                     'writeInterval': None,
                     'writeLimitTracking': True,
-                    'maxWorkUnitSteps': 1e5,}
+                    'maxWorkUnitSteps': 1e8,}
         else:
             return {'batchSize': 1,
                     "errorGoal": .01,
