@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 Johns Hopkins University
+ * Copyright 2016 Johns Hopkins University
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,17 +17,42 @@
  *               Johns Hopkins University
  *               http://biophysics.jhu.edu/roberts/
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
+#ifndef LM_ME_FPTDEQUE_H
+#define LM_ME_FPTDEQUE_H
 
-package lm.io;
+#include <deque>
 
-import "robertslab/pbuf/NDArray.proto";
+#include "lm/Types.h"
+#include "lm/io/FirstPassageTimes.pb.h"
 
-message FirstPassageTimes {
-    required uint64 trajectory_id                           = 1;
-    required uint32 species                                 = 2;
-    required robertslab.pbuf.NDArray counts                 = 3;    //1D; rows=counts; type=int32
-    required robertslab.pbuf.NDArray first_passage_times    = 4;    //1D; rows=times; type=float64
+
+namespace lm {
+namespace me {
+
+
+class FPTDeque
+{
+public:
+    FPTDeque();
+    virtual ~FPTDeque();
+    FPTDeque& operator=(const FPTDeque& a);
+    void insert(int value, double time);
+    void deserializeFrom(const lm::io::FirstPassageTimes& fpt);
+    void serializeInto(lm::io::FirstPassageTimes* fpt);
+
+public:
+    uint64_t trajectoryId;
+    uint32_t species;
+    int minValue;
+    int maxValue;
+
+protected:
+    std::deque<double> fpts;
+};
 
 }
+}
+
+#endif // LM_ME_FPTDEQUE_H

@@ -205,6 +205,21 @@ public:
         if (allocatedValues && values != NULL) free(values);
     }
 
+    const T& operator[](const uint index) const
+    {
+        return (const_cast<ndarray *>(this))->get(utuple(index));
+    }
+
+    T& operator[](const uint index)
+    {
+        return get(utuple(index));
+    }
+
+    T& get(const uint index)
+    {
+        return get(utuple(index));
+    }
+
     const T& operator[](const tuple<uint>& index) const
     {
         return (const_cast<ndarray *>(this))->get(index);

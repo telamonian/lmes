@@ -63,7 +63,7 @@ public:
 	Exception(const char * message, const int arg)                                          {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %d", message, arg);}
     Exception(const char * message, const int arg1,    const int arg2)                      {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %d, %d", message, arg1, arg2);}
     Exception(const char * message, const int arg1,    const int arg2,    const int arg3)   {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %d, %d, %d", message, arg1, arg2, arg3);}
-	Exception(const char * message, const char * arg)                                       {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s", message, arg);}
+    Exception(const char * message, const char * arg)                                       {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s", message, arg);}
 	Exception(const char * message, const char * arg1, const char* arg2)                    {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s, %s", message, arg1, arg2);}
     Exception(const char * message, const char * arg1, const char* arg2,  const char* arg3) {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s, %s, %s", message, arg1, arg2, arg3);}
     Exception(const char * message, const char * arg1, const int arg2)                      {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s, %d", message, arg1, arg2);}
@@ -91,6 +91,8 @@ public:
     InvalidArgException(const char* arg, const char* argMessage, const int argMessageParameter) : Exception("Invalid argument", arg, argMessage, argMessageParameter) {}
     InvalidArgException(const char* arg, const char* argMessage, const int argMessageParameter1, const int argMessageParameter2) : Exception() {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s, %s (%d,%d)", "Invalid argument", arg, argMessage, argMessageParameter1, argMessageParameter2);}
     InvalidArgException(const char* arg, const char* argMessage, const int argMessageParameter1, const int argMessageParameter2, const int argMessageParameter3) : Exception() {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s, %s (%d,%d,%d)", "Invalid argument", arg, argMessage, argMessageParameter1, argMessageParameter2, argMessageParameter3);}
+    InvalidArgException(const char* arg, const char* argMessage, const int a1, const int a2, const int a3, const int a4, const int a5) : Exception() {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s, %s (%d,%d,%d,%d,%d)", "Invalid argument", arg, argMessage, a1, a2, a3, a4, a5);}
+    InvalidArgException(const char* arg, const char* argMessage, const int a1, const int a2, const int a3, const int a4, const int a5, const int a6) : Exception() {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s, %s (%d,%d,%d,%d,%d,%d)", "Invalid argument", arg, argMessage, a1, a2, a3, a4, a5, a6);}
 //    virtual ~InvalidArgException() throw() {}
 };
 

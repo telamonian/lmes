@@ -124,7 +124,7 @@ public:
     template <typename T> static void deserializeInto(ndarray<T>* array, const robertslab::pbuf::NDArray& msg, size_t alignment=0)
     {
         // Check that the datatype matches.
-        if (msg.data_type() != NDArray_datatype_code<T>()) throw robertslab::InvalidArgException("msg", "the array was of the wrong data type", msg.data_type());
+        if (msg.data_type() != NDArray_datatype_code<T>()) throw robertslab::InvalidArgException("msg", "the array was of the wrong data type", msg.data_type(),NDArray_datatype_code<T>());
 
         // Check that the shapes match.
         tuple<uint> shape(msg.shape().size(), (const uint*)msg.shape().data());

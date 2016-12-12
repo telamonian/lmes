@@ -51,6 +51,7 @@
 
 #include "lm/ClassFactory.h"
 #include "lm/cme/GillespieDSolver.h"
+#include "lm/me/FPTDeque.h"
 #include "lm/message/WorkUnitOutput.pb.h"
 #include "lm/message/WorkUnitStatus.pb.h"
 #include "lm/rng/RandomGenerator.h"
@@ -92,6 +93,7 @@ protected:
     void performReactionEventAVX(uint* reactionsToPerform);
     void callUpdateSpeciesCountsListenersAVX();
     bool isTrajectoryOutsideLimitsAVX();
+    void copyOutputToBaseSolver(uint trajectoryNumber);
     void copyTrajectoryStateToBaseSolver(uint trajectoryNumber);
     void copyTrajectoryStateFromBaseSolver(uint trajectoryNumber);
     void copyOutputFromBaseSolver(uint trajectoryNumber);
@@ -112,10 +114,10 @@ protected:
     double* limitValues;
 
     //First passage time variables.
-    uint numberFptValues;
-    double* fptMinValuesAchieved;
-    double* fptMaxValuesAchieved;
-    deque<pair<int,double> >* fptValues;
+    int fptAllocatedValues;
+    lm::me::FPTDeque* fptValues;
+    double* fptMinValues;
+    double* fptMaxValues;
 
     // The current state.
     uint64_t trajectoryId[DOUBLES_PER_AVX];

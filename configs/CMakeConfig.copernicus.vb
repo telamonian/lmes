@@ -33,7 +33,7 @@ SET(EXTRA_CXX_FLAGS "")
 ############################
 
 # USE_AVX can be set to yes, no, or optional, in which case AVX will be used if cmake can build a test AVX program with your compiler.
-SET(USE_AVX no)
+SET(USE_AVX optional)
 
 # USE_FMA can be set to yes, no, or optional, in which case FMA will be used if cmake can build a test FMA program with your compiler.
 SET(USE_FMA no)

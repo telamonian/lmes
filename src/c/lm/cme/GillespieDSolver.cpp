@@ -112,7 +112,7 @@ void GillespieDSolver::reset()
     propensities = new double[reactionModel->numberReactions];
 
     // Set the propensities to their initial values.
-    for (int i=0; i<reactionModel->numberReactions; i++)
+    for (uint i=0; i<reactionModel->numberReactions; i++)
     {
         propensities[i] = 0.0;
     }
@@ -233,7 +233,7 @@ uint64_t GillespieDSolver::generateTrajectory(uint64_t maxSteps)
             while (nextOrderParameterWriteTime <= (time+EPS))
             {
                 // Record the order parameter counts.
-                for (uint i=0; i<numberOrderParameters; i++) orderParameterTimeSeriesCounts.push_back(orderParameterValues[i]);
+                for (int i=0; i<numberOrderParameters; i++) orderParameterTimeSeriesCounts.push_back(orderParameterValues[i]);
                 orderParameterTimeSeriesTimes.push_back(nextOrderParameterWriteTime);
                 nextOrderParameterWriteTime += orderParameterWriteInterval;
             }
@@ -321,7 +321,7 @@ uint64_t GillespieDSolver::generateTrajectory(uint64_t maxSteps)
             while (nextOrderParameterWriteTime <= (time+EPS))
             {
                 // Record the order parameter counts.
-                for (uint i=0; i<numberOrderParameters; i++) orderParameterTimeSeriesCounts.push_back(orderParameterValues[i]);
+                for (int i=0; i<numberOrderParameters; i++) orderParameterTimeSeriesCounts.push_back(orderParameterValues[i]);
                 orderParameterTimeSeriesTimes.push_back(nextOrderParameterWriteTime);
                 nextOrderParameterWriteTime += orderParameterWriteInterval;
             }
@@ -345,7 +345,7 @@ uint64_t GillespieDSolver::generateTrajectory(uint64_t maxSteps)
         // Record the order parameter counts.
         if (writeOrderParameterTimeSeries && !ffluxFlag)
         {
-            for (uint i=0; i<numberOrderParameters; i++) orderParameterTimeSeriesCounts.push_back(orderParameterValues[i]);
+            for (int i=0; i<numberOrderParameters; i++) orderParameterTimeSeriesCounts.push_back(orderParameterValues[i]);
             orderParameterTimeSeriesTimes.push_back(nextOrderParameterWriteTime);
         }
 
@@ -408,14 +408,14 @@ uint64_t GillespieDSolver::generateTrajectory(uint64_t maxSteps)
     }
 
     // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
-    if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFptTrackedSpecies > 0)
+    if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFptSpecies > 0)
     {
         // Mark that the message does contain some data.
         output->set_has_output(true);
 
-        for (int i=0; i<numberFptTrackedSpecies; i++)
+        for (int i=0; i<numberFptSpecies; i++)
         {
-            fptTrackedSpecies[i].serializeTo(trajectoryId, output->add_first_passage_times());
+            fptValues[i].serializeInto(output->add_first_passage_times());
         }
     }
 

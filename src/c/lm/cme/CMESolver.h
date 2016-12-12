@@ -46,7 +46,6 @@
 
 #include <algorithm>
 #include <cstdio>
-#include <deque>
 #include <list>
 #include <map>
 #include <pthread.h>
@@ -63,6 +62,7 @@
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
+#include "lm/me/FPTDeque.h"
 #include "lm/me/MESolver.h"
 #include "lm/me/PropensityFunction.h"
 #include "lm/message/WorkUnitStatus.pb.h"
@@ -92,25 +92,6 @@ namespace cme {
 class CMESolver : public MESolver
 {
 protected:
-    class FPTTracking
-    {
-    public:
-        int species;
-        int minValueAchieved;
-        int maxValueAchieved;
-        std::deque<std::pair<int,double> > fptValues;
-        void serializeTo(uint64_t trajectoryId, lm::io::FirstPassageTimes* fpt)
-        {
-            fpt->set_trajectory_id(trajectoryId);
-            fpt->set_species(species);
-            fpt->set_number_entries(fptValues.size());
-            for (std::deque<std::pair<int,double> >::iterator it=fptValues.begin(); it != fptValues.end(); it++)
-            {
-                fpt->add_species_count(it->first);
-                fpt->add_first_passage_time(it->second);
-            }
-        }
-    };
 
     class TilingHist
     {
@@ -187,17 +168,11 @@ protected:
         }
 
         // Update the first passage time tables.
-        for (int i=0; i<numberFptTrackedSpecies; i++)
+        for (int i=0; i<numberFptSpecies; i++)
         {
-            int speciesCount = speciesCounts[fptTrackedSpecies[i].species];
-            while (speciesCount < fptTrackedSpecies[i].minValueAchieved)
-            {
-                fptTrackedSpecies[i].fptValues.push_front(std::pair<int,double>(--fptTrackedSpecies[i].minValueAchieved,time));
-            }
-            while (speciesCount > fptTrackedSpecies[i].maxValueAchieved)
-            {
-                fptTrackedSpecies[i].fptValues.push_back(std::pair<int,double>(++fptTrackedSpecies[i].maxValueAchieved,time));
-            }
+            int value = speciesCounts[fptValues[i].species];
+            if (value < fptValues[i].minValue || value > fptValues[i].maxValue)
+                fptValues[i].insert(value, time);
         }
 
         // Update any order parameters.
@@ -253,8 +228,8 @@ protected:
     double degreeAdvancementWriteInterval, orderParameterWriteInterval, speciesWriteInterval;
 
     //First passage time variables.
-    int numberFptTrackedSpecies;
-    FPTTracking* fptTrackedSpecies;
+    int numberFptSpecies;
+    lm::me::FPTDeque* fptValues;
 
     // The current state.
     uint64_t* degreeAdvancements;

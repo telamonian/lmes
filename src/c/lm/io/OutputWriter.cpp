@@ -385,6 +385,10 @@ int OutputWriter::HelperThread::run()
         totalMessagesWritten += messagesWritten;
         totalBytesWritten += bytesWritten;
         Print::printf(Print::INFO, "OutputWriter wrote %lld messages and %lld bytes total.", totalMessagesWritten, totalBytesWritten);
+
+        Print::printf(Print::INFO, "OutputWriter::HelperThread %s finished.", Communicator::printableAddress(p->communicator->getSourceAddress()).c_str());
+        return 0;
+
     }
     catch (lm::Exception e)
     {
@@ -399,8 +403,8 @@ int OutputWriter::HelperThread::run()
         Print::printf(Print::FATAL, "Unknown Exception during execution (%s:%d)", __FILE__, __LINE__);
     }
 
-    Print::printf(Print::INFO, "OutputWriter::HelperThread %s finished.", Communicator::printableAddress(p->communicator->getSourceAddress()).c_str());
-    return 0;
+    exit(-1);
+    return -1;
 }
 
 }

@@ -181,6 +181,7 @@ int WorkUnitRunner::run()
     {
         Print::printf(Print::FATAL, "Unknown Exception during execution (%s:%d)", __FILE__, __LINE__);
     }
+    exit(-1);
     return -1;
 }
 
@@ -262,7 +263,7 @@ void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
             solver->setOutputOptions(rwuMsg.output_options());
 
         // Configure the solver state for each simultaneous trajectory.
-        for (int j=0; j<solver->getSimultaneousTrajectories() && (i+j)<rwuMsg.part_size(); j++)
+        for (int j=0; j<(int)solver->getSimultaneousTrajectories() && (i+j)<rwuMsg.part_size(); j++)
         {
             solver->setState(rwuMsg.part(i+j).initial_state(), j);
         }
@@ -273,7 +274,7 @@ void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
         totalTime += getHrTime()-t1;
 
         // Save the status and the state.
-        for (int j=0; j<solver->getSimultaneousTrajectories() && (i+j)<rwuMsg.part_size(); j++)
+        for (int j=0; j<(int)solver->getSimultaneousTrajectories() && (i+j)<rwuMsg.part_size(); j++)
         {
             lm::message::WorkUnitStatus* status = fwuMsg->add_part_status();
             status->set_status(solver->getStatus(j));
@@ -289,7 +290,7 @@ void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
         lm::message::ProcessWorkUnitOutput* msg = msgp.mutable_process_work_unit_output();
         msg->set_work_unit_id(rwuMsg.work_unit_id());
         google::protobuf::RepeatedPtrField<lm::message::WorkUnitOutput>* parts = msg->mutable_part_output();
-        for (int j=0; j<solver->getSimultaneousTrajectories() && (i+j)<rwuMsg.part_size(); j++)
+        for (int j=0; j<(int)solver->getSimultaneousTrajectories() && (i+j)<rwuMsg.part_size(); j++)
         {
             parts->AddAllocated(solver->getOutput(j));
             if (msg->part_output(j).has_output()) hasOutput = true;

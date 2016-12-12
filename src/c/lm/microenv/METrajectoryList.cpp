@@ -64,7 +64,7 @@ METrajectoryList::METrajectoryList(const lm::input::Input& input, uint64_t repli
 
             // Set the initial species counts for the cell.
             lm::io::TrajectoryState* state = trajectories[id]->getMutableState();
-            if (state->cme_state().species_counts().number_species() != numberSpecies) throw RuntimeException("inconsistent number of species", state->cme_state().species_counts().number_species(), numberSpecies);
+            if (state->cme_state().species_counts().number_species() != (int)numberSpecies) throw RuntimeException("inconsistent number of species", state->cme_state().species_counts().number_species(), numberSpecies);
             for (uint j=0; j<numberSpecies; j++)
                 state->mutable_cme_state()->mutable_species_counts()->set_species_count(j, (*initialCounts)[utuple(i,j)]);
         }

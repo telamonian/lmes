@@ -100,7 +100,7 @@ void* GillespieDSolverAVX::allocateObject()
 }
 
 GillespieDSolverAVX::GillespieDSolverAVX()
-:GillespieDSolver(),limitValues(NULL),numberFptValues(0),fptMinValuesAchieved(NULL),fptMaxValuesAchieved(NULL),fptValues(NULL),speciesCounts(NULL),propensities(NULL),orderParameterValues(NULL),orderParameterPreviousValues(NULL)
+:GillespieDSolver(),limitValues(NULL),fptAllocatedValues(0),fptValues(NULL),fptMinValues(NULL),fptMaxValues(NULL),speciesCounts(NULL),propensities(NULL),orderParameterValues(NULL),orderParameterPreviousValues(NULL)
 {
     // Initialize any avx variables.
     timeLimit = _mm256_set1_pd(std::numeric_limits<double>::infinity());
@@ -130,9 +130,10 @@ GillespieDSolverAVX::~GillespieDSolverAVX()
 
     // Free any memory.
     if (limitValues != NULL) free(limitValues); limitValues = NULL;
-    if (fptMinValuesAchieved != NULL) free(fptMinValuesAchieved); fptMinValuesAchieved = NULL;
-    if (fptMaxValuesAchieved != NULL) free(fptMaxValuesAchieved); fptMaxValuesAchieved = NULL;
+    fptAllocatedValues = 0;
     if (fptValues != NULL) delete[] fptValues; fptValues = NULL;
+    if (fptMinValues != NULL) free(fptMinValues); fptMinValues = NULL;
+    if (fptMaxValues != NULL) free(fptMaxValues); fptMaxValues = NULL;
     if (speciesCounts != NULL) free(speciesCounts); speciesCounts = NULL;
     if (propensities != NULL) free(propensities); propensities = NULL;
     if (orderParameterValues != NULL) free(orderParameterValues); orderParameterValues = NULL;
@@ -189,7 +190,7 @@ void GillespieDSolverAVX::setLimits(const lm::io::TrajectoryLimits& lm)
         POSIX_EXCEPTION_CHECK(posix_memalign((void**)&limitValues, DOUBLES_PER_AVX*sizeof(double), numberLimits*DOUBLES_PER_AVX*sizeof(double)));
 
         // Copy the limit values into the avx buffer.
-        for (int i=0; i<numberLimits; i++)
+        for (int i=0; i<(int)numberLimits; i++)
         {
             for (int j=0; j<DOUBLES_PER_AVX; j++)
                 if (limits[i].type == lm::io::TrajectoryLimits::SPECIES)
@@ -207,13 +208,13 @@ void GillespieDSolverAVX::reset()
     GillespieDSolver::reset();
 
     // Reset the species counts.
-    for (int i=0; i<reactionModel->numberSpecies*DOUBLES_PER_AVX; i++)
+    for (int i=0; i<(int)reactionModel->numberSpecies*DOUBLES_PER_AVX; i++)
     {
         speciesCounts[i] = 0.0;
     }
 
     // Reset the propensities.
-    for (int i=0; i<reactionModel->numberReactions*DOUBLES_PER_AVX; i++)
+    for (int i=0; i<(int)reactionModel->numberReactions*DOUBLES_PER_AVX; i++)
     {
         propensities[i] = 0.0;
     }
@@ -236,17 +237,17 @@ void GillespieDSolverAVX::reset()
     timeStep = _mm256_set1_pd(0.0);
 
     // Reset the order parameters.
-    for (size_t i=0; i<numberOrderParameters*DOUBLES_PER_AVX; i++)
+    for (int i=0; i<numberOrderParameters*DOUBLES_PER_AVX; i++)
     {
         orderParameterValues[i] = 0.0;
         orderParameterPreviousValues[i] = 0.0;
     }
 
     // Reset the fpt values.
-    if (fptMinValuesAchieved != NULL) free(fptMinValuesAchieved); fptMinValuesAchieved = NULL;
-    if (fptMaxValuesAchieved != NULL) free(fptMaxValuesAchieved); fptMaxValuesAchieved = NULL;
+    fptAllocatedValues = 0;
     if (fptValues != NULL) delete[] fptValues; fptValues = NULL;
-    numberFptValues = 0;
+    if (fptMinValues != NULL) free(fptMinValues); fptMinValues = NULL;
+    if (fptMaxValues != NULL) free(fptMaxValues); fptMaxValues = NULL;
 }
 
 void GillespieDSolverAVX::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
@@ -266,20 +267,20 @@ void GillespieDSolverAVX::setState(const lm::io::TrajectoryState& state, uint tr
     CMESolver::setState(state, trajectoryNumber);
 
     // Allocate space for the fpt values, if necessary.
-    if (numberFptTrackedSpecies > 0)
+    if (numberFptSpecies > 0)
     {
         // See if we have not yet allocated space.
-        if (numberFptValues == 0)
+        if (fptAllocatedValues == 0)
         {
-            numberFptValues = numberFptTrackedSpecies;
-            POSIX_EXCEPTION_CHECK(posix_memalign((void**)&fptMinValuesAchieved, DOUBLES_PER_AVX*sizeof(double), numberFptValues*DOUBLES_PER_AVX*sizeof(double)));
-            POSIX_EXCEPTION_CHECK(posix_memalign((void**)&fptMaxValuesAchieved, DOUBLES_PER_AVX*sizeof(double), numberFptValues*DOUBLES_PER_AVX*sizeof(double)));
-            fptValues = new deque<pair<int,double> >[numberFptValues*DOUBLES_PER_AVX];
+            fptValues = new lm::me::FPTDeque[numberFptSpecies*DOUBLES_PER_AVX];
+            fptAllocatedValues = numberFptSpecies;
+            POSIX_EXCEPTION_CHECK(posix_memalign((void**)&fptMinValues, DOUBLES_PER_AVX*sizeof(double), fptAllocatedValues*DOUBLES_PER_AVX*sizeof(double)));
+            POSIX_EXCEPTION_CHECK(posix_memalign((void**)&fptMaxValues, DOUBLES_PER_AVX*sizeof(double), fptAllocatedValues*DOUBLES_PER_AVX*sizeof(double)));
         }
         //Otherwise, make sure the sizes match.
-        else if (numberFptValues != numberFptTrackedSpecies)
+        else if (fptAllocatedValues != numberFptSpecies)
         {
-            throw Exception("Mismatch between the number of fpt tracked values between trajectories",numberFptValues,numberFptTrackedSpecies);
+            throw Exception("Mismatch between the number of fpt tracked values between trajectories",fptAllocatedValues,numberFptSpecies);
         }
     }
 
@@ -316,19 +317,18 @@ void GillespieDSolverAVX::copyTrajectoryStateToBaseSolver(uint trajectoryNumber)
     CMESolver::timeStep = ((double*)&timeStep)[trajectoryNumber];
 
     // Set the order parameters.
-    for (uint i=0; i<numberOrderParameters; i++)
+    for (int i=0; i<numberOrderParameters; i++)
     {
         CMESolver::orderParameterValues[i] = orderParameterValues[i*DOUBLES_PER_AVX+trajectoryNumber];
         CMESolver::orderParameterPreviousValues[i] = orderParameterPreviousValues[i*DOUBLES_PER_AVX+trajectoryNumber];
     }
 
     // Set the first passage times.
-    for (uint i=0; i<numberFptValues; i++)
+    for (int i=0; i<numberFptSpecies; i++)
     {
-        fptTrackedSpecies[i].minValueAchieved = lround(fptMinValuesAchieved[i*DOUBLES_PER_AVX+trajectoryNumber]);
-        fptTrackedSpecies[i].maxValueAchieved = lround(fptMaxValuesAchieved[i*DOUBLES_PER_AVX+trajectoryNumber]);
-        fptTrackedSpecies[i].fptValues = fptValues[i*DOUBLES_PER_AVX+trajectoryNumber];
+        CMESolver::fptValues[i] = fptValues[i*DOUBLES_PER_AVX+trajectoryNumber];
     }
+
 
     // Set the histogram bin values.
     //TODO: implement
@@ -360,23 +360,29 @@ void GillespieDSolverAVX::copyTrajectoryStateFromBaseSolver(uint trajectoryNumbe
     ((double*)&timeStep)[trajectoryNumber] = CMESolver::timeStep;
 
     // Set the order parameters.
-    for (uint i=0; i<numberOrderParameters; i++)
+    for (int i=0; i<numberOrderParameters; i++)
     {
         orderParameterValues[i*DOUBLES_PER_AVX+trajectoryNumber] = CMESolver::orderParameterValues[i];
         orderParameterPreviousValues[i*DOUBLES_PER_AVX+trajectoryNumber] = CMESolver::orderParameterPreviousValues[i];
     }
 
     // Set the first passage times.
-    for (uint i=0; i<numberFptValues; i++)
+    for (int i=0; i<numberFptSpecies; i++)
     {
-        fptMinValuesAchieved[i*DOUBLES_PER_AVX+trajectoryNumber] = double(fptTrackedSpecies[i].minValueAchieved);
-        fptMaxValuesAchieved[i*DOUBLES_PER_AVX+trajectoryNumber] = double(fptTrackedSpecies[i].maxValueAchieved);
-        fptValues[i*DOUBLES_PER_AVX+trajectoryNumber] = fptTrackedSpecies[i].fptValues;
+        fptValues[i*DOUBLES_PER_AVX+trajectoryNumber] = CMESolver::fptValues[i];
+        fptMinValues[i*DOUBLES_PER_AVX+trajectoryNumber] = double(CMESolver::fptValues[i].minValue);
+        fptMaxValues[i*DOUBLES_PER_AVX+trajectoryNumber] = double(CMESolver::fptValues[i].maxValue);
     }
 
     // Set the histogram bin values.
     //TODO: implement
 }
+
+void GillespieDSolverAVX::copyOutputToBaseSolver(uint trajectoryNumber)
+{
+    CMESolver::output->CopyFrom(*output[trajectoryNumber]);
+}
+
 
 void GillespieDSolverAVX::copyOutputFromBaseSolver(uint trajectoryNumber)
 {
@@ -420,6 +426,7 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
             if (initialized[i])
             {
                 Print::printf(Print::INFO, "GillespieDSolverAVX started without a full set of trajectories, running trajectory %llu with the GillespieDSolver.", trajectoryId[i]);
+                copyOutputToBaseSolver(i);
                 copyTrajectoryStateToBaseSolver(i);
                 GillespieDSolver::updateAllPropensities();
                 steps += GillespieDSolver::generateTrajectory(maxSteps);
@@ -815,22 +822,15 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
         }
 
         // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
-        if (status[i] == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFptTrackedSpecies > 0)
+        if (status[i] == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFptSpecies > 0)
         {
             // Mark that the message does contain some data.
             output[i]->set_has_output(true);
 
-            for (int j=0; j<numberFptValues; j++)
+            for (int j=0; j<numberFptSpecies; j++)
             {
-                lm::io::FirstPassageTimes* fpt = output[i]->add_first_passage_times();
-                fpt->set_trajectory_id(trajectoryId[i]);
-                fpt->set_species(fptTrackedSpecies[j].species);
-                fpt->set_number_entries(fptValues[j*DOUBLES_PER_AVX+i].size());
-                for (std::deque<std::pair<int,double> >::iterator it=fptValues[j*DOUBLES_PER_AVX+i].begin(); it != fptValues[j*DOUBLES_PER_AVX+i].end(); it++)
-                {
-                    fpt->add_species_count(it->first);
-                    fpt->add_first_passage_time(it->second);
-                }
+                fptValues[j*DOUBLES_PER_AVX+i].serializeInto(output[i]->add_first_passage_times());
+                printf("avx gillespie writing fpt for %d %d,%d\n", i, (int)output[i]->first_passage_times(j).trajectory_id(), output[i]->first_passage_times(j).species()); fflush(stdout);
             }
         }
     }
@@ -877,65 +877,27 @@ void GillespieDSolverAVX::performReactionEventAVX(uint* reactionsToPerform)
 void GillespieDSolverAVX::callUpdateSpeciesCountsListenersAVX()
 {
     // Update the first passage time tables.
-    for (int i=0; i<numberFptValues; i++)
+    for (int i=0; i<numberFptSpecies; i++)
     {
-        uint speciesIndex = fptTrackedSpecies[i].species;
+        uint speciesIndex = fptValues[i*DOUBLES_PER_AVX+0].species;
         avxd counts = _mm256_load_pd(&speciesCounts[speciesIndex*DOUBLES_PER_AVX]);
-        avxd comp;
-        int allFalse;
-        int trueMask;
 
-        // Check if we went below the previous min.
-        while (true)
+        // Check if any trajectory went below the previous min or above the previous max.
+        avxd comp = _mm256_cmp_pd(counts, _mm256_load_pd(&fptMinValues[i*DOUBLES_PER_AVX]), _CMP_LT_OQ);
+        int minAllFalse = _mm256_testz_pd(comp,comp);
+        comp = _mm256_cmp_pd(counts, _mm256_load_pd(&fptMaxValues[i*DOUBLES_PER_AVX]), _CMP_GT_OQ);
+        int maxAllFalse = _mm256_testz_pd(comp,comp);
+        if (!minAllFalse || !maxAllFalse)
         {
-            comp = _mm256_cmp_pd(counts, _mm256_load_pd(&fptMinValuesAchieved[i*DOUBLES_PER_AVX]), _CMP_LT_OQ);
-            allFalse = _mm256_testz_pd(comp,comp);
-            if (allFalse)
+            // At least on trajectory was outside the range, so update all of them.
+            for (int j=0; j<DOUBLES_PER_AVX; j++)
             {
-                break;
-            }
-            else
-            {
-                // Get a bitmask of all values that were true.
-                trueMask = _mm256_movemask_pd(comp);
+                // Update the fpt.
+                fptValues[i*DOUBLES_PER_AVX+j].insert(lround(((double*)&counts)[j]), ((double*)&time)[j]);
 
-                // Go through the mask.
-                for (int j=0; j<DOUBLES_PER_AVX; j++)
-                {
-                    // If this element was true, update the fpt tables.
-                    if (trueMask&(1<<j))
-                    {
-                        fptMinValuesAchieved[i*DOUBLES_PER_AVX+j] -= 1.0;
-                        fptValues[i*DOUBLES_PER_AVX+j].push_front(std::pair<int,double>(lround(fptMinValuesAchieved[i*DOUBLES_PER_AVX+j]),((double*)&time)[j]));
-                    }
-                }
-            }
-        }
-
-        // Check if we went above the previous max.
-        while (true)
-        {
-            comp = _mm256_cmp_pd(counts, _mm256_load_pd(&fptMaxValuesAchieved[i*DOUBLES_PER_AVX]), _CMP_GT_OQ);
-            allFalse = _mm256_testz_pd(comp,comp);
-            if (allFalse)
-            {
-                break;
-            }
-            else
-            {
-                // Get a bitmask of all values that were true.
-                trueMask = _mm256_movemask_pd(comp);
-
-                // Go through the mask.
-                for (int j=0; j<DOUBLES_PER_AVX; j++)
-                {
-                    // If this element was true, update the fpt tables.
-                    if (trueMask&(1<<j))
-                    {
-                        fptMaxValuesAchieved[i*DOUBLES_PER_AVX+j] += 1.0;
-                        fptValues[i*DOUBLES_PER_AVX+j].push_back(std::pair<int,double>(lround(fptMaxValuesAchieved[i*DOUBLES_PER_AVX+j]),((double*)&time)[j]));
-                    }
-                }
+                // Reload the min and and max.
+                fptMinValues[i*DOUBLES_PER_AVX+j] = double(fptValues[i*DOUBLES_PER_AVX+j].minValue);
+                fptMaxValues[i*DOUBLES_PER_AVX+j] = double(fptValues[i*DOUBLES_PER_AVX+j].maxValue);
             }
         }
     }
