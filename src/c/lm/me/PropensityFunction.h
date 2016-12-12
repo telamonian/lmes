@@ -115,9 +115,10 @@ struct PropensityFunctionDefinition
             constantUnits.push_back(constantUnitsArray[i++]);
     }
     PropensityFunctionDefinition(const PropensityFunctionDefinition& p):type(p.type),name(p.name),expressions(p.expressions),constantUnits(p.constantUnits),create(p.create){}
+
     string getConstantUnits(int i)
     {
-        if (i < constantUnits.size()) return constantUnits[i];
+        if (i < (int)constantUnits.size()) return constantUnits[i];
         return "1";
     }
 

@@ -49,6 +49,7 @@
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/tiling/Tilings.h"
 #include "lm/trajectory/Trajectory.h"
+#include "robertslab/pbuf/NDArraySerializer.h"
 
 using lm::io::DiffusionModel;
 using lm::io::ReactionModel;
@@ -58,49 +59,41 @@ using std::list;
 using std::map;
 using std::string;
 using std::vector;
+using robertslab::pbuf::NDArraySerializer;
 
 namespace lm {
 namespace trajectory {
 
-const char *trajectoryStatusStrings[] =
-{
-    "NOT_STARTED",
-    "RUNNING",
-    "WAITING",
-    "FINISHED"
-};
-
 Trajectory::Trajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryState& initialState)
-:id(static_cast<uint>(-1)),simulationPhase(phase),status(NOT_STARTED),state(initialState),numberWorkUnitsPerformed(0)
+:id(static_cast<uint>(-1)),numberWorkUnitsPerformed(0),simulationPhase(phase),state(initialState),status(NOT_STARTED)
 {
     setID(id);
 }
 
-Trajectory::Trajectory(uint64_t id, uint64_t phase, const lm::input::Input& input, bool reversed)
-:id(id),simulationPhase(phase),status(NOT_STARTED),state(),numberWorkUnitsPerformed(0)
+Trajectory::Trajectory(uint64_t id, uint64_t phase, const lm::input::Input& input, bool reversed, bool useCMEState, bool useRDMEState, bool useDiffusionPDEState)
+:id(id),numberWorkUnitsPerformed(0),simulationPhase(phase),state(),status(NOT_STARTED)
 {
-    initializeState(input, reversed);
+    initializeState(input, reversed, useCMEState, useRDMEState, useDiffusionPDEState);
 }
 
 Trajectory::~Trajectory()
 {
 }
 
-void Trajectory::initializeState(const lm::input::Input& input, bool reversed)
+void Trajectory::initializeState(const lm::input::Input& input, bool reversed, bool useCMEState, bool useRDMEState, bool useDiffusionPDEState)
 {
     state.Clear();
-
     state.set_trajectory_id(id);
+    if (useCMEState) initializeCMEState(input, reversed);
+    if (useRDMEState) initializeRDMEState(input);
+    if (useDiffusionPDEState) initializeDiffusionPDEState(input);
+}
 
+void Trajectory::initializeCMEState(const lm::input::Input& input, bool reversed)
+{
     // Set cme state from the reaction model.
     if (input.hasReactionModel())
     {
-        // Initialize the degree advancements
-        if (input.hasDegreeAdvancement())
-        {
-            initializeDegreeAdvancements(input);
-        }
-
         // Initialize the species counts
         const lm::io::ReactionModel& reactionModel = input.getReactionModelMsg();
         lm::io::SpeciesCounts* sc = state.mutable_cme_state()->mutable_species_counts();
@@ -123,40 +116,40 @@ void Trajectory::initializeState(const lm::input::Input& input, bool reversed)
         }
         sc->add_time(0.0);
         
+        // Initialize the degree advancements
+        if (input.hasDegreeAdvancement())
+        {
+            initializeDegreeAdvancements(input);
+        }
+
+        // Initialize the first passage times in the cme state.
+        if (input.getOutputOptionsMsg().fpt_species_to_track_size() > 0)
+        {
+            for (int i=0; i<input.getOutputOptionsMsg().fpt_species_to_track_size(); i++)
+            {
+                uint species = input.getOutputOptionsMsg().fpt_species_to_track(i);
+                lm::io::FirstPassageTimes* fpt = state.mutable_cme_state()->add_first_passage_times();
+                fpt->set_trajectory_id(id);
+                fpt->set_species(species);
+                ndarray<int32_t> counts(utuple(1));
+                ndarray<double> times(utuple(1));
+                counts[0] = reactionModel.initial_species_count(species);
+                times[0] = 0.0;
+                NDArraySerializer::serializeInto(fpt->mutable_counts(), counts);
+                NDArraySerializer::serializeInto(fpt->mutable_first_passage_times(), times);
+            }
+        }
+
         // Initialize the order parameters values
         if (input.hasOrderParameters())
         {
             initializeOrderParameters(input);
         }
         
-        // Initialize the first passage times in the cme state.
-        if (input.getOutputOptionsMsg().fpt_species_to_track_size())
-        {
-            for (int i=0; i< input.getOutputOptionsMsg().fpt_species_to_track_size(); i++)
-            {
-                uint speciesIndex = input.getOutputOptionsMsg().fpt_species_to_track(i);
-                lm::io::FirstPassageTimes* fpt = state.mutable_cme_state()->add_first_passage_times();
-                fpt->set_trajectory_id(id);
-                fpt->set_species(speciesIndex);
-                fpt->set_number_entries(1);
-                fpt->add_species_count(reactionModel.initial_species_count(speciesIndex));
-                fpt->add_first_passage_time(0.0);
-            }
-        }
     }
-
-    // Initialize the rdme state from the diffusion model.
-    if (input.hasDiffusionModel())
+    else
     {
-        const lm::io::DiffusionModel& diffusionModel = input.getDiffusionModelMsg();
-        lm::io::RDMEState* rdmeState = state.mutable_rdme_state();
-        lm::io::Lattice* initialLattice = rdmeState->mutable_species_positions();
-        initialLattice->set_lattice_x_size(diffusionModel.initial_lattice().lattice_x_size());
-        initialLattice->set_lattice_y_size(diffusionModel.initial_lattice().lattice_y_size());
-        initialLattice->set_lattice_z_size(diffusionModel.initial_lattice().lattice_z_size());
-        initialLattice->set_particles_per_site(diffusionModel.initial_lattice().particles_per_site());
-        initialLattice->set_particles_ordering(diffusionModel.initial_lattice().particles_ordering());
-        initialLattice->set_particles(diffusionModel.initial_lattice().particles());
+        throw RuntimeException("Trajectory::initializeCMEState requires a reaction model.");
     }
 
     // Initialize the tiling hists
@@ -206,12 +199,45 @@ void Trajectory::initializeOrderParameters(const lm::input::Input& input)
     opv->set_trajectory_id(id);
     opv->set_number_entries(1);
     opv->set_number_order_parameters(oparams.size());
-    for (uint i=0; i<opv->number_order_parameters(); i++)
+    for (int i=0; i<opv->number_order_parameters(); i++)
     {
         opv->add_order_parameter_values(oparams.at(i)->calc(state));
     }
     opv->add_time(0.0);
 }
+
+void Trajectory::initializeRDMEState(const lm::input::Input& input)
+{
+    // Initialize the rdme state from the diffusion model.
+    if (input.hasDiffusionModel())
+    {
+        const lm::io::DiffusionModel& diffusionModel = input.getDiffusionModelMsg();
+        lm::io::RDMEState* rdmeState = state.mutable_rdme_state();
+        lm::io::Lattice* initialLattice = rdmeState->mutable_species_positions();
+        initialLattice->set_lattice_x_size(diffusionModel.initial_lattice().lattice_x_size());
+        initialLattice->set_lattice_y_size(diffusionModel.initial_lattice().lattice_y_size());
+        initialLattice->set_lattice_z_size(diffusionModel.initial_lattice().lattice_z_size());
+        initialLattice->set_particles_per_site(diffusionModel.initial_lattice().particles_per_site());
+        initialLattice->set_particles_ordering(diffusionModel.initial_lattice().particles_ordering());
+        initialLattice->set_particles(diffusionModel.initial_lattice().particles());
+    }
+}
+
+void Trajectory::initializeDiffusionPDEState(const lm::input::Input& input)
+{
+    // Initialize the diffusion pde state from the input.
+    if (input.hasMicroenvironmentModel())
+    {
+        lm::io::DiffusionPDEState* pdeState = state.mutable_diffusion_pde_state();
+        pdeState->set_time(0.0);
+        pdeState->mutable_concentrations()->CopyFrom(input.getMicroenvironmentModel().initial_concentrations());
+    }
+    else
+    {
+        throw RuntimeException("Trajectory::initializeDiffusionPDEState requires a microenvironment model.");
+    }
+}
+
 
 // accessors
 vector<double> Trajectory::getLastOrderParameterValues() const
@@ -277,15 +303,14 @@ const lm::io::TrajectoryState& Trajectory::getState() const
     return state;
 }
 
+lm::io::TrajectoryState* Trajectory::getMutableState()
+{
+    return &state;
+}
+
 int64_t Trajectory::getWorkUnitsPerformed() const
 {
     return numberWorkUnitsPerformed;
-}
-
-// debug helper function for printing trajectory status to stdout
-void Trajectory::printStatus() const
-{
-    printf("trajectory ID: %d has status: %s\n", id, trajectoryStatusStrings[getStatus()]);
 }
 
 // mutators

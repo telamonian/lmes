@@ -113,6 +113,12 @@ void NullOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries&
         sleep(secondsToDelay);
 }
 
+void NullOutputWriter::processConcentrationsTimeSeries(const lm::io::ConcentrationsTimeSeries& data)
+{
+    if (secondsToDelay > 0)
+        sleep(secondsToDelay);
+}
+
 void NullOutputWriter::flush()
 {
 

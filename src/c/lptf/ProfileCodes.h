@@ -68,6 +68,7 @@
 #define PROF_SLAVE_SLEEP                            200
 
 #define PROF_SIM_EXECUTE                            299
+
 #define PROF_SERIALIZE_COUNTS                       300
 #define PROF_SERIALIZE_FPT                          301
 #define PROF_DESERIALIZE_COUNTS                     302
@@ -108,6 +109,14 @@
 #define PROF_FFLUX_WORK_UNIT_FINISHED               700
 #define PROF_FFLUX_WORK_UNIT_FINISHED_PHASE_ZERO    701
 #define PROF_FFLUX_WORK_UNIT_FINISHED_PHASE_N       702
+
+#define PROF_MENV_RUN_SIM                           800
+#define PROF_MENV_RUN_PHASE                         801
+#define PROF_MENV_START_REPLICATE                   802
+#define PROF_MENV_CONT_REPLICATE                    803
+#define PROF_MENV_ASSIGN_WORK                       804
+
+#define PROF_PDE_EXECUTE                            900
 
 
 #endif /* TIMINGCONSTANTS_H_ */

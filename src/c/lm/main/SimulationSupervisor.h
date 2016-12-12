@@ -41,6 +41,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 #include <google/protobuf/message.h>
 
@@ -53,7 +54,6 @@
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/Tilings.pb.h"
 #include "lm/message/Communicator.h"
-#include "lm/message/Endpoint.pb.h"
 #include "lm/message/FinishedCheckpointing.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/Message.pb.h"
@@ -75,8 +75,7 @@
 
 using std::map;
 using std::string;
-using lm::message::Communicator;
-using lm::message::Endpoint;
+using std::vector;
 
 namespace lm {
 namespace main {
@@ -91,7 +90,7 @@ public:
     virtual void init();
     void setOutputWriterClassName(string outputWriterClassName) {this->outputWriterClassName = outputWriterClassName;}
     void setResourceMap(lm::resource::ResourceMap& resourceMap) {this->resourceMap = resourceMap;}
-    void setSimulationFilename(string simulationInputFilename, string simulationOutputFilename) {this->simulationInputFilename = simulationInputFilename; this->simulationOutputFilename = simulationOutputFilename;}
+    void setSimulationFilename(vector<string> simulationInputFilenames, string simulationOutputFilename) {this->simulationInputFilenames = simulationInputFilenames; this->simulationOutputFilename = simulationOutputFilename;}
     void setSolverClassName(string solverClassName) {this->solverClassName = solverClassName;}
     void setUseCPUAffinity(bool useCPUAffinity) {this->useCPUAffinity = useCPUAffinity;}
     void wake() throw(lm::thread::PthreadException);
@@ -122,8 +121,7 @@ protected:
     virtual void buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint minWorkUnits);
     virtual void finishSimulationPhase();
     virtual void destroyTrajectoryList();
-    virtual bool performAnotherSimulationPhase();
-    virtual void incrementSimulationPhase();
+    virtual bool incrementSimulationPhase();
     virtual void finishSimulation();
 
     virtual void receivedPerformCheckpointing(const lm::message::PerformCheckpointing& msg);
@@ -131,9 +129,9 @@ protected:
     virtual void receivedProcessWorkUnitOutput(lm::message::Message& msg);
     virtual bool receivedOther(lm::message::Message& msg);
 
-private:
-    void printPerformanceStatistics(bool flush=false);
-    void resetPerformanceStatistics();
+protected:
+    virtual void printPerformanceStatistics(bool flush=false);
+    virtual void resetPerformanceStatistics();
 
 protected:
     lm::message::Communicator* communicator;
@@ -145,8 +143,8 @@ protected:
     Endpoint outputWriterAddress;
     bool performingCheckpoint;
     lm::resource::ResourceMap resourceMap;
-    std::string simulationInputFilename;
-    std::string simulationOutputFilename;
+    vector<string> simulationInputFilenames;
+    string simulationOutputFilename;
     uint64_t simulationPhase;
     bool simulationRunning;
     lm::slot::SlotList slots;
@@ -155,7 +153,7 @@ protected:
     bool useCPUAffinity;
     long long workUnitCount;
 
-private:
+protected:
     hrtime stats_lastPrintTime;
     long long stats_workUnits;
     long long stats_workUnitsParts;

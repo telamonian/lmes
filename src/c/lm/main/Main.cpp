@@ -262,7 +262,7 @@ void executeSimulationMaster()
     // Create the supervisor.
     lm::main::SimulationSupervisor* supervisor = static_cast<lm::main::SimulationSupervisor*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::main::SimulationSupervisor",supervisorClassName));
     supervisor->setUseCPUAffinity(useCPUAffinity);
-    supervisor->setSimulationFilename(simulationInputFilename, simulationOutputFilename);
+    supervisor->setSimulationFilename(simulationInputFilenames, simulationOutputFilename);
     supervisor->setOutputWriterClassName(outputWriterClassName);
     supervisor->setSolverClassName(solverClassName);
     supervisor->setResourceMap(*resourceMap);

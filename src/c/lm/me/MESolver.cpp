@@ -38,6 +38,7 @@
  */
 
 #include "lm/me/MESolver.h"
+#include "lm/main/Solver.h"
 #include "lm/io/SimulationParameters.pb.h"
 
 namespace lm {
@@ -51,27 +52,17 @@ MESolver::~MESolver()
 {
 }
 
+/*
 void MESolver::setComputeResources(vector<int> cpus, vector<int> gpus)
 {
-    this->cpus = cpus;
-    this->gpus = gpus;
-}
-
-uint MESolver::getSimultaneousTrajectories()
-{
-    return 1;
+    lm::main::Solver::setComputeResources(cpus, gpus);
 }
 
 void MESolver::reset()
 {
+    lm::main::Solver::reset(cpus, gpus);
 }
-
-void MESolver::setCommunicator(lm::message::Communicator* communicator, lm::message::Endpoint outputAddress, int64_t workUnitId)
-{
-    this->communicator = communicator;
-    this->outputAddress = outputAddress;
-    this->workUnitId = workUnitId;
-}
+*/
 
 }
 }

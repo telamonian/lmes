@@ -67,6 +67,7 @@ public:
     ResourceMap(QueueingSystem queueingSystem, int defaultCPUCores, int defaultGPUDevices);
     virtual ~ResourceMap();
     bool registerResources(const lm::message::ResourcesAvailable& msg);
+    ComputeResources reserveCPUCores(int numberCPUCores);
     ComputeResources reserveCPUCores(string hostname, int numberCPUCores);
     map<string,ComputeResources> getAvailableResources();
 

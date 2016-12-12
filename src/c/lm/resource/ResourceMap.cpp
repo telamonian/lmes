@@ -304,6 +304,30 @@ bool ResourceMap::registerResources(const lm::message::ResourcesAvailable& msg)
     return (allocatedResources.size() == 0);
 }
 
+ComputeResources ResourceMap::reserveCPUCores(int numberCPUCores)
+{
+    // Go through the requested resources and look for a process that has the specified number of cores available.
+    for (map<string,ComputeResources>::iterator it=registeredResources.begin(); it != registeredResources.end(); it++)
+    {
+        string hostname = it->first;
+        ComputeResources resources = it->second;
+        if (resources.cpuCores.size() >= numberCPUCores)
+        {
+            ComputeResources reservedResources;
+            reservedResources.hostname = resources.hostname;
+            reservedResources.controllerAddress = resources.controllerAddress;
+            for (int i=0; i<numberCPUCores; i++)
+            {
+                reservedResources.cpuCores.push_back(resources.cpuCores[0]);
+                resources.cpuCores.erase(resources.cpuCores.begin());
+            }
+            registeredResources[hostname] = resources;
+            return reservedResources;
+        }
+    }
+    throw Exception("Insufficient resources to reserve the requested CPU cores", numberCPUCores);
+}
+
 ComputeResources ResourceMap::reserveCPUCores(string hostname, int numberCPUCores)
 {
     ComputeResources resources = registeredResources[hostname];
@@ -320,7 +344,7 @@ ComputeResources ResourceMap::reserveCPUCores(string hostname, int numberCPUCore
         registeredResources[hostname] = resources;
         return reservedResources;
     }
-    throw lm::Exception("Insufficient resource on specified host to reserve a CPU core", hostname.c_str(), resources.cpuCores.size(), numberCPUCores);
+    throw Exception("Insufficient resource on specified host to reserve a CPU core", hostname.c_str(), resources.cpuCores.size(), numberCPUCores);
 }
 
 map<string,ComputeResources> ResourceMap::getAvailableResources()

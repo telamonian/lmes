@@ -45,7 +45,7 @@
 #include <vector>
 
 #include "lm/io/SimulationParameters.pb.h"
-#include "lm/option/SimulationParameters.h"
+#include "lm/input/SimulationParameters.h"
 #include "lm/Print.h"
 #include "lm/Types.h"
 
@@ -58,7 +58,7 @@ using std::vector;
 using std::ws;
 
 namespace lm {
-namespace option {
+namespace input {
 
 // accessors
 SimParamMap::const_iterator SimulationParameters::findFirst(const vector<string>& keys) const
@@ -92,44 +92,13 @@ SimParamMap::iterator SimulationParameters::findFirst(const vector<string>& keys
 #endif
 }
 
-// mutators
-void SimulationParameters::bufToMap(const lm::io::SimulationParameters& inBuf, SimParamMap& outMap)
+void SimulationParameters::set(const lm::io::SimulationParameters& parameters)
 {
-    for (int i=0; i<inBuf.key_size() && i<inBuf.value_size(); i++)
-    {
-        outMap[inBuf.key(i)] = inBuf.value(i);
-    }
+    _buf.CopyFrom(parameters);
+    for (int i=0; i<parameters.key_size() && i<parameters.value_size(); i++)
+        _map[parameters.key(i)] = parameters.value(i);
 }
 
-void SimulationParameters::mapToBuf(const SimParamMap& inMap, lm::io::SimulationParameters& outBuf)
-{
-    outBuf.Clear();
-    for (SimParamMap::const_iterator it=inMap.begin(); it!=inMap.end(); it++) {
-        outBuf.add_key(it->first);
-        outBuf.add_value(it->second);
-    }
-}
-
-bool SimulationParameters::rFB(const lm::io::SimulationParameters& inBuf) // rFB = read From Buf
-{
-    setBuf(inBuf);
-    bufToMap();
-    return true;
-}
-
-bool SimulationParameters::rFF(const lm::io::hdf5::Hdf5File& file) // rFF = read From File
-{
-    setMap(file.getParameters());
-    mapToBuf();
-    return true;
-}
-
-bool SimulationParameters::rFM(const SimParamMap& inMap) // rFM = read From Map
-{
-    setMap(inMap);
-    mapToBuf();
-    return true;
-}
 
 }
 }

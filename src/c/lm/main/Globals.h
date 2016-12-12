@@ -56,9 +56,9 @@ using std::vector;
 extern string functionOption;
 
 /**
- * The name of the file containing the simulation input.
+ * The names of the file containing the simulation input.
  */
-extern string simulationInputFilename;
+extern vector<string> simulationInputFilenames;
 
 /**
  * The name of the file containing the simulation output.

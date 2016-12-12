@@ -40,6 +40,7 @@
 #include <algorithm>
 #include <limits>
 #include <string>
+#include <vector>
 
 #include "hrtime.h"
 #include "lm/Exceptions.h"
@@ -70,6 +71,7 @@ using lm::message::Endpoint;
 using lm::resource::ComputeResources;
 using lm::resource::ResourceMap;
 using std::string;
+using std::vector;
 
 namespace lm {
 namespace main {
@@ -77,7 +79,7 @@ namespace main {
 SimulationSupervisor::SimulationSupervisor()
 :communicator(NULL),hasCheckpointSignalerStarted(false),hasOutputWriterStarted(false),haveAllWorkUnitRunnersStarted(false),
  input(NULL),outputWriterClassName(""),performingCheckpoint(false),
- simulationInputFilename(""),simulationOutputFilename(""),simulationPhase(0),simulationRunning(true),slots(),
+ simulationOutputFilename(""),simulationPhase(0),simulationRunning(true),slots(),
  solverClassName(""),trajectoryList(NULL),useCPUAffinity(false),workUnitCount(0)
 {
     // Create the communicator.
@@ -95,8 +97,8 @@ SimulationSupervisor::~SimulationSupervisor()
 
 void SimulationSupervisor::init()
 {
-    // Initialize the input object with the input file.
-    input = new lm::input::Input(lm::io::hdf5::Hdf5File(simulationInputFilename));
+    // Initialize the input object with the input filenames.
+    input = new lm::input::Input(simulationInputFilenames);
 }
 
 void SimulationSupervisor::wake() throw(lm::thread::PthreadException)
@@ -197,6 +199,7 @@ int SimulationSupervisor::run()
     {
         Print::printf(Print::FATAL, "Unknown Exception during execution (%s:%d)", __FILE__, __LINE__);
     }
+    exit(-1);
     return -1;
 }
 
@@ -445,7 +448,7 @@ void SimulationSupervisor::buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg)
 void SimulationSupervisor::buildRunWorkUnitLimits(lm::message::RunWorkUnit* msg)
 {
     // Set the limits.
-    msg->mutable_trajectory_limits()->CopyFrom(input->getTrajectoryLimitsMsg());
+    msg->mutable_trajectory_limits()->CopyFrom(input->getTrajectoryLimits());
 }
 
 void SimulationSupervisor::buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint minWorkUnits)
@@ -456,18 +459,10 @@ void SimulationSupervisor::buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, 
 void SimulationSupervisor::finishSimulationPhase()
 {
     // If we need to perform another phase, do so, otherwsise stop th simulation.
-    if (performAnotherSimulationPhase())
-    {
-        // destroying the trajectory list causes problems, may be unneccessary
-//        // Delete the list of trajectories.
-//        destroyTrajectoryList();
-        incrementSimulationPhase();
+    if (incrementSimulationPhase())
         startSimulationPhase();
-    }
     else
-    {
         finishSimulation();
-    }
 }
 
 void SimulationSupervisor::destroyTrajectoryList()
@@ -475,15 +470,11 @@ void SimulationSupervisor::destroyTrajectoryList()
     if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL;
 }
 
-bool SimulationSupervisor::performAnotherSimulationPhase()
-{
-    return false;
-}
-
-void SimulationSupervisor::incrementSimulationPhase()
+bool SimulationSupervisor::incrementSimulationPhase()
 {
     simulationPhase++;
     trajectoryList->incrementSimulationPhase();
+    return false;
 }
 
 void SimulationSupervisor::finishSimulation()

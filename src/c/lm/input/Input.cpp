@@ -40,13 +40,20 @@
 #include <string>
 
 #include "lm/EnumHelper.h"
+#include "lm/Exceptions.h"
 #include "lm/Print.h"
 #include "lm/input/Input.h"
+#include "lm/input/SimulationParameters.h"
 #include "lm/io/OutputOptions.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
-#include "lm/option/SimulationParameters.h"
+#include "lm/io/hdf5/SimulationFile.h"
+#include "lm/io/sfile/LocalSFile.h"
+#include "lm/io/sfile/SFile.h"
+#include "lm/io/sfile/SFileRecord.h"
 #include "lm/trajectory/TrajectoryLimits.h"
 #include "lm/Types.h"
+#include "robertslab/pbuf/NDArray.pb.h"
+#include "robertslab/pbuf/NDArraySerializer.h"
 
 using lm::io::OutputOptions;
 using lm::trajectory::LimitValueT;
@@ -56,10 +63,44 @@ using std::string;
 namespace lm {
 namespace input {
 
-Input::Input(const lm::io::hdf5::Hdf5File& file)
+Input::Input(vector<string> inputFilenames)
 :reactionModelPresent(false),diffusionModelPresent(false),orderParametersPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),
- outputOptionsPresent(false),simulationParameters(file),partsPerWorkUnit(1),stepsPerWorkUnit(10000000)
+ outputOptionsPresent(false),simulationParameters(),partsPerWorkUnit(1),stepsPerWorkUnit(10000000)
 {
+    for (int i=0; i<inputFilenames.size(); i++)
+    {
+        // See if the file is an HDF5 file.
+        if (lm::io::hdf5::Hdf5File::isValidFile(inputFilenames[i]))
+        {
+            lm::io::hdf5::Hdf5File file = lm::io::hdf5::Hdf5File(inputFilenames[i]);
+            readHDF5Input(file);
+        }
+
+        // See if the file is an SFile.
+        lm::io::sfile::LocalSFile sfile(inputFilenames[i]);
+        if(sfile.exists() && sfile.isFile() && sfile.isSFile())
+        {
+            // Read the input from the sfile.
+            sfile.openRead();
+            readSFileInput(sfile);
+            sfile.close();
+        }
+    }
+}
+
+Input::~Input()
+{
+}
+
+void Input::readHDF5Input(lm::io::hdf5::Hdf5File& file)
+{
+    // Get any generic simulation parameters.
+    {
+        lm::io::SimulationParameters p;
+        file.getParameters(&p);
+        simulationParameters.set(p);
+    }
+
     // Get the reaction model.
     if (file.hasReactionModel())
     {
@@ -122,16 +163,16 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         if (simulationParameters.count("maxTime"))
         {
             trajectoryLimits.addLimitBuf<EH::TIME>(0, simulationParameters.parse<double>("maxTime"), EH::MAX);
-            trajectoryLimitsPresent = true;
+            trajectoryLimitsPresent |= true;
         }
 
         // set the other limits, if present in the simulation parameters
-        trajectoryLimitsPresent = degreeAdvancementPresent = parseLimits<EH::DEGREE_ADVANCEMENT>("degreeAdvancementLowerLimitList", "degree advancement lower limit", EH::MIN);
-        trajectoryLimitsPresent = degreeAdvancementPresent = parseLimits<EH::DEGREE_ADVANCEMENT>("degreeAdvancementUpperLimitList", "degree advancement upper limit", EH::MAX);
-        trajectoryLimitsPresent = parseLimits<EH::ORDER_PARAMETER>("orderParameterLowerLimitList", "order parameter lower limit", EH::MIN);
-        trajectoryLimitsPresent = parseLimits<EH::ORDER_PARAMETER>("orderParameterUpperLimitList", "order parameter upper limit", EH::MAX);
-        trajectoryLimitsPresent = parseLimits<EH::SPECIES>("speciesLowerLimitList", "species lower limit", EH::MIN);
-        trajectoryLimitsPresent = parseLimits<EH::SPECIES>("speciesUpperLimitList", "species upper limit", EH::MAX);
+        trajectoryLimitsPresent |= degreeAdvancementPresent = parseLimits<EH::DEGREE_ADVANCEMENT>("degreeAdvancementLowerLimitList", "degree advancement lower limit", EH::MIN);
+        trajectoryLimitsPresent |= degreeAdvancementPresent = parseLimits<EH::DEGREE_ADVANCEMENT>("degreeAdvancementUpperLimitList", "degree advancement upper limit", EH::MAX);
+        trajectoryLimitsPresent |= parseLimits<EH::ORDER_PARAMETER>("orderParameterLowerLimitList", "order parameter lower limit", EH::MIN);
+        trajectoryLimitsPresent |= parseLimits<EH::ORDER_PARAMETER>("orderParameterUpperLimitList", "order parameter upper limit", EH::MAX);
+        trajectoryLimitsPresent |= parseLimits<EH::SPECIES>("speciesLowerLimitList", "species lower limit", EH::MIN);
+        trajectoryLimitsPresent |= parseLimits<EH::SPECIES>("speciesUpperLimitList", "species upper limit", EH::MAX);
     }
 
     // Get the output options.
@@ -178,8 +219,9 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         
         if (simulationParameters.count("writeInterval"))
         {
-            outputOptions.set_species_write_interval(atof(simulationParameters["writeInterval"].c_str()));
             outputOptionsPresent = true;
+            outputOptions.set_species_write_interval(atof(simulationParameters["writeInterval"].c_str()));
+            outputOptions.set_concentrations_write_interval(atof(simulationParameters["writeInterval"].c_str()));
         }
     }
 
@@ -191,8 +233,38 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         stepsPerWorkUnit = atoll(simulationParameters["maxWorkUnitSteps"].c_str());
 }
 
-Input::~Input()
+void Input::readSFileInput(lm::io::sfile::SFile& file)
 {
+    // Read all of the records.
+    while (!file.isEof())
+    {
+        lm::io::sfile::SFileRecord r = file.readNextSFileRecord();
+
+        // See if this is an input record.
+        if (r.type == "protobuf:lm.input.SimulationInput")
+        {
+            // Allocate a buffer.
+            char* buffer = new char[r.dataSize];
+
+            // Read the record.
+            file.readFully(buffer, r.dataSize);
+
+            // Parse the record.
+            lm::input::SimulationInput newInput;
+            if (!newInput.ParseFromArray(buffer, r.dataSize)) throw RuntimeException("unable to deserialize simulation input");
+
+            // Merge this record into the global input record.
+            input.MergeFrom(newInput);
+
+            // Release the buffer.
+            delete[] buffer;
+        }
+        else
+        {
+            // Skip the record.
+            file.skip(r.dataSize);
+        }
+    }
 }
 
 bool Input::parseBoundaryConditions(lm::io::BoundaryConditions* bc, string arg)

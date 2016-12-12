@@ -45,7 +45,10 @@
 #include "lm/io/ConsoleOutputWriter.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
+#include "robertslab/Types.h"
+#include "robertslab/pbuf/NDArraySerializer.h"
 
+using robertslab::pbuf::NDArraySerializer;
 
 namespace lm {
 namespace io {
@@ -81,17 +84,27 @@ void ConsoleOutputWriter::initialize()
 
 void ConsoleOutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
 {
+    // Get the data.
+    ndarray<uint32_t>* counts = NDArraySerializer::deserialize<uint32_t>(data.counts());
+    ndarray<double>* times = NDArraySerializer::deserialize<double>(data.first_passage_times());
+
     // Print the output into the buffer.
     memset(buffer, 0, BUFFER_SIZE+1);
     int offset=snprintf(buffer,BUFFER_SIZE,"--------------------------------------------------------------------------------\n");
-    for (int i=0; i<data.number_entries(); i++)
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"Trajectory: %lld\n", (long long int)data.trajectory_id());
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"Species: %d> (", data.species());
+    for (uint i=0; i<counts->shape[0]; i++)
     {
-        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%5d: %10.3f\n",data.species_count(i),data.first_passage_time(i));
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%5d: %10.3f\n",counts->get(i),times->get(i));
     }
     offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"--------------------------------------------------------------------------------");
 
     // Print the output to stdout.
     Print::printf(Print::INFO, "ConsoleOutputWriter received first passage times for trajectory %d and species %d:\n%s",data.trajectory_id(),data.species(),buffer);
+
+    // Free the ndarrays.
+    if (counts != NULL) delete counts;
+    if (times != NULL) delete times;
 }
 
 void ConsoleOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
@@ -117,7 +130,7 @@ void ConsoleOutputWriter::processSpeciesTimeSeries(const lm::io::SpeciesTimeSeri
     // Print the output into the buffer.
     memset(buffer, 0, BUFFER_SIZE+1);
     int offset=snprintf(buffer,BUFFER_SIZE,"--------------------------------------------------------------------------------\n");
-    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"Trajectory: %lld\n", data.trajectory_id());
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"Trajectory: %lld\n", (long long int)data.trajectory_id());
     offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"Counts: NDArray<type=%d> (", data.counts().data_type());
     for (int i=0; i<data.counts().shape_size(); i++)
         offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%d,",data.counts().shape(i));
@@ -222,6 +235,30 @@ void ConsoleOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeri
     // Print the output to stdout.
     Print::printf(Print::INFO, "ConsoleOutputWriter received lattice time series for trajectory %d:\n%s",data.trajectory_id(),buffer);
 }
+
+void ConsoleOutputWriter::processConcentrationsTimeSeries(const lm::io::ConcentrationsTimeSeries& data)
+{
+    // Print the output into the buffer.
+    memset(buffer, 0, BUFFER_SIZE+1);
+    int offset=snprintf(buffer,BUFFER_SIZE,"--------------------------------------------------------------------------------\n");
+    ndarray<double>* times=NDArraySerializer::deserialize<double>(data.times());
+    for (uint i=0, index=0; i<times->shape[0]; i++)
+    {
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%10.3f:",times->get(i));
+        for (int j=0; j<data.species_ids().size(); j++, index++)
+            offset+=snprintf(buffer+offset,BUFFER_SIZE-offset," ndarray<%d,%d,%d>=%lu bytes",data.concentrations(index).shape(0),data.concentrations(index).shape(1),data.concentrations(index).shape(2),data.concentrations(index).data().size());
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"\n");
+    }
+    delete times;
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"--------------------------------------------------------------------------------");
+
+    // Print the output to stdout.
+    Print::printf(Print::INFO, "ConsoleOutputWriter received concentration time series for trajectory %d:\n%s",data.trajectory_id(),buffer);
+
+    // Free the ndarrays.
+    if (times != NULL) delete times;
+}
+
 
 void ConsoleOutputWriter::flush()
 {

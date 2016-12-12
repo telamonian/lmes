@@ -67,17 +67,21 @@ namespace slot {
 
 class SlotList
 {
+protected:
+    static int nextSlotId;
+
 public:
     SlotList();
     ~SlotList();
 
     //create slot methods
     void createAllSlots(map<string,ComputeResources> & allResources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input);
-    int createHostSlots(int startingSlotId, ComputeResources resources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input);
-    void createSlot(int slotId, ComputeResources resources, bool useCPUAffinity, lm::message::Message* msg, string solver, const lm::input::Input& input);
+    void createHostSlots(ComputeResources resources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input);
 
-    uint getNumberSlots() const {return slots.size();}
-    uint getSimultaneousWorkUnits() const {uint count=0; for (SlotVector::const_iterator it=slots.begin(); it!=slots.end(); it++) count+=it->simultaneousWorkUnits; return count;}
+    bool isManagingSlot(int slotId) const;
+    bool isRunningWorkUnit(int64_t workUnitId) const;
+    uint getNumberSlots() const {return slotMap.size();}
+    uint getSimultaneousWorkUnits() const {uint count=0; for (map<int,Slot>::const_iterator it=slotMap.begin(); it!=slotMap.end(); it++) count+=it->second.simultaneousWorkUnits; return count;}
     void markSlotStarted(const lm::message::StartedWorkUnitRunner & msg);
     bool hasUnstartedSlots();
     bool hasFreeSlots();
@@ -89,8 +93,11 @@ public:
     void printSlotsStatistics() const;
     void resetSlotsStatistics();
 
+protected:
+    void createSlot(int slotId, ComputeResources resources, bool useCPUAffinity, lm::message::Message* msg, string solver, const lm::input::Input& input);
+
 private:
-    SlotVector slots;
+    map<int,Slot> slotMap;
     map<int64_t,int> workUnitToSlotMap;
     lm::message::Communicator* communicator;
 

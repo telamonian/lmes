@@ -64,8 +64,13 @@ using std::string;
 namespace lm {
 namespace replicates {
 
+ReplicateTrajectoryList::ReplicateTrajectoryList()
+:stats_lastPrintTime(getHrTime())
+{
+}
+
 ReplicateTrajectoryList::ReplicateTrajectoryList(const lm::input::Input& input, uint64_t firstTrajectory, uint64_t lastTrajectory)
-:firstTrajectory(firstTrajectory), lastTrajectory(lastTrajectory), stats_lastPrintTime(getHrTime())
+:stats_lastPrintTime(getHrTime())
 {
     for (uint64_t i=firstTrajectory; i<=lastTrajectory; i++)
     {

@@ -42,9 +42,11 @@
 #include <list>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "lm/EnumHelper.h"
-#include "lm/io/hdf5/SimulationFile.h"
+#include "lm/input/MicroenvironmentModel.pb.h"
+#include "lm/input/SimulationInput.pb.h"
 #include "lm/io/BoundaryConditions.pb.h"
 #include "lm/io/DiffusionModel.pb.h"
 #include "lm/io/OrderParameters.pb.h"
@@ -52,14 +54,17 @@
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SimulationParameters.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/io/hdf5/SimulationFile.h"
+#include "lm/io/sfile/SFile.h"
 #include "lm/oparam/OParams.h"
-#include "lm/option/SimulationParameters.h"
+#include "lm/input/SimulationParameters.h"
 #include "lm/tiling/Tilings.h"
 #include "lm/trajectory/TrajectoryLimits.h"
 
 using std::list;
 using std::map;
 using std::string;
+using std::vector;
 
 namespace lm {
 namespace input {
@@ -67,7 +72,7 @@ namespace input {
 class Input
 {
 public:
-    Input(const lm::io::hdf5::Hdf5File& file);
+    Input(vector<string> inputFilenames);
     virtual ~Input();
 
     // accessors
@@ -77,10 +82,11 @@ public:
     const lm::io::OrderParameters& getOrderParametersMsg() const {return orderParametersMsg;}
     const lm::io::OutputOptions& getOutputOptionsMsg() const {return outputOptions;}
     const lm::io::ReactionModel& getReactionModelMsg() const {return reactionModel;}
-    const lm::option::SimulationParameters& getSimulationParameters() const {return simulationParameters;}
+    const lm::input::SimulationParameters& getSimulationParameters() const {return simulationParameters;}
     const lm::tiling::Tilings& getTilings() const {return tilings;}
     const lm::io::Tilings& getTilingsMsg() const {return tilingsMsg;}
-    const lm::io::TrajectoryLimits& getTrajectoryLimitsMsg() const {return trajectoryLimits.buf();}
+    const lm::io::TrajectoryLimits& getTrajectoryLimits() const {return trajectoryLimits.buf();}
+    const lm::input::MicroenvironmentModel& getMicroenvironmentModel() const {return input.microenv_model();}
 
     uint64_t getPartsPerWorkUnit() const {return partsPerWorkUnit;}
     uint64_t getStepsPerWorkUnit() const {return stepsPerWorkUnit;}
@@ -92,24 +98,31 @@ public:
     bool hasTilings() const {return tilingsPresent;}
     bool hasTrajectoryLimits() const {return trajectoryLimitsPresent;}
     bool hasOutputOptions() const {return outputOptionsPresent;}
+    bool hasMicroenvironmentModel() const {return input.has_microenv_model();}
 
     lm::oparam::OParams* mutableOrderParameters() {return &orderParameters;}
     lm::tiling::Tilings* mutableTilings() {return &tilings;}
     lm::trajectory::TrajectoryLimits* mutableTrajectoryLimits() {return &trajectoryLimits;}
 
 protected:
+    void readHDF5Input(lm::io::hdf5::Hdf5File& file);
+    void readSFileInput(lm::io::sfile::SFile& file);
+
     bool parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg);
     template <EH::LimitType LT> inline bool parseLimits(std::string key, std::string debugString, EH::StoppingCondition sc, bool includeEndpoint=true);
     template <typename T, typename MF, typename valT> inline bool parseAndSet(T& obj, MF (T::*mf)(valT), std::string key);
 
 protected:
+
+    lm::input::SimulationInput input;
+
     bool degreeAdvancementPresent;
-    bool diffusionModelPresent;
     bool reactionModelPresent;
+    bool diffusionModelPresent;
     bool orderParametersPresent;
-    bool outputOptionsPresent;
     bool tilingsPresent;
     bool trajectoryLimitsPresent;
+    bool outputOptionsPresent;
 
     lm::io::DiffusionModel diffusionModel;
     lm::io::OrderParameters orderParametersMsg;
@@ -119,7 +132,7 @@ protected:
     lm::io::Tilings tilingsMsg;
     lm::tiling::Tilings tilings;
     lm::trajectory::TrajectoryLimits trajectoryLimits;
-    lm::option::SimulationParameters simulationParameters;
+    lm::input::SimulationParameters simulationParameters;
 
     uint64_t partsPerWorkUnit;
     uint64_t stepsPerWorkUnit;

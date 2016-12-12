@@ -143,6 +143,16 @@ void SFileOutputWriter::processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries
     file->writeMessage(data);
 }
 
+void SFileOutputWriter::processConcentrationsTimeSeries(const lm::io::ConcentrationsTimeSeries& data)
+{
+    char buffer[RECORD_NAME_BUFFER_MAX_SIZE+1];
+    memset(buffer, 0, RECORD_NAME_BUFFER_MAX_SIZE+1);
+    snprintf(buffer,RECORD_NAME_BUFFER_MAX_SIZE,"%s/Simulations/%llu/ConcentrationsTimeSeries", recordNamePrefix.c_str(), data.trajectory_id());
+    SFileRecord record(string(buffer), string("protobuf:lm.io.ConcentrationsTimeSeries"), data.ByteSize());
+    file->writeSFileRecord(record);
+    file->writeMessage(data);
+}
+
 void SFileOutputWriter::flush()
 {
     file->flush();

@@ -53,7 +53,7 @@
 #include "lm/io/Lattice.pb.h"
 #include "lm/io/LatticeTimeSeries.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
-#include "lm/message/ProcessWorkUnitOutput.pb.h"
+#include "lm/message/Message.pb.h"
 #include "lm/message/WorkUnitOutput.pb.h"
 #include "lm/rdme/Lattice.h"
 #include "lm/rdme/ByteLattice.h"
@@ -125,7 +125,7 @@ void NextSubvolumeSolver::reset()
     PROF_END(PROF_NSM_INIT_QUEUE);
 }
 
-long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
+uint64_t NextSubvolumeSolver::generateTrajectory(uint64_t maxSteps)
 {
     if (reactionModel == NULL) throw Exception("NextSubvolumeSolver did not have a reaction model.");
     if (diffusionModel == NULL) throw Exception("NextSubvolumeSolver did not have a diffusion model.");
@@ -139,12 +139,6 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     // Make sure that the initial species counts agree with the actual number in the lattice.
     checkSpeciesCountsAgainstLattice();
 
-    // Create the output message.
-    lm::message::Message msgpp;
-    lm::message::ProcessWorkUnitOutput* msgp = msgpp.mutable_process_work_unit_output();
-    msgp->set_work_unit_id(workUnitId);
-    lm::message::WorkUnitOutput* msg = msgp->add_part_output();
-
     // Get the interval for writing species counts.
     double nextSpeciesWriteTime;
     vector<int32_t> speciesTimeSeriesCounts;
@@ -154,7 +148,7 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     if (writeSpeciesTimeSeries)
     {
         // If this is the start of the trajectory, add the initial counts.
-        if (time == 0.0 || trajectoryStarted==false)
+        if (time == 0.0 || previouslyStarted==false)
         {
             nextSpeciesWriteTime=speciesWriteInterval;
             for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
@@ -174,13 +168,16 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     if (writeLatticeTimeSeries)
     {
         // Initialize the data set.
-        latticeDataSet = msg->mutable_lattice_time_series();
+        latticeDataSet = output->mutable_lattice_time_series();
         latticeDataSet->set_trajectory_id(trajectoryId);
         latticeDataSet->set_number_entries(0);
 
         // If this is the start of the trajectory, add the initial counts.
-        if (time == 0.0 || trajectoryStarted==false)
+        if (time == 0.0 || previouslyStarted==false)
         {
+            // Mark that the message does contain some data.
+            output->set_has_output(true);
+
             nextLatticeWriteTime=latticeWriteInterval;
             latticeDataSet->set_number_entries(1);
             latticeDataSet->add_time(0.0);
@@ -217,7 +214,7 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     // Run the next subvolume method.
     Print::printf(Print::DEBUG, "Running next subvolume simulation for %d steps with %d species, %d reactions, %d subvolumes, %d site types with %d limits.", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberSubvolumes, diffusionModel->numberSiteTypes, numberLimits);
     PROF_BEGIN(PROF_SIM_EXECUTE);
-    long long steps=0;
+    uint64_t steps=0;
     bool affectedNeighbor;
     lattice_size_t subvolume;
     double nextTime;
@@ -313,9 +310,6 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     // Make sure that the final species counts agree with the actual number in the lattice.
     checkSpeciesCountsAgainstLattice();
 
-    // Track if we added any output to the message.
-    bool createdOutput = false;
-
     // See if we finished all of the steps.
     if (status == lm::message::WorkUnitStatus::STEPS_FINISHED)
     {
@@ -402,10 +396,13 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     // If we have any species time series data, add them to the output message.
     if (speciesTimeSeriesCounts.size() > 0 || speciesTimeSeriesTimes.size() > 0)
     {
+        // Mark that the message does contain some data.
+        output->set_has_output(true);
+
         // Make sure the arrays are of a consistent size.
         if (speciesTimeSeriesCounts.size() == speciesTimeSeriesTimes.size()*reactionModel->numberSpeciesToTrack)
         {
-            lm::io::SpeciesTimeSeries* speciesTimeSeriesDataSet = msg->mutable_species_time_series();
+            lm::io::SpeciesTimeSeries* speciesTimeSeriesDataSet = output->mutable_species_time_series();
             speciesTimeSeriesDataSet->set_trajectory_id(trajectoryId);
 
             robertslab::pbuf::NDArray* counts = speciesTimeSeriesDataSet->mutable_counts();
@@ -428,7 +425,6 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
             data->resize(dataSizeEstimate);
             ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)speciesTimeSeriesTimes.data(), speciesTimeSeriesTimes.size()*sizeof(double)));
             data->resize(dataSizeEstimate);
-            createdOutput = true;
         }
         else
         {
@@ -437,19 +433,15 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     }
 
     // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
-    if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFptTrackedSpecies > 0)
+    if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFptSpecies > 0)
     {
-        for (int i=0; i<numberFptTrackedSpecies; i++)
-        {
-            fptTrackedSpecies[i].serializeTo(trajectoryId, msg->add_first_passage_times());
-        }
-        createdOutput = true;
-    }
+        // Mark that the message does contain some data.
+        output->set_has_output(true);
 
-    // If the output message has any data, send it.
-    if (createdOutput || msg->has_lattice_time_series())
-    {
-        communicator->sendMessage(outputAddress, &msgpp);
+        for (int i=0; i<numberFptSpecies; i++)
+        {
+            fptValues[i].serializeInto(output->add_first_passage_times());
+        }
     }
 
     return steps;

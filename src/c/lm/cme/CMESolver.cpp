@@ -88,11 +88,13 @@ namespace cme {
 
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
 :neededDists(neededDists),rng(NULL),reactionModel(NULL),hasUpdateSpeciesCountsListeners(false),tilings(NULL),trackingDegreeAdvancements(false),numberOrderParameters(0),
- orderParameterFunctions(NULL),status(lm::message::WorkUnitStatus::NONE),timeLimit(std::numeric_limits<double>::infinity()),
+ orderParameterFunctions(NULL),output(new lm::message::WorkUnitOutput()),
+ status(lm::message::WorkUnitStatus::NONE),trajectoryId(std::numeric_limits<uint64_t>::max()),previouslyStarted(false),
+ timeLimit(std::numeric_limits<double>::infinity()),
  numberLimits(0),limits(NULL),limitIDReached(lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID),limitTypeReached(lm::io::TrajectoryLimits::NONE),
  writeDegreeAdvancementTimeSeries(false),writeOrderParameterTimeSeries(false),writeSpeciesTimeSeries(false),
- degreeAdvancementWriteInterval(0.0), orderParameterWriteInterval(0.0),speciesWriteInterval(0.0),numberFptTrackedSpecies(0),
- fptTrackedSpecies(NULL),trajectoryStarted(false),speciesCounts(NULL),time(0.0),timeStep(0.0),degreeAdvancements(NULL),
+ degreeAdvancementWriteInterval(0.0), orderParameterWriteInterval(0.0),speciesWriteInterval(0.0),numberFptSpecies(0),
+ fptValues(NULL),speciesCounts(NULL),time(0.0),timeStep(0.0),degreeAdvancements(NULL),
  orderParameterValues(NULL),orderParameterPreviousValues(NULL),tilingHists(NULL)
 {
 }
@@ -101,6 +103,9 @@ CMESolver::~CMESolver()
 {
     // Free any model memory.
     if (reactionModel != NULL) delete reactionModel; reactionModel = NULL;
+
+    // Free any output memory.
+    if (output != NULL) delete output; output = NULL;
 
     // Free any memory associated with the state.
     if (degreeAdvancements != NULL) delete[] degreeAdvancements; degreeAdvancements = NULL;
@@ -113,13 +118,13 @@ CMESolver::~CMESolver()
     // Free any other memory.
     if (rng != NULL) delete rng; rng = NULL;
     if (limits != NULL) delete[] limits; limits = NULL;
-    if (fptTrackedSpecies != NULL) delete[] fptTrackedSpecies; fptTrackedSpecies = NULL;
+    if (fptValues != NULL) delete[] fptValues; fptValues = NULL;
     if (tilingHists!=NULL) delete[] tilingHists; tilingHists = NULL;
 }
 
 void CMESolver::setComputeResources(vector<int> cpus, vector<int> gpus)
 {
-    MESolver::setComputeResources(cpus, gpus);
+    lm::me::MESolver::setComputeResources(cpus, gpus);
 
     // Create the appropriate RNG.
     if (neededDists != RandomGenerator::NONE)
@@ -170,7 +175,7 @@ void CMESolver::setOrderParameters(const lm::io::OrderParameters& ops)
 
     // Create the order parameter functions.
     lm::oparam::OrderParameterFunctionFactory fs;
-    for (size_t i=0; i<numberOrderParameters; i++)
+    for (int i=0; i<numberOrderParameters; i++)
         orderParameterFunctions[i] = fs.createOrderParameterFunction(ops.order_parameters(i));
 
     // Mark that we have a listener to update whenever the speices counts changes.
@@ -216,7 +221,7 @@ void CMESolver::setLimits(const lm::io::TrajectoryLimits& lm)
 
 void CMESolver::reset()
 {
-    MESolver::reset();
+    lm::me::MESolver::reset();
 
     // Make sure we have a reaction model.
     if (reactionModel == NULL) throw Exception("Tried to reset state of CMESolver with no reaction model.");
@@ -226,15 +231,15 @@ void CMESolver::reset()
         degreeAdvancements[i] = 0;
 
     // Reset the fpt tracking list.
-    numberFptTrackedSpecies = 0;
-    if (fptTrackedSpecies != NULL) delete[] fptTrackedSpecies; fptTrackedSpecies = NULL;
+    numberFptSpecies = 0;
+    if (fptValues != NULL) delete[] fptValues; fptValues = NULL;
 
     // Reset the limits reached.
     limitIDReached = lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID;
     limitTypeReached = lm::io::TrajectoryLimits::NONE;
 
     // Reset the order parameters.
-    for (size_t i=0; i<numberOrderParameters; i++)
+    for (int i=0; i<numberOrderParameters; i++)
     {
         orderParameterValues[i] = 0.0;
         orderParameterPreviousValues[i] = 0.0;
@@ -244,8 +249,14 @@ void CMESolver::reset()
     for (uint i=0; i<reactionModel->numberSpecies; i++)
         speciesCounts[i] = 0;
 
+    // Reset the output.
+    if (output != NULL) delete output;
+    output = new lm::message::WorkUnitOutput();
+
     // Reset the status.
     status = lm::message::WorkUnitStatus::NONE;
+    trajectoryId = std::numeric_limits<uint64_t>::max();
+    previouslyStarted = false;
 
     // Reset the tiling histograms list.
     numberTilingHists = 0;
@@ -254,9 +265,6 @@ void CMESolver::reset()
     // Reset the time.
     time = 0.0;
     timeStep = 0.0;
-
-    // Reset trajectory started.
-    trajectoryStarted = false;
 }
 
 void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
@@ -269,7 +277,7 @@ void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
         state->mutable_cme_state()->mutable_degree_advancements()->set_trajectory_id(trajectoryId);
         state->mutable_cme_state()->mutable_degree_advancements()->set_number_reactions(reactionModel->numberReactions);
         state->mutable_cme_state()->mutable_degree_advancements()->set_number_entries(1);
-        for (int i=0; i<reactionModel->numberReactions; i++)
+        for (uint i=0; i<reactionModel->numberReactions; i++)
         {
             state->mutable_cme_state()->mutable_degree_advancements()->add_degree_advancements(degreeAdvancements[i]);
         }
@@ -277,9 +285,9 @@ void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
     }
 
     // Get the first passage times.
-    for (int i=0; i<numberFptTrackedSpecies; i++)
+    for (int i=0; i<numberFptSpecies; i++)
     {
-        fptTrackedSpecies[i].serializeTo(trajectoryId, state->mutable_cme_state()->add_first_passage_times());
+        fptValues[i].serializeInto(state->mutable_cme_state()->add_first_passage_times());
     }
 
     // Get the limit reached during the simulation.
@@ -345,19 +353,13 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
     }
 
     // Set the first passage times.
-    numberFptTrackedSpecies = state.cme_state().first_passage_times_size();
-    if (numberFptTrackedSpecies > 0)
+    numberFptSpecies = state.cme_state().first_passage_times_size();
+    if (numberFptSpecies > 0)
     {
-        fptTrackedSpecies = new FPTTracking[numberFptTrackedSpecies];
-        for (int i=0; i<numberFptTrackedSpecies; i++)
+        fptValues = new lm::me::FPTDeque[numberFptSpecies];
+        for (int i=0; i<numberFptSpecies; i++)
         {
-            fptTrackedSpecies[i].species = state.cme_state().first_passage_times(i).species();
-            fptTrackedSpecies[i].minValueAchieved = state.cme_state().first_passage_times(i).species_count(0);
-            fptTrackedSpecies[i].maxValueAchieved = state.cme_state().first_passage_times(i).species_count(state.cme_state().first_passage_times(i).number_entries()-1);
-            for (int j=0; j<state.cme_state().first_passage_times(i).number_entries(); j++)
-            {
-                fptTrackedSpecies[i].fptValues.push_back(std::pair<int,double>(state.cme_state().first_passage_times(i).species_count(j),state.cme_state().first_passage_times(i).first_passage_time(j)));
-            }
+            fptValues[i].deserializeFrom(state.cme_state().first_passage_times(i));
         }
         hasUpdateSpeciesCountsListeners = true;
     }
@@ -403,16 +405,13 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
 
     // Set the time.
     time = state.cme_state().species_counts().time(0);
-    trajectoryStarted = state.trajectory_started();
 
-    // Set the trajectory id.
+    // Load the trajectory id.
     trajectoryId = state.trajectory_id();
-}
 
-lm::message::WorkUnitStatus::Status CMESolver::getStatus(uint trajectoryNumber)
-{
-    if (trajectoryNumber >= getSimultaneousTrajectories()) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
-    return status;
+    // Load the previously started flag.
+    previouslyStarted = state.trajectory_started();
+
 }
 
 void CMESolver::setOutputOptions(const lm::io::OutputOptions& outputOptions)
@@ -680,6 +679,25 @@ bool CMESolver::isTrajectoryOutsideLimits()
         }
     }
     return false;
+}
+
+lm::message::WorkUnitOutput* CMESolver::getOutput(uint trajectoryNumber)
+{
+    if (trajectoryNumber > 0) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
+
+    // Get the output pointer.
+    lm::message::WorkUnitOutput* ret = output;
+
+    // Forget about the pointer, since the caller is now responsible for it.
+    output = NULL;
+
+    return ret;
+}
+
+lm::message::WorkUnitStatus::Status CMESolver::getStatus(uint trajectoryNumber)
+{
+    if (trajectoryNumber > 0) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
+    return status;
 }
 
 }

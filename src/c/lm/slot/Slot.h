@@ -57,8 +57,9 @@ public:
     enum Status {NOT_STARTED, FREE, BUSY, DEAD};
 
 public:
+    Slot();
     Slot(int id, lm::resource::ComputeResources resources);
-	~Slot();
+    ~Slot();
 
 	// getters
     int getId() const {return id;}
@@ -90,7 +91,5 @@ friend class SlotList;
 
 }
 }
-
-typedef std::vector<lm::slot::Slot> SlotVector;
 
 #endif /* SLOT_H_ */

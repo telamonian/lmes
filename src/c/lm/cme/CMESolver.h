@@ -46,7 +46,6 @@
 
 #include <algorithm>
 #include <cstdio>
-#include <deque>
 #include <list>
 #include <map>
 #include <pthread.h>
@@ -63,6 +62,7 @@
 #include "lm/io/ReactionModel.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
+#include "lm/me/FPTDeque.h"
 #include "lm/me/MESolver.h"
 #include "lm/me/PropensityFunction.h"
 #include "lm/message/WorkUnitStatus.pb.h"
@@ -92,25 +92,6 @@ namespace cme {
 class CMESolver : public MESolver
 {
 protected:
-    class FPTTracking
-    {
-    public:
-        int species;
-        int minValueAchieved;
-        int maxValueAchieved;
-        std::deque<std::pair<int,double> > fptValues;
-        void serializeTo(uint64_t trajectoryId, lm::io::FirstPassageTimes* fpt)
-        {
-            fpt->set_trajectory_id(trajectoryId);
-            fpt->set_species(species);
-            fpt->set_number_entries(fptValues.size());
-            for (std::deque<std::pair<int,double> >::iterator it=fptValues.begin(); it != fptValues.end(); it++)
-            {
-                fpt->add_species_count(it->first);
-                fpt->add_first_passage_time(it->second);
-            }
-        }
-    };
 
     class TilingHist
     {
@@ -164,6 +145,7 @@ public:
     virtual void reset();
     virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0);
     virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0);
+    virtual lm::message::WorkUnitOutput* getOutput(uint trajectoryNumber=0);
     virtual lm::message::WorkUnitStatus::Status getStatus(uint trajectoryNumber=0);
 
 protected:
@@ -186,17 +168,11 @@ protected:
         }
 
         // Update the first passage time tables.
-        for (int i=0; i<numberFptTrackedSpecies; i++)
+        for (int i=0; i<numberFptSpecies; i++)
         {
-            int speciesCount = speciesCounts[fptTrackedSpecies[i].species];
-            while (speciesCount < fptTrackedSpecies[i].minValueAchieved)
-            {
-                fptTrackedSpecies[i].fptValues.push_front(std::pair<int,double>(--fptTrackedSpecies[i].minValueAchieved,time));
-            }
-            while (speciesCount > fptTrackedSpecies[i].maxValueAchieved)
-            {
-                fptTrackedSpecies[i].fptValues.push_back(std::pair<int,double>(++fptTrackedSpecies[i].maxValueAchieved,time));
-            }
+            int value = speciesCounts[fptValues[i].species];
+            if (value < fptValues[i].minValue || value > fptValues[i].maxValue)
+                fptValues[i].insert(value, time);
         }
 
         // Update any order parameters.
@@ -231,8 +207,13 @@ protected:
     int32_t numberOrderParameters;
     lm::oparam::OrderParameterFunction** orderParameterFunctions;
 
+    // Trajectory output.
+    lm::message::WorkUnitOutput* output;
+
     // Trajectory status.
     lm::message::WorkUnitStatus::Status status;
+    uint64_t trajectoryId;
+    bool previouslyStarted;
 
     // Limits for the trajectory.
     lm::trajectory::TrajectoryLimits trajectoryLimits;
@@ -247,8 +228,8 @@ protected:
     double degreeAdvancementWriteInterval, orderParameterWriteInterval, speciesWriteInterval;
 
     //First passage time variables.
-    int numberFptTrackedSpecies;
-    FPTTracking* fptTrackedSpecies;
+    int numberFptSpecies;
+    lm::me::FPTDeque* fptValues;
 
     // The current state.
     uint64_t* degreeAdvancements;
@@ -257,8 +238,6 @@ protected:
     int32_t* speciesCounts;
     double time;
     double timeStep;    // stores last time step calculated, used for building histogram
-    uint64_t trajectoryId;
-    bool trajectoryStarted;
 
     uint numberTilingHists;
     TilingHist* tilingHists;

@@ -51,6 +51,9 @@
 
 #include "lm/ClassFactory.h"
 #include "lm/cme/GillespieDSolver.h"
+#include "lm/me/FPTDeque.h"
+#include "lm/message/WorkUnitOutput.pb.h"
+#include "lm/message/WorkUnitStatus.pb.h"
 #include "lm/rng/RandomGenerator.h"
 
 using std::deque;
@@ -80,7 +83,8 @@ public:
     virtual void reset();
     virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0);
     virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0);
-    virtual long long generateTrajectory(long long maxSteps);
+    virtual uint64_t generateTrajectory(uint64_t maxSteps);
+    virtual lm::message::WorkUnitOutput* getOutput(uint trajectoryNumber=0);
     virtual lm::message::WorkUnitStatus::Status getStatus(uint trajectoryNumber=0);
 
 protected:
@@ -89,12 +93,17 @@ protected:
     void performReactionEventAVX(uint* reactionsToPerform);
     void callUpdateSpeciesCountsListenersAVX();
     bool isTrajectoryOutsideLimitsAVX();
+    void copyOutputToBaseSolver(uint trajectoryNumber);
     void copyTrajectoryStateToBaseSolver(uint trajectoryNumber);
     void copyTrajectoryStateFromBaseSolver(uint trajectoryNumber);
+    void copyOutputFromBaseSolver(uint trajectoryNumber);
 
 protected:
     // If the trajectory has been initialized.
     bool initialized[DOUBLES_PER_AVX];
+
+    // Trajectory output.
+    lm::message::WorkUnitOutput* output[DOUBLES_PER_AVX];
 
     // Trajectory status.
     lm::message::WorkUnitStatus::Status status[DOUBLES_PER_AVX];
@@ -105,14 +114,14 @@ protected:
     double* limitValues;
 
     //First passage time variables.
-    uint numberFptValues;
-    double* fptMinValuesAchieved;
-    double* fptMaxValuesAchieved;
-    deque<pair<int,double> >* fptValues;
+    int fptAllocatedValues;
+    lm::me::FPTDeque* fptValues;
+    double* fptMinValues;
+    double* fptMaxValues;
 
     // The current state.
     uint64_t trajectoryId[DOUBLES_PER_AVX];
-    bool trajectoryStarted[DOUBLES_PER_AVX];
+    bool previouslyStarted[DOUBLES_PER_AVX];
     double* speciesCounts;
     double* propensities;
     double* orderParameterValues;

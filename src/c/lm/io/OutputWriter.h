@@ -45,6 +45,8 @@
 
 #include <pthread.h>
 
+#include "lm/Exceptions.h"
+#include "lm/io/ConcentrationsTimeSeries.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/LatticeTimeSeries.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
@@ -75,12 +77,13 @@ protected:
     virtual void checkpoint()=0;
     virtual void flush()=0;
 
-    virtual void processFFluxOutput(const lm::io::FFluxOutput& data) {}
+    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data)=0;
     virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data)=0;
     virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)=0;
-    virtual void processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data) {}
-    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data)=0;
+    virtual void processFFluxOutput(const lm::io::FFluxOutput& data) {}
     virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data)=0;
+    virtual void processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data) {throw lm::RuntimeException("output writer does not support OrderParameterTimeSeries messages");}
+    virtual void processConcentrationsTimeSeries(const lm::io::ConcentrationsTimeSeries& data)  {throw lm::RuntimeException("output writer does not support ConcentrationsTimeSeries messages");}
 
     virtual int run();
 
