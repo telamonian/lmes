@@ -2036,8 +2036,8 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, const lm::io::FirstPassa
 {
     // Get the data.
     uint32_t species = fpt.species();
-    ndarray<int32_t>* newCounts = NDArraySerializer::deserialize<int32_t>(fpt.counts());
-    ndarray<double>* newTimes = NDArraySerializer::deserialize<double>(fpt.first_passage_times());
+    ndarray<int32_t>* newCounts = NDArraySerializer::deserializeAllocate<int32_t>(fpt.counts());
+    ndarray<double>* newTimes = NDArraySerializer::deserializeAllocate<double>(fpt.first_passage_times());
 
     // Make sure the data is consistent.
     if (newCounts->shape.len != 1 || newCounts->shape != newTimes->shape) throw InvalidArgException("firstPassageTimes", "inconsistent number of first passage time entries");

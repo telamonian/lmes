@@ -53,7 +53,7 @@ METrajectoryList::METrajectoryList(const lm::input::Input& input, uint64_t repli
     numberCells = input.getMicroenvironmentModel().number_cells();
     if (numberCells > 0)
     {
-        ndarray<uint32_t>* initialCounts = robertslab::pbuf::NDArraySerializer::deserialize<uint32_t>(input.getMicroenvironmentModel().cell_initial_species_counts());
+        ndarray<uint32_t>* initialCounts = robertslab::pbuf::NDArraySerializer::deserializeAllocate<uint32_t>(input.getMicroenvironmentModel().cell_initial_species_counts());
         uint numberSpecies = initialCounts->shape[1];
         for (uint i=0; i<numberCells; i++)
         {

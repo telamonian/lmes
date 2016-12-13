@@ -109,9 +109,9 @@ void MicroenvironmentSupervisor::init()
     numberCells = input->getMicroenvironmentModel().number_cells();
     if (numberCells > 0)
     {
-        cellCoordinates = robertslab::pbuf::NDArraySerializer::deserialize<double>(input->getMicroenvironmentModel().cell_coordinates());
+        cellCoordinates = robertslab::pbuf::NDArraySerializer::deserializeAllocate<double>(input->getMicroenvironmentModel().cell_coordinates());
         cellGridPoints = new ndarray<uint32_t>(utuple(numberCells,3));
-        cellVolumes = robertslab::pbuf::NDArraySerializer::deserialize<double>(input->getMicroenvironmentModel().cell_volume());
+        cellVolumes = robertslab::pbuf::NDArraySerializer::deserializeAllocate<double>(input->getMicroenvironmentModel().cell_volume());
         cellPreviousCounts = new ndarray<int32_t>(utuple(numberCells,1));
         cellCurrentCounts = new ndarray<int32_t>(utuple(numberCells,1));
         cellFlux = new ndarray<int32_t>(utuple(numberCells,1));

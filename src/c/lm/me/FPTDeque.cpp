@@ -81,8 +81,8 @@ void FPTDeque::deserializeFrom(const lm::io::FirstPassageTimes& fpt)
     species = fpt.species();
 
     // Deserialize the message.
-    ndarray<int32_t>* counts = NDArraySerializer::deserialize<int32_t>(fpt.counts());
-    ndarray<double>* times = NDArraySerializer::deserialize<double>(fpt.first_passage_times());
+    ndarray<int32_t>* counts = NDArraySerializer::deserializeAllocate<int32_t>(fpt.counts());
+    ndarray<double>* times = NDArraySerializer::deserializeAllocate<double>(fpt.first_passage_times());
 
     if (counts->shape.len != 1 || counts->shape != times->shape)
         throw lm::Exception("first passage times must have the same number of counts and times (deserialize)");

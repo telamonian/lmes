@@ -85,8 +85,8 @@ void ConsoleOutputWriter::initialize()
 void ConsoleOutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
 {
     // Get the data.
-    ndarray<uint32_t>* counts = NDArraySerializer::deserialize<uint32_t>(data.counts());
-    ndarray<double>* times = NDArraySerializer::deserialize<double>(data.first_passage_times());
+    ndarray<uint32_t>* counts = NDArraySerializer::deserializeAllocate<uint32_t>(data.counts());
+    ndarray<double>* times = NDArraySerializer::deserializeAllocate<double>(data.first_passage_times());
 
     // Print the output into the buffer.
     memset(buffer, 0, BUFFER_SIZE+1);
@@ -241,7 +241,7 @@ void ConsoleOutputWriter::processConcentrationsTimeSeries(const lm::io::Concentr
     // Print the output into the buffer.
     memset(buffer, 0, BUFFER_SIZE+1);
     int offset=snprintf(buffer,BUFFER_SIZE,"--------------------------------------------------------------------------------\n");
-    ndarray<double>* times=NDArraySerializer::deserialize<double>(data.times());
+    ndarray<double>* times=NDArraySerializer::deserializeAllocate<double>(data.times());
     for (uint i=0, index=0; i<times->shape[0]; i++)
     {
         offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%10.3f:",times->get(i));

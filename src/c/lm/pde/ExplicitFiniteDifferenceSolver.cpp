@@ -180,7 +180,7 @@ void ExplicitFiniteDifferenceSolver::setState(const lm::io::TrajectoryState& sta
 
     // Load the state from the message.
     time = state.diffusion_pde_state().time();
-    grid = robertslab::pbuf::NDArraySerializer::deserialize<double>(state.diffusion_pde_state().concentrations(0), sizeof(double));
+    grid = robertslab::pbuf::NDArraySerializer::deserializeAllocate<double>(state.diffusion_pde_state().concentrations(0), sizeof(double));
     if (grid->shape.len != 3) throw lm::InvalidArgException("grid", "the grid must be three-dimensional for ExplicitFiniteDifferenceSolver");
 }
 

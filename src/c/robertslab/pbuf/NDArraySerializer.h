@@ -107,7 +107,21 @@ public:
         }
     }
 
-    template <typename T> static ndarray<T>* deserialize(const robertslab::pbuf::NDArray& msg, size_t alignment=0)
+    template <typename T> static ndarray<T> deserialize(const robertslab::pbuf::NDArray& msg, size_t alignment=0)
+    {
+        // Get the shape of the ndarray.
+        tuple<uint> shape(msg.shape().size(), (const uint*)msg.shape().data());
+
+        // Create the ndarray.
+        ndarray<T> array(shape, alignment);
+
+        // Deserialize the message.
+        deserializeInto(&array, msg, alignment);
+
+        return array;
+    }
+
+    template <typename T> static ndarray<T>* deserializeAllocate(const robertslab::pbuf::NDArray& msg, size_t alignment=0)
     {
         // Get the shape of the ndarray.
         tuple<uint> shape(msg.shape().size(), (const uint*)msg.shape().data());
