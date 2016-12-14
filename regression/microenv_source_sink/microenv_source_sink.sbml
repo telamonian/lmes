@@ -53,7 +53,7 @@
                     <math xmlns="http://www.w3.org/1998/Math/MathML">
                         <apply>
                             <times/>
-                            <cn> 2e4 </cn>
+                            <cn> 1000 </cn>
                             <ci> SINK </ci>
                             <ci> E </ci>
                         </apply>
