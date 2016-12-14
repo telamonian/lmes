@@ -92,6 +92,26 @@ endforeach(lang)
 #SET(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 
 ######################################
+# Process the USE_CUDA flag.
+######################################
+
+# figure out if we should use CUDA or not.
+set(BUILD_WITH_CUDA false)
+
+IF (USE_CUDA STREQUAL yes)
+    find_package(CUDA REQUIRED)
+    set(BUILD_WITH_CUDA true)
+ENDIF(USE_CUDA STREQUAL yes)
+
+IF (USE_CUDA STREQUAL optional)
+    find_package(CUDA)
+    # protects against using CUDA when the headers are present without the libraries and USE_CUDA is set to optional
+    IF(CUDA_FOUND AND CUDA_CUDA_LIBRARY)
+        set(BUILD_WITH_CUDA true)
+    ENDIF(CUDA_FOUND AND CUDA_CUDA_LIBRARY)
+ENDIF(USE_CUDA STREQUAL optional)
+
+######################################
 # Process the USE_MPI flag.
 ######################################
 
@@ -123,24 +143,23 @@ IF (BUILD_WITH_MPI)
 ENDIF (BUILD_WITH_MPI)
 
 ######################################
-# Process the USE_CUDA flag.
+# Process the USE_SNAPPY flag.
 ######################################
 
 # figure out if we should use CUDA or not.
-set(BUILD_WITH_CUDA false)
+set(BUILD_WITH_SNAPPY false)
 
-IF (USE_CUDA STREQUAL yes)
-    find_package(CUDA REQUIRED)
-    set(BUILD_WITH_CUDA true)
-ENDIF(USE_CUDA STREQUAL yes)
+IF (USE_SNAPPY STREQUAL yes)
+    find_package(SNAPPY REQUIRED)
+    set(BUILD_WITH_SNAPPY true)
+ENDIF(USE_SNAPPY STREQUAL yes)
 
-IF (USE_CUDA STREQUAL optional)
-    find_package(CUDA)
-    # protects against using CUDA when the headers are present without the libraries and USE_CUDA is set to optional
-    IF(CUDA_FOUND AND CUDA_CUDA_LIBRARY)
-        set(BUILD_WITH_CUDA true)
-    ENDIF(CUDA_FOUND AND CUDA_CUDA_LIBRARY)
-ENDIF(USE_CUDA STREQUAL optional)
+IF (USE_SNAPPY STREQUAL optional)
+    find_package(SNAPPY)
+    IF(snappy_FOUND)
+        set(BUILD_WITH_SNAPPY true)
+    ENDIF(snappy_FOUND)
+ENDIF(USE_SNAPPY STREQUAL optional)
 
 ######################################
 # Process the USE_PROFILING flag.
@@ -177,17 +196,22 @@ add_definitions(-DBUILD_INFO="${BUILD_INFO}")
 # add the verbosity level.
 add_definitions(-DVERBOSITY_LEVEL=${VERBOSITY_LEVEL})
 
-IF (BUILD_WITH_MPI)
-    add_definitions(-DOPT_MPI)
-ENDIF (BUILD_WITH_MPI)
-
 if(BUILD_WITH_CUDA)
     add_definitions(-DOPT_CUDA)
 endif(BUILD_WITH_CUDA)
 
+IF (BUILD_WITH_MPI)
+    add_definitions(-DOPT_MPI)
+ENDIF (BUILD_WITH_MPI)
+
 if(BUILD_WITH_PROFILING)
     add_definitions(-DPROF_ENABLE -DPROF_CUDA_ENABLE=0 -DPROF_MAX_THREADS=16 -DPROF_MAX_EVENTS=1000000 -DPROF_OUT_FILE=timing.prof)
 endif(BUILD_WITH_PROFILING)
+
+if(BUILD_WITH_SNAPPY)
+    add_definitions(-DOPT_SNAPPY)
+endif(BUILD_WITH_SNAPPY)
+
 
 ######################################
 # Process the CPU feature flags.
@@ -238,13 +262,18 @@ include_directories(src/c/
                     ${HDF5_INCLUDE_DIRS}
                     ${ZLIB_INCLUDE_DIRS})
 
+if(BUILD_WITH_CUDA)
+    include_directories(src/cuda/ ${CUDA_INCLUDE_DIRS})
+endif(BUILD_WITH_CUDA)
+
 IF (BUILD_WITH_MPI)
     include_directories(${MPI_C_INCLUDE_PATH})
 ENDIF (BUILD_WITH_MPI)
 
-if(BUILD_WITH_CUDA)
-    include_directories(src/cuda/ ${CUDA_INCLUDE_DIRS})
-endif(BUILD_WITH_CUDA)
+if(BUILD_WITH_SNAPPY)
+    include_directories(${snappy_INCLUDE_DIRS})
+endif(BUILD_WITH_SNAPPY)
+
 
 if(libsbml_FOUND)
     include_directories(${libsbml_INCLUDE_DIRS})
@@ -299,13 +328,17 @@ ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(lmes ${LM_C_LIB})
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
+IF(BUILD_WITH_CUDA)
+    target_link_libraries(lmes lm_cuda_lib ${CUDA_CUDA_LIBRARY} ${CUDA_LIBRARIES})
+ENDIF(BUILD_WITH_CUDA)
+
 IF(BUILD_WITH_MPI)
     target_link_libraries(lmes ${MPI_C_LIBRARIES})
 ENDIF(BUILD_WITH_MPI)
 
-IF(BUILD_WITH_CUDA)
-    target_link_libraries(lmes lm_cuda_lib ${CUDA_CUDA_LIBRARY} ${CUDA_LIBRARIES})
-ENDIF(BUILD_WITH_CUDA)
+IF(BUILD_WITH_SNAPPY)
+    target_link_libraries(lmes ${snappy_LIBRARIES})
+ENDIF(BUILD_WITH_SNAPPY)
 
 target_link_libraries(lmes ${CMAKE_THREAD_LIBS_INIT}
                            ${CMAKE_DL_LIBS}

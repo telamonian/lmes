@@ -7,6 +7,10 @@ set(lm_utils_libs  ${PROTOBUF_LIBRARIES}
                   ${ZLIB_LIBRARIES}
                   ${MPI_C_LIBRARIES})
 
+IF(BUILD_WITH_SNAPPY)
+  set(lm_utils_libs ${lm_utils_libs} ${snappy_LIBRARIES})
+ENDIF(BUILD_WITH_SNAPPY)
+
 ################
 #TARGET: utils
 ################

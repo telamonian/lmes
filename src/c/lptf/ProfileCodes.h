@@ -118,5 +118,8 @@
 
 #define PROF_PDE_EXECUTE                            900
 
+#define PROF_NDARRAY_SERIALIZE                     1000
+#define PROF_NDARRAY_DESERIALIZE                   1001
+
 
 #endif /* TIMINGCONSTANTS_H_ */

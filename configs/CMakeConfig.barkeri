@@ -8,17 +8,20 @@ SET(CMAKE_BUILD_TYPE "Debug")
 # Set the prefix dir for installation of lmes (i.e. when running "make install").
 SET(CMAKE_INSTALL_PREFIX "/Users/eroberts/usr/local")
 
-# USE_MPI can be set to yes, no, or optional, in which case MPI will be used if cmake can find it on your system.
-SET(USE_MPI no)
-
 # USE_CUDA can be set to yes, no, or optional, in which case CUDA will be used if cmake can find it on your system.
 SET(USE_CUDA no)
 
-# Set the verbosity level, as described in the lm::Print function. 10 is complete, 4 is normal-ish.
-SET(VERBOSITY_LEVEL 4)
+# USE_MPI can be set to yes, no, or optional, in which case MPI will be used if cmake can find it on your system.
+SET(USE_MPI no)
 
 # Set to yes to turn on profiling.
 SET(USE_PROFILING no)
+
+# USE_SNAPPY can be set to yes, no, or optional, in which case Snappy will be used if cmake can find it on your system.
+SET(USE_SNAPPY yes)
+
+# Set the verbosity level, as described in the lm::Print function. 10 is complete, 4 is normal-ish.
+SET(VERBOSITY_LEVEL 4)
 
 # Uncomment and change the last part of the next line if some of your libraries/header files are on a nonstandard path.
 SET(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" "/Users/eroberts/usr/local")

@@ -25,6 +25,12 @@
 
 #include <zlib.h>
 
+#ifdef OPT_SNAPPY
+#include <snappy.h>
+#endif
+
+#include "lptf/Profile.h"
+#include "lptf/ProfileCodes.h"
 #include "robertslab/Exceptions.h"
 #include "robertslab/Types.h"
 #include "robertslab/pbuf/NDArray.pb.h"
@@ -65,6 +71,8 @@ public:
 
     template <typename T> static void serializeInto(robertslab::pbuf::NDArray* msg, const ndarray<T>& array, CompressionType compressionType=DEFAULT_COMPRESSION)
     {
+        PROF_BEGIN(PROF_NDARRAY_SERIALIZE);
+
         // Clear the message.
         msg->Clear();
 
@@ -93,7 +101,11 @@ public:
                 // Store with snappy compression.
                 msg->set_compressed_deflate(false);
                 msg->set_compressed_snappy(true);
-                throw robertslab::InvalidArgException("msg", "support for snappy decompression is not available");
+                std::string* data = msg->mutable_data();
+                size_t dataSizeEstimate=snappy::MaxCompressedLength(array.size*sizeof(T));
+                data->resize(dataSizeEstimate);
+                snappy::RawCompress((const char*)array.values, array.size*sizeof(T), (char*)&((*data)[0]), &dataSizeEstimate);
+                data->resize(dataSizeEstimate);
         }
 #endif
         else
@@ -105,6 +117,8 @@ public:
             data->resize(array.size*sizeof(T));
             memcpy((unsigned char*)&((*data)[0]), (const unsigned char*)array.values, array.size*sizeof(T));
         }
+
+        PROF_END(PROF_NDARRAY_SERIALIZE);
     }
 
     template <typename T> static ndarray<T> deserialize(const robertslab::pbuf::NDArray& msg, size_t alignment=0)
@@ -137,6 +151,8 @@ public:
 
     template <typename T> static void deserializeInto(ndarray<T>* array, const robertslab::pbuf::NDArray& msg, size_t alignment=0)
     {
+        PROF_BEGIN(PROF_NDARRAY_DESERIALIZE);
+
         // Check that the datatype matches.
         if (msg.data_type() != NDArray_datatype_code<T>()) throw robertslab::InvalidArgException("msg", "the array was of the wrong data type", msg.data_type(),NDArray_datatype_code<T>());
 
@@ -150,13 +166,19 @@ public:
             size_t tmpBufferSize = array->size*sizeof(T);
             RL_ZLIB_EXCEPTION_CHECK(uncompress((unsigned char *)array->values, &tmpBufferSize, (unsigned char*)&(msg.data()[0]), msg.data().size()));
             if (tmpBufferSize != array->size*sizeof(T))
-                throw robertslab::Exception("error during ndarray inflate deserialization, wrong number of bytes decompressed", tmpBufferSize, array->size*sizeof(T)*sizeof(T));
+                throw robertslab::Exception("error during ndarray inflate deserialization, wrong number of bytes decompressed", tmpBufferSize, array->size*sizeof(T));
 
         }
         else if (msg.compressed_snappy())
         {
 #ifdef OPT_SNAPPY
-            throw robertslab::InvalidArgException("msg", "support for snappy decompression is not available");
+            size_t outputSize;
+            if (!snappy::GetUncompressedLength((const char*)&(msg.data()[0]), msg.data().size(), &outputSize))
+                throw robertslab::Exception("error during ndarray snappy deserialization, could not get uncompressed length");
+            if (outputSize != array->size*sizeof(T))
+                throw robertslab::Exception("error during ndarray snappy deserialization, wrong number of bytes to decompressed", outputSize, array->size*sizeof(T));
+            if (!snappy::RawUncompress((const char*)&(msg.data()[0]), msg.data().size(), (char *)array->values))
+                throw robertslab::Exception("error during ndarray snappy deserialization, could not get uncompressed data");
 #else
             throw robertslab::InvalidArgException("msg", "support for snappy decompression is not available");
 #endif
@@ -166,6 +188,8 @@ public:
             if (msg.data().size() != array->size*sizeof(double)) throw robertslab::InvalidArgException("msg", "inconsistent size during ndarray deserialization", msg.data().size(), array->size);
             memcpy(array->values, (const unsigned char*)&(msg.data()[0]), array->size*sizeof(T));
         }
+
+        PROF_END(PROF_NDARRAY_DESERIALIZE);
     }
 };
 

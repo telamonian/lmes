@@ -15,6 +15,8 @@
             <species id="E"  compartment="V" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
             <species id="SOURCE"  compartment="V" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
             <species id="SINK"  compartment="V" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+            <species id="CREATED"  compartment="V" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+            <species id="DESTROYED"  compartment="V" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
         </listOfSpecies>
         <listOfReactions>
         
@@ -25,6 +27,7 @@
                 <listOfProducts>
                     <speciesReference species="SOURCE" stoichiometry="1" constant="true"/>
                     <speciesReference species="E" stoichiometry="1" constant="true"/>
+                    <speciesReference species="CREATED" stoichiometry="1" constant="true"/>
                 </listOfProducts>
                 <kineticLaw>
                     <math xmlns="http://www.w3.org/1998/Math/MathML">
@@ -44,6 +47,7 @@
                 </listOfReactants>
                 <listOfProducts>
                     <speciesReference species="SINK" stoichiometry="1" constant="true"/>
+                    <speciesReference species="DESTROYED" stoichiometry="1" constant="true"/>
                 </listOfProducts>
                 <kineticLaw>
                     <math xmlns="http://www.w3.org/1998/Math/MathML">

@@ -76,23 +76,26 @@ using std::vector;
 void printCopyright(int argc, char** argv)
 {
     std::cout << "Lattice Microbe ES v" << VERSION_NUM << " build " << BUILD_INFO << " in " << (sizeof(uintv_t)*8) << "-bit mode with options";
-#ifdef OPT_MPI
-    std::cout << " MPI";
-#endif
-#ifdef OPT_CUDA
-    std::cout << " CUDA";
-#endif
 #ifdef OPT_AVX
     std::cout << " AVX";
 #endif
 #ifdef OPT_FMA
     std::cout << " FMA";
 #endif
-#ifdef OPT_SVML
-    std::cout << " SVML";
+#ifdef OPT_CUDA
+    std::cout << " CUDA";
+#endif
+#ifdef OPT_MPI
+    std::cout << " MPI";
 #endif
 #ifdef OPT_SBML
     std::cout << " SBML";
+#endif
+#ifdef OPT_SNAPPY
+    std::cout << " SNAPPY";
+#endif
+#ifdef OPT_SVML
+    std::cout << " SVML";
 #endif
     std::cout << "." << std::endl;
     std::cout << "Copyright (C) " << COPYRIGHT_DATE_JHU << " Roberts Group, Johns Hopkins University." << std::endl;
