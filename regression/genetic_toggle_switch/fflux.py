@@ -25,7 +25,7 @@ class FFluxGTSRegression(GTSRegression):
                     'phaseZeroSamplingMultiplier': 1,
                     'ffluxMinimizeCost': True,
                     'writeInitialTrajectoryState': False,
-                    'writeFinalTrajectoryState': False,
+                    'writeFinalTrajectoryState': False,-
                     'writeInterval': None,
                     'writeLimitTracking': True,
                     'maxWorkUnitSteps': 1e5,}

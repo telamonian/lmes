@@ -25,7 +25,7 @@ class ReplicateGTSRegression(GTSRegression):
                     }
 
 
-    def _buildSimulationParameters(self, lmInput):
+    def _buildSimulationParameters(self):
         defaultSimParamDict = self.buildDefaultSimulationParameterDict()
         userSimParamDict = self.parser.simParamDict
         for key in defaultSimParamDict.keys():
@@ -36,13 +36,15 @@ class ReplicateGTSRegression(GTSRegression):
             if not userSimParamDict['firstPassageTimeSpecies']:
                 userSimParamDict['firstPassageTimeSpecies'] = [0,1,2,3,4,5,6]
 
-            lmInput.SetFirstPassageTimeTracking(fptTrackedSpecies=userSimParamDict['firstPassageTimeSpecies'])
+            if 'fptLimitDict' in userSimParamDict:
+                userSimParamDict['fptLimitDict'] += [self.limitDict['species_a']]
 
         if 'firstPassageTimeOrderParameters' in userSimParamDict:
             if not userSimParamDict['firstPassageTimeOrderParameters']:
                 userSimParamDict['firstPassageTimeOrderParameters'] = [0]
 
-            lmInput.SetFirstPassageTimeTracking(fptTrackedOrderParameters=userSimParamDict['firstPassageTimeOrderParameters'])
+            if 'fptLimitDict' in userSimParamDict:
+                userSimParamDict['fptLimitDict'] += [self.limitDict['oparam_a']]
 
         return userSimParamDict
 

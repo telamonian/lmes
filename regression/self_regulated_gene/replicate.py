@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # PYTHON_ARGCOMPLETE_OK
 
-from lma.src.script.lmFile import Limit
+from lma.src.script.lmFile import *
 from lma.regression.regression import ReplicateRegressionParser
 from lma.regression.models.self_regulated_gene.srgRegression import SRGRegression, SRGRegressionParserMixin
 
@@ -26,7 +26,7 @@ class ReplicateSRGRegression(SRGRegression):
                     # 'orderParameterWriteInterval': 1e1}
                     }
 
-    def _buildSimulationParameters(self, lmInput):
+    def _buildSimulationParameters(self):
         defaultSimParamDict = self.buildDefaultSimulationParameterDict()
         userSimParamDict = self.parser.simParamDict
         for key in defaultSimParamDict.keys():
@@ -35,14 +35,14 @@ class ReplicateSRGRegression(SRGRegression):
 
         if 'fptTrackingList' in userSimParamDict:
             if not userSimParamDict['fptTrackingList']: userSimParamDict['fptTrackingList'] = [0]
-            lmInput.SetFirstPassageTimeTracking(fptTrackedSpecies=userSimParamDict.pop('fptTrackingList'))
+
 
             # limitTup = SpeciesLimit(**self.limitDict['a'])
             lmInput.SetLimit(limit=Limit(**self.limitDict['species_a']))
 
         if 'fptOrderParameterTrackingList' in userSimParamDict:
             if not userSimParamDict['fptOrderParameterTrackingList']: userSimParamDict['fptOrderParameterTrackingList'] = [0]
-            lmInput.SetFirstPassageTimeTracking(fptTrackedOrderParameters=userSimParamDict.pop('fptOrderParameterTrackingList'))
+            fptTracking = FirstPassageTimeTracking(valID==userSimParamDict.pop('fptOrderParameterTrackingList'))
 
             # limitTup = OrderParameterLimit(**self.limitDict['a'])
             lmInput.SetLimit(limit=Limit(**self.limitDict['oparam_a']))
