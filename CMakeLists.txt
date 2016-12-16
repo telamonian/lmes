@@ -150,7 +150,7 @@ ENDIF (BUILD_WITH_MPI)
 set(BUILD_WITH_SNAPPY false)
 
 IF (USE_SNAPPY STREQUAL yes)
-    find_package(SNAPPY REQUIRED)
+    find_package(snappy REQUIRED)
     set(BUILD_WITH_SNAPPY true)
 ENDIF(USE_SNAPPY STREQUAL yes)
 
