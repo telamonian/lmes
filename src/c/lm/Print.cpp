@@ -76,23 +76,36 @@ void Print::printDateTimeString()
 
 void Print::printf(int verbosity, const char * fmt, ...)
 {
+    bool killed = false;
+
     if (verbosity <= VERBOSITY_LEVEL)
     {
         va_list args;
         printDateTimeString();
         if (verbosity >= DEBUG)
+        {
             ::printf("Debug: ");
+        }
         else if (verbosity == WARNING)
+        {
             ::printf("Warning: ");
+        }
         else if (verbosity == ERROR)
+        {
             ::printf("ERROR: ");
+        }
         else if (verbosity == FATAL)
+        {
+            killed = true;
             ::printf("FATAL ERRROR: ");
+        }
         va_start(args,fmt);
         vprintf(fmt,args);
         va_end(args);
         ::printf("\n");
     }
+
+    if (killed) exit(-1);
 }
 
 void Print::printMsgDebug(int verbosity, const google::protobuf::Message& msg, size_t halfMaxSize)

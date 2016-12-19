@@ -81,6 +81,7 @@ public:
     const lm::tiling::Tiling& getCurrentTiling() const {return *tilingMap.at(getCurrentTilingID());}
     uint getCurrentTilingID() const;
     lm::input::Tilings* getTilingsBuf() {return &tilingsBuf;}
+    size_t size() const {return tilingMap.size();}
 
     // method that work with basins
     bool testBasinsPosition() const;

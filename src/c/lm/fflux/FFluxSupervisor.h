@@ -84,6 +84,7 @@ public:
 protected:
     // setup methods that run once at the beginning of the simulation
     virtual void startSimulation();
+    virtual void sanityCheckInput();
     virtual void initSimulationStageList();
     virtual lm::fflux::input::FFluxStage* buildProductionStage(lm::fflux::input::FFluxStage* productionStage, const lm::tiling::Tiling& tiling, int basinIndex);
     virtual lm::fflux::input::FFluxStage* addPilotStage(lm::fflux::input::FFluxStage* productionStage);

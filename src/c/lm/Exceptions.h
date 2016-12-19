@@ -97,6 +97,29 @@ public:
 	}
 };
 
+class InputException : public Exception
+{
+public:
+	InputException(const char* format, ...): Exception()
+	{
+		int offset = snprintf(messageBuffer, MAX_MESSAGE_SIZE, "%s: ", "Input exception");
+		va_list args;
+		va_start (args, format);
+		vsnprintf(messageBuffer + offset, MAX_MESSAGE_SIZE - offset, format, args);
+		va_end (args);
+	}
+
+    InputException(const char *file, int line, const char* format, ...): Exception()
+    {
+        int offset = snprintf(messageBuffer, MAX_MESSAGE_SIZE, "%s (%s:%d): ", "Input exception", file, line);
+        va_list args;
+        va_start (args, format);
+        vsnprintf(messageBuffer + offset, MAX_MESSAGE_SIZE - offset, format, args);
+        va_end (args);
+    }
+};
+#define THROW_LINE(eckception, arg) throw eckception(__FILE__, __LINE__, arg);
+
 class InvalidArgException : public Exception
 {
 public:

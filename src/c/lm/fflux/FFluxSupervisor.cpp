@@ -142,8 +142,29 @@ void FFluxSupervisor::startSimulation()
     startSimulationStage();
 }
 
+void FFluxSupervisor::sanityCheckInput()
+{
+    if (input->getTilings().size() <= 0)
+    {
+        THROW_LINE(InputException, "FFPilot simulation requested (via cmd line arguments), but no tilings were provided in the input.");
+    }
+
+    int totalBasinCount = 0;
+    for (lm::tiling::Tilings::const_iterator tilingIt=input->getTilings().begin();tilingIt!=input->getTilings().end();++tilingIt)
+    {
+        totalBasinCount += tilingIt->second->basins().size();
+    }
+    if (totalBasinCount <= 0)
+    {
+        THROW_LINE(InputException, "FFPilot simulation requested (via cmd line arguments), but there were no basins in any of the tilings provided in the input.");
+    }
+}
+
 void FFluxSupervisor::initSimulationStageList()
 {
+    // sanity check the input (make we sure we have at least one tiling, etc)
+    sanityCheckInput();
+
     // build the stage list
     for (lm::tiling::Tilings::const_iterator tilingIt=input->getTilings().begin();tilingIt!=input->getTilings().end();++tilingIt)
     {
