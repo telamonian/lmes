@@ -25,7 +25,7 @@ class FFluxGTSRegression(GTSRegression):
                     'phaseZeroSamplingMultiplier': 1,
                     'ffluxMinimizeCost': True,
                     'writeInitialTrajectoryState': False,
-                    'writeFinalTrajectoryState': False,-
+                    'writeFinalTrajectoryState': False,
                     'writeInterval': None,
                     'writeLimitTracking': True,
                     'maxWorkUnitSteps': 1e5,}
@@ -44,74 +44,61 @@ class FFluxGTSRegression(GTSRegression):
                     'writeInterval': None,
                     'writeLimitTracking': False,}
 
-    def _buildInput(self, lmInput):
-        # call the parent class method
-        lmInput = super(FFluxGTSRegression, self)._buildInput(lmInput=lmInput)
+    # def _buildInput(self, lmInput):
+    #     # call the parent class method
+    #     lmInput = super(FFluxGTSRegression, self)._buildInput(lmInput=lmInput)
+    #
+    #     tilings = [
+    #         Tiling(id=0,
+    #                orderParameterID=0,
+    #                type=0,
+    #                edges=np.linspace(-27,27,13))]
+    #
+    #     basinArray = np.array([4,16,1,0,0,0,0]*self.parser['basinReplicates'], dtype=np.dtype('uint32')).reshape(self.parser['basinReplicates'], -1)
+    #     basins = [
+    #         Basin(tilingID=0,
+    #               speciesCountArray=basinArray)]
+    #                                           #[0,0,0,4,16,1,0]), dtype=np.dtype('uint32')))]
+    #
+    #     if self.parser['extra_input']:
+    #         tilings+=[
+    #             Tiling(id=19,
+    #                    orderParameterID=0,
+    #                    type=0,
+    #                    edges=np.linspace(-25,25,13)),
+    #             Tiling(id=1,
+    #                    orderParameterID=1,
+    #                    type=0,
+    #                    edges=np.arange(100)),
+    #             Tiling(id=2,
+    #                    orderParameterID=2,
+    #                    type=0,
+    #                    edges=np.arange(100)),
+    #             Tiling(id=3,
+    #                    orderParameterID=0,
+    #                    type=0,
+    #                    edges=np.arange(-100,100)),
+    #             Tiling(id=7,
+    #                    orderParameterID=0,
+    #                    type=0,
+    #                    edges=np.linspace(-25,25,11))]
+    #
+    #         tileCounts = [2] + list(range(4,21))[::4]
+    #         for i in tileCounts:
+    #             id = 100 + i
+    #             numEdges = i+1
+    #             tilings.append(Tiling(id=id,
+    #                                   orderParameterID=0,
+    #                                   type=0,
+    #                                   edges=np.linspace(-27, 27, numEdges)))
+    #
+    #     lmInput.AddTilings(tilings=tilings, currentTilingID=0)
+    #     lmInput.AddBasins(basins=basins)
+    #
+    #     return lmInput
 
-        tilings = [
-            Tiling(id=0,
-                   orderParameterID=0,
-                   type=0,
-                   edges=np.linspace(-27,27,13))]
-
-        basinArray = np.array([4,16,1,0,0,0,0]*self.parser['basinReplicates'], dtype=np.dtype('uint32')).reshape(self.parser['basinReplicates'], -1)
-        basins = [
-            Basin(tilingID=0,
-                  speciesCountArray=basinArray)]
-                                              #[0,0,0,4,16,1,0]), dtype=np.dtype('uint32')))]
-
-        if self.parser['extra_input']:
-            tilings+=[
-                Tiling(id=19,
-                       orderParameterID=0,
-                       type=0,
-                       edges=np.linspace(-25,25,13)),
-                Tiling(id=1,
-                       orderParameterID=1,
-                       type=0,
-                       edges=np.arange(100)),
-                Tiling(id=2,
-                       orderParameterID=2,
-                       type=0,
-                       edges=np.arange(100)),
-                Tiling(id=3,
-                       orderParameterID=0,
-                       type=0,
-                       edges=np.arange(-100,100)),
-                Tiling(id=7,
-                       orderParameterID=0,
-                       type=0,
-                       edges=np.linspace(-25,25,11))]
-
-            tileCounts = [2] + list(range(4,21))[::4]
-            for i in tileCounts:
-                id = 100 + i
-                numEdges = i+1
-                tilings.append(Tiling(id=id,
-                                      orderParameterID=0,
-                                      type=0,
-                                      edges=np.linspace(-27, 27, numEdges)))
-
-        lmInput.AddTilings(tilings=tilings, currentTilingID=0)
-        lmInput.AddBasins(basins=basins)
-
-        return lmInput
-
-    def _buildSimulationParameters(self, lmInput):
-        simParamKeysToUnset = {'maxSteps', 'maxTime', 'writeInterval'}
-
-        defaultSimParamDict = self.buildDefaultSimulationParameterDict()
-        userSimParamDict = self.parser.simParamDict
-        for key,val in defaultSimParamDict.items():
-            if val is None or val=='None':
-                simParamKeysToUnset.update((key,))
-            elif key not in userSimParamDict:
-                userSimParamDict[key] = defaultSimParamDict[key]
-
-        simParamsToUnset = [SimulationParameter(key=key, val=None) for key in simParamKeysToUnset if key not in userSimParamDict]
-        lmInput.UnsetSimulationParameters(simParams=simParamsToUnset)
-
-        return userSimParamDict
+    # def _buildUnsetSimParamSet(self):
+    #     return {'maxSteps', 'maxTime', 'writeInterval'}
 
 if __name__=='__main__':
     regression = FFluxGTSRegression()

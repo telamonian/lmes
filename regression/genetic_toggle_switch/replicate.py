@@ -24,30 +24,6 @@ class ReplicateGTSRegression(GTSRegression):
                     # 'orderParameterWriteInterval': 1e1}
                     }
 
-
-    def _buildSimulationParameters(self):
-        defaultSimParamDict = self.buildDefaultSimulationParameterDict()
-        userSimParamDict = self.parser.simParamDict
-        for key in defaultSimParamDict.keys():
-            if key not in userSimParamDict:
-                userSimParamDict[key] = defaultSimParamDict[key]
-
-        if 'firstPassageTimeSpecies' in userSimParamDict:
-            if not userSimParamDict['firstPassageTimeSpecies']:
-                userSimParamDict['firstPassageTimeSpecies'] = [0,1,2,3,4,5,6]
-
-            if 'fptLimitDict' in userSimParamDict:
-                userSimParamDict['fptLimitDict'] += [self.limitDict['species_a']]
-
-        if 'firstPassageTimeOrderParameters' in userSimParamDict:
-            if not userSimParamDict['firstPassageTimeOrderParameters']:
-                userSimParamDict['firstPassageTimeOrderParameters'] = [0]
-
-            if 'fptLimitDict' in userSimParamDict:
-                userSimParamDict['fptLimitDict'] += [self.limitDict['oparam_a']]
-
-        return userSimParamDict
-
 if __name__=='__main__':
     regression = ReplicateGTSRegression()
     regression.main()
