@@ -83,6 +83,9 @@ void FFluxInput::init(const lm::io::hdf5::Hdf5File& file)
 
     // run some fflux specific intializers
     initFFluxOptions(file);
+
+    // warn the user about any unrecognized/unparsed simulation parameters
+    initSanityCheck();
 }
 
 // Get the Forward Flux specific options.

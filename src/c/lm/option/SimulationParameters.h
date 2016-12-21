@@ -117,20 +117,28 @@ public:
     typedef std::map<std::string,std::string> SimParamMap;
 
     SimulationParameters() {}
-    SimulationParameters(const lm::input::SimulationParameters& newBuf) {rFB(newBuf);}
-    SimulationParameters(const lm::io::hdf5::Hdf5File& file) {rFF(file);}
-    SimulationParameters(const SimParamMap& newMap) {rFM(newMap);}
+    SimulationParameters(const lm::input::SimulationParameters& newBuf) {rFB(newBuf, true);}
+    SimulationParameters(const lm::io::hdf5::Hdf5File& file) {rFF(file, true);}
+    SimulationParameters(const SimParamMap& newMap) {rFM(newMap, true);}
     ~SimulationParameters() {}
 
+    void initMapUnparsed() {_mapUnparsed = _map;}
+
 // accessors
-    SimParamMap::const_iterator findFirst(const std::vector<std::string>& keys) const;
+    SimParamMap::const_iterator beginUnparsed() const {return _mapUnparsed.begin();}
+    SimParamMap::const_iterator endUnparsed() const {return _mapUnparsed.end();}
     const lm::input::SimulationParameters& buf() {return _buf;}
-    const SimParamMap& map() const {return _map;}
+    bool checkAllParsed() const;
+    SimParamMap::const_iterator findFirst(const std::vector<std::string>& keys) const;
     bool isEnd(SimParamMap::const_iterator it) const {return it==_map.end();}
+    const SimParamMap& map() const {return _map;}
+    void printUnparsed() const;
 
     template <typename T>
     T parse(const std::string &key) const
     {
+        markParsed(key);
+
         T retVal;
         std::stringstream ss(_map.at(key));
 
@@ -142,6 +150,8 @@ public:
     template <typename T1, typename T2>
     typename PairVector<T1, T2>::T parsePairVector(const std::string &key, const std::string& debugMessage="") const
     {
+        markParsed(key);
+
         typename PairVector<T1, T2>::T parsedPairVector;
         std::stringstream pairVecSS(_map.at(key));
         std::string pairString, tokenString;
@@ -172,6 +182,8 @@ public:
     template <typename T> std::vector<T>
     parseVector(const std::string &key) const
     {
+        markParsed(key);
+
         std::stringstream vectorSS(_map.at(key));
 
         std::vector<T> parsedVector;
@@ -208,9 +220,9 @@ public:
     void mapToBuf(lm::input::SimulationParameters& outBuf) {mapToBuf(_map, outBuf);}
     void mapToBuf(const SimParamMap& inMap, lm::input::SimulationParameters& outBuf);
 
-    bool rFB(const lm::input::SimulationParameters& inBuf); // rFB = read From Buf
-    bool rFF(const lm::io::hdf5::Hdf5File& file); // rFF = read From File
-    bool rFM(const SimParamMap& inMap); // rFM = read From Map
+    bool rFB(const lm::input::SimulationParameters& inBuf, bool setupUnparsed=true); // rFB = read From Buf
+    bool rFF(const lm::io::hdf5::Hdf5File& file, bool setupUnparsed=true); // rFF = read From File
+    bool rFM(const SimParamMap& inMap, bool setupUnparsed=true); // rFM = read From Map
 
     void setBuf(const lm::input::SimulationParameters& newBuf) {_buf.CopyFrom(newBuf);}
     void setMap(const SimParamMap& newMap) {_map = newMap;}
@@ -226,8 +238,13 @@ public:
     SimParamMap::iterator end() {return _map.end();}
 
 protected:
+    // accessors
+    void markParsed(const std::string& key) const;
+
+protected:
     lm::input::SimulationParameters _buf;
     SimParamMap _map;
+    SimParamMap mutable _mapUnparsed;
 };
 
 }

@@ -36,7 +36,8 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#include <istream>
+#include <iomanip>
+#include <iostream>
 #include <iterator>
 #include <list>
 #include <string>
@@ -51,6 +52,7 @@
 
 using std::getline;
 using std::pair;
+using std::setw;
 using std::stringstream;
 using std::string;
 using std::vector;
@@ -60,6 +62,11 @@ namespace lm {
 namespace option {
 
 // accessors
+bool SimulationParameters::checkAllParsed() const
+{
+    return _mapUnparsed.size() <= 0;
+}
+
 SimulationParameters::SimParamMap::const_iterator SimulationParameters::findFirst(const vector<string>& keys) const
 {
     SimParamMap::const_iterator findCIt;
@@ -91,6 +98,27 @@ SimulationParameters::SimParamMap::iterator SimulationParameters::findFirst(cons
 #endif
 }
 
+void SimulationParameters::markParsed(const string& key) const
+{
+    _mapUnparsed.erase(key);
+}
+
+void SimulationParameters::printUnparsed() const
+{
+    stringstream outputSS;
+    outputSS << "The following simulation parameters were not recognized/parsed in the Input class:\n";
+    outputSS << setw(20) << "KEY" << " " << setw(20) << "VALUE" << "\n";
+
+
+    for (SimParamMap::const_iterator it=beginUnparsed(); it!=endUnparsed(); it++)
+    {
+        outputSS << setw(20) << it->first << " " << setw(20) << it->second << "\n";
+//        outputSS << "\t" << "(key) " << it->first << " (val) " << it->second << "\n";
+    }
+
+    Print::printf(Print::WARNING, outputSS.str().c_str());
+}
+
 // mutators
 void SimulationParameters::bufToMap(const lm::input::SimulationParameters& inBuf, SimParamMap& outMap)
 {
@@ -109,24 +137,45 @@ void SimulationParameters::mapToBuf(const SimParamMap& inMap, lm::input::Simulat
     }
 }
 
-bool SimulationParameters::rFB(const lm::input::SimulationParameters& inBuf) // rFB = read From Buf
+bool SimulationParameters::rFB(const lm::input::SimulationParameters& inBuf, bool setupUnparsed) // rFB = read From Buf
 {
+    // set up the protocol buffer
     setBuf(inBuf);
+
+    // set up the stl map
     bufToMap();
+
+    // set up the map that keeps track of unparsed entries
+    if (setupUnparsed) initMapUnparsed();
+
     return true;
 }
 
-bool SimulationParameters::rFF(const lm::io::hdf5::Hdf5File& file) // rFF = read From File
+bool SimulationParameters::rFF(const lm::io::hdf5::Hdf5File& file, bool setupUnparsed) // rFF = read From File
 {
+    // set up the stl map
     setMap(file.getParameters());
+
+    // set up the protocol buffer
     mapToBuf();
+
+    // set up the map that keeps track of unparsed entries
+    if (setupUnparsed) initMapUnparsed();
+
     return true;
 }
 
-bool SimulationParameters::rFM(const SimParamMap& inMap) // rFM = read From Map
+bool SimulationParameters::rFM(const SimParamMap& inMap, bool setupUnparsed) // rFM = read From Map
 {
+    // set up the stl map
     setMap(inMap);
+
+    // set up the protocol buffer
     mapToBuf();
+
+    // set up the map that keeps track of unparsed entries
+    if (setupUnparsed) initMapUnparsed();
+
     return true;
 }
 

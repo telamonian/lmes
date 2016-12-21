@@ -13,41 +13,41 @@ class ReplicateSRGRegression(SRGRegression):
     def _buildDefaultSimulationParameterDict(self):
         if self.parser['quick_test']:
             return {'maxSteps': 1e10,
-                    'maxTime': 1e6,
+                    'maxTime': 1e4,
                     'maxWorkUnitSteps': 1e8,
                     'writeInterval': 1e0,
-                    # 'orderParameterWriteInterval': 1e0}
+                    #'orderParameterWriteInterval': 1e0,
                     }
         else:
             return {'maxSteps': 1e10,
                     'maxTime': 1e6,
                     'maxWorkUnitSteps': 1e8,
                     'writeInterval': 1e1,
-                    # 'orderParameterWriteInterval': 1e1}
+                    # 'orderParameterWriteInterval': 1e1,
                     }
 
-    def _buildSimulationParameters(self):
-        defaultSimParamDict = self.buildDefaultSimulationParameterDict()
-        userSimParamDict = self.parser.simParamDict
-        for key in defaultSimParamDict.keys():
-            if key not in userSimParamDict:
-                userSimParamDict[key] = defaultSimParamDict[key]
-
-        if 'fptTrackingList' in userSimParamDict:
-            if not userSimParamDict['fptTrackingList']: userSimParamDict['fptTrackingList'] = [0]
-
-
-            # limitTup = SpeciesLimit(**self.limitDict['a'])
-            lmInput.SetLimit(limit=Limit(**self.limitDict['species_a']))
-
-        if 'fptOrderParameterTrackingList' in userSimParamDict:
-            if not userSimParamDict['fptOrderParameterTrackingList']: userSimParamDict['fptOrderParameterTrackingList'] = [0]
-            fptTracking = FirstPassageTimeTracking(valID==userSimParamDict.pop('fptOrderParameterTrackingList'))
-
-            # limitTup = OrderParameterLimit(**self.limitDict['a'])
-            lmInput.SetLimit(limit=Limit(**self.limitDict['oparam_a']))
-
-        return userSimParamDict
+    # def _buildSimulationParameters(self):
+    #     defaultSimParamDict = self.buildDefaultSimulationParameterDict()
+    #     userSimParamDict = self.parser.simParamDict
+    #     for key in defaultSimParamDict.keys():
+    #         if key not in userSimParamDict:
+    #             userSimParamDict[key] = defaultSimParamDict[key]
+    #
+    #     if 'fptTrackingList' in userSimParamDict:
+    #         if not userSimParamDict['fptTrackingList']: userSimParamDict['fptTrackingList'] = [0]
+    #
+    #
+    #         # limitTup = SpeciesLimit(**self.limitDict['a'])
+    #         lmInput.SetLimit(limit=Limit(**self.limitDict['species_a']))
+    #
+    #     if 'fptOrderParameterTrackingList' in userSimParamDict:
+    #         if not userSimParamDict['fptOrderParameterTrackingList']: userSimParamDict['fptOrderParameterTrackingList'] = [0]
+    #         fptTracking = FirstPassageTimeTracking(valID==userSimParamDict.pop('fptOrderParameterTrackingList'))
+    #
+    #         # limitTup = OrderParameterLimit(**self.limitDict['a'])
+    #         lmInput.SetLimit(limit=Limit(**self.limitDict['oparam_a']))
+    #
+    #     return userSimParamDict
 
 if __name__=='__main__':
     regression = ReplicateSRGRegression()

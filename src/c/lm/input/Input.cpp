@@ -103,6 +103,9 @@ void Input::init(const lm::io::hdf5::Hdf5File& file)
     initTrajectoryLimits(file);
     initOutputOptions(file);
     initWorkUnitParameters(file);
+
+    // warn the user about any unrecognized/unparsed simulation parameters
+    initSanityCheck();
 }
 
 // Get the reaction model.
@@ -233,6 +236,14 @@ void Input::initWorkUnitParameters(const lm::io::hdf5::Hdf5File& file)
 {
     parseAndSet("maxWorkUnitSteps", &this->stepsPerWorkUnit);
     parseAndSet("partsPerWorkUnit", &this->partsPerWorkUnit);
+}
+
+void Input::initSanityCheck()
+{
+    if (not simulationParameters.checkAllParsed())
+    {
+        simulationParameters.printUnparsed();
+    }
 }
 
 void Input::copyLimitsTo(lm::message::RunWorkUnit* rwuMsg)

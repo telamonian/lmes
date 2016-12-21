@@ -117,6 +117,8 @@ protected:
     virtual void initOutputOptions(const lm::io::hdf5::Hdf5File& file);
     virtual void initWorkUnitParameters(const lm::io::hdf5::Hdf5File& file);
 
+    virtual void initSanityCheck();
+
     bool parseBoundaryConditions(lm::input::BoundaryConditions* bc, std::string arg);
 
 protected:
