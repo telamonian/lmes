@@ -48,11 +48,11 @@ message NDArray {
         float64	       = 10;   // Double precision float: sign bit, 11 bits exponent, 52 bits mantissa
         complex64      = 11;   // Complex number, represented by two 32-bit floats (real and imaginary components)
         complex128     = 12;   // Complex number, represented by two 64-bit floats (real and imaginary components)
-        S8             = 13;   // String, 1 byte for every character, 8 bytes total
-        S16            = 14;   // String, 1 byte for every character, 16 bytes total
-        S32            = 15;   // String, 1 byte for every character, 32 bytes total
-        S64            = 16;   // String, 1 byte for every character, 64 bytes total
-        S128           = 17;   // String, 1 byte for every character, 128 bytes total
+        string8        = 13;   // String, 1 byte for every character, 8 bytes total
+        string16       = 14;   // String, 1 byte for every character, 16 bytes total
+        string32       = 15;   // String, 1 byte for every character, 32 bytes total
+        string64       = 16;   // String, 1 byte for every character, 64 bytes total
+        string128      = 17;   // String, 1 byte for every character, 128 bytes total
     }
         
     optional ArrayOrder array_order                 = 1 [default = ROW_MAJOR];

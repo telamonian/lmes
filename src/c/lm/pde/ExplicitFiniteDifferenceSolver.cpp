@@ -329,7 +329,7 @@ uint64_t ExplicitFiniteDifferenceSolver::generateTrajectory(uint64_t maxSteps)
         {
             lm::io::ConcentrationsTimeSeries* c = output->mutable_concentrations_time_series();
             c->set_trajectory_id(trajectoryId);
-            c->add_species_ids(0);
+            c->set_species_id(0);
             for (int i=0; i<concentrationsTimeSeriesGrids.size(); i++)
                 robertslab::pbuf::NDArraySerializer::serializeInto<double>(c->add_concentrations(), concentrationsTimeSeriesGrids[i]);
             robertslab::pbuf::NDArraySerializer::serializeInto<double>(c->mutable_times(), concentrationsTimeSeriesTimes.data(), utuple(concentrationsTimeSeriesTimes.size()));

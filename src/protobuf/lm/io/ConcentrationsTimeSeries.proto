@@ -26,7 +26,9 @@ import "robertslab/pbuf/NDArray.proto";
 
 message ConcentrationsTimeSeries {
     required uint64 trajectory_id                             = 1;
-    repeated int32 species_ids                                = 2;
+    optional int32 species_id                                 = 5 [default = -1];
     repeated robertslab.pbuf.NDArray concentrations           = 3;    //3D; i=x,j=y,k=z; type=float64
     required robertslab.pbuf.NDArray times                    = 4;    //1D; rows=times; type=float64
+
+    repeated int32 deprecated_species_ids                     = 2;
 }

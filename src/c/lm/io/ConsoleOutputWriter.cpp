@@ -245,8 +245,7 @@ void ConsoleOutputWriter::processConcentrationsTimeSeries(const lm::io::Concentr
     for (uint i=0, index=0; i<times->shape[0]; i++)
     {
         offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%10.3f:",times->get(i));
-        for (int j=0; j<data.species_ids().size(); j++, index++)
-            offset+=snprintf(buffer+offset,BUFFER_SIZE-offset," ndarray<%d,%d,%d>=%lu bytes",data.concentrations(index).shape(0),data.concentrations(index).shape(1),data.concentrations(index).shape(2),data.concentrations(index).data().size());
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"species=%d, ndarray<%d,%d,%d>=%lu bytes",data.species_id(),data.concentrations(index).shape(0),data.concentrations(index).shape(1),data.concentrations(index).shape(2),data.concentrations(index).data().size());
         offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"\n");
     }
     delete times;
