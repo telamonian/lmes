@@ -47,7 +47,7 @@
 
 #include "lm/EnumHelper.h"
 #include "lm/io/hdf5/SimulationFile.h"
-#include "lm/io/SimulationParameters.pb.h"
+#include "lm/input/SimulationParameters.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/pwrap/Repeated.h"
 #include "lm/Types.h"

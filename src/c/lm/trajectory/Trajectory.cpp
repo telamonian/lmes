@@ -44,15 +44,15 @@
 #include "lm/Print.h"
 #include "lm/Types.h"
 #include "lm/input/Input.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/tiling/Tilings.h"
 #include "lm/trajectory/Trajectory.h"
 #include "robertslab/pbuf/NDArraySerializer.h"
 
-using lm::io::DiffusionModel;
-using lm::io::ReactionModel;
+using lm::input::DiffusionModel;
+using lm::input::ReactionModel;
 using lm::io::TrajectoryState;
 using lm::tiling::Tilings;
 using std::list;
@@ -95,7 +95,7 @@ void Trajectory::initializeCMEState(const lm::input::Input& input, bool reversed
     if (input.hasReactionModel())
     {
         // Initialize the species counts
-        const lm::io::ReactionModel& reactionModel = input.getReactionModelMsg();
+        const lm::input::ReactionModel& reactionModel = input.getReactionModelMsg();
         lm::io::SpeciesCounts* sc = state.mutable_cme_state()->mutable_species_counts();
         sc->set_trajectory_id(id);
         sc->set_number_entries(1);
@@ -161,7 +161,7 @@ void Trajectory::initializeCMEState(const lm::input::Input& input, bool reversed
 
 void Trajectory::initializeDegreeAdvancements(const lm::input::Input& input)
 {
-    const lm::io::ReactionModel& reactionModel = input.getReactionModelMsg();
+    const lm::input::ReactionModel& reactionModel = input.getReactionModelMsg();
     lm::io::DegreeAdvancements* da = state.mutable_cme_state()->mutable_degree_advancements();
     da->set_trajectory_id(id);
     da->set_number_entries(1);
@@ -211,9 +211,9 @@ void Trajectory::initializeRDMEState(const lm::input::Input& input)
     // Initialize the rdme state from the diffusion model.
     if (input.hasDiffusionModel())
     {
-        const lm::io::DiffusionModel& diffusionModel = input.getDiffusionModelMsg();
+        const lm::input::DiffusionModel& diffusionModel = input.getDiffusionModelMsg();
         lm::io::RDMEState* rdmeState = state.mutable_rdme_state();
-        lm::io::Lattice* initialLattice = rdmeState->mutable_species_positions();
+        lm::types::Lattice* initialLattice = rdmeState->mutable_species_positions();
         initialLattice->set_lattice_x_size(diffusionModel.initial_lattice().lattice_x_size());
         initialLattice->set_lattice_y_size(diffusionModel.initial_lattice().lattice_y_size());
         initialLattice->set_lattice_z_size(diffusionModel.initial_lattice().lattice_z_size());

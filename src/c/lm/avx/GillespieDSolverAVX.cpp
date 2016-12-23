@@ -145,7 +145,7 @@ uint GillespieDSolverAVX::getSimultaneousTrajectories()
     return DOUBLES_PER_AVX;
 }
 
-void GillespieDSolverAVX::setReactionModel(const lm::io::ReactionModel& rm)
+void GillespieDSolverAVX::setReactionModel(const lm::input::ReactionModel& rm)
 {
     GillespieDSolver::setReactionModel(rm);
 

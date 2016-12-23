@@ -58,8 +58,7 @@
 #include "lm/Types.h"
 #include "lm/cme/ReactionModel.h"
 #include "lm/io/FirstPassageTimes.pb.h"
-#include "lm/io/ParameterValues.pb.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/me/FPTDeque.h"
@@ -135,13 +134,13 @@ public:
     virtual ~CMESolver();
     virtual void setComputeResources(vector<int> cpus, vector<int> gpus);
     virtual bool needsReactionModel() {return true;}
-    virtual void setReactionModel(const lm::io::ReactionModel& rm);
+    virtual void setReactionModel(const lm::input::ReactionModel& rm);
     virtual bool needsDiffusionModel() {return false;}
-    virtual void setDiffusionModel(const lm::io::DiffusionModel& dm) {}
+    virtual void setDiffusionModel(const lm::input::DiffusionModel& dm) {}
     virtual void setOrderParameters(const lm::io::OrderParameters& opsBuf);
     virtual void setTilings(const lm::io::Tilings& tilingsBuf);
     virtual void setLimits(const lm::io::TrajectoryLimits& limits);
-    virtual void setOutputOptions(const lm::io::OutputOptions& outputOptions);
+    virtual void setOutputOptions(const lm::input::OutputOptions& outputOptions);
     virtual void reset();
     virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0);
     virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0);

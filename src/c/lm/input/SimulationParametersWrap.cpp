@@ -44,8 +44,8 @@
 #include <utility>
 #include <vector>
 
-#include "lm/io/SimulationParameters.pb.h"
-#include "lm/input/SimulationParameters.h"
+#include "lm/input/SimulationParameters.pb.h"
+#include "lm/input/SimulationParametersWrap.h"
 #include "lm/Print.h"
 #include "lm/Types.h"
 
@@ -61,25 +61,24 @@ namespace lm {
 namespace input {
 
 // accessors
-SimParamMap::const_iterator SimulationParameters::findFirst(const vector<string>& keys) const
+SimParamMap::const_iterator SimulationParametersWrap::findFirst(const vector<string>& keys) const
 {
     SimParamMap::const_iterator findCIt;
     for (vector<string>::const_iterator keyCIt=keys.begin(); keyCIt!=keys.end(); keyCIt++) {
         findCIt = find(*keyCIt);
-        if (not isEnd(findCIt)) {
+        if (!isEnd(findCIt))
             return findCIt;
-        }
     }
     return findCIt;
 }
 
-SimParamMap::iterator SimulationParameters::findFirst(const vector<string>& keys)
+SimParamMap::iterator SimulationParametersWrap::findFirst(const vector<string>& keys)
 {
     // an attempt to recycle the code from a const qualified method into a non-const version of the same method
     // return const_cast<SimParamMap::iterator>(static_cast<const SimulationParameters*>(this)->findFirst(keys));
 
     // unfortunately, though in general the above would work, it turns out that you can't const_cast an iterator, so we need something a bit more complex
-    SimParamMap::const_iterator findCIt(static_cast<const SimulationParameters*>(this)->findFirst(keys));
+    SimParamMap::const_iterator findCIt(static_cast<const SimulationParametersWrap*>(this)->findFirst(keys));
 #if __cplusplus > 199711L
     // http://stackoverflow.com/a/10669041/425458
     // in c++11, calling .erase() with a duplicate const_iterator (ie an empty range) returns a non-const iterator while erasing nothing
@@ -92,7 +91,7 @@ SimParamMap::iterator SimulationParameters::findFirst(const vector<string>& keys
 #endif
 }
 
-void SimulationParameters::set(const lm::io::SimulationParameters& parameters)
+void SimulationParametersWrap::set(const lm::input::SimulationParameters& parameters)
 {
     _buf.CopyFrom(parameters);
     for (int i=0; i<parameters.key_size() && i<parameters.value_size(); i++)

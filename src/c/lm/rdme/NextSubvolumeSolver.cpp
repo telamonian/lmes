@@ -50,7 +50,7 @@
 #include "lm/Print.h"
 #include "lm/cme/CMESolver.h"
 #include "lm/io/FirstPassageTimes.pb.h"
-#include "lm/io/Lattice.pb.h"
+#include "lm/types/Lattice.pb.h"
 #include "lm/io/LatticeTimeSeries.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/message/Message.pb.h"
@@ -97,7 +97,7 @@ NextSubvolumeSolver::~NextSubvolumeSolver()
     if (reactionQueue != NULL) delete reactionQueue; reactionQueue = NULL;
 }
 
-void NextSubvolumeSolver::setDiffusionModel(const lm::io::DiffusionModel& dm)
+void NextSubvolumeSolver::setDiffusionModel(const lm::input::DiffusionModel& dm)
 {
     RDMESolver::setDiffusionModel(dm);
 
@@ -181,12 +181,12 @@ uint64_t NextSubvolumeSolver::generateTrajectory(uint64_t maxSteps)
             nextLatticeWriteTime=latticeWriteInterval;
             latticeDataSet->set_number_entries(1);
             latticeDataSet->add_time(0.0);
-            lm::io::Lattice* l = latticeDataSet->add_lattice();
+            lm::types::Lattice* l = latticeDataSet->add_lattice();
             l->set_lattice_x_size(lattice->getXSize());
             l->set_lattice_y_size(lattice->getYSize());
             l->set_lattice_z_size(lattice->getZSize());
             l->set_particles_per_site(lattice->getMaxOccupancy());
-            l->set_particles_ordering(lm::io::ROW_MAJOR);
+            l->set_particles_ordering(lm::types::ROW_MAJOR);
             l->set_particles_compressed_deflate(true);
             size_t dataSizeEstimate = lattice->serializeParticlesSize(true);
             std::string* data = l->mutable_particles();
@@ -268,12 +268,12 @@ uint64_t NextSubvolumeSolver::generateTrajectory(uint64_t maxSteps)
                // Record the species counts.
                latticeDataSet->set_number_entries(latticeDataSet->number_entries()+1);
                latticeDataSet->add_time(nextLatticeWriteTime);
-               lm::io::Lattice* l = latticeDataSet->add_lattice();
+               lm::types::Lattice* l = latticeDataSet->add_lattice();
                l->set_lattice_x_size(lattice->getXSize());
                l->set_lattice_y_size(lattice->getYSize());
                l->set_lattice_z_size(lattice->getZSize());
                l->set_particles_per_site(lattice->getMaxOccupancy());
-               l->set_particles_ordering(lm::io::ROW_MAJOR);
+               l->set_particles_ordering(lm::types::ROW_MAJOR);
                l->set_particles_compressed_deflate(true);
                size_t dataSizeEstimate = lattice->serializeParticlesSize(true);
                std::string* data = l->mutable_particles();
@@ -340,12 +340,12 @@ uint64_t NextSubvolumeSolver::generateTrajectory(uint64_t maxSteps)
                 // Record the species counts.
                 latticeDataSet->set_number_entries(latticeDataSet->number_entries()+1);
                 latticeDataSet->add_time(nextLatticeWriteTime);
-                lm::io::Lattice* l = latticeDataSet->add_lattice();
+                lm::types::Lattice* l = latticeDataSet->add_lattice();
                 l->set_lattice_x_size(lattice->getXSize());
                 l->set_lattice_y_size(lattice->getYSize());
                 l->set_lattice_z_size(lattice->getZSize());
                 l->set_particles_per_site(lattice->getMaxOccupancy());
-                l->set_particles_ordering(lm::io::ROW_MAJOR);
+                l->set_particles_ordering(lm::types::ROW_MAJOR);
                 l->set_particles_compressed_deflate(true);
                 size_t dataSizeEstimate = lattice->serializeParticlesSize(true);
                 std::string* data = l->mutable_particles();
@@ -376,12 +376,12 @@ uint64_t NextSubvolumeSolver::generateTrajectory(uint64_t maxSteps)
             // Record the lattice.
             latticeDataSet->set_number_entries(latticeDataSet->number_entries()+1);
             latticeDataSet->add_time(time);
-            lm::io::Lattice* l = latticeDataSet->add_lattice();
+            lm::types::Lattice* l = latticeDataSet->add_lattice();
             l->set_lattice_x_size(lattice->getXSize());
             l->set_lattice_y_size(lattice->getYSize());
             l->set_lattice_z_size(lattice->getZSize());
             l->set_particles_per_site(lattice->getMaxOccupancy());
-            l->set_particles_ordering(lm::io::ROW_MAJOR);
+            l->set_particles_ordering(lm::types::ROW_MAJOR);
             l->set_particles_compressed_deflate(true);
             size_t dataSizeEstimate = lattice->serializeParticlesSize(true);
             std::string* data = l->mutable_particles();
@@ -542,7 +542,7 @@ double NextSubvolumeSolver::calculateSubvolumeDiffusionPropensity(si_time_t time
     lattice->getNeighboringSites(subvolume, neighboringSubvolumes, false);
 
     // Fill in the boundary conditions.
-    lm::io::BoundaryConditions::BoundaryConditionsType bc[NUM_NEIGHBORS];
+    lm::types::BoundaryConditions::BoundaryConditionsType bc[NUM_NEIGHBORS];
     if (diffusionModel->boundaryConditions.axis_specific_boundaries())
     {
         bc[0]=diffusionModel->boundaryConditions.x_minus();
@@ -569,14 +569,14 @@ double NextSubvolumeSolver::calculateSubvolumeDiffusionPropensity(si_time_t time
                 int neighborIndex=neighboringSubvolumes[j];
                 if (neighborIndex == LATTICE_SIZE_MAX)
                 {
-                    if (bc[j] == lm::io::BoundaryConditions::REFLECTING)
+                    if (bc[j] == lm::types::BoundaryConditions::REFLECTING)
                     {
                     }
-                    else if (bc[j] == lm::io::BoundaryConditions::ABSORBING || bc[j] == lm::io::BoundaryConditions::FIXED_CONCENTRATION || bc[j] == lm::io::BoundaryConditions::FIXED_GRADIENT)
+                    else if (bc[j] == lm::types::BoundaryConditions::ABSORBING || bc[j] == lm::types::BoundaryConditions::FIXED_CONCENTRATION || bc[j] == lm::types::BoundaryConditions::FIXED_GRADIENT)
                     {
                         subvolumePropensity += ((double)currentSubvolumeSpeciesCounts[i]) * (diffusionModel->DF[sourceSite*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + sourceSite*reactionModel->numberSpecies + i]/latticeSpacingSquared);
                     }
-                    else if (bc[j] == lm::io::BoundaryConditions::PERIODIC)
+                    else if (bc[j] == lm::types::BoundaryConditions::PERIODIC)
                     {
                         lattice_size_t neighboringSubvolumesPeriodic[NUM_NEIGHBORS];
                         lattice->getNeighboringSites(subvolume, neighboringSubvolumesPeriodic, true);
@@ -686,7 +686,7 @@ bool NextSubvolumeSolver::performSubvolumeDiffusionEvent(si_time_t time, lattice
     lattice->getNeighboringSites(subvolume, neighboringSubvolumes, false);
 
     // Fill in the boundary conditions.
-    lm::io::BoundaryConditions::BoundaryConditionsType bc[NUM_NEIGHBORS];
+    lm::types::BoundaryConditions::BoundaryConditionsType bc[NUM_NEIGHBORS];
     if (diffusionModel->boundaryConditions.axis_specific_boundaries())
     {
         bc[0]=diffusionModel->boundaryConditions.x_minus();
@@ -713,10 +713,10 @@ bool NextSubvolumeSolver::performSubvolumeDiffusionEvent(si_time_t time, lattice
                 int neighborIndex=neighboringSubvolumes[j];
                 if (neighborIndex == LATTICE_SIZE_MAX)
                 {
-                    if (bc[j] == lm::io::BoundaryConditions::REFLECTING)
+                    if (bc[j] == lm::types::BoundaryConditions::REFLECTING)
                     {
                     }
-                    else if (bc[j] == lm::io::BoundaryConditions::ABSORBING ||bc[j] == lm::io::BoundaryConditions::FIXED_CONCENTRATION || bc[j] == lm::io::BoundaryConditions::FIXED_GRADIENT)
+                    else if (bc[j] == lm::types::BoundaryConditions::ABSORBING ||bc[j] == lm::types::BoundaryConditions::FIXED_CONCENTRATION || bc[j] == lm::types::BoundaryConditions::FIXED_GRADIENT)
                     {
                         double diffusionPropensity = ((double)currentSubvolumeSpeciesCounts[i]) * (diffusionModel->DF[sourceSite*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + sourceSite*reactionModel->numberSpecies + i]/latticeSpacingSquared);
 
@@ -737,7 +737,7 @@ bool NextSubvolumeSolver::performSubvolumeDiffusionEvent(si_time_t time, lattice
                             rngValue -= diffusionPropensity;
                         }
                     }
-                    else if (bc[j] == lm::io::BoundaryConditions::PERIODIC)
+                    else if (bc[j] == lm::types::BoundaryConditions::PERIODIC)
                     {
                         lattice_size_t neighboringSubvolumesPeriodic[NUM_NEIGHBORS];
                         lattice->getNeighboringSites(subvolume, neighboringSubvolumesPeriodic, true);
@@ -830,7 +830,7 @@ void NextSubvolumeSolver::addParticles(lattice_size_t subvolume, particle_t part
 			// We need to perform some overflow processing.
 			const uint NUM_NEIGHBORS=6;
 			lattice_size_t neighboringSubvolumes[NUM_NEIGHBORS];
-            lattice->getNeighboringSites(subvolume, neighboringSubvolumes, diffusionModel->boundaryConditions.global() == lm::io::BoundaryConditions::PERIODIC);
+            lattice->getNeighboringSites(subvolume, neighboringSubvolumes, diffusionModel->boundaryConditions.global() == lm::types::BoundaryConditions::PERIODIC);
 			bool handled = false;
 			for (uint i=0; i<NUM_NEIGHBORS && !handled; i++)
 			{

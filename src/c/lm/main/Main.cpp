@@ -64,10 +64,10 @@
 #ifdef OPT_CUDA
 #include "lm/Cuda.h"
 #endif
-#include "lm/io/DiffusionModel.pb.h"
+#include "lm/input/DiffusionModel.pb.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/OrderParameters.pb.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/io/Tilings.pb.h"
 #include "lm/main/CheckpointSignaler.h"
 #include "lm/main/Globals.h"
@@ -95,12 +95,12 @@ void listDevices();
 void executeSimulationMaster();
 void executeSimulationSlave();
 //void broadcastSimulationParameters(void * staticDataBuffer, map<string,string> & simulationParameters);
-//void broadcastReactionModel(void * staticDataBuffer, lm::io::ReactionModel * reactionModel);
-//void broadcastDiffusionModel(void * staticDataBuffer, lm::io::DiffusionModel * diffusionModel, uint8_t * lattice, size_t latticeSize, uint8_t * latticeSites, size_t latticeSitesSize);
+//void broadcastReactionModel(void * staticDataBuffer, lm::input::ReactionModel * reactionModel);
+//void broadcastDiffusionModel(void * staticDataBuffer, lm::input::DiffusionModel * diffusionModel, uint8_t * lattice, size_t latticeSize, uint8_t * latticeSites, size_t latticeSitesSize);
 //map<string,string> receiveSimulationParameters(void * staticDataBuffer);
-//void receiveReactionModel(void * staticDataBuffer, lm::io::ReactionModel * reactionModel);
-//void receiveDiffusionModel(void * staticDataBuffer, lm::io::DiffusionModel * diffusionModel, uint8_t ** lattice, size_t * latticeSize, uint8_t ** latticeSites, size_t * latticeSitesSize);
-//ReplicateRunner * startReplicate(int replicate, MESolverFactory solverFactory, std::map<std::string,string> & simulationParameters, lm::io::ReactionModel * reactionModel, lm::io::DiffusionModel * diffusionModel, uint8_t * lattice, size_t latticeSize, uint8_t * latticeSites, size_t latticeSitesSize, ResourceAllocator & resourceAllocator) throw(Exception,PthreadException);
+//void receiveReactionModel(void * staticDataBuffer, lm::input::ReactionModel * reactionModel);
+//void receiveDiffusionModel(void * staticDataBuffer, lm::input::DiffusionModel * diffusionModel, uint8_t ** lattice, size_t * latticeSize, uint8_t ** latticeSites, size_t * latticeSitesSize);
+//ReplicateRunner * startReplicate(int replicate, MESolverFactory solverFactory, std::map<std::string,string> & simulationParameters, lm::input::ReactionModel * reactionModel, lm::input::DiffusionModel * diffusionModel, uint8_t * lattice, size_t latticeSize, uint8_t * latticeSites, size_t latticeSitesSize, ResourceAllocator & resourceAllocator) throw(Exception,PthreadException);
 //ReplicateRunner * popNextFinishedReplicate(list<ReplicateRunner *> & runningReplicates, ResourceAllocator & resourceAllocator);
 
 // Allocate the profile space.

@@ -39,8 +39,8 @@
 
 package lm.io;
 
-import "lm/io/Lattice.proto";
+import "lm/types/Lattice.proto";
 
 message RDMEState {
-    required Lattice species_positions              = 1;
+    required lm.types.Lattice species_positions              = 1;
 }

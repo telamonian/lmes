@@ -22,10 +22,11 @@
 
 package lm.input;
 
-import "lm/input/MasterEquationModel.proto";
-import "lm/input/MicroenvironmentModel.proto";
+import "lm/input/DiffusionModel.proto";
+import "lm/input/ReactionModel.proto";
 
-message SimulationInput {
-    optional MasterEquationModel master_equation_model          = 1;
-    optional MicroenvironmentModel microenv_model               = 10;
+message MasterEquationModel {
+
+    optional ReactionModel reaction_model                               = 1;
+    optional DiffusionModel diffusion_model                             = 2;
 }

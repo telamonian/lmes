@@ -45,9 +45,9 @@
 #include <vector>
 
 #include "lm/Types.h"
-#include "lm/io/DiffusionModel.pb.h"
+#include "lm/input/DiffusionModel.pb.h"
 #include "lm/io/OrderParameters.pb.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/io/Tilings.pb.h"
 #include "lm/main/Solver.h"
 
@@ -64,9 +64,9 @@ public:
     MESolver();
     virtual ~MESolver();
     virtual bool needsReactionModel()=0;
-    virtual void setReactionModel(const lm::io::ReactionModel& rm)=0;
+    virtual void setReactionModel(const lm::input::ReactionModel& rm)=0;
     virtual bool needsDiffusionModel()=0;
-    virtual void setDiffusionModel(const lm::io::DiffusionModel& dm)=0;
+    virtual void setDiffusionModel(const lm::input::DiffusionModel& dm)=0;
     virtual void setOrderParameters(const lm::io::OrderParameters& ops)=0;
     virtual void setTilings(const lm::io::Tilings& tilings)=0;
 };

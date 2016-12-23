@@ -42,7 +42,7 @@
 #include <string>
 
 #include "lm/Print.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
@@ -53,8 +53,8 @@
 #include "lm/trajectory/TrajectoryList.h"
 #include "lm/Types.h"
 
-using lm::io::DiffusionModel;
-using lm::io::ReactionModel;
+using lm::input::DiffusionModel;
+using lm::input::ReactionModel;
 using std::map;
 using std::string;
 

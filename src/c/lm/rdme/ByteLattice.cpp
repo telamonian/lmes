@@ -365,7 +365,7 @@ void ByteLattice::removeAllParticles()
     memset(particles, 0, numberSites*wordsPerSite*sizeof(uint32_t));
 }
 
-/*void ByteLattice::serializeParticlesTo(lm::io::Lattice *outputLattice)
+/*void ByteLattice::serializeParticlesTo(lm::types::Lattice *outputLattice)
 {
     size_t dataSize=0;
     size_t dataMaxSize=0;

@@ -680,7 +680,7 @@ void mainDebug(int argc, char** argv)
     s.setComputeResources(cpus, vector<int>());
 
     // First order decay model.
-//    lm::io::ReactionModel rm;
+//    lm::input::ReactionModel rm;
 //    rm.set_number_species(1);
 //    rm.set_number_reactions(1);
 //    rm.add_initial_species_count(100);
@@ -691,7 +691,7 @@ void mainDebug(int argc, char** argv)
 //    rm.add_stoichiometric_matrix(-1);
 
     // First order birth death model.
-    lm::io::ReactionModel rm;
+    lm::input::ReactionModel rm;
     rm.set_number_species(1);
     rm.set_number_reactions(2);
     rm.add_initial_species_count(1000);
@@ -707,7 +707,7 @@ void mainDebug(int argc, char** argv)
     rm.add_stoichiometric_matrix(-1);
 
     // Three reaction birth death.
-//    lm::io::ReactionModel rm;
+//    lm::input::ReactionModel rm;
 //    rm.set_number_species(1);
 //    rm.set_number_reactions(3);
 //    rm.add_initial_species_count(100);
@@ -728,7 +728,7 @@ void mainDebug(int argc, char** argv)
 //    rm.add_stoichiometric_matrix(-1);
 
     // Two species parallel three reaction birth death.
-//    lm::io::ReactionModel rm;
+//    lm::input::ReactionModel rm;
 //    rm.set_number_species(2);
 //    rm.set_number_reactions(6);
 //    rm.add_initial_species_count(100);

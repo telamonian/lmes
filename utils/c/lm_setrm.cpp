@@ -49,7 +49,7 @@
 #include <sys/stat.h>
 #include "lm/Exceptions.h"
 #include "lm/Version.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lptf/Profile.h"
 #include "util.h"
@@ -62,7 +62,7 @@ using std::list;
 using std::pair;
 using std::string;
 using std::vector;
-using lm::io::ReactionModel;
+using lm::input::ReactionModel;
 using lm::io::hdf5::Hdf5File;
 
 /**

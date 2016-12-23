@@ -11,7 +11,7 @@
 #include "lm/Exceptions.h"
 #include "lm/Print.h"
 #include "lm/Types.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/me/PropensityFunction.h"
 #include "robertslab/sbml/ASTHelper.h"
 #include "robertslab/sbml/SBMLImporterL3V1.h"
@@ -74,7 +74,7 @@ bool SBMLImporterL3V1::import(SBMLDocument* sbmlDocument, map<string,double> use
     return allImportStepsSuccessful;
 }
 
-lm::io::ReactionModel* SBMLImporterL3V1::getReactionModel()
+lm::input::ReactionModel* SBMLImporterL3V1::getReactionModel()
 {
     return &reactionModel;
 }
@@ -355,7 +355,7 @@ void SBMLImporterL3V1::importReactions()
     }
     for (int j=0; j<numberReactions; j++)
     {
-        lm::io::ReactionModel_Reaction* reaction = reactionModel.add_reaction();
+        lm::input::ReactionModel_Reaction* reaction = reactionModel.add_reaction();
         reaction->set_type((*T)[utuple(j)]);
         for (int k=0; k<10 && !isnan((*K)[utuple(j,k)]); k++)
             reaction->add_rate_constant((*K)[utuple(j,k)]);

@@ -39,9 +39,9 @@
 #ifndef FFLUXSUPERVISOR_H_
 #define FFLUXSUPERVISOR_H_
 
-#include "lm/io/DiffusionModel.pb.h"
+#include "lm/input/DiffusionModel.pb.h"
 #include "lm/io/FFluxOutput.pb.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/FinishedWorkUnit.pb.h"

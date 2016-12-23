@@ -81,7 +81,7 @@ protected:
 public:
     FluctuatingNRSolver();
     virtual ~FluctuatingNRSolver();
-    virtual void setReactionModel(lm::io::ReactionModel * rm);
+    virtual void setReactionModel(lm::input::ReactionModel * rm);
     virtual void buildModel(const uint numberSpecies, const uint numberReactions, const uint * initialSpeciesCounts, const uint * reactionType, const double * k, const int * S, const uint * D, const uint kCols=1);
     virtual void buildModel(const uint numberSpecies, const uint numberReactions, const uint * initialSpeciesCounts, const uint * reactionType, const double * K, const int * S, const uint * D, const double * nvar, const double * ntau, const double noiseRecalcFraction, const uint kCols=1);
 

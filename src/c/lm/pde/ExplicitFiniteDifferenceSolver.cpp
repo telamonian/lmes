@@ -102,9 +102,9 @@ void ExplicitFiniteDifferenceSolver::setMicroenvironmentModel(const lm::input::M
     // Validate the boundary conditions.
     for (int i=0; i<6; i++)
     {
-        if (boundaries[i] != lm::io::BoundaryConditions::REFLECTING && boundaries[i] != lm::io::BoundaryConditions::ABSORBING && boundaries[i] != lm::io::BoundaryConditions::LINEAR_GRADIENT)
+        if (boundaries[i] != lm::types::BoundaryConditions::REFLECTING && boundaries[i] != lm::types::BoundaryConditions::ABSORBING && boundaries[i] != lm::types::BoundaryConditions::LINEAR_GRADIENT)
             throw lm::InvalidArgException("model.boundaries", "ExplicitFiniteDifferenceSolver does not support the specified boundary condition", i, boundaries[i]);
-        else if (boundaries[i] == lm::io::BoundaryConditions::LINEAR_GRADIENT && model.grid_shape(i/2) < 2)
+        else if (boundaries[i] == lm::types::BoundaryConditions::LINEAR_GRADIENT && model.grid_shape(i/2) < 2)
             throw lm::InvalidArgException("model.boundaries", "A grid dimension must be >=2 to use linear gradient boundary conditions", i, boundaries[i]);
     }
 
@@ -131,7 +131,7 @@ void ExplicitFiniteDifferenceSolver::setLimits(const lm::io::TrajectoryLimits& l
         timeLimit = limits.time_limit().dvalue();
 }
 
-void ExplicitFiniteDifferenceSolver::setOutputOptions(const lm::io::OutputOptions& outputOptions)
+void ExplicitFiniteDifferenceSolver::setOutputOptions(const lm::input::OutputOptions& outputOptions)
 {
     if (outputOptions.has_concentrations_write_interval())
     {
@@ -204,8 +204,8 @@ lm::message::WorkUnitStatus::Status ExplicitFiniteDifferenceSolver::getStatus(ui
 }
 
 
-#define CALCULATE_BOUNDARY_CONCENTRATION(BC,C,INDEX,INDEXM1) (BC==lm::io::BoundaryConditions::ABSORBING) ? 0.0 :\
-                                                     (BC==lm::io::BoundaryConditions::LINEAR_GRADIENT)   ? (2*C[INDEX]>C[INDEXM1])?(2*C[INDEX]-C[INDEXM1]):(0.0) :\
+#define CALCULATE_BOUNDARY_CONCENTRATION(BC,C,INDEX,INDEXM1) (BC==lm::types::BoundaryConditions::ABSORBING) ? 0.0 :\
+                                                     (BC==lm::types::BoundaryConditions::LINEAR_GRADIENT)   ? (2*C[INDEX]>C[INDEXM1])?(2*C[INDEX]-C[INDEXM1]):(0.0) :\
                                                      C[INDEX]
 
 uint64_t ExplicitFiniteDifferenceSolver::generateTrajectory(uint64_t maxSteps)

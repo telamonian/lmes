@@ -43,16 +43,16 @@
 #include <string>
 
 #include "lm/fflux/FFluxTrajectory.h"
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/DiffusionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/io/Tilings.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/tiling/Tilings.h"
 #include "lm/Types.h"
 
-using lm::io::DiffusionModel;
-using lm::io::ReactionModel;
+using lm::input::DiffusionModel;
+using lm::input::ReactionModel;
 using lm::io::TrajectoryState;
 using std::map;
 using std::string;

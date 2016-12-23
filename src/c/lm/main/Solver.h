@@ -44,7 +44,7 @@
 #include <vector>
 
 #include "lm/Types.h"
-#include "lm/io/OutputOptions.pb.h"
+#include "lm/input/OutputOptions.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/WorkUnitOutput.pb.h"
@@ -65,7 +65,7 @@ public:
     virtual void setComputeResources(vector<int> cpus, vector<int> gpus);
     virtual void reset();
     virtual void setLimits(const lm::io::TrajectoryLimits& limits)=0;
-    virtual void setOutputOptions(const lm::io::OutputOptions& outputOptions)=0;
+    virtual void setOutputOptions(const lm::input::OutputOptions& outputOptions)=0;
     virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0)=0;
     virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0)=0;
     virtual lm::message::WorkUnitOutput* getOutput(uint trajectoryNumber=0)=0;

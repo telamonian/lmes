@@ -45,8 +45,8 @@
 
 #include "hrtime.h"
 #include "lm/input/Input.h"
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/DiffusionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/trajectory/TrajectoryList.h"

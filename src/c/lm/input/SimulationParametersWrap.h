@@ -46,7 +46,7 @@
 #include <utility>
 #include <vector>
 
-#include "lm/io/SimulationParameters.pb.h"
+#include "lm/input/SimulationParameters.pb.h"
 #include "lm/Print.h"
 #include "lm/Types.h"
 
@@ -55,15 +55,15 @@ namespace input {
 
 typedef std::map<std::string,std::string> SimParamMap;
 
-class SimulationParameters
+class SimulationParametersWrap
 {
 public:
-    SimulationParameters() {}
-    ~SimulationParameters() {}
+    SimulationParametersWrap() {}
+    ~SimulationParametersWrap() {}
 
 // accessors
     SimParamMap::const_iterator findFirst(const std::vector<std::string>& keys) const;
-    const io::SimulationParameters& buf() {return _buf;}
+    const SimulationParameters& buf() {return _buf;}
     const SimParamMap& map() const {return _map;}
     bool isEnd(SimParamMap::const_iterator it) const {return it==_map.end();}
 
@@ -124,7 +124,7 @@ public:
 
 // mutators
 
-    void set(const lm::io::SimulationParameters& parameters);
+    void set(const lm::input::SimulationParameters& parameters);
 
     SimParamMap::iterator findFirst(const std::vector<std::string>& keys);
 
@@ -139,7 +139,7 @@ public:
     SimParamMap::iterator end() {return _map.end();}
 
 protected:
-    lm::io::SimulationParameters _buf;
+    lm::input::SimulationParameters _buf;
     SimParamMap _map;
 };
 

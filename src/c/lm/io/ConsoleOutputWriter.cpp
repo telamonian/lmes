@@ -202,7 +202,7 @@ void ConsoleOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeri
     {
         offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"Time: %10.3f\n",data.time(i));
 
-        const lm::io::Lattice& l = data.lattice(i);
+        const lm::types::Lattice& l = data.lattice(i);
         const std::string& particles = l.particles();
         for (int z=0; z<l.lattice_z_size(); z++)
         {
@@ -213,12 +213,12 @@ void ConsoleOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeri
                     for (int p=0; p<l.particles_per_site(); p++)
                     {
                         int i;
-                        if (l.particles_ordering() == lm::io::ROW_MAJOR)
+                        if (l.particles_ordering() == lm::types::ROW_MAJOR)
                         {
                             i = x*l.lattice_y_size()*l.lattice_z_size()*l.particles_per_site() + y*l.lattice_z_size()*l.particles_per_site() + z*l.particles_per_site() + p;
                             offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%2d%c",particles[i],p<l.particles_per_site()-1?',':' ');
                         }
-                        else if (l.particles_ordering() == lm::io::COLUMN_MAJOR)
+                        else if (l.particles_ordering() == lm::types::COLUMN_MAJOR)
                         {
                             i = p*l.lattice_x_size()*l.lattice_y_size()*l.lattice_z_size() + z*l.lattice_x_size()*l.lattice_y_size() + y*l.lattice_x_size() + x;
                             offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%2d%c",particles[i],p<l.particles_per_site()-1?',':' ');

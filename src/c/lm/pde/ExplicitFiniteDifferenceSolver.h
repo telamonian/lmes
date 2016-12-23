@@ -25,8 +25,8 @@
 
 #include "lm/Types.h"
 #include "lm/input/MicroenvironmentModel.pb.h"
-#include "lm/io/BoundaryConditions.pb.h"
-#include "lm/io/OutputOptions.pb.h"
+#include "lm/types/BoundaryConditions.pb.h"
+#include "lm/input/OutputOptions.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/WorkUnitOutput.pb.h"
@@ -48,7 +48,7 @@ public:
     virtual ~ExplicitFiniteDifferenceSolver();
     virtual void setMicroenvironmentModel(const lm::input::MicroenvironmentModel& model);
     virtual void setLimits(const lm::io::TrajectoryLimits& limits);
-    virtual void setOutputOptions(const lm::io::OutputOptions& outputOptions);
+    virtual void setOutputOptions(const lm::input::OutputOptions& outputOptions);
     virtual void reset();
     virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0);
     virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0);
@@ -61,7 +61,7 @@ protected:
     //virtual void calculateAbsorbingBoundary(ndarray<double>& grid, double time, double value);
 
 protected:
-    lm::io::BoundaryConditions::BoundaryConditionsType boundaries[6];
+    lm::types::BoundaryConditions::BoundaryConditionsType boundaries[6];
     double D;
     double dx;
     double dt;

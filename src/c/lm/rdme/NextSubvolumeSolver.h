@@ -65,13 +65,13 @@ public:
     NextSubvolumeSolver();
     NextSubvolumeSolver(RandomGenerator::Distributions neededDists);
     virtual ~NextSubvolumeSolver();
-    virtual void setDiffusionModel(const lm::io::DiffusionModel& dm);
+    virtual void setDiffusionModel(const lm::input::DiffusionModel& dm);
     virtual void reset();
     virtual uint64_t generateTrajectory(uint64_t maxSteps);
 
 protected:
     virtual void checkSpeciesCountsAgainstLattice();
-    //virtual void writeLatticeData(double time, ByteLattice * lattice, lm::io::Lattice * latticeDataSet);
+    //virtual void writeLatticeData(double time, ByteLattice * lattice, lm::types::Lattice * latticeDataSet);
     //virtual void recordSpeciesCounts(double time, lm::io::SpeciesCounts * speciesCountsDataSet);
     //virtual void writeSpeciesCounts(lm::io::SpeciesCounts * speciesCountsDataSet);
     virtual int updateAllSubvolumePropensities(si_time_t time, int rngNext, double * expRngValues);

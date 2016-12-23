@@ -7,7 +7,7 @@
 #include <sbml/SBMLDocument.h>
 
 #include "lm/Types.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/me/PropensityFunction.h"
 
 using std::map;
@@ -24,7 +24,7 @@ public:
     virtual ~SBMLImporterL3V1();
     virtual void setOptions(bool constantsUseConcentrations, bool verbose, bool reallyVerbose, bool ignoreErrors, bool ignoreUnmatchedReactions);
     virtual bool import(SBMLDocument* document, map<string,double> userParameters, map<string,string> userExpressions);
-    virtual lm::io::ReactionModel* getReactionModel();
+    virtual lm::input::ReactionModel* getReactionModel();
 
 protected:
     virtual string getDescription();
@@ -62,7 +62,7 @@ protected:
     map<string,ASTNode_t*> globalExpressions;
     vector<string> compartments;
     map<string,double> compartmentSizes;
-    lm::io::ReactionModel reactionModel;
+    lm::input::ReactionModel reactionModel;
     int numberSpecies;
     map<string,int> speciesIndices;
     map<int,bool> isSpeciesConst;

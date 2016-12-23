@@ -46,9 +46,9 @@
 #include "lm/Tune.h"
 #include "lm/Print.h"
 #include "lm/cme/CMESolver.h"
-#include "lm/io/BoundaryConditions.pb.h"
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/Lattice.pb.h"
+#include "lm/types/BoundaryConditions.pb.h"
+#include "lm/input/DiffusionModel.pb.h"
+#include "lm/types/Lattice.pb.h"
 #include "lm/me/PropensityFunction.h"
 #include "lm/rdme/Lattice.h"
 #include "lm/rdme/ByteLattice.h"
@@ -58,7 +58,7 @@
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
 
-using lm::io::DiffusionModel;
+using lm::input::DiffusionModel;
 using lm::rdme::Lattice;
 using lm::rng::RandomGenerator;
 
@@ -79,7 +79,7 @@ RDMESolver::~RDMESolver()
     if (lattice != NULL) delete lattice; lattice = NULL;
 }
 
-void RDMESolver::setDiffusionModel(const lm::io::DiffusionModel& dm)
+void RDMESolver::setDiffusionModel(const lm::input::DiffusionModel& dm)
 {
     CMESolver::setDiffusionModel(dm);
 
@@ -134,8 +134,8 @@ void RDMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
     CMESolver::getState(state, trajectoryNumber);
 
     // Get the lattice state.
-    lm::io::Lattice* l = state->mutable_rdme_state()->mutable_species_positions();
-    l->set_particles_ordering(lm::io::NATIVE_ORDER);
+    lm::types::Lattice* l = state->mutable_rdme_state()->mutable_species_positions();
+    l->set_particles_ordering(lm::types::NATIVE_ORDER);
     l->set_lattice_x_size(diffusionModel->latticeXSize);
     l->set_lattice_y_size(diffusionModel->latticeYSize);
     l->set_lattice_z_size(diffusionModel->latticeZSize);
@@ -166,7 +166,7 @@ void RDMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryN
     lattice->deserializeParticlesFrom(particles.data(), particles.size(), (Lattice::SerializationDataOrder)state.rdme_state().species_positions().particles_ordering(), state.rdme_state().species_positions().particles_compressed_deflate());
 }
 
-void RDMESolver::setOutputOptions(const lm::io::OutputOptions& outputOptions)
+void RDMESolver::setOutputOptions(const lm::input::OutputOptions& outputOptions)
 {
     CMESolver::setOutputOptions(outputOptions);
 

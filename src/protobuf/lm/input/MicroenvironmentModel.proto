@@ -22,7 +22,7 @@
 
 package lm.input;
 
-import "lm/io/BoundaryConditions.proto";
+import "lm/types/BoundaryConditions.proto";
 import "robertslab/pbuf/NDArray.proto";
 
 message MicroenvironmentModel {
@@ -31,7 +31,7 @@ message MicroenvironmentModel {
 
     repeated int32 grid_shape                                           = 1;
     required double grid_spacing                                        = 2;
-    required lm.io.BoundaryConditions boundaries                        = 3;
+    required lm.types.BoundaryConditions boundaries                     = 3;
     repeated int32 species_ids                                          = 4;
     repeated double diffusion_coefficients                              = 5;
     repeated robertslab.pbuf.NDArray initial_concentrations             = 6;    //3D; i=x,j=y,k=z; type=float64

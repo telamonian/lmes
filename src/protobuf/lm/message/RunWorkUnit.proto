@@ -39,7 +39,7 @@
 
 package lm.message;
 
-import "lm/io/OutputOptions.proto";
+import "lm/input/OutputOptions.proto";
 import "lm/io/TrajectoryLimits.proto";
 import "lm/message/Endpoint.proto";
 import "lm/message/WorkUnit.proto";
@@ -48,7 +48,7 @@ message RunWorkUnit {
     required uint64 work_unit_id                        = 1;
     required Endpoint output_address                    = 4;
     optional lm.io.TrajectoryLimits trajectory_limits   = 6;
-    optional lm.io.OutputOptions output_options         = 8;
+    optional lm.input.OutputOptions output_options      = 8;
     required uint64 max_steps                           = 9;
     repeated lm.message.WorkUnit part                   = 7;
 }

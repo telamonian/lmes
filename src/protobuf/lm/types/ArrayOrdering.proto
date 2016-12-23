@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Johns Hopkins University
+ * Copyright 2012-2016 Johns Hopkins University
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,12 +20,10 @@
  * Author(s): Elijah Roberts
  */
 
-package lm.input;
+package lm.types;
 
-import "lm/input/MasterEquationModel.proto";
-import "lm/input/MicroenvironmentModel.proto";
-
-message SimulationInput {
-    optional MasterEquationModel master_equation_model          = 1;
-    optional MicroenvironmentModel microenv_model               = 10;
+enum ArrayOrdering {
+    ROW_MAJOR       = 0;    // Last dimension contiguous.
+    COLUMN_MAJOR    = 1;    // First dimension contiguous
+    NATIVE_ORDER    = 2;    // Ordering specific to the implementation.
 }

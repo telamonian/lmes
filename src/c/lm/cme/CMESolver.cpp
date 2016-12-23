@@ -56,7 +56,7 @@
 #include "lm/cme/ReactionModel.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/OrderParameters.pb.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
@@ -144,7 +144,7 @@ void CMESolver::setComputeResources(vector<int> cpus, vector<int> gpus)
     }
 }
 
-void CMESolver::setReactionModel(const lm::io::ReactionModel& rm)
+void CMESolver::setReactionModel(const lm::input::ReactionModel& rm)
 {
     if (rm.number_reactions() != (uint)rm.reaction_size()) throw InvalidArgException("rm", "number of reaction does not agree with reaction list size");
 
@@ -414,7 +414,7 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
 
 }
 
-void CMESolver::setOutputOptions(const lm::io::OutputOptions& outputOptions)
+void CMESolver::setOutputOptions(const lm::input::OutputOptions& outputOptions)
 {
     if (outputOptions.has_degree_advancement_write_interval())
     {

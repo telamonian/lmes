@@ -63,7 +63,7 @@
 #include "lm/Version.h"
 #include "lm/cme/CMEPropensityFunctions.h"
 #include "lm/me/PropensityFunction.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lptf/Profile.h"
 #include "robertslab/sbml/SBMLImporterL3V1.h"
@@ -77,7 +77,7 @@ using std::map;
 using std::vector;
 using std::string;
 using lm::Exception;
-using lm::io::ReactionModel;
+using lm::input::ReactionModel;
 using lm::io::hdf5::Hdf5File;
 using lm::Print;
 

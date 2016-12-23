@@ -43,8 +43,8 @@
 #include "lm/Exceptions.h"
 #include "lm/Print.h"
 #include "lm/input/Input.h"
-#include "lm/input/SimulationParameters.h"
-#include "lm/io/OutputOptions.pb.h"
+#include "lm/input/SimulationParametersWrap.h"
+#include "lm/input/OutputOptions.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/sfile/LocalSFile.h"
@@ -55,7 +55,7 @@
 #include "robertslab/pbuf/NDArray.pb.h"
 #include "robertslab/pbuf/NDArraySerializer.h"
 
-using lm::io::OutputOptions;
+using lm::input::OutputOptions;
 using lm::trajectory::LimitValueT;
 using std::map;
 using std::string;
@@ -96,7 +96,7 @@ void Input::readHDF5Input(lm::io::hdf5::Hdf5File& file)
 {
     // Get any generic simulation parameters.
     {
-        lm::io::SimulationParameters p;
+        lm::input::SimulationParameters p;
         file.getParameters(&p);
         simulationParameters.set(p);
     }
@@ -117,7 +117,7 @@ void Input::readHDF5Input(lm::io::hdf5::Hdf5File& file)
         // See if we need to fill in the boundary conditions from the simulation parameters.
         if (simulationParameters.count("boundaryConditions") == 1 && !diffusionModel.has_boundary_conditions())
         {
-            lm::io::BoundaryConditions* bc=diffusionModel.mutable_boundary_conditions();
+            lm::types::BoundaryConditions* bc=diffusionModel.mutable_boundary_conditions();
             if (!parseBoundaryConditions(bc, simulationParameters["boundaryConditions"].c_str()))
             {
                 throw Exception("Could not parse boundaryConditions parameter",simulationParameters["boundaryConditions"].c_str());
@@ -267,12 +267,12 @@ void Input::readSFileInput(lm::io::sfile::SFile& file)
     }
 }
 
-bool Input::parseBoundaryConditions(lm::io::BoundaryConditions* bc, string arg)
+bool Input::parseBoundaryConditions(lm::types::BoundaryConditions* bc, string arg)
 {
-    lm::io::BoundaryConditions::BoundaryConditionsType type;
+    lm::types::BoundaryConditions::BoundaryConditionsType type;
 
     // See if it is a global boundary condition.
-    if (lm::io::BoundaryConditions_BoundaryConditionsType_Parse(arg, &type))
+    if (lm::types::BoundaryConditions_BoundaryConditionsType_Parse(arg, &type))
     {
         bc->set_global(type);
         return true;
@@ -288,7 +288,7 @@ bool Input::parseBoundaryConditions(lm::io::BoundaryConditions* bc, string arg)
         if (strlen(pch) >= 3 && (pch[0] == 'x' || pch[0] == 'y' || pch[0] == 'z') && pch[1] == ':')
         {
             // Parse the axis-specific type.
-            if (!lm::io::BoundaryConditions_BoundaryConditionsType_Parse(std::string(pch+2), &type))
+            if (!lm::types::BoundaryConditions_BoundaryConditionsType_Parse(std::string(pch+2), &type))
             {
                 delete[] argbuf;
                 return false;
@@ -324,7 +324,7 @@ bool Input::parseBoundaryConditions(lm::io::BoundaryConditions* bc, string arg)
         else if (strlen(pch) >= 4 && ((pch[0] == '+' || pch[0] == '-') && (pch[1] == 'x' || pch[1] == 'y' || pch[1] == 'z')) && pch[2] == ':')
         {
             // Parse the axis-specific type.
-            if (!lm::io::BoundaryConditions_BoundaryConditionsType_Parse(std::string(pch+3), &type))
+            if (!lm::types::BoundaryConditions_BoundaryConditionsType_Parse(std::string(pch+3), &type))
             {
                 delete[] argbuf;
                 return false;
@@ -333,27 +333,27 @@ bool Input::parseBoundaryConditions(lm::io::BoundaryConditions* bc, string arg)
             // Set the axis value.
             pch[2] = '\0';
             std::string axis=pch;
-            if (axis == "+x" && type != lm::io::BoundaryConditions::PERIODIC)
+            if (axis == "+x" && type != lm::types::BoundaryConditions::PERIODIC)
             {
                 bc->set_axis_specific_boundaries(true);
                 bc->set_x_plus(type);
             }
-            else if (axis == "-x" && type != lm::io::BoundaryConditions::PERIODIC)
+            else if (axis == "-x" && type != lm::types::BoundaryConditions::PERIODIC)
             {
                 bc->set_axis_specific_boundaries(true);
                 bc->set_x_minus(type);
             }
-            else if (axis == "+y" && type != lm::io::BoundaryConditions::PERIODIC)
+            else if (axis == "+y" && type != lm::types::BoundaryConditions::PERIODIC)
             {
                 bc->set_axis_specific_boundaries(true);
                 bc->set_y_plus(type);
             }
-            else if (axis == "-y" && type != lm::io::BoundaryConditions::PERIODIC)
+            else if (axis == "-y" && type != lm::types::BoundaryConditions::PERIODIC)
             {
                 bc->set_axis_specific_boundaries(true);
                 bc->set_y_minus(type);
             }
-            else if (axis == "+z" && type != lm::io::BoundaryConditions::PERIODIC)
+            else if (axis == "+z" && type != lm::types::BoundaryConditions::PERIODIC)
             {
                 bc->set_axis_specific_boundaries(true);
                 bc->set_z_plus(type);

@@ -46,7 +46,7 @@
 #include "lm/Types.h"
 #include "lm/input/Input.h"
 #include "lm/io/FirstPassageTimes.pb.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/Message.pb.h"

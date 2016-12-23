@@ -43,7 +43,7 @@
 #include <string>
 
 #include "lm/input/Input.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/RunWorkUnit.pb.h"
