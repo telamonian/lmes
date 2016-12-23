@@ -24,7 +24,7 @@
 #define LM_PDE_DIFFUSIONPDESOLVER_H
 
 #include "lm/Types.h"
-#include "lm/input/MicroenvironmentModel.pb.h"
+#include "lm/input/MicroenvironmentInput.pb.h"
 #include "lm/main/Solver.h"
 
 namespace lm {
@@ -35,7 +35,7 @@ class DiffusionPDESolver : public lm::main::Solver
 public:
     DiffusionPDESolver();
     virtual ~DiffusionPDESolver();
-    virtual void setMicroenvironmentModel(const lm::input::MicroenvironmentModel& model)=0;
+    virtual void setMicroenvironmentModel(const lm::input::MicroenvironmentInput& model)=0;
 };
 
 }

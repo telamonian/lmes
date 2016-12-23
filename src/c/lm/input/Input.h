@@ -45,7 +45,7 @@
 #include <vector>
 
 #include "lm/EnumHelper.h"
-#include "lm/input/MicroenvironmentModel.pb.h"
+#include "lm/input/MicroenvironmentInput.pb.h"
 #include "lm/input/SimulationInput.pb.h"
 #include "lm/types/BoundaryConditions.pb.h"
 #include "lm/input/DiffusionModel.pb.h"
@@ -86,7 +86,7 @@ public:
     const lm::tiling::Tilings& getTilings() const {return tilings;}
     const lm::io::Tilings& getTilingsMsg() const {return tilingsMsg;}
     const lm::io::TrajectoryLimits& getTrajectoryLimits() const {return trajectoryLimits.buf();}
-    const lm::input::MicroenvironmentModel& getMicroenvironmentModel() const {return input.microenv_model();}
+    const lm::input::MicroenvironmentInput& getMicroenvironmentModel() const {return input.microenv_input();}
 
     uint64_t getPartsPerWorkUnit() const {return partsPerWorkUnit;}
     uint64_t getStepsPerWorkUnit() const {return stepsPerWorkUnit;}
@@ -98,7 +98,7 @@ public:
     bool hasTilings() const {return tilingsPresent;}
     bool hasTrajectoryLimits() const {return trajectoryLimitsPresent;}
     bool hasOutputOptions() const {return outputOptionsPresent;}
-    bool hasMicroenvironmentModel() const {return input.has_microenv_model();}
+    bool hasMicroenvironmentModel() const {return input.has_microenv_input();}
 
     lm::oparam::OParams* mutableOrderParameters() {return &orderParameters;}
     lm::tiling::Tilings* mutableTilings() {return &tilings;}

@@ -22,10 +22,8 @@
 
 package lm.input;
 
-import "lm/input/MasterEquationModel.proto";
-import "lm/input/MicroenvironmentModel.proto";
+import "lm/input/MicroenvironmentInput.proto";
 
 message SimulationInput {
-    optional MasterEquationModel master_equation_model          = 1;
-    optional MicroenvironmentModel microenv_model               = 10;
+    optional MicroenvironmentInput microenv_input               = 10;
 }

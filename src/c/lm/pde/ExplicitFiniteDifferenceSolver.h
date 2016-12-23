@@ -24,7 +24,7 @@
 #define LM_PDE_EXPLICITFINITEDIFFERENCESOLVER_H
 
 #include "lm/Types.h"
-#include "lm/input/MicroenvironmentModel.pb.h"
+#include "lm/input/MicroenvironmentInput.pb.h"
 #include "lm/types/BoundaryConditions.pb.h"
 #include "lm/input/OutputOptions.pb.h"
 #include "lm/io/TrajectoryLimits.pb.h"
@@ -46,7 +46,7 @@ public:
 public:
     ExplicitFiniteDifferenceSolver();
     virtual ~ExplicitFiniteDifferenceSolver();
-    virtual void setMicroenvironmentModel(const lm::input::MicroenvironmentModel& model);
+    virtual void setMicroenvironmentModel(const lm::input::MicroenvironmentInput& model);
     virtual void setLimits(const lm::io::TrajectoryLimits& limits);
     virtual void setOutputOptions(const lm::input::OutputOptions& outputOptions);
     virtual void reset();

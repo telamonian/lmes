@@ -22,10 +22,11 @@
 
 package lm.input;
 
+import "lm/input/MasterEquationModel.proto";
 import "lm/types/BoundaryConditions.proto";
 import "robertslab/pbuf/NDArray.proto";
 
-message MicroenvironmentModel {
+message MicroenvironmentInput {
 
     optional double initial_time                                        = 12 [default=0.0];
 
@@ -43,4 +44,5 @@ message MicroenvironmentModel {
     optional robertslab.pbuf.NDArray cell_coordinates                   = 10;   //2D; rows=cells,cols=x-y-z-coordinates; type=double
     optional robertslab.pbuf.NDArray cell_volume                        = 11;   //1D; rows=cells; type=double
 
+    repeated MasterEquationModel master_equation_models                 = 20;
 }

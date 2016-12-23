@@ -76,7 +76,7 @@ ExplicitFiniteDifferenceSolver::~ExplicitFiniteDifferenceSolver()
 }
 
 
-void ExplicitFiniteDifferenceSolver::setMicroenvironmentModel(const lm::input::MicroenvironmentModel& model)
+void ExplicitFiniteDifferenceSolver::setMicroenvironmentModel(const lm::input::MicroenvironmentInput& model)
 {
     if (model.grid_shape().size() != 3) throw lm::InvalidArgException("model.grid_shape", "the grid must be three-dimensional for ExplicitFiniteDifferenceSolver");
     if (model.diffusion_coefficients().size() <= 0) throw lm::InvalidArgException("model.diffusion_coefficients", "the model did not have enough diffusion_coefficient values");
