@@ -245,6 +245,7 @@ void FFluxSupervisor::addFFluxPhases(lm::fflux::input::FFluxStage* stage, FFPhas
         if (i==0)
         {
             ffluxPhase->set_batch_size(1);
+
             ffluxPhase->set_trajectory_duplication(FFPhaseEnums::NONE);
             ffluxPhase->set_trajectory_generation(FFPhaseEnums::LAZY);
         }
@@ -252,9 +253,6 @@ void FFluxSupervisor::addFFluxPhases(lm::fflux::input::FFluxStage* stage, FFPhas
         {
             ffluxPhase->set_batch_size(input->ffluxOptions().batch_size());
 
-//            ////TEMPSTART
-//            ffluxPhase->set_batch_size(1000); //(input->ffluxOptions().batch_size());
-//            ////TEMPSTOP
             ffluxPhase->set_trajectory_duplication(trajDuplication);
             ffluxPhase->set_trajectory_generation(trajGeneration);
         }

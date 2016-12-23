@@ -84,6 +84,9 @@ void FFluxInput::init(const lm::io::hdf5::Hdf5File& file)
     // run some fflux specific intializers
     initFFluxOptions(file);
 
+    // although reinitOutputOptions() will be run at least once more before any related values are actually used, run it once here so the sanity check works correctly
+    reinitOutputOptions("", false);
+
     // warn the user about any unrecognized/unparsed simulation parameters
     initSanityCheck();
 }
@@ -128,6 +131,7 @@ void FFluxInput::reinitOutputOptions(const std::string& recordNamePrefix, bool i
     outputOptionsMsg.set_record_name_prefix(pathJoin(recordNamePrefixGlobal, recordNamePrefix));
     outputOptionsMsg.set_condense_output(true);
 
+    // set output options for the pilot stage only if pilot stage output is explicitly requested
     if ((not isPilotStage) or ffluxOptions().pilot_stage_output())
     {
         // Flags that control whether output is recorded for the initial and/or the final state of every trajectory.

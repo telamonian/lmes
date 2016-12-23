@@ -106,7 +106,7 @@ void SimulationParameters::markParsed(const string& key) const
 void SimulationParameters::printUnparsed() const
 {
     stringstream outputSS;
-    outputSS << "The following simulation parameters were not recognized/parsed in the Input class:\n";
+    outputSS << "The following simulation parameters in the input file were not recognized during parsing:\n";
     outputSS << setw(20) << "KEY" << " " << setw(20) << "VALUE" << "\n";
 
 

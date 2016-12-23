@@ -5,7 +5,7 @@ from lma.regression.regression import ReplicateRegressionParser
 from lma.regression.models.genetic_toggle_switch.gtsRegression import GTSRegression
 
 class ReplicateGTSRegression(GTSRegression):
-    helpMessage = 'script to test out a complete Replicate Lattice Microbes run'
+    helpMessage = 'script to test out a complete Replicate Lattice Microbes run with the Genetic Toggle Switch model'
     parserType = ReplicateRegressionParser
     
     def _buildDefaultSimulationParameterDict(self):
@@ -27,7 +27,3 @@ class ReplicateGTSRegression(GTSRegression):
 if __name__=='__main__':
     regression = ReplicateGTSRegression()
     regression.main()
-
-# after this script sets up genetic_toggle_switch.lm, the simulation can be rerun directly with any of the following lines:
-#../build/lmes -r 1-10 -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff hdf5 -f "genetic_toggle_switch.lm"
-#../build/lmes -r 1-10 -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff sfile -fo genetic_toggle_switch.sfile -f "genetic_toggle_switch.lm"

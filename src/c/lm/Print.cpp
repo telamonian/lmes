@@ -152,8 +152,11 @@ string pathJoin(const vector<string>& pathElements, bool absolute)
     // find the first non-zero length string in the vector
     while ((it!=pathElements.end()) and (it->size()==0)) it++;
 
-    // check to see if the first non-zero length element is already an absolute path
-    isAbsolute = ((*it)[0]=='/');
+    // check to see if the first non-zero length element is already an absolute path. skip if no non-zero legnth elements (otherwise, segfault due to EXC_BAD_ACCESS)
+    if (it!=pathElements.end())
+    {
+        isAbsolute = ((*it)[0]=='/');
+    }
 
     for (;it!=pathElements.end()--;it++)
     {

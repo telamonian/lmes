@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 # PYTHON_ARGCOMPLETE_OK
 
-import numpy as np
-
-from lma.src.script.lmFile import Basin,SimulationParameter,Tiling
 from lma.regression.regression import FFluxRegressionParser
 from lma.regression.models.genetic_toggle_switch.gtsRegression import GTSRegression
 
 class FFluxGTSRegression(GTSRegression):
-    helpMessage = 'script to test out a complete Forward Flux Lattice Microbes run'
+    helpMessage = 'script to test out a complete Forward Flux Lattice Microbes run with the Genetic Toggle Switch model'
     parserType = FFluxRegressionParser
 
     def _buildDefaultSimulationParameterDict(self):
@@ -44,65 +41,6 @@ class FFluxGTSRegression(GTSRegression):
                     'writeInterval': None,
                     'writeLimitTracking': False,}
 
-    # def _buildInput(self, lmInput):
-    #     # call the parent class method
-    #     lmInput = super(FFluxGTSRegression, self)._buildInput(lmInput=lmInput)
-    #
-    #     tilings = [
-    #         Tiling(id=0,
-    #                orderParameterID=0,
-    #                type=0,
-    #                edges=np.linspace(-27,27,13))]
-    #
-    #     basinArray = np.array([4,16,1,0,0,0,0]*self.parser['basinReplicates'], dtype=np.dtype('uint32')).reshape(self.parser['basinReplicates'], -1)
-    #     basins = [
-    #         Basin(tilingID=0,
-    #               speciesCountArray=basinArray)]
-    #                                           #[0,0,0,4,16,1,0]), dtype=np.dtype('uint32')))]
-    #
-    #     if self.parser['extra_input']:
-    #         tilings+=[
-    #             Tiling(id=19,
-    #                    orderParameterID=0,
-    #                    type=0,
-    #                    edges=np.linspace(-25,25,13)),
-    #             Tiling(id=1,
-    #                    orderParameterID=1,
-    #                    type=0,
-    #                    edges=np.arange(100)),
-    #             Tiling(id=2,
-    #                    orderParameterID=2,
-    #                    type=0,
-    #                    edges=np.arange(100)),
-    #             Tiling(id=3,
-    #                    orderParameterID=0,
-    #                    type=0,
-    #                    edges=np.arange(-100,100)),
-    #             Tiling(id=7,
-    #                    orderParameterID=0,
-    #                    type=0,
-    #                    edges=np.linspace(-25,25,11))]
-    #
-    #         tileCounts = [2] + list(range(4,21))[::4]
-    #         for i in tileCounts:
-    #             id = 100 + i
-    #             numEdges = i+1
-    #             tilings.append(Tiling(id=id,
-    #                                   orderParameterID=0,
-    #                                   type=0,
-    #                                   edges=np.linspace(-27, 27, numEdges)))
-    #
-    #     lmInput.AddTilings(tilings=tilings, currentTilingID=0)
-    #     lmInput.AddBasins(basins=basins)
-    #
-    #     return lmInput
-
-    # def _buildUnsetSimParamSet(self):
-    #     return {'maxSteps', 'maxTime', 'writeInterval'}
-
 if __name__=='__main__':
     regression = FFluxGTSRegression()
     regression.main()
-
-# after this script sets up genetic_toggle_switch.lm, the simulation can be rerun directly with:
-# ../build/lmes -sl lm::cme::GillespieDSolver -cr 1 -gr 1/4 -ff hdf5 -fflux -f "genetic_toggle_switch.lm" -intout
