@@ -445,7 +445,7 @@ bool SBMLImporterL3V1::importPropensityFunction(Reaction* reaction, int reaction
                 if (ASTHelper::compareASTNodes(simplifiedFormula, normalizedPropensityFormula))
                 {
                     (*T)[utuple(reactionIndex)] = id;
-                    Print::printf(Print::INFO, "Matched kinetic formula in reaction %s (%d) to %s: [%s] == [%s]", reaction->getId().c_str(), reactionIndex, p.name.c_str(), SBML_formulaToL3String(simplifiedFormula), SBML_formulaToL3String(normalizedPropensityFormula));
+                    Print::printf(Print::INFO, "Matched kinetic formula in reaction %s (%d) to %s: [%s] == [%s]", reaction->getName().c_str(), reactionIndex, p.name.c_str(), SBML_formulaToL3String(simplifiedFormula), SBML_formulaToL3String(normalizedPropensityFormula));
                     Print::printf(Print::DEBUG, "                                         Original form:   [%s]", SBML_formulaToL3String(kinetics->getMath()));
                     Print::printf(Print::DEBUG, "                                         Normalized form: [%s]", SBML_formulaToL3String(normalizedFormula));
 
@@ -469,7 +469,7 @@ bool SBMLImporterL3V1::importPropensityFunction(Reaction* reaction, int reaction
     }
 
     // Print out some messages to help the user figure out why there wasn't a match.
-    Print::printf(Print::ERROR, "FAILED to match kinetic formula in reaction %s (%d) at line %d to a propensity function: [%s] ", reaction->getId().c_str(), reactionIndex, kinetics->getLine(), SBML_formulaToL3String(simplifiedFormula));
+    Print::printf(Print::ERROR, "FAILED to match kinetic formula in reaction %s (%d) at line %d to a propensity function: [%s] ", reaction->getName().c_str(), reactionIndex, kinetics->getLine(), SBML_formulaToL3String(simplifiedFormula));
     if (verbose)
     {
         Print::printf(Print::ERROR, "                                         Normalized formula: [%s]", SBML_formulaToL3String(normalizedFormula));

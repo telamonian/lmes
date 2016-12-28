@@ -365,6 +365,88 @@ public:
     }
 };
 
+class ZerothOrderKHillTwoSpeciesOrPropensity : public lm::me::PropensityFunction
+{
+public:
+    static const uint REACTION_TYPE = 8009;
+
+    ZerothOrderKHillTwoSpeciesOrPropensity(uint xi, uint yi, double x0, double y0, double k0, double k1, double h) :PropensityFunction(REACTION_TYPE,0),xi(xi),x0h(pow(x0,h)),yi(yi),y0h(pow(y0,h)),k0(k0),dk(k1-k0),h(h) {}
+    uint xi;
+    double x0h;
+    uint yi;
+    double y0h;
+    double k0;
+    double dk;
+    double h;
+
+    void changeVolume(double volumeMultiplier) {}
+    double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
+    {
+        double x = double(speciesCounts[xi]);
+        double xh = pow(x,h);
+        double y = double(speciesCounts[yi]);
+        double yh = pow(y,h);
+        double maxhill = fmax(xh/(x0h+xh),yh/(y0h+yh));
+        double propensity = k0+dk*maxhill;
+        return propensity;
+    }
+
+#if defined(OPT_AVX) && !defined(OPT_SVML)
+    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
+    {
+        double x0 = speciesCounts[xi*DOUBLES_PER_AVX];
+        double x1 = speciesCounts[xi*DOUBLES_PER_AVX+1];
+        double x2 = speciesCounts[xi*DOUBLES_PER_AVX+2];
+        double x3 = speciesCounts[xi*DOUBLES_PER_AVX+3];
+        avxd xh = _mm256_set_pd(pow(x3,h),pow(x2,h),pow(x1,h),pow(x0,h));
+        avxd xhill = _mm256_div_pd(xh,_mm256_add_pd(_mm256_set1_pd(x0h),xh));
+        double y0 = speciesCounts[yi*DOUBLES_PER_AVX];
+        double y1 = speciesCounts[yi*DOUBLES_PER_AVX+1];
+        double y2 = speciesCounts[yi*DOUBLES_PER_AVX+2];
+        double y3 = speciesCounts[yi*DOUBLES_PER_AVX+3];
+        avxd yh = _mm256_set_pd(pow(y3,h),pow(y2,h),pow(y1,h),pow(y0,h));
+        avxd yhill = _mm256_div_pd(yh,_mm256_add_pd(_mm256_set1_pd(y0h),yh));
+        avxd maxhill = _mm256_max_pd(xhill,yhill);
+        return _mm256_add_pd(_mm256_set1_pd(k0),_mm256_mul_pd(_mm256_set1_pd(dk),maxhill));
+    }
+#endif
+#if defined(OPT_AVX) && defined(OPT_SVML)
+    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
+    {
+        avxd x = _mm256_load_pd(&speciesCounts[xi*DOUBLES_PER_AVX]);
+        avxd xh = _mm256_pow_pd(x, _mm256_set1_pd(h));
+        avxd xhill = _mm256_div_pd(xh,_mm256_add_pd(_mm256_set1_pd(x0h),xh));
+        avxd y = _mm256_load_pd(&speciesCounts[yi*DOUBLES_PER_AVX]);
+        avxd yh = _mm256_pow_pd(y, _mm256_set1_pd(h));
+        avxd yhill = _mm256_div_pd(yh,_mm256_add_pd(_mm256_set1_pd(y0h),yh));
+        avxd maxhill = _mm256_max_pd(xhill,yhill);
+        return _mm256_add_pd(_mm256_set1_pd(k0),_mm256_mul_pd(_mm256_set1_pd(dk),maxhill));
+    }
+#endif
+
+    static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+    {
+        // Find the species dependencies.
+        utuple d1 = getSpecificDependencies(reactionIndex, D, 1);
+        if (d1.len != 1) throw InvalidArgException("D", "zeroth order kinetic Hill two-species OR propensity needs one first species dependency, had",d1.len);
+        utuple d2 = getSpecificDependencies(reactionIndex, D, 2);
+        if (d2.len != 1) throw InvalidArgException("D", "zeroth order kinetic Hill two-species OR propensity needs one second species dependency, had",d2.len);
+
+        // Find the rate costant.
+        if (k.len != 5)  throw InvalidArgException("k", "zeroth order kinetic Hill two-species OR propensity needs four parameters, had",k.len);
+
+        return new ZerothOrderKHillTwoSpeciesOrPropensity(d1[0],d2[0],k[0],k[1],k[2],k[3],k[4]);
+    }
+
+    static lm::me::PropensityFunctionDefinition registerFunction()
+    {
+        //const char* expressions[] = {"k2 + (k3 - k2) * x1^k4 / (k1^h + x1^h)", NULL};
+        //const char* unitsForConstants[] = {"item", "item/second", "item/second", "1", NULL};
+        //return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "ZerothOrderKHillTwoSpeciesOrPropensity", expressions, unitsForConstants, &create);
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
+    }
+};
+
 list<lm::me::PropensityFunctionDefinition> GeneticCircuitPropensityFunctions::getPropensityFunctionDefinitions()
 {
     list<lm::me::PropensityFunctionDefinition> defs;
@@ -374,6 +456,7 @@ list<lm::me::PropensityFunctionDefinition> GeneticCircuitPropensityFunctions::ge
     defs.push_back(TimeDependentQuadraticDeathPropensity::registerFunction());
     defs.push_back(ZerothOrderKHillPropensity::registerFunction());
     defs.push_back(ZerothOrderKHillPropensity::registerFunctionAlternateFormat());
+    defs.push_back(ZerothOrderKHillTwoSpeciesOrPropensity::registerFunction());
     return defs;
 }
 
