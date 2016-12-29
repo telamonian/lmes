@@ -78,11 +78,12 @@ void PDETrajectoryList::reconcileDiffusionGrid(ndarray<uint32_t>* cellGridPoints
 
         // Update the grid with the flux from the cells.
         double newC = (*grid)[gridIndex] + double((*cellFlux)[utuple(i,column)])/(gridElementVolume*NA);
-        if (newC < 0.0) printf("Had a negative concentation after cell %d flux: %e\n", i, newC);
+        if (newC < 0.0 && fabs(newC*gridElementVolume*NA) > 0.01)
+            Print::printf(Print::WARNING, "Had a negative concentation after cell %d flux: %e M, %e particles.", i, newC, newC*gridElementVolume*NA);
         (*grid)[gridIndex] = newC>0.0?newC:0.0;
 
         // Reset the cell counts with the concentration from the grid.
-        (*cellCurrentCounts)[utuple(i,column)] = int32_t(round((*grid)[gridIndex]*((*cellVolumes)[utuple(i)]*NA)));
+        (*cellCurrentCounts)[utuple(i,column)] = int32_t(floor((*grid)[gridIndex]*((*cellVolumes)[utuple(i)]*NA)));
     }
 
     // Update the state with the new diffusion grid.
