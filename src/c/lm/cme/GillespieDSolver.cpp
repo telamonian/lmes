@@ -91,7 +91,8 @@ void* GillespieDSolver::allocateObject()
     return new GillespieDSolver();
 }
 
-GillespieDSolver::GillespieDSolver():CMESolver((RandomGenerator::Distributions)(RandomGenerator::EXPONENTIAL|RandomGenerator::UNIFORM)),propensities(NULL)
+GillespieDSolver::GillespieDSolver()
+:CMESolver((RandomGenerator::Distributions)(RandomGenerator::EXPONENTIAL|RandomGenerator::UNIFORM)),propensities(NULL)
 {
 }
 

@@ -425,7 +425,7 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
         {
             if (initialized[i])
             {
-                Print::printf(Print::INFO, "GillespieDSolverAVX started without a full set of trajectories, running trajectory %llu with the GillespieDSolver.", trajectoryId[i]);
+                Print::printf(Print::DEBUG, "GillespieDSolverAVX started without a full set of trajectories, running trajectory %llu with the GillespieDSolver.", trajectoryId[i]);
                 copyOutputToBaseSolver(i);
                 copyTrajectoryStateToBaseSolver(i);
                 GillespieDSolver::updateAllPropensities();
