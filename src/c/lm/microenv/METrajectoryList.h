@@ -50,9 +50,6 @@ public:
     virtual void copySpeciesCountFrom(const ndarray<int32_t>& counts, uint32_t column, uint32_t speciesId);
 
 protected:
-    virtual uint64_t findNextTrajectoryToRun() const;
-
-protected:
     uint64_t replicate;
     uint32_t numberCells;
 };

@@ -427,8 +427,7 @@ void TrajectoryList::workUnitPartFinished(const lm::message::WorkUnitStatus& wus
 // protected
 uint64_t TrajectoryList::findNextTrajectoryToRun() const
 {
-    TrajectoryMap::const_iterator it = waitingTrajectories.begin();
-    return it->first;
+    return waitingTrajectories.begin()->first;
 }
 
 }

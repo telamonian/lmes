@@ -58,6 +58,10 @@
 #define PROF_MESSAGE_PARSE                          56
 #define PROF_MESSAGE_RECEIVE_SPURIOUS_WAKEUP        57
 
+#define PROF_WORK_UNIT_RUN                          60
+#define PROF_WORK_UNIT_RUN_PART                     61
+#define PROF_WORK_UNIT_SAVE_PART                    62
+
 #define PROF_DATAOUTPUT_RUN                         100
 #define PROF_DATAOUTPUT_WRITE_DATASET               101
 #define PROF_DATAOUTPUT_HDF_WRITE_COUNTS            110
@@ -115,6 +119,7 @@
 #define PROF_MENV_START_REPLICATE                   802
 #define PROF_MENV_CONT_REPLICATE                    803
 #define PROF_MENV_ASSIGN_WORK                       804
+#define PROF_MENV_BUILD_WORK_UNIT                   805
 
 #define PROF_PDE_EXECUTE                            900
 

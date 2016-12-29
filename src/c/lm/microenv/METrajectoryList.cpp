@@ -92,33 +92,5 @@ void METrajectoryList::copySpeciesCountFrom(const ndarray<int32_t>& counts, uint
     }
 }
 
-
-uint64_t METrajectoryList::findNextTrajectoryToRun() const
-{
-    uint64_t minId=UINT64_MAX;
-    double minTime=std::numeric_limits<double>::infinity();
-    for (TrajectoryMap::const_iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
-    {
-        lm::trajectory::Trajectory* t = it->second;
-        double time = t->getState().cme_state().species_counts().time(0);
-        if (time < minTime)
-        {
-            minTime = time;
-            minId = it->first;
-        }
-    }
-
-    if (minId == UINT64_MAX)
-    {
-        for (TrajectoryMap::const_iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
-        {
-            it->second->getState().PrintDebugString();
-        }
-        throw Exception("Consistency error in ReplicateTrajectoryList, no next trajectory found",minId,waitingTrajectories.size());
-    }
-
-    return minId;
-}
-
 }
 }

@@ -367,6 +367,8 @@ bool MicroenvironmentSupervisor::assignWork()
 
 void MicroenvironmentSupervisor::buildRunWorkUnit(lm::message::RunWorkUnit* msg, bool me)
 {
+    PROF_BEGIN(PROF_MENV_BUILD_WORK_UNIT);
+
     // Set the work unit id.
     msg->set_work_unit_id(workUnitCount++);
 
@@ -388,7 +390,7 @@ void MicroenvironmentSupervisor::buildRunWorkUnit(lm::message::RunWorkUnit* msg,
 
         // Add the parts.
         const lm::slot::Slot slot = slots.getFreeSlot();
-        trajectoryList->addWorkUnitParts(msg->work_unit_id(), msg, 100);
+        trajectoryList->addWorkUnitParts(msg->work_unit_id(), msg, 1000);
     }
     else
     {
@@ -398,6 +400,8 @@ void MicroenvironmentSupervisor::buildRunWorkUnit(lm::message::RunWorkUnit* msg,
         // Add the parts.
         pdeTrajectoryList->addWorkUnitParts(msg->work_unit_id(), msg, 1);
     }
+
+    PROF_END(PROF_MENV_BUILD_WORK_UNIT);
 }
 
 bool MicroenvironmentSupervisor::incrementSimulationPhase()

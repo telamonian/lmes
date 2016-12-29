@@ -236,6 +236,8 @@ Solver* WorkUnitRunner::createDiffusionPDESolver()
 
 void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
 {
+    PROF_BEGIN(PROF_WORK_UNIT_RUN);
+
     // Tell the supervisor the work unit is started.
     lm::message::Message msgp1;
     lm::message::StartedWorkUnit* msg1 = msgp1.mutable_started_work_unit();
@@ -257,7 +259,7 @@ void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
     uint64_t totalSteps=0;
     hrtime totalTime=0;
     for (int i=0; i<rwuMsg.part_size(); i+=solver->getSimultaneousTrajectories())
-    {
+    {        
         // Reset the solver.
         solver->reset();
 
@@ -275,10 +277,16 @@ void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
             solver->setState(rwuMsg.part(i+j).initial_state(), j);
         }
 
+        PROF_BEGIN(PROF_WORK_UNIT_RUN_PART);
+
         // Run the work unit.
         hrtime t1=getHrTime();
         totalSteps += solver->generateTrajectory(rwuMsg.max_steps());
         totalTime += getHrTime()-t1;
+
+        PROF_END(PROF_WORK_UNIT_RUN_PART);
+
+        PROF_BEGIN(PROF_WORK_UNIT_SAVE_PART);
 
         // Save the status and the state.
         for (int j=0; j<(int)solver->getSimultaneousTrajectories() && (i+j)<rwuMsg.part_size(); j++)
@@ -305,6 +313,8 @@ void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
                 delete output;
             }
         }
+
+        PROF_END(PROF_WORK_UNIT_SAVE_PART);
     }
 
     // Send the output.
@@ -314,6 +324,8 @@ void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
     fwuMsg->set_steps(totalSteps);
     fwuMsg->set_run_time(convertHrToSeconds(totalTime));
     communicator->sendMessage(communicator->getSupervisorAddress(), &msg2);
+
+    PROF_END(PROF_WORK_UNIT_RUN);
 }
 
 }
