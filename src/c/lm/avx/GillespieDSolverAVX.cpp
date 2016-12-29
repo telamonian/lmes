@@ -507,7 +507,6 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
     int allFalse;
     int trueMask;
     avxd comp;
-    avxd expR;
     avxd nextTimeStep;
     avxd nextTime;
     while (true)
@@ -531,9 +530,15 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
             nextRngValue=0;
         }
 
+        // Get the random values for this iteration though the loop.
+        avxd randomValue = _mm256_load_pd(&rngValues[nextRngValue]);
+        avxd expRandomValue = _mm256_load_pd(&expRngValues[nextRngValue]);
+
+        // Go to the next rng pair.
+        nextRngValue+=DOUBLES_PER_AVX;
+
         // Calculate the time to the next reaction.
-        expR = _mm256_load_pd(&expRngValues[nextRngValue]);
-        nextTimeStep = _mm256_div_pd(expR, totalPropensity);
+        nextTimeStep = _mm256_div_pd(expRandomValue, totalPropensity);
         nextTime = _mm256_add_pd(time,nextTimeStep);
 
 //        comp = _mm256_cmp_pd(nextTime, _mm256_set1_pd(std::numeric_limits<double>::infinity()), _CMP_LT_OQ);
@@ -609,8 +614,7 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
         }
 
         // Calculate a random propensity to figure out the reaction.
-        avxd rngValue = _mm256_load_pd(&rngValues[nextRngValue]);
-        avxd rngPropensity = _mm256_mul_pd(rngValue, totalPropensity);
+        avxd rngPropensity = _mm256_mul_pd(randomValue, totalPropensity);
 
 //        {
 //        double* res = (double*)&totalPropensity;
@@ -747,9 +751,6 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
 //        p = (double*)&totalPropensity;
 //        printf("Total Propensity: %8.2f %8.2f %8.2f %8.2f\n", p[0], p[1], p[2], p[3]);
 //        printf("-----------------\n");
-
-         // Go to the next rng pair.
-        nextRngValue+=DOUBLES_PER_AVX;
     }
     PROF_END(PROF_SIM_EXECUTE);
 

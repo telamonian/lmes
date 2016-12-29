@@ -225,9 +225,15 @@ uint64_t GillespieDSolver::generateTrajectory(uint64_t maxSteps)
             nextRngValue=0;
         }
 
+        // Get the random values for this iteration though the loop.
+        double randomValue = rngValues[nextRngValue];
+        double expRandomValue = expRngValues[nextRngValue];
+
+        // Go to the next rng pair.
+        nextRngValue++;
+
         // Calculate the time to the next reaction.
-        double expR = expRngValues[nextRngValue];
-        timeStep = expR/totalPropensity;
+        timeStep = expRandomValue/totalPropensity;
         time += timeStep;
 
         // If we are outside of the time limit, stop the trajectory.
@@ -266,14 +272,15 @@ uint64_t GillespieDSolver::generateTrajectory(uint64_t maxSteps)
         }
 
         // Calculate which reaction it was.
-        double rngValue = rngValues[nextRngValue]*totalPropensity;
+        double rngPropensity = randomValue*totalPropensity;
         uint r=0;
+
         for (; r<(numberReactions-1); r++)
         {
-            if (rngValue < propensities[r])
+            if (rngPropensity < propensities[r])
                 break;
             else
-                rngValue -= propensities[r];
+                rngPropensity -= propensities[r];
         }
 
         // Update species counts.
@@ -311,9 +318,6 @@ uint64_t GillespieDSolver::generateTrajectory(uint64_t maxSteps)
         }
 
         Print::printf(Print::VERBOSE_DEBUG, "Step %d: time=%e, count=%d, prop=%e, totprop=%e",steps,time,speciesCounts[0],propensities[0],totalPropensity);
-
-         // Go to the next rng pair.
-        nextRngValue++;
     }
     PROF_END(PROF_SIM_EXECUTE);
 
