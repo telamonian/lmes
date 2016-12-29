@@ -95,7 +95,6 @@ GillespieDSolver::GillespieDSolver()
 :CMESolver((RandomGenerator::Distributions)(RandomGenerator::EXPONENTIAL|RandomGenerator::UNIFORM)),
  rngValues(NULL),expRngValues(NULL),nextRngValue(0),propensities(NULL)
 {
-    allocateRngBuffers();
 }
 
 GillespieDSolver::~GillespieDSolver()
@@ -107,9 +106,12 @@ GillespieDSolver::~GillespieDSolver()
 
 void GillespieDSolver::allocateRngBuffers()
 {
-    rngValues = new double[TUNE_LOCAL_RNG_CACHE_SIZE];
-    expRngValues = new double[TUNE_LOCAL_RNG_CACHE_SIZE];
-    nextRngValue = TUNE_LOCAL_RNG_CACHE_SIZE;
+    if (expRngValues == NULL || rngValues == NULL)
+    {
+        rngValues = new double[TUNE_LOCAL_RNG_CACHE_SIZE];
+        expRngValues = new double[TUNE_LOCAL_RNG_CACHE_SIZE];
+        nextRngValue = TUNE_LOCAL_RNG_CACHE_SIZE;
+    }
 }
 
 void GillespieDSolver::deallocateRngBuffers()
@@ -122,6 +124,9 @@ void GillespieDSolver::deallocateRngBuffers()
 void GillespieDSolver::reset()
 {
     CMESolver::reset();
+
+    // Make sure we have allocated the RNG buffers.
+    allocateRngBuffers();
 
     // Free any previous state.
     if (propensities != NULL) delete[] propensities; propensities = NULL;

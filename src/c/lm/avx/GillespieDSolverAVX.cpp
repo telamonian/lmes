@@ -142,9 +142,12 @@ GillespieDSolverAVX::~GillespieDSolverAVX()
 
 void GillespieDSolverAVX::allocateRngBuffers()
 {
-    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&rngValues, DOUBLES_PER_AVX*sizeof(double), TUNE_LOCAL_RNG_CACHE_SIZE*sizeof(double)));
-    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&expRngValues, DOUBLES_PER_AVX*sizeof(double), TUNE_LOCAL_RNG_CACHE_SIZE*sizeof(double)));
-    nextRngValue = TUNE_LOCAL_RNG_CACHE_SIZE;
+    if (expRngValues == NULL || rngValues == NULL)
+    {
+        POSIX_EXCEPTION_CHECK(posix_memalign((void**)&rngValues, DOUBLES_PER_AVX*sizeof(double), TUNE_LOCAL_RNG_CACHE_SIZE*sizeof(double)));
+        POSIX_EXCEPTION_CHECK(posix_memalign((void**)&expRngValues, DOUBLES_PER_AVX*sizeof(double), TUNE_LOCAL_RNG_CACHE_SIZE*sizeof(double)));
+        nextRngValue = TUNE_LOCAL_RNG_CACHE_SIZE;
+    }
 }
 
 void GillespieDSolverAVX::deallocateRngBuffers()
@@ -451,6 +454,10 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
                 //output[i]->PrintDebugString();
             }
         }
+
+        // Skip any nedcessary rng value to get us back into the proper alignemnt frame.
+        nextRngValue += nextRngValue%DOUBLES_PER_AVX;
+
         return steps;
     }
 
