@@ -247,6 +247,13 @@ void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
     lm::message::FinishedWorkUnit* fwuMsg = msg2.mutable_finished_work_unit();
     fwuMsg->set_work_unit_id(rwuMsg.work_unit_id());
 
+    // Create the output message.
+    bool hasOutput = false;
+    lm::message::Message outputParent;
+    lm::message::ProcessWorkUnitOutput* output = outputParent.mutable_process_work_unit_output();
+    output->set_work_unit_id(rwuMsg.work_unit_id());
+    google::protobuf::RepeatedPtrField<lm::message::WorkUnitOutput>* outputParts = output->mutable_part_output();
+
     uint64_t totalSteps=0;
     hrtime totalTime=0;
     for (int i=0; i<rwuMsg.part_size(); i+=solver->getSimultaneousTrajectories())
@@ -284,19 +291,24 @@ void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
             solver->getState(finalState, j);
         }
 
-        // Send the output.
-        bool hasOutput = false;
-        lm::message::Message msgp;
-        lm::message::ProcessWorkUnitOutput* msg = msgp.mutable_process_work_unit_output();
-        msg->set_work_unit_id(rwuMsg.work_unit_id());
-        google::protobuf::RepeatedPtrField<lm::message::WorkUnitOutput>* parts = msg->mutable_part_output();
+        // Save the output.
         for (int j=0; j<(int)solver->getSimultaneousTrajectories() && (i+j)<rwuMsg.part_size(); j++)
         {
-            parts->AddAllocated(solver->getOutput(j));
-            if (msg->part_output(j).has_output()) hasOutput = true;
+            lm::message::WorkUnitOutput* output = solver->getOutput(j);
+            if (output->has_output())
+            {
+                outputParts->AddAllocated(output);
+                hasOutput = true;
+            }
+            else
+            {
+                delete output;
+            }
         }
-        if (hasOutput) communicator->sendMessage(rwuMsg.output_address(), &msgp);
     }
+
+    // Send the output.
+    if (hasOutput) communicator->sendMessage(rwuMsg.output_address(), &outputParent);
 
     // Tell the supervisor the work unit has finished.
     fwuMsg->set_steps(totalSteps);
