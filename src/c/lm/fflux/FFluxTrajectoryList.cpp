@@ -62,12 +62,15 @@
 #include "lm/tiling/Tilings.h"
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
+#include "robertslab/pbuf/NDArraySerializer.h"
+
 
 using lm::input::DiffusionModel;
 using lm::input::ReactionModel;
 using std::map;
 using std::string;
 using std::vector;
+using robertslab::pbuf::NDArraySerializer;
 
 namespace lm {
 namespace fflux {
@@ -802,9 +805,12 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(const lm::io::SpeciesTimeSeri
     int numberEntries = speciesTimeSeriesMsg.counts().shape(0);
     int numberSpecies = speciesTimeSeriesMsg.counts().shape(1);
 
-    int32_t* counts = lm::io::hdf5::Hdf5File::dumpSpeciesCounts(speciesTimeSeriesMsg);
-    double* times = lm::io::hdf5::Hdf5File::dumpSpeciesTimes(speciesTimeSeriesMsg);
-//    lm::io::hdf5::Hdf5File::dumpSpeciesCountsAndTimes(speciesTimeSeriesMsg, counts, times);
+    ndarray<int32_t> *countsArray = NDArraySerializer::deserializeAllocate<int32_t>(speciesTimeSeriesMsg.counts());
+    ndarray<double> *timesArray = NDArraySerializer::deserializeAllocate<double>(speciesTimeSeriesMsg.times());
+
+
+    int32_t* counts = countsArray->values;
+    double* times = timesArray->values;
 
     // lookup the trajectory associated with the data in specCountsMsg
     lm::fflux::FFluxTrajectory* traj = static_cast<FFluxTrajectory*>(trajectories[speciesTimeSeriesMsg.trajectory_id()]);
@@ -848,10 +854,8 @@ void FFluxTrajectoryList::ffluxOutputAddTrajectory(const lm::io::SpeciesTimeSeri
     }
 
     // Free any allocated memory.
-    if (speciesTimeSeriesMsg.counts().compressed_deflate())
-        delete[] counts;
-    if (speciesTimeSeriesMsg.times().compressed_deflate())
-        delete[] times;
+    delete countsArray;
+    delete timesArray;
 }
 
 void FFluxTrajectoryList::ffluxOutputFinishTrajectory()

@@ -1667,60 +1667,6 @@ void Hdf5File::appendSpeciesCounts(uint64_t replicate, lm::io::SpeciesCounts * s
     appendSpeciesTimeSeries(replicate, speciesCounts->number_entries(), speciesCounts->number_species(), speciesCounts->species_count().data(), speciesCounts->time().data());
 }
 
-int32_t* Hdf5File::dumpSpeciesCounts(const lm::io::SpeciesTimeSeries& speciesTimeSeries)
-{
-    int numberEntries = speciesTimeSeries.counts().shape(0);
-    int numberSpecies = speciesTimeSeries.counts().shape(1);
-
-    // Extract the data, decompressing if necessary.
-    int32_t* counts=NULL;
-    if (speciesTimeSeries.counts().compressed_deflate())
-    {
-        counts = new int32_t[numberEntries*numberSpecies];
-        size_t size = numberEntries*numberSpecies*sizeof(counts[0]);
-        size_t uncompressedSize = size;
-        const std::string& str = speciesTimeSeries.counts().data();
-        ZLIB_EXCEPTION_CHECK(uncompress((unsigned char *)counts, &uncompressedSize, (unsigned char*)&(str[0]), str.size()));
-        if (uncompressedSize != size)
-            throw Exception("Error during data decompression, wrong number of bytes returned.");
-    }
-    else
-    {
-        const std::string& str = speciesTimeSeries.counts().data();
-        if (str.size() != numberEntries*numberSpecies*sizeof(counts[0]))
-            InvalidArgException("speciesTimeSeries.counts.data", "Incorrect size for data array.");
-        counts = (int32_t*)&(str[0]);
-    }
-    return counts;
-}
-
-double* Hdf5File::dumpSpeciesTimes(const lm::io::SpeciesTimeSeries& speciesTimeSeries)
-{
-    // Extract the data, decompressing if necessary.
-    int numberEntries = speciesTimeSeries.counts().shape(0);
-    int numberSpecies = speciesTimeSeries.counts().shape(1);
-
-    double* times=NULL;
-    if (speciesTimeSeries.times().compressed_deflate())
-    {
-        times = new double[numberEntries];
-        size_t size = numberEntries*sizeof(times[0]);
-        size_t uncompressedSize = size;
-        const std::string& str = speciesTimeSeries.times().data();
-        ZLIB_EXCEPTION_CHECK(uncompress((unsigned char *)times, &uncompressedSize, (unsigned char*)&(str[0]), str.size()));
-        if (uncompressedSize != size)
-            throw Exception("Error during data decompression, wrong number of bytes returned.");
-    }
-    else
-    {
-        const std::string& str = speciesTimeSeries.times().data();
-        if (str.size() != numberEntries*sizeof(times[0]))
-            InvalidArgException("speciesTimeSeries.times.data", "Incorrect size for data array.");
-        times = (double*)&(str[0]);
-    }
-    return times;
-}
-
 void Hdf5File::appendSpeciesTimeSeries(uint64_t replicate, const lm::io::SpeciesTimeSeries& speciesTimeSeries)
 {
     int numberEntries = speciesTimeSeries.counts().shape(0);
@@ -1729,18 +1675,16 @@ void Hdf5File::appendSpeciesTimeSeries(uint64_t replicate, const lm::io::Species
     if (speciesTimeSeries.times().shape(0) != numberEntries)
         InvalidArgException("speciesTimeSeries.times.shape", "Numebr of rows in time array incocnsistent with counts array.");
 
-    // Extract the data, decompressing if necessary.
-    int32_t* counts=dumpSpeciesCounts(speciesTimeSeries);
-    double* times=dumpSpeciesTimes(speciesTimeSeries);
+    // Extract the data..
+    ndarray<int32_t> *counts = NDArraySerializer::deserializeAllocate<int32_t>(speciesTimeSeries.counts());
+    ndarray<double> *times = NDArraySerializer::deserializeAllocate<double>(speciesTimeSeries.times());
 
     // Append  the data.
-    appendSpeciesTimeSeries(replicate, numberEntries, numberSpecies, counts, times);
+    appendSpeciesTimeSeries(replicate, numberEntries, numberSpecies, counts->values, times->values);
 
     // Free any allocated memory.
-    if (speciesTimeSeries.counts().compressed_deflate())
-        delete[] counts;
-    if (speciesTimeSeries.times().compressed_deflate())
-        delete[] times;
+    delete counts;
+    delete times;
 }
 
 void Hdf5File::appendSpeciesTimeSeries(uint64_t replicate, int numberEntries, int numberSpecies, const int32_t* counts, const double* times)
