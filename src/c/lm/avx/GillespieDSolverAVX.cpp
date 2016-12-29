@@ -140,6 +140,21 @@ GillespieDSolverAVX::~GillespieDSolverAVX()
     if (orderParameterPreviousValues != NULL) free(orderParameterPreviousValues); orderParameterPreviousValues = NULL;
 }
 
+void GillespieDSolverAVX::allocateRngBuffers()
+{
+    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&rngValues, DOUBLES_PER_AVX*sizeof(double), TUNE_LOCAL_RNG_CACHE_SIZE*sizeof(double)));
+    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&expRngValues, DOUBLES_PER_AVX*sizeof(double), TUNE_LOCAL_RNG_CACHE_SIZE*sizeof(double)));
+    nextRngValue = TUNE_LOCAL_RNG_CACHE_SIZE;
+}
+
+void GillespieDSolverAVX::deallocateRngBuffers()
+{
+    // Delete the rng caches.
+    if (expRngValues != NULL) free(expRngValues); expRngValues = NULL;
+    if (rngValues != NULL) free(rngValues); rngValues = NULL;
+    nextRngValue = 0;
+}
+
 uint GillespieDSolverAVX::getSimultaneousTrajectories()
 {
     return DOUBLES_PER_AVX;
@@ -485,13 +500,6 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
         }
     }
 
-    // Local cache of random numbers.
-    double* rngValues = NULL;
-    double* expRngValues = NULL;
-    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&rngValues, DOUBLES_PER_AVX*sizeof(double), TUNE_LOCAL_RNG_CACHE_SIZE*sizeof(double)));
-    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&expRngValues, DOUBLES_PER_AVX*sizeof(double), TUNE_LOCAL_RNG_CACHE_SIZE*sizeof(double)));
-    int rngNext=TUNE_LOCAL_RNG_CACHE_SIZE;
-
     // Run the direct method.
     Print::printf(Print::DEBUG, "Running Gillespie direct AVX simulation for %d steps with %d species, %d reactions, %d species limits\n", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberLimits);
     PROF_BEGIN(PROF_SIM_EXECUTE);
@@ -516,15 +524,15 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
         steps++;
 
         // See if we need to update our rng caches.
-        if (rngNext >= TUNE_LOCAL_RNG_CACHE_SIZE)
+        if (nextRngValue >= TUNE_LOCAL_RNG_CACHE_SIZE)
         {
             rng->getRandomDoubles(rngValues,TUNE_LOCAL_RNG_CACHE_SIZE, true);
             rng->getExpRandomDoubles(expRngValues,TUNE_LOCAL_RNG_CACHE_SIZE, true);
-            rngNext=0;
+            nextRngValue=0;
         }
 
         // Calculate the time to the next reaction.
-        expR = _mm256_load_pd(&expRngValues[rngNext]);
+        expR = _mm256_load_pd(&expRngValues[nextRngValue]);
         nextTimeStep = _mm256_div_pd(expR, totalPropensity);
         nextTime = _mm256_add_pd(time,nextTimeStep);
 
@@ -601,7 +609,7 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
         }
 
         // Calculate a random propensity to figure out the reaction.
-        avxd rngValue = _mm256_load_pd(&rngValues[rngNext]);
+        avxd rngValue = _mm256_load_pd(&rngValues[nextRngValue]);
         avxd rngPropensity = _mm256_mul_pd(rngValue, totalPropensity);
 
 //        {
@@ -741,7 +749,7 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
 //        printf("-----------------\n");
 
          // Go to the next rng pair.
-        rngNext+=DOUBLES_PER_AVX;
+        nextRngValue+=DOUBLES_PER_AVX;
     }
     PROF_END(PROF_SIM_EXECUTE);
 
@@ -752,12 +760,6 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
 //    //printf("Final Species counts:   %8.2f %8.2f %8.2f %8.2f\n", p[4], p[5], p[6], p[7]);
 //    p = (double*)&totalPropensity;
 //    printf("Final Total Propensity: %8.2f %8.2f %8.2f %8.2f\n", p[0], p[1], p[2], p[3]);
-
-    // Delete the rng caches.
-    free(rngValues);
-    rngValues = NULL;
-    free(expRngValues);
-    expRngValues = NULL;
 
     // Finalize each of the trajectories.
     for (int i=0; i<DOUBLES_PER_AVX; i++)

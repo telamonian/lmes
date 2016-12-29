@@ -88,7 +88,9 @@ public:
     virtual lm::message::WorkUnitStatus::Status getStatus(uint trajectoryNumber=0);
 
 protected:
-    void updateAllPropensities();
+    virtual void allocateRngBuffers();
+    virtual void deallocateRngBuffers();
+    virtual void updateAllPropensities();
     void updatePropensities(avxd time, uint* sourceReaction);
     void performReactionEventAVX(uint* reactionsToPerform);
     void callUpdateSpeciesCountsListenersAVX();

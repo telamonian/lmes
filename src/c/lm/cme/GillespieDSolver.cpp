@@ -92,14 +92,31 @@ void* GillespieDSolver::allocateObject()
 }
 
 GillespieDSolver::GillespieDSolver()
-:CMESolver((RandomGenerator::Distributions)(RandomGenerator::EXPONENTIAL|RandomGenerator::UNIFORM)),propensities(NULL)
+:CMESolver((RandomGenerator::Distributions)(RandomGenerator::EXPONENTIAL|RandomGenerator::UNIFORM)),
+ rngValues(NULL),expRngValues(NULL),nextRngValue(0),propensities(NULL)
 {
+    allocateRngBuffers();
 }
 
 GillespieDSolver::~GillespieDSolver()
 {
     // Free any state.
     if (propensities != NULL) delete[] propensities; propensities = NULL;
+    deallocateRngBuffers();
+}
+
+void GillespieDSolver::allocateRngBuffers()
+{
+    rngValues = new double[TUNE_LOCAL_RNG_CACHE_SIZE];
+    expRngValues = new double[TUNE_LOCAL_RNG_CACHE_SIZE];
+    nextRngValue = TUNE_LOCAL_RNG_CACHE_SIZE;
+}
+
+void GillespieDSolver::deallocateRngBuffers()
+{
+    if (expRngValues != NULL) delete[] expRngValues; expRngValues = NULL;
+    if (rngValues != NULL) delete[] rngValues; rngValues = NULL;
+    nextRngValue = 0;
 }
 
 void GillespieDSolver::reset()
@@ -184,11 +201,6 @@ uint64_t GillespieDSolver::generateTrajectory(uint64_t maxSteps)
         }
     }
 
-    // Local cache of random numbers.
-    double rngValues[TUNE_LOCAL_RNG_CACHE_SIZE];
-    double expRngValues[TUNE_LOCAL_RNG_CACHE_SIZE];
-    int rngNext=TUNE_LOCAL_RNG_CACHE_SIZE;
-
     // Run the direct method.
     Print::printf(Print::DEBUG, "Running Gillespie direct simulation for %d steps with %d species, %d reactions, %d species limits\n", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberLimits);
     PROF_BEGIN(PROF_SIM_EXECUTE);
@@ -206,15 +218,15 @@ uint64_t GillespieDSolver::generateTrajectory(uint64_t maxSteps)
         steps++;
 
         // See if we need to update our rng caches.
-        if (rngNext >= TUNE_LOCAL_RNG_CACHE_SIZE)
+        if (nextRngValue >= TUNE_LOCAL_RNG_CACHE_SIZE)
         {
             rng->getRandomDoubles(rngValues,TUNE_LOCAL_RNG_CACHE_SIZE);
             rng->getExpRandomDoubles(expRngValues,TUNE_LOCAL_RNG_CACHE_SIZE);
-            rngNext=0;
+            nextRngValue=0;
         }
 
         // Calculate the time to the next reaction.
-        double expR = expRngValues[rngNext];
+        double expR = expRngValues[nextRngValue];
         timeStep = expR/totalPropensity;
         time += timeStep;
 
@@ -254,7 +266,7 @@ uint64_t GillespieDSolver::generateTrajectory(uint64_t maxSteps)
         }
 
         // Calculate which reaction it was.
-        double rngValue = rngValues[rngNext]*totalPropensity;
+        double rngValue = rngValues[nextRngValue]*totalPropensity;
         uint r=0;
         for (; r<(numberReactions-1); r++)
         {
@@ -298,10 +310,10 @@ uint64_t GillespieDSolver::generateTrajectory(uint64_t maxSteps)
             break;
         }
 
-        //Print::printf(Print::VERBOSE_DEBUG, "Step %d: time=%e, count=%d, prop=%e, totprop=%e",steps,time,speciesCounts[0],propensities[0],totalPropensity);
+        Print::printf(Print::VERBOSE_DEBUG, "Step %d: time=%e, count=%d, prop=%e, totprop=%e",steps,time,speciesCounts[0],propensities[0],totalPropensity);
 
          // Go to the next rng pair.
-        rngNext++;
+        nextRngValue++;
     }
     PROF_END(PROF_SIM_EXECUTE);
 

@@ -1,7 +1,7 @@
 /*
  * University of Illinois Open Source License
  * Copyright 2008-2011 Luthey-Schulten Group,
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Luthey-Schulten Group
@@ -77,10 +77,15 @@ public:
     virtual uint64_t generateTrajectory(uint64_t maxSteps);
 
 protected:
+    virtual void allocateRngBuffers();
+    virtual void deallocateRngBuffers();
     virtual void updateAllPropensities();
     inline void updatePropensities(uint r);
 
 protected:
+    double* rngValues;
+    double* expRngValues;
+    size_t nextRngValue;
     lm::pwrap::NDArray<double> opCounts, opTimes;
     double * propensities;
 };
