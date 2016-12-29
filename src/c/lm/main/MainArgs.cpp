@@ -439,17 +439,20 @@ void parseArguments(int argc, char** argv)
         }
     }
 
-    // Perform some validation.
-    if (functionOption == "simulation" && simulationInputFilenames.size() == 0)
-        throw lm::CommandLineArgumentException("missing simulation input file.");
+    // Perform some validation of the arguments.
+    if (functionOption == "simulation")
+    {
+        if (simulationInputFilenames.size() == 0)
+            throw lm::CommandLineArgumentException("missing simulation input file.");
 
-    if (outputWriterClassName == "lm::io::hdf5::Hdf5OutputWriter" && simulationOutputFilename == "")
-        simulationOutputFilename = simulationInputFilenames[0];
-    else if (outputWriterClassName == "lm::io::hdf5::Hdf5OutputWriter" && simulationOutputFilename != simulationInputFilenames[0])
-        throw lm::CommandLineArgumentException("cannot specify separate input and output files with the hdf5 format.");
+        if (outputWriterClassName == "lm::io::hdf5::Hdf5OutputWriter" && simulationOutputFilename == "")
+            simulationOutputFilename = simulationInputFilenames[0];
+        else if (outputWriterClassName == "lm::io::hdf5::Hdf5OutputWriter" && simulationOutputFilename != simulationInputFilenames[0])
+            throw lm::CommandLineArgumentException("cannot specify separate input and output files with the hdf5 format.");
 
-    if (outputWriterClassName == "lm::io::sfile::SFileOutputWriter" && simulationOutputFilename == "")
-        throw lm::CommandLineArgumentException("missing simulation output file.");
+        if (outputWriterClassName == "lm::io::sfile::SFileOutputWriter" && simulationOutputFilename == "")
+            throw lm::CommandLineArgumentException("missing simulation output file.");
+    }
 }
 
 string parseOutputFormatArg(char* option)
