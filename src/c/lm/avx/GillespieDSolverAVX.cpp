@@ -450,12 +450,10 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
                 steps += GillespieDSolver::generateTrajectory(maxSteps);
                 copyTrajectoryStateFromBaseSolver(i);
                 copyOutputFromBaseSolver(i);
-                //printf("Output os:\n"); fflush(stdout);
-                //output[i]->PrintDebugString();
             }
         }
 
-        // Skip any nedcessary rng value to get us back into the proper alignemnt frame.
+        // Skip any nedcessary rng values to get us back into the proper alignemnt frame.
         nextRngValue += nextRngValue%DOUBLES_PER_AVX;
 
         return steps;
@@ -547,21 +545,6 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
         // Calculate the time to the next reaction.
         nextTimeStep = _mm256_div_pd(expRandomValue, totalPropensity);
         nextTime = _mm256_add_pd(time,nextTimeStep);
-
-//        comp = _mm256_cmp_pd(nextTime, _mm256_set1_pd(std::numeric_limits<double>::infinity()), _CMP_LT_OQ);
-//        trueMask = _mm256_movemask_pd(comp);
-//        if (trueMask != 0x0F)
-//        {
-//            double* res = (double*)&expR;
-//            printf("ERNG: %8.2e %8.2e %8.2e %8.2e\n", res[0], res[1], res[2], res[3]);
-//            res = (double*)&nextTimeStep;
-//            printf("TS:   %8.2e %8.2e %8.2e %8.2e\n", res[0], res[1], res[2], res[3]);
-//            res = (double*)&nextTime;
-//            printf("TIME: %8.2e %8.2e %8.2e %8.2e\n", res[0], res[1], res[2], res[3]);
-//            res = (double*)&totalPropensity;
-//            printf("TP: %8.2e %8.2e %8.2e %8.2e\n", res[0], res[1], res[2], res[3]);
-//            break;
-//        }
 
          // If any new time is past the end time, we are done.
         comp = _mm256_cmp_pd(nextTime, timeLimit, _CMP_GE_OQ);
