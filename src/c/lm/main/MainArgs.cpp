@@ -496,7 +496,6 @@ void parseIntListArg(vector<uint64_t> & list, char* arg)
 
 void parseStringListArg(vector<string>& list, char* arg)
 {
-    list.clear();
     char * argbuf = new char[strlen(arg)+1];
     strcpy(argbuf,arg);
     char * pch = strtok(argbuf," ,;:\"");
