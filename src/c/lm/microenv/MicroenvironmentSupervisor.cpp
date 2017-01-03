@@ -390,7 +390,7 @@ void MicroenvironmentSupervisor::buildRunWorkUnit(lm::message::RunWorkUnit* msg,
 
         // Add the parts.
         const lm::slot::Slot slot = slots.getFreeSlot();
-        trajectoryList->addWorkUnitParts(msg->work_unit_id(), msg, 1000);
+        trajectoryList->addWorkUnitParts(msg->work_unit_id(), msg, 250);
     }
     else
     {
