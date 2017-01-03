@@ -30,6 +30,8 @@ SET(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" "/home-2/erober32@jhu.edu/share/app
 SET(EXTRA_C_FLAGS "")
 SET(EXTRA_CXX_FLAGS "")
 
+SET(SNAPPY_ROOT "/cm/shared/apps/snappy/gcc/1.1.3")
+
 ############################
 # cpu feature flags
 ############################

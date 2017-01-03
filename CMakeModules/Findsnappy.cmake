@@ -8,6 +8,8 @@
 include(LibFindMacros)
 
 set(_snappy_hints
+    ${SNAPPY_ROOT}/include
+    ${SNAPPY_ROOT}/lib
     $ENV{HOME}/usr/include
     $ENV{HOME}/usr/lib
     /usr/local/include
