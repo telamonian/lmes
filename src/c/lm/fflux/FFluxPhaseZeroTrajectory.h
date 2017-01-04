@@ -42,7 +42,6 @@
 #include <algorithm>
 
 #include "lm/EnumHelper.h"
-#include "lm/io/FFluxOutput.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/input/Input.h"
 #include "lm/limit/LimitCheckFunctions.h"

@@ -52,9 +52,23 @@
 namespace lm
 {
 
+#define THROW_EXCEPTION(exception, arg) throw exception(__FILE__, __LINE__, arg);
+
 class Exception : public std::exception
 {
 protected:
+	void printException(const char* preamble, const char* format, va_list args)
+	{
+		int offset = snprintf(messageBuffer, MAX_MESSAGE_SIZE, "%s: ", preamble);
+		vsnprintf(messageBuffer + offset, MAX_MESSAGE_SIZE - offset, format, args);
+	}
+
+	void printExceptionWithLine(const char* preamble, const char *file, int line, const char* format, va_list args)
+	{
+		int offset = snprintf(messageBuffer, MAX_MESSAGE_SIZE, "%s (%s:%d): ", preamble, file, line);
+		vsnprintf(messageBuffer + offset, MAX_MESSAGE_SIZE - offset, format, args);
+	}
+
     static const int MAX_MESSAGE_SIZE = 1025;
     char messageBuffer[MAX_MESSAGE_SIZE];
     
@@ -118,7 +132,6 @@ public:
         va_end (args);
     }
 };
-#define THROW_LINE(eckception, arg) throw eckception(__FILE__, __LINE__, arg);
 
 class InvalidArgException : public Exception
 {
@@ -167,6 +180,25 @@ public:
     }
 };
 
+class RuntimeException : public Exception
+{
+public:
+	RuntimeException(const char* format, ...): Exception()
+	{
+		va_list args;
+		va_start (args, format);
+		printException("Runtime exception", format, args);
+		va_end (args);
+	}
+
+	RuntimeException(const char *file, int line, const char* format, ...): Exception()
+	{
+		va_list args;
+		va_start (args, format);
+		printExceptionWithLine("Runtime exception", file, line, format, args);
+		va_end (args);
+	}
+};
 
 class UnimplementedException : public Exception
 {

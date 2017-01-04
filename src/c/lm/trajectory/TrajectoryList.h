@@ -152,7 +152,7 @@ protected:
     TrajectoryMap finishedTrajectories;
     TrajectoryMap runningTrajectories;
     TrajectoryMap waitingTrajectories;
-    map<uint64_t,list<uint64_t> > workUnitsRunning;
+    map<uint64_t,std::list<uint64_t> > workUnitsRunning;
 };
 
 }

@@ -67,10 +67,10 @@ FFluxInput::FFluxInput(): _ffluxPhaseLimitLists(_ffluxOptions.mutable_fflux_phas
 FFluxInput::FFluxInput(const lm::io::hdf5::Hdf5File& file): _ffluxPhaseLimitLists(_ffluxOptions.mutable_fflux_phase_limit_lists())
 {
 //    stepsPerWorkUnit = (uint64_t)1e15;
-    init(file);
+    readHDF5Input(file);
 }
 
-void FFluxInput::init(const lm::io::hdf5::Hdf5File& file)
+void FFluxInput::readHDF5Input(const lm::io::hdf5::Hdf5File& file)
 {
     simulationParameters.rFF(file);
 

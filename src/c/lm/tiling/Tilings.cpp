@@ -94,7 +94,7 @@ void Tilings::init(const lm::input::Tilings& newTilingsBuf, const lm::oparam::OP
     init();
 }
 
-// will need to have somehow initialized tilingsBuf before calling this version of init()
+// will need to have somehow initialized tilingsBuf before calling this version of readHDF5Input()
 void Tilings::init()
 {
     clearTilingMap();

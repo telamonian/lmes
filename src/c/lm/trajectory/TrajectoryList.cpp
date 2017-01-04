@@ -60,6 +60,7 @@
 using lm::input::DiffusionModel;
 using lm::input::ReactionModel;
 using lm::protowrap::Repeated;
+using std::list;
 using std::map;
 using std::string;
 

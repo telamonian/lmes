@@ -84,7 +84,7 @@ void OParams::init(const lm::input::OrderParameters& newOParamsBuf)
     init();
 }
 
-// will need to have somehow initialized oparamsBuf before calling this version of init()
+// will need to have somehow initialized oparamsBuf before calling this version of readHDF5Input()
 void OParams::init()
 {
     clearOPMap();

@@ -146,7 +146,7 @@ void FFluxSupervisor::sanityCheckInput()
 {
     if (input->getTilings().size() <= 0)
     {
-        THROW_LINE(InputException, "FFPilot simulation requested (via cmd line arguments), but no tilings were provided in the input.");
+        THROW_EXCEPTION(InputException, "FFPilot simulation requested (via cmd line arguments), but no tilings were provided in the input.");
     }
 
     int totalBasinCount = 0;
@@ -156,7 +156,7 @@ void FFluxSupervisor::sanityCheckInput()
     }
     if (totalBasinCount <= 0)
     {
-        THROW_LINE(InputException, "FFPilot simulation requested (via cmd line arguments), but there were no basins in any of the tilings provided in the input.");
+        THROW_EXCEPTION(InputException, "FFPilot simulation requested (via cmd line arguments), but there were no basins in any of the tilings provided in the input.");
     }
 }
 

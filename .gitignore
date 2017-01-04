@@ -53,6 +53,7 @@ timing.prof.*
 # jetbrains stuff
 .idea
 *.iml
+/cmake-build*
 
 # lm_anal intermediate file stuff
 *.lmint

@@ -99,7 +99,7 @@ public:
     bool hasPhaseZeroBurnInCount() const {return ffluxOptions().has_phase_zero_burn_in_count();}
 
 protected:
-    virtual void init(const lm::io::hdf5::Hdf5File& file);
+    virtual void readHDF5Input(const lm::io::hdf5::Hdf5File& file);
     virtual void initFFluxOptions(const lm::io::hdf5::Hdf5File& file);
 //    bool parseAndSetFFluxPhaseLimit(const std::string key, const std::string debugString);
 

@@ -226,7 +226,7 @@ void CMESolver::setTilings(const lm::input::Tilings& tilingsBuf)
 
     // TODO: reimplement?
 //    tilings = new lm::tiling::Tilings();
-//    tilings->init(tilingsBuf);
+//    tilings->readHDF5Input(tilingsBuf);
 //    hasUpdateSpeciesCountsListeners = true;
 }
 

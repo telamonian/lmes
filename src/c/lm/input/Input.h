@@ -42,14 +42,17 @@
 #include <list>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "lm/EnumHelper.h"
 #include "lm/io/hdf5/SimulationFile.h"
+#include "lm/io/sfile/SFile.h"
 #include "lm/input/BoundaryConditions.pb.h"
 #include "lm/input/DiffusionModel.pb.h"
 #include "lm/input/OrderParameters.pb.h"
 #include "lm/input/OutputOptions.pb.h"
 #include "lm/input/ReactionModel.pb.h"
+#include "lm/input/SimulationInput.pb.h"
 #include "lm/input/SimulationParameters.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/message/RunWorkUnit.pb.h"
@@ -57,10 +60,6 @@
 #include "lm/option/SimulationParameters.h"
 #include "lm/tiling/Tilings.h"
 #include "lm/limit/TrajectoryLimits.h"
-
-using std::list;
-using std::map;
-using std::string;
 
 namespace lm {
 namespace input {
@@ -75,6 +74,7 @@ public:
 public:
     Input();
     Input(const lm::io::hdf5::Hdf5File& file);
+    Input(std::vector<std::string> inputFilenames);
     virtual ~Input();
 
     // accessors
@@ -108,7 +108,7 @@ public:
     lm::limit::TrajectoryLimits* mutableTrajectoryLimits() {return &trajectoryLimits;}
 
 protected:
-    virtual void init(const lm::io::hdf5::Hdf5File& file);
+    virtual void readHDF5Input(const lm::io::hdf5::Hdf5File& file);
     virtual void initReactionModel(const lm::io::hdf5::Hdf5File& file);
     virtual void initDiffusionModel(const lm::io::hdf5::Hdf5File& file);
     virtual void initOrderParameters(const lm::io::hdf5::Hdf5File& file);
@@ -117,19 +117,26 @@ protected:
     virtual void initOutputOptions(const lm::io::hdf5::Hdf5File& file);
     virtual void initWorkUnitParameters(const lm::io::hdf5::Hdf5File& file);
 
+    virtual void readSFileInput(lm::io::sfile::SFile& file);
+
     virtual void initSanityCheck();
 
     bool parseBoundaryConditions(lm::input::BoundaryConditions* bc, std::string arg);
 
 protected:
+    // flags for determining if a particular kind of input is present
     bool degreeAdvancementPresent;
     bool diffusionModelPresent;
-    bool reactionModelPresent;
     bool orderParametersPresent;
     bool outputOptionsPresent;
+    bool reactionModelPresent;
     bool tilingsPresent;
     bool trajectoryLimitsPresent;
 
+    // flags that control input behavior
+    bool includeEndpointInLimits;
+
+    // protobufs/wrappers that hold inputs
     lm::input::DiffusionModel diffusionModel;
     lm::io::LimitTrackingList limitTrackingListMsg;
     lm::limit::LimitTrackingListWrap limitTrackingListWrap;
@@ -137,13 +144,15 @@ protected:
     lm::oparam::OParams orderParameters;
     lm::input::OutputOptions outputOptionsMsg;
     lm::input::ReactionModel reactionModelMsg;
+    lm::option::SimulationParameters simulationParameters;
     lm::input::Tilings tilingsMsg;
     lm::tiling::Tilings tilings;
     lm::limit::TrajectoryLimits trajectoryLimits;
-    lm::option::SimulationParameters simulationParameters;
 
-    bool includeEndpointInLimits;
+    // protobufs/wrappers that hold compound inputs
+    lm::input::SimulationInput input;
 
+    // pod vars that directly hold input
     uint64_t partsPerWorkUnit;
     uint64_t stepsPerWorkUnit;
 

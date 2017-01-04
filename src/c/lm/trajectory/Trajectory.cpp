@@ -79,7 +79,7 @@ Trajectory::Trajectory(const lm::input::Input& input, uint64_t phase, uint64_t i
 {
     initializeState();
 
-    // Initialize the species counts. This has been separated from the rest of init for ease of overriding
+    // Initialize the species counts. This has been separated from the rest of readHDF5Input for ease of overriding
     if (input.hasReactionModel()) initializeSpeciesCounts(input, reversed);
     init(input);
 }

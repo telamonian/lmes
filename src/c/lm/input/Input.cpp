@@ -43,6 +43,7 @@
 #include "lm/ClassFactory.h"
 #include "lm/EnumHelper.h"
 #include "lm/io/hdf5/SimulationFile.h"
+#include "lm/io/sfile/LocalSFile.h"
 #include "lm/input/Input.h"
 #include "lm/input/OutputOptions.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
@@ -85,14 +86,40 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
  outputOptionsPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),limitTrackingListWrap(&limitTrackingListMsg),
  includeEndpointInLimits(true),partsPerWorkUnit(1),stepsPerWorkUnit((uint64_t)1e8)
 {
-    init(file);
+    readHDF5Input(file);
+}
+
+Input::Input(const vector<string> inputFilenames)
+:degreeAdvancementPresent(false),diffusionModelPresent(false),reactionModelPresent(false),orderParametersPresent(false),
+outputOptionsPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),limitTrackingListWrap(&limitTrackingListMsg),
+includeEndpointInLimits(true),partsPerWorkUnit(1),stepsPerWorkUnit((uint64_t)1e8)
+{
+    for (int i=0; i<inputFilenames.size(); i++)
+    {
+        // See if the file is an HDF5 file.
+        if (lm::io::hdf5::Hdf5File::isValidFile(inputFilenames[i]))
+        {
+            lm::io::hdf5::Hdf5File hdf5File = lm::io::hdf5::Hdf5File(inputFilenames[i]);
+            readHDF5Input(hdf5File);
+        }
+
+        // See if the file is an SFile.
+        lm::io::sfile::LocalSFile sfile(inputFilenames[i]);
+        if(sfile.exists() && sfile.isFile() && sfile.isSFile())
+        {
+            // Read the input from the sfile.
+            sfile.openRead();
+            readSFileInput(sfile);
+            sfile.close();
+        }
+    }
 }
 
 Input::~Input()
 {
 }
 
-void Input::init(const lm::io::hdf5::Hdf5File& file)
+void Input::readHDF5Input(const lm::io::hdf5::Hdf5File& file)
 {
     simulationParameters.rFF(file);
 
@@ -236,6 +263,40 @@ void Input::initWorkUnitParameters(const lm::io::hdf5::Hdf5File& file)
 {
     parseAndSet("maxWorkUnitSteps", &this->stepsPerWorkUnit);
     parseAndSet("partsPerWorkUnit", &this->partsPerWorkUnit);
+}
+
+void Input::readSFileInput(lm::io::sfile::SFile& file)
+{
+    // Read all of the records.
+    while (!file.isEof())
+    {
+        lm::io::sfile::SFileRecord r = file.readNextSFileRecord();
+
+        // See if this is an input record.
+        if (r.type == "protobuf:lm.input.SimulationInput")
+        {
+            // Allocate a buffer.
+            char* buffer = new char[r.dataSize];
+
+            // Read the record.
+            file.readFully(buffer, r.dataSize);
+
+            // Parse the record.
+            lm::input::SimulationInput newInput;
+            if (!newInput.ParseFromArray(buffer, r.dataSize)) throw RuntimeException("unable to deserialize simulation input");
+
+            // Merge this record into the global input record.
+            input.MergeFrom(newInput);
+
+            // Release the buffer.
+            delete[] buffer;
+        }
+        else
+        {
+            // Skip the record.
+            file.skip(r.dataSize);
+        }
+    }
 }
 
 void Input::initSanityCheck()
