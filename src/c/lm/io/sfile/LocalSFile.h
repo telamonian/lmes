@@ -56,7 +56,7 @@ namespace sfile {
 class LocalSFile : public SFile
 {
 public:
-    LocalSFile(string filename);
+    LocalSFile(const string filename);
     virtual ~LocalSFile();
     virtual bool isFile();
     virtual bool isDir();

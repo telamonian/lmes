@@ -52,7 +52,8 @@
 namespace lm
 {
 
-#define THROW_EXCEPTION(exception, arg) throw exception(__FILE__, __LINE__, arg);
+// __LINE__, an int, comes first in order to ensure against any overloading resolution issues with the variadic Exception constructors
+#define THROW_EXCEPTION(exception, ...) throw exception(__LINE__, __FILE__, __VA_ARGS__);
 
 class Exception : public std::exception
 {
@@ -123,7 +124,7 @@ public:
 		va_end (args);
 	}
 
-    InputException(const char *file, int line, const char* format, ...): Exception()
+    InputException(int line, const char *file, const char* format, ...): Exception()
     {
         int offset = snprintf(messageBuffer, MAX_MESSAGE_SIZE, "%s (%s:%d): ", "Input exception", file, line);
         va_list args;
@@ -157,14 +158,21 @@ public:
 class NotFoundException : public Exception
 {
 public:
-	NotFoundException(const char * format, ...): Exception()
-	{
-		int offset = snprintf(messageBuffer, MAX_MESSAGE_SIZE, "%s: ", "NotFound exception");
-		va_list args;
-		va_start (args, format);
-	    vsnprintf(messageBuffer + offset, MAX_MESSAGE_SIZE - offset, format, args);
-		va_end (args);
-	}
+    NotFoundException(const char* format, ...): Exception()
+    {
+        va_list args;
+        va_start (args, format);
+        printException("Not found exception", format, args);
+        va_end (args);
+    }
+
+    NotFoundException(int line, const char *file, const char* format, ...): Exception()
+    {
+        va_list args;
+        va_start (args, format);
+        printExceptionWithLine("Not found exception", file, line, format, args);
+        va_end (args);
+    }
 };
 
 class NullPointerException : public Exception
@@ -172,10 +180,17 @@ class NullPointerException : public Exception
 public:
     NullPointerException(const char* format, ...): Exception()
     {
-        int offset = snprintf(messageBuffer, MAX_MESSAGE_SIZE, "%s: ", "Exception-> attempted to derefrence a pointer to NULL");
         va_list args;
         va_start (args, format);
-        vsnprintf(messageBuffer + offset, MAX_MESSAGE_SIZE - offset, format, args);
+        printException("Null pointer exception -> attempted to derefrence a pointer to NULL", format, args);
+        va_end (args);
+    }
+
+    NullPointerException(int line, const char *file, const char* format, ...): Exception()
+    {
+        va_list args;
+        va_start (args, format);
+        printExceptionWithLine("Null pointer exception -> attempted to derefrence a pointer to NULL", file, line, format, args);
         va_end (args);
     }
 };
@@ -191,7 +206,7 @@ public:
 		va_end (args);
 	}
 
-	RuntimeException(const char *file, int line, const char* format, ...): Exception()
+	RuntimeException(int line, const char *file, const char* format, ...): Exception()
 	{
 		va_list args;
 		va_start (args, format);
@@ -203,12 +218,19 @@ public:
 class UnimplementedException : public Exception
 {
 public:
-    UnimplementedException(const char * format, ...): Exception()
+    UnimplementedException(const char* format, ...): Exception()
     {
-        int offset = snprintf(messageBuffer, MAX_MESSAGE_SIZE, "%s: ", "Unimplemented exception");
         va_list args;
         va_start (args, format);
-        vsnprintf(messageBuffer + offset, MAX_MESSAGE_SIZE - offset, format, args);
+        printException("Unimplemented exception", format, args);
+        va_end (args);
+    }
+
+    UnimplementedException(int line, const char *file, const char* format, ...): Exception()
+    {
+        va_list args;
+        va_start (args, format);
+        printExceptionWithLine("Unimplemented exception", file, line, format, args);
         va_end (args);
     }
 };

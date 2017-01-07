@@ -43,41 +43,39 @@
 #include <list>
 #include <string>
 #include <vector>
-#include "lm/Types.h"
-#include "hrtime.h"
 
-using std::string;
-using std::vector;
+#include "hrtime.h"
+#include "lm/Types.h"
 
 /**
  * The function being performed.
  */
-extern string functionOption;
+extern std::string functionOption;
 
 /**
- * The name of the file containing the simulation input.
+ * The names of the files containing the simulation input.
  */
-extern string simulationInputFilename;
+extern std::vector<std::string> simulationInputFilenames;
 
 /**
  * The name of the file containing the simulation output.
  */
-extern string simulationOutputFilename;
+extern std::string simulationOutputFilename;
 
 /**
  * The output writer to use for the simulations.
  */
-extern string outputWriterClassName;
+extern std::string outputWriterClassName;
 
 /**
  * The prefix to use in sfile record names.
  */
-extern string recordNamePrefixGlobal;
+extern std::string recordNamePrefixGlobal;
 
 /**
  * The number of replicates of the simulation that should be performed.
  */
-extern vector<uint64_t> replicates;
+extern std::vector<uint64_t> replicates;
 
 /**
  * The interval at which the results file should be checkpointed.
@@ -92,17 +90,17 @@ extern volatile bool globalAbort;
 /**
  * The supervisor to use for the simulations.
  */
-extern string supervisorClassName;
+extern std::string supervisorClassName;
 
 /**
  * The solver to use for the simulations.
  */
-extern string solverClassName;
+extern std::string solverClassName;
 
 /**
  * The filename for the resource list.
  */
-extern string resourceFilename;
+extern std::string resourceFilename;
 
 /**
  * The number of cpu cores assigned to each process.
@@ -173,27 +171,27 @@ extern bool ioTestFlag;
 /**
  * The directory containing the supporting files.
  */
-extern string libDir;
+extern std::string libDir;
 
 /**
  * The directory containing the supporting files.
  */
-extern string userLibDir;
+extern std::string userLibDir;
 
 /**
  * The path of directories containing user scripts to execute at startup.
  */
-extern string scriptPath;
+extern std::string scriptPath;
 
 /**
  * The script filename being executed, if applicable.
  */
-extern string scriptFilename;
+extern std::string scriptFilename;
 
 /**
  * The arguments for the script, if applicable.
  */
-extern vector<string> scriptArguments;
+extern std::vector<std::string> scriptArguments;
 
 #endif
 

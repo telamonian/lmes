@@ -52,6 +52,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <google/protobuf/stubs/common.h>
+
 #include "lm/ClassFactory.h"
 #include "lm/Exceptions.h"
 #include "lm/Math.h"
@@ -67,6 +68,7 @@
 #include "lm/input/ReactionModel.pb.h"
 #include "lm/input/Tilings.pb.h"
 #include "lm/main/CheckpointSignaler.h"
+#include "lm/main/Globals.h"
 #include "lm/main/Main.h"
 #include "lm/main/ResourceController.h"
 #include "lm/main/SignalHandler.h"
@@ -218,7 +220,7 @@ void ioTest()
     lm::input::Tilings tilings;
 
     // Open the simulation file.
-    lm::io::hdf5::Hdf5File * file = new lm::io::hdf5::Hdf5File(simulationInputFilename);
+    lm::io::hdf5::Hdf5File * file = new lm::io::hdf5::Hdf5File(simulationInputFilenames[0]);
 
     // Read in, and then write out, any extant sections of the simulation file
     if (file->hasDiffusionModel())
@@ -324,7 +326,7 @@ void executeSimulationMPISingleMaster(ResourceMap* resourceMap)
     // Create the supervisor.
     lm::main::SimulationSupervisor* supervisor = static_cast<lm::main::SimulationSupervisor*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::main::SimulationSupervisor",supervisorClassName));
     supervisor->setUseCPUAffinity(useCPUAffinity);
-    supervisor->setSimulationFilename(simulationInputFilename, simulationOutputFilename);
+    supervisor->setSimulationFilename(simulationInputFilenames, simulationOutputFilename);
     supervisor->setOutputWriterClassName(outputWriterClassName);
     supervisor->setSolverClassName(solverClassName);
     supervisor->setResourceMap(resourceMap);

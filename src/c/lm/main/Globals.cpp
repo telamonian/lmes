@@ -75,7 +75,7 @@ string functionOption = "interpreter";
 /**
  * The name of the file containing the simulation input.
  */
-string simulationInputFilename;
+vector<string> simulationInputFilenames;
 
 /**
  * The name of the file containing the simulation output.

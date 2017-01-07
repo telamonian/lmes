@@ -181,8 +181,8 @@ protected:
     // setters/destructors to help with shadowing pointers in the base class
     virtual void setInput(lm::input::Input* newInput);
     virtual void setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList);
-    virtual void destructInput() {SimulationSupervisor::destructInput(); input = NULL;}
-    virtual void destructTrajectory() {SimulationSupervisor::destructTrajectory(); trajectoryList = NULL;}
+    virtual void destructInput() {lm::main::SimulationSupervisor::destructInput(); input = NULL;}
+    virtual void destructTrajectoryList() {lm::main::SimulationSupervisor::destructTrajectoryList(); trajectoryList = NULL;}
 
     virtual void buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg);
 

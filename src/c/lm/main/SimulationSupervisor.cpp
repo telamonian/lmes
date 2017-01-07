@@ -84,9 +84,9 @@ int SimulationSupervisor::getRecvSleepMilliseconds()
 
 SimulationSupervisor::SimulationSupervisor()
 :communicator(lm::MPI::worldRank,THREAD_ID),hasCheckpointSignalerStarted(false),hasOutputWriterStarted(false),haveAllWorkUnitRunnersStarted(false),
- input(NULL),outputWriterClassName(""),outputWriterProcess(-1),outputWriterThread(-1),performingCheckpoint(false),
- resourceMap(NULL),simulationInputFilename(""),simulationOutputFilename(""),simulationPhaseIndex(0),simulationRunning(true),
- simulationPhaseEverTerminated(false),slots(&communicator),solverClassName(""),trajectoryList(NULL),useCPUAffinity(false),workUnitCount(0)
+ input(NULL),outputWriterClassName(""),outputWriterProcess(-1),outputWriterThread(-1),performingCheckpoint(false),resourceMap(NULL),
+ simulationOutputFilename(""),simulationPhaseIndex(0),simulationRunning(true),simulationPhaseEverTerminated(false),slots(&communicator),
+ solverClassName(""),trajectoryList(NULL),useCPUAffinity(false),workUnitCount(0)
 {
     resetPerformanceStatistics();
 }
@@ -94,13 +94,13 @@ SimulationSupervisor::SimulationSupervisor()
 SimulationSupervisor::~SimulationSupervisor()
 {
     destructInput();
-    destructTrajectory();
+    destructTrajectoryList();
 }
 
 void SimulationSupervisor::init()
 {
     // Initialize the input object with the input file.
-    setInput(new lm::input::Input(lm::io::hdf5::Hdf5File(simulationInputFilename)));
+    setInput(new lm::input::Input(simulationInputFilenames));
 }
 
 void SimulationSupervisor::wake() throw(lm::thread::PthreadException)
@@ -598,7 +598,7 @@ void SimulationSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* new
         }
     }
 
-    destructTrajectory();
+    destructTrajectoryList();
     trajectoryList = newTrajectoryList;
 }
 

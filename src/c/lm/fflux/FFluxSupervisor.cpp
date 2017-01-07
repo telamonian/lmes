@@ -129,7 +129,7 @@ FFluxSupervisor::~FFluxSupervisor()
 void FFluxSupervisor::init()
 {
     // Initialize the FFluxInput pointer with the input file.
-    setInput(new lm::fflux::input::FFluxInput(lm::io::hdf5::Hdf5File(simulationInputFilename)));
+    setInput(new lm::fflux::input::FFluxInput(simulationInputFilenames));
 }
 
 // overrides parent method completely

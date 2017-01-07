@@ -69,30 +69,31 @@ bool Input::registerClass()
     return true;
 }
 
-void* Input::allocateObject(const lm::io::hdf5::Hdf5File& file)
+void* Input::allocateObject(const vector<string>& inputFilenames)
 {
-    return new Input(file);
+    return new Input(inputFilenames);
 }
 
-Input::Input()
-:degreeAdvancementPresent(false),diffusionModelPresent(false),reactionModelPresent(false),orderParametersPresent(false),
- outputOptionsPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),limitTrackingListWrap(&limitTrackingListMsg),
- includeEndpointInLimits(true),partsPerWorkUnit(1),stepsPerWorkUnit((uint64_t)1e8)
-{
-}
+//Input::Input()
+//:degreeAdvancementPresent(false),diffusionModelPresent(false),reactionModelPresent(false),orderParametersPresent(false),
+// outputOptionsPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),limitTrackingListWrap(&limitTrackingListMsg),
+// includeEndpointInLimits(true),partsPerWorkUnit(1),stepsPerWorkUnit((uint64_t)1e8)
+//{
+//}
 
-Input::Input(const lm::io::hdf5::Hdf5File& file)
-:degreeAdvancementPresent(false),diffusionModelPresent(false),reactionModelPresent(false),orderParametersPresent(false),
- outputOptionsPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),limitTrackingListWrap(&limitTrackingListMsg),
- includeEndpointInLimits(true),partsPerWorkUnit(1),stepsPerWorkUnit((uint64_t)1e8)
-{
-    readHDF5Input(file);
-}
-
-Input::Input(const vector<string> inputFilenames)
+Input::Input(const vector<string>& inputFilenames)
 :degreeAdvancementPresent(false),diffusionModelPresent(false),reactionModelPresent(false),orderParametersPresent(false),
 outputOptionsPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),limitTrackingListWrap(&limitTrackingListMsg),
 includeEndpointInLimits(true),partsPerWorkUnit(1),stepsPerWorkUnit((uint64_t)1e8)
+{
+    init(inputFilenames);
+}
+
+Input::~Input()
+{
+}
+
+void Input::init(const vector<string>& inputFilenames)
 {
     for (int i=0; i<inputFilenames.size(); i++)
     {
@@ -113,10 +114,6 @@ includeEndpointInLimits(true),partsPerWorkUnit(1),stepsPerWorkUnit((uint64_t)1e8
             sfile.close();
         }
     }
-}
-
-Input::~Input()
-{
 }
 
 void Input::readHDF5Input(const lm::io::hdf5::Hdf5File& file)
@@ -267,31 +264,18 @@ void Input::initWorkUnitParameters(const lm::io::hdf5::Hdf5File& file)
 
 void Input::readSFileInput(lm::io::sfile::SFile& file)
 {
+    bool recordParsed;
     // Read all of the records.
     while (!file.isEof())
     {
+        // Read the next record.
+        recordParsed = false;
         lm::io::sfile::SFileRecord r = file.readNextSFileRecord();
 
-        // See if this is an input record.
-        if (r.type == "protobuf:lm.input.SimulationInput")
-        {
-            // Allocate a buffer.
-            char* buffer = new char[r.dataSize];
+        // See if this is an SimulationInput record.
+        recordParsed |= readSFileInputRecord(file, r, "protobuf:lm.input.SimulationInput", simulationInput);
 
-            // Read the record.
-            file.readFully(buffer, r.dataSize);
-
-            // Parse the record.
-            lm::input::SimulationInput newInput;
-            if (!newInput.ParseFromArray(buffer, r.dataSize)) throw RuntimeException("unable to deserialize simulation input");
-
-            // Merge this record into the global input record.
-            input.MergeFrom(newInput);
-
-            // Release the buffer.
-            delete[] buffer;
-        }
-        else
+        if (not recordParsed)
         {
             // Skip the record.
             file.skip(r.dataSize);

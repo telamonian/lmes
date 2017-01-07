@@ -69,12 +69,11 @@ class Input
 public:
     static bool registered;
     static bool registerClass();
-    static void* allocateObject(const lm::io::hdf5::Hdf5File& file);
+    static void* allocateObject(const std::vector<std::string>&);
 
 public:
-    Input();
-    Input(const lm::io::hdf5::Hdf5File& file);
-    Input(std::vector<std::string> inputFilenames);
+//    Input();
+    Input(const std::vector<std::string>& inputFilenames);
     virtual ~Input();
 
     // accessors
@@ -108,6 +107,8 @@ public:
     lm::limit::TrajectoryLimits* mutableTrajectoryLimits() {return &trajectoryLimits;}
 
 protected:
+    virtual void init(const std::vector<std::string>& inputFilenames);
+
     virtual void readHDF5Input(const lm::io::hdf5::Hdf5File& file);
     virtual void initReactionModel(const lm::io::hdf5::Hdf5File& file);
     virtual void initDiffusionModel(const lm::io::hdf5::Hdf5File& file);
@@ -150,7 +151,7 @@ protected:
     lm::limit::TrajectoryLimits trajectoryLimits;
 
     // protobufs/wrappers that hold compound inputs
-    lm::input::SimulationInput input;
+    lm::input::SimulationInput simulationInput;
 
     // pod vars that directly hold input
     uint64_t partsPerWorkUnit;
@@ -246,7 +247,36 @@ protected:
 
         return result;
     }
-    
+
+    template <typename InputMsg>
+    bool readSFileInputRecord(lm::io::sfile::SFile& file, lm::io::sfile::SFileRecord& r, const string& recordType, InputMsg inputMsgAttr)
+    {
+        // See if this is an input record.
+        if (r.type == recordType)
+        {
+            // Allocate a buffer.
+            char* buffer = new char[r.dataSize];
+
+            // Read the record.
+            file.readFully(buffer, r.dataSize);
+
+            // Parse the record.
+            InputMsg newInput;
+            if (!newInput.ParseFromArray(buffer, r.dataSize)) THROW_EXCEPTION(RuntimeException, "unable to deserialize record of type %s", recordType.c_str());
+
+            // Merge this record into the global input record.
+            inputMsgAttr.MergeFrom(newInput);
+
+            // Release the buffer.
+            delete[] buffer;
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
 };
 
 }

@@ -42,10 +42,12 @@
 #include <list>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "lm/fflux/input/FFluxOptions.pb.h"
 #include "lm/fflux/input/FFluxPhase.pb.h"
 #include "lm/fflux/input/FFluxPhaseLimit.pb.h"
+#include "lm/fflux/input/FFluxSimulationInput.pb.h"
 #include "lm/fflux/input/FFluxStage.pb.h"
 #include "lm/fflux/io/FFluxStageOutput.pb.h"
 #include "lm/input/Input.h"
@@ -70,8 +72,9 @@ namespace input {
 class FFluxInput : public lm::input::Input
 {
 public:
-    FFluxInput();
-    FFluxInput(const lm::io::hdf5::Hdf5File& file);
+//    FFluxInput();
+//    FFluxInput(const lm::io::hdf5::Hdf5File& file);
+    FFluxInput(const std::vector<std::string>& inputFilenames);
     virtual ~FFluxInput() {};
 
 // (re)initializers
@@ -103,9 +106,13 @@ protected:
     virtual void initFFluxOptions(const lm::io::hdf5::Hdf5File& file);
 //    bool parseAndSetFFluxPhaseLimit(const std::string key, const std::string debugString);
 
+    virtual void readSFileInput(lm::io::sfile::SFile& file);
+
 protected:
     lm::fflux::input::FFluxOptions _ffluxOptions;
     lm::protowrap::Repeated<lm::fflux::input::FFluxPhaseLimitList> _ffluxPhaseLimitLists;
+
+    lm::fflux::input::FFluxSimulationInput ffluxSimulationInput;
 };
 
 }

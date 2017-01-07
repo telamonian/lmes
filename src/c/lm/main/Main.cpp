@@ -63,6 +63,7 @@
 #include "lm/Cuda.h"
 #endif
 #include "lm/Exceptions.h"
+#include "lm/main/Globals.h"
 #include "lm/Print.h"
 #include "lm/Types.h"
 #include "lm/Version.h"
@@ -116,7 +117,7 @@ void parseArguments(int argc, char** argv, bool warn)
 #endif
     shouldPrintGPUCapabilities = true;
 
-    simulationInputFilename = "";
+    simulationInputFilenames.clear();
     simulationOutputFilename = "";
     outputWriterClassName = "lm::io::hdf5::Hdf5OutputWriter";
     supervisorClassName = "lm::replicates::ReplicateSupervisor";
@@ -162,10 +163,7 @@ void parseArguments(int argc, char** argv, bool warn)
             functionOption = "iotest";
 
             // Get the filename.
-            if (i < argc-1)
-                simulationInputFilename = argv[++i];
-            else
-                throw lm::CommandLineArgumentException("missing simulation input file.");
+            parseStringListArg(simulationInputFilenames, argv[++i]);
         }
 
         //See if the user is trying to get the device info.
@@ -173,16 +171,16 @@ void parseArguments(int argc, char** argv, bool warn)
             functionOption = "devices";
         }
 
-        //See if the user is trying to execute a simulation.
-        else if (strcmp(option, "-f") == 0 || strcmp(option, "--file") == 0)
+        // See if the user is trying to execute a simulation.
+        else if ((strcmp(option, "-f") == 0 || strcmp(option, "--file") == 0) && i < (argc-1))
         {
             functionOption = "simulation";
-
-            // Get the filename.
-            if (i < argc-1)
-                simulationInputFilename = argv[++i];
-            else
-                throw lm::CommandLineArgumentException("missing simulation input file.");
+            parseStringListArg(simulationInputFilenames, argv[++i]);
+        }
+        else if (strncmp(option, "--file=", strlen("--file=")) == 0)
+        {
+            functionOption = "simulation";
+            parseStringListArg(simulationInputFilenames, option+strlen("--file="));
         }
 
         //See if the user is trying to set the output format.
@@ -397,13 +395,20 @@ void parseArguments(int argc, char** argv, bool warn)
         }
     }
 
-    // Perform some validation.
-    if (outputWriterClassName == "lm::io::hdf5::Hdf5OutputWriter" && simulationOutputFilename == "")
-        simulationOutputFilename = simulationInputFilename;
-    else if (outputWriterClassName == "lm::io::hdf5::Hdf5OutputWriter" && simulationOutputFilename != simulationInputFilename)
-        throw lm::CommandLineArgumentException("cannot specify separate input and output files with the hdf5 format.");
-    if (outputWriterClassName == "lm::io::sfile::SFileOutputWriter" && simulationOutputFilename == "")
-        throw lm::CommandLineArgumentException("missing simulation output file.");
+    // Perform some validation of the arguments.
+    if (functionOption == "simulation")
+    {
+        if (simulationInputFilenames.size() == 0)
+            throw lm::CommandLineArgumentException("missing simulation input file.");
+
+        if (outputWriterClassName == "lm::io::hdf5::Hdf5OutputWriter" && simulationOutputFilename == "")
+            simulationOutputFilename = simulationInputFilenames[0];
+        else if (outputWriterClassName == "lm::io::hdf5::Hdf5OutputWriter" && simulationOutputFilename != simulationInputFilenames[0])
+            throw lm::CommandLineArgumentException("cannot specify separate input and output files with the hdf5 format.");
+
+        if (outputWriterClassName == "lm::io::sfile::SFileOutputWriter" && simulationOutputFilename == "")
+            throw lm::CommandLineArgumentException("missing simulation output file.");
+    }
 
     // fix some arguments (and possibly warn about them)
     #ifndef OPT_CUDA

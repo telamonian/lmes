@@ -54,21 +54,28 @@
 
 using lm::fflux::input::FFluxOptions;
 using lm::limit::LimitElement;
+using std::string;
+using std::vector;
 
 namespace lm {
 namespace fflux {
 namespace input {
 
-FFluxInput::FFluxInput(): _ffluxPhaseLimitLists(_ffluxOptions.mutable_fflux_phase_limit_lists())
+//FFluxInput::FFluxInput(): _ffluxPhaseLimitLists(_ffluxOptions.mutable_fflux_phase_limit_lists())
+//{
+////    stepsPerWorkUnit = (uint64_t)1e15;
+//}
+//
+//FFluxInput::FFluxInput(const lm::io::hdf5::Hdf5File& file): _ffluxPhaseLimitLists(_ffluxOptions.mutable_fflux_phase_limit_lists())
+//{
+////    stepsPerWorkUnit = (uint64_t)1e15;
+//    readHDF5Input(file);
+//}
+
+FFluxInput::FFluxInput(const vector<string>& inputFilenames): Input(inputFilenames), _ffluxPhaseLimitLists(_ffluxOptions.mutable_fflux_phase_limit_lists())
 {
-//    stepsPerWorkUnit = (uint64_t)1e15;
 }
 
-FFluxInput::FFluxInput(const lm::io::hdf5::Hdf5File& file): _ffluxPhaseLimitLists(_ffluxOptions.mutable_fflux_phase_limit_lists())
-{
-//    stepsPerWorkUnit = (uint64_t)1e15;
-    readHDF5Input(file);
-}
 
 void FFluxInput::readHDF5Input(const lm::io::hdf5::Hdf5File& file)
 {
@@ -122,6 +129,30 @@ void FFluxInput::initFFluxOptions(const lm::io::hdf5::Hdf5File& file)
 
     // check the fflux options we just parsed for consistency
     if (hasErrorGoal() and hasUserDefinedFFluxPhaseLimitLists()) throw ConsistencyException("errorGoal and an explicit set of ffluxPhaseLimits cannot both be set in forward flux simulation input");
+}
+
+void FFluxInput::readSFileInput(lm::io::sfile::SFile& file)
+{
+    bool recordParsed;
+    // Read all of the records.
+    while (!file.isEof())
+    {
+        // Read the next record.
+        recordParsed = false;
+        lm::io::sfile::SFileRecord r = file.readNextSFileRecord();
+
+        // See if this is an SimulationInput record.
+        recordParsed |= readSFileInputRecord(file, r, "protobuf:lm.input.SimulationInput", simulationInput);
+
+        // See if this is a FFluxSimulationInput record.
+        recordParsed |= readSFileInputRecord(file, r, "protobuf:lm.fflux.input.FFluxSimulationInput", ffluxSimulationInput);
+
+        if (not recordParsed)
+        {
+            // Skip the record.
+            file.skip(r.dataSize);
+        }
+    }
 }
 
 void FFluxInput::reinitOutputOptions(const std::string& recordNamePrefix, bool isPilotStage)

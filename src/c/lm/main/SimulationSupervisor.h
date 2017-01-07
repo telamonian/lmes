@@ -71,13 +71,10 @@
 #include "lm/thread/Worker.h"
 #include "lm/tiling/Tilings.h"
 
-using std::map;
-using std::string;
-
 namespace lm {
 namespace main {
 
-typedef map<string,string> SimulationParametersMap;
+typedef std::map<std::string,std::string> SimulationParametersMap;
 
 class SimulationSupervisor : public lm::thread::Worker
 {
@@ -91,8 +88,8 @@ public:
     virtual void init();
     void setOutputWriterClassName(string outputWriterClassName) {this->outputWriterClassName = outputWriterClassName;}
     void setResourceMap(lm::resource::ResourceMap* resourceMap) {this->resourceMap = resourceMap;}
-    void setSimulationFilename(string simulationInputFilename, string simulationOutputFilename) {this->simulationInputFilename = simulationInputFilename; this->simulationOutputFilename = simulationOutputFilename;}
-    void setSolverClassName(string solverClassName) {this->solverClassName = solverClassName;}
+    void setSimulationFilename(std::vector<std::string> simulationInputFilenames, std::string simulationOutputFilename) {this->simulationInputFilenames = simulationInputFilenames; this->simulationOutputFilename = simulationOutputFilename;}
+    void setSolverClassName(std::string solverClassName) {this->solverClassName = solverClassName;}
     void setUseCPUAffinity(bool useCPUAffinity) {this->useCPUAffinity = useCPUAffinity;}
     void wake() throw(lm::thread::PthreadException);
 
@@ -149,7 +146,7 @@ protected:
     virtual void setInput(lm::input::Input* newInput);
     virtual void setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList);
     virtual void destructInput() {if (input != NULL) delete input; input = NULL;}
-    virtual void destructTrajectory() {if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL;}
+    virtual void destructTrajectoryList() {if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL;}
 
 private:
     void printPerformanceStatistics(bool flush=false);
@@ -166,7 +163,7 @@ protected:
     int outputWriterThread;
     bool performingCheckpoint;
     lm::resource::ResourceMap* resourceMap;
-    std::string simulationInputFilename;
+    std::vector<std::string> simulationInputFilenames;
     std::string simulationOutputFilename;
     uint64_t simulationPhaseIndex;
     bool simulationRunning;
