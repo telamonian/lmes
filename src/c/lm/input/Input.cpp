@@ -74,12 +74,12 @@ void* Input::allocateObject(const vector<string>& inputFilenames)
     return new Input(inputFilenames);
 }
 
-//Input::Input()
-//:degreeAdvancementPresent(false),diffusionModelPresent(false),reactionModelPresent(false),orderParametersPresent(false),
-// outputOptionsPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),limitTrackingListWrap(&limitTrackingListMsg),
-// includeEndpointInLimits(true),partsPerWorkUnit(1),stepsPerWorkUnit((uint64_t)1e8)
-//{
-//}
+Input::Input()
+:degreeAdvancementPresent(false),diffusionModelPresent(false),reactionModelPresent(false),orderParametersPresent(false),
+ outputOptionsPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),limitTrackingListWrap(&limitTrackingListMsg),
+ includeEndpointInLimits(true),partsPerWorkUnit(1),stepsPerWorkUnit((uint64_t)1e8)
+{
+}
 
 Input::Input(const vector<string>& inputFilenames)
 :degreeAdvancementPresent(false),diffusionModelPresent(false),reactionModelPresent(false),orderParametersPresent(false),

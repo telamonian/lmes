@@ -72,8 +72,13 @@ namespace input {
 //    readHDF5Input(file);
 //}
 
-FFluxInput::FFluxInput(const vector<string>& inputFilenames): Input(inputFilenames), _ffluxPhaseLimitLists(_ffluxOptions.mutable_fflux_phase_limit_lists())
+FFluxInput::FFluxInput(): Input(), _ffluxPhaseLimitLists(_ffluxOptions.mutable_fflux_phase_limit_lists())
 {
+}
+
+FFluxInput::FFluxInput(const vector<string>& inputFilenames): Input(), _ffluxPhaseLimitLists(_ffluxOptions.mutable_fflux_phase_limit_lists())
+{
+    init(inputFilenames);
 }
 
 

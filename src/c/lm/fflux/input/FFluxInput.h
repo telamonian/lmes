@@ -72,8 +72,8 @@ namespace input {
 class FFluxInput : public lm::input::Input
 {
 public:
-//    FFluxInput();
 //    FFluxInput(const lm::io::hdf5::Hdf5File& file);
+    FFluxInput();
     FFluxInput(const std::vector<std::string>& inputFilenames);
     virtual ~FFluxInput() {};
 

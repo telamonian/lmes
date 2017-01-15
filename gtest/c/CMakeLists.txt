@@ -60,4 +60,5 @@ target_link_libraries(lmes_gtest ${lm_dependency_libs}
 add_test(
     NAME lmes_gtest
     COMMAND lmes_gtest
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )

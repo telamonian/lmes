@@ -72,7 +72,7 @@ public:
     static void* allocateObject(const std::vector<std::string>&);
 
 public:
-//    Input();
+    Input();
     Input(const std::vector<std::string>& inputFilenames);
     virtual ~Input();
 
@@ -249,7 +249,7 @@ protected:
     }
 
     template <typename InputMsg>
-    bool readSFileInputRecord(lm::io::sfile::SFile& file, lm::io::sfile::SFileRecord& r, const string& recordType, InputMsg inputMsgAttr)
+    bool readSFileInputRecord(lm::io::sfile::SFile& file, lm::io::sfile::SFileRecord& r, const string& recordType, InputMsg& inputMsgAttr)
     {
         // See if this is an input record.
         if (r.type == recordType)

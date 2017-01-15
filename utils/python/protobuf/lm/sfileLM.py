@@ -14,7 +14,10 @@ import lm
 from robertslab.pbuf.NDArray_pb2 import NDArray as NDArrayMsg
 from robertslab.sfile import SFileRecordSeekable, SFileSeekable
 
-__all__ = ['SFileLM', 'Deserialize', 'DeserializeAndMerge']
+__all__ = ['SFileLM', 'Deserialize', 'DeserializeAndMerge', 'Serialize',
+           'cppTypeDict', 'labelDict',
+           'FieldIsMsg', 'GetFieldCPPType', 'GetFieldLabel',
+           'GetFieldNumpyType', 'NDArrayDtypeFromNumpyArray', 'NumpyDtypeFromNDArrayMsg']
 
 # Definition of a combined default and ordered dict
 # class OrderedDefaultDict(OrderedDict, defaultdict):
@@ -36,12 +39,14 @@ def GetFieldCPPType(fieldDesc):
 def GetFieldLabel(fieldDesc):
     return labelDict[fieldDesc.label]
 
+# NDArray protobuf reflection helper functions
+
 def GetFieldNumpyType(fieldDesc):
-    ''' figures out the closest equivalent numpy dtype for any protobuf field
+    """ figures out the closest equivalent numpy dtype for any protobuf field
 
     :param fieldDesc: the field descriptor we want to get the numpy type for
     :return: a numpy dtype
-    '''
+    """
     cppType = GetFieldCPPType(fieldDesc).split('_')[1]
 
     if cppType=='MESSAGE' or cppType=='STRING':
@@ -51,17 +56,30 @@ def GetFieldNumpyType(fieldDesc):
     else:
         return np.dtype(cppType.lower())
 
-def GetNDArrayDataType(ndarrayMsg):
-    return NDArrayMsg.DataType.Name(ndarrayMsg.data_type)
+def NDArrayDtypeFromNumpyArray(array):
+    """gets the NDArray dtype corresponding to the dtype of a numpy array by looking it up in the NDArray.DataType enum
+    """
+    try:
+        return NDArrayMsg.DataType.Value(str(array.dtype))
+    except ValueError:
+        raise TypeError("Could not translate numpy datatype to NDArray datatype: ", str(array.dtype))
+
+def NumpyDtypeFromNDArrayMsg(msg):
+    """gets the numpy dtype corresponding to the dtype of an NDArray msg by looking it up in the NDArray.DataType enum
+    """
+    try:
+        return NDArrayMsg.DataType.Name(msg.data_type)
+    except ValueError:
+        raise TypeError("Could not translate NDArray datatype to numpy datatype: ", msg.data_type)
 
 # Functions for deserializing data into protobuf messages
 
 def DecompressNDArrayData(ndarrayMsg):
-    '''Decompresses the .data field in a standard NDArray message
+    """Decompresses the .data field in a standard NDArray message
 
     :param ndarrayMsg: an NDArray message instance
     :return: ndarrayMsg.data, decompressed by zlib if necessary
-    '''
+    """
 
     # return the data, decompressing if necessary
     if ndarrayMsg.compressed_deflate:
@@ -70,11 +88,11 @@ def DecompressNDArrayData(ndarrayMsg):
         return bytes(ndarrayMsg.data)
 
 def DecompressMergedNDArrayData(ndarrayMsg):
-    '''Decompresses the .data field in an NDArray message when .data is the result of merging .data from several NDArray message instances
+    """Decompresses the .data field in an NDArray message when .data is the result of merging .data from several NDArray message instances
 
     :param ndarrayMsg: an NDArray message instance with a merged .data field
     :return: ndarrayMsg.data, decompressed by zlib if necessary
-    '''
+    """
 
     # return the data, decompressing if necessary
     if ndarrayMsg.compressed_deflate:
@@ -91,12 +109,12 @@ def DecompressMergedNDArrayData(ndarrayMsg):
         return bytes(ndarrayMsg.data)
 
 def UnpackNDArray(ndarrayMsg, count=1):
-    '''Unpacks a single NDArray message into a single numpy array
+    """Unpacks a single NDArray message into a single numpy array
 
     :param ndarrayMsg: an NDArray message instance
     :param count: if ndarrayMsg (specifically its .shape and .data fields) is the result of merging several NDArray messages, indicate how many with this parameter
     :return: a numpy array
-    '''
+    """
 
     if count > 1:
         rank = len(ndarrayMsg.shape)//count
@@ -107,18 +125,18 @@ def UnpackNDArray(ndarrayMsg, count=1):
         data = DecompressNDArrayData(ndarrayMsg)
 
     # Convert the data to a numpy array.
-    return np.reshape(np.fromstring(data, dtype=GetNDArrayDataType(ndarrayMsg)), shape)
+    return np.reshape(np.fromstring(data, dtype=NumpyDtypeFromNDArrayMsg(ndarrayMsg)), shape)
 
 def UnpackAndMergeNDArrays(ndarrayMsgs):
-    '''Merges an iterable of NDArray messages into a single numpy array
+    """Merges an iterable of NDArray messages into a single numpy array
 
     :param ndarrayMsgs: the NDArray instances to be merged
     :return: a numpy array
-    '''
+    """
 
     # initialize the composite's properties based on the first ndarrayMsg
     shape = list(ndarrayMsgs[0].shape)
-    dtype = GetNDArrayDataType(ndarrayMsgs[0])
+    dtype = NumpyDtypeFromNDArrayMsg(ndarrayMsgs[0])
     data = DecompressNDArrayData(ndarrayMsgs[0])
 
     for ndarrayMsg in ndarrayMsgs[1:]:
@@ -131,12 +149,12 @@ def UnpackAndMergeNDArrays(ndarrayMsgs):
     return np.reshape(np.fromstring(data, dtype=dtype), shape)
 
 def UnpackMsg(msg, count=1, recursive=True, _prefix='', _retDict=None):
-    '''Simple function for unpacking any NDArray fields in a protobuf msg into standard numpy arrays
+    """Simple function for unpacking any NDArray fields in a protobuf msg into standard numpy arrays
 
     :param msg: any protobuf msg
     :param recursive: flag that controls whether the function descends into any subMsgs
     :return: the input msg. msg.nparrays contains a dict with the unpacked numpy version of any NDArrays that were found
-    '''
+    """
     if _retDict is None:
         _retDict = msg.__dict__['nparrays'] = {}
 
@@ -159,12 +177,12 @@ def UnpackMsg(msg, count=1, recursive=True, _prefix='', _retDict=None):
     return msg
 
 def UnpackAndMergeMsgs(msgs, recursive=True, _prefix='', _retDict=None, _isRepeatedSubMsg=False):
-    '''An NDArray aware implementation of the standard protobuf merging function
+    """An NDArray aware implementation of the standard protobuf merging function
 
     :param msgs: the protobuf messages to merge
     :param recursive: whether to descend into subMsgs and merge those too
     :return: the merged message. msg.nparrays contains a dict with the unpacked numpy version of any NDArrays that were found
-    '''
+    """
     if len(msgs) < 1:
         return None
 
@@ -237,13 +255,13 @@ def UnpackAndMergeMsgs(msgs, recursive=True, _prefix='', _retDict=None, _isRepea
     return msgs[0]
 
 def Deserialize(msgStr, msgType, unpackNDArray=True):
-    '''Deserializes a serialized protobuf message into a protobuf Python object
+    """Deserializes a serialized protobuf message into a protobuf Python object
 
     :param msgStr: a serialized protobuf message
     :param msgType: the protobuf message class that corresponds to msgStr
     :param unpackNDArray: if True, any NDArrays found in the deserialized msg are converted to numpy arrays and stored in msg.nparrays
     :return: an instance of a protobuf message object
-    '''
+    """
     msg = msgType()
     msg.ParseFromString(msgStr)
 
@@ -253,16 +271,19 @@ def Deserialize(msgStr, msgType, unpackNDArray=True):
     return msg
 
 def DeserializeAndMerge(msgStrs, msgType, _recursive=True):
-    '''Deserializes and merges an iterable of serialized protobuf messages into a single protobuf Python object
+    """Deserializes and merges an iterable of serialized protobuf messages into a single protobuf Python object
 
     :param msgStrs: an iterable of serialized protobuf messages
     :param msgType: the protobuf message class that corresponds to msgStrs
     :return: an instance of a protobuf message object
-    '''
+    """
     msgs = [Deserialize(msgStr=msgStr, msgType=msgType, unpackNDArray=False) for msgStr in msgStrs]
     UnpackAndMergeMsgs(msgs=msgs, recursive=_recursive)
 
     return msgs[0]
+
+def Serialize(msgs):
+    return [msg.SerializeToString() for msg in msgs]
 
 class SFileRecordLM(SFileRecordSeekable):
     @property
