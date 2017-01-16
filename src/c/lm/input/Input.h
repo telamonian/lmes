@@ -260,9 +260,11 @@ protected:
             // Read the record.
             file.readFully(buffer, r.dataSize);
 
+            std::string buffString(buffer, buffer+r.dataSize);
+
             // Parse the record.
             InputMsg newInput;
-            if (!newInput.ParseFromArray(buffer, r.dataSize)) THROW_EXCEPTION(RuntimeException, "unable to deserialize record of type %s", recordType.c_str());
+            if (!newInput.ParsePartialFromArray(buffer, r.dataSize)) THROW_EXCEPTION(RuntimeException, "unable to deserialize record of type %s", recordType.c_str());
 
             // Merge this record into the global input record.
             inputMsgAttr.MergeFrom(newInput);

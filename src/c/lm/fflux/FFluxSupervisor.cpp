@@ -185,6 +185,7 @@ void FFluxSupervisor::initSimulationStageListCustom()
             ffluxStageExecutionOrder.push_back(&*it);
         }
     }
+    currentFFluxStageIter = ffluxStageExecutionOrder.begin();
 }
 
 void FFluxSupervisor::sanityCheckInput()
@@ -1071,7 +1072,7 @@ std::string FFluxSupervisor::currentPhaseInfo(bool path, const lm::fflux::input:
             phaseInfo << ", final_edge_value: " << setw(7) << _stage.tiling().edges(phaseIndex);
         }
         
-        const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit(_stage.fflux_phase_limits(phaseIndex));
+        const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit(_phase.has_fflux_phase_limit() ? _phase.fflux_phase_limit() : _stage.fflux_phase_limits(phaseIndex));
         phaseInfo << ", phase_limit: " << FFPhaseLimEnums::StopCondition_Name(ffluxPhaseLimit.stop_condition());
         phaseInfo << " >= " << (ffluxPhaseLimit.stop_condition()==FFPhaseLimEnums::TIME ? ffluxPhaseLimit.dvalue() : ffluxPhaseLimit.uvalue());
     }

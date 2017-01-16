@@ -172,7 +172,7 @@ protected:
 
     // mutators
     virtual lm::fflux::input::FFluxPhase* mutableCurrentPhase() {return &*currentFFluxPhaseIter;}
-    virtual lm::fflux::input::FFluxPhaseLimit* mutableCurrentPhaseLimit() {return mutableCurrentStage()->mutable_fflux_phase_limits(currentFFluxPhaseIndex());}
+    virtual lm::fflux::input::FFluxPhaseLimit* mutableCurrentPhaseLimit() {return currentPhase().has_fflux_phase_limit() ? mutableCurrentPhase()->mutable_fflux_phase_limit() : mutableCurrentStage()->mutable_fflux_phase_limits(currentFFluxPhaseIndex());}
     virtual lm::protowrap::FFluxPhaseOutputWrap* mutableCurrentPhaseOutput() {return currentFFluxPhaseOutputWrapPtr;}
 
     virtual lm::fflux::input::FFluxStage* mutableCurrentStage() {return *currentFFluxStageIter;}

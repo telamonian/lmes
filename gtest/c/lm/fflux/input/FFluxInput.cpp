@@ -44,6 +44,7 @@
 #include "gmock/gmock.h"
 
 #include "lm/fflux/input/FFluxInput.h"
+#include "lm/fflux/input/FFluxStage.pb.h"
 
 #include <string>
 #include <vector>
@@ -80,32 +81,38 @@ public:
 TEST_F(FFluxInputFixture, readSFileInput_test)
 {
     // make some references to the innards of the FFluxSimulationInput msg for easy access
-    const lm::fflux::io::FFluxPhaseOutput& ffluxPhaseOutput = ffluxInput._ffluxSimulationInput.fflux_phase_output_list().fflux_phase_outputs(0);
-    const lm::fflux::io::EndPoint& endPoint = ffluxPhaseOutput.successful_trajectory_end_points(0);
+    const lm::fflux::input::FFluxStage& ffluxStage = ffluxInput.ffluxSimulationInput().fflux_stage_list().fflux_stages(0);
+    const lm::fflux::input::FFluxPhase& ffluxPhase = ffluxStage.fflux_phases(0);
+    const lm::fflux::input::FFluxPhaseLimit&  ffluxPhaseLimit = ffluxPhase.fflux_phase_limit();
+    const lm::fflux::io::EndPoint& ffluxPhaseStartPoint = ffluxPhase.start_points(0);
+    
+    // test some scalar values in ffluxStage
+    EXPECT_EQ(0, ffluxStage.tiling_id());
+    EXPECT_EQ(0, ffluxStage.basin_index());
 
-    // test some scalar values in ffluxPhaseOutput
-    EXPECT_EQ(0, ffluxPhaseOutput.tiling_id());
-    EXPECT_EQ(0, ffluxPhaseOutput.basin_index());
-    EXPECT_EQ(4, ffluxPhaseOutput.fflux_phase_index());
+    // test some scalar values in ffluxPhase
+    EXPECT_EQ(0, ffluxPhase.tiling_id());
+    EXPECT_EQ(0, ffluxPhase.basin_index());
+    EXPECT_EQ(4, ffluxPhase.fflux_phase_index());
 
-    // test some scalar values in endPoint
-    EXPECT_EQ(1, endPoint.count());
+    // test some scalar values in ffluxPhaseStartPoint
+    EXPECT_EQ(1, ffluxPhaseStartPoint.count());
 
-    // test some vector/repeated values in endPoint
-    int countSize = endPoint.species_coordinates_size();
+    // test some vector/repeated values in ffluxPhaseStartPoint
+    int countSize = ffluxPhaseStartPoint.species_coordinates_size();
     for (int i=0; i<countSize; i++)
     {
         int valExpected = speciesCounts[i];
-        int valActual = endPoint.species_coordinates(i);
+        int valActual = ffluxPhaseStartPoint.species_coordinates(i);
 
         EXPECT_EQ(valExpected, valActual);
     }
 
-    int timesSize = endPoint.times_size();
+    int timesSize = ffluxPhaseStartPoint.times_size();
     for (int i=0; i<timesSize; i++)
     {
         double valExpected = times[i];
-        double valActual = endPoint.times(i);
+        double valActual = ffluxPhaseStartPoint.times(i);
 
         EXPECT_NEAR(valExpected, valActual, absolute_tolerance);
     }
