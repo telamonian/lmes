@@ -45,7 +45,8 @@ import "lm/input/Tilings.proto";
 
 message FFluxStage {
     optional int64 basin_index                                 = 1;
-    optional lm.input.Tiling tiling                            = 2;
+    optional uint64 tiling_id                                  = 2;
+    optional lm.input.Tiling tiling                            = 3;
 
     /*
      * - an optional stage to be run before this one. output data from pilot_stage will be used to help set up this stage

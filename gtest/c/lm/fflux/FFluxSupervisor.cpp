@@ -43,7 +43,7 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 
-#include "lm/fflux/input/FFluxInput.h"
+#include "lm/fflux/input/FFluxSupervisor.h"
 
 #include <string>
 #include <vector>
@@ -54,7 +54,7 @@ using std::vector;
 // tolerance for equality testing of doubles
 double absolute_tolerance = 1e-10;
 
-const char* filenamesLiteral[] = {"/Users/tel/git/lm_ndarray/gtest/c/lm/fflux/input/ffluxSimulationInput.sfile"};
+const char* filenamesLiteral[] = {"/Users/tel/git/lm_ndarray/gtest/c/lm/fflux/ffluxSupervisor.sfile"};
 const vector<string> filenames(filenamesLiteral, filenamesLiteral+1);
 
 const int speciesCountsLiteral[] = {0,1,2,3,4,5,6};
@@ -63,10 +63,10 @@ const vector<int> speciesCounts(speciesCountsLiteral, speciesCountsLiteral+7);
 const double timesLiteral[] = {0.0};
 const vector<double> times(timesLiteral, timesLiteral+7);
 
-class FFluxInputFixture : public ::testing::Test
+class FFluxSupervisorFixture : public ::testing::Test
 {
 public:
-    FFluxInputFixture(): ffluxInput(filenames)
+    FFluxSupervisorFixture(): fFluxSupervisor(filenames)
     {
         char cwd[FILENAME_MAX];
         getcwd(cwd, sizeof(cwd));
@@ -74,13 +74,13 @@ public:
         printf("current working directory: %s\n", cwd);
     }
 
-    lm::fflux::input::FFluxInput ffluxInput;
+    lm::fflux::input::FFluxSupervisor fFluxSupervisor;
 };
 
-TEST_F(FFluxInputFixture, readSFileInput_test)
+TEST_F(FFluxSupervisorFixture, readSFileInput_test)
 {
     // make some references to the innards of the FFluxSimulationInput msg for easy access
-    const lm::fflux::io::FFluxPhaseOutput& ffluxPhaseOutput = ffluxInput._ffluxSimulationInput.fflux_phase_output_list().fflux_phase_outputs(0);
+    const lm::fflux::io::FFluxPhaseOutput& ffluxPhaseOutput = fFluxSupervisor.ffluxSimulationInput.fflux_phase_output_list().fflux_phase_outputs(0);
     const lm::fflux::io::EndPoint& endPoint = ffluxPhaseOutput.successful_trajectory_end_points(0);
 
     // test some scalar values in ffluxPhaseOutput

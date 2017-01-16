@@ -51,9 +51,9 @@
 namespace lm {
 namespace tiling {
 
-typedef std::map<uint,std::string> TilingClassMap;
+typedef std::map<uint64_t,std::string> TilingClassMap;
 typedef google::protobuf::RepeatedPtrField<lm::input::Tiling>::iterator TilingIterator;
-typedef std::map<uint,lm::tiling::Tiling*> TilingMap;
+typedef std::map<uint64_t,lm::tiling::Tiling*> TilingMap;
 
 class Tilings
 {
@@ -62,7 +62,7 @@ public:
     typedef TilingMap::const_iterator const_iterator;
 
     // operators
-    lm::tiling::Tiling* operator[](uint i) {return tilingMap[i];}
+    lm::tiling::Tiling* operator[](uint64_t i) {return tilingMap[i];}
 
     // constructors/destructors/initializers
     Tilings();
@@ -75,6 +75,7 @@ public:
     void initTiling(lm::input::Tiling* tiling);
 
     // accessors
+    const Tiling& at(uint64_t i) const {return *tilingMap.at(i);}
     const_iterator begin() const {return tilingMap.begin();}
     const_iterator end() const {return tilingMap.end();}
     bool hasCurrentTilingID() const {return tilingsBuf.has_current_tiling_id();}
@@ -88,11 +89,12 @@ public:
     bool testBasinsSize(lm::input::ReactionModel& reactionModel) const;
 
     // mutators
+    Tiling* at(uint64_t i) {return tilingMap.at(i);}
     iterator begin() {return tilingMap.begin();}
     iterator end() {return tilingMap.end();}
     void reverse(); // reverse order of list of edges
     bool rFFTilingsBuf(const lm::io::hdf5::Hdf5File* file); // rFF = read From File
-    void setCurrentTilingID(uint newCurrentTilingID) {currentTilingID = newCurrentTilingID;}
+    void setCurrentTilingID(uint64_t newCurrentTilingID) {currentTilingID = newCurrentTilingID;}
     void setOParams(const lm::oparam::OParams& newOParams) {oparams = &newOParams;}
     void setTilingsBuf(const lm::input::Tilings& newTilingsBuf) {*getTilingsBuf() = newTilingsBuf;}
 
@@ -100,12 +102,12 @@ public:
     static TilingClassMap tilingClassMap;
     static TilingClassMap makeTilingClassMap()
     {
-        std::map<uint,std::string> m;
+        std::map<uint64_t,std::string> m;
         m[0] = "lm::tiling::TilingBin";
         return m;
     }
 protected:
-    uint currentTilingID;
+    uint64_t currentTilingID;
     const lm::oparam::OParams* oparams;
 
 private:

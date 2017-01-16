@@ -150,7 +150,7 @@ void FFluxInput::readSFileInput(lm::io::sfile::SFile& file)
         recordParsed |= readSFileInputRecord(file, r, "protobuf:lm.input.SimulationInput", simulationInput);
 
         // See if this is a FFluxSimulationInput record.
-        recordParsed |= readSFileInputRecord(file, r, "protobuf:lm.fflux.input.FFluxSimulationInput", ffluxSimulationInput);
+        recordParsed |= readSFileInputRecord(file, r, "protobuf:lm.fflux.input.FFluxSimulationInput", _ffluxSimulationInput);
 
         if (not recordParsed)
         {

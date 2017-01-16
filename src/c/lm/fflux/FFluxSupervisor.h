@@ -69,6 +69,7 @@ public:
     typedef lm::protowrap::Repeated<lm::fflux::io::FFluxPhaseOutputList> FFluxPhaseOutputListsWrap;
     typedef lm::protowrap::Repeated<lm::fflux::io::FFluxStageOutput> FFluxStageOutputsWrap;
     typedef std::vector<lm::fflux::input::FFluxStage*> FFluxStageVector;
+    typedef lm::protowrap::Repeated<lm::fflux::input::FFluxStage> FFluxStagesWrap;
 
     static bool registered;
     static bool registerClass();
@@ -84,9 +85,11 @@ public:
 protected:
     // setup methods that run once at the beginning of the simulation
     virtual void startSimulation();
-    virtual void sanityCheckInput();
     virtual void initSimulationStageList();
-    virtual lm::fflux::input::FFluxStage* buildProductionStage(lm::fflux::input::FFluxStage* productionStage, const lm::tiling::Tiling& tiling, int basinIndex);
+    virtual void initSimulationStageListCustom();
+    virtual void sanityCheckInput();
+    virtual lm::fflux::input::FFluxStage* buildProductionStage(lm::fflux::input::FFluxStage* productionStage, const lm::tiling::Tiling& tiling, int64_t basinIndex);
+    virtual void addTiling(lm::fflux::input::FFluxStage* stage, const lm::tiling::Tiling& tiling, int64_t basinIndex);
     virtual lm::fflux::input::FFluxStage* addPilotStage(lm::fflux::input::FFluxStage* productionStage);
     virtual void addFFluxPhases(lm::fflux::input::FFluxStage* stage, FFPhaseEnums::TrajectoryGeneration trajGeneration, FFPhaseEnums::TrajectoryDuplication trajDuplication);
 
@@ -152,7 +155,7 @@ protected:
     virtual const lm::fflux::input::FFluxPhase& currentPhase() const {return *currentFFluxPhaseIter;}
     virtual int64_t currentFFluxPhaseIndex() const {return currentPhase().fflux_phase_index();}
     virtual std::string currentPhaseInfo(bool path=false, const lm::fflux::input::FFluxPhase* phase=NULL, const lm::fflux::input::FFluxStage* stage=NULL) const;
-    virtual const lm::fflux::input::FFluxPhaseLimit& currentPhaseLimit() const {return currentStage().fflux_phase_limits(currentFFluxPhaseIndex());}
+    virtual const lm::fflux::input::FFluxPhaseLimit& currentPhaseLimit() const {return currentPhase().has_fflux_phase_limit() ? currentPhase().fflux_phase_limit() : currentStage().fflux_phase_limits(currentFFluxPhaseIndex());}
     virtual const lm::protowrap::FFluxPhaseOutputWrap& currentPhaseOutput() const {return *currentFFluxPhaseOutputWrapPtr;}
     virtual int64_t finalFFluxPhaseIndex() const {return currentStage().fflux_phases_size() - 1;}
     virtual bool isCurrentPhaseLast() const {return isLast(currentFFluxPhaseIter, currentStage().fflux_phases());} //{return currentStage().fflux_phases().end()==currentFFluxPhaseIter;}
@@ -199,6 +202,7 @@ protected:
     FFluxPhaseOutputListsWrap ffluxPhaseOutputListsWrap;
     FFluxPhaseOutputsWrap currentFFluxPhaseOutputsWrap;
 
+    lm::fflux::io::FFluxPhaseOutput ffluxPhaseOutputMsgCustom;
     lm::message::Message ffluxPhaseOutputContainingMsg;
     lm::protowrap::FFluxPhaseOutputWrap _ffluxPhaseOutputWrap_0;
     lm::protowrap::FFluxPhaseOutputWrap _ffluxPhaseOutputWrap_1;

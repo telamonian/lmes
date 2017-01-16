@@ -95,7 +95,7 @@ public:
     void clearOrderParameterIDs() {tilingMsg->clear_order_parameter_ids();}
     EdgesT* mutable_edges() {return &_edges;}
     void reverse();
-    void setBasin(int basinIndex);
+    void setBasin(int64_t basinIndex);
     void setOrderParameterID(uint opID) {clearOrderParameterIDs(); addOrderParameterIDs(opID);} // 1D version of setOrderParameterIDs, for backwards compatibility
     virtual void setOrderParameter(const lm::oparam::OParam& newOParam);
     void setSortOrder(TilingEnums::SortOrder newOrder);

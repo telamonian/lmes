@@ -62,7 +62,7 @@ message FFluxPhaseOutputList {
 message StartPoint {
     repeated int32 species_coordinates                         = 1 [packed=true];
     optional uint64 count                                      = 2 [default=0];
-    optional double time                                       = 3 [default=0.0];
+    repeated double times                                      = 3 [packed=true];
     repeated uint64 degree_advancements                        = 4 [packed=true];
 
     optional uint64 successful_trajectories_launched_count      = 11 [default=0];

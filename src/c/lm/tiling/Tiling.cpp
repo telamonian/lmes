@@ -106,7 +106,7 @@ uint Tiling::getTileIndex(double opVal) const
     return upper - tilingMsg->edges().begin();
 }
 
-void Tiling::setBasin(int basinIndex)
+void Tiling::setBasin(int64_t basinIndex)
 {
     set_current_basin_index(basinIndex);
     if (getTileIndexFromBasin(basinIndex)!=0)

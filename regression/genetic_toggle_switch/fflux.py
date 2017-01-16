@@ -28,16 +28,18 @@ class FFluxGTSRegression(GTSRegression):
                     'maxWorkUnitSteps': 1e5,}
         else:
             return {'batchSize': 1,
-                    "errorGoal": .01,
-                    "errorGoalConfidence": .95,
-                    "pilotStageCount": 1e3,
-                    "productionStageCountMinimum": 1e3,
+                    "errorGoal": .99,
+                    "errorGoalConfidence": .01,
+                    "pilotStageCount": 1e4,
+                    "productionStageCountMinimum": 1,
                     "ffluxPilotOutput": True,
-                    "ffluxPhaseOutput": False,
+                    "ffluxPhaseOutput": True,
                     "ffluxStageOutputRaw": True,
                     "ffluxStageOutputSummary": True,
-                    'phaseZeroSamplingMultiplier': 10,
+                    'phaseZeroSamplingMultiplier': 1,
                     'ffluxMinimizeCost': False,
+                    'writeInitialTrajectoryState': True,
+                    'writeFinalTrajectoryState': True,
                     'writeInterval': None,
                     'writeLimitTracking': False,}
 

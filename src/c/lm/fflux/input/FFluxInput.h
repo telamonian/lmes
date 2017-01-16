@@ -84,22 +84,22 @@ public:
 
 // accessors
     const lm::fflux::input::FFluxOptions& ffluxOptions() const {return _ffluxOptions;}
-
+    const lm::fflux::input::FFluxSimulationInput& ffluxSimulationInput() const {return _ffluxSimulationInput;}
     uint64_t batchSize() const {return ffluxOptions().batch_size();}
-    bool minimizeCost() const {return ffluxOptions().minimize_cost();}
     uint64_t phaseZeroBurnInCount() const {return ffluxOptions().phase_zero_burn_in_count();}
     uint64_t phaseZeroSamplingMultiplier() const {return ffluxOptions().phase_zero_sampling_multiplier();}
     uint64_t pilotStageCount() const {return ffluxOptions().pilot_stage_count();}
     double errorGoal() const {return ffluxOptions().error_goal();}
     double errorGoalConfidence() const {return ffluxOptions().error_goal_confidence();}
+    bool minimizeCost() const {return ffluxOptions().minimize_cost();}
     uint64_t productionStageCountMinimum() const {return ffluxOptions().production_stage_count_minimum();}
     const lm::protowrap::Repeated<lm::fflux::input::FFluxPhaseLimitList>& userDefinedFFluxPhaseLimitLists() const {return _ffluxPhaseLimitLists;}
 
     bool hasErrorGoal() const {return ffluxOptions().has_error_goal();}
     bool hasErrorGoalConfidence() const {return ffluxOptions().has_error_goal_confidence();}
-    bool hasUserDefinedFFluxPhaseLimitLists() const {return (ffluxOptions().fflux_phase_limit_lists_size() > 0);}
     bool hasPilotStageCount() const {return ffluxOptions().has_pilot_stage_count();}
     bool hasPhaseZeroBurnInCount() const {return ffluxOptions().has_phase_zero_burn_in_count();}
+    bool hasUserDefinedFFluxPhaseLimitLists() const {return (ffluxOptions().fflux_phase_limit_lists_size() > 0);}
 
 protected:
     virtual void readHDF5Input(const lm::io::hdf5::Hdf5File& file);
@@ -112,7 +112,7 @@ protected:
     lm::fflux::input::FFluxOptions _ffluxOptions;
     lm::protowrap::Repeated<lm::fflux::input::FFluxPhaseLimitList> _ffluxPhaseLimitLists;
 
-    lm::fflux::input::FFluxSimulationInput ffluxSimulationInput;
+    lm::fflux::input::FFluxSimulationInput _ffluxSimulationInput;
 };
 
 }

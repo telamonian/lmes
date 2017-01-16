@@ -135,29 +135,19 @@ void FFluxSupervisor::init()
 // overrides parent method completely
 void FFluxSupervisor::startSimulation()
 {
-    initSimulationStageList();
+    if (input->ffluxSimulationInput().has_fflux_stage_list())
+    {
+        initSimulationStageListCustom();
+    }
+    else
+    {
+        initSimulationStageList();
+    }
+
     Print::printf(Print::INFO, "Simulation started.");
 
     // call the function which starts the simulation stage (which will then call startSimulationPhase())
     startSimulationStage();
-}
-
-void FFluxSupervisor::sanityCheckInput()
-{
-    if (input->getTilings().size() <= 0)
-    {
-        THROW_EXCEPTION(InputException, "FFPilot simulation requested (via cmd line arguments), but no tilings were provided in the input.");
-    }
-
-    int totalBasinCount = 0;
-    for (lm::tiling::Tilings::const_iterator tilingIt=input->getTilings().begin();tilingIt!=input->getTilings().end();++tilingIt)
-    {
-        totalBasinCount += tilingIt->second->basins().size();
-    }
-    if (totalBasinCount <= 0)
-    {
-        THROW_EXCEPTION(InputException, "FFPilot simulation requested (via cmd line arguments), but there were no basins in any of the tilings provided in the input.");
-    }
 }
 
 void FFluxSupervisor::initSimulationStageList()
@@ -180,22 +170,44 @@ void FFluxSupervisor::initSimulationStageList()
     currentFFluxStageIter = ffluxStageExecutionOrder.begin();
 }
 
-lm::fflux::input::FFluxStage* FFluxSupervisor::buildProductionStage(lm::fflux::input::FFluxStage* productionStage, const lm::tiling::Tiling& tiling, int basinIndex)
+void FFluxSupervisor::initSimulationStageListCustom()
 {
-    // TODO: encapsulate this mess in a FFluxStage wrapper
-    // shallow copy the tiling wrapper. We're done with the passed in tiling wrapper
-    lm::tiling::Tiling tilingWrapCopy = tiling;
+    // copy the stage list over from input
+    ffluxStageListMsg.CopyFrom(input->ffluxSimulationInput().fflux_stage_list());
 
-    // copy the actual tiling message over to the production stage message
-    productionStage->mutable_tiling()->CopyFrom(tilingWrapCopy.getTilingMsg());
+    for (FFluxStagesWrap::iterator it=ffluxStageListMsg.mutable_fflux_stages()->begin(); it!=ffluxStageListMsg.mutable_fflux_stages()->end(); it++)
+    {
+        if (not it->has_tiling())
+        {
+            addTiling(&*it, input->getTilings().at(it->tiling_id()), it->basin_index());
 
-    // reseat the tiling wrapper copy around the tiling message copy
-    tilingWrapCopy.setTilingMsg(productionStage->mutable_tiling());
+            // place a ptr to the stage in the execution order (the pilot stage ptr, if any, will be placed before the production stage pointer)
+            ffluxStageExecutionOrder.push_back(&*it);
+        }
+    }
+}
 
-    // use the tiling wrapper copy to set the appropriate basin_index in the tiling. This will also reverse the tiling, if needed
-    tilingWrapCopy.setBasin(basinIndex);
+void FFluxSupervisor::sanityCheckInput()
+{
+    if (input->getTilings().size() <= 0)
+    {
+        THROW_EXCEPTION(InputException, "FFPilot simulation requested (via cmd line arguments), but no tilings were provided in the input.");
+    }
 
-    productionStage->set_basin_index(basinIndex);
+    int totalBasinCount = 0;
+    for (lm::tiling::Tilings::const_iterator tilingIt=input->getTilings().begin();tilingIt!=input->getTilings().end();++tilingIt)
+    {
+        totalBasinCount += tilingIt->second->basins().size();
+    }
+    if (totalBasinCount <= 0)
+    {
+        THROW_EXCEPTION(InputException, "FFPilot simulation requested (via cmd line arguments), but there were no basins in any of the tilings provided in the input.");
+    }
+}
+
+lm::fflux::input::FFluxStage* FFluxSupervisor::buildProductionStage(lm::fflux::input::FFluxStage* productionStage, const lm::tiling::Tiling& tiling, int64_t basinIndex)
+{
+    addTiling(productionStage, tiling, basinIndex);
 
     if (input->hasErrorGoal())
     {
@@ -214,6 +226,25 @@ lm::fflux::input::FFluxStage* FFluxSupervisor::buildProductionStage(lm::fflux::i
     }
 
     return productionStage;
+}
+
+void FFluxSupervisor::addTiling(lm::fflux::input::FFluxStage* stage, const lm::tiling::Tiling& tiling, int64_t basinIndex)
+{
+    // TODO: encapsulate this mess in a FFluxStage wrapper
+    // shallow copy the tiling wrapper. We're done with the passed in tiling wrapper
+    lm::tiling::Tiling tilingWrapCopy = tiling;
+
+    // copy the actual tiling message over to the production stage message
+    stage->mutable_tiling()->CopyFrom(tilingWrapCopy.getTilingMsg());
+
+    // reseat the tiling wrapper copy around the tiling message copy
+    tilingWrapCopy.setTilingMsg(stage->mutable_tiling());
+
+    // use the tiling wrapper copy to set the appropriate basin_index in the tiling. This will also reverse the tiling, if needed
+    tilingWrapCopy.setBasin(basinIndex);
+
+    stage->set_basin_index(basinIndex);
+    stage->set_tiling_id(tilingWrapCopy.id());
 }
 
 lm::fflux::input::FFluxStage* FFluxSupervisor::addPilotStage(lm::fflux::input::FFluxStage* productionStage)
@@ -240,6 +271,7 @@ void FFluxSupervisor::addFFluxPhases(lm::fflux::input::FFluxStage* stage, FFPhas
         ffluxPhase->set_fflux_phase_index(i);
         ffluxPhase->set_basin_index(stage->basin_index());
         ffluxPhase->set_tiling_id(stage->tiling().id());
+        ffluxPhase->set_tile_index(i);
 
         // set ffluxPhase values that depend on whether phaseIndex==0 or phaseIndex > 0
         if (i==0)
@@ -332,6 +364,30 @@ lm::fflux::input::FFluxPhaseLimit* FFluxSupervisor::buildFFluxPhaseLimit(lm::ffl
     return ffluxPhaseLimit;
 }
 
+void FFluxSupervisor::buildFFluxPhaseLimitTrajectoriesToRun(lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit, const lm::fflux::input::FFluxPhase& ffluxPhase, uint simultaneousWorkUnits)
+{
+    // builds the events_per_trajectory field for this limit if it hasn't already been set
+    buildFFluxPhaseLimitEventsPerTrajectory(ffluxPhaseLimit, ffluxPhase, simultaneousWorkUnits);
+
+    uint64_t simulataneousActiveTrajectories = simultaneousWorkUnits*ffluxPhase.batch_size();
+
+    if (ffluxPhase.trajectory_generation()==FFPhaseEnums::EAGER)
+    {
+        // EAGER is only implemented for certain ffluxPhaseLimit.stop_condition() values
+        if (ffluxPhaseLimit->stop_condition()==FFPhaseLimEnums::TRAJECTORY_COUNT or (ffluxPhaseLimit->stop_condition()==FFPhaseLimEnums::FORWARD_FLUXES and ffluxPhase.fflux_phase_index()==0))
+        {
+            // given that our trajectory limits are set up to observe x events per trajectory, run ceil(y/x) trajectories to ensure that we observe at least y events total
+            ffluxPhaseLimit->set_trajectories_per_phase(ceilDiv(ffluxPhaseLimit->uvalue(), ffluxPhaseLimit->events_per_trajectory()));
+        }
+        else throw UnimplementedException("In Forward Flux phase %d, ffluxPhase.trajectory_generation()==EAGER is only implemented for certain ffluxPhaseLimit.stop_condition() values (ie those that let us calculate the necessary trajectory count up front). Attempting to use unimplemented ffluxPhaseLimit.stop_condition(): %s", ffluxPhase.fflux_phase_index(), FFPhaseLimEnums::StopCondition_Name(ffluxPhaseLimit->stop_condition()).c_str());
+    }
+    else if (ffluxPhase.trajectory_generation()==FFPhaseEnums::LAZY)
+    {
+        return ffluxPhaseLimit->set_trajectories_per_phase(simulataneousActiveTrajectories);
+    }
+    else throw UnimplementedException("unimplemented");
+}
+
 void FFluxSupervisor::buildFFluxPhaseLimitEventsPerTrajectory(lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit, const lm::fflux::input::FFluxPhase& ffluxPhase, uint simultaneousWorkUnits)
 {
     uint64_t simulataneousActiveTrajectories = simultaneousWorkUnits*ffluxPhase.batch_size();
@@ -360,30 +416,6 @@ void FFluxSupervisor::buildFFluxPhaseLimitEventsPerTrajectory(lm::fflux::input::
             ffluxPhaseLimit->set_events_per_trajectory(1);
         }
     }
-}
-
-void FFluxSupervisor::buildFFluxPhaseLimitTrajectoriesToRun(lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit, const lm::fflux::input::FFluxPhase& ffluxPhase, uint simultaneousWorkUnits)
-{
-    // builds the events_per_trajectory field for this limit if it hasn't already been set
-    buildFFluxPhaseLimitEventsPerTrajectory(ffluxPhaseLimit, ffluxPhase, simultaneousWorkUnits);
-
-    uint64_t simulataneousActiveTrajectories = simultaneousWorkUnits*ffluxPhase.batch_size();
-
-    if (ffluxPhase.trajectory_generation()==FFPhaseEnums::EAGER)
-    {
-        // EAGER is only implemented for certain ffluxPhaseLimit.stop_condition() values
-        if (ffluxPhaseLimit->stop_condition()==FFPhaseLimEnums::TRAJECTORY_COUNT or (ffluxPhaseLimit->stop_condition()==FFPhaseLimEnums::FORWARD_FLUXES and ffluxPhase.fflux_phase_index()==0))
-        {
-            // given that our trajectory limits are set up to observe x events per trajectory, run ceil(y/x) trajectories to ensure that we observe at least y events total
-            ffluxPhaseLimit->set_trajectories_per_phase(ceilDiv(ffluxPhaseLimit->uvalue(), ffluxPhaseLimit->events_per_trajectory()));
-        }
-        else throw UnimplementedException("In Forward Flux phase %d, ffluxPhase.trajectory_generation()==EAGER is only implemented for certain ffluxPhaseLimit.stop_condition() values (ie those that let us calculate the necessary trajectory count up front). Attempting to use unimplemented ffluxPhaseLimit.stop_condition(): %s", ffluxPhase.fflux_phase_index(), FFPhaseLimEnums::StopCondition_Name(ffluxPhaseLimit->stop_condition()).c_str());
-    }
-    else if (ffluxPhase.trajectory_generation()==FFPhaseEnums::LAZY)
-    {
-        return ffluxPhaseLimit->set_trajectories_per_phase(simulataneousActiveTrajectories);
-    }
-    else throw UnimplementedException("unimplemented");
 }
 
 template <typename Value>
@@ -645,7 +677,12 @@ void FFluxSupervisor::buildTrajectoryList()
     // set the trajectory limits/tracking for this phase
     input->reinitTrajectoryLimits(currentPhase(), currentPhaseLimit(), currentTiling());
 
-    if (currentFFluxPhaseIndex()==0)
+    if (currentPhase().start_points_size() > 0)
+    {
+        ffluxPhaseOutputMsgCustom.mutable_successful_trajectory_end_points()->CopyFrom(currentPhase().start_points());
+        setTrajectoryList(new FFluxTrajectoryList(currentTrajectoryCount, currentFFluxPhaseIndex(), currentPhase(), currentPhaseLimit(), slots.getSimultaneousWorkUnits(), *input, &ffluxPhaseOutputMsgCustom));
+    }
+    else if(currentFFluxPhaseIndex()==0)
     {
         setTrajectoryList(new FFluxTrajectoryList(currentTrajectoryCount, currentFFluxPhaseIndex(), currentPhase(), currentPhaseLimit(), slots.getSimultaneousWorkUnits(), *input, currentTiling().currentBasin()));
     }
