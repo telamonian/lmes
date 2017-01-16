@@ -93,7 +93,7 @@ protected:
     virtual void updateAllPropensities();
     void updatePropensities(avxd time, uint* sourceReaction);
     void performReactionEventAVX(uint* reactionsToPerform);
-    void callUpdateSpeciesCountsListenersAVX();
+    void callUpdateSpeciesCountsListenersAVX(uint* reactionsToPerform);
     bool isTrajectoryOutsideLimitsAVX();
     void copyOutputToBaseSolver(uint trajectoryNumber);
     void copyTrajectoryStateToBaseSolver(uint trajectoryNumber);
@@ -128,6 +128,7 @@ protected:
     double* propensities;
     double* orderParameterValues;
     double* orderParameterPreviousValues;
+    uint64_t* degreeAdvancements;
 
     avxd timeLimit;
     avxd time;

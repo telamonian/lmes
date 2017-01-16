@@ -376,7 +376,7 @@ void MicroenvironmentSupervisor::buildRunWorkUnit(lm::message::RunWorkUnit* msg,
     msg->mutable_output_address()->CopyFrom(outputWriterAddress);
 
     // Set the output options.
-    msg->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());
+    msg->mutable_output_options()->CopyFrom(input->getOutputOptions());
 
     // Set the limits.
     msg->mutable_trajectory_limits()->mutable_time_limit()->set_limit_type(lm::io::TrajectoryLimits::TIME);

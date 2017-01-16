@@ -91,14 +91,14 @@ void Hdf5OutputWriter::initialize()
     file = new Hdf5File(outputFilename);
 }
 
+void Hdf5OutputWriter::processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data)
+{
+    file->appendDegreeAdvancementTimeSeries(data.trajectory_id(), data);
+}
+
 void Hdf5OutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
 {
     file->setFirstPassageTimes(data.trajectory_id(), data);
-}
-
-void Hdf5OutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
-{
-    file->appendSpeciesCounts(data.trajectory_id(), (lm::io::SpeciesCounts*)&data);
 }
 
 void Hdf5OutputWriter::processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data)

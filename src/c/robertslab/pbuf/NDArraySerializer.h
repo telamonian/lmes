@@ -23,6 +23,7 @@
 #ifndef NDARRAYSERIALIZER_H
 #define NDARRAYSERIALIZER_H
 
+#include <cstring>
 #include <zlib.h>
 
 #ifdef OPT_SNAPPY
@@ -147,6 +148,13 @@ public:
         deserializeInto(array, msg, alignment);
 
         return array;
+    }
+
+    template <typename T> static void deserializeInto(T* data, utuple shape, const robertslab::pbuf::NDArray& msg, size_t alignment=0)
+    {
+        ndarray<T> array(shape);
+        deserializeInto(&array, msg, alignment);
+        memcpy(data, array.values, array.size*sizeof(T));
     }
 
     template <typename T> static void deserializeInto(ndarray<T>* array, const robertslab::pbuf::NDArray& msg, size_t alignment=0)

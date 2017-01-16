@@ -439,7 +439,7 @@ void SimulationSupervisor::buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg)
     buildRunWorkUnitLimits(msg);
 
     // Set the output options.
-    msg->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());
+    msg->mutable_output_options()->CopyFrom(input->getOutputOptions());
 
     // Set the maximum number of steps for the work unit.
     msg->set_max_steps(input->getStepsPerWorkUnit());

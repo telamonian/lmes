@@ -167,8 +167,8 @@ void Input::readHDF5Input(lm::io::hdf5::Hdf5File& file)
         }
 
         // set the other limits, if present in the simulation parameters
-        trajectoryLimitsPresent |= degreeAdvancementPresent = parseLimits<EH::DEGREE_ADVANCEMENT>("degreeAdvancementLowerLimitList", "degree advancement lower limit", EH::MIN);
-        trajectoryLimitsPresent |= degreeAdvancementPresent = parseLimits<EH::DEGREE_ADVANCEMENT>("degreeAdvancementUpperLimitList", "degree advancement upper limit", EH::MAX);
+        trajectoryLimitsPresent |= parseLimits<EH::DEGREE_ADVANCEMENT>("degreeAdvancementLowerLimitList", "degree advancement lower limit", EH::MIN);
+        trajectoryLimitsPresent |= parseLimits<EH::DEGREE_ADVANCEMENT>("degreeAdvancementUpperLimitList", "degree advancement upper limit", EH::MAX);
         trajectoryLimitsPresent |= parseLimits<EH::ORDER_PARAMETER>("orderParameterLowerLimitList", "order parameter lower limit", EH::MIN);
         trajectoryLimitsPresent |= parseLimits<EH::ORDER_PARAMETER>("orderParameterUpperLimitList", "order parameter upper limit", EH::MAX);
         trajectoryLimitsPresent |= parseLimits<EH::SPECIES>("speciesLowerLimitList", "species lower limit", EH::MIN);
@@ -179,10 +179,8 @@ void Input::readHDF5Input(lm::io::hdf5::Hdf5File& file)
     {
         if (simulationParameters.count("degreeAdvancementWriteInterval"))
         {
-//            outputOptions.set_degree_advancement_write_interval(simulationParameters.parse<double>("degreeAdvancementWriteInterval"));
-//            outputOptionsPresent = degreeAdvancementPresent = true;
-            parseAndSet(outputOptions, &OutputOptions::set_degree_advancement_write_interval, "degreeAdvancementWriteInterval");
-            outputOptionsPresent = degreeAdvancementPresent = true;
+            outputOptionsPresent = true;
+            outputOptions.set_degree_advancement_write_interval(atof(simulationParameters["degreeAdvancementWriteInterval"].c_str()));
         }
 
         // Get the first passage times.
@@ -207,14 +205,14 @@ void Input::readHDF5Input(lm::io::hdf5::Hdf5File& file)
 
         if (simulationParameters.count("latticeWriteInterval"))
         {
-            outputOptions.set_lattice_write_interval(atof(simulationParameters["latticeWriteInterval"].c_str()));
             outputOptionsPresent = true;
+            outputOptions.set_lattice_write_interval(atof(simulationParameters["latticeWriteInterval"].c_str()));
         }
 
         if (simulationParameters.count("orderParameterWriteInterval"))
         {
-            outputOptions.set_order_parameter_write_interval(simulationParameters.parse<double>("orderParameterWriteInterval"));
             outputOptionsPresent = true;
+            outputOptions.set_order_parameter_write_interval(simulationParameters.parse<double>("orderParameterWriteInterval"));
         }
         
         if (simulationParameters.count("writeInterval"))
@@ -396,13 +394,6 @@ template <EH::LimitType LT> bool Input::parseLimits(string key, string debugStri
     {
         return false;
     }
-}
-
-// by using template parameter inference on the setter (passed as a function pointer), this template automatically figures out what type to parse from simulationParameters
-template <typename T, typename MF, typename valT> bool Input::parseAndSet(T& obj, MF (T::*mf)(valT), string key)
-{
-    (obj.*mf)(simulationParameters.parse<valT>(key));
-    return true;
 }
 
 }

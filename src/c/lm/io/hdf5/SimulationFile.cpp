@@ -1662,6 +1662,94 @@ void Hdf5File::openReplicate(uint64_t replicate) throw(HDF5Exception)
     openReplicateHandles(replicate);
 }
 
+void Hdf5File::appendDegreeAdvancementTimeSeries(uint64_t replicate, const lm::io::DegreeAdvancementTimeSeries& data)
+{
+    // Extract the data.
+    ndarray<uint64_t> counts = NDArraySerializer::deserialize<uint64_t>(data.counts());
+    ndarray<double> times = NDArraySerializer::deserialize<double>(data.times());
+
+    int numberEntries = counts.shape[0];
+    int numberReactions = counts.shape[1];
+
+    // Open the handles.
+    ReplicateHandles * groupHandles = openReplicateHandles(replicate);
+    DegreeAdvancementHandles handles = openDegreeAdvancementDatasets(groupHandles->group, numberReactions);
+
+    // Update the counts dataset.
+    {
+        // Get the current size of the dataset.
+        unsigned int RANK=2;
+        hsize_t dims[RANK];
+        hid_t dataspace_id;
+        int result;
+        HDF5_EXCEPTION_CALL(dataspace_id,H5Dget_space(handles.degreeAdvancementCountsDataset));
+        HDF5_EXCEPTION_CALL(result,H5Sget_simple_extent_dims(dataspace_id, dims, NULL));
+        HDF5_EXCEPTION_CHECK(H5Sclose(dataspace_id));
+
+        // Extend the dataset by the number of rows in the data set.
+        dims[0] += numberEntries;
+        HDF5_EXCEPTION_CHECK(H5Dset_extent(handles.degreeAdvancementCountsDataset, dims));
+
+        // Create the memory dataset.
+        hid_t memspace_id;
+        hsize_t memDims[RANK];
+        memDims[0] = numberEntries;
+        memDims[1] = numberReactions;
+        HDF5_EXCEPTION_CALL(memspace_id,H5Screate_simple(RANK, memDims, NULL));
+
+        // Write the new data.
+        HDF5_EXCEPTION_CALL(dataspace_id,H5Dget_space(handles.degreeAdvancementCountsDataset));
+        hsize_t start[RANK], count[RANK];
+        start[0] = dims[0]-numberEntries;
+        start[1] = 0;
+        count[0] = memDims[0];
+        count[1] = memDims[1];
+        HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, start, NULL, count, NULL));
+        HDF5_EXCEPTION_CHECK(H5Dwrite(handles.degreeAdvancementCountsDataset, H5T_NATIVE_UINT64, memspace_id, dataspace_id, H5P_DEFAULT, counts.values));
+
+        // Cleanup some resources.
+        HDF5_EXCEPTION_CHECK(H5Sclose(dataspace_id));
+        HDF5_EXCEPTION_CHECK(H5Sclose(memspace_id));
+    }
+
+    // Update the species count times dataset.
+    {
+        // Get the current size of the dataset.
+        unsigned int RANK=1;
+        hsize_t dims[RANK];
+        hid_t dataspace_id;
+        int result;
+        HDF5_EXCEPTION_CALL(dataspace_id,H5Dget_space(handles.degreeAdvancementTimesDataset));
+        HDF5_EXCEPTION_CALL(result,H5Sget_simple_extent_dims(dataspace_id, dims, NULL));
+        HDF5_EXCEPTION_CHECK(H5Sclose(dataspace_id));
+
+        // Extend the dataset by the number of rows in the data set.
+        dims[0] += numberEntries;
+        HDF5_EXCEPTION_CHECK(H5Dset_extent(handles.degreeAdvancementTimesDataset, dims));
+
+        // Create the memory dataset.
+        hid_t memspace_id;
+        hsize_t memDims[RANK];
+        memDims[0] = counts.shape[0];
+        HDF5_EXCEPTION_CALL(memspace_id,H5Screate_simple(RANK, memDims, NULL));
+
+        // Write the new data.
+        HDF5_EXCEPTION_CALL(dataspace_id,H5Dget_space(handles.degreeAdvancementTimesDataset));
+        hsize_t start[RANK], count[RANK];
+        start[0] = dims[0]-numberEntries;
+        count[0] = memDims[0];
+        HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, start, NULL, count, NULL));
+        HDF5_EXCEPTION_CHECK(H5Dwrite(handles.degreeAdvancementTimesDataset, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id, H5P_DEFAULT, times.values));
+
+        // Cleanup some resources.
+        HDF5_EXCEPTION_CHECK(H5Sclose(dataspace_id));
+        HDF5_EXCEPTION_CHECK(H5Sclose(memspace_id));
+    }
+
+    // Close the handles.
+    closeDegreeAdvancementDatasets(handles);
+}
+
 void Hdf5File::appendSpeciesCounts(uint64_t replicate, lm::io::SpeciesCounts * speciesCounts) throw(HDF5Exception)
 {
     appendSpeciesTimeSeries(replicate, speciesCounts->number_entries(), speciesCounts->number_species(), speciesCounts->species_count().data(), speciesCounts->time().data());
@@ -2560,6 +2648,66 @@ void Hdf5File::closeReplicateHandles(ReplicateHandles * handles) throw(HDF5Excep
     handles->group = H5I_INVALID_HID;
     handles->speciesCountsDataset = H5I_INVALID_HID;
     handles->speciesCountTimesDataset = H5I_INVALID_HID;
+}
+
+Hdf5File::DegreeAdvancementHandles Hdf5File::openDegreeAdvancementDatasets(hid_t group, unsigned int numberReactions)
+{
+    Hdf5File::DegreeAdvancementHandles handles;
+
+    // Open or create the degree advancement counts dataset.
+    if (H5Lexists(group, "DegreeAdvancementCounts", H5P_DEFAULT) > 0)
+    {
+        HDF5_EXCEPTION_CALL(handles.degreeAdvancementCountsDataset,H5Dopen2(group, "DegreeAdvancementCounts", H5P_DEFAULT));
+    }
+    else
+    {
+        unsigned int RANK=2;
+        hsize_t dims[RANK], maxDims[RANK], chunkDims[RANK];
+        dims[0] = 0;
+        dims[1] = numberReactions;
+        maxDims[0] = H5S_UNLIMITED;
+        maxDims[1] = numberReactions;
+        chunkDims[0] = 100;
+        chunkDims[1] = numberReactions;
+        hid_t dataspace_id, dcpl_id;
+        HDF5_EXCEPTION_CALL(dataspace_id,H5Screate_simple(RANK, dims, maxDims));
+        HDF5_EXCEPTION_CALL(dcpl_id,H5Pcreate(H5P_DATASET_CREATE));
+        HDF5_EXCEPTION_CHECK(H5Pset_chunk(dcpl_id, RANK, chunkDims));
+        HDF5_EXCEPTION_CALL(handles.degreeAdvancementCountsDataset,H5Dcreate2(group, "DegreeAdvancementCounts", H5T_STD_U64LE, dataspace_id, H5P_DEFAULT, dcpl_id, H5P_DEFAULT));
+        HDF5_EXCEPTION_CHECK(H5Pclose(dcpl_id));
+        HDF5_EXCEPTION_CHECK(H5Sclose(dataspace_id));
+    }
+
+    // Open or create the degree advancement times dataset.
+    if (H5Lexists(group, "DegreeAdvancementTimes", H5P_DEFAULT) > 0)
+    {
+        HDF5_EXCEPTION_CALL(handles.degreeAdvancementTimesDataset,H5Dopen2(group, "DegreeAdvancementTimes", H5P_DEFAULT));
+    }
+    else
+    {
+        unsigned int RANK=1;
+        hsize_t dims[RANK], maxDims[RANK], chunkDims[RANK];
+        dims[0] = 0;
+        maxDims[0] = H5S_UNLIMITED;
+        chunkDims[0] = 100;
+        hid_t dataspace_id, dcpl_id;
+        HDF5_EXCEPTION_CALL(dataspace_id,H5Screate_simple(RANK, dims, maxDims));
+        HDF5_EXCEPTION_CALL(dcpl_id,H5Pcreate(H5P_DATASET_CREATE));
+        HDF5_EXCEPTION_CHECK(H5Pset_chunk(dcpl_id, RANK, chunkDims));
+        HDF5_EXCEPTION_CALL(handles.degreeAdvancementTimesDataset,H5Dcreate2(group, "DegreeAdvancementTimes", H5T_IEEE_F64LE, dataspace_id, H5P_DEFAULT, dcpl_id, H5P_DEFAULT));
+        HDF5_EXCEPTION_CHECK(H5Pclose(dcpl_id));
+        HDF5_EXCEPTION_CHECK(H5Sclose(dataspace_id));
+    }
+
+    return handles;
+}
+
+void Hdf5File::closeDegreeAdvancementDatasets(Hdf5File::DegreeAdvancementHandles handles)
+{
+    HDF5_EXCEPTION_CHECK(H5Dclose(handles.degreeAdvancementCountsDataset));
+    HDF5_EXCEPTION_CHECK(H5Dclose(handles.degreeAdvancementTimesDataset));
+    handles.degreeAdvancementCountsDataset = H5I_INVALID_HID;
+    handles.degreeAdvancementTimesDataset = H5I_INVALID_HID;
 }
 
 

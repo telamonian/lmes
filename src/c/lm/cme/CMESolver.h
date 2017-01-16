@@ -160,11 +160,9 @@ protected:
 
     inline void callUpdateSpeciesCountsListeners(uint r)
     {
-        // Update the degree advancement
+        // Update the degree advancement, if we are tracking it.
         if (trackingDegreeAdvancements)
-        {
             degreeAdvancements[r]++;
-        }
 
         // Update the first passage time tables.
         for (int i=0; i<numberFptSpecies; i++)

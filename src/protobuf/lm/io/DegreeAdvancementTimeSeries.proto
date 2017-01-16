@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2017 Johns Hopkins University
+ * Copyright 2016-2017 Johns Hopkins University
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,21 +17,16 @@
  *               Johns Hopkins University
  *               http://biophysics.jhu.edu/roberts/
  *
- * Author(s): Elijah Roberts, Max Klein
+ * Author(s): Max Klein, Elijah Roberts
  */
+
 
 package lm.io;
 
-import "lm/io/FirstPassageTimes.proto";
-import "lm/io/OrderParametersValues.proto";
-import "lm/io/SpeciesCounts.proto";
-import "lm/io/TilingHist.proto";
 import "robertslab/pbuf/NDArray.proto";
 
-message CMEState {
-    required SpeciesCounts species_counts                   = 1;
-    optional robertslab.pbuf.NDArray degree_advancements    = 2;    //1D; rows=species; type=uint64
-    repeated FirstPassageTimes first_passage_times          = 3;
-    optional OrderParametersValues order_parameter_values   = 4;
-    repeated TilingHist tiling_hists                        = 5;
+message DegreeAdvancementTimeSeries {
+    required uint64 trajectory_id                             = 1;
+    required robertslab.pbuf.NDArray counts                   = 2;    //2D; rows=times,cols=species; type=uint64
+    required robertslab.pbuf.NDArray times                    = 3;    //1D; rows=times; type=float64
 }

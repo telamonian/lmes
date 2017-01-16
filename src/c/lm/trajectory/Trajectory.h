@@ -92,7 +92,6 @@ public:
 protected:
     virtual void initializeState(const lm::input::Input& input, bool reversed, bool useCMEState, bool useRDMEState, bool useDiffusionPDEState);
     virtual void initializeCMEState(const lm::input::Input& input, bool reversed);
-    virtual void initializeDegreeAdvancements(const lm::input::Input& input);
     virtual void inititializeHists(const lm::input::Input& input);
     virtual void initializeOrderParameters(const lm::input::Input& input);
     virtual void initializeRDMEState(const lm::input::Input& input);

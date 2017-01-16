@@ -116,18 +116,16 @@ void Trajectory::initializeCMEState(const lm::input::Input& input, bool reversed
         }
         sc->add_time(0.0);
         
-        // Initialize the degree advancements
-        if (input.hasDegreeAdvancement())
-        {
-            initializeDegreeAdvancements(input);
-        }
+        // Initialize the degree advancements.
+        ndarray<uint64_t> initalDegreeAdvancementCounts(utuple(reactionModel.number_reactions()));
+        NDArraySerializer::serializeInto(state.mutable_cme_state()->mutable_degree_advancements(), initalDegreeAdvancementCounts);
 
         // Initialize the first passage times in the cme state.
-        if (input.getOutputOptionsMsg().fpt_species_to_track_size() > 0)
+        if (input.getOutputOptions().fpt_species_to_track_size() > 0)
         {
-            for (int i=0; i<input.getOutputOptionsMsg().fpt_species_to_track_size(); i++)
+            for (int i=0; i<input.getOutputOptions().fpt_species_to_track_size(); i++)
             {
-                uint species = input.getOutputOptionsMsg().fpt_species_to_track(i);
+                uint species = input.getOutputOptions().fpt_species_to_track(i);
                 lm::io::FirstPassageTimes* fpt = state.mutable_cme_state()->add_first_passage_times();
                 fpt->set_trajectory_id(id);
                 fpt->set_species(species);
@@ -157,20 +155,6 @@ void Trajectory::initializeCMEState(const lm::input::Input& input, bool reversed
     {
         inititializeHists(input);
     }
-}
-
-void Trajectory::initializeDegreeAdvancements(const lm::input::Input& input)
-{
-    const lm::input::ReactionModel& reactionModel = input.getReactionModelMsg();
-    lm::io::DegreeAdvancements* da = state.mutable_cme_state()->mutable_degree_advancements();
-    da->set_trajectory_id(id);
-    da->set_number_entries(1);
-    da->set_number_reactions(reactionModel.number_reactions());
-    for (uint j=0; j<reactionModel.number_reactions(); j++)
-    {
-        da->add_degree_advancements(0);
-    }
-    da->add_time(0.0);
 }
 
 void Trajectory::inititializeHists(const lm::input::Input& input)
@@ -348,7 +332,6 @@ void Trajectory::setID(uint64_t newID)
     state.set_trajectory_id(newID);
     state.mutable_cme_state()->mutable_species_counts()->set_trajectory_id(newID);
 
-    if (state.mutable_cme_state()->has_degree_advancements()) state.mutable_cme_state()->mutable_degree_advancements()->set_trajectory_id(newID);
     if (state.mutable_cme_state()->has_order_parameter_values()) state.mutable_cme_state()->mutable_order_parameter_values()->set_trajectory_id(newID);
 }
 

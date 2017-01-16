@@ -77,11 +77,13 @@
 #include "lm/Types.h"
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
+#include "robertslab/pbuf/NDArraySerializer.h"
 
 //using lm::trajectory::checkLimit;
 using std::list;
 using std::map;
 using std::string;
+using robertslab::pbuf::NDArraySerializer;
 
 namespace lm {
 namespace cme {
@@ -152,7 +154,7 @@ void CMESolver::setReactionModel(const lm::input::ReactionModel& rm)
     if (reactionModel != NULL) delete reactionModel;
     reactionModel = new ReactionModel(rm);
 
-    // Allocate space for the degree advancement counts, if we're writing them.
+    // Allocate space for the degree advancement counts.
     if (degreeAdvancements != NULL) delete[] degreeAdvancements; degreeAdvancements = NULL;
     degreeAdvancements = new uint64_t[reactionModel->numberReactions];
 
@@ -272,17 +274,7 @@ void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
     if (trajectoryNumber >= getSimultaneousTrajectories()) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
 
     // Get the degree advancements.
-    if (writeDegreeAdvancementTimeSeries)
-    {
-        state->mutable_cme_state()->mutable_degree_advancements()->set_trajectory_id(trajectoryId);
-        state->mutable_cme_state()->mutable_degree_advancements()->set_number_reactions(reactionModel->numberReactions);
-        state->mutable_cme_state()->mutable_degree_advancements()->set_number_entries(1);
-        for (uint i=0; i<reactionModel->numberReactions; i++)
-        {
-            state->mutable_cme_state()->mutable_degree_advancements()->add_degree_advancements(degreeAdvancements[i]);
-        }
-        state->mutable_cme_state()->mutable_degree_advancements()->add_time(time);
-    }
+    NDArraySerializer::serializeInto(state->mutable_cme_state()->mutable_degree_advancements(), degreeAdvancements, utuple(reactionModel->numberReactions));
 
     // Get the first passage times.
     for (int i=0; i<numberFptSpecies; i++)
@@ -347,10 +339,7 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
     if (state.cme_state().species_counts().number_entries() != 1 || state.cme_state().species_counts().species_count_size() != (int)reactionModel->numberSpecies || state.cme_state().species_counts().time_size() != 1) throw Exception("State object has too many entries",state.cme_state().species_counts().number_entries());
 
     // Set the degree advancements.
-    for (int i=0; i<state.cme_state().degree_advancements().degree_advancements_size(); i++)
-    {
-        degreeAdvancements[i] = state.cme_state().degree_advancements().degree_advancements(i);
-    }
+    NDArraySerializer::deserializeInto(degreeAdvancements, utuple(reactionModel->numberReactions), state.cme_state().degree_advancements());
 
     // Set the first passage times.
     numberFptSpecies = state.cme_state().first_passage_times_size();
@@ -418,10 +407,9 @@ void CMESolver::setOutputOptions(const lm::input::OutputOptions& outputOptions)
 {
     if (outputOptions.has_degree_advancement_write_interval())
     {
+        trackingDegreeAdvancements = true;
         writeDegreeAdvancementTimeSeries = true;
         degreeAdvancementWriteInterval = outputOptions.degree_advancement_write_interval();
-
-        trackingDegreeAdvancements = true;
         hasUpdateSpeciesCountsListeners = true;
     }
     if (outputOptions.has_order_parameter_write_interval())

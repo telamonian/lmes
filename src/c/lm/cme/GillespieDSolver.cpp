@@ -56,6 +56,7 @@
 #include "lm/Print.h"
 #include "lm/cme/CMESolver.h"
 #include "lm/cme/GillespieDSolver.h"
+#include "lm/io/DegreeAdvancementTimeSeries.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/main/Globals.h"
@@ -173,11 +174,20 @@ uint64_t GillespieDSolver::generateTrajectory(uint64_t maxSteps)
 
     // Get the interval for writing degree advancements.
     double nextDegreeAdvancementWriteTime;
-    vector<int32_t> degreeAdvancementTimeSeriesCounts;
+    vector<uint64_t> degreeAdvancementTimeSeriesCounts;
     vector<double> degreeAdvancementTimeSeriesTimes;
     if (writeDegreeAdvancementTimeSeries)
     {
-        nextDegreeAdvancementWriteTime = ceil(time/degreeAdvancementWriteInterval)*degreeAdvancementWriteInterval;
+        if (!previouslyStarted)
+        {
+            for (uint i=0; i<reactionModel->numberReactions; i++) degreeAdvancementTimeSeriesCounts.push_back(degreeAdvancements[i]);
+            degreeAdvancementTimeSeriesTimes.push_back(time);
+            nextDegreeAdvancementWriteTime = time+degreeAdvancementWriteInterval;
+        }
+        else
+        {
+            nextDegreeAdvancementWriteTime = ceil((time+EPS)/degreeAdvancementWriteInterval)*degreeAdvancementWriteInterval;
+        }
     }
 
     // Get the interval for writing order parameters.
@@ -248,6 +258,19 @@ uint64_t GillespieDSolver::generateTrajectory(uint64_t maxSteps)
             limitIDReached = lm::trajectory::TrajectoryLimits::TIME_LIMIT_ID;
             limitTypeReached = lm::io::TrajectoryLimits::TIME;
             break;
+        }
+
+        // If we are writing degree advancement time steps, write out any steps before this event occurred.
+        if (writeDegreeAdvancementTimeSeries)
+        {
+            // Write time steps until the next write time is past the current time.
+            while (nextDegreeAdvancementWriteTime<= (time+EPS))
+            {
+                // Record the species counts.
+                for (uint i=0; i<reactionModel->numberReactions; i++) degreeAdvancementTimeSeriesCounts.push_back(degreeAdvancements[i]);
+                degreeAdvancementTimeSeriesTimes.push_back(nextDegreeAdvancementWriteTime);
+                nextDegreeAdvancementWriteTime += degreeAdvancementWriteInterval;
+            }
         }
 
         // If we are writing order parameter time steps, write out any order parameter time steps before this event occurred.
@@ -337,6 +360,18 @@ uint64_t GillespieDSolver::generateTrajectory(uint64_t maxSteps)
     {
         time = timeLimit;
         Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);
+
+        if (writeDegreeAdvancementTimeSeries && !ffluxFlag)
+        {
+            while (nextDegreeAdvancementWriteTime <= (timeLimit+EPS))
+            {
+                // Record the degree advancements.
+                for (uint i=0; i<reactionModel->numberReactions; i++) degreeAdvancementTimeSeriesCounts.push_back(degreeAdvancements[i]);
+                degreeAdvancementTimeSeriesTimes.push_back(nextDegreeAdvancementWriteTime);
+                nextDegreeAdvancementWriteTime += degreeAdvancementWriteInterval;
+            }
+        }
+
         if (writeOrderParameterTimeSeries && !ffluxFlag)
         {
             // Write order parameter time steps until the next write time is past the current time.
@@ -364,6 +399,12 @@ uint64_t GillespieDSolver::generateTrajectory(uint64_t maxSteps)
     // Otherwise we must have finished because of a species/order parameter limit, so just write out the last time.
     else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED)
     {
+        // Record the degree advancements.
+        if (writeDegreeAdvancementTimeSeries && !ffluxFlag)
+        {
+            for (uint i=0; i<reactionModel->numberReactions; i++) degreeAdvancementTimeSeriesCounts.push_back(degreeAdvancements[i]);
+            degreeAdvancementTimeSeriesTimes.push_back(time);
+        }
         // Record the order parameter counts.
         if (writeOrderParameterTimeSeries && !ffluxFlag)
         {
@@ -379,27 +420,23 @@ uint64_t GillespieDSolver::generateTrajectory(uint64_t maxSteps)
         }
     }
 
-    // If we have any species time series data, add them to the output message.
-    if (speciesTimeSeriesCounts.size() > 0 || speciesTimeSeriesTimes.size() > 0)
+    // If we have any degree advancements, add them to the output message.
+    if (degreeAdvancementTimeSeriesCounts.size() > 0 || degreeAdvancementTimeSeriesTimes.size() > 0)
     {
         // Mark that the message does contain some data.
         output->set_has_output(true);
 
         // Make sure the arrays are of a consistent size.
-        if (speciesTimeSeriesCounts.size() == speciesTimeSeriesTimes.size()*reactionModel->numberSpeciesToTrack)
+        if (degreeAdvancementTimeSeriesCounts.size() == degreeAdvancementTimeSeriesTimes.size()*reactionModel->numberReactions)
         {
-            lm::io::SpeciesTimeSeries* speciesTimeSeriesDataSet = output->mutable_species_time_series();
-            speciesTimeSeriesDataSet->set_trajectory_id(trajectoryId);
-
-            // Serialize the times.
-            robertslab::pbuf::NDArraySerializer::serializeInto<double>(speciesTimeSeriesDataSet->mutable_times(), speciesTimeSeriesTimes.data(), utuple(speciesTimeSeriesTimes.size()));
-
-            // Serialize the species counts.
-            robertslab::pbuf::NDArraySerializer::serializeInto<int32_t>(speciesTimeSeriesDataSet->mutable_counts(), speciesTimeSeriesCounts.data(), utuple(speciesTimeSeriesTimes.size(),reactionModel->numberSpeciesToTrack));
+            lm::io::DegreeAdvancementTimeSeries* dataSet = output->mutable_degree_advancement_time_series();
+            dataSet->set_trajectory_id(trajectoryId);
+            robertslab::pbuf::NDArraySerializer::serializeInto<double>(dataSet->mutable_times(), degreeAdvancementTimeSeriesTimes.data(), utuple(speciesTimeSeriesTimes.size()));
+            robertslab::pbuf::NDArraySerializer::serializeInto<uint64_t>(dataSet->mutable_counts(), degreeAdvancementTimeSeriesCounts.data(), utuple(speciesTimeSeriesTimes.size(),reactionModel->numberReactions));
         }
         else
         {
-            Print::printf(Print::ERROR, "Species time series counts and time mismatch %d,%d,%d", speciesTimeSeriesCounts.size(), reactionModel->numberSpeciesToTrack, speciesTimeSeriesTimes.size());
+            Print::printf(Print::ERROR, "Degree advancement time series counts and time mismatch %d,%d,%d", degreeAdvancementTimeSeriesCounts.size(), reactionModel->numberSpeciesToTrack, degreeAdvancementTimeSeriesTimes.size());
         }
     }
 
@@ -426,6 +463,30 @@ uint64_t GillespieDSolver::generateTrajectory(uint64_t maxSteps)
         else
         {
             Print::printf(Print::ERROR, "Order parameter time series counts and time mismatch %d,%d,%d", orderParameterTimeSeriesCounts.size(), numberOrderParameters, orderParameterTimeSeriesTimes.size());
+        }
+    }
+
+    // If we have any species time series data, add them to the output message.
+    if (speciesTimeSeriesCounts.size() > 0 || speciesTimeSeriesTimes.size() > 0)
+    {
+        // Mark that the message does contain some data.
+        output->set_has_output(true);
+
+        // Make sure the arrays are of a consistent size.
+        if (speciesTimeSeriesCounts.size() == speciesTimeSeriesTimes.size()*reactionModel->numberSpeciesToTrack)
+        {
+            lm::io::SpeciesTimeSeries* speciesTimeSeriesDataSet = output->mutable_species_time_series();
+            speciesTimeSeriesDataSet->set_trajectory_id(trajectoryId);
+
+            // Serialize the times.
+            robertslab::pbuf::NDArraySerializer::serializeInto<double>(speciesTimeSeriesDataSet->mutable_times(), speciesTimeSeriesTimes.data(), utuple(speciesTimeSeriesTimes.size()));
+
+            // Serialize the species counts.
+            robertslab::pbuf::NDArraySerializer::serializeInto<int32_t>(speciesTimeSeriesDataSet->mutable_counts(), speciesTimeSeriesCounts.data(), utuple(speciesTimeSeriesTimes.size(),reactionModel->numberSpeciesToTrack));
+        }
+        else
+        {
+            Print::printf(Print::ERROR, "Species time series counts and time mismatch %d,%d,%d", speciesTimeSeriesCounts.size(), reactionModel->numberSpeciesToTrack, speciesTimeSeriesTimes.size());
         }
     }
 

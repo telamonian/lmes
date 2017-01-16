@@ -80,7 +80,7 @@ public:
     const lm::input::DiffusionModel& getDiffusionModelMsg() const {return diffusionModel;}
     const lm::oparam::OParams& getOrderParameters() const {return orderParameters;}
     const lm::io::OrderParameters& getOrderParametersMsg() const {return orderParametersMsg;}
-    const lm::input::OutputOptions& getOutputOptionsMsg() const {return outputOptions;}
+    const lm::input::OutputOptions& getOutputOptions() const {return outputOptions;}
     const lm::input::ReactionModel& getReactionModelMsg() const {return reactionModel;}
     const lm::input::SimulationParametersWrap& getSimulationParameters() const {return simulationParameters;}
     const lm::tiling::Tilings& getTilings() const {return tilings;}
@@ -91,7 +91,6 @@ public:
     uint64_t getPartsPerWorkUnit() const {return partsPerWorkUnit;}
     uint64_t getStepsPerWorkUnit() const {return stepsPerWorkUnit;}
 
-    bool hasDegreeAdvancement() const {return degreeAdvancementPresent;}
     bool hasReactionModel() const {return reactionModelPresent;}
     bool hasDiffusionModel() const {return diffusionModelPresent;}
     bool hasOrderParameters() const {return orderParametersPresent;}
@@ -110,13 +109,11 @@ protected:
 
     bool parseBoundaryConditions(lm::types::BoundaryConditions* bc, std::string arg);
     template <EH::LimitType LT> inline bool parseLimits(std::string key, std::string debugString, EH::StoppingCondition sc, bool includeEndpoint=true);
-    template <typename T, typename MF, typename valT> inline bool parseAndSet(T& obj, MF (T::*mf)(valT), std::string key);
 
 protected:
 
     lm::input::SimulationInput input;
 
-    bool degreeAdvancementPresent;
     bool reactionModelPresent;
     bool diffusionModelPresent;
     bool orderParametersPresent;

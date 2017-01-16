@@ -57,6 +57,7 @@
 #include "lm/avx/GillespieDSolverAVX.h"
 #include "lm/cme/CMESolver.h"
 #include "lm/cme/ReactionModel.h"
+#include "lm/io/DegreeAdvancementTimeSeries.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/message/Message.pb.h"
@@ -100,7 +101,7 @@ void* GillespieDSolverAVX::allocateObject()
 }
 
 GillespieDSolverAVX::GillespieDSolverAVX()
-:GillespieDSolver(),limitValues(NULL),fptAllocatedValues(0),fptValues(NULL),fptMinValues(NULL),fptMaxValues(NULL),speciesCounts(NULL),propensities(NULL),orderParameterValues(NULL),orderParameterPreviousValues(NULL)
+:GillespieDSolver(),limitValues(NULL),fptAllocatedValues(0),fptValues(NULL),fptMinValues(NULL),fptMaxValues(NULL),speciesCounts(NULL),propensities(NULL),orderParameterValues(NULL),orderParameterPreviousValues(NULL),degreeAdvancements(NULL)
 {
     // Initialize any avx variables.
     timeLimit = _mm256_set1_pd(std::numeric_limits<double>::infinity());
@@ -138,6 +139,7 @@ GillespieDSolverAVX::~GillespieDSolverAVX()
     if (propensities != NULL) free(propensities); propensities = NULL;
     if (orderParameterValues != NULL) free(orderParameterValues); orderParameterValues = NULL;
     if (orderParameterPreviousValues != NULL) free(orderParameterPreviousValues); orderParameterPreviousValues = NULL;
+    if (degreeAdvancements != NULL) free(degreeAdvancements); degreeAdvancements = NULL;
 }
 
 void GillespieDSolverAVX::allocateRngBuffers()
@@ -170,6 +172,7 @@ void GillespieDSolverAVX::setReactionModel(const lm::input::ReactionModel& rm)
     // Free any previous state.
     if (speciesCounts != NULL) free(speciesCounts); speciesCounts = NULL;
     if (propensities != NULL) free(propensities); propensities = NULL;
+    if (degreeAdvancements != NULL) free(degreeAdvancements); propensities = NULL;
 
     // Allocate species counts table.
     POSIX_EXCEPTION_CHECK(posix_memalign((void**)&speciesCounts, DOUBLES_PER_AVX*sizeof(double), reactionModel->numberSpecies*DOUBLES_PER_AVX*sizeof(double)));
@@ -177,6 +180,8 @@ void GillespieDSolverAVX::setReactionModel(const lm::input::ReactionModel& rm)
     // Allocate reaction propensities table.
     POSIX_EXCEPTION_CHECK(posix_memalign((void**)&propensities, DOUBLES_PER_AVX*sizeof(double), reactionModel->numberReactions*DOUBLES_PER_AVX*sizeof(double)));
 
+    // Allocate degree advancements table.
+    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&degreeAdvancements, DOUBLES_PER_AVX*sizeof(double), reactionModel->numberReactions*DOUBLES_PER_AVX*sizeof(uint64_t)));
 }
 
 void GillespieDSolverAVX::setOrderParameters(const lm::io::OrderParameters& ops)
@@ -231,10 +236,11 @@ void GillespieDSolverAVX::reset()
         speciesCounts[i] = 0.0;
     }
 
-    // Reset the propensities.
+    // Reset the propensities amd degree advancements.
     for (int i=0; i<(int)reactionModel->numberReactions*DOUBLES_PER_AVX; i++)
     {
         propensities[i] = 0.0;
+        degreeAdvancements[i] = 0;
     }
 
     // Reset any array variables.
@@ -347,6 +353,12 @@ void GillespieDSolverAVX::copyTrajectoryStateToBaseSolver(uint trajectoryNumber)
         CMESolver::fptValues[i] = fptValues[i*DOUBLES_PER_AVX+trajectoryNumber];
     }
 
+    // Set the degree advancements.
+    for (uint i=0; i<reactionModel->numberReactions; i++)
+    {
+        CMESolver::degreeAdvancements[i] = degreeAdvancements[i*DOUBLES_PER_AVX+trajectoryNumber];
+    }
+
 
     // Set the histogram bin values.
     //TODO: implement
@@ -390,6 +402,12 @@ void GillespieDSolverAVX::copyTrajectoryStateFromBaseSolver(uint trajectoryNumbe
         fptValues[i*DOUBLES_PER_AVX+trajectoryNumber] = CMESolver::fptValues[i];
         fptMinValues[i*DOUBLES_PER_AVX+trajectoryNumber] = double(CMESolver::fptValues[i].minValue);
         fptMaxValues[i*DOUBLES_PER_AVX+trajectoryNumber] = double(CMESolver::fptValues[i].maxValue);
+    }
+
+    // Set the species counts.
+    for (uint i=0; i<reactionModel->numberReactions; i++)
+    {
+        degreeAdvancements[i*DOUBLES_PER_AVX+trajectoryNumber] = CMESolver::degreeAdvancements[i];
     }
 
     // Set the histogram bin values.
@@ -479,6 +497,27 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
     {
         avxd propensity = _mm256_load_pd(&propensities[i*DOUBLES_PER_AVX]);
         totalPropensity = _mm256_add_pd(totalPropensity,propensity);
+    }
+
+    // Create the degree advancement data sets.
+    avxd nextDegreeAdvancementWriteTime;
+    vector<uint64_t> degreeAdvancementTimeSeriesCounts[DOUBLES_PER_AVX];
+    vector<double> degreeAdvancementTimeSeriesTimes[DOUBLES_PER_AVX];
+    if (writeDegreeAdvancementTimeSeries)
+    {
+        for (int i=0; i<DOUBLES_PER_AVX; i++)
+        {
+            if (!previouslyStarted[i])
+            {
+                for (uint j=0; j<reactionModel->numberReactions; j++) degreeAdvancementTimeSeriesCounts[i].push_back(degreeAdvancements[j*DOUBLES_PER_AVX+i]);
+                degreeAdvancementTimeSeriesTimes[i].push_back(((double*)&time)[i]);
+                ((double*)&nextDegreeAdvancementWriteTime)[i] = ((double*)&time)[i]+degreeAdvancementWriteInterval;
+            }
+            else
+            {
+                ((double*)&nextDegreeAdvancementWriteTime)[i] = ceil((((double*)&time)[i]+EPS)/degreeAdvancementWriteInterval)*degreeAdvancementWriteInterval;
+            }
+        }
     }
 
     // Get the interval for writing species counts.
@@ -577,7 +616,33 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
         timeStep = nextTimeStep;
         time = nextTime;
 
-        // If we are writing time steps, write out any time steps before this event occurred.
+        // If we are writing degree advancements, write out any time steps before this event occurred.
+        if (writeDegreeAdvancementTimeSeries)
+        {
+            // Loop until we have finished writing out all elements.
+            while (true)
+            {
+                // See if any elements still need time steps written.
+                comp = _mm256_cmp_pd(nextDegreeAdvancementWriteTime, _mm256_add_pd(time, eps), _CMP_LE_OQ);
+                trueMask = _mm256_movemask_pd(comp);
+                if (!trueMask) break;
+
+                // Go through the mask.
+                for (int i=0; i<DOUBLES_PER_AVX; i++)
+                {
+                    // If this element was true, write its counts.
+                    if (trueMask&(1<<i))
+                    {
+                        // Record the degree advancement counts.
+                        for (uint j=0; j<reactionModel->numberReactions; j++) degreeAdvancementTimeSeriesCounts[i].push_back(degreeAdvancements[j*DOUBLES_PER_AVX+i]);
+                        degreeAdvancementTimeSeriesTimes[i].push_back(((double*)&nextDegreeAdvancementWriteTime)[i]);
+                        ((double*)&nextDegreeAdvancementWriteTime)[i] += degreeAdvancementWriteInterval;
+                    }
+                }
+            }
+        }
+
+        // If we are writing species counts, write out any time steps before this event occurred.
         if (writeSpeciesTimeSeries)
         {
             // Loop until we have finished writing out all elements.
@@ -766,6 +831,18 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
         {
             ((double*)&time)[i] = ((double*)&timeLimit)[i];
             Print::printf(Print::DEBUG, "Generated trajectory %llu through time %e.", trajectoryId[i], ((double*)&time)[i]);
+
+            if (writeDegreeAdvancementTimeSeries)
+            {
+                while (((double*)&nextDegreeAdvancementWriteTime)[i] <= (((double*)&timeLimit)[i]+EPS))
+                {
+                    // Record the degree advancements.
+                    for (uint j=0; j<reactionModel->numberReactions; j++) degreeAdvancementTimeSeriesCounts[i].push_back(degreeAdvancements[j*DOUBLES_PER_AVX+i]);
+                    degreeAdvancementTimeSeriesTimes[i].push_back(((double*)&nextDegreeAdvancementWriteTime)[i]);
+                    ((double*)&nextDegreeAdvancementWriteTime)[i] += degreeAdvancementWriteInterval;
+                }
+            }
+
             if (writeSpeciesTimeSeries)
             {
                 while (((double*)&nextSpeciesWriteTime)[i] <= (((double*)&timeLimit)[i]+EPS))
@@ -781,12 +858,38 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
         // Otherwise we must have finished because of a species/order parameter limit, so just write out the last time.
         else if (status[i] == lm::message::WorkUnitStatus::LIMIT_REACHED)
         {
+            // Record the degree advancements.
+            if (writeDegreeAdvancementTimeSeries)
+            {
+                for (uint j=0; j<reactionModel->numberReactions; j++) degreeAdvancementTimeSeriesCounts[i].push_back(degreeAdvancements[j*DOUBLES_PER_AVX+i]);
+                degreeAdvancementTimeSeriesTimes[i].push_back(((double*)&time)[i]);
+            }
+
             // Record the species counts.
             if (writeSpeciesTimeSeries)
             {
-                // Record the species counts.
                 for (uint j=0; j<reactionModel->numberSpeciesToTrack; j++) speciesTimeSeriesCounts[i].push_back(lround(speciesCounts[j*DOUBLES_PER_AVX+i]));
                 speciesTimeSeriesTimes[i].push_back(((double*)&time)[i]);
+            }
+        }
+
+        // If we have any degree advancement data, add them to the output message.
+        if (degreeAdvancementTimeSeriesCounts[i].size() > 0 || degreeAdvancementTimeSeriesTimes[i].size() > 0)
+        {
+            // Mark that the message does contain some data.
+            output[i]->set_has_output(true);
+
+            // Make sure the arrays are of a consistent size.
+            if (degreeAdvancementTimeSeriesCounts[i].size() == degreeAdvancementTimeSeriesTimes[i].size()*reactionModel->numberReactions)
+            {
+                lm::io::DegreeAdvancementTimeSeries* dataSet = output[i]->mutable_degree_advancement_time_series();
+                dataSet->set_trajectory_id(trajectoryId[i]);
+                robertslab::pbuf::NDArraySerializer::serializeInto<double>(dataSet->mutable_times(), degreeAdvancementTimeSeriesTimes[i].data(), utuple(degreeAdvancementTimeSeriesTimes[i].size()));
+                robertslab::pbuf::NDArraySerializer::serializeInto<uint64_t>(dataSet->mutable_counts(), degreeAdvancementTimeSeriesCounts[i].data(), utuple(degreeAdvancementTimeSeriesTimes[i].size(),reactionModel->numberReactions));
+            }
+            else
+            {
+                Print::printf(Print::ERROR, "Degree advancement time series counts and time mismatch %d,%d,%d", degreeAdvancementTimeSeriesCounts[i].size(), reactionModel->numberReactions, degreeAdvancementTimeSeriesTimes[i].size());
             }
         }
 
@@ -801,11 +904,7 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
             {
                 lm::io::SpeciesTimeSeries* speciesTimeSeriesDataSet = output[i]->mutable_species_time_series();
                 speciesTimeSeriesDataSet->set_trajectory_id(trajectoryId[i]);
-
-                // Serialize the times.
                 robertslab::pbuf::NDArraySerializer::serializeInto<double>(speciesTimeSeriesDataSet->mutable_times(), speciesTimeSeriesTimes[i].data(), utuple(speciesTimeSeriesTimes[i].size()));
-
-                // Serialize the species counts.
                 robertslab::pbuf::NDArraySerializer::serializeInto<int32_t>(speciesTimeSeriesDataSet->mutable_counts(), speciesTimeSeriesCounts[i].data(), utuple(speciesTimeSeriesTimes[i].size(),reactionModel->numberSpeciesToTrack));
             }
             else
@@ -864,11 +963,21 @@ void GillespieDSolverAVX::performReactionEventAVX(uint* reactionsToPerform)
             speciesCounts[(reactionModel->dependentSpecies[r][i])*DOUBLES_PER_AVX+j] += double(reactionModel->dependentSpeciesChange[r][i]);
         }
     }
-    if (hasUpdateSpeciesCountsListeners) callUpdateSpeciesCountsListenersAVX();
+    if (hasUpdateSpeciesCountsListeners) callUpdateSpeciesCountsListenersAVX(reactionsToPerform);
 }
 
-void GillespieDSolverAVX::callUpdateSpeciesCountsListenersAVX()
+void GillespieDSolverAVX::callUpdateSpeciesCountsListenersAVX(uint* reactionsToPerform)
 {
+    // Update the degree advancement, if we are tracking it.
+    if (trackingDegreeAdvancements)
+    {
+        for (uint i=0; i<DOUBLES_PER_AVX; i++)
+        {
+            uint r = reactionsToPerform[i];
+            degreeAdvancements[r*DOUBLES_PER_AVX+i]++;
+        }
+    }
+
     // Update the first passage time tables.
     for (int i=0; i<numberFptSpecies; i++)
     {

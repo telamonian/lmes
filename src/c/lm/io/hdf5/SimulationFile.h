@@ -53,6 +53,7 @@
 #include "lm/input/ReactionModel.pb.h"
 #include "lm/input/SpatialModel.pb.h"
 #include "lm/input/SimulationParameters.pb.h"
+#include "lm/io/DegreeAdvancementTimeSeries.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/io/hdf5/HDF5.h"
 #include "lm/Exceptions.h"
@@ -172,6 +173,7 @@ public:
     virtual bool replicateExists(uint64_t replicate);
     virtual void openReplicate(uint64_t replicate) throw(HDF5Exception);
     virtual void appendSpeciesCounts(uint64_t replicate, lm::io::SpeciesCounts * speciesCounts) throw(HDF5Exception);
+    virtual void appendDegreeAdvancementTimeSeries(uint64_t replicate, const lm::io::DegreeAdvancementTimeSeries& data);
     virtual void appendSpeciesTimeSeries(uint64_t replicate, const lm::io::SpeciesTimeSeries& speciesCounts);
     virtual void appendLatticeTimeSeries(uint64_t replicate, const lm::io::LatticeTimeSeries& data);
     virtual void appendSpeciesTimeSeries(uint64_t replicate, int numberEntries, int numberSpecies, const int32_t* counts, const double* times);
@@ -220,7 +222,13 @@ public:
     {
         hid_t group;
         hid_t speciesCountsDataset, speciesCountTimesDataset;
-        ReplicateHandles():group(H5I_INVALID_HID),speciesCountsDataset(H5I_INVALID_HID),speciesCountTimesDataset(H5I_INVALID_HID) {}
+        ReplicateHandles() :group(H5I_INVALID_HID),speciesCountsDataset(H5I_INVALID_HID),speciesCountTimesDataset(H5I_INVALID_HID){}
+    };
+
+    struct DegreeAdvancementHandles
+    {
+        hid_t degreeAdvancementCountsDataset, degreeAdvancementTimesDataset;
+        DegreeAdvancementHandles():degreeAdvancementCountsDataset(H5I_INVALID_HID),degreeAdvancementTimesDataset(H5I_INVALID_HID){}
     };
 
 	
@@ -232,7 +240,9 @@ protected:
     virtual ReplicateHandles * openReplicateHandles(uint64_t replicate) throw(HDF5Exception);
     virtual ReplicateHandles * createReplicateHandles(string replicateString) throw(Exception,HDF5Exception);
     virtual void closeReplicateHandles(ReplicateHandles * handles) throw(HDF5Exception);
-	
+    virtual DegreeAdvancementHandles openDegreeAdvancementDatasets(hid_t group, unsigned int numberReactions);
+    virtual void closeDegreeAdvancementDatasets(DegreeAdvancementHandles handles);
+
 protected:
     string          filename;
     hid_t           file;
@@ -247,6 +257,7 @@ protected:
     // The model.
     bool            modelLoaded;
     unsigned int    numberSpecies;
+    unsigned int    numberReactions;
 
     // Handles for each replicate that is open.
     map<uint64_t,ReplicateHandles *> openReplicates;

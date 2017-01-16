@@ -65,8 +65,8 @@ public:
     virtual void finalize();
 
 protected:
+    virtual void processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data);
     virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
-    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
     virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data);
     virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data);
     virtual void processFFluxOutput(const lm::io::FFluxOutput& data);

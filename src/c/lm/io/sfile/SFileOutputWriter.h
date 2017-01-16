@@ -71,10 +71,10 @@ protected:
     static const int RECORD_NAME_BUFFER_MAX_SIZE=256;
 
 protected:
+    virtual void processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data);
     virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
     virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data);
     virtual void processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data);
-    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
     virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data);
     virtual void processConcentrationsTimeSeries(const lm::io::ConcentrationsTimeSeries& data);
     virtual void flush();

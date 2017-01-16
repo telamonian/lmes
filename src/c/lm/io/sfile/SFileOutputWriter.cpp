@@ -93,6 +93,16 @@ void SFileOutputWriter::initialize()
     file->openAppend();
 }
 
+void SFileOutputWriter::processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data)
+{
+    char buffer[RECORD_NAME_BUFFER_MAX_SIZE+1];
+    memset(buffer, 0, RECORD_NAME_BUFFER_MAX_SIZE+1);
+    snprintf(buffer,RECORD_NAME_BUFFER_MAX_SIZE,"%s/Simulations/%llu/DegreeAdvancementTimeSeries", recordNamePrefix.c_str(), data.trajectory_id());
+    SFileRecord record(string(buffer), string("protobuf:lm.io.DegreeAdvancementTimeSeries"), data.ByteSize());
+    file->writeSFileRecord(record);
+    file->writeMessage(data);
+}
+
 void SFileOutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
 {
     char buffer[RECORD_NAME_BUFFER_MAX_SIZE+1];
@@ -119,16 +129,6 @@ void SFileOutputWriter::processOrderParameterTimeSeries(const lm::io::OrderParam
     memset(buffer, 0, RECORD_NAME_BUFFER_MAX_SIZE+1);
     snprintf(buffer,RECORD_NAME_BUFFER_MAX_SIZE,"%s/Simulations/%llu/OrderParameterTimeSeries", recordNamePrefix.c_str(), data.trajectory_id());
     SFileRecord record(string(buffer), string("protobuf:lm.io.OrderParameterTimeSeries"), data.ByteSize());
-    file->writeSFileRecord(record);
-    file->writeMessage(data);
-}
-
-void SFileOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
-{
-    char buffer[RECORD_NAME_BUFFER_MAX_SIZE+1];
-    memset(buffer, 0, RECORD_NAME_BUFFER_MAX_SIZE+1);
-    snprintf(buffer,RECORD_NAME_BUFFER_MAX_SIZE,"%s/Simulations/%llu/SpeciesCounts", recordNamePrefix.c_str(), data.trajectory_id());
-    SFileRecord record(string(buffer), string("protobuf:lm.io.SpeciesCounts"), data.ByteSize());
     file->writeSFileRecord(record);
     file->writeMessage(data);
 }

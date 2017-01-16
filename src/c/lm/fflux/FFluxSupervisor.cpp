@@ -256,11 +256,7 @@ void FFluxSupervisor::receivedProcessWorkUnitOutput(lm::message::Message& msg)
     for (int i=0; i<pwuMsg.part_output_size(); i++)
     {
         lm::message::WorkUnitOutput wuoMsg = pwuMsg.part_output(i);
-        if (wuoMsg.has_species_counts())
-        {
-            (static_cast<FFluxTrajectoryList*>(trajectoryList))->ffluxOutputAddTrajectory(wuoMsg.species_counts(), lm::io::FFluxOutput::RUNNING);
-        }
-        else if (wuoMsg.has_species_time_series())
+        if (wuoMsg.has_species_time_series())
         {
             (static_cast<FFluxTrajectoryList*>(trajectoryList))->ffluxOutputAddTrajectory(wuoMsg.species_time_series(), lm::io::FFluxOutput::RUNNING);
         }
