@@ -189,6 +189,9 @@ protected:
 
     virtual void buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg);
 
+//public:
+//    lm::fflux::io::FFluxPhaseOutput ffluxPhaseOutputMsgCustom;
+
 protected:
     lm::fflux::input::FFluxStageList ffluxStageListMsg;
     FFluxStageVector ffluxStageExecutionOrder;
@@ -202,7 +205,6 @@ protected:
     FFluxPhaseOutputListsWrap ffluxPhaseOutputListsWrap;
     FFluxPhaseOutputsWrap currentFFluxPhaseOutputsWrap;
 
-    lm::fflux::io::FFluxPhaseOutput ffluxPhaseOutputMsgCustom;
     lm::message::Message ffluxPhaseOutputContainingMsg;
     lm::protowrap::FFluxPhaseOutputWrap _ffluxPhaseOutputWrap_0;
     lm::protowrap::FFluxPhaseOutputWrap _ffluxPhaseOutputWrap_1;

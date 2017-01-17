@@ -113,6 +113,23 @@ FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationP
     initTrajectories(trajectoriesToStart);
 }
 
+// ffluxPhase custom constructor
+FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationPhaseIndex, const FFluxPhase& ffluxPhase, const FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousTrajectoryCount, const FFluxInput& input)
+    :TrajectoryList(count, newSimulationPhaseIndex),input(input),ffluxPhase(ffluxPhase),ffluxPhaseLimit(ffluxPhaseLimit),
+    previousPhaseOutputPtr(&previousPhaseOutputCustomWrap),cyclicCounter(0)
+{
+    previousPhaseOutputCustom.mutable_successful_trajectory_end_points()->CopyFrom(ffluxPhase.start_points());
+    previousPhaseOutputCustomWrap.setWrappedMsg(&previousPhaseOutputCustom);
+
+    // consistency check
+    if (ffluxPhase.fflux_phase_index()==0) throw ConsistencyException("Forward Flux phase n>0 version of FFluxTrajectoryList constructor called durring phase 0. fflux_phase_index: %d", ffluxPhase.fflux_phase_index());
+
+    // figure out how many trajectories we need to start right now
+    uint64_t trajectoriesToStart = getTrajectoriesToStart(ffluxPhase, ffluxPhaseLimit, simultaneousTrajectoryCount);
+
+    initTrajectories(trajectoriesToStart);
+}
+
 uint64_t FFluxTrajectoryList::getTrajectoriesToStart(const FFluxPhase& ffluxPhase, const FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousWorkUnits)
 {
     uint64_t toStart;

@@ -82,6 +82,10 @@ public:
     FFluxTrajectoryList(uint64_t count, uint64_t simulationPhaseIndex, const lm::fflux::input::FFluxPhase& ffluxPhase,
                         const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousWorkUnits,
                         const lm::fflux::input::FFluxInput& input, const lm::protowrap::FFluxPhaseOutputWrap& previousPhaseOutput);
+    // ffluxPhase custom constructor
+    FFluxTrajectoryList(uint64_t count, uint64_t simulationPhaseIndex, const lm::fflux::input::FFluxPhase& ffluxPhase,
+                        const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousWorkUnits,
+                        const lm::fflux::input::FFluxInput& input);
     virtual ~FFluxTrajectoryList() {}
 
     virtual void workUnitPartFinished(const lm::message::WorkUnitStatus& wusMsg, lm::trajectory::Trajectory* traj);
@@ -111,6 +115,8 @@ protected:
 
     // this is a pointer (and not a ref) because in some cases it has to be set to NULL
     const lm::protowrap::FFluxPhaseOutputWrap* previousPhaseOutputPtr;
+    lm::protowrap::FFluxPhaseOutputWrap previousPhaseOutputCustomWrap;
+    lm::fflux::io::FFluxPhaseOutput previousPhaseOutputCustom;
 
     lm::limit::LimitTrackingListWrap limitTrackingListWrap;
 

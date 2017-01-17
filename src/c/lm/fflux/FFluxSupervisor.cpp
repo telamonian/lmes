@@ -680,8 +680,8 @@ void FFluxSupervisor::buildTrajectoryList()
 
     if (currentPhase().start_points_size() > 0)
     {
-        ffluxPhaseOutputMsgCustom.mutable_successful_trajectory_end_points()->CopyFrom(currentPhase().start_points());
-        setTrajectoryList(new FFluxTrajectoryList(currentTrajectoryCount, currentFFluxPhaseIndex(), currentPhase(), currentPhaseLimit(), slots.getSimultaneousWorkUnits(), *input, &ffluxPhaseOutputMsgCustom));
+//        ffluxPhaseOutputMsgCustom.mutable_successful_trajectory_end_points()->CopyFrom(currentPhase().start_points());
+        setTrajectoryList(new FFluxTrajectoryList(currentTrajectoryCount, currentFFluxPhaseIndex(), currentPhase(), currentPhaseLimit(), slots.getSimultaneousWorkUnits(), *input));  //, &ffluxPhaseOutputMsgCustom));
     }
     else if(currentFFluxPhaseIndex()==0)
     {
