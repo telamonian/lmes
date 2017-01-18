@@ -181,7 +181,6 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     double nextSpeciesWriteTime;
     vector<int32_t> speciesTimeSeriesCounts;
     vector<double> speciesTimeSeriesTimes;
-    // If we are writing time steps, create the data set.
     if (writeSpeciesTimeSeries)
     {
         setInitialWriteInterval(speciesWriteInterval, &nextSpeciesWriteTime, speciesCounts, reactionModel->numberSpecies, &speciesTimeSeriesCounts, &speciesTimeSeriesTimes);

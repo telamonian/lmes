@@ -175,14 +175,26 @@ void FFluxSupervisor::initSimulationStageListCustom()
     // copy the stage list over from input
     ffluxStageListMsg.CopyFrom(input->ffluxSimulationInput().fflux_stage_list());
 
-    for (FFluxStagesWrap::iterator it=ffluxStageListMsg.mutable_fflux_stages()->begin(); it!=ffluxStageListMsg.mutable_fflux_stages()->end(); it++)
+    // iterate over the stages in ffluxStageListMsg.fflux_stages()
+    for (FFluxStagesWrap::iterator stageIt=ffluxStageListMsg.mutable_fflux_stages()->begin(); stageIt!=ffluxStageListMsg.mutable_fflux_stages()->end(); stageIt++)
     {
-        if (not it->has_tiling())
+        // if the stage doesn't already have a tiling set, use the one from the simulation input
+        if (not stageIt->has_tiling())
         {
-            addTiling(&*it, input->getTilings().at(it->tiling_id()), it->basin_index());
+            addTiling(&*stageIt, input->getTilings().at(stageIt->tiling_id()), stageIt->basin_index());
+        }
 
-            // place a ptr to the stage in the execution order (the pilot stage ptr, if any, will be placed before the production stage pointer)
-            ffluxStageExecutionOrder.push_back(&*it);
+        // place a ptr to the stage in the execution order (the pilot stage ptr, if any, will be placed before the production stage pointer)
+        ffluxStageExecutionOrder.push_back(&*stageIt);
+
+        // iterate over the phases in stageIt->fflux_phases()
+        for (FFluxPhasesWrap::iterator phaseIt=stageIt->mutable_fflux_phases()->begin(); phaseIt!=stageIt->mutable_fflux_phases()->end(); phaseIt++)
+        {
+            // if the phase doesn't already have output options set, set them in the standard way based on the simulation input
+            if (not phaseIt->has_output_options())
+            {
+                addOutputOptions(&*phaseIt, *stageIt);
+            }
         }
     }
     currentFFluxStageIter = ffluxStageExecutionOrder.begin();
@@ -291,11 +303,17 @@ void FFluxSupervisor::addFFluxPhases(lm::fflux::input::FFluxStage* stage, FFPhas
         }
 
         // (re)initialize the relevant output options
-        stringstream outputPrefixSS;
-        outputPrefixSS << "/FFluxOutput" << currentPhaseInfo(true, ffluxPhase, stage);
-        input->reinitOutputOptions(outputPrefixSS.str(), stage->is_pilot_stage());
-        ffluxPhase->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());
+        addOutputOptions(ffluxPhase, *stage);
     }
+}
+
+void FFluxSupervisor::addOutputOptions(lm::fflux::input::FFluxPhase* phase, const lm::fflux::input::FFluxStage& stage)
+{
+    // (re)initialize the relevant output options
+    stringstream outputPrefixSS;
+    outputPrefixSS << "/FFluxOutput" << currentPhaseInfo(true, phase, &stage);
+    input->reinitOutputOptions(outputPrefixSS.str(), stage.is_pilot_stage());
+    phase->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());
 }
 
 void FFluxSupervisor::startSimulationStage()
@@ -680,7 +698,6 @@ void FFluxSupervisor::buildTrajectoryList()
 
     if (currentPhase().start_points_size() > 0)
     {
-//        ffluxPhaseOutputMsgCustom.mutable_successful_trajectory_end_points()->CopyFrom(currentPhase().start_points());
         setTrajectoryList(new FFluxTrajectoryList(currentTrajectoryCount, currentFFluxPhaseIndex(), currentPhase(), currentPhaseLimit(), slots.getSimultaneousWorkUnits(), *input));  //, &ffluxPhaseOutputMsgCustom));
     }
     else if(currentFFluxPhaseIndex()==0)
@@ -1044,6 +1061,7 @@ void FFluxSupervisor::receivedFinishedWorkUnitPartPhaseZero(const lm::message::W
 // accessors
 /*
  * a short string with some info about the current phase
+ * phase and stage are const, but we use pointers instead of ref in order to allow passing of NULL
  */
 std::string FFluxSupervisor::currentPhaseInfo(bool path, const lm::fflux::input::FFluxPhase* phase, const lm::fflux::input::FFluxStage* stage) const
 {
@@ -1082,6 +1100,7 @@ std::string FFluxSupervisor::currentPhaseInfo(bool path, const lm::fflux::input:
 
 /*
  * a short string with some info about the current stage
+ * stage is const, but we use pointers instead of ref in order to allow passing of NULL
  */
 std::string FFluxSupervisor::currentStageInfo(bool path, const lm::fflux::input::FFluxStage* stage) const
 {

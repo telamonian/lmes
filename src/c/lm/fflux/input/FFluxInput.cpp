@@ -36,6 +36,7 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+#include <limits>
 #include <map>
 #include <string>
 #include <vector>
@@ -183,6 +184,16 @@ void FFluxInput::reinitOutputOptions(const std::string& recordNamePrefix, bool i
         parseAndSet("latticeWriteInterval", &lm::input::OutputOptions::set_lattice_write_interval, outputOptionsMsg);
         parseAndSet("orderParameterWriteInterval", &lm::input::OutputOptions::set_order_parameter_write_interval, outputOptionsMsg);
         parseAndSet("writeInterval", &lm::input::OutputOptions::set_species_write_interval, outputOptionsMsg);
+
+        // If output of initial or final state has been requested but none of the output intervals have been set, assume the user wants species counts output
+        if (outputOptionsMsg.write_initial_trajectory_state() or outputOptionsMsg.write_final_trajectory_state())
+        {
+            if (not (outputOptionsMsg.has_degree_advancement_write_interval() or outputOptionsMsg.has_lattice_write_interval() or outputOptionsMsg.has_order_parameter_write_interval() or outputOptionsMsg.has_species_write_interval()))
+            {
+                // set species_write_interval to the largest value possible. This ensures that only the first and/or last moments of a trajectory will be written out
+                outputOptionsMsg.set_species_write_interval(std::numeric_limits<double>::max());
+            }
+        }
     }
     else
     {

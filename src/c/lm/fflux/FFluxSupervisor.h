@@ -92,6 +92,7 @@ protected:
     virtual void addTiling(lm::fflux::input::FFluxStage* stage, const lm::tiling::Tiling& tiling, int64_t basinIndex);
     virtual lm::fflux::input::FFluxStage* addPilotStage(lm::fflux::input::FFluxStage* productionStage);
     virtual void addFFluxPhases(lm::fflux::input::FFluxStage* stage, FFPhaseEnums::TrajectoryGeneration trajGeneration, FFPhaseEnums::TrajectoryDuplication trajDuplication);
+    virtual void addOutputOptions(lm::fflux::input::FFluxPhase* phase, const lm::fflux::input::FFluxStage& stage);
 
     // setup methods that run at the start of every fflux stage
     virtual void startSimulationStage();
@@ -188,9 +189,6 @@ protected:
     virtual void destructTrajectoryList() {lm::main::SimulationSupervisor::destructTrajectoryList(); trajectoryList = NULL;}
 
     virtual void buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg);
-
-//public:
-//    lm::fflux::io::FFluxPhaseOutput ffluxPhaseOutputMsgCustom;
 
 protected:
     lm::fflux::input::FFluxStageList ffluxStageListMsg;

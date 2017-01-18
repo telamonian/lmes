@@ -23,8 +23,8 @@ class FFluxGTSRegression(GTSRegression):
                     'ffluxMinimizeCost': True,
                     'writeInitialTrajectoryState': True,
                     'writeFinalTrajectoryState': True,
-                    'writeInterval': 1e20,
-                    'writeLimitTracking': True,
+                    'writeInterval': None,
+                    'writeLimitTracking': False,
                     'maxWorkUnitSteps': 1e5,}
         else:
             return {'batchSize': 1,
@@ -40,7 +40,7 @@ class FFluxGTSRegression(GTSRegression):
                     'ffluxMinimizeCost': False,
                     'writeInitialTrajectoryState': True,
                     'writeFinalTrajectoryState': True,
-                    'writeInterval': 1e20,
+                    'writeInterval': None,
                     'writeLimitTracking': False,}
 
 if __name__=='__main__':
