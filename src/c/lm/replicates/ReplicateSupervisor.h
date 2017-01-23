@@ -83,7 +83,6 @@ protected:
     virtual void finishSimulation();
 
 private:
-    hrtime simulationStartTime;
     uint64_t numberReplicates;
 };
 

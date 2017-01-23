@@ -69,5 +69,5 @@ message FFluxPhase {
 
     optional lm.fflux.input.FFluxPhaseLimit fflux_phase_limit = 101;
     optional lm.input.OutputOptions output_options            = 102;
-    repeated lm.fflux.io.EndPoint start_points              = 103;
+    repeated lm.fflux.io.EndPoint start_points                = 103;
 }

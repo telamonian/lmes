@@ -86,7 +86,7 @@ SimulationSupervisor::SimulationSupervisor()
 :communicator(lm::MPI::worldRank,THREAD_ID),hasCheckpointSignalerStarted(false),hasOutputWriterStarted(false),haveAllWorkUnitRunnersStarted(false),
  input(NULL),outputWriterClassName(""),outputWriterProcess(-1),outputWriterThread(-1),performingCheckpoint(false),resourceMap(NULL),
  simulationOutputFilename(""),simulationPhaseIndex(0),simulationRunning(true),simulationPhaseEverTerminated(false),slots(&communicator),
- solverClassName(""),trajectoryList(NULL),useCPUAffinity(false),workUnitCount(0)
+ solverClassName(""),trajectoryList(NULL),useCPUAffinity(false),workUnitCount(0),simulationStartTime(0)
 {
     resetPerformanceStatistics();
 }
@@ -320,6 +320,8 @@ void SimulationSupervisor::startSimulationIfAllWorkersStarted()
 
 void SimulationSupervisor::startSimulation()
 {
+    simulationStartTime = getHrTime();
+
     Print::printf(Print::INFO, "Simulation started.");
     startSimulationPhase();
 }

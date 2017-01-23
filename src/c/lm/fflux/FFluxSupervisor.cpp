@@ -220,6 +220,7 @@ void FFluxSupervisor::sanityCheckInput()
 
 lm::fflux::input::FFluxStage* FFluxSupervisor::buildProductionStage(lm::fflux::input::FFluxStage* productionStage, const lm::tiling::Tiling& tiling, int64_t basinIndex)
 {
+    productionStage->set_name("Production");
     addTiling(productionStage, tiling, basinIndex);
 
     if (input->hasErrorGoal())
@@ -263,6 +264,7 @@ void FFluxSupervisor::addTiling(lm::fflux::input::FFluxStage* stage, const lm::t
 lm::fflux::input::FFluxStage* FFluxSupervisor::addPilotStage(lm::fflux::input::FFluxStage* productionStage)
 {
     lm::fflux::input::FFluxStage* pilotStage = productionStage->mutable_pilot_stage();
+    pilotStage->set_name("Pilot");
     pilotStage->set_is_pilot_stage(true);
 
     pilotStage->mutable_tiling()->CopyFrom(productionStage->tiling());
@@ -683,8 +685,13 @@ void FFluxSupervisor::addFFluxPhaseOutput()
     previousFFluxPhaseOutputWrapPtr = currentFFluxPhaseOutputWrapPtr;
     currentFFluxPhaseOutputWrapPtr = tmpFFluxPhaseOutputWrapPtr;
 
-    // add a new phase output and set it to be the current phase output
-    currentFFluxPhaseOutputsWrap.Add();
+    // add a new phase output and set some informational fields
+    lm::fflux::io::FFluxPhaseOutput* newFFluxPhaseOutputPtr = currentFFluxPhaseOutputsWrap.Add();
+    newFFluxPhaseOutputPtr->set_fflux_phase_index(currentFFluxPhaseIndex());
+    newFFluxPhaseOutputPtr->set_basin_index(currentStage().basin_index());
+    newFFluxPhaseOutputPtr->set_tiling_id(currentStage().tiling_id());
+
+    // set the new phase output to be the current phase output
     currentFFluxPhaseOutputWrapPtr->setWrappedMsg(currentFFluxPhaseOutputsWrap.ReleaseLast());
 }
 
@@ -928,6 +935,12 @@ void FFluxSupervisor::incrementSimulationStage()
     currentFFluxStageIter++;
 }
 
+void FFluxSupervisor::finishSimulation()
+{
+    Print::printf(Print::INFO, "Forward Flux supervisor finished in %0.2f seconds.", timeElapsed());
+    SimulationSupervisor::finishSimulation();
+}
+
 // methods that handle setting up RunWorkUnit messages
 void FFluxSupervisor::buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint minWorkUnits)
 {
@@ -1112,28 +1125,13 @@ std::string FFluxSupervisor::currentStageInfo(bool path, const lm::fflux::input:
     {
         stageInfo << "/Tilings/" << _stage.tiling().id();     //setfill('0') << setw(7) << _stage.tiling().id();
         stageInfo << "/Basins/" << _stage.tiling().current_basin_index();    //setfill('0') << setw(7) << _stage.tiling().current_basin_index();
-        stageInfo << "/Stages";
-        if (_stage.is_pilot_stage())
-        {
-            stageInfo << "/Pilot";
-        }
-        else if (_stage.has_pilot_stage())
-        {
-            stageInfo << "/Production";
-        }
+        stageInfo << "/Stages/" << _stage.name();
     }
     else 
     {
         stageInfo << "tiling_id: " << _stage.tiling().id();
         stageInfo << ", basin_index: " << _stage.tiling().current_basin_index();
-        if (_stage.is_pilot_stage())
-        {
-            stageInfo << ", stage_type: " << "pilot";
-        }
-        else if (_stage.has_pilot_stage())
-        {
-            stageInfo << ", stage_type: " << "production";
-        }
+        stageInfo << ", stage_type: " << _stage.name();
     }
 
     return stageInfo.str();

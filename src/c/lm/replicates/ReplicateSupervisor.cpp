@@ -76,7 +76,7 @@ void* ReplicateSupervisor::allocateObject()
 }
 
 ReplicateSupervisor::ReplicateSupervisor()
-:simulationStartTime(0),numberReplicates(0)
+:numberReplicates(0)
 {
 }
 
@@ -86,8 +86,6 @@ ReplicateSupervisor::~ReplicateSupervisor()
 
 void ReplicateSupervisor::startSimulation()
 {
-    simulationStartTime=getHrTime();
-
     // Check for some error conditions.
     if (outputWriterProcess == -1 || outputWriterThread == -1)
         throw new Exception("ReplicateSupervisor could not start the simulation, no output writer available.");
@@ -107,7 +105,7 @@ void ReplicateSupervisor::buildTrajectoryList()
 
 void ReplicateSupervisor::finishSimulation()
 {
-    Print::printf(Print::INFO, "Replicate supervisor finished %lld replicates in %0.2f seconds.", numberReplicates, convertHrToSeconds(getHrTime()-simulationStartTime));
+    Print::printf(Print::INFO, "Replicate supervisor finished %lld replicates in %0.2f seconds.", numberReplicates, timeElapsed());
     SimulationSupervisor::finishSimulation();
 }
 

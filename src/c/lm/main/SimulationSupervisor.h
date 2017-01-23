@@ -137,6 +137,7 @@ protected:
     // simulation finalization
     virtual void finishSimulation();
 
+    // msg handling
     virtual void receivedPerformCheckpointing(const lm::message::PerformCheckpointing& msg);
     virtual void receivedFinishedCheckpointing(const lm::message::FinishedCheckpointing& msg);
     virtual void receivedProcessWorkUnitOutput(lm::message::Message& msg);
@@ -147,6 +148,9 @@ protected:
     virtual void setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList);
     virtual void destructInput() {if (input != NULL) delete input; input = NULL;}
     virtual void destructTrajectoryList() {if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL;}
+
+    // other
+    virtual double timeElapsed() {return convertHrToSeconds(getHrTime() - simulationStartTime);}
 
 private:
     void printPerformanceStatistics(bool flush=false);
@@ -175,6 +179,8 @@ protected:
     long long workUnitCount;
 
 protected:
+    hrtime simulationStartTime;
+
     hrtime stats_lastPrintTime;
     long long stats_workUnits;
     long long stats_workUnitsParts;

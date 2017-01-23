@@ -87,7 +87,10 @@ FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationP
  previousPhaseOutputPtr(NULL),cyclicCounter(0)
 {
     // consistency check
-    if (ffluxPhase.fflux_phase_index()!=0) throw ConsistencyException("Forward Flux phase 0 version of FFluxTrajectoryList constructor called durring phase %d", ffluxPhase.fflux_phase_index());
+    if (ffluxPhase.fflux_phase_index()!=0)
+    {
+        throw ConsistencyException("Forward Flux phase 0 version of FFluxTrajectoryList constructor called durring phase %d", ffluxPhase.fflux_phase_index());
+    }
 
     // figure out how many trajectories we need to start right now
     uint64_t trajectoriesToStart = getTrajectoriesToStart(ffluxPhase, ffluxPhaseLimit, simultaneousTrajectoryCount);
@@ -122,7 +125,10 @@ FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationP
     previousPhaseOutputCustomWrap.setWrappedMsg(&previousPhaseOutputCustom);
 
     // consistency check
-    if (ffluxPhase.fflux_phase_index()==0) throw ConsistencyException("Forward Flux phase n>0 version of FFluxTrajectoryList constructor called durring phase 0. fflux_phase_index: %d", ffluxPhase.fflux_phase_index());
+    if (ffluxPhase.fflux_phase_index()==0)
+    {
+        throw ConsistencyException("Forward Flux phase custom version of FFluxTrajectoryList constructor called durring phase 0. fflux_phase_index: %d", ffluxPhase.fflux_phase_index());
+    }
 
     // figure out how many trajectories we need to start right now
     uint64_t trajectoriesToStart = getTrajectoriesToStart(ffluxPhase, ffluxPhaseLimit, simultaneousTrajectoryCount);

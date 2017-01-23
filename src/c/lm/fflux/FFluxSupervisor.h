@@ -144,6 +144,9 @@ protected:
     virtual bool performAnotherSimulationStage() {return not isCurrentStageLast();}
     virtual void incrementSimulationStage();
 
+    // methods that run at the end of the entire simulation
+    virtual void finishSimulation();
+
     // methods that handle setting up RunWorkUnit messages
     virtual void buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint minWorkUnits);
 
