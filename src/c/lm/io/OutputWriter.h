@@ -47,7 +47,6 @@
 
 #include "lm/Exceptions.h"
 #include "lm/io/ConcentrationsTimeSeries.pb.h"
-#include "lm/io/DegreeAdvancements.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/LatticeTimeSeries.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"

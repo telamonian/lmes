@@ -20,6 +20,8 @@
  * Author(s): Elijah Roberts
  */
 
+#ifdef OPT_AVX
+
 #include <cassert>
 #include <cmath>
 
@@ -159,3 +161,5 @@ uint64_t ExplicitFiniteDifferenceSolverAVX::generateTrajectory(uint64_t maxSteps
 
 }
 }
+
+#endif
