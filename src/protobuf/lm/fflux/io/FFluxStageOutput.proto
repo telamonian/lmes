@@ -43,7 +43,7 @@ import "lm/fflux/input/FFluxStage.proto";
 
 message FFluxStageOutput {
     /*
-     * - fflux_stage is need for metadata purposes
+     * - fflux_stage is needed for metadata purposes
      */
     optional lm.fflux.input.FFluxStage fflux_stage              = 1;
 

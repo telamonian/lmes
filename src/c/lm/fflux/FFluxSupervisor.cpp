@@ -144,6 +144,7 @@ void FFluxSupervisor::startSimulation()
         initSimulationStageList();
     }
 
+    simulationStartTime = getHrTime();
     Print::printf(Print::INFO, "Simulation started.");
 
     // call the function which starts the simulation stage (which will then call startSimulationPhase())
@@ -194,6 +195,16 @@ void FFluxSupervisor::initSimulationStageListCustom()
             if (not phaseIt->has_output_options())
             {
                 addOutputOptions(&*phaseIt, *stageIt);
+            }
+
+            // If the phase doesn't already have a limit set, build it
+            if (not phaseIt->has_fflux_phase_limit())
+            {
+                buildFFluxPhaseLimit(phaseIt->mutable_fflux_phase_limit(), *phaseIt, FFPhaseLimEnums::TRAJECTORY_COUNT, input->productionStageCountMinimum());
+            }
+            else if (not phaseIt->fflux_phase_limit().has_events_per_trajectory())
+            {
+                buildFFluxPhaseLimitTrajectoriesToRun(phaseIt->mutable_fflux_phase_limit(), *phaseIt, slots.getSimultaneousWorkUnits());
             }
         }
     }
@@ -938,7 +949,7 @@ void FFluxSupervisor::incrementSimulationStage()
 void FFluxSupervisor::finishSimulation()
 {
     Print::printf(Print::INFO, "Forward Flux supervisor finished in %0.2f seconds.", timeElapsed());
-    SimulationSupervisor::finishSimulation();
+    lm::main::SimulationSupervisor::finishSimulation();
 }
 
 // methods that handle setting up RunWorkUnit messages

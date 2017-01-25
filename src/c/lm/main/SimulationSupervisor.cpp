@@ -321,7 +321,6 @@ void SimulationSupervisor::startSimulationIfAllWorkersStarted()
 void SimulationSupervisor::startSimulation()
 {
     simulationStartTime = getHrTime();
-
     Print::printf(Print::INFO, "Simulation started.");
     startSimulationPhase();
 }
