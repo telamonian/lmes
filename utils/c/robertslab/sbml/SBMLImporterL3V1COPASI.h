@@ -15,6 +15,7 @@ public:
 protected:
     virtual string getDescription();
     virtual ASTNode_t* filterKineticExpression(ASTNode_t* expression);
+    virtual double convertSubstanceToParticles(double value, string units);
 };
 
 }

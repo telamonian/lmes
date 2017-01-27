@@ -39,13 +39,14 @@ SBMLImporterL3V1::~SBMLImporterL3V1()
     if (D != NULL) delete D; D = NULL;
 }
 
-void SBMLImporterL3V1::setOptions(bool constantsUseConcentrations, bool verbose, bool reallyVerbose, bool ignoreErrors, bool ignoreUnmatchedReactions)
+void SBMLImporterL3V1::setOptions(bool constantsUseConcentrations, bool verbose, bool reallyVerbose, bool ignoreErrors, bool ignoreUnmatchedReactions, bool ignoreVariableParameters)
 {
     this->constantsUseConcentrations = constantsUseConcentrations;
     this->verbose = verbose;
     this->reallyVerbose = reallyVerbose;
     this->stopOnError = !ignoreErrors;
     this->stopOnUnmatchedReactions = !ignoreUnmatchedReactions;
+    this->ignoreVariableParameters = ignoreVariableParameters;
 }
 
 bool SBMLImporterL3V1::import(SBMLDocument* sbmlDocument, map<string,double> userParameters, map<string,string> userExpressions)
@@ -116,8 +117,8 @@ void SBMLImporterL3V1::importGlobalParameters()
             }
             else
             {
-                throw Exception("Unsupported non-constant global parameter", sbmlModel->getParameter(i)->toSBML());
-                //Print::printf(Print::INFO, "Added parameter (%d) %s: %s", i, sbmlModel->getParameter(i)->getId().c_str(), SBML_formulaToL3String(globalExpressions[sbmlModel->getParameter(i)->getId()]));
+                if (!ignoreVariableParameters) throw Exception("Found non-constant global parameter. Either remove the parameter or execute the command again with the --ignore-variable-parameters flag set.", sbmlModel->getParameter(i)->toSBML());
+                Print::printf(Print::WARNING, "Skipped variable parameter (%d) %s: %e", i, sbmlModel->getParameter(i)->getId().c_str(), sbmlModel->getParameter(i)->getValue());
             }
         }
     }
@@ -216,7 +217,7 @@ void SBMLImporterL3V1::importSpecies()
         speciesIndices[species->getId()] = i;
 
         // Make sure we can process the species.
-        if (species->getBoundaryCondition()) throw Exception("Unsupported species property", "boundaryCondition must be false");
+        isSpeciesBoundary[i] = species->getBoundaryCondition();
 
         // Track if the species is constant.
         isSpeciesConst[i] = species->getConstant();
@@ -241,10 +242,7 @@ void SBMLImporterL3V1::importSpecies()
 
         // Add the species to the model.
         reactionModel.add_initial_species_count(initialSpeciesCount);
-        if (isSpeciesConst[i])
-            Print::printf(Print::INFO, "Added species (%d) %s with initial count: %d (constant)", i, species->getId().c_str(), initialSpeciesCount);
-        else
-            Print::printf(Print::INFO, "Added species (%d) %s with initial count: %d", i, species->getId().c_str(), initialSpeciesCount);
+        Print::printf(Print::INFO, "Added species (%d) %s with initial count: %d%s%s", i, species->getId().c_str(), initialSpeciesCount, isSpeciesConst[i]?" (constant)":"", isSpeciesBoundary[i]?" (boundary)":"");
     }
 }
 
@@ -286,8 +284,8 @@ void SBMLImporterL3V1::importReactions()
             SpeciesReference* reactant = reaction->getReactant(j);
             uint speciesIndex = speciesIndices[reactant->getSpecies()];
 
-            // If the species is not constant, set the S matrix entry.
-            if (!isSpeciesConst[speciesIndex])
+            // If the species is not constant and not a boundary condition, set the S matrix entry.
+            if (!isSpeciesConst[speciesIndex] && !isSpeciesBoundary[speciesIndex])
             {
                 // Make sure we can process the reactant.
                 if (!reactant->isSetStoichiometry()) throw Exception("Unsupported reaction property", "stoichiometry for reactants must be set");
@@ -296,9 +294,13 @@ void SBMLImporterL3V1::importReactions()
                 // Make the proper entry in the S matrix.
                 (*S)[utuple(speciesIndex,i)] -= reactant->getStoichiometry();
             }
-            else if (verbose)
+            else if (verbose && isSpeciesConst[speciesIndex])
             {
                 Print::printf(Print::INFO, "Skipping entry in S matrix for reaction %d and constant species %d.", i, speciesIndex);
+            }
+            else if (verbose && isSpeciesBoundary[speciesIndex])
+            {
+                Print::printf(Print::INFO, "Skipping entry in S matrix for reaction %d and boundary species %d.", i, speciesIndex);
             }
         }
 
@@ -309,7 +311,7 @@ void SBMLImporterL3V1::importReactions()
             uint speciesIndex = speciesIndices[product->getSpecies()];
 
             // If the species is not constant, set the S matrix entry.
-            if (!isSpeciesConst[speciesIndex])
+            if (!isSpeciesConst[speciesIndex] && !isSpeciesBoundary[speciesIndex])
             {
                 // Make sure we can process the product.
                 if (!product->isSetStoichiometry()) throw Exception("Unsupported reaction property", "stoichiometry for products must be set");
@@ -318,9 +320,13 @@ void SBMLImporterL3V1::importReactions()
                 // Make the proper entry in the S matrix.
                 (*S)[utuple(speciesIndex,i)] += product->getStoichiometry();
             }
-            else if (verbose)
+            else if (verbose && isSpeciesConst[speciesIndex])
             {
                 Print::printf(Print::INFO, "Skipping entry in S matrix for reaction %d and constant species %d.", i, speciesIndex);
+            }
+            else if (verbose && isSpeciesBoundary[speciesIndex])
+            {
+                Print::printf(Print::INFO, "Skipping entry in S matrix for reaction %d and boundary species %d.", i, speciesIndex);
             }
         }
 

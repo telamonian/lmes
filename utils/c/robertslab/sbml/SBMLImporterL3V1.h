@@ -22,7 +22,7 @@ class SBMLImporterL3V1
 public:
     SBMLImporterL3V1();
     virtual ~SBMLImporterL3V1();
-    virtual void setOptions(bool constantsUseConcentrations, bool verbose, bool reallyVerbose, bool ignoreErrors, bool ignoreUnmatchedReactions);
+    virtual void setOptions(bool constantsUseConcentrations, bool verbose, bool reallyVerbose, bool ignoreErrors, bool ignoreUnmatchedReactions, bool ignoreVariableParameters);
     virtual bool import(SBMLDocument* document, map<string,double> userParameters, map<string,string> userExpressions);
     virtual lm::input::ReactionModel* getReactionModel();
 
@@ -55,6 +55,7 @@ protected:
     bool constantsUseConcentrations;
     bool verbose, reallyVerbose;
     bool stopOnError, stopOnUnmatchedReactions;
+    bool ignoreVariableParameters;
     map<string,double> userParameters;
     map<string,string> userExpressions;
     bool allImportStepsSuccessful;
@@ -66,6 +67,7 @@ protected:
     int numberSpecies;
     map<string,int> speciesIndices;
     map<int,bool> isSpeciesConst;
+    map<int,bool> isSpeciesBoundary;
     int numberReactions;
     ndarray<int> *S;
     ndarray<int> *T;

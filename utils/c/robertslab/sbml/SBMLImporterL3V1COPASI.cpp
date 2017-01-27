@@ -35,5 +35,15 @@ ASTNode_t* SBMLImporterL3V1COPASI::filterKineticExpression(ASTNode_t* e)
     return e;
 }
 
+double SBMLImporterL3V1COPASI::convertSubstanceToParticles(double value, string units)
+{
+    // In COPASI, if the substance unit is specified as "mole", change it to the default.
+    if (units == "mole") units = "";
+
+    // Call the base converter.
+    return SBMLImporterL3V1::convertSubstanceToParticles(value, units);
+}
+
+
 }
 }
