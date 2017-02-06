@@ -18,7 +18,8 @@ public:
     static bool substituteASTExpression(ASTNode_t* node, map<string,ASTNode_t*>& globalExpressions);
     static void normalizeASTExpression(ASTNode_t* node);
     static void sortASTExpression(ASTNode_t* node);
-    static void simplifyASTExpression(ASTNode_t* node, map<string,double>& parameterValues);
+    static void substituteASTParameters(ASTNode_t* node, map<string,double>& parameterValues);
+    static void simplifyASTExpression(ASTNode_t* node);
     static bool areAllASTChildrenNumeric(ASTNode_t* node);
     static double evaluateASTOperator(const ASTNode_t * node);
     static double evaluateASTFunction(const ASTNode_t * node);

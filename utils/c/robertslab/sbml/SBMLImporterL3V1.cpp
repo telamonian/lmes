@@ -170,17 +170,6 @@ void SBMLImporterL3V1::importGlobalExpressions()
             Print::printf(Print::INFO, "Overriding assignment rule with user definition %s: %s", it->first.c_str(), SBML_formulaToL3String(globalExpressions[it->first]));
         }
     }
-
-
-    // Try to simplify any global expressions.
-    for (map<string,ASTNode_t*>::iterator it=globalExpressions.begin(); it!=globalExpressions.end(); it++)
-    {
-        string id = it->first;
-        ASTNode_t* node = it->second;
-        ASTHelper::normalizeASTExpression(node);
-        ASTHelper::simplifyASTExpression(node, globalParameters);
-        if (verbose) Print::printf(Print::INFO, "Simplified assignment rule %s: %s", id.c_str(), SBML_formulaToL3String(globalExpressions[id]));
-    }
 }
 
 void SBMLImporterL3V1::importCompartments()
@@ -414,7 +403,7 @@ bool SBMLImporterL3V1::importPropensityFunction(Reaction* reaction, int reaction
     if (reallyVerbose)
     {
         printf("substituted: %s\n", SBML_formulaToL3String(substitutedFormula));
-        ASTHelper::printASTNode(substitutedFormula);
+        //ASTHelper::printASTNode(substitutedFormula);
     }
 
     // Put the formula into normal form.
@@ -423,16 +412,25 @@ bool SBMLImporterL3V1::importPropensityFunction(Reaction* reaction, int reaction
     if (reallyVerbose)
     {
         printf("normalized: %s\n", SBML_formulaToL3String(normalizedFormula));
-        ASTHelper::printASTNode(normalizedFormula);
+        //ASTHelper::printASTNode(normalizedFormula);
     }
 
-    // Simplify the formula by substituting parameters.
-    ASTNode_t* simplifiedFormula = normalizedFormula->deepCopy();
-    ASTHelper::simplifyASTExpression(simplifiedFormula, parameterValues);
+    // Substituting any parameters.
+    ASTNode_t* parameterizedFormula = normalizedFormula->deepCopy();
+    ASTHelper::substituteASTParameters(parameterizedFormula, parameterValues);
+    if (reallyVerbose)
+    {
+        printf("parameterized: %s\n", SBML_formulaToL3String(parameterizedFormula));
+        //ASTHelper::printASTNode(parameterizedFormula);
+    }
+
+    // Simplify the formula.
+    ASTNode_t* simplifiedFormula = parameterizedFormula->deepCopy();
+    ASTHelper::simplifyASTExpression(simplifiedFormula);
     if (reallyVerbose)
     {
         printf("simplified: %s\n", SBML_formulaToL3String(simplifiedFormula));
-        ASTHelper::printASTNode(simplifiedFormula);
+        //ASTHelper::printASTNode(simplifiedFormula);
     }
 
     // Iterate through each propensity function and see if it matches.
@@ -448,7 +446,17 @@ bool SBMLImporterL3V1::importPropensityFunction(Reaction* reaction, int reaction
                 ASTNode_t* propensityFormula = SBML_parseL3Formula(it->c_str());
                 ASTNode_t* normalizedPropensityFormula = propensityFormula->deepCopy();
                 ASTHelper::normalizeASTExpression(normalizedPropensityFormula);
-                if (ASTHelper::compareASTNodes(simplifiedFormula, normalizedPropensityFormula))
+                if (ASTHelper::compareASTNodes(parameterizedFormula, normalizedPropensityFormula))
+                {
+                    (*T)[utuple(reactionIndex)] = id;
+                    Print::printf(Print::INFO, "Matched kinetic formula in reaction %s (%d) to %s: [%s] == [%s]", reaction->getName().c_str(), reactionIndex, p.name.c_str(), SBML_formulaToL3String(parameterizedFormula), SBML_formulaToL3String(normalizedPropensityFormula));
+                    Print::printf(Print::DEBUG, "                                         Original form:   [%s]", SBML_formulaToL3String(kinetics->getMath()));
+                    Print::printf(Print::DEBUG, "                                         Normalized form: [%s]", SBML_formulaToL3String(normalizedFormula));
+
+                    // Create the entry for this formula.
+                    return createPropensityFunctionEntry(reactionIndex, parameterizedFormula, normalizedPropensityFormula, p);
+                }
+                else if (ASTHelper::compareASTNodes(simplifiedFormula, normalizedPropensityFormula))
                 {
                     (*T)[utuple(reactionIndex)] = id;
                     Print::printf(Print::INFO, "Matched kinetic formula in reaction %s (%d) to %s: [%s] == [%s]", reaction->getName().c_str(), reactionIndex, p.name.c_str(), SBML_formulaToL3String(simplifiedFormula), SBML_formulaToL3String(normalizedPropensityFormula));
@@ -462,11 +470,11 @@ bool SBMLImporterL3V1::importPropensityFunction(Reaction* reaction, int reaction
                 {
                     if (verbose)
                     {
-                        Print::printf(Print::INFO, "No match [%s] to [%s]: %s", SBML_formulaToL3String(simplifiedFormula), SBML_formulaToL3String(normalizedPropensityFormula), p.name.c_str());
+                        Print::printf(Print::INFO, "No match to [%s]: %s", SBML_formulaToL3String(normalizedPropensityFormula), p.name.c_str());
                         if (reallyVerbose)
                         {
-                            ASTHelper::printASTNode(simplifiedFormula);
-                            ASTHelper::printASTNode(normalizedPropensityFormula);
+                            //ASTHelper::printASTNode(simplifiedFormula);
+                            //ASTHelper::printASTNode(normalizedPropensityFormula);
                         }
                     }
                 }
@@ -494,19 +502,46 @@ bool SBMLImporterL3V1::createPropensityFunctionEntry(int reactionIndex, ASTNode_
     if (formula->isNumber() && propensityFormula->isName() && propensityFormula->getName()[0] == 'k')
     {
         uint parameterIndex = atoi(propensityFormula->getName()+1)-1;
+        utuple index = utuple(reactionIndex,parameterIndex);
         if (formula->getType() == AST_INTEGER)
         {
-            (*K)[utuple(reactionIndex,parameterIndex)] = convertPropensityConstantUnits(propensityFormula->getName(), (double)formula->getInteger(), propensityFunction.getConstantUnits(parameterIndex));
-            if (verbose) Print::printf(Print::INFO, "    Added parameter for reaction %d: %d = %e", reactionIndex, parameterIndex, (*K)[utuple(reactionIndex,parameterIndex)]);
-            return true;
+            double value = convertPropensityConstantUnits(propensityFormula->getName(), (double)formula->getInteger(), propensityFunction.getConstantUnits(parameterIndex));
+            if (isnan((*K)[index]))
+            {
+                (*K)[index] = value;
+                if (verbose) Print::printf(Print::INFO, "    Added parameter for reaction %d parameter %d: %e", reactionIndex, parameterIndex, (*K)[utuple(reactionIndex,parameterIndex)]);
+                return true;
+            }
+            else if ((*K)[index] == value)
+            {
+                return true;
+            }
+            else
+            {
+                Print::printf(Print::ERROR, "FAILED to create entry for reaction %d parameter %d: the specified value did not match the previous value for this constant, %e != %e.", reactionIndex, parameterIndex, value, (*K)[index]);
+                return false;
+            }
         }
         else if (formula->getType() == AST_REAL || formula->getType() == AST_REAL_E)
         {
-            (*K)[utuple(reactionIndex,parameterIndex)] = convertPropensityConstantUnits(propensityFormula->getName(), formula->getReal(), propensityFunction.getConstantUnits(parameterIndex));
-            if (verbose) Print::printf(Print::INFO, "    Added parameter for reaction %d: %d = %e", reactionIndex, parameterIndex, (*K)[utuple(reactionIndex,parameterIndex)]);
-            return true;
+            double value = convertPropensityConstantUnits(propensityFormula->getName(), formula->getReal(), propensityFunction.getConstantUnits(parameterIndex));
+            if (isnan((*K)[index]))
+            {
+                (*K)[index] = value;
+                if (verbose) Print::printf(Print::INFO, "    Added parameter for reaction %d parameter %d: %e", reactionIndex, parameterIndex, (*K)[utuple(reactionIndex,parameterIndex)]);
+                return true;
+            }
+            else if ((*K)[index] == value)
+            {
+                return true;
+            }
+            else
+            {
+                Print::printf(Print::ERROR, "FAILED to create entry for reaction %d parameter %d: the specified value did not match the previous value for this constant, %e != %e.", reactionIndex, parameterIndex, value, (*K)[index]);
+                return false;
+            }
         }
-        Print::printf(Print::ERROR, "FAILED to create entry for reaction %d: the value did not match a known numeric type.", reactionIndex);
+        Print::printf(Print::ERROR, "FAILED to create entry for reaction %d parameter %d: the value did not match a known numeric type.", reactionIndex, parameterIndex);
         return false;
     }
 
@@ -520,13 +555,26 @@ bool SBMLImporterL3V1::createPropensityFunctionEntry(int reactionIndex, ASTNode_
             return false;
         }
 
+        int speciesIndex = speciesIndices[formula->getName()];
+        utuple index = utuple(speciesIndex,reactionIndex);
+        int speciesOrder = atoi(propensityFormula->getName()+1);
+
         // Add an entry in the D matrix.
-        if ((*D)[utuple(speciesIndices[formula->getName()], reactionIndex)] == 0)
+        if ((*D)[index] == 0)
         {
-            (*D)[utuple(speciesIndices[formula->getName()], reactionIndex)] = atoi(propensityFormula->getName()+1);
-            if (verbose) Print::printf(Print::INFO, "    Added dependency for reaction %d on species %d (%s): %d", reactionIndex, speciesIndices[formula->getName()], formula->getName(), (*D)[utuple(speciesIndices[formula->getName()], reactionIndex)]);
+            (*D)[index] = speciesOrder;
+            if (verbose) Print::printf(Print::INFO, "    Added dependency for reaction %d on species %d (%s): %d", reactionIndex, speciesIndex, formula->getName(), speciesOrder);
+            return true;
         }
-        return true;
+        else if ((*D)[index] == speciesOrder)
+        {
+            return true;
+        }
+        else
+        {
+            Print::printf(Print::ERROR, "FAILED to create entry for reaction %d species %d: the specified order did not match the previous order for this species, %d != %d.", reactionIndex, speciesIndex, speciesOrder, (*D)[index]);
+            return false;
+        }
     }
 
     // Go through all of the children, if any failed return false.

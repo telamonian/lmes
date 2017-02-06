@@ -159,11 +159,34 @@ void ASTHelper::sortASTExpression(ASTNode_t* node)
     }
 }
 
-void ASTHelper::simplifyASTExpression(ASTNode_t* node, map<string,double>& parameterValues)
+void ASTHelper::substituteASTParameters(ASTNode_t* node, map<string,double>& parameterValues)
+{
+    // Process the child nodes.
+    for (int i=0; i<node->getNumChildren(); i++)
+        substituteASTParameters(node->getChild(i), parameterValues);
+
+    // Substitute any parameter values.
+    if (node->getType() == AST_NAME)
+    {
+        if (parameterValues.count(node->getName()) == 1)
+        {
+            string name = node->getName();
+            node->setValue(parameterValues[name]);
+            //printf("substituting %s -> %0.4e\n",name.c_str(), node->getReal());
+        }
+    }
+
+    if (node->getType() == AST_NAME_AVOGADRO)
+    {
+        node->setValue(6.02214179e23);
+    }
+}
+
+void ASTHelper::simplifyASTExpression(ASTNode_t* node)
 {
     // Simplify the child nodes.
     for (int i=0; i<node->getNumChildren(); i++)
-        simplifyASTExpression(node->getChild(i), parameterValues);
+        simplifyASTExpression(node->getChild(i));
 
     // If this is an operator and all children are numbers, evaluate it.
     if (node->isOperator() && node->getType() != AST_POWER && areAllASTChildrenNumeric(node))
@@ -218,22 +241,6 @@ void ASTHelper::simplifyASTExpression(ASTNode_t* node, map<string,double>& param
             node->addChild(child->getChild(i));
         }
         node->setType(child->getType());
-    }
-
-    // Substitute any parameter values.
-    if (node->getType() == AST_NAME)
-    {
-        if (parameterValues.count(node->getName()) == 1)
-        {
-            string name = node->getName();
-            node->setValue(parameterValues[name]);
-            //printf("substituting %s -> %0.4e\n",name.c_str(), node->getReal());
-        }
-    }
-
-    if (node->getType() == AST_NAME_AVOGADRO)
-    {
-        node->setValue(6.02214179e23);
     }
 }
 
