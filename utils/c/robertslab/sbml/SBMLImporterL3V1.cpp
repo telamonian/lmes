@@ -412,7 +412,7 @@ bool SBMLImporterL3V1::importPropensityFunction(Reaction* reaction, int reaction
     if (reallyVerbose)
     {
         printf("normalized: %s\n", SBML_formulaToL3String(normalizedFormula));
-        //ASTHelper::printASTNode(normalizedFormula);
+        ASTHelper::printASTNode(normalizedFormula);
     }
 
     // Substituting any parameters.
@@ -421,7 +421,7 @@ bool SBMLImporterL3V1::importPropensityFunction(Reaction* reaction, int reaction
     if (reallyVerbose)
     {
         printf("parameterized: %s\n", SBML_formulaToL3String(parameterizedFormula));
-        //ASTHelper::printASTNode(parameterizedFormula);
+        ASTHelper::printASTNode(parameterizedFormula);
     }
 
     // Simplify the formula.
@@ -430,7 +430,7 @@ bool SBMLImporterL3V1::importPropensityFunction(Reaction* reaction, int reaction
     if (reallyVerbose)
     {
         printf("simplified: %s\n", SBML_formulaToL3String(simplifiedFormula));
-        //ASTHelper::printASTNode(simplifiedFormula);
+        ASTHelper::printASTNode(simplifiedFormula);
     }
 
     // Iterate through each propensity function and see if it matches.
@@ -473,8 +473,7 @@ bool SBMLImporterL3V1::importPropensityFunction(Reaction* reaction, int reaction
                         Print::printf(Print::INFO, "No match to [%s]: %s", SBML_formulaToL3String(normalizedPropensityFormula), p.name.c_str());
                         if (reallyVerbose)
                         {
-                            //ASTHelper::printASTNode(simplifiedFormula);
-                            //ASTHelper::printASTNode(normalizedPropensityFormula);
+                            ASTHelper::printASTNode(normalizedPropensityFormula);
                         }
                     }
                 }
