@@ -258,6 +258,25 @@ bool ASTHelper::areAllASTChildrenNumeric(ASTNode_t* node)
     return true;
 }
 
+bool ASTHelper::isASTNumeric(ASTNode_t* node)
+{
+    return (node->getType() == AST_INTEGER || node->getType() == AST_REAL || node->getType() == AST_REAL_E);
+}
+
+double ASTHelper::getNumericValue(ASTNode_t* node)
+{
+    if (node->getType() == AST_INTEGER)
+    {
+        return (double)node->getInteger();
+    }
+    else if (node->getType() == AST_REAL || node->getType() == AST_REAL_E)
+    {
+        return node->getReal();
+    }
+    else
+        throw Exception("Unsupported operator type.", node->getType());
+}
+
 double ASTHelper::evaluateASTOperator(const ASTNode_t * node)
 {
     if (node->getType() == AST_TIMES)

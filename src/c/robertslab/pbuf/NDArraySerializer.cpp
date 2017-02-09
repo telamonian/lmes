@@ -20,9 +20,6 @@
  * Author(s): Elijah Roberts
  */
 
-#include <zlib.h>
-
-#include "robertslab/Exceptions.h"
 #include "robertslab/Types.h"
 #include "robertslab/pbuf/NDArraySerializer.h"
 

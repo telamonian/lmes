@@ -20,6 +20,8 @@
  * Author(s): Elijah Roberts
  */
 
+syntax = "proto2";
+
 package robertslab.pbuf;
 
 message NDArray {

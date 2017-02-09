@@ -79,16 +79,10 @@ SimParamMap::iterator SimulationParametersWrap::findFirst(const vector<string>& 
 
     // unfortunately, though in general the above would work, it turns out that you can't const_cast an iterator, so we need something a bit more complex
     SimParamMap::const_iterator findCIt(static_cast<const SimulationParametersWrap*>(this)->findFirst(keys));
-#if __cplusplus > 199711L
-    // http://stackoverflow.com/a/10669041/425458
-    // in c++11, calling .erase() with a duplicate const_iterator (ie an empty range) returns a non-const iterator while erasing nothing
-    return map.erase(findCIt, findCIt);
-#else
     // unlike the c++11 solution, this one (may) run in linear time since in general it has to increment the non-const iterator one by one
     SimParamMap::iterator findIt(_map.begin());
     std::advance(findIt, std::distance<SimParamMap::const_iterator>(findIt,findCIt));
     return findIt;
-#endif
 }
 
 void SimulationParametersWrap::set(const lm::input::SimulationParameters& parameters)

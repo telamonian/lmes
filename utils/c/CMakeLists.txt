@@ -38,6 +38,10 @@ set(util_targets lm_setp
                  lm_setrm
                  sfile_to_lm)
 
+######################################
+# Add the lm_sbml_import target.
+######################################
+
 if(libsbml_FOUND)
     file(GLOB lm_sbml_import_source lm_sbml_import.cpp)
     add_executable(lm_sbml_import ${lm_sbml_import_source} ${util_sources})
@@ -51,9 +55,29 @@ if(libsbml_FOUND)
      ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     target_link_libraries(lm_sbml_import ${libsbml_LIBRARIES})
     target_link_libraries(lm_sbml_import ${lm_utils_libs})
-
     list(APPEND util_targets lm_sbml_import)
 endif(libsbml_FOUND)
+
+######################################
+# Add the lm_bngl_import target.
+######################################
+
+if(libsbml_FOUND)
+    file(GLOB lm_bionetgen_import_source lm_bionetgen_import.cpp)
+    add_executable(lm_bionetgen_import ${lm_bionetgen_import_source} ${util_sources})
+     IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+         target_link_libraries(lm_bionetgen_import -Wl,--whole-archive)
+         target_link_libraries(lm_bionetgen_import lm_c_lib)
+         target_link_libraries(lm_bionetgen_import -Wl,--no-whole-archive)
+     ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+         target_link_libraries(lm_bionetgen_import -Wl,-force_load)
+         target_link_libraries(lm_bionetgen_import lm_c_lib)
+     ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    target_link_libraries(lm_bionetgen_import ${libsbml_LIBRARIES})
+    target_link_libraries(lm_bionetgen_import ${lm_utils_libs})
+    list(APPEND util_targets lm_bionetgen_import)
+endif(libsbml_FOUND)
+
 
 add_dependencies(utils ${util_targets})
 

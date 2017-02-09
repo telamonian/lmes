@@ -22,8 +22,9 @@
 #ifndef ROBERTSLAB_EXCEPTIONS_H
 #define ROBERTSLAB_EXCEPTIONS_H
 
-#include <stdexcept>
 #include <cstdio>
+#include <stdexcept>
+#include <string>
 
 namespace robertslab
 {

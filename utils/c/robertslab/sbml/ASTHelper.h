@@ -21,6 +21,8 @@ public:
     static void substituteASTParameters(ASTNode_t* node, map<string,double>& parameterValues);
     static void simplifyASTExpression(ASTNode_t* node);
     static bool areAllASTChildrenNumeric(ASTNode_t* node);
+    static bool isASTNumeric(ASTNode_t* node);
+    static double getNumericValue(ASTNode_t* node);
     static double evaluateASTOperator(const ASTNode_t * node);
     static double evaluateASTFunction(const ASTNode_t * node);
     static bool compareASTNodes(ASTNode_t* formula, ASTNode_t* propensityFormula);
