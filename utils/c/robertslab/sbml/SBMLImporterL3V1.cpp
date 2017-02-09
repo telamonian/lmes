@@ -427,6 +427,7 @@ bool SBMLImporterL3V1::importPropensityFunction(Reaction* reaction, int reaction
     // Simplify the formula.
     ASTNode_t* simplifiedFormula = parameterizedFormula->deepCopy();
     ASTHelper::simplifyASTExpression(simplifiedFormula);
+    ASTHelper::sortASTExpression(simplifiedFormula);
     if (reallyVerbose)
     {
         printf("simplified: %s\n", SBML_formulaToL3String(simplifiedFormula));

@@ -140,12 +140,35 @@ void ASTHelper::sortASTExpression(ASTNode_t* node)
     for (int i=0; i<node->getNumChildren(); i++)
         sortASTExpression(node->getChild(i));
 
-    // If this node is times or add sort the children by the number of their children.
+    // If this node is times or add sort the children.
     if (node->getType() == AST_TIMES || node->getType() == AST_PLUS)
     {
-        // Get a reordered list of children.
-        int currentCount=0;
         list<ASTNode_t*> children;
+
+        // Put numeric types first.
+        for (int i=0; i<node->getNumChildren(); i++)
+        {
+            if (isNumeric(node->getChild(i)))
+            {
+                children.push_back(node->getChild(i));
+                node->removeChild(i);
+                i--;
+            }
+        }
+
+        // Then named types.
+        for (int i=0; i<node->getNumChildren(); i++)
+        {
+            if (node->getChild(i)->getType() == AST_NAME)
+            {
+                children.push_back(node->getChild(i));
+                node->removeChild(i);
+                i--;
+            }
+        }
+
+        // Finally, sort by the number of children.
+        int currentCount=0;
         while (children.size() < node->getNumChildren())
         {
             for (int i=0; i<node->getNumChildren(); i++)
@@ -258,7 +281,7 @@ bool ASTHelper::areAllASTChildrenNumeric(ASTNode_t* node)
     return true;
 }
 
-bool ASTHelper::isASTNumeric(ASTNode_t* node)
+bool ASTHelper::isNumeric(ASTNode_t* node)
 {
     return (node->getType() == AST_INTEGER || node->getType() == AST_REAL || node->getType() == AST_REAL_E);
 }
