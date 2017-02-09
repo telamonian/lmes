@@ -77,6 +77,12 @@ void ASTHelper::normalizeASTExpression(ASTNode_t* node)
     for (int i=0; i<node->getNumChildren(); i++)
         normalizeASTExpression(node->getChild(i));
 
+    // If this node is FN_POWER, change it to just POWER.
+    if (node->getType() == AST_FUNCTION_POWER)
+    {
+        node->setType(AST_POWER);
+    }
+
     // If this node is times and a child is times, remove it and bring its children up a level.
     if (node->getType() == AST_TIMES)
     {
