@@ -35,6 +35,7 @@
 #include "lm/me/PropensityFunction.h"
 #include "robertslab/sbml/ASTHelper.h"
 #include "robertslab/bngl/BNGLImporter.h"
+#include "robertslab/bngl/Molecule.h"
 
 using std::list;
 using std::regex;
@@ -84,8 +85,8 @@ bool BNGLImporter::import(string filename, map<string,double> userParameters)
     // Open the file.
     std::ifstream input(filename, std::ifstream::in);
 
-    regex beginPattern("^begin\\s+(.+)\\s*$");
-    regex endPattern("^end\\s+(.+)\\s*$");
+    regex beginPattern("^begin\\s+(.+)$");
+    regex endPattern("^end\\s+(.+)$");
     string section = "";
     list<string> sectionLines;
     int lineNumber=0;
@@ -127,11 +128,11 @@ bool BNGLImporter::import(string filename, map<string,double> userParameters)
                 }
                 else if (section == "molecule types")
                 {
-                    parseSpecies(sectionLines, false);
+                    parseMoleculeTypes(sectionLines);
                 }
                 else if (section == "species" || section == "seed species" )
                 {
-                    parseSpecies(sectionLines, true);
+                    parseInitialCounts(sectionLines);
                 }
                 else if (section == "reaction rules")
                 {
@@ -175,7 +176,7 @@ void BNGLImporter::parseParameters(list<string>& lines)
 {
     Print::printf(Print::INFO, "Parsing parameters block.");
 
-    regex parameterPattern("^\\s*(?:\\d*\\s+)?(\\S+)\\s+(\\S+)\\s*$");
+    regex parameterPattern("^\\s*(?:\\d*\\s+)?(\\S+)\\s+(\\S+)$");
     std::smatch match;
     for (list<string>::iterator it=lines.begin(); it != lines.end(); it++)
     {
@@ -199,7 +200,7 @@ void BNGLImporter::parseParameters(list<string>& lines)
             }
 
             // If we got to a numeric expression, save it.
-            if (ASTHelper::isASTNumeric(formula))
+            if (ASTHelper::isNumeric(formula))
             {
                 double value = ASTHelper::getNumericValue(formula);
                 if (parameters.count(key) == 0)
@@ -223,34 +224,31 @@ void BNGLImporter::parseParameters(list<string>& lines)
             Print::printf(Print::WARNING, "Could not parse line from block: %s", line.c_str());
         }
     }
-
-    /*
-    // Process any global parameters.
-    if (sbmlModel->getNumParameters())
-    {
-        Print::printf(Print::INFO, "Processing %d parameters.", sbmlModel->getNumParameters());
-        for (int i=0; i<sbmlModel->getNumParameters(); i++)
-        {
-            if (sbmlModel->getParameter(i)->getConstant())
-            {
-            }
-            else
-            {
-                if (!ignoreVariableParameters) throw Exception("Found non-constant global parameter. Either remove the parameter or execute the command again with the --ignore-variable-parameters flag set.", sbmlModel->getParameter(i)->toSBML());
-                Print::printf(Print::WARNING, "Skipped variable parameter (%d) %s: %e", i, sbmlModel->getParameter(i)->getId().c_str(), sbmlModel->getParameter(i)->getValue());
-            }
-        }
-    }
-    */
-
 }
 
-void BNGLImporter::parseSpecies(list<string>& lines, bool initialize)
+void BNGLImporter::parseMoleculeTypes(list<string>& lines)
 {
-    if (!initialize)
-        Print::printf(Print::INFO, "Parsing molecules block.");
-    else
-        Print::printf(Print::INFO, "Parsing species block.");
+    Print::printf(Print::INFO, "Parsing molecule types block.");
+
+    for (list<string>::iterator it=lines.begin(); it != lines.end(); it++)
+    {
+        string line = *it;
+        Molecule molecule(line);
+        if (molecule.getName() != "")
+        {
+            molecules[molecule.getName()] = molecule;
+            Print::printf(Print::INFO, "Added molecule: %s", molecule.getString().c_str());
+        }
+        else
+        {
+            Print::printf(Print::WARNING, "Could not parse line from block: %s", line.c_str());
+        }
+    }
+}
+
+void BNGLImporter::parseInitialCounts(list<string>& lines)
+{
+    Print::printf(Print::INFO, "Parsing species block.");
 }
 
 void BNGLImporter::parseReactions(list<string>& lines)

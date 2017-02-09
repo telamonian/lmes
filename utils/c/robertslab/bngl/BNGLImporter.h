@@ -20,8 +20,8 @@
  * Author(s): Elijah Roberts
  */
 
-#ifndef BNGLIMPORTER_H
-#define BNGLIMPORTER_H
+#ifndef ROBERTSLAB_BNGL_BNGLIMPORTER_H
+#define ROBERTSLAB_BNGL_BNGLIMPORTER_H
 
 #include <map>
 #include <string>
@@ -30,6 +30,7 @@
 #include "lm/Types.h"
 #include "lm/input/ReactionModel.pb.h"
 #include "lm/me/PropensityFunction.h"
+#include "robertslab/bngl/Molecule.h"
 
 using std::map;
 using std::string;
@@ -50,7 +51,8 @@ public:
 
 protected:
     virtual void parseParameters(list<string>& lines);
-    virtual void parseSpecies(list<string>& lines, bool initialize);
+    virtual void parseMoleculeTypes(list<string>& lines);
+    virtual void parseInitialCounts(list<string>& lines);
     virtual void parseReactions(list<string>& lines);
     /*virtual void importMoleculeTypes();
     virtual void importSeedSpecies();
@@ -69,6 +71,7 @@ protected:
     bool verbose, reallyVerbose;
     bool allImportStepsSuccessful;
     map<string,double> parameters;
+    map<string,Molecule> molecules;
     lm::input::ReactionModel reactionModel;
 
     int numberSpecies;
