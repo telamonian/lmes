@@ -14,7 +14,7 @@ from robertslab.pbuf.NDArray_pb2 import NDArray as NDArrayMsg
 
 np.set_printoptions(edgeitems=int(1e4), threshold=int(1e4), linewidth=int(1e3))
 
-# Helper functions for easier access to Protobuf reflection
+#### Helper functions for easier access to Protobuf reflection
 
 cppTypeDict = {getattr(FieldDescriptor, attrName):attrName for attrName in dir(FieldDescriptor) if attrName.startswith('CPPTYPE_')}
 labelDict = {getattr(FieldDescriptor, attrName):attrName for attrName in dir(FieldDescriptor) if attrName.startswith('LABEL_')}
@@ -31,7 +31,7 @@ def GetFieldLabel(fieldDesc):
 def GetNDArrayDataType(ndarrayMsg):
     return NDArrayMsg.DataType.Name(ndarrayMsg.data_type)
 
-# Functions for deserializing data into protobuf messages
+#### Functions for deserializing data into protobuf messages
 
 def DeserializeNDArrayAsMsg(ndarrayMsg):
     # Convert the data to a numpy array.
@@ -50,25 +50,13 @@ def DeserializeAsMsg(data, dataTypeFullName):
 
     return msg,msgType
 
-# def DeserializeAsLMAData(data, msgTypeFullName):
-#     specTrajs = SpeciesTrajectories()
-#     specTrajs.deserialize(data)
-#     for tid,traj in specTrajs.items():
-#         print_(tid)
-#         print_(traj.time)
-#         print_(traj.species_count)
+#### Printing functions
 
-# Printing functions
-
-def PrintRecord(record, data=None):
+def PrintRecord(record, data, listOnly=False):
     print_(record)
-    if data is not None:
+    if not listOnly:
         msg,msgType = DeserializeAsMsg(data, record.dataTypeSuffix)
         PrintMsg(msg)
-
-def PrintRecordIfInclude(includeRe, record, data=None):
-    if includeRe.search(record.name):
-        PrintRecord(record=record, data=data)
 
 def PrintMsg(msg):
     ''' This function recursively walks over/prints the fields of a Protobuf message instance.
@@ -102,38 +90,75 @@ def PrintMsg(msg):
                 # val is a single pod
                 print_(desc.name, ': ', val)
 
-# Main function
+#### other
+
+def Include(name, res):
+    for re in res:
+        if re.search(name):
+            return True
+    return False
+
+def GetItems(f, doSort=False, includeRes=None):
+    """This function returns a generator expression that produces the appropriate record,data pairs
+    Useful in avoiding having to hold the entire contents of an sfile in memory at any point
+
+    :doSort: if True, sort the records before returning them (this will convert the genexp to a standard sequence)
+    :includeRes: an optional list of compiled regexes against which desired record names can be matched
+    :return: (record,data) pairs genexp
+    """
+    if includeRes is not None:
+        items = ((record,data) for record,data in f.items() if Include(record.name, includeRes))
+    else:
+        items = f.items()
+
+    if doSort:
+        return sorted(items)
+    else:
+        return items
+
+#### Main function
 
 def Main():
     parser = ArgumentParser()   #"Usage: ./dumpSFileLM.py path-to-sfile [-l]")
 
     parser.add_argument('sfilePath',                              help='path to sfile to dump')
-    parser.add_argument('-i', '--include', default=SUPPRESS,      help='only show data from records that match the given regex pattern')
+    parser.add_argument('-i', '--include', nargs='+',             help='only show data from records that match (one of) the given regex pattern(s)')
     parser.add_argument('-l', '--list-only', action='store_true', help='if the --list-only flag is set, dump only the record metadata without the actual record data')
+    parser.add_argument('-r', '--repack',                         help='repack the sfile, creating a new sfile at the provided path. If the --include argument is also used, the repacked sfile will only include the matching records')
     parser.add_argument('-s', '--sort', action='store_true',      help='if set, sort the records before outputting them')
+    parser.add_argument('-v', '--verbose', action='store_true')
 
     kwargs = vars(parser.parse_args())
 
+    verbose = kwargs['verbose'] or kwargs['repack'] is None
+
     f = SFileLM.fromFilename(kwargs['sfilePath'])
 
-    if 'include' in kwargs:
-        includeRe = re.compile(kwargs['include'])
+    if kwargs['include'] is not None:
+        includeRes = [re.compile(pattern) for pattern in kwargs['include']]
     else:
-        includeRe = None
+        includeRes = None
 
-    items = sorted(f.items()) if kwargs['sort'] else f.items()
+    # items can only be iterated through once without reopening/resetting f
+    items = GetItems(f, doSort=kwargs['sort'], includeRes=includeRes)
 
-    # loop over all of the records, printing out either the metadata, or the metadata and the deserialized data
-    if kwargs['list_only']:
-        if includeRe is not None:
-            for record,data in items: PrintRecordIfInclude(includeRe=includeRe, record=record)
-        else:
-            for record,data in items: PrintRecord(record=record)
+    # loop over all of the records
+    if kwargs['repack'] is None:
+        # just print contents
+        for record,data in items:
+            PrintRecord(record=record, data=data, listOnly=kwargs['list_only'])
     else:
-        if includeRe is not None:
-            for record,data in items: PrintRecordIfInclude(includeRe=includeRe, record=record, data=data)
+        repacked = SFileLM.fromFilename(kwargs['repack'], mode='w')
+        if kwargs['verbose']:
+            # print contents and repack file
+            for record,data in items:
+                PrintRecord(record=record, data=data, listOnly=kwargs['list_only'])
+                repacked.writeRecord(name=record.name, dataType=record.dataType, stringData=data)
         else:
-            for record,data in items: PrintRecord(record=record, data=data)
+            # just repack file
+            for record,data in items:
+                repacked.writeRecord(name=record.name, dataType=record.dataType, stringData=data)
+        repacked.close()
 
     f.close()
 

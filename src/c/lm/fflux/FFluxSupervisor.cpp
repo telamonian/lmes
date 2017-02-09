@@ -164,7 +164,7 @@ void FFluxSupervisor::initSimulationStageList()
             // initialize a stage (and possibly also its pilot stage)
             lm::fflux::input::FFluxStage* productionStage = buildProductionStage(ffluxStageListMsg.add_fflux_stages(), *tilingIt->second, basinIndex);
 
-            // place a ptr to the stage in the execution order (the pilot stage ptr, if any, will be placed before the production stage pointer)
+            // place a ptr to the stage in the execution order (the pilot stage ptr, if any, will be placed before the production stage pointer when buildProductionStage is run)
             ffluxStageExecutionOrder.push_back(productionStage);
         }
     }
@@ -179,34 +179,37 @@ void FFluxSupervisor::initSimulationStageListCustom()
     // iterate over the stages in ffluxStageListMsg.fflux_stages()
     for (FFluxStagesWrap::iterator stageIt=ffluxStageListMsg.mutable_fflux_stages()->begin(); stageIt!=ffluxStageListMsg.mutable_fflux_stages()->end(); stageIt++)
     {
+        bool pilotRunRequired = false;
+
         // if the stage doesn't already have a tiling set, use the one from the simulation input
         if (not stageIt->has_tiling())
         {
             addTiling(&*stageIt, input->getTilings().at(stageIt->tiling_id()), stageIt->basin_index());
         }
 
-        // place a ptr to the stage in the execution order (the pilot stage ptr, if any, will be placed before the production stage pointer)
-        ffluxStageExecutionOrder.push_back(&*stageIt);
-
         // iterate over the phases in stageIt->fflux_phases()
         for (FFluxPhasesWrap::iterator phaseIt=stageIt->mutable_fflux_phases()->begin(); phaseIt!=stageIt->mutable_fflux_phases()->end(); phaseIt++)
         {
-            // if the phase doesn't already have output options set, set them in the standard way based on the simulation input
             if (not phaseIt->has_output_options())
             {
+                // if the phase doesn't already have output options set, set them in the standard way based on the simulation input
                 addOutputOptions(&*phaseIt, *stageIt);
             }
 
-            // If the phase doesn't already have a limit set, build it
             if (not phaseIt->has_fflux_phase_limit())
             {
+                // If the phase doesn't already have a limit set, build it
                 buildFFluxPhaseLimit(phaseIt->mutable_fflux_phase_limit(), *phaseIt, FFPhaseLimEnums::TRAJECTORY_COUNT, input->productionStageCountMinimum());
             }
             else if (not phaseIt->fflux_phase_limit().has_events_per_trajectory())
             {
+                // If the phase has a limit but the number of runs/runners is not set, automatically figure it out
                 buildFFluxPhaseLimitTrajectoriesToRun(phaseIt->mutable_fflux_phase_limit(), *phaseIt, slots.getSimultaneousWorkUnits());
             }
         }
+
+        // place a ptr to the stage in the execution order (the pilot stage ptr, if any, will be placed before the production stage pointer)
+        ffluxStageExecutionOrder.push_back(&*stageIt);
     }
     currentFFluxStageIter = ffluxStageExecutionOrder.begin();
 }
