@@ -26,7 +26,7 @@
 #include <string>
 #include <vector>
 
-#include "robertslab/bngl/Molecule.h"
+#include "robertslab/bngl/TypeDefinitions.h"
 
 using std::regex;
 using std::regex_token_iterator;
@@ -36,13 +36,15 @@ using std::vector;
 namespace robertslab {
 namespace bngl {
 
-Component::Component()
+ComponentClass::ComponentClass()
+:valid(false)
 {
 }
 
-Component::Component(string definitionString)
+ComponentClass::ComponentClass(string definitionString)
+:valid(false)
 {
-    // Parse the component definition.
+    // Parse the component definitions.
     regex statePattern("([^~]+)");
     regex_token_iterator<string::iterator> endOfTokens;
     regex_token_iterator<std::string::iterator> tokens(definitionString.begin(), definitionString.end(), statePattern);
@@ -50,13 +52,23 @@ Component::Component(string definitionString)
     {
         string tokenString = *tokens++;
         if (name == "")
+        {
             name = tokenString;
+            valid = true;
+        }
         else
+        {
             states.push_back(tokenString);
+        }
     }
 }
 
-string Component::getString()
+bool ComponentClass::isValid()
+{
+    return valid;
+}
+
+string ComponentClass::getString()
 {
     std::stringstream ss;
     ss << name;
@@ -68,42 +80,51 @@ string Component::getString()
     return ss.str();
 }
 
-Molecule::Molecule()
+MoleculeClass::MoleculeClass()
+:valid(false)
 {
 }
 
-Molecule::Molecule(string definition)
+MoleculeClass::MoleculeClass(string definition)
+:valid(false)
 {
-    regex moleculePattern("^\\s*(?:\\d*\\s+)?(\\w+)\\((.*)\\)$");
+    regex moleculePattern("^(\\w+)\\(([^\\)]*)\\)$");
     std::smatch match;
     if (std::regex_match(definition, match, moleculePattern) && match.size() == 3)
     {
+        valid = true;
         name = match[1].str();
 
+        // Parse the components.
         string componentString = match[2].str();
-
-        // Parse the component string.
         regex componentPattern("([^ ,]+)");
         regex_token_iterator<string::iterator> endOfTokens;
         regex_token_iterator<std::string::iterator> tokens(componentString.begin(), componentString.end(), componentPattern);
         while (tokens != endOfTokens)
         {
-            components.push_back(Component(*tokens++));
+            ComponentClass component(*tokens++);
+            components.push_back(component);
+            if (!component.isValid()) valid = false;
         }
     }
 }
 
-Molecule::Molecule(string name, vector<Component> components)
-:name(name),components(components)
+MoleculeClass::MoleculeClass(string name, vector<ComponentClass> components)
+:valid(true),name(name),components(components)
 {
 }
 
-string Molecule::getName()
+bool MoleculeClass::isValid()
+{
+    return valid;
+}
+
+string MoleculeClass::getName()
 {
     return name;
 }
 
-string Molecule::getString()
+string MoleculeClass::getString()
 {
     std::stringstream ss;
     ss << name << "(";
@@ -112,6 +133,32 @@ string Molecule::getString()
         ss << (i==0?"":",") << components[i].getString();
     }
     ss << ")";
+
+    return ss.str();
+}
+
+ComplexClass::ComplexClass()
+:valid(false)
+{
+}
+
+ComplexClass::ComplexClass(vector<MoleculeClass> molecules)
+:valid(true),molecules(molecules)
+{
+}
+
+bool ComplexClass::isValid()
+{
+    return valid;
+}
+
+string ComplexClass::getString()
+{
+    std::stringstream ss;
+    for (int i=0; i<molecules.size(); i++)
+    {
+        ss << (i==0?"":".") << molecules[i].getString();
+    }
 
     return ss.str();
 }

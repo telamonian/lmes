@@ -20,8 +20,8 @@
  * Author(s): Elijah Roberts
  */
 
-#ifndef ROBERTSLAB_BNGL_MOLECULE_H
-#define ROBERTSLAB_BNGL_MOLECULE_H
+#ifndef ROBERTSLAB_BNGL_INSTANCEDEFINITIONS_H
+#define ROBERTSLAB_BNGL_INSTANCEDEFINITIONS_H
 
 #include <string>
 #include <vector>
@@ -32,30 +32,46 @@ using std::vector;
 namespace robertslab {
 namespace bngl {
 
-class Component
+class ComponentInstance
 {
 public:
-    Component();
-    Component(string definition);
+    ComponentInstance();
+    ComponentInstance(string definition);
+    bool isValid();
     string getString();
 
 protected:
+    bool valid;
     string name;
-    vector<string> states;
+    string state;
 };
 
-class Molecule
+class MoleculeInstance
 {
 public:
-    Molecule();
-    Molecule(string definition);
-    Molecule(string name, vector<Component> components);
+    MoleculeInstance();
+    MoleculeInstance(string definition);
+    bool isValid();
     string getName();
     string getString();
 
 protected:
+    bool valid;
     string name;
-    vector<Component> components;
+    vector<ComponentInstance> components;
+};
+
+class ComplexInstance
+{
+public:
+    ComplexInstance();
+    ComplexInstance(string definition);
+    bool isValid();
+    string getString();
+
+protected:
+    bool valid;
+    vector<MoleculeInstance> molecules;
 };
 
 

@@ -30,7 +30,8 @@
 #include "lm/Types.h"
 #include "lm/input/ReactionModel.pb.h"
 #include "lm/me/PropensityFunction.h"
-#include "robertslab/bngl/Molecule.h"
+#include "robertslab/bngl/InstanceDefinitions.h"
+#include "robertslab/bngl/TypeDefinitions.h"
 
 using std::map;
 using std::string;
@@ -71,7 +72,7 @@ protected:
     bool verbose, reallyVerbose;
     bool allImportStepsSuccessful;
     map<string,double> parameters;
-    map<string,Molecule> molecules;
+    map<string,MoleculeClass> moleculeClasses;
     lm::input::ReactionModel reactionModel;
 
     int numberSpecies;

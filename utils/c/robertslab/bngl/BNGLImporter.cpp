@@ -35,7 +35,8 @@
 #include "lm/me/PropensityFunction.h"
 #include "robertslab/sbml/ASTHelper.h"
 #include "robertslab/bngl/BNGLImporter.h"
-#include "robertslab/bngl/Molecule.h"
+#include "robertslab/bngl/InstanceDefinitions.h"
+#include "robertslab/bngl/TypeDefinitions.h"
 
 using std::list;
 using std::regex;
@@ -87,6 +88,7 @@ bool BNGLImporter::import(string filename, map<string,double> userParameters)
 
     regex beginPattern("^begin\\s+(.+)$");
     regex endPattern("^end\\s+(.+)$");
+    std::smatch match;
     string section = "";
     list<string> sectionLines;
     int lineNumber=0;
@@ -102,8 +104,12 @@ bool BNGLImporter::import(string filename, map<string,double> userParameters)
         // Strip any trailing whitespace.
         line = line.substr(0,line.find_last_not_of(" \t\r\n")+1);
 
+        // Strip any leading whitespace and/or leading line numbers.
+        regex lineNumberPattern("^\\s*(?:\\d*\\s+)?(\\S.*)$");
+        if (std::regex_match(line, match, lineNumberPattern) && match.size() == 2)
+            line = match[1].str();
+
         // Check for section blocks.
-        std::smatch match;
         if (std::regex_match(line, match, beginPattern) && match.size() == 2 && match[1].str() != "model")
         {
             if (section == "")
@@ -233,11 +239,11 @@ void BNGLImporter::parseMoleculeTypes(list<string>& lines)
     for (list<string>::iterator it=lines.begin(); it != lines.end(); it++)
     {
         string line = *it;
-        Molecule molecule(line);
-        if (molecule.getName() != "")
+        MoleculeClass molecule(line);
+        if (molecule.isValid())
         {
-            molecules[molecule.getName()] = molecule;
-            Print::printf(Print::INFO, "Added molecule: %s", molecule.getString().c_str());
+            moleculeClasses[molecule.getName()] = molecule;
+            Print::printf(Print::INFO, "Added molecule definition: %s", molecule.getString().c_str());
         }
         else
         {
@@ -249,6 +255,65 @@ void BNGLImporter::parseMoleculeTypes(list<string>& lines)
 void BNGLImporter::parseInitialCounts(list<string>& lines)
 {
     Print::printf(Print::INFO, "Parsing species block.");
+
+    regex parameterPattern("^\\s*(?:\\d*\\s+)?(\\S+)\\s+(\\S+)$");
+    std::smatch match;
+    for (list<string>::iterator it=lines.begin(); it != lines.end(); it++)
+    {
+        string line = *it;
+        if (std::regex_match(line, match, parameterPattern) && match.size() == 3)
+        {
+            // Get the key and the expression.
+            string complexInstanceString = match[1].str();
+            string initialCountString = match[2].str();
+
+            // Get the complex.
+            ComplexInstance complex(complexInstanceString);
+
+            // Simplify the formula.
+            ASTNode_t* initialCountFormula = SBML_parseL3Formula(initialCountString.c_str());
+            ASTHelper::substituteASTParameters(initialCountFormula, parameters);
+            ASTHelper::simplifyASTExpression(initialCountFormula);
+
+            // If we are printing debug info, print the AST tree.
+            if (reallyVerbose)
+            {
+                Print::printf(Print::INFO, "Simplified initial count %s as:", initialCountString.c_str());
+                ASTHelper::printASTNode(initialCountFormula);
+            }
+
+            // If we got to a numeric expression, save it.
+            if (complex.isValid() && ASTHelper::isNumeric(initialCountFormula))
+            {
+                double value = ASTHelper::getNumericValue(initialCountFormula);
+                //parameters[key] = value;
+                Print::printf(Print::INFO, "Added initial count %s: %e", complex.getString().c_str(), value);
+            }
+            else
+            {
+                Print::printf(Print::ERROR, "Could not simplify initial count for %s: %s", complexInstanceString.c_str(), initialCountString.c_str());
+                allImportStepsSuccessful = false;
+            }
+        }
+        else
+        {
+            Print::printf(Print::WARNING, "Could not parse line from block: %s", line.c_str());
+        }
+
+        /*
+        string line = *it;
+        MoleculeClass molecule(line);
+        if (molecule.getName() != "")
+        {
+            moleculeClasses[molecule.getName()] = molecule;
+            Print::printf(Print::INFO, "Added molecule definition: %s", molecule.getString().c_str());
+        }
+        else
+        {
+            Print::printf(Print::WARNING, "Could not parse line from block: %s", line.c_str());
+        }
+        */
+    }
 }
 
 void BNGLImporter::parseReactions(list<string>& lines)
