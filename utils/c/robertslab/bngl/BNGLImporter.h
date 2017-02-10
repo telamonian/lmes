@@ -61,7 +61,8 @@ protected:
 protected:
     virtual void processModel();
     virtual void supplementMoleculeTypesFromSpeciesCounts();
-    virtual void discoverAtomicSpecies();
+    virtual void enumerateMoleculeSpecies();
+    vector<string> createMoleculeStateCombinations(MoleculeClass moleculeClass, int componentIndex=0);
 
     /*virtual double convertPropensityConstantUnits(string constant, double value, string desiredUnits);
     virtual void convertUnits(ASTNode_t* units);
@@ -76,6 +77,7 @@ protected:
     bool allImportStepsSuccessful;
     map<string,double> parameters;
     vector<MoleculeClass> molecules;
+    vector<MoleculeInstance> moleculeSpecies;
     vector<ComplexInstance> initialSpeciesCounts;
     vector<ReactionPattern> reactions;
 

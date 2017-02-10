@@ -428,7 +428,7 @@ void BNGLImporter::processModel()
     supplementMoleculeTypesFromSpeciesCounts();
 
     // Figure out the list of atomic species that we need.
-    discoverAtomicSpecies();
+    enumerateMoleculeSpecies();
 }
 
 void BNGLImporter::supplementMoleculeTypesFromSpeciesCounts()
@@ -472,9 +472,54 @@ void BNGLImporter::supplementMoleculeTypesFromSpeciesCounts()
     }
 }
 
-void BNGLImporter::discoverAtomicSpecies()
+void BNGLImporter::enumerateMoleculeSpecies()
 {
+    // We need one species for each combination of states for every molecule.
+    for (int i=0; i<molecules.size(); i++)
+    {
+        MoleculeClass molecule = molecules[i];
+        vector<string> stateCombinations = createMoleculeStateCombinations(molecule);
+        for (int j=0; j<stateCombinations.size(); j++)
+        {
+            moleculeSpecies.push_back(MoleculeInstance(molecule.name+"("+stateCombinations[j]+")"));
+        }
+        Print::printf(Print::INFO, "Added species to represent possible states for molecule %s: %d species", molecule.name.c_str(), stateCombinations.size());
+    }
+    Print::printf(Print::INFO, "Added %d total species.", moleculeSpecies.size());
+}
 
+vector<string> BNGLImporter::createMoleculeStateCombinations(MoleculeClass moleculeClass, int componentIndex)
+{
+    vector<string> ret;
+    if (componentIndex == moleculeClass.components.size())
+    {
+        ret.push_back("");
+    }
+    else
+    {
+        vector<string> children = createMoleculeStateCombinations(moleculeClass, componentIndex+1);
+        if (moleculeClass.components[componentIndex].states.size() == 0)
+        {
+            for (int j=0; j<children.size(); j++)
+            {
+                ret.push_back(moleculeClass.components[componentIndex].name+","+children[j]);
+            }
+        }
+        else
+        {
+            for (int i=0; i<moleculeClass.components[componentIndex].states.size(); i++)
+            {
+                string state = moleculeClass.components[componentIndex].states[i];
+                for (int j=0; j<children.size(); j++)
+                {
+                    string combination = moleculeClass.components[componentIndex].name+"~"+state;
+                    if (children[j] != "") combination += ","+children[j];
+                    ret.push_back(combination);
+                }
+            }
+        }
+    }
+    return ret;
 }
 
 
