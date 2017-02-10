@@ -73,6 +73,7 @@ protected:
     bool allImportStepsSuccessful;
     map<string,double> parameters;
     map<string,MoleculeClass> moleculeClasses;
+    map<string,double> initialSpeciesCounts;
     lm::input::ReactionModel reactionModel;
 
     int numberSpecies;

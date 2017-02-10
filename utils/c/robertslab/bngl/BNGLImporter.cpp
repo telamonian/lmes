@@ -92,21 +92,45 @@ bool BNGLImporter::import(string filename, map<string,double> userParameters)
     string section = "";
     list<string> sectionLines;
     int lineNumber=0;
+    string continuedLine = "";
     while (!input.eof())
     {
         lineNumber++;
         string line;
         std::getline(input,line);
 
+        // If the line end with a backslah, it is continued on the next line.
+        if (line.back() == '\\')
+        {
+            continuedLine += line.substr(0,line.size()-1);
+            continue;
+        }
+        else if (continuedLine != "")
+        {
+            line = continuedLine + line;
+            continuedLine = "";
+        }
+
         // Strip any comments.
-        line = line.substr(0,line.find_first_of('#'));
+        if (line.find_first_of('#') != string::npos) line = line.substr(0,line.find_first_of('#'));
 
-        // Strip any trailing whitespace.
-        line = line.substr(0,line.find_last_not_of(" \t\r\n")+1);
+        // Skip the line if it is blank.
+        if (line.find_first_not_of(" \t\r\n") == string::npos) continue;
 
-        // Strip any leading whitespace and/or leading line numbers.
-        regex lineNumberPattern("^\\s*(?:\\d*\\s+)?(\\S.*)$");
+        // Strip any leading or trailing whitespace.
+        size_t start = line.find_first_not_of(" \t\r\n");
+        size_t end = line.find_last_not_of(" \t\r\n");
+        line = line.substr(start,end-start+1);
+
+
+        // Strip any leading line numbers.
+        regex lineNumberPattern("^(?:\\d+\\s+)?(\\S.*)$");
         if (std::regex_match(line, match, lineNumberPattern) && match.size() == 2)
+            line = match[1].str();
+
+        // Strip any leading line labels.
+        regex lineLabelPattern("^(?:\\S+\\:\\s+)?(\\S.*)$");
+        if (std::regex_match(line, match, lineLabelPattern) && match.size() == 2)
             line = match[1].str();
 
         // Check for section blocks.
@@ -182,7 +206,7 @@ void BNGLImporter::parseParameters(list<string>& lines)
 {
     Print::printf(Print::INFO, "Parsing parameters block.");
 
-    regex parameterPattern("^\\s*(?:\\d*\\s+)?(\\S+)\\s+(\\S+)$");
+    regex parameterPattern("^(\\S+)\\s+(\\S+)$");
     std::smatch match;
     for (list<string>::iterator it=lines.begin(); it != lines.end(); it++)
     {
@@ -227,7 +251,7 @@ void BNGLImporter::parseParameters(list<string>& lines)
         }
         else
         {
-            Print::printf(Print::WARNING, "Could not parse line from block: %s", line.c_str());
+            Print::printf(Print::WARNING, "Could not parse parameter from block: \"%s\"", line.c_str());
         }
     }
 }
@@ -247,7 +271,7 @@ void BNGLImporter::parseMoleculeTypes(list<string>& lines)
         }
         else
         {
-            Print::printf(Print::WARNING, "Could not parse line from block: %s", line.c_str());
+            Print::printf(Print::WARNING, "Could not parse molecule from block: \"%s\"", line.c_str());
         }
     }
 }
@@ -286,7 +310,7 @@ void BNGLImporter::parseInitialCounts(list<string>& lines)
             if (complex.isValid() && ASTHelper::isNumeric(initialCountFormula))
             {
                 double value = ASTHelper::getNumericValue(initialCountFormula);
-                //parameters[key] = value;
+                initialSpeciesCounts[complex.getString()] = value;
                 Print::printf(Print::INFO, "Added initial count %s: %e", complex.getString().c_str(), value);
             }
             else
@@ -297,28 +321,19 @@ void BNGLImporter::parseInitialCounts(list<string>& lines)
         }
         else
         {
-            Print::printf(Print::WARNING, "Could not parse line from block: %s", line.c_str());
+            Print::printf(Print::WARNING, "Could not parse initial count from block: \"%s\"", line.c_str());
         }
-
-        /*
-        string line = *it;
-        MoleculeClass molecule(line);
-        if (molecule.getName() != "")
-        {
-            moleculeClasses[molecule.getName()] = molecule;
-            Print::printf(Print::INFO, "Added molecule definition: %s", molecule.getString().c_str());
-        }
-        else
-        {
-            Print::printf(Print::WARNING, "Could not parse line from block: %s", line.c_str());
-        }
-        */
     }
 }
 
 void BNGLImporter::parseReactions(list<string>& lines)
 {
     Print::printf(Print::INFO, "Parsing reactions block.");
+    for (list<string>::iterator it=lines.begin(); it != lines.end(); it++)
+    {
+        string line = *it;
+        printf("%s\n",line.c_str());
+    }
 }
 
 
