@@ -26,6 +26,7 @@
 #include <string>
 #include <vector>
 
+#include "robertslab/bngl/InstanceDefinitions.h"
 #include "robertslab/bngl/TypeDefinitions.h"
 
 using std::regex;
@@ -63,6 +64,12 @@ ComponentClass::ComponentClass(string definitionString)
     }
 }
 
+ComponentClass::ComponentClass(string name, string state)
+:valid(true),name(name)
+{
+    if (state != "") states.push_back(state);
+}
+
 bool ComponentClass::isValid()
 {
     return valid;
@@ -78,6 +85,16 @@ string ComponentClass::getString()
     }
 
     return ss.str();
+}
+
+bool ComponentClass::isInstance(ComponentInstance componentInstance)
+{
+    if (name != componentInstance.name) return false;
+    if (states.size() == 0 && componentInstance.state == "") return true;
+    for (int i=0; i<states.size(); i++)
+        if (states[i] == componentInstance.state)
+            return true;
+    return false;
 }
 
 MoleculeClass::MoleculeClass()
@@ -135,6 +152,16 @@ string MoleculeClass::getString()
     ss << ")";
 
     return ss.str();
+}
+
+bool MoleculeClass::isInstance(MoleculeInstance moleculeInstance)
+{
+    if (name != moleculeInstance.name) return false;
+    if (components.size() != moleculeInstance.components.size()) return false;
+    for (int i=0; i<components.size(); i++)
+        if (!components[i].isInstance(moleculeInstance.components[i])) return false;
+
+    return true;
 }
 
 ComplexClass::ComplexClass()

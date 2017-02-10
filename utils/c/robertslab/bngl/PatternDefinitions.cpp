@@ -26,7 +26,7 @@
 #include <string>
 #include <vector>
 
-#include "robertslab/bngl/InstanceDefinitions.h"
+#include "robertslab/bngl/PatternDefinitions.h"
 
 using std::regex;
 using std::regex_token_iterator;
@@ -36,12 +36,12 @@ using std::vector;
 namespace robertslab {
 namespace bngl {
 
-ComponentInstance::ComponentInstance()
+ComponentPattern::ComponentPattern()
 :valid(false)
 {
 }
 
-ComponentInstance::ComponentInstance(string definition)
+ComponentPattern::ComponentPattern(string definition)
 :valid(false)
 {
     // Parse the component definition.
@@ -54,14 +54,15 @@ ComponentInstance::ComponentInstance(string definition)
         bond = match[3].str();
         valid = true;
     }
+    //printf("%s=\t%s:%s:%s:%d\n",definition.c_str(),name.c_str(),state.c_str(),bond.c_str(),valid);
 }
 
-bool ComponentInstance::isValid()
+bool ComponentPattern::isValid()
 {
     return valid;
 }
 
-string ComponentInstance::getString()
+string ComponentPattern::getString()
 {
     std::stringstream ss;
     ss << name;
@@ -70,14 +71,23 @@ string ComponentInstance::getString()
     return ss.str();
 }
 
-MoleculeInstance::MoleculeInstance()
-:valid(false)
+MoleculePattern::MoleculePattern()
+:valid(false),null(false)
 {
 }
 
-MoleculeInstance::MoleculeInstance(string definition)
-:valid(false)
+MoleculePattern::MoleculePattern(string definition)
+:valid(false),null(false)
 {
+    // See if this is a null pattern.
+    if (definition == "0")
+    {
+        valid = true;
+        null = true;
+        name = "0";
+        return;
+    }
+
     regex moleculePattern("^(\\w+)\\(([^\\)]*)\\)$");
     std::smatch match;
     if (std::regex_match(definition, match, moleculePattern) && match.size() == 3)
@@ -93,25 +103,32 @@ MoleculeInstance::MoleculeInstance(string definition)
         while (tokens != endOfTokens)
         {
             string componentString = *tokens++;
-            ComponentInstance component(componentString);
+            ComponentPattern component(componentString);
             components.push_back(component);
             if (!component.isValid()) valid = false;
         }
     }
 }
 
-bool MoleculeInstance::isValid()
+bool MoleculePattern::isValid()
 {
     return valid;
 }
 
-string MoleculeInstance::getName()
+bool MoleculePattern::isNull()
+{
+    return null;
+}
+
+string MoleculePattern::getName()
 {
     return name;
 }
 
-string MoleculeInstance::getString()
+string MoleculePattern::getString()
 {
+    if (null) return "0";
+
     std::stringstream ss;
     ss << name << "(";
     for (int i=0; i<components.size(); i++)
@@ -123,13 +140,13 @@ string MoleculeInstance::getString()
     return ss.str();
 }
 
-ComplexInstance::ComplexInstance()
+ComplexPattern::ComplexPattern()
 :valid(false)
 {
 }
 
-ComplexInstance::ComplexInstance(string definition, double count)
-:valid(false),count(count)
+ComplexPattern::ComplexPattern(string definition)
+:valid(false)
 {
     valid = true;
 
@@ -140,25 +157,95 @@ ComplexInstance::ComplexInstance(string definition, double count)
     while (tokens != endOfTokens)
     {
         string moleculeString = *tokens++;
-        MoleculeInstance molecule(moleculeString);
+        MoleculePattern molecule(moleculeString);
         molecules.push_back(molecule);
         if (!molecule.isValid()) valid = false;
     }
 }
 
-bool ComplexInstance::isValid()
+bool ComplexPattern::isValid()
 {
     return valid;
 }
 
-string ComplexInstance::getString()
+string ComplexPattern::getString()
 {
     std::stringstream ss;
     for (int i=0; i<molecules.size(); i++)
+    {
         ss << (i==0?"":".") << molecules[i].getString();
-    ss << " " << count;
+    }
+
+    return ss.str();
+}
+
+ReactionPattern::ReactionPattern()
+:valid(false)
+{
+}
+
+ReactionPattern::ReactionPattern(string lhs, string rhs, bool reversible, double forwardRate, double backwardRate)
+:valid(false),reversible(reversible),forwardRate(forwardRate),backwardRate(backwardRate)
+{
+    valid = true;
+    substrates = parseComplexes(lhs);
+    products = parseComplexes(rhs);
+}
+
+vector<ComplexPattern> ReactionPattern::parseComplexes(string definition)
+{
+    // Parse the molecule definitions.
+    vector<ComplexPattern> complexes;
+    std::smatch match;
+    regex tokenPattern("\\s*\\S+\\s*\\+?");
+    regex complexPattern("\\s*(\\S+)\\s*\\+?");
+    regex_token_iterator<string::iterator> endOfTokens;
+    regex_token_iterator<std::string::iterator> tokens(definition.begin(), definition.end(), tokenPattern);
+    while (tokens != endOfTokens)
+    {
+        string tokenString = *tokens++;
+        if (std::regex_match(tokenString, match, complexPattern) && match.size() == 2)
+        {
+            string complexString = match[1].str();
+            ComplexPattern complex(complexString);
+            //printf(":%s:%s========%s:%d\n",tokenString.c_str(),complexString.c_str(),complex.getString().c_str(),complex.isValid());
+            complexes.push_back(complex);
+            if (!complex.isValid()) valid = false;
+        }
+        else
+        {
+            valid = false;
+        }
+    }
+    return complexes;
+}
+
+bool ReactionPattern::isValid()
+{
+    return valid;
+}
+
+string ReactionPattern::getString()
+{
+    std::stringstream ss;
+
+    for (int i=0; i<substrates.size(); i++)
+        ss << (i==0?"":" + ") << substrates[i].getString();
+
+    if (reversible)
+        ss << " <-> ";
+    else
+        ss << " -> ";
+
+    for (int i=0; i<products.size(); i++)
+        ss << (i==0?"":" + ") << products[i].getString();
+
+    ss << " " << forwardRate;
+    if (reversible) ss << ", " << backwardRate;
+
     return ss.str();
 }
 
 }
 }
+

@@ -20,8 +20,8 @@
  * Author(s): Elijah Roberts
  */
 
-#ifndef ROBERTSLAB_BNGL_INSTANCEDEFINITIONS_H
-#define ROBERTSLAB_BNGL_INSTANCEDEFINITIONS_H
+#ifndef ROBERTSLAB_BNGL_PATTERNDEFINITIONS_H
+#define ROBERTSLAB_BNGL_PATTERNDEFINITIONS_H
 
 #include <string>
 #include <vector>
@@ -32,11 +32,11 @@ using std::vector;
 namespace robertslab {
 namespace bngl {
 
-class ComponentInstance
+class ComponentPattern
 {
 public:
-    ComponentInstance();
-    ComponentInstance(string definition);
+    ComponentPattern();
+    ComponentPattern(string definition);
     bool isValid();
     string getString();
 
@@ -47,34 +47,52 @@ public:
     string bond;
 };
 
-class MoleculeInstance
+class MoleculePattern
 {
 public:
-    MoleculeInstance();
-    MoleculeInstance(string definition);
+    MoleculePattern();
+    MoleculePattern(string definition);
     bool isValid();
+    bool isNull();
     string getName();
     string getString();
 
 public:
     bool valid;
+    bool null;
     string name;
-    vector<ComponentInstance> components;
+    vector<ComponentPattern> components;
 };
 
-class ComplexInstance
+class ComplexPattern
 {
 public:
-    ComplexInstance();
-    ComplexInstance(string definition, double count);
+    ComplexPattern();
+    ComplexPattern(string definition);
     bool isValid();
-    double getCount();
     string getString();
 
 public:
     bool valid;
-    double count;
-    vector<MoleculeInstance> molecules;
+    vector<MoleculePattern> molecules;
+};
+
+class ReactionPattern
+{
+public:
+    ReactionPattern();
+    ReactionPattern(string lhs, string rhs, bool reversible, double forwardRate, double reverseRate=0.0);
+    bool isValid();
+    string getString();
+
+public:
+    vector<ComplexPattern> parseComplexes(string definition);
+    bool valid;
+    bool reversible;
+    vector<ComplexPattern> substrates;
+    vector<ComplexPattern> products;
+    double forwardRate;
+    double backwardRate;
 };
 
 

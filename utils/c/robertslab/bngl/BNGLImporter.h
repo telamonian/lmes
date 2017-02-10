@@ -31,6 +31,7 @@
 #include "lm/input/ReactionModel.pb.h"
 #include "lm/me/PropensityFunction.h"
 #include "robertslab/bngl/InstanceDefinitions.h"
+#include "robertslab/bngl/PatternDefinitions.h"
 #include "robertslab/bngl/TypeDefinitions.h"
 
 using std::map;
@@ -55,11 +56,13 @@ protected:
     virtual void parseMoleculeTypes(list<string>& lines);
     virtual void parseInitialCounts(list<string>& lines);
     virtual void parseReactions(list<string>& lines);
-    /*virtual void importMoleculeTypes();
-    virtual void importSeedSpecies();
-    virtual void importReactionRules();*/
+    bool evaluteExpression(string expression, double& value);
 
 protected:
+    virtual void processModel();
+    virtual void supplementMoleculeTypesFromSpeciesCounts();
+    virtual void discoverAtomicSpecies();
+
     /*virtual double convertPropensityConstantUnits(string constant, double value, string desiredUnits);
     virtual void convertUnits(ASTNode_t* units);
     virtual double convertVolumeToLiters(double size, string units="");
@@ -72,8 +75,10 @@ protected:
     bool verbose, reallyVerbose;
     bool allImportStepsSuccessful;
     map<string,double> parameters;
-    map<string,MoleculeClass> moleculeClasses;
-    map<string,double> initialSpeciesCounts;
+    vector<MoleculeClass> molecules;
+    vector<ComplexInstance> initialSpeciesCounts;
+    vector<ReactionPattern> reactions;
+
     lm::input::ReactionModel reactionModel;
 
     int numberSpecies;

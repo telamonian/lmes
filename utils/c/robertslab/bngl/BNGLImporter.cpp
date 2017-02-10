@@ -36,10 +36,12 @@
 #include "robertslab/sbml/ASTHelper.h"
 #include "robertslab/bngl/BNGLImporter.h"
 #include "robertslab/bngl/InstanceDefinitions.h"
+#include "robertslab/bngl/PatternDefinitions.h"
 #include "robertslab/bngl/TypeDefinitions.h"
 
 using std::list;
 using std::regex;
+using std::regex_token_iterator;
 using lm::Exception;
 using lm::Print;
 using robertslab::sbml::ASTHelper;
@@ -122,7 +124,6 @@ bool BNGLImporter::import(string filename, map<string,double> userParameters)
         size_t end = line.find_last_not_of(" \t\r\n");
         line = line.substr(start,end-start+1);
 
-
         // Strip any leading line numbers.
         regex lineNumberPattern("^(?:\\d+\\s+)?(\\S.*)$");
         if (std::regex_match(line, match, lineNumberPattern) && match.size() == 2)
@@ -170,7 +171,7 @@ bool BNGLImporter::import(string filename, map<string,double> userParameters)
                 }
                 else
                 {
-                    Print::printf(Print::INFO, "Ignoring unsupported BNGL block: %s", section.c_str());
+                    Print::printf(Print::INFO, "Ignoring unsupported block type: %s", section.c_str());
                 }
 
                 // Reset the section.
@@ -187,6 +188,13 @@ bool BNGLImporter::import(string filename, map<string,double> userParameters)
             sectionLines.push_back(line);
         }
 
+    }
+
+    // If we imported the data correctly, process it.
+    if (allImportStepsSuccessful)
+    {
+        Print::printf(Print::INFO, "Processing BNGL model: %s", filename.c_str());
+        processModel();
     }
 
     return allImportStepsSuccessful;
@@ -217,22 +225,10 @@ void BNGLImporter::parseParameters(list<string>& lines)
             string key = match[1].str();
             string expression = match[2].str();
 
-            // Simplify the formula.
-            ASTNode_t* formula = SBML_parseL3Formula(expression.c_str());
-            ASTHelper::substituteASTParameters(formula, parameters);
-            ASTHelper::simplifyASTExpression(formula);
-
-            // If we are printing debug info, print the AST tree.
-            if (reallyVerbose)
-            {
-                Print::printf(Print::INFO, "Simplified parameter %s as:", key.c_str());
-                ASTHelper::printASTNode(formula);
-            }
-
             // If we got to a numeric expression, save it.
-            if (ASTHelper::isNumeric(formula))
+            double value;
+            if (evaluteExpression(expression, value))
             {
-                double value = ASTHelper::getNumericValue(formula);
                 if (parameters.count(key) == 0)
                 {
                     parameters[key] = value;
@@ -266,7 +262,7 @@ void BNGLImporter::parseMoleculeTypes(list<string>& lines)
         MoleculeClass molecule(line);
         if (molecule.isValid())
         {
-            moleculeClasses[molecule.getName()] = molecule;
+            molecules.push_back(molecule);
             Print::printf(Print::INFO, "Added molecule definition: %s", molecule.getString().c_str());
         }
         else
@@ -280,42 +276,36 @@ void BNGLImporter::parseInitialCounts(list<string>& lines)
 {
     Print::printf(Print::INFO, "Parsing species block.");
 
-    regex parameterPattern("^\\s*(?:\\d*\\s+)?(\\S+)\\s+(\\S+)$");
+    regex parameterPattern("^(\\S+)\\s+(\\S+)$");
     std::smatch match;
     for (list<string>::iterator it=lines.begin(); it != lines.end(); it++)
     {
         string line = *it;
         if (std::regex_match(line, match, parameterPattern) && match.size() == 3)
         {
-            // Get the key and the expression.
-            string complexInstanceString = match[1].str();
-            string initialCountString = match[2].str();
+            // Get the count.
+            string countExpression = match[2].str();
+            double count=0.0;
+            bool isValidCount = evaluteExpression(countExpression,count);
 
             // Get the complex.
-            ComplexInstance complex(complexInstanceString);
+            string complexInstanceString = match[1].str();
+            ComplexInstance complex(complexInstanceString, count);
 
-            // Simplify the formula.
-            ASTNode_t* initialCountFormula = SBML_parseL3Formula(initialCountString.c_str());
-            ASTHelper::substituteASTParameters(initialCountFormula, parameters);
-            ASTHelper::simplifyASTExpression(initialCountFormula);
-
-            // If we are printing debug info, print the AST tree.
-            if (reallyVerbose)
+            // Make sure we processed a valid record.
+            if (complex.isValid() && isValidCount)
             {
-                Print::printf(Print::INFO, "Simplified initial count %s as:", initialCountString.c_str());
-                ASTHelper::printASTNode(initialCountFormula);
+                initialSpeciesCounts.push_back(complex);
+                Print::printf(Print::INFO, "Added initial count %s", complex.getString().c_str());
             }
-
-            // If we got to a numeric expression, save it.
-            if (complex.isValid() && ASTHelper::isNumeric(initialCountFormula))
+            else if (!complex.isValid())
             {
-                double value = ASTHelper::getNumericValue(initialCountFormula);
-                initialSpeciesCounts[complex.getString()] = value;
-                Print::printf(Print::INFO, "Added initial count %s: %e", complex.getString().c_str(), value);
+                Print::printf(Print::ERROR, "Could not simplify complex %s", complexInstanceString.c_str());
+                allImportStepsSuccessful = false;
             }
-            else
+            else if (!isValidCount)
             {
-                Print::printf(Print::ERROR, "Could not simplify initial count for %s: %s", complexInstanceString.c_str(), initialCountString.c_str());
+                Print::printf(Print::ERROR, "Could not simplify initial count: \"%s\"", countExpression.c_str());
                 allImportStepsSuccessful = false;
             }
         }
@@ -329,13 +319,163 @@ void BNGLImporter::parseInitialCounts(list<string>& lines)
 void BNGLImporter::parseReactions(list<string>& lines)
 {
     Print::printf(Print::INFO, "Parsing reactions block.");
+    regex reversibleReactionPattern("^([^<->]+)\\s*<->\\s*([^<->]+)\\s+(\\S+),\\s+(\\S+)$");
+    regex irreversibleReactionPattern("^([^<->]+)\\s*->\\s*([^<->]+)\\s+(\\S+)$");
+    std::smatch match;
     for (list<string>::iterator it=lines.begin(); it != lines.end(); it++)
     {
         string line = *it;
-        printf("%s\n",line.c_str());
+        if (std::regex_match(line, match, reversibleReactionPattern) && match.size() == 5)
+        {
+            // Get the reaction rates.
+            string rateFString = match[3].str();
+            double rateF=0.0;
+            bool isValidRateF = evaluteExpression(rateFString,rateF);
+            string rateRString = match[4].str();
+            double rateR=0.0;
+            bool isValidRateR = evaluteExpression(rateRString,rateR);
+
+            // Get the lhs and rhs of the equation.
+            string lhsString = match[1].str();
+            string rhsString = match[2].str();
+            ReactionPattern reaction(lhsString, rhsString, true, rateF, rateR);
+
+            // Make sure we processed a valid record.
+            if (isValidRateF && isValidRateR && reaction.isValid())
+            {
+                reactions.push_back(reaction);
+                Print::printf(Print::INFO, "Added reversible reaction %s", reaction.getString().c_str());
+            }
+            else if (!reaction.isValid())
+            {
+                Print::printf(Print::ERROR, "Could not simplify reaction: \"%s\" \"%s\"", lhsString.c_str(), rhsString.c_str());
+                allImportStepsSuccessful = false;
+            }
+            else if (!isValidRateF)
+            {
+                Print::printf(Print::ERROR, "Could not simplify reaction rate: \"%s\"", rateFString.c_str());
+                allImportStepsSuccessful = false;
+            }
+            else if (!isValidRateR)
+            {
+                Print::printf(Print::ERROR, "Could not simplify reaction rate: \"%s\"", rateRString.c_str());
+                allImportStepsSuccessful = false;
+            }
+        }
+        else if (std::regex_match(line, match, irreversibleReactionPattern) && match.size() == 4)
+        {
+            // Get the reaction rate.
+            string rateString = match[3].str();
+            double rate=0.0;
+            bool isValidRate = evaluteExpression(rateString,rate);
+
+            // Get the lhs and rhs of the equation.
+            string lhsString = match[1].str();
+            string rhsString = match[2].str();
+            ReactionPattern reaction(lhsString, rhsString, false, rate);
+
+            // Make sure we processed a valid record.
+            if (reaction.isValid() && isValidRate)
+            {
+                reactions.push_back(reaction);
+                Print::printf(Print::INFO, "Added irreversible reaction %s", reaction.getString().c_str());
+            }
+            else if (!reaction.isValid())
+            {
+                Print::printf(Print::ERROR, "Could not simplify left reaction: \"%s\" \"%s\"", lhsString.c_str(), rhsString.c_str());
+                allImportStepsSuccessful = false;
+            }
+            else if (!isValidRate)
+            {
+                Print::printf(Print::ERROR, "Could not simplify reaction rate: \"%s\"", rateString.c_str());
+                allImportStepsSuccessful = false;
+            }
+        }
+        else
+        {
+            Print::printf(Print::WARNING, "Could not parse reaction from block: \"%s\"", line.c_str());
+        }
     }
 }
 
+bool BNGLImporter::evaluteExpression(string expression, double& value)
+{
+    // Simplify the formula.
+    ASTNode_t* formula = SBML_parseL3Formula(expression.c_str());
+    ASTHelper::substituteASTParameters(formula, parameters);
+    ASTHelper::simplifyASTExpression(formula);
+
+    // If we are printing debug info, print the AST tree.
+    if (reallyVerbose)
+    {
+        Print::printf(Print::INFO, "Simplified expression %s as:", expression.c_str());
+        ASTHelper::printASTNode(formula);
+    }
+
+    // If we got to a numeric expression, return it.
+    if (ASTHelper::isNumeric(formula))
+    {
+        value = ASTHelper::getNumericValue(formula);
+        return true;
+    }
+
+    return false;
+}
+
+void BNGLImporter::processModel()
+{
+    // Add any species that are in the initial counts by not in the molecule types.
+    supplementMoleculeTypesFromSpeciesCounts();
+
+    // Figure out the list of atomic species that we need.
+    discoverAtomicSpecies();
+}
+
+void BNGLImporter::supplementMoleculeTypesFromSpeciesCounts()
+{
+    // Go through the list of complexes with initial counts.
+    for (int i=0; i<initialSpeciesCounts.size(); i++)
+    {
+        ComplexInstance complex = initialSpeciesCounts[i];
+
+        // Go through the molecules in the complex.
+        for (int j=0; j<complex.molecules.size(); j++)
+        {
+            MoleculeInstance molecule = complex.molecules[j];
+
+            // Go through the list of known molecule classes.
+            bool found = false;
+            for (int k=0; k<molecules.size(); k++)
+            {
+                // See if the molecule is an instance of the molecule class.
+                if (molecules[k].isInstance(molecule))
+                {
+                    found = true;
+                    break;
+                }
+            }
+
+            // If we didn't find one, add it.
+            if (!found)
+            {
+                vector<ComponentClass> componentsClasses;
+                for (int k=0; k<molecule.components.size(); k++)
+                {
+                    ComponentInstance component = molecule.components[k];
+                    componentsClasses.push_back(ComponentClass(component.name, component.state));
+                }
+                MoleculeClass moleculeClass(molecule.getName(), componentsClasses);
+                molecules.push_back(moleculeClass);
+                Print::printf(Print::WARNING, "Added inferred molecule definition: %s", moleculeClass.getString().c_str());
+            }
+        }
+    }
+}
+
+void BNGLImporter::discoverAtomicSpecies()
+{
+
+}
 
 
 /*

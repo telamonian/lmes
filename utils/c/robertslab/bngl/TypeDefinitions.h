@@ -26,6 +26,8 @@
 #include <string>
 #include <vector>
 
+#include "robertslab/bngl/InstanceDefinitions.h"
+
 using std::string;
 using std::vector;
 
@@ -37,10 +39,12 @@ class ComponentClass
 public:
     ComponentClass();
     ComponentClass(string definition);
+    ComponentClass(string name, string state);
     bool isValid();
     string getString();
+    bool isInstance(ComponentInstance componentInstance);
 
-protected:
+public:
     bool valid;
     string name;
     vector<string> states;
@@ -55,8 +59,9 @@ public:
     bool isValid();
     string getName();
     string getString();
+    bool isInstance(MoleculeInstance moleculeInstance);
 
-protected:
+public:
     bool valid;
     string name;
     vector<ComponentClass> components;
@@ -70,7 +75,7 @@ public:
     bool isValid();
     string getString();
 
-protected:
+public:
     bool valid;
     vector<MoleculeClass> molecules;
 };
