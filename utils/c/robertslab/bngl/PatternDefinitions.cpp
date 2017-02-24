@@ -22,14 +22,21 @@
 
 #include <regex>
 #include <iostream>
+#include <list>
 #include <sstream>
+#include <set>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
+#include "robertslab/bngl/InstanceDefinitions.h"
 #include "robertslab/bngl/PatternDefinitions.h"
+#include "robertslab/bngl/TypeDefinitions.h"
 
+using std::list;
 using std::regex;
 using std::regex_token_iterator;
+using std::set;
 using std::string;
 using std::vector;
 
@@ -37,12 +44,12 @@ namespace robertslab {
 namespace bngl {
 
 ComponentPattern::ComponentPattern()
-:valid(false)
+:molecule(NULL),valid(false),bond(NULL)
 {
 }
 
-ComponentPattern::ComponentPattern(string definition)
-:valid(false)
+ComponentPattern::ComponentPattern(MoleculePattern* molecule, string definition)
+:type(NULL),molecule(molecule),valid(false),bond(NULL)
 {
     // Parse the component definition.
     regex statePattern("^([^~!]+)(?:~([^~!]+))?(?:!([^~!]+))?$");
@@ -51,7 +58,7 @@ ComponentPattern::ComponentPattern(string definition)
     {
         name = match[1].str();
         state = match[2].str();
-        bond = match[3].str();
+        bondName = match[3].str();
         valid = true;
     }
     //printf("%s=\t%s:%s:%s:%d\n",definition.c_str(),name.c_str(),state.c_str(),bond.c_str(),valid);
@@ -67,7 +74,7 @@ string ComponentPattern::getString()
     std::stringstream ss;
     ss << name;
     if (state != "") ss << "~" << state;
-    if (bond != "") ss << "!" << bond;
+    if (bondName != "") ss << "!" << bondName;
     return ss.str();
 }
 
@@ -76,8 +83,8 @@ MoleculePattern::MoleculePattern()
 {
 }
 
-MoleculePattern::MoleculePattern(string definition)
-:valid(false),null(false)
+MoleculePattern::MoleculePattern(string definition, map<string,MoleculeClass*> moleculeClasses)
+:type(NULL),valid(false),null(false)
 {
     // See if this is a null pattern.
     if (definition == "0")
@@ -92,22 +99,51 @@ MoleculePattern::MoleculePattern(string definition)
     std::smatch match;
     if (std::regex_match(definition, match, moleculePattern) && match.size() == 3)
     {
-        valid = true;
+        // Get the name.
         name = match[1].str();
 
-        // Parse the components.
-        string componentString = match[2].str();
-        regex componentPattern("([^ ,]+)");
-        regex_token_iterator<string::iterator> endOfTokens;
-        regex_token_iterator<std::string::iterator> tokens(componentString.begin(), componentString.end(), componentPattern);
-        while (tokens != endOfTokens)
+        // Figure out the class.
+        if (moleculeClasses.count(name) > 0)
         {
-            string componentString = *tokens++;
-            ComponentPattern component(componentString);
-            components.push_back(component);
-            if (!component.isValid()) valid = false;
+            valid = true;
+            type = moleculeClasses[name];
+
+            // Create the empty components.
+            set<int> unusedComponents;
+            for (int i=0; i<type->getNumberComponents(); i++)
+            {
+                components.push_back(NULL);
+                unusedComponents.insert(i);
+            }
+
+            // Parse the components.
+            string componentString = match[2].str();
+            regex componentPattern("([^ ,]+)");
+            regex_token_iterator<string::iterator> endOfTokens;
+            regex_token_iterator<std::string::iterator> tokens(componentString.begin(), componentString.end(), componentPattern);
+            while (tokens != endOfTokens)
+            {
+                string componentString = *tokens++;
+                ComponentPattern* component = new ComponentPattern(this, componentString);
+                if (!component->isValid()) valid = false;
+
+                // Find the index we should use for this component.
+                bool foundComponent = false;
+                for (int i=0; i<type->getNumberComponents(); i++)
+                {
+                    if (unusedComponents.count(i) == 1 && type->getComponent(i)->getName() == component->name)
+                    {
+                        component->type = type->getComponent(i);
+                        components[i] = component;
+                        unusedComponents.erase(i);
+                        foundComponent = true;
+                        break;
+                    }
+                }
+                if (!foundComponent) valid = false;
+            }
         }
-    }
+    }    
 }
 
 bool MoleculePattern::isValid()
@@ -131,13 +167,60 @@ string MoleculePattern::getString()
 
     std::stringstream ss;
     ss << name << "(";
+    bool firstPrinted = true;
     for (int i=0; i<components.size(); i++)
     {
-        ss << (i==0?"":",") << components[i].getString();
+        if (components[i] != NULL)
+        {
+            ss << (firstPrinted?"":",") << components[i]->getString();
+            firstPrinted = false;
+        }
     }
     ss << ")";
 
     return ss.str();
+}
+
+bool MoleculePattern::matches(MoleculeInstance* comp)
+{
+    if (name != comp->getName()) return false;
+    if (components.size() != comp->components.size()) return false;
+    return true;
+}
+
+bool MoleculePattern::matches(MoleculePattern* comp)
+{
+    if (name != comp->name) return false;
+    if (components.size() != comp->components.size()) return false;
+    return true;
+}
+
+int MoleculePattern::getMaxNumberEdges()
+{
+    return components.size();
+}
+
+Vertex* MoleculePattern::getEdge(int i)
+{
+    if (components[i] != NULL && components[i]->bond != NULL)
+        return components[i]->bond->molecule;
+    return NULL;
+}
+
+bool MoleculePattern::matches(Vertex* comp)
+{
+    if (comp == NULL) return false;
+
+    if (dynamic_cast<MoleculeInstance*>(comp))
+    {
+        return matches((MoleculeInstance*)comp);
+    }
+    else if (dynamic_cast<MoleculePattern*>(comp))
+    {
+        return matches((MoleculePattern*)comp);
+    }
+
+    return false;
 }
 
 ComplexPattern::ComplexPattern()
@@ -145,7 +228,7 @@ ComplexPattern::ComplexPattern()
 {
 }
 
-ComplexPattern::ComplexPattern(string definition)
+ComplexPattern::ComplexPattern(string definition, map<string,MoleculeClass*> moleculeClasses)
 :valid(false)
 {
     valid = true;
@@ -157,9 +240,34 @@ ComplexPattern::ComplexPattern(string definition)
     while (tokens != endOfTokens)
     {
         string moleculeString = *tokens++;
-        MoleculePattern molecule(moleculeString);
+        MoleculePattern* molecule = new MoleculePattern(moleculeString, moleculeClasses);
         molecules.push_back(molecule);
-        if (!molecule.isValid()) valid = false;
+        if (!molecule->isValid()) valid = false;
+    }
+
+    // Go through and establish the connectivity using the bond names.
+    for (int m1=0; m1<molecules.size(); m1++)
+    {
+        for (int c1=0; c1<molecules[m1]->components.size(); c1++)
+        {
+            if (molecules[m1]->components[c1] != NULL && molecules[m1]->components[c1]->bondName != "")
+            {
+                int matches=0;
+                for (int m2=0; m2<molecules.size(); m2++)
+                {
+                    for (int c2=0; c2<molecules[m2]->components.size(); c2++)
+                    {
+                        if ((m1 != m2 || c1 != c2) && molecules[m2]->components[c2] != NULL && molecules[m1]->components[c1]->bondName == molecules[m2]->components[c2]->bondName)
+                        {
+                            molecules[m1]->components[c1]->bond = molecules[m2]->components[c2];
+                            matches++;
+                        }
+                    }
+                }
+
+                if (matches != 1) throw std::invalid_argument("inconsistent number of bond names in ComplexPattern::ComplexPattern");
+            }
+        }
     }
 }
 
@@ -173,29 +281,33 @@ string ComplexPattern::getString()
     std::stringstream ss;
     for (int i=0; i<molecules.size(); i++)
     {
-        ss << (i==0?"":".") << molecules[i].getString();
+        ss << (i==0?"":".") << molecules[i]->getString();
     }
 
     return ss.str();
 }
 
-ReactionPattern::ReactionPattern()
+int ComplexPattern::getNumberVertices()
+{
+    return molecules.size();
+}
+
+Vertex* ComplexPattern::getVertex(int i)
+{
+    return molecules[i];
+}
+
+ReactantPattern::ReactantPattern()
 :valid(false)
 {
 }
 
-ReactionPattern::ReactionPattern(string lhs, string rhs, bool reversible, double forwardRate, double backwardRate)
-:valid(false),reversible(reversible),forwardRate(forwardRate),backwardRate(backwardRate)
+ReactantPattern::ReactantPattern(string definition, map<string,MoleculeClass*> moleculeClasses)
+:valid(false)
 {
     valid = true;
-    substrates = parseComplexes(lhs);
-    products = parseComplexes(rhs);
-}
 
-vector<ComplexPattern> ReactionPattern::parseComplexes(string definition)
-{
     // Parse the molecule definitions.
-    vector<ComplexPattern> complexes;
     std::smatch match;
     regex tokenPattern("\\s*\\S+\\s*\\+?");
     regex complexPattern("\\s*(\\S+)\\s*\\+?");
@@ -207,17 +319,77 @@ vector<ComplexPattern> ReactionPattern::parseComplexes(string definition)
         if (std::regex_match(tokenString, match, complexPattern) && match.size() == 2)
         {
             string complexString = match[1].str();
-            ComplexPattern complex(complexString);
-            //printf(":%s:%s========%s:%d\n",tokenString.c_str(),complexString.c_str(),complex.getString().c_str(),complex.isValid());
-            complexes.push_back(complex);
-            if (!complex.isValid()) valid = false;
+            ComplexPattern* complex = new ComplexPattern(complexString, moleculeClasses);
+            reactants.push_back(complex);
+            if (!complex->isValid()) valid = false;
         }
         else
         {
             valid = false;
         }
     }
-    return complexes;
+}
+
+bool ReactantPattern::isValid()
+{
+    return valid;
+}
+
+string ReactantPattern::getString()
+{
+    std::stringstream ss;
+    for (int i=0; i<reactants.size(); i++)
+        ss << (i==0?"":" + ") << reactants[i]->getString();
+    return ss.str();
+}
+
+int ReactantPattern::getNumberReactants()
+{
+    return reactants.size();
+}
+
+ComplexPattern* ReactantPattern::getReactant(int index)
+{
+    return reactants[index];
+}
+
+int ReactantPattern::getNumberVertices()
+{
+    int ret=0;
+    for (int i=0; i<reactants.size(); i++)
+        ret += reactants[i]->getNumberVertices();
+    return ret;
+}
+
+Vertex* ReactantPattern::getVertex(int index)
+{
+    for (int i=0; i<reactants.size(); i++)
+    {
+        if (index <  reactants[i]->getNumberVertices())
+            return reactants[i]->getVertex(index);
+        index -= reactants[i]->getNumberVertices();
+    }
+    throw std::out_of_range("index out of range in call to ReactantPattern::getVertex");
+}
+
+
+ReactionPattern::ReactionPattern()
+:valid(false)
+{
+}
+
+ReactionPattern::ReactionPattern(string lhs, string rhs, double rate, map<string,MoleculeClass*> moleculeClasses)
+:valid(false),rate(rate)
+{
+    valid = true;
+
+    // Parse the substrates and products.
+    substrates = new ReactantPattern(lhs, moleculeClasses);
+    products = new ReactantPattern(rhs, moleculeClasses);
+    if (!substrates->isValid() || !products->isValid()) valid = false;
+
+    // Create a mapping of substrates to products.
+    substrateToProductMapping = substrates->findGraphMapping(products);
 }
 
 bool ReactionPattern::isValid()
@@ -225,25 +397,34 @@ bool ReactionPattern::isValid()
     return valid;
 }
 
-string ReactionPattern::getString()
+string ReactionPattern::getString(bool includeRate)
 {
     std::stringstream ss;
-
-    for (int i=0; i<substrates.size(); i++)
-        ss << (i==0?"":" + ") << substrates[i].getString();
-
-    if (reversible)
-        ss << " <-> ";
-    else
-        ss << " -> ";
-
-    for (int i=0; i<products.size(); i++)
-        ss << (i==0?"":" + ") << products[i].getString();
-
-    ss << " " << forwardRate;
-    if (reversible) ss << ", " << backwardRate;
-
+    ss << substrates->getString();
+    ss << " -> ";
+    ss << products->getString();
+    if (includeRate) ss << " " << rate;
     return ss.str();
+}
+
+ReactantPattern* ReactionPattern::getSubstrates()
+{
+    return substrates;
+}
+
+ReactantPattern* ReactionPattern::getProducts()
+{
+    return products;
+}
+
+double ReactionPattern::getRate()
+{
+    return rate;
+}
+
+GraphMapping ReactionPattern::getSubstrateToProductMapping()
+{
+    return substrateToProductMapping;
 }
 
 }

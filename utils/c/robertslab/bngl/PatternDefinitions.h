@@ -23,76 +23,132 @@
 #ifndef ROBERTSLAB_BNGL_PATTERNDEFINITIONS_H
 #define ROBERTSLAB_BNGL_PATTERNDEFINITIONS_H
 
+#include <map>
 #include <string>
 #include <vector>
 
+#include "robertslab/bngl/InstanceDefinitions.h"
+#include "robertslab/graph/Graph.h"
+
+using std::map;
 using std::string;
 using std::vector;
 
+using robertslab::graph::GraphMapping;
+
 namespace robertslab {
 namespace bngl {
+
+class ComplexPattern;
+class MoleculePattern;
+class ComponentClass;
+class MoleculeClass;
 
 class ComponentPattern
 {
 public:
     ComponentPattern();
-    ComponentPattern(string definition);
+    ComponentPattern(MoleculePattern* molecule, string definition);
     bool isValid();
     string getString();
+    ComponentPattern* getBond();
 
 public:
+    ComponentClass* type;
+    MoleculePattern* molecule;
     bool valid;
     string name;
     string state;
-    string bond;
+    string bondName;
+    string bondPattern;
+    ComponentPattern* bond;
+
+    friend class ComplexPattern;
+    friend class MoleculePattern;
 };
 
-class MoleculePattern
+class MoleculePattern : public Vertex
 {
 public:
     MoleculePattern();
-    MoleculePattern(string definition);
+    MoleculePattern(string definition, map<string,MoleculeClass*> moleculeClasses);
     bool isValid();
     bool isNull();
     string getName();
-    string getString();
+    bool matches(MoleculePattern* instance);
+    bool matches(MoleculeInstance* instance);
 
 public:
+    virtual int getMaxNumberEdges();
+    virtual Vertex* getEdge(int i);
+    virtual bool matches(Vertex* v2);
+    virtual string getString();
+
+protected:
+    MoleculeClass* type;
     bool valid;
     bool null;
     string name;
-    vector<ComponentPattern> components;
+    vector<ComponentPattern*> components;
+
+    friend class ComplexPattern;
 };
 
-class ComplexPattern
+class ComplexPattern : public Graph
 {
 public:
     ComplexPattern();
-    ComplexPattern(string definition);
+    ComplexPattern(string definition, map<string,MoleculeClass*> moleculeClasses);
     bool isValid();
-    string getString();
+    bool matchesTo(ComplexInstance instance);
 
 public:
+    virtual int getNumberVertices();
+    virtual Vertex* getVertex(int i);
+    virtual string getString();
+
+protected:
     bool valid;
-    vector<MoleculePattern> molecules;
+    vector<MoleculePattern*> molecules;
+};
+
+class ReactantPattern : public Graph
+{
+public:
+    ReactantPattern();
+    ReactantPattern(string definition, map<string,MoleculeClass*> moleculeClasses);
+    bool isValid();
+    int getNumberReactants();
+    ComplexPattern* getReactant(int index);
+
+public:
+    virtual int getNumberVertices();
+    virtual Vertex* getVertex(int i);
+    virtual string getString();
+
+protected:
+    bool valid;
+    vector<ComplexPattern*> reactants;
 };
 
 class ReactionPattern
 {
 public:
     ReactionPattern();
-    ReactionPattern(string lhs, string rhs, bool reversible, double forwardRate, double reverseRate=0.0);
+    ReactionPattern(string lhs, string rhs, double rate, map<string,MoleculeClass*> moleculeClasses);
     bool isValid();
-    string getString();
+    string getString(bool includeRate=false);
+    ReactantPattern* getSubstrates();
+    ReactantPattern* getProducts();
+    double getRate();
+    GraphMapping getSubstrateToProductMapping();
 
-public:
-    vector<ComplexPattern> parseComplexes(string definition);
+protected:
     bool valid;
-    bool reversible;
-    vector<ComplexPattern> substrates;
-    vector<ComplexPattern> products;
-    double forwardRate;
-    double backwardRate;
+    ReactantPattern* substrates;
+    ReactantPattern* products;
+    double rate;
+    GraphMapping substrateToProductMapping;
 };
 
 

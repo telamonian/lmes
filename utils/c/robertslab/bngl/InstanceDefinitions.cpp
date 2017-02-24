@@ -27,6 +27,7 @@
 #include <vector>
 
 #include "robertslab/bngl/InstanceDefinitions.h"
+#include "robertslab/bngl/PatternDefinitions.h"
 
 using std::regex;
 using std::regex_token_iterator;
@@ -37,12 +38,12 @@ namespace robertslab {
 namespace bngl {
 
 ComponentInstance::ComponentInstance()
-:valid(false)
+:molecule(NULL),valid(false),bond(NULL)
 {
 }
 
-ComponentInstance::ComponentInstance(string definition)
-:valid(false)
+ComponentInstance::ComponentInstance(MoleculeInstance*molecule, string definition)
+:molecule(molecule),valid(false),bond(NULL)
 {
     // Parse the component definition.
     regex statePattern("^([^~!]+)(?:~([^~!]+))?(?:!([^~!]+))?$");
@@ -51,7 +52,7 @@ ComponentInstance::ComponentInstance(string definition)
     {
         name = match[1].str();
         state = match[2].str();
-        bond = match[3].str();
+        bondName = match[3].str();
         valid = true;
     }
 }
@@ -66,7 +67,7 @@ string ComponentInstance::getString()
     std::stringstream ss;
     ss << name;
     if (state != "") ss << "~" << state;
-    if (bond != "") ss << "!" << bond;
+    if (bondName != "") ss << "!" << bondName;
     return ss.str();
 }
 
@@ -93,9 +94,9 @@ MoleculeInstance::MoleculeInstance(string definition)
         while (tokens != endOfTokens)
         {
             string componentString = *tokens++;
-            ComponentInstance component(componentString);
+            ComponentInstance* component = new ComponentInstance(this, componentString);
             components.push_back(component);
-            if (!component.isValid()) valid = false;
+            if (!component->isValid()) valid = false;
         }
     }
 }
@@ -116,12 +117,46 @@ string MoleculeInstance::getString()
     ss << name << "(";
     for (int i=0; i<components.size(); i++)
     {
-        ss << (i==0?"":",") << components[i].getString();
+        ss << (i==0?"":",") << components[i]->getString();
     }
     ss << ")";
 
     return ss.str();
 }
+
+bool MoleculeInstance::matches(MoleculeInstance* comp)
+{
+    if (name != comp->name) return false;
+    if (components.size() != comp->components.size()) return false;
+    return true;
+}
+
+int MoleculeInstance::getMaxNumberEdges()
+{
+    return components.size();
+}
+
+Vertex* MoleculeInstance::getEdge(int i)
+{
+    if (components[i]->bond != NULL)
+        return components[i]->bond->molecule;
+    return NULL;
+}
+
+bool MoleculeInstance::matches(Vertex* comp)
+{
+    if (dynamic_cast<MoleculeInstance*>(comp))
+    {
+        return matches((MoleculeInstance*)comp);
+    }
+    else if (dynamic_cast<MoleculePattern*>(comp))
+    {
+        return ((MoleculePattern*)comp)->matches(this);
+    }
+
+    return false;
+}
+
 
 ComplexInstance::ComplexInstance()
 :valid(false)
@@ -140,9 +175,34 @@ ComplexInstance::ComplexInstance(string definition, double count)
     while (tokens != endOfTokens)
     {
         string moleculeString = *tokens++;
-        MoleculeInstance molecule(moleculeString);
+        MoleculeInstance* molecule = new MoleculeInstance(moleculeString);
         molecules.push_back(molecule);
-        if (!molecule.isValid()) valid = false;
+        if (!molecule->isValid()) valid = false;
+    }
+
+    // Go through and establish the connectivity using the bond names.
+    for (int m1=0; m1<molecules.size(); m1++)
+    {
+        for (int c1=0; c1<molecules[m1]->components.size(); c1++)
+        {
+            if (molecules[m1]->components[c1]->bondName != "")
+            {
+                int matches=0;
+                for (int m2=0; m2<molecules.size(); m2++)
+                {
+                    for (int c2=0; c2<molecules[m2]->components.size(); c2++)
+                    {
+                        if ((m1 != m2 || c1 != c2) && molecules[m1]->components[c1]->bondName == molecules[m2]->components[c2]->bondName)
+                        {
+                            molecules[m1]->components[c1]->bond = molecules[m2]->components[c2];
+                            matches++;
+                        }
+                    }
+                }
+
+                if (matches != 1) throw std::invalid_argument("inconsistent number of bond names in ComplexInstance::ComplexInstance");
+            }
+        }
     }
 }
 
@@ -151,13 +211,39 @@ bool ComplexInstance::isValid()
     return valid;
 }
 
-string ComplexInstance::getString()
+string ComplexInstance::getString(bool withCounts)
 {
     std::stringstream ss;
     for (int i=0; i<molecules.size(); i++)
-        ss << (i==0?"":".") << molecules[i].getString();
-    ss << " " << count;
+        ss << (i==0?"":".") << molecules[i]->getString();
+    if (withCounts) ss << " " << count;
     return ss.str();
+}
+
+string ComplexInstance::getString()
+{
+    return getString(false);
+}
+
+
+int ComplexInstance::getNumberMolecules()
+{
+    return molecules.size();
+}
+
+MoleculeInstance* ComplexInstance::getMolecule(int i)
+{
+    return molecules[i];
+}
+
+int ComplexInstance::getNumberVertices()
+{
+    return molecules.size();
+}
+
+Vertex* ComplexInstance::getVertex(int i)
+{
+    return molecules[i];
 }
 
 }

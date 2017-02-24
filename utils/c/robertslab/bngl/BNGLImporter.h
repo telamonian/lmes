@@ -54,15 +54,20 @@ public:
 protected:
     virtual void parseParameters(list<string>& lines);
     virtual void parseMoleculeTypes(list<string>& lines);
-    virtual void parseInitialCounts(list<string>& lines);
+    virtual void parseSeedSpecies(list<string>& lines);
     virtual void parseReactions(list<string>& lines);
     bool evaluteExpression(string expression, double& value);
 
 protected:
     virtual void processModel();
-    virtual void supplementMoleculeTypesFromSpeciesCounts();
+    virtual void supplementMoleculeTypesFromSeedSpecies();
     virtual void enumerateMoleculeSpecies();
-    vector<string> createMoleculeStateCombinations(MoleculeClass moleculeClass, int componentIndex=0);
+    virtual bool processReactions(int round);
+    virtual void processReaction(int round, ReactionPattern* reaction);
+    virtual void processReactionZerothOrder(int round, ReactionPattern* reaction);
+    virtual void processReactionFirstOrder(int round, ReactionPattern* reaction);
+    virtual void processReactionSecondOrder(int round, ReactionPattern* reaction);
+
 
     /*virtual double convertPropensityConstantUnits(string constant, double value, string desiredUnits);
     virtual void convertUnits(ASTNode_t* units);
@@ -76,10 +81,12 @@ protected:
     bool verbose, reallyVerbose;
     bool allImportStepsSuccessful;
     map<string,double> parameters;
-    vector<MoleculeClass> molecules;
-    vector<MoleculeInstance> moleculeSpecies;
-    vector<ComplexInstance> initialSpeciesCounts;
-    vector<ReactionPattern> reactions;
+    map<string,MoleculeClass*> moleculeTypes;
+    vector<MoleculeInstance*> moleculeSpecies;
+    vector<vector<ComplexInstance*> > complexSpecies;
+    vector<ReactionPattern*> reactions;
+
+    vector<ComplexInstance*> allComplexSpecies;
 
     lm::input::ReactionModel reactionModel;
 

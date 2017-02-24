@@ -34,20 +34,24 @@ using std::vector;
 namespace robertslab {
 namespace bngl {
 
+class MoleculeClass;
+
 class ComponentClass
 {
 public:
     ComponentClass();
     ComponentClass(string definition);
-    ComponentClass(string name, string state);
     bool isValid();
+    string getName();
     string getString();
-    bool isInstance(ComponentInstance componentInstance);
+    bool isInstance(ComponentInstance* componentInstance);
 
-public:
+protected:
     bool valid;
     string name;
     vector<string> states;
+
+    friend class MoleculeClass;
 };
 
 class MoleculeClass
@@ -55,29 +59,18 @@ class MoleculeClass
 public:
     MoleculeClass();
     MoleculeClass(string definition);
-    MoleculeClass(string name, vector<ComponentClass> components);
     bool isValid();
     string getName();
+    int getNumberComponents();
+    ComponentClass* getComponent(int i);
     string getString();
-    bool isInstance(MoleculeInstance moleculeInstance);
+    bool isInstance(MoleculeInstance* moleculeInstance);
+    vector<string> getStateCombinations(int componentIndex=0);    
 
-public:
+protected:
     bool valid;
     string name;
-    vector<ComponentClass> components;
-};
-
-class ComplexClass
-{
-public:
-    ComplexClass();
-    ComplexClass(vector<MoleculeClass> molecules);
-    bool isValid();
-    string getString();
-
-public:
-    bool valid;
-    vector<MoleculeClass> molecules;
+    vector<ComponentClass*> components;
 };
 
 

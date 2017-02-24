@@ -26,55 +26,89 @@
 #include <string>
 #include <vector>
 
+#include "robertslab/graph/Graph.h"
+
 using std::string;
 using std::vector;
+using robertslab::graph::Graph;
+using robertslab::graph::Vertex;
 
 namespace robertslab {
 namespace bngl {
+
+class ComponentClass;
+class MoleculeClass;
+class MoleculeInstance;
+class MoleculePattern;
 
 class ComponentInstance
 {
 public:
     ComponentInstance();
-    ComponentInstance(string definition);
+    ComponentInstance(MoleculeInstance*, string definition);
     bool isValid();
     string getString();
+    ComponentInstance* getBond();
 
-public:
+protected:
+    MoleculeInstance* molecule;
     bool valid;
     string name;
     string state;
-    string bond;
+    string bondName;
+    ComponentInstance* bond;
+
+    friend class ComplexInstance;
+    friend class MoleculeInstance;
+    friend class ComponentClass;
+    friend class MoleculePattern;
 };
 
-class MoleculeInstance
+class MoleculeInstance : public Vertex
 {
 public:
     MoleculeInstance();
     MoleculeInstance(string definition);
     bool isValid();
     string getName();
-    string getString();
+    bool matches(MoleculeInstance* instance);
 
 public:
+    virtual int getMaxNumberEdges();
+    virtual Vertex* getEdge(int i);
+    virtual bool matches(Vertex* v2);
+    virtual string getString();
+
+protected:
     bool valid;
     string name;
-    vector<ComponentInstance> components;
+    vector<ComponentInstance*> components;
+
+    friend class ComplexInstance;
+    friend class MoleculeClass;
+    friend class MoleculePattern;
 };
 
-class ComplexInstance
+class ComplexInstance : public Graph
 {
 public:
     ComplexInstance();
     ComplexInstance(string definition, double count);
     bool isValid();
     double getCount();
-    string getString();
+    int getNumberMolecules();
+    MoleculeInstance* getMolecule(int i);
+    string getString(bool withCounts);
 
 public:
+    virtual int getNumberVertices();
+    virtual Vertex* getVertex(int i);
+    virtual string getString();
+
+protected:
     bool valid;
     double count;
-    vector<MoleculeInstance> molecules;
+    vector<MoleculeInstance*> molecules;
 };
 
 

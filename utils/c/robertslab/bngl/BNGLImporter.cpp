@@ -38,13 +38,16 @@
 #include "robertslab/bngl/InstanceDefinitions.h"
 #include "robertslab/bngl/PatternDefinitions.h"
 #include "robertslab/bngl/TypeDefinitions.h"
+#include "robertslab/graph/Graph.h"
 
 using std::list;
 using std::regex;
 using std::regex_token_iterator;
 using lm::Exception;
 using lm::Print;
+
 using robertslab::sbml::ASTHelper;
+using robertslab::graph::GraphMapping;
 
 namespace robertslab {
 namespace bngl {
@@ -163,10 +166,14 @@ bool BNGLImporter::import(string filename, map<string,double> userParameters)
                 }
                 else if (section == "species" || section == "seed species" )
                 {
-                    parseInitialCounts(sectionLines);
+                    parseSeedSpecies(sectionLines);
                 }
                 else if (section == "reaction rules")
                 {
+                    // Add any molecules that are in the species list but not in the molecule types before parsing the reactions.
+                    supplementMoleculeTypesFromSeedSpecies();
+
+                    // Parse the reactions.
                     parseReactions(sectionLines);
                 }
                 else
@@ -259,11 +266,11 @@ void BNGLImporter::parseMoleculeTypes(list<string>& lines)
     for (list<string>::iterator it=lines.begin(); it != lines.end(); it++)
     {
         string line = *it;
-        MoleculeClass molecule(line);
-        if (molecule.isValid())
+        MoleculeClass* molecule = new MoleculeClass(line);
+        if (molecule->isValid())
         {
-            molecules.push_back(molecule);
-            Print::printf(Print::INFO, "Added molecule definition: %s", molecule.getString().c_str());
+            moleculeTypes[molecule->getName()] = molecule;
+            Print::printf(Print::INFO, "Added molecule definition: %s", molecule->getString().c_str());
         }
         else
         {
@@ -272,9 +279,12 @@ void BNGLImporter::parseMoleculeTypes(list<string>& lines)
     }
 }
 
-void BNGLImporter::parseInitialCounts(list<string>& lines)
+void BNGLImporter::parseSeedSpecies(list<string>& lines)
 {
     Print::printf(Print::INFO, "Parsing species block.");
+
+    // Add the round to the complex species list.
+    complexSpecies.push_back(vector<ComplexInstance*>());
 
     regex parameterPattern("^(\\S+)\\s+(\\S+)$");
     std::smatch match;
@@ -290,15 +300,15 @@ void BNGLImporter::parseInitialCounts(list<string>& lines)
 
             // Get the complex.
             string complexInstanceString = match[1].str();
-            ComplexInstance complex(complexInstanceString, count);
+            ComplexInstance* complex = new ComplexInstance(complexInstanceString, count);
 
             // Make sure we processed a valid record.
-            if (complex.isValid() && isValidCount)
+            if (complex->isValid() && isValidCount)
             {
-                initialSpeciesCounts.push_back(complex);
-                Print::printf(Print::INFO, "Added initial count %s", complex.getString().c_str());
+                complexSpecies[0].push_back(complex);
+                Print::printf(Print::INFO, "Added initial count %s", complex->getString(true).c_str());
             }
-            else if (!complex.isValid())
+            else if (!complex->isValid())
             {
                 Print::printf(Print::ERROR, "Could not simplify complex %s", complexInstanceString.c_str());
                 allImportStepsSuccessful = false;
@@ -338,15 +348,20 @@ void BNGLImporter::parseReactions(list<string>& lines)
             // Get the lhs and rhs of the equation.
             string lhsString = match[1].str();
             string rhsString = match[2].str();
-            ReactionPattern reaction(lhsString, rhsString, true, rateF, rateR);
+            ReactionPattern* reactionF = new ReactionPattern(lhsString, rhsString, rateF, moleculeTypes);
+            ReactionPattern* reactionR = new ReactionPattern(rhsString, lhsString, rateR, moleculeTypes);
 
             // Make sure we processed a valid record.
-            if (isValidRateF && isValidRateR && reaction.isValid())
+            if (isValidRateF && isValidRateR && reactionF->isValid() && reactionR->isValid())
             {
-                reactions.push_back(reaction);
-                Print::printf(Print::INFO, "Added reversible reaction %s", reaction.getString().c_str());
+                reactions.push_back(reactionF);
+                reactions.push_back(reactionR);
+                Print::printf(Print::INFO, "Added forward reaction %s", reactionF->getString(true).c_str());
+                if (verbose) Print::printf(Print::INFO, "Reaction substrate to product mapping:\n%s", reactionF->getSubstrateToProductMapping().getString().c_str());
+                Print::printf(Print::INFO, "Added reverse reaction %s", reactionR->getString(true).c_str());
+                if (verbose) Print::printf(Print::INFO, "Reaction substrate to product mapping:\n%s", reactionR->getSubstrateToProductMapping().getString().c_str());
             }
-            else if (!reaction.isValid())
+            else if (!reactionF->isValid() || !reactionR->isValid())
             {
                 Print::printf(Print::ERROR, "Could not simplify reaction: \"%s\" \"%s\"", lhsString.c_str(), rhsString.c_str());
                 allImportStepsSuccessful = false;
@@ -372,15 +387,16 @@ void BNGLImporter::parseReactions(list<string>& lines)
             // Get the lhs and rhs of the equation.
             string lhsString = match[1].str();
             string rhsString = match[2].str();
-            ReactionPattern reaction(lhsString, rhsString, false, rate);
+            ReactionPattern* reaction = new ReactionPattern(lhsString, rhsString, rate, moleculeTypes);
 
             // Make sure we processed a valid record.
-            if (reaction.isValid() && isValidRate)
+            if (reaction->isValid() && isValidRate)
             {
                 reactions.push_back(reaction);
-                Print::printf(Print::INFO, "Added irreversible reaction %s", reaction.getString().c_str());
+                Print::printf(Print::INFO, "Added irreversible reaction %s", reaction->getString(true).c_str());
+                if (verbose) Print::printf(Print::INFO, "Reaction substrate to product mapping:\n%s", reaction->getSubstrateToProductMapping().getString().c_str());
             }
-            else if (!reaction.isValid())
+            else if (!reaction->isValid())
             {
                 Print::printf(Print::ERROR, "Could not simplify left reaction: \"%s\" \"%s\"", lhsString.c_str(), rhsString.c_str());
                 allImportStepsSuccessful = false;
@@ -424,49 +440,50 @@ bool BNGLImporter::evaluteExpression(string expression, double& value)
 
 void BNGLImporter::processModel()
 {
-    // Add any species that are in the initial counts by not in the molecule types.
-    supplementMoleculeTypesFromSpeciesCounts();
-
     // Figure out the list of atomic species that we need.
-    enumerateMoleculeSpecies();
+    //enumerateMoleculeSpecies();
+
+    // Go through the reaction patterns iteratively until the species have converged.
+    for (int round=1; round<10; round++)
+    {
+        if (verbose) Print::printf(Print::INFO, "Processing reactions for round %d", round);
+        if (!processReactions(round++)) break;
+    }
+
+    // Combine the species from each round into one list.
+    for (int i=0; i<complexSpecies.size(); i++)
+        for (int j=0; j<complexSpecies[i].size(); j++)
+            allComplexSpecies.push_back(complexSpecies[i][j]);
+    Print::printf(Print::INFO, "Added %d total complex species.", allComplexSpecies.size());
+
+    // Print debugging information, if necessary.
+    if (verbose)
+    {
+        for (int i=0; i<allComplexSpecies.size(); i++)
+        {
+            Print::printf(Print::INFO, "%s", allComplexSpecies[i]->getString().c_str());
+        }
+    }
 }
 
-void BNGLImporter::supplementMoleculeTypesFromSpeciesCounts()
+void BNGLImporter::supplementMoleculeTypesFromSeedSpecies()
 {
     // Go through the list of complexes with initial counts.
-    for (int i=0; i<initialSpeciesCounts.size(); i++)
+    for (int i=0; i<complexSpecies.size(); i++)
     {
-        ComplexInstance complex = initialSpeciesCounts[i];
+        ComplexInstance* complex = complexSpecies[0][i];
 
         // Go through the molecules in the complex.
-        for (int j=0; j<complex.molecules.size(); j++)
+        for (int j=0; j<complex->getNumberMolecules(); j++)
         {
-            MoleculeInstance molecule = complex.molecules[j];
+            MoleculeInstance* molecule = complex->getMolecule(j);
 
-            // Go through the list of known molecule classes.
-            bool found = false;
-            for (int k=0; k<molecules.size(); k++)
+            // If we don't already have a molecule type with this name, add one.
+            if (moleculeTypes.count(molecule->getName()) == 0)
             {
-                // See if the molecule is an instance of the molecule class.
-                if (molecules[k].isInstance(molecule))
-                {
-                    found = true;
-                    break;
-                }
-            }
-
-            // If we didn't find one, add it.
-            if (!found)
-            {
-                vector<ComponentClass> componentsClasses;
-                for (int k=0; k<molecule.components.size(); k++)
-                {
-                    ComponentInstance component = molecule.components[k];
-                    componentsClasses.push_back(ComponentClass(component.name, component.state));
-                }
-                MoleculeClass moleculeClass(molecule.getName(), componentsClasses);
-                molecules.push_back(moleculeClass);
-                Print::printf(Print::WARNING, "Added inferred molecule definition: %s", moleculeClass.getString().c_str());
+                MoleculeClass* moleculeClass = new MoleculeClass(molecule->getString());
+                moleculeTypes[moleculeClass->getName()] = moleculeClass;
+                Print::printf(Print::WARNING, "Added inferred molecule definition: %s", moleculeClass->getString().c_str());
             }
         }
     }
@@ -475,53 +492,127 @@ void BNGLImporter::supplementMoleculeTypesFromSpeciesCounts()
 void BNGLImporter::enumerateMoleculeSpecies()
 {
     // We need one species for each combination of states for every molecule.
-    for (int i=0; i<molecules.size(); i++)
+    for (auto it=moleculeTypes.begin(); it != moleculeTypes.end(); it++)
     {
-        MoleculeClass molecule = molecules[i];
-        vector<string> stateCombinations = createMoleculeStateCombinations(molecule);
+        MoleculeClass* molecule = it->second;
+        vector<string> stateCombinations = molecule->getStateCombinations();
         for (int j=0; j<stateCombinations.size(); j++)
         {
-            moleculeSpecies.push_back(MoleculeInstance(molecule.name+"("+stateCombinations[j]+")"));
+            moleculeSpecies.push_back(new MoleculeInstance(molecule->getName()+"("+stateCombinations[j]+")"));
         }
-        Print::printf(Print::INFO, "Added species to represent possible states for molecule %s: %d species", molecule.name.c_str(), stateCombinations.size());
+        Print::printf(Print::INFO, "Added species to represent possible states for molecule %s: %d species", molecule->getName().c_str(), stateCombinations.size());
     }
-    Print::printf(Print::INFO, "Added %d total species.", moleculeSpecies.size());
+    Print::printf(Print::INFO, "Added %d total molecular species.", moleculeSpecies.size());
+
+    // Print debugging information, if necessary.
+    if (reallyVerbose)
+    {
+        for (int i=0; i<moleculeSpecies.size(); i++)
+        {
+            Print::printf(Print::INFO, "%s", moleculeSpecies[i]->getString().c_str());
+        }
+    }
 }
 
-vector<string> BNGLImporter::createMoleculeStateCombinations(MoleculeClass moleculeClass, int componentIndex)
+bool BNGLImporter::processReactions(int round)
 {
-    vector<string> ret;
-    if (componentIndex == moleculeClass.components.size())
+    // And the round to the complex species.
+    if (complexSpecies.size() != round) throw Exception("inconsistent complex species list size",round,complexSpecies.size());
+    complexSpecies.push_back(vector<ComplexInstance*>());
+
+    // Loop through each reaction.
+    for (int i=0; i<reactions.size(); i++)
     {
-        ret.push_back("");
+        ReactionPattern* reaction = reactions[i];
+        processReaction(round, reaction);
     }
+
+    Print::printf(Print::INFO, "Added complex species for round %d: %d species", round, complexSpecies[round].size());
+
+    // Return whether or not we added any new complexes this round.
+    return complexSpecies[round].size() != 0;
+}
+
+void BNGLImporter::processReaction(int round, ReactionPattern* reaction)
+{
+    // Process the reaction according to its order.
+    if (reaction->getSubstrates()->getNumberReactants() == 0)
+        processReactionZerothOrder(round, reaction);
+    else if (reaction->getSubstrates()->getNumberReactants() == 1)
+        processReactionFirstOrder(round, reaction);
+    else if (reaction->getSubstrates()->getNumberReactants() == 2)
+        processReactionSecondOrder(round, reaction);
     else
+        throw Exception("unsupported reaction order",reaction->getSubstrates()->getNumberReactants());
+}
+
+void BNGLImporter::processReactionZerothOrder(int round, ReactionPattern* reaction)
+{
+
+}
+
+void BNGLImporter::processReactionFirstOrder(int round, ReactionPattern* reaction)
+{
+    // Get the substrate pattern.
+    ComplexPattern* substratePattern = reaction->getSubstrates()->getReactant(0);
+
+    // Get a mapping of of substrate patterns to product patterns.
+    GraphMapping substrateProductPatternMapping = reaction->getSubstrateToProductMapping();
+
+    // Go through every complex species from the previous round and see if they match the pattern.
+    for (int i=0; i<complexSpecies[round-1].size(); i++)
     {
-        vector<string> children = createMoleculeStateCombinations(moleculeClass, componentIndex+1);
-        if (moleculeClass.components[componentIndex].states.size() == 0)
+        // Find all the matches.
+        ComplexInstance* substrate = complexSpecies[round-1][i];
+        list<GraphMapping> matches = substrate->findAllIsomorphicSubgraphs(substratePattern);
+
+        // Go through each match.
+        for (auto it=matches.begin(); it != matches.end(); it++)
         {
-            for (int j=0; j<children.size(); j++)
-            {
-                ret.push_back(moleculeClass.components[componentIndex].name+","+children[j]);
-            }
+            GraphMapping substrateMapping = *it;
+            if (verbose) Print::printf(Print::INFO, "Found match in round %d for reaction %s: %s contains %s",round, reaction->getString(false).c_str(), substrate->getString().c_str(), substratePattern->getString().c_str());
+
+            // Rewrite the component states for the products.
+
+
+            // Create the product species.
+            //if (products.size() == 1)
+            //{
+            //}
+
+
+            // Go through each vertex in the mapping between substrates and products.
+
+
         }
-        else
+    }
+}
+
+void BNGLImporter::processReactionSecondOrder(int round, ReactionPattern* reaction)
+{
+    /*
+    // Get the substrate patterns.
+    ComplexPattern* substrate1Pattern = reaction->getSubstrates()->getReactant(0);
+    ComplexPattern* substrate2Pattern = reaction->getSubstrates()->getReactant(1);
+
+    // Go through every possible pair of complex species from the previous round and see if they match the patterns.
+    for (int i=0; i<complexSpecies[round-1].size(); i++)
+    {
+        for (int j=0; j<complexSpecies[round-1].size(); j++)
         {
-            for (int i=0; i<moleculeClass.components[componentIndex].states.size(); i++)
+            ComplexInstance substrate1 = complexSpecies[round-1][i];
+            ComplexInstance substrate2 = complexSpecies[round-1][j];
+            if (substrate1Pattern.matchesTo(substrate1) && substrate2Pattern.matchesTo(substrate2))
             {
-                string state = moleculeClass.components[componentIndex].states[i];
-                for (int j=0; j<children.size(); j++)
+                if (verbose)
                 {
-                    string combination = moleculeClass.components[componentIndex].name+"~"+state;
-                    if (children[j] != "") combination += ","+children[j];
-                    ret.push_back(combination);
+                    Print::printf(Print::INFO, "Found reaction match in round %d: %s + %s: %s + %s",round, substrate1Pattern.getString().c_str(), substrate2Pattern.getString().c_str(), substrate1.getString().c_str(), substrate2.getString().c_str());
                 }
             }
         }
     }
-    return ret;
+    */
 }
-
 
 /*
 void BNGLImporter::importGlobalExpressions()

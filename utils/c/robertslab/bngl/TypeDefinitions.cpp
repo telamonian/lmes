@@ -64,15 +64,14 @@ ComponentClass::ComponentClass(string definitionString)
     }
 }
 
-ComponentClass::ComponentClass(string name, string state)
-:valid(true),name(name)
-{
-    if (state != "") states.push_back(state);
-}
-
 bool ComponentClass::isValid()
 {
     return valid;
+}
+
+string ComponentClass::getName()
+{
+    return name;
 }
 
 string ComponentClass::getString()
@@ -87,12 +86,12 @@ string ComponentClass::getString()
     return ss.str();
 }
 
-bool ComponentClass::isInstance(ComponentInstance componentInstance)
+bool ComponentClass::isInstance(ComponentInstance* componentInstance)
 {
-    if (name != componentInstance.name) return false;
-    if (states.size() == 0 && componentInstance.state == "") return true;
+    if (name != componentInstance->name) return false;
+    if (states.size() == 0 && componentInstance->state == "") return true;
     for (int i=0; i<states.size(); i++)
-        if (states[i] == componentInstance.state)
+        if (states[i] == componentInstance->state)
             return true;
     return false;
 }
@@ -119,16 +118,11 @@ MoleculeClass::MoleculeClass(string definition)
         regex_token_iterator<std::string::iterator> tokens(componentString.begin(), componentString.end(), componentPattern);
         while (tokens != endOfTokens)
         {
-            ComponentClass component(*tokens++);
+            ComponentClass* component = new ComponentClass(*tokens++);
             components.push_back(component);
-            if (!component.isValid()) valid = false;
+            if (!component->isValid()) valid = false;
         }
     }
-}
-
-MoleculeClass::MoleculeClass(string name, vector<ComponentClass> components)
-:valid(true),name(name),components(components)
-{
 }
 
 bool MoleculeClass::isValid()
@@ -141,53 +135,71 @@ string MoleculeClass::getName()
     return name;
 }
 
+int MoleculeClass::getNumberComponents()
+{
+    return components.size();
+}
+
+ComponentClass* MoleculeClass::getComponent(int i)
+{
+    return components[i];
+}
+
 string MoleculeClass::getString()
 {
     std::stringstream ss;
     ss << name << "(";
     for (int i=0; i<components.size(); i++)
     {
-        ss << (i==0?"":",") << components[i].getString();
+        ss << (i==0?"":",") << components[i]->getString();
     }
     ss << ")";
 
     return ss.str();
 }
 
-bool MoleculeClass::isInstance(MoleculeInstance moleculeInstance)
+bool MoleculeClass::isInstance(MoleculeInstance* moleculeInstance)
 {
-    if (name != moleculeInstance.name) return false;
-    if (components.size() != moleculeInstance.components.size()) return false;
+    if (name != moleculeInstance->name) return false;
+    if (components.size() != moleculeInstance->components.size()) return false;
     for (int i=0; i<components.size(); i++)
-        if (!components[i].isInstance(moleculeInstance.components[i])) return false;
+        if (!components[i]->isInstance(moleculeInstance->components[i])) return false;
 
     return true;
 }
 
-ComplexClass::ComplexClass()
-:valid(false)
+vector<string> MoleculeClass::getStateCombinations(int componentIndex)
 {
-}
-
-ComplexClass::ComplexClass(vector<MoleculeClass> molecules)
-:valid(true),molecules(molecules)
-{
-}
-
-bool ComplexClass::isValid()
-{
-    return valid;
-}
-
-string ComplexClass::getString()
-{
-    std::stringstream ss;
-    for (int i=0; i<molecules.size(); i++)
+    vector<string> ret;
+    if (componentIndex == components.size())
     {
-        ss << (i==0?"":".") << molecules[i].getString();
+        ret.push_back("");
     }
-
-    return ss.str();
+    else
+    {
+        vector<string> children = getStateCombinations(componentIndex+1);
+        if (components[componentIndex]->states.size() == 0)
+        {
+            for (int j=0; j<children.size(); j++)
+            {
+                ret.push_back(components[componentIndex]->name+","+children[j]);
+            }
+        }
+        else
+        {
+            for (int i=0; i<components[componentIndex]->states.size(); i++)
+            {
+                string state = components[componentIndex]->states[i];
+                for (int j=0; j<children.size(); j++)
+                {
+                    string combination = components[componentIndex]->name+"~"+state;
+                    if (children[j] != "") combination += ","+children[j];
+                    ret.push_back(combination);
+                }
+            }
+        }
+    }
+    return ret;
 }
 
 }
