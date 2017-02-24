@@ -81,6 +81,7 @@ public:
 public:
     virtual int getMaxNumberEdges();
     virtual Vertex* getEdge(int i);
+    virtual void removeEdge(int i);
     virtual bool matches(Vertex* v2);
     virtual string getString();
 

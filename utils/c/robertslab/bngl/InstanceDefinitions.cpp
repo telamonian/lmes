@@ -42,7 +42,7 @@ ComponentInstance::ComponentInstance()
 {
 }
 
-ComponentInstance::ComponentInstance(MoleculeInstance*molecule, string definition)
+ComponentInstance::ComponentInstance(MoleculeInstance* molecule, string definition)
 :molecule(molecule),valid(false),bond(NULL)
 {
     // Parse the component definition.
@@ -55,6 +55,11 @@ ComponentInstance::ComponentInstance(MoleculeInstance*molecule, string definitio
         bondName = match[3].str();
         valid = true;
     }
+}
+
+ComponentInstance::ComponentInstance(MoleculeInstance* molecule, const ComponentInstance& other)
+:molecule(molecule),valid(other.valid),name(other.name),state(other.state),bondName(other.bondName),bond(NULL)
+{
 }
 
 bool ComponentInstance::isValid()
@@ -101,6 +106,13 @@ MoleculeInstance::MoleculeInstance(string definition)
     }
 }
 
+MoleculeInstance::MoleculeInstance(const MoleculeInstance& other)
+:valid(other.valid),name(other.name)
+{
+    for (int i=0; i<other.components.size(); i++)
+        components.push_back(new ComponentInstance(this, *other.components[i]));
+}
+
 bool MoleculeInstance::isValid()
 {
     return valid;
@@ -143,6 +155,12 @@ Vertex* MoleculeInstance::getEdge(int i)
     return NULL;
 }
 
+void MoleculeInstance::removeEdge(int i)
+{
+    components[i]->bondName = "";
+    components[i]->bond = NULL;
+}
+
 bool MoleculeInstance::matches(Vertex* comp)
 {
     if (dynamic_cast<MoleculeInstance*>(comp))
@@ -180,6 +198,23 @@ ComplexInstance::ComplexInstance(string definition, double count)
         if (!molecule->isValid()) valid = false;
     }
 
+    // Connect all of the bonds.
+    connectBonds();
+}
+
+ComplexInstance::ComplexInstance(const ComplexInstance& other)
+:valid(other.valid),count(0.0)
+{
+    // Create the new molecules.
+    for (int i=0; i<other.molecules.size(); i++)
+        molecules.push_back(new MoleculeInstance(*other.molecules[i]));
+
+    // Connect all of the bonds.
+    connectBonds();
+}
+
+void ComplexInstance::connectBonds()
+{
     // Go through and establish the connectivity using the bond names.
     for (int m1=0; m1<molecules.size(); m1++)
     {
@@ -201,6 +236,10 @@ ComplexInstance::ComplexInstance(string definition, double count)
                 }
 
                 if (matches != 1) throw std::invalid_argument("inconsistent number of bond names in ComplexInstance::ComplexInstance");
+            }
+            else
+            {
+                molecules[m1]->components[c1]->bond = NULL;
             }
         }
     }

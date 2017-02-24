@@ -68,6 +68,8 @@ protected:
     virtual void processReactionFirstOrder(int round, ReactionPattern* reaction);
     virtual void processReactionSecondOrder(int round, ReactionPattern* reaction);
 
+    list<ComplexInstance*> rewriteSubstrateToProduct(ComplexInstance* substrate, GraphMapping substratePatternMapping, ComplexPattern* substratePattern, GraphMapping substrateProductPatternMapping);
+
 
     /*virtual double convertPropensityConstantUnits(string constant, double value, string desiredUnits);
     virtual void convertUnits(ASTNode_t* units);

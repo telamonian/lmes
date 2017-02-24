@@ -556,9 +556,6 @@ void BNGLImporter::processReactionFirstOrder(int round, ReactionPattern* reactio
     // Get the substrate pattern.
     ComplexPattern* substratePattern = reaction->getSubstrates()->getReactant(0);
 
-    // Get a mapping of of substrate patterns to product patterns.
-    GraphMapping substrateProductPatternMapping = reaction->getSubstrateToProductMapping();
-
     // Go through every complex species from the previous round and see if they match the pattern.
     for (int i=0; i<complexSpecies[round-1].size(); i++)
     {
@@ -570,9 +567,10 @@ void BNGLImporter::processReactionFirstOrder(int round, ReactionPattern* reactio
         for (auto it=matches.begin(); it != matches.end(); it++)
         {
             GraphMapping substrateMapping = *it;
-            if (verbose) Print::printf(Print::INFO, "Found match in round %d for reaction %s: %s contains %s",round, reaction->getString(false).c_str(), substrate->getString().c_str(), substratePattern->getString().c_str());
+            if (verbose) Print::printf(Print::INFO, "Found match in round %d for reaction %s, species %s contains pattern %s",round, reaction->getString(false).c_str(), substrate->getString().c_str(), substratePattern->getString().c_str());
 
             // Rewrite the component states for the products.
+            list<ComplexInstance*> products = rewriteSubstrateToProduct(substrate, substrateMapping, substratePattern, reaction->getSubstrateToProductMapping());
 
 
             // Create the product species.
@@ -586,6 +584,63 @@ void BNGLImporter::processReactionFirstOrder(int round, ReactionPattern* reactio
 
         }
     }
+}
+
+list<ComplexInstance*> BNGLImporter::rewriteSubstrateToProduct(ComplexInstance* substrate, GraphMapping substrateToSubstratePatternMapping, ComplexPattern* substratePattern, GraphMapping substratePatternToProductPatternMapping)
+{
+    // Create a copy of the substrate to rewrite into the products.
+    ComplexInstance* products = new ComplexInstance(*substrate);
+
+    // Create a copy of the mapping.
+    GraphMapping substratePatternToProductMapping(substratePattern, products);
+    for (int i=0; i<substrate->getNumberVertices(); i++)
+    {
+        if (substrateToSubstratePatternMapping.containsSourceVertex(substrate->getVertex(i)))
+        {
+            Vertex* v1 = substrateToSubstratePatternMapping.getTargetVertex(substrate->getVertex(i));
+            Vertex* v2 = products->getVertex(i);
+            substratePatternToProductMapping.addMapping(v1,v2);
+        }
+    }
+
+    // Go through each vertext in the substrate pattern.
+    for (int i=0; i<substratePattern->getNumberVertices(); i++)
+    {
+        Vertex* substratePatternVertex = substratePattern->getVertex(i);
+        Vertex* productPatternVertex = substratePatternToProductPatternMapping.getTargetVertex(substratePatternVertex);
+        printf("1: %s\n",substratePatternVertex->getString().c_str());
+        printf("2: %s\n",productPatternVertex->getString().c_str());
+
+        // Go through each edge and see if it was changed.
+        for (int j=0; j<substratePatternVertex->getMaxNumberEdges(); j++)
+        {
+            // See if an edge was added.
+            if (substratePatternVertex->getEdge(j) == NULL && productPatternVertex->getEdge(j) != NULL)
+            {
+                printf("Edge added\n");
+            }
+
+            // See if an edge was removed.
+            else if (substratePatternVertex->getEdge(j) != NULL && productPatternVertex->getEdge(j) == NULL)
+            {
+                Vertex* v1 = substratePatternToProductMapping.getTargetVertex(substratePatternVertex);
+                Vertex* v2 = substratePatternToProductMapping.getTargetVertex(substratePatternVertex->getEdge(j));
+                if (!products->removeEdge(v1, v2)) throw Exception("could not remove the edge from the product", v1->getString().c_str(), v2->getString().c_str(), products->getString().c_str());
+                printf("Edge removed %s %s: %s\n", v1->getString().c_str(), v2->getString().c_str(), products->getString().c_str());
+            }
+        }
+
+        //Vertex* substrateVertex = substratePatternMapping.getSourceVertex(substratePatternVertex);
+        //if (substrateVertex == NULL) throw Exception("did not have a mapping for the substrate molecule pattern", substratePatternVertex->getString().c_str());
+
+
+    }
+
+    // TODO: break apart any molecules that are no longer in a complex in the product.
+
+
+    list<ComplexInstance*> ret;
+    return ret;
 }
 
 void BNGLImporter::processReactionSecondOrder(int round, ReactionPattern* reaction)

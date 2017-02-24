@@ -45,7 +45,8 @@ class ComponentInstance
 {
 public:
     ComponentInstance();
-    ComponentInstance(MoleculeInstance*, string definition);
+    ComponentInstance(MoleculeInstance* molecule, string definition);
+    ComponentInstance(MoleculeInstance* molecule, const ComponentInstance& other);
     bool isValid();
     string getString();
     ComponentInstance* getBond();
@@ -69,6 +70,7 @@ class MoleculeInstance : public Vertex
 public:
     MoleculeInstance();
     MoleculeInstance(string definition);
+    MoleculeInstance(const MoleculeInstance& other);
     bool isValid();
     string getName();
     bool matches(MoleculeInstance* instance);
@@ -76,6 +78,7 @@ public:
 public:
     virtual int getMaxNumberEdges();
     virtual Vertex* getEdge(int i);
+    virtual void removeEdge(int i);
     virtual bool matches(Vertex* v2);
     virtual string getString();
 
@@ -94,6 +97,7 @@ class ComplexInstance : public Graph
 public:
     ComplexInstance();
     ComplexInstance(string definition, double count);
+    ComplexInstance(const ComplexInstance& other);
     bool isValid();
     double getCount();
     int getNumberMolecules();
@@ -104,6 +108,9 @@ public:
     virtual int getNumberVertices();
     virtual Vertex* getVertex(int i);
     virtual string getString();
+
+protected:
+    void connectBonds();
 
 protected:
     bool valid;

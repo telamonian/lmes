@@ -50,17 +50,18 @@ void GraphMapping::addMapping(Vertex* sourceVertex, Vertex* targetVertex)
 {
     sourceVertices.push_back(sourceVertex);
     targetVertices.push_back(targetVertex);
-    mapping[sourceVertex] = targetVertex;
+    forwardMapping[sourceVertex] = targetVertex;
+    reverseMapping[targetVertex] = sourceVertex;
 }
 
 bool GraphMapping::containsSourceVertex(Vertex* sourceVertex)
 {
-    return (mapping.count(sourceVertex) > 0);
+    return (forwardMapping.count(sourceVertex) > 0);
 }
 
 int GraphMapping::getNumberMatches()
 {
-    return mapping.size();
+    return sourceVertices.size();
 }
 
 Vertex* GraphMapping::getSourceVertex(int index)
@@ -73,12 +74,23 @@ Vertex* GraphMapping::getTargetVertex(int index)
     return targetVertices[index];
 }
 
+Vertex* GraphMapping::getSourceVertex(Vertex* targetVertex)
+{
+    return reverseMapping[targetVertex];
+}
+
+Vertex* GraphMapping::getTargetVertex(Vertex* sourceVertex)
+{
+    return forwardMapping[sourceVertex];
+}
+
+
 string GraphMapping::getString(bool includeGraphs)
 {
     if (sourceGraph == NULL || targetGraph == NULL) return "NULL";
 
     std::stringstream ss;
-    for (int i=0; i<mapping.size(); i++)
+    for (int i=0; i<sourceVertices.size(); i++)
     {
         if (i > 0) ss << "\n";
         if (includeGraphs) ss << "<" << sourceGraph->getString() << "> ";
@@ -100,9 +112,13 @@ void GraphMapping::reverse()
     sourceVertices = targetVertices;
     targetVertices = tmp2;
 
-    mapping.clear();
+    forwardMapping.clear();
+    reverseMapping.clear();
     for (int i=0; i<sourceVertices.size(); i++)
-        mapping[sourceVertices[i]] = targetVertices[i];
+    {
+        forwardMapping[sourceVertices[i]] = targetVertices[i];
+        reverseMapping[targetVertices[i]] = sourceVertices[i];
+    }
 }
 
 void Vertex::setMark(string mark)
@@ -123,6 +139,52 @@ void Vertex::clearMark(string mark)
 void Vertex::clearAllMarks()
 {
     marks.clear();
+}
+
+int Vertex::findEdgeLeadingTo(Vertex* destination)
+{
+    for (int i=0; i<getMaxNumberEdges(); i++)
+        if (getEdge(i) == destination)
+            return i;
+    return -1;
+}
+
+bool Graph::removeEdge(Vertex* v1, Vertex* v2)
+{
+    // Make sure we can find both vertices.
+    int vertexCount=0;
+    for (int i=0; i<getNumberVertices(); i++)
+    {
+        if (getVertex(i) == v1) vertexCount++;
+        if (getVertex(i) == v2) vertexCount++;
+    }
+    if (vertexCount != 2) return false;
+
+    // Make sure the vertices are linked by an edge.
+    int l1=-1;
+    for (int i=0; i<v1->getMaxNumberEdges(); i++)
+    {
+        if (v1->getEdge(i) == v2)
+        {
+            l1=i;
+            break;
+        }
+    }
+    int l2=-1;
+    for (int i=0; i<v2->getMaxNumberEdges(); i++)
+    {
+        if (v2->getEdge(i) == v1)
+        {
+            l2=i;
+            break;
+        }
+    }
+    if (l1 == -1 || l2 == -1) return false;
+
+    // Remove the edges.
+    v1->removeEdge(l1);
+    v2->removeEdge(l2);
+    return true;
 }
 
 void Graph::clearMark(string mark)
@@ -226,18 +288,22 @@ GraphMapping Graph::findLargestCommonSubgraph(Graph* target, string ignoreMark)
     return maxSubgraph;
 }
 
-bool Graph::isIsomorphicSubgraph(Vertex* sourceVertex, Graph* target, Vertex* targetVertex, GraphMapping* mapping, bool firstVertex)
+bool Graph::isIsomorphicSubgraph(Vertex* sourceVertex, Graph* target, Vertex* targetVertex, GraphMapping* mapping, Vertex* sourceVertexOrigin, Vertex* targetVertexOrigin)
 {
     //printf("Checking for isomorphic subgraph %s and %s, vertices %s and %s\n",getString().c_str(), target->getString().c_str(), sourceVertex->getString().c_str(), targetVertex->getString().c_str()); fflush(stdout);
 
     // If this is the first call, clear the marks for graphs.
-    if (firstVertex) target->clearMark("isIsomorphicSubgraph");
+    bool isFirstVertex = (sourceVertexOrigin == NULL && targetVertexOrigin == NULL);
+    if (isFirstVertex) target->clearMark("isIsomorphicSubgraph");
 
-    // Mark that we have checked this vertex.
+    // Mark that we have visited this vertex.
     targetVertex->setMark("isIsomorphicSubgraph");
 
     // If the vertices don't match, return false.
     if (!sourceVertex->matches(targetVertex)) return false;
+
+    // Make sure that the same edges take us back to the vertices we came from.
+    if (!isFirstVertex && sourceVertex->findEdgeLeadingTo(sourceVertexOrigin) != targetVertex->findEdgeLeadingTo(targetVertexOrigin)) return false;
 
     // Follow each child edge.
     for (int i=0; i<targetVertex->getMaxNumberEdges(); i++)
@@ -247,8 +313,10 @@ bool Graph::isIsomorphicSubgraph(Vertex* sourceVertex, Graph* target, Vertex* ta
             // If the source is missing a link, return false.
             if (sourceVertex->getEdge(i) == NULL) return false;
 
+            // Make sure that the
+
             // Recursively follow any edges.
-            if (!isIsomorphicSubgraph(sourceVertex->getEdge(i), target, targetVertex->getEdge(i), mapping, false)) return false;
+            if (!isIsomorphicSubgraph(sourceVertex->getEdge(i), target, targetVertex->getEdge(i), mapping, sourceVertex, targetVertex)) return false;
         }
     }
 
@@ -269,13 +337,13 @@ list<GraphMapping> Graph::findAllIsomorphicSubgraphs(Graph* subgraph)
         // See if the vertices match.
         if (isIsomorphicSubgraph(getVertex(i), subgraph, subgraph->getVertex(0), &mapping))
         {
-            // TODO: check to ensure that this mapping is not a duplciate of a previous mapping.
+            // TODO: check to ensure that this mapping is not a duplicate of a previous mapping.
 
             ret.push_back(mapping);
         }
     }
 
-    printf("Found all isomorphic subgraphs between %s and %s: %ld\n",getString().c_str(),subgraph->getString().c_str(), ret.size()); fflush(stdout);
+    //printf("Found all isomorphic subgraphs between %s and %s: %ld\n",getString().c_str(),subgraph->getString().c_str(), ret.size()); fflush(stdout);
 
     return ret;
 }
@@ -284,124 +352,3 @@ list<GraphMapping> Graph::findAllIsomorphicSubgraphs(Graph* subgraph)
 }
 }
 
-/*
- *
-
-
-bool ComplexPattern::doesSubgraphMatch()
-{
-    // Create a match and associate the anchor molecule in the pattern and the instance.
-    ComplexPatternMatch match;
-    match.addMoleculeMatch(patternAnchorMolecule,instanceAnchorMolecule);
-
-    // Track which vertices in the pattern we have processed.
-    set<int> processedPatternVertices;
-
-    // Lop until we have processed the whole connected subgraph.
-    while(true)
-    {
-        bool foundNewVertices = false;
-
-        // Go through each new pattern vertex in the match.
-        vector<int> patternMatches = match.getPatternMolecules();
-        for (auto it=patternMatches.begin(); it != patternMatches.end(); it++)
-        {
-            int patternVertex = *it;
-            if (processedPatternVertices.count(patternVertex) == 0)
-            {
-                // Mark the we had at least one new vertex.
-                foundNewVertices = true;
-
-                // See if this vertex pair matches.
-                if (doesVertexMatch(match, pattern, patternVertex, instance, match.getPatternMoleculeMatch(patternVertex)))
-                {
-                    processedPatternVertices.insert(patternVertex);
-                }
-                else
-                {
-                    return false;
-                }
-            }
-        }
-
-        // If we didn't find any new vertices, we are done.
-        if (!foundNewVertices) break;
-    }
-
-    return true;
-}
-
-bool ComplexPattern::doesVertexMatch(ComplexPatternMatch& match, ComplexPattern pattern, int patternVertex, ComplexInstance instance, int instanceVertex)
-{
-    // Go through each edge in the pattern.
-    for (int i=0; i<pattern.bonds.size(); i++)
-    {
-        // See if the edges connects to the pattern vertex.
-        BondPattern patternEdge = pattern.bonds[i];
-        if (patternEdge.m1 == patternVertex || patternEdge.m2 == patternVertex)
-        {
-            // Go through each edge in the instance.
-            for (int j=0; j<instance.bonds.size(); j++)
-            {
-                // See if the edge connects to the instance vertex.
-                BondInstance instanceEdge = pattern.bonds[i];
-                if (instanceEdge.m1 == instanceVertex || instanceEdge.m2 == instanceVertex)
-                {
-                    doesEdgeMatch(match,pattern,i,instance,j);
-                }
-            }
-        }
-    }
-}
-
-bool ComplexPattern::doesEdgeMatch(ComplexPatternMatch& match, ComplexPattern pattern, int patternBondIndex, ComplexInstance instance, int instanceBondIndex)
-{
-    BondPattern patternBond = pattern.bonds[paternBondIndex];
-    BondInstance instanceBond = instance.bonds[instanceBondIndex];
-
-    // Whether the first endpoint in the bond matches.
-    bool firstEndpointMatches = false;
-
-    // See if we already have a known match for the first molecule in the bond.
-    if (match.containsPatternMolecule(patternBond.m1))
-    {
-        // See if the match corresponds to the first molecule in the instance bond and the components match.
-        if (match.getPatternMoleculeMatch(patternBond.m1) == instanceBond.m1 && patternBond.c1 == instanceBond.c1)
-        {
-            firstEndpointMatches = true;
-        }
-    }
-    else
-    {
-        // See if the molecule in the instance bond matches and the components match.
-        if (pattern.molecules[patternBond.m1].matchesTo(instance.molecules[instanceBond.m1])  && patternBond.c1 == instanceBond.c1)
-        {
-            firstEndpointMatches = true;
-        }
-    }
-
-    // Whether the second endpoint in the bond matches.
-    bool secondEndpointMatches = false;
-
-    // See if we already have a known match for the second molecule in the bond.
-    if (match.containsPatternMolecule(patternBond.m2))
-    {
-        // See if the match corresponds to the second molecule in the instance bond and the components match.
-        if (match.getPatternMoleculeMatch(patternBond.m2) == instanceBond.m2 && patternBond.c2 == instanceBond.c2)
-        {
-            firstEndpointMatches = true;
-        }
-    }
-    else
-    {
-        // See if the molecule in the instance bond matches and the components match.
-        if (pattern.molecules[patternBond.m2].matchesTo(instance.molecules[instanceBond.m2])  && patternBond.c2 == instanceBond.c2)
-        {
-            secondEndpointMatches = true;
-        }
-    }
-
-    return (firstEndpointMatches && secondEndpointMatches);
-}
-
-*/

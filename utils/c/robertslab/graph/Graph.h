@@ -52,6 +52,8 @@ public:
     int getNumberMatches();
     Vertex* getSourceVertex(int index);
     Vertex* getTargetVertex(int index);
+    Vertex* getSourceVertex(Vertex* targetVertex);
+    Vertex* getTargetVertex(Vertex* sourceVertex);
     void reverse();
     string getString(bool includeGraphs=false);
 
@@ -60,7 +62,8 @@ private:
     Graph* targetGraph;
     vector<Vertex*> sourceVertices;
     vector<Vertex*> targetVertices;
-    map<Vertex*,Vertex*> mapping;
+    map<Vertex*,Vertex*> forwardMapping;
+    map<Vertex*,Vertex*> reverseMapping;
 };
 
 class Vertex
@@ -68,6 +71,7 @@ class Vertex
 public:
     virtual int getMaxNumberEdges()=0;
     virtual Vertex* getEdge(int i)=0;
+    virtual void removeEdge(int i)=0;
     virtual bool matches(Vertex* v2)=0;
     virtual string getString()=0;
 
@@ -76,6 +80,7 @@ public:
     virtual bool hasMark(string mark);
     virtual void clearMark(string mark);
     virtual void clearAllMarks();
+    virtual int findEdgeLeadingTo(Vertex* destination);
 
 protected:
     set<string> marks;
@@ -89,13 +94,14 @@ public:
     virtual string getString()=0;
 
 public:
+    virtual bool removeEdge(Vertex* v1, Vertex* v2);
     virtual void clearMark(string mark);
     virtual void clearAllMarks();
 
     virtual GraphMapping findGraphMapping(Graph* target);
     virtual list<GraphMapping> findCommonSubgraphs(Graph* target);
     GraphMapping findLargestCommonSubgraph(Graph* target, string ignoreMark="");
-    bool isIsomorphicSubgraph(Vertex* sourceVertex, Graph* target, Vertex* targetVertex, GraphMapping* mapping, bool firstVertex=true);
+    bool isIsomorphicSubgraph(Vertex* sourceVertex, Graph* target, Vertex* targetVertex, GraphMapping* mapping, Vertex* sourceVertexOrigin=NULL, Vertex* targetVertexOrigin=NULL);
 
     virtual list<GraphMapping> findAllIsomorphicSubgraphs(Graph* subgraph);
 };

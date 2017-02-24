@@ -207,6 +207,15 @@ Vertex* MoleculePattern::getEdge(int i)
     return NULL;
 }
 
+void MoleculePattern::removeEdge(int i)
+{
+    if (components[i] != NULL)
+    {
+        components[i]->bondName = "";
+        components[i]->bond = NULL;
+    }
+}
+
 bool MoleculePattern::matches(Vertex* comp)
 {
     if (comp == NULL) return false;
@@ -266,6 +275,10 @@ ComplexPattern::ComplexPattern(string definition, map<string,MoleculeClass*> mol
                 }
 
                 if (matches != 1) throw std::invalid_argument("inconsistent number of bond names in ComplexPattern::ComplexPattern");
+            }
+            else if (molecules[m1]->components[c1] != NULL)
+            {
+                molecules[m1]->components[c1]->bond = NULL;
             }
         }
     }
