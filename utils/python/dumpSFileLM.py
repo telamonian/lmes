@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 from argparse import ArgumentParser, SUPPRESS
+from gettext import gettext
 from google.protobuf.descriptor import FieldDescriptor
 import numpy as np
+from pathlib import Path
 import re
 from six import print_
 import sys
@@ -49,6 +51,9 @@ def DeserializeAsMsg(data, dataTypeFullName):
     msg.ParseFromString(data)
 
     return msg,msgType
+
+# def GetMsgType(dataTypeFullName):
+
 
 #### Printing functions
 
@@ -119,7 +124,20 @@ def GetItems(f, doSort=False, includeRes=None):
 #### Main function
 
 def Main():
-    parser = ArgumentParser()   #"Usage: ./dumpSFileLM.py path-to-sfile [-l]")
+    class ArgumentParserCustomError(ArgumentParser):
+        def error(self, message):
+            """error(message: string)
+            An override of the default error handler that includes some more helpful/specific messages
+            """
+            self.print_help(sys.stderr)
+
+            if message.count('the following arguments are required: sfilePath'):
+                message += '\nBe careful not to put the path to the sfile after the -i flag, as it may get confused for a search pattern in this case'
+
+            args = {'prog': self.prog, 'message': message}
+            self.exit(2, gettext('%(prog)s: error: %(message)s\n') % args)
+
+    parser = ArgumentParserCustomError()   #"Usage: ./dumpSFileLM.py path-to-sfile [-l]")
 
     parser.add_argument('sfilePath',                              help='path to sfile to dump')
     parser.add_argument('-i', '--include', nargs='+',             help='only show data from records that match (one of) the given regex pattern(s)')

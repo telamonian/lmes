@@ -52,6 +52,7 @@ message Tiling {
         VORONOI = 1;
     }
 
+    optional string name                    = 10;
     required uint32 type                    = 1;
     required uint32 id                      = 2;
 
@@ -66,6 +67,7 @@ message Tiling {
      */
     repeated uint32 order_parameter_ids     = 3 [packed=true];
     repeated double edges                   = 4 [packed=true];
+    repeated string edge_names              = 11;
 
     optional uint64 rank					= 100;
     repeated uint64 edge_dims				= 101 [packed=true];
