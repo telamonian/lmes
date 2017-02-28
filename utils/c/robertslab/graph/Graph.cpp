@@ -21,11 +21,13 @@
  */
 
 #include <list>
+#include <set>
 #include <sstream>
 
 #include "robertslab/graph/Graph.h"
 
 using std::list;
+using std::set;
 using std::string;
 
 namespace robertslab {
@@ -121,9 +123,28 @@ void GraphMapping::reverse()
     }
 }
 
+Vertex::Vertex()
+:nextClearedMark(0)
+{
+
+}
+
 void Vertex::setMark(string mark)
 {
     marks.insert(mark);
+}
+
+void Vertex::setMarkOnConnected(string mark)
+{
+    if (marks.count(mark) == 0)
+    {
+        marks.insert(mark);
+        for (int i=0; i<getMaxNumberEdges(); i++)
+        {
+            Vertex* v = getEdge(i);
+            if (v != NULL) v->setMarkOnConnected(mark);
+        }
+    }
 }
 
 bool Vertex::hasMark(string mark)
@@ -136,9 +157,52 @@ void Vertex::clearMark(string mark)
     marks.erase(mark);
 }
 
+void Vertex::clearMarkOnConnected(string mark, string clearedMark)
+{
+    // If this is the root, generate a unqie mark to use for marking vertices that have been cleared.
+    if (clearedMark == "") clearedMark = "clearMarkOnConnected"+std::to_string((unsigned long long)this)+std::to_string(nextClearedMark++);
+
+    // If this vertex hasn't been cleared yet.
+    if (marks.count(clearedMark) == 0)
+    {
+        // Clear the mark and mark that this vertex has been cleared.
+        marks.erase(mark);
+        marks.insert(clearedMark);
+
+        // Clear any connected vertices.
+        for (int i=0; i<getMaxNumberEdges(); i++)
+        {
+            Vertex* v = getEdge(i);
+            if (v != NULL) v->clearMarkOnConnected(mark, clearedMark);
+        }
+    }
+}
+
 void Vertex::clearAllMarks()
 {
     marks.clear();
+}
+
+set<Vertex*> Vertex::getConnectedVertices(bool root)
+{
+    if (root) clearMarkOnConnected("getConnectedVertices");
+
+    // Add this vertex to the set.
+    set<Vertex*> ret;
+    ret.insert(this);
+    setMark("getConnectedVertices");
+
+    // Add any vertices from the edges.
+    for (int i=0; i<getMaxNumberEdges(); i++)
+    {
+        Vertex* v2 = getEdge(i);
+        if (v2 != NULL && !v2->hasMark("getConnectedVertices"))
+        {
+            set<Vertex*> ret2=getEdge(i)->getConnectedVertices(false);
+            ret.insert(ret2.begin(), ret2.end());
+        }
+    }
+    return ret;
 }
 
 int Vertex::findEdgeLeadingTo(Vertex* destination)
@@ -197,6 +261,30 @@ void Graph::clearAllMarks()
 {
     for (int i=0; i<getNumberVertices(); i++)
         getVertex(i)->clearAllMarks();
+}
+
+list<Vertex*> Graph::findConnectedSubgraphs()
+{
+    // Clear the mark from the whole graph.
+    clearMark("findConnectedSubgraphs");
+
+    // Go through each vertex.
+    list<Vertex*> anchors;
+    for (int i=0; i<getNumberVertices(); i++)
+    {
+        // If the vertex is not marked.
+        Vertex* v = getVertex(i);
+        if (!v->hasMark("findConnectedSubgraphs"))
+        {
+            // Add it to the list.
+            anchors.push_back(v);
+
+            // Mark it and anything connected to it.
+            v->setMarkOnConnected("findConnectedSubgraphs");
+        }
+    }
+
+    return anchors;
 }
 
 GraphMapping Graph::findGraphMapping(Graph* target)

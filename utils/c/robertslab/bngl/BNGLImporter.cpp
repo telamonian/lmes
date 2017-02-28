@@ -24,6 +24,7 @@
 #include <iostream>
 #include <list>
 #include <regex>
+#include <set>
 
 #include <sbml/math/ASTNode.h>
 #include <sbml/math/L3Parser.h>
@@ -41,8 +42,10 @@
 #include "robertslab/graph/Graph.h"
 
 using std::list;
+using std::pair;
 using std::regex;
 using std::regex_token_iterator;
+using std::set;
 using lm::Exception;
 using lm::Print;
 
@@ -554,23 +557,26 @@ void BNGLImporter::processReactionZerothOrder(int round, ReactionPattern* reacti
 void BNGLImporter::processReactionFirstOrder(int round, ReactionPattern* reaction)
 {
     // Get the substrate pattern.
-    ComplexPattern* substratePattern = reaction->getSubstrates()->getReactant(0);
+    ReactantPattern* substratePattern = reaction->getSubstrates();
 
     // Go through every complex species from the previous round and see if they match the pattern.
     for (int i=0; i<complexSpecies[round-1].size(); i++)
     {
         // Find all the matches.
-        ComplexInstance* substrate = complexSpecies[round-1][i];
-        list<GraphMapping> matches = substrate->findAllIsomorphicSubgraphs(substratePattern);
+        ComplexInstance* complex1 = complexSpecies[round-1][i];
+        list<GraphMapping> matches = complex1->findAllIsomorphicSubgraphs(substratePattern);
 
         // Go through each match.
         for (auto it=matches.begin(); it != matches.end(); it++)
         {
+            ReactantInstance* substrate = new ReactantInstance(complex1);
+
             GraphMapping substrateMapping = *it;
             if (verbose) Print::printf(Print::INFO, "Found match in round %d for reaction %s, species %s contains pattern %s",round, reaction->getString(false).c_str(), substrate->getString().c_str(), substratePattern->getString().c_str());
 
             // Rewrite the component states for the products.
-            list<ComplexInstance*> products = rewriteSubstrateToProduct(substrate, substrateMapping, substratePattern, reaction->getSubstrateToProductMapping());
+            ReactantInstance* product = rewriteSubstrateToProduct(substrate, substrateMapping, substratePattern, reaction->getSubstrateToProductMapping());
+            if (verbose) Print::printf(Print::INFO, "Added new reaction %s -> %s",substrate->getString().c_str(), product->getString().c_str());
 
 
             // Create the product species.
@@ -586,24 +592,25 @@ void BNGLImporter::processReactionFirstOrder(int round, ReactionPattern* reactio
     }
 }
 
-list<ComplexInstance*> BNGLImporter::rewriteSubstrateToProduct(ComplexInstance* substrate, GraphMapping substrateToSubstratePatternMapping, ComplexPattern* substratePattern, GraphMapping substratePatternToProductPatternMapping)
+ReactantInstance* BNGLImporter::rewriteSubstrateToProduct(ReactantInstance* substrate, GraphMapping substrateToSubstratePatternMapping, ReactantPattern* substratePattern, GraphMapping substratePatternToProductPatternMapping)
 {
     // Create a copy of the substrate to rewrite into the products.
-    ComplexInstance* products = new ComplexInstance(*substrate);
+    ReactantInstance* product = new ReactantInstance(*substrate);
 
     // Create a copy of the mapping.
-    GraphMapping substratePatternToProductMapping(substratePattern, products);
+    GraphMapping substratePatternToProductMapping(substratePattern, product);
     for (int i=0; i<substrate->getNumberVertices(); i++)
     {
         if (substrateToSubstratePatternMapping.containsSourceVertex(substrate->getVertex(i)))
         {
             Vertex* v1 = substrateToSubstratePatternMapping.getTargetVertex(substrate->getVertex(i));
-            Vertex* v2 = products->getVertex(i);
+            Vertex* v2 = product->getVertex(i);
             substratePatternToProductMapping.addMapping(v1,v2);
         }
     }
 
     // Go through each vertext in the substrate pattern.
+    set<pair<Vertex*,Vertex*>> removedEdges;
     for (int i=0; i<substratePattern->getNumberVertices(); i++)
     {
         Vertex* substratePatternVertex = substratePattern->getVertex(i);
@@ -614,19 +621,25 @@ list<ComplexInstance*> BNGLImporter::rewriteSubstrateToProduct(ComplexInstance* 
         // Go through each edge and see if it was changed.
         for (int j=0; j<substratePatternVertex->getMaxNumberEdges(); j++)
         {
-            // See if an edge was added.
+            // See if an edge needs to be added.
             if (substratePatternVertex->getEdge(j) == NULL && productPatternVertex->getEdge(j) != NULL)
             {
                 printf("Edge added\n");
             }
 
-            // See if an edge was removed.
+            // See if an edge needs to be removed.
             else if (substratePatternVertex->getEdge(j) != NULL && productPatternVertex->getEdge(j) == NULL)
             {
                 Vertex* v1 = substratePatternToProductMapping.getTargetVertex(substratePatternVertex);
                 Vertex* v2 = substratePatternToProductMapping.getTargetVertex(substratePatternVertex->getEdge(j));
-                if (!products->removeEdge(v1, v2)) throw Exception("could not remove the edge from the product", v1->getString().c_str(), v2->getString().c_str(), products->getString().c_str());
-                printf("Edge removed %s %s: %s\n", v1->getString().c_str(), v2->getString().c_str(), products->getString().c_str());
+
+                // Make sure we haven't yet removed this edge.
+                if (removedEdges.count(pair<Vertex*,Vertex*>(v1,v2)) == 0 && removedEdges.count(pair<Vertex*,Vertex*>(v2,v1)) == 0)
+                {
+                    if (!product->removeEdge(v1, v2)) throw Exception("could not remove the edge from the product", v1->getString().c_str(), v2->getString().c_str(), product->getString().c_str());
+                    removedEdges.insert(pair<Vertex*,Vertex*>(v1,v2));
+                    printf("Edge removed %s %s: %s\n", v1->getString().c_str(), v2->getString().c_str(), product->getString().c_str());
+                }
             }
         }
 
@@ -636,11 +649,10 @@ list<ComplexInstance*> BNGLImporter::rewriteSubstrateToProduct(ComplexInstance* 
 
     }
 
-    // TODO: break apart any molecules that are no longer in a complex in the product.
+    // Recreate the complexs with the new connectivity.
+    product->recreateComplexes();
 
-
-    list<ComplexInstance*> ret;
-    return ret;
+    return product;
 }
 
 void BNGLImporter::processReactionSecondOrder(int round, ReactionPattern* reaction)

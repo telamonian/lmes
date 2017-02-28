@@ -22,6 +22,7 @@
 
 #include <regex>
 #include <iostream>
+#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -31,6 +32,7 @@
 
 using std::regex;
 using std::regex_token_iterator;
+using std::set;
 using std::string;
 using std::vector;
 
@@ -202,6 +204,25 @@ ComplexInstance::ComplexInstance(string definition, double count)
     connectBonds();
 }
 
+ComplexInstance::ComplexInstance(set<Vertex*> connectedMolecules)
+:valid(false)
+{
+    valid = true;
+
+    // Add all of the moelcules.
+    for (auto it=connectedMolecules.begin(); it != connectedMolecules.end(); it++)
+    {
+        MoleculeInstance* molecule = dynamic_cast<MoleculeInstance*>(*it);
+        if (molecule == NULL) throw std::runtime_error("could not cast to MoleculeInstance in ComplexInstance::ComplexInstance");
+        molecules.push_back(molecule);
+        if (!molecule->isValid()) valid = false;
+    }
+
+    // Construct the bond names.
+    constructBondNames();
+}
+
+
 ComplexInstance::ComplexInstance(const ComplexInstance& other)
 :valid(other.valid),count(0.0)
 {
@@ -245,7 +266,41 @@ void ComplexInstance::connectBonds()
     }
 }
 
-bool ComplexInstance::isValid()
+void ComplexInstance::constructBondNames()
+{
+    // Go through and reset all of the bond names.
+    for (int i=0; i<molecules.size(); i++)
+    {
+        for (int j=0; j<molecules[i]->components.size(); j++)
+        {
+            if (molecules[i]->components[j] != NULL)
+            {
+                molecules[i]->components[j]->bondName = "";
+            }
+        }
+    }
+
+    // Go through and specify all fot he bond names.
+    int nextBond=1;
+    for (int i=0; i<molecules.size(); i++)
+    {
+        for (int j=0; j<molecules[i]->components.size(); j++)
+        {
+            if (molecules[i]->components[j] != NULL)
+            {
+                if (molecules[i]->components[j]->bond != NULL && molecules[i]->components[j]->bondName == "")
+                {
+                    // Set the name of this bond and the target.
+                    molecules[i]->components[j]->bondName = std::to_string(nextBond);
+                    molecules[i]->components[j]->bond->bondName = std::to_string(nextBond);
+                    nextBond++;
+                }
+            }
+        }
+    }
+}
+
+bool ComplexInstance::isValid() const
 {
     return valid;
 }
@@ -283,6 +338,96 @@ int ComplexInstance::getNumberVertices()
 Vertex* ComplexInstance::getVertex(int i)
 {
     return molecules[i];
+}
+
+ReactantInstance::ReactantInstance()
+:valid(false)
+{
+}
+
+ReactantInstance::ReactantInstance(ComplexInstance* complex1)
+{
+    valid = true;
+    if (!complex1->isValid()) valid = false;
+    complexes.push_back(complex1);
+}
+
+ReactantInstance::ReactantInstance(ComplexInstance* complex1, ComplexInstance* complex2)
+{
+    valid = true;
+    if (!complex1->isValid()) valid = false;
+    if (!complex2->isValid()) valid = false;
+    complexes.push_back(complex1);
+    complexes.push_back(complex2);
+}
+
+ReactantInstance::ReactantInstance(const ReactantInstance& other)
+:valid(other.valid)
+{
+    // Create the new complexes.
+    for (int i=0; i<other.complexes.size(); i++)
+        complexes.push_back(new ComplexInstance(*other.complexes[i]));
+
+}
+
+bool ReactantInstance::isValid()
+{
+    return valid;
+}
+
+string ReactantInstance::getString()
+{
+    std::stringstream ss;
+    for (int i=0; i<complexes.size(); i++)
+        ss << (i==0?"":" + ") << complexes[i]->getString();
+    return ss.str();
+}
+
+int ReactantInstance::getNumberComplexes()
+{
+    return complexes.size();
+}
+
+ComplexInstance* ReactantInstance::getComplex(int index)
+{
+    return complexes[index];
+}
+
+int ReactantInstance::getNumberVertices()
+{
+    int ret=0;
+    for (int i=0; i<complexes.size(); i++)
+        ret += complexes[i]->getNumberVertices();
+    return ret;
+}
+
+Vertex* ReactantInstance::getVertex(int index)
+{
+    for (int i=0; i<complexes.size(); i++)
+    {
+        if (index <  complexes[i]->getNumberVertices())
+            return complexes[i]->getVertex(index);
+        index -= complexes[i]->getNumberVertices();
+    }
+    throw std::out_of_range("index out of range in call to ReactantInstance::getVertex");
+}
+
+void ReactantInstance::recreateComplexes()
+{
+    // Get a list of vertices that anchor a set of connected subgraphs.
+    list<Vertex*> anchorVertices = findConnectedSubgraphs();
+
+    // Clear the complexes list.
+    complexes.clear();
+
+    // Go through each anchor vertex.
+    for (auto it=anchorVertices.begin(); it != anchorVertices.end(); it++)
+    {
+        MoleculeInstance* anchorMolecule = dynamic_cast<MoleculeInstance*>(*it);
+        if (anchorMolecule == NULL) throw std::runtime_error("could not cast to MoleculeInstance in ReactantInstance::recreateComplexes");
+        complexes.push_back(new ComplexInstance(anchorMolecule->getConnectedVertices()));
+    }
+
 }
 
 }

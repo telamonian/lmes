@@ -68,7 +68,7 @@ protected:
     virtual void processReactionFirstOrder(int round, ReactionPattern* reaction);
     virtual void processReactionSecondOrder(int round, ReactionPattern* reaction);
 
-    list<ComplexInstance*> rewriteSubstrateToProduct(ComplexInstance* substrate, GraphMapping substratePatternMapping, ComplexPattern* substratePattern, GraphMapping substrateProductPatternMapping);
+    ReactantInstance* rewriteSubstrateToProduct(ReactantInstance* substrate, GraphMapping substrateToSubstratePatternMapping, ReactantPattern* substratePattern, GraphMapping substratePatternToProductPatternMapping);
 
 
     /*virtual double convertPropensityConstantUnits(string constant, double value, string desiredUnits);

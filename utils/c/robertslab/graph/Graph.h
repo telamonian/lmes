@@ -69,6 +69,9 @@ private:
 class Vertex
 {
 public:
+    Vertex();
+
+public:
     virtual int getMaxNumberEdges()=0;
     virtual Vertex* getEdge(int i)=0;
     virtual void removeEdge(int i)=0;
@@ -77,13 +80,17 @@ public:
 
 public:
     virtual void setMark(string mark);
+    virtual void setMarkOnConnected(string mark);
     virtual bool hasMark(string mark);
     virtual void clearMark(string mark);
+    virtual void clearMarkOnConnected(string mark, string clearedMark="");
     virtual void clearAllMarks();
+    virtual set<Vertex*> getConnectedVertices(bool root=true);
     virtual int findEdgeLeadingTo(Vertex* destination);
 
 protected:
     set<string> marks;
+    int nextClearedMark;
 };
 
 class Graph
@@ -97,6 +104,7 @@ public:
     virtual bool removeEdge(Vertex* v1, Vertex* v2);
     virtual void clearMark(string mark);
     virtual void clearAllMarks();
+    virtual list<Vertex*> findConnectedSubgraphs();
 
     virtual GraphMapping findGraphMapping(Graph* target);
     virtual list<GraphMapping> findCommonSubgraphs(Graph* target);

@@ -40,6 +40,7 @@ class ComponentClass;
 class MoleculeClass;
 class MoleculeInstance;
 class MoleculePattern;
+class ReactantInstance;
 
 class ComponentInstance
 {
@@ -97,8 +98,9 @@ class ComplexInstance : public Graph
 public:
     ComplexInstance();
     ComplexInstance(string definition, double count);
+    ComplexInstance(set<Vertex*> molecules);
     ComplexInstance(const ComplexInstance& other);
-    bool isValid();
+    bool isValid() const;
     double getCount();
     int getNumberMolecules();
     MoleculeInstance* getMolecule(int i);
@@ -111,12 +113,36 @@ public:
 
 protected:
     void connectBonds();
+    void constructBondNames();
 
 protected:
     bool valid;
     double count;
     vector<MoleculeInstance*> molecules;
 };
+
+class ReactantInstance : public Graph
+{
+public:
+    ReactantInstance();
+    ReactantInstance(ComplexInstance* complex1);
+    ReactantInstance(ComplexInstance* complex1, ComplexInstance* complex2);
+    ReactantInstance(const ReactantInstance& other);
+    bool isValid();
+    int getNumberComplexes();
+    ComplexInstance* getComplex(int index);
+    void recreateComplexes();
+
+public:
+    virtual int getNumberVertices();
+    virtual Vertex* getVertex(int i);
+    virtual string getString();
+
+protected:
+    bool valid;
+    vector<ComplexInstance*> complexes;
+};
+
 
 
 }
