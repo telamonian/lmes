@@ -265,8 +265,8 @@ public:
 
         msgPtr->set_successful_trajectories_launched_total_time(msgPtr->successful_trajectories_launched_total_time() + (workUnitEndTime - workUnitStartTime));
         // correct workUnitEndTime for burn in and for time spent outside of the region of the starting basin (see Valeriani 2007, Dinner 2010)
-//        msgPtr->set_failed_trajectories_launched_total_time(msgPtr->failed_trajectories_launched_total_time() + phaseZeroTrajectory->timeInOtherBasinsLast);
-        msgPtr->set_failed_trajectories_launched_total_time(phaseZeroTrajectory->timeInOtherBasins);
+        msgPtr->set_failed_trajectories_launched_total_time(msgPtr->failed_trajectories_launched_total_time() + phaseZeroTrajectory->timeInOtherBasinsLast);
+        //msgPtr->set_failed_trajectories_launched_total_time(phaseZeroTrajectory->timeInOtherBasins);
     }
 
 //    // this function encapsulates part of addEndPointFromLimitTrackingsPhaseZero, and so relies on the consistency checks run at the begininng of that function
