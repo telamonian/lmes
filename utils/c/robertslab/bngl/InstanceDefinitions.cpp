@@ -157,10 +157,18 @@ Vertex* MoleculeInstance::getEdge(int i)
     return NULL;
 }
 
-void MoleculeInstance::removeEdge(int i)
+void MoleculeInstance::addEdge(int sourceIndex, Vertex* dest, int destIndex)
 {
-    components[i]->bondName = "";
-    components[i]->bond = NULL;
+    MoleculeInstance* destMolecule = dynamic_cast<MoleculeInstance*>(dest);
+    if (destMolecule == NULL) throw std::runtime_error("could not cast to MoleculeInstance in MoleculeInstance::addEdge");
+    components[sourceIndex]->bondName = "*";
+    components[sourceIndex]->bond = destMolecule->components[destIndex];
+}
+
+void MoleculeInstance::removeEdge(int index)
+{
+    components[index]->bondName = "";
+    components[index]->bond = NULL;
 }
 
 bool MoleculeInstance::matches(Vertex* comp)

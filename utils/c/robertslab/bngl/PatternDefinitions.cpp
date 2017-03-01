@@ -181,10 +181,32 @@ string MoleculePattern::getString()
     return ss.str();
 }
 
-bool MoleculePattern::matches(MoleculeInstance* comp)
+bool MoleculePattern::matches(MoleculeInstance* instance)
 {
-    if (name != comp->getName()) return false;
-    if (components.size() != comp->components.size()) return false;
+    if (name != instance->getName()) return false;
+    if (components.size() != instance->components.size()) return false;
+
+    // Check the bonding state of any component that is specified in the pattern.
+    for (int i=0; i<components.size(); i++)
+    {
+        if (components[i] != NULL)
+        {
+            // See if the pattern specifies a bond.
+            if (components[i]->bond != NULL)
+            {
+                // The pattern has a bond, so make sure the instance does to.
+                if (instance->components[i]->bond == NULL) return false;
+
+                // TODO: make sure the bond is the same.
+            }
+            else
+            {
+                // Otherwise the pattern didn't have a bond, so make sure the instance doesn't either.
+                if (instance->components[i]->bond != NULL) return false;
+            }
+        }
+    }
+
     return true;
 }
 
@@ -205,6 +227,17 @@ Vertex* MoleculePattern::getEdge(int i)
     if (components[i] != NULL && components[i]->bond != NULL)
         return components[i]->bond->molecule;
     return NULL;
+}
+
+void MoleculePattern::addEdge(int sourceIndex, Vertex* dest, int destIndex)
+{
+    MoleculePattern* destMolecule = dynamic_cast<MoleculePattern*>(dest);
+    if (destMolecule == NULL) throw std::runtime_error("could not cast to MoleculePattern in MoleculePattern::addEdge");
+    if (components[sourceIndex] != NULL && destMolecule->components[destIndex] != NULL)
+    {
+        components[sourceIndex]->bondName = "*";
+        components[sourceIndex]->bond = destMolecule->components[destIndex];
+    }
 }
 
 void MoleculePattern::removeEdge(int i)

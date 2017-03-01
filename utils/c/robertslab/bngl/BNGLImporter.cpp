@@ -359,10 +359,10 @@ void BNGLImporter::parseReactions(list<string>& lines)
             {
                 reactions.push_back(reactionF);
                 reactions.push_back(reactionR);
-                Print::printf(Print::INFO, "Added forward reaction %s", reactionF->getString(true).c_str());
-                if (verbose) Print::printf(Print::INFO, "Reaction substrate to product mapping:\n%s", reactionF->getSubstrateToProductMapping().getString().c_str());
-                Print::printf(Print::INFO, "Added reverse reaction %s", reactionR->getString(true).c_str());
-                if (verbose) Print::printf(Print::INFO, "Reaction substrate to product mapping:\n%s", reactionR->getSubstrateToProductMapping().getString().c_str());
+                Print::printf(Print::INFO, "Added forward reaction pattern %s", reactionF->getString(true).c_str());
+                if (reallyVerbose) Print::printf(Print::INFO, "Reaction substrate to product mapping:\n%s", reactionF->getSubstrateToProductMapping().getString().c_str());
+                Print::printf(Print::INFO, "Added reverse reaction pattern %s", reactionR->getString(true).c_str());
+                if (reallyVerbose) Print::printf(Print::INFO, "Reaction substrate to product mapping:\n%s", reactionR->getSubstrateToProductMapping().getString().c_str());
             }
             else if (!reactionF->isValid() || !reactionR->isValid())
             {
@@ -396,7 +396,7 @@ void BNGLImporter::parseReactions(list<string>& lines)
             if (reaction->isValid() && isValidRate)
             {
                 reactions.push_back(reaction);
-                Print::printf(Print::INFO, "Added irreversible reaction %s", reaction->getString(true).c_str());
+                Print::printf(Print::INFO, "Added irreversible reaction pattern %s", reaction->getString(true).c_str());
                 if (verbose) Print::printf(Print::INFO, "Reaction substrate to product mapping:\n%s", reaction->getSubstrateToProductMapping().getString().c_str());
             }
             else if (!reaction->isValid())
@@ -450,7 +450,7 @@ void BNGLImporter::processModel()
     for (int round=1; round<10; round++)
     {
         if (verbose) Print::printf(Print::INFO, "Processing reactions for round %d", round);
-        if (!processReactions(round++)) break;
+        if (!processReactions(round)) break;
     }
 
     // Combine the species from each round into one list.
@@ -538,6 +538,8 @@ bool BNGLImporter::processReactions(int round)
 
 void BNGLImporter::processReaction(int round, ReactionPattern* reaction)
 {
+    if (reallyVerbose) Print::printf(Print::INFO, "Processing reaction %s", reaction->getString(false).c_str());
+
     // Process the reaction according to its order.
     if (reaction->getSubstrates()->getNumberReactants() == 0)
         processReactionZerothOrder(round, reaction);
@@ -562,32 +564,88 @@ void BNGLImporter::processReactionFirstOrder(int round, ReactionPattern* reactio
     // Go through every complex species from the previous round and see if they match the pattern.
     for (int i=0; i<complexSpecies[round-1].size(); i++)
     {
-        // Find all the matches.
+        // Get the substrate complex.
         ComplexInstance* complex1 = complexSpecies[round-1][i];
+
+        // Get the substrate.
+        ReactantInstance* substrate = new ReactantInstance(complex1);
+
+        // Find all the matches to the substrate pattern.
         list<GraphMapping> matches = complex1->findAllIsomorphicSubgraphs(substratePattern);
 
         // Go through each match.
         for (auto it=matches.begin(); it != matches.end(); it++)
         {
-            ReactantInstance* substrate = new ReactantInstance(complex1);
-
-            GraphMapping substrateMapping = *it;
-            if (verbose) Print::printf(Print::INFO, "Found match in round %d for reaction %s, species %s contains pattern %s",round, reaction->getString(false).c_str(), substrate->getString().c_str(), substratePattern->getString().c_str());
+            GraphMapping substrateMapping(substrate, substratePattern->getReactant(1));
+            substrateMapping.appendMappings(*it);
+            if (reallyVerbose) Print::printf(Print::INFO, "Found match in round %d for reaction %s, species %s contains pattern %s",round, reaction->getString(false).c_str(), substrate->getString().c_str(), substratePattern->getString().c_str());
 
             // Rewrite the component states for the products.
             ReactantInstance* product = rewriteSubstrateToProduct(substrate, substrateMapping, substratePattern, reaction->getSubstrateToProductMapping());
             if (verbose) Print::printf(Print::INFO, "Added new reaction %s -> %s",substrate->getString().c_str(), product->getString().c_str());
 
+            // If the product contains any new species, add them to the list.
+            for (int j=0; j<product->getNumberComplexes(); j++)
+            {
+                if (isNewComplexSpecies(product->getComplex(j)))
+                    complexSpecies[round].push_back(product->getComplex(j));
+            }
+        }
+    }
+}
 
-            // Create the product species.
-            //if (products.size() == 1)
-            //{
-            //}
+void BNGLImporter::processReactionSecondOrder(int round, ReactionPattern* reaction)
+{
+    // Get the substrate pattern.
+    ReactantPattern* substratePattern = reaction->getSubstrates();
 
+    // Go through every pair of complex species.
+    for (int i=0; i<=round-1; i++)
+    {
+        for (int j=0; j<complexSpecies[i].size(); j++)
+        {
+            for (int k=0; k<=round-1; k++)
+            {
+                for (int l=0; l<complexSpecies[k].size(); l++)
+                {
+                    // Make sure at least one of the pair is from the previous round.
+                    if (i != round-1 && k != round-1) continue;
 
-            // Go through each vertex in the mapping between substrates and products.
+                    // Get the substrate complexes.
+                    ComplexInstance* complex1 = complexSpecies[i][j];
+                    ComplexInstance* complex2 = complexSpecies[k][l];
 
+                    // Get the substrate.
+                    ReactantInstance* substrate = new ReactantInstance(complex1, complex2);
 
+                    // Find all the matches to the substrate pattern.
+                    list<GraphMapping> matches1 = complex1->findAllIsomorphicSubgraphs(substratePattern->getReactant(0));
+                    list<GraphMapping> matches2 = complex2->findAllIsomorphicSubgraphs(substratePattern->getReactant(1));
+
+                    // Go through each match.
+                    for (auto it1=matches1.begin(); it1 != matches1.end(); it1++)
+                    {
+                        for (auto it2=matches2.begin(); it2 != matches2.end(); it2++)
+                        {
+                            GraphMapping substrateMapping(substrate, substratePattern);
+                            substrateMapping.appendMappings(*it1);
+                            substrateMapping.appendMappings(*it2);
+                            if (reallyVerbose) Print::printf(Print::INFO, "Found match in round %d for reaction %s, species %s contains pattern %s",round, reaction->getString(false).c_str(), substrate->getString().c_str(), substratePattern->getString().c_str());
+
+                            // Rewrite the component states for the products.
+                            ReactantInstance* product = rewriteSubstrateToProduct(substrate, substrateMapping, substratePattern, reaction->getSubstrateToProductMapping());
+                            if (verbose) Print::printf(Print::INFO, "Added new reaction %s -> %s",substrate->getString().c_str(), product->getString().c_str());
+
+                            // If the product contains any new species, add them to the list.
+                            for (int m=0; m<product->getNumberComplexes(); m++)
+                            {
+                                if (isNewComplexSpecies(product->getComplex(m)))
+                                    complexSpecies[round].push_back(product->getComplex(m));
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -611,12 +669,11 @@ ReactantInstance* BNGLImporter::rewriteSubstrateToProduct(ReactantInstance* subs
 
     // Go through each vertext in the substrate pattern.
     set<pair<Vertex*,Vertex*>> removedEdges;
+    set<pair<Vertex*,Vertex*>> addedEdges;
     for (int i=0; i<substratePattern->getNumberVertices(); i++)
     {
         Vertex* substratePatternVertex = substratePattern->getVertex(i);
         Vertex* productPatternVertex = substratePatternToProductPatternMapping.getTargetVertex(substratePatternVertex);
-        printf("1: %s\n",substratePatternVertex->getString().c_str());
-        printf("2: %s\n",productPatternVertex->getString().c_str());
 
         // Go through each edge and see if it was changed.
         for (int j=0; j<substratePatternVertex->getMaxNumberEdges(); j++)
@@ -624,7 +681,18 @@ ReactantInstance* BNGLImporter::rewriteSubstrateToProduct(ReactantInstance* subs
             // See if an edge needs to be added.
             if (substratePatternVertex->getEdge(j) == NULL && productPatternVertex->getEdge(j) != NULL)
             {
-                printf("Edge added\n");
+                Vertex* v1 = substratePatternToProductMapping.getTargetVertex(substratePatternVertex);
+                int index1 = j;
+                Vertex* v2 = substratePatternToProductMapping.getTargetVertex(substratePatternToProductPatternMapping.getSourceVertex(productPatternVertex->getEdge(j)));
+                int index2 = productPatternVertex->getEdge(j)->findEdgeLeadingTo(productPatternVertex);
+
+                // Make sure we haven't yet removed this edge.
+                if (addedEdges.count(pair<Vertex*,Vertex*>(v1,v2)) == 0 && addedEdges.count(pair<Vertex*,Vertex*>(v2,v1)) == 0)
+                {
+                    if (reallyVerbose) Print::printf(Print::INFO, "Adding edge between %s and %s in the product complex", v1->getString().c_str(), v2->getString().c_str());
+                    if (!product->addEdge(v1, index1, v2, index2)) throw Exception("could not add the edge to the product", (v1->getString()+":"+std::to_string(index1)).c_str(), (v2->getString()+":"+std::to_string(index2)).c_str(), product->getString().c_str());
+                    addedEdges.insert(pair<Vertex*,Vertex*>(v1,v2));
+                }
             }
 
             // See if an edge needs to be removed.
@@ -636,50 +704,34 @@ ReactantInstance* BNGLImporter::rewriteSubstrateToProduct(ReactantInstance* subs
                 // Make sure we haven't yet removed this edge.
                 if (removedEdges.count(pair<Vertex*,Vertex*>(v1,v2)) == 0 && removedEdges.count(pair<Vertex*,Vertex*>(v2,v1)) == 0)
                 {
+                    if (reallyVerbose) Print::printf(Print::INFO, "Removing edge between %s and %s in the product complex", v1->getString().c_str(), v2->getString().c_str());
                     if (!product->removeEdge(v1, v2)) throw Exception("could not remove the edge from the product", v1->getString().c_str(), v2->getString().c_str(), product->getString().c_str());
                     removedEdges.insert(pair<Vertex*,Vertex*>(v1,v2));
-                    printf("Edge removed %s %s: %s\n", v1->getString().c_str(), v2->getString().c_str(), product->getString().c_str());
                 }
             }
         }
 
-        //Vertex* substrateVertex = substratePatternMapping.getSourceVertex(substratePatternVertex);
-        //if (substrateVertex == NULL) throw Exception("did not have a mapping for the substrate molecule pattern", substratePatternVertex->getString().c_str());
-
-
     }
 
-    // Recreate the complexs with the new connectivity.
+    // Recreate the product complexes with any new connectivity.
     product->recreateComplexes();
 
     return product;
 }
 
-void BNGLImporter::processReactionSecondOrder(int round, ReactionPattern* reaction)
+bool BNGLImporter::isNewComplexSpecies(ComplexInstance* instance)
 {
-    /*
-    // Get the substrate patterns.
-    ComplexPattern* substrate1Pattern = reaction->getSubstrates()->getReactant(0);
-    ComplexPattern* substrate2Pattern = reaction->getSubstrates()->getReactant(1);
-
-    // Go through every possible pair of complex species from the previous round and see if they match the patterns.
-    for (int i=0; i<complexSpecies[round-1].size(); i++)
+    for (int i=0; i<complexSpecies.size(); i++)
     {
-        for (int j=0; j<complexSpecies[round-1].size(); j++)
+        for (int j=0; j<complexSpecies[i].size(); j++)
         {
-            ComplexInstance substrate1 = complexSpecies[round-1][i];
-            ComplexInstance substrate2 = complexSpecies[round-1][j];
-            if (substrate1Pattern.matchesTo(substrate1) && substrate2Pattern.matchesTo(substrate2))
-            {
-                if (verbose)
-                {
-                    Print::printf(Print::INFO, "Found reaction match in round %d: %s + %s: %s + %s",round, substrate1Pattern.getString().c_str(), substrate2Pattern.getString().c_str(), substrate1.getString().c_str(), substrate2.getString().c_str());
-                }
-            }
+            if (complexSpecies[i][j]->isIsomorphic(instance))
+                return false;
         }
     }
-    */
+    return true;
 }
+
 
 /*
 void BNGLImporter::importGlobalExpressions()

@@ -69,6 +69,7 @@ protected:
     virtual void processReactionSecondOrder(int round, ReactionPattern* reaction);
 
     ReactantInstance* rewriteSubstrateToProduct(ReactantInstance* substrate, GraphMapping substrateToSubstratePatternMapping, ReactantPattern* substratePattern, GraphMapping substratePatternToProductPatternMapping);
+    bool isNewComplexSpecies(ComplexInstance* instance);
 
 
     /*virtual double convertPropensityConstantUnits(string constant, double value, string desiredUnits);
@@ -85,10 +86,10 @@ protected:
     map<string,double> parameters;
     map<string,MoleculeClass*> moleculeTypes;
     vector<MoleculeInstance*> moleculeSpecies;
-    vector<vector<ComplexInstance*> > complexSpecies;
+    vector<vector<ComplexInstance*>> complexSpecies;
+    vector<ComplexInstance*> allComplexSpecies;
     vector<ReactionPattern*> reactions;
 
-    vector<ComplexInstance*> allComplexSpecies;
 
     lm::input::ReactionModel reactionModel;
 

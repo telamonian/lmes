@@ -1,0 +1,27 @@
+
+begin model
+
+begin parameters
+end parameters
+
+begin molecule types
+    Ste5(ste11b,ste7b,fus3b)
+    Ste11(ste5b)
+    Ste7(ste5b)
+    Fus3(ste5b)
+end molecule types
+
+begin species
+    Ste5(ste11b,ste7b,fus3b) 1
+    Ste11(ste5b) 1
+    Ste7(ste5b) 1
+    Fus3(ste5b) 1
+end species
+
+begin reaction rules
+    Ste5(ste11b) + Ste11(ste5b) <-> Ste5(ste11b!1).Ste11(ste5b!1)  1.0, 1.0
+    Ste5(ste7b) + Ste7(ste5b) <-> Ste5(ste7b!1).Ste7(ste5b!1)  1.0, 1.0
+    Ste5(fus3b) + Fus3(ste5b) <-> Ste5(fus3b!1).Fus3(ste5b!1)  1.0, 1.0
+end reaction rules
+
+end model

@@ -42,6 +42,18 @@ GraphMapping::GraphMapping(Graph* sourceGraph, Graph* targetGraph)
 {
 }
 
+void GraphMapping::appendMappings(const GraphMapping& additionalMapping)
+{
+    for (int i=0; i<additionalMapping.sourceVertices.size(); i++)
+    {
+        sourceVertices.push_back(additionalMapping.sourceVertices[i]);
+        targetVertices.push_back(additionalMapping.targetVertices[i]);
+        forwardMapping[additionalMapping.sourceVertices[i]] = additionalMapping.targetVertices[i];
+        reverseMapping[additionalMapping.targetVertices[i]] = additionalMapping.sourceVertices[i];
+    }
+}
+
+
 void GraphMapping::setGraphs(Graph* sourceGraph, Graph* targetGraph)
 {
     this->sourceGraph = sourceGraph;
@@ -213,6 +225,28 @@ int Vertex::findEdgeLeadingTo(Vertex* destination)
     return -1;
 }
 
+bool Graph::addEdge(Vertex* v1, int index1, Vertex* v2, int index2)
+{
+    // Make sure we can find both vertices.
+    int vertexCount=0;
+    for (int i=0; i<getNumberVertices(); i++)
+    {
+        if (getVertex(i) == v1) vertexCount++;
+        if (getVertex(i) == v2) vertexCount++;
+    }
+    if (vertexCount != 2) return false;
+
+    // Make sure that both verticies can be connected at the specified indicies.
+    if (index1 >= v1->getMaxNumberEdges() || v1->getEdge(index1) != NULL) return false;
+    if (index2 >= v2->getMaxNumberEdges() || v2->getEdge(index2) != NULL) return false;
+
+    // Add the edges.
+    v1->addEdge(index1, v2, index2);
+    v2->addEdge(index2, v1, index1);
+
+    return true;
+}
+
 bool Graph::removeEdge(Vertex* v1, Vertex* v2)
 {
     // Make sure we can find both vertices.
@@ -261,6 +295,68 @@ void Graph::clearAllMarks()
 {
     for (int i=0; i<getNumberVertices(); i++)
         getVertex(i)->clearAllMarks();
+}
+
+bool Graph::isIsomorphic(Graph* target)
+{
+    // Go through all of the vertices in the graph and search for a match to the first vertex in the target.
+    for (int i=0; i<getNumberVertices(); i++)
+    {
+        // See if the vertices match.
+        if (isIsomorphicFromVertices(target, getVertex(i), target->getVertex(0)))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Graph::isIsomorphicFromVertices(Graph* target, Vertex* sourceVertex, Vertex* targetVertex, bool permitSubgraph, GraphMapping* mapping, Vertex* sourceVertexOrigin, Vertex* targetVertexOrigin)
+{
+    //printf("Checking for isomorphic subgraph %s and %s, vertices %s and %s\n",getString().c_str(), target->getString().c_str(), sourceVertex->getString().c_str(), targetVertex->getString().c_str()); fflush(stdout);
+
+    // If this is the first call, clear the marks for graphs.
+    bool isFirstVertex = (sourceVertexOrigin == NULL && targetVertexOrigin == NULL);
+    if (isFirstVertex) target->clearMark("isIsomorphicFromVertices");
+
+    // Mark that we have visited this vertex.
+    targetVertex->setMark("isIsomorphicFromVertices");
+
+    // If the vertices don't match, return false.
+    if (!sourceVertex->matches(targetVertex)) return false;
+
+    // Make sure that the same edges take us back to the vertices we came from.
+    if (!isFirstVertex && sourceVertex->findEdgeLeadingTo(sourceVertexOrigin) != targetVertex->findEdgeLeadingTo(targetVertexOrigin)) return false;
+
+    // Check each child edge.
+    for (int i=0; i<targetVertex->getMaxNumberEdges(); i++)
+    {
+        // If the target has an edge.
+        if (targetVertex->getEdge(i) != NULL)
+        {
+            // If the source is missing an edge, return false.
+            if (sourceVertex->getEdge(i) == NULL) return false;
+
+            // Make sure that we have not already processed the other end of this edge.
+             if (!targetVertex->getEdge(i)->hasMark("isIsomorphicFromVertices"))
+             {
+                // Recursively follow any edges.
+                if (!isIsomorphicFromVertices(target, sourceVertex->getEdge(i), targetVertex->getEdge(i), permitSubgraph, mapping, sourceVertex, targetVertex))
+                    return false;
+             }
+        }
+
+        // If we are not permitting subgraphs, make sure if the target doesn't have an edge neither does the source.
+        else if (!permitSubgraph && targetVertex->getEdge(i) == NULL)
+        {
+            // If the source has an edge, return false.
+            if (sourceVertex->getEdge(i) != NULL) return false;
+        }
+    }
+
+    //printf("Yes, is an isomorphic subgraph %X and %X\n",sourceVertex,targetVertex); fflush(stdout);
+    if (mapping != NULL) mapping->addMapping(sourceVertex, targetVertex);
+    return true;
 }
 
 list<Vertex*> Graph::findConnectedSubgraphs()
@@ -356,13 +452,13 @@ GraphMapping Graph::findLargestCommonSubgraph(Graph* target, string ignoreMark)
 
             // Check for a mapping between these two vertices.
             GraphMapping subgraph(this, target);
-            isIsomorphicSubgraph(getVertex(i), target, target->getVertex(j), &subgraph);
+            isIsomorphicFromVertices(target, getVertex(i), target->getVertex(j), true, &subgraph);
             if (subgraph.getNumberMatches() > maxSubgraph.getNumberMatches())
                 maxSubgraph = subgraph;
 
             // Check for a mapping between these two vertices.
             GraphMapping reverseSubgraph(this, target);
-            target->isIsomorphicSubgraph(target->getVertex(j), this, getVertex(i), &reverseSubgraph);
+            target->isIsomorphicFromVertices(this, target->getVertex(j), getVertex(i), true, &reverseSubgraph);
             if (reverseSubgraph.getNumberMatches() > maxSubgraph.getNumberMatches())
             {
                 reverseSubgraph.reverse();
@@ -376,45 +472,10 @@ GraphMapping Graph::findLargestCommonSubgraph(Graph* target, string ignoreMark)
     return maxSubgraph;
 }
 
-bool Graph::isIsomorphicSubgraph(Vertex* sourceVertex, Graph* target, Vertex* targetVertex, GraphMapping* mapping, Vertex* sourceVertexOrigin, Vertex* targetVertexOrigin)
-{
-    //printf("Checking for isomorphic subgraph %s and %s, vertices %s and %s\n",getString().c_str(), target->getString().c_str(), sourceVertex->getString().c_str(), targetVertex->getString().c_str()); fflush(stdout);
-
-    // If this is the first call, clear the marks for graphs.
-    bool isFirstVertex = (sourceVertexOrigin == NULL && targetVertexOrigin == NULL);
-    if (isFirstVertex) target->clearMark("isIsomorphicSubgraph");
-
-    // Mark that we have visited this vertex.
-    targetVertex->setMark("isIsomorphicSubgraph");
-
-    // If the vertices don't match, return false.
-    if (!sourceVertex->matches(targetVertex)) return false;
-
-    // Make sure that the same edges take us back to the vertices we came from.
-    if (!isFirstVertex && sourceVertex->findEdgeLeadingTo(sourceVertexOrigin) != targetVertex->findEdgeLeadingTo(targetVertexOrigin)) return false;
-
-    // Follow each child edge.
-    for (int i=0; i<targetVertex->getMaxNumberEdges(); i++)
-    {
-        if (targetVertex->getEdge(i) != NULL && !targetVertex->getEdge(i)->hasMark("isIsomorphicSubgraph"))
-        {
-            // If the source is missing a link, return false.
-            if (sourceVertex->getEdge(i) == NULL) return false;
-
-            // Make sure that the
-
-            // Recursively follow any edges.
-            if (!isIsomorphicSubgraph(sourceVertex->getEdge(i), target, targetVertex->getEdge(i), mapping, sourceVertex, targetVertex)) return false;
-        }
-    }
-
-    //printf("    Yes, is an isomorphic subgraph %X and %X\n",sourceVertex,targetVertex); fflush(stdout);
-    mapping->addMapping(sourceVertex, targetVertex);
-    return true;
-}
-
 list<GraphMapping> Graph::findAllIsomorphicSubgraphs(Graph* subgraph)
 {
+    //printf("Finding all isomorphic subgraphs between %s and %s\n",getString().c_str(),subgraph->getString().c_str()); fflush(stdout);
+
     list<GraphMapping> ret;
 
     // Go through all of the vertices in the graph and search for a match to the first vertex in the target.
@@ -423,7 +484,7 @@ list<GraphMapping> Graph::findAllIsomorphicSubgraphs(Graph* subgraph)
         GraphMapping mapping(this, subgraph);
 
         // See if the vertices match.
-        if (isIsomorphicSubgraph(getVertex(i), subgraph, subgraph->getVertex(0), &mapping))
+        if (isIsomorphicFromVertices(subgraph, getVertex(i), subgraph->getVertex(0), true, &mapping))
         {
             // TODO: check to ensure that this mapping is not a duplicate of a previous mapping.
 

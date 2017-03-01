@@ -20,7 +20,6 @@ end molecule types
 begin species
   L(r) L0
   R(l1,l2) R0
-  L(r!1).R(l1!1,l2) 0
 end species
 
 begin reaction rules
