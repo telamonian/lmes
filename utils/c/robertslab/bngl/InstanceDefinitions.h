@@ -146,7 +146,23 @@ protected:
     vector<ComplexInstance*> complexes;
 };
 
+class ReactionInstance
+{
+public:
+    ReactionInstance();
+    ReactionInstance(ReactantInstance* substrate, ReactantInstance* product, double rate);
+    bool isValid();
+    string getString(bool includeRate=false);
+    ReactantInstance* getSubstrate();
+    ReactantInstance* getProduct();
+    double getRate();
 
+protected:
+    bool valid;
+    ReactantInstance* substrate;
+    ReactantInstance* product;
+    double rate;
+};
 
 }
 }

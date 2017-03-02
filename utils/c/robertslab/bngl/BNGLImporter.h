@@ -71,6 +71,11 @@ protected:
     ReactantInstance* rewriteSubstrateToProduct(ReactantInstance* substrate, GraphMapping substrateToSubstratePatternMapping, ReactantPattern* substratePattern, GraphMapping substratePatternToProductPatternMapping);
     bool isNewComplexSpecies(ComplexInstance* instance);
 
+    void buildSpeciesModel();
+    void buildReactionModel();
+    void buildLMModel();
+    int findComplexSpeciesIndex(ComplexInstance* s);
+
 
     /*virtual double convertPropensityConstantUnits(string constant, double value, string desiredUnits);
     virtual void convertUnits(ASTNode_t* units);
@@ -79,6 +84,7 @@ protected:
     virtual double convertTimeToSeconds(double value, string units="");*/
 
 protected:
+    int maxRounds;
     lm::me::PropensityFunctionFactory *propensityFunctions;
     bool constantsUseConcentrations;
     bool verbose, reallyVerbose;
@@ -86,23 +92,24 @@ protected:
     map<string,double> parameters;
     map<string,MoleculeClass*> moleculeTypes;
     vector<MoleculeInstance*> moleculeSpecies;
+    vector<ReactionPattern*> reactionPatterns;
     vector<vector<ComplexInstance*>> complexSpecies;
+    vector<vector<ReactionInstance*>> reactions;
     vector<ComplexInstance*> allComplexSpecies;
-    vector<ReactionPattern*> reactions;
+    vector<ReactionInstance*> allReactions;
 
 
-    lm::input::ReactionModel reactionModel;
+    lm::input::ReactionModel lmModel;
 
     int numberSpecies;
-    map<string,int> speciesIndices;
+    map<int,string> speciesNames;
+    ndarray<uint>* C; // Initial species counts.
 
-    /*
     int numberReactions;
-    ndarray<int> *S;
-    ndarray<int> *T;
-    ndarray<double> *K;
-    ndarray<int> *D;
-    */
+    ndarray<int>* S;
+    ndarray<int>* T;
+    ndarray<double>* K;
+    ndarray<int>* D;
 };
 
 }

@@ -222,7 +222,7 @@ bool MoleculeInstance::matches(Vertex* comp)
 
 
 ComplexInstance::ComplexInstance()
-:valid(false)
+:valid(false),count(0.0)
 {
 }
 
@@ -248,7 +248,7 @@ ComplexInstance::ComplexInstance(string definition, double count)
 }
 
 ComplexInstance::ComplexInstance(set<Vertex*> connectedMolecules)
-:valid(false)
+:valid(false),count(0.0)
 {
     valid = true;
 
@@ -348,6 +348,12 @@ bool ComplexInstance::isValid() const
     return valid;
 }
 
+double ComplexInstance::getCount()
+{
+    return count;
+}
+
+
 string ComplexInstance::getString(bool withCounts)
 {
     std::stringstream ss;
@@ -372,6 +378,30 @@ MoleculeInstance* ComplexInstance::getMolecule(int i)
 {
     return molecules[i];
 }
+
+/*bool ComplexInstance::matches(ComplexInstance* instance)
+{
+    printf("Comparing %s to %s\n",getString().c_str(), instance->getString().c_str());
+    if (molecules.size() != instance->molecules.size()) return false;
+
+    // Make sure we can find every molecule, even though they may not be in the same order.
+    for (int i=0; i<molecules.size(); i++)
+    {
+        bool foundMatch=false;
+        for (int j=0; j<instance->molecules.size(); j++)
+        {
+            if (molecules[i]->matches(instance->molecules[j]))
+            {
+                foundMatch = true;
+                break;
+            }
+        }
+        if (!foundMatch) return false;
+    }
+    printf("yes\n");
+    return true;
+}*/
+
 
 int ComplexInstance::getNumberVertices()
 {
@@ -471,6 +501,46 @@ void ReactantInstance::recreateComplexes()
         complexes.push_back(new ComplexInstance(anchorMolecule->getConnectedVertices()));
     }
 
+}
+
+ReactionInstance::ReactionInstance()
+:valid(false),substrate(NULL),product(NULL),rate(0.0)
+{
+}
+
+ReactionInstance::ReactionInstance(ReactantInstance* substrate, ReactantInstance* product, double rate)
+:valid(true),substrate(substrate),product(product),rate(rate)
+{
+}
+
+bool ReactionInstance::isValid()
+{
+    return valid;
+}
+
+string ReactionInstance::getString(bool includeRate)
+{
+    std::stringstream ss;
+    ss << substrate->getString();
+    ss << " -> ";
+    ss << product->getString();
+    if (includeRate) ss << " " << rate;
+    return ss.str();
+}
+
+ReactantInstance* ReactionInstance::getSubstrate()
+{
+    return substrate;
+}
+
+ReactantInstance* ReactionInstance::getProduct()
+{
+    return product;
+}
+
+double ReactionInstance::getRate()
+{
+    return rate;
 }
 
 }

@@ -56,7 +56,7 @@ namespace robertslab {
 namespace bngl {
 
 BNGLImporter::BNGLImporter()
-:propensityFunctions(NULL),constantsUseConcentrations(false),verbose(false),reallyVerbose(false),allImportStepsSuccessful(true),numberSpecies(0)//,numberReactions(0),S(NULL),T(NULL),K(NULL),D(NULL)
+:maxRounds(20),propensityFunctions(NULL),constantsUseConcentrations(false),verbose(false),reallyVerbose(false),allImportStepsSuccessful(true),numberSpecies(0),C(NULL),numberReactions(0),S(NULL),T(NULL),K(NULL),D(NULL)
 {
     propensityFunctions = new lm::me::PropensityFunctionFactory();
 }
@@ -64,10 +64,11 @@ BNGLImporter::BNGLImporter()
 BNGLImporter::~BNGLImporter()
 {
     if (propensityFunctions != NULL) delete propensityFunctions; propensityFunctions = NULL;
-    /*if (S != NULL) delete S; S = NULL;
+    if (C != NULL) delete C; C = NULL;
+    if (S != NULL) delete S; S = NULL;
     if (T != NULL) delete T; T = NULL;
     if (K != NULL) delete K; K = NULL;
-    if (D != NULL) delete D; D = NULL;*/
+    if (D != NULL) delete D; D = NULL;
 }
 
 void BNGLImporter::setOptions(bool constantsUseConcentrations, bool verbose, bool reallyVerbose)
@@ -212,7 +213,7 @@ bool BNGLImporter::import(string filename, map<string,double> userParameters)
 
 lm::input::ReactionModel* BNGLImporter::getReactionModel()
 {
-    return &reactionModel;
+    return &lmModel;
 }
 
 string BNGLImporter::getDescription()
@@ -286,8 +287,9 @@ void BNGLImporter::parseSeedSpecies(list<string>& lines)
 {
     Print::printf(Print::INFO, "Parsing species block.");
 
-    // Add the round to the complex species list.
+    // Add the round to the complex species and reactions list.
     complexSpecies.push_back(vector<ComplexInstance*>());
+    reactions.push_back(vector<ReactionInstance*>());
 
     regex parameterPattern("^(\\S+)\\s+(\\S+)$");
     std::smatch match;
@@ -357,8 +359,8 @@ void BNGLImporter::parseReactions(list<string>& lines)
             // Make sure we processed a valid record.
             if (isValidRateF && isValidRateR && reactionF->isValid() && reactionR->isValid())
             {
-                reactions.push_back(reactionF);
-                reactions.push_back(reactionR);
+                reactionPatterns.push_back(reactionF);
+                reactionPatterns.push_back(reactionR);
                 Print::printf(Print::INFO, "Added forward reaction pattern %s", reactionF->getString(true).c_str());
                 if (reallyVerbose) Print::printf(Print::INFO, "Reaction substrate to product mapping:\n%s", reactionF->getSubstrateToProductMapping().getString().c_str());
                 Print::printf(Print::INFO, "Added reverse reaction pattern %s", reactionR->getString(true).c_str());
@@ -395,7 +397,7 @@ void BNGLImporter::parseReactions(list<string>& lines)
             // Make sure we processed a valid record.
             if (reaction->isValid() && isValidRate)
             {
-                reactions.push_back(reaction);
+                reactionPatterns.push_back(reaction);
                 Print::printf(Print::INFO, "Added irreversible reaction pattern %s", reaction->getString(true).c_str());
                 if (verbose) Print::printf(Print::INFO, "Reaction substrate to product mapping:\n%s", reaction->getSubstrateToProductMapping().getString().c_str());
             }
@@ -447,26 +449,64 @@ void BNGLImporter::processModel()
     //enumerateMoleculeSpecies();
 
     // Go through the reaction patterns iteratively until the species have converged.
-    for (int round=1; round<10; round++)
+    bool complexSpeciesConverged=false;
+    for (int round=1; round<maxRounds; round++)
     {
-        if (verbose) Print::printf(Print::INFO, "Processing reactions for round %d", round);
-        if (!processReactions(round)) break;
+        if (reallyVerbose) Print::printf(Print::INFO, "Processing reactions for round %d", round);
+        if (!processReactions(round))
+        {
+            complexSpeciesConverged = true;
+            break;
+        }
     }
 
     // Combine the species from each round into one list.
     for (int i=0; i<complexSpecies.size(); i++)
         for (int j=0; j<complexSpecies[i].size(); j++)
             allComplexSpecies.push_back(complexSpecies[i][j]);
-    Print::printf(Print::INFO, "Added %d total complex species.", allComplexSpecies.size());
+    Print::printf(Print::INFO, "Found %d total complex species.", allComplexSpecies.size());
+
+    // Combine the reactions from each round into one list.
+    for (int i=0; i<reactions.size(); i++)
+        for (int j=0; j<reactions[i].size(); j++)
+            allReactions.push_back(reactions[i][j]);
+    Print::printf(Print::INFO, "Found %d total reactions.", allReactions.size());
 
     // Print debugging information, if necessary.
     if (verbose)
     {
         for (int i=0; i<allComplexSpecies.size(); i++)
-        {
-            Print::printf(Print::INFO, "%s", allComplexSpecies[i]->getString().c_str());
-        }
+            Print::printf(Print::INFO, "Species %d:  %s", i, allComplexSpecies[i]->getString().c_str());
+        for (int i=0; i<allReactions.size(); i++)
+            Print::printf(Print::INFO, "Reaction %d: %s", i, allReactions[i]->getString().c_str());
     }
+
+    // Build the species model.
+    buildSpeciesModel();
+
+    // Build the reaction model.
+    buildReactionModel();
+
+    // Print the matrices.
+    if (verbose)
+    {
+        Print::printf(Print::INFO, "Species count matrix was:");
+        C->print(); printf("\n");
+        Print::printf(Print::INFO, "Reaction type matrix was:");
+        T->print(); printf("\n");
+        Print::printf(Print::INFO, "Rate constant matrix was:");
+        K->print(); printf("\n");
+        Print::printf(Print::INFO, "Stoichiometry matrix was:");
+        S->print(); printf("\n");
+        Print::printf(Print::INFO, "Dependency matrix was:");
+        D->print(); printf("\n");
+    }
+
+    // Build the lm model.
+    buildLMModel();
+
+    // If the species did not converge, print a warning at the end.
+    if (!complexSpeciesConverged) Print::printf(Print::WARNING, "Complex species did not converge after %d rounds. Either ensure that you have enough species depth or run again with more rounds.");
 }
 
 void BNGLImporter::supplementMoleculeTypesFromSeedSpecies()
@@ -519,47 +559,49 @@ void BNGLImporter::enumerateMoleculeSpecies()
 
 bool BNGLImporter::processReactions(int round)
 {
-    // And the round to the complex species.
+    // And the round to the complex species and reactions list.
     if (complexSpecies.size() != round) throw Exception("inconsistent complex species list size",round,complexSpecies.size());
+    if (reactions.size() != round) throw Exception("inconsistent reaction list size",round,reactions.size());
     complexSpecies.push_back(vector<ComplexInstance*>());
+    reactions.push_back(vector<ReactionInstance*>());
 
     // Loop through each reaction.
-    for (int i=0; i<reactions.size(); i++)
+    for (int i=0; i<reactionPatterns.size(); i++)
     {
-        ReactionPattern* reaction = reactions[i];
-        processReaction(round, reaction);
+        ReactionPattern* reactionPattern = reactionPatterns[i];
+        processReaction(round, reactionPattern);
     }
 
-    Print::printf(Print::INFO, "Added complex species for round %d: %d species", round, complexSpecies[round].size());
+    Print::printf(Print::INFO, "Finished round round %d: %d new complex species, %d new reactions", round, complexSpecies[round].size(), reactions[round].size());
 
     // Return whether or not we added any new complexes this round.
     return complexSpecies[round].size() != 0;
 }
 
-void BNGLImporter::processReaction(int round, ReactionPattern* reaction)
+void BNGLImporter::processReaction(int round, ReactionPattern* reactionPattern)
 {
-    if (reallyVerbose) Print::printf(Print::INFO, "Processing reaction %s", reaction->getString(false).c_str());
+    if (reallyVerbose) Print::printf(Print::INFO, "Processing reaction %s", reactionPattern->getString(false).c_str());
 
     // Process the reaction according to its order.
-    if (reaction->getSubstrates()->getNumberReactants() == 0)
-        processReactionZerothOrder(round, reaction);
-    else if (reaction->getSubstrates()->getNumberReactants() == 1)
-        processReactionFirstOrder(round, reaction);
-    else if (reaction->getSubstrates()->getNumberReactants() == 2)
-        processReactionSecondOrder(round, reaction);
+    if (reactionPattern->getSubstrates()->getNumberReactants() == 0)
+        processReactionZerothOrder(round, reactionPattern);
+    else if (reactionPattern->getSubstrates()->getNumberReactants() == 1)
+        processReactionFirstOrder(round, reactionPattern);
+    else if (reactionPattern->getSubstrates()->getNumberReactants() == 2)
+        processReactionSecondOrder(round, reactionPattern);
     else
-        throw Exception("unsupported reaction order",reaction->getSubstrates()->getNumberReactants());
+        throw Exception("unsupported reaction order",reactionPattern->getSubstrates()->getNumberReactants());
 }
 
-void BNGLImporter::processReactionZerothOrder(int round, ReactionPattern* reaction)
+void BNGLImporter::processReactionZerothOrder(int round, ReactionPattern* reactionPattern)
 {
 
 }
 
-void BNGLImporter::processReactionFirstOrder(int round, ReactionPattern* reaction)
+void BNGLImporter::processReactionFirstOrder(int round, ReactionPattern* reactionPattern)
 {
     // Get the substrate pattern.
-    ReactantPattern* substratePattern = reaction->getSubstrates();
+    ReactantPattern* substratePattern = reactionPattern->getSubstrates();
 
     // Go through every complex species from the previous round and see if they match the pattern.
     for (int i=0; i<complexSpecies[round-1].size(); i++)
@@ -578,11 +620,15 @@ void BNGLImporter::processReactionFirstOrder(int round, ReactionPattern* reactio
         {
             GraphMapping substrateMapping(substrate, substratePattern->getReactant(1));
             substrateMapping.appendMappings(*it);
-            if (reallyVerbose) Print::printf(Print::INFO, "Found match in round %d for reaction %s, species %s contains pattern %s",round, reaction->getString(false).c_str(), substrate->getString().c_str(), substratePattern->getString().c_str());
+            if (reallyVerbose) Print::printf(Print::INFO, "Found match in round %d for reaction %s, species %s contains pattern %s",round, reactionPattern->getString(false).c_str(), substrate->getString().c_str(), substratePattern->getString().c_str());
 
             // Rewrite the component states for the products.
-            ReactantInstance* product = rewriteSubstrateToProduct(substrate, substrateMapping, substratePattern, reaction->getSubstrateToProductMapping());
-            if (verbose) Print::printf(Print::INFO, "Added new reaction %s -> %s",substrate->getString().c_str(), product->getString().c_str());
+            ReactantInstance* product = rewriteSubstrateToProduct(substrate, substrateMapping, substratePattern, reactionPattern->getSubstrateToProductMapping());
+
+            // Save the new reaction.
+            ReactionInstance* reaction = new ReactionInstance(substrate, product, reactionPattern->getRate());
+            reactions[round].push_back(reaction);
+            if (reallyVerbose) Print::printf(Print::INFO, "Added new reaction %s", reaction->getString().c_str());
 
             // If the product contains any new species, add them to the list.
             for (int j=0; j<product->getNumberComplexes(); j++)
@@ -594,10 +640,10 @@ void BNGLImporter::processReactionFirstOrder(int round, ReactionPattern* reactio
     }
 }
 
-void BNGLImporter::processReactionSecondOrder(int round, ReactionPattern* reaction)
+void BNGLImporter::processReactionSecondOrder(int round, ReactionPattern* reactionPattern)
 {
     // Get the substrate pattern.
-    ReactantPattern* substratePattern = reaction->getSubstrates();
+    ReactantPattern* substratePattern = reactionPattern->getSubstrates();
 
     // Go through every pair of complex species.
     for (int i=0; i<=round-1; i++)
@@ -630,11 +676,15 @@ void BNGLImporter::processReactionSecondOrder(int round, ReactionPattern* reacti
                             GraphMapping substrateMapping(substrate, substratePattern);
                             substrateMapping.appendMappings(*it1);
                             substrateMapping.appendMappings(*it2);
-                            if (reallyVerbose) Print::printf(Print::INFO, "Found match in round %d for reaction %s, species %s contains pattern %s",round, reaction->getString(false).c_str(), substrate->getString().c_str(), substratePattern->getString().c_str());
+                            if (reallyVerbose) Print::printf(Print::INFO, "Found match in round %d for reaction %s, species %s contains pattern %s",round, reactionPattern->getString(false).c_str(), substrate->getString().c_str(), substratePattern->getString().c_str());
 
                             // Rewrite the component states for the products.
-                            ReactantInstance* product = rewriteSubstrateToProduct(substrate, substrateMapping, substratePattern, reaction->getSubstrateToProductMapping());
-                            if (verbose) Print::printf(Print::INFO, "Added new reaction %s -> %s",substrate->getString().c_str(), product->getString().c_str());
+                            ReactantInstance* product = rewriteSubstrateToProduct(substrate, substrateMapping, substratePattern, reactionPattern->getSubstrateToProductMapping());
+
+                            // Save the new reaction.
+                            ReactionInstance* reaction = new ReactionInstance(substrate, product, reactionPattern->getRate());
+                            reactions[round].push_back(reaction);
+                            if (reallyVerbose) Print::printf(Print::INFO, "Added new reaction %s", reaction->getString().c_str());
 
                             // If the product contains any new species, add them to the list.
                             for (int m=0; m<product->getNumberComplexes(); m++)
@@ -752,6 +802,154 @@ bool BNGLImporter::isNewComplexSpecies(ComplexInstance* instance)
     return true;
 }
 
+void BNGLImporter::buildSpeciesModel()
+{
+    // Process the species.
+    numberSpecies = allComplexSpecies.size();
+
+    // Initialize the initial species counts matrix.
+    C = new ndarray<uint>(utuple(numberSpecies));
+    *C=0;
+
+    if (reallyVerbose) Print::printf(Print::INFO, "Processing %d species.", numberSpecies);
+    for (int i=0; i<numberSpecies; i++)
+    {
+        ComplexInstance* species = allComplexSpecies[i];
+        if (!species->isValid()) throw Exception("invalid species", species->getString().c_str(), i);
+
+        // Save the species name.
+        speciesNames[i] = species->getString();
+        (*C)[i] = lround(species->getCount());
+
+        //Print::printf(Print::INFO, "Added species (%d) %s with initial count: %d%s%s", i, species->getId().c_str(), initialSpeciesCount, isSpeciesConst[i]?" (constant)":"", isSpeciesBoundary[i]?" (boundary)":"");
+    }
+}
+
+void BNGLImporter::buildReactionModel()
+{
+    // Process the reactions.
+    numberReactions = allReactions.size();
+
+    // Initialize the stoichiometry matrix.
+    S = new ndarray<int>(utuple(numberSpecies, numberReactions));
+    *S=0;
+
+    // Initialize the reaction type matrix.
+    T = new ndarray<int>((utuple(numberReactions)));
+    *T=9999;
+
+    // Initialize the rate constant matrix.
+    K = new ndarray<double>(utuple(numberReactions,10));
+    *K=NAN;
+
+    // Initialize the dependency matrix.
+    D = new ndarray<int>(utuple(numberSpecies, numberReactions));
+    *D=0;
+
+    if (reallyVerbose) Print::printf(Print::INFO, "Processing %d reactions.", numberReactions);
+    for (int i=0; i<numberReactions; i++)
+    {
+        ReactionInstance* reaction = allReactions[i];
+        if (!reaction->isValid()) throw Exception("invalid reaction", reaction->getString().c_str(), i);
+
+        // Go through each substrate.
+        for (int j=0; j<reaction->getSubstrate()->getNumberComplexes(); j++)
+        {
+            ComplexInstance* s = reaction->getSubstrate()->getComplex(j);
+
+            // Update the S matrix.
+            (*S)[utuple(findComplexSpeciesIndex(s),i)] -= 1;
+
+            // Update the D matrix.
+            (*D)[utuple(findComplexSpeciesIndex(s),i)] = 1;
+        }
+
+        // Go through each product.
+        for (int j=0; j<reaction->getProduct()->getNumberComplexes(); j++)
+        {
+            ComplexInstance* s = reaction->getProduct()->getComplex(j);
+
+            // Update the S matrix.
+            (*S)[utuple(findComplexSpeciesIndex(s),i)] += 1;
+        }
+
+        // Update the T matrix.
+        if (reaction->getSubstrate()->getNumberComplexes() == 0)
+        {
+            (*T)[i] = 0;
+        }
+        else if (reaction->getSubstrate()->getNumberComplexes() == 1)
+        {
+            (*T)[i] = 1;
+        }
+        else if (reaction->getSubstrate()->getNumberComplexes() == 2)
+        {
+            if (!reaction->getSubstrate()->getComplex(0)->isIsomorphic(reaction->getSubstrate()->getComplex(1)))
+                (*T)[i] = 2;
+            else
+                (*T)[i] = 3;
+        }
+        else
+        {
+            throw Exception("unsupported reaction order",reaction->getSubstrate()->getNumberComplexes());
+        }
+
+        // Update K matrix.
+        (*K)[utuple(i,0U)] = reaction->getRate();
+    }
+}
+
+int BNGLImporter::findComplexSpeciesIndex(ComplexInstance* s)
+{
+    if (reallyVerbose) Print::printf(Print::INFO, "Looking for index of complex species %s", s->getString().c_str());
+
+    int index=-1;
+    for (int i=0; i<allComplexSpecies.size(); i++)
+    {
+        if (s->isIsomorphic(allComplexSpecies[i]))
+        {
+            if (index == -1)
+                index = i;
+            else
+                throw Exception("found a duplicate complex species", index, i);
+        }
+    }
+
+    if (index == -1) throw Exception("could not find index for species");
+    if (reallyVerbose) Print::printf(Print::INFO, "Found index %d", index);
+    return index;
+}
+
+void BNGLImporter::buildLMModel()
+{
+    lmModel.set_number_species(numberSpecies);
+    for (int i=0; i<numberSpecies; i++)
+    {
+        // Add the species to the model.
+        lmModel.add_initial_species_count((*C)[i]);
+    }
+    lmModel.set_number_reactions(numberReactions);
+
+    // Fill in the S and D matrices.
+    for (int i=0; i<numberSpecies; i++)
+    {
+        for (int j=0; j<numberReactions; j++)
+        {
+            lmModel.add_stoichiometric_matrix((*S)[utuple(i,j)]);
+            lmModel.add_dependency_matrix((*D)[utuple(i,j)]);
+        }
+    }
+
+    // Fill in the T and K matrices.
+    for (int j=0; j<numberReactions; j++)
+    {
+        lm::input::ReactionModel_Reaction* reaction = lmModel.add_reaction();
+        reaction->set_type((*T)[utuple(j)]);
+        for (int k=0; k<10 && !isnan((*K)[utuple(j,k)]); k++)
+            reaction->add_rate_constant((*K)[utuple(j,k)]);
+    }
+}
+
 
 /*
 void BNGLImporter::importGlobalExpressions()
@@ -808,70 +1006,10 @@ void BNGLImporter::importCompartments()
     }
 }
 
-void BNGLImporter::importSpecies()
-{
-    // Process the species.
-    numberSpecies = sbmlModel->getNumSpecies();
-    reactionModel.set_number_species(numberSpecies);
-
-    Print::printf(Print::INFO, "Processing %d species.", numberSpecies);
-    for (int i=0; i<numberSpecies; i++)
-    {
-        Species* species = sbmlModel->getSpecies(i);
-        speciesIndices[species->getId()] = i;
-
-        // Make sure we can process the species.
-        isSpeciesBoundary[i] = species->getBoundaryCondition();
-
-        // Track if the species is constant.
-        isSpeciesConst[i] = species->getConstant();
-
-        // Make sure we can process the species.
-        if (species->isSetConversionFactor()) throw Exception("Unsupported species property", "conversionFactor must not be set");
-
-        // Get the initial count for the species.
-        int initialSpeciesCount=0;
-        if (species->isSetInitialAmount())
-        {
-            initialSpeciesCount=lround(convertSubstanceToParticles(species->getInitialAmount(), species->getSubstanceUnits()));
-        }
-        else if (species->isSetInitialConcentration())
-        {
-            initialSpeciesCount=lround(convertSubstanceToParticles(species->getInitialConcentration()*compartmentSizes[species->getCompartment()], species->getSubstanceUnits()));
-        }
-        else
-        {
-            throw Exception("Unknown initial count for species",species->getId().c_str());
-        }
-
-        // Add the species to the model.
-        reactionModel.add_initial_species_count(initialSpeciesCount);
-        Print::printf(Print::INFO, "Added species (%d) %s with initial count: %d%s%s", i, species->getId().c_str(), initialSpeciesCount, isSpeciesConst[i]?" (constant)":"", isSpeciesBoundary[i]?" (boundary)":"");
-    }
-}
 
 
 void BNGLImporter::importReactions()
 {
-    // Process the reactions.
-    numberReactions = sbmlModel->getNumReactions();
-    reactionModel.set_number_reactions(numberReactions);
-
-    // Initialize the stoichiometry matrix.
-    S = new ndarray<int>(utuple(numberSpecies, numberReactions));
-    *S=0;
-
-    // Initialize the reaction type matrix.
-    T = new ndarray<int>((utuple(numberReactions)));
-    *T=9999;
-
-    // Initialize the rate constant matrix.
-    K = new ndarray<double>(utuple(numberReactions,10));
-    *K=NAN;
-
-    // Initialize the dependency matrix.
-    D = new ndarray<int>(utuple(numberSpecies, numberReactions));
-    *D=0;
 
     Print::printf(Print::INFO, "Processing %d reactions.", numberReactions);
     for (uint i=0; i<numberReactions; i++)
@@ -942,34 +1080,7 @@ void BNGLImporter::importReactions()
         }
     }
 
-    if (verbose)
-    {
-        Print::printf(Print::INFO, "Reaction type matrix was:");
-        T->print(); printf("\n");
-        Print::printf(Print::INFO, "Rate constant matrix was:");
-        K->print(); printf("\n");
-        Print::printf(Print::INFO, "Stoichiometry matrix was:");
-        S->print(); printf("\n");
-        Print::printf(Print::INFO, "Dependency matrix was:");
-        D->print(); printf("\n");
-    }
 
-    // Fill in the reaction model.
-    for (int i=0; i<numberSpecies; i++)
-    {
-        for (int j=0; j<numberReactions; j++)
-        {
-            reactionModel.add_stoichiometric_matrix((*S)[utuple(i,j)]);
-            reactionModel.add_dependency_matrix((*D)[utuple(i,j)]);
-        }
-    }
-    for (int j=0; j<numberReactions; j++)
-    {
-        lm::input::ReactionModel_Reaction* reaction = reactionModel.add_reaction();
-        reaction->set_type((*T)[utuple(j)]);
-        for (int k=0; k<10 && !isnan((*K)[utuple(j,k)]); k++)
-            reaction->add_rate_constant((*K)[utuple(j,k)]);
-    }
 }
 
 bool BNGLImporter::importKinetics(Reaction* reaction, int reactionIndex, KineticLaw* kinetics)
