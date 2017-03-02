@@ -50,6 +50,7 @@ public:
     ComponentPattern();
     ComponentPattern(MoleculePattern* molecule, string definition);
     bool isValid();
+    string getState();
     string getString();
     ComponentPattern* getBond();
 
@@ -75,6 +76,8 @@ public:
     bool isValid();
     bool isNull();
     string getName();
+    int getNumberComponents();
+    ComponentPattern* getComponent(int i);
     bool matches(MoleculePattern* instance);
     bool matches(MoleculeInstance* instance);
 

@@ -69,6 +69,11 @@ bool ComponentPattern::isValid()
     return valid;
 }
 
+string ComponentPattern::getState()
+{
+    return state;
+}
+
 string ComponentPattern::getString()
 {
     std::stringstream ss;
@@ -161,6 +166,17 @@ string MoleculePattern::getName()
     return name;
 }
 
+int MoleculePattern::getNumberComponents()
+{
+    return components.size();
+}
+
+ComponentPattern* MoleculePattern::getComponent(int i)
+{
+    return components[i];
+}
+
+
 string MoleculePattern::getString()
 {
     if (null) return "0";
@@ -191,6 +207,9 @@ bool MoleculePattern::matches(MoleculeInstance* instance)
     {
         if (components[i] != NULL)
         {
+            // Make sure the components have the same name.
+            if (components[i]->name != instance->components[i]->name) return false;
+
             // See if the pattern specifies a bond.
             if (components[i]->bond != NULL)
             {
@@ -203,6 +222,13 @@ bool MoleculePattern::matches(MoleculeInstance* instance)
             {
                 // Otherwise the pattern didn't have a bond, so make sure the instance doesn't either.
                 if (instance->components[i]->bond != NULL) return false;
+            }
+
+            // See if the pattern specifies a state for this component.
+            if (components[i]->state != "")
+            {
+                // Make sure the instance has the same state.
+                if (components[i]->state != instance->components[i]->state) return false;
             }
         }
     }

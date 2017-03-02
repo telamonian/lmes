@@ -203,7 +203,7 @@ bool BNGLImporter::import(string filename, map<string,double> userParameters)
     // If we imported the data correctly, process it.
     if (allImportStepsSuccessful)
     {
-        Print::printf(Print::INFO, "Processing BNGL model: %s", filename.c_str());
+        Print::printf(Print::INFO, "Processing BNGL model.");
         processModel();
     }
 
@@ -711,6 +711,26 @@ ReactantInstance* BNGLImporter::rewriteSubstrateToProduct(ReactantInstance* subs
             }
         }
 
+        // Go through each component and see if its state was changed.
+        MoleculePattern* substratePatternMolecule = dynamic_cast<MoleculePattern*>(substratePatternVertex);
+        MoleculePattern* productPatternMolecule = dynamic_cast<MoleculePattern*>(productPatternVertex);
+        MoleculeInstance* productMolecule = dynamic_cast<MoleculeInstance*>(substratePatternToProductMapping.getTargetVertex(substratePatternVertex));
+        if (substratePatternMolecule == NULL) throw std::runtime_error("could not cast substrate pattern to MoleculePattern in BNGLImporter::rewriteSubstrateToProduct");
+        if (productPatternMolecule == NULL) throw std::runtime_error("could not cast product pattern to MoleculePattern in BNGLImporter::rewriteSubstrateToProduct");
+        if (productMolecule == NULL) throw std::runtime_error("could not cast product to MoleculePattern in BNGLImporter::rewriteSubstrateToProduct");
+        for (int j=0; j<substratePatternMolecule->getNumberComponents(); j++)
+        {
+            // See if the component state is specified in the substrate pattern.
+            if (substratePatternMolecule->getComponent(j) != NULL && substratePatternMolecule->getComponent(j)->getState() != "")
+            {
+                // See if the state changed between the substrate and the product.
+                if (productPatternMolecule->getComponent(j)->getState() != substratePatternMolecule->getComponent(j)->getState())
+                {
+                    if (reallyVerbose) Print::printf(Print::INFO, "Changing state of component %s in the product complex %s to %s", productMolecule->getComponent(j)->getString().c_str(), productMolecule->getString().c_str(), productPatternMolecule->getComponent(j)->getState().c_str());
+                    productMolecule->getComponent(j)->setState(productPatternMolecule->getComponent(j)->getState());
+                }
+            }
+        }
     }
 
     // Recreate the product complexes with any new connectivity.

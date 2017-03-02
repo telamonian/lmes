@@ -49,6 +49,7 @@ public:
     ComponentInstance(MoleculeInstance* molecule, string definition);
     ComponentInstance(MoleculeInstance* molecule, const ComponentInstance& other);
     bool isValid();
+    void setState(string newState);
     string getString();
     ComponentInstance* getBond();
 
@@ -74,6 +75,7 @@ public:
     MoleculeInstance(const MoleculeInstance& other);
     bool isValid();
     string getName();
+    ComponentInstance* getComponent(int index);
     bool matches(MoleculeInstance* instance);
 
 public:

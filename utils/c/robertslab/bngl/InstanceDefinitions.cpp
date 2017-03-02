@@ -69,6 +69,11 @@ bool ComponentInstance::isValid()
     return valid;
 }
 
+void ComponentInstance::setState(string newState)
+{
+    state = newState;
+}
+
 string ComponentInstance::getString()
 {
     std::stringstream ss;
@@ -125,6 +130,11 @@ string MoleculeInstance::getName()
     return name;
 }
 
+ComponentInstance* MoleculeInstance::getComponent(int index)
+{
+    return components[index];
+}
+
 string MoleculeInstance::getString()
 {
     std::stringstream ss;
@@ -138,10 +148,35 @@ string MoleculeInstance::getString()
     return ss.str();
 }
 
-bool MoleculeInstance::matches(MoleculeInstance* comp)
+bool MoleculeInstance::matches(MoleculeInstance* instance)
 {
-    if (name != comp->name) return false;
-    if (components.size() != comp->components.size()) return false;
+    if (name != instance->name) return false;
+    if (components.size() != instance->components.size()) return false;
+
+    // Check the bonding state of the components.
+    for (int i=0; i<components.size(); i++)
+    {
+        // Make sure the components have the same name.
+        if (components[i]->name != instance->components[i]->name) return false;
+
+        // See if the source has a bond.
+        if (components[i]->bond != NULL)
+        {
+            // The source has a bond, so make sure the target does to.
+            if (instance->components[i]->bond == NULL) return false;
+
+            // TODO: make sure the bond is the same.
+        }
+        else
+        {
+            // Otherwise the source didn't have a bond, so make sure the target doesn't either.
+            if (instance->components[i]->bond != NULL) return false;
+        }
+
+        // Make sure the component state is the same.
+        if (components[i]->state != instance->components[i]->state) return false;
+    }
+
     return true;
 }
 
