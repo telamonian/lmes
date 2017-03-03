@@ -12,10 +12,10 @@ begin molecule types
 end molecule types
 
 begin species
-    Ste5(p1~n,p2~n,p3~n,p4~n,ste11b,ste7b,fus3b) 1
-    Ste11(ste5b) 1
-    Ste7(ste5b) 1
-    Fus3(ste5b) 1
+    Ste5(p1~n,p2~n,p3~n,p4~n,ste11b,ste7b,fus3b) 2
+    Ste11(ste5b) 3
+    Ste7(ste5b) 4
+    Fus3(ste5b) 5
 end species
 
 begin reaction rules

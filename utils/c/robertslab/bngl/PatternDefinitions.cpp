@@ -61,7 +61,7 @@ ComponentPattern::ComponentPattern(MoleculePattern* molecule, string definition)
         bondName = match[3].str();
         valid = true;
     }
-    //printf("%s=\t%s:%s:%s:%d\n",definition.c_str(),name.c_str(),state.c_str(),bond.c_str(),valid);
+    //printf("%s=\t%s:%s:%s:%d\n",definition.c_str(),name.c_str(),state.c_str(),bondName.c_str(),valid);
 }
 
 bool ComponentPattern::isValid()
@@ -462,6 +462,8 @@ ReactionPattern::ReactionPattern(string lhs, string rhs, double rate, map<string
 
     // Create a mapping of substrates to products.
     substrateToProductMapping = substrates->findGraphMapping(products);
+
+    //printf("Parsed reaction pattern (valid=%d): %s ",valid,getString().c_str());
 }
 
 bool ReactionPattern::isValid()

@@ -334,7 +334,7 @@ void BNGLImporter::parseSeedSpecies(list<string>& lines)
 void BNGLImporter::parseReactions(list<string>& lines)
 {
     Print::printf(Print::INFO, "Parsing reactions block.");
-    regex reversibleReactionPattern("^([^<->]+)\\s*<->\\s*([^<->]+)\\s+(\\S+),\\s+(\\S+)$");
+    regex reversibleReactionPattern("^([^<->]+)\\s*<->\\s*([^<->]+)\\s+(\\S+),\\s*(\\S+)$");
     regex irreversibleReactionPattern("^([^<->]+)\\s*->\\s*([^<->]+)\\s+(\\S+)$");
     std::smatch match;
     for (list<string>::iterator it=lines.begin(); it != lines.end(); it++)

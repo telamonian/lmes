@@ -1,0 +1,23 @@
+
+begin model
+begin parameters
+end parameters
+
+begin molecule types
+  L(r)
+  R(p1~p~n,l) 
+end molecule types
+
+begin species
+  L(r) 100
+  R(p1~n,l) 10
+end species
+
+# not thermodynamically consistent reactions, just used for testing rule parser
+begin reaction rules
+  L(r) + R(l) -> L(r!1).R(l!1) 1.0
+  L(r!1).R(p1~n,l!1) -> L(r) + R(p1~n,l) 2.0
+  L(r!1).R(p1~p,l!1) -> L(r) + R(p1~p,l) 10.0
+  R(p1~p) <-> R(p1~n) 200.0, 20.0
+end reaction rules
+end model
