@@ -9,12 +9,12 @@ begin molecule types
 end molecule types
 
 begin species
-    E(S100~n,T200~n) 1
+    E(S100~n,T200~n) 10
 end species
 
 begin reaction rules
-    E(S100~n) <-> E(S100~p) 1.0, 1.0
-    E(T200~n) <-> E(T200~p) 1.0, 1.0
+    E(S100~n) <-> E(S100~p) 2.0, 3.0
+    E(T200~n) <-> E(T200~p) 4.0, 5.0
 end reaction rules
 
 end model
