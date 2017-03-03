@@ -20,8 +20,8 @@
  * Author(s): Elijah Roberts
  */
 
-#ifndef BNGLIMPORTER_H
-#define BNGLIMPORTER_H
+#ifndef ROBERTSLAB_BNGL_BNGLIMPORTER_H
+#define ROBERTSLAB_BNGL_BNGLIMPORTER_H
 
 #include <map>
 #include <string>
@@ -30,6 +30,9 @@
 #include "lm/Types.h"
 #include "lm/input/ReactionModel.pb.h"
 #include "lm/me/PropensityFunction.h"
+#include "robertslab/bngl/InstanceDefinitions.h"
+#include "robertslab/bngl/PatternDefinitions.h"
+#include "robertslab/bngl/TypeDefinitions.h"
 
 using std::map;
 using std::string;
@@ -50,13 +53,30 @@ public:
 
 protected:
     virtual void parseParameters(list<string>& lines);
-    virtual void parseSpecies(list<string>& lines, bool initialize);
+    virtual void parseMoleculeTypes(list<string>& lines);
+    virtual void parseSeedSpecies(list<string>& lines);
     virtual void parseReactions(list<string>& lines);
-    /*virtual void importMoleculeTypes();
-    virtual void importSeedSpecies();
-    virtual void importReactionRules();*/
+    bool evaluteExpression(string expression, double& value);
 
 protected:
+    virtual void processModel();
+    virtual void supplementMoleculeTypesFromSeedSpecies();
+    virtual void enumerateMoleculeSpecies();
+    virtual bool processReactions(int round);
+    virtual void processReaction(int round, ReactionPattern* reaction);
+    virtual void processReactionZerothOrder(int round, ReactionPattern* reaction);
+    virtual void processReactionFirstOrder(int round, ReactionPattern* reaction);
+    virtual void processReactionSecondOrder(int round, ReactionPattern* reaction);
+
+    ReactantInstance* rewriteSubstrateToProduct(ReactantInstance* substrate, GraphMapping substrateToSubstratePatternMapping, ReactantPattern* substratePattern, GraphMapping substratePatternToProductPatternMapping);
+    bool isNewComplexSpecies(ComplexInstance* instance);
+
+    void buildSpeciesModel();
+    void buildReactionModel();
+    void buildLMModel();
+    int findComplexSpeciesIndex(ComplexInstance* s);
+
+
     /*virtual double convertPropensityConstantUnits(string constant, double value, string desiredUnits);
     virtual void convertUnits(ASTNode_t* units);
     virtual double convertVolumeToLiters(double size, string units="");
@@ -64,23 +84,32 @@ protected:
     virtual double convertTimeToSeconds(double value, string units="");*/
 
 protected:
+    int maxRounds;
     lm::me::PropensityFunctionFactory *propensityFunctions;
     bool constantsUseConcentrations;
     bool verbose, reallyVerbose;
     bool allImportStepsSuccessful;
     map<string,double> parameters;
-    lm::input::ReactionModel reactionModel;
+    map<string,MoleculeClass*> moleculeTypes;
+    vector<MoleculeInstance*> moleculeSpecies;
+    vector<ReactionPattern*> reactionPatterns;
+    vector<vector<ComplexInstance*>> complexSpecies;
+    vector<vector<ReactionInstance*>> reactions;
+    vector<ComplexInstance*> allComplexSpecies;
+    vector<ReactionInstance*> allReactions;
+
+
+    lm::input::ReactionModel lmModel;
 
     int numberSpecies;
-    map<string,int> speciesIndices;
+    map<int,string> speciesNames;
+    ndarray<uint>* C; // Initial species counts.
 
-    /*
     int numberReactions;
-    ndarray<int> *S;
-    ndarray<int> *T;
-    ndarray<double> *K;
-    ndarray<int> *D;
-    */
+    ndarray<int>* S;
+    ndarray<int>* T;
+    ndarray<double>* K;
+    ndarray<int>* D;
 };
 
 }

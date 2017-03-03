@@ -158,6 +158,21 @@ IF (USE_SNAPPY STREQUAL optional)
 ENDIF(USE_SNAPPY STREQUAL optional)
 
 ######################################
+# Process the USE_CPP11 flag.
+######################################
+
+# figure out if we should use CUDA or not.
+set(BUILD_WITH_CPP11 false)
+
+IF (USE_CPP11 STREQUAL yes)
+    set(BUILD_WITH_CPP11 true)
+    message("-- Enabling support for C++11")
+ENDIF(USE_CPP11 STREQUAL yes)
+
+#IF (USE_CPP11 STREQUAL optional)
+#ENDIF(USE_CPP11 STREQUAL optional)
+
+######################################
 # Process the USE_PROFILING flag.
 ######################################
 
@@ -208,6 +223,11 @@ if(BUILD_WITH_SNAPPY)
     add_definitions(-DOPT_SNAPPY)
 endif(BUILD_WITH_SNAPPY)
 
+if(BUILD_WITH_CPP11)
+    add_definitions(-DOPT_CPP11)
+endif(BUILD_WITH_CPP11)
+
+
 
 ######################################
 # Process the CPU feature flags.
@@ -242,16 +262,13 @@ ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     STRING(REGEX REPLACE ".+ProductVersion:\t10\\.([0-9][0-9]?).*$" "\\1" OSX_VERSION "${SW_VERS_DUMP}" )
     MESSAGE(STATUS "OSX_VERSION=10.${OSX_VERSION}")
     IF(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-        #SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -stdlib=libstdc++")
-        #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
-        SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -stdlib=libc++")
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -stdlib=libc++")
-
-        # set the C++ standard to be used.
-        #SET(CMAKE_CXX_FLAGS${_CMAKE_BUILD_TYPE_UPPER} "${CMAKE_CXX_FLAGS${_CMAKE_BUILD_TYPE_UPPER}}")
-
-
-
+        if(BUILD_WITH_CPP11)
+            SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -stdlib=libc++")
+            SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -stdlib=libc++")
+        else(BUILD_WITH_CPP11)
+            SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -stdlib=libstdc++")
+            SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
+        endif(BUILD_WITH_CPP11)
     ENDIF(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
