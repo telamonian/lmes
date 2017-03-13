@@ -20,6 +20,7 @@
  * Author(s): Elijah Roberts
  */
 
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <list>
@@ -945,7 +946,7 @@ void BNGLImporter::buildLMModel()
     {
         lm::input::ReactionModel_Reaction* reaction = lmModel.add_reaction();
         reaction->set_type((*T)[utuple(j)]);
-        for (int k=0; k<10 && !isnan((*K)[utuple(j,k)]); k++)
+        for (int k=0; k<10 && !std::isnan((*K)[utuple(j,k)]); k++)
             reaction->add_rate_constant((*K)[utuple(j,k)]);
     }
 }
