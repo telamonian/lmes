@@ -1,3 +1,14 @@
+2017.03.13
+
+    General
+    * Many improvements to the parsing of SBML documents to support exports from COPASI.
+    * Added support for import of BNGL documents.
+    * Added a new microenvironment simulation type for running simulations of many cells interacting throught diffusion.
+    * Added support for Snappy compression of arrays during message passing and during SFile writing.
+    * Added support for execution on a single node using shared memory instead of MPI.
+    * Added many regression tests to ensure the code executes correctly.
+    * Many other performance enhancements and bugfixes.
+
 2016.02.12
 
     General
