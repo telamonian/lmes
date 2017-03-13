@@ -1,5 +1,7 @@
 
+#include <cmath>
 #include <list>
+
 #include <sbml/conversion/ConversionProperties.h>
 #include <sbml/math/FormulaFormatter.h>
 #include <sbml/SBMLDocument.h>
@@ -352,7 +354,7 @@ void SBMLImporterL3V1::importReactions()
     {
         lm::input::ReactionModel_Reaction* reaction = reactionModel.add_reaction();
         reaction->set_type((*T)[utuple(j)]);
-        for (int k=0; k<10 && !isnan((*K)[utuple(j,k)]); k++)
+        for (int k=0; k<10 && !std::isnan((*K)[utuple(j,k)]); k++)
             reaction->add_rate_constant((*K)[utuple(j,k)]);
     }
 }
@@ -506,7 +508,7 @@ bool SBMLImporterL3V1::createPropensityFunctionEntry(int reactionIndex, ASTNode_
         if (formula->getType() == AST_INTEGER)
         {
             double value = convertPropensityConstantUnits(propensityFormula->getName(), (double)formula->getInteger(), propensityFunction.getConstantUnits(parameterIndex));
-            if (isnan((*K)[index]))
+            if (std::isnan((*K)[index]))
             {
                 (*K)[index] = value;
                 if (verbose) Print::printf(Print::INFO, "    Added parameter for reaction %d parameter %d: %e", reactionIndex, parameterIndex, (*K)[utuple(reactionIndex,parameterIndex)]);
@@ -525,7 +527,7 @@ bool SBMLImporterL3V1::createPropensityFunctionEntry(int reactionIndex, ASTNode_
         else if (formula->getType() == AST_REAL || formula->getType() == AST_REAL_E)
         {
             double value = convertPropensityConstantUnits(propensityFormula->getName(), formula->getReal(), propensityFunction.getConstantUnits(parameterIndex));
-            if (isnan((*K)[index]))
+            if (std::isnan((*K)[index]))
             {
                 (*K)[index] = value;
                 if (verbose) Print::printf(Print::INFO, "    Added parameter for reaction %d parameter %d: %e", reactionIndex, parameterIndex, (*K)[utuple(reactionIndex,parameterIndex)]);
