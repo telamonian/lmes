@@ -4,8 +4,11 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 set(lm_utils_libs  ${PROTOBUF_LIBRARIES}
                   ${HDF5_LIBRARIES}
                   ${HDF5_HL_LIBRARIES}
-                  ${ZLIB_LIBRARIES}
-                  ${MPI_C_LIBRARIES})
+                  ${ZLIB_LIBRARIES})
+
+IF(BUILD_WITH_MPI)
+  target_link_libraries(lmes ${MPI_C_LIBRARIES})
+ENDIF(BUILD_WITH_MPI)
 
 IF(BUILD_WITH_SNAPPY)
   set(lm_utils_libs ${lm_utils_libs} ${snappy_LIBRARIES})
