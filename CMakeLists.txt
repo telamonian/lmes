@@ -38,14 +38,14 @@ endif(CMAKE_BUILD_TYPE_UPPER)
 if(APPLE)
     set(CMAKE_MACOSX_RPATH ON)
     set(CMAKE_SKIP_BUILD_RPATH FALSE)
-    set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
     set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
     list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
     if("${isSystemDir}" STREQUAL "-1")
         set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
     endif()
 endif()
+set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # Lattice Microbes standard architecture flag
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "Intel")
@@ -128,7 +128,14 @@ if(libsbml_FOUND)
 endif(libsbml_FOUND)
 
 find_package(protobuf 2.6.0 REQUIRED)
+message(STATUS "protobuf headers: ${PROTOBUF_INCLUDE_DIRS}")
+
+# HDF5 finder isn't strict enough, make sure an error is raised if HDF5 is actually not found
 find_package(HDF5 COMPONENTS C HL REQUIRED)
+if("${HDF5_VERSION}" STREQUAL "")
+    message(FATAL_ERROR "HDF5 library not found, stopping. find_package(HDF5 REQUIRED) passed, but HDF5_VERSION was not set")
+endif("${HDF5_VERSION}" STREQUAL "")
+
 find_package(ZLIB REQUIRED)
 #find_package(Boost)
 
@@ -138,7 +145,7 @@ if(BUILD_WITH_CUDA)
     add_definitions(-DOPT_CUDA)
 endif(BUILD_WITH_CUDA)
 
-# for compatibility with HDF5 libraries older than version 1.8.13
+# for compatibility with HDF5 libraries older than version 1.8.13. `if` raises a cryptic error if HDF5_VERSION is (for whatever reason) undefined
 if(${HDF5_VERSION} VERSION_LESS 1.8.13)
     add_definitions(-DOLD_HDFREE)
 endif(${HDF5_VERSION} VERSION_LESS 1.8.13)
