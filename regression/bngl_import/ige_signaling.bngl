@@ -46,6 +46,7 @@ begin species
     Lyn(U,SH2)         Lyn_tot
     Syk(tSH2,l~Y,a~Y)  Syk_tot
     Rec(a,b~Y,g~Y)     Rec_tot
+    Rec(a!1,b~Y,g~Y).Lig(l!1,l) 0
 end species
 
 begin observables
