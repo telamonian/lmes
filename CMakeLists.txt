@@ -44,6 +44,7 @@ if(APPLE)
         set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
     endif()
 endif()
+set(CMAKE_SKIP_RPATH FALSE)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
@@ -55,8 +56,8 @@ else(${CMAKE_CXX_COMPILER_ID} MATCHES "Intel")
 endif(${CMAKE_CXX_COMPILER_ID} MATCHES "Intel")
 
 # Lattice Microbes standard compiler flags
-set(DEFAULT_FLAGS_OPTIMIZED "-m64 -O3 -DNDEBUG -fPIC -Wall -fmessage-length=0")
-set(DEFAULT_FLAGS_DEBUG "-m64 -g -fPIC -Wall -fmessage-length=0")
+set(DEFAULT_FLAGS_OPTIMIZED "-m64 -O3 -DNDEBUG -fPIC -Wall -fmessage-length=0")    #  #-D_GLIBCXX_USE_CXX11_ABI=0")
+set(DEFAULT_FLAGS_DEBUG "-m64 -g -fPIC -Wall -fmessage-length=0")    #  #-D_GLIBCXX_USE_CXX11_ABI=0")
 
 # Set architecture flag, used in c and c++ flags.
 # Will be replaced by the CUSTOM_ARCH_FLAG variable from CMakeConfig.txt if set

@@ -52,9 +52,18 @@ message Tiling {
         VORONOI = 1;
     }
 
-    optional string name                    = 10;
     required uint32 type                    = 1;
     required uint32 id                      = 2;
+
+    /*
+     * - totally optional annotations
+     *     - name: name for the whole tiling
+     *     - order_parameter_names: order parameter names. one per order_parameter_id
+     *     - edges_names: names for the individual edges. should be as many as the sum of edges_dims
+     */
+    optional string name                    = 10;
+    repeated string order_parameter_names   = 11;
+    repeated string edges_names             = 12;
 
     /*
      * - multi-order parameter tilings (ie an n-dimensional tiling) can be specified in the following way
@@ -67,10 +76,7 @@ message Tiling {
      */
     repeated uint32 order_parameter_ids     = 3 [packed=true];
     repeated double edges                   = 4 [packed=true];
-    repeated string edge_names              = 11;
-
-    optional uint64 rank					= 100;
-    repeated uint64 edge_dims				= 101 [packed=true];
+    repeated uint64 edges_dims				= 101 [packed=true];
 
     /*
      * - In general, sort_orders and reversed will be determined dynamically by the simulations that need them

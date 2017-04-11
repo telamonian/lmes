@@ -103,4 +103,7 @@ function(setTestCompileFlags)
 
     # add the explicit AVX support flag
     set(CMAKE_REQUIRED_FLAGS "-mavx ${CMAKE_REQUIRED_FLAGS}" PARENT_SCOPE)
+
+    # add user specified test flags, if any
+    set(CMAKE_REQUIRED_FLAGS "${CUSTOM_TEST_FLAGS} ${CMAKE_REQUIRED_FLAGS}" PARENT_SCOPE)
 endfunction()

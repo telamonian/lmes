@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 # PYTHON_ARGCOMPLETE_OK
 
-from lma.regression.regression import FFluxRegressionParser
-from lma.regression.models.genetic_toggle_switch.gtsRegression import GTSRegression
+from lma.regression.models.genetic_toggle_switch.gtsRegression import FFluxGTSRegression
 
-class FFluxGTSRegression(GTSRegression):
-    helpMessage = 'script to test out a complete Forward Flux Lattice Microbes run with the Genetic Toggle Switch model'
-    parserType = FFluxRegressionParser
-
+class FFluxGTSRegressionLMES(FFluxGTSRegression):
+    """subclass that allows for easy overriding of various parameters at point of testing
+    """
     def _buildDefaultSimulationParameterDict(self):
         if self.parser['quick_test']:
             return {'batchSize': 1,
@@ -44,5 +42,5 @@ class FFluxGTSRegression(GTSRegression):
                     'writeLimitTracking': False,}
 
 if __name__=='__main__':
-    regression = FFluxGTSRegression()
+    regression = FFluxGTSRegressionLMES()
     regression.main()

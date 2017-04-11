@@ -71,7 +71,7 @@ public:
     const lm::input::Basin& currentBasin() const {return basins(current_basin_index());}
     TilingEnums::SortOrder calcSortOrder(bool reverseSort=false) const;
     TilingEnums::SortOrder getSortOrder() const;
-    uint64_t getEdgeDims(uint dimIndex) const {return tilingMsg->edge_dims(dimIndex);}
+    uint64_t getEdgeDims(uint dimIndex) const {return tilingMsg->edges_dims(dimIndex);}
     int getEdgesCount() const {return tilingMsg->edges_size();}
     double getEdgeFixBounds(int edgeIndex) const;
     int getLastEdgeIndex() const {return getEdgesCount() - 1;}

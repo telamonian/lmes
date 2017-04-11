@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 # PYTHON_ARGCOMPLETE_OK
 
-from lma.regression.regression import FFluxRegressionParser
-from lma.regression.models.self_regulated_gene.srgRegression import SRGRegression, SRGRegressionParserMixin
+from lma.regression.models.self_regulated_gene.srgRegression import FFluxSRGRegression
 
-class FFluxSRGRegression(SRGRegression):
-    helpMessage = 'script to test out a complete Forward Flux Lattice Microbes run with the Self Regulated Gene model'
-    # dynamically create the parser type from the normal fflux simulation parser and the self regulated gene parser mixin
-    parserType = type('FFluxSRGRegressionParser', (SRGRegressionParserMixin, FFluxRegressionParser), {})
-
+class FFluxSRGRegressionLMES(FFluxSRGRegression):
+    """subclass that allows for easy overriding of various parameters at point of testing
+    """
     def _buildDefaultSimulationParameterDict(self):
         if self.parser['quick_test']:
             return {'batchSize': 1,
@@ -43,5 +40,5 @@ class FFluxSRGRegression(SRGRegression):
                     'writeLimitTracking': False,}
 
 if __name__=='__main__':
-    regression = FFluxSRGRegression()
+    regression = FFluxSRGRegressionLMES()
     regression.main()

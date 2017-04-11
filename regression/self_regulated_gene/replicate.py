@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 # PYTHON_ARGCOMPLETE_OK
 
-from lma.regression.regression import ReplicateRegressionParser
-from lma.regression.models.self_regulated_gene.srgRegression import SRGRegression, SRGRegressionParserMixin
+from lma.regression.models.self_regulated_gene.srgRegression import ReplicateSRGRegression
 
-class ReplicateSRGRegression(SRGRegression):
-    helpMessage = 'script to test out a complete Replicate Lattice Microbes run with the Self Regulated Gene model'
-    # dynamically create the parser type from the normal replicate simulation parser and the self regulated gene parser mixin
-    parserType = type('ReplicateSRGRegressionParser', (SRGRegressionParserMixin, ReplicateRegressionParser), {})
-    
+class ReplicateSRGRegressionLMES(ReplicateSRGRegression):
+    """subclass that allows for easy overriding of various parameters at point of testing
+    """
     def _buildDefaultSimulationParameterDict(self):
         if self.parser['quick_test']:
             return {'maxSteps': 1e10,
@@ -26,5 +23,5 @@ class ReplicateSRGRegression(SRGRegression):
                     }
 
 if __name__=='__main__':
-    regression = ReplicateSRGRegression()
+    regression = ReplicateSRGRegressionLMES()
     regression.main()
