@@ -121,6 +121,81 @@ inline unsigned int log2(unsigned long long x)
 //}
 
 /*
+ * - classs that implements an iterative, numerically stable algorithm for calculating sample variance of a stream of samples, one at a time
+ *     - has the advantage of not needing to keep every sample value in memory
+ * - used as:
+ *     StreamingVariance sv;
+ *
+ *     sv.Push(17.0);
+ *     sv.Push(19.0);
+ *     sv.Push(24.0);
+ *
+ *     double variance = sv.var();
+ *
+ * - modified from https://www.johndcook.com/blog/standard_deviation/
+ *     - lifted from from AOCP, Donal Knuth. Vol 2, page 232, 3rd edition
+ */
+class StreamingVariance
+{
+public:
+    StreamingVariance() : _count(0) {}
+
+    void clear()
+    {
+        _count = 0;
+    }
+
+    void push(double x)
+    {
+        // update _count
+        _count++;
+
+        // See Knuth TAOCP vol 2, 3rd edition, page 232 for complete description of algorithm
+        if (_count == 1)
+        {
+            _mean = x;
+            _s = 0.0;
+        }
+        else
+        {
+            // store the old value of _mean, since we'll need it for updating _s
+            _oldMean = _mean;
+
+            // update _mean
+            _mean = _oldMean + (x - _oldMean)/_count;
+
+            // update _s
+            _s = _s + (x - _oldMean)*(x - _mean);
+        }
+    }
+
+    int count() const
+    {
+        return _count;
+    }
+
+    double mean() const
+    {
+        return (_count > 0) ? _mean : 0.0;
+    }
+
+    double var() const
+    {
+        return ( (_count > 1) ? _s/(_count - 1) : 0.0 );
+    }
+
+    double stddev() const
+    {
+        return sqrt( var() );
+    }
+
+private:
+    int _count;
+    double _oldMean, _mean, _s;
+};
+
+
+/*
  * binary operations
  */
 template <typename IntType>

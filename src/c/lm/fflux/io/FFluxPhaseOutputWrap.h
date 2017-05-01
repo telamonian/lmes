@@ -246,8 +246,10 @@ public:
             // load points from forward flux events into successful endpoints
             for (int i=0;i<rows;i++)
             {
+                // get the endpoint key from the final species counts of the trajectory
                 pointKey.assign(speciesCountDataForwardFlux + i*columns, speciesCountDataForwardFlux + (i + 1)*columns);
                 EndPointMsg* endPointMsg = successfulEndPointMap[pointKey];
+                // increment the counter of observations of this endpoint
                 endPointMsg->set_count(endPointMsg->count() + 1);
                 endPointMsg->add_times(timeDataForwardFlux[i]);
 

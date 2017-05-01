@@ -439,6 +439,12 @@ prod(const std::vector<T>& lhs)
     return std::accumulate(lhs.begin(), lhs.end(), static_cast<T>(1), std::multiplies<T>());
 };
 
+template <typename T>
+inline typename EnableIf<IsNumeric<T>::value, T>::type
+sum(const std::vector<T>& lhs)
+{
+    return std::accumulate(lhs.begin(), lhs.end(), static_cast<T>(0), std::plus<T>());
+};
 
 /*
  * - This section contains functions that are more flexible versions of the vector operators/functions above
