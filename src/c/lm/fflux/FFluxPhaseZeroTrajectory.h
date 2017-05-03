@@ -80,6 +80,7 @@ public:
         limitTrackingsWrap.setWrappedField(trajectoryState.limit_tracking_list().limit_trackings());
 
         // set wrappers on the ndarrays with the limit-triggering times
+        timeWrapForwardFlux.setWrappedMsg(limitTrackingsWrap.Get(0).times());
         timeWrapBackwardFlux.setWrappedMsg(limitTrackingsWrap.Get(1).times());
         timeWrapOtherBasinEntry.setWrappedMsg(limitTrackingsWrap.Get(2).times());
 
@@ -190,9 +191,12 @@ public:
     // the total quantity of time the trajectory has spent in basins other than the one it started in
     double timeInOtherBasins;
 
+    // streaming variance of the waiting time in between interface 0 forward crossing events
+    StreamingVariance waitingTimeSV;
+
 protected:
     lm::protowrap::Repeated<lm::io::LimitTracking> limitTrackingsWrap;
-    lm::protowrap::NDArray<double> timeWrapBackwardFlux, timeWrapOtherBasinEntry;
+    lm::protowrap::NDArray<double> timeWrapForwardFlux, timeWrapBackwardFlux, timeWrapOtherBasinEntry;
 };
 
 }

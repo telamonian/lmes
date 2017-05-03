@@ -101,9 +101,6 @@ function(setTestCompileFlags)
         message(WARNING "No AVX testing support for specified build type: ${CMAKE_BUILD_TYPE}. Test results may be incorrect.")
     endif(NOT CMAKE_BUILD_TYPE_LOWER)
 
-    # add the explicit AVX support flag
-    set(CMAKE_REQUIRED_FLAGS "-mavx ${CMAKE_REQUIRED_FLAGS}" PARENT_SCOPE)
-
-    # add user specified test flags, if any
-    set(CMAKE_REQUIRED_FLAGS "${CUSTOM_TEST_FLAGS} ${CMAKE_REQUIRED_FLAGS}" PARENT_SCOPE)
+    # add the explicit AVX support flag and any user specified test flags
+    set(CMAKE_REQUIRED_FLAGS "${CUSTOM_TEST_FLAGS} -mavx ${CMAKE_REQUIRED_FLAGS}" PARENT_SCOPE)
 endfunction()

@@ -102,6 +102,9 @@ class FFluxStageOutputSummaryWrap : public lm::protowrap::Msg<FFluxStageOutputSu
         // calculate the costs
         std::vector<double> newCosts = (successfulTrajectoryTotalTimes + failedTrajectoryTotalTimes) / (successfulTrajectoryCounts + failedTrajectoryCounts);
 
+        // (re)calculate the phase zero cost without the time spent outside of the initial basin. This method slightly underestimates the cost, but produces consistent results (since trajectories sometimes will and sometimes won't leave the starting basin during phase 0).
+        newCosts[0] = (successfulTrajectoryTotalTimes[0] - failedTrajectoryTotalTimes[0]) / successfulTrajectoryCounts[0];
+
         // set the costs
         mutable_costs()->serializeFrom(newCosts);
     }

@@ -30,8 +30,8 @@ message NDArray {
     }
 
     enum ByteOrder {
-        LITTLE_ENDIAN         = 0;
-        BIG_ENDIAN            = 1;
+        LITTLE_ENDIAN_ORDER   = 0;
+        BIG_ENDIAN_ORDER      = 1;
     }
     
     enum DataType {
@@ -56,9 +56,9 @@ message NDArray {
     }
         
     optional ArrayOrder array_order                 = 1 [default = ROW_MAJOR];
-    optional ByteOrder byte_order                   = 2 [default = LITTLE_ENDIAN];
+    optional ByteOrder byte_order                   = 2 [default = LITTLE_ENDIAN_ORDER];
     required DataType data_type                     = 3;
-    repeated int32 shape                            = 4;
+    repeated uint32 shape                           = 4;
     required bytes data                             = 5;
     optional bool compressed_deflate                = 6 [default = false];
     optional bool compressed_snappy                 = 7 [default = false];

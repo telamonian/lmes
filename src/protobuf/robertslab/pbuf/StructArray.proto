@@ -26,7 +26,7 @@ import "robertslab/pbuf/NDArray.proto";
 
 message StructArray {
     message Dtype {
-        optional robertslab.pbuf.NDArray.ByteOrder byte_order = 1 [default = LITTLE_ENDIAN];
+        optional robertslab.pbuf.NDArray.ByteOrder byte_order = 1 [default = LITTLE_ENDIAN_ORDER];
         optional robertslab.pbuf.NDArray.DataType data_type   = 2;
         optional string name                                  = 3;
         repeated uint64 shape                                 = 4;

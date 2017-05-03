@@ -44,6 +44,14 @@
 #ifndef TYPES_H_
 #define TYPES_H_
 
+// Some !#@*@(& macros interfere with the definition of the BIG_ENDIAN and LITTLE_ENDIAN ByteOrder enums in NDArray.pb.h, so fix that
+//#ifdef BIG_ENDIAN
+//#undef BIG_ENDIAN
+//#endif
+//#ifdef LITTLE_ENDIAN
+//#undef LITTLE_ENDIAN
+//#endif
+
 #include <cstring>
 #include <list>
 #include <map>
