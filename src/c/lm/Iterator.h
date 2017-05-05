@@ -50,16 +50,16 @@
 
 #include "lm/Types.h"
 
+//template <typename Iter>
+//Iter next(Iter iter)
+//{
+//    return ++iter;
+//}
+
 /*
  * - function to check if an iterator points to the last element in a container
  *     - modified from http://stackoverflow.com/a/3516224/425458
  */
-template <typename Iter>
-Iter next(Iter iter)
-{
-    return ++iter;
-}
-
 template <typename Iter, typename Cont>
 bool isLast(Iter iter, const Cont& cont)
 {
@@ -71,15 +71,14 @@ bool isLast(Iter iter, const Cont& cont)
     // otherwise, check if the next iterator value brings us to the container end
     else
     {
-        return (cont.end()==next(iter));
+        return (cont.end()==(++iter));
     }
 }
 
 /*
- * iterator traits specialized by tag (output, forward, etc). more generic than the STL version
+ * - iterator traits specialized by tag (output, forward, etc). more generic than the STL version
+ *     - OutputIteratorTraits modified from http://stackoverflow.com/a/29084919/425458
  */
-
-// OutputIteratorTraits modified from http://stackoverflow.com/a/29084919/425458
 template<class T>
 struct OutputIteratorTraits
 :std::iterator_traits<T> {};
