@@ -50,11 +50,11 @@
 
 #include "lm/Types.h"
 
-//template <typename Iter>
-//Iter next(Iter iter)
-//{
-//    return ++iter;
-//}
+template <typename Iter>
+Iter peek(Iter iter)
+{
+    return ++iter;
+}
 
 /*
  * - function to check if an iterator points to the last element in a container
@@ -71,7 +71,7 @@ bool isLast(Iter iter, const Cont& cont)
     // otherwise, check if the next iterator value brings us to the container end
     else
     {
-        return (cont.end()==(++iter));
+        return (cont.end()==peek(iter));
     }
 }
 

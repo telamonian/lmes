@@ -159,17 +159,17 @@ public:
         timeWrapForwardFlux.setWrappedMsg(limitTrackingsWrap.Get(0).times());
 
 
-//        timeWrapBackwardFlux.setWrappedMsg(limitTrackingsWrap.Get(1).times());
+//        timeWrapBasinEntry.setWrappedMsg(limitTrackingsWrap.Get(1).times());
 //        timeWrapBasinExit.setWrappedMsg(limitTrackingsWrap.Get(2).times());
 //
 //        double lastEventTime = workUnitStartTime;
 //        double notInInitialBasinTime = 0.0;
 //        if (not phaseZeroTrajectory->hInitialBasin)
 //        {
-//            double* timeDataBackwardFlux = timeWrapBackwardFlux.get_data();
+//            double* timeDataBackwardFlux = timeWrapBasinEntry.get_data();
 //            double* timeDataBasinExit = timeWrapBasinExit.get_data();
 //
-//            if (timeWrapBackwardFlux.size()==0)
+//            if (timeWrapBasinEntry.size()==0)
 //            {
 //                notInInitialBasinTime = workUnitEndTime - workUnitStartTime;
 //            }
@@ -187,11 +187,11 @@ public:
 //
 //                phaseZeroTrajectory->hInitialBasin = true;
 //
-//                if (timeWrapBackwardFlux.compressed_deflate()) delete[] timeDataBackwardFlux;
+//                if (timeWrapBasinEntry.compressed_deflate()) delete[] timeDataBackwardFlux;
 //
 //                int entryI = 0;
 //                int exitI = 0;
-//                while (entryI < timeWrapBackwardFlux.size())
+//                while (entryI < timeWrapBasinEntry.size())
 //                {
 //                    double lastEntryTime = entryI[entryI];
 //
@@ -214,7 +214,7 @@ public:
 //                notInInitialBasinTime = lastEventTime - ;
 //            }
 //
-//            if (timeWrapBackwardFlux.compressed_deflate()) delete[] timeDataBackwardFlux;
+//            if (timeWrapBasinEntry.compressed_deflate()) delete[] timeDataBackwardFlux;
 //            if (timeWrapBasinExit.compressed_deflate()) delete[] timeDataBasinExit;
 //        }
 //        else if (timeWrapBasinExit.size() > 0)
@@ -265,9 +265,10 @@ public:
             msgPtr->set_successful_trajectories_launched_count(msgPtr->successful_trajectories_launched_count() + rows);
         }
 
-        msgPtr->set_successful_trajectories_launched_total_time(msgPtr->successful_trajectories_launched_total_time() + (workUnitEndTime - workUnitStartTime));
         // correct workUnitEndTime for burn in and for time spent outside of the region of the starting basin (see Valeriani 2007, Dinner 2010)
-        msgPtr->set_failed_trajectories_launched_total_time(msgPtr->failed_trajectories_launched_total_time() + phaseZeroTrajectory->timeInOtherBasinsLast);
+        msgPtr->set_successful_trajectories_launched_total_time(phaseZeroTrajectory->waitingTimeSV.sum());   //msgPtr->successful_trajectories_launched_total_time() + (workUnitEndTime - workUnitStartTime));
+        // total uncorrected work unit time
+        msgPtr->set_failed_trajectories_launched_total_time(msgPtr->failed_trajectories_launched_total_time() + (workUnitEndTime - workUnitStartTime)); //msgPtr->failed_trajectories_launched_total_time() + phaseZeroTrajectory->timeInOtherBasinsLast);
         //msgPtr->set_failed_trajectories_launched_total_time(phaseZeroTrajectory->timeInOtherBasins);
     }
 
@@ -280,18 +281,18 @@ public:
 ////        timeWrapOtherBasinEntry.setWrappedMsg(limitTrackingsWrap.Get(2).times());
 //
 //        // If the trajectory ever passed into another basin, get the sum time of the intervals between entry into another basin and reentry into the starting basin
-//        if (timeWrapOtherBasinEntry.size() > 0)
+//        if (timeWrapBasinExit.size() > 0)
 //        {
 //            double *timeDataBackwardFlux, *timeDataBackwardFluxEnd, *timeDataOtherBasinEntry, *timeDataOtherBasinEntryEnd;
-//            timeDataOtherBasinEntry = timeWrapOtherBasinEntry.get_data(true);
-//            timeDataOtherBasinEntryEnd = timeDataOtherBasinEntry +  timeWrapOtherBasinEntry.size();
-//            timeDataBackwardFlux = timeWrapBackwardFlux.get_data(true);
-//            timeDataBackwardFluxEnd = timeDataBackwardFlux +  timeWrapBackwardFlux.size();
+//            timeDataOtherBasinEntry = timeWrapBasinExit.get_data(true);
+//            timeDataOtherBasinEntryEnd = timeDataOtherBasinEntry +  timeWrapBasinExit.size();
+//            timeDataBackwardFlux = timeWrapBasinEntry.get_data(true);
+//            timeDataBackwardFluxEnd = timeDataBackwardFlux +  timeWrapBasinEntry.size();
 //
 //            timeCorrection = sumTimeIntervals(timeDataOtherBasinEntry, timeDataOtherBasinEntryEnd, timeDataBackwardFlux, timeDataBackwardFluxEnd, startTime, endTime);
 //
-//            if (timeWrapBackwardFlux.compressed_deflate()) delete[] timeDataBackwardFlux;
-//            if (timeWrapOtherBasinEntry.compressed_deflate()) delete[] timeDataOtherBasinEntry;
+//            if (timeWrapBasinEntry.compressed_deflate()) delete[] timeDataBackwardFlux;
+//            if (timeWrapBasinExit.compressed_deflate()) delete[] timeDataOtherBasinEntry;
 //        }
 //
 //        return timeCorrection;

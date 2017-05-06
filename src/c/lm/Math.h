@@ -126,9 +126,9 @@ inline unsigned int log2(unsigned long long x)
  * - used as:
  *     StreamingVariance sv;
  *
- *     sv.Push(17.0);
- *     sv.Push(19.0);
- *     sv.Push(24.0);
+ *     sv.push_back(17.0);
+ *     sv.push_back(19.0);
+ *     sv.push_back(24.0);
  *
  *     double variance = sv.var();
  *
@@ -138,17 +138,19 @@ inline unsigned int log2(unsigned long long x)
 class StreamingVariance
 {
 public:
-    StreamingVariance() : _count(0) {}
+    StreamingVariance() : _count(0),_sum(0) {}
 
     void clear()
     {
         _count = 0;
+        _sum = 0;
     }
 
-    void push(double x)
+    void push_back(double x)
     {
-        // update _count
+        // update _count and _sum
         _count++;
+        _sum += x;
 
         // See Knuth TAOCP vol 2, 3rd edition, page 232 for complete description of algorithm
         if (_count == 1)
@@ -179,6 +181,11 @@ public:
         return (_count > 0) ? _mean : 0.0;
     }
 
+    double sum() const
+    {
+        return _sum;
+    }
+
     double var() const
     {
         return ( (_count > 1) ? _s/(_count - 1) : 0.0 );
@@ -191,7 +198,7 @@ public:
 
 private:
     int _count;
-    double _oldMean, _mean, _s;
+    double _oldMean, _mean, _s, _sum;
 };
 
 
