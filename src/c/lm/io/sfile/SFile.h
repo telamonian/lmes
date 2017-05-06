@@ -75,6 +75,93 @@ public:
     virtual SFileRecord readNextSFileRecord();
     virtual void writeSFileRecord(SFileRecord record);
     virtual void writeMessage(const google::protobuf::Message& message)=0;
+
+public:
+    template <typename InputMsg>
+    bool mergeSFileRecord(lm::io::sfile::SFileRecord& r, const string& recordType, InputMsg& inputMsgAttr)
+    {
+        // See if this is an input record.
+        if (r.type == recordType)
+        {
+            // Allocate a buffer.
+            char* buffer = new char[r.dataSize];
+
+            // Read the record.
+            readFully(buffer, r.dataSize);
+
+            std::string buffString(buffer, buffer+r.dataSize);
+
+            // Parse the record.
+            InputMsg newInput;
+            if (!newInput.ParsePartialFromArray(buffer, r.dataSize)) THROW_EXCEPTION(RuntimeException, "unable to deserialize record of type %s", recordType.c_str());
+
+            // Merge this record into the global input record.
+            inputMsgAttr.MergeFrom(newInput);
+
+            // Release the buffer.
+            delete[] buffer;
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    template <typename MsgRepeated>
+    void readAll(MsgRepeated* msgRepeated)
+    {
+        bool recordParsed;
+        // Read all of the records.
+        while (isEof())
+        {
+            // Read the next record.
+            recordParsed = false;
+            lm::io::sfile::SFileRecord r = readNextSFileRecord();
+
+            MsgRepeated::Element* msg(msgRepeated->Add());
+
+            // See if this is an SimulationInput record.
+            recordParsed |= readNextMessage(msg, msg->GetDescriptor()->full_name());
+
+            if (not recordParsed)
+            {
+                // Skip the record.
+                skip(r.dataSize);
+            }
+        }
+    }
+
+    template <typename Msg>
+    bool readNextMessage(Msg* msg, const string& recordType)
+    {
+        // get the next record
+        SFileRecord r = readNextSFileRecord();
+
+        // See if this is an input record.
+        if (r.type == recordType)
+        {
+            // Allocate a buffer.
+            char* buffer = new char[r.dataSize];
+
+            // Read the record.
+            readFully(buffer, r.dataSize);
+
+            std::string buffString(buffer, buffer+r.dataSize);
+
+            // Parse the record.
+            if (!msg->ParsePartialFromArray(buffer, r.dataSize)) THROW_EXCEPTION(RuntimeException, "unable to deserialize record of type %s", recordType.c_str());
+
+            // Release the buffer.
+            delete[] buffer;
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
 };
 
 }
