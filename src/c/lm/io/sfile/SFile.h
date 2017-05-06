@@ -77,9 +77,19 @@ public:
     virtual void writeMessage(const google::protobuf::Message& message)=0;
 
 public:
-    template <typename InputMsg>
-    bool mergeSFileRecord(lm::io::sfile::SFileRecord& r, const string& recordType, InputMsg& inputMsgAttr)
+    template <typename Msg>
+    bool mergeNextMessage(Msg* msg)
     {
+        std::string recordTypeStr("protobuf:" + Msg::default_instance().GetDescriptor()->full_name());
+        return mergeNextMessage(msg, recordTypeStr);
+    }
+
+    template <typename Msg>
+    bool mergeNextMessage(Msg* msg, const string& recordType)
+    {
+        // get the next record
+        SFileRecord r = readNextSFileRecord();
+
         // See if this is an input record.
         if (r.type == recordType)
         {
@@ -92,11 +102,11 @@ public:
             std::string buffString(buffer, buffer+r.dataSize);
 
             // Parse the record.
-            InputMsg newInput;
-            if (!newInput.ParsePartialFromArray(buffer, r.dataSize)) THROW_EXCEPTION(RuntimeException, "unable to deserialize record of type %s", recordType.c_str());
+            Msg newMsg;
+            if (!newMsg.ParsePartialFromArray(buffer, r.dataSize)) THROW_EXCEPTION(RuntimeException, "unable to deserialize record of type %s", recordType.c_str());
 
             // Merge this record into the global input record.
-            inputMsgAttr.MergeFrom(newInput);
+            msg->MergeFrom(newMsg);
 
             // Release the buffer.
             delete[] buffer;
@@ -109,27 +119,43 @@ public:
     }
 
     template <typename MsgRepeated>
-    void readAll(MsgRepeated* msgRepeated)
+    void readAllMessages(MsgRepeated* msgRepeated)
     {
-        bool recordParsed;
+        // concrete example of the generic statement attempted bellow
+        //google::protobuf::RepeatedPtrField<lm::input::SimulationInput>::value_type::default_instance().GetDescriptor()->full_name();
+        typename MsgRepeated::value_type* msg(NULL);
+        std::string recordTypeStr("protobuf:" + MsgRepeated::Element::default_instance().GetDescriptor()->full_name());
+
         // Read all of the records.
         while (isEof())
         {
+            // add a new message to the repeated, if needed
+            if (msg==NULL)
+            {
+                msg = (msgRepeated->Add());
+            }
+
             // Read the next record.
-            recordParsed = false;
             lm::io::sfile::SFileRecord r = readNextSFileRecord();
 
-            MsgRepeated::Element* msg(msgRepeated->Add());
-
-            // See if this is an SimulationInput record.
-            recordParsed |= readNextMessage(msg, msg->GetDescriptor()->full_name());
-
-            if (not recordParsed)
+            if (not readNextMessage(msg, recordTypeStr))
             {
-                // Skip the record.
+                // If the record is of the wrong type, skip it
                 skip(r.dataSize);
             }
+            else
+            {
+                // If the record was successfully parsed, NULL the msg pointer
+                msg = NULL;
+            }
         }
+    }
+
+    template <typename Msg>
+    bool readNextMessage(Msg* msg)
+    {
+        std::string recordTypeStr("protobuf:" + Msg::default_instance().GetDescriptor()->full_name());
+        return readNextMessage(msg, recordTypeStr);
     }
 
     template <typename Msg>
