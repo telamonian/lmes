@@ -7,8 +7,10 @@ include_directories(${gmock_SOURCE_DIR}/include ${gmock_SOURCE_DIR}
 #################
 #TARGET: lmes_gtest
 #################
-#get the source files
+# get the source files
 file(GLOB_RECURSE lmes_gtest_c_source lm/*.cpp lm/*.cc lm/*.h)
+# get the test data files
+file(GLOB_RECURSE lmes_gtest_testdata ./*.sfile)
 
 # remove all files with certain prefixes
 file(GLOB_RECURSE to_remove off_* old_*)
@@ -16,6 +18,9 @@ if(NOT "${to_remove}" STREQUAL "")
     # REMOVE_ITEM causes problems if to_remove is empty, so guard against that
     list(REMOVE_ITEM lmes_gtest_c_source ${to_remove})
 endif(NOT "${to_remove}" STREQUAL "")
+
+# copy over the test data files
+file(COPY ${lmes_gtest_testdata} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 add_executable(lmes_gtest ${lmes_gtest_c_source})
 set_target_properties(gmock gmock_main gtest gtest_main lmes_gtest PROPERTIES EXCLUDE_FROM_ALL TRUE)
