@@ -52,7 +52,7 @@
 using std::string;
 using std::vector;
 
-const char* filenamesLiteralFFluxInputs[] = {"@TESTDATA_ROOT@/ffluxSimulationInput.sfile"};
+const char* filenamesLiteralFFluxInputs[] = {TESTDATA_ROOT "/ffluxSimulationInput.sfile"};
 const vector<string> filenamesFFluxInputs(filenamesLiteralFFluxInputs, filenamesLiteralFFluxInputs+1);
 
 const int speciesCountsLiteral[] = {0,1,2,3,4,5,6};

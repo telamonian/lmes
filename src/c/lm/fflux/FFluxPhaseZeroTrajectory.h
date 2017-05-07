@@ -41,6 +41,7 @@
 
 #include <algorithm>
 
+#include "lm/fflux/FFluxTrajectory.h"
 #include "lm/EnumHelper.h"
 #include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/input/Input.h"
@@ -60,36 +61,21 @@ enum EventKind {FLUX,
 // pair of (eventKind, eventTime)
 typedef std::pair<EventKind, double> Event;
 
-class FFluxPhaseZeroTrajectory : public lm::trajectory::Trajectory
+class FFluxPhaseZeroTrajectory : public lm::fflux::FFluxTrajectory
 {
 public:
-//    FFluxPhaseZeroTrajectory(const lm::input::Input& input, uint64_t phase, uint64_t id)
-//        :Trajectory(input, phase, id),hInitialBasin(true),timeInOtherBasinsLast(0.0),timeInOtherBasins(0.0),waitingTimeScratchpad(Event(BASIN_ENTRY,0),0)
-//    {
-//    }
-//
-//    template <typename InputIterator> FFluxPhaseZeroTrajectory(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd, double startTime, uint64_t phase, uint64_t id)
-//        :Trajectory(input, speciesStart, speciesEnd, startTime, phase, id),hInitialBasin(true),timeInOtherBasinsLast(0.0),timeInOtherBasins(0.0),waitingTimeScratchpad(Event(BASIN_ENTRY,0),0)
-//    {
-//    }
-//
-//    FFluxPhaseZeroTrajectory(const lm::io::TrajectoryState& initialState, uint64_t phase, uint64_t id)
-//        :Trajectory(initialState, phase, id),hInitialBasin(true),timeInOtherBasinsLast(0.0),timeInOtherBasins(0.0),waitingTimeScratchpad(Event(BASIN_ENTRY,0),0)
-//    {
-//    }
-
     FFluxPhaseZeroTrajectory(const lm::input::Input& input, uint64_t phase, uint64_t id)
-    :Trajectory(input, phase, id),initialWaitingTime(0),previousEvent(BASIN_ENTRY,0)
+    :FFluxTrajectory(input, phase, id),initialWaitingTime(0),previousEvent(BASIN_ENTRY,0)
     {
     }
 
     template <typename InputIterator> FFluxPhaseZeroTrajectory(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd, double startTime, uint64_t phase, uint64_t id)
-    :Trajectory(input, speciesStart, speciesEnd, startTime, phase, id),initialWaitingTime(0),previousEvent(BASIN_ENTRY,0)
+    :FFluxTrajectory(input, speciesStart, speciesEnd, startTime, phase, id),initialWaitingTime(0),previousEvent(BASIN_ENTRY,0)
     {
     }
 
     FFluxPhaseZeroTrajectory(const lm::io::TrajectoryState& initialState, uint64_t phase, uint64_t id)
-    :Trajectory(initialState, phase, id),initialWaitingTime(0),previousEvent(BASIN_ENTRY,0)
+    :FFluxTrajectory(initialState, phase, id),initialWaitingTime(0),previousEvent(BASIN_ENTRY,0)
     {
     }
 
@@ -97,7 +83,7 @@ public:
     {
     }
 
-    void accumulateTimeInOtherBasins(const lm::io::TrajectoryState& trajectoryState)
+    virtual void processState(const lm::io::TrajectoryState& trajectoryState)
     {
         // set wrapper on the limit_trackings field
         limitTrackingsWrap.setWrappedField(trajectoryState.limit_tracking_list().limit_trackings());
@@ -118,7 +104,7 @@ public:
             exitTimes = timeWrapBasinExit.get_data(true);
             exitTimesEnd = exitTimes +  timeWrapBasinExit.size();
 
-            initialWaitingTime = getWaitingTimes(initialWaitingTime, &previousEvent, &waitingTimeSV, fluxTimes, fluxTimesEnd, entryTimes, entryTimesEnd, exitTimes, exitTimesEnd);
+            initialWaitingTime = getWaitingTimes(initialWaitingTime, &previousEvent, &phaseWeightSV, fluxTimes, fluxTimesEnd, entryTimes, entryTimesEnd, exitTimes, exitTimesEnd);
 
             if (timeWrapBasinEntry.compressed_deflate()) delete[] entryTimes;
             if (timeWrapBasinEntry.compressed_deflate()) delete[] entryTimes;
@@ -229,19 +215,7 @@ public:
                 return Event(END, -1.0);
             }
             break;
-//            if (*entryTimes != entryTimesEnd)
-//            {
-//
-//            }
-//            Event retEv = returnEvent(BASIN_ENTRY, entryTimes, entryTimesEnd);
-//
-//            // multiple BASIN_EXIT events may have occured before the BASIN_ENTRY, increment exitTimes as appropriate
-//            std::find_if(*exitTimes, exitTimesEnd, greaterThanCurry.setLimitVal());
-//
-//            return retEv;
-//            break;
         case END:
-//            throw ConsistencyException("findNextEvent should never be called with END as the previousEventKind, so something has gone wrong.");
             // for now, this will just return the same END Event
             return Event(END, -1.0);
             break;
@@ -263,132 +237,12 @@ public:
         }
     }
 
-//    void old_accumulateTimeInOtherBasins(const lm::io::TrajectoryState& trajectoryState)
-//    {
-//        // set wrapper on the limit_trackings field
-//        limitTrackingsWrap.setWrappedField(trajectoryState.limit_tracking_list().limit_trackings());
-//
-//        // set wrappers on the ndarrays with the limit-triggering times
-//        timeWrapForwardFlux.setWrappedMsg(limitTrackingsWrap.Get(0).times());
-//        timeWrapBasinEntry.setWrappedMsg(limitTrackingsWrap.Get(1).times());
-//        timeWrapBasinExit.setWrappedMsg(limitTrackingsWrap.Get(2).times());
-//
-//        timeInOtherBasinsLast = 0.0;
-//        // If the trajectory was previously in a non-initial basin, or if it passed into a non-initial basin during this work unit, accumulate the time the trajectory spent in a non-initial basin during its most recent work unit
-//        if ((not hInitialBasin) or timeWrapBasinExit.size() > 0)
-//        {
-//            double startTime = getSimTime();
-//            double endTime = trajectoryState.cme_state().species_counts().time(trajectoryState.cme_state().species_counts().time_size() - 1);
-//
-//            double *timeDataBackwardFlux, *timeDataBackwardFluxEnd, *timeDataOtherBasinEntry, *timeDataOtherBasinEntryEnd;
-//            timeDataOtherBasinEntry = timeWrapBasinExit.get_data(true);
-//            timeDataOtherBasinEntryEnd = timeDataOtherBasinEntry +  timeWrapBasinExit.size();
-//            timeDataBackwardFlux = timeWrapBasinEntry.get_data(true);
-//            timeDataBackwardFluxEnd = timeDataBackwardFlux +  timeWrapBasinEntry.size();
-//
-//            timeInOtherBasinsLast = sumTimeIntervals(timeDataOtherBasinEntry, timeDataOtherBasinEntryEnd, timeDataBackwardFlux, timeDataBackwardFluxEnd, startTime, endTime, &hInitialBasin);
-//            timeInOtherBasins += timeInOtherBasinsLast;
-//
-//            if (timeWrapBasinEntry.compressed_deflate()) delete[] timeDataBackwardFlux;
-//            if (timeWrapBasinExit.compressed_deflate()) delete[] timeDataOtherBasinEntry;
-//        }
-//    }
-//
-//    // TODO: handle startTime and endTime in a more robust way and/or checked way
-//    static double sumTimeIntervals(double* entryTimes, double* entryTimesEnd, double* exitTimes, double* exitTimesEnd, double startTime, double endTime, bool* notInInterval=NULL)
-//    {
-////        bool inverted = false;
-//        double sumTime = 0.0;
-//        checkLimitCurry<TrajLimEnums::MAX, false, double> greaterThanCurry(0.0);
-//
-//        // special handling if notInInterval is set to false at the start of the function call (implying that an interval had already started at startTime)
-//        if (notInInterval!=NULL and (not *notInInterval))
-//        {
-////            inverted = true;
-////            std::swap(entryTimes, entryTimes);
-////            std::swap(entryTimesEnd, exitTimesEnd);
-//
-//            // find the first interval exit time after the start time
-//            exitTimes = std::find_if(exitTimes, exitTimesEnd, greaterThanCurry.setLimitVal(startTime));
-//
-//            // if we didn't find an appropriate exit time, just return the length of the entire interval
-//            if (exitTimes==exitTimesEnd)
-//            {
-//                return endTime - startTime;
-//            }
-//            // otherwise, add the difference between the first exitTime and the startTime
-//            else
-//            {
-//                sumTime += (*exitTimes - startTime);
-//
-//                // set that we are now in an interval
-//                if (notInInterval!=NULL) *notInInterval = true;
-//
-//                // change the start time to coincide with the first exitTime
-//                startTime = *exitTimes;
-//            }
-//        }
-//
-//        // find the first interval entry time after the start time
-//        entryTimes = std::find_if(entryTimes, entryTimesEnd, greaterThanCurry.setLimitVal(startTime));
-//
-//        // if we didn't find an appropriate entry time, return now
-//        if (entryTimes==entryTimesEnd) return sumTime;
-//
-//        while (true)
-//        {
-//            // try to find the next interval exit time
-//            exitTimes = std::find_if(exitTimes, exitTimesEnd, greaterThanCurry.setLimitVal(*entryTimes));
-//            if (exitTimes==exitTimesEnd)               // If have an entryTime with no exitTime, add the difference between the endtime and the last entryTime, and then break
-//            {
-//                sumTime += (endTime - *entryTimes);
-//                if (notInInterval!=NULL) *notInInterval = false;
-//                return sumTime;
-//            }
-//            else                                       // Otherwise, we have found the next exit time. Add the length of this interval to the sumTime
-//            {
-//                sumTime += (*exitTimes - *entryTimes);
-//            }
-//
-//            // try to find the next interval entry time
-//            entryTimes = std::find_if(entryTimes, entryTimesEnd, greaterThanCurry.setLimitVal(*exitTimes));
-//            if (entryTimes==entryTimesEnd)            // If we can't find another entryTime, there are no more intervals so break
-//            {
-//                if (notInInterval!=NULL) *notInInterval = true;
-//                return sumTime;
-//            }
-//        }
-//
-////        if (inverted)
-////        {
-////            if (notInInterval!=NULL) *notInInterval = !(*notInInterval);
-////            return (endTime - startTime) - sumTime;
-////        }
-////        else
-////        {
-////            return sumTime;
-////        }
-//    }
-
 public:
-//    // hInitialBasin==1 if the most recent basin the trajectory was in was the initial basin, hInitialBasin==0 otherwise (see Rien Ten Wolde, 2005)
-//    bool hInitialBasin;
-//
-//    // the quantity of time the trajectory has spent during its most recent work unit in basins other than the one it started in
-//    double timeInOtherBasinsLast;
-//
-//    // the total quantity of time the trajectory has spent in basins other than the one it started in
-//    double timeInOtherBasins;
-
     double initialWaitingTime;
     Event previousEvent;
 
-    // streaming variance of the waiting time in between interface 0 forward crossing events
-    StreamingVariance waitingTimeSV;
-
 protected:
-    lm::protowrap::Repeated<lm::io::LimitTracking> limitTrackingsWrap;
-    lm::protowrap::NDArray<double> timeWrapForwardFlux, timeWrapBasinEntry, timeWrapBasinExit;
+    lm::protowrap::NDArray<double> timeWrapBasinExit;
 };
 
 }

@@ -44,11 +44,14 @@
 #include <string>
 #include <vector>
 
+#include "lm/fflux/FFluxTrajectory.h"
+#include "lm/fflux/FFluxPhaseZeroTrajectory.h"
 #include "lm/fflux/input/FFluxInput.h"
 #include "lm/fflux/input/FFluxPhase.pb.h"
+#include "lm/fflux/io/FFluxPhaseOutputWrap.h"
 #include "lm/input/Input.h"
-#include "lm/io/FFluxOutput.pb.h"
 #include "lm/input/ReactionModel.pb.h"
+#include "lm/io/FFluxOutput.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/limit/LimitTrackingListWrap.h"
@@ -57,8 +60,6 @@
 #include "lm/message/Message.pb.h"
 #include "lm/message/WorkUnitOutput.pb.h"
 #include "lm/message/WorkUnitStatus.pb.h"
-#include "lm/fflux/FFluxPhaseZeroTrajectory.h"
-#include "lm/fflux/io/FFluxPhaseOutputWrap.h"
 #include "lm/rng/XORShift.h"
 #include "lm/tiling/Tilings.h"
 #include "lm/trajectory/Trajectory.h"
@@ -102,6 +103,10 @@ protected:
     template <typename InputIterator> lm::trajectory::Trajectory* initFFluxPhaseZeroTrajectory(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd, double startTime, uint64_t phase, uint64_t id=DEFAULT_TRAJECTORY_ID)
     {
         return initTrajectory(new lm::fflux::FFluxPhaseZeroTrajectory(input, speciesStart, speciesEnd, startTime, phase, resolveTrajectoryID(id)));
+    }
+    template <typename InputIterator> lm::trajectory::Trajectory* initFFluxTrajectory(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd, double startTime, uint64_t phase, uint64_t id=DEFAULT_TRAJECTORY_ID)
+    {
+        return initTrajectory(new lm::fflux::FFluxTrajectory(input, speciesStart, speciesEnd, startTime, phase, resolveTrajectoryID(id)));
     }
     virtual void initTrajectoriesCyclic(uint64_t trajectoriesToStart);
     virtual void initTrajectoriesUniformRandom(uint64_t trajectoriesToStart);

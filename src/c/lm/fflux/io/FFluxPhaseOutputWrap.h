@@ -158,70 +158,6 @@ public:
         speciesCountWrap.setWrappedMsg(limitTrackingsWrap.Get(0).species_counts());
         timeWrapForwardFlux.setWrappedMsg(limitTrackingsWrap.Get(0).times());
 
-
-//        timeWrapBasinEntry.setWrappedMsg(limitTrackingsWrap.Get(1).times());
-//        timeWrapBasinExit.setWrappedMsg(limitTrackingsWrap.Get(2).times());
-//
-//        double lastEventTime = workUnitStartTime;
-//        double notInInitialBasinTime = 0.0;
-//        if (not phaseZeroTrajectory->hInitialBasin)
-//        {
-//            double* timeDataBackwardFlux = timeWrapBasinEntry.get_data();
-//            double* timeDataBasinExit = timeWrapBasinExit.get_data();
-//
-//            if (timeWrapBasinEntry.size()==0)
-//            {
-//                notInInitialBasinTime = workUnitEndTime - workUnitStartTime;
-//            }
-//            else if (timeWrapBasinExit.size()==0 or (timeDataBackwardFlux[0] > timeDataBasinExit[timeWrapBasinExit.size() - 1]))
-//            {
-//                notInInitialBasinTime = timeDataBackwardFlux[0] - workUnitStartTime;
-//
-//                phaseZeroTrajectory->hInitialBasin = true;
-//            }
-//            else
-//            {
-//
-//
-//                notInInitialBasinTime = timeDataBackwardFlux[0] - workUnitStartTime;
-//
-//                phaseZeroTrajectory->hInitialBasin = true;
-//
-//                if (timeWrapBasinEntry.compressed_deflate()) delete[] timeDataBackwardFlux;
-//
-//                int entryI = 0;
-//                int exitI = 0;
-//                while (entryI < timeWrapBasinEntry.size())
-//                {
-//                    double lastEntryTime = entryI[entryI];
-//
-//                    nextEventI = bisect_left(events, exitEvent, lo=nextEventI)
-//
-//                    exitEvents = [exitEvent]
-//                    exitI += 1
-//                    prog += 1
-//                    while (exitI < len(otherBasinFlux)) and (otherBasinFlux[exitI] < events[nextEventI][0]):
-//                        exitEvents.append((otherBasinFlux[exitI], 'exit'))
-//
-//                        exitI += 1
-//                        prog += 1
-//
-//                    # insert a whole slice of exit events
-//                    events[nextEventI:nextEventI] = exitEvents
-//
-//
-//                }
-//                notInInitialBasinTime = lastEventTime - ;
-//            }
-//
-//            if (timeWrapBasinEntry.compressed_deflate()) delete[] timeDataBackwardFlux;
-//            if (timeWrapBasinExit.compressed_deflate()) delete[] timeDataBasinExit;
-//        }
-//        else if (timeWrapBasinExit.size() > 0)
-//        {
-//
-//        }
-
         double burnInTime = 0.0;
         // update the count of flux events only if
         if (speciesCountWrap.size() > 0)
@@ -266,75 +202,11 @@ public:
         }
 
         // correct workUnitEndTime for burn in and for time spent outside of the region of the starting basin (see Valeriani 2007, Dinner 2010)
-        msgPtr->set_successful_trajectories_launched_total_time(phaseZeroTrajectory->waitingTimeSV.sum());   //msgPtr->successful_trajectories_launched_total_time() + (workUnitEndTime - workUnitStartTime));
+        msgPtr->set_successful_trajectories_launched_total_time(phaseZeroTrajectory->phaseWeightSV.sum());   //msgPtr->successful_trajectories_launched_total_time() + (workUnitEndTime - workUnitStartTime));
         // total uncorrected work unit time
         msgPtr->set_failed_trajectories_launched_total_time(msgPtr->failed_trajectories_launched_total_time() + (workUnitEndTime - workUnitStartTime)); //msgPtr->failed_trajectories_launched_total_time() + phaseZeroTrajectory->timeInOtherBasinsLast);
         //msgPtr->set_failed_trajectories_launched_total_time(phaseZeroTrajectory->timeInOtherBasins);
     }
-
-//    // this function encapsulates part of addEndPointFromLimitTrackingsPhaseZero, and so relies on the consistency checks run at the begininng of that function
-//    double getOtherBasinTimeCorrection(const lm::io::TrajectoryState& trajectoryState, double startTime, double endTime)
-//    {
-//        double timeCorrection = 0.0;
-//
-////        timeWrapBackwardFlux.setWrappedMsg(limitTrackingsWrap.Get(1).times());
-////        timeWrapOtherBasinEntry.setWrappedMsg(limitTrackingsWrap.Get(2).times());
-//
-//        // If the trajectory ever passed into another basin, get the sum time of the intervals between entry into another basin and reentry into the starting basin
-//        if (timeWrapBasinExit.size() > 0)
-//        {
-//            double *timeDataBackwardFlux, *timeDataBackwardFluxEnd, *timeDataOtherBasinEntry, *timeDataOtherBasinEntryEnd;
-//            timeDataOtherBasinEntry = timeWrapBasinExit.get_data(true);
-//            timeDataOtherBasinEntryEnd = timeDataOtherBasinEntry +  timeWrapBasinExit.size();
-//            timeDataBackwardFlux = timeWrapBasinEntry.get_data(true);
-//            timeDataBackwardFluxEnd = timeDataBackwardFlux +  timeWrapBasinEntry.size();
-//
-//            timeCorrection = sumTimeIntervals(timeDataOtherBasinEntry, timeDataOtherBasinEntryEnd, timeDataBackwardFlux, timeDataBackwardFluxEnd, startTime, endTime);
-//
-//            if (timeWrapBasinEntry.compressed_deflate()) delete[] timeDataBackwardFlux;
-//            if (timeWrapBasinExit.compressed_deflate()) delete[] timeDataOtherBasinEntry;
-//        }
-//
-//        return timeCorrection;
-//    }
-//
-//    // TODO: handle startTime and endTime in a more robust way and/or checked way
-//    static double sumTimeIntervals(double* entryTimes, double* entryTimesEnd, double* exitTimes, double* exitTimesEnd, double startTime=0.0, double endTime=std::numeric_limits<double>::infinity())
-//    {
-//        double sumTime = 0.0;
-//        checkLimitCurry<TrajLimEnums::MAX, false, double> greaterThanCurry(0.0);
-//
-//        // find the first interval entry time after the start time
-////        entryTimes = checkLimitRangeAdapter<TrajLimEnums::MAX, false, double>(std::find_if, entryTimes, entryTimesEnd, startTime);
-//        entryTimes = std::find_if(entryTimes, entryTimesEnd, greaterThanCurry.setLimitVal(startTime));
-//
-//        // if we didn't find an appropriate entry time, just return 0.0
-//        if (entryTimes==entryTimesEnd) return sumTime;
-//
-//        while (true)
-//        {
-//            // try to find the next interval exit time
-////            exitTimes = checkLimitRangeAdapter<TrajLimEnums::MAX, false, double>(std::find_if, exitTimes, exitTimesEnd, *entryTimes);
-//            exitTimes = std::find_if(exitTimes, exitTimesEnd, greaterThanCurry.setLimitVal(*entryTimes));
-//            if (exitTimes==exitTimesEnd)               // If have an entryTime with no exitTime, add the difference between the last entryTime and the endTime, and then break
-//            {
-//                if (endTime!=std::numeric_limits<double>::infinity()) sumTime += (endTime - *entryTimes);
-//                return sumTime;
-//            }
-//            else                                       // Otherwise, we have found the next exit time. Add the length of this interval to the sumTime
-//            {
-//                sumTime += (*exitTimes - *entryTimes);
-//            }
-//
-//            // try to find the next interval entry time
-////            entryTimes = checkLimitRangeAdapter<TrajLimEnums::MAX, false, double>(std::find_if, entryTimes, entryTimesEnd, *exitTimes);
-//            entryTimes = std::find_if(entryTimes, entryTimesEnd, greaterThanCurry.setLimitVal(*exitTimes));
-//            if (entryTimes==entryTimesEnd)            // If we can't find another entryTime, there are no more intervals so break
-//            {
-//                return sumTime;
-//            }
-//        }
-//    }
 
     void addEndPoint(const lm::io::TrajectoryState& trajectoryState, const lm::trajectory::Trajectory& trajectory)
     {

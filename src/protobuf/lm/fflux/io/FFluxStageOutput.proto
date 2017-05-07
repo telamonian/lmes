@@ -45,12 +45,21 @@ message FFluxStageOutput {
     /*
      * - fflux_stage is needed for metadata purposes
      */
-    optional lm.fflux.input.FFluxStage fflux_stage              = 1;
+    optional lm.fflux.input.FFluxStage fflux_stage              = 201;
 
     /*
-     * - Relatively simple version of the stage output with all of the most important results
+     * - First passage times with respect to tiling edge i
+     *     - If your tiling sorts descending (ie edge[i] < edge[i+1]), these results may be slightly different from those obtained from replicate sampling due to boundary conditions
      */
-    optional FFluxStageOutputSummary fflux_stage_output_summary = 11;
+    repeated double first_passage_times = 1 [packed=true];
+
+    /*
+     * - If costs, fluxes, etc are set, there should be as many entries in each as there are interfaces in fflux_stage's tiling
+     */
+    repeated double costs               = 11 [packed=true];
+    repeated double fluxes              = 12 [packed=true];
+    repeated double probabilities       = 13 [packed=true];
+    repeated double variances           = 14 [packed=true];
 
     /*
      * - If set, output the raw data used to calculate fluxes and proabilities
@@ -71,6 +80,7 @@ message FFluxStageOutputSummary {
     repeated double costs               = 11 [packed=true];
     repeated double fluxes              = 12 [packed=true];
     repeated double probabilities       = 13 [packed=true];
+    repeated double variances           = 14 [packed=true];
 }
 
 message FFluxStageOutputRaw {

@@ -1017,9 +1017,19 @@ void FFluxSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedWorkUn
     PROF_BEGIN(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT);
 
     // deal with the individual parts of the work unit at the fflux supervisor level
-    for (int i=0;i<msg.part_status_size();i++)
+    if (currentFFluxPhaseIndex()==0)
     {
-        receivedFinishedWorkUnitPart(msg.part_status(i));
+        for (int i=0;i<msg.part_status_size();i++)
+        {
+            receivedFinishedWorkUnitPartPhaseZero(msg.part_status(i));
+        }
+    }
+    else
+    {
+        for (int i=0;i<msg.part_status_size();i++)
+        {
+            receivedFinishedWorkUnitPart(msg.part_status(i));
+        }
     }
 
 //    // If the phase "plan" calls for it, generate replacement trajectories
@@ -1034,55 +1044,51 @@ void FFluxSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedWorkUn
     PROF_END(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT);
 }
 
-void FFluxSupervisor::receivedFinishedWorkUnitPart(const lm::message::WorkUnitStatus& wusMsg)
+void FFluxSupervisor::receivedFinishedWorkUnitPartPhaseZero(const lm::message::WorkUnitStatus& wusMsg)
 {
-    if (not trajectoryList->isTrajectoryAborted(wusMsg.final_state().trajectory_id()))   // and wusMsg.status()==lm::message::WorkUnitStatus::LIMIT_REACHED)
+    if (not trajectoryList->isTrajectoryAborted(wusMsg.final_state().trajectory_id()))
     {
-        if (currentFFluxPhaseIndex()==0)
-        {
-            PROF_BEGIN(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_ZERO);
+        PROF_BEGIN(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_ZERO);
 
-            receivedFinishedWorkUnitPartPhaseZero(wusMsg);
+        // get the relevant Trajectory instance
+        lm::trajectory::Trajectory* trajectory = trajectoryList->getTrajectoryForFinishedWorkUnit(wusMsg.final_state().trajectory_id());
 
-            PROF_END(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_ZERO);
-        }
-        else if (wusMsg.status()==lm::message::WorkUnitStatus::LIMIT_REACHED)
-        {
-            ////TEMPSTART
-            if (currentFFluxPhaseIndex()==1)
-            {
-                PROF_BEGIN(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_ONE);
+        // keep track of how much time each phase 0 trajectory spent in the region of a basin other than its initial basin
+        lm::fflux::FFluxPhaseZeroTrajectory* phaseZeroTrajectory = static_cast<lm::fflux::FFluxPhaseZeroTrajectory*>(trajectory);
+        phaseZeroTrajectory->processState(wusMsg.final_state());
 
-                // update the phase output
-                currentFFluxPhaseOutputWrapPtr->addEndPoint(wusMsg.final_state(), *trajectoryList->getTrajectoryForFinishedWorkUnit(wusMsg.final_state().trajectory_id()));
+        // update the phase output
+        currentFFluxPhaseOutputWrapPtr->addEndPointPhaseZero(wusMsg.final_state(), trajectory, input->ffluxOptions().phase_zero_burn_in_count());
 
-                PROF_END(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_ONE);
-            }
-            else
-            {
-            ////TEMPEND
-                PROF_BEGIN(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_N);
-
-                // update the phase output
-                currentFFluxPhaseOutputWrapPtr->addEndPoint(wusMsg.final_state(), *trajectoryList->getTrajectoryForFinishedWorkUnit(wusMsg.final_state().trajectory_id()));
-
-                PROF_END(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_N);
-            }
-        }
+        PROF_END(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_ZERO);
     }
 }
 
-void FFluxSupervisor::receivedFinishedWorkUnitPartPhaseZero(const lm::message::WorkUnitStatus& wusMsg)
+void FFluxSupervisor::receivedFinishedWorkUnitPart(const lm::message::WorkUnitStatus& wusMsg)
 {
-    // get the relevant Trajectory instance
-    lm::trajectory::Trajectory* trajectory = trajectoryList->getTrajectoryForFinishedWorkUnit(wusMsg.final_state().trajectory_id());
+    if (not trajectoryList->isTrajectoryAborted(wusMsg.final_state().trajectory_id()) and wusMsg.status()==lm::message::WorkUnitStatus::LIMIT_REACHED)
+    {
+        ////TEMPSTART
+        if (currentFFluxPhaseIndex()==1)
+        {
+            PROF_BEGIN(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_ONE);
 
-    // keep track of how much time each phase 0 trajectory spent in the region of a basin other than its initial basin
-    lm::fflux::FFluxPhaseZeroTrajectory* phaseZeroTrajectory = static_cast<lm::fflux::FFluxPhaseZeroTrajectory*>(trajectory);
-    phaseZeroTrajectory->accumulateTimeInOtherBasins(wusMsg.final_state());
+            // update the phase output
+            currentFFluxPhaseOutputWrapPtr->addEndPoint(wusMsg.final_state(), *trajectoryList->getTrajectoryForFinishedWorkUnit(wusMsg.final_state().trajectory_id()));
 
-    // update the phase output
-    currentFFluxPhaseOutputWrapPtr->addEndPointPhaseZero(wusMsg.final_state(), trajectory, input->ffluxOptions().phase_zero_burn_in_count());
+            PROF_END(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_ONE);
+        }
+        else
+        {
+        ////TEMPEND
+            PROF_BEGIN(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_N);
+
+            // update the phase output
+            currentFFluxPhaseOutputWrapPtr->addEndPoint(wusMsg.final_state(), *trajectoryList->getTrajectoryForFinishedWorkUnit(wusMsg.final_state().trajectory_id()));
+
+            PROF_END(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_N);
+        }
+    }
 }
 
 // accessors

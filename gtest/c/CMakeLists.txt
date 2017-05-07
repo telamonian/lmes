@@ -2,7 +2,7 @@
 add_subdirectory(gmock-1.7.0)
 include_directories(${gmock_SOURCE_DIR}/include ${gmock_SOURCE_DIR}
                     ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR}
-                    ${CMAKE_CURRENT_BINARY_DIR})
+                    ${CMAKE_CURRENT_SOURCE_DIR})
 
 ##############################################
 #### setup the test source and data files ####
@@ -14,20 +14,15 @@ set(TESTDATA_ROOT ${CMAKE_CURRENT_BINARY_DIR}/testdata)
 # copy over the test data files
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/testdata DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
-# get the source file templates
-file(GLOB_RECURSE lmes_gtest_c_source_templates RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} lm/*.cpp lm/*.cc lm/*.h)
-
-# substitute in the paths to the test data files
-foreach(src_template ${lmes_gtest_c_source_templates})
-    configure_file(${src_template} "${CMAKE_CURRENT_BINARY_DIR}/${src_template}" @ONLY)
-endforeach(src_template)
+# add a compiler definition with the path to the root testdata dir
+add_definitions(-DTESTDATA_ROOT="${TESTDATA_ROOT}")
 
 ############################
 #### TARGET: lmes_gtest ####
 ############################
 
 # get the source files
-file(GLOB_RECURSE lmes_gtest_c_source ${CMAKE_CURRENT_BINARY_DIR}/*.cpp ${CMAKE_CURRENT_BINARY_DIR}/*.cc ${CMAKE_CURRENT_BINARY_DIR}/*.h)
+file(GLOB_RECURSE lmes_gtest_c_source lm/*.cpp lm/*.cc lm/*.h)
 
 # remove all files with certain prefixes
 file(GLOB_RECURSE */to_remove */off_* */old_*)

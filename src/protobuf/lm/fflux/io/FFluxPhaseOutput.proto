@@ -53,6 +53,8 @@ message FFluxPhaseOutput {
 
     // TODO: currently start_points is uniplemented, so we're using successful_trajectory_end_points as a kludge in the meantime. eventually this field will be removed
     repeated EndPoint successful_trajectory_end_points          = 101;
+
+    optional double variance                                    = 201;
 }
 
 message FFluxPhaseOutputList {

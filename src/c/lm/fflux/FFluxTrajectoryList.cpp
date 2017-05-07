@@ -247,7 +247,7 @@ void FFluxTrajectoryList::initTrajectoriesCyclic(uint64_t trajectoriesToStart)
     for (uint64_t i=0;i<trajectoriesToStart;i++)
     {
         const lm::protowrap::EndPointVector::Pair& endPointPair(previousPhaseOutputPtr->getEndPointCyclic(cyclicCounter++));
-        initTrajectory(input, endPointPair.first->species_coordinates().begin(), endPointPair.first->species_coordinates().end(), endPointPair.first->times(endPointPair.second), simulationPhaseIndex(), DEFAULT_TRAJECTORY_ID);
+        initFFluxTrajectory(input, endPointPair.first->species_coordinates().begin(), endPointPair.first->species_coordinates().end(), endPointPair.first->times(endPointPair.second), simulationPhaseIndex(), DEFAULT_TRAJECTORY_ID);
     }
 }
 
@@ -260,7 +260,7 @@ void FFluxTrajectoryList::initTrajectoriesUniformRandom(uint64_t trajectoriesToS
         PROF_END(PROF_TRAJECTORY_LIST_WORK_UNIT_FINISHED_ONE);
 
         PROF_BEGIN(PROF_TRAJECTORY_LIST_WORK_UNIT_FINISHED_TWO);
-        initTrajectory(input, endPointPair.first->species_coordinates().begin(), endPointPair.first->species_coordinates().end(), endPointPair.first->times(endPointPair.second), simulationPhaseIndex(), DEFAULT_TRAJECTORY_ID);
+        initFFluxTrajectory(input, endPointPair.first->species_coordinates().begin(), endPointPair.first->species_coordinates().end(), endPointPair.first->times(endPointPair.second), simulationPhaseIndex(), DEFAULT_TRAJECTORY_ID);
         PROF_END(PROF_TRAJECTORY_LIST_WORK_UNIT_FINISHED_TWO);
     }
 }

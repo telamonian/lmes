@@ -58,7 +58,7 @@ using std::string;
 using std::vector;
 
 //const char* filenamesLiteralDwellTimes[] = {"genetic_toggle_switch_-_FFluxPhaseZeroDwellTimes.sfile"};
-const char* filenamesLiteralDwellTimes[] = {"@TESTDATA_ROOT@/genetic_toggle_switch_-_FFluxPhaseZeroDwellTimes.sfile"};
+const char* filenamesLiteralDwellTimes[] = {TESTDATA_ROOT "/genetic_toggle_switch_-_FFluxPhaseZeroDwellTimes.sfile"};
 const vector<string> filenamesDwellTimes(filenamesLiteralDwellTimes, filenamesLiteralDwellTimes+1);
 
 //const int speciesCountsLiteral[] = {0,1,2,3,4,5,6};
