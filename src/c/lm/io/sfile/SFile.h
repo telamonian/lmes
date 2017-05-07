@@ -78,14 +78,14 @@ public:
 
 public:
     template <typename Msg>
-    bool mergeNextMessage(Msg* msg)
+    int64_t mergeNextMessage(Msg* msg)
     {
         std::string recordTypeStr("protobuf:" + Msg::default_instance().GetDescriptor()->full_name());
         return mergeNextMessage(msg, recordTypeStr);
     }
 
     template <typename Msg>
-    bool mergeNextMessage(Msg* msg, const string& recordType)
+    int64_t mergeNextMessage(Msg* msg, const string& recordType)
     {
         // get the next record
         SFileRecord r = readNextSFileRecord();
@@ -110,11 +110,11 @@ public:
 
             // Release the buffer.
             delete[] buffer;
-            return true;
+            return 0;
         }
         else
         {
-            return false;
+            return r.dataSize;
         }
     }
 
@@ -124,10 +124,10 @@ public:
         // concrete example of the generic statement attempted bellow
         //google::protobuf::RepeatedPtrField<lm::input::SimulationInput>::value_type::default_instance().GetDescriptor()->full_name();
         typename MsgRepeated::value_type* msg(NULL);
-        std::string recordTypeStr("protobuf:" + MsgRepeated::Element::default_instance().GetDescriptor()->full_name());
+        std::string recordTypeStr("protobuf:" + MsgRepeated::value_type::default_instance().GetDescriptor()->full_name());
 
         // Read all of the records.
-        while (isEof())
+        while (!isEof())
         {
             // add a new message to the repeated, if needed
             if (msg==NULL)
@@ -135,13 +135,16 @@ public:
                 msg = (msgRepeated->Add());
             }
 
-            // Read the next record.
-            lm::io::sfile::SFileRecord r = readNextSFileRecord();
+//            // Read the next record.
+//            lm::io::sfile::SFileRecord r = readNextSFileRecord();
 
-            if (not readNextMessage(msg, recordTypeStr))
+            // try to read in the next message
+            int dataSize = readNextMessage(msg, recordTypeStr);
+
+            if (dataSize > 0)
             {
                 // If the record is of the wrong type, skip it
-                skip(r.dataSize);
+                skip(dataSize);
             }
             else
             {
@@ -152,16 +155,16 @@ public:
     }
 
     template <typename Msg>
-    bool readNextMessage(Msg* msg)
+    int64_t readNextMessage(Msg* msg)
     {
         std::string recordTypeStr("protobuf:" + Msg::default_instance().GetDescriptor()->full_name());
         return readNextMessage(msg, recordTypeStr);
     }
 
     template <typename Msg>
-    bool readNextMessage(Msg* msg, const string& recordType)
+    int64_t readNextMessage(Msg* msg, const string& recordType, SFileRecord* record=NULL)
     {
-        // get the next record
+        // get the next record if needed
         SFileRecord r = readNextSFileRecord();
 
         // See if this is an input record.
@@ -180,11 +183,11 @@ public:
 
             // Release the buffer.
             delete[] buffer;
-            return true;
+            return 0;
         }
         else
         {
-            return false;
+            return r.dataSize;
         }
     }
 

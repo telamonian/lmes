@@ -57,17 +57,15 @@
 using std::string;
 using std::vector;
 
-// tolerance for equality testing of doubles
-double absolute_tolerance = 1e-10;
+//const char* filenamesLiteralDwellTimes[] = {"genetic_toggle_switch_-_FFluxPhaseZeroDwellTimes.sfile"};
+const char* filenamesLiteralDwellTimes[] = {"/Users/tel/git/lm_ndarray/build/gtest/c/genetic_toggle_switch_-_FFluxPhaseZeroDwellTimes.sfile"};
+const vector<string> filenamesDwellTimes(filenamesLiteralDwellTimes, filenamesLiteralDwellTimes+1);
 
-const char* filenamesLiteral[] = {"genetic_toggle_switch_-_FFluxPhaseZeroDwellTimes.sfile"};
-const vector<string> filenames(filenamesLiteral, filenamesLiteral+1);
-
-const int speciesCountsLiteral[] = {0,1,2,3,4,5,6};
-const vector<int> speciesCounts(speciesCountsLiteral, speciesCountsLiteral+7);
-
-const double timesLiteral[] = {0.0};
-const vector<double> times(timesLiteral, timesLiteral+7);
+//const int speciesCountsLiteral[] = {0,1,2,3,4,5,6};
+//const vector<int> speciesCounts(speciesCountsLiteral, speciesCountsLiteral+7);
+//
+//const double timesLiteral[] = {0.0};
+//const vector<double> times(timesLiteral, timesLiteral+7);
 
 class LimitTrackingsLoader
 {
@@ -78,6 +76,9 @@ public:
         {
             // See if the file is an SFile.
             lm::io::sfile::LocalSFile sfile(filenames[i]);
+//            printf("exists: %d\n", sfile.exists());
+//            printf("isFile: %d\n", sfile.isFile());
+//            printf("isSFile: %d\n", sfile.isSFile());
             if(sfile.exists() && sfile.isFile() && sfile.isSFile())
             {
                 // Read the input from the sfile.
@@ -95,7 +96,7 @@ public:
 class FFluxPhaseZeroTrajectoryFixture: public ::testing::Test
 {
 public:
-    FFluxPhaseZeroTrajectoryFixture(): ltLoader(filenames)
+    FFluxPhaseZeroTrajectoryFixture(): initialWaitingTime(0),ltLoader(filenamesDwellTimes),previousEvent(lm::fflux::BASIN_ENTRY, 0)
     {
         char cwd[FILENAME_MAX];
         getcwd(cwd, sizeof(cwd));
@@ -103,15 +104,20 @@ public:
         printf("current working directory: %s\n", cwd);
     }
 
+public:
+    double initialWaitingTime;
     LimitTrackingsLoader ltLoader;
+    lm::fflux::Event previousEvent;
 //    lm::fflux::FFluxPhaseZeroTrajectory ffluxPhaseZeroTrajectory;
 
+    // streaming variance of the waiting time in between interface 0 forward crossing events
+    std::vector<double> waitingTimes;
+    StreamingVariance waitingTimeSV;
+
+protected:
     lm::protowrap::Repeated<lm::io::LimitTracking> limitTrackingsWrap;
     lm::protowrap::NDArray<double> timeWrapForwardFlux, timeWrapBasinEntry, timeWrapBasinExit;
 
-    // streaming variance of the waiting time in between interface 0 forward crossing events
-    StreamingVariance waitingTimeSV;
-    WaitingTimeScratchpad waitingTimeScratchpad;
 };
 
 TEST_F(FFluxPhaseZeroTrajectoryFixture, getDwellTimes_test)
@@ -120,62 +126,70 @@ TEST_F(FFluxPhaseZeroTrajectoryFixture, getDwellTimes_test)
     limitTrackingsWrap.setWrappedField(ltLoader.limitTrackings);
 
     int i = 0;
-    for (;i<limitTrackingsWrap.size();i++)
+    for (;i<limitTrackingsWrap.size();)
     {
+        if (limitTrackingsWrap.Get(i).trajectory_id()==152) // || limitTrackingsWrap.Get(i).trajectory_id()==153 || limitTrackingsWrap.Get(i).trajectory_id()==154 || limitTrackingsWrap.Get(i).trajectory_id()==155)
+        {
+            // the limit tracking is from one of the production stage phase zero trajectories
+            // set wrappers on the ndarrays with the limit-triggering times
+            timeWrapForwardFlux.setWrappedMsg(limitTrackingsWrap.Get(i++).times());
+            timeWrapBasinEntry.setWrappedMsg(limitTrackingsWrap.Get(i++).times());
+            timeWrapBasinExit.setWrappedMsg(limitTrackingsWrap.Get(i++).times());
 
+            // If the trajectory was previously in a non-initial basin, or if it passed into a non-initial basin during this work unit, accumulate the time the trajectory spent in a non-initial basin during its most recent work unit
+            if (timeWrapForwardFlux.size() > 0 or timeWrapBasinEntry.size() > 0 or timeWrapBasinExit.size() > 0)
+            {
+                double *fluxTimes, *fluxTimesEnd, *entryTimes, *entryTimesEnd, *exitTimes, *exitTimesEnd;
+                fluxTimes = timeWrapForwardFlux.get_data(true);
+                fluxTimesEnd = fluxTimes +  timeWrapForwardFlux.size();
+                entryTimes = timeWrapBasinEntry.get_data(true);
+                entryTimesEnd = entryTimes +  timeWrapBasinEntry.size();
+                exitTimes = timeWrapBasinExit.get_data(true);
+                exitTimesEnd = exitTimes +  timeWrapBasinExit.size();
+
+                initialWaitingTime = lm::fflux::FFluxPhaseZeroTrajectory::getWaitingTimes(initialWaitingTime, &previousEvent, &waitingTimes, fluxTimes, fluxTimesEnd, entryTimes, entryTimesEnd, exitTimes, exitTimesEnd);
+
+                if (timeWrapBasinEntry.compressed_deflate()) delete[] entryTimes;
+                if (timeWrapBasinEntry.compressed_deflate()) delete[] entryTimes;
+                if (timeWrapBasinExit.compressed_deflate()) delete[] exitTimes;
+            }
+        }
+        else
+        {
+            // the limit tracking is from a trajectory we don't care about
+            i++;
+        }
     }
 
-    // set wrappers on the ndarrays with the limit-triggering times
-    timeWrapForwardFlux.setWrappedMsg(limitTrackingsWrap.Get(0).times());
-    timeWrapBasinEntry.setWrappedMsg(limitTrackingsWrap.Get(1).times());
-    timeWrapBasinExit.setWrappedMsg(limitTrackingsWrap.Get(2).times());
-
-    // If the trajectory was previously in a non-initial basin, or if it passed into a non-initial basin during this work unit, accumulate the time the trajectory spent in a non-initial basin during its most recent work unit
-    if (timeWrapForwardFlux.size() > 0 or timeWrapBasinEntry.size() > 0 or timeWrapBasinExit.size() > 0)
-    {
-        double *fluxTimes, *fluxTimesEnd, *entryTimes, *entryTimesEnd, *exitTimes, *exitTimesEnd;
-        fluxTimes = timeWrapForwardFlux.get_data(true);
-        fluxTimesEnd = fluxTimes +  timeWrapForwardFlux.size();
-        entryTimes = timeWrapBasinEntry.get_data(true);
-        entryTimesEnd = entryTimes +  timeWrapBasinEntry.size();
-        exitTimes = timeWrapBasinExit.get_data(true);
-        exitTimesEnd = exitTimes +  timeWrapBasinExit.size();
-
-        getWaitingTimes(waitingTimeScratchpad, waitingTimeSV, fluxTimes, fluxTimesEnd, entryTimes, entryTimesEnd, exitTimes, exitTimesEnd);
-
-        if (timeWrapBasinEntry.compressed_deflate()) delete[] entryTimes;
-        if (timeWrapBasinEntry.compressed_deflate()) delete[] entryTimes;
-        if (timeWrapBasinExit.compressed_deflate()) delete[] exitTimes;
-    }
-    
     // test some scalar values in ffluxStage
-    EXPECT_EQ(0, ffluxStage.tiling_id());
-    EXPECT_EQ(0, ffluxStage.basin_index());
+    EXPECT_EQ(36, waitingTimes.size());
 
-    // test some scalar values in ffluxPhase
-    EXPECT_EQ(0, ffluxPhase.tiling_id());
-    EXPECT_EQ(0, ffluxPhase.basin_index());
-    EXPECT_EQ(4, ffluxPhase.fflux_phase_index());
-
-    // test some scalar values in ffluxPhaseStartPoint
-    EXPECT_EQ(1, ffluxPhaseStartPoint.count());
-
-    // test some vector/repeated values in ffluxPhaseStartPoint
-    int countSize = ffluxPhaseStartPoint.species_coordinates_size();
-    for (int i=0; i<countSize; i++)
-    {
-        int valExpected = speciesCounts[i];
-        int valActual = ffluxPhaseStartPoint.species_coordinates(i);
-
-        EXPECT_EQ(valExpected, valActual);
-    }
-
-    int timesSize = ffluxPhaseStartPoint.times_size();
-    for (int i=0; i<timesSize; i++)
-    {
-        double valExpected = times[i];
-        double valActual = ffluxPhaseStartPoint.times(i);
-
-        EXPECT_NEAR(valExpected, valActual, absolute_tolerance);
-    }
+//    EXPECT_EQ(0, ffluxStage.basin_index());
+//
+//    // test some scalar values in ffluxPhase
+//    EXPECT_EQ(0, ffluxPhase.tiling_id());
+//    EXPECT_EQ(0, ffluxPhase.basin_index());
+//    EXPECT_EQ(4, ffluxPhase.fflux_phase_index());
+//
+//    // test some scalar values in ffluxPhaseStartPoint
+//    EXPECT_EQ(1, ffluxPhaseStartPoint.count());
+//
+//    // test some vector/repeated values in ffluxPhaseStartPoint
+//    int countSize = ffluxPhaseStartPoint.species_coordinates_size();
+//    for (int i=0; i<countSize; i++)
+//    {
+//        int valExpected = speciesCounts[i];
+//        int valActual = ffluxPhaseStartPoint.species_coordinates(i);
+//
+//        EXPECT_EQ(valExpected, valActual);
+//    }
+//
+//    int timesSize = ffluxPhaseStartPoint.times_size();
+//    for (int i=0; i<timesSize; i++)
+//    {
+//        double valExpected = times[i];
+//        double valActual = ffluxPhaseStartPoint.times(i);
+//
+//        EXPECT_NEAR(valExpected, valActual, absolute_tolerance);
+//    }
 }

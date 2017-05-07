@@ -44,4 +44,7 @@
 #define private public
 #define protected public
 
+// tolerance for equality testing of doubles
+static double absolute_tolerance = 1e-10;
+
 #endif /* GTEST_C_LM_GTEST_H_ */

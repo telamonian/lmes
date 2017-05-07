@@ -59,8 +59,6 @@ enum EventKind {FLUX,
 
 // pair of (eventKind, eventTime)
 typedef std::pair<EventKind, double> Event;
-// pair of (Event, dwellTimeAccumulated)
-typedef std::pair<Event, double> WaitingTimeScratchpad;
 
 class FFluxPhaseZeroTrajectory : public lm::trajectory::Trajectory
 {
@@ -81,17 +79,17 @@ public:
 //    }
 
     FFluxPhaseZeroTrajectory(const lm::input::Input& input, uint64_t phase, uint64_t id)
-    :Trajectory(input, phase, id),waitingTimeScratchpad(Event(BASIN_ENTRY,0),0)
+    :Trajectory(input, phase, id),initialWaitingTime(0),previousEvent(BASIN_ENTRY,0)
     {
     }
 
     template <typename InputIterator> FFluxPhaseZeroTrajectory(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd, double startTime, uint64_t phase, uint64_t id)
-    :Trajectory(input, speciesStart, speciesEnd, startTime, phase, id),waitingTimeScratchpad(Event(BASIN_ENTRY,0),0)
+    :Trajectory(input, speciesStart, speciesEnd, startTime, phase, id),initialWaitingTime(0),previousEvent(BASIN_ENTRY,0)
     {
     }
 
     FFluxPhaseZeroTrajectory(const lm::io::TrajectoryState& initialState, uint64_t phase, uint64_t id)
-    :Trajectory(initialState, phase, id),waitingTimeScratchpad(Event(BASIN_ENTRY,0),0)
+    :Trajectory(initialState, phase, id),initialWaitingTime(0),previousEvent(BASIN_ENTRY,0)
     {
     }
 
@@ -120,7 +118,7 @@ public:
             exitTimes = timeWrapBasinExit.get_data(true);
             exitTimesEnd = exitTimes +  timeWrapBasinExit.size();
 
-            getWaitingTimes(waitingTimeScratchpad, waitingTimeSV, fluxTimes, fluxTimesEnd, entryTimes, entryTimesEnd, exitTimes, exitTimesEnd);
+            initialWaitingTime = getWaitingTimes(initialWaitingTime, &previousEvent, &waitingTimeSV, fluxTimes, fluxTimesEnd, entryTimes, entryTimesEnd, exitTimes, exitTimesEnd);
 
             if (timeWrapBasinEntry.compressed_deflate()) delete[] entryTimes;
             if (timeWrapBasinEntry.compressed_deflate()) delete[] entryTimes;
@@ -128,15 +126,14 @@ public:
         }
     }
 
-    static void getWaitingTimes(WaitingTimeScratchpad& wtScratch, StreamingVariance& wtsv, const double* fluxTimes, const double* fluxTimesEnd, const double* entryTimes, const double* entryTimesEnd, const double* exitTimes, const double* exitTimesEnd)
+    template <typename Accumulator>
+    static double getWaitingTimes(double waitingTime, Event* previousEvent, Accumulator* acc, const double* fluxTimes, const double* fluxTimesEnd, const double* entryTimes, const double* entryTimesEnd, const double* exitTimes, const double* exitTimesEnd)
     {
         Event event;
-        Event previousEvent = wtScratch.first;
-        double waitingTime = wtScratch.second;
 
         while (true)
         {
-            event = findNextEvent(previousEvent.first, &fluxTimes, fluxTimesEnd, &entryTimes, entryTimesEnd, &exitTimes, exitTimesEnd);
+            event = findNextEvent(previousEvent->first, &fluxTimes, fluxTimesEnd, &entryTimes, entryTimesEnd, &exitTimes, exitTimesEnd);
             switch (event.first)
             {
             case FLUX:
@@ -145,14 +142,14 @@ public:
 //                    throw ConsistencyException("A FLUX event can only be preceded by a BASIN_ENTRY");
 //                }
 
-                waitingTime += event.second - previousEvent.second;
-                wtsv.push_back(waitingTime);
+                waitingTime += event.second - previousEvent->second;
+                acc->push_back(waitingTime);
                 waitingTime = 0;
                 break;
             case BASIN_ENTRY:
-                if (previousEvent.first==FLUX)
+                if (previousEvent->first==FLUX)
                 {
-                    waitingTime += event.second - previousEvent.second;
+                    waitingTime += event.second - previousEvent->second;
                 }
 //                else if (previousEvent.first==BASIN_ENTRY)
 //                {
@@ -160,9 +157,9 @@ public:
 //                }
                 break;
             case BASIN_EXIT:
-                if (previousEvent.first==FLUX)
+                if (previousEvent->first==FLUX)
                 {
-                    waitingTime += event.second - previousEvent.second;
+                    waitingTime += event.second - previousEvent->second;
                 }
 //                else if (previousEvent.first==BASIN_ENTRY)
 //                {
@@ -170,12 +167,10 @@ public:
 //                }
                 break;
             case END:
-                wtScratch.first = previousEvent;
-                wtScratch.second = waitingTime;
-                return;
+                return waitingTime;
                 break;
             }
-            previousEvent = event;
+            *previousEvent = event;
         }
     }
 
@@ -385,9 +380,11 @@ public:
 //    // the total quantity of time the trajectory has spent in basins other than the one it started in
 //    double timeInOtherBasins;
 
+    double initialWaitingTime;
+    Event previousEvent;
+
     // streaming variance of the waiting time in between interface 0 forward crossing events
     StreamingVariance waitingTimeSV;
-    WaitingTimeScratchpad waitingTimeScratchpad;
 
 protected:
     lm::protowrap::Repeated<lm::io::LimitTracking> limitTrackingsWrap;

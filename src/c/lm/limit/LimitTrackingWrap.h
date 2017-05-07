@@ -119,7 +119,9 @@ public:
         set_trajectory_id(trajectoryID_readfrom);
         set_limit_id(limitID_readfrom);
 
-        if (hasCount_readfrom) set_count(count_readfrom);
+//        if (hasCount_readfrom) set_count(count_readfrom);
+        // only save out counts if it's greater than the default value (ie 0)
+        if (count_readfrom > 0) set_count(count_readfrom);
     }
 
     inline void serializeMetadataFrom(uint64_t trajectoryID_readfrom, const LimitTracking& lt)

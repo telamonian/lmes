@@ -52,11 +52,8 @@
 using std::string;
 using std::vector;
 
-// tolerance for equality testing of doubles
-double absolute_tolerance = 1e-10;
-
-const char* filenamesLiteral[] = {"/Users/tel/git/lm_ndarray/gtest/c/lm/fflux/input/ffluxSimulationInput.sfile"};
-const vector<string> filenames(filenamesLiteral, filenamesLiteral+1);
+const char* filenamesLiteralFFluxInputs[] = {"/Users/tel/git/lm_ndarray/gtest/c/lm/fflux/input/ffluxSimulationInput.sfile"};
+const vector<string> filenamesFFluxInputs(filenamesLiteralFFluxInputs, filenamesLiteralFFluxInputs+1);
 
 const int speciesCountsLiteral[] = {0,1,2,3,4,5,6};
 const vector<int> speciesCounts(speciesCountsLiteral, speciesCountsLiteral+7);
@@ -67,7 +64,7 @@ const vector<double> times(timesLiteral, timesLiteral+7);
 class FFluxInputFixture : public ::testing::Test
 {
 public:
-    FFluxInputFixture(): ffluxInput(filenames)
+    FFluxInputFixture(): ffluxInput(filenamesFFluxInputs)
     {
         char cwd[FILENAME_MAX];
         getcwd(cwd, sizeof(cwd));
