@@ -39,6 +39,7 @@
 #ifndef LM_PROTWRAP_FFLUXSTAGEOUTPUT_H_
 #define LM_PROTWRAP_FFLUXSTAGEOUTPUT_H_
 
+#include <cmath>
 #include <vector>
 
 #include "lm/fflux/io/FFluxPhaseOutput.pb.h"
@@ -62,7 +63,8 @@ class FFluxStageOutputRawWrap : public lm::protowrap::Msg<FFluxStageOutputRawWra
     WRAPPED_FIELDS(repeated, uint64_t, successful_trajectory_counts,
                    repeated, double,   successful_trajectory_total_times,
                    repeated, uint64_t, failed_trajectory_counts,
-                   repeated, double,   failed_trajectory_total_times)
+                   repeated, double,   failed_trajectory_total_times,
+                   repeated, double,   variances)
 
     void buildFromFFluxPhaseOutputs(const FFluxPhaseOutputsWrap& ffluxPhaseOutputsWrap)
     {
@@ -72,6 +74,8 @@ class FFluxStageOutputRawWrap : public lm::protowrap::Msg<FFluxStageOutputRawWra
 
         ffluxPhaseOutputsWrap.GetAll(&FFluxPhaseOutputMsg::failed_trajectories_launched_count, mutable_failed_trajectory_counts()->back_inserter());
         ffluxPhaseOutputsWrap.GetAll(&FFluxPhaseOutputMsg::failed_trajectories_launched_total_time, mutable_failed_trajectory_total_times()->back_inserter());
+
+        ffluxPhaseOutputsWrap.GetAll(&FFluxPhaseOutputMsg::variance, mutable_variances()->back_inserter());
     }
 };
 
@@ -87,7 +91,7 @@ class FFluxStageOutputSummaryWrap : public lm::protowrap::Msg<FFluxStageOutputSu
         buildCosts(outputRaw);
         buildFluxes(outputRaw);
         buildProbabilites(outputRaw);
-        buildSwitchingTimePerTile();
+        buildFirstPassageTimes();
     }
 
     void buildCosts(const FFluxStageOutputRawWrap& outputRaw)
@@ -103,7 +107,7 @@ class FFluxStageOutputSummaryWrap : public lm::protowrap::Msg<FFluxStageOutputSu
         std::vector<double> newCosts = (successfulTrajectoryTotalTimes + failedTrajectoryTotalTimes) / (successfulTrajectoryCounts + failedTrajectoryCounts);
 
         // (re)calculate the phase zero cost without the time spent outside of the initial basin. This method slightly underestimates the cost, but produces consistent results (since trajectories sometimes will and sometimes won't leave the starting basin during phase 0).
-        newCosts[0] = (successfulTrajectoryTotalTimes[0] - failedTrajectoryTotalTimes[0]) / successfulTrajectoryCounts[0];
+        newCosts[0] = successfulTrajectoryTotalTimes[0] / successfulTrajectoryCounts[0];
 
         // set the costs
         mutable_costs()->serializeFrom(newCosts);
@@ -118,30 +122,35 @@ class FFluxStageOutputSummaryWrap : public lm::protowrap::Msg<FFluxStageOutputSu
         outputRaw.failed_trajectory_total_times().deserializeTo(failedTrajectoryTotalTimes);
 
         // calculate the fluxes (nb: phase zero flux is not correctly calculated by this formula)
-        std::vector<double> newFluxes = successfulTrajectoryCounts / (successfulTrajectoryTotalTimes);
+        std::vector<double> fluxes = successfulTrajectoryCounts / (failedTrajectoryTotalTimes + successfulTrajectoryTotalTimes);
 
         // (re)calculate the phase zero flux with the appropriate correction for time spent outside of the initial basin
-        newFluxes[0] = successfulTrajectoryCounts[0] / (successfulTrajectoryTotalTimes[0] - failedTrajectoryTotalTimes[0]);
+        fluxes[0] = successfulTrajectoryCounts[0] / successfulTrajectoryTotalTimes[0];
 
         // set the fluxes
-        mutable_fluxes()->serializeFrom(newFluxes);
+        mutable_fluxes()->serializeFrom(fluxes);
     }
 
     void buildProbabilites(const FFluxStageOutputRawWrap& outputRaw)
     {
         // load some data from the raw stage output into a few vectors
-        std::vector<double> successfulTrajectoryCounts, failedTrajectoryCounts;
+        std::vector<double> successfulTrajectoryCounts, successfulTrajectoryTotalTimes, failedTrajectoryCounts, variances;
         outputRaw.successful_trajectory_counts().deserializeTo(successfulTrajectoryCounts);
+        outputRaw.successful_trajectory_total_times().deserializeTo(successfulTrajectoryTotalTimes);
         outputRaw.failed_trajectory_counts().deserializeTo(failedTrajectoryCounts);
+        outputRaw.variances().deserializeTo(variances);
 
         // calculate the probabilities
         std::vector<double> probabilities = successfulTrajectoryCounts / (successfulTrajectoryCounts + failedTrajectoryCounts);
+
+        // (re)calculate the phase zero probability as the flux (so that probabilities is really the phase weights)
+        probabilities[0] = variances[0] / pow(successfulTrajectoryTotalTimes[0] / successfulTrajectoryCounts[0], 2);
 
         // set the probabilities
         mutable_probabilities()->serializeFrom(probabilities);
     }
 
-    void buildSwitchingTimePerTile()
+    void buildFirstPassageTimes()
     {
         // initialize a container to hold the result, and some aliases to make the math a little clearer
         std::vector<double> result, &cumulativeProbabilities(result), &firstPassageTimes(result);

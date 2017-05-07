@@ -185,11 +185,15 @@ template <typename T> struct HasPushBack
     static const bool value = sizeof(test<T>(0)) == sizeof(char);
 };
 
+template <typename T, typename=void> struct IsIterable {static const bool value = false;};
+template <typename T> struct IsIterable<T, typename T::Iterator> {static const bool value = true;};
+
 template<class T> struct IsPointerHelper {static const bool value = false;};
 template<class T> struct IsPointerHelper<T*> {static const bool value = true;};
 template<class T> struct IsPointer {static const bool value = IsPointerHelper<typename RemoveCV<T>::type>::value;};
 
 template <typename T> struct IsNumeric {static const bool value = std::numeric_limits<T>::is_specialized;};
+
 template <typename T, typename=void> struct IsIntegral {static const bool value = false;};
 template <typename T> struct IsIntegral<T, typename EnableIf<IsNumeric<T>::value>::type> {static const bool value = std::numeric_limits<T>::is_integer;};
 

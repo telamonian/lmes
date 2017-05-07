@@ -84,20 +84,32 @@ public:
     // See Knuth TAOCP vol 2, 3rd edition, page 232 for complete description of algorithm
     void push_back(double x)
     {
-        double oldMean;
-        
-        // update _count and _sum
-        _count++;
+//        double oldMean;
+//
+//        // update _count and _sum
+//        _count++;
+//        _sum += x;
+//
+//        // store the old value of _mean, since we'll need it for updating _s
+//        oldMean = _mean;
+//
+//        // update _mean
+//        _mean = oldMean + (x - oldMean)/_count;
+//
+//        // update _s
+//        _rawVariance = _rawVariance + (x - oldMean)*(x - _mean);
+        double delta, delta_n, term1;
+
+        samples.push_back(x);
         _sum += x;
 
-        // store the old value of _mean, since we'll need it for updating _s
-        oldMean = _mean;
-
-        // update _mean
-        _mean = oldMean + (x - oldMean)/_count;
-
-        // update _s
-        _rawVariance = _rawVariance + (x - oldMean)*(x - _mean);
+        long long n1 = _count;
+        _count++;
+        delta = x - _mean;
+        delta_n = delta / _count;
+        term1 = delta * delta_n * n1;
+        _mean += delta_n;
+        _rawVariance += term1;
     }
 
     long long count() const
@@ -127,16 +139,33 @@ public:
 
     static StreamingVariance* combine(StreamingVariance* combined, const StreamingVariance& a, const StreamingVariance& b)
     {
+        combined->_mean = (a._count*a._mean + b._count*b._mean) / (a._count + b._count);
+        combined->_rawVariance = a._rawVariance + b._rawVariance + pow((a._count + b._count), 2) * a._count * b._count / (a._count + b._count);
+
         combined->_sum = a._sum + b._sum;
         combined->_count = a._count + b._count;
-        combined->_mean = (a._count*a._mean + b._count*b._mean) / combined->_count;
-        combined->_rawVariance = a._rawVariance + b._rawVariance + pow((a._count + b._count), 2) * a._count * b._count / combined->_count;
 
         return combined;
+//        combined->_sum = a._sum + b._sum;
+//        combined->_count = a._count + b._count;
+//
+//        double delta = b._mean - a._mean;
+//        double delta2 = delta*delta;
+//        double delta3 = delta*delta2;
+//        double delta4 = delta2*delta2;
+//
+//        combined->_mean = (a._count*a._mean + b._count*b._mean) / combined->_count;
+//
+//        combined->_rawVariance = a._rawVariance + b._rawVariance +
+//                      delta2 * a._count * b._count / combined->_count;
+//
+//        return combined;
     }
 
     friend StreamingVariance operator+(const StreamingVariance& a, const StreamingVariance& b);
     StreamingVariance& operator+=(const StreamingVariance &rhs);
+
+    std::vector<double> samples;
 
 private:
     long long _count;

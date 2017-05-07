@@ -54,6 +54,7 @@
 #include "lm/protowrap/RepeatedMap.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/rng/XORShift.h"
+#include "lm/Stats.h"
 #include "lm/trajectory/Trajectory.h"
 #include "lm/Types.h"
 
@@ -201,11 +202,19 @@ public:
             msgPtr->set_successful_trajectories_launched_count(msgPtr->successful_trajectories_launched_count() + rows);
         }
 
+        // combine the latest streaming samples to get the variance
+        phaseWeightSV += phaseZeroTrajectory->phaseWeightSV;
+
+        // clear the streamingVariance to ensure against any double counting
+        phaseZeroTrajectory->phaseWeightSV.clear();
+
         // correct workUnitEndTime for burn in and for time spent outside of the region of the starting basin (see Valeriani 2007, Dinner 2010)
-        msgPtr->set_successful_trajectories_launched_total_time(phaseZeroTrajectory->phaseWeightSV.sum());   //msgPtr->successful_trajectories_launched_total_time() + (workUnitEndTime - workUnitStartTime));
+        msgPtr->set_successful_trajectories_launched_total_time(phaseWeightSV.sum());   //msgPtr->successful_trajectories_launched_total_time() + (workUnitEndTime - workUnitStartTime));
         // total uncorrected work unit time
         msgPtr->set_failed_trajectories_launched_total_time(msgPtr->failed_trajectories_launched_total_time() + (workUnitEndTime - workUnitStartTime)); //msgPtr->failed_trajectories_launched_total_time() + phaseZeroTrajectory->timeInOtherBasinsLast);
         //msgPtr->set_failed_trajectories_launched_total_time(phaseZeroTrajectory->timeInOtherBasins);
+
+        msgPtr->set_variance(phaseWeightSV.variance());
     }
 
     void addEndPoint(const lm::io::TrajectoryState& trajectoryState, const lm::trajectory::Trajectory& trajectory)
@@ -228,6 +237,8 @@ public:
         {
             msgPtr->set_failed_trajectories_launched_count(msgPtr->failed_trajectories_launched_count() + 1);
             msgPtr->set_failed_trajectories_launched_total_time(msgPtr->failed_trajectories_launched_total_time() + timeDataBackwardFlux[0] - trajectory.getSimTime());
+
+            phaseWeightSV.push_back(0);
         }
         else if (timeWrapBackwardFlux.size()==0 and timeWrapForwardFlux.size()==1)  // branch for "successful" trajectories (ie ones that fluxed forward)
         {
@@ -248,12 +259,16 @@ public:
             endPointVector.push_back(std::make_pair(endPointMsg, endPointMsg->count() - 1));
             randomIndexesDirty = true;
 
+            phaseWeightSV.push_back(1);
+
             if (speciesCountWrap.compressed_deflate()) delete[] speciesCountData;
         }
         else throw ConsistencyException("Finished Forward Flux phase n>0 trajectory %llu has recorded %d backward flux events and %d forward flux events; it should have either 1 forward or 1 backward flux event, and not both", trajectoryState.trajectory_id(), timeWrapBackwardFlux.size(), timeWrapForwardFlux.size());
 
         if (timeWrapBackwardFlux.compressed_deflate()) delete[] timeDataBackwardFlux;
         if (timeWrapForwardFlux.compressed_deflate()) delete[] timeDataForwardFlux;
+
+        msgPtr->set_variance(phaseWeightSV.variance());
     }
 
     const EndPointVector::Pair& getEndPointCyclic(size_t index) const
@@ -278,6 +293,7 @@ public:
     {
         msgPtr = newMsgMutablePtr;
 
+        phaseWeightSV.clear();
         successfulEndPointMap.setWrappedField(wrappedMsg()->mutable_successful_trajectory_end_points());
         rebuildEndPointVector();
     }
@@ -286,6 +302,7 @@ public:
     {
         msgPtr = NULL;
 
+        phaseWeightSV.clear();
         successfulEndPointMap.setWrappedFieldNull();
         endPointVector.clear();
     }
@@ -409,6 +426,7 @@ protected:
 
 public:
     EndPointMap successfulEndPointMap;
+    StreamingVariance phaseWeightSV;
 
 protected:
     Msg* msgPtr;

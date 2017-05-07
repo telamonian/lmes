@@ -71,7 +71,6 @@ message FFluxStageOutputSummary {
     repeated double costs               = 11 [packed=true];
     repeated double fluxes              = 12 [packed=true];
     repeated double probabilities       = 13 [packed=true];
-    repeated double variances           = 14 [packed=true];
 }
 
 message FFluxStageOutputRaw {
@@ -80,4 +79,6 @@ message FFluxStageOutputRaw {
 
     repeated uint64 failed_trajectory_counts          = 11 [packed=true];
     repeated double failed_trajectory_total_times     = 12 [packed=true];
+
+    repeated double variances                         = 13 [packed=true];
 }

@@ -488,7 +488,8 @@ void FFluxSupervisor::addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFlux
     vector<double> probabilities(estimateBernoulliProbabilities(stageOutput));
     optimizationStatus << "Pilot stage output:\n";
     optimizationStatus << "The phase costs are:\n" << costs << "\n";
-    optimizationStatus << "Conservative estimates of the phase probabilities are:\n" << probabilities << "\n";
+    optimizationStatus << "The phase weight sample variances are:\n" << stageOutput.fflux_stage_output_raw().variances() << "\n";
+    optimizationStatus << "Conservative estimates of the phase weights are:\n" << probabilities << "\n";
     optimizationStatus << "Attempting to acheive error goal " << input->errorGoal() << " (confidence level " << input->errorGoalConfidence() << ") with the following optimized trajectory counts:\n" << trajectoryCounts;
 
     Print::printf(Print::INFO, optimizationStatus.str().c_str());
@@ -577,6 +578,10 @@ std::vector<double> FFluxSupervisor::estimateBernoulliProbabilities(const lm::pr
         }
     }
 
+    // fix the phase zero probability
+    // TODO: implement full on resampling based conservative estimation for phase zero weight
+    conservativeProbabilities[0] = probabilities[0];
+
     return conservativeProbabilities;
 }
 
@@ -639,10 +644,11 @@ vector<uint64_t> FFluxSupervisor::minimizeCountTrajectoryCounts(double errorGoal
 valarray<double> FFluxSupervisor::getConstantFactors(const vector<double>& probabilities)
 {
     valarray<double> constantFactors(probabilities.data(), probabilities.size());
+    double constantFactorPhaseZero = constantFactors[0];
     constantFactors = (1.0 - constantFactors)/constantFactors;
 
     // ignore the probability from phase zero, store a fixed constant value
-    constantFactors[0] = 1.0;
+    constantFactors[0] = constantFactorPhaseZero;
 
     // print statement for debug
     //printf("constantFactors:\n[");

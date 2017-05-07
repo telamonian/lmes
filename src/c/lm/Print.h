@@ -41,10 +41,13 @@
 
 #include <cstdio>
 #include <google/protobuf/message.h>
+#include <google/protobuf/repeated_field.h>
 #include <ostream>
 #include <string>
 #include <sstream>
 #include <vector>
+
+#include "lm/protowrap/Repeated.h"
 
 namespace lm {
 
@@ -92,25 +95,46 @@ template <typename T> static void printNumeric(T num)
     std::printf(lm::Print::printf_format_string<T>(), num);
 }
 
-// EZ printing of std::vectors
+// generic function for printing the contents of an iterable using a std::ostream
 template <class T>
-inline std::ostream& operator << (std::ostream& stream, const std::vector<T>& vec)
+inline std::ostream& printIterable(std::ostream& stream, const T& iterable)
 {
-    typename std::vector<T>::const_iterator it = vec.begin();
+    typename T::const_iterator it = iterable.begin();
 
     stream << "[";
-    if (it!=vec.end())
+    if (it!=iterable.end())
     {
         stream << *it;
         it++;
     }
-    for (;it!=vec.end();++it)
+    for (;it!=iterable.end();++it)
     {
         stream << ", " << *it;
     }
     stream << "]";
 
     return stream;
+}
+
+// EZ printing of std::vectors
+template <class T>
+inline std::ostream& operator << (std::ostream& stream, const std::vector<T>& vec)
+{
+    return printIterable(stream, vec);
+}
+
+// EZ printing of protobuf repeated fields
+template <class T>
+inline std::ostream& operator << (std::ostream& stream, const google::protobuf::RepeatedField<T>& repField)
+{
+    return printIterable(stream, repField);
+}
+
+// EZ printing of wrapped protobuf repeated fields
+template <class T>
+inline std::ostream& operator << (std::ostream& stream, const lm::protowrap::Repeated<T>& repField)
+{
+    return printIterable(stream, repField);
 }
 
 #endif /* LM_PRINT_H_ */

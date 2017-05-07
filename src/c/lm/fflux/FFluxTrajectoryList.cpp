@@ -118,8 +118,8 @@ FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationP
 
 // ffluxPhase custom constructor
 FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationPhaseIndex, const FFluxPhase& ffluxPhase, const FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousTrajectoryCount, const FFluxInput& input)
-    :TrajectoryList(count, newSimulationPhaseIndex),input(input),ffluxPhase(ffluxPhase),ffluxPhaseLimit(ffluxPhaseLimit),
-    previousPhaseOutputPtr(&previousPhaseOutputCustomWrap),cyclicCounter(0)
+:TrajectoryList(count, newSimulationPhaseIndex),input(input),ffluxPhase(ffluxPhase),ffluxPhaseLimit(ffluxPhaseLimit),
+previousPhaseOutputPtr(&previousPhaseOutputCustomWrap),cyclicCounter(0)
 {
     previousPhaseOutputCustom.mutable_successful_trajectory_end_points()->CopyFrom(ffluxPhase.start_points());
     previousPhaseOutputCustomWrap.setWrappedMsg(&previousPhaseOutputCustom);
