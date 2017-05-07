@@ -58,14 +58,14 @@ using std::string;
 using std::vector;
 
 //const char* filenamesLiteralDwellTimes[] = {"genetic_toggle_switch_-_FFluxPhaseZeroDwellTimes.sfile"};
-const char* filenamesLiteralDwellTimes[] = {"/Users/tel/git/lm_ndarray/build/gtest/c/genetic_toggle_switch_-_FFluxPhaseZeroDwellTimes.sfile"};
+const char* filenamesLiteralDwellTimes[] = {"@TESTDATA_ROOT@/genetic_toggle_switch_-_FFluxPhaseZeroDwellTimes.sfile"};
 const vector<string> filenamesDwellTimes(filenamesLiteralDwellTimes, filenamesLiteralDwellTimes+1);
 
 //const int speciesCountsLiteral[] = {0,1,2,3,4,5,6};
 //const vector<int> speciesCounts(speciesCountsLiteral, speciesCountsLiteral+7);
-//
-//const double timesLiteral[] = {0.0};
-//const vector<double> times(timesLiteral, timesLiteral+7);
+
+const double timesLiteralDwellTimes[] = {2143.1557044971123, 2.186540242404135, 1.5327591258437678, 38.35022841198361, 14.705618729017715, 5.1452259907050575, 113.92381583519318, 10.288274585985619, 94.35669860103098, 698.7542958845934, 10.1577715765834, 3.8856863106434503, 10.086255038259878, 8.06676147398457, 13.390464324034838, 157.1240187575895, 5.420272994558218, 31.887065521064414, 1.7622404895273576, 166.49746150329247, 5.8711508460664845, 9.177063304925923, 2039.7047068238498, 16.031005856341835, 6.910774337641669, 18.09174130286283, 15.34936849663427, 84.05703912622903, 56.86096368642029, 156.3245457232697, 333.3631322272795, 24.913254925038927, 44.48873464210919, 196.17235480119416, 22.381122340997536, 13.08829186528601, 136.0757635984027, 37.36133360639988, 6.991071246102308, 131.52970676049108, 10.928335313723267, 9.67351705117784, 52.86189354434026, 13.424365996739539, 89.87486740972707, 316.3375634263251, 333.4630278486716, 91.01290464291026, 51.83483814897659, 260.16384845672565, 94.13659535214856, 6.45638218060526, 5.7086374095472365, 4103.3489213610565, 11.145308213469434, 35.87691590621034, 67.16928960902806, 42.157385358968895, 14.973829537068923, 113.01172714914901, 48.280893861891855, 87.84897461680703, 1557.6405012858477, 35.03579225526573, 11.843663823236056, 17.341485879320317, 25.632532747235018, 27.246073068437, 11.310655949044303, 6.693007863340426, 16.52731301919539, 2670.188926018026, 76.11933389918158, 23.37416609168031, 12.996701550853686, 9.82786088283865, 1854.2668701376297, 6.6317400257778445, 369.7895520548975, 8.04607365071115, 1489.8483182779814, 3.5142216793965417, 3690.8491349067554, 116.08250494590538, 57.073220957889134, 25.012103155856494, 106.619940896363, 7.656542350615382, 11.893212007242255, 942.7277274757844, 17.22530072790323, 16.438039190858035, 30.07651328227621, 57.97641647784985, 61.46636252948883, 80.0124827044474, 51.114260589836704, 10.484347049225107, 57.26351814633199, 467.3847608781034};
+const vector<double> intendedDwellTimes(timesLiteralDwellTimes, timesLiteralDwellTimes+36);
 
 class LimitTrackingsLoader
 {
@@ -76,9 +76,6 @@ public:
         {
             // See if the file is an SFile.
             lm::io::sfile::LocalSFile sfile(filenames[i]);
-//            printf("exists: %d\n", sfile.exists());
-//            printf("isFile: %d\n", sfile.isFile());
-//            printf("isSFile: %d\n", sfile.isSFile());
             if(sfile.exists() && sfile.isFile() && sfile.isSFile())
             {
                 // Read the input from the sfile.
@@ -98,10 +95,7 @@ class FFluxPhaseZeroTrajectoryFixture: public ::testing::Test
 public:
     FFluxPhaseZeroTrajectoryFixture(): initialWaitingTime(0),ltLoader(filenamesDwellTimes),previousEvent(lm::fflux::BASIN_ENTRY, 0)
     {
-        char cwd[FILENAME_MAX];
-        getcwd(cwd, sizeof(cwd));
-
-        printf("current working directory: %s\n", cwd);
+//        printCWD();
     }
 
 public:
@@ -163,6 +157,7 @@ TEST_F(FFluxPhaseZeroTrajectoryFixture, getDwellTimes_test)
 
     // test some scalar values in ffluxStage
     EXPECT_EQ(36, waitingTimes.size());
+    EXPECT_EQ(intendedDwellTimes, waitingTimes);
 
 //    EXPECT_EQ(0, ffluxStage.basin_index());
 //

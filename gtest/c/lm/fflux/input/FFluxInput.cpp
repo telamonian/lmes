@@ -52,24 +52,21 @@
 using std::string;
 using std::vector;
 
-const char* filenamesLiteralFFluxInputs[] = {"/Users/tel/git/lm_ndarray/gtest/c/lm/fflux/input/ffluxSimulationInput.sfile"};
+const char* filenamesLiteralFFluxInputs[] = {"@TESTDATA_ROOT@/ffluxSimulationInput.sfile"};
 const vector<string> filenamesFFluxInputs(filenamesLiteralFFluxInputs, filenamesLiteralFFluxInputs+1);
 
 const int speciesCountsLiteral[] = {0,1,2,3,4,5,6};
 const vector<int> speciesCounts(speciesCountsLiteral, speciesCountsLiteral+7);
 
 const double timesLiteral[] = {0.0};
-const vector<double> times(timesLiteral, timesLiteral+7);
+const vector<double> times(timesLiteral, timesLiteral+1);
 
 class FFluxInputFixture : public ::testing::Test
 {
 public:
     FFluxInputFixture(): ffluxInput(filenamesFFluxInputs)
     {
-        char cwd[FILENAME_MAX];
-        getcwd(cwd, sizeof(cwd));
-
-        printf("current working directory: %s\n", cwd);
+//        printCWD();
     }
 
     lm::fflux::input::FFluxInput ffluxInput;

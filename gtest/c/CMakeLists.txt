@@ -2,25 +2,39 @@
 add_subdirectory(gmock-1.7.0)
 include_directories(${gmock_SOURCE_DIR}/include ${gmock_SOURCE_DIR}
                     ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR}
-                    ${CMAKE_CURRENT_SOURCE_DIR})
+                    ${CMAKE_CURRENT_BINARY_DIR})
 
-#################
-#TARGET: lmes_gtest
-#################
+##############################################
+#### setup the test source and data files ####
+##############################################
+
+# set the testdata directory var. This will be directly substituted into the gtest source files
+set(TESTDATA_ROOT ${CMAKE_CURRENT_BINARY_DIR}/testdata)
+
+# copy over the test data files
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/testdata DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
+# get the source file templates
+file(GLOB_RECURSE lmes_gtest_c_source_templates RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} lm/*.cpp lm/*.cc lm/*.h)
+
+# substitute in the paths to the test data files
+foreach(src_template ${lmes_gtest_c_source_templates})
+    configure_file(${src_template} "${CMAKE_CURRENT_BINARY_DIR}/${src_template}" @ONLY)
+endforeach(src_template)
+
+############################
+#### TARGET: lmes_gtest ####
+############################
+
 # get the source files
-file(GLOB_RECURSE lmes_gtest_c_source lm/*.cpp lm/*.cc lm/*.h)
-# get the test data files
-file(GLOB_RECURSE lmes_gtest_testdata ./*.sfile)
+file(GLOB_RECURSE lmes_gtest_c_source ${CMAKE_CURRENT_BINARY_DIR}/*.cpp ${CMAKE_CURRENT_BINARY_DIR}/*.cc ${CMAKE_CURRENT_BINARY_DIR}/*.h)
 
 # remove all files with certain prefixes
-file(GLOB_RECURSE to_remove off_* old_*)
+file(GLOB_RECURSE */to_remove */off_* */old_*)
 if(NOT "${to_remove}" STREQUAL "")
     # REMOVE_ITEM causes problems if to_remove is empty, so guard against that
     list(REMOVE_ITEM lmes_gtest_c_source ${to_remove})
 endif(NOT "${to_remove}" STREQUAL "")
-
-# copy over the test data files
-file(COPY ${lmes_gtest_testdata} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 add_executable(lmes_gtest ${lmes_gtest_c_source})
 set_target_properties(gmock gmock_main gtest gtest_main lmes_gtest PROPERTIES EXCLUDE_FROM_ALL TRUE)
