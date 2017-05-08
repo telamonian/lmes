@@ -47,7 +47,7 @@
 #include "lm/EnumHelper.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/sfile/SFile.h"
-#include "lm/input/BoundaryConditions.pb.h"
+#include "lm/types/BoundaryConditions.pb.h"
 #include "lm/input/DiffusionModel.pb.h"
 #include "lm/input/OrderParameters.pb.h"
 #include "lm/input/OutputOptions.pb.h"
@@ -122,7 +122,7 @@ protected:
 
     virtual void initSanityCheck();
 
-    bool parseBoundaryConditions(lm::input::BoundaryConditions* bc, std::string arg);
+    bool parseBoundaryConditions(lm::types::BoundaryConditions* bc, std::string arg);
 
 protected:
     // flags for determining if a particular kind of input is present

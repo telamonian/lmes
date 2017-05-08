@@ -46,7 +46,7 @@
 #include "hrtime.h"
 #include "lm/Exceptions.h"
 #include "lm/input/Input.h"
-#include "lm/input/BoundaryConditions.pb.h"
+#include "lm/types/BoundaryConditions.pb.h"
 #include "lm/input/DiffusionModel.pb.h"
 #include "lm/input/OrderParameters.pb.h"
 #include "lm/input/ReactionModel.pb.h"

@@ -46,7 +46,7 @@
 #define LM_RDME_RDMESOLVER_H_
 
 #include "lm/cme/CMESolver.h"
-#include "lm/input/BoundaryConditions.pb.h"
+#include "lm/types/BoundaryConditions.pb.h"
 #include "lm/input/DiffusionModel.pb.h"
 #include "lm/rdme/DiffusionModel.h"
 #include "lm/rdme/Lattice.h"

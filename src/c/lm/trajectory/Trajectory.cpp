@@ -217,7 +217,7 @@ void Trajectory::initializeDiffusionModel(const lm::input::Input& input)
 {
     const lm::input::DiffusionModel& diffusionModel = input.getDiffusionModelMsg();
     lm::io::RDMEState* rdmeState = state.mutable_rdme_state();
-    lm::io::Lattice* initialLattice = rdmeState->mutable_species_positions();
+    lm::types::Lattice* initialLattice = rdmeState->mutable_species_positions();
     initialLattice->set_lattice_x_size(diffusionModel.initial_lattice().lattice_x_size());
     initialLattice->set_lattice_y_size(diffusionModel.initial_lattice().lattice_y_size());
     initialLattice->set_lattice_z_size(diffusionModel.initial_lattice().lattice_z_size());

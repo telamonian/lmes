@@ -52,7 +52,7 @@
 #include "lm/fflux/io/FFluxStageOutput.pb.h"
 #include "lm/input/Input.h"
 #include "lm/io/hdf5/SimulationFile.h"
-#include "lm/input/BoundaryConditions.pb.h"
+#include "lm/types/BoundaryConditions.pb.h"
 #include "lm/input/DiffusionModel.pb.h"
 #include "lm/input/OrderParameters.pb.h"
 #include "lm/input/OutputOptions.pb.h"

@@ -59,24 +59,24 @@
 #include "lm/Print.h"
 #include "lm/Tune.h"
 #include "lm/Types.h"
-#include "lm/io/ArrayOrdering.pb.h"
 #include "lm/input/DiffusionModel.pb.h"
-#include "lm/io/FirstPassageTimes.pb.h"
-#include "lm/io/FFluxOutput.pb.h"
-#include "lm/io/Lattice.pb.h"
-#include "lm/io/LatticeTimeSeries.pb.h"
-#include "lm/input/OrderParameters.pb.h"
-#include "lm/io/ParameterValues.pb.h"
 #include "lm/input/ReactionModel.pb.h"
 #include "lm/input/SimulationParameters.pb.h"
 #include "lm/input/SpatialModel.pb.h"
+#include "lm/input/Tilings.pb.h"
+#include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/io/FFluxOutput.pb.h"
+#include "lm/io/LatticeTimeSeries.pb.h"
+#include "lm/input/OrderParameters.pb.h"
+#include "lm/io/ParameterValues.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/io/TilingHist.pb.h"
-#include "lm/input/Tilings.pb.h"
 #include "lm/io/hdf5/HDF5.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/rdme/Lattice.h"
+#include "lm/types/ArrayOrdering.pb.h"
+#include "lm/types/Lattice.pb.h"
 
 using std::list;
 using std::map;
@@ -505,7 +505,7 @@ void Hdf5File::getDiffusionModel(lm::input::DiffusionModel* diffusionModel) cons
         diffusionModel->set_number_reactions(numberReactions);
         diffusionModel->set_number_site_types(numberSiteTypes);
         diffusionModel->set_lattice_spacing(latticeSpacing);
-        lm::io::Lattice* lattice=diffusionModel->mutable_initial_lattice();
+        lm::types::Lattice* lattice=diffusionModel->mutable_initial_lattice();
         lattice->set_lattice_x_size(latticeXSize);
         lattice->set_lattice_y_size(latticeYSize);
         lattice->set_lattice_z_size(latticeZSize);
@@ -544,7 +544,7 @@ void Hdf5File::getDiffusionModel(lm::input::DiffusionModel* diffusionModel) cons
         particles->resize(dims[0]*dims[1]*dims[2]*dims[3]);
         HDF5_EXCEPTION_CHECK(H5LTread_dataset(file, "/Model/Diffusion/Lattice", H5T_NATIVE_UINT8, &((*particles)[0])));
         lattice->set_allocated_particles(particles);
-        lattice->set_particles_ordering(lm::io::ROW_MAJOR);
+        lattice->set_particles_ordering(lm::types::ROW_MAJOR);
 
         // Read the initial lattice sites.
         HDF5_EXCEPTION_CHECK(H5LTget_dataset_ndims(file, "/Model/Diffusion/LatticeSites", &ndims));
@@ -555,7 +555,7 @@ void Hdf5File::getDiffusionModel(lm::input::DiffusionModel* diffusionModel) cons
         sites->resize(dims[0]*dims[1]*dims[2]);
         HDF5_EXCEPTION_CHECK(H5LTread_dataset(file, "/Model/Diffusion/LatticeSites", H5T_NATIVE_UINT8, &((*sites)[0])));
         lattice->set_allocated_sites(sites);
-        lattice->set_sites_ordering(lm::io::ROW_MAJOR);
+        lattice->set_sites_ordering(lm::types::ROW_MAJOR);
     }
 }
 
@@ -1729,7 +1729,7 @@ bool Hdf5File::hasBoundaryGradient() const
     return (H5Lexists(file, "/Model/Diffusion/Gradient", H5P_DEFAULT) != 0);
 }
 
-void Hdf5File::getBoundaryGradient(lm::input::BoundaryConditions* bc) const
+void Hdf5File::getBoundaryGradient(lm::types::BoundaryConditions* bc) const
 {
     // Make sure the model is not null and then clear it.
     if (bc == NULL) throw InvalidArgException("bc", "cannot be null");
@@ -1759,7 +1759,7 @@ void Hdf5File::getBoundaryGradient(lm::input::BoundaryConditions* bc) const
         HDF5_EXCEPTION_CHECK(H5LTread_dataset(file, "/Model/Diffusion/Gradient", H5T_NATIVE_DOUBLE, data));
         for (int i=0; i<dataSize; i++)
             bc->add_boundary_gradient(data[i]);
-        bc->set_boundary_gradient_ordering(lm::io::ROW_MAJOR);
+        bc->set_boundary_gradient_ordering(lm::types::ROW_MAJOR);
         delete[] data;
     }
 }
@@ -2004,10 +2004,10 @@ void Hdf5File::appendLatticeTimeSeries(uint64_t replicate, const lm::io::Lattice
 
         // Create the lattice data set.
         {
-            const lm::io::Lattice& lattice = data.lattice(i);
+            const lm::types::Lattice& lattice = data.lattice(i);
             if (!lattice.has_particles_per_site()) throw Exception("Invalid lattice, particles per site must be specified for HDF5 file output.");
             if (!lattice.has_particles_ordering()) throw Exception("Invalid lattice, data ordering must be specified for HDF5 file output.");
-            if (lattice.particles_ordering() != lm::io::ROW_MAJOR) throw Exception("Invalid lattice, data ordering must be in ROW_MAJOR format for HDF5 file output.");
+            if (lattice.particles_ordering() != lm::types::ROW_MAJOR) throw Exception("Invalid lattice, data ordering must be in ROW_MAJOR format for HDF5 file output.");
             if (!lattice.has_particles()) throw Exception("Invalid lattice, data must be specified for HDF5 file output.");
 
             size_t latticeParticlesSize=0;

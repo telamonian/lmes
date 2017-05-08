@@ -41,7 +41,7 @@
 #define LM_RDME_DIFFUSIONMODEL_H_
 
 #include "lm/Types.h"
-#include "lm/input/BoundaryConditions.pb.h"
+#include "lm/types/BoundaryConditions.pb.h"
 #include "lm/input/DiffusionModel.pb.h"
 
 namespace lm {
@@ -63,7 +63,7 @@ public:
     uint latticeYSize;
     uint latticeZSize;
     uint particlesPerSite;
-    lm::input::BoundaryConditions boundaryConditions;
+    lm::types::BoundaryConditions boundaryConditions;
     bool hasBoundaryInflux;
     double* boundaryInflux;
 };

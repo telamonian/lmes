@@ -71,7 +71,7 @@ public:
 
 protected:
     virtual void checkSpeciesCountsAgainstLattice();
-    //virtual void writeLatticeData(double time, ByteLattice * lattice, lm::io::Lattice * latticeDataSet);
+    //virtual void writeLatticeData(double time, ByteLattice * lattice, lm::types::Lattice * latticeDataSet);
     //virtual void recordSpeciesCounts(double time, lm::io::SpeciesCounts * speciesCountsDataSet);
     //virtual void writeSpeciesCounts(lm::io::SpeciesCounts * speciesCountsDataSet);
     virtual int updateAllSubvolumePropensities(si_time_t time, int rngNext, double * expRngValues);

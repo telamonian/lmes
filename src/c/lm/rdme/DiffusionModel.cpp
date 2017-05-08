@@ -42,7 +42,8 @@
 #include "lm/Math.h"
 #include "lm/Print.h"
 #include "lm/Types.h"
-#include "lm/input/BoundaryConditions.pb.h"
+#include "lm/types/ArrayOrdering.pb.h"
+#include "lm/types/BoundaryConditions.pb.h"
 #include "lm/input/DiffusionModel.pb.h"
 #include "lm/rdme/DiffusionModel.h"
 #include "lm/rdme/ByteLattice.h"
@@ -80,7 +81,7 @@ DiffusionModel::DiffusionModel(const lm::input::DiffusionModel& dm)
     // If no boundary conditinos were specified, set the default.
     if (!dm.has_boundary_conditions())
     {
-        boundaryConditions.set_global(lm::input::BoundaryConditions::REFLECTING);
+        boundaryConditions.set_global(lm::types::BoundaryConditions::REFLECTING);
     }
     // Otherwise, copy the boundary conditions from the message.
     else
@@ -88,7 +89,7 @@ DiffusionModel::DiffusionModel(const lm::input::DiffusionModel& dm)
         boundaryConditions = dm.boundary_conditions();
 
         // See if we need to use the boundary influx array for a constant concentration boundary.
-        if ((!boundaryConditions.axis_specific_boundaries() && boundaryConditions.global() == lm::input::BoundaryConditions::FIXED_CONCENTRATION) || (boundaryConditions.axis_specific_boundaries() && (boundaryConditions.x_minus() == lm::input::BoundaryConditions::FIXED_CONCENTRATION || boundaryConditions.x_plus() == lm::input::BoundaryConditions::FIXED_CONCENTRATION || boundaryConditions.y_minus() == lm::input::BoundaryConditions::FIXED_CONCENTRATION || boundaryConditions.y_plus() == lm::input::BoundaryConditions::FIXED_CONCENTRATION || boundaryConditions.z_minus() == lm::input::BoundaryConditions::FIXED_CONCENTRATION || boundaryConditions.z_plus() == lm::input::BoundaryConditions::FIXED_CONCENTRATION)))
+        if ((!boundaryConditions.axis_specific_boundaries() && boundaryConditions.global() == lm::types::BoundaryConditions::FIXED_CONCENTRATION) || (boundaryConditions.axis_specific_boundaries() && (boundaryConditions.x_minus() == lm::types::BoundaryConditions::FIXED_CONCENTRATION || boundaryConditions.x_plus() == lm::types::BoundaryConditions::FIXED_CONCENTRATION || boundaryConditions.y_minus() == lm::types::BoundaryConditions::FIXED_CONCENTRATION || boundaryConditions.y_plus() == lm::types::BoundaryConditions::FIXED_CONCENTRATION || boundaryConditions.z_minus() == lm::types::BoundaryConditions::FIXED_CONCENTRATION || boundaryConditions.z_plus() == lm::types::BoundaryConditions::FIXED_CONCENTRATION)))
         {
             // Make sure we have the necessary parameters.
             if (!boundaryConditions.has_boundary_site()) throw Exception("No boundary site type specified for fixed concentration boundaries.");
@@ -106,43 +107,43 @@ DiffusionModel::DiffusionModel(const lm::input::DiffusionModel& dm)
             for (int i=0; i<latticeXSize*latticeYSize*latticeZSize; i++)
                 boundaryInflux[i] = 0.0;
 
-            bool globalFixedConcentration = (!boundaryConditions.axis_specific_boundaries() && lm::input::BoundaryConditions::FIXED_CONCENTRATION);
-            if (globalFixedConcentration || (boundaryConditions.axis_specific_boundaries() && boundaryConditions.x_minus() == lm::input::BoundaryConditions::FIXED_CONCENTRATION))
+            bool globalFixedConcentration = (!boundaryConditions.axis_specific_boundaries() && lm::types::BoundaryConditions::FIXED_CONCENTRATION);
+            if (globalFixedConcentration || (boundaryConditions.axis_specific_boundaries() && boundaryConditions.x_minus() == lm::types::BoundaryConditions::FIXED_CONCENTRATION))
             {
                 int x=0;
                 for (int z=0; z<latticeZSize; z++)
                     for (int y=0; y<latticeYSize; y++)
                         boundaryInflux[z*latticeXSize*latticeYSize+y*latticeXSize+x] += boundarySpeciesCount*(DF[boundarySiteType*numberSiteTypes*numberSpecies + initialLattice.getSiteType(x,y,z)*numberSpecies + boundarySpecies]/latticeSpacingSquared);
             }
-            if (globalFixedConcentration || (boundaryConditions.axis_specific_boundaries() && boundaryConditions.x_plus() == lm::input::BoundaryConditions::FIXED_CONCENTRATION))
+            if (globalFixedConcentration || (boundaryConditions.axis_specific_boundaries() && boundaryConditions.x_plus() == lm::types::BoundaryConditions::FIXED_CONCENTRATION))
             {
                 int x=latticeXSize-1;
                 for (int z=0; z<latticeZSize; z++)
                     for (int y=0; y<latticeYSize; y++)
                         boundaryInflux[z*latticeXSize*latticeYSize+y*latticeXSize+x] += boundarySpeciesCount*(DF[boundarySiteType*numberSiteTypes*numberSpecies + initialLattice.getSiteType(x,y,z)*numberSpecies + boundarySpecies]/latticeSpacingSquared);
             }
-            if (globalFixedConcentration || (boundaryConditions.axis_specific_boundaries() && boundaryConditions.y_minus() == lm::input::BoundaryConditions::FIXED_CONCENTRATION))
+            if (globalFixedConcentration || (boundaryConditions.axis_specific_boundaries() && boundaryConditions.y_minus() == lm::types::BoundaryConditions::FIXED_CONCENTRATION))
             {
                 int y=0;
                 for (int z=0; z<latticeZSize; z++)
                     for (int x=0; x<latticeXSize; x++)
                         boundaryInflux[z*latticeXSize*latticeYSize+y*latticeXSize+x] += boundarySpeciesCount*(DF[boundarySiteType*numberSiteTypes*numberSpecies + initialLattice.getSiteType(x,y,z)*numberSpecies + boundarySpecies]/latticeSpacingSquared);
             }
-            if (globalFixedConcentration || (boundaryConditions.axis_specific_boundaries() && boundaryConditions.y_plus() == lm::input::BoundaryConditions::FIXED_CONCENTRATION))
+            if (globalFixedConcentration || (boundaryConditions.axis_specific_boundaries() && boundaryConditions.y_plus() == lm::types::BoundaryConditions::FIXED_CONCENTRATION))
             {
                 int y=latticeYSize-1;
                 for (int z=0; z<latticeZSize; z++)
                     for (int x=0; x<latticeXSize; x++)
                         boundaryInflux[z*latticeXSize*latticeYSize+y*latticeXSize+x] += boundarySpeciesCount*(DF[boundarySiteType*numberSiteTypes*numberSpecies + initialLattice.getSiteType(x,y,z)*numberSpecies + boundarySpecies]/latticeSpacingSquared);
             }
-            if (globalFixedConcentration || (boundaryConditions.axis_specific_boundaries() && boundaryConditions.z_minus() == lm::input::BoundaryConditions::FIXED_CONCENTRATION))
+            if (globalFixedConcentration || (boundaryConditions.axis_specific_boundaries() && boundaryConditions.z_minus() == lm::types::BoundaryConditions::FIXED_CONCENTRATION))
             {
                 int z=0;
                 for (int y=0; y<latticeYSize; y++)
                     for (int x=0; x<latticeXSize; x++)
                         boundaryInflux[z*latticeXSize*latticeYSize+y*latticeXSize+x] += boundarySpeciesCount*(DF[boundarySiteType*numberSiteTypes*numberSpecies + initialLattice.getSiteType(x,y,z)*numberSpecies + boundarySpecies]/latticeSpacingSquared);
             }
-            if (globalFixedConcentration || (boundaryConditions.axis_specific_boundaries() && boundaryConditions.z_plus() == lm::input::BoundaryConditions::FIXED_CONCENTRATION))
+            if (globalFixedConcentration || (boundaryConditions.axis_specific_boundaries() && boundaryConditions.z_plus() == lm::types::BoundaryConditions::FIXED_CONCENTRATION))
             {
                 int z=latticeZSize-1;
                 for (int y=0; y<latticeYSize; y++)
@@ -152,14 +153,14 @@ DiffusionModel::DiffusionModel(const lm::input::DiffusionModel& dm)
         }
 
         // See if we need to use the boundary influx array for a constant gradient boundary.
-        if ((!boundaryConditions.axis_specific_boundaries() && boundaryConditions.global() == lm::input::BoundaryConditions::FIXED_GRADIENT) || (boundaryConditions.axis_specific_boundaries() && (boundaryConditions.x_minus() == lm::input::BoundaryConditions::FIXED_GRADIENT || boundaryConditions.x_plus() == lm::input::BoundaryConditions::FIXED_GRADIENT || boundaryConditions.y_minus() == lm::input::BoundaryConditions::FIXED_GRADIENT || boundaryConditions.y_plus() == lm::input::BoundaryConditions::FIXED_GRADIENT || boundaryConditions.z_minus() == lm::input::BoundaryConditions::FIXED_GRADIENT || boundaryConditions.z_plus() == lm::input::BoundaryConditions::FIXED_GRADIENT)))
+        if ((!boundaryConditions.axis_specific_boundaries() && boundaryConditions.global() == lm::types::BoundaryConditions::FIXED_GRADIENT) || (boundaryConditions.axis_specific_boundaries() && (boundaryConditions.x_minus() == lm::types::BoundaryConditions::FIXED_GRADIENT || boundaryConditions.x_plus() == lm::types::BoundaryConditions::FIXED_GRADIENT || boundaryConditions.y_minus() == lm::types::BoundaryConditions::FIXED_GRADIENT || boundaryConditions.y_plus() == lm::types::BoundaryConditions::FIXED_GRADIENT || boundaryConditions.z_minus() == lm::types::BoundaryConditions::FIXED_GRADIENT || boundaryConditions.z_plus() == lm::types::BoundaryConditions::FIXED_GRADIENT)))
         {
             // Make sure we have the necessary parameters.
             if (!boundaryConditions.has_boundary_site()) throw Exception("No boundary site type specified for fixed gradient boundaries.");
             if (!boundaryConditions.has_boundary_species()) throw Exception("No boundary species specified for fixed gradient boundaries.");
             if (!boundaryConditions.has_boundary_gradient_ordering()) throw Exception("No boundary gradient array ordering specified for fixed gradient boundaries.");
-            lm::io::ArrayOrdering dataOrdering = boundaryConditions.boundary_gradient_ordering();
-            if (dataOrdering != lm::io::ROW_MAJOR && dataOrdering != lm::io::COLUMN_MAJOR) throw Exception("Invalid boundary gradient array ordering specified for fixed flux boundaries.");
+            lm::types::ArrayOrdering dataOrdering = boundaryConditions.boundary_gradient_ordering();
+            if (dataOrdering != lm::types::ROW_MAJOR && dataOrdering != lm::types::COLUMN_MAJOR) throw Exception("Invalid boundary gradient array ordering specified for fixed flux boundaries.");
             if (boundaryConditions.boundary_gradient_size() != (latticeXSize+2)*(latticeYSize+2)*(latticeZSize+2)) throw Exception("Invalid boundary gradient array specified for fixed gradient boundaries.");
 
             site_t boundarySiteType = boundaryConditions.boundary_site();
@@ -172,8 +173,8 @@ DiffusionModel::DiffusionModel(const lm::input::DiffusionModel& dm)
             for (int i=0; i<latticeXSize*latticeYSize*latticeZSize; i++)
                 boundaryInflux[i] = 0.0;
 
-            bool globalFixedConcentration = (!boundaryConditions.axis_specific_boundaries() && lm::input::BoundaryConditions::FIXED_GRADIENT);
-            if (globalFixedConcentration || (boundaryConditions.axis_specific_boundaries() && boundaryConditions.x_minus() == lm::input::BoundaryConditions::FIXED_GRADIENT))
+            bool globalFixedConcentration = (!boundaryConditions.axis_specific_boundaries() && lm::types::BoundaryConditions::FIXED_GRADIENT);
+            if (globalFixedConcentration || (boundaryConditions.axis_specific_boundaries() && boundaryConditions.x_minus() == lm::types::BoundaryConditions::FIXED_GRADIENT))
             {
                 int x=0;
                 for (int z=0; z<latticeZSize; z++)
@@ -184,7 +185,7 @@ DiffusionModel::DiffusionModel(const lm::input::DiffusionModel& dm)
                         x2-=1;
                         int influxDataIndex = z*latticeXSize*latticeYSize+y*latticeXSize+x;
                         int gradientDataIndex;
-                        if (dataOrdering == lm::io::ROW_MAJOR)
+                        if (dataOrdering == lm::types::ROW_MAJOR)
                             gradientDataIndex = x2*(latticeYSize+2)*(latticeZSize+2) + y2*(latticeZSize+2) + z2;
                         else
                             gradientDataIndex = z2*(latticeXSize+2)*(latticeYSize+2) + y2*(latticeXSize+2) + x2;
@@ -193,7 +194,7 @@ DiffusionModel::DiffusionModel(const lm::input::DiffusionModel& dm)
                     }
                 }
             }
-            if (globalFixedConcentration || (boundaryConditions.axis_specific_boundaries() && boundaryConditions.x_plus() == lm::input::BoundaryConditions::FIXED_GRADIENT))
+            if (globalFixedConcentration || (boundaryConditions.axis_specific_boundaries() && boundaryConditions.x_plus() == lm::types::BoundaryConditions::FIXED_GRADIENT))
             {
                 int x=latticeXSize-1;
                 for (int z=0; z<latticeZSize; z++)
@@ -204,7 +205,7 @@ DiffusionModel::DiffusionModel(const lm::input::DiffusionModel& dm)
                         x2+=1;
                         int influxDataIndex = z*latticeXSize*latticeYSize+y*latticeXSize+x;
                         int gradientDataIndex;
-                        if (dataOrdering == lm::io::ROW_MAJOR)
+                        if (dataOrdering == lm::types::ROW_MAJOR)
                             gradientDataIndex = x2*(latticeYSize+2)*(latticeZSize+2) + y2*(latticeZSize+2) + z2;
                         else
                             gradientDataIndex = z2*(latticeXSize+2)*(latticeYSize+2) + y2*(latticeXSize+2) + x2;
@@ -213,7 +214,7 @@ DiffusionModel::DiffusionModel(const lm::input::DiffusionModel& dm)
                     }
                 }
             }
-            if (globalFixedConcentration || (boundaryConditions.axis_specific_boundaries() && boundaryConditions.y_minus() == lm::input::BoundaryConditions::FIXED_GRADIENT))
+            if (globalFixedConcentration || (boundaryConditions.axis_specific_boundaries() && boundaryConditions.y_minus() == lm::types::BoundaryConditions::FIXED_GRADIENT))
             {
                 int y=0;
                 for (int z=0; z<latticeZSize; z++)
@@ -224,7 +225,7 @@ DiffusionModel::DiffusionModel(const lm::input::DiffusionModel& dm)
                         y2-=1;
                         int influxDataIndex = z*latticeXSize*latticeYSize+y*latticeXSize+x;
                         int gradientDataIndex;
-                        if (dataOrdering == lm::io::ROW_MAJOR)
+                        if (dataOrdering == lm::types::ROW_MAJOR)
                             gradientDataIndex = x2*(latticeYSize+2)*(latticeZSize+2) + y2*(latticeZSize+2) + z2;
                         else
                             gradientDataIndex = z2*(latticeXSize+2)*(latticeYSize+2) + y2*(latticeXSize+2) + x2;
@@ -233,7 +234,7 @@ DiffusionModel::DiffusionModel(const lm::input::DiffusionModel& dm)
                     }
                 }
             }
-            if (globalFixedConcentration || (boundaryConditions.axis_specific_boundaries() && boundaryConditions.y_plus() == lm::input::BoundaryConditions::FIXED_GRADIENT))
+            if (globalFixedConcentration || (boundaryConditions.axis_specific_boundaries() && boundaryConditions.y_plus() == lm::types::BoundaryConditions::FIXED_GRADIENT))
             {
                 int y=latticeYSize-1;
                 for (int z=0; z<latticeZSize; z++)
@@ -244,7 +245,7 @@ DiffusionModel::DiffusionModel(const lm::input::DiffusionModel& dm)
                         y2+=1;
                         int influxDataIndex = z*latticeXSize*latticeYSize+y*latticeXSize+x;
                         int gradientDataIndex;
-                        if (dataOrdering == lm::io::ROW_MAJOR)
+                        if (dataOrdering == lm::types::ROW_MAJOR)
                             gradientDataIndex = x2*(latticeYSize+2)*(latticeZSize+2) + y2*(latticeZSize+2) + z2;
                         else
                             gradientDataIndex = z2*(latticeXSize+2)*(latticeYSize+2) + y2*(latticeXSize+2) + x2;
@@ -253,7 +254,7 @@ DiffusionModel::DiffusionModel(const lm::input::DiffusionModel& dm)
                     }
                 }
             }
-            if (globalFixedConcentration || (boundaryConditions.axis_specific_boundaries() && boundaryConditions.z_minus() == lm::input::BoundaryConditions::FIXED_GRADIENT))
+            if (globalFixedConcentration || (boundaryConditions.axis_specific_boundaries() && boundaryConditions.z_minus() == lm::types::BoundaryConditions::FIXED_GRADIENT))
             {
                 int z=0;
                 for (int y=0; y<latticeYSize; y++)
@@ -264,7 +265,7 @@ DiffusionModel::DiffusionModel(const lm::input::DiffusionModel& dm)
                         z2-=1;
                         int influxDataIndex = z*latticeXSize*latticeYSize+y*latticeXSize+x;
                         int gradientDataIndex;
-                        if (dataOrdering == lm::io::ROW_MAJOR)
+                        if (dataOrdering == lm::types::ROW_MAJOR)
                             gradientDataIndex = x2*(latticeYSize+2)*(latticeZSize+2) + y2*(latticeZSize+2) + z2;
                         else
                             gradientDataIndex = z2*(latticeXSize+2)*(latticeYSize+2) + y2*(latticeXSize+2) + x2;
@@ -273,7 +274,7 @@ DiffusionModel::DiffusionModel(const lm::input::DiffusionModel& dm)
                     }
                 }
             }
-            if (globalFixedConcentration || (boundaryConditions.axis_specific_boundaries() && boundaryConditions.z_plus() == lm::input::BoundaryConditions::FIXED_GRADIENT))
+            if (globalFixedConcentration || (boundaryConditions.axis_specific_boundaries() && boundaryConditions.z_plus() == lm::types::BoundaryConditions::FIXED_GRADIENT))
             {
                 int z=latticeZSize-1;
                 for (int y=0; y<latticeYSize; y++)
@@ -284,7 +285,7 @@ DiffusionModel::DiffusionModel(const lm::input::DiffusionModel& dm)
                         z2+=1;
                         int influxDataIndex = z*latticeXSize*latticeYSize+y*latticeXSize+x;
                         int gradientDataIndex;
-                        if (dataOrdering == lm::io::ROW_MAJOR)
+                        if (dataOrdering == lm::types::ROW_MAJOR)
                             gradientDataIndex = x2*(latticeYSize+2)*(latticeZSize+2) + y2*(latticeZSize+2) + z2;
                         else
                             gradientDataIndex = z2*(latticeXSize+2)*(latticeYSize+2) + y2*(latticeXSize+2) + x2;

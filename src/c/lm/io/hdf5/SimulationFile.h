@@ -62,7 +62,6 @@ class Lattice;
 }
 
 namespace input {
-class BoundaryConditions;
 class DiffusionModel;
 class OrderParameters;
 class ReactionModel;
@@ -71,10 +70,14 @@ class SpatialModel;
 class Tilings;
 }
 
+namespace types {
+class BoundaryConditions;
+class Lattice;
+}
+
 namespace io {
 class FirstPassageTimes;
 class FFluxOutput;
-class Lattice;
 class LatticeTimeSeries;
 class OrderParameterFirstPassageTimes;
 class ParameterValues;
@@ -183,7 +186,7 @@ public:
     virtual void getTilings(lm::input::Tilings* tilings) const;
     virtual void setTilings(lm::input::Tilings* tilings);
     virtual bool hasBoundaryGradient() const;
-    virtual void getBoundaryGradient(lm::input::BoundaryConditions* bc) const;
+    virtual void getBoundaryGradient(lm::types::BoundaryConditions* bc) const;
 
     // Methods for working with a replicate.
     virtual bool replicateExists(uint64_t replicate);

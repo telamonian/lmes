@@ -46,15 +46,16 @@
 #include "lm/Tune.h"
 #include "lm/Print.h"
 #include "lm/cme/CMESolver.h"
-#include "lm/input/BoundaryConditions.pb.h"
 #include "lm/input/DiffusionModel.pb.h"
-#include "lm/io/Lattice.pb.h"
 #include "lm/me/PropensityFunction.h"
 #include "lm/rdme/Lattice.h"
 #include "lm/rdme/ByteLattice.h"
 #include "lm/rdme/DiffusionModel.h"
 #include "lm/rdme/RDMESolver.h"
 #include "lm/rng/RandomGenerator.h"
+#include "lm/types/ArrayOrdering.pb.h"
+#include "lm/types/BoundaryConditions.pb.h"
+#include "lm/types/Lattice.pb.h"
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
 
@@ -134,8 +135,8 @@ void RDMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
     CMESolver::getState(state, trajectoryNumber);
 
     // Get the lattice state.
-    lm::io::Lattice* l = state->mutable_rdme_state()->mutable_species_positions();
-    l->set_particles_ordering(lm::io::NATIVE_ORDER);
+    lm::types::Lattice* l = state->mutable_rdme_state()->mutable_species_positions();
+    l->set_particles_ordering(lm::types::NATIVE_ORDER);
     l->set_lattice_x_size(diffusionModel->latticeXSize);
     l->set_lattice_y_size(diffusionModel->latticeYSize);
     l->set_lattice_z_size(diffusionModel->latticeZSize);
