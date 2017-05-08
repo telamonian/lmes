@@ -160,6 +160,7 @@ TEST_F(FFluxPhaseZeroTrajectoryFixture, getDwellTimes_static_test)
     // check the value of each separate dwell time
     for (int i=0;i<2775;i++)
     {
+        // the error tolerance is a little weird since the values were printed with %.6g (ie 1e-6 relative tolerance), but EXPECT_NEAR takes only absolute tolerances
         EXPECT_NEAR(intendedDwellTimes[i], waitingTimes[i], 5e-4);
     }
 }
