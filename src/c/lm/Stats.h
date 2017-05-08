@@ -54,6 +54,14 @@
 #include "lm/Types.h"
 
 /*
+ * - gives the index (of a sorted array) of the smallest member of the 100*a percentile
+ */
+inline size_t percentileIndex(double a, size_t size)
+{
+    return static_cast<size_t>(ceil(a * size));
+}
+
+/*
  * - classs that implements an iterative, numerically stable algorithm for calculating sample variance of a stream of samples, one at a time
  *     - has the advantage of not needing to keep every sample value in memory
  * - used as:
@@ -84,32 +92,33 @@ public:
     // See Knuth TAOCP vol 2, 3rd edition, page 232 for complete description of algorithm
     void push_back(double x)
     {
-//        double oldMean;
-//
-//        // update _count and _sum
-//        _count++;
-//        _sum += x;
-//
-//        // store the old value of _mean, since we'll need it for updating _s
-//        oldMean = _mean;
-//
-//        // update _mean
-//        _mean = oldMean + (x - oldMean)/_count;
-//
-//        // update _s
-//        _rawVariance = _rawVariance + (x - oldMean)*(x - _mean);
-        double delta, delta_n, term1;
+        double oldMean;
 
-        samples.push_back(x);
+        // update _count and _sum
+        _count++;
         _sum += x;
 
-        long long n1 = _count;
-        _count++;
-        delta = x - _mean;
-        delta_n = delta / _count;
-        term1 = delta * delta_n * n1;
-        _mean += delta_n;
-        _rawVariance += term1;
+        // store the old value of _mean, since we'll need it for updating _s
+        oldMean = _mean;
+
+        // update _mean
+        _mean = oldMean + (x - oldMean)/_count;
+
+        // update _rawVariance
+        _rawVariance = _rawVariance + (x - oldMean)*(x - _mean);
+
+//        double delta, delta_n, term1;
+//
+//        samples.push_back(x);
+//        _sum += x;
+//
+//        long long n1 = _count;
+//        _count++;
+//        delta = x - _mean;
+//        delta_n = delta / _count;
+//        term1 = delta * delta_n * n1;
+//        _mean += delta_n;
+//        _rawVariance += term1;
     }
 
     long long count() const

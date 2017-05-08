@@ -603,7 +603,7 @@ vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double errorGoal, dou
 
     // "correct" undersampling durring phase zero
     vector<uint64_t>::iterator it=trajectoryCounts.begin();
-    *it = (*it)*phaseZeroSamplingMultipiler;
+//    *it = (*it)*phaseZeroSamplingMultipiler;
 
     for (;it!=trajectoryCounts.end();it++) if (*it < minimumCount) *it=minimumCount;
     return trajectoryCounts;
@@ -649,17 +649,6 @@ valarray<double> FFluxSupervisor::getConstantFactors(const vector<double>& proba
 
     // ignore the probability from phase zero, store a fixed constant value
     constantFactors[0] = constantFactorPhaseZero;
-
-    // print statement for debug
-    //printf("constantFactors:\n[");
-    //for (int i=0;i<constantFactors.size();i++)
-    //{
-    //    printf("%.3f,\n", constantFactors[i]);
-    //}
-    //printf("]");
-
-////     for now, skip the phase zero part
-//    constantFactors[0] = 0.0;
 
     // take the square root
     constantFactors = sqrt(constantFactors);

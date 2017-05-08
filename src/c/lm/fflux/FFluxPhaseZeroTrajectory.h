@@ -204,7 +204,7 @@ public:
             if (*entryTimes != entryTimesEnd)
             {
                 // multiple BASIN_EXIT events may have occured before the BASIN_ENTRY, so first increment exitTimes as appropriate
-                std::find_if(*exitTimes, exitTimesEnd, greaterThanCurry.setLimitVal(**entryTimes));
+                *exitTimes = std::find_if(*exitTimes, exitTimesEnd, greaterThanCurry.setLimitVal(**entryTimes));
 
                 // now return the actual event
                 return Event(BASIN_ENTRY, *(*entryTimes)++);

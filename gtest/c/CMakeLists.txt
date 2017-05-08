@@ -8,11 +8,14 @@ include_directories(${gmock_SOURCE_DIR}/include ${gmock_SOURCE_DIR}
 #### setup the test source and data files ####
 ##############################################
 
-# set the testdata directory var. This will be directly substituted into the gtest source files
-set(TESTDATA_ROOT ${CMAKE_CURRENT_BINARY_DIR}/testdata)
+## set the testdata directory var. This will be directly substituted into the gtest source files
+#set(TESTDATA_ROOT ${CMAKE_CURRENT_BINARY_DIR}/testdata)
+#
+## copy over the test data files
+#file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/testdata DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
-# copy over the test data files
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/testdata DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+# set the testdata directory var. This will be directly substituted into the gtest source files
+set(TESTDATA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/testdata)
 
 # add a compiler definition with the path to the root testdata dir
 add_definitions(-DTESTDATA_ROOT="${TESTDATA_ROOT}")
