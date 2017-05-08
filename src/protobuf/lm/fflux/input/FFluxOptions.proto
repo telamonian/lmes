@@ -102,6 +102,6 @@ message FFluxOptions {
     /*
      * - temporary workaround for increasing sampling during phase zero while the details of phase zero optimization are worked out
      */
-    optional uint64 phase_zero_sampling_multiplier        = 901 [default=100];
+    optional uint64 phase_zero_sampling_multiplier        = 901 [default=1];
 
 }

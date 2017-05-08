@@ -214,7 +214,8 @@ public:
         msgPtr->set_failed_trajectories_launched_total_time(msgPtr->failed_trajectories_launched_total_time() + (workUnitEndTime - workUnitStartTime)); //msgPtr->failed_trajectories_launched_total_time() + phaseZeroTrajectory->timeInOtherBasinsLast);
         //msgPtr->set_failed_trajectories_launched_total_time(phaseZeroTrajectory->timeInOtherBasins);
 
-        msgPtr->set_variance(phaseWeightSV.variance());
+        // TODO: replace this upper bound estimation (which is based on an assumption of sample normality, which is not true in this case) with a better one based on resampling
+        msgPtr->set_variance(phaseWeightSV.varianceUpperBound(.99));
     }
 
     void addEndPoint(const lm::io::TrajectoryState& trajectoryState, const lm::trajectory::Trajectory& trajectory)
