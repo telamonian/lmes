@@ -34,7 +34,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #ifndef LM_IO_SFILE_SFILE_H
@@ -139,7 +139,7 @@ public:
 //            lm::io::sfile::SFileRecord r = readNextSFileRecord();
 
             // try to read in the next message
-            int dataSize = readNextMessage(msg, recordTypeStr);
+            int64_t dataSize = readNextMessage(msg, recordTypeStr);
 
             if (dataSize > 0)
             {
