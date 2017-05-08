@@ -124,17 +124,16 @@ TEST_F(FFluxPhaseZeroTrajectoryFixture, getDwellTimes_static_test)
     limitTrackingsWrap.setWrappedField(ltLoader.limitTrackings);
 
     int i = 0;
-    for (;i<limitTrackingsWrap.size();)
+    for (;i<limitTrackingsWrap.size();i++)
     {
+        // trajectory 65 is from phase 0 in the production stage
         if (limitTrackingsWrap.Get(i).trajectory_id()==65) // || limitTrackingsWrap.Get(i).trajectory_id()==153 || limitTrackingsWrap.Get(i).trajectory_id()==154 || limitTrackingsWrap.Get(i).trajectory_id()==155)
         {
-            // the limit tracking is from one of the production stage phase zero trajectories
             // set wrappers on the ndarrays with the limit-triggering times
             timeWrapForwardFlux.setWrappedMsg(limitTrackingsWrap.Get(i++).times());
             timeWrapBasinEntry.setWrappedMsg(limitTrackingsWrap.Get(i++).times());
-            timeWrapBasinExit.setWrappedMsg(limitTrackingsWrap.Get(i++).times());
+            timeWrapBasinExit.setWrappedMsg(limitTrackingsWrap.Get(i).times());
 
-            // If the trajectory was previously in a non-initial basin, or if it passed into a non-initial basin during this work unit, accumulate the time the trajectory spent in a non-initial basin during its most recent work unit
             if (timeWrapForwardFlux.size() > 0 or timeWrapBasinEntry.size() > 0 or timeWrapBasinExit.size() > 0)
             {
                 double *fluxTimes, *fluxTimesEnd, *entryTimes, *entryTimesEnd, *exitTimes, *exitTimesEnd;
@@ -145,6 +144,7 @@ TEST_F(FFluxPhaseZeroTrajectoryFixture, getDwellTimes_static_test)
                 exitTimes = timeWrapBasinExit.get_data(true);
                 exitTimesEnd = exitTimes +  timeWrapBasinExit.size();
 
+                // accumulate all of the dwell times into waitingTimes
                 initialWaitingTime = lm::fflux::FFluxPhaseZeroTrajectory::getWaitingTimes(initialWaitingTime, &previousEvent, &waitingTimes, fluxTimes, fluxTimesEnd, entryTimes, entryTimesEnd, exitTimes, exitTimesEnd);
 
                 if (timeWrapBasinEntry.compressed_deflate()) delete[] entryTimes;
@@ -152,15 +152,12 @@ TEST_F(FFluxPhaseZeroTrajectoryFixture, getDwellTimes_static_test)
                 if (timeWrapBasinExit.compressed_deflate()) delete[] exitTimes;
             }
         }
-        else
-        {
-            // the limit tracking is from a trajectory we don't care about
-            i++;
-        }
     }
 
-    // test some scalar values in ffluxStage
+    // check that the number of dwell times processed is correct
     EXPECT_EQ(2775, waitingTimes.size());
+
+    // check the value of each separate dwell time
     for (int i=0;i<2775;i++)
     {
         EXPECT_NEAR(intendedDwellTimes[i], waitingTimes[i], 5e-4);
@@ -176,25 +173,22 @@ TEST_F(FFluxPhaseZeroTrajectoryFixture, variances_static_test)
 {
     double initialWaitingTime_0(0), initialWaitingTime_1(0);
     lm::fflux::Event previousEvent_0(lm::fflux::BASIN_ENTRY, 0), previousEvent_1(lm::fflux::BASIN_ENTRY, 0);
-
     StreamingVariance waitingTimeSV_0, waitingTimeSV_1, waitingTimeSV_2;
-    StreamingVariance* waitingTimeSVPtr(&waitingTimeSV_0);
 
     // set wrapper on the limit_trackings field
     limitTrackingsWrap.setWrappedField(ltLoader.limitTrackings);
 
     int i = 0;
-    for (;i<limitTrackingsWrap.size();)
+    for (;i<limitTrackingsWrap.size();i++)
     {
-        if (limitTrackingsWrap.Get(i).trajectory_id()==65) // || limitTrackingsWrap.Get(i).trajectory_id()==153 || limitTrackingsWrap.Get(i).trajectory_id()==154 || limitTrackingsWrap.Get(i).trajectory_id()==155)
+        // trajectory 65 is from phase 0 in the production stage
+        if (limitTrackingsWrap.Get(i).trajectory_id()==65)
         {
-            // the limit tracking is from one of the production stage phase zero trajectories
             // set wrappers on the ndarrays with the limit-triggering times
             timeWrapForwardFlux.setWrappedMsg(limitTrackingsWrap.Get(i++).times());
             timeWrapBasinEntry.setWrappedMsg(limitTrackingsWrap.Get(i++).times());
             timeWrapBasinExit.setWrappedMsg(limitTrackingsWrap.Get(i).times());
 
-            // If the trajectory was previously in a non-initial basin, or if it passed into a non-initial basin during this work unit, accumulate the time the trajectory spent in a non-initial basin during its most recent work unit
             if (timeWrapForwardFlux.size() > 0 or timeWrapBasinEntry.size() > 0 or timeWrapBasinExit.size() > 0)
             {
                 double *fluxTimes, *fluxTimesEnd, *entryTimes, *entryTimesEnd, *exitTimes, *exitTimesEnd;
@@ -205,32 +199,35 @@ TEST_F(FFluxPhaseZeroTrajectoryFixture, variances_static_test)
                 exitTimes = timeWrapBasinExit.get_data(true);
                 exitTimesEnd = exitTimes +  timeWrapBasinExit.size();
 
-                initialWaitingTime = lm::fflux::FFluxPhaseZeroTrajectory::getWaitingTimes(initialWaitingTime_0, &previousEvent_0, waitingTimeSVPtr, fluxTimes, fluxTimesEnd, entryTimes, entryTimesEnd, exitTimes, exitTimesEnd);
-                initialWaitingTime = lm::fflux::FFluxPhaseZeroTrajectory::getWaitingTimes(initialWaitingTime_1, &previousEvent_1, &waitingTimeSV_2, fluxTimes, fluxTimesEnd, entryTimes, entryTimesEnd, exitTimes, exitTimesEnd);
+                // accumulate all of the dwell times into waitingTimeSV_0
+                initialWaitingTime = lm::fflux::FFluxPhaseZeroTrajectory::getWaitingTimes(initialWaitingTime_1, &previousEvent_1, &waitingTimeSV_0, fluxTimes, fluxTimesEnd, entryTimes, entryTimesEnd, exitTimes, exitTimesEnd);
+
+                // accumulate half of the dwell times into waitingTimeSV_1 and half into waitingTimeSV_2
+                if (i % 2 == 0)
+                {
+                    initialWaitingTime = lm::fflux::FFluxPhaseZeroTrajectory::getWaitingTimes(initialWaitingTime_0, &previousEvent_0, &waitingTimeSV_1, fluxTimes, fluxTimesEnd, entryTimes, entryTimesEnd, exitTimes, exitTimesEnd);
+                }
+                else
+                {
+                    initialWaitingTime = lm::fflux::FFluxPhaseZeroTrajectory::getWaitingTimes(initialWaitingTime_0, &previousEvent_0, &waitingTimeSV_2, fluxTimes, fluxTimesEnd, entryTimes, entryTimesEnd, exitTimes, exitTimesEnd);
+                }
 
                 if (timeWrapBasinEntry.compressed_deflate()) delete[] entryTimes;
                 if (timeWrapBasinEntry.compressed_deflate()) delete[] entryTimes;
                 if (timeWrapBasinExit.compressed_deflate()) delete[] exitTimes;
             }
         }
-
-        // alternate between streaming variance objects
-        if (i % 2 == 0)
-        {
-            waitingTimeSVPtr = &waitingTimeSV_0;
-        }
-        else
-        {
-            waitingTimeSVPtr = &waitingTimeSV_1;
-        }
-
-        i++;
     }
 
     // combine the streaming variances
-    waitingTimeSV_0 += waitingTimeSV_1;
+    waitingTimeSV_1 += waitingTimeSV_2;
 
-    EXPECT_NEAR(189.39343195058274, waitingTimeSV_2.variance(), absolute_tolerance);
+    // check that the straightforward accumulation of dwell times works as expected
     EXPECT_NEAR(189.39343195058274, waitingTimeSV_0.variance(), absolute_tolerance);
-    EXPECT_NEAR(waitingTimeSV_2.variance(), waitingTimeSV_0.variance(), absolute_tolerance);
+
+    // check that accumulating dwell times into separate StreamingVariance objects and then combining them works as expected
+    EXPECT_NEAR(189.39343195058274, waitingTimeSV_1.variance(), absolute_tolerance);
+
+    // double check that accumulate vs accumulate/combine both produce the same result for the dwell time variance
+    EXPECT_NEAR(waitingTimeSV_0.variance(), waitingTimeSV_1.variance(), absolute_tolerance);
 }

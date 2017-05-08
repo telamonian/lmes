@@ -17,7 +17,7 @@ class FFluxSRGRegressionLMES(FFluxSRGRegression):
                     "ffluxPhaseOutput": True,
                     "ffluxStageOutputRaw": True,
                     "ffluxStageOutputSummary": True,
-                    'phaseZeroSamplingMultiplier': 1e2,
+                    # 'phaseZeroSamplingMultiplier': 1e2,
                     'ffluxMinimizeCost': True,
                     'writeInitialTrajectoryState': False,
                     'writeFinalTrajectoryState': False,
@@ -25,7 +25,7 @@ class FFluxSRGRegressionLMES(FFluxSRGRegression):
                     'writeLimitTracking': True,
                     'maxWorkUnitSteps': 1e8,}
         else:
-            return {'batchSize': 1,
+            return {'batchSize': 100,
                     "errorGoal": .01,
                     "errorGoalConfidence": .95,
                     "pilotStageCount": 1e3,
@@ -34,7 +34,7 @@ class FFluxSRGRegressionLMES(FFluxSRGRegression):
                     "ffluxPhaseOutput": False,
                     "ffluxStageOutputRaw": True,
                     "ffluxStageOutputSummary": True,
-                    'phaseZeroSamplingMultiplier': 1,
+                    # 'phaseZeroSamplingMultiplier': 1,
                     'ffluxMinimizeCost': True,
                     'writeInterval': None,
                     'writeLimitTracking': False,}

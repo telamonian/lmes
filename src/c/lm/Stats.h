@@ -148,6 +148,7 @@ public:
 
     static StreamingVariance* combine(StreamingVariance* combined, const StreamingVariance& a, const StreamingVariance& b)
     {
+        // update _rawVariance first, since _mean is used in the expression
         combined->_rawVariance = a._rawVariance + b._rawVariance + pow((b._mean - a._mean), 2) * a._count * b._count / (a._count + b._count);
         combined->_mean = (a._count*a._mean + b._count*b._mean) / (a._count + b._count);
 
@@ -155,19 +156,21 @@ public:
         combined->_count = a._count + b._count;
 
         return combined;
-//        combined->_sum = a._sum + b._sum;
-//        combined->_count = a._count + b._count;
-//
+
+//        long long combinedCount = (a._count + b._count);
 //        double delta = b._mean - a._mean;
 //        double delta2 = delta*delta;
 //        double delta3 = delta*delta2;
 //        double delta4 = delta2*delta2;
 //
-//        combined->_mean = (a._count*a._mean + b._count*b._mean) / combined->_count;
+//        combined->_mean = (a._count*a._mean + b._count*b._mean) / combinedCount;
 //
 //        combined->_rawVariance = a._rawVariance + b._rawVariance +
-//                      delta2 * a._count * b._count / combined->_count;
+//                      delta2 * a._count * b._count / combinedCount;
 //
+//        combined->_sum = a._sum + b._sum;
+//        combined->_count = combinedCount;
+//        
 //        return combined;
     }
 
