@@ -114,7 +114,11 @@ protected:
 
 };
 
-TEST_F(FFluxPhaseZeroTrajectoryFixture, getDwellTimes_test)
+/*
+ * - tests the collection of static functions in FFluxPhaseZeroTrajectory that are responsible for turning streaming LimitTracking outputs into dwell times
+ *     - specifically, this test validates the individual dwell time values
+ */
+TEST_F(FFluxPhaseZeroTrajectoryFixture, getDwellTimes_static_test)
 {
     // set wrapper on the limit_trackings field
     limitTrackingsWrap.setWrappedField(ltLoader.limitTrackings);
@@ -155,21 +159,78 @@ TEST_F(FFluxPhaseZeroTrajectoryFixture, getDwellTimes_test)
         }
     }
 
-//    for (int i=0;i<2775;i++)
-//    {
-//        if (intendedDwellTimes[i] == waitingTimes[i])
-//        {
-//            printf("true: %.3f %.3f\n", intendedDwellTimes[i], waitingTimes[i]);
-//        }
-//        else
-//        {
-//            printf("false: %.3f %.3f\n", intendedDwellTimes[i], waitingTimes[i]);
-//        }
-//    }
     // test some scalar values in ffluxStage
     EXPECT_EQ(2775, waitingTimes.size());
     for (int i=0;i<2775;i++)
     {
         EXPECT_NEAR(intendedDwellTimes[i], waitingTimes[i], 5e-4);
     }
+}
+
+/*
+ * - tests the collection of static functions in FFluxPhaseZeroTrajectory that are responsible for turning streaming LimitTracking outputs into dwell times
+ *     - specifically, this test validates the dwell time variance calculations
+ *     - in particular, tests the tricky streaming variance combination algorithm
+ */
+TEST_F(FFluxPhaseZeroTrajectoryFixture, variances_static_test)
+{
+    double initialWaitingTime_0(0), initialWaitingTime_1(0);
+    lm::fflux::Event previousEvent_0(lm::fflux::BASIN_ENTRY, 0), previousEvent_1(lm::fflux::BASIN_ENTRY, 0);
+
+    StreamingVariance waitingTimeSV_0, waitingTimeSV_1, waitingTimeSV_2;
+    StreamingVariance* waitingTimeSVPtr(&waitingTimeSV_0);
+
+    // set wrapper on the limit_trackings field
+    limitTrackingsWrap.setWrappedField(ltLoader.limitTrackings);
+
+    int i = 0;
+    for (;i<limitTrackingsWrap.size();)
+    {
+        if (limitTrackingsWrap.Get(i).trajectory_id()==65) // || limitTrackingsWrap.Get(i).trajectory_id()==153 || limitTrackingsWrap.Get(i).trajectory_id()==154 || limitTrackingsWrap.Get(i).trajectory_id()==155)
+        {
+            // the limit tracking is from one of the production stage phase zero trajectories
+            // set wrappers on the ndarrays with the limit-triggering times
+            timeWrapForwardFlux.setWrappedMsg(limitTrackingsWrap.Get(i++).times());
+            timeWrapBasinEntry.setWrappedMsg(limitTrackingsWrap.Get(i++).times());
+            timeWrapBasinExit.setWrappedMsg(limitTrackingsWrap.Get(i).times());
+
+            // If the trajectory was previously in a non-initial basin, or if it passed into a non-initial basin during this work unit, accumulate the time the trajectory spent in a non-initial basin during its most recent work unit
+            if (timeWrapForwardFlux.size() > 0 or timeWrapBasinEntry.size() > 0 or timeWrapBasinExit.size() > 0)
+            {
+                double *fluxTimes, *fluxTimesEnd, *entryTimes, *entryTimesEnd, *exitTimes, *exitTimesEnd;
+                fluxTimes = timeWrapForwardFlux.get_data(true);
+                fluxTimesEnd = fluxTimes +  timeWrapForwardFlux.size();
+                entryTimes = timeWrapBasinEntry.get_data(true);
+                entryTimesEnd = entryTimes +  timeWrapBasinEntry.size();
+                exitTimes = timeWrapBasinExit.get_data(true);
+                exitTimesEnd = exitTimes +  timeWrapBasinExit.size();
+
+                initialWaitingTime = lm::fflux::FFluxPhaseZeroTrajectory::getWaitingTimes(initialWaitingTime_0, &previousEvent_0, waitingTimeSVPtr, fluxTimes, fluxTimesEnd, entryTimes, entryTimesEnd, exitTimes, exitTimesEnd);
+                initialWaitingTime = lm::fflux::FFluxPhaseZeroTrajectory::getWaitingTimes(initialWaitingTime_1, &previousEvent_1, &waitingTimeSV_2, fluxTimes, fluxTimesEnd, entryTimes, entryTimesEnd, exitTimes, exitTimesEnd);
+
+                if (timeWrapBasinEntry.compressed_deflate()) delete[] entryTimes;
+                if (timeWrapBasinEntry.compressed_deflate()) delete[] entryTimes;
+                if (timeWrapBasinExit.compressed_deflate()) delete[] exitTimes;
+            }
+        }
+
+        // alternate between streaming variance objects
+        if (i % 2 == 0)
+        {
+            waitingTimeSVPtr = &waitingTimeSV_0;
+        }
+        else
+        {
+            waitingTimeSVPtr = &waitingTimeSV_1;
+        }
+
+        i++;
+    }
+
+    // combine the streaming variances
+    waitingTimeSV_0 += waitingTimeSV_1;
+
+    EXPECT_NEAR(189.39343195058274, waitingTimeSV_2.variance(), absolute_tolerance);
+    EXPECT_NEAR(189.39343195058274, waitingTimeSV_0.variance(), absolute_tolerance);
+    EXPECT_NEAR(waitingTimeSV_2.variance(), waitingTimeSV_0.variance(), absolute_tolerance);
 }

@@ -148,8 +148,8 @@ public:
 
     static StreamingVariance* combine(StreamingVariance* combined, const StreamingVariance& a, const StreamingVariance& b)
     {
+        combined->_rawVariance = a._rawVariance + b._rawVariance + pow((b._mean - a._mean), 2) * a._count * b._count / (a._count + b._count);
         combined->_mean = (a._count*a._mean + b._count*b._mean) / (a._count + b._count);
-        combined->_rawVariance = a._rawVariance + b._rawVariance + pow((a._count + b._count), 2) * a._count * b._count / (a._count + b._count);
 
         combined->_sum = a._sum + b._sum;
         combined->_count = a._count + b._count;
@@ -174,7 +174,7 @@ public:
     friend StreamingVariance operator+(const StreamingVariance& a, const StreamingVariance& b);
     StreamingVariance& operator+=(const StreamingVariance &rhs);
 
-    std::vector<double> samples;
+//    std::vector<double> samples;
 
 private:
     long long _count;
