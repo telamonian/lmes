@@ -480,8 +480,9 @@ void FFluxSupervisor::addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFlux
 {
     vector<uint64_t> trajectoryCounts(optimizeTrajectoryCounts(input->errorGoal(), input->errorGoalConfidence(), stageOutput, input->productionStageCountMinimum(), input->phaseZeroSamplingMultiplier(), input->minimizeCost()));
     stringstream optimizationStatus;
-    optimizationStatus.setf(std::ios::fixed, std::ios::floatfield);
-    optimizationStatus.precision(2);
+    optimizationStatus.unsetf(std::ios::floatfield);                  // allow for dynamic choice between float and sci format
+    //optimizationStatus.setf(std::ios::fixed, std::ios::floatfield); // force float format
+    optimizationStatus.precision(3);
 
     const lm::protowrap::FFluxStageOutputSummaryWrap& soSummary(stageOutput.fflux_stage_output_summary());
     vector<double> costs(soSummary.costs().begin(), soSummary.costs().end());
@@ -664,6 +665,9 @@ void FFluxSupervisor::startSimulationPhase()
     // Build the list of trajectories to simulate.
     buildTrajectoryList();
 
+    // set the first trajectory id of this phase in the phase output
+    currentFFluxPhaseOutputWrapPtr->set_first_trajectory_id(trajectoryList->count());
+
     // reset the phase output and termination flag
     simulationPhaseOutputSent = false;
     simulationPhaseTerminated = false;
@@ -800,7 +804,10 @@ void FFluxSupervisor::printFFluxLimitProgress()
 
 void FFluxSupervisor::finishSimulationPhase()
 {
-    // before anything else, send the phase output to the output writer (if needed)
+    // first set the final trajectory id of this phase in the phase output (subtracting one from count since trajectoryList postcrements to get a trajectory_id)
+    currentFFluxPhaseOutputWrapPtr->set_final_trajectory_id(trajectoryList->count() - 1);
+
+    // then before anything else, send the phase output to the output writer (if needed)
     sendSimulationPhaseOutput();
 
     // if we need to perform another phase, do so

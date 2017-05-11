@@ -81,4 +81,7 @@ message FFluxStageOutputRaw {
     repeated double failed_trajectory_total_times     = 12 [packed=true];
 
     repeated double variances                         = 13 [packed=true];
+
+    repeated uint64 first_trajectory_ids              = 101 [packed=true];
+    repeated uint64 final_trajectory_ids              = 102 [packed=true];
 }

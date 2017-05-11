@@ -43,6 +43,8 @@ message FFluxPhaseOutput {
     optional int64 fflux_phase_index                            = 1;
     optional int64 basin_index                                  = 2;
     optional uint64 tiling_id                                   = 3;
+    optional uint64 first_trajectory_id                         = 4;
+    optional uint64 final_trajectory_id                         = 5;
 
     repeated StartPoint start_points                            = 11;
 

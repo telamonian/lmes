@@ -285,9 +285,24 @@ public:
         return endPointVector[ri];
     }
 
-    Msg* wrappedMsg()
+    void final_trajectory_id()
     {
-        return msgPtr;
+        msgPtr->final_trajectory_id();
+    }
+
+    void first_trajectory_id()
+    {
+        msgPtr->first_trajectory_id();
+    }
+
+    void set_final_trajectory_id(uint64_t trajectory_id)
+    {
+        msgPtr->set_final_trajectory_id(trajectory_id);
+    }
+
+    void set_first_trajectory_id(uint64_t trajectory_id)
+    {
+        msgPtr->set_first_trajectory_id(trajectory_id);
     }
 
     void setWrappedMsg(Msg* newMsgMutablePtr)
@@ -306,6 +321,11 @@ public:
         phaseWeightSV.clear();
         successfulEndPointMap.setWrappedFieldNull();
         endPointVector.clear();
+    }
+
+    Msg* wrappedMsg()
+    {
+        return msgPtr;
     }
 
 protected:

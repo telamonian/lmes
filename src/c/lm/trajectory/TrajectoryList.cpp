@@ -310,7 +310,7 @@ TrajectoryMap* TrajectoryList::getTrajectoryMap(Trajectory::Status status)
 
 uint64_t TrajectoryList::resolveTrajectoryID(uint64_t newID)
 {
-    // if the new Trajectory id has been left as the default, resolve the id to the TrajectoryList's _count attribute
+    // if the new Trajectory id has been left as the default, resolve the id to the TrajectoryList's _count attribute and postcrement _count
     if (newID==DEFAULT_TRAJECTORY_ID) {return _count++;}
     else                              {return newID;}
 }

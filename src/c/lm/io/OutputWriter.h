@@ -95,7 +95,7 @@ protected:
     virtual void setRecordNamePrefix(const std::string& newRecordNamePrefix);
 
 private:
-    static const int MESSAGE_QUEUE_MAX_SIZE=50*1024*1024;
+    static const int MESSAGE_QUEUE_MAX_SIZE=200*1024*1024;
 
 protected:
     bool condenseOutput;
