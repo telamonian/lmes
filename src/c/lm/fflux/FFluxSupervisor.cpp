@@ -662,11 +662,11 @@ void FFluxSupervisor::startSimulationPhase()
     // add a new phase output
     addFFluxPhaseOutput();
 
+    // set the first trajectory id of this phase in the phase output. If there is an old trajectoryList, get the trajectory count from that. Otherwise, we're at the very start of the simulation so count is 0
+    currentFFluxPhaseOutputWrapPtr->set_first_trajectory_id(trajectoryList != NULL ? trajectoryList->count() : 0);
+
     // Build the list of trajectories to simulate.
     buildTrajectoryList();
-
-    // set the first trajectory id of this phase in the phase output
-    currentFFluxPhaseOutputWrapPtr->set_first_trajectory_id(trajectoryList->count());
 
     // reset the phase output and termination flag
     simulationPhaseOutputSent = false;
@@ -804,10 +804,7 @@ void FFluxSupervisor::printFFluxLimitProgress()
 
 void FFluxSupervisor::finishSimulationPhase()
 {
-    // first set the final trajectory id of this phase in the phase output (subtracting one from count since trajectoryList postcrements to get a trajectory_id)
-    currentFFluxPhaseOutputWrapPtr->set_final_trajectory_id(trajectoryList->count() - 1);
-
-    // then before anything else, send the phase output to the output writer (if needed)
+    // before anything else, send the phase output to the output writer (if needed)
     sendSimulationPhaseOutput();
 
     // if we need to perform another phase, do so
@@ -828,6 +825,9 @@ void FFluxSupervisor::sendSimulationPhaseOutput()
 {
     if (not simulationPhaseOutputSent)
     {
+        // first set the final trajectory id of this phase in the phase output (subtracting one from count since trajectoryList postcrements to get a trajectory_id)
+        currentFFluxPhaseOutputWrapPtr->set_final_trajectory_id(trajectoryList->count() - 1);
+
         // send the phase output to the output writer
         if ((not currentStage().is_pilot_stage()) or input->ffluxOptions().pilot_stage_output())
         {
@@ -849,9 +849,10 @@ void FFluxSupervisor::sendSimulationPhaseOutput()
                 wuoPart->mutable_work_unit_output_generic()->mutable_fflux_phase_outputs()->AddAllocated(currentFFluxPhaseOutputWrapPtr->wrappedMsg());
                 communicator.sendMessage(outputWriterProcess, outputWriterThread, &ffluxPhaseOutputContainingMsg);
                 wuoPart->mutable_work_unit_output_generic()->mutable_fflux_phase_outputs()->ReleaseLast();
-                simulationPhaseOutputSent = true;
             }
         }
+        // even if we're not actually sending phase output, make sure the sent flag is set after sendSimulationPhaseOutput has run. Needed for setting the phase's final trajectory id
+        simulationPhaseOutputSent = true;
     }
 }
 

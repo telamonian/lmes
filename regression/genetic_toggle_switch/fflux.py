@@ -48,7 +48,7 @@ class FFluxGTSRegressionLMES(FFluxGTSRegression):
 
             return {
                 'batchSize': 100,
-                "errorGoal": .1,
+                "errorGoal": .5,
                 "errorGoalConfidence": .95,
                 "ffluxPilotOutput": True,
                 "ffluxPhaseOutput": False,

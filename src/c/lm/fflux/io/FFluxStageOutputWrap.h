@@ -64,7 +64,9 @@ class FFluxStageOutputRawWrap : public lm::protowrap::Msg<FFluxStageOutputRawWra
                    repeated, double,   successful_trajectory_total_times,
                    repeated, uint64_t, failed_trajectory_counts,
                    repeated, double,   failed_trajectory_total_times,
-                   repeated, double,   variances)
+                   repeated, double,   variances,
+                   repeated, uint64_t, first_trajectory_ids,
+                   repeated, uint64_t, final_trajectory_ids)
 
     void buildFromFFluxPhaseOutputs(const FFluxPhaseOutputsWrap& ffluxPhaseOutputsWrap)
     {
@@ -76,6 +78,9 @@ class FFluxStageOutputRawWrap : public lm::protowrap::Msg<FFluxStageOutputRawWra
         ffluxPhaseOutputsWrap.GetAll(&FFluxPhaseOutputMsg::failed_trajectories_launched_total_time, mutable_failed_trajectory_total_times()->back_inserter());
 
         ffluxPhaseOutputsWrap.GetAll(&FFluxPhaseOutputMsg::variance, mutable_variances()->back_inserter());
+
+        ffluxPhaseOutputsWrap.GetAll(&FFluxPhaseOutputMsg::first_trajectory_id, mutable_first_trajectory_ids()->back_inserter());
+        ffluxPhaseOutputsWrap.GetAll(&FFluxPhaseOutputMsg::final_trajectory_id, mutable_final_trajectory_ids()->back_inserter());
     }
 };
 
