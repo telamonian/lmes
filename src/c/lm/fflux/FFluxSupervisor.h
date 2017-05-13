@@ -109,7 +109,7 @@ protected:
 
     // the functions where all the computational cost minimization magic happens
     inline static std::vector<double> estimateBernoulliProbabilities(const lm::protowrap::FFluxStageOutputWrap& stageOutput, double confidence=.99, double minimum=1e-4);
-    inline static std::vector<uint64_t> optimizeTrajectoryCounts(double errorGoal, double errorGoalConfidence, const lm::protowrap::FFluxStageOutputWrap& stageOutput, uint64_t minimumCount, uint64_t phaseZeroSamplingMultiplier, bool minimizeCost);
+    inline static std::vector<uint64_t> optimizeTrajectoryCounts(double errorGoal, double errorGoalConfidence, const lm::protowrap::FFluxStageOutputWrap& stageOutput, uint64_t minimumCount, double phaseZeroSamplingMultiplier, bool minimizeCost);
     inline static std::vector<uint64_t> minimizeCostTrajectoryCounts(double errorGoal, double errorGoalConfidence, const std::vector<double>& probabilities, const std::vector<double>& costs);
     inline static std::vector<uint64_t> minimizeCountTrajectoryCounts(double errorGoal, double errorGoalConfidence, const std::vector<double>& probabilities);
     inline static std::valarray<double> getConstantFactors(const std::vector<double>& probabilities);

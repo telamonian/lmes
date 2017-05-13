@@ -87,7 +87,7 @@ public:
     const lm::fflux::input::FFluxSimulationInput& ffluxSimulationInput() const {return _ffluxSimulationInput;}
     uint64_t batchSize() const {return ffluxOptions().batch_size();}
     uint64_t phaseZeroBurnInCount() const {return ffluxOptions().phase_zero_burn_in_count();}
-    uint64_t phaseZeroSamplingMultiplier() const {return ffluxOptions().phase_zero_sampling_multiplier();}
+    double phaseZeroSamplingMultiplier() const {return ffluxOptions().phase_zero_sampling_multiplier();}
     uint64_t pilotStageCount() const {return ffluxOptions().pilot_stage_count();}
     double errorGoal() const {return ffluxOptions().error_goal();}
     double errorGoalConfidence() const {return ffluxOptions().error_goal_confidence();}

@@ -286,7 +286,7 @@ lm::fflux::input::FFluxStage* FFluxSupervisor::addPilotStage(lm::fflux::input::F
 
     addFFluxPhases(pilotStage, FFPhaseEnums::LAZY, FFPhaseEnums::UNIFORM_RANDOM);
 
-    addFFluxPhaseLimitsForPilotStage(pilotStage, FFPhaseLimEnums::FORWARD_FLUXES, input->ffluxOptions().pilot_stage_count()*input->phaseZeroSamplingMultiplier(), input->ffluxOptions().pilot_stage_count());    //input->ffluxOptions().pilot_stage_count()*input->ffluxOptions().phase_zero_sampling_multiplier(), input->ffluxOptions().pilot_stage_count());
+    addFFluxPhaseLimitsForPilotStage(pilotStage, FFPhaseLimEnums::FORWARD_FLUXES, static_cast<uint64_t>(round(input->ffluxOptions().pilot_stage_count()*input->phaseZeroSamplingMultiplier())), input->ffluxOptions().pilot_stage_count());    //input->ffluxOptions().pilot_stage_count()*input->ffluxOptions().phase_zero_sampling_multiplier(), input->ffluxOptions().pilot_stage_count());
 
     return pilotStage;
 }
@@ -586,7 +586,7 @@ std::vector<double> FFluxSupervisor::estimateBernoulliProbabilities(const lm::pr
     return conservativeProbabilities;
 }
 
-vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double errorGoal, double errorGoalConfidence, const lm::protowrap::FFluxStageOutputWrap& stageOutput, uint64_t minimumCount, uint64_t phaseZeroSamplingMultipiler, bool minimizeCost)
+vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double errorGoal, double errorGoalConfidence, const lm::protowrap::FFluxStageOutputWrap& stageOutput, uint64_t minimumCount, double phaseZeroSamplingMultiplier, bool minimizeCost)
 {
     const lm::protowrap::FFluxStageOutputSummaryWrap& soSummary(stageOutput.fflux_stage_output_summary());
     vector<double> probabilities(estimateBernoulliProbabilities(stageOutput));
@@ -604,7 +604,7 @@ vector<uint64_t> FFluxSupervisor::optimizeTrajectoryCounts(double errorGoal, dou
 
     // "correct" undersampling durring phase zero
     vector<uint64_t>::iterator it=trajectoryCounts.begin();
-//    *it = (*it)*phaseZeroSamplingMultipiler;
+    *it = static_cast<uint64_t>(round((*it)*phaseZeroSamplingMultiplier));
 
     for (;it!=trajectoryCounts.end();it++) if (*it < minimumCount) *it=minimumCount;
     return trajectoryCounts;
@@ -645,10 +645,10 @@ vector<uint64_t> FFluxSupervisor::minimizeCountTrajectoryCounts(double errorGoal
 valarray<double> FFluxSupervisor::getConstantFactors(const vector<double>& probabilities)
 {
     valarray<double> constantFactors(probabilities.data(), probabilities.size());
+
+    // the phase zero value is already in the correct form
     double constantFactorPhaseZero = constantFactors[0];
     constantFactors = (1.0 - constantFactors)/constantFactors;
-
-    // ignore the probability from phase zero, store a fixed constant value
     constantFactors[0] = constantFactorPhaseZero;
 
     // take the square root
