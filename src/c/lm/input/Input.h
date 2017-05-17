@@ -55,6 +55,7 @@
 #include "lm/input/SimulationInput.pb.h"
 #include "lm/input/SimulationParameters.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
+#include "lm/Math.h"
 #include "lm/message/RunWorkUnit.pb.h"
 #include "lm/oparam/OParams.h"
 #include "lm/option/SimulationParameters.h"
@@ -157,10 +158,13 @@ protected:
     uint64_t partsPerWorkUnit;
     uint64_t stepsPerWorkUnit;
 
+    // minimum reaction rate constant, used in setting some other parameters. Only reactions with exactly one constant are considered when determining
+    double minRateConstant;
+
 // template methods for parsing user input
 protected:
     template <TrajLimEnums::LimitType LT>
-    bool parseLimits(const string key, const string debugString, TrajLimEnums::StoppingCondition sc, bool includeEndpoint)
+    bool parseLimits(const std::string key, const std::string debugString, TrajLimEnums::StoppingCondition sc, bool includeEndpoint)
     {
         bool result;
         if (simulationParameters.count(key)!=0)
@@ -183,20 +187,23 @@ protected:
     // Version of parseAndSet that works with options that can directly accessed through a mutable pointer
     // By using template parameter inference on the pointer, this template automatically figures out what type to parse from simulationParameters
     template <typename Value>
-    bool parseAndSet(const string key, Value* fieldPtr, Value* defaultOverride=NULL)
+    bool parseAndSet(const std::string key, Value* fieldPtr, Value* defaultOverride=NULL)
     {
         bool result;
         if (simulationParameters.count(key)!=0)
         {
             *fieldPtr = simulationParameters.parse<Value>(key);
+            // we have successfully parsed a parameter value, so return true
             result = true;
         }
         else
         {
             if (defaultOverride!=NULL)
             {
+                // set the parameter to the default value if there is one
                 *fieldPtr = *defaultOverride;
             }
+            // no parameter was parsed, so return false
             result = false;
         }
 
@@ -206,20 +213,23 @@ protected:
     // Version of parseAndSet that works with options that need to be set via a setter function
     // By using template parameter inference on the setter (passed as a function pointer), this template automatically figures out what type to parse from simulationParameters
     template <typename T, typename SetterReturn, typename Value>
-    bool parseAndSet(const string key, SetterReturn (T::*setterFunc)(Value), T& obj, Value* defaultOverride=NULL)
+    bool parseAndSet(const std::string key, SetterReturn (T::*setterFunc)(Value), T& obj, Value* defaultOverride=NULL)
     {
         bool result;
         if (simulationParameters.count(key)!=0)
         {
             (obj.*setterFunc)(simulationParameters.parse<Value>(key));
+            // we have successfully parsed a parameter value, so return true
             result = true;
         }
         else
         {
             if (defaultOverride!=NULL)
             {
+                // set the parameter to the default value if there is one
                 (obj.*setterFunc)(*defaultOverride);
             }
+            // no parameter was parsed, so return false
             result = false;
         }
 
@@ -228,7 +238,7 @@ protected:
 
     // Same as parseAndSet, but for options specified as lists
     template <typename T, typename AdderReturn, typename Value>
-    bool parseAndSetList(const string key, AdderReturn (T::*adderFunc)(Value), T& obj)
+    bool parseAndSetList(const std::string key, AdderReturn (T::*adderFunc)(Value), T& obj)
     {
         bool result;
         if (simulationParameters.count(key)!=0)
@@ -248,8 +258,36 @@ protected:
         return result;
     }
 
+    // Version of parseAndSet that allows for automatic setting of WriteInterval parameters if they are set to a negative value
+    // When passed in as a negative value, the WriteInterval is set to abs(WriteInterval)*(1/min(ReactionRateConstants))
+    // Automatic setting requires a ReactionModel, so this function should only be used after initReactionModel(...)
+    template <typename T, typename SetterReturn, typename Value>
+    bool parseAndSetWriteInterval(const std::string key, Value (T::*getterFunc)() const, bool (T::*hasFunc)() const, SetterReturn (T::*setterFunc)(Value), T& obj, Value* defaultOverride=NULL)
+    {
+        // run the regular parseAndSet
+        bool result = parseAndSet(key, setterFunc, obj, defaultOverride);
+
+        // if the WriteInterval is negative, automatically set it
+        if ((obj.*hasFunc)() and (obj.*getterFunc)() < 0 and reactionModelPresent)
+        {
+            // sanity check the minRateConstant
+            if (minRateConstant==std::numeric_limits<double>::infinity()) throw InputException("Attempting to automatically set paramter %s based on smallest reaction rate constant, but no appropriate constants were found in your reaction model", key.c_str());
+
+            // determine the auto interval
+            double autoWriteInterval = std::abs((obj.*getterFunc)())/minRateConstant;
+
+            // inform the user that we're automatically setting the parameter
+            Print::printf(Print::DEBUG, "Automatically setting parameter %s: %.6f", key.c_str(), autoWriteInterval);
+
+            // set the auto value of the WriteInterval
+            (obj.*setterFunc)(autoWriteInterval);
+        }
+
+        return result;
+    }
+
     template <typename InputMsg>
-    bool readSFileInputRecord(lm::io::sfile::SFile& file, lm::io::sfile::SFileRecord& r, const string& recordType, InputMsg& inputMsgAttr)
+    bool readSFileInputRecord(lm::io::sfile::SFile& file, lm::io::sfile::SFileRecord& r, const std::string& recordType, InputMsg& inputMsgAttr)
     {
         // See if this is an input record.
         if (r.type == recordType)

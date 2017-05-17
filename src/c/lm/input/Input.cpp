@@ -50,6 +50,7 @@
 #include "lm/main/Globals.h"
 #include "lm/option/SimulationParameters.h"
 #include "lm/Print.h"
+#include "lm/protowrap/Repeated.h"
 #include "lm/limit/TrajectoryLimits.h"
 #include "lm/Types.h"
 
@@ -75,16 +76,18 @@ void* Input::allocateObject(const vector<string>& inputFilenames)
 }
 
 Input::Input()
-:degreeAdvancementPresent(false),diffusionModelPresent(false),reactionModelPresent(false),orderParametersPresent(false),
- outputOptionsPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),limitTrackingListWrap(&limitTrackingListMsg),
- includeEndpointInLimits(true),partsPerWorkUnit(1),stepsPerWorkUnit((uint64_t)1e8)
+:degreeAdvancementPresent(false),diffusionModelPresent(false),reactionModelPresent(false),
+ orderParametersPresent(false),outputOptionsPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),
+ limitTrackingListWrap(&limitTrackingListMsg),includeEndpointInLimits(true),partsPerWorkUnit(1),
+ stepsPerWorkUnit((uint64_t)1e8),minRateConstant(std::numeric_limits<double>::infinity())
 {
 }
 
 Input::Input(const vector<string>& inputFilenames)
-:degreeAdvancementPresent(false),diffusionModelPresent(false),reactionModelPresent(false),orderParametersPresent(false),
-outputOptionsPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),limitTrackingListWrap(&limitTrackingListMsg),
-includeEndpointInLimits(true),partsPerWorkUnit(1),stepsPerWorkUnit((uint64_t)1e8)
+:degreeAdvancementPresent(false),diffusionModelPresent(false),reactionModelPresent(false),
+ orderParametersPresent(false),outputOptionsPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),
+ limitTrackingListWrap(&limitTrackingListMsg),includeEndpointInLimits(true),partsPerWorkUnit(1),
+ stepsPerWorkUnit((uint64_t)1e8),minRateConstant(std::numeric_limits<double>::infinity())
 {
     init(inputFilenames);
 }
@@ -120,6 +123,7 @@ void Input::readHDF5Input(const lm::io::hdf5::Hdf5File& file)
 {
     simulationParameters.rFF(file);
 
+    // reaction model should be inited first, since it is used in some of the other inits
     initReactionModel(file);
     initDiffusionModel(file);
     initOrderParameters(file);
@@ -139,6 +143,12 @@ void Input::initReactionModel(const lm::io::hdf5::Hdf5File& file)
     {
         file.getReactionModel(&reactionModelMsg);
         reactionModelPresent = true;
+
+        // determine the minimum reaction rate constant. Only consider reactions with rate_constant().size()==1
+        for(lm::protowrap::Repeated<lm::input::ReactionModel::Reaction>::const_iterator it=reactionModelMsg.reaction().begin(); it!=reactionModelMsg.reaction().end(); it++)
+        {
+            if (it->rate_constant().size()==1 and it->rate_constant(0) < minRateConstant) minRateConstant = it->rate_constant(0);
+        }
     }
 }
 
@@ -241,11 +251,11 @@ void Input::initOutputOptions(const lm::io::hdf5::Hdf5File& file)
     // Flag that globally controls whether any limit tracking data collected during a trajectory is written out directly to disk.
     parseAndSet("writeLimitTracking", &OutputOptions::set_write_limit_tracking, outputOptionsMsg);
 
-    // Specify the period at which various outputs should be written out. Leave a WriteInterval unset to suppress its related output
-    degreeAdvancementPresent = parseAndSet("degreeAdvancementWriteInterval", &OutputOptions::set_degree_advancement_write_interval, outputOptionsMsg);
-    parseAndSet("latticeWriteInterval", &OutputOptions::set_lattice_write_interval, outputOptionsMsg);
-    parseAndSet("orderParameterWriteInterval", &OutputOptions::set_order_parameter_write_interval, outputOptionsMsg);
-    parseAndSet("writeInterval", &OutputOptions::set_species_write_interval, outputOptionsMsg);
+    // Specify the period at which various outputs should be written out. Leave a WriteInterval unset to suppress its related output, or set a WriteInterval to a negative value to automatically set it
+    degreeAdvancementPresent = parseAndSetWriteInterval("degreeAdvancementWriteInterval", &OutputOptions::degree_advancement_write_interval, &OutputOptions::has_degree_advancement_write_interval, &OutputOptions::set_degree_advancement_write_interval, outputOptionsMsg);
+    parseAndSetWriteInterval("latticeWriteInterval", &OutputOptions::lattice_write_interval, &OutputOptions::has_lattice_write_interval, &OutputOptions::set_lattice_write_interval, outputOptionsMsg);
+    parseAndSetWriteInterval("orderParameterWriteInterval", &OutputOptions::order_parameter_write_interval, &OutputOptions::has_order_parameter_write_interval, &OutputOptions::set_order_parameter_write_interval, outputOptionsMsg);
+    parseAndSetWriteInterval("writeInterval", &OutputOptions::species_write_interval, &OutputOptions::has_species_write_interval, &OutputOptions::set_species_write_interval, outputOptionsMsg);
 
     // Initialize the species counts first passage times in the output options
     parseAndSetList("fptTrackingList", &OutputOptions::add_fpt_species_to_track, outputOptionsMsg);

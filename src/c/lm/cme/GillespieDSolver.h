@@ -74,27 +74,6 @@ public:
     template <typename Value>
     inline void setInitialWriteInterval(double interval, double* nextWriteTime, Value* valueArray, int valueSize, std::vector<Value>* valueVector, std::vector<double>* timeVector)
     {
-//        // if this is the start of the trajectory's first work unit...
-//        if (not trajectoryStarted)
-//        {
-//            // and if we're specifically writing out initial states, do that then set the next write time. If the next write time happens to be the current time, skip that since we just wrote it out
-//            if (writeInitialTrajectoryState)
-//            {
-//                *nextWriteTime = (floor(time/interval) + 1)*interval;
-//                for (uint i=0; i<valueSize; i++) valueVector->push_back(valueArray[i]);
-//                timeVector->push_back(time);
-//            }
-//            // otherwise, just set the next write time. If the next write time happens to be the current time, use that
-//            else
-//            {
-//                *nextWriteTime = ceil(time/interval)*interval;
-//            }
-//        }
-//        // otherwise, just set the next write time. If the next write time happens to be the current time, skip that since we already wrote it out in the previous work unit
-//        else
-//        {
-//            *nextWriteTime = (floor(time/interval) + 1)*interval;
-//        }
         // if this is the start of the trajectory's first work unit...
         if (not trajectoryStarted and writeInitialTrajectoryState)
         {

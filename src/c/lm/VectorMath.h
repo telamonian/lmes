@@ -431,6 +431,27 @@ pow(const std::vector<T>& lhs, const std::vector<U>& rhs)
 /*
  * - non-operator functions on single vectors
  */
+
+/*
+ * - will cause exception if vector lhs is empty
+ */
+template <typename T>
+inline typename EnableIf<IsNumeric<T>::value, T>::type
+max(const std::vector<T>& lhs)
+{
+    return *std::max_element(lhs.begin(), lhs.end());
+};
+
+/*
+ * - will cause exception if vector lhs is empty
+ */
+template <typename T>
+inline typename EnableIf<IsNumeric<T>::value, T>::type
+min(const std::vector<T>& lhs)
+{
+    return *std::min_element(lhs.begin(), lhs.end());
+};
+
 template <typename T>
 inline typename EnableIf<IsNumeric<T>::value, T>::type
 prod(const std::vector<T>& lhs)
