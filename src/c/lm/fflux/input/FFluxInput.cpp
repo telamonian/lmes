@@ -197,8 +197,14 @@ void FFluxInput::reinitOutputOptions(const std::string& recordNamePrefix, bool i
     }
     else
     {
+        // no output requested, make sure that it's all turned off
         outputOptionsMsg.set_write_initial_trajectory_state(false);
         outputOptionsMsg.set_write_final_trajectory_state(false);
+
+        outputOptionsMsg.clear_degree_advancement_write_interval();
+        outputOptionsMsg.clear_lattice_write_interval();
+        outputOptionsMsg.clear_order_parameter_write_interval();
+        outputOptionsMsg.clear_species_write_interval();
     }
 }
 

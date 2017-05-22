@@ -48,8 +48,8 @@ class FFluxGTSRegressionLMES(FFluxGTSRegression):
 
             return {
                 'batchSize': 100,
-                "errorGoal": .1,
-                "errorGoalConfidence": .95,
+                "errorGoal": .99,
+                "errorGoalConfidence": .1,
                 "ffluxPilotOutput": False,
                 "ffluxPhaseOutput": False,
                 "ffluxStageOutputRaw": True,
@@ -58,7 +58,7 @@ class FFluxGTSRegressionLMES(FFluxGTSRegression):
                 'maxWorkUnitSteps': 1e8,
                 "pilotStageCount": 1e4,
                 # 'phaseZeroSamplingMultiplier': 100,
-                "productionStageCountMinimum": 1e3,
+                "productionStageCountMinimum": 1e2,
                 'writeInitialTrajectoryState': False,
                 'writeFinalTrajectoryState': False,
                 'writeInterval': -1.0,
