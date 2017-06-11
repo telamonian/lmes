@@ -24,7 +24,6 @@ package lm.fflux.input;
 
 import "lm/fflux/input/FFluxOptions.proto";
 import "lm/fflux/input/FFluxStage.proto";
-//import "lm/fflux/io/FFluxPhaseOutput.proto";
 
 message FFluxSimulationInput {
     optional lm.fflux.input.FFluxOptions fflux_options                = 1;

@@ -93,7 +93,7 @@ message Tiling {
      *         - If a basin is located past the last interface, the tiling will be reversed before it is used in the simulation
      */
     repeated Basin basins                   = 1000;
-    optional int32 current_basin_index      = 1001;
+    optional int32 current_basin_id      = 1001;
 }
 
 message Tilings {

@@ -184,7 +184,7 @@ void FFluxSupervisor::initSimulationStageListCustom()
         // if the stage doesn't already have a tiling set, use the one from the simulation input
         if (not stageIt->has_tiling())
         {
-            addTiling(&*stageIt, input->getTilings().at(stageIt->tiling_id()), stageIt->basin_index());
+            addTiling(&*stageIt, input->getTilings().at(stageIt->tiling_id()), stageIt->basin_id());
         }
 
         // iterate over the phases in stageIt->fflux_phases()
@@ -268,10 +268,10 @@ void FFluxSupervisor::addTiling(lm::fflux::input::FFluxStage* stage, const lm::t
     // reseat the tiling wrapper copy around the tiling message copy
     tilingWrapCopy.setTilingMsg(stage->mutable_tiling());
 
-    // use the tiling wrapper copy to set the appropriate basin_index in the tiling. This will also reverse the tiling, if needed
+    // use the tiling wrapper copy to set the appropriate basin_id in the tiling. This will also reverse the tiling, if needed
     tilingWrapCopy.setBasin(basinIndex);
 
-    stage->set_basin_index(basinIndex);
+    stage->set_basin_id(basinIndex);
     stage->set_tiling_id(tilingWrapCopy.id());
 }
 
@@ -282,7 +282,7 @@ lm::fflux::input::FFluxStage* FFluxSupervisor::addPilotStage(lm::fflux::input::F
     pilotStage->set_is_pilot_stage(true);
 
     pilotStage->mutable_tiling()->CopyFrom(productionStage->tiling());
-    pilotStage->set_basin_index(productionStage->basin_index());
+    pilotStage->set_basin_id(productionStage->basin_id());
 
     addFFluxPhases(pilotStage, FFPhaseEnums::LAZY, FFPhaseEnums::UNIFORM_RANDOM);
 
@@ -297,10 +297,10 @@ void FFluxSupervisor::addFFluxPhases(lm::fflux::input::FFluxStage* stage, FFPhas
     {
         lm::fflux::input::FFluxPhase* ffluxPhase = stage->add_fflux_phases();
 
-        ffluxPhase->set_fflux_phase_index(i);
-        ffluxPhase->set_basin_index(stage->basin_index());
+        ffluxPhase->set_fflux_phase_id(i);
+        ffluxPhase->set_basin_id(stage->basin_id());
         ffluxPhase->set_tiling_id(stage->tiling().id());
-        ffluxPhase->set_tile_index(i);
+        ffluxPhase->set_tile_id(i);
 
         // set ffluxPhase values that depend on whether phaseIndex==0 or phaseIndex > 0
         if (i==0)
@@ -377,7 +377,7 @@ lm::fflux::input::FFluxPhaseLimit* FFluxSupervisor::buildFFluxPhaseLimit(lm::ffl
     ffluxPhaseLimit->set_stop_condition(stopCondition);
 
 //    ////TEMPSTART
-//    if (ffluxPhase.fflux_phase_index()==1)
+//    if (ffluxPhase.fflux_phase_id()==1)
 //    {
 //        value = 10000;
 //    }
@@ -409,12 +409,12 @@ void FFluxSupervisor::buildFFluxPhaseLimitTrajectoriesToRun(lm::fflux::input::FF
     if (ffluxPhase.trajectory_generation()==FFPhaseEnums::EAGER)
     {
         // EAGER is only implemented for certain ffluxPhaseLimit.stop_condition() values
-        if (ffluxPhaseLimit->stop_condition()==FFPhaseLimEnums::TRAJECTORY_COUNT or (ffluxPhaseLimit->stop_condition()==FFPhaseLimEnums::FORWARD_FLUXES and ffluxPhase.fflux_phase_index()==0))
+        if (ffluxPhaseLimit->stop_condition()==FFPhaseLimEnums::TRAJECTORY_COUNT or (ffluxPhaseLimit->stop_condition()==FFPhaseLimEnums::FORWARD_FLUXES and ffluxPhase.fflux_phase_id()==0))
         {
             // given that our trajectory limits are set up to observe x events per trajectory, run ceil(y/x) trajectories to ensure that we observe at least y events total
             ffluxPhaseLimit->set_trajectories_per_phase(ceilDiv(ffluxPhaseLimit->uvalue(), ffluxPhaseLimit->events_per_trajectory()));
         }
-        else throw UnimplementedException("In Forward Flux phase %d, ffluxPhase.trajectory_generation()==EAGER is only implemented for certain ffluxPhaseLimit.stop_condition() values (ie those that let us calculate the necessary trajectory count up front). Attempting to use unimplemented ffluxPhaseLimit.stop_condition(): %s", ffluxPhase.fflux_phase_index(), FFPhaseLimEnums::StopCondition_Name(ffluxPhaseLimit->stop_condition()).c_str());
+        else throw UnimplementedException("In Forward Flux phase %d, ffluxPhase.trajectory_generation()==EAGER is only implemented for certain ffluxPhaseLimit.stop_condition() values (ie those that let us calculate the necessary trajectory count up front). Attempting to use unimplemented ffluxPhaseLimit.stop_condition(): %s", ffluxPhase.fflux_phase_id(), FFPhaseLimEnums::StopCondition_Name(ffluxPhaseLimit->stop_condition()).c_str());
     }
     else if (ffluxPhase.trajectory_generation()==FFPhaseEnums::LAZY)
     {
@@ -430,7 +430,7 @@ void FFluxSupervisor::buildFFluxPhaseLimitEventsPerTrajectory(lm::fflux::input::
     // events_per_trajectory can be set before running this function
     if (not ffluxPhaseLimit->has_events_per_trajectory())
     {
-        if (ffluxPhase.fflux_phase_index()==0)
+        if (ffluxPhase.fflux_phase_id()==0)
         {
             if (ffluxPhaseLimit->stop_condition()==FFPhaseLimEnums::FORWARD_FLUXES)
             {
@@ -470,7 +470,7 @@ void FFluxSupervisor::addFFluxPhaseLimitsForPilotStage(lm::fflux::input::FFluxSt
 void FFluxSupervisor::addFFluxPhaseLimitsFromInput(lm::fflux::input::FFluxStage* productionStage)
 {
     // TODO: implement manually specified ffluxPhaseLimits
-    //productionStage->mutable_fflux_phase_limits()->CopyFrom(input->getFFluxPhaseLimits(productionStage->tiling().id(), productionStage->basin_index()));
+    //productionStage->mutable_fflux_phase_limits()->CopyFrom(input->getFFluxPhaseLimits(productionStage->tiling().id(), productionStage->basin_id()));
 
     // temporary placeholder
     addFFluxPhaseLimitsForPilotStage(productionStage, FFPhaseLimEnums::FORWARD_FLUXES, input->ffluxOptions().pilot_stage_count(), input->ffluxOptions().pilot_stage_count());
@@ -700,8 +700,8 @@ void FFluxSupervisor::addFFluxPhaseOutput()
 
     // add a new phase output and set some informational fields
     lm::fflux::io::FFluxPhaseOutput* newFFluxPhaseOutputPtr = currentFFluxPhaseOutputsWrap.Add();
-    newFFluxPhaseOutputPtr->set_fflux_phase_index(currentFFluxPhaseIndex());
-    newFFluxPhaseOutputPtr->set_basin_index(currentStage().basin_index());
+    newFFluxPhaseOutputPtr->set_fflux_phase_id(currentFFluxPhaseIndex());
+    newFFluxPhaseOutputPtr->set_basin_id(currentStage().basin_id());
     newFFluxPhaseOutputPtr->set_tiling_id(currentStage().tiling_id());
 
     // set the new phase output to be the current phase output
@@ -1104,7 +1104,7 @@ std::string FFluxSupervisor::currentPhaseInfo(bool path, const lm::fflux::input:
     // if a phase and/or a stage has not been passed, use the current ones
     const lm::fflux::input::FFluxPhase& _phase(phase!=NULL ? *phase : currentPhase());
     const lm::fflux::input::FFluxStage& _stage(stage!=NULL ? *stage : currentStage());
-    int64_t phaseIndex = _phase.fflux_phase_index();
+    int64_t phaseIndex = _phase.fflux_phase_id();
     
     stringstream phaseInfo;
     if (path)
@@ -1147,13 +1147,13 @@ std::string FFluxSupervisor::currentStageInfo(bool path, const lm::fflux::input:
     if (path)
     {
         stageInfo << "/Tilings/" << _stage.tiling().id();     //setfill('0') << setw(7) << _stage.tiling().id();
-        stageInfo << "/Basins/" << _stage.tiling().current_basin_index();    //setfill('0') << setw(7) << _stage.tiling().current_basin_index();
+        stageInfo << "/Basins/" << _stage.tiling().current_basin_id();    //setfill('0') << setw(7) << _stage.tiling().current_basin_id();
         stageInfo << "/Stages/" << _stage.name();
     }
     else 
     {
         stageInfo << "tiling_id: " << _stage.tiling().id();
-        stageInfo << ", basin_index: " << _stage.tiling().current_basin_index();
+        stageInfo << ", basin_id: " << _stage.tiling().current_basin_id();
         stageInfo << ", stage_type: " << _stage.name();
     }
 

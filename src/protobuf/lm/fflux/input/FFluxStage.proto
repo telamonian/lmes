@@ -44,11 +44,11 @@ import "lm/fflux/input/FFluxPhaseLimit.proto";
 import "lm/input/Tilings.proto";
 
 message FFluxStage {
-    optional string name                                       = 100;
+    optional string name                                    = 100;
 
-    optional int64 basin_index                                 = 1;
-    optional uint64 tiling_id                                  = 2;
-    optional lm.input.Tiling tiling                            = 3;
+    optional int64 basin_id                                 = 1;
+    optional uint64 tiling_id                               = 2;
+    optional lm.input.Tiling tiling                         = 3;
 
     /*
      * - an optional stage to be run before this one. output data from pilot_stage will be used to help set up this stage

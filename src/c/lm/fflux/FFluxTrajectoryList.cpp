@@ -87,9 +87,9 @@ FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationP
  previousPhaseOutputPtr(NULL),cyclicCounter(0)
 {
     // consistency check
-    if (ffluxPhase.fflux_phase_index()!=0)
+    if (ffluxPhase.fflux_phase_id()!=0)
     {
-        throw ConsistencyException("Forward Flux phase 0 version of FFluxTrajectoryList constructor called durring phase %d", ffluxPhase.fflux_phase_index());
+        throw ConsistencyException("Forward Flux phase 0 version of FFluxTrajectoryList constructor called durring phase %d", ffluxPhase.fflux_phase_id());
     }
 
     // figure out how many trajectories we need to start right now
@@ -108,7 +108,7 @@ FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationP
  previousPhaseOutputPtr(&previousPhaseOutput),cyclicCounter(0)
 {
     // consistency check
-    if (ffluxPhase.fflux_phase_index()==0) throw ConsistencyException("Forward Flux phase n>0 version of FFluxTrajectoryList constructor called durring phase 0. fflux_phase_index: %d", ffluxPhase.fflux_phase_index());
+    if (ffluxPhase.fflux_phase_id()==0) throw ConsistencyException("Forward Flux phase n>0 version of FFluxTrajectoryList constructor called durring phase 0. fflux_phase_id: %d", ffluxPhase.fflux_phase_id());
 
     // figure out how many trajectories we need to start right now
     uint64_t trajectoriesToStart = getTrajectoriesToStart(ffluxPhase, ffluxPhaseLimit, simultaneousTrajectoryCount);
@@ -125,9 +125,9 @@ previousPhaseOutputPtr(&previousPhaseOutputCustomWrap),cyclicCounter(0)
     previousPhaseOutputCustomWrap.setWrappedMsg(&previousPhaseOutputCustom);
 
     // consistency check
-    if (ffluxPhase.fflux_phase_index()==0)
+    if (ffluxPhase.fflux_phase_id()==0)
     {
-        throw ConsistencyException("Forward Flux phase custom version of FFluxTrajectoryList constructor called durring phase 0. fflux_phase_index: %d", ffluxPhase.fflux_phase_index());
+        throw ConsistencyException("Forward Flux phase custom version of FFluxTrajectoryList constructor called durring phase 0. fflux_phase_id: %d", ffluxPhase.fflux_phase_id());
     }
 
     // figure out how many trajectories we need to start right now
@@ -145,7 +145,7 @@ uint64_t FFluxTrajectoryList::getTrajectoriesToStart(const FFluxPhase& ffluxPhas
     if (ffluxPhase.trajectory_generation()==FFPhaseEnums::EAGER)
     {
         // EAGER is only implemented for certain ffluxPhaseLimit.stop_condition() values
-        if (ffluxPhaseLimit.stop_condition()==FFPhaseLimEnums::TRAJECTORY_COUNT or (ffluxPhaseLimit.stop_condition()==FFPhaseLimEnums::FORWARD_FLUXES and ffluxPhase.fflux_phase_index()==0))
+        if (ffluxPhaseLimit.stop_condition()==FFPhaseLimEnums::TRAJECTORY_COUNT or (ffluxPhaseLimit.stop_condition()==FFPhaseLimEnums::FORWARD_FLUXES and ffluxPhase.fflux_phase_id()==0))
         {
             if (ffluxPhaseLimit.has_events_per_trajectory())
             {
@@ -158,7 +158,7 @@ uint64_t FFluxTrajectoryList::getTrajectoriesToStart(const FFluxPhase& ffluxPhas
                 toStart = simulataneousActiveTrajectories;
             }
         }
-        else throw UnimplementedException("In Forward Flux phase %d, ffluxPhase.trajectory_generation()==EAGER is only implemented for certain ffluxPhaseLimit.stop_condition() values (ie those that let us calculate the necessary trajectory count up front). Attempting to use unimplemented ffluxPhaseLimit.stop_condition(): %s", ffluxPhase.fflux_phase_index(), FFPhaseLimEnums::StopCondition_Name(ffluxPhaseLimit.stop_condition()).c_str());
+        else throw UnimplementedException("In Forward Flux phase %d, ffluxPhase.trajectory_generation()==EAGER is only implemented for certain ffluxPhaseLimit.stop_condition() values (ie those that let us calculate the necessary trajectory count up front). Attempting to use unimplemented ffluxPhaseLimit.stop_condition(): %s", ffluxPhase.fflux_phase_id(), FFPhaseLimEnums::StopCondition_Name(ffluxPhaseLimit.stop_condition()).c_str());
     }
     else if (ffluxPhase.trajectory_generation()==FFPhaseEnums::LAZY)
     {
@@ -191,7 +191,7 @@ void FFluxTrajectoryList::workUnitPartFinished(const message::WorkUnitStatus& wu
             deleteTrajectory(traj->getID());
         }
     }
-    else if (ffluxPhase.fflux_phase_index()==0)
+    else if (ffluxPhase.fflux_phase_id()==0)
     {
         // clear out any limit tracking time series data. prevents a major slowdown on long runs
         limitTrackingListWrap.setWrappedMsg(traj->getStateMutable()->mutable_limit_tracking_list());

@@ -273,11 +273,12 @@ protected:
             // sanity check the minRateConstant
             if (minRateConstant==std::numeric_limits<double>::infinity()) throw InputException("Attempting to automatically set paramter %s based on smallest reaction rate constant, but no appropriate constants were found in your reaction model", key.c_str());
 
-            // determine the auto interval
-            double autoWriteInterval = std::abs((obj.*getterFunc)())/minRateConstant;
+            // determine the auto interval according to: abs(<user-set-write-interval>)*(1/<smallest-rate-constant>)
+            double intervalMultiplier = std::abs((obj.*getterFunc)());
+            double autoWriteInterval = intervalMultiplier/minRateConstant;
 
             // inform the user that we're automatically setting the parameter
-            Print::printf(Print::DEBUG, "Automatically setting parameter %s: %.6f", key.c_str(), autoWriteInterval);
+            Print::printf(Print::DEBUG, "Automatically setting parameter %s -> %.6f", key.c_str(), autoWriteInterval);
 
             // set the auto value of the WriteInterval
             (obj.*setterFunc)(autoWriteInterval);

@@ -108,7 +108,7 @@ uint Tiling::getTileIndex(double opVal) const
 
 void Tiling::setBasin(int64_t basinIndex)
 {
-    set_current_basin_index(basinIndex);
+    set_current_basin_id(basinIndex);
     if (getTileIndexFromBasin(basinIndex)!=0)
     {
         reverse();

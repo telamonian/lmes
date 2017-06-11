@@ -68,7 +68,7 @@ public:
     virtual void init(lm::input::Tiling* tilingMsg, const lm::oparam::OParams& oparams);
 
 // accessors
-    const lm::input::Basin& currentBasin() const {return basins(current_basin_index());}
+    const lm::input::Basin& currentBasin() const {return basins(current_basin_id());}
     TilingEnums::SortOrder calcSortOrder(bool reverseSort=false) const;
     TilingEnums::SortOrder getSortOrder() const;
     uint64_t getEdgeDims(uint dimIndex) const {return tilingMsg->edges_dims(dimIndex);}
@@ -105,13 +105,13 @@ public:
 // accessors
     const BasinsT& basins() const {return _basins;}
     const lm::input::Basin& basins(int basinIndex) const {return _basins(basinIndex);}
-    int32_t current_basin_index() const {return tilingMsg->current_basin_index();}
+    int32_t current_basin_id() const {return tilingMsg->current_basin_id();}
     bool is_reversed() const {return tilingMsg->is_reversed(0);}
     const EdgesT& edges() const {return _edges;}
     double edges(uint edgeIndex) const {return _edges(edgeIndex);}
 
 // mutators
-    void set_current_basin_index(int32_t newBasin) {tilingMsg->set_current_basin_index(newBasin);}
+    void set_current_basin_id(int32_t newBasin) {tilingMsg->set_current_basin_id(newBasin);}
     void set_is_reversed(bool isReversed) {tilingMsg->clear_is_reversed(); tilingMsg->add_is_reversed(isReversed);}
 
 public:

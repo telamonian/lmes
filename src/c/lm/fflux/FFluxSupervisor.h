@@ -157,7 +157,7 @@ protected:
 
     // accessors
     virtual const lm::fflux::input::FFluxPhase& currentPhase() const {return *currentFFluxPhaseIter;}
-    virtual int64_t currentFFluxPhaseIndex() const {return currentPhase().fflux_phase_index();}
+    virtual int64_t currentFFluxPhaseIndex() const {return currentPhase().fflux_phase_id();}
     virtual std::string currentPhaseInfo(bool path=false, const lm::fflux::input::FFluxPhase* phase=NULL, const lm::fflux::input::FFluxStage* stage=NULL) const;
     virtual const lm::fflux::input::FFluxPhaseLimit& currentPhaseLimit() const {return currentPhase().has_fflux_phase_limit() ? currentPhase().fflux_phase_limit() : currentStage().fflux_phase_limits(currentFFluxPhaseIndex());}
     virtual const lm::protowrap::FFluxPhaseOutputWrap& currentPhaseOutput() const {return *currentFFluxPhaseOutputWrapPtr;}
