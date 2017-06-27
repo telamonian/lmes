@@ -288,15 +288,37 @@ public:
 
     const EndPointVector::Pair& getEndPointCyclic(size_t index) const
     {
+        int i = 0;
         // take the modulus of index to wrap it back around to somewhere within the bounds of endPointVector
-        index %= endPointVector.size();
-        return endPointVector[index];
+        while (true)
+        {
+            size_t ci = (index + i) % endPointVector.size();
+            const EndPointVector::Pair& endPointPair = endPointVector[ci];
+
+            if (endPointPair.first->count() >= 10 or i > 100)
+            {
+                // try to get a well-sampled endpoint, but don't loop forever
+                return endPointPair;
+            }
+            i++;
+        }
     }
 
     const EndPointVector::Pair& getEndPointUniformRandom() const
     {
-        uint32_t ri = getRandomIndex();
-        return endPointVector[ri];
+        int i = 0;
+        while (true)
+        {
+            uint32_t ri = getRandomIndex();
+            const EndPointVector::Pair& endPointPair = endPointVector[ri];
+
+            if (endPointPair.first->count() >= 10 or i > 100)
+            {
+                // try to get a well-sampled endpoint, but don't loop forever
+                return endPointPair;
+            }
+            i++;
+        }
     }
 
     void final_trajectory_id()
