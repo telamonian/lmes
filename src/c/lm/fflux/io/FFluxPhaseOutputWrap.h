@@ -67,9 +67,9 @@ using lm::protowrap::RepeatedMap;
 namespace lm {
 namespace protowrap {
 
+typedef lm::fflux::io::EndPoint EndPointMsg;
 typedef lm::fflux::io::FFluxPhaseOutput FFluxPhaseOutputMsg;
 typedef lm::fflux::io::StartPoint StartPointMsg;
-typedef lm::fflux::io::EndPoint EndPointMsg;
 
 typedef std::vector<int32_t> PointKey;
 
@@ -91,6 +91,8 @@ void setPointKey(PointMsg* pointMsg, const PointKey& pointKey)
 typedef RepeatedMap<EndPointMsg, PointKey, &getPointKey, &setPointKey> EndPointMap;
 // each entry in an EndPointVector is a Pair of a pointer to an endpoint and an index. The index allows you to lookup the time
 typedef PairVector<lm::fflux::io::EndPoint*, int> EndPointVector;
+
+typedef RepeatedMap<StartPointMsg, PointKey, &getPointKey, &setPointKey> StartPointMap;
 
 //class EndPoint
 //{
@@ -152,7 +154,7 @@ public:
         }
 
         // get the start and end times for the entire work unit part
-        double workUnitStartTime = phaseZeroTrajectory->getSimTime();
+        double workUnitStartTime = phaseZeroTrajectory->getLastTime();
         double workUnitEndTime = trajectoryState.cme_state().species_counts().time(trajectoryState.cme_state().species_counts().time_size() - 1);
 
         // fetch forth some data from the limit trackings (ie forward flux, basin entry, and basin exit)
@@ -237,24 +239,36 @@ public:
         if (timeWrapBackwardFlux.size()==1 and timeWrapForwardFlux.size()==0)       // branch for "failed" trajectories (ie ones that fluxed backward)
         {
             msgPtr->set_failed_trajectories_launched_count(msgPtr->failed_trajectories_launched_count() + 1);
-            msgPtr->set_failed_trajectories_launched_total_time(msgPtr->failed_trajectories_launched_total_time() + timeDataBackwardFlux[0] - trajectory.getSimTime());
+            msgPtr->set_failed_trajectories_launched_total_time(msgPtr->failed_trajectories_launched_total_time() + timeDataBackwardFlux[0] - trajectory.getLastTime());
+
+            // TODO: decide whether startpoint tracking is any good/helpful here
+            speciesCountWrap.setWrappedMsg(limitTrackingsWrap.Get(0).species_counts());
+            int32_t* speciesCountData = speciesCountWrap.get_data(true);
+            uint columns = speciesCountWrap.shape(1);
+
+            processFailedStartPoint(speciesCountData, speciesCountData + columns, timeDataBackwardFlux[0], trajectory);
 
             phaseWeightSV.push_back(0);
         }
         else if (timeWrapBackwardFlux.size()==0 and timeWrapForwardFlux.size()==1)  // branch for "successful" trajectories (ie ones that fluxed forward)
         {
             msgPtr->set_successful_trajectories_launched_count(msgPtr->successful_trajectories_launched_count() + 1);
-            msgPtr->set_successful_trajectories_launched_total_time(msgPtr->successful_trajectories_launched_total_time() + timeDataForwardFlux[0] - trajectory.getSimTime());
+            msgPtr->set_successful_trajectories_launched_total_time(msgPtr->successful_trajectories_launched_total_time() + timeDataForwardFlux[0] - trajectory.getLastTime());
 
             // since this is data from a "successful" trajectory (ie one that fluxed forward), add its endpoint to the list used to initialize the next phase
             speciesCountWrap.setWrappedMsg(limitTrackingsWrap.Get(1).species_counts());
             int32_t* speciesCountData = speciesCountWrap.get_data(true);
-
             uint columns = speciesCountWrap.shape(1);
-            pointKey.assign(speciesCountData, speciesCountData + columns);
-            EndPointMsg* endPointMsg = successfulEndPointMap[pointKey];
-            endPointMsg->set_count(endPointMsg->count() + 1);
-            endPointMsg->add_times(timeDataForwardFlux[0]);
+
+            EndPointMsg* endPointMsg = processSuccessfulEndPoint(speciesCountData, speciesCountData + columns, timeDataForwardFlux[0]);
+
+//            pointKey.assign(speciesCountData, speciesCountData + columns);
+//            EndPointMsg* endPointMsg = successfulEndPointMap[pointKey];
+//            endPointMsg->set_count(endPointMsg->count() + 1);
+//            endPointMsg->add_times(timeDataForwardFlux[0]);
+
+            // TODO: decide whether startpoint tracking is any good/helpful here
+            processSuccessfulStartPoint(speciesCountData, speciesCountData + columns, timeDataForwardFlux[0], trajectory);
 
             // TODO: decide if the creation of endPointVector should be done one at a time (as below) or all at once
             endPointVector.push_back(std::make_pair(endPointMsg, endPointMsg->count() - 1));
@@ -295,6 +309,61 @@ public:
         msgPtr->first_trajectory_id();
     }
 
+    EndPointMsg* processEndPoint(int32_t* endPointSpeciesCountsStart, int32_t* endPointSpeciesCountsEnd, double endPointTime, EndPointMap* endPointMap)
+    {
+        pointKey.assign(endPointSpeciesCountsStart, endPointSpeciesCountsEnd);
+
+        EndPointMsg* endPointMsg = (*endPointMap)[pointKey];
+        endPointMsg->set_count(endPointMsg->count() + 1);
+        endPointMsg->add_times(endPointTime);
+
+        return endPointMsg;
+    }
+
+    EndPointMsg* processSuccessfulEndPoint(int32_t* endPointSpeciesCountsStart, int32_t* endPointSpeciesCountsEnd, double endPointTime)
+    {
+        return processEndPoint(endPointSpeciesCountsStart, endPointSpeciesCountsEnd, endPointTime, &successfulEndPointMap);
+    }
+
+    StartPointMsg* processStartPoint(int32_t* endPointSpeciesCountsStart, int32_t* endPointSpeciesCountsEnd, double endPointTime, const lm::trajectory::Trajectory& trajectory, bool successful)
+    {
+        const lm::fflux::FFluxTrajectory& ffluxTraj = static_cast<const lm::fflux::FFluxTrajectory&>(trajectory);
+
+        StartPointMsg* startPointMsg = startPointMap[ffluxTraj.getInitialSpeciesCounts()];
+        startPointMsg->set_count(startPointMsg->count() + 1);
+//        startPointMsg->add_times(endPointTime);
+
+        if (not successful)
+        {
+            // trajectory fluxed backwards
+            startPointMsg->set_failed_trajectories_launched_count(startPointMsg->failed_trajectories_launched_count() + 1);
+//            startPointMsg->set_failed_trajectories_launched_total_time(startPointMsg->failed_trajectories_launched_total_time() + endPointTime - trajectory.getLastTime());
+
+            startPointEndPointMap.setWrappedField(startPointMsg->failed_trajectory_end_points());
+        }
+        else
+        {
+            // trajectory fluxed forwards
+            startPointMsg->set_successful_trajectories_launched_count(startPointMsg->successful_trajectories_launched_count() + 1);
+//            startPointMsg->set_successful_trajectories_launched_total_time(startPointMsg->successful_trajectories_launched_total_time() + endPointTime - trajectory.getLastTime());
+
+            startPointEndPointMap.setWrappedField(startPointMsg->successful_trajectory_end_points());
+        }
+        processEndPoint(endPointSpeciesCountsStart, endPointSpeciesCountsEnd, endPointTime, &startPointEndPointMap);
+
+        return startPointMsg;
+    }
+
+    StartPointMsg* processFailedStartPoint(int32_t* endPointSpeciesCountsStart, int32_t* endPointSpeciesCountsEnd, double endPointTime, const lm::trajectory::Trajectory& trajectory)
+    {
+        return processStartPoint(endPointSpeciesCountsStart, endPointSpeciesCountsEnd, endPointTime, trajectory, false);
+    }
+
+    StartPointMsg* processSuccessfulStartPoint(int32_t* endPointSpeciesCountsStart, int32_t* endPointSpeciesCountsEnd, double endPointTime, const lm::trajectory::Trajectory& trajectory)
+    {
+        return processStartPoint(endPointSpeciesCountsStart, endPointSpeciesCountsEnd, endPointTime, trajectory, true);
+    }
+
     void set_final_trajectory_id(uint64_t trajectory_id)
     {
         msgPtr->set_final_trajectory_id(trajectory_id);
@@ -310,7 +379,10 @@ public:
         msgPtr = newMsgMutablePtr;
 
         phaseWeightSV.clear();
+
+        startPointMap.setWrappedField(wrappedMsg()->mutable_start_points());
         successfulEndPointMap.setWrappedField(wrappedMsg()->mutable_successful_trajectory_end_points());
+
         rebuildEndPointVector();
     }
 
@@ -319,7 +391,10 @@ public:
         msgPtr = NULL;
 
         phaseWeightSV.clear();
+
+        startPointMap.setWrappedFieldNull();
         successfulEndPointMap.setWrappedFieldNull();
+
         endPointVector.clear();
     }
 
@@ -447,6 +522,10 @@ protected:
 
 public:
     EndPointMap successfulEndPointMap;
+
+    StartPointMap startPointMap;
+    EndPointMap startPointEndPointMap;
+
     StreamingVariance phaseWeightSV;
 
 protected:

@@ -139,7 +139,6 @@ previousPhaseOutputPtr(&previousPhaseOutputCustomWrap),cyclicCounter(0)
 uint64_t FFluxTrajectoryList::getTrajectoriesToStart(const FFluxPhase& ffluxPhase, const FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousWorkUnits)
 {
     uint64_t toStart;
-    uint64_t multiplier = 1;
     uint64_t simulataneousActiveTrajectories = simultaneousWorkUnits*ffluxPhase.batch_size();
 
     if (ffluxPhase.trajectory_generation()==FFPhaseEnums::EAGER)
@@ -166,7 +165,7 @@ uint64_t FFluxTrajectoryList::getTrajectoriesToStart(const FFluxPhase& ffluxPhas
     }
     else throw UnimplementedException("unimplemented");
 
-    return multiplier*toStart;
+    return toStart;
 }
 
 void FFluxTrajectoryList::workUnitPartFinished(const message::WorkUnitStatus& wusMsg, lm::trajectory::Trajectory* traj)
@@ -267,13 +266,31 @@ void FFluxTrajectoryList::initTrajectoriesUniformRandom(uint64_t trajectoriesToS
 
 lm::trajectory::Trajectory* FFluxTrajectoryList::recycleTrajectoryCyclic(uint64_t oldID)
 {
+    // choose an endpoint (by cycling through the list of endpoints) from the previous phase to use as a starting state
     const lm::protowrap::EndPointVector::Pair& endPointPair(previousPhaseOutputPtr->getEndPointCyclic(cyclicCounter++));
-    return recycleTrajectory(endPointPair.first->species_coordinates().begin(), endPointPair.first->species_coordinates().end(), endPointPair.first->times(endPointPair.second), oldID, DEFAULT_TRAJECTORY_ID);
+
+    // reuse as much of the existing trajectory as possible
+    lm::trajectory::Trajectory* recycTraj = recycleTrajectory(endPointPair.first->species_coordinates().begin(), endPointPair.first->species_coordinates().end(), endPointPair.first->times(endPointPair.second), oldID, DEFAULT_TRAJECTORY_ID);
+
+    // record the correct "initial" state in the recycled trajectory
+    static_cast<lm::fflux::FFluxTrajectory*>(recycTraj)->setInitialStateToCurrentState();
+
+    // return the refurbished trajectory
+    return recycTraj;
 }
 lm::trajectory::Trajectory* FFluxTrajectoryList::recycleTrajectoryUniformRandom(uint64_t oldID)
 {
+    // choose an endpoint (at random from the list of endpoints) from the previous phase to use as a starting state
     const lm::protowrap::EndPointVector::Pair& endPointPair(previousPhaseOutputPtr->getEndPointUniformRandom());
-    return recycleTrajectory(endPointPair.first->species_coordinates().begin(), endPointPair.first->species_coordinates().end(), endPointPair.first->times(endPointPair.second), oldID, DEFAULT_TRAJECTORY_ID);
+
+    // reuse as much of the existing trajectory as possible
+    lm::trajectory::Trajectory* recycTraj = recycleTrajectory(endPointPair.first->species_coordinates().begin(), endPointPair.first->species_coordinates().end(), endPointPair.first->times(endPointPair.second), oldID, DEFAULT_TRAJECTORY_ID);
+
+    // record the correct "initial" state in the recycled trajectory
+    static_cast<lm::fflux::FFluxTrajectory*>(recycTraj)->setInitialStateToCurrentState();
+
+    // return the refurbished trajectory
+    return recycTraj;
 }
 
 }

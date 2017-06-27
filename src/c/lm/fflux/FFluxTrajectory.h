@@ -57,22 +57,35 @@ class FFluxTrajectory : public lm::trajectory::Trajectory
 {
 public:
     FFluxTrajectory(const lm::input::Input& input, uint64_t phase, uint64_t id)
-    :Trajectory(input, phase, id)
+    :Trajectory(input, phase, id),initialTime(0)
     {
+        setInitialStateToCurrentState();
     }
 
     template <typename InputIterator> FFluxTrajectory(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd, double startTime, uint64_t phase, uint64_t id)
-    :Trajectory(input, speciesStart, speciesEnd, startTime, phase, id)
+    :Trajectory(input, speciesStart, speciesEnd, startTime, phase, id),initialTime(0)
     {
+        setInitialStateToCurrentState();
     }
 
     FFluxTrajectory(const lm::io::TrajectoryState& initialState, uint64_t phase, uint64_t id)
-    :Trajectory(initialState, phase, id)
+    :Trajectory(initialState, phase, id),initialTime(0)
     {
+        setInitialStateToCurrentState();
     }
 
     virtual ~FFluxTrajectory()
     {
+    }
+
+    virtual const std::vector<int32_t>& getInitialSpeciesCounts() const
+    {
+        return initialSpeciesCounts;
+    }
+
+    virtual double getInitialTime() const
+    {
+        return initialTime;
     }
 
     virtual void processState(const lm::io::TrajectoryState& trajectoryState)
@@ -100,9 +113,18 @@ public:
         else throw ConsistencyException("Finished Forward Flux phase n>0 trajectory %llu has recorded %d backward flux events and %d forward flux events; it should have either 1 forward or 1 backward flux event, and not both", trajectoryState.trajectory_id(), timeWrapBasinEntry.size(), timeWrapForwardFlux.size());
     }
 
+    virtual void setInitialStateToCurrentState()
+    {
+        initialSpeciesCounts = getLastSpeciesCounts();
+        initialTime = getLastTime();
+    }
+
 public:
     // streaming variance of the waiting time in between interface 0 forward crossing events
     StreamingVariance phaseWeightSV;
+
+    std::vector<int32_t> initialSpeciesCounts;
+    double initialTime;
 
 protected:
     lm::protowrap::Repeated<lm::io::LimitTracking> limitTrackingsWrap;

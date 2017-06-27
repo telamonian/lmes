@@ -81,18 +81,20 @@ public:
 
     // construct Trajectory from a preexisting TrajectoryState message
     Trajectory(const lm::io::TrajectoryState& initialState, uint64_t phase, uint64_t id);
+
+    // destructor
     virtual ~Trajectory();
 
     // accessors
     virtual uint64_t getID() const;
     virtual std::vector<double> getLastOrderParameterValues() const;
     virtual std::vector<int32_t> getLastSpeciesCounts() const;
+    virtual double getLastTime() const;
     virtual const lm::input::TrajectoryLimit& getLimitReached() const;
     virtual const lm::io::OrderParametersValues& getOrderParameterValues() const;
     virtual uint64_t getSimulationPhase() const;
     virtual int32_t getSimSteps() const;
     // return the simulation time (determined by the time when the most recent species count was recorded)
-    virtual double getSimTime() const;
     virtual const lm::io::SpeciesCounts& getSpeciesCounts() const;
     virtual const lm::io::TrajectoryState& getState() const;
     virtual Status getStatus() const;

@@ -289,7 +289,7 @@ int32_t Trajectory::getSimSteps() const
     return getSpeciesCounts().number_entries();
 }
 
-double Trajectory::getSimTime() const
+double Trajectory::getLastTime() const
 {
     return getSpeciesCounts().time(getSpeciesCounts().time_size() - 1);
 }
