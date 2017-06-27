@@ -51,7 +51,7 @@ class FFluxGTSRegressionLMES(FFluxGTSRegression):
                 "errorGoal": .10,
                 "errorGoalConfidence": .95,
                 "ffluxPilotOutput": False,
-                "ffluxPhaseOutput": False,
+                "ffluxPhaseOutput": True,
                 "ffluxStageOutputRaw": True,
                 "ffluxStageOutputSummary": True,
                 'ffluxMinimizeCost': False,
@@ -61,7 +61,7 @@ class FFluxGTSRegressionLMES(FFluxGTSRegression):
                 "productionStageCountMinimum": 1e3,
                 'writeInitialTrajectoryState': False,
                 'writeFinalTrajectoryState': False,
-                'writeInterval': -1.0,
+                'writeInterval': None, #-1.0,
                 'writeLimitTracking': False,
             }
 

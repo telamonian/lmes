@@ -331,25 +331,26 @@ public:
 
         StartPointMsg* startPointMsg = startPointMap[ffluxTraj.getInitialSpeciesCounts()];
         startPointMsg->set_count(startPointMsg->count() + 1);
-//        startPointMsg->add_times(endPointTime);
+        //startPointMsg->add_times(endPointTime);
 
         if (not successful)
         {
             // trajectory fluxed backwards
             startPointMsg->set_failed_trajectories_launched_count(startPointMsg->failed_trajectories_launched_count() + 1);
-//            startPointMsg->set_failed_trajectories_launched_total_time(startPointMsg->failed_trajectories_launched_total_time() + endPointTime - trajectory.getLastTime());
+            //startPointMsg->set_failed_trajectories_launched_total_time(startPointMsg->failed_trajectories_launched_total_time() + endPointTime - trajectory.getLastTime());
 
-            startPointEndPointMap.setWrappedField(startPointMsg->failed_trajectory_end_points());
+            startPointEndPointMap.setWrappedField(startPointMsg->mutable_failed_trajectory_end_points());
         }
         else
         {
             // trajectory fluxed forwards
             startPointMsg->set_successful_trajectories_launched_count(startPointMsg->successful_trajectories_launched_count() + 1);
-//            startPointMsg->set_successful_trajectories_launched_total_time(startPointMsg->successful_trajectories_launched_total_time() + endPointTime - trajectory.getLastTime());
+            //startPointMsg->set_successful_trajectories_launched_total_time(startPointMsg->successful_trajectories_launched_total_time() + endPointTime - trajectory.getLastTime());
 
-            startPointEndPointMap.setWrappedField(startPointMsg->successful_trajectory_end_points());
+            startPointEndPointMap.setWrappedField(startPointMsg->mutable_successful_trajectory_end_points());
         }
-        processEndPoint(endPointSpeciesCountsStart, endPointSpeciesCountsEnd, endPointTime, &startPointEndPointMap);
+        //processEndPoint(endPointSpeciesCountsStart, endPointSpeciesCountsEnd, endPointTime, &startPointEndPointMap);
+        startPointEndPointMap.setWrappedFieldNull();
 
         return startPointMsg;
     }
