@@ -366,6 +366,12 @@ double ASTHelper::evaluateASTFunction(const ASTNode_t * node)
 
 bool ASTHelper::compareASTNodes(ASTNode_t* formula, ASTNode_t* propensityFormula)
 {
+    map<string,string> variableMap, variableMapReverse;
+    return compareASTNodes(formula, propensityFormula, variableMap, variableMapReverse);
+}
+
+bool ASTHelper::compareASTNodes(ASTNode_t* formula, ASTNode_t* propensityFormula, map<string,string>& variableMap, map<string,string>& variableMapReverse)
+{
     // If this is a number and it matches to a k, accept the match.
     if (formula->isNumber() && propensityFormula->isName() && propensityFormula->getName()[0] == 'k')
         return true;
@@ -375,10 +381,26 @@ bool ASTHelper::compareASTNodes(ASTNode_t* formula, ASTNode_t* propensityFormula
         return evaluateASTOperator(formula) == evaluateASTOperator(propensityFormula);
     }
 
+    // If this is a variable, make sure it matches with any previous uses.
+    if (formula->isName() && propensityFormula->isName())
+    {
+        if (variableMap.count(formula->getName()) == 0 && variableMapReverse.count(propensityFormula->getName()) == 0)
+        {
+            variableMap[formula->getName()] = propensityFormula->getName();
+            variableMapReverse[propensityFormula->getName()] = formula->getName();
+            return true;
+        }
+        else if (variableMap.count(formula->getName()) > 0 && variableMap[formula->getName()] == propensityFormula->getName() && variableMapReverse.count(propensityFormula->getName()) > 0 && variableMapReverse[propensityFormula->getName()] == formula->getName())
+        {
+            return true;
+        }
+        return false;
+    }
+
     if (formula->getType() == propensityFormula->getType() && formula->getNumChildren() == propensityFormula->getNumChildren())
     {
         for (int i=0; i<formula->getNumChildren(); i++)
-            if (!compareASTNodes(formula->getChild(i), propensityFormula->getChild(i)))
+            if (!compareASTNodes(formula->getChild(i), propensityFormula->getChild(i), variableMap, variableMapReverse))
                 return false;
         return true;
     }

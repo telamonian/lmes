@@ -26,6 +26,7 @@ public:
     static double evaluateASTOperator(const ASTNode_t * node);
     static double evaluateASTFunction(const ASTNode_t * node);
     static bool compareASTNodes(ASTNode_t* formula, ASTNode_t* propensityFormula);
+    static bool compareASTNodes(ASTNode_t* formula, ASTNode_t* propensityFormula, map<string,string>& variableMap, map<string,string>& variableMapReverse);
 };
 
 }
