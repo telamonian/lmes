@@ -72,6 +72,52 @@ GeneticCircuitPropensityFunctions::~GeneticCircuitPropensityFunctions()
 {
 }
 
+class ZerothOrderImpulsePropensity : public lm::me::PropensityFunction
+{
+public:
+    static const uint REACTION_TYPE = 2005;
+
+    ZerothOrderImpulsePropensity(double k, double deltaK, double ti, double tf) :PropensityFunction(REACTION_TYPE,0),k(k),deltaK(deltaK),ti(ti),tf(tf) {}
+    double k;
+    double deltaK;
+    double ti;
+    double tf;
+
+    void changeVolume(double volumeMultiplier) {k*=volumeMultiplier;}
+    double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
+    {
+        return (time>=ti&&time<=tf)?(k+deltaK):k;
+    }
+
+#ifdef OPT_AVX
+    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
+    {
+        avxd compi = _mm256_cmp_pd(time, _mm256_set1_pd(ti), _CMP_GE_OQ);
+        avxd compf = _mm256_cmp_pd(time, _mm256_set1_pd(tf), _CMP_LE_OQ);
+        avxd comp = _mm256_and_pd(compi, compf);
+        return _mm256_blendv_pd(_mm256_set1_pd(k), _mm256_set1_pd(k+deltaK), comp);
+    }
+#endif
+
+    static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+    {
+        // Find the species dependencies.
+        utuple dependencies = getDependencies(reactionIndex, D);
+        if (dependencies.len != 1) throw InvalidArgException("D", "zeroth order impulse propensity had invalid number of dependencies",dependencies.len);
+
+        // Find the rate costant.
+        if (k.len < 4)  throw InvalidArgException("k", "zeroth order impulse propensity needs four rate constants",k.len);
+
+        return new ZerothOrderImpulsePropensity(k[0],k[1],k[2],k[3]);
+    }
+
+    static lm::me::PropensityFunctionDefinition registerFunction()
+    {
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
+    }
+};
+
+
 class TimeDependentHarmonicBirthPropensity : public lm::me::PropensityFunction
 {
 public:
@@ -451,6 +497,7 @@ public:
 list<lm::me::PropensityFunctionDefinition> GeneticCircuitPropensityFunctions::getPropensityFunctionDefinitions()
 {
     list<lm::me::PropensityFunctionDefinition> defs;
+    defs.push_back(ZerothOrderImpulsePropensity::registerFunction());
     defs.push_back(TimeDependentHarmonicBirthPropensity::registerFunction());
     defs.push_back(TimeDependentHarmonicDeathPropensity::registerFunction());
     defs.push_back(TimeDependentQuadraticBirthPropensity::registerFunction());
