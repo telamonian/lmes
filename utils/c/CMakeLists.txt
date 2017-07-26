@@ -7,7 +7,7 @@ set(lm_utils_libs  ${PROTOBUF_LIBRARIES}
                   ${ZLIB_LIBRARIES})
 
 IF(BUILD_WITH_MPI)
-  target_link_libraries(lmes ${MPI_C_LIBRARIES})
+  set(lm_utils_libs ${lm_utils_libs} ${MPI_C_LIBRARIES})
 ENDIF(BUILD_WITH_MPI)
 
 IF(BUILD_WITH_SNAPPY)
