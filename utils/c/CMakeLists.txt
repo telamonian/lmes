@@ -23,7 +23,7 @@ file(GLOB_RECURSE util_sources robertslab/*.cpp robertslab/*.h)
 
 # Remove any source files that depend on C++11.
 if(NOT BUILD_WITH_CPP11)
-    set(to_remove_globs robertslab/bngl/*.cpp robertslab/bngl/*.h)
+    set(to_remove_globs robertslab/bngl/*.cpp robertslab/bngl/*.h robertslab/graph/*.cpp robertslab/graph/*.h)
     file(GLOB_RECURSE to_remove_srcs ${to_remove_globs})
     list(REMOVE_ITEM util_sources ${to_remove_srcs})
 endif(NOT BUILD_WITH_CPP11)
