@@ -34,6 +34,8 @@
 /test_case/*
 !/test_case/clean
 !/test_case/clean/biphasic_switch*.lm
+data
+tmp
 
 # ipython notebook stuff
 #*.ipynb

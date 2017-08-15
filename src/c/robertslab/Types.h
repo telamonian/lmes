@@ -45,6 +45,11 @@ template <typename T> const char* printf_format_string();
 
 template <typename T> struct tuple
 {
+    tuple()
+    :len(0),values(NULL)
+    {
+    }
+
     tuple(const tuple& t)
     :len(t.len),values(new T[t.len])
     {

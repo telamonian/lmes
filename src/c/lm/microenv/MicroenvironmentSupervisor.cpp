@@ -103,6 +103,7 @@ void MicroenvironmentSupervisor::init()
     tau = input->getMicroenvironmentModel().synchronization_timestep();
 
     // Get the grid properties.
+    utuple gridShape(input->getMicroenvironmentModel().grid_shape().size(), (const uint32_t*)input->getMicroenvironmentModel().grid_shape().data());
     gridSpacing = input->getMicroenvironmentModel().grid_spacing();
 
     // Get the cell coordinates and volume.
@@ -119,9 +120,22 @@ void MicroenvironmentSupervisor::init()
         // Calculate the cell grid points.
         for (uint32_t i=0; i<numberCells; i++)
         {
-            (*cellGridPoints)[utuple(i,0U)] = uint32_t(round((*cellCoordinates)[utuple(i,0U)]/gridSpacing));
-            (*cellGridPoints)[utuple(i,1U)] = uint32_t(round((*cellCoordinates)[utuple(i,1U)]/gridSpacing));
-            (*cellGridPoints)[utuple(i,2U)] = uint32_t(round((*cellCoordinates)[utuple(i,2U)]/gridSpacing));
+            // Get the nearest grid point to the cell.
+            uint32_t x = uint32_t(round((*cellCoordinates)[utuple(i,0U)]/gridSpacing));
+            uint32_t y = uint32_t(round((*cellCoordinates)[utuple(i,1U)]/gridSpacing));
+            uint32_t z = uint32_t(round((*cellCoordinates)[utuple(i,2U)]/gridSpacing));
+
+            // Verify that the cell falls in the diffusion grid.
+            if (x >= gridShape[0] || y >= gridShape[1] || z >= gridShape[2])
+            {
+                Print::printf(Print::FATAL, "Cell %d was located at %e,%e,%e (%d,%d,%d), which is off the diffusion grid (%d,%d,%d).", i, (*cellCoordinates)[utuple(i,0U)], (*cellCoordinates)[utuple(i,1U)], (*cellCoordinates)[utuple(i,2U)], x, y, z, gridShape[0], gridShape[1], gridShape[2]);
+                throw RuntimeException("MicroenvironmentSupervisor encountered a critical error in the configuration.");
+            }
+
+            // Save the cell's grid point.
+            (*cellGridPoints)[utuple(i,0U)] = x;
+            (*cellGridPoints)[utuple(i,1U)] = y;
+            (*cellGridPoints)[utuple(i,2U)] = z;
         }
     }
 

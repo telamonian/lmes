@@ -45,9 +45,11 @@ namespace lm {
 namespace microenv {
 
 METrajectoryList::METrajectoryList(const lm::input::Input& input, uint64_t replicate)
-:replicate(replicate),numberCells(0)
+:trajectoryMultiplier(0),numberCells(0)
 {
     if (!input.hasMicroenvironmentModel()) throw RuntimeException("METrajectoryList requires a MicroenvironmentModel as input");
+    if (replicate == 0) throw RuntimeException("Replicate number cannot be 0.");
+    trajectoryMultiplier = replicate-1;
 
     // Go through each cell in the microenvironment.
     numberCells = input.getMicroenvironmentModel().number_cells();
@@ -58,7 +60,7 @@ METrajectoryList::METrajectoryList(const lm::input::Input& input, uint64_t repli
         for (uint i=0; i<numberCells; i++)
         {
             // Create a new trajectory for the cell.
-            uint64_t id = replicate*numberCells+i;
+            uint64_t id = trajectoryMultiplier*numberCells+i;
             trajectories[id] = new lm::trajectory::Trajectory(id, getSimulationPhase(), input, false, true, true, false);
             waitingTrajectories[id] = trajectories[id];
 
@@ -80,7 +82,7 @@ void METrajectoryList::copySpeciesCountInto(ndarray<int32_t>* counts, uint32_t c
 {
     for (TrajectoryMap::const_iterator it=trajectories.begin(); it!=trajectories.end(); it++)
     {
-        (*counts)[utuple(it->first-numberCells*replicate,column)] = it->second->getState().cme_state().species_counts().species_count(speciesId);
+        (*counts)[utuple(it->first-numberCells*trajectoryMultiplier,column)] = it->second->getState().cme_state().species_counts().species_count(speciesId);
     }
 }
 
@@ -88,7 +90,7 @@ void METrajectoryList::copySpeciesCountFrom(const ndarray<int32_t>& counts, uint
 {
     for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
     {
-        it->second->getMutableState()->mutable_cme_state()->mutable_species_counts()->set_species_count(speciesId, counts[utuple(it->first-numberCells*replicate,column)]);
+        it->second->getMutableState()->mutable_cme_state()->mutable_species_counts()->set_species_count(speciesId, counts[utuple(it->first-numberCells*trajectoryMultiplier,column)]);
     }
 }
 
