@@ -57,11 +57,13 @@ public:
     virtual uint64_t generateTrajectory(uint64_t maxSteps);
 
 protected:
+    double calculateBoundaryConcentration(int boundary, double* c, int index, int indexM1);
     //void calculateWithReflectingBoundary(ndarray<double>& grid, double runtime);
     //virtual void calculateAbsorbingBoundary(ndarray<double>& grid, double time, double value);
 
 protected:
-    lm::types::BoundaryConditions::BoundaryConditionsType boundaries[6];
+    lm::types::BoundaryConditions::BoundaryConditionsType boundaryConditions[6];
+    double boundaryConcentrations[6];
     double D;
     double dx;
     double dt;

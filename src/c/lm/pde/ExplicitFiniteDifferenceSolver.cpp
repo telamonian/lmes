@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Johns Hopkins University
+ * Copyright 2016-2017 Johns Hopkins University
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -64,6 +64,12 @@ output(new lm::message::WorkUnitOutput()),writeConcentrationsTimeSeries(false),c
 status(lm::message::WorkUnitStatus::NONE),trajectoryId(std::numeric_limits<uint64_t>::max()),previouslyStarted(false),
 time(0.0),timeLimit(std::numeric_limits<double>::infinity()),grid(NULL)
 {
+    // Initialize the boundary condition arrays.
+    for (int i=0; i<6; i++)
+    {
+        boundaryConditions[i] = lm::types::BoundaryConditions::REFLECTING;
+        boundaryConcentrations[i] = 0.0;
+    }
 }
 
 ExplicitFiniteDifferenceSolver::~ExplicitFiniteDifferenceSolver()
@@ -81,31 +87,56 @@ void ExplicitFiniteDifferenceSolver::setMicroenvironmentModel(const lm::input::M
     if (model.grid_shape().size() != 3) throw lm::InvalidArgException("model.grid_shape", "the grid must be three-dimensional for ExplicitFiniteDifferenceSolver");
     if (model.diffusion_coefficients().size() <= 0) throw lm::InvalidArgException("model.diffusion_coefficients", "the model did not have enough diffusion_coefficient values");
 
+    // Reset the boundary condition arrays.
+    for (int i=0; i<6; i++)
+    {
+        boundaryConditions[i] = lm::types::BoundaryConditions::REFLECTING;
+        boundaryConcentrations[i] = 0.0;
+    }
+
     // Extract the boundary conditions.
     if (model.boundaries().axis_specific_boundaries())
     {
         // Axis specific boundary conditions.
-        boundaries[0] = model.boundaries().x_plus();
-        boundaries[1] = model.boundaries().x_minus();
-        boundaries[2] = model.boundaries().y_plus();
-        boundaries[3] = model.boundaries().y_minus();
-        boundaries[4] = model.boundaries().z_plus();
-        boundaries[5] = model.boundaries().z_minus();
+        boundaryConditions[0] = model.boundaries().x_plus();
+        boundaryConditions[1] = model.boundaries().x_minus();
+        boundaryConditions[2] = model.boundaries().y_plus();
+        boundaryConditions[3] = model.boundaries().y_minus();
+        boundaryConditions[4] = model.boundaries().z_plus();
+        boundaryConditions[5] = model.boundaries().z_minus();
+
+        // Axis specific concentrations.
+        if (boundaryConditions[0] == lm::types::BoundaryConditions::FIXED_CONCENTRATION)
+            boundaryConcentrations[0] = model.boundaries().boundary_concentration_x_plus();
+        if (boundaryConditions[1] == lm::types::BoundaryConditions::FIXED_CONCENTRATION)
+            boundaryConcentrations[1] = model.boundaries().boundary_concentration_x_minus();
+        if (boundaryConditions[2] == lm::types::BoundaryConditions::FIXED_CONCENTRATION)
+            boundaryConcentrations[2] = model.boundaries().boundary_concentration_y_plus();
+        if (boundaryConditions[3] == lm::types::BoundaryConditions::FIXED_CONCENTRATION)
+            boundaryConcentrations[3] = model.boundaries().boundary_concentration_y_minus();
+        if (boundaryConditions[4] == lm::types::BoundaryConditions::FIXED_CONCENTRATION)
+            boundaryConcentrations[4] = model.boundaries().boundary_concentration_z_plus();
+        if (boundaryConditions[5] == lm::types::BoundaryConditions::FIXED_CONCENTRATION)
+            boundaryConcentrations[5] = model.boundaries().boundary_concentration_z_minus();
     }
     else
     {
         // Global boundary conditions.
         for (int i=0; i<6; i++)
-            boundaries[i] = model.boundaries().global();
+        {
+            boundaryConditions[i] = model.boundaries().global();
+            if (boundaryConditions[i] == lm::types::BoundaryConditions::FIXED_CONCENTRATION)
+                boundaryConcentrations[i] = model.boundaries().boundary_concentration();
+        }
     }
 
     // Validate the boundary conditions.
     for (int i=0; i<6; i++)
     {
-        if (boundaries[i] != lm::types::BoundaryConditions::REFLECTING && boundaries[i] != lm::types::BoundaryConditions::ABSORBING && boundaries[i] != lm::types::BoundaryConditions::LINEAR_GRADIENT)
-            throw lm::InvalidArgException("model.boundaries", "ExplicitFiniteDifferenceSolver does not support the specified boundary condition", i, boundaries[i]);
-        else if (boundaries[i] == lm::types::BoundaryConditions::LINEAR_GRADIENT && model.grid_shape(i/2) < 2)
-            throw lm::InvalidArgException("model.boundaries", "A grid dimension must be >=2 to use linear gradient boundary conditions", i, boundaries[i]);
+        if (boundaryConditions[i] != lm::types::BoundaryConditions::REFLECTING && boundaryConditions[i] != lm::types::BoundaryConditions::ABSORBING && boundaryConditions[i] != lm::types::BoundaryConditions::FIXED_CONCENTRATION && boundaryConditions[i] != lm::types::BoundaryConditions::LINEAR_GRADIENT)
+            throw lm::InvalidArgException("model.boundaries", "ExplicitFiniteDifferenceSolver does not support the specified boundary condition", i, boundaryConditions[i]);
+        else if (boundaryConditions[i] == lm::types::BoundaryConditions::LINEAR_GRADIENT && model.grid_shape(i/2) < 2)
+            throw lm::InvalidArgException("model.boundaries", "A grid dimension must be >=2 to use linear gradient boundary conditions", i, boundaryConditions[i]);
     }
 
     // Extract the needed parameters.
@@ -203,11 +234,6 @@ lm::message::WorkUnitStatus::Status ExplicitFiniteDifferenceSolver::getStatus(ui
     return status;
 }
 
-
-#define CALCULATE_BOUNDARY_CONCENTRATION(BC,C,INDEX,INDEXM1) (BC==lm::types::BoundaryConditions::ABSORBING) ? 0.0 :\
-                                                     (BC==lm::types::BoundaryConditions::LINEAR_GRADIENT)   ? (2*C[INDEX]>C[INDEXM1])?(2*C[INDEX]-C[INDEXM1]):(0.0) :\
-                                                     C[INDEX]
-
 uint64_t ExplicitFiniteDifferenceSolver::generateTrajectory(uint64_t maxSteps)
 {
     PROF_BEGIN(PROF_PDE_EXECUTE);
@@ -266,12 +292,12 @@ uint64_t ExplicitFiniteDifferenceSolver::generateTrajectory(uint64_t maxSteps)
             for (int j=0; j<jlen; j++)
                 for (int k=0; k<klen; k++, index++)
                 {
-                    c_ip = (i<imax)?(c[index+jklen]):(CALCULATE_BOUNDARY_CONCENTRATION(boundaries[0],c,index,index-jklen));
-                    c_im = (i>0)?(c[index-jklen]):(CALCULATE_BOUNDARY_CONCENTRATION(boundaries[1],c,index,index+jklen));
-                    c_jp = (j<jmax)?(c[index+klen]):(CALCULATE_BOUNDARY_CONCENTRATION(boundaries[2],c,index,index-klen));
-                    c_jm = (j>0)?(c[index-klen]):(CALCULATE_BOUNDARY_CONCENTRATION(boundaries[3],c,index,index+klen));
-                    c_kp = (k<kmax)?(c[index+1]):(CALCULATE_BOUNDARY_CONCENTRATION(boundaries[4],c,index,index-1));
-                    c_km = (k>0)?(c[index-1]):(CALCULATE_BOUNDARY_CONCENTRATION(boundaries[5],c,index,index+1));
+                    c_ip = (i<imax)?(c[index+jklen]):(calculateBoundaryConcentration(0,c,index,index-jklen));
+                    c_im = (i>0)?(c[index-jklen]):(calculateBoundaryConcentration(1,c,index,index+jklen));
+                    c_jp = (j<jmax)?(c[index+klen]):(calculateBoundaryConcentration(2,c,index,index-klen));
+                    c_jm = (j>0)?(c[index-klen]):(calculateBoundaryConcentration(3,c,index,index+klen));
+                    c_kp = (k<kmax)?(c[index+1]):(calculateBoundaryConcentration(4,c,index,index-1));
+                    c_km = (k>0)?(c[index-1]):(calculateBoundaryConcentration(5,c,index,index+1));
                     cFuture[index] = c[index] + k_diff*(-6.0*c[index]+c_im+c_ip+c_jm+c_jp+c_km+c_kp);
 //                    if (k==kmax)
 //                    {
@@ -346,6 +372,27 @@ uint64_t ExplicitFiniteDifferenceSolver::generateTrajectory(uint64_t maxSteps)
     PROF_END(PROF_PDE_EXECUTE);
 
     return steps;
+}
+
+double ExplicitFiniteDifferenceSolver::calculateBoundaryConcentration(int boundary, double* c, int index, int indexM1)
+{
+    switch (boundaryConditions[boundary])
+    {
+    case lm::types::BoundaryConditions::REFLECTING:
+        return c[index];
+    case lm::types::BoundaryConditions::ABSORBING:
+        return 0.0;
+    case lm::types::BoundaryConditions::PERIODIC:
+        throw lm::RuntimeException("periodic boundaries not yet supported by ExplicitFiniteDifferenceSolver");
+    case lm::types::BoundaryConditions::FIXED_CONCENTRATION:
+        return boundaryConcentrations[boundary];
+    case lm::types::BoundaryConditions::FIXED_GRADIENT:
+        throw lm::RuntimeException("fixed gradient boundaries not yet supported by ExplicitFiniteDifferenceSolver");
+    case lm::types::BoundaryConditions::LINEAR_GRADIENT:
+        return (2*c[index]>c[indexM1])?(2*c[index]-c[indexM1]):(0.0);
+    }
+
+    throw lm::RuntimeException("unexpected boundary condition", boundary, boundaryConditions[boundary]);
 }
 
 }
