@@ -169,12 +169,16 @@ void ASTHelper::sortASTExpression(ASTNode_t* node)
 
         // Finally, sort by the number of children.
         int currentCount=0;
-        while (children.size() < node->getNumChildren())
+        while (node->getNumChildren() > 0)
         {
             for (int i=0; i<node->getNumChildren(); i++)
             {
                 if (node->getChild(i)->getNumChildren() == currentCount)
+                {
                     children.push_back(node->getChild(i));
+                    node->removeChild(i);
+                    i--;
+                }
             }
             currentCount++;
         }

@@ -494,6 +494,94 @@ public:
     }
 };
 
+class FirstOrderKHillPropensity : public lm::me::PropensityFunction
+{
+public:
+    static const uint REACTION_TYPE = 8010;
+    static const uint REACTION_TYPE_ALTERNATE_FORMAT = 8011;
+
+    FirstOrderKHillPropensity(uint si, uint xi, double x0, double k0, double k1, double h) :PropensityFunction(REACTION_TYPE,1),si(si),xi(xi),x0h(pow(x0,h)),k0(k0),dk(k1-k0),h(h) {}
+    int si;
+    uint xi;
+    double x0h;
+    double k0;
+    double dk;
+    double h;
+
+    void changeVolume(double volumeMultiplier) {}
+    double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
+    {
+        double x = double(speciesCounts[xi]);
+        double xh = pow(x,h);
+        double k = k0+((dk*xh)/(x0h+xh));
+        return k * double(speciesCounts[si]);
+    }
+
+#if defined(OPT_AVX) && !defined(OPT_SVML)
+    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
+    {
+        double x0 = speciesCounts[xi*DOUBLES_PER_AVX];
+        double x1 = speciesCounts[xi*DOUBLES_PER_AVX+1];
+        double x2 = speciesCounts[xi*DOUBLES_PER_AVX+2];
+        double x3 = speciesCounts[xi*DOUBLES_PER_AVX+3];
+        avxd xh = _mm256_set_pd(pow(x3,h),pow(x2,h),pow(x1,h),pow(x0,h));
+        avxd k = _mm256_add_pd(_mm256_set1_pd(k0),_mm256_div_pd(_mm256_mul_pd(_mm256_set1_pd(dk),xh),_mm256_add_pd(_mm256_set1_pd(x0h),xh)));
+        return _mm256_mul_pd(k, _mm256_load_pd(&speciesCounts[si*DOUBLES_PER_AVX]));
+    }
+#endif
+#if defined(OPT_AVX) && defined(OPT_SVML)
+    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
+    {
+        avxd x = _mm256_load_pd(&speciesCounts[xi*DOUBLES_PER_AVX]);
+        avxd xh = _mm256_pow_pd(x, _mm256_set1_pd(h));
+        avxd k = _mm256_add_pd(_mm256_set1_pd(k0),_mm256_div_pd(_mm256_mul_pd(_mm256_set1_pd(dk),xh),_mm256_add_pd(_mm256_set1_pd(x0h),xh)));
+        return _mm256_mul_pd(k, _mm256_load_pd(&speciesCounts[si*DOUBLES_PER_AVX]));
+    }
+#endif
+
+    static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+    {
+        // Find the species dependencies.
+        utuple d1 = getSpecificDependencies(reactionIndex, D, 1);
+        if (d1.len != 1) throw InvalidArgException("D", "first order kinetic Hill propensity needs one first species dependency, had",d1.len);
+        utuple d2 = getSpecificDependencies(reactionIndex, D, 2);
+        if (d2.len != 1) throw InvalidArgException("D", "first order kinetic Hill propensity needs one second species dependency, had",d2.len);
+
+        // Find the rate costant.
+        if (k.len != 4)  throw InvalidArgException("k", "first order kinetic Hill propensity needs four parameters, had",k.len);
+
+        return new FirstOrderKHillPropensity(d1[0],d2[0],k[0],k[1],k[2],k[3]);
+    }
+
+    static lm::me::PropensityFunctionDefinition registerFunction()
+    {
+        const char* expressions[] = {"x1 * (k2 + (k3 - k2) * x2^k4 / (k1^k4 + x2^k4))", NULL};
+        const char* unitsForConstants[] = {"item", "1/second", "1/second", "1", NULL};
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderKHillPropensity", expressions, unitsForConstants, &create);
+    }
+
+    static PropensityFunction* createAlternateFormat(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+    {
+        // Find the species dependencies.
+        utuple d1 = getSpecificDependencies(reactionIndex, D, 1);
+        if (d1.len != 1) throw InvalidArgException("D", "first order kinetic Hill propensity needs one first species dependency, had",d1.len);
+        utuple d2 = getSpecificDependencies(reactionIndex, D, 2);
+        if (d2.len != 1) throw InvalidArgException("D", "first order kinetic Hill propensity needs one second species dependency, had",d2.len);
+
+        // Find the rate costant.
+        if (k.len != 4)  throw InvalidArgException("k", "first order kinetic Hill propensity needs four parameters, had",k.len);
+
+        return new FirstOrderKHillPropensity(d1[0],d2[0],k[0],k[1],k[1]+k[2],k[3]);
+    }
+
+    static lm::me::PropensityFunctionDefinition registerFunctionAlternateFormat()
+    {
+        const char* expressions[] = {"x1 * (k2 + k3 * x2^k4 / (k1^k4 + x2^k4))", "x1 * (k2 + k3 * (x2^k4 / (k1^k4 + x2^k4)))", NULL};
+        const char* unitsForConstants[] = {"item", "1/second", "1/second", "1", NULL};
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE_ALTERNATE_FORMAT, "FirstOrderKHillPropensity", expressions, unitsForConstants, &createAlternateFormat);
+    }
+};
+
 list<lm::me::PropensityFunctionDefinition> GeneticCircuitPropensityFunctions::getPropensityFunctionDefinitions()
 {
     list<lm::me::PropensityFunctionDefinition> defs;
@@ -505,6 +593,8 @@ list<lm::me::PropensityFunctionDefinition> GeneticCircuitPropensityFunctions::ge
     defs.push_back(ZerothOrderKHillPropensity::registerFunction());
     defs.push_back(ZerothOrderKHillPropensity::registerFunctionAlternateFormat());
     defs.push_back(ZerothOrderKHillTwoSpeciesOrPropensity::registerFunction());
+    defs.push_back(FirstOrderKHillPropensity::registerFunction());
+    defs.push_back(FirstOrderKHillPropensity::registerFunctionAlternateFormat());
     return defs;
 }
 

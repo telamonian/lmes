@@ -405,7 +405,7 @@ bool SBMLImporterL3V1::importPropensityFunction(Reaction* reaction, int reaction
     if (reallyVerbose)
     {
         printf("substituted: %s\n", SBML_formulaToL3String(substitutedFormula));
-        //ASTHelper::printASTNode(substitutedFormula);
+        ASTHelper::printASTNode(substitutedFormula);
     }
 
     // Put the formula into normal form.
