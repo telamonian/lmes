@@ -30,7 +30,7 @@ endif(NOT BUILD_WITH_CPP11)
 
                                      
 file(GLOB lm_setdm_source lm_setdm.cpp util.cpp)
-add_executable(lm_setdm EXCLUDE_FROM_ALL ${lm_setdm_source})
+add_executable(lm_setdm ${lm_setdm_source})
 target_link_libraries(lm_setdm lm_c_lib ${lm_utils_libs})
                                
 file(GLOB lm_setp_source lm_setp.cpp)
@@ -46,6 +46,7 @@ add_executable(sfile_to_lm ${sfile_to_lm_source})
 target_link_libraries(sfile_to_lm lm_c_lib ${lm_utils_libs})
 
 set(util_targets lm_setp
+                 lm_setdm
                  lm_setrm
                  sfile_to_lm)
 
