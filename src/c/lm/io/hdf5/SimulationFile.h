@@ -199,22 +199,6 @@ public:
 
     //virtual void appendSpatialModelObjects(uint64_t replicate, lm::input::SpatialModel * model) throw(HDF5Exception,InvalidArgException);
     //virtual void getSpatialModelObjects(uint64_t replicate, lm::input::SpatialModel * model) throw(HDF5Exception);
-
-	/*virtual lattice_coord_t getLatticeSize() const;
-	virtual nmdist_t getLatticeSpacing() const;
-	virtual uint getMaxParticlesPerSite() const;
-	virtual lattice_particle_t getMaxParticleType() const;
-	virtual lattice_site_t getMaxSiteType() const;
-	virtual const std::map<uint64,uint64> getMaxParticleCounts() const;
-	virtual const std::map<uint64,uint64> getMaxSiteCounts() const;
-	
-	virtual uint64 getNumberFrames() const;	
-	virtual const std::vector<nstime_t> getFrameTimes() const;
-	virtual void loadFrame(uint64 frameIndex, Lattice* lattice, nstime_t* time=NULL) const throw(HDF5Exception);
-	
-	virtual uint64 getNumberLatticeConfigurations() const;
-	virtual const std::vector<nstime_t> getLatticeConfigurationTimes() const;
-	virtual void loadLatticeConfiguration(uint64 latticeIndex, Lattice* lattice, nstime_t* time=NULL) const throw(HDF5Exception);*/
 	
 public:
 

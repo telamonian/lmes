@@ -150,6 +150,9 @@ void ConsoleOutputWriter::processSpeciesTimeSeries(const lm::io::SpeciesTimeSeri
     // Print the output to stdout.
     Print::printf(Print::INFO, "ConsoleOutputWriter received species time series for trajectory %d:\n%s",data.trajectory_id(),buffer);
 
+    // Free the ndarrays.
+    if (counts != NULL) delete counts;
+    if (times != NULL) delete times;
 }
 
 void ConsoleOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)
@@ -157,42 +160,38 @@ void ConsoleOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeri
     // Print the output into the buffer.
     memset(buffer, 0, BUFFER_SIZE+1);
     int offset=snprintf(buffer,BUFFER_SIZE,"--------------------------------------------------------------------------------\n");
-    for (int i=0; i<data.number_entries(); i++)
+    ndarray<double>* times=NDArraySerializer::deserializeAllocate<double>(data.times());
+    for (int i=0; i<times->shape[0] && i<data.lattices_size(); i++)
     {
-        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"Time: %10.3f\n",data.time(i));
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"Time: %10.3f\n",times->get(i));
 
-        const lm::types::Lattice& l = data.lattice(i);
-        const std::string& particles = l.particles();
-        for (int z=0; z<l.lattice_z_size(); z++)
+        ndarray<uint8_t>* particles=NDArraySerializer::deserializeAllocate<uint8_t>(data.lattices(i).particles());
+        for (int z=0; z<particles->shape[2]; z++)
         {
-            for (int x=0; x<l.lattice_x_size(); x++)
+            for (int x=0; x<particles->shape[0]; x++)
             {
-                for (int y=0; y<l.lattice_y_size(); y++)
+                for (int y=0; y<particles->shape[1]; y++)
                 {
-                    for (int p=0; p<l.particles_per_site(); p++)
+                    for (int p=0; p<particles->shape[3]; p++)
                     {
-                        int i;
-                        if (l.particles_ordering() == lm::types::ROW_MAJOR)
-                        {
-                            i = x*l.lattice_y_size()*l.lattice_z_size()*l.particles_per_site() + y*l.lattice_z_size()*l.particles_per_site() + z*l.particles_per_site() + p;
-                            offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%2d%c",particles[i],p<l.particles_per_site()-1?',':' ');
-                        }
-                        else if (l.particles_ordering() == lm::types::COLUMN_MAJOR)
-                        {
-                            i = p*l.lattice_x_size()*l.lattice_y_size()*l.lattice_z_size() + z*l.lattice_x_size()*l.lattice_y_size() + y*l.lattice_x_size() + x;
-                            offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%2d%c",particles[i],p<l.particles_per_site()-1?',':' ');
-                        }
+                        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%2d%c",particles->get(utuple(x,y,z,p)),p<particles->shape[3]-1?',':' ');
                     }
                 }
                 offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"\n");
             }
             offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"---------------\n");
         }
+
+        // Free the ndarray.
+        if (particles != NULL) delete particles;
     }
     offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"--------------------------------------------------------------------------------");
 
     // Print the output to stdout.
     Print::printf(Print::INFO, "ConsoleOutputWriter received lattice time series for trajectory %d:\n%s",data.trajectory_id(),buffer);
+
+    // Free the ndarray.
+    if (times != NULL) delete times;
 }
 
 void ConsoleOutputWriter::processConcentrationsTimeSeries(const lm::io::ConcentrationsTimeSeries& data)

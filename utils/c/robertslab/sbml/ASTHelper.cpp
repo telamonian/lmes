@@ -264,6 +264,47 @@ void ASTHelper::simplifyASTExpression(ASTNode_t* node)
         }
     }
 
+    // If this node is a divide and the numerator is a times with one constant and the denominator is a constant, simplfy.
+    if (node->getType() == AST_DIVIDE && node->getNumChildren() == 2 && node->getChild(0)->getType() == AST_TIMES && isNumeric(node->getChild(1)))
+    {
+        // See if one of the multiply children is numeric.
+        int numericChild = -1;
+        for (int i=0; i<node->getChild(0)->getNumChildren(); i++)
+        {
+            if (isNumeric(node->getChild(0)->getChild(i)))
+            {
+                numericChild = i;
+                break;
+            }
+        }
+
+        // If we found one, combine the two constant and switch the node to multiply.
+        if (numericChild >= 0)
+        {
+            // Divide the numerator by the denominator
+            double numerator = getNumericValue(node->getChild(0)->getChild(numericChild));
+            double denominator = getNumericValue(node->getChild(1));
+            node->getChild(0)->getChild(numericChild)->setType(AST_REAL);
+            node->getChild(0)->getChild(numericChild)->setValue(numerator/denominator);
+
+            // Get the times child.
+            ASTNode_t* timesChild = node->getChild(0);
+
+            // Remove both children.
+            while (node->getNumChildren() > 0)
+                node->removeChild(0);
+
+            // Set the type to times.
+            node->setType(timesChild->getType());
+
+            // Add the times children.
+            for (int i=0; i<timesChild->getNumChildren(); i++)
+            {
+                node->addChild(timesChild->getChild(i));
+            }
+        }
+    }
+
     // If this node is multiplication, and it only has one operator child, remove the multiplication.
     if (node->getType() == AST_TIMES && node->getNumChildren() == 1 && node->getChild(0)->isOperator())
     {

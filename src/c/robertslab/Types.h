@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Johns Hopkins University
+ * Copyright 2016-2017 Johns Hopkins University
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@
 
 using std::invalid_argument;
 using std::list;
+using std::runtime_error;
 using std::vector;
 
 typedef unsigned int uint;
@@ -75,6 +76,15 @@ template <typename T> struct tuple
         values[0] = v1;
         values[1] = v2;
         values[2] = v3;
+    }
+
+    tuple(const T v1, const T v2, const T v3, const T v4)
+    :len(4),values(new T[len])
+    {
+        values[0] = v1;
+        values[1] = v2;
+        values[2] = v3;
+        values[3] = v4;
     }
 
     tuple(uint len, const T* valuesArray)
@@ -162,30 +172,38 @@ public:
 
 typedef tuple<uint> utuple;
 
+enum ndarray_ArrayOrder {
+    ROW_MAJOR             = 0,    // Last dimension contiguous.
+    COLUMN_MAJOR          = 1,    // First dimension contiguous
+    IMPL_ORDER            = 2     // Ordering specific to the implementation.
+};
+
 template <typename T> struct ndarray
 {
 public:
-    ndarray(const tuple<uint>& shape, size_t alignment=0)
-    :shape(shape),size(calculateSize(shape)),alignment(alignment),values(allocateMemory(size,alignment)),allocatedValues(true)
+
+public:
+    ndarray(const tuple<uint>& shape, size_t alignment=0, ndarray_ArrayOrder arrayOrder=ROW_MAJOR)
+    :arrayOrder(arrayOrder),shape(shape),size(calculateSize(shape)),alignment(alignment),values(allocateMemory(size,alignment)),allocatedValues(true)
     {
         memset(values, 0, sizeof(T)*size);
     }
 
-    ndarray(const tuple<uint>& shape, const T* valuesArray, size_t alignment=0)
-    :shape(shape),size(calculateSize(shape)),alignment(alignment),values(allocateMemory(size,alignment)),allocatedValues(true)
+    ndarray(const tuple<uint>& shape, const T* valuesArray, size_t alignment=0, ndarray_ArrayOrder arrayOrder=ROW_MAJOR)
+    :arrayOrder(arrayOrder),shape(shape),size(calculateSize(shape)),alignment(alignment),values(allocateMemory(size,alignment)),allocatedValues(true)
     {
         memcpy(values, valuesArray, sizeof(T)*size);
     }
 
-    ndarray(const tuple<uint>& shape, T* valuesArray, bool copyValues=true, size_t alignment=0)
-    :shape(shape),size(calculateSize(shape)),alignment(copyValues?alignment:0),values(copyValues?allocateMemory(size,alignment):valuesArray),allocatedValues(copyValues)
+    ndarray(const tuple<uint>& shape, T* valuesArray, bool copyValues=true, size_t alignment=0, ndarray_ArrayOrder arrayOrder=ROW_MAJOR)
+    :arrayOrder(arrayOrder),shape(shape),size(calculateSize(shape)),alignment(copyValues?alignment:0),values(copyValues?allocateMemory(size,alignment):valuesArray),allocatedValues(copyValues)
     {
         if (allocatedValues)
             memcpy(values, valuesArray, sizeof(T)*size);
     }
 
     ndarray(const ndarray& a)
-    :shape(a.shape),size(a.size),alignment(a.alignment),values(allocateMemory(size,alignment)),allocatedValues(true)
+    :arrayOrder(a.arrayOrder),shape(a.shape),size(a.size),alignment(a.alignment),values(allocateMemory(size,alignment)),allocatedValues(true)
     {
         memcpy(values, a.values, sizeof(T)*size);
     }
@@ -220,11 +238,6 @@ public:
         return get(utuple(index));
     }
 
-    T& get(const uint index)
-    {
-        return get(utuple(index));
-    }
-
     const T& operator[](const tuple<uint>& index) const
     {
         return (const_cast<ndarray *>(this))->get(index);
@@ -233,6 +246,11 @@ public:
     T& operator[](const tuple<uint>& index)
     {
         return get(index);
+    }
+
+    T& get(const uint index)
+    {
+        return get(utuple(index));
     }
 
     T& get(const tuple<uint>& index)
@@ -244,16 +262,42 @@ public:
 
         // Calculate the position.
         uint position=0;
-        for (uint i=0; i<shape.len; i++)
+        switch (arrayOrder)
         {
-            uint offset=1;
-            for (uint j=i+1; j<shape.len; j++)
-                offset *= shape[j];
-            position += index[i]*offset;
+        case ROW_MAJOR:
+            for (uint i=0; i<shape.len; i++)
+            {
+                uint offset=1;
+                for (uint j=i+1; j<shape.len; j++)
+                    offset *= shape[j];
+                position += index[i]*offset;
+            }
+            break;
+        case COLUMN_MAJOR:
+            for (uint i=0; i<shape.len; i++)
+            {
+                uint offset=1;
+                for (uint j=0; j<i; j++)
+                    offset *= shape[j];
+                position += index[i]*offset;
+            }
+            break;
+        case IMPL_ORDER:
+            throw runtime_error("an ndarray with ordering IMPL_ORDER cannot be accessed by index");
         }
 
         // Return a reference to the element.
         return values[position];
+    }
+
+    void set(const uint index, const T value)
+    {
+        set(utuple(index), value);
+    }
+
+    void set(const tuple<uint>& index, const T value)
+    {
+        get(index) = value;
     }
 
     ndarray& equalsDifference(const ndarray& a1, const ndarray& a2)
@@ -342,6 +386,7 @@ private:
     }
 
 public:
+    ndarray_ArrayOrder arrayOrder;
     const tuple<uint> shape;
     const size_t size;
     const size_t alignment;

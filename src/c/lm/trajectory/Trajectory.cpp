@@ -195,15 +195,9 @@ void Trajectory::initializeRDMEState(const lm::input::Input& input)
     // Initialize the rdme state from the diffusion model.
     if (input.hasDiffusionModel())
     {
-        const lm::input::DiffusionModel& diffusionModel = input.getDiffusionModelMsg();
-        lm::io::RDMEState* rdmeState = state.mutable_rdme_state();
-        lm::types::Lattice* initialLattice = rdmeState->mutable_species_positions();
-        initialLattice->set_lattice_x_size(diffusionModel.initial_lattice().lattice_x_size());
-        initialLattice->set_lattice_y_size(diffusionModel.initial_lattice().lattice_y_size());
-        initialLattice->set_lattice_z_size(diffusionModel.initial_lattice().lattice_z_size());
-        initialLattice->set_particles_per_site(diffusionModel.initial_lattice().particles_per_site());
-        initialLattice->set_particles_ordering(diffusionModel.initial_lattice().particles_ordering());
-        initialLattice->set_particles(diffusionModel.initial_lattice().particles());
+        // Initialize the lattice state to the initial lattice from the input.
+        lm::types::Lattice* initialLattice = state.mutable_rdme_state()->mutable_lattice();
+        initialLattice->CopyFrom(input.getDiffusionModelMsg().initial_lattice());
     }
 }
 

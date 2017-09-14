@@ -58,7 +58,7 @@ public:
                           NONE};
 
 public:
-    template <typename T> static robertslab::pbuf::NDArray* serialize(const ndarray<T>& array, CompressionType compressionType=DEFAULT_COMPRESSION)
+    template <typename T> static robertslab::pbuf::NDArray* serializeAllocate(const ndarray<T>& array, CompressionType compressionType=DEFAULT_COMPRESSION)
     {
         robertslab::pbuf::NDArray* msg = new robertslab::pbuf::NDArray();
         serializeInto(msg, array, compressionType);
@@ -76,6 +76,9 @@ public:
 
         // Clear the message.
         msg->Clear();
+
+        // Set the array order.
+        msg->set_array_order(convertArrayOrder(array.arrayOrder));
 
         // Set the data type.
         msg->set_data_type(NDArray_datatype_code<T>());
@@ -128,10 +131,10 @@ public:
         tuple<uint> shape(msg.shape().size(), (const uint*)msg.shape().data());
 
         // Create the ndarray.
-        ndarray<T> array(shape, alignment);
+        ndarray<T> array(shape, alignment, convertArrayOrder(msg.array_order()));
 
         // Deserialize the message.
-        deserializeInto(&array, msg, alignment);
+        deserializeInto(&array, msg);
 
         return array;
     }
@@ -142,22 +145,22 @@ public:
         tuple<uint> shape(msg.shape().size(), (const uint*)msg.shape().data());
 
         // Allocate the ndarray.
-        ndarray<T>* array = new ndarray<T>(shape, alignment);
+        ndarray<T>* array = new ndarray<T>(shape, alignment, convertArrayOrder(msg.array_order()));
 
         // Deserialize the message.
-        deserializeInto(array, msg, alignment);
+        deserializeInto(array, msg);
 
         return array;
     }
 
-    template <typename T> static void deserializeInto(T* data, utuple shape, const robertslab::pbuf::NDArray& msg, size_t alignment=0)
+    template <typename T> static void deserializeInto(T* data, utuple shape, const robertslab::pbuf::NDArray& msg)
     {
-        ndarray<T> array(shape);
-        deserializeInto(&array, msg, alignment);
+        ndarray<T> array(shape, convertArrayOrder(msg.array_order()));
+        deserializeInto(&array, msg);
         memcpy(data, array.values, array.size*sizeof(T));
     }
 
-    template <typename T> static void deserializeInto(ndarray<T>* array, const robertslab::pbuf::NDArray& msg, size_t alignment=0)
+    template <typename T> static void deserializeInto(ndarray<T>* array, const robertslab::pbuf::NDArray& msg)
     {
         PROF_BEGIN(PROF_NDARRAY_DESERIALIZE);
 
@@ -199,6 +202,39 @@ public:
 
         PROF_END(PROF_NDARRAY_DESERIALIZE);
     }
+
+    template <typename T> static void deserializeInto2(ndarray<T>* array, const robertslab::pbuf::NDArray& msg)
+    {
+
+    }
+
+    static ndarray_ArrayOrder convertArrayOrder(const robertslab::pbuf::NDArray::ArrayOrder arrayOrder)
+    {
+        switch (arrayOrder)
+        {
+        case robertslab::pbuf::NDArray::ROW_MAJOR:
+            return ndarray_ArrayOrder::ROW_MAJOR;
+        case robertslab::pbuf::NDArray::COLUMN_MAJOR:
+            return ndarray_ArrayOrder::COLUMN_MAJOR;
+        case robertslab::pbuf::NDArray::IMPL_ORDER:
+            return ndarray_ArrayOrder::IMPL_ORDER;
+        }
+    }
+
+    static robertslab::pbuf::NDArray::ArrayOrder convertArrayOrder(ndarray_ArrayOrder arrayOrder)
+    {
+        switch (arrayOrder)
+        {
+        case ndarray_ArrayOrder::ROW_MAJOR:
+            return robertslab::pbuf::NDArray::ROW_MAJOR;
+        case ndarray_ArrayOrder::COLUMN_MAJOR:
+            return robertslab::pbuf::NDArray::COLUMN_MAJOR;
+        case ndarray_ArrayOrder::IMPL_ORDER:
+            return robertslab::pbuf::NDArray::IMPL_ORDER;
+        }
+    }
+
+
 };
 
 }

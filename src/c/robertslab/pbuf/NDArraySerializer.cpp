@@ -26,8 +26,10 @@
 namespace robertslab {
 namespace pbuf{
 
+template<> robertslab::pbuf::NDArray_DataType NDArray_datatype_code<int8_t>() {return robertslab::pbuf::NDArray_DataType_int8;}
 template<> robertslab::pbuf::NDArray_DataType NDArray_datatype_code<int32_t>() {return robertslab::pbuf::NDArray_DataType_int32;}
 template<> robertslab::pbuf::NDArray_DataType NDArray_datatype_code<int64_t>() {return robertslab::pbuf::NDArray_DataType_int64;}
+template<> robertslab::pbuf::NDArray_DataType NDArray_datatype_code<uint8_t>() {return robertslab::pbuf::NDArray_DataType_uint8;}
 template<> robertslab::pbuf::NDArray_DataType NDArray_datatype_code<uint32_t>() {return robertslab::pbuf::NDArray_DataType_uint32;}
 template<> robertslab::pbuf::NDArray_DataType NDArray_datatype_code<uint64_t>() {return robertslab::pbuf::NDArray_DataType_uint64;}
 template<> robertslab::pbuf::NDArray_DataType NDArray_datatype_code<float>() {return robertslab::pbuf::NDArray_DataType_float32;}

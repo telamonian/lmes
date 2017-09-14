@@ -43,6 +43,7 @@
 #include "lm/Types.h"
 #include "lm/types/BoundaryConditions.pb.h"
 #include "lm/input/DiffusionModel.pb.h"
+#include "robertslab/Types.h"
 
 namespace lm {
 namespace rdme {
@@ -63,6 +64,7 @@ public:
     uint latticeYSize;
     uint latticeZSize;
     uint particlesPerSite;
+    ndarray<uint8_t>* sites;
     lm::types::BoundaryConditions boundaryConditions;
     bool hasBoundaryInflux;
     double* boundaryInflux;

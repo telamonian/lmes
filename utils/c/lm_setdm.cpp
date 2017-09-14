@@ -57,8 +57,10 @@
 #include "lm/input/DiffusionModel.pb.h"
 #include "lm/input/ReactionModel.pb.h"
 #include "lm/io/hdf5/SimulationFile.h"
+#include "lm/rdme/ByteLattice.h"
 #include "lm/rng/XORShift.h"
 #include "lptf/Profile.h"
+#include "robertslab/pbuf/NDArraySerializer.h"
 #include "util.h"
 
 void printCopyright(int argc, char** argv);
@@ -72,6 +74,7 @@ using std::vector;
 using lm::input::DiffusionModel;
 using lm::input::ReactionModel;
 using lm::io::hdf5::Hdf5File;
+using robertslab::pbuf::NDArraySerializer;
 
 /**
  * The function being performed.
@@ -129,6 +132,9 @@ int main(int argc, char** argv)
             DiffusionModel model;
 		    if (!newFile) file.getDiffusionModel(&model);
 
+            //Lattice sizes.
+            uint latticeX=0,latticeY=0, latticeZ=0, latticeP=0;
+
 		    // Set the parameters.
             printf("Setting diffusion model in simulation file %s:\n", filename.c_str());
 		    for (list<pair<string,string> >::iterator it=parameters.begin(); it != parameters.end(); it++)
@@ -172,10 +178,10 @@ int main(int argc, char** argv)
                 {
                     vector<double> values = parseValues(value);
                     if (values.size() != 3) throw lm::Exception("Three values must be specified for the lattice size.");
-                    model.mutable_initial_lattice()->set_lattice_x_size((uint)lround(values[0]));
-                    model.mutable_initial_lattice()->set_lattice_y_size((uint)lround(values[1]));
-                    model.mutable_initial_lattice()->set_lattice_z_size((uint)lround(values[2]));
-                    printf("%s=[%d,%d,%d]\n", key.c_str(), model.initial_lattice().lattice_x_size(), model.initial_lattice().lattice_y_size(), model.initial_lattice().lattice_z_size());
+                    latticeX = (uint)lround(values[0]);
+                    latticeY = (uint)lround(values[1]);
+                    latticeZ = (uint)lround(values[2]);
+                    printf("%s=[%d,%d,%d]\n", key.c_str(), latticeX, latticeY, latticeZ);
                 }
                 else if (key == "latticeSpacing")
                 {
@@ -188,8 +194,8 @@ int main(int argc, char** argv)
                 {
                     vector<double> values = parseValues(value);
                     if (values.size() != 1) throw lm::Exception("A single value must be specified for number of particles per site.");
-                    model.mutable_initial_lattice()->set_particles_per_site((uint)lround(values[0]));
-                    printf("%s=%d\n", key.c_str(), model.initial_lattice().particles_per_site());
+                    latticeP = (uint)lround(values[0]);
+                    printf("%s=%d\n", key.c_str(), latticeP);
                 }
                 else if (key == "DiffusionMatrix")
                 {
@@ -267,62 +273,64 @@ int main(int argc, char** argv)
                 }
 		    }
 
-		    // Create the lattice and lattice sites matrices.
-            uint8_t * data =  new uint8_t[model.initial_lattice().lattice_x_size()*model.initial_lattice().lattice_y_size()*model.initial_lattice().lattice_z_size()*model.initial_lattice().particles_per_site()];
-            for (int i=0; i<model.initial_lattice().lattice_x_size()*model.initial_lattice().lattice_y_size()*model.initial_lattice().lattice_z_size()*model.initial_lattice().particles_per_site(); i++)
-		        data[i] = 0;
-            uint8_t * sitesData =  new uint8_t[model.initial_lattice().lattice_x_size()*model.initial_lattice().lattice_y_size()*model.initial_lattice().lattice_z_size()];
-            for (int i=0; i<model.initial_lattice().lattice_x_size()*model.initial_lattice().lattice_y_size()*model.initial_lattice().lattice_z_size(); i++)
-		    	sitesData[i] = 0;
+            // See if we are creating a new lattice.
+            if (latticeX != 0 && latticeY != 0 && latticeZ != 0 && latticeP != 0)
+            {
+                // Create the lattice and lattice sites matrices.
+                ndarray<uint8_t> sites(utuple(latticeX,latticeY,latticeZ));
+                ndarray<uint8_t> particles(utuple(latticeX,latticeY,latticeZ,latticeP));
+                particles = lm::rdme::ByteLattice::EMPTY_PARTICLE;
 
-		    // If we can read the reaction model, fill in the initial species counts.
-		    if (autoplace)
-		    {
-				ReactionModel reactionModel;
-				file.getReactionModel(&reactionModel);
-                if (reactionModel.number_species() == model.number_species() && reactionModel.initial_species_count_size() == model.number_species())
-				{
-					lm::rng::XORShift rng(0, 0);
-					for (uint i=0; i<reactionModel.number_species(); i++)
-					{
-						uint numberAttempts=0;
-						uint placed=0;
-						while (placed < reactionModel.initial_species_count(i))
-						{
-							numberAttempts++;
-							double randomValues[3];
-							rng.getRandomDoubles(randomValues, 3);
-                            uint x = (uint)floor(randomValues[0]*(double)model.initial_lattice().lattice_x_size());
-                            if (x == model.initial_lattice().lattice_x_size()) x--;
-                            uint y = (uint)floor(randomValues[1]*(double)model.initial_lattice().lattice_y_size());
-                            if (y == model.initial_lattice().lattice_y_size()) y--;
-                            uint z = (uint)floor(randomValues[2]*(double)model.initial_lattice().lattice_z_size());
-                            if (z == model.initial_lattice().lattice_z_size()) z--;
+                // If autoplacing and we can read the reaction model, fill in the initial species counts.
+                if (autoplace)
+                {
+                    ReactionModel reactionModel;
+                    file.getReactionModel(&reactionModel);
+                    if (reactionModel.number_species() == model.number_species() && reactionModel.initial_species_count_size() == model.number_species())
+                    {
+                        lm::rng::XORShift rng(0, 0);
+                        for (uint i=0; i<reactionModel.number_species(); i++)
+                        {
+                            uint numberAttempts=0;
+                            uint placed=0;
+                            while (placed < reactionModel.initial_species_count(i))
+                            {
+                                numberAttempts++;
+                                double randomValues[3];
+                                rng.getRandomDoubles(randomValues, 3);
+                                uint x = (uint)floor(randomValues[0]*(double)latticeX);
+                                if (x == latticeX) x--;
+                                uint y = (uint)floor(randomValues[1]*(double)latticeY);
+                                if (y == latticeY) y--;
+                                uint z = (uint)floor(randomValues[2]*(double)latticeZ);
+                                if (z == latticeZ) z--;
 
-                            for (int j=0; j<model.initial_lattice().particles_per_site(); j++)
-							{
-                                uint index=x*model.initial_lattice().lattice_y_size()*model.initial_lattice().lattice_z_size()*model.initial_lattice().particles_per_site() + \
-                                           y*model.initial_lattice().lattice_z_size()*model.initial_lattice().particles_per_site() + \
-                                           z*model.initial_lattice().particles_per_site() + j;
-								if (data[index] == 0)
-								{
-									data[index] = i+1;
-									placed++;
-									break;
-								}
-							}
-						}
-						printf("Placed %d particles of type %d in %d attempts.\n",placed,i,numberAttempts);
-					}
-				}
-		    }
+                                for (int p=0; p<latticeP; p++)
+                                {
+                                    if (particles[utuple(x,y,z,p)] == lm::rdme::ByteLattice::EMPTY_PARTICLE)
+                                    {
+                                        particles[utuple(x,y,z,p)] = i;
+                                        placed++;
+                                        break;
+                                    }
+                                }
+                            }
+                            printf("Placed %d particles of type %d in %d attempts.\n",placed,i,numberAttempts);
+                        }
+                    }
+                }
 
-		    // Write the lattice to the file.
+                // Add the initial lattice to the model.
+                model.mutable_initial_lattice()->set_allocated_sites(NDArraySerializer::serializeAllocate(sites));
+                model.mutable_initial_lattice()->set_allocated_particles(NDArraySerializer::serializeAllocate(particles));
+
+                printf("InitialLattice(%d,%d,%d,%d)=[...]\n", model.initial_lattice().particles().shape(0), model.initial_lattice().particles().shape(1), model.initial_lattice().particles().shape(2), model.initial_lattice().particles().shape(3));
+            }
+
+            // Write the model to the file.
             file.setDiffusionModel(&model);
-		    delete[] data;
-		    delete[] sitesData;
 
-		    // Close the file.
+            // Close the file.
 		    file.close();
 		    printf("Done.\n");
 		}
@@ -358,9 +366,9 @@ int main(int argc, char** argv)
 void printCopyright(int argc, char** argv) {
 
 	std::cout << argv[0] << " v" << VERSION_NUM << " build " << BUILD_INFO << std::endl;
-	std::cout << "Copyright (C) " << COPYRIGHT_DATE << " Luthey-Schulten Group," << std::endl;
-	std::cout << "University of Illinois at Urbana-Champaign." << std::endl;
-	std::cout << std::endl;
+    std::cout << "Copyright (C) " << COPYRIGHT_DATE_JHU << " Roberts Group, Johns Hopkins University." << std::endl;
+    std::cout << "Copyright (C) " << COPYRIGHT_DATE << " Luthey-Schulten Group, University of Illinois at Urbana-Champaign." << std::endl << std::endl;
+    std::cout << std::endl;
 }
 
 /**

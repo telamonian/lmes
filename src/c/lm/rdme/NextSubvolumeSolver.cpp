@@ -62,6 +62,7 @@
 #include "lm/rng/RandomGenerator.h"
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
+#include "robertslab/pbuf/NDArraySerializer.h"
 
 using lm::rng::RandomGenerator;
 
@@ -148,57 +149,40 @@ uint64_t NextSubvolumeSolver::generateTrajectory(uint64_t maxSteps)
     if (writeSpeciesTimeSeries)
     {
         // If this is the start of the trajectory, add the initial counts.
-        if (time == 0.0 || previouslyStarted==false)
+        if (!previouslyStarted)
         {
-            nextSpeciesWriteTime=speciesWriteInterval;
             for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
-            speciesTimeSeriesTimes.push_back(0.0);
+            speciesTimeSeriesTimes.push_back(time);
+            nextSpeciesWriteTime = time+speciesWriteInterval;
         }
         else
         {
-            nextSpeciesWriteTime = ceil(time/speciesWriteInterval)*speciesWriteInterval;
+            nextSpeciesWriteTime = ceil((time+EPS)/speciesWriteInterval)*speciesWriteInterval;
         }
     }
 
     // Get the interval for writing lattice time series.
     double nextLatticeWriteTime;
-    lm::io::LatticeTimeSeries* latticeDataSet = NULL;
+    vector<double> latticeTimeSeriesTimes;
+    vector<robertslab::pbuf::NDArray*> latticeTimeSeriesLattices;
+    ndarray<uint8_t>* particlesTmpBuffer = new ndarray<uint8_t>(utuple(lattice->getXSize(),lattice->getYSize(),lattice->getZSize(),lattice->getMaxOccupancy()));
 
     // If we are writing time steps, create the data set.
     if (writeLatticeTimeSeries)
     {
-        // Initialize the data set.
-        latticeDataSet = output->mutable_lattice_time_series();
-        latticeDataSet->set_trajectory_id(trajectoryId);
-        latticeDataSet->set_number_entries(0);
-
-        // If this is the start of the trajectory, add the initial counts.
-        if (time == 0.0 || previouslyStarted==false)
+        // If this is the start of the trajectory, add the initial lattice.
+        if (!previouslyStarted)
         {
-            // Mark that the message does contain some data.
-            output->set_has_output(true);
-
-            nextLatticeWriteTime=latticeWriteInterval;
-            latticeDataSet->set_number_entries(1);
-            latticeDataSet->add_time(0.0);
-            lm::types::Lattice* l = latticeDataSet->add_lattice();
-            l->set_lattice_x_size(lattice->getXSize());
-            l->set_lattice_y_size(lattice->getYSize());
-            l->set_lattice_z_size(lattice->getZSize());
-            l->set_particles_per_site(lattice->getMaxOccupancy());
-            l->set_particles_ordering(lm::types::ROW_MAJOR);
-            l->set_particles_compressed_deflate(true);
-            size_t dataSizeEstimate = lattice->serializeParticlesSize(true);
-            std::string* data = l->mutable_particles();
-            data->resize(dataSizeEstimate);
+            latticeTimeSeriesTimes.push_back(time);
             PROF_BEGIN(PROF_NSM_SERIALIZE_LATTICE);
-            size_t dataSizeActual=lattice->serializeParticlesTo(&((*data)[0]), dataSizeEstimate, Lattice::ROW_MAJOR, true);
+            lattice->copyParticlesTo(particlesTmpBuffer);
+            latticeTimeSeriesLattices.push_back(robertslab::pbuf::NDArraySerializer::serializeAllocate(*particlesTmpBuffer));
             PROF_END(PROF_NSM_SERIALIZE_LATTICE);
-            data->resize(dataSizeActual);
+            nextLatticeWriteTime = time+latticeWriteInterval;
         }
         else
         {
-            nextLatticeWriteTime = ceil(time/latticeWriteInterval)*latticeWriteInterval;
+            nextLatticeWriteTime = ceil((time+EPS)/latticeWriteInterval)*latticeWriteInterval;
         }
     }
 
@@ -245,7 +229,6 @@ uint64_t NextSubvolumeSolver::generateTrajectory(uint64_t maxSteps)
             break;
         }
 
-
        // If we are writing time steps, write out any time steps before this event occurred.
        if (writeSpeciesTimeSeries)
        {
@@ -265,23 +248,12 @@ uint64_t NextSubvolumeSolver::generateTrajectory(uint64_t maxSteps)
            // Write time steps until the next write time is past the current time.
            while (nextLatticeWriteTime <= (time+EPS))
            {
-               // Record the species counts.
-               latticeDataSet->set_number_entries(latticeDataSet->number_entries()+1);
-               latticeDataSet->add_time(nextLatticeWriteTime);
-               lm::types::Lattice* l = latticeDataSet->add_lattice();
-               l->set_lattice_x_size(lattice->getXSize());
-               l->set_lattice_y_size(lattice->getYSize());
-               l->set_lattice_z_size(lattice->getZSize());
-               l->set_particles_per_site(lattice->getMaxOccupancy());
-               l->set_particles_ordering(lm::types::ROW_MAJOR);
-               l->set_particles_compressed_deflate(true);
-               size_t dataSizeEstimate = lattice->serializeParticlesSize(true);
-               std::string* data = l->mutable_particles();
-               data->resize(dataSizeEstimate);
+               // Record the lattice.
+               latticeTimeSeriesTimes.push_back(time);
                PROF_BEGIN(PROF_NSM_SERIALIZE_LATTICE);
-               size_t dataSizeActual=lattice->serializeParticlesTo(&((*data)[0]), dataSizeEstimate, Lattice::ROW_MAJOR, true);
+               lattice->copyParticlesTo(particlesTmpBuffer);
+               latticeTimeSeriesLattices.push_back(robertslab::pbuf::NDArraySerializer::serializeAllocate(*particlesTmpBuffer));
                PROF_END(PROF_NSM_SERIALIZE_LATTICE);
-               data->resize(dataSizeActual);
                nextLatticeWriteTime += latticeWriteInterval;
            }
        }
@@ -303,7 +275,7 @@ uint64_t NextSubvolumeSolver::generateTrajectory(uint64_t maxSteps)
 
        //TODO: check for zero propensity.
 
-       //Print::printf(Print::VERBOSE_DEBUG, "Step %d: time=%e, count=%d,%d,%d",steps,time,speciesCounts[0],speciesCounts[1],speciesCounts[2]);
+       //Print::printf(Print::INFO, "Step %d: time=%e, count=%d,%d,%d",steps,time,speciesCounts[0],speciesCounts[1],speciesCounts[2]);
     }
     PROF_END(PROF_SIM_EXECUTE);
 
@@ -337,23 +309,12 @@ uint64_t NextSubvolumeSolver::generateTrajectory(uint64_t maxSteps)
             // Write time steps until the next write time is past the current time.
             while (nextLatticeWriteTime <= (timeLimit+EPS))
             {
-                // Record the species counts.
-                latticeDataSet->set_number_entries(latticeDataSet->number_entries()+1);
-                latticeDataSet->add_time(nextLatticeWriteTime);
-                lm::types::Lattice* l = latticeDataSet->add_lattice();
-                l->set_lattice_x_size(lattice->getXSize());
-                l->set_lattice_y_size(lattice->getYSize());
-                l->set_lattice_z_size(lattice->getZSize());
-                l->set_particles_per_site(lattice->getMaxOccupancy());
-                l->set_particles_ordering(lm::types::ROW_MAJOR);
-                l->set_particles_compressed_deflate(true);
-                size_t dataSizeEstimate = lattice->serializeParticlesSize(true);
-                std::string* data = l->mutable_particles();
-                data->resize(dataSizeEstimate);
+                // Record the lattice.
+                latticeTimeSeriesTimes.push_back(time);
                 PROF_BEGIN(PROF_NSM_SERIALIZE_LATTICE);
-                size_t dataSizeActual=lattice->serializeParticlesTo(&((*data)[0]), dataSizeEstimate, Lattice::ROW_MAJOR, true);
+                lattice->copyParticlesTo(particlesTmpBuffer);
+                latticeTimeSeriesLattices.push_back(robertslab::pbuf::NDArraySerializer::serializeAllocate(*particlesTmpBuffer));
                 PROF_END(PROF_NSM_SERIALIZE_LATTICE);
-                data->resize(dataSizeActual);
                 nextLatticeWriteTime += latticeWriteInterval;
             }
         }
@@ -374,22 +335,11 @@ uint64_t NextSubvolumeSolver::generateTrajectory(uint64_t maxSteps)
         if (writeLatticeTimeSeries)
         {
             // Record the lattice.
-            latticeDataSet->set_number_entries(latticeDataSet->number_entries()+1);
-            latticeDataSet->add_time(time);
-            lm::types::Lattice* l = latticeDataSet->add_lattice();
-            l->set_lattice_x_size(lattice->getXSize());
-            l->set_lattice_y_size(lattice->getYSize());
-            l->set_lattice_z_size(lattice->getZSize());
-            l->set_particles_per_site(lattice->getMaxOccupancy());
-            l->set_particles_ordering(lm::types::ROW_MAJOR);
-            l->set_particles_compressed_deflate(true);
-            size_t dataSizeEstimate = lattice->serializeParticlesSize(true);
-            std::string* data = l->mutable_particles();
-            data->resize(dataSizeEstimate);
+            latticeTimeSeriesTimes.push_back(time);
             PROF_BEGIN(PROF_NSM_SERIALIZE_LATTICE);
-            size_t dataSizeActual=lattice->serializeParticlesTo(&((*data)[0]), dataSizeEstimate, Lattice::ROW_MAJOR, true);
+            lattice->copyParticlesTo(particlesTmpBuffer);
+            latticeTimeSeriesLattices.push_back(robertslab::pbuf::NDArraySerializer::serializeAllocate(*particlesTmpBuffer));
             PROF_END(PROF_NSM_SERIALIZE_LATTICE);
-            data->resize(dataSizeActual);
         }
     }
 
@@ -405,30 +355,40 @@ uint64_t NextSubvolumeSolver::generateTrajectory(uint64_t maxSteps)
             lm::io::SpeciesTimeSeries* speciesTimeSeriesDataSet = output->mutable_species_time_series();
             speciesTimeSeriesDataSet->set_trajectory_id(trajectoryId);
 
-            robertslab::pbuf::NDArray* counts = speciesTimeSeriesDataSet->mutable_counts();
-            counts->set_data_type(robertslab::pbuf::NDArray::int32);
-            counts->set_compressed_deflate(true);
-            counts->add_shape(speciesTimeSeriesTimes.size());
-            counts->add_shape(reactionModel->numberSpeciesToTrack);
-            std::string* data = counts->mutable_data();
-            size_t dataSizeEstimate=compressBound(speciesTimeSeriesCounts.size()*sizeof(int32_t));
-            data->resize(dataSizeEstimate);
-            ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)speciesTimeSeriesCounts.data(), speciesTimeSeriesCounts.size()*sizeof(int32_t)));
-            data->resize(dataSizeEstimate);
+            // Serialize the times.
+            robertslab::pbuf::NDArraySerializer::serializeInto<double>(speciesTimeSeriesDataSet->mutable_times(), speciesTimeSeriesTimes.data(), utuple(speciesTimeSeriesTimes.size()));
 
-            robertslab::pbuf::NDArray* times = speciesTimeSeriesDataSet->mutable_times();
-            times->set_data_type(robertslab::pbuf::NDArray::float64);
-            times->set_compressed_deflate(true);
-            times->add_shape(speciesTimeSeriesTimes.size());
-            data = times->mutable_data();
-            dataSizeEstimate=compressBound(speciesTimeSeriesTimes.size()*sizeof(double));
-            data->resize(dataSizeEstimate);
-            ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)speciesTimeSeriesTimes.data(), speciesTimeSeriesTimes.size()*sizeof(double)));
-            data->resize(dataSizeEstimate);
+            // Serialize the species counts.
+            robertslab::pbuf::NDArraySerializer::serializeInto<int32_t>(speciesTimeSeriesDataSet->mutable_counts(), speciesTimeSeriesCounts.data(), utuple(speciesTimeSeriesTimes.size(),reactionModel->numberSpeciesToTrack));
         }
         else
         {
             Print::printf(Print::ERROR, "Species time series counts and time mismatch %d,%d,%d", speciesTimeSeriesCounts.size(), reactionModel->numberSpeciesToTrack, speciesTimeSeriesTimes.size());
+        }
+    }
+
+    // If we have any lattice time series data, add them to the output message.
+    if (latticeTimeSeriesLattices.size() > 0 || latticeTimeSeriesTimes.size() > 0)
+    {
+        // Mark that the message does contain some data.
+        output->set_has_output(true);
+
+        // Make sure the arrays are of a consistent size.
+        if (latticeTimeSeriesLattices.size() == latticeTimeSeriesTimes.size())
+        {
+            lm::io::LatticeTimeSeries* latticeTimeSeriesDataSet = output->mutable_lattice_time_series();
+            latticeTimeSeriesDataSet->set_trajectory_id(trajectoryId);
+
+            // Serialize the times.
+            robertslab::pbuf::NDArraySerializer::serializeInto<double>(latticeTimeSeriesDataSet->mutable_times(), latticeTimeSeriesTimes.data(), utuple(latticeTimeSeriesTimes.size()));
+
+            // Serialize the lattice counts.
+            for (int i=0; i<latticeTimeSeriesLattices.size(); i++)
+                latticeTimeSeriesDataSet->add_lattices()->set_allocated_particles(latticeTimeSeriesLattices[i]);
+        }
+        else
+        {
+            Print::printf(Print::ERROR, "Lattice time series counts and time mismatch %d,%d", latticeTimeSeriesLattices.size(), latticeTimeSeriesTimes.size());
         }
     }
 
@@ -444,6 +404,9 @@ uint64_t NextSubvolumeSolver::generateTrajectory(uint64_t maxSteps)
         }
     }
 
+    // Free any resoruces.
+    delete particlesTmpBuffer;
+
     return steps;
 }
 
@@ -452,8 +415,8 @@ void NextSubvolumeSolver::checkSpeciesCountsAgainstLattice()
 	std::map<particle_t,uint> particleCounts = lattice->getParticleCounts();
     for (uint i=0; i<reactionModel->numberSpecies; i++)
 	{
-		if (speciesCounts[i] != ((particleCounts.count(i+1)>0)?particleCounts[i+1]:0))
-			throw lm::Exception("Consistency error between species counts and lattice data", i, speciesCounts[i], ((particleCounts.count(i+1)>0)?particleCounts[i+1]:0));
+        if (speciesCounts[i] != ((particleCounts.count(i)>0)?particleCounts[i]:0))
+            throw lm::Exception("Consistency error between species counts and lattice data", i, speciesCounts[i], ((particleCounts.count(i)>0)?particleCounts[i]:0));
 	}
 }
 
@@ -613,14 +576,14 @@ void  NextSubvolumeSolver::updateSpeciesCountsForSubvolume(lattice_size_t subvol
 	// Count the species that are in this subvolume.
 	site_size_t numberParticles = lattice->getOccupancy(subvolume);
 	for (site_size_t i=0; i<numberParticles; i++)
-		currentSubvolumeSpeciesCounts[lattice->getParticle(subvolume, i)-1]++;
+        currentSubvolumeSpeciesCounts[lattice->getParticle(subvolume, i)]++;
 }
 
 void NextSubvolumeSolver::updateSubvolumeWithSpeciesCounts(lattice_size_t subvolume)
 {
 	lattice->removeParticles(subvolume);
     for (uint i=0; i<reactionModel->numberSpecies; i++)
-			addParticles(subvolume, i+1, currentSubvolumeSpeciesCounts[i]);
+            addParticles(subvolume, i, currentSubvolumeSpeciesCounts[i]);
 }
 
 int NextSubvolumeSolver::performSubvolumeEvent(si_time_t time, lattice_size_t subvolume, int rngNext, double * uniRngValues, bool& affectedNeighbor, lattice_size_t& neighborSubvolume)
@@ -751,7 +714,7 @@ bool NextSubvolumeSolver::performSubvolumeDiffusionEvent(si_time_t time, lattice
                             updateSubvolumeWithSpeciesCounts(subvolume);
                             affectedNeighbor = true;
                             neighborSubvolume = neighborIndexPeriodic;
-                            addParticles(neighborSubvolume, i+1, 1);
+                            addParticles(neighborSubvolume, i, 1);
                             return true;
                         }
                         else
@@ -771,7 +734,7 @@ bool NextSubvolumeSolver::performSubvolumeDiffusionEvent(si_time_t time, lattice
                         updateSubvolumeWithSpeciesCounts(subvolume);
                         affectedNeighbor = true;
                         neighborSubvolume = neighboringSubvolumes[j];
-                        addParticles(neighborSubvolume, i+1, 1);
+                        addParticles(neighborSubvolume, i, 1);
                         return true;
                     }
                     else
@@ -823,7 +786,7 @@ void NextSubvolumeSolver::addParticles(lattice_size_t subvolume, particle_t part
 	{
 		try
 		{
-				lattice->addParticle(subvolume, particle);
+            lattice->addParticle(subvolume, particle);
 		}
 		catch (InvalidParticleException & e)
 		{

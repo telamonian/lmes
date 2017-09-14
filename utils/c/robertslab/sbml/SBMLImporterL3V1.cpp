@@ -187,6 +187,9 @@ void SBMLImporterL3V1::importCompartments()
             compartments.push_back(compartmentId);
             compartmentSizes[compartmentId] = convertVolumeToLiters(sbmlModel->getCompartment(i)->getSize(), sbmlModel->getCompartment(i)->getUnits());
             Print::printf(Print::INFO, "Added compartment (%d) %s: %e L", i, compartmentId.c_str(), compartmentSizes[compartmentId]);
+
+            // Add the compartment to the global parameters so that it can be used in kinetic expressions.
+            globalParameters[compartmentId] = sbmlModel->getCompartment(i)->getSize();
         }
         else
         {
