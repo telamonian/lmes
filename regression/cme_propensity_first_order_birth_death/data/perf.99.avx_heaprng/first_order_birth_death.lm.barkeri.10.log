@@ -1,0 +1,51 @@
+Lattice Microbe ES v2016.12 build 2016-12-29-09-53-31 in 64-bit mode with options AVX SBML SNAPPY.
+Copyright (C) 2012-2017 Roberts Group, Johns Hopkins University.
+Copyright (C) 2008-2012 Luthey-Schulten Group, University of Illinois at Urbana-Champaign.
+
+2016-11-29 12:42:33) Initializing communications library.
+2016-11-29 12:42:33) Using local communicator on host barkeri.bph.jhu.edu.
+2016-11-29 12:42:33) Resource controller @1 started.
+2016-11-29 12:42:33) Supervisor @0 started.
+2016-11-29 12:42:33) Resource controller @1 on barkeri.bph.jhu.edu registered with 8 cpu core(s) and 0 gpu device(s).
+2016-11-29 12:42:33) Registered resources for host barkeri.bph.jhu.edu (defaults=1): 2 cpu cores, 0 gpu devices
+2016-11-29 12:42:33) All resources registered with supervisor, starting workers.
+2016-11-29 12:42:33) Reserved core 0 on @1 for the output writer.
+2016-11-29 12:42:33) Creating slot 0 on @1 using resources: barkeri.bph.jhu.edu; @1; cpu core list:1; gpu device list:<none>.
+2016-11-29 12:42:33) OutputWriter @3 started.
+2016-11-29 12:42:33) Work Unit runner @4 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-11-29 12:42:33) OutputWriter::HelperThread @3 started.
+2016-11-29 12:42:33) Output writer started: @3.
+2016-11-29 12:42:33) Work unit runner started: @4.
+2016-11-29 12:42:33) All supervisor workers have started, beginning simulation.
+2016-11-29 12:42:33) Replicate supervisor starting simulation.
+2016-11-29 12:42:33) Simulation started.
+2016-11-29 12:43:33) Wrote 34 messages (5867 bytes) in the last 60.3 seconds (0.000519 seconds writing). 0 messages (0 bytes) queued. Flushing.2016-11-29 12:43:33) 
+Finished 52 work units (ids in range 0 to 51) with 208 parts in the last 60.3 seconds. 2080000000 steps in 6.027e+01 seconds (3.451e+07 steps/second).
+2016-11-29 12:43:57) Replicate 14 completed with 1.00e+05 of simulation time using 20 work units.
+2016-11-29 12:43:58) Replicate 8 completed with 1.00e+05 of simulation time using 20 work units.
+2016-11-29 12:43:59) Replicate 6 completed with 1.00e+05 of simulation time using 20 work units.
+2016-11-29 12:43:59) Replicate 12 completed with 1.00e+05 of simulation time using 21 work units.
+2016-11-29 12:43:59) Replicate 4 completed with 1.00e+05 of simulation time using 21 work units.
+2016-11-29 12:43:59) Replicate 1 completed with 1.00e+05 of simulation time using 21 work units.
+2016-11-29 12:43:59) Replicate 2 completed with 1.00e+05 of simulation time using 21 work units.
+2016-11-29 12:43:59) Replicate 9 completed with 1.00e+05 of simulation time using 23 work units.
+2016-11-29 12:43:59) Replicate 5 completed with 1.00e+05 of simulation time using 23 work units.
+2016-11-29 12:43:59) Replicate 10 completed with 1.00e+05 of simulation time using 22 work units.
+2016-11-29 12:43:59) Replicate 13 completed with 1.00e+05 of simulation time using 23 work units.
+2016-11-29 12:43:59) Replicate 15 completed with 1.00e+05 of simulation time using 27 work units.
+2016-11-29 12:43:59) Replicate 3 completed with 1.00e+05 of simulation time using 27 work units.
+2016-11-29 12:43:59) Replicate 11 completed with 1.00e+05 of simulation time using 27 work units.
+2016-11-29 12:43:59) Replicate 7 completed with 1.00e+05 of simulation time using 23 work units.
+2016-11-29 12:43:59) Replicate supervisor finished 15 replicates in 86.81 seconds.
+2016-11-29 12:43:59) Simulation finished.
+2016-11-29 12:43:59) Finished 33 work units (ids in range 52 to 84) with 131 parts in the last 26.5 seconds. 919964581 steps in 2.653e+01 seconds (3.468e+07 steps/second).
+2016-11-29 12:43:59) Supervisor @0 finished.
+2016-11-29 12:43:59) Wrote 25 messages (3186 bytes) in the last 26.5 seconds (0.000313 seconds writing). 0 messages (0 bytes) queued. Flushing.
+2016-11-29 12:43:59) OutputWriter wrote 59 messages and 9053 bytes total.
+2016-11-29 12:43:59) OutputWriter::HelperThread @3 finished.
+2016-11-29 12:43:59) OutputWriter @3 flushing and closing.
+2016-11-29 12:43:59) OutputWriter @3 finished.
+2016-11-29 12:43:59) Work unit runner @4 finished.
+2016-11-29 12:43:59) Resource controller @1 finished.
+2016-11-29 12:43:59) Finalizing communications library.
+2016-11-29 12:43:59) Program execution finished.
