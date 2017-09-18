@@ -57,7 +57,6 @@
 #include "lm/Print.h"
 #include "lm/Tune.h"
 #include "lm/Types.h"
-#include "lm/types/ArrayOrdering.pb.h"
 #include "lm/input/DiffusionModel.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/FFluxOutput.pb.h"

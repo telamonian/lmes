@@ -172,10 +172,14 @@ public:
 
 typedef tuple<uint> utuple;
 
-enum ndarray_ArrayOrder {
-    ROW_MAJOR             = 0,    // Last dimension contiguous.
-    COLUMN_MAJOR          = 1,    // First dimension contiguous
-    IMPL_ORDER            = 2     // Ordering specific to the implementation.
+struct ndarray_ArrayOrder
+{
+public:
+	enum Order {
+    		ROW_MAJOR             = 0,    // Last dimension contiguous.
+    		COLUMN_MAJOR          = 1,    // First dimension contiguous
+    		IMPL_ORDER            = 2     // Ordering specific to the implementation.
+	};
 };
 
 template <typename T> struct ndarray
@@ -183,19 +187,19 @@ template <typename T> struct ndarray
 public:
 
 public:
-    ndarray(const tuple<uint>& shape, size_t alignment=0, ndarray_ArrayOrder arrayOrder=ROW_MAJOR)
+    ndarray(const tuple<uint>& shape, size_t alignment=0, ndarray_ArrayOrder::Order arrayOrder=ndarray_ArrayOrder::ROW_MAJOR)
     :arrayOrder(arrayOrder),shape(shape),size(calculateSize(shape)),alignment(alignment),values(allocateMemory(size,alignment)),allocatedValues(true)
     {
         memset(values, 0, sizeof(T)*size);
     }
 
-    ndarray(const tuple<uint>& shape, const T* valuesArray, size_t alignment=0, ndarray_ArrayOrder arrayOrder=ROW_MAJOR)
+    ndarray(const tuple<uint>& shape, const T* valuesArray, size_t alignment=0, ndarray_ArrayOrder::Order arrayOrder=ndarray_ArrayOrder::ROW_MAJOR)
     :arrayOrder(arrayOrder),shape(shape),size(calculateSize(shape)),alignment(alignment),values(allocateMemory(size,alignment)),allocatedValues(true)
     {
         memcpy(values, valuesArray, sizeof(T)*size);
     }
 
-    ndarray(const tuple<uint>& shape, T* valuesArray, bool copyValues=true, size_t alignment=0, ndarray_ArrayOrder arrayOrder=ROW_MAJOR)
+    ndarray(const tuple<uint>& shape, T* valuesArray, bool copyValues=true, size_t alignment=0, ndarray_ArrayOrder::Order arrayOrder=ndarray_ArrayOrder::ROW_MAJOR)
     :arrayOrder(arrayOrder),shape(shape),size(calculateSize(shape)),alignment(copyValues?alignment:0),values(copyValues?allocateMemory(size,alignment):valuesArray),allocatedValues(copyValues)
     {
         if (allocatedValues)
@@ -264,7 +268,7 @@ public:
         uint position=0;
         switch (arrayOrder)
         {
-        case ROW_MAJOR:
+        case ndarray_ArrayOrder::ROW_MAJOR:
             for (uint i=0; i<shape.len; i++)
             {
                 uint offset=1;
@@ -273,7 +277,7 @@ public:
                 position += index[i]*offset;
             }
             break;
-        case COLUMN_MAJOR:
+        case ndarray_ArrayOrder::COLUMN_MAJOR:
             for (uint i=0; i<shape.len; i++)
             {
                 uint offset=1;
@@ -282,7 +286,7 @@ public:
                 position += index[i]*offset;
             }
             break;
-        case IMPL_ORDER:
+        case ndarray_ArrayOrder::IMPL_ORDER:
             throw runtime_error("an ndarray with ordering IMPL_ORDER cannot be accessed by index");
         }
 
@@ -386,7 +390,7 @@ private:
     }
 
 public:
-    ndarray_ArrayOrder arrayOrder;
+    ndarray_ArrayOrder::Order arrayOrder;
     const tuple<uint> shape;
     const size_t size;
     const size_t alignment;

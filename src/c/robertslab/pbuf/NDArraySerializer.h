@@ -36,6 +36,7 @@
 #include "robertslab/Types.h"
 #include "robertslab/pbuf/NDArray.pb.h"
 
+
 namespace robertslab {
 namespace pbuf {
 
@@ -208,7 +209,7 @@ public:
 
     }
 
-    static ndarray_ArrayOrder convertArrayOrder(const robertslab::pbuf::NDArray::ArrayOrder arrayOrder)
+    static ndarray_ArrayOrder::Order convertArrayOrder(const robertslab::pbuf::NDArray::ArrayOrder arrayOrder)
     {
         switch (arrayOrder)
         {
@@ -221,7 +222,7 @@ public:
         }
     }
 
-    static robertslab::pbuf::NDArray::ArrayOrder convertArrayOrder(ndarray_ArrayOrder arrayOrder)
+    static robertslab::pbuf::NDArray::ArrayOrder convertArrayOrder(ndarray_ArrayOrder::Order arrayOrder)
     {
         switch (arrayOrder)
         {
