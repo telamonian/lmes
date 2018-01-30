@@ -99,6 +99,16 @@ string sfileRecordNamePrefix;
 vector<uint64_t> replicates;
 
 /**
+  * The number of replicates to send in each work unit.
+  */
+int replicateBatchSize;
+
+/**
+ * If a message should be printed for each completed replicate.
+ */
+bool relicatePrintCompleted;
+
+/**
  * The interval at which the results file should be checkpointed.
  */
 time_t checkpointInterval = 0;

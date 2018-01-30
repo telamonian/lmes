@@ -39,8 +39,9 @@
 #ifndef LM_TRAJECTORY_TRAJECTORYLIST_H_
 #define LM_TRAJECTORY_TRAJECTORYLIST_H_
 
-#include <map>
 #include <string>
+#include <map>
+#include <unordered_set>
 
 #include "lm/input/Input.h"
 #include "lm/input/ReactionModel.pb.h"
@@ -51,10 +52,9 @@
 #include "lm/trajectory/Trajectory.h"
 #include "lm/Types.h"
 
-using std::map;
 using std::string;
-
-typedef std::map<uint64_t,lm::trajectory::Trajectory*> TrajectoryMap;
+using std::map;
+using std::unordered_set;
 
 namespace lm {
 namespace trajectory {
@@ -86,7 +86,7 @@ public:
     virtual int addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUnit* msg, uint numberParts);
     virtual Trajectory* getTrajectoryForFinishedWorkUnit(uint64_t id);
     virtual void incrementSimulationPhase();
-    virtual TrajectoryMap* mutableTrajectoryMapFromStatus(Trajectory::status_t status);
+    virtual unordered_set<uint64_t>* mutableTrajectoryMapFromStatus(Trajectory::status_t status);
     virtual void setSimulationPhase(uint64_t newPhase) {simulationPhase = newPhase;}
     virtual void setAll(Trajectory::status_t oldStatus, Trajectory::status_t newStatus);
     virtual void restartFinishedTrajectories();
@@ -103,11 +103,11 @@ protected:
 
 protected:
     uint64_t simulationPhase;
-    TrajectoryMap trajectories;
-    TrajectoryMap abortedTrajectories;
-    TrajectoryMap finishedTrajectories;
-    TrajectoryMap runningTrajectories;
-    TrajectoryMap waitingTrajectories;
+    map<uint64_t,Trajectory*> trajectories;
+    unordered_set<uint64_t> abortedTrajectories;
+    unordered_set<uint64_t> finishedTrajectories;
+    unordered_set<uint64_t> runningTrajectories;
+    unordered_set<uint64_t> waitingTrajectories;
     map<uint64_t,list<uint64_t> > workUnitsRunning;
 };
 

@@ -258,7 +258,7 @@ void FFluxTrajectoryList::initTrajectories(uint64_t trajectoriesToStart,bool rev
     	lm::fflux::FFluxTrajectory* newTraj = new lm::fflux::FFluxTrajectory(trajectoryCount, simulationPhase, input, reversed, ffluxPhase);
     	if (intermediateOutputFlag) {ffluxOutputAddTrajectory(newTraj, lm::io::FFluxOutput::INITIAL);}
     	trajectories[trajectoryCount] = newTraj;
-        waitingTrajectories[trajectoryCount] = trajectories[trajectoryCount];
+        waitingTrajectories.insert(trajectoryCount);
         trajectoryCount++;
     }
 }
@@ -270,7 +270,7 @@ void FFluxTrajectoryList::initTrajectories(uint64_t trajectoriesToStart, lm::io:
     	lm::fflux::FFluxTrajectory* newTraj = new lm::fflux::FFluxTrajectory(trajectoryCount, simulationPhase, *oldTraj, ffluxPhase, input);
     	if (intermediateOutputFlag) {ffluxOutputAddTrajectory(newTraj, lm::io::FFluxOutput::INITIAL);}
         trajectories[trajectoryCount] = newTraj;
-        waitingTrajectories[trajectoryCount] = trajectories[trajectoryCount];
+        waitingTrajectories.insert(trajectoryCount);
         trajectoryCount++;
     }
 }

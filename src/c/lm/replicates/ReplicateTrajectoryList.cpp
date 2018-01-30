@@ -37,6 +37,7 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
+#include <cmath>
 #include <limits>
 #include <list>
 #include <map>
@@ -45,10 +46,11 @@
 #include "lm/Print.h"
 #include "lm/Types.h"
 #include "lm/input/Input.h"
-#include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/input/ReactionModel.pb.h"
+#include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
+#include "lm/main/Globals.h"
 #include "lm/message/Message.pb.h"
 #include "lm/replicates/ReplicateTrajectoryList.h"
 #include "lm/trajectory/Trajectory.h"
@@ -75,12 +77,19 @@ ReplicateTrajectoryList::ReplicateTrajectoryList(const lm::input::Input& input, 
     for (uint64_t i=firstTrajectory; i<=lastTrajectory; i++)
     {
         trajectories[i] = new lm::trajectory::Trajectory(i, getSimulationPhase(), input);
-        waitingTrajectories[i] = trajectories[i];
+        waitingTrajectories.insert(i);
     }
 }
 
 ReplicateTrajectoryList::~ReplicateTrajectoryList()
 {
+}
+
+int ReplicateTrajectoryList::addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUnit* msg, uint numberParts)
+{
+    if (replicateBatchSize > 1)
+        return TrajectoryList::addWorkUnitParts(workUnitId, msg, max<int>(replicateBatchSize,numberParts));
+    return TrajectoryList::addWorkUnitParts(workUnitId, msg, numberParts);
 }
 
 void ReplicateTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
@@ -89,43 +98,52 @@ void ReplicateTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUn
     TrajectoryList::workUnitFinished(msg);
 
     // Print out a message for any trajectories that finished.
-    for (int i=0; i<msg.part_status_size(); i++)
+    if (relicatePrintCompleted)
     {
-        uint64_t id = msg.part_status(i).final_state().trajectory_id();
-        lm::trajectory::Trajectory* t = trajectories[id];
-        if (t->getStatus() == lm::trajectory::Trajectory::FINISHED)
+        for (int i=0; i<msg.part_status_size(); i++)
         {
-            Print::printf(Print::INFO, "Replicate %lld completed with %8.2e of simulation time using %d work units.",
-                          t->getID(), t->getState().cme_state().species_counts().time(0), t->getWorkUnitsPerformed());
+            uint64_t id = msg.part_status(i).final_state().trajectory_id();
+            lm::trajectory::Trajectory* t = trajectories[id];
+            if (t->getStatus() == lm::trajectory::Trajectory::FINISHED)
+            {
+                Print::printf(Print::INFO, "Replicate %lld completed with %8.2e of simulation time using %d work units.",
+                              t->getID(), t->getState().cme_state().species_counts().time(0), t->getWorkUnitsPerformed());
+            }
         }
     }
 }
 
 uint64_t ReplicateTrajectoryList::findNextTrajectoryToRun() const
 {
-    uint64_t minId=UINT64_MAX;
-    double minTime=std::numeric_limits<double>::infinity();
-    for (TrajectoryMap::const_iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
+    if (waitingTrajectories.size() <= 1000)
     {
-        lm::trajectory::Trajectory* t = it->second;
-        double time = t->getState().cme_state().species_counts().time(0);
-        if (time < minTime)
+        uint64_t minId=UINT64_MAX;
+        double minTime=std::numeric_limits<double>::infinity();
+        for (auto it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
         {
-            minTime = time;
-            minId = it->first;
+            double time = trajectories.at(*it)->getState().cme_state().species_counts().time(0);
+            if (time < minTime)
+            {
+                minTime = time;
+                minId = *it;
+            }
         }
-    }
 
-    if (minId == UINT64_MAX)
+        if (minId == UINT64_MAX)
+        {
+            for (auto it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
+            {
+                trajectories.at(*it)->getState().PrintDebugString();
+            }
+            throw Exception("Consistency error in ReplicateTrajectoryList, no next trajectory found",minId,waitingTrajectories.size());
+        }
+
+        return minId;
+    }
+    else
     {
-        for (TrajectoryMap::const_iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
-        {
-            it->second->getState().PrintDebugString();
-        }
-        throw Exception("Consistency error in ReplicateTrajectoryList, no next trajectory found",minId,waitingTrajectories.size());
+        return TrajectoryList::findNextTrajectoryToRun();
     }
-
-    return minId;
 }
 
 void ReplicateTrajectoryList::printTrajectoryStatistics() const
@@ -138,7 +156,7 @@ void ReplicateTrajectoryList::printTrajectoryStatistics() const
         Print::printf(Print::INFO, "Trajectory status");
         Print::printf(Print::INFO, "        ID State       Time     Work_Units");
         Print::printf(Print::INFO, "------------------------------------------");
-        for (TrajectoryMap::const_iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+        for (auto it=trajectories.begin(); it!=trajectories.end(); it++)
         {
             uint64_t id = it->first;
             lm::trajectory::Trajectory* t = it->second;

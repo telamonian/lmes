@@ -65,6 +65,7 @@ public:
     ReplicateTrajectoryList();
     ReplicateTrajectoryList(const lm::input::Input& input, uint64_t firstTrajectory, uint64_t lastTrajectory);
     virtual ~ReplicateTrajectoryList();
+    virtual int addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUnit* msg, uint numberParts);
     virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg);
 
 protected:

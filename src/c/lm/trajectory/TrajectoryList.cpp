@@ -77,7 +77,7 @@ TrajectoryList::~TrajectoryList()
 // destroyer
 void TrajectoryList::deleteAllNotStarted()
 {
-    for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+    for (auto it=trajectories.begin(); it!=trajectories.end(); it++)
     {
         if (it->second->getStatus()==Trajectory::NOT_STARTED)
         {
@@ -88,7 +88,7 @@ void TrajectoryList::deleteAllNotStarted()
 
 void TrajectoryList::deleteAllTrajectories()
 {
-    for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+    for (auto it=trajectories.begin(); it!=trajectories.end(); it++)
     {
         delete it->second;
         it->second = NULL;
@@ -127,7 +127,7 @@ bool TrajectoryList::areAnyWaiting() const
 
 bool TrajectoryList::isTrajectoryAborted(lm::trajectory::Trajectory* traj)
 {
-    if (abortedTrajectories.count(traj->getID())==1)
+    if (abortedTrajectories.count(traj->getID()))
     {
         if (traj->getStatus()!=Trajectory::ABORTED)
             throw Exception("Consistency error, trajectory was in aborted list but did not have waiting status: id, status", traj->getID(), traj->getStatus());
@@ -141,7 +141,7 @@ bool TrajectoryList::isTrajectoryAborted(lm::trajectory::Trajectory* traj)
 
 bool TrajectoryList::isTrajectoryFinished(lm::trajectory::Trajectory* traj)
 {
-    if (finishedTrajectories.count(traj->getID())==1)
+    if (finishedTrajectories.count(traj->getID()))
     {
         if (traj->getStatus()!=Trajectory::FINISHED)
             throw Exception("Consistency error, trajectory was in finished list but did not have finished status: id, status", traj->getID(), traj->getStatus());
@@ -155,7 +155,7 @@ bool TrajectoryList::isTrajectoryFinished(lm::trajectory::Trajectory* traj)
 
 bool TrajectoryList::isTrajectoryRunning(lm::trajectory::Trajectory* traj)
 {
-    if (runningTrajectories.count(traj->getID())==1)
+    if (runningTrajectories.count(traj->getID()))
     {
         if (traj->getStatus()!=Trajectory::RUNNING)
             throw Exception("Consistency error, trajectory was in running list but did not have running status: id, status", traj->getID(), traj->getStatus());
@@ -169,7 +169,7 @@ bool TrajectoryList::isTrajectoryRunning(lm::trajectory::Trajectory* traj)
 
 bool TrajectoryList::isTrajectoryWaiting(lm::trajectory::Trajectory* traj)
 {
-    if (waitingTrajectories.count(traj->getID())==1)
+    if (waitingTrajectories.count(traj->getID()))
     {
         if (traj->getStatus()!=Trajectory::WAITING)
             throw Exception("Consistency error, trajectory was in waiting list but did not have waiting status: id, status", traj->getID(), traj->getStatus());
@@ -192,9 +192,8 @@ int TrajectoryList::addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUn
         {
             // Get the first trajectory.
             uint64_t id = findNextTrajectoryToRun();
-            if (!waitingTrajectories.count(id))
-                throw Exception("Consistency error in trajectory list, next trajectory to run was not in the waiting list",id);
-            Trajectory* t = waitingTrajectories[id];
+            if (!waitingTrajectories.count(id)) throw Exception("Consistency error in trajectory list, next trajectory to run was not in the waiting list",id);
+            Trajectory* t = trajectories[id];
 
             // Validate that it really needs to be run.
             if (t->getStatus() != Trajectory::NOT_STARTED && t->getStatus() != Trajectory::WAITING)
@@ -204,7 +203,7 @@ int TrajectoryList::addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUn
             trajectoriesAdded.push_back(id);
             t->setStatus(Trajectory::RUNNING);
             waitingTrajectories.erase(id);
-            runningTrajectories[id] = t;
+            runningTrajectories.insert(id);
 
             // Fill in the message.
             lm::message::WorkUnit* wu = msg->add_part();
@@ -224,17 +223,17 @@ int TrajectoryList::addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUn
 Trajectory* TrajectoryList::getTrajectoryForFinishedWorkUnit(uint64_t id)
 {
     Trajectory* t;
-    if (runningTrajectories.count(id) == 1)
+    if (runningTrajectories.count(id))
     {
-        t = runningTrajectories[id];
+        t = trajectories[id];
         if (t->getStatus() != Trajectory::RUNNING)
         {
             throw Exception("Consistency error in trajectory list, expected trajectory did not have a running status", id);
         }
     }
-    else if (abortedTrajectories.count(id) == 1)
+    else if (abortedTrajectories.count(id))
     {
-        t = abortedTrajectories[id];
+        t = trajectories[id];
         if (t->getStatus() != Trajectory::ABORTED)
         {
             throw Exception("Consistency error in trajectory list, expected trajectory did not have a running status", id);
@@ -252,7 +251,7 @@ void TrajectoryList::incrementSimulationPhase()
     simulationPhase++;
 }
 
-TrajectoryMap* TrajectoryList::mutableTrajectoryMapFromStatus(Trajectory::status_t status)
+unordered_set<uint64_t>* TrajectoryList::mutableTrajectoryMapFromStatus(Trajectory::status_t status)
 {
     switch (status)
     {
@@ -267,22 +266,22 @@ TrajectoryMap* TrajectoryList::mutableTrajectoryMapFromStatus(Trajectory::status
 
 void TrajectoryList::setAll(Trajectory::status_t oldStatus, Trajectory::status_t newStatus)
 {
-    TrajectoryMap& oldMap = *mutableTrajectoryMapFromStatus(oldStatus);
-    TrajectoryMap& newMap = *mutableTrajectoryMapFromStatus(newStatus);
-    for (TrajectoryMap::iterator it=oldMap.begin(); it!=oldMap.end(); it++)
+    auto oldMap = *mutableTrajectoryMapFromStatus(oldStatus);
+    auto newMap = *mutableTrajectoryMapFromStatus(newStatus);
+    for (auto it=oldMap.begin(); it!=oldMap.end(); it++)
     {
-        it->second->setStatus(newStatus);
-        newMap[it->first] = it->second;
+        trajectories.at(*it)->setStatus(newStatus);
+        newMap.insert(*it);
     }
     oldMap.clear();
 }
 
 void TrajectoryList::restartFinishedTrajectories()
 {
-    for (TrajectoryMap::iterator it=finishedTrajectories.begin(); it!=finishedTrajectories.end(); it++)
+    for (auto it=finishedTrajectories.begin(); it!=finishedTrajectories.end(); it++)
     {
-        it->second->setStatus(Trajectory::WAITING);
-        waitingTrajectories[it->first] = it->second;
+        trajectories.at(*it)->setStatus(Trajectory::WAITING);
+        waitingTrajectories.insert(*it);
     }
     finishedTrajectories.clear();
 }
@@ -295,7 +294,7 @@ void TrajectoryList::setTrajectoryAborted(lm::trajectory::Trajectory* traj)
     if (finishedTrajectories.count(id)) finishedTrajectories.erase(id);
     if (runningTrajectories.count(id)) runningTrajectories.erase(id);
     if (waitingTrajectories.count(id)) waitingTrajectories.erase(id);
-    abortedTrajectories[id] = traj;
+    abortedTrajectories.insert(id);
 }
 
 void TrajectoryList::setTrajectoryFinished(lm::trajectory::Trajectory* traj)
@@ -306,7 +305,7 @@ void TrajectoryList::setTrajectoryFinished(lm::trajectory::Trajectory* traj)
     if (abortedTrajectories.count(id)) abortedTrajectories.erase(id);
     if (runningTrajectories.count(id)) runningTrajectories.erase(id);
     if (waitingTrajectories.count(id)) waitingTrajectories.erase(id);
-    finishedTrajectories[id] = traj;
+    finishedTrajectories.insert(id);
 }
 
 void TrajectoryList::setTrajectoryRunning(lm::trajectory::Trajectory* traj)
@@ -317,7 +316,7 @@ void TrajectoryList::setTrajectoryRunning(lm::trajectory::Trajectory* traj)
     if (abortedTrajectories.count(id)) abortedTrajectories.erase(id);
     if (finishedTrajectories.count(id)) finishedTrajectories.erase(id);
     if (waitingTrajectories.count(id)) waitingTrajectories.erase(id);
-    runningTrajectories[id] = traj;
+    runningTrajectories.insert(id);
 }
 
 void TrajectoryList::setTrajectoryWaiting(lm::trajectory::Trajectory* traj)
@@ -328,7 +327,7 @@ void TrajectoryList::setTrajectoryWaiting(lm::trajectory::Trajectory* traj)
     if (abortedTrajectories.count(id)) abortedTrajectories.erase(id);
     if (finishedTrajectories.count(id)) finishedTrajectories.erase(id);
     if (runningTrajectories.count(id)) runningTrajectories.erase(id);
-    waitingTrajectories[id] = traj;
+    waitingTrajectories.insert(id);
 }
 
 void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& fwuMsg)
@@ -403,13 +402,13 @@ void TrajectoryList::workUnitPartFinished(const lm::message::WorkUnitStatus& wus
     {
         traj->setStatus(Trajectory::WAITING);
         runningTrajectories.erase(id);
-        waitingTrajectories[id] = traj;
+        waitingTrajectories.insert(id);
     }
     else if (wusBuf.status() == lm::message::WorkUnitStatus::LIMIT_REACHED)
     {
         traj->setStatus(Trajectory::FINISHED);
         runningTrajectories.erase(id);
-        finishedTrajectories[id] = traj;
+        finishedTrajectories.insert(id);
     }
     else if (wusBuf.status() == lm::message::WorkUnitStatus::ERROR)
     {
@@ -427,7 +426,7 @@ void TrajectoryList::workUnitPartFinished(const lm::message::WorkUnitStatus& wus
 // protected
 uint64_t TrajectoryList::findNextTrajectoryToRun() const
 {
-    return waitingTrajectories.begin()->first;
+    return *waitingTrajectories.begin();
 }
 
 }

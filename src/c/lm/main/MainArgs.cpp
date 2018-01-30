@@ -110,6 +110,8 @@ void parseArguments(int argc, char** argv)
     // Set any default options.
     replicates.clear();
     replicates.push_back(1);
+    replicateBatchSize = 1;
+    relicatePrintCompleted = true;
 
     cpuCores = -1;
     cpuCoresPerRunner = 1.0;
@@ -227,6 +229,22 @@ void parseArguments(int argc, char** argv)
         {
             parseIntListArg(replicates, option+strlen("--replicates="));
         }
+
+        //See if the user is trying to set the replicate batch size.
+        else if ((strcmp(option, "-rb") == 0 || strcmp(option, "--replicate-batch-size") == 0) && i < (argc-1))
+        {
+            replicateBatchSize = atoi(argv[++i]);
+        }
+        else if (strncmp(option, "--replicate-batch-size=", strlen("--replicate-batch-size=")) == 0)
+        {
+            replicateBatchSize = atoi(option+strlen("--replicate-batch-size="));
+        }
+
+        //See if the user is trying to turn off printing of completed replicates.
+         else if ((strcmp(option, "-rnp") == 0 || strcmp(option, "--replicate-no-print") == 0))
+         {
+             relicatePrintCompleted = false;
+         }
 
         //See if the user is trying to set the checkpoint interval.
         else if ((strcmp(option, "-ck") == 0 || strcmp(option, "--checkpoint") == 0) && i < (argc-1))
@@ -585,6 +603,8 @@ void printUsage(int argc, char** argv)
     std::cout << std::endl;
     std::cout << "SIM_OPTIONS" << std::endl;
     std::cout << "  -r replicates     --replicates=replicates       A list of replicates to run, e.g. \"0-9\", \"0,11,21\" (default 0)." << std::endl;
+    std::cout << "  -rb size          --replicate-batch-size=size   The minimum number of replicates to include in each work unit (default 1)." << std::endl;
+    std::cout << "  -rnp              --replicate-no-print          Turn off printing of per replicate messages." << std::endl;
     std::cout << "  -sp               --spatially-resolved          The simulations should use the spatially resolved reaction model (default)." << std::endl;
     std::cout << "  -ws               --well-stirred                The simulations should use the well-stirred reaction model." << std::endl;
     std::cout << "  -sl solver        --solver=solver               The specific solver class to use for the simulations." << std::endl;

@@ -54,7 +54,7 @@ PDETrajectoryList::PDETrajectoryList(const lm::input::Input& input, uint64_t rep
 
     // Create the trajectory.
     trajectories[replicate] = new lm::trajectory::Trajectory(replicate, getSimulationPhase(), input, false, false, false, true);
-    waitingTrajectories[replicate] = trajectories[replicate];
+    waitingTrajectories.insert(replicate);
 }
 
 PDETrajectoryList::~PDETrajectoryList()
@@ -94,22 +94,22 @@ uint64_t PDETrajectoryList::findNextTrajectoryToRun() const
 {
     uint64_t minId=std::numeric_limits<uint64_t>::max();
     double minTime=std::numeric_limits<double>::infinity();
-    for (TrajectoryMap::const_iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
+    for (auto it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
     {
-        lm::trajectory::Trajectory* t = it->second;
+        lm::trajectory::Trajectory* t = trajectories.at(*it);
         double time = t->getState().diffusion_pde_state().time();
         if (time < minTime)
         {
             minTime = time;
-            minId = it->first;
+            minId = *it;
         }
     }
 
     if (minId == std::numeric_limits<uint64_t>::max())
     {
-        for (TrajectoryMap::const_iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
+        for (auto it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
         {
-            it->second->getState().PrintDebugString();
+            trajectories.at(*it)->getState().PrintDebugString();
         }
         throw Exception("Consistency error in PDETrajectoryList, no next trajectory found",minId,waitingTrajectories.size());
     }

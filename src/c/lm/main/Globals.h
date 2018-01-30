@@ -81,6 +81,16 @@ extern string sfileRecordNamePrefix;
 extern vector<uint64_t> replicates;
 
 /**
+  * The number of replicates to send in each work unit.
+  */
+extern int replicateBatchSize;
+
+/**
+ * If a message should be printed for each completed replicate.
+ */
+extern bool relicatePrintCompleted;
+
+/**
  * The interval at which the results file should be checkpointed.
  */
 extern time_t checkpointInterval;
