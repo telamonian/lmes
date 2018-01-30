@@ -148,14 +148,14 @@ uint64_t ReplicateTrajectoryList::findNextTrajectoryToRun() const
 
 void ReplicateTrajectoryList::printTrajectoryStatistics() const
 {
-    if (relicatePrintMessages)
+    // Print some performance statistics, if it has been a while.
+    hrtime currentTime = getHrTime();
+    if (convertHrToSeconds(currentTime-stats_lastPrintTime) > 700.0)
     {
-        // Print some performance statistics, if it has been a while.
-        hrtime currentTime = getHrTime();
-        if (convertHrToSeconds(currentTime-stats_lastPrintTime) > 700.0)
+        Print::printf(Print::INFO, "Trajectory status: %d aborted, %d finished, %d running, %d waiting", abortedTrajectories.size(), finishedTrajectories.size(), finishedTrajectories.size(), waitingTrajectories.size());
+        if (relicatePrintMessages)
         {
             const std::string statusStrings[] = {"ABORTED", "FINISHED", "NOT_STARTED", "RUNNING", "WAITING"};
-            Print::printf(Print::INFO, "Trajectory status");
             Print::printf(Print::INFO, "        ID State       Time     Work_Units");
             Print::printf(Print::INFO, "------------------------------------------");
             for (map<uint64_t,lm::trajectory::Trajectory*>::const_iterator it=trajectories.begin(); it!=trajectories.end(); it++)
@@ -164,8 +164,8 @@ void ReplicateTrajectoryList::printTrajectoryStatistics() const
                 lm::trajectory::Trajectory* t = it->second;
                 Print::printf(Print::INFO, "%10lld %-11s %8.2e %10d", id, statusStrings[(int)t->getStatus()].c_str(), t->getState().cme_state().species_counts().time(0), t->getWorkUnitsPerformed());
             }
-            stats_lastPrintTime = getHrTime();
         }
+        stats_lastPrintTime = getHrTime();
     }
 }
 
