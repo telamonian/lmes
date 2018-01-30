@@ -152,7 +152,7 @@ void ReplicateTrajectoryList::printTrajectoryStatistics() const
     hrtime currentTime = getHrTime();
     if (convertHrToSeconds(currentTime-stats_lastPrintTime) > 700.0)
     {
-        Print::printf(Print::INFO, "Trajectory status: %d aborted, %d finished, %d running, %d waiting", abortedTrajectories.size(), finishedTrajectories.size(), finishedTrajectories.size(), waitingTrajectories.size());
+        Print::printf(Print::INFO, "Trajectory status: %d aborted, %d finished, %d running, %d waiting", abortedTrajectories.size(), finishedTrajectories.size(), runningTrajectories.size(), waitingTrajectories.size());
         if (relicatePrintMessages)
         {
             const std::string statusStrings[] = {"ABORTED", "FINISHED", "NOT_STARTED", "RUNNING", "WAITING"};
