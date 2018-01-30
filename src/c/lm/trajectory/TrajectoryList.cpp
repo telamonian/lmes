@@ -77,7 +77,7 @@ TrajectoryList::~TrajectoryList()
 // destroyer
 void TrajectoryList::deleteAllNotStarted()
 {
-    for (auto it=trajectories.begin(); it!=trajectories.end(); it++)
+    for (map<uint64_t,Trajectory*>::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
     {
         if (it->second->getStatus()==Trajectory::NOT_STARTED)
         {
@@ -88,7 +88,7 @@ void TrajectoryList::deleteAllNotStarted()
 
 void TrajectoryList::deleteAllTrajectories()
 {
-    for (auto it=trajectories.begin(); it!=trajectories.end(); it++)
+    for (map<uint64_t,Trajectory*>::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
     {
         delete it->second;
         it->second = NULL;
@@ -266,9 +266,9 @@ unordered_set<uint64_t>* TrajectoryList::mutableTrajectoryMapFromStatus(Trajecto
 
 void TrajectoryList::setAll(Trajectory::status_t oldStatus, Trajectory::status_t newStatus)
 {
-    auto oldMap = *mutableTrajectoryMapFromStatus(oldStatus);
-    auto newMap = *mutableTrajectoryMapFromStatus(newStatus);
-    for (auto it=oldMap.begin(); it!=oldMap.end(); it++)
+    unordered_set<uint64_t> oldMap = *mutableTrajectoryMapFromStatus(oldStatus);
+    unordered_set<uint64_t> newMap = *mutableTrajectoryMapFromStatus(newStatus);
+    for (unordered_set<uint64_t>::iterator it=oldMap.begin(); it!=oldMap.end(); it++)
     {
         trajectories.at(*it)->setStatus(newStatus);
         newMap.insert(*it);
@@ -278,7 +278,7 @@ void TrajectoryList::setAll(Trajectory::status_t oldStatus, Trajectory::status_t
 
 void TrajectoryList::restartFinishedTrajectories()
 {
-    for (auto it=finishedTrajectories.begin(); it!=finishedTrajectories.end(); it++)
+    for (unordered_set<uint64_t>::iterator it=finishedTrajectories.begin(); it!=finishedTrajectories.end(); it++)
     {
         trajectories.at(*it)->setStatus(Trajectory::WAITING);
         waitingTrajectories.insert(*it);

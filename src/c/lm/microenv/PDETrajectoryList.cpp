@@ -94,7 +94,7 @@ uint64_t PDETrajectoryList::findNextTrajectoryToRun() const
 {
     uint64_t minId=std::numeric_limits<uint64_t>::max();
     double minTime=std::numeric_limits<double>::infinity();
-    for (auto it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
+    for (unordered_set<uint64_t>::iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
     {
         lm::trajectory::Trajectory* t = trajectories.at(*it);
         double time = t->getState().diffusion_pde_state().time();
@@ -107,7 +107,7 @@ uint64_t PDETrajectoryList::findNextTrajectoryToRun() const
 
     if (minId == std::numeric_limits<uint64_t>::max())
     {
-        for (auto it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
+        for (unordered_set<uint64_t>::iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
         {
             trajectories.at(*it)->getState().PrintDebugString();
         }

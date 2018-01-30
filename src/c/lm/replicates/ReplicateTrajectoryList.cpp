@@ -119,7 +119,7 @@ uint64_t ReplicateTrajectoryList::findNextTrajectoryToRun() const
     {
         uint64_t minId=UINT64_MAX;
         double minTime=std::numeric_limits<double>::infinity();
-        for (auto it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
+        for (unordered_set<uint64_t>::iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
         {
             double time = trajectories.at(*it)->getState().cme_state().species_counts().time(0);
             if (time < minTime)
@@ -131,7 +131,7 @@ uint64_t ReplicateTrajectoryList::findNextTrajectoryToRun() const
 
         if (minId == UINT64_MAX)
         {
-            for (auto it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
+            for (unordered_set<uint64_t>::iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
             {
                 trajectories.at(*it)->getState().PrintDebugString();
             }
@@ -158,7 +158,7 @@ void ReplicateTrajectoryList::printTrajectoryStatistics() const
             Print::printf(Print::INFO, "Trajectory status");
             Print::printf(Print::INFO, "        ID State       Time     Work_Units");
             Print::printf(Print::INFO, "------------------------------------------");
-            for (auto it=trajectories.begin(); it!=trajectories.end(); it++)
+            for (map<uint64_t,lm::trajectory::Trajectory*>::const_iterator it=trajectories.begin(); it!=trajectories.end(); it++)
             {
                 uint64_t id = it->first;
                 lm::trajectory::Trajectory* t = it->second;

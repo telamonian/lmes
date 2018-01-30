@@ -80,7 +80,7 @@ METrajectoryList::~METrajectoryList()
 
 void METrajectoryList::copySpeciesCountInto(ndarray<int32_t>* counts, uint32_t column, uint32_t speciesId)
 {
-    for (auto it=trajectories.begin(); it!=trajectories.end(); it++)
+    for (map<uint64_t,lm::trajectory::Trajectory*>::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
     {
         (*counts)[utuple(it->first-numberCells*trajectoryMultiplier,column)] = it->second->getState().cme_state().species_counts().species_count(speciesId);
     }
@@ -88,7 +88,7 @@ void METrajectoryList::copySpeciesCountInto(ndarray<int32_t>* counts, uint32_t c
 
 void METrajectoryList::copySpeciesCountFrom(const ndarray<int32_t>& counts, uint32_t column, uint32_t speciesId)
 {
-    for (auto it=trajectories.begin(); it!=trajectories.end(); it++)
+    for (map<uint64_t,lm::trajectory::Trajectory*>::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
     {
         it->second->getMutableState()->mutable_cme_state()->mutable_species_counts()->set_species_count(speciesId, counts[utuple(it->first-numberCells*trajectoryMultiplier,column)]);
     }
