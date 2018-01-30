@@ -111,7 +111,7 @@ void parseArguments(int argc, char** argv)
     replicates.clear();
     replicates.push_back(1);
     replicateBatchSize = 1;
-    relicatePrintCompleted = true;
+    relicatePrintMessages = true;
 
     cpuCores = -1;
     cpuCoresPerRunner = 1.0;
@@ -243,7 +243,7 @@ void parseArguments(int argc, char** argv)
         //See if the user is trying to turn off printing of completed replicates.
          else if ((strcmp(option, "-rnp") == 0 || strcmp(option, "--replicate-no-print") == 0))
          {
-             relicatePrintCompleted = false;
+             relicatePrintMessages = false;
          }
 
         //See if the user is trying to set the checkpoint interval.

@@ -86,9 +86,9 @@ extern vector<uint64_t> replicates;
 extern int replicateBatchSize;
 
 /**
- * If a message should be printed for each completed replicate.
+ * If messages should be printed about individual replicates.
  */
-extern bool relicatePrintCompleted;
+extern bool relicatePrintMessages;
 
 /**
  * The interval at which the results file should be checkpointed.

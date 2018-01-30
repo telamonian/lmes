@@ -104,9 +104,9 @@ vector<uint64_t> replicates;
 int replicateBatchSize;
 
 /**
- * If a message should be printed for each completed replicate.
+ * If messages should be printed about individual replicates.
  */
-bool relicatePrintCompleted;
+bool relicatePrintMessages;
 
 /**
  * The interval at which the results file should be checkpointed.
