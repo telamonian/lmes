@@ -41,7 +41,12 @@
 
 #include <string>
 #include <map>
+#ifdef OPT_CPP11
 #include <unordered_set>
+#else
+#include <set>
+#define unordered_set set
+#endif
 
 #include "lm/input/Input.h"
 #include "lm/input/ReactionModel.pb.h"
