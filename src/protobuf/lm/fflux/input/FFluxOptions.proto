@@ -75,7 +75,7 @@ message FFluxOptions {
     /*
      * - minimum number of samples to take during each phase in a production stage
      */
-    optional uint64 production_stage_count_minimum = 22 [default=10000];
+    optional uint64 production_stage_count_minimum = 22 [default=1000];
     /*
      * - number of trajectories to load into each work unit
      *     - doesn't apply to phase 0
