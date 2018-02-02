@@ -174,6 +174,9 @@ protected:
 
     virtual const lm::tiling::Tiling& currentTiling() const {return currentTilingWrap;}
 
+    virtual std::string stageLogPilot(const lm::protowrap::FFluxStageOutputWrap& stageOutput, double errorGoal, double errorGoalConfidence, vector<uint64_t>& trajectoryCounts) const;
+    virtual std::string stageLogProduction(const lm::protowrap::FFluxStageOutputWrap& stageOutput) const;
+
     // mutators
     virtual lm::fflux::input::FFluxPhase* mutableCurrentPhase() {return &*currentFFluxPhaseIter;}
     virtual lm::fflux::input::FFluxPhaseLimit* mutableCurrentPhaseLimit() {return currentPhase().has_fflux_phase_limit() ? mutableCurrentPhase()->mutable_fflux_phase_limit() : mutableCurrentStage()->mutable_fflux_phase_limits(currentFFluxPhaseIndex());}

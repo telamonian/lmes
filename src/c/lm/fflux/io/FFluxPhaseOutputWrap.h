@@ -288,14 +288,26 @@ public:
 
     const EndPointVector::Pair& getEndPointCyclic(size_t index) const
     {
-        int i = 0;
         // take the modulus of index to wrap it back around to somewhere within the bounds of endPointVector
+        index %= endPointVector.size();
+        return endPointVector[index];
+    }
+
+    const EndPointVector::Pair& getEndPointUniformRandom() const
+    {
+        uint32_t ri = getRandomIndex();
+        return endPointVector[ri];
+    }
+
+    const EndPointVector::Pair& getEndPointCyclic_wellSampled(size_t index) const
+    {
+        int i = 0;
         while (true)
         {
             size_t ci = (index + i) % endPointVector.size();
             const EndPointVector::Pair& endPointPair = endPointVector[ci];
 
-            if (endPointPair.first->count() >= 10 or i > 100)
+            if (endPointPair.first->count() > 2 or i > 100)
             {
                 // try to get a well-sampled endpoint, but don't loop forever
                 return endPointPair;
@@ -304,7 +316,7 @@ public:
         }
     }
 
-    const EndPointVector::Pair& getEndPointUniformRandom() const
+    const EndPointVector::Pair& getEndPointUniformRandom_wellSampled() const
     {
         int i = 0;
         while (true)
@@ -312,7 +324,7 @@ public:
             uint32_t ri = getRandomIndex();
             const EndPointVector::Pair& endPointPair = endPointVector[ri];
 
-            if (endPointPair.first->count() >= 10 or i > 100)
+            if (endPointPair.first->count() > 2 or i > 100)
             {
                 // try to get a well-sampled endpoint, but don't loop forever
                 return endPointPair;

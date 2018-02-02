@@ -8,36 +8,40 @@ class FFluxSRGRegressionLMES(FFluxSRGRegression):
     """
     def _buildDefaultSimulationParameterDict(self):
         if self.parser['quick_test']:
-            return {'batchSize': 1,
-                    "errorGoal": .99,
-                    "errorGoalConfidence": .01,
-                    "pilotStageCount": 1,
-                    "productionStageCountMinimum": 1,
-                    "ffluxPilotOutput": True,
-                    "ffluxPhaseOutput": True,
-                    "ffluxStageOutputRaw": True,
-                    "ffluxStageOutputSummary": True,
-                    # 'phaseZeroSamplingMultiplier': 1e2,
-                    'ffluxMinimizeCost': True,
-                    'writeInitialTrajectoryState': False,
-                    'writeFinalTrajectoryState': False,
-                    'writeInterval': None,
-                    'writeLimitTracking': True,
-                    'maxWorkUnitSteps': 1e8,}
+            return {
+                'batchSize': 1,
+                "errorGoal": .99,
+                "errorGoalConfidence": .01,
+                "pilotStageCount": 1,
+                "productionStageCountMinimum": 1,
+                "ffluxPilotOutput": True,
+                "ffluxPhaseOutput": True,
+                "ffluxStageOutputRaw": True,
+                "ffluxStageOutputSummary": True,
+                # 'phaseZeroSamplingMultiplier': 1e2,
+                'ffluxMinimizeCost': True,
+                'writeInitialTrajectoryState': False,
+                'writeFinalTrajectoryState': False,
+                'writeInterval': None,
+                'writeLimitTracking': True,
+                'maxWorkUnitSteps': 1e8,
+            }
         else:
-            return {'batchSize': 100,
-                    "errorGoal": .01,
-                    "errorGoalConfidence": .95,
-                    "pilotStageCount": 1e3,
-                    "productionStageCountMinimum": 1e3,
-                    "ffluxPilotOutput": True,
-                    "ffluxPhaseOutput": False,
-                    "ffluxStageOutputRaw": True,
-                    "ffluxStageOutputSummary": True,
-                    # 'phaseZeroSamplingMultiplier': 1,
-                    'ffluxMinimizeCost': True,
-                    'writeInterval': None,
-                    'writeLimitTracking': False,}
+            return {
+                # 'batchSize': 100,
+                "errorGoal": .1,
+                # "errorGoalConfidence": .95,
+                # "pilotStageCount": 1e3,
+                # "productionStageCountMinimum": 1e3,
+                # "ffluxPilotOutput": True,
+                # "ffluxPhaseOutput": False,
+                # "ffluxStageOutputRaw": True,
+                # "ffluxStageOutputSummary": True,
+                # # 'phaseZeroSamplingMultiplier': 1,
+                # 'ffluxMinimizeCost': True,
+                # 'writeInterval': None,
+                # 'writeLimitTracking': False,
+            }
 
 if __name__=='__main__':
     regression = FFluxSRGRegressionLMES()

@@ -478,23 +478,13 @@ void FFluxSupervisor::addFFluxPhaseLimitsFromInput(lm::fflux::input::FFluxStage*
 
 void FFluxSupervisor::addFFluxPhaseLimitsFromStageOutput(lm::fflux::input::FFluxStage* productionStage, const lm::protowrap::FFluxStageOutputWrap& stageOutput)
 {
+    // calculate the optimum trajectory counts for the production stage from the pilot stage output
     vector<uint64_t> trajectoryCounts(optimizeTrajectoryCounts(input->errorGoal(), input->errorGoalConfidence(), stageOutput, input->productionStageCountMinimum(), input->phaseZeroSamplingMultiplier(), input->minimizeCost()));
-    stringstream optimizationStatus;
-    optimizationStatus.unsetf(std::ios::floatfield);                  // allow for dynamic choice between float and sci format
-    //optimizationStatus.setf(std::ios::fixed, std::ios::floatfield); // force float format
-    optimizationStatus.precision(3);
 
-    const lm::protowrap::FFluxStageOutputSummaryWrap& soSummary(stageOutput.fflux_stage_output_summary());
-    vector<double> costs(soSummary.costs().begin(), soSummary.costs().end());
-    vector<double> probabilities(estimateBernoulliProbabilities(stageOutput));
-    optimizationStatus << "Pilot stage output:\n";
-    optimizationStatus << "The phase costs are:\n" << costs << "\n";
-    optimizationStatus << "The phase weight sample variances are:\n" << stageOutput.fflux_stage_output_raw().variances() << "\n";
-    optimizationStatus << "Conservative estimates of the phase weights are:\n" << probabilities << "\n";
-    optimizationStatus << "Attempting to acheive error goal " << input->errorGoal() << " (confidence level " << input->errorGoalConfidence() << ") with the following optimized trajectory counts:\n" << trajectoryCounts;
+    // print some info about the pilot stage (costs, probabilities, etc) to the log (ie stdout)
+    Print::printf(Print::INFO, stageLogPilot(stageOutput, input->errorGoal(), input->errorGoalConfidence(), trajectoryCounts).c_str());
 
-    Print::printf(Print::INFO, optimizationStatus.str().c_str());
-
+    // zip over the trajectory counts and the phase specification msgs
     vector<uint64_t>::const_iterator tc_it=trajectoryCounts.begin();
     FFluxPhasesWrap::const_iterator ph_it=productionStage->fflux_phases().begin();
 
@@ -905,6 +895,13 @@ void FFluxSupervisor::sendSimulationStageOutput()
         // build the stage output from the phase outputs
         currentFFluxStageOutputWrap.buildFromFFluxPhaseOutputs(currentFFluxPhaseOutputsWrap);
 
+        // add some stage output to the log file
+        if (not currentStage().is_pilot_stage())
+        {
+            // pilot stage log output is handled in .addFFluxPhaseLimitsFromStageOutput(...)
+            Print::printf(Print::INFO, stageLogProduction(currentFFluxStageOutputWrap).c_str());
+        }
+
         if ((not currentStage().is_pilot_stage()) or input->ffluxOptions().pilot_stage_output())
         {
             // (re)initialize the relevant output options
@@ -1158,6 +1155,36 @@ std::string FFluxSupervisor::currentStageInfo(bool path, const lm::fflux::input:
     }
 
     return stageInfo.str();
+}
+
+std::string FFluxSupervisor::stageLogPilot(const lm::protowrap::FFluxStageOutputWrap& stageOutput, double errorGoal, double errorGoalConfidence, vector<uint64_t>& trajectoryCounts) const
+{
+    stringstream stageLog;
+    stageLog.unsetf(std::ios::floatfield);                  // allow for dynamic choice between float and sci format
+    //stageLog.setf(std::ios::fixed, std::ios::floatfield); // force float format
+    stageLog.precision(3);
+
+    stageLog << "Pilot stage output:\n";
+    stageLog << "The phase costs are:\n" << stageOutput.fflux_stage_output_summary().costs() << "\n";
+    stageLog << "The phase weight sample variances are:\n" << stageOutput.fflux_stage_output_raw().variances() << "\n";
+    stageLog << "Conservative estimates of the phase weights are:\n" << estimateBernoulliProbabilities(stageOutput) << "\n";
+    stageLog << "Attempting to acheive error goal " << errorGoal << " (confidence level " << errorGoalConfidence << ") with the following optimized trajectory counts:\n" << trajectoryCounts;
+
+    return stageLog.str();
+}
+
+std::string FFluxSupervisor::stageLogProduction(const lm::protowrap::FFluxStageOutputWrap& stageOutput) const
+{
+    stringstream stageLog;
+    stageLog.unsetf(std::ios::floatfield);
+    stageLog.precision(3);
+
+    stageLog << "Production stage output:\n";
+    stageLog << "The phase costs are:\n" << stageOutput.fflux_stage_output_summary().costs() << "\n";
+    stageLog << "The phase weight sample variances are:\n" << stageOutput.fflux_stage_output_raw().variances() << "\n";
+    stageLog << "Conservative estimates of the phase weights are:\n" << estimateBernoulliProbabilities(stageOutput) << "\n";
+
+    return stageLog.str();
 }
 
 // setters
