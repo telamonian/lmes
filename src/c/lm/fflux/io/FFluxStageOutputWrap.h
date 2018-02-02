@@ -88,14 +88,12 @@ class FFluxStageOutputSummaryWrap : public lm::protowrap::Msg<FFluxStageOutputSu
 {
     WRAPPED_FIELDS(repeated, double, first_passage_times,
                    repeated, double, costs,
-                   repeated, double, fluxes,
-                   repeated, double, probabilities)
+                   repeated, double, weights)
 
     void buildFromFFluxStageOutputRaw(const FFluxStageOutputRawWrap& outputRaw)
     {
         buildCosts(outputRaw);
-        buildFluxes(outputRaw);
-        buildProbabilites(outputRaw);
+        buildWeights(outputRaw);
         buildFirstPassageTimes();
     }
 
@@ -118,25 +116,7 @@ class FFluxStageOutputSummaryWrap : public lm::protowrap::Msg<FFluxStageOutputSu
         mutable_costs()->serializeFrom(newCosts);
     }
 
-    void buildFluxes(const FFluxStageOutputRawWrap& outputRaw)
-    {
-        // load some data from the raw stage output into a few vectors
-        std::vector<double> successfulTrajectoryCounts, successfulTrajectoryTotalTimes, failedTrajectoryTotalTimes;
-        outputRaw.successful_trajectory_counts().deserializeTo(successfulTrajectoryCounts);
-        outputRaw.successful_trajectory_total_times().deserializeTo(successfulTrajectoryTotalTimes);
-        outputRaw.failed_trajectory_total_times().deserializeTo(failedTrajectoryTotalTimes);
-
-        // calculate the fluxes (nb: phase zero flux is not correctly calculated by this formula)
-        std::vector<double> fluxes = successfulTrajectoryCounts / (failedTrajectoryTotalTimes + successfulTrajectoryTotalTimes);
-
-        // (re)calculate the phase zero flux with the appropriate correction for time spent outside of the initial basin
-        fluxes[0] = successfulTrajectoryCounts[0] / successfulTrajectoryTotalTimes[0];
-
-        // set the fluxes
-        mutable_fluxes()->serializeFrom(fluxes);
-    }
-
-    void buildProbabilites(const FFluxStageOutputRawWrap& outputRaw)
+    void buildWeights(const FFluxStageOutputRawWrap& outputRaw)
     {
         // load some data from the raw stage output into a few vectors
         std::vector<double> successfulTrajectoryCounts, successfulTrajectoryTotalTimes, failedTrajectoryCounts, variances;
@@ -145,29 +125,33 @@ class FFluxStageOutputSummaryWrap : public lm::protowrap::Msg<FFluxStageOutputSu
         outputRaw.failed_trajectory_counts().deserializeTo(failedTrajectoryCounts);
         outputRaw.variances().deserializeTo(variances);
 
-        // calculate the probabilities
-        std::vector<double> probabilities = successfulTrajectoryCounts / (successfulTrajectoryCounts + failedTrajectoryCounts);
+        // calculate the probabilities, ie the phase weights for phases i>0. This won't produce the correct value for phase zero
+        std::vector<double> newWeights = successfulTrajectoryCounts / (successfulTrajectoryCounts + failedTrajectoryCounts);
 
-        // (re)calculate the phase zero probability as the flux (so that probabilities is really the phase weights)
-        probabilities[0] = variances[0] / pow(successfulTrajectoryTotalTimes[0] / successfulTrajectoryCounts[0], 2);
+        // calculate the phase zero weight as the mean waiting time in between phase zero forward flux events. successfulTrajectoryTotalTimes[0] has been corrected in that the time spent in other basins (than the starting one) has been subtracted.
+        newWeights[0] = successfulTrajectoryTotalTimes[0] / successfulTrajectoryCounts[0];
+        // weights[0] = variances[0] / pow(successfulTrajectoryTotalTimes[0] / successfulTrajectoryCounts[0], 2);
 
-        // set the probabilities
-        mutable_probabilities()->serializeFrom(probabilities);
+        // set the phase weights
+        mutable_weights()->serializeFrom(newWeights);
     }
 
     void buildFirstPassageTimes()
     {
-        // initialize a container to hold the result, and some aliases to make the math a little clearer
-        std::vector<double> result, &cumulativeProbabilities(result), &firstPassageTimes(result);
+        // initialize a vector (with a copy of the weights) to temporarily hold the first passage times as we calculate them
+        std::vector<double> newFirstPassageTimes(weights().begin(), weights().end());
 
-        // get the cumulative probability for each tile
-        cumprod(probabilities().begin(), probabilities().end(), std::back_inserter(cumulativeProbabilities));
+        // set the phase zero weight to 1 so it doesn't affect the calculation of the cumulative probabilities.
+        newFirstPassageTimes[0] = 1.0;
 
-        // multiply the pahse zero flux by the cumulative probabilities
-        firstPassageTimes = 1.0 / (cumulativeProbabilities * fluxes(0));
+        // get the cumulative product of the phase i>0 forward flux probabilities
+        cumprod(newFirstPassageTimes.begin(), newFirstPassageTimes.end(), newFirstPassageTimes.begin());
 
-        // set the switching time per tile
-        mutable_first_passage_times()->serializeFrom(firstPassageTimes);
+        // calculate the first passage time to each tile edge by inverting the cumulative probabilites and multiplying them by the phase zero waiting time
+        newFirstPassageTimes = (1 / newFirstPassageTimes) * weights(0);
+
+        // set the first passage times
+        mutable_first_passage_times()->serializeFrom(newFirstPassageTimes);
     }
 };
 
