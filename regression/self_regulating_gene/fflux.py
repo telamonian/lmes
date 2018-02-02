@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # PYTHON_ARGCOMPLETE_OK
 
-from lma.regression.models.self_regulated_gene.srgRegression import FFluxSRGRegression
+from lma.regression.models.self_regulating_gene.srgRegression import FFluxSRGRegression
 
 class FFluxSRGRegressionLMES(FFluxSRGRegression):
     """subclass that allows for easy overriding of various parameters at point of testing

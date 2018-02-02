@@ -865,6 +865,7 @@ void Hdf5File::setFFluxFinalOutput(lm::io::FFluxOutput* ffluxOutput, hid_t fflux
 
     dims[0] = finalOut->normalized_probability_i().tile_vals_size();
     HDF5_EXCEPTION_CALL(normalizedProbabilityIGroup, H5Gcreate2(ffluxOutputGroup, "ProbabilityI", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+    // TODO: intermediateOutputFlag doesn't exist anymore. Figure out some way to refactor/remove all of this surrounding code
     // if the intermediateOutputFlag is not set, TileIndices will be supressed, so account for that possibility
     if (finalOut->normalized_probability_i().tile_indices_size() > 0) {HDF5_EXCEPTION_CHECK(H5LTmake_dataset(normalizedProbabilityIGroup, "TileIndices", 1, dims, H5T_STD_U32LE, finalOut->normalized_probability_i().tile_indices().data()));}
     HDF5_EXCEPTION_CHECK(H5LTmake_dataset(normalizedProbabilityIGroup, "TileVals", 1, dims, H5T_IEEE_F64LE, finalOut->normalized_probability_i().tile_vals().data()));

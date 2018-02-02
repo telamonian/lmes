@@ -140,9 +140,6 @@ string tail(const string& source, size_t length)
     return source.substr(source.size() - length);
 }
 
-// "lambda" function needed for pathJoin
-bool isNotSlash(const char& c) {return c!='/';}
-
 string pathJoin(const vector<string>& pathElements, bool absolute)
 {
     bool isAbsolute = false;
@@ -160,15 +157,19 @@ string pathJoin(const vector<string>& pathElements, bool absolute)
 
     for (;it!=pathElements.end()--;it++)
     {
-        // see http://stackoverflow.com/a/9359324/425458
-        // By ending at the right iterator, we will do the equivalent of the rstrip operation...
-        string::const_iterator right = std::find_if(it->rbegin(), it->rend(), isNotSlash).base();
+//        // see http://stackoverflow.com/a/9359324/425458
+//        // By ending at the right iterator, we will do the equivalent of the rstrip operation...
+//        string::const_iterator right = std::find_if(it->rbegin(), it->rend(), isNotSlash).base();
+//
+//        // ...and by starting at the left iterator, we will do the equivalent of the lstrip operation.
+//        string::const_iterator left = std::find_if(it->begin(), right, isNotSlash);
+//
+//        ss << string(left, right);
 
-        // ...and by starting at the left iterator, we will do the equivalent of the lstrip operation.
-        string::const_iterator left = std::find_if(it->begin(), right, isNotSlash);
+        // strip any slashes off the left and right sides of the path element
+        ss << strip(*it);
 
-        ss << string(left, right);
-
+        // add a forward slash to the end of the path element if it is not the final one
         if (not isLast(it, pathElements))
         {
             ss << "/";
@@ -177,7 +178,7 @@ string pathJoin(const vector<string>& pathElements, bool absolute)
 
     string joinedPath(ss.str());
     // the strip ops will have removed any leading "/", so if we want one add it back now
-    if ((absolute or isAbsolute) and joinedPath.size() > 0 and isNotSlash(joinedPath[0])) joinedPath.insert(0, "/");
+    if ((absolute or isAbsolute) and joinedPath.size() > 0 and joinedPath[0]!='/') joinedPath.insert(0, "/");
 
     return joinedPath;
 }
@@ -189,6 +190,77 @@ string pathJoin(const string& elem0, const string& elem1, bool absolute)
     elems.push_back(elem1);
 
     return pathJoin(elems, absolute);
+}
+
+string pathName(const string& path)
+{
+    std::size_t found = path.find_last_of('/');
+
+    if (found != string::npos)
+    {
+        // at least one slash was found, return everything after the last slash
+        return path.substr(found + 1);
+    }
+    else
+    {
+        // no slashes found, just return the original path
+        return path;
+    }
+}
+
+string pathWithSuffix(const string& path, const string& suffix)
+{
+    // find the start of the path suffix, if any, but only in the final element (ie behave like "/foo/bar.re/foobar" doesn't have a suffix)
+    std::size_t slashFound, suffixFound;
+    slashFound = path.find_last_of('/');
+
+    if (slashFound!=string::npos)
+    {
+        // at least one slash was found, search for the suffix within the final path element
+        suffixFound = path.substr(slashFound + 1).find_last_of('.');
+
+        // convert from pos in the substring to pos in the original path
+        if (suffixFound!=string::npos)
+        {
+            suffixFound+=slashFound + 1;
+        }
+    }
+    else
+    {
+        // no slashes found, just search the whole path for a suffix
+        suffixFound = path.find_last_of('.');
+    }
+
+    string newPath;
+    if (suffixFound!=string::npos)
+    {
+        // existing suffix was found, strip it off
+        newPath = path.substr(0, suffixFound);
+    }
+    else
+    {
+        // no existing suffix, just copy path
+        newPath = path;
+    }
+
+    // add on the new suffix
+    newPath.append(suffix);
+    return newPath;
+}
+
+// "lambda" function needed for strip
+bool _isNotSlash(const char& c) {return c!='/';}
+
+string strip(const string& str)
+{
+    // see http://stackoverflow.com/a/9359324/425458
+    // By ending at the right iterator, we will do the equivalent of the rstrip operation...
+    string::const_iterator right = std::find_if(str.rbegin(), str.rend(), _isNotSlash).base();
+
+    // ...and by starting at the left iterator, we will do the equivalent of the lstrip operation.
+    string::const_iterator left = std::find_if(str.begin(), right, _isNotSlash);
+
+    return string(left, right);
 }
 
 }

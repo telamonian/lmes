@@ -54,6 +54,12 @@ namespace lm {
 //// join a vector of strings via the specified character
 //std::string join(const std::vector<std::string>& )
 
+// get the first n characters of a string in a new string
+std::string head(const std::string& source, size_t length);
+
+// get the last n characters of a string in a new string (see http://stackoverflow.com/a/7597469/425458)
+std::string tail(const std::string& source, size_t length);
+
 // join a vector of path elements into a "/" delineated path.
 // If absolute, ensures that there is exactly one "/" at the beginning of the path, otherwise any leading "/" are stripped
 std::string pathJoin(const std::vector<std::string>& pathElements, bool absolute=true);
@@ -61,11 +67,16 @@ std::string pathJoin(const std::vector<std::string>& pathElements, bool absolute
 // convenience overloads for pathJoin
 std::string pathJoin(const std::string& elem0, const std::string& elem1, bool absolute=true);// {std::vector<std::string> elems; elems.push_back(elem0); elems.push_back(elem1); return pathJoin(elems, absolute);}
 
-// get the first n characters of a string in a new string
-std::string head(const std::string& source, size_t length);
+// get just the final element from a path.
+// example: pathName("foo/bar/re")=="re"
+std::string pathName(const std::string& path);
 
-// get the last n characters of a string in a new string (see http://stackoverflow.com/a/7597469/425458)
-std::string tail(const std::string& source, size_t length);
+// remove the suffix from the final element of a path, then append the newSuffix.
+// example: pathWithSuffix("rey/far/foo.bar", ".rab")=="rey/far/foo.rab", pathWithSuffix("rey/far.bar/foo", ".rab")=="rey/far.bar/foo.rab"
+std::string pathWithSuffix(const std::string& path, const std::string& newSuffix);
+
+// strip any "/" from the left and right of str
+std::string strip(const std::string& str);
 
 /**
  * Class for verbosity-configurable print function.

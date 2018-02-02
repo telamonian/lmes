@@ -11,10 +11,12 @@ include(TestCompilerFeatures)
 initializeCMakeConfig()
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/PreProjectConfig)
 
+message(CMAKE_BUILD_TYPE_${CMAKE_BUILD_TYPE})
+
 # the following commands are wrapped to prevent errors when this CMakeLists.txt is included as a subdirectory in another CMakeLists.txt
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     # set build type from the config file, if present. Special handling required since unlike many variables this is defined as "" by default
-    SetConfigDefaultIgnoreEmpty(CMAKE_BUILD_TYPE CMAKE_BUILD_TYPE Release CACHE)
+    SetConfigDefaultIfEmpty(CMAKE_BUILD_TYPE CUSTOM_BUILD_TYPE Release CACHE)
     
     SetConfigDefault(CMAKE_TOOLCHAIN CMAKE_TOOLCHAIN gnu)
     chooseToolchain()
@@ -207,9 +209,6 @@ endif(BUILD_WITH_CUDA)
 if(libsbml_FOUND)
     include_directories(${libsbml_INCLUDE_DIRS})
 endif(libsbml_FOUND)
-
-# if you're using the CLion IDE, this function shows CLion where the generated protobuf headers are (for syntax highlighting, etc)
-include_directories_clion_generated()
 
 # set the list of libraries used in various lm targets
 set(lm_dependency_libs      ${CMAKE_THREAD_LIBS_INIT}

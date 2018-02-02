@@ -88,3 +88,10 @@ function(SetConfigDefaultIgnoreEmpty varName configVarName default)
     endif(${configVarName} STREQUAL "")
     SetConfigDefault(${varName} ${configVarName} ${default} ${ARGV3})
 endfunction()
+
+# a version of SetConfigDefault that will only set varName if it is empty or undefined
+function(SetConfigDefaultIfEmpty varName configVarName default)
+    if(${varName} STREQUAL "" OR (NOT DEFINED ${varName}))
+        SetConfigDefault(${varName} ${configVarName} ${default} ${ARGV3})
+    endif(${varName} STREQUAL "" OR (NOT DEFINED ${varName}))
+endfunction()

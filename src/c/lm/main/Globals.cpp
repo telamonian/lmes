@@ -163,11 +163,6 @@ bool shouldReserveOutputCore;
 bool ffluxFlag;
 
 /*
- * Flag to indicate that we want intermediate output related to simulation results
- */
-bool intermediateOutputFlag;
-
-/*
  * Flag that determines whether or not to track degree advancement in addition to species count
  */
 bool daFlag;

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # PYTHON_ARGCOMPLETE_OK
 
-from lma.regression.models.self_regulated_gene.srgRegression import ReplicateSRGRegression
+from lma.regression.models.self_regulating_gene.srgRegression import ReplicateSRGRegression
 
 class ReplicateSRGRegressionLMES(ReplicateSRGRegression):
     """subclass that allows for easy overriding of various parameters at point of testing

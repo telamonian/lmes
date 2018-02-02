@@ -102,6 +102,23 @@ void printCopyright(int argc, char** argv)
  */
 void parseArguments(int argc, char** argv, bool warn)
 {
+    // We need to know if FFPilot is being used before we set default cmd line option values, so parse it out by itself.
+    ffluxFlag = false;
+    supervisorClassName = "lm::replicates::ReplicateSupervisor";
+
+    for (int i=1; i<argc; i++)
+    {
+        char *option = argv[i];
+        while (*option == ' ') option++;
+
+        //See if the user is trying to use FFPilot sampling.
+        if ((strcmp(option, "-fflux") == 0 || strcmp(option, "--use-forward-flux") == 0))
+        {
+            ffluxFlag = true;
+            supervisorClassName = "lm::fflux::FFluxSupervisor";
+        }
+    }
+
     // Set any default options.
     replicates.clear();
     replicates.push_back(1);
@@ -119,18 +136,31 @@ void parseArguments(int argc, char** argv, bool warn)
 
     simulationInputFilenames.clear();
     simulationOutputFilename = "";
-    outputWriterClassName = "lm::io::hdf5::Hdf5OutputWriter";
-    supervisorClassName = "lm::replicates::ReplicateSupervisor";
+    if (ffluxFlag)
+    {
+        // FFPilot currently only supports SFile output
+        outputWriterClassName = "lm::io::sfile::SFileOutputWriter";
+    }
+    else
+    {
+        outputWriterClassName = "lm::io::hdf5::Hdf5OutputWriter";
+    }
 
 #ifdef OPT_AVX
-    solverClassName = "lm::avx::GillespieDSolverAVX";
+    if (ffluxFlag)
+    {
+        // FFPilot currently can't use the AVX solver, even if it is available
+        solverClassName = "lm::cme::GillespieDSolver";
+    }
+    else
+    {
+        solverClassName = "lm::avx::GillespieDSolverAVX";
+    }
 #else
     solverClassName = "lm::cme::GillespieDSolver";
 #endif
 
     shouldReserveOutputCore = true;
-    ffluxFlag = false;
-    intermediateOutputFlag = false;
     ioTestFlag = false;
 
     // Parse any arguments.
@@ -354,15 +384,8 @@ void parseArguments(int argc, char** argv, bool warn)
         //See if the user is trying to use forward flux sampling.
         else if ((strcmp(option, "-fflux") == 0 || strcmp(option, "--use-forward-flux") == 0))
 		{
-        	 ffluxFlag = true;
-        	 supervisorClassName = "lm::fflux::FFluxSupervisor";
+        	 // dirty hack to ensure that -fflux isn't treated as an invalid arg, even though it's actually parsed out earlier.
 		}
-
-        //See if the user is trying to use forward flux sampling.
-        else if ((strcmp(option, "-intout") == 0 || strcmp(option, "--intermediate-output") == 0))
-        {
-             intermediateOutputFlag = true;
-        }
 
         //See if the user is trying to do an input output test.
         else if ((strcmp(option, "-ioflag") == 0 || strcmp(option, "--do-io-test") == 0))
@@ -386,9 +409,6 @@ void parseArguments(int argc, char** argv, bool warn)
                 lm::ClassFactory::getInstance().registerClassesFromExternalLibrary(*it);
         }
 
-
-
-
         //This must be an invalid option.
         else {
             throw lm::CommandLineArgumentException(option);
@@ -407,7 +427,8 @@ void parseArguments(int argc, char** argv, bool warn)
             throw lm::CommandLineArgumentException("cannot specify separate input and output files with the hdf5 format.");
 
         if (outputWriterClassName == "lm::io::sfile::SFileOutputWriter" && simulationOutputFilename == "")
-            throw lm::CommandLineArgumentException("missing simulation output file.");
+            // default SFile output path is the input path with the ".sfile" suffix
+            simulationOutputFilename = lm::pathWithSuffix(simulationInputFilenames[0], ".sfile");
     }
 
     // fix some arguments (and possibly warn about them)

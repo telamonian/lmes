@@ -36,8 +36,8 @@
 /regression/genetic_toggle_switch.sfile
 /regression/genetic_toggle_switch/*.lm
 /regression/genetic_toggle_switch/*.sfile
-/regression/self_regulated_gene/*.lm
-/regression/self_regulated_gene/*.sfile
+/regression/self_regulating_gene/*.lm
+/regression/self_regulating_gene/*.sfile
 /test_case/*
 !/test_case/clean
 !/test_case/clean/biphasic_switch*.lm
