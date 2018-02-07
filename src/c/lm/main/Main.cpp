@@ -384,7 +384,9 @@ void parseArguments(int argc, char** argv, bool warn)
         //See if the user is trying to use forward flux sampling.
         else if ((strcmp(option, "-fflux") == 0 || strcmp(option, "--use-forward-flux") == 0))
 		{
-        	 // dirty hack to ensure that -fflux isn't treated as an invalid arg, even though it's actually parsed out earlier.
+        	 // dirty hack to ensure that -fflux isn't treated as an invalid arg.
+             // -fflux is actually parsed earlier, at the beginning of parseArguments().
+            continue;
 		}
 
         //See if the user is trying to do an input output test.
@@ -415,23 +417,36 @@ void parseArguments(int argc, char** argv, bool warn)
         }
     }
 
-    // Perform some validation of the arguments.
+    // figure out where to save the simulation output
     if (functionOption == "simulation")
     {
         if (simulationInputFilenames.size() == 0)
             throw lm::CommandLineArgumentException("missing simulation input file.");
 
-        if (outputWriterClassName == "lm::io::hdf5::Hdf5OutputWriter" && simulationOutputFilename == "")
-            simulationOutputFilename = simulationInputFilenames[0];
-        else if (outputWriterClassName == "lm::io::hdf5::Hdf5OutputWriter" && simulationOutputFilename != simulationInputFilenames[0])
-            throw lm::CommandLineArgumentException("cannot specify separate input and output files with the hdf5 format.");
+        if (outputWriterClassName == "lm::io::hdf5::Hdf5OutputWriter")
+        {
+            if (simulationOutputFilename == "")
+            {
+                // If the output name is blank, assume the first input name is the .lm file and set the output to be that .lm file
+                simulationOutputFilename = simulationInputFilenames[0];
+            }
+            else if (simulationOutputFilename != simulationInputFilenames[0])
+            {
+                throw lm::CommandLineArgumentException("cannot specify separate input and output files with the hdf5 format.");
+            }
 
-        if (outputWriterClassName == "lm::io::sfile::SFileOutputWriter" && simulationOutputFilename == "")
-            // default SFile output path is the input path with the ".sfile" suffix
-            simulationOutputFilename = lm::pathWithSuffix(simulationInputFilenames[0], ".sfile");
+            lm::Print::printf(lm::Print::INFO, "saving simulation output (in hdf5 format) to: %s", simulationOutputFilename);
+        }
+        else if (outputWriterClassName == "lm::io::sfile::SFileOutputWriter" && simulationOutputFilename == "")
+        {
+            // default SFile output path is the input path with "_-_out.sfile" suffix
+            simulationOutputFilename = lm::pathWithSuffix(simulationInputFilenames[0], "_-_out.sfile");
+        
+            lm::Print::printf(lm::Print::INFO, "saving simulation output (in SFile format)  to: %s", simulationOutputFilename);
+        }
     }
 
-    // fix some arguments (and possibly warn about them)
+    // zero out the CUDA args if CUDA is off. Warn the user if we have to change any arg vals
     #ifndef OPT_CUDA
     // if cuda is off, warn the user if they try to set gpuDevices, but then set it to 0 anyway
     if (gpuDevices > 0)
