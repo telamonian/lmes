@@ -89,8 +89,15 @@ public:
     ndarray& operator=(const ndarray& a)
     {
         if (_shape != a._shape || _size != a._size)
-            throw lm::InvalidArgException("t","both ndarrays during assigment must be of the same shape");
+            throw lm::InvalidArgException("a","both ndarrays during assigment must be of the same shape");
         memcpy(_data, a._data, sizeof(T)*_size);
+        return *this;
+    }
+
+    ndarray& operator=(const T& v)
+    {
+        for (uint i=0; i<_size; i++)
+            _data[i] = v;
         return *this;
     }
 

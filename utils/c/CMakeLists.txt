@@ -15,7 +15,9 @@ set(lm_utils_libs  ${PROTOBUF_LIBRARIES}
 #TARGET: utils
 ################
 add_custom_target(utils)
-                                     
+
+file(GLOB_RECURSE util_sources robertslab/*.cpp robertslab/*.h)
+
 file(GLOB lm_setdm_source lm_setdm.cpp util.cpp)
 add_executable(lm_setdm EXCLUDE_FROM_ALL ${lm_setdm_source})
 target_link_libraries(lm_setdm lm_c_lib
@@ -42,7 +44,7 @@ set(util_targets lm_setp
 
 if(libsbml_FOUND)
     file(GLOB lm_sbml_import_source lm_sbml_import.cpp)
-    add_executable(lm_sbml_import ${lm_sbml_import_source})
+    add_executable(lm_sbml_import ${lm_sbml_import_source} ${util_sources})
 
     if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
         target_link_libraries(lm_sbml_import -Wl,--whole-archive)
