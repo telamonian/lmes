@@ -435,14 +435,14 @@ void parseArguments(int argc, char** argv, bool warn)
                 throw lm::CommandLineArgumentException("cannot specify separate input and output files with the hdf5 format.");
             }
 
-            lm::Print::printf(lm::Print::INFO, "saving simulation output (in hdf5 format) to: %s", simulationOutputFilename);
+            lm::Print::printf(lm::Print::INFO, "saving simulation output (in hdf5 format) to: %s", simulationOutputFilename.c_str());
         }
         else if (outputWriterClassName == "lm::io::sfile::SFileOutputWriter" && simulationOutputFilename == "")
         {
             // default SFile output path is the input path with "_-_out.sfile" suffix
             simulationOutputFilename = lm::pathWithSuffix(simulationInputFilenames[0], "_-_out.sfile");
         
-            lm::Print::printf(lm::Print::INFO, "saving simulation output (in SFile format)  to: %s", simulationOutputFilename);
+            lm::Print::printf(lm::Print::INFO, "saving simulation output (in SFile format)  to: %s", simulationOutputFilename.c_str());
         }
     }
 
