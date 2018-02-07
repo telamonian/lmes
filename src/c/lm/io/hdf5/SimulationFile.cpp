@@ -1589,9 +1589,9 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
     }
 
     // read in the values of the tiling's basins
-    hbool_t basinsExists;
+    herr_t basinsExists;
     HDF5_EXCEPTION_CALL(basinsExists, H5LTfind_dataset(tilingGroup, "Basins"))
-    if (basinsExists)
+    if (basinsExists > 0)
     {
         hsize_t dims[2];
         H5T_class_t hdf5Type;
@@ -1655,9 +1655,9 @@ void Hdf5File::getTilings(lm::input::Tilings* tilings) const
     uint32_t currentTilingID;
     if (H5Lexists(file, "/Tilings", H5P_DEFAULT))
     {
-        hbool_t currentTilingIDExists;
+        htri_t currentTilingIDExists;
         HDF5_EXCEPTION_CALL(currentTilingIDExists, H5Aexists_by_name(file, "/Tilings", "CurrentTilingID", H5P_DEFAULT))
-        if (currentTilingIDExists)
+        if (currentTilingIDExists > 0)
         {
             HDF5_EXCEPTION_CHECK(H5LTget_attribute_uint(file, "/Tilings", "CurrentTilingID", &currentTilingID));
             tilings->set_current_tiling_id(currentTilingID);

@@ -100,7 +100,7 @@ void printCopyright(int argc, char** argv)
 /**
  * Parses the command line arguments.
  */
-void parseArguments(int argc, char** argv, bool warn)
+void parseArguments(int argc, char** argv, bool printInfo)
 {
     // We need to know if FFPilot is being used before we set default cmd line option values, so parse it out by itself.
     ffluxFlag = false;
@@ -435,29 +435,29 @@ void parseArguments(int argc, char** argv, bool warn)
                 throw lm::CommandLineArgumentException("cannot specify separate input and output files with the hdf5 format.");
             }
 
-            lm::Print::printf(lm::Print::INFO, "saving simulation output (in hdf5 format) to: %s", simulationOutputFilename.c_str());
+            if (printInfo) lm::Print::printf(lm::Print::INFO, "saving simulation output (in hdf5 format) to: %s", simulationOutputFilename.c_str());
         }
         else if (outputWriterClassName == "lm::io::sfile::SFileOutputWriter" && simulationOutputFilename == "")
         {
             // default SFile output path is the input path with "_-_out.sfile" suffix
             simulationOutputFilename = lm::pathWithSuffix(simulationInputFilenames[0], "_-_out.sfile");
-        
-            lm::Print::printf(lm::Print::INFO, "saving simulation output (in SFile format)  to: %s", simulationOutputFilename.c_str());
+
+            if (printInfo) lm::Print::printf(lm::Print::INFO, "saving simulation output (in SFile format) to: %s", simulationOutputFilename.c_str());
         }
     }
 
     // zero out the CUDA args if CUDA is off. Warn the user if we have to change any arg vals
     #ifndef OPT_CUDA
-    // if cuda is off, warn the user if they try to set gpuDevices, but then set it to 0 anyway
+    // if cuda is off, printInfo the user if they try to set gpuDevices, but then set it to 0 anyway
     if (gpuDevices > 0)
     {
-        if (warn) lm::Print::printf(lm::Print::WARNING, "attempting to set gpuDevices=%.2f, but CUDA support is turned off", gpuDevices);
+        if (printInfo) lm::Print::printf(lm::Print::WARNING, "attempting to set gpuDevices=%.2f, but CUDA support is turned off", gpuDevices);
         gpuDevices=0;
     }
-    // if cuda is off, warn the user if they try to set gpuDevicesPerRunner, but set it to 0 anyway
+    // if cuda is off, printInfo the user if they try to set gpuDevicesPerRunner, but set it to 0 anyway
     if (gpuDevicesPerRunner > 0)
     {
-        if (warn) lm::Print::printf(lm::Print::WARNING, "attempting to set gpuDevicesPerRunner=%.2f, but CUDA support is turned off", gpuDevicesPerRunner);
+        if (printInfo) lm::Print::printf(lm::Print::WARNING, "attempting to set gpuDevicesPerRunner=%.2f, but CUDA support is turned off", gpuDevicesPerRunner);
         gpuDevicesPerRunner=0.0;
     }
     #endif /* OPT_CUDA */

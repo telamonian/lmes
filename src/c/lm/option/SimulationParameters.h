@@ -39,11 +39,13 @@
 #ifndef LM_OPTION_SIMULATIONPARAMETERS
 #define LM_OPTION_SIMULATIONPARAMETERS
 
+#include <iomanip>
 #include <limits>
 #include <map>
 #include <sstream>
 #include <stdlib.h>
 #include <string>
+#include <sstream>
 #include <utility>
 #include <vector>
 
@@ -122,86 +124,72 @@ public:
     SimulationParameters(const SimParamMap& newMap) {rFM(newMap, true);}
     ~SimulationParameters() {}
 
+    // Initialize the map of unparsed elements as a copy of the map of all elements.
+    // When an element is sucessfully parsed, it is popped from the map of unparsed elements.
     void initMapUnparsed() {_mapUnparsed = _map;}
 
 // accessors
-    SimParamMap::const_iterator beginUnparsed() const {return _mapUnparsed.begin();}
-    SimParamMap::const_iterator endUnparsed() const {return _mapUnparsed.end();}
     const lm::input::SimulationParameters& buf() {return _buf;}
     bool checkAllParsed() const;
     SimParamMap::const_iterator findFirst(const std::vector<std::string>& keys) const;
     bool isEnd(SimParamMap::const_iterator it) const {return it==_map.end();}
     const SimParamMap& map() const {return _map;}
+    void printParsed() const;
     void printUnparsed() const;
 
     template <typename T>
     T parse(const std::string &key) const
     {
-        markParsed(key);
-
         T retVal;
         std::stringstream ss(_map.at(key));
 
         parseNextToken(&ss, &retVal);
-//        ss >> retVal;
+
+        // add to the parsed map, remove from the unparsed map
+        markParsed(key, retVal);
+
         return retVal;
     }
 
-    template <typename T1, typename T2>
-    typename PairVector<T1, T2>::T parsePairVector(const std::string &key, const std::string& debugMessage="") const
+    template <typename T0, typename T1>
+    typename std::vector<std::pair<T0, T1> >* parsePairVector(typename std::vector<std::pair<T0, T1> >* parsedPairVector, const std::string &key, const std::string& helpStr="") const
     {
-        markParsed(key);
-
-        typename PairVector<T1, T2>::T parsedPairVector;
         std::stringstream pairVecSS(_map.at(key));
         std::string pairString, tokenString;
 
         while (getline(pairVecSS, pairString, ','))
         {
-            std::pair<T1, T2> p;
+            std::pair<T0, T1> p;
             std::stringstream pairSS(pairString);
 
             parseNextToken(&pairSS, &p.first, ':');
             parseNextToken(&pairSS, &p.second, ':');
 
-//            getline(pairSS, tokenString, ':');
-//            std::stringstream firstSS(tokenString);
-//            firstSS >> p.first;
-//
-//            getline(pairSS, tokenString, ':');
-//            std::stringstream secondSS(tokenString);
-//            secondSS >> p.second;
+            parsedPairVector->push_back(p);
 
-            parsedPairVector.push_back(p);
-
-            Print::printf(Print::DEBUG, "Parsed %s %s to: %f => %f", debugMessage.c_str(), pairString.c_str(), p.first, p.second);
+            Print::printf(Print::DEBUG, "Parsed %s %s to: %f => %f", helpStr.c_str(), pairString.c_str(), p.first, p.second);
         }
+
+        // add to the parsed map, remove from the unparsed map
+        markParsed(key, *parsedPairVector);
+
         return parsedPairVector;
     }
 
-    template <typename T> std::vector<T>
-    parseVector(const std::string &key) const
+    template <typename T>
+    std::vector<T>* parseVector(std::vector<T>* parsedVector, const std::string &key) const
     {
-        markParsed(key);
-
         std::stringstream vectorSS(_map.at(key));
 
-        std::vector<T> parsedVector;
         T token;
         while (parseNextToken(&vectorSS, &token, ','))
         {
-            parsedVector.push_back(token);
+            parsedVector->push_back(token);
         }
-//        T i;
-//        while (tokensSS >> i)
-//        {
-//            parsedVector.push_back(i);
-//
-//            // strip any white space in between the last number parsed and the next delimiter
-//            tokensSS >> std::ws;
-//            if (tokensSS.peek() == ',')
-//                tokensSS.ignore();
-//        }
+
+        // add to the parsed map, remove from the unparsed map
+        markParsed(key, *parsedVector);
+
         return parsedVector;
     }
 
@@ -239,11 +227,26 @@ public:
 
 protected:
     // accessors
-    void markParsed(const std::string& key) const;
+
+    // Call whenever an element is sucessfully parsed.
+    template <typename T>
+    void markParsed(const std::string& key, const T& val) const
+    {
+        // convert val to stringstream
+        std::stringstream valSS;
+        valSS << val;
+
+        // add the element to the map of parsed elements
+        _mapParsed[key] = valSS.str();
+
+        // remove the key from the map of yet-to-be parsed elements
+        _mapUnparsed.erase(key);
+    }
 
 protected:
     lm::input::SimulationParameters _buf;
     SimParamMap _map;
+    SimParamMap mutable _mapParsed;
     SimParamMap mutable _mapUnparsed;
 };
 

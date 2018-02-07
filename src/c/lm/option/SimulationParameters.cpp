@@ -98,9 +98,19 @@ SimulationParameters::SimParamMap::iterator SimulationParameters::findFirst(cons
 #endif
 }
 
-void SimulationParameters::markParsed(const string& key) const
+void SimulationParameters::printParsed() const
 {
-    _mapUnparsed.erase(key);
+    stringstream outputSS;
+    outputSS << "Parsed the following user-defined simulation parameters:\n";
+    outputSS << setw(20) << "KEY" << " " << setw(20) << "VALUE" << "\n";
+
+
+    for (SimParamMap::const_iterator it=_mapParsed.begin(); it!=_mapParsed.end(); it++)
+    {
+        outputSS << setw(20) << it->first << " " << setw(20) << it->second << "\n";
+    }
+
+    Print::printf(Print::INFO, outputSS.str().c_str());
 }
 
 void SimulationParameters::printUnparsed() const
@@ -110,10 +120,9 @@ void SimulationParameters::printUnparsed() const
     outputSS << setw(20) << "KEY" << " " << setw(20) << "VALUE" << "\n";
 
 
-    for (SimParamMap::const_iterator it=beginUnparsed(); it!=endUnparsed(); it++)
+    for (SimParamMap::const_iterator it=_mapUnparsed.begin(); it!=_mapUnparsed.end(); it++)
     {
         outputSS << setw(20) << it->first << " " << setw(20) << it->second << "\n";
-//        outputSS << "\t" << "(key) " << it->first << " (val) " << it->second << "\n";
     }
 
     Print::printf(Print::WARNING, outputSS.str().c_str());
@@ -145,8 +154,11 @@ bool SimulationParameters::rFB(const lm::input::SimulationParameters& inBuf, boo
     // set up the stl map
     bufToMap();
 
-    // set up the map that keeps track of unparsed entries
-    if (setupUnparsed) initMapUnparsed();
+    if (setupUnparsed)
+    {
+        // set up the map that keeps track of unparsed entries
+        if (setupUnparsed) initMapUnparsed();
+    }
 
     return true;
 }

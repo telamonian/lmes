@@ -51,9 +51,6 @@
 
 namespace lm {
 
-//// join a vector of strings via the specified character
-//std::string join(const std::vector<std::string>& )
-
 // get the first n characters of a string in a new string
 std::string head(const std::string& source, size_t length);
 
@@ -100,28 +97,24 @@ public:
 
 }
 
+// forward declare printIterable to allow for printing of nested vectors (via recursive template resolution)
+template <class T>
+inline std::ostream& printIterable(std::ostream& stream, const T& iterable);
+
 // put printNumeric in the top-level namespace
 template <typename T> static void printNumeric(T num)
 {
     std::printf(lm::Print::printf_format_string<T>(), num);
 }
 
-// generic function for printing the contents of an iterable using a std::ostream
-template <class T>
-inline std::ostream& printIterable(std::ostream& stream, const T& iterable)
+// EZ printing of std::pairs
+template <class T0, class T1>
+inline std::ostream& operator << (std::ostream& stream, const std::pair<T0, T1>& p)
 {
-    typename T::const_iterator it = iterable.begin();
-
+    // no std::pair::const_iterator, so can't use printIterable(...)
     stream << "[";
-    if (it!=iterable.end())
-    {
-        stream << *it;
-        it++;
-    }
-    for (;it!=iterable.end();++it)
-    {
-        stream << ", " << *it;
-    }
+    stream << p.first;
+    stream << ", " << p.second;
     stream << "]";
 
     return stream;
@@ -148,5 +141,25 @@ inline std::ostream& operator << (std::ostream& stream, const lm::protowrap::Rep
     return printIterable(stream, repField);
 }
 
-#endif /* LM_PRINT_H_ */
+// generic function for printing the contents of an iterable using a std::ostream
+template <class T>
+inline std::ostream& printIterable(std::ostream& stream, const T& iterable)
+{
+    typename T::const_iterator it = iterable.begin();
 
+    stream << "[";
+    if (it!=iterable.end())
+    {
+        stream << *it;
+        it++;
+    }
+    for (;it!=iterable.end();++it)
+    {
+        stream << ", " << *it;
+    }
+    stream << "]";
+
+    return stream;
+}
+
+#endif /* LM_PRINT_H_ */

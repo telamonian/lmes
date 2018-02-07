@@ -57,7 +57,7 @@ using std::vector;
 
 void printCopyright(int argc, char** argv);
 int getPhysicalCpuCores();
-void parseArguments(int argc, char** argv, bool warn=false);
+void parseArguments(int argc, char** argv, bool printInfo=false);
 string parseOutputFormatArg(char* option);
 void parseIntListArg(vector<uint64_t> & list, char* option);
 void parseStringListArg(vector<string>& list, char* option);

@@ -213,7 +213,7 @@ void Input::initTilings(const lm::io::hdf5::Hdf5File& file)
     }
 }
 
-// Get the limits.
+// Get the limits options.
 void Input::initTrajectoryLimits(const lm::io::hdf5::Hdf5File& file)
 {
     // - By default, we include endpoints when checking limits 
@@ -228,14 +228,14 @@ void Input::initTrajectoryLimits(const lm::io::hdf5::Hdf5File& file)
     }
 
     // set the other limits, if present in the simulation parameters
-    degreeAdvancementPresent = parseLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementLowerLimitList", "degree advancement lower limit", TrajLimEnums::MIN, includeEndpointInLimits);
-    degreeAdvancementPresent = parseLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementUpperLimitList", "degree advancement upper limit", TrajLimEnums::MAX, includeEndpointInLimits);
+    degreeAdvancementPresent = parseAndSetLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementLowerLimitList", "degree advancement lower limit", TrajLimEnums::MIN, includeEndpointInLimits);
+    degreeAdvancementPresent = parseAndSetLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementUpperLimitList", "degree advancement upper limit", TrajLimEnums::MAX, includeEndpointInLimits);
 
-    parseLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterLowerLimitList", "order parameter lower limit", TrajLimEnums::MIN, includeEndpointInLimits);
-    parseLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterUpperLimitList", "order parameter upper limit", TrajLimEnums::MAX, includeEndpointInLimits);
+    parseAndSetLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterLowerLimitList", "order parameter lower limit", TrajLimEnums::MIN, includeEndpointInLimits);
+    parseAndSetLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterUpperLimitList", "order parameter upper limit", TrajLimEnums::MAX, includeEndpointInLimits);
 
-    parseLimits<TrajLimEnums::SPECIES>("speciesLowerLimitList", "species lower limit", TrajLimEnums::MIN, includeEndpointInLimits);
-    parseLimits<TrajLimEnums::SPECIES>("speciesUpperLimitList", "species upper limit", TrajLimEnums::MAX, includeEndpointInLimits);
+    parseAndSetLimits<TrajLimEnums::SPECIES>("speciesLowerLimitList", "species lower limit", TrajLimEnums::MIN, includeEndpointInLimits);
+    parseAndSetLimits<TrajLimEnums::SPECIES>("speciesUpperLimitList", "species upper limit", TrajLimEnums::MAX, includeEndpointInLimits);
 }
 
 // Get the output options.
@@ -244,25 +244,24 @@ void Input::initOutputOptions(const lm::io::hdf5::Hdf5File& file)
     // This flag changes the organization of the output such that the total number of groups and datasets is minimized. Currently only implemented (partially) for HDF5, no effect otherwise
     parseAndSet("condenseOutput", &OutputOptions::set_condense_output, outputOptionsMsg);
 
-    // Flags that control whether output is recorded for the initial and/or the final state of every trajectory.
-    parseAndSet("writeInitialTrajectoryState", &OutputOptions::set_write_initial_trajectory_state, outputOptionsMsg);
-    parseAndSet("writeFinalTrajectoryState", &OutputOptions::set_write_final_trajectory_state, outputOptionsMsg);
-
-    // Flag that globally controls whether any limit tracking data collected during a trajectory is written out directly to disk.
-    parseAndSet("writeLimitTracking", &OutputOptions::set_write_limit_tracking, outputOptionsMsg);
-
-    // Specify the period at which various outputs should be written out. Leave a WriteInterval unset to suppress its related output, or set a WriteInterval to a negative value to automatically set it
-    degreeAdvancementPresent = parseAndSetWriteInterval("degreeAdvancementWriteInterval", &OutputOptions::degree_advancement_write_interval, &OutputOptions::has_degree_advancement_write_interval, &OutputOptions::set_degree_advancement_write_interval, outputOptionsMsg);
-    parseAndSetWriteInterval("latticeWriteInterval", &OutputOptions::lattice_write_interval, &OutputOptions::has_lattice_write_interval, &OutputOptions::set_lattice_write_interval, outputOptionsMsg);
-    parseAndSetWriteInterval("orderParameterWriteInterval", &OutputOptions::order_parameter_write_interval, &OutputOptions::has_order_parameter_write_interval, &OutputOptions::set_order_parameter_write_interval, outputOptionsMsg);
-    parseAndSetWriteInterval("writeInterval", &OutputOptions::species_write_interval, &OutputOptions::has_species_write_interval, &OutputOptions::set_species_write_interval, outputOptionsMsg);
-
     // Initialize the species counts first passage times in the output options
     parseAndSetList("fptTrackingList", &OutputOptions::add_fpt_species_to_track, outputOptionsMsg);
 
     // Initialize the order parameter values first passage times in the output options
     parseAndSetList("fptOrderParameterTrackingList", &OutputOptions::add_fpt_order_parameter_to_track, outputOptionsMsg);
 
+    // Flags that control whether output is recorded for the initial and/or the final state of every trajectory.
+    parseAndSet("writeInitialTrajectoryState", &OutputOptions::set_write_initial_trajectory_state, outputOptionsMsg);
+    parseAndSet("writeFinalTrajectoryState", &OutputOptions::set_write_final_trajectory_state, outputOptionsMsg);
+
+    // Specify the period at which various outputs should be written out. Leave a WriteInterval unset to suppress its related output, or set a WriteInterval to a negative value to automatically set it
+    degreeAdvancementPresent = parseAndSetWriteInterval("degreeAdvancementWriteInterval", &OutputOptions::set_degree_advancement_write_interval, outputOptionsMsg, &OutputOptions::degree_advancement_write_interval);
+    parseAndSetWriteInterval("latticeWriteInterval",                                      &OutputOptions::set_lattice_write_interval,            outputOptionsMsg, &OutputOptions::lattice_write_interval);
+    parseAndSetWriteInterval("orderParameterWriteInterval",                               &OutputOptions::set_order_parameter_write_interval,    outputOptionsMsg, &OutputOptions::order_parameter_write_interval);
+    parseAndSetWriteInterval("writeInterval",                                             &OutputOptions::set_species_write_interval,            outputOptionsMsg, &OutputOptions::species_write_interval);
+
+    // Flag that globally controls whether any limit tracking data collected during a trajectory is written out directly to disk.
+    parseAndSet("writeLimitTracking", &OutputOptions::set_write_limit_tracking, outputOptionsMsg);
 }
 
 // Get some parameters that tweak how work units are run
@@ -295,6 +294,8 @@ void Input::readSFileInput(lm::io::sfile::SFile& file)
 
 void Input::initSanityCheck()
 {
+    simulationParameters.printParsed();
+
     if (not simulationParameters.checkAllParsed())
     {
         simulationParameters.printUnparsed();

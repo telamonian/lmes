@@ -53,6 +53,7 @@
 #include "lm/limit/TrajectoryLimits.h"
 #include "lm/Types.h"
 
+using lm::input::OutputOptions;
 using lm::fflux::input::FFluxOptions;
 using lm::limit::LimitElement;
 using std::string;
@@ -173,19 +174,19 @@ void FFluxInput::reinitOutputOptions(const std::string& recordNamePrefix, bool i
     {
         // Flags that control whether output is recorded for the initial and/or the final state of every trajectory.
         bool defaultWriteState = false;
-        parseAndSet("writeInitialTrajectoryState", &lm::input::OutputOptions::set_write_initial_trajectory_state, outputOptionsMsg, &defaultWriteState);
-        parseAndSet("writeFinalTrajectoryState", &lm::input::OutputOptions::set_write_final_trajectory_state, outputOptionsMsg, &defaultWriteState);
-
-        // Flag that globally controls whether any limit tracking data collected during a trajectory is written out directly to disk.
-        parseAndSet("writeLimitTracking", &lm::input::OutputOptions::set_write_limit_tracking, outputOptionsMsg);
+        parseAndSet("writeInitialTrajectoryState", &OutputOptions::set_write_initial_trajectory_state, outputOptionsMsg, &defaultWriteState);
+        parseAndSet("writeFinalTrajectoryState", &OutputOptions::set_write_final_trajectory_state, outputOptionsMsg, &defaultWriteState);
 
         // Specify the period at which various outputs should be written out. Leave a WriteInterval unset to suppress its related output, or set a WriteInterval to a negative value to automatically set it
-        degreeAdvancementPresent = parseAndSetWriteInterval("degreeAdvancementWriteInterval", &lm::input::OutputOptions::degree_advancement_write_interval, &lm::input::OutputOptions::has_degree_advancement_write_interval, &lm::input::OutputOptions::set_degree_advancement_write_interval, outputOptionsMsg);
-        parseAndSetWriteInterval("latticeWriteInterval",                                      &lm::input::OutputOptions::lattice_write_interval,            &lm::input::OutputOptions::has_lattice_write_interval,            &lm::input::OutputOptions::set_lattice_write_interval,            outputOptionsMsg);
-        parseAndSetWriteInterval("orderParameterWriteInterval",                               &lm::input::OutputOptions::order_parameter_write_interval,    &lm::input::OutputOptions::has_order_parameter_write_interval,    &lm::input::OutputOptions::set_order_parameter_write_interval,    outputOptionsMsg);
-        parseAndSetWriteInterval("writeInterval",                                             &lm::input::OutputOptions::species_write_interval,            &lm::input::OutputOptions::has_species_write_interval,            &lm::input::OutputOptions::set_species_write_interval,            outputOptionsMsg);
+        degreeAdvancementPresent = parseAndSetWriteInterval("degreeAdvancementWriteInterval", &OutputOptions::set_degree_advancement_write_interval, outputOptionsMsg, &OutputOptions::degree_advancement_write_interval);
+        parseAndSetWriteInterval("latticeWriteInterval",                                      &OutputOptions::set_lattice_write_interval,            outputOptionsMsg, &OutputOptions::lattice_write_interval);
+        parseAndSetWriteInterval("orderParameterWriteInterval",                               &OutputOptions::set_order_parameter_write_interval,    outputOptionsMsg, &OutputOptions::order_parameter_write_interval);
+        parseAndSetWriteInterval("writeInterval",                                             &OutputOptions::set_species_write_interval,            outputOptionsMsg, &OutputOptions::species_write_interval);
 
-        // If output of initial or final state has been requested but none of the output intervals have been set, assume the user wants species counts output
+        // Flag that globally controls whether any limit tracking data collected during a trajectory is written out directly to disk.
+        parseAndSet("writeLimitTracking", &OutputOptions::set_write_limit_tracking, outputOptionsMsg);
+
+        // If output of initial or final state has been requested but none of the output intervals have been set, assume the user wants species counts output from just the initial and final states
         if (outputOptionsMsg.write_initial_trajectory_state() or outputOptionsMsg.write_final_trajectory_state())
         {
             if (not (outputOptionsMsg.has_degree_advancement_write_interval() or outputOptionsMsg.has_lattice_write_interval() or outputOptionsMsg.has_order_parameter_write_interval() or outputOptionsMsg.has_species_write_interval()))

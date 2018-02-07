@@ -117,6 +117,7 @@ protected:
     virtual void initTilings(const lm::io::hdf5::Hdf5File& file);
     virtual void initTrajectoryLimits(const lm::io::hdf5::Hdf5File& file);
     virtual void initOutputOptions(const lm::io::hdf5::Hdf5File& file);
+
     virtual void initWorkUnitParameters(const lm::io::hdf5::Hdf5File& file);
 
     virtual void readSFileInput(lm::io::sfile::SFile& file);
@@ -163,27 +164,6 @@ protected:
 
 // template methods for parsing user input
 protected:
-    template <TrajLimEnums::LimitType LT>
-    bool parseLimits(const std::string key, const std::string debugString, TrajLimEnums::StoppingCondition sc, bool includeEndpoint)
-    {
-        bool result;
-        if (simulationParameters.count(key)!=0)
-        {
-            typename PairVector<uint, typename lm::limit::LimitElement<LT>::type>::T idLimitVec(simulationParameters.parsePairVector<uint, typename lm::limit::LimitElement<LT>::type>(key, debugString));
-            for (typename PairVector<uint, typename lm::limit::LimitElement<LT>::type>::iterator it(idLimitVec.begin()); it!=idLimitVec.end(); it++)
-            {
-                trajectoryLimits.addLimitMsg<LT>(it->first, it->second, sc, includeEndpoint);
-            }
-            result = (idLimitVec.size() > 0);
-        }
-        else
-        {
-            result = false;
-        }
-
-        return result;
-    }
-
     // Version of parseAndSet that works with options that can directly accessed through a mutable pointer
     // By using template parameter inference on the pointer, this template automatically figures out what type to parse from simulationParameters
     template <typename Value>
@@ -236,6 +216,38 @@ protected:
         return result;
     }
 
+    // specialized version of parseAndSet for the limits options (eg speciesLowerLimitList, speciesUpperLimitList, degreeAdvancementLowerLimitList, etc.)
+    template <TrajLimEnums::LimitType LT>
+    bool parseAndSetLimits(const std::string key, const std::string debugString, TrajLimEnums::StoppingCondition sc, bool includeEndpoint)
+    {
+        // get the type of the limit element (eg int32_t for limits on species counts, double for limits on order parameters, etc)
+        typedef typename lm::limit::LimitElement<LT>::type LimitElem;
+
+        // make a PairVector type that will hold (limitElementID, limitValue) pairs
+        typedef typename PairVector<uint, LimitElem>::T IdLimitPairVec;
+
+        bool result;
+        if (simulationParameters.count(key)!=0)
+        {
+            // assume the limit was passed as a string of the form "limitElementID_0:limitValue_0, limitElementID_1:limitValue_1, ..."
+            // parse it into a vector of (limitElementID, limitValue) pairs
+            IdLimitPairVec idLimitPairVec;
+            simulationParameters.parsePairVector(&idLimitPairVec, key, debugString);
+
+            for (typename IdLimitPairVec::iterator it(idLimitPairVec.begin()); it!=idLimitPairVec.end(); it++)
+            {
+                trajectoryLimits.addLimitMsg<LT>(it->first, it->second, sc, includeEndpoint);
+            }
+            result = (idLimitPairVec.size() > 0);
+        }
+        else
+        {
+            result = false;
+        }
+
+        return result;
+    }
+
     // Same as parseAndSet, but for options specified as lists
     template <typename T, typename AdderReturn, typename Value>
     bool parseAndSetList(const std::string key, AdderReturn (T::*adderFunc)(Value), T& obj)
@@ -243,7 +255,11 @@ protected:
         bool result;
         if (simulationParameters.count(key)!=0)
         {
-            std::vector<Value> parsedVector(simulationParameters.parseVector<Value>(key));
+            // assume the option value is a string of the form "val0, val1, ..."
+            // parse it into a vector
+            std::vector<Value> parsedVector;
+            simulationParameters.parseVector(&parsedVector, key);
+
             for (typename std::vector<Value>::const_iterator it=parsedVector.begin(); it!=parsedVector.end(); it++)
             {
                 (obj.*adderFunc)(*it);
@@ -259,21 +275,21 @@ protected:
     }
 
     // Version of parseAndSet that allows for automatic setting of WriteInterval parameters if they are set to a negative value
-    // When passed in as a negative value, the WriteInterval is set to abs(WriteInterval)*(1/min(ReactionRateConstants))
+    // When passed in as a negative value, the WriteInterval is set to: abs(WriteInterval) / min(ReactionRateConstants)
     // Automatic setting requires a ReactionModel, so this function should only be used after initReactionModel(...)
     template <typename T, typename SetterReturn, typename Value>
-    bool parseAndSetWriteInterval(const std::string key, Value (T::*getterFunc)() const, bool (T::*hasFunc)() const, SetterReturn (T::*setterFunc)(Value), T& obj, Value* defaultOverride=NULL)
+    bool parseAndSetWriteInterval(const std::string key, SetterReturn (T::*setterFunc)(Value), T& obj, Value (T::*getterFunc)() const, Value* defaultOverride=NULL)
     {
         // run the regular parseAndSet
         bool result = parseAndSet(key, setterFunc, obj, defaultOverride);
 
         // if the WriteInterval is negative, automatically set it
-        if ((obj.*hasFunc)() and (obj.*getterFunc)() < 0 and reactionModelPresent)
+        if ((obj.*getterFunc)() < 0 and reactionModelPresent)
         {
             // sanity check the minRateConstant
             if (minRateConstant==std::numeric_limits<double>::infinity()) throw InputException("Attempting to automatically set paramter %s based on smallest reaction rate constant, but no appropriate constants were found in your reaction model", key.c_str());
 
-            // determine the auto interval according to: abs(<user-set-write-interval>)*(1/<smallest-rate-constant>)
+            // determine the auto interval according to: abs(<user-set-write-interval>) / <smallest-rate-constant>
             double intervalMultiplier = std::abs((obj.*getterFunc)());
             double autoWriteInterval = intervalMultiplier/minRateConstant;
 
