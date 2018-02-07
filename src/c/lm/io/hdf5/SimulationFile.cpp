@@ -400,6 +400,19 @@ herr_t Hdf5File::parseParameter(hid_t location_id, const char *attr_name, const 
         HDF5_EXCEPTION_CHECK(H5Tclose(memtype));
 
     }
+    else
+    {
+        // could not parse the parameter. Warn the user
+        if (file->version < 3)
+        {
+            lm::Print::printf(lm::Print::WARNING, "Unable to parse user defined value for parameter: %s\n", attr_name);
+        }
+        else
+        {
+            lm::Print::printf(lm::Print::WARNING, "Unable to parse user defined value for parameter: %s\n"
+                                                  "Try converting all parameter values to strings before setting them.\n", attr_name);
+        }
+    }
     HDF5_EXCEPTION_CHECK(H5Tclose(type));
     HDF5_EXCEPTION_CHECK(H5Aclose(attr));
     return 0;
