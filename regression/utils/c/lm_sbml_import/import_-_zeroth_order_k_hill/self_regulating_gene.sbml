@@ -9,7 +9,7 @@
                           <ci> x </ci>
                       </bvar>
                       <bvar>
-                          <ci> kx50 </ci>
+                          <ci> x50 </ci>
                       </bvar>
                       <bvar>
                           <ci> klow </ci>
@@ -18,7 +18,7 @@
                           <ci> khigh </ci>
                       </bvar>
                       <bvar>
-                          <ci> kh </ci>
+                          <ci> h </ci>
                       </bvar>
                       <apply>
                           <plus/>
@@ -35,19 +35,19 @@
                                   <apply>
                                       <power/>
                                       <ci> x </ci>
-                                      <ci> kh </ci>
+                                      <ci> h </ci>
                                   </apply>
                                   <apply>
                                       <plus/>
                                       <apply>
                                           <power/>
                                           <ci> x </ci>
-                                          <ci> kh </ci>
+                                          <ci> h </ci>
                                       </apply>
                                       <apply>
                                           <power/>
-                                          <ci> kx50 </ci>
-                                          <ci> kh </ci>
+                                          <ci> x50 </ci>
+                                          <ci> h </ci>
                                       </apply>
                                   </apply>
                               </apply>
@@ -88,10 +88,10 @@
             <species id="x"  compartment="V" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
         </listOfSpecies>
         <listOfParameters>
-            <parameter id="kx50" name="kx50" value="94.0" constant="true"/>
+            <parameter id="x50" name="x50" value="94.0" constant="true"/>
             <parameter id="klow" name="klow" value="10" constant="true"/>
             <parameter id="khigh" name="khigh" value="200" constant="true"/>
-            <parameter id="kh" name="kh" value="2.2" constant="true"/>
+            <parameter id="h" name="h" value="2.2" constant="true"/>
             <parameter id="b" name="b" value="1.0" constant="true"/>
         </listOfParameters>
         <listOfReactions>
@@ -104,10 +104,10 @@
                       <apply>
                           <ci> zeroth_order_k_hill </ci>
                           <ci> x </ci>
-                          <ci> kx50 </ci>
+                          <ci> x50 </ci>
                           <ci> klow </ci>
                           <ci> khigh </ci>
-                          <ci> kh </ci>
+                          <ci> h </ci>
                       </apply>
                   </math>
                 </kineticLaw>

@@ -386,7 +386,12 @@ public:
 
     static lm::me::PropensityFunctionDefinition registerFunction()
     {
-        const char* expressions[] = {"k2 + (k3 - k2) * x1^k4 / (k1^k4 + x1^k4)", "k2 + (k3 - k2) * (x1^k4 / (k1^k4 + x1^k4))", "k2 + (k3 - k2) * (x1^k4 / (x1^k4 + k1^k4))", NULL};
+        const char* expressions[] = {
+            "k2 + (k3 - k2) * x1^k4 / (k1^k4 + x1^k4)",
+            "k2 + (k3 - k2) * x1^k4 / (x1^k4 + k1^k4)",
+            "k2 + (k3 - k2) * (x1^k4 / (k1^k4 + x1^k4))",
+            "k2 + (k3 - k2) * (x1^k4 / (x1^k4 + k1^k4))",
+            NULL};
         const char* unitsForConstants[] = {"item", "item/second", "item/second", "1", NULL};
         return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "ZerothOrderKHillPropensity", expressions, unitsForConstants, &create);
     }
