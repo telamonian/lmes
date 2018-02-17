@@ -177,6 +177,111 @@ public:
 };
 
 
+class PolynomialOrderParameter : public lm::oparam::OrderParameterFunction
+{
+public:
+    static const uint OPARAM_TYPE = 100;
+
+    PolynomialOrderParameter(size_t size, uint* speciesIndex, double* speciesCoefficient, double* speciesExponent)
+    :OrderParameterFunction(OPARAM_TYPE),size(size),speciesIndex(speciesIndex),speciesCoefficient(speciesCoefficient),
+     speciesExponent(speciesExponent)
+    {
+    }
+
+    ~PolynomialOrderParameter()
+    {
+        if (speciesIndex != NULL) delete[] speciesIndex; speciesIndex = NULL;
+        if (speciesCoefficient != NULL) delete[] speciesCoefficient; speciesCoefficient = NULL;
+        if (speciesExponent != NULL) delete[] speciesExponent; speciesExponent = NULL;
+    }
+
+    double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
+    {
+        double value=0.0;
+        for (size_t i=0; i<size; i++)
+            value += speciesCoefficient[i]*pow(double(speciesCounts[speciesIndex[i]]), speciesExponent[i]);
+        return value;
+    }
+
+#if defined(OPT_AVX) && !defined(OPT_SVML)
+    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
+    {
+        avxd value = _mm256_set1_pd(0.0);
+        for (size_t i=0; i<size; i++)
+        {
+            size_t specIx = speciesIndex[i];
+            double specExp = speciesExponent[i];
+
+            // exponentiate. NB: Order is reversed by the AVX _set commands
+            avxd xexp = _mm256_set_pd(pow(speciesCounts[specIx*DOUBLES_PER_AVX+3], specExp),
+                                      pow(speciesCounts[specIx*DOUBLES_PER_AVX+2], specExp),
+                                      pow(speciesCounts[specIx*DOUBLES_PER_AVX+1], specExp),
+                                      pow(speciesCounts[specIx*DOUBLES_PER_AVX], specExp));
+
+            // multiply and accumulate in value
+            value = _mm256_add_pd(
+                value, _mm256_mul_pd(
+                    _mm256_set1_pd(speciesCoefficient[i]), xexp
+                )
+            );
+
+        }
+        return value;
+    }
+#endif
+#if defined(OPT_AVX) && defined(OPT_SVML)
+    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
+    {
+        avxd value = _mm256_set1_pd(0.0);
+        for (size_t i=0; i<size; i++)
+        {
+            // exponentiate, multiply, and accumulate in value
+            value = _mm256_add_pd(
+                value, _mm256_mul_pd(
+                    _mm256_set1_pd(speciesCoefficient[i]), _mm256_pow_pd(
+                        _mm256_load_pd(&speciesCounts[speciesIndex[i]*DOUBLES_PER_AVX]), _mm256_set1_pd(speciesExponent[i])
+                    )
+                )
+            );
+
+        }
+        return value;
+    }
+#endif
+
+    static OrderParameterFunction* create(const lm::input::OrderParameter& op)
+    {
+        if (op.type() != OPARAM_TYPE)
+            throw lm::InvalidArgException("op.type", "Mismatch of types during creation of polynomial order parameter function", op.type(), OPARAM_TYPE);
+        if (op.species_ids_size() != op.species_coefficients_size() or op.species_ids_size() != op.species_exponents_size())
+            throw lm::InvalidArgException("op.size", "Mismatch of sizes during creation of polynomial order parameter function", op.species_ids_size(), op.species_coefficients_size(), op.species_exponents_size());
+
+        size_t size = op.species_ids_size();
+        uint* speciesIndex = new uint[size];
+        double* speciesCoefficient = new double[size];
+        double* speciesExponent = new double[size];
+
+        for (size_t i=0; i<size; i++)
+        {
+            speciesIndex[i] = op.species_ids(i);
+            speciesCoefficient[i] = op.species_coefficients(i);
+            speciesExponent[i] = op.species_exponents(i);
+        }
+
+        return new PolynomialOrderParameter(size, speciesIndex, speciesCoefficient, speciesExponent);
+    }
+
+    static lm::oparam::OrderParameterFunctionDefinition registerFunction()
+    {
+        return lm::oparam::OrderParameterFunctionDefinition(OPARAM_TYPE, &create);
+    }
+
+    size_t size;
+    uint* speciesIndex;
+    double* speciesCoefficient;
+    double* speciesExponent;
+};
+
 list<lm::oparam::OrderParameterFunctionDefinition> CMEOrderParameters::getOrderParameterFunctionDefinitions()
 {
     list<lm::oparam::OrderParameterFunctionDefinition> defs;

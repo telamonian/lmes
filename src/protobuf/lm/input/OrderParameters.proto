@@ -44,6 +44,8 @@ message OrderParameter {
     required uint32 id                       = 2;
     repeated uint32 species_ids              = 3 [packed=true];
     repeated double species_coefficients     = 4 [packed=true];
+
+    repeated double species_exponents     = 101 [packed=true];
 }
 
 message OrderParameters {
