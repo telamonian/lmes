@@ -502,6 +502,13 @@ void CMESolver::setOutputOptions(const lm::input::OutputOptions& outputOptions)
         numberDegreeAdvancements = reactionModel->numberReactions;
         hasUpdateSpeciesCountsListeners = true;
     }
+    else
+    {
+        // turn off writing of degree advancements if previously enabled
+        writeDegreeAdvancementTimeSeries = false;
+        degreeAdvancementWriteInterval = 0.0;
+    }
+
     if (outputOptions.has_order_parameter_write_interval())
     {
         writeOrderParameterTimeSeries = true;
@@ -509,10 +516,23 @@ void CMESolver::setOutputOptions(const lm::input::OutputOptions& outputOptions)
 
         hasUpdateSpeciesCountsListeners = true;
     }
+    else
+    {
+        // turn off writing of orders parameters if previously enabled
+        writeOrderParameterTimeSeries = false;
+        orderParameterWriteInterval = 0.0;
+    }
+
     if (outputOptions.has_species_write_interval())
     {
         writeSpeciesTimeSeries = true;
         speciesWriteInterval = outputOptions.species_write_interval();
+    }
+    else
+    {
+        // turn off writing of degree advancements if previously enabled
+        writeSpeciesTimeSeries = false;
+        speciesWriteInterval = 0.0;
     }
 }
 
