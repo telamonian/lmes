@@ -42,6 +42,4 @@ package lm.input;
 message Options {
     optional uint64 parts_per_work_unit = 1 [default=1];
     optional uint64 steps_per_work_unit = 2 [default=100000000]; // 1e8
-
-    optional uint64 basin_replicates = 1001 [default=1];
 }

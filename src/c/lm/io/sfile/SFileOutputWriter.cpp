@@ -101,10 +101,7 @@ void SFileOutputWriter::flush()
 
 void SFileOutputWriter::processMessage(const string& nameString, const string& typeString, const google::protobuf::Message& data)
 {
-    string prefixedNameString(recordNamePrefix);
-    prefixedNameString.append(nameString);
-
-    SFileRecord record(prefixedNameString, typeString, data.ByteSize());
+    SFileRecord record(nameString, typeString, data.ByteSize());
     file->writeSFileRecord(record);
     file->writeMessage(data);
 }

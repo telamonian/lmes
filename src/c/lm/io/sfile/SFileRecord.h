@@ -74,7 +74,7 @@ public:
     }
 
     template <typename T, typename U>
-    void setName(const char* fmt, const T arg0, const U arg1, const std::string& type, int64_t dataSize)
+    void setName(const char* fmt, const T arg0, const U arg1)
     {
         char buffer[NAME_BUFFER_MAX_SIZE+1];
         memset(buffer, 0, NAME_BUFFER_MAX_SIZE+1);
@@ -84,7 +84,7 @@ public:
     }
 
     template <typename T, typename U, typename V>
-    void setName(const char* fmt, const T arg0, const U arg1, const V arg2, const std::string& type, int64_t dataSize)
+    void setName(const char* fmt, const T arg0, const U arg1, const V arg2)
     {
         char buffer[NAME_BUFFER_MAX_SIZE+1];
         memset(buffer, 0, NAME_BUFFER_MAX_SIZE+1);

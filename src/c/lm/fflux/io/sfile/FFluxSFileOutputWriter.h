@@ -39,9 +39,6 @@
 #ifndef FFLUX_LM_IO_FFluxSFILEOutputWriter
 #define FFLUX_LM_IO_FFluxSFILEOutputWriter
 
-#include <google/protobuf/message.h>
-#include <string>
-
 #include "lm/io/DegreeAdvancementTimeSeries.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/FFluxOutput.pb.h"
@@ -51,10 +48,9 @@
 #include "lm/io/OrderParameterTimeSeries.pb.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/io/sfile/SFileOutputWriter.h"
+#include "lm/io/sfile/SFileRecord.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
-#include "lm/io/sfile/SFile.h"
-
 
 namespace lm {
 namespace fflux {
@@ -73,16 +69,7 @@ public:
     virtual ~FFluxSFileOutputWriter() {}
 
 protected:
-    virtual void processGenericMessage(const google::protobuf::Message& data);
-
-    virtual void processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data);
     virtual void processFFluxOutput(const lm::io::FFluxOutput& data);
-    virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
-    virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data);
-    virtual void processLimitTracking(const lm::io::LimitTracking& data);
-    virtual void processOrderParameterFirstPassageTimes(const lm::io::OrderParameterFirstPassageTimes& data);
-    virtual void processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data);
-    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
     virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data);
 };
 

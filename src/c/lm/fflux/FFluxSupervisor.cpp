@@ -326,9 +326,7 @@ void FFluxSupervisor::addFFluxPhases(lm::fflux::input::FFluxStage* stage, FFPhas
 void FFluxSupervisor::addOutputOptions(lm::fflux::input::FFluxPhase* phase, const lm::fflux::input::FFluxStage& stage)
 {
     // (re)initialize the relevant output options
-    stringstream outputPrefixSS;
-    outputPrefixSS << "/FFluxOutput" << currentPhaseInfo(true, phase, &stage);
-    input->reinitOutputOptions(outputPrefixSS.str(), stage.is_pilot_stage());
+    input->reinitOutputOptions(currentPhaseInfo(true, phase, &stage), stage.is_pilot_stage());
     phase->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());
 }
 
@@ -798,9 +796,7 @@ void FFluxSupervisor::sendSimulationPhaseOutput()
             if (input->ffluxOptions().phase_output())
             {
                 // (re)initialize the relevant output options
-                stringstream outputPrefixSS;
-                outputPrefixSS << "/FFluxOutput" << currentPhaseInfo(true);
-                input->reinitOutputOptions(outputPrefixSS.str(), currentStage().is_pilot_stage());
+                input->reinitOutputOptions(currentPhaseInfo(true), currentStage().is_pilot_stage());
 
                 // create a handle to the relevant work unit output part
                 lm::message::WorkUnitOutput* wuoPart(ffluxPhaseOutputContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0));
@@ -879,9 +875,7 @@ void FFluxSupervisor::sendSimulationStageOutput()
         if ((not currentStage().is_pilot_stage()) or input->ffluxOptions().pilot_stage_output())
         {
             // (re)initialize the relevant output options
-            stringstream outputPrefixSS;
-            outputPrefixSS << "/FFluxOutput" << currentStageInfo(true);
-            input->reinitOutputOptions(outputPrefixSS.str(), currentStage().is_pilot_stage());
+            input->reinitOutputOptions(currentStageInfo(true), currentStage().is_pilot_stage());
 
             if (input->ffluxOptions().stage_output_raw())
             {

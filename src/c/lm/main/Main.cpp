@@ -413,14 +413,15 @@ void parseArguments(int argc, char** argv, bool printInfo)
     }
 
     // figure out where to save the simulation output
-    if (functionOption == "simulation")
+    if (functionOption=="simulation")
     {
-        if (simulationInputFilenames.size() == 0)
+        if (simulationInputFilenames.size()==0)
             throw lm::CommandLineArgumentException("missing simulation input file.");
 
-        if (outputWriterClassName == "lm::io::hdf5::Hdf5OutputWriter")
+        string ffMsg;
+        if (outputWriterClassName=="lm::io::hdf5::Hdf5OutputWriter")
         {
-            if (simulationOutputFilename == "")
+            if (simulationOutputFilename=="")
             {
                 // If the output name is blank, assume the first input name is the .lm file and set the output to be that .lm file
                 simulationOutputFilename = simulationInputFilenames[0];
@@ -429,16 +430,15 @@ void parseArguments(int argc, char** argv, bool printInfo)
             {
                 throw lm::CommandLineArgumentException("cannot specify separate input and output files with the hdf5 format.");
             }
-
-            if (printInfo) lm::Print::printf(lm::Print::INFO, "saving simulation output (in hdf5 format) to: %s", simulationOutputFilename.c_str());
+            ffMsg = "in hdf5 format";
         }
-        else if (outputWriterClassName == "lm::io::sfile::SFileOutputWriter" && simulationOutputFilename == "")
+        else if (outputWriterClassName.find("sfile") != std::string::npos && simulationOutputFilename=="")
         {
             // default SFile output path is the input path with "_-_out.sfile" suffix
             simulationOutputFilename = lm::pathWithSuffix(simulationInputFilenames[0], "_-_out.sfile");
-
-            if (printInfo) lm::Print::printf(lm::Print::INFO, "saving simulation output (in SFile format) to: %s", simulationOutputFilename.c_str());
+            ffMsg = "in SFile format";
         }
+        if (printInfo) lm::Print::printf(lm::Print::INFO, "saving simulation output (%s) to: %s", ffMsg.c_str(), simulationOutputFilename.c_str());
     }
 
     // zero out the CUDA args if CUDA is off. Warn the user if we have to change any arg vals

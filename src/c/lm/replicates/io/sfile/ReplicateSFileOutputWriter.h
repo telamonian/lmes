@@ -72,18 +72,18 @@ public:
     virtual ~ReplicateSFileOutputWriter() {}
 
 protected:
-//    template <typename T>
-//    virtual void initName(char* buffer, const T& data)
-//    {
-//        memset(buffer, 0, RECORD_NAME_BUFFER_MAX_SIZE+1);
-//        snprintf(buffer,RECORD_NAME_BUFFER_MAX_SIZE,"%s/Simulations/%llu/OrderParameterTimeSeries", recordNamePrefix.c_str(), data.trajectory_id());
-//    }
-//    virtual void initNameGeneric(char* buffer, const google::protobuf::Message& data);
+    template <typename T>
+    inline void processMessageReplicate(const std::string& typeName, const std::string& typeStr, const T& data)
+    {
+        lm::io::sfile::SFileRecord record("", typeStr, data.ByteSize());
+        record.setName("%s/Simulations/%llu/%s", recordNamePrefix.c_str(), data.trajectory_id(), typeName.c_str());
+        file->writeSFileRecord(record);
+        file->writeMessage(data);
+    }
 
     virtual void processGenericMessage(const google::protobuf::Message& data);
 
     virtual void processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data);
-    virtual void processFFluxOutput(const lm::io::FFluxOutput& data);
     virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
     virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data);
     virtual void processLimitTracking(const lm::io::LimitTracking& data);

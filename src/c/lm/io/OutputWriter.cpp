@@ -431,7 +431,7 @@ int OutputWriter::HelperThread::run()
 
                         for (FieldDescriptors::const_iterator it=fields.begin();it!=fields.end();it++)
                         {
-                            if ((*it)->label()==google::protobuf::FieldDescriptor::LABEL_REPEATED and (*it)->type()==google::protobuf::FieldDescriptor::TYPE_MESSAGE)
+                            if ((*it)->label()==google::protobuf::FieldDescriptor::LABEL_REQUIRED and (*it)->type()==google::protobuf::FieldDescriptor::TYPE_MESSAGE)
                             {
                                 p->processGenericMessage(reflection->GetMessage(outputGeneric, *it));
                             }

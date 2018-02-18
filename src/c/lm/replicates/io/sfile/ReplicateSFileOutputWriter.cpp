@@ -40,7 +40,6 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
-#include <sys/stat.h>
 
 #include "lm/ClassFactory.h"
 #include "lm/io/FirstPassageTimes.pb.h"
@@ -50,16 +49,11 @@
 #include "lm/io/OutputWriter.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/io/sfile/LocalSFile.h"
-#include "lm/io/sfile/SFileRecord.h"
-#include "lm/main/Globals.h"
 #include "lm/Print.h"
 #include "lm/replicates/io/sfile/ReplicateSFileOutputWriter.h"
 
 using std::stringstream;
 using std::string;
-
-using lm::io::sfile::SFileRecord;
-using lm::io::sfile::SFileRecord::NAME_BUFFER_MAX_SIZE;
 
 namespace lm {
 namespace replicates {
@@ -102,86 +96,42 @@ void ReplicateSFileOutputWriter::processGenericMessage(const google::protobuf::M
 
 void ReplicateSFileOutputWriter::processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data)
 {
-    stringstream nameSS;
-    nameSS << "/Simulations/" << data.trajectory_id();
-    nameSS << "/DegreeAdvancementTimeSeries";
-
-    processMessage(nameSS.str(), "protobuf:lm.io.DegreeAdvancementTimeSeries", data);
-}
-
-void ReplicateSFileOutputWriter::processFFluxOutput(const lm::io::FFluxOutput& data)
-{
-    processMessage("/FFluxOutput", "protobuf:lm.io.FFluxOutput", data);
+    processMessageReplicate("DegreeAdvancementTimeSeries", "protobuf:lm.io.DegreeAdvancementTimeSeries", data);
 }
 
 void ReplicateSFileOutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
 {
-    char buffer[NAME_BUFFER_MAX_SIZE+1];
-    memset(buffer, 0, NAME_BUFFER_MAX_SIZE+1);
-    snprintf(buffer,NAME_BUFFER_MAX_SIZE,"%s/Simulations/%llu/FirstPassageTimes/%d", recordNamePrefix.c_str(), data.trajectory_id(), data.species());
-    SFileRecord record(string(buffer), "protobuf:lm.io.FirstPassageTimes", data.ByteSize());
-    file->writeSFileRecord(record);
-    file->writeMessage(data);
+    processMessageReplicate("FirstPassageTimes", "protobuf:lm.io.FirstPassageTimes", data);
 }
 
 void ReplicateSFileOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)
 {
-    char buffer[NAME_BUFFER_MAX_SIZE+1];
-    memset(buffer, 0, NAME_BUFFER_MAX_SIZE+1);
-    snprintf(buffer,NAME_BUFFER_MAX_SIZE,"%s/Simulations/%llu/LatticeTimeSeries", recordNamePrefix.c_str(), data.trajectory_id());
-    SFileRecord record(string(buffer), "protobuf:lm.io.LatticeTimeSeries", data.ByteSize());
-    file->writeSFileRecord(record);
-    file->writeMessage(data);
+    processMessageReplicate("LatticeTimeSeries", "protobuf:lm.io.LatticeTimeSeries", data);
 }
 
 void ReplicateSFileOutputWriter::processLimitTracking(const lm::io::LimitTracking& data)
 {
-    stringstream nameSS;
-    nameSS << "/Simulations/" << data.trajectory_id();
-    nameSS << "/Limits/" << data.limit_id();    //std::setfill('0') << std::setw(2) << data.limit_id();
-    nameSS << "/LimitTracking";
-
-    processMessage(nameSS.str(), "protobuf:lm.io.LimitTracking", data);
+    processMessageReplicate("LimitTracking", "protobuf:lm.io.LimitTracking", data);
 }
 
 void ReplicateSFileOutputWriter::processOrderParameterFirstPassageTimes(const lm::io::OrderParameterFirstPassageTimes& data)
 {
-    stringstream nameSS;
-    nameSS << "/Simulations/" << data.trajectory_id();
-    nameSS << "/OrderParameters/" << data.order_parameter_id();    //std::setfill('0') << std::setw(2) << data.order_parameter_id();
-    nameSS << "/OrderParameterFirstPassageTimes/";
-
-    processMessage(nameSS.str(), "protobuf:lm.io.OrderParameterFirstPassageTimes", data);
+    processMessageReplicate("OrderParameterFirstPassageTimes", "protobuf:lm.io.OrderParameterFirstPassageTimes", data);
 }
 
 void ReplicateSFileOutputWriter::processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data)
 {
-    char buffer[NAME_BUFFER_MAX_SIZE+1];
-    memset(buffer, 0, NAME_BUFFER_MAX_SIZE+1);
-    snprintf(buffer,NAME_BUFFER_MAX_SIZE,"%s/Simulations/%llu/OrderParameterTimeSeries", recordNamePrefix.c_str(), data.trajectory_id());
-    SFileRecord record(string(buffer), "protobuf:lm.io.OrderParameterTimeSeries", data.ByteSize());
-    file->writeSFileRecord(record);
-    file->writeMessage(data);
+    processMessageReplicate("OrderParameterTimeSeries", "protobuf:lm.io.OrderParameterTimeSeries", data);
 }
 
 void ReplicateSFileOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
 {
-    char buffer[NAME_BUFFER_MAX_SIZE+1];
-    memset(buffer, 0, NAME_BUFFER_MAX_SIZE+1);
-    snprintf(buffer,NAME_BUFFER_MAX_SIZE,"%s/Simulations/%llu/SpeciesCounts", recordNamePrefix.c_str(), data.trajectory_id());
-    SFileRecord record(string(buffer), "protobuf:lm.io.SpeciesCounts", data.ByteSize());
-    file->writeSFileRecord(record);
-    file->writeMessage(data);
+    processMessageReplicate("SpeciesCounts", "protobuf:lm.io.SpeciesCounts", data);
 }
 
 void ReplicateSFileOutputWriter::processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data)
 {
-    char buffer[NAME_BUFFER_MAX_SIZE+1];
-    memset(buffer, 0, NAME_BUFFER_MAX_SIZE+1);
-    snprintf(buffer,NAME_BUFFER_MAX_SIZE,"%s/Simulations/%llu/SpeciesTimeSeries", recordNamePrefix.c_str(), data.trajectory_id());
-    SFileRecord record(string(buffer), "protobuf:lm.io.SpeciesTimeSeries", data.ByteSize());
-    file->writeSFileRecord(record);
-    file->writeMessage(data);
+    processMessageReplicate("SpeciesTimeSeries", "protobuf:lm.io.SpeciesTimeSeries", data);
 }
 
 }
