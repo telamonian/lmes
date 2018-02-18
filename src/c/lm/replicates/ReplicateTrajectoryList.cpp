@@ -69,7 +69,7 @@ ReplicateTrajectoryList::ReplicateTrajectoryList(const lm::input::Input& input, 
 {
     for (uint64_t i=firstTrajectory; i<=lastTrajectory; i++)
     {
-        trajectories[i] = new lm::trajectory::Trajectory(input, simulationPhaseIndex(), i);
+        trajectories[i] = new lm::trajectory::Trajectory(input, simulationPhaseID(), i);
         waitingTrajectories[i] = trajectories[i];
     }
 }

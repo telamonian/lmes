@@ -75,16 +75,16 @@ class FFluxTrajectoryList : public lm::trajectory::TrajectoryList
 {
 public:
     // ffluxPhase n==0 constructor
-    FFluxTrajectoryList(uint64_t count, uint64_t simulationPhaseIndex, const lm::fflux::input::FFluxPhase& ffluxPhase,
+    FFluxTrajectoryList(uint64_t count, uint64_t simulationPhaseID, const lm::fflux::input::FFluxPhase& ffluxPhase,
                         const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousWorkUnits,
                         const lm::fflux::input::FFluxInput& input, const lm::input::Basin& basin);
 
     // ffluxPhase n>0 constructor
-    FFluxTrajectoryList(uint64_t count, uint64_t simulationPhaseIndex, const lm::fflux::input::FFluxPhase& ffluxPhase,
+    FFluxTrajectoryList(uint64_t count, uint64_t simulationPhaseID, const lm::fflux::input::FFluxPhase& ffluxPhase,
                         const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousWorkUnits,
                         const lm::fflux::input::FFluxInput& input, const lm::protowrap::FFluxPhaseOutputWrap& previousPhaseOutput);
     // ffluxPhase custom constructor
-    FFluxTrajectoryList(uint64_t count, uint64_t simulationPhaseIndex, const lm::fflux::input::FFluxPhase& ffluxPhase,
+    FFluxTrajectoryList(uint64_t count, uint64_t simulationPhaseID, const lm::fflux::input::FFluxPhase& ffluxPhase,
                         const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousWorkUnits,
                         const lm::fflux::input::FFluxInput& input);
     virtual ~FFluxTrajectoryList() {}

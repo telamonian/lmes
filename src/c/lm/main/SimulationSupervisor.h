@@ -169,7 +169,7 @@ protected:
     lm::resource::ResourceMap* resourceMap;
     std::vector<std::string> simulationInputFilenames;
     std::string simulationOutputFilename;
-    uint64_t simulationPhaseIndex;
+    int64_t simulationPhaseID;
     bool simulationRunning;
     bool simulationPhaseEverTerminated;
     lm::slot::SlotList slots;

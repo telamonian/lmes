@@ -53,9 +53,9 @@ namespace fflux {
 class FFluxTrajectory : public lm::trajectory::Trajectory
 {
 public:
-    FFluxTrajectory(uint64_t id, uint64_t phaseIndex, const lm::io::TrajectoryState& initialState);
-    FFluxTrajectory(uint64_t id, uint64_t phaseIndex, const lm::input::Input& input, bool reversed, uint64_t ffluxPhase);
-    FFluxTrajectory(uint64_t id, uint64_t phaseIndex, const lm::io::TrajectoryState& state, uint64_t ffluxPhase, const lm::input::Input& input);
+    FFluxTrajectory(uint64_t id, uint64_t phaseID, const lm::io::TrajectoryState& initialState);
+    FFluxTrajectory(uint64_t id, uint64_t phaseID, const lm::input::Input& input, bool reversed, uint64_t ffluxPhase);
+    FFluxTrajectory(uint64_t id, uint64_t phaseID, const lm::io::TrajectoryState& state, uint64_t ffluxPhase, const lm::input::Input& input);
     virtual ~FFluxTrajectory();
 
     // methods for detecting when a flux event has occurred

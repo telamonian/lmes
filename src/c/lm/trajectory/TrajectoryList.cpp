@@ -69,11 +69,11 @@ namespace trajectory {
 
 const uint64_t TrajectoryList::DEFAULT_TRAJECTORY_ID = std::numeric_limits<uint64_t>::max();
 
-TrajectoryList::TrajectoryList(): _count(0), _simulationPhaseIndex(0)
+TrajectoryList::TrajectoryList(): _count(0), _simulationPhaseID(0)
 {
 }
 
-TrajectoryList::TrajectoryList(uint64_t count, uint64_t simulationPhaseIndex): _count(count), _simulationPhaseIndex(simulationPhaseIndex)
+TrajectoryList::TrajectoryList(uint64_t count, uint64_t simulationPhaseID): _count(count), _simulationPhaseID(simulationPhaseID)
 {
 }
 
@@ -95,7 +95,7 @@ void TrajectoryList::init(const TrajectoryStates& initialStates)
 
     for (Repeated<lm::io::TrajectoryState>::const_iterator it=initialStates.begin(); it!=initialStates.end(); it++)
     {
-        initTrajectory(*it, simulationPhaseIndex());
+        initTrajectory(*it, simulationPhaseID());
     }
 }
 
@@ -106,7 +106,7 @@ void TrajectoryList::init(const TrajectoryList& previousList)
 
     for (TrajectoryMap::const_iterator it=previousList.finishedTrajectories.begin(); it!=previousList.finishedTrajectories.end(); it++)
     {
-        initTrajectory(it->second->getState(), simulationPhaseIndex());
+        initTrajectory(it->second->getState(), simulationPhaseID());
     }
 }
 

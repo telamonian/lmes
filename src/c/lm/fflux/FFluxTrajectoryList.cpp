@@ -82,14 +82,14 @@ namespace lm {
 namespace fflux {
 
 // ffluxPhase n==0 constructor
-FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationPhaseIndex, const FFluxPhase& ffluxPhase, const FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousTrajectoryCount, const FFluxInput& input, const lm::input::Basin& basin)
-:TrajectoryList(count, newSimulationPhaseIndex),input(input),ffluxPhase(ffluxPhase),ffluxPhaseLimit(ffluxPhaseLimit),
+FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationPhaseID, const FFluxPhase& ffluxPhase, const FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousTrajectoryCount, const FFluxInput& input, const lm::input::Basin& basin)
+:TrajectoryList(count, newSimulationPhaseID),input(input),ffluxPhase(ffluxPhase),ffluxPhaseLimit(ffluxPhaseLimit),
  previousPhaseOutputPtr(NULL),cyclicCounter(0)
 {
     // consistency check
-    if (ffluxPhase.fflux_phase_id()!=0)
+    if (ffluxPhase.phase_id()!=0)
     {
-        throw ConsistencyException("Forward Flux phase 0 version of FFluxTrajectoryList constructor called durring phase %d", ffluxPhase.fflux_phase_id());
+        throw ConsistencyException("Forward Flux phase 0 version of FFluxTrajectoryList constructor called durring phase %d", ffluxPhase.phase_id());
     }
 
     // figure out how many trajectories we need to start right now
@@ -98,17 +98,17 @@ FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationP
     // initialize trajectories based on simulation input files
     for (uint64_t i=0;i<trajectoriesToStart;i++)
     {
-        initFFluxPhaseZeroTrajectory(input, basin.species_count().begin(), basin.species_count().end(), 0.0, simulationPhaseIndex(), DEFAULT_TRAJECTORY_ID);
+        initFFluxPhaseZeroTrajectory(input, basin.species_count().begin(), basin.species_count().end(), 0.0, simulationPhaseID(), DEFAULT_TRAJECTORY_ID);
     }
 }
 
 // ffluxPhase n>0 constructor
-FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationPhaseIndex, const FFluxPhase& ffluxPhase, const FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousTrajectoryCount, const FFluxInput& input, const FFluxPhaseOutputWrap& previousPhaseOutput)
-:TrajectoryList(count, newSimulationPhaseIndex),input(input),ffluxPhase(ffluxPhase),ffluxPhaseLimit(ffluxPhaseLimit),
+FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationPhaseID, const FFluxPhase& ffluxPhase, const FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousTrajectoryCount, const FFluxInput& input, const FFluxPhaseOutputWrap& previousPhaseOutput)
+:TrajectoryList(count, newSimulationPhaseID),input(input),ffluxPhase(ffluxPhase),ffluxPhaseLimit(ffluxPhaseLimit),
  previousPhaseOutputPtr(&previousPhaseOutput),cyclicCounter(0)
 {
     // consistency check
-    if (ffluxPhase.fflux_phase_id()==0) throw ConsistencyException("Forward Flux phase n>0 version of FFluxTrajectoryList constructor called durring phase 0. fflux_phase_id: %d", ffluxPhase.fflux_phase_id());
+    if (ffluxPhase.phase_id()==0) throw ConsistencyException("Forward Flux phase n>0 version of FFluxTrajectoryList constructor called durring phase 0. phase_id: %d", ffluxPhase.phase_id());
 
     // figure out how many trajectories we need to start right now
     uint64_t trajectoriesToStart = getTrajectoriesToStart(ffluxPhase, ffluxPhaseLimit, simultaneousTrajectoryCount);
@@ -117,17 +117,17 @@ FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationP
 }
 
 // ffluxPhase custom constructor
-FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationPhaseIndex, const FFluxPhase& ffluxPhase, const FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousTrajectoryCount, const FFluxInput& input)
-:TrajectoryList(count, newSimulationPhaseIndex),input(input),ffluxPhase(ffluxPhase),ffluxPhaseLimit(ffluxPhaseLimit),
+FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationPhaseID, const FFluxPhase& ffluxPhase, const FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousTrajectoryCount, const FFluxInput& input)
+:TrajectoryList(count, newSimulationPhaseID),input(input),ffluxPhase(ffluxPhase),ffluxPhaseLimit(ffluxPhaseLimit),
 previousPhaseOutputPtr(&previousPhaseOutputCustomWrap),cyclicCounter(0)
 {
     previousPhaseOutputCustom.mutable_successful_trajectory_end_points()->CopyFrom(ffluxPhase.start_points());
     previousPhaseOutputCustomWrap.setWrappedMsg(&previousPhaseOutputCustom);
 
     // consistency check
-    if (ffluxPhase.fflux_phase_id()==0)
+    if (ffluxPhase.phase_id()==0)
     {
-        throw ConsistencyException("Forward Flux phase custom version of FFluxTrajectoryList constructor called durring phase 0. fflux_phase_id: %d", ffluxPhase.fflux_phase_id());
+        throw ConsistencyException("Forward Flux phase custom version of FFluxTrajectoryList constructor called durring phase 0. phase_id: %d", ffluxPhase.phase_id());
     }
 
     // figure out how many trajectories we need to start right now
@@ -144,7 +144,7 @@ uint64_t FFluxTrajectoryList::getTrajectoriesToStart(const FFluxPhase& ffluxPhas
     if (ffluxPhase.trajectory_generation()==FFPhaseEnums::EAGER)
     {
         // EAGER is only implemented for certain ffluxPhaseLimit.stop_condition() values
-        if (ffluxPhaseLimit.stop_condition()==FFPhaseLimEnums::TRAJECTORY_COUNT or (ffluxPhaseLimit.stop_condition()==FFPhaseLimEnums::FORWARD_FLUXES and ffluxPhase.fflux_phase_id()==0))
+        if (ffluxPhaseLimit.stop_condition()==FFPhaseLimEnums::TRAJECTORY_COUNT or (ffluxPhaseLimit.stop_condition()==FFPhaseLimEnums::FORWARD_FLUXES and ffluxPhase.phase_id()==0))
         {
             if (ffluxPhaseLimit.has_events_per_trajectory())
             {
@@ -157,7 +157,7 @@ uint64_t FFluxTrajectoryList::getTrajectoriesToStart(const FFluxPhase& ffluxPhas
                 toStart = simulataneousActiveTrajectories;
             }
         }
-        else throw UnimplementedException("In Forward Flux phase %d, ffluxPhase.trajectory_generation()==EAGER is only implemented for certain ffluxPhaseLimit.stop_condition() values (ie those that let us calculate the necessary trajectory count up front). Attempting to use unimplemented ffluxPhaseLimit.stop_condition(): %s", ffluxPhase.fflux_phase_id(), FFPhaseLimEnums::StopCondition_Name(ffluxPhaseLimit.stop_condition()).c_str());
+        else throw UnimplementedException("In Forward Flux phase %d, ffluxPhase.trajectory_generation()==EAGER is only implemented for certain ffluxPhaseLimit.stop_condition() values (ie those that let us calculate the necessary trajectory count up front). Attempting to use unimplemented ffluxPhaseLimit.stop_condition(): %s", ffluxPhase.phase_id(), FFPhaseLimEnums::StopCondition_Name(ffluxPhaseLimit.stop_condition()).c_str());
     }
     else if (ffluxPhase.trajectory_generation()==FFPhaseEnums::LAZY)
     {
@@ -190,7 +190,7 @@ void FFluxTrajectoryList::workUnitPartFinished(const message::WorkUnitStatus& wu
             deleteTrajectory(traj->getID());
         }
     }
-    else if (ffluxPhase.fflux_phase_id()==0)
+    else if (ffluxPhase.phase_id()==0)
     {
         // clear out any limit tracking time series data. prevents a major slowdown on long runs
         limitTrackingListWrap.setWrappedMsg(traj->getStateMutable()->mutable_limit_tracking_list());
@@ -246,7 +246,7 @@ void FFluxTrajectoryList::initTrajectoriesCyclic(uint64_t trajectoriesToStart)
     for (uint64_t i=0;i<trajectoriesToStart;i++)
     {
         const lm::protowrap::EndPointVector::Pair& endPointPair(previousPhaseOutputPtr->getEndPointCyclic(cyclicCounter++));
-        initFFluxTrajectory(input, endPointPair.first->species_coordinates().begin(), endPointPair.first->species_coordinates().end(), endPointPair.first->times(endPointPair.second), simulationPhaseIndex(), DEFAULT_TRAJECTORY_ID);
+        initFFluxTrajectory(input, endPointPair.first->species_coordinates().begin(), endPointPair.first->species_coordinates().end(), endPointPair.first->times(endPointPair.second), simulationPhaseID(), DEFAULT_TRAJECTORY_ID);
     }
 }
 
@@ -259,7 +259,7 @@ void FFluxTrajectoryList::initTrajectoriesUniformRandom(uint64_t trajectoriesToS
         PROF_END(PROF_TRAJECTORY_LIST_WORK_UNIT_FINISHED_ONE);
 
         PROF_BEGIN(PROF_TRAJECTORY_LIST_WORK_UNIT_FINISHED_TWO);
-        initFFluxTrajectory(input, endPointPair.first->species_coordinates().begin(), endPointPair.first->species_coordinates().end(), endPointPair.first->times(endPointPair.second), simulationPhaseIndex(), DEFAULT_TRAJECTORY_ID);
+        initFFluxTrajectory(input, endPointPair.first->species_coordinates().begin(), endPointPair.first->species_coordinates().end(), endPointPair.first->times(endPointPair.second), simulationPhaseID(), DEFAULT_TRAJECTORY_ID);
         PROF_END(PROF_TRAJECTORY_LIST_WORK_UNIT_FINISHED_TWO);
     }
 }

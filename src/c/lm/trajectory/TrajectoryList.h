@@ -68,7 +68,7 @@ public:
     static const uint64_t DEFAULT_TRAJECTORY_ID;
 
     TrajectoryList();
-    TrajectoryList(uint64_t count, uint64_t simulationPhaseIndex);
+    TrajectoryList(uint64_t count, uint64_t simulationPhaseID);
     virtual ~TrajectoryList();
 
 // initializer
@@ -104,7 +104,7 @@ public:
     virtual bool isTrajectoryFinished(lm::trajectory::Trajectory* traj) const {return isTrajectoryInMap(traj, finishedTrajectories, Trajectory::FINISHED);}
     virtual bool isTrajectoryRunning(lm::trajectory::Trajectory* traj) const {return isTrajectoryInMap(traj, runningTrajectories, Trajectory::RUNNING);}
     virtual bool isTrajectoryWaiting(lm::trajectory::Trajectory* traj) const {return isTrajectoryInMap(traj, waitingTrajectories, Trajectory::WAITING);}
-    virtual uint64_t simulationPhaseIndex() const {return _simulationPhaseIndex;}
+    virtual uint64_t simulationPhaseID() const {return _simulationPhaseID;}
     virtual size_t size() const {return trajectories.size();}
 
 // mutators
@@ -124,7 +124,7 @@ public:
         return traj;
     }
     virtual uint64_t resolveTrajectoryID(uint64_t newID);
-    virtual void setSimulationPhaseIndex(uint64_t newPhaseIx) {_simulationPhaseIndex = newPhaseIx;}
+    virtual void setSimulationPhaseID(uint64_t newPhaseIx) {_simulationPhaseID = newPhaseIx;}
     virtual void setAll(Trajectory::Status oldStatus, Trajectory::Status newStatus);
     virtual void takeTrajectories(TrajectoryList* srcTrajList, Trajectory::Status status, Trajectory::Status newStatus);
     virtual void takeWorkUnitsRunning(TrajectoryList* srcTrajList);
@@ -146,7 +146,7 @@ protected:
 
 protected:
     uint64_t _count;
-    uint64_t _simulationPhaseIndex;
+    uint64_t _simulationPhaseID;
     TrajectoryMap trajectories;
     TrajectoryMap abortedTrajectories;
     TrajectoryMap finishedTrajectories;

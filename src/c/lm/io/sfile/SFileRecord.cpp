@@ -56,10 +56,10 @@ SFileRecord::SFileRecord()
 SFileRecord::SFileRecord(const string& name, const string& type, int64_t dataSize)
 :name(name),type(type),dataSize(dataSize)
 {
-    normalizeName();
+    resizeNameToBuffer();
 }
 
-void SFileRecord::normalizeName()
+void SFileRecord::resizeNameToBuffer()
 {
     if (name.size() > NAME_BUFFER_MAX_SIZE) name.resize(NAME_BUFFER_MAX_SIZE);
 }

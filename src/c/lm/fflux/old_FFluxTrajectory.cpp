@@ -61,8 +61,8 @@ using std::string;
 namespace lm {
 namespace fflux {
 
-FFluxTrajectory::FFluxTrajectory(uint64_t id, uint64_t phaseIndex, const lm::io::TrajectoryState& initialState)
-: Trajectory(initialState, phaseIndex, id),ffluxPhase(ffluxPhase),input(input),lastLimitTime(0.0)
+FFluxTrajectory::FFluxTrajectory(uint64_t id, uint64_t phaseID, const lm::io::TrajectoryState& initialState)
+: Trajectory(initialState, phaseID, id),ffluxPhase(ffluxPhase),input(input),lastLimitTime(0.0)
 {
 }
 

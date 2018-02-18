@@ -61,6 +61,7 @@ public:
     inline void setName(const T& newName)
     {
         name.assign(newName);
+        resizeNameToBuffer();
     }
 
     template <typename T>
@@ -98,7 +99,7 @@ public:
     int64_t dataSize;
 
 protected:
-    inline void normalizeName();
+    inline void resizeNameToBuffer();
 };
 
 }

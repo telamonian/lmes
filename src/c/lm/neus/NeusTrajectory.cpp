@@ -60,14 +60,14 @@ using std::string;
 namespace lm {
 namespace neus {
 
-//FFluxTrajectory::FFluxTrajectory(uint64_t id,uint ffluxPhaseIndex,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,lm::tiling::Tilings& tilings,bool reversed):
-//Trajectory(id,reactionModel,diffusionModel,simulationParameters,reversed),ffluxPhaseIndex(ffluxPhaseIndex),tilings(tilings)
+//FFluxTrajectory::FFluxTrajectory(uint64_t id,uint ffluxPhaseID,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,lm::tiling::Tilings& tilings,bool reversed):
+//Trajectory(id,reactionModel,diffusionModel,simulationParameters,reversed),ffluxPhaseID(ffluxPhaseID),tilings(tilings)
 //{
 //    initLimits();
 //}
 //
-//FFluxTrajectory::FFluxTrajectory(uint64_t id,uint ffluxPhaseIndex,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,lm::tiling::Tilings& tilings,TrajectoryState* zerothState):
-//Trajectory(id,reactionModel,diffusionModel,simulationParameters,zerothState),ffluxPhaseIndex(ffluxPhaseIndex),tilings(tilings)
+//FFluxTrajectory::FFluxTrajectory(uint64_t id,uint ffluxPhaseID,const ReactionModel& reactionModel,const DiffusionModel& diffusionModel,map<string,string>& simulationParameters,lm::tiling::Tilings& tilings,TrajectoryState* zerothState):
+//Trajectory(id,reactionModel,diffusionModel,simulationParameters,zerothState),ffluxPhaseID(ffluxPhaseID),tilings(tilings)
 //{
 //    // Limit setting code
 //    initLimits();
