@@ -405,12 +405,12 @@ herr_t Hdf5File::parseParameter(hid_t location_id, const char *attr_name, const 
         // could not parse the parameter. Warn the user
         if (file->version < 3)
         {
-            lm::Print::printf(lm::Print::WARNING, "Unable to parse user defined value for parameter: %s\n", attr_name);
+            THROW_EXCEPTION(lm::InputException, "Unable to parse user defined value for parameter: %s\n", attr_name);
         }
         else
         {
-            lm::Print::printf(lm::Print::WARNING, "Unable to parse user defined value for parameter: %s\n"
-                                                  "Try converting all parameter values to strings before setting them.\n", attr_name);
+            THROW_EXCEPTION(lm::InputException, "Unable to parse user defined value for parameter: %s\n"
+                "Try converting all parameter values to strings before setting them.\n", attr_name);
         }
     }
     HDF5_EXCEPTION_CHECK(H5Tclose(type));
@@ -1606,9 +1606,15 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
     HDF5_EXCEPTION_CALL(basinsExists, H5LTfind_dataset(tilingGroup, "Basins"))
     if (basinsExists > 0)
     {
+        int rank;
         hsize_t dims[2];
         H5T_class_t hdf5Type;
         size_t size;
+
+        // sanity check the rank of the basins dataset
+        HDF5_EXCEPTION_CHECK(H5LTget_dataset_ndims(tilingGroup, "Basins", &rank));
+        if (rank != 2) THROW_EXCEPTION(IOException, "Rank of Basins dataset invalid.\n"
+            "Please ensure that all Basins datasets are 2D in your input .lm file. rank: %d", rank);
 
         HDF5_EXCEPTION_CHECK(H5LTget_dataset_info(tilingGroup, "Basins", dims, &hdf5Type, &size));
         double* basinsBuffer = new double[dims[0]*dims[1]];

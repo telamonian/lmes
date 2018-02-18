@@ -52,16 +52,6 @@
 #include "lm/Iterator.h"
 #include "lm/Types.h"
 
-//template <typename, template <typename> class>
-//struct IsSameTemplateNumerical {static const bool value = false;};
-//template <template <typename> class T, template <typename> class U, typename Param>
-//struct IsSameTemplateNumerical<T<Param>, U> {static const bool value = IsSame<T<Param>, U<Param> >::value and IsNumeric<Param>::value;};
-//
-//template <template <typename, typename> class T, template <typename> class U, typename Param0, typename Param1>
-//struct IsSameTemplateNumerical<T<Param0, Param1>, U> {static const bool value = IsSame<T<Param0, Param1>, U<Param0, Param1> >::value and IsNumeric<Param0>::value;};
-//
-//template<typename T> struct IsNumericContainer {static const bool value = IsSameTemplateNumerical<T, std::vector>::value;}; // IsSameTemplateNumerical<T, google::protobuf::RepeatedField>::value or
-
 template<typename T> struct TypePrecedence { static const int value = -1; };
 template<> struct TypePrecedence<long double> { static const int value = 0; };
 template<> struct TypePrecedence<double> { static const int value = 1; };
@@ -148,8 +138,7 @@ template <typename T, typename U=T> struct exponentiates
     // these typedefs are for conformance with the Operation concept expected by e.g. std::bind1st
     typedef T first_argument_type;
     typedef U second_argument_type;
-    typedef double result_type;
-    //typedef typename PrecedentType<T, U>::type result_type;
+    typedef typename PrecedentType<T, U>::type result_type;
 
     result_type operator() (const T& base, const U& exponent) const {return pow(base, exponent);}
 };

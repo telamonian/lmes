@@ -49,6 +49,7 @@
 #include "lm/io/sfile/SFile.h"
 #include "lm/types/BoundaryConditions.pb.h"
 #include "lm/input/DiffusionModel.pb.h"
+#include "lm/input/Options.pb.h"
 #include "lm/input/OrderParameters.pb.h"
 #include "lm/input/OutputOptions.pb.h"
 #include "lm/input/ReactionModel.pb.h"
@@ -92,8 +93,8 @@ public:
     const lm::input::Tilings& getTilingsMsg() const {return tilingsMsg;}
     const lm::input::TrajectoryLimits& getTrajectoryLimitsMsg() const {return trajectoryLimits.buf();}
 
-    uint64_t getPartsPerWorkUnit() const {return partsPerWorkUnit;}
-    uint64_t getStepsPerWorkUnit() const {return stepsPerWorkUnit;}
+    uint64_t getPartsPerWorkUnit() const {return optionsMsg.parts_per_work_unit();}
+    uint64_t getStepsPerWorkUnit() const {return optionsMsg.steps_per_work_unit();}
 
     bool hasDegreeAdvancement() const {return degreeAdvancementPresent;}
     bool hasReactionModel() const {return reactionModelPresent;}
@@ -118,7 +119,7 @@ protected:
     virtual void initTrajectoryLimits(const lm::io::hdf5::Hdf5File& file);
     virtual void initOutputOptions(const lm::io::hdf5::Hdf5File& file);
 
-    virtual void initWorkUnitParameters(const lm::io::hdf5::Hdf5File& file);
+    virtual void initOptions(const lm::io::hdf5::Hdf5File& file);
 
     virtual void readSFileInput(lm::io::sfile::SFile& file);
 
@@ -145,6 +146,7 @@ protected:
     lm::limit::LimitTrackingListWrap limitTrackingListWrap;
     lm::input::OrderParameters orderParametersMsg;
     lm::oparam::OParams orderParameters;
+    lm::input::Options optionsMsg;
     lm::input::OutputOptions outputOptionsMsg;
     lm::input::ReactionModel reactionModelMsg;
     lm::option::SimulationParameters simulationParameters;
@@ -152,12 +154,8 @@ protected:
     lm::tiling::Tilings tilings;
     lm::limit::TrajectoryLimits trajectoryLimits;
 
-    // protobufs/wrappers that hold compound inputs
+    // protobufs/wrappers that hold groups of inputs
     lm::input::SimulationInput simulationInput;
-
-    // pod vars that directly hold input
-    uint64_t partsPerWorkUnit;
-    uint64_t stepsPerWorkUnit;
 
     // minimum reaction rate constant, used in setting some other parameters. Only reactions with exactly one constant are considered when determining
     double minRateConstant;

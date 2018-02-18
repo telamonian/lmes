@@ -46,6 +46,7 @@ import "lm/input/Tilings.proto";
 message FFluxStage {
     optional string name                                    = 100;
 
+    optional uint64 replicate_id                            = 4 [default=0];
     optional int64 basin_id                                 = 1;
     optional uint64 tiling_id                               = 2;
     optional lm.input.Tiling tiling                         = 3;

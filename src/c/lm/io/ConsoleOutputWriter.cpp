@@ -88,6 +88,17 @@ void ConsoleOutputWriter::flush()
 {
 }
 
+void ConsoleOutputWriter::processGenericMessage(const google::protobuf::Message& data)
+{
+    memset(buffer, 0, BUFFER_SIZE+1);
+
+    int offset=snprintf(buffer,BUFFER_SIZE,"--------------------------------------------------------------------------------\n");
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset, data.DebugString().c_str());
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"--------------------------------------------------------------------------------");
+
+    Print::printf(Print::INFO, "ConsoleOutputWriter received %s:\n%s", data.GetDescriptor()->name().c_str(), buffer);
+}
+
 void ConsoleOutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
 {
     // Print the output into the buffer.
@@ -230,17 +241,6 @@ void ConsoleOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeri
 
     // Print the output to stdout.
     Print::printf(Print::INFO, "ConsoleOutputWriter received lattice time series for trajectory %d:\n%s",data.trajectory_id(),buffer);
-}
-
-void ConsoleOutputWriter::processGenericMessage(const google::protobuf::Message& data)
-{
-    memset(buffer, 0, BUFFER_SIZE+1);
-
-    int offset=snprintf(buffer,BUFFER_SIZE,"--------------------------------------------------------------------------------\n");
-    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset, data.DebugString().c_str());
-    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"--------------------------------------------------------------------------------");
-
-    Print::printf(Print::INFO, "ConsoleOutputWriter received %s:\n%s", data.GetDescriptor()->name().c_str(), buffer);
 }
 
 }

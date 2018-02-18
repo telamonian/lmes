@@ -55,7 +55,7 @@
 #include "lm/VectorMath.h"
 
 // calculates the variance of a Bernouli random variable based on its probability (ie their expected values)
-// can also take vectors
+// the MaybeVector types can be either numerical scalars or numerical vectors
 template <typename MaybeVector>
 inline MaybeVector bernouliVariance(const MaybeVector& probability)
 {
@@ -63,17 +63,17 @@ inline MaybeVector bernouliVariance(const MaybeVector& probability)
 }
 
 // exact formula for calculating the variance of a product of random variables. Based on their individual expected values and variances
-inline double productVarianceExact(const std::vector<double> expected, const std::vector<double> variance)
+inline double productVarianceExact(const std::vector<double>& expected, const std::vector<double>& variance)
 {
-//    std::vector<double> expectedSquared(expected*expected);
-    std::vector<double> expected2 = pow(expected, 2);
+    std::vector<double> expected2 = pow(expected, 2.0);
 
     return prod(variance + expected2) - prod(expected2);
 }
 
 // see https://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval#Agresti-Coull_Interval for more details
+// the MaybeVector types can be either numerical scalars or numerical vectors
 template <typename MaybeVector0, typename MaybeVector1>
-inline MaybeVector0 bernouliCIAgrestiCoullLowerBound(const MaybeVector0 probability, const MaybeVector1 trials, double confidence)
+inline MaybeVector0 bernouliCIAgrestiCoullLowerBound(const MaybeVector0& probability, const MaybeVector1& trials, double confidence)
 {
     double z = normalZ(confidence);
     double z2 = pow(z, 2);

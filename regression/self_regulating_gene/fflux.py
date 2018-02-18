@@ -6,6 +6,10 @@ from lma.regression.models.self_regulating_gene.srgRegression import FFluxSRGReg
 class FFluxSRGRegressionLMES(FFluxSRGRegression):
     """subclass that allows for easy overriding of various parameters at point of testing
     """
+    def buildBasins(self):
+        self.parser['both-basins'] = True
+        return super(FFluxSRGRegressionLMES, self).buildBasins()
+
     def _buildDefaultSimulationParameterDict(self):
         if self.parser['quick_test']:
             return {
@@ -29,17 +33,17 @@ class FFluxSRGRegressionLMES(FFluxSRGRegression):
         else:
             return {
                 # 'batchSize': 100,
-                "errorGoal": .1,
+                "errorGoal": .3,
                 # "errorGoalConfidence": .95,
-                # "pilotStageCount": 1e3,
-                # "productionStageCountMinimum": 1e3,
+                "pilotStageCount": 1e2,
+                "productionStageCountMinimum": 1e2,
                 # "ffluxPilotOutput": True,
                 # "ffluxPhaseOutput": False,
                 # "ffluxStageOutputRaw": True,
                 # "ffluxStageOutputSummary": True,
                 # # 'phaseZeroSamplingMultiplier': 1,
                 # 'ffluxMinimizeCost': True,
-                # 'writeInterval': None,
+                'writeInterval': 1.0,
                 # 'writeLimitTracking': False,
             }
 

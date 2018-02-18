@@ -92,7 +92,7 @@ message Tiling {
      *     - In order parameter space, each basin should be located either in front of the first interface of the tiling or past the last interface of the tiling
      *         - If a basin is located past the last interface, the tiling will be reversed before it is used in the simulation
      */
-    repeated Basin basins                   = 1000;
+    repeated Basin basins                = 1000;
     optional int32 current_basin_id      = 1001;
 }
 

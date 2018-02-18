@@ -77,22 +77,24 @@ protected:
     virtual void checkpoint()=0;
     virtual void flush()=0;
 
-    virtual void processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data) {}
-    virtual void processFFluxOutput(const lm::io::FFluxOutput& data) {}
-    virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data)=0;
-    virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)=0;
-    virtual void processLimitTracking(const lm::io::LimitTracking& data) {}
-    virtual void processOrderParameterFirstPassageTimes(const lm::io::OrderParameterFirstPassageTimes& data) {}
-    virtual void processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data) {}
-    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data)=0;
-    virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data)=0;
-
+    virtual std::string getMessageTrajectoryID(const google::protobuf::Message& data) const;
     virtual void processGenericMessage(const google::protobuf::Message& data) {};
+
+    virtual void processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data) {processGenericMessage(data);}
+    virtual void processFFluxOutput(const lm::io::FFluxOutput& data) {processGenericMessage(data);}
+    virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data) {processGenericMessage(data);}
+    virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data) {processGenericMessage(data);}
+    virtual void processLimitTracking(const lm::io::LimitTracking& data) {processGenericMessage(data);}
+    virtual void processOrderParameterFirstPassageTimes(const lm::io::OrderParameterFirstPassageTimes& data) {processGenericMessage(data);}
+    virtual void processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data) {processGenericMessage(data);}
+    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data) {processGenericMessage(data);}
+    virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data) {processGenericMessage(data);}
 
     virtual int run();
 
     virtual void setRecordNamePrefix();
     virtual void setRecordNamePrefix(const std::string& newRecordNamePrefix);
+    virtual void setTrajectoryPrefix(const std::string& newTrajectoryPrefix);
 
 private:
     static const int MESSAGE_QUEUE_MAX_SIZE=200*1024*1024;
@@ -100,8 +102,9 @@ private:
 protected:
     bool condenseOutput;
     std::string outputFilename;
-    std::string recordNamePrefix;
-    std::string recordNamePrefixCurrent;
+    std::string recordNamePrefix; // the global record prefix joined with the last str passed to setRecordNamePrefix
+    std::string recordNamePrefixCurrent; // the last str passed to setRecordNamePrefix alone
+    std::string trajectoryPrefix; // the word that precedes the trajectory number in the record name. Defaults to "Simulations"
 
 private:
     lm::message::Communicator communicator;

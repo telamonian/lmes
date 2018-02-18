@@ -52,49 +52,56 @@
 namespace lm
 {
 
-// __LINE__, an int, comes first in order to ensure against any overloading resolution issues with the variadic Exception constructors
+// macro that passes the file:line from which it is raised to an exception's constructor
 #define THROW_EXCEPTION(exception, ...) throw exception(__LINE__, __FILE__, __VA_ARGS__);
 
 class Exception : public std::exception
 {
 protected:
-	void printException(const char* preamble, const char* format, va_list args)
-	{
-		int offset = snprintf(messageBuffer, MAX_MESSAGE_SIZE, "%s: ", preamble);
-		vsnprintf(messageBuffer + offset, MAX_MESSAGE_SIZE - offset, format, args);
-	}
+    // overloaded function that converts std::strings to c-strings and leaves c-strings untouched
+    static const char* cstr(const char* s) {return s;}
+    static const char* cstr(const std::string s) {return s.c_str();}
 
-	void printExceptionWithLine(const char* preamble, const char *file, int line, const char* format, va_list args)
-	{
-		int offset = snprintf(messageBuffer, MAX_MESSAGE_SIZE, "%s (%s:%d): ", preamble, file, line);
-		vsnprintf(messageBuffer + offset, MAX_MESSAGE_SIZE - offset, format, args);
-	}
+    // format can be either char* or std::string
+    template <typename T> void printException(T format, va_list args)
+    {
+        int offset = snprintf(messageBuffer, MAX_MESSAGE_SIZE, "%s:\n", preamble());
+        vsnprintf(messageBuffer + offset, MAX_MESSAGE_SIZE - offset, cstr(format), args);
+    }
+
+    template <typename T> void printExceptionWithLine(const char* file, int line, T format, va_list args)
+    {
+        int offset = snprintf(messageBuffer, MAX_MESSAGE_SIZE, "%s (%s:%d):\n", preamble(), file, line);
+        vsnprintf(messageBuffer + offset, MAX_MESSAGE_SIZE - offset, cstr(format), args);
+    }
 
     static const int MAX_MESSAGE_SIZE = 1025;
     char messageBuffer[MAX_MESSAGE_SIZE];
     
 public:
-	Exception(const char * message="")                                                      {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s", message);}
-	Exception(const char * message, const int arg)                                          {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %d", message, arg);}
+    Exception(const char * message="")                                                      {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s", message);}
+    Exception(const char * message, const int arg)                                          {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %d", message, arg);}
     Exception(const char * message, const int arg1,    const int arg2)                      {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %d, %d", message, arg1, arg2);}
-	Exception(const char * message, const int arg1,    const char * arg2)                   {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %d, %s", message, arg1, arg2);}
-	Exception(const char * message, const int arg1,    const char* arg2,  const char* arg3) {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %d, %s, %s", message, arg1, arg2, arg3);}
-	Exception(const char * message, const int arg1,    const int arg2,    const int arg3)   {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %d, %d, %d", message, arg1, arg2, arg3);}
-	Exception(const char * message, const char * arg)                                       {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s", message, arg);}
-	Exception(const char * message, const char * arg1, const char* arg2)                    {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s, %s", message, arg1, arg2);}
+    Exception(const char * message, const int arg1,    const char * arg2)                   {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %d, %s", message, arg1, arg2);}
+    Exception(const char * message, const int arg1,    const char* arg2,  const char* arg3) {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %d, %s, %s", message, arg1, arg2, arg3);}
+    Exception(const char * message, const int arg1,    const int arg2,    const int arg3)   {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %d, %d, %d", message, arg1, arg2, arg3);}
+    Exception(const char * message, const char * arg)                                       {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s", message, arg);}
+    Exception(const char * message, const char * arg1, const char* arg2)                    {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s, %s", message, arg1, arg2);}
     Exception(const char * message, const char * arg1, const char* arg2,  const char* arg3) {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s, %s, %s", message, arg1, arg2, arg3);}
     Exception(const char * message, const char * arg1, const int arg2)                      {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s, %d", message, arg1, arg2);}
     Exception(const char * message, const char * arg1, const int arg2,    const int arg3)   {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s, %d, %d", message, arg1, arg2, arg3);}
     Exception(const char * message, const int arg,     const char * file, const int line)   {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %d (%s:%d)", message, arg, file, line);}
     Exception(const char * message, const char * arg,  const char * file, const int line)   {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s (%s:%d)", message, arg, file, line);}
-	virtual ~Exception() throw() {}
-	virtual const char * what() const throw() {return messageBuffer;}
+    virtual ~Exception() throw() {}
+
+    virtual const char* preamble() const throw() {return "Exception";}
+    virtual const char* what() const throw() {return messageBuffer;}
 };
 
 class CommandLineArgumentException : public Exception
 {
 public:
-	CommandLineArgumentException(const char* message) : Exception(message) {}
+    CommandLineArgumentException(const char* message) : Exception(message) {}
     CommandLineArgumentException(const char* message, const char* arg1) : Exception(message, arg1) {}
 //    virtual ~CommandLineArgumentException() throw() {}
 };
@@ -102,34 +109,43 @@ public:
 class ConsistencyException : public Exception
 {
 public:
-	ConsistencyException(const char * format, ...): Exception()
-	{
-		int offset = snprintf(messageBuffer, MAX_MESSAGE_SIZE, "%s: ", "Consistency exception");
-		va_list args;
-		va_start (args, format);
-		vsnprintf(messageBuffer + offset, MAX_MESSAGE_SIZE - offset, format, args);
-		va_end (args);
-	}
+    virtual const char* preamble() const throw() {return "Consistency exception";}
+
+    template <typename T> ConsistencyException(T format, ...): Exception()
+    {
+        va_list args;
+        va_start (args, format);
+        printException(format, args);
+        va_end (args);
+    }
+
+    template <typename T> ConsistencyException(int line, const char *file, T format, ...): Exception()
+    {
+        va_list args;
+        va_start (args, format);
+        printExceptionWithLine(file, line, format, args);
+        va_end (args);
+    }
 };
 
 class InputException : public Exception
 {
 public:
-	InputException(const char* format, ...): Exception()
-	{
-		int offset = snprintf(messageBuffer, MAX_MESSAGE_SIZE, "%s: ", "Input exception");
-		va_list args;
-		va_start (args, format);
-		vsnprintf(messageBuffer + offset, MAX_MESSAGE_SIZE - offset, format, args);
-		va_end (args);
-	}
+    virtual const char* preamble() const throw() {return "Input exception";}
 
-    InputException(int line, const char *file, const char* format, ...): Exception()
+    template <typename T> InputException(T format, ...): Exception()
     {
-        int offset = snprintf(messageBuffer, MAX_MESSAGE_SIZE, "%s (%s:%d): ", "Input exception", file, line);
         va_list args;
         va_start (args, format);
-        vsnprintf(messageBuffer + offset, MAX_MESSAGE_SIZE - offset, format, args);
+        printException(format, args);
+        va_end (args);
+    }
+
+    template <typename T> InputException(int line, const char *file, T format, ...): Exception()
+    {
+        va_list args;
+        va_start (args, format);
+        printExceptionWithLine(file, line, format, args);
         va_end (args);
     }
 };
@@ -137,8 +153,8 @@ public:
 class InvalidArgException : public Exception
 {
 public:
-	InvalidArgException(const char* argMessage) : Exception("Invalid argument", argMessage) {}
-	InvalidArgException(const char* arg, const char* argMessage) : Exception("Invalid argument", arg, argMessage) {}
+    InvalidArgException(const char* argMessage) : Exception("Invalid argument", argMessage) {}
+    InvalidArgException(const char* arg, const char* argMessage) : Exception("Invalid argument", arg, argMessage) {}
     InvalidArgException(const char* arg, const char* argMessage, const char * argMessageParameter) : Exception("Invalid argument", arg, argMessage, argMessageParameter) {}
     InvalidArgException(const char* arg, const char* argMessage, const int argMessageParameter) : Exception("Invalid argument", arg, argMessage, argMessageParameter) {}
     InvalidArgException(const char* arg, const char* argMessage, const int argMessageParameter1, const int argMessageParameter2) : Exception() {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s, %s (%d,%d)", "Invalid argument", arg, argMessage, argMessageParameter1, argMessageParameter2);}
@@ -149,28 +165,43 @@ public:
 class IOException : public Exception
 {
 public:
-    IOException(const std::string message) : Exception("IO exception", message.c_str()) {}
-    IOException(const char* message, const char* arg) : Exception("IO exception", message, arg) {}
-    IOException(const char* message, const int arg) : Exception("IO exception", message, arg) {}
-//    virtual ~IOException() throw() {}
+    virtual const char* preamble() const throw() {return "IO exception";}
+
+    template <typename T> IOException(T format, ...): Exception()
+    {
+        va_list args;
+        va_start (args, format);
+        printException(format, args);
+        va_end (args);
+    }
+
+    template <typename T> IOException(int line, const char *file, T format, ...): Exception()
+    {
+        va_list args;
+        va_start (args, format);
+        printExceptionWithLine(file, line, format, args);
+        va_end (args);
+    }
 };
 
 class NotFoundException : public Exception
 {
 public:
-    NotFoundException(const char* format, ...): Exception()
+    virtual const char* preamble() const throw() {return "Not found exception";}
+
+    template <typename T> NotFoundException(T format, ...): Exception()
     {
         va_list args;
         va_start (args, format);
-        printException("Not found exception", format, args);
+        printException(format, args);
         va_end (args);
     }
 
-    NotFoundException(int line, const char *file, const char* format, ...): Exception()
+    template <typename T> NotFoundException(int line, const char *file, T format, ...): Exception()
     {
         va_list args;
         va_start (args, format);
-        printExceptionWithLine("Not found exception", file, line, format, args);
+        printExceptionWithLine(file, line, format, args);
         va_end (args);
     }
 };
@@ -178,19 +209,21 @@ public:
 class NullPointerException : public Exception
 {
 public:
-    NullPointerException(const char* format, ...): Exception()
+    virtual const char* preamble() const throw() {return "Null pointer exception -> attempted to dereference a pointer to NULL";}
+
+    template <typename T> NullPointerException(T format, ...): Exception()
     {
         va_list args;
         va_start (args, format);
-        printException("Null pointer exception -> attempted to derefrence a pointer to NULL", format, args);
+        printException(format, args);
         va_end (args);
     }
 
-    NullPointerException(int line, const char *file, const char* format, ...): Exception()
+    template <typename T> NullPointerException(int line, const char *file, T format, ...): Exception()
     {
         va_list args;
         va_start (args, format);
-        printExceptionWithLine("Null pointer exception -> attempted to derefrence a pointer to NULL", file, line, format, args);
+        printExceptionWithLine(file, line, format, args);
         va_end (args);
     }
 };
@@ -198,39 +231,43 @@ public:
 class RuntimeException : public Exception
 {
 public:
-	RuntimeException(const char* format, ...): Exception()
-	{
-		va_list args;
-		va_start (args, format);
-		printException("Runtime exception", format, args);
-		va_end (args);
-	}
+    virtual const char* preamble() const throw() {return "Runtime exception";}
 
-	RuntimeException(int line, const char *file, const char* format, ...): Exception()
-	{
-		va_list args;
-		va_start (args, format);
-		printExceptionWithLine("Runtime exception", file, line, format, args);
-		va_end (args);
-	}
+    template <typename T> RuntimeException(T format, ...): Exception()
+    {
+        va_list args;
+        va_start (args, format);
+        printException(format, args);
+        va_end (args);
+    }
+
+    template <typename T> RuntimeException(int line, const char *file, T format, ...): Exception()
+    {
+        va_list args;
+        va_start (args, format);
+        printExceptionWithLine(file, line, format, args);
+        va_end (args);
+    }
 };
 
 class UnimplementedException : public Exception
 {
 public:
-    UnimplementedException(const char* format, ...): Exception()
+    virtual const char* preamble() const throw() {return "Unimplemented exception";}
+
+    template <typename T> UnimplementedException(T format, ...): Exception()
     {
         va_list args;
         va_start (args, format);
-        printException("Unimplemented exception", format, args);
+        printException(format, args);
         va_end (args);
     }
 
-    UnimplementedException(int line, const char *file, const char* format, ...): Exception()
+    template <typename T> UnimplementedException(int line, const char *file, T format, ...): Exception()
     {
         va_list args;
         va_start (args, format);
-        printExceptionWithLine("Unimplemented exception", file, line, format, args);
+        printExceptionWithLine(file, line, format, args);
         va_end (args);
     }
 };

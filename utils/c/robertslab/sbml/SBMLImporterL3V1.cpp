@@ -721,13 +721,13 @@ double SBMLImporterL3V1::convertTimeToSeconds(double value, string units)
         if (unitDef->getNumUnits() == 1 && unitDef->getUnit(0)->getKind() == UNIT_KIND_SECOND && unitDef->getUnit(0)->getExponent() == 1)
             return value*unitDef->getUnit(0)->getMultiplier()*pow(10,unitDef->getUnit(0)->getScale());
         else
-            throw Exception("Unsupported volume unit definition", unitDef->toSBML());
+            throw Exception("Unsupported time unit definition", unitDef->toSBML());
     }
 
     // Otherwise, throw an exception.
     else
     {
-        throw Exception("Unsupported volume units", units.c_str());
+        throw Exception("Unsupported time units", units.c_str());
     }
 }
 

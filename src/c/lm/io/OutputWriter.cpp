@@ -71,7 +71,8 @@ namespace lm {
 namespace io {
 
 OutputWriter::OutputWriter()
-:condenseOutput(false),outputFilename(""),recordNamePrefix(""),communicator(lm::MPI::worldRank, threadNumber),messageQueueSize(0)
+:condenseOutput(false),outputFilename(""),recordNamePrefix(""),communicator(lm::MPI::worldRank, threadNumber),
+ messageQueueSize(0),trajectoryPrefix("/Simulations")
 {
     // set the record name prefix
     setRecordNamePrefix();
@@ -106,6 +107,25 @@ void OutputWriter::wake() throw(lm::thread::PthreadException)
     lm::message::Message msg;
     msg.mutable_ping_target()->set_id(0);
     communicator.sendMessage(communicator.getSourceProcess(), communicator.getSourceThread(), &msg);
+}
+
+string OutputWriter::getMessageTrajectoryID(const google::protobuf::Message& data) const
+{
+    const google::protobuf::Reflection* reflection = data.GetReflection();
+    const google::protobuf::Descriptor* descriptor = data.GetDescriptor();
+
+    stringstream trajID;
+
+    const google::protobuf::FieldDescriptor* trajIDDescriptor = descriptor->FindFieldByName("trajectory_id");
+    if (trajIDDescriptor!=NULL and (trajIDDescriptor->label()!=google::protobuf::FieldDescriptor::LABEL_OPTIONAL or reflection->HasField(data, trajIDDescriptor)))
+    {
+        // the message has a trajectory_id field, now make sure it's the right type
+         if (trajIDDescriptor->type()==google::protobuf::FieldDescriptor::TYPE_UINT64)
+              trajID << reflection->GetUInt64(data, trajIDDescriptor);
+    }
+
+    // if no trajectory_id field or it was the wrong type this will be an empty string
+    return trajID.str();
 }
 
 int OutputWriter::run()
@@ -240,22 +260,32 @@ int OutputWriter::run()
 
 void OutputWriter::setRecordNamePrefix()
 {
-    if (recordNamePrefixGlobal!=recordNamePrefixCurrent)
-    {
-        recordNamePrefixCurrent = "";
-        recordNamePrefix = recordNamePrefixGlobal;
-        lm::Print::printf(Print::DEBUG, "Using record name prefix: %s", recordNamePrefix.c_str());
-    }
+    // avoid setting the prefix if it hasn't changed
+    if (recordNamePrefixGlobal==recordNamePrefixCurrent) return;
+
+    recordNamePrefixCurrent = "";
+    recordNamePrefix = recordNamePrefixGlobal;
+    lm::Print::printf(Print::DEBUG, "Using record name prefix: %s", recordNamePrefix.c_str());
 }
 
 void OutputWriter::setRecordNamePrefix(const std::string& newRecordNamePrefix)
 {
-    if (newRecordNamePrefix!=recordNamePrefixCurrent)
-    {
-        recordNamePrefixCurrent = newRecordNamePrefix;
-        recordNamePrefix.assign(pathJoin(recordNamePrefixGlobal, newRecordNamePrefix));
-        lm::Print::printf(Print::DEBUG, "Using record name prefix: %s", recordNamePrefix.c_str());
-    }
+    // avoid setting the prefix if it hasn't changed
+    if (newRecordNamePrefix==recordNamePrefixCurrent) return;
+
+    recordNamePrefixCurrent = newRecordNamePrefix;
+    recordNamePrefix.assign(pathJoin(recordNamePrefixGlobal, newRecordNamePrefix));
+    lm::Print::printf(Print::DEBUG, "Using record name prefix: %s", recordNamePrefix.c_str());
+}
+
+void OutputWriter::setTrajectoryPrefix(const std::string& newTrajectoryPrefix)
+{
+    // avoid setting the prefix if it hasn't changed
+    if (newTrajectoryPrefix==trajectoryPrefix) return;
+
+    stringstream trajPrefixSS;
+    trajPrefixSS << "/" << strip(newTrajectoryPrefix);
+    trajectoryPrefix.assign(trajPrefixSS.str());
 }
 
 OutputWriter::HelperThread::HelperThread(OutputWriter* p)
@@ -401,11 +431,14 @@ int OutputWriter::HelperThread::run()
 
                         for (FieldDescriptors::const_iterator it=fields.begin();it!=fields.end();it++)
                         {
-                            if ((*it)->label()==google::protobuf::FieldDescriptor::LABEL_OPTIONAL and (*it)->type()==google::protobuf::FieldDescriptor::TYPE_MESSAGE)
+                            if ((*it)->label()==google::protobuf::FieldDescriptor::LABEL_REPEATED and (*it)->type()==google::protobuf::FieldDescriptor::TYPE_MESSAGE)
+                            {
+                                p->processGenericMessage(reflection->GetMessage(outputGeneric, *it));
+                            }
+                            else if ((*it)->label()==google::protobuf::FieldDescriptor::LABEL_OPTIONAL and (*it)->type()==google::protobuf::FieldDescriptor::TYPE_MESSAGE)
                             {
                                 if (reflection->HasField(outputGeneric, *it))
                                 {
-//                                    processGenericMessage(reflection->GetMessage(outputGeneric, *it));
                                     p->processGenericMessage(reflection->GetMessage(outputGeneric, *it));
                                 }
                             }
@@ -413,7 +446,6 @@ int OutputWriter::HelperThread::run()
                             {
                                 for (int j=0;j<reflection->FieldSize(outputGeneric, *it);j++)
                                 {
-//                                    processGenericMessage(reflection->GetRepeatedMessage(outputGeneric, *it, j));
                                     p->processGenericMessage(reflection->GetRepeatedMessage(outputGeneric, *it, j));
                                 }
                             }

@@ -1117,14 +1117,16 @@ std::string FFluxSupervisor::currentStageInfo(bool path, const lm::fflux::input:
     stringstream stageInfo;
     if (path)
     {
-        stageInfo << "/Tilings/" << _stage.tiling().id();     //setfill('0') << setw(7) << _stage.tiling().id();
-        stageInfo << "/Basins/" << _stage.tiling().current_basin_id();    //setfill('0') << setw(7) << _stage.tiling().current_basin_id();
-        stageInfo << "/Stages/" << _stage.name();
+        stageInfo << "/Simulations/" << _stage.replicate_id();
+        stageInfo << "/Tilings/"     << _stage.tiling().id();     //setfill('0') << setw(7) << _stage.tiling().id();
+        stageInfo << "/Basins/"      << _stage.tiling().current_basin_id();    //setfill('0') << setw(7) << _stage.tiling().current_basin_id();
+        stageInfo << "/Stages/"      << _stage.name();
     }
     else 
     {
-        stageInfo << "tiling_id: " << _stage.tiling().id();
-        stageInfo << ", basin_id: " << _stage.tiling().current_basin_id();
+        stageInfo << "replicate_id: " << _stage.replicate_id();
+        stageInfo << ", tiling_id: "  << _stage.tiling().id();
+        stageInfo << ", basin_id: "   << _stage.tiling().current_basin_id();
         stageInfo << ", stage_type: " << _stage.name();
     }
 

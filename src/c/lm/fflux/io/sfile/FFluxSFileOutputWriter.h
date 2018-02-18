@@ -36,97 +36,60 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#include <pthread.h>
-#include <sys/time.h>
-#include <time.h>
+#ifndef FFLUX_LM_IO_FFluxSFILEOutputWriter
+#define FFLUX_LM_IO_FFluxSFILEOutputWriter
 
-#include "hrtime.h"
-#include "lm/Print.h"
-#include "lm/MPI.h"
+#include <google/protobuf/message.h>
+#include <string>
+
+#include "lm/io/DegreeAdvancementTimeSeries.pb.h"
+#include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/io/FFluxOutput.pb.h"
+#include "lm/io/LatticeTimeSeries.pb.h"
+#include "lm/io/LimitTracking.pb.h"
+#include "lm/io/OrderParameterFirstPassageTimes.pb.h"
+#include "lm/io/OrderParameterTimeSeries.pb.h"
 #include "lm/io/OutputWriter.h"
+#include "lm/io/sfile/SFileOutputWriter.h"
 #include "lm/io/SpeciesCounts.pb.h"
-#include "lm/main/SimulationSupervisor.h"
-#include "lm/message/Communicator.h"
-#include "lm/message/Message.pb.h"
-#include "lm/message/ProcessWorkUnitOutput.pb.h"
-#include "lm/message/StartedOutputWriter.pb.h"
-#include "lm/thread/Thread.h"
-#include "lm/thread/Worker.h"
-#include "lm/Types.h"
-
-#include "lptf/Profile.h"
-#include "lptf/ProfileCodes.h"
-
-
-#include <lm/ClassFactory.h>
-#include <lm/Print.h>
-#include "lm/io/NullOutputWriter.h"
-#include "lm/io/OutputWriter.h"
+#include "lm/io/SpeciesTimeSeries.pb.h"
+#include "lm/io/sfile/SFile.h"
 
 
 namespace lm {
+namespace fflux {
 namespace io {
+namespace sfile {
 
-
-bool NullOutputWriter::registered=NullOutputWriter::registerClass();
-
-bool NullOutputWriter::registerClass()
+class FFluxSFileOutputWriter : public lm::io::sfile::SFileOutputWriter
 {
-    lm::ClassFactory::getInstance().registerClass("lm::io::OutputWriter","lm::io::NullOutputWriter",&NullOutputWriter::allocateObject);
-    return true;
-}
+public:
+    static bool registered;
+    static bool registerClass();
+    static void* allocateObject();
 
-void* NullOutputWriter::allocateObject()
-{
-    return new NullOutputWriter();
-}
+public:
+    FFluxSFileOutputWriter(): lm::io::sfile::SFileOutputWriter() {}
+    virtual ~FFluxSFileOutputWriter() {}
 
-NullOutputWriter::NullOutputWriter()
-:secondsToDelay(0)
-{
-}
+protected:
+    virtual void processGenericMessage(const google::protobuf::Message& data);
 
-NullOutputWriter::~NullOutputWriter()
-{
-}
-
-void NullOutputWriter::checkpoint()
-{
-}
-
-void NullOutputWriter::flush()
-{
-}
-
-void NullOutputWriter::processGenericMessage(const google::protobuf::Message& data)
-{
-    if (secondsToDelay > 0)
-        sleep(secondsToDelay);
-}
-
-void NullOutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
-{
-    if (secondsToDelay > 0)
-        sleep(secondsToDelay);
-}
-
-void NullOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
-{
-    if (secondsToDelay > 0)
-        sleep(secondsToDelay);
-}
-
-void NullOutputWriter::processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data)
-{
-    if (secondsToDelay > 0)
-        sleep(secondsToDelay);
-}
-
-void NullOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)
-{
-    if (secondsToDelay > 0)
-        sleep(secondsToDelay);
-}
+    virtual void processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data);
+    virtual void processFFluxOutput(const lm::io::FFluxOutput& data);
+    virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
+    virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data);
+    virtual void processLimitTracking(const lm::io::LimitTracking& data);
+    virtual void processOrderParameterFirstPassageTimes(const lm::io::OrderParameterFirstPassageTimes& data);
+    virtual void processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data);
+    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
+    virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data);
+};
 
 }
 }
+}
+}
+
+
+#endif /* FFLUX_LM_IO_FFluxSFILEOutputWriter */

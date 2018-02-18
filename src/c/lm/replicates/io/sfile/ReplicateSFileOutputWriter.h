@@ -36,55 +36,66 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+#ifndef REPLICATE_LM_IO_ReplicateSFILEOutputWriter
+#define REPLICATE_LM_IO_ReplicateSFILEOutputWriter
 
-#ifndef LM_IO_CONSOLEOUTPUTWRITER
-#define LM_IO_CONSOLEOUTPUTWRITER
+#include <google/protobuf/message.h>
+#include <string>
 
-#include <queue>
-#include <cstring>
-
+#include "lm/io/DegreeAdvancementTimeSeries.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/io/FFluxOutput.pb.h"
 #include "lm/io/LatticeTimeSeries.pb.h"
-#include "lm/Math.h"
+#include "lm/io/LimitTracking.pb.h"
+#include "lm/io/OrderParameterFirstPassageTimes.pb.h"
+#include "lm/io/OrderParameterTimeSeries.pb.h"
 #include "lm/io/OutputWriter.h"
+#include "lm/io/sfile/SFileOutputWriter.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
+#include "lm/io/sfile/SFile.h"
 
 namespace lm {
+namespace replicates {
 namespace io {
+namespace sfile {
 
-class ConsoleOutputWriter : public OutputWriter
+class ReplicateSFileOutputWriter : public lm::io::sfile::SFileOutputWriter
 {
-public:
-    static const int BUFFER_SIZE=MEBI;
-
 public:
     static bool registered;
     static bool registerClass();
     static void* allocateObject();
 
 public:
-    ConsoleOutputWriter();
-    virtual ~ConsoleOutputWriter();
-    virtual void initialize();
+    ReplicateSFileOutputWriter(): lm::io::sfile::SFileOutputWriter() {}
+    virtual ~ReplicateSFileOutputWriter() {}
 
 protected:
-    virtual void checkpoint();
-    virtual void flush();
+//    template <typename T>
+//    virtual void initName(char* buffer, const T& data)
+//    {
+//        memset(buffer, 0, RECORD_NAME_BUFFER_MAX_SIZE+1);
+//        snprintf(buffer,RECORD_NAME_BUFFER_MAX_SIZE,"%s/Simulations/%llu/OrderParameterTimeSeries", recordNamePrefix.c_str(), data.trajectory_id());
+//    }
+//    virtual void initNameGeneric(char* buffer, const google::protobuf::Message& data);
 
     virtual void processGenericMessage(const google::protobuf::Message& data);
 
+    virtual void processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data);
+    virtual void processFFluxOutput(const lm::io::FFluxOutput& data);
     virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
+    virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data);
+    virtual void processLimitTracking(const lm::io::LimitTracking& data);
+    virtual void processOrderParameterFirstPassageTimes(const lm::io::OrderParameterFirstPassageTimes& data);
+    virtual void processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data);
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
     virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data);
-    virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data);
-
-private:
-    char* buffer;
 };
 
 }
 }
+}
+}
 
-
-#endif
+#endif /* REPLICATE_LM_IO_ReplicateSFILEOutputWriter */

@@ -116,7 +116,7 @@ void SimulationParameters::printParsed() const
 void SimulationParameters::printUnparsed() const
 {
     stringstream outputSS;
-    outputSS << "The following simulation parameters in the input file were not recognized during parsing:\n";
+    outputSS << "Invalid parameters. The following simulation parameters in the input file were not recognized during parsing:\n";
     outputSS << setw(20) << "KEY" << " " << setw(20) << "VALUE" << "\n";
 
 
@@ -125,7 +125,8 @@ void SimulationParameters::printUnparsed() const
         outputSS << setw(20) << it->first << " " << setw(20) << it->second << "\n";
     }
 
-    Print::printf(Print::WARNING, outputSS.str().c_str());
+    // There were user parameters we couldn't parse, kill the simulation
+    THROW_EXCEPTION(InputException, outputSS.str().c_str());
 }
 
 // mutators

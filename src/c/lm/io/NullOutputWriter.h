@@ -64,15 +64,15 @@ public:
     virtual ~NullOutputWriter();
 
 protected:
-    virtual void flush();
     virtual void checkpoint();
+    virtual void flush();
+
+    virtual void processGenericMessage(const google::protobuf::Message& data);
 
     virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
     virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
     virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data);
     virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data);
-
-    virtual void processGenericMessage(const google::protobuf::Message& data);
 
 private:
     int secondsToDelay;

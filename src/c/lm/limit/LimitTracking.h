@@ -97,9 +97,9 @@ public:
             // return true if count greater than or equal to maxCount, false otherwise
             return (count >= maxCount);
         }
-            // if the limit tracking does not have a countdown, by default we never terminate
         else
         {
+            // if this limit tracking does not have a countdown, by default we never terminate
             return false;
         }
     }

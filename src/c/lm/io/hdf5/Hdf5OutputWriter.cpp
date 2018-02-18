@@ -214,7 +214,7 @@ void Hdf5OutputWriter::setRecordNamePrefix()
     // call the parent class method
     OutputWriter::setRecordNamePrefix();
 
-    // call the hdf5 file class method
+    // call the same method in SimulationFile
     file->setRecordNamePrefix(recordNamePrefix);
 }
 
@@ -223,7 +223,7 @@ void Hdf5OutputWriter::setRecordNamePrefix(const std::string& newRecordNamePrefi
     // call the parent class method
     OutputWriter::setRecordNamePrefix(newRecordNamePrefix);
 
-    // call the hdf5 file class method
+    // call the same method in SimulationFile
     file->setRecordNamePrefix(recordNamePrefix);
 }
 

@@ -102,10 +102,25 @@ void printCopyright(int argc, char** argv)
  */
 void parseArguments(int argc, char** argv, bool printInfo)
 {
-    // We need to know if FFPilot is being used before we set default cmd line option values, so parse it out by itself.
+    // Set any default options.
+    cpuCores = -1;
+    cpuCoresPerRunner = 1.0;
     ffluxFlag = false;
+    gpuDevices = -1;
+#ifdef OPT_CUDA
+    gpuDevicesPerRunner = 1.0;
+#else
+    gpuDevicesPerRunner = 0.0;
+#endif
+    ioTestFlag = false;
+    shouldPrintGPUCapabilities = true;
+    shouldReserveOutputCore = true;
+    simulationInputFilenames.clear();
+    simulationOutputFilename = "";
     supervisorClassName = "lm::replicates::ReplicateSupervisor";
+    useCPUAffinity = false;
 
+    // pre-parse the -fflux flag, since it affects the default values of other cmd line args
     for (int i=1; i<argc; i++)
     {
         char *option = argv[i];
@@ -119,49 +134,29 @@ void parseArguments(int argc, char** argv, bool printInfo)
         }
     }
 
-    // Set any default options.
-    replicates.clear();
-    replicates.push_back(1);
-
-    cpuCores = -1;
-    cpuCoresPerRunner = 1.0;
-    useCPUAffinity = false;
-    gpuDevices = -1;
-#ifdef OPT_CUDA
-    gpuDevicesPerRunner = 1.0;
-#else
-    gpuDevicesPerRunner = 0.0;
-#endif
-    shouldPrintGPUCapabilities = true;
-
-    simulationInputFilenames.clear();
-    simulationOutputFilename = "";
+    // Set some default arg vals based on presence of -fflux flag
     if (ffluxFlag)
     {
-        // FFPilot currently only supports SFile output
-        outputWriterClassName = "lm::io::sfile::SFileOutputWriter";
-    }
-    else
-    {
-        outputWriterClassName = "lm::io::hdf5::Hdf5OutputWriter";
-    }
+        // FFPilot defaults to SFile output (hdf5 is only partially implemented)
+        outputWriterClassName = "lm::fflux::io::sfile::FFluxSFileOutputWriter";
 
-#ifdef OPT_AVX
-    if (ffluxFlag)
-    {
+        replicates.clear();
+        replicates.push_back(0);
+
         // FFPilot currently can't use the AVX solver, even if it is available
         solverClassName = "lm::cme::GillespieDSolver";
     }
     else
     {
+        outputWriterClassName = "lm::io::hdf5::Hdf5OutputWriter";
+        replicates.clear();
+        replicates.push_back(1);
+#ifdef OPT_AVX
         solverClassName = "lm::avx::GillespieDSolverAVX";
-    }
 #else
-    solverClassName = "lm::cme::GillespieDSolver";
+        solverClassName = "lm::cme::GillespieDSolver";
 #endif
-
-    shouldReserveOutputCore = true;
-    ioTestFlag = false;
+    }
 
     // Parse any arguments.
     for (int i=1; i<argc; i++)
@@ -468,7 +463,12 @@ string parseOutputFormatArg(char* option)
     if (strcmp(option, "hdf5") == 0)
         return "lm::io::hdf5::Hdf5OutputWriter";
     else if (strcmp(option, "sfile") == 0)
-        return "lm::io::sfile::SFileOutputWriter";
+    {
+        if (ffluxFlag)
+            return "lm::fflux::io::sfile::FFluxSFileOutputWriter";
+        else
+            return "lm::replicate::io::sfile::ReplicateSFileOutputWriter";
+    }
     else if (strcmp(option, "log") == 0)
         return "lm::io::ConsoleOutputWriter";
     else if (strcmp(option, "null") == 0)

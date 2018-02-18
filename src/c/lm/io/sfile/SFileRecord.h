@@ -34,7 +34,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #ifndef LM_IO_SFILE_SFILERECORD_H
@@ -42,8 +42,6 @@
 
 #include <string>
 #include "lm/Types.h"
-
-using std::string;
 
 namespace lm {
 namespace io {
@@ -53,13 +51,54 @@ class SFileRecord
 {
 public:
     static const char RECORD_SEPARATOR[16];
+    static const int NAME_BUFFER_MAX_SIZE=256;
 
 public:
     SFileRecord();
-    SFileRecord(string name, string type, int64_t dataSize);
-    string name;
-    string type;
+    SFileRecord(const std::string& name, const std::string& type, int64_t dataSize);
+
+    template <typename T>
+    inline void setName(const T& newName)
+    {
+        name.assign(newName);
+    }
+
+    template <typename T>
+    void setName(const char* fmt, const T arg0)
+    {
+        char buffer[NAME_BUFFER_MAX_SIZE+1];
+        memset(buffer, 0, NAME_BUFFER_MAX_SIZE+1);
+        snprintf(buffer, NAME_BUFFER_MAX_SIZE, fmt, arg0);
+
+        name.assign(buffer);
+    }
+
+    template <typename T, typename U>
+    void setName(const char* fmt, const T arg0, const U arg1, const std::string& type, int64_t dataSize)
+    {
+        char buffer[NAME_BUFFER_MAX_SIZE+1];
+        memset(buffer, 0, NAME_BUFFER_MAX_SIZE+1);
+        snprintf(buffer, NAME_BUFFER_MAX_SIZE, fmt, arg0, arg1);
+
+        name.assign(buffer);
+    }
+
+    template <typename T, typename U, typename V>
+    void setName(const char* fmt, const T arg0, const U arg1, const V arg2, const std::string& type, int64_t dataSize)
+    {
+        char buffer[NAME_BUFFER_MAX_SIZE+1];
+        memset(buffer, 0, NAME_BUFFER_MAX_SIZE+1);
+        snprintf(buffer, NAME_BUFFER_MAX_SIZE, fmt, arg0, arg1, arg2);
+
+        name.assign(buffer);
+    }
+
+    std::string name;
+    std::string type;
     int64_t dataSize;
+
+protected:
+    inline void normalizeName();
 };
 
 }

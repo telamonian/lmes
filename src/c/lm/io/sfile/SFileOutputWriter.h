@@ -61,43 +61,24 @@ namespace sfile {
 class SFileOutputWriter : public OutputWriter
 {
 public:
-    static bool registered;
-    static bool registerClass();
-    static void* allocateObject();
-
-public:
     SFileOutputWriter();
     virtual ~SFileOutputWriter();
     virtual void initialize();
     virtual void finalize();
 
 protected:
-    static const int RECORD_NAME_BUFFER_MAX_SIZE=256;
+    SFile* file;
 
 protected:
     virtual void checkpoint();
     virtual void flush();
 
-    virtual void processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data);
-    virtual void processFFluxOutput(const lm::io::FFluxOutput& data);
-    virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
-    virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data);
-    virtual void processLimitTracking(const lm::io::LimitTracking& data);
-    virtual void processOrderParameterFirstPassageTimes(const lm::io::OrderParameterFirstPassageTimes& data);
-    virtual void processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data);
-    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
-    virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data);
-
     virtual void processMessage(const string& prefixedNameString, const string& typeString, const google::protobuf::Message& data);
     virtual void processGenericMessage(const google::protobuf::Message& data);
-
-private:
-    SFile* file;
 };
 
 }
 }
 }
 
-
-#endif
+#endif /* LM_IO_SFILEOutputWriter */

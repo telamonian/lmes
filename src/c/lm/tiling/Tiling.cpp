@@ -155,9 +155,9 @@ bool Tiling::testBasinPosition(int basinIndex) const
     int basinTileIndex = getTileIndexFromBasin(basinIndex);
     if (basinTileIndex!=0 and basinTileIndex!=getLastTileIndex())
     {
-        throw ConsistencyException("Basin %d in tiling ID %d located in tile with index %d. Should be in first or last tile", basinIndex, id(), basinTileIndex);
-        // unreachable. Pro forma?
-        return false;
+        THROW_EXCEPTION(ConsistencyException, "Basin %d in tiling ID %d located within tile with index %d.\n"
+                        "All basins should be in first or last tile (ie in front of the zeroth edge or\n"
+                        "behind the last edge)", basinIndex, id(), basinTileIndex);
     }
     return true;
 }
@@ -175,9 +175,8 @@ bool Tiling::testBasinSize(int basinIndex, lm::input::ReactionModel& reactionMod
 {
     if (basins(basinIndex).species_count_size()!=reactionModel.number_species())
     {
-        throw ConsistencyException("Basin %d in tiling ID %d has %d species count entries. Should have %d", basinIndex, id(), basins(basinIndex).species_count_size(), reactionModel.number_reactions());
-        // unreachable. Pro forma?
-        return false;
+        THROW_EXCEPTION(ConsistencyException, "Basin %d in tiling ID %d has %d species count entries. Should have %d",
+                        basinIndex, id(), basins(basinIndex).species_count_size(), reactionModel.number_reactions());
     }
     return true;
 }

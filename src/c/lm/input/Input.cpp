@@ -78,16 +78,16 @@ void* Input::allocateObject(const vector<string>& inputFilenames)
 Input::Input()
 :degreeAdvancementPresent(false),diffusionModelPresent(false),reactionModelPresent(false),
  orderParametersPresent(false),outputOptionsPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),
- limitTrackingListWrap(&limitTrackingListMsg),includeEndpointInLimits(true),partsPerWorkUnit(1),
- stepsPerWorkUnit((uint64_t)1e8),minRateConstant(std::numeric_limits<double>::infinity())
+ limitTrackingListWrap(&limitTrackingListMsg),includeEndpointInLimits(true),
+ minRateConstant(std::numeric_limits<double>::infinity())
 {
 }
 
 Input::Input(const vector<string>& inputFilenames)
 :degreeAdvancementPresent(false),diffusionModelPresent(false),reactionModelPresent(false),
  orderParametersPresent(false),outputOptionsPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),
- limitTrackingListWrap(&limitTrackingListMsg),includeEndpointInLimits(true),partsPerWorkUnit(1),
- stepsPerWorkUnit((uint64_t)1e8),minRateConstant(std::numeric_limits<double>::infinity())
+ limitTrackingListWrap(&limitTrackingListMsg),includeEndpointInLimits(true),
+ minRateConstant(std::numeric_limits<double>::infinity())
 {
     init(inputFilenames);
 }
@@ -123,14 +123,16 @@ void Input::readHDF5Input(const lm::io::hdf5::Hdf5File& file)
 {
     simulationParameters.rFF(file);
 
+    // read in user defined options/parameters
+    initOptions(file);
+    initOutputOptions(file);
+
     // reaction model should be inited first, since it is used in some of the other inits
     initReactionModel(file);
     initDiffusionModel(file);
     initOrderParameters(file);
     initTilings(file);
     initTrajectoryLimits(file);
-    initOutputOptions(file);
-    initWorkUnitParameters(file);
 
     // warn the user about any unrecognized/unparsed simulation parameters
     initSanityCheck();
@@ -206,9 +208,12 @@ void Input::initTilings(const lm::io::hdf5::Hdf5File& file)
     {
         file.getTilings(&tilingsMsg);
         tilings.init(&file, orderParameters);
-        // run a consistency check on the basins in the tiling (if any)
+
+        // run a consistency check on the basins in the tilings
         tilings.testBasinsPosition();
         tilings.testBasinsSize(reactionModelMsg);
+
+        //
         tilingsPresent = true;
     }
 }
@@ -228,14 +233,22 @@ void Input::initTrajectoryLimits(const lm::io::hdf5::Hdf5File& file)
     }
 
     // set the other limits, if present in the simulation parameters
-    degreeAdvancementPresent = parseAndSetLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementLowerLimitList", "degree advancement lower limit", TrajLimEnums::MIN, includeEndpointInLimits);
-    degreeAdvancementPresent = parseAndSetLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementUpperLimitList", "degree advancement upper limit", TrajLimEnums::MAX, includeEndpointInLimits);
+    if (parseAndSetLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementLowerLimitList", "degree advancement lower limit", TrajLimEnums::MIN, includeEndpointInLimits)) degreeAdvancementPresent = true;
+    if (parseAndSetLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementUpperLimitList", "degree advancement upper limit", TrajLimEnums::MAX, includeEndpointInLimits)) degreeAdvancementPresent = true;
 
     parseAndSetLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterLowerLimitList", "order parameter lower limit", TrajLimEnums::MIN, includeEndpointInLimits);
     parseAndSetLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterUpperLimitList", "order parameter upper limit", TrajLimEnums::MAX, includeEndpointInLimits);
 
     parseAndSetLimits<TrajLimEnums::SPECIES>("speciesLowerLimitList", "species lower limit", TrajLimEnums::MIN, includeEndpointInLimits);
     parseAndSetLimits<TrajLimEnums::SPECIES>("speciesUpperLimitList", "species upper limit", TrajLimEnums::MAX, includeEndpointInLimits);
+}
+
+// Get the general/misc options
+void Input::initOptions(const lm::io::hdf5::Hdf5File& file)
+{
+    // Get some parameters that tweak how work units are run
+    parseAndSet("partsPerWorkUnit", &Options::set_parts_per_work_unit, optionsMsg);
+    parseAndSet("stepsPerWorkUnit", &Options::set_steps_per_work_unit, optionsMsg);
 }
 
 // Get the output options.
@@ -255,20 +268,13 @@ void Input::initOutputOptions(const lm::io::hdf5::Hdf5File& file)
     parseAndSet("writeFinalTrajectoryState", &OutputOptions::set_write_final_trajectory_state, outputOptionsMsg);
 
     // Specify the period at which various outputs should be written out. Leave a WriteInterval unset to suppress its related output, or set a WriteInterval to a negative value to automatically set it
-    degreeAdvancementPresent = parseAndSetWriteInterval("degreeAdvancementWriteInterval", &OutputOptions::set_degree_advancement_write_interval, outputOptionsMsg, &OutputOptions::degree_advancement_write_interval);
-    parseAndSetWriteInterval("latticeWriteInterval",                                      &OutputOptions::set_lattice_write_interval,            outputOptionsMsg, &OutputOptions::lattice_write_interval);
-    parseAndSetWriteInterval("orderParameterWriteInterval",                               &OutputOptions::set_order_parameter_write_interval,    outputOptionsMsg, &OutputOptions::order_parameter_write_interval);
-    parseAndSetWriteInterval("writeInterval",                                             &OutputOptions::set_species_write_interval,            outputOptionsMsg, &OutputOptions::species_write_interval);
+    if (parseAndSetWriteInterval("degreeAdvancementWriteInterval", &OutputOptions::set_degree_advancement_write_interval, outputOptionsMsg, &OutputOptions::degree_advancement_write_interval)) degreeAdvancementPresent = true;
+    parseAndSetWriteInterval("latticeWriteInterval",               &OutputOptions::set_lattice_write_interval,            outputOptionsMsg, &OutputOptions::lattice_write_interval);
+    parseAndSetWriteInterval("orderParameterWriteInterval",        &OutputOptions::set_order_parameter_write_interval,    outputOptionsMsg, &OutputOptions::order_parameter_write_interval);
+    parseAndSetWriteInterval("writeInterval",                      &OutputOptions::set_species_write_interval,            outputOptionsMsg, &OutputOptions::species_write_interval);
 
     // Flag that globally controls whether any limit tracking data collected during a trajectory is written out directly to disk.
     parseAndSet("writeLimitTracking", &OutputOptions::set_write_limit_tracking, outputOptionsMsg);
-}
-
-// Get some parameters that tweak how work units are run
-void Input::initWorkUnitParameters(const lm::io::hdf5::Hdf5File& file)
-{
-    parseAndSet("maxWorkUnitSteps", &this->stepsPerWorkUnit);
-    parseAndSet("partsPerWorkUnit", &this->partsPerWorkUnit);
 }
 
 void Input::readSFileInput(lm::io::sfile::SFile& file)

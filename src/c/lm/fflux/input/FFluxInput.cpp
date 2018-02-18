@@ -88,18 +88,19 @@ void FFluxInput::readHDF5Input(const lm::io::hdf5::Hdf5File& file)
 {
     simulationParameters.rFF(file);
 
-    // run some initializers from the base class (but skip Limits and OutputOptions, as these need to be set every phase rather than just once)
-    initReactionModel(file);
-    initDiffusionModel(file);
-    initOrderParameters(file);
-    initTilings(file);
-    initWorkUnitParameters(file);
+    initOptions(file);
 
     // run some fflux specific intializers
     initFFluxOptions(file);
 
     // although reinitOutputOptions() will be run at least once more before any related values are actually used, run it once here so the sanity check works correctly
     reinitOutputOptions("", false);
+
+    // run some initializers from the base class (but skip Limits and OutputOptions, as these need to be set every phase rather than just once)
+    initReactionModel(file);
+    initDiffusionModel(file);
+    initOrderParameters(file);
+    initTilings(file);
 
     // warn the user about any unrecognized/unparsed simulation parameters
     initSanityCheck();
@@ -178,10 +179,10 @@ void FFluxInput::reinitOutputOptions(const std::string& recordNamePrefix, bool i
         parseAndSet("writeFinalTrajectoryState", &OutputOptions::set_write_final_trajectory_state, outputOptionsMsg, &defaultWriteState);
 
         // Specify the period at which various outputs should be written out. Leave a WriteInterval unset to suppress its related output, or set a WriteInterval to a negative value to automatically set it
-        degreeAdvancementPresent = parseAndSetWriteInterval("degreeAdvancementWriteInterval", &OutputOptions::set_degree_advancement_write_interval, outputOptionsMsg, &OutputOptions::degree_advancement_write_interval);
-        parseAndSetWriteInterval("latticeWriteInterval",                                      &OutputOptions::set_lattice_write_interval,            outputOptionsMsg, &OutputOptions::lattice_write_interval);
-        parseAndSetWriteInterval("orderParameterWriteInterval",                               &OutputOptions::set_order_parameter_write_interval,    outputOptionsMsg, &OutputOptions::order_parameter_write_interval);
-        parseAndSetWriteInterval("writeInterval",                                             &OutputOptions::set_species_write_interval,            outputOptionsMsg, &OutputOptions::species_write_interval);
+        if (parseAndSetWriteInterval("degreeAdvancementWriteInterval", &OutputOptions::set_degree_advancement_write_interval, outputOptionsMsg, &OutputOptions::degree_advancement_write_interval)) degreeAdvancementPresent = true;
+        parseAndSetWriteInterval("latticeWriteInterval",               &OutputOptions::set_lattice_write_interval,            outputOptionsMsg, &OutputOptions::lattice_write_interval);
+        parseAndSetWriteInterval("orderParameterWriteInterval",        &OutputOptions::set_order_parameter_write_interval,    outputOptionsMsg, &OutputOptions::order_parameter_write_interval);
+        parseAndSetWriteInterval("writeInterval",                      &OutputOptions::set_species_write_interval,            outputOptionsMsg, &OutputOptions::species_write_interval);
 
         // Flag that globally controls whether any limit tracking data collected during a trajectory is written out directly to disk.
         parseAndSet("writeLimitTracking", &OutputOptions::set_write_limit_tracking, outputOptionsMsg);

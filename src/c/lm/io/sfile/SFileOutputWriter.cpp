@@ -62,20 +62,6 @@ namespace lm {
 namespace io {
 namespace sfile {
 
-
-bool SFileOutputWriter::registered=SFileOutputWriter::registerClass();
-
-bool SFileOutputWriter::registerClass()
-{
-    lm::ClassFactory::getInstance().registerClass("lm::io::OutputWriter","lm::io::sfile::SFileOutputWriter",&SFileOutputWriter::allocateObject);
-    return true;
-}
-
-void* SFileOutputWriter::allocateObject()
-{
-    return new SFileOutputWriter();
-}
-
 SFileOutputWriter::SFileOutputWriter(): file(NULL) {}
 
 SFileOutputWriter::~SFileOutputWriter()
@@ -113,121 +99,24 @@ void SFileOutputWriter::flush()
     file->flush();
 }
 
-void SFileOutputWriter::processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data)
+void SFileOutputWriter::processMessage(const string& nameString, const string& typeString, const google::protobuf::Message& data)
 {
-    stringstream nameSS;
-    nameSS << "/Simulations/" << data.trajectory_id();
-    nameSS << "/DegreeAdvancementTimeSeries";
+    string prefixedNameString(recordNamePrefix);
+    prefixedNameString.append(nameString);
 
-    processMessage(nameSS.str(), "protobuf:lm.io.DegreeAdvancementTimeSeries", data);
-}
-
-void SFileOutputWriter::processFFluxOutput(const lm::io::FFluxOutput& data)
-{
-    processMessage("/FFluxOutput", "protobuf:lm.io.FFluxOutput", data);
-}
-
-void SFileOutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
-{
-    char buffer[RECORD_NAME_BUFFER_MAX_SIZE+1];
-    memset(buffer, 0, RECORD_NAME_BUFFER_MAX_SIZE+1);
-    snprintf(buffer,RECORD_NAME_BUFFER_MAX_SIZE,"%s/Simulations/%llu/FirstPassageTimes/%d", recordNamePrefix.c_str(), data.trajectory_id(), data.species());
-    SFileRecord record(string(buffer), string("protobuf:lm.io.FirstPassageTimes"), data.ByteSize());
-    file->writeSFileRecord(record);
-    file->writeMessage(data);
-}
-
-void SFileOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)
-{
-    char buffer[RECORD_NAME_BUFFER_MAX_SIZE+1];
-    memset(buffer, 0, RECORD_NAME_BUFFER_MAX_SIZE+1);
-    snprintf(buffer,RECORD_NAME_BUFFER_MAX_SIZE,"%s/Simulations/%llu/LatticeTimeSeries", recordNamePrefix.c_str(), data.trajectory_id());
-    SFileRecord record(string(buffer), string("protobuf:lm.io.LatticeTimeSeries"), data.ByteSize());
-    file->writeSFileRecord(record);
-    file->writeMessage(data);
-}
-
-void SFileOutputWriter::processLimitTracking(const lm::io::LimitTracking& data)
-{
-    stringstream nameSS;
-    nameSS << "/Simulations/" << data.trajectory_id();
-    nameSS << "/Limits/" << data.limit_id();    //std::setfill('0') << std::setw(2) << data.limit_id();
-    nameSS << "/LimitTracking";
-
-    processMessage(nameSS.str(), "protobuf:lm.io.LimitTracking", data);
-}
-
-void SFileOutputWriter::processOrderParameterFirstPassageTimes(const lm::io::OrderParameterFirstPassageTimes& data)
-{
-    stringstream nameSS;
-    nameSS << "/Simulations/" << data.trajectory_id();
-    nameSS << "/OrderParameters/" << data.order_parameter_id();    //std::setfill('0') << std::setw(2) << data.order_parameter_id();
-    nameSS << "/OrderParameterFirstPassageTimes/";
-
-    processMessage(nameSS.str(), "protobuf:lm.io.OrderParameterFirstPassageTimes", data);
-}
-
-void SFileOutputWriter::processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data)
-{
-    char buffer[RECORD_NAME_BUFFER_MAX_SIZE+1];
-    memset(buffer, 0, RECORD_NAME_BUFFER_MAX_SIZE+1);
-    snprintf(buffer,RECORD_NAME_BUFFER_MAX_SIZE,"%s/Simulations/%llu/OrderParameterTimeSeries", recordNamePrefix.c_str(), data.trajectory_id());
-    SFileRecord record(string(buffer), string("protobuf:lm.io.OrderParameterTimeSeries"), data.ByteSize());
-    file->writeSFileRecord(record);
-    file->writeMessage(data);
-}
-
-void SFileOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
-{
-    char buffer[RECORD_NAME_BUFFER_MAX_SIZE+1];
-    memset(buffer, 0, RECORD_NAME_BUFFER_MAX_SIZE+1);
-    snprintf(buffer,RECORD_NAME_BUFFER_MAX_SIZE,"%s/Simulations/%llu/SpeciesCounts", recordNamePrefix.c_str(), data.trajectory_id());
-    SFileRecord record(string(buffer), string("protobuf:lm.io.SpeciesCounts"), data.ByteSize());
-    file->writeSFileRecord(record);
-    file->writeMessage(data);
-}
-
-void SFileOutputWriter::processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data)
-{
-    char buffer[RECORD_NAME_BUFFER_MAX_SIZE+1];
-    memset(buffer, 0, RECORD_NAME_BUFFER_MAX_SIZE+1);
-    snprintf(buffer,RECORD_NAME_BUFFER_MAX_SIZE,"%s/Simulations/%llu/SpeciesTimeSeries", recordNamePrefix.c_str(), data.trajectory_id());
-    SFileRecord record(string(buffer), string("protobuf:lm.io.SpeciesTimeSeries"), data.ByteSize());
+    SFileRecord record(prefixedNameString, typeString, data.ByteSize());
     file->writeSFileRecord(record);
     file->writeMessage(data);
 }
 
 void SFileOutputWriter::processGenericMessage(const google::protobuf::Message& data)
 {
-    const google::protobuf::Reflection* reflection = data.GetReflection();
     const google::protobuf::Descriptor* descriptor = data.GetDescriptor();
-
-    stringstream nameSS;
-    // if your message has a trajectory_id, file it away under "Simulations"
-    const google::protobuf::FieldDescriptor* trajIDDescriptor = descriptor->FindFieldByName("trajectory_id");
-    if (trajIDDescriptor!=NULL and (trajIDDescriptor->label()!=google::protobuf::FieldDescriptor::LABEL_OPTIONAL or reflection->HasField(data, trajIDDescriptor)))
-    {
-        // this will cause a runtime error if your trajectory_id field is not of type uint64. Alternatively, you could check, ie if (trajIDDescriptor->type()==google::protobuf::FieldDescriptor::TYPE_UINT64)
-        nameSS << "/Simulations" << "/" << reflection->GetUInt64(data, trajIDDescriptor);
-    }
-    nameSS << "/" << descriptor->name();
 
     stringstream typeSS;
     typeSS << "protobuf:" << descriptor->full_name();
 
-    processMessage(nameSS.str(), typeSS.str(), data);
-}
-
-void SFileOutputWriter::processMessage(const string& nameString, const string& typeString, const google::protobuf::Message& data)
-{
-    // copy namestring from the const ref to a new mutable string
-    string prefixedNameString(nameString);
-    prefixedNameString.insert(0, recordNamePrefix);
-    if (prefixedNameString.size() > RECORD_NAME_BUFFER_MAX_SIZE) prefixedNameString.resize(RECORD_NAME_BUFFER_MAX_SIZE);
-
-    SFileRecord record(prefixedNameString, typeString, data.ByteSize());
-    file->writeSFileRecord(record);
-    file->writeMessage(data);
+    processMessage(recordNamePrefix, typeSS.str(), data);
 }
 
 }

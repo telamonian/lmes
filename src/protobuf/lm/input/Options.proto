@@ -1,11 +1,11 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
- * 			     Johns Hopkins University
- * 			     http://biophysics.jhu.edu/roberts/
+ *               Johns Hopkins University
+ *               http://biophysics.jhu.edu/roberts/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the Software), to deal with
@@ -34,57 +34,14 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts, Max Klein
+ * Author(s): Max Klein
  */
+syntax = "proto2";
+package lm.input;
 
-#ifndef LM_IO_CONSOLEOUTPUTWRITER
-#define LM_IO_CONSOLEOUTPUTWRITER
+message Options {
+    optional uint64 parts_per_work_unit = 1 [default=1];
+    optional uint64 steps_per_work_unit = 2 [default=100000000]; // 1e8
 
-#include <queue>
-#include <cstring>
-
-#include "lm/io/FirstPassageTimes.pb.h"
-#include "lm/io/LatticeTimeSeries.pb.h"
-#include "lm/Math.h"
-#include "lm/io/OutputWriter.h"
-#include "lm/io/SpeciesCounts.pb.h"
-#include "lm/io/SpeciesTimeSeries.pb.h"
-
-namespace lm {
-namespace io {
-
-class ConsoleOutputWriter : public OutputWriter
-{
-public:
-    static const int BUFFER_SIZE=MEBI;
-
-public:
-    static bool registered;
-    static bool registerClass();
-    static void* allocateObject();
-
-public:
-    ConsoleOutputWriter();
-    virtual ~ConsoleOutputWriter();
-    virtual void initialize();
-
-protected:
-    virtual void checkpoint();
-    virtual void flush();
-
-    virtual void processGenericMessage(const google::protobuf::Message& data);
-
-    virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
-    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
-    virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data);
-    virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data);
-
-private:
-    char* buffer;
-};
-
+    optional uint64 basin_replicates = 1001 [default=1];
 }
-}
-
-
-#endif
