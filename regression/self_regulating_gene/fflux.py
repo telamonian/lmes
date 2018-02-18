@@ -11,7 +11,7 @@ class FFluxSRGRegressionLMES(FFluxSRGRegression):
         return super(FFluxSRGRegressionLMES, self).buildBasins()
 
     def _buildDefaultSimulationParameterDict(self):
-        if self.parser['quick_test']:
+        if self.parser['quick']:
             return {
                 'ffluxPilotOutput': True,
                 'ffluxPhaseOutput': True,
@@ -30,7 +30,7 @@ class FFluxSRGRegressionLMES(FFluxSRGRegression):
                 # 'writeFinalTrajectoryState': False,
                 # 'writeInterval': None,
                 # 'writeLimitTracking': True,
-                # 'maxWorkUnitSteps': 1e8,
+                # 'stepsPerWorkUnitPart': 1e8,
             }
         else:
             return {

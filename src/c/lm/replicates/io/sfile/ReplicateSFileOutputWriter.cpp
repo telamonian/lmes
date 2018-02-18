@@ -65,7 +65,7 @@ bool ReplicateSFileOutputWriter::registered=ReplicateSFileOutputWriter::register
 
 bool ReplicateSFileOutputWriter::registerClass()
 {
-    lm::ClassFactory::getInstance().registerClass("lm::io::OutputWriter","lm::io::sfile::ReplicateSFileOutputWriter",&ReplicateSFileOutputWriter::allocateObject);
+    lm::ClassFactory::getInstance().registerClass("lm::io::OutputWriter","lm::replicates::io::sfile::ReplicatesSFileOutputWriter",&ReplicateSFileOutputWriter::allocateObject);
     return true;
 }
 

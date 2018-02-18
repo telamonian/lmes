@@ -7,7 +7,7 @@ class ReplicateGTSRegressionLMES(ReplicateGTSRegression):
     """subclass that allows for easy overriding of various parameters at point of testing
     """
     def _buildDefaultSimulationParameterDict(self):
-        if self.parser['quick_test']:
+        if self.parser['quick']:
             return {'maxSteps': 1e10,
                     'maxTime': 1e1,
                     'maxWorkUnitSteps': 1e8,

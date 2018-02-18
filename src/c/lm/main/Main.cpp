@@ -467,13 +467,13 @@ string parseOutputFormatArg(char* option)
         if (ffluxFlag)
             return "lm::fflux::io::sfile::FFluxSFileOutputWriter";
         else
-            return "lm::replicate::io::sfile::ReplicateSFileOutputWriter";
+            return "lm::replicates::io::sfile::ReplicatesSFileOutputWriter";
     }
     else if (strcmp(option, "log") == 0)
         return "lm::io::ConsoleOutputWriter";
     else if (strcmp(option, "null") == 0)
         return "lm::io::NullOutputWriter";
-    throw lm::CommandLineArgumentException(option);
+    throw lm::CommandLineArgumentException("Invalid output file format: %s", option);
 }
 
 void parseIntListArg(vector<uint64_t> & list, char* arg)

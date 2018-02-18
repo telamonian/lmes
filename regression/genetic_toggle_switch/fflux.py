@@ -7,7 +7,7 @@ class FFluxGTSRegressionLMES(FFluxGTSRegression):
     """subclass that allows for easy overriding of various parameters at point of testing
     """
     def _buildDefaultSimulationParameterDict(self):
-        if self.parser['quick_test']:
+        if self.parser['quick']:
             return {
                 'batchSize': 100,
                 "errorGoal": .5,

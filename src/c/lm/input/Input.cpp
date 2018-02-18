@@ -248,7 +248,7 @@ void Input::initOptions(const lm::io::hdf5::Hdf5File& file)
 {
     // Get some parameters that tweak how work units are run
     parseAndSet("partsPerWorkUnit", &Options::set_parts_per_work_unit, optionsMsg);
-    parseAndSet("stepsPerWorkUnit", &Options::set_steps_per_work_unit, optionsMsg);
+    parseAndSet("stepsPerWorkUnitPart", &Options::set_steps_per_work_unit_part, optionsMsg);
 }
 
 // Get the output options.

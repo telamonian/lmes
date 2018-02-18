@@ -94,7 +94,7 @@ public:
     const lm::input::TrajectoryLimits& getTrajectoryLimitsMsg() const {return trajectoryLimits.buf();}
 
     uint64_t getPartsPerWorkUnit() const {return optionsMsg.parts_per_work_unit();}
-    uint64_t getStepsPerWorkUnit() const {return optionsMsg.steps_per_work_unit();}
+    uint64_t getStepsPerWorkUnit() const {return optionsMsg.steps_per_work_unit_part();}
 
     bool hasDegreeAdvancement() const {return degreeAdvancementPresent;}
     bool hasReactionModel() const {return reactionModelPresent;}
@@ -103,10 +103,6 @@ public:
     bool hasTilings() const {return tilingsPresent;}
     bool hasTrajectoryLimits() const {return trajectoryLimits.ByteSize() > 0;}
     bool hasOutputOptions() const {return outputOptionsMsg.ByteSize() > 0;}
-
-    lm::oparam::OParams* mutableOrderParameters() {return &orderParameters;}
-    lm::tiling::Tilings* mutableTilings() {return &tilings;}
-    lm::limit::TrajectoryLimits* mutableTrajectoryLimits() {return &trajectoryLimits;}
 
 protected:
     virtual void init(const std::vector<std::string>& inputFilenames);
