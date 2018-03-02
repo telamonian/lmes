@@ -278,16 +278,6 @@ void OutputWriter::setRecordNamePrefix(const std::string& newRecordNamePrefix)
     lm::Print::printf(Print::DEBUG, "Using record name prefix: %s", recordNamePrefix.c_str());
 }
 
-void OutputWriter::setTrajectoryPrefix(const std::string& newTrajectoryPrefix)
-{
-    // avoid setting the prefix if it hasn't changed
-    if (newTrajectoryPrefix==trajectoryPrefix) return;
-
-    stringstream trajPrefixSS;
-    trajPrefixSS << "/" << strip(newTrajectoryPrefix);
-    trajectoryPrefix.assign(trajPrefixSS.str());
-}
-
 OutputWriter::HelperThread::HelperThread(OutputWriter* p)
 :p(p),buffer(new char[MEBI+1])
 {

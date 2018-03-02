@@ -51,6 +51,8 @@
 #include "lm/fflux/io/FFluxStageOutput.pb.h"
 #include "lm/fflux/io/FFluxStageOutputWrap.h"
 #include "lm/fflux/input/FFluxInput.h"
+#include "lm/input/Options.pb.h"
+#include "lm/input/OutputOptions.pb.h"
 #include "lm/Iterator.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Message.pb.h"
@@ -92,7 +94,7 @@ protected:
     virtual void addTiling(lm::fflux::input::FFluxStage* stage, const lm::tiling::Tiling& tiling, int64_t basinIndex);
     virtual lm::fflux::input::FFluxStage* addPilotStage(lm::fflux::input::FFluxStage* productionStage);
     virtual void addFFluxPhases(lm::fflux::input::FFluxStage* stage, FFPhaseEnums::TrajectoryGeneration trajGeneration, FFPhaseEnums::TrajectoryDuplication trajDuplication);
-    virtual void addOutputOptions(lm::fflux::input::FFluxPhase* phase, const lm::fflux::input::FFluxStage& stage);
+    virtual void addOptions(lm::fflux::input::FFluxPhase* phase, const lm::fflux::input::FFluxStage& stage);
 
     // setup methods that run at the start of every fflux stage
     virtual void startSimulationStage();
@@ -131,7 +133,7 @@ protected:
     virtual void buildTrajectoryList();
 
     // methods that control what happens at the end of a ffluxPhase
-    virtual bool terminateSimulationPhase();
+    virtual bool _terminateSimulationPhase();
     virtual void printFFluxLimitProgress();
     virtual void finishSimulationPhase();
     virtual void sendSimulationPhaseOutput();
@@ -148,7 +150,8 @@ protected:
     virtual void finishSimulation();
 
     // methods that handle setting up RunWorkUnit messages
-    virtual void buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint minWorkUnits);
+    virtual const lm::input::Options& getOptions() {return currentPhase().options();}
+    virtual const lm::input::OutputOptions& getOutputOptions() {return currentPhase().output_options();}
 
     // methods that handle FinishedWorkUnit messages
     virtual void receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg);
@@ -158,7 +161,7 @@ protected:
     // accessors
     virtual const lm::fflux::input::FFluxPhase& currentPhase() const {return *currentFFluxPhaseIter;}
     virtual int64_t currentFFluxPhaseID() const {return currentPhase().phase_id();}
-    virtual std::string currentPhaseInfo(bool path=false, const lm::fflux::input::FFluxPhase* phase=NULL, const lm::fflux::input::FFluxStage* stage=NULL) const;
+    virtual std::string phaseInfo(bool path = false, const lm::fflux::input::FFluxPhase* phase = NULL, const lm::fflux::input::FFluxStage* stage = NULL) const;
     virtual const lm::fflux::input::FFluxPhaseLimit& currentPhaseLimit() const {return currentPhase().has_fflux_phase_limit() ? currentPhase().fflux_phase_limit() : currentStage().fflux_phase_limits(currentFFluxPhaseID());}
     virtual const lm::protowrap::FFluxPhaseOutputWrap& currentPhaseOutput() const {return *currentFFluxPhaseOutputWrapPtr;}
     virtual int64_t finalFFluxPhaseID() const {return currentStage().fflux_phases_size() - 1;}
@@ -194,8 +197,6 @@ protected:
     virtual void destructInput() {lm::main::SimulationSupervisor::destructInput(); input = NULL;}
     virtual void destructTrajectoryList() {lm::main::SimulationSupervisor::destructTrajectoryList(); trajectoryList = NULL;}
 
-    virtual void buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg);
-
 protected:
     lm::fflux::input::FFluxStageList ffluxStageListMsg;
     FFluxStageVector ffluxStageExecutionOrder;
@@ -223,7 +224,7 @@ protected:
     lm::protowrap::FFluxStageOutputWrap currentFFluxStageOutputWrap;
 
     // flag that indicates that a phase has ended
-    bool simulationPhaseTerminated;
+    bool ffluxPhaseTerminated;
 
     /*
      * - flags that prevent output from being sent multiple times

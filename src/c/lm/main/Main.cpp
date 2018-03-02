@@ -75,7 +75,10 @@ using std::vector;
 
 void printCopyright(int argc, char** argv)
 {
-    std::cout << "Lattice Microbe ES v" << VERSION_NUM << " build " << BUILD_INFO << " in " << (sizeof(uintv_t)*8) << "-bit mode with options";
+    std::cout << "Lattice Microbe ES v" << VERSION_NUM;
+    std::cout << " " << BUILD_TYPE << " build " << BUILD_INFO;
+    std::cout << " in " << (sizeof(uintv_t)*8) << "-bit mode";
+    std::cout << " with options";
     std::cout << " MPI";
 #ifdef OPT_CUDA
     std::cout << " CUDA";
@@ -93,6 +96,7 @@ void printCopyright(int argc, char** argv)
     std::cout << " SBML";
 #endif
     std::cout << "." << std::endl;
+
     std::cout << "Copyright (C) " << COPYRIGHT_DATE << " Luthey-Schulten Group, University of Illinois at Urbana-Champaign." << std::endl;
     std::cout << "Copyright (C) " << COPYRIGHT_DATE_JHU << " Roberts Group, Johns Hopkins University." << std::endl << std::endl;
 }

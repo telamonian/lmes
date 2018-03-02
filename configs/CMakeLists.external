@@ -1,0 +1,15 @@
+# A CMakeLists that can be used to build Lattice Microbes in a separate directory.
+# Useful if you want to edit a single copy of the source in multiple IDEs/projects.
+
+# How to use:
+# - copy this file to an empty dir and rename it "CMakeLists.txt"
+# - replace <DIR> in the line below with the path to the root of a Lattice Microbes code repository
+set(REAL_SOURCE_DIR <DIR>)
+
+cmake_minimum_REQUIRED(VERSION 2.8.8)
+
+add_subdirectory(${REAL_SOURCE_DIR} lm)
+
+# a dummy project "tricks" cmake into delaying some tests until after the
+# add_subdirectory command above has begun
+project(lm_dummy)

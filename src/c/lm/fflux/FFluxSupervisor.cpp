@@ -110,7 +110,7 @@ int FFluxSupervisor::getRecvSleepMilliseconds()
 
 FFluxSupervisor::FFluxSupervisor()
 :ffluxPhaseOutputListsWrap(&ffluxPhaseOutputListsMsg),ffluxProgress_lastPrintTime(getHrTime()),previousFFluxPhaseOutputWrapPtr(&_ffluxPhaseOutputWrap_0),currentFFluxPhaseOutputWrapPtr(&_ffluxPhaseOutputWrap_1),
- ffluxStageOutputsWrap(&ffluxStageOutputsMsg),simulationPhaseTerminated(false),simulationPhaseOutputSent(false),simulationStageOutputSent(false),input(NULL),trajectoryList(NULL)
+ ffluxStageOutputsWrap(&ffluxStageOutputsMsg),ffluxPhaseTerminated(false),simulationPhaseOutputSent(false),simulationStageOutputSent(false),input(NULL),trajectoryList(NULL)
 {
     ffluxPhaseOutputContainingMsg.mutable_process_work_unit_output()->set_work_unit_id(0);
     ffluxPhaseOutputContainingMsg.mutable_process_work_unit_output()->add_part_output();
@@ -157,7 +157,7 @@ void FFluxSupervisor::initSimulationStageList()
     sanityCheckInput();
 
     // build the stage list
-    for (std::vector<uint64_t>::const_iterator replicateIt = replicates.begin();replicateIt!=replicates.end();++replicateIt)
+    for (vector<uint64_t>::const_iterator replicateIt = replicates.begin();replicateIt!=replicates.end();++replicateIt)
     {
         for (lm::tiling::Tilings::const_iterator tilingIt=input->getTilings().begin();tilingIt!=input->getTilings().end();++tilingIt)
         {
@@ -179,7 +179,7 @@ void FFluxSupervisor::initSimulationStageListCustom()
     // copy the stage list over from input
     ffluxStageListMsg.CopyFrom(input->ffluxSimulationInput().fflux_stage_list());
 
-    for (std::vector<uint64_t>::const_iterator replicateIt = replicates.begin();replicateIt!=replicates.end();++replicateIt)
+    for (vector<uint64_t>::const_iterator replicateIt = replicates.begin();replicateIt!=replicates.end();++replicateIt)
     {
         // iterate over the stages in ffluxStageListMsg.fflux_stages()
         for (FFluxStagesWrap::iterator stageIt=ffluxStageListMsg.mutable_fflux_stages()->begin(); stageIt!=ffluxStageListMsg.mutable_fflux_stages()->end(); stageIt++)
@@ -200,7 +200,7 @@ void FFluxSupervisor::initSimulationStageListCustom()
                 if (not phaseIt->has_output_options())
                 {
                     // if the phase doesn't already have output options set, set them in the standard way based on the simulation input
-                    addOutputOptions(&*phaseIt, *stageIt);
+                    addOptions(&*phaseIt, *stageIt);
                 }
 
                 if (not phaseIt->has_fflux_phase_limit())
@@ -290,6 +290,7 @@ lm::fflux::input::FFluxStage* FFluxSupervisor::addPilotStage(lm::fflux::input::F
     pilotStage->set_name("Pilot");
     pilotStage->set_is_pilot_stage(true);
 
+    pilotStage->set_replicate_id(productionStage->replicate_id());
     pilotStage->mutable_tiling()->CopyFrom(productionStage->tiling());
     pilotStage->set_basin_id(productionStage->basin_id());
 
@@ -314,28 +315,28 @@ void FFluxSupervisor::addFFluxPhases(lm::fflux::input::FFluxStage* stage, FFPhas
         // set ffluxPhase values that depend on whether phaseID==0 or phaseID > 0
         if (i==0)
         {
-            ffluxPhase->set_batch_size(1);
-
             ffluxPhase->set_trajectory_duplication(FFPhaseEnums::NONE);
             ffluxPhase->set_trajectory_generation(FFPhaseEnums::LAZY);
         }
         else
         {
-            ffluxPhase->set_batch_size(input->ffluxOptions().batch_size());
-
             ffluxPhase->set_trajectory_duplication(trajDuplication);
             ffluxPhase->set_trajectory_generation(trajGeneration);
         }
 
         // (re)initialize the relevant output options
-        addOutputOptions(ffluxPhase, *stage);
+        addOptions(ffluxPhase, *stage);
     }
 }
 
-void FFluxSupervisor::addOutputOptions(lm::fflux::input::FFluxPhase* phase, const lm::fflux::input::FFluxStage& stage)
+void FFluxSupervisor::addOptions(lm::fflux::input::FFluxPhase* phase, const lm::fflux::input::FFluxStage& stage)
 {
+    // (re)initialize the general simulation options
+    input->reinitOptions(phase->phase_id());
+    phase->mutable_options()->CopyFrom(input->getOptions());
+
     // (re)initialize the relevant output options
-    input->reinitOutputOptions(currentPhaseInfo(true, phase, &stage), stage.is_pilot_stage());
+    input->reinitOutputOptions(phaseInfo(true, phase, &stage), stage.is_pilot_stage());
     phase->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());
 }
 
@@ -400,7 +401,7 @@ void FFluxSupervisor::buildFFluxPhaseLimitTrajectoriesToRun(lm::fflux::input::FF
     // builds the events_per_trajectory field for this limit if it hasn't already been set
     buildFFluxPhaseLimitEventsPerTrajectory(ffluxPhaseLimit, ffluxPhase, simultaneousWorkUnits);
 
-    uint64_t simulataneousActiveTrajectories = simultaneousWorkUnits*ffluxPhase.batch_size();
+    uint64_t simulataneousActiveTrajectories = simultaneousWorkUnits*ffluxPhase.options().parts_per_work_unit();
 
     if (ffluxPhase.trajectory_generation()==FFPhaseEnums::EAGER)
     {
@@ -421,7 +422,7 @@ void FFluxSupervisor::buildFFluxPhaseLimitTrajectoriesToRun(lm::fflux::input::FF
 
 void FFluxSupervisor::buildFFluxPhaseLimitEventsPerTrajectory(lm::fflux::input::FFluxPhaseLimit* ffluxPhaseLimit, const lm::fflux::input::FFluxPhase& ffluxPhase, uint simultaneousWorkUnits)
 {
-    uint64_t simulataneousActiveTrajectories = simultaneousWorkUnits*ffluxPhase.batch_size();
+    uint64_t simulataneousActiveTrajectories = simultaneousWorkUnits*ffluxPhase.options().parts_per_work_unit();
 
     // events_per_trajectory can be set before running this function
     if (not ffluxPhaseLimit->has_events_per_trajectory())
@@ -518,7 +519,7 @@ void FFluxSupervisor::repeatFFluxPhaseLimits(lm::fflux::input::FFluxStage* stage
     }
 }
 
-std::vector<double> FFluxSupervisor::estimateBernoulliProbabilities(const lm::protowrap::FFluxStageOutputWrap& stageOutput, double confidence, double minimum)
+vector<double> FFluxSupervisor::estimateBernoulliProbabilities(const lm::protowrap::FFluxStageOutputWrap& stageOutput, double confidence, double minimum)
 {
     vector<double> weights(stageOutput.fflux_stage_output_summary().weights().begin(), stageOutput.fflux_stage_output_summary().weights().end());
 
@@ -630,10 +631,10 @@ void FFluxSupervisor::startSimulationPhase()
 
     // reset the phase output and termination flag
     simulationPhaseOutputSent = false;
-    simulationPhaseTerminated = false;
+    ffluxPhaseTerminated = false;
 
     // print an info message about the phase we're starting up
-    Print::printf(Print::INFO, "Forward Flux phase %3d started (%s)", currentFFluxPhaseID(), currentPhaseInfo().c_str());
+    Print::printf(Print::INFO, "Forward Flux phase %3d started (%s)", currentFFluxPhaseID(), phaseInfo().c_str());
 
     // Assign the first batch of work.
     if (terminateSimulationPhase() || assignWork())
@@ -690,38 +691,36 @@ void FFluxSupervisor::buildTrajectoryList()
     }
 }
 
-bool FFluxSupervisor::terminateSimulationPhase()
+bool FFluxSupervisor::_terminateSimulationPhase()
 {
-    if (not simulationPhaseTerminated)
+    if (not ffluxPhaseTerminated)
     {
         switch(mutableCurrentPhaseLimit()->stop_condition())
         {
         case FFPhaseLimEnums::FORWARD_FLUXES:
-            simulationPhaseTerminated = (currentFFluxPhaseOutputWrapPtr->wrappedMsg()->successful_trajectories_launched_count()>=mutableCurrentPhaseLimit()->uvalue());
+            ffluxPhaseTerminated = (currentFFluxPhaseOutputWrapPtr->wrappedMsg()->successful_trajectories_launched_count()>=mutableCurrentPhaseLimit()->uvalue());
             break;
         case FFPhaseLimEnums::TRAJECTORY_COUNT:
             // all phases during a forward flux simulation need to record at least one forward crossing or else it can't continue
-            simulationPhaseTerminated = ((currentFFluxPhaseOutputWrapPtr->wrappedMsg()->successful_trajectories_launched_count() > 0) and \
+            ffluxPhaseTerminated = ((currentFFluxPhaseOutputWrapPtr->wrappedMsg()->successful_trajectories_launched_count() > 0) and \
                                          (currentFFluxPhaseOutputWrapPtr->wrappedMsg()->successful_trajectories_launched_count() + currentFFluxPhaseOutputWrapPtr->wrappedMsg()->failed_trajectories_launched_count()>=mutableCurrentPhaseLimit()->uvalue()));
             break;
         case FFPhaseLimEnums::TIME:
             // all phases during a forward flux simulation need to record at least one forward crossing or else it can't continue
-            simulationPhaseTerminated = ((currentFFluxPhaseOutputWrapPtr->wrappedMsg()->successful_trajectories_launched_count() > 0) and \
+            ffluxPhaseTerminated = ((currentFFluxPhaseOutputWrapPtr->wrappedMsg()->successful_trajectories_launched_count() > 0) and \
                                          (currentFFluxPhaseOutputWrapPtr->wrappedMsg()->successful_trajectories_launched_total_time() + currentFFluxPhaseOutputWrapPtr->wrappedMsg()->failed_trajectories_launched_total_time()>=mutableCurrentPhaseLimit()->dvalue()));
             break;
         default: throw UnimplementedException("unimplemented");
         }
     }
-
-    if (simulationPhaseTerminated) simulationPhaseEverTerminated = true;
     printFFluxLimitProgress();
 
-    return simulationPhaseTerminated;
+    return ffluxPhaseTerminated;
 }
 
 void FFluxSupervisor::printFFluxLimitProgress()
 {
-    if (not simulationPhaseTerminated)
+    if (not ffluxPhaseTerminated)
     {
         // Print some performance statistics, if it has been a while.
         hrtime currentTime = getHrTime();
@@ -794,7 +793,7 @@ void FFluxSupervisor::sendSimulationPhaseOutput()
             if (input->ffluxOptions().phase_output())
             {
                 // (re)initialize the relevant output options
-                input->reinitOutputOptions(currentPhaseInfo(true), currentStage().is_pilot_stage());
+                input->reinitOutputOptions(phaseInfo(true), currentStage().is_pilot_stage());
 
                 // create a handle to the relevant work unit output part
                 lm::message::WorkUnitOutput* wuoPart(ffluxPhaseOutputContainingMsg.mutable_process_work_unit_output()->mutable_part_output(0));
@@ -924,63 +923,6 @@ void FFluxSupervisor::finishSimulation()
     lm::main::SimulationSupervisor::finishSimulation();
 }
 
-// methods that handle setting up RunWorkUnit messages
-void FFluxSupervisor::buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint minWorkUnits)
-{
-    trajectoryList->addWorkUnitParts(msg->work_unit_id(), msg, minWorkUnits*currentPhase().batch_size());
-
-    // Set the limit tracking messages, if any
-    input->copyLimitTrackingsTo(msg);
-}
-
-// methods that handle FinishedWorkUnit messages
-//void FFluxSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg)
-//{
-//    // If we are not performing a checkpoint, distribute more work.
-//    if (!performingCheckpoint)
-//    {
-//        // Fill the newly freed slot with a work unit. If there are more trajectories than slots, this is guaranteed to use the slot we just freed. Otherwise it will be the "coldest" (longest unoccupied) slot
-//        if (terminateSimulationPhase() || assignWork())
-//        {
-//            finishSimulationPhase();
-//        }
-//    }
-//    // Otherwise, see if all outstanding work units have finished.
-//    else if (!slots.hasBusySlots())
-//    {
-//        Print::printf(Print::INFO, "Creating a checkpoint, pausing work.");
-//
-//        // Send a message to the output writer to save a checkpoint. Calling .mutable_perform_checkpointing() initializes the message
-//        lm::message::Message msgp;
-//        msgp.mutable_perform_checkpointing();
-//        communicator.sendMessage(outputWriterProcess, outputWriterThread, &msgp);
-//    }
-//
-//    Print::printf(Print::VERBOSE_DEBUG, "Work unit %d finished in %0.3f s.",msg.work_unit_id(),msg.run_time());
-//
-//    // deal with the individual parts of the work unit at the fflux supervisor level
-//    for (int i=0;i<msg.part_status_size();i++)
-//    {
-//        receivedFinishedWorkUnitPart(msg.part_status(i));
-//    }
-//
-//    // collect global performance stats for printPerformanceStatistics
-//    stats_workUnits++;
-//    stats_minWorkUnitId = std::min(stats_minWorkUnitId,(long long)msg.work_unit_id());
-//    stats_maxWorkUnitId = std::max(stats_maxWorkUnitId,(long long)msg.work_unit_id());
-//    stats_workUnitsSteps += msg.steps();
-//    stats_workUnitTime += msg.run_time();
-//    for (int i=0; i<msg.part_status_size(); i++)
-//        stats_workUnitsParts++;
-//
-//    // Update the trajectory list.
-//    trajectoryList->workUnitFinished(msg);
-//
-//    // Update the slots list.
-//    slots.workUnitFinished(msg);
-//}
-
-
 void FFluxSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg)
 {
     PROF_BEGIN(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT);
@@ -1037,26 +979,12 @@ void FFluxSupervisor::receivedFinishedWorkUnitPart(const lm::message::WorkUnitSt
 {
     if (not trajectoryList->isTrajectoryAborted(wusMsg.final_state().trajectory_id()) and wusMsg.status()==lm::message::WorkUnitStatus::LIMIT_REACHED)
     {
-        ////TEMPSTART
-        if (currentFFluxPhaseID()==1)
-        {
-            PROF_BEGIN(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_ONE);
+        PROF_BEGIN(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_N);
 
-            // update the phase output
-            currentFFluxPhaseOutputWrapPtr->addEndPoint(wusMsg.final_state(), *trajectoryList->getTrajectoryForFinishedWorkUnit(wusMsg.final_state().trajectory_id()));
+        // update the phase output
+        currentFFluxPhaseOutputWrapPtr->addEndPoint(wusMsg.final_state(), *trajectoryList->getTrajectoryForFinishedWorkUnit(wusMsg.final_state().trajectory_id()));
 
-            PROF_END(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_ONE);
-        }
-        else
-        {
-        ////TEMPEND
-            PROF_BEGIN(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_N);
-
-            // update the phase output
-            currentFFluxPhaseOutputWrapPtr->addEndPoint(wusMsg.final_state(), *trajectoryList->getTrajectoryForFinishedWorkUnit(wusMsg.final_state().trajectory_id()));
-
-            PROF_END(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_N);
-        }
+        PROF_END(PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_N);
     }
 }
 
@@ -1065,7 +993,7 @@ void FFluxSupervisor::receivedFinishedWorkUnitPart(const lm::message::WorkUnitSt
  * a short string with some info about the current phase
  * phase and stage are const, but we use pointers instead of ref in order to allow passing of NULL
  */
-std::string FFluxSupervisor::currentPhaseInfo(bool path, const lm::fflux::input::FFluxPhase* phase, const lm::fflux::input::FFluxStage* stage) const
+std::string FFluxSupervisor::phaseInfo(bool path, const lm::fflux::input::FFluxPhase* phase, const lm::fflux::input::FFluxStage* stage) const
 {
     // if a phase and/or a stage has not been passed, use the current ones
     const lm::fflux::input::FFluxPhase& _phase(phase!=NULL ? *phase : currentPhase());
@@ -1084,12 +1012,12 @@ std::string FFluxSupervisor::currentPhaseInfo(bool path, const lm::fflux::input:
         phaseInfo.precision(2);
         if (currentFFluxPhaseID()==0)
         {
-            phaseInfo << "first_edge_value: " << setw(7) << _stage.tiling().edges(0);
+            phaseInfo << "zeroth_edge: " << setw(7) << _stage.tiling().edges(0);
         }
         else
         {
-            phaseInfo << "starting_edge_value: " << setw(7) << _stage.tiling().edges(phaseID - 1);
-            phaseInfo << ", final_edge_value: " << setw(7) << _stage.tiling().edges(phaseID);
+            phaseInfo << "starting_edge: " << setw(7) << _stage.tiling().edges(phaseID - 1);
+            phaseInfo << ", goal_edge: " << setw(7) << _stage.tiling().edges(phaseID);
         }
         
         const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit(_phase.has_fflux_phase_limit() ? _phase.fflux_phase_limit() : _stage.fflux_phase_limits(phaseID));
@@ -1139,7 +1067,7 @@ std::string FFluxSupervisor::stageLogPilot(const lm::protowrap::FFluxStageOutput
     stageLog << "The phase costs are:\n" << stageOutput.fflux_stage_output_summary().costs() << "\n";
     stageLog << "The phase weight sample variances are:\n" << stageOutput.fflux_stage_output_raw().variances() << "\n";
     stageLog << "Conservative estimates of the phase weights are:\n" << estimateBernoulliProbabilities(stageOutput) << "\n";
-    stageLog << "Attempting to acheive error goal " << errorGoal << " (confidence level " << errorGoalConfidence << ") with the following optimized trajectory counts:\n" << trajectoryCounts << "\n";
+    stageLog << "Attempting to achieve error goal " << errorGoal << " (confidence level " << errorGoalConfidence << ") with the following optimized trajectory counts:\n" << trajectoryCounts << "\n";
 
     return stageLog.str();
 }
@@ -1170,31 +1098,6 @@ void FFluxSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* newTraje
 {
     lm::main::SimulationSupervisor::setTrajectoryList(newTrajectoryList);
     trajectoryList = static_cast<lm::fflux::FFluxTrajectoryList*>(lm::main::SimulationSupervisor::trajectoryList);
-}
-
-
-// TODO: work out something better than copying and pasting 90% of this function
-void FFluxSupervisor::buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg)
-{
-    // Set the work unit id.
-    msg->set_work_unit_id(workUnitCount++);
-
-    // Set the source process/thread.
-    msg->set_supervisor_process(communicator.getSourceProcess());
-    msg->set_supervisor_thread(communicator.getSourceThread());
-
-    // Set the writer process/thread.
-    msg->set_output_process(outputWriterProcess);
-    msg->set_output_thread(outputWriterThread);
-
-    // Set the limits.
-    input->copyLimitsTo(msg);
-
-    // Set the output options.
-    msg->mutable_output_options()->CopyFrom(currentPhase().output_options());
-
-    // Set the maximum number of steps for the work unit.
-    msg->set_max_steps(input->getStepsPerWorkUnit());
 }
 
 }

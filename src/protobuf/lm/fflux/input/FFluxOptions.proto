@@ -76,13 +76,6 @@ message FFluxOptions {
      * - minimum number of samples to take during each phase in a production stage
      */
     optional uint64 production_stage_count_minimum = 22 [default=1000];
-    /*
-     * - number of trajectories to load into each work unit
-     *     - doesn't apply to phase 0
-     *     - will be overriden by slots.getSimultaneousWorkUnits() if batch size is smaller
-     */
-    optional uint64 batch_size                     = 23 [default=100];
-
 
     /*
      * - number of samples (ie edge 0 crossings) to throw out from each phase zero trajectory before starting to collect production data

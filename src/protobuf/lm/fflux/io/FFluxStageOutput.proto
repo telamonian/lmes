@@ -69,7 +69,6 @@ message FFluxStageOutputSummary {
      * - If costs, weights, etc are set, there should be as many entries in each as there are interfaces in fflux_stage's tiling
      */
     repeated double costs               = 11 [packed=true];
-
     repeated double weights             = 21 [packed=true];
 
     /*

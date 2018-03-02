@@ -125,10 +125,13 @@ protected:
     virtual void receivedStartedWorkUnit(const lm::message::StartedWorkUnit& msg);
     virtual void receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg);
     virtual bool assignWork();
+    virtual const lm::input::Options& getOptions() {return input->getOptions();}
+    virtual const lm::input::OutputOptions& getOutputOptions() {return input->getOutputOptionsMsg();}
     virtual void buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg);
     virtual void buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint minWorkUnits);
 
     // simulation phase finalization
+    virtual bool _terminateSimulationPhase();
     virtual bool terminateSimulationPhase();
     virtual void finishSimulationPhase();
     virtual bool performAnotherSimulationPhase();
@@ -171,7 +174,7 @@ protected:
     std::string simulationOutputFilename;
     int64_t simulationPhaseID;
     bool simulationRunning;
-    bool simulationPhaseEverTerminated;
+    bool simulationPhaseAborted;
     lm::slot::SlotList slots;
     std::string solverClassName;
     lm::trajectory::TrajectoryList* trajectoryList;

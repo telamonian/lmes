@@ -78,6 +78,7 @@ public:
     virtual ~FFluxInput() {};
 
 // (re)initializers
+    virtual void reinitOptions(int64_t phaseID);
     virtual void reinitOutputOptions(const std::string& recordNamePrefix, bool isPilotStage);
     virtual void reinitTrajectoryLimits(const lm::fflux::input::FFluxPhase& ffluxPhase, const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit, const lm::tiling::Tiling& tiling);
     virtual void reinitTrajectoryLimitsPhaseZero(const lm::fflux::input::FFluxPhase& ffluxPhase, const lm::fflux::input::FFluxPhaseLimit& ffluxPhaseLimit, const lm::tiling::Tiling& tiling);
@@ -85,7 +86,6 @@ public:
 // accessors
     const lm::fflux::input::FFluxOptions& ffluxOptions() const {return _ffluxOptions;}
     const lm::fflux::input::FFluxSimulationInput& ffluxSimulationInput() const {return _ffluxSimulationInput;}
-    uint64_t batchSize() const {return ffluxOptions().batch_size();}
     uint64_t phaseZeroBurnInCount() const {return ffluxOptions().phase_zero_burn_in_count();}
     double phaseZeroSamplingMultiplier() const {return ffluxOptions().phase_zero_sampling_multiplier();}
     uint64_t pilotStageCount() const {return ffluxOptions().pilot_stage_count();}

@@ -94,7 +94,6 @@ protected:
 
     virtual void setRecordNamePrefix();
     virtual void setRecordNamePrefix(const std::string& newRecordNamePrefix);
-    virtual void setTrajectoryPrefix(const std::string& newTrajectoryPrefix);
 
 private:
     static const int MESSAGE_QUEUE_MAX_SIZE=200*1024*1024;

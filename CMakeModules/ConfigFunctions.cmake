@@ -34,7 +34,7 @@ endfunction()
 
 function(initializeCMakeConfig)
     set(configTemplatePath ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/CMakeConfig.tmpl)
-    set(CMAKE_CONFIG_PATH ${CMAKE_CURRENT_SOURCE_DIR}/CMakeConfig.txt)
+    set(CMAKE_CONFIG_PATH ${CMAKE_SOURCE_DIR}/CMakeConfig.txt)
     set(CMAKE_CONFIG_PATH ${CMAKE_CONFIG_PATH} PARENT_SCOPE)
 
     file(GLOB existingCMakeConfig ${CMAKE_CONFIG_PATH})

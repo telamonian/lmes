@@ -82,9 +82,13 @@ namespace lm {
 namespace fflux {
 
 // ffluxPhase n==0 constructor
-FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationPhaseID, const FFluxPhase& ffluxPhase, const FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousTrajectoryCount, const FFluxInput& input, const lm::input::Basin& basin)
-:TrajectoryList(count, newSimulationPhaseID),input(input),ffluxPhase(ffluxPhase),ffluxPhaseLimit(ffluxPhaseLimit),
- previousPhaseOutputPtr(NULL),cyclicCounter(0)
+FFluxTrajectoryList::FFluxTrajectoryList(
+    uint64_t count, uint64_t newSimulationPhaseID, const FFluxPhase& ffluxPhase,
+    const FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousTrajectoryCount,
+    const FFluxInput& input, const lm::input::Basin& basin
+)
+:TrajectoryList(count, newSimulationPhaseID),input(input),ffluxPhase(ffluxPhase),
+ ffluxPhaseLimit(ffluxPhaseLimit),previousPhaseOutputPtr(NULL),cyclicCounter(0)
 {
     // consistency check
     if (ffluxPhase.phase_id()!=0)
@@ -103,9 +107,14 @@ FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationP
 }
 
 // ffluxPhase n>0 constructor
-FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationPhaseID, const FFluxPhase& ffluxPhase, const FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousTrajectoryCount, const FFluxInput& input, const FFluxPhaseOutputWrap& previousPhaseOutput)
-:TrajectoryList(count, newSimulationPhaseID),input(input),ffluxPhase(ffluxPhase),ffluxPhaseLimit(ffluxPhaseLimit),
- previousPhaseOutputPtr(&previousPhaseOutput),cyclicCounter(0)
+FFluxTrajectoryList::FFluxTrajectoryList(
+    uint64_t count, uint64_t newSimulationPhaseID, const FFluxPhase& ffluxPhase,
+    const FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousTrajectoryCount,
+    const FFluxInput& input, const FFluxPhaseOutputWrap& previousPhaseOutput
+)
+:TrajectoryList(count, newSimulationPhaseID),input(input),ffluxPhase(ffluxPhase),
+ ffluxPhaseLimit(ffluxPhaseLimit),previousPhaseOutputPtr(&previousPhaseOutput),
+ cyclicCounter(0)
 {
     // consistency check
     if (ffluxPhase.phase_id()==0) throw ConsistencyException("Forward Flux phase n>0 version of FFluxTrajectoryList constructor called durring phase 0. phase_id: %d", ffluxPhase.phase_id());
@@ -117,9 +126,14 @@ FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationP
 }
 
 // ffluxPhase custom constructor
-FFluxTrajectoryList::FFluxTrajectoryList(uint64_t count, uint64_t newSimulationPhaseID, const FFluxPhase& ffluxPhase, const FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousTrajectoryCount, const FFluxInput& input)
-:TrajectoryList(count, newSimulationPhaseID),input(input),ffluxPhase(ffluxPhase),ffluxPhaseLimit(ffluxPhaseLimit),
-previousPhaseOutputPtr(&previousPhaseOutputCustomWrap),cyclicCounter(0)
+FFluxTrajectoryList::FFluxTrajectoryList(
+    uint64_t count, uint64_t newSimulationPhaseID, const FFluxPhase& ffluxPhase,
+    const FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousTrajectoryCount,
+    const FFluxInput& input
+)
+:TrajectoryList(count, newSimulationPhaseID),input(input),ffluxPhase(ffluxPhase),
+ ffluxPhaseLimit(ffluxPhaseLimit),previousPhaseOutputPtr(&previousPhaseOutputCustomWrap),
+ cyclicCounter(0)
 {
     previousPhaseOutputCustom.mutable_successful_trajectory_end_points()->CopyFrom(ffluxPhase.start_points());
     previousPhaseOutputCustomWrap.setWrappedMsg(&previousPhaseOutputCustom);
@@ -139,7 +153,7 @@ previousPhaseOutputPtr(&previousPhaseOutputCustomWrap),cyclicCounter(0)
 uint64_t FFluxTrajectoryList::getTrajectoriesToStart(const FFluxPhase& ffluxPhase, const FFluxPhaseLimit& ffluxPhaseLimit, uint simultaneousWorkUnits)
 {
     uint64_t toStart;
-    uint64_t simulataneousActiveTrajectories = simultaneousWorkUnits*ffluxPhase.batch_size();
+    uint64_t simulataneousActiveTrajectories = simultaneousWorkUnits*ffluxPhase.options().parts_per_work_unit();
 
     if (ffluxPhase.trajectory_generation()==FFPhaseEnums::EAGER)
     {

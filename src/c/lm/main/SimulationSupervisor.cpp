@@ -85,7 +85,7 @@ int SimulationSupervisor::getRecvSleepMilliseconds()
 SimulationSupervisor::SimulationSupervisor()
 :communicator(lm::MPI::worldRank,THREAD_ID),hasCheckpointSignalerStarted(false),hasOutputWriterStarted(false),haveAllWorkUnitRunnersStarted(false),
  input(NULL),outputWriterClassName(""),outputWriterProcess(-1),outputWriterThread(-1),performingCheckpoint(false),resourceMap(NULL),
- simulationOutputFilename(""),simulationPhaseID(0),simulationRunning(true),simulationPhaseEverTerminated(false),slots(&communicator),
+ simulationOutputFilename(""),simulationPhaseID(0),simulationRunning(true),simulationPhaseAborted(false),slots(&communicator),
  solverClassName(""),trajectoryList(NULL),useCPUAffinity(false),workUnitCount(0),simulationStartTime(0)
 {
     resetPerformanceStatistics();
@@ -451,28 +451,35 @@ void SimulationSupervisor::buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg)
     input->copyLimitsTo(msg);
 
     // Set the output options.
-    msg->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());
+    msg->mutable_output_options()->CopyFrom(getOutputOptions());
 
     // Set the maximum number of steps for the work unit.
-    msg->set_max_steps(input->getStepsPerWorkUnit());
+    msg->set_max_steps(input->getOptions().steps_per_work_unit_part());
 }
 
 void SimulationSupervisor::buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint minWorkUnits)
 {
-    trajectoryList->addWorkUnitParts(msg->work_unit_id(), msg, minWorkUnits);
+    trajectoryList->addWorkUnitParts(msg->work_unit_id(), msg, minWorkUnits*getOptions().parts_per_work_unit());
 
     // Set the limit tracking messages, if any
     input->copyLimitTrackingsTo(msg);
 }
 
 /*
- * - terminateSimulationPhase() serves as a hook for more complex phase-ending behavior in subclassed Supervisors.
- *     - All non-trivial versions should set the simulationPhaseEverTerminated (see FFluxSupervisor for an example)
+ * - _terminateSimulationPhase() serves as a hook for more complex phase-ending behavior in subclassed Supervisors.
+ * Will return true if the current simulation phase should be terminated.
  */
+bool SimulationSupervisor::_terminateSimulationPhase()
+{
+    return false;
+}
+
 bool SimulationSupervisor::terminateSimulationPhase()
 {
-    // simulationPhaseEverTerminated = false;
-    return false;
+    bool tmpTerminated = _terminateSimulationPhase();
+    simulationPhaseAborted |= tmpTerminated;
+
+    return tmpTerminated;
 }
 
 void SimulationSupervisor::finishSimulationPhase()
@@ -508,7 +515,7 @@ void SimulationSupervisor::finishSimulation()
     if (trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::ABORTED)->size() > 0)
     {
         // If the simulation phase was ever forcibly terminated, make sure we clean up any running trajectories appropriately
-        if (simulationPhaseEverTerminated)
+        if (simulationPhaseAborted)
         {
             return (void)0;
         }
@@ -584,7 +591,7 @@ void SimulationSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* new
             (trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::RUNNING)->size() > 0))
         {
             // If the simulation phase was ever forcibly terminated, make sure we clean up any running trajectories appropriately
-            if (simulationPhaseEverTerminated)
+            if (simulationPhaseAborted)
             {
                 // Keep track of any outstanding work units. Important for coordinating clean program termination across all nodes
                 newTrajectoryList->takeTrajectories(trajectoryList, lm::trajectory::Trajectory::ABORTED, lm::trajectory::Trajectory::ABORTED);

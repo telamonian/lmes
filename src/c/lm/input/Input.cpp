@@ -252,7 +252,7 @@ void Input::initOptions(const lm::io::hdf5::Hdf5File& file)
 }
 
 // Get the output options.
-void Input::initOutputOptions(const lm::io::hdf5::Hdf5File& file)
+void Input::initOutputOptions(const lm::io::hdf5::Hdf5File& file, const std::string& recordNamePrefix)
 {
     // This flag changes the organization of the output such that the total number of groups and datasets is minimized. Currently only implemented (partially) for HDF5, no effect otherwise
     parseAndSet("condenseOutput", &OutputOptions::set_condense_output, outputOptionsMsg);

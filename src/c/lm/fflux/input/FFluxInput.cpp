@@ -45,6 +45,7 @@
 #include "lm/fflux/input/FFluxInput.h"
 #include "lm/fflux/input/FFluxOptions.pb.h"
 #include "lm/io/hdf5/SimulationFile.h"
+#include "lm/input/Options.pb.h"
 #include "lm/input/OutputOptions.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/main/Globals.h"
@@ -53,26 +54,17 @@
 #include "lm/limit/TrajectoryLimits.h"
 #include "lm/Types.h"
 
+using std::string;
+using std::vector;
+
+using lm::input::Options;
 using lm::input::OutputOptions;
 using lm::fflux::input::FFluxOptions;
 using lm::limit::LimitElement;
-using std::string;
-using std::vector;
 
 namespace lm {
 namespace fflux {
 namespace input {
-
-//FFluxInput::FFluxInput(): _ffluxPhaseLimitLists(_ffluxOptions.mutable_fflux_phase_limit_lists())
-//{
-////    stepsPerWorkUnit = (uint64_t)1e15;
-//}
-//
-//FFluxInput::FFluxInput(const lm::io::hdf5::Hdf5File& file): _ffluxPhaseLimitLists(_ffluxOptions.mutable_fflux_phase_limit_lists())
-//{
-////    stepsPerWorkUnit = (uint64_t)1e15;
-//    readHDF5Input(file);
-//}
 
 FFluxInput::FFluxInput(): Input(), _ffluxPhaseLimitLists(_ffluxOptions.mutable_fflux_phase_limit_lists())
 {
@@ -89,10 +81,7 @@ void FFluxInput::readHDF5Input(const lm::io::hdf5::Hdf5File& file)
     simulationParameters.rFF(file);
 
     initOptions(file);
-
-    // run some fflux specific intializers
     initFFluxOptions(file);
-
     // although reinitOutputOptions() will be run at least once more before any related values are actually used, run it once here so the sanity check works correctly
     reinitOutputOptions("", false);
 
@@ -109,8 +98,6 @@ void FFluxInput::readHDF5Input(const lm::io::hdf5::Hdf5File& file)
 // Get the Forward Flux specific options.
 void FFluxInput::initFFluxOptions(const lm::io::hdf5::Hdf5File& file)
 {
-    parseAndSet("batchSize", &FFluxOptions::set_batch_size, _ffluxOptions);
-
     parseAndSet("errorGoal", &FFluxOptions::set_error_goal, _ffluxOptions);
     parseAndSet("errorGoalConfidence", &FFluxOptions::set_error_goal_confidence, _ffluxOptions);
 
@@ -132,7 +119,6 @@ void FFluxInput::initFFluxOptions(const lm::io::hdf5::Hdf5File& file)
     if ((not hasErrorGoal()) and (not hasUserDefinedFFluxPhaseLimitLists()))
     {
         _ffluxOptions.set_error_goal(_ffluxOptions.default_instance().error_goal());
-        //_ffluxOptions.set_error_goal(_ffluxOptions.GetDescriptor()->FindFieldByName("error_goal")->default_value_double());
     }
 
     // check the fflux options we just parsed for consistency
@@ -163,10 +149,28 @@ void FFluxInput::readSFileInput(lm::io::sfile::SFile& file)
     }
 }
 
+void FFluxInput::reinitOptions(int64_t phaseID)
+{
+    optionsMsg.Clear();
+
+    if (phaseID==0)
+    {
+        // phase zero always uses 1 part per work unit
+        optionsMsg.set_parts_per_work_unit(1);
+        parseAndSet("stepsPerWorkUnitPart", &Options::set_steps_per_work_unit_part, optionsMsg);
+    }
+    else
+    {
+        // phases > 0 default to 100 parts per work unit. Can be overridden by user input.
+        uint64_t ppwuDefault = 100;
+        parseAndSet("partsPerWorkUnit", &Options::set_parts_per_work_unit, optionsMsg, &ppwuDefault);
+        parseAndSet("stepsPerWorkUnitPart", &Options::set_steps_per_work_unit_part, optionsMsg);
+    }
+}
+
 void FFluxInput::reinitOutputOptions(const std::string& recordNamePrefix, bool isPilotStage)
 {
     outputOptionsMsg.Clear();
-
     outputOptionsMsg.set_record_name_prefix(pathJoin(recordNamePrefixGlobal, recordNamePrefix));
     outputOptionsMsg.set_condense_output(true);
 
@@ -174,9 +178,9 @@ void FFluxInput::reinitOutputOptions(const std::string& recordNamePrefix, bool i
     if ((not isPilotStage) or ffluxOptions().pilot_stage_output())
     {
         // Flags that control whether output is recorded for the initial and/or the final state of every trajectory.
-        bool defaultWriteState = false;
-        parseAndSet("writeInitialTrajectoryState", &OutputOptions::set_write_initial_trajectory_state, outputOptionsMsg, &defaultWriteState);
-        parseAndSet("writeFinalTrajectoryState", &OutputOptions::set_write_final_trajectory_state, outputOptionsMsg, &defaultWriteState);
+        bool writeInitialFinalStateDefault = false;
+        parseAndSet("writeInitialTrajectoryState", &OutputOptions::set_write_initial_trajectory_state, outputOptionsMsg, &writeInitialFinalStateDefault);
+        parseAndSet("writeFinalTrajectoryState", &OutputOptions::set_write_final_trajectory_state, outputOptionsMsg, &writeInitialFinalStateDefault);
 
         // Specify the period at which various outputs should be written out. Leave a WriteInterval unset to suppress its related output, or set a WriteInterval to a negative value to automatically set it
         if (parseAndSetWriteInterval("degreeAdvancementWriteInterval", &OutputOptions::set_degree_advancement_write_interval, outputOptionsMsg, &OutputOptions::degree_advancement_write_interval)) degreeAdvancementPresent = true;
@@ -227,9 +231,6 @@ void FFluxInput::reinitTrajectoryLimits(const lm::fflux::input::FFluxPhase& fflu
         trajectoryLimits.addTileExitLimitsMsg(tiling, 0, ffluxPhase.phase_id());
         limitTrackingListWrap.addTrackingMsg(trajectoryLimits.findMsg(0), true, true, ffluxPhaseLimit.events_per_trajectory());
         limitTrackingListWrap.addTrackingMsg(trajectoryLimits.findMsg(1), true, true, ffluxPhaseLimit.events_per_trajectory());
-
-//        printf(trajectoryLimits.findMsg(0)->DebugString().c_str());
-//        printf(trajectoryLimits.findMsg(1)->DebugString().c_str());
     }
 }
 
@@ -257,10 +258,6 @@ void FFluxInput::reinitTrajectoryLimitsPhaseZero(const lm::fflux::input::FFluxPh
     trajectoryLimits.addTileExitLimitsMsg(tiling, 0, tiling.edges().lastIndex());
     limitTrackingListWrap.addTrackingMsgNonterminating(trajectoryLimits.findMsg(1), true, true);
     limitTrackingListWrap.addTrackingMsgNonterminating(trajectoryLimits.findMsg(2), true, true);
-
-//    printf(trajectoryLimits.findMsg(0)->DebugString().c_str());
-//    printf(trajectoryLimits.findMsg(1)->DebugString().c_str());
-//    printf(trajectoryLimits.findMsg(2)->DebugString().c_str());
 }
 
 }

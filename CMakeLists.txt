@@ -11,16 +11,11 @@ include(TestCompilerFeatures)
 initializeCMakeConfig()
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/PreProjectConfig)
 
-message(CMAKE_BUILD_TYPE_${CMAKE_BUILD_TYPE})
+# set build type from the config file, if present. Special handling required since unlike many variables this is defined as "" by default
+SetConfigDefaultIfEmpty(CMAKE_BUILD_TYPE CUSTOM_BUILD_TYPE Release CACHE)
 
-# the following commands are wrapped to prevent errors when this CMakeLists.txt is included as a subdirectory in another CMakeLists.txt
-if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-    # set build type from the config file, if present. Special handling required since unlike many variables this is defined as "" by default
-    SetConfigDefaultIfEmpty(CMAKE_BUILD_TYPE CUSTOM_BUILD_TYPE Release CACHE)
-    
-    SetConfigDefault(CMAKE_TOOLCHAIN CMAKE_TOOLCHAIN gnu)
-    chooseToolchain()
-endif(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+SetConfigDefault(CMAKE_TOOLCHAIN CMAKE_TOOLCHAIN gnu)
+chooseToolchain()
 
 ################
 project(lm)
@@ -142,7 +137,7 @@ find_package(ZLIB REQUIRED)
 #find_package(Boost)
 
 # add some definitions that will get passed on to the compiler
-add_definitions(-DBUILD_INFO -DVERBOSITY_LEVEL=${VERBOSITY_LEVEL})
+add_definitions(-DBUILD_TYPE="${CMAKE_BUILD_TYPE}" -DBUILD_INFO -DVERBOSITY_LEVEL=${VERBOSITY_LEVEL})
 if(BUILD_WITH_CUDA)
     add_definitions(-DOPT_CUDA)
 endif(BUILD_WITH_CUDA)

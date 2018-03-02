@@ -84,6 +84,7 @@ public:
     const lm::tiling::Tiling& getCurrentTiling() const {return getTilings().getCurrentTiling();}
 
     const lm::input::DiffusionModel& getDiffusionModelMsg() const {return diffusionModel;}
+    const lm::input::Options& getOptions() const {return optionsMsg;}
     const lm::oparam::OParams& getOrderParameters() const {return orderParameters;}
     const lm::input::OrderParameters& getOrderParametersMsg() const {return orderParametersMsg;}
     const lm::input::OutputOptions& getOutputOptionsMsg() const {return outputOptionsMsg;}
@@ -92,9 +93,6 @@ public:
     const lm::tiling::Tilings& getTilings() const {return tilings;}
     const lm::input::Tilings& getTilingsMsg() const {return tilingsMsg;}
     const lm::input::TrajectoryLimits& getTrajectoryLimitsMsg() const {return trajectoryLimits.buf();}
-
-    uint64_t getPartsPerWorkUnit() const {return optionsMsg.parts_per_work_unit();}
-    uint64_t getStepsPerWorkUnit() const {return optionsMsg.steps_per_work_unit_part();}
 
     bool hasDegreeAdvancement() const {return degreeAdvancementPresent;}
     bool hasReactionModel() const {return reactionModelPresent;}
@@ -108,14 +106,14 @@ protected:
     virtual void init(const std::vector<std::string>& inputFilenames);
 
     virtual void readHDF5Input(const lm::io::hdf5::Hdf5File& file);
+
+    virtual void initOptions(const lm::io::hdf5::Hdf5File& file);
+    virtual void initOutputOptions(const lm::io::hdf5::Hdf5File& file, const std::string& recordNamePrefix="");
     virtual void initReactionModel(const lm::io::hdf5::Hdf5File& file);
     virtual void initDiffusionModel(const lm::io::hdf5::Hdf5File& file);
     virtual void initOrderParameters(const lm::io::hdf5::Hdf5File& file);
     virtual void initTilings(const lm::io::hdf5::Hdf5File& file);
     virtual void initTrajectoryLimits(const lm::io::hdf5::Hdf5File& file);
-    virtual void initOutputOptions(const lm::io::hdf5::Hdf5File& file);
-
-    virtual void initOptions(const lm::io::hdf5::Hdf5File& file);
 
     virtual void readSFileInput(lm::io::sfile::SFile& file);
 

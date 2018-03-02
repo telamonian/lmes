@@ -39,6 +39,9 @@
 #ifndef FFLUX_LM_IO_FFluxSFILEOutputWriter
 #define FFLUX_LM_IO_FFluxSFILEOutputWriter
 
+#include <map>
+#include <vector>
+
 #include "lm/io/DegreeAdvancementTimeSeries.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/FFluxOutput.pb.h"
@@ -60,6 +63,9 @@ namespace sfile {
 class FFluxSFileOutputWriter : public lm::io::sfile::SFileOutputWriter
 {
 public:
+    typedef std::map<std::vector<int32_t>, uint64_t> SparseMap;
+    typedef std::map<uint64_t, SparseMap> SparseMaps;
+
     static bool registered;
     static bool registerClass();
     static void* allocateObject();
@@ -71,6 +77,9 @@ public:
 protected:
     virtual void processFFluxOutput(const lm::io::FFluxOutput& data);
     virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data);
+
+protected:
+    SparseMaps phaseHists;
 };
 
 }

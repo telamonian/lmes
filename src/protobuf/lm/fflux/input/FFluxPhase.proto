@@ -41,6 +41,7 @@ package lm.fflux.input;
 
 import "lm/fflux/input/FFluxPhaseLimit.proto";
 import "lm/fflux/io/FFluxPhaseOutput.proto";
+import "lm/input/Options.proto";
 import "lm/input/OutputOptions.proto";
 
 message FFluxPhase {
@@ -66,10 +67,10 @@ message FFluxPhase {
     optional TrajectoryDuplication trajectory_duplication = 13 [default=NONE];
     optional TrajectoryGeneration trajectory_generation   = 14 [default=LAZY];
 
-    optional uint64 batch_size                            = 21 [default=1];
-
 
     optional lm.fflux.input.FFluxPhaseLimit fflux_phase_limit = 101;
-    optional lm.input.OutputOptions output_options            = 102;
     repeated lm.fflux.io.EndPoint start_points                = 103;
+
+    optional lm.input.Options options                         = 104;
+    optional lm.input.OutputOptions output_options            = 102;
 }

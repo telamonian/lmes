@@ -62,8 +62,6 @@
 #include "lm/rng/XORWow.h"
 #endif
 
-using lm::protowrap::RepeatedMap;
-
 namespace lm {
 namespace protowrap {
 

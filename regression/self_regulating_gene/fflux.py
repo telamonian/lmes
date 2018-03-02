@@ -10,6 +10,12 @@ class FFluxSRGRegressionLMES(FFluxSRGRegression):
         self.parser['both-basins'] = True
         return super(FFluxSRGRegressionLMES, self).buildBasins()
 
+    def buildTilings(self, **kwargs):
+        # override passed value of `reverse`, if any
+        kwargs['reverse'] = True
+
+        return super(FFluxSRGRegressionLMES, self).buildTilings(**kwargs)
+
     def _buildDefaultSimulationParameterDict(self):
         if self.parser['quick']:
             return {
@@ -21,7 +27,7 @@ class FFluxSRGRegressionLMES(FFluxSRGRegression):
                 'errorGoalConfidence': .01,
                 'pilotStageCount': 10,
                 'productionStageCountMinimum': 10,
-                'writeInterval': 10.0,
+                'writeInterval': 0.1,
                 
                 # 'batchSize': 1,
                 # 'phaseZeroSamplingMultiplier': 1e2,
