@@ -88,20 +88,13 @@ ReplicateTrajectoryList::~ReplicateTrajectoryList()
 {
 }
 
-//int ReplicateTrajectoryList::addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUnit* msg, uint numberParts)
-//{
-//    if (replicateBatchSize > 1)
-//        return TrajectoryList::addWorkUnitParts(workUnitId, msg, max<int>(replicateBatchSize,numberParts));
-//    return TrajectoryList::addWorkUnitParts(workUnitId, msg, numberParts);
-//}
-
 void ReplicateTrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& msg)
 {
     // Call the base class method.
     TrajectoryList::workUnitFinished(msg);
 
     // Print out a message for any trajectories that finished.
-    if (relicatePrintMessages)
+    if (replicatePrintMessages)
     {
         for (int i=0; i<msg.part_status_size(); i++)
         {
@@ -156,7 +149,7 @@ void ReplicateTrajectoryList::printTrajectoryStatistics() const
     if (convertHrToSeconds(currentTime-stats_lastPrintTime) > 700.0)
     {
         Print::printf(Print::INFO, "Trajectory status: %d aborted, %d finished, %d running, %d waiting", abortedTrajectories.size(), finishedTrajectories.size(), runningTrajectories.size(), waitingTrajectories.size());
-        if (relicatePrintMessages)
+        if (replicatePrintMessages)
         {
             Print::printf(Print::INFO, "Trajectory status");
             Print::printf(Print::INFO, "        ID State       Time     Work_Units");

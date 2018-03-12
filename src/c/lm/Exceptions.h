@@ -72,6 +72,11 @@ public:
     Exception(const char * message, const char * arg1, const int arg2,    const int arg3)   {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s, %d, %d", message, arg1, arg2, arg3);}
     Exception(const char * message, const int arg,     const char * file, const int line)   {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %d (%s:%d)", message, arg, file, line);}
     Exception(const char * message, const char * arg,  const char * file, const int line)   {snprintf(messageBuffer,MAX_MESSAGE_SIZE,"%s: %s (%s:%d)", message, arg, file, line);}
+
+    // variadic constructors
+    template <typename T> Exception(T format, va_list args) {printException(format, args);}
+    template <typename T> Exception(int line, const char *file, T format, va_list args) {printExceptionWithLine(file, line, format, args);}
+
     virtual ~Exception() throw() {}
 
     virtual const char* preamble() const throw() {return "Exception";}
@@ -113,21 +118,11 @@ class ConsistencyException : public Exception
 public:
     virtual const char* preamble() const throw() {return "Consistency exception";}
 
-    template <typename T> ConsistencyException(T format, ...): Exception()
-    {
-        va_list args;
-        va_start (args, format);
-        printException(format, args);
-        va_end (args);
-    }
+    template <typename T> ConsistencyException(T format, ...) : Exception(format, (va_start(_va, format), _va)) { va_end(_va);}
+    template <typename T> ConsistencyException(int line, const char *file, T format, ...) : Exception(line, file, format, (va_start(_va, format), _va)) { va_end(_va);}
 
-    template <typename T> ConsistencyException(int line, const char *file, T format, ...): Exception()
-    {
-        va_list args;
-        va_start (args, format);
-        printExceptionWithLine(file, line, format, args);
-        va_end (args);
-    }
+private:
+    va_list _va;
 };
 
 class InputException : public Exception
@@ -135,21 +130,11 @@ class InputException : public Exception
 public:
     virtual const char* preamble() const throw() {return "Input exception";}
 
-    template <typename T> InputException(T format, ...): Exception()
-    {
-        va_list args;
-        va_start (args, format);
-        printException(format, args);
-        va_end (args);
-    }
+    template <typename T> InputException(T format, ...) : Exception(format, (va_start(_va, format), _va)) { va_end(_va);}
+    template <typename T> InputException(int line, const char *file, T format, ...) : Exception(line, file, format, (va_start(_va, format), _va)) { va_end(_va);}
 
-    template <typename T> InputException(int line, const char *file, T format, ...): Exception()
-    {
-        va_list args;
-        va_start (args, format);
-        printExceptionWithLine(file, line, format, args);
-        va_end (args);
-    }
+private:
+    va_list _va;
 };
 
 class InvalidArgException : public Exception
@@ -171,21 +156,11 @@ class IOException : public Exception
 public:
     virtual const char* preamble() const throw() {return "IO exception";}
 
-    template <typename T> IOException(T format, ...): Exception()
-    {
-        va_list args;
-        va_start (args, format);
-        printException(format, args);
-        va_end (args);
-    }
+    template <typename T> IOException(T format, ...) : Exception(format, (va_start(_va, format), _va)) { va_end(_va);}
+    template <typename T> IOException(int line, const char *file, T format, ...) : Exception(line, file, format, (va_start(_va, format), _va)) { va_end(_va);}
 
-    template <typename T> IOException(int line, const char *file, T format, ...): Exception()
-    {
-        va_list args;
-        va_start (args, format);
-        printExceptionWithLine(file, line, format, args);
-        va_end (args);
-    }
+private:
+    va_list _va;
 };
 
 class NotFoundException : public Exception
@@ -193,21 +168,11 @@ class NotFoundException : public Exception
 public:
     virtual const char* preamble() const throw() {return "Not found exception";}
 
-    template <typename T> NotFoundException(T format, ...): Exception()
-    {
-        va_list args;
-        va_start (args, format);
-        printException(format, args);
-        va_end (args);
-    }
+    template <typename T> NotFoundException(T format, ...) : Exception(format, (va_start(_va, format), _va)) { va_end(_va);}
+    template <typename T> NotFoundException(int line, const char *file, T format, ...) : Exception(line, file, format, (va_start(_va, format), _va)) { va_end(_va);}
 
-    template <typename T> NotFoundException(int line, const char *file, T format, ...): Exception()
-    {
-        va_list args;
-        va_start (args, format);
-        printExceptionWithLine(file, line, format, args);
-        va_end (args);
-    }
+private:
+    va_list _va;
 };
 
 class NullPointerException : public Exception
@@ -215,21 +180,11 @@ class NullPointerException : public Exception
 public:
     virtual const char* preamble() const throw() {return "Null pointer exception -> attempted to dereference a pointer to NULL";}
 
-    template <typename T> NullPointerException(T format, ...): Exception()
-    {
-        va_list args;
-        va_start (args, format);
-        printException(format, args);
-        va_end (args);
-    }
+    template <typename T> NullPointerException(T format, ...) : Exception(format, (va_start(_va, format), _va)) { va_end(_va);}
+    template <typename T> NullPointerException(int line, const char *file, T format, ...) : Exception(line, file, format, (va_start(_va, format), _va)) { va_end(_va);}
 
-    template <typename T> NullPointerException(int line, const char *file, T format, ...): Exception()
-    {
-        va_list args;
-        va_start (args, format);
-        printExceptionWithLine(file, line, format, args);
-        va_end (args);
-    }
+private:
+    va_list _va;
 };
 
 class RuntimeException : public Exception
@@ -237,21 +192,11 @@ class RuntimeException : public Exception
 public:
     virtual const char* preamble() const throw() {return "Runtime exception";}
 
-    template <typename T> RuntimeException(T format, ...): Exception()
-    {
-        va_list args;
-        va_start (args, format);
-        printException(format, args);
-        va_end (args);
-    }
+    template <typename T> RuntimeException(T format, ...) : Exception(format, (va_start(_va, format), _va)) { va_end(_va);}
+    template <typename T> RuntimeException(int line, const char *file, T format, ...) : Exception(line, file, format, (va_start(_va, format), _va)) { va_end(_va);}
 
-    template <typename T> RuntimeException(int line, const char *file, T format, ...): Exception()
-    {
-        va_list args;
-        va_start (args, format);
-        printExceptionWithLine(file, line, format, args);
-        va_end (args);
-    }
+private:
+    va_list _va;
 };
 
 class UnimplementedException : public Exception
@@ -259,21 +204,11 @@ class UnimplementedException : public Exception
 public:
     virtual const char* preamble() const throw() {return "Unimplemented exception";}
 
-    template <typename T> UnimplementedException(T format, ...): Exception()
-    {
-        va_list args;
-        va_start (args, format);
-        printException(format, args);
-        va_end (args);
-    }
+    template <typename T> UnimplementedException(T format, ...) : Exception(format, (va_start(_va, format), _va)) { va_end(_va);}
+    template <typename T> UnimplementedException(int line, const char *file, T format, ...) : Exception(line, file, format, (va_start(_va, format), _va)) { va_end(_va);}
 
-    template <typename T> UnimplementedException(int line, const char *file, T format, ...): Exception()
-    {
-        va_list args;
-        va_start (args, format);
-        printExceptionWithLine(file, line, format, args);
-        va_end (args);
-    }
+private:
+    va_list _va;
 };
 
 class ZlibException : public Exception

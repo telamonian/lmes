@@ -101,12 +101,12 @@ vector<uint64_t> replicates;
 /**
   * The number of replicates to send in each work unit.
   */
-int replicateBatchSize;
+uint64_t partsPerWorkUnit;
 
 /**
  * If messages should be printed about individual replicates.
  */
-bool relicatePrintMessages;
+bool replicatePrintMessages;
 
 /**
  * The interval at which the results file should be checkpointed.

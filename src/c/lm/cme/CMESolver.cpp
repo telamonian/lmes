@@ -227,7 +227,7 @@ void CMESolver::setReactionModel(const lm::input::ReactionModel& rm)
 
     // Allocate space for the degree advancement counts, if we're writing them.
     if (degreeAdvancements != NULL) delete[] degreeAdvancements; degreeAdvancements = NULL;
-    degreeAdvancements = new uint64_t[reactionModel->numberReactions];
+    degreeAdvancements = new uint64_t[numberDegreeAdvancements];
 
     // Allocate space for the species counts.
     if (speciesCounts != NULL) delete[] speciesCounts; speciesCounts = NULL;
@@ -242,7 +242,7 @@ void CMESolver::reset()
     if (reactionModel == NULL) throw Exception("Tried to reset state of CMESolver with no reaction model.");
 
     // Reset the degree advancements.
-    for (uint i=0; i<reactionModel->numberReactions; i++)
+    for (uint i=0; i<numberDegreeAdvancements; i++)
         degreeAdvancements[i] = 0;
 
     // Reset the fpt tracking list.
@@ -294,7 +294,10 @@ void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
     if (trajectoryNumber >= getSimultaneousTrajectories()) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
 
     // Get the degree advancements.
-    NDArraySerializer::serializeInto(state->mutable_cme_state()->mutable_degree_advancements(), degreeAdvancements, utuple(reactionModel->numberReactions));
+    if (numberDegreeAdvancements)
+    {
+        NDArraySerializer::serializeInto(state->mutable_cme_state()->mutable_degree_advancements(), degreeAdvancements, utuple(numberDegreeAdvancements));
+    }
 
     // Get the first passage times.
     for (int i=0; i<numberFptSpecies; i++)
@@ -387,7 +390,10 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
     }
 
     // Set the degree advancements.
-    NDArraySerializer::deserializeInto(degreeAdvancements, utuple(reactionModel->numberReactions), state.cme_state().degree_advancements());
+    if (numberDegreeAdvancements)
+    {
+        NDArraySerializer::deserializeInto(degreeAdvancements, utuple(reactionModel->numberReactions), state.cme_state().degree_advancements());
+    }
 
     // Set the first passage times.
     numberFptSpecies = state.cme_state().first_passage_times_size();

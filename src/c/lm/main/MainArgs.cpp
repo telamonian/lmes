@@ -115,6 +115,12 @@ void printCopyright(int argc, char** argv)
 void parseArguments(int argc, char** argv, bool printInfo)
 {
     // Set any default options.
+    // Set the default communicator.
+#ifdef OPT_MPI
+    communicatorClassName = "lm::mpi::MPICommunicator";
+#else
+    communicatorClassName = "lm::message::LocalCommunicator";
+#endif
     cpuCores = -1;
     cpuCoresPerRunner = 1.0;
     ffluxFlag = false;
@@ -125,6 +131,8 @@ void parseArguments(int argc, char** argv, bool printInfo)
     gpuDevicesPerRunner = 0.0;
 #endif
     ioTestFlag = false;
+    partsPerWorkUnit = 0;
+    replicatePrintMessages = true;
     shouldPrintGPUCapabilities = true;
     shouldReserveOutputCore = true;
     simulationInputFilenames.clear();
@@ -272,20 +280,20 @@ void parseArguments(int argc, char** argv, bool printInfo)
             parseIntListArg(replicates, option+strlen("--replicates="));
         }
 
-        //See if the user is trying to set the replicate batch size.
-        else if ((strcmp(option, "-rb") == 0 || strcmp(option, "--replicate-batch-size") == 0) && i < (argc-1))
+        //See if the user is trying to set the parts per work unit (ie the trajectory batch size).
+        else if ((strcmp(option, "-pw") == 0 || strcmp(option, "--parts-per-work-unit") == 0) && i < (argc-1))
         {
-            replicateBatchSize = atoi(argv[++i]);
+            partsPerWorkUnit = atoi(argv[++i]);
         }
-        else if (strncmp(option, "--replicate-batch-size=", strlen("--replicate-batch-size=")) == 0)
+        else if (strncmp(option, "--parts-per-work-unit=", strlen("--parts-per-work-unit=")) == 0)
         {
-            replicateBatchSize = atoi(option+strlen("--replicate-batch-size="));
+            partsPerWorkUnit = atoi(option+strlen("--parts-per-work-unit="));
         }
 
         //See if the user is trying to turn off printing of completed replicates.
          else if ((strcmp(option, "-rnp") == 0 || strcmp(option, "--replicate-no-print") == 0))
          {
-             relicatePrintMessages = false;
+             replicatePrintMessages = false;
          }
 
         //See if the user is trying to set the checkpoint interval.

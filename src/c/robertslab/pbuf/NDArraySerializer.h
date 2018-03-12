@@ -166,7 +166,8 @@ public:
         PROF_BEGIN(PROF_NDARRAY_DESERIALIZE);
 
         // Check that the datatype matches.
-        if (msg.data_type() != NDArray_datatype_code<T>()) throw robertslab::InvalidArgException("msg", "the array was of the wrong data type", msg.data_type(),NDArray_datatype_code<T>());
+        if (msg.data_type() != NDArray_datatype_code<T>()) throw robertslab::InvalidArgException("In deserializeInto, type of NDArray message does not match that of destination.\n"
+                                                                                                 "msg type: %s, destination type: %s", robertslab::pbuf::NDArray_DataType_Name(msg.data_type()).c_str(), robertslab::pbuf::NDArray_DataType_Name(NDArray_datatype_code<T>()).c_str());
 
         // Check that the shapes match.
         tuple<uint> shape(msg.shape().size(), (const uint*)msg.shape().data());

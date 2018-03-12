@@ -79,14 +79,14 @@ extern std::string recordNamePrefixGlobal;
 extern std::vector<uint64_t> replicates;
 
 /**
-  * The number of replicates to send in each work unit.
+  * The number of parts to send in each work unit.
   */
-extern int replicateBatchSize;
+extern uint64_t partsPerWorkUnit;
 
 /**
  * If messages should be printed about individual replicates.
  */
-extern bool relicatePrintMessages;
+extern bool replicatePrintMessages;
 
 /**
  * The interval at which the results file should be checkpointed.

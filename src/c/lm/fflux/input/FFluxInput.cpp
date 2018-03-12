@@ -161,9 +161,9 @@ void FFluxInput::reinitOptions(int64_t phaseID)
     }
     else
     {
-        // phases > 0 default to 100 parts per work unit. Can be overridden by user input.
-        uint64_t ppwuDefault = 100;
-        parseAndSet("partsPerWorkUnit", &Options::set_parts_per_work_unit, optionsMsg, &ppwuDefault);
+        uint64_t defaultPartsPerWorkUnit = partsPerWorkUnit > 0 ? partsPerWorkUnit : 100;
+        parseAndSet("partsPerWorkUnit", &Options::set_parts_per_work_unit, optionsMsg, &defaultPartsPerWorkUnit);
+
         parseAndSet("stepsPerWorkUnitPart", &Options::set_steps_per_work_unit_part, optionsMsg);
     }
 }
