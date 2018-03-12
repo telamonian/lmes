@@ -71,21 +71,21 @@ public:
 public:
     GillespieDSolver();
     virtual ~GillespieDSolver();
-    virtual void reset();
-    virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0);
     template <typename Value>
-    inline void setInitialWriteInterval(double interval, double* nextWriteTime, Value* valueArray, int valueSize, std::vector<Value>* valueVector, std::vector<double>* timeVector)
+    inline double initWriteInterval(double interval, Value* valueArray, int valueSize, std::vector<Value>* valueVector, std::vector<double>* timeVector)
     {
         // if this is the start of the trajectory's first work unit...
-        if (not trajectoryStarted and writeInitialTrajectoryState)
+        if (not previouslyStarted and writeInitialTrajectoryState)
         {
             // and if we're specifically writing out initial states, do that then set the next write time. If the next write time happens to be the current time, skip that since we just wrote it out
             for (uint i=0; i<valueSize; i++) valueVector->push_back(valueArray[i]);
             timeVector->push_back(time);
         }
         // otherwise, just set the next write time. If the next write time happens to be the current time, skip that since we already wrote it out in the previous work unit
-        *nextWriteTime = (floor(time/interval) + 1)*interval;
+        return (floor(time/interval) + 1)*interval;
     }
+    virtual void reset();
+    virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0);
     virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0);
     virtual uint64_t generateTrajectory(uint64_t maxSteps);
 

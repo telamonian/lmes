@@ -126,4 +126,28 @@ template<typename Key0, typename Key1, typename Value> struct PairMap
     T map;
 };
 
+/*
+ * Set types.
+ */
+#ifdef OPT_CPP11
+#include <unordered_set>
+#else
+#include <set>
+#endif
+
+namespace lm {
+
+template <typename T>
+struct unordered_set
+{
+public:
+#ifdef OPT_CPP11
+    typedef std::unordered_set<T> type;
+#else
+    typedef std::set<T> type;
+#endif
+};
+
+}
+
 #endif /* TYPES_H_ */

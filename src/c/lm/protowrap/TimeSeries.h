@@ -47,6 +47,7 @@
 #include "lm/io/OrderParameterTimeSeries.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/message/WorkUnitOutput.pb.h"
+#include "lm/Print.h"
 #include "lm/protowrap/NDArray.h"
 #include "lm/Types.h"
 

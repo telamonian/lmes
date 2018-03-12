@@ -42,11 +42,6 @@
 #include <limits>
 #include <map>
 #include <string>
-#ifdef OPT_CPP11
-#include <unordered_set>
-#else
-#include <set>
-#endif
 
 #include "lm/input/Input.h"
 #include "lm/input/ReactionModel.pb.h"
@@ -65,13 +60,8 @@ class TrajectoryList
 {
 public:
     typedef std::map<uint64_t,Trajectory*> idmap;
-#ifdef OPT_CPP11
-    typedef std::unordered_set<uint64_t> idset;
-#else
-    typedef std::set<uint64_t> idset;
-#endif
+    typedef lm::unordered_set<uint64_t>::type idset;
 
-    
 public:
     TrajectoryList();
     TrajectoryList(uint64_t count, uint64_t simulationPhaseID);
@@ -98,18 +88,21 @@ public:
     virtual void deleteAllTrajectories();
 
 // accessors
-    virtual bool areAllFinished() const;
-    virtual bool areAnyWaiting() const;
+    virtual bool allFinished() const {return not (anyAborted() or anyRunning() or anyWaiting());}
+    virtual bool anyAborted() const {return not abortedTrajectories.empty();}
+    virtual bool anyRunning() const {return not runningTrajectories.empty();}
+    virtual bool anyWaiting() const {return not waitingTrajectories.empty();}
     virtual uint64_t count() const {return _count;}
-    virtual bool exists(uint64_t id) const {return trajectories.count(id)==1;}
-    virtual bool isTrajectoryAborted(uint64_t trajID) const {return abortedTrajectories.count(trajID) > 0;}
-    virtual bool isTrajectoryFinished(uint64_t trajID) const {return finishedTrajectories.count(trajID) > 0;}
-    virtual bool isTrajectoryRunning(uint64_t trajID) const {return runningTrajectories.count(trajID) > 0;}
-    virtual bool isTrajectoryWaiting(uint64_t trajID) const {return waitingTrajectories.count(trajID) > 0;}
-    virtual bool isTrajectoryAborted(Trajectory* traj) const {return abortedTrajectories.count(traj->getID()) > 0;}
-    virtual bool isTrajectoryFinished(Trajectory* traj) const {return finishedTrajectories.count(traj->getID()) > 0;}
-    virtual bool isTrajectoryRunning(Trajectory* traj) const {return runningTrajectories.count(traj->getID()) > 0;}
-    virtual bool isTrajectoryWaiting(Trajectory* traj) const {return waitingTrajectories.count(traj->getID()) > 0;}
+    virtual bool exists(uint64_t id) const {return trajectories.count(id) != 0;}
+    virtual const idset& getIDSet(Trajectory::Status status) const;
+    virtual bool isTrajectoryAborted(uint64_t trajID) const {return abortedTrajectories.count(trajID) != 0;}
+    virtual bool isTrajectoryFinished(uint64_t trajID) const {return finishedTrajectories.count(trajID) != 0;}
+    virtual bool isTrajectoryRunning(uint64_t trajID) const {return runningTrajectories.count(trajID) != 0;}
+    virtual bool isTrajectoryWaiting(uint64_t trajID) const {return waitingTrajectories.count(trajID) != 0;}
+    virtual bool isTrajectoryAborted(Trajectory* traj) const {return abortedTrajectories.count(traj->getID()) != 0;}
+    virtual bool isTrajectoryFinished(Trajectory* traj) const {return finishedTrajectories.count(traj->getID()) != 0;}
+    virtual bool isTrajectoryRunning(Trajectory* traj) const {return runningTrajectories.count(traj->getID()) != 0;}
+    virtual bool isTrajectoryWaiting(Trajectory* traj) const {return waitingTrajectories.count(traj->getID()) != 0;}
     virtual uint64_t simulationPhaseID() const {return _simulationPhaseID;}
     virtual size_t size() const {return trajectories.size();}
 
@@ -117,8 +110,8 @@ public:
     virtual int addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUnit* msg, uint numberParts);
     virtual void copyTrajectoriesWeakly(const TrajectoryList& srcTrajList, Trajectory::Status status);
     virtual void copyWorkUnitsRunning(const TrajectoryList& srcTrajList);
+    virtual idset* getIDSet(Trajectory::Status status);
     virtual Trajectory* getTrajectoryForFinishedWorkUnit(uint64_t id);
-    virtual idmap* getTrajectoryMap(Trajectory::Status status);
     template <typename InputIterator> Trajectory* recycleTrajectory(InputIterator speciesStart, InputIterator speciesEnd, double startTime, uint64_t oldID, uint64_t newID)
     {
         Trajectory* traj = trajectories[oldID];

@@ -17,7 +17,7 @@
  *               Johns Hopkins University
  *               http://biophysics.jhu.edu/roberts/
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #include <cassert>
@@ -27,6 +27,7 @@
 
 #include "hrtime.h"
 #include "lm/ClassFactory.h"
+#include "lm/EnumHelper.h"
 #include "lm/Exceptions.h"
 #include "lm/Math.h"
 #include "lm/Types.h"
@@ -155,10 +156,10 @@ void ExplicitFiniteDifferenceSolver::setMicroenvironmentModel(const lm::input::M
     if (dt > (dx*dx)/(6*D)) throw lm::InvalidArgException("dt", "The timestep did not follow the stability criteria for the ExplicitFiniteDifferenceSolver.", dt);
 }
 
-void ExplicitFiniteDifferenceSolver::setLimits(const lm::io::TrajectoryLimits& limits)
+void ExplicitFiniteDifferenceSolver::setLimits(const lm::input::TrajectoryLimits& limits)
 {
     // Set the time limit.
-    if (limits.has_time_limit() && limits.time_limit().limit_type() == lm::io::TrajectoryLimits::TIME && limits.time_limit().stopping_condition() == lm::io::TrajectoryLimits::MAX && limits.time_limit().has_dvalue())
+    if (limits.has_time_limit() && limits.time_limit().limit_type() == TrajLimEnums::TIME && limits.time_limit().stopping_condition() == TrajLimEnums::MAX && limits.time_limit().has_dvalue())
         timeLimit = limits.time_limit().dvalue();
 }
 

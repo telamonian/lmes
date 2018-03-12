@@ -555,6 +555,8 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
         totalPropensity = _mm256_add_pd(totalPropensity,propensity);
     }
 
+    avxd eps = _mm256_set1_pd(EPS);
+
     // Create the degree advancement data sets.
     avxd nextDegreeAdvancementWriteTime;
     vector<uint64_t> degreeAdvancementTimeSeriesCounts[DOUBLES_PER_AVX];
@@ -563,21 +565,11 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
     {
         for (int i=0; i<DOUBLES_PER_AVX; i++)
         {
-            if (!previouslyStarted[i])
-            {
-                for (uint j=0; j<reactionModel->numberReactions; j++) degreeAdvancementTimeSeriesCounts[i].push_back(degreeAdvancements[j*DOUBLES_PER_AVX+i]);
-                degreeAdvancementTimeSeriesTimes[i].push_back(((double*)&time)[i]);
-                ((double*)&nextDegreeAdvancementWriteTime)[i] = ((double*)&time)[i]+degreeAdvancementWriteInterval;
-            }
-            else
-            {
-                ((double*)&nextDegreeAdvancementWriteTime)[i] = ceil((((double*)&time)[i]+EPS)/degreeAdvancementWriteInterval)*degreeAdvancementWriteInterval;
-            }
+            ((double*)&nextDegreeAdvancementWriteTime)[i] = initWriteIntervalAVX(degreeAdvancementWriteInterval, degreeAdvancements, numberDegreeAdvancements, degreeAdvancementTimeSeriesCounts, degreeAdvancementTimeSeriesTimes, i);
         }
     }
 
     // Get the interval for writing species counts.
-    avxd eps = _mm256_set1_pd(EPS);
     avxd nextSpeciesWriteTime;
     vector<int32_t> speciesTimeSeriesCounts[DOUBLES_PER_AVX];
     vector<double> speciesTimeSeriesTimes[DOUBLES_PER_AVX];
@@ -587,14 +579,7 @@ uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
     {
         for (int i=0; i<DOUBLES_PER_AVX; i++)
         {
-            if (not previouslyStarted[i] and writeInitialTrajectoryState)
-            {
-                // if output of the initial state has been requested, do that
-                for (uint j=0; j<reactionModel->numberSpeciesToTrack; j++) speciesTimeSeriesCounts[i].push_back(lround(speciesCounts[j*DOUBLES_PER_AVX+i]));
-                speciesTimeSeriesTimes[i].push_back(((double*)&time)[i]);
-            }
-            // set the next write time. If the next write time happens to be the current time, skip it (since it was already handled either just now or at the end of the previous work unit)
-            ((double*)&nextSpeciesWriteTime)[i] = (floor(((double*)&time)[i]/speciesWriteInterval) + 1)*speciesWriteInterval;
+            ((double*)&nextSpeciesWriteTime)[i] = initWriteIntervalAVX(speciesWriteInterval, speciesCounts, reactionModel->numberSpecies, speciesTimeSeriesCounts, speciesTimeSeriesTimes, i);
         }
     }
 

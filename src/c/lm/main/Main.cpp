@@ -66,9 +66,7 @@
 #endif
 #include "lm/input/DiffusionModel.pb.h"
 #include "lm/io/hdf5/SimulationFile.h"
-#include "lm/io/OrderParameters.pb.h"
 #include "lm/input/ReactionModel.pb.h"
-#include "lm/io/Tilings.pb.h"
 #include "lm/main/CheckpointSignaler.h"
 #include "lm/main/Globals.h"
 #include "lm/main/MainArgs.h"

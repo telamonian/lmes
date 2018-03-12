@@ -59,7 +59,7 @@
 #include "lm/input/Tilings.pb.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/io/TrajectoryState.pb.h"
-#include "lm/main/Main.h"
+#include "lm/main/Globals.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
@@ -766,18 +766,12 @@ void FFluxSupervisor::finishSimulationPhase()
     // before anything else, send the phase output to the output writer (if needed)
     sendSimulationPhaseOutput();
 
-    // if we need to perform another phase, do so
-    if (performAnotherSimulationPhase())
-    {
-        // initialize the next phase and switch over to it
-        incrementSimulationPhase();
+    // if we need to perform another phase, initialize the next phase and switch over to it
+    if (incrementSimulationPhase())
         startSimulationPhase();
-    }
     // otherwise, finish up this stage of the simulation
     else
-    {
         finishSimulationStage();
-    }
 }
 
 void FFluxSupervisor::sendSimulationPhaseOutput()
@@ -804,7 +798,7 @@ void FFluxSupervisor::sendSimulationPhaseOutput()
 
                 // temporarily hand off the allocated phase output and send it
                 wuoPart->mutable_work_unit_output_generic()->mutable_fflux_phase_outputs()->AddAllocated(currentFFluxPhaseOutputWrapPtr->wrappedMsg());
-                communicator.sendMessage(outputWriterProcess, outputWriterThread, &ffluxPhaseOutputContainingMsg);
+                communicator->sendMessage(outputWriterAddress, &ffluxPhaseOutputContainingMsg);
                 wuoPart->mutable_work_unit_output_generic()->mutable_fflux_phase_outputs()->ReleaseLast();
             }
         }
@@ -813,16 +807,25 @@ void FFluxSupervisor::sendSimulationPhaseOutput()
     }
 }
 
-void FFluxSupervisor::incrementSimulationPhase()
+bool FFluxSupervisor::incrementSimulationPhase()
 {
-    // increment the currentFFluxPhase iterator
-    currentFFluxPhaseIter++;
+    if (isCurrentPhaseLast())
+    {
+        return false;
+    }
+    else
+    {
+        // increment the currentFFluxPhase iterator
+        currentFFluxPhaseIter++;
 
-    // set the new phase ID
-    simulationPhaseID = currentFFluxPhaseID();
+        // set the new phase ID
+        simulationPhaseID = currentFFluxPhaseID();
 
-    // call the base class method
-    lm::main::SimulationSupervisor::incrementSimulationPhase();
+        // call the base class method
+        lm::main::SimulationSupervisor::incrementSimulationPhase();
+
+        return true;
+    }
 }
 
 void FFluxSupervisor::finishSimulationStage()
@@ -830,20 +833,12 @@ void FFluxSupervisor::finishSimulationStage()
     // send the stage output to the output writer (if needed)
     sendSimulationStageOutput();
 
-    // if we need to perform another stage, do so
-    if (performAnotherSimulationStage())
-    {
-        // increment the stage-related iterators
-        incrementSimulationStage();
-
-        // start the new stage
+    // if we need to perform another stage, increment the stage-related iterators
+    if (incrementSimulationStage())
         startSimulationStage();
-    }
     // otherwise, stop the simulation
     else
-    {
         finishSimulation();
-    }
 }
 
 void FFluxSupervisor::sendSimulationStageOutput()
@@ -888,7 +883,7 @@ void FFluxSupervisor::sendSimulationStageOutput()
 
                 // temporarily hand off the allocated stage output and send it
                 wuoPart->mutable_work_unit_output_generic()->mutable_fflux_stage_output_raws()->AddAllocated(currentFFluxStageOutputWrap.mutable_fflux_stage_output_raw()->mutableWrappedMsg());
-                communicator.sendMessage(outputWriterProcess, outputWriterThread, &ffluxStageOutputRawContainingMsg);
+                communicator->sendMessage(outputWriterAddress, &ffluxStageOutputRawContainingMsg);
                 wuoPart->mutable_work_unit_output_generic()->mutable_fflux_stage_output_raws()->ReleaseLast();
                 simulationStageOutputSent = true;
             }
@@ -903,7 +898,7 @@ void FFluxSupervisor::sendSimulationStageOutput()
 
                 // temporarily hand off the allocated stage output and send it
                 wuoPart->mutable_work_unit_output_generic()->mutable_fflux_stage_output_summaries()->AddAllocated(currentFFluxStageOutputWrap.mutable_fflux_stage_output_summary()->mutableWrappedMsg());
-                communicator.sendMessage(outputWriterProcess, outputWriterThread, &ffluxStageOutputSummaryContainingMsg);
+                communicator->sendMessage(outputWriterAddress, &ffluxStageOutputSummaryContainingMsg);
                 wuoPart->mutable_work_unit_output_generic()->mutable_fflux_stage_output_summaries()->ReleaseLast();
                 simulationStageOutputSent = true;
             }
@@ -911,10 +906,19 @@ void FFluxSupervisor::sendSimulationStageOutput()
     }
 }
 
-void FFluxSupervisor::incrementSimulationStage()
+bool FFluxSupervisor::incrementSimulationStage()
 {
-    // increment the currentFFluxPhase iterator
-    currentFFluxStageIter++;
+    if (isCurrentStageLast())
+    {
+        return false;
+    }
+    else
+    {
+        // increment the currentFFluxPhase iterator
+        currentFFluxStageIter++;
+
+        return true;
+    }
 }
 
 void FFluxSupervisor::finishSimulation()

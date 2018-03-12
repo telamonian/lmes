@@ -41,7 +41,6 @@
 
 #include <limits>
 #include <map>
-#include <stdlib.h>
 #include <string>
 #include <vector>
 
@@ -50,7 +49,6 @@
 #include "lm/input/SimulationParameters.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/limit/LimitTracking.h"
-#include "lm/option/SimulationParameters.h"
 #include "lm/protowrap/Repeated.h"
 #include "lm/tiling/Tiling.h"
 #include "lm/Types.h"

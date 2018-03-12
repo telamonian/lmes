@@ -62,14 +62,14 @@ namespace lm {
 namespace input {
 
 // accessors
-bool SimulationParameters::checkAllParsed() const
+bool SimulationParametersWrap::checkAllParsed() const
 {
     return _mapUnparsed.size() <= 0;
 }
 
-SimParamMap::const_iterator SimulationParametersWrap::findFirst(const vector<string>& keys) const
+SimulationParametersWrap::const_iterator SimulationParametersWrap::findFirst(const vector<string>& keys) const
 {
-    SimParamMap::const_iterator findCIt;
+    const_iterator findCIt;
     for (vector<string>::const_iterator keyCIt=keys.begin(); keyCIt!=keys.end(); keyCIt++) {
         findCIt = find(*keyCIt);
         if (not isEnd(findCIt)) {
@@ -79,21 +79,21 @@ SimParamMap::const_iterator SimulationParametersWrap::findFirst(const vector<str
     return findCIt;
 }
 
-SimParamMap::iterator SimulationParametersWrap::findFirst(const vector<string>& keys)
+SimulationParametersWrap::iterator SimulationParametersWrap::findFirst(const vector<string>& keys)
 {
     // an attempt to recycle the code from a const qualified method into a non-const version of the same method
-    // return const_cast<SimParamMap::iterator>(static_cast<const SimulationParametersWrap*>(this)->findFirst(keys));
+    // return const_cast<iterator>(static_cast<const SimulationParametersWrap*>(this)->findFirst(keys));
 
     // unfortunately, though in general the above would work, it turns out that you can't const_cast an iterator, so we need something a bit more complex
-    SimParamMap::const_iterator findCIt(static_cast<const SimulationParametersWrap*>(this)->findFirst(keys));
+    const_iterator findCIt(static_cast<const SimulationParametersWrap*>(this)->findFirst(keys));
 #if __cplusplus > 199711L
     // http://stackoverflow.com/a/10669041/425458
     // in c++11, calling .erase() with a duplicate const_iterator (ie an empty range) returns a non-const iterator while erasing nothing
     return map.erase(findCIt, findCIt);
 #else
     // unlike the c++11 solution, this one (may) run in linear time since in general it has to increment the non-const iterator one by one
-    SimParamMap::iterator findIt(_map.begin());
-    std::advance(findIt, std::distance<SimParamMap::const_iterator>(findIt,findCIt));
+    iterator findIt(_map.begin());
+    std::advance(findIt, std::distance<const_iterator>(findIt,findCIt));
     return findIt;
 #endif
 }
@@ -105,7 +105,7 @@ void SimulationParametersWrap::printParsed() const
     outputSS << setw(20) << "KEY" << " " << setw(20) << "VALUE" << "\n";
 
 
-    for (SimParamMap::const_iterator it=_mapParsed.begin(); it!=_mapParsed.end(); it++)
+    for (const_iterator it=_mapParsed.begin(); it!=_mapParsed.end(); it++)
     {
         outputSS << setw(20) << it->first << " " << setw(20) << it->second << "\n";
     }
@@ -120,7 +120,7 @@ void SimulationParametersWrap::printUnparsed() const
     outputSS << setw(20) << "KEY" << " " << setw(20) << "VALUE" << "\n";
 
 
-    for (SimParamMap::const_iterator it=_mapUnparsed.begin(); it!=_mapUnparsed.end(); it++)
+    for (const_iterator it=_mapUnparsed.begin(); it!=_mapUnparsed.end(); it++)
     {
         outputSS << setw(20) << it->first << " " << setw(20) << it->second << "\n";
     }
@@ -130,7 +130,7 @@ void SimulationParametersWrap::printUnparsed() const
 }
 
 // mutators
-void SimulationParametersWrap::bufToMap(const lm::input::SimulationParameters& inBuf, SimParamMap& outMap)
+void SimulationParametersWrap::bufToMap(const lm::input::SimulationParameters& inBuf, parammap& outMap)
 {
     for (int i=0; i<inBuf.key_size() && i<inBuf.value_size(); i++)
     {
@@ -138,10 +138,10 @@ void SimulationParametersWrap::bufToMap(const lm::input::SimulationParameters& i
     }
 }
 
-void SimulationParametersWrap::mapToBuf(const SimParamMap& inMap, lm::input::SimulationParameters& outBuf)
+void SimulationParametersWrap::mapToBuf(const parammap& inMap, lm::input::SimulationParameters& outBuf)
 {
     outBuf.Clear();
-    for (SimParamMap::const_iterator it=inMap.begin(); it!=inMap.end(); it++) {
+    for (const_iterator it=inMap.begin(); it!=inMap.end(); it++) {
         outBuf.add_key(it->first);
         outBuf.add_value(it->second);
     }
@@ -178,7 +178,7 @@ bool SimulationParametersWrap::rFF(const lm::io::hdf5::Hdf5File& file, bool setu
     return true;
 }
 
-bool SimulationParametersWrap::rFM(const SimParamMap& inMap, bool setupUnparsed) // rFM = read From Map
+bool SimulationParametersWrap::rFM(const parammap& inMap, bool setupUnparsed) // rFM = read From Map
 {
     // set up the stl map
     setMap(inMap);

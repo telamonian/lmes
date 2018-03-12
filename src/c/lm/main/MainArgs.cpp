@@ -75,7 +75,14 @@ using std::vector;
 
 void printCopyright(int argc, char** argv)
 {
-    std::cout << "Lattice Microbe ES v" << VERSION_NUM << " build " << BUILD_INFO << " in " << (sizeof(uintv_t)*8) << "-bit mode with options";
+    std::cout << "Lattice Microbe ES v" << VERSION_NUM;
+    std::cout << " " << BUILD_TYPE << " build " << BUILD_INFO;
+    std::cout << " in " << (sizeof(uintv_t)*8) << "-bit mode";
+    std::cout << " with options";
+    std::cout << " MPI";
+#ifdef OPT_CUDA
+    std::cout << " CUDA";
+#endif
 #ifdef OPT_AVX
     std::cout << " AVX";
 #endif
@@ -105,49 +112,75 @@ void printCopyright(int argc, char** argv)
 /**
  * Parses the command line arguments.
  */
-void parseArguments(int argc, char** argv)
+void parseArguments(int argc, char** argv, bool printInfo)
 {
     // Set any default options.
-    replicates.clear();
-    replicates.push_back(1);
-    replicateBatchSize = 1;
-    relicatePrintMessages = true;
-
     cpuCores = -1;
     cpuCoresPerRunner = 1.0;
-    useCPUAffinity = false;
+    ffluxFlag = false;
     gpuDevices = -1;
 #ifdef OPT_CUDA
     gpuDevicesPerRunner = 1.0;
 #else
     gpuDevicesPerRunner = 0.0;
 #endif
+    ioTestFlag = false;
     shouldPrintGPUCapabilities = true;
-
+    shouldReserveOutputCore = true;
     simulationInputFilenames.clear();
     simulationOutputFilename = "";
-    outputWriterClassName = "lm::io::hdf5::Hdf5OutputWriter";
     supervisorClassName = "lm::replicates::ReplicateSupervisor";
+    useCPUAffinity = false;
 
+    /*
+     * Simulation type arguments. Preparsed here, since they may affect the default values of other cmd line args
+     */
+    for (int i=1; i<argc; i++)
+    {
+        char *option = argv[i];
+        while (*option == ' ') option++;
+
+        // See if the user is trying to perform a replicate sampling simulation.
+        if ((strcmp(option, "-rs") == 0 || strcmp(option, "--replicate-sampling") == 0))
+        {
+            supervisorClassName = "lm::replicates::ReplicateSupervisor";
+        }
+        // See if the user is trying to use forward flux sampling.
+        else if ((strcmp(option, "-fflux") == 0 || strcmp(option, "--use-forward-flux") == 0))
+        {
+            ffluxFlag = true;
+            supervisorClassName = "lm::fflux::FFluxSupervisor";
+        }
+        // See if the user is trying to perform a microenvironment simulation.
+        else if ((strcmp(option, "-me") == 0 || strcmp(option, "--microenvironment") == 0))
+        {
+            supervisorClassName = "lm::microenv::MicroenvironmentSupervisor";
+        }
+    }
+
+    // Set some default arg vals based on presence of -fflux flag
+    if (ffluxFlag)
+    {
+        // FFPilot defaults to SFile output (hdf5 is only partially implemented)
+        outputWriterClassName = "lm::fflux::io::sfile::FFluxSFileOutputWriter";
+
+        replicates.clear();
+        replicates.push_back(0);
+
+        // FFPilot currently can't use the AVX solver, even if it is available
+        solverClassName = "lm::cme::GillespieDSolver";
+    }
+    else
+    {
+        outputWriterClassName = "lm::io::hdf5::Hdf5OutputWriter";
+        replicates.clear();
+        replicates.push_back(1);
 #ifdef OPT_AVX
-    solverClassName = "lm::avx::GillespieDSolverAVX";
+        solverClassName = "lm::avx::GillespieDSolverAVX";
 #else
-    solverClassName = "lm::cme::GillespieDSolver";
+        solverClassName = "lm::cme::GillespieDSolver";
 #endif
-
-    // Set the default communicator.
-#ifdef OPT_MPI
-    communicatorClassName = "lm::mpi::MPICommunicator";
-#else
-    communicatorClassName = "lm::message::LocalCommunicator";
-#endif
-
-    shouldReserveOutputCore = true;
-    ffluxFlag = false;
-    intermediateOutputFlag = false;
-    daFlag = false;
-    opActivatedFlag = false;
-    opTrackingFlag = false;
+    }
 
     // Parse any arguments.
     for (int i=1; i<argc; i++)
@@ -173,12 +206,21 @@ void parseArguments(int argc, char** argv)
             break;
         }
 
+        //See if the user is trying to execute an iotest.
+        else if (strcmp(option, "-iotest") == 0 || strcmp(option, "--input-ouput-test") == 0)
+        {
+            functionOption = "iotest";
+
+            // Get the filename.
+            parseStringListArg(simulationInputFilenames, argv[++i]);
+        }
+
         //See if the user is trying to get the device info.
         else if (strcmp(option, "-l") == 0 || strcmp(option, "--list-devices") == 0) {
             functionOption = "devices";
         }
 
-        //See if the user is trying to execute a simulation.
+        // See if the user is trying to execute a simulation.
         else if ((strcmp(option, "-f") == 0 || strcmp(option, "--file") == 0) && i < (argc-1))
         {
             functionOption = "simulation";
@@ -213,11 +255,11 @@ void parseArguments(int argc, char** argv)
         //See if the user is trying to set the output record prefix.
         else if ((strcmp(option, "-fp") == 0 || strcmp(option, "--output-prefix") == 0) && i < (argc-1))
         {
-            sfileRecordNamePrefix=argv[++i];
+            recordNamePrefixGlobal=argv[++i];
         }
         else if (strncmp(option, "--output-prefix=", strlen("--output-prefix=")) == 0)
         {
-            sfileRecordNamePrefix=option+strlen("--output-prefix=");
+            recordNamePrefixGlobal=option+strlen("--output-prefix=");
         }
 
         //See if the user is trying to set the replicates.
@@ -323,91 +365,61 @@ void parseArguments(int argc, char** argv)
             cpuCores=atoi(option+strlen("--cpu="));
         }
 
-         //See if the user is trying to set the number of gpu devices per runner.
-         else if ((strcmp(option, "-cr") == 0 || strcmp(option, "--cpus-per-runner") == 0 || strcmp(option, "--cpus-per-replicate") == 0) && i < (argc-1))
-         {
+        //See if the user is trying to set the number of gpu devices per runner.
+        else if ((strcmp(option, "-cr") == 0 || strcmp(option, "--cpus-per-runner") == 0 || strcmp(option, "--cpus-per-replicate") == 0) && i < (argc-1))
+        {
              cpuCoresPerRunner=parseIntReciprocalArg(argv[++i]);
-         }
+        }
         else if (strncmp(option, "--cpus-per-runner=", strlen("--cpus-per-runner=")) == 0)
         {
             cpuCoresPerRunner=parseIntReciprocalArg(option+strlen("--cpus-per-runner="));
         }
-         else if (strncmp(option, "--cpus-per-replicate=", strlen("--cpus-per-replicate=")) == 0)
-         {
+        else if (strncmp(option, "--cpus-per-replicate=", strlen("--cpus-per-replicate=")) == 0)
+        {
              cpuCoresPerRunner=parseIntReciprocalArg(option+strlen("--cpus-per-replicate="));
-         }
+        }
 
 
         //See if the user is trying to turn on cpu affinity.
-         else if ((strcmp(option, "-ca") == 0 || strcmp(option, "--cpu-affinity") == 0))
-         {
+        else if ((strcmp(option, "-ca") == 0 || strcmp(option, "--cpu-affinity") == 0))
+        {
              useCPUAffinity = true;
-         }
+        }
 
-         //See if the user is trying to set the gpu devices.
-         else if ((strcmp(option, "-g") == 0 || strcmp(option, "--gpu") == 0) && i < (argc-1))
-         {
+        //See if the user is trying to set the gpu devices.
+        else if ((strcmp(option, "-g") == 0 || strcmp(option, "--gpu") == 0) && i < (argc-1))
+        {
              gpuDevices=atoi(argv[++i]);
-         }
-         else if (strncmp(option, "--gpu=", strlen("--gpu=")) == 0)
-         {
+        }
+        else if (strncmp(option, "--gpu=", strlen("--gpu=")) == 0)
+        {
              gpuDevices=atoi(option+strlen("--gpu="));
-         }
+        }
 
-         //See if the user is trying to set the number of gpu devices per runner.
-         else if ((strcmp(option, "-gr") == 0 || strcmp(option, "--gpus-per-runner") == 0 || strcmp(option, "--gpus-per-replicate") == 0) && i < (argc-1))
-         {
+        //See if the user is trying to set the number of gpu devices per runner.
+        else if ((strcmp(option, "-gr") == 0 || strcmp(option, "--gpus-per-runner") == 0 || strcmp(option, "--gpus-per-replicate") == 0) && i < (argc-1))
+        {
              gpuDevicesPerRunner=parseIntReciprocalArg(argv[++i]);
-         }
-         else if (strncmp(option, "--gpus-per-runner=", strlen("--gpus-per-runner=")) == 0)
-         {
+        }
+        else if (strncmp(option, "--gpus-per-runner=", strlen("--gpus-per-runner=")) == 0)
+        {
              gpuDevicesPerRunner=parseIntReciprocalArg(option+strlen("--gpus-per-runner="));
-         }
+        }
         else if (strncmp(option, "--gpus-per-replicate=", strlen("--gpus-per-replicate=")) == 0)
         {
             gpuDevicesPerRunner=parseIntReciprocalArg(option+strlen("--gpus-per-replicate="));
         }
 
         //See if the user is trying to turn off cuda capability printing.
-         else if ((strcmp(option, "-nc") == 0 || strcmp(option, "--no-capabilities") == 0))
-         {
+        else if ((strcmp(option, "-nc") == 0 || strcmp(option, "--no-capabilities") == 0))
+        {
              shouldPrintGPUCapabilities = false;
-         }
+        }
 
         //See if the user is trying to turn off cuda capability printing.
-         else if ((strcmp(option, "-nr") == 0 || strcmp(option, "--no-reserve-core") == 0))
-         {
-             shouldReserveOutputCore = false;
-         }
-
-        //
-        // Simulation type arguments.
-        //
-
-        //See if the user is trying to perform a replicate sampling simulation.
-        else if ((strcmp(option, "-rs") == 0 || strcmp(option, "--replicate-sampling") == 0))
+        else if ((strcmp(option, "-nr") == 0 || strcmp(option, "--no-reserve-core") == 0))
         {
-             supervisorClassName = "lm::replicates::ReplicateSupervisor";
-        }
-
-        //See if the user is trying to use forward flux sampling.
-        else if ((strcmp(option, "-fflux") == 0 || strcmp(option, "--use-forward-flux") == 0))
-		{
-        	 ffluxFlag = true;
-        	 opActivatedFlag = true;
-        	 supervisorClassName = "lm::fflux::FFluxSupervisor";
-		}
-
-        //See if the user is trying to use forward flux sampling.
-        else if ((strcmp(option, "-intout") == 0 || strcmp(option, "--intermediate-output") == 0))
-        {
-             intermediateOutputFlag = true;
-        }
-
-        //See if the user is trying to perform a microenvironment simulation.
-        else if ((strcmp(option, "-me") == 0 || strcmp(option, "--microenvironment") == 0))
-        {
-             supervisorClassName = "lm::microenv::MicroenvironmentSupervisor";
+        	 shouldReserveOutputCore = false;
         }
 
         //See if the user is trying to set the supervisor directly.
@@ -419,8 +431,11 @@ void parseArguments(int argc, char** argv)
         {
             supervisorClassName = option+strlen("--supervisor=");
         }
-
-
+        //See if the user is trying to do an input output test.
+        else if ((strcmp(option, "-ioflag") == 0 || strcmp(option, "--do-io-test") == 0))
+        {
+            ioTestFlag = true;
+        }
         //See if the user is trying to set the gpu devices.
         else if ((strcmp(option, "-so") == 0 || strcmp(option, "--shared-libraries") == 0) && i < (argc-1))
         {
@@ -451,26 +466,63 @@ void parseArguments(int argc, char** argv)
             communicatorClassName = "lm::mpi::AsyncMPICommunicator";
         }
 
-        //This must be an invalid option.
+        /*
+         * Simulation type arguments. Parsed earlier, but included here so the args are treated as valid
+         */
+        else if ((strcmp(option, "-rs") == 0 || strcmp(option, "--replicate-sampling") == 0)) continue;
+        else if ((strcmp(option, "-fflux") == 0 || strcmp(option, "--use-forward-flux") == 0)) continue;
+        else if ((strcmp(option, "-me") == 0 || strcmp(option, "--microenvironment") == 0)) continue;
+
+        // This must be an invalid option.
         else {
             throw lm::CommandLineArgumentException(option);
         }
     }
 
-    // Perform some validation of the arguments.
-    if (functionOption == "simulation")
+    // figure out where to save the simulation output
+    if (functionOption=="simulation")
     {
-        if (simulationInputFilenames.size() == 0)
+        if (simulationInputFilenames.size()==0)
             throw lm::CommandLineArgumentException("missing simulation input file.");
 
-        if (outputWriterClassName == "lm::io::hdf5::Hdf5OutputWriter" && simulationOutputFilename == "")
-            simulationOutputFilename = simulationInputFilenames[0];
-        else if (outputWriterClassName == "lm::io::hdf5::Hdf5OutputWriter" && simulationOutputFilename != simulationInputFilenames[0])
-            throw lm::CommandLineArgumentException("cannot specify separate input and output files with the hdf5 format.");
-
-        if (outputWriterClassName == "lm::io::sfile::SFileOutputWriter" && simulationOutputFilename == "")
-            throw lm::CommandLineArgumentException("missing simulation output file.");
+        string ffMsg;
+        if (outputWriterClassName=="lm::io::hdf5::Hdf5OutputWriter")
+        {
+            if (simulationOutputFilename=="")
+            {
+                // If the output name is blank, assume the first input name is the .lm file and set the output to be that .lm file
+                simulationOutputFilename = simulationInputFilenames[0];
+            }
+            else if (simulationOutputFilename != simulationInputFilenames[0])
+            {
+                throw lm::CommandLineArgumentException("cannot specify separate input and output files with the hdf5 format.");
+            }
+            ffMsg = "in hdf5 format";
+        }
+        else if (outputWriterClassName.find("sfile") != std::string::npos && simulationOutputFilename=="")
+        {
+            // default SFile output path is the input path with "_-_out.sfile" suffix
+            simulationOutputFilename = lm::pathWithSuffix(simulationInputFilenames[0], "_-_out.sfile");
+            ffMsg = "in SFile format";
+        }
+        if (printInfo) lm::Print::printf(lm::Print::INFO, "saving simulation output (%s) to: %s", ffMsg.c_str(), simulationOutputFilename.c_str());
     }
+
+    // zero out the CUDA args if CUDA is off. Warn the user if we have to change any arg vals
+    #ifndef OPT_CUDA
+    // if cuda is off, printInfo the user if they try to set gpuDevices, but then set it to 0 anyway
+    if (gpuDevices > 0)
+    {
+        if (printInfo) lm::Print::printf(lm::Print::WARNING, "attempting to set gpuDevices=%.2f, but CUDA support is turned off", gpuDevices);
+        gpuDevices=0;
+    }
+    // if cuda is off, printInfo the user if they try to set gpuDevicesPerRunner, but set it to 0 anyway
+    if (gpuDevicesPerRunner > 0)
+    {
+        if (printInfo) lm::Print::printf(lm::Print::WARNING, "attempting to set gpuDevicesPerRunner=%.2f, but CUDA support is turned off", gpuDevicesPerRunner);
+        gpuDevicesPerRunner=0.0;
+    }
+    #endif /* OPT_CUDA */
 }
 
 string parseOutputFormatArg(char* option)
@@ -478,12 +530,17 @@ string parseOutputFormatArg(char* option)
     if (strcmp(option, "hdf5") == 0)
         return "lm::io::hdf5::Hdf5OutputWriter";
     else if (strcmp(option, "sfile") == 0)
-        return "lm::io::sfile::SFileOutputWriter";
+    {
+        if (ffluxFlag)
+            return "lm::fflux::io::sfile::FFluxSFileOutputWriter";
+        else
+            return "lm::replicates::io::sfile::ReplicatesSFileOutputWriter";
+    }
     else if (strcmp(option, "log") == 0)
         return "lm::io::ConsoleOutputWriter";
     else if (strcmp(option, "null") == 0)
         return "lm::io::NullOutputWriter";
-    throw lm::CommandLineArgumentException(option);
+    throw lm::CommandLineArgumentException("Invalid output file format: %s", option);
 }
 
 void parseIntListArg(vector<uint64_t> & list, char* arg)
@@ -514,6 +571,7 @@ void parseIntListArg(vector<uint64_t> & list, char* arg)
 
 void parseStringListArg(vector<string>& list, char* arg)
 {
+    list.clear();
     char * argbuf = new char[strlen(arg)+1];
     strcpy(argbuf,arg);
     char * pch = strtok(argbuf," ,;:\"");
@@ -586,8 +644,8 @@ void printUsage(int argc, char** argv)
     std::cout << "OPTIONS" << std::endl;
     std::cout << "  -ff format        --output-format=format        The file format for the simulation output. Valid values are \"hdf5\" (default)|\"sfile\"|\"log\"|\"null\"." << std::endl;
     std::cout << "  -fo output_file   --output-file=output_filename The file for the simulation output, if different than the input file. Required for sfile, invalid for hdf5." << std::endl;
-    std::cout << "  -fp record_prefix --output-prefix=record_prefix The prefix to use for the record names. Optional for sfile output, invalid for hdf5." << std::endl;
-    std::cout << "  -n node_file      --nodelist=node_file          A file containing the list of nodes on which to run." << std::endl;
+    std::cout << "  -fp record_prefix --output-prefix=record_prefix The prefix to use for the record names. Optional for sfile or hdf5 output." << std::endl;
+    std::cout << "  -n node_file      --nodelist=node_file          A file containing the list of nodes on which to run, one line per available CPU core." << std::endl;
     std::cout << "  -m map_file       --resource-map=map_file       A file containing the map of resources to use: hostname processor_id_list gpu_id_list." << std::endl;
     std::cout << "  -c num_cpus       --cpu=num_cpus                The number of CPUs on which to execute (default all)." << std::endl;
     std::cout << "  -cr num           --cpus-per-runner=num         The number of CPUs (possibly fractional) to assign per runner, e.g. \"2\", \"1/4\" (default 1)." << std::endl;
@@ -613,7 +671,6 @@ void printUsage(int argc, char** argv)
     std::cout << "  -me               --microenvironment            Perform a microenvironment simulation." << std::endl;
     std::cout << "  -su supervisor    --supervisor=classname        Perform a simulation using the specified supervisor." << std::endl;
     std::cout << "  -ck               --checkpoint=interval         Enable checkpointing with the given interval as hh:mm:ss (default 00:00:00 -- disabled)." << std::endl;
-    std::cout << "  -intout           --intermediate-output         More verbose output. Consists of intermediate values used to calculate standard output." << std::endl;
 }
 
 #include "hrtime.h"
@@ -801,7 +858,7 @@ void mainDebug(int argc, char** argv)
     s.setReactionModel(rm);
 
     // Set the limits.
-    lm::io::TrajectoryLimits limits;
+    lm::input::TrajectoryLimits limits;
     //limits.set_max_time_limit(100.0);
     s.setLimits(limits);
 

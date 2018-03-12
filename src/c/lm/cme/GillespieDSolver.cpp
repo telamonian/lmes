@@ -179,7 +179,7 @@ uint64_t GillespieDSolver::generateTrajectory(uint64_t maxSteps)
     vector<double> degreeAdvancementTimes;
     if (writeDegreeAdvancementTimeSeries)
     {
-        setInitialWriteInterval(degreeAdvancementWriteInterval, &nextDegreeAdvancementWriteTime, degreeAdvancements, numberDegreeAdvancements, &degreeAdvancementCounts, &degreeAdvancementTimes);
+        nextDegreeAdvancementWriteTime = initWriteInterval(degreeAdvancementWriteInterval, degreeAdvancements, numberDegreeAdvancements, &degreeAdvancementCounts, &degreeAdvancementTimes);
     }
 
     // Get the interval for writing order parameters.
@@ -187,7 +187,7 @@ uint64_t GillespieDSolver::generateTrajectory(uint64_t maxSteps)
     vector<double> orderParameterTimeSeriesCounts, orderParameterTimeSeriesTimes;
     if (writeOrderParameterTimeSeries)
     {
-        setInitialWriteInterval(orderParameterWriteInterval, &nextOrderParameterWriteTime, orderParameterValues, numberOrderParameters, &orderParameterTimeSeriesCounts, &orderParameterTimeSeriesTimes);
+        nextOrderParameterWriteTime = initWriteInterval(orderParameterWriteInterval, orderParameterValues, numberOrderParameters, &orderParameterTimeSeriesCounts, &orderParameterTimeSeriesTimes);
     }
 
     // Get the interval for writing species counts.
@@ -196,7 +196,7 @@ uint64_t GillespieDSolver::generateTrajectory(uint64_t maxSteps)
     vector<double> speciesTimeSeriesTimes;
     if (writeSpeciesTimeSeries)
     {
-        setInitialWriteInterval(speciesWriteInterval, &nextSpeciesWriteTime, speciesCounts, reactionModel->numberSpecies, &speciesTimeSeriesCounts, &speciesTimeSeriesTimes);
+        nextSpeciesWriteTime = initWriteInterval(speciesWriteInterval, speciesCounts, reactionModel->numberSpecies, &speciesTimeSeriesCounts, &speciesTimeSeriesTimes);
     }
 
     // Run the direct method.

@@ -137,14 +137,12 @@ protected:
     virtual void printFFluxLimitProgress();
     virtual void finishSimulationPhase();
     virtual void sendSimulationPhaseOutput();
-    virtual bool performAnotherSimulationPhase() {return not isCurrentPhaseLast();}
-    virtual void incrementSimulationPhase();
+    virtual bool incrementSimulationPhase();
 
     // methods that control what happens at the end of a ffluxStage
     virtual void finishSimulationStage();
     virtual void sendSimulationStageOutput();
-    virtual bool performAnotherSimulationStage() {return not isCurrentStageLast();}
-    virtual void incrementSimulationStage();
+    virtual bool incrementSimulationStage();
 
     // methods that run at the end of the entire simulation
     virtual void finishSimulation();

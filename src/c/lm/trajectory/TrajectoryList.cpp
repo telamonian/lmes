@@ -166,16 +166,6 @@ void TrajectoryList::deleteTrajectory(uint64_t id)
 }
 
 // accessors
-bool TrajectoryList::areAllFinished() const
-{
-    return abortedTrajectories.size() == 0 && runningTrajectories.size() == 0 && waitingTrajectories.size() == 0;
-}
-
-bool TrajectoryList::areAnyWaiting() const
-{
-    return (waitingTrajectories.size() > 0);
-}
-
 const TrajectoryList::idset& TrajectoryList::getIDSet(Trajectory::Status status) const
 {
     switch (status)
@@ -309,6 +299,16 @@ uint64_t TrajectoryList::resolveTrajectoryID(uint64_t newID)
     else                              {return newID;}
 }
 
+void TrajectoryList::restartFinishedTrajectories()
+{
+    for (idset::iterator it=finishedTrajectories.begin(); it!=finishedTrajectories.end(); it++)
+    {
+        trajectories.at(*it)->setStatus(Trajectory::WAITING);
+        waitingTrajectories.insert(*it);
+    }
+    finishedTrajectories.clear();
+}
+
 void TrajectoryList::setAll(Trajectory::Status oldStatus, Trajectory::Status newStatus)
 {
     idset* oldSet = getIDSet(oldStatus);
@@ -327,7 +327,7 @@ void TrajectoryList::takeTrajectories(TrajectoryList* srcTrajList, Trajectory::S
     idset* srcSet = srcTrajList->getIDSet(srcStatus);
 
     // By copying the trajectory pointers into this instance's primary trajectories map (and by erasing it from the src's trajectories) we have taken ownership of the pointed-to-trajectories' memory
-    for (idset::iterator it=srcMap->begin(); it!=srcMap->end();)
+    for (idset::iterator it=srcSet->begin(); it!=srcSet->end();)
     {
         Trajectory* traj = trajectories[*it] = srcTrajList->trajectories.at(*it);
         dstSet->insert(*it);
@@ -443,15 +443,16 @@ void TrajectoryList::setTrajectoryID(lm::trajectory::Trajectory* traj, uint64_t 
     trajectories[newID] = traj;
 
     traj->setStatus(newStatus);
-    (*getTrajectoryMap(newStatus))[newID] = traj;
+    getIDSet(newStatus)->insert(newID);
 }
 
 void TrajectoryList::setTrajectoryStatus(lm::trajectory::Trajectory* traj, Trajectory::Status newStatus)
 {
     uint64_t id = traj->getID();
     eraseTrajectoryIDFromSublists(id);
+
     traj->setStatus(newStatus);
-    (*getTrajectoryMap(newStatus))[id] = traj;
+    getIDSet(newStatus)->insert(id);
 }
 
 }

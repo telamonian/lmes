@@ -39,12 +39,13 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #include <zlib.h>
 
 #include "lm/ClassFactory.h"
+#include "lm/EnumHelper.h"
 #include "lm/Exceptions.h"
 #include "lm/Tune.h"
 #include "lm/Print.h"
@@ -225,7 +226,7 @@ uint64_t NextSubvolumeSolver::generateTrajectory(uint64_t maxSteps)
         if (time >= timeLimit)
         {
             status = lm::message::WorkUnitStatus::LIMIT_REACHED;
-            limitTypeReached = lm::io::TrajectoryLimits::TIME;
+            limitTypeReached = TrajLimEnums::TIME;
             break;
         }
 
@@ -289,7 +290,7 @@ uint64_t NextSubvolumeSolver::generateTrajectory(uint64_t maxSteps)
     }
 
     // If we finished the total time, write out the remaining time steps.
-    else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && limitTypeReached == lm::io::TrajectoryLimits::MAX)
+    else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && limitTypeReached == TrajLimEnums::MAX)
     {
         time = timeLimit;
         Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);

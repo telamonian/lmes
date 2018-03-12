@@ -61,11 +61,11 @@ METrajectoryList::METrajectoryList(const lm::input::Input& input, uint64_t repli
         {
             // Create a new trajectory for the cell.
             uint64_t id = trajectoryMultiplier*numberCells+i;
-            trajectories[id] = new lm::trajectory::Trajectory(id, getSimulationPhase(), input, false, true, true, false);
+            trajectories[id] = new lm::trajectory::Trajectory(input, simulationPhaseID(), id, false, true, true, false);
             waitingTrajectories.insert(id);
 
             // Set the initial species counts for the cell.
-            lm::io::TrajectoryState* state = trajectories[id]->getMutableState();
+            lm::io::TrajectoryState* state = trajectories[id]->getStateMutable();
             if (state->cme_state().species_counts().number_species() != (int)numberSpecies) throw RuntimeException("inconsistent number of species", state->cme_state().species_counts().number_species(), numberSpecies);
             for (uint j=0; j<numberSpecies; j++)
                 state->mutable_cme_state()->mutable_species_counts()->set_species_count(j, (*initialCounts)[utuple(i,j)]);
@@ -90,7 +90,7 @@ void METrajectoryList::copySpeciesCountFrom(const ndarray<int32_t>& counts, uint
 {
     for (map<uint64_t,lm::trajectory::Trajectory*>::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
     {
-        it->second->getMutableState()->mutable_cme_state()->mutable_species_counts()->set_species_count(speciesId, counts[utuple(it->first-numberCells*trajectoryMultiplier,column)]);
+        it->second->getStateMutable()->mutable_cme_state()->mutable_species_counts()->set_species_count(speciesId, counts[utuple(it->first-numberCells*trajectoryMultiplier,column)]);
     }
 }
 

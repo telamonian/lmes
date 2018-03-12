@@ -43,6 +43,7 @@
 #include "lm/ClassFactory.h"
 #include "lm/EnumHelper.h"
 #include "lm/io/hdf5/SimulationFile.h"
+#include "lm/io/sfile/LocalSFile.h"
 #include "lm/io/sfile/SFile.h"
 #include "lm/io/sfile/SFileRecord.h"
 #include "lm/input/Input.h"
@@ -78,7 +79,7 @@ void* Input::allocateObject(const vector<string>& inputFilenames)
 
 Input::Input()
 :degreeAdvancementPresent(false),diffusionModelPresent(false),reactionModelPresent(false),
- orderParametersPresent(false),outputOptionsPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),
+ orderParametersPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),
  limitTrackingListWrap(&limitTrackingListMsg),includeEndpointInLimits(true),
  minRateConstant(std::numeric_limits<double>::infinity())
 {
@@ -86,7 +87,7 @@ Input::Input()
 
 Input::Input(const vector<string>& inputFilenames)
 :degreeAdvancementPresent(false),diffusionModelPresent(false),reactionModelPresent(false),
- orderParametersPresent(false),outputOptionsPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),
+ orderParametersPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),
  limitTrackingListWrap(&limitTrackingListMsg),includeEndpointInLimits(true),
  minRateConstant(std::numeric_limits<double>::infinity())
 {

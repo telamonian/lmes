@@ -76,6 +76,18 @@ public:
 public:
     GillespieDSolverAVX();
     virtual ~GillespieDSolverAVX();
+    template <typename Value, typename StorageValue>
+    inline double initWriteIntervalAVX(double interval, Value* valueArray, int valueSize, std::vector<StorageValue>* valueVector, std::vector<double>* timeVector, int i)
+    {
+        if (not previouslyStarted[i] and writeInitialTrajectoryState)
+        {
+            // if output of the initial state has been requested, do that
+            for (uint j=0; j<valueSize; j++) valueVector[i].push_back(lround(valueArray[j*DOUBLES_PER_AVX+i]));
+            timeVector[i].push_back(((double*)&time)[i]);
+        }
+        // set the next write time. If the next write time happens to be the current time, skip it (since it was already handled either just now or at the end of the previous work unit)
+        return (floor(((double*)&time)[i]/speciesWriteInterval) + 1)*speciesWriteInterval;
+    }
     virtual uint getSimultaneousTrajectories();
     virtual void setReactionModel(const lm::input::ReactionModel& rm);
     virtual void setOrderParameters(const lm::input::OrderParameters& opsBuf);

@@ -423,7 +423,7 @@ bool SimulationSupervisor::assignWork()
         else
         {
             // If there were no work units to run, see if it was because they are all finsished.
-            if (trajectoryList->areAllFinished())
+            if (trajectoryList->allFinished())
             {
                 return true;	// When there's no more trajectories to run and it's time for the program to shut down, assignWork should return from here
             }
@@ -483,37 +483,28 @@ bool SimulationSupervisor::terminateSimulationPhase()
 
 void SimulationSupervisor::finishSimulationPhase()
 {
-    // If we need to perform another phase, do so, otherwise stop the simulation.
-    if (performAnotherSimulationPhase())
-    {
-        incrementSimulationPhase();
+    // If we need to perform another phase, do so, otherwsise stop th simulation.
+    if (incrementSimulationPhase())
         startSimulationPhase();
-    }
     else
-    {
         finishSimulation();
-    }
 }
 
-bool SimulationSupervisor::performAnotherSimulationPhase()
-{
-    return false;
-}
-
-void SimulationSupervisor::incrementSimulationPhase()
+bool SimulationSupervisor::incrementSimulationPhase()
 {
     simulationPhaseID++;
+    return false;
 }
 
 void SimulationSupervisor::finishSimulation()
 {
     // Mark all still running trajectories as unfinished/aborted
-    if (trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::RUNNING)->size() > 0)
+    if (trajectoryList->anyRunning())
     {
         trajectoryList->setAll(lm::trajectory::Trajectory::RUNNING, lm::trajectory::Trajectory::ABORTED);
     }
 
-    if (trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::ABORTED)->size() > 0)
+    if (trajectoryList->anyAborted())
     {
         // If any simulation phase was ever forcibly terminated, coordinate a clean shutdown of the runners by keeping the simulation running until output msgs from the ABORTED trajectories have been received
         if (simulationPhaseAborted)
@@ -523,7 +514,7 @@ void SimulationSupervisor::finishSimulation()
         // Otherwise, treat any unfinished trajectories as a bug, since the default expectation is that all trajectories should finish cleanly by themselves before finishSimulation is called
         else
         {
-            throw ConsistencyException("At end of simulation, there were %d trajectories still running (should be 0)", trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::RUNNING)->size());
+            throw ConsistencyException("At end of simulation, there were %d trajectories still running (should be 0)", trajectoryList->getIDSet(lm::trajectory::Trajectory::RUNNING)->size());
         }
     }
 
@@ -588,8 +579,7 @@ void SimulationSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* new
     if (trajectoryList != NULL)
     {
         // If several phases end quickly back to back, it is possible for a finished phase to have no RUNNING trajectories but still have ABORTED ones, so we check for both
-        if ((trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::ABORTED)->size() > 0) or \
-            (trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::RUNNING)->size() > 0))
+        if (trajectoryList->anyAborted() or trajectoryList->anyRunning())
         {
             // If the simulation phase was ever forcibly terminated, make sure we clean up any running trajectories appropriately
             if (simulationPhaseAborted)
@@ -602,7 +592,7 @@ void SimulationSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* new
             // Otherwise, the default supervisor behavior is to throw an exception if there are trajectories still running at the end of a phase
             else
             {
-                throw ConsistencyException("At end of simulation phase, there were %d trajectories still running (should be 0)", trajectoryList->getTrajectoryMap(lm::trajectory::Trajectory::RUNNING)->size());
+                throw ConsistencyException("At end of simulation phase %d, there were %d trajectories still running (should be 0)", simulationPhaseID, trajectoryList->getIDSet(lm::trajectory::Trajectory::RUNNING)->size());
             }
         }
     }

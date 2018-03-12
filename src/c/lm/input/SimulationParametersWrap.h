@@ -116,12 +116,15 @@ inline bool parseNextToken(std::stringstream* tokensSS, T* destination)
 class SimulationParametersWrap
 {
 public:
-    typedef std::map<std::string,std::string> SimParamMap;
+    typedef std::map<std::string,std::string> parammap;
+    typedef parammap::iterator iterator;
+    typedef parammap::const_iterator const_iterator;
 
+public:
     SimulationParametersWrap() {}
     SimulationParametersWrap(const lm::input::SimulationParameters& newBuf) {rFB(newBuf, true);}
     SimulationParametersWrap(const lm::io::hdf5::Hdf5File& file) {rFF(file, true);}
-    SimulationParametersWrap(const SimParamMap& newMap) {rFM(newMap, true);}
+    SimulationParametersWrap(const parammap& newMap) {rFM(newMap, true);}
     ~SimulationParametersWrap() {}
 
     // Initialize the map of unparsed elements as a copy of the map of all elements.
@@ -131,9 +134,9 @@ public:
 // accessors
     const lm::input::SimulationParameters& buf() {return _buf;}
     bool checkAllParsed() const;
-    SimParamMap::const_iterator findFirst(const std::vector<std::string>& keys) const;
-    bool isEnd(SimParamMap::const_iterator it) const {return it==_map.end();}
-    const SimParamMap& map() const {return _map;}
+    const_iterator findFirst(const std::vector<std::string>& keys) const;
+    bool isEnd(const_iterator it) const {return it==_map.end();}
+    const parammap& map() const {return _map;}
     void printParsed() const;
     void printUnparsed() const;
 
@@ -197,32 +200,32 @@ public:
     // for the buf <-> map conversion methods, if you drop an arg it'll use the internal map and/or buf
     void bufToMap() {bufToMap(_buf, _map);}
     void bufToMap(const lm::input::SimulationParameters& inBuf) {bufToMap(inBuf, _map);}
-    void bufToMap(SimParamMap& outMap) {bufToMap(_buf, outMap);}
-    void bufToMap(const lm::input::SimulationParameters& inBuf, SimParamMap& outMap);
+    void bufToMap(parammap& outMap) {bufToMap(_buf, outMap);}
+    void bufToMap(const lm::input::SimulationParameters& inBuf, parammap& outMap);
 
-    SimParamMap::iterator findFirst(const std::vector<std::string>& keys);
+    iterator findFirst(const std::vector<std::string>& keys);
 
     void mapToBuf() {mapToBuf(_map, _buf);}
-    void mapToBuf(const SimParamMap& inMap) {mapToBuf(inMap, _buf);}
+    void mapToBuf(const parammap& inMap) {mapToBuf(inMap, _buf);}
     void mapToBuf(lm::input::SimulationParameters& outBuf) {mapToBuf(_map, outBuf);}
-    void mapToBuf(const SimParamMap& inMap, lm::input::SimulationParameters& outBuf);
+    void mapToBuf(const parammap& inMap, lm::input::SimulationParameters& outBuf);
 
     bool rFB(const lm::input::SimulationParameters& inBuf, bool setupUnparsed=true); // rFB = read From Buf
     bool rFF(const lm::io::hdf5::Hdf5File& file, bool setupUnparsed=true); // rFF = read From File
-    bool rFM(const SimParamMap& inMap, bool setupUnparsed=true); // rFM = read From Map
+    bool rFM(const parammap& inMap, bool setupUnparsed=true); // rFM = read From Map
 
     void setBuf(const lm::input::SimulationParameters& newBuf) {_buf.CopyFrom(newBuf);}
-    void setMap(const SimParamMap& newMap) {_map = newMap;}
+    void setMap(const parammap& newMap) {_map = newMap;}
 
-// const qualified pass-throughs to the underlying SimulationParameters buf and SimParamMap
-    SimParamMap::const_iterator find(const std::string& key) const {return _map.find(key);}
-    SimParamMap::size_type count(const std::string& key) const {return _map.count(key);}
+// const qualified pass-throughs to the underlying SimulationParameters buf and parammap
+    const_iterator find(const std::string& key) const {return _map.find(key);}
+    parammap::size_type count(const std::string& key) const {return _map.count(key);}
 
-// pass-throughs to the underlying SimulationParameters buf and SimParamMap
+// pass-throughs to the underlying SimulationParameters buf and parammap
     std::string& operator[](const std::string& key) {return _map[key];}
-    SimParamMap::iterator find(const std::string& key) {return _map.find(key);}
-    SimParamMap::iterator begin() {return _map.begin();}
-    SimParamMap::iterator end() {return _map.end();}
+    iterator find(const std::string& key) {return _map.find(key);}
+    iterator begin() {return _map.begin();}
+    iterator end() {return _map.end();}
 
 protected:
     // accessors
@@ -244,9 +247,9 @@ protected:
 
 protected:
     lm::input::SimulationParameters _buf;
-    SimParamMap _map;
-    SimParamMap mutable _mapParsed;
-    SimParamMap mutable _mapUnparsed;
+    parammap _map;
+    parammap mutable _mapParsed;
+    parammap mutable _mapUnparsed;
 };
 
 }

@@ -212,12 +212,6 @@ Solver* WorkUnitRunner::createMESolver()
         solver->setOrderParameters(properties.order_parameters());
     }
 
-    // Set the tilings for the solver
-    if (properties.has_tilings())
-    {
-        solver->setTilings(properties.tilings());
-    }
-
     return solver;
 }
 

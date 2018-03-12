@@ -59,7 +59,6 @@
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/main/Globals.h"
-#include "lm/main/Main.h"
 #include "lm/message/WorkUnitStatus.pb.h"
 #include "lm/Print.h"
 #include "lm/fflux/io/FFluxPhaseOutputWrap.h"

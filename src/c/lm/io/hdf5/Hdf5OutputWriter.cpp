@@ -137,7 +137,7 @@ void Hdf5OutputWriter::processFFluxOutput(const lm::io::FFluxOutput& data)
 
 void Hdf5OutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
 {
-    file->setFirstPassageTimes(data.trajectory_id(), (lm::io::FirstPassageTimes*)&data);
+    file->setFirstPassageTimes(data.trajectory_id(), data);
 }
 
 void Hdf5OutputWriter::processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data)

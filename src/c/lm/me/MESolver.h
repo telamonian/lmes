@@ -68,7 +68,6 @@ public:
     virtual void setDiffusionModel(const lm::input::DiffusionModel& dm)=0;
     virtual void setOrderParameters(const lm::input::OrderParameters& ops)=0;
     virtual void setReactionModel(const lm::input::ReactionModel& rm)=0;
-    virtual void setTilings(const lm::input::Tilings& tilings)=0;
 };
 
 }

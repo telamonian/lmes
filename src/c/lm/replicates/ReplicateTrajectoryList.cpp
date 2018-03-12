@@ -64,7 +64,7 @@
 using std::map;
 using std::string;
 
-using lm::trajectory::Trajectory
+using lm::trajectory::Trajectory;
 
 namespace lm {
 namespace replicates {
@@ -122,7 +122,7 @@ uint64_t ReplicateTrajectoryList::findNextTrajectoryToRun() const
     {
         uint64_t minId=UINT64_MAX;
         double minTime=std::numeric_limits<double>::infinity();
-        for (unordered_set<uint64_t>::iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
+        for (idset::iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
         {
             double time = trajectories.at(*it)->getState().cme_state().species_counts().time(0);
             if (time < minTime)
@@ -134,7 +134,7 @@ uint64_t ReplicateTrajectoryList::findNextTrajectoryToRun() const
 
         if (minId == UINT64_MAX)
         {
-            for (unordered_set<uint64_t>::iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
+            for (idset::iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
             {
                 trajectories.at(*it)->getState().PrintDebugString();
             }

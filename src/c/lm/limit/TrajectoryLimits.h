@@ -53,7 +53,6 @@
 #include "lm/limit/LimitCheckMacros.h"
 #include "lm/limit/LimitTrackingListWrap.h"
 #include "lm/limit/TrajectoryLimit.h"
-#include "lm/option/SimulationParameters.h"
 #include "lm/protowrap/Repeated.h"
 #include "lm/tiling/Tiling.h"
 #include "lm/Types.h"

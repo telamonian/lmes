@@ -65,7 +65,6 @@
 #include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/limit/TrajectoryLimits.h"
-#include "lm/main/Main.h"
 #include "lm/me/FPTDeque.h"
 #include "lm/me/MESolver.h"
 #include "lm/me/PropensityFunction.h"
@@ -194,7 +193,6 @@ public:
     virtual bool needsDiffusionModel() {return false;}
     virtual void setDiffusionModel(const lm::input::DiffusionModel& dm) {}
     virtual void setOrderParameters(const lm::input::OrderParameters& opsBuf);
-    virtual void setTilings(const lm::input::Tilings& tilingsBuf);
     virtual void setLimits(const lm::input::TrajectoryLimits& limits);
     virtual void setOutputOptions(const lm::input::OutputOptions& outputOptions);
     virtual void reset();

@@ -91,7 +91,7 @@ public:
     const lm::input::OrderParameters& getOrderParametersMsg() const {return orderParametersMsg;}
     const lm::input::OutputOptions& getOutputOptionsMsg() const {return outputOptionsMsg;}
     const lm::input::ReactionModel& getReactionModelMsg() const {return reactionModelMsg;}
-    const lm::option::SimulationParameters& getSimulationParameters() const {return simulationParameters;}
+    const lm::input::SimulationParametersWrap& getSimulationParameters() const {return simulationParameters;}
     const lm::tiling::Tilings& getTilings() const {return tilings;}
     const lm::input::Tilings& getTilingsMsg() const {return tilingsMsg;}
     const lm::input::TrajectoryLimits& getTrajectoryLimitsMsg() const {return trajectoryLimits.buf();}
@@ -145,7 +145,7 @@ protected:
     lm::input::Options optionsMsg;
     lm::input::OutputOptions outputOptionsMsg;
     lm::input::ReactionModel reactionModelMsg;
-    lm::option::SimulationParameters simulationParameters;
+    lm::input::SimulationParametersWrap simulationParameters;
     lm::input::Tilings tilingsMsg;
     lm::tiling::Tilings tilings;
     lm::limit::TrajectoryLimits trajectoryLimits;

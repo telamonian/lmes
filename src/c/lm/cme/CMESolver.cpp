@@ -54,11 +54,11 @@
 
 #include "lm/cme/CMESolver.h"
 #include "lm/cme/ReactionModel.h"
-#include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/input/OrderParameters.pb.h"
 #include "lm/input/ReactionModel.pb.h"
-#include "lm/io/SpeciesCounts.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
+#include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/limit/TrajectoryLimits.h"
 #include "lm/Math.h"
@@ -232,14 +232,6 @@ void CMESolver::setReactionModel(const lm::input::ReactionModel& rm)
     // Allocate space for the species counts.
     if (speciesCounts != NULL) delete[] speciesCounts; speciesCounts = NULL;
     speciesCounts = new int[reactionModel->numberSpecies];
-}
-
-void CMESolver::setTilings(const lm::io::Tilings& tilingsBuf)
-{
-    if (tilings != NULL) delete tilings; tilings = NULL;
-    tilings = new lm::tiling::Tilings();
-    tilings->init(tilingsBuf);
-    hasUpdateSpeciesCountsListeners = true;
 }
 
 void CMESolver::reset()
@@ -436,6 +428,7 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
             orderParameterValues[i] = state.cme_state().order_parameter_values().order_parameter_values(i);
             orderParameterPreviousValues[i] = orderParameterValues[i];
         }
+    }
     else
     {
         // calculate the order parameters from the species counts

@@ -75,16 +75,15 @@
 namespace lm {
 namespace main {
 
-typedef std::map<std::string,std::string> SimulationParametersMap;
-
 class SimulationSupervisor : public lm::thread::Worker
 {
 public:
     SimulationSupervisor();
     virtual ~SimulationSupervisor();
     virtual void init();
+    virtual int getRecvSleepMilliseconds();
     void setOutputWriterClassName(std::string outputWriterClassName) {this->outputWriterClassName = outputWriterClassName;}
-    void setResourceMap(lm::resource::ResourceMap* resourceMap) {this->resourceMap = resourceMap;}
+    void setResourceMap(lm::resource::ResourceMap& resourceMap) {this->resourceMap = resourceMap;}
     void setSimulationFilename(std::vector<std::string> simulationInputFilenames, std::string simulationOutputFilename) {this->simulationInputFilenames = simulationInputFilenames; this->simulationOutputFilename = simulationOutputFilename;}
     void setSolverClassName(std::string solverClassName) {this->solverClassName = solverClassName;}
     void setUseCPUAffinity(bool useCPUAffinity) {this->useCPUAffinity = useCPUAffinity;}
@@ -131,8 +130,7 @@ protected:
     virtual bool _terminateSimulationPhase();
     virtual bool terminateSimulationPhase();
     virtual void finishSimulationPhase();
-    virtual bool performAnotherSimulationPhase();
-    virtual void incrementSimulationPhase();
+    virtual bool incrementSimulationPhase();
 
     // simulation finalization
     virtual void finishSimulation();
@@ -165,7 +163,7 @@ protected:
     std::string outputWriterClassName;
     Endpoint outputWriterAddress;
     bool performingCheckpoint;
-    lm::resource::ResourceMap* resourceMap;
+    lm::resource::ResourceMap resourceMap;
     std::vector<std::string> simulationInputFilenames;
     std::string simulationOutputFilename;
     int64_t simulationPhaseID;

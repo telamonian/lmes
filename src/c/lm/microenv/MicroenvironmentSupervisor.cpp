@@ -26,16 +26,17 @@
 
 #include "hrtime.h"
 #include "lm/ClassFactory.h"
+#include "lm/EnumHelper.h"
 #include "lm/Print.h"
+#include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/io/OutputWriter.h"
-#include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/io/TrajectoryState.pb.h"
 #include "lm/main/Globals.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/RunWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
-#include "lm/io/TrajectoryState.pb.h"
 #include "lm/microenv/METrajectoryList.h"
 #include "lm/microenv/MicroenvironmentSupervisor.h"
 #include "lm/microenv/PDETrajectoryList.h"
@@ -141,8 +142,8 @@ void MicroenvironmentSupervisor::init()
 
     // Figure out how many timesteps we need to perform.
     if (!input->hasTrajectoryLimits()) throw RuntimeException("MicroenvironmentSupervisor requires a TrajectoryLimit as input");
-    lm::io::TrajectoryLimits limits = input->getTrajectoryLimits();
-    if (!limits.has_time_limit() || limits.time_limit().limit_type() != lm::io::TrajectoryLimits::TIME || limits.time_limit().stopping_condition() != lm::io::TrajectoryLimits::MAX || !limits.time_limit().has_dvalue()) throw RuntimeException("MicroenvironmentSupervisor requires a maximum time limit as input");
+    lm::input::TrajectoryLimits limits = input->getTrajectoryLimitsMsg();
+    if (!limits.has_time_limit() || limits.time_limit().limit_type() != TrajLimEnums::TIME || limits.time_limit().stopping_condition() != TrajLimEnums::MAX || !limits.time_limit().has_dvalue()) throw RuntimeException("MicroenvironmentSupervisor requires a maximum time limit as input");
     maxTime = limits.time_limit().dvalue();
     numberTimesteps = uint(ceil((maxTime/tau)-EPS));
 }
@@ -302,7 +303,7 @@ void MicroenvironmentSupervisor::receivedFinishedWorkUnit(const lm::message::Fin
         pdeSlots.workUnitFinished(msg);
 
         // Track some stats.
-        if (!pdeTrajectoryList->areAnyWaiting()) stats_timestepPDETime += getHrTime()-stats_timestepStartTime;
+        if (!pdeTrajectoryList->anyWaiting()) stats_timestepPDETime += getHrTime()-stats_timestepStartTime;
     }
     else
     {
@@ -317,7 +318,7 @@ void MicroenvironmentSupervisor::receivedFinishedWorkUnit(const lm::message::Fin
         slots.workUnitFinished(msg);
 
         // Track some stats.
-        if (!trajectoryList->areAnyWaiting()) stats_timestepMETime += getHrTime()-stats_timestepStartTime;
+        if (!trajectoryList->anyWaiting()) stats_timestepMETime += getHrTime()-stats_timestepStartTime;
     }
 
     // If we are not performing a checkpoint, distribute more work.
@@ -354,7 +355,7 @@ bool MicroenvironmentSupervisor::assignWork()
         lm::message::Message msg;
 
         // Assign any work, if we can.
-        if (pdeSlots.hasFreeSlots() && pdeTrajectoryList->areAnyWaiting())
+        if (pdeSlots.hasFreeSlots() && pdeTrajectoryList->anyWaiting())
         {
             // Build the run work units message.
             buildRunWorkUnit(msg.mutable_run_work_unit(), false);
@@ -362,7 +363,7 @@ bool MicroenvironmentSupervisor::assignWork()
             // Run the work unit.
             pdeSlots.runWorkUnit(&msg);
         }
-        else if (slots.hasFreeSlots() && trajectoryList->areAnyWaiting())
+        else if (slots.hasFreeSlots() && trajectoryList->anyWaiting())
         {
             // Build the run work units message.
             buildRunWorkUnit(msg.mutable_run_work_unit(), true);
@@ -374,7 +375,7 @@ bool MicroenvironmentSupervisor::assignWork()
         {
             // Return if we are done with all the work yet.
             PROF_END(PROF_MENV_ASSIGN_WORK);
-            return (pdeTrajectoryList->areAllFinished() && trajectoryList->areAllFinished());
+            return (pdeTrajectoryList->allFinished() && trajectoryList->allFinished());
         }
     }
 }
@@ -390,17 +391,17 @@ void MicroenvironmentSupervisor::buildRunWorkUnit(lm::message::RunWorkUnit* msg,
     msg->mutable_output_address()->CopyFrom(outputWriterAddress);
 
     // Set the output options.
-    msg->mutable_output_options()->CopyFrom(input->getOutputOptions());
+    msg->mutable_output_options()->CopyFrom(getOutputOptions());
 
     // Set the limits.
-    msg->mutable_trajectory_limits()->mutable_time_limit()->set_limit_type(lm::io::TrajectoryLimits::TIME);
-    msg->mutable_trajectory_limits()->mutable_time_limit()->set_stopping_condition(lm::io::TrajectoryLimits::MAX);
+    msg->mutable_trajectory_limits()->mutable_time_limit()->set_limit_type(TrajLimEnums::TIME);
+    msg->mutable_trajectory_limits()->mutable_time_limit()->set_stopping_condition(TrajLimEnums::MAX);
     msg->mutable_trajectory_limits()->mutable_time_limit()->set_dvalue((currentTimestep+1)*tau);
 
     if (me)
     {
         // Set the maximum number of steps for the work unit.
-        msg->set_max_steps(input->getStepsPerWorkUnit());
+        msg->set_max_steps(getOptions().steps_per_work_unit_part());
 
         // Add the parts.
         const lm::slot::Slot slot = slots.getFreeSlot();

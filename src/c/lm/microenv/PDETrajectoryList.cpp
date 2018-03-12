@@ -24,6 +24,7 @@
 #include <list>
 #include <map>
 #include <string>
+
 #include "hrtime.h"
 #include "lm/Print.h"
 #include "lm/Types.h"
@@ -53,7 +54,7 @@ PDETrajectoryList::PDETrajectoryList(const lm::input::Input& input, uint64_t rep
     gridElementVolume = pow(input.getMicroenvironmentModel().grid_spacing(), 3.0)*1000;
 
     // Create the trajectory.
-    trajectories[replicate] = new lm::trajectory::Trajectory(replicate, getSimulationPhase(), input, false, false, false, true);
+    trajectories[replicate] = new lm::trajectory::Trajectory(input, simulationPhaseID(), replicate, false, false, false, true);
     waitingTrajectories.insert(replicate);
 }
 
@@ -65,7 +66,7 @@ PDETrajectoryList::~PDETrajectoryList()
 void PDETrajectoryList::reconcileDiffusionGrid(ndarray<uint32_t>* cellGridPoints, ndarray<double>* cellVolumes, ndarray<int32_t>* cellCurrentCounts, ndarray<int32_t>* cellFlux, uint column)
 {
     // Get the trajectory state.
-    lm::io::DiffusionPDEState* state = trajectories[replicate]->getMutableState()->mutable_diffusion_pde_state();
+    lm::io::DiffusionPDEState* state = trajectories[replicate]->getStateMutable()->mutable_diffusion_pde_state();
 
     // Get the current diffusion grid.
     robertslab::pbuf::NDArraySerializer::deserializeInto<double>(grid, state->concentrations(column));
@@ -94,7 +95,7 @@ uint64_t PDETrajectoryList::findNextTrajectoryToRun() const
 {
     uint64_t minId=std::numeric_limits<uint64_t>::max();
     double minTime=std::numeric_limits<double>::infinity();
-    for (unordered_set<uint64_t>::iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
+    for (lm::unordered_set<uint64_t>::type::iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
     {
         lm::trajectory::Trajectory* t = trajectories.at(*it);
         double time = t->getState().diffusion_pde_state().time();
@@ -107,7 +108,7 @@ uint64_t PDETrajectoryList::findNextTrajectoryToRun() const
 
     if (minId == std::numeric_limits<uint64_t>::max())
     {
-        for (unordered_set<uint64_t>::iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
+        for (lm::unordered_set<uint64_t>::type::iterator it=waitingTrajectories.begin(); it!=waitingTrajectories.end(); it++)
         {
             trajectories.at(*it)->getState().PrintDebugString();
         }
