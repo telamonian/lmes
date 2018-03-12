@@ -50,21 +50,26 @@
 #include <pthread.h>
 #include "lm/Print.h"
 #include "lm/message/Communicator.h"
-#include "lm/message/Endpoint.h"
+#include "lm/message/Endpoint.pb.h"
 #include "lm/main/CheckpointSignaler.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 #include "lm/thread/WorkerManager.h"
 
+using lm::message::Communicator;
+using lm::message::Endpoint;
 using lm::thread::PthreadException;
 using lm::thread::WorkerManager;
 
 namespace lm {
 namespace main {
 
-CheckpointSignaler::CheckpointSignaler(time_t checkpointInterval, int supervisorProcess, int supervisorThread)
-: checkpointInterval(checkpointInterval),communicator(lm::MPI::worldRank, threadNumber),supervisorEndpoint(supervisorProcess,supervisorThread)
+CheckpointSignaler::CheckpointSignaler(time_t checkpointInterval)
+: checkpointInterval(checkpointInterval),communicator(NULL)
 {
+    // Create the communicator.
+    communicator = lm::message::Communicator::createObjectOfDefaultSubclass(false);
+
     PTHREAD_EXCEPTION_CHECK(pthread_cond_init(&controlSignal, NULL));
     nextCheckpoint.tv_sec = 0;
 	nextCheckpoint.tv_nsec = 0;
@@ -72,6 +77,7 @@ CheckpointSignaler::CheckpointSignaler(time_t checkpointInterval, int supervisor
 
 CheckpointSignaler::~CheckpointSignaler()
 {
+    if (communicator != NULL) delete communicator; communicator = NULL;
     PTHREAD_EXCEPTION_CHECK(pthread_cond_destroy(&controlSignal));
 }
 
@@ -88,15 +94,14 @@ int CheckpointSignaler::run()
 {
     try
     {
-        Print::printf(Print::INFO, "CheckpointSignaler %d:%d started, creating a checkpoint file every %d seconds.", communicator.getSourceProcess(), communicator.getSourceThread(), checkpointInterval);
+        Print::printf(Print::INFO, "CheckpointSignaler %s started, creating a checkpoint file every %d seconds.", Communicator::printableAddress(communicator->getSourceAddress()).c_str(), checkpointInterval);
         setNextCheckpointTime();
 
         // Register our info with the supervisor.
         lm::message::Message msgp;
         lm::message::StartedCheckpointSignaler* msg = msgp.mutable_started_checkpoint_signaler();
-        msg->set_process(communicator.getSourceProcess());
-        msg->set_thread(communicator.getSourceThread());
-        communicator.sendMessage(supervisorEndpoint, &msgp);
+        msg->mutable_address()->CopyFrom(communicator->getSourceAddress());
+        communicator->sendMessage(communicator->getSupervisorAddress(), &msgp);
 
         bool looping = true;
         while (looping)
@@ -159,13 +164,13 @@ int CheckpointSignaler::run()
                 Print::printf(Print::DEBUG, "Signaling a checkpoint.");
                 msgp.Clear();
                 msgp.mutable_perform_checkpointing();
-                communicator.sendMessage(supervisorEndpoint, &msgp);
+                communicator->sendMessage(communicator->getSupervisorAddress(), &msgp);
 
 				// Update the next checkpoint time.
 				setNextCheckpointTime();
 			}
         }
-        Print::printf(Print::INFO, "CheckpointSignaler %d:%d finished.", communicator.getSourceProcess(), communicator.getSourceThread());
+        Print::printf(Print::INFO, "CheckpointSignaler %s finished.", Communicator::printableAddress(communicator->getSourceAddress()).c_str());
         return 0;
     }
     catch (lm::thread::PthreadException & e)

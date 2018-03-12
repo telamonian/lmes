@@ -43,8 +43,6 @@ import "lm/message/WorkUnitStatus.proto";
 
 message FinishedWorkUnit {
     required int64 work_unit_id                         = 1;
-    required int64 process                              = 2;
-    required int64 thread                               = 3;
     required double run_time                            = 4;
     required uint64 steps                               = 5;
     repeated lm.message.WorkUnitStatus part_status      = 6;

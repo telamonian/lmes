@@ -47,7 +47,6 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <zlib.h>
 
 #include "lm/ClassFactory.h"
 #include "lm/Exceptions.h"
@@ -59,22 +58,19 @@
 #include "lm/avx/GillespieDSolverAVX.h"
 #include "lm/cme/CMESolver.h"
 #include "lm/cme/ReactionModel.h"
+#include "lm/io/DegreeAdvancementTimeSeries.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/message/Message.pb.h"
-#include "lm/message/ProcessWorkUnitOutput.pb.h"
 #include "lm/message/WorkUnitOutput.pb.h"
 #include "lm/message/WorkUnitStatus.pb.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/rng/XORShift.h"
-#ifdef OPT_CUDA
-#include "lm/rng/XORWow.h"
-#endif
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
-#include "robertslab/pbuf/NDArray.pb.h"
+#include "robertslab/pbuf/NDArraySerializer.h"
 
 using std::string;
 using std::list;
@@ -95,47 +91,86 @@ bool GillespieDSolverAVX::registerClass()
 
 void* GillespieDSolverAVX::allocateObject()
 {
-    return new GillespieDSolverAVX();
+    // Allocate aligned memory for the object since it contains avxd variables.
+    GillespieDSolverAVX* obj;
+    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&obj, DOUBLES_PER_AVX*sizeof(double), sizeof(GillespieDSolverAVX)));
+
+    // Construct the object in place.
+    new (obj) GillespieDSolverAVX();
+
+    return obj;
 }
 
 GillespieDSolverAVX::GillespieDSolverAVX()
-:GillespieDSolver(),timeLimit(_mm256_set1_pd(std::numeric_limits<double>::infinity())),limitValues(NULL),numberFptValues(0),
- fptMinValuesAchieved(NULL),fptMaxValuesAchieved(NULL),fptValues(NULL),numberFptOPValues(0),fptOPMinValuesAchieved(NULL),
- fptOPMaxValuesAchieved(NULL),fptOPValues(NULL),fptOPTimes(NULL),speciesCounts(NULL),propensities(NULL),time(_mm256_set1_pd(0.0)),
- timeStep(_mm256_set1_pd(0.0)),orderParameterValues(NULL),orderParameterPreviousValues(NULL)
+:GillespieDSolver(),limitValues(NULL),fptAllocatedValues(0),fptValues(NULL),fptMinValues(NULL),fptMaxValues(NULL),
+ numberFptOPValues(0),fptOPMinValuesAchieved(NULL),fptOPMaxValuesAchieved(NULL),fptOPValues(NULL),fptOPTimes(NULL),
+ speciesCounts(NULL),propensities(NULL),orderParameterValues(NULL),orderParameterPreviousValues(NULL),
+ degreeAdvancements(NULL)
 {
+    // Initialize any avx variables.
+    timeLimit = _mm256_set1_pd(std::numeric_limits<double>::infinity());
+    time = _mm256_set1_pd(0.0);
+    timeStep = _mm256_set1_pd(0.0);
+
     // Initialize any array variables.
-    int i=0;
-    for (; i<DOUBLES_PER_AVX; i++)
+    for (int i=0; i<DOUBLES_PER_AVX; i++)
     {
         initialized[i] = false;
+        output[i] = new lm::message::WorkUnitOutput();
         status[i] = lm::message::WorkUnitStatus::NONE;
         limitIDReached[i] = lm::limit::TrajectoryLimits::DEFAULT_LIMIT_ID;
         limitTypeReached[i] = lm::input::TrajectoryLimit::NONE;
-        trajectoryId[i] = 0;
-        trajectoryStarted[i] = false;
+        trajectoryId[i] = std::numeric_limits<uint64_t>::max();
+        previouslyStarted[i] = false;
     }
 }
 
 GillespieDSolverAVX::~GillespieDSolverAVX()
 {
-    // Free any memory.
-    if (limitValues != NULL) free(limitValues); limitValues = NULL;
-    if (speciesCounts != NULL) free(speciesCounts); speciesCounts = NULL;
-    if (propensities != NULL) free(propensities); propensities = NULL;
-    if (orderParameterValues != NULL) free(orderParameterValues); orderParameterValues = NULL;
-    if (orderParameterPreviousValues != NULL) free(orderParameterPreviousValues); orderParameterPreviousValues = NULL;
+    // Free any array memory.
+    for (int i=0; i<DOUBLES_PER_AVX; i++)
+    {
+        if (output[i] != NULL) delete output[i]; output[i] = NULL;
+    }
 
     // Free any memory associated with the species first passage times.
-    if (fptMinValuesAchieved != NULL) free(fptMinValuesAchieved); fptMinValuesAchieved = NULL;
-    if (fptMaxValuesAchieved != NULL) free(fptMaxValuesAchieved); fptMaxValuesAchieved = NULL;
+    fptAllocatedValues = 0;
     if (fptValues != NULL) delete[] fptValues; fptValues = NULL;
+    if (fptMinValues != NULL) free(fptMinValues); fptMinValues = NULL;
+    if (fptMaxValues != NULL) free(fptMaxValues); fptMaxValues = NULL;
 
     // Free any memory associated with the order parameter first passage times.
+    numberFptOPValues = 0;
     if (fptOPMinValuesAchieved != NULL) free(fptOPMinValuesAchieved); fptOPMinValuesAchieved = NULL;
     if (fptOPMaxValuesAchieved != NULL) free(fptOPMaxValuesAchieved); fptOPMaxValuesAchieved = NULL;
     if (fptOPValues != NULL) delete[] fptOPValues; fptOPValues = NULL;
     if (fptOPTimes != NULL) delete[] fptOPTimes; fptOPTimes = NULL;
+
+    // Free any other memory.
+    if (degreeAdvancements != NULL) free(degreeAdvancements); degreeAdvancements = NULL;
+    if (limitValues != NULL) free(limitValues); limitValues = NULL;
+    if (propensities != NULL) free(propensities); propensities = NULL;
+    if (orderParameterValues != NULL) free(orderParameterValues); orderParameterValues = NULL;
+    if (orderParameterPreviousValues != NULL) free(orderParameterPreviousValues); orderParameterPreviousValues = NULL;
+    if (speciesCounts != NULL) free(speciesCounts); speciesCounts = NULL;
+}
+
+void GillespieDSolverAVX::allocateRngBuffers()
+{
+    if (expRngValues == NULL || rngValues == NULL)
+    {
+        POSIX_EXCEPTION_CHECK(posix_memalign((void**)&rngValues, DOUBLES_PER_AVX*sizeof(double), TUNE_LOCAL_RNG_CACHE_SIZE*sizeof(double)));
+        POSIX_EXCEPTION_CHECK(posix_memalign((void**)&expRngValues, DOUBLES_PER_AVX*sizeof(double), TUNE_LOCAL_RNG_CACHE_SIZE*sizeof(double)));
+        nextRngValue = TUNE_LOCAL_RNG_CACHE_SIZE;
+    }
+}
+
+void GillespieDSolverAVX::deallocateRngBuffers()
+{
+    // Delete the rng caches.
+    if (expRngValues != NULL) free(expRngValues); expRngValues = NULL;
+    if (rngValues != NULL) free(rngValues); rngValues = NULL;
+    nextRngValue = 0;
 }
 
 uint GillespieDSolverAVX::getSimultaneousTrajectories()
@@ -148,15 +183,18 @@ void GillespieDSolverAVX::setReactionModel(const lm::input::ReactionModel& rm)
     GillespieDSolver::setReactionModel(rm);
 
     // Free any previous state.
-    if (speciesCounts != NULL) free(speciesCounts); speciesCounts = NULL;
+    if (degreeAdvancements != NULL) free(degreeAdvancements); propensities = NULL;
     if (propensities != NULL) free(propensities); propensities = NULL;
+    if (speciesCounts != NULL) free(speciesCounts); speciesCounts = NULL;
 
-    // Allocate species counts table.
-    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&speciesCounts, DOUBLES_PER_AVX*sizeof(double), reactionModel->numberSpecies*DOUBLES_PER_AVX*sizeof(double)));
+    // Allocate degree advancements table.
+    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&degreeAdvancements, DOUBLES_PER_AVX*sizeof(double), reactionModel->numberReactions*DOUBLES_PER_AVX*sizeof(uint64_t)));
 
     // Allocate reaction propensities table.
     POSIX_EXCEPTION_CHECK(posix_memalign((void**)&propensities, DOUBLES_PER_AVX*sizeof(double), reactionModel->numberReactions*DOUBLES_PER_AVX*sizeof(double)));
 
+    // Allocate species counts table.
+    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&speciesCounts, DOUBLES_PER_AVX*sizeof(double), reactionModel->numberSpecies*DOUBLES_PER_AVX*sizeof(double)));
 }
 
 void GillespieDSolverAVX::setOrderParameters(const lm::input::OrderParameters& ops)
@@ -188,7 +226,7 @@ void GillespieDSolverAVX::setLimits(const lm::input::TrajectoryLimits& lm)
         POSIX_EXCEPTION_CHECK(posix_memalign((void**)&limitValues, DOUBLES_PER_AVX*sizeof(double), numberLimits*DOUBLES_PER_AVX*sizeof(double)));
 
         // Copy the limit values into the avx buffer.
-        for (int i=0; i<numberLimits; i++)
+        for (int i=0; i<(int)numberLimits; i++)
         {
             for (int j=0; j<DOUBLES_PER_AVX; j++)
                 if (limits[i].type == lm::input::TrajectoryLimit::SPECIES)
@@ -206,26 +244,29 @@ void GillespieDSolverAVX::reset()
     GillespieDSolver::reset();
 
     // Reset the species counts.
-    for (int i=0; i<reactionModel->numberSpecies*DOUBLES_PER_AVX; i++)
+    for (int i=0; i<(int)reactionModel->numberSpecies*DOUBLES_PER_AVX; i++)
     {
         speciesCounts[i] = 0.0;
     }
 
-    // Reset the propensities.
-    for (int i=0; i<reactionModel->numberReactions*DOUBLES_PER_AVX; i++)
+    // Reset the propensities amd degree advancements.
+    for (int i=0; i<(int)reactionModel->numberReactions*DOUBLES_PER_AVX; i++)
     {
         propensities[i] = 0.0;
+        degreeAdvancements[i] = 0;
     }
 
     // Reset any array variables.
     for (int i=0; i<DOUBLES_PER_AVX; i++)
     {
         initialized[i] = false;
+        if (output[i] != NULL) delete output[i];
+        output[i] = new lm::message::WorkUnitOutput();
         status[i] = lm::message::WorkUnitStatus::NONE;
         limitIDReached[i] = lm::limit::TrajectoryLimits::DEFAULT_LIMIT_ID;
         limitTypeReached[i] = lm::input::TrajectoryLimit::NONE;
-        trajectoryId[i] = 0;
-        trajectoryStarted[i] = false;
+        trajectoryId[i] = std::numeric_limits<uint64_t>::max();
+        previouslyStarted[i] = false;
     }
 
     // Reset the time.
@@ -233,24 +274,24 @@ void GillespieDSolverAVX::reset()
     timeStep = _mm256_set1_pd(0.0);
 
     // Reset the order parameters.
-    for (size_t i=0; i<numberOrderParameters*DOUBLES_PER_AVX; i++)
+    for (int i=0; i<numberOrderParameters*DOUBLES_PER_AVX; i++)
     {
         orderParameterValues[i] = 0.0;
         orderParameterPreviousValues[i] = 0.0;
     }
 
     // Reset the fpt values.
-    if (fptMinValuesAchieved != NULL) free(fptMinValuesAchieved); fptMinValuesAchieved = NULL;
-    if (fptMaxValuesAchieved != NULL) free(fptMaxValuesAchieved); fptMaxValuesAchieved = NULL;
+    fptAllocatedValues = 0;
     if (fptValues != NULL) delete[] fptValues; fptValues = NULL;
-    numberFptValues = 0;
+    if (fptMinValues != NULL) free(fptMinValues); fptMinValues = NULL;
+    if (fptMaxValues != NULL) free(fptMaxValues); fptMaxValues = NULL;
 
     // Reset the fpt order parameter values
+    numberFptOPValues = 0;
     if (fptOPMinValuesAchieved != NULL) free(fptOPMinValuesAchieved); fptOPMinValuesAchieved = NULL;
     if (fptOPMaxValuesAchieved != NULL) free(fptOPMaxValuesAchieved); fptOPMaxValuesAchieved = NULL;
     if (fptOPValues != NULL) delete[] fptOPValues; fptOPValues = NULL;
     if (fptOPTimes != NULL) delete[] fptOPTimes; fptOPTimes = NULL;
-    numberFptOPValues = 0;
 }
 
 void GillespieDSolverAVX::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
@@ -270,20 +311,20 @@ void GillespieDSolverAVX::setState(const lm::io::TrajectoryState& state, uint tr
     CMESolver::setState(state, trajectoryNumber);
 
     // Allocate space for the fpt values, if necessary.
-    if (numberFptTrackedSpecies > 0)
+    if (numberFptSpecies > 0)
     {
         // See if we have not yet allocated space.
-        if (numberFptValues == 0)
+        if (fptAllocatedValues == 0)
         {
-            numberFptValues = numberFptTrackedSpecies;
-            POSIX_EXCEPTION_CHECK(posix_memalign((void**)&fptMinValuesAchieved, DOUBLES_PER_AVX*sizeof(double), numberFptValues*DOUBLES_PER_AVX*sizeof(double)));
-            POSIX_EXCEPTION_CHECK(posix_memalign((void**)&fptMaxValuesAchieved, DOUBLES_PER_AVX*sizeof(double), numberFptValues*DOUBLES_PER_AVX*sizeof(double)));
-            fptValues = new deque<pair<int,double> >[numberFptValues*DOUBLES_PER_AVX];
+            fptValues = new lm::me::FPTDeque[numberFptSpecies*DOUBLES_PER_AVX];
+            fptAllocatedValues = numberFptSpecies;
+            POSIX_EXCEPTION_CHECK(posix_memalign((void**)&fptMinValues, DOUBLES_PER_AVX*sizeof(double), fptAllocatedValues*DOUBLES_PER_AVX*sizeof(double)));
+            POSIX_EXCEPTION_CHECK(posix_memalign((void**)&fptMaxValues, DOUBLES_PER_AVX*sizeof(double), fptAllocatedValues*DOUBLES_PER_AVX*sizeof(double)));
         }
         //Otherwise, make sure the sizes match.
-        else if (numberFptValues != numberFptTrackedSpecies)
+        else if (fptAllocatedValues != numberFptSpecies)
         {
-            throw Exception("Mismatch between the number of fpt tracked values between trajectories",numberFptValues,numberFptTrackedSpecies);
+            throw Exception("Mismatch between the number of fpt tracked values between trajectories",fptAllocatedValues,numberFptSpecies);
         }
     }
 
@@ -326,7 +367,7 @@ void GillespieDSolverAVX::copyTrajectoryStateToBaseSolver(uint trajectoryNumber)
     CMESolver::trajectoryId = trajectoryId[trajectoryNumber];
 
     // Set the trajectory started flag.
-    CMESolver::trajectoryStarted = trajectoryStarted[trajectoryNumber];
+    CMESolver::previouslyStarted = previouslyStarted[trajectoryNumber];
 
     // Set the species counts.
     for (uint i=0; i<reactionModel->numberSpecies; i++)
@@ -339,18 +380,16 @@ void GillespieDSolverAVX::copyTrajectoryStateToBaseSolver(uint trajectoryNumber)
     CMESolver::timeStep = ((double*)&timeStep)[trajectoryNumber];
 
     // Set the order parameters.
-    for (uint i=0; i<numberOrderParameters; i++)
+    for (int i=0; i<numberOrderParameters; i++)
     {
         CMESolver::orderParameterValues[i] = orderParameterValues[i*DOUBLES_PER_AVX+trajectoryNumber];
         CMESolver::orderParameterPreviousValues[i] = orderParameterPreviousValues[i*DOUBLES_PER_AVX+trajectoryNumber];
     }
 
     // Set the first passage times.
-    for (uint i=0; i<numberFptValues; i++)
+    for (int i=0; i<numberFptSpecies; i++)
     {
-        fptTrackedSpecies[i].minValueAchieved = lround(fptMinValuesAchieved[i*DOUBLES_PER_AVX+trajectoryNumber]);
-        fptTrackedSpecies[i].maxValueAchieved = lround(fptMaxValuesAchieved[i*DOUBLES_PER_AVX+trajectoryNumber]);
-        fptTrackedSpecies[i].fptValues = fptValues[i*DOUBLES_PER_AVX+trajectoryNumber];
+        CMESolver::fptValues[i] = fptValues[i*DOUBLES_PER_AVX+trajectoryNumber];
     }
 
     // Set the order parameter first passage times.
@@ -361,7 +400,13 @@ void GillespieDSolverAVX::copyTrajectoryStateToBaseSolver(uint trajectoryNumber)
         fptTrackedOrderParameters[i].fptValues = fptOPValues[i*DOUBLES_PER_AVX+trajectoryNumber];
         fptTrackedOrderParameters[i].fptTimes = fptOPTimes[i*DOUBLES_PER_AVX+trajectoryNumber];
     }
-    
+
+    // Set the degree advancements.
+    for (uint i=0; i<reactionModel->numberReactions; i++)
+    {
+        CMESolver::degreeAdvancements[i] = degreeAdvancements[i*DOUBLES_PER_AVX+trajectoryNumber];
+    }
+
     // Set the histogram bin values.
     //TODO: implement
 }
@@ -372,7 +417,6 @@ void GillespieDSolverAVX::copyTrajectoryStateFromBaseSolver(uint trajectoryNumbe
     status[trajectoryNumber] = CMESolver::status;
 
     // Set the limit reached.
-
     limitIDReached[trajectoryNumber] = CMESolver::limitIDReached;
     limitTypeReached[trajectoryNumber] = CMESolver::limitTypeReached;
 
@@ -380,7 +424,7 @@ void GillespieDSolverAVX::copyTrajectoryStateFromBaseSolver(uint trajectoryNumbe
     trajectoryId[trajectoryNumber] = CMESolver::trajectoryId;
 
     // Set the trajectory started flag.
-    trajectoryStarted[trajectoryNumber] = CMESolver::trajectoryStarted;
+    previouslyStarted[trajectoryNumber] = CMESolver::previouslyStarted;
 
     // Set the species counts.
     for (uint i=0; i<reactionModel->numberSpecies; i++)
@@ -393,18 +437,24 @@ void GillespieDSolverAVX::copyTrajectoryStateFromBaseSolver(uint trajectoryNumbe
     ((double*)&timeStep)[trajectoryNumber] = CMESolver::timeStep;
 
     // Set the order parameters.
-    for (uint i=0; i<numberOrderParameters; i++)
+    for (int i=0; i<numberOrderParameters; i++)
     {
         orderParameterValues[i*DOUBLES_PER_AVX+trajectoryNumber] = CMESolver::orderParameterValues[i];
         orderParameterPreviousValues[i*DOUBLES_PER_AVX+trajectoryNumber] = CMESolver::orderParameterPreviousValues[i];
     }
 
     // Set the first passage times.
-    for (uint i=0; i<numberFptValues; i++)
+    for (int i=0; i<numberFptSpecies; i++)
     {
-        fptMinValuesAchieved[i*DOUBLES_PER_AVX+trajectoryNumber] = double(fptTrackedSpecies[i].minValueAchieved);
-        fptMaxValuesAchieved[i*DOUBLES_PER_AVX+trajectoryNumber] = double(fptTrackedSpecies[i].maxValueAchieved);
-        fptValues[i*DOUBLES_PER_AVX+trajectoryNumber] = fptTrackedSpecies[i].fptValues;
+        fptValues[i*DOUBLES_PER_AVX+trajectoryNumber] = CMESolver::fptValues[i];
+        fptMinValues[i*DOUBLES_PER_AVX+trajectoryNumber] = double(CMESolver::fptValues[i].minValue);
+        fptMaxValues[i*DOUBLES_PER_AVX+trajectoryNumber] = double(CMESolver::fptValues[i].maxValue);
+    }
+
+    // Set the species counts.
+    for (uint i=0; i<reactionModel->numberReactions; i++)
+    {
+        degreeAdvancements[i*DOUBLES_PER_AVX+trajectoryNumber] = CMESolver::degreeAdvancements[i];
     }
 
     // Set the order parameter first passage times.
@@ -420,13 +470,38 @@ void GillespieDSolverAVX::copyTrajectoryStateFromBaseSolver(uint trajectoryNumbe
     //TODO: implement
 }
 
+void GillespieDSolverAVX::copyOutputToBaseSolver(uint trajectoryNumber)
+{
+    CMESolver::output->CopyFrom(*output[trajectoryNumber]);
+}
+
+
+void GillespieDSolverAVX::copyOutputFromBaseSolver(uint trajectoryNumber)
+{
+    output[trajectoryNumber]->CopyFrom(*CMESolver::output);
+}
+
+lm::message::WorkUnitOutput* GillespieDSolverAVX::getOutput(uint trajectoryNumber)
+{
+    if (trajectoryNumber >= getSimultaneousTrajectories()) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
+
+    // Get the output pointer.
+    lm::message::WorkUnitOutput* ret = output[trajectoryNumber];
+
+    // Forget about the pointer, since the caller is now responsible for it.
+    output[trajectoryNumber] = NULL;
+
+    return ret;
+
+}
+
 lm::message::WorkUnitStatus::Status GillespieDSolverAVX::getStatus(uint trajectoryNumber)
 {
     if (trajectoryNumber >= getSimultaneousTrajectories()) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
     return status[trajectoryNumber];
 }
 
-long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
+uint64_t GillespieDSolverAVX::generateTrajectory(uint64_t maxSteps)
 {
     // See how many trajectories were initialized.
     uint numberInitialized=0;
@@ -437,18 +512,24 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
     // If any trajectories were not initialized, run them all with the base Gillespie solver.
     if (numberInitialized != DOUBLES_PER_AVX)
     {
-        long long steps=0;
+        uint64_t steps=0;
         for (int i=0; i<DOUBLES_PER_AVX; i++)
         {
             if (initialized[i])
             {
-                Print::printf(Print::INFO, "GillespieDSolverAVX started without a full set of trajectories, running trajectory %llu with the GillespieDSolver.", trajectoryId[i]);
+                Print::printf(Print::DEBUG, "GillespieDSolverAVX started without a full set of trajectories, running trajectory %llu with the GillespieDSolver.", trajectoryId[i]);
+                copyOutputToBaseSolver(i);
                 copyTrajectoryStateToBaseSolver(i);
                 GillespieDSolver::updateAllPropensities();
                 steps += GillespieDSolver::generateTrajectory(maxSteps);
                 copyTrajectoryStateFromBaseSolver(i);
+                copyOutputFromBaseSolver(i);
             }
         }
+
+        // Skip any necessary rng values to get us back into the proper alignment frame.
+        nextRngValue += nextRngValue%DOUBLES_PER_AVX;
+
         return steps;
     }
 
@@ -474,13 +555,26 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
         totalPropensity = _mm256_add_pd(totalPropensity,propensity);
     }
 
-    // Create the output message.
-    lm::message::Message msgp;
-    lm::message::ProcessWorkUnitOutput* msg = msgp.mutable_process_work_unit_output();
-    msg->set_work_unit_id(workUnitId);
-    lm::message::WorkUnitOutput* output[DOUBLES_PER_AVX];
-    for (int i=0; i<DOUBLES_PER_AVX; i++)
-        output[i] = msg->add_part_output();
+    // Create the degree advancement data sets.
+    avxd nextDegreeAdvancementWriteTime;
+    vector<uint64_t> degreeAdvancementTimeSeriesCounts[DOUBLES_PER_AVX];
+    vector<double> degreeAdvancementTimeSeriesTimes[DOUBLES_PER_AVX];
+    if (writeDegreeAdvancementTimeSeries)
+    {
+        for (int i=0; i<DOUBLES_PER_AVX; i++)
+        {
+            if (!previouslyStarted[i])
+            {
+                for (uint j=0; j<reactionModel->numberReactions; j++) degreeAdvancementTimeSeriesCounts[i].push_back(degreeAdvancements[j*DOUBLES_PER_AVX+i]);
+                degreeAdvancementTimeSeriesTimes[i].push_back(((double*)&time)[i]);
+                ((double*)&nextDegreeAdvancementWriteTime)[i] = ((double*)&time)[i]+degreeAdvancementWriteInterval;
+            }
+            else
+            {
+                ((double*)&nextDegreeAdvancementWriteTime)[i] = ceil((((double*)&time)[i]+EPS)/degreeAdvancementWriteInterval)*degreeAdvancementWriteInterval;
+            }
+        }
+    }
 
     // Get the interval for writing species counts.
     avxd eps = _mm256_set1_pd(EPS);
@@ -491,47 +585,26 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
     // If we are writing time steps, create the data set.
     if (writeSpeciesTimeSeries)
     {
-        // See if this is the start of the trajectory.
         for (int i=0; i<DOUBLES_PER_AVX; i++)
         {
-            if (not trajectoryStarted[i] and writeInitialTrajectoryState)
+            if (not previouslyStarted[i] and writeInitialTrajectoryState)
             {
-                // and if we're specifically writing out initial states, do that then set the next write time. If the next write time happens to be the current time, skip that since we just wrote it out
+                // if output of the initial state has been requested, do that
                 for (uint j=0; j<reactionModel->numberSpeciesToTrack; j++) speciesTimeSeriesCounts[i].push_back(lround(speciesCounts[j*DOUBLES_PER_AVX+i]));
                 speciesTimeSeriesTimes[i].push_back(((double*)&time)[i]);
             }
-            // otherwise, just set the next write time. If the next write time happens to be the current time, skip that since we already wrote it out in the previous work unit
+            // set the next write time. If the next write time happens to be the current time, skip it (since it was already handled either just now or at the end of the previous work unit)
             ((double*)&nextSpeciesWriteTime)[i] = (floor(((double*)&time)[i]/speciesWriteInterval) + 1)*speciesWriteInterval;
-
-//            // If this element was true, save the reaction and set the random propensity to inf.
-//            if (((double*)&time)[i] == 0.0 || trajectoryStarted[i]==false)
-//            {
-//                ((double*)&nextSpeciesWriteTime)[i] = speciesWriteInterval;
-//                for (uint j=0; j<reactionModel->numberSpeciesToTrack; j++) speciesTimeSeriesCounts[i].push_back(lround(speciesCounts[j*DOUBLES_PER_AVX+i]));
-//                speciesTimeSeriesTimes[i].push_back(0.0);
-//            }
-//            else
-//            {
-//                ((double*)&nextSpeciesWriteTime)[i] = ceil(((double*)&time)[i]/speciesWriteInterval)*speciesWriteInterval;
-//            }
         }
     }
-
-    // Local cache of random numbers.
-    double* rngValues = NULL;
-    double* expRngValues = NULL;
-    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&rngValues, DOUBLES_PER_AVX*sizeof(double), TUNE_LOCAL_RNG_CACHE_SIZE*sizeof(double)));
-    POSIX_EXCEPTION_CHECK(posix_memalign((void**)&expRngValues, DOUBLES_PER_AVX*sizeof(double), TUNE_LOCAL_RNG_CACHE_SIZE*sizeof(double)));
-    int rngNext=TUNE_LOCAL_RNG_CACHE_SIZE;
 
     // Run the direct method.
     Print::printf(Print::DEBUG, "Running Gillespie direct AVX simulation for %d steps with %d species, %d reactions, %d species limits\n", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberLimits);
     PROF_BEGIN(PROF_SIM_EXECUTE);
-    long long steps=0;
+    uint64_t steps=0;
     int allFalse;
     int trueMask;
     avxd comp;
-    avxd expR;
     avxd nextTimeStep;
     avxd nextTime;
     while (true)
@@ -548,32 +621,23 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
         steps++;
 
         // See if we need to update our rng caches.
-        if (rngNext >= TUNE_LOCAL_RNG_CACHE_SIZE)
+        if (nextRngValue >= TUNE_LOCAL_RNG_CACHE_SIZE)
         {
             rng->getRandomDoubles(rngValues,TUNE_LOCAL_RNG_CACHE_SIZE, true);
             rng->getExpRandomDoubles(expRngValues,TUNE_LOCAL_RNG_CACHE_SIZE, true);
-            rngNext=0;
+            nextRngValue=0;
         }
 
-        // Calculate the time to the next reaction.
-        expR = _mm256_load_pd(&expRngValues[rngNext]);
-        nextTimeStep = _mm256_div_pd(expR, totalPropensity);
-        nextTime = _mm256_add_pd(time,nextTimeStep);
+        // Get the random values for this iteration though the loop.
+        avxd randomValue = _mm256_load_pd(&rngValues[nextRngValue]);
+        avxd expRandomValue = _mm256_load_pd(&expRngValues[nextRngValue]);
 
-//        comp = _mm256_cmp_pd(nextTime, _mm256_set1_pd(std::numeric_limits<double>::infinity()), _CMP_LT_OQ);
-//        trueMask = _mm256_movemask_pd(comp);
-//        if (trueMask != 0x0F)
-//        {
-//            double* res = (double*)&expR;
-//            printf("ERNG: %8.2e %8.2e %8.2e %8.2e\n", res[0], res[1], res[2], res[3]);
-//            res = (double*)&nextTimeStep;
-//            printf("TS:   %8.2e %8.2e %8.2e %8.2e\n", res[0], res[1], res[2], res[3]);
-//            res = (double*)&nextTime;
-//            printf("TIME: %8.2e %8.2e %8.2e %8.2e\n", res[0], res[1], res[2], res[3]);
-//            res = (double*)&totalPropensity;
-//            printf("TP: %8.2e %8.2e %8.2e %8.2e\n", res[0], res[1], res[2], res[3]);
-//            break;
-//        }
+        // Go to the next rng pair.
+        nextRngValue+=DOUBLES_PER_AVX;
+
+        // Calculate the time to the next reaction.
+        nextTimeStep = _mm256_div_pd(expRandomValue, totalPropensity);
+        nextTime = _mm256_add_pd(time,nextTimeStep);
 
          // If any new time is past the end time, we are done.
         comp = _mm256_cmp_pd(nextTime, timeLimit, _CMP_GE_OQ);
@@ -606,7 +670,33 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
         timeStep = nextTimeStep;
         time = nextTime;
 
-        // If we are writing time steps, write out any time steps before this event occurred.
+        // If we are writing degree advancements, write out any time steps before this event occurred.
+        if (writeDegreeAdvancementTimeSeries)
+        {
+            // Loop until we have finished writing out all elements.
+            while (true)
+            {
+                // See if any elements still need time steps written.
+                comp = _mm256_cmp_pd(nextDegreeAdvancementWriteTime, _mm256_add_pd(time, eps), _CMP_LE_OQ);
+                trueMask = _mm256_movemask_pd(comp);
+                if (!trueMask) break;
+
+                // Go through the mask.
+                for (int i=0; i<DOUBLES_PER_AVX; i++)
+                {
+                    // If this element was true, write its counts.
+                    if (trueMask&(1<<i))
+                    {
+                        // Record the degree advancement counts.
+                        for (uint j=0; j<reactionModel->numberReactions; j++) degreeAdvancementTimeSeriesCounts[i].push_back(degreeAdvancements[j*DOUBLES_PER_AVX+i]);
+                        degreeAdvancementTimeSeriesTimes[i].push_back(((double*)&nextDegreeAdvancementWriteTime)[i]);
+                        ((double*)&nextDegreeAdvancementWriteTime)[i] += degreeAdvancementWriteInterval;
+                    }
+                }
+            }
+        }
+
+        // If we are writing species counts, write out any time steps before this event occurred.
         if (writeSpeciesTimeSeries)
         {
             // Loop until we have finished writing out all elements.
@@ -633,8 +723,7 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
         }
 
         // Calculate a random propensity to figure out the reaction.
-        avxd rngValue = _mm256_load_pd(&rngValues[rngNext]);
-        avxd rngPropensity = _mm256_mul_pd(rngValue, totalPropensity);
+        avxd rngPropensity = _mm256_mul_pd(randomValue, totalPropensity);
 
 //        {
 //        double* res = (double*)&totalPropensity;
@@ -771,9 +860,6 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
 //        p = (double*)&totalPropensity;
 //        printf("Total Propensity: %8.2f %8.2f %8.2f %8.2f\n", p[0], p[1], p[2], p[3]);
 //        printf("-----------------\n");
-
-         // Go to the next rng pair.
-        rngNext+=DOUBLES_PER_AVX;
     }
     PROF_END(PROF_SIM_EXECUTE);
 
@@ -784,15 +870,6 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
 //    //printf("Final Species counts:   %8.2f %8.2f %8.2f %8.2f\n", p[4], p[5], p[6], p[7]);
 //    p = (double*)&totalPropensity;
 //    printf("Final Total Propensity: %8.2f %8.2f %8.2f %8.2f\n", p[0], p[1], p[2], p[3]);
-
-    // Delete the rng caches.
-    free(rngValues);
-    rngValues = NULL;
-    free(expRngValues);
-    expRngValues = NULL;
-
-    // Track if we added any output to the message.
-    bool createdOutput = false;
 
     // Finalize each of the trajectories.
     for (int i=0; i<DOUBLES_PER_AVX; i++)
@@ -808,9 +885,21 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
         {
             ((double*)&time)[i] = ((double*)&timeLimit)[i];
             Print::printf(Print::DEBUG, "Generated trajectory %llu through time %e.", trajectoryId[i], ((double*)&time)[i]);
+
+            if (writeDegreeAdvancementTimeSeries)
+            {
+                while (((double*)&nextDegreeAdvancementWriteTime)[i] < (((double*)&timeLimit)[i]))
+                {
+                    // Record the degree advancements.
+                    for (uint j=0; j<reactionModel->numberReactions; j++) degreeAdvancementTimeSeriesCounts[i].push_back(degreeAdvancements[j*DOUBLES_PER_AVX+i]);
+                    degreeAdvancementTimeSeriesTimes[i].push_back(((double*)&nextDegreeAdvancementWriteTime)[i]);
+                    ((double*)&nextDegreeAdvancementWriteTime)[i] += degreeAdvancementWriteInterval;
+                }
+            }
+
             if (writeSpeciesTimeSeries)
             {
-                while (((double*)&nextSpeciesWriteTime)[i] < (((double*)&timeLimit)[i]))    //+EPS))
+                while (((double*)&nextSpeciesWriteTime)[i] < (((double*)&timeLimit)[i]))
                 {
                     // Record the species counts.
                     for (uint j=0; j<reactionModel->numberSpeciesToTrack; j++) speciesTimeSeriesCounts[i].push_back(lround(speciesCounts[j*DOUBLES_PER_AVX+i]));
@@ -823,46 +912,54 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
         // If we hit a limit, write out the final trajectory state if requested
         if (status[i] == lm::message::WorkUnitStatus::LIMIT_REACHED and writeFinalTrajectoryState)
         {
+            // Record the degree advancements.
+            if (writeDegreeAdvancementTimeSeries)
+            {
+                for (uint j=0; j<reactionModel->numberReactions; j++) degreeAdvancementTimeSeriesCounts[i].push_back(degreeAdvancements[j*DOUBLES_PER_AVX+i]);
+                degreeAdvancementTimeSeriesTimes[i].push_back(((double*)&time)[i]);
+            }
+
             // Record the species counts.
             if (writeSpeciesTimeSeries)
             {
-                // Record the species counts.
                 for (uint j=0; j<reactionModel->numberSpeciesToTrack; j++) speciesTimeSeriesCounts[i].push_back(lround(speciesCounts[j*DOUBLES_PER_AVX+i]));
                 speciesTimeSeriesTimes[i].push_back(((double*)&time)[i]);
+            }
+        }
+
+        // If we have any degree advancement data, add them to the output message.
+        if (degreeAdvancementTimeSeriesCounts[i].size() > 0 || degreeAdvancementTimeSeriesTimes[i].size() > 0)
+        {
+            // Mark that the message does contain some data.
+            output[i]->set_has_output(true);
+
+            // Make sure the arrays are of a consistent size.
+            if (degreeAdvancementTimeSeriesCounts[i].size() == degreeAdvancementTimeSeriesTimes[i].size()*reactionModel->numberReactions)
+            {
+                lm::io::DegreeAdvancementTimeSeries* dataSet = output[i]->mutable_degree_advancement_time_series();
+                dataSet->set_trajectory_id(trajectoryId[i]);
+                robertslab::pbuf::NDArraySerializer::serializeInto<double>(dataSet->mutable_times(), degreeAdvancementTimeSeriesTimes[i].data(), utuple(degreeAdvancementTimeSeriesTimes[i].size()));
+                robertslab::pbuf::NDArraySerializer::serializeInto<uint64_t>(dataSet->mutable_counts(), degreeAdvancementTimeSeriesCounts[i].data(), utuple(degreeAdvancementTimeSeriesTimes[i].size(),reactionModel->numberReactions));
+            }
+            else
+            {
+                Print::printf(Print::ERROR, "Degree advancement time series counts and time mismatch %d,%d,%d", degreeAdvancementTimeSeriesCounts[i].size(), reactionModel->numberReactions, degreeAdvancementTimeSeriesTimes[i].size());
             }
         }
 
         // If we have any species time series data, add them to the output message.
         if (speciesTimeSeriesCounts[i].size() > 0 || speciesTimeSeriesTimes[i].size() > 0)
         {
+            // Mark that the message does contain some data.
+            output[i]->set_has_output(true);
+
             // Make sure the arrays are of a consistent size.
             if (speciesTimeSeriesCounts[i].size() == speciesTimeSeriesTimes[i].size()*reactionModel->numberSpeciesToTrack)
             {
                 lm::io::SpeciesTimeSeries* speciesTimeSeriesDataSet = output[i]->mutable_species_time_series();
                 speciesTimeSeriesDataSet->set_trajectory_id(trajectoryId[i]);
-
-                robertslab::pbuf::NDArray* counts = speciesTimeSeriesDataSet->mutable_counts();
-                counts->set_data_type(robertslab::pbuf::NDArray::int32);
-                counts->set_compressed_deflate(true);
-                counts->add_shape(speciesTimeSeriesTimes[i].size());
-                counts->add_shape(reactionModel->numberSpeciesToTrack);
-                std::string* data = counts->mutable_data();
-                size_t dataSizeEstimate=compressBound(speciesTimeSeriesCounts[i].size()*sizeof(int32_t));
-                data->resize(dataSizeEstimate);
-                ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)speciesTimeSeriesCounts[i].data(), speciesTimeSeriesCounts[i].size()*sizeof(int32_t)));
-                data->resize(dataSizeEstimate);
-
-                robertslab::pbuf::NDArray* times = speciesTimeSeriesDataSet->mutable_times();
-                times->set_data_type(robertslab::pbuf::NDArray::float64);
-                times->set_compressed_deflate(true);
-                times->add_shape(speciesTimeSeriesTimes[i].size());
-                data = times->mutable_data();
-                dataSizeEstimate=compressBound(speciesTimeSeriesTimes[i].size()*sizeof(double));
-                data->resize(dataSizeEstimate);
-                ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)speciesTimeSeriesTimes[i].data(), speciesTimeSeriesTimes[i].size()*sizeof(double)));
-                data->resize(dataSizeEstimate);
-
-                createdOutput = true;
+                robertslab::pbuf::NDArraySerializer::serializeInto<double>(speciesTimeSeriesDataSet->mutable_times(), speciesTimeSeriesTimes[i].data(), utuple(speciesTimeSeriesTimes[i].size()));
+                robertslab::pbuf::NDArraySerializer::serializeInto<int32_t>(speciesTimeSeriesDataSet->mutable_counts(), speciesTimeSeriesCounts[i].data(), utuple(speciesTimeSeriesTimes[i].size(),reactionModel->numberSpeciesToTrack));
             }
             else
             {
@@ -871,47 +968,30 @@ long long GillespieDSolverAVX::generateTrajectory(long long maxSteps)
         }
 
         // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
-        if (status[i] == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFptTrackedSpecies > 0)
+        if (status[i] == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFptSpecies > 0)
         {
-            for (int j=0; j<numberFptValues; j++)
+            // Mark that the message does contain some data.
+            output[i]->set_has_output(true);
+
+            for (int j=0; j<numberFptSpecies; j++)
             {
-                lm::io::FirstPassageTimes* fptMsg = output[i]->add_first_passage_times();
-                fptMsg->set_trajectory_id(trajectoryId[i]);
-                fptMsg->set_species(fptTrackedSpecies[j].species);
-                fptMsg->set_number_entries(fptValues[j*DOUBLES_PER_AVX+i].size());
-                for (std::deque<std::pair<int,double> >::iterator it=fptValues[j*DOUBLES_PER_AVX+i].begin(); it != fptValues[j*DOUBLES_PER_AVX+i].end(); it++)
-                {
-                    fptMsg->add_species_count(it->first);
-                    fptMsg->add_first_passage_time(it->second);
-                }
+                fptValues[j*DOUBLES_PER_AVX+i].serializeInto(output[i]->add_first_passage_times());
+                Print::printf(Print::DEBUG, "avx gillespie writing fpt for %d %d,%d\n", i, (int)output[i]->first_passage_times(j).trajectory_id(), output[i]->first_passage_times(j).species()); fflush(stdout);
             }
-            createdOutput = true;
         }
 
         if (status[i] == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFptTrackedOrderParameters > 0)
         {
+            // Mark that the message does contain some data.
+            output[i]->set_has_output(true);
+
             for (int j=0; j<numberFptOPValues; j++)
             {
                 int dataIndex = j*DOUBLES_PER_AVX+i;
                 fptTrackedOrderParameters[j].serializeTo(output[i]->add_order_parameter_first_passage_times(), trajectoryId[i], fptOPValues[dataIndex], fptOPTimes[dataIndex]);
             }
-            createdOutput = true;
-        }
-
-        // if we created an output for this work unit part, set its work unit output options
-        if (createdOutput)
-        {
-            if (workUnitOutputPrefix.size() > 0) output[i]->set_record_name_prefix(workUnitOutputPrefix);
-            output[i]->set_condense_output(workUnitCondenseOutput);
         }
     }
-
-    // If the output message has any data, send it.
-    if (createdOutput)
-    {
-        communicator->sendMessage(outputProcess, outputThread, &msgp);
-    }
-
 
     return steps*DOUBLES_PER_AVX;
 }
@@ -949,71 +1029,43 @@ void GillespieDSolverAVX::performReactionEventAVX(uint* reactionsToPerform)
             speciesCounts[(reactionModel->dependentSpecies[r][i])*DOUBLES_PER_AVX+j] += double(reactionModel->dependentSpeciesChange[r][i]);
         }
     }
-    if (hasUpdateSpeciesCountsListeners) callUpdateSpeciesCountsListenersAVX();
+    if (hasUpdateSpeciesCountsListeners) callUpdateSpeciesCountsListenersAVX(reactionsToPerform);
 }
 
-void GillespieDSolverAVX::callUpdateSpeciesCountsListenersAVX()
+void GillespieDSolverAVX::callUpdateSpeciesCountsListenersAVX(uint* reactionsToPerform)
 {
-    // Update the first passage time tables.
-    for (int i=0; i<numberFptValues; i++)
+    // Update the degree advancement, if we are tracking it.
+    if (numberDegreeAdvancements > 0)
     {
-        uint speciesIndex = fptTrackedSpecies[i].species;
-        avxd counts = _mm256_load_pd(&speciesCounts[speciesIndex*DOUBLES_PER_AVX]);
-        avxd comp;
-        int allFalse;
-        int trueMask;
-
-        // Check if we went below the previous min.
-        while (true)
+        for (uint i=0; i<DOUBLES_PER_AVX; i++)
         {
-            comp = _mm256_cmp_pd(counts, _mm256_load_pd(&fptMinValuesAchieved[i*DOUBLES_PER_AVX]), _CMP_LT_OQ);
-            allFalse = _mm256_testz_pd(comp,comp);
-            if (allFalse)
-            {
-                break;
-            }
-            else
-            {
-                // Get a bitmask of all values that were true.
-                trueMask = _mm256_movemask_pd(comp);
-
-                // Go through the mask.
-                for (int j=0; j<DOUBLES_PER_AVX; j++)
-                {
-                    // If this element was true, update the fpt tables.
-                    if (trueMask&(1<<j))
-                    {
-                        fptMinValuesAchieved[i*DOUBLES_PER_AVX+j] -= 1.0;
-                        fptValues[i*DOUBLES_PER_AVX+j].push_front(std::pair<int,double>(lround(fptMinValuesAchieved[i*DOUBLES_PER_AVX+j]),((double*)&time)[j]));
-                    }
-                }
-            }
+            uint r = reactionsToPerform[i];
+            degreeAdvancements[r*DOUBLES_PER_AVX+i]++;
         }
+    }
 
-        // Check if we went above the previous max.
-        while (true)
+    // Update the first passage time tables.
+    for (int i=0; i<numberFptSpecies; i++)
+    {
+        uint speciesIndex = fptValues[i*DOUBLES_PER_AVX+0].species;
+        avxd counts = _mm256_load_pd(&speciesCounts[speciesIndex*DOUBLES_PER_AVX]);
+
+        // Check if any trajectory went below the previous min or above the previous max.
+        avxd comp = _mm256_cmp_pd(counts, _mm256_load_pd(&fptMinValues[i*DOUBLES_PER_AVX]), _CMP_LT_OQ);
+        int minAllFalse = _mm256_testz_pd(comp,comp);
+        comp = _mm256_cmp_pd(counts, _mm256_load_pd(&fptMaxValues[i*DOUBLES_PER_AVX]), _CMP_GT_OQ);
+        int maxAllFalse = _mm256_testz_pd(comp,comp);
+        if (!minAllFalse || !maxAllFalse)
         {
-            comp = _mm256_cmp_pd(counts, _mm256_load_pd(&fptMaxValuesAchieved[i*DOUBLES_PER_AVX]), _CMP_GT_OQ);
-            allFalse = _mm256_testz_pd(comp,comp);
-            if (allFalse)
+            // At least on trajectory was outside the range, so update all of them.
+            for (int j=0; j<DOUBLES_PER_AVX; j++)
             {
-                break;
-            }
-            else
-            {
-                // Get a bitmask of all values that were true.
-                trueMask = _mm256_movemask_pd(comp);
+                // Update the fpt.
+                fptValues[i*DOUBLES_PER_AVX+j].insert(lround(((double*)&counts)[j]), ((double*)&time)[j]);
 
-                // Go through the mask.
-                for (int j=0; j<DOUBLES_PER_AVX; j++)
-                {
-                    // If this element was true, update the fpt tables.
-                    if (trueMask&(1<<j))
-                    {
-                        fptMaxValuesAchieved[i*DOUBLES_PER_AVX+j] += 1.0;
-                        fptValues[i*DOUBLES_PER_AVX+j].push_back(std::pair<int,double>(lround(fptMaxValuesAchieved[i*DOUBLES_PER_AVX+j]),((double*)&time)[j]));
-                    }
-                }
+                // Reload the min and and max.
+                fptMinValues[i*DOUBLES_PER_AVX+j] = double(fptValues[i*DOUBLES_PER_AVX+j].minValue);
+                fptMaxValues[i*DOUBLES_PER_AVX+j] = double(fptValues[i*DOUBLES_PER_AVX+j].maxValue);
             }
         }
     }
@@ -1043,8 +1095,7 @@ void GillespieDSolverAVX::callUpdateSpeciesCountsListenersAVX()
         // rounding version
         //avxd counts = _mm256_round_pd(_mm256_load_pd(&orderParameterValues[opValIndex]), _MM_FROUND_TO_ZERO);
 
-        // Check if we went below the previous min.
-//        avxGetCompareMask<_CMP_LT_OQ>(&orderParameterValues[opValIndex], &fptOPMinValuesAchieved[fptopIndex], &trueMask, &allFalse);
+        // Check if we went below the previous min
         AVX_COMP_MASK_ALLFALSE(_CMP_LT_OQ, &orderParameterValues[opValIndex], &fptOPMinValuesAchieved[fptopIndex], &trueMask, &allFalse)
         if (!allFalse)
         {
@@ -1061,8 +1112,7 @@ void GillespieDSolverAVX::callUpdateSpeciesCountsListenersAVX()
             }
         }
 
-        // Check if we went above the previous max.
-//        avxGetCompareMask<_CMP_GT_OQ>(&orderParameterValues[opValIndex], &fptOPMaxValuesAchieved[fptopIndex], &trueMask, &allFalse);
+        // Check if we went above the previous max
         AVX_COMP_MASK_ALLFALSE(_CMP_GT_OQ, &orderParameterValues[opValIndex], &fptOPMaxValuesAchieved[fptopIndex], &trueMask, &allFalse)
         if (!allFalse)
         {

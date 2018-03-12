@@ -7,18 +7,24 @@
 #sets the prefix dir for installation of lm (ie running "make install")
 SET(CMAKE_INSTALL_PREFIX "/home/eroberts/usr")
 
+# USE_MPI can be set to yes, no, or optional, in which case MPI will be used if cmake can find it on your system.
+SET(USE_MPI optional)
+
 #USE_CUDA can be set to yes, no, or optional, in which case CUDA will be used if cmake can find it on your system
 SET(USE_CUDA no)
 
 #Set the verbosity level, as described in the lm::Print function. 10 is complete, 4 is normal-ish
 SET(VERBOSITY_LEVEL 4)
 
+# Set to yes to turn on profiling.
+SET(USE_PROFILING no)
+
 #uncomment and change the last part of the next line if some of your libraries/header files are on a nonstandard path
 SET(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" /home/eroberts/usr)
 
-SET(CUSTOM_C_FLAGS "-m64 -march=core2 -O3 -fPIC -Wall -fmessage-length=0")
-SET(CUSTOM_CXX_FLAGS "-m64 -march=core2 -O3 -fPIC -Wall -fmessage-length=0")
-
+# Add any extra flags for the compiler.
+SET(EXTRA_C_FLAGS "")
+SET(EXTRA_CXX_FLAGS "")
 
 ############################
 #library specific path settings

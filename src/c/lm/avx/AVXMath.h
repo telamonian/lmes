@@ -51,7 +51,8 @@
 
 // template versions
 
-// pairwise comparison of the first DOUBLES_PER_AVX (ie 4) doubles pointed to by leftPtr and rightPtr
+// pairwise comparison of the doubles contained in two avxd's (pointed to by leftPtr and rightPtr)
+// currently, each avxd is expected to contain DOUBLES_PER_AVX (ie 4) doubles
 // the type of comparison performed is determined by comparisonOp. See GillespieDSolverAVX::isTrajectoryOutsideLimitsAVX() for examples of different comparisonOps
 // comparisonOp is passed as a template parameter since the _mm256_cmp_pd macro requires this to be known at compile-time
 // the result of the comparison is stored as a bitmask in trueMask (0 for false, 1 for true)

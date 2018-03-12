@@ -1,7 +1,7 @@
 /*
  * University of Illinois Open Source License
  * Copyright 2008-2011 Luthey-Schulten Group,
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Luthey-Schulten Group
@@ -41,6 +41,7 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+
 #ifndef LM_CME_GILLESPIEDSOLVER_H_
 #define LM_CME_GILLESPIEDSOLVER_H_
 
@@ -52,6 +53,7 @@
 #include "lm/cme/CMESolver.h"
 #include "lm/io/DegreeAdvancementTimeSeries.pb.h"
 #include "lm/io/OrderParameterTimeSeries.pb.h"
+#include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/limit/LimitTracking.h"
 #include "lm/protowrap/TimeSeries.h"
 #include "lm/rng/RandomGenerator.h"
@@ -85,19 +87,26 @@ public:
         *nextWriteTime = (floor(time/interval) + 1)*interval;
     }
     virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0);
-    virtual long long generateTrajectory(long long maxSteps);
+    virtual uint64_t generateTrajectory(uint64_t maxSteps);
 
 protected:
+    virtual void allocateRngBuffers();
+    virtual void deallocateRngBuffers();
     virtual void updateAllPropensities();
     inline void updatePropensities(uint r);
 
 protected:
     lm::protowrap::TimeSeries<lm::io::DegreeAdvancementTimeSeries> daTimeSeriesWrap;
     lm::protowrap::TimeSeries<lm::io::OrderParameterTimeSeries> opTimeSeriesWrap;
+    lm::protowrap::TimeSeries<lm::io::SpeciesTimeSeries> speciesTimeSeriesWrap;
+
+    double* rngValues;
+    double* expRngValues;
+    size_t nextRngValue;
     double * propensities;
 };
 
 }
 }
 
-#endif
+#endif /* LM_CME_GILLESPIEDSOLVER_H_ */

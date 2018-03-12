@@ -62,7 +62,8 @@
 #include "lm/Print.h"
 #include "lm/Types.h"
 #include "lm/Version.h"
-#include "lm/main/Main.h"
+#include "lm/main/Globals.h"
+#include "lm/resource/ResourceMap.h"
 
 using std::string;
 using std::vector;
@@ -98,6 +99,16 @@ string recordNamePrefixGlobal;
 vector<uint64_t> replicates;
 
 /**
+  * The number of replicates to send in each work unit.
+  */
+int replicateBatchSize;
+
+/**
+ * If messages should be printed about individual replicates.
+ */
+bool relicatePrintMessages;
+
+/**
  * The interval at which the results file should be checkpointed.
  */
 time_t checkpointInterval = 0;
@@ -106,6 +117,11 @@ time_t checkpointInterval = 0;
  * If a global abort signal has been received.
  */
 volatile bool globalAbort = false;
+
+/**
+ * The communicator to use for the simulations.
+ */
+string communicatorClassName;
 
 /**
  * The supervisor to use for the simulations.
@@ -120,7 +136,12 @@ string solverClassName;
 /**
  * The filename for the resource list.
  */
-string resourceFilename;
+string resourceFilename = "";
+
+/**
+ * The format for the resource file.
+ */
+lm::resource::ResourceMap::ResourceFileFormat resourceFileFormat;
 
 /**
  * The number of cpu cores assigned to each process.
@@ -176,19 +197,5 @@ bool opActivatedFlag;
  * Flag that determines whether or not to track order parameter values in addition to species counts
  */
 bool opTrackingFlag;
-
-/**
- * Flag to run input output testing
- */
-bool ioTestFlag;
-
-
-
-
-
-
-
-
-
 
 

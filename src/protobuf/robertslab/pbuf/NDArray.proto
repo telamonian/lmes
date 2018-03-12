@@ -33,7 +33,8 @@ message NDArray {
         LITTLE_ENDIAN_ORDER   = 0;
         BIG_ENDIAN_ORDER      = 1;
     }
-    
+
+    // the names of the DataType enum are chosen such that they can be parsed directly by np.dtype()
     enum DataType {
         int8	       = 0;    // Byte (-128 to 127)
         int16	       = 1;    // Integer (-32768 to 32767)

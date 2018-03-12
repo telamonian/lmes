@@ -1,7 +1,7 @@
 /*
  * University of Illinois Open Source License
  * Copyright 2008-2011 Luthey-Schulten Group,
- * Copyright 2012-2015 Roberts Group,
+ * Copyright 2012-2017 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Luthey-Schulten Group
@@ -55,9 +55,13 @@ namespace rdme {
 class ByteLattice : public Lattice
 {
 public:
+    static const uint8_t EMPTY_PARTICLE;
+
+public:
     // Lattice limits.
     virtual site_t getMaxSiteType() const;
     virtual particle_t getMaxParticle() const;
+    virtual particle_t getEmptyParticle() const;
     virtual site_size_t getMaxOccupancy() const;
 
 public:
@@ -94,12 +98,10 @@ public:
     virtual std::vector<particle_loc_t> findParticles(particle_t minParticleType, particle_t maxParticleType);
 	
     // Methods to set the data directly.
-    virtual size_t serializeParticlesSize(bool deflate);
-    virtual size_t serializeParticlesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool deflate);
-    virtual void deserializeParticlesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool inflate);
-    virtual size_t serializeSitesSize(bool deflate);
-    virtual size_t serializeSitesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool deflate);
-    virtual void deserializeSitesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool inflate);
+    virtual void copySitesTo(ndarray<uint8_t>* array);
+    virtual void copySitesFrom(ndarray<uint8_t>* array);
+    virtual void copyParticlesTo(ndarray<uint8_t>* array);
+    virtual void copyParticlesFrom(ndarray<uint8_t>* array);
 
 protected:
 	virtual void allocateMemory() throw(std::bad_alloc);
@@ -107,8 +109,8 @@ protected:
 
 protected:
     uint wordsPerSite;
-    uint32_t * particles;
-    uint8_t * siteTypes;
+    uint32_t* particles;
+    uint8_t* siteTypes;
 
 private:
     static const uint PARTICLES_PER_WORD = 4;

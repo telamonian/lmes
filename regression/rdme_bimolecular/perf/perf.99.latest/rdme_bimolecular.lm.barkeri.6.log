@@ -1,0 +1,46 @@
+Lattice Microbe ES v2017.09 build 2017-09-13-15-28-25 in 64-bit mode with options AVX SBML SNAPPY.
+Copyright (C) 2012-2017 Roberts Group, Johns Hopkins University.
+Copyright (C) 2008-2012 Luthey-Schulten Group, University of Illinois at Urbana-Champaign.
+
+2017-08-13 15:53:44) Initializing communications library.
+2017-08-13 15:53:44) Using local communicator on host barkeri.bph.jhu.edu.
+2017-08-13 15:53:44) Resource controller @1 started.
+2017-08-13 15:53:44) Supervisor @0 started.
+2017-08-13 15:53:44) Resource controller @1 on barkeri.bph.jhu.edu registered with 8 cpu core(s) and 0 gpu device(s).
+2017-08-13 15:53:44) Registered resources for host barkeri.bph.jhu.edu (defaults=1): 2 cpu cores, 0 gpu devices
+2017-08-13 15:53:44) All resources registered with supervisor, starting workers.
+2017-08-13 15:53:44) Reserved core 0 on @1 for the output writer.
+2017-08-13 15:53:44) Creating slot 0 on @1 using resources: barkeri.bph.jhu.edu; @1; cpu core list:1; gpu device list:<none>.
+2017-08-13 15:53:44) OutputWriter @3 started.
+2017-08-13 15:53:44) Output writer started: @3.
+2017-08-13 15:53:44) OutputWriter::HelperThread @3 started.
+2017-08-13 15:53:44) Work Unit runner @4 started with 1 cpu cores (affinity=0) and 0 gpus.
+2017-08-13 15:53:44) Work unit runner started: @4.
+2017-08-13 15:53:44) All supervisor workers have started, beginning simulation.
+2017-08-13 15:53:44) Replicate supervisor starting simulation.
+2017-08-13 15:53:44) Simulation started.
+2017-08-13 15:54:49) Wrote 11 messages (18346 bytes) in the last 65.0 seconds (0.000171 seconds writing). 0 messages (0 bytes) queued. Flushing.
+2017-08-13 15:54:49) Finished 12 work units (ids in range 0 to 11) with 12 parts in the last 65.0 seconds. 120000000 steps in 6.496e+01 seconds (1.847e+06 steps/second).
+2017-08-13 15:55:54) Wrote 12 messages (20106 bytes) in the last 65.1 seconds (0.000188 seconds writing). 0 messages (0 bytes) queued. Flushing.
+2017-08-13 15:55:54) Finished 12 work units (ids in range 12 to 23) with 12 parts in the last 65.1 seconds. 120000000 steps in 6.510e+01 seconds (1.843e+06 steps/second).
+2017-08-13 15:55:58) Replicate 5 completed with 5.00e+02 of simulation time using 4 work units.
+2017-08-13 15:56:02) Replicate 1 completed with 5.00e+02 of simulation time using 4 work units.
+2017-08-13 15:56:06) Replicate 8 completed with 5.00e+02 of simulation time using 4 work units.
+2017-08-13 15:56:10) Replicate 7 completed with 5.00e+02 of simulation time using 4 work units.
+2017-08-13 15:56:14) Replicate 4 completed with 5.00e+02 of simulation time using 4 work units.
+2017-08-13 15:56:18) Replicate 6 completed with 5.00e+02 of simulation time using 4 work units.
+2017-08-13 15:56:22) Replicate 2 completed with 5.00e+02 of simulation time using 4 work units.
+2017-08-13 15:56:26) Replicate 3 completed with 5.00e+02 of simulation time using 4 work units.
+2017-08-13 15:56:26) Replicate supervisor finished 8 replicates in 162.25 seconds.
+2017-08-13 15:56:26) Simulation finished.
+2017-08-13 15:56:26) Finished 8 work units (ids in range 24 to 31) with 8 parts in the last 32.2 seconds. 59097748 steps in 3.218e+01 seconds (1.836e+06 steps/second).
+2017-08-13 15:56:26) Supervisor @0 finished.
+2017-08-13 15:56:26) Wrote 9 messages (10754 bytes) in the last 32.2 seconds (0.000186 seconds writing). 0 messages (0 bytes) queued. Flushing.
+2017-08-13 15:56:26) OutputWriter wrote 32 messages and 49206 bytes total.
+2017-08-13 15:56:26) OutputWriter::HelperThread @3 finished.
+2017-08-13 15:56:26) OutputWriter @3 flushing and closing.
+2017-08-13 15:56:26) OutputWriter @3 finished.
+2017-08-13 15:56:26) Work unit runner @4 finished.
+2017-08-13 15:56:26) Resource controller @1 finished.
+2017-08-13 15:56:26) Finalizing communications library.
+2017-08-13 15:56:26) Program execution finished.

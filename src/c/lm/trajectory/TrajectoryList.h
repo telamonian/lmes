@@ -36,12 +36,17 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_TRAJECTORY_TRAJECTORYLIST_H
-#define LM_TRAJECTORY_TRAJECTORYLIST_H
+#ifndef LM_TRAJECTORY_TRAJECTORYLIST_H_
+#define LM_TRAJECTORY_TRAJECTORYLIST_H_
 
 #include <limits>
 #include <map>
 #include <string>
+#ifdef OPT_CPP11
+#include <unordered_set>
+#else
+#include <set>
+#endif
 
 #include "lm/input/Input.h"
 #include "lm/input/ReactionModel.pb.h"
@@ -53,20 +58,21 @@
 #include "lm/trajectory/Trajectory.h"
 #include "lm/Types.h"
 
-using std::map;
-using std::string;
-
 namespace lm {
 namespace trajectory {
-
-typedef std::map<uint64_t,lm::trajectory::Trajectory*> TrajectoryMap;
 
 class TrajectoryList
 {
 public:
-// constants
-    static const uint64_t DEFAULT_TRAJECTORY_ID;
+    typedef std::map<uint64_t,Trajectory*> idmap;
+#ifdef OPT_CPP11
+    typedef std::unordered_set<uint64_t> idset;
+#else
+    typedef std::set<uint64_t> idset;
+#endif
 
+    
+public:
     TrajectoryList();
     TrajectoryList(uint64_t count, uint64_t simulationPhaseID);
     virtual ~TrajectoryList();
@@ -93,17 +99,17 @@ public:
 
 // accessors
     virtual bool areAllFinished() const;
+    virtual bool areAnyWaiting() const;
     virtual uint64_t count() const {return _count;}
     virtual bool exists(uint64_t id) const {return trajectories.count(id)==1;}
-    virtual const TrajectoryMap& getTrajectoryMap(Trajectory::Status status) const;
-    virtual bool isTrajectoryAborted(uint64_t trajID) const {return isTrajectoryInMap(trajID, abortedTrajectories, Trajectory::ABORTED);}
-    virtual bool isTrajectoryFinished(uint64_t trajID) const {return isTrajectoryInMap(trajID, finishedTrajectories, Trajectory::FINISHED);}
-    virtual bool isTrajectoryRunning(uint64_t trajID) const {return isTrajectoryInMap(trajID, runningTrajectories, Trajectory::RUNNING);}
-    virtual bool isTrajectoryWaiting(uint64_t trajID) const {return isTrajectoryInMap(trajID, waitingTrajectories, Trajectory::WAITING);}
-    virtual bool isTrajectoryAborted(lm::trajectory::Trajectory* traj) const {return isTrajectoryInMap(traj, abortedTrajectories, Trajectory::ABORTED);}
-    virtual bool isTrajectoryFinished(lm::trajectory::Trajectory* traj) const {return isTrajectoryInMap(traj, finishedTrajectories, Trajectory::FINISHED);}
-    virtual bool isTrajectoryRunning(lm::trajectory::Trajectory* traj) const {return isTrajectoryInMap(traj, runningTrajectories, Trajectory::RUNNING);}
-    virtual bool isTrajectoryWaiting(lm::trajectory::Trajectory* traj) const {return isTrajectoryInMap(traj, waitingTrajectories, Trajectory::WAITING);}
+    virtual bool isTrajectoryAborted(uint64_t trajID) const {return abortedTrajectories.count(trajID) > 0;}
+    virtual bool isTrajectoryFinished(uint64_t trajID) const {return finishedTrajectories.count(trajID) > 0;}
+    virtual bool isTrajectoryRunning(uint64_t trajID) const {return runningTrajectories.count(trajID) > 0;}
+    virtual bool isTrajectoryWaiting(uint64_t trajID) const {return waitingTrajectories.count(trajID) > 0;}
+    virtual bool isTrajectoryAborted(Trajectory* traj) const {return abortedTrajectories.count(traj->getID()) > 0;}
+    virtual bool isTrajectoryFinished(Trajectory* traj) const {return finishedTrajectories.count(traj->getID()) > 0;}
+    virtual bool isTrajectoryRunning(Trajectory* traj) const {return runningTrajectories.count(traj->getID()) > 0;}
+    virtual bool isTrajectoryWaiting(Trajectory* traj) const {return waitingTrajectories.count(traj->getID()) > 0;}
     virtual uint64_t simulationPhaseID() const {return _simulationPhaseID;}
     virtual size_t size() const {return trajectories.size();}
 
@@ -112,7 +118,7 @@ public:
     virtual void copyTrajectoriesWeakly(const TrajectoryList& srcTrajList, Trajectory::Status status);
     virtual void copyWorkUnitsRunning(const TrajectoryList& srcTrajList);
     virtual Trajectory* getTrajectoryForFinishedWorkUnit(uint64_t id);
-    virtual TrajectoryMap* getTrajectoryMap(Trajectory::Status status);
+    virtual idmap* getTrajectoryMap(Trajectory::Status status);
     template <typename InputIterator> Trajectory* recycleTrajectory(InputIterator speciesStart, InputIterator speciesEnd, double startTime, uint64_t oldID, uint64_t newID)
     {
         Trajectory* traj = trajectories[oldID];
@@ -124,7 +130,7 @@ public:
         return traj;
     }
     virtual uint64_t resolveTrajectoryID(uint64_t newID);
-    virtual void setSimulationPhaseID(uint64_t newPhaseIx) {_simulationPhaseID = newPhaseIx;}
+    virtual void restartFinishedTrajectories();
     virtual void setAll(Trajectory::Status oldStatus, Trajectory::Status newStatus);
     virtual void takeTrajectories(TrajectoryList* srcTrajList, Trajectory::Status status, Trajectory::Status newStatus);
     virtual void takeWorkUnitsRunning(TrajectoryList* srcTrajList);
@@ -133,26 +139,29 @@ public:
 
 protected:
 // accessors
-    virtual bool isTrajectoryInMap(uint64_t trajID, const TrajectoryMap& trajMap, Trajectory::Status expectedStatus) const;
-    virtual bool isTrajectoryInMap(lm::trajectory::Trajectory* traj, const TrajectoryMap& trajMap, Trajectory::Status expectedStatus) const;
     virtual uint64_t findNextTrajectoryToRun() const;
     virtual void printTrajectoryStatistics() const {};
 
 // mutators
     virtual Trajectory* eraseTrajectoryID(uint64_t id);
     virtual Trajectory* eraseTrajectoryIDFromSublists(uint64_t id);
-    virtual void setTrajectoryID(lm::trajectory::Trajectory* traj, uint64_t newID, Trajectory::Status newStatus);
-    virtual void setTrajectoryStatus(lm::trajectory::Trajectory* traj, Trajectory::Status newStatus);
+    virtual void setTrajectoryID(Trajectory* traj, uint64_t newID, Trajectory::Status newStatus);
+    virtual void setTrajectoryStatus(Trajectory* traj, Trajectory::Status newStatus);
 
+public:
+    // constants
+    static const uint64_t DEFAULT_TRAJECTORY_ID;
+    
 protected:
     uint64_t _count;
     uint64_t _simulationPhaseID;
-    TrajectoryMap trajectories;
-    TrajectoryMap abortedTrajectories;
-    TrajectoryMap finishedTrajectories;
-    TrajectoryMap runningTrajectories;
-    TrajectoryMap waitingTrajectories;
-    map<uint64_t,std::list<uint64_t> > workUnitsRunning;
+    
+    idmap trajectories;
+    idset abortedTrajectories;
+    idset finishedTrajectories;
+    idset runningTrajectories;
+    idset waitingTrajectories;
+    std::map<uint64_t,std::list<uint64_t> > workUnitsRunning;
 };
 
 }

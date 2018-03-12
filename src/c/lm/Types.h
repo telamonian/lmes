@@ -41,6 +41,7 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+
 #ifndef TYPES_H_
 #define TYPES_H_
 
@@ -52,6 +53,7 @@
 //#undef LITTLE_ENDIAN
 //#endif
 
+#include <cstdlib>
 #include <cstring>
 #include <list>
 #include <map>
@@ -63,6 +65,7 @@
 #include <limits>
 
 #include "lm/Exceptions.h"
+#include "robertslab/Types.h"
 
 /*
  * General types.

@@ -112,7 +112,8 @@ public:
 
     static lm::me::PropensityFunctionDefinition registerFunction()
     {
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "ZerothOrderPropensity", "k1", &create);
+        const char* unitsForConstants[] = {"item/second", NULL};
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "ZerothOrderPropensity", "k1", unitsForConstants, &create);
     }
 };
 
@@ -152,7 +153,8 @@ public:
 
     static lm::me::PropensityFunctionDefinition registerFunction()
     {
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderPropensity", "k1 * x1", &create);
+        const char* unitsForConstants[] = {"1/second", NULL};
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderPropensity", "k1 * x1", unitsForConstants, &create);
     }
 };
 
@@ -192,7 +194,8 @@ public:
 
     static lm::me::PropensityFunctionDefinition registerFunction()
     {
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "SecondOrderPropensity", "k1 * x1 * x2", &create);
+        const char* unitsForConstants[] = {"1/(item*second)", NULL};
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "SecondOrderPropensity", "k1 * x1 * x2", unitsForConstants, &create);
     }
 };
 
@@ -208,8 +211,8 @@ public:
     void changeVolume(double volumeMultiplier) {k/=volumeMultiplier;}
     double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
-        int s = speciesCounts[si];
-        return k * double(s*(s-1));
+        double s = double(speciesCounts[si]);
+        return k * s * (s-1.0);
     }
 
 #ifdef OPT_AVX
@@ -236,7 +239,8 @@ public:
     static lm::me::PropensityFunctionDefinition registerFunction()
     {
         const char* expressions[] = {"k1 * x1 * x1", "k1 * x1^2", "k1 * x1 * (x1-1)", NULL};
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "DimerizationPropensity", expressions, &create);
+        const char* unitsForConstants[] = {"1/(item*second)", NULL};
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "DimerizationPropensity", expressions, unitsForConstants, &create);
     }
 };
 
@@ -253,8 +257,8 @@ public:
 
     double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
-        int s = speciesCounts[si];
-        return k * double(s*(s-1)*(s-2));
+        double s = double(speciesCounts[si]);
+        return k * s * (s-1.0) * (s-2.0);
     }
 
 #ifdef OPT_AVX
@@ -282,7 +286,8 @@ public:
     static lm::me::PropensityFunctionDefinition registerFunction()
     {
         const char* expressions[] = {"k1 * x1 * x1 * x1", "k1 * x1^3", "k1 * x1 * (x1-1) * (x1-2)", NULL};
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "TrimerizationPropensity", expressions, &create);
+        const char* unitsForConstants[] = {"1/(item*item*second)", NULL};
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "TrimerizationPropensity", expressions, unitsForConstants, &create);
     }
 };
 

@@ -1,6 +1,6 @@
 /*
  * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Roberts Group
@@ -36,327 +36,78 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+#include <climits>
+#if !defined(HOST_NAME_MAX) and defined(_POSIX_HOST_NAME_MAX)
+#define HOST_NAME_MAX _POSIX_HOST_NAME_MAX
+#endif
+#include <cstdio>
 #include <sched.h>
 #include <string>
 #include <unistd.h>
 #include <google/protobuf/message.h>
 
-#include "lm/Math.h"
-#include "lm/MPI.h"
-#include "lm/Print.h"
+#include "lm/ClassFactory.h"
+#include "lm/Exceptions.h"
+#include "lm/main/Globals.h"
 #include "lm/message/Communicator.h"
-#include "lm/message/Endpoint.h"
-#include "lptf/Profile.h"
-#include "lptf/ProfileCodes.h"
+#include "lm/message/Endpoint.pb.h"
 
 namespace lm {
 namespace message {
 
-Communicator::Communicator(Endpoint source)
-:inputBufferSize(100*MEBI),outputBufferSize(100*MEBI),inputBuffer(NULL),lastMessageSize(0),outputBuffer(NULL),
- masterOutput(source),source(source),sendFinished(1),receiveFinished(1)
+
+bool Communicator::initializeDefaultSubclass()
 {
-    initBuffers();
+    Communicator* ret = static_cast<lm::message::Communicator*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::message::Communicator", communicatorClassName));
+    return ret->initializeClass();
 }
 
-Communicator::Communicator(int srcProcess, int srcThread)
-:inputBufferSize(100*MEBI),outputBufferSize(100*MEBI),inputBuffer(NULL),lastMessageSize(0),outputBuffer(NULL),
- masterOutput(srcProcess,srcThread),source(srcProcess,srcThread),sendFinished(1),receiveFinished(1)
+void Communicator::finalizeDefaultSubclass(bool abort)
 {
-    initBuffers();
+    Communicator* ret = static_cast<lm::message::Communicator*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::message::Communicator", communicatorClassName));
+    return ret->finalizeClass(abort);
+}
+
+Communicator* Communicator::createObjectOfDefaultSubclass(bool isSupervisor)
+{
+    Communicator* ret = static_cast<lm::message::Communicator*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::message::Communicator", communicatorClassName));
+    ret->sourceAddress = ret->constructObject(isSupervisor);
+    return ret;
+}
+
+string Communicator::printableAddress(const lm::message::Endpoint& address)
+{
+    string ret = "";
+    for (int i=0; i<address.values_size(); i++)
+    {
+        char buffer[101];
+        memset(buffer, 0, sizeof(buffer));
+        snprintf(buffer, sizeof(buffer)-1, "%s%d", (i==0?"@":":"), address.values(i));
+        ret += string(buffer);
+    }
+    return ret;
+}
+
+Communicator::Communicator()
+{
 }
 
 Communicator::~Communicator()
 {
-    if (inputBuffer != NULL)
-    {
-        MPI_EXCEPTION_CHECK(MPI_Free_mem(inputBuffer));
-        inputBuffer = NULL;
-    }
-    if (outputBuffer != NULL)
-    {
-        MPI_EXCEPTION_CHECK(MPI_Free_mem(outputBuffer));
-        outputBuffer = NULL;
-    }
-}
-
-void Communicator::initBuffers()
-{
-    MPI_EXCEPTION_CHECK(MPI_Alloc_mem(inputBufferSize, MPI_INFO_NULL, &inputBuffer));
-    MPI_EXCEPTION_CHECK(MPI_Alloc_mem(outputBufferSize, MPI_INFO_NULL, &outputBuffer));
 }
 
 std::string Communicator::getHostname() const
 {
-    char hostname[MPI_MAX_PROCESSOR_NAME+1];
+    char hostname[HOST_NAME_MAX+1];
     memset(hostname,0,sizeof(hostname));
-    int hostnameLength;
-    MPI_EXCEPTION_CHECK(MPI_Get_processor_name(hostname, &hostnameLength));
+    if (gethostname(hostname, sizeof(hostname)) != 0)
+        throw lm::Exception("unable to get host name");
     return std::string(hostname);
 }
 
-void Communicator::deserialize(lm::message::Message* msg) const
+Endpoint Communicator::getSourceAddress() const
 {
-    // Get the length of the data.
-    int messageLength;
-    MPI_EXCEPTION_CHECK(MPI_Get_count(&messageStatus, MPI_BYTE, &messageLength));
-
-    PROF_BEGIN(PROF_MESSAGE_PARSE);
-    // Deserialize the message.
-    if (!msg->ParseFromArray(inputBuffer, messageLength))
-    {
-        // try to at least partially parse the message for debugging/logging purposes
-        if (!msg->ParsePartialFromArray(inputBuffer, messageLength))
-        {
-            throw lm::Exception("Unable to deserialize message. Message debug string: ", msg->DebugString().c_str());
-        }
-        else
-        {
-            throw lm::Exception("Unable to deserialize message. msg->ParseFromArray and msg->ParsePartialFromArray both failed.");
-        }
-    }
-    PROF_END(PROF_MESSAGE_PARSE);
-
-    //lm::Print::printf(lm::Print::DEBUG, "Received message %d:%d->%d:%d %d bytes: {\n%s}",msg->source_process(),msg->source_thread(),msg->dest_process(),msg->dest_thread(),msg->ByteSize(), msg->DebugString().c_str());
-}
-
-void Communicator::serialize(Endpoint dest, lm::message::Message* msg) const
-{
-    // Set the message values.
-    msg->set_source_process(source.process);
-    msg->set_source_thread(source.thread);
-    msg->set_dest_process(dest.process);
-    msg->set_dest_thread(dest.thread);
-
-    // Serialize the message into the buffer.
-    int messageLength=msg->ByteSize();
-    lastMessageSize = messageLength;
-    if (messageLength > outputBufferSize)
-    {
-        lm::Print::printMsgDebug(lm::Print::INFO, *msg);
-        throw lm::Exception("Message too large to serialize into output buffer", messageLength, outputBufferSize);
-    }
-
-    PROF_BEGIN(PROF_MESSAGE_SERIALIZE);
-    if (!msg->SerializeToArray(outputBuffer,messageLength)) throw lm::Exception("Unable to serialize message");
-    PROF_END(PROF_MESSAGE_SERIALIZE);
-
-    // Send the buffer.
-    //lm::Print::printf(lm::Print::DEBUG, "Sending message %d:%d->%d:%d = %d",process,thread,destProcess,destThread,messageLength);
-}
-
-void Communicator::sendMessage(int destProcess, int destThread, lm::message::Message* msg, int sleepMilliseconds) const
-{
-    sendMessage(Endpoint(destProcess,destThread), msg, sleepMilliseconds);
-}
-
-void Communicator::sendMessage(Endpoint dest, lm::message::Message* msg, int sleepMilliseconds) const
-{
-    sleepMilliseconds = 0;
-
-    PROF_BEGIN(PROF_MESSAGE_SEND);
-
-    // Set the message values.
-    msg->set_source_process(source.process);
-    msg->set_source_thread(source.thread);
-    msg->set_dest_process(dest.process);
-    msg->set_dest_thread(dest.thread);
-
-    // Serialize the message into the buffer.
-    int messageLength=msg->ByteSize();
-    lastMessageSize = messageLength;
-    if (messageLength > outputBufferSize)
-    {
-        lm::Print::printMsgDebug(lm::Print::INFO, *msg);
-        throw lm::Exception("Message too large to serialize into output buffer", messageLength, outputBufferSize);
-    }
-
-    PROF_BEGIN(PROF_MESSAGE_SERIALIZE);
-    if (!msg->SerializeToArray(outputBuffer,messageLength)) throw lm::Exception("Unable to serialize message");
-    PROF_END(PROF_MESSAGE_SERIALIZE);
-
-    // Send the buffer.
-    //lm::Print::printf(lm::Print::DEBUG, "Sending message %d:%d->%d:%d = %d",process,thread,destProcess,destThread,messageLength);
-    if (sleepMilliseconds==-1)
-    {
-        MPI_Request request;
-        MPI_EXCEPTION_CHECK(MPI_Isend(outputBuffer, messageLength, MPI_BYTE, dest.process, dest.thread, MPI_COMM_WORLD, &request));
-        int messageSent=0;
-        while (true)
-        {
-            MPI_EXCEPTION_CHECK(MPI_Test(&request, &messageSent, &messageStatus));
-            if (messageSent)
-                break;
-        }
-    }
-    else if (sleepMilliseconds<=0)
-    {
-        MPI_EXCEPTION_CHECK(MPI_Send(outputBuffer, messageLength, MPI_BYTE, dest.process, dest.thread, MPI_COMM_WORLD));
-    }
-    else
-    {
-        MPI_Request request;
-        MPI_EXCEPTION_CHECK(MPI_Isend(outputBuffer, messageLength, MPI_BYTE, dest.process, dest.thread, MPI_COMM_WORLD, &request));
-        int messageSent=0;
-        while (true)
-        {
-            MPI_EXCEPTION_CHECK(MPI_Test(&request, &messageSent, &messageStatus));
-            if (messageSent)
-                break;
-            usleep(sleepMilliseconds*1000);
-        }
-    }
-    //lm::Print::printf(lm::Print::DEBUG, "Sent message %d:%d->%d:%d = %d",process,thread,destProcess,destThread,messageLength);
-
-    PROF_END(PROF_MESSAGE_SEND);
-}
-
-void Communicator::setMasterOutputEndpoint(int moProcess, int moThread)
-{
-    masterOutput.process = moProcess;
-    masterOutput.thread = moThread;
-}
-
-void Communicator::receiveMessage(lm::message::Message* msg, int sleepMilliseconds) const
-{
-    sleepMilliseconds = 0;
-
-    PROF_BEGIN(PROF_MESSAGE_RECEIVE);
-
-    // Receive the data.
-    //lm::Print::printf(lm::Print::DEBUG, "Receiving message %d:%d",process,thread);
-
-    // If we shouldn't sleep while waiting, call blocking receive.
-    if (sleepMilliseconds==-1)
-    {
-        MPI_Request request;
-        MPI_EXCEPTION_CHECK(MPI_Irecv(inputBuffer, inputBufferSize, MPI_BYTE, MPI_ANY_SOURCE, source.thread, MPI_COMM_WORLD, &request));
-        int messageReceived=0;
-        while (true)
-        {
-            MPI_EXCEPTION_CHECK(MPI_Test(&request, &messageReceived, &messageStatus));
-            if (messageReceived)
-                break;
-        }
-    }
-    else if (sleepMilliseconds <= 0)
-    {
-        MPI_EXCEPTION_CHECK(MPI_Recv(inputBuffer, inputBufferSize, MPI_BYTE, MPI_ANY_SOURCE, source.thread, MPI_COMM_WORLD, &messageStatus));
-    }
-    else
-    {
-        // Otherwise, poll for the message sleeping in between.
-        MPI_Request request;
-        MPI_EXCEPTION_CHECK(MPI_Irecv(inputBuffer, inputBufferSize, MPI_BYTE, MPI_ANY_SOURCE, source.thread, MPI_COMM_WORLD, &request));
-        int messageReceived=0;
-        while (true)
-        {
-            MPI_EXCEPTION_CHECK(MPI_Test(&request, &messageReceived, &messageStatus));
-            if (messageReceived)
-                break;
-            usleep(sleepMilliseconds*1000);
-        }
-    }
-
-    // Get the length of the data.
-    int messageLength;
-    MPI_EXCEPTION_CHECK(MPI_Get_count(&messageStatus, MPI_BYTE, &messageLength));
-
-    // Deserialize the message.
-    PROF_BEGIN(PROF_MESSAGE_PARSE);
-    if (!msg->ParseFromArray(inputBuffer, messageLength))
-    {
-        throw lm::Exception("Unable to deserialize message");
-    }
-    PROF_END(PROF_MESSAGE_PARSE);
-
-    //lm::Print::printf(lm::Print::DEBUG, "Received message %d:%d->%d:%d %d bytes: {\n%s}",msg->source_process(),msg->source_thread(),msg->dest_process(),msg->dest_thread(),msg->ByteSize(), msg->DebugString().c_str());
-
-    PROF_END(PROF_MESSAGE_RECEIVE);
-}
-
-// non blocking sends and receives
-int Communicator::isendMessage(Endpoint dest, lm::message::Message* msg, int dummy) const
-{
-    PROF_BEGIN(PROF_MESSAGE_SEND);
-
-    if (not sendFinished)
-    {
-        MPI_Wait(&lastSendRequest, &lastSendStatus);
-    }
-
-    // Set the message values.
-    msg->set_source_process(source.process);
-    msg->set_source_thread(source.thread);
-    msg->set_dest_process(dest.process);
-    msg->set_dest_thread(dest.thread);
-
-    // Serialize the message into the buffer.
-    int messageLength=msg->ByteSize();
-    lastMessageSize = messageLength;
-    if (messageLength > outputBufferSize)
-    {
-        lm::Print::printMsgDebug(lm::Print::INFO, *msg);
-        throw lm::Exception("Message too large to serialize into output buffer",messageLength,outputBufferSize);
-    }
-
-    PROF_BEGIN(PROF_MESSAGE_SERIALIZE);
-    if (!msg->SerializeToArray(outputBuffer,messageLength)) throw lm::Exception("Unable to serialize message");
-    PROF_END(PROF_MESSAGE_SERIALIZE);
-
-    // Send the buffer.
-    //lm::Print::printf(lm::Print::DEBUG, "Sending message %d:%d->%d:%d = %d",process,thread,destProcess,destThread,messageLength);
-
-    MPI_EXCEPTION_CHECK(MPI_Isend(outputBuffer, messageLength, MPI_BYTE, dest.process, dest.thread, MPI_COMM_WORLD, &lastSendRequest));
-    testSendMessage();
-
-    PROF_END(PROF_MESSAGE_SEND);
-    return sendFinished;
-}
-
-int Communicator::testSendMessage() const
-{
-    PROF_BEGIN(PROF_MESSAGE_RECEIVE);
-
-    MPI_EXCEPTION_CHECK(MPI_Test(&lastSendRequest, &sendFinished, &lastSendStatus));
-
-    PROF_END(PROF_MESSAGE_RECEIVE);
-
-    return sendFinished;
-}
-
-int Communicator::ireceiveMessage(lm::message::Message* msg, int dummy) const
-{
-    PROF_BEGIN(PROF_MESSAGE_RECEIVE);
-
-    if (not receiveFinished)
-    {
-        MPI_Wait(&lastReceiveRequest, &lastReceiveStatus);
-        deserialize(msg);
-    }
-
-    MPI_EXCEPTION_CHECK(MPI_Irecv(inputBuffer, inputBufferSize, MPI_BYTE, MPI_ANY_SOURCE, source.thread, MPI_COMM_WORLD, &lastReceiveRequest));
-    testReceiveMessage(msg);
-
-    PROF_END(PROF_MESSAGE_RECEIVE);
-
-    return receiveFinished;
-}
-
-int Communicator::testReceiveMessage(lm::message::Message* msg) const
-{
-    PROF_BEGIN(PROF_MESSAGE_RECEIVE);
-
-    MPI_EXCEPTION_CHECK(MPI_Test(&lastReceiveRequest, &receiveFinished, &lastReceiveStatus));
-
-    // if the receive completed...
-    if (receiveFinished)
-    {
-        deserialize(msg);
-    }
-    PROF_END(PROF_MESSAGE_RECEIVE);
-
-    return receiveFinished;
+    return sourceAddress;
 }
 
 }

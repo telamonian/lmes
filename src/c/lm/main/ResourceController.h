@@ -46,7 +46,6 @@
 #include <string>
 #include <vector>
 #include "lm/Print.h"
-#include "lm/main/WorkUnitRunner.h"
 #include "lm/message/Communicator.h"
 #include "lm/message/StartOutputWriter.pb.h"
 #include "lm/message/StartWorkUnitRunner.pb.h"
@@ -66,7 +65,7 @@ public:
 public:
     ResourceController();
     virtual ~ResourceController();
-    virtual void wake() throw(PthreadException);
+    virtual void wake() throw(lm::thread::PthreadException);
 
 protected:
     virtual int run();
@@ -76,7 +75,7 @@ protected:
     virtual void stopWorkers(bool abort);
 
 protected:
-    lm::message::Communicator communicator;
+    lm::message::Communicator* communicator;
     std::list<lm::thread::Worker*> workers;
 };
 

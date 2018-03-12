@@ -51,7 +51,6 @@
 #include <sys/stat.h>
 #include <vector>
 #include <zlib.h>
-#include <lm/array/NDArray.h>
 
 #include "lm/EnumHelper.h"
 #include "lm/Exceptions.h"
@@ -75,8 +74,8 @@
 #include "lm/io/hdf5/HDF5.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/rdme/Lattice.h"
-#include "lm/types/ArrayOrdering.pb.h"
 #include "lm/types/Lattice.pb.h"
+#include "robertslab/pbuf/NDArraySerializer.h"
 
 using std::list;
 using std::map;
@@ -84,6 +83,7 @@ using std::stringstream;
 using std::string;
 using std::vector;
 using lm::IOException;
+using robertslab::pbuf::NDArraySerializer;
 
 namespace lm {
 namespace io {
@@ -356,7 +356,6 @@ herr_t Hdf5File::parseParameter(hid_t location_id, const char *attr_name, const 
         if (is_variable_len)
         {
             // Create the memory datatype.
-//            HDF5_EXCEPTION_CALL(memtype, H5Tcopy(H5T_C_S1));
             HDF5_EXCEPTION_CALL(memtype, H5Tget_native_type(type, H5T_DIR_DEFAULT));
 
             // set the size to variable
@@ -395,7 +394,6 @@ herr_t Hdf5File::parseParameter(hid_t location_id, const char *attr_name, const 
             // Reclaim the memory.
             delete [] value;
         }
-
         HDF5_EXCEPTION_CHECK(H5Sclose(space));
         HDF5_EXCEPTION_CHECK(H5Tclose(memtype));
 
@@ -518,11 +516,6 @@ void Hdf5File::getDiffusionModel(lm::input::DiffusionModel* diffusionModel) cons
         diffusionModel->set_number_reactions(numberReactions);
         diffusionModel->set_number_site_types(numberSiteTypes);
         diffusionModel->set_lattice_spacing(latticeSpacing);
-        lm::types::Lattice* lattice=diffusionModel->mutable_initial_lattice();
-        lattice->set_lattice_x_size(latticeXSize);
-        lattice->set_lattice_y_size(latticeYSize);
-        lattice->set_lattice_z_size(latticeZSize);
-        lattice->set_particles_per_site(particlesPerSite);
 
         int ndims;
         hsize_t dims[4];
@@ -549,30 +542,32 @@ void Hdf5File::getDiffusionModel(lm::input::DiffusionModel* diffusionModel) cons
         }
 
         // Read the initial lattice.
-        HDF5_EXCEPTION_CHECK(H5LTget_dataset_ndims(file, "/Model/Diffusion/Lattice", &ndims));
-        if (ndims != 4) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Diffusion/Lattice");
-        HDF5_EXCEPTION_CHECK(H5LTget_dataset_info(file, "/Model/Diffusion/Lattice",dims, &type, &size));
-        if (lattice->lattice_x_size() != (int)dims[0] || lattice->lattice_y_size() != (int)dims[1] || lattice->lattice_z_size() != (int)dims[2] || lattice->particles_per_site() != (int)dims[3] || size != sizeof(uint8_t)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Diffusion/Lattice");
-        string* particles=new string();
-        particles->resize(dims[0]*dims[1]*dims[2]*dims[3]);
-        HDF5_EXCEPTION_CHECK(H5LTread_dataset(file, "/Model/Diffusion/Lattice", H5T_NATIVE_UINT8, &((*particles)[0])));
-        lattice->set_allocated_particles(particles);
-        lattice->set_particles_ordering(lm::types::ROW_MAJOR);
+        {
+            HDF5_EXCEPTION_CHECK(H5LTget_dataset_ndims(file, "/Model/Diffusion/Lattice", &ndims));
+            if (ndims != 4) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Diffusion/Lattice");
+            HDF5_EXCEPTION_CHECK(H5LTget_dataset_info(file, "/Model/Diffusion/Lattice",dims, &type, &size));
+            if (size != sizeof(uint8_t)) throw Exception("Invalid data type", filename.c_str(), "/Model/Diffusion/Lattice");
+            ndarray<uint8_t>* particles = new ndarray<uint8_t>(utuple(dims[0],dims[1],dims[2],dims[3]));
+            HDF5_EXCEPTION_CHECK(H5LTread_dataset(file, "/Model/Diffusion/Lattice", H5T_NATIVE_UINT8, particles->values));
+            NDArraySerializer::serializeInto(diffusionModel->mutable_initial_lattice()->mutable_particles(), *particles);
+            delete particles;
+        }
 
         // Read the initial lattice sites.
-        HDF5_EXCEPTION_CHECK(H5LTget_dataset_ndims(file, "/Model/Diffusion/LatticeSites", &ndims));
-        if (ndims != 3) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Diffusion/LatticeSites");
-        HDF5_EXCEPTION_CHECK(H5LTget_dataset_info(file, "/Model/Diffusion/LatticeSites",dims, &type, &size));
-        if (lattice->lattice_x_size() != (int)dims[0] || lattice->lattice_y_size() != (int)dims[1] || lattice->lattice_z_size() != (int)dims[2] || size != sizeof(uint8_t)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Diffusion/LatticeSites");
-        string* sites=new string();
-        sites->resize(dims[0]*dims[1]*dims[2]);
-        HDF5_EXCEPTION_CHECK(H5LTread_dataset(file, "/Model/Diffusion/LatticeSites", H5T_NATIVE_UINT8, &((*sites)[0])));
-        lattice->set_allocated_sites(sites);
-        lattice->set_sites_ordering(lm::types::ROW_MAJOR);
+        {
+            HDF5_EXCEPTION_CHECK(H5LTget_dataset_ndims(file, "/Model/Diffusion/LatticeSites", &ndims));
+            if (ndims != 3) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Diffusion/LatticeSites");
+            HDF5_EXCEPTION_CHECK(H5LTget_dataset_info(file, "/Model/Diffusion/Lattice",dims, &type, &size));
+            if (size != sizeof(uint8_t)) throw Exception("Invalid data type", filename.c_str(), "/Model/Diffusion/LatticeSites");
+            ndarray<uint8_t>* sites = new ndarray<uint8_t>(utuple(dims[0],dims[1],dims[2]));
+            HDF5_EXCEPTION_CHECK(H5LTread_dataset(file, "/Model/Diffusion/LatticeSites", H5T_NATIVE_UINT8, sites->values));
+            NDArraySerializer::serializeInto(diffusionModel->mutable_initial_lattice()->mutable_sites(), *sites);
+            delete sites;
+        }
     }
 }
 
-void Hdf5File::setDiffusionModel(lm::input::DiffusionModel * diffusionModel)
+void Hdf5File::setDiffusionModel(lm::input::DiffusionModel* diffusionModel)
 {
     // Validate that the model is consistent.
     if (diffusionModel == NULL) throw InvalidArgException("diffusionModel", "cannot be NULL");
@@ -581,10 +576,15 @@ void Hdf5File::setDiffusionModel(lm::input::DiffusionModel * diffusionModel)
     if (diffusionModel->diffusion_matrix_size() != (int)(diffusionModel->number_site_types()*diffusionModel->number_site_types()*diffusionModel->number_species())) throw InvalidArgException("diffusion.diffusion_matrix", "inconsistent size");
     if (diffusionModel->reaction_location_matrix_size() != (int)(diffusionModel->number_reactions()*diffusionModel->number_site_types())) throw InvalidArgException("diffusion.reaction_location_matrix", "inconsistent size");
     if (diffusionModel->lattice_spacing() <= 0.0) throw InvalidArgException("diffusionModel.lattice_spacing", "must be greater than zero");
-    if (diffusionModel->initial_lattice().lattice_x_size() == 0) throw InvalidArgException("diffusionModel.lattice_x_size", "cannot be zero");
-    if (diffusionModel->initial_lattice().lattice_y_size() == 0) throw InvalidArgException("diffusionModel.lattice_y_size", "cannot be zero");
-    if (diffusionModel->initial_lattice().lattice_z_size() == 0) throw InvalidArgException("diffusionModel.lattice_z_size", "cannot be zero");
-    if (diffusionModel->initial_lattice().particles_per_site() == 0) throw InvalidArgException("diffusionModel.particles_per_site", "cannot be zero");
+    if (diffusionModel->initial_lattice().particles().shape_size() != 4) throw InvalidArgException("diffusionModel.initial_lattice.particles", "must have four dimensions");
+    if (diffusionModel->initial_lattice().particles().shape(0) == 0) throw InvalidArgException("diffusionModel.initial_lattice.particles x size", "cannot be zero");
+    if (diffusionModel->initial_lattice().particles().shape(1) == 0) throw InvalidArgException("diffusionModel.initial_lattice.particles y size", "cannot be zero");
+    if (diffusionModel->initial_lattice().particles().shape(2) == 0) throw InvalidArgException("diffusionModel.initial_lattice.particles z size", "cannot be zero");
+    if (diffusionModel->initial_lattice().particles().shape(3) == 0) throw InvalidArgException("diffusionModel.initial_lattice.particles particle per site", "cannot be zero");
+    if (diffusionModel->initial_lattice().sites().shape_size() != 3) throw InvalidArgException("diffusionModel.initial_lattice.sites", "must have three dimensions");
+    if (diffusionModel->initial_lattice().sites().shape(0) != diffusionModel->initial_lattice().particles().shape(0)) throw InvalidArgException("diffusionModel.initial_lattice.sites x size", "must be the same as diffusionModel.initial_lattice.particles x size");
+    if (diffusionModel->initial_lattice().sites().shape(1) != diffusionModel->initial_lattice().particles().shape(1)) throw InvalidArgException("diffusionModel.initial_lattice.sites y size", "must be the same as diffusionModel.initial_lattice.particles y size");
+    if (diffusionModel->initial_lattice().sites().shape(2) != diffusionModel->initial_lattice().particles().shape(2)) throw InvalidArgException("diffusionModel.initial_lattice.sites z size", "must be the same as diffusionModel.initial_lattice.particles z size");
 
     // If a diffusion model already exists, delete it.
     if (H5Lexists(file, "/Model/Diffusion", H5P_DEFAULT))
@@ -602,10 +602,10 @@ void Hdf5File::setDiffusionModel(lm::input::DiffusionModel * diffusionModel)
     uint numberReactions = diffusionModel->number_reactions();
     uint numberSiteTypes = diffusionModel->number_site_types();
     double latticeSpacing = diffusionModel->lattice_spacing();
-    uint latticeXSize = diffusionModel->initial_lattice().lattice_x_size();
-    uint latticeYSize = diffusionModel->initial_lattice().lattice_y_size();
-    uint latticeZSize = diffusionModel->initial_lattice().lattice_z_size();
-    uint particlesPerSite = diffusionModel->initial_lattice().particles_per_site();
+    uint latticeXSize = diffusionModel->initial_lattice().particles().shape(0);
+    uint latticeYSize = diffusionModel->initial_lattice().particles().shape(1);
+    uint latticeZSize = diffusionModel->initial_lattice().particles().shape(2);
+    uint particlesPerSite = diffusionModel->initial_lattice().particles().shape(3);
     HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(file, "/Model/Diffusion", "numberSpecies", &numberSpecies, 1));
     HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(file, "/Model/Diffusion", "numberReactions", &numberReactions, 1));
     HDF5_EXCEPTION_CHECK(H5LTset_attribute_uint(file, "/Model/Diffusion", "numberSiteTypes", &numberSiteTypes, 1));
@@ -633,6 +633,57 @@ void Hdf5File::setDiffusionModel(lm::input::DiffusionModel * diffusionModel)
         dims[0] = numberReactions;
         dims[1] = numberSiteTypes;
         HDF5_EXCEPTION_CHECK(H5LTmake_dataset(file, "/Model/Diffusion/ReactionLocationMatrix", RANK, dims, H5T_STD_U32LE, diffusionModel->reaction_location_matrix().data()));
+        printf("Set rlm %d %d %d %d\n", numberReactions, numberSiteTypes, diffusionModel->reaction_location_matrix().data()[0], diffusionModel->reaction_location_matrix().data()[1]);
+    }
+
+    // Write the lattice data set.
+    {
+        ndarray<uint8_t>* particles = NDArraySerializer::deserializeAllocate<uint8_t>(diffusionModel->initial_lattice().particles());
+        unsigned int RANK=4;
+        hsize_t dims[RANK], chunk[RANK];
+        dims[0] = particles->shape[0];
+        dims[1] = particles->shape[1];
+        dims[2] = particles->shape[2];
+        dims[3] = particles->shape[3];
+        chunk[0] = min((uint)TUNE_LATTICE_GZIP_CHUNK_SIZE,particles->shape[0]);
+        chunk[1] = min((uint)TUNE_LATTICE_GZIP_CHUNK_SIZE,particles->shape[1]);
+        chunk[2] = min((uint)TUNE_LATTICE_GZIP_CHUNK_SIZE,particles->shape[2]);
+        chunk[3] = particles->shape[3];
+        hid_t dataspaceHandle, dcplHandle, datasetHandle;
+        HDF5_EXCEPTION_CALL(dataspaceHandle,H5Screate_simple(RANK, dims, NULL));
+        HDF5_EXCEPTION_CALL(dcplHandle,H5Pcreate(H5P_DATASET_CREATE));
+        HDF5_EXCEPTION_CHECK(H5Pset_deflate (dcplHandle, TUNE_LATTICE_GZIP_COMPRESSION_LEVEL));
+        HDF5_EXCEPTION_CHECK(H5Pset_chunk(dcplHandle, RANK, chunk));
+        HDF5_EXCEPTION_CALL(datasetHandle,H5Dcreate2(file, "/Model/Diffusion/Lattice", H5T_STD_U8LE, dataspaceHandle, H5P_DEFAULT, dcplHandle, H5P_DEFAULT));
+        HDF5_EXCEPTION_CHECK(H5Dwrite(datasetHandle, H5T_NATIVE_UINT8, H5S_ALL, H5S_ALL, H5P_DEFAULT, particles->values));
+        HDF5_EXCEPTION_CHECK(H5Dclose(datasetHandle));
+        HDF5_EXCEPTION_CHECK(H5Pclose(dcplHandle));
+        HDF5_EXCEPTION_CHECK(H5Sclose(dataspaceHandle));
+        delete particles;
+    }
+
+    // Write the lattice sites data set.
+    {
+        ndarray<uint8_t>* sites = NDArraySerializer::deserializeAllocate<uint8_t>(diffusionModel->initial_lattice().sites());
+        unsigned int RANK=3;
+        hsize_t dims[RANK], chunk[RANK];
+        dims[0] = sites->shape[0];
+        dims[1] = sites->shape[1];
+        dims[2] = sites->shape[2];
+        chunk[0] = min((uint)TUNE_LATTICE_GZIP_CHUNK_SIZE,sites->shape[0]);
+        chunk[1] = min((uint)TUNE_LATTICE_GZIP_CHUNK_SIZE,sites->shape[1]);
+        chunk[2] = min((uint)TUNE_LATTICE_GZIP_CHUNK_SIZE,sites->shape[2]);
+        hid_t dataspaceHandle, dcplHandle, datasetHandle;
+        HDF5_EXCEPTION_CALL(dataspaceHandle,H5Screate_simple(RANK, dims, NULL));
+        HDF5_EXCEPTION_CALL(dcplHandle,H5Pcreate(H5P_DATASET_CREATE));
+        HDF5_EXCEPTION_CHECK(H5Pset_deflate (dcplHandle, TUNE_LATTICE_GZIP_COMPRESSION_LEVEL));
+        HDF5_EXCEPTION_CHECK(H5Pset_chunk(dcplHandle, RANK, chunk));
+        HDF5_EXCEPTION_CALL(datasetHandle,H5Dcreate2(file, "/Model/Diffusion/LatticeSites", H5T_STD_U8LE, dataspaceHandle, H5P_DEFAULT, dcplHandle, H5P_DEFAULT));
+        HDF5_EXCEPTION_CHECK(H5Dwrite(datasetHandle, H5T_NATIVE_UINT8, H5S_ALL, H5S_ALL, H5P_DEFAULT, sites->values));
+        HDF5_EXCEPTION_CHECK(H5Dclose(datasetHandle));
+        HDF5_EXCEPTION_CHECK(H5Pclose(dcplHandle));
+        HDF5_EXCEPTION_CHECK(H5Sclose(dataspaceHandle));
+        delete sites;
     }
 }
 
@@ -1596,7 +1647,6 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
         {
             newTiling->add_edges(edgeBuffer[i]);
         }
-
         // free the buffer
         delete[] edgeBuffer;
     }
@@ -1628,7 +1678,6 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
                 newBasin->add_species_count(basinsBuffer[i*dims[1]+j]);
             }
         }
-
         // free the buffers
         delete[] basinsBuffer;
     }
@@ -1652,7 +1701,6 @@ herr_t Hdf5File::getTilingsCallback(hid_t loc_id, const char * name, const H5L_i
             if (newTiling->edges(i+1) > newTiling->edges(i)) throw Exception("A set of Edges in one of your Tilings is improperly sorted (guessed DESCENDING)", cdT->filename.c_str(), "/Tilings/xxxxxxx/Edges");
         }
     }
-
 
     // free the group handle
     HDF5_EXCEPTION_CHECK(H5Gclose(tilingGroup));
@@ -1753,34 +1801,29 @@ void Hdf5File::getBoundaryGradient(lm::types::BoundaryConditions* bc) const
 {
     // Make sure the model is not null and then clear it.
     if (bc == NULL) throw InvalidArgException("bc", "cannot be null");
-    bc->clear_boundary_gradient_ordering();
-    bc->clear_boundary_gradient();
 
     if (H5Lexists(file, "/Model/Diffusion/Gradient", H5P_DEFAULT))
     {
-        int ndims;
-        hsize_t dims[3];
-        H5T_class_t type;
-        size_t size;
-
         // Read the lattice size.
         int latticeXSize,latticeYSize,latticeZSize;
         HDF5_EXCEPTION_CHECK(H5LTget_attribute_int(file, "/Model/Diffusion", "latticeXSize", &latticeXSize));
         HDF5_EXCEPTION_CHECK(H5LTget_attribute_int(file, "/Model/Diffusion", "latticeYSize", &latticeYSize));
         HDF5_EXCEPTION_CHECK(H5LTget_attribute_int(file, "/Model/Diffusion", "latticeZSize", &latticeZSize));
 
-        // Read the initial lattice sites.
+        // Read the gradient.
+        int ndims;
+        hsize_t dims[3];
+        H5T_class_t type;
+        size_t size;
         HDF5_EXCEPTION_CHECK(H5LTget_dataset_ndims(file, "/Model/Diffusion/Gradient", &ndims));
-        if (ndims != 3) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Diffusion/Gradient");
+        if (ndims != 3) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Diffusion/Lattice");
         HDF5_EXCEPTION_CHECK(H5LTget_dataset_info(file, "/Model/Diffusion/Gradient",dims, &type, &size));
-        if (latticeXSize+2 != (int)dims[0] || latticeYSize+2 != (int)dims[1] || latticeZSize+2 != (int)dims[2] || size != sizeof(double)) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Diffusion/Gradient");
-        int dataSize = dims[0]*dims[1]*dims[2];
-        double* data=new double[dataSize];
-        HDF5_EXCEPTION_CHECK(H5LTread_dataset(file, "/Model/Diffusion/Gradient", H5T_NATIVE_DOUBLE, data));
-        for (int i=0; i<dataSize; i++)
-            bc->add_boundary_gradient(data[i]);
-        bc->set_boundary_gradient_ordering(lm::types::ROW_MAJOR);
-        delete[] data;
+        if (latticeXSize+2 != (int)dims[0] || latticeYSize+2 != (int)dims[1] || latticeZSize+2 != (int)dims[2]) throw Exception("Invalid dataset dimensions", filename.c_str(), "/Model/Diffusion/Gradient");
+        if (size != sizeof(double)) throw Exception("Invalid dataset type", filename.c_str(), "/Model/Diffusion/Lattice");
+        ndarray<double>* gradient = new ndarray<double>(utuple(dims[0],dims[1],dims[2]));
+        HDF5_EXCEPTION_CHECK(H5LTread_dataset(file, "/Model/Diffusion/Gradient", H5T_NATIVE_DOUBLE, gradient->values));
+        NDArraySerializer::serializeInto(bc->mutable_boundary_gradient(), *gradient);
+        delete gradient;
     }
 }
 
@@ -1802,59 +1845,6 @@ void Hdf5File::appendSpeciesCounts(uint64_t replicate, lm::io::SpeciesCounts * s
     appendSpeciesTimeSeries(replicate, speciesCounts->number_entries(), speciesCounts->number_species(), speciesCounts->species_count().data(), speciesCounts->time().data());
 }
 
-int32_t* Hdf5File::dumpSpeciesCounts(const lm::io::SpeciesTimeSeries& speciesTimeSeries)
-{
-    int numberEntries = speciesTimeSeries.counts().shape(0);
-    int numberSpecies = speciesTimeSeries.counts().shape(1);
-
-    // Extract the data, decompressing if necessary.
-    int32_t* counts=NULL;
-    if (speciesTimeSeries.counts().compressed_deflate())
-    {
-        counts = new int32_t[numberEntries*numberSpecies];
-        size_t size = numberEntries*numberSpecies*sizeof(counts[0]);
-        size_t uncompressedSize = size;
-        const std::string& str = speciesTimeSeries.counts().data();
-        ZLIB_EXCEPTION_CHECK(uncompress((unsigned char *)counts, &uncompressedSize, (unsigned char*)&(str[0]), str.size()));
-        if (uncompressedSize != size)
-            throw Exception("Error during data decompression, wrong number of bytes returned.");
-    }
-    else
-    {
-        const std::string& str = speciesTimeSeries.counts().data();
-        if (str.size() != numberEntries*numberSpecies*sizeof(counts[0]))
-            InvalidArgException("speciesTimeSeries.counts.data", "Incorrect size for data array.");
-        counts = (int32_t*)&(str[0]);
-    }
-    return counts;
-}
-
-double* Hdf5File::dumpSpeciesTimes(const lm::io::SpeciesTimeSeries& speciesTimeSeries)
-{
-    // Extract the data, decompressing if necessary.
-    int numberEntries = speciesTimeSeries.counts().shape(0);
-
-    double* times=NULL;
-    if (speciesTimeSeries.times().compressed_deflate())
-    {
-        times = new double[numberEntries];
-        size_t size = numberEntries*sizeof(times[0]);
-        size_t uncompressedSize = size;
-        const std::string& str = speciesTimeSeries.times().data();
-        ZLIB_EXCEPTION_CHECK(uncompress((unsigned char *)times, &uncompressedSize, (unsigned char*)&(str[0]), str.size()));
-        if (uncompressedSize != size)
-            throw Exception("Error during data decompression, wrong number of bytes returned.");
-    }
-    else
-    {
-        const std::string& str = speciesTimeSeries.times().data();
-        if (str.size() != numberEntries*sizeof(times[0]))
-            InvalidArgException("speciesTimeSeries.times.data", "Incorrect size for data array.");
-        times = (double*)&(str[0]);
-    }
-    return times;
-}
-
 void Hdf5File::appendSpeciesTimeSeries(uint64_t replicate, const lm::io::SpeciesTimeSeries& speciesTimeSeries)
 {
     int numberEntries = speciesTimeSeries.counts().shape(0);
@@ -1863,18 +1853,16 @@ void Hdf5File::appendSpeciesTimeSeries(uint64_t replicate, const lm::io::Species
     if (speciesTimeSeries.times().shape(0) != numberEntries)
         InvalidArgException("speciesTimeSeries.times.shape", "Numebr of rows in time array incocnsistent with counts array.");
 
-    // Extract the data, decompressing if necessary.
-    int32_t* counts=dumpSpeciesCounts(speciesTimeSeries);
-    double* times=dumpSpeciesTimes(speciesTimeSeries);
+    // Extract the data.
+    ndarray<int32_t> *counts = NDArraySerializer::deserializeAllocate<int32_t>(speciesTimeSeries.counts());
+    ndarray<double> *times = NDArraySerializer::deserializeAllocate<double>(speciesTimeSeries.times());
 
     // Append  the data.
-    appendSpeciesTimeSeries(replicate, numberEntries, numberSpecies, counts, times);
+    appendSpeciesTimeSeries(replicate, numberEntries, numberSpecies, counts->values, times->values);
 
     // Free any allocated memory.
-    if (speciesTimeSeries.counts().compressed_deflate())
-        delete[] counts;
-    if (speciesTimeSeries.times().compressed_deflate())
-        delete[] times;
+    delete counts;
+    delete times;
 }
 
 void Hdf5File::appendSpeciesTimeSeries(uint64_t replicate, int numberEntries, int numberSpecies, const int32_t* counts, const double* times)
@@ -1953,8 +1941,11 @@ void Hdf5File::appendSpeciesTimeSeries(uint64_t replicate, int numberEntries, in
     }
 }
 
-void Hdf5File::appendLatticeTimeSeries(uint64_t replicate, const lm::io::LatticeTimeSeries& data)
+void Hdf5File::appendLatticeTimeSeries(uint64_t replicate, const lm::io::LatticeTimeSeries& latticeTimeSeries)
 {
+    int numberEntries = latticeTimeSeries.lattices_size();
+    if (latticeTimeSeries.times().shape(0) != numberEntries) InvalidArgException("latticeTimeSeries.times.shape", "Number of rows in time array incocnsistent with lattices array.");
+
     ReplicateHandles * replicateHandles = openReplicateHandles(replicate);
 
     // Open or create the lattice group.
@@ -1983,104 +1974,78 @@ void Hdf5File::appendLatticeTimeSeries(uint64_t replicate, const lm::io::Lattice
         HDF5_EXCEPTION_CHECK(H5Sclose(dataspaceHandle));
     }
 
-    // Append the time to the times data set.
-    for (int i=0; i<data.number_entries(); i++)
+    // Track the first lattice index.
+    uint firstLatticeIndex;
+
+    // Update the times dataset.
     {
-        uint latticeIndex;
-        {
-            // Get the current size of the dataset.
-            unsigned int RANK=1;
-            hsize_t dims[RANK];
-            hid_t dataspaceHandle;
-            int result;
-            HDF5_EXCEPTION_CALL(dataspaceHandle,H5Dget_space(latticeTimesDatasetHandle));
-            HDF5_EXCEPTION_CALL(result,H5Sget_simple_extent_dims(dataspaceHandle, dims, NULL));
-            HDF5_EXCEPTION_CHECK(H5Sclose(dataspaceHandle));
+        // Get the current size of the dataset.
+        unsigned int RANK=1;
+        hsize_t dims[RANK];
+        hid_t dataspace_id;
+        int result;
+        HDF5_EXCEPTION_CALL(dataspace_id,H5Dget_space(latticeTimesDatasetHandle));
+        HDF5_EXCEPTION_CALL(result,H5Sget_simple_extent_dims(dataspace_id, dims, NULL));
+        HDF5_EXCEPTION_CHECK(H5Sclose(dataspace_id));
 
-            // Extend the dataset by the number of rows in the data set.
-            dims[0] += 1;
-            HDF5_EXCEPTION_CHECK(H5Dset_extent(latticeTimesDatasetHandle, dims));
+        // Save the first lattice index.
+        firstLatticeIndex = dims[0];
 
-            // Create the memory dataset.
-            hid_t memspaceHandle;
-            hsize_t memDims[RANK];
-            memDims[0] = 1;
-            HDF5_EXCEPTION_CALL(memspaceHandle,H5Screate_simple(RANK, memDims, NULL));
+        // Extend the dataset by the number of rows in the data set.
+        dims[0] += numberEntries;
+        HDF5_EXCEPTION_CHECK(H5Dset_extent(latticeTimesDatasetHandle, dims));
 
-            // Write the new data.
-            HDF5_EXCEPTION_CALL(dataspaceHandle,H5Dget_space(latticeTimesDatasetHandle));
-            hsize_t start[RANK], count[RANK];
-            start[0] = dims[0]-1;
-            latticeIndex=start[0];
-            count[0] = memDims[0];
-            HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(dataspaceHandle, H5S_SELECT_SET, start, NULL, count, NULL));
-            double time = data.time(i);
-            HDF5_EXCEPTION_CHECK(H5Dwrite(latticeTimesDatasetHandle, H5T_NATIVE_DOUBLE, memspaceHandle, dataspaceHandle, H5P_DEFAULT, &time));
+        // Create the memory dataset.
+        hid_t memspace_id;
+        hsize_t memDims[RANK];
+        memDims[0] = numberEntries;
+        HDF5_EXCEPTION_CALL(memspace_id,H5Screate_simple(RANK, memDims, NULL));
 
-            // Cleanup some resources.
-            HDF5_EXCEPTION_CHECK(H5Sclose(dataspaceHandle));
-            HDF5_EXCEPTION_CHECK(H5Sclose(memspaceHandle));
-        }
+        // Write the new data.
+        ndarray<double> *times = NDArraySerializer::deserializeAllocate<double>(latticeTimeSeries.times());
+        HDF5_EXCEPTION_CALL(dataspace_id,H5Dget_space(latticeTimesDatasetHandle));
+        hsize_t start[RANK], count[RANK];
+        start[0] = dims[0]-numberEntries;
+        firstLatticeIndex = start[0];
+        count[0] = memDims[0];
+        HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, start, NULL, count, NULL));
+        HDF5_EXCEPTION_CHECK(H5Dwrite(latticeTimesDatasetHandle, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id, H5P_DEFAULT, times->values));
 
+        // Cleanup some resources.
+        delete times;
+        HDF5_EXCEPTION_CHECK(H5Sclose(dataspace_id));
+        HDF5_EXCEPTION_CHECK(H5Sclose(memspace_id));
+    }
+
+    // Append the time to the times data set.
+    for (int i=0; i<numberEntries; i++)
+    {
         // Create the lattice data set.
         {
-            const lm::types::Lattice& lattice = data.lattice(i);
-            if (!lattice.has_particles_per_site()) throw Exception("Invalid lattice, particles per site must be specified for HDF5 file output.");
-            if (!lattice.has_particles_ordering()) throw Exception("Invalid lattice, data ordering must be specified for HDF5 file output.");
-            if (lattice.particles_ordering() != lm::types::ROW_MAJOR) throw Exception("Invalid lattice, data ordering must be in ROW_MAJOR format for HDF5 file output.");
-            if (!lattice.has_particles()) throw Exception("Invalid lattice, data must be specified for HDF5 file output.");
-
-            size_t latticeParticlesSize=0;
-            unsigned char* latticeParticlesData=NULL;
-            if (lattice.particles_compressed_deflate())
-            {
-                // Create a temporary buffer.
-                latticeParticlesSize = lattice.lattice_x_size()*lattice.lattice_y_size()*lattice.lattice_z_size()*lattice.particles_per_site();
-                latticeParticlesData = new unsigned char [latticeParticlesSize];
-
-                // Uncompress the particle data into the temp buffer.
-                const std::string& particles = lattice.particles();
-                ZLIB_EXCEPTION_CHECK(uncompress(latticeParticlesData, &latticeParticlesSize, (unsigned char*)&(particles[0]), particles.size()));
-                if (latticeParticlesSize != lattice.lattice_x_size()*lattice.lattice_y_size()*lattice.lattice_z_size()*lattice.particles_per_site())
-                    throw Exception("Error during particle decompression, wrong number of bytes returned",latticeParticlesSize,lattice.lattice_x_size()*lattice.lattice_y_size()*lattice.lattice_z_size()*lattice.particles_per_site());
-            }
-            else
-            {
-                const std::string& particles = lattice.particles();
-                latticeParticlesSize = particles.size();
-                latticeParticlesData = (unsigned char*)&(particles[0]);
-            }
-
-            if (lattice.lattice_x_size()*lattice.lattice_y_size()*lattice.lattice_z_size()*lattice.particles_per_site() != latticeParticlesSize) throw Exception("Invalid lattice, lattice size and data size must agree for HDF5 file output.");
-
-            char latticeDatasetName[11];
-            snprintf(latticeDatasetName, sizeof(latticeDatasetName), "%010d", latticeIndex);
+            ndarray<uint8_t>* particles = NDArraySerializer::deserializeAllocate<uint8_t>(latticeTimeSeries.lattices(i).particles());
             const unsigned int RANK=4;
             hsize_t dims[RANK], chunk[RANK];
-            dims[0] = lattice.lattice_x_size();
-            dims[1] = lattice.lattice_y_size();
-            dims[2] = lattice.lattice_z_size();
-            dims[3] = lattice.particles_per_site();
-            chunk[0] = min(TUNE_LATTICE_GZIP_CHUNK_SIZE,lattice.lattice_x_size());
-            chunk[1] = min(TUNE_LATTICE_GZIP_CHUNK_SIZE,lattice.lattice_y_size());
-            chunk[2] = min(TUNE_LATTICE_GZIP_CHUNK_SIZE,lattice.lattice_z_size());
-            chunk[3] = lattice.particles_per_site();
+            dims[0] = particles->shape[0];
+            dims[1] = particles->shape[1];
+            dims[2] = particles->shape[2];
+            dims[3] = particles->shape[3];
+            chunk[0] = min((uint)TUNE_LATTICE_GZIP_CHUNK_SIZE,particles->shape[0]);
+            chunk[1] = min((uint)TUNE_LATTICE_GZIP_CHUNK_SIZE,particles->shape[1]);
+            chunk[2] = min((uint)TUNE_LATTICE_GZIP_CHUNK_SIZE,particles->shape[2]);
+            chunk[3] = particles->shape[3];
             hid_t dataspaceHandle, dcplHandle, datasetHandle;
             HDF5_EXCEPTION_CALL(dataspaceHandle,H5Screate_simple(RANK, dims, NULL));
             HDF5_EXCEPTION_CALL(dcplHandle,H5Pcreate(H5P_DATASET_CREATE));
             HDF5_EXCEPTION_CHECK(H5Pset_deflate (dcplHandle, TUNE_LATTICE_GZIP_COMPRESSION_LEVEL));
             HDF5_EXCEPTION_CHECK(H5Pset_chunk(dcplHandle, RANK, chunk));
+            char latticeDatasetName[11];
+            snprintf(latticeDatasetName, sizeof(latticeDatasetName), "%010d", firstLatticeIndex+i);
             HDF5_EXCEPTION_CALL(datasetHandle,H5Dcreate2(latticeGroupHandle, latticeDatasetName, H5T_STD_U8LE, dataspaceHandle, H5P_DEFAULT, dcplHandle, H5P_DEFAULT));
-            HDF5_EXCEPTION_CHECK(H5Dwrite(datasetHandle, H5T_NATIVE_UINT8, H5S_ALL, H5S_ALL, H5P_DEFAULT, latticeParticlesData));
+            HDF5_EXCEPTION_CHECK(H5Dwrite(datasetHandle, H5T_NATIVE_UINT8, H5S_ALL, H5S_ALL, H5P_DEFAULT, particles->values));
             HDF5_EXCEPTION_CHECK(H5Dclose(datasetHandle));
             HDF5_EXCEPTION_CHECK(H5Pclose(dcplHandle));
             HDF5_EXCEPTION_CHECK(H5Sclose(dataspaceHandle));
-
-            // If this was compressed data, free the buffer.
-            if (lattice.particles_compressed_deflate())
-            {
-                delete[] latticeParticlesData;
-            }
+            delete particles;
         }
     }
 
@@ -2166,11 +2131,16 @@ void Hdf5File::appendParameterValues(uint64_t replicate, lm::io::ParameterValues
     HDF5_EXCEPTION_CHECK(H5Gclose(pvGroupHandle));
 }
 
-void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTimes * firstPassageTimes) throw(HDF5Exception,InvalidArgException)
+void Hdf5File::setFirstPassageTimes(uint64_t replicate, const lm::io::FirstPassageTimes& fpt) throw(HDF5Exception,InvalidArgException)
 {
+    // Get the data.
+    uint32_t species = fpt.species();
+    ndarray<int32_t>* newCounts = NDArraySerializer::deserializeAllocate<int32_t>(fpt.counts());
+    ndarray<double>* newTimes = NDArraySerializer::deserializeAllocate<double>(fpt.first_passage_times());
+
     // Make sure the data is consistent.
-    if (firstPassageTimes->species_count_size() == 0) throw InvalidArgException("firstPassageTimes", "no entries to save");
-    if (firstPassageTimes->species_count_size() != firstPassageTimes->number_entries() || firstPassageTimes->first_passage_time_size() != firstPassageTimes->number_entries()) throw InvalidArgException("firstPassageTimes", "inconsistent number of first passage time entries");
+    if (newCounts->shape.len != 1 || newCounts->shape != newTimes->shape) throw InvalidArgException("firstPassageTimes", "inconsistent number of first passage time entries");
+    if (newCounts->shape == 0) throw InvalidArgException("firstPassageTimes", "no entries to save");
 
     ReplicateHandles * replicateHandles = openReplicateHandles(replicate);
 
@@ -2185,7 +2155,7 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTime
     std::stringstream ss;
     ss.fill('0');
     ss.width(2);
-    ss << firstPassageTimes->species();
+    ss << species;
     string speciesString = ss.str();
 
     // Open the species group.
@@ -2211,7 +2181,7 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTime
         HDF5_EXCEPTION_CALL(dataspace_id,H5Screate_simple(RANK, dims, maxDims));
         HDF5_EXCEPTION_CALL(dcpl_id,H5Pcreate(H5P_DATASET_CREATE));
         HDF5_EXCEPTION_CHECK(H5Pset_chunk(dcpl_id, RANK, chunkDims));
-        HDF5_EXCEPTION_CALL(countsDatasetHandle,H5Dcreate2(speciesGroupHandle, "Counts", H5T_STD_U32LE, dataspace_id, H5P_DEFAULT, dcpl_id, H5P_DEFAULT));
+        HDF5_EXCEPTION_CALL(countsDatasetHandle,H5Dcreate2(speciesGroupHandle, "Counts", H5T_STD_I32LE, dataspace_id, H5P_DEFAULT, dcpl_id, H5P_DEFAULT));
         HDF5_EXCEPTION_CALL(timesDatasetHandle,H5Dcreate2(speciesGroupHandle, "Times", H5T_IEEE_F64LE, dataspace_id, H5P_DEFAULT, dcpl_id, H5P_DEFAULT));
         HDF5_EXCEPTION_CHECK(H5Pclose(dcpl_id));
         HDF5_EXCEPTION_CHECK(H5Sclose(dataspace_id));
@@ -2224,7 +2194,7 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTime
     hsize_t countsDims[RANK];
     HDF5_EXCEPTION_CALL(countsDataspace,H5Dget_space(countsDatasetHandle));
     HDF5_EXCEPTION_CALL(result,H5Sget_simple_extent_dims(countsDataspace, countsDims, NULL));
-    uint minCount=0, maxCount=0;
+    int minCount=0, maxCount=0;
     if (countsDims[0] == 1)
     {
         HDF5_EXCEPTION_CHECK(H5Dread(countsDatasetHandle, H5T_NATIVE_INT32, H5S_ALL, H5S_ALL, H5P_DEFAULT, &minCount));
@@ -2242,23 +2212,17 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTime
         count[0] = 1;
         start[0] = 0;
         HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(countsDataspace, H5S_SELECT_SET, start, NULL, count, NULL));
-        HDF5_EXCEPTION_CHECK(H5Dread(countsDatasetHandle, H5T_NATIVE_UINT32, memDataspaceHandle, countsDataspace, H5P_DEFAULT, &minCount));
+        HDF5_EXCEPTION_CHECK(H5Dread(countsDatasetHandle, H5T_NATIVE_INT32, memDataspaceHandle, countsDataspace, H5P_DEFAULT, &minCount));
         start[0] = countsDims[0]-1;
         HDF5_EXCEPTION_CHECK(H5Sselect_hyperslab(countsDataspace, H5S_SELECT_SET, start, NULL, count, NULL));
-        HDF5_EXCEPTION_CHECK(H5Dread(countsDatasetHandle, H5T_NATIVE_UINT32, memDataspaceHandle, countsDataspace, H5P_DEFAULT, &maxCount));
+        HDF5_EXCEPTION_CHECK(H5Dread(countsDatasetHandle, H5T_NATIVE_INT32, memDataspaceHandle, countsDataspace, H5P_DEFAULT, &maxCount));
         HDF5_EXCEPTION_CHECK(H5Sclose(memDataspaceHandle));
     }
     HDF5_EXCEPTION_CHECK(H5Sclose(countsDataspace));
 
     // Figure out the min and the max from the new counts.
-    uint32_t minNewCount=firstPassageTimes->species_count(0), maxNewCount=firstPassageTimes->species_count(0);
-    for (int i=1; i<firstPassageTimes->species_count_size(); i++)
-    {
-        if (firstPassageTimes->species_count(i) < (int)minNewCount)
-            minNewCount = firstPassageTimes->species_count(i);
-        else if (firstPassageTimes->species_count(i) > (int)maxNewCount)
-            maxNewCount = firstPassageTimes->species_count(i);
-    }
+    int32_t minNewCount=newCounts->get(0);
+    int32_t maxNewCount=newCounts->get(newCounts->shape[0]-1);
 
     // If there are no existing records, just insert one large block.
     if (countsDims[0] == 0)
@@ -2274,11 +2238,11 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTime
         }
 
         // Fill in the block.
-        for (int i=0; i<firstPassageTimes->species_count_size(); i++)
+        for (uint i=0; i<newCounts->shape[0]; i++)
         {
-            uint32_t count = firstPassageTimes->species_count(i);
+            uint32_t count = newCounts->get(i);
             counts[count-minNewCount] = count;
-            times[count-minNewCount] = firstPassageTimes->first_passage_time(i);
+            times[count-minNewCount] = newTimes->get(i);
         }
 
         // Extend the datasets and write the block.
@@ -2307,11 +2271,11 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTime
         }
 
         // Fill in the buffer.
-        for (int i=0; i<firstPassageTimes->species_count_size(); i++)
+        for (int i=0; i<newCounts->shape[0]; i++)
         {
-            uint32_t count = firstPassageTimes->species_count(i);
+            int32_t count = newCounts->get(i);
             newEndingCounts[count-maxCount-1] = count;
-            newEndingTimes[count-maxCount-1] = firstPassageTimes->first_passage_time(i);
+            newEndingTimes[count-maxCount-1] = newTimes->get(i);
         }
 
         // Create the memory dataspace.
@@ -2348,12 +2312,12 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTime
         uint32_t combinedMinCount = min(minCount,minNewCount);
         uint32_t combinedMaxCount = max(maxCount,maxNewCount);
         size_t newSize = combinedMaxCount-combinedMinCount+1;
-        uint32_t * newCounts = new uint32_t[newSize];
-        double * newTimes = new double[newSize];
+        uint32_t * counts = new uint32_t[newSize];
+        double * times = new double[newSize];
         for (uint i=0; i<newSize; i++)
         {
-            newCounts[i] = 0;
-            newTimes[i] = -1.0;
+            counts[i] = 0;
+            times[i] = -1.0;
         }
 
         // Copy the old data into the buffer.
@@ -2361,22 +2325,22 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTime
         hsize_t memDims[RANK];
         memDims[0] = maxCount-minCount+1;
         HDF5_EXCEPTION_CALL(memDataspaceHandle,H5Screate_simple(RANK, memDims, NULL));
-        HDF5_EXCEPTION_CHECK(H5Dread(countsDatasetHandle, H5T_NATIVE_UINT32, memDataspaceHandle, H5S_ALL, H5P_DEFAULT, &newCounts[minCount-combinedMinCount]));
-        HDF5_EXCEPTION_CHECK(H5Dread(timesDatasetHandle, H5T_NATIVE_DOUBLE, memDataspaceHandle, H5S_ALL, H5P_DEFAULT, &newTimes[minCount-combinedMinCount]));
+        HDF5_EXCEPTION_CHECK(H5Dread(countsDatasetHandle, H5T_NATIVE_INT32, memDataspaceHandle, H5S_ALL, H5P_DEFAULT, &counts[minCount-combinedMinCount]));
+        HDF5_EXCEPTION_CHECK(H5Dread(timesDatasetHandle, H5T_NATIVE_DOUBLE, memDataspaceHandle, H5S_ALL, H5P_DEFAULT, &times[minCount-combinedMinCount]));
         HDF5_EXCEPTION_CHECK(H5Sclose(memDataspaceHandle));
 
         // Fill in the buffer with the new data.
-        for (int i=0; i<firstPassageTimes->species_count_size(); i++)
+        for (uint i=0; i<newCounts->shape[0]; i++)
         {
-            uint32_t count = firstPassageTimes->species_count(i);
+            int32_t count = newCounts->get(i);
             if (count < minCount || count > maxCount)
             {
                 newCounts[count-combinedMinCount] = count;
-                newTimes[count-combinedMinCount] = firstPassageTimes->first_passage_time(i);
+                newTimes[count-combinedMinCount] = newTimes->get(i);
             }
             else
             {
-                throw InvalidArgException("firstPassageTimes", "contained duplicates of existing counts", count);
+                throw InvalidArgException("firstPassageTimes", "contained duplicates of existing counts", replicate, minCount, minNewCount, maxCount, maxNewCount);
             }
         }
 
@@ -2391,8 +2355,8 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTime
         HDF5_EXCEPTION_CHECK(H5Sclose(memDataspaceHandle));
 
         // Free the buffers.
-        if (newCounts != NULL) delete [] newCounts;
-        if (newTimes != NULL) delete [] newTimes;
+        if (counts != NULL) delete [] newCounts;
+        if (times != NULL) delete [] newTimes;
     }
 
     // Close any resources.
@@ -2400,6 +2364,10 @@ void Hdf5File::setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTime
     HDF5_EXCEPTION_CHECK(H5Dclose(timesDatasetHandle));
     HDF5_EXCEPTION_CHECK(H5Gclose(speciesGroupHandle));
     HDF5_EXCEPTION_CHECK(H5Gclose(fptGroupHandle));
+
+    // Free the ndarrays.
+    if (newCounts != NULL) delete newCounts;
+    if (newTimes != NULL) delete newTimes;
 }
 
 /*void SimulationFile::appendSpatialModelObjects(unsigned int replicate, lm::input::SpatialModel * model) throw(HDF5Exception,InvalidArgException)
@@ -2649,7 +2617,6 @@ void Hdf5File::closeAllReplicates() throw(HDF5Exception)
 Hdf5File::ReplicateHandles* Hdf5File::openReplicateHandles(uint64_t replicate) throw(HDF5Exception)
 {
     // See if the replicate is already open.
-//    map<uint64_t,ReplicateHandles *>::iterator it = openReplicates.find(replicate);
     ReplicateHandleMap::Key replicateKey(recordNamePrefix, replicate);
     ReplicateHandleMap::iterator it = openReplicates.find(replicateKey);
     if (it == openReplicates.end())

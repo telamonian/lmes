@@ -36,6 +36,7 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+
 #ifndef LM_REPLICATES_REPLICATETRAJECTORYLIST_H_
 #define LM_REPLICATES_REPLICATETRAJECTORYLIST_H_
 
@@ -61,17 +62,15 @@ class ReplicateTrajectoryList : public lm::trajectory::TrajectoryList
 {
 
 public:
+    ReplicateTrajectoryList();
     ReplicateTrajectoryList(const lm::input::Input& input, uint64_t firstTrajectory, uint64_t lastTrajectory);
     virtual ~ReplicateTrajectoryList();
+//    virtual int addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUnit* msg, uint numberParts);
     virtual void workUnitFinished(const lm::message::FinishedWorkUnit& msg);
 
 protected:
     virtual void printTrajectoryStatistics() const;
     virtual uint64_t findNextTrajectoryToRun() const;
-
-protected:
-    uint64_t firstTrajectory;
-    uint64_t lastTrajectory;
 
 private:
     mutable hrtime stats_lastPrintTime;

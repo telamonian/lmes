@@ -36,16 +36,17 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+
 #include <iomanip>
 #include <sstream>
 #include <string>
 #include <sys/stat.h>
 
-#include <lm/ClassFactory.h>
-#include <lm/Print.h>
-#include <lm/main/Globals.h>
+#include "lm/ClassFactory.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/io/hdf5/Hdf5OutputWriter.h"
+#include "lm/Print.h"
+#include "lm/main/Globals.h"
 
 namespace lm {
 namespace io {
@@ -191,11 +192,6 @@ void Hdf5OutputWriter::processLimitTracking(const lm::io::LimitTracking& data)
 
     file->setDatasetFromNDArrayReplicate(data.trajectory_id(), groupRelativePath, speciesCountsDatasetName, data.species_counts(), condenseOutput);
     file->setDatasetFromNDArrayReplicate(data.trajectory_id(), groupRelativePath, timesDatasetName, data.times(), condenseOutput);
-}
-
-void Hdf5OutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
-{
-    file->appendSpeciesCounts(data.trajectory_id(), (lm::io::SpeciesCounts*)&data);
 }
 
 void Hdf5OutputWriter::processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data)

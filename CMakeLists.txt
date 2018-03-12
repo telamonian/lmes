@@ -77,44 +77,103 @@ foreach(lang C;CXX)
         SetConfigDefault(CMAKE_${lang}_FLAGS${_CMAKE_BUILD_TYPE_UPPER} CUSTOM_${lang}_FLAGS${_CMAKE_BUILD_TYPE_UPPER} ${DEFAULT_FLAGS_DEBUG})
     endif(NOT CMAKE_BUILD_TYPE_UPPER)
 
-    # prepend the architecture flag to the rest of the flags, and append any troubleshooting flags if set
-    set(CMAKE_${lang}_FLAGS${_CMAKE_BUILD_TYPE_UPPER} "${ARCH_FLAG} ${CMAKE_${lang}_FLAGS${_CMAKE_BUILD_TYPE_UPPER}}")
-    set(CMAKE_${lang}_FLAGS${_CMAKE_BUILD_TYPE_UPPER} "${CMAKE_${lang}_FLAGS${_CMAKE_BUILD_TYPE_UPPER}} ${TROUBLESHOOTING_FLAGS}")
+    # prepend the architecture flag to the rest of the flags, and append any troubleshooting or extra flags.
+    set(CMAKE_${lang}_FLAGS${_CMAKE_BUILD_TYPE_UPPER} "${ARCH_FLAG} ${CMAKE_${lang}_FLAGS${_CMAKE_BUILD_TYPE_UPPER}} ${TROUBLESHOOTING_FLAGS} ${EXTRA_${lang}_FLAGS}")
 endforeach(lang)
 
-# for now, no c++11 support
-#SET(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+######################################
+# Process the USE_CUDA flag.
+######################################
 
-# package finding stuff
-find_package(MPI REQUIRED)
-message(STATUS "testing if mpi is mpich...")
-execute_process(COMMAND ${MPI_C_COMPILER} -v OUTPUT_VARIABLE MPIC_INFO_DUMP ERROR_QUIET)
-string(REGEX MATCH "([Mm][Pp][Ii][Cc][Hh]) version ([0-9+]\\.?[0-9]*\\.?[0-9]*)" MPI_VERSION_DUMP  "${MPIC_INFO_DUMP}")
-if(${CMAKE_MATCH_2} VERSION_LESS "3.0.0")
-    message(FATAL_ERROR "...mpi implementation found is not mpich, stopping. Lattice Microbes only supports mpich2 >3.0 at this time. If multiple mpi implementations are installed, please specify path to mpich in CMakeConfig.txt.")
-else(${CMAKE_MATCH_2} VERSION_LESS "3.0.0")
-    message(STATUS "...mpi is mpich, proceeding")
-endif(${CMAKE_MATCH_2} VERSION_LESS "3.0.0")
+# figure out if we should use CUDA or not.
+set(BUILD_WITH_CUDA false)
 
-# conditionals for dealing with CUDA
 IF (USE_CUDA STREQUAL yes)
     find_package(CUDA REQUIRED)
+    set(BUILD_WITH_CUDA true)
 ENDIF(USE_CUDA STREQUAL yes)
 
 IF (USE_CUDA STREQUAL optional)
     find_package(CUDA)
     # protects against using CUDA when the headers are present without the libraries and USE_CUDA is set to optional
-    IF(CUDA_FOUND AND NOT CUDA_CUDA_LIBRARY)
-        set(CUDA_FOUND false)
-    ENDIF(CUDA_FOUND AND NOT CUDA_CUDA_LIBRARY)
+    IF(CUDA_FOUND AND CUDA_CUDA_LIBRARY)
+        set(BUILD_WITH_CUDA true)
+    ENDIF(CUDA_FOUND AND CUDA_CUDA_LIBRARY)
 ENDIF(USE_CUDA STREQUAL optional)
 
-# sets a single definitive BUILD_WITH_CUDA flag based on the input flag USE_CUDA and the result of find_package(cuda)
-if(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
-    set(BUILD_WITH_CUDA true)
-else(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
-    set(BUILD_WITH_CUDA false)
-endif(USE_CUDA STREQUAL yes OR (CUDA_FOUND AND USE_CUDA STREQUAL optional))
+######################################
+# Process the USE_MPI flag.
+######################################
+
+# figure out if we should use MPI or not.
+set(BUILD_WITH_MPI false)
+
+IF (USE_MPI STREQUAL yes)
+    find_package(MPI REQUIRED)
+    set(BUILD_WITH_MPI true)
+ENDIF(USE_MPI STREQUAL yes)
+
+IF (USE_MPI STREQUAL optional)
+    find_package(MPI)
+    IF(MPI_C_FOUND)
+        set(BUILD_WITH_MPI true)
+    ENDIF(MPI_C_FOUND)
+ENDIF(USE_MPI STREQUAL optional)
+
+# if we are using MPI, make sure the MPI version is supported.
+IF (BUILD_WITH_MPI)
+    execute_process(COMMAND ${MPI_C_COMPILER} -v OUTPUT_VARIABLE MPI_VERSION_DUMP ERROR_QUIET)
+    STRING(REGEX MATCH "mpich" MPICH_LOWER "${MPI_VERSION_DUMP}")
+    STRING(REGEX MATCH "MPICH" MPICH_UPPER "${MPI_VERSION_DUMP}")
+    IF(MPICH_LOWER MATCHES "mpich" OR MPICH_UPPER MATCHES "MPICH")
+        message("-- Checking for MPICH - success")
+    ELSE(MPICH_LOWER MATCHES "mpich" OR MPICH_UPPER MATCHES "MPICH")
+        message(FATAL_ERROR "-- Checking for MPICH - FAILED (requires mpich2 > 3.0)")
+    ENDIF(MPICH_LOWER MATCHES "mpich" OR MPICH_UPPER MATCHES "MPICH")
+ENDIF (BUILD_WITH_MPI)
+
+######################################
+# Process the USE_SNAPPY flag.
+######################################
+
+# figure out if we should use CUDA or not.
+set(BUILD_WITH_SNAPPY false)
+
+IF (USE_SNAPPY STREQUAL yes)
+    find_package(snappy REQUIRED)
+    set(BUILD_WITH_SNAPPY true)
+ENDIF(USE_SNAPPY STREQUAL yes)
+
+IF (USE_SNAPPY STREQUAL optional)
+    find_package(SNAPPY)
+    IF(snappy_FOUND)
+        set(BUILD_WITH_SNAPPY true)
+    ENDIF(snappy_FOUND)
+ENDIF(USE_SNAPPY STREQUAL optional)
+
+######################################
+# Process the USE_CPP11 flag.
+######################################
+
+# figure out if we should use CUDA or not.
+set(BUILD_WITH_CPP11 false)
+
+IF (USE_CPP11 STREQUAL yes)
+    set(BUILD_WITH_CPP11 true)
+    message("-- Enabling support for C++11")
+ENDIF(USE_CPP11 STREQUAL yes)
+
+#IF (USE_CPP11 STREQUAL optional)
+#ENDIF(USE_CPP11 STREQUAL optional)
+
+######################################
+# Process the USE_PROFILING flag.
+######################################
+
+set(BUILD_WITH_PROFILING false)
+if (USE_PROFILING STREQUAL yes)
+    set(BUILD_WITH_PROFILING true)
+endif(USE_PROFILING STREQUAL yes)
 
 find_package(Threads REQUIRED)
 
@@ -132,22 +191,48 @@ find_package(HDF5 COMPONENTS C HL REQUIRED)
 if("${HDF5_VERSION}" STREQUAL "")
     message(FATAL_ERROR "HDF5 library not found, stopping. find_package(HDF5 REQUIRED) passed, but HDF5_VERSION was not set")
 endif("${HDF5_VERSION}" STREQUAL "")
-
-find_package(ZLIB REQUIRED)
-#find_package(Boost)
-
-# add some definitions that will get passed on to the compiler
-add_definitions(-DBUILD_TYPE="${CMAKE_BUILD_TYPE}" -DBUILD_INFO -DVERBOSITY_LEVEL=${VERBOSITY_LEVEL})
-if(BUILD_WITH_CUDA)
-    add_definitions(-DOPT_CUDA)
-endif(BUILD_WITH_CUDA)
-
 # for compatibility with HDF5 libraries older than version 1.8.13. `if` raises a cryptic error if HDF5_VERSION is (for whatever reason) undefined
 if(${HDF5_VERSION} VERSION_LESS 1.8.13)
     add_definitions(-DOLD_HDFREE)
 endif(${HDF5_VERSION} VERSION_LESS 1.8.13)
 
-# test for CPU features and set compiler definitions as appropriate
+find_package(ZLIB REQUIRED)
+
+######################################
+# Add any needed compiler definitions.
+######################################
+
+# add the build info.
+string(TIMESTAMP BUILD_INFO "%Y-%m-%d-%H-%M-%S")
+add_definitions(-DBUILD_INFO="${BUILD_INFO}" -DBUILD_TYPE="${CMAKE_BUILD_TYPE}")
+
+# add the verbosity level.
+add_definitions(-DVERBOSITY_LEVEL=${VERBOSITY_LEVEL})
+
+if(BUILD_WITH_CUDA)
+    add_definitions(-DOPT_CUDA)
+endif(BUILD_WITH_CUDA)
+
+IF (BUILD_WITH_MPI)
+    add_definitions(-DOPT_MPI)
+ENDIF (BUILD_WITH_MPI)
+
+if(BUILD_WITH_PROFILING)
+    add_definitions(-DPROF_ENABLE -DPROF_CUDA_ENABLE=0 -DPROF_MAX_THREADS=16 -DPROF_MAX_EVENTS=1000000 -DPROF_OUT_FILE=timing.prof)
+endif(BUILD_WITH_PROFILING)
+
+if(BUILD_WITH_SNAPPY)
+    add_definitions(-DOPT_SNAPPY)
+endif(BUILD_WITH_SNAPPY)
+
+if(BUILD_WITH_CPP11)
+    add_definitions(-DOPT_CPP11)
+endif(BUILD_WITH_CPP11)
+
+######################################
+# Process the CPU feature flags.
+######################################
+
 testAVX(BUILD_WITH_AVX ${USE_AVX})
 testFMA(BUILD_WITH_FMA ${USE_FMA})
 testSVML(BUILD_WITH_SVML ${USE_SVML})
@@ -165,14 +250,12 @@ if(BUILD_WITH_SVML)
     add_definitions(-DOPT_SVML)
 endif(BUILD_WITH_SVML)
 
-# stuff for enabling the built in profiler
-if(PROF_ENABLE)
-    add_definitions(-DPROF_ENABLE -DPROF_CUDA_ENABLE=0 -DPROF_MAX_THREADS=16 -DPROF_MAX_EVENTS=10000000 -DPROF_OUT_FILE=timing.prof)
-endif(PROF_ENABLE)
-
 # automagic setup for linux, os X 10.7-8 (and lower?), and os X 10.9 (and higher)
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     add_definitions(-DLINUX)
+    if(BUILD_WITH_CPP11)
+        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    endif(BUILD_WITH_CPP11)
 ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     add_definitions(-DMACOSX)
     # lattice microbes supports gcc-llvm-4.2 as the complier on os X 10.8 and below, and clang 5.0 on os X 10.9
@@ -181,31 +264,46 @@ ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     execute_process(COMMAND sw_vers OUTPUT_VARIABLE SW_VERS_DUMP)
     STRING(REGEX REPLACE ".+ProductVersion:\t10\\.([0-9][0-9]?).*$" "\\1" OSX_VERSION "${SW_VERS_DUMP}" )
     MESSAGE(STATUS "OSX_VERSION=10.${OSX_VERSION}")
-#    IF(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-#        SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -stdlib=libstdc++")
-#        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
-#    ENDIF(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+    IF(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+        if(BUILD_WITH_CPP11)
+            SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -stdlib=libc++")
+            SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -stdlib=libc++")
+        else(BUILD_WITH_CPP11)
+#            SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -stdlib=libstdc++")
+#            SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
+        endif(BUILD_WITH_CPP11)
+    ENDIF(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
-# setup the header directory paths
+######################################
+# Add any needed include directories.
+######################################
+
 include_directories(src/c/
                     ${CMAKE_CURRENT_BINARY_DIR}/src/c/
                     src/protobuf/
                     ${PROTOBUF_INCLUDE_DIRS}
                     ${HDF5_INCLUDE_DIRS}
-                    ${ZLIB_INCLUDE_DIRS}
-                    ${MPI_C_INCLUDE_PATH})
+                    ${ZLIB_INCLUDE_DIRS})
 
 if(BUILD_WITH_CUDA)
-    include_directories(src/cuda/
-                        ${CUDA_INCLUDE_DIRS})
+    include_directories(src/cuda/ ${CUDA_INCLUDE_DIRS})
 endif(BUILD_WITH_CUDA)
+
+IF (BUILD_WITH_MPI)
+    include_directories(${MPI_C_INCLUDE_PATH})
+ENDIF (BUILD_WITH_MPI)
+
+if(BUILD_WITH_SNAPPY)
+    include_directories(${snappy_INCLUDE_DIRS})
+endif(BUILD_WITH_SNAPPY)
+
 
 if(libsbml_FOUND)
     include_directories(${libsbml_INCLUDE_DIRS})
 endif(libsbml_FOUND)
 
-# set the list of libraries used in various lm targets
+# set the list of libraries used in various lm targets across the subdirectories
 set(lm_dependency_libs      ${CMAKE_THREAD_LIBS_INIT}
                             ${CMAKE_DL_LIBS}
                             ${PROTOBUF_LIBRARIES}
@@ -213,12 +311,19 @@ set(lm_dependency_libs      ${CMAKE_THREAD_LIBS_INIT}
                             ${HDF5_HL_LIBRARIES}
                             ${ZLIB_LIBRARIES}
                             ${MPI_C_LIBRARIES})
-# add the cuda libs to lm_dependency_libs, if needed
+
+# add various optional libs to lm_dependency_libs, if needed
 IF(BUILD_WITH_CUDA)
     set (lm_dependency_libs ${lm_dependency_libs}
                             ${CUDA_CUDA_LIBRARY}  # general cuda libraries
                             ${CUDA_LIBRARIES})    # cuda runtime library
 ENDIF(BUILD_WITH_CUDA)
+IF(BUILD_WITH_MPI)
+    set (lm_dependency_libs ${MPI_C_LIBRARIES})
+ENDIF(BUILD_WITH_MPI)
+IF(BUILD_WITH_SNAPPY)
+    set (lm_dependency_libs ${snappy_LIBRARIES})
+ENDIF(BUILD_WITH_SNAPPY)
 
 # add subdirectories
 add_subdirectory(src/c)
@@ -237,9 +342,13 @@ ENDIF(BUILD_WITH_CUDA)
 ################
 #TARGET: lmes
 ################
-set(lm_main_src src/c/lm/main/MainMPI.cpp src/c/lm/main/Main.cpp)
+set(lm_main_src src/c/lm/main/Main.cpp src/c/lm/main/MainArgs.cpp)
 
 add_executable(lmes ${lm_main_src})
+
+######################################
+# Add any needed target link libraries.
+######################################
 
 # The following code is need to ensue that all objects from the custom static libraries are
 # linked in to the executable, even if they are not referenced from the main program.

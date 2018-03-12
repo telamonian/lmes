@@ -36,6 +36,7 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+
 #ifndef LM_IO_OUTPUTWRITER
 #define LM_IO_OUTPUTWRITER
 
@@ -45,11 +46,11 @@
 #include <string>
 #include <vector>
 
+#include "lm/io/ConcentrationsTimeSeries.pb.h"
 #include "lm/io/DegreeAdvancementTimeSeries.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/LatticeTimeSeries.pb.h"
 #include "lm/io/LimitTracking.pb.h"
-#include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/message/Communicator.h"
 #include "lm/message/Message.pb.h"
@@ -80,6 +81,7 @@ protected:
     virtual std::string getMessageTrajectoryID(const google::protobuf::Message& data) const;
     virtual void processGenericMessage(const google::protobuf::Message& data) {};
 
+    virtual void processConcentrationsTimeSeries(const lm::io::ConcentrationsTimeSeries& data) {processGenericMessage(data);}
     virtual void processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data) {processGenericMessage(data);}
     virtual void processFFluxOutput(const lm::io::FFluxOutput& data) {processGenericMessage(data);}
     virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data) {processGenericMessage(data);}
@@ -106,7 +108,7 @@ protected:
     std::string trajectoryPrefix; // the word that precedes the trajectory number in the record name. Defaults to "Simulations"
 
 private:
-    lm::message::Communicator communicator;
+    lm::message::Communicator* communicator;
     std::queue<lm::message::Message*> messageQueue;
     volatile int messageQueueSize;
     pthread_mutex_t messageQueueMutex;

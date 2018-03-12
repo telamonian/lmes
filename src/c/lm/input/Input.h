@@ -47,21 +47,22 @@
 #include "lm/EnumHelper.h"
 #include "lm/io/hdf5/SimulationFile.h"
 #include "lm/io/sfile/SFile.h"
-#include "lm/types/BoundaryConditions.pb.h"
 #include "lm/input/DiffusionModel.pb.h"
 #include "lm/input/Options.pb.h"
 #include "lm/input/OrderParameters.pb.h"
 #include "lm/input/OutputOptions.pb.h"
+#include "lm/input/MicroenvironmentInput.pb.h"
 #include "lm/input/ReactionModel.pb.h"
 #include "lm/input/SimulationInput.pb.h"
 #include "lm/input/SimulationParameters.pb.h"
+#include "lm/input/SimulationParametersWrap.h"
 #include "lm/input/TrajectoryLimits.pb.h"
+#include "lm/limit/TrajectoryLimits.h"
 #include "lm/Math.h"
 #include "lm/message/RunWorkUnit.pb.h"
 #include "lm/oparam/OParams.h"
-#include "lm/option/SimulationParameters.h"
 #include "lm/tiling/Tilings.h"
-#include "lm/limit/TrajectoryLimits.h"
+#include "lm/types/BoundaryConditions.pb.h"
 
 namespace lm {
 namespace input {
@@ -84,6 +85,7 @@ public:
     const lm::tiling::Tiling& getCurrentTiling() const {return getTilings().getCurrentTiling();}
 
     const lm::input::DiffusionModel& getDiffusionModelMsg() const {return diffusionModel;}
+    const lm::input::MicroenvironmentInput& getMicroenvironmentModel() const {return simulationInput.microenv_input();}
     const lm::input::Options& getOptions() const {return optionsMsg;}
     const lm::oparam::OParams& getOrderParameters() const {return orderParameters;}
     const lm::input::OrderParameters& getOrderParametersMsg() const {return orderParametersMsg;}
@@ -97,10 +99,11 @@ public:
     bool hasDegreeAdvancement() const {return degreeAdvancementPresent;}
     bool hasReactionModel() const {return reactionModelPresent;}
     bool hasDiffusionModel() const {return diffusionModelPresent;}
+    bool hasMicroenvironmentModel() const {return simulationInput.has_microenv_input();}
     bool hasOrderParameters() const {return orderParametersPresent;}
+    bool hasOutputOptions() const {return outputOptionsMsg.ByteSize() > 0;}
     bool hasTilings() const {return tilingsPresent;}
     bool hasTrajectoryLimits() const {return trajectoryLimits.ByteSize() > 0;}
-    bool hasOutputOptions() const {return outputOptionsMsg.ByteSize() > 0;}
 
 protected:
     virtual void init(const std::vector<std::string>& inputFilenames);
@@ -126,7 +129,6 @@ protected:
     bool degreeAdvancementPresent;
     bool diffusionModelPresent;
     bool orderParametersPresent;
-    bool outputOptionsPresent;
     bool reactionModelPresent;
     bool tilingsPresent;
     bool trajectoryLimitsPresent;

@@ -104,22 +104,18 @@ void TrajectoryList::init(const TrajectoryList& previousList)
     // set the count of this list to one past the count of the previousList
     _count = previousList._count + 1;
 
-    for (TrajectoryMap::const_iterator it=previousList.finishedTrajectories.begin(); it!=previousList.finishedTrajectories.end(); it++)
+    for (idset::const_iterator it=previousList.finishedTrajectories.begin(); it!=previousList.finishedTrajectories.end(); it++)
     {
-        initTrajectory(it->second->getState(), simulationPhaseID());
+        initTrajectory(trajectories.at(*it)->getState(), simulationPhaseID());
     }
 }
 
 Trajectory* TrajectoryList::initTrajectory(Trajectory* allocatedTrajectory)
 {
-//    uint64_t oldID = allocatedTrajectory->getID();
-//    uint64_t newID = resolveTrajectoryID(oldID);
-//    if (oldID!=newID) {allocatedTrajectory->setID(newID);}
-    
     uint64_t id = allocatedTrajectory->getID();
-    
+
     trajectories[id] = allocatedTrajectory;
-    waitingTrajectories[id] = trajectories[id];
+    waitingTrajectories.insert(id);
 
     return trajectories[id];
 }
@@ -137,18 +133,18 @@ Trajectory* TrajectoryList::initTrajectory(const lm::io::TrajectoryState& initia
 // destroyer
 void TrajectoryList::deleteAllNotStarted()
 {
-    for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+    for (idmap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
     {
         if (it->second->getStatus()==Trajectory::NOT_STARTED)
         {
-            deleteTrajectory(it->second->getID());
+            deleteTrajectory(it->first);
         }
     }
 }
 
 void TrajectoryList::deleteAllTrajectories()
 {
-    for (TrajectoryMap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
+    for (idmap::iterator it=trajectories.begin(); it!=trajectories.end(); it++)
     {
         delete it->second;
         it->second = NULL;
@@ -166,14 +162,6 @@ void TrajectoryList::deleteTrajectory(uint64_t id)
     {
         Trajectory* traj = eraseTrajectoryID(id);
         delete traj;
-
-//        delete trajectories[id];
-//        trajectories[id] = NULL;
-//        trajectories.erase(id);
-//        abortedTrajectories.erase(id);
-//        finishedTrajectories.erase(id);
-//        runningTrajectories.erase(id);
-//        waitingTrajectories.erase(id);
     }
 }
 
@@ -183,7 +171,12 @@ bool TrajectoryList::areAllFinished() const
     return abortedTrajectories.size() == 0 && runningTrajectories.size() == 0 && waitingTrajectories.size() == 0;
 }
 
-const TrajectoryMap& TrajectoryList::getTrajectoryMap(Trajectory::Status status) const
+bool TrajectoryList::areAnyWaiting() const
+{
+    return (waitingTrajectories.size() > 0);
+}
+
+const TrajectoryList::idset& TrajectoryList::getIDSet(Trajectory::Status status) const
 {
     switch (status)
     {
@@ -207,9 +200,8 @@ int TrajectoryList::addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUn
         {
             // Get the first trajectory.
             uint64_t id = findNextTrajectoryToRun();
-            if (!waitingTrajectories.count(id))
-                throw ConsistencyException("Consistency error in trajectory list, next trajectory to run was not in the waiting list",id);
-            Trajectory* t = waitingTrajectories[id];
+            if (not isTrajectoryWaiting(id)) throw ConsistencyException("Consistency error in trajectory list, next trajectory to run was not in the waiting list",id);
+            Trajectory* t = trajectories[id];
 
             // Validate that it really needs to be run.
             if (t->getStatus() != Trajectory::NOT_STARTED && t->getStatus() != Trajectory::WAITING)
@@ -236,12 +228,14 @@ int TrajectoryList::addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUn
 
 void TrajectoryList::copyTrajectoriesWeakly(const TrajectoryList& srcTrajList, Trajectory::Status status)
 {
-    TrajectoryMap* dstMap = getTrajectoryMap(status);
-    const TrajectoryMap& srcMap = srcTrajList.getTrajectoryMap(status);
+    idset* dstSet = getIDSet(status);
+    const idset& srcSet = srcTrajList.getIDSet(status);
 
-    for (TrajectoryMap::const_iterator it=srcMap.begin();it!=srcMap.end();it++)
+    // By copying the trajectory pointers into this instance's primary trajectories map (and by erasing it from the src's trajectories) we have taken ownership of the pointed-to-trajectories' memory
+    for (idset::const_iterator it=srcSet.begin(); it!=srcSet.end();)
     {
-        (*dstMap)[it->first] = it->second;
+        trajectories[*it] = srcTrajList.trajectories.at(*it);
+        dstSet->insert(*it);
     }
 }
 
@@ -280,17 +274,17 @@ Trajectory* TrajectoryList::eraseTrajectoryIDFromSublists(uint64_t id)
 Trajectory* TrajectoryList::getTrajectoryForFinishedWorkUnit(uint64_t id)
 {
     Trajectory* t;
-    if (runningTrajectories.count(id) == 1)
+    if (runningTrajectories.count(id))
     {
-        t = runningTrajectories[id];
+        t = trajectories[id];
         if (t->getStatus() != Trajectory::RUNNING)
         {
             throw ConsistencyException("Consistency error in trajectory list, trajectory %d found in runningTrajectories map but did not have a running status", id);
         }
     }
-    else if (abortedTrajectories.count(id) == 1)
+    else if (abortedTrajectories.count(id))
     {
-        t = abortedTrajectories[id];
+        t = trajectories[id];
         if (t != NULL and t->getStatus() != Trajectory::ABORTED)
         {
             throw ConsistencyException("Consistency error in trajectory list, trajectory %d found in abortedTrajectories map but did not have an aborted status", id);
@@ -303,9 +297,9 @@ Trajectory* TrajectoryList::getTrajectoryForFinishedWorkUnit(uint64_t id)
     return t;
 }
 
-TrajectoryMap* TrajectoryList::getTrajectoryMap(Trajectory::Status status)
+TrajectoryList::idset* TrajectoryList::getIDSet(Trajectory::Status status)
 {
-    return const_cast<TrajectoryMap*>(&const_cast<const TrajectoryList*>(this)->getTrajectoryMap(status));
+    return const_cast<idset*>(&const_cast<const TrajectoryList*>(this)->getIDSet(status));
 }
 
 uint64_t TrajectoryList::resolveTrajectoryID(uint64_t newID)
@@ -317,32 +311,31 @@ uint64_t TrajectoryList::resolveTrajectoryID(uint64_t newID)
 
 void TrajectoryList::setAll(Trajectory::Status oldStatus, Trajectory::Status newStatus)
 {
-    TrajectoryMap& oldMap = *getTrajectoryMap(oldStatus);
-    TrajectoryMap& newMap = *getTrajectoryMap(newStatus);
-    for (TrajectoryMap::iterator it=oldMap.begin(); it!=oldMap.end(); it++)
+    idset* oldSet = getIDSet(oldStatus);
+    idset* newSet = getIDSet(newStatus);
+    for (idset::iterator it=oldSet->begin(); it!=oldSet->end(); it++)
     {
-        it->second->setStatus(newStatus);
-        newMap[it->first] = it->second;
+        trajectories.at(*it)->setStatus(newStatus);
+        newSet->insert(*it);
     }
-    oldMap.clear();
+    oldSet->clear();
 }
 
 void TrajectoryList::takeTrajectories(TrajectoryList* srcTrajList, Trajectory::Status srcStatus, Trajectory::Status newStatus)
 {
-    TrajectoryMap* dstMap = getTrajectoryMap(newStatus);
-    TrajectoryMap* srcMap = srcTrajList->getTrajectoryMap(srcStatus);
+    idset* dstSet = getIDSet(newStatus);
+    idset* srcSet = srcTrajList->getIDSet(srcStatus);
 
     // By copying the trajectory pointers into this instance's primary trajectories map (and by erasing it from the src's trajectories) we have taken ownership of the pointed-to-trajectories' memory
-    TrajectoryMap::iterator it=srcMap->begin();
-    while (it!=srcMap->end())
+    for (idset::iterator it=srcMap->begin(); it!=srcMap->end();)
     {
-        trajectories[it->first] = it->second;
-        (*dstMap)[it->first] = it->second;
-        it->second->setStatus(newStatus);
+        Trajectory* traj = trajectories[*it] = srcTrajList->trajectories.at(*it);
+        dstSet->insert(*it);
+        traj->setStatus(newStatus);
 
-        srcTrajList->trajectories.erase(it->first);
-        // erasing the map entry invalidates the iterator, so increment before erasing (via postcrement, which is confusing)
-        srcMap->erase(it++);
+        srcTrajList->trajectories.erase(*it);
+        // erasing the entry invalidates the iterator, so increment before erasing (via postcrement, which is confusing)
+        srcSet->erase(it++);
     }
 }
 
@@ -413,7 +406,6 @@ void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& fwuMs
         int partIndex=-1;
         for (int i=0; i<fwuMsg.part_status_size(); i++)
         {
-//            printf("id in fwu: %d\n", fwuMsg.part_status(i).final_state().trajectory_id());
             if (fwuMsg.part_status(i).final_state().trajectory_id() == id)
             {
                 partIndex = i;
@@ -429,7 +421,7 @@ void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& fwuMs
     // check to see if any of the trajectories involved in this work unit have been aborted in the previous loop
     for (list<uint64_t>::iterator it=involvedTrajectories.begin(); it != involvedTrajectories.end(); it++)
     {
-        if (abortedTrajectories.count(*it) == 1)
+        if (abortedTrajectories.count(*it))
         {
             deleteTrajectory(*it);
         }
@@ -439,22 +431,7 @@ void TrajectoryList::workUnitFinished(const lm::message::FinishedWorkUnit& fwuMs
 // protected accessors
 uint64_t TrajectoryList::findNextTrajectoryToRun() const
 {
-    TrajectoryMap::const_iterator it = waitingTrajectories.begin();
-    return it->first;
-}
-
-bool TrajectoryList::isTrajectoryInMap(uint64_t trajID, const TrajectoryMap& trajMap, Trajectory::Status expectedStatus) const
-{
-    bool exists(trajMap.count(trajID)==1);
-    if (exists && trajMap.at(trajID)->getStatus()!=expectedStatus) throw ConsistencyException("trajectory found in list that does not match its status: id, status, list_status", trajID, Trajectory::status_strings[trajMap.at(trajID)->getStatus()].c_str(), Trajectory::status_strings[expectedStatus].c_str());
-    return exists;
-}
-
-bool TrajectoryList::isTrajectoryInMap(lm::trajectory::Trajectory* traj, const TrajectoryMap& trajMap, Trajectory::Status expectedStatus) const
-{
-    bool exists(trajMap.count(traj->getID())==1);
-    if (exists && traj->getStatus()!=expectedStatus) throw ConsistencyException("trajectory found in list that does not match its status: id, status, list_status", traj->getID(), Trajectory::status_strings[traj->getStatus()].c_str(), Trajectory::status_strings[expectedStatus].c_str());
-    return exists;
+    return *waitingTrajectories.begin();
 }
 
 // protected mutators
@@ -476,7 +453,6 @@ void TrajectoryList::setTrajectoryStatus(lm::trajectory::Trajectory* traj, Traje
     traj->setStatus(newStatus);
     (*getTrajectoryMap(newStatus))[id] = traj;
 }
-
 
 }
 }

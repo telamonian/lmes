@@ -66,7 +66,7 @@ public:
     static const std::string status_strings[];
 
     // construct Trajectory from simulation input (ie from data in your input file)
-    Trajectory(const lm::input::Input& input, uint64_t phase, uint64_t id, bool reversed=false);
+    Trajectory(const lm::input::Input& input, uint64_t phase, uint64_t id, bool reversed=false, bool useCMEState=true, bool useRDMEState=true, bool useDiffusionPDEState=false);
 
     // construct Trajectory from a range of species count values (and optionally a starting time)
     template <typename InputIterator> Trajectory(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd, double startTime, uint64_t phase, uint64_t id)
@@ -94,7 +94,6 @@ public:
     virtual const lm::io::OrderParametersValues& getOrderParameterValues() const;
     virtual uint64_t getSimulationPhase() const;
     virtual int32_t getSimSteps() const;
-    // return the simulation time (determined by the time when the most recent species count was recorded)
     virtual const lm::io::SpeciesCounts& getSpeciesCounts() const;
     virtual const lm::io::TrajectoryState& getState() const;
     virtual Status getStatus() const;
@@ -124,7 +123,12 @@ public:
 
 protected:
     // initializers
-    virtual void initializeState();
+    virtual void init(const lm::input::Input& input);
+    virtual void initializeDegreeAdvancements(const lm::input::Input& input);
+    virtual void initializeDiffusionModel(const lm::input::Input& input);
+    virtual void inititializeHists(const lm::input::Input& input);
+    virtual void initializeOrderParameters(const lm::input::Input& input);
+    virtual void initializeOrderParameterFirstPassageTimes(const lm::input::Input& input);
     virtual void initializeSpeciesCounts(const lm::input::Input& input, bool reversed=false);
     template <typename InputIterator> void initializeSpeciesCounts(InputIterator speciesStart, InputIterator speciesEnd, double startTime)
     {
@@ -153,14 +157,12 @@ protected:
             if (state.cme_state().species_counts().number_species()!=reactionModel.number_species()) throw ConsistencyException("Assigned %d species to initial state of trajectory %llu via a range, but there are %d species in the reaction model", state.cme_state().species_counts().number_species(), id, reactionModel.number_species());
         }
     }
-    virtual void init(const lm::input::Input& input);
-
-    virtual void initializeDegreeAdvancements(const lm::input::Input& input);
-    virtual void initializeOrderParameters(const lm::input::Input& input);
+    virtual void initializeState();
     virtual void initializeSpeciesFirstPassageTimes(const lm::input::Input& input);
-    virtual void initializeOrderParameterFirstPassageTimes(const lm::input::Input& input);
-    virtual void initializeDiffusionModel(const lm::input::Input& input);
-    virtual void inititializeHists(const lm::input::Input& input);
+
+    virtual void initializeCMEState(const lm::input::Input& input);
+    virtual void initializeDiffusionPDEState(const lm::input::Input& input);
+    virtual void initializeRDMEState(const lm::input::Input& input);
 
 protected:
     uint64_t id;

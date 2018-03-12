@@ -44,8 +44,7 @@
 #include "lm/ClassFactory.h"
 #include "lm/Print.h"
 #include "lm/io/OutputWriter.h"
-#include "lm/io/TrajectoryState.pb.h"
-#include "lm/main/Main.h"
+#include "lm/main/Globals.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
@@ -86,9 +85,9 @@ ReplicateSupervisor::~ReplicateSupervisor()
 
 void ReplicateSupervisor::startSimulation()
 {
-    // Check for some error conditions.
-    if (outputWriterProcess == -1 || outputWriterThread == -1)
-        throw new Exception("ReplicateSupervisor could not start the simulation, no output writer available.");
+//    // Check for some error conditions.
+//    if (outputWriterProcess == -1 || outputWriterThread == -1)
+//        throw new Exception("ReplicateSupervisor could not start the simulation, no output writer available.");
 
     Print::printf(Print::INFO, "Replicate supervisor starting simulation.");
 

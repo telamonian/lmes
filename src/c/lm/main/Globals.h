@@ -45,6 +45,7 @@
 #include <vector>
 
 #include "hrtime.h"
+#include "lm/resource/ResourceMap.h"
 #include "lm/Types.h"
 
 /**
@@ -78,6 +79,16 @@ extern std::string recordNamePrefixGlobal;
 extern std::vector<uint64_t> replicates;
 
 /**
+  * The number of replicates to send in each work unit.
+  */
+extern int replicateBatchSize;
+
+/**
+ * If messages should be printed about individual replicates.
+ */
+extern bool relicatePrintMessages;
+
+/**
  * The interval at which the results file should be checkpointed.
  */
 extern time_t checkpointInterval;
@@ -86,6 +97,11 @@ extern time_t checkpointInterval;
  * If a global abort signal has been received.
  */
 extern volatile bool globalAbort;
+
+/**
+ * The communicator to use for the simulations.
+ */
+extern std::string communicatorClassName;
 
 /**
  * The supervisor to use for the simulations.
@@ -101,6 +117,11 @@ extern std::string solverClassName;
  * The filename for the resource list.
  */
 extern std::string resourceFilename;
+
+/**
+ * The format for the resource file.
+ */
+extern lm::resource::ResourceMap::ResourceFileFormat resourceFileFormat;
 
 /**
  * The number of cpu cores assigned to each process.
@@ -142,52 +163,24 @@ extern bool shouldReserveOutputCore;
  */
 extern bool ffluxFlag;
 
-/*
+/**
  * Flag that determines whether or not to track degree advancement in addition to species count
  */
 extern bool daFlag;
 
-/*
+/**
  * Flag to indicate that we need to initialize the order parameters and update them at every simulation step
  */
 extern bool opActivatedFlag;
 
-/*
+/**
  * Flag that determines whether or not to track order parameter values in addition to species counts
  */
 extern bool opTrackingFlag;
 
-/*
+/**
  * Flag to indicate that we're running a test of the program's input and output
  */
 extern bool ioTestFlag;
 
-#ifdef OPT_PYTHON
-/**
- * The directory containing the supporting files.
- */
-extern std::string libDir;
-
-/**
- * The directory containing the supporting files.
- */
-extern std::string userLibDir;
-
-/**
- * The path of directories containing user scripts to execute at startup.
- */
-extern std::string scriptPath;
-
-/**
- * The script filename being executed, if applicable.
- */
-extern std::string scriptFilename;
-
-/**
- * The arguments for the script, if applicable.
- */
-extern std::vector<std::string> scriptArguments;
-
-#endif
-
-#endif
+#endif /* LM_MAIN_GLOBALS_H */

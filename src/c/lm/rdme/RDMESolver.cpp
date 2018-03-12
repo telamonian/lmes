@@ -46,22 +46,23 @@
 #include "lm/Tune.h"
 #include "lm/Print.h"
 #include "lm/cme/CMESolver.h"
+#include "lm/types/BoundaryConditions.pb.h"
 #include "lm/input/DiffusionModel.pb.h"
+#include "lm/types/Lattice.pb.h"
 #include "lm/me/PropensityFunction.h"
 #include "lm/rdme/Lattice.h"
 #include "lm/rdme/ByteLattice.h"
 #include "lm/rdme/DiffusionModel.h"
 #include "lm/rdme/RDMESolver.h"
 #include "lm/rng/RandomGenerator.h"
-#include "lm/types/ArrayOrdering.pb.h"
-#include "lm/types/BoundaryConditions.pb.h"
-#include "lm/types/Lattice.pb.h"
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
+#include "robertslab/pbuf/NDArraySerializer.h"
 
 using lm::input::DiffusionModel;
 using lm::rdme::Lattice;
 using lm::rng::RandomGenerator;
+using robertslab::pbuf::NDArraySerializer;
 
 namespace lm {
 namespace rdme {
@@ -97,10 +98,6 @@ void RDMESolver::setDiffusionModel(const lm::input::DiffusionModel& dm)
     // Create the lattice.
     allocateLattice(diffusionModel->latticeXSize, diffusionModel->latticeYSize, diffusionModel->latticeZSize, diffusionModel->particlesPerSite, diffusionModel->latticeSpacing);
 
-    // Fill in the site types.
-    const string sites = dm.initial_lattice().sites();
-    lattice->deserializeSitesFrom(sites.data(), sites.size(), (Lattice::SerializationDataOrder)dm.initial_lattice().sites_ordering(), dm.initial_lattice().sites_compressed_deflate());
-
     // Update the propensity functions with the subvolume size.
     uint numberSubvolumes = lattice->getNumberSites();
     for (uint i=0; i<reactionModel->numberReactions; i++)
@@ -134,37 +131,48 @@ void RDMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
 
     CMESolver::getState(state, trajectoryNumber);
 
-    // Get the lattice state.
-    lm::types::Lattice* l = state->mutable_rdme_state()->mutable_species_positions();
-    l->set_particles_ordering(lm::types::NATIVE_ORDER);
-    l->set_lattice_x_size(diffusionModel->latticeXSize);
-    l->set_lattice_y_size(diffusionModel->latticeYSize);
-    l->set_lattice_z_size(diffusionModel->latticeZSize);
-    l->set_particles_per_site(diffusionModel->particlesPerSite);
-    l->set_particles_compressed_deflate(true);
-    size_t dataSizeEstimate = lattice->serializeParticlesSize(true);
-    string* particles=new string();
-    particles->resize(dataSizeEstimate);
-    size_t dataSizeActual=lattice->serializeParticlesTo(&((*particles)[0]), dataSizeEstimate, Lattice::NATIVE_ORDER, true);
-    particles->resize(dataSizeActual);
-    l->set_allocated_particles(particles);
+    // Get the lattice sites.
+    ndarray<uint8_t>* sitesBuffer = new ndarray<uint8_t>(utuple(lattice->getSize().x,lattice->getSize().y,lattice->getSize().z), 0, ndarray_ArrayOrder::IMPL_ORDER);
+    lattice->copySitesTo(sitesBuffer);
+    state->mutable_rdme_state()->mutable_lattice()->set_allocated_sites(NDArraySerializer::serializeAllocate(*sitesBuffer));
+    delete sitesBuffer;
+    sitesBuffer = NULL;
+
+    // Get the lattice particles.
+    ndarray<uint8_t>* particlesBuffer = new ndarray<uint8_t>(utuple(lattice->getSize().x,lattice->getSize().y,lattice->getSize().z,lattice->getMaxOccupancy()), 0, ndarray_ArrayOrder::IMPL_ORDER);
+    lattice->copyParticlesTo(particlesBuffer);
+    state->mutable_rdme_state()->mutable_lattice()->set_allocated_particles(NDArraySerializer::serializeAllocate(*particlesBuffer));
+    delete particlesBuffer;
+    particlesBuffer = NULL;
 }
 
 void RDMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNumber)
 {
     // Valdiate the state.
     if (diffusionModel == NULL || lattice == NULL) throw Exception("RDMESolver set state called before diffusion model was set.");
-    if (!state.has_rdme_state()) throw Exception("State object does not contain the necessary data to initialize the RDMESolver.");
-    if (state.rdme_state().species_positions().lattice_x_size() != diffusionModel->latticeXSize) throw Exception("State object and diffusion model have differing lattice x size",state.rdme_state().species_positions().lattice_x_size(),diffusionModel->latticeXSize);
-    if (state.rdme_state().species_positions().lattice_y_size() != diffusionModel->latticeYSize) throw Exception("State object and diffusion model have differing lattice y size",state.rdme_state().species_positions().lattice_y_size(),diffusionModel->latticeYSize);
-    if (state.rdme_state().species_positions().lattice_z_size() != diffusionModel->latticeZSize) throw Exception("State object and diffusion model have differing lattice z size",state.rdme_state().species_positions().lattice_z_size(),diffusionModel->latticeZSize);
-    if (state.rdme_state().species_positions().particles_per_site() != diffusionModel->particlesPerSite) throw Exception("State object and diffusion model have differing number of particles per site",state.rdme_state().species_positions().particles_per_site(),diffusionModel->particlesPerSite);
+    if (!state.has_rdme_state()) throw Exception("State object does not contain rdme state to initialize the RDMESolver.");
+    if (!state.rdme_state().lattice().has_sites()) throw Exception("State object does not contain the lattice sites to initialize the RDMESolver.");
+    if (state.rdme_state().lattice().particles().shape(0) != lattice->getSize().x) throw Exception("State object and lattice have differing lattice x size",state.rdme_state().lattice().particles().shape(0),lattice->getSize().x);
+    if (state.rdme_state().lattice().particles().shape(1) != lattice->getSize().y) throw Exception("State object and lattice have differing lattice y size",state.rdme_state().lattice().particles().shape(1),lattice->getSize().y);
+    if (state.rdme_state().lattice().particles().shape(2) != lattice->getSize().z) throw Exception("State object and lattice have differing lattice z size",state.rdme_state().lattice().particles().shape(2),lattice->getSize().z);
+    if (state.rdme_state().lattice().particles().shape(3) != lattice->getMaxOccupancy()) throw Exception("State object and lattice have differing number of particles per site",state.rdme_state().lattice().particles().shape(3),lattice->getMaxOccupancy());
+    if (state.rdme_state().lattice().sites().shape(0) != lattice->getSize().x) throw Exception("State object and lattice have differing lattice sites x size",state.rdme_state().lattice().sites().shape(0),lattice->getSize().x);
+    if (state.rdme_state().lattice().sites().shape(1) != lattice->getSize().y) throw Exception("State object and lattice have differing lattice sites y size",state.rdme_state().lattice().sites().shape(1),lattice->getSize().y);
+    if (state.rdme_state().lattice().sites().shape(2) != lattice->getSize().z) throw Exception("State object and lattice have differing lattice sites z size",state.rdme_state().lattice().sites().shape(2),lattice->getSize().z);
 
     CMESolver::setState(state, trajectoryNumber);
 
-    // Set the lattice state.
-    const string particles = state.rdme_state().species_positions().particles();
-    lattice->deserializeParticlesFrom(particles.data(), particles.size(), (Lattice::SerializationDataOrder)state.rdme_state().species_positions().particles_ordering(), state.rdme_state().species_positions().particles_compressed_deflate());
+    // Set the lattice sites.
+    ndarray<uint8_t>* sitesBuffer = NDArraySerializer::deserializeAllocate<uint8_t>(state.rdme_state().lattice().sites());
+    lattice->copySitesFrom(sitesBuffer);
+    delete sitesBuffer;
+    sitesBuffer = NULL;
+
+    // Set the lattice particles.
+    ndarray<uint8_t>* particlesBuffer = NDArraySerializer::deserializeAllocate<uint8_t>(state.rdme_state().lattice().particles());
+    lattice->copyParticlesFrom(particlesBuffer);
+    delete particlesBuffer;
+    particlesBuffer = NULL;
 }
 
 void RDMESolver::setOutputOptions(const lm::input::OutputOptions& outputOptions)

@@ -42,11 +42,11 @@
 #include <google/protobuf/message.h>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "hrtime.h"
 #include "lm/Exceptions.h"
 #include "lm/input/Input.h"
-#include "lm/types/BoundaryConditions.pb.h"
 #include "lm/input/DiffusionModel.pb.h"
 #include "lm/input/OrderParameters.pb.h"
 #include "lm/input/ReactionModel.pb.h"
@@ -70,6 +70,7 @@
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 #include "lm/tiling/Tilings.h"
+#include "lm/types/BoundaryConditions.pb.h"
 
 namespace lm {
 namespace main {
@@ -79,14 +80,10 @@ typedef std::map<std::string,std::string> SimulationParametersMap;
 class SimulationSupervisor : public lm::thread::Worker
 {
 public:
-    static const int THREAD_ID = 0;
-    virtual int getRecvSleepMilliseconds();
-
-public:
     SimulationSupervisor();
     virtual ~SimulationSupervisor();
     virtual void init();
-    void setOutputWriterClassName(string outputWriterClassName) {this->outputWriterClassName = outputWriterClassName;}
+    void setOutputWriterClassName(std::string outputWriterClassName) {this->outputWriterClassName = outputWriterClassName;}
     void setResourceMap(lm::resource::ResourceMap* resourceMap) {this->resourceMap = resourceMap;}
     void setSimulationFilename(std::vector<std::string> simulationInputFilenames, std::string simulationOutputFilename) {this->simulationInputFilenames = simulationInputFilenames; this->simulationOutputFilename = simulationOutputFilename;}
     void setSolverClassName(std::string solverClassName) {this->solverClassName = solverClassName;}
@@ -155,19 +152,18 @@ protected:
     // other
     virtual double timeElapsed() {return convertHrToSeconds(getHrTime() - simulationStartTime);}
 
-private:
-    void printPerformanceStatistics(bool flush=false);
-    void resetPerformanceStatistics();
+protected:
+    virtual void printPerformanceStatistics(bool flush=false);
+    virtual void resetPerformanceStatistics();
 
 protected:
-    lm::message::Communicator communicator;
+    lm::message::Communicator* communicator;
     bool hasCheckpointSignalerStarted;
     bool hasOutputWriterStarted;
     bool haveAllWorkUnitRunnersStarted;
     lm::input::Input* input;
     std::string outputWriterClassName;
-    int outputWriterProcess;
-    int outputWriterThread;
+    Endpoint outputWriterAddress;
     bool performingCheckpoint;
     lm::resource::ResourceMap* resourceMap;
     std::vector<std::string> simulationInputFilenames;

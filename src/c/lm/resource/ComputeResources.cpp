@@ -39,11 +39,15 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include "lm/message/Communicator.h"
+#include "lm/message/Endpoint.pb.h"
 #include "lm/resource/ComputeResources.h"
 
 using std::stringstream;
 using std::string;
 using std::vector;
+using lm::message::Communicator;
+using lm::message::Endpoint;
 
 namespace lm {
 namespace resource {
@@ -53,6 +57,8 @@ string ComputeResources::toString()
     stringstream ss;
     ss << "";
     ss << hostname;
+    ss << "; ";
+    ss << Communicator::printableAddress(controllerAddress);
     ss << "; cpu core list:";
     if (cpuCores.size() > 0)
     {

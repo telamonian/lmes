@@ -1,0 +1,20 @@
+
+begin model
+
+begin parameters
+ end parameters
+
+begin molecule types
+    E(S100~p~n, T200~p~n)
+end molecule types
+
+begin species
+    E(S100~n,T200~n) 10
+end species
+
+begin reaction rules
+    E(S100~n) <-> E(S100~p) 2.0, 3.0
+    E(T200~n) <-> E(T200~p) 4.0, 5.0
+end reaction rules
+
+end model

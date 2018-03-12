@@ -36,35 +36,14 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef REPLICATESUPERVISOR_H_
-#define REPLICATESUPERVISOR_H_
 
-#include <list>
-#include <map>
-#include <deque>
-#include <string>
-#include <vector>
+#ifndef LM_REPLICATES_REPLICATESUPERVISOR_H_
+#define LM_REPLICATES_REPLICATESUPERVISOR_H_
 
-#include "hrtime.h"
-#include "lm/input/DiffusionModel.pb.h"
-#include "lm/input/ReactionModel.pb.h"
-#include "lm/input/TrajectoryLimits.pb.h"
-#include "lm/io/hdf5/SimulationFile.h"
 #include "lm/main/SimulationSupervisor.h"
-#include "lm/message/FinishedWorkUnit.pb.h"
-#include "lm/message/StartedWorkUnit.pb.h"
-#include "lm/MPI.h"
-#include "lm/Print.h"
-#include "lm/thread/Worker.h"
 
 namespace lm {
 namespace replicates {
-
-using std::deque;
-using std::list;
-using std::map;
-using std::string;
-using std::vector;
 
 class ReplicateSupervisor : public lm::main::SimulationSupervisor
 {
@@ -89,4 +68,4 @@ private:
 }
 }
 
-#endif
+#endif /* LM_REPLICATES_REPLICATESUPERVISOR_H_ */

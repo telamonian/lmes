@@ -36,6 +36,7 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+
 #ifndef LM_IO_Hdf5OutputWriter
 #define LM_IO_Hdf5OutputWriter
 
@@ -46,7 +47,6 @@
 #include "lm/io/OrderParameterFirstPassageTimes.pb.h"
 #include "lm/io/OrderParameterTimeSeries.pb.h"
 #include "lm/io/OutputWriter.h"
-#include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/io/hdf5/SimulationFile.h"
 
@@ -78,7 +78,6 @@ protected:
     virtual void processLimitTracking(const lm::io::LimitTracking& data);
     virtual void processOrderParameterFirstPassageTimes(const lm::io::OrderParameterFirstPassageTimes& data);
     virtual void processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data);
-    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
     virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data);
 
     virtual void setRecordNamePrefix();

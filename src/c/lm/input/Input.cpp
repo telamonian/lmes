@@ -43,12 +43,13 @@
 #include "lm/ClassFactory.h"
 #include "lm/EnumHelper.h"
 #include "lm/io/hdf5/SimulationFile.h"
-#include "lm/io/sfile/LocalSFile.h"
+#include "lm/io/sfile/SFile.h"
+#include "lm/io/sfile/SFileRecord.h"
 #include "lm/input/Input.h"
 #include "lm/input/OutputOptions.pb.h"
 #include "lm/input/TrajectoryLimits.pb.h"
+#include "lm/input/SimulationParametersWrap.h"
 #include "lm/main/Globals.h"
-#include "lm/option/SimulationParameters.h"
 #include "lm/Print.h"
 #include "lm/protowrap/Repeated.h"
 #include "lm/limit/TrajectoryLimits.h"
@@ -221,7 +222,7 @@ void Input::initTilings(const lm::io::hdf5::Hdf5File& file)
 // Get the limits options.
 void Input::initTrajectoryLimits(const lm::io::hdf5::Hdf5File& file)
 {
-    // - By default, we include endpoints when checking limits 
+    // - By default, we include endpoints when checking limits
     //     - eg if limitType==MAX and limitVal==2, then the limit will be triggered when currentVal >= 2, as opposed to being triggered only when currentVal > 2
     // - The user can override this behavior with the following (advanced) option
     parseAndSet("includeEnpointInLimits", &this->includeEndpointInLimits);

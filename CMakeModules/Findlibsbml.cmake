@@ -34,6 +34,6 @@ find_library(libsbml_LIBRARY
 
 # Set the include dir variables and the libraries and let libfind_process do the rest.
 # NOTE: Singular variables for this library, plural for libraries this this lib depends on.
-set(libsbml_PROCESS_INCLUDES libsbml_INCLUDE_DIR libsbml_INCLUDE_DIRS)
-set(libsbml_PROCESS_LIBS libsbml_LIBRARY libsbml_LIBRARIES)
+set(libsbml_PROCESS_INCLUDES libsbml_INCLUDE_DIR)
+set(libsbml_PROCESS_LIBS libsbml_LIBRARY)
 libfind_process(libsbml)

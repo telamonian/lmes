@@ -118,8 +118,9 @@ public:
 
     static lm::me::PropensityFunctionDefinition registerFunction()
     {
+	const char* unitsForConstants[] = {"1/(item*item*second)", NULL};
         const char* expressions[] = {"k1 * x1 * x2 * x2", "k1 * x1 * x2^2", "k1 * x1 * x2 * (x2-1)", NULL};
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "TwoSubstrateBindingPropensity", expressions, &create);
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "TwoSubstrateBindingPropensity", expressions, unitsForConstants, &create);
     }
 };
 
@@ -171,8 +172,9 @@ public:
 
     static lm::me::PropensityFunctionDefinition registerFunction()
     {
+	const char* unitsForConstants[] = {"1/(item*item*item*second)", NULL};
         const char* expressions[] = {"k1 * x1 * x2 * x2 * x2", "k1 * x1 * x2^3", "k1 * x1 * x2 * (x2-1) * (x2-2)", NULL};
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "ThreeSubstrateBindingPropensity", expressions, &create);
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "ThreeSubstrateBindingPropensity", expressions, unitsForConstants, &create);
     }
 };
 
@@ -213,7 +215,8 @@ public:
 
     static lm::me::PropensityFunctionDefinition registerFunction()
     {
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderMichaelisMenten", "(k1 * x1) / (k2 + x1)", &create);
+	const char* unitsForConstants[] = {"item/second", "item", NULL};
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderMichaelisMenten", "(k1 * x1) / (k2 + x1)", unitsForConstants, &create);
     }
 };
 
@@ -261,8 +264,9 @@ public:
 
 	static lm::me::PropensityFunctionDefinition registerFunction()
 	{
+		const char* unitsForConstants[] = {"1/item", "item/second", "item", NULL};
 		const char* expressions[] = {"(1 / (1 + k1 * x1)) * ((k2 * x2) / (k3 +  x2))", "k2 * x2 * (1 / (1 + k1 * x1)) / (k3 + x2)", NULL};
-		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderMichaelisMentenU1", expressions, &create);
+		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderMichaelisMentenU1", expressions, unitsForConstants, &create);
 	}
 };
 
@@ -307,8 +311,9 @@ public:
 
 	static lm::me::PropensityFunctionDefinition registerFunction()
 	{
+		const char* unitsForConstants[] = {"item/second", "item", "item", NULL};
 		const char* expressions[] = {"((k1 * x1) / (k2 + x1)) * (x2 / (k3 + x2))", "k1 * (x2 / (k3 + x2)) * (x1 / (k2 + x1))", "(k1 * (x2 / (k3 + x2))) * (x1) / (k2 + x1)", NULL};
-		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderDoubleMichaelisMenten", expressions, &create);
+		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderDoubleMichaelisMenten", expressions, unitsForConstants, &create);
 	}
 };
 
@@ -353,7 +358,8 @@ public:
 
 	static lm::me::PropensityFunctionDefinition registerFunction()
 	{
-		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderProductSubstrateDependent2Species", "(x1 / (k1 + x1)) * k2 * (x2 - x1)", &create);
+		const char* unitsForConstants[] = {"item", "1/second", NULL};
+		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderProductSubstrateDependent2Species", "(x1 / (k1 + x1)) * k2 * (x2 - x1)", unitsForConstants, &create);
 	}
 };
 
@@ -401,7 +407,8 @@ public:
 
 	static lm::me::PropensityFunctionDefinition registerFunction()
 	{
-		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderProductSubstrateDependent3Species", "(x1 / (k1 + x1)) * k2 * (x2 - x3)", &create);
+		const char* unitsForConstants[] = {"item", "1/second", NULL};	
+		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderProductSubstrateDependent3Species", "(x1 / (k1 + x1)) * k2 * (x2 - x3)", unitsForConstants, &create);
 	}
 };
 
@@ -446,8 +453,9 @@ public:
 
 	static lm::me::PropensityFunctionDefinition registerFunction()
 	{
+		const char* unitsForConstants[] = {"", "1/item", "item", "", "1/second", NULL};
 		const char* expressions[] = {"(1 / (1 + k1 * exp(k2 * (k3 - x1)))) * k4 * k5 * x1", "k4 * k5 * x1 * (1 / (1 + k1 * exp(k2 * (k3 - x1))))", NULL};
-		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderU6", expressions, &create);
+		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderU6", expressions, unitsForConstants, &create);
 	}
 };
 
@@ -491,8 +499,9 @@ public:
 
 	static lm::me::PropensityFunctionDefinition registerFunction()
 	{
+		const char* unitsForConstants[] = {"", "1/item", "item", "1/second", NULL};
 		const char* expressions[] = {"(1 / (1 + k1 * exp(k2 * (k3 - x1)))) * k4 * x1", "k4 * x1 * (1 / (1 + k1 * exp(k2 * (k3 - x1))))", NULL};
-		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderU7", expressions, &create);
+		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderU7", expressions, unitsForConstants, &create);
 	}
 };
 
@@ -536,7 +545,8 @@ public:
 
 	static lm::me::PropensityFunctionDefinition registerFunction()
 	{
-		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "SecondOrdercalc", "k1 * x1 * (k2 - x2)", &create);
+		const char* unitsForConstants[] = {"1/(item*second)", "item", NULL};
+		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "SecondOrdercalc", "k1 * x1 * (k2 - x2)", unitsForConstants, &create);
 	}
 };
 
@@ -587,8 +597,198 @@ public:
 
 	static lm::me::PropensityFunctionDefinition registerFunction()
 	{
+		const char* unitsForConstants[] = {"1/(second*item*item*item)", "item", NULL};
 		const char* expressions[] = {"k1 * x1^3 * (k2 - x2 - x3)", "k1 * x1 * x1 * x1 * (k2 - x2 - x3)", "k1 * x1 * (x1 - 1) * (x1 - 2) * (k2 - x2 - x3)", NULL};
-		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FourthOrdercalm", expressions, &create);
+		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FourthOrdercalm", expressions, unitsForConstants, &create);
+	}
+};
+
+class FirstOrderMichaelisMentenRho : public lm::me::PropensityFunction
+{
+public:
+	static const uint REACTION_TYPE = 4011;
+
+	FirstOrderMichaelisMentenRho(uint s1, uint s2, uint s3, uint s4, double k1, double k2, double k3, double N, double lda) :PropensityFunction(REACTION_TYPE,1),s1(s1),s2(s2),s3(s3),s4(s4),k1(k1),k2(k2),k3(k3),N(N),lda(lda) {}
+	uint s1;
+	uint s2;
+	uint s3;
+	uint s4;
+	double k1;
+	double k2;
+	double k3;
+	double N;
+	double lda;
+
+	void changeVolume(double volumeMultiplier) {}
+	double calculate (const double time, const int* speciesCounts, const uint numberSpecies) const
+	{
+		double x = (1/double(speciesCounts[s1]))*((3*pow(double(speciesCounts[s2]),2))/(pow(k1,2) + pow(double(speciesCounts[s2]),2)))*(1 - ((0.8*pow(double(speciesCounts[s3]),2))/(pow(k2,2) + pow(double(speciesCounts[s3]),2))));
+		double L0 = pow(10, -N/2);
+		double xN1 = pow(x,N+1) - 1;
+		double ldaxN1 = pow(lda*x,N+1) - 1;
+		double multterm = (ldaxN1*(x-1))/(((lda*x)-1)*xN1);
+		double rho = 1/(1+(L0*multterm));
+		return k3*rho*double(speciesCounts[s4]);
+	}
+
+#ifdef OPT_AVX
+	avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
+	{
+		return naiveCalculateAvx(this, time, speciesCounts, numberSpecies);
+	}
+#endif
+
+	static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+	{
+		// Find the species dependencies.
+		utuple sd1 = getSpecificDependencies(reactionIndex, D, 1);
+		if (sd1.len != 1) throw InvalidArgException("D", "FirstOrderMichaelisMentenRho needs one species dependencies, had", sd1.len);
+		utuple sd2 = getSpecificDependencies(reactionIndex, D, 2);
+		if (sd2.len != 1) throw InvalidArgException("D", "FirstOrderMichaelisMentenRho needs one species dependencies, had", sd2.len);
+		utuple sd3 = getSpecificDependencies(reactionIndex, D, 3);
+		if (sd3.len != 1) throw InvalidArgException("D", "FirstOrderMichaelisMentenRho needs one species dependencies, had", sd3.len);
+		utuple sd4 = getSpecificDependencies(reactionIndex, D, 4);
+		if (sd4.len != 1) throw InvalidArgException("D", "FirstOrderMichaelisMentenRho needs one species dependencies, had", sd4.len);
+
+		// Find the rate constant.
+		if (k.len < 5) throw InvalidArgException("k", "FirstOrderMichaelisMentenRho needs five parameters, had", k.len);
+
+		return new FirstOrderMichaelisMentenRho(sd1[0], sd2[0], sd3[0], sd4[0], k[0],k[1], k[2], k[3], k[4]);
+	}
+
+	static lm::me::PropensityFunctionDefinition registerFunction()
+	{
+		const char* unitsForConstants[] = {"item", "item", "1/second", "", "", NULL};		
+		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderMichaelisMentenRho", "x4 * k3 * (1 / (1 + 10^(-k5 / 2) * ((k4 * 3 * (1 - 0.8 * x3^2 / (k2^2 + x3^2)) * (1 / x1) * x2^2 / (k1^2 + x2^2))^(k5 + 1) - 1) * (3 * (1 - 0.8 * x3^2 / (k2^2 + x3^2)) * (1 / x1) * x2^2 / (k1^2 + x2^2) - 1) / ((k4 * 3 * (1 - 0.8 * x3^2 / (k2^2 + x3^2)) * (1 / x1) * x2^2 / (k1^2 + x2^2) - 1) * ((3 * (1 - 0.8 * x3^2 / (k2^2 + x3^2)) * (1 / x1) * x2^2 / (k1^2 + x2^2))^(k5 + 1) - 1))))", unitsForConstants, &create);
+	}
+};
+
+class FirstOrderMichaelisMentenRhoMinus : public lm::me::PropensityFunction
+{
+public:
+        static const uint REACTION_TYPE = 4012;
+
+        FirstOrderMichaelisMentenRhoMinus(uint s1, uint s2, uint s3, uint s4, double k1, double k2, double k3, double N, double lda) :PropensityFunction(REACTION_TYPE,1),s1(s1),s2(s2),s3(s3),s4(s4),k1(k1),k2(k2),k3(k3),N(N),lda(lda) {}
+        uint s1;
+        uint s2;
+        uint s3;
+        uint s4;
+        double k1;
+        double k2;
+        double k3;
+        double N;
+        double lda;
+
+        void changeVolume(double volumeMultiplier) {}
+        double calculate (const double time, const int* speciesCounts, const uint numberSpecies) const
+        {
+                double x = (1/double(speciesCounts[s1]))*((3*pow(double(speciesCounts[s2]),2))/(pow(k1,2) + pow(double(speciesCounts[s2]),2)))*(1 - ((0.8*pow(double(speciesCounts[s3]),2))/(pow(k2,2) + pow(double(speciesCounts[s3]),2))));
+                double L0 = pow(10, -N/2);
+                double xN1 = pow(x,N+1) - 1;
+                double ldaxN1 = pow(lda*x,N+1) - 1;
+                double multterm = (ldaxN1*(x-1))/(((lda*x)-1)*xN1);
+                double rho = 1/(1+(L0*multterm));
+                return k3*(1-rho)*double(speciesCounts[s4]);
+        }
+
+#ifdef OPT_AVX
+        avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
+        {
+                return naiveCalculateAvx(this, time, speciesCounts, numberSpecies);
+        }
+#endif
+
+        static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+        {
+                // Find the species dependencies.
+                utuple sd1 = getSpecificDependencies(reactionIndex, D, 1);
+                if (sd1.len != 1) throw InvalidArgException("D", "FirstOrderMichaelisMentenRhoMinus needs one species dependencies, had", sd1.len);
+                utuple sd2 = getSpecificDependencies(reactionIndex, D, 2);
+                if (sd2.len != 1) throw InvalidArgException("D", "FirstOrderMichaelisMentenRhoMinus needs one species dependencies, had", sd2.len);
+                utuple sd3 = getSpecificDependencies(reactionIndex, D, 3);
+                if (sd3.len != 1) throw InvalidArgException("D", "FirstOrderMichaelisMentenRhoMinus needs one species dependencies, had", sd3.len);
+                utuple sd4 = getSpecificDependencies(reactionIndex, D, 4);
+                if (sd4.len != 1) throw InvalidArgException("D", "FirstOrderMichaelisMentenRhoMinus needs one species dependencies, had", sd4.len);
+
+                // Find the rate constant.
+                if (k.len < 5) throw InvalidArgException("k", "FirstOrderMichaelisMentenRhoMinus needs five parameters, had", k.len);
+
+                return new FirstOrderMichaelisMentenRhoMinus(sd1[0], sd2[0], sd3[0], sd4[0], k[0],k[1], k[2], k[3], k[4]);
+        }
+
+        static lm::me::PropensityFunctionDefinition registerFunction()
+        {
+		const char* unitsForConstants[] = {"item", "item", "1/second", "", "", NULL};
+                return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderMichaelisMentenRhoMinus", "x4 * k4 * (1 - 1 / (1 + 10^(-k3 / 2) * ((k5 * 3 * (1 - 0.8 * x1^2 / (k1^2 + x1^2)) * (1 / x3) * x2^2 / (k2^2 + x2^2))^(k3 + 1) - 1) * (3 * (1 - 0.8 * x1^2 / (k1^2 + x1^2)) * (1 / x3) * x2^2 / (k2^2 + x2^2) - 1) / ((k5 * 3 * (1 - 0.8 * x1^2 / (k1^2 + x1^2)) * (1 / x3) * x2^2 / (k2^2 + x2^2) - 1) * ((3 * (1 - 0.8 * x1^2 / (k1^2 + x1^2)) * (1 / x3) * x2^2 / (k2^2 + x2^2))^(k3 + 1) - 1))))", unitsForConstants, &create);
+        }
+};
+
+class FirstOrderMichaelisMentenU2 : public lm::me::PropensityFunction
+{
+public:
+	static const uint REACTION_TYPE = 4013;
+
+	FirstOrderMichaelisMentenU2(uint s1, uint s2, uint s3, uint s4, uint s5, uint s6, double k1, double k2, double N, double lda, double Rm, double Km, double S) :PropensityFunction(REACTION_TYPE,1),s1(s1),s2(s2),s3(s3),s4(s4),s5(s5),s6(s6),k1(k1),k2(k2),N(N),lda(lda),Rm(Rm),Km(Km),S(S) {}
+	uint s1;
+	uint s2;
+	uint s3;
+	uint s4;
+	uint s5;
+	uint s6;
+	double k1;
+	double k2;
+	double N;
+	double lda;
+	double Rm;
+	double Km;
+	double S;
+
+	void changeVolume(double volumeMultiplier) {}
+	double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
+	{
+		double x = (1/double(speciesCounts[s1]))*((3*pow(double(speciesCounts[s2]),2))/(pow(k1,2) + pow(double(speciesCounts[s2]),2)))*(1 - ((0.8*pow(double(speciesCounts[s3]),2))/(pow(k2,2) + pow(double(speciesCounts[s3]),2))));
+		double L0 = pow(10, -N/2);
+		double xN1 = pow(x,N+1) - 1;
+		double ldaxN1 = pow(lda*x,N+1) - 1;
+		double theta = 1/((xN1/(x-1)) + (L0*(ldaxN1/((lda*x)-1))));
+		double h = double(speciesCounts[s4])/(double(speciesCounts[s4]) + double(speciesCounts[s6]));
+		double u2 = h*theta;
+		return u2*((S*Rm*double(speciesCounts[s5]))/(Km + double(speciesCounts[s5])));
+	}
+
+#ifdef OPT_AVX
+	avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
+	{
+		return naiveCalculateAvx(this, time, speciesCounts, numberSpecies);
+	}
+#endif
+
+	static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
+	{
+		// Find the species dependencies.
+		utuple sd1 = getSpecificDependencies(reactionIndex, D, 1);
+		if (sd1.len != 1) throw InvalidArgException("D", "FirstOrderMichaelisMentenU2 needs one species dependencies, had", sd1.len);
+		utuple sd2 = getSpecificDependencies(reactionIndex, D, 2);
+		if (sd2.len != 1) throw InvalidArgException("D", "FirstOrderMichaelisMentenU2 needs one species dependencies, had", sd2.len);
+		utuple sd3 = getSpecificDependencies(reactionIndex, D, 3);
+		if (sd3.len != 1) throw InvalidArgException("D", "FirstOrderMichaelisMentenU2 needs one species dependencies, had", sd3.len);
+		utuple sd4 = getSpecificDependencies(reactionIndex, D, 4);
+		if (sd4.len != 1) throw InvalidArgException("D", "FirstOrderMichaelisMentenU2 needs one species dependencies, had", sd4.len);
+		utuple sd5 = getSpecificDependencies(reactionIndex, D, 5);
+		if (sd5.len != 1) throw InvalidArgException("D", "FirstOrderMichaelisMentenU2 needs one species dependencies, had", sd5.len);
+		utuple sd6 = getSpecificDependencies(reactionIndex, D, 6);
+		if (sd6.len != 1) throw InvalidArgException("D", "FirstOrderMichaelisMentenU2 needs one species dependencies, had", sd6.len);
+
+		// Find the rate constant.
+		if (k.len < 7) throw InvalidArgException("k", "FirstOrderMichaelisMentenU2 needs seven parameters, had", k.len);
+
+		return new FirstOrderMichaelisMentenU2(sd1[0], sd2[0], sd3[0], sd4[0], sd5[0], sd6[0], k[0], k[1], k[2], k[3], k[4], k[5], k[6]);
+	}
+
+	static lm::me::PropensityFunctionDefinition registerFunction()
+	{
+		const char* unitsForConstants[] = {"item", "item", "", "", "item/second", "item", "", NULL};
+		return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderMichaelisMentenU2", "k7 * k5 * x5 * (x4 / (x4 + x6)) * (1 / (((3 * (1 - 0.8 * x3^2 / (k2^2 + x3^2)) * (1 / x1) * x2^2 / (k1^2 + x2^2))^(k3 + 1) - 1) / (3 * (1 - 0.8 * x3^2 / (k2^2 + x3^2)) * (1 / x1) * x2^2 / (k1^2 + x2^2) - 1) + (10^(-k3/2)) * (((k4 * 3 * (1 - 0.8 * x3^2 / (k2^2 + x3^2)) * (1 / x1) * x2^2 / (k1^2 + x2^2))^(k3 + 1) - 1) / (k4 * 3 * (1 - 0.8 * x3^2 / (k2^2 + x3^2)) * (1 / x1) * x2^2 / (k1^2 + x2^2) - 1)))) / (k6 + x5)", unitsForConstants, &create);
 	}
 };
 
@@ -606,6 +806,9 @@ list<lm::me::PropensityFunctionDefinition> EnzymePropensityFunctions::getPropens
     defs.push_back(FirstOrderU7::registerFunction());
     defs.push_back(SecondOrdercalc::registerFunction());
     defs.push_back(FourthOrdercalm::registerFunction());
+    defs.push_back(FirstOrderMichaelisMentenRho::registerFunction());
+    defs.push_back(FirstOrderMichaelisMentenRhoMinus::registerFunction());
+    defs.push_back(FirstOrderMichaelisMentenU2::registerFunction());
     return defs;
 }
 

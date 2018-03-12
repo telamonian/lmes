@@ -34,7 +34,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #include <list>
@@ -391,7 +391,7 @@ public:
             "k2 + (k3 - k2) * x1^k4 / (x1^k4 + k1^k4)",
             "k2 + (k3 - k2) * (x1^k4 / (k1^k4 + x1^k4))",
             "k2 + (k3 - k2) * (x1^k4 / (x1^k4 + k1^k4))",
-            NULL};
+        NULL};
         const char* unitsForConstants[] = {"item", "item/second", "item/second", "1", NULL};
         return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "ZerothOrderKHillPropensity", expressions, unitsForConstants, &create);
     }

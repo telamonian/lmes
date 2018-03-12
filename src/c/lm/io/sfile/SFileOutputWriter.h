@@ -36,6 +36,7 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+
 #ifndef LM_IO_SFILEOutputWriter
 #define LM_IO_SFILEOutputWriter
 

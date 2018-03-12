@@ -67,7 +67,7 @@ public:
     virtual ~NextSubvolumeSolver();
     virtual void setDiffusionModel(const lm::input::DiffusionModel& dm);
     virtual void reset();
-    virtual long long generateTrajectory(long long maxSteps);
+    virtual uint64_t generateTrajectory(uint64_t maxSteps);
 
 protected:
     virtual void checkSpeciesCountsAgainstLattice();

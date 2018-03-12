@@ -55,9 +55,6 @@
 #include "lm/reaction/ReactionQueue.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/rng/XORShift.h"
-#ifdef OPT_CUDA
-#include "lm/rng/XORWow.h"
-#endif
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 #include "lptf/Profile.h"
@@ -163,8 +160,8 @@ void NextReactionSolver::generateTrajectory()
     bool addedSpeciesCounts;
     bool addedFpt;
     bool addedParameterValues;
-    unsigned long long steps=0;
-    unsigned long long maxSteps = atoll((*parameters)["maxSteps"].c_str());
+    unsigned uint64_t steps=0;
+    unsigned uint64_t maxSteps = atoll((*parameters)["maxSteps"].c_str());
     if (maxSteps == 0) maxSteps = ULONG_LONG_MAX;
     while (steps < maxSteps && !reachedSpeciesLimit())
     {

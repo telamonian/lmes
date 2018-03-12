@@ -109,8 +109,9 @@ public:
     // Lattice limits.
     virtual site_t getMaxSiteType() const =0;
     virtual particle_t getMaxParticle() const =0;
+    virtual particle_t getEmptyParticle() const=0;
     virtual site_size_t getMaxOccupancy() const =0;
-	
+
 public:
     Lattice(lattice_coord_t size, si_dist_t spacing);
 	Lattice(lattice_size_t xSize, lattice_size_t ySize, lattice_size_t zSize, si_dist_t spacing);
@@ -179,13 +180,11 @@ public:
 
 	virtual void print() const;
 
-    // Methods to serialize the data.
-    virtual size_t serializeParticlesSize(bool deflate)=0;
-    virtual size_t serializeParticlesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool deflate)=0;
-    virtual void deserializeParticlesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool inflate)=0;
-    virtual size_t serializeSitesSize(bool deflate)=0;
-    virtual size_t serializeSitesTo(void* destBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool deflate)=0;
-    virtual void deserializeSitesFrom(const void* srcBuffer, size_t bufferSize, SerializationDataOrder dataOrdering, bool inflate)=0;
+    // Methods to get and set the raw data.
+    virtual void copySitesTo(ndarray<uint8_t>* array)=0;
+    virtual void copySitesFrom(ndarray<uint8_t>* array)=0;
+    virtual void copyParticlesTo(ndarray<uint8_t>* array)=0;
+    virtual void copyParticlesFrom(ndarray<uint8_t>* array)=0;
 
 protected:
 	lattice_coord_t size;

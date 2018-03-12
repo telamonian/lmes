@@ -41,6 +41,7 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+
 #ifndef LM_IO_HDF5_SIMULATIONFILE_H_
 #define LM_IO_HDF5_SIMULATIONFILE_H_
 
@@ -49,31 +50,19 @@
 #include <string>
 #include <vector>
 
-#include "lm/protowrap/NDArray.h"
-#include "lm/io/hdf5/HDF5.h"
 #include "lm/Exceptions.h"
+#include "lm/input/DiffusionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
+#include "lm/input/SpatialModel.pb.h"
+#include "lm/input/SimulationParameters.pb.h"
+#include "lm/io/DegreeAdvancementTimeSeries.pb.h"
+#include "lm/io/SpeciesTimeSeries.pb.h"
+#include "lm/io/hdf5/HDF5.h"
+#include "lm/protowrap/NDArray.h"
 #include "lm/Types.h"
 #include "robertslab/pbuf/NDArray.pb.h"
 
 namespace lm {
-
-namespace rdme{
-class Lattice;
-}
-
-namespace input {
-class DiffusionModel;
-class OrderParameters;
-class ReactionModel;
-class SimulationParameters;
-class SpatialModel;
-class Tilings;
-}
-
-namespace types {
-class BoundaryConditions;
-class Lattice;
-}
 
 namespace io {
 class FirstPassageTimes;
@@ -85,6 +74,24 @@ class SpeciesCounts;
 class SpeciesTimeSeries;
 class TilingHist;
 
+namespace input {
+class DiffusionModel;
+class OrderParameters;
+class ReactionModel;
+class SimulationParameters;
+class SpatialModel;
+class Tilings;
+}
+
+namespace rdme{
+class Lattice;
+}
+
+namespace types {
+class BoundaryConditions;
+class Lattice;
+}
+
 namespace hdf5 {
 
 using std::string;
@@ -95,11 +102,11 @@ using lm::IOException;
 //class IOException;
 
 typedef struct {
-    lm::input::OrderParameters * orderParameters;
+    lm::input::OrderParameters* orderParameters;
 } CallbackDataOrderParameters;
 
 typedef struct {
-    lm::input::Tilings * tilings;
+    lm::input::Tilings* tilings;
     string filename;
 } CallbackDataTilings;
 
@@ -141,11 +148,13 @@ public:
     };
     typedef PairMap<string, uint64_t, ReplicateHandles *> ReplicateHandleMap;
 
+public:
     static const uint MIN_VERSION;
     static const uint CURRENT_VERSION;
     static const uint MAX_REACTION_RATE_CONSTANTS;
     static const uint MAX_SHAPE_PARAMETERS;
 
+public:
     static bool isValidFile(const string filename) throw(IOException,HDF5Exception);
     static bool isValidFile(const char * filename) throw(IOException,HDF5Exception);
     static void create(const string filename) throw(IOException,HDF5Exception);
@@ -192,13 +201,11 @@ public:
     virtual bool replicateExists(uint64_t replicate);
     virtual void openReplicate(uint64_t replicate) throw(HDF5Exception);
     virtual void appendSpeciesCounts(uint64_t replicate, lm::io::SpeciesCounts* speciesCounts) throw(HDF5Exception);
-    static int32_t* dumpSpeciesCounts(const lm::io::SpeciesTimeSeries& speciesTimeSeries);
-    static double* dumpSpeciesTimes(const lm::io::SpeciesTimeSeries& speciesTimeSeries);
     virtual void appendSpeciesTimeSeries(uint64_t replicate, const lm::io::SpeciesTimeSeries& speciesCounts);
     virtual void appendSpeciesTimeSeries(uint64_t replicate, int numberEntries, int numberSpecies, const int32_t* counts, const double* times);
     virtual void appendLatticeTimeSeries(uint64_t replicate, const lm::io::LatticeTimeSeries& data);
     virtual void appendParameterValues(uint64_t replicate, lm::io::ParameterValues* parameterValues) throw(HDF5Exception,InvalidArgException);
-    virtual void setFirstPassageTimes(uint64_t replicate, lm::io::FirstPassageTimes* speciesCounts) throw(HDF5Exception,InvalidArgException);
+    virtual void setFirstPassageTimes(uint64_t replicate, const lm::io::FirstPassageTimes& speciesCounts) throw(HDF5Exception,InvalidArgException);
     virtual vector<double> getLatticeTimes(uint64_t replicate) throw(HDF5Exception,InvalidArgException);
     virtual void getLattice(uint64_t replicate, unsigned int latticeIndex, lm::rdme::Lattice* lattice) throw(HDF5Exception,InvalidArgException);
     virtual void closeReplicate(uint64_t replicate) throw(HDF5Exception);
@@ -220,22 +227,6 @@ public:
 
     //virtual void appendSpatialModelObjects(uint64_t replicate, lm::input::SpatialModel * model) throw(HDF5Exception,InvalidArgException);
     //virtual void getSpatialModelObjects(uint64_t replicate, lm::input::SpatialModel * model) throw(HDF5Exception);
-
-	/*virtual lattice_coord_t getLatticeSize() const;
-	virtual nmdist_t getLatticeSpacing() const;
-	virtual uint getMaxParticlesPerSite() const;
-	virtual lattice_particle_t getMaxParticleType() const;
-	virtual lattice_site_t getMaxSiteType() const;
-	virtual const std::map<uint64,uint64> getMaxParticleCounts() const;
-	virtual const std::map<uint64,uint64> getMaxSiteCounts() const;
-	
-	virtual uint64 getNumberFrames() const;	
-	virtual const std::vector<nstime_t> getFrameTimes() const;
-	virtual void loadFrame(uint64 frameIndex, Lattice* lattice, nstime_t* time=NULL) const throw(HDF5Exception);
-	
-	virtual uint64 getNumberLatticeConfigurations() const;
-	virtual const std::vector<nstime_t> getLatticeConfigurationTimes() const;
-	virtual void loadLatticeConfiguration(uint64 latticeIndex, Lattice* lattice, nstime_t* time=NULL) const throw(HDF5Exception);*/
 
 	// Methods for working with NDArrays
     hsize_t setDatasetFromNDArray(const std::string& groupPath, const std::string& datasetName, const robertslab::pbuf::NDArray& ndarrayRef, hid_t rootGroup = -1);
@@ -262,8 +253,8 @@ protected:
     virtual void openGroups() throw(HDF5Exception);
     virtual void loadParameters() throw(HDF5Exception);
     virtual void loadModel() throw(Exception,HDF5Exception);
-    virtual Hdf5File::ReplicateHandles* openReplicateHandles(uint64_t replicate) throw(HDF5Exception);
-    virtual Hdf5File::ReplicateHandles* createReplicateHandles(string replicateString) throw(Exception,HDF5Exception);
+    virtual ReplicateHandles* openReplicateHandles(uint64_t replicate) throw(HDF5Exception);
+    virtual ReplicateHandles* createReplicateHandles(string replicateString) throw(Exception,HDF5Exception);
     virtual void closeReplicateHandles(ReplicateHandles * handles) throw(HDF5Exception);
 	
 protected:
@@ -283,11 +274,10 @@ protected:
     // The model.
     bool            modelLoaded;
     unsigned int    numberSpecies;
+    unsigned int    numberReactions;
 
     // Handles for each replicate that is open.
     ReplicateHandleMap::T openReplicates;
-//    map<uint64_t,ReplicateHandles *> openReplicates;
-
 };
 
 }
