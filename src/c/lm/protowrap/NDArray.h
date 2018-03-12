@@ -45,7 +45,6 @@
 #include <vector>
 #include <zlib.h>
 
-#include "lm/array/Tuple.h"
 #include "lm/EnumHelper.h"
 #include "lm/io/hdf5/HDF5.h"
 #include "lm/protowrap/Msg.h"

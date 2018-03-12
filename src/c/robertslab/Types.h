@@ -17,24 +17,21 @@
  *               Johns Hopkins University
  *               http://biophysics.jhu.edu/roberts/
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #ifndef ROBERTSLAB_TYPES_H
 #define ROBERTSLAB_TYPES_H
 
-#include <list>
-#include <stdexcept>
-#include <vector>
-
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
-
-using std::invalid_argument;
-using std::list;
-using std::runtime_error;
-using std::vector;
+#include <google/protobuf/repeated_field.h>
+#include <list>
+#include <numeric>
+#include <sstream>
+#include <stdexcept>
+#include <vector>
 
 typedef unsigned int uint;
 
@@ -93,7 +90,7 @@ template <typename T> struct tuple
         memcpy(values, valuesArray, sizeof(T)*len);
     }
 
-    tuple(const list<T>& valuesList)
+    tuple(const std::list<T>& valuesList)
     :len(valuesList.size()),values(new T[len])
     {
         int i=0;
@@ -101,17 +98,23 @@ template <typename T> struct tuple
             values[i++] = *it;
     }
 
-    tuple(const vector<T>& valuesVector)
+    tuple(const std::vector<T>& valuesVector)
     :len(valuesVector.size()),values(new T[len])
     {
         for (uint i=0; i<valuesVector.size(); i++)
             values[i] = valuesVector[i];
     }
 
+    tuple(const google::protobuf::RepeatedField<T>& repFieldRef)
+    :len(repFieldRef.size()),values(new T[repFieldRef.size()]())
+    {
+        memcpy(values, repFieldRef.data(), sizeof(T)*len);
+    }
+
     tuple& operator=(const tuple<T>& t)
     {
         if (len != t.len)
-           throw invalid_argument("t: both tuples during assigment must be of the same length");
+           throw std::invalid_argument("t: both tuples during assigment must be of the same length");
         memcpy(values, t.values, sizeof(T)*len);
         return *this;
     }
@@ -150,7 +153,7 @@ template <typename T> struct tuple
     const T get(const uint index) const
     {
         if (index < len) return values[index];
-        else throw invalid_argument("index: index exceeded length of tuple");
+        else throw std::invalid_argument("index: index exceeded length of tuple");
     }
 
     void print(const char* suffix="") const
@@ -162,6 +165,19 @@ template <typename T> struct tuple
             printf(printf_format_string<T>(),values[i]);
         }
         printf(")%s",suffix);
+    }
+
+    // print contents to a string
+    std::string repr(const char* suffix="") const
+    {
+        std::stringstream reprStream("(");
+        for (uint i=0; i<len; i++)
+        {
+            if (i > 0) reprStream << ',';
+            reprStream << values[i];
+        }
+        reprStream << ")" << suffix;
+        return reprStream.str();
     }
 
 
@@ -214,8 +230,8 @@ public:
 
     ndarray& operator=(const ndarray& a)
     {
-        if (shape != a.shape) invalid_argument("a: both ndarrays during assigment must be of the same shape");
-        if (size != a.size) invalid_argument("a: both ndarrays during assigment must have the same size");
+        if (shape != a.shape) std::invalid_argument("a: both ndarrays during assigment must be of the same shape");
+        if (size != a.size) std::invalid_argument("a: both ndarrays during assigment must have the same size");
         memcpy(values, a.values, sizeof(T)*size);
         return *this;
     }
@@ -260,9 +276,9 @@ public:
     T& get(const tuple<uint>& index)
     {
         // Validate the index.
-        if (index.len != shape.len) throw invalid_argument("index: index tuple must have the same length as the shape of an ndarray");
+        if (index.len != shape.len) throw std::invalid_argument("index: index tuple must have the same length as the shape of an ndarray");
         for (uint i=0; i<shape.len; i++)
-            if (index[i] >= shape[i]) throw invalid_argument("index: value of index exceeded ndarry length for the dimension");
+            if (index[i] >= shape[i]) throw std::invalid_argument("index: value of index exceeded ndarry length for the dimension");
 
         // Calculate the position.
         uint position=0;
@@ -287,11 +303,26 @@ public:
             }
             break;
         case ndarray_ArrayOrder::IMPL_ORDER:
-            throw runtime_error("an ndarray with ordering IMPL_ORDER cannot be accessed by index");
+            throw std::runtime_error("an ndarray with ordering IMPL_ORDER cannot be accessed by index");
         }
 
         // Return a reference to the element.
         return values[position];
+    }
+
+    // names of these functions taken from the numpy equivalents
+    uint ravelMultiIndex(const utuple& multiIndex, const utuple& shape)
+    {
+        uint position=0;
+        for (uint i=0; i<shape.len; i++)
+        {
+            uint offset=1;
+            for (uint j=i+1; j<shape.len; j++)
+                offset *= shape[j];
+            position += multiIndex[i]*offset;
+        }
+
+        return position;
     }
 
     void set(const uint index, const T value)
@@ -304,12 +335,32 @@ public:
         get(index) = value;
     }
 
+    utuple unravelIndex(uint index, const utuple& shape)
+    {
+        std::vector<uint> multiIndex(shape.len, 0);
+        std::vector<uint> minorShapes(shape.values + 1, shape.values + shape.len + 1);
+        // for shape->(x, y, z), the partial_sum will store (y*z, z, 0) in multiIndex
+        std::partial_sum (minorShapes.rbegin(), minorShapes.rend(), multiIndex.rbegin() + 1, std::multiplies<int>());
+
+        div_t divmod;
+        for (uint i=0; i<shape.len - 1; i++)
+        {
+            // need static_cast<int> or else the compiler confuses the int and long versions of div
+            divmod = std::div(static_cast<int>(index), static_cast<int>(multiIndex[i]));
+            index = divmod.rem;
+            multiIndex[i] = divmod.quot;
+        }
+        multiIndex.back() = index;
+
+        return utuple(multiIndex);
+    }
+
     ndarray& equalsDifference(const ndarray& a1, const ndarray& a2)
     {
-        if (shape != a1.shape) invalid_argument("a1: all ndarrays during equals difference must be of the same shape");
-        if (shape != a2.shape) invalid_argument("a2: all ndarrays during equals difference must be of the same shape");
-        if (size != a1.size) invalid_argument("a1: all ndarrays during equals difference must have the same size");
-        if (size != a2.size) invalid_argument("a2: all ndarrays during equals difference must have the same size");
+        if (shape != a1.shape) std::invalid_argument("a1: all ndarrays during equals difference must be of the same shape");
+        if (shape != a2.shape) std::invalid_argument("a2: all ndarrays during equals difference must be of the same shape");
+        if (size != a1.size) std::invalid_argument("a1: all ndarrays during equals difference must have the same size");
+        if (size != a2.size) std::invalid_argument("a2: all ndarrays during equals difference must have the same size");
         for (uint i=0; i<size; i++)
             values[i] = a1.values[i]-a2.values[i];
         return *this;
@@ -383,7 +434,7 @@ private:
         {
             T* tmp;
             int _posix_ret_=posix_memalign((void**)&tmp, alignment*sizeof(T), size*sizeof(T));
-            if (_posix_ret_ != 0) throw invalid_argument("alignment: could not allocate aligned memory");
+            if (_posix_ret_ != 0) throw std::invalid_argument("alignment: could not allocate aligned memory");
             return tmp;
         }
         return (T*)malloc(size*sizeof(T));
@@ -401,5 +452,3 @@ private:
 };
 
 #endif // ROBERTSLAB_TYPES_H
-
-

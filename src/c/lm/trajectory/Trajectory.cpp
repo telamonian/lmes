@@ -45,7 +45,6 @@
 
 #include "lm/Print.h"
 #include "lm/Types.h"
-#include "lm/array/Tuple.h"
 #include "lm/input/Input.h"
 #include "lm/protowrap/NDArray.h"
 #include "lm/io/OrderParameterFirstPassageTimes.pb.h"

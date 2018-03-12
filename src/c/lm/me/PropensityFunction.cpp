@@ -43,7 +43,6 @@
 #include <string>
 #include <vector>
 
-#include "lm/array/NDArray.h"
 #include "lm/ClassFactory.h"
 #include "lm/Print.h"
 #include "lm/Types.h"

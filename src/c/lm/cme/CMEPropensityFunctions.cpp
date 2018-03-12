@@ -43,10 +43,10 @@
 #include <vector>
 #include "math.h"
 
-#include "lm/array/NDArray.h"
 #include "lm/ClassFactory.h"
 #include "lm/cme/CMEPropensityFunctions.h"
 #include "lm/me/PropensityFunction.h"
+#include "lm/Types.h"
 
 using std::list;
 using std::map;

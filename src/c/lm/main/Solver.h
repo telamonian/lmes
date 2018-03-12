@@ -45,13 +45,10 @@
 
 #include "lm/Types.h"
 #include "lm/input/OutputOptions.pb.h"
-#include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/WorkUnitOutput.pb.h"
 #include "lm/message/WorkUnitStatus.pb.h"
-
-using std::string;
-using std::vector;
 
 namespace lm {
 namespace main {
@@ -62,9 +59,9 @@ public:
     Solver();
     virtual ~Solver();
     virtual uint getSimultaneousTrajectories();
-    virtual void setComputeResources(vector<int> cpus, vector<int> gpus);
+    virtual void setComputeResources(std::vector<int> cpus, std::vector<int> gpus);
     virtual void reset();
-    virtual void setLimits(const lm::io::TrajectoryLimits& limits)=0;
+    virtual void setLimits(const lm::input::TrajectoryLimits& limits)=0;
     virtual void setOutputOptions(const lm::input::OutputOptions& outputOptions)=0;
     virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0)=0;
     virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0)=0;
@@ -76,8 +73,8 @@ protected:
     bool isTrajectoryOutsideLimits();
 
 protected:
-    vector<int> cpus;
-    vector<int> gpus;
+    std::vector<int> cpus;
+    std::vector<int> gpus;
 };
 
 }

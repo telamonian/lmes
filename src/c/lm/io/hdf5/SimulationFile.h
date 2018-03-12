@@ -64,16 +64,6 @@
 
 namespace lm {
 
-namespace io {
-class FirstPassageTimes;
-class FFluxOutput;
-class LatticeTimeSeries;
-class OrderParameterFirstPassageTimes;
-class ParameterValues;
-class SpeciesCounts;
-class SpeciesTimeSeries;
-class TilingHist;
-
 namespace input {
 class DiffusionModel;
 class OrderParameters;
@@ -92,14 +82,24 @@ class BoundaryConditions;
 class Lattice;
 }
 
+
+namespace io {
+class FirstPassageTimes;
+class FFluxOutput;
+class LatticeTimeSeries;
+class OrderParameterFirstPassageTimes;
+class ParameterValues;
+class SpeciesCounts;
+class SpeciesTimeSeries;
+class TilingHist;
+
 namespace hdf5 {
 
 using std::string;
 using std::map;
 using std::vector;
-using lm::IOException;
 
-//class IOException;
+using lm::IOException;
 
 typedef struct {
     lm::input::OrderParameters* orderParameters;
@@ -284,4 +284,4 @@ protected:
 }
 }
 
-#endif
+#endif /* LM_IO_HDF5_SIMULATIONFILE_H_ */

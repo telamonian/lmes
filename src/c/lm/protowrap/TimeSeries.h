@@ -43,12 +43,12 @@
 #include <sstream>
 #include <string>
 
-#include "lm/array/Tuple.h"
 #include "lm/io/DegreeAdvancementTimeSeries.pb.h"
 #include "lm/io/OrderParameterTimeSeries.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/message/WorkUnitOutput.pb.h"
 #include "lm/protowrap/NDArray.h"
+#include "lm/Types.h"
 
 namespace lm {
 namespace protowrap {

@@ -39,8 +39,8 @@
 #ifndef LM_CME_CMEPROPENSITYFUNCTIONS_H
 #define LM_CME_CMEPROPENSITYFUNCTIONS_H
 
-#include "lm/array/NDArray.h"
 #include "lm/me/PropensityFunction.h"
+#include "lm/Types.h"
 
 namespace lm {
 namespace cme {

@@ -27,7 +27,7 @@
 #include "lm/input/MicroenvironmentInput.pb.h"
 #include "lm/types/BoundaryConditions.pb.h"
 #include "lm/input/OutputOptions.pb.h"
-#include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/message/WorkUnitOutput.pb.h"
 #include "lm/message/WorkUnitStatus.pb.h"
@@ -47,7 +47,7 @@ public:
     ExplicitFiniteDifferenceSolver();
     virtual ~ExplicitFiniteDifferenceSolver();
     virtual void setMicroenvironmentModel(const lm::input::MicroenvironmentInput& model);
-    virtual void setLimits(const lm::io::TrajectoryLimits& limits);
+    virtual void setLimits(const lm::input::TrajectoryLimits& limits);
     virtual void setOutputOptions(const lm::input::OutputOptions& outputOptions);
     virtual void reset();
     virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0);
