@@ -299,6 +299,9 @@ void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
             lm::message::WorkUnitOutput* output = solver->getOutput(j);
             if (output->has_output())
             {
+                output->set_condense_output(rwuMsg.output_options().condense_output());
+                output->set_record_name_prefix(rwuMsg.output_options().record_name_prefix());
+
                 outputParts->AddAllocated(output);
                 hasOutput = true;
             }
